@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.17.0] - 2026-04-30
+
+### Added
+
+- `AppFontPaths` registry lets apps declare custom font search paths
+  before window creation. SDL2/Metal/GL backends load the registry
+  at backend init so glyph rasterization picks up app-bundled fonts
+  without ad-hoc backend hooks.
+
+### Changed
+
+- Bumped `github.com/mike-ward/go-glyph` to `v1.7.0`.
+
+### Fixed
+
+- Inline math (markdown RTF render) now uses the per-`InlineObject`
+  Height/Offset when available, preserving true aspect ratio for
+  tall constructs like fractions and integrals. Previously height
+  was clamped to line-height (ascent+descent), squashing oversize
+  glyphs. Legacy entries without `Object` keep the old line-height
+  fallback.
+
 ## [v0.16.0] - 2026-04-28
 
 ### Added
