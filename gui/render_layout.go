@@ -828,11 +828,21 @@ func renderRtf(shape *Shape, clip DrawClip, w *Window) {
 		if !ok || entry.State != DiagramReady {
 			continue
 		}
+		// Prefer the InlineObject's own height/offset so tall math
+		// (fractions, integrals) keeps its true aspect ratio. Fall
+		// back to line-height when Object is missing (legacy path).
 		h := float32(item.Ascent + item.Descent)
+		y := float32(item.Y - item.Ascent)
+		if obj := item.Style.Object; obj != nil && obj.Height > 0 {
+			h = obj.Height
+			// Offset positions image bottom relative to baseline
+			// (matches Pango logicalRect: y = -h - offset).
+			y = float32(item.Y) - obj.Height - obj.Offset
+		}
 		emitRenderer(RenderCmd{
 			Kind:     RenderImage,
 			X:        baseX + float32(item.X),
-			Y:        baseY + float32(item.Y-item.Ascent),
+			Y:        baseY + y,
 			W:        float32(item.Width),
 			H:        h,
 			Resource: entry.PNGPath,
