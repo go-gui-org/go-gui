@@ -1,6 +1,9 @@
 package gui
 
-import _ "embed"
+import (
+	_ "embed"
+	"slices"
+)
 
 // FontVariants holds paths of font files used by the GUI.
 type FontVariants struct {
@@ -20,6 +23,25 @@ const (
 //
 //go:embed assets/feathericon.ttf
 var IconFontData []byte
+
+// AppFontPaths lists application font files to register with the
+// text system at backend init time. Append paths via RegisterAppFont
+// before calling backend.RunApp / backend.Run. Paths are loaded
+// process-globally so any window can resolve them by Family name.
+//
+// Use this for fonts not exposed through fontconfig / system font
+// catalogs — for example, fonts bundled inside .app resource
+// directories on macOS.
+var AppFontPaths []string
+
+// RegisterAppFont appends path to AppFontPaths if not already
+// present. Safe to call multiple times with the same path.
+func RegisterAppFont(path string) {
+	if slices.Contains(AppFontPaths, path) {
+		return
+	}
+	AppFontPaths = append(AppFontPaths, path)
+}
 
 // Icon constants — Feather icon font Unicode mappings.
 const (

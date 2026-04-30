@@ -134,6 +134,12 @@ func New(w *gui.Window) (*Backend, error) {
 		}
 	}
 
+	for _, p := range gui.AppFontPaths {
+		if err := textSys.AddFontFile(p); err != nil {
+			log.Printf("sdl2: load app font %q: %v", p, err)
+		}
+	}
+
 	b := &Backend{
 		window:            win,
 		renderer:          ren,

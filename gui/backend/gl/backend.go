@@ -199,6 +199,12 @@ func New(w *gui.Window) (*Backend, error) {
 		}
 	}
 
+	for _, p := range gui.AppFontPaths {
+		if err := textSys.AddFontFile(p); err != nil {
+			log.Printf("gl: load app font %q: %v", p, err)
+		}
+	}
+
 	// Create system cursors.
 	b.cursors[gui.CursorDefault] = sdl.CreateSystemCursor(sdl.SYSTEM_CURSOR_ARROW)
 	b.cursors[gui.CursorArrow] = sdl.CreateSystemCursor(sdl.SYSTEM_CURSOR_ARROW)

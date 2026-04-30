@@ -528,6 +528,12 @@ func createWindowState(w *gui.Window,
 		}
 	}
 
+	for _, p := range gui.AppFontPaths {
+		if err := textSys.AddFontFile(p); err != nil {
+			log.Printf("metal: load app font %q: %v", p, err)
+		}
+	}
+
 	return ws, nil
 }
 
