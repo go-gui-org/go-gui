@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.18.0] - 2026-05-09
+
+### Added
+
+- `OnKeyUp` callback on Input widgets; `KeyUp` event dispatched through
+  `Window.EventFn` mirrors the existing `OnKeyDown` pipeline.
+- `key_up_demo` example demonstrating `KeyUp` event flow.
+
+### Changed
+
+- Extracted `ScrollDeltaHome` constant (replaces magic number `10_000_000`).
+- Added `hasAnyModifiers()` helper and `inputTextChange()` function to reduce
+  complexity in `makeInputOnChar()`; modernized loops with `slices.Backward`.
+
+### Fixed
+
+- Context menu no longer hijacks `IDFocus` on right-click. Pre-open focus is
+  saved in `nsContextMenuFocus` (survives `dismissPopups`) and restored on
+  action selection; `menuItemClick` only resets focus to zero when no action
+  callback changed it.
+
 ## [v0.17.0] - 2026-04-30
 
 ### Added
