@@ -270,6 +270,7 @@ const (
 type EventHandlers struct {
 	OnChar        func(*Layout, *Event, *Window)
 	OnKeyDown     func(*Layout, *Event, *Window)
+	OnKeyUp       func(*Layout, *Event, *Window)
 	OnClick       func(*Layout, *Event, *Window)
 	OnMouseMove   func(*Layout, *Event, *Window)
 	OnMouseUp     func(*Layout, *Event, *Window)

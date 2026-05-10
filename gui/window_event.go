@@ -99,6 +99,9 @@ func (w *Window) EventFn(e *Event) {
 			w.commandDispatch(e, false)
 		}
 
+	case EventKeyUp:
+		keyupHandler(layout, e, w)
+
 	case EventMouseDown:
 		w.SetMouseCursor(CursorArrow)
 		if inspectorSupported && w.inspectorEnabled {

@@ -833,3 +833,81 @@ func TestInputOnKeyDownHomeSingleLine(t *testing.T) {
 		t.Fatalf("Home 2: cursor=%d, want 0", is.CursorPos)
 	}
 }
+
+func TestMakeInputOnKeyUp_FocusCheck(t *testing.T) {
+	t.Parallel()
+	// Test that handler is only called when focused
+	called := false
+	hcfg := inputHandlerCfg{
+		IDFocus: 123,
+		OnKeyUp: func(_ *Layout, e *Event, _ *Window) {
+			called = true
+		},
+	}
+
+	handler := makeInputOnKeyUp(hcfg)
+	layout := &Layout{}
+	w := &Window{}
+	e := &Event{KeyCode: KeyEnter}
+
+	// Test when not focused - should not call handler
+	handler(layout, e, w)
+	if called {
+		t.Error("Handler should not be called when not focused")
+	}
+
+	// Test when focused - should call handler
+	w.SetIDFocus(123)
+	called = false
+	handler(layout, e, w)
+	if !called {
+		t.Error("Handler should be called when focused")
+	}
+}
+
+func TestMakeInputOnKeyUp_ZeroIDFocusNoCall(t *testing.T) {
+	t.Parallel()
+	// Test that IDFocus=0 prevents handler from being called
+	called := false
+	hcfg := inputHandlerCfg{
+		IDFocus: 0, // Zero ID should prevent calls
+		OnKeyUp: func(_ *Layout, e *Event, _ *Window) {
+			called = true
+		},
+	}
+
+	handler := makeInputOnKeyUp(hcfg)
+	layout := &Layout{}
+	w := &Window{}
+	w.SetIDFocus(0) // Even with focus set to 0
+	e := &Event{KeyCode: KeyEnter}
+
+	handler(layout, e, w)
+	if called {
+		t.Error("Handler should not be called when IDFocus is 0")
+	}
+}
+
+func TestMakeInputOnKeyUp_NilHandler(t *testing.T) {
+	t.Parallel()
+	// Test that nil OnKeyUp doesn't panic
+	hcfg := inputHandlerCfg{
+		IDFocus: 123,
+		OnKeyUp: nil, // Nil handler
+	}
+
+	handler := makeInputOnKeyUp(hcfg)
+	layout := &Layout{}
+	w := &Window{}
+	w.SetIDFocus(123)
+	e := &Event{KeyCode: KeyEnter}
+
+	// Should not panic
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("makeInputOnKeyUp panicked with nil handler: %v", r)
+		}
+	}()
+
+	handler(layout, e, w)
+}

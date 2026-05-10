@@ -86,6 +86,56 @@ func TestKeydownHandlerDelivers(t *testing.T) {
 	}
 }
 
+func TestKeyupHandlerDelivers(t *testing.T) {
+	t.Parallel()
+	called := false
+	root := focusedChild(1, &EventHandlers{
+		OnKeyUp: func(_ *Layout, e *Event, _ *Window) {
+			called = true
+			e.IsHandled = true
+		},
+	})
+	w := &Window{}
+	w.SetIDFocus(1)
+	e := &Event{KeyCode: KeyEnter}
+	keyupHandler(root, e, w)
+	if !called {
+		t.Error("OnKeyUp not called")
+	}
+}
+
+func TestKeyupHandler_NilLayoutNoPanic(t *testing.T) {
+	t.Parallel()
+	// Should not panic when layout is nil
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("keyupHandler panicked with nil layout: %v", r)
+		}
+	}()
+
+	w := &Window{}
+	e := &Event{KeyCode: KeyEnter}
+	keyupHandler(nil, e, w)
+}
+
+func TestKeyupHandler_ExcessiveChildren(t *testing.T) {
+	t.Parallel()
+	// Should return early when children count exceeds limit
+	called := false
+	root := &Layout{
+		Children: make([]Layout, 10001), // Exceeds the 10,000 limit
+	}
+
+	w := &Window{}
+	e := &Event{KeyCode: KeyEnter}
+	keyupHandler(root, e, w)
+
+	// Handler should not be called due to early return
+	if called {
+		t.Error("Handler should not be called with excessive children")
+	}
+}
+
 func TestKeydownHandlerFallbackScroll(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{},

@@ -74,6 +74,7 @@ type ContainerCfg struct {
 	OnAnyClick  func(*Layout, *Event, *Window)
 	OnChar      func(*Layout, *Event, *Window)
 	OnKeyDown   func(*Layout, *Event, *Window)
+	OnKeyUp     func(*Layout, *Event, *Window)
 	OnMouseMove func(*Layout, *Event, *Window)
 	OnMouseUp   func(*Layout, *Event, *Window)
 	OnScroll    func(*Layout, *Window)
@@ -224,17 +225,18 @@ func makeContainerEffects(c *ContainerCfg) *ShapeEffects {
 
 func makeContainerEvents(c *ContainerCfg) *EventHandlers {
 	if c.OnClick == nil && c.OnChar == nil &&
-		c.OnKeyDown == nil && c.OnMouseMove == nil &&
-		c.OnMouseUp == nil && c.OnHover == nil &&
-		c.OnGesture == nil && c.OnFileDrop == nil &&
-		c.OnIMECommit == nil && c.OnScroll == nil &&
-		c.AmendLayout == nil {
+		c.OnKeyDown == nil && c.OnKeyUp == nil &&
+		c.OnMouseMove == nil && c.OnMouseUp == nil &&
+		c.OnHover == nil && c.OnGesture == nil &&
+		c.OnFileDrop == nil && c.OnIMECommit == nil &&
+		c.OnScroll == nil && c.AmendLayout == nil {
 		return nil
 	}
 	return &EventHandlers{
 		OnClick:     c.OnClick,
 		OnChar:      c.OnChar,
 		OnKeyDown:   c.OnKeyDown,
+		OnKeyUp:     c.OnKeyUp,
 		OnMouseMove: c.OnMouseMove,
 		OnMouseUp:   c.OnMouseUp,
 		OnHover:     c.OnHover,

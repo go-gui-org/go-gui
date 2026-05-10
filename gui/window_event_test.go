@@ -318,3 +318,69 @@ func TestEventFnMouseScrollFocusedHandlerPrecedence(t *testing.T) {
 		t.Error("focused OnMouseScroll should mark event as handled")
 	}
 }
+
+func TestEventFnRoutesKeyUp(t *testing.T) {
+	w := newEventTestWindow()
+	called := false
+	w.layout = Layout{
+		Shape: &Shape{},
+		Children: []Layout{
+			{Shape: &Shape{
+				IDFocus: 1,
+				Events: &EventHandlers{
+					OnKeyUp: func(_ *Layout, e *Event, _ *Window) {
+						called = true
+						e.IsHandled = true
+					},
+				},
+			}},
+		},
+	}
+	w.SetIDFocus(1)
+	e := &Event{
+		Type:    EventKeyUp,
+		KeyCode: KeyEnter,
+	}
+	w.EventFn(e)
+	if !called {
+		t.Error("OnKeyUp should be called for EventKeyUp")
+	}
+	if !e.IsHandled {
+		t.Error("OnKeyUp should mark event as handled")
+	}
+}
+
+func TestKeyUpEventFlow_WindowToInput(t *testing.T) {
+	// Integration test for key up event flow from Window.EventFn to input widget callback
+	called := false
+	w := newEventTestWindow()
+
+	// Create an input widget with OnKeyUp handler
+	input := Input(InputCfg{
+		ID:      "test-input",
+		IDFocus: 42,
+		OnKeyUp: func(_ *Layout, e *Event, _ *Window) {
+			called = true
+			e.IsHandled = true
+		},
+	})
+
+	// Set up window layout with the input
+	w.layout = GenerateViewLayout(input, w)
+	w.SetIDFocus(42)
+
+	// Send key up event through window
+	e := &Event{
+		Type:    EventKeyUp,
+		KeyCode: KeyEnter,
+	}
+	w.EventFn(e)
+
+	// Verify the input's OnKeyUp handler was called
+	if !called {
+		t.Error("Input widget OnKeyUp should be called through window event flow")
+	}
+	if !e.IsHandled {
+		t.Error("Event should be marked as handled by input widget")
+	}
+}
