@@ -60,12 +60,47 @@ func keydownHandler(layout *Layout, e *Event, w *Window) {
 	}
 }
 
+// keyupHandler handles key up events.
+// Traverses forward and delivers to focused element.
+func keyupHandler(layout *Layout, e *Event, w *Window) {
+	// Guard against nil layout to prevent panic
+	if layout == nil {
+		return
+	}
+
+	// Guard against excessive children count to prevent DoS
+	if len(layout.Children) > 10000 {
+		return
+	}
+
+	for i := range layout.Children {
+		if !isChildEnabled(&layout.Children[i]) {
+			continue
+		}
+		keyupHandler(&layout.Children[i], e, w)
+		if e.IsHandled {
+			return
+		}
+	}
+	if layout.Shape == nil || !isFocusedTarget(layout, w) {
+		return
+	}
+	var onKeyUp ShapeCallback
+	if layout.Shape.HasEvents() {
+		onKeyUp = layout.Shape.Events.OnKeyUp
+	}
+	executeFocusCallback(layout, e, w, onKeyUp)
+}
+
 // keyDownScrollHandler handles keyboard-based scrolling.
 // Supports arrow keys, page up/down, and home/end.
+const (
+	ScrollDeltaHome = 10_000_000
+)
+
 func keyDownScrollHandler(layout *Layout, e *Event, w *Window) {
 	deltaLine := guiTheme.ScrollDeltaLine
 	deltaPage := guiTheme.ScrollDeltaPage
-	const deltaHome float32 = 10_000_000
 
 	switch e.Modifiers {
 	case ModNone:
@@ -75,9 +110,9 @@ func keyDownScrollHandler(layout *Layout, e *Event, w *Window) {
 		case KeyDown:
 			e.IsHandled = scrollVertical(layout, -deltaLine, w)
 		case KeyHome:
-			e.IsHandled = scrollVertical(layout, deltaHome, w)
+			e.IsHandled = scrollVertical(layout, ScrollDeltaHome, w)
 		case KeyEnd:
-			e.IsHandled = scrollVertical(layout, -deltaHome, w)
+			e.IsHandled = scrollVertical(layout, -ScrollDeltaHome, w)
 		case KeyPageUp:
 			e.IsHandled = scrollVertical(layout, deltaPage, w)
 		case KeyPageDown:

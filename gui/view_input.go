@@ -50,6 +50,7 @@ type InputCfg struct {
 	OnTextCommit  func(*Layout, string, InputCommitReason, *Window)
 	OnEnter       func(*Layout, *Event, *Window)
 	OnKeyDown     func(*Layout, *Event, *Window)
+	OnKeyUp       func(*Layout, *Event, *Window)
 	OnBlur        func(*Layout, *Window)
 	// PreTextChange is called before text changes. Return (adjusted, true)
 	// to accept (adjusted may differ from proposed), or ("", false) to
@@ -104,6 +105,7 @@ func Input(cfg InputCfg) View {
 		OnTextCommit:        cfg.OnTextCommit,
 		OnEnter:             cfg.OnEnter,
 		OnKeyDown:           cfg.OnKeyDown,
+		OnKeyUp:             cfg.OnKeyUp,
 		PreTextChange:       cfg.PreTextChange,
 		PostCommitNormalize: cfg.PostCommitNormalize,
 	}
@@ -183,6 +185,7 @@ func Input(cfg InputCfg) View {
 		Spacing:         SomeF(0),
 		OnChar:          makeInputOnChar(hcfg),
 		OnKeyDown:       makeInputOnKeyDown(hcfg),
+		OnKeyUp:         makeInputOnKeyUp(hcfg),
 		OnHover: func(layout *Layout, _ *Event, w *Window) {
 			w.SetMouseCursor(CursorIBeam)
 			if !w.IsFocus(idFocus) {
@@ -241,6 +244,7 @@ type inputHandlerCfg struct {
 	OnTextCommit        func(*Layout, string, InputCommitReason, *Window)
 	OnEnter             func(*Layout, *Event, *Window)
 	OnKeyDown           func(*Layout, *Event, *Window)
+	OnKeyUp             func(*Layout, *Event, *Window)
 	PreTextChange       func(current, proposed string) (string, bool)
 	PostCommitNormalize func(text string, reason InputCommitReason) string
 }
@@ -442,8 +446,40 @@ func inputAmendLayout(
 	}
 }
 
-func makeInputOnChar(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
+// inputTextChange handles text modification logic for input widgets
+func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id uint32, w *Window) (string, bool) {
 	mask := hcfg.CompiledMask
+	if mask != nil {
+		is := inputStateOrDefault(id, w)
+		res := InputMaskInsert(text, is.CursorPos, is.SelectBeg, is.SelectEnd, ins, mask)
+		if res.Changed {
+			undo := inputPushUndo(is, text)
+			text = res.Text
+			StateMap[uint32, InputState](w, nsInput, capMany).Set(id, InputState{
+				CursorPos: res.CursorPos, Undo: undo,
+			})
+			return text, true
+		}
+	} else if hcfg.PreTextChange != nil {
+		proposed := inputProposedText(text, ins, id, w)
+		if adjusted, ok := hcfg.PreTextChange(text, proposed); ok {
+			if adjusted == proposed {
+				text = inputInsert(text, ins, id, w)
+			} else {
+				inputSetTextAndCursorAtEnd(
+					text, adjusted, id, w)
+				text = adjusted
+			}
+			return text, true
+		}
+	} else {
+		text = inputInsert(text, ins, id, w)
+		return text, true
+	}
+	return text, false
+}
+
+func makeInputOnChar(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
 	return func(layout *Layout, e *Event, w *Window) {
 		if hcfg.IDFocus == 0 || !w.IsFocus(hcfg.IDFocus) {
 			return
@@ -458,39 +494,11 @@ func makeInputOnChar(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
 		}
 
 		text := inputTextFromLayout(layout)
-		changed := false
-
 		ins := e.IMEText
 		if len(ins) == 0 {
 			ins = string(rune(ch))
 		}
-		if mask != nil {
-			is := inputStateOrDefault(id, w)
-			res := InputMaskInsert(text, is.CursorPos, is.SelectBeg, is.SelectEnd, ins, mask)
-			if res.Changed {
-				undo := inputPushUndo(is, text)
-				text = res.Text
-				StateMap[uint32, InputState](w, nsInput, capMany).Set(id, InputState{
-					CursorPos: res.CursorPos, Undo: undo,
-				})
-				changed = true
-			}
-		} else if hcfg.PreTextChange != nil {
-			proposed := inputProposedText(text, ins, id, w)
-			if adjusted, ok := hcfg.PreTextChange(text, proposed); ok {
-				if adjusted == proposed {
-					text = inputInsert(text, ins, id, w)
-				} else {
-					inputSetTextAndCursorAtEnd(
-						text, adjusted, id, w)
-					text = adjusted
-				}
-				changed = true
-			}
-		} else {
-			text = inputInsert(text, ins, id, w)
-			changed = true
-		}
+		text, changed := inputTextChange(hcfg, layout, text, ins, id, w)
 
 		if changed {
 			resetBlinkCursorVisible(w)
@@ -601,6 +609,17 @@ func makeInputOnKeyDown(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
 			e.IsHandled = true
 		} else if hcfg.OnKeyDown != nil {
 			hcfg.OnKeyDown(layout, e, w)
+		}
+	}
+}
+
+func makeInputOnKeyUp(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
+	return func(layout *Layout, e *Event, w *Window) {
+		if hcfg.IDFocus == 0 || !w.IsFocus(hcfg.IDFocus) {
+			return
+		}
+		if hcfg.OnKeyUp != nil {
+			hcfg.OnKeyUp(layout, e, w)
 		}
 	}
 }

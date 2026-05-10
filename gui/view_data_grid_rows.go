@@ -3,6 +3,7 @@ package gui
 import (
 	"maps"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -537,8 +538,13 @@ func dataGridTrackRowEditClick(gridID string, editEnabled bool, editorFocusBase 
 	dgES.Set(gridID, state)
 }
 
+// hasAnyModifiers checks if the event has any of the specified keyboard modifiers
+func hasAnyModifiers(e *Event, modifiers ...Modifier) bool {
+	return slices.ContainsFunc(modifiers, e.Modifiers.Has)
+}
+
 func dataGridHasKeyboardModifiers(e *Event) bool {
-	return e.Modifiers.Has(ModShift) || e.Modifiers.Has(ModCtrl) || e.Modifiers.Has(ModAlt) || e.Modifiers.Has(ModSuper)
+	return hasAnyModifiers(e, ModShift, ModCtrl, ModAlt, ModSuper)
 }
 
 func dataGridFirstEditableColumnIndex(cfg *DataGridCfg, columns []GridColumnCfg) int {
