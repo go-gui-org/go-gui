@@ -2,6 +2,11 @@
 #import <QuartzCore/CAMetalLayer.h>
 #include "metal_darwin.h"
 #include <string.h>
+#include <objc/runtime.h>
+
+// ARC-compatible per-frame pool management.
+extern void *objc_autoreleasePoolPush(void);
+extern void  objc_autoreleasePoolPop(void *token);
 
 // ─── Constants ────────────────────────────────────────────────
 
@@ -51,6 +56,10 @@ struct MetalContext {
     int freeCustomPipelineIDs[MAX_CUSTOM_PIPELINES];
     int freeCustomPipelineCount;
     int nextCustomPipelineID;
+    // Per-frame autorelease pool token — drains command buffer,
+    // descriptors, encoders, and one-off buffers each frame.
+    // Managed via objc_autoreleasePoolPush/Pop (ARC-compatible).
+    void *framePool;
 };
 
 // Local typedef — the header uses void* for cgo compat.
@@ -977,6 +986,10 @@ void metalSetCustomPipeline(MetalCtx ctx_, int idx) {
 void metalCtxDestroy(MetalCtx ctx_) {
     MetalContext* ctx = MC(ctx_);
     if (!ctx) return;
+    if (ctx->framePool) {
+        objc_autoreleasePoolPop(ctx->framePool);
+        ctx->framePool = nil;
+    }
     for (int i = 0; i < MAX_TEX; i++) {
         ctx->textures[i] = nil;
     }
@@ -1025,10 +1038,14 @@ void metalResize(MetalCtx ctx_, int w, int h) {
 int metalBeginFrame(MetalCtx ctx_,
                     float r, float g, float b, float a) {
     MetalContext* ctx = MC(ctx_);
-    @autoreleasepool {
-        ctx->drawable = [ctx->layer nextDrawable];
+    ctx->framePool = objc_autoreleasePoolPush();
+
+    ctx->drawable = [ctx->layer nextDrawable];
+    if (!ctx->drawable) {
+        objc_autoreleasePoolPop(ctx->framePool);
+        ctx->framePool = nil;
+        return -1;
     }
-    if (!ctx->drawable) return -1;
 
     ctx->triBufFrame =
         (ctx->triBufFrame + 1) % TRI_BUF_RING;
@@ -1052,6 +1069,10 @@ void metalEndFrame(MetalCtx ctx_) {
     }
     ctx->drawable = nil;
     ctx->cmdBuf   = nil;
+    if (ctx->framePool) {
+        objc_autoreleasePoolPop(ctx->framePool);
+        ctx->framePool = nil;
+    }
 }
 
 void metalSetPipeline(MetalCtx ctx_, int id) {
