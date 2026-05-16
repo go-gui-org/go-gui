@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.19.0] - 2026-05-16
+
+### Added
+
+- Animation heartbeat is now view-bound: orphaned animations (whose owning
+  layout is no longer present in the view tree) are automatically cancelled,
+  preventing runaway tickers in long-lived windows.
+
+### Fixed
+
+- Metal backend: per-frame autorelease pool now spans the full frame
+  (`metalBeginFrame` → `metalEndFrame`). Command buffers, render pass
+  descriptors, encoders, and one-off `MTLBuffer` allocations were
+  accumulating in the thread's ambient pool indefinitely (Go threads have
+  no runloop). Uses `objc_autoreleasePoolPush`/`Pop` (ARC-compatible).
+
 ## [v0.18.0] - 2026-05-09
 
 ### Added
