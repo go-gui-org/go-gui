@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.19.1] - 2026-05-17
+
+### Added
+
+- Metal backend: scroll phase bridge (`scroll_phase_darwin`) fires
+  `EventScrollBegan` when a momentum scroll starts on macOS.
+
+### Fixed
+
+- Context menu: focus is now restored on dismiss; a second right-click no
+  longer clobbers the saved focus state.
+
 ## [v0.19.0] - 2026-05-16
 
 ### Added
