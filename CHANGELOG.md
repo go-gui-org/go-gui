@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.20.0] - 2026-05-18
+
+### Added
+
+- RTF widgets with `IDFocus` set now support interactive text selection:
+  click to place cursor, drag to extend selection (with scroll-aware
+  auto-scroll), double-click to select word, keyboard navigation
+  (arrow keys, Home/End, Ctrl/Cmd+A), and Ctrl/Cmd+C to copy.
+- Markdown widgets with `IDFocus` set gain the same selection and copy
+  capability across all block types (paragraphs, headings, lists,
+  blockquotes, definition terms/values). Selection uses a unified
+  rune-offset model so Cmd+C copies the correct cross-block span.
+
 ## [v0.19.1] - 2026-05-17
 
 ### Added
