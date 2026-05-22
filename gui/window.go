@@ -133,6 +133,10 @@ type Window struct {
 	windowWidth  int
 	windowHeight int
 
+	// BackingScale is the device pixel ratio set by the backend each frame
+	// (e.g. 2.0 on Retina/HiDPI). Zero until the first frame is rendered.
+	BackingScale float32
+
 	// Dialog state.
 	dialogCfg DialogCfg
 

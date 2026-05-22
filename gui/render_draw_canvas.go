@@ -16,6 +16,11 @@ func renderDrawCanvas(shape *Shape, clip DrawClip, w *Window) {
 	cw := shape.Width - shape.PaddingWidth()
 	ch := shape.Height - shape.PaddingHeight()
 
+	scale := w.BackingScale
+	if scale <= 0 || math.IsNaN(float64(scale)) || math.IsInf(float64(scale), 0) {
+		scale = 1
+	}
+
 	var cached DrawCanvasCache
 	needsDraw := true
 
@@ -25,7 +30,8 @@ func renderDrawCanvas(shape *Shape, clip DrawClip, w *Window) {
 		var ok bool
 		cached, ok = sm.Get(shape.ID)
 		if ok && cached.Version == shape.Version &&
-			cached.TessWidth == cw && cached.TessHeight == ch {
+			cached.TessWidth == cw && cached.TessHeight == ch &&
+			cached.Scale == scale {
 			needsDraw = false
 		}
 	}
@@ -34,6 +40,7 @@ func renderDrawCanvas(shape *Shape, clip DrawClip, w *Window) {
 		dc := DrawContext{
 			Width:       cw,
 			Height:      ch,
+			Scale:       scale,
 			textMeasure: w.textMeasurer,
 		}
 		shape.Events.OnDraw(&dc)
@@ -41,6 +48,7 @@ func renderDrawCanvas(shape *Shape, clip DrawClip, w *Window) {
 			Version:    shape.Version,
 			TessWidth:  cw,
 			TessHeight: ch,
+			Scale:      scale,
 			Batches:    dc.batches,
 			Texts:      dc.texts,
 			Images:     dc.images,

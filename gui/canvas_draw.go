@@ -3,11 +3,12 @@ package gui
 import "math"
 
 // DrawCanvasCache holds retained tessellation output keyed by
-// widget id + version. Cache hit skips OnDraw entirely.
+// widget id + version + scale. Cache hit skips OnDraw entirely.
 type DrawCanvasCache struct {
 	Version    uint64
 	TessWidth  float32
 	TessHeight float32
+	Scale      float32
 	Batches    []DrawCanvasTriBatch
 	Texts      []DrawCanvasTextEntry
 	Images     []DrawCanvasImageEntry
@@ -78,6 +79,10 @@ type DrawRecorder interface {
 type DrawContext struct {
 	Width  float32
 	Height float32
+	// Scale is the device pixel ratio (e.g. 2.0 on Retina/HiDPI displays).
+	// Width and Height are in logical pixels; multiply by Scale to get device pixels.
+	// Always > 0; defaults to 1.0 when the backend has not reported a valid scale.
+	Scale float32
 
 	lastColor       Color
 	currentBatchIdx int

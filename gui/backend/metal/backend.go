@@ -605,6 +605,7 @@ func (ws *windowState) renderFrame(w *gui.Window) {
 	C.metalSetMVP(ws.ctx, (*C.float)(&ws.mvp[0]))
 
 	w.Lock()
+	w.BackingScale = ws.dpiScale
 	ws.renderersDraw(w)
 	w.Unlock()
 
@@ -619,6 +620,10 @@ func (ws *windowState) handleResize() {
 	C.SDL_Metal_GetDrawableSize(cWin, &dw, &dh)
 	ws.physW = int32(dw)
 	ws.physH = int32(dh)
+	winW, _ := ws.window.GetSize()
+	if winW > 0 {
+		ws.dpiScale = float32(dw) / float32(winW)
+	}
 	C.metalResize(ws.ctx, dw, dh)
 	ws.updateProjection()
 }

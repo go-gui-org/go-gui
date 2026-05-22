@@ -218,6 +218,7 @@ func (b *Backend) Run(w *gui.Window) {
 				}
 				w.EventFn(resizeEvent)
 				w.FrameFn()
+				b.handleResize()
 				b.renderFrame(w)
 				return true
 			}, nil)
@@ -284,11 +285,20 @@ func (b *Backend) renderFrame(w *gui.Window) {
 	_ = b.renderer.SetClipRect(nil)
 
 	w.Lock()
+	w.BackingScale = b.dpiScale
 	b.renderersDraw(w)
 	w.Unlock()
 
 	b.textSys.Commit()
 	b.renderer.Present()
+}
+
+func (b *Backend) handleResize() {
+	outW, _, _ := b.renderer.GetOutputSize()
+	winW, _ := b.window.GetSize()
+	if winW > 0 {
+		b.dpiScale = float32(outW) / float32(winW)
+	}
 }
 
 // Run initializes the SDL2 backend, runs the event loop,
@@ -353,6 +363,7 @@ func RunApp(app *gui.App, initialWindows ...*gui.Window) {
 				resizeEvent.WindowHeight = int(we.Data2)
 				w.EventFn(resizeEvent)
 				w.FrameFn()
+				b.handleResize()
 				b.renderFrame(w)
 				return true
 			}, nil)

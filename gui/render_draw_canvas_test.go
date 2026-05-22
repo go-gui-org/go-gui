@@ -316,6 +316,102 @@ func TestRenderDrawCanvasImageOnlyNotSkipped(t *testing.T) {
 	}
 }
 
+func TestRenderDrawCanvas_ValidBackingScalePassedToDrawContext(t *testing.T) {
+	w := makeWindowWithScratch()
+	w.BackingScale = 2.0
+	var got float32
+	shape := &Shape{
+		ShapeType: ShapeDrawCanvas,
+		Width:     100, Height: 100,
+		Color: ColorTransparent,
+		Events: &EventHandlers{
+			OnDraw: func(dc *DrawContext) { got = dc.Scale },
+		},
+	}
+	renderDrawCanvas(shape, makeClip(0, 0, 200, 200), w)
+	if got != 2.0 {
+		t.Errorf("dc.Scale = %v, want 2.0", got)
+	}
+}
+
+func TestRenderDrawCanvas_ZeroBackingScaleDefaultsToOne(t *testing.T) {
+	w := makeWindowWithScratch()
+	// BackingScale zero-value: window before first backend frame.
+	var got float32
+	shape := &Shape{
+		ShapeType: ShapeDrawCanvas,
+		Width:     100, Height: 100,
+		Color: ColorTransparent,
+		Events: &EventHandlers{
+			OnDraw: func(dc *DrawContext) { got = dc.Scale },
+		},
+	}
+	renderDrawCanvas(shape, makeClip(0, 0, 200, 200), w)
+	if got != 1.0 {
+		t.Errorf("dc.Scale = %v, want 1.0 for zero BackingScale", got)
+	}
+}
+
+func TestRenderDrawCanvas_NegativeBackingScaleDefaultsToOne(t *testing.T) {
+	w := makeWindowWithScratch()
+	w.BackingScale = -2.0
+	var got float32
+	shape := &Shape{
+		ShapeType: ShapeDrawCanvas,
+		Width:     100, Height: 100,
+		Color: ColorTransparent,
+		Events: &EventHandlers{
+			OnDraw: func(dc *DrawContext) { got = dc.Scale },
+		},
+	}
+	renderDrawCanvas(shape, makeClip(0, 0, 200, 200), w)
+	if got != 1.0 {
+		t.Errorf("dc.Scale = %v, want 1.0 for negative BackingScale", got)
+	}
+}
+
+func TestRenderDrawCanvas_NaNBackingScaleDefaultsToOne(t *testing.T) {
+	w := makeWindowWithScratch()
+	w.BackingScale = float32(math.NaN())
+	var got float32
+	shape := &Shape{
+		ShapeType: ShapeDrawCanvas,
+		Width:     100, Height: 100,
+		Color: ColorTransparent,
+		Events: &EventHandlers{
+			OnDraw: func(dc *DrawContext) { got = dc.Scale },
+		},
+	}
+	renderDrawCanvas(shape, makeClip(0, 0, 200, 200), w)
+	if got != 1.0 {
+		t.Errorf("dc.Scale = %v, want 1.0 for NaN BackingScale", got)
+	}
+}
+
+func TestRenderDrawCanvas_InfBackingScaleDefaultsToOne(t *testing.T) {
+	w := makeWindowWithScratch()
+	for _, scale := range []float32{
+		float32(math.Inf(1)),
+		float32(math.Inf(-1)),
+	} {
+		w.BackingScale = scale
+		var got float32
+		shape := &Shape{
+			ShapeType: ShapeDrawCanvas,
+			Width:     100, Height: 100,
+			Color: ColorTransparent,
+			Events: &EventHandlers{
+				OnDraw: func(dc *DrawContext) { got = dc.Scale },
+			},
+		}
+		w.renderers = w.renderers[:0]
+		renderDrawCanvas(shape, makeClip(0, 0, 200, 200), w)
+		if got != 1.0 {
+			t.Errorf("BackingScale=%v: dc.Scale = %v, want 1.0", scale, got)
+		}
+	}
+}
+
 func TestRenderDrawCanvasEmptyIDAlwaysRedraws(t *testing.T) {
 	w := makeWindowWithScratch()
 	callCount := 0

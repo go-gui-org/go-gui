@@ -328,6 +328,7 @@ func (b *Backend) renderFrame(w *gui.Window) {
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT)
 
 	w.Lock()
+	w.BackingScale = b.dpiScale
 	b.renderersDraw(w)
 	w.Unlock()
 
@@ -339,6 +340,10 @@ func (b *Backend) handleResize() {
 	glW, glH := b.window.GLGetDrawableSize()
 	b.physW = glW
 	b.physH = glH
+	winW, _ := b.window.GetSize()
+	if winW > 0 {
+		b.dpiScale = float32(glW) / float32(winW)
+	}
 	gl.Viewport(0, 0, glW, glH)
 	b.updateProjection()
 }

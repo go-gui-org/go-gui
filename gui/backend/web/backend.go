@@ -235,6 +235,7 @@ func (b *Backend) renderFrame(w *gui.Window) {
 	b.clipStack = nil
 
 	w.Lock()
+	w.BackingScale = b.dpiScale
 	b.renderersDraw(w)
 	w.Unlock()
 
