@@ -8,9 +8,9 @@ import (
 	"math"
 	"unsafe"
 
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/backend/internal/imgload"
-	"github.com/mike-ward/go-gui/gui/backend/internal/texcache"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/imgload"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
 	"github.com/veandco/go-sdl2/sdl"
 )
 

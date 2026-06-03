@@ -6,10 +6,10 @@ package gui
 import (
 	"strings"
 
-	"github.com/mike-ward/go-glyph"
+	"github.com/go-gui-org/go-glyph"
 
-	"github.com/mike-ward/go-gui/gui/highlight"
-	"github.com/mike-ward/go-gui/gui/markdown"
+	"github.com/go-gui-org/go-gui/gui/highlight"
+	"github.com/go-gui-org/go-gui/gui/markdown"
 )
 
 var mdSuperscriptFeatures = &glyph.FontFeatures{

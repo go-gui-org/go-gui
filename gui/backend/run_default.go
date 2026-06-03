@@ -4,8 +4,8 @@
 package backend
 
 import (
-	"github.com/mike-ward/go-gui/gui"
-	glbackend "github.com/mike-ward/go-gui/gui/backend/gl"
+	"github.com/go-gui-org/go-gui/gui"
+	glbackend "github.com/go-gui-org/go-gui/gui/backend/gl"
 )
 
 // Run starts the application event loop using the OpenGL backend.

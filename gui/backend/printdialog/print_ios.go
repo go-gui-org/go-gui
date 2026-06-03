@@ -2,7 +2,7 @@
 
 package printdialog
 
-import "github.com/mike-ward/go-gui/gui"
+import "github.com/go-gui-org/go-gui/gui"
 
 // ShowPrintDialog is unsupported on iOS.
 func ShowPrintDialog(_ gui.NativePrintParams) gui.PrintRunResult {

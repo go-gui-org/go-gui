@@ -5,8 +5,8 @@ package main
 import (
 	"time"
 
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/backend"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend"
 )
 
 const shaderTickAnimationID = "shader_tick"

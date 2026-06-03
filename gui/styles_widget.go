@@ -3,7 +3,7 @@ package gui
 import (
 	"time"
 
-	"github.com/mike-ward/go-glyph"
+	"github.com/go-gui-org/go-glyph"
 )
 
 // InputStyle defines input field visual properties.

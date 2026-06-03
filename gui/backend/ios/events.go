@@ -2,7 +2,7 @@
 
 package ios
 
-import "github.com/mike-ward/go-gui/gui"
+import "github.com/go-gui-org/go-gui/gui"
 
 // touchEvent dispatches a raw touch event to the window's event
 // pipeline. The gesture recognizer in gui/gesture.go processes

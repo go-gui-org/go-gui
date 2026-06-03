@@ -5,8 +5,8 @@ package sdl2
 import (
 	"unicode/utf8"
 
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/backend/internal/sdlkey"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/sdlkey"
 	"github.com/veandco/go-sdl2/sdl"
 )
 

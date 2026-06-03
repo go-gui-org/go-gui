@@ -12,8 +12,8 @@
 //	import (
 //		"fmt"
 //
-//		"github.com/mike-ward/go-gui/gui"
-//		sdl2 "github.com/mike-ward/go-gui/gui/backend/sdl2"
+//		"github.com/go-gui-org/go-gui/gui"
+//		sdl2 "github.com/go-gui-org/go-gui/gui/backend/sdl2"
 //	)
 //
 //	type App struct{ Clicks int }

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/mike-ward/go-glyph"
+	"github.com/go-gui-org/go-glyph"
 )
 
 // TableBorderStyle controls which borders are drawn in a table.

@@ -3,7 +3,7 @@ package gui
 import (
 	"testing"
 
-	"github.com/mike-ward/go-glyph"
+	"github.com/go-gui-org/go-glyph"
 )
 
 func TestMergeTextStyleFillsZeroColor(t *testing.T) {

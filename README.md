@@ -2,9 +2,9 @@
 
 ![Go version](https://img.shields.io/badge/go-1.26%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![CI](https://github.com/mike-ward/go-gui/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/go-gui-org/go-gui/actions/workflows/ci.yml/badge.svg)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/mike-ward/go-gui)
-[![Wiki](https://img.shields.io/badge/docs-wiki-blue)](https://github.com/mike-ward/go-gui/wiki)
+[![Wiki](https://img.shields.io/badge/docs-wiki-blue)](https://github.com/go-gui-org/go-gui/wiki)
 
 **Cross-platform, hybrid immediate-mode GUI framework for Go — no virtual DOM,
 no diffing, just fast, composable UI.**
@@ -16,7 +16,7 @@ https://go-gui.com
 _Showcase contains the framework documentation. Every widget demo has a button
 in the upper-right corner that displays documentation about the widget._
 
-📜 [Documentation](https://github.com/mike-ward/go-gui/wiki)
+📜 [Documentation](https://github.com/go-gui-org/go-gui/wiki)
 
 Sibling projects:
 
@@ -30,7 +30,7 @@ Sibling projects:
   SMIL map widgets. https://github.com/mike-ward/go-map
 
 - **go-glyph**\
-  Text rendering engine on steriods. https://github.com/mike-ward/go-glyph
+  Text rendering engine on steriods. https://github.com/go-gui-org/go-glyph
 
 ---
 
@@ -126,7 +126,7 @@ https://github.com/user-attachments/assets/a94ef905-b814-4712-b8d5-eed13b0bae8e
   copy-to-clipboard
 - Text selection and copy for read-only Text widgets
 - SVG loading, caching, and tessellation
-- Powered by [go-glyph](https://github.com/mike-ward/go-glyph) for
+- Powered by [go-glyph](https://github.com/go-gui-org/go-glyph) for
   professional-grade text shaping, rendering, and bidirectional layout
 
 **Animation & Effects**
@@ -182,8 +182,8 @@ package main
 import (
     "fmt"
 
-    "github.com/mike-ward/go-gui/gui"
-    "github.com/mike-ward/go-gui/gui/backend"
+    "github.com/go-gui-org/go-gui/gui"
+    "github.com/go-gui-org/go-gui/gui/backend"
 )
 
 type App struct{ Clicks int }
@@ -301,7 +301,7 @@ building.
 ### Get the Module
 
 ```bash
-go get github.com/mike-ward/go-gui
+go get github.com/go-gui-org/go-gui
 ```
 
 ![todo example](assets/todo.png)
@@ -315,7 +315,7 @@ go get github.com/mike-ward/go-gui
 `backend.Run(w)` auto-selects Metal on macOS and OpenGL elsewhere:
 
 ```go
-import "github.com/mike-ward/go-gui/gui/backend"
+import "github.com/go-gui-org/go-gui/gui/backend"
 
 backend.Run(w) // Metal on macOS, GL on Linux/Windows
 ```
@@ -323,11 +323,11 @@ backend.Run(w) // Metal on macOS, GL on Linux/Windows
 To force a specific backend, import it directly:
 
 ```go
-import metal "github.com/mike-ward/go-gui/gui/backend/metal" // macOS only
-import gl    "github.com/mike-ward/go-gui/gui/backend/gl"    // cross-platform
-import sdl2  "github.com/mike-ward/go-gui/gui/backend/sdl2"  // software fallback
-import web   "github.com/mike-ward/go-gui/gui/backend/web"   // WASM/browser
-import ios   "github.com/mike-ward/go-gui/gui/backend/ios"   // iOS
+import metal "github.com/go-gui-org/go-gui/gui/backend/metal" // macOS only
+import gl    "github.com/go-gui-org/go-gui/gui/backend/gl"    // cross-platform
+import sdl2  "github.com/go-gui-org/go-gui/gui/backend/sdl2"  // software fallback
+import web   "github.com/go-gui-org/go-gui/gui/backend/web"   // WASM/browser
+import ios   "github.com/go-gui-org/go-gui/gui/backend/ios"   // iOS
 ```
 
 ### Themes

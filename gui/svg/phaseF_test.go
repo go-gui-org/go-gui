@@ -3,8 +3,8 @@ package svg
 import (
 	"testing"
 
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/svg/css"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/svg/css"
 )
 
 // Phase F: display:none / visibility:hidden cascade gating, plus

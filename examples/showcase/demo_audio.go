@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/audio"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/audio"
 )
 
 // Cached sounds — allocated once, reused across clicks.

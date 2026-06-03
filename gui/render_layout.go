@@ -1,6 +1,6 @@
 package gui
 
-import "github.com/mike-ward/go-glyph"
+import "github.com/go-gui-org/go-glyph"
 
 // renderLayout walks the layout tree and emits RenderCmd entries
 // into window.renderers. Clip rectangles bracket clipped children.

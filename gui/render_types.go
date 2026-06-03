@@ -1,6 +1,6 @@
 package gui
 
-import "github.com/mike-ward/go-glyph"
+import "github.com/go-gui-org/go-glyph"
 
 // RenderKind identifies the type of drawing command stored in a
 // RenderCmd. The renderer pipeline emits a flat []RenderCmd slice;

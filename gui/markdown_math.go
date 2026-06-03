@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/mike-ward/go-gui/gui/markdown"
+	"github.com/go-gui-org/go-gui/gui/markdown"
 )
 
 // diagramCacheHash computes a cache key for a math expression.

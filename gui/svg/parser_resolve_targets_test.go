@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // TestResolveAnimationTargets_NestedGroupAnimReachesLeaf verifies that

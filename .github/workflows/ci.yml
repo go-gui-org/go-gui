@@ -56,7 +56,7 @@ jobs:
 
       - name: Add go-glyph replace
         working-directory: go-gui
-        run: go mod edit -replace=github.com/mike-ward/go-glyph=../go-glyph
+        run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
 
       - name: Test
         working-directory: go-gui

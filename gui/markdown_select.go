@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mike-ward/go-glyph"
+	"github.com/go-gui-org/go-glyph"
 )
 
 // mdSelState is the cross-block selection state for one markdown widget.

@@ -4,7 +4,7 @@
 // This file is a no-op stub for non-Linux platforms.
 package sni
 
-import "github.com/mike-ward/go-gui/gui"
+import "github.com/go-gui-org/go-gui/gui"
 
 // Tray is a no-op on non-Linux platforms.
 type Tray struct{}

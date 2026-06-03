@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/mike-ward/go-glyph"
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/highlight"
+	"github.com/go-gui-org/go-glyph"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/highlight"
 )
 
 func demoText(_ *gui.Window) gui.View {
@@ -373,7 +373,7 @@ func demoRtf(_ *gui.Window) gui.View {
 				RichText: gui.RichText{
 					Runs: []gui.RichTextRun{
 						gui.RichRun("Visit the ", t.N3),
-						gui.RichLink("Go-Gui repository", "https://github.com/mike-ward/go-gui", gui.TextStyle{
+						gui.RichLink("Go-Gui repository", "https://github.com/go-gui-org/go-gui", gui.TextStyle{
 							Color:     gui.ColorFromString("#3b82f6"),
 							Size:      t.N3.Size,
 							Underline: true,

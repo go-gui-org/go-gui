@@ -5,7 +5,7 @@ package gl
 import (
 	"math"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // beginRotation saves the current MVP and applies a rotation

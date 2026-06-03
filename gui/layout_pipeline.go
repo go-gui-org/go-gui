@@ -4,7 +4,7 @@ import (
 	"math"
 	"slices"
 
-	"github.com/mike-ward/go-glyph"
+	"github.com/go-gui-org/go-glyph"
 )
 
 // layoutPipeline runs all layout passes in order on a single

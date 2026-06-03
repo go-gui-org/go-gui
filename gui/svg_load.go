@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	glyph "github.com/mike-ward/go-glyph"
+	glyph "github.com/go-gui-org/go-glyph"
 )
 
 // maxSvgCacheElementIDLen caps pseudo-state IDs participating in the

@@ -3,7 +3,7 @@ package main
 import (
 	"slices"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 func catalogPanel(w *gui.Window) gui.View {

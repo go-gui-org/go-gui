@@ -10,10 +10,10 @@ import "C"
 import (
 	"unsafe"
 
-	"github.com/mike-ward/go-glyph"
+	"github.com/go-gui-org/go-glyph"
 
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/backend/internal/glyphconv"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/glyphconv"
 )
 
 // metalGlyphBackend implements glyph.DrawBackend using Metal.

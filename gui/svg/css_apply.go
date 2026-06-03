@@ -4,8 +4,8 @@ import (
 	"math"
 	"strings"
 
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/svg/css"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/svg/css"
 )
 
 // isFiniteF32 reports whether v is a finite float32 (not NaN or Inf).

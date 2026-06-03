@@ -8,8 +8,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/backend"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend"
 )
 
 // Curve-heavy demo: a wavy spiral with tight bends. Faceting is

@@ -7,8 +7,8 @@ import (
 	"math/rand/v2"
 	"time"
 
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/backend"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend"
 )
 
 // Screen identifies the active view.

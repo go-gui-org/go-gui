@@ -2,7 +2,7 @@
 
 package android
 
-import "github.com/mike-ward/go-gui/gui"
+import "github.com/go-gui-org/go-gui/gui"
 
 // imeComposition dispatches an IME preedit composition event.
 func imeComposition(text string, cursor, selLen int32) {

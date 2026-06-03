@@ -13,7 +13,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // svgTrace enables per-frame diagnostic logging of animated SVG

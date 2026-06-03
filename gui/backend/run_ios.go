@@ -3,8 +3,8 @@
 package backend
 
 import (
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/backend/ios"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/ios"
 )
 
 func Run(w *gui.Window) { ios.Run(w) }

@@ -14,7 +14,7 @@ import "C"
 import (
 	"unsafe"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // ShowOpenDialog shows a native open-file dialog.

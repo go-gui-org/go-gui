@@ -7,10 +7,10 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/backend/filedialog"
-	"github.com/mike-ward/go-gui/gui/backend/printdialog"
-	"github.com/mike-ward/go-gui/gui/backend/spellcheck"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/filedialog"
+	"github.com/go-gui-org/go-gui/gui/backend/printdialog"
+	"github.com/go-gui-org/go-gui/gui/backend/spellcheck"
 )
 
 // nativePlatform implements gui.NativePlatform for Android.

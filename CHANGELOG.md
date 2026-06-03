@@ -100,7 +100,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Bumped `github.com/mike-ward/go-glyph` to `v1.7.0`.
+- Bumped `github.com/go-gui-org/go-glyph` to `v1.7.0`.
 
 ### Fixed
 
@@ -788,7 +788,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Bump `github.com/mike-ward/go-glyph` to v1.6.4
+- Bump `github.com/go-gui-org/go-glyph` to v1.6.4
 - Bump `golang.org/x/sys` to v0.43.0
 
 ## [v0.9.0] - 2026-04-07

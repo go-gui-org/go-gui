@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // Phase 0 — regression fingerprint for the 15 SMIL spinners imported

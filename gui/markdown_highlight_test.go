@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mike-ward/go-gui/gui/highlight"
+	"github.com/go-gui-org/go-gui/gui/highlight"
 )
 
 func TestMarkdownChromaHighlighter(t *testing.T) {

@@ -3,7 +3,7 @@ package svg
 import (
 	"strings"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // applyCSSAnimProp folds one animation-* CSS declaration into spec.

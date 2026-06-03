@@ -8,7 +8,7 @@ import (
 
 	gogl "github.com/go-gl/gl/v3.3-core/gl"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // colF holds normalized (0..1) RGBA color components.

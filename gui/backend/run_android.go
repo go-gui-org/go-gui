@@ -2,7 +2,7 @@
 
 package backend
 
-import "github.com/mike-ward/go-gui/gui"
+import "github.com/go-gui-org/go-gui/gui"
 
 func Run(w *gui.Window) {
 	panic("android: use android.SetWindow/Start/Render pattern")

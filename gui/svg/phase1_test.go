@@ -3,7 +3,7 @@ package svg
 import (
 	"testing"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // TestPhase1CirclePrimitiveRecorded verifies <circle> parsing stores

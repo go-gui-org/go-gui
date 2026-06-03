@@ -8,8 +8,8 @@ import (
 
 	gogl "github.com/go-gl/gl/v3.3-core/gl"
 
-	"github.com/mike-ward/go-gui/gui/backend/internal/imgload"
-	"github.com/mike-ward/go-gui/gui/backend/internal/texcache"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/imgload"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
 )
 
 // glTexture holds an OpenGL texture handle and dimensions.

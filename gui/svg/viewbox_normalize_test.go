@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // A non-zero viewBox origin with animateMotion + animateTransform rotate

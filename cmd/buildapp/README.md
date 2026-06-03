@@ -7,7 +7,7 @@ proper name and icon.
 ## Install
 
 ```
-go install github.com/mike-ward/go-gui/cmd/buildapp@latest
+go install github.com/go-gui-org/go-gui/cmd/buildapp@latest
 ```
 
 Or run directly from the repo:

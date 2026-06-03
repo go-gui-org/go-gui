@@ -3,7 +3,7 @@
 package sdlkey
 
 import (
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 	"github.com/veandco/go-sdl2/sdl"
 )
 

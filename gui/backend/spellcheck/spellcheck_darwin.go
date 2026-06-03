@@ -14,7 +14,7 @@ import "C"
 import (
 	"unsafe"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // Check returns byte ranges of misspelled words in text.

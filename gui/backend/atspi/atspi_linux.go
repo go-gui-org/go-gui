@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/go-gui-org/go-gui/gui"
 	"github.com/godbus/dbus/v5"
 	"github.com/godbus/dbus/v5/introspect"
-	"github.com/mike-ward/go-gui/gui"
 )
 
 const (

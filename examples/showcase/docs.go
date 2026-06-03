@@ -5031,7 +5031,7 @@ multiple mixing channels and one music track. Desktop only
 ## Setup
 
 ` + "```go" + `
-import "github.com/mike-ward/go-gui/gui/audio"
+import "github.com/go-gui-org/go-gui/gui/audio"
 
 // Initialize once (e.g. in main or OnInit).
 if err := audio.Init(); err != nil {

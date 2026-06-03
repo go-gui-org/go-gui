@@ -4,7 +4,7 @@
 // This file is a no-op stub for unsupported platforms.
 package nativemenu
 
-import "github.com/mike-ward/go-gui/gui"
+import "github.com/go-gui-org/go-gui/gui"
 
 // SetMenubar is a no-op on non-macOS platforms.
 func SetMenubar(_ gui.NativeMenubarCfg, _ func(string)) {}

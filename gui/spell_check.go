@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mike-ward/go-glyph"
+	"github.com/go-gui-org/go-glyph"
 )
 
 // spellCheckState caches spell check results for an input.

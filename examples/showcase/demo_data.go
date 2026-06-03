@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/highlight"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/highlight"
 )
 
 const showcaseDataGridFeaturesSource = `# Data Grid Features

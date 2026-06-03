@@ -6,8 +6,8 @@ import (
 	"html"
 	"strings"
 
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/svg/css"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/svg/css"
 )
 
 // maxTextRunBytes caps a single emitted text run. Defends shaping

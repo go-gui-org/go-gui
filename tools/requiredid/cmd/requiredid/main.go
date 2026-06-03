@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/mike-ward/go-gui/tools/requiredid"
+	"github.com/go-gui-org/go-gui/tools/requiredid"
 
 	"golang.org/x/tools/go/analysis/singlechecker"
 )

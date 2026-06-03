@@ -2,8 +2,8 @@
 package glyphconv
 
 import (
-	"github.com/mike-ward/go-glyph"
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-glyph"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // GuiStyleToGlyphConfig converts a gui.TextStyle to a

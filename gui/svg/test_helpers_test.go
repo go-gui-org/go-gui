@@ -1,6 +1,6 @@
 package svg
 
-import "github.com/mike-ward/go-gui/gui"
+import "github.com/go-gui-org/go-gui/gui"
 
 // firstAnimatedPathID returns the PathID of the first animated
 // tessellated path in parsed, or 0 if none.

@@ -3,7 +3,7 @@ package svg
 import (
 	"testing"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // Phase C end-to-end: spec-correct cascade (pres-attr < CSS rule <

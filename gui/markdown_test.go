@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mike-ward/go-gui/gui/markdown"
+	"github.com/go-gui-org/go-gui/gui/markdown"
 )
 
 // --- Test helpers ---

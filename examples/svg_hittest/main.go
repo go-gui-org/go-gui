@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/backend"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend"
 )
 
 const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg"

@@ -10,7 +10,7 @@ Go toolchain pin: `go 1.26.0`.
 
 | Module                            | Version  | Purpose                                                                  |
 | --------------------------------- | -------- | ------------------------------------------------------------------------ |
-| `github.com/mike-ward/go-glyph`   | v1.6.5   | Text shaping + glyph rasterization. Required by every backend.           |
+| `github.com/go-gui-org/go-glyph`   | v1.6.5   | Text shaping + glyph rasterization. Required by every backend.           |
 | `github.com/veandco/go-sdl2`      | v0.4.40  | SDL2 backend (`gui/backend/sdl2`). Window, input, GL/Metal context glue. |
 | `github.com/go-gl/gl`             | (pseudo) | OpenGL bindings for `gui/backend/gl`.                                    |
 | `github.com/tdewolff/parse/v2`    | v2.8.12  | CSS tokenizer for the SVG `<style>` / `style=""` cascade pipeline.       |
@@ -43,7 +43,7 @@ go mod tidy
 Example:
 
 ```bash
-go get github.com/mike-ward/go-glyph@v1.6.6
+go get github.com/go-gui-org/go-glyph@v1.6.6
 go mod tidy
 ```
 
@@ -53,13 +53,13 @@ Day-to-day text work often runs against a sibling checkout at
 `~/Documents/github/go-glyph`. Wire it in via a `replace` directive:
 
 ```bash
-go mod edit -replace github.com/mike-ward/go-glyph=../go-glyph
+go mod edit -replace github.com/go-gui-org/go-glyph=../go-glyph
 ```
 
 Drop the replace before tagging:
 
 ```bash
-go mod edit -dropreplace github.com/mike-ward/go-glyph
+go mod edit -dropreplace github.com/go-gui-org/go-glyph
 go mod tidy
 ```
 

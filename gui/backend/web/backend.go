@@ -9,11 +9,11 @@ import (
 	"log"
 	"syscall/js"
 
-	"github.com/mike-ward/go-glyph"
-	glyphweb "github.com/mike-ward/go-glyph/backend/web"
+	"github.com/go-gui-org/go-glyph"
+	glyphweb "github.com/go-gui-org/go-glyph/backend/web"
 
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/svg"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/svg"
 )
 
 // Backend is the Canvas2D/WASM backend for go-gui.

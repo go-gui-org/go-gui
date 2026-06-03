@@ -2,7 +2,7 @@
 
 package filedialog
 
-import "github.com/mike-ward/go-gui/gui"
+import "github.com/go-gui-org/go-gui/gui"
 
 // ShowOpenDialog is unsupported on non-macOS platforms.
 func ShowOpenDialog(_, _ string, _ []string,

@@ -2,7 +2,7 @@
 
 package spellcheck
 
-import "github.com/mike-ward/go-gui/gui"
+import "github.com/go-gui-org/go-gui/gui"
 
 // Check returns nil on iOS.
 func Check(_ string) []gui.SpellRange { return nil }

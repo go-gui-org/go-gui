@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	glyph "github.com/mike-ward/go-glyph"
-	"github.com/mike-ward/go-gui/gui"
+	glyph "github.com/go-gui-org/go-glyph"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 func TestEntryMatchesQuery(t *testing.T) {

@@ -4,7 +4,7 @@
 // This file is a no-op stub for non-Linux platforms.
 package atspi
 
-import "github.com/mike-ward/go-gui/gui"
+import "github.com/go-gui-org/go-gui/gui"
 
 // Bridge is a no-op on non-Linux platforms.
 type Bridge struct{}

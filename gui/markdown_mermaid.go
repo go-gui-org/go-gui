@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/mike-ward/go-gui/gui/markdown"
+	"github.com/go-gui-org/go-gui/gui/markdown"
 )
 
 const (

@@ -7,7 +7,7 @@ package gui
 import (
 	"strings"
 
-	"github.com/mike-ward/go-glyph"
+	"github.com/go-gui-org/go-glyph"
 )
 
 // RichTextRun is a styled segment within a RichText block.

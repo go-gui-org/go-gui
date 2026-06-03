@@ -9,8 +9,8 @@ import (
 
 	gogl "github.com/go-gl/gl/v3.3-core/gl"
 
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/backend/internal/texcache"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
 )
 
 // pipeline holds a compiled and linked GL program with cached

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mike-ward/go-glyph"
+	"github.com/go-gui-org/go-glyph"
 )
 
 // inputTextFromLayout extracts the current text from the input's

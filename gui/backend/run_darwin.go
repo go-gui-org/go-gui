@@ -4,8 +4,8 @@
 package backend
 
 import (
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/backend/metal"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/metal"
 )
 
 // Run starts the GUI event loop.

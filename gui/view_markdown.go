@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mike-ward/go-gui/gui/highlight"
-	"github.com/mike-ward/go-gui/gui/markdown"
+	"github.com/go-gui-org/go-gui/gui/highlight"
+	"github.com/go-gui-org/go-gui/gui/markdown"
 )
 
 // MarkdownStyle controls rendered markdown appearance.

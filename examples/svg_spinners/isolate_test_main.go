@@ -3,7 +3,7 @@
 // layout cost as the cause of mouse-move animation pauses.
 package main
 
-import "github.com/mike-ward/go-gui/gui"
+import "github.com/go-gui-org/go-gui/gui"
 
 const useIsolation = false
 

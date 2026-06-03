@@ -3,8 +3,8 @@
 package gl
 
 import (
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/backend/atspi"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/atspi"
 )
 
 var a11yBridge *atspi.Bridge

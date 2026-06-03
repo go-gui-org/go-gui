@@ -2,7 +2,7 @@
 
 package sdl2
 
-import "github.com/mike-ward/go-gui/gui"
+import "github.com/go-gui-org/go-gui/gui"
 
 // System tray — no-op on non-Linux SDL2.
 func (n *nativePlatform) CreateSystemTray(

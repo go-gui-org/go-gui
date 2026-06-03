@@ -3,7 +3,7 @@ package svg
 import (
 	"math"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // tessellateStroke converts polylines to stroke triangles.

@@ -6,7 +6,7 @@ import (
 	"syscall/js"
 	"unicode/utf8"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // Wheel delta normalization constants. Converts browser delta

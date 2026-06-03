@@ -3,7 +3,7 @@ package main
 import (
 	"math"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // safeFloat returns v when finite; otherwise returns fallback.

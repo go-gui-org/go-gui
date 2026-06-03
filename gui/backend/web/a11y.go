@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"syscall/js"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // a11yState holds the hidden ARIA DOM tree that mirrors the

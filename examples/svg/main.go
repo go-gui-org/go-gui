@@ -5,8 +5,8 @@ package main
 import (
 	_ "embed"
 
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/backend"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend"
 )
 
 //go:embed assets/drop_shadow_filter.svg

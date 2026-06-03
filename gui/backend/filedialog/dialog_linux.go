@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 type dialogTool int

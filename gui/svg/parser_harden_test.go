@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // findAttr must return entity-decoded values. encoding/xml decodes

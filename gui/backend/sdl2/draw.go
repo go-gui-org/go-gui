@@ -5,8 +5,8 @@ package sdl2
 import (
 	"math"
 
-	"github.com/mike-ward/go-glyph"
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-glyph"
+	"github.com/go-gui-org/go-gui/gui"
 	"github.com/veandco/go-sdl2/sdl"
 )
 

@@ -8,8 +8,8 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/go-gui-org/go-glyph"
 	"github.com/go-pdf/fpdf"
-	"github.com/mike-ward/go-glyph"
 )
 
 // ptToMM converts PostScript points to millimeters.

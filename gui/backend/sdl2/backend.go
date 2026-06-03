@@ -9,15 +9,15 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/mike-ward/go-glyph"
-	glyphsdl "github.com/mike-ward/go-glyph/backend/sdl2"
+	"github.com/go-gui-org/go-glyph"
+	glyphsdl "github.com/go-gui-org/go-glyph/backend/sdl2"
 	"github.com/veandco/go-sdl2/sdl"
 
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/backend/internal/imgpath"
-	"github.com/mike-ward/go-gui/gui/backend/internal/tempfont"
-	"github.com/mike-ward/go-gui/gui/backend/internal/texcache"
-	"github.com/mike-ward/go-gui/gui/svg"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/imgpath"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/tempfont"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
+	"github.com/go-gui-org/go-gui/gui/svg"
 )
 
 // Backend is the SDL2 backend for go-gui.

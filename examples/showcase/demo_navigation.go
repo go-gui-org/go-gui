@@ -1,6 +1,6 @@
 package main
 
-import "github.com/mike-ward/go-gui/gui"
+import "github.com/go-gui-org/go-gui/gui"
 
 func demoBreadcrumb(w *gui.Window) gui.View {
 	app := gui.State[ShowcaseApp](w)

@@ -3,7 +3,7 @@ package gui
 import (
 	"math/rand/v2"
 
-	"github.com/mike-ward/go-glyph"
+	"github.com/go-gui-org/go-glyph"
 )
 
 // Shape is the only data structure used to draw to the screen.

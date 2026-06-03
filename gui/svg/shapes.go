@@ -1,6 +1,6 @@
 package svg
 
-import "github.com/mike-ward/go-gui/gui"
+import "github.com/go-gui-org/go-gui/gui"
 
 // parsePathWithStyle parses a <path> element with inherited style.
 func parsePathWithStyle(elem string, inherited ComputedStyle) (VectorPath, bool) {

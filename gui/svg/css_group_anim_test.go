@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // CSS animation declared on a <g> wrapper must fan out onto every

@@ -2,7 +2,7 @@
 
 package atspi
 
-import "github.com/mike-ward/go-gui/gui"
+import "github.com/go-gui-org/go-gui/gui"
 
 // AT-SPI2 state bit indices (within a [2]uint32 bitfield).
 const (

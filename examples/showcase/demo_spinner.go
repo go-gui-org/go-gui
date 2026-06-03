@@ -1,6 +1,6 @@
 package main
 
-import "github.com/mike-ward/go-gui/gui"
+import "github.com/go-gui-org/go-gui/gui"
 
 func demoSpinner(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()

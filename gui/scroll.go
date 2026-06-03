@@ -1,6 +1,6 @@
 package gui
 
-import "github.com/mike-ward/go-glyph"
+import "github.com/go-gui-org/go-glyph"
 
 // findScrollLayout returns the layout for idScroll, or false
 // if the layout tree is not yet built or idScroll is not found.

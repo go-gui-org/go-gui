@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mike-ward/go-gui/gui/svg/css"
+	"github.com/go-gui-org/go-gui/gui/svg/css"
 )
 
 func TestSanitizeFlatnessHostileInputs(t *testing.T) {

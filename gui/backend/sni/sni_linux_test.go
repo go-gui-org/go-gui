@@ -9,8 +9,8 @@ import (
 	"image/png"
 	"testing"
 
+	"github.com/go-gui-org/go-gui/gui"
 	"github.com/godbus/dbus/v5"
-	"github.com/mike-ward/go-gui/gui"
 )
 
 func TestBuildMenuNodesEmpty(t *testing.T) {

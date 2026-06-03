@@ -5,7 +5,7 @@ package metal
 import (
 	"math"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // colF holds normalized (0..1) RGBA color components.

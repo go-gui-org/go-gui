@@ -5,7 +5,7 @@ package android
 import (
 	"sync"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // a11y state shared between Go (writer) and Kotlin (reader via

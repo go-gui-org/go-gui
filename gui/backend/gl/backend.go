@@ -11,14 +11,14 @@ import (
 	"sync"
 
 	"github.com/go-gl/gl/v3.3-core/gl"
-	"github.com/mike-ward/go-glyph"
+	"github.com/go-gui-org/go-glyph"
 	"github.com/veandco/go-sdl2/sdl"
 
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/backend/internal/imgpath"
-	"github.com/mike-ward/go-gui/gui/backend/internal/tempfont"
-	"github.com/mike-ward/go-gui/gui/backend/internal/texcache"
-	"github.com/mike-ward/go-gui/gui/svg"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/imgpath"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/tempfont"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
+	"github.com/go-gui-org/go-gui/gui/svg"
 )
 
 // Backend is the OpenGL 3.3 backend for go-gui.

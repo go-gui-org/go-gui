@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // FormModel holds value fields for the showcase form demo.

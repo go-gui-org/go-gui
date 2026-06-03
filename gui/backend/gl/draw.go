@@ -8,10 +8,10 @@ import (
 	"unsafe"
 
 	gogl "github.com/go-gl/gl/v3.3-core/gl"
-	"github.com/mike-ward/go-glyph"
+	"github.com/go-gui-org/go-glyph"
 
-	"github.com/mike-ward/go-gui/gui"
-	"github.com/mike-ward/go-gui/gui/backend/internal/imgload"
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/imgload"
 )
 
 // renderersDraw iterates render commands and draws them.

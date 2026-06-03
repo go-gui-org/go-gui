@@ -5,7 +5,7 @@ import (
 	"math"
 	"slices"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // getTriangles tessellates all paths in the graphic into GPU-ready

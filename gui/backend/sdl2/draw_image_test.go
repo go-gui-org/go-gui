@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mike-ward/go-gui/gui/backend/internal/imgload"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/imgload"
 )
 
 func TestResolveValidatedPathAllowedRoots(t *testing.T) {

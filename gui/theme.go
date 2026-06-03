@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mike-ward/go-glyph"
+	"github.com/go-gui-org/go-glyph"
 )
 
 // guiTheme is the package-level active theme.

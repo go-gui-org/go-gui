@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 func demoToggle(w *gui.Window) gui.View {

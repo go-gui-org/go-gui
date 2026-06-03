@@ -1,6 +1,6 @@
 package gui
 
-import "github.com/mike-ward/go-glyph"
+import "github.com/go-gui-org/go-glyph"
 
 func plainTextNeedsGlyphLayout(
 	shape *Shape,

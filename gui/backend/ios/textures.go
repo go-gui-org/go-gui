@@ -10,8 +10,8 @@ import "C"
 import (
 	"unsafe"
 
-	"github.com/mike-ward/go-gui/gui/backend/internal/imgload"
-	"github.com/mike-ward/go-gui/gui/backend/internal/texcache"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/imgload"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
 )
 
 // metalTexture holds a Metal texture ID and dimensions.

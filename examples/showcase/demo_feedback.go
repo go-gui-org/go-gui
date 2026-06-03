@@ -5,7 +5,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/mike-ward/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 func demoButton(w *gui.Window) gui.View {
