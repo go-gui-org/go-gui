@@ -21,7 +21,7 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          repository: mike-ward/go-glyph
+          repository: go-gui-org/go-glyph
           path: go-glyph
 
       - uses: actions/setup-go@v5
@@ -112,7 +112,7 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          repository: mike-ward/go-glyph
+          repository: go-gui-org/go-glyph
           path: go-glyph
 
       - uses: actions/setup-go@v5
@@ -149,7 +149,7 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          repository: mike-ward/go-glyph
+          repository: go-gui-org/go-glyph
           path: go-glyph
 
       - uses: actions/setup-go@v5
@@ -189,7 +189,7 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          repository: mike-ward/go-glyph
+          repository: go-gui-org/go-glyph
           path: go-glyph
 
       - uses: msys2/setup-msys2@v2
@@ -229,7 +229,7 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          repository: mike-ward/go-glyph
+          repository: go-gui-org/go-glyph
           path: go-glyph
 
       - uses: actions/setup-go@v5
