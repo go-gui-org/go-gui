@@ -15,13 +15,12 @@ type DockPanelDef struct {
 
 // DockLayoutCfg configures a dock layout component.
 type DockLayoutCfg struct {
-	ID                string
 	Root              *DockNode
-	Panels            []DockPanelDef
 	OnLayoutChange    func(*DockNode, *Window)
 	OnPanelSelect     func(string, string, *Window) // (groupID, panelID)
 	OnPanelClose      func(string, *Window)
-	Sizing            Sizing
+	ID                string
+	Panels            []DockPanelDef
 	ColorZonePreview  Color
 	ColorTab          Color
 	ColorTabActive    Color
@@ -29,17 +28,18 @@ type DockLayoutCfg struct {
 	ColorTabBar       Color
 	ColorTabSeparator Color
 	ColorContent      Color
+	Sizing            Sizing
 }
 
 // dockLayoutCore holds callback-relevant fields without content
 // arrays. Captured in closures to avoid GC false retention of the
 // full DockLayoutCfg (which holds []DockPanelDef with []View).
 type dockLayoutCore struct {
-	id               string
 	root             *DockNode
 	onLayoutChange   func(*DockNode, *Window)
 	onPanelSelect    func(string, string, *Window)
 	onPanelClose     func(string, *Window)
+	id               string
 	colorZonePreview Color
 }
 

@@ -2,13 +2,21 @@ package gui
 
 // ToggleCfg configures a toggle/checkbox button.
 type ToggleCfg struct {
-	ID               string
-	Label            string
-	TextSelect       string
-	TextUnselect     string
-	OnClick          func(*Layout, *Event, *Window)
-	TextStyle        TextStyle
-	TextStyleLabel   TextStyle
+	TextStyle      TextStyle
+	TextStyleLabel TextStyle
+	OnClick        func(*Layout, *Event, *Window)
+	ID             string
+	Label          string
+	TextSelect     string
+	TextUnselect   string
+
+	A11YLabel        string
+	A11YDescription  string
+	Padding          Opt[Padding]
+	SizeBorder       Opt[float32]
+	Radius           Opt[float32]
+	MinWidth         float32
+	IDFocus          uint32
 	Color            Color
 	ColorFocus       Color
 	ColorHover       Color
@@ -16,17 +24,9 @@ type ToggleCfg struct {
 	ColorBorder      Color
 	ColorBorderFocus Color
 	ColorSelect      Color
-	Padding          Opt[Padding]
-	SizeBorder       Opt[float32]
-	Radius           Opt[float32]
-	MinWidth         float32
-	IDFocus          uint32
 	Disabled         bool
 	Invisible        bool
 	Selected         bool
-
-	A11YLabel       string
-	A11YDescription string
 }
 
 // Checkbox is an alias for Toggle.

@@ -15,9 +15,9 @@ type mapEntry[V any] struct {
 // (if non-nil) is called to release the value's resources.
 type Cache[K comparable, V any] struct {
 	data    map[K]mapEntry[V]
+	destroy func(V)
 	order   list.List
 	maxSize int
-	destroy func(V)
 }
 
 // New returns a cache that holds at most maxSize entries.

@@ -15,18 +15,19 @@ type colorPickerState struct {
 
 // ColorPickerCfg configures a color picker view.
 type ColorPickerCfg struct {
-	ID            string `gui:"required"`
-	Color         Color
-	OnColorChange func(Color, *Event, *Window)
 	Style         ColorPickerStyle
-	IDFocus       uint32
-	ShowHSV       bool
-	Sizing        Sizing
-	Width         float32
-	Height        float32
+	OnColorChange func(Color, *Event, *Window)
+	ID            string `gui:"required"`
 
 	A11YLabel       string
 	A11YDescription string
+	IDFocus         uint32
+	Width           float32
+	Height          float32
+
+	Color   Color
+	Sizing  Sizing
+	ShowHSV bool
 }
 
 type colorPickerView struct {

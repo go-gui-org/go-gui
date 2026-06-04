@@ -9,14 +9,14 @@ const (
 )
 
 type queuedCommand struct {
-	kind queuedCommandKind
-
 	windowFn  func(*Window)
 	valueFn   func(float32, *Window)
 	animateFn func(*Animate, *Window)
 
-	value   float32
 	animate *Animate
+
+	value float32
+	kind  queuedCommandKind
 }
 
 // AnimationCommands batches deferred callbacks produced by an

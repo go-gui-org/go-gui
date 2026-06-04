@@ -21,9 +21,9 @@ const (
 
 // MaskTokenDef defines one token symbol in a mask pattern.
 type MaskTokenDef struct {
-	Symbol    rune
 	Matcher   func(rune) bool
 	Transform func(rune) rune
+	Symbol    rune
 }
 
 // MaskEditResult stores the output of a mask edit operation.
@@ -41,11 +41,11 @@ const (
 )
 
 type compiledMaskEntry struct {
-	kind      maskEntryKind
-	literal   rune
-	symbol    rune
 	matcher   func(rune) bool
 	transform func(rune) rune
+	literal   rune
+	symbol    rune
+	kind      maskEntryKind
 }
 
 // CompiledInputMask stores parsed mask entries and lookup indexes.

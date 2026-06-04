@@ -17,18 +17,18 @@ const (
 // A11yNode is a flat accessibility node pushed to the native
 // accessibility backend each frame.
 type A11yNode struct {
-	Role          AccessRole
-	State         AccessState
 	Label         string
 	Value         string
 	Description   string
+	ParentIdx     int
+	ChildrenStart int
+	ChildrenCount int
 	X, Y, W, H    float32
 	ValueNum      float32
 	ValueMin      float32
 	ValueMax      float32
-	ParentIdx     int
-	ChildrenStart int
-	ChildrenCount int
+	State         AccessState
+	Role          AccessRole
 }
 
 type liveNode struct {
@@ -43,12 +43,12 @@ const a11ySyncInterval = 100 * time.Millisecond
 
 // a11y holds per-window accessibility backend state.
 type a11y struct {
-	initialized    bool
-	prevIDFocus    uint32
+	lastSync       time.Time // throttle sync calls
 	prevLiveValues map[string]string
 	nodes          []A11yNode // reused across frames
 	liveNodes      []liveNode // reused across frames
-	lastSync       time.Time  // throttle sync calls
+	prevIDFocus    uint32
+	initialized    bool
 }
 
 // initA11y lazily creates the native accessibility container.

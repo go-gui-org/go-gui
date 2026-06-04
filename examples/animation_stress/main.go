@@ -26,12 +26,12 @@ const (
 
 type animatedItem struct {
 	id    string
-	kind  itemKind
 	icon  string
-	color gui.Color
+	kind  itemKind
 	size  float32
 	x     float32
 	y     float32
+	color gui.Color
 }
 
 type State struct {

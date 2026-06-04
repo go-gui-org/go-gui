@@ -6,7 +6,20 @@ package gui
 
 // MarkdownBlock is a parsed, styled block of markdown.
 type MarkdownBlock struct {
+	BaseStyle       TextStyle
+	TableData       *ParsedTable
+	ListPrefix      string
+	ImageSrc        string
+	ImageAlt        string
+	CodeLanguage    string
+	MathLatex       string
+	AnchorSlug      string
+	Content         RichText
 	HeaderLevel     int
+	BlockquoteDepth int
+	ListIndent      int
+	ImageWidth      float32
+	ImageHeight     float32
 	IsCode          bool
 	IsHR            bool
 	IsBlockquote    bool
@@ -16,19 +29,6 @@ type MarkdownBlock struct {
 	IsMath          bool
 	IsDefTerm       bool
 	IsDefValue      bool
-	BlockquoteDepth int
-	ListPrefix      string
-	ListIndent      int
-	ImageSrc        string
-	ImageAlt        string
-	ImageWidth      float32
-	ImageHeight     float32
-	CodeLanguage    string
-	MathLatex       string
-	AnchorSlug      string
-	BaseStyle       TextStyle
-	Content         RichText
-	TableData       *ParsedTable
 }
 
 // ParsedTable is a parsed, styled markdown table.

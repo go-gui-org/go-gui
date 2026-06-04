@@ -128,21 +128,21 @@ func buildTextAttrsFromComputed(elem string, computed ComputedStyle) textParentA
 
 // textParentAttrs holds inherited attributes from a <text> element.
 type textParentAttrs struct {
+	fontFamily               string
+	fillGradientID           string
+	filterID                 string
+	fontWeight               int
 	x, y                     float32
 	fontSize                 float32
-	fontFamily               string
-	color                    gui.SvgColor
-	fillGradientID           string
-	anchor                   uint8
-	bold, italic             bool
-	fontWeight               int
-	underline, strikethrough bool
 	letterSpacing            float32
-	strokeColor              gui.SvgColor
 	strokeWidth              float32
 	opacity                  float32
-	filterID                 string
 	filterGroupKey           uint32
+	color                    gui.SvgColor
+	strokeColor              gui.SvgColor
+	anchor                   uint8
+	bold, italic             bool
+	underline, strikethrough bool
 }
 
 // parseTextBody walks the direct text and <tspan>/<textPath>

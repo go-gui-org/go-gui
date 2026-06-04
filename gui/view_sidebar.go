@@ -4,33 +4,33 @@ import "time"
 
 // SidebarRuntimeState tracks animation state for a sidebar.
 type SidebarRuntimeState struct {
-	PrevOpen    bool
 	AnimFrac    float32
+	PrevOpen    bool
 	Initialized bool
 }
 
 // SidebarCfg configures a sidebar view.
 type SidebarCfg struct {
-	ID      string
-	Open    bool
-	Width   float32
-	Content []View
-	Sizing  Sizing
-	Color   Color
-	Shadow  *BoxShadow
-	Radius  float32
-	Padding Opt[Padding]
-	Clip    bool
-	// TweenDuration > 0 uses tween; 0 uses spring.
-	Spring        SpringCfg
-	TweenDuration time.Duration
-	TweenEasing   EasingFn
-	Disabled      bool
-	Invisible     bool
+	Shadow      *BoxShadow
+	TweenEasing EasingFn
+	ID          string
 
 	// Accessibility
 	A11YLabel       string
 	A11YDescription string
+	Content         []View
+	TweenDuration   time.Duration
+	Padding         Opt[Padding]
+	// TweenDuration > 0 uses tween; 0 uses spring.
+	Spring    SpringCfg
+	Width     float32
+	Radius    float32
+	Color     Color
+	Sizing    Sizing
+	Open      bool
+	Clip      bool
+	Disabled  bool
+	Invisible bool
 }
 
 // Sidebar creates an animated panel that slides in/out.

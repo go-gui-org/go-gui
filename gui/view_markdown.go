@@ -15,18 +15,35 @@ import (
 
 // MarkdownStyle controls rendered markdown appearance.
 type MarkdownStyle struct {
-	Text              TextStyle
-	H1                TextStyle
-	H2                TextStyle
-	H3                TextStyle
-	H4                TextStyle
-	H5                TextStyle
-	H6                TextStyle
-	Bold              TextStyle
-	Italic            TextStyle
-	BoldItalic        TextStyle
-	Code              TextStyle
-	CodeBlockText     TextStyle
+	Text           TextStyle
+	H1             TextStyle
+	H2             TextStyle
+	H3             TextStyle
+	H4             TextStyle
+	H5             TextStyle
+	H6             TextStyle
+	Bold           TextStyle
+	Italic         TextStyle
+	BoldItalic     TextStyle
+	Code           TextStyle
+	CodeBlockText  TextStyle
+	TableHeadStyle TextStyle
+	TableCellStyle TextStyle
+	// CodeHighlighter, when non-nil, is used to re-tokenize fenced
+	// code blocks whose info string names a supported language.
+	// When nil, the markdown parser's built-in primitive tokenizer
+	// is used. Use highlight.Default() for chroma-backed coverage.
+	CodeHighlighter   highlight.Highlighter
+	TableRowAlt       *Color
+	MathDPIDisplay    int
+	MathDPIInline     int
+	CodeBlockPadding  Opt[Padding]
+	TableCellPadding  Opt[Padding]
+	BlockSpacing      float32
+	NestIndent        float32
+	PrefixCharWidth   float32
+	CodeBlockRadius   float32
+	TableBorderSize   float32
 	CodeBlockBG       Color
 	CodeKeywordColor  Color
 	CodeStringColor   Color
@@ -36,34 +53,17 @@ type MarkdownStyle struct {
 	CodeTypeColor     Color
 	CodeFunctionColor Color
 	CodeBuiltinColor  Color
-	// CodeHighlighter, when non-nil, is used to re-tokenize fenced
-	// code blocks whose info string names a supported language.
-	// When nil, the markdown parser's built-in primitive tokenizer
-	// is used. Use highlight.Default() for chroma-backed coverage.
-	CodeHighlighter  highlight.Highlighter
-	HRColor          Color
-	LinkColor        Color
-	BlockquoteBorder Color
-	BlockquoteBG     Color
-	BlockSpacing     float32
-	NestIndent       float32
-	PrefixCharWidth  float32
-	CodeBlockPadding Opt[Padding]
-	CodeBlockRadius  float32
-	H1Separator      bool
-	H2Separator      bool
-	TableBorderStyle TableBorderStyle
-	TableBorderColor Color
-	TableBorderSize  float32
-	TableHeadStyle   TextStyle
-	TableCellStyle   TextStyle
-	TableCellPadding Opt[Padding]
-	TableRowAlt      *Color
-	HighlightBG      Color
-	HardLineBreaks   bool
-	MathDPIDisplay   int
-	MathDPIInline    int
-	MermaidBG        Color
+	HRColor           Color
+	LinkColor         Color
+	BlockquoteBorder  Color
+	BlockquoteBG      Color
+	TableBorderColor  Color
+	HighlightBG       Color
+	MermaidBG         Color
+	H1Separator       bool
+	H2Separator       bool
+	TableBorderStyle  TableBorderStyle
+	HardLineBreaks    bool
 }
 
 // DefaultMarkdownStyle returns a MarkdownStyle using the
@@ -118,19 +118,19 @@ type MarkdownCfg struct {
 	ID                  string
 	Source              string
 	Style               MarkdownStyle
+	MermaidWidth        int // max pixel width for mermaid diagrams (0 = 600)
+	Padding             Opt[Padding]
+	SizeBorder          Opt[float32]
+	Radius              Opt[float32]
 	IDFocus             uint32
-	Mode                Opt[TextMode]
 	MinWidth            float32
+	Color               Color
+	ColorBorder         Color
+	Mode                Opt[TextMode]
 	Invisible           bool
 	Clip                bool
 	FocusSkip           bool
 	Disabled            bool
-	Color               Color
-	ColorBorder         Color
-	SizeBorder          Opt[float32]
-	Radius              Opt[float32]
-	Padding             Opt[Padding]
-	MermaidWidth        int // max pixel width for mermaid diagrams (0 = 600)
 	DisableExternalAPIs bool
 }
 

@@ -18,31 +18,31 @@ const (
 
 // DatePickerRollerCfg configures a roller-style date picker.
 type DatePickerRollerCfg struct {
+	TextStyle        TextStyle
+	SelectedDate     time.Time
+	OnChange         func(time.Time, *Window)
 	ID               string
 	A11YLabel        string
 	A11YDescription  string
-	IDFocus          uint32
-	SelectedDate     time.Time
-	DisplayMode      DatePickerRollerDisplayMode
 	MinYear          int
 	MaxYear          int
-	ItemHeight       float32
 	VisibleItems     int // must be odd
+	Padding          Opt[Padding]
+	SizeBorder       Opt[float32]
+	Radius           Opt[float32]
+	IDFocus          uint32
+	ItemHeight       float32
 	MinWidth         float32
 	MaxWidth         float32
 	WidthDay         float32
 	WidthMonth       float32
 	WidthYear        float32
-	LongMonths       bool // true = "January", false = "Jan"
-	WrapYear         bool
 	Color            Color
 	ColorBorder      Color
 	ColorBorderFocus Color
-	SizeBorder       Opt[float32]
-	Radius           Opt[float32]
-	Padding          Opt[Padding]
-	TextStyle        TextStyle
-	OnChange         func(time.Time, *Window)
+	DisplayMode      DatePickerRollerDisplayMode
+	LongMonths       bool // true = "January", false = "Jan"
+	WrapYear         bool
 }
 
 type datePickerRollerView struct {

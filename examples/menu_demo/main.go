@@ -16,9 +16,9 @@ const (
 )
 
 type MenuApp struct {
-	Clicks     int
 	SearchText string
 	SelectedID string
+	Clicks     int
 }
 
 func main() {

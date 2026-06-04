@@ -46,10 +46,10 @@ type App struct {
 }
 
 type RainColumn struct {
+	Drops []byte
 	Col   int
 	Len   int
 	Head  int
-	Drops []byte
 }
 
 func main() {

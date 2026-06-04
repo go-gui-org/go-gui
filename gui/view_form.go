@@ -62,28 +62,28 @@ type FormFieldSnapshot struct {
 type FormFieldState struct {
 	Value        string
 	InitialValue string
+	Errors       []FormIssue
 	Touched      bool
 	Dirty        bool
 	Pending      bool
-	Errors       []FormIssue
 }
 
 // FormSnapshot is a read-only snapshot of the entire form,
 // passed to validators.
 type FormSnapshot struct {
-	FormID string
 	Values map[string]string
 	Fields map[string]FormFieldState
+	FormID string
 }
 
 // FormSummaryState aggregates validation state across all
 // fields.
 type FormSummaryState struct {
-	Valid        bool
-	Pending      bool
+	Issues       map[string][]FormIssue
 	InvalidCount int
 	PendingCount int
-	Issues       map[string][]FormIssue
+	Valid        bool
+	Pending      bool
 }
 
 // FormPendingState lists fields with pending async validation.
@@ -95,17 +95,17 @@ type FormPendingState struct {
 
 // FormSubmitEvent is delivered to OnSubmit handlers.
 type FormSubmitEvent struct {
-	FormID  string
+	State   FormSummaryState
 	Values  map[string]string
+	FormID  string
 	Valid   bool
 	Pending bool
-	State   FormSummaryState
 }
 
 // FormResetEvent is delivered to OnReset handlers.
 type FormResetEvent struct {
-	FormID string
 	Values map[string]string
+	FormID string
 }
 
 // ---------- validator function types ----------
@@ -127,9 +127,9 @@ type FormFieldAdapterCfg struct {
 	FieldID            string
 	Value              string
 	InitialValue       string
-	HasInitialValue    bool
 	SyncValidators     []FormSyncValidator
 	AsyncValidators    []FormAsyncValidator
+	HasInitialValue    bool
 	ValidateOnOverride FormValidateOn
 }
 
@@ -140,16 +140,6 @@ const formLayoutIDPrefix = "form:"
 // FormCfg configures a Form container with runtime validation
 // and submit/reset semantics.
 type FormCfg struct {
-	// Identity — required for validation runtime.
-	ID string `gui:"required"`
-
-	// Validation behaviour.
-	ValidateOn         FormValidateOn // 0 → BlurSubmit
-	NoSubmitOnEnter    bool           // true disables enter-to-submit
-	AllowInvalidSubmit bool           // true permits submit with errors
-	AllowPendingSubmit bool           // true permits submit while async pending
-	Disabled           bool
-	Invisible          bool
 
 	// Callbacks.
 	OnSubmit    func(FormSubmitEvent, *Window)
@@ -158,17 +148,29 @@ type FormCfg struct {
 	SummarySlot func(FormSummaryState) View
 	PendingSlot func(FormPendingState) View
 
-	// Container passthrough.
-	Sizing                                                  Sizing
-	Width, Height, MinWidth, MaxWidth, MinHeight, MaxHeight float32
-	Padding                                                 Opt[Padding]
-	Spacing                                                 Opt[float32]
-	Color                                                   Color
-	SizeBorder                                              Opt[float32]
-	ColorBorder                                             Color
-	Radius                                                  Opt[float32]
+	// Identity — required for validation runtime.
+	ID string `gui:"required"`
 
-	Content []View
+	Content    []View
+	Padding    Opt[Padding]
+	Spacing    Opt[float32]
+	SizeBorder Opt[float32]
+	Radius     Opt[float32]
+
+	Width, Height, MinWidth, MaxWidth, MinHeight, MaxHeight float32
+	Color                                                   Color
+	ColorBorder                                             Color
+
+	// Container passthrough.
+	Sizing Sizing
+
+	// Validation behaviour.
+	ValidateOn         FormValidateOn // 0 → BlurSubmit
+	NoSubmitOnEnter    bool           // true disables enter-to-submit
+	AllowInvalidSubmit bool           // true permits submit with errors
+	AllowPendingSubmit bool           // true permits submit while async pending
+	Disabled           bool
+	Invisible          bool
 }
 
 // ---------- formView ----------
@@ -259,19 +261,19 @@ func (fv *formView) GenerateLayout(w *Window) Layout {
 // ---------- internal runtime state ----------
 
 type formFieldRuntime struct {
+	activeAbort  *GridAbortController
 	value        string
 	initialValue string
-	touched      bool
-	dirty        bool
-	pending      bool
 	syncErrors   []FormIssue
 	asyncErrors  []FormIssue
 	syncVals     []FormSyncValidator
 	asyncVals    []FormAsyncValidator
-	validateOn   FormValidateOn
 	requestSeq   uint64
-	activeAbort  *GridAbortController
 	seenGen      uint64
+	touched      bool
+	dirty        bool
+	pending      bool
+	validateOn   FormValidateOn
 }
 
 type formRuntimeState struct {

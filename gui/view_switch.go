@@ -2,8 +2,18 @@ package gui
 
 // SwitchCfg configures a pill-shaped toggle switch.
 type SwitchCfg struct {
-	ID               string
-	Label            string
+	TextStyle TextStyle
+	OnClick   func(*Layout, *Event, *Window)
+	ID        string
+	Label     string
+
+	A11YLabel        string
+	A11YDescription  string
+	Padding          Opt[Padding]
+	SizeBorder       Opt[float32]
+	Width            Opt[float32]
+	Height           Opt[float32]
+	IDFocus          uint32
 	Color            Color
 	ColorFocus       Color
 	ColorHover       Color
@@ -12,19 +22,9 @@ type SwitchCfg struct {
 	ColorBorderFocus Color
 	ColorSelect      Color
 	ColorUnselect    Color
-	Padding          Opt[Padding]
-	SizeBorder       Opt[float32]
-	TextStyle        TextStyle
-	OnClick          func(*Layout, *Event, *Window)
-	Width            Opt[float32]
-	Height           Opt[float32]
-	IDFocus          uint32
 	Disabled         bool
 	Invisible        bool
 	Selected         bool
-
-	A11YLabel       string
-	A11YDescription string
 }
 
 // Switch creates a pill-shaped toggle switch.

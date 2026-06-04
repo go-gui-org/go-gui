@@ -77,30 +77,56 @@ type windowToast struct {
 
 // windowInspector holds dev-tools inspector state.
 type windowInspector struct {
-	inspectorEnabled    bool
-	inspectorTreeCache  []TreeNodeCfg
 	inspectorPropsCache map[string]inspectorNodeProps
+	inspectorTreeCache  []TreeNodeCfg
+	inspectorEnabled    bool
 }
 
 // Window is the main application window.
 type Window struct {
-	// Mutexes.
-	mu         sync.Mutex // guards layout/renderer state
-	commandsMu sync.Mutex // guards command queue
+	a11y a11y // Accessibility backend state.
+	windowBackend
+	windowInspector
 
-	// Multi-window: parent App and SDL window ID.
-	app        *App
-	platformID uint32
-	closeReq   atomic.Bool
+	// File access / security-scoped bookmarks.
+	fileAccess fileAccessState
 
 	// User state — accessed via State[T](w).
 	state any
 
-	// View state.
-	viewState ViewState
+	// Lifecycle context — cancelled in WindowCleanup to abort
+	// in-flight async goroutines (HTTP fetches, notifications, etc.).
+	ctx context.Context
+
+	// Multi-window: parent App and SDL window ID.
+	app *App
 
 	// View generator — produces the root View each frame.
 	viewGenerator func(*Window) View
+
+	// OnEvent is called for unhandled events. Nil-safe.
+	OnEvent func(*Event, *Window)
+
+	cancelCtx context.CancelFunc
+
+	// Virtual clock — nil means live (time.Now). Non-nil means
+	// Now() returns the stored instant. Set by time-travel scrub
+	// so views that read w.Now() render with a past timestamp.
+	virtualNow atomic.Pointer[time.Time]
+
+	// Time-travel history. nil when disabled; hot-path checks
+	// against nil to short-circuit with zero overhead. When
+	// frozen is true, EventFn drops events (scrub read-only).
+	history *snapshotRing
+
+	// View state.
+	viewState ViewState
+
+	// Config stores the WindowCfg for backend access.
+	Config WindowCfg
+
+	// Layout tree — current frame.
+	layout Layout
 
 	// Command queue — flushed at frame start.
 	commands []queuedCommand
@@ -112,104 +138,85 @@ type Window struct {
 	// Scratch queue used to avoid reallocating command storage each frame.
 	commandScratch []queuedCommand
 
-	// Layout tree — current frame.
-	layout Layout
+	scratch scratchPools // Reusable per-frame scratch buffers.
+
+	windowToast
 
 	// Embedded concern groups.
 	windowRender
-	windowAnimation
-	windowBackend
-	windowToast
-	windowInspector
-	a11y    a11y         // Accessibility backend state.
-	ime     ime          // Input Method Editor state.
-	scratch scratchPools // Reusable per-frame scratch buffers.
+	ime ime // Input Method Editor state.
 
-	// Refresh flags.
-	refreshLayout     bool
-	refreshRenderOnly bool
+	// Dialog state.
+	dialogCfg DialogCfg
+
+	windowAnimation
 
 	// Window dimensions (logical pixels).
 	windowWidth  int
 	windowHeight int
 
-	// BackingScale is the device pixel ratio set by the backend each frame
-	// (e.g. 2.0 on Retina/HiDPI). Zero until the first frame is rendered.
-	BackingScale float32
-
-	// Dialog state.
-	dialogCfg DialogCfg
-
-	// Window focus state — backend sets false on unfocus event.
-	focused bool
-
-	// OnEvent is called for unhandled events. Nil-safe.
-	OnEvent func(*Event, *Window)
-
-	// File access / security-scoped bookmarks.
-	fileAccess fileAccessState
-
-	// Config stores the WindowCfg for backend access.
-	Config WindowCfg
-
-	// Lifecycle context — cancelled in WindowCleanup to abort
-	// in-flight async goroutines (HTTP fetches, notifications, etc.).
-	ctx       context.Context
-	cancelCtx context.CancelFunc
-
-	// Cleanup guard.
-	cleanupOnce sync.Once
-
 	// Frame counter — incremented each FrameFn call, stamped
 	// on events for frame-based timing (double-click detection).
 	frameCount uint64
 
-	// Virtual clock — nil means live (time.Now). Non-nil means
-	// Now() returns the stored instant. Set by time-travel scrub
-	// so views that read w.Now() render with a past timestamp.
-	virtualNow atomic.Pointer[time.Time]
+	// Cleanup guard.
+	cleanupOnce sync.Once
 
-	// Time-travel history. nil when disabled; hot-path checks
-	// against nil to short-circuit with zero overhead. When
-	// frozen is true, EventFn drops events (scrub read-only).
-	history *snapshotRing
-	frozen  atomic.Bool
+	// Mutexes.
+	mu         sync.Mutex // guards layout/renderer state
+	commandsMu sync.Mutex // guards command queue
+
+	platformID uint32
+	closeReq   atomic.Bool
+
+	// BackingScale is the device pixel ratio set by the backend each frame
+	// (e.g. 2.0 on Retina/HiDPI). Zero until the first frame is rendered.
+	BackingScale float32
+
+	frozen atomic.Bool
+
+	// Refresh flags.
+	refreshLayout     bool
+	refreshRenderOnly bool
+
+	// Window focus state — backend sets false on unfocus event.
+	focused bool
 }
 
 // MouseLockCfg stores callbacks for mouse event handling in a
 // locked state (drag operations). When mouse is locked, these
 // callbacks intercept normal mouse event processing.
 type MouseLockCfg struct {
-	CursorPos int
 	MouseDown func(*Layout, *Event, *Window)
 	MouseMove func(*Layout, *Event, *Window)
 	MouseUp   func(*Layout, *Event, *Window)
+	CursorPos int
 }
 
 // ViewState holds per-window UI state.
 type ViewState struct {
-	registry      StateRegistry
-	idFocus       uint32
-	mouseCursor   MouseCursor
-	mouseLock     MouseLockCfg
-	inputCursorOn bool
-	mousePosX     float32
-	mousePosY     float32
-	menuKeyNav    bool
-	tooltip       tooltipState
-
 	gesture gestureState
 
-	// Markdown caches (lazy-init: nil until first use).
-	markdownTheme            string
-	markdownCache            *BoundedMap[int64, []MarkdownBlock]
-	diagramCache             *BoundedDiagramCache
-	diagramRequestSeq        uint64
-	externalAPIWarningLogged bool
+	mouseLock     MouseLockCfg
+	registry      StateRegistry
+	markdownCache *BoundedMap[int64, []MarkdownBlock]
+	diagramCache  *BoundedDiagramCache
 
 	// RTF layout cache — avoids re-shaping unchanged content.
 	rtfLayoutCache *BoundedMap[uint64, rtfLayoutEntry]
-	rtfLayoutTheme string
+	tooltip        tooltipState
+
+	// Markdown caches (lazy-init: nil until first use).
+	markdownTheme            string
+	rtfLayoutTheme           string
+	diagramRequestSeq        uint64
+	idFocus                  uint32
+	mousePosX                float32
+	mousePosY                float32
+	mouseCursor              MouseCursor
+	inputCursorOn            bool
+	menuKeyNav               bool
+	externalAPIWarningLogged bool
 }
 
 // State returns a typed pointer to the user-supplied state.

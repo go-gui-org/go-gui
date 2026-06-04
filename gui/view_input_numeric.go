@@ -3,50 +3,53 @@ package gui
 // NumericInputCfg configures a locale-aware numeric input with
 // optional step controls.
 type NumericInputCfg struct {
-	ID          string
-	IDFocus     uint32
-	Text        string
-	Value       Opt[float64]
-	Placeholder string
-	Locale      NumericLocaleCfg
-	StepCfg     NumericStepCfg
-	Mode        NumericInputMode
-	CurrencyCfg NumericCurrencyModeCfg
-	PercentCfg  NumericPercentModeCfg
-	Decimals    int
-	Min         Opt[float64]
-	Max         Opt[float64]
-
-	// Sizing
-	Sizing    Sizing
-	Width     float32
-	Height    float32
-	MinWidth  float32
-	MaxWidth  float32
-	MinHeight float32
-	MaxHeight float32
-
-	// Appearance
-	Padding          Opt[Padding]
-	Radius           Opt[float32]
-	SizeBorder       Opt[float32]
-	Color            Color
-	ColorHover       Color
-	ColorBorder      Color
-	ColorBorderFocus Color
 	TextStyle        TextStyle
 	PlaceholderStyle TextStyle
-
-	Disabled  bool
-	Invisible bool
 
 	// Callbacks
 	OnTextChanged func(*Layout, string, *Window)
 	OnValueCommit func(*Layout, Opt[float64], string, *Window)
 
+	ID          string
+	Text        string
+	Placeholder string
+
 	// Accessibility
 	A11YLabel       string
 	A11YDescription string
+	CurrencyCfg     NumericCurrencyModeCfg
+	PercentCfg      NumericPercentModeCfg
+	Locale          NumericLocaleCfg
+	StepCfg         NumericStepCfg
+	Value           Opt[float64]
+	Min             Opt[float64]
+	Max             Opt[float64]
+
+	Decimals int
+
+	// Appearance
+	Padding    Opt[Padding]
+	Radius     Opt[float32]
+	SizeBorder Opt[float32]
+	IDFocus    uint32
+	Width      float32
+	Height     float32
+	MinWidth   float32
+	MaxWidth   float32
+	MinHeight  float32
+	MaxHeight  float32
+
+	Color            Color
+	ColorHover       Color
+	ColorBorder      Color
+	ColorBorderFocus Color
+
+	// Sizing
+	Sizing Sizing
+	Mode   NumericInputMode
+
+	Disabled  bool
+	Invisible bool
 }
 
 // DefaultNumericInputStyle holds defaults for NumericInputCfg Opt fields.

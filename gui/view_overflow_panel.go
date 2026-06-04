@@ -2,26 +2,26 @@ package gui
 
 // OverflowItem defines an item in an overflow panel.
 type OverflowItem struct {
-	ID     string
 	View   View
-	Text   string
 	Action func(*MenuItemCfg, *Event, *Window)
+	ID     string
+	Text   string
 }
 
 // OverflowPanelCfg configures an overflow panel that hides
 // items that don't fit and shows them in a dropdown menu.
 type OverflowPanelCfg struct {
 	ID           string
-	IDFocus      uint32
 	Items        []OverflowItem
 	Trigger      []View
+	FloatZIndex  int
 	Padding      Opt[Padding]
-	FloatAnchor  FloatAttach
-	FloatTieOff  FloatAttach
+	Spacing      Opt[float32]
+	IDFocus      uint32
 	FloatOffsetX float32
 	FloatOffsetY float32
-	FloatZIndex  int
-	Spacing      Opt[float32]
+	FloatAnchor  FloatAttach
+	FloatTieOff  FloatAttach
 	Disabled     bool
 }
 

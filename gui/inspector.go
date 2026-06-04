@@ -51,25 +51,25 @@ type inspectorStackFrame struct {
 type inspectorNodeProps struct {
 	TypeName    string
 	ID          string
+	Events      string
+	TextPreview string
+	Children    int
+	Padding     Padding
 	X           float32
 	Y           float32
 	Width       float32
 	Height      float32
-	Sizing      Sizing
-	Padding     Padding
 	Spacing     float32
-	Color       Color
 	Radius      float32
 	IDFocus     uint32
 	IDScroll    uint32
+	Opacity     float32
+	Color       Color
+	Sizing      Sizing
 	HAlign      HorizontalAlign
 	VAlign      VerticalAlign
 	IsFloat     bool
 	Clip        bool
-	Opacity     float32
-	Events      string
-	TextPreview string
-	Children    int
 }
 
 func inspectorToggle(w *Window) {

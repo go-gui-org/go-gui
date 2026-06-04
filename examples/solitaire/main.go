@@ -29,17 +29,18 @@ type DragSource struct {
 // App holds all mutable application state.
 type App struct {
 	Game         *Game
-	Screen       Screen
+	DragCards    []Card
+	DragSource   DragSource
 	LandingFrame int
 
-	// Drag state
-	DragActive  bool
-	DragCards   []Card
-	DragSource  DragSource
 	DragOffsetX float32
 	DragOffsetY float32
 	DragMouseX  float32
 	DragMouseY  float32
+	Screen      Screen
+
+	// Drag state
+	DragActive bool
 }
 
 const blinkAnim = "solitaire-blink"

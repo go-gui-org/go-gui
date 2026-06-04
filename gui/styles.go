@@ -43,22 +43,22 @@ const (
 
 // TextStyle defines text rendering properties.
 type TextStyle struct {
+	AffineTransform *glyph.AffineTransform
+	Gradient        *glyph.GradientConfig
+	Features        *glyph.FontFeatures
 	Family          string
-	Color           Color
-	BgColor         Color
+	Typeface        glyph.Typeface
 	Size            float32
 	LineSpacing     float32
 	LetterSpacing   float32
+	RotationRadians float32
+	StrokeWidth     float32
+	Color           Color
+	BgColor         Color
+	StrokeColor     Color
 	Align           TextAlignment
 	Underline       bool
 	Strikethrough   bool
-	RotationRadians float32
-	AffineTransform *glyph.AffineTransform
-	Typeface        glyph.Typeface
-	Gradient        *glyph.GradientConfig
-	StrokeWidth     float32
-	StrokeColor     Color
-	Features        *glyph.FontFeatures
 }
 
 // mergeTextStyle fills zero fields in s from fallback.
@@ -117,44 +117,44 @@ func affineTransformIsIdentity(t glyph.AffineTransform) bool {
 
 // ButtonStyle defines button visual properties.
 type ButtonStyle struct {
+	Shadow           *BoxShadow
+	Gradient         *GradientDef
+	Padding          Padding
+	SizeBorder       float32
+	Radius           float32
+	BlurRadius       float32
 	Color            Color
 	ColorHover       Color
 	ColorFocus       Color
 	ColorClick       Color
 	ColorBorder      Color
 	ColorBorderFocus Color
-	Padding          Padding
-	SizeBorder       float32
-	Radius           float32
-	BlurRadius       float32
-	Shadow           *BoxShadow
-	Gradient         *GradientDef
 }
 
 // ContainerStyle defines container visual properties.
 type ContainerStyle struct {
-	Color          Color
-	ColorBorder    Color
+	Shadow         *BoxShadow
+	Gradient       *GradientDef
+	BorderGradient *GradientDef
 	Padding        Padding
 	Radius         float32
 	BlurRadius     float32
 	Spacing        float32
 	SizeBorder     float32
-	Shadow         *BoxShadow
-	Gradient       *GradientDef
-	BorderGradient *GradientDef
+	Color          Color
+	ColorBorder    Color
 }
 
 // RectangleStyle defines rectangle visual properties.
 type RectangleStyle struct {
-	Color          Color
-	ColorBorder    Color
-	Radius         float32
-	BlurRadius     float32
-	SizeBorder     float32
 	Shadow         *BoxShadow
 	Gradient       *GradientDef
 	BorderGradient *GradientDef
+	Radius         float32
+	BlurRadius     float32
+	SizeBorder     float32
+	Color          Color
+	ColorBorder    Color
 }
 
 // Default styles (dark theme).
@@ -198,6 +198,14 @@ var (
 
 // DataGridStyle defines data grid visual properties.
 type DataGridStyle struct {
+	TextStyle         TextStyle
+	TextStyleHeader   TextStyle
+	TextStyleFilter   TextStyle
+	PaddingCell       Padding
+	PaddingHeader     Padding
+	PaddingFilter     Padding
+	SizeBorder        float32
+	Radius            float32
 	ColorBackground   Color
 	ColorHeader       Color
 	ColorHeaderHover  Color
@@ -209,14 +217,6 @@ type DataGridStyle struct {
 	ColorBorder       Color
 	ColorResizeHandle Color
 	ColorResizeActive Color
-	PaddingCell       Padding
-	PaddingHeader     Padding
-	PaddingFilter     Padding
-	SizeBorder        float32
-	Radius            float32
-	TextStyle         TextStyle
-	TextStyleHeader   TextStyle
-	TextStyleFilter   TextStyle
 }
 
 // InspectorStyle defines the look and feel of the GUI inspector.

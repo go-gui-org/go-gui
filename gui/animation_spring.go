@@ -30,13 +30,13 @@ type springState struct {
 
 // SpringAnimation uses spring physics for natural motion.
 type SpringAnimation struct {
-	AnimID  string
-	Config  SpringCfg
+	start   time.Time
 	OnValue func(float32, *Window)
 	OnDone  func(*Window)
-	start   time.Time
-	stopped bool
+	AnimID  string
+	Config  SpringCfg
 	state   springState
+	stopped bool
 }
 
 // ID implements Animation.

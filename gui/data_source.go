@@ -78,21 +78,21 @@ func (c *GridAbortController) Abort() {
 
 // GridDataRequest is the request payload for FetchData.
 type GridDataRequest struct {
-	GridID    string
-	Query     GridQueryState
 	Page      GridPageRequest
 	Signal    *GridAbortSignal
+	Query     GridQueryState
+	GridID    string
 	RequestID uint64
 }
 
 // GridDataResult is the response from FetchData.
 type GridDataResult struct {
-	Rows          []GridRow
 	NextCursor    string
 	PrevCursor    string
+	Rows          []GridRow
 	RowCount      int // -1 when unknown
-	HasMore       bool
 	ReceivedCount int
+	HasMore       bool
 }
 
 // GridDataCapabilities describes what a data source supports.
@@ -109,23 +109,23 @@ type GridDataCapabilities struct {
 
 // GridMutationRequest is the request payload for MutateData.
 type GridMutationRequest struct {
-	GridID    string
-	Kind      GridMutationKind
+	Signal    *GridAbortSignal
 	Query     GridQueryState
+	GridID    string
 	Rows      []GridRow
 	RowIDs    []string
 	Edits     []GridCellEdit
-	Signal    *GridAbortSignal
 	RequestID uint64
+	Kind      GridMutationKind
 }
 
 // GridMutationResult is the response from MutateData.
 type GridMutationResult struct {
+	Errors     map[string]string
 	Created    []GridRow
 	Updated    []GridRow
 	DeletedIDs []string
 	FailedIDs  []string
-	Errors     map[string]string
 	RowCount   int // -1 when unknown
 }
 
@@ -139,10 +139,10 @@ type DataGridDataSource interface {
 // InMemoryDataSource implements DataGridDataSource using an
 // in-memory row slice.
 type InMemoryDataSource struct {
-	mu             sync.RWMutex
 	Rows           []GridRow
 	DefaultLimit   int
 	LatencyMs      int
+	mu             sync.RWMutex
 	RowCountKnown  bool
 	SupportsCursor bool
 	SupportsOffset bool

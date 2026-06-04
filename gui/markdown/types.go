@@ -99,22 +99,34 @@ type CodeToken struct {
 // Run is a single inline text segment with format and flags.
 type Run struct {
 	Text          string
+	Link          string
+	Tooltip       string // abbreviation or footnote
+	MathID        string
+	MathLatex     string
 	Format        Format
 	Strikethrough bool
 	Underline     bool
 	Highlight     bool // ==text==
 	Superscript   bool
 	Subscript     bool
-	Link          string
-	Tooltip       string // abbreviation or footnote
-	MathID        string
-	MathLatex     string
 	CodeToken     CodeTokenKind
 }
 
 // Block is a parsed block of markdown content.
 type Block struct {
+	TableData       *Table
+	ListPrefix      string
+	ImageSrc        string
+	ImageAlt        string
+	CodeLanguage    string
+	MathLatex       string
+	AnchorSlug      string
+	Runs            []Run
 	HeaderLevel     int
+	BlockquoteDepth int
+	ListIndent      int
+	ImageWidth      float32
+	ImageHeight     float32
 	IsCode          bool
 	IsHR            bool
 	IsBlockquote    bool
@@ -124,18 +136,6 @@ type Block struct {
 	IsMath          bool
 	IsDefTerm       bool
 	IsDefValue      bool
-	BlockquoteDepth int
-	ListPrefix      string
-	ListIndent      int
-	ImageSrc        string
-	ImageAlt        string
-	ImageWidth      float32
-	ImageHeight     float32
-	CodeLanguage    string
-	MathLatex       string
-	AnchorSlug      string
-	Runs            []Run
-	TableData       *Table
 }
 
 // Table holds parsed table data.

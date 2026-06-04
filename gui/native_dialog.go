@@ -19,10 +19,10 @@ const (
 
 // NativeDialogResult contains native file dialog completion data.
 type NativeDialogResult struct {
-	Status       NativeDialogStatus
-	Paths        []AccessiblePath
 	ErrorCode    string
 	ErrorMessage string
+	Paths        []AccessiblePath
+	Status       NativeDialogStatus
 }
 
 // PathStrings returns just the path strings, discarding grants.
@@ -42,29 +42,29 @@ type NativeFileFilter struct {
 
 // NativeOpenDialogCfg configures the native open-file dialog.
 type NativeOpenDialogCfg struct {
+	OnDone        func(NativeDialogResult, *Window)
 	Title         string
 	StartDir      string
 	Filters       []NativeFileFilter
 	AllowMultiple bool
-	OnDone        func(NativeDialogResult, *Window)
 }
 
 // NativeSaveDialogCfg configures the native save-file dialog.
 type NativeSaveDialogCfg struct {
+	OnDone           func(NativeDialogResult, *Window)
 	Title            string
 	StartDir         string
 	DefaultName      string
 	DefaultExtension string
 	Filters          []NativeFileFilter
 	ConfirmOverwrite bool
-	OnDone           func(NativeDialogResult, *Window)
 }
 
 // NativeFolderDialogCfg configures the native folder picker.
 type NativeFolderDialogCfg struct {
+	OnDone   func(NativeDialogResult, *Window)
 	Title    string
 	StartDir string
-	OnDone   func(NativeDialogResult, *Window)
 }
 
 // NativeAlertLevel controls the severity icon of a message/confirm dialog.
@@ -79,34 +79,34 @@ const (
 
 // NativeAlertResult contains native alert dialog outcome.
 type NativeAlertResult struct {
-	Status       NativeDialogStatus
 	ErrorCode    string
 	ErrorMessage string
+	Status       NativeDialogStatus
 }
 
 // NativeMessageDialogCfg configures a native message dialog.
 type NativeMessageDialogCfg struct {
+	OnDone func(NativeAlertResult, *Window)
 	Title  string
 	Body   string
 	Level  NativeAlertLevel
-	OnDone func(NativeAlertResult, *Window)
 }
 
 // NativeConfirmDialogCfg configures a native Yes/No dialog.
 type NativeConfirmDialogCfg struct {
+	OnDone func(NativeAlertResult, *Window)
 	Title  string
 	Body   string
 	Level  NativeAlertLevel
-	OnDone func(NativeAlertResult, *Window)
 }
 
 // NativeSaveDiscardDialogCfg configures a native Save/Discard/Cancel dialog.
 // OnDone receives DialogOK (save), DialogDiscard (don't save), or DialogCancel.
 type NativeSaveDiscardDialogCfg struct {
+	OnDone func(NativeAlertResult, *Window)
 	Title  string
 	Body   string
 	Level  NativeAlertLevel
-	OnDone func(NativeAlertResult, *Window)
 }
 
 // --- Window methods ---

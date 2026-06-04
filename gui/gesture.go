@@ -24,22 +24,25 @@ const (
 // gestureState is per-window gesture recognizer state.
 // Stored directly on ViewState. Zero value = idle.
 type gestureState struct {
+
+	// Clock injection for tests (nil = time.Now).
+	nowFn      func() int64
 	touches    [8]trackedTouch
 	numTouches int
 
 	// Timing (monotonic nanos).
 	beganTime   int64
 	lastTapTime int64
-	lastTapX    float32
-	lastTapY    float32
+	prevTime    int64
 
-	// Phase tracking.
-	gestureType GestureType
+	// Flags.
+	singleTouchID uint64
+	lastTapX      float32
+	lastTapY      float32
 
 	// Pan/swipe.
 	startX, startY float32
 	prevX, prevY   float32
-	prevTime       int64
 	velocityX      float32
 	velocityY      float32
 
@@ -53,14 +56,12 @@ type gestureState struct {
 	prevAngle    float32
 	rotation     float32
 
-	// Flags.
-	singleTouchID uint64
-	mouseEmitted  bool
-	recognized    bool
-	rotateBegan   bool
+	// Phase tracking.
+	gestureType GestureType
 
-	// Clock injection for tests (nil = time.Now).
-	nowFn func() int64
+	mouseEmitted bool
+	recognized   bool
+	rotateBegan  bool
 }
 
 type trackedTouch struct {

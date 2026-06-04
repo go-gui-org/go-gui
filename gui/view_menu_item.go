@@ -10,28 +10,29 @@ const (
 // MenuItemCfg configures a single menu item. Items may be
 // text, separators, subtitles, or submenus.
 type MenuItemCfg struct {
-	// Internal — set by menuBuild from theme/context.
-	colorSelect Color
-	textStyle   TextStyle
-	sizing      Sizing
-	radius      float32
-	spacing     float32
-	level       int
-	disabled    bool
-	selected    bool
+	textStyle  TextStyle
+	CustomView View
+	Action     func(*MenuItemCfg, *Event, *Window)
 
 	// Public configuration.
-	ID         string
-	Text       string
-	CommandID  string // auto-fill from registered command
-	Padding    Opt[Padding]
-	Action     func(*MenuItemCfg, *Event, *Window)
-	Submenu    []MenuItemCfg
-	CustomView View
-	Separator  bool
+	ID        string
+	Text      string
+	CommandID string // auto-fill from registered command
 
 	// Internal — resolved shortcut hint text.
 	shortcutText string
+	Submenu      []MenuItemCfg
+	level        int
+	Padding      Opt[Padding]
+	radius       float32
+	spacing      float32
+	// Internal — set by menuBuild from theme/context.
+	colorSelect Color
+	sizing      Sizing
+	disabled    bool
+	selected    bool
+
+	Separator bool
 }
 
 // MenuItemText creates a simple text menu item.

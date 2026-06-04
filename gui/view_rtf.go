@@ -16,25 +16,26 @@ import (
 
 // RtfCfg configures a Rich Text View.
 type RtfCfg struct {
+	BaseTextStyle *TextStyle
+
 	ID              string
 	A11YLabel       string
 	A11YDescription string
 	RichText        RichText
 	MinWidth        float32
 	IDFocus         uint32
-	Mode            TextMode
-	Invisible       bool
-	Clip            bool
-	FocusSkip       bool
-	Disabled        bool
 	HangingIndent   float32 // negative indent for wrapped lines
-	BaseTextStyle   *TextStyle
 
 	// markdownID > 0 when this block belongs to a markdown widget.
 	// markdownBlockStart is the rune offset of this block in the
 	// markdown's flat text. Both are set by view_markdown.go only.
 	markdownID         uint32
 	markdownBlockStart uint32
+	Mode               TextMode
+	Invisible          bool
+	Clip               bool
+	FocusSkip          bool
+	Disabled           bool
 }
 
 // rtfFlatTextFromRuns concatenates all run texts into a single string.
@@ -504,11 +505,11 @@ func rtfOnClick(l *Layout, e *Event, w *Window) {
 
 // rtfLinkMenuState holds state for the RTF link context menu.
 type rtfLinkMenuState struct {
-	Open     bool
 	Link     string
+	BlockKey uint64 // identifies the owning RTF block
 	X        float32
 	Y        float32
-	BlockKey uint64 // identifies the owning RTF block
+	Open     bool
 }
 
 const rtfLinkMenuIDFocus uint32 = 8492137

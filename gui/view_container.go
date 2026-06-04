@@ -5,69 +5,13 @@ package gui
 // horizontally, or freely with sizing, alignment, scrolling,
 // floating, borders, and event handling.
 type ContainerCfg struct {
-	// Identity
-	ID string
-
-	// Sizing
-	Sizing    Sizing
-	Width     float32
-	Height    float32
-	MinWidth  float32
-	MaxWidth  float32
-	MinHeight float32
-	MaxHeight float32
-
-	// Layout
-	Spacing  Opt[float32]
-	Padding  Opt[Padding]
-	HAlign   HorizontalAlign
-	VAlign   VerticalAlign
-	TextDir  TextDirection
-	Wrap     bool
-	Overflow bool
-
-	// Appearance
-	Title          string
-	TitleBG        Color
-	Color          Color
-	ColorBorder    Color
-	SizeBorder     Opt[float32]
-	Radius         Opt[float32]
-	BlurRadius     float32
 	ColorFilter    *ColorFilter
-	Opacity        Opt[float32]
 	Shadow         *BoxShadow
 	Gradient       *GradientDef
 	BorderGradient *GradientDef
 	Shader         *Shader
 
-	// Behavior
-	IDFocus      uint32
-	IDScroll     uint32
-	ScrollMode   ScrollMode
-	Clip         bool
-	ClipContents bool
-	FocusSkip    bool
-	Disabled     bool
-	Invisible    bool
-	OverDraw     bool
-	Hero         bool
-
-	// Floating
-	Float         bool
-	FloatAutoFlip bool
-	FloatAnchor   FloatAttach
-	FloatTieOff   FloatAttach
-	FloatOffsetX  float32
-	FloatOffsetY  float32
-	FloatZIndex   int
-
-	// Accessibility
-	A11YRole        AccessRole
-	A11YState       AccessState
-	A11YLabel       string
-	A11YDescription string
-	A11Y            *AccessInfo
+	A11Y *AccessInfo
 
 	// Event handlers
 	OnClick     func(*Layout, *Event, *Window)
@@ -84,17 +28,80 @@ type ContainerCfg struct {
 	OnFileDrop  func(*Layout, *Event, *Window)
 	OnIMECommit func(*Layout, string, *Window)
 
-	// Position
-	X float32
-	Y float32
-
-	// Content
-	Content []View
-
 	// Scrollbar config overrides. nil = use defaults when
 	// IDScroll > 0. Set Overflow to ScrollbarHidden to suppress.
 	ScrollbarCfgX *ScrollbarCfg
 	ScrollbarCfgY *ScrollbarCfg
+
+	// Identity
+	ID string
+
+	// Appearance
+	Title           string
+	A11YLabel       string
+	A11YDescription string
+
+	// Content
+	Content []View
+
+	FloatZIndex int
+
+	Padding Opt[Padding]
+
+	// Layout
+	Spacing    Opt[float32]
+	SizeBorder Opt[float32]
+	Radius     Opt[float32]
+	Opacity    Opt[float32]
+	Width      float32
+	Height     float32
+	MinWidth   float32
+	MaxWidth   float32
+	MinHeight  float32
+	MaxHeight  float32
+
+	BlurRadius float32
+
+	// Behavior
+	IDFocus      uint32
+	IDScroll     uint32
+	FloatOffsetX float32
+	FloatOffsetY float32
+
+	// Position
+	X float32
+	Y float32
+
+	A11YState   AccessState
+	TitleBG     Color
+	Color       Color
+	ColorBorder Color
+
+	// Sizing
+	Sizing   Sizing
+	HAlign   HorizontalAlign
+	VAlign   VerticalAlign
+	TextDir  TextDirection
+	Wrap     bool
+	Overflow bool
+
+	ScrollMode   ScrollMode
+	Clip         bool
+	ClipContents bool
+	FocusSkip    bool
+	Disabled     bool
+	Invisible    bool
+	OverDraw     bool
+	Hero         bool
+
+	// Floating
+	Float         bool
+	FloatAutoFlip bool
+	FloatAnchor   FloatAttach
+	FloatTieOff   FloatAttach
+
+	// Accessibility
+	A11YRole AccessRole
 
 	// Internal — set by factory functions.
 	axis                 Axis
@@ -122,8 +129,8 @@ func applyContainerDefaults(cfg *ContainerCfg) (spacing, sizeBorder, radius floa
 // still avoiding the per-frame ContainerCfg→Shape build cost.
 type containerView struct {
 	shape       *Shape
-	content     []View
 	title       string
+	content     []View
 	titleBG     Color
 	colorBorder Color
 	disabled    bool

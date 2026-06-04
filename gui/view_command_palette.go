@@ -1,24 +1,24 @@
 package gui
 
 type cmdPaletteItemsCache struct {
-	sourceHash uint64
+	viewKey    cmdPaletteViewKey
 	items      []ListCoreItem
 	filtered   []ListCoreItem
 	ids        []string
 	scored     []listCoreScored
-	viewKey    cmdPaletteViewKey
 	views      []View
+	sourceHash uint64
 }
 
 type cmdPaletteViewKey struct {
-	sourceHash uint64
 	query      string
+	theme      string
+	sourceHash uint64
 	first      int
 	last       int
 	hl         int
 	filteredN  int
 	rowH       float32
-	theme      string
 }
 
 // CommandPaletteItem represents one action in the palette.
@@ -33,24 +33,24 @@ type CommandPaletteItem struct {
 
 // CommandPaletteCfg configures a command palette view.
 type CommandPaletteCfg struct {
-	ID             string `gui:"required"`
-	Items          []CommandPaletteItem
-	OnAction       func(string, *Event, *Window)
-	OnDismiss      func(*Window)
-	Placeholder    string
 	TextStyle      TextStyle
 	DetailStyle    TextStyle
-	Color          Color
-	ColorBorder    Color
-	ColorHighlight Color
+	OnAction       func(string, *Event, *Window)
+	OnDismiss      func(*Window)
+	ID             string `gui:"required"`
+	Placeholder    string
+	Items          []CommandPaletteItem
+	FloatZIndex    int
 	SizeBorder     Opt[float32]
 	Radius         Opt[float32]
 	Width          float32
 	MaxHeight      float32
-	BackdropColor  Color
 	IDFocus        uint32
 	IDScroll       uint32
-	FloatZIndex    int
+	Color          Color
+	ColorBorder    Color
+	ColorHighlight Color
+	BackdropColor  Color
 }
 
 // commandPaletteView implements View for command palette.

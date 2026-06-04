@@ -45,29 +45,29 @@ type GridFilter struct {
 // GridQueryState holds the active sorts, filters, and quick
 // filter for a data grid query.
 type GridQueryState struct {
+	QuickFilter string
 	Sorts       []GridSort
 	Filters     []GridFilter
-	QuickFilter string
 }
 
 // GridSelection tracks the selected rows in a data grid.
 type GridSelection struct {
+	SelectedRowIDs map[string]bool
 	AnchorRowID    string
 	ActiveRowID    string
-	SelectedRowIDs map[string]bool
 }
 
 // GridRow represents a single data row with an ID and
 // column-keyed cell values.
 type GridRow struct {
-	ID    string
 	Cells map[string]string
+	ID    string
 }
 
 // GridCellEdit describes a single cell edit operation.
 type GridCellEdit struct {
 	RowID  string
-	RowIdx int
 	ColID  string
 	Value  string
+	RowIdx int
 }

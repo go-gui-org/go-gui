@@ -16,18 +16,19 @@ const (
 
 // BadgeCfg configures a Badge view.
 type BadgeCfg struct {
-	Label     string
-	Variant   BadgeVariant
-	Max       int // 0 = no cap; shows "max+" when exceeded
-	Dot       bool
-	Color     Color
-	Padding   Opt[Padding]
 	TextStyle TextStyle
-	DotSize   Opt[float32]
+	Label     string
 
 	// Accessibility
 	A11YLabel       string
 	A11YDescription string
+	Max             int // 0 = no cap; shows "max+" when exceeded
+	Padding         Opt[Padding]
+	DotSize         Opt[float32]
+
+	Color   Color
+	Variant BadgeVariant
+	Dot     bool
 }
 
 // Badge creates a badge view. Dot mode renders a fixed-size

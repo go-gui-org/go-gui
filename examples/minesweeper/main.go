@@ -21,24 +21,25 @@ const (
 
 // App holds all mutable application state.
 type App struct {
-	Game         *Game
+	TimerStart time.Time
+	Game       *Game
+	HintCell   *Point
+	BadChecks  []Point
+
+	// Logo mini-game state
+	LogoDots     []logoDot // one per pixel in "MINES"
+	ElapsedSecs  int
+	LandingFrame int
+
+	LogoClicked  int // how many dots clicked so far
+	LogoPause    int // frames to pause after boom before reset
 	Screen       Screen
 	Difficulty   Difficulty
 	NoGuessMode  bool
 	TrainingMode bool
 	GardenTheme  bool
-	TimerStart   time.Time
-	ElapsedSecs  int
 	TimerActive  bool
-	HintCell     *Point
-	BadChecks    []Point
-	LandingFrame int
-
-	// Logo mini-game state
-	LogoDots    []logoDot // one per pixel in "MINES"
-	LogoClicked int       // how many dots clicked so far
-	LogoBoom    bool      // true = bomb hit, showing all bombs
-	LogoPause   int       // frames to pause after boom before reset
+	LogoBoom     bool // true = bomb hit, showing all bombs
 }
 
 // logoDot tracks a single pixel in the title animation.

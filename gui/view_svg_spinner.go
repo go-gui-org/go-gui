@@ -15,20 +15,20 @@ package gui
 // origin; :is() / :where() selectors. Affected assets render
 // as the static initial frame.
 type SvgSpinnerCfg struct {
+	OnClick         func(*Layout, *Event, *Window)
 	ID              string
-	Kind            SvgSpinnerKind
-	Color           Color
+	A11YLabel       string
+	A11YDescription string
+	Padding         Opt[Padding]
 	Width           float32
 	Height          float32
-	Sizing          Sizing
-	Padding         Opt[Padding]
 	MinWidth        float32
 	MaxWidth        float32
 	MinHeight       float32
 	MaxHeight       float32
-	OnClick         func(*Layout, *Event, *Window)
-	A11YLabel       string
-	A11YDescription string
+	Kind            SvgSpinnerKind
+	Color           Color
+	Sizing          Sizing
 }
 
 // SvgSpinner renders a built-in animated SVG spinner identified

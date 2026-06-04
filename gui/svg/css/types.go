@@ -80,8 +80,8 @@ const (
 // selector. Name is lowercased. Op == AttrOpExists ignores Value.
 type AttrSel struct {
 	Name  string
-	Op    AttrOp
 	Value string
+	Op    AttrOp
 }
 
 // Compound is a compound selector: an optional tag, an optional id,
@@ -89,18 +89,18 @@ type AttrSel struct {
 // constraints. Tag == "" matches any element when no other constraints
 // are present; "*" is the explicit universal form.
 type Compound struct {
+	NthChild *NthFormula
+	// Not is an inner compound for :not(inner). Single-compound scope:
+	// :not(.a, .b) and nested :not(:not(...)) are not supported.
+	Not         *Compound
 	Tag         string
 	ID          string
 	Classes     []string
 	Attrs       []AttrSel
-	NthChild    *NthFormula
+	Spec        Specificity
 	Root        bool
 	HoverPseudo bool
 	FocusPseudo bool
-	// Not is an inner compound for :not(inner). Single-compound scope:
-	// :not(.a, .b) and nested :not(:not(...)) are not supported.
-	Not  *Compound
-	Spec Specificity
 }
 
 // Combinator joins two compound selectors in a complex selector.
@@ -122,8 +122,8 @@ const (
 // SelectorPart is one compound in a complex selector together with
 // the combinator that joins it to the previous part.
 type SelectorPart struct {
-	Combinator Combinator
 	Compound   Compound
+	Combinator Combinator
 }
 
 // ComplexSelector is a chain of compound selectors joined by
@@ -159,8 +159,8 @@ type Rule struct {
 // the resolved [0,1] position (0% → 0, from → 0, 50% → 0.5, to/100%
 // → 1). Decls are the property writes for that stop.
 type KeyframeStop struct {
-	Offset float32
 	Decls  []Decl
+	Offset float32
 }
 
 // KeyframesDef is one parsed @keyframes block. Stops are sorted
@@ -203,11 +203,11 @@ type MatchState struct {
 // Attrs feeds attribute selectors; nil map disables attr matching
 // for the element. State carries hover/focus flags.
 type ElementInfo struct {
+	Attrs   map[string]string
 	Tag     string
 	ID      string
 	Classes []string
-	Attrs   map[string]string
 	Index   int
-	IsRoot  bool
 	State   MatchState
+	IsRoot  bool
 }

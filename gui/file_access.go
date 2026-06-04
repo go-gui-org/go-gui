@@ -22,10 +22,10 @@ type bookmarkGrant struct {
 }
 
 type fileAccessState struct {
-	mu     sync.Mutex
+	grants map[uint64]bookmarkGrant
 	appID  string
 	nextID uint64
-	grants map[uint64]bookmarkGrant
+	mu     sync.Mutex
 }
 
 // SetFileAccessAppID sets the app identifier used for

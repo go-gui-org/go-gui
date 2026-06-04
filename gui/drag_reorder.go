@@ -115,16 +115,15 @@ const (
 
 // dragReorderState tracks an in-progress drag-reorder operation.
 type dragReorderState struct {
-	started           bool
-	active            bool
-	cancelled         bool
+	itemID            string
+	itemLayoutIDs     []string
+	itemMids          []float32
 	sourceIndex       int
 	currentIndex      int
 	itemCount         int
 	idsLen            int
 	idsHash           uint64
-	itemLayoutIDs     []string
-	itemMids          []float32
+	midsOffset        int
 	startMouseX       float32
 	startMouseY       float32
 	mouseX            float32
@@ -135,14 +134,15 @@ type dragReorderState struct {
 	itemHeight        float32
 	parentX           float32
 	parentY           float32
-	itemID            string
 	idScroll          uint32
 	containerStart    float32
 	containerEnd      float32
 	startScrollX      float32
 	startScrollY      float32
+	started           bool
+	active            bool
+	cancelled         bool
 	layoutsValid      bool
-	midsOffset        int
 	scrollTimerActive bool
 }
 
@@ -200,17 +200,17 @@ func dragReorderIDsChanged(state dragReorderState, meta dragReorderIDsMeta) bool
 
 // dragReorderStartCfg groups parameters for dragReorderStart.
 type dragReorderStartCfg struct {
-	DragKey       string
-	Index         int
-	ItemID        string
-	Axis          DragReorderAxis
-	ItemIDs       []string
 	OnReorder     func(string, string, *Window)
-	ItemLayoutIDs []string
-	MidsOffset    int
-	IDScroll      uint32
 	Layout        *Layout
 	Event         *Event
+	DragKey       string
+	ItemID        string
+	ItemIDs       []string
+	ItemLayoutIDs []string
+	Index         int
+	MidsOffset    int
+	IDScroll      uint32
+	Axis          DragReorderAxis
 }
 
 // dragReorderStart initiates a drag-reorder from an OnClick

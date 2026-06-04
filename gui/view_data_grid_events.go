@@ -219,18 +219,18 @@ func dataGridToggleColumnChooserOpen(gridID string, w *Window) {
 
 type dataGridPagerContext struct {
 	cfg           *DataGridCfg
-	focusID       uint32
+	dataToDisplay map[int]int
+	jumpText      string
 	pageIndex     int
 	pageCount     int
 	pageStart     int
 	pageEnd       int
 	totalRows     int
+	focusID       uint32
 	viewportH     float32
 	rowHeight     float32
 	staticTop     float32
 	scrollID      uint32
-	dataToDisplay map[int]int
-	jumpText      string
 }
 
 func dataGridPagerRow(cfg *DataGridCfg, focusID uint32, pageIndex, pageCount, pageStart, pageEnd, totalRows int, viewportH, rowHeight, staticTop float32, scrollID uint32, dataToDisplay map[int]int, jumpText string) View {
@@ -362,9 +362,11 @@ func dataGridPagerJumpLabel(cfg *DataGridCfg) View {
 }
 
 type dataGridJumpContext struct {
-	rows              []GridRow
 	onSelectionChange func(GridSelection, *Event, *Window)
 	onPageChange      func(int, *Event, *Window)
+	dataToDisplay     map[int]int
+	gridID            string
+	rows              []GridRow
 	pageSize          int
 	totalRows         int
 	pageIndex         int
@@ -372,8 +374,6 @@ type dataGridJumpContext struct {
 	rowHeight         float32
 	staticTop         float32
 	scrollID          uint32
-	dataToDisplay     map[int]int
-	gridID            string
 	focusID           uint32
 }
 
@@ -489,30 +489,30 @@ func dataGridMakeOnMouseMove(gridID string) func(*Layout, *Event, *Window) {
 // --- Main grid keyboard handler ---
 
 type dataGridKeydownContext struct {
-	gridID            string
-	rows              []GridRow
-	columns           []GridColumnCfg
 	selection         GridSelection
-	multiSelect       bool
-	rangeSelect       bool
 	onSelectionChange func(GridSelection, *Event, *Window)
 	onRowActivate     func(GridRow, *Event, *Window)
 	onPageChange      func(int, *Event, *Window)
-	editEnabled       bool
-	crudEnabled       bool
+	frozenTopIDs      map[string]bool
+	dataToDisplay     map[int]int
+	gridID            string
+	rows              []GridRow
+	columns           []GridColumnCfg
+	pageIndices       []int
 	pageSize          int
 	pageIndex         int
-	viewportH         float32
 	pageRows          int
 	firstEditColIdx   int
-	editorFocusBase   uint32
 	colCount          int
+	viewportH         float32
+	editorFocusBase   uint32
 	rowHeight         float32
 	staticTop         float32
 	scrollID          uint32
-	pageIndices       []int
-	frozenTopIDs      map[string]bool
-	dataToDisplay     map[int]int
+	multiSelect       bool
+	rangeSelect       bool
+	editEnabled       bool
+	crudEnabled       bool
 }
 
 func dataGridMakeOnKeydown(cfg *DataGridCfg, columns []GridColumnCfg, rowHeight, staticTop float32, scrollID uint32, pageIndices []int, frozenTopIDs map[string]bool, dataToDisplay map[int]int) func(*Layout, *Event, *Window) {

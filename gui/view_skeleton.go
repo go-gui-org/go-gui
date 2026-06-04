@@ -14,21 +14,21 @@ const (
 // SkeletonCfg configures a skeleton loader view.
 type SkeletonCfg struct {
 	ID              string
-	Variant         SkeletonVariant
-	Color           Color
-	ColorHighlight  Color
+	A11YLabel       string
+	A11YDescription string
 	Radius          Opt[float32]
-	Sizing          Sizing
 	Width           float32
 	Height          float32
 	MinWidth        float32
 	MaxWidth        float32
 	MinHeight       float32
 	MaxHeight       float32
+	Color           Color
+	ColorHighlight  Color
+	Sizing          Sizing
+	Variant         SkeletonVariant
 	Disabled        bool
 	Invisible       bool
-	A11YLabel       string
-	A11YDescription string
 }
 
 // Skeleton creates a skeleton shimmer placeholder view.

@@ -88,10 +88,10 @@ type SpellRange struct {
 
 // PlatformDialogResult is the raw result from native file dialogs.
 type PlatformDialogResult struct {
-	Status       NativeDialogStatus
-	Paths        []PlatformPath
 	ErrorCode    string
 	ErrorMessage string
+	Paths        []PlatformPath
+	Status       NativeDialogStatus
 }
 
 // PlatformPath pairs a path with optional bookmark data.
@@ -111,18 +111,18 @@ type NativePrintParams struct {
 	Title        string
 	JobName      string
 	PDFPath      string
+	PageRanges   string
+	Orientation  int
+	Copies       int
+	DuplexMode   int
+	ColorMode    int
+	ScaleMode    int
 	PaperWidth   float32
 	PaperHeight  float32
 	MarginTop    float32
 	MarginRight  float32
 	MarginBottom float32
 	MarginLeft   float32
-	Orientation  int
-	Copies       int
-	PageRanges   string
-	DuplexMode   int
-	ColorMode    int
-	ScaleMode    int
 }
 
 // SetNativePlatform sets the native platform backend.

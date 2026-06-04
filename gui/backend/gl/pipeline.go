@@ -24,6 +24,7 @@ type pipeline struct {
 
 // pipelineSet holds all compiled pipelines.
 type pipelineSet struct {
+	customCache texcache.Cache[uint64, pipeline]
 	solid       pipeline
 	shadow      pipeline
 	blur        pipeline
@@ -35,7 +36,6 @@ type pipelineSet struct {
 	filterTex   pipeline
 	stencil     pipeline
 	custom      pipeline // VsCustomGLSL vertex shader, reused per hash
-	customCache texcache.Cache[uint64, pipeline]
 }
 
 func (b *Backend) initPipelines() error {

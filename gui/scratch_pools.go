@@ -83,21 +83,10 @@ func (p *scratchObjPool[T]) reset() {
 
 // scratchPools holds reusable per-frame buffers.
 type scratchPools struct {
-	filterRenderers     scratchSlice[RenderCmd]
-	focusCandidates     scratchSlice[focusCandidate]
-	gradientNormStops   scratchSlice[GradientStop]
-	gradientSampleStops scratchSlice[GradientStop]
-	svgAnimVals         scratchSlice[float32]
-	wrapRows            scratchSlice[wrapRowRange]
-	layerLayouts        scratchSlice[Layout]
-
 	focusSeen        scratchMap[uint32, struct{}]
 	svgAnimStates    scratchMap[uint32, svgAnimState]
 	svgAnimOverrides scratchMap[uint32, SvgAnimAttrOverride]
 	svgAnimByPID     scratchMap[uint32, []float32]
-
-	svgAnimTriangles scratchSlice[TessellatedPath]
-	svgAnimContribs  scratchSlice[animContrib]
 
 	// svgVColArena is a grow-only, frame-scoped arena for per-path
 	// vertex color buffers emitted by emitSvgPathRenderer. Each
@@ -106,6 +95,20 @@ type scratchPools struct {
 	// retains the old backing array via any emitted subslices that
 	// still reference it.
 	svgVColArena []Color
+
+	floatingLayouts      []*Layout
+	floatingLayoutPool   []*Layout
+	placeholderShapePool []*Shape
+	filterRenderers      scratchSlice[RenderCmd]
+	focusCandidates      scratchSlice[focusCandidate]
+	gradientNormStops    scratchSlice[GradientStop]
+	gradientSampleStops  scratchSlice[GradientStop]
+	svgAnimVals          scratchSlice[float32]
+	wrapRows             scratchSlice[wrapRowRange]
+	layerLayouts         scratchSlice[Layout]
+
+	svgAnimTriangles scratchSlice[TessellatedPath]
+	svgAnimContribs  scratchSlice[animContrib]
 
 	// View-phase pool: reuse Shape allocations across frames.
 	// Reset before GenerateViewLayout; valid through buildRenderers.
@@ -123,11 +126,8 @@ type scratchPools struct {
 	hoverEvent   Event
 	gestureEvent Event
 
-	floatingLayouts      []*Layout
-	floatingLayoutPool   []*Layout
-	floatingPoolUsed     int
-	placeholderShapePool []*Shape
-	placeholderPoolUsed  int
+	floatingPoolUsed    int
+	placeholderPoolUsed int
 }
 
 const (

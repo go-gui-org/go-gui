@@ -14,8 +14,6 @@ const (
 // ScrollbarCfg configures the style of a scrollbar.
 type ScrollbarCfg struct {
 	ID              string
-	ColorThumb      Color
-	ColorBackground Color
 	Size            float32
 	MinThumbSize    float32
 	Radius          float32
@@ -23,6 +21,8 @@ type ScrollbarCfg struct {
 	GapEdge         float32
 	GapEnd          float32
 	IDScroll        uint32
+	ColorThumb      Color
+	ColorBackground Color
 	Overflow        ScrollbarOverflow
 	Orientation     ScrollbarOrientation
 }

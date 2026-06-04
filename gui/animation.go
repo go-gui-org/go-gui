@@ -10,12 +10,12 @@ type posSnapshot struct {
 // transitionBase holds shared fields for LayoutTransition and
 // HeroTransition.
 type transitionBase struct {
-	duration time.Duration
+	start    time.Time
 	easing   EasingFn
 	OnDone   func(*Window)
-	start    time.Time
-	stopped  bool
+	duration time.Duration
 	progress float32
+	stopped  bool
 }
 
 func (tb *transitionBase) IsStopped() bool        { return tb.stopped }
@@ -118,14 +118,14 @@ func (a *BlinkCursorAnimation) Update(w *Window, _ float32, _ *AnimationCommands
 
 // Animate waits the specified delay then executes the callback.
 type Animate struct {
-	AnimID   string
+	start    time.Time
 	Callback func(*Animate, *Window)
+	AnimID   string
 	Delay    time.Duration
 	Repeat   bool
 	// Refresh controls what is refreshed each tick. Zero
 	// defaults to AnimationRefreshLayout (full layout rebuild).
 	Refresh AnimationRefreshKind
-	start   time.Time
 	stopped bool
 }
 

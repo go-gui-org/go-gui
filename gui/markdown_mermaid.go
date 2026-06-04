@@ -34,13 +34,13 @@ const (
 
 // DiagramCacheEntry stores cached diagram data.
 type DiagramCacheEntry struct {
-	State     DiagramState
 	PNGPath   string // temp file path
 	Error     string
+	RequestID uint64
 	Width     float32
 	Height    float32
 	DPI       float32 // DPI used for rendering
-	RequestID uint64
+	State     DiagramState
 }
 
 // BoundedDiagramCache is a FIFO cache for diagram entries.

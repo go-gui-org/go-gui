@@ -81,30 +81,30 @@ func Parse(source string, hardLineBreaks bool) []Block {
 
 // mdWalker walks a goldmark AST producing Blocks.
 type mdWalker struct {
-	source       []byte
 	footnoteDefs map[string]string
-	hardBreaks   bool
+	source       []byte
 	blocks       []Block
 	bqDepth      int
 	listDepth    int
+	hardBreaks   bool
 }
 
 // inlineState tracks formatting context during inline walking.
 type inlineState struct {
+	link          string
+	tooltip       string
 	format        Format
 	strikethrough bool
 	highlight     bool
 	underline     bool
 	superscript   bool
 	subscript     bool
-	link          string
-	tooltip       string
 }
 
 type abbrMatcher struct {
+	defs       map[string]string
 	abbrs      []string
 	firstChars [256]bool
-	defs       map[string]string
 }
 
 func (w *mdWalker) walkDocument(doc ast.Node) {

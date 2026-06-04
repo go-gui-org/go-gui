@@ -5,13 +5,13 @@ const inputMaxInsertRunes = 65_536
 // InputState manages cursor, selection, and undo/redo for
 // an input field. Stored in StateRegistry keyed by IDFocus.
 type InputState struct {
-	CursorPos      int
-	SelectBeg      uint32
-	SelectEnd      uint32
 	Undo           *BoundedStack[InputMemento]
 	Redo           *BoundedStack[InputMemento]
-	CursorOffset   float32
+	CursorPos      int
 	LastClickTime  int64
+	SelectBeg      uint32
+	SelectEnd      uint32
+	CursorOffset   float32
 	CursorTrailing bool // prefer end-of-previous-line at wrap boundaries
 }
 

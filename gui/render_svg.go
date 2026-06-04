@@ -371,10 +371,11 @@ func emitCachedSvgTextPathDraw(draw *CachedSvgTextPathDraw,
 
 // svgAnimState holds computed per-group animation state.
 type svgAnimState struct {
-	RotAngle float32 // rotation degrees
-	RotCX    float32 // rotation center X (SVG space)
-	RotCY    float32 // rotation center Y (SVG space)
-	Opacity  float32 // 0..1; <animate attributeName="opacity">
+	AttrOverride SvgAnimAttrOverride // attribute overrides for re-tessellation
+	RotAngle     float32             // rotation degrees
+	RotCX        float32             // rotation center X (SVG space)
+	RotCY        float32             // rotation center Y (SVG space)
+	Opacity      float32             // 0..1; <animate attributeName="opacity">
 	// FillOpacity / StrokeOpacity track the per-paint opacity
 	// animations. They scale only the matching path role at render
 	// time so a fill-opacity animation does not dim the stroke.
@@ -384,15 +385,14 @@ type svgAnimState struct {
 	// animated scale. Identity when HasXform is false.
 	TransX, TransY float32
 	ScaleX, ScaleY float32
-	HasXform       bool
-	Inited         bool
-	AttrOverride   SvgAnimAttrOverride // attribute overrides for re-tessellation
 	// FillColor / StrokeColor carry CSS color-tween results
 	// (SvgAnimColor). Has*Color flags whether the channel is set;
 	// emitSvgPathRenderer overrides the path color when the
 	// matching path role is set.
 	FillColor      SvgColor
 	StrokeColor    SvgColor
+	HasXform       bool
+	Inited         bool
 	HasFillColor   bool
 	HasStrokeColor bool
 }

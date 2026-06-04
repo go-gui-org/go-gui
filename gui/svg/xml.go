@@ -55,10 +55,10 @@ func clampElementID(s string) string {
 // > 0. HoveredElementID / FocusedElementID feed :hover / :focus
 // pseudo-class matching during the cascade.
 type ParseOptions struct {
-	PrefersReducedMotion bool
-	FlatnessTolerance    float32
 	HoveredElementID     string
 	FocusedElementID     string
+	FlatnessTolerance    float32
+	PrefersReducedMotion bool
 }
 
 // parseSvg parses an SVG string and returns a VectorGraphic.

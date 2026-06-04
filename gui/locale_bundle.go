@@ -14,40 +14,40 @@ import (
 type numberBundle struct {
 	DecimalSep string `json:"decimal_sep"`
 	GroupSep   string `json:"group_sep"`
-	GroupSizes []int  `json:"group_sizes"`
 	MinusSign  string `json:"minus_sign"`
 	PlusSign   string `json:"plus_sign"`
+	GroupSizes []int  `json:"group_sizes"`
 }
 
 type dateBundle struct {
+	FirstDayOfWeek *int   `json:"first_day_of_week"`
+	Use24H         *bool  `json:"use_24h"`
 	ShortDate      string `json:"short_date"`
 	LongDate       string `json:"long_date"`
 	MonthYear      string `json:"month_year"`
-	FirstDayOfWeek *int   `json:"first_day_of_week"`
-	Use24H         *bool  `json:"use_24h"`
 }
 
 type currencyBundle struct {
+	Spacing  *bool  `json:"spacing"`
+	Decimals *int   `json:"decimals"`
 	Symbol   string `json:"symbol"`
 	Code     string `json:"code"`
 	Position string `json:"position"`
-	Spacing  *bool  `json:"spacing"`
-	Decimals *int   `json:"decimals"`
 }
 
 type localeBundle struct {
-	ID            string            `json:"id"`
-	TextDir       string            `json:"text_dir"`
 	Number        *numberBundle     `json:"number"`
 	Date          *dateBundle       `json:"date"`
 	Currency      *currencyBundle   `json:"currency"`
 	Strings       map[string]string `json:"strings"`
+	Translations  map[string]string `json:"translations"`
+	ID            string            `json:"id"`
+	TextDir       string            `json:"text_dir"`
 	WeekdaysShort []string          `json:"weekdays_short"`
 	WeekdaysMed   []string          `json:"weekdays_med"`
 	WeekdaysFull  []string          `json:"weekdays_full"`
 	MonthsShort   []string          `json:"months_short"`
 	MonthsFull    []string          `json:"months_full"`
-	Translations  map[string]string `json:"translations"`
 }
 
 // LocaleParse decodes a JSON string into a Locale struct.

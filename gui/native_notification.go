@@ -12,16 +12,16 @@ const (
 
 // NativeNotificationResult contains notification delivery data.
 type NativeNotificationResult struct {
-	Status       NativeNotificationStatus
 	ErrorCode    string
 	ErrorMessage string
+	Status       NativeNotificationStatus
 }
 
 // NativeNotificationCfg configures an OS-level notification.
 type NativeNotificationCfg struct {
+	OnDone func(NativeNotificationResult, *Window)
 	Title  string
 	Body   string
-	OnDone func(NativeNotificationResult, *Window)
 }
 
 // NativeNotification posts an OS-level notification.

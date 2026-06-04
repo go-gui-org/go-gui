@@ -53,21 +53,22 @@ type IntnSource interface {
 
 // Game holds all mutable snake game state.
 type Game struct {
-	Width  int
-	Height int
+	rng IntnSource
 
 	Snake []Point // head-first order
 	Food  Point
 
+	Width  int
+	Height int
+
+	Score int
+
 	Direction Direction
 	queuedDir Direction
 
-	Score    int
 	GameOver bool
 	Paused   bool
 	Won      bool
-
-	rng IntnSource
 }
 
 // NewGame returns a ready-to-play snake game.

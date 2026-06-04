@@ -5,14 +5,14 @@ import "time"
 // TweenAnimation interpolates a value from A to B over a fixed
 // duration with easing.
 type TweenAnimation struct {
-	AnimID   string
-	Duration time.Duration
+	start    time.Time
 	Easing   EasingFn
-	From     float32
-	To       float32
 	OnValue  func(float32, *Window)
 	OnDone   func(*Window)
-	start    time.Time
+	AnimID   string
+	Duration time.Duration
+	From     float32
+	To       float32
 	stopped  bool
 }
 

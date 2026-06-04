@@ -4,13 +4,13 @@ const pulsarAnimationID = "___pulsar_animation___"
 
 // PulsarCfg configures a blinking text indicator.
 type PulsarCfg struct {
+	TextStyle TextStyle
 	ID        string
 	Text1     string
 	Text2     string
-	Color     Color
-	TextStyle TextStyle
 	Size      Opt[float32]
 	Width     float32
+	Color     Color
 }
 
 // Pulsar creates a blinking text view that toggles between

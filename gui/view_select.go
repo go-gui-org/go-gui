@@ -16,34 +16,34 @@ func isSelectSubheader(option string) bool {
 
 // SelectCfg configures a select (dropdown) view.
 type SelectCfg struct {
+	TextStyle        TextStyle
+	SubheadingStyle  TextStyle
+	PlaceholderStyle TextStyle
+	OnSelect         func([]string, *Event, *Window)
 	ID               string
 	Placeholder      string
+
+	A11YLabel        string
+	A11YDescription  string
 	Selected         []string // currently selected option text(s)
 	Options          []string
+	FloatZIndex      int
+	Padding          Opt[Padding]
+	SizeBorder       Opt[float32]
+	Radius           Opt[float32]
+	MinWidth         float32
+	MaxWidth         float32
+	IDFocus          uint32
 	Color            Color
 	ColorBorder      Color
 	ColorBorderFocus Color
 	ColorFocus       Color
 	ColorSelect      Color
-	Padding          Opt[Padding]
-	SizeBorder       Opt[float32]
-	TextStyle        TextStyle
-	SubheadingStyle  TextStyle
-	PlaceholderStyle TextStyle
-	OnSelect         func([]string, *Event, *Window)
-	MinWidth         float32
-	MaxWidth         float32
-	Radius           Opt[float32]
-	IDFocus          uint32
+	Sizing           Sizing
 	SelectMultiple   bool
 	NoWrap           bool
-	Sizing           Sizing
-	FloatZIndex      int
 	Disabled         bool
 	Invisible        bool
-
-	A11YLabel       string
-	A11YDescription string
 }
 
 // selectView implements View for select (dropdown).

@@ -3,13 +3,11 @@ package gui
 // RectangleCfg configures a rectangle. Rectangles can be
 // filled, outlined, colored, and have radius corners.
 type RectangleCfg struct {
-	ID             string
-	Sizing         Sizing
-	Color          Color
-	ColorBorder    Color
 	Gradient       *GradientDef
 	BorderGradient *GradientDef
 	Shadow         *BoxShadow
+	Shader         *Shader
+	ID             string
 	Width          float32
 	Height         float32
 	MinWidth       float32
@@ -18,7 +16,9 @@ type RectangleCfg struct {
 	Radius         float32
 	BlurRadius     float32
 	SizeBorder     float32
-	Shader         *Shader
+	Color          Color
+	ColorBorder    Color
+	Sizing         Sizing
 	Disabled       bool
 	Invisible      bool
 }

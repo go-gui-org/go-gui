@@ -9,24 +9,25 @@ import (
 
 // ImageCfg configures an image view.
 type ImageCfg struct {
-	ID        string
-	Src       string
+	OnClick func(*Layout, *Event, *Window)
+	OnHover func(*Layout, *Event, *Window)
+	ID      string
+	Src     string
+
+	// Accessibility
+	A11YLabel       string
+	A11YDescription string
+
+	Opacity   Opt[float32]
 	Width     float32
 	Height    float32
 	MinWidth  float32
 	MaxWidth  float32
 	MinHeight float32
 	MaxHeight float32
-	OnClick   func(*Layout, *Event, *Window)
-	OnHover   func(*Layout, *Event, *Window)
+	BgColor   Color // opaque fill drawn behind image (e.g. white for mermaid PNGs)
+
 	Invisible bool
-
-	Opacity Opt[float32]
-	BgColor Color // opaque fill drawn behind image (e.g. white for mermaid PNGs)
-
-	// Accessibility
-	A11YLabel       string
-	A11YDescription string
 }
 
 // imageView implements View for image rendering.

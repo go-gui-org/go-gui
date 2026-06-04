@@ -23,50 +23,51 @@ import (
 
 // Backend is the OpenGL 3.3 backend for go-gui.
 type Backend struct {
-	window   *sdl.Window
-	glCtx    sdl.GLContext
-	textSys  *glyph.TextSystem
-	dpiScale float32
-	physW    int32
-	physH    int32
-	cursors  [11]*sdl.Cursor
-
 	pipelines pipelineSet
-	quadVAO   uint32
-	quadVBO   uint32
-	quadIBO   uint32
-	mvp       [16]float32
+	cursors   [11]*sdl.Cursor
+
+	textures          texcache.Cache[string, glTexture]
+	imagePathCache    texcache.Cache[string, string]
+	window            *sdl.Window
+	glCtx             sdl.GLContext
+	textSys           *glyph.TextSystem
+	filterColorMatrix *[16]float32
+
+	glyphBack    *glyphBackend
+	iconFontPath string
 
 	mvpStack [][16]float32
 
-	// Reusable buffers.
-	svgVAO             uint32
-	svgVBO             uint32
-	svgCap             int
 	textPathPlacements []glyph.GlyphPlacement
 	svgVerts           []vertex
 	normBuf            []gui.GradientStop
 	sampledBuf         []gui.GradientStop
 
-	textures          texcache.Cache[string, glTexture]
-	filterFBO         uint32
-	filterStencil     uint32
-	filterTexA        uint32
-	filterTexB        uint32
-	filterW           int32
-	filterH           int32
-	filterBlur        float32
-	filterLayer       int
-	filterColorMatrix *[16]float32
-
-	glyphBack    *glyphBackend
-	customOnce   sync.Once
-	iconFontPath string
-
 	allowedImageRoots []string
-	imagePathCache    texcache.Cache[string, string]
+	svgCap            int
+	filterLayer       int
 	maxImageBytes     int64
 	maxImagePixels    int64
+	mvp               [16]float32
+
+	customOnce sync.Once
+	dpiScale   float32
+	physW      int32
+	physH      int32
+	quadVAO    uint32
+	quadVBO    uint32
+	quadIBO    uint32
+
+	// Reusable buffers.
+	svgVAO        uint32
+	svgVBO        uint32
+	filterFBO     uint32
+	filterStencil uint32
+	filterTexA    uint32
+	filterTexB    uint32
+	filterW       int32
+	filterH       int32
+	filterBlur    float32
 }
 
 // New creates an OpenGL 3.3 backend and initializes the window.

@@ -7,37 +7,37 @@ import (
 
 // SliderCfg configures a slider view.
 type SliderCfg struct {
-	ID           string `gui:"required"`
-	Sizing       Sizing
-	Color        Color
-	ColorBorder  Color
-	ColorThumb   Color
-	ColorFocus   Color
-	ColorHover   Color
-	ColorLeft    Color
-	ColorClick   Color
-	Padding      Opt[Padding]
-	SizeBorder   Opt[float32]
-	OnChange     func(float32, *Event, *Window)
-	Value        float32
-	Min          float32
-	Max          float32
-	Step         float32
-	Width        float32
-	Height       float32
-	Size         float32
-	ThumbSize    float32
-	Radius       Opt[float32]
-	RadiusBorder Opt[float32]
-	IDFocus      uint32
-	RoundValue   bool
-	Vertical     bool
-	Disabled     bool
-	Invisible    bool
+	OnChange func(float32, *Event, *Window)
+	ID       string `gui:"required"`
 
 	// Accessibility
 	A11YLabel       string
 	A11YDescription string
+	Padding         Opt[Padding]
+	SizeBorder      Opt[float32]
+	Radius          Opt[float32]
+	RadiusBorder    Opt[float32]
+	Value           float32
+	Min             float32
+	Max             float32
+	Step            float32
+	Width           float32
+	Height          float32
+	Size            float32
+	ThumbSize       float32
+	IDFocus         uint32
+	Color           Color
+	ColorBorder     Color
+	ColorThumb      Color
+	ColorFocus      Color
+	ColorHover      Color
+	ColorLeft       Color
+	ColorClick      Color
+	Sizing          Sizing
+	RoundValue      bool
+	Vertical        bool
+	Disabled        bool
+	Invisible       bool
 }
 
 // Slider creates a slider view.

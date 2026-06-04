@@ -51,15 +51,17 @@ const (
 
 // datePickerState holds per-instance state for the date picker.
 type datePickerState struct {
-	ShowYearMonthPicker bool
 	ViewMonth           int
 	ViewYear            int
 	FocusDay            int
 	CalBodyHeight       float32
+	ShowYearMonthPicker bool
 }
 
 // DatePickerCfg configures a date picker calendar view.
 type DatePickerCfg struct {
+	TextStyle            TextStyle
+	OnSelect             func([]time.Time, *Event, *Window)
 	ID                   string `gui:"required"`
 	A11YLabel            string
 	A11YDescription      string
@@ -68,9 +70,12 @@ type DatePickerCfg struct {
 	AllowedMonths        []DatePickerMonths
 	AllowedYears         []int
 	AllowedDates         []time.Time
-	OnSelect             func([]time.Time, *Event, *Window)
-	WeekdaysLen          DatePickerWeekdayLen
-	TextStyle            TextStyle
+	Padding              Opt[Padding]
+	SizeBorder           Opt[float32]
+	CellSpacing          Opt[float32]
+	Radius               Opt[float32]
+	RadiusBorder         Opt[float32]
+	IDFocus              uint32
 	Color                Color
 	ColorHover           Color
 	ColorFocus           Color
@@ -78,12 +83,7 @@ type DatePickerCfg struct {
 	ColorBorder          Color
 	ColorBorderFocus     Color
 	ColorSelect          Color
-	Padding              Opt[Padding]
-	SizeBorder           Opt[float32]
-	CellSpacing          Opt[float32]
-	Radius               Opt[float32]
-	RadiusBorder         Opt[float32]
-	IDFocus              uint32
+	WeekdaysLen          DatePickerWeekdayLen
 	Disabled             bool
 	Invisible            bool
 	SelectMultiple       bool

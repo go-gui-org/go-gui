@@ -2,11 +2,15 @@ package gui
 
 // SvgParsed holds the result of parsing an SVG document.
 type SvgParsed struct {
+	DefsPaths map[string]string // id → raw SVG path d attribute
+	Gradients map[string]SvgGradientDef
+	// A11y carries document-level accessibility metadata from <title>,
+	// <desc>, and aria-* attributes on the root <svg>. Empty fields
+	// indicate the source SVG omitted them.
+	A11y           SvgA11y
 	Paths          []TessellatedPath
 	Texts          []SvgText
 	TextPaths      []SvgTextPath
-	DefsPaths      map[string]string // id → raw SVG path d attribute
-	Gradients      map[string]SvgGradientDef
 	FilteredGroups []SvgParsedFilteredGroup
 	Animations     []SvgAnimation
 	Width          float32
@@ -17,10 +21,6 @@ type SvgParsed struct {
 	// animateTransform in replace mode cannot clobber the mapping.
 	ViewBoxX float32
 	ViewBoxY float32
-	// A11y carries document-level accessibility metadata from <title>,
-	// <desc>, and aria-* attributes on the root <svg>. Empty fields
-	// indicate the source SVG omitted them.
-	A11y SvgA11y
 	// PreserveAlign encodes the alignment portion of the SVG
 	// preserveAspectRatio attribute. Default is SvgAlignXMidYMid,
 	// which matches the renderer's pre-existing centered scale.
@@ -82,10 +82,10 @@ type SvgParser interface {
 // FocusedElementID feed CSS :hover / :focus pseudo-class matching;
 // empty disables the corresponding state.
 type SvgParseOpts struct {
-	PrefersReducedMotion bool
-	FlatnessTolerance    float32
 	HoveredElementID     string
 	FocusedElementID     string
+	FlatnessTolerance    float32
+	PrefersReducedMotion bool
 }
 
 // SvgParserWithOpts is an optional extension of SvgParser whose

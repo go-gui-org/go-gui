@@ -27,14 +27,14 @@ type ListCoreCfg struct {
 	TextStyle       TextStyle
 	DetailStyle     TextStyle
 	SubheadingStyle TextStyle
+	OnItemClick     func(string, int, *Event, *Window)
+	OnItemHover     func(int, *Event, *Window)
+	PaddingItem     Padding
 	ColorHighlight  Color
 	ColorHover      Color
 	ColorSelected   Color
-	PaddingItem     Padding
 	ShowDetails     bool
 	ShowIcons       bool
-	OnItemClick     func(string, int, *Event, *Window)
-	OnItemHover     func(int, *Event, *Window)
 }
 
 // ListCorePrepared holds pre-computed filter results for a frame.

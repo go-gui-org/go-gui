@@ -5,14 +5,14 @@ import "strconv"
 // DataGridSourceStats provides runtime stats for a
 // data-source-backed grid. Returned by Window.DataGridSourceStats.
 type DataGridSourceStats struct {
-	Loading        bool
+	RowCount       *int
 	LoadError      string
 	RequestCount   int
 	CancelledCount int
 	StaleDropCount int
-	HasMore        bool
 	ReceivedCount  int
-	RowCount       *int
+	Loading        bool
+	HasMore        bool
 }
 
 // DataGridSourceStats returns async stats for the named grid.

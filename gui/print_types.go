@@ -87,10 +87,10 @@ type PrintPageRange struct {
 // PrintHeaderFooterCfg configures page header or footer text.
 // Tokens: {page}, {pages}, {date}, {title}, {job}.
 type PrintHeaderFooterCfg struct {
-	Enabled bool
 	Left    string
 	Center  string
 	Right   string
+	Enabled bool
 }
 
 // PrintJobSourceKind selects the print source.
@@ -104,31 +104,31 @@ const (
 
 // PrintJobSource identifies what to print.
 type PrintJobSource struct {
-	Kind    PrintJobSourceKind
 	PDFPath string
+	Kind    PrintJobSourceKind
 }
 
 // PrintJob configures a print or PDF export operation.
 type PrintJob struct {
+	Header       PrintHeaderFooterCfg
+	Footer       PrintHeaderFooterCfg
+	Source       PrintJobSource
 	OutputPath   string
 	Title        string
 	JobName      string
-	Paper        PaperSize
-	Orientation  PrintOrientation
-	Margins      PrintMargins
-	Source       PrintJobSource
-	Paginate     bool
-	ScaleMode    PrintScaleMode
 	PageRanges   []PrintPageRange
 	Copies       int
-	Duplex       PrintDuplexMode
-	ColorMode    PrintColorMode
-	Header       PrintHeaderFooterCfg
-	Footer       PrintHeaderFooterCfg
-	SourceWidth  float32
-	SourceHeight float32
 	RasterDPI    int
 	JPEGQuality  int
+	Margins      PrintMargins
+	SourceWidth  float32
+	SourceHeight float32
+	Paper        PaperSize
+	Orientation  PrintOrientation
+	Paginate     bool
+	ScaleMode    PrintScaleMode
+	Duplex       PrintDuplexMode
+	ColorMode    PrintColorMode
 }
 
 // NewPrintJob returns a PrintJob with sensible defaults.
@@ -161,11 +161,11 @@ type PrintWarning struct {
 
 // PrintRunResult contains the outcome of RunPrintJob.
 type PrintRunResult struct {
-	Status       PrintRunStatus
 	ErrorCode    string
 	ErrorMessage string
 	PDFPath      string
 	Warnings     []PrintWarning
+	Status       PrintRunStatus
 }
 
 // PrintExportStatus reports the outcome of ExportPrintJob.
@@ -179,10 +179,10 @@ const (
 
 // PrintExportResult contains the outcome of ExportPrintJob.
 type PrintExportResult struct {
-	Status       PrintExportStatus
 	Path         string
 	ErrorCode    string
 	ErrorMessage string
+	Status       PrintExportStatus
 }
 
 // IsOk returns true if the export succeeded.

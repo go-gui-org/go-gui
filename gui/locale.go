@@ -7,9 +7,9 @@ import (
 
 // NumberFormat defines locale-specific number formatting.
 type NumberFormat struct {
+	GroupSizes []int // default [3]
 	DecimalSep rune  // default '.'
 	GroupSep   rune  // default ','
-	GroupSizes []int // default [3]
 	MinusSign  rune  // default '-'
 	PlusSign   rune  // default '+'
 }
@@ -65,12 +65,20 @@ func currencyFormatDefaults() CurrencyFormat {
 // Locale holds locale-specific settings for formatting,
 // UI strings, and translations.
 type Locale struct {
-	ID      string        // "en-US"
-	TextDir TextDirection // TextDirLTR
 
-	Number   NumberFormat
-	Date     DateFormat
-	Currency CurrencyFormat
+	// App-level translation keys
+	Translations map[string]string
+
+	// Month names (0=Jan..11=Dec)
+	MonthsShort [12]string
+	MonthsFull  [12]string
+
+	// Weekday names (0=Sun..6=Sat)
+	WeekdaysShort [7]string
+	WeekdaysMed   [7]string
+	WeekdaysFull  [7]string
+
+	ID string // "en-US"
 
 	// Dialog
 	StrOK     string
@@ -127,17 +135,12 @@ type Locale struct {
 	StrPage     string
 	StrRows     string
 
-	// App-level translation keys
-	Translations map[string]string
+	Date     DateFormat
+	Currency CurrencyFormat
 
-	// Weekday names (0=Sun..6=Sat)
-	WeekdaysShort [7]string
-	WeekdaysMed   [7]string
-	WeekdaysFull  [7]string
+	Number  NumberFormat
+	TextDir TextDirection // TextDirLTR
 
-	// Month names (0=Jan..11=Dec)
-	MonthsShort [12]string
-	MonthsFull  [12]string
 }
 
 // localeDefaults returns the en-US locale with all defaults.

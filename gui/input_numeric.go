@@ -28,9 +28,9 @@ const (
 
 // NumericLocaleCfg defines symbols for parse/format.
 type NumericLocaleCfg struct {
+	GroupSizes []int
 	DecimalSep rune
 	GroupSep   rune
-	GroupSizes []int
 	MinusSign  rune
 	PlusSign   rune
 }
@@ -62,11 +62,11 @@ type NumericPercentModeCfg struct {
 // numericModeCfg is an internal config for mode-aware
 // parse/format.
 type numericModeCfg struct {
-	mode              NumericInputMode
 	affix             string
+	displayMultiplier float64
+	mode              NumericInputMode
 	affixPosition     NumericAffixPosition
 	affixSpacing      bool
-	displayMultiplier float64
 }
 
 var defaultGroupSizes = []int{3}

@@ -32,63 +32,48 @@ var showcaseBreadcrumbPath = []gui.BreadcrumbItemCfg{
 
 // ShowcaseApp holds all state for the showcase example.
 type ShowcaseApp struct {
-	LocaleIndex       int
-	NavQuery          string
-	SelectedGroup     string
-	SelectedComponent string
-	ShowDocs          bool
+	DataGridSelection   gui.GridSelection
+	DataSourceSelection gui.GridSelection
+	ButtonCopyUntil     time.Time
 
-	ButtonClicks    int
-	ButtonCopyUntil time.Time
+	InputDate  time.Time
+	RollerDate time.Time
 
-	InputText       string
-	InputPassword   string
-	InputPhone      string
-	InputExpiry     string
-	InputMultiline  string
-	InputSpellCheck bool
+	ShaderStartTime time.Time
+	DataSource      gui.DataGridDataSource
 
-	ToggleA    bool
-	CheckboxA  bool
-	SwitchA    bool
-	RadioValue string
+	TableSelected map[int]bool
+	TreeLazyNodes map[string][]gui.TreeNodeCfg
 
-	SelectValue        []string
-	ListBoxSelected    []string
-	ComboboxValue      string
-	RangeValue         float32
-	SvgSpinnerCategory string
-
-	NumericENText        string
-	NumericDEText        string
-	NumericCurrencyText  string
-	NumericPercentText   string
-	NumericPlainText     string
-	NumericENValue       gui.Opt[float64]
-	NumericDEValue       gui.Opt[float64]
-	NumericCurrencyValue gui.Opt[float64]
-	NumericPercentValue  gui.Opt[float64]
-	NumericPlainValue    gui.Opt[float64]
-
-	DatePickerDates []time.Time
-	InputDate       time.Time
-	RollerDate      time.Time
-
-	ColorPickerColor gui.Color
-	ColorPickerHSV   bool
+	DockRoot *gui.DockNode
 
 	Form FormModel
 
+	DataGridQuery     gui.GridQueryState
+	DataSourceQuery   gui.GridQueryState
+	NavQuery          string
+	SelectedGroup     string
+	SelectedComponent string
+
+	InputText      string
+	InputPassword  string
+	InputPhone     string
+	InputExpiry    string
+	InputMultiline string
+	RadioValue     string
+
+	ComboboxValue      string
+	SvgSpinnerCategory string
+
+	NumericENText       string
+	NumericDEText       string
+	NumericCurrencyText string
+	NumericPercentText  string
+	NumericPlainText    string
+
 	BCSelected  string
-	BCPath      []gui.BreadcrumbItemCfg
 	TabSelected string
 
-	SplitterMainState   gui.SplitterState
-	SplitterDetailState gui.SplitterState
-	SidebarOpen         bool
-	ExpandOpen          bool
-
-	CmdButtonCount    int
 	ThemePickerResult string
 
 	DialogResult string
@@ -97,8 +82,6 @@ type ShowcaseApp struct {
 	PrintingLastPath string
 	PrintingStatus   string
 
-	AudioReady  bool
-	AudioVolume float32
 	AudioStatus string
 
 	PaletteAction     string
@@ -106,56 +89,86 @@ type ShowcaseApp struct {
 
 	MenuSearchText string
 
+	TableBorderStyle string
+
+	TreeSelected       string
+	DragTabSel         string
+	ThemeGenStrategy   string
+	ThemeGenRadiusText string
+	ThemeGenBorderText string
+	ThemeGenName       string
+
+	GesturePadLabel string
+
+	SelectValue     []string
+	ListBoxSelected []string
+
+	DatePickerDates []time.Time
+	BCPath          []gui.BreadcrumbItemCfg
+
+	DragListItems []gui.ListBoxOption
+	DragTabItems  []gui.TabItemCfg
+	DragTreeNodes []gui.TreeNodeCfg
+
+	GesturePadMarkers    []GestureMarker
+	NumericENValue       gui.Opt[float64]
+	NumericDEValue       gui.Opt[float64]
+	NumericCurrencyValue gui.Opt[float64]
+	NumericPercentValue  gui.Opt[float64]
+	NumericPlainValue    gui.Opt[float64]
+
+	LocaleIndex int
+
+	ButtonClicks int
+
+	CmdButtonCount    int
+	TableSortBy       int
+	GesturePadVersion uint64
+
+	DrawCanvasVersion uint64
+
+	SplitterMainState   gui.SplitterState
+	SplitterDetailState gui.SplitterState
+	RangeValue          float32
+	AudioVolume         float32
+
 	AnimTweenX    float32
 	AnimSpringX   float32
 	AnimKeyframeX float32
 
-	DataGridQuery       gui.GridQueryState
-	DataGridSelection   gui.GridSelection
-	TableSortBy         int
-	TableBorderStyle    string
-	TableMultiSelect    bool
-	TableFreezeHeader   bool
-	TableSelected       map[int]bool
-	DataSourceQuery     gui.GridQueryState
-	DataSourceSelection gui.GridSelection
-	DataSource          gui.DataGridDataSource
-
-	TreeSelected  string
-	TreeLazyNodes map[string][]gui.TreeNodeCfg
-
-	DragListItems []gui.ListBoxOption
-	DragTabItems  []gui.TabItemCfg
-	DragTabSel    string
-	DragTreeNodes []gui.TreeNodeCfg
-
-	DockRoot *gui.DockNode
-
-	ThemeGenSeed       gui.Color
-	ThemeGenStrategy   string
 	ThemeGenTint       float32
 	ThemeGenRadius     float32
-	ThemeGenRadiusText string
 	ThemeGenBorder     float32
-	ThemeGenBorderText string
-	ThemeGenPickText   bool
-	ThemeGenText       gui.Color
-	ThemeGenName       string
-
-	ShaderStartTime    time.Time
 	MultiWindowChildID uint32
 
-	GesturePadMarkers  []GestureMarker
 	GesturePadOffsetX  float32
 	GesturePadOffsetY  float32
 	GesturePadScale    float32
 	GesturePadRotation float32
-	GesturePadLabel    string
-	GesturePadVersion  uint64
 
 	DrawCanvasMarkerX float32
 	DrawCanvasMarkerY float32
-	DrawCanvasVersion uint64
+
+	ColorPickerColor gui.Color
+
+	ThemeGenSeed gui.Color
+	ThemeGenText gui.Color
+	ShowDocs     bool
+
+	InputSpellCheck bool
+
+	ToggleA        bool
+	CheckboxA      bool
+	SwitchA        bool
+	ColorPickerHSV bool
+
+	SidebarOpen bool
+	ExpandOpen  bool
+
+	AudioReady        bool
+	TableMultiSelect  bool
+	TableFreezeHeader bool
+	ThemeGenPickText  bool
 }
 
 // GestureMarker records a tap or long-press position.
@@ -260,10 +273,10 @@ type DemoEntry struct {
 	Label   string
 	Group   string
 	Summary string
-	Tags    []string
 
 	idLower    string // populated by init()
 	labelLower string // populated by init()
+	Tags       []string
 }
 
 // DemoGroup describes a catalog group in the left pane.

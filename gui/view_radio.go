@@ -2,8 +2,17 @@ package gui
 
 // RadioCfg configures a radio button.
 type RadioCfg struct {
-	ID               string
-	Label            string
+	TextStyle TextStyle
+	OnClick   func(*Layout, *Event, *Window)
+	ID        string
+	Label     string
+
+	A11YLabel        string
+	A11YDescription  string
+	Padding          Opt[Padding]
+	Size             Opt[float32]
+	SizeBorder       Opt[float32]
+	IDFocus          uint32
 	Color            Color
 	ColorHover       Color
 	ColorFocus       Color
@@ -12,18 +21,9 @@ type RadioCfg struct {
 	ColorBorderFocus Color
 	ColorSelect      Color
 	ColorUnselect    Color
-	Padding          Opt[Padding]
-	TextStyle        TextStyle
-	OnClick          func(*Layout, *Event, *Window)
-	Size             Opt[float32]
-	IDFocus          uint32
-	SizeBorder       Opt[float32]
 	Disabled         bool
 	Selected         bool
 	Invisible        bool
-
-	A11YLabel       string
-	A11YDescription string
 }
 
 // Radio creates a radio button view.

@@ -7,18 +7,30 @@ import (
 
 // InputDateCfg configures a date input with dropdown calendar.
 type InputDateCfg struct {
-	ID                   string
-	Date                 time.Time
+	TextStyle        TextStyle
+	PlaceholderStyle TextStyle
+	Date             time.Time
+	OnSelect         func([]time.Time, *Event, *Window)
+	ID               string
+	Placeholder      string
+
+	A11YLabel            string
+	A11YDescription      string
 	Dates                []time.Time
-	Placeholder          string
 	AllowedWeekdays      []DatePickerWeekdays
 	AllowedMonths        []DatePickerMonths
 	AllowedYears         []int
 	AllowedDates         []time.Time
-	OnSelect             func([]time.Time, *Event, *Window)
-	WeekdaysLen          DatePickerWeekdayLen
-	TextStyle            TextStyle
-	PlaceholderStyle     TextStyle
+	Padding              Opt[Padding]
+	SizeBorder           Opt[float32]
+	CellSpacing          Opt[float32]
+	Radius               Opt[float32]
+	RadiusBorder         Opt[float32]
+	IDFocus              uint32
+	Width                float32
+	Height               float32
+	MinWidth             float32
+	MaxWidth             float32
 	Color                Color
 	ColorHover           Color
 	ColorFocus           Color
@@ -26,26 +38,14 @@ type InputDateCfg struct {
 	ColorBorder          Color
 	ColorBorderFocus     Color
 	ColorSelect          Color
-	Padding              Opt[Padding]
-	SizeBorder           Opt[float32]
-	CellSpacing          Opt[float32]
-	Radius               Opt[float32]
-	RadiusBorder         Opt[float32]
-	IDFocus              uint32
 	Sizing               Sizing
-	Width                float32
-	Height               float32
-	MinWidth             float32
-	MaxWidth             float32
+	WeekdaysLen          DatePickerWeekdayLen
 	Disabled             bool
 	Invisible            bool
 	SelectMultiple       bool
 	HideTodayIndicator   bool
 	MondayFirstDayOfWeek bool
 	ShowAdjacentMonths   bool
-
-	A11YLabel       string
-	A11YDescription string
 }
 
 type inputDateView struct {

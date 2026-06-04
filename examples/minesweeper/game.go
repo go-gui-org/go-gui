@@ -41,8 +41,8 @@ func (d Difficulty) Config() (rows, cols, mines int) {
 type Point struct{ Row, Col int }
 
 type Cell struct {
-	Mine     bool
 	Adjacent int
+	Mine     bool
 	State    CellState
 }
 
@@ -53,16 +53,16 @@ type RandSource interface {
 }
 
 type Game struct {
+	rng        RandSource
+	Board      []Cell
 	Rows       int
 	Cols       int
 	MineCount  int
-	Board      []Cell
-	State      GameState
 	FlagsUsed  int
 	Revealed   int
+	State      GameState
 	FirstClick bool
 	NoGuess    bool
-	rng        RandSource
 }
 
 func NewGame(rows, cols, mines int, noGuess bool, rng RandSource) *Game {

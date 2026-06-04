@@ -4,9 +4,9 @@ import "time"
 
 // LayoutTransitionCfg configures layout animation.
 type LayoutTransitionCfg struct {
-	Duration time.Duration
 	Easing   EasingFn // nil → EaseOutCubic
 	OnDone   func(*Window)
+	Duration time.Duration
 }
 
 const layoutTransitionID = "__layout_transition__"
@@ -14,8 +14,8 @@ const layoutTransitionID = "__layout_transition__"
 // LayoutTransition animates layout changes (resize, reorder, add,
 // remove) using FLIP-style animation.
 type LayoutTransition struct {
-	transitionBase
 	snapshots map[string]posSnapshot
+	transitionBase
 }
 
 // ID implements Animation.

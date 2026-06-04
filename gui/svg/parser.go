@@ -23,11 +23,11 @@ var svgTrace = os.Getenv("GOGUI_SVG_TRACE") == "1"
 
 // Parser implements gui.SvgParser.
 type Parser struct {
-	mu              sync.Mutex
+	animatedScratch sync.Pool
 	byHash          map[uint64]parserCacheEntry
 	byParsed        map[*gui.SvgParsed]uint64
 	order           []uint64
-	animatedScratch sync.Pool
+	mu              sync.Mutex
 }
 
 const maxParsedRetained = 512

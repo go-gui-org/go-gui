@@ -11,14 +11,14 @@ import (
 )
 
 type App struct {
-	AllRows         []gui.GridRow
-	Source          gui.DataGridDataSource
-	Columns         []gui.GridColumnCfg
-	Query           gui.GridQueryState
 	Selection       gui.GridSelection
+	Source          gui.DataGridDataSource
+	Query           gui.GridQueryState
+	LastAction      string
+	AllRows         []gui.GridRow
+	Columns         []gui.GridColumnCfg
 	UseOffset       bool
 	SimulateLatency bool
-	LastAction      string
 }
 
 func main() {

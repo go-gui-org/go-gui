@@ -7,9 +7,9 @@ type listBoxView struct {
 }
 
 type listBoxCache struct {
-	dataHash        uint64
 	itemIDs         []string
 	itemDataIndices []int
+	dataHash        uint64
 }
 
 // ListBoxOption represents one row in a ListBox.
@@ -22,35 +22,36 @@ type ListBoxOption struct {
 
 // ListBoxCfg configures a list box view.
 type ListBoxCfg struct {
-	ID              string `gui:"required"`
-	Sizing          Sizing
 	TextStyle       TextStyle
 	SubheadingStyle TextStyle
-	Color           Color
-	ColorHover      Color
-	ColorBorder     Color
-	ColorSelect     Color
-	Padding         Opt[Padding]
+	OnSelect        func(ids []string, e *Event, w *Window)
+	OnReorder       func(movedID, beforeID string, w *Window)
+
+	ID string `gui:"required"`
+
+	A11YLabel       string
+	A11YDescription string
 	SelectedIDs     []string
 	Data            []ListBoxOption
-	OnSelect        func(ids []string, e *Event, w *Window)
+	Padding         Opt[Padding]
+	Radius          Opt[float32]
+	SizeBorder      Opt[float32]
 	Height          float32
 	MinWidth        float32
 	MaxWidth        float32
 	MinHeight       float32
 	MaxHeight       float32
-	Radius          Opt[float32]
-	SizeBorder      Opt[float32]
 	IDScroll        uint32
 	IDFocus         uint32
+	Color           Color
+	ColorHover      Color
+	ColorBorder     Color
+	ColorSelect     Color
+	Sizing          Sizing
 	Multiple        bool
 	Disabled        bool
 	Invisible       bool
 	Reorderable     bool
-	OnReorder       func(movedID, beforeID string, w *Window)
-
-	A11YLabel       string
-	A11YDescription string
 }
 
 // ListBoxOption helpers.

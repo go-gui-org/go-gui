@@ -35,24 +35,24 @@ func ParseStylesheet(src string, opts ParseOptions) []Rule {
 // linear and brings ParseFull's cyclomatic complexity under the
 // project cap.
 type parseCtx struct {
-	out       Stylesheet
-	current   Rule
-	inRule    bool
-	nextOrder int
-	// Keyframes context: when inKeyframes, BeginRuleset is a keyframe
-	// stop selector ("0%", "from", ...) rather than a CSS selector
-	// list.
-	inKeyframes    bool
+	out            Stylesheet
 	curKF          KeyframesDef
 	pendingOffsets []float32
 	pendingDecls   []Decl
-	inStop         bool
+	current        Rule
+	nextOrder      int
 	// Media context: skipMedia drops every nested ruleset until the
 	// matching EndAtRule. mediaDepth lets nested @-rules (e.g.
 	// @keyframes inside @media) resume normal processing once the
 	// outer block ends.
 	mediaDepth int
-	skipMedia  bool
+	inRule     bool
+	// Keyframes context: when inKeyframes, BeginRuleset is a keyframe
+	// stop selector ("0%", "from", ...) rather than a CSS selector
+	// list.
+	inKeyframes bool
+	inStop      bool
+	skipMedia   bool
 }
 
 // ParseFull parses a CSS stylesheet, returning both top-level rules

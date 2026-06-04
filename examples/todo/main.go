@@ -29,15 +29,15 @@ const (
 )
 
 type todoItem struct {
-	ID        int
 	Title     string
+	ID        int
 	Completed bool
 }
 
 type appState struct {
 	Draft  string
-	NextID int
 	Items  []todoItem
+	NextID int
 }
 
 func newAppState() *appState {

@@ -3,41 +3,39 @@ package gui
 import "unicode/utf8"
 
 type comboboxItemsCache struct {
-	optionsHash uint64
+	viewKey     comboboxViewKey
 	items       []ListCoreItem
 	filtered    []ListCoreItem
 	ids         []string
 	scored      []listCoreScored
-	viewKey     comboboxViewKey
 	views       []View
+	optionsHash uint64
 }
 
 type comboboxViewKey struct {
-	optionsHash uint64
 	query       string
+	theme       string
+	optionsHash uint64
 	first       int
 	last        int
 	hl          int
 	filteredN   int
 	rowH        float32
-	theme       string
 }
 
 // ComboboxCfg configures a combobox view with typeahead filtering.
 type ComboboxCfg struct {
-	ID                string `gui:"required"`
-	Value             string
-	Placeholder       string
+	TextStyle        TextStyle
+	PlaceholderStyle TextStyle
+	OnSelect         func(string, *Event, *Window)
+	ID               string `gui:"required"`
+	Value            string
+	Placeholder      string
+
+	A11YLabel         string
+	A11YDescription   string
 	Options           []string
-	OnSelect          func(string, *Event, *Window)
-	TextStyle         TextStyle
-	PlaceholderStyle  TextStyle
-	Color             Color
-	ColorBorder       Color
-	ColorBorderFocus  Color
-	ColorFocus        Color
-	ColorHighlight    Color
-	ColorHover        Color
+	FloatZIndex       int
 	Padding           Opt[Padding]
 	SizeBorder        Opt[float32]
 	Radius            Opt[float32]
@@ -46,12 +44,14 @@ type ComboboxCfg struct {
 	MaxDropdownHeight float32
 	IDFocus           uint32
 	IDScroll          uint32
+	Color             Color
+	ColorBorder       Color
+	ColorBorderFocus  Color
+	ColorFocus        Color
+	ColorHighlight    Color
+	ColorHover        Color
 	Sizing            Sizing
-	FloatZIndex       int
 	Disabled          bool
-
-	A11YLabel       string
-	A11YDescription string
 }
 
 // comboboxView implements View for combobox.

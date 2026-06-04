@@ -539,24 +539,24 @@ func dataGridCrudCancel(gridID string, focusID uint32, e *Event, w *Window) {
 // dataGridCrudMutationResult holds the outcome of async
 // mutation execution.
 type dataGridCrudMutationResult struct {
+	errPhase   string    // "create"/"update"/"delete" on error
+	errMsg     string    // error message (empty on success)
 	createRows []GridRow // input create rows (for replace mapping)
 	created    []GridRow // server-returned created rows
 	rowCount   int       // -1 when unknown
-	errPhase   string    // "create"/"update"/"delete" on error
-	errMsg     string    // error message (empty on success)
 }
 
 type dataGridCrudSaveContext struct {
-	gridID            string
+	selection         GridSelection
 	dataSource        DataGridDataSource
-	query             GridQueryState
 	onCRUDError       func(string, *Event, *Window)
 	onRowsChange      func([]GridRow, *Event, *Window)
-	selection         GridSelection
 	onSelectionChange func(GridSelection, *Event, *Window)
-	hasSource         bool
-	caps              GridDataCapabilities
+	query             GridQueryState
+	gridID            string
 	focusID           uint32
+	caps              GridDataCapabilities
+	hasSource         bool
 }
 
 func dataGridCrudSave(ctx dataGridCrudSaveContext, e *Event, w *Window) {

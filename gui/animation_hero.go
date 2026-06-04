@@ -4,9 +4,9 @@ import "time"
 
 // HeroTransitionCfg configures hero transition.
 type HeroTransitionCfg struct {
-	Duration time.Duration
 	Easing   EasingFn // nil → EaseOutCubic
 	OnDone   func(*Window)
+	Duration time.Duration
 }
 
 const heroTransitionID = "__hero_transition__"
@@ -14,9 +14,9 @@ const heroTransitionID = "__hero_transition__"
 // HeroTransition animates elements between views. Only one
 // HeroTransition can be active at a time (fixed internal ID).
 type HeroTransition struct {
-	transitionBase
 	outgoing map[string]posSnapshot
 	incoming map[string]posSnapshot
+	transitionBase
 }
 
 // ID implements Animation.

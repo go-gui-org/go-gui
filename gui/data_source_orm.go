@@ -21,29 +21,29 @@ const (
 type GridOrmColumnSpec struct {
 	ID              string
 	DBField         string
+	AllowedOps      []string
+	normalizedOps   []string // populated by validation
 	QuickFilter     bool
 	Filterable      bool
 	Sortable        bool
 	CaseInsensitive bool
-	AllowedOps      []string
-	normalizedOps   []string // populated by validation
 }
 
 // GridOrmQuerySpec is the validated query sent to ORM callbacks.
 type GridOrmQuerySpec struct {
 	QuickFilter string
+	Cursor      string
 	Sorts       []GridSort
 	Filters     []GridFilter
 	Limit       int
 	Offset      int
-	Cursor      string
 }
 
 // GridOrmPage is the result from an ORM fetch callback.
 type GridOrmPage struct {
-	Rows       []GridRow
 	NextCursor string
 	PrevCursor string
+	Rows       []GridRow
 	RowCount   int // -1 when unknown
 	HasMore    bool
 }
@@ -66,16 +66,16 @@ type GridOrmDeleteManyFn func(rowIDs []string, signal *GridAbortSignal) ([]strin
 // GridOrmDataSource wraps user-provided ORM callbacks with
 // column validation, query normalization, and abort handling.
 type GridOrmDataSource struct {
-	Columns        []GridOrmColumnSpec
 	columnMap      map[string]GridOrmColumnSpec
 	FetchFn        GridOrmFetchFn
-	DefaultLimit   int
-	SupportsOffset bool
-	RowCountKnown  bool
 	CreateFn       GridOrmCreateFn
 	UpdateFn       GridOrmUpdateFn
 	DeleteFn       GridOrmDeleteFn
 	DeleteManyFn   GridOrmDeleteManyFn
+	Columns        []GridOrmColumnSpec
+	DefaultLimit   int
+	SupportsOffset bool
+	RowCountKnown  bool
 }
 
 // NewGridOrmDataSource validates columns and builds the

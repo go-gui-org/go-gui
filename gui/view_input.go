@@ -9,41 +9,8 @@ const animIDDragScroll = "input-drag-scroll"
 
 // InputCfg configures a text input field.
 type InputCfg struct {
-	ID          string
-	Text        string
-	Placeholder string
-	Mask        string
-	MaskPreset  InputMaskPreset
-	MaskTokens  []MaskTokenDef
-	Mode        InputMode
-	IsPassword  bool
-	SpellCheck  bool
-	Disabled    bool
-	Invisible   bool
-
-	// Sizing
-	Sizing    Sizing
-	Width     float32
-	Height    float32
-	MinWidth  float32
-	MaxWidth  float32
-	MinHeight float32
-	MaxHeight float32
-
-	// Appearance
-	Padding          Opt[Padding]
-	Radius           Opt[float32]
-	SizeBorder       Opt[float32]
-	Color            Color
-	ColorHover       Color
-	ColorBorder      Color
-	ColorBorderFocus Color
 	TextStyle        TextStyle
 	PlaceholderStyle TextStyle
-
-	// Focus
-	IDFocus  uint32
-	IDScroll uint32
 
 	// Callbacks
 	OnTextChanged func(*Layout, string, *Window)
@@ -60,9 +27,44 @@ type InputCfg struct {
 	PreTextChange       func(current, proposed string) (string, bool)
 	PostCommitNormalize func(text string, reason InputCommitReason) string
 
+	ID          string
+	Text        string
+	Placeholder string
+	Mask        string
+
 	// Accessibility
 	A11YLabel       string
 	A11YDescription string
+	MaskTokens      []MaskTokenDef
+
+	// Appearance
+	Padding    Opt[Padding]
+	Radius     Opt[float32]
+	SizeBorder Opt[float32]
+	Width      float32
+	Height     float32
+	MinWidth   float32
+	MaxWidth   float32
+	MinHeight  float32
+	MaxHeight  float32
+
+	// Focus
+	IDFocus  uint32
+	IDScroll uint32
+
+	Color            Color
+	ColorHover       Color
+	ColorBorder      Color
+	ColorBorderFocus Color
+
+	// Sizing
+	Sizing     Sizing
+	MaskPreset InputMaskPreset
+	Mode       InputMode
+	IsPassword bool
+	SpellCheck bool
+	Disabled   bool
+	Invisible  bool
 }
 
 // Input creates a text input field view.
@@ -232,13 +234,6 @@ func applyInputDefaults(cfg *InputCfg) {
 // inputHandlerCfg captures the fields shared by OnChar and
 // OnKeyDown handler factories.
 type inputHandlerCfg struct {
-	IDFocus             uint32
-	IDScroll            uint32
-	IsPassword          bool
-	Mode                InputMode
-	Mask                string
-	MaskPreset          InputMaskPreset
-	MaskTokens          []MaskTokenDef
 	CompiledMask        *CompiledInputMask
 	OnTextChanged       func(*Layout, string, *Window)
 	OnTextCommit        func(*Layout, string, InputCommitReason, *Window)
@@ -247,6 +242,13 @@ type inputHandlerCfg struct {
 	OnKeyUp             func(*Layout, *Event, *Window)
 	PreTextChange       func(current, proposed string) (string, bool)
 	PostCommitNormalize func(text string, reason InputCommitReason) string
+	Mask                string
+	MaskTokens          []MaskTokenDef
+	IDFocus             uint32
+	IDScroll            uint32
+	IsPassword          bool
+	Mode                InputMode
+	MaskPreset          InputMaskPreset
 }
 
 // compiledMask returns a non-nil *CompiledInputMask if the

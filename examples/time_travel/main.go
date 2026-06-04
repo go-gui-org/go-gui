@@ -18,8 +18,8 @@ import (
 )
 
 type appState struct {
-	Count int
 	Log   []string
+	Count int
 }
 
 // Snapshot deep-copies the state into a fresh instance so the

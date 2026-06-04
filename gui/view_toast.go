@@ -19,18 +19,18 @@ const (
 
 // ToastCfg configures a toast notification.
 type ToastCfg struct {
+	OnAction    func(*Window)
 	Title       string
 	Body        string
-	Severity    ToastSeverity
-	Duration    time.Duration // 0 = default (3s); ToastPersistent = no auto-dismiss
 	ActionLabel string
-	OnAction    func(*Window)
+	Duration    time.Duration // 0 = default (3s); ToastPersistent = no auto-dismiss
+	Severity    ToastSeverity
 }
 
 // toastNotification is an active toast instance.
 type toastNotification struct {
-	id       uint64
 	cfg      ToastCfg
+	id       uint64
 	animFrac float32 // 0=collapsed, 1=full height
 	phase    toastPhase
 	hovered  bool

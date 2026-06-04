@@ -4,13 +4,23 @@ import "context"
 
 // WindowCfg configures a new Window.
 type WindowCfg struct {
-	State  any
-	Title  string
-	Width  int
-	Height int
-	// FixedSize disables user-driven window resizing when supported
-	// by the active backend.
-	FixedSize bool
+	State any
+	// ImageFetcher, if non-nil, is the default fetcher for remote
+	// images in this window. DrawContext.ImageWithFetcher can
+	// override this per call (e.g. to pair each map tile layer with
+	// its own source-specific User-Agent).
+	ImageFetcher ImageFetcher
+	OnInit       func(*Window)
+	OnEvent      func(*Event, *Window)
+	// OnCloseRequest runs when the OS reports a window-close (title
+	// bar button, Cmd-W, etc.) before the window is destroyed. If
+	// nil, the backend proceeds with destroy as before. If set, the
+	// callback owns the decision: call Window.Close() to proceed, or
+	// do nothing to cancel. Use for save/discard/cancel prompts.
+	// Re-clicking the close control is required to retry after a veto
+	// since the original SDL event is already drained.
+	OnCloseRequest func(*Window)
+	Title          string
 	// AllowedSvgRoots restricts file-based SVG loads to these paths.
 	// Empty means allow any local SVG path.
 	AllowedSvgRoots []string
@@ -20,37 +30,32 @@ type WindowCfg struct {
 	// allowlist must include the download cache directory:
 	// filepath.Join(os.TempDir(), "gui_cache", "images").
 	AllowedImageRoots []string
+	// IconPNG is optional PNG-encoded icon data for the window.
+	// The backend sets this as the window icon when supported.
+	IconPNG []byte
+	Width   int
+	Height  int
 	// MaxImageBytes caps source image file size for decoded image
 	// loads. Zero or negative selects backend defaults.
 	MaxImageBytes int64
 	// MaxImagePixels caps decoded image dimensions (width*height).
 	// Zero or negative selects backend defaults.
 	MaxImagePixels int64
-	// ImageFetcher, if non-nil, is the default fetcher for remote
-	// images in this window. DrawContext.ImageWithFetcher can
-	// override this per call (e.g. to pair each map tile layer with
-	// its own source-specific User-Agent).
-	ImageFetcher ImageFetcher
 	// MaxImageDownloads caps concurrent in-flight image downloads
 	// across the process. Zero or negative selects a default of 6,
 	// matching OSM's guidance for well-behaved map clients. The
 	// first Window whose config is consulted fixes the limit for
 	// the process lifetime — later Windows cannot resize it.
 	MaxImageDownloads int
-	// IconPNG is optional PNG-encoded icon data for the window.
-	// The backend sets this as the window icon when supported.
-	IconPNG []byte
-	OnInit  func(*Window)
-	OnEvent func(*Event, *Window)
-	// OnCloseRequest runs when the OS reports a window-close (title
-	// bar button, Cmd-W, etc.) before the window is destroyed. If
-	// nil, the backend proceeds with destroy as before. If set, the
-	// callback owns the decision: call Window.Close() to proceed, or
-	// do nothing to cancel. Use for save/discard/cancel prompts.
-	// Re-clicking the close control is required to retry after a veto
-	// since the original SDL event is already drained.
-	OnCloseRequest func(*Window)
-	BgColor        Color
+	// HistoryBytes caps time-travel snapshot memory. Evicts
+	// oldest entries when exceeded. Zero or negative selects
+	// a default (64 MiB). Only consulted when DebugTimeTravel
+	// is true.
+	HistoryBytes int
+	BgColor      Color
+	// FixedSize disables user-driven window resizing when supported
+	// by the active backend.
+	FixedSize bool
 	// Timings enables per-frame pipeline timing instrumentation.
 	Timings bool
 	// DebugTimeTravel enables time-travel snapshot capture and
@@ -60,11 +65,6 @@ type WindowCfg struct {
 	// Leave off in release builds — the nil-history hot path
 	// short-circuits with zero cost when disabled.
 	DebugTimeTravel bool
-	// HistoryBytes caps time-travel snapshot memory. Evicts
-	// oldest entries when exceeded. Zero or negative selects
-	// a default (64 MiB). Only consulted when DebugTimeTravel
-	// is true.
-	HistoryBytes int
 }
 
 // NewWindow creates a Window from the given configuration.

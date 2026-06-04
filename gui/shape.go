@@ -8,14 +8,6 @@ import (
 
 // Shape is the only data structure used to draw to the screen.
 type Shape struct {
-	UID uint64 // internal use only
-
-	// String fields
-	ID       string // unique identifier assigned by the user
-	Resource string // image path or SVG source
-
-	Version     uint64 // for cache invalidation (DrawCanvas, etc.)
-	FloatZIndex int
 
 	// Optional sub-structs (nil when unused)
 	Events  *EventHandlers     // event handlers
@@ -25,10 +17,18 @@ type Shape struct {
 	BC      *ShapeButtonColors // button hover/focus colors
 	SvgOpts *SvgParseOpts      // per-render SVG parse overrides
 
+	// String fields
+	ID       string // unique identifier assigned by the user
+	Resource string // image path or SVG source
+
+	UID uint64 // internal use only
+
+	Version     uint64 // for cache invalidation (DrawCanvas, etc.)
+	FloatZIndex int
+
 	// Structs
 	ShapeClip DrawClip // calculated clipping rectangle
 	Padding   Padding  // inner spacing
-	Sizing    Sizing   // sizing logic
 
 	// Numeric fields
 	X            float32 // final calculated X position (absolute)
@@ -48,13 +48,17 @@ type Shape struct {
 	IDScroll          uint32 // >0 means receives scroll events
 	IDScrollContainer uint32
 
+	SizeBorder float32
+
+	Opacity   float32
+	A11YState AccessState
+
 	Color       Color
 	ColorBorder Color
-	SizeBorder  float32
+	Sizing      Sizing // sizing logic
 
 	// Accessibility
-	A11YRole  AccessRole
-	A11YState AccessState
+	A11YRole AccessRole
 
 	// Enums/bools
 	Axis                 Axis
@@ -78,7 +82,6 @@ type Shape struct {
 	Wrap          bool
 	Overflow      bool
 	QuarterTurns  uint8 // 0-3: rotation in 90° CW increments
-	Opacity       float32
 }
 
 // NewShape returns a Shape with default field values.
@@ -225,32 +228,32 @@ type DrawClip struct {
 
 // ShapeTextConfig holds text/RTF-specific fields for a Shape.
 type ShapeTextConfig struct {
-	Text               string
+	textLayoutStyle    TextStyle
 	TextStyle          *TextStyle
-	TextMode           TextMode
-	TextSelBeg         uint32
-	TextSelEnd         uint32
-	TextTabSize        uint32
-	TextIsPassword     bool
-	TextIsPlaceholder  bool
-	HangingIndent      float32
 	TextLayout         *glyph.Layout
 	RtfRuns            *RichText
 	RtfLayout          *glyph.Layout
-	RtfBaseStyle       glyph.TextStyle
-	RtfFlatText        string          // concatenation of all run texts; rune↔byte conversion for selection
-	MarkdownID         uint32          // non-zero when this RTF block belongs to a markdown widget
-	MarkdownBlockStart uint32          // rune offset of this block within the markdown flat text
-	MarkdownRuneLen    uint32          // rune count of this block's flat text
 	rtfGlyphRT         *glyph.RichText // cached conversion
-	rtfMathHashes      []int64         // cache keys per inline math object
+	Text               string
+	RtfFlatText        string // concatenation of all run texts; rune↔byte conversion for selection
+	textLayoutText     string
+	rtfMathHashes      []int64 // cache keys per inline math object
+	RtfBaseStyle       glyph.TextStyle
+	TextSelBeg         uint32
+	TextSelEnd         uint32
+	TextTabSize        uint32
+	HangingIndent      float32
+	MarkdownID         uint32 // non-zero when this RTF block belongs to a markdown widget
+	MarkdownBlockStart uint32 // rune offset of this block within the markdown flat text
+	MarkdownRuneLen    uint32 // rune count of this block's flat text
 	wrapCacheWidth     float32
-	wrapCacheValid     bool
 	wrapCacheHeight    float32
 	textLayoutWidth    float32
+	TextMode           TextMode
+	TextIsPassword     bool
+	TextIsPlaceholder  bool
+	wrapCacheValid     bool
 	textLayoutValid    bool
-	textLayoutText     string
-	textLayoutStyle    TextStyle
 	textLayoutMode     TextMode
 }
 
@@ -293,11 +296,11 @@ type EventHandlers struct {
 // package-level button event handlers, avoiding per-frame
 // closure allocations.
 type ShapeButtonColors struct {
+	OnHover          func(*Layout, *Event, *Window)
 	ColorHover       Color
 	ColorClick       Color
 	ColorFocus       Color
 	ColorBorderFocus Color
-	OnHover          func(*Layout, *Event, *Window)
 }
 
 // ShapeEffects holds optional visual effect fields.
@@ -352,10 +355,10 @@ type GradientStop struct {
 // GradientDef defines a gradient with stops and direction.
 type GradientDef struct {
 	Stops     []GradientStop
+	Angle     float32 // explicit angle in degrees
 	Type      GradientType
 	Direction GradientDirection
-	Angle     float32 // explicit angle in degrees
-	HasAngle  bool    // true when Angle overrides Direction
+	HasAngle  bool // true when Angle overrides Direction
 }
 
 // AccessInfo holds string accessibility data.

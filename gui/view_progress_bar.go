@@ -8,31 +8,32 @@ import (
 
 // ProgressBarCfg configures a progress bar view.
 type ProgressBarCfg struct {
-	ID             string `gui:"required"`
-	Text           string
-	TextStyle      TextStyle
+	TextStyle TextStyle
+	ID        string `gui:"required"`
+	Text      string
+
+	// Accessibility
+	A11YLabel       string
+	A11YDescription string
+	TextPadding     Opt[Padding]
+	Radius          Opt[float32]
+	Percent         float32 // 0.0 to 1.0
+	Width           float32
+	Height          float32
+	MinWidth        float32
+	MaxWidth        float32
+	MinHeight       float32
+	MaxHeight       float32
+
 	Color          Color
 	ColorBar       Color
 	TextBackground Color
-	TextPadding    Opt[Padding]
-	Percent        float32 // 0.0 to 1.0
-	Radius         Opt[float32]
+	Sizing         Sizing
 	TextShow       bool
 	Disabled       bool
 	Invisible      bool
 	Indefinite     bool
 	Vertical       bool
-	Sizing         Sizing
-	Width          float32
-	Height         float32
-	MinWidth       float32
-	MaxWidth       float32
-	MinHeight      float32
-	MaxHeight      float32
-
-	// Accessibility
-	A11YLabel       string
-	A11YDescription string
 }
 
 // ProgressBar creates a progress bar view.

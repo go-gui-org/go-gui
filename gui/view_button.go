@@ -3,47 +3,48 @@ package gui
 // ButtonCfg configures a clickable button. Without an OnClick
 // handler it functions as bubble text (no mouse interaction).
 type ButtonCfg struct {
-	ID               string
+	Shadow          *BoxShadow
+	Gradient        *GradientDef
+	OnClick         func(*Layout, *Event, *Window)
+	OnHover         func(*Layout, *Event, *Window)
+	ID              string
+	A11YLabel       string
+	A11YDescription string
+	Content         []View
+	Padding         Opt[Padding]
+	SizeBorder      Opt[float32]
+	Radius          Opt[float32]
+	BlurRadius      float32
+	FloatOffsetX    float32
+	FloatOffsetY    float32
+	IDFocus         uint32
+	Width           float32
+	Height          float32
+	MinWidth        float32
+	MaxWidth        float32
+	MinHeight       float32
+	MaxHeight       float32
+
+	A11YState        AccessState
 	Color            Color
 	ColorHover       Color
 	ColorFocus       Color
 	ColorClick       Color
 	ColorBorder      Color
 	ColorBorderFocus Color
-	Padding          Opt[Padding]
-	SizeBorder       Opt[float32]
-	BlurRadius       float32
-	Shadow           *BoxShadow
-	Gradient         *GradientDef
-	Content          []View
-	OnClick          func(*Layout, *Event, *Window)
-	OnHover          func(*Layout, *Event, *Window)
-	Float            bool
-	FloatAnchor      FloatAttach
-	FloatTieOff      FloatAttach
-	FloatOffsetX     float32
-	FloatOffsetY     float32
-	Radius           Opt[float32]
-	IDFocus          uint32
 	HAlign           Opt[HorizontalAlign]
 	VAlign           Opt[VerticalAlign]
-	Disabled         bool
-	Invisible        bool
 
 	// Sizing
-	Sizing    Sizing
-	Width     float32
-	Height    float32
-	MinWidth  float32
-	MaxWidth  float32
-	MinHeight float32
-	MaxHeight float32
+	Sizing      Sizing
+	Float       bool
+	FloatAnchor FloatAttach
+	FloatTieOff FloatAttach
+	Disabled    bool
+	Invisible   bool
 
 	// Accessibility
-	A11YRole        AccessRole
-	A11YState       AccessState
-	A11YLabel       string
-	A11YDescription string
+	A11YRole AccessRole
 }
 
 // buttonView wraps a containerView with per-button hover/focus
@@ -51,11 +52,11 @@ type ButtonCfg struct {
 // ShapeButtonColors and package-level handler functions.
 type buttonView struct {
 	cv               *containerView
+	userOnHover      func(*Layout, *Event, *Window)
 	colorHover       Color
 	colorClick       Color
 	colorFocus       Color
 	colorBorderFocus Color
-	userOnHover      func(*Layout, *Event, *Window)
 }
 
 func (bv *buttonView) Content() []View { return bv.cv.Content() }

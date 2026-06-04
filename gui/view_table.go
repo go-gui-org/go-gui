@@ -24,61 +24,62 @@ const (
 
 // TableRowCfg configures a table row.
 type TableRowCfg struct {
+	OnClick func(*Layout, *Event, *Window)
 	ID      string
 	Cells   []TableCellCfg
-	OnClick func(*Layout, *Event, *Window)
 }
 
 // TableCellCfg configures a table cell.
 type TableCellCfg struct {
+	Content   View
+	HAlign    *HorizontalAlign
+	TextStyle *TextStyle
+	RichText  *RichText
+	OnClick   func(*Layout, *Event, *Window)
 	ID        string
 	Value     string
 	HeadCell  bool
-	HAlign    *HorizontalAlign
-	TextStyle *TextStyle
-	Content   View
-	RichText  *RichText
-	OnClick   func(*Layout, *Event, *Window)
 }
 
 // TableCfg configures a table layout.
 type TableCfg struct {
-	ID                 string `gui:"required"`
-	A11YLabel          string
-	A11YDescription    string
-	ColorBorder        Color
-	ColorSelect        Color
-	ColorHover         Color
-	ColorRowAlt        *Color
+	TextStyle        TextStyle
+	TextStyleHead    TextStyle
+	ColorRowAlt      *Color
+	AlignHead        *HorizontalAlign
+	Selected         map[int]bool
+	OnSelect         func(map[int]bool, int, *Event, *Window)
+	ID               string `gui:"required"`
+	A11YLabel        string
+	A11YDescription  string
+	ColumnAlignments []HorizontalAlign
+	Data             []TableRowCfg
+
 	CellPadding        Opt[Padding]
-	TextStyle          TextStyle
-	TextStyleHead      TextStyle
-	AlignHead          *HorizontalAlign
-	ColumnAlignments   []HorizontalAlign
 	ColumnWidthDefault float32
 	ColumnWidthMin     float32
 	SizeBorder         float32
 	SizeBorderHeader   float32
-	BorderStyle        TableBorderStyle
-	MultiSelect        bool
-	Selected           map[int]bool
-	OnSelect           func(map[int]bool, int, *Event, *Window)
-	Data               []TableRowCfg
 
 	// IDScroll enables scrolling. When set with Height or
 	// MaxHeight, virtualization renders only visible rows.
-	IDScroll     uint32
-	Scrollbar    ScrollbarOverflow
-	FreezeHeader bool
+	IDScroll    uint32
+	Width       float32
+	Height      float32
+	MinWidth    float32
+	MaxWidth    float32
+	MinHeight   float32
+	MaxHeight   float32
+	ColorBorder Color
+	ColorSelect Color
+	ColorHover  Color
 
 	// Sizing
-	Sizing    Sizing
-	Width     float32
-	Height    float32
-	MinWidth  float32
-	MaxWidth  float32
-	MinHeight float32
-	MaxHeight float32
+	Sizing       Sizing
+	BorderStyle  TableBorderStyle
+	MultiSelect  bool
+	Scrollbar    ScrollbarOverflow
+	FreezeHeader bool
 }
 
 func applyTableDefaults(cfg *TableCfg) {
@@ -115,8 +116,8 @@ func applyTableDefaults(cfg *TableCfg) {
 // tableColWidthCache stores measured column widths keyed by
 // content hash.
 type tableColWidthCache struct {
-	hash   uint64
 	widths []float32
+	hash   uint64
 }
 
 // Table generates a table from the given TableCfg. Column widths

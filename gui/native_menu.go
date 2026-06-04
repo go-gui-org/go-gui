@@ -5,8 +5,8 @@ type NativeMenuItemCfg struct {
 	ID        string
 	Text      string
 	CommandID string // resolve from command registry
-	Shortcut  Shortcut
 	Submenu   []NativeMenuItemCfg
+	Shortcut  Shortcut
 	Separator bool
 	Disabled  bool
 	Checked   bool
@@ -20,14 +20,14 @@ type NativeMenuCfg struct {
 
 // NativeMenubarCfg configures the native OS menubar.
 type NativeMenubarCfg struct {
-	AppName                 string          // "About <AppName>", etc.
-	Menus                   []NativeMenuCfg // File, Edit, View, etc.
-	OnAction                func(id string) // fallback for items without CommandID
-	IncludeEditMenu         bool            // auto-wire standard Edit menu
-	SuppressSystemEditItems bool            // remove OS-injected AutoFill/WritingTools/Dictation
+	OnAction func(id string) // fallback for items without CommandID
+	AppName  string          // "About <AppName>", etc.
 	// AboutActionID, if non-empty, routes the app-menu "About" click through
 	// OnAction with this ID instead of the default system About panel.
-	AboutActionID string
+	AboutActionID           string
+	Menus                   []NativeMenuCfg // File, Edit, View, etc.
+	IncludeEditMenu         bool            // auto-wire standard Edit menu
+	SuppressSystemEditItems bool            // remove OS-injected AutoFill/WritingTools/Dictation
 }
 
 // NativeMenuItemsFromMenuItems converts in-app MenuItemCfg

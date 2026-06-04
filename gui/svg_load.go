@@ -33,17 +33,10 @@ type svgParserCacheInvalidator interface {
 // SvgParsed.Paths (TessellatedPath), not on render paths.
 type CachedSvgPath struct {
 	Triangles    []float32
-	Color        Color
 	VertexColors []Color
-	IsClipMask   bool
 	ClipGroup    int
+	Primitive    SvgPrimitive
 	PathID       uint32
-	Animated     bool
-	// IsStroke marks the path as a stroke contribution; lets opacity
-	// animations targeting fill-opacity / stroke-opacity scale only
-	// the matching path.
-	IsStroke  bool
-	Primitive SvgPrimitive
 	// Author's base transform, decomposed. Applied at render-time
 	// when HasBaseXform is true. See TessellatedPath for details.
 	BaseTransX   float32
@@ -53,16 +46,23 @@ type CachedSvgPath struct {
 	BaseRotAngle float32
 	BaseRotCX    float32
 	BaseRotCY    float32
+	Color        Color
+	IsClipMask   bool
+	Animated     bool
+	// IsStroke marks the path as a stroke contribution; lets opacity
+	// animations targeting fill-opacity / stroke-opacity scale only
+	// the matching path.
+	IsStroke     bool
 	HasBaseXform bool
 }
 
 // CachedSvgTextDraw holds cached text rendering data.
 type CachedSvgTextDraw struct {
-	Text      string
 	TextStyle TextStyle
+	Gradient  *glyph.GradientConfig
+	Text      string
 	X, Y      float32
 	TextWidth float32 // measured width including letter-spacing
-	Gradient  *glyph.GradientConfig
 }
 
 // CachedSvgTextPathDraw holds precomputed textPath render data.
@@ -74,11 +74,11 @@ type CachedSvgTextPathDraw struct {
 
 // CachedFilteredGroup holds tessellated geometry for a filter group.
 type CachedFilteredGroup struct {
-	Filter        SvgFilter
+	Gradients     map[string]SvgGradientDef
 	RenderPaths   []CachedSvgPath
 	TextDraws     []CachedSvgTextDraw
 	TextPathDraws []CachedSvgTextPathDraw
-	Gradients     map[string]SvgGradientDef
+	Filter        SvgFilter
 	BBox          [4]float32 // x, y, width, height
 }
 
@@ -94,57 +94,57 @@ type svgBaseXform struct {
 
 // CachedSvg holds pre-tessellated SVG data for efficient rendering.
 type CachedSvg struct {
-	RenderPaths      []CachedSvgPath
-	TextDraws        []CachedSvgTextDraw
-	TextPathDraws    []CachedSvgTextPathDraw
-	FilteredGroups   []CachedFilteredGroup
-	Gradients        map[string]SvgGradientDef
-	Animations       []SvgAnimation
-	HasAnimations    bool
-	HasAttrAnim      bool       // any SvgAnimAttr present → try re-tessellation
-	HasAnimatedPaths bool       // any RenderPath has Animated=true
-	Parsed           *SvgParsed // retained for TessellateAnimated
-	AnimStartNs      int64
-	AnimHash         string
-	Width            float32
-	Height           float32
-	Scale            float32
+	Gradients map[string]SvgGradientDef
+	Parsed    *SvgParsed // retained for TessellateAnimated
+	// BaseByPath maps PathID → decomposed author base transform.
+	// Populated only for paths that have animations targeting them
+	// AND whose base transform decomposed cleanly; used to seed
+	// svgAnimState so animations compose over the author's base.
+	BaseByPath     map[uint32]svgBaseXform
+	defsPathData   map[string]cachedDefsPathData
+	AnimHash       string
+	RenderPaths    []CachedSvgPath
+	TextDraws      []CachedSvgTextDraw
+	TextPathDraws  []CachedSvgTextPathDraw
+	FilteredGroups []CachedFilteredGroup
+	Animations     []SvgAnimation
+	AnimStartNs    int64
+	Width          float32
+	Height         float32
+	Scale          float32
 	// ViewBoxX / ViewBoxY are the authored viewBox origin. Applied at
 	// render time as an outer translate on sx/sy so authored coords
 	// stay in raw viewBox space throughout tessellation and animation.
-	ViewBoxX float32
-	ViewBoxY float32
+	ViewBoxX         float32
+	ViewBoxY         float32
+	HasAnimations    bool
+	HasAttrAnim      bool // any SvgAnimAttr present → try re-tessellation
+	HasAnimatedPaths bool // any RenderPath has Animated=true
 	// PreserveAlign / PreserveSlice mirror the parsed SVG's
 	// preserveAspectRatio attribute so renderSvg can offset content
 	// without re-loading the parser. PreserveSlice also drives the
 	// scale picked above (max for slice, min for meet).
 	PreserveAlign SvgAlign
 	PreserveSlice bool
-	// BaseByPath maps PathID → decomposed author base transform.
-	// Populated only for paths that have animations targeting them
-	// AND whose base transform decomposed cleanly; used to seed
-	// svgAnimState so animations compose over the author's base.
-	BaseByPath   map[uint32]svgBaseXform
-	defsPathData map[string]cachedDefsPathData
 }
 
 type svgCacheKey struct {
-	srcHash uint64
-	w10     int32
-	h10     int32
+	// hoveredID / focusedID feed CSS :hover / :focus pseudo-class
+	// matching. Cache invalidates on transition.
+	hoveredID string
+	focusedID string
+	srcHash   uint64
+	w10       int32
+	h10       int32
+	// flatness10000 is FlatnessTolerance × 10000 quantized into an
+	// int. Zero (default) keeps fingerprint stable. Quantization
+	// avoids float NaN/Inf collisions in map keys.
+	flatness10000 int32
 	// reducedMotion is the snapshotted prefers-reduced-motion flag.
 	// Same SVG source rendered under different motion preferences
 	// must cache separately so a user toggling the OS pref
 	// invalidates the prior render naturally (Phase F).
 	reducedMotion bool
-	// flatness10000 is FlatnessTolerance × 10000 quantized into an
-	// int. Zero (default) keeps fingerprint stable. Quantization
-	// avoids float NaN/Inf collisions in map keys.
-	flatness10000 int32
-	// hoveredID / focusedID feed CSS :hover / :focus pseudo-class
-	// matching. Cache invalidates on transition.
-	hoveredID string
-	focusedID string
 }
 
 // cachedSvgPaths converts TessellatedPath slices to CachedSvgPath.

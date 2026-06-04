@@ -23,8 +23,8 @@ const (
 
 // Token is a contiguous run of source text with one Kind.
 type Token struct {
-	Kind Kind
 	Text string
+	Kind Kind
 }
 
 // Highlighter tokenizes source into a slice of Tokens. Implementations

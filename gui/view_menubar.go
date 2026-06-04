@@ -5,20 +5,17 @@ import "slices"
 // MenubarCfg configures a horizontal menubar or standalone
 // menu.
 type MenubarCfg struct {
-	ID                string
 	TextStyle         TextStyle
 	TextStyleSubtitle TextStyle
-	Color             Color
-	ColorBorder       Color
-	ColorSelect       Color
-	Sizing            Sizing
+	Action            func(string, *Event, *Window)
+	ID                string
+	Items             []MenuItemCfg
+	FloatZIndex       int
 	Padding           Opt[Padding]
 	PaddingMenuItem   Opt[Padding]
-	SizeBorder        Opt[float32]
 	PaddingSubmenu    Opt[Padding]
 	PaddingSubtitle   Opt[Padding]
-	Action            func(string, *Event, *Window)
-	Items             []MenuItemCfg
+	SizeBorder        Opt[float32]
 	WidthSubmenuMin   Opt[float32]
 	WidthSubmenuMax   Opt[float32]
 	Radius            Opt[float32]
@@ -28,11 +25,14 @@ type MenubarCfg struct {
 	Spacing           Opt[float32]
 	SpacingSubmenu    Opt[float32]
 	IDFocus           uint32
-	FloatAnchor       FloatAttach
-	FloatTieOff       FloatAttach
 	FloatOffsetX      float32
 	FloatOffsetY      float32
-	FloatZIndex       int
+	Color             Color
+	ColorBorder       Color
+	ColorSelect       Color
+	Sizing            Sizing
+	FloatAnchor       FloatAttach
+	FloatTieOff       FloatAttach
 	Disabled          bool
 	Invisible         bool
 	Float             bool

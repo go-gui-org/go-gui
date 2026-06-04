@@ -33,16 +33,16 @@ var (
 
 type calculatorState struct {
 	Display          string
-	StoredValue      float64
 	PendingOperation string
+	StoredValue      float64
 	ReplaceDisplay   bool
 	Err              bool
 }
 
 type calcButton struct {
+	Action     func(*calculatorState)
 	Label      string
 	Background gui.Color
-	Action     func(*calculatorState)
 }
 
 var keypadRows = [][]calcButton{

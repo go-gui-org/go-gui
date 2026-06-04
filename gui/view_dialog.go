@@ -15,40 +15,42 @@ const dialogBaseIDFocus uint32 = 7568971
 
 // DialogCfg configures a modal dialog.
 type DialogCfg struct {
-	Title       string
-	Body        string
-	Reply       string
-	ID          string
-	Color       Color
-	ColorBorder Color
-	Padding     Opt[Padding]
-	SizeBorder  Opt[float32]
-
 	TitleTextStyle TextStyle
 	TextStyle      TextStyle
-
-	CustomContent []View
 
 	OnOkYes    func(*Window)
 	OnCancelNo func(*Window)
 	OnReply    func(string, *Window)
 
-	Width     float32
-	Height    float32
-	MinWidth  Opt[float32]
-	MinHeight float32
-	MaxWidth  Opt[float32]
-	MaxHeight float32
+	Title string
+	Body  string
+	Reply string
+	ID    string
+
+	CustomContent []View
+
+	Padding    Opt[Padding]
+	SizeBorder Opt[float32]
+
+	MinWidth Opt[float32]
+	MaxWidth Opt[float32]
 
 	Radius Opt[float32]
 
+	Width     float32
+	Height    float32
+	MinHeight float32
+	MaxHeight float32
+
 	IDFocus      uint32
+	oldIDFocus   uint32
+	Color        Color
+	ColorBorder  Color
 	DialogType   DialogType
 	AlignButtons HorizontalAlign
 
 	// unexported
-	visible    bool
-	oldIDFocus uint32
+	visible bool
 }
 
 // dialogViewGenerator builds the dialog overlay view from cfg.

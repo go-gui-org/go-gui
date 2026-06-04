@@ -21,13 +21,13 @@ const (
 
 // App manages multiple windows in a single application.
 type App struct {
-	mu       sync.Mutex
 	windows  map[uint32]*Window
-	order    []uint32
-	mainID   uint32
-	ExitMode ExitMode
 	pending  chan WindowCfg
 	trays    map[int]*SystemTrayHandle
+	order    []uint32
+	ExitMode ExitMode
+	mu       sync.Mutex
+	mainID   uint32
 }
 
 // NewApp creates an App with an empty window registry.

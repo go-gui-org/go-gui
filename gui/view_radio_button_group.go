@@ -13,24 +13,25 @@ func NewRadioOption(label, value string) RadioOption {
 
 // RadioButtonGroupCfg configures a radio button group.
 type RadioButtonGroupCfg struct {
-	Value       string
-	Options     []RadioOption
-	OnSelect    func(string, *Window)
-	Sizing      Sizing
-	Spacing     Opt[float32]
-	Padding     Opt[Padding]
-	ColorBorder Color
-	SizeBorder  Opt[float32]
-	Title       string
-	TitleBG     Color
-	MinWidth    float32
-	MinHeight   float32
-	IDFocus     uint32
-	Disabled    bool
-	TextStyle   TextStyle
+	TextStyle TextStyle
+
+	OnSelect func(string, *Window)
+	Value    string
+	Title    string
 
 	A11YLabel       string
 	A11YDescription string
+	Options         []RadioOption
+	Padding         Opt[Padding]
+	Spacing         Opt[float32]
+	SizeBorder      Opt[float32]
+	MinWidth        float32
+	MinHeight       float32
+	IDFocus         uint32
+	ColorBorder     Color
+	TitleBG         Color
+	Sizing          Sizing
+	Disabled        bool
 }
 
 // DefaultRadioGroupStyle holds defaults for RadioButtonGroupCfg Opt fields.

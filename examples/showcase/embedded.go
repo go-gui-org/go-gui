@@ -186,7 +186,13 @@ func themeCfgLoad(path string) (gui.ThemeCfg, error) {
 }
 
 type themeCfgJSON struct {
+	TextStyleDef     textStyleJSON `json:"text_style_def"`
 	Name             string        `json:"name"`
+	SizeBorder       float32       `json:"size_border"`
+	Radius           float32       `json:"radius"`
+	RadiusSmall      float32       `json:"radius_small"`
+	RadiusMedium     float32       `json:"radius_medium"`
+	RadiusLarge      float32       `json:"radius_large"`
 	ColorBackground  colorJSON     `json:"color_background"`
 	ColorPanel       colorJSON     `json:"color_panel"`
 	ColorInterior    colorJSON     `json:"color_interior"`
@@ -197,12 +203,6 @@ type themeCfgJSON struct {
 	ColorBorderFocus colorJSON     `json:"color_border_focus"`
 	ColorSelect      colorJSON     `json:"color_select"`
 	TitlebarDark     bool          `json:"titlebar_dark"`
-	SizeBorder       float32       `json:"size_border"`
-	Radius           float32       `json:"radius"`
-	RadiusSmall      float32       `json:"radius_small"`
-	RadiusMedium     float32       `json:"radius_medium"`
-	RadiusLarge      float32       `json:"radius_large"`
-	TextStyleDef     textStyleJSON `json:"text_style_def"`
 }
 
 type colorJSON struct {
@@ -232,20 +232,20 @@ type gradientConfigJSON struct {
 }
 
 type textStyleJSON struct {
+	AffineTransform *affineTransformJSON `json:"affine_transform,omitempty"`
+	Gradient        *gradientConfigJSON  `json:"gradient,omitempty"`
 	Family          string               `json:"family"`
-	Color           colorJSON            `json:"color"`
-	BgColor         colorJSON            `json:"bg_color"`
 	Size            float32              `json:"size"`
 	LineSpacing     float32              `json:"line_spacing"`
 	LetterSpacing   float32              `json:"letter_spacing"`
+	RotationRadians float32              `json:"rotation_radians"`
+	StrokeWidth     float32              `json:"stroke_width"`
+	Color           colorJSON            `json:"color"`
+	BgColor         colorJSON            `json:"bg_color"`
+	StrokeColor     colorJSON            `json:"stroke_color"`
 	Align           gui.TextAlignment    `json:"align"`
 	Underline       bool                 `json:"underline"`
 	Strikethrough   bool                 `json:"strikethrough"`
-	RotationRadians float32              `json:"rotation_radians"`
-	AffineTransform *affineTransformJSON `json:"affine_transform,omitempty"`
-	Gradient        *gradientConfigJSON  `json:"gradient,omitempty"`
-	StrokeWidth     float32              `json:"stroke_width"`
-	StrokeColor     colorJSON            `json:"stroke_color"`
 }
 
 func themeCfgJSONFromCfg(cfg gui.ThemeCfg) themeCfgJSON {

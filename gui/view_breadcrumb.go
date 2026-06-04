@@ -19,22 +19,18 @@ func NewBreadcrumbItem(id, label string, content []View) BreadcrumbItemCfg {
 // Controlled component: Selected is owned by app state and
 // updated through OnSelect.
 type BreadcrumbCfg struct {
-	ID                 string
-	Items              []BreadcrumbItemCfg
-	Selected           string
+	TextStyle          TextStyle
+	TextStyleSelected  TextStyle
+	TextStyleDisabled  TextStyle
+	TextStyleSeparator TextStyle
 	OnSelect           func(string, *Event, *Window)
+	ID                 string
+	Selected           string
 	Separator          string
-	Sizing             Sizing
-	Color              Color
-	ColorBorder        Color
-	ColorTrail         Color
-	ColorCrumb         Color
-	ColorCrumbHover    Color
-	ColorCrumbClick    Color
-	ColorCrumbSelected Color
-	ColorCrumbDisabled Color
-	ColorContent       Color
-	ColorContentBorder Color
+
+	A11YLabel          string
+	A11YDescription    string
+	Items              []BreadcrumbItemCfg
 	Padding            Opt[Padding]
 	PaddingTrail       Opt[Padding]
 	PaddingCrumb       Opt[Padding]
@@ -46,16 +42,20 @@ type BreadcrumbCfg struct {
 	SpacingTrail       Opt[float32]
 	SizeBorder         Opt[float32]
 	SizeContentBorder  Opt[float32]
-	TextStyle          TextStyle
-	TextStyleSelected  TextStyle
-	TextStyleDisabled  TextStyle
-	TextStyleSeparator TextStyle
 	IDFocus            uint32
+	Color              Color
+	ColorBorder        Color
+	ColorTrail         Color
+	ColorCrumb         Color
+	ColorCrumbHover    Color
+	ColorCrumbClick    Color
+	ColorCrumbSelected Color
+	ColorCrumbDisabled Color
+	ColorContent       Color
+	ColorContentBorder Color
+	Sizing             Sizing
 	Disabled           bool
 	Invisible          bool
-
-	A11YLabel       string
-	A11YDescription string
 }
 
 func applyBreadcrumbDefaults(cfg *BreadcrumbCfg) {

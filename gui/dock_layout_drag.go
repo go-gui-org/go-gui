@@ -28,9 +28,10 @@ const (
 
 // dockDragState tracks an in-progress dock panel drag.
 type dockDragState struct {
-	active       bool
 	panelID      string
 	sourceGroup  string
+	hoverGroupID string
+	panelNodes   []*DockNode // cached at drag activation
 	mouseX       float32
 	mouseY       float32
 	startMouseX  float32
@@ -39,9 +40,8 @@ type dockDragState struct {
 	ghostH       float32
 	parentX      float32
 	parentY      float32
+	active       bool
 	hoverZone    DockDropZone
-	hoverGroupID string
-	panelNodes   []*DockNode // cached at drag activation
 }
 
 // dockDragGet retrieves the current drag state.

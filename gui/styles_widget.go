@@ -8,6 +8,12 @@ import (
 
 // InputStyle defines input field visual properties.
 type InputStyle struct {
+	TextStyleNormal  TextStyle
+	PlaceholderStyle TextStyle
+	Shadow           *BoxShadow
+	Padding          Padding
+	SizeBorder       float32
+	Radius           float32
 	Color            Color
 	ColorHover       Color
 	ColorFocus       Color
@@ -15,12 +21,6 @@ type InputStyle struct {
 	ColorBorder      Color
 	ColorBorderFocus Color
 	ColorSpellError  Color
-	Padding          Padding
-	SizeBorder       float32
-	Radius           float32
-	Shadow           *BoxShadow
-	TextStyleNormal  TextStyle
-	PlaceholderStyle TextStyle
 }
 
 // ScrollbarStyle defines scrollbar visual properties.
@@ -37,7 +37,10 @@ type ScrollbarStyle struct {
 
 // RadioStyle defines radio button visual properties.
 type RadioStyle struct {
+	TextStyleNormal  TextStyle
+	Padding          Padding
 	Size             float32
+	SizeBorder       float32
 	Color            Color
 	ColorHover       Color
 	ColorFocus       Color
@@ -46,9 +49,6 @@ type RadioStyle struct {
 	ColorBorderFocus Color
 	ColorSelect      Color
 	ColorUnselect    Color
-	Padding          Padding
-	SizeBorder       float32
-	TextStyleNormal  TextStyle
 }
 
 // RadioGroupStyle defines radio button group visual properties.
@@ -58,8 +58,13 @@ type RadioGroupStyle struct {
 
 // SwitchStyle defines switch toggle visual properties.
 type SwitchStyle struct {
+	TextStyleNormal  TextStyle
+	Shadow           *BoxShadow
+	Padding          Padding
 	SizeWidth        float32
 	SizeHeight       float32
+	SizeBorder       float32
+	Radius           float32
 	Color            Color
 	ColorClick       Color
 	ColorFocus       Color
@@ -68,15 +73,15 @@ type SwitchStyle struct {
 	ColorBorderFocus Color
 	ColorSelect      Color
 	ColorUnselect    Color
-	Padding          Padding
-	SizeBorder       float32
-	Radius           float32
-	Shadow           *BoxShadow
-	TextStyleNormal  TextStyle
 }
 
 // ToggleStyle defines toggle button visual properties.
 type ToggleStyle struct {
+	TextStyleNormal  TextStyle
+	TextStyleLabel   TextStyle
+	Padding          Padding
+	SizeBorder       float32
+	Radius           float32
 	Color            Color
 	ColorBorder      Color
 	ColorBorderFocus Color
@@ -84,17 +89,18 @@ type ToggleStyle struct {
 	ColorFocus       Color
 	ColorHover       Color
 	ColorSelect      Color
-	Padding          Padding
-	SizeBorder       float32
-	Radius           float32
-	TextStyleNormal  TextStyle
-	TextStyleLabel   TextStyle
 }
 
 // SelectStyle defines select dropdown visual properties.
 type SelectStyle struct {
+	TextStyleNormal  TextStyle
+	SubheadingStyle  TextStyle
+	PlaceholderStyle TextStyle
+	Padding          Padding
 	MinWidth         float32
 	MaxWidth         float32
+	SizeBorder       float32
+	Radius           float32
 	Color            Color
 	ColorHover       Color
 	ColorFocus       Color
@@ -102,58 +108,52 @@ type SelectStyle struct {
 	ColorBorder      Color
 	ColorBorderFocus Color
 	ColorSelect      Color
-	Padding          Padding
-	SizeBorder       float32
-	Radius           float32
-	TextStyleNormal  TextStyle
-	SubheadingStyle  TextStyle
-	PlaceholderStyle TextStyle
 }
 
 // ListBoxStyle defines list box visual properties.
 type ListBoxStyle struct {
+	TextStyleNormal TextStyle
+	SubheadingStyle TextStyle
+	Padding         Padding
+	SizeBorder      float32
+	Radius          float32
 	Color           Color
 	ColorHover      Color
 	ColorBorder     Color
 	ColorSelect     Color
-	Padding         Padding
-	SizeBorder      float32
-	Radius          float32
-	TextStyleNormal TextStyle
-	SubheadingStyle TextStyle
 }
 
 // TreeStyle defines tree view visual properties.
 type TreeStyle struct {
+	TextStyle     TextStyle
+	TextStyleIcon TextStyle
+	Padding       Padding
+	SizeBorder    float32
+	Radius        float32
+	Indent        float32
+	Spacing       float32
 	Color         Color
 	ColorHover    Color
 	ColorFocus    Color
 	ColorBorder   Color
-	Padding       Padding
-	SizeBorder    float32
-	Radius        float32
-	TextStyle     TextStyle
-	TextStyleIcon TextStyle
-	Indent        float32
-	Spacing       float32
 }
 
 // DialogStyle defines dialog visual properties.
 type DialogStyle struct {
-	Color            Color
-	ColorBorder      Color
-	ColorBorderFocus Color // Reserved for future focus-ring styling.
+	TitleTextStyle   TextStyle
+	TextStyle        TextStyle
+	Shadow           *BoxShadow
 	Padding          Padding
 	SizeBorder       float32
 	Radius           float32
 	RadiusBorder     float32 // Reserved.
 	BlurRadius       float32
-	Shadow           *BoxShadow
-	AlignButtons     HorizontalAlign
 	MinWidth         float32
 	MaxWidth         float32
-	TitleTextStyle   TextStyle
-	TextStyle        TextStyle
+	Color            Color
+	ColorBorder      Color
+	ColorBorderFocus Color // Reserved for future focus-ring styling.
+	AlignButtons     HorizontalAlign
 }
 
 // ToastAnchor specifies toast notification position.
@@ -169,13 +169,15 @@ const (
 
 // ToastStyle defines toast notification visual properties.
 type ToastStyle struct {
+	TextStyle    TextStyle
+	TitleStyle   TextStyle
+	Shadow       *BoxShadow
 	MaxVisible   int
-	Anchor       ToastAnchor
+	Padding      Padding
 	Width        float32
 	Margin       float32
 	Spacing      float32
 	AccentWidth  float32
-	Padding      Padding
 	Radius       float32
 	SizeBorder   float32
 	Color        Color
@@ -184,33 +186,31 @@ type ToastStyle struct {
 	ColorSuccess Color
 	ColorWarning Color
 	ColorError   Color
-	TextStyle    TextStyle
-	TitleStyle   TextStyle
-	Shadow       *BoxShadow
+	Anchor       ToastAnchor
 }
 
 // TooltipStyle defines tooltip visual properties.
 type TooltipStyle struct {
+	TextStyle   TextStyle
+	Shadow      *BoxShadow
 	Delay       time.Duration
-	Color       Color
-	ColorBorder Color
 	Padding     Padding
 	SizeBorder  float32
 	Radius      float32
-	Shadow      *BoxShadow
-	TextStyle   TextStyle
+	Color       Color
+	ColorBorder Color
 }
 
 // BadgeStyle defines badge visual properties.
 type BadgeStyle struct {
+	TextStyle    TextStyle
+	Padding      Padding
+	DotSize      float32
 	Color        Color
 	ColorInfo    Color
 	ColorSuccess Color
 	ColorWarning Color
 	ColorError   Color
-	Padding      Padding
-	TextStyle    TextStyle
-	DotSize      float32
 }
 
 // ExpandPanelStyle defines expand panel visual properties.
@@ -227,17 +227,17 @@ type ExpandPanelStyle struct {
 
 // ProgressBarStyle defines progress bar visual properties.
 type ProgressBarStyle struct {
+	TextStyle      TextStyle
+	Padding        Padding
+	TextPadding    Padding
 	Size           float32
+	SizeBorder     float32
+	Radius         float32
 	Color          Color
 	ColorBar       Color
 	ColorBorder    Color
 	TextBackground Color
-	Padding        Padding
-	TextPadding    Padding
-	SizeBorder     float32
-	Radius         float32
 	TextShow       bool
-	TextStyle      TextStyle
 }
 
 // SliderStyle defines slider visual properties.
@@ -259,20 +259,9 @@ type SliderStyle struct {
 
 // TabControlStyle defines tab control visual properties.
 type TabControlStyle struct {
-	Color               Color
-	ColorBorder         Color
-	ColorHeader         Color
-	ColorHeaderBorder   Color
-	ColorContent        Color
-	ColorContentBorder  Color
-	ColorTab            Color
-	ColorTabHover       Color
-	ColorTabFocus       Color
-	ColorTabClick       Color
-	ColorTabSelected    Color
-	ColorTabDisabled    Color
-	ColorTabBorder      Color
-	ColorTabBorderFocus Color
+	TextStyle           TextStyle
+	TextStyleSelected   TextStyle
+	TextStyleDisabled   TextStyle
 	Padding             Padding
 	PaddingHeader       Padding
 	PaddingContent      Padding
@@ -287,24 +276,29 @@ type TabControlStyle struct {
 	RadiusTab           float32
 	Spacing             float32
 	SpacingHeader       float32
-	TextStyle           TextStyle
-	TextStyleSelected   TextStyle
-	TextStyleDisabled   TextStyle
+	Color               Color
+	ColorBorder         Color
+	ColorHeader         Color
+	ColorHeaderBorder   Color
+	ColorContent        Color
+	ColorContentBorder  Color
+	ColorTab            Color
+	ColorTabHover       Color
+	ColorTabFocus       Color
+	ColorTabClick       Color
+	ColorTabSelected    Color
+	ColorTabDisabled    Color
+	ColorTabBorder      Color
+	ColorTabBorderFocus Color
 }
 
 // BreadcrumbStyle defines breadcrumb visual properties.
 type BreadcrumbStyle struct {
+	TextStyle          TextStyle
+	TextStyleSelected  TextStyle
+	TextStyleDisabled  TextStyle
+	TextStyleSeparator TextStyle
 	Separator          string
-	Color              Color
-	ColorBorder        Color
-	ColorTrail         Color
-	ColorCrumb         Color
-	ColorCrumbHover    Color
-	ColorCrumbClick    Color
-	ColorCrumbSelected Color
-	ColorCrumbDisabled Color
-	ColorContent       Color
-	ColorContentBorder Color
 	Padding            Padding
 	PaddingTrail       Padding
 	PaddingCrumb       Padding
@@ -316,10 +310,16 @@ type BreadcrumbStyle struct {
 	SpacingTrail       float32
 	SizeBorder         float32
 	SizeContentBorder  float32
-	TextStyle          TextStyle
-	TextStyleSelected  TextStyle
-	TextStyleDisabled  TextStyle
-	TextStyleSeparator TextStyle
+	Color              Color
+	ColorBorder        Color
+	ColorTrail         Color
+	ColorCrumb         Color
+	ColorCrumbHover    Color
+	ColorCrumbClick    Color
+	ColorCrumbSelected Color
+	ColorCrumbDisabled Color
+	ColorContent       Color
+	ColorContentBorder Color
 }
 
 // SplitterStyle defines splitter visual properties.
@@ -343,64 +343,60 @@ type SplitterStyle struct {
 
 // TableStyle defines table visual properties.
 type TableStyle struct {
-	ColorBorder        Color
-	ColorSelect        Color
-	ColorHover         Color
-	CellPadding        Padding
 	TextStyle          TextStyle
 	TextStyleHead      TextStyle
-	AlignHead          HorizontalAlign
+	CellPadding        Padding
 	ColumnWidthDefault float32
 	ColumnWidthMin     float32
 	SizeBorder         float32
+	ColorBorder        Color
+	ColorSelect        Color
+	ColorHover         Color
+	AlignHead          HorizontalAlign
 }
 
 // ComboboxStyle defines combobox visual properties.
 type ComboboxStyle struct {
-	Color             Color
-	ColorHover        Color
-	ColorFocus        Color
-	ColorBorder       Color
-	ColorBorderFocus  Color
-	ColorHighlight    Color
+	TextStyle         TextStyle
+	PlaceholderStyle  TextStyle
 	Padding           Padding
 	SizeBorder        float32
 	Radius            float32
 	MinWidth          float32
 	MaxWidth          float32
 	MaxDropdownHeight float32
-	TextStyle         TextStyle
-	PlaceholderStyle  TextStyle
-}
-
-// CommandPaletteStyle defines command palette visual properties.
-type CommandPaletteStyle struct {
-	Color          Color
-	ColorBorder    Color
-	ColorHighlight Color
-	SizeBorder     float32
-	Radius         float32
-	Width          float32
-	MaxHeight      float32
-	TextStyle      TextStyle
-	DetailStyle    TextStyle
-	BackdropColor  Color
-}
-
-// MenubarStyle defines menubar visual properties.
-type MenubarStyle struct {
-	WidthSubmenuMin   float32
-	WidthSubmenuMax   float32
 	Color             Color
 	ColorHover        Color
 	ColorFocus        Color
 	ColorBorder       Color
 	ColorBorderFocus  Color
-	ColorSelect       Color
+	ColorHighlight    Color
+}
+
+// CommandPaletteStyle defines command palette visual properties.
+type CommandPaletteStyle struct {
+	TextStyle      TextStyle
+	DetailStyle    TextStyle
+	SizeBorder     float32
+	Radius         float32
+	Width          float32
+	MaxHeight      float32
+	Color          Color
+	ColorBorder    Color
+	ColorHighlight Color
+	BackdropColor  Color
+}
+
+// MenubarStyle defines menubar visual properties.
+type MenubarStyle struct {
+	TextStyle         TextStyle
+	TextStyleSubtitle TextStyle
 	Padding           Padding
 	PaddingMenuItem   Padding
 	PaddingSubmenu    Padding
 	PaddingSubtitle   Padding
+	WidthSubmenuMin   float32
+	WidthSubmenuMax   float32
 	SizeBorder        float32
 	Radius            float32
 	RadiusBorder      float32
@@ -408,17 +404,23 @@ type MenubarStyle struct {
 	RadiusMenuItem    float32
 	Spacing           float32
 	SpacingSubmenu    float32
-	TextStyle         TextStyle
-	TextStyleSubtitle TextStyle
+	Color             Color
+	ColorHover        Color
+	ColorFocus        Color
+	ColorBorder       Color
+	ColorBorderFocus  Color
+	ColorSelect       Color
 }
 
 // DatePickerStyle defines date picker visual properties.
 type DatePickerStyle struct {
-	HideTodayIndicator   bool
-	MondayFirstDayOfWeek bool
-	ShowAdjacentMonths   bool
+	TextStyle            TextStyle
+	Shadow               *BoxShadow
+	Padding              Padding
 	CellSpacing          float32
-	WeekdaysLen          DatePickerWeekdayLen
+	SizeBorder           float32
+	Radius               float32
+	RadiusBorder         float32
 	Color                Color
 	ColorHover           Color
 	ColorFocus           Color
@@ -426,25 +428,23 @@ type DatePickerStyle struct {
 	ColorBorder          Color
 	ColorBorderFocus     Color
 	ColorSelect          Color
-	Padding              Padding
-	SizeBorder           float32
-	Radius               float32
-	RadiusBorder         float32
-	Shadow               *BoxShadow
-	TextStyle            TextStyle
+	HideTodayIndicator   bool
+	MondayFirstDayOfWeek bool
+	ShowAdjacentMonths   bool
+	WeekdaysLen          DatePickerWeekdayLen
 }
 
 // ColorPickerStyle defines color picker visual properties.
 type ColorPickerStyle struct {
-	Color            Color
-	ColorBorder      Color
-	ColorBorderFocus Color
+	TextStyle        TextStyle
 	SizeBorder       float32
 	Radius           float32
 	SVSize           float32
 	SliderHeight     float32
 	IndicatorSize    float32
-	TextStyle        TextStyle
+	Color            Color
+	ColorBorder      Color
+	ColorBorderFocus Color
 }
 
 // SkeletonStyle defines skeleton loader visual properties.

@@ -22,32 +22,32 @@ import (
 
 // Backend is the SDL2 backend for go-gui.
 type Backend struct {
+	cursors            [11]*sdl.Cursor
+	texCache           texcache.Cache[string, *sdl.Texture]
+	imagePathCache     texcache.Cache[string, string]
 	window             *sdl.Window
 	renderer           *sdl.Renderer
 	textSys            *glyph.TextSystem
-	dpiScale           float32
-	cursors            [11]*sdl.Cursor
 	filterTex          *sdl.Texture // temporary render target for filter groups
 	filterPrevTarget   *sdl.Texture
 	filterPool         *sdl.Texture // reusable filter render target
-	filterPoolW        int32
-	filterPoolH        int32
-	filterBlur         float32      // blur radius in pixels
-	filterLayers       int          // number of blur layers
 	filterColorMatrix  *[16]float32 // color transform matrix
+	iconFontPath       string
 	filterPixels       []uint32     // reusable pixel buffer for color matrix
 	svgVerts           []sdl.Vertex // reusable vertex buffer for SVG geometry
 	textPathPlacements []glyph.GlyphPlacement
-	texCache           texcache.Cache[string, *sdl.Texture]
-	iconFontPath       string
 	allowedImageRoots  []string
-	imagePathCache     texcache.Cache[string, string]
 	roundedClipStack   []roundedClipState
-	maxImageBytes      int64
-	maxImagePixels     int64
 	normBuf            []gui.GradientStop // reusable buffer for gradient normalization
 	sampledBuf         []gui.GradientStop // reusable buffer for downsampled stops
 	appIconPNG         []byte             // deferred dock/taskbar icon
+	filterLayers       int                // number of blur layers
+	maxImageBytes      int64
+	maxImagePixels     int64
+	dpiScale           float32
+	filterPoolW        int32
+	filterPoolH        int32
+	filterBlur         float32 // blur radius in pixels
 }
 
 // New creates an SDL2 backend and initializes the window.

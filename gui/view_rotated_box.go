@@ -2,8 +2,8 @@ package gui
 
 // RotatedBoxCfg configures a RotatedBox view.
 type RotatedBoxCfg struct {
-	QuarterTurns int  // 1=90° CW, 2=180°, 3=270° CW
 	Content      View // single child
+	QuarterTurns int  // 1=90° CW, 2=180°, 3=270° CW
 }
 
 // RotatedBox rotates its child content by quarter turns.
@@ -23,8 +23,8 @@ func RotatedBox(cfg RotatedBoxCfg) View {
 }
 
 type rotatedBoxView struct {
-	turns   uint8
 	content View
+	turns   uint8
 }
 
 func (v *rotatedBoxView) Content() []View {

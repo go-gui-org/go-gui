@@ -10,12 +10,13 @@ import (
 )
 
 type App struct {
+	WeekdaysLen string
+
 	Dates              []time.Time
 	HideTodayIndicator bool
 	MondayFirst        bool
 	ShowAdjacentMonths bool
 	SelectMultiple     bool
-	WeekdaysLen        string
 
 	AllowMonday    bool
 	AllowTuesday   bool

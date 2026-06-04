@@ -2,22 +2,6 @@ package gui
 
 // DrawCanvasCfg configures a draw canvas view.
 type DrawCanvasCfg struct {
-	ID              string
-	A11YLabel       string
-	A11YDescription string
-	Version         uint64
-	Sizing          Sizing
-	Width           float32
-	Height          float32
-	MinWidth        float32
-	MaxWidth        float32
-	MinHeight       float32
-	MaxHeight       float32
-	Padding         Opt[Padding]
-	Clip            bool
-	Color           Color
-	Radius          float32
-	IDFocus         uint32
 	OnDraw          func(*DrawContext)
 	OnClick         func(*Layout, *Event, *Window)
 	OnHover         func(*Layout, *Event, *Window)
@@ -28,6 +12,22 @@ type DrawCanvasCfg struct {
 	OnMouseScroll   func(*Layout, *Event, *Window)
 	OnFileDrop      func(*Layout, *Event, *Window)
 	OnKeyDown       func(*Layout, *Event, *Window)
+	ID              string
+	A11YLabel       string
+	A11YDescription string
+	Version         uint64
+	Padding         Opt[Padding]
+	Width           float32
+	Height          float32
+	MinWidth        float32
+	MaxWidth        float32
+	MinHeight       float32
+	MaxHeight       float32
+	Radius          float32
+	IDFocus         uint32
+	Color           Color
+	Sizing          Sizing
+	Clip            bool
 }
 
 // drawCanvasView implements View for user-drawn canvas content.

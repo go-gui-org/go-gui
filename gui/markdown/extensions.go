@@ -17,8 +17,8 @@ import (
 var NodeKindMathInline = ast.NewNodeKind("MathInline")
 
 type nodeMathInline struct {
-	ast.BaseInline
 	Latex string
+	ast.BaseInline
 }
 
 func (*nodeMathInline) Kind() ast.NodeKind { return NodeKindMathInline }
@@ -30,8 +30,8 @@ func (n *nodeMathInline) Dump(src []byte, level int) {
 var NodeKindMathDisplay = ast.NewNodeKind("MathDisplay")
 
 type nodeMathDisplay struct {
-	ast.BaseInline
 	Latex string
+	ast.BaseInline
 }
 
 func (*nodeMathDisplay) Kind() ast.NodeKind { return NodeKindMathDisplay }

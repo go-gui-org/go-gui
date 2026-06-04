@@ -163,10 +163,10 @@ func safeRestoreAny(dst cloneableMap, src any, ns string) {
 // via an internal RWMutex — independent of any Window mutex to
 // avoid cross-window lock cycles during debug-window reads.
 type snapshotRing struct {
-	mu         sync.RWMutex
 	entries    []snapshotEntry
 	totalBytes int
 	maxBytes   int
+	mu         sync.RWMutex
 }
 
 // newSnapshotRing returns a ring with the given byte cap. A

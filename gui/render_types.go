@@ -42,62 +42,7 @@ const (
 // Stored in a pre-allocated slice reused via renderers[:0] each
 // frame to minimize heap allocations.
 type RenderCmd struct {
-	Kind RenderKind
-
-	// Position/size — used by most kinds.
-	X, Y float32
-	W, H float32
-
-	// Visual properties.
-	Color  Color
-	Radius float32
-
-	// Type-specific numerics.
-	Thickness    float32 // StrokeRect, GradientBorder
-	BlurRadius   float32 // Shadow, Blur
-	Scale        float32 // Svg, FilterBegin
-	OffsetX      float32 // Shadow; Line X1
-	OffsetY      float32 // Shadow; Line Y1
-	ClipRadius   float32 // Image
-	StencilDepth uint8   // StencilBegin/End
-
-	// Flags.
-	Fill        bool         // Rect fill, Circle fill
-	IsClipMask  bool         // Svg stencil mask
-	ClipGroup   int          // Svg clip group id
-	Layers      int          // FilterComposite
-	GroupIdx    int          // FilterBegin
 	ColorMatrix *[16]float32 // FilterBegin: color transform
-
-	// String data.
-	Text       string  // Text
-	FontName   string  // Text font family
-	FontSize   float32 // Text font size (points)
-	FontAscent float32 // Text font ascent (pixels)
-	TextWidth  float32 // Text source width (pixels)
-	Resource   string  // Image file path
-
-	// SVG animation rotation (degrees, center in SVG space).
-	RotAngle float32
-	RotCX    float32
-	RotCY    float32
-
-	// SVG animateTransform translate + scale. Applied to each
-	// vertex as v' = (vx*ScaleX + TransX, vy*ScaleY + TransY)
-	// before rotation. Only honored when HasXform is true.
-	TransX   float32
-	TransY   float32
-	ScaleX   float32
-	ScaleY   float32
-	HasXform bool
-
-	// Slice data (Svg).
-	Triangles    []float32
-	VertexColors []Color
-	// Optional multiplier for SVG vertex alpha (0..1) to avoid
-	// per-frame vertex color copies when animating opacity.
-	VertexAlphaScale float32
-	HasVertexAlpha   bool
 
 	// Pointer fields.
 	Shader          *Shader
@@ -107,6 +52,64 @@ type RenderCmd struct {
 	TextPath        *TextPathData         // SVG textPath placement data
 	LayoutPtr       *glyph.Layout         // pre-shaped glyph layout
 	LayoutTransform *glyph.AffineTransform
+
+	// String data.
+	Text     string // Text
+	FontName string // Text font family
+	Resource string // Image file path
+
+	// Slice data (Svg).
+	Triangles    []float32
+	VertexColors []Color
+	ClipGroup    int // Svg clip group id
+	Layers       int // FilterComposite
+	GroupIdx     int // FilterBegin
+
+	// Position/size — used by most kinds.
+	X, Y float32
+	W, H float32
+
+	Radius float32
+
+	// Type-specific numerics.
+	Thickness  float32 // StrokeRect, GradientBorder
+	BlurRadius float32 // Shadow, Blur
+	Scale      float32 // Svg, FilterBegin
+	OffsetX    float32 // Shadow; Line X1
+	OffsetY    float32 // Shadow; Line Y1
+	ClipRadius float32 // Image
+	FontSize   float32 // Text font size (points)
+	FontAscent float32 // Text font ascent (pixels)
+	TextWidth  float32 // Text source width (pixels)
+
+	// SVG animation rotation (degrees, center in SVG space).
+	RotAngle float32
+	RotCX    float32
+	RotCY    float32
+
+	// SVG animateTransform translate + scale. Applied to each
+	// vertex as v' = (vx*ScaleX + TransX, vy*ScaleY + TransY)
+	// before rotation. Only honored when HasXform is true.
+	TransX float32
+	TransY float32
+	ScaleX float32
+	ScaleY float32
+	// Optional multiplier for SVG vertex alpha (0..1) to avoid
+	// per-frame vertex color copies when animating opacity.
+	VertexAlphaScale float32
+
+	// Visual properties.
+	Color Color
+	Kind  RenderKind
+
+	StencilDepth uint8 // StencilBegin/End
+
+	// Flags.
+	Fill       bool // Rect fill, Circle fill
+	IsClipMask bool // Svg stencil mask
+	HasXform   bool
+
+	HasVertexAlpha bool
 }
 
 // TextPathData holds pre-computed path data for RenderTextPath.

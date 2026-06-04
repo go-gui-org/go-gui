@@ -13,8 +13,8 @@ type FormModel struct {
 	Username      string
 	Email         string
 	AgeText       string
-	AgeValue      gui.Opt[float64]
 	SubmitMessage string
+	AgeValue      gui.Opt[float64]
 }
 
 const showcaseFormID = "showcase-form"

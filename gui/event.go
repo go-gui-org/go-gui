@@ -302,10 +302,16 @@ type TouchPoint struct {
 
 // Event holds input event data.
 type Event struct {
-	Touches           [8]TouchPoint
 	IMEText           string
 	FilePath          string
+	Touches           [8]TouchPoint
 	FrameCount        uint64
+	NumTouches        int
+	WindowWidth       int
+	WindowHeight      int
+	FramebufferWidth  int
+	FramebufferHeight int
+	GestureTouches    int // touch count for this gesture
 	WindowID          uint32
 	MouseX            float32
 	MouseY            float32
@@ -317,16 +323,6 @@ type Event struct {
 	CharCode          uint32
 	IMEStart          int32
 	IMELength         int32
-	NumTouches        int
-	WindowWidth       int
-	WindowHeight      int
-	FramebufferWidth  int
-	FramebufferHeight int
-	Type              EventType
-	KeyCode           KeyCode
-	MouseButton       MouseButton
-	GestureType       GestureType
-	GesturePhase      GesturePhase
 	GestureDX         float32 // pan/swipe delta from previous
 	GestureDY         float32
 	VelocityX         float32 // px/s at gesture end
@@ -335,7 +331,11 @@ type Event struct {
 	GestureRotation   float32 // cumulative radians
 	CentroidX         float32 // center of active touches
 	CentroidY         float32
-	GestureTouches    int // touch count for this gesture
+	KeyCode           KeyCode
+	MouseButton       MouseButton
+	Type              EventType
+	GestureType       GestureType
+	GesturePhase      GesturePhase
 	KeyRepeat         bool
 	IsHandled         bool
 }

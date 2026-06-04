@@ -61,14 +61,14 @@ func (r *RollingAvg) Reset() {
 }
 
 type App struct {
-	WidgetCount int
+	LastFrame   time.Time
 	WidgetType  string
-	Running     bool
 	FPS         RollingAvg
 	ViewAvg     RollingAvg
 	LayoutAvg   RollingAvg
 	RenderAvg   RollingAvg
-	LastFrame   time.Time
+	WidgetCount int
+	Running     bool
 }
 
 func (a *App) ResetAvgs() {

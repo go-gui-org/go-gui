@@ -66,8 +66,8 @@ func (layout *Layout) FindByID(id string) (*Layout, bool) {
 }
 
 type focusCandidate struct {
-	id    uint32
 	shape *Shape
+	id    uint32
 }
 
 func collectFocusCandidates(layout *Layout, candidates *[]focusCandidate, seen map[uint32]struct{}) {

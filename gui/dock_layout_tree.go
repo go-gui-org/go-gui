@@ -82,16 +82,16 @@ func (k *DockNodeKind) UnmarshalText(text []byte) error {
 // DockNode is a single node in the dock layout tree: either a
 // split (with two children) or a leaf panel group.
 type DockNode struct {
-	Kind DockNodeKind `json:"kind"`
-	ID   string       `json:"id"`
-	// Split fields (used when Kind == DockNodeSplit).
-	Dir    DockSplitDir `json:"dir"`
-	Ratio  float32      `json:"ratio"`
-	First  *DockNode    `json:"first,omitempty"`
-	Second *DockNode    `json:"second,omitempty"`
+	First      *DockNode `json:"first,omitempty"`
+	Second     *DockNode `json:"second,omitempty"`
+	ID         string    `json:"id"`
+	SelectedID string    `json:"selectedID,omitempty"`
 	// Panel group fields (used when Kind == DockNodePanelGroup).
-	PanelIDs   []string `json:"panelIDs,omitempty"`
-	SelectedID string   `json:"selectedID,omitempty"`
+	PanelIDs []string     `json:"panelIDs,omitempty"`
+	Ratio    float32      `json:"ratio"`
+	Kind     DockNodeKind `json:"kind"`
+	// Split fields (used when Kind == DockNodeSplit).
+	Dir DockSplitDir `json:"dir"`
 }
 
 // DockSplit creates a split node.

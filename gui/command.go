@@ -144,14 +144,14 @@ func keyName(k KeyCode) string {
 // Command bundles an action with its identity, shortcut,
 // and enable/disable logic.
 type Command struct {
+	Execute    func(*Event, *Window)
+	CanExecute func(*Window) bool // nil = always enabled
 	ID         string
 	Label      string
 	Icon       string
 	Group      string
 	Shortcut   Shortcut
-	Execute    func(*Event, *Window)
-	CanExecute func(*Window) bool // nil = always enabled
-	Global     bool               // fires before focus dispatch
+	Global     bool // fires before focus dispatch
 }
 
 // RegisterCommand adds a command to the window registry.

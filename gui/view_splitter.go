@@ -111,11 +111,11 @@ func SplitterStateNormalize(state SplitterState) SplitterState {
 
 // SplitterPaneCfg configures one pane of a splitter.
 type SplitterPaneCfg struct {
+	Content       []View
 	MinSize       float32
 	MaxSize       float32
-	Collapsible   bool
 	CollapsedSize float32
-	Content       []View
+	Collapsible   bool
 }
 
 // splitterPaneCore holds pane fields needed by callbacks
@@ -129,19 +129,21 @@ type splitterPaneCore struct {
 
 // SplitterCfg configures a splitter component.
 type SplitterCfg struct {
-	ID                  string
-	IDFocus             uint32
-	Orientation         SplitterOrientation
-	Sizing              Sizing
-	Ratio               Opt[float32]
-	Collapsed           SplitterCollapsed
-	OnChange            func(float32, SplitterCollapsed, *Event, *Window)
+	OnChange func(float32, SplitterCollapsed, *Event, *Window)
+	ID       string
+
+	A11YLabel           string
+	A11YDescription     string
 	First               SplitterPaneCfg
 	Second              SplitterPaneCfg
+	Ratio               Opt[float32]
 	HandleSize          Opt[float32]
 	DragStep            Opt[float32]
 	DragStepLarge       Opt[float32]
-	ShowCollapseButtons bool
+	SizeBorder          Opt[float32]
+	Radius              Opt[float32]
+	RadiusBorder        Opt[float32]
+	IDFocus             uint32
 	ColorHandle         Color
 	ColorHandleHover    Color
 	ColorHandleActive   Color
@@ -151,29 +153,27 @@ type SplitterCfg struct {
 	ColorButtonHover    Color
 	ColorButtonActive   Color
 	ColorButtonIcon     Color
-	SizeBorder          Opt[float32]
-	Radius              Opt[float32]
-	RadiusBorder        Opt[float32]
+	Sizing              Sizing
+	Orientation         SplitterOrientation
+	Collapsed           SplitterCollapsed
+	ShowCollapseButtons bool
 	Disabled            bool
 	Invisible           bool
-
-	A11YLabel       string
-	A11YDescription string
 }
 
 // splitterCore holds callback-relevant fields.
 type splitterCore struct {
-	id            string
-	idFocus       uint32
-	orientation   SplitterOrientation
-	ratio         float32
-	collapsed     SplitterCollapsed
 	onChange      func(float32, SplitterCollapsed, *Event, *Window)
+	id            string
 	first         splitterPaneCore
 	second        splitterPaneCore
+	idFocus       uint32
+	ratio         float32
 	handleSize    float32
 	dragStep      float32
 	dragStepLarge float32
+	orientation   SplitterOrientation
+	collapsed     SplitterCollapsed
 	disabled      bool
 }
 

@@ -4,11 +4,20 @@ const treeLoadingSuffix = ".__loading__"
 
 // TreeCfg configures a tree view.
 type TreeCfg struct {
-	ID string `gui:"required"`
-
-	Nodes      []TreeNodeCfg
 	OnSelect   func(string, *Event, *Window)
 	OnLazyLoad func(string, string, *Window)
+
+	OnReorder func(movedID, beforeID string, w *Window)
+
+	ID string `gui:"required"`
+
+	A11YLabel       string
+	A11YDescription string
+
+	Nodes      []TreeNodeCfg
+	Padding    Opt[Padding]
+	SizeBorder Opt[float32]
+	Radius     Opt[float32]
 
 	Indent  float32
 	Spacing float32
@@ -16,7 +25,6 @@ type TreeCfg struct {
 	IDFocus  uint32
 	IDScroll uint32
 
-	Sizing    Sizing
 	Width     float32
 	Height    float32
 	MinWidth  float32
@@ -28,28 +36,23 @@ type TreeCfg struct {
 	ColorHover  Color
 	ColorFocus  Color
 	ColorBorder Color
-	Padding     Opt[Padding]
-	SizeBorder  Opt[float32]
-	Radius      Opt[float32]
+
+	Sizing Sizing
 
 	Disabled    bool
 	Invisible   bool
 	Reorderable bool
-	OnReorder   func(movedID, beforeID string, w *Window)
-
-	A11YLabel       string
-	A11YDescription string
 }
 
 // TreeNodeCfg configures a single tree node.
 type TreeNodeCfg struct {
+	TextStyle     TextStyle
+	TextStyleIcon TextStyle
 	ID            string
 	Text          string
 	Icon          string
-	Lazy          bool
 	Nodes         []TreeNodeCfg
-	TextStyle     TextStyle
-	TextStyleIcon TextStyle
+	Lazy          bool
 }
 
 type treeView struct {
@@ -57,13 +60,13 @@ type treeView struct {
 }
 
 type treeFlatRow struct {
-	ID              string
-	ParentID        string
-	Depth           int
-	Text            string
-	Icon            string
 	TextStyle       TextStyle
 	TextStyleIcon   TextStyle
+	ID              string
+	ParentID        string
+	Text            string
+	Icon            string
+	Depth           int
 	HasChildren     bool
 	HasRealChildren bool
 	IsLazy          bool

@@ -25,11 +25,11 @@ type mdSelState struct {
 // Layout is a shallow copy (not a pointer) so the block list can be used safely
 // in drag callbacks that outlive the current frame's shape tree.
 type mdBlockInfo struct {
+	FlatText  string
+	Layout    glyph.Layout
 	H         float32
 	StartRune uint32
 	RuneLen   uint32
-	Layout    glyph.Layout
-	FlatText  string
 	ShapeX    float32
 	ShapeY    float32
 }

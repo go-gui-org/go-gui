@@ -143,9 +143,10 @@ func passwordMask(text string) string {
 // Replaces ~10 closure-captured locals with explicit fields;
 // runes is non-nil iff the drag started from a double-click.
 type inputDragState struct {
-	anchorPos, anchorEnd   uint32
-	gl                     glyph.Layout
 	displayText            string
+	runes                  []rune // non-nil = double-click word select
+	gl                     glyph.Layout
+	anchorPos, anchorEnd   uint32
 	txtOffX, txtOffY       float32
 	idFocus                uint32
 	idScroll               uint32
@@ -153,7 +154,6 @@ type inputDragState struct {
 	scrollY0               float32
 	viewTop, viewBot       float32
 	maxScrollNeg           float32
-	runes                  []rune // non-nil = double-click word select
 }
 
 func (d *inputDragState) computeRunePos(

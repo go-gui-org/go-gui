@@ -17,50 +17,24 @@ var (
 // Go views are populated (Button, Container, Rectangle, Text,
 // Input, Scrollbar, Radio, Switch, Toggle, Select, ListBox, Tree).
 type Theme struct {
-	Cfg             ThemeCfg
-	Name            string
-	ColorBackground Color
-	ColorPanel      Color
-	ColorInterior   Color
-	ColorHover      Color
-	ColorFocus      Color
-	ColorActive     Color
-	ColorBorder     Color
-	ColorSelect     Color
-	TitlebarDark    bool
-
-	// Per-widget styles.
-	ButtonStyle         ButtonStyle
-	ContainerStyle      ContainerStyle
-	RectangleStyle      RectangleStyle
-	TextStyleDef        TextStyle
-	InputStyle          InputStyle
-	ScrollbarStyle      ScrollbarStyle
-	RadioStyle          RadioStyle
-	SwitchStyle         SwitchStyle
-	ToggleStyle         ToggleStyle
-	SelectStyle         SelectStyle
-	ListBoxStyle        ListBoxStyle
-	TreeStyle           TreeStyle
-	DialogStyle         DialogStyle
-	ToastStyle          ToastStyle
-	TooltipStyle        TooltipStyle
-	BadgeStyle          BadgeStyle
-	ExpandPanelStyle    ExpandPanelStyle
-	ProgressBarStyle    ProgressBarStyle
-	SkeletonStyle       SkeletonStyle
-	SliderStyle         SliderStyle
-	TabControlStyle     TabControlStyle
-	BreadcrumbStyle     BreadcrumbStyle
-	SplitterStyle       SplitterStyle
-	TableStyle          TableStyle
-	ComboboxStyle       ComboboxStyle
-	CommandPaletteStyle CommandPaletteStyle
-	MenubarStyle        MenubarStyle
-	DatePickerStyle     DatePickerStyle
-	ColorPickerStyle    ColorPickerStyle
-	DataGridStyle       DataGridStyle
-	InspectorStyle      InspectorStyle
+	BreadcrumbStyle  BreadcrumbStyle
+	TabControlStyle  TabControlStyle
+	DataGridStyle    DataGridStyle
+	SelectStyle      SelectStyle
+	MenubarStyle     MenubarStyle
+	ToastStyle       ToastStyle
+	InputStyle       InputStyle
+	DialogStyle      DialogStyle
+	ComboboxStyle    ComboboxStyle
+	ToggleStyle      ToggleStyle
+	ListBoxStyle     ListBoxStyle
+	SwitchStyle      SwitchStyle
+	DatePickerStyle  DatePickerStyle
+	ProgressBarStyle ProgressBarStyle
+	RadioStyle       RadioStyle
+	TooltipStyle     TooltipStyle
+	ColorPickerStyle ColorPickerStyle
+	TextStyleDef     TextStyle
 
 	// Text size shortcuts (N = normal, B = bold,
 	// I = italic, M = mono, BI = bold+italic).
@@ -101,6 +75,22 @@ type Theme struct {
 	Icon5 TextStyle
 	Icon6 TextStyle
 
+	// Per-widget styles.
+	ButtonStyle         ButtonStyle
+	ContainerStyle      ContainerStyle
+	RectangleStyle      RectangleStyle
+	TreeStyle           TreeStyle
+	CommandPaletteStyle CommandPaletteStyle
+	BadgeStyle          BadgeStyle
+	Name                string
+	TableStyle          TableStyle
+	Cfg                 ThemeCfg
+	SliderStyle         SliderStyle
+	SplitterStyle       SplitterStyle
+	ExpandPanelStyle    ExpandPanelStyle
+	ScrollbarStyle      ScrollbarStyle
+	SkeletonStyle       SkeletonStyle
+
 	// Layout constants.
 	PaddingSmall  Padding
 	PaddingMedium Padding
@@ -125,34 +115,35 @@ type Theme struct {
 	ScrollMultiplier float32
 	ScrollDeltaLine  float32
 	ScrollDeltaPage  float32
+	InspectorStyle   InspectorStyle
+
+	ColorBackground Color
+	ColorPanel      Color
+	ColorInterior   Color
+	ColorHover      Color
+	ColorFocus      Color
+	ColorActive     Color
+	ColorBorder     Color
+	ColorSelect     Color
+	TitlebarDark    bool
 }
 
 // ThemeCfg is the configuration struct for ThemeMaker.
 type ThemeCfg struct {
-	Name             string
-	ColorBackground  Color
-	ColorPanel       Color
-	ColorInterior    Color
-	ColorHover       Color
-	ColorFocus       Color
-	ColorActive      Color
-	ColorBorder      Color
-	ColorBorderFocus Color
-	ColorSelect      Color
-	ColorSuccess     Color
-	ColorWarning     Color
-	ColorError       Color
-	TitlebarDark     bool
-	Fill             bool
-	FillBorder       bool
-	Padding          Padding
-	SizeBorder       float32
-	Radius           float32
-	TextStyleDef     TextStyle
+	TextStyleDef TextStyle
+
+	Name string
+
+	MonoFontFamily string // font family for code/mono text
+
+	Padding Padding
 
 	PaddingSmall  Padding
 	PaddingMedium Padding
 	PaddingLarge  Padding
+
+	SizeBorder float32
+	Radius     float32
 
 	RadiusSmall  float32
 	RadiusMedium float32
@@ -173,8 +164,6 @@ type ThemeCfg struct {
 	ScrollDeltaLine  float32
 	ScrollDeltaPage  float32
 
-	MonoFontFamily string // font family for code/mono text
-
 	SizeSwitchWidth  float32
 	SizeSwitchHeight float32
 	SizeRadio        float32
@@ -183,6 +172,21 @@ type ThemeCfg struct {
 	SizeProgressBar  float32
 	SizeSlider       float32
 	SizeSliderThumb  float32
+	ColorBackground  Color
+	ColorPanel       Color
+	ColorInterior    Color
+	ColorHover       Color
+	ColorFocus       Color
+	ColorActive      Color
+	ColorBorder      Color
+	ColorBorderFocus Color
+	ColorSelect      Color
+	ColorSuccess     Color
+	ColorWarning     Color
+	ColorError       Color
+	TitlebarDark     bool
+	Fill             bool
+	FillBorder       bool
 }
 
 // ThemeMaker builds a full Theme from a ThemeCfg.

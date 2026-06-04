@@ -4,21 +4,21 @@ import "time"
 
 // Keyframe represents a single animation waypoint.
 type Keyframe struct {
-	At     float32 // position 0.0-1.0
-	Value  float32
 	Easing EasingFn // easing TO this keyframe
+	At     float32  // position 0.0-1.0
+	Value  float32
 }
 
 // KeyframeAnimation interpolates through multiple waypoints
 // with per-segment easing.
 type KeyframeAnimation struct {
-	AnimID    string
-	Duration  time.Duration
-	Keyframes []Keyframe
+	start     time.Time
 	OnValue   func(float32, *Window)
 	OnDone    func(*Window)
+	AnimID    string
+	Keyframes []Keyframe
+	Duration  time.Duration
 	Repeat    bool
-	start     time.Time
 	stopped   bool
 }
 

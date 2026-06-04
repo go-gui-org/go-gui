@@ -18,25 +18,18 @@ func NewTabItem(id, label string, content []View) TabItemCfg {
 // TabControlCfg configures a tab control. Controlled component:
 // Selected is owned by app state and updated through OnSelect.
 type TabControlCfg struct {
-	ID                  string
+	TextStyle         TextStyle
+	TextStyleSelected TextStyle
+	TextStyleDisabled TextStyle
+	OnSelect          func(string, *Event, *Window)
+	OnReorder         func(movedID, beforeID string, w *Window)
+
+	ID       string
+	Selected string
+
+	A11YLabel           string
+	A11YDescription     string
 	Items               []TabItemCfg
-	Selected            string
-	OnSelect            func(string, *Event, *Window)
-	Sizing              Sizing
-	Color               Color
-	ColorBorder         Color
-	ColorHeader         Color
-	ColorHeaderBorder   Color
-	ColorContent        Color
-	ColorContentBorder  Color
-	ColorTab            Color
-	ColorTabHover       Color
-	ColorTabFocus       Color
-	ColorTabClick       Color
-	ColorTabSelected    Color
-	ColorTabDisabled    Color
-	ColorTabBorder      Color
-	ColorTabBorderFocus Color
 	Padding             Opt[Padding]
 	PaddingHeader       Opt[Padding]
 	PaddingContent      Opt[Padding]
@@ -51,17 +44,25 @@ type TabControlCfg struct {
 	RadiusTab           Opt[float32]
 	Spacing             Opt[float32]
 	SpacingHeader       Opt[float32]
-	TextStyle           TextStyle
-	TextStyleSelected   TextStyle
-	TextStyleDisabled   TextStyle
 	IDFocus             uint32
+	Color               Color
+	ColorBorder         Color
+	ColorHeader         Color
+	ColorHeaderBorder   Color
+	ColorContent        Color
+	ColorContentBorder  Color
+	ColorTab            Color
+	ColorTabHover       Color
+	ColorTabFocus       Color
+	ColorTabClick       Color
+	ColorTabSelected    Color
+	ColorTabDisabled    Color
+	ColorTabBorder      Color
+	ColorTabBorderFocus Color
+	Sizing              Sizing
 	Disabled            bool
 	Invisible           bool
 	Reorderable         bool
-	OnReorder           func(movedID, beforeID string, w *Window)
-
-	A11YLabel       string
-	A11YDescription string
 }
 
 type tabControlView struct {

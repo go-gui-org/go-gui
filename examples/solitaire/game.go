@@ -37,8 +37,8 @@ func (s Suit) Symbol() string {
 
 // Card is a single playing card.
 type Card struct {
-	Suit   Suit
 	Rank   int // 1=Ace, 2–10, 11=Jack, 12=Queen, 13=King
+	Suit   Suit
 	FaceUp bool
 }
 

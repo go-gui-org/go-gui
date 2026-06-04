@@ -4,15 +4,15 @@ import "time"
 
 // tooltipState tracks active tooltip bounds and ID.
 type tooltipState struct {
+	hoverStart   time.Time // when hover began
+	id           string
+	popupID      string   // cached popup ID string
+	hoverID      string   // trigger currently hovered
+	text         string   // RTF tooltip content
+	blockKey     uint64   // FNV hash of owning RichText
 	bounds       DrawClip // absolute run bounds (mouse check)
 	floatOffsetX float32  // run-relative X for float popup
 	floatOffsetY float32  // run-relative Y for float popup
-	blockKey     uint64   // FNV hash of owning RichText
-	id           string
-	popupID      string    // cached popup ID string
-	hoverID      string    // trigger currently hovered
-	hoverStart   time.Time // when hover began
-	text         string    // RTF tooltip content
 }
 
 // clearText resets RTF-sourced tooltip state. No-op when
@@ -34,18 +34,18 @@ func (ts *tooltipState) clearText() {
 
 // TooltipCfg configures a tooltip popup.
 type TooltipCfg struct {
-	ID          string
-	Color       Color
-	ColorBorder Color
-	Padding     Opt[Padding]
 	TextStyle   TextStyle
+	ID          string
 	Content     []View
 	Delay       time.Duration
+	FloatZIndex int
+	Padding     Opt[Padding]
 	Radius      Opt[float32]
 	SizeBorder  Opt[float32]
 	OffsetX     Opt[float32]
 	OffsetY     Opt[float32]
-	FloatZIndex int
+	Color       Color
+	ColorBorder Color
 	Anchor      Opt[FloatAttach]
 	TieOff      Opt[FloatAttach]
 }
@@ -123,10 +123,10 @@ func applyTooltipDefaults(cfg *TooltipCfg) {
 type WithTooltipCfg struct {
 	ID      string
 	Text    string
+	Content []View
 	Delay   time.Duration
 	Anchor  Opt[FloatAttach]
 	TieOff  Opt[FloatAttach]
-	Content []View
 }
 
 // WithTooltip wraps content and shows a tooltip on hover after

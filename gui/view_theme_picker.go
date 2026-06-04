@@ -2,16 +2,16 @@ package gui
 
 // ThemePickerCfg configures a theme picker view.
 type ThemePickerCfg struct {
+	OnSelect        func(string, *Event, *Window)
 	ID              string
 	A11YLabel       string
 	A11YDescription string
 	IDFocus         uint32
-	Sizing          Sizing
-	OnSelect        func(string, *Event, *Window)
-	FloatAnchor     FloatAttach
-	FloatTieOff     FloatAttach
 	FloatOffsetX    float32
 	FloatOffsetY    float32
+	Sizing          Sizing
+	FloatAnchor     FloatAttach
+	FloatTieOff     FloatAttach
 }
 
 // ThemePicker creates a palette icon that opens a dropdown of

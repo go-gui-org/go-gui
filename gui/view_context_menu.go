@@ -9,40 +9,45 @@ type contextMenuState struct {
 
 // ContextMenuCfg configures a ContextMenu widget.
 type ContextMenuCfg struct {
-	ID      string `gui:"required"`
-	Items   []MenuItemCfg
-	Action  func(string, *Event, *Window)
-	IDFocus uint32
-
-	FloatZIndex int
-
-	// Container passthrough (outer wrapper).
-	Sizing  Sizing
-	Width   float32
-	Height  float32
-	HAlign  HorizontalAlign
-	VAlign  VerticalAlign
-	Padding Opt[Padding]
-
-	// Menu styling — optional, defaults from theme.
-	Color             Color
-	ColorBorder       Color
-	ColorSelect       Color
-	SizeBorder        Opt[float32]
-	Radius            Opt[float32]
-	RadiusMenuItem    Opt[float32]
 	TextStyle         TextStyle
 	TextStyleSubtitle TextStyle
-	PaddingMenuItem   Opt[Padding]
-	PaddingSubmenu    Opt[Padding]
-	SpacingSubmenu    Opt[float32]
-	WidthSubmenuMin   Opt[float32]
-	WidthSubmenuMax   Opt[float32]
+	Action            func(string, *Event, *Window)
 
 	// User click handler — fires before context menu logic.
 	OnAnyClick func(*Layout, *Event, *Window)
 
+	ID    string `gui:"required"`
+	Items []MenuItemCfg
+
 	Content []View
+
+	FloatZIndex int
+
+	Padding Opt[Padding]
+
+	PaddingMenuItem Opt[Padding]
+	PaddingSubmenu  Opt[Padding]
+	SizeBorder      Opt[float32]
+	Radius          Opt[float32]
+	RadiusMenuItem  Opt[float32]
+	SpacingSubmenu  Opt[float32]
+	WidthSubmenuMin Opt[float32]
+	WidthSubmenuMax Opt[float32]
+
+	IDFocus uint32
+
+	Width  float32
+	Height float32
+
+	// Menu styling — optional, defaults from theme.
+	Color       Color
+	ColorBorder Color
+	ColorSelect Color
+
+	// Container passthrough (outer wrapper).
+	Sizing Sizing
+	HAlign HorizontalAlign
+	VAlign VerticalAlign
 }
 
 // ContextMenu creates a container that opens a floating menu

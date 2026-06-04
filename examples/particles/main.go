@@ -42,29 +42,32 @@ type Particle struct {
 
 // App holds all mutable application state.
 type App struct {
-	Screen       Screen
+	Particles    []Particle
 	LandingFrame int
 	Version      uint64
 
-	Particles []Particle
-	EmitterX  float32
-	EmitterY  float32
+	BurstCount int
 
-	// Config
-	EmitterType EmitterType
+	EmitterX float32
+	EmitterY float32
+
 	SpawnRate   float32 // particles per frame
 	SpawnAccum  float32
 	SpreadAngle float32 // half-angle in radians
-	BurstCount  int
 
 	GravityY float32
 	WindX    float32
 	Friction float32
 
+	SizeMin  float32
+	SizeMax  float32
+	Lifetime float32 // seconds
+
 	BaseColor gui.Color
-	SizeMin   float32
-	SizeMax   float32
-	Lifetime  float32 // seconds
+	Screen    Screen
+
+	// Config
+	EmitterType EmitterType
 }
 
 const (

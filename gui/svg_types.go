@@ -8,27 +8,16 @@ type SvgColor struct {
 // TessellatedPath holds triangulated SVG path geometry.
 type TessellatedPath struct {
 	Triangles    []float32
-	Color        SvgColor
 	VertexColors []SvgColor
-	IsClipMask   bool
 	ClipGroup    int
+	// Primitive carries raw attributes for re-tessellation; zero
+	// value when the source is not a primitive.
+	Primitive SvgPrimitive
 	// PathID inherited from the source VectorPath. Uniquely identifies
 	// the authored path across all its tessellated pieces (fill +
 	// stroke + clip masks share the same ID). Animation state is keyed
 	// by PathID. Zero = unset.
 	PathID uint32
-	// Animated marks the path as a re-tessellation target. Set when
-	// an inline <animate> with an animatable attribute (cx, cy, r,
-	// x, y, width, height, rx, ry) targets this shape.
-	Animated bool
-	// IsStroke marks this path as the stroke contribution of its
-	// source shape (vs. the fill contribution). Lets opacity
-	// animations targeting fill-opacity / stroke-opacity scale only
-	// the matching path at render time.
-	IsStroke bool
-	// Primitive carries raw attributes for re-tessellation; zero
-	// value when the source is not a primitive.
-	Primitive SvgPrimitive
 	// Author's base transform, decomposed into translate/scale/
 	// rotate. Tessellated vertices are in local coords when
 	// HasBaseXform is true and the decomposition was clean; the
@@ -46,37 +35,48 @@ type TessellatedPath struct {
 	// translation semantics separable from rotation — so a SMIL
 	// animateTransform replace-rotate can overwrite the rotation
 	// alone without disturbing an unrelated translate component.
-	BaseRotCX    float32
-	BaseRotCY    float32
-	HasBaseXform bool
+	BaseRotCX float32
+	BaseRotCY float32
 	// Bbox over Triangles in local (pre-base-transform) coordinates.
 	// Populated by the tessellator. Used for fast hit-test reject in
 	// ContainsPoint and may be reused by future viewport culling.
 	MinX, MinY, MaxX, MaxY float32
+	Color                  SvgColor
+	IsClipMask             bool
+	// Animated marks the path as a re-tessellation target. Set when
+	// an inline <animate> with an animatable attribute (cx, cy, r,
+	// x, y, width, height, rx, ry) targets this shape.
+	Animated bool
+	// IsStroke marks this path as the stroke contribution of its
+	// source shape (vs. the fill contribution). Lets opacity
+	// animations targeting fill-opacity / stroke-opacity scale only
+	// the matching path at render time.
+	IsStroke     bool
+	HasBaseXform bool
 }
 
 // SvgText holds a parsed SVG text element.
 type SvgText struct {
 	Text           string
 	FontFamily     string
+	FillGradientID string
+	FilterID       string
+	FontWeight     int // CSS numeric weight (100-900); 0 = default (400)
+	Anchor         int // 0=start, 1=middle, 2=end
 	FontSize       float32
 	X, Y           float32
 	Opacity        float32
-	IsBold         bool
-	IsItalic       bool
-	FontWeight     int // CSS numeric weight (100-900); 0 = default (400)
-	Color          SvgColor
-	StrokeColor    SvgColor
 	StrokeWidth    float32
-	FillGradientID string
-	FilterID       string
 	// FilterGroupKey is a per-occurrence id distinguishing distinct
 	// elements that share FilterID. Zero means "no filter".
 	FilterGroupKey uint32
-	Anchor         int // 0=start, 1=middle, 2=end
+	LetterSpacing  float32
+	Color          SvgColor
+	StrokeColor    SvgColor
+	IsBold         bool
+	IsItalic       bool
 	Underline      bool
 	Strikethrough  bool
-	LetterSpacing  float32
 }
 
 // SvgTextPath holds a parsed SVG textPath element.
@@ -84,41 +84,41 @@ type SvgTextPath struct {
 	Text          string
 	PathID        string
 	FontFamily    string
+	FilterID      string
+	FontWeight    int // CSS numeric weight (100-900); 0 = default (400)
+	Anchor        int // 0=start, 1=middle, 2=end
+	Method        int // 0=align, 1=stretch
+	Side          int // 0=left, 1=right
 	FontSize      float32
 	Opacity       float32
 	StartOffset   float32
 	LetterSpacing float32
-	IsBold        bool
-	IsItalic      bool
-	FontWeight    int // CSS numeric weight (100-900); 0 = default (400)
-	Color         SvgColor
-	StrokeColor   SvgColor
 	StrokeWidth   float32
-	FilterID      string
 	// FilterGroupKey is a per-occurrence id distinguishing distinct
 	// elements that share FilterID. Zero means "no filter".
 	FilterGroupKey uint32
-	Anchor         int // 0=start, 1=middle, 2=end
-	Method         int // 0=align, 1=stretch
-	Side           int // 0=left, 1=right
+	Color          SvgColor
+	StrokeColor    SvgColor
+	IsBold         bool
+	IsItalic       bool
 	IsPercent      bool
 }
 
 // SvgFilter holds a parsed SVG filter definition.
 type SvgFilter struct {
 	ID         string
-	StdDev     float32
 	BlurLayers int
+	StdDev     float32
 	KeepSource bool
 }
 
 // SvgParsedFilteredGroup holds parsed+tessellated geometry for a
 // filter group (paths that share a common filter="url(#id)").
 type SvgParsedFilteredGroup struct {
-	Filter    SvgFilter
 	Paths     []TessellatedPath
 	Texts     []SvgText
 	TextPaths []SvgTextPath
+	Filter    SvgFilter
 }
 
 // SvgGradientStop defines a color stop in an SVG gradient.
@@ -140,13 +140,13 @@ const (
 
 // SvgGradientDef defines an SVG gradient (linear or radial).
 type SvgGradientDef struct {
+	GradientUnits string
 	Stops         []SvgGradientStop
 	X1, Y1        float32
 	X2, Y2        float32
 	CX, CY, R     float32
 	FX, FY        float32
 	IsRadial      bool
-	GradientUnits string
 	SpreadMethod  SvgGradientSpread
 }
 
@@ -253,7 +253,6 @@ const (
 
 // SvgAnimation holds parsed SMIL animation data.
 type SvgAnimation struct {
-	Kind SvgAnimKind
 	// GroupID is the authored binding hint; retained for debug only.
 	// Render-time routing uses TargetPathIDs, resolved at parse.
 	GroupID string
@@ -283,10 +282,19 @@ type SvgAnimation struct {
 	// Nil when absent or when validation failed — uniform i/(n-1)
 	// spacing is used instead.
 	KeyTimes []float32
-	CenterX  float32 // rotation center (SVG coords)
-	CenterY  float32
-	DurSec   float32
-	BeginSec float32
+	// MotionPath is a flattened polyline [x0,y0, x1,y1, ...] for
+	// SvgAnimMotion. MotionLengths is the cumulative arc length
+	// (same count as vertices; last entry = total length). Nil on
+	// non-motion kinds.
+	MotionPath    []float32
+	MotionLengths []float32
+	// ColorValues holds packed RGBA stops for SvgAnimColor: one
+	// uint32 (0xRRGGBBAA) per keyframe. Nil on all other kinds.
+	ColorValues []uint32
+	CenterX     float32 // rotation center (SVG coords)
+	CenterY     float32
+	DurSec      float32
+	BeginSec    float32
 	// Cycle is the activation period in seconds. 0 means single-play
 	// (no looping; freeze or remove after dur). >0 means the
 	// animation re-fires every Cycle seconds, allowing chained-
@@ -294,6 +302,13 @@ type SvgAnimation struct {
 	// uniformly: lastActivation = BeginSec + n*Cycle for the largest
 	// n with lastActivation <= elapsed.
 	Cycle float32
+	// Iterations is the CSS animation-iteration-count: 0 means use
+	// the legacy SMIL Cycle-based scheduling (one play per Cycle);
+	// >0 means run that many DurSec iterations starting at BeginSec
+	// (CSS semantics), with a sentinel value of 0xFFFF meaning
+	// infinite. Alternate flips the phase on odd iterations.
+	Iterations uint16
+	Kind       SvgAnimKind
 	// Freeze reflects fill="freeze". When true, after dur elapses
 	// the animation continues to contribute its last keyframe value
 	// until either the cycle restarts or another animation takes
@@ -310,25 +325,16 @@ type SvgAnimation struct {
 	// IsSet marks a <set> element: zero-duration animation that
 	// contributes its single to-value from BeginSec onward. Sandwich
 	// ordering lets later <set>s override earlier ones.
-	IsSet    bool
-	AttrName SvgAttrName     // valid when Kind == SvgAnimAttr
-	Target   SvgAnimTarget   // valid when Kind == SvgAnimOpacity
-	CalcMode SvgAnimCalcMode // keyframe interpolation mode
-	Restart  SvgAnimRestart  // re-trigger policy
-	// MotionPath is a flattened polyline [x0,y0, x1,y1, ...] for
-	// SvgAnimMotion. MotionLengths is the cumulative arc length
-	// (same count as vertices; last entry = total length). Nil on
-	// non-motion kinds.
-	MotionPath    []float32
-	MotionLengths []float32
-	MotionRotate  SvgAnimMotionRotate
+	IsSet        bool
+	AttrName     SvgAttrName     // valid when Kind == SvgAnimAttr
+	Target       SvgAnimTarget   // valid when Kind == SvgAnimOpacity
+	CalcMode     SvgAnimCalcMode // keyframe interpolation mode
+	Restart      SvgAnimRestart  // re-trigger policy
+	MotionRotate SvgAnimMotionRotate
 	// DashKeyframeLen is the number of floats per keyframe for
 	// SvgAnimDashArray (1..8). Keyframe count = len(Values) /
 	// DashKeyframeLen. Zero on all other kinds.
 	DashKeyframeLen uint8
-	// ColorValues holds packed RGBA stops for SvgAnimColor: one
-	// uint32 (0xRRGGBBAA) per keyframe. Nil on all other kinds.
-	ColorValues []uint32
 	// Alternate reflects CSS animation-direction: alternate /
 	// alternate-reverse. Each odd iteration plays in reverse phase.
 	Alternate bool
@@ -337,12 +343,6 @@ type SvgAnimation struct {
 	// pre-begin delay (BeginSec > elapsed) so the element reads the
 	// "0%" pose before the animation activates.
 	FillBackwards bool
-	// Iterations is the CSS animation-iteration-count: 0 means use
-	// the legacy SMIL Cycle-based scheduling (one play per Cycle);
-	// >0 means run that many DurSec iterations starting at BeginSec
-	// (CSS semantics), with a sentinel value of 0xFFFF meaning
-	// infinite. Alternate flips the phase on odd iterations.
-	Iterations uint16
 }
 
 // SvgAnimIterInfinite marks an infinite CSS animation.

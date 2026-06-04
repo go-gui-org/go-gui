@@ -5,20 +5,20 @@ import "math"
 // DrawCanvasCache holds retained tessellation output keyed by
 // widget id + version + scale. Cache hit skips OnDraw entirely.
 type DrawCanvasCache struct {
+	Batches    []DrawCanvasTriBatch
+	Texts      []DrawCanvasTextEntry
+	Images     []DrawCanvasImageEntry
 	Version    uint64
 	TessWidth  float32
 	TessHeight float32
 	Scale      float32
-	Batches    []DrawCanvasTriBatch
-	Texts      []DrawCanvasTextEntry
-	Images     []DrawCanvasImageEntry
 }
 
 // DrawCanvasTextEntry stores a deferred text drawing command.
 type DrawCanvasTextEntry struct {
-	X, Y  float32
-	Text  string
 	Style TextStyle
+	Text  string
+	X, Y  float32
 }
 
 // DrawCanvasTriBatch is one flat-color triangle batch.
@@ -42,11 +42,11 @@ type DrawCanvasTriBatch struct {
 // in-flight download. Consumers wiring two fetchers to overlapping
 // URL namespaces must route via URL prefix themselves.
 type DrawCanvasImageEntry struct {
-	X, Y, W, H float32
+	Fetcher    ImageFetcher
 	Src        string
 	BgOpacity  Opt[float32]
+	X, Y, W, H float32
 	BgColor    Color
-	Fetcher    ImageFetcher
 }
 
 // DrawRecorder receives high-level draw commands before
@@ -77,22 +77,22 @@ type DrawRecorder interface {
 // RenderSvg commands. Text methods append deferred text entries
 // emitted as RenderText commands.
 type DrawContext struct {
-	Width  float32
-	Height float32
-	// Scale is the device pixel ratio (e.g. 2.0 on Retina/HiDPI displays).
-	// Width and Height are in logical pixels; multiply by Scale to get device pixels.
-	// Always > 0; defaults to 1.0 when the backend has not reported a valid scale.
-	Scale float32
-
-	lastColor       Color
-	currentBatchIdx int
+	textMeasure     TextMeasurer
+	recorder        DrawRecorder
 	batches         []DrawCanvasTriBatch
 	texts           []DrawCanvasTextEntry
 	images          []DrawCanvasImageEntry
 	arcBuf          []float32
 	bezierBuf       []float32
-	textMeasure     TextMeasurer
-	recorder        DrawRecorder
+	currentBatchIdx int
+	Width           float32
+	Height          float32
+	// Scale is the device pixel ratio (e.g. 2.0 on Retina/HiDPI displays).
+	// Width and Height are in logical pixels; multiply by Scale to get device pixels.
+	// Always > 0; defaults to 1.0 when the backend has not reported a valid scale.
+	Scale float32
+
+	lastColor Color
 }
 
 // SetRecorder attaches a DrawRecorder that receives high-level

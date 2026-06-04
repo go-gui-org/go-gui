@@ -4,12 +4,19 @@ package gui
 // blocks of multiline text. Giving it an IDFocus allows mark
 // and copy operations.
 type TextCfg struct {
-	ID                string
-	Text              string
-	TextStyle         TextStyle
-	IDFocus           uint32
-	TabSize           uint32
-	MinWidth          float32
+	TextStyle TextStyle
+	ID        string
+	Text      string
+
+	// Accessibility
+	A11YLabel       string
+	A11YDescription string
+	Opacity         Opt[float32]
+	IDFocus         uint32
+	TabSize         uint32
+	MinWidth        float32
+	Sizing          Sizing
+
 	Mode              TextMode
 	Invisible         bool
 	Clip              bool
@@ -18,12 +25,6 @@ type TextCfg struct {
 	IsPassword        bool
 	PlaceholderActive bool
 	Hero              bool
-	Opacity           Opt[float32]
-	Sizing            Sizing
-
-	// Accessibility
-	A11YLabel       string
-	A11YDescription string
 }
 
 // textView implements View for text rendering.

@@ -16,21 +16,11 @@ const svgAnimStaleNs = 2 * int64(time.Second)
 
 // SvgCfg configures an SVG view component.
 type SvgCfg struct {
-	ID        string
-	FileName  string  // SVG file path
-	SvgData   string  // OR inline SVG string
-	Width     float32 // display width
-	Height    float32 // display height
-	Color     Color   // override fill (for monochrome icons)
-	NoAnimate bool    // disable SMIL animation (default: animated)
-	Sizing    Sizing
-	Padding   Opt[Padding]
-	OnClick   func(*Layout, *Event, *Window)
+	OnClick func(*Layout, *Event, *Window)
 
-	// FlatnessTolerance, when > 0, overrides the default tessellation
-	// tolerance floor (0.15 viewBox units). Higher = coarser triangles
-	// = lower vertex count. Cached separately per value.
-	FlatnessTolerance float32
+	ID       string
+	FileName string // SVG file path
+	SvgData  string // OR inline SVG string
 
 	// HoveredElementID / FocusedElementID drive CSS :hover / :focus
 	// pseudo-class matching. Set non-empty to flag the matching SVG
@@ -44,6 +34,18 @@ type SvgCfg struct {
 	// Accessibility
 	A11YLabel       string
 	A11YDescription string
+	Padding         Opt[Padding]
+	Width           float32 // display width
+	Height          float32 // display height
+
+	// FlatnessTolerance, when > 0, overrides the default tessellation
+	// tolerance floor (0.15 viewBox units). Higher = coarser triangles
+	// = lower vertex count. Cached separately per value.
+	FlatnessTolerance float32
+
+	Color     Color // override fill (for monochrome icons)
+	Sizing    Sizing
+	NoAnimate bool // disable SMIL animation (default: animated)
 }
 
 // svgView implements View for SVG rendering.
