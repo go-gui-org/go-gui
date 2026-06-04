@@ -1,4 +1,4 @@
-//go:build linux && !android
+//go:build linux && !android && hunspell
 
 // Package spellcheck provides native spell checking via Hunspell on Linux.
 // Requires libhunspell-dev at build time.
