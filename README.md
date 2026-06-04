@@ -32,73 +32,55 @@ Sibling projects:
 - **go-glyph**\
   Text rendering engine on steriods. https://github.com/go-gui-org/go-glyph
 
----
+## How it works
 
-## 📋 About
+Each frame, a plain Go view function returns a layout tree. The framework sizes,
+positions, and renders it in a single pass — no virtual DOM, no diffing.
 
-Go-Gui is a hybrid immediate-mode GUI framework where every frame, a plain Go
-function returns a layout tree that gets sized, positioned, and rendered
-directly to the screen. State lives in a single typed slot per window.
+State lives in a typed slot per window, accessed through `gui.State[T](w)`. Widget
+identity is stable across frames via component IDs, so focus, scroll position, and
+input state persist without manual bookkeeping.
 
-## 🤔 Why go-gui is better
+The pipeline:
 
-Most GUI frameworks force a tradeoff:
-you either get the simplicity of immediate mode or the power of retained systems.
-**go-gui gives you both—without the usual compromises.**
+```
+View fn → GenerateViewLayout() → Layout tree
+  → layoutArrange() (Fit/Fixed/Grow sizing)
+  → renderLayout() → []RenderCmd
+  → Backend (Metal / OpenGL / WebGPU)
+```
 
-Traditional immediate-mode systems like Dear ImGui are fast and simple, but struggle
-with state, structure, accessibility, and large-scale apps. Retained frameworks like
-Qt or Flutter solve those problems—but at the cost of complexity, hidden state, and
-rigid architectures.
+- **Single-pass layout and rendering.** No dirty tracking, no reconciliation.
+  Layout computes sizes in one walk, render emits draw commands in the next.
 
-**go-gui bridges that gap.**
+- **Typed per-window state.** `gui.State[App](w)` returns a `*App` — no
+  `interface{}` casts, no global variables, no closures over mutable state.
 
-- **Simple, deterministic API**\
-  Build UI like immediate mode—plain Go functions, minimal boilerplate, no surprises.
+- **Headless test backend.** All layout and widget logic runs without a display.
+  The `gui/backend/test` package provides a no-op backend for unit tests.
 
-- **Stable identity + reactive state**\
-  Component IDs and a typed per-window state slot give you persistence and
-  control—without framework magic.
+- **Time-travel debugging (opt-in).** Implement `Snapshotter` on your state type,
+  set `DebugTimeTravel: true`, and a scrubber window records state after every
+  event. Drag the slider to rewind and replay frames.
 
-- **Time-travel debugging**\
-  Built-in snapshot/restore ring buffer lets you scrub back through app state—deep
-  visibility typically reserved for retained systems.
+- **Backend injection.** Text measurement, SVG parsing, and native platform
+  services are interfaces injected by the backend at startup. Swap backends
+  without changing widget code.
 
-- **Production-grade accessibility**\
-  Built-in ARIA roles, semantic structure, and IME support make real-world apps
-  possible—not just demos.
+- **50+ widgets.** Buttons, inputs, sliders, tables, trees, tabs, menus, dialogs,
+  toasts, breadcrumbs, data grid with virtualization, markdown viewer, RTF viewer,
+  SVG viewer, code editor (via go-edit), charts (via go-charts), maps (via go-map).
 
-- **High performance at scale**\
-  No virtual DOM, no diffing. Layout, sizing, and rendering happen in a single
-  pass each frame. Virtualization is built in where it matters—DataGrid handles
-  large datasets with no manual tuning.
+- **Animation subsystem.** Keyframe, spring, tween, and hero transitions.
+  Animations run on the framework clock and integrate with the layout pass.
 
-- **Animation built in**\
-  A first-class animation subsystem ships with the framework—smooth transitions
-  and motion are not bolted on after the fact.
-
-- **Rich, extensible widget ecosystem**\
-  50+ built-in widgets from data grids to code editors. Charts and maps are
-  available as first-class companion libraries. Custom shaders let you extend
-  rendering beyond the built-in widget set.
-
-- **Cross-platform, single binary**\
-  Desktop, web, and mobile targets with native dialogs, menus, and OS features.
-  Compiles to a native binary—no runtime to install, no VM overhead.
+- **Cross-platform.** Metal (macOS), OpenGL (Linux/Windows), WebGPU/WASM
+  (browser), Metal/UIKit (iOS). Native file dialogs, menus, notifications, and
+  print on each platform.
 
 ---
 
-**The result:**\
-A framework that keeps the clarity and speed of immediate mode, while delivering the
-power, scalability, and tooling of modern UI systems.
-
-No hidden machinery. Just control, performance, and capability.
-
-https://github.com/user-attachments/assets/a94ef905-b814-4712-b8d5-eed13b0bae8e
-
----
-
-## ✨ Features
+## Features
 
 **Widgets & Layout**
 
@@ -174,7 +156,7 @@ https://github.com/user-attachments/assets/a94ef905-b814-4712-b8d5-eed13b0bae8e
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ```go
 package main
@@ -239,7 +221,7 @@ version and [`examples/web_demo/`](examples/web_demo/) for the browser build.
 
 ---
 
-## 📦 Installation
+## Installation
 
 ### Prerequisites
 
@@ -308,7 +290,7 @@ go get github.com/go-gui-org/go-gui
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ### Backend Selection
 
@@ -387,7 +369,7 @@ read-only — rewinding does not undo past side effects (HTTP, file I/O).
 
 ---
 
-## 💻 Usage Examples
+## Usage Examples
 
 ### State Management
 
@@ -487,7 +469,7 @@ go run ./examples/calculator/
 
 ---
 
-## 🧩 Widget Catalogue
+## Widget Catalogue
 
 ### Layout
 
@@ -571,7 +553,7 @@ go run ./examples/calculator/
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -637,7 +619,7 @@ go run ./examples/calculator/
 
 ---
 
-## 🧪 Running Tests
+## Running Tests
 
 Tests run headlessly via the `gui/backend/test` no-op backend — no display
 server required.
@@ -662,10 +644,10 @@ go build ./...
 
 ---
 
-## 📝 Contributing
+## Contributing
 
 1. Install **Go 1.26+** and SDL2 development libraries (see
-   [Installation](#-installation)).
+   [Installation](#installation)).
 2. Clone the repo.
 3. Run tests and lint:
 
@@ -679,6 +661,6 @@ golangci-lint run ./gui/...
 
 ---
 
-## 📄 License
+## License
 
 [MIT](LICENSE)
