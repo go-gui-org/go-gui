@@ -32,6 +32,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libsdl2-dev libgl1-mesa-dev \
+            libfreetype6-dev libharfbuzz-dev libpango1.0-dev \
+            libfontconfig1-dev libglib2.0-dev \
             libx11-dev libxext-dev libxcursor-dev libxinerama-dev \
             libxi-dev libxrandr-dev libxfixes-dev libxkbcommon-dev \
             libwayland-dev libdbus-1-dev libpulse-dev libasound2-dev
@@ -97,7 +99,7 @@ jobs:
         run: |
           VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
           go run ./cmd/buildapp -version "${VERSION#v}" \
-            -name "Go-Gui Showcase" build/showcase-macos
+            -bundle-deps -name "Go-Gui Showcase" build/showcase-macos
           hdiutil create -srcfolder "Go-Gui Showcase.app" \
             -volname "Go-Gui Showcase ${VERSION}" \
             -format UDZO "Go-Gui-Showcase-${VERSION}.dmg"
