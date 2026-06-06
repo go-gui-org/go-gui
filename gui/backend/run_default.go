@@ -1,17 +1,17 @@
-//go:build !darwin && !js && !android && !sdl2
+//go:build !darwin && !js && !android && !gl
 
 // Package backend provides platform-specific backend initialization.
 package backend
 
 import (
 	"github.com/go-gui-org/go-gui/gui"
-	glbackend "github.com/go-gui-org/go-gui/gui/backend/gl"
+	sdl2backend "github.com/go-gui-org/go-gui/gui/backend/sdl2"
 )
 
-// Run starts the application event loop using the OpenGL backend.
-func Run(w *gui.Window) { glbackend.Run(w) }
+// Run starts the application event loop using the SDL2 renderer backend.
+func Run(w *gui.Window) { sdl2backend.Run(w) }
 
-// RunApp starts a multi-window event loop.
+// RunApp starts a multi-window event loop using the SDL2 renderer backend.
 func RunApp(app *gui.App, windows ...*gui.Window) {
-	glbackend.RunApp(app, windows...)
+	sdl2backend.RunApp(app, windows...)
 }
