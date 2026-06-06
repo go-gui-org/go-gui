@@ -57,14 +57,14 @@ jobs:
       - name: Package
         working-directory: go-gui
         run: |
-          VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+          VERSION=$(git describe --tags --always 2>/dev/null || echo "dev")
           tar czf "go-gui-showcase-${VERSION}-linux-amd64.tar.gz" \
             -C build showcase-linux
 
-      - name: Upload Release Asset
-        uses: softprops/action-gh-release@v2
+      - uses: actions/upload-artifact@v4
         with:
-          files: go-gui/go-gui-showcase-*.tar.gz
+          name: linux-asset
+          path: go-gui/go-gui-showcase-*.tar.gz
 
   macos:
     name: macOS
@@ -97,17 +97,17 @@ jobs:
       - name: Package
         working-directory: go-gui
         run: |
-          VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+          VERSION=$(git describe --tags --always 2>/dev/null || echo "dev")
           go run ./cmd/buildapp -version "${VERSION#v}" \
             -bundle-deps -name "Go-Gui Showcase" build/showcase-macos
           hdiutil create -srcfolder "Go-Gui Showcase.app" \
             -volname "Go-Gui Showcase ${VERSION}" \
             -format UDZO "Go-Gui-Showcase-${VERSION}.dmg"
 
-      - name: Upload Release Asset
-        uses: softprops/action-gh-release@v2
+      - uses: actions/upload-artifact@v4
         with:
-          files: go-gui/Go-Gui-Showcase-*.dmg
+          name: macos-asset
+          path: go-gui/Go-Gui-Showcase-*.dmg
 
   windows:
     name: Windows
@@ -149,11 +149,27 @@ jobs:
       - name: Package
         working-directory: go-gui
         run: |
-          VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+          VERSION=$(git describe --tags --always 2>/dev/null || echo "dev")
           zip "go-gui-showcase-${VERSION}-windows-amd64.zip" \
             build/showcase-windows.exe
 
-      - name: Upload Release Asset
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-asset
+          path: go-gui/go-gui-showcase-*.zip
+
+  publish:
+    name: Publish Release
+    needs: [linux, macos, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*-asset'
+          merge-multiple: true
+          path: assets
+
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: go-gui/go-gui-showcase-*.zip
+          files: assets/*
