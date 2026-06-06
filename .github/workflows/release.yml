@@ -31,6 +31,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            libsdl2-dev libgl1-mesa-dev \
             libx11-dev libxext-dev libxcursor-dev libxinerama-dev \
             libxi-dev libxrandr-dev libxfixes-dev libxkbcommon-dev \
             libwayland-dev libdbus-1-dev libpulse-dev libasound2-dev
@@ -79,6 +80,9 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
+
+      - name: Install system dependencies
+        run: brew install sdl2
 
       - name: Add go-glyph replace
         working-directory: go-gui
