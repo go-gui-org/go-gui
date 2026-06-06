@@ -18,6 +18,15 @@ in the upper-right corner that displays documentation about the widget._
 
 📜 [Documentation](https://github.com/go-gui-org/go-gui/wiki)
 
+## Try It
+
+| Platform         | Download                                                                                          |
+| ---------------- | ------------------------------------------------------------------------------------------------- |
+| Browser (WASM)   | [**Open Showcase**](https://go-gui-org.github.io/showcase/) — zero install, instant evaluation    |
+| macOS            | [Go-Gui-Showcase-v0.24.0.dmg](https://github.com/go-gui-org/go-gui/releases/tag/v0.24.0)         |
+| Linux            | [Go-Gui-Showcase-v0.24.0-linux-amd64.tar.gz](https://github.com/go-gui-org/go-gui/releases/tag/v0.24.0) |
+| Windows          | [Go-Gui-Showcase-v0.24.0-windows-amd64.zip](https://github.com/go-gui-org/go-gui/releases/tag/v0.24.0) |
+
 Sibling projects:
 
 - **go-charts**\
