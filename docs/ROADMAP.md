@@ -19,12 +19,12 @@ go-sdl2 module — no SDL2 installation required.
 
 ### Current state (after v0.22)
 
-| Platform | Backend  | Type          | Runtime deps              |
-| -------- | -------- | ------------- | ------------------------- |
-| macOS    | Metal    | Dynamic + bundled | System frameworks only    |
-| Linux    | GL       | Static CGo    | None (`-tags static`)     |
-| Windows  | GL       | Static CGo    | None (`-tags static`)     |
-| WASM     | Canvas2D | Single binary | None                      |
+| Platform | Backend  | Type            | Runtime deps              |
+| -------- | -------- | --------------- | ------------------------- |
+| macOS    | Metal    | Dynamic+bundled | System frameworks only    |
+| Linux    | GL       | Static CGo      | None (`-tags static`)     |
+| Windows  | GL       | Dynamic+bundled | SDL2 DLLs included in zip |
+| WASM     | Canvas2D | Single binary   | None                      |
 
 ### 1.1 Static linking via go-sdl2
 
