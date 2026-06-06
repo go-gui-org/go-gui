@@ -31,6 +31,8 @@ jobs:
         with:
           personal_token: ${{ secrets.WEBSITE_DEPLOY_TOKEN }}
           external_repository: go-gui-org/go-gui-org.github.io
+          publish_branch: main
           publish_dir: ./examples/showcase
           destination_dir: showcase
+          keep_files: true
           exclude_assets: '.gitignore,Makefile,*.go,docs/,assets/,locales/'
