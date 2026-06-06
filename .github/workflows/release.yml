@@ -160,7 +160,7 @@ jobs:
 
   publish:
     name: Publish Release
-    needs: [linux, macos, windows]
+    needs: [linux, macos]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4

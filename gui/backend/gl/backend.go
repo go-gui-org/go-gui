@@ -121,7 +121,9 @@ func New(w *gui.Window) (*Backend, error) {
 	if err != nil {
 		_ = win.Destroy()
 		sdl.Quit()
-		return nil, fmt.Errorf("gl: GLCreateContext: %w", err)
+		return nil, fmt.Errorf("gl: GLCreateContext: %w — OpenGL 3.3 required; "+
+			"try building with -tags sdl2 for software rendering, or "+
+			"install GPU drivers with OpenGL 3.3+ support", err)
 	}
 
 	if err := gl.Init(); err != nil {
