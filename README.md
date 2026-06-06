@@ -38,8 +38,11 @@ Sibling projects:
 - **go-map**\
   SMIL map widgets. https://github.com/mike-ward/go-map
 
+- **go-term**\
+  Embeddable terminal emulator. https://github.com/go-gui-org/go-term
+
 - **go-glyph**\
-  Text rendering engine on steriods. https://github.com/go-gui-org/go-glyph
+  Text rendering engine on steroids. https://github.com/go-gui-org/go-glyph
 
 ## How it works
 
