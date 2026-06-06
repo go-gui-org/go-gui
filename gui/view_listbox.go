@@ -32,26 +32,30 @@ type ListBoxCfg struct {
 	A11YLabel       string
 	A11YDescription string
 	SelectedIDs     []string
-	Data            []ListBoxOption
-	Padding         Opt[Padding]
-	Radius          Opt[float32]
-	SizeBorder      Opt[float32]
-	Height          float32
-	MinWidth        float32
-	MaxWidth        float32
-	MinHeight       float32
-	MaxHeight       float32
-	IDScroll        uint32
-	IDFocus         uint32
-	Color           Color
-	ColorHover      Color
-	ColorBorder     Color
-	ColorSelect     Color
-	Sizing          Sizing
-	Multiple        bool
-	Disabled        bool
-	Invisible       bool
-	Reorderable     bool
+	// Items is a convenience field for simple string lists. Each
+	// string becomes a ListBoxOption with ID==Name==Value. When
+	// set, Items takes precedence over Data.
+	Items       []string
+	Data        []ListBoxOption
+	Padding     Opt[Padding]
+	Radius      Opt[float32]
+	SizeBorder  Opt[float32]
+	Height      float32
+	MinWidth    float32
+	MaxWidth    float32
+	MinHeight   float32
+	MaxHeight   float32
+	IDScroll    uint32
+	IDFocus     uint32
+	Color       Color
+	ColorHover  Color
+	ColorBorder Color
+	ColorSelect Color
+	Sizing      Sizing
+	Multiple    bool
+	Disabled    bool
+	Invisible   bool
+	Reorderable bool
 }
 
 // ListBoxOption helpers.
@@ -70,6 +74,15 @@ func NewListBoxSubheading(id, title string) ListBoxOption {
 func ListBox(cfg ListBoxCfg) View {
 	requireID("ListBox", cfg.ID)
 	applyListBoxDefaults(&cfg)
+	if len(cfg.Items) > 0 {
+		n := min(len(cfg.Items), maxDataConvLen)
+		cfg.Data = make([]ListBoxOption, n)
+		for i := range n {
+			cfg.Data[i] = ListBoxOption{
+				ID: cfg.Items[i], Name: cfg.Items[i],
+				Value: cfg.Items[i]}
+		}
+	}
 	if listBoxCanVirtualize(&cfg) ||
 		(cfg.Reorderable && cfg.OnReorder != nil) ||
 		cfg.IDFocus > 0 {

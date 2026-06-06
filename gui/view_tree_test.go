@@ -407,3 +407,105 @@ func TestTreeGenerateLayoutA11Y(t *testing.T) {
 		t.Fatalf("childRow.Shape.A11YRole = %d, want %d", childRow.Shape.A11YRole, AccessRoleTreeItem)
 	}
 }
+
+func TestItemPathsToNodes(t *testing.T) {
+	nodes := itemPathsToNodes([]string{
+		"a/b/c",
+		"a/b/d",
+		"e/f",
+	})
+	if len(nodes) != 2 {
+		t.Fatalf("root nodes = %d, want 2", len(nodes))
+	}
+	if nodes[0].ID != "a" || nodes[0].Text != "a" {
+		t.Errorf("root[0]: got ID=%q Text=%q", nodes[0].ID, nodes[0].Text)
+	}
+	if len(nodes[0].Nodes) != 1 {
+		t.Fatalf("a.Nodes = %d, want 1", len(nodes[0].Nodes))
+	}
+	b := nodes[0].Nodes[0]
+	if b.ID != "a/b" || b.Text != "b" {
+		t.Errorf("b: got ID=%q Text=%q", b.ID, b.Text)
+	}
+	if len(b.Nodes) != 2 {
+		t.Fatalf("a/b.Nodes = %d, want 2", len(b.Nodes))
+	}
+}
+
+func TestItemPathsToNodesDeterministic(t *testing.T) {
+	for range 10 {
+		nodes := itemPathsToNodes([]string{"z", "b/a", "b/c"})
+		if nodes[0].ID != "b" {
+			t.Errorf("expected b first (sorted), got %q", nodes[0].ID)
+		}
+	}
+}
+
+func TestItemPathsToNodesEmptySegments(t *testing.T) {
+	// Leading slash, doubled slashes, trailing slash all produce
+	// the same tree as clean paths.
+	nodes1 := itemPathsToNodes([]string{"/a/b"})
+	nodes2 := itemPathsToNodes([]string{"a//b"})
+	nodes3 := itemPathsToNodes([]string{"a/b/"})
+	nodes4 := itemPathsToNodes([]string{"a/b"})
+	if len(nodes1) != 1 || nodes1[0].Text != "a" {
+		t.Error("leading slash: expected single root 'a'")
+	}
+	if len(nodes2) != 1 || nodes2[0].Text != "a" {
+		t.Error("doubled slash: expected single root 'a'")
+	}
+	if len(nodes3) != 1 || nodes3[0].Text != "a" {
+		t.Error("trailing slash: expected single root 'a'")
+	}
+	if len(nodes4) != 1 || nodes4[0].Text != "a" {
+		t.Error("clean path: expected single root 'a'")
+	}
+}
+
+func TestTreeItemPaths(t *testing.T) {
+	w := newTestWindow()
+	layout := GenerateViewLayout(Tree(TreeCfg{
+		ID:        "tree-paths",
+		ItemPaths: []string{"src/main.go", "src/lib.go", "docs/readme.md"},
+	}), w)
+	if len(layout.Children) != 2 {
+		t.Fatalf("children = %d, want 2", len(layout.Children))
+	}
+}
+
+func TestItemPathsToNodesEmpty(t *testing.T) {
+	nodes := itemPathsToNodes([]string{})
+	if nodes != nil {
+		t.Fatalf("empty input: got %v, want nil", nodes)
+	}
+}
+
+func TestItemPathsToNodesSingleNode(t *testing.T) {
+	nodes := itemPathsToNodes([]string{"single"})
+	if len(nodes) != 1 {
+		t.Fatalf("single node: got %d, want 1", len(nodes))
+	}
+	if nodes[0].ID != "single" || nodes[0].Text != "single" {
+		t.Errorf("got ID=%q Text=%q, want single/single",
+			nodes[0].ID, nodes[0].Text)
+	}
+	if nodes[0].Nodes != nil {
+		t.Errorf("single node should have nil Nodes, got %v", nodes[0].Nodes)
+	}
+}
+
+func TestTreeItemPathsPrecedence(t *testing.T) {
+	// ItemPaths should take precedence over Nodes.
+	w := newTestWindow()
+	layout := GenerateViewLayout(Tree(TreeCfg{
+		ID:        "tree-prec",
+		ItemPaths: []string{"alpha", "beta"},
+		Nodes: []TreeNodeCfg{
+			{ID: "ignored", Text: "Ignored"},
+		},
+	}), w)
+	if len(layout.Children) != 2 {
+		t.Fatalf("children = %d, want 2 (ItemPaths)",
+			len(layout.Children))
+	}
+}

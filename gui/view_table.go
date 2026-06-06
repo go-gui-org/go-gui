@@ -53,7 +53,11 @@ type TableCfg struct {
 	A11YLabel        string
 	A11YDescription  string
 	ColumnAlignments []HorizontalAlign
-	Data             []TableRowCfg
+	// RawData is a convenience field for CSV-style data. First row
+	// is treated as the header. When set, RawData takes precedence
+	// over Data.
+	RawData [][]string
+	Data    []TableRowCfg
 
 	CellPadding        Opt[Padding]
 	ColumnWidthDefault float32
@@ -144,6 +148,10 @@ func (w *Window) Table(cfg TableCfg) View {
 }
 
 func tableView(cfg TableCfg, w *Window) View {
+	if len(cfg.RawData) > 0 {
+		n := min(len(cfg.RawData), maxDataConvLen)
+		cfg.Data = TableCfgFromData(cfg.RawData[:n]).Data
+	}
 	applyTableDefaults(&cfg)
 
 	if len(cfg.Data) == 0 {

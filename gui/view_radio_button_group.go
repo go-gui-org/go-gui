@@ -21,17 +21,21 @@ type RadioButtonGroupCfg struct {
 
 	A11YLabel       string
 	A11YDescription string
-	Options         []RadioOption
-	Padding         Opt[Padding]
-	Spacing         Opt[float32]
-	SizeBorder      Opt[float32]
-	MinWidth        float32
-	MinHeight       float32
-	IDFocus         uint32
-	ColorBorder     Color
-	TitleBG         Color
-	Sizing          Sizing
-	Disabled        bool
+	// Items is a convenience field for simple string lists. Each
+	// string becomes a RadioOption with Label==Value. When set,
+	// Items takes precedence over Options.
+	Items       []string
+	Options     []RadioOption
+	Padding     Opt[Padding]
+	Spacing     Opt[float32]
+	SizeBorder  Opt[float32]
+	MinWidth    float32
+	MinHeight   float32
+	IDFocus     uint32
+	ColorBorder Color
+	TitleBG     Color
+	Sizing      Sizing
+	Disabled    bool
 }
 
 // DefaultRadioGroupStyle holds defaults for RadioButtonGroupCfg Opt fields.
@@ -53,6 +57,14 @@ func RadioButtonGroupRow(cfg RadioButtonGroupCfg) View {
 
 func radioGroup(cfg RadioButtonGroupCfg, axis func(ContainerCfg) View) View {
 	applyRadioGroupDefaults(&cfg)
+	if len(cfg.Items) > 0 {
+		n := min(len(cfg.Items), maxDataConvLen)
+		cfg.Options = make([]RadioOption, n)
+		for i := range n {
+			cfg.Options[i] = RadioOption{
+				Label: cfg.Items[i], Value: cfg.Items[i]}
+		}
+	}
 	sizeBorder := cfg.SizeBorder.Get(DefaultRadioGroupStyle.SizeBorder)
 	return axis(ContainerCfg{
 		A11YRole:        AccessRoleRadioGroup,

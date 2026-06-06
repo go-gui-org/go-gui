@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"strconv"
 	"time"
 )
 
@@ -23,9 +24,34 @@ const (
 	dataGridGroupSep                = "\x1d"
 	dataGridDefaultRowHeight        = float32(30)
 	dataGridDefaultHeaderHeight     = float32(34)
-	dataGridDefaultPageLimit        = 100
-	dataGridJumpInputWidth          = float32(68)
+	dataGridMaxAutoColumns          = 1_000 // safety cap for auto-gen columns
+
+	// maxDataConvLen caps convenience-field slice conversions
+	// (RowsData→Rows, Items→Options, RawData→Data, ItemPaths→Nodes)
+	// to prevent OOM from unbounded inputs.
+	maxDataConvLen           = 100_000
+	dataGridDefaultPageLimit = 100
+	dataGridJumpInputWidth   = float32(68)
 )
+
+// dataGridColumnsFromMap builds column definitions from the keys
+// of the first RowsData entry. Keys are sorted for deterministic
+// output; capped at dataGridMaxAutoColumns.
+func dataGridColumnsFromMap(row map[string]string) []GridColumnCfg {
+	keys := sortedMapKeys(row)
+	if len(keys) > dataGridMaxAutoColumns {
+		keys = keys[:dataGridMaxAutoColumns]
+	}
+	cols := make([]GridColumnCfg, len(keys))
+	for i, k := range keys {
+		cols[i] = GridColumnCfg{
+			ID:       k,
+			Title:    k,
+			Sortable: true,
+		}
+	}
+	return cols
+}
 
 // GridColumnPin specifies column pinning position.
 type GridColumnPin uint8
@@ -216,49 +242,55 @@ type DataGridCfg struct {
 	ColumnOrder            []string
 	GroupBy                []string
 	Aggregates             []GridAggregateCfg
-	Rows                   []GridRow
-	FrozenTopRowIDs        []string
-	PageLimit              int
-	PageSize               int
-	PageIndex              int
-	QuickFilterDebounce    time.Duration
-	PaddingCell            Opt[Padding]
-	PaddingHeader          Opt[Padding]
-	PaddingFilter          Opt[Padding]
-	Radius                 Opt[float32]
-	SizeBorder             Opt[float32]
-	IDFocus                uint32
-	IDScroll               uint32
-	RowHeight              float32
-	HeaderHeight           float32
-	Width                  float32
-	Height                 float32
-	MinWidth               float32
-	MaxWidth               float32
-	MinHeight              float32
-	MaxHeight              float32
-	ColorBackground        Color
-	ColorHeader            Color
-	ColorHeaderHover       Color
-	ColorFilter            Color
-	ColorQuickFilter       Color
-	ColorRowHover          Color
-	ColorRowAlt            Color
-	ColorRowSelected       Color
-	ColorBorder            Color
-	ColorResizeHandle      Color
-	ColorResizeActive      Color
-	Sizing                 Opt[Sizing]
-	PaginationKind         GridPaginationKind
-	Loading                bool
-	ShowCRUDToolbar        bool
-	FreezeHeader           bool
-	ShowFilterRow          bool
-	ShowQuickFilter        bool
-	ShowColumnChooser      bool
-	Scrollbar              ScrollbarOverflow
-	Disabled               bool
-	Invisible              bool
+	// RowsData is a convenience field for key-value row data.
+	// Map keys must match Column IDs. When set, RowsData takes
+	// precedence over Rows. If Columns is empty, column
+	// definitions are auto-generated from sorted keys of the
+	// first map entry (default width 150px).
+	RowsData            []map[string]string
+	Rows                []GridRow
+	FrozenTopRowIDs     []string
+	PageLimit           int
+	PageSize            int
+	PageIndex           int
+	QuickFilterDebounce time.Duration
+	PaddingCell         Opt[Padding]
+	PaddingHeader       Opt[Padding]
+	PaddingFilter       Opt[Padding]
+	Radius              Opt[float32]
+	SizeBorder          Opt[float32]
+	IDFocus             uint32
+	IDScroll            uint32
+	RowHeight           float32
+	HeaderHeight        float32
+	Width               float32
+	Height              float32
+	MinWidth            float32
+	MaxWidth            float32
+	MinHeight           float32
+	MaxHeight           float32
+	ColorBackground     Color
+	ColorHeader         Color
+	ColorHeaderHover    Color
+	ColorFilter         Color
+	ColorQuickFilter    Color
+	ColorRowHover       Color
+	ColorRowAlt         Color
+	ColorRowSelected    Color
+	ColorBorder         Color
+	ColorResizeHandle   Color
+	ColorResizeActive   Color
+	Sizing              Opt[Sizing]
+	PaginationKind      GridPaginationKind
+	Loading             bool
+	ShowCRUDToolbar     bool
+	FreezeHeader        bool
+	ShowFilterRow       bool
+	ShowQuickFilter     bool
+	ShowColumnChooser   bool
+	Scrollbar           ScrollbarOverflow
+	Disabled            bool
+	Invisible           bool
 }
 
 // boolDefault returns *p if non-nil, else def.
@@ -445,6 +477,19 @@ type dataGridCtx struct {
 func (w *Window) DataGrid(cfg DataGridCfg) View {
 	requireID("DataGrid", cfg.ID)
 	applyDataGridDefaults(&cfg)
+	if len(cfg.RowsData) > 0 && cfg.DataSource == nil {
+		n := min(len(cfg.RowsData), maxDataConvLen)
+		// Auto-generate columns from sorted keys of first row
+		// when Columns is empty.
+		if len(cfg.Columns) == 0 && len(cfg.RowsData[0]) > 0 {
+			cfg.Columns = dataGridColumnsFromMap(cfg.RowsData[0])
+		}
+		cfg.Rows = make([]GridRow, n)
+		for i := range n {
+			cfg.Rows[i] = GridRow{ID: strconv.Itoa(i),
+				Cells: cfg.RowsData[i]}
+		}
+	}
 
 	// Resolve data source and apply pending jump/selection.
 	resolvedCfg, sourceState, hasSource, sourceCaps := dataGridResolveSourceCfg(cfg, w)

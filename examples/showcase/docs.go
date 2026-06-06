@@ -1475,11 +1475,26 @@ gui.RadioButtonGroupRow(gui.RadioButtonGroupCfg{
 })
 ` + "```" + `
 
+## Stdlib Data Binding
+
+Use ` + "`Items []string`" + ` when label equals value:
+
+` + "```go" + `
+gui.RadioButtonGroupColumn(gui.RadioButtonGroupCfg{
+    Value:   "go",
+    Items:   []string{"go", "rust", "zig"},
+    OnSelect: func(v string, w *gui.Window) { ... },
+})
+` + "```" + `
+
+When ` + "`Items`" + ` is set, ` + "`Options`" + ` is ignored.
+
 ## Key Properties
 
 | Property  | Type            | Description                          |
 |-----------|-----------------|--------------------------------------|
 | Value     | string          | Currently selected value             |
+| Items     | []string        | Simple string list (alt. to Options) |
 | Options   | []RadioOption   | Available choices (Label + Value)    |
 | Title     | string          | Group-box label                      |
 | TitleBG   | Color           | Border-eraser background for title   |
@@ -1520,6 +1535,9 @@ gui.RadioButtonGroupRow(gui.RadioButtonGroupCfg{
 
 	"select": `Dropdown selector with single or multi-select. Options
 prefixed with "---" render as subheadings.
+
+Select already accepts ` + "`[]string`" + ` directly via the
+` + "`Options`" + ` field — the zero-configuration path.
 
 ## Usage
 
@@ -1646,11 +1664,28 @@ gui.ListBox(gui.ListBoxCfg{
 })
 ` + "```" + `
 
+## Stdlib Data Binding
+
+Use ` + "`Items []string`" + ` instead of ` + "`Data`" + ` for simple lists:
+
+` + "```go" + `
+gui.ListBox(gui.ListBoxCfg{
+    ID:    "simple",
+    Items: []string{"Go", "Rust", "Zig"},
+    OnSelect: func(ids []string, _ *gui.Event, w *gui.Window) {
+        gui.State[App](w).Selected = ids
+    },
+})
+` + "```" + `
+
+When ` + "`Items`" + ` is set, ` + "`Data`" + ` is ignored.
+
 ## Key Properties
 
 | Property    | Type             | Description                          |
 |-------------|------------------|--------------------------------------|
 | SelectedIDs | []string         | Selected item IDs                    |
+| Items       | []string         | Simple string list (alt. to Data)    |
 | Data        | []ListBoxOption  | Items (ID, Name, Value, IsSubhead)   |
 | Multiple    | bool             | Allow multi-select                   |
 | Height      | float32          | Fixed height (enables virtualization)|
@@ -1696,6 +1731,9 @@ gui.ListBox(gui.ListBoxCfg{
 
 	"combobox": `Editable dropdown with type-ahead filtering. Typing
 narrows the options list; selecting an option commits the value.
+
+Combobox already accepts ` + "`[]string`" + ` directly via the
+` + "`Options`" + ` field.
 
 ## Usage
 
@@ -1915,6 +1953,23 @@ cfg.IDScroll  = 100
 cfg.MaxHeight = 260
 ` + "```" + `
 
+## Stdlib Data Binding
+
+Set ` + "`RawData`" + ` for CSV-style string data. First row is the header:
+
+` + "```go" + `
+w.Table(gui.TableCfg{
+    ID: "simple-table",
+    RawData: [][]string{
+        {"Name", "Age"},
+        {"Alice", "30"},
+        {"Bob",   "25"},
+    },
+})
+` + "```" + `
+
+When ` + "`RawData`" + ` is set, ` + "`Data`" + ` is ignored.
+
 ## Border Styles
 
 | Constant             | Description                        |
@@ -1928,6 +1983,7 @@ cfg.MaxHeight = 260
 
 | Property           | Type              | Description                          |
 |--------------------|-------------------|--------------------------------------|
+| RawData            | [][]string        | CSV-style data (alt. to Data)        |
 | Data               | []TableRowCfg     | Row data with cells                  |
 | ColumnAlignments   | []HorizontalAlign | Per-column alignment                 |
 | ColumnWidthDefault | float32           | Default column width                 |
@@ -2010,6 +2066,25 @@ w.DataGrid(gui.DataGridCfg{
 })
 ` + "```" + `
 
+## Stdlib Data Binding
+
+Use ` + "`RowsData []map[string]string`" + ` for key-value data.
+When ` + "`Columns`" + ` is empty, columns are auto-generated from the
+first row's keys:
+
+` + "```go" + `
+w.DataGrid(gui.DataGridCfg{
+    ID: "simple-grid",
+    RowsData: []map[string]string{
+        {"name": "Alice", "age": "30"},
+        {"name": "Bob",   "age": "25"},
+    },
+})
+` + "```" + `
+
+When ` + "`RowsData`" + ` is set, ` + "`Rows`" + ` is ignored.
+` + "`DataSource`" + ` still wins over ` + "`RowsData`" + `.
+
 ## Virtualization
 
 Automatically virtualizes when ` + "`Height`" + ` or ` + "`MaxHeight > 0`" + `. A scroll
@@ -2029,6 +2104,7 @@ w.DataGrid(gui.DataGridCfg{
 |------------------------|--------------------|--------------------------------------|
 | Columns                | []GridColumnCfg    | Column definitions                   |
 | ColumnOrder            | []string           | Column display order by ID           |
+| RowsData               | []map[string]string | Key-value row data (alt. to Rows)    |
 | Rows                   | []GridRow          | Static row data                      |
 | DataSource             | DataGridDataSource | Async data backend                   |
 | PaginationKind         | GridPaginationKind | Cursor or offset pagination          |
@@ -5408,10 +5484,26 @@ The main usage example above shows the required configuration.
 
 ` + "`Up`" + ` / ` + "`Down`" + ` / ` + "`Left`" + ` (collapse) / ` + "`Right`" + ` (expand) / ` + "`Home`" + ` / ` + "`End`" + ` / ` + "`Enter`" + ` / ` + "`Space`" + `
 
+## Stdlib Data Binding
+
+Use ` + "`ItemPaths []string`" + ` for flat path strings. Slash-separated
+paths auto-expand into nested nodes:
+
+` + "```go" + `
+gui.Tree(gui.TreeCfg{
+    ID:        "simple-tree",
+    ItemPaths: []string{"src/main.go", "src/lib.go", "docs/readme.md"},
+    OnSelect: func(nodeID string, _ *gui.Event, w *gui.Window) { ... },
+})
+` + "```" + `
+
+When ` + "`ItemPaths`" + ` is set, ` + "`Nodes`" + ` is ignored.
+
 ## Key Properties
 
 | Property    | Type            | Description                          |
 |-------------|-----------------|--------------------------------------|
+| ItemPaths   | []string        | Flat slash-separated paths (alt.)    |
 | Nodes       | []TreeNodeCfg   | Root-level tree nodes                |
 | Indent      | float32         | Indent per nesting level             |
 | Spacing     | float32         | Vertical spacing between rows        |

@@ -565,3 +565,86 @@ func TestDataGridInvisiblePropagates(t *testing.T) {
 		t.Error("invisible should be overdraw")
 	}
 }
+
+func TestDataGridRowsData(t *testing.T) {
+	w := newTestWindow()
+	v := w.DataGrid(DataGridCfg{
+		ID: "dg-rowsdata",
+		RowsData: []map[string]string{
+			{"name": "Alice", "age": "30"},
+			{"name": "Bob", "age": "25"},
+		},
+	})
+	layout := GenerateViewLayout(v, w)
+	if len(layout.Children) == 0 {
+		t.Fatal("expected children")
+	}
+}
+
+func TestDataGridRowsDataAutoColumns(t *testing.T) {
+	w := newTestWindow()
+	v := w.DataGrid(DataGridCfg{
+		ID:       "dg-autocol",
+		PageSize: 10,
+		RowsData: []map[string]string{
+			{"name": "Alice", "age": "30"},
+		},
+	})
+	layout := GenerateViewLayout(v, w)
+	if len(layout.Children) == 0 {
+		t.Fatal("expected children")
+	}
+}
+
+func TestDataGridRowsDataPrecedence(t *testing.T) {
+	// RowsData takes precedence over Rows. DataSource still
+	// wins over both.
+	w := newTestWindow()
+	v := w.DataGrid(DataGridCfg{
+		ID: "dg-prec",
+		RowsData: []map[string]string{
+			{"col": "value"},
+		},
+		Rows: []GridRow{{ID: "ignored", Cells: map[string]string{"x": "y"}}},
+	})
+	layout := GenerateViewLayout(v, w)
+	if len(layout.Children) == 0 {
+		t.Fatal("expected children")
+	}
+}
+
+func TestDataGridRowsDataDataSourceWins(t *testing.T) {
+	// DataSource takes precedence over RowsData.
+	ds := NewInMemoryDataSource([]GridRow{
+		{ID: "ds1", Cells: map[string]string{"name": "FromDS"}},
+	})
+	w := newTestWindow()
+	v := w.DataGrid(DataGridCfg{
+		ID:         "dg-ds-wins",
+		Columns:    []GridColumnCfg{{ID: "name", Title: "Name"}},
+		DataSource: ds,
+		RowsData: []map[string]string{
+			{"name": "FromRowsData"},
+		},
+	})
+	layout := GenerateViewLayout(v, w)
+	if len(layout.Children) == 0 {
+		t.Fatal("expected children from DataSource")
+	}
+}
+
+func TestDataGridRowsDataEmptyFirstRow(t *testing.T) {
+	w := newTestWindow()
+	v := w.DataGrid(DataGridCfg{
+		ID: "dg-empty-first",
+		RowsData: []map[string]string{
+			{},
+		},
+	})
+	layout := GenerateViewLayout(v, w)
+	// Empty first-row map means no auto-generated columns,
+	// but a row should still be created.
+	if len(layout.Children) == 0 {
+		t.Fatal("expected children (empty-first-row)")
+	}
+}

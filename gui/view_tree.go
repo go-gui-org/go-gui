@@ -1,5 +1,10 @@
 package gui
 
+import (
+	"sort"
+	"strings"
+)
+
 const treeLoadingSuffix = ".__loading__"
 
 // TreeCfg configures a tree view.
@@ -14,6 +19,11 @@ type TreeCfg struct {
 	A11YLabel       string
 	A11YDescription string
 
+	// ItemPaths is a convenience field for flat path strings. Each
+	// string is slash-separated ("a/b/c") and auto-expanded into
+	// nested TreeNodeCfg nodes. Duplicate path prefixes are merged.
+	// When set, ItemPaths takes precedence over Nodes.
+	ItemPaths  []string
 	Nodes      []TreeNodeCfg
 	Padding    Opt[Padding]
 	SizeBorder Opt[float32]
@@ -74,10 +84,73 @@ type treeFlatRow struct {
 	IsLoading       bool
 }
 
+// itemPathsToNodes converts slash-separated path strings
+// ("a/b/c") into nested TreeNodeCfg nodes. Duplicate path
+// prefixes are merged. ID is the full path, Text is the
+// last segment.
+func itemPathsToNodes(paths []string) []TreeNodeCfg {
+	const maxDepth = 100 // safety cap on path nesting
+
+	type nodeEntry struct {
+		node     *TreeNodeCfg
+		children map[string]*nodeEntry
+	}
+	root := &nodeEntry{children: make(map[string]*nodeEntry)}
+	n := min(len(paths), maxDataConvLen)
+	for _, p := range paths[:n] {
+		parts := strings.Split(p, "/")
+		cur := root
+		depth := 0
+		for _, part := range parts {
+			if part == "" {
+				continue
+			}
+			if depth >= maxDepth {
+				break
+			}
+			depth++
+			child, ok := cur.children[part]
+			if !ok {
+				child = &nodeEntry{
+					node:     &TreeNodeCfg{Text: part},
+					children: make(map[string]*nodeEntry),
+				}
+				cur.children[part] = child
+			}
+			cur = child
+		}
+	}
+	// Materialize into slice, assigning full-path IDs.
+	var build func(entry *nodeEntry, prefix string) []TreeNodeCfg
+	build = func(entry *nodeEntry, prefix string) []TreeNodeCfg {
+		var nodes []TreeNodeCfg
+		keys := make([]string, 0, len(entry.children))
+		for k := range entry.children {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			child := entry.children[k]
+			fullPath := k
+			if prefix != "" {
+				fullPath = prefix + "/" + k
+			}
+			child.node.ID = fullPath
+			child.node.Nodes = build(child, fullPath)
+			nodes = append(nodes, *child.node)
+		}
+		return nodes
+	}
+	return build(root, "")
+}
+
 // Tree creates a tree view with optional virtualization and lazy loading.
 func Tree(cfg TreeCfg) View {
 	requireID("Tree", cfg.ID)
 	applyTreeDefaults(&cfg)
+	if len(cfg.ItemPaths) > 0 {
+		cfg.Nodes = itemPathsToNodes(cfg.ItemPaths)
+	}
 	return &treeView{cfg: cfg}
 }
 

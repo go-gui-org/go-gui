@@ -117,6 +117,66 @@ func TestRadioButtonGroupDisabledPropagation(t *testing.T) {
 	}
 }
 
+func TestRadioButtonGroupItems(t *testing.T) {
+	v := RadioButtonGroupColumn(RadioButtonGroupCfg{
+		Value:    "rust",
+		Items:    []string{"go", "rust", "zig"},
+		OnSelect: func(_ string, _ *Window) {},
+	})
+	kids := v.Content()
+	if len(kids) != 3 {
+		t.Fatalf("children = %d, want 3", len(kids))
+	}
+}
+
+func TestRadioButtonGroupItemsPrecedence(t *testing.T) {
+	// Items should take precedence over Options.
+	v := RadioButtonGroupColumn(RadioButtonGroupCfg{
+		Value: "b",
+		Items: []string{"a", "b"},
+		Options: []RadioOption{
+			{Label: "Ignored", Value: "ignored"},
+		},
+		OnSelect: func(_ string, _ *Window) {},
+	})
+	kids := v.Content()
+	if len(kids) != 2 {
+		t.Fatalf("children = %d, want 2", len(kids))
+	}
+}
+
+func TestRadioButtonGroupItemsOnSelect(t *testing.T) {
+	var selected string
+	v := RadioButtonGroupColumn(RadioButtonGroupCfg{
+		Value: "a",
+		Items: []string{"a", "b"},
+		OnSelect: func(val string, _ *Window) {
+			selected = val
+		},
+	})
+	w := newTestWindow()
+	kids := v.Content()
+	layout := kids[1].GenerateLayout(w)
+	if layout.Shape.HasEvents() && layout.Shape.Events.OnClick != nil {
+		layout.Shape.Events.OnClick(&layout, &Event{}, w)
+	}
+	if selected != "b" {
+		t.Errorf("selected = %q, want b", selected)
+	}
+}
+
+func TestRadioButtonGroupRowItems(t *testing.T) {
+	v := RadioButtonGroupRow(RadioButtonGroupCfg{
+		Value:    "go",
+		Items:    []string{"go", "rust", "zig"},
+		OnSelect: func(_ string, _ *Window) {},
+	})
+	kids := v.Content()
+	if len(kids) != 3 {
+		t.Fatalf("children = %d, want 3", len(kids))
+	}
+}
+
 func TestNewRadioOption(t *testing.T) {
 	opt := NewRadioOption("Go", "go")
 	if opt.Label != "Go" || opt.Value != "go" {

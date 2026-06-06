@@ -93,6 +93,74 @@ func TestTableBorderHeaderOnly(t *testing.T) {
 	}
 }
 
+func TestTableRawData(t *testing.T) {
+	v := Table(TableCfg{
+		ID: "rawdata-test",
+		RawData: [][]string{
+			{"Name", "Age"},
+			{"Alice", "30"},
+			{"Bob", "25"},
+		},
+	})
+	w := &Window{}
+	layout := GenerateViewLayout(v, w)
+	if len(layout.Children) != 3 {
+		t.Fatalf("rows = %d, want 3", len(layout.Children))
+	}
+}
+
+func TestTableRawDataPrecedence(t *testing.T) {
+	// RawData should take precedence over Data.
+	v := Table(TableCfg{
+		ID: "rawdata-prec",
+		RawData: [][]string{
+			{"Header"},
+			{"Real"},
+		},
+		Data: []TableRowCfg{
+			TR([]TableCellCfg{TD("ignored")}),
+		},
+	})
+	w := &Window{}
+	layout := GenerateViewLayout(v, w)
+	if len(layout.Children) != 2 {
+		t.Fatalf("rows = %d, want 2 (RawData)",
+			len(layout.Children))
+	}
+}
+
+func TestTableRawDataHeaderRow(t *testing.T) {
+	// RawData first row is treated as header, stored via
+	// TableCfgFromData which sets HeadCell.
+	v := Table(TableCfg{
+		ID: "rawdata-header",
+		RawData: [][]string{
+			{"Name"},
+			{"Alice"},
+		},
+	})
+	w := &Window{}
+	layout := GenerateViewLayout(v, w)
+	if len(layout.Children) != 2 {
+		t.Fatalf("rows = %d, want 2", len(layout.Children))
+	}
+}
+
+func TestTableRawDataHeaderOnly(t *testing.T) {
+	// Single-row RawData: only a header row, no data rows.
+	v := Table(TableCfg{
+		ID: "rawdata-header-only",
+		RawData: [][]string{
+			{"Col1", "Col2"},
+		},
+	})
+	w := &Window{}
+	layout := GenerateViewLayout(v, w)
+	if len(layout.Children) != 1 {
+		t.Fatalf("rows = %d, want 1 (header-only)", len(layout.Children))
+	}
+}
+
 func TestTableCfgFromData(t *testing.T) {
 	data := [][]string{
 		{"Name", "Age"},

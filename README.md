@@ -405,6 +405,71 @@ gui.Input(gui.InputCfg{
 })
 ```
 
+### Stdlib Data Binding
+
+Data widgets accept Go stdlib types via convenience fields. This is the
+zero-configuration path:
+
+| Widget              | Field        | Type                    | Replaces          |
+| ------------------- | ------------ | ----------------------- | ----------------- |
+| Select, Combobox    | `Options`    | `[]string`              | _(already stdlib)_|
+| ListBox             | `Items`      | `[]string`              | `Data`            |
+| RadioButtonGroup    | `Items`      | `[]string`              | `Options`         |
+| Table               | `RawData`    | `[][]string`            | `Data`            |
+| Tree                | `ItemPaths`  | `[]string`              | `Nodes`           |
+| DataGrid            | `RowsData`   | `[]map[string]string`   | `Rows`            |
+
+When both the stdlib field and the typed struct field are set, the stdlib
+field takes precedence. Use the typed field when you need IDs different
+from display text, per-row styling, lazy loading, or custom cell editors.
+
+**ListBox — simple string list**
+
+```go
+gui.ListBox(gui.ListBoxCfg{
+    ID:    "langs",
+    Items: []string{"Go", "Rust", "Zig"},
+    OnSelect: func(ids []string, _ *gui.Event, w *gui.Window) {
+        gui.State[App](w).Selected = ids
+    },
+})
+```
+
+**Table — CSV-style data**
+
+```go
+w.Table(gui.TableCfg{
+    ID: "simple-table",
+    RawData: [][]string{
+        {"Name", "Age"},
+        {"Alice", "30"},
+        {"Bob",   "25"},
+    },
+})
+```
+
+**Tree — flat path strings**
+
+```go
+gui.Tree(gui.TreeCfg{
+    ID:        "project",
+    ItemPaths: []string{"src/main.go", "src/lib.go", "docs/readme.md"},
+    OnSelect: func(id string, _ *gui.Event, w *gui.Window) { ... },
+})
+```
+
+**DataGrid — key-value maps**
+
+```go
+w.DataGrid(gui.DataGridCfg{
+    ID: "simple-grid",
+    RowsData: []map[string]string{
+        {"name": "Alice", "age": "30"},
+        {"name": "Bob",   "age": "25"},
+    },
+})
+```
+
 ### Example Apps
 
 35 example applications ship with the framework:
