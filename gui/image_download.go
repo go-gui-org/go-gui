@@ -13,11 +13,6 @@ import (
 	"time"
 )
 
-// Version is the go-gui release tag. Used in the default image
-// fetcher's User-Agent so remote tile/image providers can identify
-// traffic from this framework.
-const Version = "v0.12.5"
-
 // ImageFetcher is the signature of a function that fetches a remote
 // image. Implementations typically set a descriptive User-Agent, add
 // auth headers, or route through a shared http.Client. Must be safe

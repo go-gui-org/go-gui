@@ -1,0 +1,153 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    name: Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: go-gui
+
+      - uses: actions/checkout@v4
+        with:
+          repository: go-gui-org/go-glyph
+          path: go-glyph
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libx11-dev libxext-dev libxcursor-dev libxinerama-dev \
+            libxi-dev libxrandr-dev libxfixes-dev libxkbcommon-dev \
+            libwayland-dev libdbus-1-dev libpulse-dev libasound2-dev
+
+      - name: Add go-glyph replace
+        working-directory: go-gui
+        run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
+
+      - name: Build showcase
+        working-directory: go-gui
+        run: make build-linux
+
+      - name: Verify static linking
+        working-directory: go-gui
+        run: |
+          if ldd build/showcase-linux 2>&1 | grep -q libSDL2; then
+            echo "FAIL: binary references dynamic SDL2"; exit 1
+          fi
+          echo "OK: no dynamic SDL2 references"
+
+      - name: Package
+        working-directory: go-gui
+        run: |
+          VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+          tar czf "go-gui-showcase-${VERSION}-linux-amd64.tar.gz" \
+            -C build showcase-linux
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: go-gui/go-gui-showcase-*.tar.gz
+
+  macos:
+    name: macOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: go-gui
+
+      - uses: actions/checkout@v4
+        with:
+          repository: go-gui-org/go-glyph
+          path: go-glyph
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Add go-glyph replace
+        working-directory: go-gui
+        run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
+
+      - name: Build showcase
+        working-directory: go-gui
+        run: make build-macos
+
+      - name: Package
+        working-directory: go-gui
+        run: |
+          VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+          go run ./cmd/buildapp -version "${VERSION#v}" \
+            -name "Go-Gui Showcase" build/showcase-macos
+          hdiutil create -srcfolder "Go-Gui Showcase.app" \
+            -volname "Go-Gui Showcase ${VERSION}" \
+            -format UDZO "Go-Gui-Showcase-${VERSION}.dmg"
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: go-gui/Go-Gui-Showcase-*.dmg
+
+  windows:
+    name: Windows
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: go-gui
+
+      - uses: actions/checkout@v4
+        with:
+          repository: go-gui-org/go-glyph
+          path: go-glyph
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: false
+          path-type: inherit
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-pkg-config
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Add go-glyph replace
+        working-directory: go-gui
+        run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
+
+      - name: Build showcase
+        working-directory: go-gui
+        run: make build-windows CC_WINDOWS=gcc
+
+      - name: Package
+        working-directory: go-gui
+        run: |
+          VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+          zip "go-gui-showcase-${VERSION}-windows-amd64.zip" \
+            build/showcase-windows.exe
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: go-gui/go-gui-showcase-*.zip

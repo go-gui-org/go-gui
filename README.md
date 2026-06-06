@@ -644,6 +644,30 @@ go build ./...
 
 ---
 
+## Building the Showcase
+
+The root `Makefile` builds standalone showcase binaries for each platform.
+
+| Target | Output | Command |
+| ------ | ------ | ------- |
+| `make build-linux` | `build/showcase-linux` | `go build -tags static` |
+| `make build-macos` | `build/showcase-macos` | `go build` |
+| `make build-windows` | `build/showcase-windows.exe` | `go build -tags static` (cross-compile) |
+| `make build-wasm` | `build/showcase.wasm` | `GOOS=js GOARCH=wasm go build` |
+| `make release` | `.tar.gz`, `.dmg`, `.zip` | All of the above + packaging |
+
+**Linux and Windows** use `-tags static` which activates go-sdl2's bundled
+pre-compiled static libraries. No SDL2 installation required — a single
+`go build -tags static ./examples/showcase/` produces a self-contained
+binary.
+
+**Windows cross-compilation** requires `mingw-w64`. On Windows (MSYS2),
+use `make build-windows CC_WINDOWS=gcc`.
+
+Version and commit are injected from git tags via `-ldflags`.
+
+---
+
 ## Contributing
 
 1. Install **Go 1.26+** and SDL2 development libraries (see

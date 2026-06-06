@@ -30,7 +30,7 @@ func main() {
 
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  newShowcaseApp(),
-		Title:  "Gui Showcase",
+		Title:  "Gui Showcase " + gui.Version,
 		Width:  950,
 		Height: 700,
 		OnInit: func(w *gui.Window) {
