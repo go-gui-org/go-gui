@@ -1,0 +1,36 @@
+name: Deploy Showcase
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'examples/showcase/**'
+      - 'gui/**'
+      - '.github/workflows/deploy-showcase.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Build WASM
+        run: |
+          cd examples/showcase
+          GOOS=js GOARCH=wasm go build \
+            -ldflags "-X github.com/go-gui-org/go-gui/gui.Version=$(git describe --tags --always --dirty)" \
+            -o main.wasm .
+          cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" .
+
+      - name: Deploy to org website
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          personal_token: ${{ secrets.WEBSITE_DEPLOY_TOKEN }}
+          external_repository: go-gui-org/go-gui-org.github.io
+          publish_dir: ./examples/showcase
+          destination_dir: showcase
+          exclude_assets: '.gitignore,Makefile,*.go,docs/,assets/,locales/'
