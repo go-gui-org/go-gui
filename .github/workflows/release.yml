@@ -137,6 +137,7 @@ jobs:
             mingw-w64-x86_64-SDL2_mixer
             mingw-w64-x86_64-SDL2_ttf
             mingw-w64-x86_64-SDL2_image
+            zip
 
       - uses: actions/setup-go@v5
         with:
