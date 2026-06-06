@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.24.6] - 2026-06-06
+
+### Changed
+
+- Update roadmap platform table to reflect final build approaches.
+
+## [v0.24.5] - 2026-06-06
+
+### Added
+
+- Windows showcase binary (.zip with bundled SDL2 DLLs) published to GitHub
+  Releases.
+
+### Fixed
+
+- Release workflow upload race (first-completed job published release before
+  other jobs could attach assets). Restructured to build→artifact→publish
+  pipeline.
+- macOS release CI (`brew install sdl2 sdl2_mixer sdl2_ttf sdl2_image`,
+  `-bundle-deps` for self-contained .app).
+- Linux release CI (added freetype6/harfbuzz/pango dev packages for go-glyph
+  CGo compilation).
+- Windows release CI (switched from go-sdl2 static libs to MSYS2 SDL2 packages
+  to resolve MinGW `__ms_vsscanf` linker incompatibility).
+
 ## [v0.24.0] - 2026-06-06
 
 ### Added
