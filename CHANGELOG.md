@@ -5,6 +5,83 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.24.0] - 2026-06-06
+
+### Added
+
+- WASM showcase deployed to GitHub Pages at
+  `https://go-gui-org.github.io/showcase/` with loading spinner and download
+  progress indicator.
+- Desktop binaries (macOS `.dmg`, Linux `.tar.gz`, Windows `.zip`) built and
+  published as GitHub Release artifacts on `v*` tags.
+
+### Changed
+
+- Release workflow now builds all four platforms (macOS, Linux, Windows, WASM)
+  and uploads artifacts to the GitHub Release.
+
+## [v0.23.0] - 2026-06-06
+
+### Added
+
+- `ListBoxCfg.Items []string` — convenience field; each string becomes a
+  `ListBoxOption` with `ID==Name==Value`.
+- `RadioButtonGroupCfg.Items []string` — convenience field; each string
+  becomes a `RadioOption` with `Label==Value`.
+- `TableCfg.RawData [][]string` — convenience field for CSV-style data.
+  First row is treated as the header.
+- `TreeCfg.ItemPaths []string` — convenience field for flat path strings
+  (`"a/b/c"`), auto-expanded into nested `TreeNodeCfg` nodes with
+  duplicate prefix merging.
+- `DataGridCfg.RowsData []map[string]string` — convenience field for
+  key-value row data. Map keys match column IDs. Columns are
+  auto-generated from sorted keys of the first entry when `Columns`
+  is empty.
+
+### Changed
+
+- When both the stdlib convenience field and the typed struct field are
+  set, the stdlib field takes precedence.
+
+## [v0.22.0] - 2026-06-05
+
+### Added
+
+- Single-binary deploy on Linux and Windows via `go-sdl2 -tags static`,
+  eliminating the `libSDL2.so` / `SDL2.dll` runtime dependency.
+- Root `Makefile` with `build-linux`, `build-windows`, `build-macos`,
+  `build-wasm`, `release`, and `clean` targets.
+- `gui.Version` and `gui.Commit` build-time variables injected via
+  `-ldflags`.
+- CI release workflow (`.github/workflows/release.yml`) triggered on `v*`
+  tags and `workflow_dispatch`, building all desktop platforms.
+
+## [v0.21.1] - 2026-05-30
+
+### Fixed
+
+- Hunspell spellcheck is now opt-in via `-tags hunspell` build tag on
+  Linux, avoiding a hard runtime dependency on `libhunspell`.
+
+### Changed
+
+- Remove local `replace` directive for `go-glyph` — the module now
+  consumes upstream `go-glyph` directly.
+- Add Dependabot config for `go-glyph` dependency updates.
+
+## [v0.21.0] - 2026-05-28
+
+### Changed
+
+- Module path renamed from `github.com/mike-ward/go-gui` to
+  `github.com/go-gui-org/go-gui`.
+- `go-glyph` dependency bumped to v1.9.0.
+- Repository moved to `go-gui-org` GitHub organization.
+
+### Added
+
+- Benchmark and inspector screenshots in README.
+
 ## [v0.20.2] - 2026-05-24
 
 ### Changed

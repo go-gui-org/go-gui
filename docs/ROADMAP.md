@@ -157,7 +157,7 @@ make build-macos && ls build/*.app build/*.dmg  # bundle + disk image
 
 ---
 
-## Initiative 2: Stdlib Type Binding — v0.23
+## Initiative 2: Stdlib Type Binding — v0.23 ✅ (done)
 
 **Problem:** Most widgets require manual conversion from Go application
 data to widget-specific structs. A `[]string` needs a loop to become
@@ -303,7 +303,7 @@ is set.
 
 ---
 
-## Initiative 3: Downloadable Showcase Binaries — v0.24
+## Initiative 3: Downloadable Showcase Binaries — v0.24 ✅ (done)
 
 **Problem:** There is no way to try go-gui without cloning the repo and
 installing SDL2. No pre-built binaries, no live demo, no download links.
@@ -476,16 +476,16 @@ v0.22 (Single-Binary Deploy) ✅
   ├── Version injection
   └── CI release workflow
         │
-        ├── unblocks ── v0.24 (Showcase Binaries)
+        ├── unblocks ── v0.24 (Showcase Binaries) ✅
         │                 ├── macOS .dmg
         │                 ├── Linux .tar.gz
-        │                 └── Windows .zip
+        │                 ├── Windows .zip
+        │                 └── WASM on GitHub Pages
         │
-        └── parallel with ── v0.23 (Stdlib Binding)
-                              ├── Selection widgets
+        └── parallel with ── v0.23 (Stdlib Binding) ✅
+                              ├── ListBox / RadioButtonGroup Items
                               ├── Table RawData
                               ├── Tree ItemPaths
                               └── DataGrid RowsData
-
-v0.24 WASM sub-item — independent of everything, can ship any time.
 ```
+
