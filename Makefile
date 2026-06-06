@@ -19,7 +19,8 @@ build-windows:
 	  -o build/showcase-windows.exe ./examples/showcase/
 
 build-macos:
-	go build -ldflags "$(LDFLAGS)" \
+	CGO_ENABLED=1 \
+	go build -tags $(STATIC_TAG) -ldflags "$(LDFLAGS)" \
 	  -o build/showcase-macos ./examples/showcase/
 
 build-wasm:
