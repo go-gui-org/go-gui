@@ -133,6 +133,10 @@ jobs:
           install: >-
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-pkg-config
+            mingw-w64-x86_64-SDL2
+            mingw-w64-x86_64-SDL2_mixer
+            mingw-w64-x86_64-SDL2_ttf
+            mingw-w64-x86_64-SDL2_image
 
       - uses: actions/setup-go@v5
         with:
@@ -144,14 +148,28 @@ jobs:
 
       - name: Build showcase
         working-directory: go-gui
-        run: make build-windows CC_WINDOWS=gcc
+        run: |
+          VERSION=$(git describe --tags --always 2>/dev/null || echo "dev")
+          CGO_ENABLED=1 GOOS=windows GOARCH=amd64 CC=gcc \
+            go build -ldflags \
+              "-X github.com/go-gui-org/go-gui/gui.Version=${VERSION} \
+               -X github.com/go-gui-org/go-gui/gui.Commit=$(git rev-parse --short HEAD)" \
+            -o build/showcase-windows.exe ./examples/showcase/
+
+      - name: Bundle DLLs
+        working-directory: go-gui
+        run: |
+          cp /mingw64/bin/SDL2.dll build/
+          cp /mingw64/bin/SDL2_mixer.dll build/
+          cp /mingw64/bin/SDL2_ttf.dll build/
+          cp /mingw64/bin/SDL2_image.dll build/
 
       - name: Package
         working-directory: go-gui
         run: |
           VERSION=$(git describe --tags --always 2>/dev/null || echo "dev")
           zip "go-gui-showcase-${VERSION}-windows-amd64.zip" \
-            build/showcase-windows.exe
+            build/showcase-windows.exe build/*.dll
 
       - uses: actions/upload-artifact@v4
         with:
@@ -160,7 +178,7 @@ jobs:
 
   publish:
     name: Publish Release
-    needs: [linux, macos]
+    needs: [linux, macos, windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
