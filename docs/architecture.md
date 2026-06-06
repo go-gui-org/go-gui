@@ -163,7 +163,7 @@ entire UI from the view function.
 
 ```
 go-gui/
-├── gui/                          ← core (~365 files)
+├── gui/                          ← core (~640 files)
 │   ├── view*.go                  ← View interface, GenerateViewLayout
 │   ├── layout*.go                ← Layout tree, arrange, query
 │   ├── shape*.go                 ← Shape type + ShapeTextConfig
@@ -190,7 +190,7 @@ go-gui/
 │       ├── spellcheck/           ← Spell checking
 │       ├── internal/             ← Shared backend internals
 │       └── test/                 ← Headless no-op backend
-└── examples/                     ← 40 example apps
+└── examples/                     ← 52 example apps
     ├── get_started/
     ├── showcase/
     ├── calculator/
