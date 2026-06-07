@@ -103,6 +103,7 @@ jobs:
           hdiutil create -srcfolder "Go-Gui Showcase.app" \
             -volname "Go-Gui Showcase ${VERSION}" \
             -format UDZO "Go-Gui-Showcase-${VERSION}.dmg"
+          codesign -s - --force "Go-Gui-Showcase-${VERSION}.dmg"
 
       - uses: actions/upload-artifact@v4
         with:

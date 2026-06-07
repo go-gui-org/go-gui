@@ -127,6 +127,13 @@ func build(o bundleOpts) error {
 		}
 	}
 
+	// Sign the entire .app bundle (ad-hoc).  Without a bundle-level
+	// signature macOS Gatekeeper reports the app as damaged even when
+	// individual binaries inside are signed.
+	if err = signBundle(appDir); err != nil {
+		return fmt.Errorf("sign bundle: %w", err)
+	}
+
 	if err = os.MkdirAll(o.OutDir, 0o755); err != nil {
 		return err
 	}
@@ -367,6 +374,20 @@ func otoolDeps(path string) ([]string, error) {
 		deps = append(deps, ln)
 	}
 	return deps, nil
+}
+
+// signBundle ad-hoc signs the entire .app bundle.  A missing
+// bundle-level signature causes Gatekeeper to report the app as
+// "damaged" even when every binary inside is individually signed.
+func signBundle(appDir string) error {
+	if _, err := exec.LookPath("codesign"); err != nil {
+		return fmt.Errorf("codesign not found")
+	}
+	cmd := exec.Command("codesign", "-s", "-", "--force", "--deep", appDir)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("%v: %s", err, out)
+	}
+	return nil
 }
 
 // isSystemLib reports whether path lives in a macOS-shipped location and
