@@ -245,9 +245,10 @@ jobs:
           # Simulator: runnable .app (no Developer account needed)
           cp -a examples/ios_demo/build/xcode/Build/Products/Debug-iphonesimulator/IOSDemo.app \
             build/ios-simulator/
+          cp examples/ios_demo/ios/IOSDemo/README.md build/ios-simulator/
           cd build && zip "../go-gui-ios-${VERSION}.zip" \
             ios-device/libgoguiapp.a ios-device/ios_app.h \
-            -r ios-simulator/IOSDemo.app
+            -r ios-simulator/IOSDemo.app ios-simulator/README.md
 
   android:
     name: Android
