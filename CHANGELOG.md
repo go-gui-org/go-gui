@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.24.8] - 2026-06-07
+
+### Fixed
+
+- iOS simulator .app artifact missing from GitHub Release (upload step was
+  skipped in the release workflow).
+- Android gomobile bind failing due to missing native dependencies (FreeType,
+  HarfBuzz now built before bind step).
+- Android gomobile bind failing due to missing golang.org/x/mobile tool
+  dependency in release workflow.
+
+### Added
+
+- iOS simulator README bundled in the release artifact zip.
+
 ## [v0.24.6] - 2026-06-06
 
 ### Changed
