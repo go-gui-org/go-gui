@@ -208,22 +208,46 @@ jobs:
             CC="$CC" \
             CGO_CFLAGS="-isysroot $SDK -arch arm64 -miphoneos-version-min=15.0" \
             CGO_LDFLAGS="-isysroot $SDK -arch arm64 -miphoneos-version-min=15.0" \
-            go build -buildmode=c-archive -tags ios -o libgoguiapp.a .
+            go build -buildmode=c-archive -tags ios -o libgoguiapp-device.a .
+
+      - name: Build c-archive (simulator)
+        working-directory: go-gui/examples/ios_demo
+        run: |
+          SDK=$(xcrun --sdk iphonesimulator --show-sdk-path)
+          CC=$(xcrun --sdk iphonesimulator --find clang)
+          CGO_ENABLED=1 GOOS=ios GOARCH=arm64 \
+            CC="$CC" \
+            CGO_CFLAGS="-isysroot $SDK -arch arm64 -mios-simulator-version-min=17.0" \
+            CGO_LDFLAGS="-isysroot $SDK -arch arm64 -mios-simulator-version-min=17.0" \
+            go build -buildmode=c-archive -tags ios -o ios/libgoguiapp.a .
+
+      - name: Build simulator .app
+        working-directory: go-gui/examples/ios_demo
+        run: |
+          xcodebuild -project ios/IOSDemo.xcodeproj \
+            -scheme IOSDemo \
+            -sdk iphonesimulator \
+            -arch arm64 \
+            -derivedDataPath build/xcode \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
 
       - name: Package
         working-directory: go-gui
         run: |
           VERSION=$(git describe --tags --always 2>/dev/null || echo "dev")
-          mkdir -p build/ios
-          cp examples/ios_demo/libgoguiapp.a build/ios/
-          cp gui/backend/ios/ios_app.h build/ios/
+          mkdir -p build/ios-device build/ios-simulator
+          # Device: static library for app developers
+          cp examples/ios_demo/libgoguiapp-device.a build/ios-device/libgoguiapp.a
+          cp gui/backend/ios/ios_app.h build/ios-device/
+          # Simulator: runnable .app (no Developer account needed)
+          cp -a examples/ios_demo/build/xcode/Build/Products/Debug-iphonesimulator/IOSDemo.app \
+            build/ios-simulator/
           cd build && zip "../go-gui-ios-${VERSION}.zip" \
-            ios/libgoguiapp.a ios/ios_app.h
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ios-asset
-          path: go-gui/go-gui-ios-*.zip
+            ios-device/libgoguiapp.a ios-device/ios_app.h \
+            -r ios-simulator/IOSDemo.app
 
   android:
     name: Android

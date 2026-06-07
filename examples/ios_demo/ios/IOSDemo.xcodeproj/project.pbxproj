@@ -15,6 +15,7 @@
 		B1000009 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B200000C; };
 		B100000A /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B200000D; };
 		B100000B /* CoreText.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B200000E; };
+		B100000C /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B200000F; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +29,7 @@
 		B200000C /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		B200000D /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		B200000E /* CoreText.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreText.framework; path = System/Library/Frameworks/CoreText.framework; sourceTree = SDKROOT; };
+		B200000F /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -41,6 +43,7 @@
 				B1000009 /* QuartzCore.framework in Frameworks */,
 				B100000A /* CoreGraphics.framework in Frameworks */,
 				B100000B /* CoreText.framework in Frameworks */,
+			B100000C /* Security.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -57,6 +60,7 @@
 				B200000C /* QuartzCore.framework */,
 				B200000D /* CoreGraphics.framework */,
 				B200000E /* CoreText.framework */,
+				B200000F /* Security.framework */,
 				B4000003 /* Products */,
 			);
 			sourceTree = "<group>";
