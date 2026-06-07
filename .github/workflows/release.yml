@@ -177,9 +177,103 @@ jobs:
           name: windows-asset
           path: go-gui/go-gui-showcase-*.zip
 
+  ios:
+    name: iOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: go-gui
+
+      - uses: actions/checkout@v4
+        with:
+          repository: go-gui-org/go-glyph
+          path: go-glyph
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Add go-glyph replace
+        working-directory: go-gui
+        run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
+
+      - name: Build c-archive (device)
+        working-directory: go-gui/examples/ios_demo
+        run: |
+          SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+          CC=$(xcrun --sdk iphoneos --find clang)
+          CGO_ENABLED=1 GOOS=ios GOARCH=arm64 \
+            CC="$CC" \
+            CGO_CFLAGS="-isysroot $SDK -arch arm64 -miphoneos-version-min=15.0" \
+            CGO_LDFLAGS="-isysroot $SDK -arch arm64 -miphoneos-version-min=15.0" \
+            go build -buildmode=c-archive -tags ios -o libgoguiapp.a .
+
+      - name: Package
+        working-directory: go-gui
+        run: |
+          VERSION=$(git describe --tags --always 2>/dev/null || echo "dev")
+          mkdir -p build/ios
+          cp examples/ios_demo/libgoguiapp.a build/ios/
+          cp gui/backend/ios/ios_app.h build/ios/
+          cd build && zip "../go-gui-ios-${VERSION}.zip" \
+            ios/libgoguiapp.a ios/ios_app.h
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-asset
+          path: go-gui/go-gui-ios-*.zip
+
+  android:
+    name: Android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: go-gui
+
+      - uses: actions/checkout@v4
+        with:
+          repository: go-gui-org/go-glyph
+          path: go-glyph
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Add go-glyph replace
+        working-directory: go-gui
+        run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
+
+      - name: Install gomobile
+        run: |
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          gomobile init -ndk $ANDROID_NDK_ROOT
+
+      - name: Build AAR
+        working-directory: go-gui/examples/android_demo
+        run: |
+          gomobile bind -target=android/arm64 -androidapi 24 \
+            -o gogui.aar .
+
+      - name: Package
+        working-directory: go-gui
+        run: |
+          VERSION=$(git describe --tags --always 2>/dev/null || echo "dev")
+          mkdir -p build/android
+          cp examples/android_demo/gogui.aar build/android/
+          cp examples/android_demo/gogui-sources.jar build/android/ 2>/dev/null || true
+          cd build && zip "../go-gui-android-${VERSION}.zip" \
+            android/gogui.aar android/gogui-sources.jar
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-asset
+          path: go-gui/go-gui-android-*.zip
+
   publish:
     name: Publish Release
-    needs: [linux, macos, windows]
+    needs: [linux, macos, windows, ios, android]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4

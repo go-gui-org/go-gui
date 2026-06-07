@@ -6,7 +6,7 @@ LDFLAGS  = -X github.com/go-gui-org/go-gui/gui.Version=$(VERSION) \
 CC_WINDOWS ?= x86_64-w64-mingw32-gcc
 STATIC_TAG  = static
 
-.PHONY: build-linux build-windows build-macos build-wasm release clean
+.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android release clean
 
 build-linux:
 	CGO_ENABLED=1 \
@@ -27,6 +27,22 @@ build-wasm:
 	go build -ldflags "$(LDFLAGS)" \
 	  -o build/showcase.wasm ./examples/showcase/
 	cp "$$(go env GOROOT)/lib/wasm/wasm_exec.js" build/
+
+build-ios:
+	SDK=$$(xcrun --sdk iphoneos --show-sdk-path); \
+	CC=$$(xcrun --sdk iphoneos --find clang); \
+	cd examples/ios_demo && \
+	CGO_ENABLED=1 GOOS=ios GOARCH=arm64 \
+	  CC="$$CC" \
+	  CGO_CFLAGS="-isysroot $$SDK -arch arm64 -miphoneos-version-min=15.0" \
+	  CGO_LDFLAGS="-isysroot $$SDK -arch arm64 -miphoneos-version-min=15.0" \
+	  go build -buildmode=c-archive -tags ios -o libgoguiapp.a .
+
+build-android:
+	go install golang.org/x/mobile/cmd/gomobile@latest
+	gomobile init
+	cd examples/android_demo && \
+	gomobile bind -target=android/arm64 -androidapi 24 -o gogui.aar .
 
 release: build-linux build-windows build-macos build-wasm
 	tar czf build/go-gui-showcase-$(VERSION)-linux-amd64.tar.gz \
