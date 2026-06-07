@@ -119,17 +119,22 @@ jobs:
         with:
           go-version: stable
 
-      - name: Build
+      - name: Add go-glyph replace
         working-directory: go-gui
+        run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
+
+      - name: Build c-archive
+        working-directory: go-gui/examples/ios_demo
         run: |
           SDK=$(xcrun --sdk iphoneos --show-sdk-path)
-          CGO_ENABLED=1 \
-          GOOS=darwin \
-          GOARCH=arm64 \
-          CC="clang -isysroot $SDK -arch arm64 -miphoneos-version-min=15.0" \
-          go build -tags ios ./gui/backend/ios/...
+          CC=$(xcrun --sdk iphoneos --find clang)
+          CGO_ENABLED=1 GOOS=ios GOARCH=arm64 \
+            CC="$CC" \
+            CGO_CFLAGS="-isysroot $SDK -arch arm64 -miphoneos-version-min=15.0" \
+            CGO_LDFLAGS="-isysroot $SDK -arch arm64 -miphoneos-version-min=15.0" \
+            go build -buildmode=c-archive -tags ios -o /dev/null .
 
-      - name: Vet
+      - name: Vet backend
         working-directory: go-gui
         run: |
           SDK=$(xcrun --sdk iphoneos --show-sdk-path)
@@ -236,15 +241,22 @@ jobs:
         with:
           go-version: stable
 
-      - name: Build
+      - name: Add go-glyph replace
         working-directory: go-gui
-        run: |
-          NDK_CC=$(find $ANDROID_NDK_ROOT -name "aarch64-linux-android*-clang" \
-            | grep -v clang++ | sort | tail -1)
-          CGO_ENABLED=1 GOOS=android GOARCH=arm64 CC=$NDK_CC \
-            go build ./gui/backend/android/...
+        run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
 
-      - name: Vet
+      - name: Install gomobile
+        run: |
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          gomobile init -ndk $ANDROID_NDK_ROOT
+
+      - name: Build AAR
+        working-directory: go-gui/examples/android_demo
+        run: |
+          gomobile bind -target=android/arm64 -androidapi 24 \
+            -o /tmp/gogui.aar .
+
+      - name: Vet backend
         working-directory: go-gui
         run: |
           NDK_CC=$(find $ANDROID_NDK_ROOT -name "aarch64-linux-android*-clang" \
