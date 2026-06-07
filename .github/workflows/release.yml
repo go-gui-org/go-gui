@@ -250,6 +250,11 @@ jobs:
             ios-device/libgoguiapp.a ios-device/ios_app.h \
             -r ios-simulator/IOSDemo.app ios-simulator/README.md
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-asset
+          path: go-gui/go-gui-ios-*.zip
+
   android:
     name: Android
     runs-on: ubuntu-latest
