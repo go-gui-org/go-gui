@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.25.0] - 2026-06-08
+
+### Changed
+
+- Reduce exported API surface (~138 symbols removed) in preparation for v1.0.
+  Numerous internal types, functions, constants, and methods made unexported.
+  **Breaking:** callers importing removed symbols must update to use the
+  remaining public API.
+
 ## [v0.24.8] - 2026-06-07
 
 ### Fixed
