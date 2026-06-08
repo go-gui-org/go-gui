@@ -162,7 +162,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 								Padding: gui.NoPadding,
 								Content: strategyViews,
 							}),
-							gui.Checkbox(gui.ToggleCfg{
+							gui.Toggle(gui.ToggleCfg{
 								ID:       "theme-gen-pick-text",
 								Label:    "Edit text color",
 								Selected: app.ThemeGenPickText,

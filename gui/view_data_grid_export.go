@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -34,11 +32,11 @@ var dataGridXLSXReplacer = strings.NewReplacer(
 	"\t", "&#9;",
 )
 
-// GridDataFromCSV parses CSV data into data-grid columns
+// gridDataFromCSV parses CSV data into data-grid columns
 // and rows. First CSV row becomes column headers.
-func GridDataFromCSV(data string) (GridCsvData, error) {
+func gridDataFromCSV(data string) (gridCsvData, error) {
 	if strings.TrimSpace(data) == "" {
-		return GridCsvData{}, fmt.Errorf("csv data is required")
+		return gridCsvData{}, fmt.Errorf("csv data is required")
 	}
 	source := data
 	if !strings.HasSuffix(source, "\n") {
@@ -48,10 +46,10 @@ func GridDataFromCSV(data string) (GridCsvData, error) {
 	reader.FieldsPerRecord = -1 // variable field count
 	header, err := reader.Read()
 	if err == io.EOF {
-		return GridCsvData{}, fmt.Errorf("csv data contains no rows")
+		return gridCsvData{}, fmt.Errorf("csv data contains no rows")
 	}
 	if err != nil {
-		return GridCsvData{}, fmt.Errorf("failed to parse CSV: %w", err)
+		return gridCsvData{}, fmt.Errorf("failed to parse CSV: %w", err)
 	}
 	maxCols := len(header)
 	columns := dataGridCSVColumns(header, maxCols)
@@ -63,11 +61,11 @@ func GridDataFromCSV(data string) (GridCsvData, error) {
 			break
 		}
 		if readErr != nil {
-			return GridCsvData{}, fmt.Errorf("failed to parse CSV: %w", readErr)
+			return gridCsvData{}, fmt.Errorf("failed to parse CSV: %w", readErr)
 		}
 		if len(fields) > maxCols {
 			if len(fields) > dataGridMaxCSVColumns {
-				return GridCsvData{}, fmt.Errorf(
+				return gridCsvData{}, fmt.Errorf(
 					"csv exceeds max column count (%d)", dataGridMaxCSVColumns)
 			}
 			prevCols := len(columns)
@@ -97,39 +95,39 @@ func GridDataFromCSV(data string) (GridCsvData, error) {
 		nextRowID++
 	}
 	if len(columns) == 0 {
-		return GridCsvData{}, fmt.Errorf("csv header row is empty")
+		return gridCsvData{}, fmt.Errorf("csv header row is empty")
 	}
-	return GridCsvData{Columns: columns, Rows: rows}, nil
+	return gridCsvData{Columns: columns, Rows: rows}, nil
 }
 
-// GridRowsToTSV converts rows to tab-separated text with
+// gridRowsToTSV converts rows to tab-separated text with
 // a header row.
-func GridRowsToTSV(columns []GridColumnCfg, rows []GridRow) string {
-	return GridRowsToTSVWithCfg(columns, rows, GridExportCfg{
+func gridRowsToTSV(columns []GridColumnCfg, rows []GridRow) string {
+	return gridRowsToTSVWithCfg(columns, rows, gridExportCfg{
 		SanitizeSpreadsheetFormulas: true,
 	})
 }
 
-// GridRowsToTSVWithCfg converts rows to tab-separated text.
-func GridRowsToTSVWithCfg(columns []GridColumnCfg, rows []GridRow, exportCfg GridExportCfg) string {
+// gridRowsToTSVWithCfg converts rows to tab-separated text.
+func gridRowsToTSVWithCfg(columns []GridColumnCfg, rows []GridRow, exportCfg gridExportCfg) string {
 	return dataGridRowsToDelimited(columns, rows, exportCfg, "\t", dataGridTSVEscape)
 }
 
-// GridRowsToCSV converts rows to comma-separated text with
+// gridRowsToCSV converts rows to comma-separated text with
 // a header row.
-func GridRowsToCSV(columns []GridColumnCfg, rows []GridRow) string {
-	return GridRowsToCSVWithCfg(columns, rows, GridExportCfg{
+func gridRowsToCSV(columns []GridColumnCfg, rows []GridRow) string {
+	return gridRowsToCSVWithCfg(columns, rows, gridExportCfg{
 		SanitizeSpreadsheetFormulas: true,
 	})
 }
 
-// GridRowsToCSVWithCfg converts rows to comma-separated text.
-func GridRowsToCSVWithCfg(columns []GridColumnCfg, rows []GridRow, exportCfg GridExportCfg) string {
+// gridRowsToCSVWithCfg converts rows to comma-separated text.
+func gridRowsToCSVWithCfg(columns []GridColumnCfg, rows []GridRow, exportCfg gridExportCfg) string {
 	return dataGridRowsToDelimited(columns, rows, exportCfg, ",", dataGridCSVEscape)
 }
 
-// GridRowsToPDF converts rows to a simple PDF table export.
-func GridRowsToPDF(columns []GridColumnCfg, rows []GridRow) string {
+// gridRowsToPDF converts rows to a simple PDF table export.
+func gridRowsToPDF(columns []GridColumnCfg, rows []GridRow) string {
 	if len(columns) == 0 {
 		return ""
 	}
@@ -137,39 +135,16 @@ func GridRowsToPDF(columns []GridColumnCfg, rows []GridRow) string {
 	return dataGridPDFDocument(lines)
 }
 
-// GridRowsToPDFFile writes a PDF export to the given path.
-// Callers must not pass untrusted paths.
-func GridRowsToPDFFile(path string, columns []GridColumnCfg, rows []GridRow) error {
-	target := filepath.Clean(strings.TrimSpace(path))
-	if target == "" || target == "." {
-		return fmt.Errorf("pdf path is required")
-	}
-	dir := filepath.Dir(target)
-	if dir != "" && dir != "." {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return fmt.Errorf("pdf export: mkdir: %w", err)
-		}
-	}
-	payload := GridRowsToPDF(columns, rows)
-	if payload == "" {
-		return fmt.Errorf("no columns to export")
-	}
-	if err := os.WriteFile(target, []byte(payload), 0644); err != nil {
-		return fmt.Errorf("pdf export: write: %w", err)
-	}
-	return nil
-}
-
-// GridRowsToXLSX creates a minimal XLSX workbook and
+// gridRowsToXLSX creates a minimal XLSX workbook and
 // returns the file bytes.
-func GridRowsToXLSX(columns []GridColumnCfg, rows []GridRow) ([]byte, error) {
-	return GridRowsToXLSXWithCfg(columns, rows, GridExportCfg{
+func gridRowsToXLSX(columns []GridColumnCfg, rows []GridRow) ([]byte, error) {
+	return gridRowsToXLSXWithCfg(columns, rows, gridExportCfg{
 		SanitizeSpreadsheetFormulas: true,
 	})
 }
 
-// GridRowsToXLSXWithCfg creates a minimal XLSX workbook.
-func GridRowsToXLSXWithCfg(columns []GridColumnCfg, rows []GridRow, exportCfg GridExportCfg) ([]byte, error) {
+// gridRowsToXLSXWithCfg creates a minimal XLSX workbook.
+func gridRowsToXLSXWithCfg(columns []GridColumnCfg, rows []GridRow, exportCfg gridExportCfg) ([]byte, error) {
 	var buf bytes.Buffer
 	if err := gridRowsWriteXLSX(&buf, columns, rows, exportCfg); err != nil {
 		return nil, fmt.Errorf("xlsx export: %w", err)
@@ -177,39 +152,7 @@ func GridRowsToXLSXWithCfg(columns []GridColumnCfg, rows []GridRow, exportCfg Gr
 	return buf.Bytes(), nil
 }
 
-// GridRowsToXLSXFile writes a minimal XLSX workbook to path.
-func GridRowsToXLSXFile(path string, columns []GridColumnCfg, rows []GridRow) error {
-	return GridRowsToXLSXFileWithCfg(path, columns, rows, GridExportCfg{
-		SanitizeSpreadsheetFormulas: true,
-	})
-}
-
-// GridRowsToXLSXFileWithCfg writes a minimal XLSX workbook
-// to path with export config. Callers must not pass
-// untrusted paths.
-func GridRowsToXLSXFileWithCfg(path string, columns []GridColumnCfg, rows []GridRow, exportCfg GridExportCfg) error {
-	target := filepath.Clean(strings.TrimSpace(path))
-	if target == "" || target == "." {
-		return fmt.Errorf("xlsx path is required")
-	}
-	dir := filepath.Dir(target)
-	if dir != "" && dir != "." {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return fmt.Errorf("xlsx export: mkdir: %w", err)
-		}
-	}
-	f, err := os.Create(target)
-	if err != nil {
-		return fmt.Errorf("xlsx export: create: %w", err)
-	}
-	defer func() { _ = f.Close() }()
-	if err := gridRowsWriteXLSX(f, columns, rows, exportCfg); err != nil {
-		return fmt.Errorf("xlsx export: %w", err)
-	}
-	return nil
-}
-
-func gridRowsWriteXLSX(w io.Writer, columns []GridColumnCfg, rows []GridRow, exportCfg GridExportCfg) error {
+func gridRowsWriteXLSX(w io.Writer, columns []GridColumnCfg, rows []GridRow, exportCfg gridExportCfg) error {
 	zw := zip.NewWriter(w)
 	defer func() { _ = zw.Close() }()
 	entries := [][2]string{
@@ -233,7 +176,7 @@ func gridRowsWriteXLSX(w io.Writer, columns []GridColumnCfg, rows []GridRow, exp
 
 // dataGridRowsToDelimited converts columns and rows to
 // delimited text using the given separator and escape function.
-func dataGridRowsToDelimited(columns []GridColumnCfg, rows []GridRow, exportCfg GridExportCfg, sep string, escape func(string) string) string {
+func dataGridRowsToDelimited(columns []GridColumnCfg, rows []GridRow, exportCfg gridExportCfg, sep string, escape func(string) string) string {
 	if len(columns) == 0 {
 		return ""
 	}
@@ -501,7 +444,7 @@ func dataGridXLSXWorkbookRelsXML() string {
 		`</Relationships>`
 }
 
-func dataGridXLSXSheetXML(columns []GridColumnCfg, rows []GridRow, exportCfg GridExportCfg) string {
+func dataGridXLSXSheetXML(columns []GridColumnCfg, rows []GridRow, exportCfg gridExportCfg) string {
 	cellsPerRow := len(columns)
 	cellsPerRow = max(cellsPerRow, 1)
 	var out strings.Builder
@@ -530,7 +473,7 @@ func dataGridXLSXSheetXML(columns []GridColumnCfg, rows []GridRow, exportCfg Gri
 	return out.String()
 }
 
-func dataGridXLSXCellXML(cellRef, value string, exportCfg GridExportCfg) string {
+func dataGridXLSXCellXML(cellRef, value string, exportCfg gridExportCfg) string {
 	if !exportCfg.XLSXAutoType {
 		return dataGridXLSXStringCellXML(cellRef, value)
 	}
@@ -623,7 +566,7 @@ func dataGridXLSXColRef(colIdx int) string {
 
 // --- Export text helpers ---
 
-func dataGridExportText(value string, exportCfg GridExportCfg) string {
+func dataGridExportText(value string, exportCfg gridExportCfg) string {
 	if !exportCfg.SanitizeSpreadsheetFormulas {
 		return value
 	}

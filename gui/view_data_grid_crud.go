@@ -629,7 +629,7 @@ func dataGridCrudExecMutations(source DataGridDataSource, gridID string, query G
 	if len(createRows) > 0 {
 		res, err := source.MutateData(GridMutationRequest{
 			GridID: gridID,
-			Kind:   GridMutationCreate,
+			Kind:   gridMutationCreate,
 			Query:  query,
 			Rows:   createRows,
 		})
@@ -644,7 +644,7 @@ func dataGridCrudExecMutations(source DataGridDataSource, gridID string, query G
 	if len(updateEdits) > 0 {
 		res, err := source.MutateData(GridMutationRequest{
 			GridID: gridID,
-			Kind:   GridMutationUpdate,
+			Kind:   gridMutationUpdate,
 			Query:  query,
 			Rows:   updateRows,
 			Edits:  updateEdits,
@@ -662,7 +662,7 @@ func dataGridCrudExecMutations(source DataGridDataSource, gridID string, query G
 	if len(deleteIDs) > 0 {
 		res, err := source.MutateData(GridMutationRequest{
 			GridID: gridID,
-			Kind:   GridMutationDelete,
+			Kind:   gridMutationDelete,
 			Query:  query,
 			RowIDs: deleteIDs,
 		})

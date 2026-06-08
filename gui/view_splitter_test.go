@@ -27,7 +27,7 @@ func TestSplitterBasic(t *testing.T) {
 }
 
 func TestSplitAlias(t *testing.T) {
-	v := Split(SplitterCfg{
+	v := Splitter(SplitterCfg{
 		ID:       "sp",
 		OnChange: func(_ float32, _ SplitterCollapsed, _ *Event, _ *Window) {},
 		First:    SplitterPaneCfg{},

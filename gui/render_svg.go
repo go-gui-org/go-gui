@@ -479,7 +479,7 @@ func collectAnimContribs(
 	}
 	for i := range anims {
 		a := &anims[i]
-		// Reject non-finite timing fields so downstream lerp / floor
+		// Reject non-finite timing fields so downstream Lerp / floor
 		// math cannot produce NaN values that would propagate into
 		// render state. DurSec must be strictly positive for normal
 		// animations; <set> is zero-duration and bypasses this check.
@@ -633,8 +633,8 @@ func evalAnimContrib(c *animContrib, a *SvgAnimation,
 
 // lerpColorKeyframes interpolates packed RGBA stops at frac in
 // [0,1]. Uses locateSeg for consistent discrete/spline/keyTimes
-// behavior. sRGB lerp per channel — cheap and visually acceptable
-// for short tweens (premultiplied gamma-correct lerp is a follow-up).
+// behavior. sRGB Lerp per channel — cheap and visually acceptable
+// for short tweens (premultiplied gamma-correct Lerp is a follow-up).
 func lerpColorKeyframes(vals []uint32, splines, keyTimes []float32,
 	mode SvgAnimCalcMode, frac float32) SvgColor {
 	n := len(vals)

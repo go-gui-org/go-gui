@@ -104,7 +104,7 @@ func TestGridOrmCapabilities(t *testing.T) {
 func TestGridOrmFetchData(t *testing.T) {
 	src := testOrmSource(t)
 	res, err := src.FetchData(GridDataRequest{
-		Page: GridCursorPageReq{Limit: 10},
+		Page: gridCursorPageReq{Limit: 10},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -115,7 +115,7 @@ func TestGridOrmFetchData(t *testing.T) {
 }
 
 func TestGridOrmValidateQuery(t *testing.T) {
-	q, err := GridOrmValidateQuery(GridQueryState{
+	q, err := gridOrmValidateQuery(GridQueryState{
 		Sorts: []GridSort{
 			{ColID: "name", Dir: GridSortAsc},
 			{ColID: "unknown"},
@@ -144,7 +144,7 @@ func TestGridOrmValidateQueryQuickFilterTooLong(t *testing.T) {
 	for i := range long {
 		long[i] = 'a'
 	}
-	_, err := GridOrmValidateQuery(GridQueryState{
+	_, err := gridOrmValidateQuery(GridQueryState{
 		QuickFilter: string(long),
 	}, testColumns())
 	if err == nil {
@@ -191,7 +191,7 @@ func TestGridOrmEscapeLike(t *testing.T) {
 		{`%_\`, `\%\_\\`},
 	}
 	for _, tt := range tests {
-		got := GridOrmEscapeLike(tt.input)
+		got := gridOrmEscapeLike(tt.input)
 		if got != tt.want {
 			t.Errorf("EscapeLike(%q) = %q, want %q",
 				tt.input, got, tt.want)
@@ -217,7 +217,7 @@ func TestGridOrmValidDBField(t *testing.T) {
 		{"users.email_addr", true},
 	}
 	for _, tt := range tests {
-		got := GridOrmValidDBField(tt.input)
+		got := gridOrmValidDBField(tt.input)
 		if got != tt.want {
 			t.Errorf("ValidDBField(%q) = %v, want %v",
 				tt.input, got, tt.want)
@@ -228,7 +228,7 @@ func TestGridOrmValidDBField(t *testing.T) {
 func TestGridOrmMutateMissingFn(t *testing.T) {
 	src := testOrmSource(t)
 	_, err := src.MutateData(GridMutationRequest{
-		Kind: GridMutationCreate,
+		Kind: gridMutationCreate,
 		Rows: []GridRow{{ID: "x"}},
 	})
 	if err == nil {
@@ -250,7 +250,7 @@ func TestGridOrmMutateUnknownColumn(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = src.MutateData(GridMutationRequest{
-		Kind: GridMutationCreate,
+		Kind: gridMutationCreate,
 		Rows: []GridRow{
 			{ID: "x", Cells: map[string]string{"bogus": "v"}},
 		},
@@ -274,7 +274,7 @@ func TestGridOrmDeleteMany(t *testing.T) {
 		t.Fatal(err)
 	}
 	res, err := src.MutateData(GridMutationRequest{
-		Kind:   GridMutationDelete,
+		Kind:   gridMutationDelete,
 		RowIDs: []string{"a", "b"},
 	})
 	if err != nil {
@@ -299,7 +299,7 @@ func TestGridOrmDeleteSingle(t *testing.T) {
 		t.Fatal(err)
 	}
 	res, err := src.MutateData(GridMutationRequest{
-		Kind:   GridMutationDelete,
+		Kind:   gridMutationDelete,
 		RowIDs: []string{"a"},
 	})
 	if err != nil {
@@ -311,7 +311,7 @@ func TestGridOrmDeleteSingle(t *testing.T) {
 }
 
 func TestGridOrmFilterDedup(t *testing.T) {
-	q, err := GridOrmValidateQuery(GridQueryState{
+	q, err := gridOrmValidateQuery(GridQueryState{
 		Filters: []GridFilter{
 			{ColID: "name", Op: "contains", Value: "x"},
 			{ColID: "name", Op: "contains", Value: "x"},
@@ -344,7 +344,7 @@ func TestGridOrmBuildSQLQuickFilterDeterministicOrder(t *testing.T) {
 			CaseInsensitive: false,
 		},
 	}
-	out, err := GridOrmBuildSQL(GridOrmQuerySpec{
+	out, err := gridOrmBuildSQL(GridOrmQuerySpec{
 		QuickFilter: "x",
 		Limit:       10,
 		Offset:      0,
@@ -377,7 +377,7 @@ func TestGridOrmDeleteManyDeterministicIDs(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = src.MutateData(GridMutationRequest{
-		Kind:   GridMutationDelete,
+		Kind:   gridMutationDelete,
 		RowIDs: []string{"c", "a", "b", "a"},
 	})
 	if err != nil {

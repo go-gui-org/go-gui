@@ -141,11 +141,6 @@ func applyTabControlDefaults(cfg *TabControlCfg) {
 	}
 }
 
-// Tabs is an alias for TabControl.
-func Tabs(cfg TabControlCfg) View {
-	return TabControl(cfg)
-}
-
 // TabControl creates a tab control with header row and content.
 func TabControl(cfg TabControlCfg) View {
 	applyTabControlDefaults(&cfg)

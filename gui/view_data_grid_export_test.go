@@ -8,11 +8,11 @@ import (
 	"testing"
 )
 
-// --- GridDataFromCSV ---
+// --- gridDataFromCSV ---
 
 func TestGridDataFromCSVBasic(t *testing.T) {
 	csv := "Name,Age\nAlice,30\nBob,25\n"
-	data, err := GridDataFromCSV(csv)
+	data, err := gridDataFromCSV(csv)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -40,7 +40,7 @@ func TestGridDataFromCSVBasic(t *testing.T) {
 
 func TestGridDataFromCSVBlankHeaders(t *testing.T) {
 	csv := ",Data,\na,b,c\n"
-	data, err := GridDataFromCSV(csv)
+	data, err := gridDataFromCSV(csv)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -54,7 +54,7 @@ func TestGridDataFromCSVBlankHeaders(t *testing.T) {
 
 func TestGridDataFromCSVDuplicateIDs(t *testing.T) {
 	csv := "X,X,X\n1,2,3\n"
-	data, err := GridDataFromCSV(csv)
+	data, err := gridDataFromCSV(csv)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -71,11 +71,11 @@ func TestGridDataFromCSVDuplicateIDs(t *testing.T) {
 }
 
 func TestGridDataFromCSVEmpty(t *testing.T) {
-	_, err := GridDataFromCSV("")
+	_, err := gridDataFromCSV("")
 	if err == nil {
 		t.Fatal("expected error for empty input")
 	}
-	_, err = GridDataFromCSV("   \n  ")
+	_, err = gridDataFromCSV("   \n  ")
 	if err == nil {
 		t.Fatal("expected error for whitespace-only input")
 	}
@@ -83,7 +83,7 @@ func TestGridDataFromCSVEmpty(t *testing.T) {
 
 func TestGridDataFromCSVBOMStripping(t *testing.T) {
 	csv := "\xef\xbb\xbfName,Value\na,1\n"
-	data, err := GridDataFromCSV(csv)
+	data, err := gridDataFromCSV(csv)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestGridDataFromCSVBOMStripping(t *testing.T) {
 
 func TestGridDataFromCSVRaggedRowsExpandColumns(t *testing.T) {
 	csv := ",\n1,2,3\n4,5\n"
-	data, err := GridDataFromCSV(csv)
+	data, err := gridDataFromCSV(csv)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -113,7 +113,7 @@ func TestGridDataFromCSVRaggedRowsExpandColumns(t *testing.T) {
 	}
 }
 
-// --- GridRowsToTSV / GridRowsToTSVWithCfg ---
+// --- gridRowsToTSV / gridRowsToTSVWithCfg ---
 
 func TestGridRowsToTSV(t *testing.T) {
 	cols := []GridColumnCfg{
@@ -123,7 +123,7 @@ func TestGridRowsToTSV(t *testing.T) {
 	rows := []GridRow{
 		{ID: "1", Cells: map[string]string{"a": "x", "b": "y"}},
 	}
-	got := GridRowsToTSV(cols, rows)
+	got := gridRowsToTSV(cols, rows)
 	lines := strings.Split(got, "\n")
 	if len(lines) != 2 {
 		t.Fatalf("got %d lines, want 2", len(lines))
@@ -141,7 +141,7 @@ func TestGridRowsToTSVTabEscape(t *testing.T) {
 	rows := []GridRow{
 		{ID: "1", Cells: map[string]string{"a": "has\ttab"}},
 	}
-	got := GridRowsToTSV(cols, rows)
+	got := gridRowsToTSV(cols, rows)
 	lines := strings.Split(got, "\n")
 	if !strings.Contains(lines[1], `"has`) {
 		t.Errorf("tab in value should be quoted, got %q", lines[1])
@@ -149,7 +149,7 @@ func TestGridRowsToTSVTabEscape(t *testing.T) {
 }
 
 func TestGridRowsToTSVEmptyColumns(t *testing.T) {
-	got := GridRowsToTSV(nil, nil)
+	got := gridRowsToTSV(nil, nil)
 	if got != "" {
 		t.Errorf("expected empty for nil columns, got %q", got)
 	}
@@ -158,21 +158,21 @@ func TestGridRowsToTSVEmptyColumns(t *testing.T) {
 func TestGridRowsToTSVDefaultSanitizeFormula(t *testing.T) {
 	cols := []GridColumnCfg{{ID: "a", Title: "Col"}}
 	rows := []GridRow{{ID: "1", Cells: map[string]string{"a": "=SUM(A1)"}}}
-	got := GridRowsToTSV(cols, rows)
+	got := gridRowsToTSV(cols, rows)
 	lines := strings.Split(got, "\n")
 	if lines[1] != "'=SUM(A1)" {
 		t.Fatalf("got %q, want %q", lines[1], "'=SUM(A1)")
 	}
 }
 
-// --- GridRowsToCSV / GridRowsToCSVWithCfg ---
+// --- gridRowsToCSV / gridRowsToCSVWithCfg ---
 
 func TestGridRowsToCSVCommaEscape(t *testing.T) {
 	cols := []GridColumnCfg{{ID: "a", Title: "Col"}}
 	rows := []GridRow{
 		{ID: "1", Cells: map[string]string{"a": "a,b"}},
 	}
-	got := GridRowsToCSV(cols, rows)
+	got := gridRowsToCSV(cols, rows)
 	lines := strings.Split(got, "\n")
 	if lines[1] != `"a,b"` {
 		t.Errorf("comma value = %q, want \"a,b\"", lines[1])
@@ -184,7 +184,7 @@ func TestGridRowsToCSVQuotesInValues(t *testing.T) {
 	rows := []GridRow{
 		{ID: "1", Cells: map[string]string{"a": `say "hi"`}},
 	}
-	got := GridRowsToCSV(cols, rows)
+	got := gridRowsToCSV(cols, rows)
 	lines := strings.Split(got, "\n")
 	if lines[1] != `"say ""hi"""` {
 		t.Errorf("quoted value = %q, want %q", lines[1], `"say ""hi"""`)
@@ -194,21 +194,21 @@ func TestGridRowsToCSVQuotesInValues(t *testing.T) {
 func TestGridRowsToCSVDefaultSanitizeFormula(t *testing.T) {
 	cols := []GridColumnCfg{{ID: "a", Title: "Col"}}
 	rows := []GridRow{{ID: "1", Cells: map[string]string{"a": "=1+1"}}}
-	got := GridRowsToCSV(cols, rows)
+	got := gridRowsToCSV(cols, rows)
 	lines := strings.Split(got, "\n")
 	if lines[1] != "'=1+1" {
 		t.Fatalf("got %q, want %q", lines[1], "'=1+1")
 	}
 }
 
-// --- GridRowsToPDF ---
+// --- gridRowsToPDF ---
 
 func TestGridRowsToPDFNonEmpty(t *testing.T) {
 	cols := []GridColumnCfg{{ID: "a", Title: "Name"}}
 	rows := []GridRow{
 		{ID: "1", Cells: map[string]string{"a": "Alice"}},
 	}
-	got := GridRowsToPDF(cols, rows)
+	got := gridRowsToPDF(cols, rows)
 	if !strings.HasPrefix(got, "%PDF-") {
 		t.Errorf("expected PDF header, got prefix %q",
 			got[:min(len(got), 20)])
@@ -219,13 +219,13 @@ func TestGridRowsToPDFNonEmpty(t *testing.T) {
 }
 
 func TestGridRowsToPDFEmptyColumns(t *testing.T) {
-	got := GridRowsToPDF(nil, nil)
+	got := gridRowsToPDF(nil, nil)
 	if got != "" {
 		t.Errorf("expected empty for nil columns, got len %d", len(got))
 	}
 }
 
-// --- GridRowsToXLSX / GridRowsToXLSXWithCfg ---
+// --- gridRowsToXLSX / gridRowsToXLSXWithCfg ---
 
 func TestGridRowsToXLSXValidZip(t *testing.T) {
 	cols := []GridColumnCfg{
@@ -235,7 +235,7 @@ func TestGridRowsToXLSXValidZip(t *testing.T) {
 	rows := []GridRow{
 		{ID: "1", Cells: map[string]string{"a": "Alice", "b": "95"}},
 	}
-	data, err := GridRowsToXLSX(cols, rows)
+	data, err := gridRowsToXLSX(cols, rows)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -272,7 +272,7 @@ func TestGridRowsToXLSXAutoType(t *testing.T) {
 			"n": "42", "b": "true", "s": "hello",
 		}},
 	}
-	data, err := GridRowsToXLSXWithCfg(cols, rows, GridExportCfg{
+	data, err := gridRowsToXLSXWithCfg(cols, rows, gridExportCfg{
 		XLSXAutoType: true,
 	})
 	if err != nil {
@@ -308,7 +308,7 @@ func TestGridRowsToXLSXAutoType(t *testing.T) {
 func TestGridRowsToXLSXDefaultSanitizeFormula(t *testing.T) {
 	cols := []GridColumnCfg{{ID: "a", Title: "Col"}}
 	rows := []GridRow{{ID: "1", Cells: map[string]string{"a": "=1+1"}}}
-	data, err := GridRowsToXLSX(cols, rows)
+	data, err := gridRowsToXLSX(cols, rows)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

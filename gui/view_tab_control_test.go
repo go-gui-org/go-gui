@@ -28,7 +28,7 @@ func TestTabControlBasic(t *testing.T) {
 }
 
 func TestTabsAlias(t *testing.T) {
-	v := Tabs(TabControlCfg{
+	v := TabControl(TabControlCfg{
 		ID:       "tabs",
 		Items:    []TabItemCfg{{ID: "a", Label: "A"}},
 		OnSelect: func(_ string, _ *Event, _ *Window) {},

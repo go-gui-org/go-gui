@@ -401,7 +401,7 @@ func TestFiniteF32_NaNInfFinite(t *testing.T) {
 // --- collectAnimContribs timing guards ---
 
 // collectAnimContribs must reject animations whose timing fields
-// are NaN or ±Inf. Otherwise downstream lerp/floor math produces
+// are NaN or ±Inf. Otherwise downstream Lerp/floor math produces
 // NaN values that poison the anim state map.
 func TestCollectAnimContribs_RejectsNonFiniteTimings(t *testing.T) {
 	nan := float32(math.NaN())
@@ -593,7 +593,7 @@ func TestComputeSvgAnimations_AccumulateSum(t *testing.T) {
 		Accumulate:    true,
 	}
 	// At t=3.5s: 3 completed prior cycles → accum offset = 3*360 = 1080.
-	// In the current cycle, phase=0.5 → lerp → 180. Total = 1260.
+	// In the current cycle, phase=0.5 → Lerp → 180. Total = 1260.
 	st := computeSvgAnimations([]SvgAnimation{a}, 3.5, nil)
 	got := st[1].RotAngle
 	if got < 1259 || got > 1261 {
@@ -713,7 +713,7 @@ func TestComputeSvgAnimations_SetZeroDuration(t *testing.T) {
 // --- Cycle restart ---
 
 // Cycle>0 must re-fire the animation every cycle seconds. At
-// elapsed = Cycle+epsilon the phase is effectively 0 so the lerp
+// elapsed = Cycle+epsilon the phase is effectively 0 so the Lerp
 // returns the first keyframe value again.
 func TestComputeSvgAnimations_CycleRestart(t *testing.T) {
 	a := SvgAnimation{
@@ -909,7 +909,7 @@ func TestComputeSvgAnimations_MotionAdditiveStacks(t *testing.T) {
 	}
 }
 
-// applyDashArrayContrib: linear lerp between stride-2 keyframes.
+// applyDashArrayContrib: linear Lerp between stride-2 keyframes.
 // Values [0,150 ; 42,150] at frac=0.5 → [21, 150].
 func TestApplyDashArrayContrib_LinearMidpoint(t *testing.T) {
 	ov := &SvgAnimAttrOverride{}

@@ -23,7 +23,7 @@ func demoToggle(w *gui.Window) gui.View {
 					a.ToggleA = !a.ToggleA
 				},
 			}),
-			gui.Checkbox(gui.ToggleCfg{
+			gui.Toggle(gui.ToggleCfg{
 				ID:       "checkbox-a",
 				IDFocus:  109,
 				Label:    "Checkbox",

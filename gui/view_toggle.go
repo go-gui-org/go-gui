@@ -29,9 +29,6 @@ type ToggleCfg struct {
 	Selected         bool
 }
 
-// Checkbox is an alias for Toggle.
-func Checkbox(cfg ToggleCfg) View { return Toggle(cfg) }
-
 // Toggle creates a toggle/checkbox view.
 func Toggle(cfg ToggleCfg) View {
 	applyToggleDefaults(&cfg)

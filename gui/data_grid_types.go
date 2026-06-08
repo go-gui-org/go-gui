@@ -19,14 +19,14 @@ const (
 	GridPaginationOffset
 )
 
-// GridMutationKind identifies a create, update, or delete.
-type GridMutationKind uint8
+// gridMutationKind identifies a create, update, or delete.
+type gridMutationKind uint8
 
-// GridMutationKind constants.
+// gridMutationKind constants.
 const (
-	GridMutationCreate GridMutationKind = iota
-	GridMutationUpdate
-	GridMutationDelete
+	gridMutationCreate gridMutationKind = iota
+	gridMutationUpdate
+	gridMutationDelete
 )
 
 // GridSort describes a single sort criterion.

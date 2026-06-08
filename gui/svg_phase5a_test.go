@@ -114,7 +114,7 @@ func TestLerpKeyframes2DNaNFracReturnsFirst(t *testing.T) {
 }
 
 // TestLerpKeyframes2DSplineBendsBothAxes — with an ease-out
-// spline, the 2D lerp at frac=0.5 must bend both x and y past
+// spline, the 2D Lerp at frac=0.5 must bend both x and y past
 // the linear midpoint the same way the 1D form does.
 func TestLerpKeyframes2DSplineBendsBothAxes(t *testing.T) {
 	vals := []float32{0, 0, 100, 100}

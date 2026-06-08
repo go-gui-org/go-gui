@@ -98,9 +98,9 @@ func dataGridColumnNextPin(pin GridColumnPin) GridColumnPin {
 	}
 }
 
-// DataGridColumnOrderMove moves colID in order by delta
+// dataGridColumnOrderMove moves colID in order by delta
 // (-1 left, +1 right). Returns a new slice.
-func DataGridColumnOrderMove(order []string, colID string, delta int) []string {
+func dataGridColumnOrderMove(order []string, colID string, delta int) []string {
 	if len(order) == 0 || delta == 0 {
 		return order
 	}
