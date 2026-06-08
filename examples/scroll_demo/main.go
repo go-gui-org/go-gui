@@ -15,7 +15,7 @@ type App struct {
 }
 
 func main() {
-	gui.SetTheme(gui.ThemeDarkBordered)
+	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  &App{},
@@ -155,9 +155,9 @@ func themeButton(app *App) gui.View {
 			app := gui.State[App](w)
 			app.Light = !app.Light
 			if app.Light {
-				w.SetTheme(gui.ThemeLightBordered)
+				w.SetTheme(gui.ThemeLight.WithBorders(true))
 			} else {
-				w.SetTheme(gui.ThemeDarkBordered)
+				w.SetTheme(gui.ThemeDark.WithBorders(true))
 			}
 			e.IsHandled = true
 		},

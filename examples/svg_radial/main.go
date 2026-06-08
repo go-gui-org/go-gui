@@ -95,7 +95,7 @@ func samples() []sample {
 }
 
 func main() {
-	gui.SetTheme(gui.ThemeDarkBordered)
+	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 	w := gui.NewWindow(gui.WindowCfg{
 		Width:  720,
 		Height: 540,

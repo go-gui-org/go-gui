@@ -8,7 +8,7 @@ import (
 
 func TestMainViewNoPanic(t *testing.T) {
 	t.Parallel()
-	gui.SetTheme(gui.ThemeDarkBordered)
+	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 	gui.SetMarkdownExternalAPIsEnabled(true)
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  &App{},

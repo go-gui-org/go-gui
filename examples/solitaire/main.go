@@ -46,7 +46,7 @@ type App struct {
 const blinkAnim = "solitaire-blink"
 
 func main() {
-	gui.SetTheme(gui.ThemeDarkBordered)
+	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 
 	w := gui.NewWindow(gui.WindowCfg{
 		State: &App{

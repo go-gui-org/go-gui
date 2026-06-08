@@ -26,7 +26,7 @@ func main() {
 		items = append(items, gui.NewListBoxOption(id, id+" text list item", id))
 	}
 
-	gui.SetTheme(gui.ThemeDarkBordered)
+	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  &App{Items: items},

@@ -51,7 +51,7 @@ type logoDot struct {
 const timerAnim = "minesweeper-timer"
 
 func main() {
-	gui.SetTheme(gui.ThemeDarkBordered)
+	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 	rows, cols, mines := DiffBeginner.Config()
 
 	w := gui.NewWindow(gui.WindowCfg{

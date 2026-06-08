@@ -12,7 +12,7 @@ type App struct {
 }
 
 func main() {
-	gui.SetTheme(gui.ThemeLightNoPadding)
+	gui.SetTheme(gui.ThemeLight.WithPadding(false))
 
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  &App{LightTheme: true},
@@ -149,9 +149,9 @@ func toggleTheme(app *App) gui.View {
 					a := gui.State[App](w)
 					// Swap themes first, then flip the toggle state to match.
 					if a.LightTheme {
-						w.SetTheme(gui.ThemeDarkNoPadding)
+						w.SetTheme(gui.ThemeDark.WithPadding(false))
 					} else {
-						w.SetTheme(gui.ThemeLightNoPadding)
+						w.SetTheme(gui.ThemeLight.WithPadding(false))
 					}
 					a.LightTheme = !a.LightTheme
 					e.IsHandled = true

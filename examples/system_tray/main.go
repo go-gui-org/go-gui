@@ -20,7 +20,7 @@ type App struct {
 }
 
 func main() {
-	gui.SetTheme(gui.ThemeDarkBordered)
+	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 	app := gui.NewApp()
 	app.ExitMode = gui.ExitOnTrayRemoved
 

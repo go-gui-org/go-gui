@@ -8,7 +8,7 @@ import (
 
 func TestMainViewNoPanic(t *testing.T) {
 	t.Parallel()
-	gui.SetTheme(gui.ThemeDarkNoPadding)
+	gui.SetTheme(gui.ThemeDark.WithPadding(false))
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  newCalculatorState(),
 		Width:  275,

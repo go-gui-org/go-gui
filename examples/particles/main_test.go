@@ -8,7 +8,7 @@ import (
 
 func TestMainViewNoPanic(t *testing.T) {
 	t.Parallel()
-	gui.SetTheme(gui.ThemeDarkBordered)
+	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 	app := &App{}
 	presetFountain(app)
 	app.EmitterX = canvasW / 2

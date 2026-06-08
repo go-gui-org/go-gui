@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	gui.SetTheme(gui.ThemeDarkNoPadding)
+	gui.SetTheme(gui.ThemeDark.WithPadding(false))
 
 	w := gui.NewWindow(gui.WindowCfg{
 		Title:  "Gaussian Blur / Glow Demo",

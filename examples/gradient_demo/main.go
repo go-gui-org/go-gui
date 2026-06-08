@@ -58,7 +58,7 @@ func parseDirection(s string) gui.GradientDirection {
 }
 
 func main() {
-	gui.SetTheme(gui.ThemeLightNoPadding)
+	gui.SetTheme(gui.ThemeLight.WithPadding(false))
 
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  &App{Direction: gui.GradientToBottom},

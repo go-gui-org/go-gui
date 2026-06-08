@@ -52,7 +52,7 @@ func iconSvg(t theme, strokeBase int) string {
 }
 
 func main() {
-	gui.SetTheme(gui.ThemeDarkBordered)
+	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 	w := gui.NewWindow(gui.WindowCfg{
 		Width:  640,
 		Height: 480,

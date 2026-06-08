@@ -180,8 +180,8 @@ func demoThemeGen(w *gui.Window) gui.View {
 										Padding: gui.SomeP(6, 12, 6, 12),
 										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Reset Dark", TextStyle: t.N3})},
 										OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-											w.SetTheme(gui.ThemeDarkBordered)
-											syncThemeGenFromCfg(gui.State[ShowcaseApp](w), gui.ThemeDarkBorderedCfg)
+											w.SetTheme(gui.ThemeDark.WithBorders(true))
+											syncThemeGenFromCfg(gui.State[ShowcaseApp](w), gui.ThemeDark.WithBorders(true).Cfg)
 											e.IsHandled = true
 										},
 									}),
@@ -190,8 +190,8 @@ func demoThemeGen(w *gui.Window) gui.View {
 										Padding: gui.SomeP(6, 12, 6, 12),
 										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Reset Light", TextStyle: t.N3})},
 										OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-											w.SetTheme(gui.ThemeLightBordered)
-											syncThemeGenFromCfg(gui.State[ShowcaseApp](w), gui.ThemeLightBorderedCfg)
+											w.SetTheme(gui.ThemeLight.WithBorders(true))
+											syncThemeGenFromCfg(gui.State[ShowcaseApp](w), gui.ThemeLight.WithBorders(true).Cfg)
 											e.IsHandled = true
 										},
 									}),
@@ -358,7 +358,7 @@ func generateThemeCfg(seed gui.Color, strategy string, isDark bool, tint float32
 
 	var cfg gui.ThemeCfg
 	if isDark {
-		cfg = gui.ThemeDarkCfg
+		cfg = gui.ThemeDark.Cfg
 		sTint := max(min(s, 1.0), 0.3) * tintFactor
 		cfg.ColorBackground = gui.ColorFromHSV(ph, sTint, 0.19)
 		cfg.ColorPanel = gui.ColorFromHSV(ph, sTint, 0.25)
@@ -371,7 +371,7 @@ func generateThemeCfg(seed gui.Color, strategy string, isDark bool, tint float32
 		cfg.ColorBorderFocus = gui.ColorFromHSV(ah, accentS*0.7, accentV*0.9)
 		cfg.TextStyleDef.Color = textColor
 	} else {
-		cfg = gui.ThemeLightCfg
+		cfg = gui.ThemeLight.Cfg
 		sTint := max(min(s, 1.0), 0.3) * tintFactor * 0.5
 		cfg.ColorBackground = gui.ColorFromHSV(ph, sTint*0.6, 0.96)
 		cfg.ColorPanel = gui.ColorFromHSV(ph, sTint, 0.90)

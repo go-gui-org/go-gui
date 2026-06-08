@@ -758,6 +758,38 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	return theme
 }
 
+// WithPadding returns a new Theme with padding, radius, and border
+// turned on (true) or off (false). When off, all padding, radius, and
+// border sizing are set to zero/none. When on, the theme is rebuilt
+// from its stored configuration.
+func (t Theme) WithPadding(padding bool) Theme {
+	cfg := t.Cfg
+	if !padding {
+		cfg.Padding = PaddingNone
+		cfg.PaddingSmall = PaddingNone
+		cfg.PaddingMedium = PaddingNone
+		cfg.PaddingLarge = PaddingNone
+		cfg.SizeBorder = 0
+		cfg.Radius = RadiusNone
+		cfg.RadiusSmall = RadiusNone
+		cfg.RadiusMedium = RadiusNone
+		cfg.RadiusLarge = RadiusNone
+	}
+	return ThemeMaker(cfg)
+}
+
+// WithBorders returns a new Theme with borders turned on (true) or
+// off (false).
+func (t Theme) WithBorders(borders bool) Theme {
+	cfg := t.Cfg
+	if borders {
+		cfg.SizeBorder = SizeBorderDef
+	} else {
+		cfg.SizeBorder = 0
+	}
+	return ThemeMaker(cfg)
+}
+
 // CurrentTheme returns the active theme.
 func CurrentTheme() Theme {
 	guiThemeMu.RLock()

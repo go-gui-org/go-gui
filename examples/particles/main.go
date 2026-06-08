@@ -93,7 +93,7 @@ var (
 )
 
 func main() {
-	gui.SetTheme(gui.ThemeDarkBordered)
+	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 
 	app := &App{}
 	presetFountain(app)
