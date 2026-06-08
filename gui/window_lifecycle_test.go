@@ -483,7 +483,7 @@ func TestWindowCtxNilFallback(t *testing.T) {
 func TestClearViewStateResetsIDFocus(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int), Width: 100, Height: 100})
 	w.viewState.idFocus = 42
-	w.ClearViewState()
+	w.clearViewState()
 	if w.IDFocus() != 0 {
 		t.Errorf("IDFocus = %d, want 0 after ClearViewState",
 			w.IDFocus())

@@ -937,11 +937,11 @@ func TestColumnWithTextAndButton(t *testing.T) {
 
 func TestHasFocus(t *testing.T) {
 	w := &Window{}
-	if w.HasFocus() {
+	if w.hasFocus() {
 		t.Error("should start unfocused")
 	}
 	w.focused = true
-	if !w.HasFocus() {
+	if !w.hasFocus() {
 		t.Error("should be focused")
 	}
 }
@@ -955,15 +955,15 @@ func TestCursorHelpers(t *testing.T) {
 		want MouseCursor
 	}{
 		{"Arrow", (*Window).SetMouseCursorArrow, CursorArrow},
-		{"IBeam", (*Window).SetMouseCursorIBeam, CursorIBeam},
+		{"IBeam", (*Window).setMouseCursorIBeam, CursorIBeam},
 		{"Crosshair", (*Window).SetMouseCursorCrosshair, CursorCrosshair},
 		{"PointingHand", (*Window).SetMouseCursorPointingHand, CursorPointingHand},
 		{"All", (*Window).SetMouseCursorAll, CursorResizeAll},
 		{"NS", (*Window).SetMouseCursorNS, CursorResizeNS},
 		{"EW", (*Window).SetMouseCursorEW, CursorResizeEW},
-		{"NESW", (*Window).SetMouseCursorResizeNESW, CursorResizeNESW},
-		{"NWSE", (*Window).SetMouseCursorResizeNWSE, CursorResizeNWSE},
-		{"NotAllowed", (*Window).SetMouseCursorNotAllowed, CursorNotAllowed},
+		{"NESW", (*Window).setMouseCursorResizeNESW, CursorResizeNESW},
+		{"NWSE", (*Window).setMouseCursorResizeNWSE, CursorResizeNWSE},
+		{"NotAllowed", (*Window).setMouseCursorNotAllowed, CursorNotAllowed},
 	}
 	for _, tt := range tests {
 		w := &Window{}

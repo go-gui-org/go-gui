@@ -58,7 +58,7 @@ func TestClearViewStateDropsRegistry(t *testing.T) {
 	m := StateMap[string, int](w, "test.clear", 10)
 	m.Set("k", 99)
 
-	w.ClearViewState()
+	w.clearViewState()
 
 	m2 := StateMap[string, int](w, "test.clear", 10)
 	if _, ok := m2.Get("k"); ok {

@@ -10,7 +10,7 @@ internal machinery, it shouldn't be exported.
 
 ## Progress
 
-Branch `api-reduction`, 4 commits:
+Branch `api-reduction`, 5 commits:
 
 | Commit | What | ~Symbols |
 |--------|------|----------|
@@ -18,8 +18,9 @@ Branch `api-reduction`, 4 commits:
 | `cda6470` | Phases 1c,4a,4c — unexport Layout/pipeline internals, move shader consts to `gui/shader/`, remove redundant exports | 45 |
 | `2d030fb` | Phases 1c cont, 5 — unexport DataGrid internals (23 funcs/types), remove 3 widget aliases (Split/Tabs/Checkbox), delete 3 dead export funcs | 29 |
 | `ab8b709` | Phases 3+8 — unexport 5 internal Window methods (UpdateRenderOnly, RequestRenderOnly, InputCursorOn, SetMouseCursor), delete 1 dead method (RenderersCount) | 6 |
+| *next* | Phases 3+8 cont — unexport 7 more Window methods (SetState, ClearViewState, HasFocus, SetMouseCursorIBeam, SetMouseCursorResizeNESW, SetMouseCursorResizeNWSE, SetMouseCursorNotAllowed) | 7 |
 
-**Total: ~120 symbols removed.** `go doc gui` output: ~770 lines (down from ~790).
+**Total: ~127 symbols removed.** `go doc gui` output: ~772 lines (down from ~790).
 
 ## What's Done
 
@@ -53,6 +54,9 @@ Branch `api-reduction`, 4 commits:
 ### Phases 3+8 — Window Method Cleanup
 - [x] Unexport UpdateRenderOnly, RequestRenderOnly, InputCursorOn, SetMouseCursor
 - [x] Delete dead RenderersCount
+- [x] Unexport SetState, ClearViewState, HasFocus
+- [x] Unexport SetMouseCursorIBeam, SetMouseCursorResizeNESW, SetMouseCursorResizeNWSE, SetMouseCursorNotAllowed (zero usage)
+- [x] Keep SetMouseCursorArrow, SetMouseCursorCrosshair, SetMouseCursorPointingHand, SetMouseCursorAll (used by sibling projects)
 
 ## What's Left (actionable)
 
@@ -63,20 +67,19 @@ Add `Theme.WithPadding(bool)`, `Theme.WithBorders(bool)` builder methods.
 Update 80+ references across examples and sibling projects.
 
 ### Phases 3+8 — More Window Methods
-Continue auditing. ~131 methods remain. Candidates to check next:
-- `WindowCleanup`, `Update`, `FrameFn`, `EventFn`, `SetWakeMainFn`
-- `SetTextMeasurer`, `TextMeasurer`, `SetClipboardFn`, `SetClipboardGetFn`
-- `SetTitleFn`, `SetSvgParser`, `SetNativePlatform`
-- `IMEComposing`, `IMECompText`, `IMECompCursor`, `IMECompSelLen`, `IMESetRect`
-- `App`, `PlatformID`, `MouseCursorState`
-- `FileAccessGrantCount`, `ReleaseAllFileAccess`, `ReleaseFileAccess`, `RestoreFileAccess`
-- `SetFileAccessAppID`, `SetState`, `PointerOverApp`, `Freeze`, `Resume`, `IsFrozen`
-- `OpenDebugWindow`, `EnableHistory`, `HistoryLen`
-- `Lock`, `Unlock`, `PostRestore`
-- `MouseIsLocked`, `SetMouseCursorAll` (all specific cursor helpers stay)
-- `DrawCanvasCfg`, `ClearDrawCanvasCache`, `GetSvgDimensions`, etc.
+Full audit complete. 45 exported → 38 remaining. Candidates kept because:
+- **Backend-injected (must stay):** Lock, Unlock, Close, MouseCursorState,
+  SetWakeMainFn, SetTextMeasurer, SetClipboardGetFn, SetClipboardFn, Renderers,
+  SetTitleFn, SetTitle, CloseRequested, WindowSize
+- **Used by siblings:** SetMouseCursorArrow (16), SetMouseCursorPointingHand (12),
+  SetMouseCursorCrosshair, SetMouseCursorAll, TextMeasurer, FrameCount,
+  ClearDrawCanvasCache, GetClipboard
+- **Used by examples:** IsFocus, MouseLock, MouseUnlock, Now, SetIDFocus, SetTheme,
+  TextWidth, Timings, App, PlatformID, SetClipboard
+- **Reasonable public API (used internally):** Ctx, IDFocus, PointerOverApp,
+  SetMouseCursorNS, SetMouseCursorEW, MouseIsLocked
 
-Need to verify each against examples + sibling projects before unexporting.
+No clear candidates remain in Window methods. Phase 3+8 complete.
 
 ## What's Blocked
 

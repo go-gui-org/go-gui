@@ -130,8 +130,7 @@ func TestTreeTitleBarSpacerHasNoBorder(t *testing.T) {
 }
 
 func TestDemoTreeWrapsIntroText(t *testing.T) {
-	w := &gui.Window{}
-	w.SetState(newShowcaseApp())
+	w := gui.NewWindow(gui.WindowCfg{State: newShowcaseApp()})
 
 	layout := gui.GenerateViewLayout(demoTree(w), w) //nolint:staticcheck
 	if len(layout.Children) < 2 {
@@ -150,11 +149,10 @@ func TestDemoTreeWrapsIntroText(t *testing.T) {
 }
 
 func TestDetailPanelSummaryWraps(t *testing.T) {
-	w := &gui.Window{}
 	app := newShowcaseApp()
 	app.SelectedGroup = groupData
 	app.SelectedComponent = "tree"
-	w.SetState(app)
+	w := gui.NewWindow(gui.WindowCfg{State: app})
 
 	layout := gui.GenerateViewLayout(detailPanel(w), w) //nolint:staticcheck
 	if len(layout.Children) < 2 {
@@ -171,11 +169,10 @@ func TestDetailPanelSummaryWraps(t *testing.T) {
 }
 
 func TestDetailPanelWelcomeWrappersHaveNoBorder(t *testing.T) {
-	w := &gui.Window{}
 	app := newShowcaseApp()
 	app.SelectedGroup = groupWelcome
 	app.SelectedComponent = "welcome"
-	w.SetState(app)
+	w := gui.NewWindow(gui.WindowCfg{State: app})
 
 	layout := gui.GenerateViewLayout(detailPanel(w), w) //nolint:staticcheck
 	if got, want := layout.Shape.SizeBorder, float32(0); got != want {
