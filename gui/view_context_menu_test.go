@@ -244,7 +244,7 @@ func contextMenuPopupLayout(t *testing.T, w *Window,
 	w.SetIDFocus(cfg.IDFocus)
 
 	v := ContextMenu(w, cfg)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 
 	// Find the floating popup child.
 	for _, child := range layout.Children {

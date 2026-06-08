@@ -393,7 +393,7 @@ func TestDragReorderGhostViewOffset(t *testing.T) {
 		parentX: 5, parentY: 5,
 	}
 	ghost := dragReorderGhostView(state, Rectangle(RectangleCfg{}))
-	ly := GenerateViewLayout(ghost, w)
+	ly := generateViewLayout(ghost, w)
 
 	// ghostX = mouseX - (startMouseX - itemX) = 70 - (50-10) = 30
 	// floatOffsetX = ghostX - parentX = 30 - 5 = 25
@@ -425,7 +425,7 @@ func TestDragReorderGapViewSizing(t *testing.T) {
 	}
 
 	vGap := dragReorderGapView(state, DragReorderVertical)
-	vLy := GenerateViewLayout(vGap, w)
+	vLy := generateViewLayout(vGap, w)
 	if vLy.Shape.Width != 120 || vLy.Shape.Height != 40 {
 		t.Errorf("vertical gap = %vx%v, want 120x40",
 			vLy.Shape.Width, vLy.Shape.Height)
@@ -436,7 +436,7 @@ func TestDragReorderGapViewSizing(t *testing.T) {
 	}
 
 	hGap := dragReorderGapView(state, DragReorderHorizontal)
-	hLy := GenerateViewLayout(hGap, w)
+	hLy := generateViewLayout(hGap, w)
 	if hLy.Shape.Width != 120 || hLy.Shape.Height != 40 {
 		t.Errorf("horizontal gap = %vx%v, want 120x40",
 			hLy.Shape.Width, hLy.Shape.Height)

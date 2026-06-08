@@ -14,7 +14,7 @@ func TestTooltipReturnsView(t *testing.T) {
 		t.Fatal("expected non-nil view")
 	}
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if !layout.Shape.Float {
 		t.Error("expected floating layout")
 	}
@@ -141,7 +141,7 @@ func TestWithTooltipShowsPopupWhenActive(t *testing.T) {
 		Text:    "hello",
 		Content: []View{Text(TextCfg{Text: "trigger"})},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Trigger content + tooltip popup.
 	if len(layout.Children) < 2 {
 		t.Errorf("expected >=2 children, got %d",
@@ -156,7 +156,7 @@ func TestWithTooltipHidesPopupWhenInactive(t *testing.T) {
 		Text:    "hello",
 		Content: []View{Text(TextCfg{Text: "trigger"})},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 1 {
 		t.Errorf("expected 1 child, got %d",
 			len(layout.Children))
@@ -170,7 +170,7 @@ func TestWithTooltipNoBorderInflation(t *testing.T) {
 		Text:    "hello",
 		Content: []View{Text(TextCfg{Text: "trigger"})},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.SizeBorder != 0 {
 		t.Errorf("expected SizeBorder=0, got %v",
 			layout.Shape.SizeBorder)
@@ -187,7 +187,7 @@ func TestWithTooltipAmendStartsHover(t *testing.T) {
 		Text:    "hello",
 		Content: []View{Text(TextCfg{Text: "trigger"})},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	layout.Shape.X = 0
 	layout.Shape.Y = 0
 	layout.Shape.Width = 100
@@ -222,7 +222,7 @@ func TestWithTooltipAmendClearsOnLeave(t *testing.T) {
 		Text:    "hello",
 		Content: []View{Text(TextCfg{Text: "trigger"})},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	layout.Shape.X = 0
 	layout.Shape.Y = 0
 	layout.Shape.Width = 100
@@ -255,7 +255,7 @@ func TestWithTooltipAmendIgnoresOther(t *testing.T) {
 		Text:    "hello",
 		Content: []View{Text(TextCfg{Text: "trigger"})},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	layout.Shape.X = 0
 	layout.Shape.Y = 0
 	layout.Shape.Width = 100
@@ -282,7 +282,7 @@ func TestWithTooltipAmendSetsIDAfterDelay(t *testing.T) {
 		Delay:   500 * time.Millisecond,
 		Content: []View{Text(TextCfg{Text: "trigger"})},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	layout.Shape.X = 0
 	layout.Shape.Y = 0
 	layout.Shape.Width = 100
@@ -308,7 +308,7 @@ func TestWithTooltipDefaultsID(t *testing.T) {
 		Text:    "hello",
 		Content: []View{Text(TextCfg{Text: "trigger"})},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// ID defaults to Text; tooltip should show.
 	if len(layout.Children) < 2 {
 		t.Errorf("expected >=2 children, got %d",
@@ -323,7 +323,7 @@ func TestTooltipExplicitZero(t *testing.T) {
 		Content: []View{Text(TextCfg{Text: "hello"})},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.Radius != 0 {
 		t.Errorf("expected Radius=0, got %v",
 			layout.Shape.Radius)
@@ -337,7 +337,7 @@ func TestTooltipExplicitTopLeft(t *testing.T) {
 		Content: []View{Text(TextCfg{Text: "hello"})},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.FloatAnchor != FloatTopLeft {
 		t.Errorf("expected FloatTopLeft, got %d",
 			layout.Shape.FloatAnchor)

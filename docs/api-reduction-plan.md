@@ -356,7 +356,7 @@ Each breaking phase must include PRs to sibling projects. These projects import 
 
 ### Code
 - [ ] `go build ./...` passes after each phase
-- [ ] `golangci-lint run ./...` clean
+- [ ] `golangci-lint run ./gui/... ./examples/...` clean
 - [ ] All 25 examples build and run
 - [ ] Sibling projects (go-charts, go-edit, go-kite) build and tests pass after each phase
 - [ ] `go doc gui` output ~200 lines (vs current 790)

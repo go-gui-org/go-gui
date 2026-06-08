@@ -302,7 +302,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			ColorBorderFocus: borderFocus,
 			ColorSelect:      cfg.ColorSelect,
 			ColorUnselect:    cfg.ColorActive,
-			Padding:          PaddingThree,
+			Padding:          paddingThree,
 			SizeBorder:       cfg.SizeBorder,
 			Radius:           RadiusLarge * 2,
 			TextStyleNormal:  ts,

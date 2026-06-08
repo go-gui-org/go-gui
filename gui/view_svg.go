@@ -164,7 +164,7 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 			SvgOpts:  svgOpts,
 		},
 	}
-	ApplyFixedSizingConstraints(layout.Shape)
+	applyFixedSizingConstraints(layout.Shape)
 	return layout
 }
 

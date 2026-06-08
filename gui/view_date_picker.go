@@ -187,7 +187,7 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 			}
 		},
 	})
-	return GenerateViewLayout(col, w)
+	return generateViewLayout(col, w)
 }
 
 // datePickerGetState retrieves or initializes per-instance state.
@@ -337,7 +337,7 @@ func datePickerWeekdays(cfg *DatePickerCfg) View {
 			MaxWidth:   cellSize,
 			HAlign:     HAlignCenter,
 			SizeBorder: NoBorder,
-			Padding:    Some(PaddingThree),
+			Padding:    Some(paddingThree),
 			Content:    []View{Text(TextCfg{Text: label, TextStyle: wdTS})},
 		}))
 	}
@@ -389,7 +389,7 @@ func datePickerMonth(
 						MinWidth:    cellSize,
 						MaxWidth:    cellSize,
 						MaxHeight:   cellSize,
-						Padding:     Some(PaddingThree),
+						Padding:     Some(paddingThree),
 						Content:     []View{Text(TextCfg{Text: " "})},
 					}))
 				}
@@ -434,7 +434,7 @@ func datePickerMonth(
 				ColorHover:  colorHover,
 				SizeBorder:  SomeF(2),
 				Radius:      Some(radius),
-				Padding:     Some(PaddingThree),
+				Padding:     Some(paddingThree),
 				Disabled:    disabled,
 				Content: []View{Text(TextCfg{
 					Text: dayStr, TextStyle: ts,
@@ -511,7 +511,7 @@ func datePickerAdjacentCell(
 		MinWidth:    cellSize,
 		MaxWidth:    cellSize,
 		MaxHeight:   cellSize,
-		Padding:     Some(PaddingThree),
+		Padding:     Some(paddingThree),
 		Content: []View{Text(TextCfg{
 			Text:      strconv.Itoa(adjDay),
 			TextStyle: ts,

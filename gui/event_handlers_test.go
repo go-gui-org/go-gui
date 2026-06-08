@@ -763,7 +763,7 @@ func TestDrawCanvasOnFileDropWired(t *testing.T) {
 			called = true
 		},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.events == nil {
 		t.Fatal("expected non-nil events")
 	}

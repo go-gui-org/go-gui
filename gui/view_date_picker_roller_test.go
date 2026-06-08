@@ -11,7 +11,7 @@ func TestDatePickerRollerLayout(t *testing.T) {
 		ID:           "roller1",
 		SelectedDate: time.Date(2025, 6, 15, 0, 0, 0, 0, time.Local),
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "roller1" {
 		t.Errorf("ID = %q", layout.Shape.ID)
 	}
@@ -62,7 +62,7 @@ func TestRollerDisplayModes(t *testing.T) {
 			SelectedDate: time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local),
 			DisplayMode:  m,
 		})
-		layout := GenerateViewLayout(v, w)
+		layout := generateViewLayout(v, w)
 		if layout.Shape.ID != "rm" {
 			t.Errorf("mode %d: ID = %q", m, layout.Shape.ID)
 		}

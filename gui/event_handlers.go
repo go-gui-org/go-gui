@@ -95,7 +95,7 @@ func keyupHandler(layout *Layout, e *Event, w *Window) {
 // keyDownScrollHandler handles keyboard-based scrolling.
 // Supports arrow keys, page up/down, and home/end.
 const (
-	ScrollDeltaHome = 10_000_000
+	scrollDeltaHome = 10_000_000
 )
 
 func keyDownScrollHandler(layout *Layout, e *Event, w *Window) {
@@ -110,9 +110,9 @@ func keyDownScrollHandler(layout *Layout, e *Event, w *Window) {
 		case KeyDown:
 			e.IsHandled = scrollVertical(layout, -deltaLine, w)
 		case KeyHome:
-			e.IsHandled = scrollVertical(layout, ScrollDeltaHome, w)
+			e.IsHandled = scrollVertical(layout, scrollDeltaHome, w)
 		case KeyEnd:
-			e.IsHandled = scrollVertical(layout, -ScrollDeltaHome, w)
+			e.IsHandled = scrollVertical(layout, -scrollDeltaHome, w)
 		case KeyPageUp:
 			e.IsHandled = scrollVertical(layout, deltaPage, w)
 		case KeyPageDown:

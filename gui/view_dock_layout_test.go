@@ -100,7 +100,7 @@ func TestDockLayoutGeneratesLayout(t *testing.T) {
 		},
 		OnLayoutChange: func(_ *DockNode, _ *Window) {},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape == nil {
 		t.Fatal("nil shape")
 	}
@@ -124,7 +124,7 @@ func TestDockLayoutWithSplit(t *testing.T) {
 		},
 		OnLayoutChange: func(_ *DockNode, _ *Window) {},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "dock1" {
 		t.Fatal("wrong id")
 	}
@@ -153,7 +153,7 @@ func TestDockGroupViewTabButtons(t *testing.T) {
 	core := newDockLayoutCore(cfg)
 
 	v := dockGroupView(core, group, cfg, dockDragState{})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 
 	if layout.Shape.ID != "g1" {
 		t.Fatalf("group id = %s, want g1", layout.Shape.ID)
@@ -177,7 +177,7 @@ func TestDockGroupViewWithClosable(t *testing.T) {
 	core := newDockLayoutCore(cfg)
 
 	v := dockGroupView(core, group, cfg, dockDragState{})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape == nil {
 		t.Fatal("nil layout")
 	}
@@ -209,7 +209,7 @@ func TestDockGroupViewDraggedTabHidden(t *testing.T) {
 	}
 
 	v := dockGroupView(core, group, cfg, drag)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape == nil {
 		t.Fatal("nil layout")
 	}
@@ -237,7 +237,7 @@ func TestDockSplitViewOrientation(t *testing.T) {
 	core := newDockLayoutCore(cfg)
 
 	v := dockSplitView(core, node, cfg, dockDragState{})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "dock_split:s1" {
 		t.Fatalf("id = %s, want dock_split:s1", layout.Shape.ID)
 	}
@@ -264,7 +264,7 @@ func TestDockNodeViewRoutesSplit(t *testing.T) {
 	core := newDockLayoutCore(cfg)
 
 	v := dockNodeView(core, node, cfg, dockDragState{})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "dock_split:s1" {
 		t.Fatal("should route to split view")
 	}
@@ -286,7 +286,7 @@ func TestDockNodeViewRoutesGroup(t *testing.T) {
 	core := newDockLayoutCore(cfg)
 
 	v := dockNodeView(core, group, cfg, dockDragState{})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "g1" {
 		t.Fatal("should route to group view")
 	}
@@ -387,7 +387,7 @@ func TestDockLayoutFullTreeIntegration(t *testing.T) {
 		OnLayoutChange: func(_ *DockNode, _ *Window) {},
 	})
 
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "dock1" {
 		t.Fatal("wrong root id")
 	}
@@ -432,7 +432,7 @@ func TestDockTabButtonWithSelect(t *testing.T) {
 
 	panel := DockPanelDef{ID: "a", Label: "Alpha"}
 	v := dockTabButton(core, group, panel, true, cfg)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 
 	if layout.Shape.ID != "dock_tab:g1:a" {
 		t.Fatalf("tab id = %s", layout.Shape.ID)
@@ -471,7 +471,7 @@ func TestDockGroupViewFallbackContent(t *testing.T) {
 	}
 
 	v := dockGroupView(core, group, cfg, drag)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape == nil {
 		t.Fatal("nil layout")
 	}

@@ -10,9 +10,9 @@ import (
 
 const listCoreVirtualBufferRows = 2
 
-// ListCoreItem is the normalized item for the shared list engine.
+// listCoreItem is the normalized item for the shared list engine.
 // Widgets map their domain types to this before calling core fns.
-type ListCoreItem struct {
+type listCoreItem struct {
 	ID           string
 	Label        string
 	Detail       string
@@ -22,8 +22,8 @@ type ListCoreItem struct {
 	IsSubheading bool
 }
 
-// ListCoreCfg configures listCoreViews rendering.
-type ListCoreCfg struct {
+// listCoreCfg configures listCoreViews rendering.
+type listCoreCfg struct {
 	TextStyle       TextStyle
 	DetailStyle     TextStyle
 	SubheadingStyle TextStyle
@@ -37,9 +37,9 @@ type ListCoreCfg struct {
 	ShowIcons       bool
 }
 
-// ListCorePrepared holds pre-computed filter results for a frame.
-type ListCorePrepared struct {
-	Items []ListCoreItem
+// listCorePrepared holds pre-computed filter results for a frame.
+type listCorePrepared struct {
+	Items []listCoreItem
 	IDs   []string
 	HL    int
 }
@@ -50,56 +50,56 @@ type listCoreScored struct {
 	score int
 }
 
-// ListCoreAction represents a keyboard navigation action.
-type ListCoreAction uint8
+// listCoreAction represents a keyboard navigation action.
+type listCoreAction uint8
 
-// ListCoreAction constants.
+// listCoreAction constants.
 const (
-	ListCoreNone ListCoreAction = iota
-	ListCoreMoveUp
-	ListCoreMoveDown
-	ListCoreSelectItem
-	ListCoreDismiss
-	ListCoreFirst
-	ListCoreLast
+	listCoreNone listCoreAction = iota
+	listCoreMoveUp
+	listCoreMoveDown
+	listCoreSelectItem
+	listCoreDismiss
+	listCoreFirst
+	listCoreLast
 )
 
 // listCoreNavigate maps a key code to a list navigation action.
-func listCoreNavigate(key KeyCode, itemCount int) ListCoreAction {
+func listCoreNavigate(key KeyCode, itemCount int) listCoreAction {
 	if itemCount == 0 {
-		return ListCoreNone
+		return listCoreNone
 	}
 	switch key {
 	case KeyUp:
-		return ListCoreMoveUp
+		return listCoreMoveUp
 	case KeyDown:
-		return ListCoreMoveDown
+		return listCoreMoveDown
 	case KeyEnter:
-		return ListCoreSelectItem
+		return listCoreSelectItem
 	case KeyEscape:
-		return ListCoreDismiss
+		return listCoreDismiss
 	case KeyHome:
-		return ListCoreFirst
+		return listCoreFirst
 	case KeyEnd:
-		return ListCoreLast
+		return listCoreLast
 	default:
-		return ListCoreNone
+		return listCoreNone
 	}
 }
 
 // listCoreApplyNav applies a navigation action to a highlight
 // index. Returns new index and whether it changed.
-func listCoreApplyNav(action ListCoreAction, cur, itemCount int) (int, bool) {
+func listCoreApplyNav(action listCoreAction, cur, itemCount int) (int, bool) {
 	switch action {
-	case ListCoreMoveUp:
+	case listCoreMoveUp:
 		next := max(cur-1, 0)
 		return next, next != cur
-	case ListCoreMoveDown:
+	case listCoreMoveDown:
 		next := min(cur+1, itemCount-1)
 		return next, next != cur
-	case ListCoreFirst:
+	case listCoreFirst:
 		return 0, cur != 0
-	case ListCoreLast:
+	case listCoreLast:
 		last := max(itemCount-1, 0)
 		return last, cur != last
 	default:
@@ -169,7 +169,7 @@ func listCoreFuzzyScore(candidate, query string) int {
 
 // listCoreFilter filters + ranks items by query. Returns indices
 // sorted by score. Empty query returns all in order.
-func listCoreFilter(items []ListCoreItem, query string) []int {
+func listCoreFilter(items []listCoreItem, query string) []int {
 	if len(query) == 0 {
 		all := make([]int, len(items))
 		for i := range items {
@@ -200,13 +200,13 @@ func listCoreFilter(items []ListCoreItem, query string) []int {
 // listCorePrepareInto filters items by query into caller-provided
 // buffers to reduce per-frame allocations.
 func listCorePrepareInto(
-	items []ListCoreItem,
+	items []listCoreItem,
 	query string,
 	rawHighlight int,
-	filteredDst []ListCoreItem,
+	filteredDst []listCoreItem,
 	idsDst []string,
 	scoredDst []listCoreScored,
-) (ListCorePrepared, []listCoreScored) {
+) (listCorePrepared, []listCoreScored) {
 	filtered := filteredDst[:0]
 	if len(query) == 0 {
 		filtered = append(filtered, items...)
@@ -248,12 +248,12 @@ func listCorePrepareInto(
 			ids = append(ids, filtered[i].ID)
 		}
 	}
-	return ListCorePrepared{Items: filtered, IDs: ids, HL: hl}, scoredDst
+	return listCorePrepared{Items: filtered, IDs: ids, HL: hl}, scoredDst
 }
 
 // listCorePrepare filters items by query, clamps highlight, and
 // collects selectable IDs. Skips subheadings from IDs.
-func listCorePrepare(items []ListCoreItem, query string, rawHighlight int) ListCorePrepared {
+func listCorePrepare(items []listCoreItem, query string, rawHighlight int) listCorePrepared {
 	prepared, _ := listCorePrepareInto(items, query, rawHighlight, nil, nil, nil)
 	return prepared
 }
@@ -279,7 +279,7 @@ func listCoreContainsSelected(selectedSet map[string]struct{}, selectedIDs []str
 
 // listCoreViews builds visible item views with virtualization
 // spacers. first/last are indices from listCoreVisibleRange.
-func listCoreViews(items []ListCoreItem, cfg ListCoreCfg, first, last, highlighted int, selectedIDs []string, rowHeight float32) []View {
+func listCoreViews(items []listCoreItem, cfg listCoreCfg, first, last, highlighted int, selectedIDs []string, rowHeight float32) []View {
 	total := len(items)
 	capacity := 2
 	if last >= first {
@@ -318,7 +318,7 @@ func listCoreViews(items []ListCoreItem, cfg ListCoreCfg, first, last, highlight
 }
 
 // listCoreItemView renders a single item row.
-func listCoreItemView(item ListCoreItem, index int, isHighlighted, isSelected bool, cfg ListCoreCfg) View {
+func listCoreItemView(item listCoreItem, index int, isHighlighted, isSelected bool, cfg listCoreCfg) View {
 	bg := ColorTransparent
 	if isHighlighted {
 		bg = cfg.ColorHighlight
@@ -393,7 +393,7 @@ func listCoreItemView(item ListCoreItem, index int, isHighlighted, isSelected bo
 }
 
 // listCoreSubheadingView renders a subheading row.
-func listCoreSubheadingView(item ListCoreItem, cfg ListCoreCfg) View {
+func listCoreSubheadingView(item listCoreItem, cfg listCoreCfg) View {
 	return Column(ContainerCfg{
 		Spacing: SomeF(1),
 		Padding: NoPadding,

@@ -4,7 +4,7 @@ import "testing"
 
 func TestSkeletonDefaultLayout(t *testing.T) {
 	v := Skeleton(SkeletonCfg{ID: "s1"})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.Axis != AxisLeftToRight {
 		t.Error("default should be horizontal (row)")
 	}
@@ -15,7 +15,7 @@ func TestSkeletonCircleVariant(t *testing.T) {
 		ID:      "s2",
 		Variant: SkeletonCircle,
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.shapeType != shapeCircle {
 		t.Errorf("shapeType = %d, want shapeCircle (%d)",
 			layout.Shape.shapeType, shapeCircle)
@@ -24,7 +24,7 @@ func TestSkeletonCircleVariant(t *testing.T) {
 
 func TestSkeletonA11YRole(t *testing.T) {
 	v := Skeleton(SkeletonCfg{ID: "s3"})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.A11YRole != AccessRoleProgressBar {
 		t.Errorf("role = %d, want ProgressBar",
 			layout.Shape.A11YRole)
@@ -33,7 +33,7 @@ func TestSkeletonA11YRole(t *testing.T) {
 
 func TestSkeletonA11YState(t *testing.T) {
 	v := Skeleton(SkeletonCfg{ID: "s4"})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	want := AccessStateBusy | AccessStateLive
 	if layout.Shape.A11YState != want {
 		t.Errorf("state = %d, want %d",
@@ -46,7 +46,7 @@ func TestSkeletonA11YLabel(t *testing.T) {
 		ID:        "s5",
 		A11YLabel: "avatar",
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.A11Y == nil {
 		t.Fatal("a11y nil")
 	}
@@ -58,7 +58,7 @@ func TestSkeletonA11YLabel(t *testing.T) {
 
 func TestSkeletonA11YLabelDefault(t *testing.T) {
 	v := Skeleton(SkeletonCfg{ID: "s6"})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.A11Y == nil {
 		t.Fatal("a11y nil")
 	}
@@ -70,7 +70,7 @@ func TestSkeletonA11YLabelDefault(t *testing.T) {
 
 func TestSkeletonThemeColor(t *testing.T) {
 	v := Skeleton(SkeletonCfg{ID: "s7"})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	want := guiTheme.SkeletonStyle.Color
 	if layout.Shape.Color != want {
 		t.Errorf("color = %v, want %v",
@@ -81,7 +81,7 @@ func TestSkeletonThemeColor(t *testing.T) {
 func TestSkeletonCustomColor(t *testing.T) {
 	c := Color{R: 200, G: 50, B: 50, A: 255, set: true}
 	v := Skeleton(SkeletonCfg{ID: "s8", Color: c})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.Color != c {
 		t.Errorf("color = %v, want %v",
 			layout.Shape.Color, c)
@@ -93,7 +93,7 @@ func TestSkeletonRadiusZeroOverride(t *testing.T) {
 		ID:     "s9",
 		Radius: NoRadius,
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.Radius != 0 {
 		t.Errorf("radius = %f, want 0", layout.Shape.Radius)
 	}
@@ -101,7 +101,7 @@ func TestSkeletonRadiusZeroOverride(t *testing.T) {
 
 func TestSkeletonSizeBorderNone(t *testing.T) {
 	v := Skeleton(SkeletonCfg{ID: "s10"})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.SizeBorder != 0 {
 		t.Errorf("SizeBorder = %f, want 0",
 			layout.Shape.SizeBorder)
@@ -113,7 +113,7 @@ func TestSkeletonInvisible(t *testing.T) {
 		ID:        "s11",
 		Invisible: true,
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	// Invisible containers return a disabled, zero-size view.
 	if !layout.Shape.Disabled {
 		t.Error("invisible skeleton should be disabled")
@@ -125,7 +125,7 @@ func TestSkeletonDisabled(t *testing.T) {
 		ID:       "s12",
 		Disabled: true,
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if !layout.Shape.Disabled {
 		t.Error("Disabled not propagated")
 	}
@@ -134,7 +134,7 @@ func TestSkeletonDisabled(t *testing.T) {
 func TestSkeletonAnimationIsViewBound(t *testing.T) {
 	v := Skeleton(SkeletonCfg{ID: "sk1"})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.events == nil || layout.Shape.events.AmendLayout == nil {
 		t.Fatal("AmendLayout not set")
 	}
@@ -150,7 +150,7 @@ func TestSkeletonAnimationIsViewBound(t *testing.T) {
 func TestSkeletonAmendLayoutSetsGradient(t *testing.T) {
 	v := Skeleton(SkeletonCfg{ID: "s13"})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.events == nil ||
 		layout.Shape.events.AmendLayout == nil {
 		t.Fatal("AmendLayout not set")

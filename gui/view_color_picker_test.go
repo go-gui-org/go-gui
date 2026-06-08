@@ -8,7 +8,7 @@ func TestColorPickerLayout(t *testing.T) {
 		ID:    "cp1",
 		Color: RGB(255, 0, 0),
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "cp1" {
 		t.Errorf("ID = %q", layout.Shape.ID)
 	}
@@ -24,7 +24,7 @@ func TestColorPickerLayoutWithHSV(t *testing.T) {
 		Color:   RGB(0, 128, 255),
 		ShowHSV: true,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "cp-hsv" {
 		t.Errorf("ID = %q", layout.Shape.ID)
 	}
@@ -59,7 +59,7 @@ func TestColorPickerStateInit(t *testing.T) {
 	w := &Window{}
 	c := RGB(255, 0, 0) // pure red
 	v := ColorPicker(ColorPickerCfg{ID: "cp-state", Color: c})
-	GenerateViewLayout(v, w)
+	generateViewLayout(v, w)
 
 	sm := StateMap[string, colorPickerState](
 		w, nsColorPicker, capModerate)

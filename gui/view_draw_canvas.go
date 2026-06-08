@@ -99,6 +99,6 @@ func (dv *drawCanvasView) GenerateLayout(_ *Window) Layout {
 			events:    events,
 		},
 	}
-	ApplyFixedSizingConstraints(layout.Shape)
+	applyFixedSizingConstraints(layout.Shape)
 	return layout
 }

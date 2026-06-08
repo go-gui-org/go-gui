@@ -12,7 +12,7 @@ func TestCommandPaletteHidden(t *testing.T) {
 		OnAction: func(_ string, _ *Event, _ *Window) {},
 		IDFocus:  1,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.shapeType == shapeDrawCanvas {
 		t.Error("hidden palette should not be canvas")
 	}
@@ -31,7 +31,7 @@ func TestCommandPaletteVisible(t *testing.T) {
 		OnAction: func(_ string, _ *Event, _ *Window) {},
 		IDFocus:  1,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) == 0 {
 		t.Error("visible palette should have children")
 	}
@@ -68,7 +68,7 @@ func TestPaletteOnKeyDownEscape(t *testing.T) {
 	CommandPaletteShow("cp-esc", 1, 0, w)
 	dismissed := false
 	e := &Event{KeyCode: KeyEscape}
-	items := []ListCoreItem{{ID: "a", Label: "A"}}
+	items := []listCoreItem{{ID: "a", Label: "A"}}
 	paletteOnKeyDown("cp-esc", nil,
 		func(_ *Window) { dismissed = true },
 		items, []string{"a"}, e, w)
@@ -85,7 +85,7 @@ func TestPaletteOnKeyDownSelect(t *testing.T) {
 	CommandPaletteShow("cp-sel", 1, 0, w)
 	selected := ""
 	e := &Event{KeyCode: KeyEnter}
-	items := []ListCoreItem{
+	items := []listCoreItem{
 		{ID: "cmd1", Label: "Cmd1"},
 		{ID: "cmd2", Label: "Cmd2"},
 	}
@@ -103,7 +103,7 @@ func TestPaletteOnKeyDownDisabledBlocked(t *testing.T) {
 	CommandPaletteShow("cp-dis", 1, 0, w)
 	selected := ""
 	e := &Event{KeyCode: KeyEnter}
-	items := []ListCoreItem{
+	items := []listCoreItem{
 		{ID: "cmd1", Label: "Cmd1", Disabled: true},
 	}
 	paletteOnKeyDown("cp-dis",
@@ -122,7 +122,7 @@ func TestPaletteOnKeyDownArrowCycle(t *testing.T) {
 	w := &Window{}
 	id := "cp-nav"
 	CommandPaletteShow(id, 1, 0, w)
-	items := []ListCoreItem{
+	items := []listCoreItem{
 		{ID: "a", Label: "A"},
 		{ID: "b", Label: "B"},
 		{ID: "c", Label: "C"},
@@ -173,7 +173,7 @@ func TestPaletteQueryFiltering(t *testing.T) {
 			OnAction: func(_ string, _ *Event, _ *Window) {},
 			IDFocus:  1,
 		})
-		_ = GenerateViewLayout(v, w)
+		_ = generateViewLayout(v, w)
 	}
 
 	// Filter for "sa" should narrow results.
@@ -199,7 +199,7 @@ func TestCommandPaletteItemsCacheInvalidatesOnItemsChange(t *testing.T) {
 		OnAction: func(_ string, _ *Event, _ *Window) {},
 		IDFocus:  1,
 	})
-	_ = GenerateViewLayout(v, w)
+	_ = generateViewLayout(v, w)
 
 	cm := StateMapRead[string, *cmdPaletteItemsCache](w, nsCmdPaletteItems)
 	if cm == nil {
@@ -222,7 +222,7 @@ func TestCommandPaletteItemsCacheInvalidatesOnItemsChange(t *testing.T) {
 		OnAction: func(_ string, _ *Event, _ *Window) {},
 		IDFocus:  1,
 	})
-	_ = GenerateViewLayout(v, w)
+	_ = generateViewLayout(v, w)
 	cache, _ = cm.Get(id)
 	if got := len(cache.items); got != 2 {
 		t.Fatalf("cache items len = %d, want 2", got)
@@ -243,7 +243,7 @@ func TestCommandPaletteCacheInvalidatesOnContentChange(t *testing.T) {
 			OnAction: func(_ string, _ *Event, _ *Window) {},
 			IDFocus:  1,
 		})
-		_ = GenerateViewLayout(v, w)
+		_ = generateViewLayout(v, w)
 		cm := StateMapRead[string, *cmdPaletteItemsCache](
 			w, nsCmdPaletteItems)
 		c, _ := cm.Get(id)
@@ -288,7 +288,7 @@ func TestPaletteBackdropDismiss(t *testing.T) {
 		},
 		IDFocus: 1,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 
 	// The outermost child is the backdrop column with OnClick.
 	if layout.Shape.events == nil || layout.Shape.events.OnClick == nil {
@@ -317,7 +317,7 @@ func TestPaletteOnEnterSelectsHighlighted(t *testing.T) {
 	sh.Set(id, 1)
 
 	selected := ""
-	items := []ListCoreItem{
+	items := []listCoreItem{
 		{ID: "a", Label: "A"},
 		{ID: "b", Label: "B"},
 	}
@@ -342,7 +342,7 @@ func TestPaletteOnEnterDisabledBlocked(t *testing.T) {
 	CommandPaletteShow(id, 1, 0, w)
 
 	selected := ""
-	items := []ListCoreItem{
+	items := []listCoreItem{
 		{ID: "a", Label: "A", Disabled: true},
 	}
 	ids := []string{"a"}
@@ -378,7 +378,7 @@ func TestPaletteKeyboardDispatchIntegration(t *testing.T) {
 			selected = itemID
 		},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 
 	// Arrow down through keydownHandler (full dispatch).
 	e := &Event{KeyCode: KeyDown, Type: EventKeyDown}
@@ -393,7 +393,7 @@ func TestPaletteKeyboardDispatchIntegration(t *testing.T) {
 	}
 
 	// Re-generate layout after state change.
-	layout = GenerateViewLayout(v, w)
+	layout = generateViewLayout(v, w)
 
 	// Enter through keydownHandler to select.
 	e = &Event{KeyCode: KeyEnter, Type: EventKeyDown}

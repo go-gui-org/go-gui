@@ -157,7 +157,7 @@ func (v *nilShapeStubView) GenerateLayout(_ *Window) Layout {
 
 func TestGenerateViewLayoutFlat(t *testing.T) {
 	v := &stubView{id: "root"}
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 
 	if layout.Shape.ID != "root" {
 		t.Errorf("ID: got %q, want root", layout.Shape.ID)
@@ -175,7 +175,7 @@ func TestGenerateViewLayoutWithChildren(t *testing.T) {
 			&stubView{id: "child2"},
 		},
 	}
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 
 	if layout.Shape.ID != "parent" {
 		t.Errorf("root ID: got %q", layout.Shape.ID)
@@ -203,7 +203,7 @@ func TestGenerateViewLayoutNested(t *testing.T) {
 			},
 		},
 	}
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 
 	if len(layout.Children) != 1 {
 		t.Fatal("root should have 1 child")
@@ -226,7 +226,7 @@ func TestGenerateViewLayoutNormalizesNilShape(t *testing.T) {
 			&nilShapeStubView{},
 		},
 	}
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if layout.Shape == nil {
 		t.Fatal("root shape should be normalized")
 	}
@@ -557,7 +557,7 @@ func TestButtonCreatesRow(t *testing.T) {
 			Text(TextCfg{Text: "click"}),
 		},
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.Axis != AxisLeftToRight {
 		t.Error("button should be a row")
 	}
@@ -660,7 +660,7 @@ func TestButtonDisabledSuppressesOnClick(t *testing.T) {
 		},
 	})
 	w := newTestWindow()
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 
 	// AmendLayout should not change color on disabled button.
 	origColor := layout.Shape.Color
@@ -905,7 +905,7 @@ func TestColumnWithTextAndButton(t *testing.T) {
 		},
 	})
 
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "main" {
 		t.Error("root ID mismatch")
 	}

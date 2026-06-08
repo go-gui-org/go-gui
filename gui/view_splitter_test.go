@@ -19,7 +19,7 @@ func TestSplitterBasic(t *testing.T) {
 		OnChange: func(_ float32, _ SplitterCollapsed, _ *Event, _ *Window) {},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Canvas: pane1, handle, pane2.
 	if len(layout.Children) != 3 {
 		t.Fatalf("children = %d, want 3", len(layout.Children))
@@ -34,7 +34,7 @@ func TestSplitAlias(t *testing.T) {
 		Second:   SplitterPaneCfg{},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 3 {
 		t.Fatalf("children = %d, want 3", len(layout.Children))
 	}

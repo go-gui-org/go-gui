@@ -12,7 +12,7 @@ func TestSliderDefaultLayout(t *testing.T) {
 		Value:    50,
 		OnChange: func(float32, *Event, *Window) {},
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	// Wrapper container with 1 child (track)
 	if len(layout.Children) != 1 {
 		t.Fatalf("children: got %d, want 1", len(layout.Children))
@@ -34,7 +34,7 @@ func TestSliderA11Y(t *testing.T) {
 		Max:      100,
 		OnChange: func(float32, *Event, *Window) {},
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.A11YRole != AccessRoleSlider {
 		t.Errorf("role = %d, want Slider", layout.Shape.A11YRole)
 	}
@@ -59,7 +59,7 @@ func TestSliderMinMaxValidation(t *testing.T) {
 		Max:      50, // invalid: min >= max
 		OnChange: func(float32, *Event, *Window) {},
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	// Should auto-adjust max to min+1
 	if layout.Shape.A11Y.ValueMax != 51 {
 		t.Errorf("adjusted max = %f, want 51",
@@ -117,7 +117,7 @@ func TestSliderVertical(t *testing.T) {
 		Vertical: true,
 		OnChange: func(float32, *Event, *Window) {},
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.Axis != AxisTopToBottom {
 		t.Error("vertical slider should use top-to-bottom axis")
 	}
@@ -148,7 +148,7 @@ func TestSliderNonZeroMin(t *testing.T) {
 			Max:      110,
 			OnChange: func(float32, *Event, *Window) {},
 		})
-		layout := GenerateViewLayout(v, &Window{})
+		layout := generateViewLayout(v, &Window{})
 		track := layout.Children[0]
 		leftBar := track.Children[0]
 		// value=60, min=10, max=110 → 50% of track width
@@ -173,7 +173,7 @@ func TestSliderNonZeroMin(t *testing.T) {
 			OnChange: onChange,
 		})
 		w := &Window{}
-		layout := GenerateViewLayout(v, w)
+		layout := generateViewLayout(v, w)
 		// Simulate click at 50% along the slider
 		e := &Event{
 			MouseX: layout.Shape.X + layout.Shape.Width/2,
@@ -218,7 +218,7 @@ func TestSliderVerticalMouseDedup(t *testing.T) {
 		OnChange: onChange,
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Mouse position that maps to curValue=50 (50% of 100)
 	e := &Event{
 		MouseX: layout.Shape.X,

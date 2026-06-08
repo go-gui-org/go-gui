@@ -74,7 +74,7 @@ func BenchmarkGenerateViewLayout(b *testing.B) {
 		view := benchViewFlat(100)
 		b.ReportAllocs()
 		for b.Loop() {
-			_ = GenerateViewLayout(view, w)
+			_ = generateViewLayout(view, w)
 		}
 	})
 
@@ -83,7 +83,7 @@ func BenchmarkGenerateViewLayout(b *testing.B) {
 		view := benchViewNested(3, 10)
 		b.ReportAllocs()
 		for b.Loop() {
-			_ = GenerateViewLayout(view, w)
+			_ = generateViewLayout(view, w)
 		}
 	})
 
@@ -92,7 +92,7 @@ func BenchmarkGenerateViewLayout(b *testing.B) {
 		view := benchViewDeep(12)
 		b.ReportAllocs()
 		for b.Loop() {
-			_ = GenerateViewLayout(view, w)
+			_ = generateViewLayout(view, w)
 		}
 	})
 }

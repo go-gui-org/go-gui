@@ -14,7 +14,7 @@ func TestTabControlBasic(t *testing.T) {
 		OnSelect: func(_ string, _ *Event, _ *Window) {},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Outer column: header row + content column.
 	if len(layout.Children) != 2 {
 		t.Fatalf("children = %d, want 2", len(layout.Children))
@@ -34,7 +34,7 @@ func TestTabsAlias(t *testing.T) {
 		OnSelect: func(_ string, _ *Event, _ *Window) {},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 2 {
 		t.Fatalf("children = %d, want 2", len(layout.Children))
 	}
@@ -127,7 +127,7 @@ func TestTabControlDisabled(t *testing.T) {
 func TestTabControlEmptyItems(t *testing.T) {
 	v := TabControl(TabControlCfg{ID: "tabs"})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 2 {
 		t.Fatalf("children = %d, want 2", len(layout.Children))
 	}
@@ -147,7 +147,7 @@ func TestTabControlAllDisabledItems(t *testing.T) {
 		},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	content := layout.Children[1]
 	if len(content.Children) != 0 {
 		t.Errorf("content children = %d, want 0",
@@ -205,7 +205,7 @@ func TestTabSelectedContent(t *testing.T) {
 		},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	content := layout.Children[1]
 	if len(content.Children) != 2 {
 		t.Errorf("content children = %d, want 2",
@@ -224,7 +224,7 @@ func TestTabControlReorderable(t *testing.T) {
 		},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 2 {
 		t.Fatalf("children = %d, want 2", len(layout.Children))
 	}
@@ -245,7 +245,7 @@ func TestTabOptZeroOverride(t *testing.T) {
 		},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.SizeBorder != 0 {
 		t.Errorf("SizeBorder = %v, want 0",
 			layout.Shape.SizeBorder)

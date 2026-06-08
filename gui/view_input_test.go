@@ -15,7 +15,7 @@ func TestInputGeneratesLayout(t *testing.T) {
 		Placeholder: "Enter email",
 		IDFocus:     10,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "email" {
 		t.Fatalf("got ID %q, want email", layout.Shape.ID)
 	}
@@ -30,7 +30,7 @@ func TestInputMultilineRole(t *testing.T) {
 		Mode:    InputMultiline,
 		IDFocus: 11,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleTextArea {
 		t.Fatalf("got role %d, want TextArea", layout.Shape.A11YRole)
 	}
@@ -39,7 +39,7 @@ func TestInputMultilineRole(t *testing.T) {
 func TestInputReadOnlyWithoutFocus(t *testing.T) {
 	w := newTestWindow()
 	v := Input(InputCfg{Text: "readonly"})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YState != AccessStateReadOnly {
 		t.Fatalf("got state %d, want ReadOnly", layout.Shape.A11YState)
 	}
@@ -51,7 +51,7 @@ func TestInputPlaceholderWhenEmpty(t *testing.T) {
 		Placeholder: "Type here",
 		IDFocus:     12,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// The inner Row → Text child should use placeholder text.
 	if len(layout.Children) == 0 {
 		t.Fatal("no children")
@@ -77,7 +77,7 @@ func TestInputClickPlaceholderResetsCursorToStart(t *testing.T) {
 		SelectBeg: 2,
 		SelectEnd: 5,
 	})
-	layout := GenerateViewLayout(Input(InputCfg{
+	layout := generateViewLayout(Input(InputCfg{
 		Placeholder: "Type here",
 		IDFocus:     14,
 	}), w)
@@ -143,7 +143,7 @@ func TestInputA11YLabelFallback(t *testing.T) {
 		Placeholder: "Search...",
 		IDFocus:     13,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.A11Y == nil {
 		t.Fatal("A11Y nil")
 	}
@@ -168,7 +168,7 @@ func newInputTest(text string, idFocus uint32, cursorPos int) *inputTestCtx {
 	ctx.lastText = text
 	ctx.w.SetIDFocus(idFocus)
 	setInputState(ctx.w, idFocus, InputState{CursorPos: cursorPos})
-	ctx.layout = GenerateViewLayout(Input(InputCfg{
+	ctx.layout = generateViewLayout(Input(InputCfg{
 		Text:    text,
 		IDFocus: idFocus,
 		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
@@ -184,7 +184,7 @@ func newInputTestMultiline(text string, idFocus uint32, cursorPos int) *inputTes
 	ctx.lastText = text
 	ctx.w.SetIDFocus(idFocus)
 	setInputState(ctx.w, idFocus, InputState{CursorPos: cursorPos})
-	ctx.layout = GenerateViewLayout(Input(InputCfg{
+	ctx.layout = generateViewLayout(Input(InputCfg{
 		Text:    text,
 		IDFocus: idFocus,
 		Mode:    InputMultiline,
@@ -260,7 +260,7 @@ func TestInputKeyDownEnterSingleLine(t *testing.T) {
 	w := newTestWindow()
 	w.SetIDFocus(600)
 	setInputState(w, 600, InputState{CursorPos: 2})
-	layout := GenerateViewLayout(Input(InputCfg{
+	layout := generateViewLayout(Input(InputCfg{
 		Text:    "hi",
 		IDFocus: 600,
 		OnTextCommit: func(_ *Layout, _ string, reason InputCommitReason, _ *Window) {
@@ -284,7 +284,7 @@ func TestInputOnCharUndo(t *testing.T) {
 		t.Fatalf("insert: got %q", ctx.lastText)
 	}
 	// Rebuild layout with new text for undo.
-	ctx.layout = GenerateViewLayout(Input(InputCfg{
+	ctx.layout = generateViewLayout(Input(InputCfg{
 		Text:    ctx.lastText,
 		IDFocus: 506,
 		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
@@ -301,7 +301,7 @@ func TestInputOnCharRedo(t *testing.T) {
 	ctx := newInputTest("hello", 507, 5)
 	ctx.fireChar('!')
 	// Rebuild with new text.
-	ctx.layout = GenerateViewLayout(Input(InputCfg{
+	ctx.layout = generateViewLayout(Input(InputCfg{
 		Text:    ctx.lastText,
 		IDFocus: 507,
 		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
@@ -309,7 +309,7 @@ func TestInputOnCharRedo(t *testing.T) {
 		},
 	}), ctx.w)
 	ctx.fireKeyDown(KeyZ, ModCtrl) // undo
-	ctx.layout = GenerateViewLayout(Input(InputCfg{
+	ctx.layout = generateViewLayout(Input(InputCfg{
 		Text:    ctx.lastText,
 		IDFocus: 507,
 		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
@@ -347,7 +347,7 @@ func TestInputCopyPaste(t *testing.T) {
 	}
 	// Move cursor to end, paste.
 	setInputState(ctx.w, 509, InputState{CursorPos: 5})
-	ctx.layout = GenerateViewLayout(Input(InputCfg{
+	ctx.layout = generateViewLayout(Input(InputCfg{
 		Text:    "hello",
 		IDFocus: 509,
 		OnTextChanged: func(_ *Layout, newText string, _ *Window) {

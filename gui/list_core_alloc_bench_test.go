@@ -5,11 +5,11 @@ import (
 	"testing"
 )
 
-func benchmarkListCoreItems(n int) []ListCoreItem {
-	items := make([]ListCoreItem, n)
+func benchmarklistCoreItems(n int) []listCoreItem {
+	items := make([]listCoreItem, n)
 	for i := range n {
 		s := "Item " + strconv.Itoa(i)
-		items[i] = ListCoreItem{ID: s, Label: s}
+		items[i] = listCoreItem{ID: s, Label: s}
 	}
 	return items
 }
@@ -23,7 +23,7 @@ func benchmarkOptions(n int) []string {
 }
 
 func BenchmarkListCorePrepare(b *testing.B) {
-	items := benchmarkListCoreItems(2000)
+	items := benchmarklistCoreItems(2000)
 	b.ReportAllocs()
 
 	b.Run("empty_query", func(b *testing.B) {
@@ -58,7 +58,7 @@ func BenchmarkComboboxGenerateLayout(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for b.Loop() {
-			_ = GenerateViewLayout(v, w)
+			_ = generateViewLayout(v, w)
 		}
 	})
 
@@ -71,7 +71,7 @@ func BenchmarkComboboxGenerateLayout(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for b.Loop() {
-			_ = GenerateViewLayout(v, w)
+			_ = generateViewLayout(v, w)
 		}
 	})
 }
@@ -104,7 +104,7 @@ func BenchmarkCommandPaletteGenerateLayout(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		_ = GenerateViewLayout(v, w)
+		_ = generateViewLayout(v, w)
 	}
 }
 
@@ -131,7 +131,7 @@ func BenchmarkListBoxGenerateLayout(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for b.Loop() {
-			_ = GenerateViewLayout(v, w)
+			_ = generateViewLayout(v, w)
 		}
 	})
 
@@ -151,7 +151,7 @@ func BenchmarkListBoxGenerateLayout(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for b.Loop() {
-			_ = GenerateViewLayout(v, w)
+			_ = generateViewLayout(v, w)
 		}
 	})
 }

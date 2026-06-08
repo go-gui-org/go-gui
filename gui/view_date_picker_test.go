@@ -11,7 +11,7 @@ func TestDatePickerLayout(t *testing.T) {
 		ID:    "dp1",
 		Dates: []time.Time{time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local)},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "dp1" {
 		t.Errorf("ID = %q", layout.Shape.ID)
 	}
@@ -218,7 +218,7 @@ func TestDatePickerSubElementClickFocus(t *testing.T) {
 	applyDatePickerDefaults(&cfg)
 
 	v := DatePicker(cfg)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 
 	// Month toggle button is in the first child (Row).
 	controls := &layout.Children[0]
@@ -262,7 +262,7 @@ func TestDatePickerFocusIndicator(t *testing.T) {
 	applyDatePickerDefaults(&cfg)
 
 	v := DatePicker(cfg)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 
 	// No focus initially.
 	if layout.Shape.ColorBorder == focusedColor {
@@ -271,7 +271,7 @@ func TestDatePickerFocusIndicator(t *testing.T) {
 
 	// Set focus and re-layout.
 	w.SetIDFocus(1)
-	layout = GenerateViewLayout(v, w)
+	layout = generateViewLayout(v, w)
 	// layoutArrange executes AmendLayout hooks.
 	_ = layoutArrange(&layout, w)
 
@@ -289,7 +289,7 @@ func TestDatePickerClickFocus(t *testing.T) {
 	applyDatePickerDefaults(&cfg)
 
 	v := DatePicker(cfg)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 
 	if w.IDFocus() == 5 {
 		t.Error("should not be focused initially")
@@ -327,7 +327,7 @@ func TestDatePickerClickAdjacentMonth(t *testing.T) {
 	// Col 0: Feb 23, Col 1: Feb 24, ..., Col 5: Feb 28, Col 6: Mar 1.
 
 	v := DatePicker(cfg)
-	_ = GenerateViewLayout(v, w)
+	_ = generateViewLayout(v, w)
 
 	// Feb 28, 2025 is the day we want to click.
 	// Find the cell with ID "dp-adj.day.prev.28".
@@ -360,7 +360,7 @@ func TestDatePickerKeyboardNav(t *testing.T) {
 	w.SetIDFocus(1)
 
 	v := DatePicker(cfg)
-	_ = GenerateViewLayout(v, w)
+	_ = generateViewLayout(v, w)
 
 	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
 	s, _ := sm.Get("dp-key")

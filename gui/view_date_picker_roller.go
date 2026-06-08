@@ -77,7 +77,7 @@ func (rv *datePickerRollerView) GenerateLayout(w *Window) Layout {
 	mode := cfg.DisplayMode
 	wrapYear := cfg.WrapYear
 
-	return GenerateViewLayout(container(ContainerCfg{
+	return generateViewLayout(container(ContainerCfg{
 		ID:          cfg.ID,
 		IDFocus:     cfg.IDFocus,
 		A11YRole:    AccessRoleDateField,

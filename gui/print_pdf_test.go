@@ -615,7 +615,7 @@ func TestRenderToPDF_FullPipeline(t *testing.T) {
 		},
 	})
 
-	rootLayout := GenerateViewLayout(view, w)
+	rootLayout := generateViewLayout(view, w)
 	layers := layoutArrange(&rootLayout, w)
 	w.layout = composeLayout(layers, w)
 	w.buildRenderers(RGBA(45, 45, 48, 255), w.windowRect())

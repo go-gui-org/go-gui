@@ -8,7 +8,7 @@ import (
 func TestSpinnerDefaultLayout(t *testing.T) {
 	w := &Window{}
 	v := Spinner(SpinnerCfg{ID: "s1"}, w)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.Axis != AxisLeftToRight {
 		t.Error("default should be row")
 	}
@@ -24,7 +24,7 @@ func TestSpinnerDefaultLayout(t *testing.T) {
 func TestSpinnerConfigDefaults(t *testing.T) {
 	w := &Window{}
 	v := Spinner(SpinnerCfg{ID: "s2"}, w)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.Width != 48 {
 		t.Errorf("default width = %f, want 48", layout.Shape.Width)
 	}
@@ -37,7 +37,7 @@ func TestSpinnerCustomColor(t *testing.T) {
 	w := &Window{}
 	c := RGB(255, 0, 0)
 	v := Spinner(SpinnerCfg{ID: "s3", Color: c}, w)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	cv := layout.Children[0]
 	if cv.Shape.events == nil || cv.Shape.events.OnDraw == nil {
 		t.Fatal("OnDraw not set")
@@ -52,7 +52,7 @@ func TestSpinnerExplicitZeroParam(t *testing.T) {
 		CurveType: CurveLissajous,
 		ParamB:    Some[float32](0),
 	}, w)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.Width != 48 {
 		t.Errorf("width = %f, want 48", layout.Shape.Width)
 	}
@@ -62,7 +62,7 @@ func TestSpinnerInvalidCurveTypeClamped(t *testing.T) {
 	w := &Window{}
 	// Should not panic with out-of-range CurveType.
 	v := Spinner(SpinnerCfg{ID: "s5", CurveType: CurveType(200)}, w)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.Width != 48 {
 		t.Errorf("width = %f, want 48", layout.Shape.Width)
 	}
@@ -75,7 +75,7 @@ func TestSpinnerFixedSizing(t *testing.T) {
 		Width:  200,
 		Height: 100,
 	}, w)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.Width != 200 {
 		t.Errorf("width = %f, want 200", layout.Shape.Width)
 	}
@@ -242,7 +242,7 @@ func TestSpinnerDrawMaxParticles(t *testing.T) {
 func TestSpinnerParticlesClamped(t *testing.T) {
 	w := &Window{}
 	v := Spinner(SpinnerCfg{ID: "clamp", Particles: 10000}, w)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.Width != 48 {
 		t.Error("layout not generated")
 	}

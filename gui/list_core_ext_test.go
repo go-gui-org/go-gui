@@ -3,7 +3,7 @@ package gui
 import "testing"
 
 func TestListCoreFilterEmpty(t *testing.T) {
-	items := []ListCoreItem{
+	items := []listCoreItem{
 		{ID: "a", Label: "Alpha"},
 		{ID: "b", Label: "Beta"},
 	}
@@ -14,7 +14,7 @@ func TestListCoreFilterEmpty(t *testing.T) {
 }
 
 func TestListCoreFilterMatch(t *testing.T) {
-	items := []ListCoreItem{
+	items := []listCoreItem{
 		{ID: "a", Label: "Alpha"},
 		{ID: "b", Label: "Beta"},
 		{ID: "c", Label: "Gamma"},
@@ -26,7 +26,7 @@ func TestListCoreFilterMatch(t *testing.T) {
 }
 
 func TestListCoreFilterSkipsSubheadings(t *testing.T) {
-	items := []ListCoreItem{
+	items := []listCoreItem{
 		{ID: "h", Label: "Header", IsSubheading: true},
 		{ID: "a", Label: "Alpha"},
 	}
@@ -38,7 +38,7 @@ func TestListCoreFilterSkipsSubheadings(t *testing.T) {
 }
 
 func TestListCorePrepare(t *testing.T) {
-	items := []ListCoreItem{
+	items := []listCoreItem{
 		{ID: "x", Label: "Exit"},
 		{ID: "s", Label: "Save"},
 	}
@@ -55,7 +55,7 @@ func TestListCorePrepare(t *testing.T) {
 }
 
 func TestListCorePrepareFiltered(t *testing.T) {
-	items := []ListCoreItem{
+	items := []listCoreItem{
 		{ID: "a", Label: "Apple"},
 		{ID: "b", Label: "Banana"},
 		{ID: "c", Label: "Cherry"},
@@ -67,12 +67,12 @@ func TestListCorePrepareFiltered(t *testing.T) {
 }
 
 func TestListCoreViews(t *testing.T) {
-	items := []ListCoreItem{
+	items := []listCoreItem{
 		{ID: "a", Label: "Alpha"},
 		{ID: "b", Label: "Beta"},
 		{ID: "c", Label: "Gamma"},
 	}
-	cfg := ListCoreCfg{
+	cfg := listCoreCfg{
 		TextStyle:      DefaultTextStyle,
 		ColorHighlight: Red,
 		ColorHover:     Blue,
@@ -85,11 +85,11 @@ func TestListCoreViews(t *testing.T) {
 }
 
 func TestListCoreViewsWithSpacers(t *testing.T) {
-	items := make([]ListCoreItem, 20)
+	items := make([]listCoreItem, 20)
 	for i := range items {
-		items[i] = ListCoreItem{ID: string(rune('a' + i)), Label: "Item"}
+		items[i] = listCoreItem{ID: string(rune('a' + i)), Label: "Item"}
 	}
-	cfg := ListCoreCfg{
+	cfg := listCoreCfg{
 		TextStyle:   DefaultTextStyle,
 		PaddingItem: PaddingSmall,
 	}
@@ -101,13 +101,13 @@ func TestListCoreViewsWithSpacers(t *testing.T) {
 }
 
 func TestListCoreSubheadingView(t *testing.T) {
-	item := ListCoreItem{ID: "h", Label: "Group A", IsSubheading: true}
-	cfg := ListCoreCfg{
+	item := listCoreItem{ID: "h", Label: "Group A", IsSubheading: true}
+	cfg := listCoreCfg{
 		TextStyle:       DefaultTextStyle,
 		SubheadingStyle: DefaultTextStyle,
 		PaddingItem:     PaddingSmall,
 	}
-	views := listCoreViews([]ListCoreItem{item}, cfg, 0, 0, -1, nil, 20)
+	views := listCoreViews([]listCoreItem{item}, cfg, 0, 0, -1, nil, 20)
 	if len(views) != 1 {
 		t.Fatalf("views = %d", len(views))
 	}

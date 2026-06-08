@@ -32,7 +32,7 @@ func TestDialogViewGeneratorReturnsView(t *testing.T) {
 		t.Fatal("expected non-nil view")
 	}
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape == nil {
 		t.Fatal("expected non-nil shape")
 	}
@@ -150,7 +150,7 @@ func TestDialogPromptView(t *testing.T) {
 		t.Fatal("expected non-nil view")
 	}
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) < 3 {
 		t.Fatalf("expected >=3 children (title+body+input+buttons), got %d",
 			len(layout.Children))
@@ -169,7 +169,7 @@ func TestDialogCustomView(t *testing.T) {
 		t.Fatal("expected non-nil view")
 	}
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Title + custom content.
 	if len(layout.Children) < 2 {
 		t.Fatalf("expected >=2 children, got %d", len(layout.Children))
@@ -211,7 +211,7 @@ func TestDialogCustomEscapeDismisses(t *testing.T) {
 	}
 
 	v := dialogViewGenerator(w.dialogCfg)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	e := &Event{Type: EventKeyDown, KeyCode: KeyEscape}
 	keydownHandler(&layout, e, w)
 
@@ -235,7 +235,7 @@ func TestDialogMinMaxWidthResolved(t *testing.T) {
 	cfg := DialogCfg{DialogType: DialogMessage}
 	v := dialogViewGenerator(cfg)
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	s := layout.Shape
 	if s.MinWidth != DefaultDialogStyle.MinWidth {
 		t.Errorf("MinWidth=%f, want %f",
@@ -258,7 +258,7 @@ func TestDialogConfirmView(t *testing.T) {
 		t.Fatal("expected non-nil view")
 	}
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) == 0 {
 		t.Error("expected children for confirm dialog")
 	}

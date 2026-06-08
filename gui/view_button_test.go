@@ -5,7 +5,7 @@ import "testing"
 func TestButtonGeneratesLayout(t *testing.T) {
 	w := &Window{}
 	v := Button(ButtonCfg{ID: "b1"})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape == nil {
 		t.Fatal("expected shape")
 	}
@@ -27,7 +27,7 @@ func TestButtonOnClickFires(t *testing.T) {
 			fired = true
 		},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.events == nil ||
 		layout.Shape.events.OnClick == nil {
 		t.Fatal("expected OnClick handler")
@@ -42,7 +42,7 @@ func TestButtonOnClickFires(t *testing.T) {
 func TestButtonDisabledFlag(t *testing.T) {
 	w := &Window{}
 	v := Button(ButtonCfg{ID: "b3", Disabled: true})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if !layout.Shape.Disabled {
 		t.Error("expected disabled")
 	}
@@ -51,7 +51,7 @@ func TestButtonDisabledFlag(t *testing.T) {
 func TestButtonIDFocus(t *testing.T) {
 	w := &Window{}
 	v := Button(ButtonCfg{ID: "b4", IDFocus: 42})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.IDFocus != 42 {
 		t.Errorf("IDFocus: got %d, want 42", layout.Shape.IDFocus)
 	}
@@ -63,7 +63,7 @@ func TestButtonWithContent(t *testing.T) {
 		ID:      "b5",
 		Content: []View{Text(TextCfg{Text: "Click"})},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) == 0 {
 		t.Error("expected children from content")
 	}
@@ -72,7 +72,7 @@ func TestButtonWithContent(t *testing.T) {
 func TestButtonNoOnClickNoHandler(t *testing.T) {
 	w := &Window{}
 	v := Button(ButtonCfg{ID: "b6"})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.events != nil &&
 		layout.Shape.events.OnClick != nil {
 		t.Error("expected no OnClick without handler")

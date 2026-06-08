@@ -140,7 +140,7 @@ func menuBuild(cfg MenubarCfg, level int, items []MenuItemCfg, w *Window) []View
 		if !pad.IsSet() {
 			if item.CustomView != nil {
 				pad = NoPadding
-			} else if item.ID == MenuSubtitleID {
+			} else if item.ID == menuSubtitleID {
 				pad = cfg.PaddingSubtitle
 			} else {
 				pad = cfg.PaddingMenuItem
@@ -149,7 +149,7 @@ func menuBuild(cfg MenubarCfg, level int, items []MenuItemCfg, w *Window) []View
 
 		// Determine text style.
 		ts := cfg.TextStyle
-		if item.ID == MenuSubtitleID {
+		if item.ID == menuSubtitleID {
 			ts = cfg.TextStyleSubtitle
 		}
 
@@ -265,7 +265,7 @@ func checkForDuplicateMenuIDs(items []MenuItemCfg) {
 
 func checkMenuIDs(items []MenuItemCfg, seen map[string]bool) (string, bool) {
 	for _, item := range items {
-		if item.ID == MenuSeparatorID || item.ID == MenuSubtitleID {
+		if item.ID == menuSeparatorID || item.ID == menuSubtitleID {
 			continue
 		}
 		if seen[item.ID] {

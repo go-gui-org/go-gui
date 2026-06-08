@@ -13,7 +13,7 @@ func TestMenubarLayout(t *testing.T) {
 		},
 	}
 	view := Menubar(w, cfg)
-	layout := GenerateViewLayout(view, w)
+	layout := generateViewLayout(view, w)
 
 	if layout.Shape == nil {
 		t.Fatal("nil shape")

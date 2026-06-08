@@ -5,7 +5,7 @@ import "testing"
 func TestTextSelectAllAndCopy(t *testing.T) {
 	w := newTestWindow()
 	v := Text(TextCfg{Text: "hello world", IDFocus: 42})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	w.SetIDFocus(42)
 
 	// Ctrl+A selects all.
@@ -36,7 +36,7 @@ func TestTextSelectAllAndCopy(t *testing.T) {
 func TestTextDoubleClickWordSelect(t *testing.T) {
 	w := newTestWindow()
 	v := Text(TextCfg{Text: "hello world", IDFocus: 42})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 
 	// charWidth = 16 * 0.6 = 9.6 in test fallback.
 	charWidth := float32(16 * 0.6)
@@ -68,7 +68,7 @@ func TestTextDoubleClickWordSelect(t *testing.T) {
 func TestTextShiftArrowSelection(t *testing.T) {
 	w := newTestWindow()
 	v := Text(TextCfg{Text: "abcdef", IDFocus: 42})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	w.SetIDFocus(42)
 
 	// Place cursor at position 2.
@@ -94,7 +94,7 @@ func TestTextShiftArrowSelection(t *testing.T) {
 func TestTextNoHandlersWithoutFocus(t *testing.T) {
 	w := newTestWindow()
 	v := Text(TextCfg{Text: "no focus"})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 
 	if layout.Shape.events != nil {
 		t.Fatal("events should be nil when IDFocus == 0")
@@ -104,7 +104,7 @@ func TestTextNoHandlersWithoutFocus(t *testing.T) {
 func TestTextAmendLayout(t *testing.T) {
 	w := newTestWindow()
 	v := Text(TextCfg{Text: "test text", IDFocus: 42})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 
 	// Set selection in input state.
 	setInputState(w, 42, InputState{
@@ -127,7 +127,7 @@ func TestTextAmendLayout(t *testing.T) {
 func TestTextEscapeClearsSelection(t *testing.T) {
 	w := newTestWindow()
 	v := Text(TextCfg{Text: "hello", IDFocus: 42})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	w.SetIDFocus(42)
 
 	setInputState(w, 42, InputState{

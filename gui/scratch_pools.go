@@ -111,7 +111,7 @@ type scratchPools struct {
 	svgAnimContribs  scratchSlice[animContrib]
 
 	// View-phase pool: reuse Shape allocations across frames.
-	// Reset before GenerateViewLayout; valid through buildRenderers.
+	// Reset before generateViewLayout; valid through buildRenderers.
 	viewShapes   scratchObjPool[Shape]
 	buttonColors scratchObjPool[shapeButtonColors]
 
@@ -163,7 +163,7 @@ func newScratchPools() scratchPools {
 }
 
 // resetViewPools resets the view-phase object pools. Called
-// before GenerateViewLayout.
+// before generateViewLayout.
 func (p *scratchPools) resetViewPools() {
 	p.viewShapes.reset()
 	p.buttonColors.reset()

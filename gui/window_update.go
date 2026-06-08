@@ -196,7 +196,7 @@ func (w *Window) Update() {
 
 	w.scratch.resetViewPools()
 	view := w.viewGenerator(w)
-	rootLayout := GenerateViewLayout(view, w)
+	rootLayout := generateViewLayout(view, w)
 	if t {
 		t1 = time.Now()
 	}

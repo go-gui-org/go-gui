@@ -61,7 +61,7 @@ func TestFuzzyScorePartialQueryMatch(t *testing.T) {
 // --- listCoreNavigate ---
 
 func TestNavigateEmptyList(t *testing.T) {
-	if listCoreNavigate(KeyDown, 0) != ListCoreNone {
+	if listCoreNavigate(KeyDown, 0) != listCoreNone {
 		t.Error("empty list should return none")
 	}
 }
@@ -69,15 +69,15 @@ func TestNavigateEmptyList(t *testing.T) {
 func TestNavigateKeys(t *testing.T) {
 	cases := []struct {
 		key  KeyCode
-		want ListCoreAction
+		want listCoreAction
 	}{
-		{KeyUp, ListCoreMoveUp},
-		{KeyDown, ListCoreMoveDown},
-		{KeyEnter, ListCoreSelectItem},
-		{KeyEscape, ListCoreDismiss},
-		{KeyHome, ListCoreFirst},
-		{KeyEnd, ListCoreLast},
-		{KeyTab, ListCoreNone},
+		{KeyUp, listCoreMoveUp},
+		{KeyDown, listCoreMoveDown},
+		{KeyEnter, listCoreSelectItem},
+		{KeyEscape, listCoreDismiss},
+		{KeyHome, listCoreFirst},
+		{KeyEnd, listCoreLast},
+		{KeyTab, listCoreNone},
 	}
 	for _, tc := range cases {
 		got := listCoreNavigate(tc.key, 10)
@@ -90,49 +90,49 @@ func TestNavigateKeys(t *testing.T) {
 // --- listCoreApplyNav ---
 
 func TestApplyNavMoveUp(t *testing.T) {
-	next, changed := listCoreApplyNav(ListCoreMoveUp, 3, 10)
+	next, changed := listCoreApplyNav(listCoreMoveUp, 3, 10)
 	if next != 2 || !changed {
 		t.Errorf("move up from 3: got %d, changed=%v", next, changed)
 	}
 }
 
 func TestApplyNavMoveUpAtZero(t *testing.T) {
-	next, changed := listCoreApplyNav(ListCoreMoveUp, 0, 10)
+	next, changed := listCoreApplyNav(listCoreMoveUp, 0, 10)
 	if next != 0 || changed {
 		t.Errorf("move up at 0: got %d, changed=%v", next, changed)
 	}
 }
 
 func TestApplyNavMoveDown(t *testing.T) {
-	next, changed := listCoreApplyNav(ListCoreMoveDown, 3, 10)
+	next, changed := listCoreApplyNav(listCoreMoveDown, 3, 10)
 	if next != 4 || !changed {
 		t.Errorf("move down from 3: got %d, changed=%v", next, changed)
 	}
 }
 
 func TestApplyNavMoveDownAtEnd(t *testing.T) {
-	next, changed := listCoreApplyNav(ListCoreMoveDown, 9, 10)
+	next, changed := listCoreApplyNav(listCoreMoveDown, 9, 10)
 	if next != 9 || changed {
 		t.Errorf("move down at end: got %d, changed=%v", next, changed)
 	}
 }
 
 func TestApplyNavFirst(t *testing.T) {
-	next, changed := listCoreApplyNav(ListCoreFirst, 5, 10)
+	next, changed := listCoreApplyNav(listCoreFirst, 5, 10)
 	if next != 0 || !changed {
 		t.Errorf("first: got %d, changed=%v", next, changed)
 	}
 }
 
 func TestApplyNavLast(t *testing.T) {
-	next, changed := listCoreApplyNav(ListCoreLast, 0, 10)
+	next, changed := listCoreApplyNav(listCoreLast, 0, 10)
 	if next != 9 || !changed {
 		t.Errorf("last: got %d, changed=%v", next, changed)
 	}
 }
 
 func TestApplyNavNone(t *testing.T) {
-	next, changed := listCoreApplyNav(ListCoreNone, 3, 10)
+	next, changed := listCoreApplyNav(listCoreNone, 3, 10)
 	if next != 3 || changed {
 		t.Errorf("none: got %d, changed=%v", next, changed)
 	}
@@ -189,7 +189,7 @@ func TestVisibleRangeSingleItem(t *testing.T) {
 // --- listCoreFilter (additional) ---
 
 func TestFilterNoMatches(t *testing.T) {
-	items := []ListCoreItem{
+	items := []listCoreItem{
 		{ID: "a", Label: "Alpha"},
 		{ID: "b", Label: "Beta"},
 	}
@@ -200,7 +200,7 @@ func TestFilterNoMatches(t *testing.T) {
 }
 
 func TestFilterRankedByScore(t *testing.T) {
-	items := []ListCoreItem{
+	items := []listCoreItem{
 		{ID: "a", Label: "xyzab"}, // 'ab' at positions 3,4 → gap 0
 		{ID: "b", Label: "a___b"}, // 'ab' at positions 0,4 → gap 3
 		{ID: "c", Label: "ab"},    // exact → gap 0

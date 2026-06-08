@@ -96,7 +96,7 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 		)
 		layout.Shape.Height = layout.Shape.MinHeight
 	}
-	ApplyFixedSizingConstraints(layout.Shape)
+	applyFixedSizingConstraints(layout.Shape)
 
 	if c.IDFocus > 0 {
 		layout.Shape.events = textEventHandlers

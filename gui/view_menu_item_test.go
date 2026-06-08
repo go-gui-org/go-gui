@@ -7,8 +7,8 @@ func TestMenuSeparatorCfg(t *testing.T) {
 	if !s.Separator {
 		t.Error("expected separator flag")
 	}
-	if s.ID != MenuSeparatorID {
-		t.Errorf("ID: got %s, want %s", s.ID, MenuSeparatorID)
+	if s.ID != menuSeparatorID {
+		t.Errorf("ID: got %s, want %s", s.ID, menuSeparatorID)
 	}
 }
 
@@ -17,7 +17,7 @@ func TestMenuSubtitleCfg(t *testing.T) {
 	if s.Text != "Section" {
 		t.Errorf("text: got %s", s.Text)
 	}
-	if s.ID != MenuSubtitleID {
+	if s.ID != menuSubtitleID {
 		t.Errorf("ID: got %s", s.ID)
 	}
 	if !s.disabled {
@@ -51,7 +51,7 @@ func TestMenuItemSeparatorView(t *testing.T) {
 	mbCfg := MenubarCfg{}
 	itemCfg := MenuSeparator()
 	v := menuItem(mbCfg, itemCfg)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape == nil {
 		t.Fatal("expected shape")
 	}
@@ -71,7 +71,7 @@ func TestMenuItemSubmenuIndicator(t *testing.T) {
 	m.sizing = FillFit
 	w := &Window{}
 	v := menuItem(MenubarCfg{}, m)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// The text child should have the submenu indicator appended.
 	if len(layout.Children) == 0 {
 		t.Fatal("expected children")

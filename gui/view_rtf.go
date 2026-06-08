@@ -188,7 +188,7 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 		ts.text != "" && ts.blockKey != 0 &&
 		blockKey == ts.blockKey {
 		l.Children = []Layout{
-			GenerateViewLayout(rtfTooltipView(ts), w),
+			generateViewLayout(rtfTooltipView(ts), w),
 		}
 	}
 	// Link context menu popup — only on the owning RTF block.
@@ -197,7 +197,7 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 		rtfLinkMenuState{}); st.Open &&
 		st.BlockKey == blockKey {
 		l.Children = append(l.Children,
-			GenerateViewLayout(rtfLinkMenuView(w, st), w))
+			generateViewLayout(rtfLinkMenuView(w, st), w))
 	}
 	return l
 }

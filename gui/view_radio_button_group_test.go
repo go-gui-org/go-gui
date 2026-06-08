@@ -106,7 +106,7 @@ func TestRadioButtonGroupDisabledPropagation(t *testing.T) {
 	})
 	kids := v.Content()
 	for i, child := range kids {
-		layout := GenerateViewLayout(child, w)
+		layout := generateViewLayout(child, w)
 		// Circle child should be disabled.
 		if len(layout.Children) == 0 {
 			t.Fatalf("child[%d] has no children", i)

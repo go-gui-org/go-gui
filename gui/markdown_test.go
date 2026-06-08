@@ -14,7 +14,7 @@ func markdownLayoutForSource(t *testing.T, source string) Layout {
 	t.Helper()
 
 	w := &Window{}
-	return GenerateViewLayout(w.Markdown(MarkdownCfg{
+	return generateViewLayout(w.Markdown(MarkdownCfg{
 		Source: source,
 		Style:  DefaultMarkdownStyle(),
 	}), w)
@@ -157,7 +157,7 @@ func TestMarkdownBuildTableData(t *testing.T) {
 
 func TestMarkdownDefaultsToWrap(t *testing.T) {
 	w := &Window{}
-	layout := GenerateViewLayout(w.Markdown(MarkdownCfg{
+	layout := generateViewLayout(w.Markdown(MarkdownCfg{
 		Source: "A paragraph that should wrap by default.",
 		Style:  DefaultMarkdownStyle(),
 	}), w)
@@ -177,7 +177,7 @@ func TestMarkdownDefaultsToWrap(t *testing.T) {
 
 func TestMarkdownCanExplicitlyUseSingleLine(t *testing.T) {
 	w := &Window{}
-	layout := GenerateViewLayout(w.Markdown(MarkdownCfg{
+	layout := generateViewLayout(w.Markdown(MarkdownCfg{
 		Source: "single line",
 		Style:  DefaultMarkdownStyle(),
 		Mode:   Some(TextModeSingleLine),
@@ -282,7 +282,7 @@ func TestRenderMdMathErrorsWrap(t *testing.T) {
 		Error: errText,
 	})
 
-	layout := GenerateViewLayout(renderMdMath(block, MarkdownCfg{
+	layout := generateViewLayout(renderMdMath(block, MarkdownCfg{
 		Style: style,
 	}, w), w)
 

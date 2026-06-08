@@ -280,7 +280,7 @@ func TestRtfGenerateLayoutSuppressesInlineObjectGlyphs(t *testing.T) {
 		},
 	}}
 
-	layout := GenerateViewLayout(RTF(RtfCfg{
+	layout := generateViewLayout(RTF(RtfCfg{
 		RichText: RichText{
 			Runs: []RichTextRun{{
 				MathID:    "math_1",
@@ -745,7 +745,7 @@ func TestRtfGenerateLayoutEmptyRichText(t *testing.T) {
 			layout: glyph.Layout{},
 		},
 	}}
-	layout := GenerateViewLayout(RTF(RtfCfg{
+	layout := generateViewLayout(RTF(RtfCfg{
 		RichText: RichText{},
 	}), w)
 	if layout.Shape == nil {
@@ -767,7 +767,7 @@ func (m *rtfErrorMeasurer) LayoutRichText(
 
 func TestRtfGenerateLayoutHandlesError(t *testing.T) {
 	w := &Window{windowBackend: windowBackend{textMeasurer: &rtfErrorMeasurer{}}}
-	layout := GenerateViewLayout(RTF(RtfCfg{
+	layout := generateViewLayout(RTF(RtfCfg{
 		RichText: RichText{
 			Runs: []RichTextRun{{Text: "hello"}},
 		},

@@ -366,7 +366,7 @@ func TestKeyUpEventFlow_WindowToInput(t *testing.T) {
 	})
 
 	// Set up window layout with the input
-	w.layout = GenerateViewLayout(input, w)
+	w.layout = generateViewLayout(input, w)
 	w.SetIDFocus(42)
 
 	// Send key up event through window

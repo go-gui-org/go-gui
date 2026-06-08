@@ -324,7 +324,7 @@ func buildContainerShape(cfg *ContainerCfg) *Shape {
 		A11YState:            cfg.A11YState,
 		A11Y:                 makeContainerA11Y(cfg),
 	}
-	ApplyFixedSizingConstraints(shape)
+	applyFixedSizingConstraints(shape)
 	return shape
 }
 

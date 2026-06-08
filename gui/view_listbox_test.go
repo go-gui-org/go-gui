@@ -4,7 +4,7 @@ import "testing"
 
 func TestListBoxIDPassthrough(t *testing.T) {
 	w := &Window{}
-	layout := GenerateViewLayout(ListBox(ListBoxCfg{
+	layout := generateViewLayout(ListBox(ListBoxCfg{
 		ID:   "lb1",
 		Data: []ListBoxOption{{ID: "a", Name: "A"}},
 	}), w)
@@ -15,7 +15,7 @@ func TestListBoxIDPassthrough(t *testing.T) {
 
 func TestListBoxChildCount(t *testing.T) {
 	w := &Window{}
-	layout := GenerateViewLayout(ListBox(ListBoxCfg{
+	layout := generateViewLayout(ListBox(ListBoxCfg{
 		ID: "lb2",
 		Data: []ListBoxOption{
 			{ID: "a", Name: "Alpha"},
@@ -31,7 +31,7 @@ func TestListBoxChildCount(t *testing.T) {
 func TestListBoxSingleSelectClick(t *testing.T) {
 	var selected []string
 	w := &Window{}
-	layout := GenerateViewLayout(ListBox(ListBoxCfg{
+	layout := generateViewLayout(ListBox(ListBoxCfg{
 		ID: "lb3",
 		Data: []ListBoxOption{
 			{ID: "a", Name: "Alpha"},
@@ -56,7 +56,7 @@ func TestListBoxSingleSelectClick(t *testing.T) {
 
 func TestListBoxDisabledFlag(t *testing.T) {
 	w := &Window{}
-	layout := GenerateViewLayout(ListBox(ListBoxCfg{
+	layout := generateViewLayout(ListBox(ListBoxCfg{
 		ID:       "lb4",
 		Disabled: true,
 		Data:     []ListBoxOption{{ID: "a", Name: "A"}},
@@ -68,7 +68,7 @@ func TestListBoxDisabledFlag(t *testing.T) {
 
 func TestListBoxItems(t *testing.T) {
 	w := &Window{}
-	layout := GenerateViewLayout(ListBox(ListBoxCfg{
+	layout := generateViewLayout(ListBox(ListBoxCfg{
 		ID:    "lb-items",
 		Items: []string{"Go", "Rust", "Zig"},
 	}), w)
@@ -80,7 +80,7 @@ func TestListBoxItems(t *testing.T) {
 func TestListBoxItemsPrecedence(t *testing.T) {
 	// Items should take precedence over Data.
 	w := &Window{}
-	layout := GenerateViewLayout(ListBox(ListBoxCfg{
+	layout := generateViewLayout(ListBox(ListBoxCfg{
 		ID:    "lb-prec",
 		Items: []string{"Alpha", "Beta"},
 		Data:  []ListBoxOption{{ID: "ignored", Name: "Ignored"}},
@@ -93,7 +93,7 @@ func TestListBoxItemsPrecedence(t *testing.T) {
 func TestListBoxItemsSelect(t *testing.T) {
 	var selected []string
 	w := &Window{}
-	layout := GenerateViewLayout(ListBox(ListBoxCfg{
+	layout := generateViewLayout(ListBox(ListBoxCfg{
 		ID:    "lb-items-sel",
 		Items: []string{"Alpha", "Beta"},
 		OnSelect: func(ids []string, _ *Event, _ *Window) {
@@ -116,7 +116,7 @@ func TestListBoxItemsSelect(t *testing.T) {
 func TestListBoxItemsEmptyKeepsData(t *testing.T) {
 	// Empty Items (non-nil, zero-length) should not overwrite Data.
 	w := &Window{}
-	layout := GenerateViewLayout(ListBox(ListBoxCfg{
+	layout := generateViewLayout(ListBox(ListBoxCfg{
 		ID:    "lb-empty-items",
 		Items: []string{},
 		Data:  []ListBoxOption{{ID: "a", Name: "Alpha"}},
@@ -128,7 +128,7 @@ func TestListBoxItemsEmptyKeepsData(t *testing.T) {
 
 func TestListBoxSubheadingCount(t *testing.T) {
 	w := &Window{}
-	layout := GenerateViewLayout(ListBox(ListBoxCfg{
+	layout := generateViewLayout(ListBox(ListBoxCfg{
 		ID: "lb5",
 		Data: []ListBoxOption{
 			{ID: "h1", Name: "Section", IsSubheading: true},

@@ -9,7 +9,7 @@ func TestNumericInputIDPassthrough(t *testing.T) {
 		IDFocus: 100,
 		StepCfg: NumericStepCfg{ShowButtons: true, Step: 1},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "ni1" {
 		t.Errorf("ID: got %s", layout.Shape.ID)
 	}
@@ -23,7 +23,7 @@ func TestNumericInputDisabledFlag(t *testing.T) {
 		Disabled: true,
 		StepCfg:  NumericStepCfg{ShowButtons: true, Step: 1},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if !layout.Shape.Disabled {
 		t.Error("expected disabled")
 	}
@@ -36,7 +36,7 @@ func TestNumericInputStepButtonCount(t *testing.T) {
 		IDFocus: 102,
 		StepCfg: NumericStepCfg{ShowButtons: true, Step: 1},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 2 {
 		t.Errorf("children: got %d, want 2", len(layout.Children))
 	}
@@ -49,7 +49,7 @@ func TestNumericInputPlaceholder(t *testing.T) {
 		IDFocus:     103,
 		Placeholder: "Enter...",
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape == nil {
 		t.Fatal("expected shape")
 	}

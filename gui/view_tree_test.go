@@ -374,7 +374,7 @@ func TestTreeGenerateLayoutA11Y(t *testing.T) {
 	w := newTestWindow()
 	treeExpandedSet(w, "tree", "root", true)
 
-	layout := GenerateViewLayout(Tree(TreeCfg{
+	layout := generateViewLayout(Tree(TreeCfg{
 		ID: "tree",
 		Nodes: []TreeNodeCfg{
 			{
@@ -464,7 +464,7 @@ func TestItemPathsToNodesEmptySegments(t *testing.T) {
 
 func TestTreeItemPaths(t *testing.T) {
 	w := newTestWindow()
-	layout := GenerateViewLayout(Tree(TreeCfg{
+	layout := generateViewLayout(Tree(TreeCfg{
 		ID:        "tree-paths",
 		ItemPaths: []string{"src/main.go", "src/lib.go", "docs/readme.md"},
 	}), w)
@@ -497,7 +497,7 @@ func TestItemPathsToNodesSingleNode(t *testing.T) {
 func TestTreeItemPathsPrecedence(t *testing.T) {
 	// ItemPaths should take precedence over Nodes.
 	w := newTestWindow()
-	layout := GenerateViewLayout(Tree(TreeCfg{
+	layout := generateViewLayout(Tree(TreeCfg{
 		ID:        "tree-prec",
 		ItemPaths: []string{"alpha", "beta"},
 		Nodes: []TreeNodeCfg{

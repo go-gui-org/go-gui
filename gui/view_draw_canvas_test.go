@@ -13,7 +13,7 @@ func TestDrawCanvasGenerateLayout(t *testing.T) {
 			dc.FilledRect(0, 0, dc.Width, dc.Height, Red)
 		},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.shapeType != shapeDrawCanvas {
 		t.Errorf("shape type = %d, want shapeDrawCanvas", layout.Shape.shapeType)
 	}
@@ -42,7 +42,7 @@ func TestDrawCanvasCaching(t *testing.T) {
 
 	// First call: draws.
 	v := DrawCanvas(cfg)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	renderDrawCanvas(layout.Shape, clip, w)
 	if callCount != 1 {
 		t.Fatalf("first call: count = %d", callCount)
@@ -50,7 +50,7 @@ func TestDrawCanvasCaching(t *testing.T) {
 
 	// Same version: cache hit.
 	v = DrawCanvas(cfg)
-	layout = GenerateViewLayout(v, w)
+	layout = generateViewLayout(v, w)
 	renderDrawCanvas(layout.Shape, clip, w)
 	if callCount != 1 {
 		t.Errorf("second call with same version: count = %d", callCount)
@@ -59,7 +59,7 @@ func TestDrawCanvasCaching(t *testing.T) {
 	// Bump version: redraws.
 	cfg.Version = 2
 	v = DrawCanvas(cfg)
-	layout = GenerateViewLayout(v, w)
+	layout = generateViewLayout(v, w)
 	renderDrawCanvas(layout.Shape, clip, w)
 	if callCount != 2 {
 		t.Errorf("after version bump: count = %d", callCount)
@@ -84,7 +84,7 @@ func TestDrawCanvasResizeRedraw(t *testing.T) {
 
 	// First draw.
 	v := DrawCanvas(cfg)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	renderDrawCanvas(layout.Shape, clip, w)
 	if callCount != 1 || lastWidth != 50 {
 		t.Fatalf("first draw: count=%d, width=%f", callCount, lastWidth)
@@ -113,7 +113,7 @@ func TestDrawCanvasNoOnDraw(t *testing.T) {
 		Width:  10,
 		Height: 10,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.shapeType != shapeDrawCanvas {
 		t.Error("expected shapeDrawCanvas")
 	}
@@ -133,7 +133,7 @@ func TestRenderDrawCanvas(t *testing.T) {
 			dc.FilledRect(0, 0, 50, 50, Green)
 		},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 
 	clip := drawClip{X: 0, Y: 0, Width: 800, Height: 600}
 	w.renderers = w.renderers[:0]
@@ -176,7 +176,7 @@ func TestDrawCanvasOffScreenSkip(t *testing.T) {
 			dc.FilledRect(0, 0, 10, 10, Red)
 		},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Place canvas at (200, 200); clip region doesn't overlap.
 	layout.Shape.X = 200
 	layout.Shape.Y = 200
@@ -208,7 +208,7 @@ func TestDrawCanvasFocusWiring(t *testing.T) {
 			called = true
 		},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 
 	if layout.Shape.IDFocus != 42 {
 		t.Errorf("Shape.IDFocus = %d, want 42", layout.Shape.IDFocus)
@@ -231,7 +231,7 @@ func TestDrawCanvasNonFocusableA11Role(t *testing.T) {
 	v := DrawCanvas(DrawCanvasCfg{
 		ID: "dc-nofocus", Width: 10, Height: 10,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleImage {
 		t.Errorf("A11YRole = %v, want AccessRoleImage when IDFocus=0",
 			layout.Shape.A11YRole)
@@ -254,7 +254,7 @@ func TestDrawCanvasFocusedReceivesKeydown(t *testing.T) {
 			e.IsHandled = true
 		},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	root := Layout{Shape: &Shape{}, Children: []Layout{layout}}
 
 	w.SetIDFocus(7)
@@ -287,8 +287,8 @@ func TestDrawCanvasEmptyIDNoCollision(t *testing.T) {
 		},
 	})
 
-	l1 := GenerateViewLayout(v1, w)
-	l2 := GenerateViewLayout(v2, w)
+	l1 := generateViewLayout(v1, w)
+	l2 := generateViewLayout(v2, w)
 
 	w.renderers = w.renderers[:0]
 	renderDrawCanvas(l1.Shape, clip, w)

@@ -215,7 +215,7 @@ func applyInputDefaults(cfg *InputCfg) {
 		cfg.ColorBorderFocus = d.ColorBorderFocus
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(PaddingTwoFour)
+		cfg.Padding = Some(paddingTwoFour)
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = DefaultTextStyle

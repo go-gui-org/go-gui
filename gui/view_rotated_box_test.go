@@ -14,7 +14,7 @@ func TestRotatedBoxDimensionSwap(t *testing.T) {
 		}),
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	layoutParents(&layout, nil)
 	layoutWidths(&layout)
 	layoutHeights(&layout)
@@ -41,7 +41,7 @@ func TestRotatedBoxNoOpForZeroTurns(t *testing.T) {
 	})
 	// Should return child directly (passthrough).
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.Width != 40 {
 		t.Errorf("width = %f, want 40", layout.Shape.Width)
 	}
@@ -62,7 +62,7 @@ func TestRotatedBox180SameDimensions(t *testing.T) {
 		}),
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	layoutParents(&layout, nil)
 	layoutWidths(&layout)
 	layoutHeights(&layout)
@@ -88,7 +88,7 @@ func TestRotatedBoxRenderBrackets(t *testing.T) {
 		}),
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	layoutParents(&layout, nil)
 	layoutPipeline(&layout, w)
 	clip := drawClip{Width: 800, Height: 600}
@@ -136,7 +136,7 @@ func TestRotatedBoxParentReaccumulation(t *testing.T) {
 		},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	layoutParents(&layout, nil)
 	layoutWidths(&layout)
 	layoutHeights(&layout)
@@ -162,7 +162,7 @@ func TestRotatedBoxNegativeTurns(t *testing.T) {
 		}),
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// -1 normalizes to 3 (270° CW).
 	if layout.Shape.QuarterTurns != 3 {
 		t.Errorf("QuarterTurns = %d, want 3",

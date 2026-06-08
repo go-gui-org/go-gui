@@ -2,8 +2,8 @@ package gui
 
 // Menu item sentinel IDs.
 const (
-	MenuSeparatorID  = "__separator__"
-	MenuSubtitleID   = "__subtitle__"
+	menuSeparatorID  = "__separator__"
+	menuSubtitleID   = "__subtitle__"
 	submenuIndicator = "  \u203A"
 )
 
@@ -46,7 +46,7 @@ func MenuItemText(id, text string) MenuItemCfg {
 // MenuSeparator creates a separator line.
 func MenuSeparator() MenuItemCfg {
 	return MenuItemCfg{
-		ID:        MenuSeparatorID,
+		ID:        menuSeparatorID,
 		Separator: true,
 	}
 }
@@ -54,7 +54,7 @@ func MenuSeparator() MenuItemCfg {
 // MenuSubtitle creates a disabled subtitle item.
 func MenuSubtitle(text string) MenuItemCfg {
 	return MenuItemCfg{
-		ID:       MenuSubtitleID,
+		ID:       menuSubtitleID,
 		Text:     text,
 		disabled: true,
 	}

@@ -2,8 +2,8 @@ package gui
 
 type cmdPaletteItemsCache struct {
 	viewKey    cmdPaletteViewKey
-	items      []ListCoreItem
-	filtered   []ListCoreItem
+	items      []listCoreItem
+	filtered   []listCoreItem
 	ids        []string
 	scored     []listCoreScored
 	views      []View
@@ -75,7 +75,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 	radius := cfg.Radius.Get(dn.Radius)
 	visible := StateReadOr(w, nsCmdPalette, cfg.ID, false)
 	if !visible {
-		return GenerateViewLayout(Row(ContainerCfg{Padding: NoPadding}), w)
+		return generateViewLayout(Row(ContainerCfg{Padding: NoPadding}), w)
 	}
 
 	query := StateReadOr(w, nsCmdPaletteQuery, cfg.ID, "")
@@ -93,7 +93,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 	itemsHash := commandPaletteItemsHash(cfg.Items)
 	if cache.sourceHash != itemsHash || len(cache.items) != len(cfg.Items) {
 		if cap(cache.items) < len(cfg.Items) {
-			cache.items = make([]ListCoreItem, len(cfg.Items))
+			cache.items = make([]listCoreItem, len(cfg.Items))
 		} else {
 			cache.items = cache.items[:len(cfg.Items)]
 		}
@@ -127,7 +127,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 	paletteID := cfg.ID
 	onDismiss := cfg.OnDismiss
 
-	coreCfg := ListCoreCfg{
+	coreCfg := listCoreCfg{
 		TextStyle:      cfg.TextStyle,
 		DetailStyle:    cfg.DetailStyle,
 		ColorHighlight: cfg.ColorHighlight,
@@ -165,7 +165,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 	}
 
 	// Build layout: backdrop column with centered card.
-	return GenerateViewLayout(Column(ContainerCfg{
+	return generateViewLayout(Column(ContainerCfg{
 		Color:       cfg.BackdropColor,
 		Sizing:      FillFill,
 		Float:       true,
@@ -274,8 +274,8 @@ func CommandPaletteIsVisible(id string, w *Window) bool {
 	return StateReadOr(w, nsCmdPalette, id, false)
 }
 
-func cmdPaletteItemToCore(item CommandPaletteItem) ListCoreItem {
-	return ListCoreItem{
+func cmdPaletteItemToCore(item CommandPaletteItem) listCoreItem {
+	return listCoreItem{
 		ID:       item.ID,
 		Label:    item.Label,
 		Detail:   item.Detail,
@@ -285,7 +285,7 @@ func cmdPaletteItemToCore(item CommandPaletteItem) ListCoreItem {
 	}
 }
 
-func makePaletteOnEnter(paletteID string, onAction func(string, *Event, *Window), onDismiss func(*Window), filtered []ListCoreItem, filteredIDs []string) func(*Layout, *Event, *Window) {
+func makePaletteOnEnter(paletteID string, onAction func(string, *Event, *Window), onDismiss func(*Window), filtered []listCoreItem, filteredIDs []string) func(*Layout, *Event, *Window) {
 	return func(_ *Layout, e *Event, w *Window) {
 		sh := StateMap[string, int](w, nsCmdPaletteHighlight, capModerate)
 		cur, _ := sh.Get(paletteID) // ok ignored: zero index is valid, bounds-checked below
@@ -341,13 +341,13 @@ func hashString64(h uint64, s string) uint64 {
 	return h
 }
 
-func makePaletteOnKeyDown(paletteID string, onAction func(string, *Event, *Window), onDismiss func(*Window), filtered []ListCoreItem, filteredIDs []string) func(*Layout, *Event, *Window) {
+func makePaletteOnKeyDown(paletteID string, onAction func(string, *Event, *Window), onDismiss func(*Window), filtered []listCoreItem, filteredIDs []string) func(*Layout, *Event, *Window) {
 	return func(_ *Layout, e *Event, w *Window) {
 		paletteOnKeyDown(paletteID, onAction, onDismiss, filtered, filteredIDs, e, w)
 	}
 }
 
-func paletteOnKeyDown(paletteID string, onAction func(string, *Event, *Window), onDismiss func(*Window), filtered []ListCoreItem, filteredIDs []string, e *Event, w *Window) {
+func paletteOnKeyDown(paletteID string, onAction func(string, *Event, *Window), onDismiss func(*Window), filtered []listCoreItem, filteredIDs []string, e *Event, w *Window) {
 	if e.KeyCode == KeyEscape {
 		CommandPaletteDismiss(paletteID, w)
 		if onDismiss != nil {
@@ -362,7 +362,7 @@ func paletteOnKeyDown(paletteID string, onAction func(string, *Event, *Window), 
 	cur, _ := sh.Get(paletteID) // ok ignored: zero index is valid, bounds-checked below
 	action := listCoreNavigate(e.KeyCode, itemCount)
 
-	if action == ListCoreSelectItem {
+	if action == listCoreSelectItem {
 		if cur >= 0 && cur < itemCount && onAction != nil &&
 			!filtered[cur].Disabled {
 			onAction(filteredIDs[cur], e, w)

@@ -115,7 +115,7 @@ func (iv *imageView) GenerateLayout(w *Window) Layout {
 			events:    events,
 		},
 	}
-	ApplyFixedSizingConstraints(layout.Shape)
+	applyFixedSizingConstraints(layout.Shape)
 	return layout
 }
 
@@ -140,7 +140,7 @@ func downloadingPlaceholder(c *ImageCfg) Layout {
 			Opacity:   c.Opacity.Get(1.0),
 		},
 	}
-	ApplyFixedSizingConstraints(layout.Shape)
+	applyFixedSizingConstraints(layout.Shape)
 	return layout
 }
 
