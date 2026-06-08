@@ -119,7 +119,7 @@ func makeScrollbarOnHover(cfg ScrollbarCfg) func(*Layout, *Event, *Window) {
 		if layout.Children[thumbIndex].Shape.Color != ColorTransparent ||
 			cfg.Overflow == ScrollbarOnHover {
 			layout.Children[thumbIndex].Shape.Color = cfg.ColorThumb
-			w.SetMouseCursor(CursorArrow)
+			w.setMouseCursor(CursorArrow)
 		}
 	}
 }

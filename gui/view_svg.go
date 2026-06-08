@@ -131,7 +131,7 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 						an.stopped = true
 						return
 					}
-					w.RequestRenderOnly()
+					w.requestRenderOnly()
 				},
 			})
 		}

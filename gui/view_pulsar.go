@@ -57,7 +57,7 @@ func Pulsar(cfg PulsarCfg, w *Window) View {
 	}
 
 	txt := cfg.Text2
-	if w.InputCursorOn() {
+	if w.inputCursorOn() {
 		txt = cfg.Text1
 	}
 

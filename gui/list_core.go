@@ -380,7 +380,7 @@ func listCoreItemView(item listCoreItem, index int, isHighlighted, isSelected bo
 		},
 		OnHover: func(layout *Layout, e *Event, w *Window) {
 			if !isDisabled {
-				w.SetMouseCursor(CursorPointingHand)
+				w.setMouseCursor(CursorPointingHand)
 				if layout.Shape.Color == ColorTransparent {
 					layout.Shape.Color = colorHover
 				}

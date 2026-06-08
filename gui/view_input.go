@@ -189,7 +189,7 @@ func Input(cfg InputCfg) View {
 		OnKeyDown:       makeInputOnKeyDown(hcfg),
 		OnKeyUp:         makeInputOnKeyUp(hcfg),
 		OnHover: func(layout *Layout, _ *Event, w *Window) {
-			w.SetMouseCursor(CursorIBeam)
+			w.setMouseCursor(CursorIBeam)
 			if !w.IsFocus(idFocus) {
 				layout.Shape.Color = colorHover
 			}

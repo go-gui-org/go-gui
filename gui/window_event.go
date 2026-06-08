@@ -103,7 +103,7 @@ func (w *Window) EventFn(e *Event) {
 		keyupHandler(layout, e, w)
 
 	case EventMouseDown:
-		w.SetMouseCursor(CursorArrow)
+		w.setMouseCursor(CursorArrow)
 		if inspectorSupported && w.inspectorEnabled {
 			panelW := inspectorPanelWidth(w)
 			left := inspectorIsLeft(w)
@@ -138,7 +138,7 @@ func (w *Window) EventFn(e *Event) {
 		}
 
 	case EventMouseMove:
-		w.SetMouseCursor(CursorArrow)
+		w.setMouseCursor(CursorArrow)
 		w.viewState.menuKeyNav = false
 		w.viewState.mousePosX = e.MouseX
 		w.viewState.mousePosY = e.MouseY

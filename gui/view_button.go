@@ -100,7 +100,7 @@ func buttonOnHover(layout *Layout, e *Event, w *Window) {
 		layout.Shape.events.OnClick == nil {
 		return
 	}
-	w.SetMouseCursor(CursorPointingHand)
+	w.setMouseCursor(CursorPointingHand)
 	if !w.IsFocus(layout.Shape.IDFocus) {
 		layout.Shape.Color = layout.Shape.bc.ColorHover
 	}

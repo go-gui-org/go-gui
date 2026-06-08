@@ -261,7 +261,7 @@ func selectOptionView(cfg *SelectCfg, option string, index int, highlighted bool
 			onSelect(s, e, w)
 		},
 		OnHover: func(layout *Layout, _ *Event, w *Window) {
-			w.SetMouseCursor(CursorPointingHand)
+			w.setMouseCursor(CursorPointingHand)
 			layout.Shape.Color = colorSelect
 			sh := StateMap[string, int](
 				w, nsSelectHL, capModerate)

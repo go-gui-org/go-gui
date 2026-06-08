@@ -102,7 +102,7 @@ func Radio(cfg RadioCfg) View {
 				layout.Shape.events.OnClick == nil {
 				return
 			}
-			w.SetMouseCursor(CursorPointingHand)
+			w.setMouseCursor(CursorPointingHand)
 			if len(layout.Children) == 0 {
 				return
 			}

@@ -726,7 +726,7 @@ func TestRectangleNoPadding(t *testing.T) {
 
 func TestSetMouseCursor(t *testing.T) {
 	w := &Window{}
-	w.SetMouseCursor(CursorPointingHand)
+	w.setMouseCursor(CursorPointingHand)
 	if w.viewState.mouseCursor != CursorPointingHand {
 		t.Error("cursor should be pointing hand")
 	}

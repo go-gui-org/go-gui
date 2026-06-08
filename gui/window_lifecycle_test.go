@@ -250,7 +250,7 @@ func TestRenderersAccessor(t *testing.T) {
 
 func TestMouseCursorStateAccessor(t *testing.T) {
 	w := NewWindow(WindowCfg{Width: 50, Height: 50})
-	w.SetMouseCursor(CursorIBeam)
+	w.setMouseCursor(CursorIBeam)
 	if w.MouseCursorState() != CursorIBeam {
 		t.Errorf("got %d, want CursorIBeam", w.MouseCursorState())
 	}

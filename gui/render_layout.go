@@ -464,7 +464,7 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	var preLayout glyph.Layout
 	hasPreLayout := false
 	needLayout := tc.TextSelBeg != tc.TextSelEnd ||
-		(shape.IDFocus > 0 && shape.IDFocus == w.IDFocus() && w.InputCursorOn()) ||
+		(shape.IDFocus > 0 && shape.IDFocus == w.IDFocus() && w.inputCursorOn()) ||
 		imeComposing ||
 		spellCheckHasRanges(shape.IDFocus, w)
 	renderWithLayout := plainTextNeedsGlyphLayout(shape, tc, renderStyle)
@@ -551,7 +551,7 @@ func renderInputCursor(shape *Shape, text string, baseX, baseY float32,
 	if shape.IDFocus == 0 || shape.IDFocus != w.IDFocus() {
 		return
 	}
-	if !w.InputCursorOn() {
+	if !w.inputCursorOn() {
 		return
 	}
 	if shape.TC != nil && shape.TC.TextIsPlaceholder {

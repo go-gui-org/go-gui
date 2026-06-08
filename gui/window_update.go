@@ -122,8 +122,8 @@ func (w *Window) UpdateWindow() {
 	w.markLayoutRefresh()
 }
 
-// RequestRenderOnly marks the window for render-only refresh.
-func (w *Window) RequestRenderOnly() {
+// requestRenderOnly marks the window for render-only refresh.
+func (w *Window) requestRenderOnly() {
 	w.markRenderOnlyRefresh()
 }
 
@@ -154,7 +154,7 @@ func (w *Window) FrameFn() bool {
 		w.Update()
 		rebuilt = true
 	} else if w.refreshRenderOnly {
-		w.UpdateRenderOnly()
+		w.updateRenderOnly()
 		rebuilt = true
 	}
 	w.initA11y()
@@ -218,8 +218,8 @@ func (w *Window) Update() {
 	}
 }
 
-// UpdateRenderOnly rebuilds renderers from the existing layout.
-func (w *Window) UpdateRenderOnly() {
+// updateRenderOnly rebuilds renderers from the existing layout.
+func (w *Window) updateRenderOnly() {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	w.refreshRenderOnly = false

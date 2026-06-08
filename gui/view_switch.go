@@ -105,7 +105,7 @@ func Switch(cfg SwitchCfg) View {
 				layout.Shape.events.OnClick == nil {
 				return
 			}
-			w.SetMouseCursor(CursorPointingHand)
+			w.setMouseCursor(CursorPointingHand)
 			if len(layout.Children) > 0 {
 				layout.Children[0].Shape.Color = colorHover
 				if e.MouseButton == MouseLeft {

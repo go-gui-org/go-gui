@@ -144,7 +144,7 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 			if w.viewState.menuKeyNav {
 				return
 			}
-			w.SetMouseCursor(CursorPointingHand)
+			w.setMouseCursor(CursorPointingHand)
 			sm := StateMap[uint32, string](
 				w, nsMenu, capModerate)
 			cur, _ := sm.Get(cfgIDFocus)
