@@ -236,10 +236,10 @@ func a11yActionCallback(w *Window, action, index int) {
 		return
 	}
 	l := a11yFindLayout(&w.layout, index)
-	if l == nil || l.Shape == nil || l.Shape.Events == nil {
+	if l == nil || l.Shape == nil || l.Shape.events == nil {
 		return
 	}
-	ev := l.Shape.Events
+	ev := l.Shape.events
 	switch action {
 	case A11yActionPress:
 		if ev.OnClick != nil {

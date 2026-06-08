@@ -34,7 +34,7 @@ type state struct {
 }
 
 func main() {
-	gui.SetTheme(gui.ThemeDarkBordered)
+	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 	w := gui.NewWindow(gui.WindowCfg{
 		Width:  720,
 		Height: 360,

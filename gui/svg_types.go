@@ -181,7 +181,7 @@ const (
 	// scalar per keyframe.
 	SvgAnimDashOffset
 	// SvgAnimColor animates fill or stroke color. ColorValues holds
-	// packed uint32 RGBA per keyframe; sRGB lerp at frame eval. Target
+	// packed uint32 RGBA per keyframe; sRGB Lerp at frame eval. Target
 	// distinguishes fill (default), stroke, or all (rare).
 	SvgAnimColor
 )

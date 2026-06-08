@@ -12,7 +12,7 @@ func TestLayoutPositionsStartAlign(t *testing.T) {
 		},
 		Children: []Layout{
 			{Shape: &Shape{
-				ShapeType: ShapeRectangle,
+				shapeType: shapeRectangle,
 				Width:     40, Height: 30,
 			}},
 		},
@@ -39,7 +39,7 @@ func TestLayoutPositionsEndAlign(t *testing.T) {
 		},
 		Children: []Layout{
 			{Shape: &Shape{
-				ShapeType: ShapeRectangle,
+				shapeType: shapeRectangle,
 				Width:     40, Height: 30,
 			}},
 		},
@@ -64,8 +64,8 @@ func TestLayoutPositionsMultipleChildrenLTR(t *testing.T) {
 			Spacing: 10,
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 30, Height: 50}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 40, Height: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 30, Height: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 40, Height: 50}},
 		},
 	}
 	w := &Window{}
@@ -88,8 +88,8 @@ func TestLayoutPositionsTTBColumn(t *testing.T) {
 			Spacing: 5,
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 100, Height: 40}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 100, Height: 60}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 100, Height: 40}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 100, Height: 60}},
 		},
 	}
 	w := &Window{}
@@ -111,10 +111,10 @@ func TestLayoutSetShapeClipsFullyOutside(t *testing.T) {
 			{Shape: &Shape{X: 200, Y: 200, Width: 10, Height: 10}},
 		},
 	}
-	clip := DrawClip{X: 0, Y: 0, Width: 500, Height: 500}
+	clip := drawClip{X: 0, Y: 0, Width: 500, Height: 500}
 	layoutSetShapeClips(root, clip)
 
-	c := root.Children[0].Shape.ShapeClip
+	c := root.Children[0].Shape.shapeClip
 	if c.Width != 0 || c.Height != 0 {
 		t.Errorf("fully outside child should have zero clip: %+v", c)
 	}
@@ -132,10 +132,10 @@ func TestLayoutSetShapeClipsNestedClipping(t *testing.T) {
 			},
 		},
 	}
-	clip := DrawClip{X: 0, Y: 0, Width: 1000, Height: 1000}
+	clip := drawClip{X: 0, Y: 0, Width: 1000, Height: 1000}
 	layoutSetShapeClips(root, clip)
 
-	inner := root.Children[0].Children[0].Shape.ShapeClip
+	inner := root.Children[0].Children[0].Shape.shapeClip
 	if !f32AreClose(inner.X, 20) || !f32AreClose(inner.Width, 60) {
 		t.Errorf("inner clip: X=%f W=%f", inner.X, inner.Width)
 	}
@@ -143,9 +143,9 @@ func TestLayoutSetShapeClipsNestedClipping(t *testing.T) {
 
 func TestLayoutScrollContainersNoScroll(t *testing.T) {
 	root := &Layout{
-		Shape: &Shape{ShapeType: ShapeRectangle},
+		Shape: &Shape{shapeType: shapeRectangle},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeText}},
+			{Shape: &Shape{shapeType: shapeText}},
 		},
 	}
 	layoutScrollContainers(root, 0)

@@ -25,7 +25,7 @@ func makeTestRows(n int) []GridRow {
 func TestInMemoryFetchAll(t *testing.T) {
 	src := NewInMemoryDataSource(makeTestRows(5))
 	res, err := src.FetchData(GridDataRequest{
-		Page: GridCursorPageReq{Limit: 100},
+		Page: gridCursorPageReq{Limit: 100},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -44,7 +44,7 @@ func TestInMemoryFetchAll(t *testing.T) {
 func TestInMemoryFetchPaginationCursor(t *testing.T) {
 	src := NewInMemoryDataSource(makeTestRows(5))
 	res, err := src.FetchData(GridDataRequest{
-		Page: GridCursorPageReq{Limit: 2},
+		Page: gridCursorPageReq{Limit: 2},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -60,7 +60,7 @@ func TestInMemoryFetchPaginationCursor(t *testing.T) {
 	}
 	// Fetch next page.
 	res2, err := src.FetchData(GridDataRequest{
-		Page: GridCursorPageReq{
+		Page: gridCursorPageReq{
 			Cursor: res.NextCursor, Limit: 2,
 		},
 	})
@@ -78,7 +78,7 @@ func TestInMemoryFetchPaginationCursor(t *testing.T) {
 func TestInMemoryFetchPaginationOffset(t *testing.T) {
 	src := NewInMemoryDataSource(makeTestRows(5))
 	res, err := src.FetchData(GridDataRequest{
-		Page: GridOffsetPageReq{StartIndex: 1, EndIndex: 3},
+		Page: gridOffsetPageReq{StartIndex: 1, EndIndex: 3},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -95,7 +95,7 @@ func TestInMemoryFetchQuickFilter(t *testing.T) {
 	src := NewInMemoryDataSource(makeTestRows(5))
 	res, err := src.FetchData(GridDataRequest{
 		Query: GridQueryState{QuickFilter: "c"},
-		Page:  GridCursorPageReq{Limit: 100},
+		Page:  gridCursorPageReq{Limit: 100},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -111,7 +111,7 @@ func TestInMemoryFetchSort(t *testing.T) {
 		Query: GridQueryState{
 			Sorts: []GridSort{{ColID: "name", Dir: GridSortDesc}},
 		},
-		Page: GridCursorPageReq{Limit: 100},
+		Page: gridCursorPageReq{Limit: 100},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -136,7 +136,7 @@ func TestInMemoryFetchMultiSort(t *testing.T) {
 				{ColID: "b", Dir: GridSortAsc},
 			},
 		},
-		Page: GridCursorPageReq{Limit: 100},
+		Page: gridCursorPageReq{Limit: 100},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -160,7 +160,7 @@ func TestInMemoryFetchSortStableTies(t *testing.T) {
 		Query: GridQueryState{
 			Sorts: []GridSort{{ColID: "name", Dir: GridSortAsc}},
 		},
-		Page: GridCursorPageReq{Limit: 100},
+		Page: gridCursorPageReq{Limit: 100},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -179,7 +179,7 @@ func TestInMemoryFetchFilterEquals(t *testing.T) {
 				{ColID: "name", Op: "equals", Value: "c"},
 			},
 		},
-		Page: GridCursorPageReq{Limit: 100},
+		Page: gridCursorPageReq{Limit: 100},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -205,7 +205,7 @@ func TestInMemoryFetchFilterStartsWith(t *testing.T) {
 				{ColID: "name", Op: "starts_with", Value: "al"},
 			},
 		},
-		Page: GridCursorPageReq{Limit: 100},
+		Page: gridCursorPageReq{Limit: 100},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -227,7 +227,7 @@ func TestInMemoryFetchFilterEndsWith(t *testing.T) {
 				{ColID: "name", Op: "ends_with", Value: "ta"},
 			},
 		},
-		Page: GridCursorPageReq{Limit: 100},
+		Page: gridCursorPageReq{Limit: 100},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -240,7 +240,7 @@ func TestInMemoryFetchFilterEndsWith(t *testing.T) {
 func TestInMemoryMutateCreate(t *testing.T) {
 	src := NewInMemoryDataSource(makeTestRows(3))
 	res, err := src.MutateData(GridMutationRequest{
-		Kind: GridMutationCreate,
+		Kind: gridMutationCreate,
 		Rows: []GridRow{
 			{ID: "new1", Cells: map[string]string{"name": "New"}},
 		},
@@ -259,7 +259,7 @@ func TestInMemoryMutateCreate(t *testing.T) {
 func TestInMemoryMutateCreateAutoID(t *testing.T) {
 	src := NewInMemoryDataSource(makeTestRows(2))
 	res, err := src.MutateData(GridMutationRequest{
-		Kind: GridMutationCreate,
+		Kind: gridMutationCreate,
 		Rows: []GridRow{
 			{Cells: map[string]string{"name": "Auto"}},
 		},
@@ -275,7 +275,7 @@ func TestInMemoryMutateCreateAutoID(t *testing.T) {
 func TestInMemoryMutateUpdate(t *testing.T) {
 	src := NewInMemoryDataSource(makeTestRows(3))
 	_, err := src.MutateData(GridMutationRequest{
-		Kind: GridMutationUpdate,
+		Kind: gridMutationUpdate,
 		Rows: []GridRow{
 			{ID: "b", Cells: map[string]string{"name": "Updated"}},
 		},
@@ -291,7 +291,7 @@ func TestInMemoryMutateUpdate(t *testing.T) {
 func TestInMemoryMutateUpdateWithEdits(t *testing.T) {
 	src := NewInMemoryDataSource(makeTestRows(3))
 	_, err := src.MutateData(GridMutationRequest{
-		Kind: GridMutationUpdate,
+		Kind: gridMutationUpdate,
 		Edits: []GridCellEdit{
 			{RowID: "a", ColID: "name", Value: "Edited"},
 		},
@@ -307,7 +307,7 @@ func TestInMemoryMutateUpdateWithEdits(t *testing.T) {
 func TestInMemoryMutateUpdateWithEditsDeterministicOrder(t *testing.T) {
 	src := NewInMemoryDataSource(makeTestRows(3))
 	res, err := src.MutateData(GridMutationRequest{
-		Kind: GridMutationUpdate,
+		Kind: gridMutationUpdate,
 		Edits: []GridCellEdit{
 			{RowID: "c", ColID: "name", Value: "Edited-C"},
 			{RowID: "a", ColID: "name", Value: "Edited-A"},
@@ -328,7 +328,7 @@ func TestInMemoryMutateUpdateWithEditsDeterministicOrder(t *testing.T) {
 func TestInMemoryMutateDelete(t *testing.T) {
 	src := NewInMemoryDataSource(makeTestRows(5))
 	res, err := src.MutateData(GridMutationRequest{
-		Kind:   GridMutationDelete,
+		Kind:   gridMutationDelete,
 		RowIDs: []string{"b", "d"},
 	})
 	if err != nil {
@@ -365,7 +365,7 @@ func TestAbortCheckFetch(t *testing.T) {
 	ctrl := NewGridAbortController()
 	ctrl.Abort()
 	_, err := src.FetchData(GridDataRequest{
-		Page:   GridCursorPageReq{Limit: 100},
+		Page:   gridCursorPageReq{Limit: 100},
 		Signal: ctrl.Signal,
 	})
 	if err == nil {
@@ -383,8 +383,8 @@ func TestGridQuerySignatureStability(t *testing.T) {
 			{ColID: "status", Op: "equals", Value: "active"},
 		},
 	}
-	h1 := GridQuerySignature(q)
-	h2 := GridQuerySignature(q)
+	h1 := gridQuerySignature(q)
+	h2 := gridQuerySignature(q)
 	if h1 != h2 {
 		t.Fatalf("unstable: %d != %d", h1, h2)
 	}
@@ -403,7 +403,7 @@ func TestGridQuerySignatureFilterOrderIndependent(t *testing.T) {
 			{ColID: "a", Op: "eq", Value: "1"},
 		},
 	}
-	if GridQuerySignature(q1) != GridQuerySignature(q2) {
+	if gridQuerySignature(q1) != gridQuerySignature(q2) {
 		t.Fatal("filter order should not affect signature")
 	}
 }
@@ -419,7 +419,7 @@ func TestGridQuerySignatureSortOrderDependent(t *testing.T) {
 			{ColID: "b"}, {ColID: "a"},
 		},
 	}
-	if GridQuerySignature(q1) == GridQuerySignature(q2) {
+	if gridQuerySignature(q1) == gridQuerySignature(q2) {
 		t.Fatal("sort order should affect signature")
 	}
 }
@@ -494,7 +494,7 @@ func TestRowCountUnknown(t *testing.T) {
 	src := NewInMemoryDataSource(makeTestRows(3))
 	src.RowCountKnown = false
 	res, err := src.FetchData(GridDataRequest{
-		Page: GridCursorPageReq{Limit: 100},
+		Page: gridCursorPageReq{Limit: 100},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -511,7 +511,7 @@ func TestInMemoryConcurrentFetchMutate(t *testing.T) {
 	wg.Go(func() {
 		for !stop.Load() {
 			_, err := src.FetchData(GridDataRequest{
-				Page: GridCursorPageReq{Limit: 10},
+				Page: gridCursorPageReq{Limit: 10},
 			})
 			if err != nil {
 				t.Errorf("fetch error: %v", err)
@@ -524,7 +524,7 @@ func TestInMemoryConcurrentFetchMutate(t *testing.T) {
 	wg.Go(func() {
 		for i := range 200 {
 			_, err := src.MutateData(GridMutationRequest{
-				Kind: GridMutationUpdate,
+				Kind: gridMutationUpdate,
 				Edits: []GridCellEdit{
 					{RowID: "a", ColID: "name", Value: strconv.Itoa(i)},
 				},

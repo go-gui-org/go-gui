@@ -118,7 +118,7 @@ func TestNativeSaveExtensionsNoDuplicate(t *testing.T) {
 
 func TestNativeDialogResultPathStrings(t *testing.T) {
 	r := NativeDialogResult{
-		Paths: []AccessiblePath{
+		Paths: []accessiblePath{
 			{Path: "/a/b.txt"},
 			{Path: "/c/d.pdf", Grant: Grant{ID: 1}},
 		},

@@ -17,7 +17,7 @@ func TestFloatAutoFlipVertical(t *testing.T) {
 		}}},
 	}
 	parent.Children[0].Parent = &parent
-	win := DrawClip{Width: 800, Height: 600}
+	win := drawClip{Width: 800, Height: 600}
 
 	x, y := floatAttachLayout(&parent.Children[0], win)
 	if !f32AreClose(x, 110) {
@@ -40,7 +40,7 @@ func TestFloatAutoFlipHorizontal(t *testing.T) {
 		}}},
 	}
 	parent.Children[0].Parent = &parent
-	win := DrawClip{Width: 800, Height: 600}
+	win := drawClip{Width: 800, Height: 600}
 
 	x, y := floatAttachLayout(&parent.Children[0], win)
 	if !f32AreClose(x, 650) {
@@ -63,7 +63,7 @@ func TestFloatAutoFlipNoChange(t *testing.T) {
 		}}},
 	}
 	parent.Children[0].Parent = &parent
-	win := DrawClip{Width: 800, Height: 600}
+	win := drawClip{Width: 800, Height: 600}
 
 	x, y := floatAttachLayout(&parent.Children[0], win)
 	if !f32AreClose(x, 360) {
@@ -87,7 +87,7 @@ func TestFloatAutoFlipDisabled(t *testing.T) {
 		}}},
 	}
 	parent.Children[0].Parent = &parent
-	win := DrawClip{Width: 800, Height: 600}
+	win := drawClip{Width: 800, Height: 600}
 
 	x, y := floatAttachLayout(&parent.Children[0], win)
 	if !f32AreClose(x, 110) {
@@ -143,7 +143,7 @@ func TestFloatAutoFlipClamp(t *testing.T) {
 		}}},
 	}
 	parent.Children[0].Parent = &parent
-	win := DrawClip{Width: 200, Height: 150}
+	win := drawClip{Width: 200, Height: 150}
 
 	x, y := floatAttachLayout(&parent.Children[0], win)
 	if !f32AreClose(x, 30) {

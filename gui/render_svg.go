@@ -10,7 +10,7 @@ import (
 
 // renderSvg renders an SVG shape by loading cached tessellation
 // and emitting RenderSvg commands.
-func renderSvg(shape *Shape, clip DrawClip, w *Window) {
+func renderSvg(shape *Shape, clip drawClip, w *Window) {
 	if !rectsOverlap(shapeBounds(shape), clip) {
 		return
 	}
@@ -57,7 +57,7 @@ func renderSvg(shape *Shape, clip DrawClip, w *Window) {
 	// preserveAspectRatio=slice the scaled content is larger than the
 	// shape; the shape rect bounds the visible region. Under meet the
 	// shape is the bounding box and content fits within it.
-	svgClip, ok := rectIntersection(clip, DrawClip{
+	svgClip, ok := rectIntersection(clip, drawClip{
 		X:      shape.X,
 		Y:      shape.Y,
 		Width:  shape.Width,
@@ -479,7 +479,7 @@ func collectAnimContribs(
 	}
 	for i := range anims {
 		a := &anims[i]
-		// Reject non-finite timing fields so downstream lerp / floor
+		// Reject non-finite timing fields so downstream Lerp / floor
 		// math cannot produce NaN values that would propagate into
 		// render state. DurSec must be strictly positive for normal
 		// animations; <set> is zero-duration and bypasses this check.
@@ -633,8 +633,8 @@ func evalAnimContrib(c *animContrib, a *SvgAnimation,
 
 // lerpColorKeyframes interpolates packed RGBA stops at frac in
 // [0,1]. Uses locateSeg for consistent discrete/spline/keyTimes
-// behavior. sRGB lerp per channel — cheap and visually acceptable
-// for short tweens (premultiplied gamma-correct lerp is a follow-up).
+// behavior. sRGB Lerp per channel — cheap and visually acceptable
+// for short tweens (premultiplied gamma-correct Lerp is a follow-up).
 func lerpColorKeyframes(vals []uint32, splines, keyTimes []float32,
 	mode SvgAnimCalcMode, frac float32) SvgColor {
 	n := len(vals)

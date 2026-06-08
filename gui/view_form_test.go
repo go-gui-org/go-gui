@@ -36,7 +36,7 @@ func TestFormGeneratesLayout(t *testing.T) {
 			Text(TextCfg{Text: "field"}),
 		},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape == nil {
 		t.Fatal("expected layout shape")
 	}

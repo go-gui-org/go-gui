@@ -9,14 +9,14 @@ func makeScrollLayout(idScroll uint32, width, height float32, contentW, contentH
 	w := &Window{}
 	child := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Width:     contentW,
 			Height:    contentH,
 		},
 	}
 	layout := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			IDScroll:  idScroll,
 			Width:     width,
 			Height:    height,
@@ -25,7 +25,7 @@ func makeScrollLayout(idScroll uint32, width, height float32, contentW, contentH
 		Children: []Layout{child},
 	}
 	w.layout = Layout{
-		Shape:    &Shape{ShapeType: ShapeRectangle},
+		Shape:    &Shape{shapeType: shapeRectangle},
 		Children: []Layout{layout},
 	}
 	return &w.layout.Children[0], w
@@ -56,11 +56,11 @@ func TestScrollHorizontalClampsWithinBounds(t *testing.T) {
 	w := &Window{}
 	guiTheme.ScrollMultiplier = 1
 	child := Layout{
-		Shape: &Shape{ShapeType: ShapeRectangle, Width: 400, Height: 50},
+		Shape: &Shape{shapeType: shapeRectangle, Width: 400, Height: 50},
 	}
 	layout := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			IDScroll:  2,
 			Width:     100,
 			Height:    50,
@@ -69,7 +69,7 @@ func TestScrollHorizontalClampsWithinBounds(t *testing.T) {
 		Children: []Layout{child},
 	}
 	w.layout = Layout{
-		Shape:    &Shape{ShapeType: ShapeRectangle},
+		Shape:    &Shape{shapeType: shapeRectangle},
 		Children: []Layout{layout},
 	}
 
@@ -113,7 +113,7 @@ func TestScrollToView(t *testing.T) {
 	w := &Window{}
 	target := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			ID:        "target",
 			Y:         150,
 			Height:    20,
@@ -121,13 +121,13 @@ func TestScrollToView(t *testing.T) {
 	}
 	filler := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Height:    300,
 		},
 	}
 	scroll := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			IDScroll:  5,
 			Y:         10,
 			Height:    100,
@@ -139,7 +139,7 @@ func TestScrollToView(t *testing.T) {
 	scroll.Children[0].Parent = &scroll
 	scroll.Children[1].Parent = &scroll
 	w.layout = Layout{
-		Shape:    &Shape{ShapeType: ShapeRectangle},
+		Shape:    &Shape{shapeType: shapeRectangle},
 		Children: []Layout{scroll},
 	}
 	w.layout.Children[0].Parent = &w.layout
@@ -158,7 +158,7 @@ func TestScrollToView(t *testing.T) {
 func TestScrollToViewNotFound(t *testing.T) {
 	t.Parallel()
 	w := &Window{}
-	w.layout = Layout{Shape: &Shape{ShapeType: ShapeRectangle}}
+	w.layout = Layout{Shape: &Shape{shapeType: shapeRectangle}}
 	w.ScrollToView("nonexistent") // should not panic
 }
 
@@ -213,12 +213,12 @@ func TestScrollToPctAndPct(t *testing.T) {
 	t.Run("horizontal", func(t *testing.T) {
 		w := &Window{}
 		child := Layout{
-			Shape: &Shape{ShapeType: ShapeRectangle,
+			Shape: &Shape{shapeType: shapeRectangle,
 				Width: 400, Height: 50},
 		}
 		layout := Layout{
 			Shape: &Shape{
-				ShapeType: ShapeRectangle,
+				shapeType: shapeRectangle,
 				IDScroll:  4,
 				Width:     100,
 				Height:    50,
@@ -227,7 +227,7 @@ func TestScrollToPctAndPct(t *testing.T) {
 			Children: []Layout{child},
 		}
 		w.layout = Layout{
-			Shape:    &Shape{ShapeType: ShapeRectangle},
+			Shape:    &Shape{shapeType: shapeRectangle},
 			Children: []Layout{layout},
 		}
 
@@ -261,7 +261,7 @@ func TestScrollVerticalFiresOnScroll(t *testing.T) {
 	guiTheme.ScrollMultiplier = 1
 	fired := false
 	layout, w := makeScrollLayout(7, 100, 100, 100, 300)
-	layout.Shape.Events = &EventHandlers{
+	layout.Shape.events = &eventHandlers{
 		OnScroll: func(_ *Layout, _ *Window) { fired = true },
 	}
 	scrollVertical(layout, -10, w)
@@ -295,12 +295,12 @@ func TestScrollReturnsFalseAtBoundary(t *testing.T) {
 	t.Run("horizontal", func(t *testing.T) {
 		w := &Window{}
 		child := Layout{
-			Shape: &Shape{ShapeType: ShapeRectangle,
+			Shape: &Shape{shapeType: shapeRectangle,
 				Width: 400, Height: 50},
 		}
 		layout := Layout{
 			Shape: &Shape{
-				ShapeType: ShapeRectangle,
+				shapeType: shapeRectangle,
 				IDScroll:  11,
 				Width:     100,
 				Height:    50,
@@ -309,7 +309,7 @@ func TestScrollReturnsFalseAtBoundary(t *testing.T) {
 			Children: []Layout{child},
 		}
 		w.layout = Layout{
-			Shape:    &Shape{ShapeType: ShapeRectangle},
+			Shape:    &Shape{shapeType: shapeRectangle},
 			Children: []Layout{layout},
 		}
 		ly := &w.layout.Children[0]
@@ -339,12 +339,12 @@ func TestScrollMode(t *testing.T) {
 	t.Run("vertical_only_blocks_horizontal", func(t *testing.T) {
 		w := &Window{}
 		child := Layout{
-			Shape: &Shape{ShapeType: ShapeRectangle,
+			Shape: &Shape{shapeType: shapeRectangle,
 				Width: 400, Height: 50},
 		}
 		layout := Layout{
 			Shape: &Shape{
-				ShapeType:  ShapeRectangle,
+				shapeType:  shapeRectangle,
 				IDScroll:   12,
 				Width:      100,
 				Height:     50,
@@ -354,7 +354,7 @@ func TestScrollMode(t *testing.T) {
 			Children: []Layout{child},
 		}
 		w.layout = Layout{
-			Shape:    &Shape{ShapeType: ShapeRectangle},
+			Shape:    &Shape{shapeType: shapeRectangle},
 			Children: []Layout{layout},
 		}
 		if scrollHorizontal(&w.layout.Children[0], -10, w) {
@@ -375,7 +375,7 @@ func TestScrollToViewClampsOffset(t *testing.T) {
 	w := &Window{}
 	target := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			ID:        "above",
 			Y:         5,
 			Height:    20,
@@ -383,13 +383,13 @@ func TestScrollToViewClampsOffset(t *testing.T) {
 	}
 	child := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Height:    300,
 		},
 	}
 	scroll := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			IDScroll:  14,
 			Y:         10,
 			Height:    100,
@@ -401,7 +401,7 @@ func TestScrollToViewClampsOffset(t *testing.T) {
 	scroll.Children[0].Parent = &scroll
 	scroll.Children[1].Parent = &scroll
 	w.layout = Layout{
-		Shape:    &Shape{ShapeType: ShapeRectangle},
+		Shape:    &Shape{shapeType: shapeRectangle},
 		Children: []Layout{scroll},
 	}
 	w.layout.Children[0].Parent = &w.layout
@@ -422,7 +422,7 @@ func TestScrollVerticalByAndToWithClampAndOnScroll(t *testing.T) {
 	w.layout.Children[0].Parent = &w.layout
 
 	fired := 0
-	layout.Shape.Events = &EventHandlers{
+	layout.Shape.events = &eventHandlers{
 		OnScroll: func(_ *Layout, _ *Window) { fired++ },
 	}
 
@@ -449,11 +449,11 @@ func TestScrollVerticalByAndToWithClampAndOnScroll(t *testing.T) {
 func TestScrollHorizontalByAndToWithClampAndOnScroll(t *testing.T) {
 	w := &Window{}
 	child := Layout{
-		Shape: &Shape{ShapeType: ShapeRectangle, Width: 400, Height: 50},
+		Shape: &Shape{shapeType: shapeRectangle, Width: 400, Height: 50},
 	}
 	layout := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			IDScroll:  16,
 			Width:     100,
 			Height:    50,
@@ -462,13 +462,13 @@ func TestScrollHorizontalByAndToWithClampAndOnScroll(t *testing.T) {
 		Children: []Layout{child},
 	}
 	w.layout = Layout{
-		Shape:    &Shape{ShapeType: ShapeRectangle},
+		Shape:    &Shape{shapeType: shapeRectangle},
 		Children: []Layout{layout},
 	}
 	w.layout.Children[0].Parent = &w.layout
 
 	fired := 0
-	w.layout.Children[0].Shape.Events = &EventHandlers{
+	w.layout.Children[0].Shape.events = &eventHandlers{
 		OnScroll: func(_ *Layout, _ *Window) { fired++ },
 	}
 

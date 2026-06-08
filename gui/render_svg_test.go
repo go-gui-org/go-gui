@@ -8,14 +8,14 @@ import (
 func TestRenderSvgNoParser(t *testing.T) {
 	w := &Window{}
 	shape := &Shape{
-		ShapeType: ShapeSVG,
+		shapeType: shapeSVG,
 		X:         10,
 		Y:         20,
 		Width:     100,
 		Height:    100,
 		Resource:  "<svg></svg>",
 	}
-	clip := DrawClip{X: 0, Y: 0, Width: 500, Height: 500}
+	clip := drawClip{X: 0, Y: 0, Width: 500, Height: 500}
 	// Should not panic; emits error placeholder.
 	renderSvg(shape, clip, w)
 
@@ -33,13 +33,13 @@ func TestRenderSvgNoParser(t *testing.T) {
 func TestRenderSvgOutOfClip(t *testing.T) {
 	w := &Window{}
 	shape := &Shape{
-		ShapeType: ShapeSVG,
+		shapeType: shapeSVG,
 		X:         2000,
 		Y:         2000,
 		Width:     100,
 		Height:    100,
 	}
-	clip := DrawClip{X: 0, Y: 0, Width: 100, Height: 100}
+	clip := drawClip{X: 0, Y: 0, Width: 100, Height: 100}
 	renderSvg(shape, clip, w)
 	if len(w.renderers) != 0 {
 		t.Fatal("expected no render commands when out of clip")
@@ -51,14 +51,14 @@ func TestRenderSvgWithParser(t *testing.T) {
 	w.SetSvgParser(&mockSvgParser{width: 64, height: 64})
 
 	shape := &Shape{
-		ShapeType: ShapeSVG,
+		shapeType: shapeSVG,
 		X:         0,
 		Y:         0,
 		Width:     100,
 		Height:    100,
 		Resource:  "<svg></svg>",
 	}
-	clip := DrawClip{X: 0, Y: 0, Width: 500, Height: 500}
+	clip := drawClip{X: 0, Y: 0, Width: 500, Height: 500}
 	renderSvg(shape, clip, w)
 
 	hasSvg := false
@@ -331,7 +331,7 @@ func TestRenderSvgDispatch(t *testing.T) {
 	w.SetSvgParser(&mockSvgParser{width: 64, height: 64})
 
 	shape := &Shape{
-		ShapeType: ShapeSVG,
+		shapeType: shapeSVG,
 		X:         10,
 		Y:         10,
 		Width:     100,
@@ -340,7 +340,7 @@ func TestRenderSvgDispatch(t *testing.T) {
 		Opacity:   1.0,
 		Color:     ColorTransparent,
 	}
-	clip := DrawClip{X: 0, Y: 0, Width: 500, Height: 500}
+	clip := drawClip{X: 0, Y: 0, Width: 500, Height: 500}
 
 	// Call through the dispatch.
 	renderShapeInner(shape, ColorTransparent, clip, w)
@@ -359,7 +359,7 @@ func TestRenderSvgDispatch(t *testing.T) {
 func TestRenderImageDispatch(t *testing.T) {
 	w := &Window{}
 	shape := &Shape{
-		ShapeType: ShapeImage,
+		shapeType: shapeImage,
 		X:         10,
 		Y:         10,
 		Width:     100,
@@ -367,7 +367,7 @@ func TestRenderImageDispatch(t *testing.T) {
 		Resource:  "test.png",
 		Opacity:   1.0,
 	}
-	clip := DrawClip{X: 0, Y: 0, Width: 500, Height: 500}
+	clip := drawClip{X: 0, Y: 0, Width: 500, Height: 500}
 	renderShapeInner(shape, ColorTransparent, clip, w)
 
 	hasImage := false
@@ -401,7 +401,7 @@ func TestFiniteF32_NaNInfFinite(t *testing.T) {
 // --- collectAnimContribs timing guards ---
 
 // collectAnimContribs must reject animations whose timing fields
-// are NaN or ±Inf. Otherwise downstream lerp/floor math produces
+// are NaN or ±Inf. Otherwise downstream Lerp/floor math produces
 // NaN values that poison the anim state map.
 func TestCollectAnimContribs_RejectsNonFiniteTimings(t *testing.T) {
 	nan := float32(math.NaN())
@@ -593,7 +593,7 @@ func TestComputeSvgAnimations_AccumulateSum(t *testing.T) {
 		Accumulate:    true,
 	}
 	// At t=3.5s: 3 completed prior cycles → accum offset = 3*360 = 1080.
-	// In the current cycle, phase=0.5 → lerp → 180. Total = 1260.
+	// In the current cycle, phase=0.5 → Lerp → 180. Total = 1260.
 	st := computeSvgAnimations([]SvgAnimation{a}, 3.5, nil)
 	got := st[1].RotAngle
 	if got < 1259 || got > 1261 {
@@ -713,7 +713,7 @@ func TestComputeSvgAnimations_SetZeroDuration(t *testing.T) {
 // --- Cycle restart ---
 
 // Cycle>0 must re-fire the animation every cycle seconds. At
-// elapsed = Cycle+epsilon the phase is effectively 0 so the lerp
+// elapsed = Cycle+epsilon the phase is effectively 0 so the Lerp
 // returns the first keyframe value again.
 func TestComputeSvgAnimations_CycleRestart(t *testing.T) {
 	a := SvgAnimation{
@@ -909,7 +909,7 @@ func TestComputeSvgAnimations_MotionAdditiveStacks(t *testing.T) {
 	}
 }
 
-// applyDashArrayContrib: linear lerp between stride-2 keyframes.
+// applyDashArrayContrib: linear Lerp between stride-2 keyframes.
 // Values [0,150 ; 42,150] at frac=0.5 → [21, 150].
 func TestApplyDashArrayContrib_LinearMidpoint(t *testing.T) {
 	ov := &SvgAnimAttrOverride{}

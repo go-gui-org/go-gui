@@ -85,8 +85,8 @@ func TestRadioButtonGroupOnSelect(t *testing.T) {
 	kids := v.Content()
 	// Click second radio.
 	layout := kids[1].GenerateLayout(w)
-	if layout.Shape.HasEvents() && layout.Shape.Events.OnClick != nil {
-		layout.Shape.Events.OnClick(&layout, &Event{}, w)
+	if layout.Shape.hasEvents() && layout.Shape.events.OnClick != nil {
+		layout.Shape.events.OnClick(&layout, &Event{}, w)
 	}
 	if selected != "b" {
 		t.Errorf("selected = %q, want b", selected)
@@ -106,7 +106,7 @@ func TestRadioButtonGroupDisabledPropagation(t *testing.T) {
 	})
 	kids := v.Content()
 	for i, child := range kids {
-		layout := GenerateViewLayout(child, w)
+		layout := generateViewLayout(child, w)
 		// Circle child should be disabled.
 		if len(layout.Children) == 0 {
 			t.Fatalf("child[%d] has no children", i)
@@ -157,8 +157,8 @@ func TestRadioButtonGroupItemsOnSelect(t *testing.T) {
 	w := newTestWindow()
 	kids := v.Content()
 	layout := kids[1].GenerateLayout(w)
-	if layout.Shape.HasEvents() && layout.Shape.Events.OnClick != nil {
-		layout.Shape.Events.OnClick(&layout, &Event{}, w)
+	if layout.Shape.hasEvents() && layout.Shape.events.OnClick != nil {
+		layout.Shape.events.OnClick(&layout, &Event{}, w)
 	}
 	if selected != "b" {
 		t.Errorf("selected = %q, want b", selected)

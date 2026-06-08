@@ -138,7 +138,7 @@ type deferredTableView struct {
 func (d *deferredTableView) Content() []View { return nil }
 
 func (d *deferredTableView) GenerateLayout(w *Window) Layout {
-	return GenerateViewLayout(tableView(d.cfg, w), w)
+	return generateViewLayout(tableView(d.cfg, w), w)
 }
 
 // Table generates a table with text measurement, column width

@@ -76,113 +76,128 @@ func baseDarkCfg() ThemeCfg {
 	return cfg
 }
 
-// Preset theme configs and themes.
-var (
-	ThemeDarkCfg ThemeCfg
-	ThemeDark    Theme
-
-	ThemeDarkNoPaddingCfg ThemeCfg
-	ThemeDarkNoPadding    Theme
-
-	ThemeDarkBorderedCfg ThemeCfg
-	ThemeDarkBordered    Theme
-
-	ThemeLightCfg ThemeCfg
-	ThemeLight    Theme
-
-	ThemeLightNoPaddingCfg ThemeCfg
-	ThemeLightNoPadding    Theme
-
-	ThemeLightBorderedCfg ThemeCfg
-	ThemeLightBordered    Theme
-
-	ThemeBlueBorderedCfg ThemeCfg
-	ThemeBlueBordered    Theme
-)
-
-func init() {
-	// Dark.
-	ThemeDarkCfg = baseDarkCfg()
-	ThemeDark = ThemeMaker(ThemeDarkCfg)
-
-	// Dark no padding.
-	ThemeDarkNoPaddingCfg = baseDarkCfg()
-	ThemeDarkNoPaddingCfg.Name = "dark-no-padding"
-	ThemeDarkNoPaddingCfg.Padding = PaddingNone
-	ThemeDarkNoPaddingCfg.SizeBorder = 0
-	ThemeDarkNoPaddingCfg.Radius = RadiusNone
-	ThemeDarkNoPadding = ThemeMaker(ThemeDarkNoPaddingCfg)
-
-	// Dark bordered.
-	ThemeDarkBorderedCfg = baseDarkCfg()
-	ThemeDarkBorderedCfg.Name = "dark-bordered"
-	ThemeDarkBorderedCfg.SizeBorder = SizeBorderDef
-	ThemeDarkBordered = ThemeMaker(ThemeDarkBorderedCfg)
-
-	// Light.
-	ThemeLightCfg = baseCfg()
-	ThemeLightCfg.Name = "light"
-	ThemeLightCfg.ColorBackground = colorBackgroundLight
-	ThemeLightCfg.ColorPanel = colorPanelLight
-	ThemeLightCfg.ColorInterior = colorInteriorLight
-	ThemeLightCfg.ColorHover = colorHoverLight
-	ThemeLightCfg.ColorFocus = colorFocusLight
-	ThemeLightCfg.ColorActive = colorActiveLight
-	ThemeLightCfg.ColorBorder = colorBorderLight
-	ThemeLightCfg.ColorBorderFocus = colorBorderFocusLight
-	ThemeLightCfg.ColorSelect = colorSelectLight
-	ThemeLightCfg.ColorError = RGBA(200, 40, 40, 255)
-	ThemeLightCfg.TextStyleDef = TextStyle{
-		Family: defaultFontFamily,
-		Color:  colorTextLight,
-		Size:   SizeTextMedium,
-	}
-	ThemeLight = ThemeMaker(ThemeLightCfg)
-
-	// Light no padding.
-	ThemeLightNoPaddingCfg = ThemeLightCfg
-	ThemeLightNoPaddingCfg.Name = "light-no-padding"
-	ThemeLightNoPaddingCfg.Padding = PaddingNone
-	ThemeLightNoPaddingCfg.SizeBorder = 0
-	ThemeLightNoPaddingCfg.Radius = RadiusNone
-	ThemeLightNoPadding = ThemeMaker(ThemeLightNoPaddingCfg)
-
-	// Light bordered.
-	ThemeLightBorderedCfg = ThemeLightCfg
-	ThemeLightBorderedCfg.Name = "light-bordered"
-	ThemeLightBorderedCfg.SizeBorder = SizeBorderDef
-	ThemeLightBordered = ThemeMaker(ThemeLightBorderedCfg)
-
-	// Blue bordered.
-	ThemeBlueBorderedCfg = baseCfg()
-	ThemeBlueBorderedCfg.Name = "blue-dark-bordered"
-	ThemeBlueBorderedCfg.ColorBackground = ColorFromString("#151C30")
-	ThemeBlueBorderedCfg.ColorPanel = ColorFromString("#1C243F")
-	ThemeBlueBorderedCfg.ColorInterior = ColorFromString("#202A49")
-	ThemeBlueBorderedCfg.ColorHover = ColorFromString("#243054")
-	ThemeBlueBorderedCfg.ColorFocus = ColorFromString("#29365E")
-	ThemeBlueBorderedCfg.ColorActive = ColorFromString("#2D3C68")
-	ThemeBlueBorderedCfg.ColorBorder = ColorFromString("#364263")
-	ThemeBlueBorderedCfg.ColorBorderFocus = ColorFromString("#617AC3")
-	ThemeBlueBorderedCfg.ColorSelect = ColorFromString("#3E65D8")
-	ThemeBlueBorderedCfg.ColorError = RGBA(218, 54, 51, 255)
-	ThemeBlueBorderedCfg.TitlebarDark = true
-	ThemeBlueBorderedCfg.TextStyleDef = TextStyle{
+// baseBlueCfg returns the blue ThemeCfg.
+func baseBlueCfg() ThemeCfg {
+	cfg := baseCfg()
+	cfg.Name = "blue-dark"
+	cfg.ColorBackground = ColorFromString("#151C30")
+	cfg.ColorPanel = ColorFromString("#1C243F")
+	cfg.ColorInterior = ColorFromString("#202A49")
+	cfg.ColorHover = ColorFromString("#243054")
+	cfg.ColorFocus = ColorFromString("#29365E")
+	cfg.ColorActive = ColorFromString("#2D3C68")
+	cfg.ColorBorder = ColorFromString("#364263")
+	cfg.ColorBorderFocus = ColorFromString("#617AC3")
+	cfg.ColorSelect = ColorFromString("#3E65D8")
+	cfg.ColorError = RGBA(218, 54, 51, 255)
+	cfg.TitlebarDark = true
+	cfg.TextStyleDef = TextStyle{
 		Family: defaultFontFamily,
 		Color:  ColorFromString("#E1E1E1"),
 		Size:   SizeTextMedium,
 	}
-	ThemeBlueBorderedCfg.SizeBorder = SizeBorderDef
-	ThemeBlueBordered = ThemeMaker(ThemeBlueBorderedCfg)
+	return cfg
+}
+
+// Preset themes.
+var (
+	ThemeDark  Theme
+	ThemeLight Theme
+	ThemeBlue  Theme
+)
+
+// Unexported preset configs and derived themes — kept for
+// registration and backward compatibility.
+var (
+	themeDarkCfg          ThemeCfg
+	themeDarkNoPaddingCfg ThemeCfg
+	themeDarkNoPadding    Theme
+	themeDarkBorderedCfg  ThemeCfg
+	themeDarkBordered     Theme
+
+	themeLightCfg          ThemeCfg
+	themeLightNoPaddingCfg ThemeCfg
+	themeLightNoPadding    Theme
+	themeLightBorderedCfg  ThemeCfg
+	themeLightBordered     Theme
+
+	themeBlueCfg         ThemeCfg
+	themeBlueBorderedCfg ThemeCfg
+	themeBlueBordered    Theme
+)
+
+func init() {
+	// Dark.
+	themeDarkCfg = baseDarkCfg()
+	ThemeDark = ThemeMaker(themeDarkCfg)
+
+	// Dark no padding.
+	themeDarkNoPaddingCfg = baseDarkCfg()
+	themeDarkNoPaddingCfg.Name = "dark-no-padding"
+	themeDarkNoPaddingCfg.Padding = PaddingNone
+	themeDarkNoPaddingCfg.SizeBorder = 0
+	themeDarkNoPaddingCfg.Radius = RadiusNone
+	themeDarkNoPadding = ThemeMaker(themeDarkNoPaddingCfg)
+
+	// Dark bordered.
+	themeDarkBorderedCfg = baseDarkCfg()
+	themeDarkBorderedCfg.Name = "dark-bordered"
+	themeDarkBorderedCfg.SizeBorder = SizeBorderDef
+	themeDarkBordered = ThemeMaker(themeDarkBorderedCfg)
+
+	// Light.
+	themeLightCfg = baseCfg()
+	themeLightCfg.Name = "light"
+	themeLightCfg.ColorBackground = colorBackgroundLight
+	themeLightCfg.ColorPanel = colorPanelLight
+	themeLightCfg.ColorInterior = colorInteriorLight
+	themeLightCfg.ColorHover = colorHoverLight
+	themeLightCfg.ColorFocus = colorFocusLight
+	themeLightCfg.ColorActive = colorActiveLight
+	themeLightCfg.ColorBorder = colorBorderLight
+	themeLightCfg.ColorBorderFocus = colorBorderFocusLight
+	themeLightCfg.ColorSelect = colorSelectLight
+	themeLightCfg.ColorError = RGBA(200, 40, 40, 255)
+	themeLightCfg.TextStyleDef = TextStyle{
+		Family: defaultFontFamily,
+		Color:  colorTextLight,
+		Size:   SizeTextMedium,
+	}
+	ThemeLight = ThemeMaker(themeLightCfg)
+
+	// Light no padding.
+	themeLightNoPaddingCfg = themeLightCfg
+	themeLightNoPaddingCfg.Name = "light-no-padding"
+	themeLightNoPaddingCfg.Padding = PaddingNone
+	themeLightNoPaddingCfg.SizeBorder = 0
+	themeLightNoPaddingCfg.Radius = RadiusNone
+	themeLightNoPadding = ThemeMaker(themeLightNoPaddingCfg)
+
+	// Light bordered.
+	themeLightBorderedCfg = themeLightCfg
+	themeLightBorderedCfg.Name = "light-bordered"
+	themeLightBorderedCfg.SizeBorder = SizeBorderDef
+	themeLightBordered = ThemeMaker(themeLightBorderedCfg)
+
+	// Blue.
+	themeBlueCfg = baseBlueCfg()
+	ThemeBlue = ThemeMaker(themeBlueCfg)
+
+	// Blue bordered.
+	themeBlueBorderedCfg = baseBlueCfg()
+	themeBlueBorderedCfg.Name = "blue-dark-bordered"
+	themeBlueBorderedCfg.SizeBorder = SizeBorderDef
+	themeBlueBordered = ThemeMaker(themeBlueBorderedCfg)
 
 	// Register all preset themes.
 	ThemeRegister(ThemeDark)
-	ThemeRegister(ThemeDarkNoPadding)
-	ThemeRegister(ThemeDarkBordered)
+	ThemeRegister(themeDarkNoPadding)
+	ThemeRegister(themeDarkBordered)
 	ThemeRegister(ThemeLight)
-	ThemeRegister(ThemeLightNoPadding)
-	ThemeRegister(ThemeLightBordered)
-	ThemeRegister(ThemeBlueBordered)
+	ThemeRegister(themeLightNoPadding)
+	ThemeRegister(themeLightBordered)
+	ThemeRegister(ThemeBlue)
+	ThemeRegister(themeBlueBordered)
 
 	// Set default active theme to dark.
 	guiTheme = ThemeDark

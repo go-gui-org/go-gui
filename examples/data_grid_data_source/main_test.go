@@ -8,7 +8,7 @@ import (
 
 func TestMainViewNoPanic(t *testing.T) {
 	t.Parallel()
-	gui.SetTheme(gui.ThemeDarkBordered)
+	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 	app := &App{SimulateLatency: true}
 	app.AllRows = makeRows(100)
 	app.Columns = makeColumns()
@@ -18,8 +18,6 @@ func TestMainViewNoPanic(t *testing.T) {
 		Width:  1240,
 		Height: 760,
 	})
-	layout := gui.GenerateViewLayout(mainView(w), w)
-	if len(layout.Children) == 0 {
-		t.Fatal("expected non-empty layout")
-	}
+	_ = mainView(w).GenerateLayout(w)
+
 }

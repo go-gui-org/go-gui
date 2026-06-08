@@ -8,7 +8,7 @@ import (
 func TestRenderDrawCanvasOutsideClipSkips(t *testing.T) {
 	w := makeWindowWithScratch()
 	shape := &Shape{
-		ShapeType: ShapeDrawCanvas,
+		shapeType: shapeDrawCanvas,
 		X:         500, Y: 500,
 		Width: 50, Height: 50,
 		Color: RGB(100, 100, 100),
@@ -27,10 +27,10 @@ func TestRenderDrawCanvasCallsOnDraw(t *testing.T) {
 	w := makeWindowWithScratch()
 	called := false
 	shape := &Shape{
-		ShapeType: ShapeDrawCanvas,
+		shapeType: shapeDrawCanvas,
 		Width:     100, Height: 100,
 		Color: RGB(100, 100, 100),
-		Events: &EventHandlers{
+		events: &eventHandlers{
 			OnDraw: func(dc *DrawContext) {
 				called = true
 				dc.batches = append(dc.batches, DrawCanvasTriBatch{
@@ -61,10 +61,10 @@ func TestRenderDrawCanvasCallsOnDraw(t *testing.T) {
 func TestRenderDrawCanvasEmptyBatchesNoOutput(t *testing.T) {
 	w := makeWindowWithScratch()
 	shape := &Shape{
-		ShapeType: ShapeDrawCanvas,
+		shapeType: shapeDrawCanvas,
 		Width:     100, Height: 100,
 		Color: ColorTransparent,
-		Events: &EventHandlers{
+		events: &eventHandlers{
 			OnDraw: func(_ *DrawContext) {
 				// produce no batches
 			},
@@ -84,11 +84,11 @@ func TestRenderDrawCanvasEmptyBatchesNoOutput(t *testing.T) {
 func TestRenderDrawCanvasClipBrackets(t *testing.T) {
 	w := makeWindowWithScratch()
 	shape := &Shape{
-		ShapeType: ShapeDrawCanvas,
+		shapeType: shapeDrawCanvas,
 		Width:     100, Height: 100,
 		Color: RGB(100, 100, 100),
 		Clip:  true,
-		Events: &EventHandlers{
+		events: &eventHandlers{
 			OnDraw: func(dc *DrawContext) {
 				dc.batches = append(dc.batches, DrawCanvasTriBatch{
 					Triangles: []float32{0, 0, 1, 0, 0, 1},
@@ -116,12 +116,12 @@ func TestRenderDrawCanvasCachedSkipsOnDraw(t *testing.T) {
 	w := makeWindowWithScratch()
 	callCount := 0
 	shape := &Shape{
-		ShapeType: ShapeDrawCanvas,
+		shapeType: shapeDrawCanvas,
 		ID:        "test-canvas",
 		Width:     100, Height: 100,
 		Version: 1,
 		Color:   RGB(100, 100, 100),
-		Events: &EventHandlers{
+		events: &eventHandlers{
 			OnDraw: func(dc *DrawContext) {
 				callCount++
 				dc.batches = append(dc.batches, DrawCanvasTriBatch{
@@ -154,10 +154,10 @@ func TestRenderDrawCanvasCachedSkipsOnDraw(t *testing.T) {
 func TestRenderDrawCanvas_ImagesEmitBeforeBatchesAndText(t *testing.T) {
 	w := makeWindowWithScratch()
 	shape := &Shape{
-		ShapeType: ShapeDrawCanvas,
+		shapeType: shapeDrawCanvas,
 		Width:     100, Height: 100,
 		Color: ColorTransparent,
-		Events: &EventHandlers{
+		events: &eventHandlers{
 			OnDraw: func(dc *DrawContext) {
 				dc.Image(0, 0, 10, 10, "bg.png", Opt[float32]{}, ColorTransparent)
 				dc.FilledRect(0, 0, 5, 5, Blue)
@@ -197,14 +197,14 @@ func TestRenderDrawCanvas_ImagesEmitBeforeBatchesAndText(t *testing.T) {
 func TestRenderDrawCanvasEmitsImage(t *testing.T) {
 	w := makeWindowWithScratch()
 	shape := &Shape{
-		ShapeType: ShapeDrawCanvas,
+		shapeType: shapeDrawCanvas,
 		X:         10, Y: 20,
 		Width: 100, Height: 100,
 		Color: ColorTransparent,
 		Padding: Padding{
 			Top: 5, Left: 5, Right: 5, Bottom: 5,
 		},
-		Events: &EventHandlers{
+		events: &eventHandlers{
 			OnDraw: func(dc *DrawContext) {
 				dc.Image(3, 4, 16, 16, "tile.png",
 					SomeF(0.5), Blue)
@@ -259,10 +259,10 @@ func TestRenderDrawCanvasImageOpacityClamped(t *testing.T) {
 			w := makeWindowWithScratch()
 			op := tc.opacity
 			shape := &Shape{
-				ShapeType: ShapeDrawCanvas,
+				shapeType: shapeDrawCanvas,
 				Width:     50, Height: 50,
 				Color: ColorTransparent,
-				Events: &EventHandlers{
+				events: &eventHandlers{
 					OnDraw: func(dc *DrawContext) {
 						dc.Image(0, 0, 10, 10, "x.png", op, Blue)
 					},
@@ -291,10 +291,10 @@ func TestRenderDrawCanvasImageOpacityClamped(t *testing.T) {
 func TestRenderDrawCanvasImageOnlyNotSkipped(t *testing.T) {
 	w := makeWindowWithScratch()
 	shape := &Shape{
-		ShapeType: ShapeDrawCanvas,
+		shapeType: shapeDrawCanvas,
 		Width:     50, Height: 50,
 		Color: ColorTransparent,
-		Events: &EventHandlers{
+		events: &eventHandlers{
 			OnDraw: func(dc *DrawContext) {
 				dc.Image(0, 0, 10, 10, "x.png",
 					Opt[float32]{}, Color{})
@@ -321,10 +321,10 @@ func TestRenderDrawCanvas_ValidBackingScalePassedToDrawContext(t *testing.T) {
 	w.BackingScale = 2.0
 	var got float32
 	shape := &Shape{
-		ShapeType: ShapeDrawCanvas,
+		shapeType: shapeDrawCanvas,
 		Width:     100, Height: 100,
 		Color: ColorTransparent,
-		Events: &EventHandlers{
+		events: &eventHandlers{
 			OnDraw: func(dc *DrawContext) { got = dc.Scale },
 		},
 	}
@@ -339,10 +339,10 @@ func TestRenderDrawCanvas_ZeroBackingScaleDefaultsToOne(t *testing.T) {
 	// BackingScale zero-value: window before first backend frame.
 	var got float32
 	shape := &Shape{
-		ShapeType: ShapeDrawCanvas,
+		shapeType: shapeDrawCanvas,
 		Width:     100, Height: 100,
 		Color: ColorTransparent,
-		Events: &EventHandlers{
+		events: &eventHandlers{
 			OnDraw: func(dc *DrawContext) { got = dc.Scale },
 		},
 	}
@@ -357,10 +357,10 @@ func TestRenderDrawCanvas_NegativeBackingScaleDefaultsToOne(t *testing.T) {
 	w.BackingScale = -2.0
 	var got float32
 	shape := &Shape{
-		ShapeType: ShapeDrawCanvas,
+		shapeType: shapeDrawCanvas,
 		Width:     100, Height: 100,
 		Color: ColorTransparent,
-		Events: &EventHandlers{
+		events: &eventHandlers{
 			OnDraw: func(dc *DrawContext) { got = dc.Scale },
 		},
 	}
@@ -375,10 +375,10 @@ func TestRenderDrawCanvas_NaNBackingScaleDefaultsToOne(t *testing.T) {
 	w.BackingScale = float32(math.NaN())
 	var got float32
 	shape := &Shape{
-		ShapeType: ShapeDrawCanvas,
+		shapeType: shapeDrawCanvas,
 		Width:     100, Height: 100,
 		Color: ColorTransparent,
-		Events: &EventHandlers{
+		events: &eventHandlers{
 			OnDraw: func(dc *DrawContext) { got = dc.Scale },
 		},
 	}
@@ -397,10 +397,10 @@ func TestRenderDrawCanvas_InfBackingScaleDefaultsToOne(t *testing.T) {
 		w.BackingScale = scale
 		var got float32
 		shape := &Shape{
-			ShapeType: ShapeDrawCanvas,
+			shapeType: shapeDrawCanvas,
 			Width:     100, Height: 100,
 			Color: ColorTransparent,
-			Events: &EventHandlers{
+			events: &eventHandlers{
 				OnDraw: func(dc *DrawContext) { got = dc.Scale },
 			},
 		}
@@ -416,12 +416,12 @@ func TestRenderDrawCanvasEmptyIDAlwaysRedraws(t *testing.T) {
 	w := makeWindowWithScratch()
 	callCount := 0
 	shape := &Shape{
-		ShapeType: ShapeDrawCanvas,
+		shapeType: shapeDrawCanvas,
 		ID:        "", // empty ID
 		Width:     100, Height: 100,
 		Version: 1,
 		Color:   RGB(100, 100, 100),
-		Events: &EventHandlers{
+		events: &eventHandlers{
 			OnDraw: func(dc *DrawContext) {
 				callCount++
 				dc.batches = append(dc.batches, DrawCanvasTriBatch{

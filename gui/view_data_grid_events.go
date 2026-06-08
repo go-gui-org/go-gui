@@ -446,10 +446,10 @@ func dataGridMakeOnChar(cfg *DataGridCfg, columns []GridColumnCfg) func(*Layout,
 			if ok {
 				payload = text
 			} else {
-				payload = GridRowsToTSV(columns, selectedRows)
+				payload = gridRowsToTSV(columns, selectedRows)
 			}
 		} else {
-			payload = GridRowsToTSV(columns, selectedRows)
+			payload = gridRowsToTSV(columns, selectedRows)
 		}
 		if payload == "" {
 			return

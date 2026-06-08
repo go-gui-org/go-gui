@@ -511,7 +511,7 @@ var (
 		ColorBorderFocus: colorSelectDark,
 		ColorSelect:      colorSelectDark,
 		ColorUnselect:    colorActiveDark,
-		Padding:          PaddingThree,
+		Padding:          paddingThree,
 		SizeBorder:       SizeBorderDef,
 		Radius:           RadiusLarge * 2,
 		TextStyleNormal:  DefaultTextStyle,

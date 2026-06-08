@@ -28,14 +28,14 @@ func layoutDisables(layout *Layout, disabled bool) {
 // layoutPlaceholder returns an empty placeholder Layout.
 func layoutPlaceholder() Layout {
 	return Layout{
-		Shape: &Shape{ShapeType: ShapeNone},
+		Shape: &Shape{shapeType: shapeNone},
 	}
 }
 
 // skipLayoutChild reports whether a child should be excluded
 // from spacing, content-size, and overflow calculations.
 func skipLayoutChild(s *Shape) bool {
-	return s.Float || s.ShapeType == ShapeNone || s.OverDraw
+	return s.Float || s.shapeType == shapeNone || s.OverDraw
 }
 
 // spacing does the fence-post calculation for spacings.

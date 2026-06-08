@@ -141,11 +141,6 @@ func applyTabControlDefaults(cfg *TabControlCfg) {
 	}
 }
 
-// Tabs is an alias for TabControl.
-func Tabs(cfg TabControlCfg) View {
-	return TabControl(cfg)
-}
-
 // TabControl creates a tab control with header row and content.
 func TabControl(cfg TabControlCfg) View {
 	applyTabControlDefaults(&cfg)
@@ -368,7 +363,7 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 	reorderable := cfg.Reorderable
 	controlID := cfg.ID
 
-	return GenerateViewLayout(Column(ContainerCfg{
+	return generateViewLayout(Column(ContainerCfg{
 		ID:              cfg.ID,
 		IDFocus:         cfg.IDFocus,
 		A11YRole:        AccessRoleTab,

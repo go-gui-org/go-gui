@@ -5,7 +5,7 @@ import "testing"
 func benchmarkArrangeLayout() Layout {
 	root := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Axis:      AxisTopToBottom,
 			Sizing:    FillFill,
 			Width:     1200,
@@ -17,7 +17,7 @@ func benchmarkArrangeLayout() Layout {
 	for i := range 120 {
 		ch := Layout{
 			Shape: &Shape{
-				ShapeType: ShapeRectangle,
+				shapeType: shapeRectangle,
 				Axis:      AxisLeftToRight,
 				Sizing:    FixedFit,
 				Width:     200,
@@ -63,7 +63,7 @@ func BenchmarkLayoutArrange(b *testing.B) {
 func benchmarkWrapLayout() Layout {
 	root := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Axis:      AxisLeftToRight,
 			Wrap:      true,
 			Width:     600,
@@ -74,7 +74,7 @@ func benchmarkWrapLayout() Layout {
 	for range 200 {
 		root.Children = append(root.Children, Layout{
 			Shape: &Shape{
-				ShapeType: ShapeRectangle,
+				shapeType: shapeRectangle,
 				Width:     70,
 				Height:    20,
 			},
@@ -95,13 +95,13 @@ func BenchmarkLayoutWrapContainers(b *testing.B) {
 
 func benchmarkFocusLayout() *Layout {
 	root := &Layout{
-		Shape: &Shape{ShapeType: ShapeRectangle},
+		Shape: &Shape{shapeType: shapeRectangle},
 	}
 	root.Children = make([]Layout, 0, 200)
 	for i := uint32(1); i <= 200; i++ {
 		root.Children = append(root.Children, Layout{
 			Shape: &Shape{
-				ShapeType: ShapeRectangle,
+				shapeType: shapeRectangle,
 				IDFocus:   i,
 			},
 		})

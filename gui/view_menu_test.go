@@ -17,8 +17,8 @@ func TestMenuItemTextFactory(t *testing.T) {
 
 func TestMenuSeparatorFactory(t *testing.T) {
 	item := MenuSeparator()
-	if item.ID != MenuSeparatorID {
-		t.Errorf("ID = %q, want %q", item.ID, MenuSeparatorID)
+	if item.ID != menuSeparatorID {
+		t.Errorf("ID = %q, want %q", item.ID, menuSeparatorID)
 	}
 	if !item.Separator {
 		t.Error("should be separator")
@@ -27,8 +27,8 @@ func TestMenuSeparatorFactory(t *testing.T) {
 
 func TestMenuSubtitleFactory(t *testing.T) {
 	item := MenuSubtitle("Section")
-	if item.ID != MenuSubtitleID {
-		t.Errorf("ID = %q, want %q", item.ID, MenuSubtitleID)
+	if item.ID != menuSubtitleID {
+		t.Errorf("ID = %q, want %q", item.ID, menuSubtitleID)
 	}
 	if item.Text != "Section" {
 		t.Errorf("Text = %q", item.Text)
@@ -70,8 +70,8 @@ func TestIsSelectableMenuID(t *testing.T) {
 		want bool
 	}{
 		{"file", true},
-		{MenuSeparatorID, false},
-		{MenuSubtitleID, false},
+		{menuSeparatorID, false},
+		{menuSubtitleID, false},
 		{"", true},
 	}
 	for _, tc := range tests {
@@ -160,7 +160,7 @@ func TestMenuItemHasID(t *testing.T) {
 	applyMenubarDefaults(&cfg)
 	views := menuBuild(cfg, 0, cfg.Items, &Window{})
 	for _, v := range views {
-		layout := GenerateViewLayout(v, &Window{})
+		layout := generateViewLayout(v, &Window{})
 		if layout.Shape.ID == "" {
 			t.Error("menu item should have ID set")
 		}

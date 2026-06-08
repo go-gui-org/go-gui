@@ -15,7 +15,7 @@ var markdownSource string
 type App struct{}
 
 func main() {
-	gui.SetTheme(gui.ThemeDarkBordered)
+	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 	// Enable link/code-block integrations used by the demo document.
 	gui.SetMarkdownExternalAPIsEnabled(true)
 

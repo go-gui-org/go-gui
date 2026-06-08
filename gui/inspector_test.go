@@ -15,7 +15,7 @@ func TestInspectorBuildTreeNodes(t *testing.T) {
 		Shape: &Shape{},
 		Children: []Layout{{
 			Shape: &Shape{
-				ShapeType: ShapeRectangle,
+				shapeType: shapeRectangle,
 				Axis:      AxisTopToBottom,
 				Width:     200,
 				Height:    100,
@@ -27,13 +27,13 @@ func TestInspectorBuildTreeNodes(t *testing.T) {
 				TC: &ShapeTextConfig{
 					Text: "hello world",
 				},
-				Events: &EventHandlers{
+				events: &eventHandlers{
 					OnClick: func(*Layout, *Event, *Window) {},
 				},
 			},
 			Children: []Layout{{
 				Shape: &Shape{
-					ShapeType: ShapeText,
+					shapeType: shapeText,
 					Width:     40,
 					Height:    12,
 					ID:        "child",
@@ -59,8 +59,8 @@ func TestInspectorBuildTreeNodes(t *testing.T) {
 	if got := props["0"].TextPreview; got != "hello world" {
 		t.Fatalf("props[0].TextPreview = %q, want %q", got, "hello world")
 	}
-	if got := props["0"].Events; got != "click" {
-		t.Fatalf("props[0].Events = %q, want %q", got, "click")
+	if got := props["0"].events; got != "click" {
+		t.Fatalf("props[0].events = %q, want %q", got, "click")
 	}
 	if got := props["0"].Children; got != 1 {
 		t.Fatalf("props[0].Children = %d, want 1", got)
@@ -73,17 +73,17 @@ func TestInspectorPickPathDeepestReverseOrder(t *testing.T) {
 		Shape: &Shape{},
 		Children: []Layout{{
 			Shape: &Shape{
-				ShapeClip: DrawClip{X: 0, Y: 0, Width: 100, Height: 100},
+				shapeClip: drawClip{X: 0, Y: 0, Width: 100, Height: 100},
 			},
 			Children: []Layout{
 				{
 					Shape: &Shape{
-						ShapeClip: DrawClip{X: 0, Y: 0, Width: 80, Height: 80},
+						shapeClip: drawClip{X: 0, Y: 0, Width: 80, Height: 80},
 					},
 				},
 				{
 					Shape: &Shape{
-						ShapeClip: DrawClip{X: 10, Y: 10, Width: 30, Height: 30},
+						shapeClip: drawClip{X: 10, Y: 10, Width: 30, Height: 30},
 					},
 				},
 			},
@@ -162,7 +162,7 @@ func TestLayoutArrangeWithInspector(t *testing.T) {
 
 	layout := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Width:     400,
 			Height:    300,
 			Sizing:    FillFill,
@@ -192,7 +192,7 @@ func TestUpdateCachesInspectorTreeFromPreviousLayout(t *testing.T) {
 		Shape: &Shape{},
 		Children: []Layout{{
 			Shape: &Shape{
-				ShapeType: ShapeRectangle,
+				shapeType: shapeRectangle,
 				Axis:      AxisTopToBottom,
 				Width:     50,
 				Height:    20,
@@ -223,11 +223,11 @@ func TestEventFnInspectorHotkeysAndPick(t *testing.T) {
 		Shape: &Shape{},
 		Children: []Layout{{
 			Shape: &Shape{
-				ShapeClip: DrawClip{X: 0, Y: 0, Width: 800, Height: 600},
+				shapeClip: drawClip{X: 0, Y: 0, Width: 800, Height: 600},
 			},
 			Children: []Layout{{
 				Shape: &Shape{
-					ShapeClip: DrawClip{X: 360, Y: 20, Width: 40, Height: 40},
+					shapeClip: drawClip{X: 360, Y: 20, Width: 40, Height: 40},
 				},
 			}},
 		}},

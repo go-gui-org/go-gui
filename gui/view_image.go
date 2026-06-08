@@ -87,16 +87,16 @@ func (iv *imageView) GenerateLayout(w *Window) Layout {
 		height = 100
 	}
 
-	var events *EventHandlers
+	var events *eventHandlers
 	if c.OnClick != nil || c.OnHover != nil {
-		events = &EventHandlers{
+		events = &eventHandlers{
 			OnClick: c.OnClick,
 			OnHover: c.OnHover,
 		}
 	}
 	layout := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeImage,
+			shapeType: shapeImage,
 			ID:        c.ID,
 			A11YRole:  AccessRoleImage,
 			A11Y: makeA11YInfo(
@@ -112,10 +112,10 @@ func (iv *imageView) GenerateLayout(w *Window) Layout {
 			Height:    height,
 			MinHeight: c.MinHeight,
 			MaxHeight: c.MaxHeight,
-			Events:    events,
+			events:    events,
 		},
 	}
-	ApplyFixedSizingConstraints(layout.Shape)
+	applyFixedSizingConstraints(layout.Shape)
 	return layout
 }
 
@@ -132,7 +132,7 @@ func downloadingPlaceholder(c *ImageCfg) Layout {
 	}
 	layout := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			ID:        c.ID,
 			Width:     width,
 			Height:    height,
@@ -140,7 +140,7 @@ func downloadingPlaceholder(c *ImageCfg) Layout {
 			Opacity:   c.Opacity.Get(1.0),
 		},
 	}
-	ApplyFixedSizingConstraints(layout.Shape)
+	applyFixedSizingConstraints(layout.Shape)
 	return layout
 }
 

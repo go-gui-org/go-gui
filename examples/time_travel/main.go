@@ -49,7 +49,7 @@ func (s *appState) Size() int {
 }
 
 func main() {
-	gui.SetTheme(gui.ThemeLightNoPadding)
+	gui.SetTheme(gui.ThemeLight.WithPadding(false))
 
 	app := gui.NewApp()
 	app.ExitMode = gui.ExitOnMainClose

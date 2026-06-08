@@ -42,7 +42,7 @@ func TestRenderRtfEmitsInlineMathImages(t *testing.T) {
 	}
 	w := &Window{}
 	w.viewState.diagramCache = cache
-	clip := DrawClip{X: 0, Y: 0, Width: 500, Height: 500}
+	clip := drawClip{X: 0, Y: 0, Width: 500, Height: 500}
 
 	renderRtf(shape, clip, w)
 
@@ -99,7 +99,7 @@ func TestRenderRtfNoImagesWithoutCache(t *testing.T) {
 		TC: &ShapeTextConfig{RtfLayout: layout},
 	}
 	w := &Window{}
-	clip := DrawClip{X: 0, Y: 0, Width: 500, Height: 500}
+	clip := drawClip{X: 0, Y: 0, Width: 500, Height: 500}
 
 	renderRtf(shape, clip, w)
 
@@ -134,7 +134,7 @@ func TestRenderRtfSkipsLoadingEntry(t *testing.T) {
 	}
 	w := &Window{}
 	w.viewState.diagramCache = cache
-	clip := DrawClip{X: 0, Y: 0, Width: 500, Height: 500}
+	clip := drawClip{X: 0, Y: 0, Width: 500, Height: 500}
 
 	renderRtf(shape, clip, w)
 

@@ -209,7 +209,7 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 			dragReorderGhostView(drag, ghostContent))
 	}
 
-	return GenerateViewLayout(Column(ContainerCfg{
+	return generateViewLayout(Column(ContainerCfg{
 		ID:        cfg.ID,
 		A11YRole:  AccessRoleList,
 		A11YLabel: a11yLabel(cfg.A11YLabel, cfg.ID),
@@ -475,7 +475,7 @@ func listBoxItemView(dat ListBoxOption, cfg ListBoxCfg, selectedSet map[string]s
 		},
 		OnHover: func(layout *Layout, _ *Event, w *Window) {
 			if hasOnSelect && !isSub {
-				w.SetMouseCursor(CursorPointingHand)
+				w.setMouseCursor(CursorPointingHand)
 				if layout.Shape.Color == ColorTransparent {
 					layout.Shape.Color = colorHover
 				}
@@ -547,7 +547,7 @@ func listBoxReorderItemView(
 			e.IsHandled = true
 		},
 		OnHover: func(layout *Layout, _ *Event, w *Window) {
-			w.SetMouseCursor(CursorPointingHand)
+			w.setMouseCursor(CursorPointingHand)
 			if layout.Shape.Color == ColorTransparent {
 				layout.Shape.Color = colorHover
 			}
@@ -615,9 +615,9 @@ func listBoxOnKeyDown(
 
 	action := listCoreNavigate(e.KeyCode, len(itemIDs))
 	if e.KeyCode == KeySpace {
-		action = ListCoreSelectItem
+		action = listCoreSelectItem
 	}
-	if action == ListCoreNone {
+	if action == listCoreNone {
 		return
 	}
 	e.IsHandled = true
@@ -625,7 +625,7 @@ func listBoxOnKeyDown(
 	lbf := StateMap[string, int](w, nsListBoxFocus, capModerate)
 	curIdx, _ := lbf.Get(listBoxID)
 
-	if action == ListCoreSelectItem {
+	if action == listCoreSelectItem {
 		if curIdx >= 0 && curIdx < len(itemIDs) {
 			datID := itemIDs[curIdx]
 			ids := listBoxNextSelectedIDs(

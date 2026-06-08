@@ -24,7 +24,7 @@ func TestNewShapeUIDsUnique(t *testing.T) {
 }
 
 func TestPointInShapeInside(t *testing.T) {
-	s := &Shape{ShapeClip: DrawClip{X: 10, Y: 20, Width: 50, Height: 30}}
+	s := &Shape{shapeClip: drawClip{X: 10, Y: 20, Width: 50, Height: 30}}
 	if !s.PointInShape(10, 20) {
 		t.Error("top-left corner should be inside")
 	}
@@ -34,7 +34,7 @@ func TestPointInShapeInside(t *testing.T) {
 }
 
 func TestPointInShapeOutside(t *testing.T) {
-	s := &Shape{ShapeClip: DrawClip{X: 10, Y: 20, Width: 50, Height: 30}}
+	s := &Shape{shapeClip: drawClip{X: 10, Y: 20, Width: 50, Height: 30}}
 	if s.PointInShape(9, 25) {
 		t.Error("left of shape")
 	}
@@ -47,7 +47,7 @@ func TestPointInShapeOutside(t *testing.T) {
 }
 
 func TestPointInShapeZeroSize(t *testing.T) {
-	s := &Shape{ShapeClip: DrawClip{X: 0, Y: 0, Width: 0, Height: 0}}
+	s := &Shape{shapeClip: drawClip{X: 0, Y: 0, Width: 0, Height: 0}}
 	if s.PointInShape(0, 0) {
 		t.Error("zero-size clip should not contain any point")
 	}
@@ -64,21 +64,21 @@ func TestShapePaddingAccessors(t *testing.T) {
 	if !f32AreClose(s.PaddingTop(), 3) {
 		t.Errorf("PaddingTop: got %f", s.PaddingTop())
 	}
-	if !f32AreClose(s.PaddingWidth(), 10) {
-		t.Errorf("PaddingWidth: got %f", s.PaddingWidth())
+	if !f32AreClose(s.paddingWidth(), 10) {
+		t.Errorf("paddingWidth: got %f", s.paddingWidth())
 	}
-	if !f32AreClose(s.PaddingHeight(), 8) {
-		t.Errorf("PaddingHeight: got %f", s.PaddingHeight())
+	if !f32AreClose(s.paddingHeight(), 8) {
+		t.Errorf("paddingHeight: got %f", s.paddingHeight())
 	}
 }
 
 func TestShapeHasEvents(t *testing.T) {
 	s := &Shape{}
-	if s.HasEvents() {
+	if s.hasEvents() {
 		t.Error("should be false without events")
 	}
-	s.Events = &EventHandlers{}
-	if !s.HasEvents() {
+	s.events = &eventHandlers{}
+	if !s.hasEvents() {
 		t.Error("should be true with events")
 	}
 }

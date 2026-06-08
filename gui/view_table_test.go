@@ -16,7 +16,7 @@ func TestTableBasic(t *testing.T) {
 		},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 3 {
 		t.Fatalf("rows = %d, want 3", len(layout.Children))
 	}
@@ -25,7 +25,7 @@ func TestTableBasic(t *testing.T) {
 func TestTableEmpty(t *testing.T) {
 	v := Table(TableCfg{ID: "tbl-test"})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 0 {
 		t.Errorf("children = %d, want 0", len(layout.Children))
 	}
@@ -42,7 +42,7 @@ func TestTableBorderAll(t *testing.T) {
 		},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// 2 rows (cell borders with negative spacing, no separators).
 	if len(layout.Children) != 2 {
 		t.Errorf("children = %d, want 2", len(layout.Children))
@@ -67,7 +67,7 @@ func TestTableBorderHorizontal(t *testing.T) {
 		},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// 3 rows + 2 separators (between 0-1 and 1-2; not after last).
 	if len(layout.Children) != 5 {
 		t.Errorf("children = %d, want 5", len(layout.Children))
@@ -86,7 +86,7 @@ func TestTableBorderHeaderOnly(t *testing.T) {
 		},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// 3 rows + 1 separator (after header only).
 	if len(layout.Children) != 4 {
 		t.Errorf("children = %d, want 4", len(layout.Children))
@@ -103,7 +103,7 @@ func TestTableRawData(t *testing.T) {
 		},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 3 {
 		t.Fatalf("rows = %d, want 3", len(layout.Children))
 	}
@@ -122,7 +122,7 @@ func TestTableRawDataPrecedence(t *testing.T) {
 		},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 2 {
 		t.Fatalf("rows = %d, want 2 (RawData)",
 			len(layout.Children))
@@ -140,7 +140,7 @@ func TestTableRawDataHeaderRow(t *testing.T) {
 		},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 2 {
 		t.Fatalf("rows = %d, want 2", len(layout.Children))
 	}
@@ -155,7 +155,7 @@ func TestTableRawDataHeaderOnly(t *testing.T) {
 		},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 1 {
 		t.Fatalf("rows = %d, want 1 (header-only)", len(layout.Children))
 	}
@@ -216,11 +216,11 @@ func TestTableSelection(t *testing.T) {
 		},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Click second row.
 	row := &layout.Children[1]
-	if row.Shape.HasEvents() && row.Shape.Events.OnClick != nil {
-		row.Shape.Events.OnClick(row, &Event{}, w)
+	if row.Shape.hasEvents() && row.Shape.events.OnClick != nil {
+		row.Shape.events.OnClick(row, &Event{}, w)
 	}
 	if clickedRow != 1 {
 		t.Errorf("clicked row = %d, want 1", clickedRow)
@@ -253,7 +253,7 @@ func TestTableColumnAutoWidth(t *testing.T) {
 			TR([]TableCellCfg{TD("Alexander"), TD("30")}),
 		},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// First column cell should be wider than second.
 	row0 := layout.Children[0]
 	if len(row0.Children) < 2 {
@@ -278,7 +278,7 @@ func TestTableRowAltColor(t *testing.T) {
 		},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Row 0: transparent, Row 1: alt color.
 	if layout.Children[1].Shape.Color != alt {
 		t.Errorf("row 1 color = %v, want %v",
@@ -296,7 +296,7 @@ func TestWindowTable(t *testing.T) {
 			TR([]TableCellCfg{TD("x"), TD("yy")}),
 		},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 2 {
 		t.Fatalf("rows = %d, want 2", len(layout.Children))
 	}
@@ -314,11 +314,11 @@ func TestTableColumnWidthCaching(t *testing.T) {
 	}
 	// First call measures.
 	v1 := w.Table(cfg)
-	_ = GenerateViewLayout(v1, w)
+	_ = generateViewLayout(v1, w)
 
 	// Second call should hit cache.
 	v2 := w.Table(cfg)
-	layout2 := GenerateViewLayout(v2, w)
+	layout2 := generateViewLayout(v2, w)
 	if len(layout2.Children) != 2 {
 		t.Fatalf("rows = %d, want 2", len(layout2.Children))
 	}
@@ -335,14 +335,14 @@ func TestClearTableCache(_ *testing.T) {
 		},
 	}
 	v := w.Table(cfg)
-	_ = GenerateViewLayout(v, w)
+	_ = generateViewLayout(v, w)
 
 	// Clear specific.
 	w.ClearTableCache("clear-cache-test")
 
 	// Clear all.
 	v2 := w.Table(cfg)
-	_ = GenerateViewLayout(v2, w)
+	_ = generateViewLayout(v2, w)
 	w.ClearAllTableCaches()
 }
 
@@ -362,7 +362,7 @@ func TestTableVirtualization(t *testing.T) {
 		MaxHeight: 200,
 		Data:      data,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Should have fewer children than total rows due to
 	// virtualization (visible rows + spacers).
 	if len(layout.Children) >= 101 {
@@ -391,7 +391,7 @@ func TestTableCfgFromCSV(t *testing.T) {
 func TestTableFromCSV(t *testing.T) {
 	w := &Window{}
 	v := w.TableFromCSV("A,B\n1,2\n")
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 2 {
 		t.Fatalf("rows = %d, want 2", len(layout.Children))
 	}
@@ -400,7 +400,7 @@ func TestTableFromCSV(t *testing.T) {
 func TestTableFromCSVError(t *testing.T) {
 	w := &Window{}
 	v := w.TableFromCSV("\"unclosed")
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Should produce error table with 1 row.
 	if len(layout.Children) != 1 {
 		t.Fatalf("rows = %d, want 1", len(layout.Children))
@@ -421,7 +421,7 @@ func TestTableFreezeHeader(t *testing.T) {
 			TR([]TableCellCfg{TD("Bob"), TD("25")}),
 		},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Outer has 2 children: header zone, body zone.
 	if len(layout.Children) != 2 {
 		t.Fatalf("outer children = %d, want 2", len(layout.Children))
@@ -456,7 +456,7 @@ func TestTableFreezeHeaderWithSeparator(t *testing.T) {
 			TR([]TableCellCfg{TD("b")}),
 		},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 2 {
 		t.Fatalf("outer children = %d, want 2", len(layout.Children))
 	}
@@ -486,7 +486,7 @@ func TestTableFreezeHeaderNoScroll(t *testing.T) {
 		},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Same as non-frozen: 3 rows, single Column.
 	if len(layout.Children) != 3 {
 		t.Errorf("children = %d, want 3", len(layout.Children))
@@ -510,7 +510,7 @@ func TestTableFreezeHeaderVirtualization(t *testing.T) {
 		FreezeHeader: true,
 		Data:         data,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 2 {
 		t.Fatalf("outer children = %d, want 2", len(layout.Children))
 	}
@@ -537,7 +537,7 @@ func TestTableRichTextCell(t *testing.T) {
 		},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 1 {
 		t.Fatalf("rows = %d, want 1", len(layout.Children))
 	}

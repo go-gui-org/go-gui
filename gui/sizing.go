@@ -31,8 +31,8 @@ var (
 	FillFixed = Sizing{SizingFill, SizingFixed}
 )
 
-// ApplyFixedSizingConstraints sets min = max = size when sizing is Fixed.
-func ApplyFixedSizingConstraints(shape *Shape) {
+// applyFixedSizingConstraints sets min = max = size when sizing is Fixed.
+func applyFixedSizingConstraints(shape *Shape) {
 	if shape.Sizing.Width == SizingFixed && shape.Width > 0 {
 		shape.MinWidth = shape.Width
 		shape.MaxWidth = shape.Width

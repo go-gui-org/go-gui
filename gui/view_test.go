@@ -101,7 +101,7 @@ func TestExecuteFocusCallbackNilCallback(t *testing.T) {
 
 func TestExecuteMouseCallbackOutsideBounds(t *testing.T) {
 	layout := &Layout{Shape: &Shape{
-		ShapeClip: DrawClip{X: 10, Y: 10, Width: 50, Height: 50},
+		shapeClip: drawClip{X: 10, Y: 10, Width: 50, Height: 50},
 	}}
 	e := &Event{MouseX: 0, MouseY: 0} // outside
 	w := &Window{}
@@ -118,7 +118,7 @@ func TestExecuteMouseCallbackOutsideBounds(t *testing.T) {
 
 func TestExecuteMouseCallbackInsideBounds(t *testing.T) {
 	layout := &Layout{Shape: &Shape{
-		ShapeClip: DrawClip{X: 10, Y: 10, Width: 50, Height: 50},
+		shapeClip: drawClip{X: 10, Y: 10, Width: 50, Height: 50},
 	}}
 	e := &Event{MouseX: 25, MouseY: 25}
 	w := &Window{}
@@ -157,7 +157,7 @@ func (v *nilShapeStubView) GenerateLayout(_ *Window) Layout {
 
 func TestGenerateViewLayoutFlat(t *testing.T) {
 	v := &stubView{id: "root"}
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 
 	if layout.Shape.ID != "root" {
 		t.Errorf("ID: got %q, want root", layout.Shape.ID)
@@ -175,7 +175,7 @@ func TestGenerateViewLayoutWithChildren(t *testing.T) {
 			&stubView{id: "child2"},
 		},
 	}
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 
 	if layout.Shape.ID != "parent" {
 		t.Errorf("root ID: got %q", layout.Shape.ID)
@@ -203,7 +203,7 @@ func TestGenerateViewLayoutNested(t *testing.T) {
 			},
 		},
 	}
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 
 	if len(layout.Children) != 1 {
 		t.Fatal("root should have 1 child")
@@ -226,12 +226,12 @@ func TestGenerateViewLayoutNormalizesNilShape(t *testing.T) {
 			&nilShapeStubView{},
 		},
 	}
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if layout.Shape == nil {
 		t.Fatal("root shape should be normalized")
 	}
-	if layout.Shape.ShapeType != ShapeNone {
-		t.Fatalf("root shape type: got %v, want ShapeNone", layout.Shape.ShapeType)
+	if layout.Shape.shapeType != shapeNone {
+		t.Fatalf("root shape type: got %v, want shapeNone", layout.Shape.shapeType)
 	}
 	if len(layout.Children) != 1 {
 		t.Fatalf("children: got %d, want 1", len(layout.Children))
@@ -239,8 +239,8 @@ func TestGenerateViewLayoutNormalizesNilShape(t *testing.T) {
 	if layout.Children[0].Shape == nil {
 		t.Fatal("child shape should be normalized")
 	}
-	if layout.Children[0].Shape.ShapeType != ShapeNone {
-		t.Fatalf("child shape type: got %v, want ShapeNone", layout.Children[0].Shape.ShapeType)
+	if layout.Children[0].Shape.shapeType != shapeNone {
+		t.Fatalf("child shape type: got %v, want shapeNone", layout.Children[0].Shape.shapeType)
 	}
 }
 
@@ -287,8 +287,8 @@ func TestCanvasNoAxis(t *testing.T) {
 func TestCircleSetsShapeType(t *testing.T) {
 	v := Circle(ContainerCfg{ID: "circ"})
 	layout := v.GenerateLayout(&Window{})
-	if layout.Shape.ShapeType != ShapeCircle {
-		t.Error("Circle should set ShapeCircle")
+	if layout.Shape.shapeType != shapeCircle {
+		t.Error("Circle should set shapeCircle")
 	}
 	if layout.Shape.Axis != AxisTopToBottom {
 		t.Error("Circle should set AxisTopToBottom")
@@ -323,19 +323,19 @@ func TestContainerLeftClickOnly(t *testing.T) {
 		},
 	})
 	layout := v.GenerateLayout(&Window{})
-	if layout.Shape.Events == nil {
-		t.Fatal("Events should be set")
+	if layout.Shape.events == nil {
+		t.Fatal("events should be set")
 	}
 	// left click fires
 	e := &Event{MouseButton: MouseLeft}
-	layout.Shape.Events.OnClick(nil, e, nil)
+	layout.Shape.events.OnClick(nil, e, nil)
 	if !called {
 		t.Error("left click should fire")
 	}
 	// right click does not fire
 	called = false
 	e2 := &Event{MouseButton: MouseRight}
-	layout.Shape.Events.OnClick(nil, e2, nil)
+	layout.Shape.events.OnClick(nil, e2, nil)
 	if called {
 		t.Error("right click should not fire")
 	}
@@ -350,11 +350,11 @@ func TestContainerOnAnyClickBypassesLeftOnly(t *testing.T) {
 		},
 	})
 	layout := v.GenerateLayout(&Window{})
-	if layout.Shape.Events == nil {
-		t.Fatal("Events should be set")
+	if layout.Shape.events == nil {
+		t.Fatal("events should be set")
 	}
 	e := &Event{MouseButton: MouseRight}
-	layout.Shape.Events.OnClick(nil, e, nil)
+	layout.Shape.events.OnClick(nil, e, nil)
 	if !called {
 		t.Error("OnAnyClick should fire on right click")
 	}
@@ -363,16 +363,16 @@ func TestContainerOnAnyClickBypassesLeftOnly(t *testing.T) {
 func TestContainerNilEventsWhenNoHandlers(t *testing.T) {
 	v := Column(ContainerCfg{ID: "bare"})
 	layout := v.GenerateLayout(&Window{})
-	if layout.Shape.Events != nil {
-		t.Error("no handlers should yield nil Events")
+	if layout.Shape.events != nil {
+		t.Error("no handlers should yield nil events")
 	}
 }
 
 func TestContainerNilEffectsWhenClean(t *testing.T) {
 	v := Column(ContainerCfg{ID: "clean"})
 	layout := v.GenerateLayout(&Window{})
-	if layout.Shape.FX != nil {
-		t.Error("no effects should yield nil FX")
+	if layout.Shape.fx != nil {
+		t.Error("no effects should yield nil fx")
 	}
 }
 
@@ -380,10 +380,10 @@ func TestContainerEffectsAllocated(t *testing.T) {
 	shadow := &BoxShadow{BlurRadius: 10}
 	v := Column(ContainerCfg{ID: "fx", Shadow: shadow})
 	layout := v.GenerateLayout(&Window{})
-	if layout.Shape.FX == nil {
-		t.Fatal("FX should be allocated")
+	if layout.Shape.fx == nil {
+		t.Fatal("fx should be allocated")
 	}
-	if layout.Shape.FX.Shadow != shadow {
+	if layout.Shape.fx.Shadow != shadow {
 		t.Error("shadow mismatch")
 	}
 }
@@ -447,8 +447,8 @@ func TestContainerFixedSizing(t *testing.T) {
 func TestTextViewBasic(t *testing.T) {
 	v := Text(TextCfg{Text: "hello", ID: "txt1"})
 	layout := v.GenerateLayout(&Window{})
-	if layout.Shape.ShapeType != ShapeText {
-		t.Error("should be ShapeText")
+	if layout.Shape.shapeType != shapeText {
+		t.Error("should be shapeText")
 	}
 	if layout.Shape.TC == nil {
 		t.Fatal("TC should be set")
@@ -557,7 +557,7 @@ func TestButtonCreatesRow(t *testing.T) {
 			Text(TextCfg{Text: "click"}),
 		},
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.Axis != AxisLeftToRight {
 		t.Error("button should be a row")
 	}
@@ -589,14 +589,14 @@ func TestButtonSpacebarActivation(t *testing.T) {
 		},
 	})
 	layout := v.GenerateLayout(&Window{})
-	if layout.Shape.Events == nil {
-		t.Fatal("Events should be set")
+	if layout.Shape.events == nil {
+		t.Fatal("events should be set")
 	}
-	if layout.Shape.Events.OnChar == nil {
+	if layout.Shape.events.OnChar == nil {
 		t.Fatal("OnChar should be set for spacebar")
 	}
 	e := &Event{CharCode: CharSpace}
-	layout.Shape.Events.OnChar(nil, e, nil)
+	layout.Shape.events.OnChar(nil, e, nil)
 	if !clicked {
 		t.Error("spacebar should trigger click")
 	}
@@ -610,13 +610,13 @@ func TestButtonAmendLayoutFocus(t *testing.T) {
 		Color:   RGB(50, 50, 50),
 	})
 	layout := v.GenerateLayout(&Window{})
-	if layout.Shape.Events.AmendLayout == nil {
+	if layout.Shape.events.AmendLayout == nil {
 		t.Fatal("AmendLayout should be set")
 	}
 
 	w := &Window{}
 	w.SetIDFocus(1)
-	layout.Shape.Events.AmendLayout(&layout, w)
+	layout.Shape.events.AmendLayout(&layout, w)
 
 	// Color should change to focus color
 	if layout.Shape.Color.Eq(RGB(50, 50, 50)) {
@@ -633,14 +633,14 @@ func TestButtonEnterActivation(t *testing.T) {
 		},
 	})
 	layout := v.GenerateLayout(&Window{})
-	if layout.Shape.Events == nil {
-		t.Fatal("Events should be set")
+	if layout.Shape.events == nil {
+		t.Fatal("events should be set")
 	}
-	if layout.Shape.Events.OnKeyDown == nil {
+	if layout.Shape.events.OnKeyDown == nil {
 		t.Fatal("OnKeyDown should be set for enter")
 	}
 	e := &Event{KeyCode: KeyEnter}
-	layout.Shape.Events.OnKeyDown(nil, e, nil)
+	layout.Shape.events.OnKeyDown(nil, e, nil)
 	if !clicked {
 		t.Error("enter should trigger click")
 	}
@@ -660,12 +660,12 @@ func TestButtonDisabledSuppressesOnClick(t *testing.T) {
 		},
 	})
 	w := newTestWindow()
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 
 	// AmendLayout should not change color on disabled button.
 	origColor := layout.Shape.Color
 	w.SetIDFocus(1)
-	layout.Shape.Events.AmendLayout(&layout, w)
+	layout.Shape.events.AmendLayout(&layout, w)
 	if layout.Shape.Color != origColor {
 		t.Error("AmendLayout should not change color when disabled")
 	}
@@ -673,7 +673,7 @@ func TestButtonDisabledSuppressesOnClick(t *testing.T) {
 	// OnHover should not change cursor or color.
 	origColor = layout.Shape.Color
 	e := &Event{MouseButton: MouseLeft}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	if layout.Shape.Color != origColor {
 		t.Error("OnHover should not change color when disabled")
 	}
@@ -694,7 +694,7 @@ func TestRectangleBasic(t *testing.T) {
 		Color:  Red,
 	})
 	layout := v.GenerateLayout(&Window{})
-	if layout.Shape.ShapeType != ShapeRectangle {
+	if layout.Shape.shapeType != shapeRectangle {
 		t.Error("should be rectangle")
 	}
 	if layout.Shape.Color != Red {
@@ -726,7 +726,7 @@ func TestRectangleNoPadding(t *testing.T) {
 
 func TestSetMouseCursor(t *testing.T) {
 	w := &Window{}
-	w.SetMouseCursor(CursorPointingHand)
+	w.setMouseCursor(CursorPointingHand)
 	if w.viewState.mouseCursor != CursorPointingHand {
 		t.Error("cursor should be pointing hand")
 	}
@@ -905,14 +905,14 @@ func TestColumnWithTextAndButton(t *testing.T) {
 		},
 	})
 
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "main" {
 		t.Error("root ID mismatch")
 	}
 	if len(layout.Children) != 2 {
 		t.Fatalf("children: got %d, want 2", len(layout.Children))
 	}
-	if layout.Children[0].Shape.ShapeType != ShapeText {
+	if layout.Children[0].Shape.shapeType != shapeText {
 		t.Error("child 0 should be text")
 	}
 	// child 1 is a button (row)
@@ -928,7 +928,7 @@ func TestColumnWithTextAndButton(t *testing.T) {
 		t.Fatalf("button children: got %d, want 1",
 			len(btn.Children))
 	}
-	if btn.Children[0].Shape.ShapeType != ShapeText {
+	if btn.Children[0].Shape.shapeType != shapeText {
 		t.Error("button child should be text")
 	}
 }
@@ -937,11 +937,11 @@ func TestColumnWithTextAndButton(t *testing.T) {
 
 func TestHasFocus(t *testing.T) {
 	w := &Window{}
-	if w.HasFocus() {
+	if w.hasFocus() {
 		t.Error("should start unfocused")
 	}
 	w.focused = true
-	if !w.HasFocus() {
+	if !w.hasFocus() {
 		t.Error("should be focused")
 	}
 }
@@ -955,15 +955,15 @@ func TestCursorHelpers(t *testing.T) {
 		want MouseCursor
 	}{
 		{"Arrow", (*Window).SetMouseCursorArrow, CursorArrow},
-		{"IBeam", (*Window).SetMouseCursorIBeam, CursorIBeam},
+		{"IBeam", (*Window).setMouseCursorIBeam, CursorIBeam},
 		{"Crosshair", (*Window).SetMouseCursorCrosshair, CursorCrosshair},
 		{"PointingHand", (*Window).SetMouseCursorPointingHand, CursorPointingHand},
 		{"All", (*Window).SetMouseCursorAll, CursorResizeAll},
 		{"NS", (*Window).SetMouseCursorNS, CursorResizeNS},
 		{"EW", (*Window).SetMouseCursorEW, CursorResizeEW},
-		{"NESW", (*Window).SetMouseCursorResizeNESW, CursorResizeNESW},
-		{"NWSE", (*Window).SetMouseCursorResizeNWSE, CursorResizeNWSE},
-		{"NotAllowed", (*Window).SetMouseCursorNotAllowed, CursorNotAllowed},
+		{"NESW", (*Window).setMouseCursorResizeNESW, CursorResizeNESW},
+		{"NWSE", (*Window).setMouseCursorResizeNWSE, CursorResizeNWSE},
+		{"NotAllowed", (*Window).setMouseCursorNotAllowed, CursorNotAllowed},
 	}
 	for _, tt := range tests {
 		w := &Window{}

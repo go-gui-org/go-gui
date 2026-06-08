@@ -256,7 +256,7 @@ func submenuMapper(items []MenuItemCfg, parentID string,
 // isSelectableMenuID returns true if the ID is neither a
 // separator nor subtitle sentinel.
 func isSelectableMenuID(id string) bool {
-	return id != MenuSeparatorID && id != MenuSubtitleID
+	return id != menuSeparatorID && id != menuSubtitleID
 }
 
 func nextSelectable(idx int, items []MenuItemCfg) (MenuItemCfg, bool) {

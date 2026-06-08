@@ -8,8 +8,8 @@ func BenchmarkEventFnMouseMove(b *testing.B) {
 		Shape: &Shape{},
 		Children: []Layout{
 			{Shape: &Shape{
-				ShapeClip: DrawClip{X: 0, Y: 0, Width: 200, Height: 200},
-				Events: &EventHandlers{
+				shapeClip: drawClip{X: 0, Y: 0, Width: 200, Height: 200},
+				events: &eventHandlers{
 					OnMouseMove: func(_ *Layout, e *Event, _ *Window) {
 						e.IsHandled = true
 					},
@@ -38,7 +38,7 @@ func BenchmarkEventFnMouseScrollFocused(b *testing.B) {
 		Children: []Layout{
 			{Shape: &Shape{
 				IDFocus: 77,
-				Events: &EventHandlers{
+				events: &eventHandlers{
 					OnMouseScroll: func(_ *Layout, _ *Event, _ *Window) {},
 				},
 			}},
@@ -46,7 +46,7 @@ func BenchmarkEventFnMouseScrollFocused(b *testing.B) {
 				IDScroll: 1,
 				Width:    100,
 				Height:   50,
-				ShapeClip: DrawClip{
+				shapeClip: drawClip{
 					X: 0, Y: 0, Width: 100, Height: 50,
 				},
 			}, Children: []Layout{
@@ -74,8 +74,8 @@ func BenchmarkEventFnDeepNesting(b *testing.B) {
 	w := newEventTestWindow()
 	// Build 12-level deep nesting; handler at the leaf.
 	leaf := Layout{Shape: &Shape{
-		ShapeClip: DrawClip{X: 0, Y: 0, Width: 800, Height: 600},
-		Events: &EventHandlers{
+		shapeClip: drawClip{X: 0, Y: 0, Width: 800, Height: 600},
+		events: &eventHandlers{
 			OnMouseMove: func(_ *Layout, e *Event, _ *Window) {
 				e.IsHandled = true
 			},
@@ -84,7 +84,7 @@ func BenchmarkEventFnDeepNesting(b *testing.B) {
 	for range 11 {
 		leaf = Layout{
 			Shape: &Shape{
-				ShapeClip: DrawClip{X: 0, Y: 0, Width: 800, Height: 600},
+				shapeClip: drawClip{X: 0, Y: 0, Width: 800, Height: 600},
 			},
 			Children: []Layout{leaf},
 		}
@@ -108,7 +108,7 @@ func BenchmarkEventFnDeepNesting(b *testing.B) {
 func BenchmarkExecuteMouseCallback(b *testing.B) {
 	layout := &Layout{
 		Shape: &Shape{
-			ShapeClip: DrawClip{X: 10, Y: 10, Width: 100, Height: 100},
+			shapeClip: drawClip{X: 10, Y: 10, Width: 100, Height: 100},
 			X:         10,
 			Y:         10,
 		},

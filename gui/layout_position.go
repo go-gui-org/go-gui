@@ -74,7 +74,7 @@ func layoutPositions(layout *Layout, offsetX, offsetY float32, w *Window) {
 	case AxisLeftToRight:
 		if isRTL {
 			if hAlign != HAlignRight {
-				remaining := layoutW - layout.Shape.PaddingWidth()
+				remaining := layoutW - layout.Shape.paddingWidth()
 				remaining -= layout.spacing()
 				for i := range layout.Children {
 					remaining -= layout.Children[i].Shape.Width
@@ -86,7 +86,7 @@ func layoutPositions(layout *Layout, offsetX, offsetY float32, w *Window) {
 			}
 		} else {
 			if hAlign != HAlignLeft {
-				remaining := layoutW - layout.Shape.PaddingWidth()
+				remaining := layoutW - layout.Shape.paddingWidth()
 				remaining -= layout.spacing()
 				for i := range layout.Children {
 					remaining -= layout.Children[i].Shape.Width
@@ -99,7 +99,7 @@ func layoutPositions(layout *Layout, offsetX, offsetY float32, w *Window) {
 		}
 	case AxisTopToBottom:
 		if layout.Shape.VAlign != VAlignTop {
-			remaining := layoutH - layout.Shape.PaddingHeight()
+			remaining := layoutH - layout.Shape.paddingHeight()
 			remaining -= layout.spacing()
 			for i := range layout.Children {
 				remaining -= layout.Children[i].Shape.Height
@@ -117,7 +117,7 @@ func layoutPositions(layout *Layout, offsetX, offsetY float32, w *Window) {
 
 		switch axis {
 		case AxisLeftToRight:
-			remaining := layoutH - child.Shape.Height - layout.Shape.PaddingHeight()
+			remaining := layoutH - child.Shape.Height - layout.Shape.paddingHeight()
 			if remaining > 0 {
 				switch layout.Shape.VAlign {
 				case VAlignTop:
@@ -128,7 +128,7 @@ func layoutPositions(layout *Layout, offsetX, offsetY float32, w *Window) {
 				}
 			}
 		case AxisTopToBottom:
-			remaining := layoutW - child.Shape.Width - layout.Shape.PaddingWidth()
+			remaining := layoutW - child.Shape.Width - layout.Shape.paddingWidth()
 			if remaining > 0 {
 				switch hAlign {
 				case HAlignLeft:
@@ -146,7 +146,7 @@ func layoutPositions(layout *Layout, offsetX, offsetY float32, w *Window) {
 			layoutPositions(child, x+xAlign, y+yAlign, w)
 		}
 
-		if child.Shape.ShapeType != ShapeNone && !child.Shape.OverDraw {
+		if child.Shape.shapeType != shapeNone && !child.Shape.OverDraw {
 			switch axis {
 			case AxisLeftToRight:
 				if isRTL {
@@ -167,7 +167,7 @@ func layoutScrollContainers(layout *Layout, idScrollContainer uint32) {
 	if layout.Shape.IDScroll > 0 {
 		activeID = layout.Shape.IDScroll
 	}
-	if layout.Shape.ShapeType == ShapeText {
+	if layout.Shape.shapeType == shapeText {
 		layout.Shape.IDScrollContainer = activeID
 	}
 	for i := range layout.Children {
@@ -176,14 +176,14 @@ func layoutScrollContainers(layout *Layout, idScrollContainer uint32) {
 }
 
 // layoutSetShapeClips sets shape clips used for hit testing.
-func layoutSetShapeClips(layout *Layout, clip DrawClip) {
+func layoutSetShapeClips(layout *Layout, clip drawClip) {
 	shapeClip := shapeBounds(layout.Shape)
 	if r, ok := rectIntersection(shapeClip, clip); ok {
-		layout.Shape.ShapeClip = r
+		layout.Shape.shapeClip = r
 	} else {
-		layout.Shape.ShapeClip = DrawClip{}
+		layout.Shape.shapeClip = drawClip{}
 	}
-	childClip := layout.Shape.ShapeClip
+	childClip := layout.Shape.shapeClip
 	// For rotated containers, children live in the internal
 	// (unrotated) coordinate space which may be larger than
 	// the display rect in the swapped dimension.
@@ -192,7 +192,7 @@ func layoutSetShapeClips(layout *Layout, clip DrawClip) {
 		dh := layout.Shape.Height
 		cx := layout.Shape.X + dw/2
 		cy := layout.Shape.Y + dh/2
-		childClip = DrawClip{
+		childClip = drawClip{
 			X: cx - dh/2, Y: cy - dw/2,
 			Width: dh, Height: dw,
 		}
@@ -208,13 +208,13 @@ func layoutAdjustScrollOffsets(layout *Layout, w *Window) {
 	if idScroll > 0 {
 		sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
 		sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
-		maxOffsetX := f32Min(0, layout.Shape.Width-layout.Shape.PaddingWidth()-contentWidth(layout))
+		maxOffsetX := f32Min(0, layout.Shape.Width-layout.Shape.paddingWidth()-contentWidth(layout))
 		if offsetX, ok := sx.Get(idScroll); ok {
 			sx.Set(idScroll, f32Clamp(offsetX, maxOffsetX, 0))
 		} else {
 			sx.Set(idScroll, f32Clamp(0, maxOffsetX, 0))
 		}
-		maxOffsetY := f32Min(0, layout.Shape.Height-layout.Shape.PaddingHeight()-contentHeight(layout))
+		maxOffsetY := f32Min(0, layout.Shape.Height-layout.Shape.paddingHeight()-contentHeight(layout))
 		if offsetY, ok := sy.Get(idScroll); ok {
 			sy.Set(idScroll, f32Clamp(offsetY, maxOffsetY, 0))
 		} else {

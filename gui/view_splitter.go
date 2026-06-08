@@ -247,11 +247,6 @@ func applySplitterDefaults(cfg *SplitterCfg) {
 	}
 }
 
-// Split is an alias for Splitter.
-func Split(cfg SplitterCfg) View {
-	return Splitter(cfg)
-}
-
 // Splitter creates a two-pane splitter with drag/keyboard/collapse.
 func Splitter(cfg SplitterCfg) View {
 	applySplitterDefaults(&cfg)

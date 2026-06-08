@@ -10,18 +10,15 @@ const (
 
 // Predefined paddings.
 var (
-	PaddingNone     = Padding{}
-	PaddingOne      = PadAll(1)
-	PaddingTwo      = PadAll(2)
-	PaddingThree    = PadAll(3)
-	PaddingTwoThree = NewPadding(2, 3, 2, 3)
-	PaddingTwoFour  = NewPadding(2, 4, 2, 4)
-	PaddingTwoFive  = NewPadding(2, 5, 2, 5)
-	PaddingXSmall   = PadAll(PadXSmall)
-	PaddingSmall    = PadAll(PadSmall)
-	PaddingMedium   = PadAll(PadMedium)
-	PaddingLarge    = PadAll(PadLarge)
-	PaddingButton   = PadAll(6)
+	PaddingNone    = Padding{}
+	paddingThree   = PadAll(3)
+	paddingTwoFour = NewPadding(2, 4, 2, 4)
+	PaddingTwoFive = NewPadding(2, 5, 2, 5)
+	PaddingXSmall  = PadAll(PadXSmall)
+	PaddingSmall   = PadAll(PadSmall)
+	PaddingMedium  = PadAll(PadMedium)
+	PaddingLarge   = PadAll(PadLarge)
+	PaddingButton  = PadAll(6)
 )
 
 // Padding is the gap inside the edges of a Shape. Parameter order

@@ -244,14 +244,14 @@ func (fv *formView) GenerateLayout(w *Window) Layout {
 	})
 
 	layout := inner.GenerateLayout(w)
-	// Clear content so outer GenerateViewLayout does not
+	// Clear content so outer generateViewLayout does not
 	// double-process children.
 	fv.content = fv.content[:0]
 	for _, child := range children {
 		if child != nil {
 			layout.Children = append(
 				layout.Children,
-				GenerateViewLayout(child, w),
+				generateViewLayout(child, w),
 			)
 		}
 	}

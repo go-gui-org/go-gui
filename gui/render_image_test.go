@@ -10,14 +10,14 @@ func TestRenderImageEmitsCommand(t *testing.T) {
 	w := &Window{}
 	w.clipRadius = 5
 	shape := &Shape{
-		ShapeType: ShapeImage,
+		shapeType: shapeImage,
 		X:         10,
 		Y:         20,
 		Width:     100,
 		Height:    80,
 		Resource:  "test.png",
 	}
-	clip := DrawClip{X: 0, Y: 0, Width: 500, Height: 500}
+	clip := drawClip{X: 0, Y: 0, Width: 500, Height: 500}
 	renderImage(shape, clip, w)
 
 	found := false
@@ -50,13 +50,13 @@ func TestRenderImageEmitsCommand(t *testing.T) {
 func TestRenderImageOutOfClip(t *testing.T) {
 	w := &Window{}
 	shape := &Shape{
-		ShapeType: ShapeImage,
+		shapeType: shapeImage,
 		X:         1000,
 		Y:         1000,
 		Width:     50,
 		Height:    50,
 	}
-	clip := DrawClip{X: 0, Y: 0, Width: 100, Height: 100}
+	clip := drawClip{X: 0, Y: 0, Width: 100, Height: 100}
 	renderImage(shape, clip, w)
 	if len(w.renderers) != 0 {
 		t.Fatal("expected no render commands when out of clip")
@@ -71,7 +71,7 @@ func TestRenderImageOutOfClip(t *testing.T) {
 func TestRenderImageBgColorPassedThrough(t *testing.T) {
 	w := &Window{}
 	shape := &Shape{
-		ShapeType: ShapeImage,
+		shapeType: shapeImage,
 		X:         10,
 		Y:         20,
 		Width:     100,
@@ -80,7 +80,7 @@ func TestRenderImageBgColorPassedThrough(t *testing.T) {
 		Color:     White,
 		Opacity:   1.0,
 	}
-	clip := DrawClip{X: 0, Y: 0, Width: 500, Height: 500}
+	clip := drawClip{X: 0, Y: 0, Width: 500, Height: 500}
 	renderImage(shape, clip, w)
 
 	for _, r := range w.renderers {
@@ -97,7 +97,7 @@ func TestRenderImageBgColorPassedThrough(t *testing.T) {
 func TestRenderImageBgColorNoContainerRect(t *testing.T) {
 	w := &Window{}
 	shape := &Shape{
-		ShapeType: ShapeImage,
+		shapeType: shapeImage,
 		X:         10,
 		Y:         20,
 		Width:     100,
@@ -106,7 +106,7 @@ func TestRenderImageBgColorNoContainerRect(t *testing.T) {
 		Color:     White,
 		Opacity:   1.0,
 	}
-	clip := DrawClip{X: 0, Y: 0, Width: 500, Height: 500}
+	clip := drawClip{X: 0, Y: 0, Width: 500, Height: 500}
 	renderImage(shape, clip, w)
 
 	for _, r := range w.renderers {
@@ -132,19 +132,19 @@ func TestRenderImageIntegration(t *testing.T) {
 		Height: 150,
 	})
 	layout := v.GenerateLayout(w)
-	if layout.Shape.ShapeType != ShapeImage {
-		t.Fatalf("expected ShapeImage, got %d",
-			layout.Shape.ShapeType)
+	if layout.Shape.shapeType != shapeImage {
+		t.Fatalf("expected shapeImage, got %d",
+			layout.Shape.shapeType)
 	}
 
 	// Set positions for rendering.
 	layout.Shape.X = 10
 	layout.Shape.Y = 20
-	layout.Shape.ShapeClip = DrawClip{
+	layout.Shape.shapeClip = drawClip{
 		X: 10, Y: 20, Width: 200, Height: 150,
 	}
 
-	clip := w.WindowRect()
+	clip := w.windowRect()
 	renderImage(layout.Shape, clip, w)
 
 	hasImage := false

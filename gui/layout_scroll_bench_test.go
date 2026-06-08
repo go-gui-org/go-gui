@@ -5,7 +5,7 @@ import "testing"
 func benchScrollLayout(scrollRegions, childrenPer int) Layout {
 	root := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Axis:      AxisTopToBottom,
 			Sizing:    FillFill,
 			Width:     1200,
@@ -16,7 +16,7 @@ func benchScrollLayout(scrollRegions, childrenPer int) Layout {
 	for i := range scrollRegions {
 		container := Layout{
 			Shape: &Shape{
-				ShapeType: ShapeRectangle,
+				shapeType: shapeRectangle,
 				Axis:      AxisTopToBottom,
 				IDScroll:  uint32(i + 1),
 				Width:     1200,
@@ -27,7 +27,7 @@ func benchScrollLayout(scrollRegions, childrenPer int) Layout {
 		for j := range childrenPer {
 			container.Children[j] = Layout{
 				Shape: &Shape{
-					ShapeType: ShapeRectangle,
+					shapeType: shapeRectangle,
 					Width:     1200,
 					Height:    40,
 					IDFocus:   uint32(i*childrenPer + j + 1),
@@ -53,7 +53,7 @@ func BenchmarkLayoutAdjustScrollOffsets(b *testing.B) {
 func benchOverflowLayout(totalChildren int) Layout {
 	root := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Axis:      AxisLeftToRight,
 			Overflow:  true,
 			Width:     600,
@@ -65,7 +65,7 @@ func benchOverflowLayout(totalChildren int) Layout {
 	for i := range totalChildren - 1 {
 		root.Children[i] = Layout{
 			Shape: &Shape{
-				ShapeType: ShapeRectangle,
+				shapeType: shapeRectangle,
 				Width:     80,
 				Height:    40,
 			},
@@ -74,7 +74,7 @@ func benchOverflowLayout(totalChildren int) Layout {
 	// Last child is the overflow trigger button.
 	root.Children[totalChildren-1] = Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Width:     32,
 			Height:    40,
 		},
@@ -89,7 +89,7 @@ func BenchmarkLayoutOverflow(b *testing.B) {
 	for b.Loop() {
 		// Reset visibility each iteration.
 		for i := range layout.Children {
-			layout.Children[i].Shape.ShapeType = ShapeRectangle
+			layout.Children[i].Shape.shapeType = shapeRectangle
 		}
 		layoutOverflow(&layout, w)
 	}

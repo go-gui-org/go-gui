@@ -7,7 +7,7 @@ import "testing"
 func benchmarkRenderTree(depth, childrenPerLevel int) Layout {
 	root := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Axis:      AxisTopToBottom,
 			Sizing:    FillFill,
 			Width:     1200,
@@ -26,13 +26,13 @@ func buildRenderChildren(parent *Layout, depth, n int) {
 	h := parent.Shape.Height / float32(n)
 	for i := range n {
 		s := &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Axis:      AxisLeftToRight,
 			Width:     parent.Shape.Width,
 			Height:    h,
 			X:         parent.Shape.X,
 			Y:         parent.Shape.Y + float32(i)*h,
-			ShapeClip: DrawClip{
+			shapeClip: drawClip{
 				X:      parent.Shape.X,
 				Y:      parent.Shape.Y + float32(i)*h,
 				Width:  parent.Shape.Width,
@@ -48,7 +48,7 @@ func BenchmarkRenderLayout(b *testing.B) {
 	b.Run("flat_120", func(b *testing.B) {
 		w := &Window{scratch: newScratchPools()}
 		tree := benchmarkRenderTree(1, 120)
-		clip := DrawClip{Width: 1200, Height: 900}
+		clip := drawClip{Width: 1200, Height: 900}
 		b.ReportAllocs()
 		b.ResetTimer()
 		for b.Loop() {
@@ -60,7 +60,7 @@ func BenchmarkRenderLayout(b *testing.B) {
 	b.Run("nested_4x10", func(b *testing.B) {
 		w := &Window{scratch: newScratchPools()}
 		tree := benchmarkRenderTree(4, 10)
-		clip := DrawClip{Width: 1200, Height: 900}
+		clip := drawClip{Width: 1200, Height: 900}
 		b.ReportAllocs()
 		b.ResetTimer()
 		for b.Loop() {

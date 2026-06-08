@@ -159,7 +159,7 @@ func TestToastDismissAll(t *testing.T) {
 func TestToastDurationPersistent(t *testing.T) {
 	w := &Window{}
 	w.toasts = []toastNotification{
-		{id: 1, cfg: ToastCfg{Duration: ToastPersistent}},
+		{id: 1, cfg: ToastCfg{Duration: toastPersistent}},
 	}
 	d := toastDuration(w, 1)
 	if d != 0 {

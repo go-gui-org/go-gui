@@ -10,11 +10,11 @@ import (
 type Shape struct {
 
 	// Optional sub-structs (nil when unused)
-	Events  *EventHandlers     // event handlers
+	events  *eventHandlers     // event handlers
 	TC      *ShapeTextConfig   // text/RTF fields
-	FX      *ShapeEffects      // visual effects
+	fx      *shapeEffects      // visual effects
 	A11Y    *AccessInfo        // accessibility metadata
-	BC      *ShapeButtonColors // button hover/focus colors
+	bc      *shapeButtonColors // button hover/focus colors
 	SvgOpts *SvgParseOpts      // per-render SVG parse overrides
 
 	// String fields
@@ -27,7 +27,7 @@ type Shape struct {
 	FloatZIndex int
 
 	// Structs
-	ShapeClip DrawClip // calculated clipping rectangle
+	shapeClip drawClip // calculated clipping rectangle
 	Padding   Padding  // inner spacing
 
 	// Numeric fields
@@ -62,7 +62,7 @@ type Shape struct {
 
 	// Enums/bools
 	Axis                 Axis
-	ShapeType            ShapeType
+	shapeType            shapeType
 	HAlign               HorizontalAlign
 	VAlign               VerticalAlign
 	ScrollMode           ScrollMode
@@ -92,19 +92,19 @@ func NewShape() *Shape {
 	}
 }
 
-// ShapeType defines the kind of Shape.
-type ShapeType uint8
+// shapeType defines the kind of Shape.
+type shapeType uint8
 
-// ShapeType constants.
+// shapeType constants.
 const (
-	ShapeNone ShapeType = iota
-	ShapeRectangle
-	ShapeText
-	ShapeImage
-	ShapeCircle
-	ShapeRTF
-	ShapeSVG
-	ShapeDrawCanvas
+	shapeNone shapeType = iota
+	shapeRectangle
+	shapeText
+	shapeImage
+	shapeCircle
+	shapeRTF
+	shapeSVG
+	shapeDrawCanvas
 )
 
 // TextDirection controls text/layout direction.
@@ -218,8 +218,8 @@ func (s AccessState) Has(flag AccessState) bool {
 	return s&flag == flag
 }
 
-// DrawClip represents a clipping rectangle.
-type DrawClip struct {
+// drawClip represents a clipping rectangle.
+type drawClip struct {
 	X      float32
 	Y      float32
 	Width  float32
@@ -257,8 +257,8 @@ type ShapeTextConfig struct {
 	textLayoutMode     TextMode
 }
 
-// HasRtfLayout returns true if the shape has an RTF layout.
-func (s *Shape) HasRtfLayout() bool {
+// hasRtfLayout returns true if the shape has an RTF layout.
+func (s *Shape) hasRtfLayout() bool {
 	return s.TC != nil && s.TC.RtfLayout != nil
 }
 
@@ -273,8 +273,8 @@ const (
 	TextModeWrapKeepSpaces
 )
 
-// EventHandlers holds optional event callback fields.
-type EventHandlers struct {
+// eventHandlers holds optional event callback fields.
+type eventHandlers struct {
 	OnChar        func(*Layout, *Event, *Window)
 	OnKeyDown     func(*Layout, *Event, *Window)
 	OnKeyUp       func(*Layout, *Event, *Window)
@@ -292,10 +292,10 @@ type EventHandlers struct {
 	OnDraw        func(*DrawContext)
 }
 
-// ShapeButtonColors holds per-button color state read by
+// shapeButtonColors holds per-button color state read by
 // package-level button event handlers, avoiding per-frame
 // closure allocations.
-type ShapeButtonColors struct {
+type shapeButtonColors struct {
 	OnHover          func(*Layout, *Event, *Window)
 	ColorHover       Color
 	ColorClick       Color
@@ -303,8 +303,8 @@ type ShapeButtonColors struct {
 	ColorBorderFocus Color
 }
 
-// ShapeEffects holds optional visual effect fields.
-type ShapeEffects struct {
+// shapeEffects holds optional visual effect fields.
+type shapeEffects struct {
 	Shadow         *BoxShadow
 	Gradient       *GradientDef
 	BorderGradient *GradientDef
@@ -370,14 +370,14 @@ type AccessInfo struct {
 	ValueMax    float32
 }
 
-// HasEvents returns true if EventHandlers is allocated.
-func (s *Shape) HasEvents() bool {
-	return s.Events != nil
+// hasEvents returns true if eventHandlers is allocated.
+func (s *Shape) hasEvents() bool {
+	return s.events != nil
 }
 
-// PointInShape determines if the given point is within ShapeClip.
+// PointInShape determines if the given point is within shapeClip.
 func (s *Shape) PointInShape(x, y float32) bool {
-	sc := s.ShapeClip
+	sc := s.shapeClip
 	if sc.Width <= 0 || sc.Height <= 0 {
 		return false
 	}
@@ -395,13 +395,13 @@ func (s *Shape) PaddingTop() float32 {
 	return s.Padding.Top + s.SizeBorder
 }
 
-// PaddingWidth returns total horizontal padding.
-func (s *Shape) PaddingWidth() float32 {
+// paddingWidth returns total horizontal padding.
+func (s *Shape) paddingWidth() float32 {
 	return s.Padding.Width() + (s.SizeBorder * 2)
 }
 
-// PaddingHeight returns total vertical padding.
-func (s *Shape) PaddingHeight() float32 {
+// paddingHeight returns total vertical padding.
+func (s *Shape) paddingHeight() float32 {
 	return s.Padding.Height() + (s.SizeBorder * 2)
 }
 

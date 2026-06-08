@@ -37,7 +37,7 @@ func (v *rotatedBoxView) Content() []View {
 func (v *rotatedBoxView) GenerateLayout(_ *Window) Layout {
 	return Layout{
 		Shape: &Shape{
-			ShapeType:    ShapeRectangle,
+			shapeType:    shapeRectangle,
 			Axis:         AxisTopToBottom,
 			QuarterTurns: v.turns,
 			Clip:         true,

@@ -18,8 +18,8 @@ func charHandler(layout *Layout, e *Event, w *Window) {
 		return
 	}
 	var onChar ShapeCallback
-	if layout.Shape.HasEvents() {
-		onChar = layout.Shape.Events.OnChar
+	if layout.Shape.hasEvents() {
+		onChar = layout.Shape.events.OnChar
 	}
 	executeFocusCallback(layout, e, w, onChar)
 }
@@ -48,8 +48,8 @@ func keydownHandler(layout *Layout, e *Event, w *Window) {
 		return
 	}
 	var onKeyDown ShapeCallback
-	if layout.Shape.HasEvents() {
-		onKeyDown = layout.Shape.Events.OnKeyDown
+	if layout.Shape.hasEvents() {
+		onKeyDown = layout.Shape.events.OnKeyDown
 	}
 	executeFocusCallback(layout, e, w, onKeyDown)
 	if e.IsHandled {
@@ -86,8 +86,8 @@ func keyupHandler(layout *Layout, e *Event, w *Window) {
 		return
 	}
 	var onKeyUp ShapeCallback
-	if layout.Shape.HasEvents() {
-		onKeyUp = layout.Shape.Events.OnKeyUp
+	if layout.Shape.hasEvents() {
+		onKeyUp = layout.Shape.events.OnKeyUp
 	}
 	executeFocusCallback(layout, e, w, onKeyUp)
 }
@@ -95,7 +95,7 @@ func keyupHandler(layout *Layout, e *Event, w *Window) {
 // keyDownScrollHandler handles keyboard-based scrolling.
 // Supports arrow keys, page up/down, and home/end.
 const (
-	ScrollDeltaHome = 10_000_000
+	scrollDeltaHome = 10_000_000
 )
 
 func keyDownScrollHandler(layout *Layout, e *Event, w *Window) {
@@ -110,9 +110,9 @@ func keyDownScrollHandler(layout *Layout, e *Event, w *Window) {
 		case KeyDown:
 			e.IsHandled = scrollVertical(layout, -deltaLine, w)
 		case KeyHome:
-			e.IsHandled = scrollVertical(layout, ScrollDeltaHome, w)
+			e.IsHandled = scrollVertical(layout, scrollDeltaHome, w)
 		case KeyEnd:
-			e.IsHandled = scrollVertical(layout, -ScrollDeltaHome, w)
+			e.IsHandled = scrollVertical(layout, -scrollDeltaHome, w)
 		case KeyPageUp:
 			e.IsHandled = scrollVertical(layout, deltaPage, w)
 		case KeyPageDown:
@@ -163,8 +163,8 @@ func mouseDownHandler(
 			e.IsHandled = true
 		}
 		var onClick ShapeCallback
-		if layout.Shape.HasEvents() {
-			onClick = layout.Shape.Events.OnClick
+		if layout.Shape.hasEvents() {
+			onClick = layout.Shape.events.OnClick
 		}
 		executeMouseCallback(layout, e, w, onClick)
 	}
@@ -196,8 +196,8 @@ func mouseMoveHandler(layout *Layout, e *Event, w *Window) {
 		return
 	}
 	var onMouseMove ShapeCallback
-	if layout.Shape.HasEvents() {
-		onMouseMove = layout.Shape.Events.OnMouseMove
+	if layout.Shape.hasEvents() {
+		onMouseMove = layout.Shape.events.OnMouseMove
 	}
 	executeMouseCallback(layout, e, w, onMouseMove)
 }
@@ -225,8 +225,8 @@ func mouseUpHandler(layout *Layout, e *Event, w *Window) {
 		return
 	}
 	var onMouseUp ShapeCallback
-	if layout.Shape.HasEvents() {
-		onMouseUp = layout.Shape.Events.OnMouseUp
+	if layout.Shape.hasEvents() {
+		onMouseUp = layout.Shape.events.OnMouseUp
 	}
 	executeMouseCallback(layout, e, w, onMouseUp)
 }
@@ -240,8 +240,8 @@ func focusedScrollTarget(layout *Layout, w *Window) *Layout {
 		return nil
 	}
 	ly, ok := FindLayoutByIDFocus(layout, idFocus)
-	if !ok || ly.Shape == nil || !ly.Shape.HasEvents() ||
-		ly.Shape.Events.OnMouseScroll == nil {
+	if !ok || ly.Shape == nil || !ly.Shape.hasEvents() ||
+		ly.Shape.events.OnMouseScroll == nil {
 		return nil
 	}
 	return ly
@@ -253,7 +253,7 @@ func focusedScrollTarget(layout *Layout, w *Window) *Layout {
 // and falls back to the scroll container under cursor.
 func mouseScrollHandler(layout *Layout, e *Event, w *Window) {
 	if ly := focusedScrollTarget(layout, w); ly != nil {
-		if callRelative(ly, e, w, ly.Shape.Events.OnMouseScroll) {
+		if callRelative(ly, e, w, ly.Shape.events.OnMouseScroll) {
 			return
 		}
 	}
@@ -277,10 +277,10 @@ func mouseScrollFallbackHandler(layout *Layout, e *Event, w *Window) {
 		return
 	}
 	// Deliver to OnMouseScroll handler under cursor.
-	if layout.Shape.HasEvents() &&
-		layout.Shape.Events.OnMouseScroll != nil {
+	if layout.Shape.hasEvents() &&
+		layout.Shape.events.OnMouseScroll != nil {
 		if layout.Shape.PointInShape(e.MouseX, e.MouseY) {
-			layout.Shape.Events.OnMouseScroll(layout, e, w)
+			layout.Shape.events.OnMouseScroll(layout, e, w)
 			if e.IsHandled {
 				return
 			}
@@ -319,8 +319,8 @@ func fileDropHandler(layout *Layout, e *Event, w *Window) {
 		return
 	}
 	var onFileDrop ShapeCallback
-	if layout.Shape.HasEvents() {
-		onFileDrop = layout.Shape.Events.OnFileDrop
+	if layout.Shape.hasEvents() {
+		onFileDrop = layout.Shape.events.OnFileDrop
 	}
 	executeMouseCallback(layout, e, w, onFileDrop)
 }

@@ -114,7 +114,7 @@ func NumericInput(cfg NumericInputCfg) View {
 		},
 		OnHover: func(layout *Layout, _ *Event, w *Window) {
 			if w.IsFocus(idFocus) {
-				w.SetMouseCursor(CursorIBeam)
+				w.setMouseCursor(CursorIBeam)
 			} else {
 				layout.Shape.Color = colorHover
 			}
@@ -345,7 +345,7 @@ func applyNumericInputDefaults(cfg *NumericInputCfg) {
 		cfg.ColorBorderFocus = d.ColorBorderFocus
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(PaddingTwoFour)
+		cfg.Padding = Some(paddingTwoFour)
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = DefaultTextStyle

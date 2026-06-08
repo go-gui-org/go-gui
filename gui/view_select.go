@@ -200,7 +200,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		shape:   buildContainerShape(&ccfg),
 		content: content,
 	}
-	return GenerateViewLayout(cv, w)
+	return generateViewLayout(cv, w)
 }
 
 // selectOptionView builds a single option row.
@@ -261,7 +261,7 @@ func selectOptionView(cfg *SelectCfg, option string, index int, highlighted bool
 			onSelect(s, e, w)
 		},
 		OnHover: func(layout *Layout, _ *Event, w *Window) {
-			w.SetMouseCursor(CursorPointingHand)
+			w.setMouseCursor(CursorPointingHand)
 			layout.Shape.Color = colorSelect
 			sh := StateMap[string, int](
 				w, nsSelectHL, capModerate)
@@ -368,7 +368,7 @@ func selectOnKeyDown(cfg *SelectCfg, idScroll uint32, e *Event, w *Window) {
 	currentIdx, _ := sh.Get(cfg.ID) // ok ignored: zero index is valid, bounds-checked below
 	action := listCoreNavigate(e.KeyCode, len(cfg.Options))
 
-	if action == ListCoreSelectItem {
+	if action == listCoreSelectItem {
 		if currentIdx >= 0 && currentIdx < len(cfg.Options) {
 			option := cfg.Options[currentIdx]
 			if !isSelectSubheader(option) {
@@ -389,9 +389,9 @@ func selectOnKeyDown(cfg *SelectCfg, idScroll uint32, e *Event, w *Window) {
 		return
 	}
 
-	if action == ListCoreFirst || action == ListCoreLast {
+	if action == listCoreFirst || action == listCoreLast {
 		var nextIdx int
-		if action == ListCoreFirst {
+		if action == listCoreFirst {
 			nextIdx = selectNextSelectable(cfg.Options, 0, 1)
 		} else {
 			nextIdx = selectNextSelectable(
@@ -405,9 +405,9 @@ func selectOnKeyDown(cfg *SelectCfg, idScroll uint32, e *Event, w *Window) {
 		return
 	}
 
-	if action == ListCoreMoveUp || action == ListCoreMoveDown {
+	if action == listCoreMoveUp || action == listCoreMoveDown {
 		dir := 1
-		if action == ListCoreMoveUp {
+		if action == listCoreMoveUp {
 			dir = -1
 		}
 		nextIdx := selectNextSelectable(

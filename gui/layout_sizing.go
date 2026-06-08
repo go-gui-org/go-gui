@@ -63,9 +63,9 @@ func getSizing(shape *Shape, axis distributeAxis) SizingType {
 
 func getPadding(shape *Shape, axis distributeAxis) float32 {
 	if axis == distributeHorizontal {
-		return shape.PaddingWidth()
+		return shape.paddingWidth()
 	}
-	return shape.PaddingHeight()
+	return shape.paddingHeight()
 }
 
 // mainAxisOf returns the layout axis that distributes children
@@ -316,7 +316,7 @@ func distributeSpace(layout *Layout, remainingIn float32, mode distributeMode, a
 
 // layoutWidths arranges children horizontally (bottom-up).
 func layoutWidths(layout *Layout) {
-	padding := layout.Shape.PaddingWidth()
+	padding := layout.Shape.paddingWidth()
 	if layout.Shape.Axis == AxisLeftToRight {
 		sp := layout.spacing()
 		if layout.Shape.Sizing.Width == SizingFixed {
@@ -372,7 +372,7 @@ func layoutWidths(layout *Layout) {
 
 // layoutHeights arranges children vertically (bottom-up).
 func layoutHeights(layout *Layout) {
-	padding := layout.Shape.PaddingHeight()
+	padding := layout.Shape.paddingHeight()
 	if layout.Shape.Axis == AxisTopToBottom {
 		sp := layout.spacing()
 		if layout.Shape.Sizing.Height == SizingFixed {
@@ -429,7 +429,7 @@ func layoutFillWidths(layout *Layout) {
 }
 
 func layoutFillWidthsImpl(layout *Layout, candidates, fixedIndices *[]int) {
-	remainingWidth := layout.Shape.Width - layout.Shape.PaddingWidth()
+	remainingWidth := layout.Shape.Width - layout.Shape.paddingWidth()
 
 	switch layout.Shape.Axis {
 	case AxisLeftToRight:
@@ -463,7 +463,7 @@ func layoutFillHeights(layout *Layout) {
 }
 
 func layoutFillHeightsImpl(layout *Layout, candidates, fixedIndices *[]int) {
-	remainingHeight := layout.Shape.Height - layout.Shape.PaddingHeight()
+	remainingHeight := layout.Shape.Height - layout.Shape.paddingHeight()
 
 	switch layout.Shape.Axis {
 	case AxisTopToBottom:

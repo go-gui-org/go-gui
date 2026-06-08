@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-// ValidImageExtensions lists supported image file extensions.
-var ValidImageExtensions = []string{
+// validImageExtensions lists supported image file extensions.
+var validImageExtensions = []string{
 	".png", ".jpg", ".jpeg",
 }
 
@@ -16,7 +16,7 @@ var ValidImageExtensions = []string{
 // image extension.
 func ValidateImageExtension(fileName string) error {
 	ext := strings.ToLower(filepath.Ext(fileName))
-	if slices.Contains(ValidImageExtensions, ext) {
+	if slices.Contains(validImageExtensions, ext) {
 		return nil
 	}
 	return fmt.Errorf("unsupported image format: %s", ext)

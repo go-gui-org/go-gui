@@ -152,7 +152,7 @@ func dataGridSourceResolveState(cfg DataGridCfg, caps GridDataCapabilities, dgSr
 		state.CurrentCursor = cfg.Cursor
 		state.RequestKey = ""
 	}
-	querySig := GridQuerySignature(cfg.Query)
+	querySig := gridQuerySignature(cfg.Query)
 	dataGridSourceApplyQueryReset(&state, &cfg, querySig)
 	if kind == GridPaginationOffset && cfg.PageSize > 0 {
 		desiredStart := max(0, cfg.PageIndex*cfg.PageSize)
@@ -265,15 +265,15 @@ func dataGridSourceStartRequest(cfg DataGridCfg, caps GridDataCapabilities, kind
 	limit := dataGridPageLimit(&cfg)
 	controller := NewGridAbortController()
 	nextRequestID := state.RequestID + 1
-	var page GridPageRequest
+	var page gridPageRequest
 	switch kind {
 	case GridPaginationCursor:
-		page = GridCursorPageReq{
+		page = gridCursorPageReq{
 			Cursor: state.CurrentCursor,
 			Limit:  limit,
 		}
 	default:
-		page = GridOffsetPageReq{
+		page = gridOffsetPageReq{
 			StartIndex: state.OffsetStart,
 			EndIndex:   state.OffsetStart + limit,
 		}

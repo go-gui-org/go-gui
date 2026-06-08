@@ -119,7 +119,7 @@ func TestDockDragDetectZoneWindowEdges(t *testing.T) {
 	w.layout = Layout{
 		Shape: &Shape{
 			ID:        "dock1",
-			ShapeClip: DrawClip{X: 0, Y: 0, Width: 800, Height: 600},
+			shapeClip: drawClip{X: 0, Y: 0, Width: 800, Height: 600},
 		},
 	}
 
@@ -149,13 +149,13 @@ func TestDockDragDetectZoneGroupZone(t *testing.T) {
 	groupLayout := Layout{
 		Shape: &Shape{
 			ID:        "g1",
-			ShapeClip: DrawClip{X: 100, Y: 100, Width: 400, Height: 300},
+			shapeClip: drawClip{X: 100, Y: 100, Width: 400, Height: 300},
 		},
 	}
 	w.layout = Layout{
 		Shape: &Shape{
 			ID:        "dock1",
-			ShapeClip: DrawClip{X: 0, Y: 0, Width: 800, Height: 600},
+			shapeClip: drawClip{X: 0, Y: 0, Width: 800, Height: 600},
 		},
 		Children: []Layout{groupLayout},
 	}
@@ -185,13 +185,13 @@ func TestDockDragDetectZoneSkipSinglePanelSource(t *testing.T) {
 	groupLayout := Layout{
 		Shape: &Shape{
 			ID:        "g1",
-			ShapeClip: DrawClip{X: 100, Y: 100, Width: 400, Height: 300},
+			shapeClip: drawClip{X: 100, Y: 100, Width: 400, Height: 300},
 		},
 	}
 	w.layout = Layout{
 		Shape: &Shape{
 			ID:        "dock1",
-			ShapeClip: DrawClip{X: 0, Y: 0, Width: 800, Height: 600},
+			shapeClip: drawClip{X: 0, Y: 0, Width: 800, Height: 600},
 		},
 		Children: []Layout{groupLayout},
 	}
@@ -213,13 +213,13 @@ func TestDockDragDetectZoneSkipCenterSameGroup(t *testing.T) {
 	groupLayout := Layout{
 		Shape: &Shape{
 			ID:        "g1",
-			ShapeClip: DrawClip{X: 100, Y: 100, Width: 400, Height: 300},
+			shapeClip: drawClip{X: 100, Y: 100, Width: 400, Height: 300},
 		},
 	}
 	w.layout = Layout{
 		Shape: &Shape{
 			ID:        "dock1",
-			ShapeClip: DrawClip{X: 0, Y: 0, Width: 800, Height: 600},
+			shapeClip: drawClip{X: 0, Y: 0, Width: 800, Height: 600},
 		},
 		Children: []Layout{groupLayout},
 	}
@@ -288,7 +288,7 @@ func TestDockDragAmendOverlayGroupRight(t *testing.T) {
 			Y:         50,
 			Width:     400,
 			Height:    300,
-			ShapeClip: DrawClip{X: 100, Y: 50, Width: 400, Height: 300},
+			shapeClip: drawClip{X: 100, Y: 50, Width: 400, Height: 300},
 		},
 	}
 

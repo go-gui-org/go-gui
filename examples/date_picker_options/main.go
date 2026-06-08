@@ -51,7 +51,7 @@ type App struct {
 }
 
 func main() {
-	gui.SetTheme(gui.ThemeDarkBordered)
+	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  &App{WeekdaysLen: "one"},
@@ -543,9 +543,9 @@ func toggleTheme(app *App) gui.View {
 			app := gui.State[App](w)
 			app.LightTheme = !app.LightTheme
 			if app.LightTheme {
-				w.SetTheme(gui.ThemeLightBordered)
+				w.SetTheme(gui.ThemeLight.WithBorders(true))
 			} else {
-				w.SetTheme(gui.ThemeDarkBordered)
+				w.SetTheme(gui.ThemeDark.WithBorders(true))
 			}
 		},
 	})

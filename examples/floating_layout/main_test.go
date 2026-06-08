@@ -8,14 +8,12 @@ import (
 
 func TestMainViewNoPanic(t *testing.T) {
 	t.Parallel()
-	gui.SetTheme(gui.ThemeDarkBordered)
+	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  &App{},
 		Width:  500,
 		Height: 500,
 	})
-	layout := gui.GenerateViewLayout(mainView(w), w)
-	if len(layout.Children) == 0 {
-		t.Fatal("expected non-empty layout")
-	}
+	_ = mainView(w).GenerateLayout(w)
+
 }

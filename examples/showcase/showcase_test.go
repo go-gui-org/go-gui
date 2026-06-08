@@ -99,7 +99,7 @@ func TestDocPagesExist(t *testing.T) {
 }
 
 func TestTreeTitleBarShowsDocToggle(t *testing.T) {
-	layout := gui.GenerateViewLayout(viewTitleBar(DemoEntry{
+	layout := gui.GenerateViewLayout(viewTitleBar(DemoEntry{ //nolint:staticcheck
 		ID:    "tree",
 		Label: "Tree View",
 	}, false), &gui.Window{})
@@ -110,7 +110,7 @@ func TestTreeTitleBarShowsDocToggle(t *testing.T) {
 }
 
 func TestTreeTitleBarSpacerHasNoBorder(t *testing.T) {
-	layout := gui.GenerateViewLayout(viewTitleBar(DemoEntry{
+	layout := gui.GenerateViewLayout(viewTitleBar(DemoEntry{ //nolint:staticcheck
 		ID:    "tree",
 		Label: "Tree View",
 	}, false), &gui.Window{})
@@ -130,10 +130,9 @@ func TestTreeTitleBarSpacerHasNoBorder(t *testing.T) {
 }
 
 func TestDemoTreeWrapsIntroText(t *testing.T) {
-	w := &gui.Window{}
-	w.SetState(newShowcaseApp())
+	w := gui.NewWindow(gui.WindowCfg{State: newShowcaseApp()})
 
-	layout := gui.GenerateViewLayout(demoTree(w), w)
+	layout := gui.GenerateViewLayout(demoTree(w), w) //nolint:staticcheck
 	if len(layout.Children) < 2 {
 		t.Fatalf("len(layout.Children) = %d, want >= 2", len(layout.Children))
 	}
@@ -150,13 +149,12 @@ func TestDemoTreeWrapsIntroText(t *testing.T) {
 }
 
 func TestDetailPanelSummaryWraps(t *testing.T) {
-	w := &gui.Window{}
 	app := newShowcaseApp()
 	app.SelectedGroup = groupData
 	app.SelectedComponent = "tree"
-	w.SetState(app)
+	w := gui.NewWindow(gui.WindowCfg{State: app})
 
-	layout := gui.GenerateViewLayout(detailPanel(w), w)
+	layout := gui.GenerateViewLayout(detailPanel(w), w) //nolint:staticcheck
 	if len(layout.Children) < 2 {
 		t.Fatalf("len(layout.Children) = %d, want >= 2", len(layout.Children))
 	}
@@ -171,13 +169,12 @@ func TestDetailPanelSummaryWraps(t *testing.T) {
 }
 
 func TestDetailPanelWelcomeWrappersHaveNoBorder(t *testing.T) {
-	w := &gui.Window{}
 	app := newShowcaseApp()
 	app.SelectedGroup = groupWelcome
 	app.SelectedComponent = "welcome"
-	w.SetState(app)
+	w := gui.NewWindow(gui.WindowCfg{State: app})
 
-	layout := gui.GenerateViewLayout(detailPanel(w), w)
+	layout := gui.GenerateViewLayout(detailPanel(w), w) //nolint:staticcheck
 	if got, want := layout.Shape.SizeBorder, float32(0); got != want {
 		t.Fatalf("layout.Shape.SizeBorder = %v, want %v", got, want)
 	}
@@ -207,7 +204,7 @@ func TestDetailPanelWelcomeWrappersHaveNoBorder(t *testing.T) {
 
 func TestDemoWelcomePanelHasNoBorder(t *testing.T) {
 	w := &gui.Window{}
-	layout := gui.GenerateViewLayout(demoWelcome(w), w)
+	layout := gui.GenerateViewLayout(demoWelcome(w), w) //nolint:staticcheck
 	if got, want := layout.Shape.SizeBorder, float32(0); got != want {
 		t.Fatalf("layout.Shape.SizeBorder = %v, want %v", got, want)
 	}
@@ -265,7 +262,7 @@ func TestThemeCfgSaveLoadRoundTrip(t *testing.T) {
 
 func TestDemoTextLayout(t *testing.T) {
 	w := &gui.Window{}
-	layout := gui.GenerateViewLayout(demoText(w), w)
+	layout := gui.GenerateViewLayout(demoText(w), w) //nolint:staticcheck
 
 	t.Run("intro text wraps", func(t *testing.T) {
 		l, ok := layout.FindByID("text-intro")

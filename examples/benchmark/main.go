@@ -89,7 +89,7 @@ func main() {
 		http.ListenAndServe(addr, nil) //nolint:errcheck,gosec
 	}()
 
-	gui.SetTheme(gui.ThemeDarkBordered)
+	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 
 	w := gui.NewWindow(gui.WindowCfg{
 		State:   &App{WidgetCount: 100, WidgetType: typeButton, Running: true},

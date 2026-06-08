@@ -347,7 +347,7 @@ func TestA11yActionCallbackPress(t *testing.T) {
 	layout := Layout{
 		Shape: &Shape{
 			A11YRole: AccessRoleButton,
-			Events: &EventHandlers{
+			events: &eventHandlers{
 				OnClick: func(_ *Layout, _ *Event, _ *Window) {
 					clicked = true
 				},
@@ -372,7 +372,7 @@ func TestA11yActionCallbackIncrement(t *testing.T) {
 	layout := Layout{
 		Shape: &Shape{
 			A11YRole: AccessRoleSlider,
-			Events: &EventHandlers{
+			events: &eventHandlers{
 				OnKeyDown: func(_ *Layout, e *Event, _ *Window) {
 					gotKey = e.KeyCode
 				},
@@ -396,7 +396,7 @@ func TestA11yActionCallbackDecrement(t *testing.T) {
 	layout := Layout{
 		Shape: &Shape{
 			A11YRole: AccessRoleSlider,
-			Events: &EventHandlers{
+			events: &eventHandlers{
 				OnKeyDown: func(_ *Layout, e *Event, _ *Window) {
 					gotKey = e.KeyCode
 				},
@@ -432,7 +432,7 @@ func TestA11yActionCallbackNilEvents(_ *testing.T) {
 	w.a11y.nodes = w.a11y.nodes[:0]
 	var live []liveNode
 	a11yCollect(&w.layout, -1, &w.a11y.nodes, 0, &live)
-	// Should not panic — no Events on shape.
+	// Should not panic — no events on shape.
 	a11yActionCallback(w, A11yActionPress, 0)
 }
 
@@ -441,7 +441,7 @@ func TestA11yActionCallbackConfirmCancel(t *testing.T) {
 	layout := Layout{
 		Shape: &Shape{
 			A11YRole: AccessRoleButton,
-			Events: &EventHandlers{
+			events: &eventHandlers{
 				OnKeyDown: func(_ *Layout, e *Event, _ *Window) {
 					keys = append(keys, e.KeyCode)
 				},

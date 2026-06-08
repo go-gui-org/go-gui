@@ -13,8 +13,8 @@ func makeWindowWithScratch() *Window {
 	return &Window{scratch: newScratchPools()}
 }
 
-func makeClip(x, y, w, h float32) DrawClip {
-	return DrawClip{X: x, Y: y, Width: w, Height: h}
+func makeClip(x, y, w, h float32) drawClip {
+	return drawClip{X: x, Y: y, Width: w, Height: h}
 }
 
 // --- rectsOverlap ---
@@ -159,7 +159,7 @@ func TestDimAlpha(t *testing.T) {
 func TestRenderRectangleInsideClip(t *testing.T) {
 	w := makeWindow()
 	s := &Shape{
-		ShapeType:  ShapeRectangle,
+		shapeType:  shapeRectangle,
 		X:          10,
 		Y:          20,
 		Width:      30,
@@ -198,7 +198,7 @@ func TestRenderRectangleInsideClip(t *testing.T) {
 func TestRenderRectangleOutsideClipSkipsDraw(t *testing.T) {
 	w := makeWindow()
 	s := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		X:         100,
 		Y:         100,
 		Width:     20,
@@ -216,14 +216,14 @@ func TestRenderRectangleOutsideClipSkipsDraw(t *testing.T) {
 func TestRenderContainerShadowUsesBasePositionAndSeparateOffset(t *testing.T) {
 	w := makeWindow()
 	s := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		X:         100,
 		Y:         200,
 		Width:     80,
 		Height:    60,
 		Color:     ColorTransparent,
 		Radius:    12,
-		FX: &ShapeEffects{
+		fx: &shapeEffects{
 			Shadow: &BoxShadow{
 				Color:      RGBA(0, 0, 0, 80),
 				OffsetX:    3,
@@ -245,20 +245,20 @@ func TestRenderContainerShadowUsesBasePositionAndSeparateOffset(t *testing.T) {
 	if r.X != s.X || r.Y != s.Y {
 		t.Errorf("pos: got (%f,%f), want base (%f,%f)", r.X, r.Y, s.X, s.Y)
 	}
-	if r.OffsetX != s.FX.Shadow.OffsetX || r.OffsetY != s.FX.Shadow.OffsetY {
+	if r.OffsetX != s.fx.Shadow.OffsetX || r.OffsetY != s.fx.Shadow.OffsetY {
 		t.Errorf("offset: got (%f,%f), want (%f,%f)",
-			r.OffsetX, r.OffsetY, s.FX.Shadow.OffsetX, s.FX.Shadow.OffsetY)
+			r.OffsetX, r.OffsetY, s.fx.Shadow.OffsetX, s.fx.Shadow.OffsetY)
 	}
 }
 
 func TestRenderContainerShadowZeroAlphaSkipped(t *testing.T) {
 	w := makeWindow()
 	s := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		X:         10, Y: 10,
 		Width: 50, Height: 50,
 		Color: RGB(200, 200, 200),
-		FX: &ShapeEffects{
+		fx: &shapeEffects{
 			Shadow: &BoxShadow{
 				Color:      RGBA(0, 0, 0, 0),
 				OffsetY:    5,
@@ -277,11 +277,11 @@ func TestRenderContainerShadowZeroAlphaSkipped(t *testing.T) {
 func TestRenderContainerShadowNegativeBlurSkipped(t *testing.T) {
 	w := makeWindow()
 	s := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		X:         10, Y: 10,
 		Width: 50, Height: 50,
 		Color: RGB(200, 200, 200),
-		FX: &ShapeEffects{
+		fx: &shapeEffects{
 			Shadow: &BoxShadow{
 				Color:      RGBA(0, 0, 0, 80),
 				BlurRadius: -5,
@@ -299,11 +299,11 @@ func TestRenderContainerShadowNegativeBlurSkipped(t *testing.T) {
 func TestRenderContainerShadowHardShadow(t *testing.T) {
 	w := makeWindow()
 	s := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		X:         10, Y: 10,
 		Width: 50, Height: 50,
 		Color: ColorTransparent,
-		FX: &ShapeEffects{
+		fx: &shapeEffects{
 			Shadow: &BoxShadow{
 				Color:   RGBA(0, 0, 0, 80),
 				OffsetY: 5,
@@ -331,11 +331,11 @@ func TestRenderContainerShadowHardShadow(t *testing.T) {
 func TestRenderContainerNoShadowWhenAllZero(t *testing.T) {
 	w := makeWindow()
 	s := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		X:         10, Y: 10,
 		Width: 50, Height: 50,
 		Color: RGB(200, 200, 200),
-		FX: &ShapeEffects{
+		fx: &shapeEffects{
 			Shadow: &BoxShadow{
 				Color: RGBA(0, 0, 0, 80),
 			},
@@ -354,7 +354,7 @@ func TestRenderContainerNoShadowWhenAllZero(t *testing.T) {
 func TestRenderCircleInsideClip(t *testing.T) {
 	w := makeWindow()
 	s := &Shape{
-		ShapeType:  ShapeCircle,
+		shapeType:  shapeCircle,
 		X:          0,
 		Y:          0,
 		Width:      40,
@@ -398,7 +398,7 @@ func TestRenderLayoutClipPushPop(t *testing.T) {
 				Left: 2, Right: 3, Top: 4, Bottom: 5,
 			},
 			SizeBorder: 0,
-			ShapeClip:  makeClip(10, 20, 100, 50),
+			shapeClip:  makeClip(10, 20, 100, 50),
 		},
 	}
 
@@ -512,7 +512,7 @@ func TestResolveClipRadiusIgnoresNonFiniteChildRadius(t *testing.T) {
 func TestRenderShapeOpacityNonTextIsSafe(t *testing.T) {
 	w := makeWindow()
 	s := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		X:         0, Y: 0,
 		Width: 20, Height: 10,
 		Color:   RGB(100, 120, 140),
@@ -529,7 +529,7 @@ func TestRenderShapeOpacityNonTextIsSafe(t *testing.T) {
 func TestRenderShapeTextWithoutTextConfigDegradesSafe(t *testing.T) {
 	w := makeWindow()
 	s := &Shape{
-		ShapeType: ShapeText,
+		shapeType: shapeText,
 		X:         0, Y: 0,
 		Width: 50, Height: 20,
 		Color:   Black,
@@ -717,7 +717,7 @@ func TestClipContentsEmitsStencilBracket(t *testing.T) {
 	w := makeWindow()
 	child := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			X:         5, Y: 5,
 			Width: 10, Height: 10,
 			Color: RGB(1, 2, 3),
@@ -729,7 +729,7 @@ func TestClipContentsEmitsStencilBracket(t *testing.T) {
 			Radius:       12,
 			Width:        100,
 			Height:       80,
-			ShapeClip:    makeClip(0, 0, 100, 80),
+			shapeClip:    makeClip(0, 0, 100, 80),
 		},
 		Children: []Layout{child},
 	}
@@ -777,7 +777,7 @@ func TestClipContentsNestedIncrementsDepth(t *testing.T) {
 			Radius:       6,
 			Width:        40,
 			Height:       30,
-			ShapeClip:    makeClip(10, 10, 40, 30),
+			shapeClip:    makeClip(10, 10, 40, 30),
 		},
 	}
 	outer := &Layout{
@@ -786,7 +786,7 @@ func TestClipContentsNestedIncrementsDepth(t *testing.T) {
 			Radius:       12,
 			Width:        100,
 			Height:       80,
-			ShapeClip:    makeClip(0, 0, 100, 80),
+			shapeClip:    makeClip(0, 0, 100, 80),
 		},
 		Children: []Layout{inner},
 	}
@@ -820,7 +820,7 @@ func TestClipContentsCoexistsWithClip(t *testing.T) {
 			Radius:       8,
 			Width:        60,
 			Height:       40,
-			ShapeClip:    makeClip(5, 5, 60, 40),
+			shapeClip:    makeClip(5, 5, 60, 40),
 			Padding:      Padding{Left: 2, Right: 2, Top: 2, Bottom: 2},
 		},
 	}

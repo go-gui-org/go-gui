@@ -202,7 +202,7 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 			}
 		},
 	})
-	return GenerateViewLayout(col, w)
+	return generateViewLayout(col, w)
 }
 
 // inputDateTextField returns an Input for single/no dates (editable)

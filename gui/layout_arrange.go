@@ -74,7 +74,7 @@ func injectFloatingLayer(v View, w *Window, floatingLayouts *[]*Layout) {
 	if v == nil {
 		return
 	}
-	l := GenerateViewLayout(v, w)
+	l := generateViewLayout(v, w)
 	heap := w.scratch.allocFloatingLayout(l)
 	layoutParents(heap, nil)
 	*floatingLayouts = append(*floatingLayouts, heap)

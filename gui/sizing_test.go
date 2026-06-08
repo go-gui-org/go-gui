@@ -34,7 +34,7 @@ func TestSizingConstants(t *testing.T) {
 
 func TestApplyFixedSizingConstraintsWidth(t *testing.T) {
 	s := &Shape{Sizing: FixedFixed, Width: 50, Height: 30}
-	ApplyFixedSizingConstraints(s)
+	applyFixedSizingConstraints(s)
 	if s.MinWidth != 50 || s.MaxWidth != 50 {
 		t.Errorf("width: min=%f max=%f", s.MinWidth, s.MaxWidth)
 	}
@@ -45,7 +45,7 @@ func TestApplyFixedSizingConstraintsWidth(t *testing.T) {
 
 func TestApplyFixedSizingConstraintsSkipsNonFixed(t *testing.T) {
 	s := &Shape{Sizing: FillFill, Width: 50, Height: 30}
-	ApplyFixedSizingConstraints(s)
+	applyFixedSizingConstraints(s)
 	if s.MinWidth != 0 || s.MaxWidth != 0 {
 		t.Errorf("width should be unchanged: min=%f max=%f",
 			s.MinWidth, s.MaxWidth)
@@ -58,7 +58,7 @@ func TestApplyFixedSizingConstraintsSkipsNonFixed(t *testing.T) {
 
 func TestApplyFixedSizingConstraintsZeroSize(t *testing.T) {
 	s := &Shape{Sizing: FixedFixed, Width: 0, Height: 0}
-	ApplyFixedSizingConstraints(s)
+	applyFixedSizingConstraints(s)
 	// Zero size should not set constraints.
 	if s.MinWidth != 0 || s.MaxWidth != 0 {
 		t.Error("zero width should not set constraints")
@@ -67,7 +67,7 @@ func TestApplyFixedSizingConstraintsZeroSize(t *testing.T) {
 
 func TestApplyFixedSizingConstraintsMixed(t *testing.T) {
 	s := &Shape{Sizing: FixedFill, Width: 80, Height: 60}
-	ApplyFixedSizingConstraints(s)
+	applyFixedSizingConstraints(s)
 	if s.MinWidth != 80 || s.MaxWidth != 80 {
 		t.Errorf("fixed width: min=%f max=%f", s.MinWidth, s.MaxWidth)
 	}

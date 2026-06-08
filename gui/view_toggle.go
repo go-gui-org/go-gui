@@ -29,9 +29,6 @@ type ToggleCfg struct {
 	Selected         bool
 }
 
-// Checkbox is an alias for Toggle.
-func Checkbox(cfg ToggleCfg) View { return Toggle(cfg) }
-
 // Toggle creates a toggle/checkbox view.
 func Toggle(cfg ToggleCfg) View {
 	applyToggleDefaults(&cfg)
@@ -103,11 +100,11 @@ func Toggle(cfg ToggleCfg) View {
 		MinWidth:        cfg.MinWidth,
 		OnHover: func(layout *Layout, e *Event, w *Window) {
 			if layout.Shape.Disabled ||
-				!layout.Shape.HasEvents() ||
-				layout.Shape.Events.OnClick == nil {
+				!layout.Shape.hasEvents() ||
+				layout.Shape.events.OnClick == nil {
 				return
 			}
-			w.SetMouseCursor(CursorPointingHand)
+			w.setMouseCursor(CursorPointingHand)
 			if len(layout.Children) == 0 {
 				return
 			}
@@ -118,8 +115,8 @@ func Toggle(cfg ToggleCfg) View {
 		},
 		AmendLayout: func(layout *Layout, w *Window) {
 			if layout.Shape.Disabled ||
-				!layout.Shape.HasEvents() ||
-				layout.Shape.Events.OnClick == nil {
+				!layout.Shape.hasEvents() ||
+				layout.Shape.events.OnClick == nil {
 				return
 			}
 			if len(layout.Children) == 0 {

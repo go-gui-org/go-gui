@@ -160,8 +160,8 @@ func TestReaccumulateAncestorsStopsWhenNoChange(t *testing.T) {
 }
 
 func TestRecomputeFitWidthLTR(t *testing.T) {
-	c1 := &Shape{Width: 30, Height: 10, ShapeType: ShapeRectangle}
-	c2 := &Shape{Width: 50, Height: 10, ShapeType: ShapeRectangle}
+	c1 := &Shape{Width: 30, Height: 10, shapeType: shapeRectangle}
+	c2 := &Shape{Width: 50, Height: 10, shapeType: shapeRectangle}
 	parent := &Shape{
 		Width: 0, Height: 50,
 		Axis:    AxisLeftToRight,
@@ -255,8 +255,8 @@ func TestRecomputeFitHeightLTR(t *testing.T) {
 }
 
 func TestRecomputeFitHeightTTB(t *testing.T) {
-	c1 := &Shape{Width: 30, Height: 10, ShapeType: ShapeRectangle}
-	c2 := &Shape{Width: 50, Height: 25, ShapeType: ShapeRectangle}
+	c1 := &Shape{Width: 30, Height: 10, shapeType: shapeRectangle}
+	c2 := &Shape{Width: 50, Height: 25, shapeType: shapeRectangle}
 	parent := &Shape{
 		Axis:    AxisTopToBottom,
 		Sizing:  Sizing{Height: SizingFit},
@@ -304,8 +304,8 @@ func TestRecomputeFitHeightClampsMinMax(t *testing.T) {
 }
 
 func TestRecomputeFitWidthSkipsOverDraw(t *testing.T) {
-	c1 := &Shape{Width: 30, Height: 10, ShapeType: ShapeRectangle}
-	c2 := &Shape{Width: 50, Height: 10, ShapeType: ShapeRectangle,
+	c1 := &Shape{Width: 30, Height: 10, shapeType: shapeRectangle}
+	c2 := &Shape{Width: 50, Height: 10, shapeType: shapeRectangle,
 		OverDraw: true}
 	parent := &Shape{
 		Axis:   AxisLeftToRight,

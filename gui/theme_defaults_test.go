@@ -8,12 +8,13 @@ func TestPresetThemesDefined(t *testing.T) {
 		theme Theme
 	}{
 		{"dark", ThemeDark},
-		{"dark-no-padding", ThemeDarkNoPadding},
-		{"dark-bordered", ThemeDarkBordered},
+		{"dark-no-padding", themeDarkNoPadding},
+		{"dark-bordered", themeDarkBordered},
 		{"light", ThemeLight},
-		{"light-no-padding", ThemeLightNoPadding},
-		{"light-bordered", ThemeLightBordered},
-		{"blue-bordered", ThemeBlueBordered},
+		{"light-no-padding", themeLightNoPadding},
+		{"light-bordered", themeLightBordered},
+		{"blue-dark", ThemeBlue},
+		{"blue-dark-bordered", themeBlueBordered},
 	}
 	for _, tt := range themes {
 		if tt.theme.Name == "" {
@@ -45,14 +46,14 @@ func TestLightThemeColors(t *testing.T) {
 
 func TestPresetThemesRegistered(t *testing.T) {
 	names := ThemeRegisteredNames()
-	if len(names) < 7 {
-		t.Errorf("registered themes = %d, want >= 7",
+	if len(names) < 8 {
+		t.Errorf("registered themes = %d, want >= 8",
 			len(names))
 	}
 	expected := []string{
 		"dark", "dark-no-padding", "dark-bordered",
 		"light", "light-no-padding", "light-bordered",
-		"blue-dark-bordered",
+		"blue-dark", "blue-dark-bordered",
 	}
 	nameSet := make(map[string]bool, len(names))
 	for _, n := range names {

@@ -63,29 +63,29 @@ const (
 	GridColumnPinRight
 )
 
-// GridAggregateOp specifies the aggregation operation.
-type GridAggregateOp uint8
+// gridAggregateOp specifies the aggregation operation.
+type gridAggregateOp uint8
 
-// GridAggregateOp values.
+// gridAggregateOp values.
 const (
-	GridAggregateCount GridAggregateOp = iota
-	GridAggregateSum
-	GridAggregateAvg
-	GridAggregateMin
-	GridAggregateMax
+	gridAggregateCount gridAggregateOp = iota
+	gridAggregateSum
+	gridAggregateAvg
+	gridAggregateMin
+	gridAggregateMax
 )
 
-func (op GridAggregateOp) String() string {
+func (op gridAggregateOp) String() string {
 	switch op {
-	case GridAggregateCount:
+	case gridAggregateCount:
 		return "count"
-	case GridAggregateSum:
+	case gridAggregateSum:
 		return "sum"
-	case GridAggregateAvg:
+	case gridAggregateAvg:
 		return "avg"
-	case GridAggregateMin:
+	case gridAggregateMin:
 		return "min"
-	case GridAggregateMax:
+	case gridAggregateMax:
 		return "max"
 	}
 	return "count"
@@ -157,17 +157,17 @@ func gridColumnCfgDefaults(c *GridColumnCfg) {
 type GridAggregateCfg struct {
 	ColID string
 	Label string
-	Op    GridAggregateOp
+	Op    gridAggregateOp
 }
 
-// GridCsvData holds parsed CSV data.
-type GridCsvData struct {
+// gridCsvData holds parsed CSV data.
+type gridCsvData struct {
 	Columns []GridColumnCfg
 	Rows    []GridRow
 }
 
-// GridExportCfg configures export behavior.
-type GridExportCfg struct {
+// gridExportCfg configures export behavior.
+type gridExportCfg struct {
 	SanitizeSpreadsheetFormulas bool
 	XLSXAutoType                bool
 }

@@ -11,12 +11,12 @@ func TestComboboxClosedLayout(t *testing.T) {
 		Placeholder: "Pick fruit",
 		OnSelect:    func(_ string, _ *Event, _ *Window) {},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "cb1" {
 		t.Errorf("ID = %q", layout.Shape.ID)
 	}
-	if layout.Shape.ShapeType != ShapeRectangle {
-		t.Errorf("type = %d", layout.Shape.ShapeType)
+	if layout.Shape.shapeType != shapeRectangle {
+		t.Errorf("type = %d", layout.Shape.shapeType)
 	}
 }
 
@@ -31,7 +31,7 @@ func TestComboboxOpenLayout(t *testing.T) {
 		Options:  []string{"A", "B", "C"},
 		OnSelect: func(_ string, _ *Event, _ *Window) {},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Should have children (input, spacer, arrow, dropdown).
 	if len(layout.Children) < 3 {
 		t.Errorf("children = %d, want >= 3", len(layout.Children))
@@ -178,7 +178,7 @@ func TestScrollEnsureVisibleSurvivesPipeline(t *testing.T) {
 	for i := range children {
 		children[i] = Layout{Shape: &Shape{
 			Height:    rowH,
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Sizing:    FillFixed,
 		}}
 	}
@@ -216,7 +216,7 @@ func TestScrollPositionsShiftChildren(t *testing.T) {
 	for i := range children {
 		children[i] = Layout{Shape: &Shape{
 			Height:    rowH,
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Sizing:    FillFixed,
 		}}
 	}
@@ -244,8 +244,8 @@ func TestScrollPositionsShiftChildren(t *testing.T) {
 
 func TestListCoreRowHeightEstimate(t *testing.T) {
 	w := &Window{}
-	items := []ListCoreItem{{ID: "a", Label: "Test"}}
-	cfg := ListCoreCfg{
+	items := []listCoreItem{{ID: "a", Label: "Test"}}
+	cfg := listCoreCfg{
 		TextStyle:   DefaultTextStyle,
 		PaddingItem: PaddingSmall,
 	}
@@ -253,7 +253,7 @@ func TestListCoreRowHeightEstimate(t *testing.T) {
 	if len(views) == 0 {
 		t.Fatal("no views")
 	}
-	layout := GenerateViewLayout(views[0], w)
+	layout := generateViewLayout(views[0], w)
 	layoutWidths(&layout)
 	layoutHeights(&layout)
 	est := listCoreRowHeightEstimate(DefaultTextStyle, PaddingSmall)
@@ -294,7 +294,7 @@ func TestComboboxScrollEndToEnd(t *testing.T) {
 		Options:  options,
 		OnSelect: func(_ string, _ *Event, _ *Window) {},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 
 	// Set parent pointers.
 	layoutParents(&layout, nil)
@@ -355,7 +355,7 @@ func TestComboboxItemsCacheInvalidatesOnOptionsChange(t *testing.T) {
 		Options:  []string{"A"},
 		OnSelect: func(_ string, _ *Event, _ *Window) {},
 	})
-	_ = GenerateViewLayout(v, w)
+	_ = generateViewLayout(v, w)
 
 	cm := StateMapRead[string, *comboboxItemsCache](w, nsComboboxItems)
 	if cm == nil {
@@ -374,7 +374,7 @@ func TestComboboxItemsCacheInvalidatesOnOptionsChange(t *testing.T) {
 		Options:  []string{"A", "B"},
 		OnSelect: func(_ string, _ *Event, _ *Window) {},
 	})
-	_ = GenerateViewLayout(v, w)
+	_ = generateViewLayout(v, w)
 	cache, _ = cm.Get(id)
 	if got := len(cache.items); got != 2 {
 		t.Fatalf("cache items len = %d, want 2", got)

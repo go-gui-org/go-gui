@@ -17,12 +17,12 @@ func TestInputDateLayout(t *testing.T) {
 		ID:   "id1",
 		Date: time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local),
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "id1" {
 		t.Errorf("ID = %q", layout.Shape.ID)
 	}
-	if layout.Shape.ShapeType != ShapeRectangle {
-		t.Errorf("type = %d", layout.Shape.ShapeType)
+	if layout.Shape.shapeType != shapeRectangle {
+		t.Errorf("type = %d", layout.Shape.shapeType)
 	}
 }
 
@@ -32,7 +32,7 @@ func TestInputDateLayoutZeroDate(t *testing.T) {
 		ID:          "id-zero",
 		Placeholder: "Select date",
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "id-zero" {
 		t.Errorf("ID = %q", layout.Shape.ID)
 	}
@@ -130,7 +130,7 @@ func TestInputDateWithPickerOpen(t *testing.T) {
 		ID:   "id-open",
 		Date: time.Date(2025, 6, 1, 0, 0, 0, 0, time.Local),
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "id-open" {
 		t.Errorf("ID = %q", layout.Shape.ID)
 	}
@@ -148,7 +148,7 @@ func TestInputDateMultiSelectText(t *testing.T) {
 		ID:    "id-multi",
 		Dates: []time.Time{d1, d2},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 
 	// The text child should say "2 dates selected".
 	// The structure is Row -> [Text, Button]
@@ -167,7 +167,7 @@ func TestInputDateSingleDateText(t *testing.T) {
 		ID:   "id-single",
 		Date: d1,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 
 	// The date is shown via an embedded Input widget.
 	// Find the text by searching the layout tree.

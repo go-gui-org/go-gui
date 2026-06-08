@@ -11,7 +11,7 @@ type benchState struct {
 func BenchmarkStateTypeLookup(b *testing.B) {
 	w := newTestWindow()
 	st := &benchState{Counter: 42, Name: "bench"}
-	w.SetState(st)
+	w.setState(st)
 
 	b.ReportAllocs()
 	b.ResetTimer()

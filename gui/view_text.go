@@ -35,7 +35,7 @@ type textView struct {
 
 // textEventHandlers is a shared handler set for focused text
 // widgets, avoiding per-frame heap allocations.
-var textEventHandlers = &EventHandlers{
+var textEventHandlers = &eventHandlers{
 	OnClick:     textOnClick,
 	OnKeyDown:   textOnKeyDown,
 	AmendLayout: textAmendLayout,
@@ -58,7 +58,7 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 
 	layout := Layout{
 		Shape: w.allocShape(Shape{
-			ShapeType: ShapeText,
+			shapeType: shapeText,
 			ID:        c.ID,
 			IDFocus:   c.IDFocus,
 			A11YRole:  AccessRoleStaticText,
@@ -96,10 +96,10 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 		)
 		layout.Shape.Height = layout.Shape.MinHeight
 	}
-	ApplyFixedSizingConstraints(layout.Shape)
+	applyFixedSizingConstraints(layout.Shape)
 
 	if c.IDFocus > 0 {
-		layout.Shape.Events = textEventHandlers
+		layout.Shape.events = textEventHandlers
 	}
 
 	return layout

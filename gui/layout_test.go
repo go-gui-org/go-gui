@@ -31,11 +31,11 @@ func TestLayoutSpacingSkipsHiddenFloatingAndOverDraw(t *testing.T) {
 			Spacing: 8,
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle}},
-			{Shape: &Shape{ShapeType: ShapeNone}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Float: true}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, OverDraw: true}},
-			{Shape: &Shape{ShapeType: ShapeRectangle}},
+			{Shape: &Shape{shapeType: shapeRectangle}},
+			{Shape: &Shape{shapeType: shapeNone}},
+			{Shape: &Shape{shapeType: shapeRectangle, Float: true}},
+			{Shape: &Shape{shapeType: shapeRectangle, OverDraw: true}},
+			{Shape: &Shape{shapeType: shapeRectangle}},
 		},
 	}
 
@@ -52,11 +52,11 @@ func TestContentWidthLTRSkipsHiddenFloatingAndOverDraw(t *testing.T) {
 			Spacing: 8,
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 10}},
-			{Shape: &Shape{ShapeType: ShapeNone, Width: 1000}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 1000, Float: true}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 1000, OverDraw: true}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 20}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 10}},
+			{Shape: &Shape{shapeType: shapeNone, Width: 1000}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 1000, Float: true}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 1000, OverDraw: true}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 20}},
 		},
 	}
 
@@ -74,11 +74,11 @@ func TestContentHeightTTBSkipsHiddenFloatingAndOverDraw(t *testing.T) {
 			Spacing: 6,
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle, Height: 7}},
-			{Shape: &Shape{ShapeType: ShapeNone, Height: 1000}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Height: 1000, Float: true}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Height: 1000, OverDraw: true}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Height: 9}},
+			{Shape: &Shape{shapeType: shapeRectangle, Height: 7}},
+			{Shape: &Shape{shapeType: shapeNone, Height: 1000}},
+			{Shape: &Shape{shapeType: shapeRectangle, Height: 1000, Float: true}},
+			{Shape: &Shape{shapeType: shapeRectangle, Height: 1000, OverDraw: true}},
+			{Shape: &Shape{shapeType: shapeRectangle, Height: 9}},
 		},
 	}
 
@@ -170,23 +170,23 @@ func TestLayoutFillWidthsLTRGrow(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			Axis:      AxisLeftToRight,
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Sizing:    FixedFixed,
 			Width:     100,
 			Height:    100,
 			Spacing:   5,
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 20, Sizing: FixedFill}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 0, Height: 100, Sizing: FillFill}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 0, MinWidth: 10, Sizing: FillFill}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 20, Sizing: FixedFill}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 0, Height: 100, Sizing: FillFill}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 0, MinWidth: 10, Sizing: FillFill}},
 		},
 	}
 
 	layoutWidths(root)
 	layoutFillWidths(root)
 
-	// 3 ShapeRectangle children → spacing = (3-1)*5 = 10
+	// 3 shapeRectangle children → spacing = (3-1)*5 = 10
 	// Remaining: 100 - 20 - 0 - 0 - 0 (padding) - 10 (spacing) = 70
 	// 2 fill children share 70 → 35 each
 	if !f32AreClose(root.Children[1].Shape.Width, 35) {
@@ -207,16 +207,16 @@ func TestLayoutFillHeightsTTBGrow(t *testing.T) {
 			Spacing: 5,
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle, Height: 20, Sizing: FillFixed}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Height: 0, MinHeight: 10, Sizing: FillFill}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Height: 0, MinHeight: 10, Sizing: FillFill}},
+			{Shape: &Shape{shapeType: shapeRectangle, Height: 20, Sizing: FillFixed}},
+			{Shape: &Shape{shapeType: shapeRectangle, Height: 0, MinHeight: 10, Sizing: FillFill}},
+			{Shape: &Shape{shapeType: shapeRectangle, Height: 0, MinHeight: 10, Sizing: FillFill}},
 		},
 	}
 
 	layoutHeights(root)
 	layoutFillHeights(root)
 
-	// 3 ShapeRectangle children → spacing = (3-1)*5 = 10
+	// 3 shapeRectangle children → spacing = (3-1)*5 = 10
 	// Remaining: 100 - 20 - 0 - 0 - 0 - 10 = 70
 	// 2 fill children share 70 → 35 each
 	if !f32AreClose(root.Children[1].Shape.Height, 35) {
@@ -239,7 +239,7 @@ func TestLayoutPositionsCenter(t *testing.T) {
 			Spacing: 5,
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 40, Height: 40}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 40, Height: 40}},
 		},
 	}
 
@@ -274,10 +274,10 @@ func TestLayoutSetShapeClips(t *testing.T) {
 		},
 	}
 
-	initialClip := DrawClip{X: 0, Y: 0, Width: 1000, Height: 1000}
+	initialClip := drawClip{X: 0, Y: 0, Width: 1000, Height: 1000}
 	layoutSetShapeClips(root, initialClip)
 
-	rootClip := root.Shape.ShapeClip
+	rootClip := root.Shape.shapeClip
 	if !f32AreClose(rootClip.X, 10) {
 		t.Errorf("root clip X: got %f", rootClip.X)
 	}
@@ -285,7 +285,7 @@ func TestLayoutSetShapeClips(t *testing.T) {
 		t.Errorf("root clip Width: got %f", rootClip.Width)
 	}
 
-	c1Clip := root.Children[0].Shape.ShapeClip
+	c1Clip := root.Children[0].Shape.shapeClip
 	if !f32AreClose(c1Clip.X, 20) {
 		t.Errorf("C1 clip X: got %f", c1Clip.X)
 	}
@@ -293,7 +293,7 @@ func TestLayoutSetShapeClips(t *testing.T) {
 		t.Errorf("C1 clip Width: got %f", c1Clip.Width)
 	}
 
-	c2Clip := root.Children[1].Shape.ShapeClip
+	c2Clip := root.Children[1].Shape.shapeClip
 	if !f32AreClose(c2Clip.X, 70) {
 		t.Errorf("C2 clip X: got %f", c2Clip.X)
 	}
@@ -301,7 +301,7 @@ func TestLayoutSetShapeClips(t *testing.T) {
 		t.Errorf("C2 clip Width: got %f, want 20", c2Clip.Width)
 	}
 
-	c3Clip := root.Children[2].Shape.ShapeClip
+	c3Clip := root.Children[2].Shape.shapeClip
 	if !f32AreClose(c3Clip.Width, 0) {
 		t.Errorf("C3 clip Width: got %f, want 0", c3Clip.Width)
 	}
@@ -311,8 +311,8 @@ func TestLayoutRemoveFloatingLayoutsDistinctPlaceholders(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{Axis: AxisLeftToRight},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle, Float: true}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Float: true}},
+			{Shape: &Shape{shapeType: shapeRectangle, Float: true}},
+			{Shape: &Shape{shapeType: shapeRectangle, Float: true}},
 		},
 	}
 	var floating []*Layout
@@ -320,11 +320,11 @@ func TestLayoutRemoveFloatingLayoutsDistinctPlaceholders(t *testing.T) {
 	if len(floating) != 2 {
 		t.Fatalf("floating len: got %d", len(floating))
 	}
-	if root.Children[0].Shape.ShapeType != ShapeNone {
-		t.Error("placeholder 0 should be ShapeNone")
+	if root.Children[0].Shape.shapeType != shapeNone {
+		t.Error("placeholder 0 should be shapeNone")
 	}
-	if root.Children[1].Shape.ShapeType != ShapeNone {
-		t.Error("placeholder 1 should be ShapeNone")
+	if root.Children[1].Shape.shapeType != shapeNone {
+		t.Error("placeholder 1 should be shapeNone")
 	}
 	if root.Children[0].Shape == root.Children[1].Shape {
 		t.Error("placeholders should be distinct")
@@ -333,16 +333,16 @@ func TestLayoutRemoveFloatingLayoutsDistinctPlaceholders(t *testing.T) {
 
 func TestLayoutScrollContainersNearestScrollParent(t *testing.T) {
 	root := &Layout{
-		Shape: &Shape{ShapeType: ShapeRectangle},
+		Shape: &Shape{shapeType: shapeRectangle},
 		Children: []Layout{
 			{
-				Shape: &Shape{ShapeType: ShapeRectangle, IDScroll: 10},
+				Shape: &Shape{shapeType: shapeRectangle, IDScroll: 10},
 				Children: []Layout{
-					{Shape: &Shape{ShapeType: ShapeText}},
+					{Shape: &Shape{shapeType: shapeText}},
 					{
-						Shape: &Shape{ShapeType: ShapeRectangle, IDScroll: 20},
+						Shape: &Shape{shapeType: shapeRectangle, IDScroll: 20},
 						Children: []Layout{
-							{Shape: &Shape{ShapeType: ShapeText}},
+							{Shape: &Shape{shapeType: shapeText}},
 						},
 					},
 				},
@@ -361,7 +361,7 @@ func TestLayoutScrollContainersNearestScrollParent(t *testing.T) {
 func TestLayoutFillWidthsRootScrollFillNoParent(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Axis:      AxisTopToBottom,
 			IDScroll:  1,
 			Sizing:    FillFill,
@@ -378,7 +378,7 @@ func TestLayoutFillWidthsRootScrollFillNoParent(t *testing.T) {
 func TestLayoutFillHeightsRootScrollFillNoParent(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Axis:      AxisLeftToRight,
 			IDScroll:  1,
 			Sizing:    FillFill,
@@ -395,7 +395,7 @@ func TestLayoutFillHeightsRootScrollFillNoParent(t *testing.T) {
 func TestLayoutFillWidthsScrollChildNoRoundoffBias(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Axis:      AxisLeftToRight,
 			Sizing:    FixedFixed,
 			Width:     100,
@@ -404,8 +404,8 @@ func TestLayoutFillWidthsScrollChildNoRoundoffBias(t *testing.T) {
 			Spacing:   8,
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle, Axis: AxisNone, Sizing: FixedFill, Width: 30, Height: 20}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Axis: AxisTopToBottom, Sizing: FillFill, IDScroll: 11, Width: 0, Height: 20}},
+			{Shape: &Shape{shapeType: shapeRectangle, Axis: AxisNone, Sizing: FixedFill, Width: 30, Height: 20}},
+			{Shape: &Shape{shapeType: shapeRectangle, Axis: AxisTopToBottom, Sizing: FillFill, IDScroll: 11, Width: 0, Height: 20}},
 		},
 	}
 	layoutParents(root, nil)
@@ -418,7 +418,7 @@ func TestLayoutFillWidthsScrollChildNoRoundoffBias(t *testing.T) {
 func TestLayoutFillHeightsScrollChildNoRoundoffBias(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Axis:      AxisTopToBottom,
 			Sizing:    FixedFixed,
 			Width:     50,
@@ -427,8 +427,8 @@ func TestLayoutFillHeightsScrollChildNoRoundoffBias(t *testing.T) {
 			Spacing:   8,
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle, Axis: AxisNone, Sizing: FillFixed, Width: 20, Height: 30}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Axis: AxisLeftToRight, Sizing: FillFill, IDScroll: 12, Width: 20, Height: 0}},
+			{Shape: &Shape{shapeType: shapeRectangle, Axis: AxisNone, Sizing: FillFixed, Width: 20, Height: 30}},
+			{Shape: &Shape{shapeType: shapeRectangle, Axis: AxisLeftToRight, Sizing: FillFill, IDScroll: 12, Width: 20, Height: 0}},
 		},
 	}
 	layoutParents(root, nil)
@@ -450,8 +450,8 @@ func TestLayoutPositionsRTLRow(t *testing.T) {
 			Spacing: 5,
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 40, Height: 50}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 60, Height: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 40, Height: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 60, Height: 50}},
 		},
 	}
 
@@ -476,7 +476,7 @@ func TestLayoutPositionsRTLStartAlign(t *testing.T) {
 			HAlign:  HAlignStart,
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 40, Height: 30}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 40, Height: 30}},
 		},
 	}
 
@@ -503,8 +503,8 @@ func TestLayoutPositionsRTLOverrideLTR(t *testing.T) {
 			Spacing: 5,
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 40, Height: 50}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 60, Height: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 40, Height: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 60, Height: 50}},
 		},
 	}
 
@@ -529,7 +529,7 @@ func TestLayoutPositionsRTLPaddingSwap(t *testing.T) {
 			Padding: Padding{Left: 20, Right: 5},
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 30, Height: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 30, Height: 50}},
 		},
 	}
 
@@ -552,7 +552,7 @@ func TestLayoutPositionsRTLColumnPadding(t *testing.T) {
 			Padding: Padding{Left: 20, Right: 5},
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 30, Height: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 30, Height: 50}},
 		},
 	}
 
@@ -573,7 +573,7 @@ func TestFloatAttachRTLMirror(t *testing.T) {
 		},
 		Children: []Layout{
 			{Shape: &Shape{
-				ShapeType:   ShapeRectangle,
+				shapeType:   shapeRectangle,
 				Width:       50,
 				Height:      30,
 				Float:       true,
@@ -584,7 +584,7 @@ func TestFloatAttachRTLMirror(t *testing.T) {
 	}
 	layoutParents(parent, nil)
 
-	x, y := floatAttachLayout(&parent.Children[0], DrawClip{Width: 1000, Height: 1000})
+	x, y := floatAttachLayout(&parent.Children[0], drawClip{Width: 1000, Height: 1000})
 	if !f32AreClose(x, 150.0) {
 		t.Errorf("float X: got %f, want 150", x)
 	}
@@ -601,7 +601,7 @@ func TestLayoutPositionsRTLColumnSymmetric(t *testing.T) {
 			Padding: Padding{Left: 10, Right: 10},
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 30, Height: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 30, Height: 50}},
 		},
 	}
 
@@ -612,7 +612,7 @@ func TestLayoutPositionsRTLColumnSymmetric(t *testing.T) {
 			Padding: Padding{Left: 10, Right: 10},
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 30, Height: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 30, Height: 50}},
 		},
 	}
 

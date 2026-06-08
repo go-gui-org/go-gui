@@ -5019,7 +5019,7 @@ themes are included as starting points.
 cfg := gui.ThemeCfg{
     Name:            "ocean",
     ColorBackground: gui.ColorFromHSV(220, 0.15, 0.19),
-    TextStyleDef:    gui.ThemeDarkCfg.TextStyleDef,
+    TextStyleDef:    gui.ThemeDark.Cfg.TextStyleDef,
     TitlebarDark:    true,
 }
 gui.SetTheme(gui.ThemeMaker(cfg))
@@ -5030,11 +5030,11 @@ gui.SetTheme(gui.ThemeMaker(cfg))
 | Theme                | Description                          |
 |----------------------|--------------------------------------|
 | ThemeDark            | Dark with padding and radius         |
-| ThemeDarkBordered    | Dark with visible borders            |
-| ThemeDarkNoPadding   | Dark, compact                        |
+| ThemeDark.WithBorders(true)    | Dark with visible borders            |
+| ThemeDark.WithPadding(false)   | Dark, compact                        |
 | ThemeLight           | Light with padding and radius        |
-| ThemeLightBordered   | Light with visible borders           |
-| ThemeLightNoPadding  | Light, compact                       |
+| ThemeLight.WithBorders(true)   | Light with visible borders           |
+| ThemeLight.WithPadding(false)  | Light, compact                       |
 
 ## ThemeCfg Color Properties
 

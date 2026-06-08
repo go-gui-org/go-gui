@@ -14,7 +14,7 @@ type App struct {
 }
 
 func main() {
-	gui.SetTheme(gui.ThemeDarkBordered)
+	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  &App{Color: gui.RGBA(0x3D, 0x81, 0x7C, 255), ShowHSV: true},
@@ -89,9 +89,9 @@ func toggleTheme(app *App) gui.View {
 			a.LightTheme = !a.LightTheme
 			// Switching the theme is enough; the next frame re-renders the picker.
 			if a.LightTheme {
-				w.SetTheme(gui.ThemeLightBordered)
+				w.SetTheme(gui.ThemeLight.WithBorders(true))
 			} else {
-				w.SetTheme(gui.ThemeDarkBordered)
+				w.SetTheme(gui.ThemeDark.WithBorders(true))
 			}
 		},
 	})

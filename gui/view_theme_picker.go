@@ -89,7 +89,7 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 	colorFocus := guiTheme.ToggleStyle.ColorFocus
 	colorBorderFocus := guiTheme.ToggleStyle.ColorBorderFocus
 
-	return GenerateViewLayout(Row(ContainerCfg{
+	return generateViewLayout(Row(ContainerCfg{
 		ID:        cfg.ID,
 		IDFocus:   idFocus,
 		A11YRole:  AccessRoleButton,
@@ -134,27 +134,27 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 
 			nextIdx := -1
 			switch action {
-			case ListCoreDismiss:
+			case listCoreDismiss:
 				ss := StateMap[string, bool](w, nsSelect, capModerate)
 				ss.Clear()
 				e.IsHandled = true
-			case ListCoreSelectItem:
+			case listCoreSelectItem:
 				e.IsHandled = true
 				nextIdx = currentIdx
-			case ListCoreMoveUp:
+			case listCoreMoveUp:
 				e.IsHandled = true
 				nextIdx = currentIdx - 1
 				nextIdx = max(nextIdx, 0)
-			case ListCoreMoveDown:
+			case listCoreMoveDown:
 				e.IsHandled = true
 				nextIdx = currentIdx + 1
 				if nextIdx >= count {
 					nextIdx = count - 1
 				}
-			case ListCoreFirst:
+			case listCoreFirst:
 				e.IsHandled = true
 				nextIdx = 0
-			case ListCoreLast:
+			case listCoreLast:
 				e.IsHandled = true
 				nextIdx = count - 1
 			}

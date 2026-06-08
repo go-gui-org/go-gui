@@ -84,7 +84,7 @@ func overflowAxis(pos, size, minVal, maxVal float32) float32 {
 // are flipped to the opposite side of the anchor if it reduces
 // overflow, then clamped to window bounds.
 func floatAttachLayout(
-	layout *Layout, winRect DrawClip,
+	layout *Layout, winRect drawClip,
 ) (float32, float32) {
 	if layout.Parent == nil {
 		// No parent — use window rect as anchor reference

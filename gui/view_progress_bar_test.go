@@ -7,7 +7,7 @@ func TestProgressBarDefaultLayout(t *testing.T) {
 		ID:      "pb-test",
 		Percent: 0.5,
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	// Row with fill bar child + text label child
 	if layout.Shape.Axis != AxisLeftToRight {
 		t.Error("default should be horizontal (row)")
@@ -23,7 +23,7 @@ func TestProgressBarVertical(t *testing.T) {
 		Percent:  0.5,
 		Vertical: true,
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.Axis != AxisTopToBottom {
 		t.Error("vertical bar should use column axis")
 	}
@@ -35,7 +35,7 @@ func TestProgressBarTextShow(t *testing.T) {
 		Percent:  0.5,
 		TextShow: true,
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if len(layout.Children) != 2 {
 		t.Fatalf("with text: got %d children, want 2",
 			len(layout.Children))
@@ -48,7 +48,7 @@ func TestProgressBarNoText(t *testing.T) {
 		Percent:  0.5,
 		TextShow: false,
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if len(layout.Children) != 1 {
 		t.Fatalf("without text: got %d children, want 1",
 			len(layout.Children))
@@ -60,7 +60,7 @@ func TestProgressBarA11YRole(t *testing.T) {
 		ID:      "pb-test",
 		Percent: 0.3,
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.A11YRole != AccessRoleProgressBar {
 		t.Errorf("role = %d, want ProgressBar", layout.Shape.A11YRole)
 	}
@@ -77,7 +77,7 @@ func TestProgressBarIndefiniteA11Y(t *testing.T) {
 		ID:         "pb-test",
 		Indefinite: true,
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	want := AccessStateBusy | AccessStateLive
 	if layout.Shape.A11YState != want {
 		t.Errorf("state = %d, want busy|live (%d)",
@@ -91,7 +91,7 @@ func TestProgressBarA11YLabel(t *testing.T) {
 		Percent:   0.5,
 		A11YLabel: "upload",
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.A11Y == nil {
 		t.Fatal("a11y nil")
 	}
@@ -107,7 +107,7 @@ func TestProgressBarA11YDescription(t *testing.T) {
 		Percent:         0.5,
 		A11YDescription: "uploading file",
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.A11Y == nil {
 		t.Fatal("a11y nil")
 	}
@@ -123,7 +123,7 @@ func TestProgressBarPercentClampHigh(t *testing.T) {
 		Percent:  1.5,
 		TextShow: true,
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if len(layout.Children) < 2 {
 		t.Fatal("expected text child")
 	}
@@ -143,7 +143,7 @@ func TestProgressBarPercentClampLow(t *testing.T) {
 		Percent:  -0.5,
 		TextShow: true,
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if len(layout.Children) < 2 {
 		t.Fatal("expected text child")
 	}
@@ -164,7 +164,7 @@ func TestProgressBarVerticalTextShow(t *testing.T) {
 		Vertical: true,
 		TextShow: true,
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if len(layout.Children) != 2 {
 		t.Fatalf("vertical+text: got %d children, want 2",
 			len(layout.Children))
@@ -177,7 +177,7 @@ func TestProgressBarThemeTextStyle(t *testing.T) {
 		Percent:  0.5,
 		TextShow: true,
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if len(layout.Children) < 2 {
 		t.Fatal("expected text child")
 	}
@@ -198,7 +198,7 @@ func TestProgressBarRadiusZeroOverride(t *testing.T) {
 		Percent: 0.5,
 		Radius:  NoRadius,
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.Radius != 0 {
 		t.Errorf("radius = %f, want 0", layout.Shape.Radius)
 	}
@@ -212,7 +212,7 @@ func TestProgressBarTextBackgroundColor(t *testing.T) {
 		TextShow:       true,
 		TextBackground: bg,
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	if len(layout.Children) < 2 {
 		t.Fatal("expected text child")
 	}
@@ -229,11 +229,11 @@ func TestProgressBarTextBackgroundColor(t *testing.T) {
 func TestProgressBarIndefiniteAnimationIsViewBound(t *testing.T) {
 	v := ProgressBar(ProgressBarCfg{ID: "pb-vb", Indefinite: true})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
-	if layout.Shape.Events == nil || layout.Shape.Events.AmendLayout == nil {
+	layout := generateViewLayout(v, w)
+	if layout.Shape.events == nil || layout.Shape.events.AmendLayout == nil {
 		t.Fatal("AmendLayout not set on progress bar layout")
 	}
-	layout.Shape.Events.AmendLayout(&layout, w)
+	layout.Shape.events.AmendLayout(&layout, w)
 	if w.animViewBound == nil {
 		t.Fatal("animViewBound nil after indefinite progress bar AmendLayout — animation not view-bound")
 	}
@@ -248,7 +248,7 @@ func TestProgressBarSizeBorderNone(t *testing.T) {
 		Percent:  0.5,
 		TextShow: true,
 	})
-	layout := GenerateViewLayout(v, &Window{})
+	layout := generateViewLayout(v, &Window{})
 	// Outer container
 	if layout.Shape.SizeBorder != 0 {
 		t.Errorf("outer SizeBorder = %f, want 0",

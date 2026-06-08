@@ -77,7 +77,7 @@ func (rv *datePickerRollerView) GenerateLayout(w *Window) Layout {
 	mode := cfg.DisplayMode
 	wrapYear := cfg.WrapYear
 
-	return GenerateViewLayout(container(ContainerCfg{
+	return generateViewLayout(container(ContainerCfg{
 		ID:          cfg.ID,
 		IDFocus:     cfg.IDFocus,
 		A11YRole:    AccessRoleDateField,
@@ -107,7 +107,7 @@ func (rv *datePickerRollerView) GenerateLayout(w *Window) Layout {
 			if cfg.IDFocus > 0 && w.IsFocus(cfg.IDFocus) {
 				lo.Shape.ColorBorder = cfg.ColorBorderFocus
 			}
-			lo.Shape.Events.OnMouseScroll = func(
+			lo.Shape.events.OnMouseScroll = func(
 				_ *Layout, e *Event, w *Window,
 			) {
 				e.IsHandled = true

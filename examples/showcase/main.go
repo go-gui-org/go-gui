@@ -22,7 +22,7 @@ const (
 const catalogWidth float32 = 300
 
 func main() {
-	gui.SetTheme(gui.ThemeDarkBordered)
+	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 	gui.SetMarkdownExternalAPIsEnabled(true)
 
 	app := gui.NewApp()

@@ -12,10 +12,10 @@ func TestRenderLayoutColorFilterBracket(t *testing.T) {
 	w := makeWindow()
 	cf := &ColorFilter{}
 	shape := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		Color:     RGB(100, 100, 100),
 		Width:     50, Height: 50,
-		FX: &ShapeEffects{ColorFilter: cf},
+		fx: &shapeEffects{ColorFilter: cf},
 	}
 	layout := &Layout{Shape: shape}
 	clip := makeClip(0, 0, 100, 100)
@@ -46,7 +46,7 @@ func TestRenderLayoutColorFilterBracket(t *testing.T) {
 func TestRenderLayoutColorFilterNilFX(t *testing.T) {
 	w := makeWindow()
 	shape := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		Color:     RGB(100, 100, 100),
 		Width:     50, Height: 50,
 	}
@@ -57,7 +57,7 @@ func TestRenderLayoutColorFilterNilFX(t *testing.T) {
 
 	for _, r := range w.renderers {
 		if r.Kind == RenderFilterBegin || r.Kind == RenderFilterEnd {
-			t.Error("should not emit filter brackets with nil FX")
+			t.Error("should not emit filter brackets with nil fx")
 		}
 	}
 }
@@ -66,13 +66,13 @@ func TestRenderLayoutOverDrawVertical(t *testing.T) {
 	w := makeWindow()
 	parentClip := makeClip(0, 0, 200, 300)
 	shape := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		Color:     RGB(100, 100, 100),
 		X:         10, Y: 20,
 		Width: 50, Height: 50,
 		OverDraw:             true,
 		ScrollbarOrientation: ScrollbarVertical,
-		ShapeClip:            DrawClip{X: 10, Y: 20, Width: 50, Height: 50},
+		shapeClip:            drawClip{X: 10, Y: 20, Width: 50, Height: 50},
 	}
 	layout := &Layout{Shape: shape}
 
@@ -98,13 +98,13 @@ func TestRenderLayoutOverDrawHorizontal(t *testing.T) {
 	w := makeWindow()
 	parentClip := makeClip(0, 0, 200, 300)
 	shape := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		Color:     RGB(100, 100, 100),
 		X:         10, Y: 20,
 		Width: 50, Height: 50,
 		OverDraw:             true,
 		ScrollbarOrientation: ScrollbarHorizontal,
-		ShapeClip:            DrawClip{X: 10, Y: 20, Width: 50, Height: 50},
+		shapeClip:            drawClip{X: 10, Y: 20, Width: 50, Height: 50},
 	}
 	layout := &Layout{Shape: shape}
 
@@ -127,15 +127,15 @@ func TestRenderLayoutOverDrawHorizontal(t *testing.T) {
 func TestRenderLayoutOverDrawDefault(t *testing.T) {
 	w := makeWindow()
 	parentClip := makeClip(0, 0, 200, 300)
-	shapeClip := DrawClip{X: 10, Y: 20, Width: 50, Height: 50}
+	shapeClip := drawClip{X: 10, Y: 20, Width: 50, Height: 50}
 	shape := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		Color:     RGB(100, 100, 100),
 		X:         10, Y: 20,
 		Width: 50, Height: 50,
 		OverDraw:             true,
 		ScrollbarOrientation: ScrollbarNone,
-		ShapeClip:            shapeClip,
+		shapeClip:            shapeClip,
 	}
 	layout := &Layout{Shape: shape}
 
@@ -156,7 +156,7 @@ func TestRenderLayoutOverDrawDefault(t *testing.T) {
 func TestRenderLayoutClipRTLPadding(t *testing.T) {
 	w := makeWindow()
 	shape := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		Color:     RGB(100, 100, 100),
 		X:         0, Y: 0,
 		Width: 100, Height: 50,
@@ -164,7 +164,7 @@ func TestRenderLayoutClipRTLPadding(t *testing.T) {
 		TextDir:    TextDirRTL,
 		Padding:    Padding{Left: 5, Right: 10, Top: 3, Bottom: 3},
 		SizeBorder: 2,
-		ShapeClip:  DrawClip{X: 0, Y: 0, Width: 100, Height: 50},
+		shapeClip:  drawClip{X: 0, Y: 0, Width: 100, Height: 50},
 	}
 	layout := &Layout{Shape: shape}
 	clip := makeClip(0, 0, 200, 200)
@@ -187,7 +187,7 @@ func TestRenderLayoutClipRTLPadding(t *testing.T) {
 func TestRenderLayoutRotationBracket(t *testing.T) {
 	w := makeWindow()
 	shape := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		Color:     RGB(100, 100, 100),
 		X:         10, Y: 20,
 		Width: 60, Height: 40,
@@ -229,7 +229,7 @@ func TestRenderLayoutRotationBracket(t *testing.T) {
 func TestRenderLayoutRotationZeroNoOp(t *testing.T) {
 	w := makeWindow()
 	shape := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		Color:     RGB(100, 100, 100),
 		X:         10, Y: 20,
 		Width: 60, Height: 40,
@@ -251,12 +251,12 @@ func TestRenderLayoutChildBgColorInheritance(t *testing.T) {
 	w := makeWindow()
 	parentColor := RGB(200, 100, 50)
 	child := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		Color:     ColorTransparent,
 		Width:     20, Height: 20,
 	}
 	parent := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		Color:     parentColor,
 		Width:     100, Height: 100,
 		Opacity: 1.0,
@@ -286,7 +286,7 @@ func TestRenderLayoutStencilDepthClampsAt255(t *testing.T) {
 	w := makeWindow()
 	w.stencilDepth = 254
 	shape := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		Color:     RGB(100, 100, 100),
 		Width:     50, Height: 50,
 		ClipContents: true,
@@ -321,7 +321,7 @@ func TestRenderTextEmptyFocusedEmitsCursor(t *testing.T) {
 	w.viewState.inputCursorOn = true
 	style := DefaultTextStyle
 	shape := &Shape{
-		ShapeType: ShapeText,
+		shapeType: shapeText,
 		IDFocus:   100,
 		Width:     100, Height: 20,
 		Opacity: 1.0,
@@ -349,7 +349,7 @@ func TestRenderTextEmptyUnfocusedNoOutput(t *testing.T) {
 	w := makeWindowWithScratch()
 	style := DefaultTextStyle
 	shape := &Shape{
-		ShapeType: ShapeText,
+		shapeType: shapeText,
 		IDFocus:   100,
 		Width:     100, Height: 20,
 		Opacity: 1.0,
@@ -372,7 +372,7 @@ func TestRenderTextOutsideClipSkips(t *testing.T) {
 	w := makeWindowWithScratch()
 	style := TextStyle{Color: RGB(255, 255, 255), Size: 16}
 	shape := &Shape{
-		ShapeType: ShapeText,
+		shapeType: shapeText,
 		X:         500, Y: 500,
 		Width: 100, Height: 20,
 		Opacity: 1.0,
@@ -395,7 +395,7 @@ func TestRenderTextZeroAlphaSkips(t *testing.T) {
 	w := makeWindowWithScratch()
 	style := TextStyle{Color: RGBA(255, 255, 255, 0), Size: 16}
 	shape := &Shape{
-		ShapeType: ShapeText,
+		shapeType: shapeText,
 		Width:     100, Height: 20,
 		Opacity: 1.0,
 		TC: &ShapeTextConfig{
@@ -419,7 +419,7 @@ func TestRenderTextPlaceholderCursor(t *testing.T) {
 	w.viewState.inputCursorOn = true
 	style := TextStyle{Color: RGB(128, 128, 128), Size: 16}
 	shape := &Shape{
-		ShapeType: ShapeText,
+		shapeType: shapeText,
 		IDFocus:   200,
 		Width:     100, Height: 20,
 		Opacity: 1.0,
@@ -605,7 +605,7 @@ func TestRenderRtf_SelectionHighlight_Emitted(t *testing.T) {
 	gl := makeCharLayout(text)
 	style := DefaultTextStyle
 	shape := &Shape{
-		ShapeType: ShapeRTF,
+		shapeType: shapeRTF,
 		Width:     float32(len(text)) * 10, Height: 20,
 		Opacity: 1.0,
 		TC: &ShapeTextConfig{
@@ -636,7 +636,7 @@ func TestRenderRtf_EmptyRtfFlatText_NoSelectionHighlight(t *testing.T) {
 	gl := makeCharLayout(text)
 	style := DefaultTextStyle
 	shape := &Shape{
-		ShapeType: ShapeRTF,
+		shapeType: shapeRTF,
 		Width:     float32(len(text)) * 10, Height: 20,
 		Opacity: 1.0,
 		TC: &ShapeTextConfig{

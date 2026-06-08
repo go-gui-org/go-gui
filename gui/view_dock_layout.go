@@ -104,7 +104,7 @@ func (dv *dockLayoutView) GenerateLayout(w *Window) Layout {
 		Content: content,
 	})
 
-	return GenerateViewLayout(cv, w)
+	return generateViewLayout(cv, w)
 }
 
 // DockLayout creates a docking layout component. Renders a tree

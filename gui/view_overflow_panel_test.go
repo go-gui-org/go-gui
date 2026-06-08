@@ -14,7 +14,7 @@ func TestOverflowPanelLayout(t *testing.T) {
 		},
 	}
 	view := OverflowPanel(w, cfg)
-	layout := GenerateViewLayout(view, w)
+	layout := generateViewLayout(view, w)
 
 	if layout.Shape == nil {
 		t.Fatal("nil shape")
@@ -40,7 +40,7 @@ func TestOverflowPanelTrigger(t *testing.T) {
 		},
 	}
 	view := OverflowPanel(w, cfg)
-	layout := GenerateViewLayout(view, w)
+	layout := generateViewLayout(view, w)
 
 	// Should have item + trigger button = at least 2 children.
 	if len(layout.Children) < 2 {
@@ -59,7 +59,7 @@ func TestOverflowPanelClosed(t *testing.T) {
 		},
 	}
 	view := OverflowPanel(w, cfg)
-	layout := GenerateViewLayout(view, w)
+	layout := generateViewLayout(view, w)
 
 	// When closed, no floating menu child.
 	for _, child := range layout.Children {

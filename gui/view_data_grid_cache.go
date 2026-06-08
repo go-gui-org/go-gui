@@ -133,7 +133,7 @@ func dataGridPresentationValueCols(groupCols []string, aggregates []GridAggregat
 		cols = append(cols, colID)
 	}
 	for _, agg := range aggregates {
-		if agg.Op == GridAggregateCount || agg.ColID == "" || seen[agg.ColID] {
+		if agg.Op == gridAggregateCount || agg.ColID == "" || seen[agg.ColID] {
 			continue
 		}
 		seen[agg.ColID] = true
@@ -326,7 +326,7 @@ func dataGridAggregateLabel(agg GridAggregateCfg) string {
 	if agg.Label != "" {
 		return agg.Label
 	}
-	if agg.Op == GridAggregateCount {
+	if agg.Op == gridAggregateCount {
 		return "count"
 	}
 	if agg.ColID == "" {
@@ -336,7 +336,7 @@ func dataGridAggregateLabel(agg GridAggregateCfg) string {
 }
 
 func dataGridAggregateValue(rows []GridRow, startIdx, endIdx int, agg GridAggregateCfg) (string, bool) {
-	if agg.Op == GridAggregateCount {
+	if agg.Op == gridAggregateCount {
 		return strconv.Itoa(endIdx - startIdx + 1), true
 	}
 	if agg.ColID == "" {
@@ -356,21 +356,21 @@ func dataGridAggregateValue(rows []GridRow, startIdx, endIdx int, agg GridAggreg
 	}
 	var result float64
 	switch agg.Op {
-	case GridAggregateSum, GridAggregateAvg:
+	case gridAggregateSum, gridAggregateAvg:
 		for _, v := range values {
 			result += v
 		}
-		if agg.Op == GridAggregateAvg {
+		if agg.Op == gridAggregateAvg {
 			result /= float64(len(values))
 		}
-	case GridAggregateMin:
+	case gridAggregateMin:
 		result = values[0]
 		for _, v := range values[1:] {
 			if v < result {
 				result = v
 			}
 		}
-	case GridAggregateMax:
+	case gridAggregateMax:
 		result = values[0]
 		for _, v := range values[1:] {
 			if v > result {

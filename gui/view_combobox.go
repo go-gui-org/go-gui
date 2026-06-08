@@ -4,8 +4,8 @@ import "unicode/utf8"
 
 type comboboxItemsCache struct {
 	viewKey     comboboxViewKey
-	items       []ListCoreItem
-	filtered    []ListCoreItem
+	items       []listCoreItem
+	filtered    []listCoreItem
 	ids         []string
 	scored      []listCoreScored
 	views       []View
@@ -89,13 +89,13 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 	optionsHash := comboboxOptionsHash(cfg.Options)
 	if cache.optionsHash != optionsHash || len(cache.items) != len(cfg.Options) {
 		if cap(cache.items) < len(cfg.Options) {
-			cache.items = make([]ListCoreItem, len(cfg.Options))
+			cache.items = make([]listCoreItem, len(cfg.Options))
 		} else {
 			cache.items = cache.items[:len(cfg.Options)]
 		}
 		for i := range cfg.Options {
 			opt := cfg.Options[i]
-			cache.items[i] = ListCoreItem{ID: opt, Label: opt}
+			cache.items[i] = listCoreItem{ID: opt, Label: opt}
 		}
 		cache.optionsHash = optionsHash
 	}
@@ -126,7 +126,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 	// Build dropdown content.
 	onSelect := cfg.OnSelect
 	cfgID := cfg.ID
-	coreCfg := ListCoreCfg{
+	coreCfg := listCoreCfg{
 		TextStyle:      cfg.TextStyle,
 		ColorHighlight: cfg.ColorHighlight,
 		ColorHover:     cfg.ColorHover,
@@ -230,9 +230,9 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 				for i := range layout.Children {
 					c := &layout.Children[i]
 					if c.Shape.OverDraw &&
-						c.Shape.HasEvents() &&
-						c.Shape.Events.AmendLayout != nil {
-						c.Shape.Events.AmendLayout(c, w)
+						c.Shape.hasEvents() &&
+						c.Shape.events.AmendLayout != nil {
+						c.Shape.events.AmendLayout(c, w)
 					}
 				}
 			},
@@ -283,7 +283,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 		shape:   buildContainerShape(&ccfg),
 		content: content,
 	}
-	return GenerateViewLayout(outerRow, w)
+	return generateViewLayout(outerRow, w)
 }
 
 func comboboxOpen(id string, idFocus uint32, w *Window) {
@@ -376,7 +376,7 @@ func comboboxOnKeyDown(cfgID string, onSelect func(string, *Event, *Window), idF
 	cur, _ := sh.Get(cfgID)
 	action := listCoreNavigate(e.KeyCode, itemCount)
 
-	if action == ListCoreSelectItem {
+	if action == listCoreSelectItem {
 		if cur >= 0 && cur < itemCount && onSelect != nil {
 			onSelect(filteredIDs[cur], e, w)
 			comboboxClose(cfgID, w)

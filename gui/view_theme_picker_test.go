@@ -5,7 +5,7 @@ import "testing"
 func TestThemePickerClosed(t *testing.T) {
 	w := &Window{}
 	v := ThemePicker(ThemePickerCfg{ID: "tt1"})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "tt1" {
 		t.Errorf("ID = %q", layout.Shape.ID)
 	}
@@ -26,7 +26,7 @@ func TestThemePickerOpen(t *testing.T) {
 	ss.Set("tt-open", true)
 
 	v := ThemePicker(ThemePickerCfg{ID: "tt-open"})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Should have icon + dropdown.
 	if len(layout.Children) < 2 {
 		t.Errorf("children = %d, want >= 2", len(layout.Children))

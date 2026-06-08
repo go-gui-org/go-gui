@@ -105,7 +105,7 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 			dragScrollY0, _ = sy.Get(scrollID)
 			sp := p.Shape
 			viewTop = sp.Y + sp.Padding.Top
-			viewH := sp.Height - sp.PaddingHeight()
+			viewH := sp.Height - sp.paddingHeight()
 			viewBot = viewTop + viewH
 			maxScrollNeg = f32Min(0,
 				viewH-contentHeight(p))

@@ -154,11 +154,11 @@ func TestNormalizedColumnOrderDeduplicates(t *testing.T) {
 	}
 }
 
-// --- DataGridColumnOrderMove ---
+// --- dataGridColumnOrderMove ---
 
 func TestColumnOrderMoveRight(t *testing.T) {
 	order := []string{"a", "b", "c"}
-	got := DataGridColumnOrderMove(order, "a", 1)
+	got := dataGridColumnOrderMove(order, "a", 1)
 	want := []string{"b", "a", "c"}
 	if !strSliceEq(got, want) {
 		t.Fatalf("got %v, want %v", got, want)
@@ -167,7 +167,7 @@ func TestColumnOrderMoveRight(t *testing.T) {
 
 func TestColumnOrderMoveLeft(t *testing.T) {
 	order := []string{"a", "b", "c"}
-	got := DataGridColumnOrderMove(order, "c", -1)
+	got := dataGridColumnOrderMove(order, "c", -1)
 	want := []string{"a", "c", "b"}
 	if !strSliceEq(got, want) {
 		t.Fatalf("got %v, want %v", got, want)
@@ -176,7 +176,7 @@ func TestColumnOrderMoveLeft(t *testing.T) {
 
 func TestColumnOrderMoveClampLeft(t *testing.T) {
 	order := []string{"a", "b", "c"}
-	got := DataGridColumnOrderMove(order, "a", -5)
+	got := dataGridColumnOrderMove(order, "a", -5)
 	// Already at index 0, clamped target = 0, no change.
 	want := []string{"a", "b", "c"}
 	if !strSliceEq(got, want) {
@@ -186,7 +186,7 @@ func TestColumnOrderMoveClampLeft(t *testing.T) {
 
 func TestColumnOrderMoveClampRight(t *testing.T) {
 	order := []string{"a", "b", "c"}
-	got := DataGridColumnOrderMove(order, "c", 10)
+	got := dataGridColumnOrderMove(order, "c", 10)
 	// Already at last index, clamped target = 2, no change.
 	want := []string{"a", "b", "c"}
 	if !strSliceEq(got, want) {
@@ -196,7 +196,7 @@ func TestColumnOrderMoveClampRight(t *testing.T) {
 
 func TestColumnOrderMoveMissingID(t *testing.T) {
 	order := []string{"a", "b", "c"}
-	got := DataGridColumnOrderMove(order, "z", 1)
+	got := dataGridColumnOrderMove(order, "z", 1)
 	want := []string{"a", "b", "c"}
 	if !strSliceEq(got, want) {
 		t.Fatalf("got %v, want %v", got, want)
@@ -205,7 +205,7 @@ func TestColumnOrderMoveMissingID(t *testing.T) {
 
 func TestColumnOrderMoveZeroDelta(t *testing.T) {
 	order := []string{"a", "b"}
-	got := DataGridColumnOrderMove(order, "a", 0)
+	got := dataGridColumnOrderMove(order, "a", 0)
 	want := []string{"a", "b"}
 	if !strSliceEq(got, want) {
 		t.Fatalf("got %v, want %v", got, want)

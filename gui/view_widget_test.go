@@ -13,7 +13,7 @@ func TestRadioGeneratesLayout(t *testing.T) {
 		OnClick: noop,
 		IDFocus: 1,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleRadioButton {
 		t.Fatalf("got role %d, want RadioButton", layout.Shape.A11YRole)
 	}
@@ -29,7 +29,7 @@ func TestRadioSelectedState(t *testing.T) {
 		OnClick:  noop,
 		Selected: true,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YState != AccessStateSelected {
 		t.Fatalf("got state %d, want Selected", layout.Shape.A11YState)
 	}
@@ -38,7 +38,7 @@ func TestRadioSelectedState(t *testing.T) {
 func TestRadioNoLabel(t *testing.T) {
 	w := newTestWindow()
 	v := Radio(RadioCfg{OnClick: noop})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Only circle child.
 	if len(layout.Children) != 1 {
 		t.Fatalf("got %d children, want 1", len(layout.Children))
@@ -52,7 +52,7 @@ func TestRadioDisabledCircle(t *testing.T) {
 		IDFocus:  1,
 		Disabled: true,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if !layout.Children[0].Shape.Disabled {
 		t.Error("circle child should be disabled")
 	}
@@ -61,13 +61,13 @@ func TestRadioDisabledCircle(t *testing.T) {
 func TestRadioDisabledSuppressesHover(t *testing.T) {
 	w := newTestWindow()
 	v := Radio(RadioCfg{OnClick: noop, Disabled: true})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if !layout.Shape.Disabled {
 		t.Fatal("outer row should be disabled")
 	}
 	origBorder := layout.Children[0].Shape.ColorBorder
 	e := &Event{MouseButton: MouseInvalid}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	if layout.Children[0].Shape.ColorBorder != origBorder {
 		t.Error("hover should not change border when disabled")
 	}
@@ -76,11 +76,11 @@ func TestRadioDisabledSuppressesHover(t *testing.T) {
 func TestRadioHoverChangesBorder(t *testing.T) {
 	w := newTestWindow()
 	v := Radio(RadioCfg{OnClick: noop, Label: "X"})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	origBorder := layout.Children[0].Shape.ColorBorder
 	// MouseInvalid = no button pressed (MouseLeft = 0 is zero value).
 	e := &Event{MouseButton: MouseInvalid}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	if layout.Children[0].Shape.ColorBorder == origBorder {
 		t.Error("hover should change circle border color")
 	}
@@ -89,10 +89,10 @@ func TestRadioHoverChangesBorder(t *testing.T) {
 func TestRadioClickHoverChangesBorder(t *testing.T) {
 	w := newTestWindow()
 	v := Radio(RadioCfg{OnClick: noop, Label: "X"})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	clickColor := DefaultRadioStyle.ColorClick
 	e := &Event{MouseButton: MouseLeft}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	got := layout.Children[0].Shape.ColorBorder
 	if got != clickColor {
 		t.Errorf("got %v, want click color %v", got, clickColor)
@@ -103,8 +103,8 @@ func TestRadioFocusBorder(t *testing.T) {
 	w := newTestWindow()
 	w.viewState.idFocus = 5
 	v := Radio(RadioCfg{OnClick: noop, IDFocus: 5})
-	layout := GenerateViewLayout(v, w)
-	layout.Shape.Events.AmendLayout(&layout, w)
+	layout := generateViewLayout(v, w)
+	layout.Shape.events.AmendLayout(&layout, w)
 	if layout.Children[0].Shape.ColorBorder != DefaultRadioStyle.ColorBorderFocus {
 		t.Errorf("focus border = %v, want %v",
 			layout.Children[0].Shape.ColorBorder,
@@ -115,7 +115,7 @@ func TestRadioFocusBorder(t *testing.T) {
 func TestRadioUsesRadioStyleDefaults(t *testing.T) {
 	w := newTestWindow()
 	v := Radio(RadioCfg{OnClick: noop, Label: "Y"})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Padding should come from DefaultRadioStyle, not NoPadding.
 	got := layout.Shape.Padding
 	want := DefaultRadioStyle.Padding
@@ -132,7 +132,7 @@ func TestRadioCustomTextStyleMerged(t *testing.T) {
 		Label:     "Z",
 		TextStyle: custom,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Label is second child (row with text).
 	labelRow := layout.Children[1]
 	textLayout := labelRow.Children[0]
@@ -155,7 +155,7 @@ func TestToggleGeneratesLayout(t *testing.T) {
 		OnClick: noop,
 		IDFocus: 2,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleCheckbox {
 		t.Fatalf("got role %d, want Checkbox", layout.Shape.A11YRole)
 	}
@@ -167,8 +167,8 @@ func TestToggleGeneratesLayout(t *testing.T) {
 
 func TestCheckboxIsToggleAlias(t *testing.T) {
 	w := newTestWindow()
-	v := Checkbox(ToggleCfg{OnClick: noop})
-	layout := GenerateViewLayout(v, w)
+	v := Toggle(ToggleCfg{OnClick: noop})
+	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleCheckbox {
 		t.Fatalf("got role %d, want Checkbox", layout.Shape.A11YRole)
 	}
@@ -177,7 +177,7 @@ func TestCheckboxIsToggleAlias(t *testing.T) {
 func TestToggleCheckedState(t *testing.T) {
 	w := newTestWindow()
 	v := Toggle(ToggleCfg{OnClick: noop, Selected: true})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YState != AccessStateChecked {
 		t.Fatalf("got state %d, want Checked", layout.Shape.A11YState)
 	}
@@ -186,13 +186,13 @@ func TestToggleCheckedState(t *testing.T) {
 func TestToggleDisabledSuppressesHover(t *testing.T) {
 	w := newTestWindow()
 	v := Toggle(ToggleCfg{OnClick: noop, Disabled: true})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if !layout.Shape.Disabled {
 		t.Fatal("outer row should be disabled")
 	}
 	origColor := layout.Children[0].Shape.Color
 	e := &Event{MouseButton: MouseInvalid}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	if layout.Children[0].Shape.Color != origColor {
 		t.Error("hover should not change color when disabled")
 	}
@@ -201,10 +201,10 @@ func TestToggleDisabledSuppressesHover(t *testing.T) {
 func TestToggleNilOnClickSuppressesHover(t *testing.T) {
 	w := newTestWindow()
 	v := Toggle(ToggleCfg{})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	origColor := layout.Children[0].Shape.Color
 	e := &Event{MouseButton: MouseInvalid}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	if layout.Children[0].Shape.Color != origColor {
 		t.Error("hover should not change color without OnClick")
 	}
@@ -213,10 +213,10 @@ func TestToggleNilOnClickSuppressesHover(t *testing.T) {
 func TestToggleHoverChangesColor(t *testing.T) {
 	w := newTestWindow()
 	v := Toggle(ToggleCfg{OnClick: noop})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	origColor := layout.Children[0].Shape.Color
 	e := &Event{MouseButton: MouseInvalid}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	if layout.Children[0].Shape.Color == origColor {
 		t.Error("hover should change box color")
 	}
@@ -225,10 +225,10 @@ func TestToggleHoverChangesColor(t *testing.T) {
 func TestToggleClickHoverChangesColor(t *testing.T) {
 	w := newTestWindow()
 	v := Toggle(ToggleCfg{OnClick: noop})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	clickColor := DefaultToggleStyle.ColorClick
 	e := &Event{MouseButton: MouseLeft}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	got := layout.Children[0].Shape.Color
 	if got != clickColor {
 		t.Errorf("got %v, want click color %v", got, clickColor)
@@ -239,8 +239,8 @@ func TestToggleFocusBorder(t *testing.T) {
 	w := newTestWindow()
 	w.viewState.idFocus = 5
 	v := Toggle(ToggleCfg{OnClick: noop, IDFocus: 5})
-	layout := GenerateViewLayout(v, w)
-	layout.Shape.Events.AmendLayout(&layout, w)
+	layout := generateViewLayout(v, w)
+	layout.Shape.events.AmendLayout(&layout, w)
 	if layout.Children[0].Shape.ColorBorder != DefaultToggleStyle.ColorBorderFocus {
 		t.Errorf("focus border = %v, want %v",
 			layout.Children[0].Shape.ColorBorder,
@@ -251,7 +251,7 @@ func TestToggleFocusBorder(t *testing.T) {
 func TestToggleDefaultStyles(t *testing.T) {
 	w := newTestWindow()
 	v := Toggle(ToggleCfg{OnClick: noop})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	d := &DefaultToggleStyle
 	box := layout.Children[0].Shape
 	if box.Color != d.Color {
@@ -265,7 +265,7 @@ func TestToggleDefaultStyles(t *testing.T) {
 func TestToggleOuterRowNoBorder(t *testing.T) {
 	w := newTestWindow()
 	v := Toggle(ToggleCfg{OnClick: noop})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.SizeBorder != 0 {
 		t.Errorf("outer row SizeBorder: got %v, want 0", layout.Shape.SizeBorder)
 	}
@@ -274,7 +274,7 @@ func TestToggleOuterRowNoBorder(t *testing.T) {
 func TestToggleInvisibleHidesWidget(t *testing.T) {
 	w := newTestWindow()
 	v := Toggle(ToggleCfg{OnClick: noop, Invisible: true})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if !layout.Shape.Disabled || !layout.Shape.OverDraw {
 		t.Error("invisible toggle should be disabled+overdraw")
 	}
@@ -283,7 +283,7 @@ func TestToggleInvisibleHidesWidget(t *testing.T) {
 func TestToggleUnselectedText(t *testing.T) {
 	w := newTestWindow()
 	v := Toggle(ToggleCfg{OnClick: noop, Selected: false})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Unselected with default TextUnselect=" " → transparent text color.
 	box := layout.Children[0]
 	txt := box.Children[0]
@@ -302,7 +302,7 @@ func TestSwitchGeneratesLayout(t *testing.T) {
 		OnClick: noop,
 		IDFocus: 3,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleSwitchToggle {
 		t.Fatalf("got role %d, want SwitchToggle", layout.Shape.A11YRole)
 	}
@@ -315,7 +315,7 @@ func TestSwitchGeneratesLayout(t *testing.T) {
 func TestSwitchSelectedState(t *testing.T) {
 	w := newTestWindow()
 	v := Switch(SwitchCfg{OnClick: noop, Selected: true})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YState != AccessStateChecked {
 		t.Fatalf("got state %d, want Checked", layout.Shape.A11YState)
 	}
@@ -324,7 +324,7 @@ func TestSwitchSelectedState(t *testing.T) {
 func TestSwitchNoLabel(t *testing.T) {
 	w := newTestWindow()
 	v := Switch(SwitchCfg{OnClick: noop})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Only switch body child.
 	if len(layout.Children) != 1 {
 		t.Fatalf("got %d children, want 1", len(layout.Children))
@@ -334,13 +334,13 @@ func TestSwitchNoLabel(t *testing.T) {
 func TestSwitchDisabledSuppressesHover(t *testing.T) {
 	w := newTestWindow()
 	v := Switch(SwitchCfg{OnClick: noop, Disabled: true})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if !layout.Shape.Disabled {
 		t.Fatal("outer row should be disabled")
 	}
 	origColor := layout.Children[0].Shape.Color
 	e := &Event{MouseButton: MouseInvalid}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	if layout.Children[0].Shape.Color != origColor {
 		t.Error("hover should not change pill color when disabled")
 	}
@@ -349,10 +349,10 @@ func TestSwitchDisabledSuppressesHover(t *testing.T) {
 func TestSwitchNilOnClickSuppressesHover(t *testing.T) {
 	w := newTestWindow()
 	v := Switch(SwitchCfg{})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	origColor := layout.Children[0].Shape.Color
 	e := &Event{MouseButton: MouseInvalid}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	if layout.Children[0].Shape.Color != origColor {
 		t.Error("hover should not change pill color without OnClick")
 	}
@@ -361,10 +361,10 @@ func TestSwitchNilOnClickSuppressesHover(t *testing.T) {
 func TestSwitchHoverChangesColor(t *testing.T) {
 	w := newTestWindow()
 	v := Switch(SwitchCfg{OnClick: noop})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	origColor := layout.Children[0].Shape.Color
 	e := &Event{MouseButton: MouseInvalid}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	if layout.Children[0].Shape.Color == origColor {
 		t.Error("hover should change pill color")
 	}
@@ -373,10 +373,10 @@ func TestSwitchHoverChangesColor(t *testing.T) {
 func TestSwitchClickHoverChangesColor(t *testing.T) {
 	w := newTestWindow()
 	v := Switch(SwitchCfg{OnClick: noop})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	clickColor := DefaultSwitchStyle.ColorClick
 	e := &Event{MouseButton: MouseLeft}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	got := layout.Children[0].Shape.Color
 	if got != clickColor {
 		t.Errorf("got %v, want click color %v", got, clickColor)
@@ -386,9 +386,9 @@ func TestSwitchClickHoverChangesColor(t *testing.T) {
 func TestSwitchFocusBorder(t *testing.T) {
 	w := newTestWindow()
 	v := Switch(SwitchCfg{OnClick: noop, IDFocus: 5})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	w.SetIDFocus(5)
-	layout.Shape.Events.AmendLayout(&layout, w)
+	layout.Shape.events.AmendLayout(&layout, w)
 	if layout.Shape.ColorBorder != DefaultSwitchStyle.ColorBorderFocus {
 		t.Error("focused switch should have focus border color")
 	}
@@ -397,7 +397,7 @@ func TestSwitchFocusBorder(t *testing.T) {
 func TestSwitchInvisibleHidesWidget(t *testing.T) {
 	w := newTestWindow()
 	v := Switch(SwitchCfg{OnClick: noop, Invisible: true})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if !layout.Shape.Disabled || !layout.Shape.OverDraw {
 		t.Error("invisible switch should be disabled+overdraw")
 	}
@@ -406,7 +406,7 @@ func TestSwitchInvisibleHidesWidget(t *testing.T) {
 func TestSwitchDefaultStyles(t *testing.T) {
 	w := newTestWindow()
 	v := Switch(SwitchCfg{OnClick: noop})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	d := &DefaultSwitchStyle
 	pill := layout.Children[0].Shape
 	if pill.Color != d.Color {
@@ -422,14 +422,14 @@ func TestSwitchThumbColor(t *testing.T) {
 	d := &DefaultSwitchStyle
 
 	off := Switch(SwitchCfg{OnClick: noop})
-	lo := GenerateViewLayout(off, w)
+	lo := generateViewLayout(off, w)
 	thumb := lo.Children[0].Children[0].Shape
 	if thumb.Color != d.ColorUnselect {
 		t.Errorf("unselected thumb: got %v, want %v", thumb.Color, d.ColorUnselect)
 	}
 
 	on := Switch(SwitchCfg{OnClick: noop, Selected: true})
-	lo = GenerateViewLayout(on, w)
+	lo = generateViewLayout(on, w)
 	thumb = lo.Children[0].Children[0].Shape
 	if thumb.Color != d.ColorSelect {
 		t.Errorf("selected thumb: got %v, want %v", thumb.Color, d.ColorSelect)
@@ -439,7 +439,7 @@ func TestSwitchThumbColor(t *testing.T) {
 func TestSwitchOuterRowNoBorder(t *testing.T) {
 	w := newTestWindow()
 	v := Switch(SwitchCfg{OnClick: noop})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.SizeBorder != 0 {
 		t.Errorf("outer row SizeBorder: got %v, want 0", layout.Shape.SizeBorder)
 	}
@@ -455,7 +455,7 @@ func TestSelectGeneratesLayout(t *testing.T) {
 		OnSelect: func(_ []string, _ *Event, _ *Window) {},
 		IDFocus:  10,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleComboBox {
 		t.Fatalf("got role %d, want ComboBox", layout.Shape.A11YRole)
 	}
@@ -473,7 +473,7 @@ func TestSelectPlaceholder(t *testing.T) {
 		Options:     []string{"A", "B"},
 		OnSelect:    func(_ []string, _ *Event, _ *Window) {},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) == 0 {
 		t.Fatal("no children")
 	}
@@ -491,7 +491,7 @@ func TestSelectShowsSelected(t *testing.T) {
 		Options:  []string{"A", "B", "C"},
 		OnSelect: func(_ []string, _ *Event, _ *Window) {},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) == 0 {
 		t.Fatal("no children")
 	}
@@ -510,7 +510,7 @@ func TestNumericInputGeneratesLayout(t *testing.T) {
 		Text:    "42",
 		IDFocus: 20,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleTextField {
 		t.Fatalf("got role %d, want TextField", layout.Shape.A11YRole)
 	}
@@ -524,7 +524,7 @@ func TestNumericInputNoButtons(t *testing.T) {
 		StepCfg: NumericStepCfg{ShowButtons: false},
 		IDFocus: 21,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Should be a Column (Input view), not Row with step buttons.
 	if layout.Shape.Axis != AxisTopToBottom {
 		t.Fatalf("expected column axis, got %d", layout.Shape.Axis)
@@ -539,7 +539,7 @@ func TestNumericInputWithButtons(t *testing.T) {
 		StepCfg: NumericStepCfg{ShowButtons: true, Step: 1},
 		IDFocus: 22,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Row with field + step button column.
 	if len(layout.Children) != 2 {
 		t.Fatalf("got %d children, want 2", len(layout.Children))
@@ -560,7 +560,7 @@ func TestListBoxGeneratesLayout(t *testing.T) {
 		OnSelect: func(_ []string, _ *Event, _ *Window) {},
 		IDFocus:  30,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleList {
 		t.Fatalf("got role %d, want List", layout.Shape.A11YRole)
 	}
@@ -578,7 +578,7 @@ func TestListBoxItemRole(t *testing.T) {
 		},
 		OnSelect: func(_ []string, _ *Event, _ *Window) {},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) == 0 {
 		t.Fatal("no children")
 	}
@@ -599,7 +599,7 @@ func TestListBoxSelectedState(t *testing.T) {
 		SelectedIDs: []string{"y"},
 		OnSelect:    func(_ []string, _ *Event, _ *Window) {},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) < 2 {
 		t.Fatal("too few children")
 	}
@@ -621,7 +621,7 @@ func TestListBoxSubheading(t *testing.T) {
 		},
 		OnSelect: func(_ []string, _ *Event, _ *Window) {},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 2 {
 		t.Fatalf("got %d children, want 2", len(layout.Children))
 	}
@@ -630,37 +630,37 @@ func TestListBoxSubheading(t *testing.T) {
 // --- ListCore ---
 
 func TestListCoreNavigate(t *testing.T) {
-	if listCoreNavigate(KeyUp, 5) != ListCoreMoveUp {
+	if listCoreNavigate(KeyUp, 5) != listCoreMoveUp {
 		t.Fatal("expected MoveUp")
 	}
-	if listCoreNavigate(KeyDown, 5) != ListCoreMoveDown {
+	if listCoreNavigate(KeyDown, 5) != listCoreMoveDown {
 		t.Fatal("expected MoveDown")
 	}
-	if listCoreNavigate(KeyEnter, 5) != ListCoreSelectItem {
+	if listCoreNavigate(KeyEnter, 5) != listCoreSelectItem {
 		t.Fatal("expected SelectItem")
 	}
-	if listCoreNavigate(KeyEscape, 5) != ListCoreDismiss {
+	if listCoreNavigate(KeyEscape, 5) != listCoreDismiss {
 		t.Fatal("expected Dismiss")
 	}
-	if listCoreNavigate(KeyUp, 0) != ListCoreNone {
+	if listCoreNavigate(KeyUp, 0) != listCoreNone {
 		t.Fatal("expected None for empty list")
 	}
 }
 
 func TestListCoreApplyNav(t *testing.T) {
-	next, changed := listCoreApplyNav(ListCoreMoveDown, 0, 5)
+	next, changed := listCoreApplyNav(listCoreMoveDown, 0, 5)
 	if !changed || next != 1 {
 		t.Fatalf("got %d/%v, want 1/true", next, changed)
 	}
-	next, changed = listCoreApplyNav(ListCoreMoveUp, 0, 5)
+	next, changed = listCoreApplyNav(listCoreMoveUp, 0, 5)
 	if changed || next != 0 {
 		t.Fatalf("got %d/%v, want 0/false", next, changed)
 	}
-	next, changed = listCoreApplyNav(ListCoreLast, 0, 5)
+	next, changed = listCoreApplyNav(listCoreLast, 0, 5)
 	if !changed || next != 4 {
 		t.Fatalf("got %d/%v, want 4/true", next, changed)
 	}
-	next, changed = listCoreApplyNav(ListCoreFirst, 3, 5)
+	next, changed = listCoreApplyNav(listCoreFirst, 3, 5)
 	if !changed || next != 0 {
 		t.Fatalf("got %d/%v, want 0/true", next, changed)
 	}

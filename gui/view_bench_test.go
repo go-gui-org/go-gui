@@ -24,13 +24,13 @@ func (v *benchView) GenerateLayout(_ *Window) Layout {
 
 func benchViewFlat(n int) *benchView {
 	root := &benchView{
-		shape:    Shape{ShapeType: ShapeRectangle, Axis: AxisTopToBottom},
+		shape:    Shape{shapeType: shapeRectangle, Axis: AxisTopToBottom},
 		children: make([]*benchView, n),
 	}
 	for i := range n {
 		root.children[i] = &benchView{
 			shape: Shape{
-				ShapeType: ShapeRectangle,
+				shapeType: shapeRectangle,
 				Width:     200,
 				Height:    40,
 				IDFocus:   uint32(i + 1),
@@ -43,7 +43,7 @@ func benchViewFlat(n int) *benchView {
 func benchViewNested(depth, childrenPerLevel int) *benchView {
 	v := &benchView{
 		shape: Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Axis:      AxisTopToBottom,
 		},
 	}
@@ -59,7 +59,7 @@ func benchViewNested(depth, childrenPerLevel int) *benchView {
 
 func benchViewDeep(depth int) *benchView {
 	v := &benchView{
-		shape: Shape{ShapeType: ShapeRectangle, Axis: AxisTopToBottom},
+		shape: Shape{shapeType: shapeRectangle, Axis: AxisTopToBottom},
 	}
 	if depth <= 0 {
 		return v
@@ -74,7 +74,7 @@ func BenchmarkGenerateViewLayout(b *testing.B) {
 		view := benchViewFlat(100)
 		b.ReportAllocs()
 		for b.Loop() {
-			_ = GenerateViewLayout(view, w)
+			_ = generateViewLayout(view, w)
 		}
 	})
 
@@ -83,7 +83,7 @@ func BenchmarkGenerateViewLayout(b *testing.B) {
 		view := benchViewNested(3, 10)
 		b.ReportAllocs()
 		for b.Loop() {
-			_ = GenerateViewLayout(view, w)
+			_ = generateViewLayout(view, w)
 		}
 	})
 
@@ -92,7 +92,7 @@ func BenchmarkGenerateViewLayout(b *testing.B) {
 		view := benchViewDeep(12)
 		b.ReportAllocs()
 		for b.Loop() {
-			_ = GenerateViewLayout(view, w)
+			_ = generateViewLayout(view, w)
 		}
 	})
 }

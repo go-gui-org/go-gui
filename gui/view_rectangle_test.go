@@ -9,7 +9,7 @@ func TestRectangleGeneratesLayout(t *testing.T) {
 		Width:  100,
 		Height: 50,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape == nil {
 		t.Fatal("expected shape")
 	}
@@ -26,7 +26,7 @@ func TestRectangleColorPassthrough(t *testing.T) {
 		Height: 10,
 		Color:  c,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.Color != c {
 		t.Errorf("color: got %v, want %v",
 			layout.Shape.Color, c)
@@ -46,8 +46,8 @@ func TestRectangleGradient(t *testing.T) {
 		Height:   50,
 		Gradient: g,
 	})
-	layout := GenerateViewLayout(v, w)
-	if layout.Shape.FX == nil || layout.Shape.FX.Gradient == nil {
+	layout := generateViewLayout(v, w)
+	if layout.Shape.fx == nil || layout.Shape.fx.Gradient == nil {
 		t.Error("expected gradient")
 	}
 }
@@ -59,7 +59,7 @@ func TestRectangleSizing(t *testing.T) {
 		Height: 20,
 		Sizing: FillFixed,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.Sizing != FillFixed {
 		t.Errorf("sizing: got %+v", layout.Shape.Sizing)
 	}
@@ -71,7 +71,7 @@ func TestRectangleMinDimensions(t *testing.T) {
 		Width:  40,
 		Height: 25,
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Rectangle sets MinWidth = Width and MinHeight = Height.
 	if !f32AreClose(layout.Shape.MinWidth, 40) {
 		t.Errorf("MinWidth: got %f", layout.Shape.MinWidth)

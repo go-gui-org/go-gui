@@ -11,7 +11,7 @@ func layoutOverflow(layout *Layout, w *Window) {
 		return
 	}
 
-	available := layout.Shape.Width - layout.Shape.PaddingWidth()
+	available := layout.Shape.Width - layout.Shape.paddingWidth()
 	spacing := layout.Shape.Spacing
 
 	// Find the trigger button (last non-float, non-placeholder child).
@@ -69,7 +69,7 @@ func layoutOverflow(layout *Layout, w *Window) {
 }
 
 func hideOverflowChild(child *Layout) {
-	child.Shape.ShapeType = ShapeNone
+	child.Shape.shapeType = shapeNone
 	child.Shape.Width = 0
 	child.Shape.Clip = true
 }

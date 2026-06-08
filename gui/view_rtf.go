@@ -131,23 +131,23 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 
 	flatText := rtfFlatTextFromRuns(&v.RichText)
 
-	var events *EventHandlers
+	var events *eventHandlers
 	switch {
 	case v.markdownID > 0:
-		events = &EventHandlers{
+		events = &eventHandlers{
 			OnClick:     markdownBlockOnClick,
 			OnMouseMove: rtfMouseMove,
 			AmendLayout: rtfMarkdownAmendLayout,
 		}
 	case v.IDFocus > 0:
-		events = &EventHandlers{
+		events = &eventHandlers{
 			OnClick:     rtfSelectOnClick,
 			OnKeyDown:   rtfSelectOnKeyDown,
 			OnMouseMove: rtfMouseMove,
 			AmendLayout: rtfSelectAmendLayout,
 		}
 	default:
-		events = &EventHandlers{
+		events = &eventHandlers{
 			OnClick:     rtfOnClick,
 			OnMouseMove: rtfMouseMove,
 			AmendLayout: rtfAmendTooltip,
@@ -155,7 +155,7 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 	}
 
 	shape := &Shape{
-		ShapeType: ShapeRTF,
+		shapeType: shapeRTF,
 		ID:        v.ID,
 		IDFocus:   v.IDFocus,
 		A11YRole:  AccessRoleStaticText,
@@ -167,7 +167,7 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 		Disabled:  v.Disabled,
 		MinWidth:  v.MinWidth,
 		Sizing:    v.sizing,
-		Events:    events,
+		events:    events,
 		TC: &ShapeTextConfig{
 			TextMode:           v.Mode,
 			HangingIndent:      v.HangingIndent,
@@ -188,7 +188,7 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 		ts.text != "" && ts.blockKey != 0 &&
 		blockKey == ts.blockKey {
 		l.Children = []Layout{
-			GenerateViewLayout(rtfTooltipView(ts), w),
+			generateViewLayout(rtfTooltipView(ts), w),
 		}
 	}
 	// Link context menu popup — only on the owning RTF block.
@@ -197,7 +197,7 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 		rtfLinkMenuState{}); st.Open &&
 		st.BlockKey == blockKey {
 		l.Children = append(l.Children,
-			GenerateViewLayout(rtfLinkMenuView(w, st), w))
+			generateViewLayout(rtfLinkMenuView(w, st), w))
 	}
 	return l
 }
@@ -217,8 +217,8 @@ func RTF(cfg RtfCfg) View {
 
 // --- Hit testing ---
 
-func rtfRunRect(run glyph.Item) DrawClip {
-	return DrawClip{
+func rtfRunRect(run glyph.Item) drawClip {
+	return drawClip{
 		X:      float32(run.X),
 		Y:      float32(run.Y - run.Ascent),
 		Width:  float32(run.Width),
@@ -254,7 +254,7 @@ func rtfFindRunAtIndex(
 // --- Event handlers ---
 
 func rtfMouseMove(l *Layout, e *Event, w *Window) {
-	if !l.Shape.HasRtfLayout() {
+	if !l.Shape.hasRtfLayout() {
 		return
 	}
 	ts := &w.viewState.tooltip
@@ -274,7 +274,7 @@ func rtfMouseMove(l *Layout, e *Event, w *Window) {
 				r := rtfRunRect(run)
 				ts.hoverID = tipID
 				ts.text = found.Tooltip
-				ts.bounds = DrawClip{
+				ts.bounds = drawClip{
 					X:      l.Shape.X + r.X,
 					Y:      l.Shape.Y + r.Y,
 					Width:  r.Width,
@@ -471,7 +471,7 @@ func rtfTooltipView(ts *tooltipState) View {
 }
 
 func rtfOnClick(l *Layout, e *Event, w *Window) {
-	if !l.Shape.HasRtfLayout() {
+	if !l.Shape.hasRtfLayout() {
 		return
 	}
 	layout := l.Shape.TC.RtfLayout
@@ -602,7 +602,7 @@ func rtfSelectOnClick(l *Layout, e *Event, w *Window) {
 		return
 	}
 	shape := l.Shape
-	if shape.TC == nil || !shape.HasRtfLayout() || shape.IDFocus == 0 {
+	if shape.TC == nil || !shape.hasRtfLayout() || shape.IDFocus == 0 {
 		return
 	}
 	w.SetIDFocus(shape.IDFocus)
@@ -656,7 +656,7 @@ func rtfSelectOnClick(l *Layout, e *Event, w *Window) {
 			dragScrollY0, _ = sy.Get(scrollID)
 			sp := p.Shape
 			viewTop = sp.Y + sp.Padding.Top
-			viewH := sp.Height - sp.PaddingHeight()
+			viewH := sp.Height - sp.paddingHeight()
 			viewBot = viewTop + viewH
 			maxScrollNeg = f32Min(0, viewH-contentHeight(p))
 			break

@@ -177,7 +177,7 @@ func addGroupBoxTitle(title string, titleBG, colorBorder Color,
 
 	// Eraser hides the border behind the title text.
 	eraserShape := Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		Width:     textWidth + pad + pad - 1,
 		Height:    fontHeight,
 		X:         20,
@@ -196,7 +196,7 @@ func addGroupBoxTitle(title string, titleBG, colorBorder Color,
 	}
 	ts.Color = textColor
 	textShape := Shape{
-		ShapeType: ShapeText,
+		shapeType: shapeText,
 		Width:     textWidth,
 		Height:    fontHeight,
 		X:         20 + pad,
@@ -214,13 +214,13 @@ func addGroupBoxTitle(title string, titleBG, colorBorder Color,
 	})
 }
 
-func makeContainerEffects(c *ContainerCfg) *ShapeEffects {
+func makeContainerEffects(c *ContainerCfg) *shapeEffects {
 	if c.Shadow == nil && c.Gradient == nil &&
 		c.BorderGradient == nil && c.Shader == nil &&
 		c.ColorFilter == nil && c.BlurRadius == 0 {
 		return nil
 	}
-	return &ShapeEffects{
+	return &shapeEffects{
 		Shadow:         c.Shadow,
 		Gradient:       c.Gradient,
 		BorderGradient: c.BorderGradient,
@@ -230,7 +230,7 @@ func makeContainerEffects(c *ContainerCfg) *ShapeEffects {
 	}
 }
 
-func makeContainerEvents(c *ContainerCfg) *EventHandlers {
+func makeContainerEvents(c *ContainerCfg) *eventHandlers {
 	if c.OnClick == nil && c.OnChar == nil &&
 		c.OnKeyDown == nil && c.OnKeyUp == nil &&
 		c.OnMouseMove == nil && c.OnMouseUp == nil &&
@@ -239,7 +239,7 @@ func makeContainerEvents(c *ContainerCfg) *EventHandlers {
 		c.OnScroll == nil && c.AmendLayout == nil {
 		return nil
 	}
-	return &EventHandlers{
+	return &eventHandlers{
 		OnClick:     c.OnClick,
 		OnChar:      c.OnChar,
 		OnKeyDown:   c.OnKeyDown,
@@ -277,7 +277,7 @@ func deriveContainerA11YRole(c *ContainerCfg) AccessRole {
 func buildContainerShape(cfg *ContainerCfg) *Shape {
 	spacing, sizeBorder, radius, padding := applyContainerDefaults(cfg)
 	shape := &Shape{
-		ShapeType:            ShapeRectangle,
+		shapeType:            shapeRectangle,
 		ID:                   cfg.ID,
 		IDFocus:              cfg.IDFocus,
 		Axis:                 cfg.axis,
@@ -301,7 +301,7 @@ func buildContainerShape(cfg *ContainerCfg) *Shape {
 		TextDir:              cfg.TextDir,
 		Radius:               radius,
 		Color:                cfg.Color,
-		FX:                   makeContainerEffects(cfg),
+		fx:                   makeContainerEffects(cfg),
 		SizeBorder:           sizeBorder,
 		ColorBorder:          cfg.ColorBorder,
 		Disabled:             cfg.Disabled,
@@ -315,7 +315,7 @@ func buildContainerShape(cfg *ContainerCfg) *Shape {
 		IDScroll:             cfg.IDScroll,
 		OverDraw:             cfg.OverDraw,
 		ScrollMode:           cfg.ScrollMode,
-		Events:               makeContainerEvents(cfg),
+		events:               makeContainerEvents(cfg),
 		Hero:                 cfg.Hero,
 		Wrap:                 cfg.Wrap,
 		Overflow:             cfg.Overflow,
@@ -324,7 +324,7 @@ func buildContainerShape(cfg *ContainerCfg) *Shape {
 		A11YState:            cfg.A11YState,
 		A11Y:                 makeContainerA11Y(cfg),
 	}
-	ApplyFixedSizingConstraints(shape)
+	applyFixedSizingConstraints(shape)
 	return shape
 }
 
@@ -390,7 +390,7 @@ func Canvas(cfg ContainerCfg) View {
 func Circle(cfg ContainerCfg) View {
 	cfg.axis = AxisTopToBottom
 	cv := container(cfg).(*containerView)
-	cv.shape.ShapeType = ShapeCircle
+	cv.shape.shapeType = shapeCircle
 	return cv
 }
 

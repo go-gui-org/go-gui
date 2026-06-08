@@ -189,7 +189,7 @@ func Input(cfg InputCfg) View {
 		OnKeyDown:       makeInputOnKeyDown(hcfg),
 		OnKeyUp:         makeInputOnKeyUp(hcfg),
 		OnHover: func(layout *Layout, _ *Event, w *Window) {
-			w.SetMouseCursor(CursorIBeam)
+			w.setMouseCursor(CursorIBeam)
 			if !w.IsFocus(idFocus) {
 				layout.Shape.Color = colorHover
 			}
@@ -215,7 +215,7 @@ func applyInputDefaults(cfg *InputCfg) {
 		cfg.ColorBorderFocus = d.ColorBorderFocus
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(PaddingTwoFour)
+		cfg.Padding = Some(paddingTwoFour)
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = DefaultTextStyle
@@ -366,7 +366,7 @@ func inputOnClick(idScroll uint32) func(*Layout, *Event, *Window) {
 			ds.scrollY0, _ = sy.Get(idScroll) // ok ignored: zero offset is correct initial scroll
 			p := layout.Parent.Shape
 			ds.viewTop = p.Y + p.Padding.Top
-			viewH := p.Height - p.PaddingHeight()
+			viewH := p.Height - p.paddingHeight()
 			ds.viewBot = ds.viewTop + viewH
 			ds.maxScrollNeg = f32Min(0,
 				viewH-layout.Shape.Height)

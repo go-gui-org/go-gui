@@ -191,7 +191,7 @@ func dataGridReorderControls(cfg *DataGridCfg, col GridColumnCfg) View {
 				e.IsHandled = true
 				return
 			}
-			nextOrder := DataGridColumnOrderMove(baseOrder, colID, delta)
+			nextOrder := dataGridColumnOrderMove(baseOrder, colID, delta)
 			if len(nextOrder) == len(baseOrder) && slices.Equal(nextOrder, baseOrder) {
 				e.IsHandled = true
 				return

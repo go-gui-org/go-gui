@@ -85,8 +85,8 @@ func Radio(cfg RadioCfg) View {
 		OnChar:          spacebarToClick(cfg.OnClick),
 		AmendLayout: func(layout *Layout, w *Window) {
 			if layout.Shape.Disabled ||
-				!layout.Shape.HasEvents() ||
-				layout.Shape.Events.OnClick == nil {
+				!layout.Shape.hasEvents() ||
+				layout.Shape.events.OnClick == nil {
 				return
 			}
 			if len(layout.Children) == 0 {
@@ -98,11 +98,11 @@ func Radio(cfg RadioCfg) View {
 		},
 		OnHover: func(layout *Layout, e *Event, w *Window) {
 			if layout.Shape.Disabled ||
-				!layout.Shape.HasEvents() ||
-				layout.Shape.Events.OnClick == nil {
+				!layout.Shape.hasEvents() ||
+				layout.Shape.events.OnClick == nil {
 				return
 			}
-			w.SetMouseCursor(CursorPointingHand)
+			w.setMouseCursor(CursorPointingHand)
 			if len(layout.Children) == 0 {
 				return
 			}

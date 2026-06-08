@@ -152,7 +152,7 @@ func (s *GridOrmDataSource) FetchData(
 	}
 	nextCursor := page.NextCursor
 	prevCursor := page.PrevCursor
-	if _, ok := req.Page.(GridCursorPageReq); ok {
+	if _, ok := req.Page.(gridCursorPageReq); ok {
 		if nextCursor == "" && page.HasMore {
 			nextCursor = dataGridSourceCursorFromIndex(
 				offset + len(page.Rows))
@@ -183,7 +183,7 @@ func (s *GridOrmDataSource) MutateData(
 		return GridMutationResult{}, err
 	}
 	switch req.Kind {
-	case GridMutationCreate:
+	case gridMutationCreate:
 		if s.CreateFn == nil {
 			return GridMutationResult{},
 				errors.New("grid orm: create not supported")
@@ -203,7 +203,7 @@ func (s *GridOrmDataSource) MutateData(
 		}
 		return GridMutationResult{Created: created}, nil
 
-	case GridMutationUpdate:
+	case gridMutationUpdate:
 		if s.UpdateFn == nil {
 			return GridMutationResult{},
 				errors.New("grid orm: update not supported")
@@ -226,7 +226,7 @@ func (s *GridOrmDataSource) MutateData(
 		}
 		return GridMutationResult{Updated: updated}, nil
 
-	case GridMutationDelete:
+	case gridMutationDelete:
 		idSet := gridDeduplicateRowIDs(req.Rows, req.RowIDs)
 		ids := make([]string, 0, len(idSet))
 		for k := range idSet {
@@ -271,8 +271,8 @@ func (s *GridOrmDataSource) MutateData(
 		errors.New("grid orm: unknown mutation kind")
 }
 
-// GridOrmValidateQuery validates a query against columns.
-func GridOrmValidateQuery(
+// gridOrmValidateQuery validates a query against columns.
+func gridOrmValidateQuery(
 	query GridQueryState, columns []GridOrmColumnSpec,
 ) (GridQueryState, error) {
 	colMap, err := gridOrmValidateColumnMap(columns)
@@ -345,18 +345,18 @@ func gridOrmValidateQueryWithMap(
 }
 
 func gridOrmResolvePage(
-	page GridPageRequest, configuredLimit int,
+	page gridPageRequest, configuredLimit int,
 ) (limit, offset int, cursor string) {
 	defLimit := max(1, min(dataGridSourceMaxPageLimit,
 		nonZero(configuredLimit, 100)))
 	switch p := page.(type) {
-	case GridCursorPageReq:
+	case gridCursorPageReq:
 		limit = max(1, min(dataGridSourceMaxPageLimit,
 			nonZero(p.Limit, defLimit)))
 		offset = max(0,
 			dataGridSourceCursorToIndex(p.Cursor))
 		cursor = p.Cursor
-	case GridOffsetPageReq:
+	case gridOffsetPageReq:
 		offset = max(0, p.StartIndex)
 		limit = max(1, min(dataGridSourceMaxPageLimit,
 			nonZero(p.EndIndex-p.StartIndex, defLimit)))
@@ -381,7 +381,7 @@ func gridOrmValidateColumnMap(
 			return nil, fmt.Errorf(
 				"grid orm: column %q requires db_field", id)
 		}
-		if !GridOrmValidDBField(dbField) {
+		if !gridOrmValidDBField(dbField) {
 			return nil, fmt.Errorf(
 				"grid orm: column %q has invalid db_field: %s",
 				id, dbField)
@@ -474,13 +474,13 @@ func (s *GridOrmDataSource) BuildSQL(
 	if err != nil {
 		return GridOrmSQLBuilder{}, err
 	}
-	return GridOrmBuildSQL(spec, colMap)
+	return gridOrmBuildSQL(spec, colMap)
 }
 
-// GridOrmBuildSQL builds SQL fragments from a query spec and
+// gridOrmBuildSQL builds SQL fragments from a query spec and
 // pre-validated column map. No SQL keywords (WHERE, ORDER BY)
 // are included.
-func GridOrmBuildSQL(
+func gridOrmBuildSQL(
 	spec GridOrmQuerySpec,
 	colMap map[string]GridOrmColumnSpec,
 ) (GridOrmSQLBuilder, error) {
@@ -524,9 +524,9 @@ func GridOrmBuildSQL(
 	}, nil
 }
 
-// GridOrmEscapeLike escapes SQL LIKE wildcard characters
+// gridOrmEscapeLike escapes SQL LIKE wildcard characters
 // (%, _) so they match literally.
-func GridOrmEscapeLike(s string) string {
+func gridOrmEscapeLike(s string) string {
 	if !strings.ContainsAny(s, `%_\`) {
 		return s
 	}
@@ -546,8 +546,8 @@ func gridOrmBuildQuickFilter(
 		return ""
 	}
 	lowerNeedle := strings.ToLower(trimmed)
-	escapedLower := GridOrmEscapeLike(lowerNeedle)
-	escapedTrimmed := GridOrmEscapeLike(trimmed)
+	escapedLower := gridOrmEscapeLike(lowerNeedle)
+	escapedTrimmed := gridOrmEscapeLike(trimmed)
 	var orParts []string
 	keys := make([]string, 0, len(columns))
 	for k := range columns {
@@ -598,13 +598,13 @@ func gridOrmBuildFilterClause(
 		param = targetValue
 	case "starts_with":
 		clause = targetField + " like ? escape '\\'"
-		param = GridOrmEscapeLike(targetValue) + "%"
+		param = gridOrmEscapeLike(targetValue) + "%"
 	case "ends_with":
 		clause = targetField + " like ? escape '\\'"
-		param = "%" + GridOrmEscapeLike(targetValue)
+		param = "%" + gridOrmEscapeLike(targetValue)
 	default:
 		clause = targetField + " like ? escape '\\'"
-		param = "%" + GridOrmEscapeLike(targetValue) + "%"
+		param = "%" + gridOrmEscapeLike(targetValue) + "%"
 	}
 	*params = append(*params, param)
 	return clause
@@ -617,7 +617,7 @@ func gridOrmBuildOrder(
 	var parts []string
 	for _, s := range sorts {
 		col, ok := colMap[s.ColID]
-		if !ok || !col.Sortable || !GridOrmValidDBField(col.DBField) {
+		if !ok || !col.Sortable || !gridOrmValidDBField(col.DBField) {
 			continue
 		}
 		dir := "asc"
@@ -630,10 +630,10 @@ func gridOrmBuildOrder(
 	return strings.Join(parts, ", ")
 }
 
-// GridOrmValidDBField checks that a db_field contains only
+// gridOrmValidDBField checks that a db_field contains only
 // alphanumeric chars, underscores, and at most one dot.
 // Must start with a letter or underscore.
-func GridOrmValidDBField(field string) bool {
+func gridOrmValidDBField(field string) bool {
 	if field == "" {
 		return false
 	}

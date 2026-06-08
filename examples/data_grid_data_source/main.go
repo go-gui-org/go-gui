@@ -22,7 +22,7 @@ type App struct {
 }
 
 func main() {
-	gui.SetTheme(gui.ThemeDarkBordered)
+	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  &App{SimulateLatency: true},
 		Title:  "Data Grid Data Source Demo",

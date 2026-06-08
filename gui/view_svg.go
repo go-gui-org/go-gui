@@ -131,22 +131,22 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 						an.stopped = true
 						return
 					}
-					w.RequestRenderOnly()
+					w.requestRenderOnly()
 				},
 			})
 		}
 	}
 
-	var events *EventHandlers
+	var events *eventHandlers
 	onClick := leftClickOnly(c.OnClick)
 	if onClick != nil {
-		events = &EventHandlers{
+		events = &eventHandlers{
 			OnClick: onClick,
 		}
 	}
 	layout := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeSVG,
+			shapeType: shapeSVG,
 			ID:        c.ID,
 			A11YRole:  AccessRoleImage,
 			A11Y: makeA11YInfo(
@@ -160,11 +160,11 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 			Opacity:  1,
 			Sizing:   c.Sizing,
 			Padding:  c.Padding.Get(Padding{}),
-			Events:   events,
+			events:   events,
 			SvgOpts:  svgOpts,
 		},
 	}
-	ApplyFixedSizingConstraints(layout.Shape)
+	applyFixedSizingConstraints(layout.Shape)
 	return layout
 }
 

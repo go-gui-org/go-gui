@@ -8,10 +8,10 @@ import (
 func TestOffsetMouseChangeX(t *testing.T) {
 	w := &Window{}
 	// Layout: 100 wide, content 400 wide (axis LTR so contentWidth sums children).
-	child := Layout{Shape: &Shape{ShapeType: ShapeRectangle, Width: 400, Height: 50}}
+	child := Layout{Shape: &Shape{shapeType: shapeRectangle, Width: 400, Height: 50}}
 	layout := &Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			IDScroll:  1,
 			Width:     100,
 			Height:    50,
@@ -30,10 +30,10 @@ func TestOffsetMouseChangeX(t *testing.T) {
 
 func TestOffsetMouseChangeY(t *testing.T) {
 	w := &Window{}
-	child := Layout{Shape: &Shape{ShapeType: ShapeRectangle, Width: 50, Height: 500}}
+	child := Layout{Shape: &Shape{shapeType: shapeRectangle, Width: 50, Height: 500}}
 	layout := &Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			IDScroll:  2,
 			Width:     50,
 			Height:    100,
@@ -52,10 +52,10 @@ func TestOffsetMouseChangeY(t *testing.T) {
 
 func TestOffsetFromMouseY(t *testing.T) {
 	w := &Window{}
-	child := Layout{Shape: &Shape{ShapeType: ShapeRectangle, Width: 50, Height: 400}}
+	child := Layout{Shape: &Shape{shapeType: shapeRectangle, Width: 50, Height: 400}}
 	scroll := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			IDScroll:  3,
 			Width:     50,
 			Height:    100,
@@ -64,7 +64,7 @@ func TestOffsetFromMouseY(t *testing.T) {
 		Children: []Layout{child},
 	}
 	root := &Layout{
-		Shape:    &Shape{ShapeType: ShapeRectangle},
+		Shape:    &Shape{shapeType: shapeRectangle},
 		Children: []Layout{scroll},
 	}
 
@@ -79,10 +79,10 @@ func TestOffsetFromMouseY(t *testing.T) {
 
 func TestOffsetFromMouseX(t *testing.T) {
 	w := &Window{}
-	child := Layout{Shape: &Shape{ShapeType: ShapeRectangle, Width: 300, Height: 50}}
+	child := Layout{Shape: &Shape{shapeType: shapeRectangle, Width: 300, Height: 50}}
 	scroll := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			IDScroll:  4,
 			Width:     100,
 			Height:    50,
@@ -91,7 +91,7 @@ func TestOffsetFromMouseX(t *testing.T) {
 		Children: []Layout{child},
 	}
 	root := &Layout{
-		Shape:    &Shape{ShapeType: ShapeRectangle},
+		Shape:    &Shape{shapeType: shapeRectangle},
 		Children: []Layout{scroll},
 	}
 
@@ -107,10 +107,10 @@ func TestOffsetFromMouseX(t *testing.T) {
 
 func TestOffsetFromMouseYSnap(t *testing.T) {
 	w := &Window{}
-	child := Layout{Shape: &Shape{ShapeType: ShapeRectangle, Width: 50, Height: 400}}
+	child := Layout{Shape: &Shape{shapeType: shapeRectangle, Width: 50, Height: 400}}
 	scroll := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			IDScroll:  5,
 			Width:     50,
 			Height:    100,
@@ -119,7 +119,7 @@ func TestOffsetFromMouseYSnap(t *testing.T) {
 		Children: []Layout{child},
 	}
 	root := &Layout{
-		Shape:    &Shape{ShapeType: ShapeRectangle},
+		Shape:    &Shape{shapeType: shapeRectangle},
 		Children: []Layout{scroll},
 	}
 
@@ -142,10 +142,10 @@ func TestOffsetFromMouseYSnap(t *testing.T) {
 
 func TestScrollbarMouseMoveVertical(t *testing.T) {
 	w := &Window{}
-	child := Layout{Shape: &Shape{ShapeType: ShapeRectangle, Width: 50, Height: 400}}
+	child := Layout{Shape: &Shape{shapeType: shapeRectangle, Width: 50, Height: 400}}
 	scroll := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			IDScroll:  6,
 			Width:     50,
 			Height:    100,
@@ -155,7 +155,7 @@ func TestScrollbarMouseMoveVertical(t *testing.T) {
 		Children: []Layout{child},
 	}
 	root := Layout{
-		Shape:    &Shape{ShapeType: ShapeRectangle},
+		Shape:    &Shape{shapeType: shapeRectangle},
 		Children: []Layout{scroll},
 	}
 
@@ -171,10 +171,10 @@ func TestScrollbarMouseMoveVertical(t *testing.T) {
 
 func TestScrollbarMouseMoveHorizontal(t *testing.T) {
 	w := &Window{}
-	child := Layout{Shape: &Shape{ShapeType: ShapeRectangle, Width: 300, Height: 50}}
+	child := Layout{Shape: &Shape{shapeType: shapeRectangle, Width: 300, Height: 50}}
 	scroll := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			IDScroll:  7,
 			Width:     100,
 			Height:    50,
@@ -184,7 +184,7 @@ func TestScrollbarMouseMoveHorizontal(t *testing.T) {
 		Children: []Layout{child},
 	}
 	root := Layout{
-		Shape:    &Shape{ShapeType: ShapeRectangle},
+		Shape:    &Shape{shapeType: shapeRectangle},
 		Children: []Layout{scroll},
 	}
 
@@ -223,11 +223,11 @@ func TestThumbOnClickLocksAndUnlocks(t *testing.T) {
 func TestOffsetFromMouseXWithNonZeroOrigin(t *testing.T) {
 	w := &Window{}
 	child := Layout{
-		Shape: &Shape{ShapeType: ShapeRectangle, Width: 300, Height: 50},
+		Shape: &Shape{shapeType: shapeRectangle, Width: 300, Height: 50},
 	}
 	scroll := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			IDScroll:  20,
 			Width:     100,
 			Height:    50,
@@ -237,7 +237,7 @@ func TestOffsetFromMouseXWithNonZeroOrigin(t *testing.T) {
 		Children: []Layout{child},
 	}
 	root := &Layout{
-		Shape:    &Shape{ShapeType: ShapeRectangle},
+		Shape:    &Shape{shapeType: shapeRectangle},
 		Children: []Layout{scroll},
 	}
 
@@ -255,11 +255,11 @@ func TestOffsetFromMouseXWithNonZeroOrigin(t *testing.T) {
 func TestOffsetFromMouseYWithNonZeroOrigin(t *testing.T) {
 	w := &Window{}
 	child := Layout{
-		Shape: &Shape{ShapeType: ShapeRectangle, Width: 50, Height: 400},
+		Shape: &Shape{shapeType: shapeRectangle, Width: 50, Height: 400},
 	}
 	scroll := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			IDScroll:  21,
 			Width:     50,
 			Height:    100,
@@ -269,7 +269,7 @@ func TestOffsetFromMouseYWithNonZeroOrigin(t *testing.T) {
 		Children: []Layout{child},
 	}
 	root := &Layout{
-		Shape:    &Shape{ShapeType: ShapeRectangle},
+		Shape:    &Shape{shapeType: shapeRectangle},
 		Children: []Layout{scroll},
 	}
 
@@ -286,10 +286,10 @@ func TestOffsetFromMouseYWithNonZeroOrigin(t *testing.T) {
 
 func TestGutterClickSetsOffsetAndLocks(t *testing.T) {
 	w := &Window{}
-	child := Layout{Shape: &Shape{ShapeType: ShapeRectangle, Width: 50, Height: 400}}
+	child := Layout{Shape: &Shape{shapeType: shapeRectangle, Width: 50, Height: 400}}
 	scroll := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			IDScroll:  8,
 			Width:     50,
 			Height:    100,
@@ -298,7 +298,7 @@ func TestGutterClickSetsOffsetAndLocks(t *testing.T) {
 		Children: []Layout{child},
 	}
 	w.layout = Layout{
-		Shape:    &Shape{ShapeType: ShapeRectangle},
+		Shape:    &Shape{shapeType: shapeRectangle},
 		Children: []Layout{scroll},
 	}
 

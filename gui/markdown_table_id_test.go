@@ -21,7 +21,7 @@ func TestMarkdownTableIDsUnique(t *testing.T) {
 	}, "\n")
 
 	w := &Window{}
-	layout := GenerateViewLayout(w.Markdown(MarkdownCfg{
+	layout := generateViewLayout(w.Markdown(MarkdownCfg{
 		ID:     "md-doc",
 		Source: source,
 		Style:  DefaultMarkdownStyle(),

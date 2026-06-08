@@ -11,12 +11,12 @@ func TestDatePickerLayout(t *testing.T) {
 		ID:    "dp1",
 		Dates: []time.Time{time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local)},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "dp1" {
 		t.Errorf("ID = %q", layout.Shape.ID)
 	}
-	if layout.Shape.ShapeType != ShapeRectangle {
-		t.Errorf("type = %d", layout.Shape.ShapeType)
+	if layout.Shape.shapeType != shapeRectangle {
+		t.Errorf("type = %d", layout.Shape.shapeType)
 	}
 }
 
@@ -218,17 +218,17 @@ func TestDatePickerSubElementClickFocus(t *testing.T) {
 	applyDatePickerDefaults(&cfg)
 
 	v := DatePicker(cfg)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 
 	// Month toggle button is in the first child (Row).
 	controls := &layout.Children[0]
 	toggleBtn := &controls.Children[0]
-	if toggleBtn.Shape.Events.OnClick == nil {
+	if toggleBtn.Shape.events.OnClick == nil {
 		t.Fatal("toggle button OnClick missing")
 	}
 	e := &Event{}
 	w.SetIDFocus(0)
-	toggleBtn.Shape.Events.OnClick(toggleBtn, e, w)
+	toggleBtn.Shape.events.OnClick(toggleBtn, e, w)
 	if w.IDFocus() != 10 {
 		t.Errorf("toggle button click got focus %d, want 10", w.IDFocus())
 	}
@@ -241,11 +241,11 @@ func TestDatePickerSubElementClickFocus(t *testing.T) {
 	firstRow := &calendarBody.Children[1]
 	firstDay := &firstRow.Children[0] // June 1
 
-	if firstDay.Shape.Events.OnClick == nil {
+	if firstDay.Shape.events.OnClick == nil {
 		t.Fatal("day cell OnClick missing")
 	}
 	w.SetIDFocus(0)
-	firstDay.Shape.Events.OnClick(firstDay, e, w)
+	firstDay.Shape.events.OnClick(firstDay, e, w)
 	if w.IDFocus() != 10 {
 		t.Errorf("day cell click got focus %d, want 10", w.IDFocus())
 	}
@@ -262,7 +262,7 @@ func TestDatePickerFocusIndicator(t *testing.T) {
 	applyDatePickerDefaults(&cfg)
 
 	v := DatePicker(cfg)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 
 	// No focus initially.
 	if layout.Shape.ColorBorder == focusedColor {
@@ -271,7 +271,7 @@ func TestDatePickerFocusIndicator(t *testing.T) {
 
 	// Set focus and re-layout.
 	w.SetIDFocus(1)
-	layout = GenerateViewLayout(v, w)
+	layout = generateViewLayout(v, w)
 	// layoutArrange executes AmendLayout hooks.
 	_ = layoutArrange(&layout, w)
 
@@ -289,18 +289,18 @@ func TestDatePickerClickFocus(t *testing.T) {
 	applyDatePickerDefaults(&cfg)
 
 	v := DatePicker(cfg)
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 
 	if w.IDFocus() == 5 {
 		t.Error("should not be focused initially")
 	}
 
 	// Simulate click on root.
-	if layout.Shape.Events.OnClick == nil {
+	if layout.Shape.events.OnClick == nil {
 		t.Fatal("OnClick handler missing")
 	}
 	e := &Event{}
-	layout.Shape.Events.OnClick(&layout, e, w)
+	layout.Shape.events.OnClick(&layout, e, w)
 
 	if w.IDFocus() != 5 {
 		t.Errorf("got focus %d, want 5", w.IDFocus())
@@ -327,7 +327,7 @@ func TestDatePickerClickAdjacentMonth(t *testing.T) {
 	// Col 0: Feb 23, Col 1: Feb 24, ..., Col 5: Feb 28, Col 6: Mar 1.
 
 	v := DatePicker(cfg)
-	_ = GenerateViewLayout(v, w)
+	_ = generateViewLayout(v, w)
 
 	// Feb 28, 2025 is the day we want to click.
 	// Find the cell with ID "dp-adj.day.prev.28".
@@ -360,7 +360,7 @@ func TestDatePickerKeyboardNav(t *testing.T) {
 	w.SetIDFocus(1)
 
 	v := DatePicker(cfg)
-	_ = GenerateViewLayout(v, w)
+	_ = generateViewLayout(v, w)
 
 	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
 	s, _ := sm.Get("dp-key")

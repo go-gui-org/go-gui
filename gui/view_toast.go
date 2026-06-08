@@ -23,7 +23,7 @@ type ToastCfg struct {
 	Title       string
 	Body        string
 	ActionLabel string
-	Duration    time.Duration // 0 = default (3s); ToastPersistent = no auto-dismiss
+	Duration    time.Duration // 0 = default (3s); toastPersistent = no auto-dismiss
 	Severity    ToastSeverity
 }
 
@@ -45,8 +45,8 @@ const (
 	toastExiting
 )
 
-// ToastPersistent disables auto-dismiss when set as Duration.
-const ToastPersistent = time.Duration(-1)
+// toastPersistent disables auto-dismiss when set as Duration.
+const toastPersistent = time.Duration(-1)
 
 const (
 	toastEnterDuration = 200 * time.Millisecond

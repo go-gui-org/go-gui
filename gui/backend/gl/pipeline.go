@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
+	"github.com/go-gui-org/go-gui/gui/shader"
 )
 
 // pipeline holds a compiled and linked GL program with cached
@@ -46,17 +47,17 @@ func (b *Backend) initPipelines() error {
 		name string
 	}
 	entries := []entry{
-		{&b.pipelines.solid, gui.VsGLSL, gui.FsGLSL, "solid"},
-		{&b.pipelines.shadow, gui.VsShadowGLSL, gui.FsShadowGLSL, "shadow"},
-		{&b.pipelines.blur, gui.VsBlurGLSL, gui.FsBlurGLSL, "blur"},
-		{&b.pipelines.gradient, gui.VsGradientGLSL, gui.FsGradientGLSL, "gradient"},
-		{&b.pipelines.imageClip, gui.VsGLSL, gui.FsImageClipGLSL, "imageClip"},
-		{&b.pipelines.filterBlurH, gui.VsFilterBlurGLSL, gui.FsFilterBlurHGLSL, "filterBlurH"},
-		{&b.pipelines.filterBlurV, gui.VsFilterBlurGLSL, gui.FsFilterBlurVGLSL, "filterBlurV"},
-		{&b.pipelines.filterColor, gui.VsFilterBlurGLSL, gui.FsFilterColorGLSL, "filterColor"},
-		{&b.pipelines.filterTex, gui.VsFilterBlurGLSL, gui.FsFilterTextureGLSL, "filterTex"},
-		{&b.pipelines.stencil, gui.VsGLSL, gui.FsStencilGLSL, "stencil"},
-		{&b.pipelines.custom, gui.VsCustomGLSL, gui.FsGLSL, "custom"},
+		{&b.pipelines.solid, shader.VsGLSL, shader.FsGLSL, "solid"},
+		{&b.pipelines.shadow, shader.VsShadowGLSL, shader.FsShadowGLSL, "shadow"},
+		{&b.pipelines.blur, shader.VsBlurGLSL, shader.FsBlurGLSL, "blur"},
+		{&b.pipelines.gradient, shader.VsGradientGLSL, shader.FsGradientGLSL, "gradient"},
+		{&b.pipelines.imageClip, shader.VsGLSL, shader.FsImageClipGLSL, "imageClip"},
+		{&b.pipelines.filterBlurH, shader.VsFilterBlurGLSL, shader.FsFilterBlurHGLSL, "filterBlurH"},
+		{&b.pipelines.filterBlurV, shader.VsFilterBlurGLSL, shader.FsFilterBlurVGLSL, "filterBlurV"},
+		{&b.pipelines.filterColor, shader.VsFilterBlurGLSL, shader.FsFilterColorGLSL, "filterColor"},
+		{&b.pipelines.filterTex, shader.VsFilterBlurGLSL, shader.FsFilterTextureGLSL, "filterTex"},
+		{&b.pipelines.stencil, shader.VsGLSL, shader.FsStencilGLSL, "stencil"},
+		{&b.pipelines.custom, shader.VsCustomGLSL, shader.FsGLSL, "custom"},
 	}
 	for _, e := range entries {
 		p, err := buildPipeline(e.vs, e.fs)
@@ -178,7 +179,7 @@ func (b *Backend) getOrBuildCustomPipeline(s *gui.Shader) (pipeline, error) {
 		return p, nil
 	}
 	fsSrc := gui.BuildGLSLFragment(s.GLSL)
-	p, err := buildPipeline(gui.VsCustomGLSL, fsSrc)
+	p, err := buildPipeline(shader.VsCustomGLSL, fsSrc)
 	if err != nil {
 		return pipeline{}, err
 	}

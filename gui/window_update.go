@@ -122,8 +122,8 @@ func (w *Window) UpdateWindow() {
 	w.markLayoutRefresh()
 }
 
-// RequestRenderOnly marks the window for render-only refresh.
-func (w *Window) RequestRenderOnly() {
+// requestRenderOnly marks the window for render-only refresh.
+func (w *Window) requestRenderOnly() {
 	w.markRenderOnlyRefresh()
 }
 
@@ -154,7 +154,7 @@ func (w *Window) FrameFn() bool {
 		w.Update()
 		rebuilt = true
 	} else if w.refreshRenderOnly {
-		w.UpdateRenderOnly()
+		w.updateRenderOnly()
 		rebuilt = true
 	}
 	w.initA11y()
@@ -196,7 +196,7 @@ func (w *Window) Update() {
 
 	w.scratch.resetViewPools()
 	view := w.viewGenerator(w)
-	rootLayout := GenerateViewLayout(view, w)
+	rootLayout := generateViewLayout(view, w)
 	if t {
 		t1 = time.Now()
 	}
@@ -207,7 +207,7 @@ func (w *Window) Update() {
 	}
 
 	w.layout = composeLayout(layers, w)
-	w.buildRenderers(w.Config.BgColor, w.WindowRect())
+	w.buildRenderers(w.Config.BgColor, w.windowRect())
 	if t {
 		t3 := time.Now()
 		w.frameTimings = FrameTimings{
@@ -218,12 +218,12 @@ func (w *Window) Update() {
 	}
 }
 
-// UpdateRenderOnly rebuilds renderers from the existing layout.
-func (w *Window) UpdateRenderOnly() {
+// updateRenderOnly rebuilds renderers from the existing layout.
+func (w *Window) updateRenderOnly() {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	w.refreshRenderOnly = false
-	w.buildRenderers(w.Config.BgColor, w.WindowRect())
+	w.buildRenderers(w.Config.BgColor, w.windowRect())
 }
 
 // composeLayout wraps layer layouts into a single root.
@@ -238,7 +238,7 @@ func composeLayout(layers []Layout, w *Window) Layout {
 }
 
 // buildRenderers resets and rebuilds the render command list.
-func (w *Window) buildRenderers(bgColor Color, clip DrawClip) {
+func (w *Window) buildRenderers(bgColor Color, clip drawClip) {
 	w.renderers = w.renderers[:0]
 	w.scratch.resetRenderPools()
 	renderLayout(&w.layout, bgColor, clip, w)

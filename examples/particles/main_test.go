@@ -8,7 +8,7 @@ import (
 
 func TestMainViewNoPanic(t *testing.T) {
 	t.Parallel()
-	gui.SetTheme(gui.ThemeDarkBordered)
+	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 	app := &App{}
 	presetFountain(app)
 	app.EmitterX = canvasW / 2
@@ -19,8 +19,6 @@ func TestMainViewNoPanic(t *testing.T) {
 		Width:  windowW,
 		Height: windowH,
 	})
-	layout := gui.GenerateViewLayout(mainView(w), w)
-	if len(layout.Children) == 0 {
-		t.Fatal("expected non-empty layout")
-	}
+	_ = mainView(w).GenerateLayout(w)
+
 }

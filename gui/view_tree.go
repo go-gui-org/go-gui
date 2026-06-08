@@ -229,7 +229,7 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 	sizeBorder := cfg.SizeBorder.Get(DefaultTreeStyle.SizeBorder)
 	radius := cfg.Radius.Get(DefaultTreeStyle.Radius)
 
-	return GenerateViewLayout(Column(ContainerCfg{
+	return generateViewLayout(Column(ContainerCfg{
 		ID:        cfg.ID,
 		A11YRole:  AccessRoleTree,
 		A11YLabel: a11yLabel(cfg.A11YLabel, cfg.ID),

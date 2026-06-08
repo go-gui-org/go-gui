@@ -54,7 +54,7 @@ func newAppState() *appState {
 }
 
 func main() {
-	gui.SetTheme(gui.ThemeLightNoPadding)
+	gui.SetTheme(gui.ThemeLight.WithPadding(false))
 
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  newAppState(),

@@ -5,7 +5,7 @@ import "testing"
 func benchmarkPipelineLayout(childCount int) Layout {
 	root := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Axis:      AxisTopToBottom,
 			Sizing:    FillFill,
 			Width:     1200,
@@ -17,7 +17,7 @@ func benchmarkPipelineLayout(childCount int) Layout {
 	for i := range childCount {
 		root.Children[i] = Layout{
 			Shape: &Shape{
-				ShapeType: ShapeRectangle,
+				shapeType: shapeRectangle,
 				Axis:      AxisLeftToRight,
 				Sizing:    FillFit,
 				Width:     200,
@@ -183,7 +183,7 @@ func BenchmarkLayoutSetShapeClips(b *testing.B) {
 	w.windowWidth = 1200
 	w.windowHeight = 900
 	tree := benchmarkRenderTree(4, 10)
-	clip := DrawClip{Width: 1200, Height: 900}
+	clip := drawClip{Width: 1200, Height: 900}
 	b.ReportAllocs()
 	for b.Loop() {
 		layoutSetShapeClips(&tree, clip)

@@ -92,15 +92,15 @@ func TestLayoutFillWidthsAllGrow(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			Axis:      AxisLeftToRight,
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Sizing:    FixedFixed,
 			Width:     90,
 			Height:    50,
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle, Sizing: FillFill}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Sizing: FillFill}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Sizing: FillFill}},
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill}},
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill}},
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill}},
 		},
 	}
 	layoutWidths(root)
@@ -120,14 +120,14 @@ func TestLayoutFillHeightsAllGrow(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			Axis:      AxisTopToBottom,
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Sizing:    FixedFixed,
 			Width:     50,
 			Height:    60,
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle, Sizing: FillFill}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Sizing: FillFill}},
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill}},
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill}},
 		},
 	}
 	layoutHeights(root)

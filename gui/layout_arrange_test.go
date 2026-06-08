@@ -8,13 +8,13 @@ func TestEnsureLayoutShapeNilShape(t *testing.T) {
 	if layout.Shape == nil {
 		t.Fatal("Shape should be initialized")
 	}
-	if layout.Shape.ShapeType != ShapeNone {
-		t.Errorf("ShapeType = %v, want ShapeNone", layout.Shape.ShapeType)
+	if layout.Shape.shapeType != shapeNone {
+		t.Errorf("shapeType = %v, want shapeNone", layout.Shape.shapeType)
 	}
 }
 
 func TestEnsureLayoutShapePreserves(t *testing.T) {
-	s := &Shape{ShapeType: ShapeRectangle, Width: 42}
+	s := &Shape{shapeType: shapeRectangle, Width: 42}
 	layout := Layout{Shape: s}
 	ensureLayoutShape(&layout)
 	if layout.Shape != s {
@@ -27,11 +27,11 @@ func TestEnsureLayoutShapePreserves(t *testing.T) {
 
 func TestLayoutRemoveFloatingLayoutsExtractsFloat(t *testing.T) {
 	layout := Layout{
-		Shape: &Shape{ShapeType: ShapeRectangle},
+		Shape: &Shape{shapeType: shapeRectangle},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 10}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 20, Float: true}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 30}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 10}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 20, Float: true}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 30}},
 		},
 	}
 	var floats []*Layout
@@ -44,17 +44,17 @@ func TestLayoutRemoveFloatingLayoutsExtractsFloat(t *testing.T) {
 		t.Errorf("float Width = %f, want 20", floats[0].Shape.Width)
 	}
 	// Original slot replaced with placeholder.
-	if layout.Children[1].Shape.ShapeType != ShapeNone {
+	if layout.Children[1].Shape.shapeType != shapeNone {
 		t.Error("placeholder expected at index 1")
 	}
 }
 
 func TestLayoutRemoveFloatingLayoutsNone(t *testing.T) {
 	layout := Layout{
-		Shape: &Shape{ShapeType: ShapeRectangle},
+		Shape: &Shape{shapeType: shapeRectangle},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle}},
-			{Shape: &Shape{ShapeType: ShapeRectangle}},
+			{Shape: &Shape{shapeType: shapeRectangle}},
+			{Shape: &Shape{shapeType: shapeRectangle}},
 		},
 	}
 	var floats []*Layout
@@ -66,12 +66,12 @@ func TestLayoutRemoveFloatingLayoutsNone(t *testing.T) {
 
 func TestLayoutRemoveFloatingLayoutsNested(t *testing.T) {
 	layout := Layout{
-		Shape: &Shape{ShapeType: ShapeRectangle},
+		Shape: &Shape{shapeType: shapeRectangle},
 		Children: []Layout{
 			{
-				Shape: &Shape{ShapeType: ShapeRectangle},
+				Shape: &Shape{shapeType: shapeRectangle},
 				Children: []Layout{
-					{Shape: &Shape{ShapeType: ShapeRectangle, Width: 99, Float: true}},
+					{Shape: &Shape{shapeType: shapeRectangle, Width: 99, Float: true}},
 				},
 			},
 		},
@@ -112,21 +112,21 @@ func TestLayoutArrangeFloatZIndex(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int), Width: 400, Height: 400})
 	layout := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Width:     400, Height: 400,
 			Sizing:  FillFill,
 			Opacity: 1,
 		},
 		Children: []Layout{
 			{Shape: &Shape{
-				ShapeType: ShapeRectangle,
+				shapeType: shapeRectangle,
 				Width:     50, Height: 50,
 				Float:       true,
 				FloatZIndex: 5,
 				Opacity:     1,
 			}},
 			{Shape: &Shape{
-				ShapeType: ShapeRectangle,
+				shapeType: shapeRectangle,
 				Width:     50, Height: 50,
 				Float:       true,
 				FloatZIndex: 1,
@@ -144,8 +144,8 @@ func TestLayoutArrangeFloatZIndex(t *testing.T) {
 func TestComposeLayoutWrapsLayers(t *testing.T) {
 	w := &Window{windowWidth: 800, windowHeight: 600}
 	layers := []Layout{
-		{Shape: &Shape{ShapeType: ShapeRectangle, Width: 800, Height: 600}},
-		{Shape: &Shape{ShapeType: ShapeRectangle, Width: 100, Height: 100}},
+		{Shape: &Shape{shapeType: shapeRectangle, Width: 800, Height: 600}},
+		{Shape: &Shape{shapeType: shapeRectangle, Width: 100, Height: 100}},
 	}
 	root := composeLayout(layers, w)
 	if root.Shape == nil {

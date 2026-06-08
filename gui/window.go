@@ -225,7 +225,7 @@ func State[T any](w *Window) *T {
 }
 
 // SetState sets the user state for the window.
-func (w *Window) SetState(state any) {
+func (w *Window) setState(state any) {
 	w.state = state
 }
 
@@ -239,8 +239,8 @@ func (w *Window) Ctx() context.Context {
 	return w.ctx
 }
 
-// ClearViewState resets all view state.
-func (w *Window) ClearViewState() {
+// clearViewState resets all view state.
+func (w *Window) clearViewState() {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	w.viewState.registry.Clear()
@@ -270,18 +270,13 @@ func (w *Window) WindowSize() (int, int) {
 	return w.windowWidth, w.windowHeight
 }
 
-// WindowRect returns the window as a DrawClip.
-func (w *Window) WindowRect() DrawClip {
-	return DrawClip{
+// windowRect returns the window as a drawClip.
+func (w *Window) windowRect() drawClip {
+	return drawClip{
 		X: 0, Y: 0,
 		Width:  float32(w.windowWidth),
 		Height: float32(w.windowHeight),
 	}
-}
-
-// RenderersCount returns the number of active renderers.
-func (w *Window) RenderersCount() int {
-	return len(w.renderers)
 }
 
 // IDFocus returns the current focus id.
@@ -356,48 +351,48 @@ func (w *Window) IsFocus(idFocus uint32) bool {
 	return w.viewState.idFocus > 0 && w.viewState.idFocus == idFocus
 }
 
-// SetMouseCursor sets the mouse cursor shape.
-func (w *Window) SetMouseCursor(cursor MouseCursor) {
+// setMouseCursor sets the mouse cursor shape.
+func (w *Window) setMouseCursor(cursor MouseCursor) {
 	w.viewState.mouseCursor = cursor
 }
 
-// HasFocus returns true if the window has focus.
-func (w *Window) HasFocus() bool {
+// hasFocus returns true if the window has focus.
+func (w *Window) hasFocus() bool {
 	return w.focused
 }
 
 // SetMouseCursorArrow sets the cursor to the default arrow.
-func (w *Window) SetMouseCursorArrow() { w.SetMouseCursor(CursorArrow) }
+func (w *Window) SetMouseCursorArrow() { w.setMouseCursor(CursorArrow) }
 
-// SetMouseCursorIBeam sets the cursor to a text I-beam.
-func (w *Window) SetMouseCursorIBeam() { w.SetMouseCursor(CursorIBeam) }
+// setMouseCursorIBeam sets the cursor to a text I-beam.
+func (w *Window) setMouseCursorIBeam() { w.setMouseCursor(CursorIBeam) }
 
 // SetMouseCursorCrosshair sets the cursor to a crosshair.
-func (w *Window) SetMouseCursorCrosshair() { w.SetMouseCursor(CursorCrosshair) }
+func (w *Window) SetMouseCursorCrosshair() { w.setMouseCursor(CursorCrosshair) }
 
 // SetMouseCursorPointingHand sets the cursor to a pointing hand.
-func (w *Window) SetMouseCursorPointingHand() { w.SetMouseCursor(CursorPointingHand) }
+func (w *Window) SetMouseCursorPointingHand() { w.setMouseCursor(CursorPointingHand) }
 
 // SetMouseCursorAll sets the cursor to a resize-all indicator.
-func (w *Window) SetMouseCursorAll() { w.SetMouseCursor(CursorResizeAll) }
+func (w *Window) SetMouseCursorAll() { w.setMouseCursor(CursorResizeAll) }
 
 // SetMouseCursorNS sets the cursor to a north-south resize.
-func (w *Window) SetMouseCursorNS() { w.SetMouseCursor(CursorResizeNS) }
+func (w *Window) SetMouseCursorNS() { w.setMouseCursor(CursorResizeNS) }
 
 // SetMouseCursorEW sets the cursor to an east-west resize.
-func (w *Window) SetMouseCursorEW() { w.SetMouseCursor(CursorResizeEW) }
+func (w *Window) SetMouseCursorEW() { w.setMouseCursor(CursorResizeEW) }
 
-// SetMouseCursorResizeNESW sets the cursor to a NE-SW resize.
-func (w *Window) SetMouseCursorResizeNESW() { w.SetMouseCursor(CursorResizeNESW) }
+// setMouseCursorResizeNESW sets the cursor to a NE-SW resize.
+func (w *Window) setMouseCursorResizeNESW() { w.setMouseCursor(CursorResizeNESW) }
 
-// SetMouseCursorResizeNWSE sets the cursor to a NW-SE resize.
-func (w *Window) SetMouseCursorResizeNWSE() { w.SetMouseCursor(CursorResizeNWSE) }
+// setMouseCursorResizeNWSE sets the cursor to a NW-SE resize.
+func (w *Window) setMouseCursorResizeNWSE() { w.setMouseCursor(CursorResizeNWSE) }
 
-// SetMouseCursorNotAllowed sets the cursor to a not-allowed indicator.
-func (w *Window) SetMouseCursorNotAllowed() { w.SetMouseCursor(CursorNotAllowed) }
+// setMouseCursorNotAllowed sets the cursor to a not-allowed indicator.
+func (w *Window) setMouseCursorNotAllowed() { w.setMouseCursor(CursorNotAllowed) }
 
-// InputCursorOn returns the input cursor blink state.
-func (w *Window) InputCursorOn() bool {
+// inputCursorOn returns the input cursor blink state.
+func (w *Window) inputCursorOn() bool {
 	return w.viewState.inputCursorOn
 }
 

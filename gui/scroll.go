@@ -13,8 +13,8 @@ func findScrollLayout(w *Window, idScroll uint32) (*Layout, bool) {
 
 // fireOnScroll fires the OnScroll callback if set.
 func fireOnScroll(ly *Layout, w *Window) {
-	if ly.Shape.HasEvents() && ly.Shape.Events.OnScroll != nil {
-		ly.Shape.Events.OnScroll(ly, w)
+	if ly.Shape.hasEvents() && ly.Shape.events.OnScroll != nil {
+		ly.Shape.events.OnScroll(ly, w)
 	}
 }
 
@@ -80,7 +80,7 @@ func inputScrollCursorIntoView(
 
 	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
 	scrollOffset, _ := sy.Get(idScroll)
-	viewportH := layout.Shape.Height - layout.Shape.PaddingHeight()
+	viewportH := layout.Shape.Height - layout.Shape.paddingHeight()
 
 	cursorTop := cp.Y
 	cursorBot := cp.Y + cp.Height
@@ -140,7 +140,7 @@ func textScrollCursorIntoView(layout *Layout, w *Window) {
 	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
 	scrollOffset, _ := sy.Get(scrollID)
 	sp := scrollParent.Shape
-	viewportH := sp.Height - sp.PaddingHeight()
+	viewportH := sp.Height - sp.paddingHeight()
 	viewTop := sp.Y + sp.Padding.Top
 	viewBot := viewTop + viewportH
 
@@ -171,7 +171,7 @@ func scrollHorizontal(layout *Layout, delta float32, w *Window) bool {
 		return false
 	}
 	maxOffset := f32Min(0,
-		layout.Shape.Width-layout.Shape.PaddingWidth()-
+		layout.Shape.Width-layout.Shape.paddingWidth()-
 			contentWidth(layout))
 	sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
 	old, _ := sx.Get(idScroll)
@@ -194,7 +194,7 @@ func scrollVertical(layout *Layout, delta float32, w *Window) bool {
 		return false
 	}
 	maxOffset := f32Min(0,
-		layout.Shape.Height-layout.Shape.PaddingHeight()-
+		layout.Shape.Height-layout.Shape.paddingHeight()-
 			contentHeight(layout))
 	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
 	old, _ := sy.Get(idScroll)
@@ -225,7 +225,7 @@ func (w *Window) ScrollToView(id string) {
 			baseY := p.Shape.Y + p.Shape.Padding.Top
 			newScroll := baseY - target.Shape.Y + current
 			maxScrollNeg := f32Min(0,
-				p.Shape.Height-p.Shape.PaddingHeight()-
+				p.Shape.Height-p.Shape.paddingHeight()-
 					contentHeight(p))
 			sy.Set(scrollID,
 				f32Clamp(newScroll, maxScrollNeg, 0))
@@ -242,7 +242,7 @@ func (w *Window) ScrollHorizontalBy(idScroll uint32, delta float32) {
 	newVal := current + delta
 	if ly, ok := findScrollLayout(w, idScroll); ok {
 		maxOffset := f32Min(0,
-			ly.Shape.Width-ly.Shape.PaddingWidth()-
+			ly.Shape.Width-ly.Shape.paddingWidth()-
 				contentWidth(ly))
 		newVal = f32Clamp(newVal, maxOffset, 0)
 		sx.Set(idScroll, newVal)
@@ -258,7 +258,7 @@ func (w *Window) ScrollHorizontalTo(idScroll uint32, offset float32) {
 	sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
 	if ly, ok := findScrollLayout(w, idScroll); ok {
 		maxOffset := f32Min(0,
-			ly.Shape.Width-ly.Shape.PaddingWidth()-
+			ly.Shape.Width-ly.Shape.paddingWidth()-
 				contentWidth(ly))
 		sx.Set(idScroll, f32Clamp(offset, maxOffset, 0))
 		fireOnScroll(ly, w)
@@ -276,7 +276,7 @@ func (w *Window) ScrollHorizontalToPct(idScroll uint32, pct float32) {
 		return
 	}
 	maxOffset := f32Min(0,
-		ly.Shape.Width-ly.Shape.PaddingWidth()-
+		ly.Shape.Width-ly.Shape.paddingWidth()-
 			contentWidth(ly))
 	if maxOffset == 0 {
 		return
@@ -294,7 +294,7 @@ func (w *Window) ScrollHorizontalPct(idScroll uint32) float32 {
 		return 0
 	}
 	maxOffset := f32Min(0,
-		ly.Shape.Width-ly.Shape.PaddingWidth()-
+		ly.Shape.Width-ly.Shape.paddingWidth()-
 			contentWidth(ly))
 	if maxOffset == 0 {
 		return 0
@@ -311,7 +311,7 @@ func (w *Window) ScrollVerticalBy(idScroll uint32, delta float32) {
 	newVal := current + delta
 	if ly, ok := findScrollLayout(w, idScroll); ok {
 		maxOffset := f32Min(0,
-			ly.Shape.Height-ly.Shape.PaddingHeight()-
+			ly.Shape.Height-ly.Shape.paddingHeight()-
 				contentHeight(ly))
 		newVal = f32Clamp(newVal, maxOffset, 0)
 		sy.Set(idScroll, newVal)
@@ -327,7 +327,7 @@ func (w *Window) ScrollVerticalTo(idScroll uint32, offset float32) {
 	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
 	if ly, ok := findScrollLayout(w, idScroll); ok {
 		maxOffset := f32Min(0,
-			ly.Shape.Height-ly.Shape.PaddingHeight()-
+			ly.Shape.Height-ly.Shape.paddingHeight()-
 				contentHeight(ly))
 		sy.Set(idScroll, f32Clamp(offset, maxOffset, 0))
 		fireOnScroll(ly, w)
@@ -345,7 +345,7 @@ func (w *Window) ScrollVerticalToPct(idScroll uint32, pct float32) {
 		return
 	}
 	maxOffset := f32Min(0,
-		ly.Shape.Height-ly.Shape.PaddingHeight()-
+		ly.Shape.Height-ly.Shape.paddingHeight()-
 			contentHeight(ly))
 	if maxOffset == 0 {
 		return
@@ -363,7 +363,7 @@ func (w *Window) ScrollVerticalPct(idScroll uint32) float32 {
 		return 0
 	}
 	maxOffset := f32Min(0,
-		ly.Shape.Height-ly.Shape.PaddingHeight()-
+		ly.Shape.Height-ly.Shape.paddingHeight()-
 			contentHeight(ly))
 	if maxOffset == 0 {
 		return 0

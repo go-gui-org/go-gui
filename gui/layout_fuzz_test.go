@@ -5,7 +5,7 @@ import "testing"
 func buildFuzzLayoutTree(depth, childCount int, width, height float32) Layout {
 	root := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Axis:      AxisTopToBottom,
 			Sizing:    FillFill,
 			Width:     width,
@@ -22,7 +22,7 @@ func buildFuzzLayoutTree(depth, childCount int, width, height float32) Layout {
 			}
 			root.Children[i] = Layout{
 				Shape: &Shape{
-					ShapeType: ShapeRectangle,
+					shapeType: shapeRectangle,
 					Axis:      axis,
 					Sizing:    FillFit,
 					Width:     width / 2,

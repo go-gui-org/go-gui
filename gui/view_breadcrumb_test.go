@@ -14,7 +14,7 @@ func TestBreadcrumbBasic(t *testing.T) {
 		OnSelect: func(_ string, _ *Event, _ *Window) {},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// Outer column has 1 child: trail row (no content views).
 	if len(layout.Children) != 1 {
 		t.Fatalf("children = %d, want 1", len(layout.Children))
@@ -34,7 +34,7 @@ func TestBreadcrumbWithContent(t *testing.T) {
 		OnSelect: func(_ string, _ *Event, _ *Window) {},
 	})
 	w := &Window{}
-	layout := GenerateViewLayout(v, w)
+	layout := generateViewLayout(v, w)
 	// trail row + content column.
 	if len(layout.Children) != 2 {
 		t.Fatalf("children = %d, want 2", len(layout.Children))

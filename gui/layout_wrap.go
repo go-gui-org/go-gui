@@ -15,7 +15,7 @@ func layoutWrapContainers(layout *Layout, w *Window) {
 		return
 	}
 
-	available := layout.Shape.Width - layout.Shape.PaddingWidth()
+	available := layout.Shape.Width - layout.Shape.paddingWidth()
 	if available <= 0 {
 		return
 	}
@@ -70,7 +70,7 @@ func layoutWrapContainers(layout *Layout, w *Window) {
 		row := rows[i]
 		rowChildren := layout.Children[row.start:row.end:row.end]
 		rowShape := Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Axis:      AxisLeftToRight,
 			Sizing:    FixedFit,
 			Width:     available,

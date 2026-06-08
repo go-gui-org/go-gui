@@ -23,25 +23,25 @@ const (
 	dataGridFnv64Prime  = uint64(1099511628211)
 )
 
-// GridCursorPageReq requests a cursor-based page.
-type GridCursorPageReq struct {
+// gridCursorPageReq requests a cursor-based page.
+type gridCursorPageReq struct {
 	Cursor string
 	Limit  int
 }
 
-func (GridCursorPageReq) gridPageRequest() {}
+func (gridCursorPageReq) gridPageRequest() {}
 
-// GridOffsetPageReq requests an offset-based page.
-type GridOffsetPageReq struct {
+// gridOffsetPageReq requests an offset-based page.
+type gridOffsetPageReq struct {
 	StartIndex int
 	EndIndex   int
 }
 
-func (GridOffsetPageReq) gridPageRequest() {}
+func (gridOffsetPageReq) gridPageRequest() {}
 
-// GridPageRequest is satisfied by GridCursorPageReq or
-// GridOffsetPageReq.
-type GridPageRequest interface {
+// gridPageRequest is satisfied by gridCursorPageReq or
+// gridOffsetPageReq.
+type gridPageRequest interface {
 	gridPageRequest()
 }
 
@@ -78,7 +78,7 @@ func (c *GridAbortController) Abort() {
 
 // GridDataRequest is the request payload for FetchData.
 type GridDataRequest struct {
-	Page      GridPageRequest
+	Page      gridPageRequest
 	Signal    *GridAbortSignal
 	Query     GridQueryState
 	GridID    string
@@ -116,7 +116,7 @@ type GridMutationRequest struct {
 	RowIDs    []string
 	Edits     []GridCellEdit
 	RequestID uint64
-	Kind      GridMutationKind
+	Kind      gridMutationKind
 }
 
 // GridMutationResult is the response from MutateData.
@@ -216,13 +216,13 @@ func dataGridSourceInMemoryFetch(
 		nonZero(defaultLimit, 100)))
 	var start, end int
 	switch p := req.Page.(type) {
-	case GridCursorPageReq:
+	case gridCursorPageReq:
 		s := max(0, min(len(filtered),
 			dataGridSourceCursorToIndex(p.Cursor)))
 		chunk := max(1, min(dataGridSourceMaxPageLimit,
 			nonZero(p.Limit, limit)))
 		start, end = s, min(len(filtered), s+chunk)
-	case GridOffsetPageReq:
+	case gridOffsetPageReq:
 		start, end = dataGridSourceOffsetBounds(
 			p.StartIndex, p.EndIndex, len(filtered), limit)
 	default:
@@ -233,7 +233,7 @@ func dataGridSourceInMemoryFetch(
 	if err := gridAbortCheck(req.Signal); err != nil {
 		return GridDataResult{}, err
 	}
-	_, isCursor := req.Page.(GridCursorPageReq)
+	_, isCursor := req.Page.(gridCursorPageReq)
 	rc := -1
 	if rowCountKnown {
 		rc = len(filtered)
@@ -576,10 +576,10 @@ func gridEndsWithLower(haystack, needle string) bool {
 	return true
 }
 
-// GridQuerySignature returns a stable FNV-1a 64-bit hash of
+// gridQuerySignature returns a stable FNV-1a 64-bit hash of
 // the query state. Filters are sorted by col_id for order
 // independence.
-func GridQuerySignature(query GridQueryState) uint64 {
+func gridQuerySignature(query GridQueryState) uint64 {
 	h := dataGridFnv64Offset
 	h = dataGridFnv64Str(h, query.QuickFilter)
 	h = dataGridFnv64Byte(h, '|')
@@ -661,16 +661,16 @@ type gridMutationApplyResult struct {
 }
 
 func dataGridSourceApplyMutation(
-	rows *[]GridRow, kind GridMutationKind,
+	rows *[]GridRow, kind gridMutationKind,
 	reqRows []GridRow, reqRowIDs []string,
 	edits []GridCellEdit,
 ) (gridMutationApplyResult, error) {
 	switch kind {
-	case GridMutationCreate:
+	case gridMutationCreate:
 		return dataGridSourceApplyCreate(rows, reqRows)
-	case GridMutationUpdate:
+	case gridMutationUpdate:
 		return dataGridSourceApplyUpdate(rows, reqRows, edits)
-	case GridMutationDelete:
+	case gridMutationDelete:
 		return dataGridSourceApplyDelete(rows, reqRows, reqRowIDs)
 	}
 	return gridMutationApplyResult{}, errors.New(

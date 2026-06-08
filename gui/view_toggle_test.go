@@ -4,7 +4,7 @@ import "testing"
 
 func TestToggleIDPassthrough(t *testing.T) {
 	w := &Window{}
-	layout := GenerateViewLayout(
+	layout := generateViewLayout(
 		Toggle(ToggleCfg{ID: "tg1", OnClick: noop}), w)
 	if layout.Shape.ID != "tg1" {
 		t.Errorf("ID: got %s", layout.Shape.ID)
@@ -13,8 +13,8 @@ func TestToggleIDPassthrough(t *testing.T) {
 
 func TestCheckboxAliasRole(t *testing.T) {
 	w := &Window{}
-	layout := GenerateViewLayout(
-		Checkbox(ToggleCfg{ID: "cb1", OnClick: noop}), w)
+	layout := generateViewLayout(
+		Toggle(ToggleCfg{ID: "cb1", OnClick: noop}), w)
 	if layout.Shape.A11YRole != AccessRoleCheckbox {
 		t.Errorf("a11y role: got %d", layout.Shape.A11YRole)
 	}
@@ -22,7 +22,7 @@ func TestCheckboxAliasRole(t *testing.T) {
 
 func TestToggleSelectedTextContent(t *testing.T) {
 	w := &Window{}
-	layout := GenerateViewLayout(Toggle(ToggleCfg{
+	layout := generateViewLayout(Toggle(ToggleCfg{
 		OnClick:      noop,
 		Selected:     true,
 		TextSelect:   "YES",
@@ -47,7 +47,7 @@ func TestToggleSelectedTextContent(t *testing.T) {
 
 func TestToggleUnselectedTextContent(t *testing.T) {
 	w := &Window{}
-	layout := GenerateViewLayout(Toggle(ToggleCfg{
+	layout := generateViewLayout(Toggle(ToggleCfg{
 		OnClick:      noop,
 		Selected:     false,
 		TextSelect:   "YES",
@@ -66,7 +66,7 @@ func TestToggleUnselectedTextContent(t *testing.T) {
 
 func TestToggleDisabledFlag(t *testing.T) {
 	w := &Window{}
-	layout := GenerateViewLayout(
+	layout := generateViewLayout(
 		Toggle(ToggleCfg{OnClick: noop, Disabled: true}), w)
 	if !layout.Shape.Disabled {
 		t.Error("expected disabled")
@@ -75,7 +75,7 @@ func TestToggleDisabledFlag(t *testing.T) {
 
 func TestToggleLabelAddsChild(t *testing.T) {
 	w := &Window{}
-	layout := GenerateViewLayout(
+	layout := generateViewLayout(
 		Toggle(ToggleCfg{OnClick: noop, Label: "Accept"}), w)
 	if len(layout.Children) < 2 {
 		t.Errorf("expected >= 2 children, got %d",

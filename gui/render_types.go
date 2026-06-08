@@ -122,9 +122,9 @@ type TextPathData struct {
 	Method   int     // 0=align, 1=stretch
 }
 
-// FilterBracketRange describes a matched DrawFilterBegin..DrawFilterEnd
+// filterBracketRange describes a matched DrawFilterBegin..DrawFilterEnd
 // range within the renderers slice.
-type FilterBracketRange struct {
+type filterBracketRange struct {
 	StartIdx int
 	EndIdx   int
 	NextIdx  int
@@ -135,10 +135,10 @@ type FilterBracketRange struct {
 // a DrawFilterBegin..DrawFilterEnd pair.
 // Precondition: filter brackets do not nest. w.inFilter prevents
 // nested RenderFilterBegin emissions during layout rendering.
-func findFilterBracketRange(renderers []RenderCmd, startIdx int) FilterBracketRange {
+func findFilterBracketRange(renderers []RenderCmd, startIdx int) filterBracketRange {
 	for i := startIdx; i < len(renderers); i++ {
 		if renderers[i].Kind == RenderFilterEnd {
-			return FilterBracketRange{
+			return filterBracketRange{
 				StartIdx: startIdx,
 				EndIdx:   i,
 				NextIdx:  i + 1,
@@ -146,7 +146,7 @@ func findFilterBracketRange(renderers []RenderCmd, startIdx int) FilterBracketRa
 			}
 		}
 	}
-	return FilterBracketRange{
+	return filterBracketRange{
 		StartIdx: startIdx,
 		EndIdx:   len(renderers),
 		NextIdx:  len(renderers),

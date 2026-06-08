@@ -8,9 +8,9 @@ func TestWrapBasic(t *testing.T) {
 			Axis: AxisLeftToRight, Wrap: true, Width: 80, Spacing: 5,
 		},
 		Children: []Layout{
-			{Shape: &Shape{Width: 30, ShapeType: ShapeRectangle}},
-			{Shape: &Shape{Width: 30, ShapeType: ShapeRectangle}},
-			{Shape: &Shape{Width: 30, ShapeType: ShapeRectangle}},
+			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
+			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
+			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
 		},
 	}
 
@@ -42,9 +42,9 @@ func TestWrapSingleRow(t *testing.T) {
 			Axis: AxisLeftToRight, Wrap: true, Width: 200, Spacing: 5,
 		},
 		Children: []Layout{
-			{Shape: &Shape{Width: 30, ShapeType: ShapeRectangle}},
-			{Shape: &Shape{Width: 30, ShapeType: ShapeRectangle}},
-			{Shape: &Shape{Width: 30, ShapeType: ShapeRectangle}},
+			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
+			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
+			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
 		},
 	}
 
@@ -64,9 +64,9 @@ func TestWrapHeights(t *testing.T) {
 			Axis: AxisLeftToRight, Wrap: true, Width: 80, Spacing: 10,
 		},
 		Children: []Layout{
-			{Shape: &Shape{Width: 30, Height: 20, ShapeType: ShapeRectangle}},
-			{Shape: &Shape{Width: 30, Height: 20, ShapeType: ShapeRectangle}},
-			{Shape: &Shape{Width: 30, Height: 25, ShapeType: ShapeRectangle}},
+			{Shape: &Shape{Width: 30, Height: 20, shapeType: shapeRectangle}},
+			{Shape: &Shape{Width: 30, Height: 20, shapeType: shapeRectangle}},
+			{Shape: &Shape{Width: 30, Height: 25, shapeType: shapeRectangle}},
 		},
 	}
 
@@ -94,9 +94,9 @@ func TestWrapPositions(t *testing.T) {
 			Width: 80, Height: 100, Sizing: FixedFixed, Spacing: 5,
 		},
 		Children: []Layout{
-			{Shape: &Shape{Width: 30, Height: 20, ShapeType: ShapeRectangle}},
-			{Shape: &Shape{Width: 30, Height: 20, ShapeType: ShapeRectangle}},
-			{Shape: &Shape{Width: 30, Height: 15, ShapeType: ShapeRectangle}},
+			{Shape: &Shape{Width: 30, Height: 20, shapeType: shapeRectangle}},
+			{Shape: &Shape{Width: 30, Height: 20, shapeType: shapeRectangle}},
+			{Shape: &Shape{Width: 30, Height: 15, shapeType: shapeRectangle}},
 		},
 	}
 
@@ -126,10 +126,10 @@ func TestWrapNonFlow(t *testing.T) {
 			Axis: AxisLeftToRight, Wrap: true, Width: 80, Spacing: 5,
 		},
 		Children: []Layout{
-			{Shape: &Shape{Width: 30, ShapeType: ShapeRectangle}},
-			{Shape: &Shape{Width: 10, ShapeType: ShapeRectangle, Float: true}},
-			{Shape: &Shape{Width: 30, ShapeType: ShapeRectangle}},
-			{Shape: &Shape{Width: 30, ShapeType: ShapeRectangle}},
+			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
+			{Shape: &Shape{Width: 10, shapeType: shapeRectangle, Float: true}},
+			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
+			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
 		},
 	}
 
@@ -150,21 +150,21 @@ func TestWrapFillInColumn(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			Axis: AxisTopToBottom, Width: 400, Height: 300,
-			Sizing: FixedFixed, ShapeType: ShapeRectangle,
+			Sizing: FixedFixed, shapeType: shapeRectangle,
 		},
 		Children: []Layout{
 			{
 				Shape: &Shape{
 					Axis: AxisLeftToRight, Wrap: true,
-					Sizing: FillFit, Spacing: 5, ShapeType: ShapeRectangle,
+					Sizing: FillFit, Spacing: 5, shapeType: shapeRectangle,
 				},
 				Children: []Layout{
-					{Shape: &Shape{Width: 80, Height: 20, ShapeType: ShapeRectangle}},
-					{Shape: &Shape{Width: 80, Height: 20, ShapeType: ShapeRectangle}},
-					{Shape: &Shape{Width: 80, Height: 20, ShapeType: ShapeRectangle}},
-					{Shape: &Shape{Width: 80, Height: 20, ShapeType: ShapeRectangle}},
-					{Shape: &Shape{Width: 80, Height: 20, ShapeType: ShapeRectangle}},
-					{Shape: &Shape{Width: 80, Height: 20, ShapeType: ShapeRectangle}},
+					{Shape: &Shape{Width: 80, Height: 20, shapeType: shapeRectangle}},
+					{Shape: &Shape{Width: 80, Height: 20, shapeType: shapeRectangle}},
+					{Shape: &Shape{Width: 80, Height: 20, shapeType: shapeRectangle}},
+					{Shape: &Shape{Width: 80, Height: 20, shapeType: shapeRectangle}},
+					{Shape: &Shape{Width: 80, Height: 20, shapeType: shapeRectangle}},
+					{Shape: &Shape{Width: 80, Height: 20, shapeType: shapeRectangle}},
 				},
 			},
 		},
@@ -194,10 +194,10 @@ func TestWrapLeadingSkippedChildren(t *testing.T) {
 			Axis: AxisLeftToRight, Wrap: true, Width: 80, Spacing: 5,
 		},
 		Children: []Layout{
-			{Shape: &Shape{Width: 10, ShapeType: ShapeRectangle, Float: true}},
-			{Shape: &Shape{Width: 30, ShapeType: ShapeRectangle}},
-			{Shape: &Shape{Width: 30, ShapeType: ShapeRectangle}},
-			{Shape: &Shape{Width: 30, ShapeType: ShapeRectangle}},
+			{Shape: &Shape{Width: 10, shapeType: shapeRectangle, Float: true}},
+			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
+			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
+			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
 		},
 	}
 
@@ -223,10 +223,10 @@ func TestWrapTrailingNonFlowAtRowBoundary(t *testing.T) {
 			Axis: AxisLeftToRight, Wrap: true, Width: 65, Spacing: 5,
 		},
 		Children: []Layout{
-			{Shape: &Shape{Width: 30, ShapeType: ShapeRectangle}},
-			{Shape: &Shape{Width: 30, ShapeType: ShapeRectangle}},
-			{Shape: &Shape{Width: 10, ShapeType: ShapeRectangle, Float: true}},
-			{Shape: &Shape{Width: 30, ShapeType: ShapeRectangle}},
+			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
+			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
+			{Shape: &Shape{Width: 10, shapeType: shapeRectangle, Float: true}},
+			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
 		},
 	}
 
@@ -251,9 +251,9 @@ func TestWrapPadding(t *testing.T) {
 			Padding: NewPadding(0, 10, 0, 10),
 		},
 		Children: []Layout{
-			{Shape: &Shape{Width: 30, ShapeType: ShapeRectangle}},
-			{Shape: &Shape{Width: 30, ShapeType: ShapeRectangle}},
-			{Shape: &Shape{Width: 30, ShapeType: ShapeRectangle}},
+			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
+			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
+			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
 		},
 	}
 

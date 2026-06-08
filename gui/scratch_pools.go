@@ -111,9 +111,9 @@ type scratchPools struct {
 	svgAnimContribs  scratchSlice[animContrib]
 
 	// View-phase pool: reuse Shape allocations across frames.
-	// Reset before GenerateViewLayout; valid through buildRenderers.
+	// Reset before generateViewLayout; valid through buildRenderers.
 	viewShapes   scratchObjPool[Shape]
-	buttonColors scratchObjPool[ShapeButtonColors]
+	buttonColors scratchObjPool[shapeButtonColors]
 
 	// Render-phase pools: reuse heap objects whose addresses are
 	// stored in RenderCmd pointer fields (avoids per-frame escapes).
@@ -155,7 +155,7 @@ func newScratchPools() scratchPools {
 		svgAnimTriangles:       scratchSlice[TessellatedPath]{retainMax: 1024, shrinkTo: 64},
 		svgAnimContribs:        scratchSlice[animContrib]{retainMax: 1024, shrinkTo: 64},
 		viewShapes:             scratchObjPool[Shape]{retainMax: 16384, shrinkTo: 1024},
-		buttonColors:           scratchObjPool[ShapeButtonColors]{retainMax: 512, shrinkTo: 32},
+		buttonColors:           scratchObjPool[shapeButtonColors]{retainMax: 512, shrinkTo: 32},
 		renderTextStyles:       scratchObjPool[TextStyle]{retainMax: 4096, shrinkTo: 256},
 		renderGlyphLayouts:     scratchObjPool[glyph.Layout]{retainMax: 1024, shrinkTo: 64},
 		renderAffineTransforms: scratchObjPool[glyph.AffineTransform]{retainMax: 256, shrinkTo: 16},
@@ -163,7 +163,7 @@ func newScratchPools() scratchPools {
 }
 
 // resetViewPools resets the view-phase object pools. Called
-// before GenerateViewLayout.
+// before generateViewLayout.
 func (p *scratchPools) resetViewPools() {
 	p.viewShapes.reset()
 	p.buttonColors.reset()
@@ -278,10 +278,10 @@ func (p *scratchPools) allocPlaceholderShape() *Shape {
 	p.placeholderPoolUsed++
 	if idx < len(p.placeholderShapePool) {
 		reused := p.placeholderShapePool[idx]
-		*reused = Shape{ShapeType: ShapeNone}
+		*reused = Shape{shapeType: shapeNone}
 		return reused
 	}
-	allocated := &Shape{ShapeType: ShapeNone}
+	allocated := &Shape{shapeType: shapeNone}
 	p.placeholderShapePool = append(p.placeholderShapePool, allocated)
 	return allocated
 }

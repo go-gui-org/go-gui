@@ -4,7 +4,7 @@ package gui
 // directly. A Layout is generated from the View. Window does
 // not hold a reference to a View. Views should be stateless.
 //
-// Pipeline: View -> GenerateViewLayout -> Layout ->
+// Pipeline: View -> generateViewLayout -> Layout ->
 // layoutArrange -> renderLayout -> []RenderCmd
 type View interface {
 	Content() []View
@@ -18,14 +18,23 @@ func ensureLayoutShape(layout *Layout) {
 		return
 	}
 	if layout.Shape == nil {
-		layout.Shape = &Shape{ShapeType: ShapeNone}
+		layout.Shape = &Shape{shapeType: shapeNone}
 	}
 }
 
 // GenerateViewLayout recursively builds a Layout tree from a
 // View tree. Each View produces its own layout, then child
 // Views are appended.
+//
+// Deprecated: Internal pipeline function. Not part of the stable
+// public API. Will be removed in a future version. Use
+// View.GenerateLayout for individual layout generation.
 func GenerateViewLayout(view View, w *Window) Layout {
+	return generateViewLayout(view, w)
+}
+
+// generateViewLayout is the internal recursive layout builder.
+func generateViewLayout(view View, w *Window) Layout {
 	layout := view.GenerateLayout(w)
 	ensureLayoutShape(&layout)
 	children := view.Content()
@@ -40,7 +49,7 @@ func GenerateViewLayout(view View, w *Window) Layout {
 		}
 		layout.Children = append(
 			layout.Children,
-			GenerateViewLayout(child, w),
+			generateViewLayout(child, w),
 		)
 	}
 	return layout
