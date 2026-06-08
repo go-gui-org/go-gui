@@ -1,7 +1,7 @@
 # Go-Gui Roadmap
 
 Concrete, milestone-driven initiatives. Each independently shippable.
-Milestones map to semver bumps from current v0.24.
+Milestones map to semver bumps from current v0.25.
 
 ---
 
@@ -42,7 +42,7 @@ mouse events, gradients, animation, custom shaders).
 - **Contribution guide**: update `CONTRIBUTING.md` with new Makefile targets
 - **Issue templates**: add `.github/ISSUE_TEMPLATE/` forms for bugs and
   feature requests
-- **GoReleaser**: evaluate for v0.25+ once Makefile release pipeline is
+- **GoReleaser**: evaluate for v0.26+ once Makefile release pipeline is
   stable. Right now the CGo + static SDL2 path needs explicit control;
   GoReleaser adds abstraction when it's no longer needed.
 
