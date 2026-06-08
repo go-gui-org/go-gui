@@ -10,7 +10,7 @@ internal machinery, it shouldn't be exported.
 
 ## Progress
 
-Branch `api-reduction`, 5 commits:
+Branch `api-reduction`, 6 commits:
 
 | Commit | What | ~Symbols |
 |--------|------|----------|
@@ -18,9 +18,15 @@ Branch `api-reduction`, 5 commits:
 | `cda6470` | Phases 1c,4a,4c — unexport Layout/pipeline internals, move shader consts to `gui/shader/`, remove redundant exports | 45 |
 | `2d030fb` | Phases 1c cont, 5 — unexport DataGrid internals (23 funcs/types), remove 3 widget aliases (Split/Tabs/Checkbox), delete 3 dead export funcs | 29 |
 | `ab8b709` | Phases 3+8 — unexport 5 internal Window methods (UpdateRenderOnly, RequestRenderOnly, InputCursorOn, SetMouseCursor), delete 1 dead method (RenderersCount) | 6 |
-| *next* | Phases 3+8 cont — unexport 7 more Window methods (SetState, ClearViewState, HasFocus, SetMouseCursorIBeam, SetMouseCursorResizeNESW, SetMouseCursorResizeNWSE, SetMouseCursorNotAllowed) | 7 |
+| `61e7f1a` | Phases 3+8 cont — unexport 7 more Window methods (SetState, ClearViewState, HasFocus, SetMouseCursorIBeam, etc.) | 7 |
+| `c336391` | Phase 4b — consolidate 14 theme vars → 4, add WithPadding/WithBorders builders, unexport all *Cfg vars, add ThemeBlue | 11 |
 
-**Total: ~127 symbols removed.** `go doc gui` output: ~772 lines (down from ~790).
+**Total: ~138 symbols removed.** `go doc gui` output: ~772 lines (down from ~790).
+
+## Status
+
+All actionable phases complete. Remaining (Phases 1b, 1d, 2, 7)
+blocked by circular dependency or no safe candidates.
 
 ## What's Done
 
@@ -58,15 +64,13 @@ Branch `api-reduction`, 5 commits:
 - [x] Unexport SetMouseCursorIBeam, SetMouseCursorResizeNESW, SetMouseCursorResizeNWSE, SetMouseCursorNotAllowed (zero usage)
 - [x] Keep SetMouseCursorArrow, SetMouseCursorCrosshair, SetMouseCursorPointingHand, SetMouseCursorAll (used by sibling projects)
 
-## What's Left (actionable)
+### Phase 4b — Theme Var Consolidation
+- [x] Add `Theme.WithPadding(bool)`, `Theme.WithBorders(bool)` builder methods
+- [x] Add `ThemeBlue` base theme
+- [x] Unexport all `*Cfg` vars (7) and `*NoPadding`/`*Bordered` Theme vars (5)
+- [x] Update ~200 references across examples, docs, sibling projects
 
-### Phase 4b — Theme Var Consolidation (breaking)
-Reduce 14 theme vars to 3: `ThemeDark`, `ThemeLight`, `ThemeBlue`.
-Unexport all `*Cfg` and `*NoPadding`/`*Bordered` variants.
-Add `Theme.WithPadding(bool)`, `Theme.WithBorders(bool)` builder methods.
-Update 80+ references across examples and sibling projects.
-
-### Phases 3+8 — More Window Methods
+### Phases 3+8 — Window Method Cleanup (complete)
 Full audit complete. 45 exported → 38 remaining. Candidates kept because:
 - **Backend-injected (must stay):** Lock, Unlock, Close, MouseCursorState,
   SetWakeMainFn, SetTextMeasurer, SetClipboardGetFn, SetClipboardFn, Renderers,
