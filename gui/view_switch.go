@@ -101,8 +101,8 @@ func Switch(cfg SwitchCfg) View {
 		OnClick:         leftClickOnly(cfg.OnClick),
 		OnHover: func(layout *Layout, e *Event, w *Window) {
 			if layout.Shape.Disabled ||
-				!layout.Shape.HasEvents() ||
-				layout.Shape.Events.OnClick == nil {
+				!layout.Shape.hasEvents() ||
+				layout.Shape.events.OnClick == nil {
 				return
 			}
 			w.SetMouseCursor(CursorPointingHand)
@@ -115,8 +115,8 @@ func Switch(cfg SwitchCfg) View {
 		},
 		AmendLayout: func(layout *Layout, w *Window) {
 			if layout.Shape.Disabled ||
-				!layout.Shape.HasEvents() ||
-				layout.Shape.Events.OnClick == nil {
+				!layout.Shape.hasEvents() ||
+				layout.Shape.events.OnClick == nil {
 				return
 			}
 			if w.IsFocus(layout.Shape.IDFocus) {

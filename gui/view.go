@@ -18,7 +18,7 @@ func ensureLayoutShape(layout *Layout) {
 		return
 	}
 	if layout.Shape == nil {
-		layout.Shape = &Shape{ShapeType: ShapeNone}
+		layout.Shape = &Shape{shapeType: shapeNone}
 	}
 }
 

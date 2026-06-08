@@ -3,7 +3,7 @@ package gui
 import "math"
 
 // renderDrawCanvas renders cached draw-canvas triangle batches.
-func renderDrawCanvas(shape *Shape, clip DrawClip, w *Window) {
+func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 	if !rectsOverlap(shapeBounds(shape), clip) {
 		return
 	}
@@ -13,8 +13,8 @@ func renderDrawCanvas(shape *Shape, clip DrawClip, w *Window) {
 	sm := StateMap[string, DrawCanvasCache](w, nsDrawCanvas, capModerate)
 
 	// Content dimensions account for padding.
-	cw := shape.Width - shape.PaddingWidth()
-	ch := shape.Height - shape.PaddingHeight()
+	cw := shape.Width - shape.paddingWidth()
+	ch := shape.Height - shape.paddingHeight()
 
 	scale := w.BackingScale
 	if scale <= 0 || math.IsNaN(float64(scale)) || math.IsInf(float64(scale), 0) {
@@ -36,14 +36,14 @@ func renderDrawCanvas(shape *Shape, clip DrawClip, w *Window) {
 		}
 	}
 
-	if needsDraw && shape.Events != nil && shape.Events.OnDraw != nil {
+	if needsDraw && shape.events != nil && shape.events.OnDraw != nil {
 		dc := DrawContext{
 			Width:       cw,
 			Height:      ch,
 			Scale:       scale,
 			textMeasure: w.textMeasurer,
 		}
-		shape.Events.OnDraw(&dc)
+		shape.events.OnDraw(&dc)
 		cached = DrawCanvasCache{
 			Version:    shape.Version,
 			TessWidth:  cw,
@@ -69,7 +69,7 @@ func renderDrawCanvas(shape *Shape, clip DrawClip, w *Window) {
 
 	// Clip to content area.
 	if shape.Clip {
-		emitClipCmd(DrawClip{X: ox, Y: oy, Width: cw, Height: ch}, w)
+		emitClipCmd(drawClip{X: ox, Y: oy, Width: cw, Height: ch}, w)
 	}
 
 	// Images emit first so they act as the back layer. DrawContext

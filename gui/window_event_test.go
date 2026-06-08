@@ -18,7 +18,7 @@ func TestEventFnRoutesChar(t *testing.T) {
 		Children: []Layout{
 			{Shape: &Shape{
 				IDFocus: 1,
-				Events: &EventHandlers{
+				events: &eventHandlers{
 					OnChar: func(_ *Layout, e *Event, _ *Window) {
 						called = true
 						e.IsHandled = true
@@ -71,7 +71,7 @@ func TestEventFnMouseDownSetsFocus(t *testing.T) {
 		Children: []Layout{
 			{Shape: &Shape{
 				IDFocus: 7,
-				ShapeClip: DrawClip{X: 0, Y: 0,
+				shapeClip: drawClip{X: 0, Y: 0,
 					Width: 100, Height: 100},
 			}},
 		},
@@ -113,7 +113,7 @@ func TestEventFnBlocksWhenUnfocused(t *testing.T) {
 		Children: []Layout{
 			{Shape: &Shape{
 				IDFocus: 1,
-				Events: &EventHandlers{
+				events: &eventHandlers{
 					OnChar: func(_ *Layout, _ *Event, _ *Window) {
 						called = true
 					},
@@ -189,7 +189,7 @@ func TestEventFnDialogModalRouting(t *testing.T) {
 		Children: []Layout{
 			{Shape: &Shape{
 				IDFocus: 1,
-				Events: &EventHandlers{
+				events: &eventHandlers{
 					OnChar: func(_ *Layout, e *Event, _ *Window) {
 						mainCalled = true
 						e.IsHandled = true
@@ -198,7 +198,7 @@ func TestEventFnDialogModalRouting(t *testing.T) {
 			}},
 			{Shape: &Shape{
 				IDFocus: 2,
-				Events: &EventHandlers{
+				events: &eventHandlers{
 					OnChar: func(_ *Layout, e *Event, _ *Window) {
 						dialogCalled = true
 						e.IsHandled = true
@@ -282,7 +282,7 @@ func TestEventFnMouseScrollFocusedHandlerPrecedence(t *testing.T) {
 		Children: []Layout{
 			{Shape: &Shape{
 				IDFocus: 11,
-				Events: &EventHandlers{
+				events: &eventHandlers{
 					OnMouseScroll: func(_ *Layout, e *Event, _ *Window) {
 						focusedCalled = true
 						e.IsHandled = true
@@ -293,7 +293,7 @@ func TestEventFnMouseScrollFocusedHandlerPrecedence(t *testing.T) {
 				IDScroll: 1,
 				Width:    100,
 				Height:   50,
-				ShapeClip: DrawClip{
+				shapeClip: drawClip{
 					X: 0, Y: 0, Width: 100, Height: 50,
 				},
 			}, Children: []Layout{
@@ -327,7 +327,7 @@ func TestEventFnRoutesKeyUp(t *testing.T) {
 		Children: []Layout{
 			{Shape: &Shape{
 				IDFocus: 1,
-				Events: &EventHandlers{
+				events: &eventHandlers{
 					OnKeyUp: func(_ *Layout, e *Event, _ *Window) {
 						called = true
 						e.IsHandled = true

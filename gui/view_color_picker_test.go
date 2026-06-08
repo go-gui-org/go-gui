@@ -12,8 +12,8 @@ func TestColorPickerLayout(t *testing.T) {
 	if layout.Shape.ID != "cp1" {
 		t.Errorf("ID = %q", layout.Shape.ID)
 	}
-	if layout.Shape.ShapeType != ShapeRectangle {
-		t.Errorf("type = %d", layout.Shape.ShapeType)
+	if layout.Shape.shapeType != shapeRectangle {
+		t.Errorf("type = %d", layout.Shape.shapeType)
 	}
 }
 

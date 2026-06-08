@@ -50,7 +50,7 @@ func reaccumulateAncestors(layout *Layout) {
 // recomputeFitWidth mirrors layoutWidths accumulation for a
 // single Fit node from its direct children.
 func recomputeFitWidth(layout *Layout) float32 {
-	padding := layout.Shape.PaddingWidth()
+	padding := layout.Shape.paddingWidth()
 	var w float32
 	switch layout.Shape.Axis {
 	case AxisLeftToRight:
@@ -83,7 +83,7 @@ func recomputeFitWidth(layout *Layout) float32 {
 // recomputeFitHeight mirrors layoutHeights accumulation for a
 // single Fit node from its direct children.
 func recomputeFitHeight(layout *Layout) float32 {
-	padding := layout.Shape.PaddingHeight()
+	padding := layout.Shape.paddingHeight()
 	var h float32
 	switch layout.Shape.Axis {
 	case AxisTopToBottom:

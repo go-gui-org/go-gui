@@ -51,12 +51,12 @@ func (dv *drawCanvasView) Content() []View { return nil }
 func (dv *drawCanvasView) GenerateLayout(_ *Window) Layout {
 	c := &dv.cfg
 
-	var events *EventHandlers
+	var events *eventHandlers
 	if c.OnClick != nil || c.OnHover != nil || c.OnMouseMove != nil ||
 		c.OnMouseUp != nil || c.OnMouseLeave != nil || c.OnGesture != nil ||
 		c.OnMouseScroll != nil || c.OnFileDrop != nil ||
 		c.OnKeyDown != nil || c.OnDraw != nil {
-		events = &EventHandlers{
+		events = &eventHandlers{
 			OnClick:       leftClickOnly(c.OnClick),
 			OnHover:       c.OnHover,
 			OnMouseMove:   c.OnMouseMove,
@@ -79,7 +79,7 @@ func (dv *drawCanvasView) GenerateLayout(_ *Window) Layout {
 
 	layout := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeDrawCanvas,
+			shapeType: shapeDrawCanvas,
 			ID:        c.ID,
 			Version:   c.Version,
 			A11YRole:  a11yRole,
@@ -96,7 +96,7 @@ func (dv *drawCanvasView) GenerateLayout(_ *Window) Layout {
 			Color:     c.Color,
 			Radius:    c.Radius,
 			IDFocus:   c.IDFocus,
-			Events:    events,
+			events:    events,
 		},
 	}
 	ApplyFixedSizingConstraints(layout.Shape)

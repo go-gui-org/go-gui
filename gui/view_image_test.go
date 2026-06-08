@@ -41,9 +41,9 @@ func TestImageGenerateLayoutLocalMissing(t *testing.T) {
 	if layout.Shape == nil {
 		t.Fatal("expected shape")
 	}
-	if layout.Shape.ShapeType != ShapeText {
-		t.Fatalf("expected ShapeText for missing, got %d",
-			layout.Shape.ShapeType)
+	if layout.Shape.shapeType != shapeText {
+		t.Fatalf("expected shapeText for missing, got %d",
+			layout.Shape.shapeType)
 	}
 }
 
@@ -62,9 +62,9 @@ func TestImageGenerateLayoutLocalExists(t *testing.T) {
 		Height: 150,
 	})
 	layout := v.GenerateLayout(w)
-	if layout.Shape.ShapeType != ShapeImage {
-		t.Fatalf("expected ShapeImage, got %d",
-			layout.Shape.ShapeType)
+	if layout.Shape.shapeType != shapeImage {
+		t.Fatalf("expected shapeImage, got %d",
+			layout.Shape.shapeType)
 	}
 	if layout.Shape.Resource != path {
 		t.Fatalf("expected resource %s, got %s",
@@ -133,11 +133,11 @@ func TestImageWithEvents(t *testing.T) {
 		},
 	})
 	layout := v.GenerateLayout(w)
-	if layout.Shape.Events == nil {
+	if layout.Shape.events == nil {
 		t.Fatal("expected events")
 	}
 	// Simulate left click.
-	layout.Shape.Events.OnClick(&layout, &Event{
+	layout.Shape.events.OnClick(&layout, &Event{
 		MouseButton: MouseLeft,
 	}, w)
 	if !clicked {

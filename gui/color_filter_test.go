@@ -178,8 +178,8 @@ func TestColorFilterComposeInvertInvert(t *testing.T) {
 }
 
 func TestColorFilterNilMatrix(t *testing.T) {
-	// Verify nil ColorFilter doesn't panic in ShapeEffects check.
-	fx := &ShapeEffects{ColorFilter: nil}
+	// Verify nil ColorFilter doesn't panic in shapeEffects check.
+	fx := &shapeEffects{ColorFilter: nil}
 	if fx.ColorFilter != nil {
 		t.Error("should be nil")
 	}
@@ -190,17 +190,17 @@ func TestRenderFilterBracketWithColorFilter(t *testing.T) {
 	cf := ColorFilterGrayscale()
 	l := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Width:     100,
 			Height:    100,
 			Color:     White,
 			Opacity:   1.0,
-			FX: &ShapeEffects{
+			fx: &shapeEffects{
 				ColorFilter: cf,
 			},
 		},
 	}
-	clip := DrawClip{Width: 800, Height: 600}
+	clip := drawClip{Width: 800, Height: 600}
 	renderLayout(&l, White, clip, w)
 
 	var hasBegin, hasEnd bool
@@ -232,18 +232,18 @@ func TestRenderFilterBracketBlurSuppressed(t *testing.T) {
 	w := newTestWindow()
 	l := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Width:     100,
 			Height:    100,
 			Color:     White,
 			Opacity:   1.0,
-			FX: &ShapeEffects{
+			fx: &shapeEffects{
 				ColorFilter: ColorFilterGrayscale(),
 				BlurRadius:  10,
 			},
 		},
 	}
-	clip := DrawClip{Width: 800, Height: 600}
+	clip := drawClip{Width: 800, Height: 600}
 	renderLayout(&l, White, clip, w)
 
 	for i := range w.renderers {

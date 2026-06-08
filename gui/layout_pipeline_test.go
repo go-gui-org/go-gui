@@ -10,7 +10,7 @@ func TestLayoutPipelineNoPanic(t *testing.T) {
 	_ = t
 	w := &Window{}
 	shape := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		Width:     100, Height: 100,
 		Sizing:  FillFill,
 		Opacity: 1,
@@ -18,8 +18,8 @@ func TestLayoutPipelineNoPanic(t *testing.T) {
 	layout := Layout{
 		Shape: shape,
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 50, Height: 50, Opacity: 1}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 30, Height: 30, Opacity: 1}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 50, Height: 50, Opacity: 1}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 30, Height: 30, Opacity: 1}},
 		},
 	}
 	w.windowWidth = 200
@@ -32,8 +32,8 @@ func TestLayoutAmendFiresChildrenFirst(t *testing.T) {
 	var order []string
 
 	child := &Shape{
-		ShapeType: ShapeRectangle,
-		Events: &EventHandlers{
+		shapeType: shapeRectangle,
+		events: &eventHandlers{
 			AmendLayout: func(_ *Layout, _ *Window) {
 				order = append(order, "child")
 			},
@@ -41,8 +41,8 @@ func TestLayoutAmendFiresChildrenFirst(t *testing.T) {
 		Opacity: 1,
 	}
 	parent := &Shape{
-		ShapeType: ShapeRectangle,
-		Events: &EventHandlers{
+		shapeType: shapeRectangle,
+		events: &eventHandlers{
 			AmendLayout: func(_ *Layout, _ *Window) {
 				order = append(order, "parent")
 			},
@@ -74,9 +74,9 @@ func TestLayoutHoverInsideShape(t *testing.T) {
 
 	hovered := false
 	shape := &Shape{
-		ShapeType: ShapeRectangle,
-		ShapeClip: DrawClip{X: 0, Y: 0, Width: 50, Height: 50},
-		Events: &EventHandlers{
+		shapeType: shapeRectangle,
+		shapeClip: drawClip{X: 0, Y: 0, Width: 50, Height: 50},
+		events: &eventHandlers{
 			OnHover: func(_ *Layout, _ *Event, _ *Window) {
 				hovered = true
 			},
@@ -101,9 +101,9 @@ func TestLayoutHoverOutsideShape(t *testing.T) {
 
 	hovered := false
 	shape := &Shape{
-		ShapeType: ShapeRectangle,
-		ShapeClip: DrawClip{X: 0, Y: 0, Width: 50, Height: 50},
-		Events: &EventHandlers{
+		shapeType: shapeRectangle,
+		shapeClip: drawClip{X: 0, Y: 0, Width: 50, Height: 50},
+		events: &eventHandlers{
 			OnHover: func(_ *Layout, _ *Event, _ *Window) {
 				hovered = true
 			},
@@ -128,9 +128,9 @@ func TestLayoutHoverMouseLocked(t *testing.T) {
 	w.viewState.mousePosY = 15
 
 	shape := &Shape{
-		ShapeType: ShapeRectangle,
-		ShapeClip: DrawClip{X: 0, Y: 0, Width: 50, Height: 50},
-		Events: &EventHandlers{
+		shapeType: shapeRectangle,
+		shapeClip: drawClip{X: 0, Y: 0, Width: 50, Height: 50},
+		events: &eventHandlers{
 			OnHover: func(_ *Layout, _ *Event, _ *Window) {},
 		},
 		Opacity: 1,
@@ -150,9 +150,9 @@ func TestLayoutHoverBlockedByDialog(t *testing.T) {
 
 	hovered := false
 	shape := &Shape{
-		ShapeType: ShapeRectangle,
-		ShapeClip: DrawClip{X: 0, Y: 0, Width: 50, Height: 50},
-		Events: &EventHandlers{
+		shapeType: shapeRectangle,
+		shapeClip: drawClip{X: 0, Y: 0, Width: 50, Height: 50},
+		events: &eventHandlers{
 			OnHover: func(_ *Layout, _ *Event, _ *Window) {
 				hovered = true
 			},
@@ -172,8 +172,8 @@ func TestLayoutHoverBlockedByDialog(t *testing.T) {
 }
 
 func TestLayoutInDialogLayoutPositive(t *testing.T) {
-	dialog := &Shape{ID: reservedDialogID, ShapeType: ShapeRectangle}
-	child := &Shape{ShapeType: ShapeRectangle}
+	dialog := &Shape{ID: reservedDialogID, shapeType: shapeRectangle}
+	child := &Shape{shapeType: shapeRectangle}
 	parent := Layout{Shape: dialog}
 	childLayout := Layout{Shape: child, Parent: &parent}
 
@@ -183,8 +183,8 @@ func TestLayoutInDialogLayoutPositive(t *testing.T) {
 }
 
 func TestLayoutInDialogLayoutNegative(t *testing.T) {
-	outer := &Shape{ID: "something_else", ShapeType: ShapeRectangle}
-	child := &Shape{ShapeType: ShapeRectangle}
+	outer := &Shape{ID: "something_else", shapeType: shapeRectangle}
+	child := &Shape{shapeType: shapeRectangle}
 	parent := Layout{Shape: outer}
 	childLayout := Layout{Shape: child, Parent: &parent}
 
@@ -198,7 +198,7 @@ func TestLayoutArrangeReturnsLayers(t *testing.T) {
 	w.windowWidth = 400
 	w.windowHeight = 400
 	shape := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		Width:     400, Height: 400,
 		Sizing:  FillFill,
 		Opacity: 1,
@@ -223,8 +223,8 @@ func TestLayoutArrangeNormalizesNilShape(t *testing.T) {
 	if layouts[0].Shape == nil {
 		t.Fatal("shape should be normalized")
 	}
-	if layouts[0].Shape.ShapeType != ShapeNone {
-		t.Fatalf("shape type: got %v, want ShapeNone", layouts[0].Shape.ShapeType)
+	if layouts[0].Shape.shapeType != shapeNone {
+		t.Fatalf("shape type: got %v, want shapeNone", layouts[0].Shape.shapeType)
 	}
 }
 
@@ -238,7 +238,7 @@ func TestLayoutArrangeWithDialog(t *testing.T) {
 	})
 
 	shape := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		Width:     400, Height: 400,
 		Sizing:  FillFill,
 		Opacity: 1,
@@ -265,7 +265,7 @@ func TestLayoutArrangeWithToast(t *testing.T) {
 	})
 
 	shape := &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		Width:     400, Height: 400,
 		Sizing:  FillFill,
 		Opacity: 1,
@@ -337,7 +337,7 @@ func TestLayoutWrapPlainText(t *testing.T) {
 
 	style := TextStyle{Size: 16}
 	shape := &Shape{
-		ShapeType: ShapeText,
+		shapeType: shapeText,
 		Width:     100, // fits ~10 chars per line
 		TC: &ShapeTextConfig{
 			Text:      "hello world this wraps",
@@ -364,7 +364,7 @@ func TestFixedColumnCentering(t *testing.T) {
 	// Simulate the get_started Column with centered content
 	col := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Axis:      AxisTopToBottom,
 			Width:     300,
 			Height:    300,
@@ -377,8 +377,8 @@ func TestFixedColumnCentering(t *testing.T) {
 			Opacity: 1,
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeText, Width: 150, Height: 20, Opacity: 1}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 80, Height: 30, Opacity: 1}},
+			{Shape: &Shape{shapeType: shapeText, Width: 150, Height: 20, Opacity: 1}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 80, Height: 30, Opacity: 1}},
 		},
 	}
 
@@ -410,7 +410,7 @@ func TestFixedColumnCentering(t *testing.T) {
 
 	col2 := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Axis:      AxisTopToBottom,
 			Width:     500,
 			Height:    500,
@@ -423,8 +423,8 @@ func TestFixedColumnCentering(t *testing.T) {
 			Opacity: 1,
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeText, Width: 150, Height: 20, Opacity: 1}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Width: 80, Height: 30, Opacity: 1}},
+			{Shape: &Shape{shapeType: shapeText, Width: 150, Height: 20, Opacity: 1}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 80, Height: 30, Opacity: 1}},
 		},
 	}
 
@@ -461,7 +461,7 @@ func TestTooltipColumnMaxWidthConstrainsText(t *testing.T) {
 	// Simulate the tooltip Column with MaxWidth=300 and a
 	// FillFit text child (TextModeWrap).
 	textShape := &Shape{
-		ShapeType: ShapeText,
+		shapeType: shapeText,
 		Width:     float32(len(longText)) * 10, // ~900px
 		Height:    20,
 		Sizing:    FillFit,
@@ -474,7 +474,7 @@ func TestTooltipColumnMaxWidthConstrainsText(t *testing.T) {
 	}
 	col := Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Axis:      AxisTopToBottom,
 			MaxWidth:  300,
 			Opacity:   1,
@@ -504,9 +504,9 @@ func TestTooltipColumnMaxWidthConstrainsText(t *testing.T) {
 
 func makeHoverShape(id string) *Shape {
 	return &Shape{
-		ShapeType: ShapeRectangle,
+		shapeType: shapeRectangle,
 		ID:        id,
-		ShapeClip: DrawClip{X: 0, Y: 0, Width: 50, Height: 50},
+		shapeClip: drawClip{X: 0, Y: 0, Width: 50, Height: 50},
 		Opacity:   1,
 	}
 }
@@ -518,7 +518,7 @@ func TestLayoutMouseLeaveEnterFiresNothing(t *testing.T) {
 
 	left := 0
 	shape := makeHoverShape("c1")
-	shape.Events = &EventHandlers{
+	shape.events = &eventHandlers{
 		OnMouseLeave: func(_ *Layout, _ *Event, _ *Window) { left++ },
 	}
 	layout := Layout{Shape: shape}
@@ -534,7 +534,7 @@ func TestLayoutMouseLeaveExitFiresOnMouseLeave(t *testing.T) {
 
 	left := 0
 	shape := makeHoverShape("c2")
-	shape.Events = &EventHandlers{
+	shape.events = &eventHandlers{
 		OnMouseLeave: func(_ *Layout, _ *Event, _ *Window) { left++ },
 	}
 	layout := Layout{Shape: shape}
@@ -559,7 +559,7 @@ func TestLayoutMouseLeaveNoRepeatWhileOutside(t *testing.T) {
 
 	left := 0
 	shape := makeHoverShape("c3")
-	shape.Events = &EventHandlers{
+	shape.events = &eventHandlers{
 		OnMouseLeave: func(_ *Layout, _ *Event, _ *Window) { left++ },
 	}
 	layout := Layout{Shape: shape}
@@ -586,7 +586,7 @@ func TestLayoutMouseLeaveReEnterResetsState(t *testing.T) {
 
 	entered, left := 0, 0
 	shape := makeHoverShape("c4")
-	shape.Events = &EventHandlers{
+	shape.events = &eventHandlers{
 		OnHover:      func(_ *Layout, _ *Event, _ *Window) { entered++ },
 		OnMouseLeave: func(_ *Layout, _ *Event, _ *Window) { left++ },
 	}
@@ -637,7 +637,7 @@ func TestLayoutWrapRTF_RtfFlatText_SetOnCacheMiss(t *testing.T) {
 		{Text: " world"},
 	}}
 	shape := &Shape{
-		ShapeType: ShapeRTF,
+		shapeType: shapeRTF,
 		Width:     200,
 		TC: &ShapeTextConfig{
 			TextMode:     TextModeWrap,
@@ -661,7 +661,7 @@ func TestLayoutWrapRTF_RtfFlatText_NotOverwrittenOnCacheHit(t *testing.T) {
 	}}
 	rt := RichText{Runs: []RichTextRun{{Text: "hello"}}}
 	shape := &Shape{
-		ShapeType: ShapeRTF,
+		shapeType: shapeRTF,
 		Width:     200,
 		TC: &ShapeTextConfig{
 			TextMode:     TextModeWrap,

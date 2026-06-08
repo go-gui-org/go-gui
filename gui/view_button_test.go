@@ -28,12 +28,12 @@ func TestButtonOnClickFires(t *testing.T) {
 		},
 	})
 	layout := GenerateViewLayout(v, w)
-	if layout.Shape.Events == nil ||
-		layout.Shape.Events.OnClick == nil {
+	if layout.Shape.events == nil ||
+		layout.Shape.events.OnClick == nil {
 		t.Fatal("expected OnClick handler")
 	}
 	e := &Event{MouseButton: MouseLeft}
-	layout.Shape.Events.OnClick(&layout, e, w)
+	layout.Shape.events.OnClick(&layout, e, w)
 	if !fired {
 		t.Error("OnClick did not fire")
 	}
@@ -73,8 +73,8 @@ func TestButtonNoOnClickNoHandler(t *testing.T) {
 	w := &Window{}
 	v := Button(ButtonCfg{ID: "b6"})
 	layout := GenerateViewLayout(v, w)
-	if layout.Shape.Events != nil &&
-		layout.Shape.Events.OnClick != nil {
+	if layout.Shape.events != nil &&
+		layout.Shape.events.OnClick != nil {
 		t.Error("expected no OnClick without handler")
 	}
 }

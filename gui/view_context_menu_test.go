@@ -41,12 +41,12 @@ func TestContextMenuOpensOnRightClick(t *testing.T) {
 	v := ContextMenu(w, cfg)
 	layout := v.GenerateLayout(w)
 
-	if layout.Shape.Events == nil {
+	if layout.Shape.events == nil {
 		t.Fatal("expected events")
 	}
 
 	e := &Event{MouseButton: MouseRight, MouseX: 10, MouseY: 20}
-	layout.Shape.Events.OnClick(&layout, e, w)
+	layout.Shape.events.OnClick(&layout, e, w)
 
 	if !e.IsHandled {
 		t.Error("expected IsHandled")
@@ -73,7 +73,7 @@ func TestContextMenuClosesOnLeftClick(t *testing.T) {
 	layout := v.GenerateLayout(w)
 
 	e := &Event{MouseButton: MouseLeft}
-	layout.Shape.Events.OnClick(&layout, e, w)
+	layout.Shape.events.OnClick(&layout, e, w)
 
 	st := StateReadOr(
 		w, nsContextMenu, "cm4", contextMenuState{})
@@ -99,7 +99,7 @@ func TestContextMenuClosesOnFocusLoss(t *testing.T) {
 
 	// Lose focus.
 	w.SetIDFocus(0)
-	layout.Shape.Events.AmendLayout(nil, w)
+	layout.Shape.events.AmendLayout(nil, w)
 
 	st := StateReadOr(
 		w, nsContextMenu, "cm5", contextMenuState{})
@@ -122,7 +122,7 @@ func TestContextMenuActionFires(t *testing.T) {
 
 	// First item "cut" is auto-selected; press Enter.
 	e := &Event{KeyCode: KeyEnter}
-	popup.Shape.Events.OnKeyDown(&popup, e, w)
+	popup.Shape.events.OnKeyDown(&popup, e, w)
 
 	if firedID != "cut" {
 		t.Errorf("expected 'cut', got %q", firedID)
@@ -139,7 +139,7 @@ func TestContextMenuActionClosesMenu(t *testing.T) {
 
 	// First item "a" is auto-selected; press Enter.
 	e := &Event{KeyCode: KeyEnter}
-	popup.Shape.Events.OnKeyDown(&popup, e, w)
+	popup.Shape.events.OnKeyDown(&popup, e, w)
 
 	st := StateReadOr(
 		w, nsContextMenu, "cm7", contextMenuState{})
@@ -201,7 +201,7 @@ func TestContextMenuUserOnAnyClickForwarded(t *testing.T) {
 	layout := v.GenerateLayout(w)
 
 	e := &Event{MouseButton: MouseRight}
-	layout.Shape.Events.OnClick(&layout, e, w)
+	layout.Shape.events.OnClick(&layout, e, w)
 
 	if !fired {
 		t.Error("user OnAnyClick not forwarded")
@@ -220,7 +220,7 @@ func TestContextMenuUserOnAnyClickHandled(t *testing.T) {
 	layout := v.GenerateLayout(w)
 
 	e := &Event{MouseButton: MouseRight}
-	layout.Shape.Events.OnClick(&layout, e, w)
+	layout.Shape.events.OnClick(&layout, e, w)
 
 	// Menu should NOT have opened since user handler set IsHandled.
 	st := StateReadOr(
@@ -268,7 +268,7 @@ func TestContextMenuKeyboardEscapeCloses(t *testing.T) {
 	popup := contextMenuPopupLayout(t, w, cfg)
 
 	e := &Event{KeyCode: KeyEscape}
-	popup.Shape.Events.OnKeyDown(&popup, e, w)
+	popup.Shape.events.OnKeyDown(&popup, e, w)
 
 	if !e.IsHandled {
 		t.Error("expected IsHandled")
@@ -311,7 +311,7 @@ func TestContextMenuKeyboardDownNavigation(t *testing.T) {
 
 	// Down: a → b
 	e := &Event{KeyCode: KeyDown}
-	popup.Shape.Events.OnKeyDown(&popup, e, w)
+	popup.Shape.events.OnKeyDown(&popup, e, w)
 
 	sel := StateReadOr(w, nsMenu, idFocus, "")
 	if sel != "b" {
@@ -320,7 +320,7 @@ func TestContextMenuKeyboardDownNavigation(t *testing.T) {
 
 	// Down: b → c
 	e = &Event{KeyCode: KeyDown}
-	popup.Shape.Events.OnKeyDown(&popup, e, w)
+	popup.Shape.events.OnKeyDown(&popup, e, w)
 
 	sel = StateReadOr(w, nsMenu, idFocus, "")
 	if sel != "c" {
@@ -329,7 +329,7 @@ func TestContextMenuKeyboardDownNavigation(t *testing.T) {
 
 	// Down wraps: c → a
 	e = &Event{KeyCode: KeyDown}
-	popup.Shape.Events.OnKeyDown(&popup, e, w)
+	popup.Shape.events.OnKeyDown(&popup, e, w)
 
 	sel = StateReadOr(w, nsMenu, idFocus, "")
 	if sel != "a" {
@@ -351,7 +351,7 @@ func TestContextMenuKeyboardUpNavigation(t *testing.T) {
 
 	// Up wraps: a → b
 	e := &Event{KeyCode: KeyUp}
-	popup.Shape.Events.OnKeyDown(&popup, e, w)
+	popup.Shape.events.OnKeyDown(&popup, e, w)
 
 	sel := StateReadOr(w, nsMenu, idFocus, "")
 	if sel != "b" {
@@ -375,10 +375,10 @@ func TestContextMenuKeyboardEnterSelectsItem(t *testing.T) {
 	popup := contextMenuPopupLayout(t, w, cfg)
 
 	// Down: cut → copy, then Enter.
-	popup.Shape.Events.OnKeyDown(&popup,
+	popup.Shape.events.OnKeyDown(&popup,
 		&Event{KeyCode: KeyDown}, w)
 	e := &Event{KeyCode: KeyEnter}
-	popup.Shape.Events.OnKeyDown(&popup, e, w)
+	popup.Shape.events.OnKeyDown(&popup, e, w)
 
 	if firedID != "copy" {
 		t.Errorf("expected 'copy', got %q", firedID)
@@ -403,7 +403,7 @@ func TestContextMenuKeyboardSkipsSeparators(t *testing.T) {
 
 	// Down: a → b (skips separator).
 	e := &Event{KeyCode: KeyDown}
-	popup.Shape.Events.OnKeyDown(&popup, e, w)
+	popup.Shape.events.OnKeyDown(&popup, e, w)
 
 	sel := StateReadOr(w, nsMenu, idFocus, "")
 	if sel != "b" {
@@ -426,7 +426,7 @@ func TestContextMenuKeyboardSpaceSelectsItem(t *testing.T) {
 	popup := contextMenuPopupLayout(t, w, cfg)
 
 	e := &Event{KeyCode: KeySpace}
-	popup.Shape.Events.OnKeyDown(&popup, e, w)
+	popup.Shape.events.OnKeyDown(&popup, e, w)
 
 	if firedID != "paste" {
 		t.Errorf("expected 'paste', got %q", firedID)
@@ -449,7 +449,7 @@ func TestContextMenuKeyboardRightOpensSubmenu(t *testing.T) {
 
 	// Right: more → x (first submenu child).
 	e := &Event{KeyCode: KeyRight}
-	popup.Shape.Events.OnKeyDown(&popup, e, w)
+	popup.Shape.events.OnKeyDown(&popup, e, w)
 
 	sel := StateReadOr(w, nsMenu, idFocus, "")
 	if sel != "x" {
@@ -471,14 +471,14 @@ func TestContextMenuKeyboardLeftClosesSubmenu(t *testing.T) {
 	popup := contextMenuPopupLayout(t, w, cfg)
 
 	// Right into submenu, then Left back.
-	popup.Shape.Events.OnKeyDown(&popup,
+	popup.Shape.events.OnKeyDown(&popup,
 		&Event{KeyCode: KeyRight}, w)
 	sel := StateReadOr(w, nsMenu, idFocus, "")
 	if sel != "x" {
 		t.Fatalf("expected 'x', got %q", sel)
 	}
 
-	popup.Shape.Events.OnKeyDown(&popup,
+	popup.Shape.events.OnKeyDown(&popup,
 		&Event{KeyCode: KeyLeft}, w)
 	sel = StateReadOr(w, nsMenu, idFocus, "")
 	if sel != "more" {

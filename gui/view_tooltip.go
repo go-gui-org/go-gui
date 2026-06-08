@@ -10,7 +10,7 @@ type tooltipState struct {
 	hoverID      string   // trigger currently hovered
 	text         string   // RTF tooltip content
 	blockKey     uint64   // FNV hash of owning RichText
-	bounds       DrawClip // absolute run bounds (mouse check)
+	bounds       drawClip // absolute run bounds (mouse check)
 	floatOffsetX float32  // run-relative X for float popup
 	floatOffsetY float32  // run-relative Y for float popup
 }
@@ -26,7 +26,7 @@ func (ts *tooltipState) clearText() {
 	ts.id = ""
 	ts.popupID = ""
 	ts.text = ""
-	ts.bounds = DrawClip{}
+	ts.bounds = drawClip{}
 	ts.floatOffsetX = 0
 	ts.floatOffsetY = 0
 	ts.blockKey = 0

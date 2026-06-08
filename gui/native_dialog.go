@@ -21,7 +21,7 @@ const (
 type NativeDialogResult struct {
 	ErrorCode    string
 	ErrorMessage string
-	Paths        []AccessiblePath
+	Paths        []accessiblePath
 	Status       NativeDialogStatus
 }
 
@@ -247,13 +247,13 @@ func nativeAlertErrorResult(code, message string) NativeAlertResult {
 }
 
 func nativeResultFromPlatform(pr PlatformDialogResult, w *Window) NativeDialogResult {
-	paths := make([]AccessiblePath, len(pr.Paths))
+	paths := make([]accessiblePath, len(pr.Paths))
 	for i, pp := range pr.Paths {
 		var grant Grant
 		if len(pp.BookmarkData) > 0 {
 			grant = w.storeBookmark(pp.Path, pp.BookmarkData)
 		}
-		paths[i] = AccessiblePath{Path: pp.Path, Grant: grant}
+		paths[i] = accessiblePath{Path: pp.Path, Grant: grant}
 	}
 	return NativeDialogResult{
 		Status:       pr.Status,

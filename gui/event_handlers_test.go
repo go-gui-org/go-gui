@@ -3,14 +3,14 @@ package gui
 import "testing"
 
 // focusedChild builds a layout with one focused child that has events.
-func focusedChild(idFocus uint32, eh *EventHandlers) *Layout {
+func focusedChild(idFocus uint32, eh *eventHandlers) *Layout {
 	return &Layout{
 		Shape: &Shape{},
 		Children: []Layout{
 			{Shape: &Shape{
 				IDFocus: idFocus,
-				Events:  eh,
-				ShapeClip: DrawClip{
+				events:  eh,
+				shapeClip: drawClip{
 					X: 0, Y: 0, Width: 100, Height: 100,
 				},
 			}},
@@ -23,7 +23,7 @@ func TestCharHandler(t *testing.T) {
 	t.Run("delivers", func(t *testing.T) {
 		t.Parallel()
 		called := false
-		root := focusedChild(1, &EventHandlers{
+		root := focusedChild(1, &eventHandlers{
 			OnChar: func(_ *Layout, e *Event, _ *Window) {
 				called = true
 				e.IsHandled = true
@@ -49,7 +49,7 @@ func TestCharHandler(t *testing.T) {
 				{Shape: &Shape{
 					IDFocus:  1,
 					Disabled: true,
-					Events: &EventHandlers{
+					events: &eventHandlers{
 						OnChar: func(_ *Layout, e *Event, _ *Window) {
 							called = true
 							e.IsHandled = true
@@ -71,7 +71,7 @@ func TestCharHandler(t *testing.T) {
 func TestKeydownHandlerDelivers(t *testing.T) {
 	t.Parallel()
 	called := false
-	root := focusedChild(1, &EventHandlers{
+	root := focusedChild(1, &eventHandlers{
 		OnKeyDown: func(_ *Layout, e *Event, _ *Window) {
 			called = true
 			e.IsHandled = true
@@ -89,7 +89,7 @@ func TestKeydownHandlerDelivers(t *testing.T) {
 func TestKeyupHandlerDelivers(t *testing.T) {
 	t.Parallel()
 	called := false
-	root := focusedChild(1, &EventHandlers{
+	root := focusedChild(1, &eventHandlers{
 		OnKeyUp: func(_ *Layout, e *Event, _ *Window) {
 			called = true
 			e.IsHandled = true
@@ -150,7 +150,7 @@ func TestKeydownHandlerFallbackScroll(t *testing.T) {
 				},
 				Children: []Layout{
 					{Shape: &Shape{
-						ShapeType: ShapeRectangle, Height: 500,
+						shapeType: shapeRectangle, Height: 500,
 					}},
 				},
 			},
@@ -177,7 +177,7 @@ func TestKeyDownScrollHandlerArrows(t *testing.T) {
 			Axis: AxisTopToBottom,
 		},
 		Children: []Layout{
-			{Shape: &Shape{ShapeType: ShapeRectangle,
+			{Shape: &Shape{shapeType: shapeRectangle,
 				Width: 500, Height: 500}},
 		},
 	}
@@ -217,9 +217,9 @@ func TestMouseDownHandler(t *testing.T) {
 			Shape: &Shape{},
 			Children: []Layout{
 				{Shape: &Shape{
-					ShapeClip: DrawClip{X: 0, Y: 0,
+					shapeClip: drawClip{X: 0, Y: 0,
 						Width: 100, Height: 100},
-					Events: &EventHandlers{
+					events: &eventHandlers{
 						OnClick: func(_ *Layout, e *Event, _ *Window) {
 							clicked = true
 							e.IsHandled = true
@@ -242,7 +242,7 @@ func TestMouseDownHandler(t *testing.T) {
 			Children: []Layout{
 				{Shape: &Shape{
 					IDFocus: 42,
-					ShapeClip: DrawClip{X: 0, Y: 0,
+					shapeClip: drawClip{X: 0, Y: 0,
 						Width: 100, Height: 100},
 				}},
 			},
@@ -277,9 +277,9 @@ func TestMouseDownHandler(t *testing.T) {
 		mkChild := func(id string, x float32) Layout {
 			return Layout{Shape: &Shape{
 				ID: id,
-				ShapeClip: DrawClip{X: x, Y: 0,
+				shapeClip: drawClip{X: x, Y: 0,
 					Width: 100, Height: 100},
-				Events: &EventHandlers{
+				events: &eventHandlers{
 					OnClick: func(l *Layout, e *Event, _ *Window) {
 						hitID = l.Shape.ID
 						e.IsHandled = true
@@ -344,9 +344,9 @@ func TestMouseMoveHandlerSkipsOutOfWindow(t *testing.T) {
 	called := false
 	root := &Layout{
 		Shape: &Shape{
-			ShapeClip: DrawClip{X: 0, Y: 0,
+			shapeClip: drawClip{X: 0, Y: 0,
 				Width: 100, Height: 100},
-			Events: &EventHandlers{
+			events: &eventHandlers{
 				OnMouseMove: func(_ *Layout, e *Event, _ *Window) {
 					called = true
 					e.IsHandled = true
@@ -368,10 +368,10 @@ func TestMouseScrollHandlerVertical(t *testing.T) {
 		IDScroll: 1,
 		Width:    100,
 		Height:   50,
-		ShapeClip: DrawClip{X: 0, Y: 0,
+		shapeClip: drawClip{X: 0, Y: 0,
 			Width: 100, Height: 50},
 	}, Children: []Layout{
-		{Shape: &Shape{ShapeType: ShapeRectangle, Height: 200}},
+		{Shape: &Shape{shapeType: shapeRectangle, Height: 200}},
 	}}
 	w := &Window{windowWidth: 800, windowHeight: 600}
 	e := &Event{
@@ -392,11 +392,11 @@ func TestMouseScrollHandlerHorizontalShift(t *testing.T) {
 		IDScroll: 1,
 		Width:    50,
 		Height:   100,
-		ShapeClip: DrawClip{X: 0, Y: 0,
+		shapeClip: drawClip{X: 0, Y: 0,
 			Width: 50, Height: 100},
 		Axis: AxisLeftToRight,
 	}, Children: []Layout{
-		{Shape: &Shape{ShapeType: ShapeRectangle, Width: 200}},
+		{Shape: &Shape{shapeType: shapeRectangle, Width: 200}},
 	}}
 	w := &Window{windowWidth: 800, windowHeight: 600}
 	e := &Event{
@@ -419,7 +419,7 @@ func TestMouseScrollHandlerFocusedOnMouseScroll(t *testing.T) {
 		Children: []Layout{
 			{Shape: &Shape{
 				IDFocus: 5,
-				Events: &EventHandlers{
+				events: &eventHandlers{
 					OnMouseScroll: func(_ *Layout, e *Event, _ *Window) {
 						called = true
 						e.IsHandled = true
@@ -447,7 +447,7 @@ func TestMouseScrollUnhandledCascadesToScrollContainer(t *testing.T) {
 		Children: []Layout{
 			{Shape: &Shape{
 				IDFocus: 7,
-				Events: &EventHandlers{
+				events: &eventHandlers{
 					OnMouseScroll: func(_ *Layout, _ *Event, _ *Window) {
 						focusCalled = true
 						// deliberately not setting e.IsHandled
@@ -458,11 +458,11 @@ func TestMouseScrollUnhandledCascadesToScrollContainer(t *testing.T) {
 				IDScroll: 1,
 				Width:    100,
 				Height:   50,
-				ShapeClip: DrawClip{
+				shapeClip: drawClip{
 					X: 0, Y: 0, Width: 100, Height: 50,
 				},
 			}, Children: []Layout{
-				{Shape: &Shape{ShapeType: ShapeRectangle, Height: 200}},
+				{Shape: &Shape{shapeType: shapeRectangle, Height: 200}},
 			}},
 		},
 	}
@@ -490,24 +490,24 @@ func TestMouseScrollFallbackRespectsIsHandled(t *testing.T) {
 		Shape: &Shape{
 			IDScroll: 1,
 			Width:    200, Height: 100,
-			ShapeClip: DrawClip{
+			shapeClip: drawClip{
 				X: 0, Y: 0, Width: 200, Height: 100,
 			},
 		},
 		Children: []Layout{
 			{Shape: &Shape{
 				Width: 200, Height: 100,
-				ShapeClip: DrawClip{
+				shapeClip: drawClip{
 					X: 0, Y: 0, Width: 200, Height: 100,
 				},
-				Events: &EventHandlers{
+				events: &eventHandlers{
 					OnMouseScroll: func(_ *Layout, e *Event, _ *Window) {
 						handlerCalled = true
 						e.IsHandled = true
 					},
 				},
 			}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Height: 400}},
+			{Shape: &Shape{shapeType: shapeRectangle, Height: 400}},
 		},
 	}
 	w := &Window{windowWidth: 800, windowHeight: 600}
@@ -532,23 +532,23 @@ func TestMouseScrollFallbackUnhandledReachesContainer(t *testing.T) {
 		Shape: &Shape{
 			IDScroll: 1,
 			Width:    200, Height: 100,
-			ShapeClip: DrawClip{
+			shapeClip: drawClip{
 				X: 0, Y: 0, Width: 200, Height: 100,
 			},
 		},
 		Children: []Layout{
 			{Shape: &Shape{
 				Width: 200, Height: 100,
-				ShapeClip: DrawClip{
+				shapeClip: drawClip{
 					X: 0, Y: 0, Width: 200, Height: 100,
 				},
-				Events: &EventHandlers{
+				events: &eventHandlers{
 					OnMouseScroll: func(_ *Layout, _ *Event, _ *Window) {
 						// deliberately not setting e.IsHandled
 					},
 				},
 			}},
-			{Shape: &Shape{ShapeType: ShapeRectangle, Height: 400}},
+			{Shape: &Shape{shapeType: shapeRectangle, Height: 400}},
 		},
 	}
 	w := &Window{windowWidth: 800, windowHeight: 600}
@@ -571,9 +571,9 @@ func TestFileDropHandler(t *testing.T) {
 		mkChild := func(id string) Layout {
 			return Layout{Shape: &Shape{
 				ID: id,
-				ShapeClip: DrawClip{X: 0, Y: 0,
+				shapeClip: drawClip{X: 0, Y: 0,
 					Width: 100, Height: 100},
-				Events: &EventHandlers{
+				events: &eventHandlers{
 					OnFileDrop: func(l *Layout, e *Event, _ *Window) {
 						hitID = l.Shape.ID
 						e.IsHandled = true
@@ -604,9 +604,9 @@ func TestFileDropHandler(t *testing.T) {
 		parentCalled := false
 		root := &Layout{
 			Shape: &Shape{
-				ShapeClip: DrawClip{X: 0, Y: 0,
+				shapeClip: drawClip{X: 0, Y: 0,
 					Width: 200, Height: 200},
-				Events: &EventHandlers{
+				events: &eventHandlers{
 					OnFileDrop: func(_ *Layout, _ *Event, _ *Window) {
 						parentCalled = true
 					},
@@ -614,9 +614,9 @@ func TestFileDropHandler(t *testing.T) {
 			},
 			Children: []Layout{
 				{Shape: &Shape{
-					ShapeClip: DrawClip{X: 0, Y: 0,
+					shapeClip: drawClip{X: 0, Y: 0,
 						Width: 100, Height: 100},
-					Events: &EventHandlers{
+					events: &eventHandlers{
 						OnFileDrop: func(_ *Layout, e *Event, _ *Window) {
 							e.IsHandled = true
 						},
@@ -652,7 +652,7 @@ func TestFileDropHandler(t *testing.T) {
 		t.Parallel()
 		root := &Layout{
 			Shape: &Shape{
-				ShapeClip: DrawClip{X: 0, Y: 0,
+				shapeClip: drawClip{X: 0, Y: 0,
 					Width: 100, Height: 100},
 			},
 		}
@@ -672,9 +672,9 @@ func TestFileDropHandler(t *testing.T) {
 			Children: []Layout{
 				{Shape: &Shape{
 					Disabled: true,
-					ShapeClip: DrawClip{X: 0, Y: 0,
+					shapeClip: drawClip{X: 0, Y: 0,
 						Width: 100, Height: 100},
-					Events: &EventHandlers{
+					events: &eventHandlers{
 						OnFileDrop: func(_ *Layout, e *Event, _ *Window) {
 							called = true
 							e.IsHandled = true
@@ -695,7 +695,7 @@ func TestFileDropHandler(t *testing.T) {
 		t.Parallel()
 		root := &Layout{
 			Shape: &Shape{
-				ShapeClip: DrawClip{X: 0, Y: 0,
+				shapeClip: drawClip{X: 0, Y: 0,
 					Width: 100, Height: 100},
 			},
 		}
@@ -711,9 +711,9 @@ func TestFileDropHandler(t *testing.T) {
 			Shape: &Shape{},
 			Children: []Layout{
 				{Shape: &Shape{
-					ShapeClip: DrawClip{X: 10, Y: 20,
+					shapeClip: drawClip{X: 10, Y: 20,
 						Width: 100, Height: 100},
-					Events: &EventHandlers{
+					events: &eventHandlers{
 						OnFileDrop: func(_ *Layout, e *Event, _ *Window) {
 							e.IsHandled = true
 						},
@@ -741,7 +741,7 @@ func TestMakeContainerEventsOnFileDropAlone(t *testing.T) {
 	}
 	eh := makeContainerEvents(cfg)
 	if eh == nil {
-		t.Fatal("expected non-nil EventHandlers")
+		t.Fatal("expected non-nil eventHandlers")
 	}
 	if eh.OnFileDrop == nil {
 		t.Fatal("OnFileDrop not wired")
@@ -764,13 +764,13 @@ func TestDrawCanvasOnFileDropWired(t *testing.T) {
 		},
 	})
 	layout := GenerateViewLayout(v, w)
-	if layout.Shape.Events == nil {
-		t.Fatal("expected non-nil Events")
+	if layout.Shape.events == nil {
+		t.Fatal("expected non-nil events")
 	}
-	if layout.Shape.Events.OnFileDrop == nil {
+	if layout.Shape.events.OnFileDrop == nil {
 		t.Fatal("OnFileDrop not wired on DrawCanvas")
 	}
-	layout.Shape.Events.OnFileDrop(nil, nil, nil)
+	layout.Shape.events.OnFileDrop(nil, nil, nil)
 	if !called {
 		t.Error("OnFileDrop callback not invoked")
 	}

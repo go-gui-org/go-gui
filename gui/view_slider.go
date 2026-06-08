@@ -245,10 +245,10 @@ func sliderAmendLayoutSlide(
 	vertical bool, colorFocus, colorLeft Color,
 	disabled bool, idFocus uint32, roundValue bool,
 ) {
-	if layout.Shape.Events == nil {
-		layout.Shape.Events = &EventHandlers{}
+	if layout.Shape.events == nil {
+		layout.Shape.events = &eventHandlers{}
 	}
-	layout.Shape.Events.OnMouseScroll = func(
+	layout.Shape.events.OnMouseScroll = func(
 		_ *Layout, e *Event, w *Window,
 	) {
 		sliderOnMouseScroll(e, w, onChange,

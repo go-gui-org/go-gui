@@ -171,26 +171,26 @@ func (layout *Layout) PreviousFocusable(w *Window) (*Shape, bool) {
 }
 
 // rectIntersection returns the intersection of two rectangles.
-// Returns (DrawClip, false) if no intersection.
-func rectIntersection(a, b DrawClip) (DrawClip, bool) {
+// Returns (drawClip, false) if no intersection.
+func rectIntersection(a, b drawClip) (drawClip, bool) {
 	x1 := f32Max(a.X, b.X)
 	y1 := f32Max(a.Y, b.Y)
 	x2 := f32Min(a.X+a.Width, b.X+b.Width)
 	y2 := f32Min(a.Y+a.Height, b.Y+b.Height)
 
 	if x2 > x1 && y2 > y1 {
-		return DrawClip{
+		return drawClip{
 			X:      x1,
 			Y:      y1,
 			Width:  x2 - x1,
 			Height: y2 - y1,
 		}, true
 	}
-	return DrawClip{}, false
+	return drawClip{}, false
 }
 
 // PointInRectangle returns true if point is within bounds of rectangle.
-func PointInRectangle(x, y float32, rect DrawClip) bool {
+func PointInRectangle(x, y float32, rect drawClip) bool {
 	return x >= rect.X && y >= rect.Y &&
 		x < (rect.X+rect.Width) && y < (rect.Y+rect.Height)
 }

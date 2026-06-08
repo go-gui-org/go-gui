@@ -56,7 +56,7 @@ func TestAnimationTooltipReturnsAnimate(t *testing.T) {
 
 func TestAnimationTooltipCallback(t *testing.T) {
 	w := &Window{}
-	w.viewState.tooltip.bounds = DrawClip{
+	w.viewState.tooltip.bounds = drawClip{
 		X: 10, Y: 10, Width: 50, Height: 50,
 	}
 	w.viewState.tooltip.hoverID = "tip1"
@@ -81,7 +81,7 @@ func TestAnimationTooltipCallback(t *testing.T) {
 
 func TestAnimationTooltipCallbackOutside(t *testing.T) {
 	w := &Window{}
-	w.viewState.tooltip.bounds = DrawClip{
+	w.viewState.tooltip.bounds = drawClip{
 		X: 10, Y: 10, Width: 50, Height: 50,
 	}
 	w.viewState.tooltip.hoverID = "tip1"
@@ -101,7 +101,7 @@ func TestAnimationTooltipCallbackOutside(t *testing.T) {
 
 func TestAnimationTooltipStaleHover(t *testing.T) {
 	w := &Window{}
-	w.viewState.tooltip.bounds = DrawClip{
+	w.viewState.tooltip.bounds = drawClip{
 		X: 10, Y: 10, Width: 50, Height: 50,
 	}
 	w.viewState.tooltip.hoverID = "other"
@@ -193,11 +193,11 @@ func TestWithTooltipAmendStartsHover(t *testing.T) {
 	layout.Shape.Width = 100
 	layout.Shape.Height = 100
 
-	if layout.Shape.Events == nil ||
-		layout.Shape.Events.AmendLayout == nil {
+	if layout.Shape.events == nil ||
+		layout.Shape.events.AmendLayout == nil {
 		t.Fatal("expected AmendLayout handler")
 	}
-	layout.Shape.Events.AmendLayout(&layout, w)
+	layout.Shape.events.AmendLayout(&layout, w)
 
 	if w.viewState.tooltip.hoverID != "tip1" {
 		t.Errorf("expected hoverID=tip1, got %q",
@@ -228,7 +228,7 @@ func TestWithTooltipAmendClearsOnLeave(t *testing.T) {
 	layout.Shape.Width = 100
 	layout.Shape.Height = 100
 
-	layout.Shape.Events.AmendLayout(&layout, w)
+	layout.Shape.events.AmendLayout(&layout, w)
 
 	if w.viewState.tooltip.hoverID != "" {
 		t.Errorf("expected empty hoverID, got %q",
@@ -261,7 +261,7 @@ func TestWithTooltipAmendIgnoresOther(t *testing.T) {
 	layout.Shape.Width = 100
 	layout.Shape.Height = 100
 
-	layout.Shape.Events.AmendLayout(&layout, w)
+	layout.Shape.events.AmendLayout(&layout, w)
 
 	if w.viewState.tooltip.hoverID != "other" {
 		t.Errorf("expected hoverID=other, got %q",
@@ -288,7 +288,7 @@ func TestWithTooltipAmendSetsIDAfterDelay(t *testing.T) {
 	layout.Shape.Width = 100
 	layout.Shape.Height = 100
 
-	layout.Shape.Events.AmendLayout(&layout, w)
+	layout.Shape.events.AmendLayout(&layout, w)
 
 	if w.viewState.tooltip.id != "tip1" {
 		t.Errorf("expected tooltip id=tip1, got %q",

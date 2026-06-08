@@ -186,7 +186,7 @@ func TestFindShapeNotFound(t *testing.T) {
 }
 
 func TestPointInRectangle(t *testing.T) {
-	rect := DrawClip{X: 10, Y: 10, Width: 100, Height: 50}
+	rect := drawClip{X: 10, Y: 10, Width: 100, Height: 50}
 	tests := []struct {
 		x, y float32
 		want bool

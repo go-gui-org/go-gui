@@ -32,9 +32,9 @@ func TestSvgGenerateLayoutErrorFallback(t *testing.T) {
 		t.Fatal("expected shape")
 	}
 	// No parser → error fallback → text shape.
-	if layout.Shape.ShapeType != ShapeText {
-		t.Fatalf("expected ShapeText for error, got %d",
-			layout.Shape.ShapeType)
+	if layout.Shape.shapeType != shapeText {
+		t.Fatalf("expected shapeText for error, got %d",
+			layout.Shape.shapeType)
 	}
 }
 
@@ -47,9 +47,9 @@ func TestSvgGenerateLayoutNeedsDimensions(t *testing.T) {
 	})
 	layout := v.GenerateLayout(w)
 	// No parser → dimension lookup fails → error text.
-	if layout.Shape.ShapeType != ShapeText {
+	if layout.Shape.shapeType != shapeText {
 		t.Fatalf("expected error fallback, got %d",
-			layout.Shape.ShapeType)
+			layout.Shape.shapeType)
 	}
 }
 
@@ -95,9 +95,9 @@ func TestSvgGenerateLayoutWithParser(t *testing.T) {
 		Height:  100,
 	})
 	layout := v.GenerateLayout(w)
-	if layout.Shape.ShapeType != ShapeSVG {
-		t.Fatalf("expected ShapeSVG, got %d",
-			layout.Shape.ShapeType)
+	if layout.Shape.shapeType != shapeSVG {
+		t.Fatalf("expected shapeSVG, got %d",
+			layout.Shape.shapeType)
 	}
 	if layout.Shape.Width != 100 {
 		t.Fatalf("expected width 100, got %f",
@@ -114,9 +114,9 @@ func TestSvgGenerateLayoutAutoSize(t *testing.T) {
 		// No explicit width/height.
 	})
 	layout := v.GenerateLayout(w)
-	if layout.Shape.ShapeType != ShapeSVG {
-		t.Fatalf("expected ShapeSVG, got %d",
-			layout.Shape.ShapeType)
+	if layout.Shape.shapeType != shapeSVG {
+		t.Fatalf("expected shapeSVG, got %d",
+			layout.Shape.shapeType)
 	}
 	if layout.Shape.Width != 200 || layout.Shape.Height != 150 {
 		t.Fatalf("expected 200x150, got %fx%f",
@@ -138,10 +138,10 @@ func TestSvgWithOnClick(t *testing.T) {
 		},
 	})
 	layout := v.GenerateLayout(w)
-	if layout.Shape.Events == nil {
+	if layout.Shape.events == nil {
 		t.Fatal("expected events")
 	}
-	layout.Shape.Events.OnClick(&layout, &Event{
+	layout.Shape.events.OnClick(&layout, &Event{
 		MouseButton: MouseLeft,
 	}, w)
 	if !clicked {

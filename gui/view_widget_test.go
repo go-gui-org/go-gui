@@ -67,7 +67,7 @@ func TestRadioDisabledSuppressesHover(t *testing.T) {
 	}
 	origBorder := layout.Children[0].Shape.ColorBorder
 	e := &Event{MouseButton: MouseInvalid}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	if layout.Children[0].Shape.ColorBorder != origBorder {
 		t.Error("hover should not change border when disabled")
 	}
@@ -80,7 +80,7 @@ func TestRadioHoverChangesBorder(t *testing.T) {
 	origBorder := layout.Children[0].Shape.ColorBorder
 	// MouseInvalid = no button pressed (MouseLeft = 0 is zero value).
 	e := &Event{MouseButton: MouseInvalid}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	if layout.Children[0].Shape.ColorBorder == origBorder {
 		t.Error("hover should change circle border color")
 	}
@@ -92,7 +92,7 @@ func TestRadioClickHoverChangesBorder(t *testing.T) {
 	layout := GenerateViewLayout(v, w)
 	clickColor := DefaultRadioStyle.ColorClick
 	e := &Event{MouseButton: MouseLeft}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	got := layout.Children[0].Shape.ColorBorder
 	if got != clickColor {
 		t.Errorf("got %v, want click color %v", got, clickColor)
@@ -104,7 +104,7 @@ func TestRadioFocusBorder(t *testing.T) {
 	w.viewState.idFocus = 5
 	v := Radio(RadioCfg{OnClick: noop, IDFocus: 5})
 	layout := GenerateViewLayout(v, w)
-	layout.Shape.Events.AmendLayout(&layout, w)
+	layout.Shape.events.AmendLayout(&layout, w)
 	if layout.Children[0].Shape.ColorBorder != DefaultRadioStyle.ColorBorderFocus {
 		t.Errorf("focus border = %v, want %v",
 			layout.Children[0].Shape.ColorBorder,
@@ -192,7 +192,7 @@ func TestToggleDisabledSuppressesHover(t *testing.T) {
 	}
 	origColor := layout.Children[0].Shape.Color
 	e := &Event{MouseButton: MouseInvalid}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	if layout.Children[0].Shape.Color != origColor {
 		t.Error("hover should not change color when disabled")
 	}
@@ -204,7 +204,7 @@ func TestToggleNilOnClickSuppressesHover(t *testing.T) {
 	layout := GenerateViewLayout(v, w)
 	origColor := layout.Children[0].Shape.Color
 	e := &Event{MouseButton: MouseInvalid}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	if layout.Children[0].Shape.Color != origColor {
 		t.Error("hover should not change color without OnClick")
 	}
@@ -216,7 +216,7 @@ func TestToggleHoverChangesColor(t *testing.T) {
 	layout := GenerateViewLayout(v, w)
 	origColor := layout.Children[0].Shape.Color
 	e := &Event{MouseButton: MouseInvalid}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	if layout.Children[0].Shape.Color == origColor {
 		t.Error("hover should change box color")
 	}
@@ -228,7 +228,7 @@ func TestToggleClickHoverChangesColor(t *testing.T) {
 	layout := GenerateViewLayout(v, w)
 	clickColor := DefaultToggleStyle.ColorClick
 	e := &Event{MouseButton: MouseLeft}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	got := layout.Children[0].Shape.Color
 	if got != clickColor {
 		t.Errorf("got %v, want click color %v", got, clickColor)
@@ -240,7 +240,7 @@ func TestToggleFocusBorder(t *testing.T) {
 	w.viewState.idFocus = 5
 	v := Toggle(ToggleCfg{OnClick: noop, IDFocus: 5})
 	layout := GenerateViewLayout(v, w)
-	layout.Shape.Events.AmendLayout(&layout, w)
+	layout.Shape.events.AmendLayout(&layout, w)
 	if layout.Children[0].Shape.ColorBorder != DefaultToggleStyle.ColorBorderFocus {
 		t.Errorf("focus border = %v, want %v",
 			layout.Children[0].Shape.ColorBorder,
@@ -340,7 +340,7 @@ func TestSwitchDisabledSuppressesHover(t *testing.T) {
 	}
 	origColor := layout.Children[0].Shape.Color
 	e := &Event{MouseButton: MouseInvalid}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	if layout.Children[0].Shape.Color != origColor {
 		t.Error("hover should not change pill color when disabled")
 	}
@@ -352,7 +352,7 @@ func TestSwitchNilOnClickSuppressesHover(t *testing.T) {
 	layout := GenerateViewLayout(v, w)
 	origColor := layout.Children[0].Shape.Color
 	e := &Event{MouseButton: MouseInvalid}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	if layout.Children[0].Shape.Color != origColor {
 		t.Error("hover should not change pill color without OnClick")
 	}
@@ -364,7 +364,7 @@ func TestSwitchHoverChangesColor(t *testing.T) {
 	layout := GenerateViewLayout(v, w)
 	origColor := layout.Children[0].Shape.Color
 	e := &Event{MouseButton: MouseInvalid}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	if layout.Children[0].Shape.Color == origColor {
 		t.Error("hover should change pill color")
 	}
@@ -376,7 +376,7 @@ func TestSwitchClickHoverChangesColor(t *testing.T) {
 	layout := GenerateViewLayout(v, w)
 	clickColor := DefaultSwitchStyle.ColorClick
 	e := &Event{MouseButton: MouseLeft}
-	layout.Shape.Events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(&layout, e, w)
 	got := layout.Children[0].Shape.Color
 	if got != clickColor {
 		t.Errorf("got %v, want click color %v", got, clickColor)
@@ -388,7 +388,7 @@ func TestSwitchFocusBorder(t *testing.T) {
 	v := Switch(SwitchCfg{OnClick: noop, IDFocus: 5})
 	layout := GenerateViewLayout(v, w)
 	w.SetIDFocus(5)
-	layout.Shape.Events.AmendLayout(&layout, w)
+	layout.Shape.events.AmendLayout(&layout, w)
 	if layout.Shape.ColorBorder != DefaultSwitchStyle.ColorBorderFocus {
 		t.Error("focused switch should have focus border color")
 	}

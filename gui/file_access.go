@@ -8,10 +8,10 @@ type Grant struct {
 	ID uint64 // 0 = no grant (no-op on release)
 }
 
-// AccessiblePath pairs a filesystem path with an optional
+// accessiblePath pairs a filesystem path with an optional
 // security-scoped grant. On macOS sandboxed apps the grant
 // keeps the path accessible across relaunches.
-type AccessiblePath struct {
+type accessiblePath struct {
 	Path  string
 	Grant Grant
 }

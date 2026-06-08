@@ -85,11 +85,11 @@ func TestInputClickPlaceholderResetsCursorToStart(t *testing.T) {
 		t.Fatal("no children")
 	}
 	inner := &layout.Children[0]
-	if inner.Shape.Events == nil || inner.Shape.Events.OnClick == nil {
+	if inner.Shape.events == nil || inner.Shape.events.OnClick == nil {
 		t.Fatal("missing click handler")
 	}
 	e := &Event{MouseX: inner.Shape.X, MouseY: inner.Shape.Y}
-	inner.Shape.Events.OnClick(inner, e, w)
+	inner.Shape.events.OnClick(inner, e, w)
 	is := getInputState(w, 14)
 	if is.CursorPos != 0 {
 		t.Fatalf("cursor=%d, want 0", is.CursorPos)
@@ -197,15 +197,15 @@ func newInputTestMultiline(text string, idFocus uint32, cursorPos int) *inputTes
 
 func (c *inputTestCtx) fireChar(charCode uint32) {
 	e := &Event{Type: EventChar, CharCode: charCode}
-	if c.layout.Shape.Events != nil && c.layout.Shape.Events.OnChar != nil {
-		c.layout.Shape.Events.OnChar(&c.layout, e, c.w)
+	if c.layout.Shape.events != nil && c.layout.Shape.events.OnChar != nil {
+		c.layout.Shape.events.OnChar(&c.layout, e, c.w)
 	}
 }
 
 func (c *inputTestCtx) fireKeyDown(key KeyCode, mod Modifier) {
 	e := &Event{Type: EventKeyDown, KeyCode: key, Modifiers: mod}
-	if c.layout.Shape.Events != nil && c.layout.Shape.Events.OnKeyDown != nil {
-		c.layout.Shape.Events.OnKeyDown(&c.layout, e, c.w)
+	if c.layout.Shape.events != nil && c.layout.Shape.events.OnKeyDown != nil {
+		c.layout.Shape.events.OnKeyDown(&c.layout, e, c.w)
 	}
 }
 
@@ -271,7 +271,7 @@ func TestInputKeyDownEnterSingleLine(t *testing.T) {
 		},
 	}), w)
 	e := &Event{Type: EventKeyDown, KeyCode: KeyEnter}
-	layout.Shape.Events.OnKeyDown(&layout, e, w)
+	layout.Shape.events.OnKeyDown(&layout, e, w)
 	if !committed {
 		t.Fatal("OnTextCommit not called")
 	}
@@ -561,7 +561,7 @@ func TestInputCursorRenderedWhenFocused(t *testing.T) {
 	style := DefaultTextStyle
 	shape := &Shape{
 		IDFocus:   700,
-		ShapeType: ShapeText,
+		shapeType: shapeText,
 		Width:     200,
 		Height:    20,
 		TC: &ShapeTextConfig{
@@ -588,7 +588,7 @@ func TestInputCursorNotRenderedWhenUnfocused(t *testing.T) {
 	style := DefaultTextStyle
 	shape := &Shape{
 		IDFocus:   700,
-		ShapeType: ShapeText,
+		shapeType: shapeText,
 		TC: &ShapeTextConfig{
 			Text:      "hello",
 			TextStyle: &style,
@@ -608,7 +608,7 @@ func TestInputCursorNotRenderedWhenBlinkOff(t *testing.T) {
 	style := DefaultTextStyle
 	shape := &Shape{
 		IDFocus:   701,
-		ShapeType: ShapeText,
+		shapeType: shapeText,
 		TC: &ShapeTextConfig{
 			Text:      "hello",
 			TextStyle: &style,
@@ -629,7 +629,7 @@ func TestInputCursorUsesColumnZeroForPlaceholder(t *testing.T) {
 	style := DefaultTextStyle
 	shape := &Shape{
 		IDFocus:   702,
-		ShapeType: ShapeText,
+		shapeType: shapeText,
 		Width:     200,
 		Height:    20,
 		TC: &ShapeTextConfig{
@@ -657,7 +657,7 @@ func TestInputSelectionRendered(t *testing.T) {
 	w := newTestWindow()
 	style := DefaultTextStyle
 	shape := &Shape{
-		ShapeType: ShapeText,
+		shapeType: shapeText,
 		Width:     200,
 		Height:    20,
 		TC: &ShapeTextConfig{
@@ -684,7 +684,7 @@ func TestInputSelectionNotRenderedWhenNoSelection(t *testing.T) {
 	w := newTestWindow()
 	style := DefaultTextStyle
 	shape := &Shape{
-		ShapeType: ShapeText,
+		shapeType: shapeText,
 		TC: &ShapeTextConfig{
 			Text:       "hello",
 			TextStyle:  &style,
@@ -704,7 +704,7 @@ func TestInputSelectionMultiline(t *testing.T) {
 	style := DefaultTextStyle
 	text := "abc\ndef\nghi"
 	shape := &Shape{
-		ShapeType: ShapeText,
+		shapeType: shapeText,
 		Width:     200,
 		Height:    60,
 		TC: &ShapeTextConfig{

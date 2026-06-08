@@ -11,7 +11,7 @@ func TestBadgeDefaultLayout(t *testing.T) {
 	if len(layout.Children) != 1 {
 		t.Fatalf("children: got %d, want 1", len(layout.Children))
 	}
-	if layout.Children[0].Shape.ShapeType != ShapeText {
+	if layout.Children[0].Shape.shapeType != shapeText {
 		t.Error("child should be text")
 	}
 }

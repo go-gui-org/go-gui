@@ -366,7 +366,7 @@ func inputOnClick(idScroll uint32) func(*Layout, *Event, *Window) {
 			ds.scrollY0, _ = sy.Get(idScroll) // ok ignored: zero offset is correct initial scroll
 			p := layout.Parent.Shape
 			ds.viewTop = p.Y + p.Padding.Top
-			viewH := p.Height - p.PaddingHeight()
+			viewH := p.Height - p.paddingHeight()
 			ds.viewBot = ds.viewTop + viewH
 			ds.maxScrollNeg = f32Min(0,
 				viewH-layout.Shape.Height)

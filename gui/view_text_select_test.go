@@ -10,7 +10,7 @@ func TestTextSelectAllAndCopy(t *testing.T) {
 
 	// Ctrl+A selects all.
 	e := &Event{KeyCode: KeyA, Modifiers: ModCtrl}
-	layout.Shape.Events.OnKeyDown(&layout, e, w)
+	layout.Shape.events.OnKeyDown(&layout, e, w)
 
 	is := getInputState(w, 42)
 	if is.SelectBeg != 0 || is.SelectEnd != 11 {
@@ -25,7 +25,7 @@ func TestTextSelectAllAndCopy(t *testing.T) {
 	var clipboard string
 	w.SetClipboardFn(func(s string) { clipboard = s })
 	e = &Event{KeyCode: KeyC, Modifiers: ModCtrl}
-	layout.Shape.Events.OnKeyDown(&layout, e, w)
+	layout.Shape.events.OnKeyDown(&layout, e, w)
 
 	if clipboard != "hello world" {
 		t.Fatalf("copy: got %q, want %q",
@@ -45,7 +45,7 @@ func TestTextDoubleClickWordSelect(t *testing.T) {
 
 	// First click: cursor at rune 6.
 	e1 := &Event{MouseX: clickX, MouseY: clickY}
-	layout.Shape.Events.OnClick(&layout, e1, w)
+	layout.Shape.events.OnClick(&layout, e1, w)
 
 	is := getInputState(w, 42)
 	if is.CursorPos != 6 {
@@ -55,7 +55,7 @@ func TestTextDoubleClickWordSelect(t *testing.T) {
 
 	// Second click (within 400ms): selects "world".
 	e2 := &Event{MouseX: clickX, MouseY: clickY}
-	layout.Shape.Events.OnClick(&layout, e2, w)
+	layout.Shape.events.OnClick(&layout, e2, w)
 
 	is = getInputState(w, 42)
 	beg, end := u32Sort(is.SelectBeg, is.SelectEnd)
@@ -80,7 +80,7 @@ func TestTextShiftArrowSelection(t *testing.T) {
 			KeyCode:   KeyRight,
 			Modifiers: ModShift,
 		}
-		layout.Shape.Events.OnKeyDown(&layout, e, w)
+		layout.Shape.events.OnKeyDown(&layout, e, w)
 	}
 
 	is := getInputState(w, 42)
@@ -96,7 +96,7 @@ func TestTextNoHandlersWithoutFocus(t *testing.T) {
 	v := Text(TextCfg{Text: "no focus"})
 	layout := GenerateViewLayout(v, w)
 
-	if layout.Shape.Events != nil {
+	if layout.Shape.events != nil {
 		t.Fatal("events should be nil when IDFocus == 0")
 	}
 }
@@ -114,7 +114,7 @@ func TestTextAmendLayout(t *testing.T) {
 	})
 
 	// AmendLayout should copy to shape.TC.
-	layout.Shape.Events.AmendLayout(&layout, w)
+	layout.Shape.events.AmendLayout(&layout, w)
 
 	if layout.Shape.TC.TextSelBeg != 5 ||
 		layout.Shape.TC.TextSelEnd != 9 {
@@ -137,7 +137,7 @@ func TestTextEscapeClearsSelection(t *testing.T) {
 	})
 
 	e := &Event{KeyCode: KeyEscape}
-	layout.Shape.Events.OnKeyDown(&layout, e, w)
+	layout.Shape.events.OnKeyDown(&layout, e, w)
 
 	is := getInputState(w, 42)
 	if is.SelectBeg != 0 || is.SelectEnd != 0 {

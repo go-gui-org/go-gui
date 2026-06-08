@@ -230,10 +230,10 @@ func TestProgressBarIndefiniteAnimationIsViewBound(t *testing.T) {
 	v := ProgressBar(ProgressBarCfg{ID: "pb-vb", Indefinite: true})
 	w := &Window{}
 	layout := GenerateViewLayout(v, w)
-	if layout.Shape.Events == nil || layout.Shape.Events.AmendLayout == nil {
+	if layout.Shape.events == nil || layout.Shape.events.AmendLayout == nil {
 		t.Fatal("AmendLayout not set on progress bar layout")
 	}
-	layout.Shape.Events.AmendLayout(&layout, w)
+	layout.Shape.events.AmendLayout(&layout, w)
 	if w.animViewBound == nil {
 		t.Fatal("animViewBound nil after indefinite progress bar AmendLayout — animation not view-bound")
 	}

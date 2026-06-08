@@ -10,7 +10,7 @@ import (
 
 // renderSvg renders an SVG shape by loading cached tessellation
 // and emitting RenderSvg commands.
-func renderSvg(shape *Shape, clip DrawClip, w *Window) {
+func renderSvg(shape *Shape, clip drawClip, w *Window) {
 	if !rectsOverlap(shapeBounds(shape), clip) {
 		return
 	}
@@ -57,7 +57,7 @@ func renderSvg(shape *Shape, clip DrawClip, w *Window) {
 	// preserveAspectRatio=slice the scaled content is larger than the
 	// shape; the shape rect bounds the visible region. Under meet the
 	// shape is the bounding box and content fits within it.
-	svgClip, ok := rectIntersection(clip, DrawClip{
+	svgClip, ok := rectIntersection(clip, drawClip{
 		X:      shape.X,
 		Y:      shape.Y,
 		Width:  shape.Width,

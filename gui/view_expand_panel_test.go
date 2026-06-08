@@ -30,7 +30,7 @@ func TestExpandPanelClosedLayout(t *testing.T) {
 		t.Fatalf("children: got %d, want 2", len(layout.Children))
 	}
 	body := layout.Children[1]
-	if body.Shape.ShapeType != ShapeRectangle {
+	if body.Shape.shapeType != shapeRectangle {
 		t.Error("closed body should be a container")
 	}
 }
@@ -81,12 +81,12 @@ func TestExpandPanelOnToggle(t *testing.T) {
 	layout := GenerateViewLayout(v, &Window{})
 	// Header row is first child; it has OnClick
 	header := layout.Children[0]
-	if header.Shape.Events == nil || header.Shape.Events.OnClick == nil {
+	if header.Shape.events == nil || header.Shape.events.OnClick == nil {
 		t.Fatal("header should have OnClick")
 	}
 	e := &Event{}
 	w := &Window{}
-	header.Shape.Events.OnClick(&header, e, w)
+	header.Shape.events.OnClick(&header, e, w)
 	if !called {
 		t.Error("OnToggle should be called")
 	}

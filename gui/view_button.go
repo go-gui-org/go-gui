@@ -49,7 +49,7 @@ type ButtonCfg struct {
 
 // buttonView wraps a containerView with per-button hover/focus
 // colors, replacing per-frame closure allocations with pooled
-// ShapeButtonColors and package-level handler functions.
+// shapeButtonColors and package-level handler functions.
 type buttonView struct {
 	cv               *containerView
 	userOnHover      func(*Layout, *Event, *Window)
@@ -63,8 +63,8 @@ func (bv *buttonView) Content() []View { return bv.cv.Content() }
 
 func (bv *buttonView) GenerateLayout(w *Window) Layout {
 	layout := bv.cv.GenerateLayout(w)
-	if layout.Shape.Events != nil {
-		bc := ShapeButtonColors{
+	if layout.Shape.events != nil {
+		bc := shapeButtonColors{
 			ColorHover:       bv.colorHover,
 			ColorClick:       bv.colorClick,
 			ColorFocus:       bv.colorFocus,
@@ -72,50 +72,50 @@ func (bv *buttonView) GenerateLayout(w *Window) Layout {
 			OnHover:          bv.userOnHover,
 		}
 		if w != nil {
-			layout.Shape.BC = w.scratch.buttonColors.alloc(bc)
+			layout.Shape.bc = w.scratch.buttonColors.alloc(bc)
 		} else {
-			layout.Shape.BC = &bc
+			layout.Shape.bc = &bc
 		}
-		layout.Shape.Events.AmendLayout = buttonAmendLayout
-		layout.Shape.Events.OnHover = buttonOnHover
+		layout.Shape.events.AmendLayout = buttonAmendLayout
+		layout.Shape.events.OnHover = buttonOnHover
 	}
 	return layout
 }
 
 func buttonAmendLayout(layout *Layout, w *Window) {
 	if layout.Shape.Disabled ||
-		!layout.Shape.HasEvents() ||
-		layout.Shape.Events.OnClick == nil {
+		!layout.Shape.hasEvents() ||
+		layout.Shape.events.OnClick == nil {
 		return
 	}
 	if w.IsFocus(layout.Shape.IDFocus) {
-		layout.Shape.Color = layout.Shape.BC.ColorFocus
-		layout.Shape.ColorBorder = layout.Shape.BC.ColorBorderFocus
+		layout.Shape.Color = layout.Shape.bc.ColorFocus
+		layout.Shape.ColorBorder = layout.Shape.bc.ColorBorderFocus
 	}
 }
 
 func buttonOnHover(layout *Layout, e *Event, w *Window) {
 	if layout.Shape.Disabled ||
-		!layout.Shape.HasEvents() ||
-		layout.Shape.Events.OnClick == nil {
+		!layout.Shape.hasEvents() ||
+		layout.Shape.events.OnClick == nil {
 		return
 	}
 	w.SetMouseCursor(CursorPointingHand)
 	if !w.IsFocus(layout.Shape.IDFocus) {
-		layout.Shape.Color = layout.Shape.BC.ColorHover
+		layout.Shape.Color = layout.Shape.bc.ColorHover
 	}
 	if e.MouseButton == MouseLeft {
-		layout.Shape.Color = layout.Shape.BC.ColorClick
+		layout.Shape.Color = layout.Shape.bc.ColorClick
 	}
-	if layout.Shape.BC.OnHover != nil {
-		layout.Shape.BC.OnHover(layout, e, w)
+	if layout.Shape.bc.OnHover != nil {
+		layout.Shape.bc.OnHover(layout, e, w)
 	}
 }
 
 // Button creates a clickable button. Delegates to Row with
 // package-level amend_layout for focus coloring and on_hover
 // for cursor/color state changes. Colors are stored in a pooled
-// ShapeButtonColors to avoid per-frame closure allocations.
+// shapeButtonColors to avoid per-frame closure allocations.
 func Button(cfg ButtonCfg) View {
 	if cfg.Invisible {
 		return invisibleContainerView()

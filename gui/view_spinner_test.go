@@ -16,8 +16,8 @@ func TestSpinnerDefaultLayout(t *testing.T) {
 		t.Fatalf("children = %d, want 1", len(layout.Children))
 	}
 	cv := layout.Children[0]
-	if cv.Shape.ShapeType != ShapeDrawCanvas {
-		t.Errorf("child ShapeType = %d, want DrawCanvas", cv.Shape.ShapeType)
+	if cv.Shape.shapeType != shapeDrawCanvas {
+		t.Errorf("child shapeType = %d, want DrawCanvas", cv.Shape.shapeType)
 	}
 }
 
@@ -39,7 +39,7 @@ func TestSpinnerCustomColor(t *testing.T) {
 	v := Spinner(SpinnerCfg{ID: "s3", Color: c}, w)
 	layout := GenerateViewLayout(v, w)
 	cv := layout.Children[0]
-	if cv.Shape.Events == nil || cv.Shape.Events.OnDraw == nil {
+	if cv.Shape.events == nil || cv.Shape.events.OnDraw == nil {
 		t.Fatal("OnDraw not set")
 	}
 }

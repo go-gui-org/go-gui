@@ -48,7 +48,7 @@ func TestExecuteFocusCallbackNil(t *testing.T) {
 func TestExecuteMouseCallbackOutside(t *testing.T) {
 	w := &Window{}
 	l := &Layout{Shape: &Shape{
-		ShapeClip: DrawClip{X: 10, Y: 10, Width: 50, Height: 50},
+		shapeClip: drawClip{X: 10, Y: 10, Width: 50, Height: 50},
 	}}
 	e := &Event{MouseX: 0, MouseY: 0}
 	called := false
@@ -64,7 +64,7 @@ func TestExecuteMouseCallbackOutside(t *testing.T) {
 func TestExecuteMouseCallbackInside(t *testing.T) {
 	w := &Window{}
 	s := &Shape{
-		ShapeClip: DrawClip{X: 10, Y: 20, Width: 50, Height: 50},
+		shapeClip: drawClip{X: 10, Y: 20, Width: 50, Height: 50},
 	}
 	s.X = 10
 	s.Y = 20
@@ -87,7 +87,7 @@ func TestExecuteMouseCallbackInside(t *testing.T) {
 func TestExecuteMouseCallbackRestoresEvent(t *testing.T) {
 	w := &Window{}
 	s := &Shape{
-		ShapeClip: DrawClip{X: 10, Y: 20, Width: 50, Height: 50},
+		shapeClip: drawClip{X: 10, Y: 20, Width: 50, Height: 50},
 	}
 	s.X = 10
 	s.Y = 20

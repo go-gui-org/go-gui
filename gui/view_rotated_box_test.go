@@ -91,7 +91,7 @@ func TestRotatedBoxRenderBrackets(t *testing.T) {
 	layout := GenerateViewLayout(v, w)
 	layoutParents(&layout, nil)
 	layoutPipeline(&layout, w)
-	clip := DrawClip{Width: 800, Height: 600}
+	clip := drawClip{Width: 800, Height: 600}
 	renderLayout(&layout, ColorTransparent, clip, w)
 	cmds := w.Renderers()
 	var foundBegin, foundEnd bool

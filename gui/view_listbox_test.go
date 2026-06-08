@@ -45,9 +45,9 @@ func TestListBoxSingleSelectClick(t *testing.T) {
 		t.Fatal("expected children")
 	}
 	item := &layout.Children[0]
-	if item.Shape.Events != nil && item.Shape.Events.OnClick != nil {
+	if item.Shape.events != nil && item.Shape.events.OnClick != nil {
 		e := &Event{MouseButton: MouseLeft}
-		item.Shape.Events.OnClick(item, e, w)
+		item.Shape.events.OnClick(item, e, w)
 		if len(selected) != 1 || selected[0] != "a" {
 			t.Errorf("expected [a], got %v", selected)
 		}
@@ -104,9 +104,9 @@ func TestListBoxItemsSelect(t *testing.T) {
 		t.Fatal("expected children")
 	}
 	item := &layout.Children[0]
-	if item.Shape.Events != nil && item.Shape.Events.OnClick != nil {
+	if item.Shape.events != nil && item.Shape.events.OnClick != nil {
 		e := &Event{MouseButton: MouseLeft}
-		item.Shape.Events.OnClick(item, e, w)
+		item.Shape.events.OnClick(item, e, w)
 		if len(selected) != 1 || selected[0] != "Alpha" {
 			t.Errorf("expected [Alpha], got %v", selected)
 		}

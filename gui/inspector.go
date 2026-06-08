@@ -51,7 +51,7 @@ type inspectorStackFrame struct {
 type inspectorNodeProps struct {
 	TypeName    string
 	ID          string
-	Events      string
+	events      string
 	TextPreview string
 	Children    int
 	Padding     Padding
@@ -456,10 +456,10 @@ func inspectorPropsNodes(p inspectorNodeProps) []TreeNodeCfg {
 			inspectorPropNode(inspectorPropOpacityID,
 				fmt.Sprintf("opacity: %.2f", p.Opacity), ps, pis))
 	}
-	if p.Events != "" {
+	if p.events != "" {
 		nodes = append(nodes,
 			inspectorPropNode(inspectorPropEventsID,
-				"events: "+p.Events, ps, pis))
+				"events: "+p.events, ps, pis))
 	}
 	if p.Children > 0 {
 		nodes = append(nodes,
@@ -501,8 +501,8 @@ func inspectorSnapshotProps(layout *Layout) inspectorNodeProps {
 		TextPreview: textPreview,
 		Children:    len(layout.Children),
 	}
-	if shape.HasEvents() {
-		props.Events = inspectorEventsString(shape.Events)
+	if shape.hasEvents() {
+		props.events = inspectorEventsString(shape.events)
 	}
 	return props
 }
@@ -524,20 +524,20 @@ func inspectorTypeName(shape *Shape) string {
 	if shape == nil {
 		return "(nil)"
 	}
-	switch shape.ShapeType {
-	case ShapeText:
+	switch shape.shapeType {
+	case shapeText:
 		return "text"
-	case ShapeImage:
+	case shapeImage:
 		return "image"
-	case ShapeCircle:
+	case shapeCircle:
 		return "circle"
-	case ShapeRTF:
+	case shapeRTF:
 		return "rtf"
-	case ShapeSVG:
+	case shapeSVG:
 		return "svg"
-	case ShapeDrawCanvas:
+	case shapeDrawCanvas:
 		return "draw_canvas"
-	case ShapeNone, ShapeRectangle:
+	case shapeNone, shapeRectangle:
 		switch shape.Axis {
 		case AxisTopToBottom:
 			return "column"
@@ -604,7 +604,7 @@ func inspectorInjectWireframe(w *Window) {
 	}, w)
 }
 
-func inspectorEventsString(events *EventHandlers) string {
+func inspectorEventsString(events *eventHandlers) string {
 	if events == nil {
 		return ""
 	}

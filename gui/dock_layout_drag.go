@@ -181,7 +181,7 @@ func dockDragDetectZone(
 	if !ok {
 		return DockDropNone, ""
 	}
-	clip := dockLayout.Shape.ShapeClip
+	clip := dockLayout.Shape.shapeClip
 	if clip.Width <= 0 || clip.Height <= 0 {
 		return DockDropNone, ""
 	}
@@ -211,7 +211,7 @@ func dockDragDetectZone(
 		if !ok {
 			continue
 		}
-		gc := groupLayout.Shape.ShapeClip
+		gc := groupLayout.Shape.shapeClip
 		if gc.Width <= 0 || gc.Height <= 0 {
 			continue
 		}

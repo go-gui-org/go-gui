@@ -270,9 +270,9 @@ func (w *Window) WindowSize() (int, int) {
 	return w.windowWidth, w.windowHeight
 }
 
-// WindowRect returns the window as a DrawClip.
-func (w *Window) WindowRect() DrawClip {
-	return DrawClip{
+// windowRect returns the window as a drawClip.
+func (w *Window) windowRect() drawClip {
+	return drawClip{
 		X: 0, Y: 0,
 		Width:  float32(w.windowWidth),
 		Height: float32(w.windowHeight),

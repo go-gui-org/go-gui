@@ -4,9 +4,9 @@ import "github.com/go-gui-org/go-glyph"
 
 // renderLayout walks the layout tree and emits RenderCmd entries
 // into window.renderers. Clip rectangles bracket clipped children.
-func renderLayout(layout *Layout, bgColor Color, clip DrawClip, w *Window) {
+func renderLayout(layout *Layout, bgColor Color, clip drawClip, w *Window) {
 	// Emit filter bracket when ColorFilter is set (containers only).
-	fx := layout.Shape.FX
+	fx := layout.Shape.fx
 	hasColorFilter := fx != nil && fx.ColorFilter != nil && !w.inFilter
 	if hasColorFilter {
 		w.inFilter = true
@@ -22,7 +22,7 @@ func renderLayout(layout *Layout, bgColor Color, clip DrawClip, w *Window) {
 
 	shapeClip := clip
 	if layout.Shape.OverDraw {
-		shapeClip = layout.Shape.ShapeClip
+		shapeClip = layout.Shape.shapeClip
 		if layout.Shape.ScrollbarOrientation == ScrollbarVertical {
 			shapeClip.Y = clip.Y
 			shapeClip.Height = clip.Height
@@ -33,7 +33,7 @@ func renderLayout(layout *Layout, bgColor Color, clip DrawClip, w *Window) {
 		}
 		emitClipCmd(shapeClip, w)
 	} else if layout.Shape.Clip {
-		sc := layout.Shape.ShapeClip
+		sc := layout.Shape.shapeClip
 		isRTL := effectiveTextDir(layout.Shape) == TextDirRTL
 		var padX float32
 		if isRTL {
@@ -41,11 +41,11 @@ func renderLayout(layout *Layout, bgColor Color, clip DrawClip, w *Window) {
 		} else {
 			padX = layout.Shape.PaddingLeft()
 		}
-		shapeClip = DrawClip{
+		shapeClip = drawClip{
 			X:      sc.X + padX,
 			Y:      sc.Y + layout.Shape.PaddingTop(),
-			Width:  f32Max(0, sc.Width-layout.Shape.PaddingWidth()),
-			Height: f32Max(0, sc.Height-layout.Shape.PaddingHeight()),
+			Width:  f32Max(0, sc.Width-layout.Shape.paddingWidth()),
+			Height: f32Max(0, sc.Height-layout.Shape.paddingHeight()),
 		}
 		emitClipCmd(shapeClip, w)
 	}
@@ -69,7 +69,7 @@ func renderLayout(layout *Layout, bgColor Color, clip DrawClip, w *Window) {
 		// Also apply scissor clip as optimization (avoids
 		// rasterizing fragments outside bounding rect).
 		if !layout.Shape.Clip && !layout.Shape.OverDraw {
-			shapeClip = layout.Shape.ShapeClip
+			shapeClip = layout.Shape.shapeClip
 			emitClipCmd(shapeClip, w)
 		}
 	}
@@ -135,9 +135,9 @@ func renderLayout(layout *Layout, bgColor Color, clip DrawClip, w *Window) {
 
 // renderShape dispatches to the type-specific renderer, applying
 // opacity when needed.
-func renderShape(shape *Shape, parentColor Color, clip DrawClip, w *Window) {
+func renderShape(shape *Shape, parentColor Color, clip drawClip, w *Window) {
 	// Degrade safely if a text-like shape is missing text config.
-	if (shape.ShapeType == ShapeText || shape.ShapeType == ShapeRTF) &&
+	if (shape.shapeType == shapeText || shape.shapeType == shapeRTF) &&
 		shape.TC == nil {
 		return
 	}
@@ -157,46 +157,46 @@ func renderShape(shape *Shape, parentColor Color, clip DrawClip, w *Window) {
 
 // renderShapeInner dispatches to the type-specific renderer after
 // visibility checks.
-func renderShapeInner(shape *Shape, parentColor Color, clip DrawClip, w *Window) {
+func renderShapeInner(shape *Shape, parentColor Color, clip drawClip, w *Window) {
 	hasBorder := shape.SizeBorder > 0 && shape.ColorBorder != ColorTransparent
-	hasText := shape.ShapeType == ShapeText && shape.TC != nil
-	isImage := shape.ShapeType == ShapeImage
-	isSvg := shape.ShapeType == ShapeSVG
-	isCanvas := shape.ShapeType == ShapeDrawCanvas
-	hasFX := shape.FX != nil && (shape.FX.Gradient != nil ||
-		shape.FX.BorderGradient != nil)
+	hasText := shape.shapeType == shapeText && shape.TC != nil
+	isImage := shape.shapeType == shapeImage
+	isSvg := shape.shapeType == shapeSVG
+	isCanvas := shape.shapeType == shapeDrawCanvas
+	hasFX := shape.fx != nil && (shape.fx.Gradient != nil ||
+		shape.fx.BorderGradient != nil)
 
-	isRTF := shape.ShapeType == ShapeRTF
+	isRTF := shape.shapeType == shapeRTF
 
 	if shape.Color == ColorTransparent && !hasFX && !hasBorder &&
 		!hasText && !isImage && !isSvg && !isCanvas && !isRTF {
 		return
 	}
 
-	switch shape.ShapeType {
-	case ShapeRectangle:
+	switch shape.shapeType {
+	case shapeRectangle:
 		renderContainer(shape, parentColor, clip, w)
-	case ShapeText:
+	case shapeText:
 		renderText(shape, clip, w)
-	case ShapeImage:
+	case shapeImage:
 		renderImage(shape, clip, w)
-	case ShapeCircle:
+	case shapeCircle:
 		renderCircle(shape, clip, w)
-	case ShapeRTF:
+	case shapeRTF:
 		renderRtf(shape, clip, w)
-	case ShapeSVG:
+	case shapeSVG:
 		renderSvg(shape, clip, w)
-	case ShapeDrawCanvas:
+	case shapeDrawCanvas:
 		renderDrawCanvas(shape, clip, w)
-	case ShapeNone:
+	case shapeNone:
 		// no-op
 	}
 }
 
 // renderContainer draws a rectangle (possibly with shadow, gradient,
 // blur, or border).
-func renderContainer(shape *Shape, _ Color, clip DrawClip, w *Window) {
-	fx := shape.FX
+func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
+	fx := shape.fx
 	hasFX := fx != nil
 
 	// Shadow
@@ -281,7 +281,7 @@ func renderContainer(shape *Shape, _ Color, clip DrawClip, w *Window) {
 
 // renderRectangle draws a shape as a filled rectangle with optional
 // stroke border.
-func renderRectangle(shape *Shape, clip DrawClip, w *Window) {
+func renderRectangle(shape *Shape, clip drawClip, w *Window) {
 	dr := shapeBounds(shape)
 	c := shape.Color
 	if shape.Disabled {
@@ -326,7 +326,7 @@ func renderRectangle(shape *Shape, clip DrawClip, w *Window) {
 
 // renderCircle draws a shape as a circle in the middle of the
 // shape's rectangular region.
-func renderCircle(shape *Shape, clip DrawClip, w *Window) {
+func renderCircle(shape *Shape, clip drawClip, w *Window) {
 	dr := shapeBounds(shape)
 	c := shape.Color
 	if shape.Disabled {
@@ -350,7 +350,7 @@ func renderCircle(shape *Shape, clip DrawClip, w *Window) {
 		}
 
 		// Border
-		fx := shape.FX
+		fx := shape.fx
 		if fx != nil && fx.BorderGradient != nil && shape.SizeBorder > 0 {
 			emitRenderer(RenderCmd{
 				Kind:      RenderGradientBorder,
@@ -386,7 +386,7 @@ func renderCircle(shape *Shape, clip DrawClip, w *Window) {
 // renderText emits a RenderText command for a text shape.
 //
 //nolint:gocyclo // text rendering options
-func renderText(shape *Shape, clip DrawClip, w *Window) {
+func renderText(shape *Shape, clip drawClip, w *Window) {
 	tc := shape.TC
 	if tc == nil {
 		return
@@ -786,8 +786,8 @@ func textWidthFallback(text string, runePos int, tc *ShapeTextConfig, style Text
 }
 
 // renderRtf emits a RenderRTF command for pre-shaped rich text.
-func renderRtf(shape *Shape, clip DrawClip, w *Window) {
-	if !shape.HasRtfLayout() {
+func renderRtf(shape *Shape, clip drawClip, w *Window) {
+	if !shape.hasRtfLayout() {
 		return
 	}
 	if !rectsOverlap(shapeBounds(shape), clip) {

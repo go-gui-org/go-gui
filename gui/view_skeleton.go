@@ -119,10 +119,10 @@ func skeletonAmendLayout(
 		{Color: colorBase, Pos: 1},
 	}
 
-	if layout.Shape.FX == nil {
-		layout.Shape.FX = &ShapeEffects{}
+	if layout.Shape.fx == nil {
+		layout.Shape.fx = &shapeEffects{}
 	}
-	layout.Shape.FX.Gradient = &GradientDef{
+	layout.Shape.fx.Gradient = &GradientDef{
 		Stops:     stops,
 		Type:      GradientLinear,
 		Direction: GradientToRight,

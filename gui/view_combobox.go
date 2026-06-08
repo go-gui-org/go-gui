@@ -230,9 +230,9 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 				for i := range layout.Children {
 					c := &layout.Children[i]
 					if c.Shape.OverDraw &&
-						c.Shape.HasEvents() &&
-						c.Shape.Events.AmendLayout != nil {
-						c.Shape.Events.AmendLayout(c, w)
+						c.Shape.hasEvents() &&
+						c.Shape.events.AmendLayout != nil {
+						c.Shape.events.AmendLayout(c, w)
 					}
 				}
 			},

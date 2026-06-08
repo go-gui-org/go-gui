@@ -16,9 +16,9 @@ func TestSkeletonCircleVariant(t *testing.T) {
 		Variant: SkeletonCircle,
 	})
 	layout := GenerateViewLayout(v, &Window{})
-	if layout.Shape.ShapeType != ShapeCircle {
-		t.Errorf("ShapeType = %d, want ShapeCircle (%d)",
-			layout.Shape.ShapeType, ShapeCircle)
+	if layout.Shape.shapeType != shapeCircle {
+		t.Errorf("shapeType = %d, want shapeCircle (%d)",
+			layout.Shape.shapeType, shapeCircle)
 	}
 }
 
@@ -135,10 +135,10 @@ func TestSkeletonAnimationIsViewBound(t *testing.T) {
 	v := Skeleton(SkeletonCfg{ID: "sk1"})
 	w := &Window{}
 	layout := GenerateViewLayout(v, w)
-	if layout.Shape.Events == nil || layout.Shape.Events.AmendLayout == nil {
+	if layout.Shape.events == nil || layout.Shape.events.AmendLayout == nil {
 		t.Fatal("AmendLayout not set")
 	}
-	layout.Shape.Events.AmendLayout(&layout, w)
+	layout.Shape.events.AmendLayout(&layout, w)
 	if w.animViewBound == nil {
 		t.Fatal("animViewBound nil after skeleton AmendLayout — animation not view-bound")
 	}
@@ -151,22 +151,22 @@ func TestSkeletonAmendLayoutSetsGradient(t *testing.T) {
 	v := Skeleton(SkeletonCfg{ID: "s13"})
 	w := &Window{}
 	layout := GenerateViewLayout(v, w)
-	if layout.Shape.Events == nil ||
-		layout.Shape.Events.AmendLayout == nil {
+	if layout.Shape.events == nil ||
+		layout.Shape.events.AmendLayout == nil {
 		t.Fatal("AmendLayout not set")
 	}
-	layout.Shape.Events.AmendLayout(&layout, w)
-	if layout.Shape.FX == nil {
-		t.Fatal("FX nil after AmendLayout")
+	layout.Shape.events.AmendLayout(&layout, w)
+	if layout.Shape.fx == nil {
+		t.Fatal("fx nil after AmendLayout")
 	}
-	if layout.Shape.FX.Gradient == nil {
+	if layout.Shape.fx.Gradient == nil {
 		t.Fatal("Gradient nil after AmendLayout")
 	}
-	if len(layout.Shape.FX.Gradient.Stops) != 5 {
+	if len(layout.Shape.fx.Gradient.Stops) != 5 {
 		t.Errorf("gradient stops = %d, want 5",
-			len(layout.Shape.FX.Gradient.Stops))
+			len(layout.Shape.fx.Gradient.Stops))
 	}
-	if layout.Shape.FX.Gradient.Direction != GradientToRight {
+	if layout.Shape.fx.Gradient.Direction != GradientToRight {
 		t.Error("gradient direction should be ToRight")
 	}
 }

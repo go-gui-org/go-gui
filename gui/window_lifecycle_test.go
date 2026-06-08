@@ -263,7 +263,7 @@ func TestPasswordMaskInRenderText(t *testing.T) {
 		Height: 200,
 	})
 	shape := &Shape{
-		ShapeType: ShapeText,
+		shapeType: shapeText,
 		Width:     100,
 		Height:    20,
 		Opacity:   1.0,
@@ -273,7 +273,7 @@ func TestPasswordMaskInRenderText(t *testing.T) {
 			TextStyle:      &TextStyle{Color: RGB(255, 255, 255), Size: 16},
 		},
 	}
-	clip := DrawClip{X: 0, Y: 0, Width: 200, Height: 200}
+	clip := drawClip{X: 0, Y: 0, Width: 200, Height: 200}
 	renderText(shape, clip, w)
 
 	found := false
@@ -299,7 +299,7 @@ func TestRenderTextWrapSetsWidth(t *testing.T) {
 		Height: 200,
 	})
 	shape := &Shape{
-		ShapeType: ShapeText,
+		shapeType: shapeText,
 		Width:     250,
 		Height:    20,
 		Opacity:   1.0,
@@ -311,7 +311,7 @@ func TestRenderTextWrapSetsWidth(t *testing.T) {
 			},
 		},
 	}
-	clip := DrawClip{X: 0, Y: 0, Width: 400, Height: 400}
+	clip := drawClip{X: 0, Y: 0, Width: 400, Height: 400}
 	renderText(shape, clip, w)
 
 	found := false
@@ -335,7 +335,7 @@ func TestRenderTextNoWrapOmitsWidth(t *testing.T) {
 		Height: 200,
 	})
 	shape := &Shape{
-		ShapeType: ShapeText,
+		shapeType: shapeText,
 		Width:     250,
 		Height:    20,
 		Opacity:   1.0,
@@ -346,7 +346,7 @@ func TestRenderTextNoWrapOmitsWidth(t *testing.T) {
 			},
 		},
 	}
-	clip := DrawClip{X: 0, Y: 0, Width: 400, Height: 400}
+	clip := drawClip{X: 0, Y: 0, Width: 400, Height: 400}
 	renderText(shape, clip, w)
 
 	for _, r := range w.renderers {
@@ -593,7 +593,7 @@ func TestWindowSizeAndRect(t *testing.T) {
 	if width != 800 || height != 600 {
 		t.Errorf("size = %dx%d, want 800x600", width, height)
 	}
-	rect := w.WindowRect()
+	rect := w.windowRect()
 	if rect.Width != 800 || rect.Height != 600 {
 		t.Errorf("rect = %fx%f, want 800x600", rect.Width, rect.Height)
 	}

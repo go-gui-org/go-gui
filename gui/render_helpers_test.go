@@ -6,32 +6,32 @@ import (
 )
 
 func TestRectsOverlapBasic(t *testing.T) {
-	a := DrawClip{X: 0, Y: 0, Width: 10, Height: 10}
-	b := DrawClip{X: 5, Y: 5, Width: 10, Height: 10}
+	a := drawClip{X: 0, Y: 0, Width: 10, Height: 10}
+	b := drawClip{X: 5, Y: 5, Width: 10, Height: 10}
 	if !rectsOverlap(a, b) {
 		t.Error("overlapping rects should return true")
 	}
 }
 
 func TestRectsOverlapDisjoint(t *testing.T) {
-	a := DrawClip{X: 0, Y: 0, Width: 10, Height: 10}
-	b := DrawClip{X: 20, Y: 20, Width: 10, Height: 10}
+	a := drawClip{X: 0, Y: 0, Width: 10, Height: 10}
+	b := drawClip{X: 20, Y: 20, Width: 10, Height: 10}
 	if rectsOverlap(a, b) {
 		t.Error("disjoint rects should return false")
 	}
 }
 
 func TestRectsOverlapAdjacent(t *testing.T) {
-	a := DrawClip{X: 0, Y: 0, Width: 10, Height: 10}
-	b := DrawClip{X: 10, Y: 0, Width: 10, Height: 10}
+	a := drawClip{X: 0, Y: 0, Width: 10, Height: 10}
+	b := drawClip{X: 10, Y: 0, Width: 10, Height: 10}
 	if rectsOverlap(a, b) {
 		t.Error("adjacent rects (shared edge) should return false (strict <)")
 	}
 }
 
 func TestRectsOverlapContained(t *testing.T) {
-	outer := DrawClip{X: 0, Y: 0, Width: 100, Height: 100}
-	inner := DrawClip{X: 10, Y: 10, Width: 5, Height: 5}
+	outer := drawClip{X: 0, Y: 0, Width: 100, Height: 100}
+	inner := drawClip{X: 10, Y: 10, Width: 5, Height: 5}
 	if !rectsOverlap(outer, inner) {
 		t.Error("contained rect should overlap")
 	}
@@ -43,24 +43,24 @@ func TestRectsOverlapContained(t *testing.T) {
 func TestRectsOverlapZeroSizePoint(t *testing.T) {
 	// A zero-size "point" at (5,5) inside a 10x10 rect: the strict-<
 	// comparisons still hold (5 < 10 && 0 < 5), so overlap is true.
-	a := DrawClip{X: 5, Y: 5, Width: 0, Height: 0}
-	b := DrawClip{X: 0, Y: 0, Width: 10, Height: 10}
+	a := drawClip{X: 5, Y: 5, Width: 0, Height: 0}
+	b := drawClip{X: 0, Y: 0, Width: 10, Height: 10}
 	if !rectsOverlap(a, b) {
 		t.Error("zero-size point inside rect overlaps with strict <")
 	}
 }
 
 func TestRectsOverlapZeroSizeOutside(t *testing.T) {
-	a := DrawClip{X: 15, Y: 15, Width: 0, Height: 0}
-	b := DrawClip{X: 0, Y: 0, Width: 10, Height: 10}
+	a := drawClip{X: 15, Y: 15, Width: 0, Height: 0}
+	b := drawClip{X: 0, Y: 0, Width: 10, Height: 10}
 	if rectsOverlap(a, b) {
 		t.Error("zero-size point outside rect should not overlap")
 	}
 }
 
 func TestRectsOverlapNegativeCoords(t *testing.T) {
-	a := DrawClip{X: -5, Y: -5, Width: 10, Height: 10}
-	b := DrawClip{X: 0, Y: 0, Width: 10, Height: 10}
+	a := drawClip{X: -5, Y: -5, Width: 10, Height: 10}
+	b := drawClip{X: 0, Y: 0, Width: 10, Height: 10}
 	if !rectsOverlap(a, b) {
 		t.Error("negative-coord rects should overlap when intersecting")
 	}
@@ -107,7 +107,7 @@ func TestResolveClipRadiusNoClip(t *testing.T) {
 func TestResolveClipRadiusCircle(t *testing.T) {
 	s := &Shape{
 		Clip:      true,
-		ShapeType: ShapeCircle,
+		shapeType: shapeCircle,
 		Width:     20,
 		Height:    20,
 	}
@@ -150,7 +150,7 @@ func TestResolveClipRadiusZeroRadius(t *testing.T) {
 }
 
 func TestQuantizedScissorClipScale1(t *testing.T) {
-	clip := DrawClip{X: 1.7, Y: 2.3, Width: 10.9, Height: 5.1}
+	clip := drawClip{X: 1.7, Y: 2.3, Width: 10.9, Height: 5.1}
 	got := quantizedScissorClip(clip, 1)
 	if got.X != 1 || got.Y != 2 || got.Width != 10 || got.Height != 5 {
 		t.Errorf("scale=1 should truncate to int: got %+v", got)
@@ -158,7 +158,7 @@ func TestQuantizedScissorClipScale1(t *testing.T) {
 }
 
 func TestQuantizedScissorClipScale2(t *testing.T) {
-	clip := DrawClip{X: 1.3, Y: 2.7, Width: 10, Height: 5}
+	clip := drawClip{X: 1.3, Y: 2.7, Width: 10, Height: 5}
 	got := quantizedScissorClip(clip, 2)
 	// 1.3*2=2.6→2, 2/2=1.0
 	// 2.7*2=5.4→5, 5/2=2.5
@@ -168,7 +168,7 @@ func TestQuantizedScissorClipScale2(t *testing.T) {
 }
 
 func TestQuantizedScissorClipZeroScale(t *testing.T) {
-	clip := DrawClip{X: 1.5, Y: 2.5, Width: 10, Height: 5}
+	clip := drawClip{X: 1.5, Y: 2.5, Width: 10, Height: 5}
 	got := quantizedScissorClip(clip, 0)
 	if got != clip {
 		t.Error("zero scale should return clip unchanged")
@@ -176,7 +176,7 @@ func TestQuantizedScissorClipZeroScale(t *testing.T) {
 }
 
 func TestRoundedImageClipParamsNoOverlap(t *testing.T) {
-	clip := DrawClip{X: 100, Y: 100, Width: 10, Height: 10}
+	clip := drawClip{X: 100, Y: 100, Width: 10, Height: 10}
 	_, ok := roundedImageClipParams(0, 0, 10, 10, clip)
 	if ok {
 		t.Error("non-overlapping image and clip should return false")
@@ -184,7 +184,7 @@ func TestRoundedImageClipParamsNoOverlap(t *testing.T) {
 }
 
 func TestRoundedImageClipParamsZeroSize(t *testing.T) {
-	clip := DrawClip{X: 0, Y: 0, Width: 10, Height: 10}
+	clip := drawClip{X: 0, Y: 0, Width: 10, Height: 10}
 	_, ok := roundedImageClipParams(0, 0, 0, 10, clip)
 	if ok {
 		t.Error("zero-width image should return false")
@@ -192,7 +192,7 @@ func TestRoundedImageClipParamsZeroSize(t *testing.T) {
 }
 
 func TestRoundedImageClipParamsFullOverlap(t *testing.T) {
-	clip := DrawClip{X: 0, Y: 0, Width: 100, Height: 100}
+	clip := drawClip{X: 0, Y: 0, Width: 100, Height: 100}
 	r, ok := roundedImageClipParams(10, 10, 20, 20, clip)
 	if !ok {
 		t.Fatal("fully contained image should return true")
@@ -203,7 +203,7 @@ func TestRoundedImageClipParamsFullOverlap(t *testing.T) {
 }
 
 func TestRoundedImageClipParamsPartialClip(t *testing.T) {
-	clip := DrawClip{X: 5, Y: 5, Width: 10, Height: 10}
+	clip := drawClip{X: 5, Y: 5, Width: 10, Height: 10}
 	r, ok := roundedImageClipParams(0, 0, 20, 20, clip)
 	if !ok {
 		t.Fatal("overlapping image should return true")
@@ -222,7 +222,7 @@ func TestRoundedImageClipParamsNaN(t *testing.T) {
 	// NaN propagates through arithmetic; the function does not
 	// reject it because NaN comparisons return false. Callers
 	// guard via rendererValidForDraw which checks f32AllFinite.
-	clip := DrawClip{X: 0, Y: 0, Width: 10, Height: 10}
+	clip := drawClip{X: 0, Y: 0, Width: 10, Height: 10}
 	nan := float32(math.NaN())
 	r, ok := roundedImageClipParams(nan, 0, 10, 10, clip)
 	if ok && r.W <= 0 {

@@ -12,9 +12,9 @@ func TestTextGeneratesLayout(t *testing.T) {
 	if layout.Shape.ID != "t1" {
 		t.Errorf("ID: got %s", layout.Shape.ID)
 	}
-	if layout.Shape.ShapeType != ShapeText {
+	if layout.Shape.shapeType != shapeText {
 		t.Errorf("type: got %d, want %d",
-			layout.Shape.ShapeType, ShapeText)
+			layout.Shape.shapeType, shapeText)
 	}
 }
 

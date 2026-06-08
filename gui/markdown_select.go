@@ -94,7 +94,7 @@ func markdownContainerAmendLayout(l *Layout, w *Window) {
 func mdWalkBlocks(l *Layout, mdID uint32, out *[]mdBlockInfo) {
 	if l.Shape != nil && l.Shape.TC != nil &&
 		l.Shape.TC.MarkdownID == mdID &&
-		l.Shape.HasRtfLayout() {
+		l.Shape.hasRtfLayout() {
 		tc := l.Shape.TC
 		*out = append(*out, mdBlockInfo{
 			H:         l.Shape.Height,
@@ -120,7 +120,7 @@ func markdownBlockOnClick(l *Layout, e *Event, w *Window) {
 	}
 
 	shape := l.Shape
-	if shape.TC == nil || !shape.HasRtfLayout() {
+	if shape.TC == nil || !shape.hasRtfLayout() {
 		return
 	}
 	mdID := shape.TC.MarkdownID

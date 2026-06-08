@@ -96,7 +96,7 @@ func TestGrantZeroID(t *testing.T) {
 }
 
 func TestAccessiblePathFields(t *testing.T) {
-	ap := AccessiblePath{Path: "/file", Grant: Grant{ID: 42}}
+	ap := accessiblePath{Path: "/file", Grant: Grant{ID: 42}}
 	if ap.Path != "/file" || ap.Grant.ID != 42 {
 		t.Errorf("fields: %+v", ap)
 	}

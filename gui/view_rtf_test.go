@@ -91,7 +91,7 @@ func makeRtfTooltipLayout() (*Layout, *Window) {
 	}
 	l := &Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRTF,
+			shapeType: shapeRTF,
 			X:         100,
 			Y:         200,
 			Width:     100,
@@ -117,7 +117,7 @@ func TestRtfMouseMoveSetTooltipState(t *testing.T) {
 	if ts.text != "tip text" {
 		t.Errorf("text = %q, want 'tip text'", ts.text)
 	}
-	if ts.bounds == (DrawClip{}) {
+	if ts.bounds == (drawClip{}) {
 		t.Error("bounds should be set")
 	}
 	if ts.floatOffsetX == 0 {
@@ -155,7 +155,7 @@ func TestRtfMouseMoveClearsOnNonTooltipRun(t *testing.T) {
 	}
 	l := &Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRTF,
+			shapeType: shapeRTF,
 			X:         0,
 			Y:         0,
 			Width:     100,
@@ -199,7 +199,7 @@ func TestRtfMouseMoveUnderlineWithoutLinkDoesNotSetPointingHand(t *testing.T) {
 	}
 	l := &Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRTF,
+			shapeType: shapeRTF,
 			Width:     100,
 			Height:    20,
 			TC: &ShapeTextConfig{
@@ -245,7 +245,7 @@ func TestRtfMouseMoveLinkSetsPointingHand(t *testing.T) {
 	}
 	l := &Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRTF,
+			shapeType: shapeRTF,
 			Width:     100,
 			Height:    20,
 			TC: &ShapeTextConfig{
@@ -321,7 +321,7 @@ func TestLayoutWrapRTFSuppressesInlineObjectGlyphs(t *testing.T) {
 		}},
 	}
 	shape := &Shape{
-		ShapeType: ShapeRTF,
+		shapeType: shapeRTF,
 		Width:     100,
 		TC: &ShapeTextConfig{
 			TextMode:     TextModeWrap,
@@ -343,7 +343,7 @@ func TestLayoutWrapRTFSuppressesInlineObjectGlyphs(t *testing.T) {
 func TestRtfAmendTooltipClearsOutsideBounds(t *testing.T) {
 	w := &Window{}
 	w.viewState.tooltip = tooltipState{
-		bounds:  DrawClip{X: 100, Y: 200, Width: 40, Height: 16},
+		bounds:  drawClip{X: 100, Y: 200, Width: 40, Height: 16},
 		id:      "tip",
 		hoverID: "tip",
 		text:    "tip text",
@@ -565,7 +565,7 @@ func TestLayoutWrapRTF_MathReadyInvalidatesLoadingLayout(t *testing.T) {
 	baseStyle := glyph.TextStyle{Size: 12}
 	mkShape := func() *Shape {
 		return &Shape{
-			ShapeType: ShapeRTF,
+			shapeType: shapeRTF,
 			Width:     200,
 			TC: &ShapeTextConfig{
 				TextMode:     TextModeWrap,
@@ -665,7 +665,7 @@ func TestRtfOnClickRightClickShowsMenu(t *testing.T) {
 	}
 	l := &Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRTF,
+			shapeType: shapeRTF,
 			X:         100, Y: 200,
 			Width: 100, Height: 20,
 			TC: &ShapeTextConfig{
@@ -751,9 +751,9 @@ func TestRtfGenerateLayoutEmptyRichText(t *testing.T) {
 	if layout.Shape == nil {
 		t.Fatal("expected non-nil shape")
 	}
-	if layout.Shape.ShapeType != ShapeRTF {
-		t.Fatalf("type = %v, want ShapeRTF",
-			layout.Shape.ShapeType)
+	if layout.Shape.shapeType != shapeRTF {
+		t.Fatalf("type = %v, want shapeRTF",
+			layout.Shape.shapeType)
 	}
 }
 
@@ -802,7 +802,7 @@ func TestRtfOnClickIgnoresUnsafeLink(t *testing.T) {
 	}
 	l := &Layout{
 		Shape: &Shape{
-			ShapeType: ShapeRTF,
+			shapeType: shapeRTF,
 			Width:     100, Height: 20,
 			TC: &ShapeTextConfig{
 				RtfLayout: &glyphLayout,

@@ -262,8 +262,8 @@ func makeBcOnHover(
 	hoverColor, clickColor Color,
 ) func(*Layout, *Event, *Window) {
 	return func(layout *Layout, e *Event, w *Window) {
-		if layout.Shape.Disabled || !layout.Shape.HasEvents() ||
-			layout.Shape.Events.OnClick == nil {
+		if layout.Shape.Disabled || !layout.Shape.hasEvents() ||
+			layout.Shape.events.OnClick == nil {
 			return
 		}
 		w.SetMouseCursorPointingHand()

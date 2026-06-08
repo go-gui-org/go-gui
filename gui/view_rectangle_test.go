@@ -47,7 +47,7 @@ func TestRectangleGradient(t *testing.T) {
 		Gradient: g,
 	})
 	layout := GenerateViewLayout(v, w)
-	if layout.Shape.FX == nil || layout.Shape.FX.Gradient == nil {
+	if layout.Shape.fx == nil || layout.Shape.fx.Gradient == nil {
 		t.Error("expected gradient")
 	}
 }

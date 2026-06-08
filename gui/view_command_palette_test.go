@@ -13,7 +13,7 @@ func TestCommandPaletteHidden(t *testing.T) {
 		IDFocus:  1,
 	})
 	layout := GenerateViewLayout(v, w)
-	if layout.Shape.ShapeType == ShapeDrawCanvas {
+	if layout.Shape.shapeType == shapeDrawCanvas {
 		t.Error("hidden palette should not be canvas")
 	}
 }
@@ -291,11 +291,11 @@ func TestPaletteBackdropDismiss(t *testing.T) {
 	layout := GenerateViewLayout(v, w)
 
 	// The outermost child is the backdrop column with OnClick.
-	if layout.Shape.Events == nil || layout.Shape.Events.OnClick == nil {
+	if layout.Shape.events == nil || layout.Shape.events.OnClick == nil {
 		t.Fatal("backdrop should have OnClick")
 	}
 	e := &Event{}
-	layout.Shape.Events.OnClick(&layout, e, w)
+	layout.Shape.events.OnClick(&layout, e, w)
 	if !dismissed {
 		t.Error("backdrop click should trigger OnDismiss")
 	}

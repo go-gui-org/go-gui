@@ -14,13 +14,13 @@ func TestDrawCanvasGenerateLayout(t *testing.T) {
 		},
 	})
 	layout := GenerateViewLayout(v, w)
-	if layout.Shape.ShapeType != ShapeDrawCanvas {
-		t.Errorf("shape type = %d, want ShapeDrawCanvas", layout.Shape.ShapeType)
+	if layout.Shape.shapeType != shapeDrawCanvas {
+		t.Errorf("shape type = %d, want shapeDrawCanvas", layout.Shape.shapeType)
 	}
 	if layout.Shape.Width != 200 {
 		t.Errorf("width = %f", layout.Shape.Width)
 	}
-	if layout.Shape.Events.OnDraw == nil {
+	if layout.Shape.events.OnDraw == nil {
 		t.Error("OnDraw not set on shape")
 	}
 }
@@ -38,7 +38,7 @@ func TestDrawCanvasCaching(t *testing.T) {
 			dc.FilledRect(0, 0, 10, 10, Blue)
 		},
 	}
-	clip := DrawClip{Width: 100, Height: 100}
+	clip := drawClip{Width: 100, Height: 100}
 
 	// First call: draws.
 	v := DrawCanvas(cfg)
@@ -80,7 +80,7 @@ func TestDrawCanvasResizeRedraw(t *testing.T) {
 			lastWidth = dc.Width
 		},
 	}
-	clip := DrawClip{Width: 100, Height: 100}
+	clip := drawClip{Width: 100, Height: 100}
 
 	// First draw.
 	v := DrawCanvas(cfg)
@@ -114,8 +114,8 @@ func TestDrawCanvasNoOnDraw(t *testing.T) {
 		Height: 10,
 	})
 	layout := GenerateViewLayout(v, w)
-	if layout.Shape.ShapeType != ShapeDrawCanvas {
-		t.Error("expected ShapeDrawCanvas")
+	if layout.Shape.shapeType != shapeDrawCanvas {
+		t.Error("expected shapeDrawCanvas")
 	}
 }
 
@@ -135,7 +135,7 @@ func TestRenderDrawCanvas(t *testing.T) {
 	})
 	layout := GenerateViewLayout(v, w)
 
-	clip := DrawClip{X: 0, Y: 0, Width: 800, Height: 600}
+	clip := drawClip{X: 0, Y: 0, Width: 800, Height: 600}
 	w.renderers = w.renderers[:0]
 	renderDrawCanvas(layout.Shape, clip, w)
 	// Should have: container + clip + svg + restore clip.
@@ -180,7 +180,7 @@ func TestDrawCanvasOffScreenSkip(t *testing.T) {
 	// Place canvas at (200, 200); clip region doesn't overlap.
 	layout.Shape.X = 200
 	layout.Shape.Y = 200
-	clip := DrawClip{X: 0, Y: 0, Width: 100, Height: 100}
+	clip := drawClip{X: 0, Y: 0, Width: 100, Height: 100}
 
 	w.renderers = w.renderers[:0]
 	renderDrawCanvas(layout.Shape, clip, w)
@@ -217,10 +217,10 @@ func TestDrawCanvasFocusWiring(t *testing.T) {
 		t.Errorf("A11YRole = %v, want AccessRoleButton when focusable",
 			layout.Shape.A11YRole)
 	}
-	if layout.Shape.Events == nil || layout.Shape.Events.OnKeyDown == nil {
+	if layout.Shape.events == nil || layout.Shape.events.OnKeyDown == nil {
 		t.Fatal("OnKeyDown not wired")
 	}
-	layout.Shape.Events.OnKeyDown(&layout, &Event{}, w)
+	layout.Shape.events.OnKeyDown(&layout, &Event{}, w)
 	if !called {
 		t.Error("OnKeyDown did not fire")
 	}
@@ -271,7 +271,7 @@ func TestDrawCanvasFocusedReceivesKeydown(t *testing.T) {
 
 func TestDrawCanvasEmptyIDNoCollision(t *testing.T) {
 	w := &Window{}
-	clip := DrawClip{Width: 200, Height: 200}
+	clip := drawClip{Width: 200, Height: 200}
 
 	v1 := DrawCanvas(DrawCanvasCfg{
 		Width: 50, Height: 50,

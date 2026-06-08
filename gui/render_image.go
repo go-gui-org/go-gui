@@ -2,7 +2,7 @@ package gui
 
 // renderImage renders an image shape by emitting a RenderImage
 // command with the shape's resource path and clip radius.
-func renderImage(shape *Shape, clip DrawClip, w *Window) {
+func renderImage(shape *Shape, clip drawClip, w *Window) {
 	if !rectsOverlap(shapeBounds(shape), clip) {
 		return
 	}

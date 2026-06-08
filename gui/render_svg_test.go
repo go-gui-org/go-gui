@@ -8,14 +8,14 @@ import (
 func TestRenderSvgNoParser(t *testing.T) {
 	w := &Window{}
 	shape := &Shape{
-		ShapeType: ShapeSVG,
+		shapeType: shapeSVG,
 		X:         10,
 		Y:         20,
 		Width:     100,
 		Height:    100,
 		Resource:  "<svg></svg>",
 	}
-	clip := DrawClip{X: 0, Y: 0, Width: 500, Height: 500}
+	clip := drawClip{X: 0, Y: 0, Width: 500, Height: 500}
 	// Should not panic; emits error placeholder.
 	renderSvg(shape, clip, w)
 
@@ -33,13 +33,13 @@ func TestRenderSvgNoParser(t *testing.T) {
 func TestRenderSvgOutOfClip(t *testing.T) {
 	w := &Window{}
 	shape := &Shape{
-		ShapeType: ShapeSVG,
+		shapeType: shapeSVG,
 		X:         2000,
 		Y:         2000,
 		Width:     100,
 		Height:    100,
 	}
-	clip := DrawClip{X: 0, Y: 0, Width: 100, Height: 100}
+	clip := drawClip{X: 0, Y: 0, Width: 100, Height: 100}
 	renderSvg(shape, clip, w)
 	if len(w.renderers) != 0 {
 		t.Fatal("expected no render commands when out of clip")
@@ -51,14 +51,14 @@ func TestRenderSvgWithParser(t *testing.T) {
 	w.SetSvgParser(&mockSvgParser{width: 64, height: 64})
 
 	shape := &Shape{
-		ShapeType: ShapeSVG,
+		shapeType: shapeSVG,
 		X:         0,
 		Y:         0,
 		Width:     100,
 		Height:    100,
 		Resource:  "<svg></svg>",
 	}
-	clip := DrawClip{X: 0, Y: 0, Width: 500, Height: 500}
+	clip := drawClip{X: 0, Y: 0, Width: 500, Height: 500}
 	renderSvg(shape, clip, w)
 
 	hasSvg := false
@@ -331,7 +331,7 @@ func TestRenderSvgDispatch(t *testing.T) {
 	w.SetSvgParser(&mockSvgParser{width: 64, height: 64})
 
 	shape := &Shape{
-		ShapeType: ShapeSVG,
+		shapeType: shapeSVG,
 		X:         10,
 		Y:         10,
 		Width:     100,
@@ -340,7 +340,7 @@ func TestRenderSvgDispatch(t *testing.T) {
 		Opacity:   1.0,
 		Color:     ColorTransparent,
 	}
-	clip := DrawClip{X: 0, Y: 0, Width: 500, Height: 500}
+	clip := drawClip{X: 0, Y: 0, Width: 500, Height: 500}
 
 	// Call through the dispatch.
 	renderShapeInner(shape, ColorTransparent, clip, w)
@@ -359,7 +359,7 @@ func TestRenderSvgDispatch(t *testing.T) {
 func TestRenderImageDispatch(t *testing.T) {
 	w := &Window{}
 	shape := &Shape{
-		ShapeType: ShapeImage,
+		shapeType: shapeImage,
 		X:         10,
 		Y:         10,
 		Width:     100,
@@ -367,7 +367,7 @@ func TestRenderImageDispatch(t *testing.T) {
 		Resource:  "test.png",
 		Opacity:   1.0,
 	}
-	clip := DrawClip{X: 0, Y: 0, Width: 500, Height: 500}
+	clip := drawClip{X: 0, Y: 0, Width: 500, Height: 500}
 	renderShapeInner(shape, ColorTransparent, clip, w)
 
 	hasImage := false

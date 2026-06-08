@@ -285,7 +285,7 @@ func scrollbarMouseMove(orientation ScrollbarOrientation, idScroll uint32, layou
 // mouse movement delta.
 func offsetMouseChangeX(layout *Layout, mouseDX float32, idScroll uint32, w *Window) float32 {
 	totalWidth := contentWidth(layout)
-	shapeWidth := layout.Shape.Width - layout.Shape.PaddingWidth()
+	shapeWidth := layout.Shape.Width - layout.Shape.paddingWidth()
 	sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
 	oldOffset, _ := sx.Get(idScroll) // ok ignored: zero offset is correct initial scroll
 	newOffset := mouseDX * (totalWidth / shapeWidth)
@@ -297,7 +297,7 @@ func offsetMouseChangeX(layout *Layout, mouseDX float32, idScroll uint32, w *Win
 // mouse movement delta.
 func offsetMouseChangeY(layout *Layout, mouseDY float32, idScroll uint32, w *Window) float32 {
 	totalHeight := contentHeight(layout)
-	shapeHeight := layout.Shape.Height - layout.Shape.PaddingHeight()
+	shapeHeight := layout.Shape.Height - layout.Shape.paddingHeight()
 	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
 	oldOffset, _ := sy.Get(idScroll) // ok ignored: zero offset is correct initial scroll
 	newOffset := mouseDY * (totalHeight / shapeHeight)

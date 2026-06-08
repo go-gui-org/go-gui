@@ -24,7 +24,7 @@ func layoutPipeline(layout *Layout, w *Window) {
 
 	// Position passes.
 	layoutAdjustScrollOffsets(layout, w)
-	fx, fy := floatAttachLayout(layout, w.WindowRect())
+	fx, fy := floatAttachLayout(layout, w.windowRect())
 	layoutPositions(layout, fx, fy, w)
 	layoutDisables(layout, false)
 	layoutScrollContainers(layout, 0)
@@ -33,7 +33,7 @@ func layoutPipeline(layout *Layout, w *Window) {
 	layoutAmend(layout, w)
 	applyLayoutTransition(layout, w)
 	applyHeroTransition(layout, w)
-	layoutSetShapeClips(layout, w.WindowRect())
+	layoutSetShapeClips(layout, w.windowRect())
 }
 
 // layoutAmend walks the layout tree children-first, firing
@@ -43,9 +43,9 @@ func layoutAmend(layout *Layout, w *Window) {
 	for i := range layout.Children {
 		layoutAmend(&layout.Children[i], w)
 	}
-	if layout.Shape.HasEvents() &&
-		layout.Shape.Events.AmendLayout != nil {
-		layout.Shape.Events.AmendLayout(layout, w)
+	if layout.Shape.hasEvents() &&
+		layout.Shape.events.AmendLayout != nil {
+		layout.Shape.events.AmendLayout(layout, w)
 	}
 }
 
@@ -73,7 +73,7 @@ func layoutHover(layout *Layout, w *Window) bool {
 	if shape.Disabled {
 		return false
 	}
-	if !shape.HasEvents() || shape.Events.OnHover == nil {
+	if !shape.hasEvents() || shape.events.OnHover == nil {
 		return false
 	}
 	if !shape.PointInShape(w.viewState.mousePosX,
@@ -90,7 +90,7 @@ func layoutHover(layout *Layout, w *Window) bool {
 		Type:        EventMouseMove,
 		MouseButton: MouseInvalid,
 	}
-	shape.Events.OnHover(layout, &w.scratch.hoverEvent, w)
+	shape.events.OnHover(layout, &w.scratch.hoverEvent, w)
 	return true
 }
 
@@ -112,8 +112,8 @@ func layoutMouseLeave(layout *Layout, w *Window) {
 	w.viewState.mousePosX, w.viewState.mousePosY = savedX, savedY
 
 	shape := layout.Shape
-	if shape == nil || shape.Disabled || shape.Events == nil ||
-		shape.Events.OnMouseLeave == nil || shape.ID == "" {
+	if shape == nil || shape.Disabled || shape.events == nil ||
+		shape.events.OnMouseLeave == nil || shape.ID == "" {
 		return
 	}
 	sm := StateMap[string, bool](w, nsHoverInside, capModerate)
@@ -126,7 +126,7 @@ func layoutMouseLeave(layout *Layout, w *Window) {
 			Type:        EventMouseMove,
 			MouseButton: MouseInvalid,
 		}
-		shape.Events.OnMouseLeave(layout, &w.scratch.hoverEvent, w)
+		shape.events.OnMouseLeave(layout, &w.scratch.hoverEvent, w)
 	}
 	if inside {
 		sm.Set(shape.ID, true)
@@ -164,8 +164,8 @@ func layoutWrapTextWalk(layout *Layout, w *Window) {
 	if tc == nil {
 		return
 	}
-	switch shape.ShapeType {
-	case ShapeRTF:
+	switch shape.shapeType {
+	case shapeRTF:
 		if tc.TextMode != TextModeWrap &&
 			tc.TextMode != TextModeWrapKeepSpaces {
 			return
@@ -174,7 +174,7 @@ func layoutWrapTextWalk(layout *Layout, w *Window) {
 			return
 		}
 		layoutWrapRTF(shape, tc, w)
-	case ShapeText:
+	case shapeText:
 		style := textStyleOrDefault(shape)
 		if !plainTextNeedsGlyphLayout(shape, tc, style) {
 			return

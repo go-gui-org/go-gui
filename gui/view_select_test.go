@@ -93,8 +93,8 @@ func TestSelectOptionViewOnClickFires(t *testing.T) {
 	w := &Window{}
 	e := &Event{MouseButton: MouseLeft}
 	// The OnClick is on the containerView's shape events.
-	if cv.shape.Events != nil && cv.shape.Events.OnClick != nil {
-		cv.shape.Events.OnClick(nil, e, w)
+	if cv.shape.events != nil && cv.shape.events.OnClick != nil {
+		cv.shape.events.OnClick(nil, e, w)
 	}
 	if !fired {
 		t.Error("OnSelect not fired")
@@ -275,7 +275,7 @@ func TestSelectClickOpenResetsHighlight(t *testing.T) {
 
 	// Simulate click to open.
 	e := &Event{MouseButton: MouseLeft}
-	layout.Shape.Events.OnClick(&layout, e, w)
+	layout.Shape.events.OnClick(&layout, e, w)
 
 	sh := StateMap[string, int](w, nsSelectHL, capModerate)
 	idx, _ := sh.Get("scr")

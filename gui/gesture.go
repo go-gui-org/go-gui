@@ -507,9 +507,9 @@ func gestureHandler(layout *Layout, e *Event, w *Window) {
 	if !layout.Shape.PointInShape(e.CentroidX, e.CentroidY) {
 		return
 	}
-	if layout.Shape.HasEvents() &&
-		layout.Shape.Events.OnGesture != nil {
-		layout.Shape.Events.OnGesture(layout, e, w)
+	if layout.Shape.hasEvents() &&
+		layout.Shape.events.OnGesture != nil {
+		layout.Shape.events.OnGesture(layout, e, w)
 		if e.IsHandled {
 			return
 		}

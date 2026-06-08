@@ -15,8 +15,8 @@ func TestComboboxClosedLayout(t *testing.T) {
 	if layout.Shape.ID != "cb1" {
 		t.Errorf("ID = %q", layout.Shape.ID)
 	}
-	if layout.Shape.ShapeType != ShapeRectangle {
-		t.Errorf("type = %d", layout.Shape.ShapeType)
+	if layout.Shape.shapeType != shapeRectangle {
+		t.Errorf("type = %d", layout.Shape.shapeType)
 	}
 }
 
@@ -178,7 +178,7 @@ func TestScrollEnsureVisibleSurvivesPipeline(t *testing.T) {
 	for i := range children {
 		children[i] = Layout{Shape: &Shape{
 			Height:    rowH,
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Sizing:    FillFixed,
 		}}
 	}
@@ -216,7 +216,7 @@ func TestScrollPositionsShiftChildren(t *testing.T) {
 	for i := range children {
 		children[i] = Layout{Shape: &Shape{
 			Height:    rowH,
-			ShapeType: ShapeRectangle,
+			shapeType: shapeRectangle,
 			Sizing:    FillFixed,
 		}}
 	}

@@ -48,7 +48,7 @@ func BenchmarkRenderSvgAnimated(b *testing.B) {
 	w := NewWindow(WindowCfg{Width: 200, Height: 200})
 	w.SetSvgParser(benchSvgParser{})
 	shape := &Shape{
-		ShapeType: ShapeSVG,
+		shapeType: shapeSVG,
 		X:         0,
 		Y:         0,
 		Width:     100,
@@ -56,7 +56,7 @@ func BenchmarkRenderSvgAnimated(b *testing.B) {
 		Resource:  "<svg/>",
 		Color:     White,
 	}
-	clip := DrawClip{X: 0, Y: 0, Width: 200, Height: 200}
+	clip := drawClip{X: 0, Y: 0, Width: 200, Height: 200}
 	b.ReportAllocs()
 	for b.Loop() {
 		w.renderers = w.renderers[:0]

@@ -15,8 +15,8 @@ func TestDatePickerLayout(t *testing.T) {
 	if layout.Shape.ID != "dp1" {
 		t.Errorf("ID = %q", layout.Shape.ID)
 	}
-	if layout.Shape.ShapeType != ShapeRectangle {
-		t.Errorf("type = %d", layout.Shape.ShapeType)
+	if layout.Shape.shapeType != shapeRectangle {
+		t.Errorf("type = %d", layout.Shape.shapeType)
 	}
 }
 
@@ -223,12 +223,12 @@ func TestDatePickerSubElementClickFocus(t *testing.T) {
 	// Month toggle button is in the first child (Row).
 	controls := &layout.Children[0]
 	toggleBtn := &controls.Children[0]
-	if toggleBtn.Shape.Events.OnClick == nil {
+	if toggleBtn.Shape.events.OnClick == nil {
 		t.Fatal("toggle button OnClick missing")
 	}
 	e := &Event{}
 	w.SetIDFocus(0)
-	toggleBtn.Shape.Events.OnClick(toggleBtn, e, w)
+	toggleBtn.Shape.events.OnClick(toggleBtn, e, w)
 	if w.IDFocus() != 10 {
 		t.Errorf("toggle button click got focus %d, want 10", w.IDFocus())
 	}
@@ -241,11 +241,11 @@ func TestDatePickerSubElementClickFocus(t *testing.T) {
 	firstRow := &calendarBody.Children[1]
 	firstDay := &firstRow.Children[0] // June 1
 
-	if firstDay.Shape.Events.OnClick == nil {
+	if firstDay.Shape.events.OnClick == nil {
 		t.Fatal("day cell OnClick missing")
 	}
 	w.SetIDFocus(0)
-	firstDay.Shape.Events.OnClick(firstDay, e, w)
+	firstDay.Shape.events.OnClick(firstDay, e, w)
 	if w.IDFocus() != 10 {
 		t.Errorf("day cell click got focus %d, want 10", w.IDFocus())
 	}
@@ -296,11 +296,11 @@ func TestDatePickerClickFocus(t *testing.T) {
 	}
 
 	// Simulate click on root.
-	if layout.Shape.Events.OnClick == nil {
+	if layout.Shape.events.OnClick == nil {
 		t.Fatal("OnClick handler missing")
 	}
 	e := &Event{}
-	layout.Shape.Events.OnClick(&layout, e, w)
+	layout.Shape.events.OnClick(&layout, e, w)
 
 	if w.IDFocus() != 5 {
 		t.Errorf("got focus %d, want 5", w.IDFocus())
