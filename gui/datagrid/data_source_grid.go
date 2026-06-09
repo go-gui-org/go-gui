@@ -1,10 +1,13 @@
-package gui
+package datagrid
 
-import "strconv"
+import (
+	"strconv"
 
-// DataGridSourceStats provides runtime stats for a
-// data-source-backed grid. Returned by Window.DataGridSourceStats.
-type DataGridSourceStats struct {
+	. "github.com/go-gui-org/go-gui/gui"
+)
+
+// SourceStats provides runtime stats for a data-source-backed grid.
+type SourceStats struct {
 	RowCount       *int
 	LoadError      string
 	RequestCount   int
@@ -15,17 +18,17 @@ type DataGridSourceStats struct {
 	HasMore        bool
 }
 
-// DataGridSourceStats returns async stats for the named grid.
-func (w *Window) DataGridSourceStats(gridID string) DataGridSourceStats {
+// GetSourceStats returns async stats for the named grid.
+func GetSourceStats(w *Window, gridID string) SourceStats {
 	dgSrc := StateMapRead[string, dataGridSourceState](w, nsDgSource)
 	if dgSrc == nil {
-		return DataGridSourceStats{}
+		return SourceStats{}
 	}
 	state, ok := dgSrc.Get(gridID)
 	if !ok {
-		return DataGridSourceStats{}
+		return SourceStats{}
 	}
-	return DataGridSourceStats{
+	return SourceStats{
 		Loading:        state.Loading,
 		LoadError:      state.LoadError,
 		RequestCount:   state.RequestCount,
@@ -394,7 +397,7 @@ func dataGridSourceSyntheticRowID(kind GridPaginationKind, state dataGridSourceS
 		if start, ok := dataGridSourceCursorToIndexOpt(state.CurrentCursor); ok {
 			return "__src_c_" + strconv.Itoa(max(0, start)+localIdx)
 		}
-		h := dataGridFnv64Str(dataGridFnv64Offset, state.CurrentCursor)
+		h := Fnv64Str(Fnv64Offset, state.CurrentCursor)
 		return "__src_cx_" + zeroPadHex16(h) + "_" + strconv.Itoa(localIdx)
 	}
 }
@@ -426,7 +429,7 @@ func dataGridSourceRowsText(kind GridPaginationKind, state dataGridSourceState) 
 	if state.RowCount != nil {
 		totalText = strconv.Itoa(*state.RowCount)
 	}
-	return guiLocale.StrRows + " " + strconv.Itoa(state.ReceivedCount) + "/" + totalText
+	return ActiveLocale.StrRows + " " + strconv.Itoa(state.ReceivedCount) + "/" + totalText
 }
 
 func dataGridSourceFormatRows(start, count int, total *int) string {
@@ -435,13 +438,13 @@ func dataGridSourceFormatRows(start, count int, total *int) string {
 		totalText = strconv.Itoa(*total)
 	}
 	if count <= 0 {
-		return guiLocale.StrRows + " 0/" + totalText
+		return ActiveLocale.StrRows + " 0/" + totalText
 	}
 	end := start + count
 	if total != nil && end > *total {
 		end = *total
 	}
-	return guiLocale.StrRows + " " + strconv.Itoa(start+1) + "-" + strconv.Itoa(end) + "/" + totalText
+	return ActiveLocale.StrRows + " " + strconv.Itoa(start+1) + "-" + strconv.Itoa(end) + "/" + totalText
 }
 
 func dataGridSourceCanPrev(kind GridPaginationKind, state dataGridSourceState, pageLimit int) bool {
@@ -629,9 +632,9 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID uint32, state dataGridSour
 	}
 	var status string
 	if state.Loading {
-		status = guiLocale.StrLoading
+		status = ActiveLocale.StrLoading
 	} else if state.LoadError != "" {
-		status = guiLocale.StrError
+		status = ActiveLocale.StrError
 	} else {
 		status = modeText
 	}
@@ -713,13 +716,13 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID uint32, state dataGridSour
 	// Jump input for offset mode.
 	if kind == GridPaginationOffset {
 		content = append(content, Text(TextCfg{
-			Text:      guiLocale.StrJump,
+			Text:      ActiveLocale.StrJump,
 			Mode:      TextModeSingleLine,
 			TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
 		}))
 		content = append(content, Input(InputCfg{
 			ID:          jumpInputID,
-			IDFocus:     fnvSum32(jumpInputID),
+			IDFocus:     FnvSum32(jumpInputID),
 			Text:        jumpText,
 			Placeholder: "#",
 			Disabled:    !jumpEnabled,

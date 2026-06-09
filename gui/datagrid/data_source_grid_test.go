@@ -1,8 +1,10 @@
-package gui
+package datagrid
 
 import (
 	"fmt"
 	"testing"
+
+	. "github.com/go-gui-org/go-gui/gui"
 )
 
 func TestEffectivePaginationKindCursorPreferred(t *testing.T) {
@@ -225,7 +227,7 @@ func TestDataGridSourceRowsTextOffset(t *testing.T) {
 		RowCount:      &rc,
 	}
 	got := dataGridSourceRowsText(GridPaginationOffset, state)
-	want := fmt.Sprintf("%s 21-70/200", guiLocale.StrRows)
+	want := fmt.Sprintf("%s 21-70/200", ActiveLocale.StrRows)
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
@@ -239,7 +241,7 @@ func TestDataGridSourceRowsTextCursorWithIndex(t *testing.T) {
 		RowCount:      &rc,
 	}
 	got := dataGridSourceRowsText(GridPaginationCursor, state)
-	want := fmt.Sprintf("%s 11-30/100", guiLocale.StrRows)
+	want := fmt.Sprintf("%s 11-30/100", ActiveLocale.StrRows)
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
@@ -252,7 +254,7 @@ func TestDataGridSourceRowsTextCursorNoIndex(t *testing.T) {
 		ReceivedCount: 15,
 	}
 	got := dataGridSourceRowsText(GridPaginationCursor, state)
-	want := fmt.Sprintf("%s 15/?", guiLocale.StrRows)
+	want := fmt.Sprintf("%s 15/?", ActiveLocale.StrRows)
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
@@ -262,25 +264,25 @@ func TestDataGridSourceFormatRows(t *testing.T) {
 	rc := 500
 	// Normal range.
 	got := dataGridSourceFormatRows(10, 25, &rc)
-	want := fmt.Sprintf("%s 11-35/500", guiLocale.StrRows)
+	want := fmt.Sprintf("%s 11-35/500", ActiveLocale.StrRows)
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 	// End exceeds total → clamped.
 	got = dataGridSourceFormatRows(490, 20, &rc)
-	want = fmt.Sprintf("%s 491-500/500", guiLocale.StrRows)
+	want = fmt.Sprintf("%s 491-500/500", ActiveLocale.StrRows)
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 	// Zero count.
 	got = dataGridSourceFormatRows(0, 0, &rc)
-	want = fmt.Sprintf("%s 0/500", guiLocale.StrRows)
+	want = fmt.Sprintf("%s 0/500", ActiveLocale.StrRows)
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 	// Nil total.
 	got = dataGridSourceFormatRows(5, 10, nil)
-	want = fmt.Sprintf("%s 6-15/?", guiLocale.StrRows)
+	want = fmt.Sprintf("%s 6-15/?", ActiveLocale.StrRows)
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}

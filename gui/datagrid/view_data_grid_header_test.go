@@ -1,6 +1,10 @@
-package gui
+package datagrid
 
-import "testing"
+import (
+	"testing"
+
+	. "github.com/go-gui-org/go-gui/gui"
+)
 
 // --- dataGridHeaderIndicator ---
 
@@ -247,9 +251,9 @@ func TestHeaderFocusedColIDOutOfRange(t *testing.T) {
 // --- dataGridPagerArrows ---
 
 func TestPagerArrowsLTR(t *testing.T) {
-	saved := guiLocale.TextDir
-	guiLocale.TextDir = TextDirLTR
-	defer func() { guiLocale.TextDir = saved }()
+	saved := ActiveLocale.TextDir
+	ActiveLocale.TextDir = TextDirLTR
+	defer func() { ActiveLocale.TextDir = saved }()
 	prev, next := dataGridPagerArrows()
 	if prev != "\u25C0" || next != "\u25B6" {
 		t.Errorf("LTR: prev=%q next=%q", prev, next)
@@ -257,9 +261,9 @@ func TestPagerArrowsLTR(t *testing.T) {
 }
 
 func TestPagerArrowsRTL(t *testing.T) {
-	saved := guiLocale.TextDir
-	guiLocale.TextDir = TextDirRTL
-	defer func() { guiLocale.TextDir = saved }()
+	saved := ActiveLocale.TextDir
+	ActiveLocale.TextDir = TextDirRTL
+	defer func() { ActiveLocale.TextDir = saved }()
 	prev, next := dataGridPagerArrows()
 	if prev != "\u25B6" || next != "\u25C0" {
 		t.Errorf("RTL: prev=%q next=%q", prev, next)

@@ -401,9 +401,9 @@ func rollerMonthFormat(long bool) func(int) string {
 			return ""
 		}
 		if long {
-			return guiLocale.MonthsFull[idx]
+			return ActiveLocale.MonthsFull[idx]
 		}
-		return guiLocale.MonthsShort[idx]
+		return ActiveLocale.MonthsShort[idx]
 	}
 }
 

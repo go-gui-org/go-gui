@@ -1,8 +1,10 @@
-package gui
+package datagrid
 
 import (
 	"strconv"
 	"time"
+
+	. "github.com/go-gui-org/go-gui/gui"
 )
 
 // Data grid constants.
@@ -201,6 +203,8 @@ type dataGridPresentation struct {
 }
 
 // DataGridCfg configures a data grid widget.
+//
+//nolint:revive // DataGrid prefix intentional
 type DataGridCfg struct {
 	TextStyle              TextStyle
 	TextStyleHeader        TextStyle
@@ -304,7 +308,7 @@ func boolDefault(p *bool, def bool) bool {
 // applyDataGridDefaults fills zero-valued fields with theme
 // defaults and sensible fallbacks.
 func applyDataGridDefaults(cfg *DataGridCfg) {
-	s := guiTheme.DataGridStyle
+	s := DefaultDataGridStyle
 	if !cfg.Sizing.IsSet() {
 		cfg.Sizing = Some(FillFill)
 	}
@@ -473,9 +477,9 @@ type dataGridCtx struct {
 	scrollID     uint32
 }
 
-// DataGrid renders a controlled, virtualized data grid view.
-func (w *Window) DataGrid(cfg DataGridCfg) View {
-	requireID("DataGrid", cfg.ID)
+// New creates a controlled, virtualized data grid view.
+func New(w *Window, cfg DataGridCfg) View {
+	RequireID("DataGrid", cfg.ID)
 	applyDataGridDefaults(&cfg)
 	if len(cfg.RowsData) > 0 && cfg.DataSource == nil {
 		n := min(len(cfg.RowsData), maxDataConvLen)

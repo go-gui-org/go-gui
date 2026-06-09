@@ -53,9 +53,9 @@ type ContextMenuCfg struct {
 // ContextMenu creates a container that opens a floating menu
 // on right-click at the cursor position.
 func ContextMenu(w *Window, cfg ContextMenuCfg) View {
-	requireID("ContextMenu", cfg.ID)
+	RequireID("ContextMenu", cfg.ID)
 	if cfg.IDFocus == 0 {
-		cfg.IDFocus = fnvSum32("context_menu_" + cfg.ID)
+		cfg.IDFocus = FnvSum32("context_menu_" + cfg.ID)
 	}
 	checkForDuplicateMenuIDs(cfg.Items)
 	applyContextMenuDefaults(&cfg)

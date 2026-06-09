@@ -150,8 +150,8 @@ func listCoreFuzzyScore(candidate, query string) int {
 		if qi >= len(query) {
 			break
 		}
-		cb := asciiLower(candidate[ci])
-		qb := asciiLower(query[qi])
+		cb := ASCIILower(candidate[ci])
+		qb := ASCIILower(query[qi])
 		if cb == qb {
 			if prevMatch >= 0 {
 				gap := ci - prevMatch - 1

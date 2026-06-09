@@ -1,4 +1,4 @@
-package gui
+package datagrid
 
 import (
 	"runtime"
@@ -6,6 +6,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+
+	. "github.com/go-gui-org/go-gui/gui"
 )
 
 func makeTestRows(n int) []GridRow {

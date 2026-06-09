@@ -6,8 +6,8 @@ import (
 )
 
 func TestLocaleFormatDate(t *testing.T) {
-	saved := guiLocale
-	t.Cleanup(func() { guiLocale = saved })
+	saved := ActiveLocale
+	t.Cleanup(func() { ActiveLocale = saved })
 
 	tests := []struct {
 		name   string
@@ -34,7 +34,7 @@ func TestLocaleFormatDate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			guiLocale = tt.locale
+			ActiveLocale = tt.locale
 			got := LocaleFormatDate(tt.date, tt.format)
 			if got != tt.want {
 				t.Errorf("got %q, want %q", got, tt.want)
@@ -44,24 +44,24 @@ func TestLocaleFormatDate(t *testing.T) {
 }
 
 func TestLocaleFmt(t *testing.T) {
-	saved := guiLocale
-	t.Cleanup(func() { guiLocale = saved })
-	guiLocale = LocaleEnUS
+	saved := ActiveLocale
+	t.Cleanup(func() { ActiveLocale = saved })
+	ActiveLocale = LocaleEnUS
 
 	t.Run("rows", func(t *testing.T) {
-		got := localeRowsFmt(1, 50, 200)
+		got := LocaleRowsFmt(1, 50, 200)
 		if got != "Rows 1-50/200" {
 			t.Fatalf("got %q", got)
 		}
 	})
 	t.Run("page", func(t *testing.T) {
-		got := localePageFmt(3, 10)
+		got := LocalePageFmt(3, 10)
 		if got != "Page 3/10" {
 			t.Fatalf("got %q", got)
 		}
 	})
 	t.Run("matches", func(t *testing.T) {
-		got := localeMatchesFmt(5, "100")
+		got := LocaleMatchesFmt(5, "100")
 		if got != "Matches 5/100" {
 			t.Fatalf("got %q", got)
 		}
@@ -119,10 +119,10 @@ func TestLocaleDateMaskPattern(t *testing.T) {
 }
 
 func TestLocaleT(t *testing.T) {
-	saved := guiLocale
-	t.Cleanup(func() { guiLocale = saved })
+	saved := ActiveLocale
+	t.Cleanup(func() { ActiveLocale = saved })
 
-	guiLocale = Locale{
+	ActiveLocale = Locale{
 		Translations: map[string]string{
 			"greeting": "hello",
 		},

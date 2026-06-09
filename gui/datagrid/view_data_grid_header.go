@@ -1,9 +1,11 @@
-package gui
+package datagrid
 
 import (
 	"fmt"
 	"math"
 	"slices"
+
+	. "github.com/go-gui-org/go-gui/gui"
 )
 
 // dataGridHeaderRow builds the header row with all column
@@ -181,7 +183,7 @@ func dataGridReorderControls(cfg *DataGridCfg, col GridColumnCfg) View {
 	colID := col.ID
 	leftArrow := "\u25C0"  // ◀
 	rightArrow := "\u25B6" // ▶
-	if guiLocale.TextDir == TextDirRTL {
+	if ActiveLocale.TextDir == TextDirRTL {
 		leftArrow, rightArrow = rightArrow, leftArrow
 	}
 
@@ -298,7 +300,7 @@ func dataGridFilterCell(cfg *DataGridCfg, col GridColumnCfg, width float32) View
 	colID := col.ID
 	var placeholder string
 	if col.Filterable {
-		placeholder = guiLocale.StrFilter
+		placeholder = ActiveLocale.StrFilter
 	}
 
 	return Row(ContainerCfg{
@@ -313,7 +315,7 @@ func dataGridFilterCell(cfg *DataGridCfg, col GridColumnCfg, width float32) View
 		Content: []View{
 			Input(InputCfg{
 				ID:          inputID,
-				IDFocus:     fnvSum32(inputID),
+				IDFocus:     FnvSum32(inputID),
 				Text:        value,
 				Placeholder: placeholder,
 				Disabled:    !col.Filterable || onQueryChange == nil,
@@ -404,10 +406,10 @@ func dataGridEndResize(gridID string, w *Window) {
 }
 
 func dataGridAutoFitWidth(rows []GridRow, textStyleHeader, textStyle TextStyle, paddingCell Padding, col GridColumnCfg, w *Window) float32 {
-	if w.textMeasurer == nil {
+	if w.TextMeasurer() == nil {
 		return dataGridColumnWidthFor(col, nil)
 	}
-	longest := w.textMeasurer.TextWidth(col.Title, textStyleHeader)
+	longest := w.TextMeasurer().TextWidth(col.Title, textStyleHeader)
 	style := textStyle
 	if col.TextStyle != nil {
 		style = *col.TextStyle
@@ -418,7 +420,7 @@ func dataGridAutoFitWidth(rows []GridRow, textStyleHeader, textStyle TextStyle, 
 	}
 	for _, row := range sample {
 		value := row.Cells[col.ID]
-		width := w.textMeasurer.TextWidth(value, style)
+		width := w.TextMeasurer().TextWidth(value, style)
 		if width > longest {
 			longest = width
 		}

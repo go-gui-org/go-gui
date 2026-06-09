@@ -1,4 +1,4 @@
-package gui
+package datagrid
 
 import (
 	"errors"
@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	. "github.com/go-gui-org/go-gui/gui"
 )
 
 var gridOrmDefaultFilterOps = []string{

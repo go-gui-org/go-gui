@@ -231,8 +231,8 @@ func (l Locale) ToNumericLocale() NumericLocaleCfg {
 	}
 }
 
-// guiLocale is the global locale setting.
-var guiLocale = localeDefaults()
+// ActiveLocale is the global locale setting.
+var ActiveLocale = localeDefaults()
 
 // effectiveTextDir resolves the text direction for a shape,
 // falling back to the global locale when set to Auto.
@@ -240,17 +240,17 @@ func effectiveTextDir(shape *Shape) TextDirection {
 	if shape.TextDir != TextDirAuto {
 		return shape.TextDir
 	}
-	return guiLocale.TextDir
+	return ActiveLocale.TextDir
 }
 
 // SetLocale sets the active global locale.
 func SetLocale(l Locale) {
-	guiLocale = l
+	ActiveLocale = l
 }
 
 // CurrentLocale returns the active global locale.
 func CurrentLocale() Locale {
-	return guiLocale
+	return ActiveLocale
 }
 
 // SetLocale sets the global locale and refreshes the window.

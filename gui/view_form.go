@@ -183,7 +183,7 @@ type formView struct {
 // Form creates a form container with runtime validation and
 // submit/reset semantics.
 func Form(cfg FormCfg) View {
-	requireID("Form", cfg.ID)
+	RequireID("Form", cfg.ID)
 	content := make([]View, len(cfg.Content))
 	copy(content, cfg.Content)
 	return &formView{cfg: cfg, content: content}

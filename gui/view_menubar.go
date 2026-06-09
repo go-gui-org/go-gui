@@ -44,7 +44,7 @@ type MenubarCfg struct {
 func Menubar(w *Window, cfg MenubarCfg) View {
 	applyMenubarDefaults(&cfg)
 	if cfg.IDFocus == 0 {
-		cfg.IDFocus = fnvSum32("menubar_" + cfg.ID)
+		cfg.IDFocus = FnvSum32("menubar_" + cfg.ID)
 	}
 	checkForDuplicateMenuIDs(cfg.Items)
 

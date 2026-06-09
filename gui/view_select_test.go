@@ -128,7 +128,7 @@ func TestSelectKeyboardNavigation(t *testing.T) {
 		OnSelect: func([]string, *Event, *Window) {},
 	}
 	applySelectDefaults(&cfg)
-	idScroll := fnvSum32(cfg.ID + ".dropdown")
+	idScroll := FnvSum32(cfg.ID + ".dropdown")
 
 	// Open via space.
 	e := &Event{KeyCode: KeySpace}
@@ -177,7 +177,7 @@ func TestSelectKeyboardSelectItem(t *testing.T) {
 		},
 	}
 	applySelectDefaults(&cfg)
-	idScroll := fnvSum32(cfg.ID + ".dropdown")
+	idScroll := FnvSum32(cfg.ID + ".dropdown")
 
 	// Open.
 	e := &Event{KeyCode: KeySpace}
@@ -202,7 +202,7 @@ func TestSelectSkipsSubHeaders(t *testing.T) {
 		OnSelect: func([]string, *Event, *Window) {},
 	}
 	applySelectDefaults(&cfg)
-	idScroll := fnvSum32(cfg.ID + ".dropdown")
+	idScroll := FnvSum32(cfg.ID + ".dropdown")
 
 	// Open.
 	e := &Event{KeyCode: KeySpace}
@@ -230,7 +230,7 @@ func TestSelectHomeEndKeys(t *testing.T) {
 		OnSelect: func([]string, *Event, *Window) {},
 	}
 	applySelectDefaults(&cfg)
-	idScroll := fnvSum32(cfg.ID + ".dropdown")
+	idScroll := FnvSum32(cfg.ID + ".dropdown")
 
 	// Open.
 	e := &Event{KeyCode: KeySpace}
@@ -298,12 +298,12 @@ func TestSelectDefaultMinMaxWidth(t *testing.T) {
 }
 
 func TestFnvSum32Consistency(t *testing.T) {
-	a := fnvSum32("test")
-	b := fnvSum32("test")
+	a := FnvSum32("test")
+	b := FnvSum32("test")
 	if a != b {
-		t.Error("fnvSum32 not consistent")
+		t.Error("FnvSum32 not consistent")
 	}
-	if fnvSum32("a") == fnvSum32("b") {
+	if FnvSum32("a") == FnvSum32("b") {
 		t.Error("expected different hashes")
 	}
 }

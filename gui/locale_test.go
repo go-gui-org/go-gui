@@ -48,10 +48,10 @@ func TestLocaleToNumericLocale(t *testing.T) {
 }
 
 func TestEffectiveTextDir(t *testing.T) {
-	old := guiLocale
-	defer func() { guiLocale = old }()
+	old := ActiveLocale
+	defer func() { ActiveLocale = old }()
 
-	guiLocale = LocaleArSA
+	ActiveLocale = LocaleArSA
 	s := &Shape{TextDir: TextDirAuto}
 	if effectiveTextDir(s) != TextDirRTL {
 		t.Fatal("auto should fall back to RTL locale")
@@ -63,8 +63,8 @@ func TestEffectiveTextDir(t *testing.T) {
 }
 
 func TestSetLocaleAndGet(t *testing.T) {
-	old := guiLocale
-	defer func() { guiLocale = old }()
+	old := ActiveLocale
+	defer func() { ActiveLocale = old }()
 
 	SetLocale(LocaleDeDE)
 	cur := CurrentLocale()

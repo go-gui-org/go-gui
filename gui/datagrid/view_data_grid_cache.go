@@ -1,23 +1,25 @@
-package gui
+package datagrid
 
 import (
 	"math"
 	"slices"
 	"strconv"
 	"strings"
+
+	. "github.com/go-gui-org/go-gui/gui"
 )
 
 // --- FNV-1a helpers (64-bit, presentation cache) ---
 
 func dataGridFnv64U64(h, val uint64) uint64 {
-	h = (h ^ (val & 0xff)) * dataGridFnv64Prime
-	h = (h ^ ((val >> 8) & 0xff)) * dataGridFnv64Prime
-	h = (h ^ ((val >> 16) & 0xff)) * dataGridFnv64Prime
-	h = (h ^ ((val >> 24) & 0xff)) * dataGridFnv64Prime
-	h = (h ^ ((val >> 32) & 0xff)) * dataGridFnv64Prime
-	h = (h ^ ((val >> 40) & 0xff)) * dataGridFnv64Prime
-	h = (h ^ ((val >> 48) & 0xff)) * dataGridFnv64Prime
-	h = (h ^ ((val >> 56) & 0xff)) * dataGridFnv64Prime
+	h = (h ^ (val & 0xff)) * Fnv64Prime
+	h = (h ^ ((val >> 8) & 0xff)) * Fnv64Prime
+	h = (h ^ ((val >> 16) & 0xff)) * Fnv64Prime
+	h = (h ^ ((val >> 24) & 0xff)) * Fnv64Prime
+	h = (h ^ ((val >> 32) & 0xff)) * Fnv64Prime
+	h = (h ^ ((val >> 40) & 0xff)) * Fnv64Prime
+	h = (h ^ ((val >> 48) & 0xff)) * Fnv64Prime
+	h = (h ^ ((val >> 56) & 0xff)) * Fnv64Prime
 	return h
 }
 
@@ -56,67 +58,67 @@ func dataGridCachedPresentation(cfg *DataGridCfg, columns []GridColumnCfg, rowIn
 }
 
 func dataGridPresentationSignature(cfg *DataGridCfg, _ []GridColumnCfg, visibleIndices []int, groupCols []string, valueCols []string, groupTitles map[string]string) uint64 {
-	h := dataGridFnv64Offset
+	h := Fnv64Offset
 	if len(groupCols) == 0 && len(cfg.Aggregates) == 0 && cfg.OnDetailRowView == nil {
-		h = dataGridFnv64Str(h, cfg.ID)
-		h = dataGridFnv64Byte(h, 0x1e)
+		h = Fnv64Str(h, cfg.ID)
+		h = Fnv64Byte(h, 0x1e)
 		for _, idx := range visibleIndices {
 			h = dataGridFnv64U64(h, uint64(idx))
-			h = dataGridFnv64Byte(h, 0x1f)
+			h = Fnv64Byte(h, 0x1f)
 			row := cfg.Rows[idx]
 			if row.ID != "" {
-				h = dataGridFnv64Str(h, row.ID)
+				h = Fnv64Str(h, row.ID)
 			}
-			h = dataGridFnv64Byte(h, 0x1f)
+			h = Fnv64Byte(h, 0x1f)
 		}
 		return h
 	}
-	h = dataGridFnv64Str(h, cfg.ID)
-	h = dataGridFnv64Byte(h, 0x1e)
+	h = Fnv64Str(h, cfg.ID)
+	h = Fnv64Byte(h, 0x1e)
 	for _, idx := range visibleIndices {
 		h = dataGridFnv64U64(h, uint64(idx))
-		h = dataGridFnv64Byte(h, 0x1f)
+		h = Fnv64Byte(h, 0x1f)
 	}
-	h = dataGridFnv64Byte(h, 0x1e)
+	h = Fnv64Byte(h, 0x1e)
 	for _, colID := range groupCols {
-		h = dataGridFnv64Str(h, colID)
-		h = dataGridFnv64Byte(h, 0x1f)
-		h = dataGridFnv64Str(h, groupTitles[colID])
-		h = dataGridFnv64Byte(h, 0x1f)
+		h = Fnv64Str(h, colID)
+		h = Fnv64Byte(h, 0x1f)
+		h = Fnv64Str(h, groupTitles[colID])
+		h = Fnv64Byte(h, 0x1f)
 	}
-	h = dataGridFnv64Byte(h, 0x1e)
+	h = Fnv64Byte(h, 0x1e)
 	for _, agg := range cfg.Aggregates {
-		h = dataGridFnv64Str(h, agg.ColID)
-		h = dataGridFnv64Byte(h, 0x1f)
-		h = dataGridFnv64Byte(h, byte(agg.Op))
-		h = dataGridFnv64Byte(h, 0x1f)
-		h = dataGridFnv64Str(h, agg.Label)
-		h = dataGridFnv64Byte(h, 0x1f)
+		h = Fnv64Str(h, agg.ColID)
+		h = Fnv64Byte(h, 0x1f)
+		h = Fnv64Byte(h, byte(agg.Op))
+		h = Fnv64Byte(h, 0x1f)
+		h = Fnv64Str(h, agg.Label)
+		h = Fnv64Byte(h, 0x1f)
 	}
 	detailEnabled := cfg.OnDetailRowView != nil
 	if detailEnabled {
-		h = dataGridFnv64Byte(h, '1')
+		h = Fnv64Byte(h, '1')
 	} else {
-		h = dataGridFnv64Byte(h, '0')
+		h = Fnv64Byte(h, '0')
 	}
 	for _, rowIdx := range visibleIndices {
 		row := cfg.Rows[rowIdx]
 		rowID := dataGridRowID(row, rowIdx)
-		h = dataGridFnv64Byte(h, 0x1e)
+		h = Fnv64Byte(h, 0x1e)
 		h = dataGridFnv64U64(h, uint64(rowIdx))
-		h = dataGridFnv64Byte(h, 0x1f)
-		h = dataGridFnv64Str(h, rowID)
-		h = dataGridFnv64Byte(h, 0x1f)
+		h = Fnv64Byte(h, 0x1f)
+		h = Fnv64Str(h, rowID)
+		h = Fnv64Byte(h, 0x1f)
 		if detailEnabled && dataGridDetailRowExpanded(cfg, rowID) {
-			h = dataGridFnv64Byte(h, '1')
+			h = Fnv64Byte(h, '1')
 		} else {
-			h = dataGridFnv64Byte(h, '0')
+			h = Fnv64Byte(h, '0')
 		}
 		for _, colID := range valueCols {
-			h = dataGridFnv64Byte(h, 0x1f)
-			h = dataGridFnv64Str(h, colID)
-			h = dataGridFnv64Byte(h, '=')
-			h = dataGridFnv64Str(h, row.Cells[colID])
+			h = Fnv64Byte(h, 0x1f)
+			h = Fnv64Str(h, colID)
+			h = Fnv64Byte(h, '=')
+			h = Fnv64Str(h, row.Cells[colID])
 		}
 	}
 	return h
@@ -431,11 +433,11 @@ func dataGridScrollBodyRows(
 	}
 	if hasSource && cfg.Loading && len(presentation.Rows) == 0 {
 		rows = append(rows,
-			dataGridSourceStatusRow(cfg, guiLocale.StrLoading))
+			dataGridSourceStatusRow(cfg, ActiveLocale.StrLoading))
 	}
 	if hasSource && cfg.LoadError != "" && len(presentation.Rows) == 0 {
 		rows = append(rows, dataGridSourceStatusRow(cfg,
-			guiLocale.StrLoadError+": "+cfg.LoadError))
+			ActiveLocale.StrLoadError+": "+cfg.LoadError))
 	}
 
 	lastRowIdx := len(presentation.Rows) - 1

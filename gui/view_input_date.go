@@ -75,7 +75,7 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 	dateText := ""
 	if len(dates) == 1 {
 		dateText = LocaleFormatDate(dates[0],
-			localeDatePadFormat(guiLocale.Date.ShortDate))
+			localeDatePadFormat(ActiveLocale.Date.ShortDate))
 	} else if len(dates) > 1 {
 		dateText = fmt.Sprintf("%d dates selected", len(dates))
 	}
@@ -223,7 +223,7 @@ func inputDateTextField(
 		IDFocus:          cfg.IDFocus,
 		Text:             dateText,
 		Placeholder:      inputDatePlaceholder(cfg),
-		Mask:             localeDateMaskPattern(guiLocale.Date.ShortDate),
+		Mask:             localeDateMaskPattern(ActiveLocale.Date.ShortDate),
 		TextStyle:        cfg.TextStyle,
 		PlaceholderStyle: cfg.PlaceholderStyle,
 		Sizing:           FillFit,
@@ -244,7 +244,7 @@ func inputDateTextField(
 				return
 			}
 			t, err := localeParseDate(text,
-				localeDatePadFormat(guiLocale.Date.ShortDate))
+				localeDatePadFormat(ActiveLocale.Date.ShortDate))
 			if err != nil {
 				return
 			}
@@ -266,7 +266,7 @@ func inputDatePlaceholder(cfg *InputDateCfg) string {
 	if cfg.Placeholder != "" {
 		return cfg.Placeholder
 	}
-	return localeDatePadFormat(guiLocale.Date.ShortDate)
+	return localeDatePadFormat(ActiveLocale.Date.ShortDate)
 }
 
 func inputDateToggle(id string, w *Window) {

@@ -800,10 +800,10 @@ func ReorderIndices(
 // dragReorderIDsSignature computes a stable FNV-1a signature
 // of the item IDs to detect mid-drag list mutations.
 func dragReorderIDsSignature(ids []string) uint64 {
-	h := dataGridFnv64Offset
+	h := Fnv64Offset
 	for _, id := range ids {
-		h = dataGridFnv64Str(h, id)
-		h = dataGridFnv64Byte(h, 0x1f)
+		h = Fnv64Str(h, id)
+		h = Fnv64Byte(h, 0x1f)
 	}
 	return h
 }

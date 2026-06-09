@@ -25,21 +25,21 @@ func TestNormalizeLocaleEnv(t *testing.T) {
 }
 
 func TestLocaleAutoDetect(t *testing.T) {
-	saved := guiLocale
-	defer func() { guiLocale = saved }()
+	saved := ActiveLocale
+	defer func() { ActiveLocale = saved }()
 
 	// Exact match: de-DE is registered.
-	guiLocale = localeDefaults()
+	ActiveLocale = localeDefaults()
 	if l, ok := LocaleGet("de-DE"); ok {
 		SetLocale(l)
-		if guiLocale.ID != "de-DE" {
-			t.Errorf("SetLocale de-DE: got %s", guiLocale.ID)
+		if ActiveLocale.ID != "de-DE" {
+			t.Errorf("SetLocale de-DE: got %s", ActiveLocale.ID)
 		}
 	} else {
 		t.Fatal("de-DE not registered")
 	}
 
 	// Reset and verify LocaleAutoDetect doesn't panic.
-	guiLocale = localeDefaults()
+	ActiveLocale = localeDefaults()
 	LocaleAutoDetect()
 }

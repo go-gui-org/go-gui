@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-gui-org/go-gui/gui"
+	datagrid "github.com/go-gui-org/go-gui/gui/datagrid"
 	"github.com/go-gui-org/go-gui/gui/highlight"
 )
 
@@ -169,7 +170,7 @@ func demoDataGrid(w *gui.Window) gui.View {
 			gui.Text(gui.TextCfg{
 				Text: fmt.Sprintf("Rows: %d  Selected: %d", len(rows), len(app.DataGridSelection.SelectedRowIDs)),
 			}),
-			w.DataGrid(gui.DataGridCfg{
+			datagrid.New(w, datagrid.DataGridCfg{
 				ID:                "catalog-data-grid",
 				IDFocus:           9162,
 				Sizing:            gui.Some(gui.FitFit),
@@ -182,10 +183,10 @@ func demoDataGrid(w *gui.Window) gui.View {
 				ShowQuickFilter:   true,
 				ShowFilterRow:     true,
 				ShowColumnChooser: true,
-				OnQueryChange: func(query gui.GridQueryState, _ *gui.Event, w *gui.Window) {
+				OnQueryChange: func(query datagrid.GridQueryState, _ *gui.Event, w *gui.Window) {
 					gui.State[ShowcaseApp](w).DataGridQuery = query
 				},
-				OnSelectionChange: func(selection gui.GridSelection, _ *gui.Event, w *gui.Window) {
+				OnSelectionChange: func(selection datagrid.GridSelection, _ *gui.Event, w *gui.Window) {
 					gui.State[ShowcaseApp](w).DataGridSelection = selection
 				},
 			}),
@@ -201,9 +202,9 @@ func demoDataGrid(w *gui.Window) gui.View {
 func demoDataSource(w *gui.Window) gui.View {
 	app := gui.State[ShowcaseApp](w)
 	if app.DataSource == nil {
-		app.DataSource = gui.NewInMemoryDataSource(showcaseDataSourceRows())
+		app.DataSource = datagrid.NewInMemoryDataSource(showcaseDataSourceRows())
 	}
-	stats := w.DataGridSourceStats("catalog-data-source")
+	stats := datagrid.GetSourceStats(w, "catalog-data-source")
 	countText := "?"
 	if stats.RowCount != nil {
 		countText = fmt.Sprintf("%d", *stats.RowCount)
@@ -217,23 +218,23 @@ func demoDataSource(w *gui.Window) gui.View {
 			gui.Text(gui.TextCfg{
 				Text: fmt.Sprintf("loading=%t  req=%d  rows=%d/%s", stats.Loading, stats.RequestCount, stats.ReceivedCount, countText),
 			}),
-			w.DataGrid(gui.DataGridCfg{
+			datagrid.New(w, datagrid.DataGridCfg{
 				ID:              "catalog-data-source",
 				IDFocus:         9175,
 				Sizing:          gui.Some(gui.FitFit),
 				Columns:         showcaseDataSourceColumns(),
 				DataSource:      app.DataSource,
-				PaginationKind:  gui.GridPaginationCursor,
+				PaginationKind:  datagrid.GridPaginationCursor,
 				PageLimit:       50,
 				ShowQuickFilter: true,
 				ShowCRUDToolbar: true,
 				Query:           app.DataSourceQuery,
 				Selection:       app.DataSourceSelection,
 				MaxHeight:       260,
-				OnQueryChange: func(query gui.GridQueryState, _ *gui.Event, w *gui.Window) {
+				OnQueryChange: func(query datagrid.GridQueryState, _ *gui.Event, w *gui.Window) {
 					gui.State[ShowcaseApp](w).DataSourceQuery = query
 				},
-				OnSelectionChange: func(selection gui.GridSelection, _ *gui.Event, w *gui.Window) {
+				OnSelectionChange: func(selection datagrid.GridSelection, _ *gui.Event, w *gui.Window) {
 					gui.State[ShowcaseApp](w).DataSourceSelection = selection
 				},
 			}),
@@ -335,24 +336,24 @@ func demoTree(w *gui.Window) gui.View {
 	})
 }
 
-func showcaseDataSourceColumns() []gui.GridColumnCfg {
-	return []gui.GridColumnCfg{
+func showcaseDataSourceColumns() []datagrid.GridColumnCfg {
+	return []datagrid.GridColumnCfg{
 		{ID: "name", Title: "Name", Width: gui.SomeF(180), Sortable: true, Filterable: true, Reorderable: true, Editable: true, DefaultValue: "New"},
-		{ID: "team", Title: "Team", Width: gui.SomeF(140), Sortable: true, Filterable: true, Reorderable: true, Editable: true, Editor: gui.GridCellEditorSelect, EditorOptions: []string{"Core", "Data", "Platform", "R&D", "Web", "Security"}, DefaultValue: "Core"},
-		{ID: "status", Title: "Status", Width: gui.SomeF(120), Sortable: true, Filterable: true, Reorderable: true, Editable: true, Editor: gui.GridCellEditorSelect, EditorOptions: []string{"Open", "Paused", "Closed"}, DefaultValue: "Open"},
+		{ID: "team", Title: "Team", Width: gui.SomeF(140), Sortable: true, Filterable: true, Reorderable: true, Editable: true, Editor: datagrid.GridCellEditorSelect, EditorOptions: []string{"Core", "Data", "Platform", "R&D", "Web", "Security"}, DefaultValue: "Core"},
+		{ID: "status", Title: "Status", Width: gui.SomeF(120), Sortable: true, Filterable: true, Reorderable: true, Editable: true, Editor: datagrid.GridCellEditorSelect, EditorOptions: []string{"Open", "Paused", "Closed"}, DefaultValue: "Open"},
 	}
 }
 
-func showcaseDataGridColumns() []gui.GridColumnCfg {
-	return []gui.GridColumnCfg{
+func showcaseDataGridColumns() []datagrid.GridColumnCfg {
+	return []datagrid.GridColumnCfg{
 		{ID: "name", Title: "Name", Width: gui.SomeF(180), Sortable: true, Filterable: true, Reorderable: true},
 		{ID: "team", Title: "Team", Width: gui.SomeF(140), Sortable: true, Filterable: true, Reorderable: true},
 		{ID: "status", Title: "Status", Width: gui.SomeF(120), Sortable: true, Filterable: true, Reorderable: true},
 	}
 }
 
-func showcaseDataGridRows() []gui.GridRow {
-	return []gui.GridRow{
+func showcaseDataGridRows() []datagrid.GridRow {
+	return []datagrid.GridRow{
 		{ID: "1", Cells: map[string]string{"name": "Alex", "team": "Core", "status": "Active"}},
 		{ID: "2", Cells: map[string]string{"name": "Mina", "team": "Data", "status": "Active"}},
 		{ID: "3", Cells: map[string]string{"name": "Noah", "team": "Platform", "status": "Paused"}},
@@ -361,19 +362,19 @@ func showcaseDataGridRows() []gui.GridRow {
 	}
 }
 
-func showcaseDataGridApplyQuery(rows []gui.GridRow, query gui.GridQueryState) []gui.GridRow {
-	filtered := make([]gui.GridRow, 0, len(rows))
+func showcaseDataGridApplyQuery(rows []datagrid.GridRow, query datagrid.GridQueryState) []datagrid.GridRow {
+	filtered := make([]datagrid.GridRow, 0, len(rows))
 	for _, row := range rows {
 		if showcaseDataGridRowMatchesQuery(row, query) {
 			filtered = append(filtered, row)
 		}
 	}
 	for _, gridSort := range slices.Backward(query.Sorts) {
-		slices.SortStableFunc(filtered, func(a, b gui.GridRow) int {
+		slices.SortStableFunc(filtered, func(a, b datagrid.GridRow) int {
 			va := a.Cells[gridSort.ColID]
 			vb := b.Cells[gridSort.ColID]
 			c := cmp.Compare(va, vb)
-			if gridSort.Dir == gui.GridSortDesc {
+			if gridSort.Dir == datagrid.GridSortDesc {
 				c = -c
 			}
 			return c
@@ -382,7 +383,7 @@ func showcaseDataGridApplyQuery(rows []gui.GridRow, query gui.GridQueryState) []
 	return filtered
 }
 
-func showcaseDataGridRowMatchesQuery(row gui.GridRow, query gui.GridQueryState) bool {
+func showcaseDataGridRowMatchesQuery(row datagrid.GridRow, query datagrid.GridQueryState) bool {
 	if query.QuickFilter != "" {
 		needle := strings.ToLower(query.QuickFilter)
 		match := false
@@ -459,14 +460,14 @@ func tableBorderStyleFromValue(value string) gui.TableBorderStyle {
 	}
 }
 
-func showcaseDataSourceRows() []gui.GridRow {
+func showcaseDataSourceRows() []datagrid.GridRow {
 	names := []string{"Ada", "Grace", "Alan", "Katherine", "Barbara", "Linus", "Margaret", "Edsger"}
 	teams := []string{"Core", "Data", "Platform", "R&D", "Web", "Security"}
 	statuses := []string{"Open", "Paused", "Closed"}
-	rows := make([]gui.GridRow, 0, 200)
+	rows := make([]datagrid.GridRow, 0, 200)
 	for i := range 200 {
 		id := i + 1
-		rows = append(rows, gui.GridRow{
+		rows = append(rows, datagrid.GridRow{
 			ID: fmt.Sprintf("%d", id),
 			Cells: map[string]string{
 				"name":   fmt.Sprintf("%s %d", names[i%len(names)], id),

@@ -1,4 +1,4 @@
-package gui
+package datagrid
 
 import (
 	"maps"
@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	. "github.com/go-gui-org/go-gui/gui"
 )
 
 func dataGridGroupHeaderRowView(cfg *DataGridCfg, entry dataGridDisplayRow, rowHeight float32) View {
@@ -740,7 +742,7 @@ func dataGridScrollPadding(cfg *DataGridCfg) Padding {
 }
 
 func dataGridScrollGutter() float32 {
-	style := guiTheme.ScrollbarStyle
+	style := DefaultScrollbarStyle
 	return style.Size + style.GapEdge + style.GapEnd
 }
 

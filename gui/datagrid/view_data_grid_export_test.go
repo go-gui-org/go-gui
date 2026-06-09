@@ -1,4 +1,4 @@
-package gui
+package datagrid
 
 import (
 	"archive/zip"

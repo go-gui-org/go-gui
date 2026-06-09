@@ -80,9 +80,9 @@ func f32IsFinite(f float32) bool {
 	return math.Float32bits(f)&0x7F800000 != 0x7F800000
 }
 
-// asciiLower returns the ASCII lowercase of c. Non-ASCII
+// ASCIILower returns the ASCII lowercase of c. Non-ASCII
 // bytes pass through unchanged.
-func asciiLower(c byte) byte {
+func ASCIILower(c byte) byte {
 	if c >= 'A' && c <= 'Z' {
 		return c | 0x20
 	}

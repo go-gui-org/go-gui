@@ -16,7 +16,6 @@ func TestRequireIDPanics(t *testing.T) {
 		{"Combobox", func() { Combobox(ComboboxCfg{ID: emptyID}) }},
 		{"CommandPalette", func() { CommandPalette(CommandPaletteCfg{ID: emptyID}) }},
 		{"ContextMenu", func() { ContextMenu(w, ContextMenuCfg{ID: emptyID}) }},
-		{"DataGrid", func() { w.DataGrid(DataGridCfg{ID: emptyID}) }},
 		{"DatePicker", func() { DatePicker(DatePickerCfg{ID: emptyID}) }},
 		{"Form", func() { Form(FormCfg{ID: emptyID}) }},
 		{"ListBox", func() { ListBox(ListBoxCfg{ID: emptyID}) }},

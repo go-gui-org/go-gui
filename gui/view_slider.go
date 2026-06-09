@@ -42,7 +42,7 @@ type SliderCfg struct {
 
 // Slider creates a slider view.
 func Slider(cfg SliderCfg) View {
-	requireID("Slider", cfg.ID)
+	RequireID("Slider", cfg.ID)
 	if !cfg.Color.IsSet() {
 		cfg.Color = guiTheme.SliderStyle.Color
 	}

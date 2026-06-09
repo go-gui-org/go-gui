@@ -98,7 +98,7 @@ type datePickerView struct {
 
 // DatePicker creates a calendar date picker view.
 func DatePicker(cfg DatePickerCfg) View {
-	requireID("DatePicker", cfg.ID)
+	RequireID("DatePicker", cfg.ID)
 	applyDatePickerDefaults(&cfg)
 	return &datePickerView{cfg: cfg}
 }
@@ -223,7 +223,7 @@ func datePickerControls(
 	cfgID := cfg.ID
 	monthLabel := LocaleFormatDate(
 		datePickerViewTime(state),
-		guiLocale.Date.MonthYear,
+		ActiveLocale.Date.MonthYear,
 	)
 
 	idFocus := cfg.IDFocus
@@ -763,11 +763,11 @@ func datePickerWeekdayIndex(i int, mondayFirst bool) int {
 func datePickerWeekdayLabel(dow int, wdLen DatePickerWeekdayLen) string {
 	switch wdLen {
 	case WeekdayThreeLetter:
-		return guiLocale.WeekdaysMed[dow]
+		return ActiveLocale.WeekdaysMed[dow]
 	case WeekdayFull:
-		return guiLocale.WeekdaysFull[dow]
+		return ActiveLocale.WeekdaysFull[dow]
 	default:
-		return guiLocale.WeekdaysShort[dow]
+		return ActiveLocale.WeekdaysShort[dow]
 	}
 }
 

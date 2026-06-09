@@ -8,6 +8,7 @@ import (
 
 	glyph "github.com/go-gui-org/go-glyph"
 	"github.com/go-gui-org/go-gui/gui"
+	datagrid "github.com/go-gui-org/go-gui/gui/datagrid"
 )
 
 func TestEntryMatchesQuery(t *testing.T) {
@@ -212,10 +213,10 @@ func TestDemoWelcomePanelHasNoBorder(t *testing.T) {
 
 func TestShowcaseDataGridApplyQuery(t *testing.T) {
 	rows := showcaseDataGridRows()
-	query := gui.GridQueryState{
+	query := datagrid.GridQueryState{
 		QuickFilter: "core",
-		Sorts: []gui.GridSort{
-			{ColID: "name", Dir: gui.GridSortDesc},
+		Sorts: []datagrid.GridSort{
+			{ColID: "name", Dir: datagrid.GridSortDesc},
 		},
 	}
 

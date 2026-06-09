@@ -65,7 +65,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
 	radius := cfg.Radius.Get(dn.Radius)
 	isOpen := StateReadOr(w, nsSelect, cfg.ID, false)
-	idScroll := fnvSum32(cfg.ID + ".dropdown")
+	idScroll := FnvSum32(cfg.ID + ".dropdown")
 
 	empty := len(cfg.Selected) == 0 || len(cfg.Selected[0]) == 0
 	clip := cfg.SelectMultiple && cfg.NoWrap
@@ -436,17 +436,6 @@ func selectScrollTo(cfg *SelectCfg, idScroll uint32, idx int, w *Window) {
 	listH := selectDropdownMaxH - 2*cfg.SizeBorder.Get(
 		DefaultSelectStyle.SizeBorder)
 	scrollEnsureVisible(idScroll, idx, rowH, listH, w)
-}
-
-func fnvSum32(s string) uint32 {
-	const offset uint32 = 2166136261
-	const prime uint32 = 16777619
-	h := offset
-	for i := range len(s) {
-		h ^= uint32(s[i])
-		h *= prime
-	}
-	return h
 }
 
 func applySelectDefaults(cfg *SelectCfg) {

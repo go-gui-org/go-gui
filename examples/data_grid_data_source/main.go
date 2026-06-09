@@ -8,15 +8,16 @@ import (
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend"
+	datagrid "github.com/go-gui-org/go-gui/gui/datagrid"
 )
 
 type App struct {
-	Selection       gui.GridSelection
-	Source          gui.DataGridDataSource
-	Query           gui.GridQueryState
+	Selection       datagrid.GridSelection
+	Source          datagrid.DataGridDataSource
+	Query           datagrid.GridQueryState
 	LastAction      string
-	AllRows         []gui.GridRow
-	Columns         []gui.GridColumnCfg
+	AllRows         []datagrid.GridRow
+	Columns         []datagrid.GridColumnCfg
 	UseOffset       bool
 	SimulateLatency bool
 }
@@ -43,7 +44,7 @@ func main() {
 func mainView(w *gui.Window) gui.View {
 	ww, wh := w.WindowSize()
 	app := gui.State[App](w)
-	stats := w.DataGridSourceStats("source-grid")
+	stats := datagrid.GetSourceStats(w, "source-grid")
 	theme := gui.CurrentTheme()
 
 	mode := "cursor"
@@ -59,9 +60,9 @@ func mainView(w *gui.Window) gui.View {
 		countText = strconv.Itoa(*stats.RowCount)
 	}
 
-	paginationKind := gui.GridPaginationCursor
+	paginationKind := datagrid.GridPaginationCursor
 	if app.UseOffset {
-		paginationKind = gui.GridPaginationOffset
+		paginationKind = datagrid.GridPaginationOffset
 	}
 
 	return gui.Column(gui.ContainerCfg{
@@ -112,7 +113,7 @@ func mainView(w *gui.Window) gui.View {
 				),
 				TextStyle: theme.N4,
 			}),
-			w.DataGrid(gui.DataGridCfg{
+			datagrid.New(w, datagrid.DataGridCfg{
 				ID:              "source-grid",
 				MaxHeight:       620,
 				ShowCRUDToolbar: true,
@@ -123,13 +124,13 @@ func mainView(w *gui.Window) gui.View {
 				PageLimit:       220,
 				Query:           app.Query,
 				Selection:       app.Selection,
-				OnQueryChange: func(query gui.GridQueryState, _ *gui.Event, w *gui.Window) {
+				OnQueryChange: func(query datagrid.GridQueryState, _ *gui.Event, w *gui.Window) {
 					gui.State[App](w).Query = query
 				},
-				OnSelectionChange: func(selection gui.GridSelection, _ *gui.Event, w *gui.Window) {
+				OnSelectionChange: func(selection datagrid.GridSelection, _ *gui.Event, w *gui.Window) {
 					gui.State[App](w).Selection = selection
 				},
-				OnCellEdit: func(edit gui.GridCellEdit, _ *gui.Event, w *gui.Window) {
+				OnCellEdit: func(edit datagrid.GridCellEdit, _ *gui.Event, w *gui.Window) {
 					gui.State[App](w).LastAction = fmt.Sprintf("Edited %s.%s", edit.RowID, edit.ColID)
 				},
 				OnCRUDError: func(msg string, _ *gui.Event, w *gui.Window) {
@@ -146,7 +147,7 @@ func rebuildSource(app *App) {
 		latency = 140
 	}
 	// Recreate the source so pagination mode and latency toggles take effect.
-	app.Source = &gui.InMemoryDataSource{
+	app.Source = &datagrid.InMemoryDataSource{
 		Rows:           app.AllRows,
 		DefaultLimit:   220,
 		LatencyMs:      latency,
@@ -154,8 +155,8 @@ func rebuildSource(app *App) {
 	}
 }
 
-func makeColumns() []gui.GridColumnCfg {
-	return []gui.GridColumnCfg{
+func makeColumns() []datagrid.GridColumnCfg {
+	return []datagrid.GridColumnCfg{
 		{
 			ID:           "name",
 			Title:        "Name",
@@ -168,7 +169,7 @@ func makeColumns() []gui.GridColumnCfg {
 			Title:         "Team",
 			Width:         gui.SomeF(140),
 			Editable:      true,
-			Editor:        gui.GridCellEditorSelect,
+			Editor:        datagrid.GridCellEditorSelect,
 			EditorOptions: []string{"Core", "Data", "Platform", "R&D", "Web", "Security"},
 			DefaultValue:  "Core",
 		},
@@ -184,7 +185,7 @@ func makeColumns() []gui.GridColumnCfg {
 			Title:         "Status",
 			Width:         gui.SomeF(120),
 			Editable:      true,
-			Editor:        gui.GridCellEditorSelect,
+			Editor:        datagrid.GridCellEditorSelect,
 			EditorOptions: []string{"Open", "Paused", "Closed"},
 			DefaultValue:  "Open",
 		},
@@ -193,7 +194,7 @@ func makeColumns() []gui.GridColumnCfg {
 			Title:        "Active",
 			Width:        gui.SomeF(90),
 			Editable:     true,
-			Editor:       gui.GridCellEditorCheckbox,
+			Editor:       datagrid.GridCellEditorCheckbox,
 			DefaultValue: "true",
 		},
 		{
@@ -209,26 +210,26 @@ func makeColumns() []gui.GridColumnCfg {
 			Title:        "Start",
 			Width:        gui.SomeF(130),
 			Editable:     true,
-			Editor:       gui.GridCellEditorDate,
+			Editor:       datagrid.GridCellEditorDate,
 			DefaultValue: "1/1/2026",
 		},
 	}
 }
 
-func makeRows(count int) []gui.GridRow {
+func makeRows(count int) []datagrid.GridRow {
 	names := []string{"Ada", "Grace", "Alan", "Katherine", "Barbara", "Linus", "Margaret", "Edsger"}
 	teams := []string{"Core", "Data", "Platform", "R&D", "Web", "Security"}
 	statuses := []string{"Open", "Paused", "Closed"}
 	startDates := []string{"1/12/2026", "2/5/2026", "3/18/2026", "4/22/2026", "5/9/2026"}
 
-	rows := make([]gui.GridRow, 0, count)
+	rows := make([]datagrid.GridRow, 0, count)
 	for i := range count {
 		id := i + 1
 		active := "false"
 		if i%2 == 0 {
 			active = "true"
 		}
-		rows = append(rows, gui.GridRow{
+		rows = append(rows, datagrid.GridRow{
 			ID: strconv.Itoa(id),
 			Cells: map[string]string{
 				"name":   names[i%len(names)] + " " + strconv.Itoa(id),

@@ -1,6 +1,10 @@
-package gui
+package datagrid
 
-import "testing"
+import (
+	"testing"
+
+	. "github.com/go-gui-org/go-gui/gui"
+)
 
 // --- boolDefault ---
 
@@ -517,7 +521,7 @@ func TestDataGridPagerEnabledZeroPageSize(t *testing.T) {
 
 func TestDataGridIndicatorTextStyleDimsAlpha(t *testing.T) {
 	base := TextStyle{
-		Color: Color{R: 200, G: 100, B: 50, A: 255, set: true},
+		Color: RGBA(200, 100, 50, 255),
 		Size:  14,
 	}
 	got := dataGridIndicatorTextStyle(base)
@@ -536,28 +540,28 @@ func TestDataGridIndicatorTextStyleDimsAlpha(t *testing.T) {
 // --- DataGrid Disabled/Invisible propagation ---
 
 func TestDataGridDisabledPropagates(t *testing.T) {
-	w := newTestWindow()
-	v := w.DataGrid(DataGridCfg{
+	w := &Window{}
+	v := New(w, DataGridCfg{
 		ID:       "dg1",
 		Disabled: true,
 		Columns:  []GridColumnCfg{{ID: "a", Title: "A"}},
 		Rows:     []GridRow{{ID: "r0", Cells: map[string]string{"a": "1"}}},
 	})
-	layout := generateViewLayout(v, w)
+	layout := GenerateViewLayout(v, w)
 	if !layout.Shape.Disabled {
 		t.Error("outer container should be disabled")
 	}
 }
 
 func TestDataGridInvisiblePropagates(t *testing.T) {
-	w := newTestWindow()
-	v := w.DataGrid(DataGridCfg{
+	w := &Window{}
+	v := New(w, DataGridCfg{
 		ID:        "dg2",
 		Invisible: true,
 		Columns:   []GridColumnCfg{{ID: "a", Title: "A"}},
 		Rows:      []GridRow{{ID: "r0", Cells: map[string]string{"a": "1"}}},
 	})
-	layout := generateViewLayout(v, w)
+	layout := GenerateViewLayout(v, w)
 	if !layout.Shape.Disabled {
 		t.Error("invisible should be disabled")
 	}
@@ -567,30 +571,30 @@ func TestDataGridInvisiblePropagates(t *testing.T) {
 }
 
 func TestDataGridRowsData(t *testing.T) {
-	w := newTestWindow()
-	v := w.DataGrid(DataGridCfg{
+	w := &Window{}
+	v := New(w, DataGridCfg{
 		ID: "dg-rowsdata",
 		RowsData: []map[string]string{
 			{"name": "Alice", "age": "30"},
 			{"name": "Bob", "age": "25"},
 		},
 	})
-	layout := generateViewLayout(v, w)
+	layout := GenerateViewLayout(v, w)
 	if len(layout.Children) == 0 {
 		t.Fatal("expected children")
 	}
 }
 
 func TestDataGridRowsDataAutoColumns(t *testing.T) {
-	w := newTestWindow()
-	v := w.DataGrid(DataGridCfg{
+	w := &Window{}
+	v := New(w, DataGridCfg{
 		ID:       "dg-autocol",
 		PageSize: 10,
 		RowsData: []map[string]string{
 			{"name": "Alice", "age": "30"},
 		},
 	})
-	layout := generateViewLayout(v, w)
+	layout := GenerateViewLayout(v, w)
 	if len(layout.Children) == 0 {
 		t.Fatal("expected children")
 	}
@@ -599,15 +603,15 @@ func TestDataGridRowsDataAutoColumns(t *testing.T) {
 func TestDataGridRowsDataPrecedence(t *testing.T) {
 	// RowsData takes precedence over Rows. DataSource still
 	// wins over both.
-	w := newTestWindow()
-	v := w.DataGrid(DataGridCfg{
+	w := &Window{}
+	v := New(w, DataGridCfg{
 		ID: "dg-prec",
 		RowsData: []map[string]string{
 			{"col": "value"},
 		},
 		Rows: []GridRow{{ID: "ignored", Cells: map[string]string{"x": "y"}}},
 	})
-	layout := generateViewLayout(v, w)
+	layout := GenerateViewLayout(v, w)
 	if len(layout.Children) == 0 {
 		t.Fatal("expected children")
 	}
@@ -618,8 +622,8 @@ func TestDataGridRowsDataDataSourceWins(t *testing.T) {
 	ds := NewInMemoryDataSource([]GridRow{
 		{ID: "ds1", Cells: map[string]string{"name": "FromDS"}},
 	})
-	w := newTestWindow()
-	v := w.DataGrid(DataGridCfg{
+	w := &Window{}
+	v := New(w, DataGridCfg{
 		ID:         "dg-ds-wins",
 		Columns:    []GridColumnCfg{{ID: "name", Title: "Name"}},
 		DataSource: ds,
@@ -627,21 +631,21 @@ func TestDataGridRowsDataDataSourceWins(t *testing.T) {
 			{"name": "FromRowsData"},
 		},
 	})
-	layout := generateViewLayout(v, w)
+	layout := GenerateViewLayout(v, w)
 	if len(layout.Children) == 0 {
 		t.Fatal("expected children from DataSource")
 	}
 }
 
 func TestDataGridRowsDataEmptyFirstRow(t *testing.T) {
-	w := newTestWindow()
-	v := w.DataGrid(DataGridCfg{
+	w := &Window{}
+	v := New(w, DataGridCfg{
 		ID: "dg-empty-first",
 		RowsData: []map[string]string{
 			{},
 		},
 	})
-	layout := generateViewLayout(v, w)
+	layout := GenerateViewLayout(v, w)
 	// Empty first-row map means no auto-generated columns,
 	// but a row should still be created.
 	if len(layout.Children) == 0 {

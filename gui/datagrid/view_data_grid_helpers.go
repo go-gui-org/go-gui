@@ -1,8 +1,10 @@
-package gui
+package datagrid
 
 import (
 	"slices"
 	"strconv"
+
+	. "github.com/go-gui-org/go-gui/gui"
 )
 
 // --- Helper functions ---
@@ -14,7 +16,7 @@ func dataGridIndicatorTextStyle(base TextStyle) TextStyle {
 }
 
 func dataGridDimColor(c Color) Color {
-	return Color{R: c.R, G: c.G, B: c.B, A: dataGridIndicatorAlpha, set: true}
+	return RGBA(c.R, c.G, c.B, dataGridIndicatorAlpha)
 }
 
 func dataGridRowID(row GridRow, idx int) string {
@@ -37,14 +39,14 @@ func dataGridRowAutoID(row GridRow) string {
 		keys = append(keys, k)
 	}
 	slices.Sort(keys)
-	h := dataGridFnv64Offset
+	h := Fnv64Offset
 	for i, key := range keys {
 		if i > 0 {
-			h = dataGridFnv64Byte(h, dataGridUnitSep[0])
+			h = Fnv64Byte(h, dataGridUnitSep[0])
 		}
-		h = dataGridFnv64Str(h, key)
-		h = dataGridFnv64Byte(h, '=')
-		h = dataGridFnv64Str(h, row.Cells[key])
+		h = Fnv64Str(h, key)
+		h = Fnv64Byte(h, '=')
+		h = Fnv64Str(h, row.Cells[key])
 	}
 	return "__auto_" + zeroPadHex16(h)
 }
@@ -118,14 +120,14 @@ func dataGridFocusID(cfg *DataGridCfg) uint32 {
 	if cfg.IDFocus > 0 {
 		return cfg.IDFocus
 	}
-	return fnvSum32(cfg.ID + ":focus")
+	return FnvSum32(cfg.ID + ":focus")
 }
 
 func dataGridScrollID(cfg *DataGridCfg) uint32 {
 	if cfg.IDScroll > 0 {
 		return cfg.IDScroll
 	}
-	return fnvSum32(cfg.ID + ":scroll")
+	return FnvSum32(cfg.ID + ":scroll")
 }
 
 // dataGridVisibleRangeForScroll converts scroll position to

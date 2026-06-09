@@ -1,9 +1,11 @@
-package gui
+package datagrid
 
 import (
 	"fmt"
 	"slices"
 	"strconv"
+
+	. "github.com/go-gui-org/go-gui/gui"
 )
 
 // --- Quick filter ---
@@ -14,7 +16,7 @@ func dataGridQuickFilterRow(cfg *DataGridCfg) View {
 	query := cfg.Query
 	value := query.QuickFilter
 	inputID := cfg.ID + ":quick_filter"
-	inputFocusID := fnvSum32(inputID)
+	inputFocusID := FnvSum32(inputID)
 	matchesText := dataGridQuickFilterMatchesText(cfg)
 	clearDisabled := value == "" || queryCallback == nil
 	debounce := cfg.QuickFilterDebounce
@@ -90,7 +92,7 @@ func dataGridQuickFilterRow(cfg *DataGridCfg) View {
 				Mode:      TextModeSingleLine,
 				TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
 			}),
-			dataGridIndicatorButton(guiLocale.StrClear, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(ActiveLocale.StrClear, cfg.TextStyleFilter, cfg.ColorHeaderHover,
 				clearDisabled, 0, func(_ *Layout, e *Event, w *Window) {
 					if queryCallback == nil {
 						return
@@ -113,12 +115,12 @@ func dataGridQuickFilterRow(cfg *DataGridCfg) View {
 
 func dataGridQuickFilterMatchesText(cfg *DataGridCfg) string {
 	if cfg.RowCount != nil {
-		return localeMatchesFmt(len(cfg.Rows), strconv.Itoa(*cfg.RowCount))
+		return LocaleMatchesFmt(len(cfg.Rows), strconv.Itoa(*cfg.RowCount))
 	}
 	if dataGridHasSource(cfg) {
-		return localeMatchesFmt(len(cfg.Rows), "?")
+		return LocaleMatchesFmt(len(cfg.Rows), "?")
 	}
-	return fmt.Sprintf("%s %d", guiLocale.StrMatches, len(cfg.Rows))
+	return fmt.Sprintf("%s %d", ActiveLocale.StrMatches, len(cfg.Rows))
 }
 
 // --- Column chooser ---
@@ -126,9 +128,9 @@ func dataGridQuickFilterMatchesText(cfg *DataGridCfg) string {
 func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID uint32) View {
 	onHiddenColumnsChange := cfg.OnHiddenColumnsChange
 	hasVisibilityCallback := onHiddenColumnsChange != nil
-	chooserLabel := guiLocale.StrColumns + " \u25B6" // ▶
+	chooserLabel := ActiveLocale.StrColumns + " \u25B6" // ▶
 	if isOpen {
-		chooserLabel = guiLocale.StrColumns + " \u25BC" // ▼
+		chooserLabel = ActiveLocale.StrColumns + " \u25BC" // ▼
 	}
 	rowH := cfg.RowHeight
 	if rowH <= 0 {
@@ -263,12 +265,12 @@ func dataGridPagerContent(pctx dataGridPagerContext) []View {
 	onPageChange := cfg.OnPageChange
 	isFirst := pctx.pageIndex <= 0
 	isLast := pctx.pageIndex >= pctx.pageCount-1
-	pageText := localePageFmt(pctx.pageIndex+1, pctx.pageCount)
+	pageText := LocalePageFmt(pctx.pageIndex+1, pctx.pageCount)
 	rowsText := dataGridPagerRowsText(pctx.pageStart, pctx.pageEnd, pctx.totalRows)
 	jumpCtx := dataGridJumpContextFromPager(pctx)
 	jumpEnabled := dataGridJumpEnabledLocal(len(cfg.Rows), cfg.OnSelectionChange, cfg.OnPageChange, cfg.PageSize, pctx.totalRows)
 	jumpInputID := cfg.ID + ":jump"
-	jumpFocusID := fnvSum32(jumpInputID)
+	jumpFocusID := FnvSum32(jumpInputID)
 	prevArrow, nextArrow := dataGridPagerArrows()
 
 	content := make([]View, 0, 9)
@@ -288,15 +290,15 @@ func dataGridPagerContent(pctx dataGridPagerContext) []View {
 
 func dataGridPagerRowsText(pageStart, pageEnd, totalRows int) string {
 	if totalRows == 0 || pageEnd <= pageStart {
-		return guiLocale.StrRows + " 0/0"
+		return ActiveLocale.StrRows + " 0/0"
 	}
-	return localeRowsFmt(pageStart+1, pageEnd, totalRows)
+	return LocaleRowsFmt(pageStart+1, pageEnd, totalRows)
 }
 
 func dataGridPagerArrows() (string, string) {
 	prev := "\u25C0" // ◀
 	next := "\u25B6" // ▶
-	if guiLocale.TextDir == TextDirRTL {
+	if ActiveLocale.TextDir == TextDirRTL {
 		prev, next = next, prev
 	}
 	return prev, next
@@ -355,7 +357,7 @@ func dataGridPagerRowsStatus(cfg *DataGridCfg, rowsText string) View {
 
 func dataGridPagerJumpLabel(cfg *DataGridCfg) View {
 	return Text(TextCfg{
-		Text:      guiLocale.StrJump,
+		Text:      ActiveLocale.StrJump,
 		Mode:      TextModeSingleLine,
 		TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
 	})

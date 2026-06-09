@@ -1,4 +1,4 @@
-package gui
+package datagrid
 
 // GridSortDir specifies ascending or descending sort order.
 type GridSortDir uint8

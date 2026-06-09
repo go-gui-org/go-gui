@@ -28,10 +28,10 @@ func LocaleFormatDate(t time.Time, format string) string {
 	result = localeDateReplace(t, result)
 	if hasFull {
 		result = strings.Replace(result, "\x01\x01\x01\x01",
-			guiLocale.MonthsFull[monthIdx], 1)
+			ActiveLocale.MonthsFull[monthIdx], 1)
 	} else if hasShort {
 		result = strings.Replace(result, "\x01\x01\x01",
-			guiLocale.MonthsShort[monthIdx], 1)
+			ActiveLocale.MonthsShort[monthIdx], 1)
 	}
 	return result
 }
@@ -109,28 +109,30 @@ func localeParseDate(text, format string) (time.Time, error) {
 	return time.Parse(layout, text)
 }
 
-// localeRowsFmt formats "Rows start-end/total".
-func localeRowsFmt(start, end, total int) string {
+// LocaleRowsFmt formats "Rows start-end/total".
+// LocaleRowsFmt formats "Rows start-end/total".
+func LocaleRowsFmt(start, end, total int) string {
 	return fmt.Sprintf("%s %d-%d/%d",
-		guiLocale.StrRows, start, end, total)
+		ActiveLocale.StrRows, start, end, total)
 }
 
-// localePageFmt formats "Page current/total".
-func localePageFmt(page, total int) string {
+// LocalePageFmt formats "Page current/total".
+// LocalePageFmt formats "Page current/total".
+func LocalePageFmt(page, total int) string {
 	return fmt.Sprintf("%s %d/%d",
-		guiLocale.StrPage, page, total)
+		ActiveLocale.StrPage, page, total)
 }
 
-// localeMatchesFmt formats "Matches count/total".
-func localeMatchesFmt(count int, total string) string {
+// LocaleMatchesFmt formats "Matches count/total".
+func LocaleMatchesFmt(count int, total string) string {
 	return fmt.Sprintf("%s %d/%s",
-		guiLocale.StrMatches, count, total)
+		ActiveLocale.StrMatches, count, total)
 }
 
 // LocaleT looks up a translation key in the current locale.
 // Returns the key itself when not found.
 func LocaleT(key string) string {
-	if v, ok := guiLocale.Translations[key]; ok {
+	if v, ok := ActiveLocale.Translations[key]; ok {
 		return v
 	}
 	return key

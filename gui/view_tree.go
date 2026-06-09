@@ -146,7 +146,7 @@ func itemPathsToNodes(paths []string) []TreeNodeCfg {
 
 // Tree creates a tree view with optional virtualization and lazy loading.
 func Tree(cfg TreeCfg) View {
-	requireID("Tree", cfg.ID)
+	RequireID("Tree", cfg.ID)
 	applyTreeDefaults(&cfg)
 	if len(cfg.ItemPaths) > 0 {
 		cfg.Nodes = itemPathsToNodes(cfg.ItemPaths)
@@ -568,7 +568,7 @@ func treeCollectFlatRows(
 				ID:            nodeID + treeLoadingSuffix,
 				ParentID:      nodeID,
 				Depth:         depth + 1,
-				Text:          guiLocale.StrLoading,
+				Text:          ActiveLocale.StrLoading,
 				TextStyle:     DefaultTreeStyle.TextStyle,
 				TextStyleIcon: DefaultTreeStyle.TextStyleIcon,
 				IsLoading:     true,
@@ -645,7 +645,7 @@ func treeArrowIcon(row treeFlatRow) string {
 	if row.IsExpanded {
 		return IconDropDown
 	}
-	if guiLocale.TextDir == TextDirRTL {
+	if ActiveLocale.TextDir == TextDirRTL {
 		return IconDropLeft
 	}
 	return IconDropRight

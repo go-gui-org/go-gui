@@ -1,8 +1,10 @@
-package gui
+package datagrid
 
 import (
 	"testing"
 	"time"
+
+	. "github.com/go-gui-org/go-gui/gui"
 )
 
 // --- dataGridResolveCellFormat ---

@@ -9,7 +9,7 @@ import "fmt"
 func Menu(w *Window, cfg MenubarCfg) View {
 	applyMenubarDefaults(&cfg)
 	if cfg.IDFocus == 0 {
-		cfg.IDFocus = fnvSum32("menu_" + cfg.ID)
+		cfg.IDFocus = FnvSum32("menu_" + cfg.ID)
 	}
 	checkForDuplicateMenuIDs(cfg.Items)
 

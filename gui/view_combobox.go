@@ -61,7 +61,7 @@ type comboboxView struct {
 
 // Combobox creates a combobox view.
 func Combobox(cfg ComboboxCfg) View {
-	requireID("Combobox", cfg.ID)
+	RequireID("Combobox", cfg.ID)
 	applyComboboxDefaults(&cfg)
 	return &comboboxView{cfg: cfg}
 }

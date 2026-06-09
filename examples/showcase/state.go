@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-gui-org/go-gui/gui"
+	datagrid "github.com/go-gui-org/go-gui/gui/datagrid"
 )
 
 const (
@@ -32,15 +33,15 @@ var showcaseBreadcrumbPath = []gui.BreadcrumbItemCfg{
 
 // ShowcaseApp holds all state for the showcase example.
 type ShowcaseApp struct {
-	DataGridSelection   gui.GridSelection
-	DataSourceSelection gui.GridSelection
+	DataGridSelection   datagrid.GridSelection
+	DataSourceSelection datagrid.GridSelection
 	ButtonCopyUntil     time.Time
 
 	InputDate  time.Time
 	RollerDate time.Time
 
 	ShaderStartTime time.Time
-	DataSource      gui.DataGridDataSource
+	DataSource      datagrid.DataGridDataSource
 
 	TableSelected map[int]bool
 	TreeLazyNodes map[string][]gui.TreeNodeCfg
@@ -49,8 +50,8 @@ type ShowcaseApp struct {
 
 	Form FormModel
 
-	DataGridQuery     gui.GridQueryState
-	DataSourceQuery   gui.GridQueryState
+	DataGridQuery     datagrid.GridQueryState
+	DataSourceQuery   datagrid.GridQueryState
 	NavQuery          string
 	SelectedGroup     string
 	SelectedComponent string
@@ -210,11 +211,11 @@ func newShowcaseApp() *ShowcaseApp {
 		ThemeGenBorder:       gui.ThemeDark.WithBorders(true).Cfg.SizeBorder,
 		ThemeGenBorderText:   floatString(gui.ThemeDark.WithBorders(true).Cfg.SizeBorder),
 		ThemeGenText:         gui.ThemeDark.WithBorders(true).Cfg.TextStyleDef.Color,
-		DataGridSelection: gui.GridSelection{
+		DataGridSelection: datagrid.GridSelection{
 			SelectedRowIDs: map[string]bool{},
 		},
 		TableBorderStyle: "all",
-		DataSourceSelection: gui.GridSelection{
+		DataSourceSelection: datagrid.GridSelection{
 			SelectedRowIDs: map[string]bool{},
 		},
 		GesturePadScale:   1,

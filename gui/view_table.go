@@ -127,7 +127,7 @@ type tableColWidthCache struct {
 // Table generates a table from the given TableCfg. Column widths
 // are auto-sized when a Window is available during layout.
 func Table(cfg TableCfg) View {
-	requireID("Table", cfg.ID)
+	RequireID("Table", cfg.ID)
 	return &deferredTableView{cfg: cfg}
 }
 

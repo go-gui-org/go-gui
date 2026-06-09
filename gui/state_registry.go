@@ -43,9 +43,9 @@ func StateReadOr[K comparable, V any](w *Window, ns string, key K, defaultVal V)
 	return v
 }
 
-// requireID panics if id is empty. Use in stateful widget factories
+// RequireID panics if id is empty. Use in stateful widget factories
 // whose internal state is keyed by cfg.ID in StateMap.
-func requireID(widget, id string) {
+func RequireID(widget, id string) {
 	if id == "" {
 		panic("gui: " + widget + " requires a non-empty Cfg.ID")
 	}

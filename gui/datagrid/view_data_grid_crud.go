@@ -1,10 +1,12 @@
-package gui
+package datagrid
 
 import (
 	"fmt"
 	"maps"
 	"slices"
 	"strings"
+
+	. "github.com/go-gui-org/go-gui/gui"
 )
 
 // dataGridCrudClearPendingChanges resets dirty/draft/deleted
@@ -37,7 +39,7 @@ func dataGridRowsSignature(rows []GridRow, colIDs []string) uint64 {
 	if len(rows) == 0 {
 		return 0
 	}
-	h := uint64(dataGridFnv64Offset)
+	h := uint64(Fnv64Offset)
 	fallbackKeys := colIDs
 	if len(fallbackKeys) == 0 {
 		keySet := map[string]bool{}
@@ -50,19 +52,19 @@ func dataGridRowsSignature(rows []GridRow, colIDs []string) uint64 {
 	}
 	for idx, row := range rows {
 		if idx > 0 {
-			h = dataGridFnv64Str(h, dataGridGroupSep)
+			h = Fnv64Str(h, dataGridGroupSep)
 		}
 		rowID := dataGridRowID(row, idx)
-		h = dataGridFnv64Str(h, rowID)
-		h = dataGridFnv64Str(h, dataGridRecordSep)
+		h = Fnv64Str(h, rowID)
+		h = Fnv64Str(h, dataGridRecordSep)
 		keys := fallbackKeys
 		for j, key := range keys {
 			if j > 0 {
-				h = dataGridFnv64Str(h, dataGridUnitSep)
+				h = Fnv64Str(h, dataGridUnitSep)
 			}
-			h = dataGridFnv64Str(h, key)
-			h = dataGridFnv64Byte(h, '=')
-			h = dataGridFnv64Str(h, row.Cells[key])
+			h = Fnv64Str(h, key)
+			h = Fnv64Byte(h, '=')
+			h = Fnv64Str(h, row.Cells[key])
 		}
 	}
 	return h
@@ -72,12 +74,12 @@ func dataGridRowsIDSignature(rows []GridRow) uint64 {
 	if len(rows) == 0 {
 		return 0
 	}
-	h := uint64(dataGridFnv64Offset)
+	h := uint64(Fnv64Offset)
 	for idx, row := range rows {
 		if idx > 0 {
-			h = dataGridFnv64Str(h, dataGridGroupSep)
+			h = Fnv64Str(h, dataGridGroupSep)
 		}
-		h = dataGridFnv64Str(h, dataGridRowID(row, idx))
+		h = Fnv64Str(h, dataGridRowID(row, idx))
 	}
 	return h
 }
@@ -161,19 +163,19 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 
 	var status string
 	if state.Saving {
-		status = guiLocale.StrSaving
+		status = ActiveLocale.StrSaving
 	} else if state.SaveError != "" {
-		status = guiLocale.StrSaveFailed
+		status = ActiveLocale.StrSaveFailed
 	} else if hasUnsaved {
 		status = fmt.Sprintf("%s %d %s %d %s %d",
-			guiLocale.StrDraft, draftCount,
-			guiLocale.StrDirty, dirtyCount,
-			guiLocale.StrDelete, deleteCount)
+			ActiveLocale.StrDraft, draftCount,
+			ActiveLocale.StrDirty, dirtyCount,
+			ActiveLocale.StrDelete, deleteCount)
 		if state.SourceChanged {
-			status += " | " + guiLocale.StrSourceChanged
+			status += " | " + ActiveLocale.StrSourceChanged
 		}
 	} else {
-		status = guiLocale.StrClean
+		status = ActiveLocale.StrClean
 	}
 
 	return Row(ContainerCfg{
@@ -186,17 +188,17 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 		Spacing:     SomeF(6),
 		VAlign:      VAlignMiddle,
 		Content: []View{
-			dataGridIndicatorButton(guiLocale.StrAdd, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(ActiveLocale.StrAdd, cfg.TextStyleFilter, cfg.ColorHeaderHover,
 				!canCreate || state.Saving, 0, func(_ *Layout, e *Event, w *Window) {
 					dataGridCrudAddRow(gridID, columns, onSelectionChange, focusID,
 						scrollID, pageSize, pageIndex, onPageChange, e, w)
 				}),
-			dataGridIndicatorButton(guiLocale.StrDelete, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(ActiveLocale.StrDelete, cfg.TextStyleFilter, cfg.ColorHeaderHover,
 				!canDelete || selectedCount == 0 || state.Saving, 0, func(_ *Layout, e *Event, w *Window) {
 					dataGridCrudDeleteSelected(gridID, selection, onSelectionChange,
 						focusID, e, w)
 				}),
-			dataGridIndicatorButton(guiLocale.StrSave, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(ActiveLocale.StrSave, cfg.TextStyleFilter, cfg.ColorHeaderHover,
 				!hasUnsaved || state.Saving, 0, func(_ *Layout, e *Event, w *Window) {
 					dataGridCrudSave(dataGridCrudSaveContext{
 						gridID:            gridID,
@@ -211,7 +213,7 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 						focusID:           focusID,
 					}, e, w)
 				}),
-			dataGridIndicatorButton(guiLocale.StrCancel, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(ActiveLocale.StrCancel, cfg.TextStyleFilter, cfg.ColorHeaderHover,
 				(!hasUnsaved && state.SaveError == "") || state.Saving, 0, func(_ *Layout, e *Event, w *Window) {
 					dataGridCrudCancel(gridID, focusID, e, w)
 				}),
@@ -220,7 +222,7 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 				Padding: NoPadding,
 			}),
 			Text(TextCfg{
-				Text:      fmt.Sprintf("%s %d", guiLocale.StrSelected, selectedCount),
+				Text:      fmt.Sprintf("%s %d", ActiveLocale.StrSelected, selectedCount),
 				Mode:      TextModeSingleLine,
 				TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
 			}),

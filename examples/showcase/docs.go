@@ -2037,14 +2037,14 @@ row selection, and CRUD toolbar support.
 ## Usage
 
 ` + "```go" + `
-w.DataGrid(gui.DataGridCfg{
+datagrid.New(w, datagrid.DataGridCfg{
     ID:       "grid",
     PageSize: 10,
-    Columns: []gui.GridColumnCfg{
+    Columns: []datagrid.GridColumnCfg{
         {ID: "name", Title: "Name", Sortable: true, Filterable: true},
         {ID: "age",  Title: "Age",  Sortable: true, Align: gui.HAlignEnd},
     },
-    Rows: []gui.GridRow{
+    Rows: []datagrid.GridRow{
         {ID: "1", Cells: map[string]string{"name": "Alice", "age": "30"}},
         {ID: "2", Cells: map[string]string{"name": "Bob",   "age": "25"}},
     },
@@ -2057,11 +2057,11 @@ w.DataGrid(gui.DataGridCfg{
 
 ` + "```go" + `
 source := gui.NewInMemoryDataSource(rows)
-w.DataGrid(gui.DataGridCfg{
+datagrid.New(w, datagrid.DataGridCfg{
     ID:             "ds-grid",
     Columns:        cols,
     DataSource:     source,
-    PaginationKind: gui.GridPaginationCursor,
+    PaginationKind: datagrid.GridPaginationCursor,
     PageLimit:      50,
 })
 ` + "```" + `
@@ -2073,7 +2073,7 @@ When ` + "`Columns`" + ` is empty, columns are auto-generated from the
 first row's keys:
 
 ` + "```go" + `
-w.DataGrid(gui.DataGridCfg{
+datagrid.New(w, datagrid.DataGridCfg{
     ID: "simple-grid",
     RowsData: []map[string]string{
         {"name": "Alice", "age": "30"},
@@ -2091,7 +2091,7 @@ Automatically virtualizes when ` + "`Height`" + ` or ` + "`MaxHeight > 0`" + `. 
 ID is derived from the widget ID; setting ` + "`IDScroll`" + ` is optional.
 
 ` + "```go" + `
-w.DataGrid(gui.DataGridCfg{
+datagrid.New(w, datagrid.DataGridCfg{
     ID:        "grid",
     MaxHeight: 300,
     // Virtualization is automatic.
@@ -2217,7 +2217,7 @@ interface or use the built-in ` + "`InMemoryDataSource`" + ` / ` + "`GridOrmData
 ## Usage
 
 ` + "```go" + `
-source := gui.NewInMemoryDataSource([]gui.GridRow{
+source := gui.NewInMemoryDataSource([]datagrid.GridRow{
     {
         ID: "1",
         Cells: map[string]string{
@@ -2226,11 +2226,11 @@ source := gui.NewInMemoryDataSource([]gui.GridRow{
     },
 })
 
-w.DataGrid(gui.DataGridCfg{
+datagrid.New(w, datagrid.DataGridCfg{
     ID:              "ds-grid",
     Columns:         showcaseDataGridColumns(),
     DataSource:      source,
-    PaginationKind:  gui.GridPaginationCursor,
+    PaginationKind:  datagrid.GridPaginationCursor,
     PageLimit:       50,
     ShowQuickFilter: true,
     ShowCRUDToolbar: true,

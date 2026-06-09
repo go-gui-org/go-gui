@@ -172,7 +172,7 @@ func TestInputDateSingleDateText(t *testing.T) {
 	// The date is shown via an embedded Input widget.
 	// Find the text by searching the layout tree.
 	expected := LocaleFormatDate(d1,
-		localeDatePadFormat(guiLocale.Date.ShortDate))
+		localeDatePadFormat(ActiveLocale.Date.ShortDate))
 	if !layoutContainsText(&layout, expected) {
 		t.Errorf("layout does not contain %q", expected)
 	}

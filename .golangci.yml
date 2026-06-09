@@ -35,3 +35,7 @@ linters:
       - path: native_platform_noop\.go
         linters:
           - revive
+      - path: gui/datagrid/
+        linters:
+          - staticcheck
+        text: "ST1001"

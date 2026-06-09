@@ -37,7 +37,7 @@ type colorPickerView struct {
 // ColorPicker creates a color picker view with SV area, hue slider,
 // alpha slider, hex input, and RGBA/HSV channel inputs.
 func ColorPicker(cfg ColorPickerCfg) View {
-	requireID("ColorPicker", cfg.ID)
+	RequireID("ColorPicker", cfg.ID)
 	applyColorPickerDefaults(&cfg)
 	return &colorPickerView{cfg: cfg}
 }
@@ -337,7 +337,7 @@ func cpPreviewRow(cfg *ColorPickerCfg) View {
 			}),
 			Input(InputCfg{
 				ID:        cfgID + ".hex",
-				IDFocus:   fnvSum32(cfgID + ".hex"),
+				IDFocus:   FnvSum32(cfgID + ".hex"),
 				Text:      c.ToHexString(),
 				TextStyle: cfg.Style.TextStyle,
 				Width:     100,
@@ -358,7 +358,7 @@ func cpPreviewRow(cfg *ColorPickerCfg) View {
 // cpRGBAInputs builds the R/G/B/A channel inputs row.
 func cpRGBAInputs(cfg *ColorPickerCfg) View {
 	c := cfg.Color
-	l := guiLocale
+	l := ActiveLocale
 	return Row(ContainerCfg{
 		Padding: NoPadding,
 		Spacing: Some(SpacingSmall),
@@ -375,7 +375,7 @@ func cpRGBAInputs(cfg *ColorPickerCfg) View {
 func cpHSVInputs(
 	cfg *ColorPickerCfg, hsv colorPickerState,
 ) View {
-	l := guiLocale
+	l := ActiveLocale
 	return Row(ContainerCfg{
 		Padding: NoPadding,
 		Spacing: Some(SpacingSmall),
@@ -439,7 +439,7 @@ func cpInputColumn(
 			}),
 			Input(InputCfg{
 				ID:        inputID,
-				IDFocus:   fnvSum32(inputID),
+				IDFocus:   FnvSum32(inputID),
 				Text:      fmt.Sprintf("%d", val),
 				TextStyle: cfg.Style.TextStyle,
 				Width:     50,

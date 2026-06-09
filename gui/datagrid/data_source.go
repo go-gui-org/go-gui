@@ -1,4 +1,4 @@
-package gui
+package datagrid
 
 import (
 	"cmp"
@@ -11,17 +11,12 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
+
+	. "github.com/go-gui-org/go-gui/gui"
 )
 
 const dataGridSourceMaxPageLimit = 10000
-
-// FNV-1a 64-bit constants.
-const (
-	dataGridFnv64Offset = uint64(14695981039346656037)
-	dataGridFnv64Prime  = uint64(1099511628211)
-)
 
 // gridCursorPageReq requests a cursor-based page.
 type gridCursorPageReq struct {
@@ -43,37 +38,6 @@ func (gridOffsetPageReq) gridPageRequest() {}
 // gridOffsetPageReq.
 type gridPageRequest interface {
 	gridPageRequest()
-}
-
-// GridAbortSignal communicates cancellation via an atomic bool.
-type GridAbortSignal struct {
-	aborted atomic.Bool
-}
-
-// IsAborted reports cancellation status.
-func (s *GridAbortSignal) IsAborted() bool {
-	if s == nil {
-		return false
-	}
-	return s.aborted.Load()
-}
-
-// GridAbortController manages an abort signal.
-type GridAbortController struct {
-	Signal *GridAbortSignal
-}
-
-// NewGridAbortController allocates a fresh abort controller.
-func NewGridAbortController() *GridAbortController {
-	return &GridAbortController{Signal: &GridAbortSignal{}}
-}
-
-// Abort marks the request as cancelled.
-func (c *GridAbortController) Abort() {
-	if c.Signal == nil {
-		return
-	}
-	c.Signal.aborted.Store(true)
 }
 
 // GridDataRequest is the request payload for FetchData.
@@ -130,6 +94,8 @@ type GridMutationResult struct {
 }
 
 // DataGridDataSource is the interface for grid data providers.
+//
+//nolint:revive // DataGrid prefix intentional
 type DataGridDataSource interface {
 	Capabilities() GridDataCapabilities
 	FetchData(req GridDataRequest) (GridDataResult, error)
@@ -521,7 +487,7 @@ func gridContainsLower(haystack, needle string) bool {
 	for i := 0; i <= limit; i++ {
 		found := true
 		for j := range len(needle) {
-			if asciiLower(haystack[i+j]) != needle[j] {
+			if ASCIILower(haystack[i+j]) != needle[j] {
 				found = false
 				break
 			}
@@ -540,7 +506,7 @@ func gridEqualsLower(haystack, needle string) bool {
 		return false
 	}
 	for i := range len(haystack) {
-		if asciiLower(haystack[i]) != needle[i] {
+		if ASCIILower(haystack[i]) != needle[i] {
 			return false
 		}
 	}
@@ -554,7 +520,7 @@ func gridStartsWithLower(haystack, needle string) bool {
 		return false
 	}
 	for i := range len(needle) {
-		if asciiLower(haystack[i]) != needle[i] {
+		if ASCIILower(haystack[i]) != needle[i] {
 			return false
 		}
 	}
@@ -569,7 +535,7 @@ func gridEndsWithLower(haystack, needle string) bool {
 	}
 	off := len(haystack) - len(needle)
 	for i := range len(needle) {
-		if asciiLower(haystack[i+off]) != needle[i] {
+		if ASCIILower(haystack[i+off]) != needle[i] {
 			return false
 		}
 	}
@@ -580,21 +546,21 @@ func gridEndsWithLower(haystack, needle string) bool {
 // the query state. Filters are sorted by col_id for order
 // independence.
 func gridQuerySignature(query GridQueryState) uint64 {
-	h := dataGridFnv64Offset
-	h = dataGridFnv64Str(h, query.QuickFilter)
-	h = dataGridFnv64Byte(h, '|')
-	h = dataGridFnv64Byte(h, 's')
+	h := Fnv64Offset
+	h = Fnv64Str(h, query.QuickFilter)
+	h = Fnv64Byte(h, '|')
+	h = Fnv64Byte(h, 's')
 	for _, s := range query.Sorts {
-		h = dataGridFnv64Byte(h, 0x1e)
-		h = dataGridFnv64Str(h, s.ColID)
+		h = Fnv64Byte(h, 0x1e)
+		h = Fnv64Str(h, s.ColID)
 		if s.Dir == GridSortDesc {
-			h = dataGridFnv64Byte(h, 'd')
+			h = Fnv64Byte(h, 'd')
 		} else {
-			h = dataGridFnv64Byte(h, 'a')
+			h = Fnv64Byte(h, 'a')
 		}
 	}
-	h = dataGridFnv64Byte(h, '|')
-	h = dataGridFnv64Byte(h, 'f')
+	h = Fnv64Byte(h, '|')
+	h = Fnv64Byte(h, 'f')
 	filters := query.Filters
 	if len(filters) <= 1 {
 		for _, f := range filters {
@@ -622,17 +588,6 @@ func gridQuerySignature(query GridQueryState) uint64 {
 	return h
 }
 
-func dataGridFnv64Str(h uint64, s string) uint64 {
-	for i := range len(s) {
-		h = (h ^ uint64(s[i])) * dataGridFnv64Prime
-	}
-	return h
-}
-
-func dataGridFnv64Byte(h uint64, b byte) uint64 {
-	return (h ^ uint64(b)) * dataGridFnv64Prime
-}
-
 // zeroPadHex16 formats a uint64 as a zero-padded 16-char
 // lowercase hex string, equivalent to fmt.Sprintf("%016x", v).
 func zeroPadHex16(v uint64) string {
@@ -645,12 +600,12 @@ func zeroPadHex16(v uint64) string {
 }
 
 func gridHashFilter(h uint64, f GridFilter) uint64 {
-	hash := dataGridFnv64Byte(h, 0x1e)
-	hash = dataGridFnv64Str(hash, f.ColID)
-	hash = dataGridFnv64Byte(hash, 0x1f)
-	hash = dataGridFnv64Str(hash, f.Op)
-	hash = dataGridFnv64Byte(hash, 0x1f)
-	hash = dataGridFnv64Str(hash, f.Value)
+	hash := Fnv64Byte(h, 0x1e)
+	hash = Fnv64Str(hash, f.ColID)
+	hash = Fnv64Byte(hash, 0x1f)
+	hash = Fnv64Str(hash, f.Op)
+	hash = Fnv64Byte(hash, 0x1f)
+	hash = Fnv64Str(hash, f.Value)
 	return hash
 }
 

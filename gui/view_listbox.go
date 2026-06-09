@@ -72,7 +72,7 @@ func NewListBoxSubheading(id, title string) ListBoxOption {
 
 // ListBox creates a list box view.
 func ListBox(cfg ListBoxCfg) View {
-	requireID("ListBox", cfg.ID)
+	RequireID("ListBox", cfg.ID)
 	applyListBoxDefaults(&cfg)
 	if len(cfg.Items) > 0 {
 		n := min(len(cfg.Items), maxDataConvLen)

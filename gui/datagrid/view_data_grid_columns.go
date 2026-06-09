@@ -1,8 +1,10 @@
-package gui
+package datagrid
 
 import (
 	"maps"
 	"strings"
+
+	. "github.com/go-gui-org/go-gui/gui"
 )
 
 // dataGridEffectiveColumns resolves the final visible column

@@ -1,6 +1,10 @@
-package gui
+package datagrid
 
-import "testing"
+import (
+	"testing"
+
+	. "github.com/go-gui-org/go-gui/gui"
+)
 
 func testColumns() []GridOrmColumnSpec {
 	return []GridOrmColumnSpec{
