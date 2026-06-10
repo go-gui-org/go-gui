@@ -406,6 +406,381 @@ func TestTrackRowEditClickDifferentRow(t *testing.T) {
 	}
 }
 
+// --- dataGridCellEditorFocusBaseID ---
+
+func TestCellEditorFocusBaseID(t *testing.T) {
+	cfg := &DataGridCfg{ID: "g", IDFocus: 100}
+	got := dataGridCellEditorFocusBaseID(cfg, 3)
+	// headerBase = 101, +3 → 104
+	if got != 104 {
+		t.Errorf("got %d, want 104", got)
+	}
+}
+
+func TestCellEditorFocusBaseIDZeroCols(t *testing.T) {
+	cfg := &DataGridCfg{ID: "g", IDFocus: 100}
+	got := dataGridCellEditorFocusBaseID(cfg, 0)
+	if got != 0 {
+		t.Errorf("got %d, want 0", got)
+	}
+}
+
+// --- dataGridCellEditorFocusID ---
+
+func TestCellEditorFocusID(t *testing.T) {
+	cfg := &DataGridCfg{ID: "g", IDFocus: 100}
+	got := dataGridCellEditorFocusID(cfg, 3, 0, 0)
+	if got != 104 {
+		t.Errorf("got %d, want 104", got)
+	}
+}
+
+func TestCellEditorFocusIDOutOfRange(t *testing.T) {
+	cfg := &DataGridCfg{ID: "g", IDFocus: 100}
+	if got := dataGridCellEditorFocusID(cfg, 3, -1, 0); got != 0 {
+		t.Errorf("negative row: got %d, want 0", got)
+	}
+	if got := dataGridCellEditorFocusID(cfg, 3, 0, 3); got != 0 {
+		t.Errorf("col out of range: got %d, want 0", got)
+	}
+}
+
+// --- dataGridFirstEditableColumnIndex ---
+
+func TestFirstEditableColumnIndex(t *testing.T) {
+	cfg := &DataGridCfg{
+		OnCellEdit: func(GridCellEdit, *Event, *Window) {},
+		Columns: []GridColumnCfg{
+			{ID: "a", Editable: false},
+			{ID: "b", Editable: true},
+		},
+	}
+	got := dataGridFirstEditableColumnIndex(cfg, cfg.Columns)
+	if got != 1 {
+		t.Errorf("got %d, want 1", got)
+	}
+}
+
+func TestFirstEditableColumnIndexDisabled(t *testing.T) {
+	cfg := &DataGridCfg{
+		Columns: []GridColumnCfg{{ID: "a", Editable: true}},
+	}
+	got := dataGridFirstEditableColumnIndex(cfg, cfg.Columns)
+	if got != -1 {
+		t.Errorf("got %d, want -1", got)
+	}
+}
+
+// --- dataGridMakeEditorOnKeydown ---
+
+func TestMakeEditorOnKeydownEscape(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	dataGridSetEditingRow("g1", "r1", w)
+	fn := dataGridMakeEditorOnKeydown("g1", 10)
+	e := &Event{KeyCode: KeyEscape}
+	fn(nil, e, w)
+	if !e.IsHandled {
+		t.Fatal("escape should be handled")
+	}
+	if dataGridEditingRowID("g1", w) != "" {
+		t.Fatal("editing row should be cleared")
+	}
+}
+
+func TestMakeEditorOnKeydownNonEscape(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	dataGridSetEditingRow("g1", "r1", w)
+	fn := dataGridMakeEditorOnKeydown("g1", 10)
+	e := &Event{KeyCode: KeyEnter}
+	fn(nil, e, w)
+	if e.IsHandled {
+		t.Fatal("non-escape should not be handled")
+	}
+	if dataGridEditingRowID("g1", w) != "r1" {
+		t.Fatal("editing row should not be cleared on non-escape")
+	}
+}
+
+func TestMakeEditorOnKeydownEscapeWithModifiers(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	dataGridSetEditingRow("g1", "r1", w)
+	fn := dataGridMakeEditorOnKeydown("g1", 10)
+	e := &Event{KeyCode: KeyEscape, Modifiers: ModShift}
+	fn(nil, e, w)
+	if e.IsHandled {
+		t.Fatal("escape+shift should not be handled by editor")
+	}
+}
+
+// --- dataGridSetEditingRow / dataGridClearEditingRow / dataGridEditingRowID ---
+
+func TestSetAndClearEditingRow(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	if got := dataGridEditingRowID("g1", w); got != "" {
+		t.Fatalf("initially empty: got %q", got)
+	}
+	dataGridSetEditingRow("g1", "row1", w)
+	if got := dataGridEditingRowID("g1", w); got != "row1" {
+		t.Fatalf("after set: got %q, want row1", got)
+	}
+	dataGridClearEditingRow("g1", w)
+	if got := dataGridEditingRowID("g1", w); got != "" {
+		t.Fatalf("after clear: got %q, want empty", got)
+	}
+}
+
+// --- dataGridAnchorRowIDEx ---
+
+func TestAnchorRowIDExFromStateMap(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	rows := []GridRow{{ID: "a"}, {ID: "b"}}
+	dgRange := StateMap[string, dataGridRangeState](w, nsDgRange, 4)
+	dgRange.Set("g1", dataGridRangeState{AnchorRowID: "b"})
+	sel := GridSelection{AnchorRowID: "a"}
+	got := dataGridAnchorRowIDEx(sel, "g1", rows, w, "fallback")
+	if got != "b" {
+		t.Errorf("got %q, want b", got)
+	}
+}
+
+func TestAnchorRowIDExFallbackToSelection(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	rows := []GridRow{{ID: "a"}, {ID: "b"}}
+	sel := GridSelection{AnchorRowID: "b"}
+	got := dataGridAnchorRowIDEx(sel, "g1", rows, w, "fallback")
+	if got != "b" {
+		t.Errorf("got %q, want b", got)
+	}
+}
+
+func TestAnchorRowIDExFallbackToArg(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	rows := []GridRow{{ID: "a"}}
+	sel := GridSelection{}
+	got := dataGridAnchorRowIDEx(sel, "g1", rows, w, "fallback")
+	if got != "fallback" {
+		t.Errorf("got %q, want fallback", got)
+	}
+}
+
+// --- dataGridSetAnchor ---
+
+func TestSetAnchor(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	dataGridSetAnchor("g1", "r1", w)
+	dgRange := StateMap[string, dataGridRangeState](w, nsDgRange, 4)
+	st, ok := dgRange.Get("g1")
+	if !ok || st.AnchorRowID != "r1" {
+		t.Errorf("got anchor=%q, want r1", st.AnchorRowID)
+	}
+}
+
+// --- dataGridComputeRowSelection ---
+
+func TestComputeRowSelectionPlain(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	rows := []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}}
+	sel := GridSelection{}
+	got := dataGridComputeRowSelection(rows, sel, "g1", true, true, "b",
+		&Event{}, w)
+	if got.ActiveRowID != "b" {
+		t.Errorf("active: got %q, want b", got.ActiveRowID)
+	}
+	if len(got.SelectedRowIDs) != 1 || !got.SelectedRowIDs["b"] {
+		t.Errorf("selected: %v", got.SelectedRowIDs)
+	}
+}
+
+func TestComputeRowSelectionToggle(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	rows := []GridRow{{ID: "a"}, {ID: "b"}}
+	sel := GridSelection{
+		SelectedRowIDs: map[string]bool{"a": true},
+	}
+	got := dataGridComputeRowSelection(rows, sel, "g1", true, true, "b",
+		&Event{Modifiers: ModCtrl}, w)
+	if !got.SelectedRowIDs["a"] || !got.SelectedRowIDs["b"] {
+		t.Errorf("toggle should keep a and add b: %v", got.SelectedRowIDs)
+	}
+}
+
+func TestComputeRowSelectionShiftRange(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	rows := []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}}
+	sel := GridSelection{
+		AnchorRowID:    "a",
+		SelectedRowIDs: map[string]bool{"a": true},
+	}
+	got := dataGridComputeRowSelection(rows, sel, "g1", true, true, "c",
+		&Event{Modifiers: ModShift}, w)
+	if len(got.SelectedRowIDs) != 3 {
+		t.Errorf("shift should select 3 rows: %v", got.SelectedRowIDs)
+	}
+}
+
+func TestComputeRowSelectionSingleRowReselection(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	rows := []GridRow{{ID: "a"}, {ID: "b"}}
+	sel := GridSelection{
+		SelectedRowIDs: map[string]bool{"a": true},
+	}
+	got := dataGridComputeRowSelection(rows, sel, "g1", true, true, "a",
+		&Event{}, w)
+	// Reselection of the only selected row preserves the selection map.
+	if len(got.SelectedRowIDs) != 1 || !got.SelectedRowIDs["a"] {
+		t.Errorf("expected a still selected: %v", got.SelectedRowIDs)
+	}
+}
+
+// --- dataGridRowClick ---
+
+func TestRowClickWithCallback(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	rows := []GridRow{{ID: "a"}, {ID: "b"}}
+	var selected GridSelection
+	sel := GridSelection{}
+	e := &Event{FrameCount: 5}
+	dataGridRowClick(rows, sel, "g1", true, true,
+		func(s GridSelection, _ *Event, _ *Window) { selected = s },
+		false, 0, 0, 0, "a", 10,
+		[]GridColumnCfg{}, e, w)
+	if selected.ActiveRowID != "a" {
+		t.Errorf("active: got %q, want a", selected.ActiveRowID)
+	}
+	if !e.IsHandled {
+		t.Fatal("should be handled")
+	}
+}
+
+func TestRowClickOutOfRange(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	rows := []GridRow{{ID: "a"}}
+	e := &Event{}
+	// Should not panic for out-of-range index.
+	dataGridRowClick(rows, GridSelection{}, "g1", true, true, nil,
+		false, 0, 0, -1, "x", 0, nil, e, w)
+}
+
+// --- dataGridDetailToggleControl ---
+
+func TestDetailToggleControlCollapsed(t *testing.T) {
+	cfg := &DataGridCfg{
+		ID:            "g1",
+		TextStyle:     DefaultTextStyle,
+		ColorRowHover: RGBA(220, 220, 220, 255),
+	}
+	v := dataGridDetailToggleControl(cfg, "r1", false, true, 10)
+	if v == nil {
+		t.Fatal("detail toggle should return a view")
+	}
+}
+
+func TestDetailToggleControlExpanded(t *testing.T) {
+	cfg := &DataGridCfg{
+		ID:            "g1",
+		TextStyle:     DefaultTextStyle,
+		ColorRowHover: RGBA(220, 220, 220, 255),
+	}
+	v := dataGridDetailToggleControl(cfg, "r1", true, true, 10)
+	if v == nil {
+		t.Fatal("expanded toggle should return a view")
+	}
+}
+
+func TestDetailToggleControlDisabled(t *testing.T) {
+	cfg := &DataGridCfg{
+		ID:        "g1",
+		TextStyle: DefaultTextStyle,
+	}
+	v := dataGridDetailToggleControl(cfg, "r1", false, false, 0)
+	if v == nil {
+		t.Fatal("disabled toggle should return a view")
+	}
+}
+
+// --- dataGridGroupHeaderRowView ---
+
+func TestGroupHeaderRowView(t *testing.T) {
+	trueVal := true
+	cfg := &DataGridCfg{
+		ColorBorder:     RGBA(180, 180, 180, 255),
+		SizeBorder:      SomeF(1),
+		PaddingCell:     SomeP(2, 4, 2, 4),
+		TextStyleHeader: DefaultTextStyle,
+		ColorFilter:     RGBA(240, 240, 240, 255),
+		ShowGroupCounts: &trueVal,
+	}
+	entry := dataGridDisplayRow{
+		Kind:          dataGridDisplayRowGroupHeader,
+		GroupColTitle: "Status",
+		GroupValue:    "Active",
+		GroupDepth:    0,
+		GroupCount:    5,
+	}
+	v := dataGridGroupHeaderRowView(cfg, entry, 25)
+	if v == nil {
+		t.Fatal("group header should return a view")
+	}
+}
+
+func TestGroupHeaderRowViewWithAggregate(t *testing.T) {
+	cfg := &DataGridCfg{
+		ColorBorder:     RGBA(180, 180, 180, 255),
+		SizeBorder:      SomeF(1),
+		PaddingCell:     SomeP(2, 4, 2, 4),
+		TextStyleHeader: DefaultTextStyle,
+		ColorFilter:     RGBA(240, 240, 240, 255),
+	}
+	entry := dataGridDisplayRow{
+		Kind:          dataGridDisplayRowGroupHeader,
+		GroupColTitle: "Category",
+		GroupValue:    "Electronics",
+		GroupDepth:    1,
+		GroupCount:    3,
+		AggregateText: "sum: 500",
+	}
+	v := dataGridGroupHeaderRowView(cfg, entry, 25)
+	if v == nil {
+		t.Fatal("group header with aggregate should return a view")
+	}
+}
+
+// --- dataGridFrozenTopZone ---
+
+func TestFrozenTopZone(t *testing.T) {
+	cfg := &DataGridCfg{
+		ColorBackground: RGBA(255, 255, 255, 255),
+		ColorBorder:     RGBA(180, 180, 180, 255),
+	}
+	v := dataGridFrozenTopZone(cfg, nil, 50, 200, 0)
+	if v == nil {
+		t.Fatal("frozen top zone should return a view")
+	}
+}
+
+// --- dataGridScrollGutter ---
+
+func TestScrollGutter(t *testing.T) {
+	got := dataGridScrollGutter()
+	if got <= 0 {
+		t.Errorf("got %v, want > 0", got)
+	}
+}
+
 func TestTrackRowEditClickDisabled(t *testing.T) {
 	w := NewWindow(WindowCfg{})
 	defer w.Close()

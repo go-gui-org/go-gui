@@ -496,3 +496,85 @@ func TestNextHiddenColumnsDoesNotMutateInput(t *testing.T) {
 		t.Fatalf("original map mutated")
 	}
 }
+
+// --- dataGridQueryFilterValue ---
+
+func TestQueryFilterValueFound(t *testing.T) {
+	q := GridQueryState{
+		Filters: []GridFilter{
+			{ColID: "name", Op: "contains", Value: "alice"},
+		},
+	}
+	got := dataGridQueryFilterValue(q, "name")
+	if got != "alice" {
+		t.Errorf("got %q, want alice", got)
+	}
+}
+
+func TestQueryFilterValueNotFound(t *testing.T) {
+	q := GridQueryState{}
+	got := dataGridQueryFilterValue(q, "name")
+	if got != "" {
+		t.Errorf("got %q, want empty", got)
+	}
+}
+
+// --- dataGridColumnWidth / dataGridSetColumnWidth ---
+
+func TestColumnWidthDefault(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	col := GridColumnCfg{ID: "c1", Width: SomeF(150)}
+	got := dataGridColumnWidth("g1", []GridColumnCfg{col}, col, w)
+	if got != 150 {
+		t.Errorf("got %v, want 150", got)
+	}
+}
+
+func TestSetColumnWidth(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	col := GridColumnCfg{ID: "c1", MinWidth: SomeF(50), MaxWidth: SomeF(400)}
+	dataGridSetColumnWidth("g1", col, 200, w)
+	got := dataGridColumnWidth("g1", []GridColumnCfg{col}, col, w)
+	if got != 200 {
+		t.Errorf("got %v, want 200", got)
+	}
+}
+
+func TestSetColumnWidthClamped(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	col := GridColumnCfg{ID: "c1", MinWidth: SomeF(100), MaxWidth: SomeF(300)}
+	// Set below min, should clamp.
+	dataGridSetColumnWidth("g1", col, 50, w)
+	got := dataGridColumnWidth("g1", []GridColumnCfg{col}, col, w)
+	if got != 100 {
+		t.Errorf("got %v, want 100 (clamped)", got)
+	}
+	// Set above max, should clamp.
+	dataGridSetColumnWidth("g1", col, 500, w)
+	got = dataGridColumnWidth("g1", []GridColumnCfg{col}, col, w)
+	if got != 300 {
+		t.Errorf("got %v, want 300 (clamped)", got)
+	}
+}
+
+// --- dataGridColumnWidthFor ---
+
+func TestColumnWidthForNoWidths(t *testing.T) {
+	col := GridColumnCfg{ID: "c1", Width: SomeF(120)}
+	got := dataGridColumnWidthFor(col, nil)
+	if got != 120 {
+		t.Errorf("got %v, want 120", got)
+	}
+}
+
+func TestColumnWidthForNoWidthFallsBackToDefault(t *testing.T) {
+	col := GridColumnCfg{ID: "c1"}
+	got := dataGridColumnWidthFor(col, nil)
+	// Falls back to default 120 through dataGridInitialWidth.
+	if got <= 0 {
+		t.Errorf("got %v, want > 0", got)
+	}
+}

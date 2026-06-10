@@ -480,3 +480,359 @@ func TestCrudRemapSelectionEmptyReplace(t *testing.T) {
 		t.Fatal("callback should not fire with empty replaceIDs")
 	}
 }
+
+// --- dataGridCrudClearPendingChanges ---
+
+func TestCrudClearPendingChanges(t *testing.T) {
+	state := &dataGridCrudState{
+		DirtyRowIDs:   map[string]bool{"r1": true},
+		DraftRowIDs:   map[string]bool{"d1": true},
+		DeletedRowIDs: map[string]bool{"x1": true},
+	}
+	dataGridCrudClearPendingChanges(state)
+	if len(state.DirtyRowIDs) != 0 {
+		t.Error("dirty should be cleared")
+	}
+	if len(state.DraftRowIDs) != 0 {
+		t.Error("draft should be cleared")
+	}
+	if len(state.DeletedRowIDs) != 0 {
+		t.Error("deleted should be cleared")
+	}
+}
+
+// --- dataGridCrudToolbarHeight ---
+
+func TestCrudToolbarHeight(t *testing.T) {
+	cfg := &DataGridCfg{HeaderHeight: 28}
+	got := dataGridCrudToolbarHeight(cfg)
+	if got != 28 {
+		t.Errorf("got %v, want 28", got)
+	}
+}
+
+// --- dataGridCrudToolbarRow ---
+
+func TestCrudToolbarRowReturnsView(t *testing.T) {
+	cfg := &DataGridCfg{
+		TextStyleFilter:  DefaultTextStyle,
+		ColorFilter:      RGBA(240, 240, 240, 255),
+		ColorHeaderHover: RGBA(200, 200, 200, 255),
+		ColorBorder:      RGBA(180, 180, 180, 255),
+		Selection:        GridSelection{},
+		Columns:          []GridColumnCfg{{ID: "c1"}},
+	}
+	state := dataGridCrudState{}
+	v := dataGridCrudToolbarRow(cfg, state, GridDataCapabilities{}, false, 0)
+	if v == nil {
+		t.Fatal("toolbar row should return a view")
+	}
+}
+
+func TestCrudToolbarRowWithUnsaved(t *testing.T) {
+	cfg := &DataGridCfg{
+		TextStyleFilter:  DefaultTextStyle,
+		ColorFilter:      RGBA(240, 240, 240, 255),
+		ColorHeaderHover: RGBA(200, 200, 200, 255),
+		ColorBorder:      RGBA(180, 180, 180, 255),
+		Selection:        GridSelection{},
+		Columns:          []GridColumnCfg{{ID: "c1"}},
+	}
+	state := dataGridCrudState{
+		DirtyRowIDs: map[string]bool{"r1": true},
+	}
+	v := dataGridCrudToolbarRow(cfg, state, GridDataCapabilities{}, false, 0)
+	if v == nil {
+		t.Fatal("toolbar row with unsaved should return a view")
+	}
+}
+
+func TestCrudToolbarRowSaving(t *testing.T) {
+	cfg := &DataGridCfg{
+		TextStyleFilter:  DefaultTextStyle,
+		ColorFilter:      RGBA(240, 240, 240, 255),
+		ColorHeaderHover: RGBA(200, 200, 200, 255),
+		ColorBorder:      RGBA(180, 180, 180, 255),
+		Selection:        GridSelection{},
+		Columns:          []GridColumnCfg{{ID: "c1"}},
+	}
+	state := dataGridCrudState{Saving: true}
+	v := dataGridCrudToolbarRow(cfg, state, GridDataCapabilities{}, false, 0)
+	if v == nil {
+		t.Fatal("toolbar row while saving should return a view")
+	}
+}
+
+// --- dataGridCrudApplyCellEdit ---
+
+func TestCrudApplyCellEdit(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
+	dgCrud.Set("g1", dataGridCrudState{
+		WorkingRows: []GridRow{
+			{ID: "r1", Cells: map[string]string{"col1": "old"}},
+		},
+	})
+	e := &Event{}
+	dataGridCrudApplyCellEdit("g1", true, nil, GridCellEdit{
+		RowID: "r1",
+		ColID: "col1",
+		Value: "new",
+	}, e, w)
+	state, _ := dgCrud.Get("g1")
+	if !state.DirtyRowIDs["r1"] {
+		t.Fatal("r1 should be marked dirty")
+	}
+	if state.WorkingRows[0].Cells["col1"] != "new" {
+		t.Errorf("cell: got %q, want new", state.WorkingRows[0].Cells["col1"])
+	}
+}
+
+func TestCrudApplyCellEditNoCrud(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	var captured GridCellEdit
+	cb := func(edit GridCellEdit, _ *Event, _ *Window) {
+		captured = edit
+	}
+	e := &Event{}
+	dataGridCrudApplyCellEdit("g1", false, cb, GridCellEdit{
+		RowID: "r1",
+		ColID: "col1",
+		Value: "new",
+	}, e, w)
+	if captured.Value != "new" {
+		t.Errorf("callback: got %q, want new", captured.Value)
+	}
+}
+
+func TestCrudApplyCellEditEmptyRowID(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	// Should not panic.
+	dataGridCrudApplyCellEdit("g1", true, nil, GridCellEdit{
+		RowID: "",
+		ColID: "col1",
+		Value: "val",
+	}, &Event{}, w)
+}
+
+// --- dataGridCrudCancel ---
+
+func TestCrudCancel(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
+	dgCrud.Set("g1", dataGridCrudState{
+		CommittedRows: []GridRow{{ID: "r1", Cells: map[string]string{"x": "original"}}},
+		WorkingRows:   []GridRow{{ID: "r1", Cells: map[string]string{"x": "modified"}}},
+		DirtyRowIDs:   map[string]bool{"r1": true},
+		SaveError:     "some error",
+		Saving:        true,
+		SourceChanged: true,
+	})
+	e := &Event{}
+	dataGridCrudCancel("g1", 10, e, w)
+	state, _ := dgCrud.Get("g1")
+	if len(state.DirtyRowIDs) != 0 {
+		t.Error("dirty should be cleared")
+	}
+	if state.Saving {
+		t.Error("saving should be false")
+	}
+	if state.SaveError != "" {
+		t.Errorf("save error: got %q, want empty", state.SaveError)
+	}
+	if state.WorkingRows[0].Cells["x"] != "original" {
+		t.Error("working rows should be restored from committed")
+	}
+	if !e.IsHandled {
+		t.Fatal("should be handled")
+	}
+}
+
+// --- dataGridCrudDeleteRows ---
+
+func TestCrudDeleteRows(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
+	dgCrud.Set("g1", dataGridCrudState{
+		CommittedRows: []GridRow{{ID: "r1", Cells: map[string]string{}}, {ID: "r2", Cells: map[string]string{}}},
+		WorkingRows: []GridRow{
+			{ID: "__draft_1", Cells: map[string]string{}},
+			{ID: "r1", Cells: map[string]string{}},
+			{ID: "r2", Cells: map[string]string{}},
+		},
+		DraftRowIDs: map[string]bool{"__draft_1": true},
+	})
+	var captured GridSelection
+	e := &Event{}
+	dataGridCrudDeleteRows("g1", GridSelection{}, func(s GridSelection, _ *Event, _ *Window) {
+		captured = s
+	}, []string{"__draft_1", "r2"}, 10, e, w)
+	state, _ := dgCrud.Get("g1")
+	if len(state.WorkingRows) != 1 {
+		t.Errorf("working rows: got %d, want 1", len(state.WorkingRows))
+	}
+	if state.WorkingRows[0].ID != "r1" {
+		t.Errorf("remaining: got %s, want r1", state.WorkingRows[0].ID)
+	}
+	if state.DeletedRowIDs["r2"] != true {
+		t.Error("r2 should be marked deleted")
+	}
+	if state.DeletedRowIDs["__draft_1"] {
+		t.Error("draft should not be marked deleted")
+	}
+	if !e.IsHandled {
+		t.Fatal("should be handled")
+	}
+	_ = captured
+}
+
+func TestCrudDeleteRowsEmptyList(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	// Should not panic.
+	dataGridCrudDeleteRows("g1", GridSelection{}, nil, nil, 0, &Event{}, w)
+}
+
+func TestCrudDeleteRowsAllWhitespace(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	// Should not panic with whitespace-only IDs.
+	dataGridCrudDeleteRows("g1", GridSelection{}, nil, []string{"  ", ""}, 0, &Event{}, w)
+}
+
+// --- dataGridCrudAddRow ---
+
+func TestCrudAddRow(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	columns := []GridColumnCfg{{ID: "name", DefaultValue: ""}, {ID: "age", DefaultValue: "0"}}
+	var captured GridSelection
+	e := &Event{}
+	dataGridCrudAddRow("g1", columns, func(s GridSelection, _ *Event, _ *Window) {
+		captured = s
+	}, 10, 1, 0, 0, func(int, *Event, *Window) {}, e, w)
+	if captured.ActiveRowID == "" {
+		t.Fatal("should have an active row")
+	}
+	if len(captured.SelectedRowIDs) != 1 {
+		t.Errorf("expected 1 selected, got %d", len(captured.SelectedRowIDs))
+	}
+	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
+	state, _ := dgCrud.Get("g1")
+	if len(state.WorkingRows) != 1 {
+		t.Errorf("working rows: got %d, want 1", len(state.WorkingRows))
+	}
+	if !e.IsHandled {
+		t.Fatal("should be handled")
+	}
+}
+
+// --- dataGridCrudDeleteSelected ---
+
+func TestCrudDeleteSelected(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
+	dgCrud.Set("g1", dataGridCrudState{
+		WorkingRows: []GridRow{
+			{ID: "r1", Cells: map[string]string{}},
+			{ID: "r2", Cells: map[string]string{}},
+		},
+	})
+	sel := GridSelection{
+		SelectedRowIDs: map[string]bool{"r1": true, "r2": true},
+	}
+	e := &Event{}
+	dataGridCrudDeleteSelected("g1", sel, nil, 0, e, w)
+	state, _ := dgCrud.Get("g1")
+	if len(state.WorkingRows) != 0 {
+		t.Errorf("working rows: got %d, want 0", len(state.WorkingRows))
+	}
+}
+
+func TestCrudDeleteSelectedEmptySelection(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	// Should not panic.
+	dataGridCrudDeleteSelected("g1", GridSelection{}, nil, 0, &Event{}, w)
+}
+
+// --- dataGridCrudBuildPayload additional ---
+
+func TestCrudBuildPayloadDirtyNotCommitted(t *testing.T) {
+	state := dataGridCrudState{
+		CommittedRows: []GridRow{},
+		WorkingRows: []GridRow{
+			{ID: "r1", Cells: map[string]string{"a": "val"}},
+		},
+		DirtyRowIDs:   map[string]bool{"r1": true},
+		DraftRowIDs:   map[string]bool{},
+		DeletedRowIDs: map[string]bool{},
+	}
+	creates, updates, edits, _ := dataGridCrudBuildPayload(state)
+	if len(creates) != 0 {
+		t.Errorf("creates: got %d, want 0", len(creates))
+	}
+	if len(updates) != 1 {
+		t.Errorf("updates: got %d, want 1", len(updates))
+	}
+	if len(edits) != 1 {
+		t.Errorf("edits: got %d, want 1", len(edits))
+	}
+}
+
+// --- dataGridCrudRestoreOnError ---
+
+func TestCrudRestoreOnError(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	dataGridSetEditingRow("g1", "r1", w)
+	snapshot := []GridRow{
+		{ID: "r1", Cells: map[string]string{"a": "orig"}},
+	}
+	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
+	dgCrud.Set("g1", dataGridCrudState{
+		CommittedRows: []GridRow{{ID: "r1", Cells: map[string]string{"a": "modified"}}},
+		WorkingRows:   []GridRow{{ID: "r1", Cells: map[string]string{"a": "modified"}}},
+		DirtyRowIDs:   map[string]bool{"r1": true},
+	})
+	var errMsg string
+	cb := func(msg string, _ *Event, _ *Window) {
+		errMsg = msg
+	}
+	e := &Event{}
+	dataGridCrudRestoreOnError("g1", "save", cb, e, w, snapshot, "save failed")
+	if errMsg != "save failed" {
+		t.Errorf("error callback: got %q, want 'save failed'", errMsg)
+	}
+	state, _ := dgCrud.Get("g1")
+	if state.Saving {
+		t.Error("saving should be false")
+	}
+	if state.SaveError != "save: save failed" {
+		t.Errorf("save error: got %q", state.SaveError)
+	}
+	if state.WorkingRows[0].Cells["a"] != "orig" {
+		t.Error("working rows should be restored from snapshot")
+	}
+	if dataGridEditingRowID("g1", w) != "" {
+		t.Error("editing row should be cleared")
+	}
+}
+
+func TestCrudRestoreOnErrorNoPhase(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	snapshot := []GridRow{{ID: "r1", Cells: map[string]string{}}}
+	dataGridCrudRestoreOnError("g1", "", nil, &Event{}, w, snapshot, "generic error")
+	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
+	state, _ := dgCrud.Get("g1")
+	if state.SaveError != "generic error" {
+		t.Errorf("save error: got %q", state.SaveError)
+	}
+}

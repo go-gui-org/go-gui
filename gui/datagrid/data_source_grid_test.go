@@ -421,3 +421,118 @@ func TestDataGridSourceDropIfStaleMatching(t *testing.T) {
 		t.Fatalf("StaleDropCount = %d, want 0", state.StaleDropCount)
 	}
 }
+
+// --- dataGridSourceForceRefetch ---
+
+func TestSourceForceRefetch(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	// Should not panic — force refetch even without existing state.
+	dataGridSourceForceRefetch("g1", w)
+}
+
+// --- dataGridSourceRetry ---
+
+func TestSourceRetry(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	// Should not panic — retry does nothing when no state exists.
+	dataGridSourceRetry("g1", w)
+}
+
+// --- dataGridSourcePrevPage / dataGridSourceNextPage ---
+
+func TestSourcePrevPage(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	dgSource := StateMap[string, dataGridSourceState](w, nsDgSource, 4)
+	dgSource.Set("g1", dataGridSourceState{
+		PrevCursor:     "prev-cursor",
+		PaginationKind: GridPaginationCursor,
+	})
+	dataGridSourcePrevPage("g1", GridPaginationCursor, 50, w)
+	state, _ := dgSource.Get("g1")
+	if state.CurrentCursor != "prev-cursor" {
+		t.Errorf("CurrentCursor: got %q, want prev-cursor",
+			state.CurrentCursor)
+	}
+}
+
+func TestSourceNextPage(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	dgSource := StateMap[string, dataGridSourceState](w, nsDgSource, 4)
+	dgSource.Set("g1", dataGridSourceState{
+		NextCursor:     "next-cursor",
+		PaginationKind: GridPaginationCursor,
+	})
+	dataGridSourceNextPage("g1", GridPaginationCursor, 50, w)
+	state, _ := dgSource.Get("g1")
+	if state.CurrentCursor != "next-cursor" {
+		t.Errorf("CurrentCursor: got %q, want next-cursor",
+			state.CurrentCursor)
+	}
+}
+
+// --- dataGridSourceJumpToRow ---
+
+func TestSourceJumpToRow(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	// Should not panic even without existing state.
+	dataGridSourceJumpToRow("g1", 10, 0, w)
+}
+
+// --- dataGridSourceApplyLocalMutation ---
+
+func TestSourceApplyLocalMutation(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	rows := []GridRow{{ID: "a"}, {ID: "b"}}
+	// Creates state when none exists.
+	dataGridSourceApplyLocalMutation("g1", rows, 2, w)
+	state, _ := StateMap[string, dataGridSourceState](w, nsDgSource, 4).Get("g1")
+	if len(state.Rows) != 2 {
+		t.Errorf("rows: got %d, want 2", len(state.Rows))
+	}
+}
+
+func TestSourceApplyLocalMutationNilRows(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	dataGridSourceApplyLocalMutation("g1", nil, -1, w)
+}
+
+// --- GetSourceStats ---
+
+func TestGetSourceStatsReturnsValue(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	dgSource := StateMap[string, dataGridSourceState](w, nsDgSource, 4)
+	dgSource.Set("g1", dataGridSourceState{
+		Rows:          []GridRow{{ID: "a"}},
+		ReceivedCount: 1,
+		RequestCount:  1,
+	})
+	stats := GetSourceStats(w, "g1")
+	_ = stats
+}
+
+// --- dataGridSourceApplyPendingJumpSelection ---
+
+func TestSourceApplyPendingJumpSelection(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	rows := []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}}
+	state := dataGridSourceState{
+		Rows:           rows,
+		PendingJumpRow: 1,
+	}
+	cfg := &DataGridCfg{
+		ID:                "g1",
+		Rows:              rows,
+		OnSelectionChange: func(s GridSelection, _ *Event, _ *Window) {},
+	}
+	// Should not panic.
+	dataGridSourceApplyPendingJumpSelection(cfg, state, w)
+}

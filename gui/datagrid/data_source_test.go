@@ -541,3 +541,28 @@ func TestInMemoryConcurrentFetchMutate(t *testing.T) {
 
 	wg.Wait()
 }
+
+// --- gridPageRequest interface ---
+
+func TestGridPageRequestInterface(t *testing.T) {
+	// Compile-time check: both types satisfy gridPageRequest.
+	var _ gridPageRequest = gridCursorPageReq{}
+	var _ gridPageRequest = gridOffsetPageReq{}
+}
+
+// --- dataGridSourceSleepWithAbort ---
+
+func TestSourceSleepWithAbortZeroMs(t *testing.T) {
+	// 0 ms → immediate abort check; returns nil when no signal.
+	err := dataGridSourceSleepWithAbort(nil, 0)
+	if err != nil {
+		t.Errorf("expected nil, got %v", err)
+	}
+}
+
+func TestSourceSleepWithAbortNilSignal(t *testing.T) {
+	err := dataGridSourceSleepWithAbort(nil, 1)
+	if err != nil {
+		t.Errorf("expected nil, got %v", err)
+	}
+}
