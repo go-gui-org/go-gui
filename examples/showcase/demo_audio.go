@@ -1,4 +1,4 @@
-//go:build !js && !android && !ios
+//go:build audio && !js && !android && !ios
 
 package main
 

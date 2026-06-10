@@ -4,7 +4,7 @@ LDFLAGS  = -X github.com/go-gui-org/go-gui/gui.Version=$(VERSION) \
            -X github.com/go-gui-org/go-gui/gui.Commit=$(COMMIT)
 
 CC_WINDOWS ?= x86_64-w64-mingw32-gcc
-STATIC_TAG  = static
+STATIC_TAG  = static,audio
 
 .PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean
 
@@ -66,8 +66,9 @@ build-examples:
 release: build-linux build-windows build-macos build-wasm
 	tar czf build/go-gui-showcase-$(VERSION)-linux-amd64.tar.gz \
 	  -C build showcase-linux
+	bash scripts/bundle-windows-dlls.sh
 	cd build && zip go-gui-showcase-$(VERSION)-windows-amd64.zip \
-	  showcase-windows.exe
+	  showcase-windows.exe dlls/flat/*.dll
 	cd build && go run ../cmd/buildapp -version $(VERSION) \
 	  -name "Go-Gui Showcase" showcase-macos
 	hdiutil create -srcfolder "build/Go-Gui Showcase.app" \
