@@ -7,14 +7,15 @@ bumps from current v0.25.
 
 ## v0.26.0 — Quality & hygiene
 
-### 1. Docs and tooling consistency
+### 1. Docs and tooling consistency ✅
 
 **Trivial fix, high trust impact.**
 
-- CONTRIBUTING.md claims `go test ./...` is "~0.25s" — stale since the early
+- [x] CONTRIBUTING.md claims `go test ./...` is "~0.25s" — stale since the early
   days; actual wall clock is ~12s. Fix the number.
-- Lint commands sometimes say `./gui/...`, CI lints `./...`. Pick one and
+- [x] Lint commands sometimes say `./gui/...`, CI lints `./...`. Pick one and
   standardize across README, CONTRIBUTING.md, and CI config.
+- [x] Test that all 35 examples build.
 
 ### 2. Fix macOS linker warnings
 

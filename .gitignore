@@ -18,6 +18,7 @@ main
 *.dylib
 
 # Built example binaries
+examples/bin/
 
 # Test binary
 *.test

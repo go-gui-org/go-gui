@@ -5,10 +5,10 @@ Guidance for Claude Code (claude.ai/code) in this repo.
 ## Commands
 
 ```
-go test ./...          # run all tests (headless, ~0.25s)
+go test ./...          # run all tests (headless, ~12s)
 go test ./gui/... -run TestFoo  # run single test
 go vet ./...           # static analysis
-golangci-lint run ./gui/...  # full lint (govet, staticcheck, errcheck, gosimple, unused, gofmt, goimports, revive)
+golangci-lint run ./...      # full lint (govet, staticcheck, errcheck, gocyclo, modernize, unused, revive)
 go build ./...         # build all packages
 go run ./examples/get_started/  # run the example app (requires SDL2)
 ```
@@ -36,7 +36,7 @@ View fn → GenerateViewLayout() → Layout tree
 - `gui/backend/printdialog/` — native print dialog
 - `gui/backend/internal/` — shared backend internals
 - `gui/backend/test/` — headless no-op backend for unit tests
-- `examples/` — 25 example apps (get_started, showcase, calculator, todo,
+- `examples/` — 50+ example apps (get_started, showcase, calculator, todo,
   snake, markdown, custom_shader, draw_canvas, etc.)
 
 ### Core Types

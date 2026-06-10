@@ -484,7 +484,7 @@ w.DataGrid(gui.DataGridCfg{
 
 ### Example Apps
 
-35 example applications ship with the framework:
+45 example applications ship with the framework:
 
 | Directory                                                  | Description                                  |
 | ---------------------------------------------------------- | -------------------------------------------- |
@@ -713,7 +713,7 @@ go vet ./...
 
 # Full lint suite (govet, staticcheck, errcheck, gosimple, unused,
 # gofmt, goimports, revive)
-golangci-lint run ./gui/...
+golangci-lint run ./...
 
 # Build all packages
 go build ./...
@@ -755,7 +755,7 @@ Version and commit are injected from git tags via `-ldflags`.
 ```bash
 go test ./...
 go vet ./...
-golangci-lint run ./gui/...
+golangci-lint run ./...
 ```
 
 4. Open a pull request with a clear description of the change.

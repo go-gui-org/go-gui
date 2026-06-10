@@ -10,10 +10,10 @@
 
 ```bash
 go build ./...                        # build all packages
-go test ./...                         # run all tests (headless, ~0.25s)
+go test ./...                         # run all tests (headless, ~12s)
 go test ./gui/... -run TestFoo        # run a single test
 go vet ./...                          # static analysis
-golangci-lint run ./gui/...           # full lint
+golangci-lint run ./...               # full lint
 ```
 
 Tests use a headless backend (`gui/backend/test/`) — no display needed.
@@ -32,7 +32,7 @@ Tests use a headless backend (`gui/backend/test/`) — no display needed.
 3. Add or update tests for any changed behavior.
 4. Run the full check suite before pushing:
    ```bash
-   go test ./... && go vet ./... && golangci-lint run ./gui/...
+   go test ./... && go vet ./... && golangci-lint run ./...
    ```
 5. Open a pull request against `main`.
 

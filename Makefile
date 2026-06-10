@@ -6,7 +6,7 @@ LDFLAGS  = -X github.com/go-gui-org/go-gui/gui.Version=$(VERSION) \
 CC_WINDOWS ?= x86_64-w64-mingw32-gcc
 STATIC_TAG  = static
 
-.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android release clean
+.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean
 
 build-linux:
 	CGO_ENABLED=1 \
@@ -43,6 +43,25 @@ build-android:
 	gomobile init
 	cd examples/android_demo && \
 	gomobile bind -target=android/arm64 -androidapi 24 -o gogui.aar .
+
+build-examples:
+	@mkdir -p examples/bin; \
+	failed=""; \
+	for dir in examples/*/; do \
+		name=$$(basename "$$dir"); \
+		case "$$name" in \
+			ios_demo|android_demo|bin) continue ;; \
+		esac; \
+		if ! go build -o "examples/bin/$$name" "./$$dir"; then \
+			failed="$$failed $$name"; \
+		fi; \
+	done; \
+	if [ -n "$$failed" ]; then \
+		echo "ERROR: examples failed to build:$$failed"; \
+		exit 1; \
+	else \
+		echo "All buildable examples compiled to examples/bin/."; \
+	fi
 
 release: build-linux build-windows build-macos build-wasm
 	tar czf build/go-gui-showcase-$(VERSION)-linux-amd64.tar.gz \
