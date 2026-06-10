@@ -2,8 +2,6 @@ package gui
 
 // EventFn handles user events, dispatching to child views.
 // Called by the backend event loop.
-//
-//nolint:gocyclo // event dispatch switch
 func (w *Window) EventFn(e *Event) {
 	if e == nil {
 		return
@@ -17,43 +15,15 @@ func (w *Window) EventFn(e *Event) {
 	}
 	e.FrameCount = w.frameCount
 
-	// Focus gate: block events when unfocused except right-click,
-	// focused, scroll, and touch.
-	if !w.focused &&
-		(e.Type != EventMouseDown || e.MouseButton != MouseRight) &&
-		e.Type != EventFocused &&
-		e.Type != EventMouseScroll &&
-		e.Type != EventTouchesBegan &&
-		e.Type != EventTouchesMoved &&
-		e.Type != EventTouchesEnded &&
-		e.Type != EventFileDropped &&
-		e.Type != EventTouchesCancelled {
+	if !w.eventAllowed(e) {
 		return
 	}
 
-	if inspectorSupported && e.Type == EventKeyDown &&
-		e.KeyCode == KeyF12 {
-		inspectorToggle(w)
-		e.IsHandled = true
+	if w.inspectorKeyHook(e) {
 		return
 	}
-	if inspectorSupported && w.inspectorEnabled &&
-		e.Type == EventKeyDown &&
-		e.Modifiers == ModAlt {
-		switch e.KeyCode {
-		case KeyLeft:
-			inspectorResize(inspectorResizeStep, w)
-			e.IsHandled = true
-			return
-		case KeyRight:
-			inspectorResize(-inspectorResizeStep, w)
-			e.IsHandled = true
-			return
-		case KeyUp:
-			inspectorToggleSide(w)
-			e.IsHandled = true
-			return
-		}
+	if w.inspectorResizeHook(e) {
+		return
 	}
 
 	// Top-level layout children represent z-axis layers.
@@ -65,102 +35,32 @@ func (w *Window) EventFn(e *Event) {
 
 	switch e.Type {
 	case EventChar:
-		w.imeClear()
-		charHandler(layout, e, w)
-
+		w.handleCharEvent(layout, e)
 	case EventIMEComposition:
-		imeCompositionHandler(layout, e, w)
-
+		w.handleIMECompositionEvent(layout, e)
 	case EventFocused:
-		w.focused = true
-
+		w.handleFocusedEvent()
 	case EventUnfocused:
-		w.focused = false
-		w.imeClear()
-
+		w.handleUnfocusedEvent()
 	case EventKeyDown:
-		// Global commands fire before focus dispatch.
-		w.commandDispatch(e, true)
-		if !e.IsHandled {
-			keydownHandler(layout, e, w)
-		}
-		if !e.IsHandled && e.KeyCode == KeyTab &&
-			e.Modifiers == ModShift {
-			if shape, ok := layout.PreviousFocusable(w); ok {
-				w.SetIDFocus(shape.IDFocus)
-			}
-		} else if !e.IsHandled && e.KeyCode == KeyTab {
-			if shape, ok := layout.NextFocusable(w); ok {
-				w.SetIDFocus(shape.IDFocus)
-			}
-		}
-		// Non-global commands fire as fallback.
-		if !e.IsHandled {
-			w.commandDispatch(e, false)
-		}
-
+		w.handleKeyDownEvent(layout, e)
 	case EventKeyUp:
-		keyupHandler(layout, e, w)
-
+		w.handleKeyUpEvent(layout, e)
 	case EventMouseDown:
-		w.setMouseCursor(CursorArrow)
-		if inspectorSupported && w.inspectorEnabled {
-			panelW := inspectorPanelWidth(w)
-			left := inspectorIsLeft(w)
-			var inApp bool
-			if left {
-				inApp = e.MouseX > panelW+inspectorMargin
-			} else {
-				inApp = e.MouseX < float32(w.windowWidth)-panelW-inspectorMargin
-			}
-			if inApp {
-				if picked := inspectorPickPath(&w.layout, e.MouseX, e.MouseY); picked != "" {
-					inspectorSelect(picked, w)
-				}
-				e.IsHandled = true
-			}
-		}
-		// Dismiss open popups on any mouse down. Cleared
-		// before dispatch so handlers can re-open. Focus
-		// is only cleared when a popup was actually open
-		// to avoid interfering with normal focus flow.
-		if dismissPopups(w) {
-			w.SetIDFocus(0)
-		}
-		if !e.IsHandled {
-			mouseDownHandler(layout, false, e, w)
-		}
-		if !e.IsHandled {
-			ss := StateMap[string, bool](w, nsSelect, capModerate)
-			ss.Clear()
-			cs := StateMap[string, bool](w, nsCombobox, capModerate)
-			cs.Clear()
-		}
-
+		w.handleMouseDownEvent(layout, e)
 	case EventMouseMove:
-		w.setMouseCursor(CursorArrow)
-		w.viewState.menuKeyNav = false
-		w.viewState.mousePosX = e.MouseX
-		w.viewState.mousePosY = e.MouseY
-		mouseMoveHandler(layout, e, w)
-
+		w.handleMouseMoveEvent(layout, e)
 	case EventMouseUp:
-		mouseUpHandler(layout, e, w)
-
+		w.handleMouseUpEvent(layout, e)
 	case EventMouseScroll:
-		mouseScrollHandler(layout, e, w)
-
+		w.handleMouseScrollEvent(layout, e)
 	case EventResized:
-		w.windowWidth = e.WindowWidth
-		w.windowHeight = e.WindowHeight
-
+		w.handleResizedEvent(e)
 	case EventFileDropped:
-		fileDropHandler(layout, e, w)
-
+		w.handleFileDroppedEvent(layout, e)
 	case EventTouchesBegan, EventTouchesMoved,
 		EventTouchesEnded, EventTouchesCancelled:
 		w.handleTouch(layout, e)
-
 	default:
 		// Unhandled event type.
 	}
@@ -170,6 +70,159 @@ func (w *Window) EventFn(e *Event) {
 	}
 	w.captureSnapshot(e)
 	w.UpdateWindow()
+}
+
+func (w *Window) inspectorKeyHook(e *Event) bool {
+	if !inspectorSupported || e.Type != EventKeyDown || e.KeyCode != KeyF12 {
+		return false
+	}
+	inspectorToggle(w)
+	e.IsHandled = true
+	return true
+}
+
+func (w *Window) inspectorResizeHook(e *Event) bool {
+	if !inspectorSupported || !w.inspectorEnabled ||
+		e.Type != EventKeyDown ||
+		e.Modifiers != ModAlt {
+		return false
+	}
+	switch e.KeyCode {
+	case KeyLeft:
+		inspectorResize(inspectorResizeStep, w)
+		e.IsHandled = true
+		return true
+	case KeyRight:
+		inspectorResize(-inspectorResizeStep, w)
+		e.IsHandled = true
+		return true
+	case KeyUp:
+		inspectorToggleSide(w)
+		e.IsHandled = true
+		return true
+	}
+	return false
+}
+
+func (w *Window) handleCharEvent(layout *Layout, e *Event) {
+	w.imeClear()
+	charHandler(layout, e, w)
+}
+
+func (w *Window) handleIMECompositionEvent(layout *Layout, e *Event) {
+	imeCompositionHandler(layout, e, w)
+}
+
+func (w *Window) handleFocusedEvent() {
+	w.focused = true
+}
+
+func (w *Window) handleUnfocusedEvent() {
+	w.focused = false
+	w.imeClear()
+}
+
+func (w *Window) handleKeyDownEvent(layout *Layout, e *Event) {
+	// Global commands fire before focus dispatch.
+	w.commandDispatch(e, true)
+	if !e.IsHandled {
+		keydownHandler(layout, e, w)
+	}
+	if !e.IsHandled && e.KeyCode == KeyTab &&
+		e.Modifiers == ModShift {
+		if shape, ok := layout.PreviousFocusable(w); ok {
+			w.SetIDFocus(shape.IDFocus)
+		}
+	} else if !e.IsHandled && e.KeyCode == KeyTab {
+		if shape, ok := layout.NextFocusable(w); ok {
+			w.SetIDFocus(shape.IDFocus)
+		}
+	}
+	// Non-global commands fire as fallback.
+	if !e.IsHandled {
+		w.commandDispatch(e, false)
+	}
+}
+
+func (w *Window) handleKeyUpEvent(layout *Layout, e *Event) {
+	keyupHandler(layout, e, w)
+}
+
+func (w *Window) handleMouseDownEvent(layout *Layout, e *Event) {
+	w.setMouseCursor(CursorArrow)
+	if inspectorSupported && w.inspectorEnabled {
+		panelW := inspectorPanelWidth(w)
+		left := inspectorIsLeft(w)
+		var inApp bool
+		if left {
+			inApp = e.MouseX > panelW+inspectorMargin
+		} else {
+			inApp = e.MouseX < float32(w.windowWidth)-panelW-inspectorMargin
+		}
+		if inApp {
+			if picked := inspectorPickPath(&w.layout, e.MouseX, e.MouseY); picked != "" {
+				inspectorSelect(picked, w)
+			}
+			e.IsHandled = true
+		}
+	}
+	// Dismiss open popups on any mouse down. Cleared
+	// before dispatch so handlers can re-open. Focus
+	// is only cleared when a popup was actually open
+	// to avoid interfering with normal focus flow.
+	if dismissPopups(w) {
+		w.SetIDFocus(0)
+	}
+	if !e.IsHandled {
+		mouseDownHandler(layout, false, e, w)
+	}
+	if !e.IsHandled {
+		ss := StateMap[string, bool](w, nsSelect, capModerate)
+		ss.Clear()
+		cs := StateMap[string, bool](w, nsCombobox, capModerate)
+		cs.Clear()
+	}
+}
+
+func (w *Window) handleMouseMoveEvent(layout *Layout, e *Event) {
+	w.setMouseCursor(CursorArrow)
+	w.viewState.menuKeyNav = false
+	w.viewState.mousePosX = e.MouseX
+	w.viewState.mousePosY = e.MouseY
+	mouseMoveHandler(layout, e, w)
+}
+
+func (w *Window) handleMouseUpEvent(layout *Layout, e *Event) {
+	mouseUpHandler(layout, e, w)
+}
+
+func (w *Window) handleMouseScrollEvent(layout *Layout, e *Event) {
+	mouseScrollHandler(layout, e, w)
+}
+
+func (w *Window) handleResizedEvent(e *Event) {
+	w.windowWidth = e.WindowWidth
+	w.windowHeight = e.WindowHeight
+}
+
+func (w *Window) handleFileDroppedEvent(layout *Layout, e *Event) {
+	fileDropHandler(layout, e, w)
+}
+
+// eventAllowed returns true when an unfocused window should still
+// process this event (right-click, focus, scroll, touch, file drop).
+func (w *Window) eventAllowed(e *Event) bool {
+	if w.focused {
+		return true
+	}
+	return e.Type == EventFocused ||
+		e.Type == EventMouseScroll ||
+		e.Type == EventTouchesBegan ||
+		e.Type == EventTouchesMoved ||
+		e.Type == EventTouchesEnded ||
+		e.Type == EventTouchesCancelled ||
+		e.Type == EventFileDropped ||
+		(e.Type == EventMouseDown && e.MouseButton == MouseRight)
 }
 
 // dismissPopups clears all open popup state maps and returns

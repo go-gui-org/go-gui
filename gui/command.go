@@ -69,9 +69,37 @@ func shortcutStringOther(m Modifier, buf []byte) []byte {
 	return buf
 }
 
+// keyNameMap maps individual key codes to display names.
+var keyNameMap = map[KeyCode]string{
+	KeySpace:        "Space",
+	KeyEnter:        "Enter",
+	KeyTab:          "Tab",
+	KeyBackspace:    "Backspace",
+	KeyDelete:       "Del",
+	KeyInsert:       "Insert",
+	KeyEscape:       "Esc",
+	KeyUp:           "Up",
+	KeyDown:         "Down",
+	KeyLeft:         "Left",
+	KeyRight:        "Right",
+	KeyHome:         "Home",
+	KeyEnd:          "End",
+	KeyPageUp:       "PgUp",
+	KeyPageDown:     "PgDn",
+	KeyMinus:        "-",
+	KeyEqual:        "=",
+	KeyComma:        ",",
+	KeyPeriod:       ".",
+	KeySlash:        "/",
+	KeyBackslash:    "\\",
+	KeyLeftBracket:  "[",
+	KeyRightBracket: "]",
+	KeyApostrophe:   "'",
+	KeySemicolon:    ";",
+	KeyGraveAccent:  "`",
+}
+
 // keyName returns a display name for a key code.
-//
-//nolint:gocyclo // key-mapping switch
 func keyName(k KeyCode) string {
 	switch {
 	case k >= KeyA && k <= KeyZ:
@@ -84,59 +112,8 @@ func keyName(k KeyCode) string {
 	case k >= KeyKP0 && k <= KeyKP9:
 		return "KP" + string(rune('0'+(k-KeyKP0)))
 	}
-	switch k {
-	case KeySpace:
-		return "Space"
-	case KeyEnter:
-		return "Enter"
-	case KeyTab:
-		return "Tab"
-	case KeyBackspace:
-		return "Backspace"
-	case KeyDelete:
-		return "Del"
-	case KeyInsert:
-		return "Insert"
-	case KeyEscape:
-		return "Esc"
-	case KeyUp:
-		return "Up"
-	case KeyDown:
-		return "Down"
-	case KeyLeft:
-		return "Left"
-	case KeyRight:
-		return "Right"
-	case KeyHome:
-		return "Home"
-	case KeyEnd:
-		return "End"
-	case KeyPageUp:
-		return "PgUp"
-	case KeyPageDown:
-		return "PgDn"
-	case KeyMinus:
-		return "-"
-	case KeyEqual:
-		return "="
-	case KeyComma:
-		return ","
-	case KeyPeriod:
-		return "."
-	case KeySlash:
-		return "/"
-	case KeyBackslash:
-		return "\\"
-	case KeyLeftBracket:
-		return "["
-	case KeyRightBracket:
-		return "]"
-	case KeyApostrophe:
-		return "'"
-	case KeySemicolon:
-		return ";"
-	case KeyGraveAccent:
-		return "`"
+	if s, ok := keyNameMap[k]; ok {
+		return s
 	}
 	return "?"
 }
