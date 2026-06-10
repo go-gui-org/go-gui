@@ -515,15 +515,15 @@ func (b *Backend) drawTextPath(r *gui.RenderCmd) {
 	// Apply text-anchor adjustment.
 	offset := tp.Offset
 	switch tp.Anchor {
-	case 1:
+	case gui.SvgTextAnchorMiddle:
 		offset -= totalAdvance / 2
-	case 2:
+	case gui.SvgTextAnchorEnd:
 		offset -= totalAdvance
 	}
 
 	// method=stretch: scale advances to fill remaining path.
 	advScale := float32(1)
-	if tp.Method == 1 && totalAdvance > 0 {
+	if tp.Method == gui.SvgTextPathMethodStretch && totalAdvance > 0 {
 		remaining := tp.TotalLen - offset
 		if remaining > 0 {
 			advScale = remaining / totalAdvance

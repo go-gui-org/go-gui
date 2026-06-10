@@ -799,33 +799,33 @@ func getStrokeWidth(elem string) float32 {
 	return parseLength(ws)
 }
 
-func getStrokeLinecap(elem string) gui.StrokeCap {
+func getStrokeLinecap(elem string) gui.SvgStrokeCap {
 	lineCap, ok := findAttrOrStyle(elem, "stroke-linecap")
 	if !ok {
-		return gui.StrokeCap(3) // inherit sentinel
+		return gui.SvgStrokeCap(3) // inherit sentinel
 	}
 	switch lineCap {
 	case "round":
-		return gui.RoundCap
+		return gui.SvgRoundCap
 	case "square":
-		return gui.SquareCap
+		return gui.SvgSquareCap
 	default:
-		return gui.ButtCap
+		return gui.SvgButtCap
 	}
 }
 
-func getStrokeLinejoin(elem string) gui.StrokeJoin {
+func getStrokeLinejoin(elem string) gui.SvgStrokeJoin {
 	join, ok := findAttrOrStyle(elem, "stroke-linejoin")
 	if !ok {
-		return gui.StrokeJoin(3) // inherit sentinel
+		return gui.SvgStrokeJoin(3) // inherit sentinel
 	}
 	switch join {
 	case "round":
-		return gui.RoundJoin
+		return gui.SvgRoundJoin
 	case "bevel":
-		return gui.BevelJoin
+		return gui.SvgBevelJoin
 	default:
-		return gui.MiterJoin
+		return gui.SvgMiterJoin
 	}
 }
 
@@ -889,8 +889,8 @@ func parseElementStyle(elem string) elementStyle {
 	}
 }
 
-const strokeCapInherit = gui.StrokeCap(3)
-const strokeJoinInherit = gui.StrokeJoin(3)
+const strokeCapInherit = gui.SvgStrokeCap(3)
+const strokeJoinInherit = gui.SvgStrokeJoin(3)
 
 // presAttrCascadeNames lists the SVG presentation attributes that
 // participate as cascade declarations (paint, stroke, opacity,
@@ -1117,25 +1117,25 @@ func resolveFillRule(elem string, parent ComputedStyle) FillRule {
 	return FillRuleNonzero
 }
 
-func parseStrokeCap(v string) gui.StrokeCap {
+func parseStrokeCap(v string) gui.SvgStrokeCap {
 	switch v {
 	case "round":
-		return gui.RoundCap
+		return gui.SvgRoundCap
 	case "square":
-		return gui.SquareCap
+		return gui.SvgSquareCap
 	default:
-		return gui.ButtCap
+		return gui.SvgButtCap
 	}
 }
 
-func parseStrokeJoin(v string) gui.StrokeJoin {
+func parseStrokeJoin(v string) gui.SvgStrokeJoin {
 	switch v {
 	case "round":
-		return gui.RoundJoin
+		return gui.SvgRoundJoin
 	case "bevel":
-		return gui.BevelJoin
+		return gui.SvgBevelJoin
 	default:
-		return gui.MiterJoin
+		return gui.SvgMiterJoin
 	}
 }
 
@@ -1196,13 +1196,13 @@ func applyComputedStyle(path *VectorPath, inh ComputedStyle) {
 		path.StrokeCap = inh.StrokeCap
 	}
 	if path.StrokeCap == strokeCapInherit {
-		path.StrokeCap = gui.ButtCap
+		path.StrokeCap = gui.SvgButtCap
 	}
 	if inh.StrokeJoin != strokeJoinInherit {
 		path.StrokeJoin = inh.StrokeJoin
 	}
 	if path.StrokeJoin == strokeJoinInherit {
-		path.StrokeJoin = gui.MiterJoin
+		path.StrokeJoin = gui.SvgMiterJoin
 	}
 	if inh.StrokeDasharray != nil {
 		path.StrokeDasharray = inh.StrokeDasharray

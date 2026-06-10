@@ -255,9 +255,9 @@ func cachedSvgTextDraws(texts []SvgText, scale float32,
 		x := t.X * scale
 		y := t.Y*scale - ascent
 		switch t.Anchor {
-		case 1:
+		case SvgTextAnchorMiddle:
 			x -= tw / 2
-		case 2:
+		case SvgTextAnchorEnd:
 			x -= tw
 		}
 		draws = append(draws, CachedSvgTextDraw{

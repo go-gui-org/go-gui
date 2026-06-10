@@ -59,12 +59,12 @@ func buildTextAttrsFromComputed(elem string, computed ComputedStyle) textParentA
 	}
 	fillGradientID := computed.FillGradient
 
-	anchor := uint8(0)
+	anchor := gui.SvgTextAnchorStart
 	switch computed.TextAnchor {
 	case "middle":
-		anchor = 1
+		anchor = gui.SvgTextAnchorMiddle
 	case "end":
-		anchor = 2
+		anchor = gui.SvgTextAnchorEnd
 	}
 
 	fontWeight := parseFontWeight(computed.FontWeight)
@@ -140,7 +140,7 @@ type textParentAttrs struct {
 	filterGroupKey           uint32
 	color                    gui.SvgColor
 	strokeColor              gui.SvgColor
-	anchor                   uint8
+	anchor                   gui.SvgTextAnchor
 	bold, italic             bool
 	underline, strikethrough bool
 }
@@ -206,7 +206,7 @@ func makeTextFromParent(text string, x, y float32, p textParentAttrs) gui.SvgTex
 		FillGradientID: p.fillGradientID,
 		FilterID:       p.filterID,
 		FilterGroupKey: p.filterGroupKey,
-		Anchor:         int(p.anchor),
+		Anchor:         p.anchor,
 		Opacity:        p.opacity,
 		Underline:      p.underline,
 		Strikethrough:  p.strikethrough,
@@ -287,11 +287,11 @@ func parseTspan(n *xmlNode, p textParentAttrs, curY *float32, state *parseState,
 	anchor := p.anchor
 	switch computed.TextAnchor {
 	case "start":
-		anchor = 0
+		anchor = gui.SvgTextAnchorStart
 	case "middle":
-		anchor = 1
+		anchor = gui.SvgTextAnchorMiddle
 	case "end":
-		anchor = 2
+		anchor = gui.SvgTextAnchorEnd
 	}
 
 	// text-decoration / letter-spacing not yet in cascade.
@@ -319,7 +319,7 @@ func parseTspan(n *xmlNode, p textParentAttrs, curY *float32, state *parseState,
 		FillGradientID: fillGradientID,
 		FilterID:       computed.FilterID,
 		FilterGroupKey: computed.FilterGroupKey,
-		Anchor:         int(anchor),
+		Anchor:         anchor,
 		Opacity:        opacity,
 		Underline:      underline,
 		Strikethrough:  strikethrough,
@@ -365,9 +365,9 @@ func parseTextPathChild(n *xmlNode, p textParentAttrs, state *parseState) {
 	if anc, ok := findAttr(elem, "text-anchor"); ok {
 		switch anc {
 		case "middle":
-			anchor = 1
+			anchor = gui.SvgTextAnchorMiddle
 		case "end":
-			anchor = 2
+			anchor = gui.SvgTextAnchorEnd
 		}
 	}
 
@@ -384,7 +384,7 @@ func parseTextPathChild(n *xmlNode, p textParentAttrs, state *parseState) {
 		StrokeWidth:    p.strokeWidth,
 		FilterID:       p.filterID,
 		FilterGroupKey: p.filterGroupKey,
-		Anchor:         int(anchor),
+		Anchor:         anchor,
 		Opacity:        p.opacity,
 		LetterSpacing:  p.letterSpacing,
 		StartOffset:    startOffset,

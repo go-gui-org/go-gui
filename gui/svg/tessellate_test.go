@@ -215,8 +215,8 @@ func TestTessellatePathsStrokeWidthViewBoxUnits(t *testing.T) {
 			},
 			StrokeColor: gui.SvgColor{R: 0, G: 0, B: 0, A: 255},
 			StrokeWidth: 4,
-			StrokeCap:   gui.ButtCap,
-			StrokeJoin:  gui.MiterJoin,
+			StrokeCap:   gui.SvgButtCap,
+			StrokeJoin:  gui.SvgMiterJoin,
 			Opacity:     1,
 		}
 	}

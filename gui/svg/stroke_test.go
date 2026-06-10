@@ -9,14 +9,14 @@ import (
 // --- Edge cases ---
 
 func TestStrokeTessellateNilPolylines(t *testing.T) {
-	result := tessellateStroke(nil, 2, gui.ButtCap, gui.MiterJoin)
+	result := tessellateStroke(nil, 2, gui.SvgButtCap, gui.SvgMiterJoin)
 	if len(result) != 0 {
 		t.Fatalf("nil polylines should return empty, got len=%d", len(result))
 	}
 }
 
 func TestStrokeTessellateEmptyPolylines(t *testing.T) {
-	result := tessellateStroke([][]float32{}, 2, gui.ButtCap, gui.MiterJoin)
+	result := tessellateStroke([][]float32{}, 2, gui.SvgButtCap, gui.SvgMiterJoin)
 	if len(result) != 0 {
 		t.Fatalf("empty polylines should return empty, got len=%d", len(result))
 	}
@@ -24,7 +24,7 @@ func TestStrokeTessellateEmptyPolylines(t *testing.T) {
 
 func TestStrokeTessellateShortPolyline(t *testing.T) {
 	// Less than 4 floats → skipped
-	result := tessellateStroke([][]float32{{1, 2}}, 2, gui.ButtCap, gui.MiterJoin)
+	result := tessellateStroke([][]float32{{1, 2}}, 2, gui.SvgButtCap, gui.SvgMiterJoin)
 	if len(result) != 0 {
 		t.Fatalf("short polyline should return empty, got len=%d", len(result))
 	}
@@ -35,7 +35,7 @@ func TestStrokeTessellateShortPolyline(t *testing.T) {
 func TestStrokeHorizontalLine(t *testing.T) {
 	// Horizontal line from (0,0) to (10,0), width 2 → halfW=1
 	poly := [][]float32{{0, 0, 10, 0}}
-	result := tessellateStroke(poly, 2, gui.ButtCap, gui.MiterJoin)
+	result := tessellateStroke(poly, 2, gui.SvgButtCap, gui.SvgMiterJoin)
 	// 1 quad = 2 triangles = 12 floats
 	if len(result) < 12 {
 		t.Fatalf("expected at least 12 floats, got %d", len(result))
@@ -58,7 +58,7 @@ func TestStrokeHorizontalLine(t *testing.T) {
 
 func TestStrokeVerticalLine(t *testing.T) {
 	poly := [][]float32{{0, 0, 0, 10}}
-	result := tessellateStroke(poly, 2, gui.ButtCap, gui.MiterJoin)
+	result := tessellateStroke(poly, 2, gui.SvgButtCap, gui.SvgMiterJoin)
 	if len(result) < 12 {
 		t.Fatalf("expected at least 12 floats, got %d", len(result))
 	}
@@ -80,7 +80,7 @@ func TestStrokeVerticalLine(t *testing.T) {
 
 func TestStrokeLShapeMultiSegment(t *testing.T) {
 	poly := [][]float32{{0, 0, 10, 0, 10, 10}}
-	result := tessellateStroke(poly, 2, gui.ButtCap, gui.MiterJoin)
+	result := tessellateStroke(poly, 2, gui.SvgButtCap, gui.SvgMiterJoin)
 	// 2 segments = 24 floats for quads, plus join geometry
 	if len(result) <= 12 {
 		t.Fatalf("L-shape should produce more than 12 floats, got %d", len(result))
@@ -91,7 +91,7 @@ func TestStrokeLShapeMultiSegment(t *testing.T) {
 
 func TestStrokeButtCap(t *testing.T) {
 	poly := [][]float32{{0, 0, 10, 0}}
-	butt := tessellateStroke(poly, 2, gui.ButtCap, gui.MiterJoin)
+	butt := tessellateStroke(poly, 2, gui.SvgButtCap, gui.SvgMiterJoin)
 	// ButtCap adds nothing
 	if len(butt) != 12 {
 		t.Fatalf("ButtCap should have exactly 12 floats (1 quad), got %d", len(butt))
@@ -100,8 +100,8 @@ func TestStrokeButtCap(t *testing.T) {
 
 func TestStrokeSquareCap(t *testing.T) {
 	poly := [][]float32{{0, 0, 10, 0}}
-	sq := tessellateStroke(poly, 2, gui.SquareCap, gui.MiterJoin)
-	butt := tessellateStroke(poly, 2, gui.ButtCap, gui.MiterJoin)
+	sq := tessellateStroke(poly, 2, gui.SvgSquareCap, gui.SvgMiterJoin)
+	butt := tessellateStroke(poly, 2, gui.SvgButtCap, gui.SvgMiterJoin)
 	if len(sq) <= len(butt) {
 		t.Fatalf("SquareCap should add more floats than ButtCap: sq=%d butt=%d",
 			len(sq), len(butt))
@@ -110,8 +110,8 @@ func TestStrokeSquareCap(t *testing.T) {
 
 func TestStrokeRoundCap(t *testing.T) {
 	poly := [][]float32{{0, 0, 10, 0}}
-	rnd := tessellateStroke(poly, 2, gui.RoundCap, gui.MiterJoin)
-	sq := tessellateStroke(poly, 2, gui.SquareCap, gui.MiterJoin)
+	rnd := tessellateStroke(poly, 2, gui.SvgRoundCap, gui.SvgMiterJoin)
+	sq := tessellateStroke(poly, 2, gui.SvgSquareCap, gui.SvgMiterJoin)
 	if len(rnd) <= len(sq) {
 		t.Fatalf("RoundCap should produce more floats than SquareCap: rnd=%d sq=%d",
 			len(rnd), len(sq))
@@ -122,7 +122,7 @@ func TestStrokeRoundCap(t *testing.T) {
 
 func TestStrokeMiterJoin(t *testing.T) {
 	poly := [][]float32{{0, 0, 10, 0, 10, 10}}
-	miter := tessellateStroke(poly, 2, gui.ButtCap, gui.MiterJoin)
+	miter := tessellateStroke(poly, 2, gui.SvgButtCap, gui.SvgMiterJoin)
 	if len(miter) <= 24 {
 		t.Fatalf("MiterJoin L-shape should have join geometry, got %d", len(miter))
 	}
@@ -130,7 +130,7 @@ func TestStrokeMiterJoin(t *testing.T) {
 
 func TestStrokeBevelJoin(t *testing.T) {
 	poly := [][]float32{{0, 0, 10, 0, 10, 10}}
-	bevel := tessellateStroke(poly, 2, gui.ButtCap, gui.BevelJoin)
+	bevel := tessellateStroke(poly, 2, gui.SvgButtCap, gui.SvgBevelJoin)
 	if len(bevel) <= 24 {
 		t.Fatalf("BevelJoin L-shape should have join geometry, got %d", len(bevel))
 	}
@@ -138,8 +138,8 @@ func TestStrokeBevelJoin(t *testing.T) {
 
 func TestStrokeRoundJoin(t *testing.T) {
 	poly := [][]float32{{0, 0, 10, 0, 10, 10}}
-	rnd := tessellateStroke(poly, 2, gui.ButtCap, gui.RoundJoin)
-	bevel := tessellateStroke(poly, 2, gui.ButtCap, gui.BevelJoin)
+	rnd := tessellateStroke(poly, 2, gui.SvgButtCap, gui.SvgRoundJoin)
+	bevel := tessellateStroke(poly, 2, gui.SvgButtCap, gui.SvgBevelJoin)
 	if len(rnd) <= len(bevel) {
 		t.Fatalf("RoundJoin should produce more floats than BevelJoin: rnd=%d bevel=%d",
 			len(rnd), len(bevel))
@@ -150,13 +150,13 @@ func TestStrokeRoundJoin(t *testing.T) {
 
 func TestStrokeClosedSquare(t *testing.T) {
 	poly := [][]float32{{0, 0, 10, 0, 10, 10, 0, 10, 0, 0}}
-	result := tessellateStroke(poly, 2, gui.ButtCap, gui.MiterJoin)
+	result := tessellateStroke(poly, 2, gui.SvgButtCap, gui.SvgMiterJoin)
 	if len(result) == 0 {
 		t.Fatalf("closed square should produce output")
 	}
 	// Closed path: no caps, only joins
-	butt := tessellateStroke(poly, 2, gui.ButtCap, gui.MiterJoin)
-	sq := tessellateStroke(poly, 2, gui.SquareCap, gui.MiterJoin)
+	butt := tessellateStroke(poly, 2, gui.SvgButtCap, gui.SvgMiterJoin)
+	sq := tessellateStroke(poly, 2, gui.SvgSquareCap, gui.SvgMiterJoin)
 	if len(butt) != len(sq) {
 		t.Fatalf("closed path: SquareCap should equal ButtCap: butt=%d sq=%d",
 			len(butt), len(sq))
@@ -171,8 +171,8 @@ func TestStrokeClosedSquare(t *testing.T) {
 func TestTessellateStroke_ClosedEmitsExtraSegment(t *testing.T) {
 	closed := [][]float32{{0, 0, 10, 0, 10, 10, 0, 10, 0, 0}}
 	open := [][]float32{{0, 0, 10, 0, 10, 10, 0, 10}}
-	closedTris := tessellateStroke(closed, 2, gui.ButtCap, gui.BevelJoin)
-	openTris := tessellateStroke(open, 2, gui.ButtCap, gui.BevelJoin)
+	closedTris := tessellateStroke(closed, 2, gui.SvgButtCap, gui.SvgBevelJoin)
+	openTris := tessellateStroke(open, 2, gui.SvgButtCap, gui.SvgBevelJoin)
 	if len(closedTris) <= len(openTris) {
 		t.Fatalf("closed should emit more geometry: closed=%d open=%d",
 			len(closedTris), len(openTris))

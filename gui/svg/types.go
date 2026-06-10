@@ -104,8 +104,8 @@ type VectorPath struct {
 	FilterGroupKey uint32
 	FillColor      gui.SvgColor
 	StrokeColor    gui.SvgColor
-	StrokeCap      gui.StrokeCap
-	StrokeJoin     gui.StrokeJoin
+	StrokeCap      gui.SvgStrokeCap
+	StrokeJoin     gui.SvgStrokeJoin
 	Animated       bool
 	FillRule       FillRule
 }
@@ -264,8 +264,8 @@ type ComputedStyle struct {
 	Stroke              gui.SvgColor
 	FillSet             bool
 	StrokeSet           bool
-	StrokeCap           gui.StrokeCap
-	StrokeJoin          gui.StrokeJoin
+	StrokeCap           gui.SvgStrokeCap
+	StrokeJoin          gui.SvgStrokeJoin
 	StrokeDashOffsetSet bool
 
 	// Skip* tells the opacity baker that an inline animation will
@@ -442,6 +442,6 @@ type elementStyle struct {
 	FillOpacity      float32
 	StrokeOpacity    float32
 	StrokeColor      gui.SvgColor
-	StrokeCap        gui.StrokeCap
-	StrokeJoin       gui.StrokeJoin
+	StrokeCap        gui.SvgStrokeCap
+	StrokeJoin       gui.SvgStrokeJoin
 }

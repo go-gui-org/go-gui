@@ -55,6 +55,36 @@ type TessellatedPath struct {
 	HasBaseXform bool
 }
 
+// SvgTextAnchor selects the text-anchor alignment for an SVG text element.
+type SvgTextAnchor uint8
+
+// SvgTextAnchor constants.
+const (
+	SvgTextAnchorStart SvgTextAnchor = iota
+	SvgTextAnchorMiddle
+	SvgTextAnchorEnd
+)
+
+// SvgTextPathMethod selects the method for textPath glyph placement.
+type SvgTextPathMethod uint8
+
+// SvgTextPathMethod constants.
+const (
+	SvgTextPathMethodAlign SvgTextPathMethod = iota
+	SvgTextPathMethodStretch
+)
+
+// SvgTextPathSide selects which side of the path textPath glyphs sit on.
+// Currently parsed but the renderer always places glyphs on the left side;
+// right-side placement is pending.
+type SvgTextPathSide uint8
+
+// SvgTextPathSide constants.
+const (
+	SvgTextPathSideLeft SvgTextPathSide = iota
+	SvgTextPathSideRight
+)
+
 // SvgText holds a parsed SVG text element.
 type SvgText struct {
 	Text           string
@@ -62,7 +92,7 @@ type SvgText struct {
 	FillGradientID string
 	FilterID       string
 	FontWeight     int // CSS numeric weight (100-900); 0 = default (400)
-	Anchor         int // 0=start, 1=middle, 2=end
+	Anchor         SvgTextAnchor
 	FontSize       float32
 	X, Y           float32
 	Opacity        float32
@@ -86,9 +116,9 @@ type SvgTextPath struct {
 	FontFamily    string
 	FilterID      string
 	FontWeight    int // CSS numeric weight (100-900); 0 = default (400)
-	Anchor        int // 0=start, 1=middle, 2=end
-	Method        int // 0=align, 1=stretch
-	Side          int // 0=left, 1=right
+	Anchor        SvgTextAnchor
+	Method        SvgTextPathMethod
+	Side          SvgTextPathSide
 	FontSize      float32
 	Opacity       float32
 	StartOffset   float32
@@ -253,8 +283,10 @@ const (
 
 // SvgAnimation holds parsed SMIL animation data.
 type SvgAnimation struct {
-	// GroupID is the authored binding hint; retained for debug only.
-	// Render-time routing uses TargetPathIDs, resolved at parse.
+	// GroupID is the authored binding hint, used during parse to
+	// resolve group-based animation bindings into TargetPathIDs.
+	// Retained after parse for diagnostics; render-time routing uses
+	// TargetPathIDs exclusively.
 	GroupID string
 	// TargetPathIDs lists the VectorPath.PathID values this animation
 	// affects. An animation bound to a <g> expands to every descendant
@@ -375,24 +407,24 @@ type SvgPrimitive struct {
 	X2, Y2 float32 // line far endpoint
 }
 
-// StrokeCap defines SVG stroke line cap styles.
-type StrokeCap uint8
+// SvgStrokeCap defines SVG stroke line cap styles.
+type SvgStrokeCap uint8
 
-// StrokeCap constants.
+// SvgStrokeCap constants.
 const (
-	ButtCap StrokeCap = iota
-	RoundCap
-	SquareCap
+	SvgButtCap SvgStrokeCap = iota
+	SvgRoundCap
+	SvgSquareCap
 )
 
-// StrokeJoin defines SVG stroke line join styles.
-type StrokeJoin uint8
+// SvgStrokeJoin defines SVG stroke line join styles.
+type SvgStrokeJoin uint8
 
-// StrokeJoin constants.
+// SvgStrokeJoin constants.
 const (
-	MiterJoin StrokeJoin = iota
-	RoundJoin
-	BevelJoin
+	SvgMiterJoin SvgStrokeJoin = iota
+	SvgRoundJoin
+	SvgBevelJoin
 )
 
 // svgToColor converts an SvgColor to a gui Color.

@@ -132,14 +132,26 @@ const SvgAnimDashArrayCap = 8
 // to add to the parsed primitive value rather than a replacement —
 // matches SMIL additive="sum" / by= shorthand semantics.
 type SvgAnimAttrOverride struct {
-	Mask             SvgAnimAttrMask
-	AdditiveMask     SvgAnimAttrMask
-	CX, CY           float32
-	R                float32
-	RX, RY           float32
-	X, Y             float32
-	Width            float32
-	Height           float32
+	// Mask flags which float32 fields carry a live override. Each
+	// bit corresponds to a SvgAnimMask* constant.
+	Mask SvgAnimAttrMask
+	// AdditiveMask flags which overrides add to (rather than replace)
+	// the parsed primitive value. A bit has no effect unless the same
+	// bit is also set in Mask.
+	AdditiveMask SvgAnimAttrMask
+	// CX, CY override the circle/ellipse center.
+	CX, CY float32
+	// R overrides the circle radius.
+	R float32
+	// RX, RY override ellipse radii or rect corner radii.
+	RX, RY float32
+	// X, Y override the rect/line origin.
+	X, Y float32
+	// Width overrides the rect width.
+	Width float32
+	// Height overrides the rect height.
+	Height float32
+	// StrokeDashOffset overrides the stroke-dashoffset length.
 	StrokeDashOffset float32
 	// StrokeDashArray carries up to SvgAnimDashArrayCap floats of
 	// live stroke-dasharray pattern. StrokeDashArrayLen gives the

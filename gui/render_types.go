@@ -117,9 +117,9 @@ type TextPathData struct {
 	Polyline []float32 // flattened path [x0,y0, x1,y1, ...]
 	Table    []float32 // cumulative arc-length table
 	TotalLen float32
-	Offset   float32 // resolved start offset (screen coords)
-	Anchor   int     // 0=start, 1=middle, 2=end
-	Method   int     // 0=align, 1=stretch
+	Offset   float32           // resolved start offset (screen coords)
+	Anchor   SvgTextAnchor     // text-anchor alignment
+	Method   SvgTextPathMethod // glyph placement method
 }
 
 // filterBracketRange describes a matched DrawFilterBegin..DrawFilterEnd

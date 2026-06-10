@@ -469,14 +469,14 @@ func (b *Backend) drawTextPath(r *gui.RenderCmd) {
 	}
 
 	offset := tp.Offset
-	if tp.Anchor == 1 {
+	if tp.Anchor == gui.SvgTextAnchorMiddle {
 		offset -= totalAdvance / 2
-	} else if tp.Anchor == 2 {
+	} else if tp.Anchor == gui.SvgTextAnchorEnd {
 		offset -= totalAdvance
 	}
 
 	advScale := float32(1)
-	if tp.Method == 1 && totalAdvance > 0 {
+	if tp.Method == gui.SvgTextPathMethodStretch && totalAdvance > 0 {
 		remaining := tp.TotalLen - offset
 		if remaining > 0 {
 			advScale = remaining / totalAdvance

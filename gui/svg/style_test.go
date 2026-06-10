@@ -560,14 +560,14 @@ func TestStyleApplyOpacityHalf(t *testing.T) {
 
 func TestStyleGetStrokeLinecapRound(t *testing.T) {
 	lineCap := getStrokeLinecap(`<path stroke-linecap="round">`)
-	if lineCap != gui.RoundCap {
+	if lineCap != gui.SvgRoundCap {
 		t.Fatalf("expected RoundCap, got %d", lineCap)
 	}
 }
 
 func TestStyleGetStrokeLinejoinBevel(t *testing.T) {
 	join := getStrokeLinejoin(`<path stroke-linejoin="bevel">`)
-	if join != gui.BevelJoin {
+	if join != gui.SvgBevelJoin {
 		t.Fatalf("expected BevelJoin, got %d", join)
 	}
 }

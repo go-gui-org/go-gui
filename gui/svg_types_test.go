@@ -19,13 +19,13 @@ func TestSvgToColorTransparent(t *testing.T) {
 }
 
 func TestStrokeCapConstants(t *testing.T) {
-	if ButtCap != 0 || RoundCap != 1 || SquareCap != 2 {
-		t.Fatal("StrokeCap constants wrong")
+	if SvgButtCap != 0 || SvgRoundCap != 1 || SvgSquareCap != 2 {
+		t.Fatal("SvgStrokeCap constants wrong")
 	}
 }
 
 func TestStrokeJoinConstants(t *testing.T) {
-	if MiterJoin != 0 || RoundJoin != 1 || BevelJoin != 2 {
-		t.Fatal("StrokeJoin constants wrong")
+	if SvgMiterJoin != 0 || SvgRoundJoin != 1 || SvgBevelJoin != 2 {
+		t.Fatal("SvgStrokeJoin constants wrong")
 	}
 }

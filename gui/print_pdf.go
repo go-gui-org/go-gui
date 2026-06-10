@@ -508,15 +508,15 @@ func pdfRenderTextPath(ctx *pdfCtx, cmd RenderCmd) {
 	// Apply text-anchor offset.
 	offset := float64(tp.Offset * ctx.scale)
 	switch tp.Anchor {
-	case 1:
+	case SvgTextAnchorMiddle:
 		offset -= totalAdv / 2
-	case 2:
+	case SvgTextAnchorEnd:
 		offset -= totalAdv
 	}
 
 	// Method=stretch: scale advances to fill path.
 	advScale := 1.0
-	if tp.Method == 1 && totalAdv > 0 {
+	if tp.Method == SvgTextPathMethodStretch && totalAdv > 0 {
 		remaining := float64(tp.TotalLen*ctx.scale) - offset
 		if remaining > 0 {
 			advScale = remaining / totalAdv

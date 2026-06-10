@@ -7,7 +7,7 @@ import (
 )
 
 // tessellateStroke converts polylines to stroke triangles.
-func tessellateStroke(polylines [][]float32, width float32, lineCap gui.StrokeCap, join gui.StrokeJoin) []float32 {
+func tessellateStroke(polylines [][]float32, width float32, lineCap gui.SvgStrokeCap, join gui.SvgStrokeJoin) []float32 {
 	result := make([]float32, 0, estimateStrokeResultCap(polylines, lineCap, join))
 	halfW := width / 2
 
@@ -132,7 +132,7 @@ func tessellateStroke(polylines [][]float32, width float32, lineCap gui.StrokeCa
 	return result
 }
 
-func estimateStrokeResultCap(polylines [][]float32, lineCap gui.StrokeCap, join gui.StrokeJoin) int {
+func estimateStrokeResultCap(polylines [][]float32, lineCap gui.SvgStrokeCap, join gui.SvgStrokeJoin) int {
 	total := 0
 	for _, poly := range polylines {
 		if len(poly) < 4 || len(poly)%2 != 0 {
@@ -161,16 +161,16 @@ func estimateStrokeResultCap(polylines [][]float32, lineCap gui.StrokeCap, join 
 		}
 		total += segCount * 12
 		switch join {
-		case gui.MiterJoin, gui.BevelJoin:
+		case gui.SvgMiterJoin, gui.SvgBevelJoin:
 			total += joinCount * 6
-		case gui.RoundJoin:
+		case gui.SvgRoundJoin:
 			total += joinCount * strokeRoundCapSegs * 6
 		}
 		if !isClosed {
 			switch lineCap {
-			case gui.SquareCap:
+			case gui.SvgSquareCap:
 				total += 2 * 12
-			case gui.RoundCap:
+			case gui.SvgRoundCap:
 				total += 2 * strokeRoundCapSegs * 6
 			}
 		}
@@ -178,7 +178,7 @@ func estimateStrokeResultCap(polylines [][]float32, lineCap gui.StrokeCap, join 
 	return total
 }
 
-func addLineJoin(x, y, n1x, n1y, n2x, n2y, halfW float32, join gui.StrokeJoin, result *[]float32) {
+func addLineJoin(x, y, n1x, n1y, n2x, n2y, halfW float32, join gui.SvgStrokeJoin, result *[]float32) {
 	cross := n1x*n2y - n1y*n2x
 	if f32Abs(cross) < strokeCrossTolerance {
 		return
@@ -198,7 +198,7 @@ func addLineJoin(x, y, n1x, n1y, n2x, n2y, halfW float32, join gui.StrokeJoin, r
 	mxN := mx / mlen
 	myN := my / mlen
 
-	if join == gui.MiterJoin && miterLen <= miterLimit {
+	if join == gui.SvgMiterJoin && miterLen <= miterLimit {
 		if cross > 0 {
 			*result = append(*result,
 				x, y, x-n1x*halfW, y-n1y*halfW, x-mxN*miterLen, y-myN*miterLen,
@@ -210,7 +210,7 @@ func addLineJoin(x, y, n1x, n1y, n2x, n2y, halfW float32, join gui.StrokeJoin, r
 				x, y, x+n2x*halfW, y+n2y*halfW, x+mxN*miterLen, y+myN*miterLen,
 			)
 		}
-	} else if join == gui.RoundJoin {
+	} else if join == gui.SvgRoundJoin {
 		addRoundJoin(x, y, n1x, n1y, n2x, n2y, halfW, cross > 0, result)
 	} else {
 		// Bevel
@@ -269,8 +269,8 @@ func addRoundJoin(x, y, n1x, n1y, n2x, n2y, halfW float32, leftTurn bool, result
 	}
 }
 
-func addLineCap(x, y, dx, dy, nx, ny, halfW float32, lineCap gui.StrokeCap, result *[]float32) {
-	if lineCap == gui.ButtCap {
+func addLineCap(x, y, dx, dy, nx, ny, halfW float32, lineCap gui.SvgStrokeCap, result *[]float32) {
+	if lineCap == gui.SvgButtCap {
 		return
 	}
 
@@ -282,7 +282,7 @@ func addLineCap(x, y, dx, dy, nx, ny, halfW float32, lineCap gui.StrokeCap, resu
 	dirY := dy / l
 
 	switch lineCap {
-	case gui.SquareCap:
+	case gui.SvgSquareCap:
 		ex := x + dirX*halfW
 		ey := y + dirY*halfW
 		ax := x + nx*halfW
@@ -294,7 +294,7 @@ func addLineCap(x, y, dx, dy, nx, ny, halfW float32, lineCap gui.StrokeCap, resu
 		dx2 := ex + nx*halfW
 		dy2 := ey + ny*halfW
 		*result = append(*result, ax, ay, bx, by, cx, cy, ax, ay, cx, cy, dx2, dy2)
-	case gui.RoundCap:
+	case gui.SvgRoundCap:
 		startAngle := float32(math.Atan2(float64(ny), float64(nx)))
 		prevX := x + float32(math.Cos(float64(startAngle)))*halfW
 		prevY := y + float32(math.Sin(float64(startAngle)))*halfW
