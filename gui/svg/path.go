@@ -5,23 +5,32 @@ import (
 	"strconv"
 )
 
+// pathParser holds mutable state during SVG path d-attribute parsing.
+type pathParser struct {
+	tokens   []string
+	i        int
+	segments []PathSegment
+
+	curX, curY           float32
+	startX, startY       float32
+	lastCtrlX, lastCtrlY float32
+	lastCmd              byte
+}
+
 // parsePathD parses the SVG path d attribute into segments.
-//
-//nolint:gocyclo // SVG path command switch
 func parsePathD(d string) []PathSegment {
-	segments := make([]PathSegment, 0, 32)
-	tokens := tokenizePath(d)
-	i := 0
+	p := pathParser{
+		tokens:   tokenizePath(d),
+		segments: make([]PathSegment, 0, 32),
+	}
+	return p.parse()
+}
 
-	var curX, curY float32
-	var startX, startY float32
-	var lastCtrlX, lastCtrlY float32
-	var lastCmd byte
-
-	for i < len(tokens) && len(segments) < maxPathSegments {
-		token := tokens[i]
+func (p *pathParser) parse() []PathSegment {
+	for p.i < len(p.tokens) && len(p.segments) < maxPathSegments {
+		token := p.tokens[p.i]
 		if len(token) == 0 {
-			i++
+			p.i++
 			continue
 		}
 
@@ -31,264 +40,312 @@ func parsePathD(d string) []PathSegment {
 		// DoS guard. Captured before cmd-letter consumption so an
 		// arg-less command (e.g. Z) followed by another command
 		// (e.g. M) can't trip the post-switch skip and lose data.
-		iBefore := i
-		cmd := lastCmd
+		iBefore := p.i
+		cmd := p.lastCmd
 		if isCmd {
 			cmd = c
-			i++
+			p.i++
 		}
 
-		switch cmd {
-		case 'M', 'm':
-			relative := cmd == 'm'
-			first := true
-			for i < len(tokens) && isNumberToken(tokens[i]) {
-				x := parseF32(tokens[i])
-				y := float32(0)
-				if i+1 < len(tokens) {
-					y = parseF32(tokens[i+1])
-				}
-				i += 2
-				if relative {
-					curX += x
-					curY += y
-				} else {
-					curX = x
-					curY = y
-				}
-				if first {
-					segments = append(segments, PathSegment{CmdMoveTo, []float32{curX, curY}})
-					startX = curX
-					startY = curY
-					first = false
-					if relative {
-						cmd = 'l'
-					} else {
-						cmd = 'L'
-					}
-				} else {
-					segments = append(segments, PathSegment{CmdLineTo, []float32{curX, curY}})
-				}
-			}
+		cmd = p.dispatch(cmd)
 
-		case 'L', 'l':
-			relative := cmd == 'l'
-			for i < len(tokens) && isNumberToken(tokens[i]) {
-				x := parseF32(tokens[i])
-				y := float32(0)
-				if i+1 < len(tokens) {
-					y = parseF32(tokens[i+1])
-				}
-				i += 2
-				if relative {
-					curX += x
-					curY += y
-				} else {
-					curX = x
-					curY = y
-				}
-				segments = append(segments, PathSegment{CmdLineTo, []float32{curX, curY}})
-			}
-
-		case 'H', 'h':
-			relative := cmd == 'h'
-			for i < len(tokens) && isNumberToken(tokens[i]) {
-				x := parseF32(tokens[i])
-				i++
-				if relative {
-					curX += x
-				} else {
-					curX = x
-				}
-				segments = append(segments, PathSegment{CmdLineTo, []float32{curX, curY}})
-			}
-
-		case 'V', 'v':
-			relative := cmd == 'v'
-			for i < len(tokens) && isNumberToken(tokens[i]) {
-				y := parseF32(tokens[i])
-				i++
-				if relative {
-					curY += y
-				} else {
-					curY = y
-				}
-				segments = append(segments, PathSegment{CmdLineTo, []float32{curX, curY}})
-			}
-
-		case 'C', 'c':
-			relative := cmd == 'c'
-			for i+5 < len(tokens) && isNumberToken(tokens[i]) {
-				c1x := parseF32(tokens[i])
-				c1y := parseF32(tokens[i+1])
-				c2x := parseF32(tokens[i+2])
-				c2y := parseF32(tokens[i+3])
-				x := parseF32(tokens[i+4])
-				y := parseF32(tokens[i+5])
-				i += 6
-				if relative {
-					segments = append(segments, PathSegment{CmdCubicTo, []float32{
-						curX + c1x, curY + c1y,
-						curX + c2x, curY + c2y,
-						curX + x, curY + y,
-					}})
-					lastCtrlX = curX + c2x
-					lastCtrlY = curY + c2y
-					curX += x
-					curY += y
-				} else {
-					segments = append(segments, PathSegment{CmdCubicTo, []float32{
-						c1x, c1y, c2x, c2y, x, y,
-					}})
-					lastCtrlX = c2x
-					lastCtrlY = c2y
-					curX = x
-					curY = y
-				}
-			}
-
-		case 'S', 's':
-			relative := cmd == 's'
-			for i+3 < len(tokens) && isNumberToken(tokens[i]) {
-				var c1x, c1y float32
-				if lastCmd == 'C' || lastCmd == 'c' || lastCmd == 'S' || lastCmd == 's' {
-					c1x = curX*2 - lastCtrlX
-					c1y = curY*2 - lastCtrlY
-				} else {
-					c1x = curX
-					c1y = curY
-				}
-				c2x := parseF32(tokens[i])
-				c2y := parseF32(tokens[i+1])
-				x := parseF32(tokens[i+2])
-				y := parseF32(tokens[i+3])
-				i += 4
-				if relative {
-					segments = append(segments, PathSegment{CmdCubicTo, []float32{
-						c1x, c1y,
-						curX + c2x, curY + c2y,
-						curX + x, curY + y,
-					}})
-					lastCtrlX = curX + c2x
-					lastCtrlY = curY + c2y
-					curX += x
-					curY += y
-				} else {
-					segments = append(segments, PathSegment{CmdCubicTo, []float32{
-						c1x, c1y, c2x, c2y, x, y,
-					}})
-					lastCtrlX = c2x
-					lastCtrlY = c2y
-					curX = x
-					curY = y
-				}
-				lastCmd = cmd
-			}
-
-		case 'Q', 'q':
-			relative := cmd == 'q'
-			for i+3 < len(tokens) && isNumberToken(tokens[i]) {
-				cx := parseF32(tokens[i])
-				cy := parseF32(tokens[i+1])
-				x := parseF32(tokens[i+2])
-				y := parseF32(tokens[i+3])
-				i += 4
-				if relative {
-					segments = append(segments, PathSegment{CmdQuadTo, []float32{
-						curX + cx, curY + cy,
-						curX + x, curY + y,
-					}})
-					lastCtrlX = curX + cx
-					lastCtrlY = curY + cy
-					curX += x
-					curY += y
-				} else {
-					segments = append(segments, PathSegment{CmdQuadTo, []float32{
-						cx, cy, x, y,
-					}})
-					lastCtrlX = cx
-					lastCtrlY = cy
-					curX = x
-					curY = y
-				}
-			}
-
-		case 'T', 't':
-			relative := cmd == 't'
-			for i+1 < len(tokens) && isNumberToken(tokens[i]) {
-				var cx, cy float32
-				if lastCmd == 'Q' || lastCmd == 'q' || lastCmd == 'T' || lastCmd == 't' {
-					cx = curX*2 - lastCtrlX
-					cy = curY*2 - lastCtrlY
-				} else {
-					cx = curX
-					cy = curY
-				}
-				x := parseF32(tokens[i])
-				y := parseF32(tokens[i+1])
-				i += 2
-				if relative {
-					segments = append(segments, PathSegment{CmdQuadTo, []float32{
-						cx, cy, curX + x, curY + y,
-					}})
-					lastCtrlX = cx
-					lastCtrlY = cy
-					curX += x
-					curY += y
-				} else {
-					segments = append(segments, PathSegment{CmdQuadTo, []float32{
-						cx, cy, x, y,
-					}})
-					lastCtrlX = cx
-					lastCtrlY = cy
-					curX = x
-					curY = y
-				}
-				lastCmd = cmd
-			}
-
-		case 'A', 'a':
-			relative := cmd == 'a'
-			for i+6 < len(tokens) && isNumberToken(tokens[i]) {
-				rx := parseF32(tokens[i])
-				ry := parseF32(tokens[i+1])
-				phi := parseF32(tokens[i+2])
-				largeArc := parseF32(tokens[i+3]) != 0
-				sweep := parseF32(tokens[i+4]) != 0
-				x := parseF32(tokens[i+5])
-				y := parseF32(tokens[i+6])
-				i += 7
-
-				ex, ey := x, y
-				if relative {
-					ex += curX
-					ey += curY
-				}
-
-				if rx <= 0 || ry <= 0 {
-					segments = append(segments, PathSegment{CmdLineTo, []float32{ex, ey}})
-				} else {
-					arcSegs := arcToCubic(curX, curY, rx, ry, phi, largeArc, sweep, ex, ey)
-					segments = append(segments, arcSegs...)
-				}
-				curX = ex
-				curY = ey
-			}
-
-		case 'Z', 'z':
-			segments = append(segments, PathSegment{CmdClose, nil})
-			curX = startX
-			curY = startY
-
-		default:
-			i++
+		if p.i == iBefore {
+			p.i++
 		}
-		if i == iBefore {
-			i++
-		}
-		lastCmd = cmd
+		p.lastCmd = cmd
 	}
-	return segments
+	return p.segments
+}
+
+func (p *pathParser) dispatch(cmd byte) byte {
+	switch cmd {
+	case 'M', 'm':
+		return p.parseMoveTo(cmd)
+	case 'L', 'l':
+		return p.parseLineTo(cmd)
+	case 'H', 'h':
+		return p.parseHLineTo(cmd)
+	case 'V', 'v':
+		return p.parseVLineTo(cmd)
+	case 'C', 'c':
+		return p.parseCubicTo(cmd)
+	case 'S', 's':
+		return p.parseSmoothCubic(cmd)
+	case 'Q', 'q':
+		return p.parseQuadTo(cmd)
+	case 'T', 't':
+		return p.parseSmoothQuad(cmd)
+	case 'A', 'a':
+		return p.parseArcTo(cmd)
+	case 'Z', 'z':
+		return p.parseClose(cmd)
+	default:
+		p.i++
+		return cmd
+	}
+}
+
+func (p *pathParser) parseMoveTo(cmd byte) byte {
+	relative := cmd == 'm'
+	nextCmd := byte('L')
+	if relative {
+		nextCmd = 'l'
+	}
+	first := true
+	for p.i < len(p.tokens) && isNumberToken(p.tokens[p.i]) {
+		x := parseF32(p.tokens[p.i])
+		y := float32(0)
+		if p.i+1 < len(p.tokens) {
+			y = parseF32(p.tokens[p.i+1])
+		}
+		p.i += 2
+		if relative {
+			p.curX += x
+			p.curY += y
+		} else {
+			p.curX = x
+			p.curY = y
+		}
+		if first {
+			p.segments = append(p.segments, PathSegment{CmdMoveTo, []float32{p.curX, p.curY}})
+			p.startX = p.curX
+			p.startY = p.curY
+			first = false
+		} else {
+			p.segments = append(p.segments, PathSegment{CmdLineTo, []float32{p.curX, p.curY}})
+		}
+	}
+	if first {
+		return cmd
+	}
+	return nextCmd
+}
+
+func (p *pathParser) parseLineTo(cmd byte) byte {
+	relative := cmd == 'l'
+	for p.i < len(p.tokens) && isNumberToken(p.tokens[p.i]) {
+		x := parseF32(p.tokens[p.i])
+		y := float32(0)
+		if p.i+1 < len(p.tokens) {
+			y = parseF32(p.tokens[p.i+1])
+		}
+		p.i += 2
+		if relative {
+			p.curX += x
+			p.curY += y
+		} else {
+			p.curX = x
+			p.curY = y
+		}
+		p.segments = append(p.segments, PathSegment{CmdLineTo, []float32{p.curX, p.curY}})
+	}
+	return cmd
+}
+
+func (p *pathParser) parseHLineTo(cmd byte) byte {
+	relative := cmd == 'h'
+	for p.i < len(p.tokens) && isNumberToken(p.tokens[p.i]) {
+		x := parseF32(p.tokens[p.i])
+		p.i++
+		if relative {
+			p.curX += x
+		} else {
+			p.curX = x
+		}
+		p.segments = append(p.segments, PathSegment{CmdLineTo, []float32{p.curX, p.curY}})
+	}
+	return cmd
+}
+
+func (p *pathParser) parseVLineTo(cmd byte) byte {
+	relative := cmd == 'v'
+	for p.i < len(p.tokens) && isNumberToken(p.tokens[p.i]) {
+		y := parseF32(p.tokens[p.i])
+		p.i++
+		if relative {
+			p.curY += y
+		} else {
+			p.curY = y
+		}
+		p.segments = append(p.segments, PathSegment{CmdLineTo, []float32{p.curX, p.curY}})
+	}
+	return cmd
+}
+
+func (p *pathParser) parseCubicTo(cmd byte) byte {
+	relative := cmd == 'c'
+	for p.i+5 < len(p.tokens) && isNumberToken(p.tokens[p.i]) {
+		c1x := parseF32(p.tokens[p.i])
+		c1y := parseF32(p.tokens[p.i+1])
+		c2x := parseF32(p.tokens[p.i+2])
+		c2y := parseF32(p.tokens[p.i+3])
+		x := parseF32(p.tokens[p.i+4])
+		y := parseF32(p.tokens[p.i+5])
+		p.i += 6
+		if relative {
+			p.segments = append(p.segments, PathSegment{CmdCubicTo, []float32{
+				p.curX + c1x, p.curY + c1y,
+				p.curX + c2x, p.curY + c2y,
+				p.curX + x, p.curY + y,
+			}})
+			p.lastCtrlX = p.curX + c2x
+			p.lastCtrlY = p.curY + c2y
+			p.curX += x
+			p.curY += y
+		} else {
+			p.segments = append(p.segments, PathSegment{CmdCubicTo, []float32{
+				c1x, c1y, c2x, c2y, x, y,
+			}})
+			p.lastCtrlX = c2x
+			p.lastCtrlY = c2y
+			p.curX = x
+			p.curY = y
+		}
+	}
+	return cmd
+}
+
+func (p *pathParser) parseSmoothCubic(cmd byte) byte {
+	relative := cmd == 's'
+	for p.i+3 < len(p.tokens) && isNumberToken(p.tokens[p.i]) {
+		var c1x, c1y float32
+		if p.lastCmd == 'C' || p.lastCmd == 'c' || p.lastCmd == 'S' || p.lastCmd == 's' {
+			c1x = p.curX*2 - p.lastCtrlX
+			c1y = p.curY*2 - p.lastCtrlY
+		} else {
+			c1x = p.curX
+			c1y = p.curY
+		}
+		c2x := parseF32(p.tokens[p.i])
+		c2y := parseF32(p.tokens[p.i+1])
+		x := parseF32(p.tokens[p.i+2])
+		y := parseF32(p.tokens[p.i+3])
+		p.i += 4
+		if relative {
+			p.segments = append(p.segments, PathSegment{CmdCubicTo, []float32{
+				c1x, c1y,
+				p.curX + c2x, p.curY + c2y,
+				p.curX + x, p.curY + y,
+			}})
+			p.lastCtrlX = p.curX + c2x
+			p.lastCtrlY = p.curY + c2y
+			p.curX += x
+			p.curY += y
+		} else {
+			p.segments = append(p.segments, PathSegment{CmdCubicTo, []float32{
+				c1x, c1y, c2x, c2y, x, y,
+			}})
+			p.lastCtrlX = c2x
+			p.lastCtrlY = c2y
+			p.curX = x
+			p.curY = y
+		}
+		p.lastCmd = cmd
+	}
+	return cmd
+}
+
+func (p *pathParser) parseQuadTo(cmd byte) byte {
+	relative := cmd == 'q'
+	for p.i+3 < len(p.tokens) && isNumberToken(p.tokens[p.i]) {
+		cx := parseF32(p.tokens[p.i])
+		cy := parseF32(p.tokens[p.i+1])
+		x := parseF32(p.tokens[p.i+2])
+		y := parseF32(p.tokens[p.i+3])
+		p.i += 4
+		if relative {
+			p.segments = append(p.segments, PathSegment{CmdQuadTo, []float32{
+				p.curX + cx, p.curY + cy,
+				p.curX + x, p.curY + y,
+			}})
+			p.lastCtrlX = p.curX + cx
+			p.lastCtrlY = p.curY + cy
+			p.curX += x
+			p.curY += y
+		} else {
+			p.segments = append(p.segments, PathSegment{CmdQuadTo, []float32{
+				cx, cy, x, y,
+			}})
+			p.lastCtrlX = cx
+			p.lastCtrlY = cy
+			p.curX = x
+			p.curY = y
+		}
+	}
+	return cmd
+}
+
+func (p *pathParser) parseSmoothQuad(cmd byte) byte {
+	relative := cmd == 't'
+	for p.i+1 < len(p.tokens) && isNumberToken(p.tokens[p.i]) {
+		var cx, cy float32
+		if p.lastCmd == 'Q' || p.lastCmd == 'q' || p.lastCmd == 'T' || p.lastCmd == 't' {
+			cx = p.curX*2 - p.lastCtrlX
+			cy = p.curY*2 - p.lastCtrlY
+		} else {
+			cx = p.curX
+			cy = p.curY
+		}
+		x := parseF32(p.tokens[p.i])
+		y := parseF32(p.tokens[p.i+1])
+		p.i += 2
+		if relative {
+			p.segments = append(p.segments, PathSegment{CmdQuadTo, []float32{
+				cx, cy, p.curX + x, p.curY + y,
+			}})
+			p.lastCtrlX = cx
+			p.lastCtrlY = cy
+			p.curX += x
+			p.curY += y
+		} else {
+			p.segments = append(p.segments, PathSegment{CmdQuadTo, []float32{
+				cx, cy, x, y,
+			}})
+			p.lastCtrlX = cx
+			p.lastCtrlY = cy
+			p.curX = x
+			p.curY = y
+		}
+		p.lastCmd = cmd
+	}
+	return cmd
+}
+
+func (p *pathParser) parseArcTo(cmd byte) byte {
+	relative := cmd == 'a'
+	for p.i+6 < len(p.tokens) && isNumberToken(p.tokens[p.i]) {
+		rx := parseF32(p.tokens[p.i])
+		ry := parseF32(p.tokens[p.i+1])
+		phi := parseF32(p.tokens[p.i+2])
+		largeArc := parseF32(p.tokens[p.i+3]) != 0
+		sweep := parseF32(p.tokens[p.i+4]) != 0
+		x := parseF32(p.tokens[p.i+5])
+		y := parseF32(p.tokens[p.i+6])
+		p.i += 7
+
+		ex, ey := x, y
+		if relative {
+			ex += p.curX
+			ey += p.curY
+		}
+
+		if rx <= 0 || ry <= 0 {
+			p.segments = append(p.segments, PathSegment{CmdLineTo, []float32{ex, ey}})
+		} else {
+			arcSegs := arcToCubic(p.curX, p.curY, rx, ry, phi, largeArc, sweep, ex, ey)
+			p.segments = append(p.segments, arcSegs...)
+		}
+		p.curX = ex
+		p.curY = ey
+	}
+	return cmd
+}
+
+func (p *pathParser) parseClose(cmd byte) byte {
+	p.segments = append(p.segments, PathSegment{CmdClose, nil})
+	p.curX = p.startX
+	p.curY = p.startY
+	return cmd
 }
 
 // arcToCubic converts an SVG arc to cubic bezier curves.
