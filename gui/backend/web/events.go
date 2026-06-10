@@ -118,7 +118,7 @@ func (b *Backend) registerEvents(w *gui.Window) {
 		return nil
 	})
 
-	reg(canvas, "keydown", func(_ js.Value, args []js.Value) any {
+	reg(doc, "keydown", func(_ js.Value, args []js.Value) any {
 		e := args[0]
 		code := e.Get("code").String()
 		key := e.Get("key").String()
@@ -160,7 +160,7 @@ func (b *Backend) registerEvents(w *gui.Window) {
 		return nil
 	})
 
-	reg(canvas, "keyup", func(_ js.Value, args []js.Value) any {
+	reg(doc, "keyup", func(_ js.Value, args []js.Value) any {
 		e := args[0]
 		*evt = gui.Event{
 			Type:      gui.EventKeyUp,
