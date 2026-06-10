@@ -26,13 +26,26 @@ jobs:
             -o main.wasm .
           cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" .
 
+      - name: Prepare deploy directory
+        run: |
+          # Clone website repo to get root files (CNAME, index.html, etc.)
+          git clone --depth 1 \
+            https://x-access-token:${{ secrets.WEBSITE_DEPLOY_TOKEN }}@github.com/go-gui-org/go-gui-org.github.io.git \
+            /tmp/website
+          # Merge: root files + showcase build
+          mkdir -p deploy/showcase
+          cp /tmp/website/CNAME /tmp/website/index.html /tmp/website/.nojekyll deploy/ 2>/dev/null || true
+          cp /tmp/website/.gitattributes deploy/ 2>/dev/null || true
+          cp /tmp/website/CLAUDE.md deploy/ 2>/dev/null || true
+          cp -a examples/showcase/*.js examples/showcase/*.wasm examples/showcase/*.html deploy/showcase/ 2>/dev/null || true
+          ls -la deploy/ deploy/showcase/
+
       - name: Deploy to org website
         uses: peaceiris/actions-gh-pages@v4
         with:
           personal_token: ${{ secrets.WEBSITE_DEPLOY_TOKEN }}
           external_repository: go-gui-org/go-gui-org.github.io
           publish_branch: main
-          publish_dir: ./examples/showcase
-          destination_dir: showcase
-          keep_files: true
+          publish_dir: ./deploy
+          force_orphan: true
           exclude_assets: '.gitignore,Makefile,*.go,docs/,assets/,locales/'
