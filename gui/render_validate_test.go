@@ -230,6 +230,126 @@ func TestRendererValidInfCoord(t *testing.T) {
 	}
 }
 
+func TestRendererValidGradientBorder(t *testing.T) {
+	gd := &GradientDef{}
+	r := RenderCmd{Kind: RenderGradientBorder, W: 10, H: 10, Thickness: 2,
+		Gradient: gd}
+	if !rendererValidForDraw(r) {
+		t.Error("valid gradient border should pass")
+	}
+	r.Gradient = nil
+	if rendererValidForDraw(r) {
+		t.Error("nil gradient should fail")
+	}
+	r.Gradient = gd
+	r.Thickness = 0
+	if rendererValidForDraw(r) {
+		t.Error("zero thickness should fail")
+	}
+}
+
+func TestRendererValidShadow(t *testing.T) {
+	r := RenderCmd{Kind: RenderShadow, W: 10, H: 10,
+		BlurRadius: 4, Radius: 3, OffsetX: 2, OffsetY: 2}
+	if !rendererValidForDraw(r) {
+		t.Error("valid shadow should pass")
+	}
+	r.W = -1
+	if rendererValidForDraw(r) {
+		t.Error("negative width should fail")
+	}
+	r.W = 10
+	r.OffsetX = float32(math.NaN())
+	if rendererValidForDraw(r) {
+		t.Error("NaN offset should fail")
+	}
+}
+
+func TestRendererValidBlur(t *testing.T) {
+	r := RenderCmd{Kind: RenderBlur, W: 10, H: 10, BlurRadius: 4}
+	if !rendererValidForDraw(r) {
+		t.Error("valid blur should pass")
+	}
+	r.H = -1
+	if rendererValidForDraw(r) {
+		t.Error("negative height should fail")
+	}
+	r.H = 10
+	r.BlurRadius = float32(math.Inf(1))
+	if rendererValidForDraw(r) {
+		t.Error("Inf blur radius should fail")
+	}
+}
+
+func TestRendererValidCustomShader(t *testing.T) {
+	sh := &Shader{Metal: "..."}
+	r := RenderCmd{Kind: RenderCustomShader, W: 10, H: 10, Shader: sh}
+	if !rendererValidForDraw(r) {
+		t.Error("valid custom shader should pass")
+	}
+	r.Shader = nil
+	if rendererValidForDraw(r) {
+		t.Error("nil shader should fail")
+	}
+	r.Shader = sh
+	r.W = 0
+	if rendererValidForDraw(r) {
+		t.Error("zero width should fail (W > 0 required)")
+	}
+}
+
+func TestRendererValidRotateBegin(t *testing.T) {
+	r := RenderCmd{Kind: RenderRotateBegin,
+		RotAngle: 0.5, RotCX: 100, RotCY: 200}
+	if !rendererValidForDraw(r) {
+		t.Error("valid rotate begin should pass")
+	}
+	r.RotAngle = float32(math.NaN())
+	if rendererValidForDraw(r) {
+		t.Error("NaN angle should fail")
+	}
+	r.RotAngle = 0.5
+	r.RotCX = float32(math.Inf(1))
+	if rendererValidForDraw(r) {
+		t.Error("Inf center X should fail")
+	}
+}
+
+func TestRendererValidSvg_ZeroScale(t *testing.T) {
+	tris := make([]float32, 6)
+	r := RenderCmd{Kind: RenderSvg, Scale: 0, Triangles: tris}
+	if rendererValidForDraw(r) {
+		t.Error("zero scale should fail")
+	}
+	r.Scale = -1
+	if rendererValidForDraw(r) {
+		t.Error("negative scale should fail")
+	}
+}
+
+func TestRendererValidSvg_NaNTriangles(t *testing.T) {
+	tris := []float32{1, 2, 3, 4, 5, float32(math.NaN())}
+	r := RenderCmd{Kind: RenderSvg, Scale: 1, Triangles: tris}
+	if rendererValidForDraw(r) {
+		t.Error("NaN in triangles should fail")
+	}
+}
+
+func TestRendererValidImage_NaNClipRadius(t *testing.T) {
+	r := RenderCmd{Kind: RenderImage, W: 10, H: 10,
+		ClipRadius: float32(math.NaN())}
+	if rendererValidForDraw(r) {
+		t.Error("NaN clip radius should fail")
+	}
+}
+
+func TestRendererValidClip_ZeroSize(t *testing.T) {
+	r := RenderCmd{Kind: RenderClip, W: 0, H: 0}
+	if !rendererValidForDraw(r) {
+		t.Error("zero-size clip should pass (W >= 0, H >= 0)")
+	}
+}
+
 func TestF32AllFinite(t *testing.T) {
 	if !f32AllFinite([]float32{1, 2, 3}) {
 		t.Error("finite values should pass")

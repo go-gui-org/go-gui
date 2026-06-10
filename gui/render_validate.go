@@ -3,79 +3,145 @@ package gui
 // rendererValidForDraw checks whether a RenderCmd has valid
 // parameters for drawing. Returns false for NaN/Inf coordinates,
 // negative sizes, nil pointers, etc.
-//
-//nolint:gocyclo // render-type validation switch
 func rendererValidForDraw(r RenderCmd) bool {
 	switch r.Kind {
 	case RenderClip:
-		return f32AllFinite4(r.X, r.Y, r.W, r.H) &&
-			r.W >= 0 && r.H >= 0
+		return validClipCmd(r)
 	case RenderRect:
-		return f32AllFinite5(r.X, r.Y, r.W, r.H, r.Radius) &&
-			r.W >= 0 && r.H >= 0
+		return validRectCmd(r)
 	case RenderStrokeRect:
-		return f32AllFinite6(r.X, r.Y, r.W, r.H, r.Radius, r.Thickness) &&
-			r.W >= 0 && r.H >= 0 && r.Thickness > 0
+		return validStrokeRectCmd(r)
 	case RenderGradient:
-		return f32AllFinite5(r.X, r.Y, r.W, r.H, r.Radius) &&
-			r.W >= 0 && r.H >= 0 && r.Gradient != nil
+		return validGradientCmd(r)
 	case RenderCircle:
-		return f32AllFinite3(r.X, r.Y, r.Radius) && r.Radius > 0
+		return validCircleCmd(r)
 	case RenderText:
-		return f32AllFinite2(r.X, r.Y) && len(r.Text) > 0
+		return validTextCmd(r)
 	case RenderLayout:
-		return f32AllFinite2(r.X, r.Y) && r.LayoutPtr != nil
+		return validLayoutCmd(r)
 	case RenderLayoutTransformed:
-		return f32AllFinite2(r.X, r.Y) &&
-			r.LayoutPtr != nil && r.LayoutTransform != nil
+		return validLayoutTransformedCmd(r)
 	case RenderImage:
-		return f32AllFinite4(r.X, r.Y, r.W, r.H) &&
-			r.W > 0 && r.H > 0 && f32IsFinite(r.ClipRadius)
+		return validImageCmd(r)
 	case RenderSvg:
-		if !f32AllFinite3(r.X, r.Y, r.Scale) || r.Scale <= 0 {
-			return false
-		}
-		if r.HasVertexAlpha &&
-			(!f32IsFinite(r.VertexAlphaScale) ||
-				r.VertexAlphaScale < 0 ||
-				r.VertexAlphaScale > 1) {
-			return false
-		}
-		if len(r.Triangles) == 0 || len(r.Triangles)%6 != 0 {
-			return false
-		}
-		if !f32AllFinite(r.Triangles) {
-			return false
-		}
-		if len(r.VertexColors) > 0 &&
-			len(r.VertexColors)*2 != len(r.Triangles) {
-			return false
-		}
-		return true
+		return validSvgCmd(r)
 	case RenderFilterComposite:
-		return f32AllFinite4(r.X, r.Y, r.W, r.H) &&
-			r.W > 0 && r.H > 0 && r.Layers > 0
+		return validFilterCompositeCmd(r)
 	case RenderStencilBegin, RenderStencilEnd:
-		return f32AllFinite5(r.X, r.Y, r.W, r.H, r.Radius) &&
-			r.W > 0 && r.H > 0 && r.StencilDepth > 0
+		return validStencilCmd(r)
 	case RenderGradientBorder:
-		return f32AllFinite6(r.X, r.Y, r.W, r.H, r.Radius, r.Thickness) &&
-			r.W >= 0 && r.H >= 0 && r.Thickness > 0 && r.Gradient != nil
+		return validGradientBorderCmd(r)
 	case RenderShadow:
-		return f32AllFinite6(r.X, r.Y, r.W, r.H, r.BlurRadius, r.Radius) &&
-			r.W >= 0 && r.H >= 0 &&
-			f32AllFinite2(r.OffsetX, r.OffsetY)
+		return validShadowCmd(r)
 	case RenderBlur:
-		return f32AllFinite5(r.X, r.Y, r.W, r.H, r.BlurRadius) &&
-			r.W >= 0 && r.H >= 0
+		return validBlurCmd(r)
 	case RenderCustomShader:
-		return f32AllFinite4(r.X, r.Y, r.W, r.H) &&
-			r.W > 0 && r.H > 0 && r.Shader != nil
+		return validCustomShaderCmd(r)
 	case RenderRotateBegin:
-		return f32AllFinite3(r.RotAngle, r.RotCX, r.RotCY)
+		return validRotateBeginCmd(r)
 	default:
 		return true
 	}
+}
+
+func validClipCmd(r RenderCmd) bool {
+	return f32AllFinite4(r.X, r.Y, r.W, r.H) &&
+		r.W >= 0 && r.H >= 0
+}
+
+func validRectCmd(r RenderCmd) bool {
+	return f32AllFinite5(r.X, r.Y, r.W, r.H, r.Radius) &&
+		r.W >= 0 && r.H >= 0
+}
+
+func validStrokeRectCmd(r RenderCmd) bool {
+	return f32AllFinite6(r.X, r.Y, r.W, r.H, r.Radius, r.Thickness) &&
+		r.W >= 0 && r.H >= 0 && r.Thickness > 0
+}
+
+func validGradientCmd(r RenderCmd) bool {
+	return f32AllFinite5(r.X, r.Y, r.W, r.H, r.Radius) &&
+		r.W >= 0 && r.H >= 0 && r.Gradient != nil
+}
+
+func validCircleCmd(r RenderCmd) bool {
+	return f32AllFinite3(r.X, r.Y, r.Radius) && r.Radius > 0
+}
+
+func validTextCmd(r RenderCmd) bool {
+	return f32AllFinite2(r.X, r.Y) && len(r.Text) > 0
+}
+
+func validLayoutCmd(r RenderCmd) bool {
+	return f32AllFinite2(r.X, r.Y) && r.LayoutPtr != nil
+}
+
+func validLayoutTransformedCmd(r RenderCmd) bool {
+	return f32AllFinite2(r.X, r.Y) &&
+		r.LayoutPtr != nil && r.LayoutTransform != nil
+}
+
+func validImageCmd(r RenderCmd) bool {
+	return f32AllFinite4(r.X, r.Y, r.W, r.H) &&
+		r.W > 0 && r.H > 0 && f32IsFinite(r.ClipRadius)
+}
+
+func validSvgCmd(r RenderCmd) bool {
+	if !f32AllFinite3(r.X, r.Y, r.Scale) || r.Scale <= 0 {
+		return false
+	}
+	if r.HasVertexAlpha &&
+		(!f32IsFinite(r.VertexAlphaScale) ||
+			r.VertexAlphaScale < 0 ||
+			r.VertexAlphaScale > 1) {
+		return false
+	}
+	if len(r.Triangles) == 0 || len(r.Triangles)%6 != 0 {
+		return false
+	}
+	if !f32AllFinite(r.Triangles) {
+		return false
+	}
+	if len(r.VertexColors) > 0 &&
+		len(r.VertexColors)*2 != len(r.Triangles) {
+		return false
+	}
+	return true
+}
+
+func validFilterCompositeCmd(r RenderCmd) bool {
+	return f32AllFinite4(r.X, r.Y, r.W, r.H) &&
+		r.W > 0 && r.H > 0 && r.Layers > 0
+}
+
+func validStencilCmd(r RenderCmd) bool {
+	return f32AllFinite5(r.X, r.Y, r.W, r.H, r.Radius) &&
+		r.W > 0 && r.H > 0 && r.StencilDepth > 0
+}
+
+func validGradientBorderCmd(r RenderCmd) bool {
+	return f32AllFinite6(r.X, r.Y, r.W, r.H, r.Radius, r.Thickness) &&
+		r.W >= 0 && r.H >= 0 && r.Thickness > 0 && r.Gradient != nil
+}
+
+func validShadowCmd(r RenderCmd) bool {
+	return f32AllFinite6(r.X, r.Y, r.W, r.H, r.BlurRadius, r.Radius) &&
+		r.W >= 0 && r.H >= 0 &&
+		f32AllFinite2(r.OffsetX, r.OffsetY)
+}
+
+func validBlurCmd(r RenderCmd) bool {
+	return f32AllFinite5(r.X, r.Y, r.W, r.H, r.BlurRadius) &&
+		r.W >= 0 && r.H >= 0
+}
+
+func validCustomShaderCmd(r RenderCmd) bool {
+	return f32AllFinite4(r.X, r.Y, r.W, r.H) &&
+		r.W > 0 && r.H > 0 && r.Shader != nil
+}
+
+func validRotateBeginCmd(r RenderCmd) bool {
+	return f32AllFinite3(r.RotAngle, r.RotCX, r.RotCY)
 }
 
 // f32AllFinite checks if all values in a slice are finite.
