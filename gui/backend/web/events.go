@@ -288,15 +288,18 @@ func mapModifiers(e js.Value) gui.Modifier {
 		m |= gui.ModSuper
 	}
 	// JS MouseEvent.buttons bitmask: 1=LMB, 2=RMB, 4=MMB.
-	buttons := e.Get("buttons").Int()
-	if buttons&1 != 0 {
-		m |= gui.ModLMB
-	}
-	if buttons&2 != 0 {
-		m |= gui.ModRMB
-	}
-	if buttons&4 != 0 {
-		m |= gui.ModMMB
+	// Guard against KeyboardEvent which lacks .buttons.
+	if b := e.Get("buttons"); b.Type() == js.TypeNumber {
+		buttons := b.Int()
+		if buttons&1 != 0 {
+			m |= gui.ModLMB
+		}
+		if buttons&2 != 0 {
+			m |= gui.ModRMB
+		}
+		if buttons&4 != 0 {
+			m |= gui.ModMMB
+		}
 	}
 	return m
 }
