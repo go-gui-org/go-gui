@@ -8,20 +8,20 @@ import (
 
 const ghostSteps = 200
 
-type spinnerGhostBuf struct {
+type mathSpinnerGhostBuf struct {
 	pts [(ghostSteps + 1) * 2]float32
 }
 
-var spinnerGhostPool = sync.Pool{
-	New: func() any { return &spinnerGhostBuf{} },
+var mathSpinnerGhostPool = sync.Pool{
+	New: func() any { return &mathSpinnerGhostBuf{} },
 }
 
-// CurveType selects the mathematical curve rendered by a Spinner.
+// CurveType selects the mathematical curve rendered by a MathSpinner.
 type CurveType uint8
 
 // CurveType constants. Each constant maps to a specific parametric
 // curve with baked-in default parameters. Override ParamA/B/D in
-// SpinnerCfg to customize.
+// MathSpinnerCfg to customize.
 const (
 	CurveOriginalThinking CurveType = iota // epitrochoid R=7,k=7,d=3
 	CurveThinkingFive                      // epitrochoid R=7,k=5,d=3
@@ -46,11 +46,11 @@ const (
 	CurveFourier                           // fourier multi-harmonic
 )
 
-// spinnerFamily identifies the underlying math equation.
-type spinnerFamily uint8
+// mathSpinnerFamily identifies the underlying math equation.
+type mathSpinnerFamily uint8
 
 const (
-	familyEpitrochoid spinnerFamily = iota
+	familyEpitrochoid mathSpinnerFamily = iota
 	familyRoseOrbit
 	familyRose
 	familyLissajous
@@ -63,12 +63,12 @@ const (
 	familyFourier
 )
 
-type spinnerDefaults struct {
-	family  spinnerFamily
+type mathSpinnerDefaults struct {
+	family  mathSpinnerFamily
 	a, b, d float32
 }
 
-var spinnerCurveDefaults = [...]spinnerDefaults{
+var mathSpinnerCurveDefaults = [...]mathSpinnerDefaults{
 	CurveOriginalThinking: {familyEpitrochoid, 7, 7, 3},
 	CurveThinkingFive:     {familyEpitrochoid, 7, 5, 3},
 	CurveThinkingNine:     {familyEpitrochoid, 7, 9, 3},
@@ -92,8 +92,8 @@ var spinnerCurveDefaults = [...]spinnerDefaults{
 	CurveFourier:          {familyFourier, 17, 15, 0},
 }
 
-// SpinnerCfg configures a mathematical curve spinner.
-type SpinnerCfg struct {
+// MathSpinnerCfg configures a mathematical curve spinner.
+type MathSpinnerCfg struct {
 	ID          string
 	CurveType   CurveType
 	Color       Color
@@ -115,8 +115,8 @@ type SpinnerCfg struct {
 	MaxHeight   float32
 }
 
-// Spinner creates an animated mathematical curve loading indicator.
-func Spinner(cfg SpinnerCfg, w *Window) View {
+// MathSpinner creates an animated mathematical curve loading indicator.
+func MathSpinner(cfg MathSpinnerCfg, w *Window) View {
 	if !cfg.Color.IsSet() {
 		cfg.Color = guiTheme.ColorActive
 	}
@@ -152,7 +152,7 @@ func Spinner(cfg SpinnerCfg, w *Window) View {
 	}
 
 	// Apply baked-in param defaults when user hasn't set them.
-	defs := spinnerCurveDefaults[ct]
+	defs := mathSpinnerCurveDefaults[ct]
 	paramA := cfg.ParamA.Get(defs.a)
 	paramB := cfg.ParamB.Get(defs.b)
 	paramD := cfg.ParamD.Get(defs.d)
@@ -165,7 +165,7 @@ func Spinner(cfg SpinnerCfg, w *Window) View {
 	}
 
 	id := cfg.ID
-	animID := "spinner_" + id
+	animID := "math_spinner_" + id
 	dur := time.Duration(float64(5*time.Second) / float64(cfg.Speed))
 
 	if !w.touchViewBoundAnimation(animID) {
@@ -178,16 +178,16 @@ func Spinner(cfg SpinnerCfg, w *Window) View {
 				{At: 1, Value: 1},
 			},
 			OnValue: func(v float32, w *Window) {
-				StateMap[string, float32](w, nsSpinner, capModerate).Set(id, v)
+				StateMap[string, float32](w, nsMathSpinner, capModerate).Set(id, v)
 			},
 		})
 	}
 
-	progress := StateReadOr(w, nsSpinner, id, float32(0))
+	progress := StateReadOr(w, nsMathSpinner, id, float32(0))
 
 	// Optional slow rotation.
 	rotKey := id + "_rot"
-	rotAnimID := "spinner_rot_" + id
+	rotAnimID := "math_spinner_rot_" + id
 	if cfg.Rotate {
 		if !w.touchViewBoundAnimation(rotAnimID) {
 			w.animationAddViewBound(&KeyframeAnimation{
@@ -200,12 +200,12 @@ func Spinner(cfg SpinnerCfg, w *Window) View {
 				},
 				OnValue: func(v float32, w *Window) {
 					StateMap[string, float32](
-						w, nsSpinner, capModerate).Set(rotKey, v)
+						w, nsMathSpinner, capModerate).Set(rotKey, v)
 				},
 			})
 		}
 	}
-	rotation := StateReadOr(w, nsSpinner, rotKey, float32(0))
+	rotation := StateReadOr(w, nsMathSpinner, rotKey, float32(0))
 
 	family := defs.family
 	particles := cfg.Particles
@@ -236,7 +236,7 @@ func Spinner(cfg SpinnerCfg, w *Window) View {
 				Clip:    true,
 				Version: uint64(math.Float32bits(progress + rotation)),
 				OnDraw: func(dc *DrawContext) {
-					spinnerDraw(dc, family, progress, rotation,
+					mathSpinnerDraw(dc, family, progress, rotation,
 						particles, trailSpan, strokeWidth,
 						paramA, paramB, paramD, color)
 				},
@@ -245,9 +245,9 @@ func Spinner(cfg SpinnerCfg, w *Window) View {
 	})
 }
 
-func spinnerDraw(
+func mathSpinnerDraw(
 	dc *DrawContext,
-	family spinnerFamily,
+	family mathSpinnerFamily,
 	progress, rotation float32,
 	particles int,
 	trailSpan, strokeWidth float32,
@@ -271,23 +271,23 @@ func spinnerDraw(
 	cosR := float32(rotCos)
 
 	// Draw faint ghost path of the full curve.
-	ghostBuf := spinnerGhostPool.Get().(*spinnerGhostBuf)
+	ghostBuf := mathSpinnerGhostPool.Get().(*mathSpinnerGhostBuf)
 	ghostPts := ghostBuf.pts[:]
 	for i := range ghostSteps + 1 {
 		param := float32(i) / float32(ghostSteps)
-		px, py := spinnerCurvePoint(family, param, paramA, paramB, paramD)
+		px, py := mathSpinnerCurvePoint(family, param, paramA, paramB, paramD)
 		ghostPts[i*2] = cx + (px*cosR-py*sinR)*scale
 		ghostPts[i*2+1] = cy + (px*sinR+py*cosR)*scale
 	}
 	ghostColor := RGBA(color.R, color.G, color.B, 30)
 	dc.PolylineJoined(ghostPts, ghostColor, strokeWidth*0.8)
-	spinnerGhostPool.Put(ghostBuf)
+	mathSpinnerGhostPool.Put(ghostBuf)
 
 	// Draw particle trail.
 	for i := range particles {
 		tailOffset := float32(i) / float32(particles-1)
-		param := spinnerNormalize(progress - tailOffset*trailSpan)
-		px, py := spinnerCurvePoint(family, param, paramA, paramB, paramD)
+		param := mathSpinnerNormalize(progress - tailOffset*trailSpan)
+		px, py := mathSpinnerCurvePoint(family, param, paramA, paramB, paramD)
 
 		// Apply rotation around origin before scaling.
 		rx := px*cosR - py*sinR
@@ -302,12 +302,12 @@ func spinnerDraw(
 	}
 }
 
-func spinnerNormalize(t float32) float32 {
+func mathSpinnerNormalize(t float32) float32 {
 	return t - float32(math.Floor(float64(t)))
 }
 
-// spinnerClampPoint replaces NaN/Inf with 0 and clamps to [-2,2].
-func spinnerClampPoint(x, y float32) (float32, float32) {
+// mathSpinnerClampPoint replaces NaN/Inf with 0 and clamps to [-2,2].
+func mathSpinnerClampPoint(x, y float32) (float32, float32) {
 	if x != x || x > 2 || x < -2 { // NaN or out of range
 		x = 0
 	}
@@ -317,40 +317,40 @@ func spinnerClampPoint(x, y float32) (float32, float32) {
 	return x, y
 }
 
-func spinnerCurvePoint(
-	family spinnerFamily,
+func mathSpinnerCurvePoint(
+	family mathSpinnerFamily,
 	progress, a, b, d float32,
 ) (float32, float32) {
 	var px, py float32
 	switch family {
 	case familyEpitrochoid:
-		px, py = spinnerEpitrochoid(progress, a, b, d)
+		px, py = mathSpinnerEpitrochoid(progress, a, b, d)
 	case familyRoseOrbit:
-		px, py = spinnerRoseOrbit(progress, a, b, d)
+		px, py = mathSpinnerRoseOrbit(progress, a, b, d)
 	case familyRose:
-		px, py = spinnerRose(progress, a, b)
+		px, py = mathSpinnerRose(progress, a, b)
 	case familyLissajous:
-		px, py = spinnerLissajous(progress, a, b, d)
+		px, py = mathSpinnerLissajous(progress, a, b, d)
 	case familyLemniscate:
-		px, py = spinnerLemniscate(progress)
+		px, py = mathSpinnerLemniscate(progress)
 	case familyHypotrochoid:
-		px, py = spinnerHypotrochoid(progress, a, b, d)
+		px, py = mathSpinnerHypotrochoid(progress, a, b, d)
 	case familyButterfly:
-		px, py = spinnerButterfly(progress, a, b, d)
+		px, py = mathSpinnerButterfly(progress, a, b, d)
 	case familyCardioid:
-		px, py = spinnerCardioid(progress, a, b)
+		px, py = mathSpinnerCardioid(progress, a, b)
 	case familyHeartWave:
-		px, py = spinnerHeartWave(progress, a, b, d)
+		px, py = mathSpinnerHeartWave(progress, a, b, d)
 	case familySpiral:
-		px, py = spinnerSpiral(progress, a, b, d)
+		px, py = mathSpinnerSpiral(progress, a, b, d)
 	case familyFourier:
-		px, py = spinnerFourier(progress, a, b)
+		px, py = mathSpinnerFourier(progress, a, b)
 	}
-	return spinnerClampPoint(px, py)
+	return mathSpinnerClampPoint(px, py)
 }
 
 // epitrochoid: x = R·cos(t) - d·cos(k·t)
-func spinnerEpitrochoid(
+func mathSpinnerEpitrochoid(
 	progress, bigR, k, d float32,
 ) (float32, float32) {
 	t := float64(progress) * 2 * math.Pi
@@ -364,7 +364,7 @@ func spinnerEpitrochoid(
 }
 
 // roseOrbit: r = orbit - amp·cos(petals·t)
-func spinnerRoseOrbit(
+func mathSpinnerRoseOrbit(
 	progress, orbit, petals, amp float32,
 ) (float32, float32) {
 	t := float64(progress) * 2 * math.Pi
@@ -378,7 +378,7 @@ func spinnerRoseOrbit(
 }
 
 // rose: r = a·cos(k·θ)
-func spinnerRose(progress, a, k float32) (float32, float32) {
+func mathSpinnerRose(progress, a, k float32) (float32, float32) {
 	if a == 0 {
 		return 0, 0
 	}
@@ -389,7 +389,7 @@ func spinnerRose(progress, a, k float32) (float32, float32) {
 }
 
 // lissajous: x = sin(a·t + phase), y = sin(b·t)
-func spinnerLissajous(
+func mathSpinnerLissajous(
 	progress, ax, by, phase float32,
 ) (float32, float32) {
 	t := float64(progress) * 2 * math.Pi
@@ -398,7 +398,7 @@ func spinnerLissajous(
 }
 
 // lemniscate: x = cos(t)/(1+sin²t), y = sin(t)·cos(t)/(1+sin²t)
-func spinnerLemniscate(progress float32) (float32, float32) {
+func mathSpinnerLemniscate(progress float32) (float32, float32) {
 	t := float64(progress) * 2 * math.Pi
 	sinT, cosT := math.Sincos(t)
 	denom := 1 + sinT*sinT
@@ -406,7 +406,7 @@ func spinnerLemniscate(progress float32) (float32, float32) {
 }
 
 // hypotrochoid: x = (R-r)cos(t) + d·cos((R-r)t/r)
-func spinnerHypotrochoid(
+func mathSpinnerHypotrochoid(
 	progress, bigR, r, d float32,
 ) (float32, float32) {
 	if r == 0 {
@@ -425,7 +425,7 @@ func spinnerHypotrochoid(
 }
 
 // butterfly: s = exp(cos t) - cosW·cos(4t) - sin(t/12)^pow
-func spinnerButterfly(
+func mathSpinnerButterfly(
 	progress, turns, cosWeight, power float32,
 ) (float32, float32) {
 	t := float64(progress) * math.Pi * float64(turns)
@@ -443,7 +443,7 @@ func spinnerButterfly(
 }
 
 // cardioid: r = a·(1-cosθ) or r = a·(1+cosθ) rotated
-func spinnerCardioid(
+func mathSpinnerCardioid(
 	progress, a, variant float32,
 ) (float32, float32) {
 	t := float64(progress) * 2 * math.Pi
@@ -461,7 +461,7 @@ func spinnerCardioid(
 }
 
 // heartWave: y = |x|^(2/3) + amp·√(root-x²)·sin(b·π·x)
-func spinnerHeartWave(
+func mathSpinnerHeartWave(
 	progress, b, root, amp float32,
 ) (float32, float32) {
 	if root <= 0 {
@@ -478,7 +478,7 @@ func spinnerHeartWave(
 }
 
 // spiral: r = base + (1-cos t)·amp; θ = turns·t
-func spinnerSpiral(
+func mathSpinnerSpiral(
 	progress, turns, baseR, rAmp float32,
 ) (float32, float32) {
 	t := float64(progress) * 2 * math.Pi
@@ -494,7 +494,7 @@ func spinnerSpiral(
 
 // fourier: sum of harmonic terms on x and y axes.
 // a = x1 amplitude, b = y1 amplitude.
-func spinnerFourier(progress, x1, y1 float32) (float32, float32) {
+func mathSpinnerFourier(progress, x1, y1 float32) (float32, float32) {
 	t := float64(progress) * 2 * math.Pi
 	x3 := x1 * 0.44
 	x5 := x1 * 0.19

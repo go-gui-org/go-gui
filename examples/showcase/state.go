@@ -344,7 +344,7 @@ var demoEntries = []DemoEntry{
 	{ID: "toast", Label: "Toast", Group: groupFeedback, Summary: "Non-blocking notifications with auto-dismiss and actions.", Tags: []string{"notification", "alert", "severity", "stack"}},
 	{ID: "badge", Label: "Badge", Group: groupFeedback, Summary: "Numeric and colored pill labels for counts and status.", Tags: []string{"badge", "count", "status", "pill", "label"}},
 	{ID: "skeleton", Label: "Skeleton", Group: groupFeedback, Summary: "Shimmer placeholder for loading states.", Tags: []string{"skeleton", "shimmer", "loading", "placeholder"}},
-	{ID: "spinner", Label: "Spinner", Group: groupFeedback, Summary: "Animated mathematical curves as loading indicators.", Tags: []string{"spinner", "loading", "curve", "animation", "rose", "lissajous", "butterfly", "cardioid", "spiral"}},
+	{ID: "spinner", Label: "Math Spinner", Group: groupFeedback, Summary: "Animated mathematical curves as loading indicators.", Tags: []string{"math spinner", "loading", "curve", "animation", "rose", "lissajous", "butterfly", "cardioid", "spiral"}},
 	{ID: "svg_spinner", Label: "SVG Spinner", Group: groupFeedback, Summary: "One hundred six built-in animated SVG spinners grouped by visual family.", Tags: []string{"svg", "spinner", "loading", "animation", "dots", "bars", "ring", "loader", "blocks"}},
 	{ID: "native_notification", Label: "Native Notification", Group: groupFeedback, Summary: "OS-level notifications on macOS, Windows, and Linux.", Tags: []string{"notification", "native", "os", "alert", "push"}},
 	{ID: "audio", Label: "Audio", Group: groupFeedback, Summary: "Opt-in sound effects and music playback via SDL_mixer.", Tags: []string{"audio", "sound", "music", "sfx", "beep", "mixer"}},

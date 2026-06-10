@@ -2,7 +2,7 @@ package main
 
 import "github.com/go-gui-org/go-gui/gui"
 
-func demoSpinner(w *gui.Window) gui.View {
+func demoMathSpinner(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
 
 	type entry struct {
@@ -51,7 +51,7 @@ func demoSpinner(w *gui.Window) gui.View {
 			HAlign:     gui.HAlignCenter,
 			Spacing:    gui.SomeF(6),
 			Content: []gui.View{
-				gui.Spinner(gui.SpinnerCfg{
+				gui.MathSpinner(gui.MathSpinnerCfg{
 					ID:        "sp-" + e.label,
 					CurveType: e.curve,
 					Size:      100,

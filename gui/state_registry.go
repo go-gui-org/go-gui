@@ -130,7 +130,7 @@ const (
 	nsForm                = "gui.form"
 	nsSpellCheck          = "gui.spell_check"
 	nsSkeleton            = "gui.skeleton"
-	nsSpinner             = "gui.spinner"
+	nsMathSpinner         = "gui.math_spinner"
 	nsHoverInside         = "gui.hover.inside"
 	nsMdSel               = "gui.markdown.sel"
 	nsMdBlocks            = "gui.markdown.blocks"

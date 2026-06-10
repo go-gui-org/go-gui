@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-func TestSpinnerDefaultLayout(t *testing.T) {
+func TestMathSpinnerDefaultLayout(t *testing.T) {
 	w := &Window{}
-	v := Spinner(SpinnerCfg{ID: "s1"}, w)
+	v := MathSpinner(MathSpinnerCfg{ID: "s1"}, w)
 	layout := generateViewLayout(v, w)
 	if layout.Shape.Axis != AxisLeftToRight {
 		t.Error("default should be row")
@@ -21,9 +21,9 @@ func TestSpinnerDefaultLayout(t *testing.T) {
 	}
 }
 
-func TestSpinnerConfigDefaults(t *testing.T) {
+func TestMathSpinnerConfigDefaults(t *testing.T) {
 	w := &Window{}
-	v := Spinner(SpinnerCfg{ID: "s2"}, w)
+	v := MathSpinner(MathSpinnerCfg{ID: "s2"}, w)
 	layout := generateViewLayout(v, w)
 	if layout.Shape.Width != 48 {
 		t.Errorf("default width = %f, want 48", layout.Shape.Width)
@@ -33,10 +33,10 @@ func TestSpinnerConfigDefaults(t *testing.T) {
 	}
 }
 
-func TestSpinnerCustomColor(t *testing.T) {
+func TestMathSpinnerCustomColor(t *testing.T) {
 	w := &Window{}
 	c := RGB(255, 0, 0)
-	v := Spinner(SpinnerCfg{ID: "s3", Color: c}, w)
+	v := MathSpinner(MathSpinnerCfg{ID: "s3", Color: c}, w)
 	layout := generateViewLayout(v, w)
 	cv := layout.Children[0]
 	if cv.Shape.events == nil || cv.Shape.events.OnDraw == nil {
@@ -44,10 +44,10 @@ func TestSpinnerCustomColor(t *testing.T) {
 	}
 }
 
-func TestSpinnerExplicitZeroParam(t *testing.T) {
+func TestMathSpinnerExplicitZeroParam(t *testing.T) {
 	w := &Window{}
 	// ParamB explicitly set to 0 should NOT be overridden.
-	v := Spinner(SpinnerCfg{
+	v := MathSpinner(MathSpinnerCfg{
 		ID:        "s4",
 		CurveType: CurveLissajous,
 		ParamB:    Some[float32](0),
@@ -58,19 +58,19 @@ func TestSpinnerExplicitZeroParam(t *testing.T) {
 	}
 }
 
-func TestSpinnerInvalidCurveTypeClamped(t *testing.T) {
+func TestMathSpinnerInvalidCurveTypeClamped(t *testing.T) {
 	w := &Window{}
 	// Should not panic with out-of-range CurveType.
-	v := Spinner(SpinnerCfg{ID: "s5", CurveType: CurveType(200)}, w)
+	v := MathSpinner(MathSpinnerCfg{ID: "s5", CurveType: CurveType(200)}, w)
 	layout := generateViewLayout(v, w)
 	if layout.Shape.Width != 48 {
 		t.Errorf("width = %f, want 48", layout.Shape.Width)
 	}
 }
 
-func TestSpinnerFixedSizing(t *testing.T) {
+func TestMathSpinnerFixedSizing(t *testing.T) {
 	w := &Window{}
-	v := Spinner(SpinnerCfg{
+	v := MathSpinner(MathSpinnerCfg{
 		ID:     "s6",
 		Width:  200,
 		Height: 100,
@@ -84,7 +84,7 @@ func TestSpinnerFixedSizing(t *testing.T) {
 	}
 }
 
-func TestSpinnerNormalize(t *testing.T) {
+func TestMathSpinnerNormalize(t *testing.T) {
 	tests := []struct {
 		name  string
 		input float32
@@ -96,7 +96,7 @@ func TestSpinnerNormalize(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := spinnerNormalize(tt.input)
+			got := mathSpinnerNormalize(tt.input)
 			if math.Abs(float64(got-tt.want)) > 0.001 {
 				t.Errorf("normalize(%f) = %f, want ~%f",
 					tt.input, got, tt.want)
@@ -105,7 +105,7 @@ func TestSpinnerNormalize(t *testing.T) {
 	}
 }
 
-func TestSpinnerClampPoint(t *testing.T) {
+func TestMathSpinnerClampPoint(t *testing.T) {
 	nan := float32(math.NaN())
 	tests := []struct {
 		name         string
@@ -118,7 +118,7 @@ func TestSpinnerClampPoint(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			x, y := spinnerClampPoint(tt.inX, tt.inY)
+			x, y := mathSpinnerClampPoint(tt.inX, tt.inY)
 			if x != tt.wantX || y != tt.wantY {
 				t.Errorf("clamp(%f, %f) = (%f, %f), want (%f, %f)",
 					tt.inX, tt.inY, x, y, tt.wantX, tt.wantY)
@@ -131,12 +131,12 @@ func isFinite(v float32) bool {
 	return !math.IsNaN(float64(v)) && !math.IsInf(float64(v), 0)
 }
 
-func TestSpinnerAllCurvesFullSweepFinite(t *testing.T) {
+func TestMathSpinnerAllCurvesFullSweepFinite(t *testing.T) {
 	for ct := CurveOriginalThinking; ct <= CurveFourier; ct++ {
-		defs := spinnerCurveDefaults[ct]
+		defs := mathSpinnerCurveDefaults[ct]
 		for i := range 101 {
 			progress := float32(i) / 100
-			x, y := spinnerCurvePoint(
+			x, y := mathSpinnerCurvePoint(
 				defs.family, progress, defs.a, defs.b, defs.d)
 			if !isFinite(x) || !isFinite(y) {
 				t.Errorf("curve %d at progress=%f: (%f, %f) not finite",
@@ -150,10 +150,10 @@ func TestSpinnerAllCurvesFullSweepFinite(t *testing.T) {
 	}
 }
 
-func TestSpinnerCurvePointNaNFree(t *testing.T) {
+func TestMathSpinnerCurvePointNaNFree(t *testing.T) {
 	// Fuzz-style sweep with unusual params.
 	params := []struct {
-		family  spinnerFamily
+		family  mathSpinnerFamily
 		a, b, d float32
 	}{
 		{familyEpitrochoid, 0, 0, 0},
@@ -171,7 +171,7 @@ func TestSpinnerCurvePointNaNFree(t *testing.T) {
 	for _, p := range params {
 		for i := range 101 {
 			progress := float32(i) / 100
-			x, y := spinnerCurvePoint(
+			x, y := mathSpinnerCurvePoint(
 				p.family, progress, p.a, p.b, p.d)
 			if !isFinite(x) || !isFinite(y) {
 				t.Errorf("family %d params(%f,%f,%f) progress=%f: "+
@@ -182,33 +182,33 @@ func TestSpinnerCurvePointNaNFree(t *testing.T) {
 	}
 }
 
-func TestSpinnerButterflyNegativeSinNoPanic(t *testing.T) {
+func TestMathSpinnerButterflyNegativeSinNoPanic(t *testing.T) {
 	// progress=0.75 makes sin(t/12) negative with default turns=12.
-	x, y := spinnerButterfly(0.75, 12, 2, 5)
+	x, y := mathSpinnerButterfly(0.75, 12, 2, 5)
 	if !isFinite(x) || !isFinite(y) {
 		t.Errorf("butterfly(0.75) = (%f, %f), not finite", x, y)
 	}
 }
 
-func TestSpinnerCurveZeroParams(t *testing.T) {
+func TestMathSpinnerCurveZeroParams(t *testing.T) {
 	tests := []struct {
 		name string
 		fn   func() (float32, float32)
 	}{
 		{"hypotrochoid_r=0", func() (float32, float32) {
-			return spinnerHypotrochoid(0.5, 5, 0, 3)
+			return mathSpinnerHypotrochoid(0.5, 5, 0, 3)
 		}},
 		{"rose_a=0", func() (float32, float32) {
-			return spinnerRose(0.5, 0, 5)
+			return mathSpinnerRose(0.5, 0, 5)
 		}},
 		{"cardioid_a=0", func() (float32, float32) {
-			return spinnerCardioid(0.5, 0, 0)
+			return mathSpinnerCardioid(0.5, 0, 0)
 		}},
 		{"heartWave_root=-1", func() (float32, float32) {
-			return spinnerHeartWave(0.5, 6, -1, 0.9)
+			return mathSpinnerHeartWave(0.5, 6, -1, 0.9)
 		}},
 		{"fourier_x1=0_y1=0", func() (float32, float32) {
-			return spinnerFourier(0.5, 0, 0)
+			return mathSpinnerFourier(0.5, 0, 0)
 		}},
 	}
 	for _, tt := range tests {
@@ -221,40 +221,40 @@ func TestSpinnerCurveZeroParams(t *testing.T) {
 	}
 }
 
-func TestSpinnerDrawZeroSizeNoOp(t *testing.T) {
+func TestMathSpinnerDrawZeroSizeNoOp(t *testing.T) {
 	dc := &DrawContext{Width: 0, Height: 0}
-	spinnerDraw(dc, familyRose, 0.5, 0,
+	mathSpinnerDraw(dc, familyRose, 0.5, 0,
 		60, 0.35, 2.5, 9, 5, 0, RGB(100, 100, 255))
 }
 
-func TestSpinnerDrawMinParticles(t *testing.T) {
+func TestMathSpinnerDrawMinParticles(t *testing.T) {
 	dc := &DrawContext{Width: 100, Height: 100}
-	spinnerDraw(dc, familyRose, 0.5, 0,
+	mathSpinnerDraw(dc, familyRose, 0.5, 0,
 		2, 0.35, 2.5, 9, 5, 0, RGB(100, 100, 255))
 }
 
-func TestSpinnerDrawMaxParticles(t *testing.T) {
+func TestMathSpinnerDrawMaxParticles(t *testing.T) {
 	dc := &DrawContext{Width: 100, Height: 100}
-	spinnerDraw(dc, familyLemniscate, 0.5, 0,
+	mathSpinnerDraw(dc, familyLemniscate, 0.5, 0,
 		500, 0.35, 2.5, 1, 0, 0, RGB(100, 100, 255))
 }
 
-func TestSpinnerParticlesClamped(t *testing.T) {
+func TestMathSpinnerParticlesClamped(t *testing.T) {
 	w := &Window{}
-	v := Spinner(SpinnerCfg{ID: "clamp", Particles: 10000}, w)
+	v := MathSpinner(MathSpinnerCfg{ID: "clamp", Particles: 10000}, w)
 	layout := generateViewLayout(v, w)
 	if layout.Shape.Width != 48 {
 		t.Error("layout not generated")
 	}
 }
 
-func TestSpinnerAnimationIsViewBound(t *testing.T) {
+func TestMathSpinnerAnimationIsViewBound(t *testing.T) {
 	w := &Window{}
-	Spinner(SpinnerCfg{ID: "sp1"}, w)
+	MathSpinner(MathSpinnerCfg{ID: "sp1"}, w)
 	if w.animViewBound == nil {
-		t.Fatal("animViewBound nil after Spinner — animation not view-bound")
+		t.Fatal("animViewBound nil after MathSpinner — animation not view-bound")
 	}
-	if _, ok := w.animViewBound["spinner_sp1"]; !ok {
-		t.Error("spinner animation not registered as view-bound")
+	if _, ok := w.animViewBound["math_spinner_sp1"]; !ok {
+		t.Error("math_spinner animation not registered as view-bound")
 	}
 }

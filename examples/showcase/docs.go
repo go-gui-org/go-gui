@@ -5929,7 +5929,7 @@ rotation adds visual depth.
 ## Usage
 
 ` + "```go" + `
-gui.Spinner(gui.SpinnerCfg{
+gui.MathSpinner(gui.MathSpinnerCfg{
     ID:        "loading",
     CurveType: gui.CurveRose,
     Size:      80,
@@ -5939,7 +5939,7 @@ gui.Spinner(gui.SpinnerCfg{
 ## With Color and Rotation
 
 ` + "```go" + `
-gui.Spinner(gui.SpinnerCfg{
+gui.MathSpinner(gui.MathSpinnerCfg{
     ID:        "search",
     CurveType: gui.CurveHypotrochoid,
     Size:      100,
@@ -5951,7 +5951,7 @@ gui.Spinner(gui.SpinnerCfg{
 ## Custom Parameters
 
 ` + "```go" + `
-gui.Spinner(gui.SpinnerCfg{
+gui.MathSpinner(gui.MathSpinnerCfg{
     ID:          "custom",
     CurveType:   gui.CurveLissajous,
     Size:        120,
