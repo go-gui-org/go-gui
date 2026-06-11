@@ -154,6 +154,10 @@ func progressBarAmendLayout(
 	percent := f32Clamp(barPercent, 0, 1)
 	offset := float32(0)
 
+	// Note: animation duration is sampled once on first render.
+	// Changing Indefinite from true→false (or vice versa) after
+	// the widget is visible has no effect. Use a different widget
+	// ID to apply new parameters.
 	if indefinite {
 		percent = 0.3
 		animID := id + "_indefinite"

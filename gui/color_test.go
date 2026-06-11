@@ -103,25 +103,25 @@ func TestColorByteOrder(t *testing.T) {
 
 func TestColorSub(t *testing.T) {
 	t.Parallel()
-	t.Run("preserves_higher_alpha", func(t *testing.T) {
+	t.Run("subtracts_alpha", func(t *testing.T) {
 		t.Parallel()
 		r := RGBA(200, 200, 200, 100).Sub(RGBA(50, 50, 50, 50))
-		if r.A != 100 {
-			t.Errorf("Sub alpha: got %d, want 100", r.A)
+		if r.A != 50 {
+			t.Errorf("Sub alpha: got %d, want 50", r.A)
 		}
 	})
 	t.Run("clamps_to_zero", func(t *testing.T) {
 		t.Parallel()
 		r := RGB(10, 10, 10).Sub(RGB(20, 20, 20))
-		if r.R != 0 || r.G != 0 || r.B != 0 {
+		if r.R != 0 || r.G != 0 || r.B != 0 || r.A != 0 {
 			t.Errorf("Sub should clamp to 0: got %v", r)
 		}
 	})
-	t.Run("uses_higher_alpha", func(t *testing.T) {
+	t.Run("clamps_alpha_to_zero", func(t *testing.T) {
 		t.Parallel()
 		r := RGBA(200, 200, 200, 50).Sub(RGBA(10, 10, 10, 200))
-		if r.A != 200 {
-			t.Errorf("Sub alpha: got %d, want 200", r.A)
+		if r.A != 0 {
+			t.Errorf("Sub alpha: got %d, want 0", r.A)
 		}
 	})
 }

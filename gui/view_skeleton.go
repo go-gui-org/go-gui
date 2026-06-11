@@ -87,6 +87,8 @@ func skeletonAmendLayout(
 	layout *Layout, w *Window,
 	id string, colorBase, colorHL Color,
 ) {
+	// Note: animation duration is sampled once on first render.
+	// Use a different widget ID to apply new parameters.
 	animID := "skeleton_" + id
 	if !w.touchViewBoundAnimation(animID) {
 		kf := &KeyframeAnimation{

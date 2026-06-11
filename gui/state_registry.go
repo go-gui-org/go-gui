@@ -2,12 +2,21 @@ package gui
 
 // StateRegistry stores per-widget BoundedMap instances keyed by
 // namespace string.
+//
+// Concurrency: StateMap reads and writes registry.maps without
+// holding w.mu. This is safe because all callers execute on the
+// main goroutine — during GenerateLayout (under w.mu), AmendLayout
+// (under w.mu), and OnValue animation callbacks (dispatched via
+// flushCommands on the main goroutine, before FrameFn acquires
+// w.mu). The animation loop goroutine only enqueues OnValue
+// callbacks; it never calls StateMap directly.
 type StateRegistry struct {
 	maps map[string]any
 }
 
 // StateMap returns (or lazily creates) a *BoundedMap[K, V] for the
 // given namespace.
+// SAFETY: main-goroutine only (see StateRegistry doc).
 func StateMap[K comparable, V any](w *Window, ns string, maxSize int) *BoundedMap[K, V] {
 	if ptr, ok := w.viewState.registry.maps[ns]; ok {
 		return ptr.(*BoundedMap[K, V])

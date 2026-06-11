@@ -75,10 +75,16 @@ func (p *scratchObjPool[T]) alloc(src T) *T {
 }
 
 func (p *scratchObjPool[T]) reset() {
-	p.used = 0
-	if p.retainMax > 0 && len(p.items) > p.retainMax {
-		p.items = make([]*T, 0, p.shrinkTo)
+	if p.retainMax > 0 {
+		if len(p.items) > p.retainMax {
+			// Exceeded absolute cap — shrink hard.
+			p.items = make([]*T, 0, p.shrinkTo)
+		} else if len(p.items) > p.shrinkTo && p.used < len(p.items)/4 {
+			// Usage far below capacity (< 25%); release memory.
+			p.items = make([]*T, 0, p.shrinkTo)
+		}
 	}
+	p.used = 0
 }
 
 // scratchPools holds reusable per-frame buffers.

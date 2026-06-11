@@ -7,6 +7,7 @@ type ButtonCfg struct {
 	Gradient        *GradientDef
 	OnClick         func(*Layout, *Event, *Window)
 	OnHover         func(*Layout, *Event, *Window)
+	AmendLayout     func(*Layout, *Window)
 	ID              string
 	A11YLabel       string
 	A11YDescription string
@@ -53,6 +54,7 @@ type ButtonCfg struct {
 type buttonView struct {
 	cv               *containerView
 	userOnHover      func(*Layout, *Event, *Window)
+	userAmendLayout  func(*Layout, *Window)
 	colorHover       Color
 	colorClick       Color
 	colorFocus       Color
@@ -70,6 +72,7 @@ func (bv *buttonView) GenerateLayout(w *Window) Layout {
 			ColorFocus:       bv.colorFocus,
 			ColorBorderFocus: bv.colorBorderFocus,
 			OnHover:          bv.userOnHover,
+			OnAmend:          bv.userAmendLayout,
 		}
 		if w != nil {
 			layout.Shape.bc = w.scratch.buttonColors.alloc(bc)
@@ -91,6 +94,9 @@ func buttonAmendLayout(layout *Layout, w *Window) {
 	if w.IsFocus(layout.Shape.IDFocus) {
 		layout.Shape.Color = layout.Shape.bc.ColorFocus
 		layout.Shape.ColorBorder = layout.Shape.bc.ColorBorderFocus
+	}
+	if layout.Shape.bc.OnAmend != nil {
+		layout.Shape.bc.OnAmend(layout, w)
 	}
 }
 
@@ -179,6 +185,7 @@ func Button(cfg ButtonCfg) View {
 		colorFocus:       cfg.ColorFocus,
 		colorBorderFocus: cfg.ColorBorderFocus,
 		userOnHover:      cfg.OnHover,
+		userAmendLayout:  cfg.AmendLayout,
 	}
 }
 

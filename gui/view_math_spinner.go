@@ -164,6 +164,10 @@ func MathSpinner(cfg MathSpinnerCfg, w *Window) View {
 		height = cfg.Size
 	}
 
+	// Note: Speed, Rotate, and curve params are sampled once on
+	// first render via touchViewBoundAnimation. Changing them
+	// after the widget is visible has no effect. Use a different
+	// widget ID to apply new parameters.
 	id := cfg.ID
 	animID := "math_spinner_" + id
 	dur := time.Duration(float64(5*time.Second) / float64(cfg.Speed))
@@ -280,6 +284,9 @@ func mathSpinnerDraw(
 		ghostPts[i*2+1] = cy + (px*sinR+py*cosR)*scale
 	}
 	ghostColor := RGBA(color.R, color.G, color.B, 30)
+	// Safety: PolylineJoined copies the path data internally and
+	// does not retain the ghostPts slice. The buffer is safe to
+	// return to the pool immediately after this call.
 	dc.PolylineJoined(ghostPts, ghostColor, strokeWidth*0.8)
 	mathSpinnerGhostPool.Put(ghostBuf)
 

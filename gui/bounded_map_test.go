@@ -147,10 +147,14 @@ func TestBoundedMapMaxSizeOne(t *testing.T) {
 }
 
 func TestBoundedMapMaxSizeZero(t *testing.T) {
+	// Unbounded map: Set stores, no eviction.
 	m := NewBoundedMap[string, int](0)
 	m.Set("a", 1)
-	if m.Len() != 0 {
-		t.Errorf("len: got %d", m.Len())
+	if v, ok := m.Get("a"); !ok || v != 1 {
+		t.Errorf("Get(a): got (%d, %v), want (1, true)", v, ok)
+	}
+	if m.Len() != 1 {
+		t.Errorf("len: got %d, want 1", m.Len())
 	}
 }
 
@@ -186,10 +190,14 @@ func TestBoundedMapKeysStableAfterDeleteAndInsert(t *testing.T) {
 }
 
 func TestBoundedMapMaxSizeNegative(t *testing.T) {
+	// Negative maxSize treated as unbounded: Set stores, no eviction.
 	m := NewBoundedMap[string, int](-1)
 	m.Set("a", 1)
-	if m.Len() != 0 {
-		t.Errorf("len: got %d, want 0", m.Len())
+	if v, ok := m.Get("a"); !ok || v != 1 {
+		t.Errorf("Get(a): got (%d, %v), want (1, true)", v, ok)
+	}
+	if m.Len() != 1 {
+		t.Errorf("len: got %d, want 1", m.Len())
 	}
 }
 
@@ -308,5 +316,69 @@ func TestBoundedMapRangeKeysAfterChurn(t *testing.T) {
 	})
 	if len(got) != 1 || got[0] != 0 {
 		t.Fatalf("keys: got %v, want [0]", got)
+	}
+}
+
+func TestBoundedMapCloneAnyUnbounded(t *testing.T) {
+	m := NewBoundedMap[string, int](0)
+	m.Set("a", 1)
+	m.Set("b", 2)
+	m.Set("c", 3)
+
+	clone := m.cloneAny().(*BoundedMap[string, int])
+	if clone.Len() != 3 {
+		t.Fatalf("clone len: got %d, want 3", clone.Len())
+	}
+	for _, k := range []string{"a", "b", "c"} {
+		want, _ := m.Get(k)
+		if v, ok := clone.Get(k); !ok || v != want {
+			t.Errorf("clone[%s]: got (%d, %v), want (%d, true)", k, v, ok, want)
+		}
+	}
+	// Verify clone is iterable via Range (order populated).
+	seen := 0
+	clone.Range(func(k string, v int) bool {
+		seen++
+		return true
+	})
+	if seen != 3 {
+		t.Errorf("Range on clone saw %d entries, want 3", seen)
+	}
+	// Verify independence: mutate clone, original unchanged.
+	clone.Set("a", 99)
+	if v, _ := m.Get("a"); v != 1 {
+		t.Errorf("original mutated: got %d, want 1", v)
+	}
+}
+
+func TestBoundedMapRestoreAnyUnbounded(t *testing.T) {
+	m := NewBoundedMap[string, int](0)
+	m.Set("a", 1)
+
+	src := NewBoundedMap[string, int](0)
+	src.Set("x", 10)
+	src.Set("y", 20)
+
+	m.restoreAny(src)
+	if m.Len() != 2 {
+		t.Fatalf("len: got %d, want 2", m.Len())
+	}
+	if v, ok := m.Get("x"); !ok || v != 10 {
+		t.Errorf("x: got (%d, %v), want (10, true)", v, ok)
+	}
+	if v, ok := m.Get("y"); !ok || v != 20 {
+		t.Errorf("y: got (%d, %v), want (20, true)", v, ok)
+	}
+	if _, ok := m.Get("a"); ok {
+		t.Error("a should be cleared")
+	}
+	// Verify restored map is iterable via Range.
+	seen := 0
+	m.Range(func(k string, v int) bool {
+		seen++
+		return true
+	})
+	if seen != 2 {
+		t.Errorf("Range after restore saw %d entries, want 2", seen)
 	}
 }

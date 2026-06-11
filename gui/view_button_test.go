@@ -78,3 +78,60 @@ func TestButtonNoOnClickNoHandler(t *testing.T) {
 		t.Error("expected no OnClick without handler")
 	}
 }
+
+func TestButtonAmendLayoutChains(t *testing.T) {
+	w := &Window{}
+	called := false
+	v := Button(ButtonCfg{
+		ID:      "b7",
+		OnClick: func(_ *Layout, _ *Event, _ *Window) {},
+		AmendLayout: func(_ *Layout, _ *Window) {
+			called = true
+		},
+	})
+	layout := generateViewLayout(v, w)
+	if layout.Shape.events == nil ||
+		layout.Shape.events.AmendLayout == nil {
+		t.Fatal("expected AmendLayout handler")
+	}
+	layout.Shape.events.AmendLayout(&layout, w)
+	if !called {
+		t.Error("AmendLayout did not fire")
+	}
+}
+
+func TestButtonAmendLayoutNotCalledWhenDisabled(t *testing.T) {
+	w := &Window{}
+	called := false
+	v := Button(ButtonCfg{
+		ID:       "b8",
+		Disabled: true,
+		OnClick:  func(_ *Layout, _ *Event, _ *Window) {},
+		AmendLayout: func(_ *Layout, _ *Window) {
+			called = true
+		},
+	})
+	layout := generateViewLayout(v, w)
+	if layout.Shape.events == nil ||
+		layout.Shape.events.AmendLayout == nil {
+		t.Fatal("expected AmendLayout handler")
+	}
+	layout.Shape.events.AmendLayout(&layout, w)
+	if called {
+		t.Error("AmendLayout should not fire when disabled")
+	}
+}
+
+func TestButtonAmendLayoutSuppressedWhenNoOnClick(t *testing.T) {
+	// When OnClick is nil, the button creates no event handlers at
+	// all — AmendLayout cannot fire because it's never wired.
+	w := &Window{}
+	v := Button(ButtonCfg{
+		ID:          "b9",
+		AmendLayout: func(_ *Layout, _ *Window) {},
+	})
+	layout := generateViewLayout(v, w)
+	if layout.Shape.events != nil {
+		t.Error("expected nil events when OnClick is nil")
+	}
+}

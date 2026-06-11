@@ -42,6 +42,9 @@ func Pulsar(cfg PulsarCfg, w *Window) View {
 	if !w.hasAnimationLocked(blinkCursorAnimationID) {
 		w.animationAdd(NewBlinkCursorAnimation())
 	}
+	// Note: animation delay is sampled once on first render via
+	// touchViewBoundAnimation. Use a different widget ID to apply
+	// new parameters.
 	if !w.touchViewBoundAnimation(pulsarAnimationID) {
 		w.animationAddViewBound(&Animate{
 			AnimID:  pulsarAnimationID,

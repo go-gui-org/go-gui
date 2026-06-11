@@ -140,6 +140,54 @@ func TestScratchObjPoolResetShrink(t *testing.T) {
 	}
 }
 
+func TestScratchObjPoolResetShrinkLowUsage(t *testing.T) {
+	// After a spike of 1000 allocs, a frame using only 10 (1%)
+	// should trigger the usage-based shrink.
+	pool := scratchObjPool[TextStyle]{retainMax: 16384, shrinkTo: 32}
+	for i := range 1000 {
+		pool.alloc(TextStyle{Size: float32(i)})
+	}
+	if len(pool.items) != 1000 {
+		t.Fatalf("pre: want 1000 items, got %d", len(pool.items))
+	}
+	// Simulate a normal frame: only 10 allocations.
+	pool.used = 10
+	pool.reset()
+	if cap(pool.items) != 32 {
+		t.Fatalf("low usage should trigger shrink: want cap 32, got %d",
+			cap(pool.items))
+	}
+}
+
+func TestScratchObjPoolResetNoShrinkWhenUsageHigh(t *testing.T) {
+	pool := scratchObjPool[TextStyle]{retainMax: 16384, shrinkTo: 32}
+	for i := range 1000 {
+		pool.alloc(TextStyle{Size: float32(i)})
+	}
+	// 800 of 1000 slots used (80%) — should NOT shrink.
+	pool.used = 800
+	pool.reset()
+	if len(pool.items) != 1000 {
+		t.Fatalf("high usage should retain pool: want 1000 items, got %d",
+			len(pool.items))
+	}
+}
+
+func TestScratchObjPoolResetBoundaryNoShrinkAtQuarter(t *testing.T) {
+	pool := scratchObjPool[TextStyle]{retainMax: 16384, shrinkTo: 32}
+	for i := range 1000 {
+		pool.alloc(TextStyle{Size: float32(i)})
+	}
+	// Exactly 25% usage — threshold is p.used < len/4 (strict less).
+	// 250 < 250 is false, so pool must NOT shrink.
+	pool.used = 250
+	pool.reset()
+	if len(pool.items) != 1000 {
+		t.Fatalf("exactly 25%% usage should retain pool: want 1000 items, got %d",
+			len(pool.items))
+	}
+}
+
 func TestAllocFloatingLayoutReuse(t *testing.T) {
 	p := newScratchPools()
 	shape1 := Shape{Width: 1}

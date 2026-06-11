@@ -52,24 +52,25 @@ func (m *BoundedMap[K, V]) restoreAny(src any) {
 
 // Set adds or updates a key-value pair. Evicts oldest if at capacity.
 func (m *BoundedMap[K, V]) Set(key K, value V) {
-	if m.maxSize < 1 {
-		return
-	}
 	if _, exists := m.data[key]; exists {
 		m.data[key] = value
 		return
 	}
-	for len(m.data) >= m.maxSize && m.head < len(m.order) {
-		oldestKey := m.order[m.head]
-		m.head++
-		if _, exists := m.data[oldestKey]; exists {
-			delete(m.data, oldestKey)
-			break
+	if m.maxSize > 0 {
+		for len(m.data) >= m.maxSize && m.head < len(m.order) {
+			oldestKey := m.order[m.head]
+			m.head++
+			if _, exists := m.data[oldestKey]; exists {
+				delete(m.data, oldestKey)
+				break
+			}
 		}
 	}
 	m.order = append(m.order, key)
 	m.data[key] = value
-	m.compactOrder()
+	if m.maxSize > 0 {
+		m.compactOrder()
+	}
 }
 
 // Get returns value for key. Second return is false if not found.

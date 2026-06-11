@@ -297,6 +297,7 @@ type eventHandlers struct {
 // closure allocations.
 type shapeButtonColors struct {
 	OnHover          func(*Layout, *Event, *Window)
+	OnAmend          func(*Layout, *Window)
 	ColorHover       Color
 	ColorClick       Color
 	ColorFocus       Color

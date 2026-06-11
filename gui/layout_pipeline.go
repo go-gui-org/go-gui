@@ -52,6 +52,8 @@ func layoutAmend(layout *Layout, w *Window) {
 // layoutHover walks the layout tree depth-first, firing OnHover
 // callbacks when the mouse is inside a shape. Returns true if
 // any hover was handled.
+// SAFETY: mutates w.viewState.mousePosX/Y to compensate for child
+// rotation. Called from layoutArrange, which runs under w.mu.
 func layoutHover(layout *Layout, w *Window) bool {
 	if w.MouseIsLocked() {
 		return false
