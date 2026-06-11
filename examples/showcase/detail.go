@@ -28,7 +28,7 @@ func detailPanel(w *gui.Window) gui.View {
 	}
 
 	if !hasEntry(entries, app.SelectedComponent) {
-		app.SelectedComponent = preferredComponentForGroup(app.SelectedGroup, entries)
+		app.SelectedComponent = preferredComponentForGroup(entries)
 	}
 
 	entry := selectedEntry(entries, app.SelectedComponent)
@@ -39,6 +39,10 @@ func detailPanel(w *gui.Window) gui.View {
 		w.QueueCommand(func(w *gui.Window) {
 			w.AnimationRemove("shader_tick")
 		})
+	}
+	// Discard stale lazy-loaded tree nodes when navigating away.
+	if entry.ID != "tree" {
+		app.TreeLazyNodes = make(map[string][]gui.TreeNodeCfg)
 	}
 
 	var content gui.View

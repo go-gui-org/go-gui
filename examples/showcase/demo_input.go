@@ -538,7 +538,7 @@ func showcaseFormFieldState(w *gui.Window, fieldID string) gui.View {
 func showcaseFormFieldIssues(w *gui.Window, fieldID string) gui.View {
 	issues := w.FormFieldErrors(showcaseFormID, fieldID)
 	if len(issues) == 0 {
-		return gui.Text(gui.TextCfg{TextStyle: gui.CurrentTheme().N3})
+		return nil
 	}
 	msgs := make([]string, len(issues))
 	for i, issue := range issues {

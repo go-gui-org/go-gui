@@ -91,8 +91,9 @@ func buttonFeatureRows(w *gui.Window) []gui.View {
 			MaxWidth: buttonWidth,
 			Content:  []gui.View{gui.Text(gui.TextCfg{Text: copyLabel})},
 			OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-				showcaseButtonClick(nil, e, w)
+				incrementButtonClicks(w)
 				gui.State[ShowcaseApp](w).ButtonCopyUntil = time.Now().Add(2 * time.Second)
+				e.IsHandled = true
 			},
 		})),
 	}
@@ -111,11 +112,13 @@ func buttonFeatureRow(label string, button gui.View) gui.View {
 	})
 }
 
-func showcaseButtonClick(_ *gui.Layout, e *gui.Event, w *gui.Window) {
+func incrementButtonClicks(w *gui.Window) {
 	gui.State[ShowcaseApp](w).ButtonClicks++
-	if e != nil {
-		e.IsHandled = true
-	}
+}
+
+func showcaseButtonClick(_ *gui.Layout, e *gui.Event, w *gui.Window) {
+	incrementButtonClicks(w)
+	e.IsHandled = true
 }
 
 func demoProgressBar(_ *gui.Window) gui.View {

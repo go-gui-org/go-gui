@@ -428,7 +428,7 @@ func selectedEntry(entries []DemoEntry, selected string) DemoEntry {
 	return entries[0]
 }
 
-func preferredComponentForGroup(_ string, entries []DemoEntry) string {
+func preferredComponentForGroup(entries []DemoEntry) string {
 	if len(entries) == 0 {
 		return ""
 	}

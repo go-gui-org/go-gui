@@ -30,10 +30,12 @@ func loadEmbeddedLocales() {
 	} {
 		data, err := showcaseFS.ReadFile(name)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "showcase: failed to read %s: %v\n", name, err)
 			continue
 		}
 		locale, err := gui.LocaleParse(string(data))
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "showcase: failed to parse %s: %v\n", name, err)
 			continue
 		}
 		gui.LocaleRegister(locale)

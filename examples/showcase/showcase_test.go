@@ -50,7 +50,7 @@ func TestPreferredComponentForGroupPinsWelcome(t *testing.T) {
 		{ID: "welcome", Label: "Welcome"},
 		{ID: "doc_get_started", Label: "Get Started"},
 	}
-	if got := preferredComponentForGroup(groupWelcome, entries); got != "welcome" {
+	if got := preferredComponentForGroup(entries); got != "welcome" {
 		t.Fatalf("expected welcome, got %s", got)
 	}
 }

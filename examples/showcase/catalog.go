@@ -18,7 +18,7 @@ func catalogPanel(w *gui.Window) gui.View {
 		w.ScrollVerticalTo(scrollDetail, 0)
 		w.ScrollHorizontalTo(scrollDetail, 0)
 	case !hasEntry(entries, app.SelectedComponent):
-		app.SelectedComponent = preferredComponentForGroup(app.SelectedGroup, entries)
+		app.SelectedComponent = preferredComponentForGroup(entries)
 		app.ShowDocs = false
 		w.ScrollVerticalTo(scrollDetail, 0)
 		w.ScrollHorizontalTo(scrollDetail, 0)
@@ -129,7 +129,7 @@ func groupPickerItem(label, key string, app *ShowcaseApp) gui.View {
 			showcaseApp.ShowDocs = false
 			showcaseApp.NavQuery = ""
 			entries := filteredEntries(showcaseApp)
-			showcaseApp.SelectedComponent = preferredComponentForGroup(key, entries)
+			showcaseApp.SelectedComponent = preferredComponentForGroup(entries)
 			w.ScrollVerticalTo(scrollCatalog, 0)
 			w.ScrollVerticalTo(scrollDetail, 0)
 			w.ScrollHorizontalTo(scrollDetail, 0)

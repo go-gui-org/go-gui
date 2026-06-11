@@ -433,17 +433,14 @@ func showcaseTableRowsSorted(sortBy int) [][]string {
 	}
 	isAscending := sortBy > 0
 	idx := int(math.Abs(float64(sortBy))) - 1
-	body := append([][]string(nil), rows[1:]...)
-	for i := 0; i < len(body)-1; i++ {
-		for j := i + 1; j < len(body); j++ {
-			a := strings.ToLower(body[i][idx])
-			b := strings.ToLower(body[j][idx])
-			swap := (isAscending && a > b) || (!isAscending && a < b)
-			if swap {
-				body[i], body[j] = body[j], body[i]
-			}
+	body := slices.Clone(rows[1:])
+	slices.SortStableFunc(body, func(a, b []string) int {
+		c := cmp.Compare(strings.ToLower(a[idx]), strings.ToLower(b[idx]))
+		if !isAscending {
+			c = -c
 		}
-	}
+		return c
+	})
 	return append([][]string{rows[0]}, body...)
 }
 
