@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.26.0] - 2026-06-12
+
+### Breaking
+
+- **DataGrid moved to `gui/datagrid/`** — `DataGrid`, `DataGridCell`,
+  `DataGridTheme`, and related symbols (~30) extracted from `gui/` into a
+  separate package. Import `github.com/go-gui-org/go-gui/gui/datagrid`
+  and use `datagrid.New()` instead of `gui.NewDataGrid()`.
+- **SVG constant renames** — `StrokeCap` → `SvgStrokeCap`, `StrokeJoin` →
+  `SvgStrokeJoin`, plus typed constants for stroke cap/join, spread method,
+  and units. Callers using the old untyped string constants will need to
+  update to the new typed values.
+- **Spinner renamed to MathSpinner** — `gui.NewSpinner()` →
+  `gui.NewMathSpinner()`. Disambiguates from future loading-spinner widget.
+
+### Added
+
+- `SvgAlignNone` now does non-uniform stretch with independent scaleX/scaleY
+  instead of treating the SVG as xMidYMid.
+- Backend `RunE`/`RunAppE` variants (gl, sdl2, metal, web) that return errors
+  instead of panicking on init failure.
+
+### Changed
+
+- SVG path parser refactored into `pathParser` struct with per-command methods
+  for lower allocation and better readability.
+- Render validators and SVG element handlers extracted from large functions
+  into focused helpers.
+- `keyName` and `EventFn` complexity reduced via helper extraction.
+- Showcase temp-file handling hardened, lazy-load abort wired, allocations
+  simplified.
+
+### Fixed
+
+- Web backend build broken by `newBackend` return value mismatch and
+  non-constant `fmt.Errorf` format strings.
+- macOS linker duplicate `-lobjc` warnings suppressed via
+  `-Wl,-no_warn_duplicate_libraries`.
+- Web backend keyboard modifiers guarded against `KeyboardEvent` lacking
+  `.buttons`.
+- Web backend keydown/keyup registered on `document` instead of `canvas`,
+  fixing focus-edge-case missed keys.
+- Showcase wasm build missing `cleanupEmbeddedAssets` stub.
+- Showcase audio made opt-in behind `gui_showcase_audio` build tag, fixing
+  Windows FLAC DLL issue (#8).
+- CI showcase deploy race condition on GitHub Pages fixed.
+
 ## [v0.25.0] - 2026-06-08
 
 ### Changed
