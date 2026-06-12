@@ -46,15 +46,20 @@ Perf is constrained by allocations, not throughput (see
 - Gate: layout, SVG parse/tessellate, and render pipeline are the
   highest-ROI targets.
 
-### 4. SVG rendering: `SvgAlignNone`
+### 4. SVG rendering: `SvgAlignNone` ✅
 
 **Concrete, scoped, user-visible.**
 
 `gui/render_svg.go:178` — `SvgAlignNone` should non-uniformly stretch
-with independent scaleX/scaleY. Currently treated as xMidYMid.
-Self-contained fix, clear test target.
+with independent scaleX/scaleY. Previously treated as xMidYMid.
 
-### 5. Backend/platform test coverage
+- [x] `svg_load.go`: tessellate at max(scaleX, scaleY) when SvgAlignNone
+- [x] `render_svg.go`: compute independent scaleX/scaleY, apply via HasXform
+  with Scale=1, composing over animation/base xforms
+- [x] `PreserveAlignFractions`: explicit SvgAlignNone case returning (0,0)
+- [x] `render_svg_aspect_test.go`: updated expected value
+
+### 5. Backend/platform test coverage ✅ (phase 1)
 
 **De-risk the cross-platform surface.**
 
@@ -67,6 +72,14 @@ Several backend subpackages have zero test files: `android/`, `atspi/`,
 | `atspi/`    | Medium   | Accessibility bridge, complex protocol surface |
 | `android/`  | Low      | Thin platform stub, low ROI                    |
 | `ios/`      | Low      | Thin platform stub, low ROI                    |
+
+- [x] `internal/glyphconv/` — tests for all TextAlignment cases, field
+  mapping, zero-value defaults, Features/Gradient pass-through
+- [x] `internal/imgload/` — tests for ResolveValidatedPath (NUL byte,
+  empty/dot path, allowed roots, blocked roots), DecodeNRGBA error paths
+  (empty file, oversized, default limits with valid PNG)
+- [ ] `atspi/` — role/state mapping tests (Linux build-tagged, deferred)
+- [ ] `android/`, `ios/` — thin stubs, low ROI
 
 Packages with one test file (`gl/`, `metal/`, `sdl2/`, `nativemenu/`,
 `spellcheck/`) could also use expansion — config translation, error paths,
@@ -93,37 +106,18 @@ Prioritize these by call site:
 3. Deep internal paths where recovery is genuinely impossible (these can
    stay as panics with a comment explaining why).
 
+- [x] `gl/backend.go` — `RunE`/`RunAppE` return errors; `Run`/`RunApp`
+  are panic-wrappers for backward compat
+- [x] `sdl2/backend.go` — same pattern
+- [x] `metal/backend.go` — same pattern
+- [x] `web/backend.go` — `RunE` returns error, `newBackend` returns
+  `(*Backend, error)`; `log.Fatal` → `return nil, fmt.Errorf`
+- [ ] `ios/`, `android/` — mobile C-interop init paths; deferred
+  (not testable without device/emulator, low blast radius)
+
 ---
 
 ## Future
-
-### SVG diagonal gradients
-
-`gui/svg_load.go:361` — blocked upstream. The TODO says "when glyph adds
-angle support." Until go-glyph exposes diagonal gradient direction, this
-stays as-is.
-
-### Native dark/light mode sync
-
-Auto-switch theme to follow OS appearance preference. Requires:
-- `ThemeAuto` mode in the theme system
-- `NativePlatform.OSThemePreference()` on each backend
-- macOS: `NSApp.effectiveAppearance`
-- Linux: `gsettings get org.gnome.desktop.interface color-scheme`
-- Windows: registry `AppsUseLightTheme`
-
-### Autocomplete / suggestion list
-
-Extend `InputCfg` with `Suggestions func(string) []string` (debounced
-callback). Renders a floating dropdown below the input, navigable by
-arrow keys. Partially covered by Combobox for static option lists;
-autocomplete handles dynamic/suggestion scenarios.
-
-### Charting / graphing
-
-Separate `go-charts` package built on go-gui. All framework prerequisites
-are complete (canvas view, retained geometry, text measurement, clipping,
-mouse events, gradients, animation, custom shaders).
 
 ### Media
 
@@ -133,7 +127,6 @@ Foundation on Windows).
 
 ### Community & adoption
 
-- **Contribution guide**: update `CONTRIBUTING.md` with new Makefile targets
 - **Issue templates**: add `.github/ISSUE_TEMPLATE/` forms for bugs and
   feature requests
 - **GoReleaser**: evaluate for v0.26+ once Makefile release pipeline is

@@ -17,9 +17,9 @@ func TestPreserveAlignFractions(t *testing.T) {
 		{SvgAlignXMinYMax, 0, 1},
 		{SvgAlignXMidYMax, 0.5, 1},
 		{SvgAlignXMaxYMax, 1, 1},
-		// SvgAlignNone falls back to xMidYMid pending non-uniform
-		// stretch support.
-		{SvgAlignNone, 0.5, 0.5},
+		// SvgAlignNone: non-uniform stretch — slack is zero,
+		// fractions are irrelevant. Returns 0,0 for determinism.
+		{SvgAlignNone, 0, 0},
 	}
 	for _, c := range cases {
 		x, y := PreserveAlignFractions(c.a)
@@ -38,5 +38,16 @@ func TestPreserveAlignFractionsDefaultZeroValue(t *testing.T) {
 	x, y := PreserveAlignFractions(0)
 	if x != 0.5 || y != 0.5 {
 		t.Errorf("zero-value align: got (%v,%v), want (0.5,0.5)", x, y)
+	}
+}
+
+func TestPreserveAlignFractions_UnknownValueDefaultsToMid(t *testing.T) {
+	t.Parallel()
+	// Values outside the named SvgAlign enum must default to
+	// xMidYMid so a future enum addition or memory corruption
+	// doesn't produce a nonsense offset.
+	x, y := PreserveAlignFractions(SvgAlign(99))
+	if x != 0.5 || y != 0.5 {
+		t.Errorf("unknown align: got (%v,%v), want (0.5,0.5)", x, y)
 	}
 }

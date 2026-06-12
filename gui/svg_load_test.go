@@ -431,6 +431,43 @@ func TestCachedSvgTextDrawsAnchorEnd(t *testing.T) {
 	}
 }
 
+// loadSvgWithOpts must compute a non-trivial scale when the
+// parsed SVG has finite dimensions that differ from the shape.
+// Guards against inadvertently inverting the isFiniteF guard
+// so scale collapses to 1 for every normal SVG.
+func TestLoadSvgScaleComputedFromFiniteDimensions(t *testing.T) {
+	w := &Window{}
+	// 50×50 intrinsic → loaded at 100×100 → scale = 2 (meet).
+	w.SetSvgParser(&mockSvgParser{width: 50, height: 50})
+	cached, err := w.loadSvgWithOpts(
+		"<svg viewBox=\"0 0 50 50\"></svg>",
+		100, 100, SvgParseOpts{})
+	if err != nil {
+		t.Fatalf("loadSvgWithOpts: %v", err)
+	}
+	if cached.Scale != 2 {
+		t.Fatalf("Scale = %v, want 2 (100/50)", cached.Scale)
+	}
+}
+
+// loadSvgWithOpts uses max for slice / SvgAlignNone.
+func TestLoadSvgScaleSliceUsesMax(t *testing.T) {
+	w := &Window{}
+	w.SetSvgParser(&mockSvgParser{
+		width: 50, height: 50, preserveSlice: true,
+	})
+	cached, err := w.loadSvgWithOpts(
+		"<svg viewBox=\"0 0 50 50\"></svg>",
+		100, 200, SvgParseOpts{})
+	if err != nil {
+		t.Fatalf("loadSvgWithOpts: %v", err)
+	}
+	// scaleX = 100/50 = 2, scaleY = 200/50 = 4 → max = 4.
+	if cached.Scale != 4 {
+		t.Fatalf("Scale = %v, want 4 (max of 2,4)", cached.Scale)
+	}
+}
+
 // buildBaseByPath: no animations → returns nil; nothing to seed.
 func TestBuildBaseByPath_NilWhenNoAnims(t *testing.T) {
 	paths := []CachedSvgPath{{PathID: 1, HasBaseXform: true,

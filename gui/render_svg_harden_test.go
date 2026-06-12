@@ -22,7 +22,7 @@ func TestEmitSvgPathRenderer_BaseTRSRoutesRotPivotToTranslate(t *testing.T) {
 		BaseRotAngle: 45,
 		HasBaseXform: true,
 	}
-	emitSvgPathRenderer(path, Color{}, 0, 0, 1, nil, w)
+	emitSvgPathRenderer(path, Color{}, 0, 0, 1, 0, 0, false, nil, w)
 	if len(w.renderers) != 1 {
 		t.Fatalf("expected 1 renderer, got %d", len(w.renderers))
 	}
@@ -69,7 +69,7 @@ func TestEmitSvgPathRenderer_AnimStateRotCenterOverridesBase(t *testing.T) {
 			RotCX:    7, RotCY: 8,
 		},
 	}
-	emitSvgPathRenderer(path, Color{}, 0, 0, 1, animState, w)
+	emitSvgPathRenderer(path, Color{}, 0, 0, 1, 0, 0, false, animState, w)
 	rc := w.renderers[0]
 	if rc.RotCX != 7 || rc.RotCY != 8 {
 		t.Fatalf("anim rotCenter lost: got (%v,%v) want (7,8)",
@@ -165,5 +165,49 @@ func TestLocateSegKeyTimes_SplineOvershootClampedToUnit(t *testing.T) {
 		SvgAnimCalcSpline)
 	if tt < 0 || tt > 1 {
 		t.Fatalf("keytimes spline overshoot not clamped: t=%v", tt)
+	}
+}
+
+func TestEmitSvgPathRenderer_NonUniformCompoundsWithAnimXform(t *testing.T) {
+	// Non-uniform stretch composes multiplicatively with animation
+	// transform scales. Base xform skipped when animation active (animApplied takes priority).
+	w := &Window{}
+	animState := map[uint32]svgAnimState{
+		1: {
+			HasXform: true,
+			ScaleX:   0.25,
+			ScaleY:   4,
+			Opacity:  1,
+			Inited:   true,
+		},
+	}
+	path := CachedSvgPath{
+		PathID:       1,
+		Triangles:    []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
+		Color:        Color{255, 255, 255, 255, true},
+		HasBaseXform: true,
+		BaseScaleX:   0.5,
+		BaseScaleY:   2,
+	}
+	// nsScaleX=2, nsScaleY=3, uniform=4 → nonUniform.
+	// Anim only: 2*0.25=0.5, 3*4=12. Base xform skipped (animApplied).
+
+	emitSvgPathRenderer(path, Color{}, 0, 0, 4, 2, 3, true, animState, w)
+
+	if len(w.renderers) != 1 {
+		t.Fatalf("expected 1 renderer, got %d", len(w.renderers))
+	}
+	r := w.renderers[0]
+	if r.Scale != 1 {
+		t.Errorf("Scale = %v, want 1", r.Scale)
+	}
+	if !r.HasXform {
+		t.Fatal("HasXform should be true")
+	}
+	if r.ScaleX != 0.5 {
+		t.Errorf("ScaleX = %v, want 0.5 (2*0.25)", r.ScaleX)
+	}
+	if r.ScaleY != 12 {
+		t.Errorf("ScaleY = %v, want 12 (3*4)", r.ScaleY)
 	}
 }

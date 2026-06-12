@@ -6,6 +6,7 @@ package web
 
 import (
 	"encoding/base64"
+	"fmt"
 	"log"
 	"syscall/js"
 
@@ -63,19 +64,33 @@ type clipRegion struct {
 }
 
 // Run initializes the web backend and runs the event/render
-// loop. Blocks forever.
+// loop. Blocks forever. Panics on error; call RunE for
+// error-returning variant.
 func Run(w *gui.Window) {
-	b := newBackend(w)
-	b.run(w)
+	if err := RunE(w); err != nil {
+		panic(fmt.Sprintf("web: %v", err))
+	}
 }
 
-func newBackend(w *gui.Window) *Backend {
+// RunE initializes the web backend and runs the event/render
+// loop. Blocks forever. Returns an error instead of panicking
+// so embedders and tests can handle init failures.
+func RunE(w *gui.Window) error {
+	b, err := newBackend(w)
+	if err != nil {
+		return fmt.Errorf("web: %w", err)
+	}
+	b.run(w)
+	return nil
+}
+
+func newBackend(w *gui.Window) (*Backend, error) {
 	doc := js.Global().Get("document")
 	canvas := doc.Call("getElementById", "go-gui-canvas")
 	if canvas.IsNull() || canvas.IsUndefined() {
 		const msg = "go-gui: canvas #go-gui-canvas not found"
 		js.Global().Call("alert", msg)
-		log.Fatal(msg)
+		return nil, fmt.Errorf(msg)
 	}
 
 	canvas.Set("tabIndex", 0)
@@ -112,7 +127,7 @@ func newBackend(w *gui.Window) *Backend {
 	if err != nil {
 		msg := "go-gui: text system init failed: " + err.Error()
 		js.Global().Call("alert", msg)
-		log.Fatal(msg)
+		return nil, fmt.Errorf(msg)
 	}
 
 	// Load embedded icon font via JS FontFace API.

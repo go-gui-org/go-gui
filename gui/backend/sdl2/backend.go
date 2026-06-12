@@ -302,26 +302,46 @@ func (b *Backend) handleResize() {
 }
 
 // Run initializes the SDL2 backend, runs the event loop,
-// and cleans up on exit.
+// and cleans up on exit. Panics on error; call RunE for
+// error-returning variant.
 func Run(w *gui.Window) {
+	if err := RunE(w); err != nil {
+		panic(fmt.Sprintf("sdl2: %v", err))
+	}
+}
+
+// RunE initializes the SDL2 backend, runs the event loop,
+// and cleans up on exit. Returns an error instead of panicking
+// so embedders and tests can handle backend init failures.
+func RunE(w *gui.Window) error {
 	b, err := New(w)
 	if err != nil {
-		panic(fmt.Sprintf("sdl2: %v", err))
+		return fmt.Errorf("sdl2: %w", err)
 	}
 	defer b.Destroy()
 	b.Run(w)
+	return nil
 }
 
-// RunApp starts a multi-window event loop. Each window in
+// RunApp starts a multi-window event loop. Panics on error;
+// call RunAppE for error-returning variant.
+func RunApp(app *gui.App, initialWindows ...*gui.Window) {
+	if err := RunAppE(app, initialWindows...); err != nil {
+		panic(fmt.Sprintf("sdl2: %v", err))
+	}
+}
+
+// RunAppE starts a multi-window event loop. Each window in
 // initialWindows is created and registered with app. Blocks
-// until the app signals exit.
+// until the app signals exit. Returns an error instead of
+// panicking so embedders and tests can handle init failures.
 //
 //nolint:gocyclo // backend event loop
-func RunApp(app *gui.App, initialWindows ...*gui.Window) {
+func RunAppE(app *gui.App, initialWindows ...*gui.Window) error {
 	runtime.LockOSThread()
 
 	if err := sdl.Init(sdl.INIT_VIDEO | sdl.INIT_EVENTS); err != nil {
-		panic(fmt.Sprintf("sdl2: Init: %v", err))
+		return fmt.Errorf("sdl2: Init: %w", err)
 	}
 	defer sdl.Quit()
 
@@ -331,7 +351,7 @@ func RunApp(app *gui.App, initialWindows ...*gui.Window) {
 	for _, w := range initialWindows {
 		b, err := New(w)
 		if err != nil {
-			panic(fmt.Sprintf("sdl2: create window: %v", err))
+			return fmt.Errorf("sdl2: create window: %w", err)
 		}
 		sdlID, _ := b.window.GetID()
 		backends[sdlID] = b
@@ -511,6 +531,7 @@ func RunApp(app *gui.App, initialWindows ...*gui.Window) {
 		b.Destroy()
 		delete(backends, wid)
 	}
+	return nil
 }
 
 // sdlEventWindowID extracts the SDL window ID from any event.

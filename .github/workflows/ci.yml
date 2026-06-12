@@ -337,9 +337,75 @@ jobs:
       - name: Run benchmarks
         run: go test -bench=. -benchmem -count=5 -run='^$' -timeout=30m ./gui/... | tee benchmark-results.txt
 
+      - name: Cache benchmark baseline
+        uses: actions/cache/save@v4
+        with:
+          path: benchmark-results.txt
+          key: benchmark-baseline
+
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-results
           path: benchmark-results.txt
           retention-days: 90
+
+  benchmark-gate:
+    name: Benchmark regression gate
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pkg-config \
+            libsdl2-dev \
+            libsdl2-mixer-dev \
+            libfreetype6-dev \
+            libharfbuzz-dev \
+            libpango1.0-dev \
+            libfontconfig1-dev \
+            libhunspell-dev
+
+      - name: Restore baseline
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: baseline-results.txt
+          key: benchmark-baseline
+
+      - name: Run targeted benchmarks
+        run: |
+          FILTER='Benchmark(Layout|GenerateViewLayout|ParseSvg|Tessellate|BuildDefsPathDataCache|RenderLayout|RenderSvg)'
+          go test -bench="$FILTER" -benchmem -count=5 -run='^$' -timeout=15m ./gui/... | tee pr-benchmarks.txt
+
+      - name: Install benchstat
+        run: go install golang.org/x/perf/cmd/benchstat@latest
+
+      - name: Compare benchmarks
+        if: steps.cache.outputs.cache-hit == 'true'
+        run: |
+          benchstat -format csv baseline-results.txt pr-benchmarks.txt > benchstat.csv
+          echo "## Benchmark comparison" >> $GITHUB_STEP_SUMMARY
+          benchstat baseline-results.txt pr-benchmarks.txt >> $GITHUB_STEP_SUMMARY
+
+          # Parse CSV for statistically significant regressions.
+          # Columns: name, old, old±, new, new±, delta, p-value, n
+          # delta starts with '+' for regressions.
+          awk -F',' 'NR>1 {
+            gsub(/"/, "", $6);
+            if ($6 ~ /^\+/) {
+              printf "::warning::%s regressed %s (p=%s)\n", $1, $6, $7
+            }
+          }' benchstat.csv
+
+      - name: No baseline available
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: echo "::warning::No benchmark baseline cached from main. Skipping comparison."

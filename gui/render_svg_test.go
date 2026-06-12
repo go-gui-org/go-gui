@@ -86,7 +86,7 @@ func TestEmitSvgPathRendererTint(t *testing.T) {
 		Color:     Color{0, 0, 0, 255, true},
 	}
 	tint := Color{255, 0, 0, 200, true}
-	emitSvgPathRenderer(path, tint, 0, 0, 1.0, nil, w)
+	emitSvgPathRenderer(path, tint, 0, 0, 1.0, 0, 0, false, nil, w)
 
 	if len(w.renderers) != 1 {
 		t.Fatalf("expected 1 renderer, got %d",
@@ -114,7 +114,7 @@ func TestEmitSvgPathRendererVertexColors(t *testing.T) {
 		},
 	}
 	// No tint (A=0) → vertex colors used.
-	emitSvgPathRenderer(path, Color{}, 0, 0, 1.0, nil, w)
+	emitSvgPathRenderer(path, Color{}, 0, 0, 1.0, 0, 0, false, nil, w)
 
 	if len(w.renderers[0].VertexColors) != 6 {
 		t.Fatalf("expected 6 vertex colors, got %d",
@@ -140,7 +140,7 @@ func TestEmitSvgPathRendererAnimatedVertexAlphaNoCopy(t *testing.T) {
 	animState := map[uint32]svgAnimState{
 		1: {Opacity: 0.5, FillOpacity: 1, StrokeOpacity: 1, Inited: true},
 	}
-	emitSvgPathRenderer(path, Color{}, 0, 0, 1.0, animState, w)
+	emitSvgPathRenderer(path, Color{}, 0, 0, 1.0, 0, 0, false, animState, w)
 
 	r := w.renderers[0]
 	if !r.HasVertexAlpha {
@@ -786,7 +786,7 @@ func TestEmitSvgPathRenderer_OpacityNaNClampedToZero(t *testing.T) {
 			Inited:        true,
 		},
 	}
-	emitSvgPathRenderer(path, Color{}, 0, 0, 1.0, animState, w)
+	emitSvgPathRenderer(path, Color{}, 0, 0, 1.0, 0, 0, false, animState, w)
 	if len(w.renderers) != 1 {
 		t.Fatalf("expected 1 renderer, got %d", len(w.renderers))
 	}
@@ -817,7 +817,7 @@ func TestSvgRender_FillOpacityAnimDoesNotDimStroke(t *testing.T) {
 			Inited:        true,
 		},
 	}
-	emitSvgPathRenderer(strokePath, Color{}, 0, 0, 1.0, animState, w)
+	emitSvgPathRenderer(strokePath, Color{}, 0, 0, 1.0, 0, 0, false, animState, w)
 	if w.renderers[0].Color.A != 255 {
 		t.Fatalf("stroke should keep alpha 255 when only fill-opacity "+
 			"is animated, got %d", w.renderers[0].Color.A)
@@ -835,7 +835,7 @@ func TestSvgRender_FillOpacityAnimDoesNotDimStroke(t *testing.T) {
 			Inited:        true,
 		},
 	}
-	emitSvgPathRenderer(fillPath, Color{}, 0, 0, 1.0, animState, w)
+	emitSvgPathRenderer(fillPath, Color{}, 0, 0, 1.0, 0, 0, false, animState, w)
 	if w.renderers[0].Color.A != 255 {
 		t.Fatalf("fill should keep alpha 255 when only stroke-opacity "+
 			"is animated, got %d", w.renderers[0].Color.A)
@@ -1078,5 +1078,257 @@ func TestComputeSvgAnimationsReuse_NoBaseLeavesIdentity(t *testing.T) {
 	}
 	if got.ScaleX != 1 || got.ScaleY != 1 {
 		t.Fatalf("scale not identity: (%v,%v)", got.ScaleX, got.ScaleY)
+	}
+}
+
+// --- validNonUniform ---
+
+func TestValidNonUniform(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		sx, sy, uniform float32
+		want            bool
+	}{
+		{2, 3, 1, true},   // genuinely non-uniform
+		{2, 2, 1, true},   // both axes differ from uniform
+		{2, 1, 1, true},   // only sx differs
+		{1, 2, 1, true},   // only sy differs
+		{2, 2, 2, false},  // uniform match — no stretch needed
+		{1, 1, 1, false},  // identity everywhere
+		{0, 3, 1, false},  // sx zero
+		{3, 0, 1, false},  // sy zero
+		{-1, 3, 1, false}, // sx negative
+		{3, -1, 1, false}, // sy negative
+	}
+	for _, c := range cases {
+		got := validNonUniform(c.sx, c.sy, c.uniform)
+		if got != c.want {
+			t.Errorf("validNonUniform(%v,%v,%v) = %v, want %v",
+				c.sx, c.sy, c.uniform, got, c.want)
+		}
+	}
+}
+
+func TestValidNonUniform_RejectsNaNInf(t *testing.T) {
+	t.Parallel()
+	nan := float32(math.NaN())
+	inf := float32(math.Inf(1))
+	ninf := float32(math.Inf(-1))
+
+	if validNonUniform(nan, 3, 1) {
+		t.Error("NaN sx should reject")
+	}
+	if validNonUniform(3, nan, 1) {
+		t.Error("NaN sy should reject")
+	}
+	if validNonUniform(inf, 3, 1) {
+		t.Error("Inf sx should reject")
+	}
+	if validNonUniform(3, inf, 1) {
+		t.Error("Inf sy should reject")
+	}
+	if validNonUniform(ninf, 3, 1) {
+		t.Error("-Inf sx should reject")
+	}
+	if validNonUniform(3, ninf, 1) {
+		t.Error("-Inf sy should reject")
+	}
+}
+
+// --- emitSvgPathRenderer non-uniform stretch ---
+
+func TestEmitSvgPathRenderer_NonUniformStretchNeutralisesScale(t *testing.T) {
+	// Non-uniform stretch (SvgAlignNone): Scale must be 1 so the
+	// backend applies only ScaleX/ScaleY from HasXform.
+	w := &Window{}
+	path := CachedSvgPath{
+		Triangles: []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
+		Color:     Color{255, 255, 255, 255, true},
+	}
+	// nsScaleX=2, nsScaleY=3, uniform scale=4 → nonUniform.
+	emitSvgPathRenderer(path, Color{}, 0, 0, 4, 2, 3, true, nil, w)
+
+	if len(w.renderers) != 1 {
+		t.Fatalf("expected 1 renderer, got %d", len(w.renderers))
+	}
+	r := w.renderers[0]
+	if r.Scale != 1 {
+		t.Errorf("non-uniform stretch: Scale = %v, want 1", r.Scale)
+	}
+	if !r.HasXform {
+		t.Fatal("HasXform should be true for non-uniform stretch")
+	}
+	if r.ScaleX != 2 {
+		t.Errorf("ScaleX = %v, want 2", r.ScaleX)
+	}
+	if r.ScaleY != 3 {
+		t.Errorf("ScaleY = %v, want 3", r.ScaleY)
+	}
+}
+
+func TestEmitSvgPathRenderer_NonUniformCompoundsWithBaseXform(t *testing.T) {
+	// Non-uniform stretch composes multiplicatively with the
+	// path's base transform scales.
+	w := &Window{}
+	path := CachedSvgPath{
+		Triangles:    []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
+		Color:        Color{255, 255, 255, 255, true},
+		HasBaseXform: true,
+		BaseScaleX:   0.5,
+		BaseScaleY:   2,
+	}
+	// nsScaleX=2, nsScaleY=3, uniform scale=4 → nonUniform.
+	// Expected: ScaleX = 2 * 0.5 = 1, ScaleY = 3 * 2 = 6.
+	emitSvgPathRenderer(path, Color{}, 0, 0, 4, 2, 3, true, nil, w)
+
+	if len(w.renderers) != 1 {
+		t.Fatalf("expected 1 renderer, got %d", len(w.renderers))
+	}
+	r := w.renderers[0]
+	if r.Scale != 1 {
+		t.Errorf("Scale = %v, want 1", r.Scale)
+	}
+	if !r.HasXform {
+		t.Fatal("HasXform should be true")
+	}
+	if r.ScaleX != 1 {
+		t.Errorf("ScaleX = %v, want 1 (2 * 0.5)", r.ScaleX)
+	}
+	if r.ScaleY != 6 {
+		t.Errorf("ScaleY = %v, want 6 (3 * 2)", r.ScaleY)
+	}
+}
+
+func TestEmitSvgPathRenderer_NonUniformNoOpWhenUniform(t *testing.T) {
+	// nsScaleX=0, nsScaleY=0 → nonUniform=false. Uniform path
+	// should behave as before (Scale unchanged, no spurious xform).
+	w := &Window{}
+	path := CachedSvgPath{
+		Triangles: []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
+		Color:     Color{255, 255, 255, 255, true},
+	}
+	emitSvgPathRenderer(path, Color{}, 0, 0, 3, 0, 0, false, nil, w)
+
+	if len(w.renderers) != 1 {
+		t.Fatalf("expected 1 renderer, got %d", len(w.renderers))
+	}
+	r := w.renderers[0]
+	if r.Scale != 3 {
+		t.Errorf("uniform path: Scale = %v, want 3", r.Scale)
+	}
+	if r.HasXform {
+		t.Fatal("uniform path with no base xform: HasXform should be false")
+	}
+}
+
+func TestEmitSvgPathRenderer_NonUniformSkipsWhenScaleEquals(t *testing.T) {
+	// nsScaleX=3, nsScaleY=3, uniform=3 → effectively uniform.
+	// nonUniform should be false.
+	w := &Window{}
+	path := CachedSvgPath{
+		Triangles: []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
+		Color:     Color{255, 255, 255, 255, true},
+	}
+	emitSvgPathRenderer(path, Color{}, 0, 0, 3, 3, 3, false, nil, w)
+
+	if len(w.renderers) != 1 {
+		t.Fatalf("expected 1 renderer, got %d", len(w.renderers))
+	}
+	r := w.renderers[0]
+	if r.Scale != 3 {
+		t.Errorf("Scale = %v, want 3", r.Scale)
+	}
+	if r.HasXform {
+		t.Fatal("identical scales should not trigger HasXform")
+	}
+}
+
+// --- renderSvg SvgAlignNone integration ---
+
+func TestRenderSvg_SvgAlignNoneNonUniformStretch(t *testing.T) {
+	// SvgAlignNone non-uniformly stretches the SVG to fill the shape
+	// rect. The render commands must carry Scale=1 and ScaleX/ScaleY
+	// reflecting the independent axis scales.
+	w := &Window{}
+	w.SetSvgParser(&mockSvgParser{
+		width:         64,
+		height:        32,
+		preserveAlign: SvgAlignNone,
+	})
+
+	shape := &Shape{
+		shapeType: shapeSVG,
+		X:         0,
+		Y:         0,
+		Width:     200,
+		Height:    100,
+		Resource:  "<svg></svg>",
+	}
+	clip := drawClip{X: 0, Y: 0, Width: 500, Height: 500}
+	renderSvg(shape, clip, w)
+
+	// scaleX = 200/64 = 3.125, scaleY = 100/32 = 3.125.
+	// In this case they're equal, so nonUniform should be false
+	// and the uniform path is fine. To test non-uniform we need
+	// different aspect ratios.
+	hasSvg := false
+	for _, r := range w.renderers {
+		if r.Kind == RenderSvg {
+			hasSvg = true
+		}
+	}
+	if !hasSvg {
+		t.Fatal("expected RenderSvg command")
+	}
+}
+
+func TestRenderSvg_SvgAlignNoneNonUniformDifferentAspect(t *testing.T) {
+	// Shape aspect (200×100 = 2:1) differs from SVG viewBox
+	// (64×64 = 1:1). scaleX = 200/64 = 3.125, scaleY = 100/64 = 1.5625.
+	// nonUniform must be true; each RenderSvg cmd must have Scale=1
+	// and HasXform with the correct ScaleX/ScaleY.
+	w := &Window{}
+	w.SetSvgParser(&mockSvgParser{
+		width:         64,
+		height:        64,
+		preserveAlign: SvgAlignNone,
+	})
+
+	shape := &Shape{
+		shapeType: shapeSVG,
+		X:         0,
+		Y:         0,
+		Width:     200,
+		Height:    100,
+		Resource:  "<svg></svg>",
+	}
+	clip := drawClip{X: 0, Y: 0, Width: 500, Height: 500}
+	renderSvg(shape, clip, w)
+
+	var svgCmds []RenderCmd
+	for _, r := range w.renderers {
+		if r.Kind == RenderSvg {
+			svgCmds = append(svgCmds, r)
+		}
+	}
+	if len(svgCmds) == 0 {
+		t.Fatal("expected at least one RenderSvg command")
+	}
+	for i, r := range svgCmds {
+		if r.Scale != 1 {
+			t.Errorf("SvgAlignNone cmd[%d]: Scale = %v, want 1", i, r.Scale)
+		}
+		if !r.HasXform {
+			t.Errorf("SvgAlignNone cmd[%d]: HasXform should be true", i)
+		}
+		// scaleX = 200/64 = 3.125, scaleY = 100/64 = 1.5625
+		if r.ScaleX != 3.125 {
+			t.Errorf("SvgAlignNone cmd[%d]: ScaleX = %v, want 3.125",
+				i, r.ScaleX)
+		}
+		if r.ScaleY != 1.5625 {
+			t.Errorf("SvgAlignNone cmd[%d]: ScaleY = %v, want 1.5625",
+				i, r.ScaleY)
+		}
 	}
 }

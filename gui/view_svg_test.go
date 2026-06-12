@@ -56,19 +56,25 @@ func TestSvgGenerateLayoutNeedsDimensions(t *testing.T) {
 // mockSvgParser is a minimal SvgParser for testing.
 type mockSvgParser struct {
 	width, height float32
+	preserveAlign SvgAlign
+	preserveSlice bool
 }
 
 func (m *mockSvgParser) ParseSvg(_ string) (*SvgParsed, error) {
 	return &SvgParsed{
-		Width:  m.width,
-		Height: m.height,
+		Width:         m.width,
+		Height:        m.height,
+		PreserveAlign: m.preserveAlign,
+		PreserveSlice: m.preserveSlice,
 	}, nil
 }
 
 func (m *mockSvgParser) ParseSvgFile(_ string) (*SvgParsed, error) {
 	return &SvgParsed{
-		Width:  m.width,
-		Height: m.height,
+		Width:         m.width,
+		Height:        m.height,
+		PreserveAlign: m.preserveAlign,
+		PreserveSlice: m.preserveSlice,
 	}, nil
 }
 

@@ -39,19 +39,33 @@ func renderSvg(shape *Shape, clip drawClip, w *Window) {
 	// Position SVG content per preserveAspectRatio. Align splits
 	// the slack (or, under slice, the overflow) along each axis;
 	// default xMidYMid centers — historic behavior.
-	slackX := shape.Width - cached.Width*cached.Scale
-	slackY := shape.Height - cached.Height*cached.Scale
-	xFrac, yFrac := PreserveAlignFractions(cached.PreserveAlign)
-	clipX := shape.X + slackX*xFrac
-	clipY := shape.Y + slackY*yFrac
-	// ViewBoxX/Y are folded into sx/sy as an outer translate so
-	// authored coords stay in raw viewBox space through tessellation
-	// and SMIL animation — animateTransform replace cannot reach this
-	// offset. Backend applies (sx + vertex * scale), so subtracting
-	// vbXY*scale here shifts authored coords (vbX..vbX+W) into the
-	// clip rect (clipX..clipX+W*scale).
-	sx := clipX - cached.ViewBoxX*cached.Scale
-	sy := clipY - cached.ViewBoxY*cached.Scale
+	// SvgAlignNone non-uniformly stretches to fill: scaleX/scaleY
+	// are independent, slack is zero, no alignment offset.
+	var scaleX, scaleY, sx, sy float32
+	if cached.PreserveAlign == SvgAlignNone {
+		// Guard against zero, negative, NaN, and Inf viewBox
+		// dimensions from a malicious or malformed SVG. Fall
+		// back to the uniform tessellation scale so detail
+		// level matches and the render stays stable.
+		if cached.Width > 0 && cached.Height > 0 &&
+			isFiniteF(cached.Width) && isFiniteF(cached.Height) {
+			scaleX = shape.Width / cached.Width
+			scaleY = shape.Height / cached.Height
+		} else {
+			scaleX = cached.Scale
+			scaleY = cached.Scale
+		}
+		sx = shape.X - cached.ViewBoxX*scaleX
+		sy = shape.Y - cached.ViewBoxY*scaleY
+	} else {
+		slackX := shape.Width - cached.Width*cached.Scale
+		slackY := shape.Height - cached.Height*cached.Scale
+		xFrac, yFrac := PreserveAlignFractions(cached.PreserveAlign)
+		clipX := shape.X + slackX*xFrac
+		clipY := shape.Y + slackY*yFrac
+		sx = clipX - cached.ViewBoxX*cached.Scale
+		sy = clipY - cached.ViewBoxY*cached.Scale
+	}
 
 	// Clip to intersection of parent clip and the shape rect. Under
 	// preserveAspectRatio=slice the scaled content is larger than the
@@ -115,26 +129,37 @@ func renderSvg(shape *Shape, clip drawClip, w *Window) {
 	}
 
 	// Emit main paths, text, and textPath elements.
+	nonUniform := validNonUniform(scaleX, scaleY, cached.Scale)
 	emitSvgGroup(cached.RenderPaths, animByPID, cached.TextDraws,
 		cached.TextPathDraws, color, sx, sy,
-		cached.Scale, animState, w)
+		cached.Scale, scaleX, scaleY, nonUniform, animState, w)
 
 	// Emit filtered groups.
 	for i, fg := range cached.FilteredGroups {
+		// Scale the filter bbox and blur; non-uniform stretch
+		// uses independent scaleX/scaleY.
+		fw := fg.BBox[2] * cached.Scale
+		fh := fg.BBox[3] * cached.Scale
+		blur := fg.Filter.StdDev * cached.Scale
+		if nonUniform {
+			fw = fg.BBox[2] * scaleX
+			fh = fg.BBox[3] * scaleY
+			blur = fg.Filter.StdDev * max(scaleX, scaleY)
+		}
 		emitRenderer(RenderCmd{
 			Kind:       RenderFilterBegin,
 			GroupIdx:   i,
 			X:          sx,
 			Y:          sy,
-			W:          fg.BBox[2] * cached.Scale,
-			H:          fg.BBox[3] * cached.Scale,
+			W:          fw,
+			H:          fh,
 			Scale:      cached.Scale,
-			BlurRadius: fg.Filter.StdDev * cached.Scale,
+			BlurRadius: blur,
 			Layers:     fg.Filter.BlurLayers,
 		}, w)
 		emitSvgGroup(fg.RenderPaths, animByPID, fg.TextDraws,
 			fg.TextPathDraws, color, sx, sy,
-			cached.Scale, animState, w)
+			cached.Scale, scaleX, scaleY, nonUniform, animState, w)
 		emitRenderer(RenderCmd{
 			Kind: RenderFilterEnd,
 		}, w)
@@ -143,7 +168,7 @@ func renderSvg(shape *Shape, clip drawClip, w *Window) {
 		if fg.Filter.KeepSource {
 			emitSvgGroup(fg.RenderPaths, animByPID, fg.TextDraws,
 				fg.TextPathDraws, color, sx, sy,
-				cached.Scale, animState, w)
+				cached.Scale, scaleX, scaleY, nonUniform, animState, w)
 		}
 	}
 
@@ -173,11 +198,22 @@ func PreserveAlignFractions(a SvgAlign) (float32, float32) {
 		return 0.5, 1
 	case SvgAlignXMaxYMax:
 		return 1, 1
+	case SvgAlignNone:
+		// Non-uniform stretch — slack is zero, fraction irrelevant.
+		return 0, 0
+	default:
+		return 0.5, 0.5
 	}
-	// Default branch covers SvgAlignXMidYMid + SvgAlignNone.
-	// TODO: SvgAlignNone should non-uniformly stretch (independent
-	// scaleX/scaleY in svg_load.go); currently treated as xMidYMid.
-	return 0.5, 0.5
+}
+
+// validNonUniform returns true when the caller-supplied non-uniform
+// scales are safe (positive, finite) and differ from the uniform
+// tessellation scale. NaN, Inf, zero, and negative values are
+// rejected so they cannot propagate into backend xform commands.
+func validNonUniform(sx, sy, uniform float32) bool {
+	return sx > 0 && sy > 0 &&
+		isFiniteF(sx) && isFiniteF(sy) &&
+		(sx != uniform || sy != uniform)
 }
 
 // emitSvgGroup emits paths, text draws, and text path draws.
@@ -189,7 +225,8 @@ func emitSvgGroup(
 	animByPID map[uint32][]float32,
 	textDraws []CachedSvgTextDraw,
 	textPathDraws []CachedSvgTextPathDraw,
-	color Color, sx, sy, scale float32,
+	color Color, sx, sy, scale, scaleX, scaleY float32,
+	nonUniform bool,
 	animState map[uint32]svgAnimState, w *Window,
 ) {
 	for i := range paths {
@@ -199,7 +236,7 @@ func emitSvgGroup(
 				p.Triangles = tris
 			}
 		}
-		emitSvgPathRenderer(p, color, sx, sy, scale, animState, w)
+		emitSvgPathRenderer(p, color, sx, sy, scale, scaleX, scaleY, nonUniform, animState, w)
 	}
 	for i := range textDraws {
 		emitCachedSvgTextDraw(&textDraws[i], sx, sy, w)
@@ -216,7 +253,8 @@ func emitSvgGroup(
 // during parsing) survives the override. animState applies SMIL
 // rotation/opacity per GroupID.
 func emitSvgPathRenderer(path CachedSvgPath, tint Color,
-	x, y, scale float32,
+	x, y, scale, nsScaleX, nsScaleY float32,
+	nonUniform bool,
 	animState map[uint32]svgAnimState, w *Window) {
 	hasVCols := len(path.VertexColors) > 0
 	c := path.Color
@@ -247,7 +285,11 @@ func emitSvgPathRenderer(path CachedSvgPath, tint Color,
 
 	var rotAngle, rotCX, rotCY float32
 	var transX, transY, scaleX, scaleY float32
-	hasXform := false
+	hasXform := nonUniform
+	if nonUniform {
+		scaleX = nsScaleX
+		scaleY = nsScaleY
+	}
 	var vAlphaScale float32
 	hasVAlpha := false
 	var animApplied bool
@@ -272,8 +314,13 @@ func emitSvgPathRenderer(path CachedSvgPath, tint Color,
 			if st.HasXform {
 				transX = st.TransX
 				transY = st.TransY
-				scaleX = st.ScaleX
-				scaleY = st.ScaleY
+				if nonUniform {
+					scaleX *= st.ScaleX
+					scaleY *= st.ScaleY
+				} else {
+					scaleX = st.ScaleX
+					scaleY = st.ScaleY
+				}
 				hasXform = true
 			}
 			opa := st.Opacity
@@ -298,8 +345,13 @@ func emitSvgPathRenderer(path CachedSvgPath, tint Color,
 	if !animApplied && path.HasBaseXform {
 		transX = path.BaseTransX
 		transY = path.BaseTransY
-		scaleX = path.BaseScaleX
-		scaleY = path.BaseScaleY
+		if nonUniform && hasXform {
+			scaleX *= path.BaseScaleX
+			scaleY *= path.BaseScaleY
+		} else {
+			scaleX = path.BaseScaleX
+			scaleY = path.BaseScaleY
+		}
 		rotAngle = path.BaseRotAngle
 		hasXform = true
 		// seedFromTransform absorbs the translate column into a
@@ -315,6 +367,13 @@ func emitSvgPathRenderer(path CachedSvgPath, tint Color,
 		}
 	}
 
+	// Non-uniform stretch (SvgAlignNone): neutralise the uniform
+	// Scale so the backend applies only ScaleX/ScaleY from HasXform.
+	effScale := scale
+	if nonUniform {
+		effScale = 1
+	}
+
 	emitRenderer(RenderCmd{
 		Kind:             RenderSvg,
 		Triangles:        path.Triangles,
@@ -324,7 +383,7 @@ func emitSvgPathRenderer(path CachedSvgPath, tint Color,
 		HasVertexAlpha:   hasVAlpha,
 		X:                x,
 		Y:                y,
-		Scale:            scale,
+		Scale:            effScale,
 		IsClipMask:       path.IsClipMask,
 		ClipGroup:        path.ClipGroup,
 		RotAngle:         rotAngle,

@@ -167,26 +167,46 @@ func (b *Backend) Run(w *gui.Window) {
 }
 
 // Run initializes the Metal backend, runs the event loop, and
-// cleans up on exit.
+// cleans up on exit. Panics on error; call RunE for error-returning
+// variant.
 func Run(w *gui.Window) {
+	if err := RunE(w); err != nil {
+		panic(fmt.Sprintf("metal: %v", err))
+	}
+}
+
+// RunE initializes the Metal backend, runs the event loop, and
+// cleans up on exit. Returns an error instead of panicking so
+// embedders and tests can handle backend init failures.
+func RunE(w *gui.Window) error {
 	b, err := New(w)
 	if err != nil {
-		panic(fmt.Sprintf("metal: %v", err))
+		return fmt.Errorf("metal: %w", err)
 	}
 	defer b.Destroy()
 	b.Run(w)
+	return nil
 }
 
-// RunApp starts a multi-window event loop. Each window in
+// RunApp starts a multi-window event loop. Panics on error;
+// call RunAppE for error-returning variant.
+func RunApp(app *gui.App, initialWindows ...*gui.Window) {
+	if err := RunAppE(app, initialWindows...); err != nil {
+		panic(fmt.Sprintf("metal: %v", err))
+	}
+}
+
+// RunAppE starts a multi-window event loop. Each window in
 // initialWindows is created and registered with app. Blocks
-// until the app signals exit.
+// until the app signals exit. Returns an error instead of
+// panicking so embedders and tests can handle init failures.
 //
 //nolint:gocyclo // backend event loop
-func RunApp(app *gui.App, initialWindows ...*gui.Window) {
+func RunAppE(app *gui.App, initialWindows ...*gui.Window) error {
 	runtime.LockOSThread()
 
 	if err := sdl.Init(sdl.INIT_VIDEO | sdl.INIT_EVENTS); err != nil {
-		panic(fmt.Sprintf("metal: Init: %v", err))
+		return fmt.Errorf("metal: Init: %w", err)
 	}
 	defer sdl.Quit()
 
@@ -200,7 +220,7 @@ func RunApp(app *gui.App, initialWindows ...*gui.Window) {
 	for _, w := range initialWindows {
 		ws, err := createWindowState(w, &cursors)
 		if err != nil {
-			panic(fmt.Sprintf("metal: create window: %v", err))
+			return fmt.Errorf("metal: create window: %w", err)
 		}
 		sdlID, _ := ws.window.GetID()
 		states[sdlID] = ws
@@ -386,6 +406,7 @@ func RunApp(app *gui.App, initialWindows ...*gui.Window) {
 		}
 		ws.destroy()
 	}
+	return nil
 }
 
 // windowState holds per-window backend resources for
