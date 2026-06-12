@@ -33,3 +33,6 @@ func embeddedAssetPath(name string) string {
 	embeddedPathCache[name] = url
 	return url
 }
+
+// No-op: web build uses data URLs, no temp files to remove.
+func cleanupEmbeddedAssets() {}
