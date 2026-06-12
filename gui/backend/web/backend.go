@@ -90,7 +90,7 @@ func newBackend(w *gui.Window) (*Backend, error) {
 	if canvas.IsNull() || canvas.IsUndefined() {
 		const msg = "go-gui: canvas #go-gui-canvas not found"
 		js.Global().Call("alert", msg)
-		return nil, fmt.Errorf(msg)
+		return nil, fmt.Errorf("%s", msg)
 	}
 
 	canvas.Set("tabIndex", 0)
@@ -127,7 +127,7 @@ func newBackend(w *gui.Window) (*Backend, error) {
 	if err != nil {
 		msg := "go-gui: text system init failed: " + err.Error()
 		js.Global().Call("alert", msg)
-		return nil, fmt.Errorf(msg)
+		return nil, fmt.Errorf("%s", msg)
 	}
 
 	// Load embedded icon font via JS FontFace API.
