@@ -18,6 +18,18 @@ golangci-lint run ./...               # full lint
 
 Tests use a headless backend (`gui/backend/test/`) — no display needed.
 
+### macOS: suppress duplicate library warnings
+
+On macOS, `go build`/`go test`/`go run` emit `ld: warning: ignoring duplicate
+libraries: '-lobjc'`. This is harmless — multiple CGO packages each link Apple
+frameworks which transitively pull `-lobjc`. To suppress:
+
+```bash
+export CGO_LDFLAGS="-Wl,-no_warn_duplicate_libraries"
+```
+
+Or use [direnv](https://direnv.net/) — the repo includes a `.envrc` file.
+
 ## Coding Conventions
 
 - **No variable shadowing.** Use `=` to reassign existing variables, not `:=`.

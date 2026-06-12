@@ -19,6 +19,7 @@ build-windows:
 	  -o build/showcase-windows.exe ./examples/showcase/
 
 build-macos:
+	CGO_LDFLAGS="-Wl,-no_warn_duplicate_libraries" \
 	go build -ldflags "$(LDFLAGS)" \
 	  -o build/showcase-macos ./examples/showcase/
 
@@ -47,12 +48,14 @@ build-android:
 build-examples:
 	@mkdir -p examples/bin; \
 	failed=""; \
+	EXTRA_FLAGS=""; \
+	[ "$$(uname)" = Darwin ] && EXTRA_FLAGS="-Wl,-no_warn_duplicate_libraries"; \
 	for dir in examples/*/; do \
 		name=$$(basename "$$dir"); \
 		case "$$name" in \
 			ios_demo|android_demo|bin) continue ;; \
 		esac; \
-		if ! go build -o "examples/bin/$$name" "./$$dir"; then \
+		if ! CGO_LDFLAGS="$$EXTRA_FLAGS" go build -o "examples/bin/$$name" "./$$dir"; then \
 			failed="$$failed $$name"; \
 		fi; \
 	done; \

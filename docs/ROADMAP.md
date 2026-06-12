@@ -17,7 +17,7 @@ bumps from current v0.25.
   standardize across README, CONTRIBUTING.md, and CI config.
 - [x] Test that all 35 examples build.
 
-### 2. Fix macOS linker warnings
+### 2. Fix macOS linker warnings ✅
 
 **Low effort, noisy-CI hygiene.**
 
@@ -25,6 +25,13 @@ bumps from current v0.25.
 `-lSDL2`) fire on every `go test ./...` run. Likely an SDL2 pkg-config or
 CGO_LDFLAGS duplicate. Worth 30 minutes of investigation — noisy CI masks
 real linker issues.
+
+- [x] Root cause: multiple CGO packages each link Apple frameworks
+  (`-framework AppKit`, `-framework Cocoa`, etc.); each transitively pulls
+  `-lobjc`. When linked into one test binary, the linker sees duplicates.
+- [x] Fix: `CGO_LDFLAGS="-Wl,-no_warn_duplicate_libraries"` on macOS builds.
+  Applied in CI test job (macOS only), Makefile `build-macos` and
+  `build-examples` targets (macOS-conditional).
 
 ### 3. CI benchmark regression gates
 

@@ -60,7 +60,9 @@ jobs:
 
       - name: Test
         working-directory: go-gui
-        run: go test ${{ runner.os == 'Linux' && '-race' || '' }} -coverprofile=coverage.out ./gui/...
+        run: |
+          CGO_LDFLAGS="${{ runner.os == 'macOS' && '-Wl,-no_warn_duplicate_libraries' || '' }}" \
+            go test ${{ runner.os == 'Linux' && '-race' || '' }} -coverprofile=coverage.out ./gui/...
 
       - name: Upload coverage
         if: always()
