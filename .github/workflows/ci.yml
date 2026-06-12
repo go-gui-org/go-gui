@@ -64,6 +64,20 @@ jobs:
           CGO_LDFLAGS="${{ runner.os == 'macOS' && '-Wl,-no_warn_duplicate_libraries' || '' }}" \
             go test ${{ runner.os == 'Linux' && '-race' || '' }} -coverprofile=coverage.out ./gui/...
 
+      - name: Check coverage threshold
+        if: always()
+        working-directory: go-gui
+        run: |
+          go tool cover -func=coverage.out | awk 'END {
+            gsub(/%/, "", $3);
+            if ($3 + 0 < 70) {
+              printf "::error::Coverage %.1f%% below 70%% threshold\n", $3;
+              exit 1
+            } else {
+              printf "Coverage %.1f%% >= 70%% threshold\n", $3
+            }
+          }'
+
       - name: Upload coverage
         if: always()
         uses: actions/upload-artifact@v4
@@ -103,6 +117,44 @@ jobs:
 
       - name: Required-ID check
         run: go run ./tools/requiredid/cmd/requiredid ./...
+
+  check:
+    name: Check (test + vet + lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: go-gui
+
+      - uses: actions/checkout@v4
+        with:
+          repository: go-gui-org/go-glyph
+          path: go-glyph
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pkg-config \
+            libsdl2-dev \
+            libsdl2-mixer-dev \
+            libfreetype6-dev \
+            libharfbuzz-dev \
+            libpango1.0-dev \
+            libfontconfig1-dev \
+            libhunspell-dev
+
+      - name: Add go-glyph replace
+        working-directory: go-gui
+        run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
+
+      - name: make check
+        working-directory: go-gui
+        run: make check
 
   examples:
     name: Build examples

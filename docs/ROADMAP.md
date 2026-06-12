@@ -1,62 +1,84 @@
-## Code Quality Improvements
+# Roadmap
 
-Concrete follow-ups from the June 2026 code review. Current baseline:
-`go test ./...`, `go vet ./...`, `golangci-lint run`, `go test -cover ./gui/...`,
-and `go test -race ./gui/...` pass locally.
+Improvement items from the June 2026 codebase review.
 
-### Datagrid public API cleanup
+## Quick wins
 
-- [x] Export or replace the unexported pagination request types used by
-  `GridDataRequest.Page`, so external `DataGridDataSource` implementations can
-  inspect cursor/offset pagination without package-private type assertions.
-- [x] Export or replace the unexported mutation kind in `GridMutationRequest`,
-  or add accessor helpers, so external mutation implementations can switch on
-  create/update/delete cleanly.
-- [x] Pass `GridAbortSignal` and `RequestID` through CRUD save mutations, not
-  just fetch requests, so slow create/update/delete operations can observe
-  cancellation promptly.
+- [x] Fix or gate `cmd/buildapp` `TestInstallIconPngConversion` so `go test ./...`
+  matches CI (valid iconset fixture, build tag, or skip when `iconutil` unavailable)
+- [x] Enforce coverage in CI — fail or warn when total coverage drops below baseline
+- [x] Run `make check` (or equivalent) on PRs to match CONTRIBUTING guidance
 
-### Async fetch hardening
+## Testing gaps
 
-- [x] Fix remote image max-byte handling to allow responses exactly equal to
-  `MaxImageBytes`: read `maxSize+1`, reject only `> maxSize`, and handle file
-  close errors after writes.
-- [x] Add injectable markdown diagram fetchers or endpoint configuration for
-  CodeCogs/Kroki rendering, similar to `WindowCfg.ImageFetcher`, to support
-  private deployments, tests, and offline use.
-- [x] Keep external markdown APIs disabled by default; document the privacy
-  boundary and make opt-in behavior visible in examples that use diagrams.
+### Render backends
 
-### Core maintainability
+- [ ] Add headless render smoke tests for `metal/`, `gl/`, and `sdl2/` — draw a
+  rect + text, assert no panic and non-empty framebuffer
 
-- [x] Continue splitting `Window` behavior into narrower internal subsystems.
-  The struct already embeds concern groups; move behavior behind those groups
-  where it reduces coupling in layout, render, event, animation, dialog, IME,
-  inspector, and history code.
-- [x] Replace `gui/datagrid` dot imports with an explicit package alias, then
-  remove the linter exclusion for staticcheck `ST1001`.
-- [x] Add `make test`, `make vet`, `make lint`, and `make check` targets that
-  mirror CI, so local pre-PR validation is obvious and repeatable.
+### Native platform
 
-### Backend coverage expansion
+- [ ] Expand tests for `filedialog`, `printdialog`, `nativemenu`, `sni`, and
+  `spellcheck` beyond stub "unsupported" paths — interface-level tests via
+  `NativePlatform` mocks; platform-specific tests behind build tags
 
-- [x] Add focused smoke tests for backend capability fallbacks, config
-  translation, and error paths in low-coverage packages.
-- [x] Prioritize shared backend internals first, then platform bridges such as
-  AT-SPI, native menus, file/print dialogs, spellcheck, and tray integration.
+### Accessibility
 
-## Future
+- [ ] Add tests for `syncA11y` — build a small layout tree and assert
+  `A11yNode` structure, labels, and roles
 
-### Media
+### Examples and packages
 
-Embedded video/audio — native media playback widget. Requires platform
-backends (AVPlayer on macOS, GStreamer or PipeWire on Linux, Media
-Foundation on Windows).
+- [ ] Add compile + one-frame render tests for the 18 examples that lack tests
+- [ ] Add minimal init/lifecycle tests for `gui/audio` and `gui/shader`
 
-### Community & adoption
+## Code organization
 
-- **Issue templates**: add `.github/ISSUE_TEMPLATE/` forms for bugs and
-  feature requests
-- **GoReleaser**: evaluate for v0.26+ once Makefile release pipeline is
-  stable. Right now the CGo + static SDL2 path needs explicit control;
-  GoReleaser adds abstraction when it's no longer needed.
+- [ ] Split oversized files when touched — prioritize:
+  - `gui/svg/tessellate.go`
+  - `gui/svg/animation.go`
+  - `gui/render_svg.go`
+  - `gui/view_tree.go`
+  - `gui/svg_load.go`
+- [ ] Consider subpackages for large core subsystems over time (e.g. `gui/layout/`,
+  `gui/animation/`) if compile times or discoverability become painful
+
+## CI and developer experience
+
+- [ ] Add coverage diff on PRs — comment or summary showing which files regressed
+- [ ] Run fuzz tests in CI periodically (nightly or on main):
+  `fuzz_clamp_unit`, `markdown/walker_fuzz`, `svg/fuzz_transform_decompose`
+- [ ] Document PostToolUse / pre-commit hooks in CONTRIBUTING
+- [ ] Document local `go-glyph` replace setup; consider a `go.work` example for
+  multi-repo development
+
+## Documentation and onboarding
+
+- [ ] Document CI vs local test scope in CONTRIBUTING (`./gui/...` vs `./...`)
+- [ ] Keep architecture docs in sync with backends (README mentions WebGPU;
+  `docs/architecture.md` lists Metal/OpenGL)
+- [ ] Add a "add a new widget" cookbook — Cfg struct, `requiredid` tags, test
+  pattern, showcase demo
+- [ ] Improve godoc on key exported types (`Window`, `Layout`, widget `*Cfg`)
+
+## Performance and quality
+
+- [ ] Add allocation benchmarks for hot paths: `GenerateViewLayout`,
+  `renderLayout`, SVG cache hits
+- [ ] Add `docs/profiling.md` for pprof workflows
+- [ ] Keep golden tests when changing SVG tessellation or animation
+
+## API and product polish
+
+- [ ] Document native dialog platform matrix per feature
+- [ ] Ensure showcase docs cover form async validation patterns
+- [ ] Add a minimal time-travel debugging example and test
+
+## Priority order
+
+1. Fix or gate `cmd/buildapp` test
+2. Backend render smoke tests
+3. a11y tree tests
+4. Coverage threshold / PR diff in CI
+5. Split largest files when touched
+6. Example test coverage for untested demos
