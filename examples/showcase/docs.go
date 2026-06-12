@@ -1,13 +1,14 @@
 package main
 
 func componentDoc(id string) string {
-	switch id {
+	key := id
+	switch key {
 	case "native_notification":
-		id = "notification"
+		key = "notification"
 	case "column_demo":
-		id = "column"
+		key = "column"
 	}
-	file, ok := widgetDocFiles[id]
+	file, ok := widgetDocFiles[key]
 	if !ok {
 		return ""
 	}

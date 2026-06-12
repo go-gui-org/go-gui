@@ -108,10 +108,11 @@ func groupPicker(app *ShowcaseApp) gui.View {
 }
 
 func groupPickerItem(label, key string, app *ShowcaseApp) gui.View {
+	t := gui.CurrentTheme()
 	selected := app.SelectedGroup == key
-	color := gui.CurrentTheme().ColorBackground
+	color := t.ColorBackground
 	if selected {
-		color = gui.CurrentTheme().ColorActive
+		color = t.ColorActive
 	}
 
 	return gui.Button(gui.ButtonCfg{
@@ -121,7 +122,7 @@ func groupPickerItem(label, key string, app *ShowcaseApp) gui.View {
 		Radius:      gui.SomeF(3),
 		Padding:     gui.SomeP(3, 6, 3, 6),
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: label, TextStyle: gui.CurrentTheme().N5}),
+			gui.Text(gui.TextCfg{Text: label, TextStyle: t.N5}),
 		},
 		OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
 			showcaseApp := gui.State[ShowcaseApp](w)
@@ -139,11 +140,12 @@ func groupPickerItem(label, key string, app *ShowcaseApp) gui.View {
 }
 
 func catalogRows(entries []DemoEntry, app *ShowcaseApp) []gui.View {
+	t := gui.CurrentTheme()
 	if len(entries) == 0 {
 		return []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "No matching components",
-				TextStyle: gui.CurrentTheme().N4,
+				TextStyle: t.N4,
 			}),
 		}
 	}
@@ -169,7 +171,7 @@ func catalogRows(entries []DemoEntry, app *ShowcaseApp) []gui.View {
 		}
 		rows = append(rows, gui.Text(gui.TextCfg{
 			Text:      group.Label,
-			TextStyle: gui.CurrentTheme().B5,
+			TextStyle: t.B5,
 		}))
 		for _, entry := range groupEntries {
 			rows = append(rows, catalogRow(entry, app))
@@ -179,18 +181,19 @@ func catalogRows(entries []DemoEntry, app *ShowcaseApp) []gui.View {
 }
 
 func catalogRow(entry DemoEntry, app *ShowcaseApp) gui.View {
+	t := gui.CurrentTheme()
 	selected := app.SelectedComponent == entry.ID
 	color := gui.ColorTransparent
 	if selected {
-		color = gui.CurrentTheme().ColorActive
+		color = t.ColorActive
 	}
 
 	return gui.Button(gui.ButtonCfg{
 		ID:               "cat-" + entry.ID,
 		Sizing:           gui.FillFit,
 		Color:            color,
-		ColorHover:       gui.CurrentTheme().MenubarStyle.ColorSelect,
-		ColorClick:       gui.CurrentTheme().ColorActive,
+		ColorHover:       t.MenubarStyle.ColorSelect,
+		ColorClick:       t.ColorActive,
 		ColorFocus:       color,
 		ColorBorder:      gui.ColorTransparent,
 		ColorBorderFocus: gui.ColorTransparent,
@@ -198,7 +201,7 @@ func catalogRow(entry DemoEntry, app *ShowcaseApp) gui.View {
 		Padding:          gui.SomeP(3, 6, 3, 6),
 		HAlign:           gui.Some(gui.HAlignLeft),
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: entry.Label, TextStyle: gui.CurrentTheme().N4}),
+			gui.Text(gui.TextCfg{Text: entry.Label, TextStyle: t.N4}),
 		},
 		OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
 			showcaseApp := gui.State[ShowcaseApp](w)

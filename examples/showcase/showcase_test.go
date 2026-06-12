@@ -195,11 +195,9 @@ func TestDetailPanelWelcomeWrappersHaveNoBorder(t *testing.T) {
 	if got, want := line.Shape.SizeBorder, float32(0); got != want {
 		t.Fatalf("layout.Children[0].Children[1].Shape.SizeBorder = %v, want %v", got, want)
 	}
-	if len(line.Children) == 0 {
-		t.Fatal("len(layout.Children[0].Children[1].Children) = 0, want separator")
-	}
-	if got, want := line.Children[0].Shape.SizeBorder, float32(0); got != want {
-		t.Fatalf("layout.Children[0].Children[1].Children[0].Shape.SizeBorder = %v, want %v", got, want)
+	// line() returns a single Row node; Height 1 renders the separator.
+	if got, want := line.Shape.Height, float32(1); got != want {
+		t.Fatalf("layout.Children[0].Children[1].Shape.Height = %v, want %v", got, want)
 	}
 }
 
@@ -371,5 +369,42 @@ func TestValidateUsernameReserved(t *testing.T) {
 	}
 	if issues := validateUsernameFormAsync(snap("available"), fs, nil); len(issues) != 0 {
 		t.Fatalf("expected no issue for available, got %v", issues)
+	}
+}
+
+func TestDetailPanel_BumpsAbortCounterWhenNavigatingAwayFromTree(t *testing.T) {
+	app := newShowcaseApp()
+	app.SelectedGroup = groupData
+	app.SelectedComponent = "tree"
+	// Seed lazy nodes so the test can verify they are cleared on
+	// navigation-away.
+	app.TreeLazyNodes = map[string][]gui.TreeNodeCfg{
+		"remote_a": {{ID: "a", Text: "a"}},
+	}
+	w := gui.NewWindow(gui.WindowCfg{State: app})
+
+	// Staying on "tree" should not bump the abort counter or clear
+	// lazy nodes.
+	abortBefore := app.TreeLazyLoadAbort
+	_ = gui.GenerateViewLayout(detailPanel(w), w) //nolint:staticcheck
+	if app.TreeLazyLoadAbort != abortBefore {
+		t.Fatal("abort counter bumped while still viewing tree demo")
+	}
+	if len(app.TreeLazyNodes) == 0 {
+		t.Fatal("TreeLazyNodes cleared while still viewing tree demo")
+	}
+
+	// Navigate to "button" — abort counter increments and lazy nodes
+	// are discarded.
+	app.SelectedComponent = "button"
+	app.SelectedGroup = groupButtons
+	_ = gui.GenerateViewLayout(detailPanel(w), w) //nolint:staticcheck
+	if app.TreeLazyLoadAbort != abortBefore+1 {
+		t.Fatalf("TreeLazyLoadAbort = %d, want %d",
+			app.TreeLazyLoadAbort, abortBefore+1)
+	}
+	if len(app.TreeLazyNodes) != 0 {
+		t.Fatalf("TreeLazyNodes not cleared on nav-away, got %d entries",
+			len(app.TreeLazyNodes))
 	}
 }

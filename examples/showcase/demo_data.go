@@ -501,10 +501,13 @@ func showcaseTreeOnSelect(id string, _ *gui.Event, w *gui.Window) {
 }
 
 func showcaseTreeOnLazyLoad(_ string, nodeID string, w *gui.Window) {
+	// Capture abort counter now (under w.mu) so the goroutine can
+	// detect navigation-away before applying its result.
+	abortAt := gui.State[ShowcaseApp](w).TreeLazyLoadAbort
 	go func() {
 		time.Sleep(800 * time.Millisecond)
 
-		children := []gui.TreeNodeCfg{{ID: nodeID + "_empty", Text: "(empty)"}}
+		var children []gui.TreeNodeCfg
 		switch nodeID {
 		case "remote_a":
 			children = []gui.TreeNodeCfg{
@@ -517,10 +520,16 @@ func showcaseTreeOnLazyLoad(_ string, nodeID string, w *gui.Window) {
 				{ID: "remote_b_one", Text: "one.rs"},
 				{ID: "remote_b_two", Text: "two.rs"},
 			}
+		default:
+			children = []gui.TreeNodeCfg{{ID: nodeID + "_empty", Text: "(empty)"}}
 		}
 
 		w.QueueCommand(func(w *gui.Window) {
-			gui.State[ShowcaseApp](w).TreeLazyNodes[nodeID] = children
+			app := gui.State[ShowcaseApp](w)
+			if app.TreeLazyLoadAbort != abortAt {
+				return // navigated away; discard stale result
+			}
+			app.TreeLazyNodes[nodeID] = children
 			w.UpdateWindow()
 		})
 	}()

@@ -43,8 +43,9 @@ type ShowcaseApp struct {
 	ShaderStartTime time.Time
 	DataSource      datagrid.DataGridDataSource
 
-	TableSelected map[int]bool
-	TreeLazyNodes map[string][]gui.TreeNodeCfg
+	TableSelected     map[int]bool
+	TreeLazyNodes     map[string][]gui.TreeNodeCfg
+	TreeLazyLoadAbort uint64
 
 	DockRoot *gui.DockNode
 

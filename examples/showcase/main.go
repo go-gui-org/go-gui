@@ -60,6 +60,7 @@ func main() {
 			w.UpdateView(mainView)
 		},
 	})
+	defer cleanupEmbeddedAssets()
 	backend.RunApp(app, w)
 }
 

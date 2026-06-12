@@ -18,22 +18,13 @@ func safeFloat(v, fallback float32) float32 {
 }
 
 func line() gui.View {
-	t := gui.CurrentTheme()
-	return gui.Column(gui.ContainerCfg{
+	return gui.Row(gui.ContainerCfg{
 		Sizing:     gui.FillFit,
+		Height:     1,
 		Padding:    gui.SomeP(3, 0, 0, 0),
 		SizeBorder: gui.NoBorder,
 		Radius:     gui.NoRadius,
-		Content: []gui.View{
-			gui.Row(gui.ContainerCfg{
-				Sizing:     gui.FillFit,
-				Padding:    gui.NoPadding,
-				SizeBorder: gui.NoBorder,
-				Radius:     gui.NoRadius,
-				Color:      t.ColorActive,
-				Height:     1,
-			}),
-		},
+		Color:      gui.CurrentTheme().ColorActive,
 	})
 }
 

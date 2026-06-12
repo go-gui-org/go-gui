@@ -41,8 +41,10 @@ func detailPanel(w *gui.Window) gui.View {
 		})
 	}
 	// Discard stale lazy-loaded tree nodes when navigating away.
+	// Bump abort counter so in-flight goroutines discard their results.
 	if entry.ID != "tree" {
 		app.TreeLazyNodes = make(map[string][]gui.TreeNodeCfg)
+		app.TreeLazyLoadAbort++
 	}
 
 	var content gui.View

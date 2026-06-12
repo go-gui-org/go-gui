@@ -32,3 +32,11 @@ func embeddedAssetPath(name string) string {
 	embeddedPathCache[name] = f.Name()
 	return f.Name()
 }
+
+// cleanupEmbeddedAssets removes temp files created by embeddedAssetPath.
+func cleanupEmbeddedAssets() {
+	for _, path := range embeddedPathCache {
+		_ = os.Remove(path)
+	}
+	clear(embeddedPathCache)
+}
