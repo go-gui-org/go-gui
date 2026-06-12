@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/go-gui-org/go-gui/gui"
+	gg "github.com/go-gui-org/go-gui/gui"
 )
 
-func dataGridGroupHeaderRowView(cfg *DataGridCfg, entry dataGridDisplayRow, rowHeight float32) View {
+func dataGridGroupHeaderRowView(cfg *DataGridCfg, entry dataGridDisplayRow, rowHeight float32) gg.View {
 	depthPad := float32(entry.GroupDepth) * dataGridGroupIndentStep
 	label := entry.GroupColTitle + ": " + entry.GroupValue
 	if boolDefault(cfg.ShowGroupCounts, true) {
@@ -20,59 +20,59 @@ func dataGridGroupHeaderRowView(cfg *DataGridCfg, entry dataGridDisplayRow, rowH
 	if entry.AggregateText != "" {
 		label += "  " + entry.AggregateText
 	}
-	pc := cfg.PaddingCell.Get(Padding{})
-	return Row(ContainerCfg{
+	pc := cfg.PaddingCell.Get(gg.Padding{})
+	return gg.Row(gg.ContainerCfg{
 		Height:      rowHeight,
-		Sizing:      FillFixed,
+		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorFilter,
 		ColorBorder: cfg.ColorBorder,
-		SizeBorder:  SomeF(0),
-		Padding:     SomeP(pc.Top, pc.Right, pc.Bottom, pc.Left+depthPad),
-		Spacing:     Some(-cfg.SizeBorder.Get(0)),
-		Content: []View{
-			Text(TextCfg{
+		SizeBorder:  gg.SomeF(0),
+		Padding:     gg.SomeP(pc.Top, pc.Right, pc.Bottom, pc.Left+depthPad),
+		Spacing:     gg.Some(-cfg.SizeBorder.Get(0)),
+		Content: []gg.View{
+			gg.Text(gg.TextCfg{
 				Text:      label,
-				Mode:      TextModeSingleLine,
+				Mode:      gg.TextModeSingleLine,
 				TextStyle: cfg.TextStyleHeader,
 			}),
 		},
 	})
 }
 
-func dataGridDetailRowView(dctx dataGridCtx, rowData GridRow, rowIdx int) View {
+func dataGridDetailRowView(dctx dataGridCtx, rowData GridRow, rowIdx int) gg.View {
 	cfg := dctx.cfg
 	if cfg.OnDetailRowView == nil {
-		return Rectangle(RectangleCfg{
+		return gg.Rectangle(gg.RectangleCfg{
 			Height: dctx.rowHeight,
-			Sizing: FillFixed,
-			Color:  ColorTransparent,
+			Sizing: gg.FillFixed,
+			Color:  gg.ColorTransparent,
 		})
 	}
 	rowID := dataGridRowID(rowData, rowIdx)
 	detailView := cfg.OnDetailRowView(rowData, dctx.w)
-	pc := cfg.PaddingCell.Get(Padding{})
+	pc := cfg.PaddingCell.Get(gg.Padding{})
 	focusID := dctx.focusID
-	return Row(ContainerCfg{
+	return gg.Row(gg.ContainerCfg{
 		ID:          cfg.ID + ":detail:" + rowID,
 		Height:      dctx.rowHeight,
-		Sizing:      FillFixed,
+		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorBackground,
 		ColorBorder: cfg.ColorBorder,
-		SizeBorder:  SomeF(0),
-		Padding:     SomeP(pc.Top, pc.Right, pc.Bottom, pc.Left+dataGridDetailIndent()),
-		Spacing:     Some(-cfg.SizeBorder.Get(0)),
-		Content: []View{
-			Row(ContainerCfg{
+		SizeBorder:  gg.SomeF(0),
+		Padding:     gg.SomeP(pc.Top, pc.Right, pc.Bottom, pc.Left+dataGridDetailIndent()),
+		Spacing:     gg.Some(-cfg.SizeBorder.Get(0)),
+		Content: []gg.View{
+			gg.Row(gg.ContainerCfg{
 				Width:       dataGridColumnsTotalWidth(dctx.columns, dctx.columnWidths),
-				Sizing:      FixedFill,
-				Padding:     NoPadding,
-				Color:       ColorTransparent,
-				ColorBorder: ColorTransparent,
-				SizeBorder:  SomeF(0),
-				Content:     []View{detailView},
+				Sizing:      gg.FixedFill,
+				Padding:     gg.NoPadding,
+				Color:       gg.ColorTransparent,
+				ColorBorder: gg.ColorTransparent,
+				SizeBorder:  gg.SomeF(0),
+				Content:     []gg.View{detailView},
 			}),
 		},
-		OnClick: func(_ *Layout, e *Event, w *Window) {
+		OnClick: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 			if focusID > 0 {
 				w.SetIDFocus(focusID)
 			}
@@ -81,7 +81,7 @@ func dataGridDetailRowView(dctx dataGridCtx, rowData GridRow, rowIdx int) View {
 	})
 }
 
-func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAction bool) View {
+func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAction bool) gg.View {
 	cfg := dctx.cfg
 	columns := dctx.columns
 	columnWidths := dctx.columnWidths
@@ -104,7 +104,7 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 	detailExpanded := dataGridDetailRowExpanded(cfg, rowID)
 	isEditingRow := dctx.editingRowID == rowID && editEnabled
 
-	cells := make([]View, 0, len(columns)+1)
+	cells := make([]gg.View, 0, len(columns)+1)
 	for colIdx, col := range columns {
 		value := rowData.Cells[col.ID]
 		baseTextStyle := cfg.TextStyle
@@ -112,13 +112,13 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 			baseTextStyle = *col.TextStyle
 		}
 		textStyle := baseTextStyle
-		cellColor := ColorTransparent
+		cellColor := gg.ColorTransparent
 		if cfg.OnCellFormat != nil {
 			cellFormat := cfg.OnCellFormat(rowData, rowIdx, col, value, w)
 			textStyle, cellColor = dataGridResolveCellFormat(baseTextStyle, cellFormat)
 		}
 		isEditingCell := isEditingRow && col.Editable
-		var cellBuf [2]View
+		var cellBuf [2]gg.View
 		cellContent := cellBuf[:0]
 		if colIdx == 0 && detailEnabled {
 			cellContent = append(cellContent, dataGridDetailToggleControl(cfg, rowID, detailExpanded, detailToggleEnabled, focusID))
@@ -127,9 +127,9 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 			editorFocusID := dataGridCellEditorFocusID(cfg, len(columns), rowIdx, colIdx)
 			cellContent = append(cellContent, dataGridCellEditorView(cfg, rowID, rowIdx, col, value, editorFocusID, focusID, w))
 		} else {
-			cellContent = append(cellContent, Text(TextCfg{
+			cellContent = append(cellContent, gg.Text(gg.TextCfg{
 				Text:      value,
-				Mode:      TextModeSingleLine,
+				Mode:      gg.TextModeSingleLine,
 				TextStyle: textStyle,
 			}))
 		}
@@ -138,56 +138,56 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 		cellSpacing := float32(4)
 		cellHAlign := col.Align
 		if isEditingCell {
-			cellPadding = NoPadding
+			cellPadding = gg.NoPadding
 			cellSpacing = 0
 		}
 		if colIdx == 0 && detailEnabled {
-			cellHAlign = HAlignStart
+			cellHAlign = gg.HAlignStart
 		}
 
-		cells = append(cells, Row(ContainerCfg{
+		cells = append(cells, gg.Row(gg.ContainerCfg{
 			ID:          cfg.ID + ":cell:" + rowID + ":" + col.ID,
-			A11YRole:    AccessRoleGridCell,
+			A11YRole:    gg.AccessRoleGridCell,
 			Width:       dataGridColumnWidthFor(col, columnWidths),
-			Sizing:      FixedFill,
+			Sizing:      gg.FixedFill,
 			Padding:     cellPadding,
 			Color:       cellColor,
 			ColorBorder: cfg.ColorBorder,
 			SizeBorder:  cfg.SizeBorder,
 			HAlign:      cellHAlign,
-			VAlign:      VAlignMiddle,
-			Spacing:     Some(cellSpacing),
+			VAlign:      gg.VAlignMiddle,
+			Spacing:     gg.Some(cellSpacing),
 			Content:     cellContent,
 		}))
 	}
 
 	if showDeleteAction {
-		cells = append(cells, Button(ButtonCfg{
+		cells = append(cells, gg.Button(gg.ButtonCfg{
 			ID:          cfg.ID + ":row-delete:" + rowID,
 			Width:       dataGridHeaderControlWidth + 10,
-			Sizing:      FixedFill,
-			Padding:     NoPadding,
-			SizeBorder:  SomeF(0),
-			Radius:      SomeF(0),
-			Color:       ColorTransparent,
+			Sizing:      gg.FixedFill,
+			Padding:     gg.NoPadding,
+			SizeBorder:  gg.SomeF(0),
+			Radius:      gg.SomeF(0),
+			Color:       gg.ColorTransparent,
 			ColorHover:  cfg.ColorHeaderHover,
-			ColorFocus:  ColorTransparent,
+			ColorFocus:  gg.ColorTransparent,
 			ColorClick:  cfg.ColorHeaderHover,
 			ColorBorder: cfg.ColorBorder,
-			OnClick: func(_ *Layout, e *Event, w *Window) {
+			OnClick: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 				dataGridCrudDeleteRows(gridID, selection, onSelectionChange, []string{rowID}, focusID, e, w)
 			},
-			Content: []View{
-				Text(TextCfg{
+			Content: []gg.View{
+				gg.Text(gg.TextCfg{
 					Text:      "\u00D7", // ×
-					Mode:      TextModeSingleLine,
+					Mode:      gg.TextModeSingleLine,
 					TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
 				}),
 			},
 		}))
 	}
 
-	rowColor := ColorTransparent
+	rowColor := gg.ColorTransparent
 	if isSelected {
 		rowColor = cfg.ColorRowSelected
 	} else if rowIdx%2 == 1 {
@@ -196,21 +196,21 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 	colorRowHover := cfg.ColorRowHover
 	disabled := cfg.Disabled
 
-	return Row(ContainerCfg{
+	return gg.Row(gg.ContainerCfg{
 		ID:          cfg.ID + ":row:" + rowID,
 		Height:      rowHeight,
-		Sizing:      FillFixed,
+		Sizing:      gg.FillFixed,
 		Color:       rowColor,
 		ColorBorder: cfg.ColorBorder,
-		SizeBorder:  SomeF(0),
-		Padding:     NoPadding,
-		Spacing:     Some(-cfg.SizeBorder.Get(0)),
-		OnClick: func(_ *Layout, e *Event, w *Window) {
+		SizeBorder:  gg.SomeF(0),
+		Padding:     gg.NoPadding,
+		Spacing:     gg.Some(-cfg.SizeBorder.Get(0)),
+		OnClick: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 			dataGridRowClick(rows, selection, gridID, multiSelect, rangeSelect,
 				onSelectionChange, editEnabled, editorFocusBase, colCount,
 				rowIdx, rowID, focusID, columns, e, w)
 		},
-		OnHover: func(layout *Layout, _ *Event, win *Window) {
+		OnHover: func(layout *gg.Layout, _ *gg.Event, win *gg.Window) {
 			if disabled {
 				return
 			}
@@ -223,19 +223,19 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 	})
 }
 
-func dataGridResolveCellFormat(base TextStyle, format GridCellFormat) (TextStyle, Color) {
+func dataGridResolveCellFormat(base gg.TextStyle, format GridCellFormat) (gg.TextStyle, gg.Color) {
 	textStyle := base
 	if format.HasTextColor {
 		textStyle.Color = format.TextColor
 	}
-	bgColor := ColorTransparent
+	bgColor := gg.ColorTransparent
 	if format.HasBGColor {
 		bgColor = format.BGColor
 	}
 	return textStyle, bgColor
 }
 
-func dataGridRowClick(rows []GridRow, selection GridSelection, gridID string, multiSelect, rangeSelect bool, onSelectionChange func(GridSelection, *Event, *Window), editEnabled bool, editorFocusBase uint32, colCount, rowIdx int, rowID string, focusID uint32, columns []GridColumnCfg, e *Event, w *Window) {
+func dataGridRowClick(rows []GridRow, selection GridSelection, gridID string, multiSelect, rangeSelect bool, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), editEnabled bool, editorFocusBase uint32, colCount, rowIdx int, rowID string, focusID uint32, columns []GridColumnCfg, e *gg.Event, w *gg.Window) {
 	if focusID > 0 {
 		w.SetIDFocus(focusID)
 	}
@@ -273,9 +273,9 @@ func dataGridSelectionIsSingleRow(selectedRowIDs map[string]bool, rowID string) 
 	return rowID != "" && len(selectedRowIDs) == 1 && selectedRowIDs[rowID]
 }
 
-func dataGridComputeRowSelection(rows []GridRow, selection GridSelection, gridID string, multiSelect, rangeSelect bool, rowID string, e *Event, w *Window) GridSelection {
-	isShift := e.Modifiers.Has(ModShift)
-	isToggle := e.Modifiers.Has(ModCtrl) || e.Modifiers.Has(ModSuper)
+func dataGridComputeRowSelection(rows []GridRow, selection GridSelection, gridID string, multiSelect, rangeSelect bool, rowID string, e *gg.Event, w *gg.Window) GridSelection {
+	isShift := e.Modifiers.Has(gg.ModShift)
+	isToggle := e.Modifiers.Has(gg.ModCtrl) || e.Modifiers.Has(gg.ModSuper)
 
 	if multiSelect && rangeSelect && isShift {
 		anchor := dataGridAnchorRowIDEx(selection, gridID, rows, w, rowID)
@@ -318,8 +318,8 @@ func dataGridComputeRowSelection(rows []GridRow, selection GridSelection, gridID
 	}
 }
 
-func dataGridAnchorRowIDEx(selection GridSelection, gridID string, rows []GridRow, w *Window, fallback string) string {
-	dgRange := StateMap[string, dataGridRangeState](w, nsDgRange, capModerate)
+func dataGridAnchorRowIDEx(selection GridSelection, gridID string, rows []GridRow, w *gg.Window, fallback string) string {
+	dgRange := gg.StateMap[string, dataGridRangeState](w, nsDgRange, capModerate)
 	if st, ok := dgRange.Get(gridID); ok && st.AnchorRowID != "" && dataGridHasRowID(rows, st.AnchorRowID) {
 		return st.AnchorRowID
 	}
@@ -329,8 +329,8 @@ func dataGridAnchorRowIDEx(selection GridSelection, gridID string, rows []GridRo
 	return fallback
 }
 
-func dataGridSetAnchor(gridID, rowID string, w *Window) {
-	dgRange := StateMap[string, dataGridRangeState](w, nsDgRange, capModerate)
+func dataGridSetAnchor(gridID, rowID string, w *gg.Window) {
+	dgRange := gg.StateMap[string, dataGridRangeState](w, nsDgRange, capModerate)
 	dgRange.Set(gridID, dataGridRangeState{AnchorRowID: rowID})
 }
 
@@ -360,14 +360,14 @@ func dataGridRangeIndices(rows []GridRow, anchorID, targetID string) (int, int) 
 
 // --- Cell editors ---
 
-func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col GridColumnCfg, value string, editorFocusID, gridFocusID uint32, _ *Window) View {
+func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col GridColumnCfg, value string, editorFocusID, gridFocusID uint32, _ *gg.Window) gg.View {
 	editorID := cfg.ID + ":editor:" + rowID + ":" + col.ID
 	colID := col.ID
 	gridID := cfg.ID
 	crudEnabled := dataGridCrudEnabled(cfg)
 	onCellEdit := cfg.OnCellEdit
 
-	var editor View
+	var editor gg.View
 	switch col.Editor {
 	case GridCellEditorSelect:
 		options := make([]string, len(col.EditorOptions))
@@ -379,16 +379,16 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 		if value != "" {
 			selectVal = []string{value}
 		}
-		editor = Select(SelectCfg{
+		editor = gg.Select(gg.SelectCfg{
 			ID:         editorID,
 			IDFocus:    editorFocusID,
 			Selected:   selectVal,
 			Options:    options,
-			Sizing:     FillFill,
-			Padding:    NoPadding,
-			SizeBorder: NoBorder,
-			Radius:     SomeF(0),
-			OnSelect: func(selected []string, e *Event, w *Window) {
+			Sizing:     gg.FillFill,
+			Padding:    gg.NoPadding,
+			SizeBorder: gg.NoBorder,
+			Radius:     gg.SomeF(0),
+			OnSelect: func(selected []string, e *gg.Event, w *gg.Window) {
 				nextValue := ""
 				if len(selected) > 0 {
 					nextValue = selected[0]
@@ -405,13 +405,13 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 		})
 	case GridCellEditorDate:
 		date := dataGridParseEditorDate(value)
-		editor = InputDate(InputDateCfg{
+		editor = gg.InputDate(gg.InputDateCfg{
 			ID:      editorID,
 			IDFocus: editorFocusID,
 			Date:    date,
-			Sizing:  FillFill,
-			Padding: NoPadding,
-			OnSelect: func(dates []time.Time, e *Event, w *Window) {
+			Sizing:  gg.FillFill,
+			Padding: gg.NoPadding,
+			OnSelect: func(dates []time.Time, e *gg.Event, w *gg.Window) {
 				if len(dates) == 0 {
 					return
 				}
@@ -430,12 +430,12 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 		checked := dataGridEditorBoolValue(value)
 		editorTrueValue := col.EditorTrueValue
 		editorFalseValue := col.EditorFalseValue
-		editor = Toggle(ToggleCfg{
+		editor = gg.Toggle(gg.ToggleCfg{
 			ID:       editorID,
 			IDFocus:  editorFocusID,
 			Selected: checked,
-			Padding:  NoPadding,
-			OnClick: func(_ *Layout, e *Event, w *Window) {
+			Padding:  gg.NoPadding,
+			OnClick: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 				nextValue := editorFalseValue
 				if !checked {
 					nextValue = editorTrueValue
@@ -452,17 +452,17 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 			},
 		})
 	default: // GridCellEditorText
-		editor = Input(InputCfg{
+		editor = gg.Input(gg.InputCfg{
 			ID:         editorID,
 			IDFocus:    editorFocusID,
 			Text:       value,
-			Sizing:     FillFill,
-			Padding:    NoPadding,
-			SizeBorder: NoBorder,
-			Radius:     SomeF(0),
-			OnTextChanged: func(_ *Layout, text string, w *Window) {
+			Sizing:     gg.FillFill,
+			Padding:    gg.NoPadding,
+			SizeBorder: gg.NoBorder,
+			Radius:     gg.SomeF(0),
+			OnTextChanged: func(_ *gg.Layout, text string, w *gg.Window) {
 				if rowID != "" && colID != "" {
-					e := &Event{}
+					e := &gg.Event{}
 					dataGridCrudApplyCellEdit(gridID, crudEnabled, onCellEdit, GridCellEdit{
 						RowID:  rowID,
 						RowIdx: rowIdx,
@@ -471,7 +471,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 					}, e, w)
 				}
 			},
-			OnEnter: func(_ *Layout, e *Event, w *Window) {
+			OnEnter: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 				dataGridClearEditingRow(gridID, w)
 				if gridFocusID > 0 {
 					w.SetIDFocus(gridFocusID)
@@ -481,21 +481,21 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 		})
 	}
 
-	return Row(ContainerCfg{
+	return gg.Row(gg.ContainerCfg{
 		ID:        editorID + ":wrap",
 		IDFocus:   editorFocusID,
 		FocusSkip: true,
-		Sizing:    FillFill,
-		Padding:   NoPadding,
-		Spacing:   SomeF(0),
+		Sizing:    gg.FillFill,
+		Padding:   gg.NoPadding,
+		Spacing:   gg.SomeF(0),
 		OnKeyDown: dataGridMakeEditorOnKeydown(cfg.ID, gridFocusID),
-		Content:   []View{editor},
+		Content:   []gg.View{editor},
 	})
 }
 
-func dataGridMakeEditorOnKeydown(gridID string, gridFocusID uint32) func(*Layout, *Event, *Window) {
-	return func(_ *Layout, e *Event, w *Window) {
-		if e.Modifiers != 0 || e.KeyCode != KeyEscape {
+func dataGridMakeEditorOnKeydown(gridID string, gridFocusID uint32) func(*gg.Layout, *gg.Event, *gg.Window) {
+	return func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
+		if e.Modifiers != 0 || e.KeyCode != gg.KeyEscape {
 			return
 		}
 		dataGridClearEditingRow(gridID, w)
@@ -506,7 +506,7 @@ func dataGridMakeEditorOnKeydown(gridID string, gridFocusID uint32) func(*Layout
 	}
 }
 
-func dataGridTrackRowEditClick(gridID string, editEnabled bool, editorFocusBase uint32, colCount int, columns []GridColumnCfg, _ int, rowID string, gridFocusID uint32, e *Event, w *Window) {
+func dataGridTrackRowEditClick(gridID string, editEnabled bool, editorFocusBase uint32, colCount int, columns []GridColumnCfg, _ int, rowID string, gridFocusID uint32, e *gg.Event, w *gg.Window) {
 	if !editEnabled || dataGridHasKeyboardModifiers(e) {
 		return
 	}
@@ -514,7 +514,7 @@ func dataGridTrackRowEditClick(gridID string, editEnabled bool, editorFocusBase 
 	if firstColIdx < 0 {
 		return
 	}
-	dgES := StateMap[string, dataGridEditState](w, nsDgEdit, capModerate)
+	dgES := gg.StateMap[string, dataGridEditState](w, nsDgEdit, capModerate)
 	state, _ := dgES.Get(gridID)
 
 	isDoubleClick := state.LastClickRowID == rowID && state.LastClickFrame > 0 &&
@@ -541,12 +541,12 @@ func dataGridTrackRowEditClick(gridID string, editEnabled bool, editorFocusBase 
 }
 
 // hasAnyModifiers checks if the event has any of the specified keyboard modifiers
-func hasAnyModifiers(e *Event, modifiers ...Modifier) bool {
+func hasAnyModifiers(e *gg.Event, modifiers ...gg.Modifier) bool {
 	return slices.ContainsFunc(modifiers, e.Modifiers.Has)
 }
 
-func dataGridHasKeyboardModifiers(e *Event) bool {
-	return hasAnyModifiers(e, ModShift, ModCtrl, ModAlt, ModSuper)
+func dataGridHasKeyboardModifiers(e *gg.Event) bool {
+	return hasAnyModifiers(e, gg.ModShift, gg.ModCtrl, gg.ModAlt, gg.ModSuper)
 }
 
 func dataGridFirstEditableColumnIndex(cfg *DataGridCfg, columns []GridColumnCfg) int {
@@ -608,23 +608,23 @@ func dataGridEditorFocusIDFromBase(base uint32, colCount, colIdx int) uint32 {
 	return base + uint32(cellOffset)
 }
 
-func dataGridEditingRowID(gridID string, w *Window) string {
-	dgES := StateMap[string, dataGridEditState](w, nsDgEdit, capModerate)
+func dataGridEditingRowID(gridID string, w *gg.Window) string {
+	dgES := gg.StateMap[string, dataGridEditState](w, nsDgEdit, capModerate)
 	if state, ok := dgES.Get(gridID); ok {
 		return state.EditingRowID
 	}
 	return ""
 }
 
-func dataGridSetEditingRow(gridID, rowID string, w *Window) {
-	dgES := StateMap[string, dataGridEditState](w, nsDgEdit, capModerate)
+func dataGridSetEditingRow(gridID, rowID string, w *gg.Window) {
+	dgES := gg.StateMap[string, dataGridEditState](w, nsDgEdit, capModerate)
 	state, _ := dgES.Get(gridID)
 	state.EditingRowID = rowID
 	dgES.Set(gridID, state)
 }
 
-func dataGridClearEditingRow(gridID string, w *Window) {
-	dgES := StateMap[string, dataGridEditState](w, nsDgEdit, capModerate)
+func dataGridClearEditingRow(gridID string, w *gg.Window) {
+	dgES := gg.StateMap[string, dataGridEditState](w, nsDgEdit, capModerate)
 	state, _ := dgES.Get(gridID)
 	state.EditingRowID = ""
 	dgES.Set(gridID, state)
@@ -659,21 +659,21 @@ func dataGridParseEditorDate(value string) time.Time {
 
 // --- Detail expansion ---
 
-func dataGridDetailToggleControl(cfg *DataGridCfg, rowID string, expanded, enabled bool, focusID uint32) View {
+func dataGridDetailToggleControl(cfg *DataGridCfg, rowID string, expanded, enabled bool, focusID uint32) gg.View {
 	label := "\u25B6" // ▶
 	if expanded {
 		label = "\u25BC" // ▼
 	}
 	style := dataGridIndicatorTextStyle(cfg.TextStyle)
 	if !enabled {
-		return Row(ContainerCfg{
+		return gg.Row(gg.ContainerCfg{
 			Width:   dataGridHeaderControlWidth,
-			Sizing:  FixedFill,
-			Padding: NoPadding,
-			Content: []View{
-				Text(TextCfg{
+			Sizing:  gg.FixedFill,
+			Padding: gg.NoPadding,
+			Content: []gg.View{
+				gg.Text(gg.TextCfg{
 					Text:      label,
-					Mode:      TextModeSingleLine,
+					Mode:      gg.TextModeSingleLine,
 					TextStyle: style,
 				}),
 			},
@@ -681,19 +681,19 @@ func dataGridDetailToggleControl(cfg *DataGridCfg, rowID string, expanded, enabl
 	}
 	onDetailExpandedChange := cfg.OnDetailExpandedChange
 	detailExpandedRowIDs := cfg.DetailExpandedRowIDs
-	return Button(ButtonCfg{
+	return gg.Button(gg.ButtonCfg{
 		ID:          cfg.ID + ":detail_toggle:" + rowID,
 		Width:       dataGridHeaderControlWidth,
-		Sizing:      FixedFill,
-		Padding:     NoPadding,
-		SizeBorder:  SomeF(0),
-		Radius:      SomeF(0),
-		Color:       ColorTransparent,
+		Sizing:      gg.FixedFill,
+		Padding:     gg.NoPadding,
+		SizeBorder:  gg.SomeF(0),
+		Radius:      gg.SomeF(0),
+		Color:       gg.ColorTransparent,
 		ColorHover:  cfg.ColorRowHover,
-		ColorFocus:  ColorTransparent,
+		ColorFocus:  gg.ColorTransparent,
 		ColorClick:  cfg.ColorRowHover,
-		ColorBorder: ColorTransparent,
-		OnClick: func(_ *Layout, e *Event, w *Window) {
+		ColorBorder: gg.ColorTransparent,
+		OnClick: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 			if rowID == "" || onDetailExpandedChange == nil {
 				return
 			}
@@ -704,10 +704,10 @@ func dataGridDetailToggleControl(cfg *DataGridCfg, rowID string, expanded, enabl
 			}
 			e.IsHandled = true
 		},
-		Content: []View{
-			Text(TextCfg{
+		Content: []gg.View{
+			gg.Text(gg.TextCfg{
 				Text:      label,
-				Mode:      TextModeSingleLine,
+				Mode:      gg.TextModeSingleLine,
 				TextStyle: style,
 			}),
 		},
@@ -734,52 +734,52 @@ func dataGridDetailIndent() float32 {
 
 // --- Scrollbar helpers ---
 
-func dataGridScrollPadding(cfg *DataGridCfg) Padding {
-	if cfg.Scrollbar == ScrollbarHidden {
-		return PaddingNone
+func dataGridScrollPadding(cfg *DataGridCfg) gg.Padding {
+	if cfg.Scrollbar == gg.ScrollbarHidden {
+		return gg.PaddingNone
 	}
-	return NewPadding(0, dataGridScrollGutter(), 0, 0)
+	return gg.NewPadding(0, dataGridScrollGutter(), 0, 0)
 }
 
 func dataGridScrollGutter() float32 {
-	style := DefaultScrollbarStyle
+	style := gg.DefaultScrollbarStyle
 	return style.Size + style.GapEdge + style.GapEnd
 }
 
 // --- Frozen top rows ---
 
-func dataGridFrozenTopZone(cfg *DataGridCfg, rowViews []View, zoneHeight, totalWidth, scrollX float32) View {
-	return Row(ContainerCfg{
+func dataGridFrozenTopZone(cfg *DataGridCfg, rowViews []gg.View, zoneHeight, totalWidth, scrollX float32) gg.View {
+	return gg.Row(gg.ContainerCfg{
 		Height:      zoneHeight,
-		Sizing:      FillFixed,
+		Sizing:      gg.FillFixed,
 		Clip:        true,
 		Color:       cfg.ColorBackground,
 		ColorBorder: cfg.ColorBorder,
-		SizeBorder:  SomeF(0),
-		Padding:     Some(dataGridScrollPadding(cfg)),
-		Spacing:     SomeF(0),
-		Content: []View{
-			Column(ContainerCfg{
+		SizeBorder:  gg.SomeF(0),
+		Padding:     gg.Some(dataGridScrollPadding(cfg)),
+		Spacing:     gg.SomeF(0),
+		Content: []gg.View{
+			gg.Column(gg.ContainerCfg{
 				X:           scrollX,
 				Width:       totalWidth,
-				Sizing:      FixedFill,
-				Color:       ColorTransparent,
-				ColorBorder: ColorTransparent,
-				SizeBorder:  SomeF(0),
-				Padding:     NoPadding,
-				Spacing:     SomeF(0),
+				Sizing:      gg.FixedFill,
+				Color:       gg.ColorTransparent,
+				ColorBorder: gg.ColorTransparent,
+				SizeBorder:  gg.SomeF(0),
+				Padding:     gg.NoPadding,
+				Spacing:     gg.SomeF(0),
 				Content:     rowViews,
 			}),
 		},
 	})
 }
 
-func dataGridFrozenTopViews(dctx dataGridCtx, frozenTopIndices []int, showDeleteAction bool) ([]View, int) {
+func dataGridFrozenTopViews(dctx dataGridCtx, frozenTopIndices []int, showDeleteAction bool) ([]gg.View, int) {
 	cfg := dctx.cfg
 	if len(frozenTopIndices) == 0 {
 		return nil, 0
 	}
-	views := make([]View, 0, len(frozenTopIndices)*2)
+	views := make([]gg.View, 0, len(frozenTopIndices)*2)
 	displayRows := 0
 	for _, rowIdx := range frozenTopIndices {
 		if rowIdx < 0 || rowIdx >= len(cfg.Rows) {

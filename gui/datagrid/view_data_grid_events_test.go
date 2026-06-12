@@ -3,7 +3,7 @@ package datagrid
 import (
 	"testing"
 
-	. "github.com/go-gui-org/go-gui/gui"
+	gg "github.com/go-gui-org/go-gui/gui"
 )
 
 // --- dataGridJumpDigits ---
@@ -214,14 +214,14 @@ func TestSourceRowMatchesQueryMultipleCells(t *testing.T) {
 // --- dataGridJumpEnabledLocal ---
 
 func TestJumpEnabledLocal(t *testing.T) {
-	sel := func(GridSelection, *Event, *Window) {}
-	page := func(int, *Event, *Window) {}
+	sel := func(GridSelection, *gg.Event, *gg.Window) {}
+	page := func(int, *gg.Event, *gg.Window) {}
 
 	tests := []struct {
 		name      string
 		rowsLen   int
-		onSel     func(GridSelection, *Event, *Window)
-		onPage    func(int, *Event, *Window)
+		onSel     func(GridSelection, *gg.Event, *gg.Window)
+		onPage    func(int, *gg.Event, *gg.Window)
 		pageSize  int
 		totalRows int
 		want      bool
@@ -245,7 +245,7 @@ func TestJumpEnabledLocal(t *testing.T) {
 // --- dataGridNextPageIndexForKey ---
 
 func TestNextPageIndexForKeyCtrlPageDown(t *testing.T) {
-	e := &Event{KeyCode: KeyPageDown, Modifiers: ModCtrl}
+	e := &gg.Event{KeyCode: gg.KeyPageDown, Modifiers: gg.ModCtrl}
 	got, ok := dataGridNextPageIndexForKey(1, 5, e)
 	if !ok || got != 2 {
 		t.Fatalf("got (%d, %v), want (2, true)", got, ok)
@@ -253,7 +253,7 @@ func TestNextPageIndexForKeyCtrlPageDown(t *testing.T) {
 }
 
 func TestNextPageIndexForKeyAltHome(t *testing.T) {
-	e := &Event{KeyCode: KeyHome, Modifiers: ModAlt}
+	e := &gg.Event{KeyCode: gg.KeyHome, Modifiers: gg.ModAlt}
 	got, ok := dataGridNextPageIndexForKey(3, 5, e)
 	if !ok || got != 0 {
 		t.Fatalf("got (%d, %v), want (0, true)", got, ok)
@@ -261,7 +261,7 @@ func TestNextPageIndexForKeyAltHome(t *testing.T) {
 }
 
 func TestNextPageIndexForKeySinglePage(t *testing.T) {
-	e := &Event{KeyCode: KeyPageDown, Modifiers: ModCtrl}
+	e := &gg.Event{KeyCode: gg.KeyPageDown, Modifiers: gg.ModCtrl}
 	_, ok := dataGridNextPageIndexForKey(0, 1, e)
 	if ok {
 		t.Fatal("expected false for single page")
@@ -271,30 +271,30 @@ func TestNextPageIndexForKeySinglePage(t *testing.T) {
 // --- dataGridCharIsCopy / dataGridIsSelectAllShortcut ---
 
 func TestCharIsCopy(t *testing.T) {
-	e := &Event{CharCode: 3, Modifiers: ModCtrl}
+	e := &gg.Event{CharCode: 3, Modifiers: gg.ModCtrl}
 	if !dataGridCharIsCopy(e) {
 		t.Fatal("Ctrl+C should be copy")
 	}
-	e2 := &Event{CharCode: 3, Modifiers: ModSuper}
+	e2 := &gg.Event{CharCode: 3, Modifiers: gg.ModSuper}
 	if !dataGridCharIsCopy(e2) {
 		t.Fatal("Cmd+C should be copy")
 	}
-	e3 := &Event{CharCode: 3}
+	e3 := &gg.Event{CharCode: 3}
 	if dataGridCharIsCopy(e3) {
 		t.Fatal("bare charCode=3 should not be copy")
 	}
 }
 
 func TestIsSelectAllShortcut(t *testing.T) {
-	e := &Event{KeyCode: KeyA, Modifiers: ModCtrl}
+	e := &gg.Event{KeyCode: gg.KeyA, Modifiers: gg.ModCtrl}
 	if !dataGridIsSelectAllShortcut(e) {
 		t.Fatal("Ctrl+A should be select-all")
 	}
-	e2 := &Event{KeyCode: KeyA, Modifiers: ModSuper}
+	e2 := &gg.Event{KeyCode: gg.KeyA, Modifiers: gg.ModSuper}
 	if !dataGridIsSelectAllShortcut(e2) {
 		t.Fatal("Cmd+A should be select-all")
 	}
-	e3 := &Event{KeyCode: KeyA}
+	e3 := &gg.Event{KeyCode: gg.KeyA}
 	if dataGridIsSelectAllShortcut(e3) {
 		t.Fatal("bare 'A' should not be select-all")
 	}
@@ -326,7 +326,7 @@ func TestRangeSelectedRowsFallback(t *testing.T) {
 // --- dataGridNextPageIndexForKey (additional branches) ---
 
 func TestNextPageIndexForKeyCtrlPageUp(t *testing.T) {
-	e := &Event{KeyCode: KeyPageUp, Modifiers: ModCtrl}
+	e := &gg.Event{KeyCode: gg.KeyPageUp, Modifiers: gg.ModCtrl}
 	got, ok := dataGridNextPageIndexForKey(2, 5, e)
 	if !ok || got != 1 {
 		t.Fatalf("got (%d, %v), want (1, true)", got, ok)
@@ -334,7 +334,7 @@ func TestNextPageIndexForKeyCtrlPageUp(t *testing.T) {
 }
 
 func TestNextPageIndexForKeyAltEnd(t *testing.T) {
-	e := &Event{KeyCode: KeyEnd, Modifiers: ModAlt}
+	e := &gg.Event{KeyCode: gg.KeyEnd, Modifiers: gg.ModAlt}
 	got, ok := dataGridNextPageIndexForKey(1, 5, e)
 	if !ok || got != 4 {
 		t.Fatalf("got (%d, %v), want (4, true)", got, ok)
@@ -342,7 +342,7 @@ func TestNextPageIndexForKeyAltEnd(t *testing.T) {
 }
 
 func TestNextPageIndexForKeyUnrecognized(t *testing.T) {
-	e := &Event{KeyCode: KeyA, Modifiers: ModCtrl}
+	e := &gg.Event{KeyCode: gg.KeyA, Modifiers: gg.ModCtrl}
 	_, ok := dataGridNextPageIndexForKey(1, 5, e)
 	if ok {
 		t.Fatal("expected false for unrecognized key")
@@ -350,7 +350,7 @@ func TestNextPageIndexForKeyUnrecognized(t *testing.T) {
 }
 
 func TestNextPageIndexForKeyNoModifier(t *testing.T) {
-	e := &Event{KeyCode: KeyPageDown}
+	e := &gg.Event{KeyCode: gg.KeyPageDown}
 	_, ok := dataGridNextPageIndexForKey(1, 5, e)
 	if ok {
 		t.Fatal("expected false without ctrl/super modifier")
@@ -358,7 +358,7 @@ func TestNextPageIndexForKeyNoModifier(t *testing.T) {
 }
 
 func TestNextPageIndexForKeyAltUnrecognized(t *testing.T) {
-	e := &Event{KeyCode: KeyA, Modifiers: ModAlt}
+	e := &gg.Event{KeyCode: gg.KeyA, Modifiers: gg.ModAlt}
 	_, ok := dataGridNextPageIndexForKey(1, 5, e)
 	if ok {
 		t.Fatal("expected false for Alt+A")
@@ -366,7 +366,7 @@ func TestNextPageIndexForKeyAltUnrecognized(t *testing.T) {
 }
 
 func TestNextPageIndexForKeySuperPageDown(t *testing.T) {
-	e := &Event{KeyCode: KeyPageDown, Modifiers: ModSuper}
+	e := &gg.Event{KeyCode: gg.KeyPageDown, Modifiers: gg.ModSuper}
 	got, ok := dataGridNextPageIndexForKey(0, 3, e)
 	if !ok || got != 1 {
 		t.Fatalf("got (%d, %v), want (1, true)", got, ok)
@@ -374,7 +374,7 @@ func TestNextPageIndexForKeySuperPageDown(t *testing.T) {
 }
 
 func TestNextPageIndexForKeyClampFirst(t *testing.T) {
-	e := &Event{KeyCode: KeyPageUp, Modifiers: ModCtrl}
+	e := &gg.Event{KeyCode: gg.KeyPageUp, Modifiers: gg.ModCtrl}
 	got, ok := dataGridNextPageIndexForKey(0, 5, e)
 	if !ok || got != 0 {
 		t.Fatalf("got (%d, %v), want (0, true)", got, ok)
@@ -382,7 +382,7 @@ func TestNextPageIndexForKeyClampFirst(t *testing.T) {
 }
 
 func TestNextPageIndexForKeyClampLast(t *testing.T) {
-	e := &Event{KeyCode: KeyPageDown, Modifiers: ModCtrl}
+	e := &gg.Event{KeyCode: gg.KeyPageDown, Modifiers: gg.ModCtrl}
 	got, ok := dataGridNextPageIndexForKey(4, 5, e)
 	if !ok || got != 4 {
 		t.Fatalf("got (%d, %v), want (4, true)", got, ok)
@@ -392,10 +392,10 @@ func TestNextPageIndexForKeyClampLast(t *testing.T) {
 // --- dataGridHandleEscapeKey ---
 
 func TestHandleEscapeKeyMarksHandled(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	kc := dataGridKeydownContext{gridID: "g1"}
-	e := &Event{KeyCode: KeyEscape}
+	e := &gg.Event{KeyCode: gg.KeyEscape}
 	handled := dataGridHandleEscapeKey(kc, e, w)
 	if !handled {
 		t.Fatal("escape should be handled")
@@ -406,10 +406,10 @@ func TestHandleEscapeKeyMarksHandled(t *testing.T) {
 }
 
 func TestHandleEscapeKeyIgnoresModifiers(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	kc := dataGridKeydownContext{gridID: "g1"}
-	e := &Event{KeyCode: KeyEscape, Modifiers: ModShift}
+	e := &gg.Event{KeyCode: gg.KeyEscape, Modifiers: gg.ModShift}
 	handled := dataGridHandleEscapeKey(kc, e, w)
 	if handled {
 		t.Fatal("escape with modifiers should not be handled")
@@ -417,10 +417,10 @@ func TestHandleEscapeKeyIgnoresModifiers(t *testing.T) {
 }
 
 func TestHandleEscapeKeyIgnoresNonEscape(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	kc := dataGridKeydownContext{gridID: "g1"}
-	e := &Event{KeyCode: KeyA}
+	e := &gg.Event{KeyCode: gg.KeyA}
 	handled := dataGridHandleEscapeKey(kc, e, w)
 	if handled {
 		t.Fatal("non-escape should not be handled")
@@ -430,7 +430,7 @@ func TestHandleEscapeKeyIgnoresNonEscape(t *testing.T) {
 // --- dataGridHandleRowNavigationKeys ---
 
 func TestHandleRowNavigationKeysArrowDown(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	rows := []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}}
 	var selected GridSelection
@@ -449,11 +449,11 @@ func TestHandleRowNavigationKeysArrowDown(t *testing.T) {
 		colCount:      1,
 		frozenTopIDs:  map[string]bool{},
 		dataToDisplay: map[int]int{0: 0, 1: 1, 2: 2},
-		onSelectionChange: func(sel GridSelection, _ *Event, _ *Window) {
+		onSelectionChange: func(sel GridSelection, _ *gg.Event, _ *gg.Window) {
 			selected = sel
 		},
 	}
-	e := &Event{KeyCode: KeyDown}
+	e := &gg.Event{KeyCode: gg.KeyDown}
 	dataGridHandleRowNavigationKeys(kc, []int{0, 1, 2}, e, w)
 	if !e.IsHandled {
 		t.Fatal("event should be handled")
@@ -464,7 +464,7 @@ func TestHandleRowNavigationKeysArrowDown(t *testing.T) {
 }
 
 func TestHandleRowNavigationKeysArrowUp(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	rows := []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}}
 	var selected GridSelection
@@ -483,11 +483,11 @@ func TestHandleRowNavigationKeysArrowUp(t *testing.T) {
 		colCount:      1,
 		frozenTopIDs:  map[string]bool{},
 		dataToDisplay: map[int]int{0: 0, 1: 1, 2: 2},
-		onSelectionChange: func(sel GridSelection, _ *Event, _ *Window) {
+		onSelectionChange: func(sel GridSelection, _ *gg.Event, _ *gg.Window) {
 			selected = sel
 		},
 	}
-	e := &Event{KeyCode: KeyUp}
+	e := &gg.Event{KeyCode: gg.KeyUp}
 	dataGridHandleRowNavigationKeys(kc, []int{0, 1, 2}, e, w)
 	if selected.ActiveRowID != "a" {
 		t.Errorf("active row: got %q, want %q", selected.ActiveRowID, "a")
@@ -495,7 +495,7 @@ func TestHandleRowNavigationKeysArrowUp(t *testing.T) {
 }
 
 func TestHandleRowNavigationKeysHome(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	rows := []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}}
 	var selected GridSelection
@@ -512,11 +512,11 @@ func TestHandleRowNavigationKeysHome(t *testing.T) {
 		pageIndices:   []int{0, 1, 2},
 		frozenTopIDs:  map[string]bool{},
 		dataToDisplay: map[int]int{0: 0, 1: 1, 2: 2},
-		onSelectionChange: func(sel GridSelection, _ *Event, _ *Window) {
+		onSelectionChange: func(sel GridSelection, _ *gg.Event, _ *gg.Window) {
 			selected = sel
 		},
 	}
-	e := &Event{KeyCode: KeyHome}
+	e := &gg.Event{KeyCode: gg.KeyHome}
 	dataGridHandleRowNavigationKeys(kc, []int{0, 1, 2}, e, w)
 	if selected.ActiveRowID != "a" {
 		t.Errorf("home: got %q, want %q", selected.ActiveRowID, "a")
@@ -524,7 +524,7 @@ func TestHandleRowNavigationKeysHome(t *testing.T) {
 }
 
 func TestHandleRowNavigationKeysEnd(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	rows := []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}}
 	var selected GridSelection
@@ -541,11 +541,11 @@ func TestHandleRowNavigationKeysEnd(t *testing.T) {
 		pageIndices:   []int{0, 1, 2},
 		frozenTopIDs:  map[string]bool{},
 		dataToDisplay: map[int]int{0: 0, 1: 1, 2: 2},
-		onSelectionChange: func(sel GridSelection, _ *Event, _ *Window) {
+		onSelectionChange: func(sel GridSelection, _ *gg.Event, _ *gg.Window) {
 			selected = sel
 		},
 	}
-	e := &Event{KeyCode: KeyEnd}
+	e := &gg.Event{KeyCode: gg.KeyEnd}
 	dataGridHandleRowNavigationKeys(kc, []int{0, 1, 2}, e, w)
 	if selected.ActiveRowID != "c" {
 		t.Errorf("end: got %q, want %q", selected.ActiveRowID, "c")
@@ -553,7 +553,7 @@ func TestHandleRowNavigationKeysEnd(t *testing.T) {
 }
 
 func TestHandleRowNavigationKeysNoCallback(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	rows := []GridRow{{ID: "a"}, {ID: "b"}}
 	kc := dataGridKeydownContext{
@@ -566,7 +566,7 @@ func TestHandleRowNavigationKeysNoCallback(t *testing.T) {
 		dataToDisplay:     map[int]int{0: 0, 1: 1},
 		onSelectionChange: nil,
 	}
-	e := &Event{KeyCode: KeyDown}
+	e := &gg.Event{KeyCode: gg.KeyDown}
 	dataGridHandleRowNavigationKeys(kc, []int{0, 1}, e, w)
 	if !e.IsHandled {
 		t.Fatal("should still mark handled even without callback")
@@ -574,7 +574,7 @@ func TestHandleRowNavigationKeysNoCallback(t *testing.T) {
 }
 
 func TestHandleRowNavigationKeysUnrecognized(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	rows := []GridRow{{ID: "a"}}
 	kc := dataGridKeydownContext{
@@ -585,7 +585,7 @@ func TestHandleRowNavigationKeysUnrecognized(t *testing.T) {
 		frozenTopIDs:  map[string]bool{},
 		dataToDisplay: map[int]int{0: 0},
 	}
-	e := &Event{KeyCode: KeyA}
+	e := &gg.Event{KeyCode: gg.KeyA}
 	dataGridHandleRowNavigationKeys(kc, []int{0}, e, w)
 	if e.IsHandled {
 		t.Fatal("unrecognized key should not be handled")
@@ -595,10 +595,10 @@ func TestHandleRowNavigationKeysUnrecognized(t *testing.T) {
 // --- dataGridOnKeydown (integration) ---
 
 func TestOnKeydownEscapeNoRows(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	kc := dataGridKeydownContext{gridID: "g1"}
-	e := &Event{KeyCode: KeyEscape}
+	e := &gg.Event{KeyCode: gg.KeyEscape}
 	dataGridOnKeydown(kc, e, w)
 	if !e.IsHandled {
 		t.Fatal("escape should be handled")
@@ -606,7 +606,7 @@ func TestOnKeydownEscapeNoRows(t *testing.T) {
 }
 
 func TestOnKeydownSelectAll(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	rows := []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}}
 	var selected GridSelection
@@ -615,11 +615,11 @@ func TestOnKeydownSelectAll(t *testing.T) {
 		rows:        rows,
 		multiSelect: true,
 		pageIndices: []int{0, 1, 2},
-		onSelectionChange: func(sel GridSelection, _ *Event, _ *Window) {
+		onSelectionChange: func(sel GridSelection, _ *gg.Event, _ *gg.Window) {
 			selected = sel
 		},
 	}
-	e := &Event{KeyCode: KeyA, Modifiers: ModCtrl}
+	e := &gg.Event{KeyCode: gg.KeyA, Modifiers: gg.ModCtrl}
 	dataGridOnKeydown(kc, e, w)
 	if !e.IsHandled {
 		t.Fatal("Ctrl+A should be handled")
@@ -632,14 +632,14 @@ func TestOnKeydownSelectAll(t *testing.T) {
 // --- dataGridScrollRowIntoViewEx ---
 
 func TestScrollRowIntoViewExZeroViewport(_ *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	// Should not panic.
 	dataGridScrollRowIntoViewEx(0, 0, 30, 0, 1, w)
 }
 
 func TestScrollRowIntoViewExZeroRowHeight(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	dataGridScrollRowIntoViewEx(100, 0, 0, 0, 1, w)
 }
@@ -647,13 +647,13 @@ func TestScrollRowIntoViewExZeroRowHeight(t *testing.T) {
 // --- dataGridHandleEnterKey ---
 
 func TestHandleEnterKeyNoActivate(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	kc := dataGridKeydownContext{
 		gridID: "g1",
 		rows:   []GridRow{{ID: "a"}},
 	}
-	e := &Event{KeyCode: KeyEnter}
+	e := &gg.Event{KeyCode: gg.KeyEnter}
 	handled := dataGridHandleEnterKey(kc, e, w)
 	if !handled {
 		t.Fatal("enter should be handled")
@@ -664,7 +664,7 @@ func TestHandleEnterKeyNoActivate(t *testing.T) {
 }
 
 func TestHandleEnterKeyWithActivate(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	var activated string
 	kc := dataGridKeydownContext{
@@ -674,11 +674,11 @@ func TestHandleEnterKeyWithActivate(t *testing.T) {
 			ActiveRowID:    "b",
 			SelectedRowIDs: map[string]bool{"b": true},
 		},
-		onRowActivate: func(row GridRow, _ *Event, _ *Window) {
+		onRowActivate: func(row GridRow, _ *gg.Event, _ *gg.Window) {
 			activated = row.ID
 		},
 	}
-	e := &Event{KeyCode: KeyEnter}
+	e := &gg.Event{KeyCode: gg.KeyEnter}
 	dataGridHandleEnterKey(kc, e, w)
 	if activated != "b" {
 		t.Errorf("activated: got %q, want %q", activated, "b")
@@ -686,10 +686,10 @@ func TestHandleEnterKeyWithActivate(t *testing.T) {
 }
 
 func TestHandleEnterKeyNotEnter(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	kc := dataGridKeydownContext{gridID: "g1"}
-	e := &Event{KeyCode: KeyA}
+	e := &gg.Event{KeyCode: gg.KeyA}
 	handled := dataGridHandleEnterKey(kc, e, w)
 	if handled {
 		t.Fatal("non-enter should not be handled")
@@ -699,13 +699,13 @@ func TestHandleEnterKeyNotEnter(t *testing.T) {
 // --- dataGridHandleCrudKeys ---
 
 func TestHandleCrudKeysNotEnabled(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	kc := dataGridKeydownContext{
 		gridID:      "g1",
 		crudEnabled: false,
 	}
-	e := &Event{KeyCode: KeyInsert}
+	e := &gg.Event{KeyCode: gg.KeyInsert}
 	handled := dataGridHandleCrudKeys(kc, e, w)
 	if handled {
 		t.Fatal("crud disabled should return false")
@@ -713,13 +713,13 @@ func TestHandleCrudKeysNotEnabled(t *testing.T) {
 }
 
 func TestHandleCrudKeysWithModifiers(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	kc := dataGridKeydownContext{
 		gridID:      "g1",
 		crudEnabled: true,
 	}
-	e := &Event{KeyCode: KeyInsert, Modifiers: ModShift}
+	e := &gg.Event{KeyCode: gg.KeyInsert, Modifiers: gg.ModShift}
 	handled := dataGridHandleCrudKeys(kc, e, w)
 	if handled {
 		t.Fatal("crud with modifiers should return false")
@@ -729,10 +729,10 @@ func TestHandleCrudKeysWithModifiers(t *testing.T) {
 // --- dataGridHandleEditStartKey ---
 
 func TestHandleEditStartKeyNotF2(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	kc := dataGridKeydownContext{gridID: "g1"}
-	e := &Event{KeyCode: KeyA}
+	e := &gg.Event{KeyCode: gg.KeyA}
 	handled := dataGridHandleEditStartKey(kc, e, w)
 	if handled {
 		t.Fatal("non-F2 should return false")
@@ -740,13 +740,13 @@ func TestHandleEditStartKeyNotF2(t *testing.T) {
 }
 
 func TestHandleEditStartKeyF2NotEditable(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	kc := dataGridKeydownContext{
 		gridID:      "g1",
 		editEnabled: false,
 	}
-	e := &Event{KeyCode: KeyF2}
+	e := &gg.Event{KeyCode: gg.KeyF2}
 	handled := dataGridHandleEditStartKey(kc, e, w)
 	if !handled {
 		t.Fatal("F2 should return true even when not editable")
@@ -754,10 +754,10 @@ func TestHandleEditStartKeyF2NotEditable(t *testing.T) {
 }
 
 func TestHandleEditStartKeyF2WithModifiers(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	kc := dataGridKeydownContext{gridID: "g1"}
-	e := &Event{KeyCode: KeyF2, Modifiers: ModCtrl}
+	e := &gg.Event{KeyCode: gg.KeyF2, Modifiers: gg.ModCtrl}
 	handled := dataGridHandleEditStartKey(kc, e, w)
 	if handled {
 		t.Fatal("F2+Ctrl should return false")
@@ -777,7 +777,7 @@ func TestPagerSpacerReturnsView(t *testing.T) {
 // --- dataGridPagerJumpLabel ---
 
 func TestPagerJumpLabelReturnsView(t *testing.T) {
-	cfg := &DataGridCfg{TextStyleFilter: DefaultTextStyle}
+	cfg := &DataGridCfg{TextStyleFilter: gg.DefaultTextStyle}
 	v := dataGridPagerJumpLabel(cfg)
 	if v == nil {
 		t.Fatal("jump label should return a view")
@@ -790,8 +790,8 @@ func TestJumpContextFromPager(t *testing.T) {
 	cfg := &DataGridCfg{
 		ID:                "g1",
 		Rows:              []GridRow{{ID: "a"}},
-		OnSelectionChange: func(GridSelection, *Event, *Window) {},
-		OnPageChange:      func(int, *Event, *Window) {},
+		OnSelectionChange: func(GridSelection, *gg.Event, *gg.Window) {},
+		OnPageChange:      func(int, *gg.Event, *gg.Window) {},
 		PageSize:          25,
 	}
 	pctx := dataGridPagerContext{
@@ -819,7 +819,7 @@ func TestJumpContextFromPager(t *testing.T) {
 // --- dataGridSelectionForTargetRow ---
 
 func TestSelectionForTargetRowPlain(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	rows := []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}}
 	kc := dataGridKeydownContext{
@@ -838,7 +838,7 @@ func TestSelectionForTargetRowPlain(t *testing.T) {
 }
 
 func TestSelectionForTargetRowShiftRange(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	rows := []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}, {ID: "d"}}
 	kc := dataGridKeydownContext{
@@ -868,7 +868,7 @@ func TestSelectionForTargetRowShiftRange(t *testing.T) {
 // --- dataGridHandlePageShortcut ---
 
 func TestHandlePageShortcutNoCallback(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	kc := dataGridKeydownContext{
 		gridID:       "g1",
@@ -881,7 +881,7 @@ func TestHandlePageShortcutNoCallback(t *testing.T) {
 		rows = append(rows, GridRow{ID: "r"})
 	}
 	kc.rows = rows
-	e := &Event{KeyCode: KeyPageDown, Modifiers: ModCtrl}
+	e := &gg.Event{KeyCode: gg.KeyPageDown, Modifiers: gg.ModCtrl}
 	handled := dataGridHandlePageShortcut(kc, e, w)
 	if handled {
 		t.Fatal("should return false without onPageChange")
@@ -889,16 +889,16 @@ func TestHandlePageShortcutNoCallback(t *testing.T) {
 }
 
 func TestHandlePageShortcutSinglePage(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	kc := dataGridKeydownContext{
 		gridID:       "g1",
 		rows:         []GridRow{{ID: "a"}},
 		pageSize:     25,
 		pageIndex:    0,
-		onPageChange: func(int, *Event, *Window) {},
+		onPageChange: func(int, *gg.Event, *gg.Window) {},
 	}
-	e := &Event{KeyCode: KeyPageDown, Modifiers: ModCtrl}
+	e := &gg.Event{KeyCode: gg.KeyPageDown, Modifiers: gg.ModCtrl}
 	handled := dataGridHandlePageShortcut(kc, e, w)
 	if handled {
 		t.Fatal("single page should return false")
@@ -906,7 +906,7 @@ func TestHandlePageShortcutSinglePage(t *testing.T) {
 }
 
 func TestHandlePageShortcutCtrlPageDown(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	var nextPage int
 	rows := []GridRow{}
@@ -918,11 +918,11 @@ func TestHandlePageShortcutCtrlPageDown(t *testing.T) {
 		rows:      rows,
 		pageSize:  10,
 		pageIndex: 0,
-		onPageChange: func(p int, _ *Event, _ *Window) {
+		onPageChange: func(p int, _ *gg.Event, _ *gg.Window) {
 			nextPage = p
 		},
 	}
-	e := &Event{KeyCode: KeyPageDown, Modifiers: ModCtrl}
+	e := &gg.Event{KeyCode: gg.KeyPageDown, Modifiers: gg.ModCtrl}
 	handled := dataGridHandlePageShortcut(kc, e, w)
 	if !handled {
 		t.Fatal("should be handled")
@@ -935,14 +935,14 @@ func TestHandlePageShortcutCtrlPageDown(t *testing.T) {
 // --- dataGridHandleSelectAllShortcut ---
 
 func TestHandleSelectAllShortcutDisabledMultiSelect(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	kc := dataGridKeydownContext{
 		gridID:      "g1",
 		rows:        []GridRow{{ID: "a"}, {ID: "b"}},
 		multiSelect: false,
 	}
-	e := &Event{KeyCode: KeyA, Modifiers: ModCtrl}
+	e := &gg.Event{KeyCode: gg.KeyA, Modifiers: gg.ModCtrl}
 	handled := dataGridHandleSelectAllShortcut(kc, e, w)
 	if handled {
 		t.Fatal("should return false when multiSelect disabled")
@@ -952,10 +952,10 @@ func TestHandleSelectAllShortcutDisabledMultiSelect(t *testing.T) {
 // --- dataGridMakeColumnChooserOnClick ---
 
 func TestMakeColumnChooserOnClick(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	var changedHidden map[string]bool
-	cb := func(h map[string]bool, _ *Event, _ *Window) {
+	cb := func(h map[string]bool, _ *gg.Event, _ *gg.Window) {
 		changedHidden = h
 	}
 	hidden := map[string]bool{"col2": true}
@@ -963,7 +963,7 @@ func TestMakeColumnChooserOnClick(t *testing.T) {
 		{ID: "col1"}, {ID: "col2"}, {ID: "col3"},
 	}
 	fn := dataGridMakeColumnChooserOnClick(cb, hidden, columns, "col2", 0)
-	e := &Event{}
+	e := &gg.Event{}
 	fn(nil, e, w)
 	if !e.IsHandled {
 		t.Fatal("should be handled")
@@ -974,12 +974,12 @@ func TestMakeColumnChooserOnClick(t *testing.T) {
 }
 
 func TestMakeColumnChooserOnClickNilCallback(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	hidden := map[string]bool{}
 	columns := []GridColumnCfg{{ID: "col1"}}
 	fn := dataGridMakeColumnChooserOnClick(nil, hidden, columns, "col1", 0)
-	e := &Event{}
+	e := &gg.Event{}
 	fn(nil, e, w)
 	// Should not panic; event not marked handled when callback is nil.
 }
@@ -987,9 +987,9 @@ func TestMakeColumnChooserOnClickNilCallback(t *testing.T) {
 // --- dataGridToggleColumnChooserOpen ---
 
 func TestToggleColumnChooserOpen(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
-	dgCO := StateMap[string, bool](w, nsDgChooserOpen, 4)
+	dgCO := gg.StateMap[string, bool](w, nsDgChooserOpen, 4)
 	dgCO.Set("g1", false)
 	dataGridToggleColumnChooserOpen("g1", w)
 	isOpen, _ := dgCO.Get("g1")
@@ -1006,14 +1006,14 @@ func TestToggleColumnChooserOpen(t *testing.T) {
 // --- dataGridSubmitLocalJump ---
 
 func TestSubmitLocalJumpValid(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	rows := []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}}
 	var selected GridSelection
 	ctx := dataGridJumpContext{
 		gridID: "g1",
 		rows:   rows,
-		onSelectionChange: func(sel GridSelection, _ *Event, _ *Window) {
+		onSelectionChange: func(sel GridSelection, _ *gg.Event, _ *gg.Window) {
 			selected = sel
 		},
 		onPageChange:  nil,
@@ -1027,10 +1027,10 @@ func TestSubmitLocalJumpValid(t *testing.T) {
 		focusID:       10,
 	}
 	// Set jump input to "2"
-	dgJI := StateMap[string, string](w, nsDgJump, 4)
+	dgJI := gg.StateMap[string, string](w, nsDgJump, 4)
 	dgJI.Set("g1", "2")
 
-	e := &Event{}
+	e := &gg.Event{}
 	dataGridSubmitLocalJump(ctx, e, w)
 	if !e.IsHandled {
 		t.Fatal("should be handled")
@@ -1041,14 +1041,14 @@ func TestSubmitLocalJumpValid(t *testing.T) {
 }
 
 func TestSubmitLocalJumpDisabled(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	ctx := dataGridJumpContext{
 		gridID:    "g1",
 		rows:      []GridRow{},
 		totalRows: 0,
 	}
-	e := &Event{}
+	e := &gg.Event{}
 	dataGridSubmitLocalJump(ctx, e, w)
 	if e.IsHandled {
 		t.Fatal("should not be handled when jump disabled")
@@ -1058,14 +1058,14 @@ func TestSubmitLocalJumpDisabled(t *testing.T) {
 // --- dataGridJumpToLocalRow ---
 
 func TestJumpToLocalRow(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	rows := []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}}
 	var selected GridSelection
 	ctx := dataGridJumpContext{
 		gridID: "g1",
 		rows:   rows,
-		onSelectionChange: func(sel GridSelection, _ *Event, _ *Window) {
+		onSelectionChange: func(sel GridSelection, _ *gg.Event, _ *gg.Window) {
 			selected = sel
 		},
 		pageSize:      0,
@@ -1074,7 +1074,7 @@ func TestJumpToLocalRow(t *testing.T) {
 		rowHeight:     25,
 		scrollID:      1,
 	}
-	e := &Event{}
+	e := &gg.Event{}
 	dataGridJumpToLocalRow(ctx, 1, e, w)
 	if selected.ActiveRowID != "b" {
 		t.Errorf("active: got %q, want b", selected.ActiveRowID)
@@ -1082,13 +1082,13 @@ func TestJumpToLocalRow(t *testing.T) {
 }
 
 func TestJumpToLocalRowOutOfRange(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	ctx := dataGridJumpContext{
 		gridID: "g1",
 		rows:   []GridRow{{ID: "a"}},
 	}
-	e := &Event{}
+	e := &gg.Event{}
 	// Should not panic.
 	dataGridJumpToLocalRow(ctx, -1, e, w)
 	dataGridJumpToLocalRow(ctx, 99, e, w)
@@ -1097,13 +1097,13 @@ func TestJumpToLocalRowOutOfRange(t *testing.T) {
 // --- dataGridApplyPendingLocalJumpScroll ---
 
 func TestApplyPendingLocalJumpScroll(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	cfg := &DataGridCfg{
 		ID:   "g1",
 		Rows: []GridRow{{ID: "a"}, {ID: "b"}},
 	}
-	dgPJ := StateMap[string, int](w, nsDgPendingJump, 4)
+	dgPJ := gg.StateMap[string, int](w, nsDgPendingJump, 4)
 	dgPJ.Set("g1", 0)
 	dataGridApplyPendingLocalJumpScroll(cfg, 100, 25, 0, 1,
 		map[int]int{0: 0}, w)
@@ -1115,7 +1115,7 @@ func TestApplyPendingLocalJumpScroll(t *testing.T) {
 }
 
 func TestApplyPendingLocalJumpScrollNoPending(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	cfg := &DataGridCfg{ID: "g1", Rows: []GridRow{{ID: "a"}}}
 	// Should not panic when there's no pending jump.
@@ -1124,13 +1124,13 @@ func TestApplyPendingLocalJumpScrollNoPending(t *testing.T) {
 }
 
 func TestApplyPendingLocalJumpScrollOutOfRange(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	cfg := &DataGridCfg{
 		ID:   "g1",
 		Rows: []GridRow{{ID: "a"}},
 	}
-	dgPJ := StateMap[string, int](w, nsDgPendingJump, 4)
+	dgPJ := gg.StateMap[string, int](w, nsDgPendingJump, 4)
 	dgPJ.Set("g1", 99) // out of range
 	dataGridApplyPendingLocalJumpScroll(cfg, 100, 25, 0, 1,
 		map[int]int{}, w)
@@ -1144,7 +1144,7 @@ func TestApplyPendingLocalJumpScrollOutOfRange(t *testing.T) {
 // --- dataGridMakeOnChar ---
 
 func TestMakeOnCharCopy(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	rows := []GridRow{
 		{ID: "r1", Cells: map[string]string{"a": "v1", "b": "v2"}},
@@ -1157,7 +1157,7 @@ func TestMakeOnCharCopy(t *testing.T) {
 	}
 	columns := []GridColumnCfg{{ID: "a"}, {ID: "b"}}
 	handler := dataGridMakeOnChar(cfg, columns)
-	e := &Event{CharCode: 3, Modifiers: ModCtrl}
+	e := &gg.Event{CharCode: 3, Modifiers: gg.ModCtrl}
 	handler(nil, e, w)
 	if !e.IsHandled {
 		t.Fatal("copy should be handled")
@@ -1165,14 +1165,14 @@ func TestMakeOnCharCopy(t *testing.T) {
 }
 
 func TestMakeOnCharNoSelection(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	cfg := &DataGridCfg{
 		Rows:      []GridRow{{ID: "r1"}},
 		Selection: GridSelection{},
 	}
 	handler := dataGridMakeOnChar(cfg, nil)
-	e := &Event{CharCode: 3, Modifiers: ModCtrl}
+	e := &gg.Event{CharCode: 3, Modifiers: gg.ModCtrl}
 	handler(nil, e, w)
 	if e.IsHandled {
 		t.Fatal("copy without selection should not be handled")
@@ -1180,14 +1180,14 @@ func TestMakeOnCharNoSelection(t *testing.T) {
 }
 
 func TestMakeOnCharNotCopyKey(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	cfg := &DataGridCfg{
 		Rows:      []GridRow{{ID: "r1"}},
 		Selection: GridSelection{SelectedRowIDs: map[string]bool{"r1": true}},
 	}
 	handler := dataGridMakeOnChar(cfg, []GridColumnCfg{{ID: "a"}})
-	e := &Event{CharCode: 1} // Ctrl+A, not copy
+	e := &gg.Event{CharCode: 1} // Ctrl+A, not copy
 	handler(nil, e, w)
 	if e.IsHandled {
 		t.Fatal("non-copy char should not be handled")
@@ -1197,14 +1197,14 @@ func TestMakeOnCharNotCopyKey(t *testing.T) {
 // --- dataGridOnKeydown edge cases ---
 
 func TestOnKeydownNoRows(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	kc := dataGridKeydownContext{
 		gridID:      "g1",
 		rows:        nil,
 		pageIndices: nil,
 	}
-	e := &Event{KeyCode: KeyDown}
+	e := &gg.Event{KeyCode: gg.KeyDown}
 	dataGridOnKeydown(kc, e, w)
 	// Should not panic with no rows.
 }
@@ -1212,7 +1212,7 @@ func TestOnKeydownNoRows(t *testing.T) {
 // --- dataGridPagerRowsStatus ---
 
 func TestPagerRowsStatusReturnsView(t *testing.T) {
-	cfg := &DataGridCfg{TextStyleFilter: DefaultTextStyle}
+	cfg := &DataGridCfg{TextStyleFilter: gg.DefaultTextStyle}
 	v := dataGridPagerRowsStatus(cfg, "Rows 1-10/50")
 	if v == nil {
 		t.Fatal("rows status should return a view")
@@ -1238,8 +1238,8 @@ func TestMakeOnKeydownReturnsCallback(t *testing.T) {
 
 func TestPagerPrevButton(t *testing.T) {
 	cfg := &DataGridCfg{
-		TextStyleHeader:  DefaultTextStyle,
-		ColorHeaderHover: RGBA(200, 200, 200, 255),
+		TextStyleHeader:  gg.DefaultTextStyle,
+		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
 	}
 	v := dataGridPagerPrevButton(cfg, nil, 1, 0, true, "◀")
 	if v == nil {
@@ -1249,8 +1249,8 @@ func TestPagerPrevButton(t *testing.T) {
 
 func TestPagerNextButton(t *testing.T) {
 	cfg := &DataGridCfg{
-		TextStyleHeader:  DefaultTextStyle,
-		ColorHeaderHover: RGBA(200, 200, 200, 255),
+		TextStyleHeader:  gg.DefaultTextStyle,
+		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
 	}
 	v := dataGridPagerNextButton(cfg, nil, 0, 5, 0, true, "▶")
 	if v == nil {
@@ -1262,12 +1262,12 @@ func TestPagerNextButton(t *testing.T) {
 
 func TestPagerPrevButtonOnClick(t *testing.T) {
 	var nextPage int
-	cb := func(p int, _ *Event, _ *Window) {
+	cb := func(p int, _ *gg.Event, _ *gg.Window) {
 		nextPage = p
 	}
 	cfg := &DataGridCfg{
-		TextStyleHeader:  DefaultTextStyle,
-		ColorHeaderHover: RGBA(200, 200, 200, 255),
+		TextStyleHeader:  gg.DefaultTextStyle,
+		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
 	}
 	// Build the layout. The button's OnClick is wired through
 	// dataGridIndicatorButton. We verify construction succeeds.
@@ -1284,12 +1284,12 @@ func TestPagerPrevButtonOnClick(t *testing.T) {
 
 func TestPagerNextButtonOnClick(t *testing.T) {
 	var nextPage int
-	cb := func(p int, _ *Event, _ *Window) {
+	cb := func(p int, _ *gg.Event, _ *gg.Window) {
 		nextPage = p
 	}
 	cfg := &DataGridCfg{
-		TextStyleHeader:  DefaultTextStyle,
-		ColorHeaderHover: RGBA(200, 200, 200, 255),
+		TextStyleHeader:  gg.DefaultTextStyle,
+		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
 	}
 	dataGridPagerNextButton(cfg, cb, 0, 5, 0, false, "▶")
 	// Callback fires through the button's OnClick; verified indirectly.
@@ -1300,9 +1300,9 @@ func TestPagerNextButtonOnClick(t *testing.T) {
 
 func TestBuildPagerRow(t *testing.T) {
 	cfg := &DataGridCfg{
-		TextStyleFilter: DefaultTextStyle,
-		ColorFilter:     RGBA(240, 240, 240, 255),
-		ColorBorder:     RGBA(180, 180, 180, 255),
+		TextStyleFilter: gg.DefaultTextStyle,
+		ColorFilter:     gg.RGBA(240, 240, 240, 255),
+		ColorBorder:     gg.RGBA(180, 180, 180, 255),
 	}
 	pctx := dataGridPagerContext{
 		cfg:           cfg,

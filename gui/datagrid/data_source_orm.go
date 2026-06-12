@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	. "github.com/go-gui-org/go-gui/gui"
+	gg "github.com/go-gui-org/go-gui/gui"
 )
 
 var gridOrmDefaultFilterOps = []string{
@@ -51,19 +51,19 @@ type GridOrmPage struct {
 }
 
 // GridOrmFetchFn is a callback that fetches a page of ORM data.
-type GridOrmFetchFn func(spec GridOrmQuerySpec, signal *GridAbortSignal) (GridOrmPage, error)
+type GridOrmFetchFn func(spec GridOrmQuerySpec, signal *gg.GridAbortSignal) (GridOrmPage, error)
 
 // GridOrmCreateFn is a callback that creates rows.
-type GridOrmCreateFn func(rows []GridRow, signal *GridAbortSignal) ([]GridRow, error)
+type GridOrmCreateFn func(rows []GridRow, signal *gg.GridAbortSignal) ([]GridRow, error)
 
 // GridOrmUpdateFn is a callback that updates rows.
-type GridOrmUpdateFn func(rows []GridRow, edits []GridCellEdit, signal *GridAbortSignal) ([]GridRow, error)
+type GridOrmUpdateFn func(rows []GridRow, edits []GridCellEdit, signal *gg.GridAbortSignal) ([]GridRow, error)
 
 // GridOrmDeleteFn is a callback that deletes a single row.
-type GridOrmDeleteFn func(rowID string, signal *GridAbortSignal) (string, error)
+type GridOrmDeleteFn func(rowID string, signal *gg.GridAbortSignal) (string, error)
 
 // GridOrmDeleteManyFn is a callback that deletes multiple rows.
-type GridOrmDeleteManyFn func(rowIDs []string, signal *GridAbortSignal) ([]string, error)
+type GridOrmDeleteManyFn func(rowIDs []string, signal *gg.GridAbortSignal) ([]string, error)
 
 // GridOrmDataSource wraps user-provided ORM callbacks with
 // column validation, query normalization, and abort handling.
@@ -154,7 +154,7 @@ func (s *GridOrmDataSource) FetchData(
 	}
 	nextCursor := page.NextCursor
 	prevCursor := page.PrevCursor
-	if _, ok := req.Page.(gridCursorPageReq); ok {
+	if _, ok := req.Page.(GridCursorPageReq); ok {
 		if nextCursor == "" && page.HasMore {
 			nextCursor = dataGridSourceCursorFromIndex(
 				offset + len(page.Rows))
@@ -185,7 +185,7 @@ func (s *GridOrmDataSource) MutateData(
 		return GridMutationResult{}, err
 	}
 	switch req.Kind {
-	case gridMutationCreate:
+	case GridMutationCreate:
 		if s.CreateFn == nil {
 			return GridMutationResult{},
 				errors.New("grid orm: create not supported")
@@ -205,7 +205,7 @@ func (s *GridOrmDataSource) MutateData(
 		}
 		return GridMutationResult{Created: created}, nil
 
-	case gridMutationUpdate:
+	case GridMutationUpdate:
 		if s.UpdateFn == nil {
 			return GridMutationResult{},
 				errors.New("grid orm: update not supported")
@@ -228,7 +228,7 @@ func (s *GridOrmDataSource) MutateData(
 		}
 		return GridMutationResult{Updated: updated}, nil
 
-	case gridMutationDelete:
+	case GridMutationDelete:
 		idSet := gridDeduplicateRowIDs(req.Rows, req.RowIDs)
 		ids := make([]string, 0, len(idSet))
 		for k := range idSet {
@@ -347,18 +347,18 @@ func gridOrmValidateQueryWithMap(
 }
 
 func gridOrmResolvePage(
-	page gridPageRequest, configuredLimit int,
+	page GridPageRequest, configuredLimit int,
 ) (limit, offset int, cursor string) {
 	defLimit := max(1, min(dataGridSourceMaxPageLimit,
 		nonZero(configuredLimit, 100)))
 	switch p := page.(type) {
-	case gridCursorPageReq:
+	case GridCursorPageReq:
 		limit = max(1, min(dataGridSourceMaxPageLimit,
 			nonZero(p.Limit, defLimit)))
 		offset = max(0,
 			dataGridSourceCursorToIndex(p.Cursor))
 		cursor = p.Cursor
-	case gridOffsetPageReq:
+	case GridOffsetPageReq:
 		offset = max(0, p.StartIndex)
 		limit = max(1, min(dataGridSourceMaxPageLimit,
 			nonZero(p.EndIndex-p.StartIndex, defLimit)))

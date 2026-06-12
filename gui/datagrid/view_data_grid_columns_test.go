@@ -3,7 +3,7 @@ package datagrid
 import (
 	"testing"
 
-	. "github.com/go-gui-org/go-gui/gui"
+	gg "github.com/go-gui-org/go-gui/gui"
 )
 
 // --- helpers ---
@@ -385,7 +385,7 @@ func TestClampWidthDefaults(t *testing.T) {
 }
 
 func TestClampWidthBelowMin(t *testing.T) {
-	col := GridColumnCfg{ID: "a", MinWidth: SomeF(80)}
+	col := GridColumnCfg{ID: "a", MinWidth: gg.SomeF(80)}
 	got := dataGridClampWidth(col, 50)
 	if got != 80 {
 		t.Fatalf("expected 80, got %f", got)
@@ -393,7 +393,7 @@ func TestClampWidthBelowMin(t *testing.T) {
 }
 
 func TestClampWidthAboveMax(t *testing.T) {
-	col := GridColumnCfg{ID: "a", MaxWidth: SomeF(200)}
+	col := GridColumnCfg{ID: "a", MaxWidth: gg.SomeF(200)}
 	got := dataGridClampWidth(col, 300)
 	if got != 200 {
 		t.Fatalf("expected 200, got %f", got)
@@ -402,7 +402,7 @@ func TestClampWidthAboveMax(t *testing.T) {
 
 func TestClampWidthMaxBelowMin(t *testing.T) {
 	// When MaxWidth < MinWidth, max is raised to min.
-	col := GridColumnCfg{ID: "a", MinWidth: SomeF(100), MaxWidth: SomeF(50)}
+	col := GridColumnCfg{ID: "a", MinWidth: gg.SomeF(100), MaxWidth: gg.SomeF(50)}
 	got := dataGridClampWidth(col, 80)
 	// maxW becomes 100 (=minW), so clamped to [100,100].
 	if got != 100 {
@@ -522,9 +522,9 @@ func TestQueryFilterValueNotFound(t *testing.T) {
 // --- dataGridColumnWidth / dataGridSetColumnWidth ---
 
 func TestColumnWidthDefault(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
-	col := GridColumnCfg{ID: "c1", Width: SomeF(150)}
+	col := GridColumnCfg{ID: "c1", Width: gg.SomeF(150)}
 	got := dataGridColumnWidth("g1", []GridColumnCfg{col}, col, w)
 	if got != 150 {
 		t.Errorf("got %v, want 150", got)
@@ -532,9 +532,9 @@ func TestColumnWidthDefault(t *testing.T) {
 }
 
 func TestSetColumnWidth(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
-	col := GridColumnCfg{ID: "c1", MinWidth: SomeF(50), MaxWidth: SomeF(400)}
+	col := GridColumnCfg{ID: "c1", MinWidth: gg.SomeF(50), MaxWidth: gg.SomeF(400)}
 	dataGridSetColumnWidth("g1", col, 200, w)
 	got := dataGridColumnWidth("g1", []GridColumnCfg{col}, col, w)
 	if got != 200 {
@@ -543,9 +543,9 @@ func TestSetColumnWidth(t *testing.T) {
 }
 
 func TestSetColumnWidthClamped(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
-	col := GridColumnCfg{ID: "c1", MinWidth: SomeF(100), MaxWidth: SomeF(300)}
+	col := GridColumnCfg{ID: "c1", MinWidth: gg.SomeF(100), MaxWidth: gg.SomeF(300)}
 	// Set below min, should clamp.
 	dataGridSetColumnWidth("g1", col, 50, w)
 	got := dataGridColumnWidth("g1", []GridColumnCfg{col}, col, w)
@@ -563,7 +563,7 @@ func TestSetColumnWidthClamped(t *testing.T) {
 // --- dataGridColumnWidthFor ---
 
 func TestColumnWidthForNoWidths(t *testing.T) {
-	col := GridColumnCfg{ID: "c1", Width: SomeF(120)}
+	col := GridColumnCfg{ID: "c1", Width: gg.SomeF(120)}
 	got := dataGridColumnWidthFor(col, nil)
 	if got != 120 {
 		t.Errorf("got %v, want 120", got)

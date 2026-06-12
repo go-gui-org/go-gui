@@ -6,7 +6,7 @@ LDFLAGS  = -X github.com/go-gui-org/go-gui/gui.Version=$(VERSION) \
 CC_WINDOWS ?= x86_64-w64-mingw32-gcc
 STATIC_TAG  = static,audio
 
-.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean
+.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test vet lint check
 
 build-linux:
 	CGO_ENABLED=1 \
@@ -80,3 +80,18 @@ release: build-linux build-windows build-macos build-wasm
 
 clean:
 	rm -rf build/
+
+# Run all tests.
+test:
+	go test ./...
+
+# Run go vet static analysis.
+vet:
+	go vet ./...
+
+# Run golangci-lint (requires golangci-lint installed).
+lint:
+	golangci-lint run ./...
+
+# Run all validation steps: test, vet, lint.
+check: test vet lint

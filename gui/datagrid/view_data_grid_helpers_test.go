@@ -3,7 +3,7 @@ package datagrid
 import (
 	"testing"
 
-	. "github.com/go-gui-org/go-gui/gui"
+	gg "github.com/go-gui-org/go-gui/gui"
 )
 
 // --- dataGridFilterHeight ---
@@ -124,7 +124,7 @@ func TestSelectedRowsUsesAutoID(t *testing.T) {
 // --- dataGridIndicatorTextStyle ---
 
 func TestIndicatorTextStyleDimsColor(t *testing.T) {
-	base := TextStyle{Color: RGBA(255, 255, 255, 255), Size: 14}
+	base := gg.TextStyle{Color: gg.RGBA(255, 255, 255, 255), Size: 14}
 	got := dataGridIndicatorTextStyle(base)
 	if got.Color.A != dataGridIndicatorAlpha {
 		t.Errorf("alpha: got %d, want %d", got.Color.A, dataGridIndicatorAlpha)
@@ -137,9 +137,9 @@ func TestIndicatorTextStyleDimsColor(t *testing.T) {
 // --- dataGridDimColor ---
 
 func TestDimColorReducesAlpha(t *testing.T) {
-	c := RGBA(100, 150, 200, 255)
+	c := gg.RGBA(100, 150, 200, 255)
 	got := dataGridDimColor(c)
-	want := RGBA(100, 150, 200, dataGridIndicatorAlpha)
+	want := gg.RGBA(100, 150, 200, dataGridIndicatorAlpha)
 	if got != want {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -211,8 +211,8 @@ func TestPagerHeightFallsBackToHeaderHeight(t *testing.T) {
 
 func TestPagerPaddingTakesMax(t *testing.T) {
 	cfg := &DataGridCfg{
-		PaddingCell:   SomeP(1, 2, 3, 4),
-		PaddingFilter: SomeP(5, 8, 7, 6),
+		PaddingCell:   gg.SomeP(1, 2, 3, 4),
+		PaddingFilter: gg.SomeP(5, 8, 7, 6),
 	}
 	got := dataGridPagerPadding(cfg)
 	if got.Left != 6 || got.Right != 8 || got.Top != 5 || got.Bottom != 7 {
@@ -240,7 +240,7 @@ func TestHeaderHeightFallsBackToRowHeight(t *testing.T) {
 
 func TestRowHeightConfigured(t *testing.T) {
 	cfg := &DataGridCfg{RowHeight: 28}
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	if got := dataGridRowHeight(cfg, w); got != 28 {
 		t.Errorf("got %v, want 28", got)
@@ -498,7 +498,7 @@ func TestPageRowsMinOne(t *testing.T) {
 
 func TestEditingEnabled(t *testing.T) {
 	cfg := &DataGridCfg{
-		OnCellEdit: func(GridCellEdit, *Event, *Window) {},
+		OnCellEdit: func(GridCellEdit, *gg.Event, *gg.Window) {},
 		Columns: []GridColumnCfg{
 			{ID: "a", Editable: true},
 		},
@@ -519,7 +519,7 @@ func TestEditingDisabledNoCallback(t *testing.T) {
 
 func TestEditingDisabledNoEditableColumns(t *testing.T) {
 	cfg := &DataGridCfg{
-		OnCellEdit: func(GridCellEdit, *Event, *Window) {},
+		OnCellEdit: func(GridCellEdit, *gg.Event, *gg.Window) {},
 		Columns:    []GridColumnCfg{{ID: "a"}},
 	}
 	if dataGridEditingEnabled(cfg) {

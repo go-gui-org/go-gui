@@ -4,7 +4,7 @@ import (
 	"maps"
 	"strings"
 
-	. "github.com/go-gui-org/go-gui/gui"
+	gg "github.com/go-gui-org/go-gui/gui"
 )
 
 // dataGridEffectiveColumns resolves the final visible column
@@ -269,8 +269,8 @@ func dataGridQueryFilterValue(query GridQueryState, colID string) string {
 // state, falling back to column config defaults. Clamps
 // each width to [MinWidth, MaxWidth]. Prunes stale entries
 // for removed columns. Writes back to cache only if changed.
-func dataGridColumnWidths(gridID string, columns []GridColumnCfg, w *Window) map[string]float32 {
-	dgCW := StateMap[string, dataGridColWidths](w, nsDgColWidths, capModerate)
+func dataGridColumnWidths(gridID string, columns []GridColumnCfg, w *gg.Window) map[string]float32 {
+	dgCW := gg.StateMap[string, dataGridColWidths](w, nsDgColWidths, capModerate)
 	cached, hasCached := dgCW.Get(gridID)
 
 	changed := !hasCached
@@ -320,7 +320,7 @@ func dataGridColumnWidths(gridID string, columns []GridColumnCfg, w *Window) map
 	return widths
 }
 
-func dataGridColumnWidth(gridID string, columns []GridColumnCfg, col GridColumnCfg, w *Window) float32 {
+func dataGridColumnWidth(gridID string, columns []GridColumnCfg, col GridColumnCfg, w *gg.Window) float32 {
 	widths := dataGridColumnWidths(gridID, columns, w)
 	return dataGridColumnWidthFor(col, widths)
 }
@@ -332,8 +332,8 @@ func dataGridColumnWidthFor(col GridColumnCfg, widths map[string]float32) float3
 	return dataGridInitialWidth(col)
 }
 
-func dataGridSetColumnWidth(gridID string, col GridColumnCfg, width float32, w *Window) {
-	dgCW := StateMap[string, dataGridColWidths](w, nsDgColWidths, capModerate)
+func dataGridSetColumnWidth(gridID string, col GridColumnCfg, width float32, w *gg.Window) {
+	dgCW := gg.StateMap[string, dataGridColWidths](w, nsDgColWidths, capModerate)
 	var widths map[string]float32
 	if cached, ok := dgCW.Get(gridID); ok {
 		widths = make(map[string]float32, len(cached.Widths))

@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	. "github.com/go-gui-org/go-gui/gui"
+	gg "github.com/go-gui-org/go-gui/gui"
 )
 
 // dataGridCrudClearPendingChanges resets dirty/draft/deleted
@@ -39,7 +39,7 @@ func dataGridRowsSignature(rows []GridRow, colIDs []string) uint64 {
 	if len(rows) == 0 {
 		return 0
 	}
-	h := uint64(Fnv64Offset)
+	h := uint64(gg.Fnv64Offset)
 	fallbackKeys := colIDs
 	if len(fallbackKeys) == 0 {
 		keySet := map[string]bool{}
@@ -52,19 +52,19 @@ func dataGridRowsSignature(rows []GridRow, colIDs []string) uint64 {
 	}
 	for idx, row := range rows {
 		if idx > 0 {
-			h = Fnv64Str(h, dataGridGroupSep)
+			h = gg.Fnv64Str(h, dataGridGroupSep)
 		}
 		rowID := dataGridRowID(row, idx)
-		h = Fnv64Str(h, rowID)
-		h = Fnv64Str(h, dataGridRecordSep)
+		h = gg.Fnv64Str(h, rowID)
+		h = gg.Fnv64Str(h, dataGridRecordSep)
 		keys := fallbackKeys
 		for j, key := range keys {
 			if j > 0 {
-				h = Fnv64Str(h, dataGridUnitSep)
+				h = gg.Fnv64Str(h, dataGridUnitSep)
 			}
-			h = Fnv64Str(h, key)
-			h = Fnv64Byte(h, '=')
-			h = Fnv64Str(h, row.Cells[key])
+			h = gg.Fnv64Str(h, key)
+			h = gg.Fnv64Byte(h, '=')
+			h = gg.Fnv64Str(h, row.Cells[key])
 		}
 	}
 	return h
@@ -74,12 +74,12 @@ func dataGridRowsIDSignature(rows []GridRow) uint64 {
 	if len(rows) == 0 {
 		return 0
 	}
-	h := uint64(Fnv64Offset)
+	h := uint64(gg.Fnv64Offset)
 	for idx, row := range rows {
 		if idx > 0 {
-			h = Fnv64Str(h, dataGridGroupSep)
+			h = gg.Fnv64Str(h, dataGridGroupSep)
 		}
-		h = Fnv64Str(h, dataGridRowID(row, idx))
+		h = gg.Fnv64Str(h, dataGridRowID(row, idx))
 	}
 	return h
 }
@@ -87,13 +87,13 @@ func dataGridRowsIDSignature(rows []GridRow) uint64 {
 // dataGridCrudResolveCfg syncs the CRUD working copy with the
 // source data. Returns the effective cfg (with working rows)
 // and the current crud state.
-func dataGridCrudResolveCfg(cfg DataGridCfg, w *Window) (DataGridCfg, dataGridCrudState) {
-	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
+func dataGridCrudResolveCfg(cfg DataGridCfg, w *gg.Window) (DataGridCfg, dataGridCrudState) {
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 	state, _ := dgCrud.Get(cfg.ID)
 
 	// Compute signature.
 	var signature uint64
-	dgSource := StateMap[string, dataGridSourceState](w, nsDgSource, capModerate)
+	dgSource := gg.StateMap[string, dataGridSourceState](w, nsDgSource, capModerate)
 	if srcState, ok := dgSource.Get(cfg.ID); ok {
 		signature = srcState.RowsSignature
 		state.LocalRowsSignatureValid = false
@@ -139,7 +139,7 @@ func dataGridCrudResolveCfg(cfg DataGridCfg, w *Window) (DataGridCfg, dataGridCr
 	return out, state
 }
 
-func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps GridDataCapabilities, hasSource bool, focusID uint32) View {
+func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps GridDataCapabilities, hasSource bool, focusID uint32) gg.View {
 	hasUnsaved := dataGridCrudHasUnsaved(state)
 	canCreate := boolDefault(cfg.AllowCreate, true) && (!hasSource || caps.SupportsCreate)
 	canDelete := boolDefault(cfg.AllowDelete, true) && (!hasSource || caps.SupportsDelete)
@@ -163,43 +163,43 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 
 	var status string
 	if state.Saving {
-		status = ActiveLocale.StrSaving
+		status = gg.ActiveLocale.StrSaving
 	} else if state.SaveError != "" {
-		status = ActiveLocale.StrSaveFailed
+		status = gg.ActiveLocale.StrSaveFailed
 	} else if hasUnsaved {
 		status = fmt.Sprintf("%s %d %s %d %s %d",
-			ActiveLocale.StrDraft, draftCount,
-			ActiveLocale.StrDirty, dirtyCount,
-			ActiveLocale.StrDelete, deleteCount)
+			gg.ActiveLocale.StrDraft, draftCount,
+			gg.ActiveLocale.StrDirty, dirtyCount,
+			gg.ActiveLocale.StrDelete, deleteCount)
 		if state.SourceChanged {
-			status += " | " + ActiveLocale.StrSourceChanged
+			status += " | " + gg.ActiveLocale.StrSourceChanged
 		}
 	} else {
-		status = ActiveLocale.StrClean
+		status = gg.ActiveLocale.StrClean
 	}
 
-	return Row(ContainerCfg{
+	return gg.Row(gg.ContainerCfg{
 		Height:      dataGridHeaderHeight(cfg),
-		Sizing:      FillFixed,
+		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorFilter,
 		ColorBorder: cfg.ColorBorder,
-		SizeBorder:  SomeF(0),
-		Padding:     Some(dataGridPagerPadding(cfg)),
-		Spacing:     SomeF(6),
-		VAlign:      VAlignMiddle,
-		Content: []View{
-			dataGridIndicatorButton(ActiveLocale.StrAdd, cfg.TextStyleFilter, cfg.ColorHeaderHover,
-				!canCreate || state.Saving, 0, func(_ *Layout, e *Event, w *Window) {
+		SizeBorder:  gg.SomeF(0),
+		Padding:     gg.Some(dataGridPagerPadding(cfg)),
+		Spacing:     gg.SomeF(6),
+		VAlign:      gg.VAlignMiddle,
+		Content: []gg.View{
+			dataGridIndicatorButton(gg.ActiveLocale.StrAdd, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+				!canCreate || state.Saving, 0, func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 					dataGridCrudAddRow(gridID, columns, onSelectionChange, focusID,
 						scrollID, pageSize, pageIndex, onPageChange, e, w)
 				}),
-			dataGridIndicatorButton(ActiveLocale.StrDelete, cfg.TextStyleFilter, cfg.ColorHeaderHover,
-				!canDelete || selectedCount == 0 || state.Saving, 0, func(_ *Layout, e *Event, w *Window) {
+			dataGridIndicatorButton(gg.ActiveLocale.StrDelete, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+				!canDelete || selectedCount == 0 || state.Saving, 0, func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 					dataGridCrudDeleteSelected(gridID, selection, onSelectionChange,
 						focusID, e, w)
 				}),
-			dataGridIndicatorButton(ActiveLocale.StrSave, cfg.TextStyleFilter, cfg.ColorHeaderHover,
-				!hasUnsaved || state.Saving, 0, func(_ *Layout, e *Event, w *Window) {
+			dataGridIndicatorButton(gg.ActiveLocale.StrSave, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+				!hasUnsaved || state.Saving, 0, func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 					dataGridCrudSave(dataGridCrudSaveContext{
 						gridID:            gridID,
 						dataSource:        dataSource,
@@ -213,22 +213,22 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 						focusID:           focusID,
 					}, e, w)
 				}),
-			dataGridIndicatorButton(ActiveLocale.StrCancel, cfg.TextStyleFilter, cfg.ColorHeaderHover,
-				(!hasUnsaved && state.SaveError == "") || state.Saving, 0, func(_ *Layout, e *Event, w *Window) {
+			dataGridIndicatorButton(gg.ActiveLocale.StrCancel, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+				(!hasUnsaved && state.SaveError == "") || state.Saving, 0, func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 					dataGridCrudCancel(gridID, focusID, e, w)
 				}),
-			Row(ContainerCfg{
-				Sizing:  FillFill,
-				Padding: NoPadding,
+			gg.Row(gg.ContainerCfg{
+				Sizing:  gg.FillFill,
+				Padding: gg.NoPadding,
 			}),
-			Text(TextCfg{
-				Text:      fmt.Sprintf("%s %d", ActiveLocale.StrSelected, selectedCount),
-				Mode:      TextModeSingleLine,
+			gg.Text(gg.TextCfg{
+				Text:      fmt.Sprintf("%s %d", gg.ActiveLocale.StrSelected, selectedCount),
+				Mode:      gg.TextModeSingleLine,
 				TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
 			}),
-			Text(TextCfg{
+			gg.Text(gg.TextCfg{
 				Text:      status,
-				Mode:      TextModeSingleLine,
+				Mode:      gg.TextModeSingleLine,
 				TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
 			}),
 		},
@@ -250,8 +250,8 @@ func dataGridCrudDefaultCells(columns []GridColumnCfg) map[string]string {
 	return cells
 }
 
-func dataGridCrudAddRow(gridID string, columns []GridColumnCfg, onSelectionChange func(GridSelection, *Event, *Window), focusID, scrollID uint32, pageSize, pageIndex int, onPageChange func(int, *Event, *Window), e *Event, w *Window) {
-	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
+func dataGridCrudAddRow(gridID string, columns []GridColumnCfg, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), focusID, scrollID uint32, pageSize, pageIndex int, onPageChange func(int, *gg.Event, *gg.Window), e *gg.Event, w *gg.Window) {
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 	state, _ := dgCrud.Get(gridID)
 	state.NextDraftSeq++
 	draftID := fmt.Sprintf("__draft_%s_%d", gridID, state.NextDraftSeq)
@@ -280,7 +280,7 @@ func dataGridCrudAddRow(gridID string, columns []GridColumnCfg, onSelectionChang
 		onSelectionChange(next, e, w)
 	}
 	if pageSize > 0 && pageIndex > 0 && onPageChange != nil {
-		dgPJ := StateMap[string, int](w, nsDgPendingJump, capModerate)
+		dgPJ := gg.StateMap[string, int](w, nsDgPendingJump, capModerate)
 		dgPJ.Set(gridID, 0)
 		onPageChange(0, e, w)
 	}
@@ -291,7 +291,7 @@ func dataGridCrudAddRow(gridID string, columns []GridColumnCfg, onSelectionChang
 	e.IsHandled = true
 }
 
-func dataGridCrudDeleteSelected(gridID string, selection GridSelection, onSelectionChange func(GridSelection, *Event, *Window), focusID uint32, e *Event, w *Window) {
+func dataGridCrudDeleteSelected(gridID string, selection GridSelection, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), focusID uint32, e *gg.Event, w *gg.Window) {
 	if len(selection.SelectedRowIDs) == 0 {
 		return
 	}
@@ -304,7 +304,7 @@ func dataGridCrudDeleteSelected(gridID string, selection GridSelection, onSelect
 	dataGridCrudDeleteRows(gridID, selection, onSelectionChange, ids, focusID, e, w)
 }
 
-func dataGridCrudDeleteRows(gridID string, selection GridSelection, onSelectionChange func(GridSelection, *Event, *Window), rowIDs []string, focusID uint32, e *Event, w *Window) {
+func dataGridCrudDeleteRows(gridID string, selection GridSelection, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), rowIDs []string, focusID uint32, e *gg.Event, w *gg.Window) {
 	if len(rowIDs) == 0 {
 		return
 	}
@@ -318,7 +318,7 @@ func dataGridCrudDeleteRows(gridID string, selection GridSelection, onSelectionC
 	if len(deleteIDs) == 0 {
 		return
 	}
-	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 	state, _ := dgCrud.Get(gridID)
 	kept := make([]GridRow, 0, len(state.WorkingRows))
 	for idx, row := range state.WorkingRows {
@@ -460,7 +460,7 @@ func dataGridCrudReplaceCreatedRows(rows []GridRow, createRows, created []GridRo
 	return replace, warn
 }
 
-func dataGridCrudRemapSelection(selection GridSelection, onSelectionChange func(GridSelection, *Event, *Window), replaceIDs map[string]string, e *Event, w *Window) {
+func dataGridCrudRemapSelection(selection GridSelection, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), replaceIDs map[string]string, e *gg.Event, w *gg.Window) {
 	if onSelectionChange == nil || len(replaceIDs) == 0 {
 		return
 	}
@@ -490,12 +490,12 @@ func dataGridCrudRemapSelection(selection GridSelection, onSelectionChange func(
 	}, e, w)
 }
 
-func dataGridCrudApplyCellEdit(gridID string, crudEnabled bool, onCellEdit func(GridCellEdit, *Event, *Window), edit GridCellEdit, e *Event, w *Window) {
+func dataGridCrudApplyCellEdit(gridID string, crudEnabled bool, onCellEdit func(GridCellEdit, *gg.Event, *gg.Window), edit GridCellEdit, e *gg.Event, w *gg.Window) {
 	if edit.RowID == "" || edit.ColID == "" {
 		return
 	}
 	if crudEnabled {
-		dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
+		dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 		state, _ := dgCrud.Get(gridID)
 		for idx, row := range state.WorkingRows {
 			if dataGridRowID(row, idx) != edit.RowID {
@@ -522,8 +522,8 @@ func dataGridCrudApplyCellEdit(gridID string, crudEnabled bool, onCellEdit func(
 	}
 }
 
-func dataGridCrudCancel(gridID string, focusID uint32, e *Event, w *Window) {
-	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
+func dataGridCrudCancel(gridID string, focusID uint32, e *gg.Event, w *gg.Window) {
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 	state, _ := dgCrud.Get(gridID)
 	state.WorkingRows = cloneRows(state.CommittedRows)
 	dataGridCrudClearPendingChanges(&state)
@@ -551,9 +551,9 @@ type dataGridCrudMutationResult struct {
 type dataGridCrudSaveContext struct {
 	selection         GridSelection
 	dataSource        DataGridDataSource
-	onCRUDError       func(string, *Event, *Window)
-	onRowsChange      func([]GridRow, *Event, *Window)
-	onSelectionChange func(GridSelection, *Event, *Window)
+	onCRUDError       func(string, *gg.Event, *gg.Window)
+	onRowsChange      func([]GridRow, *gg.Event, *gg.Window)
+	onSelectionChange func(GridSelection, *gg.Event, *gg.Window)
 	query             GridQueryState
 	gridID            string
 	focusID           uint32
@@ -561,9 +561,9 @@ type dataGridCrudSaveContext struct {
 	hasSource         bool
 }
 
-func dataGridCrudSave(ctx dataGridCrudSaveContext, e *Event, w *Window) {
+func dataGridCrudSave(ctx dataGridCrudSaveContext, e *gg.Event, w *gg.Window) {
 	gridID := ctx.gridID
-	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 	state, _ := dgCrud.Get(gridID)
 	if state.Saving || !dataGridCrudHasUnsaved(state) {
 		return
@@ -605,13 +605,24 @@ func dataGridCrudSave(ctx dataGridCrudSaveContext, e *Event, w *Window) {
 		onSelectionChange := ctx.onSelectionChange
 		focusID := ctx.focusID
 		wCtx := w.Ctx()
+		// Cancel any prior in-flight save and set up abort for
+		// this save so slow mutations can observe cancellation.
+		if state.ActiveAbort != nil {
+			state.ActiveAbort.Abort()
+		}
+		ctrl := gg.NewGridAbortController()
+		state.ActiveAbort = ctrl
+		state.RequestID++
+		nextRequestID := state.RequestID
+		dgCrud.Set(gridID, state)
 		go func() {
 			result := dataGridCrudExecMutations(source, gridID, query,
-				createRows, updateRows, updateEdits, deleteIDs)
+				createRows, updateRows, updateEdits, deleteIDs,
+				ctrl.Signal, nextRequestID)
 			if wCtx.Err() != nil {
 				return
 			}
-			w.QueueCommand(func(w *Window) {
+			w.QueueCommand(func(w *gg.Window) {
 				dataGridCrudApplySaveResult(gridID, result, snapshotRows,
 					onCRUDError, onRowsChange, selection, onSelectionChange,
 					focusID, w)
@@ -625,15 +636,17 @@ func dataGridCrudSave(ctx dataGridCrudSaveContext, e *Event, w *Window) {
 	e.IsHandled = true
 }
 
-func dataGridCrudExecMutations(source DataGridDataSource, gridID string, query GridQueryState, createRows, updateRows []GridRow, updateEdits []GridCellEdit, deleteIDs []string) dataGridCrudMutationResult {
+func dataGridCrudExecMutations(source DataGridDataSource, gridID string, query GridQueryState, createRows, updateRows []GridRow, updateEdits []GridCellEdit, deleteIDs []string, signal *gg.GridAbortSignal, requestID uint64) dataGridCrudMutationResult {
 	rowCount := -1
 	var created []GridRow
 	if len(createRows) > 0 {
 		res, err := source.MutateData(GridMutationRequest{
-			GridID: gridID,
-			Kind:   gridMutationCreate,
-			Query:  query,
-			Rows:   createRows,
+			GridID:    gridID,
+			Kind:      GridMutationCreate,
+			Query:     query,
+			Rows:      createRows,
+			Signal:    signal,
+			RequestID: requestID,
 		})
 		if err != nil {
 			return dataGridCrudMutationResult{errPhase: "create", errMsg: err.Error()}
@@ -645,11 +658,13 @@ func dataGridCrudExecMutations(source DataGridDataSource, gridID string, query G
 	}
 	if len(updateEdits) > 0 {
 		res, err := source.MutateData(GridMutationRequest{
-			GridID: gridID,
-			Kind:   gridMutationUpdate,
-			Query:  query,
-			Rows:   updateRows,
-			Edits:  updateEdits,
+			GridID:    gridID,
+			Kind:      GridMutationUpdate,
+			Query:     query,
+			Rows:      updateRows,
+			Edits:     updateEdits,
+			Signal:    signal,
+			RequestID: requestID,
 		})
 		if err != nil {
 			return dataGridCrudMutationResult{
@@ -663,10 +678,12 @@ func dataGridCrudExecMutations(source DataGridDataSource, gridID string, query G
 	}
 	if len(deleteIDs) > 0 {
 		res, err := source.MutateData(GridMutationRequest{
-			GridID: gridID,
-			Kind:   gridMutationDelete,
-			Query:  query,
-			RowIDs: deleteIDs,
+			GridID:    gridID,
+			Kind:      GridMutationDelete,
+			Query:     query,
+			RowIDs:    deleteIDs,
+			Signal:    signal,
+			RequestID: requestID,
 		})
 		if err != nil {
 			return dataGridCrudMutationResult{
@@ -685,14 +702,14 @@ func dataGridCrudExecMutations(source DataGridDataSource, gridID string, query G
 	}
 }
 
-func dataGridCrudApplySaveResult(gridID string, result dataGridCrudMutationResult, snapshotRows []GridRow, onCRUDError func(string, *Event, *Window), onRowsChange func([]GridRow, *Event, *Window), selection GridSelection, onSelectionChange func(GridSelection, *Event, *Window), focusID uint32, w *Window) {
-	e := &Event{}
+func dataGridCrudApplySaveResult(gridID string, result dataGridCrudMutationResult, snapshotRows []GridRow, onCRUDError func(string, *gg.Event, *gg.Window), onRowsChange func([]GridRow, *gg.Event, *gg.Window), selection GridSelection, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), focusID uint32, w *gg.Window) {
+	e := &gg.Event{}
 	if result.errMsg != "" {
 		dataGridCrudRestoreOnError(gridID, result.errPhase, onCRUDError,
 			e, w, snapshotRows, result.errMsg)
 		return
 	}
-	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 	state, _ := dgCrud.Get(gridID)
 	replaceIDs, createWarn := dataGridCrudReplaceCreatedRows(
 		state.WorkingRows, result.createRows, result.created)
@@ -707,12 +724,13 @@ func dataGridCrudApplySaveResult(gridID string, result dataGridCrudMutationResul
 		onRowsChange, true, focusID, e, w)
 }
 
-func dataGridCrudFinishSave(gridID string, _ map[string]string, rowCount int, onRowsChange func([]GridRow, *Event, *Window), hasSource bool, focusID uint32, e *Event, w *Window) {
-	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
+func dataGridCrudFinishSave(gridID string, _ map[string]string, rowCount int, onRowsChange func([]GridRow, *gg.Event, *gg.Window), hasSource bool, focusID uint32, e *gg.Event, w *gg.Window) {
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 	state, _ := dgCrud.Get(gridID)
 	state.CommittedRows = cloneRows(state.WorkingRows)
 	dataGridCrudClearPendingChanges(&state)
 	state.Saving = false
+	state.ActiveAbort = nil
 	state.SaveError = ""
 	state.SourceChanged = false
 	state.SourceSignature = dataGridRowsSignature(state.CommittedRows, nil)
@@ -735,13 +753,14 @@ func dataGridCrudFinishSave(gridID string, _ map[string]string, rowCount int, on
 	}
 }
 
-func dataGridCrudRestoreOnError(gridID, phase string, onCRUDError func(string, *Event, *Window), e *Event, w *Window, snapshotRows []GridRow, errMsg string) {
-	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
+func dataGridCrudRestoreOnError(gridID, phase string, onCRUDError func(string, *gg.Event, *gg.Window), e *gg.Event, w *gg.Window, snapshotRows []GridRow, errMsg string) {
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 	state, _ := dgCrud.Get(gridID)
 	state.CommittedRows = snapshotRows
 	state.WorkingRows = cloneRows(snapshotRows)
 	dataGridCrudClearPendingChanges(&state)
 	state.Saving = false
+	state.ActiveAbort = nil
 	state.SourceChanged = false
 	if phase != "" {
 		state.SaveError = phase + ": " + errMsg

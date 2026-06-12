@@ -16,7 +16,12 @@ type App struct{}
 
 func main() {
 	gui.SetTheme(gui.ThemeDark.WithBorders(true))
-	// Enable link/code-block integrations used by the demo document.
+	// Enable external APIs for LaTeX math (codecogs.com) and
+	// Mermaid diagram (kroki.io) rendering. Disabled by default
+	// for privacy — enabling sends rendered content to these
+	// third-party services. Use MarkdownCfg.DisableExternalAPIs
+	// for per-view control, or MarkdownCfg.MathFetcher /
+	// MarkdownCfg.MermaidFetcher to provide custom renderers.
 	gui.SetMarkdownExternalAPIsEnabled(true)
 
 	w := gui.NewWindow(gui.WindowCfg{

@@ -4,19 +4,19 @@ import (
 	"slices"
 	"strconv"
 
-	. "github.com/go-gui-org/go-gui/gui"
+	gg "github.com/go-gui-org/go-gui/gui"
 )
 
 // --- Helper functions ---
 
-func dataGridIndicatorTextStyle(base TextStyle) TextStyle {
+func dataGridIndicatorTextStyle(base gg.TextStyle) gg.TextStyle {
 	s := base
 	s.Color = dataGridDimColor(base.Color)
 	return s
 }
 
-func dataGridDimColor(c Color) Color {
-	return RGBA(c.R, c.G, c.B, dataGridIndicatorAlpha)
+func dataGridDimColor(c gg.Color) gg.Color {
+	return gg.RGBA(c.R, c.G, c.B, dataGridIndicatorAlpha)
 }
 
 func dataGridRowID(row GridRow, idx int) string {
@@ -39,14 +39,14 @@ func dataGridRowAutoID(row GridRow) string {
 		keys = append(keys, k)
 	}
 	slices.Sort(keys)
-	h := Fnv64Offset
+	h := gg.Fnv64Offset
 	for i, key := range keys {
 		if i > 0 {
-			h = Fnv64Byte(h, dataGridUnitSep[0])
+			h = gg.Fnv64Byte(h, dataGridUnitSep[0])
 		}
-		h = Fnv64Str(h, key)
-		h = Fnv64Byte(h, '=')
-		h = Fnv64Str(h, row.Cells[key])
+		h = gg.Fnv64Str(h, key)
+		h = gg.Fnv64Byte(h, '=')
+		h = gg.Fnv64Str(h, row.Cells[key])
 	}
 	return "__auto_" + zeroPadHex16(h)
 }
@@ -72,12 +72,12 @@ func dataGridPagerHeight(cfg *DataGridCfg) float32 {
 	return dataGridHeaderHeight(cfg)
 }
 
-func dataGridPagerPadding(cfg *DataGridCfg) Padding {
-	pc := cfg.PaddingCell.Get(Padding{})
-	pf := cfg.PaddingFilter.Get(Padding{})
+func dataGridPagerPadding(cfg *DataGridCfg) gg.Padding {
+	pc := cfg.PaddingCell.Get(gg.Padding{})
+	pf := cfg.PaddingFilter.Get(gg.Padding{})
 	left := f32Max(pf.Left, pc.Left)
 	right := f32Max(pf.Right, pc.Right)
-	return NewPadding(pf.Top, right, pf.Bottom, left)
+	return gg.NewPadding(pf.Top, right, pf.Bottom, left)
 }
 
 func dataGridHeaderHeight(cfg *DataGridCfg) float32 {
@@ -95,11 +95,11 @@ func dataGridQuickFilterHeight(cfg *DataGridCfg) float32 {
 	return dataGridHeaderHeight(cfg)
 }
 
-func dataGridRowHeight(cfg *DataGridCfg, _ *Window) float32 {
+func dataGridRowHeight(cfg *DataGridCfg, _ *gg.Window) float32 {
 	if cfg.RowHeight > 0 {
 		return cfg.RowHeight
 	}
-	return cfg.TextStyle.Size + cfg.PaddingCell.Get(Padding{}).Height() + cfg.SizeBorder.Get(0)
+	return cfg.TextStyle.Size + cfg.PaddingCell.Get(gg.Padding{}).Height() + cfg.SizeBorder.Get(0)
 }
 
 func dataGridStaticTopHeight(cfg *DataGridCfg, _ float32, chooserOpen bool, includeHeader bool) float32 {
@@ -120,14 +120,14 @@ func dataGridFocusID(cfg *DataGridCfg) uint32 {
 	if cfg.IDFocus > 0 {
 		return cfg.IDFocus
 	}
-	return FnvSum32(cfg.ID + ":focus")
+	return gg.FnvSum32(cfg.ID + ":focus")
 }
 
 func dataGridScrollID(cfg *DataGridCfg) uint32 {
 	if cfg.IDScroll > 0 {
 		return cfg.IDScroll
 	}
-	return FnvSum32(cfg.ID + ":scroll")
+	return gg.FnvSum32(cfg.ID + ":scroll")
 }
 
 // dataGridVisibleRangeForScroll converts scroll position to

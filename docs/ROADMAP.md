@@ -1,121 +1,49 @@
-# Go-Gui Roadmap
+## Code Quality Improvements
 
-Concrete, independently shippable improvements. Milestones map to semver
-bumps from current v0.25.
+Concrete follow-ups from the June 2026 code review. Current baseline:
+`go test ./...`, `go vet ./...`, `golangci-lint run`, `go test -cover ./gui/...`,
+and `go test -race ./gui/...` pass locally.
 
----
+### Datagrid public API cleanup
 
-## v0.26.0 — Quality & hygiene
+- [x] Export or replace the unexported pagination request types used by
+  `GridDataRequest.Page`, so external `DataGridDataSource` implementations can
+  inspect cursor/offset pagination without package-private type assertions.
+- [x] Export or replace the unexported mutation kind in `GridMutationRequest`,
+  or add accessor helpers, so external mutation implementations can switch on
+  create/update/delete cleanly.
+- [x] Pass `GridAbortSignal` and `RequestID` through CRUD save mutations, not
+  just fetch requests, so slow create/update/delete operations can observe
+  cancellation promptly.
 
-### 1. Docs and tooling consistency ✅
+### Async fetch hardening
 
-**Trivial fix, high trust impact.**
+- [x] Fix remote image max-byte handling to allow responses exactly equal to
+  `MaxImageBytes`: read `maxSize+1`, reject only `> maxSize`, and handle file
+  close errors after writes.
+- [x] Add injectable markdown diagram fetchers or endpoint configuration for
+  CodeCogs/Kroki rendering, similar to `WindowCfg.ImageFetcher`, to support
+  private deployments, tests, and offline use.
+- [x] Keep external markdown APIs disabled by default; document the privacy
+  boundary and make opt-in behavior visible in examples that use diagrams.
 
-- [x] CONTRIBUTING.md claims `go test ./...` is "~0.25s" — stale since the early
-  days; actual wall clock is ~12s. Fix the number.
-- [x] Lint commands sometimes say `./gui/...`, CI lints `./...`. Pick one and
-  standardize across README, CONTRIBUTING.md, and CI config.
-- [x] Test that all 35 examples build.
+### Core maintainability
 
-### 2. Fix macOS linker warnings ✅
+- [x] Continue splitting `Window` behavior into narrower internal subsystems.
+  The struct already embeds concern groups; move behavior behind those groups
+  where it reduces coupling in layout, render, event, animation, dialog, IME,
+  inspector, and history code.
+- [x] Replace `gui/datagrid` dot imports with an explicit package alias, then
+  remove the linter exclusion for staticcheck `ST1001`.
+- [x] Add `make test`, `make vet`, `make lint`, and `make check` targets that
+  mirror CI, so local pre-PR validation is obvious and repeatable.
 
-**Low effort, noisy-CI hygiene.**
+### Backend coverage expansion
 
-`ld: warning: ignoring duplicate libraries: '-lobjc'` (and occasional
-`-lSDL2`) fire on every `go test ./...` run. Likely an SDL2 pkg-config or
-CGO_LDFLAGS duplicate. Worth 30 minutes of investigation — noisy CI masks
-real linker issues.
-
-- [x] Root cause: multiple CGO packages each link Apple frameworks
-  (`-framework AppKit`, `-framework Cocoa`, etc.); each transitively pulls
-  `-lobjc`. When linked into one test binary, the linker sees duplicates.
-- [x] Fix: `CGO_LDFLAGS="-Wl,-no_warn_duplicate_libraries"` on macOS builds.
-  Applied in CI test job (macOS only), Makefile `build-macos` and
-  `build-examples` targets (macOS-conditional).
-
-### 3. CI benchmark regression gates
-
-**Builds on existing infra.**
-
-CI already runs benchmarks on main
-(`.github/workflows/ci.yml:273`), but doesn't compare against a baseline.
-Perf is constrained by allocations, not throughput (see
-[[project_go_gui_perf_baseline]]). Add:
-- Stored baseline per benchmark (or `benchstat` against previous main).
-- PR comment or check-run annotation on regression beyond threshold.
-- Gate: layout, SVG parse/tessellate, and render pipeline are the
-  highest-ROI targets.
-
-### 4. SVG rendering: `SvgAlignNone` ✅
-
-**Concrete, scoped, user-visible.**
-
-`gui/render_svg.go:178` — `SvgAlignNone` should non-uniformly stretch
-with independent scaleX/scaleY. Previously treated as xMidYMid.
-
-- [x] `svg_load.go`: tessellate at max(scaleX, scaleY) when SvgAlignNone
-- [x] `render_svg.go`: compute independent scaleX/scaleY, apply via HasXform
-  with Scale=1, composing over animation/base xforms
-- [x] `PreserveAlignFractions`: explicit SvgAlignNone case returning (0,0)
-- [x] `render_svg_aspect_test.go`: updated expected value
-
-### 5. Backend/platform test coverage ✅ (phase 1)
-
-**De-risk the cross-platform surface.**
-
-Several backend subpackages have zero test files: `android/`, `atspi/`,
-`internal/`, `ios/`. Calibrate expectations:
-
-| Package     | Priority | Rationale                                      |
-|-------------|----------|------------------------------------------------|
-| `internal/` | High     | Shared backend internals, broad blast radius   |
-| `atspi/`    | Medium   | Accessibility bridge, complex protocol surface |
-| `android/`  | Low      | Thin platform stub, low ROI                    |
-| `ios/`      | Low      | Thin platform stub, low ROI                    |
-
-- [x] `internal/glyphconv/` — tests for all TextAlignment cases, field
-  mapping, zero-value defaults, Features/Gradient pass-through
-- [x] `internal/imgload/` — tests for ResolveValidatedPath (NUL byte,
-  empty/dot path, allowed roots, blocked roots), DecodeNRGBA error paths
-  (empty file, oversized, default limits with valid PNG)
-- [ ] `atspi/` — role/state mapping tests (Linux build-tagged, deferred)
-- [ ] `android/`, `ios/` — thin stubs, low ROI
-
-Packages with one test file (`gl/`, `metal/`, `sdl2/`, `nativemenu/`,
-`spellcheck/`) could also use expansion — config translation, error paths,
-and capability fallbacks are good smoke-test targets.
-
-### 6. Backend panics → returned errors
-
-**Correct Go idiom, but calibrate the rationale.**
-
-Several backends `panic` or `log.Fatal` on init failure (e.g.,
-`gui/backend/gl/backend.go:364` has three panics, `gui/backend/web/backend.go`
-has two). Codex's framing — "GUI apps should show error dialogs" — is
-wrong. If GL context creation fails, there is no window to show a dialog
-in.
-
-The real value is **testability and embeddability**:
-- Tests can exercise failure paths instead of crashing the test runner.
-- go-term (which embeds go-gui, see [[project_go_term]]) can degrade
-  gracefully on partial backend init.
-
-Prioritize these by call site:
-1. Init paths that are reachable from tests.
-2. Init paths that go-term or other embedders hit.
-3. Deep internal paths where recovery is genuinely impossible (these can
-   stay as panics with a comment explaining why).
-
-- [x] `gl/backend.go` — `RunE`/`RunAppE` return errors; `Run`/`RunApp`
-  are panic-wrappers for backward compat
-- [x] `sdl2/backend.go` — same pattern
-- [x] `metal/backend.go` — same pattern
-- [x] `web/backend.go` — `RunE` returns error, `newBackend` returns
-  `(*Backend, error)`; `log.Fatal` → `return nil, fmt.Errorf`
-- [ ] `ios/`, `android/` — mobile C-interop init paths; deferred
-  (not testable without device/emulator, low blast radius)
-
----
+- [x] Add focused smoke tests for backend capability fallbacks, config
+  translation, and error paths in low-coverage packages.
+- [x] Prioritize shared backend internals first, then platform bridges such as
+  AT-SPI, native menus, file/print dialogs, spellcheck, and tray integration.
 
 ## Future
 

@@ -4,6 +4,7 @@ package gui
 // Parses markdown source and renders it using RTF views.
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
@@ -132,7 +133,30 @@ type MarkdownCfg struct {
 	FocusSkip           bool
 	Disabled            bool
 	DisableExternalAPIs bool
+
+	// MathFetcher replaces the default CodeCogs renderer.
+	// When nil, uses the default CodeCogs endpoint. Ignored
+	// when DisableExternalAPIs is true.
+	MathFetcher MathFetcher
+
+	// MermaidFetcher replaces the default Kroki renderer.
+	// When nil, uses the default Kroki endpoint. Ignored
+	// when DisableExternalAPIs is true.
+	MermaidFetcher MermaidFetcher
 }
+
+// MathFetcher fetches a LaTeX math expression as a PNG image.
+// When nil, defaults to the CodeCogs API. The implementation
+// must be safe for concurrent use. Ignored when
+// DisableExternalAPIs is true.
+type MathFetcher func(ctx context.Context, latex string, dpi int,
+	fgColor Color) ([]byte, error)
+
+// MermaidFetcher fetches a Mermaid diagram as a PNG image.
+// When nil, defaults to the Kroki API. The implementation must
+// be safe for concurrent use. Ignored when
+// DisableExternalAPIs is true.
+type MermaidFetcher func(ctx context.Context, source string) ([]byte, error)
 
 var markdownExternalAPIsEnabled bool
 
@@ -272,7 +296,7 @@ func renderMdMath(
 			})
 		fetchMathAsync(w, block.MathLatex, diagramHash,
 			reqID, cfg.Style.MathDPIDisplay,
-			cfg.Style.Text.Color)
+			cfg.Style.Text.Color, cfg.MathFetcher)
 	}
 	return codeFallback
 }
@@ -341,7 +365,8 @@ func renderMdMermaid(
 				State:     DiagramLoading,
 				RequestID: reqID,
 			})
-		fetchMermaidAsync(w, source, diagramHash, reqID)
+		fetchMermaidAsync(w, source, diagramHash, reqID,
+			cfg.MermaidFetcher)
 	}
 	return codeFallback
 }
@@ -518,7 +543,7 @@ func markdownTriggerMathFetches(
 				})
 			fetchMathAsync(w, run.MathLatex, mhash,
 				reqID, cfg.Style.MathDPIInline,
-				cfg.Style.Text.Color)
+				cfg.Style.Text.Color, cfg.MathFetcher)
 		}
 	}
 }

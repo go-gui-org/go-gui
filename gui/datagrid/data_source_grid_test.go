@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/go-gui-org/go-gui/gui"
+	gg "github.com/go-gui-org/go-gui/gui"
 )
 
 func TestEffectivePaginationKindCursorPreferred(t *testing.T) {
@@ -227,7 +227,7 @@ func TestDataGridSourceRowsTextOffset(t *testing.T) {
 		RowCount:      &rc,
 	}
 	got := dataGridSourceRowsText(GridPaginationOffset, state)
-	want := fmt.Sprintf("%s 21-70/200", ActiveLocale.StrRows)
+	want := fmt.Sprintf("%s 21-70/200", gg.ActiveLocale.StrRows)
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
@@ -241,7 +241,7 @@ func TestDataGridSourceRowsTextCursorWithIndex(t *testing.T) {
 		RowCount:      &rc,
 	}
 	got := dataGridSourceRowsText(GridPaginationCursor, state)
-	want := fmt.Sprintf("%s 11-30/100", ActiveLocale.StrRows)
+	want := fmt.Sprintf("%s 11-30/100", gg.ActiveLocale.StrRows)
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
@@ -254,7 +254,7 @@ func TestDataGridSourceRowsTextCursorNoIndex(t *testing.T) {
 		ReceivedCount: 15,
 	}
 	got := dataGridSourceRowsText(GridPaginationCursor, state)
-	want := fmt.Sprintf("%s 15/?", ActiveLocale.StrRows)
+	want := fmt.Sprintf("%s 15/?", gg.ActiveLocale.StrRows)
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
@@ -264,32 +264,32 @@ func TestDataGridSourceFormatRows(t *testing.T) {
 	rc := 500
 	// Normal range.
 	got := dataGridSourceFormatRows(10, 25, &rc)
-	want := fmt.Sprintf("%s 11-35/500", ActiveLocale.StrRows)
+	want := fmt.Sprintf("%s 11-35/500", gg.ActiveLocale.StrRows)
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 	// End exceeds total → clamped.
 	got = dataGridSourceFormatRows(490, 20, &rc)
-	want = fmt.Sprintf("%s 491-500/500", ActiveLocale.StrRows)
+	want = fmt.Sprintf("%s 491-500/500", gg.ActiveLocale.StrRows)
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 	// Zero count.
 	got = dataGridSourceFormatRows(0, 0, &rc)
-	want = fmt.Sprintf("%s 0/500", ActiveLocale.StrRows)
+	want = fmt.Sprintf("%s 0/500", gg.ActiveLocale.StrRows)
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 	// Nil total.
 	got = dataGridSourceFormatRows(5, 10, nil)
-	want = fmt.Sprintf("%s 6-15/?", ActiveLocale.StrRows)
+	want = fmt.Sprintf("%s 6-15/?", gg.ActiveLocale.StrRows)
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 }
 
 func TestDataGridSourceJumpEnabled(t *testing.T) {
-	sel := func(GridSelection, *Event, *Window) {}
+	sel := func(GridSelection, *gg.Event, *gg.Window) {}
 	rc := 50
 
 	// Happy path: all conditions met.
@@ -359,7 +359,7 @@ func TestDataGridSourceRowPositionText(t *testing.T) {
 }
 
 func TestDataGridSourceCancelActive(t *testing.T) {
-	ctrl := NewGridAbortController()
+	ctrl := gg.NewGridAbortController()
 	state := dataGridSourceState{
 		Loading:        true,
 		ActiveAbort:    ctrl,
@@ -373,7 +373,7 @@ func TestDataGridSourceCancelActive(t *testing.T) {
 		t.Fatalf("CancelledCount = %d, want 1", state.CancelledCount)
 	}
 	// Second call while still loading increments again.
-	ctrl2 := NewGridAbortController()
+	ctrl2 := gg.NewGridAbortController()
 	state.ActiveAbort = ctrl2
 	dataGridSourceCancelActive(&state)
 	if state.CancelledCount != 2 {
@@ -382,7 +382,7 @@ func TestDataGridSourceCancelActive(t *testing.T) {
 }
 
 func TestDataGridSourceCancelActiveNotLoading(t *testing.T) {
-	ctrl := NewGridAbortController()
+	ctrl := gg.NewGridAbortController()
 	state := dataGridSourceState{
 		Loading:     false,
 		ActiveAbort: ctrl,
@@ -425,7 +425,7 @@ func TestDataGridSourceDropIfStaleMatching(t *testing.T) {
 // --- dataGridSourceForceRefetch ---
 
 func TestSourceForceRefetch(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	// Should not panic — force refetch even without existing state.
 	dataGridSourceForceRefetch("g1", w)
@@ -434,7 +434,7 @@ func TestSourceForceRefetch(t *testing.T) {
 // --- dataGridSourceRetry ---
 
 func TestSourceRetry(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	// Should not panic — retry does nothing when no state exists.
 	dataGridSourceRetry("g1", w)
@@ -443,9 +443,9 @@ func TestSourceRetry(t *testing.T) {
 // --- dataGridSourcePrevPage / dataGridSourceNextPage ---
 
 func TestSourcePrevPage(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
-	dgSource := StateMap[string, dataGridSourceState](w, nsDgSource, 4)
+	dgSource := gg.StateMap[string, dataGridSourceState](w, nsDgSource, 4)
 	dgSource.Set("g1", dataGridSourceState{
 		PrevCursor:     "prev-cursor",
 		PaginationKind: GridPaginationCursor,
@@ -459,9 +459,9 @@ func TestSourcePrevPage(t *testing.T) {
 }
 
 func TestSourceNextPage(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
-	dgSource := StateMap[string, dataGridSourceState](w, nsDgSource, 4)
+	dgSource := gg.StateMap[string, dataGridSourceState](w, nsDgSource, 4)
 	dgSource.Set("g1", dataGridSourceState{
 		NextCursor:     "next-cursor",
 		PaginationKind: GridPaginationCursor,
@@ -477,7 +477,7 @@ func TestSourceNextPage(t *testing.T) {
 // --- dataGridSourceJumpToRow ---
 
 func TestSourceJumpToRow(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	// Should not panic even without existing state.
 	dataGridSourceJumpToRow("g1", 10, 0, w)
@@ -486,19 +486,19 @@ func TestSourceJumpToRow(t *testing.T) {
 // --- dataGridSourceApplyLocalMutation ---
 
 func TestSourceApplyLocalMutation(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	rows := []GridRow{{ID: "a"}, {ID: "b"}}
 	// Creates state when none exists.
 	dataGridSourceApplyLocalMutation("g1", rows, 2, w)
-	state, _ := StateMap[string, dataGridSourceState](w, nsDgSource, 4).Get("g1")
+	state, _ := gg.StateMap[string, dataGridSourceState](w, nsDgSource, 4).Get("g1")
 	if len(state.Rows) != 2 {
 		t.Errorf("rows: got %d, want 2", len(state.Rows))
 	}
 }
 
 func TestSourceApplyLocalMutationNilRows(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	dataGridSourceApplyLocalMutation("g1", nil, -1, w)
 }
@@ -506,9 +506,9 @@ func TestSourceApplyLocalMutationNilRows(t *testing.T) {
 // --- GetSourceStats ---
 
 func TestGetSourceStatsReturnsValue(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
-	dgSource := StateMap[string, dataGridSourceState](w, nsDgSource, 4)
+	dgSource := gg.StateMap[string, dataGridSourceState](w, nsDgSource, 4)
 	dgSource.Set("g1", dataGridSourceState{
 		Rows:          []GridRow{{ID: "a"}},
 		ReceivedCount: 1,
@@ -521,7 +521,7 @@ func TestGetSourceStatsReturnsValue(t *testing.T) {
 // --- dataGridSourceApplyPendingJumpSelection ---
 
 func TestSourceApplyPendingJumpSelection(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	rows := []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}}
 	state := dataGridSourceState{
@@ -531,7 +531,7 @@ func TestSourceApplyPendingJumpSelection(t *testing.T) {
 	cfg := &DataGridCfg{
 		ID:                "g1",
 		Rows:              rows,
-		OnSelectionChange: func(s GridSelection, _ *Event, _ *Window) {},
+		OnSelectionChange: func(s GridSelection, _ *gg.Event, _ *gg.Window) {},
 	}
 	// Should not panic.
 	dataGridSourceApplyPendingJumpSelection(cfg, state, w)

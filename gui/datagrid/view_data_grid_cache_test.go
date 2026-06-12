@@ -3,13 +3,13 @@ package datagrid
 import (
 	"testing"
 
-	. "github.com/go-gui-org/go-gui/gui"
+	gg "github.com/go-gui-org/go-gui/gui"
 )
 
 // --- dataGridAggregateLabel ---
 
 func TestAggregateLabelExplicit(t *testing.T) {
-	agg := GridAggregateCfg{Label: "Total Sales", Op: gridAggregateSum, ColID: "amount"}
+	agg := GridAggregateCfg{Label: "Total Sales", Op: GridAggregateSum, ColID: "amount"}
 	got := dataGridAggregateLabel(agg)
 	if got != "Total Sales" {
 		t.Errorf("got %q, want 'Total Sales'", got)
@@ -17,7 +17,7 @@ func TestAggregateLabelExplicit(t *testing.T) {
 }
 
 func TestAggregateLabelCount(t *testing.T) {
-	agg := GridAggregateCfg{Op: gridAggregateCount}
+	agg := GridAggregateCfg{Op: GridAggregateCount}
 	got := dataGridAggregateLabel(agg)
 	if got != "count" {
 		t.Errorf("got %q, want 'count'", got)
@@ -25,7 +25,7 @@ func TestAggregateLabelCount(t *testing.T) {
 }
 
 func TestAggregateLabelOpWithColID(t *testing.T) {
-	agg := GridAggregateCfg{Op: gridAggregateSum, ColID: "amount"}
+	agg := GridAggregateCfg{Op: GridAggregateSum, ColID: "amount"}
 	got := dataGridAggregateLabel(agg)
 	if got != "sum amount" {
 		t.Errorf("got %q, want 'sum amount'", got)
@@ -33,7 +33,7 @@ func TestAggregateLabelOpWithColID(t *testing.T) {
 }
 
 func TestAggregateLabelOpOnly(t *testing.T) {
-	agg := GridAggregateCfg{Op: gridAggregateMin}
+	agg := GridAggregateCfg{Op: GridAggregateMin}
 	got := dataGridAggregateLabel(agg)
 	if got != "" || len(got) > 0 {
 		// Op.String() with empty ColID — should just be the op name.
@@ -56,7 +56,7 @@ func TestGroupAggregateTextEmpty(t *testing.T) {
 func TestGroupAggregateTextCount(t *testing.T) {
 	cfg := &DataGridCfg{
 		Rows:       []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}},
-		Aggregates: []GridAggregateCfg{{Op: gridAggregateCount, Label: "Rows"}},
+		Aggregates: []GridAggregateCfg{{Op: GridAggregateCount, Label: "Rows"}},
 	}
 	got := dataGridGroupAggregateText(cfg, 0, 2)
 	if got != "Rows: 3" {
@@ -67,7 +67,7 @@ func TestGroupAggregateTextCount(t *testing.T) {
 func TestGroupAggregateTextInvalidRange(t *testing.T) {
 	cfg := &DataGridCfg{
 		Rows:       []GridRow{{ID: "a"}, {ID: "b"}},
-		Aggregates: []GridAggregateCfg{{Op: gridAggregateCount, Label: "N"}},
+		Aggregates: []GridAggregateCfg{{Op: GridAggregateCount, Label: "N"}},
 	}
 	// startIdx > endIdx
 	got := dataGridGroupAggregateText(cfg, 1, 0)
@@ -161,7 +161,7 @@ func TestAggregateValueCount(t *testing.T) {
 	rows := []GridRow{
 		{ID: "a"}, {ID: "b"}, {ID: "c"}, {ID: "d"},
 	}
-	agg := GridAggregateCfg{Op: gridAggregateCount}
+	agg := GridAggregateCfg{Op: GridAggregateCount}
 	got, ok := dataGridAggregateValue(rows, 1, 3, agg)
 	if !ok {
 		t.Fatal("count should succeed")
@@ -177,7 +177,7 @@ func TestAggregateValueSum(t *testing.T) {
 		{Cells: map[string]string{"val": "20"}},
 		{Cells: map[string]string{"val": "30"}},
 	}
-	agg := GridAggregateCfg{Op: gridAggregateSum, ColID: "val"}
+	agg := GridAggregateCfg{Op: GridAggregateSum, ColID: "val"}
 	got, ok := dataGridAggregateValue(rows, 0, 2, agg)
 	if !ok {
 		t.Fatal("sum should succeed")
@@ -192,7 +192,7 @@ func TestAggregateValueAvg(t *testing.T) {
 		{Cells: map[string]string{"val": "10"}},
 		{Cells: map[string]string{"val": "20"}},
 	}
-	agg := GridAggregateCfg{Op: gridAggregateAvg, ColID: "val"}
+	agg := GridAggregateCfg{Op: GridAggregateAvg, ColID: "val"}
 	got, ok := dataGridAggregateValue(rows, 0, 1, agg)
 	if !ok {
 		t.Fatal("avg should succeed")
@@ -208,7 +208,7 @@ func TestAggregateValueMin(t *testing.T) {
 		{Cells: map[string]string{"val": "10"}},
 		{Cells: map[string]string{"val": "3"}},
 	}
-	agg := GridAggregateCfg{Op: gridAggregateMin, ColID: "val"}
+	agg := GridAggregateCfg{Op: GridAggregateMin, ColID: "val"}
 	got, ok := dataGridAggregateValue(rows, 0, 2, agg)
 	if !ok {
 		t.Fatal("min should succeed")
@@ -224,7 +224,7 @@ func TestAggregateValueMax(t *testing.T) {
 		{Cells: map[string]string{"val": "10"}},
 		{Cells: map[string]string{"val": "3"}},
 	}
-	agg := GridAggregateCfg{Op: gridAggregateMax, ColID: "val"}
+	agg := GridAggregateCfg{Op: GridAggregateMax, ColID: "val"}
 	got, ok := dataGridAggregateValue(rows, 0, 2, agg)
 	if !ok {
 		t.Fatal("max should succeed")
@@ -236,7 +236,7 @@ func TestAggregateValueMax(t *testing.T) {
 
 func TestAggregateValueNoColID(t *testing.T) {
 	rows := []GridRow{{ID: "a"}}
-	agg := GridAggregateCfg{Op: gridAggregateSum}
+	agg := GridAggregateCfg{Op: GridAggregateSum}
 	_, ok := dataGridAggregateValue(rows, 0, 0, agg)
 	if ok {
 		t.Fatal("should return false with empty colID and non-count op")
@@ -248,7 +248,7 @@ func TestAggregateValueAllNonNumeric(t *testing.T) {
 		{Cells: map[string]string{"val": "abc"}},
 		{Cells: map[string]string{"val": "xyz"}},
 	}
-	agg := GridAggregateCfg{Op: gridAggregateSum, ColID: "val"}
+	agg := GridAggregateCfg{Op: GridAggregateSum, ColID: "val"}
 	_, ok := dataGridAggregateValue(rows, 0, 1, agg)
 	if ok {
 		t.Fatal("should return false when no numeric values")
@@ -358,9 +358,9 @@ func TestGroupRangesEmpty(t *testing.T) {
 func TestPresentationValueCols(t *testing.T) {
 	groupCols := []string{"name"}
 	aggs := []GridAggregateCfg{
-		{Op: gridAggregateSum, ColID: "amount"},
-		{Op: gridAggregateCount},
-		{Op: gridAggregateAvg, ColID: "price"},
+		{Op: GridAggregateSum, ColID: "amount"},
+		{Op: GridAggregateCount},
+		{Op: GridAggregateAvg, ColID: "price"},
 	}
 	got := dataGridPresentationValueCols(groupCols, aggs)
 	// Should include "name", "amount", "price" sorted.
@@ -372,7 +372,7 @@ func TestPresentationValueCols(t *testing.T) {
 func TestPresentationValueColsDedup(t *testing.T) {
 	groupCols := []string{"name"}
 	aggs := []GridAggregateCfg{
-		{Op: gridAggregateSum, ColID: "name"}, // same as group col
+		{Op: GridAggregateSum, ColID: "name"}, // same as group col
 	}
 	got := dataGridPresentationValueCols(groupCols, aggs)
 	if len(got) != 1 {
@@ -383,12 +383,12 @@ func TestPresentationValueColsDedup(t *testing.T) {
 // --- dataGridFnv64U64 ---
 
 func TestFnv64U64(t *testing.T) {
-	a := dataGridFnv64U64(Fnv64Offset, 42)
-	b := dataGridFnv64U64(Fnv64Offset, 42)
+	a := dataGridFnv64U64(gg.Fnv64Offset, 42)
+	b := dataGridFnv64U64(gg.Fnv64Offset, 42)
 	if a != b {
 		t.Fatal("same input should produce same hash")
 	}
-	if a == Fnv64Offset {
+	if a == gg.Fnv64Offset {
 		t.Fatal("should differ from offset")
 	}
 }

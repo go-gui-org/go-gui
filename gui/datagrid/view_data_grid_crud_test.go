@@ -3,7 +3,7 @@ package datagrid
 import (
 	"testing"
 
-	. "github.com/go-gui-org/go-gui/gui"
+	gg "github.com/go-gui-org/go-gui/gui"
 )
 
 // --- dataGridCrudHasUnsaved ---
@@ -450,8 +450,8 @@ func TestCrudRemapSelection(t *testing.T) {
 		"__draft_2": "server_2",
 	}
 	var captured GridSelection
-	cb := func(s GridSelection, _ *Event, _ *Window) { captured = s }
-	dataGridCrudRemapSelection(sel, cb, replaceIDs, &Event{}, nil)
+	cb := func(s GridSelection, _ *gg.Event, _ *gg.Window) { captured = s }
+	dataGridCrudRemapSelection(sel, cb, replaceIDs, &gg.Event{}, nil)
 
 	if captured.AnchorRowID != "server_1" {
 		t.Fatalf("anchor: got %q", captured.AnchorRowID)
@@ -469,13 +469,13 @@ func TestCrudRemapSelection(t *testing.T) {
 
 func TestCrudRemapSelectionNilCallback(_ *testing.T) {
 	// Should not panic.
-	dataGridCrudRemapSelection(GridSelection{}, nil, map[string]string{"a": "b"}, &Event{}, nil)
+	dataGridCrudRemapSelection(GridSelection{}, nil, map[string]string{"a": "b"}, &gg.Event{}, nil)
 }
 
 func TestCrudRemapSelectionEmptyReplace(t *testing.T) {
 	called := false
-	cb := func(_ GridSelection, _ *Event, _ *Window) { called = true }
-	dataGridCrudRemapSelection(GridSelection{}, cb, map[string]string{}, &Event{}, nil)
+	cb := func(_ GridSelection, _ *gg.Event, _ *gg.Window) { called = true }
+	dataGridCrudRemapSelection(GridSelection{}, cb, map[string]string{}, &gg.Event{}, nil)
 	if called {
 		t.Fatal("callback should not fire with empty replaceIDs")
 	}
@@ -515,10 +515,10 @@ func TestCrudToolbarHeight(t *testing.T) {
 
 func TestCrudToolbarRowReturnsView(t *testing.T) {
 	cfg := &DataGridCfg{
-		TextStyleFilter:  DefaultTextStyle,
-		ColorFilter:      RGBA(240, 240, 240, 255),
-		ColorHeaderHover: RGBA(200, 200, 200, 255),
-		ColorBorder:      RGBA(180, 180, 180, 255),
+		TextStyleFilter:  gg.DefaultTextStyle,
+		ColorFilter:      gg.RGBA(240, 240, 240, 255),
+		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
+		ColorBorder:      gg.RGBA(180, 180, 180, 255),
 		Selection:        GridSelection{},
 		Columns:          []GridColumnCfg{{ID: "c1"}},
 	}
@@ -531,10 +531,10 @@ func TestCrudToolbarRowReturnsView(t *testing.T) {
 
 func TestCrudToolbarRowWithUnsaved(t *testing.T) {
 	cfg := &DataGridCfg{
-		TextStyleFilter:  DefaultTextStyle,
-		ColorFilter:      RGBA(240, 240, 240, 255),
-		ColorHeaderHover: RGBA(200, 200, 200, 255),
-		ColorBorder:      RGBA(180, 180, 180, 255),
+		TextStyleFilter:  gg.DefaultTextStyle,
+		ColorFilter:      gg.RGBA(240, 240, 240, 255),
+		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
+		ColorBorder:      gg.RGBA(180, 180, 180, 255),
 		Selection:        GridSelection{},
 		Columns:          []GridColumnCfg{{ID: "c1"}},
 	}
@@ -549,10 +549,10 @@ func TestCrudToolbarRowWithUnsaved(t *testing.T) {
 
 func TestCrudToolbarRowSaving(t *testing.T) {
 	cfg := &DataGridCfg{
-		TextStyleFilter:  DefaultTextStyle,
-		ColorFilter:      RGBA(240, 240, 240, 255),
-		ColorHeaderHover: RGBA(200, 200, 200, 255),
-		ColorBorder:      RGBA(180, 180, 180, 255),
+		TextStyleFilter:  gg.DefaultTextStyle,
+		ColorFilter:      gg.RGBA(240, 240, 240, 255),
+		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
+		ColorBorder:      gg.RGBA(180, 180, 180, 255),
 		Selection:        GridSelection{},
 		Columns:          []GridColumnCfg{{ID: "c1"}},
 	}
@@ -566,15 +566,15 @@ func TestCrudToolbarRowSaving(t *testing.T) {
 // --- dataGridCrudApplyCellEdit ---
 
 func TestCrudApplyCellEdit(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
-	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
 	dgCrud.Set("g1", dataGridCrudState{
 		WorkingRows: []GridRow{
 			{ID: "r1", Cells: map[string]string{"col1": "old"}},
 		},
 	})
-	e := &Event{}
+	e := &gg.Event{}
 	dataGridCrudApplyCellEdit("g1", true, nil, GridCellEdit{
 		RowID: "r1",
 		ColID: "col1",
@@ -590,13 +590,13 @@ func TestCrudApplyCellEdit(t *testing.T) {
 }
 
 func TestCrudApplyCellEditNoCrud(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	var captured GridCellEdit
-	cb := func(edit GridCellEdit, _ *Event, _ *Window) {
+	cb := func(edit GridCellEdit, _ *gg.Event, _ *gg.Window) {
 		captured = edit
 	}
-	e := &Event{}
+	e := &gg.Event{}
 	dataGridCrudApplyCellEdit("g1", false, cb, GridCellEdit{
 		RowID: "r1",
 		ColID: "col1",
@@ -608,22 +608,22 @@ func TestCrudApplyCellEditNoCrud(t *testing.T) {
 }
 
 func TestCrudApplyCellEditEmptyRowID(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	// Should not panic.
 	dataGridCrudApplyCellEdit("g1", true, nil, GridCellEdit{
 		RowID: "",
 		ColID: "col1",
 		Value: "val",
-	}, &Event{}, w)
+	}, &gg.Event{}, w)
 }
 
 // --- dataGridCrudCancel ---
 
 func TestCrudCancel(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
-	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
 	dgCrud.Set("g1", dataGridCrudState{
 		CommittedRows: []GridRow{{ID: "r1", Cells: map[string]string{"x": "original"}}},
 		WorkingRows:   []GridRow{{ID: "r1", Cells: map[string]string{"x": "modified"}}},
@@ -632,7 +632,7 @@ func TestCrudCancel(t *testing.T) {
 		Saving:        true,
 		SourceChanged: true,
 	})
-	e := &Event{}
+	e := &gg.Event{}
 	dataGridCrudCancel("g1", 10, e, w)
 	state, _ := dgCrud.Get("g1")
 	if len(state.DirtyRowIDs) != 0 {
@@ -655,9 +655,9 @@ func TestCrudCancel(t *testing.T) {
 // --- dataGridCrudDeleteRows ---
 
 func TestCrudDeleteRows(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
-	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
 	dgCrud.Set("g1", dataGridCrudState{
 		CommittedRows: []GridRow{{ID: "r1", Cells: map[string]string{}}, {ID: "r2", Cells: map[string]string{}}},
 		WorkingRows: []GridRow{
@@ -668,8 +668,8 @@ func TestCrudDeleteRows(t *testing.T) {
 		DraftRowIDs: map[string]bool{"__draft_1": true},
 	})
 	var captured GridSelection
-	e := &Event{}
-	dataGridCrudDeleteRows("g1", GridSelection{}, func(s GridSelection, _ *Event, _ *Window) {
+	e := &gg.Event{}
+	dataGridCrudDeleteRows("g1", GridSelection{}, func(s GridSelection, _ *gg.Event, _ *gg.Window) {
 		captured = s
 	}, []string{"__draft_1", "r2"}, 10, e, w)
 	state, _ := dgCrud.Get("g1")
@@ -692,37 +692,37 @@ func TestCrudDeleteRows(t *testing.T) {
 }
 
 func TestCrudDeleteRowsEmptyList(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	// Should not panic.
-	dataGridCrudDeleteRows("g1", GridSelection{}, nil, nil, 0, &Event{}, w)
+	dataGridCrudDeleteRows("g1", GridSelection{}, nil, nil, 0, &gg.Event{}, w)
 }
 
 func TestCrudDeleteRowsAllWhitespace(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	// Should not panic with whitespace-only IDs.
-	dataGridCrudDeleteRows("g1", GridSelection{}, nil, []string{"  ", ""}, 0, &Event{}, w)
+	dataGridCrudDeleteRows("g1", GridSelection{}, nil, []string{"  ", ""}, 0, &gg.Event{}, w)
 }
 
 // --- dataGridCrudAddRow ---
 
 func TestCrudAddRow(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	columns := []GridColumnCfg{{ID: "name", DefaultValue: ""}, {ID: "age", DefaultValue: "0"}}
 	var captured GridSelection
-	e := &Event{}
-	dataGridCrudAddRow("g1", columns, func(s GridSelection, _ *Event, _ *Window) {
+	e := &gg.Event{}
+	dataGridCrudAddRow("g1", columns, func(s GridSelection, _ *gg.Event, _ *gg.Window) {
 		captured = s
-	}, 10, 1, 0, 0, func(int, *Event, *Window) {}, e, w)
+	}, 10, 1, 0, 0, func(int, *gg.Event, *gg.Window) {}, e, w)
 	if captured.ActiveRowID == "" {
 		t.Fatal("should have an active row")
 	}
 	if len(captured.SelectedRowIDs) != 1 {
 		t.Errorf("expected 1 selected, got %d", len(captured.SelectedRowIDs))
 	}
-	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
 	state, _ := dgCrud.Get("g1")
 	if len(state.WorkingRows) != 1 {
 		t.Errorf("working rows: got %d, want 1", len(state.WorkingRows))
@@ -735,9 +735,9 @@ func TestCrudAddRow(t *testing.T) {
 // --- dataGridCrudDeleteSelected ---
 
 func TestCrudDeleteSelected(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
-	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
 	dgCrud.Set("g1", dataGridCrudState{
 		WorkingRows: []GridRow{
 			{ID: "r1", Cells: map[string]string{}},
@@ -747,7 +747,7 @@ func TestCrudDeleteSelected(t *testing.T) {
 	sel := GridSelection{
 		SelectedRowIDs: map[string]bool{"r1": true, "r2": true},
 	}
-	e := &Event{}
+	e := &gg.Event{}
 	dataGridCrudDeleteSelected("g1", sel, nil, 0, e, w)
 	state, _ := dgCrud.Get("g1")
 	if len(state.WorkingRows) != 0 {
@@ -756,10 +756,10 @@ func TestCrudDeleteSelected(t *testing.T) {
 }
 
 func TestCrudDeleteSelectedEmptySelection(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	// Should not panic.
-	dataGridCrudDeleteSelected("g1", GridSelection{}, nil, 0, &Event{}, w)
+	dataGridCrudDeleteSelected("g1", GridSelection{}, nil, 0, &gg.Event{}, w)
 }
 
 // --- dataGridCrudBuildPayload additional ---
@@ -789,23 +789,23 @@ func TestCrudBuildPayloadDirtyNotCommitted(t *testing.T) {
 // --- dataGridCrudRestoreOnError ---
 
 func TestCrudRestoreOnError(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	dataGridSetEditingRow("g1", "r1", w)
 	snapshot := []GridRow{
 		{ID: "r1", Cells: map[string]string{"a": "orig"}},
 	}
-	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
 	dgCrud.Set("g1", dataGridCrudState{
 		CommittedRows: []GridRow{{ID: "r1", Cells: map[string]string{"a": "modified"}}},
 		WorkingRows:   []GridRow{{ID: "r1", Cells: map[string]string{"a": "modified"}}},
 		DirtyRowIDs:   map[string]bool{"r1": true},
 	})
 	var errMsg string
-	cb := func(msg string, _ *Event, _ *Window) {
+	cb := func(msg string, _ *gg.Event, _ *gg.Window) {
 		errMsg = msg
 	}
-	e := &Event{}
+	e := &gg.Event{}
 	dataGridCrudRestoreOnError("g1", "save", cb, e, w, snapshot, "save failed")
 	if errMsg != "save failed" {
 		t.Errorf("error callback: got %q, want 'save failed'", errMsg)
@@ -826,11 +826,11 @@ func TestCrudRestoreOnError(t *testing.T) {
 }
 
 func TestCrudRestoreOnErrorNoPhase(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	snapshot := []GridRow{{ID: "r1", Cells: map[string]string{}}}
-	dataGridCrudRestoreOnError("g1", "", nil, &Event{}, w, snapshot, "generic error")
-	dgCrud := StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
+	dataGridCrudRestoreOnError("g1", "", nil, &gg.Event{}, w, snapshot, "generic error")
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
 	state, _ := dgCrud.Get("g1")
 	if state.SaveError != "generic error" {
 		t.Errorf("save error: got %q", state.SaveError)

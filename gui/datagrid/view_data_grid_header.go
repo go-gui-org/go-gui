@@ -5,67 +5,67 @@ import (
 	"math"
 	"slices"
 
-	. "github.com/go-gui-org/go-gui/gui"
+	gg "github.com/go-gui-org/go-gui/gui"
 )
 
 // dataGridHeaderRow builds the header row with all column
 // header cells.
-func dataGridHeaderRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths map[string]float32, focusID uint32, hoveredColID, resizingColID, focusedColID string) View {
-	cells := make([]View, 0, len(columns))
+func dataGridHeaderRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths map[string]float32, focusID uint32, hoveredColID, resizingColID, focusedColID string) gg.View {
+	cells := make([]gg.View, 0, len(columns))
 	for idx, col := range columns {
 		width := dataGridColumnWidthFor(col, columnWidths)
 		showControls := dataGridShowHeaderControls(col.ID, hoveredColID, resizingColID, focusedColID)
 		cells = append(cells, dataGridHeaderCell(cfg, col, idx, len(columns), width, focusID, showControls))
 	}
-	return Row(ContainerCfg{
+	return gg.Row(gg.ContainerCfg{
 		Height:      dataGridHeaderHeight(cfg),
-		Sizing:      FillFixed,
-		Color:       ColorTransparent,
+		Sizing:      gg.FillFixed,
+		Color:       gg.ColorTransparent,
 		ColorBorder: cfg.ColorBorder,
-		SizeBorder:  SomeF(0),
-		Padding:     NoPadding,
-		Spacing:     Some(-cfg.SizeBorder.Get(0)),
+		SizeBorder:  gg.SomeF(0),
+		Padding:     gg.NoPadding,
+		Spacing:     gg.Some(-cfg.SizeBorder.Get(0)),
 		Content:     cells,
 	})
 }
 
-func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount int, width float32, focusID uint32, showControls bool) View {
+func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount int, width float32, focusID uint32, showControls bool) gg.View {
 	hasReorder := showControls && cfg.OnColumnOrderChange != nil && col.Reorderable
 	hasPin := showControls && cfg.OnColumnPinChange != nil
-	headerControls := dataGridHeaderControlState(width, cfg.PaddingHeader.Get(Padding{}), hasReorder, hasPin, showControls && col.Resizable)
+	headerControls := dataGridHeaderControlState(width, cfg.PaddingHeader.Get(gg.Padding{}), hasReorder, hasPin, showControls && col.Resizable)
 	headerFocusID := dataGridHeaderFocusID(cfg, colCount, colIdx)
 
-	content := make([]View, 0, 5)
+	content := make([]gg.View, 0, 5)
 	indicator := dataGridHeaderIndicator(cfg.Query, col.ID)
 
-	labelContent := make([]View, 0, 2)
-	labelContent = append(labelContent, Text(TextCfg{
+	labelContent := make([]gg.View, 0, 2)
+	labelContent = append(labelContent, gg.Text(gg.TextCfg{
 		Text:      col.Title,
-		Mode:      TextModeSingleLine,
+		Mode:      gg.TextModeSingleLine,
 		TextStyle: cfg.TextStyleHeader,
 	}))
 	if indicator != "" {
-		labelContent = append(labelContent, Text(TextCfg{
+		labelContent = append(labelContent, gg.Text(gg.TextCfg{
 			Text:      indicator,
-			Mode:      TextModeSingleLine,
+			Mode:      gg.TextModeSingleLine,
 			TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleHeader),
 		}))
 	}
 
 	if headerControls.showLabel {
-		content = append(content, Row(ContainerCfg{
-			Sizing:  FillFill,
+		content = append(content, gg.Row(gg.ContainerCfg{
+			Sizing:  gg.FillFill,
 			Clip:    true,
-			Padding: NoPadding,
+			Padding: gg.NoPadding,
 			HAlign:  col.Align,
-			VAlign:  VAlignMiddle,
-			Spacing: SomeF(6),
+			VAlign:  gg.VAlignMiddle,
+			Spacing: gg.SomeF(6),
 			Content: labelContent,
 		}))
 	} else {
-		content = append(content, Row(ContainerCfg{
-			Sizing:  FillFill,
-			Padding: NoPadding,
+		content = append(content, gg.Row(gg.ContainerCfg{
+			Sizing:  gg.FillFill,
+			Padding: gg.NoPadding,
 		}))
 	}
 	if headerControls.showReorder {
@@ -85,28 +85,28 @@ func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount in
 	colID := col.ID
 	colorHeaderHover := cfg.ColorHeaderHover
 	headerSorted := dataGridSortIndex(query.Sorts, colID) >= 0
-	headerA11YState := AccessStateNone
+	headerA11YState := gg.AccessStateNone
 	if headerSorted {
-		headerA11YState = AccessStateSelected
+		headerA11YState = gg.AccessStateSelected
 	}
 
-	return Row(ContainerCfg{
+	return gg.Row(gg.ContainerCfg{
 		ID:          cfg.ID + ":header:" + col.ID,
-		A11YRole:    AccessRoleGridCell,
+		A11YRole:    gg.AccessRoleGridCell,
 		A11YLabel:   col.Title,
 		A11YState:   headerA11YState,
 		Width:       width,
-		Sizing:      FixedFill,
+		Sizing:      gg.FixedFill,
 		Padding:     cfg.PaddingHeader,
 		Clip:        true,
 		Color:       cfg.ColorHeader,
 		ColorBorder: cfg.ColorBorder,
 		SizeBorder:  cfg.SizeBorder,
-		Spacing:     SomeF(0),
-		OnClick: func(_ *Layout, e *Event, w *Window) {
+		Spacing:     gg.SomeF(0),
+		OnClick: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 			e.IsHandled = true
 			if colSortable && onQueryChange != nil {
-				shiftSort := multiSort && e.Modifiers.Has(ModShift)
+				shiftSort := multiSort && e.Modifiers.Has(gg.ModShift)
 				next := dataGridToggleSort(query, colID, multiSort, shiftSort)
 				onQueryChange(next, e, w)
 			}
@@ -116,7 +116,7 @@ func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount in
 				w.SetIDFocus(focusID)
 			}
 		},
-		OnHover: func(layout *Layout, _ *Event, w *Window) {
+		OnHover: func(layout *gg.Layout, _ *gg.Event, w *gg.Window) {
 			if cfg.Disabled {
 				return
 			}
@@ -130,65 +130,65 @@ func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount in
 	})
 }
 
-func dataGridResizeHandle(cfg *DataGridCfg, col GridColumnCfg, focusID uint32) View {
+func dataGridResizeHandle(cfg *DataGridCfg, col GridColumnCfg, focusID uint32) gg.View {
 	gridID := cfg.ID
 	columns := cfg.Columns
 	rows := cfg.Rows
 	textStyleHeader := cfg.TextStyleHeader
 	textStyle := cfg.TextStyle
-	paddingCell := cfg.PaddingCell.Get(Padding{})
+	paddingCell := cfg.PaddingCell.Get(gg.Padding{})
 	colorResizeHandle := cfg.ColorResizeHandle
 	colorResizeActive := cfg.ColorResizeActive
 
 	disabled := cfg.Disabled
 
-	return Row(ContainerCfg{
+	return gg.Row(gg.ContainerCfg{
 		ID:      gridID + ":resize:" + col.ID,
 		Width:   dataGridResizeHandleWidth,
-		Sizing:  FixedFill,
-		Padding: NoPadding,
+		Sizing:  gg.FixedFill,
+		Padding: gg.NoPadding,
 		Color:   colorResizeHandle,
-		OnClick: func(layout *Layout, e *Event, w *Window) {
+		OnClick: func(layout *gg.Layout, e *gg.Event, w *gg.Window) {
 			if disabled {
 				return
 			}
 			startX := layout.Shape.X + e.MouseX
 			dataGridStartResize(gridID, columns, rows, textStyleHeader, textStyle, paddingCell, col, focusID, startX, e, w)
 		},
-		OnHover: func(layout *Layout, e *Event, w *Window) {
+		OnHover: func(layout *gg.Layout, e *gg.Event, w *gg.Window) {
 			if disabled {
 				return
 			}
 			w.SetMouseCursorEW()
-			if e.MouseButton == MouseLeft {
+			if e.MouseButton == gg.MouseLeft {
 				layout.Shape.Color = colorResizeActive
 			} else {
 				layout.Shape.Color = colorResizeHandle
 			}
 		},
-		Content: []View{
-			Rectangle(RectangleCfg{
+		Content: []gg.View{
+			gg.Rectangle(gg.RectangleCfg{
 				Width:  1,
 				Height: 1,
-				Sizing: FillFill,
-				Color:  ColorTransparent,
+				Sizing: gg.FillFill,
+				Color:  gg.ColorTransparent,
 			}),
 		},
 	})
 }
 
-func dataGridReorderControls(cfg *DataGridCfg, col GridColumnCfg) View {
+func dataGridReorderControls(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 	onColumnOrderChange := cfg.OnColumnOrderChange
 	baseOrder, _ := dataGridColumnOrderAndMap(cfg.Columns, cfg.ColumnOrder)
 	colID := col.ID
 	leftArrow := "\u25C0"  // ◀
 	rightArrow := "\u25B6" // ▶
-	if ActiveLocale.TextDir == TextDirRTL {
+	if gg.ActiveLocale.TextDir == gg.TextDirRTL {
 		leftArrow, rightArrow = rightArrow, leftArrow
 	}
 
-	reorderCB := func(delta int) func(*Event, *Window) {
-		return func(e *Event, w *Window) {
+	reorderCB := func(delta int) func(*gg.Event, *gg.Window) {
+		return func(e *gg.Event, w *gg.Window) {
 			if onColumnOrderChange == nil {
 				e.IsHandled = true
 				return
@@ -203,54 +203,54 @@ func dataGridReorderControls(cfg *DataGridCfg, col GridColumnCfg) View {
 		}
 	}
 
-	return Row(ContainerCfg{
-		Padding: NoPadding,
-		Spacing: Some(dataGridHeaderReorderSpacing),
+	return gg.Row(gg.ContainerCfg{
+		Padding: gg.NoPadding,
+		Spacing: gg.Some(dataGridHeaderReorderSpacing),
 		Width:   dataGridHeaderControlsWidth(true, false, false),
-		Sizing:  FixedFill,
-		Content: []View{
+		Sizing:  gg.FixedFill,
+		Content: []gg.View{
 			dataGridOrderButton(leftArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover, reorderCB(-1)),
 			dataGridOrderButton(rightArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover, reorderCB(1)),
 		},
 	})
 }
 
-func dataGridOrderButton(label string, baseStyle TextStyle, hoverColor Color, cb func(*Event, *Window)) View {
+func dataGridOrderButton(label string, baseStyle gg.TextStyle, hoverColor gg.Color, cb func(*gg.Event, *gg.Window)) gg.View {
 	return dataGridIndicatorButton(label, baseStyle, hoverColor, false, dataGridHeaderControlWidth,
-		func(_ *Layout, e *Event, w *Window) {
+		func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 			cb(e, w)
 		})
 }
 
-func dataGridIndicatorButton(label string, baseStyle TextStyle, hoverColor Color, disabled bool, width float32, onClick func(*Layout, *Event, *Window)) View {
-	sizing := FitFill
+func dataGridIndicatorButton(label string, baseStyle gg.TextStyle, hoverColor gg.Color, disabled bool, width float32, onClick func(*gg.Layout, *gg.Event, *gg.Window)) gg.View {
+	sizing := gg.FitFill
 	if width > 0 {
-		sizing = FixedFill
+		sizing = gg.FixedFill
 	}
-	return Button(ButtonCfg{
+	return gg.Button(gg.ButtonCfg{
 		Width:       width,
 		Sizing:      sizing,
-		Padding:     NoPadding,
-		SizeBorder:  SomeF(0),
-		Radius:      SomeF(0),
-		Color:       ColorTransparent,
+		Padding:     gg.NoPadding,
+		SizeBorder:  gg.SomeF(0),
+		Radius:      gg.SomeF(0),
+		Color:       gg.ColorTransparent,
 		ColorHover:  hoverColor,
-		ColorFocus:  ColorTransparent,
+		ColorFocus:  gg.ColorTransparent,
 		ColorClick:  hoverColor,
-		ColorBorder: ColorTransparent,
+		ColorBorder: gg.ColorTransparent,
 		Disabled:    disabled,
 		OnClick:     onClick,
-		Content: []View{
-			Text(TextCfg{
+		Content: []gg.View{
+			gg.Text(gg.TextCfg{
 				Text:      label,
-				Mode:      TextModeSingleLine,
+				Mode:      gg.TextModeSingleLine,
 				TextStyle: dataGridIndicatorTextStyle(baseStyle),
 			}),
 		},
 	})
 }
 
-func dataGridPinControl(cfg *DataGridCfg, col GridColumnCfg) View {
+func dataGridPinControl(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 	var label string
 	switch col.Pin {
 	case GridColumnPinNone:
@@ -265,7 +265,7 @@ func dataGridPinControl(cfg *DataGridCfg, col GridColumnCfg) View {
 	colPin := col.Pin
 
 	return dataGridIndicatorButton(label, cfg.TextStyleHeader, cfg.ColorHeaderHover,
-		false, dataGridHeaderControlWidth, func(_ *Layout, e *Event, w *Window) {
+		false, dataGridHeaderControlWidth, func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 			if onColumnPinChange == nil {
 				return
 			}
@@ -275,24 +275,24 @@ func dataGridPinControl(cfg *DataGridCfg, col GridColumnCfg) View {
 		})
 }
 
-func dataGridFilterRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths map[string]float32) View {
-	cells := make([]View, 0, len(columns))
+func dataGridFilterRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths map[string]float32) gg.View {
+	cells := make([]gg.View, 0, len(columns))
 	for _, col := range columns {
 		cells = append(cells, dataGridFilterCell(cfg, col, dataGridColumnWidthFor(col, columnWidths)))
 	}
-	return Row(ContainerCfg{
+	return gg.Row(gg.ContainerCfg{
 		Height:      dataGridFilterHeight(cfg),
-		Sizing:      FillFixed,
+		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorFilter,
 		ColorBorder: cfg.ColorBorder,
-		SizeBorder:  SomeF(0),
+		SizeBorder:  gg.SomeF(0),
 		Padding:     cfg.PaddingFilter,
-		Spacing:     Some(-cfg.SizeBorder.Get(0)),
+		Spacing:     gg.Some(-cfg.SizeBorder.Get(0)),
 		Content:     cells,
 	})
 }
 
-func dataGridFilterCell(cfg *DataGridCfg, col GridColumnCfg, width float32) View {
+func dataGridFilterCell(cfg *DataGridCfg, col GridColumnCfg, width float32) gg.View {
 	query := cfg.Query
 	value := dataGridQueryFilterValue(query, col.ID)
 	inputID := cfg.ID + ":filter:" + col.ID
@@ -300,39 +300,39 @@ func dataGridFilterCell(cfg *DataGridCfg, col GridColumnCfg, width float32) View
 	colID := col.ID
 	var placeholder string
 	if col.Filterable {
-		placeholder = ActiveLocale.StrFilter
+		placeholder = gg.ActiveLocale.StrFilter
 	}
 
-	return Row(ContainerCfg{
+	return gg.Row(gg.ContainerCfg{
 		ID:          cfg.ID + ":filter_cell:" + col.ID,
 		Width:       width,
-		Sizing:      FixedFill,
+		Sizing:      gg.FixedFill,
 		Padding:     cfg.PaddingFilter,
-		Color:       ColorTransparent,
+		Color:       gg.ColorTransparent,
 		ColorBorder: cfg.ColorBorder,
 		SizeBorder:  cfg.SizeBorder,
-		Spacing:     SomeF(0),
-		Content: []View{
-			Input(InputCfg{
+		Spacing:     gg.SomeF(0),
+		Content: []gg.View{
+			gg.Input(gg.InputCfg{
 				ID:          inputID,
-				IDFocus:     FnvSum32(inputID),
+				IDFocus:     gg.FnvSum32(inputID),
 				Text:        value,
 				Placeholder: placeholder,
 				Disabled:    !col.Filterable || onQueryChange == nil,
-				Sizing:      FillFill,
-				Padding:     NoPadding,
-				SizeBorder:  SomeF(0),
-				Radius:      SomeF(0),
+				Sizing:      gg.FillFill,
+				Padding:     gg.NoPadding,
+				SizeBorder:  gg.SomeF(0),
+				Radius:      gg.SomeF(0),
 				Color:       cfg.ColorFilter,
 				ColorHover:  cfg.ColorFilter,
 				ColorBorder: cfg.ColorBorder,
 				TextStyle:   cfg.TextStyleFilter,
-				OnTextChanged: func(_ *Layout, text string, w *Window) {
+				OnTextChanged: func(_ *gg.Layout, text string, w *gg.Window) {
 					if onQueryChange == nil {
 						return
 					}
 					next := dataGridQuerySetFilter(query, colID, text)
-					e := &Event{}
+					e := &gg.Event{}
 					onQueryChange(next, e, w)
 				},
 			}),
@@ -340,11 +340,11 @@ func dataGridFilterCell(cfg *DataGridCfg, col GridColumnCfg, width float32) View
 	})
 }
 
-func dataGridStartResize(gridID string, columns []GridColumnCfg, rows []GridRow, textStyleHeader, textStyle TextStyle, paddingCell Padding, col GridColumnCfg, focusID uint32, startMouseX float32, e *Event, w *Window) {
+func dataGridStartResize(gridID string, columns []GridColumnCfg, rows []GridRow, textStyleHeader, textStyle gg.TextStyle, paddingCell gg.Padding, col GridColumnCfg, focusID uint32, startMouseX float32, e *gg.Event, w *gg.Window) {
 	if focusID > 0 {
 		w.SetIDFocus(focusID)
 	}
-	dgRS := StateMap[string, dataGridResizeState](w, nsDgResize, capModerate)
+	dgRS := gg.StateMap[string, dataGridResizeState](w, nsDgResize, capModerate)
 	runtime, _ := dgRS.Get(gridID)
 
 	if runtime.LastClickColID == col.ID && runtime.LastClickFrame > 0 &&
@@ -367,11 +367,11 @@ func dataGridStartResize(gridID string, columns []GridColumnCfg, rows []GridRow,
 	runtime.LastClickColID = col.ID
 	dgRS.Set(gridID, runtime)
 
-	w.MouseLock(MouseLockCfg{
-		MouseMove: func(_ *Layout, e *Event, w *Window) {
+	w.MouseLock(gg.MouseLockCfg{
+		MouseMove: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 			dataGridResizeDrag(gridID, col, e, w)
 		},
-		MouseUp: func(_ *Layout, _ *Event, w *Window) {
+		MouseUp: func(_ *gg.Layout, _ *gg.Event, w *gg.Window) {
 			dataGridEndResize(gridID, w)
 			w.MouseUnlock()
 			if focusID > 0 {
@@ -382,8 +382,8 @@ func dataGridStartResize(gridID string, columns []GridColumnCfg, rows []GridRow,
 	e.IsHandled = true
 }
 
-func dataGridResizeDrag(gridID string, col GridColumnCfg, e *Event, w *Window) {
-	dgRS := StateMap[string, dataGridResizeState](w, nsDgResize, capModerate)
+func dataGridResizeDrag(gridID string, col GridColumnCfg, e *gg.Event, w *gg.Window) {
+	dgRS := gg.StateMap[string, dataGridResizeState](w, nsDgResize, capModerate)
 	runtime, ok := dgRS.Get(gridID)
 	if !ok || !runtime.Active || runtime.ColID != col.ID {
 		return
@@ -395,8 +395,8 @@ func dataGridResizeDrag(gridID string, col GridColumnCfg, e *Event, w *Window) {
 	e.IsHandled = true
 }
 
-func dataGridEndResize(gridID string, w *Window) {
-	dgRS := StateMap[string, dataGridResizeState](w, nsDgResize, capModerate)
+func dataGridEndResize(gridID string, w *gg.Window) {
+	dgRS := gg.StateMap[string, dataGridResizeState](w, nsDgResize, capModerate)
 	runtime, ok := dgRS.Get(gridID)
 	if !ok {
 		return
@@ -405,7 +405,7 @@ func dataGridEndResize(gridID string, w *Window) {
 	dgRS.Set(gridID, runtime)
 }
 
-func dataGridAutoFitWidth(rows []GridRow, textStyleHeader, textStyle TextStyle, paddingCell Padding, col GridColumnCfg, w *Window) float32 {
+func dataGridAutoFitWidth(rows []GridRow, textStyleHeader, textStyle gg.TextStyle, paddingCell gg.Padding, col GridColumnCfg, w *gg.Window) float32 {
 	if w.TextMeasurer() == nil {
 		return dataGridColumnWidthFor(col, nil)
 	}
@@ -444,8 +444,8 @@ func dataGridHeaderIndicator(query GridQueryState, colID string) string {
 	return dir
 }
 
-func dataGridActiveResizeColID(gridID string, w *Window) string {
-	dgRS := StateMap[string, dataGridResizeState](w, nsDgResize, capModerate)
+func dataGridActiveResizeColID(gridID string, w *gg.Window) string {
+	dgRS := gg.StateMap[string, dataGridResizeState](w, nsDgResize, capModerate)
 	if runtime, ok := dgRS.Get(gridID); ok && runtime.Active {
 		return runtime.ColID
 	}
@@ -503,9 +503,9 @@ func dataGridShowHeaderControls(colID, hoveredColID, resizingColID, focusedColID
 		(colID == hoveredColID || colID == resizingColID || colID == focusedColID)
 }
 
-func dataGridHeaderColUnderCursor(layout *Layout, gridID string, mouseX, mouseY float32) string {
+func dataGridHeaderColUnderCursor(layout *gg.Layout, gridID string, mouseX, mouseY float32) string {
 	prefix := gridID + ":header:"
-	cell, ok := layout.FindLayout(func(n Layout) bool {
+	cell, ok := layout.FindLayout(func(n gg.Layout) bool {
 		return len(n.Shape.ID) > len(prefix) &&
 			n.Shape.ID[:len(prefix)] == prefix &&
 			n.Shape.PointInShape(mouseX, mouseY)
@@ -535,7 +535,7 @@ type dataGridHeaderControlResult struct {
 // controls shown only if they fit. Dropped in priority
 // order (pin, reorder, resize). Label hidden if controls
 // alone exceed width.
-func dataGridHeaderControlState(width float32, padding Padding, hasReorder, hasPin, hasResize bool) dataGridHeaderControlResult {
+func dataGridHeaderControlState(width float32, padding gg.Padding, hasReorder, hasPin, hasResize bool) dataGridHeaderControlResult {
 	available := f32Max(0, width-padding.Width())
 	var reorderW, pinW, resizeW float32
 	if hasReorder {

@@ -1,6 +1,12 @@
 package gui
 
-import "testing"
+import (
+	"context"
+	"strings"
+	"testing"
+
+	"github.com/go-gui-org/go-gui/gui/markdown"
+)
 
 func TestMarkdownMermaid(t *testing.T) {
 	style := DefaultMarkdownStyle()
@@ -89,6 +95,18 @@ func TestDiagramCacheEviction(t *testing.T) {
 	if cache.Len() > 3 {
 		t.Fatalf("cache should not exceed capacity: len=%d",
 			cache.Len())
+	}
+}
+
+func TestDefaultMermaidFetcher_SourceTooLarge(t *testing.T) {
+	longSource := strings.Repeat("x", markdown.MaxMermaidSourceLen+1)
+	_, err := defaultMermaidFetcher(
+		context.Background(), longSource)
+	if err == nil {
+		t.Fatal("expected error for oversized source")
+	}
+	if !strings.Contains(err.Error(), "too large") {
+		t.Errorf("error should mention size: %v", err)
 	}
 }
 

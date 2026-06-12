@@ -3,7 +3,7 @@ package datagrid
 import (
 	"testing"
 
-	. "github.com/go-gui-org/go-gui/gui"
+	gg "github.com/go-gui-org/go-gui/gui"
 )
 
 func testColumns() []GridOrmColumnSpec {
@@ -28,8 +28,7 @@ func testOrmSource(t *testing.T) *GridOrmDataSource {
 		DefaultLimit: 50,
 		FetchFn: func(
 			_ GridOrmQuerySpec,
-			_ *GridAbortSignal,
-		) (GridOrmPage, error) {
+			_ *gg.GridAbortSignal) (GridOrmPage, error) {
 			return GridOrmPage{
 				Rows:    []GridRow{{ID: "1"}},
 				HasMore: false,
@@ -47,7 +46,7 @@ func TestNewGridOrmDataSourceValidation(t *testing.T) {
 		Columns: []GridOrmColumnSpec{
 			{ID: "", DBField: "x"},
 		},
-		FetchFn: func(GridOrmQuerySpec, *GridAbortSignal) (GridOrmPage, error) {
+		FetchFn: func(GridOrmQuerySpec, *gg.GridAbortSignal) (GridOrmPage, error) {
 			return GridOrmPage{}, nil
 		},
 	})
@@ -62,7 +61,7 @@ func TestNewGridOrmDataSourceDuplicateColumn(t *testing.T) {
 			{ID: "x", DBField: "x", Filterable: true, Sortable: true},
 			{ID: "x", DBField: "y", Filterable: true, Sortable: true},
 		},
-		FetchFn: func(GridOrmQuerySpec, *GridAbortSignal) (GridOrmPage, error) {
+		FetchFn: func(GridOrmQuerySpec, *gg.GridAbortSignal) (GridOrmPage, error) {
 			return GridOrmPage{}, nil
 		},
 	})
@@ -76,7 +75,7 @@ func TestNewGridOrmDataSourceInvalidDBField(t *testing.T) {
 		Columns: []GridOrmColumnSpec{
 			{ID: "x", DBField: "1bad"},
 		},
-		FetchFn: func(GridOrmQuerySpec, *GridAbortSignal) (GridOrmPage, error) {
+		FetchFn: func(GridOrmQuerySpec, *gg.GridAbortSignal) (GridOrmPage, error) {
 			return GridOrmPage{}, nil
 		},
 	})
@@ -108,7 +107,7 @@ func TestGridOrmCapabilities(t *testing.T) {
 func TestGridOrmFetchData(t *testing.T) {
 	src := testOrmSource(t)
 	res, err := src.FetchData(GridDataRequest{
-		Page: gridCursorPageReq{Limit: 10},
+		Page: GridCursorPageReq{Limit: 10},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -232,7 +231,7 @@ func TestGridOrmValidDBField(t *testing.T) {
 func TestGridOrmMutateMissingFn(t *testing.T) {
 	src := testOrmSource(t)
 	_, err := src.MutateData(GridMutationRequest{
-		Kind: gridMutationCreate,
+		Kind: GridMutationCreate,
 		Rows: []GridRow{{ID: "x"}},
 	})
 	if err == nil {
@@ -243,10 +242,10 @@ func TestGridOrmMutateMissingFn(t *testing.T) {
 func TestGridOrmMutateUnknownColumn(t *testing.T) {
 	src, err := NewGridOrmDataSource(GridOrmDataSource{
 		Columns: testColumns(),
-		FetchFn: func(GridOrmQuerySpec, *GridAbortSignal) (GridOrmPage, error) {
+		FetchFn: func(GridOrmQuerySpec, *gg.GridAbortSignal) (GridOrmPage, error) {
 			return GridOrmPage{}, nil
 		},
-		CreateFn: func(rows []GridRow, _ *GridAbortSignal) ([]GridRow, error) {
+		CreateFn: func(rows []GridRow, _ *gg.GridAbortSignal) ([]GridRow, error) {
 			return rows, nil
 		},
 	})
@@ -254,7 +253,7 @@ func TestGridOrmMutateUnknownColumn(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = src.MutateData(GridMutationRequest{
-		Kind: gridMutationCreate,
+		Kind: GridMutationCreate,
 		Rows: []GridRow{
 			{ID: "x", Cells: map[string]string{"bogus": "v"}},
 		},
@@ -267,10 +266,10 @@ func TestGridOrmMutateUnknownColumn(t *testing.T) {
 func TestGridOrmDeleteMany(t *testing.T) {
 	src, err := NewGridOrmDataSource(GridOrmDataSource{
 		Columns: testColumns(),
-		FetchFn: func(GridOrmQuerySpec, *GridAbortSignal) (GridOrmPage, error) {
+		FetchFn: func(GridOrmQuerySpec, *gg.GridAbortSignal) (GridOrmPage, error) {
 			return GridOrmPage{}, nil
 		},
-		DeleteManyFn: func(ids []string, _ *GridAbortSignal) ([]string, error) {
+		DeleteManyFn: func(ids []string, _ *gg.GridAbortSignal) ([]string, error) {
 			return ids, nil
 		},
 	})
@@ -278,7 +277,7 @@ func TestGridOrmDeleteMany(t *testing.T) {
 		t.Fatal(err)
 	}
 	res, err := src.MutateData(GridMutationRequest{
-		Kind:   gridMutationDelete,
+		Kind:   GridMutationDelete,
 		RowIDs: []string{"a", "b"},
 	})
 	if err != nil {
@@ -292,10 +291,10 @@ func TestGridOrmDeleteMany(t *testing.T) {
 func TestGridOrmDeleteSingle(t *testing.T) {
 	src, err := NewGridOrmDataSource(GridOrmDataSource{
 		Columns: testColumns(),
-		FetchFn: func(GridOrmQuerySpec, *GridAbortSignal) (GridOrmPage, error) {
+		FetchFn: func(GridOrmQuerySpec, *gg.GridAbortSignal) (GridOrmPage, error) {
 			return GridOrmPage{}, nil
 		},
-		DeleteFn: func(id string, _ *GridAbortSignal) (string, error) {
+		DeleteFn: func(id string, _ *gg.GridAbortSignal) (string, error) {
 			return id, nil
 		},
 	})
@@ -303,7 +302,7 @@ func TestGridOrmDeleteSingle(t *testing.T) {
 		t.Fatal(err)
 	}
 	res, err := src.MutateData(GridMutationRequest{
-		Kind:   gridMutationDelete,
+		Kind:   GridMutationDelete,
 		RowIDs: []string{"a"},
 	})
 	if err != nil {
@@ -369,10 +368,10 @@ func TestGridOrmDeleteManyDeterministicIDs(t *testing.T) {
 	var gotIDs []string
 	src, err := NewGridOrmDataSource(GridOrmDataSource{
 		Columns: testColumns(),
-		FetchFn: func(GridOrmQuerySpec, *GridAbortSignal) (GridOrmPage, error) {
+		FetchFn: func(GridOrmQuerySpec, *gg.GridAbortSignal) (GridOrmPage, error) {
 			return GridOrmPage{}, nil
 		},
-		DeleteManyFn: func(ids []string, _ *GridAbortSignal) ([]string, error) {
+		DeleteManyFn: func(ids []string, _ *gg.GridAbortSignal) ([]string, error) {
 			gotIDs = append([]string(nil), ids...)
 			return ids, nil
 		},
@@ -381,7 +380,7 @@ func TestGridOrmDeleteManyDeterministicIDs(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = src.MutateData(GridMutationRequest{
-		Kind:   gridMutationDelete,
+		Kind:   GridMutationDelete,
 		RowIDs: []string{"c", "a", "b", "a"},
 	})
 	if err != nil {

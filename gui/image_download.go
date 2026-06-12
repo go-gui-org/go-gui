@@ -277,15 +277,26 @@ func downloadImage(
 		removeDownload(url, w)
 		return
 	}
-	written, err := io.Copy(f, io.LimitReader(resp.Body, maxSize))
-	_ = f.Close()
+	written, err := io.Copy(f, io.LimitReader(resp.Body, maxSize+1))
+	closeErr := f.Close()
 	if err != nil {
 		_ = os.Remove(path)
-		log.Printf("image download write: %v", err)
+		if closeErr != nil {
+			log.Printf("image download write: %v; close: %v",
+				err, closeErr)
+		} else {
+			log.Printf("image download write: %v", err)
+		}
 		removeDownload(url, w)
 		return
 	}
-	if written >= maxSize {
+	if closeErr != nil {
+		_ = os.Remove(path)
+		log.Printf("image download close: %v", closeErr)
+		removeDownload(url, w)
+		return
+	}
+	if written > maxSize {
 		_ = os.Remove(path)
 		log.Printf("image download body exceeds limit: %s", url)
 		removeDownload(url, w)

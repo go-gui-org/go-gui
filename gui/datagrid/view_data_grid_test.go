@@ -3,7 +3,7 @@ package datagrid
 import (
 	"testing"
 
-	. "github.com/go-gui-org/go-gui/gui"
+	gg "github.com/go-gui-org/go-gui/gui"
 )
 
 // --- boolDefault ---
@@ -294,7 +294,7 @@ func TestDataGridBuildPresentationDetail(t *testing.T) {
 			{ID: "r1", Cells: map[string]string{"a": "2"}},
 		},
 		DetailExpandedRowIDs: map[string]bool{"r0": true},
-		OnDetailRowView: func(GridRow, *Window) View {
+		OnDetailRowView: func(GridRow, *gg.Window) gg.View {
 			return nil
 		},
 	}
@@ -355,7 +355,7 @@ func TestDataGridAggregateCount(t *testing.T) {
 		{Cells: map[string]string{"v": "20"}},
 		{Cells: map[string]string{"v": "30"}},
 	}
-	agg := GridAggregateCfg{Op: gridAggregateCount}
+	agg := GridAggregateCfg{Op: GridAggregateCount}
 	val, ok := dataGridAggregateValue(rows, 0, 2, agg)
 	if !ok || val != "3" {
 		t.Errorf("count: got %q ok=%v, want '3'", val, ok)
@@ -368,7 +368,7 @@ func TestDataGridAggregateSum(t *testing.T) {
 		{Cells: map[string]string{"v": "20"}},
 		{Cells: map[string]string{"v": "30"}},
 	}
-	agg := GridAggregateCfg{ColID: "v", Op: gridAggregateSum}
+	agg := GridAggregateCfg{ColID: "v", Op: GridAggregateSum}
 	val, ok := dataGridAggregateValue(rows, 0, 2, agg)
 	if !ok || val != "60" {
 		t.Errorf("sum: got %q ok=%v, want '60'", val, ok)
@@ -381,7 +381,7 @@ func TestDataGridAggregateAvg(t *testing.T) {
 		{Cells: map[string]string{"v": "20"}},
 		{Cells: map[string]string{"v": "30"}},
 	}
-	agg := GridAggregateCfg{ColID: "v", Op: gridAggregateAvg}
+	agg := GridAggregateCfg{ColID: "v", Op: GridAggregateAvg}
 	val, ok := dataGridAggregateValue(rows, 0, 2, agg)
 	if !ok || val != "20" {
 		t.Errorf("avg: got %q ok=%v, want '20'", val, ok)
@@ -394,7 +394,7 @@ func TestDataGridAggregateMin(t *testing.T) {
 		{Cells: map[string]string{"v": "10"}},
 		{Cells: map[string]string{"v": "20"}},
 	}
-	agg := GridAggregateCfg{ColID: "v", Op: gridAggregateMin}
+	agg := GridAggregateCfg{ColID: "v", Op: GridAggregateMin}
 	val, ok := dataGridAggregateValue(rows, 0, 2, agg)
 	if !ok || val != "10" {
 		t.Errorf("min: got %q ok=%v, want '10'", val, ok)
@@ -407,7 +407,7 @@ func TestDataGridAggregateMax(t *testing.T) {
 		{Cells: map[string]string{"v": "30"}},
 		{Cells: map[string]string{"v": "20"}},
 	}
-	agg := GridAggregateCfg{ColID: "v", Op: gridAggregateMax}
+	agg := GridAggregateCfg{ColID: "v", Op: GridAggregateMax}
 	val, ok := dataGridAggregateValue(rows, 0, 2, agg)
 	if !ok || val != "30" {
 		t.Errorf("max: got %q ok=%v, want '30'", val, ok)
@@ -418,7 +418,7 @@ func TestDataGridAggregateNonNumeric(t *testing.T) {
 	rows := []GridRow{
 		{Cells: map[string]string{"v": "abc"}},
 	}
-	agg := GridAggregateCfg{ColID: "v", Op: gridAggregateSum}
+	agg := GridAggregateCfg{ColID: "v", Op: GridAggregateSum}
 	_, ok := dataGridAggregateValue(rows, 0, 0, agg)
 	if ok {
 		t.Error("non-numeric should return ok=false")
@@ -520,8 +520,8 @@ func TestDataGridPagerEnabledZeroPageSize(t *testing.T) {
 // --- dataGridIndicatorTextStyle ---
 
 func TestDataGridIndicatorTextStyleDimsAlpha(t *testing.T) {
-	base := TextStyle{
-		Color: RGBA(200, 100, 50, 255),
+	base := gg.TextStyle{
+		Color: gg.RGBA(200, 100, 50, 255),
 		Size:  14,
 	}
 	got := dataGridIndicatorTextStyle(base)
@@ -540,28 +540,28 @@ func TestDataGridIndicatorTextStyleDimsAlpha(t *testing.T) {
 // --- DataGrid Disabled/Invisible propagation ---
 
 func TestDataGridDisabledPropagates(t *testing.T) {
-	w := &Window{}
+	w := &gg.Window{}
 	v := New(w, DataGridCfg{
 		ID:       "dg1",
 		Disabled: true,
 		Columns:  []GridColumnCfg{{ID: "a", Title: "A"}},
 		Rows:     []GridRow{{ID: "r0", Cells: map[string]string{"a": "1"}}},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := gg.GenerateViewLayout(v, w) //nolint:staticcheck
 	if !layout.Shape.Disabled {
 		t.Error("outer container should be disabled")
 	}
 }
 
 func TestDataGridInvisiblePropagates(t *testing.T) {
-	w := &Window{}
+	w := &gg.Window{}
 	v := New(w, DataGridCfg{
 		ID:        "dg2",
 		Invisible: true,
 		Columns:   []GridColumnCfg{{ID: "a", Title: "A"}},
 		Rows:      []GridRow{{ID: "r0", Cells: map[string]string{"a": "1"}}},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := gg.GenerateViewLayout(v, w) //nolint:staticcheck
 	if !layout.Shape.Disabled {
 		t.Error("invisible should be disabled")
 	}
@@ -571,7 +571,7 @@ func TestDataGridInvisiblePropagates(t *testing.T) {
 }
 
 func TestDataGridRowsData(t *testing.T) {
-	w := &Window{}
+	w := &gg.Window{}
 	v := New(w, DataGridCfg{
 		ID: "dg-rowsdata",
 		RowsData: []map[string]string{
@@ -579,14 +579,14 @@ func TestDataGridRowsData(t *testing.T) {
 			{"name": "Bob", "age": "25"},
 		},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := gg.GenerateViewLayout(v, w) //nolint:staticcheck
 	if len(layout.Children) == 0 {
 		t.Fatal("expected children")
 	}
 }
 
 func TestDataGridRowsDataAutoColumns(t *testing.T) {
-	w := &Window{}
+	w := &gg.Window{}
 	v := New(w, DataGridCfg{
 		ID:       "dg-autocol",
 		PageSize: 10,
@@ -594,7 +594,7 @@ func TestDataGridRowsDataAutoColumns(t *testing.T) {
 			{"name": "Alice", "age": "30"},
 		},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := gg.GenerateViewLayout(v, w) //nolint:staticcheck
 	if len(layout.Children) == 0 {
 		t.Fatal("expected children")
 	}
@@ -603,7 +603,7 @@ func TestDataGridRowsDataAutoColumns(t *testing.T) {
 func TestDataGridRowsDataPrecedence(t *testing.T) {
 	// RowsData takes precedence over Rows. DataSource still
 	// wins over both.
-	w := &Window{}
+	w := &gg.Window{}
 	v := New(w, DataGridCfg{
 		ID: "dg-prec",
 		RowsData: []map[string]string{
@@ -611,7 +611,7 @@ func TestDataGridRowsDataPrecedence(t *testing.T) {
 		},
 		Rows: []GridRow{{ID: "ignored", Cells: map[string]string{"x": "y"}}},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := gg.GenerateViewLayout(v, w) //nolint:staticcheck
 	if len(layout.Children) == 0 {
 		t.Fatal("expected children")
 	}
@@ -622,7 +622,7 @@ func TestDataGridRowsDataDataSourceWins(t *testing.T) {
 	ds := NewInMemoryDataSource([]GridRow{
 		{ID: "ds1", Cells: map[string]string{"name": "FromDS"}},
 	})
-	w := &Window{}
+	w := &gg.Window{}
 	v := New(w, DataGridCfg{
 		ID:         "dg-ds-wins",
 		Columns:    []GridColumnCfg{{ID: "name", Title: "Name"}},
@@ -631,21 +631,21 @@ func TestDataGridRowsDataDataSourceWins(t *testing.T) {
 			{"name": "FromRowsData"},
 		},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := gg.GenerateViewLayout(v, w) //nolint:staticcheck
 	if len(layout.Children) == 0 {
 		t.Fatal("expected children from DataSource")
 	}
 }
 
 func TestDataGridRowsDataEmptyFirstRow(t *testing.T) {
-	w := &Window{}
+	w := &gg.Window{}
 	v := New(w, DataGridCfg{
 		ID: "dg-empty-first",
 		RowsData: []map[string]string{
 			{},
 		},
 	})
-	layout := GenerateViewLayout(v, w)
+	layout := gg.GenerateViewLayout(v, w) //nolint:staticcheck
 	// Empty first-row map means no auto-generated columns,
 	// but a row should still be created.
 	if len(layout.Children) == 0 {

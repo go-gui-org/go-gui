@@ -22,6 +22,10 @@ const (
 	diagramFetchTimeout         = 30 * time.Second
 )
 
+// diagramHTTPClient is shared by defaultMathFetcher and
+// defaultMermaidFetcher to avoid per-request allocation.
+var diagramHTTPClient = &http.Client{Timeout: diagramFetchTimeout}
+
 // DiagramState represents the loading state of a diagram.
 type DiagramState uint8
 
@@ -197,15 +201,20 @@ func finishDiagramFetch(
 	})
 }
 
-// fetchMermaidAsync fetches a mermaid diagram from Kroki API
-// in a background goroutine.
+// fetchMermaidAsync fetches a mermaid diagram in a background
+// goroutine. Uses cfg.MermaidFetcher when non-nil, otherwise
+// defaults to the Kroki API.
 //
-// PRIVACY NOTE: Mermaid source is sent to external
+// PRIVACY NOTE: Mermaid source may be sent to external
 // third-party API (kroki.io) for rendering.
 func fetchMermaidAsync(
 	w *Window, source string, hash int64,
-	requestID uint64,
+	requestID uint64, fetcher MermaidFetcher,
 ) {
+	actualFetcher := fetcher
+	if actualFetcher == nil {
+		actualFetcher = defaultMermaidFetcher
+	}
 	ctx := w.Ctx()
 	go func() {
 		if len(source) > markdown.MaxMermaidSourceLen {
@@ -214,7 +223,7 @@ func fetchMermaidAsync(
 			return
 		}
 
-		body, err := mermaidHTTPFetch(ctx, source)
+		body, err := actualFetcher(ctx, source)
 		if err != nil {
 			queueDiagramError(w, hash, requestID,
 				err.Error())
@@ -225,7 +234,14 @@ func fetchMermaidAsync(
 	}()
 }
 
-func mermaidHTTPFetch(ctx context.Context, source string) ([]byte, error) {
+// defaultMermaidFetcher renders Mermaid diagrams via the
+// Kroki API.
+func defaultMermaidFetcher(ctx context.Context, source string) ([]byte, error) {
+	// Defense-in-depth: caller guards this, but clamp here so
+	// a direct call can't pass an unbounded payload.
+	if len(source) > markdown.MaxMermaidSourceLen {
+		return nil, fmt.Errorf("mermaid source too large")
+	}
 	payload, err := json.Marshal(map[string]string{
 		"diagram_source": source,
 	})
@@ -240,8 +256,7 @@ func mermaidHTTPFetch(ctx context.Context, source string) ([]byte, error) {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{Timeout: diagramFetchTimeout}
-	resp, err := client.Do(req)
+	resp, err := diagramHTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}

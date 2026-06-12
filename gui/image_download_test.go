@@ -321,6 +321,51 @@ func TestDownloadImageContentLengthTooLarge(t *testing.T) {
 	}
 }
 
+func TestDownloadImageBodySizeLimits(t *testing.T) {
+	resetDownloadSem()
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "image/png")
+			switch r.URL.Path {
+			case "/exact":
+				_, _ = w.Write(make([]byte, 10))
+			case "/too-large":
+				_, _ = w.Write(make([]byte, 11))
+			}
+		}))
+	t.Cleanup(srv.Close)
+
+	t.Run("exact", func(t *testing.T) {
+		dir := t.TempDir()
+		base := filepath.Join(dir, "img_exact")
+		w := &Window{}
+		w.ctx = t.Context()
+
+		downloadImage(t.Context(), srv.URL+"/exact", base, 10, w, nil)
+		drainQueuedCommands(w)
+
+		if _, err := os.Stat(base + ".png"); err != nil {
+			t.Fatalf("expected exact-sized body to be written, but got error: %v", err)
+		}
+	})
+
+	t.Run("too large", func(t *testing.T) {
+		dir := t.TempDir()
+		base := filepath.Join(dir, "img_large")
+		w := &Window{}
+		w.ctx = t.Context()
+
+		downloadImage(t.Context(), srv.URL+"/too-large", base, 10, w, nil)
+		drainQueuedCommands(w)
+
+		for _, ext := range []string{".png", ".jpg", ".svg"} {
+			if _, err := os.Stat(base + ext); err == nil {
+				t.Fatalf("oversized body was cached at %s", base+ext)
+			}
+		}
+	})
+}
+
 func TestDownloadImageFetcherError(t *testing.T) {
 	resetDownloadSem()
 	fetcher := func(

@@ -5,18 +5,18 @@ import (
 	"slices"
 	"strconv"
 
-	. "github.com/go-gui-org/go-gui/gui"
+	gg "github.com/go-gui-org/go-gui/gui"
 )
 
 // --- Quick filter ---
 
-func dataGridQuickFilterRow(cfg *DataGridCfg) View {
+func dataGridQuickFilterRow(cfg *DataGridCfg) gg.View {
 	h := dataGridQuickFilterHeight(cfg)
 	queryCallback := cfg.OnQueryChange
 	query := cfg.Query
 	value := query.QuickFilter
 	inputID := cfg.ID + ":quick_filter"
-	inputFocusID := FnvSum32(inputID)
+	inputFocusID := gg.FnvSum32(inputID)
 	matchesText := dataGridQuickFilterMatchesText(cfg)
 	clearDisabled := value == "" || queryCallback == nil
 	debounce := cfg.QuickFilterDebounce
@@ -26,37 +26,37 @@ func dataGridQuickFilterRow(cfg *DataGridCfg) View {
 	placeholderStyle := cfg.TextStyleFilter
 	placeholderStyle.Color = dimColor
 
-	return Row(ContainerCfg{
+	return gg.Row(gg.ContainerCfg{
 		Height:      h,
-		Sizing:      FillFixed,
+		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorQuickFilter,
 		ColorBorder: cfg.ColorBorder,
-		SizeBorder:  SomeF(0),
-		Padding:     SomeP(0, cfg.PaddingCell.Get(Padding{}).Right, 0, cfg.PaddingCell.Get(Padding{}).Left),
-		Spacing:     SomeF(6),
-		VAlign:      VAlignMiddle,
-		OnClick: func(_ *Layout, e *Event, w *Window) {
+		SizeBorder:  gg.SomeF(0),
+		Padding:     gg.SomeP(0, cfg.PaddingCell.Get(gg.Padding{}).Right, 0, cfg.PaddingCell.Get(gg.Padding{}).Left),
+		Spacing:     gg.SomeF(6),
+		VAlign:      gg.VAlignMiddle,
+		OnClick: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 			if inputFocusID > 0 {
 				w.SetIDFocus(inputFocusID)
 			}
 			e.IsHandled = true
 		},
-		Content: []View{
-			Input(InputCfg{
+		Content: []gg.View{
+			gg.Input(gg.InputCfg{
 				ID:               inputID,
 				IDFocus:          inputFocusID,
 				Text:             value,
 				Placeholder:      cfg.QuickFilterPlaceholder,
-				Sizing:           FillFill,
-				Padding:          NoPadding,
-				SizeBorder:       SomeF(0),
-				Radius:           SomeF(0),
+				Sizing:           gg.FillFill,
+				Padding:          gg.NoPadding,
+				SizeBorder:       gg.SomeF(0),
+				Radius:           gg.SomeF(0),
 				Color:            cfg.ColorQuickFilter,
 				ColorHover:       cfg.ColorQuickFilter,
 				ColorBorder:      cfg.ColorBorder,
 				TextStyle:        cfg.TextStyleFilter,
 				PlaceholderStyle: placeholderStyle,
-				OnTextChanged: func(_ *Layout, text string, w *Window) {
+				OnTextChanged: func(_ *gg.Layout, text string, w *gg.Window) {
 					if queryCallback == nil {
 						return
 					}
@@ -66,34 +66,34 @@ func dataGridQuickFilterRow(cfg *DataGridCfg) View {
 							Filters:     append([]GridFilter(nil), query.Filters...),
 							QuickFilter: text,
 						}
-						e := &Event{}
+						e := &gg.Event{}
 						queryCallback(next, e, w)
 						return
 					}
 					sorts := append([]GridSort(nil), query.Sorts...)
 					filters := append([]GridFilter(nil), query.Filters...)
-					w.AnimationAdd(&Animate{
+					w.AnimationAdd(&gg.Animate{
 						AnimID: inputID + ":debounce",
 						Delay:  debounce,
-						Callback: func(_ *Animate, w *Window) {
+						Callback: func(_ *gg.Animate, w *gg.Window) {
 							next := GridQueryState{
 								Sorts:       sorts,
 								Filters:     filters,
 								QuickFilter: text,
 							}
-							e := &Event{}
+							e := &gg.Event{}
 							queryCallback(next, e, w)
 						},
 					})
 				},
 			}),
-			Text(TextCfg{
+			gg.Text(gg.TextCfg{
 				Text:      matchesText,
-				Mode:      TextModeSingleLine,
+				Mode:      gg.TextModeSingleLine,
 				TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
 			}),
-			dataGridIndicatorButton(ActiveLocale.StrClear, cfg.TextStyleFilter, cfg.ColorHeaderHover,
-				clearDisabled, 0, func(_ *Layout, e *Event, w *Window) {
+			dataGridIndicatorButton(gg.ActiveLocale.StrClear, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+				clearDisabled, 0, func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 					if queryCallback == nil {
 						return
 					}
@@ -115,22 +115,22 @@ func dataGridQuickFilterRow(cfg *DataGridCfg) View {
 
 func dataGridQuickFilterMatchesText(cfg *DataGridCfg) string {
 	if cfg.RowCount != nil {
-		return LocaleMatchesFmt(len(cfg.Rows), strconv.Itoa(*cfg.RowCount))
+		return gg.LocaleMatchesFmt(len(cfg.Rows), strconv.Itoa(*cfg.RowCount))
 	}
 	if dataGridHasSource(cfg) {
-		return LocaleMatchesFmt(len(cfg.Rows), "?")
+		return gg.LocaleMatchesFmt(len(cfg.Rows), "?")
 	}
-	return fmt.Sprintf("%s %d", ActiveLocale.StrMatches, len(cfg.Rows))
+	return fmt.Sprintf("%s %d", gg.ActiveLocale.StrMatches, len(cfg.Rows))
 }
 
 // --- Column chooser ---
 
-func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID uint32) View {
+func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID uint32) gg.View {
 	onHiddenColumnsChange := cfg.OnHiddenColumnsChange
 	hasVisibilityCallback := onHiddenColumnsChange != nil
-	chooserLabel := ActiveLocale.StrColumns + " \u25B6" // ▶
+	chooserLabel := gg.ActiveLocale.StrColumns + " \u25B6" // ▶
 	if isOpen {
-		chooserLabel = ActiveLocale.StrColumns + " \u25BC" // ▼
+		chooserLabel = gg.ActiveLocale.StrColumns + " \u25BC" // ▼
 	}
 	rowH := cfg.RowHeight
 	if rowH <= 0 {
@@ -139,16 +139,16 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID uint32) Vie
 	gridID := cfg.ID
 	columns := cfg.Columns
 
-	content := make([]View, 0, 2)
-	content = append(content, Row(ContainerCfg{
+	content := make([]gg.View, 0, 2)
+	content = append(content, gg.Row(gg.ContainerCfg{
 		Height:  rowH,
-		Sizing:  FillFixed,
+		Sizing:  gg.FillFixed,
 		Padding: cfg.PaddingFilter,
-		Spacing: SomeF(6),
-		VAlign:  VAlignMiddle,
-		Content: []View{
+		Spacing: gg.SomeF(6),
+		VAlign:  gg.VAlignMiddle,
+		Content: []gg.View{
 			dataGridIndicatorButton(chooserLabel, cfg.TextStyleFilter, cfg.ColorHeaderHover,
-				false, 0, func(_ *Layout, e *Event, w *Window) {
+				false, 0, func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 					dataGridToggleColumnChooserOpen(gridID, w)
 					if focusID > 0 {
 						w.SetIDFocus(focusID)
@@ -158,14 +158,14 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID uint32) Vie
 		},
 	}))
 	if isOpen {
-		options := make([]View, 0, len(columns))
+		options := make([]gg.View, 0, len(columns))
 		for _, col := range columns {
 			if col.ID == "" {
 				continue
 			}
 			hidden := cfg.HiddenColumnIDs[col.ID]
 			colID := col.ID
-			options = append(options, Toggle(ToggleCfg{
+			options = append(options, gg.Toggle(gg.ToggleCfg{
 				ID:       gridID + ":col-chooser:" + col.ID,
 				Label:    col.Title,
 				Selected: !hidden,
@@ -174,31 +174,31 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID uint32) Vie
 					cfg.HiddenColumnIDs, columns, colID, focusID),
 			}))
 		}
-		content = append(content, Row(ContainerCfg{
+		content = append(content, gg.Row(gg.ContainerCfg{
 			Height:      rowH,
-			Sizing:      FillFixed,
+			Sizing:      gg.FillFixed,
 			Padding:     cfg.PaddingFilter,
-			Spacing:     SomeF(8),
-			Color:       ColorTransparent,
+			Spacing:     gg.SomeF(8),
+			Color:       gg.ColorTransparent,
 			ColorBorder: cfg.ColorBorder,
-			SizeBorder:  SomeF(0),
+			SizeBorder:  gg.SomeF(0),
 			Content:     options,
 		}))
 	}
-	return Column(ContainerCfg{
+	return gg.Column(gg.ContainerCfg{
 		Height:      dataGridColumnChooserHeight(cfg, isOpen),
-		Sizing:      FillFixed,
+		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorFilter,
 		ColorBorder: cfg.ColorBorder,
-		SizeBorder:  SomeF(0),
-		Padding:     NoPadding,
-		Spacing:     SomeF(0),
+		SizeBorder:  gg.SomeF(0),
+		Padding:     gg.NoPadding,
+		Spacing:     gg.SomeF(0),
 		Content:     content,
 	})
 }
 
-func dataGridMakeColumnChooserOnClick(onHiddenColumnsChange func(map[string]bool, *Event, *Window), hiddenColumnIDs map[string]bool, columns []GridColumnCfg, colID string, focusID uint32) func(*Layout, *Event, *Window) {
-	return func(_ *Layout, e *Event, w *Window) {
+func dataGridMakeColumnChooserOnClick(onHiddenColumnsChange func(map[string]bool, *gg.Event, *gg.Window), hiddenColumnIDs map[string]bool, columns []GridColumnCfg, colID string, focusID uint32) func(*gg.Layout, *gg.Event, *gg.Window) {
+	return func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 		if onHiddenColumnsChange == nil {
 			return
 		}
@@ -211,8 +211,8 @@ func dataGridMakeColumnChooserOnClick(onHiddenColumnsChange func(map[string]bool
 	}
 }
 
-func dataGridToggleColumnChooserOpen(gridID string, w *Window) {
-	dgCO := StateMap[string, bool](w, nsDgChooserOpen, capModerate)
+func dataGridToggleColumnChooserOpen(gridID string, w *gg.Window) {
+	dgCO := gg.StateMap[string, bool](w, nsDgChooserOpen, capModerate)
 	isOpen, _ := dgCO.Get(gridID) // ok ignored: false means "not open", toggle correct
 	dgCO.Set(gridID, !isOpen)
 }
@@ -235,7 +235,7 @@ type dataGridPagerContext struct {
 	scrollID      uint32
 }
 
-func dataGridPagerRow(cfg *DataGridCfg, focusID uint32, pageIndex, pageCount, pageStart, pageEnd, totalRows int, viewportH, rowHeight, staticTop float32, scrollID uint32, dataToDisplay map[int]int, jumpText string) View {
+func dataGridPagerRow(cfg *DataGridCfg, focusID uint32, pageIndex, pageCount, pageStart, pageEnd, totalRows int, viewportH, rowHeight, staticTop float32, scrollID uint32, dataToDisplay map[int]int, jumpText string) gg.View {
 	return dataGridBuildPagerRow(dataGridPagerContext{
 		cfg: cfg, focusID: focusID, pageIndex: pageIndex, pageCount: pageCount,
 		pageStart: pageStart, pageEnd: pageEnd, totalRows: totalRows,
@@ -244,40 +244,40 @@ func dataGridPagerRow(cfg *DataGridCfg, focusID uint32, pageIndex, pageCount, pa
 	})
 }
 
-func dataGridBuildPagerRow(pctx dataGridPagerContext) View {
+func dataGridBuildPagerRow(pctx dataGridPagerContext) gg.View {
 	cfg := pctx.cfg
 	content := dataGridPagerContent(pctx)
-	return Row(ContainerCfg{
+	return gg.Row(gg.ContainerCfg{
 		Height:      dataGridPagerHeight(cfg),
-		Sizing:      FillFixed,
+		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorFilter,
 		ColorBorder: cfg.ColorBorder,
-		SizeBorder:  SomeF(0),
-		Padding:     Some(dataGridPagerPadding(cfg)),
-		Spacing:     SomeF(6),
-		VAlign:      VAlignMiddle,
+		SizeBorder:  gg.SomeF(0),
+		Padding:     gg.Some(dataGridPagerPadding(cfg)),
+		Spacing:     gg.SomeF(6),
+		VAlign:      gg.VAlignMiddle,
 		Content:     content,
 	})
 }
 
-func dataGridPagerContent(pctx dataGridPagerContext) []View {
+func dataGridPagerContent(pctx dataGridPagerContext) []gg.View {
 	cfg := pctx.cfg
 	onPageChange := cfg.OnPageChange
 	isFirst := pctx.pageIndex <= 0
 	isLast := pctx.pageIndex >= pctx.pageCount-1
-	pageText := LocalePageFmt(pctx.pageIndex+1, pctx.pageCount)
+	pageText := gg.LocalePageFmt(pctx.pageIndex+1, pctx.pageCount)
 	rowsText := dataGridPagerRowsText(pctx.pageStart, pctx.pageEnd, pctx.totalRows)
 	jumpCtx := dataGridJumpContextFromPager(pctx)
 	jumpEnabled := dataGridJumpEnabledLocal(len(cfg.Rows), cfg.OnSelectionChange, cfg.OnPageChange, cfg.PageSize, pctx.totalRows)
 	jumpInputID := cfg.ID + ":jump"
-	jumpFocusID := FnvSum32(jumpInputID)
+	jumpFocusID := gg.FnvSum32(jumpInputID)
 	prevArrow, nextArrow := dataGridPagerArrows()
 
-	content := make([]View, 0, 9)
+	content := make([]gg.View, 0, 9)
 	content = append(content, dataGridPagerPrevButton(cfg, onPageChange, pctx.pageIndex, pctx.focusID, isFirst, prevArrow))
-	content = append(content, Text(TextCfg{
+	content = append(content, gg.Text(gg.TextCfg{
 		Text:      pageText,
-		Mode:      TextModeSingleLine,
+		Mode:      gg.TextModeSingleLine,
 		TextStyle: cfg.TextStyleFilter,
 	}))
 	content = append(content, dataGridPagerNextButton(cfg, onPageChange, pctx.pageIndex, pctx.pageCount, pctx.focusID, isLast, nextArrow))
@@ -290,24 +290,24 @@ func dataGridPagerContent(pctx dataGridPagerContext) []View {
 
 func dataGridPagerRowsText(pageStart, pageEnd, totalRows int) string {
 	if totalRows == 0 || pageEnd <= pageStart {
-		return ActiveLocale.StrRows + " 0/0"
+		return gg.ActiveLocale.StrRows + " 0/0"
 	}
-	return LocaleRowsFmt(pageStart+1, pageEnd, totalRows)
+	return gg.LocaleRowsFmt(pageStart+1, pageEnd, totalRows)
 }
 
 func dataGridPagerArrows() (string, string) {
 	prev := "\u25C0" // ◀
 	next := "\u25B6" // ▶
-	if ActiveLocale.TextDir == TextDirRTL {
+	if gg.ActiveLocale.TextDir == gg.TextDirRTL {
 		prev, next = next, prev
 	}
 	return prev, next
 }
 
-func dataGridPagerPrevButton(cfg *DataGridCfg, onPageChange func(int, *Event, *Window), pageIndex int, focusID uint32, isFirst bool, prevArrow string) View {
+func dataGridPagerPrevButton(cfg *DataGridCfg, onPageChange func(int, *gg.Event, *gg.Window), pageIndex int, focusID uint32, isFirst bool, prevArrow string) gg.View {
 	return dataGridIndicatorButton(prevArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover,
 		onPageChange == nil || isFirst, dataGridHeaderControlWidth+10,
-		func(_ *Layout, e *Event, w *Window) {
+		func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 			if onPageChange == nil {
 				return
 			}
@@ -320,10 +320,10 @@ func dataGridPagerPrevButton(cfg *DataGridCfg, onPageChange func(int, *Event, *W
 		})
 }
 
-func dataGridPagerNextButton(cfg *DataGridCfg, onPageChange func(int, *Event, *Window), pageIndex, pageCount int, focusID uint32, isLast bool, nextArrow string) View {
+func dataGridPagerNextButton(cfg *DataGridCfg, onPageChange func(int, *gg.Event, *gg.Window), pageIndex, pageCount int, focusID uint32, isLast bool, nextArrow string) gg.View {
 	return dataGridIndicatorButton(nextArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover,
 		onPageChange == nil || isLast, dataGridHeaderControlWidth+10,
-		func(_ *Layout, e *Event, w *Window) {
+		func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 			if onPageChange == nil {
 				return
 			}
@@ -336,36 +336,36 @@ func dataGridPagerNextButton(cfg *DataGridCfg, onPageChange func(int, *Event, *W
 		})
 }
 
-func dataGridPagerSpacer() View {
-	return Row(ContainerCfg{Sizing: FillFill, Padding: NoPadding})
+func dataGridPagerSpacer() gg.View {
+	return gg.Row(gg.ContainerCfg{Sizing: gg.FillFill, Padding: gg.NoPadding})
 }
 
-func dataGridPagerRowsStatus(cfg *DataGridCfg, rowsText string) View {
-	return Row(ContainerCfg{
-		Sizing:  FitFill,
-		Padding: SomeP(0, 6, 0, 0),
-		VAlign:  VAlignMiddle,
-		Content: []View{
-			Text(TextCfg{
+func dataGridPagerRowsStatus(cfg *DataGridCfg, rowsText string) gg.View {
+	return gg.Row(gg.ContainerCfg{
+		Sizing:  gg.FitFill,
+		Padding: gg.SomeP(0, 6, 0, 0),
+		VAlign:  gg.VAlignMiddle,
+		Content: []gg.View{
+			gg.Text(gg.TextCfg{
 				Text:      rowsText,
-				Mode:      TextModeSingleLine,
+				Mode:      gg.TextModeSingleLine,
 				TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
 			}),
 		},
 	})
 }
 
-func dataGridPagerJumpLabel(cfg *DataGridCfg) View {
-	return Text(TextCfg{
-		Text:      ActiveLocale.StrJump,
-		Mode:      TextModeSingleLine,
+func dataGridPagerJumpLabel(cfg *DataGridCfg) gg.View {
+	return gg.Text(gg.TextCfg{
+		Text:      gg.ActiveLocale.StrJump,
+		Mode:      gg.TextModeSingleLine,
 		TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
 	})
 }
 
 type dataGridJumpContext struct {
-	onSelectionChange func(GridSelection, *Event, *Window)
-	onPageChange      func(int, *Event, *Window)
+	onSelectionChange func(GridSelection, *gg.Event, *gg.Window)
+	onPageChange      func(int, *gg.Event, *gg.Window)
 	dataToDisplay     map[int]int
 	gridID            string
 	rows              []GridRow
@@ -397,30 +397,30 @@ func dataGridJumpContextFromPager(pctx dataGridPagerContext) dataGridJumpContext
 	}
 }
 
-func dataGridPagerJumpInput(cfg *DataGridCfg, inputID string, focusID uint32, jumpText string, jumpEnabled bool, jumpCtx dataGridJumpContext, gridFocusID uint32) View {
-	return Input(InputCfg{
+func dataGridPagerJumpInput(cfg *DataGridCfg, inputID string, focusID uint32, jumpText string, jumpEnabled bool, jumpCtx dataGridJumpContext, gridFocusID uint32) gg.View {
+	return gg.Input(gg.InputCfg{
 		ID:          inputID,
 		IDFocus:     focusID,
 		Text:        jumpText,
 		Placeholder: "#",
 		Disabled:    !jumpEnabled,
 		Width:       dataGridJumpInputWidth,
-		Sizing:      FixedFill,
-		Padding:     NoPadding,
-		SizeBorder:  SomeF(0),
-		Radius:      SomeF(0),
+		Sizing:      gg.FixedFill,
+		Padding:     gg.NoPadding,
+		SizeBorder:  gg.SomeF(0),
+		Radius:      gg.SomeF(0),
 		Color:       cfg.ColorFilter,
 		ColorHover:  cfg.ColorFilter,
 		ColorBorder: cfg.ColorBorder,
 		TextStyle:   cfg.TextStyleFilter,
-		OnTextChanged: func(_ *Layout, inputText string, w *Window) {
+		OnTextChanged: func(_ *gg.Layout, inputText string, w *gg.Window) {
 			digits := dataGridJumpDigits(inputText)
-			dgJI := StateMap[string, string](w, nsDgJump, capModerate)
+			dgJI := gg.StateMap[string, string](w, nsDgJump, capModerate)
 			dgJI.Set(jumpCtx.gridID, digits)
-			e := &Event{}
+			e := &gg.Event{}
 			dataGridSubmitLocalJump(jumpCtx, e, w)
 		},
-		OnEnter: func(_ *Layout, e *Event, w *Window) {
+		OnEnter: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 			ctx := jumpCtx
 			ctx.focusID = gridFocusID
 			dataGridSubmitLocalJump(ctx, e, w)
@@ -430,11 +430,11 @@ func dataGridPagerJumpInput(cfg *DataGridCfg, inputID string, focusID uint32, ju
 
 // --- Copy ---
 
-func dataGridMakeOnChar(cfg *DataGridCfg, columns []GridColumnCfg) func(*Layout, *Event, *Window) {
+func dataGridMakeOnChar(cfg *DataGridCfg, columns []GridColumnCfg) func(*gg.Layout, *gg.Event, *gg.Window) {
 	rows := cfg.Rows
 	selection := cfg.Selection
 	onCopyRows := cfg.OnCopyRows
-	return func(_ *Layout, e *Event, w *Window) {
+	return func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 		if !dataGridCharIsCopy(e) {
 			return
 		}
@@ -461,23 +461,23 @@ func dataGridMakeOnChar(cfg *DataGridCfg, columns []GridColumnCfg) func(*Layout,
 	}
 }
 
-func dataGridCharIsCopy(e *Event) bool {
-	return (e.Modifiers.Has(ModCtrl) && e.CharCode == 3) ||
-		(e.Modifiers.Has(ModSuper) && e.CharCode == 3)
+func dataGridCharIsCopy(e *gg.Event) bool {
+	return (e.Modifiers.Has(gg.ModCtrl) && e.CharCode == 3) ||
+		(e.Modifiers.Has(gg.ModSuper) && e.CharCode == 3)
 }
 
-func dataGridIsSelectAllShortcut(e *Event) bool {
-	return (e.Modifiers.Has(ModCtrl) || e.Modifiers.Has(ModSuper)) && e.KeyCode == KeyA
+func dataGridIsSelectAllShortcut(e *gg.Event) bool {
+	return (e.Modifiers.Has(gg.ModCtrl) || e.Modifiers.Has(gg.ModSuper)) && e.KeyCode == gg.KeyA
 }
 
 // --- Mouse move tracker ---
 
-func dataGridMakeOnMouseMove(gridID string) func(*Layout, *Event, *Window) {
-	return func(layout *Layout, e *Event, w *Window) {
+func dataGridMakeOnMouseMove(gridID string) func(*gg.Layout, *gg.Event, *gg.Window) {
+	return func(layout *gg.Layout, e *gg.Event, w *gg.Window) {
 		mouseX := layout.Shape.X + e.MouseX
 		mouseY := layout.Shape.Y + e.MouseY
 		colID := dataGridHeaderColUnderCursor(layout, gridID, mouseX, mouseY)
-		dgHH := StateMap[string, string](w, nsDgHeaderHover, capModerate)
+		dgHH := gg.StateMap[string, string](w, nsDgHeaderHover, capModerate)
 		if colID == "" {
 			dgHH.Delete(gridID)
 			return
@@ -492,9 +492,9 @@ func dataGridMakeOnMouseMove(gridID string) func(*Layout, *Event, *Window) {
 
 type dataGridKeydownContext struct {
 	selection         GridSelection
-	onSelectionChange func(GridSelection, *Event, *Window)
-	onRowActivate     func(GridRow, *Event, *Window)
-	onPageChange      func(int, *Event, *Window)
+	onSelectionChange func(GridSelection, *gg.Event, *gg.Window)
+	onRowActivate     func(GridRow, *gg.Event, *gg.Window)
+	onPageChange      func(int, *gg.Event, *gg.Window)
 	frozenTopIDs      map[string]bool
 	dataToDisplay     map[int]int
 	gridID            string
@@ -517,7 +517,7 @@ type dataGridKeydownContext struct {
 	crudEnabled       bool
 }
 
-func dataGridMakeOnKeydown(cfg *DataGridCfg, columns []GridColumnCfg, rowHeight, staticTop float32, scrollID uint32, pageIndices []int, frozenTopIDs map[string]bool, dataToDisplay map[int]int) func(*Layout, *Event, *Window) {
+func dataGridMakeOnKeydown(cfg *DataGridCfg, columns []GridColumnCfg, rowHeight, staticTop float32, scrollID uint32, pageIndices []int, frozenTopIDs map[string]bool, dataToDisplay map[int]int) func(*gg.Layout, *gg.Event, *gg.Window) {
 	keyCtx := dataGridKeydownContext{
 		gridID:            cfg.ID,
 		rows:              cfg.Rows,
@@ -544,12 +544,12 @@ func dataGridMakeOnKeydown(cfg *DataGridCfg, columns []GridColumnCfg, rowHeight,
 		frozenTopIDs:      frozenTopIDs,
 		dataToDisplay:     dataToDisplay,
 	}
-	return func(_ *Layout, e *Event, w *Window) {
+	return func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 		dataGridOnKeydown(keyCtx, e, w)
 	}
 }
 
-func dataGridOnKeydown(kc dataGridKeydownContext, e *Event, w *Window) {
+func dataGridOnKeydown(kc dataGridKeydownContext, e *gg.Event, w *gg.Window) {
 	if dataGridHandleEscapeKey(kc, e, w) {
 		return
 	}
@@ -578,8 +578,8 @@ func dataGridOnKeydown(kc dataGridKeydownContext, e *Event, w *Window) {
 	dataGridHandleRowNavigationKeys(kc, visibleIndices, e, w)
 }
 
-func dataGridHandleEscapeKey(kc dataGridKeydownContext, e *Event, w *Window) bool {
-	if e.Modifiers != 0 || e.KeyCode != KeyEscape {
+func dataGridHandleEscapeKey(kc dataGridKeydownContext, e *gg.Event, w *gg.Window) bool {
+	if e.Modifiers != 0 || e.KeyCode != gg.KeyEscape {
 		return false
 	}
 	if dataGridEditingRowID(kc.gridID, w) != "" {
@@ -596,16 +596,16 @@ func dataGridHandleEscapeKey(kc dataGridKeydownContext, e *Event, w *Window) boo
 	return true
 }
 
-func dataGridHandleCrudKeys(kc dataGridKeydownContext, e *Event, w *Window) bool {
+func dataGridHandleCrudKeys(kc dataGridKeydownContext, e *gg.Event, w *gg.Window) bool {
 	if !kc.crudEnabled || e.Modifiers != 0 {
 		return false
 	}
 	switch e.KeyCode {
-	case KeyInsert:
+	case gg.KeyInsert:
 		dataGridCrudAddRow(kc.gridID, kc.columns, kc.onSelectionChange, 0, kc.scrollID, kc.pageSize, kc.pageIndex, kc.onPageChange, e, w)
 		e.IsHandled = true
 		return true
-	case KeyDelete:
+	case gg.KeyDelete:
 		dataGridCrudDeleteSelected(kc.gridID, kc.selection, kc.onSelectionChange, 0, e, w)
 		e.IsHandled = true
 		return true
@@ -613,8 +613,8 @@ func dataGridHandleCrudKeys(kc dataGridKeydownContext, e *Event, w *Window) bool
 	return false
 }
 
-func dataGridHandleEditStartKey(kc dataGridKeydownContext, e *Event, w *Window) bool {
-	if e.Modifiers != 0 || e.KeyCode != KeyF2 {
+func dataGridHandleEditStartKey(kc dataGridKeydownContext, e *gg.Event, w *gg.Window) bool {
+	if e.Modifiers != 0 || e.KeyCode != gg.KeyF2 {
 		return false
 	}
 	if kc.editEnabled && len(kc.rows) > 0 && kc.firstEditColIdx >= 0 {
@@ -632,7 +632,7 @@ func dataGridHandleEditStartKey(kc dataGridKeydownContext, e *Event, w *Window) 
 	return true
 }
 
-func dataGridHandlePageShortcut(kc dataGridKeydownContext, e *Event, w *Window) bool {
+func dataGridHandlePageShortcut(kc dataGridKeydownContext, e *gg.Event, w *gg.Window) bool {
 	if kc.onPageChange == nil || kc.pageSize <= 0 {
 		return false
 	}
@@ -651,7 +651,7 @@ func dataGridHandlePageShortcut(kc dataGridKeydownContext, e *Event, w *Window) 
 	return true
 }
 
-func dataGridHandleSelectAllShortcut(kc dataGridKeydownContext, e *Event, w *Window) bool {
+func dataGridHandleSelectAllShortcut(kc dataGridKeydownContext, e *gg.Event, w *gg.Window) bool {
 	if !dataGridIsSelectAllShortcut(e) || !kc.multiSelect {
 		return false
 	}
@@ -672,8 +672,8 @@ func dataGridHandleSelectAllShortcut(kc dataGridKeydownContext, e *Event, w *Win
 	return true
 }
 
-func dataGridHandleEnterKey(kc dataGridKeydownContext, e *Event, w *Window) bool {
-	if e.KeyCode != KeyEnter {
+func dataGridHandleEnterKey(kc dataGridKeydownContext, e *gg.Event, w *gg.Window) bool {
+	if e.KeyCode != gg.KeyEnter {
 		return false
 	}
 	if dataGridEditingRowID(kc.gridID, w) != "" {
@@ -693,8 +693,8 @@ func dataGridHandleEnterKey(kc dataGridKeydownContext, e *Event, w *Window) bool
 	return true
 }
 
-func dataGridHandleRowNavigationKeys(kc dataGridKeydownContext, visibleIndices []int, e *Event, w *Window) {
-	isShift := e.Modifiers.Has(ModShift)
+func dataGridHandleRowNavigationKeys(kc dataGridKeydownContext, visibleIndices []int, e *gg.Event, w *gg.Window) {
+	isShift := e.Modifiers.Has(gg.ModShift)
 	if e.Modifiers != 0 && !isShift {
 		return
 	}
@@ -703,17 +703,17 @@ func dataGridHandleRowNavigationKeys(kc dataGridKeydownContext, visibleIndices [
 	targetPos := max(currentPos, 0)
 
 	switch e.KeyCode {
-	case KeyUp:
+	case gg.KeyUp:
 		targetPos--
-	case KeyDown:
+	case gg.KeyDown:
 		targetPos++
-	case KeyHome:
+	case gg.KeyHome:
 		targetPos = 0
-	case KeyEnd:
+	case gg.KeyEnd:
 		targetPos = len(visibleIndices) - 1
-	case KeyPageUp:
+	case gg.KeyPageUp:
 		targetPos -= kc.pageRows
-	case KeyPageDown:
+	case gg.KeyPageDown:
 		targetPos += kc.pageRows
 	default:
 		return
@@ -740,7 +740,7 @@ func dataGridHandleRowNavigationKeys(kc dataGridKeydownContext, visibleIndices [
 	e.IsHandled = true
 }
 
-func dataGridSelectionForTargetRow(kc dataGridKeydownContext, targetRowID string, isShift bool, w *Window) GridSelection {
+func dataGridSelectionForTargetRow(kc dataGridKeydownContext, targetRowID string, isShift bool, w *gg.Window) GridSelection {
 	if isShift && kc.multiSelect && kc.rangeSelect {
 		anchorRowID := dataGridAnchorRowIDEx(kc.selection, kc.gridID, kc.rows, w, targetRowID)
 		start, end := dataGridRangeIndices(kc.rows, anchorRowID, targetRowID)
@@ -774,11 +774,11 @@ func dataGridRangeSelectedRows(rows []GridRow, start, end int, targetRowID strin
 
 // --- Scroll ---
 
-func dataGridScrollRowIntoViewEx(viewportH float32, rowIdx int, rowHeight, staticTop float32, scrollID uint32, w *Window) {
+func dataGridScrollRowIntoViewEx(viewportH float32, rowIdx int, rowHeight, staticTop float32, scrollID uint32, w *gg.Window) {
 	if viewportH <= 0 || rowHeight <= 0 {
 		return
 	}
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := gg.StateMap[uint32, float32](w, nsScrollY, capScroll)
 	currentNeg, _ := sy.Get(scrollID) // ok ignored: zero offset is correct initial scroll
 	current := -currentNeg
 	rowTop := staticTop + float32(rowIdx)*rowHeight
@@ -795,26 +795,26 @@ func dataGridScrollRowIntoViewEx(viewportH float32, rowIdx int, rowHeight, stati
 
 // --- Page shortcuts ---
 
-func dataGridNextPageIndexForKey(pageIndex, pageCount int, e *Event) (int, bool) {
+func dataGridNextPageIndexForKey(pageIndex, pageCount int, e *gg.Event) (int, bool) {
 	if pageCount <= 1 || pageIndex < 0 || pageIndex >= pageCount {
 		return 0, false
 	}
-	if e.Modifiers == ModAlt {
+	if e.Modifiers == gg.ModAlt {
 		switch e.KeyCode {
-		case KeyHome:
+		case gg.KeyHome:
 			return 0, true
-		case KeyEnd:
+		case gg.KeyEnd:
 			return pageCount - 1, true
 		}
 		return 0, false
 	}
-	if !e.Modifiers.HasAny(ModCtrl, ModSuper) || e.Modifiers.Has(ModAlt) {
+	if !e.Modifiers.HasAny(gg.ModCtrl, gg.ModSuper) || e.Modifiers.Has(gg.ModAlt) {
 		return 0, false
 	}
 	switch e.KeyCode {
-	case KeyPageUp:
+	case gg.KeyPageUp:
 		return max(0, pageIndex-1), true
-	case KeyPageDown:
+	case gg.KeyPageDown:
 		return min(pageCount-1, pageIndex+1), true
 	}
 	return 0, false
@@ -822,7 +822,7 @@ func dataGridNextPageIndexForKey(pageIndex, pageCount int, e *Event) (int, bool)
 
 // --- Jump ---
 
-func dataGridJumpEnabledLocal(rowsLen int, onSelectionChange func(GridSelection, *Event, *Window), onPageChange func(int, *Event, *Window), pageSize, totalRows int) bool {
+func dataGridJumpEnabledLocal(rowsLen int, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), onPageChange func(int, *gg.Event, *gg.Window), pageSize, totalRows int) bool {
 	if totalRows <= 0 || rowsLen == 0 {
 		return false
 	}
@@ -860,11 +860,11 @@ func dataGridParseJumpTarget(text string, totalRows int) (int, bool) {
 	return max(1, min(totalRows, target)) - 1, true
 }
 
-func dataGridSubmitLocalJump(ctx dataGridJumpContext, e *Event, w *Window) {
+func dataGridSubmitLocalJump(ctx dataGridJumpContext, e *gg.Event, w *gg.Window) {
 	if !dataGridJumpEnabledLocal(len(ctx.rows), ctx.onSelectionChange, ctx.onPageChange, ctx.pageSize, ctx.totalRows) {
 		return
 	}
-	dgJI := StateMap[string, string](w, nsDgJump, capModerate)
+	dgJI := gg.StateMap[string, string](w, nsDgJump, capModerate)
 	// ok ignored: empty string → parseJumpTarget returns (0, false).
 	jumpText, _ := dgJI.Get(ctx.gridID)
 	targetIdx, ok := dataGridParseJumpTarget(jumpText, ctx.totalRows)
@@ -879,7 +879,7 @@ func dataGridSubmitLocalJump(ctx dataGridJumpContext, e *Event, w *Window) {
 	e.IsHandled = true
 }
 
-func dataGridJumpToLocalRow(ctx dataGridJumpContext, targetIdx int, e *Event, w *Window) {
+func dataGridJumpToLocalRow(ctx dataGridJumpContext, targetIdx int, e *gg.Event, w *gg.Window) {
 	if targetIdx < 0 || targetIdx >= len(ctx.rows) {
 		return
 	}
@@ -899,13 +899,13 @@ func dataGridJumpToLocalRow(ctx dataGridJumpContext, targetIdx int, e *Event, w 
 		}
 		targetPage := targetIdx / ctx.pageSize
 		if targetPage != ctx.pageIndex {
-			dgPJ := StateMap[string, int](w, nsDgPendingJump, capModerate)
+			dgPJ := gg.StateMap[string, int](w, nsDgPendingJump, capModerate)
 			dgPJ.Set(ctx.gridID, targetIdx)
 			ctx.onPageChange(targetPage, e, w)
 			return
 		}
 	}
-	dgPJ := StateMap[string, int](w, nsDgPendingJump, capModerate)
+	dgPJ := gg.StateMap[string, int](w, nsDgPendingJump, capModerate)
 	dgPJ.Delete(ctx.gridID)
 	displayIdx, ok := ctx.dataToDisplay[targetIdx]
 	if !ok || displayIdx < 0 {
@@ -914,8 +914,8 @@ func dataGridJumpToLocalRow(ctx dataGridJumpContext, targetIdx int, e *Event, w 
 	dataGridScrollRowIntoViewEx(ctx.viewportH, displayIdx, ctx.rowHeight, ctx.staticTop, ctx.scrollID, w)
 }
 
-func dataGridApplyPendingLocalJumpScroll(cfg *DataGridCfg, viewportH, rowHeight, staticTop float32, scrollID uint32, dataToDisplay map[int]int, w *Window) {
-	dgPJ := StateMap[string, int](w, nsDgPendingJump, capModerate)
+func dataGridApplyPendingLocalJumpScroll(cfg *DataGridCfg, viewportH, rowHeight, staticTop float32, scrollID uint32, dataToDisplay map[int]int, w *gg.Window) {
+	dgPJ := gg.StateMap[string, int](w, nsDgPendingJump, capModerate)
 	targetIdx, ok := dgPJ.Get(cfg.ID)
 	if !ok {
 		return

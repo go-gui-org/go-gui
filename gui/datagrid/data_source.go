@@ -13,37 +13,15 @@ import (
 	"sync"
 	"time"
 
-	. "github.com/go-gui-org/go-gui/gui"
+	gg "github.com/go-gui-org/go-gui/gui"
 )
 
 const dataGridSourceMaxPageLimit = 10000
 
-// gridCursorPageReq requests a cursor-based page.
-type gridCursorPageReq struct {
-	Cursor string
-	Limit  int
-}
-
-func (gridCursorPageReq) gridPageRequest() {}
-
-// gridOffsetPageReq requests an offset-based page.
-type gridOffsetPageReq struct {
-	StartIndex int
-	EndIndex   int
-}
-
-func (gridOffsetPageReq) gridPageRequest() {}
-
-// gridPageRequest is satisfied by gridCursorPageReq or
-// gridOffsetPageReq.
-type gridPageRequest interface {
-	gridPageRequest()
-}
-
 // GridDataRequest is the request payload for FetchData.
 type GridDataRequest struct {
-	Page      gridPageRequest
-	Signal    *GridAbortSignal
+	Page      GridPageRequest
+	Signal    *gg.GridAbortSignal
 	Query     GridQueryState
 	GridID    string
 	RequestID uint64
@@ -73,14 +51,14 @@ type GridDataCapabilities struct {
 
 // GridMutationRequest is the request payload for MutateData.
 type GridMutationRequest struct {
-	Signal    *GridAbortSignal
+	Signal    *gg.GridAbortSignal
 	Query     GridQueryState
 	GridID    string
 	Rows      []GridRow
 	RowIDs    []string
 	Edits     []GridCellEdit
 	RequestID uint64
-	Kind      gridMutationKind
+	Kind      GridMutationKind
 }
 
 // GridMutationResult is the response from MutateData.
@@ -182,13 +160,13 @@ func dataGridSourceInMemoryFetch(
 		nonZero(defaultLimit, 100)))
 	var start, end int
 	switch p := req.Page.(type) {
-	case gridCursorPageReq:
+	case GridCursorPageReq:
 		s := max(0, min(len(filtered),
 			dataGridSourceCursorToIndex(p.Cursor)))
 		chunk := max(1, min(dataGridSourceMaxPageLimit,
 			nonZero(p.Limit, limit)))
 		start, end = s, min(len(filtered), s+chunk)
-	case gridOffsetPageReq:
+	case GridOffsetPageReq:
 		start, end = dataGridSourceOffsetBounds(
 			p.StartIndex, p.EndIndex, len(filtered), limit)
 	default:
@@ -199,7 +177,7 @@ func dataGridSourceInMemoryFetch(
 	if err := gridAbortCheck(req.Signal); err != nil {
 		return GridDataResult{}, err
 	}
-	_, isCursor := req.Page.(gridCursorPageReq)
+	_, isCursor := req.Page.(GridCursorPageReq)
 	rc := -1
 	if rowCountKnown {
 		rc = len(filtered)
@@ -266,7 +244,7 @@ func dataGridSourceOffsetBounds(
 
 var errGridAborted = errors.New("grid: request aborted")
 
-func gridAbortCheck(signal *GridAbortSignal) error {
+func gridAbortCheck(signal *gg.GridAbortSignal) error {
 	if signal.IsAborted() {
 		return errGridAborted
 	}
@@ -274,10 +252,15 @@ func gridAbortCheck(signal *GridAbortSignal) error {
 }
 
 func dataGridSourceSleepWithAbort(
-	signal *GridAbortSignal, ms int,
+	signal *gg.GridAbortSignal, ms int,
 ) error {
 	if ms <= 0 {
 		return gridAbortCheck(signal)
+	}
+	// Cap to prevent near-infinite sleep from a misconfigured
+	// LatencyMs. 60s is more than any reasonable test simulation.
+	if ms > 60_000 {
+		ms = 60_000
 	}
 	remaining := ms
 	for remaining > 0 {
@@ -487,7 +470,7 @@ func gridContainsLower(haystack, needle string) bool {
 	for i := 0; i <= limit; i++ {
 		found := true
 		for j := range len(needle) {
-			if ASCIILower(haystack[i+j]) != needle[j] {
+			if gg.ASCIILower(haystack[i+j]) != needle[j] {
 				found = false
 				break
 			}
@@ -506,7 +489,7 @@ func gridEqualsLower(haystack, needle string) bool {
 		return false
 	}
 	for i := range len(haystack) {
-		if ASCIILower(haystack[i]) != needle[i] {
+		if gg.ASCIILower(haystack[i]) != needle[i] {
 			return false
 		}
 	}
@@ -520,7 +503,7 @@ func gridStartsWithLower(haystack, needle string) bool {
 		return false
 	}
 	for i := range len(needle) {
-		if ASCIILower(haystack[i]) != needle[i] {
+		if gg.ASCIILower(haystack[i]) != needle[i] {
 			return false
 		}
 	}
@@ -535,7 +518,7 @@ func gridEndsWithLower(haystack, needle string) bool {
 	}
 	off := len(haystack) - len(needle)
 	for i := range len(needle) {
-		if ASCIILower(haystack[i+off]) != needle[i] {
+		if gg.ASCIILower(haystack[i+off]) != needle[i] {
 			return false
 		}
 	}
@@ -546,21 +529,21 @@ func gridEndsWithLower(haystack, needle string) bool {
 // the query state. Filters are sorted by col_id for order
 // independence.
 func gridQuerySignature(query GridQueryState) uint64 {
-	h := Fnv64Offset
-	h = Fnv64Str(h, query.QuickFilter)
-	h = Fnv64Byte(h, '|')
-	h = Fnv64Byte(h, 's')
+	h := gg.Fnv64Offset
+	h = gg.Fnv64Str(h, query.QuickFilter)
+	h = gg.Fnv64Byte(h, '|')
+	h = gg.Fnv64Byte(h, 's')
 	for _, s := range query.Sorts {
-		h = Fnv64Byte(h, 0x1e)
-		h = Fnv64Str(h, s.ColID)
+		h = gg.Fnv64Byte(h, 0x1e)
+		h = gg.Fnv64Str(h, s.ColID)
 		if s.Dir == GridSortDesc {
-			h = Fnv64Byte(h, 'd')
+			h = gg.Fnv64Byte(h, 'd')
 		} else {
-			h = Fnv64Byte(h, 'a')
+			h = gg.Fnv64Byte(h, 'a')
 		}
 	}
-	h = Fnv64Byte(h, '|')
-	h = Fnv64Byte(h, 'f')
+	h = gg.Fnv64Byte(h, '|')
+	h = gg.Fnv64Byte(h, 'f')
 	filters := query.Filters
 	if len(filters) <= 1 {
 		for _, f := range filters {
@@ -600,12 +583,12 @@ func zeroPadHex16(v uint64) string {
 }
 
 func gridHashFilter(h uint64, f GridFilter) uint64 {
-	hash := Fnv64Byte(h, 0x1e)
-	hash = Fnv64Str(hash, f.ColID)
-	hash = Fnv64Byte(hash, 0x1f)
-	hash = Fnv64Str(hash, f.Op)
-	hash = Fnv64Byte(hash, 0x1f)
-	hash = Fnv64Str(hash, f.Value)
+	hash := gg.Fnv64Byte(h, 0x1e)
+	hash = gg.Fnv64Str(hash, f.ColID)
+	hash = gg.Fnv64Byte(hash, 0x1f)
+	hash = gg.Fnv64Str(hash, f.Op)
+	hash = gg.Fnv64Byte(hash, 0x1f)
+	hash = gg.Fnv64Str(hash, f.Value)
 	return hash
 }
 
@@ -616,16 +599,16 @@ type gridMutationApplyResult struct {
 }
 
 func dataGridSourceApplyMutation(
-	rows *[]GridRow, kind gridMutationKind,
+	rows *[]GridRow, kind GridMutationKind,
 	reqRows []GridRow, reqRowIDs []string,
 	edits []GridCellEdit,
 ) (gridMutationApplyResult, error) {
 	switch kind {
-	case gridMutationCreate:
+	case GridMutationCreate:
 		return dataGridSourceApplyCreate(rows, reqRows)
-	case gridMutationUpdate:
+	case GridMutationUpdate:
 		return dataGridSourceApplyUpdate(rows, reqRows, edits)
-	case gridMutationDelete:
+	case GridMutationDelete:
 		return dataGridSourceApplyDelete(rows, reqRows, reqRowIDs)
 	}
 	return gridMutationApplyResult{}, errors.New(

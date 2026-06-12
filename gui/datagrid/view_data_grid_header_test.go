@@ -3,7 +3,7 @@ package datagrid
 import (
 	"testing"
 
-	. "github.com/go-gui-org/go-gui/gui"
+	gg "github.com/go-gui-org/go-gui/gui"
 )
 
 // --- dataGridHeaderIndicator ---
@@ -114,7 +114,7 @@ func TestHeaderColIDFromLayoutIDShort(t *testing.T) {
 
 func TestHeaderControlStateAllFit(t *testing.T) {
 	// Wide column: everything fits.
-	r := dataGridHeaderControlState(500, Padding{}, true, true, true)
+	r := dataGridHeaderControlState(500, gg.Padding{}, true, true, true)
 	if !r.showLabel || !r.showReorder || !r.showPin || !r.showResize {
 		t.Errorf("wide: got label=%v reorder=%v pin=%v resize=%v",
 			r.showLabel, r.showReorder, r.showPin, r.showResize)
@@ -123,14 +123,14 @@ func TestHeaderControlStateAllFit(t *testing.T) {
 
 func TestHeaderControlStateNarrowDropsAll(t *testing.T) {
 	// Very narrow column: nothing fits.
-	r := dataGridHeaderControlState(1, Padding{}, true, true, true)
+	r := dataGridHeaderControlState(1, gg.Padding{}, true, true, true)
 	if r.showReorder || r.showPin {
 		t.Error("very narrow should drop reorder and pin")
 	}
 }
 
 func TestHeaderControlStateNoControls(t *testing.T) {
-	r := dataGridHeaderControlState(100, Padding{}, false, false, false)
+	r := dataGridHeaderControlState(100, gg.Padding{}, false, false, false)
 	if r.showReorder || r.showPin || r.showResize {
 		t.Error("no controls requested: none should show")
 	}
@@ -252,14 +252,14 @@ func TestHeaderFocusedColIDOutOfRange(t *testing.T) {
 
 func TestHeaderControlStateMediumWidth(t *testing.T) {
 	// Medium width: label + some controls.
-	r := dataGridHeaderControlState(80, Padding{}, true, false, true)
+	r := dataGridHeaderControlState(80, gg.Padding{}, true, false, true)
 	if !r.showLabel {
 		t.Error("medium: label should show")
 	}
 }
 
 func TestHeaderControlStateOnlyReorder(t *testing.T) {
-	r := dataGridHeaderControlState(200, Padding{}, true, false, false)
+	r := dataGridHeaderControlState(200, gg.Padding{}, true, false, false)
 	if !r.showReorder {
 		t.Error("should show reorder")
 	}
@@ -272,7 +272,7 @@ func TestHeaderControlStateOnlyReorder(t *testing.T) {
 }
 
 func TestHeaderControlStateOnlyPin(t *testing.T) {
-	r := dataGridHeaderControlState(200, Padding{}, false, true, false)
+	r := dataGridHeaderControlState(200, gg.Padding{}, false, true, false)
 	if !r.showPin {
 		t.Error("should show pin")
 	}
@@ -283,12 +283,12 @@ func TestHeaderControlStateOnlyPin(t *testing.T) {
 
 func TestHeaderControlStateProgressiveDisclosure(t *testing.T) {
 	// Progressively narrower: first lose label, then pin, then reorder.
-	w0 := dataGridHeaderControlState(500, Padding{}, true, true, true)
+	w0 := dataGridHeaderControlState(500, gg.Padding{}, true, true, true)
 	if !w0.showLabel || !w0.showPin || !w0.showReorder || !w0.showResize {
 		t.Error("wide should show all")
 	}
 	// Narrow enough to drop label only.
-	w1 := dataGridHeaderControlState(150, Padding{}, true, true, true)
+	w1 := dataGridHeaderControlState(150, gg.Padding{}, true, true, true)
 	// Label may or may not show depending on constants; controls hierarchy
 	// is what matters — reorder drops before resize in priority order.
 	_ = w1
@@ -297,7 +297,7 @@ func TestHeaderControlStateProgressiveDisclosure(t *testing.T) {
 // --- dataGridHeaderControlState with padding ---
 
 func TestHeaderControlStateWithPadding(t *testing.T) {
-	pad := NewPadding(0, 10, 0, 10)
+	pad := gg.NewPadding(0, 10, 0, 10)
 	r := dataGridHeaderControlState(100, pad, true, true, true)
 	// Padding reduces available width.
 	_ = r
@@ -306,8 +306,8 @@ func TestHeaderControlStateWithPadding(t *testing.T) {
 // --- dataGridOrderButton ---
 
 func TestOrderButtonReturnsView(t *testing.T) {
-	v := dataGridOrderButton("◀", DefaultTextStyle, RGBA(200, 200, 200, 255),
-		func(_ *Event, _ *Window) {})
+	v := dataGridOrderButton("◀", gg.DefaultTextStyle, gg.RGBA(200, 200, 200, 255),
+		func(_ *gg.Event, _ *gg.Window) {})
 	if v == nil {
 		t.Fatal("order button should return a view")
 	}
@@ -317,8 +317,8 @@ func TestOrderButtonReturnsView(t *testing.T) {
 
 func TestPinControl(t *testing.T) {
 	cfg := &DataGridCfg{
-		TextStyleHeader:  DefaultTextStyle,
-		ColorHeaderHover: RGBA(200, 200, 200, 255),
+		TextStyleHeader:  gg.DefaultTextStyle,
+		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
 	}
 	col := GridColumnCfg{ID: "c1", Pin: GridColumnPinNone}
 	v := dataGridPinControl(cfg, col)
@@ -329,8 +329,8 @@ func TestPinControl(t *testing.T) {
 
 func TestPinControlLeft(t *testing.T) {
 	cfg := &DataGridCfg{
-		TextStyleHeader:  DefaultTextStyle,
-		ColorHeaderHover: RGBA(200, 200, 200, 255),
+		TextStyleHeader:  gg.DefaultTextStyle,
+		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
 	}
 	col := GridColumnCfg{ID: "c1", Pin: GridColumnPinLeft}
 	v := dataGridPinControl(cfg, col)
@@ -341,8 +341,8 @@ func TestPinControlLeft(t *testing.T) {
 
 func TestPinControlRight(t *testing.T) {
 	cfg := &DataGridCfg{
-		TextStyleHeader:  DefaultTextStyle,
-		ColorHeaderHover: RGBA(200, 200, 200, 255),
+		TextStyleHeader:  gg.DefaultTextStyle,
+		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
 	}
 	col := GridColumnCfg{ID: "c1", Pin: GridColumnPinRight}
 	v := dataGridPinControl(cfg, col)
@@ -355,10 +355,10 @@ func TestPinControlRight(t *testing.T) {
 
 func TestFilterRowReturnsView(t *testing.T) {
 	cfg := &DataGridCfg{
-		ColorFilter:   RGBA(240, 240, 240, 255),
-		ColorBorder:   RGBA(180, 180, 180, 255),
-		SizeBorder:    SomeF(1),
-		PaddingFilter: SomeP(2, 4, 2, 4),
+		ColorFilter:   gg.RGBA(240, 240, 240, 255),
+		ColorBorder:   gg.RGBA(180, 180, 180, 255),
+		SizeBorder:    gg.SomeF(1),
+		PaddingFilter: gg.SomeP(2, 4, 2, 4),
 	}
 	columns := []GridColumnCfg{{ID: "c1"}, {ID: "c2"}}
 	v := dataGridFilterRow(cfg, columns, nil)
@@ -372,11 +372,11 @@ func TestFilterRowReturnsView(t *testing.T) {
 func TestFilterCellReturnsView(t *testing.T) {
 	cfg := &DataGridCfg{
 		ID:              "g1",
-		ColorFilter:     RGBA(240, 240, 240, 255),
-		ColorBorder:     RGBA(180, 180, 180, 255),
-		SizeBorder:      SomeF(1),
-		PaddingFilter:   SomeP(2, 4, 2, 4),
-		TextStyleFilter: DefaultTextStyle,
+		ColorFilter:     gg.RGBA(240, 240, 240, 255),
+		ColorBorder:     gg.RGBA(180, 180, 180, 255),
+		SizeBorder:      gg.SomeF(1),
+		PaddingFilter:   gg.SomeP(2, 4, 2, 4),
+		TextStyleFilter: gg.DefaultTextStyle,
 	}
 	col := GridColumnCfg{ID: "c1", Filterable: true}
 	v := dataGridFilterCell(cfg, col, 100)
@@ -388,9 +388,9 @@ func TestFilterCellReturnsView(t *testing.T) {
 func TestFilterCellNotFilterable(t *testing.T) {
 	cfg := &DataGridCfg{
 		ID:              "g1",
-		ColorFilter:     RGBA(240, 240, 240, 255),
-		ColorBorder:     RGBA(180, 180, 180, 255),
-		TextStyleFilter: DefaultTextStyle,
+		ColorFilter:     gg.RGBA(240, 240, 240, 255),
+		ColorBorder:     gg.RGBA(180, 180, 180, 255),
+		TextStyleFilter: gg.DefaultTextStyle,
 	}
 	col := GridColumnCfg{ID: "c1", Filterable: false}
 	v := dataGridFilterCell(cfg, col, 100)
@@ -404,10 +404,10 @@ func TestFilterCellNotFilterable(t *testing.T) {
 func TestResizeHandleReturnsView(t *testing.T) {
 	cfg := &DataGridCfg{
 		ID:                "g1",
-		ColorResizeHandle: RGBA(180, 180, 180, 255),
-		ColorResizeActive: RGBA(100, 100, 255, 255),
-		TextStyleHeader:   DefaultTextStyle,
-		TextStyle:         DefaultTextStyle,
+		ColorResizeHandle: gg.RGBA(180, 180, 180, 255),
+		ColorResizeActive: gg.RGBA(100, 100, 255, 255),
+		TextStyleHeader:   gg.DefaultTextStyle,
+		TextStyle:         gg.DefaultTextStyle,
 		Columns:           []GridColumnCfg{{ID: "c1"}},
 	}
 	col := GridColumnCfg{ID: "c1"}
@@ -421,8 +421,8 @@ func TestResizeHandleReturnsView(t *testing.T) {
 
 func TestReorderControls(t *testing.T) {
 	cfg := &DataGridCfg{
-		TextStyleHeader:  DefaultTextStyle,
-		ColorHeaderHover: RGBA(200, 200, 200, 255),
+		TextStyleHeader:  gg.DefaultTextStyle,
+		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
 		Columns:          []GridColumnCfg{{ID: "c1"}},
 		ColumnOrder:      []string{"c1"},
 	}
@@ -436,10 +436,10 @@ func TestReorderControls(t *testing.T) {
 // --- dataGridEndResize ---
 
 func TestEndResize(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	// Start a resize, then end it.
-	dgRS := StateMap[string, dataGridResizeState](w, nsDgResize, 4)
+	dgRS := gg.StateMap[string, dataGridResizeState](w, nsDgResize, 4)
 	dgRS.Set("g1", dataGridResizeState{Active: true, ColID: "c1"})
 	dataGridEndResize("g1", w)
 	state, _ := dgRS.Get("g1")
@@ -449,7 +449,7 @@ func TestEndResize(t *testing.T) {
 }
 
 func TestEndResizeNoState(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	// Should not panic.
 	dataGridEndResize("nonexistent", w)
@@ -458,9 +458,9 @@ func TestEndResizeNoState(t *testing.T) {
 // --- dataGridActiveResizeColID ---
 
 func TestActiveResizeColID(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
-	dgRS := StateMap[string, dataGridResizeState](w, nsDgResize, 4)
+	dgRS := gg.StateMap[string, dataGridResizeState](w, nsDgResize, 4)
 	dgRS.Set("g1", dataGridResizeState{Active: true, ColID: "c2"})
 	got := dataGridActiveResizeColID("g1", w)
 	if got != "c2" {
@@ -469,7 +469,7 @@ func TestActiveResizeColID(t *testing.T) {
 }
 
 func TestActiveResizeColIDInactive(t *testing.T) {
-	w := NewWindow(WindowCfg{})
+	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	got := dataGridActiveResizeColID("g1", w)
 	if got != "" {
@@ -482,10 +482,10 @@ func TestActiveResizeColIDInactive(t *testing.T) {
 func TestHeaderRowReturnsView(t *testing.T) {
 	cfg := &DataGridCfg{
 		ID:              "g1",
-		ColorBorder:     RGBA(180, 180, 180, 255),
-		SizeBorder:      SomeF(1),
-		PaddingHeader:   SomeP(2, 4, 2, 4),
-		TextStyleHeader: DefaultTextStyle,
+		ColorBorder:     gg.RGBA(180, 180, 180, 255),
+		SizeBorder:      gg.SomeF(1),
+		PaddingHeader:   gg.SomeP(2, 4, 2, 4),
+		TextStyleHeader: gg.DefaultTextStyle,
 	}
 	columns := []GridColumnCfg{{ID: "c1"}, {ID: "c2"}}
 	v := dataGridHeaderRow(cfg, columns, nil, 0, "", "", "")
@@ -499,12 +499,12 @@ func TestHeaderRowReturnsView(t *testing.T) {
 func TestHeaderCellReturnsView(t *testing.T) {
 	cfg := &DataGridCfg{
 		ID:               "g1",
-		ColorHeader:      RGBA(240, 240, 240, 255),
-		ColorBorder:      RGBA(180, 180, 180, 255),
-		SizeBorder:       SomeF(1),
-		PaddingHeader:    SomeP(2, 4, 2, 4),
-		TextStyleHeader:  DefaultTextStyle,
-		ColorHeaderHover: RGBA(220, 220, 220, 255),
+		ColorHeader:      gg.RGBA(240, 240, 240, 255),
+		ColorBorder:      gg.RGBA(180, 180, 180, 255),
+		SizeBorder:       gg.SomeF(1),
+		PaddingHeader:    gg.SomeP(2, 4, 2, 4),
+		TextStyleHeader:  gg.DefaultTextStyle,
+		ColorHeaderHover: gg.RGBA(220, 220, 220, 255),
 	}
 	col := GridColumnCfg{ID: "c1", Title: "Column 1"}
 	v := dataGridHeaderCell(cfg, col, 0, 2, 100, 0, false)
@@ -516,14 +516,14 @@ func TestHeaderCellReturnsView(t *testing.T) {
 func TestHeaderCellWithControls(t *testing.T) {
 	cfg := &DataGridCfg{
 		ID:                  "g1",
-		ColorHeader:         RGBA(240, 240, 240, 255),
-		ColorBorder:         RGBA(180, 180, 180, 255),
-		SizeBorder:          SomeF(1),
-		PaddingHeader:       SomeP(2, 4, 2, 4),
-		TextStyleHeader:     DefaultTextStyle,
-		ColorHeaderHover:    RGBA(220, 220, 220, 255),
-		OnColumnOrderChange: func([]string, *Event, *Window) {},
-		OnColumnPinChange:   func(string, GridColumnPin, *Event, *Window) {},
+		ColorHeader:         gg.RGBA(240, 240, 240, 255),
+		ColorBorder:         gg.RGBA(180, 180, 180, 255),
+		SizeBorder:          gg.SomeF(1),
+		PaddingHeader:       gg.SomeP(2, 4, 2, 4),
+		TextStyleHeader:     gg.DefaultTextStyle,
+		ColorHeaderHover:    gg.RGBA(220, 220, 220, 255),
+		OnColumnOrderChange: func([]string, *gg.Event, *gg.Window) {},
+		OnColumnPinChange:   func(string, GridColumnPin, *gg.Event, *gg.Window) {},
 	}
 	col := GridColumnCfg{
 		ID: "c1", Title: "Column 1",
@@ -538,9 +538,9 @@ func TestHeaderCellWithControls(t *testing.T) {
 // --- dataGridPagerArrows ---
 
 func TestPagerArrowsLTR(t *testing.T) {
-	saved := ActiveLocale.TextDir
-	ActiveLocale.TextDir = TextDirLTR
-	defer func() { ActiveLocale.TextDir = saved }()
+	saved := gg.ActiveLocale.TextDir
+	gg.ActiveLocale.TextDir = gg.TextDirLTR
+	defer func() { gg.ActiveLocale.TextDir = saved }()
 	prev, next := dataGridPagerArrows()
 	if prev != "\u25C0" || next != "\u25B6" {
 		t.Errorf("LTR: prev=%q next=%q", prev, next)
@@ -548,9 +548,9 @@ func TestPagerArrowsLTR(t *testing.T) {
 }
 
 func TestPagerArrowsRTL(t *testing.T) {
-	saved := ActiveLocale.TextDir
-	ActiveLocale.TextDir = TextDirRTL
-	defer func() { ActiveLocale.TextDir = saved }()
+	saved := gg.ActiveLocale.TextDir
+	gg.ActiveLocale.TextDir = gg.TextDirRTL
+	defer func() { gg.ActiveLocale.TextDir = saved }()
 	prev, next := dataGridPagerArrows()
 	if prev != "\u25B6" || next != "\u25C0" {
 		t.Errorf("RTL: prev=%q next=%q", prev, next)

@@ -4,6 +4,7 @@ package gui
 // via the codecogs API.
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -100,72 +101,94 @@ func queueDiagramError(
 	})
 }
 
-// fetchMathAsync fetches a LaTeX math image from codecogs
-// in a background goroutine.
+// defaultMathFetcher renders LaTeX via the CodeCogs API.
+// latex must already be sanitized (caller responsibility).
+func defaultMathFetcher(
+	ctx context.Context, latex string, dpi int, fgColor Color,
+) ([]byte, error) {
+	// Clamp DPI to a reasonable range. Values outside this
+	// can produce enormous or invisible images on the renderer.
+	if dpi < 24 {
+		dpi = 24
+	} else if dpi > 1200 {
+		dpi = 1200
+	}
+
+	// Build codecogs URL with DPI and optional color.
+	lum := 0.299*float64(fgColor.R) +
+		0.587*float64(fgColor.G) +
+		0.114*float64(fgColor.B)
+	colorCmd := ""
+	if lum > 128.0 {
+		colorCmd = `\color{white}`
+	}
+	prefix := fmt.Sprintf(`\dpi{%d}%s`, dpi, colorCmd)
+
+	encoded := strings.ReplaceAll(
+		prefix+latex, " ", "{}")
+	encoded = strings.ReplaceAll(encoded, "#", "%23")
+	encoded = strings.ReplaceAll(encoded, "&", "%26")
+	reqURL := "https://latex.codecogs.com/png.image?" +
+		encoded
+
+	req, err := http.NewRequestWithContext(
+		ctx, http.MethodGet, reqURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := diagramHTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, err := io.ReadAll(
+		io.LimitReader(resp.Body, maxDiagramResponseBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("read body: %w", err)
+	}
+
+	if resp.StatusCode != 200 {
+		preview := truncatePreview(string(body), 200)
+		return nil, fmt.Errorf("HTTP %d: %s",
+			resp.StatusCode, preview)
+	}
+
+	if len(body) > maxDiagramResponseBytes {
+		return nil, fmt.Errorf(
+			"response exceeds 10 MB limit")
+	}
+	return body, nil
+}
+
+// fetchMathAsync fetches a LaTeX math image in a background
+// goroutine. Uses cfg.MathFetcher when non-nil, otherwise
+// defaults to the CodeCogs API.
 //
-// PRIVACY NOTE: LaTeX source is sent to external
+// PRIVACY NOTE: LaTeX source may be sent to external
 // third-party API (latex.codecogs.com) for rendering.
 func fetchMathAsync(
 	w *Window, latex string, hash int64,
 	requestID uint64, dpi int, fgColor Color,
+	fetcher MathFetcher,
 ) {
+	actualFetcher := fetcher
+	if actualFetcher == nil {
+		actualFetcher = defaultMathFetcher
+	}
 	ctx := w.Ctx()
 	go func() {
-		safeLatex := sanitizeLatex(latex)
-
-		// Build codecogs URL with DPI and optional color.
-		lum := 0.299*float64(fgColor.R) +
-			0.587*float64(fgColor.G) +
-			0.114*float64(fgColor.B)
-		colorCmd := ""
-		if lum > 128.0 {
-			colorCmd = `\color{white}`
+		safe := sanitizeLatex(latex)
+		if safe == "" {
+			queueDiagramError(w, hash, requestID,
+				"empty or invalid LaTeX")
+			return
 		}
-		prefix := fmt.Sprintf(`\dpi{%d}%s`, dpi, colorCmd)
-
-		encoded := strings.ReplaceAll(
-			prefix+safeLatex, " ", "{}")
-		encoded = strings.ReplaceAll(encoded, "#", "%23")
-		encoded = strings.ReplaceAll(encoded, "&", "%26")
-		reqURL := "https://latex.codecogs.com/png.image?" +
-			encoded
-
-		req, err := http.NewRequestWithContext(
-			ctx, http.MethodGet, reqURL, nil)
+		body, err := actualFetcher(ctx, safe, dpi, fgColor)
 		if err != nil {
 			queueDiagramError(w, hash, requestID, err.Error())
 			return
 		}
-		client := &http.Client{Timeout: diagramFetchTimeout}
-		resp, err := client.Do(req)
-		if err != nil {
-			queueDiagramError(w, hash, requestID, err.Error())
-			return
-		}
-		defer func() { _ = resp.Body.Close() }()
-
-		body, err := io.ReadAll(
-			io.LimitReader(resp.Body, maxDiagramResponseBytes+1))
-		if err != nil {
-			queueDiagramError(w, hash, requestID,
-				"read body: "+err.Error())
-			return
-		}
-
-		if resp.StatusCode != 200 {
-			preview := truncatePreview(string(body), 200)
-			queueDiagramError(w, hash, requestID,
-				fmt.Sprintf("HTTP %d: %s",
-					resp.StatusCode, preview))
-			return
-		}
-
-		if len(body) > maxDiagramResponseBytes {
-			queueDiagramError(w, hash, requestID,
-				"response exceeds 10 MB limit")
-			return
-		}
-
 		finishDiagramFetch(
 			w, body, hash, requestID, float32(dpi), "math")
 	}()

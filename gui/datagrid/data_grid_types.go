@@ -19,14 +19,14 @@ const (
 	GridPaginationOffset
 )
 
-// gridMutationKind identifies a create, update, or delete.
-type gridMutationKind uint8
+// GridMutationKind identifies a create, update, or delete.
+type GridMutationKind uint8
 
-// gridMutationKind constants.
+// GridMutationKind constants.
 const (
-	gridMutationCreate gridMutationKind = iota
-	gridMutationUpdate
-	gridMutationDelete
+	GridMutationCreate GridMutationKind = iota
+	GridMutationUpdate
+	GridMutationDelete
 )
 
 // GridSort describes a single sort criterion.
@@ -70,4 +70,57 @@ type GridCellEdit struct {
 	ColID  string
 	Value  string
 	RowIdx int
+}
+
+// GridCursorPageReq requests a cursor-based page.
+type GridCursorPageReq struct {
+	Cursor string
+	Limit  int
+}
+
+func (GridCursorPageReq) gridPageRequest() {}
+
+// GridOffsetPageReq requests an offset-based page.
+type GridOffsetPageReq struct {
+	StartIndex int
+	EndIndex   int
+}
+
+func (GridOffsetPageReq) gridPageRequest() {}
+
+// GridPageRequest is satisfied by GridCursorPageReq or
+// GridOffsetPageReq. External code can type-switch but cannot
+// implement their own pagination types.
+type GridPageRequest interface {
+	gridPageRequest()
+}
+
+// GridAggregateOp specifies the aggregation operation.
+type GridAggregateOp uint8
+
+// GridAggregateOp values.
+const (
+	GridAggregateCount GridAggregateOp = iota
+	GridAggregateSum
+	GridAggregateAvg
+	GridAggregateMin
+	GridAggregateMax
+)
+
+// String returns the SQL-like name for the aggregate operation.
+func (op GridAggregateOp) String() string {
+	switch op {
+	case GridAggregateCount:
+		return "count"
+	case GridAggregateSum:
+		return "sum"
+	case GridAggregateAvg:
+		return "avg"
+	case GridAggregateMin:
+		return "min"
+	case GridAggregateMax:
+		return "max"
+	default:
+		return "unknown"
+	}
 }
