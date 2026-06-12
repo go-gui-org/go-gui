@@ -172,7 +172,7 @@ func newBackend(w *gui.Window) (*Backend, error) {
 		canvas: canvas,
 	})
 
-	return b
+	return b, nil
 }
 
 func (b *Backend) run(w *gui.Window) {
