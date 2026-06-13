@@ -81,7 +81,7 @@ jobs:
 
       - name: Save baseline coverage
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: go-gui/coverage.out
           key: coverage-baseline-${{ matrix.os }}
@@ -89,7 +89,7 @@ jobs:
       - name: Restore baseline coverage for diff
         if: github.event_name == 'pull_request'
         id: cov-baseline
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: go-gui/coverage-baseline.out
           key: coverage-baseline-${{ matrix.os }}
@@ -153,7 +153,7 @@ jobs:
 
       - name: Upload coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-${{ matrix.os }}
           path: go-gui/coverage.out
@@ -187,7 +187,7 @@ jobs:
         run: go vet ./...
 
       - name: Lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v9
 
       - name: Required-ID check
         run: go run ./tools/requiredid/cmd/requiredid ./...
@@ -474,13 +474,13 @@ jobs:
         run: go test -bench=. -benchmem -count=5 -run='^$' -timeout=30m ./gui/... | tee benchmark-results.txt
 
       - name: Cache benchmark baseline
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: benchmark-results.txt
           key: benchmark-baseline
 
       - name: Upload benchmark results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: benchmark-results
           path: benchmark-results.txt
@@ -513,7 +513,7 @@ jobs:
 
       - name: Restore baseline
         id: cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: baseline-results.txt
           key: benchmark-baseline
