@@ -224,6 +224,9 @@ jobs:
         working-directory: go-gui
         run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
 
+      - name: Install golangci-lint
+        run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/main/install.sh | sh -s -- -b "$(go env GOPATH)/bin" latest
+
       - name: make check
         working-directory: go-gui
         run: make check
