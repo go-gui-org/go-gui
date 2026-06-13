@@ -15,18 +15,19 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: go-gui
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: stable
+          cache: false
 
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
@@ -162,11 +163,12 @@ jobs:
     name: Vet
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: stable
+          cache: false
 
       - name: Install system dependencies
         run: |
@@ -194,18 +196,19 @@ jobs:
     name: Check (test + vet + lint)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: go-gui
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: stable
+          cache: false
 
       - name: Install system dependencies
         run: |
@@ -235,18 +238,19 @@ jobs:
     name: Build examples
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: go-gui
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: stable
+          cache: false
 
       - name: Install system dependencies
         run: |
@@ -273,18 +277,19 @@ jobs:
     name: iOS
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: go-gui
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: stable
+          cache: false
 
       - name: Add go-glyph replace
         working-directory: go-gui
@@ -315,18 +320,19 @@ jobs:
     name: WASM
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: go-gui
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: stable
+          cache: false
 
       - name: Build
         working-directory: go-gui
@@ -336,7 +342,7 @@ jobs:
         working-directory: go-gui
         run: GOOS=js GOARCH=wasm go vet ./...
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -355,11 +361,11 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: go-gui
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
@@ -379,9 +385,10 @@ jobs:
             mingw-w64-x86_64-pango
             mingw-w64-x86_64-fontconfig
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: stable
+          cache: false
 
       - name: Build
         working-directory: go-gui
@@ -395,18 +402,19 @@ jobs:
     name: Android
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: go-gui
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: stable
+          cache: false
 
       - name: Add go-glyph replace
         working-directory: go-gui
@@ -442,11 +450,12 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: stable
+          cache: false
 
       - name: Install system dependencies
         run: |
@@ -482,11 +491,12 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: stable
+          cache: false
 
       - name: Install system dependencies
         run: |
