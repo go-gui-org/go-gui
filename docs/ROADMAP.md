@@ -46,15 +46,15 @@ Improvement items from the June 2026 codebase review.
 ## CI and developer experience
 
 - [x] Add coverage diff on PRs — comment or summary showing which files regressed
-- [ ] Run fuzz tests in CI periodically (nightly or on main):
+- [x] Run fuzz tests in CI periodically (nightly or on main):
   `fuzz_clamp_unit`, `markdown/walker_fuzz`, `svg/fuzz_transform_decompose`
-- [ ] Document PostToolUse / pre-commit hooks in CONTRIBUTING
+- [x] Document PostToolUse / pre-commit hooks in CONTRIBUTING
 - [ ] Document local `go-glyph` replace setup; consider a `go.work` example for
   multi-repo development
 
 ## Documentation and onboarding
 
-- [ ] Document CI vs local test scope in CONTRIBUTING (`./gui/...` vs `./...`)
+- [x] Document CI vs local test scope in CONTRIBUTING (`./gui/...` vs `./...`)
 - [ ] Keep architecture docs in sync with backends (README mentions WebGPU;
   `docs/architecture.md` lists Metal/OpenGL)
 - [ ] Add a "add a new widget" cookbook — Cfg struct, `requiredid` tags, test

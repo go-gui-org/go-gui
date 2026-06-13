@@ -1,0 +1,110 @@
+name: Fuzz
+
+on:
+  schedule:
+    - cron: '7 7 * * *'   # daily at 07:07 UTC
+  workflow_dispatch:
+    inputs:
+      fuzztime:
+        description: 'Seconds per fuzz target'
+        required: false
+        default: '60s'
+        type: string
+
+jobs:
+  fuzz:
+    name: Fuzz
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: go-gui
+
+      - uses: actions/checkout@v5
+        with:
+          repository: go-gui-org/go-glyph
+          path: go-glyph
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+          cache: false
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pkg-config \
+            libsdl2-dev \
+            libsdl2-mixer-dev \
+            libfreetype6-dev \
+            libharfbuzz-dev \
+            libpango1.0-dev \
+            libfontconfig1-dev \
+            libhunspell-dev
+
+      - name: Add go-glyph replace
+        working-directory: go-gui
+        run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
+
+      - name: Run fuzz tests
+        working-directory: go-gui
+        run: |
+          FUZZTIME='${{ inputs.fuzztime || '60s' }}'
+          PASS=0
+          FAIL=0
+
+          {
+            echo "## Fuzz results"
+            echo "| Package | Target | Result |"
+            echo "|---------|--------|--------|"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          fuzz_one() {
+            local pkg="$1"
+            local target="$2"
+            echo "::group::fuzz ${pkg} ${target}"
+
+            if go test -fuzz="^${target}$" -fuzztime="${FUZZTIME}" -run='^$' "./${pkg}" 2>&1; then
+              echo "::endgroup::"
+              echo "| ${pkg} | ${target} | ✅ pass |" >> "$GITHUB_STEP_SUMMARY"
+              PASS=$((PASS + 1))
+            else
+              echo "::endgroup::"
+              echo "::warning::${pkg} ${target} found failing input"
+              echo "| ${pkg} | ${target} | ❌ fail |" >> "$GITHUB_STEP_SUMMARY"
+              FAIL=$((FAIL + 1))
+            fi
+          }
+
+          fuzz_one gui FuzzBezierClamp
+          fuzz_one gui FuzzClampUnit
+          fuzz_one gui FuzzLayoutPipelineDimensions
+          fuzz_one gui FuzzListCoreFuzzyScore
+          fuzz_one gui/markdown FuzzMarkdownParse
+          fuzz_one gui/markdown FuzzIsSafeURL
+          fuzz_one gui/markdown FuzzHeadingSlug
+          fuzz_one gui/svg FuzzNonNegF32
+          fuzz_one gui/svg FuzzOverrideScalar
+          fuzz_one gui/svg FuzzParseSvg
+          fuzz_one gui/svg FuzzParseSvgDimensions
+          fuzz_one gui/svg FuzzDecomposeTRS
+
+          {
+            echo ""
+            echo "**${PASS} passed, ${FAIL} failed** (fuzztime=${FUZZTIME})"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$FAIL" -gt 0 ]; then
+            echo "::warning::${FAIL} fuzz target(s) found failing inputs"
+          fi
+
+      - name: Upload fuzz corpus
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: fuzz-corpus
+          path: go-gui/**/testdata/fuzz/**/*
+          retention-days: 7
+          if-no-files-found: warn
