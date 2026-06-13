@@ -82,6 +82,13 @@ jobs:
           fuzz_one gui FuzzClampUnit
           fuzz_one gui FuzzLayoutPipelineDimensions
           fuzz_one gui FuzzListCoreFuzzyScore
+          # Event & layout fuzzing (Testing Strategy Expansion)
+          fuzz_one gui FuzzEventDispatch
+          fuzz_one gui FuzzEventDispatchWithDialog
+          fuzz_one gui FuzzEventDispatchUnfocused
+          fuzz_one gui FuzzLayoutSizing
+          fuzz_one gui FuzzLayoutSizingMinMax
+          fuzz_one gui FuzzLayoutSizingWithMix
           fuzz_one gui/markdown FuzzMarkdownParse
           fuzz_one gui/markdown FuzzIsSafeURL
           fuzz_one gui/markdown FuzzHeadingSlug
