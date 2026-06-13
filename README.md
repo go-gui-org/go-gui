@@ -59,7 +59,7 @@ The pipeline:
 View fn → GenerateViewLayout() → Layout tree
   → layoutArrange() (Fit/Fixed/Grow sizing)
   → renderLayout() → []RenderCmd
-  → Backend (Metal / OpenGL / WebGPU)
+  → Backend (Metal / OpenGL / Web/WASM)
 ```
 
 - **Single-pass layout and rendering.** No dirty tracking, no reconciliation.
@@ -86,8 +86,9 @@ View fn → GenerateViewLayout() → Layout tree
 - **Animation subsystem.** Keyframe, spring, tween, and hero transitions.
   Animations run on the framework clock and integrate with the layout pass.
 
-- **Cross-platform.** Metal (macOS), OpenGL (Linux/Windows), WebGPU/WASM
-  (browser), Metal/UIKit (iOS). Native file dialogs, menus, notifications, and
+- **Cross-platform.** Metal (macOS), OpenGL (Linux/Windows), Web/WASM —
+  Canvas2D + WebGL (browser), Metal/UIKit (iOS). Native file dialogs, menus,
+  notifications, and
   print on each platform.
 
 ---

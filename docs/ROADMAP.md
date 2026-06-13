@@ -49,13 +49,13 @@ Improvement items from the June 2026 codebase review.
 - [x] Run fuzz tests in CI periodically (nightly or on main):
   `fuzz_clamp_unit`, `markdown/walker_fuzz`, `svg/fuzz_transform_decompose`
 - [x] Document PostToolUse / pre-commit hooks in CONTRIBUTING
-- [ ] Document local `go-glyph` replace setup; consider a `go.work` example for
+- [x] Document local `go-glyph` replace setup; consider a `go.work` example for
   multi-repo development
 
 ## Documentation and onboarding
 
 - [x] Document CI vs local test scope in CONTRIBUTING (`./gui/...` vs `./...`)
-- [ ] Keep architecture docs in sync with backends (README mentions WebGPU;
+- [x] Keep architecture docs in sync with backends (README mentions WebGPU;
   `docs/architecture.md` lists Metal/OpenGL)
 - [ ] Add a "add a new widget" cookbook — Cfg struct, `requiredid` tags, test
   pattern, showcase demo

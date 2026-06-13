@@ -57,6 +57,40 @@ CI also enforces:
 - **Benchmark regression gate**: compares `Benchmark(Layout|GenerateViewLayout|...|RenderSvg)`
   against the main-branch baseline using `benchstat`.
 
+### Local development with go-glyph
+
+[go-glyph](https://github.com/go-gui-org/go-glyph) is a sibling repository that
+provides text shaping, rendering, and glyph rasterization. When working on both
+repos together, point go-gui at your local go-glyph checkout.
+
+**Option A: go.work (recommended)**
+
+Create a `go.work` file in the parent directory that contains both repos:
+
+```bash
+cd ~/Documents/github/
+go work init ./go-gui ./go-glyph
+```
+
+Go toolchain automatically resolves `github.com/go-gui-org/go-glyph` to the
+local copy. No changes to `go.mod` needed. The `go.work` file is local-only —
+do not commit it.
+
+**Option B: replace directive**
+
+Add a replace directive to `go.mod` (CI uses this approach):
+
+```bash
+cd go-gui
+go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
+```
+
+This modifies `go.mod`. Revert before committing:
+
+```bash
+go mod edit -dropreplace=github.com/go-gui-org/go-glyph
+```
+
 ## Coding Conventions
 
 - **No variable shadowing.** Use `=` to reassign existing variables, not `:=`.
