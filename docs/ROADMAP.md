@@ -34,12 +34,12 @@ Improvement items from the June 2026 codebase review.
 
 ## Code organization
 
-- [ ] Split oversized files when touched — prioritize:
-  - `gui/svg/tessellate.go`
-  - `gui/svg/animation.go`
-  - `gui/render_svg.go`
-  - `gui/view_tree.go`
-  - `gui/svg_load.go`
+- [x] Split oversized files when touched:
+  - `gui/svg/tessellate.go` → `tessellate.go` + `tessellate_scanline.go`
+  - `gui/svg/animation.go` → `animation.go` + `animation_resolve.go`
+  - `gui/render_svg.go` → `render_svg.go` + `render_svg_animation.go`
+  - `gui/view_tree.go` → `view_tree.go` + `view_tree_rows.go`
+  - `gui/svg_load.go` → `svg_load.go` + `svg_cache.go`
 - [ ] Consider subpackages for large core subsystems over time (e.g. `gui/layout/`,
   `gui/animation/`) if compile times or discoverability become painful
 
