@@ -39,14 +39,16 @@ func TestRemoveSystemTrayNoPanic(t *testing.T) {
 	RemoveSystemTray(0)
 }
 
-func TestSetMenubarWithItems(t *testing.T) {
+func TestSetMenubarWithMenus(t *testing.T) {
 	t.Parallel()
 	SetMenubar(gui.NativeMenubarCfg{
-		Items: []gui.NativeMenuItemCfg{
-			{ID: "file", Text: "File", Submenu: []gui.NativeMenuItemCfg{
+		Menus: []gui.NativeMenuCfg{
+			{Title: "File", Items: []gui.NativeMenuItemCfg{
 				{ID: "quit", Text: "Quit"},
 			}},
-			{ID: "edit", Text: "Edit"},
+			{Title: "Edit", Items: []gui.NativeMenuItemCfg{
+				{ID: "undo", Text: "Undo"},
+			}},
 		},
 	}, func(s string) {})
 }

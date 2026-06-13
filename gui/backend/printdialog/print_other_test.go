@@ -25,11 +25,11 @@ func TestShowPrintDialogNoPanic(t *testing.T) {
 func TestShowPrintDialogWithParams(t *testing.T) {
 	t.Parallel()
 	r := ShowPrintDialog(gui.NativePrintParams{
-		Title:     "Print Document",
-		NumPages:  3,
-		Copies:    1,
-		RasterDPI: 300,
-		PDFData:   []byte("%PDF-1.4 fake"),
+		Title:       "Print Document",
+		JobName:     "document.pdf",
+		Copies:      1,
+		PaperWidth:  612,
+		PaperHeight: 792,
 	})
 	if r.Status != gui.PrintRunError {
 		t.Errorf("Status: got %d, want %d", r.Status, gui.PrintRunError)
@@ -47,11 +47,11 @@ func TestShowPrintDialogZeroCopies(t *testing.T) {
 	}
 }
 
-func TestShowPrintDialogMinDPI(t *testing.T) {
+func TestShowPrintDialogWithOrientation(t *testing.T) {
 	t.Parallel()
 	r := ShowPrintDialog(gui.NativePrintParams{
-		Title:     "Test",
-		RasterDPI: 72,
+		Title:       "Test",
+		Orientation: 1,
 	})
 	if r.Status != gui.PrintRunError {
 		t.Errorf("Status: got %d, want %d", r.Status, gui.PrintRunError)
