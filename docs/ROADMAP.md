@@ -76,9 +76,9 @@ Improvement items from the June 2026 codebase review.
 
 ## API and product polish
 
-- [ ] Document native dialog platform matrix per feature
-- [ ] Ensure showcase docs cover form async validation patterns
-- [ ] Add a minimal time-travel debugging example and test
+- [x] Document native dialog platform matrix per feature
+- [x] Ensure showcase docs cover form async validation patterns
+- [x] Add a minimal time-travel debugging example and test
 
 ## Priority order
 
