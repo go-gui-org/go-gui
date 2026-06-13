@@ -105,3 +105,71 @@ func TestPrintJobResolveCurrentViewNotImpl(t *testing.T) {
 		t.Error("expected not-implemented error")
 	}
 }
+
+// mockPrintPlatform returns a preset PrintRunResult.
+type mockPrintPlatform struct {
+	NoopNativePlatform
+	result PrintRunResult
+}
+
+func (m mockPrintPlatform) ShowPrintDialog(_ NativePrintParams) PrintRunResult {
+	return m.result
+}
+
+func TestRunPrintJobSuccess(t *testing.T) {
+	w := &Window{}
+	w.nativePlatform = mockPrintPlatform{
+		result: PrintRunResult{
+			Status:  PrintRunOK,
+			PDFPath: "/tmp/out.pdf",
+		},
+	}
+	job := NewPrintJob()
+	job.Copies = 1
+	job.Source = PrintJobSource{Kind: PrintSourcePDFPath, PDFPath: "/test.pdf"}
+	result := w.RunPrintJob(job)
+	if result.Status != PrintRunOK {
+		t.Errorf("Status: got %d, want %d", result.Status, PrintRunOK)
+	}
+	if result.PDFPath != "/tmp/out.pdf" {
+		t.Errorf("PDFPath: got %q", result.PDFPath)
+	}
+}
+
+func TestRunPrintJobCancelled(t *testing.T) {
+	w := &Window{}
+	w.nativePlatform = mockPrintPlatform{
+		result: PrintRunResult{Status: PrintRunCancel},
+	}
+	job := NewPrintJob()
+	job.Copies = 1
+	job.Source = PrintJobSource{Kind: PrintSourcePDFPath, PDFPath: "/test.pdf"}
+	result := w.RunPrintJob(job)
+	if result.Status != PrintRunCancel {
+		t.Errorf("Status: got %d, want %d", result.Status, PrintRunCancel)
+	}
+}
+
+func TestRunPrintJobPlatformError(t *testing.T) {
+	w := &Window{}
+	w.nativePlatform = mockPrintPlatform{
+		result: PrintRunResult{
+			Status:       PrintRunError,
+			ErrorCode:    "no_printer",
+			ErrorMessage: "no default printer configured",
+		},
+	}
+	job := NewPrintJob()
+	job.Copies = 1
+	job.Source = PrintJobSource{Kind: PrintSourcePDFPath, PDFPath: "/test.pdf"}
+	result := w.RunPrintJob(job)
+	if result.Status != PrintRunError {
+		t.Errorf("Status: got %d, want %d", result.Status, PrintRunError)
+	}
+	if result.ErrorCode != "no_printer" {
+		t.Errorf("ErrorCode: got %q", result.ErrorCode)
+	}
+	if result.ErrorMessage == "" {
+		t.Error("expected non-empty ErrorMessage")
+	}
+}

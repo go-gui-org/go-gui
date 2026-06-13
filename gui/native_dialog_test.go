@@ -276,3 +276,171 @@ func TestNativeOpenDialogBadExtension(t *testing.T) {
 		t.Errorf("expected invalid_cfg error, got %+v", result)
 	}
 }
+
+// mockDialogPlatform returns preset dialog results via the
+// NativePlatform interface (PlatformDialogResult return types).
+type mockDialogPlatform struct {
+	NoopNativePlatform
+	openResult  PlatformDialogResult
+	alertResult NativeAlertResult
+}
+
+func (m mockDialogPlatform) ShowOpenDialog(_, _ string, _ []string, _ bool) PlatformDialogResult {
+	return m.openResult
+}
+
+func (m mockDialogPlatform) ShowSaveDialog(_, _, _, _ string, _ []string, _ bool) PlatformDialogResult {
+	return m.openResult
+}
+
+func (m mockDialogPlatform) ShowFolderDialog(_, _ string) PlatformDialogResult {
+	return m.openResult
+}
+
+func (m mockDialogPlatform) ShowMessageDialog(_, _ string, _ NativeAlertLevel) NativeAlertResult {
+	return m.alertResult
+}
+
+func (m mockDialogPlatform) ShowConfirmDialog(_, _ string, _ NativeAlertLevel) NativeAlertResult {
+	return m.alertResult
+}
+
+func TestNativeOpenDialogSuccess(t *testing.T) {
+	w := &Window{}
+	w.nativePlatform = mockDialogPlatform{
+		openResult: PlatformDialogResult{
+			Status: DialogOK,
+			Paths:  []PlatformPath{{Path: "/test.txt"}},
+		},
+	}
+	var result NativeDialogResult
+	cfg := NativeOpenDialogCfg{
+		OnDone: func(r NativeDialogResult, _ *Window) { result = r },
+	}
+	nativeOpenDialogImpl(w, cfg)
+	if result.Status != DialogOK {
+		t.Errorf("Status: got %d, want %d", result.Status, DialogOK)
+	}
+	if len(result.Paths) != 1 || result.Paths[0].Path != "/test.txt" {
+		t.Errorf("Paths: got %v", result.Paths)
+	}
+}
+
+func TestNativeSaveDialogSuccess(t *testing.T) {
+	w := &Window{}
+	w.nativePlatform = mockDialogPlatform{
+		openResult: PlatformDialogResult{
+			Status: DialogOK,
+			Paths:  []PlatformPath{{Path: "/saved.txt"}},
+		},
+	}
+	var result NativeDialogResult
+	cfg := NativeSaveDialogCfg{
+		OnDone: func(r NativeDialogResult, _ *Window) { result = r },
+	}
+	nativeSaveDialogImpl(w, cfg)
+	if result.Status != DialogOK {
+		t.Errorf("Status: got %d, want %d", result.Status, DialogOK)
+	}
+}
+
+func TestNativeFolderDialogSuccess(t *testing.T) {
+	w := &Window{}
+	w.nativePlatform = mockDialogPlatform{
+		openResult: PlatformDialogResult{
+			Status: DialogOK,
+			Paths:  []PlatformPath{{Path: "/chosen/folder"}},
+		},
+	}
+	var result NativeDialogResult
+	cfg := NativeFolderDialogCfg{
+		OnDone: func(r NativeDialogResult, _ *Window) { result = r },
+	}
+	nativeFolderDialogImpl(w, cfg)
+	if result.Status != DialogOK {
+		t.Errorf("Status: got %d, want %d", result.Status, DialogOK)
+	}
+}
+
+func TestNativeMessageDialogSuccess(t *testing.T) {
+	w := &Window{}
+	w.nativePlatform = mockDialogPlatform{
+		alertResult: NativeAlertResult{Status: DialogOK},
+	}
+	var result NativeAlertResult
+	cfg := NativeMessageDialogCfg{
+		Title:  "Hello",
+		OnDone: func(r NativeAlertResult, _ *Window) { result = r },
+	}
+	nativeMessageDialogImpl(w, cfg)
+	if result.Status != DialogOK {
+		t.Errorf("Status: got %d, want %d", result.Status, DialogOK)
+	}
+}
+
+func TestNativeConfirmDialogSuccess(t *testing.T) {
+	w := &Window{}
+	w.nativePlatform = mockDialogPlatform{
+		alertResult: NativeAlertResult{Status: DialogOK},
+	}
+	var result NativeAlertResult
+	cfg := NativeConfirmDialogCfg{
+		Title:  "Confirm?",
+		OnDone: func(r NativeAlertResult, _ *Window) { result = r },
+	}
+	nativeConfirmDialogImpl(w, cfg)
+	if result.Status != DialogOK {
+		t.Errorf("Status: got %d, want %d", result.Status, DialogOK)
+	}
+}
+
+func TestNativeOpenDialogCancelled(t *testing.T) {
+	w := &Window{}
+	w.nativePlatform = mockDialogPlatform{
+		openResult: PlatformDialogResult{Status: DialogCancel},
+	}
+	var result NativeDialogResult
+	cfg := NativeOpenDialogCfg{
+		OnDone: func(r NativeDialogResult, _ *Window) { result = r },
+	}
+	nativeOpenDialogImpl(w, cfg)
+	if result.Status != DialogCancel {
+		t.Errorf("Status: got %d, want %d", result.Status, DialogCancel)
+	}
+}
+
+// mockPlatformErrorDialog returns errors from all dialog methods.
+type mockPlatformErrorDialog struct {
+	NoopNativePlatform
+}
+
+func (mockPlatformErrorDialog) ShowOpenDialog(_, _ string, _ []string, _ bool) PlatformDialogResult {
+	return PlatformDialogResult{Status: DialogError, ErrorCode: "platform_error", ErrorMessage: "disk full"}
+}
+
+func (mockPlatformErrorDialog) ShowSaveDialog(_, _, _, _ string, _ []string, _ bool) PlatformDialogResult {
+	return PlatformDialogResult{Status: DialogError, ErrorCode: "platform_error"}
+}
+
+func (mockPlatformErrorDialog) ShowMessageDialog(_, _ string, _ NativeAlertLevel) NativeAlertResult {
+	return NativeAlertResult{Status: DialogError, ErrorCode: "platform_error"}
+}
+
+func TestNativeOpenDialogPlatformError(t *testing.T) {
+	w := &Window{}
+	w.nativePlatform = mockPlatformErrorDialog{}
+	var result NativeDialogResult
+	cfg := NativeOpenDialogCfg{
+		OnDone: func(r NativeDialogResult, _ *Window) { result = r },
+	}
+	nativeOpenDialogImpl(w, cfg)
+	if result.Status != DialogError {
+		t.Errorf("Status: got %d, want %d", result.Status, DialogError)
+	}
+	if result.ErrorCode != "platform_error" {
+		t.Errorf("ErrorCode: got %q", result.ErrorCode)
+	}
+	if result.ErrorMessage != "disk full" {
+		t.Errorf("ErrorMessage: got %q", result.ErrorMessage)
+	}
+}

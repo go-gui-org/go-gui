@@ -18,7 +18,7 @@ Improvement items from the June 2026 codebase review.
 
 ### Native platform
 
-- [ ] Expand tests for `filedialog`, `printdialog`, `nativemenu`, `sni`, and
+- [x] Expand tests for `filedialog`, `printdialog`, `nativemenu`, `sni`, and
   `spellcheck` beyond stub "unsupported" paths — interface-level tests via
   `NativePlatform` mocks; platform-specific tests behind build tags
 
