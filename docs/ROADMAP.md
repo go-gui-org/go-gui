@@ -13,7 +13,7 @@ Improvement items from the June 2026 codebase review.
 
 ### Render backends
 
-- [ ] Add headless render smoke tests for `metal/`, `gl/`, and `sdl2/` — draw a
+- [x] Add headless render smoke tests for `metal/`, `gl/`, and `sdl2/` — draw a
   rect + text, assert no panic and non-empty framebuffer
 
 ### Native platform
@@ -24,7 +24,7 @@ Improvement items from the June 2026 codebase review.
 
 ### Accessibility
 
-- [ ] Add tests for `syncA11y` — build a small layout tree and assert
+- [x] Add tests for `syncA11y` — build a small layout tree and assert
   `A11yNode` structure, labels, and roles
 
 ### Examples and packages

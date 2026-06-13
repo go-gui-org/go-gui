@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestA11yCollectEmpty(t *testing.T) {
 	layout := Layout{}
@@ -523,6 +526,278 @@ func TestWindowCleanup(t *testing.T) {
 	w.WindowCleanup()
 	if w.FileAccessGrantCount() != 0 {
 		t.Errorf("grants not released: %d", w.FileAccessGrantCount())
+	}
+}
+
+// --- syncA11y tests ---
+
+// mockA11yPlatform records A11ySync and A11yAnnounce calls for
+// testing the syncA11y integration path.
+type mockA11yPlatform struct {
+	NoopNativePlatform
+	synced   []A11yNode
+	syncCnt  int
+	focusIdx int
+	announce []string
+}
+
+func (m *mockA11yPlatform) A11ySync(
+	nodes []A11yNode, count, focusedIdx int,
+) {
+	// Copy nodes to avoid aliasing reused slice.
+	m.synced = append(m.synced[:0], nodes[:count]...)
+	m.syncCnt = count
+	m.focusIdx = focusedIdx
+}
+
+func (m *mockA11yPlatform) A11yAnnounce(text string) {
+	m.announce = append(m.announce, text)
+}
+
+func newA11yWindow() *Window {
+	w := NewWindow(WindowCfg{
+		State:  new(int),
+		Width:  200,
+		Height: 200,
+	})
+	w.SetNativePlatform(&mockA11yPlatform{})
+	return w
+}
+
+func TestSyncA11yNoPlatform(t *testing.T) {
+	w := newTestWindow()
+	// syncA11y should no-op when nativePlatform is nil.
+	// Must not panic.
+	w.syncA11y()
+}
+
+func TestSyncA11yNotInitialized(t *testing.T) {
+	w := newA11yWindow()
+	w.layout = Layout{
+		Shape: &Shape{A11YRole: AccessRoleButton},
+	}
+	// Platform set but a11y not initialized — should no-op.
+	w.syncA11y()
+	if mp := w.nativePlatform.(*mockA11yPlatform); mp.syncCnt != 0 {
+		t.Error("A11ySync should not be called before init")
+	}
+}
+
+func TestSyncA11yNilShape(t *testing.T) {
+	w := newA11yWindow()
+	w.a11y.initialized = true
+	w.layout = Layout{} // Shape is nil
+	w.syncA11y()
+	if mp := w.nativePlatform.(*mockA11yPlatform); mp.syncCnt != 0 {
+		t.Error("A11ySync should not be called with nil shape")
+	}
+}
+
+func TestSyncA11yEmptyNodes(t *testing.T) {
+	w := newA11yWindow()
+	w.a11y.initialized = true
+	w.layout = Layout{
+		Shape: &Shape{A11YRole: AccessRoleNone},
+	}
+	w.syncA11y()
+	if mp := w.nativePlatform.(*mockA11yPlatform); mp.syncCnt != 0 {
+		t.Error("A11ySync should not be called when nodes are empty")
+	}
+}
+
+func TestSyncA11yBuildsAndSyncsTree(t *testing.T) {
+	w := newA11yWindow()
+	w.a11y.initialized = true
+	w.layout = Layout{
+		Shape: &Shape{A11YRole: AccessRoleGroup},
+		Children: []Layout{
+			{Shape: &Shape{
+				A11YRole: AccessRoleButton,
+				A11Y:     &AccessInfo{Label: "OK"},
+				X:        10, Y: 20, Width: 80, Height: 30,
+			}},
+			{Shape: &Shape{
+				A11YRole: AccessRoleButton,
+				A11Y:     &AccessInfo{Label: "Cancel"},
+				X:        100, Y: 20, Width: 80, Height: 30,
+			}},
+		},
+	}
+	w.a11y.lastSync = time.Time{} // reset throttle
+	w.syncA11y()
+
+	mp := w.nativePlatform.(*mockA11yPlatform)
+	if mp.syncCnt != 3 {
+		t.Fatalf("syncCnt: got %d, want 3", mp.syncCnt)
+	}
+	// Node 0: group.
+	n0 := mp.synced[0]
+	if n0.Role != AccessRoleGroup {
+		t.Errorf("node 0 role: got %d, want AccessRoleGroup", n0.Role)
+	}
+	if n0.ChildrenStart != 1 || n0.ChildrenCount != 2 {
+		t.Errorf("node 0 children: start=%d count=%d, want 1,2",
+			n0.ChildrenStart, n0.ChildrenCount)
+	}
+	// Node 1: OK button.
+	n1 := mp.synced[1]
+	if n1.Role != AccessRoleButton || n1.Label != "OK" {
+		t.Errorf("node 1: role=%d label=%q, want Button/OK",
+			n1.Role, n1.Label)
+	}
+	if n1.ParentIdx != 0 {
+		t.Errorf("node 1 parent: got %d, want 0", n1.ParentIdx)
+	}
+	if n1.X != 10 || n1.Y != 20 || n1.W != 80 || n1.H != 30 {
+		t.Errorf("node 1 bounds: %g,%g %gx%g", n1.X, n1.Y, n1.W, n1.H)
+	}
+	// Node 2: Cancel button.
+	n2 := mp.synced[2]
+	if n2.Role != AccessRoleButton || n2.Label != "Cancel" {
+		t.Errorf("node 2: role=%d label=%q, want Button/Cancel",
+			n2.Role, n2.Label)
+	}
+	if n2.ParentIdx != 0 {
+		t.Errorf("node 2 parent: got %d, want 0", n2.ParentIdx)
+	}
+}
+
+func TestSyncA11yTrackedFocus(t *testing.T) {
+	w := newA11yWindow()
+	w.a11y.initialized = true
+	w.viewState.idFocus = 2
+	w.layout = Layout{
+		Shape: &Shape{A11YRole: AccessRoleGroup},
+		Children: []Layout{
+			{Shape: &Shape{
+				A11YRole: AccessRoleButton,
+				IDFocus:  1,
+			}},
+			{Shape: &Shape{
+				A11YRole: AccessRoleButton,
+				IDFocus:  2,
+			}},
+		},
+	}
+	w.a11y.lastSync = time.Time{}
+	w.syncA11y()
+
+	mp := w.nativePlatform.(*mockA11yPlatform)
+	if mp.focusIdx != 2 {
+		t.Errorf("focusIdx: got %d, want 2", mp.focusIdx)
+	}
+}
+
+func TestSyncA11yThrottle(t *testing.T) {
+	w := newA11yWindow()
+	w.a11y.initialized = true
+	w.layout = Layout{
+		Shape: &Shape{A11YRole: AccessRoleButton},
+	}
+	w.a11y.lastSync = time.Time{}
+	w.syncA11y()
+
+	// Second call within throttle window should no-op.
+	w.syncA11y()
+	mp := w.nativePlatform.(*mockA11yPlatform)
+	if mp.syncCnt != 1 {
+		t.Errorf("throttle failed: %d calls, want 1", mp.syncCnt)
+	}
+}
+
+func TestSyncA11yLiveRegionAnnounce(t *testing.T) {
+	w := newA11yWindow()
+	w.a11y.initialized = true
+	w.layout = Layout{
+		Shape: &Shape{
+			A11YRole:  AccessRoleStaticText,
+			A11YState: AccessStateLive,
+			A11Y:      &AccessInfo{Label: "status", ValueNum: 100},
+		},
+	}
+	w.a11y.lastSync = time.Time{}
+	// First sync sets baseline.
+	w.syncA11y()
+
+	// Change the live region value.
+	w.layout.Shape.A11Y.ValueNum = 200
+	w.a11y.lastSync = time.Time{}
+	w.syncA11y()
+
+	mp := w.nativePlatform.(*mockA11yPlatform)
+	if len(mp.announce) != 1 {
+		t.Fatalf("expected 1 announce, got %d", len(mp.announce))
+	}
+	if mp.announce[0] != "200" {
+		t.Errorf("announced value: got %q, want %q",
+			mp.announce[0], "200")
+	}
+}
+
+func TestSyncA11yLiveRegionNoChange(t *testing.T) {
+	w := newA11yWindow()
+	w.a11y.initialized = true
+	w.layout = Layout{
+		Shape: &Shape{
+			A11YRole:  AccessRoleStaticText,
+			A11YState: AccessStateLive,
+			A11Y:      &AccessInfo{Label: "status", ValueNum: 50},
+		},
+	}
+	w.a11y.lastSync = time.Time{}
+	// First sync sets baseline.
+	w.syncA11y()
+
+	// Same value — no announce.
+	w.a11y.lastSync = time.Time{}
+	w.syncA11y()
+
+	mp := w.nativePlatform.(*mockA11yPlatform)
+	if len(mp.announce) != 0 {
+		t.Errorf("expected 0 announces, got %d", len(mp.announce))
+	}
+}
+
+func TestSyncA11yInitLazy(t *testing.T) {
+	w := newA11yWindow()
+	// Set layout before initA11y is called.
+	w.layout = Layout{
+		Shape: &Shape{A11YRole: AccessRoleButton},
+	}
+	// initA11y should set initialized=true.
+	w.initA11y()
+	if !w.a11y.initialized {
+		t.Fatal("expected initialized after initA11y")
+	}
+	// Second call is idempotent.
+	w.initA11y()
+	if !w.a11y.initialized {
+		t.Fatal("init should remain true")
+	}
+}
+
+func TestSyncA11yNodesReused(t *testing.T) {
+	w := newA11yWindow()
+	w.a11y.initialized = true
+	w.layout = Layout{
+		Shape: &Shape{A11YRole: AccessRoleButton},
+	}
+	w.a11y.lastSync = time.Time{}
+	w.syncA11y()
+
+	// Capture the backing array pointer.
+	oldCap := cap(w.a11y.nodes)
+	nodesPtr := &w.a11y.nodes[:1][0]
+
+	// Second sync should reuse the slice.
+	w.a11y.lastSync = time.Time{}
+	w.syncA11y()
+	if cap(w.a11y.nodes) != oldCap {
+		t.Error("node slice cap changed — expected reuse")
+	}
+	nodesPtr2 := &w.a11y.nodes[:1][0]
+	if nodesPtr != nodesPtr2 {
+		t.Error("node backing array reallocated — expected reuse")
 	}
 }
 
