@@ -6,7 +6,13 @@ import (
 	"github.com/go-gui-org/go-glyph"
 )
 
-// Shape is the only data structure used to draw to the screen.
+// Shape is the only data structure used to draw to the screen. Each
+// [Layout] node carries a *Shape pointer. The layout engine computes
+// X, Y, Width, Height; the renderer reads those plus color, text,
+// and effects to produce [RenderCmd] values.
+//
+// Widget factories populate Shape via Cfg structs. Users rarely
+// construct Shapes directly — prefer the widget API.
 type Shape struct {
 
 	// Optional sub-structs (nil when unused)
@@ -17,37 +23,60 @@ type Shape struct {
 	bc      *shapeButtonColors // button hover/focus colors
 	SvgOpts *SvgParseOpts      // per-render SVG parse overrides
 
-	// String fields
-	ID       string // unique identifier assigned by the user
-	Resource string // image path or SVG source
+	// ID is a user-assigned string identifier. Used for event routing,
+	// form field lookup, and debugging. Optional but recommended for
+	// interactive widgets.
+	ID string
+
+	// Resource is an image file path, SVG source string, or data URI.
+	// Interpreted by the rendering backend.
+	Resource string
 
 	UID uint64 // internal use only
 
 	Version     uint64 // for cache invalidation (DrawCanvas, etc.)
-	FloatZIndex int
+	FloatZIndex int    // stack order for floating elements; higher = on top
 
 	// Structs
 	shapeClip drawClip // calculated clipping rectangle
 	Padding   Padding  // inner spacing
 
 	// Numeric fields
-	X            float32 // final calculated X position (absolute)
-	Y            float32 // final calculated Y position (absolute)
-	Width        float32
-	MinWidth     float32
-	MaxWidth     float32
-	Height       float32
-	MinHeight    float32
-	MaxHeight    float32
-	Radius       float32 // corner radius
-	Spacing      float32 // spacing between children
+	X         float32 // final calculated X position (absolute)
+	Y         float32 // final calculated Y position (absolute)
+	Width     float32
+	MinWidth  float32
+	MaxWidth  float32
+	Height    float32
+	MinHeight float32
+	MaxHeight float32
+	Radius    float32 // corner radius
+	Spacing   float32 // spacing between children
+
+	// FloatOffsetX shifts the floating element horizontally from its
+	// anchor position after FloatAnchor/FloatTieOff alignment.
 	FloatOffsetX float32
+
+	// FloatOffsetY shifts the floating element vertically from its
+	// anchor position after FloatAnchor/FloatTieOff alignment.
 	FloatOffsetY float32
 
-	IDFocus           uint32 // >0 means focusable; value = tab order
-	IDScroll          uint32 // >0 means receives scroll events
+	// IDFocus > 0 makes the widget focusable. The numeric value
+	// determines tab order — lower values receive focus first.
+	// Focused widgets receive keyboard events.
+	IDFocus uint32
+
+	// IDScroll > 0 makes the widget respond to scroll events
+	// (mouse wheel, trackpad). Used with ScrollMode to control
+	// which axes scroll.
+	IDScroll uint32
+
+	// IDScrollContainer identifies a parent scroll container.
+	// When set, scroll events bubble up to the matching IDScroll.
 	IDScrollContainer uint32
 
+	// SizeBorder is the width of the border drawn inside the
+	// layout bounds. Affects content area calculation.
 	SizeBorder float32
 
 	Opacity   float32
@@ -68,20 +97,61 @@ type Shape struct {
 	ScrollMode           ScrollMode
 	ScrollbarOrientation ScrollbarOrientation
 	TextDir              TextDirection
-	FloatAnchor          FloatAttach
-	FloatTieOff          FloatAttach
 
-	Clip          bool
-	ClipContents  bool
-	Disabled      bool
-	Float         bool
-	FloatAutoFlip bool // flip float position to stay in window
-	FocusSkip     bool
-	OverDraw      bool
-	Hero          bool
-	Wrap          bool
-	Overflow      bool
-	QuarterTurns  uint8 // 0-3: rotation in 90° CW increments
+	// FloatAnchor is the attachment point on the floating element.
+	// Combined with FloatTieOff to position the element relative
+	// to its parent. See FloatAttach constants.
+	FloatAnchor FloatAttach
+
+	// FloatTieOff is the attachment point on the parent that the
+	// floating element anchors to. See FloatAttach constants.
+	FloatTieOff FloatAttach
+
+	// Clip scissor-clips children to this element's bounds.
+	Clip bool
+
+	// ClipContents enables stencil-buffer clipping for nested
+	// containers. More expensive than Clip but supports nested
+	// clipping hierarchies.
+	ClipContents bool
+
+	Disabled bool
+
+	// Float removes the element from normal layout flow and
+	// positions it relative to its parent via FloatAnchor,
+	// FloatTieOff, and FloatOffset.
+	Float bool
+
+	// FloatAutoFlip flips the float position (e.g. left→right)
+	// to keep the element within the window bounds.
+	FloatAutoFlip bool
+
+	FocusSkip bool
+
+	// OverDraw draws this element on top of siblings in the same
+	// container without affecting layout. Used for overlays,
+	// tooltips, and drag indicators.
+	OverDraw bool
+
+	// Hero marks this element for hero transition animations.
+	// When a Hero element appears in two consecutive frames with
+	// the same ID, the renderer animates between positions.
+	Hero bool
+
+	// Wrap enables row-wrapping in horizontal-axis containers.
+	// Children that exceed the container width wrap to the next
+	// row.
+	Wrap bool
+
+	// Overflow allows content to extend beyond this element's
+	// bounds. When false (default), content is clipped. When
+	// true, scrollbars may appear if IDScroll is set.
+	Overflow bool
+
+	// QuarterTurns rotates the element in 90° clockwise
+	// increments (0–3). Rotation is applied around the element
+	// center.
+	QuarterTurns uint8
 }
 
 // NewShape returns a Shape with default field values.

@@ -1,9 +1,15 @@
 package gui
 
-// ContainerCfg configures container views (column, row, canvas,
-// circle, wrap). Containers layout children vertically,
+// ContainerCfg configures container views ([Column], [Row], [Canvas],
+// [Circle], [Wrap]). Containers layout children vertically,
 // horizontally, or freely with sizing, alignment, scrolling,
 // floating, borders, and event handling.
+//
+// # Title and group-box style
+//
+// When Title is set, the container renders a group-box label in the
+// top border — like an HTML fieldset/legend. TitleBG must match the
+// parent background color to erase the border behind the title text.
 type ContainerCfg struct {
 	ColorFilter    *ColorFilter
 	Shadow         *BoxShadow
@@ -21,27 +27,37 @@ type ContainerCfg struct {
 	OnKeyUp     func(*Layout, *Event, *Window)
 	OnMouseMove func(*Layout, *Event, *Window)
 	OnMouseUp   func(*Layout, *Event, *Window)
-	OnScroll    func(*Layout, *Window)
+
+	// OnScroll fires when the container receives scroll events.
+	// Requires IDScroll > 0 and a scrollable Overflow/ScrollMode.
+	OnScroll func(*Layout, *Window)
+
+	// AmendLayout runs after sizing to reposition overlays
+	// (color picker circles, splitter handles) or manage hover
+	// indicators. Coordinates are absolute.
 	AmendLayout func(*Layout, *Window)
+
 	OnHover     func(*Layout, *Event, *Window)
 	OnGesture   func(*Layout, *Event, *Window)
 	OnFileDrop  func(*Layout, *Event, *Window)
 	OnIMECommit func(*Layout, string, *Window)
 
-	// Scrollbar config overrides. nil = use defaults when
-	// IDScroll > 0. Set Overflow to ScrollbarHidden to suppress.
+	// ScrollbarCfgX/Y override scrollbar appearance for this
+	// container. nil uses theme defaults. Only active when
+	// IDScroll > 0.
 	ScrollbarCfgX *ScrollbarCfg
 	ScrollbarCfgY *ScrollbarCfg
 
 	// Identity
 	ID string
 
-	// Appearance
+	// Title renders a group-box label in the top border. See the
+	// type doc for TitleBG requirements.
 	Title           string
 	A11YLabel       string
 	A11YDescription string
 
-	// Content
+	// Content holds the child views displayed inside this container.
 	Content []View
 
 	FloatZIndex int
@@ -72,8 +88,13 @@ type ContainerCfg struct {
 	X float32
 	Y float32
 
-	A11YState   AccessState
-	TitleBG     Color
+	A11YState AccessState
+
+	// TitleBG is the background color behind the group-box title
+	// text. Must match the parent container's background to erase
+	// the border line behind the title.
+	TitleBG Color
+
 	Color       Color
 	ColorBorder Color
 

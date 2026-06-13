@@ -7,35 +7,61 @@ import (
 
 const animIDDragScroll = "input-drag-scroll"
 
-// InputCfg configures a text input field.
+// InputCfg configures a text input field. Supports single-line,
+// multiline, password, and masked input modes.
+//
+// # Text change pipeline
+//
+// On each keystroke: PreTextChange (optional pre-filter) → text
+// updated → OnTextChanged → re-render. On commit (Enter, blur, or
+// IME finalize): PostCommitNormalize → OnTextCommit.
 type InputCfg struct {
 	TextStyle        TextStyle
 	PlaceholderStyle TextStyle
 
-	// Callbacks
+	// OnTextChanged fires after every text change. Use for
+	// live validation or state sync.
 	OnTextChanged func(*Layout, string, *Window)
-	OnTextCommit  func(*Layout, string, InputCommitReason, *Window)
-	OnEnter       func(*Layout, *Event, *Window)
-	OnKeyDown     func(*Layout, *Event, *Window)
-	OnKeyUp       func(*Layout, *Event, *Window)
-	OnBlur        func(*Layout, *Window)
-	// PreTextChange is called before text changes. Return (adjusted, true)
-	// to accept (adjusted may differ from proposed), or ("", false) to
-	// reject. Undo/redo bypass this callback by design — if security
-	// invariants (max length, forbidden chars) must be enforced
-	// unconditionally, use OnTextChanged instead.
-	PreTextChange       func(current, proposed string) (string, bool)
+
+	// OnTextCommit fires when the user finalizes input: pressing
+	// Enter, losing focus (blur), or completing IME composition.
+	// The InputCommitReason indicates the trigger.
+	OnTextCommit func(*Layout, string, InputCommitReason, *Window)
+
+	OnEnter   func(*Layout, *Event, *Window)
+	OnKeyDown func(*Layout, *Event, *Window)
+	OnKeyUp   func(*Layout, *Event, *Window)
+	OnBlur    func(*Layout, *Window)
+
+	// PreTextChange is called before text changes. Return
+	// (adjusted, true) to accept (adjusted may differ from
+	// proposed), or ("", false) to reject. Undo/redo bypass this
+	// callback by design — if security invariants (max length,
+	// forbidden chars) must be enforced unconditionally, use
+	// OnTextChanged instead.
+	PreTextChange func(current, proposed string) (string, bool)
+
+	// PostCommitNormalize transforms the final text before
+	// OnTextCommit fires. Use for trimming whitespace,
+	// normalizing case, or formatting.
 	PostCommitNormalize func(text string, reason InputCommitReason) string
 
 	ID          string
 	Text        string
 	Placeholder string
-	Mask        string
+
+	// Mask restricts input to a pattern (e.g. date, phone, SSN).
+	// Use with MaskPreset for built-in masks or MaskTokens for
+	// custom patterns. See MaskTokenDef for the mask token syntax.
+	Mask string
 
 	// Accessibility
 	A11YLabel       string
 	A11YDescription string
-	MaskTokens      []MaskTokenDef
+
+	// MaskTokens defines custom mask token types for the Mask
+	// field. See MaskTokenDef for the format.
+	MaskTokens []MaskTokenDef
 
 	// Appearance
 	Padding    Opt[Padding]
@@ -48,7 +74,6 @@ type InputCfg struct {
 	MinHeight  float32
 	MaxHeight  float32
 
-	// Focus
 	IDFocus  uint32
 	IDScroll uint32
 
@@ -57,14 +82,23 @@ type InputCfg struct {
 	ColorBorder      Color
 	ColorBorderFocus Color
 
-	// Sizing
-	Sizing     Sizing
+	Sizing Sizing
+
+	// MaskPreset selects a built-in input mask (date, phone, etc.).
 	MaskPreset InputMaskPreset
-	Mode       InputMode
+
+	// Mode controls input behavior: single-line, multiline, or
+	// search with clear button. See InputMode constants.
+	Mode InputMode
+
+	// IsPassword masks displayed characters with dots/bullets.
 	IsPassword bool
+
+	// SpellCheck enables platform spell checking. Mac only.
 	SpellCheck bool
-	Disabled   bool
-	Invisible  bool
+
+	Disabled  bool
+	Invisible bool
 }
 
 // Input creates a text input field view.

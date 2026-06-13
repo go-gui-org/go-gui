@@ -40,8 +40,10 @@ Improvement items from the June 2026 codebase review.
   - `gui/render_svg.go` → `render_svg.go` + `render_svg_animation.go`
   - `gui/view_tree.go` → `view_tree.go` + `view_tree_rows.go`
   - `gui/svg_load.go` → `svg_load.go` + `svg_cache.go`
-- [ ] Consider subpackages for large core subsystems over time (e.g. `gui/layout/`,
-  `gui/animation/`) if compile times or discoverability become painful
+- [x] Consider subpackages for large core subsystems over time (e.g. `gui/layout/`,
+  `gui/animation/`) if compile times or discoverability become painful —
+  [analysis](subpackage-analysis.md): core types mutually dependent; import cycles
+  unavoidable; file prefix convention sufficient; compile time 0.28s
 
 ## CI and developer experience
 
@@ -57,9 +59,13 @@ Improvement items from the June 2026 codebase review.
 - [x] Document CI vs local test scope in CONTRIBUTING (`./gui/...` vs `./...`)
 - [x] Keep architecture docs in sync with backends (README mentions WebGPU;
   `docs/architecture.md` lists Metal/OpenGL)
-- [ ] Add a "add a new widget" cookbook — Cfg struct, `requiredid` tags, test
-  pattern, showcase demo
-- [ ] Improve godoc on key exported types (`Window`, `Layout`, widget `*Cfg`)
+- [x] Add a "add a new widget" cookbook — Cfg struct, `requiredid` tags, test
+  pattern, showcase demo — [cookbook](cookbook-add-widget.md)
+- [x] Improve godoc on key exported types (`Window`, `Layout`, widget `*Cfg`)
+  — [Layout](gui/layout.go), [Window](gui/window.go), [Shape](gui/shape.go),
+  [ContainerCfg](gui/view_container.go), [ButtonCfg](gui/view_button.go),
+  [InputCfg](gui/view_input.go), [TextCfg](gui/view_text.go);
+  Cfg conventions in [doc.go](gui/doc.go)
 
 ## Performance and quality
 

@@ -52,4 +52,34 @@
 //	}
 //
 // See [examples/get_started] for a complete runnable program.
+//
+// # Widget configuration
+//
+// Every widget factory accepts a *Cfg struct (e.g. [ButtonCfg],
+// [ContainerCfg], [TextCfg]). Cfg types follow these conventions:
+//
+//   - Zero-initializable: all fields have usable zero values. Create
+//     with ButtonCfg{Text: "Click"} — omit fields you don't need.
+//   - Opt[T] fields: optional overrides that distinguish "not set"
+//     from an explicit zero. Use cfg.Radius.Get(default) or
+//     cfg.Radius.Set(5).
+//   - required tags: fields tagged `gui:"required"` (e.g. FormCfg.ID)
+//     must be non-empty. Enforced by the requiredid vet analyzer.
+//   - IDFocus > 0: opts the widget into tab-order focus. The numeric
+//     value determines tab sequence (lower = earlier).
+//   - Common fields: Sizing, Float, FloatAnchor, FloatTieOff,
+//     Disabled, Invisible, Padding, Radius, SizeBorder appear on
+//     most Cfg types with identical semantics.
+//
+// # Layout tree
+//
+// The [Layout] tree is the central data structure. Each frame:
+//
+//  1. [View] functions return a Layout tree via [GenerateViewLayout]
+//  2. The layout engine sizes and positions nodes ([layoutArrange])
+//  3. The renderer walks the tree to produce []RenderCmd ([renderLayout])
+//
+// Layouts use pointer parents and value children — no reference
+// cycles. [Shape] holds visual state (position, size, color, events).
+// Layout provides structure (parent, children) and animation offsets.
 package gui

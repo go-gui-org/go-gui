@@ -1,30 +1,41 @@
 package gui
 
-// TextCfg configures a text view. Use for labels or larger
-// blocks of multiline text. Giving it an IDFocus allows mark
-// and copy operations.
+// TextCfg configures a text view. Use for labels, headings, or
+// multiline text blocks. Set IDFocus > 0 to enable text selection
+// and clipboard copy.
 type TextCfg struct {
 	TextStyle TextStyle
 	ID        string
 	Text      string
 
-	// Accessibility
 	A11YLabel       string
 	A11YDescription string
 	Opacity         Opt[float32]
 	IDFocus         uint32
-	TabSize         uint32
-	MinWidth        float32
-	Sizing          Sizing
 
-	Mode              TextMode
-	Invisible         bool
-	Clip              bool
-	FocusSkip         bool
-	Disabled          bool
-	IsPassword        bool
+	// TabSize sets the tab stop width in spaces (default 4).
+	TabSize uint32
+
+	MinWidth float32
+	Sizing   Sizing
+
+	// Mode controls text wrapping and overflow behavior. See
+	// TextMode constants.
+	Mode TextMode
+
+	Invisible  bool
+	Clip       bool
+	FocusSkip  bool
+	Disabled   bool
+	IsPassword bool
+
+	// PlaceholderActive enables placeholder styling (dimmed).
+	// Set by input widgets; not typically set directly.
 	PlaceholderActive bool
-	Hero              bool
+
+	// Hero marks this text element for hero transition
+	// animations between views.
+	Hero bool
 }
 
 // textView implements View for text rendering.

@@ -1,13 +1,27 @@
 package gui
 
-// ButtonCfg configures a clickable button. Without an OnClick
-// handler it functions as bubble text (no mouse interaction).
+// ButtonCfg configures a clickable button. Without an OnClick handler,
+// it renders as a styled label with no mouse interaction.
+//
+// Focus-driven keyboard interaction: when IDFocus > 0, pressing Space
+// or Enter while focused triggers OnClick.
 type ButtonCfg struct {
-	Shadow          *BoxShadow
-	Gradient        *GradientDef
-	OnClick         func(*Layout, *Event, *Window)
-	OnHover         func(*Layout, *Event, *Window)
-	AmendLayout     func(*Layout, *Window)
+	Shadow   *BoxShadow
+	Gradient *GradientDef
+
+	// OnClick fires when the button is clicked or activated via
+	// keyboard (Space/Enter). Required for interactive buttons;
+	// omit for bubble-text labels.
+	OnClick func(*Layout, *Event, *Window)
+
+	// OnHover fires when the mouse enters or leaves the button.
+	// The event's HoverEntered field indicates direction.
+	OnHover func(*Layout, *Event, *Window)
+
+	// AmendLayout runs after sizing. Use to reposition child
+	// overlays or adjust layout post-arrange.
+	AmendLayout func(*Layout, *Window)
+
 	ID              string
 	A11YLabel       string
 	A11YDescription string
@@ -15,28 +29,37 @@ type ButtonCfg struct {
 	Padding         Opt[Padding]
 	SizeBorder      Opt[float32]
 	Radius          Opt[float32]
-	BlurRadius      float32
-	FloatOffsetX    float32
-	FloatOffsetY    float32
-	IDFocus         uint32
-	Width           float32
-	Height          float32
-	MinWidth        float32
-	MaxWidth        float32
-	MinHeight       float32
-	MaxHeight       float32
 
-	A11YState        AccessState
-	Color            Color
-	ColorHover       Color
-	ColorFocus       Color
-	ColorClick       Color
+	// BlurRadius controls the shadow blur. 0 = no shadow.
+	BlurRadius float32
+
+	FloatOffsetX float32
+	FloatOffsetY float32
+	IDFocus      uint32
+	Width        float32
+	Height       float32
+	MinWidth     float32
+	MaxWidth     float32
+	MinHeight    float32
+	MaxHeight    float32
+
+	A11YState AccessState
+	Color     Color
+
+	// ColorHover is the background color on mouse hover.
+	ColorHover Color
+
+	// ColorFocus is the background color when keyboard-focused.
+	ColorFocus Color
+
+	// ColorClick is the background color during mouse press.
+	ColorClick Color
+
 	ColorBorder      Color
 	ColorBorderFocus Color
 	HAlign           Opt[HorizontalAlign]
 	VAlign           Opt[VerticalAlign]
 
-	// Sizing
 	Sizing      Sizing
 	Float       bool
 	FloatAnchor FloatAttach

@@ -82,7 +82,38 @@ type windowInspector struct {
 	inspectorEnabled    bool
 }
 
-// Window is the main application window.
+// Window is the main application window — the root container for all UI
+// state, layout, and rendering.
+//
+// # Lifecycle
+//
+// Created via [NewWindow], which accepts a [WindowCfg] with the initial
+// view generator, user state, and window properties. The window is then
+// handed to a backend for the event loop:
+//
+//	sdl2.Run(w)       // SDL2 + Metal/OpenGL
+//	metal.Run(w)      // Metal-only (macOS)
+//	gl.Run(w)         // OpenGL-only
+//
+// During the event loop, the backend calls the view generator each frame
+// to produce a [Layout] tree, which is sized, positioned, and rendered.
+// OnInit fires once after the first frame. WindowCleanup fires on close.
+//
+// # Goroutine model
+//
+// The backend runs the event loop on the main thread (OS requirement for
+// most GUI frameworks). View functions and event callbacks execute on the
+// calling goroutine — typically the main thread — under [Window.mu].
+// Use [Window.Ctx] for async operations that should abort on window close.
+//
+// # Key subsystems
+//
+//   - [Window.State] / [State] — typed per-window user data
+//   - [Window.Now] — virtual-clock-aware time (supports time-travel debug)
+//   - [Window.UpdateView] — request a full rebuild next frame
+//   - [Window.SetTitle] — update the OS window title
+//   - [Window.Close] — request window close (safe from any goroutine)
+//   - [Window.Backend] — access text measurement, clipboard, native dialogs
 type Window struct {
 	a11y a11y // Accessibility backend state.
 	windowBackend
@@ -122,7 +153,8 @@ type Window struct {
 	// View state.
 	viewState ViewState
 
-	// Config stores the WindowCfg for backend access.
+	// Config is the WindowCfg passed to NewWindow. Read-only after init.
+	// Backends read Title, Width, Height, and other properties from this.
 	Config WindowCfg
 
 	// Layout tree — current frame.
