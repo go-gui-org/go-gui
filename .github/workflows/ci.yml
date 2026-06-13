@@ -78,6 +78,78 @@ jobs:
             }
           }'
 
+      - name: Save baseline coverage
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v4
+        with:
+          path: go-gui/coverage.out
+          key: coverage-baseline-${{ matrix.os }}
+
+      - name: Restore baseline coverage for diff
+        if: github.event_name == 'pull_request'
+        id: cov-baseline
+        uses: actions/cache/restore@v4
+        with:
+          path: go-gui/coverage-baseline.out
+          key: coverage-baseline-${{ matrix.os }}
+
+      - name: Coverage diff on PR
+        if: github.event_name == 'pull_request'
+        working-directory: go-gui
+        run: |
+          if [ ! -f coverage-baseline.out ]; then
+            echo "::warning::No coverage baseline cached from main. Skipping diff."
+            exit 0
+          fi
+
+          # Write per-package coverage extraction awk script.
+          cat > /tmp/pkgcov.awk << 'AWKEOF'
+          NR == 1 { next }
+          {
+              pkg = $1
+              idx = match(pkg, /\/[^\/]+$/)
+              if (idx > 0) pkg = substr(pkg, 1, idx - 1)
+              stmts[pkg] += $2
+              if ($3 > 0) covered[pkg] += $2
+          }
+          END {
+              for (p in stmts) {
+                  if (stmts[p] == 0) continue
+                  pct = 100.0 * covered[p] / stmts[p]
+                  printf "%s\t%.1f\n", p, pct
+              }
+          }
+          AWKEOF
+
+          awk -f /tmp/pkgcov.awk coverage-baseline.out | sort > /tmp/baseline-cov.txt
+          awk -f /tmp/pkgcov.awk coverage.out | sort > /tmp/pr-cov.txt
+
+          echo "## Coverage diff" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Package | Baseline | PR | Δ |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|----------|----|---|" >> $GITHUB_STEP_SUMMARY
+
+          regressions=0
+          join -t $'\t' -a 1 -a 2 -e "-" -o 0,1.2,2.2 \
+            /tmp/baseline-cov.txt /tmp/pr-cov.txt |
+          while IFS=$'\t' read -r pkg base cur; do
+            if [ "$base" = "-" ]; then
+              echo "| $pkg | — | ${cur}% | new |" >> $GITHUB_STEP_SUMMARY
+            elif [ "$cur" = "-" ]; then
+              echo "| $pkg | ${base}% | — | removed |" >> $GITHUB_STEP_SUMMARY
+            else
+              delta=$(awk "BEGIN { printf \"%.1f\", $cur - $base }")
+              if (( $(awk "BEGIN { print ($delta < -2) ? 1 : 0 }") )); then
+                echo "::warning::$pkg coverage dropped ${delta}% (${base}% → ${cur}%)"
+                regressions=$((regressions + 1))
+              fi
+              echo "| $pkg | ${base}% | ${cur}% | ${delta}% |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "${regressions} package(s) with coverage drop > 2%." >> $GITHUB_STEP_SUMMARY
+
       - name: Upload coverage
         if: always()
         uses: actions/upload-artifact@v4

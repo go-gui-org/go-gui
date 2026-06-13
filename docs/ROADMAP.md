@@ -29,8 +29,8 @@ Improvement items from the June 2026 codebase review.
 
 ### Examples and packages
 
-- [ ] Add compile + one-frame render tests for the 18 examples that lack tests
-- [ ] Add minimal init/lifecycle tests for `gui/audio` and `gui/shader`
+- [x] Add compile + one-frame render tests for the 18 examples that lack tests
+- [x] Add minimal init/lifecycle tests for `gui/audio` and `gui/shader`
 
 ## Code organization
 
@@ -45,7 +45,7 @@ Improvement items from the June 2026 codebase review.
 
 ## CI and developer experience
 
-- [ ] Add coverage diff on PRs — comment or summary showing which files regressed
+- [x] Add coverage diff on PRs — comment or summary showing which files regressed
 - [ ] Run fuzz tests in CI periodically (nightly or on main):
   `fuzz_clamp_unit`, `markdown/walker_fuzz`, `svg/fuzz_transform_decompose`
 - [ ] Document PostToolUse / pre-commit hooks in CONTRIBUTING
