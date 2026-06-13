@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"strconv"
+	"testing"
+)
 
 type benchSvgParser struct{}
 
@@ -61,6 +64,42 @@ func BenchmarkRenderSvgAnimated(b *testing.B) {
 	for b.Loop() {
 		w.renderers = w.renderers[:0]
 		renderSvg(shape, clip, w)
+	}
+}
+
+// BenchmarkSvgLoadCacheHit measures the cost of LoadSvg when the
+// parsed + tessellated result is already cached. This is the fast
+// path taken on every frame after the first for static SVGs.
+func BenchmarkSvgLoadCacheHit(b *testing.B) {
+	w := NewWindow(WindowCfg{Width: 200, Height: 200})
+	w.SetSvgParser(benchSvgParser{})
+	// Populate cache.
+	if _, err := w.LoadSvg("<svg/>", 100, 100); err != nil {
+		b.Fatal(err)
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		_, _ = w.LoadSvg("<svg/>", 100, 100)
+	}
+}
+
+// BenchmarkSvgLoadCacheMiss measures the full parse + tessellate +
+// cache-write path for an uncached SVG.
+func BenchmarkSvgLoadCacheMiss(b *testing.B) {
+	w := NewWindow(WindowCfg{Width: 200, Height: 200})
+	w.SetSvgParser(benchSvgParser{})
+
+	// Use a unique source per iteration to defeat the cache.
+	srcs := make([]string, b.N)
+	for i := range b.N {
+		srcs[i] = "<svg id='" + strconv.Itoa(i) + "'/>"
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := range b.N {
+		_, _ = w.LoadSvg(srcs[i], 100, 100)
 	}
 }
 

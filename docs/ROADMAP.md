@@ -63,10 +63,10 @@ Improvement items from the June 2026 codebase review.
 
 ## Performance and quality
 
-- [ ] Add allocation benchmarks for hot paths: `GenerateViewLayout`,
+- [x] Add allocation benchmarks for hot paths: `GenerateViewLayout`,
   `renderLayout`, SVG cache hits
-- [ ] Add `docs/profiling.md` for pprof workflows
-- [ ] Keep golden tests when changing SVG tessellation or animation
+- [x] Add `docs/profiling.md` for pprof workflows
+- [x] Keep golden tests when changing SVG tessellation or animation
 
 ## API and product polish
 
