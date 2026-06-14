@@ -5,21 +5,21 @@ native-platform glue, large-file tooling) is complete.
 
 ## Windows Reliability
 
-- [ ] **Close issue #8 — showcase on Windows.** Users report missing
+- [x] **Close issue #8 — showcase on Windows.** Users report missing
   `libFLAC.dll` at startup. Audio is already opt-in (`-tags audio`), and
   release builds use `-tags static,audio`, but dynamic builds and incomplete
   DLL bundles still fail. Verify the release zip includes all transitive
   codec DLLs (`libFLAC.dll`, etc.), not just `SDL2*.dll`. Document the
   supported Windows build path (MSYS2 + `-tags static,audio`, or use the
   release zip as-is).
-- [ ] **Add Windows CI smoke test.** The Windows job currently only
+- [x] **Add Windows CI smoke test.** The Windows job currently only
   `go build` + `go vet`. Add at least `go test ./gui/...` (headless backend)
   and a post-build launch of `showcase-windows.exe` with a timeout to catch
   missing-DLL startup failures before release.
-- [ ] **Align local and CI Windows packaging.** `scripts/bundle-windows-dlls.sh`
+- [x] **Align local and CI Windows packaging.** `scripts/bundle-windows-dlls.sh`
   downloads upstream SDL2_mixer DLLs; the release workflow copies from MSYS2.
   Pick one source of truth so `make release` and CI produce identical zips.
-- [ ] **Document MinGW static-link pitfalls.** `go build -tags static,audio`
+- [x] **Document MinGW static-link pitfalls.** `go build -tags static,audio`
   fails on some toolchains with `undefined reference to __ms_vsscanf`
   (go-sdl2 bundled libs vs MSYS2 GCC mismatch). Add a troubleshooting section
   to `CONTRIBUTING.md` or `README.md`.

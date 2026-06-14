@@ -69,9 +69,8 @@ build-examples:
 release: build-linux build-windows build-macos build-wasm
 	tar czf build/go-gui-showcase-$(VERSION)-linux-amd64.tar.gz \
 	  -C build showcase-linux
-	bash scripts/bundle-windows-dlls.sh
 	cd build && zip go-gui-showcase-$(VERSION)-windows-amd64.zip \
-	  showcase-windows.exe dlls/flat/*.dll
+	  showcase-windows.exe
 	cd build && go run ../cmd/buildapp -version $(VERSION) \
 	  -name "Go-Gui Showcase" showcase-macos
 	hdiutil create -srcfolder "build/Go-Gui Showcase.app" \

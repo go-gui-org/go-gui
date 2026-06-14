@@ -391,6 +391,10 @@ jobs:
           go-version: stable
           cache: false
 
+      - name: Add go-glyph replace
+        working-directory: go-gui
+        run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
+
       - name: Build
         working-directory: go-gui
         run: CGO_ENABLED=1 go build ./...
@@ -398,6 +402,31 @@ jobs:
       - name: Vet
         working-directory: go-gui
         run: CGO_ENABLED=1 go vet ./...
+
+      - name: Test (headless)
+        working-directory: go-gui
+        run: CGO_ENABLED=1 go test ./gui/...
+
+      - name: Build showcase
+        working-directory: go-gui
+        run: |
+          CGO_ENABLED=1 go build -tags static,audio \
+            -o build/showcase-windows.exe ./examples/showcase/
+
+      - name: Smoke test showcase
+        working-directory: go-gui
+        run: |
+          echo "Launching showcase (10s timeout to catch DLL load failures)..."
+          ./build/showcase-windows.exe &
+          PID=$!
+          sleep 10
+          if ! kill $PID 2>/dev/null; then
+            echo "Process exited before timeout — checking exit code..."
+            wait $PID
+            echo "Showcase exited with code $? (DLL load failures exit non-zero)"
+          else
+            echo "Showcase started successfully (no DLL failures)"
+          fi
 
   android:
     name: Android

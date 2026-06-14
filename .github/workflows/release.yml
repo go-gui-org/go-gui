@@ -153,25 +153,25 @@ jobs:
         run: |
           VERSION=$(git describe --tags --always 2>/dev/null || echo "dev")
           CGO_ENABLED=1 GOOS=windows GOARCH=amd64 CC=gcc \
-            go build -ldflags \
+            go build -tags static,audio -ldflags \
               "-X github.com/go-gui-org/go-gui/gui.Version=${VERSION} \
                -X github.com/go-gui-org/go-gui/gui.Commit=$(git rev-parse --short HEAD)" \
             -o build/showcase-windows.exe ./examples/showcase/
 
-      - name: Bundle DLLs
+      - name: Verify static linking
         working-directory: go-gui
         run: |
-          cp /mingw64/bin/SDL2.dll build/
-          cp /mingw64/bin/SDL2_mixer.dll build/
-          cp /mingw64/bin/SDL2_ttf.dll build/
-          cp /mingw64/bin/SDL2_image.dll build/
+          if objdump -p build/showcase-windows.exe | grep -qi 'DLL Name: SDL2'; then
+            echo "FAIL: binary references dynamic SDL2 DLLs"; exit 1
+          fi
+          echo "OK: no dynamic SDL2 references"
 
       - name: Package
         working-directory: go-gui
         run: |
           VERSION=$(git describe --tags --always 2>/dev/null || echo "dev")
           zip "go-gui-showcase-${VERSION}-windows-amd64.zip" \
-            build/showcase-windows.exe build/*.dll
+            build/showcase-windows.exe
 
       - uses: actions/upload-artifact@v4
         with:
