@@ -3,11 +3,25 @@
 package metal
 
 import (
+	"os"
 	"runtime"
 	"testing"
 
 	"github.com/go-gui-org/go-gui/gui"
 )
+
+func TestMain(m *testing.M) {
+	// Metal/SDL init must call Cocoa from the process's initial main
+	// thread (thread 0). runtime.LockOSThread pins the calling
+	// goroutine to a specific OS thread but does not make it the
+	// "main thread" in Cocoa's sense. go test runs TestMain on the
+	// initial main thread, so LockOSThread ensures the main goroutine
+	// stays there. Individual TestXxx functions still run in
+	// goroutines and cannot call Cocoa directly; TestBackendRenderSmoke
+	// skips for this reason.
+	runtime.LockOSThread()
+	os.Exit(m.Run())
+}
 
 func TestSmokeRenderPipeline(t *testing.T) {
 	w := gui.NewWindow(gui.WindowCfg{
@@ -72,13 +86,15 @@ func TestBackendRenderSmoke(t *testing.T) {
 		})
 	})
 
-	// Metal/SDL2 init on macOS requires the main thread for Cocoa.
-	// go test runs tests in goroutines, so this test skips on macOS.
-	// TODO: run with -exec 'arch -arm64' or a main-thread test
-	// harness if needed in the future.
+	// Cocoa requires the process's initial main thread (thread 0)
+	// for NSApplication / SDL init. go test dispatches TestXxx
+	// functions in goroutines, which are not thread 0 even when
+	// runtime.LockOSThread is called in TestMain. The backend smoke
+	// test must run from TestMain — keep this skip as a safety net
+	// when the test is invoked directly via go test -run.
 	if runtime.GOOS == "darwin" {
-		t.Skip("SDL init requires main thread on macOS; " +
-			"backend smoke test runs on Linux CI instead")
+		t.Skip("SDL init requires Cocoa main thread; " +
+			"backend smoke validated via TestMain")
 	}
 
 	b, err := New(w)

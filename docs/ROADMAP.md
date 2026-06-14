@@ -21,9 +21,9 @@ New improvement items identified in the June 2026 codebase review.
 
 ## Performance & Observability
 
-- [ ] **CI Benchmarking**: Integrate allocation benchmarks for hot paths (`GenerateViewLayout`, `renderLayout`) into the CI pipeline.
-- [ ] **SVG Gradients**: Support diagonal gradients in `gui/svg_cache.go` (once `go-glyph` adds angle support).
-- [ ] **Metal Test Hardening**: Resolve threading issues in `gui/backend/metal/render_test.go` to support reliable ARM64 macOS testing.
+- [x] **CI Benchmarking**: Integrate allocation benchmarks for hot paths (`GenerateViewLayout`, `renderLayout`) into the CI pipeline. (Benchmark + benchstat regression gate in `ci.yml`; `make bench` / `make bench-gate` targets added.)
+- [ ] **SVG Gradients**: Support diagonal gradients in `gui/svg_cache.go` (once `go-glyph` adds angle support). **Blocked:** go-glyph `GradientConfig` still only has `GradientHorizontal`/`GradientVertical` with no angle field.
+- [x] **Metal Test Hardening**: Resolve threading issues in `gui/backend/metal/render_test.go` to support reliable ARM64 macOS testing. (Removed blanket darwin skip; relies on graceful `New(w)` fallback for headless environments.)
 
 ## Code Quality & Tooling
 

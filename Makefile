@@ -6,7 +6,7 @@ LDFLAGS  = -X github.com/go-gui-org/go-gui/gui.Version=$(VERSION) \
 CC_WINDOWS ?= x86_64-w64-mingw32-gcc
 STATIC_TAG  = static,audio
 
-.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test vet lint check
+.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test vet lint check bench bench-gate
 
 build-linux:
 	CGO_ENABLED=1 \
@@ -77,6 +77,16 @@ release: build-linux build-windows build-macos build-wasm
 	hdiutil create -srcfolder "build/Go-Gui Showcase.app" \
 	  -volname "Go-Gui Showcase $(VERSION)" \
 	  -format UDZO "build/Go-Gui-Showcase-$(VERSION).dmg"
+
+# Run all benchmarks with allocation reporting (matching CI baseline job).
+bench:
+	go test -bench=. -benchmem -count=5 -run='^$' -timeout=30m ./gui/...
+
+# Run targeted hot-path benchmarks for regression checking (matching CI gate job).
+bench-gate:
+	go test \
+	  -bench='Benchmark(Layout|GenerateViewLayout|ParseSvg|Tessellate|BuildDefsPathDataCache|RenderLayout|RenderSvg)' \
+	  -benchmem -count=5 -run='^$' -timeout=15m ./gui/...
 
 clean:
 	rm -rf build/
