@@ -166,16 +166,3 @@ The most common allocation source in hot paths is slice growth. Pre-size with
 `scratchPools` in `gui/scratch.go` holds per-window pools for frequently
 allocated types. When adding new hot-path allocations, consider pooling.
 
-## CI integration
-
-Benchmark results can be compared across commits with `benchstat`:
-
-```bash
-go test -bench=. -count=10 ./gui/ > new.txt
-benchstat base.txt new.txt
-```
-
-Statistically significant regressions (p < 0.05) are flagged with a delta
-percentage. The `benchmark-gate` job in CI (`.github/workflows/ci.yml`)
-runs this comparison automatically on every PR against a cached main-branch
-baseline.

@@ -49,12 +49,6 @@ Sibling projects:
 Each frame, a plain Go view function returns a layout tree. The framework sizes,
 positions, and renders it in a single pass — no virtual DOM, no diffing.
 
-State lives in a typed slot per window, accessed through `gui.State[T](w)`. Widget
-identity is stable across frames via component IDs, so focus, scroll position, and
-input state persist without manual bookkeeping.
-
-The pipeline:
-
 ```
 View fn → GenerateViewLayout() → Layout tree
   → layoutArrange() (Fit/Fixed/Grow sizing)
@@ -62,108 +56,31 @@ View fn → GenerateViewLayout() → Layout tree
   → Backend (Metal / OpenGL / Web/WASM)
 ```
 
-- **Single-pass layout and rendering.** No dirty tracking, no reconciliation.
-  Layout computes sizes in one walk, render emits draw commands in the next.
-
-- **Typed per-window state.** `gui.State[App](w)` returns a `*App` — no
-  `interface{}` casts, no global variables, no closures over mutable state.
-
-- **Headless test backend.** All layout and widget logic runs without a display.
-  The `gui/backend/test` package provides a no-op backend for unit tests.
-
-- **Time-travel debugging (opt-in).** Implement `Snapshotter` on your state type,
-  set `DebugTimeTravel: true`, and a scrubber window records state after every
-  event. Drag the slider to rewind and replay frames.
-
-- **Backend injection.** Text measurement, SVG parsing, and native platform
-  services are interfaces injected by the backend at startup. Swap backends
-  without changing widget code.
-
-- **50+ widgets.** Buttons, inputs, sliders, tables, trees, tabs, menus, dialogs,
-  toasts, breadcrumbs, data grid with virtualization, markdown viewer, RTF viewer,
-  SVG viewer, code editor (via go-edit), charts (via go-charts), maps (via go-map).
-
-- **Animation subsystem.** Keyframe, spring, tween, and hero transitions.
-  Animations run on the framework clock and integrate with the layout pass.
-
-- **Cross-platform.** Metal (macOS), OpenGL (Linux/Windows), Web/WASM —
-  Canvas2D + WebGL (browser), Metal/UIKit (iOS). Native file dialogs, menus,
-  notifications, and
-  print on each platform.
+State lives in a typed slot per window (`gui.State[T](w)`). Backend interfaces
+(TextMeasurer, SvgParser, NativePlatform) are injected at startup — swap backends
+without changing widget code. Headless test backend included.
 
 ---
 
 ## Features
 
-**Widgets & Layout**
-
-- 50+ built-in widgets — buttons, inputs, sliders, tables, trees, tabs,
-  menus, dialogs, toasts, breadcrumbs, and more
-- Flexible layout system — Row, Column, Wrap, Canvas, Splitter, DockLayout,
-  ExpandPanel, OverflowPanel, RotatedBox
-- DataGrid with virtualization, sorting, grouping, inline editing,
-  CSV/TSV/XLSX/PDF export, and async data sources
-- Dock layout with drag-and-drop panel rearrangement and tab groups
-
-**Rendering & Backends**
-
-- GPU-accelerated rendering via SDL2 + Metal (macOS) / OpenGL (Linux/Windows)
-- Web/WASM backend — Canvas2D with custom WebGL shaders, runs in any browser
-- iOS backend — Metal rendering, UIKit windowing, touch events
-- Android backend support
-- Custom GPU shader support
-
-**Text & Rich Content**
-
-- Rich text input — multiline, click-to-cursor, drag-to-select, word select,
-  autoscroll, Home/End cycling
-- Markdown and RTF views with syntax highlighting and code-block
-  copy-to-clipboard
-- Text selection and copy for read-only Text widgets
-- SVG loading, caching, and tessellation
-- Powered by [go-glyph](https://github.com/go-gui-org/go-glyph) for
-  professional-grade text shaping, rendering, and bidirectional layout
-
-**Animation & Effects**
-
-- Full animation subsystem — keyframe, spring, tween, hero transitions
-- ColorFilter post-processing — grayscale, sepia, brightness, contrast,
-  hue rotate, invert, saturation, and composable filter chains
-- ClipContents — stencil-based rounded-rect clip masking
-- Box shadows and blur effects
-
-**Input & Interaction**
-
-- Touch gesture recognition — tap, double-tap, long-press, pan, swipe,
-  pinch, rotate with automatic mouse-event synthesis for compatibility
-- Pan gestures auto-scroll containers; pinch/rotate available on
-  ContainerCfg and DrawCanvasCfg
-
-**Audio**
-
-- Opt-in audio via SDL_mixer — sound effects and music playback
-- Multiple mixing channels, volume control, fade in/out
-- Load from file or embedded bytes (WAV, OGG, MP3, FLAC, MOD)
-
-**Platform Integration**
-
-- Windows backend — native file dialogs, print, and notifications
-- OS-level spell check (macOS NSSpellChecker, Linux Hunspell)
-- IME support and accessibility tree (macOS, Linux AT-SPI2)
-- Multi-window support with cross-window messaging
-- Native dialogs, notifications, system tray, and print/PDF
-- Native menu bar support
-- Locale and i18n support
-- Command registry with global hotkeys and fuzzy-search command palette
-
-**Developer Experience**
-
-- Theme system with built-in dark/light variants and custom themes
-- Stateless view model — views are pure functions, easy to test
-- Headless test backend runs all layout and widget logic without a display
-- Embedded Feather icon font with themed styles
-- Time-travel debugging — opt-in `WindowCfg.DebugTimeTravel` auto-spawns a
-  scrubber window that rewinds/replays app state frame-by-frame
+- **50+ widgets** — buttons, inputs, sliders, tables, trees, tabs, menus,
+  dialogs, toasts, DataGrid with virtualization (CSV/XLSX/PDF export), Markdown
+  and RTF views, SVG rendering, and more
+- **GPU-accelerated** — Metal (macOS), OpenGL (Linux/Windows), WebGL/WASM
+  (browser), Metal/UIKit (iOS)
+- **Animation subsystem** — keyframe, spring, tween, hero transitions, color
+  filters, box shadows, blur effects
+- **Touch gesture recognition** — tap, double-tap, long-press, pan, swipe,
+  pinch, rotate with automatic mouse-event synthesis
+- **Time-travel debugging** — opt-in scrubber rewinds/replays app state
+  frame-by-frame; implement `Snapshotter` on your state type and set
+  `DebugTimeTravel: true`
+- **Headless test backend** — all layout and widget logic runs without a display
+- **Cross-platform integration** — native file dialogs, menus, notifications,
+  print/PDF, system tray, IME, a11y, spell check
+- **go-glyph powered** — professional text shaping, rendering, bidirectional
+  layout
 
 ![gallery](assets/gallery.png)
 
@@ -236,66 +153,17 @@ version and [`examples/web_demo/`](examples/web_demo/) for the browser build.
 
 ## Installation
 
-### Prerequisites
-
-Go-Gui requires **Go 1.26+** and SDL2 development libraries.
-
-#### macOS (Homebrew)
+Requires **Go 1.26+** and SDL2 development libraries. See the
+[Installation Guide](https://github.com/go-gui-org/go-gui/wiki/Installation)
+for platform-specific instructions.
 
 ```bash
-brew install go pkg-config sdl2 sdl2_mixer freetype harfbuzz pango fontconfig
-```
+# macOS:   brew install go pkg-config sdl2 sdl2_mixer freetype harfbuzz pango fontconfig
+# Ubuntu:  sudo apt-get install golang libsdl2-dev libsdl2-mixer-dev libfreetype6-dev libharfbuzz-dev libpango1.0-dev libfontconfig1-dev
+# Fedora:  sudo dnf install golang SDL2-devel SDL2_mixer-devel freetype-devel harfbuzz-devel pango-devel fontconfig-devel
+# Arch:    sudo pacman -S go sdl2 sdl2_mixer freetype2 harfbuzz pango fontconfig
+# Windows: Use MSYS2 MinGW x64 — pacman -S mingw-w64-x86_64-go mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_mixer mingw-w64-x86_64-freetype mingw-w64-x86_64-harfbuzz mingw-w64-x86_64-pango mingw-w64-x86_64-fontconfig
 
-#### Ubuntu / Debian
-
-```bash
-sudo apt-get update
-sudo apt-get install -y \
-  golang build-essential pkg-config \
-  libsdl2-dev libsdl2-mixer-dev libfreetype6-dev libharfbuzz-dev \
-  libpango1.0-dev libfontconfig1-dev
-```
-
-#### Fedora / RHEL
-
-```bash
-sudo dnf install -y golang gcc pkgconf-pkg-config \
-  SDL2-devel SDL2_mixer-devel freetype-devel harfbuzz-devel pango-devel fontconfig-devel
-```
-
-#### Arch Linux
-
-```bash
-sudo pacman -Syu --noconfirm go base-devel pkgconf \
-  sdl2 sdl2_mixer freetype2 harfbuzz pango fontconfig
-```
-
-#### Windows (MSYS2 MinGW x64)
-
-```bash
-pacman -S --needed mingw-w64-x86_64-go mingw-w64-x86_64-gcc \
-  mingw-w64-x86_64-pkgconf mingw-w64-x86_64-SDL2 \
-  mingw-w64-x86_64-SDL2_mixer mingw-w64-x86_64-freetype \
-  mingw-w64-x86_64-harfbuzz mingw-w64-x86_64-pango \
-  mingw-w64-x86_64-fontconfig
-```
-
-Use the `MSYS2 MinGW x64` shell for `go build` / `go run`.
-
-#### Windows (vcpkg)
-
-```bash
-vcpkg install sdl2:x64-windows sdl2-mixer:x64-windows \
-  freetype:x64-windows harfbuzz:x64-windows pango:x64-windows \
-  fontconfig:x64-windows
-```
-
-Set `CGO_CFLAGS` and `CGO_LDFLAGS` to the vcpkg include/lib paths before
-building.
-
-### Get the Module
-
-```bash
 go get github.com/go-gui-org/go-gui
 ```
 
@@ -335,50 +203,6 @@ t := gui.CurrentTheme()              // read anywhere
 
 Custom themes are built with `gui.ThemeMaker` and registered via
 `gui.RegisterTheme`.
-
-### Multi-Window
-
-```go
-app := gui.NewApp()
-app.ExitMode = gui.ExitOnMainClose
-
-w1 := gui.NewWindow(gui.WindowCfg{State: &Main{}, Title: "Main"})
-w2 := gui.NewWindow(gui.WindowCfg{State: &Inspector{}, Title: "Inspector"})
-
-backend.RunApp(app, w1, w2)
-```
-
-Open windows at runtime with `app.OpenWindow(cfg)`. Communicate across
-windows with `app.Broadcast(fn)` or `other.QueueCommand(fn)`.
-
-### Time-Travel Debugging
-
-Opt-in with one flag. Implement `Snapshotter` on your state, set
-`DebugTimeTravel: true`, and a scrubber window spawns alongside the app.
-
-```go
-type App struct { Count int }
-
-func (s *App) Snapshot() any  { c := *s; return &c }
-func (s *App) Restore(v any)  { *s = *v.(*App) }
-
-app := gui.NewApp()
-main := gui.NewWindow(gui.WindowCfg{
-    State:           &App{},
-    DebugTimeTravel: true,
-})
-backend.RunApp(app, main)
-```
-
-The scrubber captures state after every event. Drag the slider or
-use the step buttons (or `←/→/Home/End`) to rewind; `Space` toggles
-freeze, `Esc` resumes live. Use `w.Now()` instead of `time.Now()` in
-views whose output depends on the clock so rewound frames match their
-snapshot. See `examples/time_travel` for a runnable demo.
-
-Requirements: multi-window mode (App + `App.OpenWindow`); user state
-implements `Snapshotter`. Zero-cost when the flag is off. Scrub is
-read-only — rewinding does not undo past side effects (HTTP, file I/O).
 
 ---
 
@@ -485,151 +309,19 @@ w.DataGrid(gui.DataGridCfg{
 
 ### Example Apps
 
-45 example applications ship with the framework:
-
-| Directory                                                  | Description                                  |
-| ---------------------------------------------------------- | -------------------------------------------- |
-| [`animations`](examples/animations/)                       | Animation subsystem showcase                 |
-| [`benchmark`](examples/benchmark/)                         | Frame timing and allocation benchmarks       |
-| [`blur_demo`](examples/blur_demo/)                         | Blur visual effect                           |
-| [`calculator`](examples/calculator/)                       | Styled desktop calculator                    |
-| [`color_picker`](examples/color_picker/)                   | Color picker widget                          |
-| [`command_demo`](examples/command_demo/)                   | Command registry, hotkeys, command palette   |
-| [`context_menu`](examples/context_menu/)                   | Right-click context menus                    |
-| [`custom_shader`](examples/custom_shader/)                 | Custom GPU shader rendering                  |
-| [`data_grid_data_source`](examples/data_grid_data_source/) | DataGrid with async data source              |
-| [`date_picker_options`](examples/date_picker_options/)     | Date picker configurations                   |
-| [`dialogs`](examples/dialogs/)                             | Native and custom dialogs                    |
-| [`digital_rain`](examples/digital_rain/)                   | Matrix-style digital rain effect             |
-| [`dock_layout`](examples/dock_layout/)                     | IDE-style docking panels with drag-and-drop  |
-| [`draw_canvas`](examples/draw_canvas/)                     | Custom-draw canvas surface                   |
-| [`floating_layout`](examples/floating_layout/)             | Float-anchored overlay positioning           |
-| [`get_started`](examples/get_started/)                     | Minimal hello-world app                      |
-| [`gradient_demo`](examples/gradient_demo/)                 | OpenGL gradient rendering                    |
-| [`ios_demo`](examples/ios_demo/)                           | iOS demo app (Metal + UIKit)                 |
-| [`listbox`](examples/listbox/)                             | ListBox widget demo                          |
-| [`markdown`](examples/markdown/)                           | Markdown rendering with code-block copy      |
-| [`menu_demo`](examples/menu_demo/)                         | Pull-down menu bar                           |
-| [`multi_window`](examples/multi_window/)                   | Multi-window with cross-window messaging     |
-| [`multiline_input`](examples/multiline_input/)             | Multiline text input                         |
-| [`native_menu`](examples/native_menu/)                     | OS-native menu bar                           |
-| [`rotated_box`](examples/rotated_box/)                     | Quarter-turn rotation widget                 |
-| [`rtf`](examples/rtf/)                                     | RTF document viewer                          |
-| [`scroll_demo`](examples/scroll_demo/)                     | Scrollable content layouts                   |
-| [`shadow_demo`](examples/shadow_demo/)                     | Box shadow effects                           |
-| [`showcase`](examples/showcase/)                           | Interactive widget showcase                  |
-| [`snake`](examples/snake/)                                 | Snake game                                   |
-| [`svg`](examples/svg/)                                     | SVG loading and display                      |
-| [`svg_a11y`](examples/svg_a11y/)                           | SVG accessibility metadata (title/desc/aria) |
-| [`svg_aspect`](examples/svg_aspect/)                       | preserveAspectRatio alignment grid           |
-| [`svg_css_selectors`](examples/svg_css_selectors/)         | Sibling, attribute, `:not()` selectors       |
-| [`svg_css_states`](examples/svg_css_states/)               | `:hover` / `:focus` driven by SvgCfg ids     |
-| [`svg_css_vars`](examples/svg_css_vars/)                   | `var()` fallback + `calc()` arithmetic       |
-| [`svg_flatness`](examples/svg_flatness/)                   | FlatnessTolerance vs vertex count            |
-| [`svg_gradient_spread`](examples/svg_gradient_spread/)     | spreadMethod pad / reflect / repeat          |
-| [`svg_hittest`](examples/svg_hittest/)                     | Click-hit test on tessellated SVG paths      |
-| [`svg_radial`](examples/svg_radial/)                       | radialGradient rendering                     |
-| [`svg_use_symbol`](examples/svg_use_symbol/)               | `<use>` + `<symbol>` reuse                   |
-| [`system_tray`](examples/system_tray/)                     | System tray icon and menu                    |
-| [`time_travel`](examples/time_travel/)                     | Counter with time-travel scrubber window     |
-| [`todo`](examples/todo/)                                   | Classic todo app                             |
-| [`web_demo`](examples/web_demo/)                           | Browser demo via WASM                        |
-
-Run any example:
+45+ example apps in [`examples/`](examples/) — from `get_started` to
+`showcase`, `calculator`, `snake`, `dock_layout`, `digital_rain`, and more.
 
 ```bash
 go run ./examples/get_started/
 go run ./examples/showcase/
-go run ./examples/calculator/
 ```
 
 ![Digital Rain Screenshot](assets/digital-rain.png)
 
 ---
 
-## Widget Catalogue
-
-### Layout
-
-| Widget        | Factory                           | Description                |
-| ------------- | --------------------------------- | -------------------------- |
-| Row           | `Row(ContainerCfg)`               | Horizontal flex container  |
-| Column        | `Column(ContainerCfg)`            | Vertical flex container    |
-| Wrap          | `Wrap(ContainerCfg)`              | Flow-wrap container        |
-| Canvas        | `Canvas(ContainerCfg)`            | Absolute-position canvas   |
-| Circle        | `Circle(ContainerCfg)`            | Circular container         |
-| Rectangle     | `Rectangle(RectangleCfg)`         | Styled rectangle           |
-| ExpandPanel   | `ExpandPanel(ExpandPanelCfg)`     | Collapsible section        |
-| Splitter      | `Split(SplitterCfg)`              | Resizable two-pane split   |
-| DockLayout    | `DockLayout(DockCfg)`             | Drag-and-drop dock areas   |
-| OverflowPanel | `OverflowPanel(OverflowPanelCfg)` | Wraps overflowing children |
-| RotatedBox    | `RotatedBox(RotatedBoxCfg)`       | Quarter-turn rotation      |
-
-### Input
-
-| Widget         | Factory                             | Description                  |
-| -------------- | ----------------------------------- | ---------------------------- |
-| Button         | `Button(ButtonCfg)`                 | Clickable button             |
-| Input          | `Input(InputCfg)`                   | Single-line text field       |
-| NumericInput   | `NumericInput(NumericInputCfg)`     | Numeric text field           |
-| Checkbox       | `Checkbox(CheckboxCfg)`             | Boolean toggle               |
-| Radio          | `Radio(RadioCfg)`                   | Mutually-exclusive options   |
-| Select         | `Select(SelectCfg)`                 | Dropdown selector            |
-| Combobox       | `Combobox(ComboboxCfg)`             | Editable dropdown            |
-| Switch         | `Switch(SwitchCfg)`                 | On/off toggle switch         |
-| Toggle         | `Toggle(ToggleCfg)`                 | Toggle button                |
-| Slider         | `Slider(SliderCfg)`                 | Min/max range picker         |
-| InputDate      | `InputDate(InputDateCfg)`           | Date field with picker       |
-| ColorPicker    | `ColorPicker(ColorPickerCfg)`       | RGBA color picker            |
-| Form           | `Form(FormCfg)`                     | Form with validation         |
-| ThemePicker    | `ThemePicker(ThemePickerCfg)`       | Theme switcher               |
-| CommandPalette | `CommandPalette(CommandPaletteCfg)` | Fuzzy-search command palette |
-
-### Display
-
-| Widget      | Factory                       | Description                                                |
-| ----------- | ----------------------------- | ---------------------------------------------------------- |
-| Text        | `Text(TextCfg)`               | Styled text label                                          |
-| Badge       | `Badge(BadgeCfg)`             | Notification badge                                         |
-| ProgressBar | `ProgressBar(ProgressBarCfg)` | Determinate/indeterminate bar                              |
-| Pulsar      | `Pulsar(PulsarCfg)`           | Blinking cursor indicator                                  |
-| DrawCanvas  | `DrawCanvas(DrawCanvasCfg)`   | Custom-draw surface (shapes, text, images, keyboard focus) |
-| Image       | `Image(ImageCfg)`             | Raster image view                                          |
-| Svg         | `Svg(SvgCfg)`                 | SVG vector image view                                      |
-| Markdown    | `w.Markdown(MarkdownCfg)`     | Rendered Markdown                                          |
-| RTF         | `RTF(RtfCfg)`                 | Rendered RTF                                               |
-
-### Data
-
-| Widget           | Factory                                 | Description                     |
-| ---------------- | --------------------------------------- | ------------------------------- |
-| ListBox          | `ListBox(ListBoxCfg)`                   | Scrollable item list            |
-| Table            | `Table(TableCfg)`                       | Static data table               |
-| DataGrid         | `w.DataGrid(DataGridCfg)`               | Virtualized grid with full CRUD |
-| Tree             | `Tree(TreeCfg)`                         | Hierarchical tree view          |
-| DatePicker       | `DatePicker(DatePickerCfg)`             | Calendar date picker            |
-| DatePickerRoller | `DatePickerRoller(DatePickerRollerCfg)` | Drum-style date roller          |
-
-### Navigation
-
-| Widget      | Factory                          | Description                   |
-| ----------- | -------------------------------- | ----------------------------- |
-| TabControl  | `Tabs(TabControlCfg)`            | Tabbed panel                  |
-| Breadcrumb  | `Breadcrumb(BreadcrumbCfg)`      | Navigational breadcrumb trail |
-| Menu        | `Menu(MenuCfg)`                  | Pull-down menu bar            |
-| Menubar     | `Menubar(w, MenubarCfg)`         | Application menu bar          |
-| ContextMenu | `ContextMenu(w, ContextMenuCfg)` | Right-click context menu      |
-| Sidebar     | `w.Sidebar(SidebarCfg)`          | Collapsible side navigation   |
-
-### Overlay
-
-| Widget      | Factory                          | Description            |
-| ----------- | -------------------------------- | ---------------------- |
-| Dialog      | `w.Dialog(DialogCfg)`            | Modal dialog           |
-| Toast       | `w.Toast(ToastCfg)`              | Transient notification |
-| WithTooltip | `WithTooltip(w, WithTooltipCfg)` | Hover tooltip wrapper  |
-
----
+Full widget reference: [Widget Catalogue](https://github.com/go-gui-org/go-gui/wiki/Widget-Catalogue)
 
 ## Architecture
 

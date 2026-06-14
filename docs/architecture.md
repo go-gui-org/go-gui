@@ -203,19 +203,9 @@ go-gui/
 
 ## Future Directions
 
-- **WebGPU**: The web backend currently uses Canvas2D with optional
-  WebGL2 for custom shaders. A future WebGPU backend (via the
-  `GPUCanvasContext` / `navigator.gpu` JS API) would provide lower
-  GPU overhead and compute shader support on the web target. No
-  implementation exists yet.
-- **iOS Metal/UIKit**: The iOS backend (`gui/backend/ios/`) is
-  functional with Metal rendering and UIKit windowing. Two
-  integration patterns are supported: Go-driven (C `UIApplicationMain`
-  entry point) and Swift-driven (c-archive with `SetWindow` / `Start`
-  / `Render` exported functions). See `examples/ios_demo/` for a
-  complete Xcode project.
-- **Android GLES**: The Android backend (`gui/backend/android/`) uses
-  OpenGL ES 3.0 via JNI/CGo with the Android Activity/View system.
+- **WebGPU**: A future WebGPU backend (via `GPUCanvasContext` /
+  `navigator.gpu`) would provide lower GPU overhead and compute shader
+  support on the web target. No implementation exists yet.
 - **SDL2 deprecation**: The SDL2 renderer backend is the fallback on
   Linux and Windows. It skips `RenderCustomShader` (no GPU pipeline).
   Long-term direction is toward GL as the default on all desktop

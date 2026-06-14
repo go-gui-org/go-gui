@@ -1,154 +1,56 @@
 # Contributing to Go-Gui
 
-## Prerequisites
-
-- Go 1.26+
-- SDL2 development libraries (for running examples)
-- [golangci-lint](https://golangci-lint.run/)
-
 ## Build and Test
 
 ```bash
-go build ./...                        # build all packages
-go test ./...                         # run all tests (headless, ~12s)
-go test ./gui/... -run TestFoo        # run a single test
-go vet ./...                          # static analysis
-golangci-lint run ./...               # full lint
+go test ./... && go vet ./... && golangci-lint run ./...
 ```
 
 Tests use a headless backend (`gui/backend/test/`) — no display needed.
+On macOS, suppress harmless duplicate-library warnings with
+`export CGO_LDFLAGS="-Wl,-no_warn_duplicate_libraries"` (or use the repo's
+`.envrc` with [direnv](https://direnv.net/)).
 
-### macOS: suppress duplicate library warnings
-
-On macOS, `go build`/`go test`/`go run` emit `ld: warning: ignoring duplicate
-libraries: '-lobjc'`. This is harmless — multiple CGO packages each link Apple
-frameworks which transitively pull `-lobjc`. To suppress:
-
-```bash
-export CGO_LDFLAGS="-Wl,-no_warn_duplicate_libraries"
-```
-
-Or use [direnv](https://direnv.net/) — the repo includes a `.envrc` file.
-
-### CI vs local testing
-
-`go test ./...` runs **all** packages — core gui, backends, examples, cmd
-tools, internal packages. This is what you should run locally before pushing.
-Some backend packages require CGO and system libraries (SDL2, etc.).
-
-CI splits testing across dedicated jobs:
-
-| Job | Scope | Notes |
-|-----|-------|-------|
-| Test | `go test ./gui/...` | Core gui only; coverage + threshold (70%) |
-| Check | `make check` | `go test ./...` + vet + lint |
-| Examples | `make build-examples` | Compile-only, no runtime |
-| WASM | `go test ./gui/...` | Under `GOOS=js GOARCH=wasm` |
-| Fuzz | nightly, `workflow_dispatch` | 12 fuzz targets, 60s each |
-
-CI runs `./gui/...` for coverage because backend and example packages have
-conditional build constraints and platform-specific dependencies best tested
-in their dedicated jobs.
-
-CI also enforces:
-- **Coverage threshold**: 70% total across `./gui/...`. PRs compare per-package
-  coverage against the main-branch baseline and flag drops > 2%.
-- **Race detector**: enabled on Linux test runs (`-race`).
-- **Benchmark regression gate**: compares `Benchmark(Layout|GenerateViewLayout|...|RenderSvg)`
-  against the main-branch baseline using `benchstat`.
+CI enforces 70% coverage, race detector, and benchmark regression gates.
+Run `go test ./...` locally before pushing.
 
 ### Local development with sibling repos
 
-go-gui has several sibling repositories under the `go-gui-org` namespace:
+Sibling repos: [go-glyph](https://github.com/go-gui-org/go-glyph) (text),
+[go-edit](https://github.com/go-gui-org/go-edit) (code editor),
+[go-charts](https://github.com/go-gui-org/go-charts) (charts),
+[go-kite](https://github.com/go-gui-org/go-kite) (tiling).
 
-| Repo | Purpose |
-|------|---------|
-| [go-glyph](https://github.com/go-gui-org/go-glyph) | Text shaping, rendering, glyph rasterization |
-| [go-edit](https://github.com/go-gui-org/go-edit) | Code editor widget |
-| [go-charts](https://github.com/go-gui-org/go-charts) | Charting and data visualization |
-| [go-kite](https://github.com/go-gui-org/go-kite) | Window management / tiling |
-
-When working across repos, point go-gui at local checkouts.
-
-**Option A: go.work (recommended)**
-
-Create a `go.work` file in the parent directory containing all repos you're
-working on:
+Use a `go.work` file (recommended, don't commit):
 
 ```bash
 cd ~/Documents/github/
 go work init ./go-gui ./go-glyph
+go work use ./go-edit ./go-charts  # add as needed
 ```
 
-Add additional siblings as needed:
+Or `go.mod` replace directives (revert before committing):
 
 ```bash
-go work use ./go-edit ./go-charts
-```
-
-The Go toolchain automatically resolves `github.com/go-gui-org/go-*` imports
-to the local copies. No changes to `go.mod` needed. The `go.work` file is
-local-only — do not commit it.
-
-To see the current workspace:
-
-```bash
-go work sync
-cat go.work
-```
-
-**Option B: replace directive**
-
-Add replace directives to `go.mod` (CI uses this approach):
-
-```bash
-cd go-gui
 go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
-go mod edit -replace=github.com/go-gui-org/go-edit=../go-edit
-```
-
-This modifies `go.mod`. Revert before committing:
-
-```bash
-go mod edit -dropreplace=github.com/go-gui-org/go-glyph
-go mod edit -dropreplace=github.com/go-gui-org/go-edit
 ```
 
 ## Coding Conventions
 
-- **No variable shadowing.** Use `=` to reassign existing variables, not `:=`.
-- **Clean lint and format.** All code must pass `golangci-lint run ./...` and
-  `gofmt` with zero issues before committing.
-- Prefer reducing heap allocations when optimizing performance.
+Code must pass `golangci-lint run ./...` and `gofmt`. No variable shadowing.
 
 ## Submitting Changes
 
-1. Fork the repository and create a feature branch.
-2. Make focused, single-purpose commits.
-3. Add or update tests for any changed behavior.
-4. Run the full check suite before pushing:
-   ```bash
-   go test ./... && go vet ./... && golangci-lint run ./...
-   ```
-5. Open a pull request against `main`.
+1. Fork, create a feature branch, make focused commits.
+2. Add or update tests.
+3. Run `go test ./... && go vet ./... && golangci-lint run ./...`.
+4. Open a pull request against `main`.
 
-## Pre-commit / Post-edit hooks
+## Claude Code hooks
 
-The repo includes [Claude Code](https://claude.ai/code) hooks in
-`.claude/settings.json`. These fire automatically after every `.go` file
-edit when using Claude Code:
-
-- **`golangci-lint run --fix`** — auto-fixes lint issues in the edited
-  package directory.
-- **`go test -count=1 -short`** — runs the edited package's tests to catch
-  regressions immediately.
-- **`go.sum` edit guard** — blocks direct edits to `go.sum`; use
-  `go mod tidy` instead.
-
-These hooks are optional but recommended. To customize them, edit
-`.claude/settings.json` or your global `~/.claude/settings.json`. See the
-[Claude Code hooks documentation](https://docs.anthropic.com/en/docs/claude-code/hooks)
-for details.
+`.claude/settings.json` auto-runs `golangci-lint run --fix` and
+`go test -count=1 -short` after `.go` edits. Customize in
+`~/.claude/settings.json`. See [docs](https://docs.anthropic.com/en/docs/claude-code/hooks).
 
 ## Adding Examples
 

@@ -35,20 +35,9 @@ Bitmask flags for keyboard modifiers. Combine with `|`.
 | `ModAlt`   | 4     |
 | `ModSuper` | 8     |
 
-Pre-combined convenience constants:
-
-| Constant          | Combination                     |
-| ----------------- | ------------------------------- |
-| `ModCtrlShift`    | `ModCtrl \| ModShift`           |
-| `ModCtrlAlt`      | `ModCtrl \| ModAlt`             |
-| `ModCtrlAltShift` | `ModCtrl \| ModAlt \| ModShift` |
-| `ModCtrlSuper`    | `ModCtrl \| ModSuper`           |
-| `ModAltShift`     | `ModAlt \| ModShift`            |
-| `ModAltSuper`     | `ModAlt \| ModSuper`            |
-| `ModSuperShift`   | `ModSuper \| ModShift`          |
-
-`Modifier.Has(mod)` tests if a flag is set; `HasAny(mods...)` tests
-any of several.
+Pre-combined: `ModCtrlShift`, `ModCtrlAlt`, `ModCtrlAltShift`, `ModCtrlSuper`,
+`ModAltShift`, `ModAltSuper`, `ModSuperShift`. `Modifier.Has(mod)` tests a
+flag; `HasAny(mods...)` tests any of several.
 
 ### Command
 
@@ -108,16 +97,7 @@ w.RegisterCommands(cmd1, cmd2, cmd3)
 - Duplicate command ID → panic
 - Duplicate shortcut (same key + modifiers on two commands) → panic
 
-### Window Methods
-
-| Method                                       | Description                                |
-| -------------------------------------------- | ------------------------------------------ |
-| `RegisterCommand(cmd)`                       | Register one command; panics on duplicates |
-| `RegisterCommands(cmds...)`                  | Register multiple commands                 |
-| `UnregisterCommand(id)`                      | Remove by ID; no-op if not found           |
-| `CommandByID(id) (Command, bool)`            | Lookup by ID                               |
-| `CommandCanExecute(id) bool`                 | Check CanExecute; false if not found       |
-| `CommandPaletteItems() []CommandPaletteItem` | Export commands with Labels for palette    |
+See `gui/command*.go` for additional methods.
 
 ## Keyboard Dispatch Pipeline
 
@@ -239,93 +219,14 @@ func paletteAction(id string, e *gui.Event, w *gui.Window) {
 Typing in the input field filters items by fuzzy match. The highlight
 resets to the first item on each keystroke.
 
-### CommandPaletteCfg Fields
-
-| Field            | Type                            | Description                   |
-| ---------------- | ------------------------------- | ----------------------------- |
-| `ID`             | `string`                        | Palette instance ID           |
-| `Items`          | `[]CommandPaletteItem`          | Items to display              |
-| `OnAction`       | `func(string, *Event, *Window)` | Called with selected item ID  |
-| `OnDismiss`      | `func(*Window)`                 | Called when palette closes    |
-| `Placeholder`    | `string`                        | Input placeholder text        |
-| `TextStyle`      | `TextStyle`                     | Item label style              |
-| `DetailStyle`    | `TextStyle`                     | Shortcut hint style           |
-| `Color`          | `Color`                         | Panel background              |
-| `ColorBorder`    | `Color`                         | Panel border                  |
-| `ColorHighlight` | `Color`                         | Highlight/hover color         |
-| `SizeBorder`     | `Opt[float32]`                  | Border thickness              |
-| `Radius`         | `Opt[float32]`                  | Corner radius                 |
-| `Width`          | `float32`                       | Panel width (default 500)     |
-| `MaxHeight`      | `float32`                       | Max list height (default 400) |
-| `BackdropColor`  | `Color`                         | Semi-transparent overlay      |
-| `IDFocus`        | `uint32`                        | Focus ID for the input        |
-| `IDScroll`       | `uint32`                        | Scroll state ID               |
-| `FloatZIndex`    | `int`                           | Z-order (default 1000)        |
-
-### CommandPaletteItem
-
-| Field      | Type     | Description                   |
-| ---------- | -------- | ----------------------------- |
-| `ID`       | `string` | Matched to command ID         |
-| `Label`    | `string` | Display text                  |
-| `Detail`   | `string` | Right-aligned hint (shortcut) |
-| `Icon`     | `string` | Optional icon reference       |
-| `Group`    | `string` | Group header                  |
-| `Disabled` | `bool`   | Grayed out, not selectable    |
+See `CommandPaletteCfg` and `CommandPaletteItem` in `gui/command*.go` for
+full field lists.
 
 ## Complete Example
 
-See `examples/command_demo/` for a working example that demonstrates:
-
-- Global commands (`⌘N`, `⌘S`) that fire regardless of focus
-- Non-global commands (`⌘Z`, `⌘=`, `⌘-`) with `CanExecute` guards
-- `CommandButton` with auto-label and auto-disable
-- Menubar with `CommandID` auto-resolution
-- Command palette toggled via `⌘⇧P`
-
-```go
-func registerCommands(w *gui.Window) {
-    w.RegisterCommands(
-        gui.Command{
-            ID:       "file.new",
-            Label:    "New",
-            Group:    "File",
-            Shortcut: gui.Shortcut{Key: gui.KeyN, Modifiers: gui.ModSuper},
-            Global:   true,
-            Execute: func(_ *gui.Event, w *gui.Window) {
-                app := gui.State[App](w)
-                app.Counter = 0
-                app.Log = "New document created."
-            },
-        },
-        gui.Command{
-            ID:       "edit.undo",
-            Label:    "Undo",
-            Group:    "Edit",
-            Shortcut: gui.Shortcut{Key: gui.KeyZ, Modifiers: gui.ModSuper},
-            Execute: func(_ *gui.Event, w *gui.Window) {
-                app := gui.State[App](w)
-                if app.Counter > 0 {
-                    app.Counter--
-                }
-            },
-            CanExecute: func(w *gui.Window) bool {
-                return gui.State[App](w).Counter > 0
-            },
-        },
-        gui.Command{
-            ID:       "view.palette",
-            Label:    "Command Palette",
-            Group:    "View",
-            Shortcut: gui.Shortcut{Key: gui.KeyP, Modifiers: gui.ModSuperShift},
-            Global:   true,
-            Execute: func(_ *gui.Event, w *gui.Window) {
-                gui.CommandPaletteToggle("palette", idFocusPalette, idScrollPalette, w)
-            },
-        },
-    )
-}
-```
+See [`examples/command_demo/`](../examples/command_demo/) for a runnable example with
+global commands, `CanExecute` guards, `CommandButton`, menubar integration,
+and command palette.
 
 ## Key Code Reference
 
