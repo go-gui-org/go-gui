@@ -31,14 +31,14 @@ Improvement backlog from the June 2026 codebase review.
 
 ## Platform And Native Surface
 
-- [ ] **Raise coverage on native platform behavior.** Core `gui` coverage is
+- [x] **Raise coverage on native platform behavior.** Core `gui` coverage is
   healthy, but backend/native packages remain low. Prioritize testable behavior:
   URI validation, command construction, notification errors, dialog result
   mapping, menu callbacks, tray callbacks, and app-level routing.
-- [ ] **Share duplicated native-platform glue.** The GL and SDL2 backends
+- [x] **Share duplicated native-platform glue.** The GL and SDL2 backends
   duplicate OpenURI, dialog forwarding, notification, spellcheck, and IME logic.
   Extract shared non-rendering behavior into a small backend-internal helper.
-- [ ] **Add App native integration tests.** Cover `App.SetNativeMenubar`,
+- [x] **Add App native integration tests.** Cover `App.SetNativeMenubar`,
   `ClearNativeMenubar`, `SetSystemTray`, `UpdateSystemTray`, and
   `RemoveSystemTray` using `NoopNativePlatform`-based mocks.
 
