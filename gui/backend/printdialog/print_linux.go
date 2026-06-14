@@ -76,6 +76,7 @@ func printViaLpr(cfg gui.NativePrintParams) gui.PrintRunResult {
 	}
 	args = append(args, cfg.PDFPath)
 
+	// #nosec G204 — binary hardcoded, no shell, argv passed directly to execve
 	cmd := exec.Command("lpr", args...)
 	if err := cmd.Run(); err != nil {
 		return gui.PrintRunResult{
@@ -91,6 +92,7 @@ func printViaLpr(cfg gui.NativePrintParams) gui.PrintRunResult {
 }
 
 func printViaXdgOpen(cfg gui.NativePrintParams) gui.PrintRunResult {
+	// #nosec G204 — binary hardcoded, no shell, argv passed directly to execve
 	cmd := exec.Command("xdg-open", cfg.PDFPath)
 	if err := cmd.Start(); err != nil {
 		return gui.PrintRunResult{

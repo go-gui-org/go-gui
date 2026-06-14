@@ -219,6 +219,7 @@ func ShowConfirmDialog(title, body string,
 // --- helpers ---
 
 func runDialog(args []string) (string, gui.NativeDialogStatus, error) {
+	// #nosec G204 — binary set by code (zenity/kdialog), no shell, argv passed directly to execve
 	cmd := exec.Command(args[0], args[1:]...)
 	out, err := cmd.Output()
 
