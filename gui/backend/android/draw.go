@@ -279,8 +279,8 @@ func (b *Backend) drawImage(r *gui.RenderCmd) {
 		path, err = imgload.ResolveValidatedPath(
 			r.Resource, b.allowedImageRoots)
 		if err != nil {
-			log.Printf("android: drawImage: %s: %v",
-				r.Resource, err)
+			log.Printf("android: drawImage: %v",
+				err)
 			path = "-"
 		}
 		b.imagePathCache.Set(r.Resource, path)

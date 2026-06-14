@@ -21,6 +21,14 @@ const maxSvgCacheElementIDLen = 256
 
 const maxSvgSourceBytes = int64(4 * 1024 * 1024)
 
+// svgCacheMaxMemory is the soft memory budget for the SVG render
+// cache. When inserting a new entry would push the total estimated
+// memory above this limit, oldest entries are evicted first
+// (FIFO). The budget covers vertex and color data across all cached
+// entries; a single entry exceeding the budget still enters the
+// cache — the budget is a target, not a hard cap.
+const svgCacheMaxMemory = 128 * 1024 * 1024 // 128 MB
+
 type svgParserCacheInvalidator interface {
 	InvalidateSvgSource(svgSrc string)
 	ClearSvgParserCache()
@@ -144,6 +152,28 @@ type svgCacheKey struct {
 	// must cache separately so a user toggling the OS pref
 	// invalidates the prior render naturally (Phase F).
 	reducedMotion bool
+}
+
+// EstimateMemory returns a rough byte estimate for the cached SVG.
+// Counts vertex data (float32 × 4 bytes), vertex colors, and a
+// per-struct overhead for text draws, text paths, and animations.
+func (c *CachedSvg) EstimateMemory() int {
+	n := 0
+	for _, p := range c.RenderPaths {
+		n += len(p.Triangles) * 4    // float32 = 4 bytes
+		n += len(p.VertexColors) * 4 // Color = 4 bytes (uint32)
+	}
+	for _, fg := range c.FilteredGroups {
+		for _, p := range fg.RenderPaths {
+			n += len(p.Triangles) * 4
+			n += len(p.VertexColors) * 4
+		}
+	}
+	n += len(c.TextDraws) * 384     // CachedSvgTextDraw + glyph.GradientConfig
+	n += len(c.TextPathDraws) * 640 // CachedSvgTextPathDraw + TextPathData
+	n += len(c.Animations) * 256    // SvgAnimation
+	n += len(c.Gradients) * 128     // SvgGradientDef
+	return n
 }
 
 // validateSvgSource rejects file paths containing '..'.
@@ -449,6 +479,9 @@ func (w *Window) loadSvgWithOpts(svgSrc string, width, height float32,
 	const maxCachedVerts = 1_250_000
 	if totalVerts <= maxCachedVerts {
 		svgCache := StateMap[svgCacheKey, *CachedSvg](w, nsSvgCache, capModerate)
+		svgCache.EvictToBudget(svgCacheMaxMemory,
+			cached.EstimateMemory(),
+			func(c *CachedSvg) int { return c.EstimateMemory() })
 		svgCache.Set(cacheKey, cached)
 	}
 	return cached, nil

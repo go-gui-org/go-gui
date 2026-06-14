@@ -287,8 +287,8 @@ func (b *windowState) drawImage(r *gui.RenderCmd) {
 		path, err = imgload.ResolveValidatedPath(
 			r.Resource, b.allowedImageRoots)
 		if err != nil {
-			log.Printf("metal: drawImage: %s: %v",
-				r.Resource, err)
+			log.Printf("metal: drawImage: %v",
+				err)
 			path = "-"
 		}
 		b.imagePathCache.Set(r.Resource, path)

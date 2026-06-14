@@ -351,6 +351,89 @@ func TestBoundedMapCloneAnyUnbounded(t *testing.T) {
 	}
 }
 
+func TestBoundedMapEvictToBudget(t *testing.T) {
+	// sizeFn returns the value as its "byte cost".
+	sizeFn := func(v int) int { return v }
+
+	t.Run("within budget", func(t *testing.T) {
+		m := NewBoundedMap[string, int](10)
+		m.Set("a", 10)
+		m.Set("b", 20)
+		n := m.EvictToBudget(100, 30, sizeFn)
+		if n != 0 {
+			t.Errorf("evicted %d, want 0", n)
+		}
+		if m.Len() != 2 {
+			t.Errorf("len: got %d, want 2", m.Len())
+		}
+	})
+
+	t.Run("evicts to make room", func(t *testing.T) {
+		m := NewBoundedMap[string, int](10)
+		m.Set("a", 40)
+		m.Set("b", 30)
+		m.Set("c", 20)
+		// total = 90, new=30 → need 120 > maxBytes=100
+		n := m.EvictToBudget(100, 30, sizeFn)
+		if n == 0 {
+			t.Error("should have evicted entries")
+		}
+		// After eviction, total should be <= 100
+		total := 30 // newBytes
+		m.Range(func(k string, v int) bool {
+			total += v
+			return true
+		})
+		if total > 100 {
+			t.Errorf("total %d > maxBytes 100", total)
+		}
+	})
+
+	t.Run("empty map", func(t *testing.T) {
+		m := NewBoundedMap[string, int](10)
+		n := m.EvictToBudget(100, 50, sizeFn)
+		if n != 0 {
+			t.Errorf("evicted %d, want 0", n)
+		}
+	})
+
+	t.Run("unbounded budget", func(t *testing.T) {
+		m := NewBoundedMap[string, int](10)
+		m.Set("a", 1000)
+		n := m.EvictToBudget(0, 50, sizeFn)
+		if n != 0 {
+			t.Errorf("evicted %d, want 0", n)
+		}
+	})
+
+	t.Run("new entry alone exceeds budget", func(t *testing.T) {
+		m := NewBoundedMap[string, int](10)
+		m.Set("a", 10)
+		// newBytes=200 > maxBytes=100, should evict "a"
+		n := m.EvictToBudget(100, 200, sizeFn)
+		// "a"(10) evicted, budget becomes 10, still < 200... but we
+		// evict until total <= maxBytes or no entries left.
+		if m.Len() != 0 {
+			t.Errorf("len: got %d, want 0 (all evicted)", m.Len())
+		}
+		_ = n
+	})
+
+	t.Run("return value", func(t *testing.T) {
+		m := NewBoundedMap[string, int](10)
+		m.Set("a", 50)
+		m.Set("b", 50)
+		// total=100, new=30 → need 130 > maxBytes=100
+		n := m.EvictToBudget(100, 30, sizeFn)
+		if n != 1 {
+			t.Errorf("evicted %d, want 1", n)
+		}
+		if m.Len() != 1 {
+			t.Errorf("len: got %d, want 1", m.Len())
+		}
+	})
+}
+
 func TestBoundedMapRestoreAnyUnbounded(t *testing.T) {
 	m := NewBoundedMap[string, int](0)
 	m.Set("a", 1)

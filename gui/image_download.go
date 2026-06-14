@@ -71,7 +71,7 @@ var (
 
 func ensureImageCacheDir() error {
 	imageCacheDirOnce.Do(func() {
-		imageCacheDirErr = os.MkdirAll(imageCacheDir, 0o755)
+		imageCacheDirErr = os.MkdirAll(imageCacheDir, 0o750)
 	})
 	return imageCacheDirErr
 }
@@ -85,6 +85,14 @@ func isHTTPURL(src string) bool {
 // isDataURL reports whether src is an inline data URL.
 func isDataURL(src string) bool {
 	return strings.HasPrefix(src, "data:")
+}
+
+// urlDigest returns a short hash prefix for a URL, suitable for log
+// correlation without leaking the full URL (which may contain query-
+// string tokens, signed parameters, or private resource paths).
+func urlDigest(url string) string {
+	h := hashString(url)
+	return "url=" + strconv.FormatUint(h, 16)[:8]
 }
 
 // getDownloadSem returns the lazily-initialized download semaphore.
@@ -249,21 +257,22 @@ func downloadImage(
 
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("image download: %s: HTTP %d",
-			url, resp.StatusCode)
+			urlDigest(url), resp.StatusCode)
 		removeDownload(url, w)
 		return
 	}
 
 	if resp.ContentLength > maxSize {
 		log.Printf("image too large (%d bytes): %s",
-			resp.ContentLength, url)
+			resp.ContentLength, urlDigest(url))
 		removeDownload(url, w)
 		return
 	}
 
 	ct := resp.Header.Get("Content-Type")
 	if !strings.HasPrefix(ct, "image/") {
-		log.Printf("invalid content type for image: %s", url)
+		log.Printf("invalid content type for image: %s",
+			urlDigest(url))
 		removeDownload(url, w)
 		return
 	}
@@ -298,7 +307,8 @@ func downloadImage(
 	}
 	if written > maxSize {
 		_ = os.Remove(path)
-		log.Printf("image download body exceeds limit: %s", url)
+		log.Printf("image download body exceeds limit: %s",
+			urlDigest(url))
 		removeDownload(url, w)
 		return
 	}

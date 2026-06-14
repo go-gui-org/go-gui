@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"runtime"
 	"unsafe"
 
@@ -557,7 +558,7 @@ func createWindowState(w *gui.Window,
 
 	for _, p := range gui.AppFontPaths {
 		if err := textSys.AddFontFile(p); err != nil {
-			log.Printf("metal: load app font %q: %v", p, err)
+			log.Printf("metal: load app font %q: %v", filepath.Base(p), err)
 		}
 	}
 

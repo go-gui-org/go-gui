@@ -15,9 +15,9 @@ New improvement items identified in the June 2026 codebase review.
 
 ## Security Hardening
 
-- [ ] **Privacy Audit**: Review `log` statements in `ImageFetcher` and `NativePlatform` for potential PII leakage.
-- [ ] **Resource Exhaustion Caps**: Implement global memory limits for SVG and font glyph caches to prevent memory bloat in long-running apps.
-- [ ] **Automated Scan**: Perform a comprehensive automated security audit using `/security:analyze`.
+- [x] **Privacy Audit**: Review `log` statements in `ImageFetcher` and `NativePlatform` for potential PII leakage.
+- [x] **Resource Exhaustion Caps**: Implement global memory limits for SVG and font glyph caches to prevent memory bloat in long-running apps.
+- [x] **Automated Scan**: Perform a comprehensive automated security audit using gosec.
 
 ## Performance & Observability
 

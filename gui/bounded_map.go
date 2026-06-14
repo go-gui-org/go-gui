@@ -158,6 +158,38 @@ func (m *BoundedMap[K, V]) Range(fn func(K, V) bool) {
 	}
 }
 
+// EvictToBudget evicts oldest entries until the sum of sizeFn across
+// remaining entries plus newBytes is <= maxBytes. Returns the number
+// of entries evicted. If maxBytes <= 0 the budget is unbounded and
+// no entries are evicted.
+func (m *BoundedMap[K, V]) EvictToBudget(maxBytes int, newBytes int, sizeFn func(V) int) int {
+	if maxBytes <= 0 || len(m.data) == 0 {
+		return 0
+	}
+	// Sum current entries + pending new bytes.
+	total := newBytes
+	for _, v := range m.data {
+		total += sizeFn(v)
+	}
+	if total <= maxBytes {
+		return 0
+	}
+	evicted := 0
+	for total > maxBytes && m.head < len(m.order) {
+		oldestKey := m.order[m.head]
+		m.head++
+		if v, exists := m.data[oldestKey]; exists {
+			total -= sizeFn(v)
+			delete(m.data, oldestKey)
+			evicted++
+		}
+	}
+	if evicted > 0 {
+		m.compactOrder()
+	}
+	return evicted
+}
+
 func (m *BoundedMap[K, V]) compactOrder() {
 	switch {
 	case m.head >= boundedOrderCompactMin:

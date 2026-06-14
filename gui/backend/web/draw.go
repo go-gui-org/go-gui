@@ -394,8 +394,12 @@ func (b *Backend) drawImage(r *gui.RenderCmd) {
 	img, ok := b.imgCache[r.Resource]
 	if !ok {
 		if !isAllowedImageSrc(r.Resource) {
+			scheme := r.Resource
+			if idx := strings.IndexByte(r.Resource, ':'); idx >= 0 {
+				scheme = r.Resource[:idx]
+			}
 			log.Printf("web: blocked image src scheme: %q",
-				r.Resource)
+				scheme)
 			return
 		}
 		// Evict a batch of random entries when cache is full.
