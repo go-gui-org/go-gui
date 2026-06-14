@@ -1,31 +1,55 @@
 # Roadmap
 
-New improvement items identified in the June 2026 codebase review.
+Improvement backlog from the June 2026 codebase review.
 
-## Testing Strategy Expansion
+## CI And Quality Gates
 
-- [x] **Event & Layout Fuzzing**: Expand fuzz testing to the event dispatch system and layout sizing engine to catch edge-case panics in the single-pass pipeline. (6 new fuzz targets in `gui/event_fuzz_test.go`, `gui/layout_sizing_fuzz_test.go`)
-- [x] **Concurrency Stress Tests**: Add stress tests for `gui.StateMap` and `Animation` subsystems to verify thread safety at high refresh rates (120Hz+). (8 new stress tests in `gui/statemap_stress_test.go`, `gui/animation_stress_test.go`)
+- [x] **Fail fuzz workflow on discovered crashes.** The fuzz workflow currently
+  records failing targets as warnings but does not fail the job. Keep the summary
+  table, then exit non-zero when any fuzz target fails.
+- [x] **Fix coverage-diff regression counting.** The PR coverage diff increments
+  `regressions` inside a shell pipeline subshell, so the final count can be
+  wrong. Rewrite the loop to preserve state in the parent shell.
+- [x] **Refresh coverage and benchmark baseline keys.** The cache keys for
+  coverage and benchmark baselines are fixed names, which can make baselines
+  stale. Include the main-branch commit SHA or an intentional rolling key.
+- [x] **Add recurring vulnerability/security scans.** Add `govulncheck ./...`
+  and a targeted `gosec` run to CI so security checks are enforced rather than
+  one-time manual audit notes.
 
-## Documentation & Onboarding
+## Documentation Hygiene
 
-- [x] **Advanced Cookbooks**: Add guides for async data binding in `DataGrid` and custom GPU shader integration. (`docs/cookbook-datagrid-async.md`, `docs/cookbook-custom-shader.md`)
-- [x] **Native Platform Matrix**: Expand `docs/native-platform-matrix.md` with a detailed feature-support table (a11y, dialogs, tray) per OS/backend.
-- [x] **Architecture Sync**: Update `docs/architecture.md` to reflect recent backend evolutions (WebGPU plans, Metal/UIKit on iOS).
+- [x] **Resolve license drift.** `LICENSE` and `README.md` identify the project
+  as MIT, while `CONTRIBUTING.md` says PolyForm Noncommercial. Pick the intended
+  license and make all references consistent.
+- [x] **Update dependency documentation.** `docs/dependencies.md` has stale module
+  versions compared with `go.mod`. Add a lightweight check or generation step so
+  this file does not drift.
+- [x] **Sync profiling docs with current CI.** `docs/profiling.md` still says to
+  consider adding benchmark comparison to PR CI, but the benchmark gate already
+  exists.
 
-## Security Hardening
+## Platform And Native Surface
 
-- [x] **Privacy Audit**: Review `log` statements in `ImageFetcher` and `NativePlatform` for potential PII leakage.
-- [x] **Resource Exhaustion Caps**: Implement global memory limits for SVG and font glyph caches to prevent memory bloat in long-running apps.
-- [x] **Automated Scan**: Perform a comprehensive automated security audit using gosec.
+- [ ] **Raise coverage on native platform behavior.** Core `gui` coverage is
+  healthy, but backend/native packages remain low. Prioritize testable behavior:
+  URI validation, command construction, notification errors, dialog result
+  mapping, menu callbacks, tray callbacks, and app-level routing.
+- [ ] **Share duplicated native-platform glue.** The GL and SDL2 backends
+  duplicate OpenURI, dialog forwarding, notification, spellcheck, and IME logic.
+  Extract shared non-rendering behavior into a small backend-internal helper.
+- [ ] **Add App native integration tests.** Cover `App.SetNativeMenubar`,
+  `ClearNativeMenubar`, `SetSystemTray`, `UpdateSystemTray`, and
+  `RemoveSystemTray` using `NoopNativePlatform`-based mocks.
 
-## Performance & Observability
+## Architecture And Maintenance
 
-- [x] **CI Benchmarking**: Integrate allocation benchmarks for hot paths (`GenerateViewLayout`, `renderLayout`) into the CI pipeline. (Benchmark + benchstat regression gate in `ci.yml`; `make bench` / `make bench-gate` targets added.)
-- [ ] **SVG Gradients**: Support diagonal gradients in `gui/svg_cache.go` (once `go-glyph` adds angle support). **Blocked:** go-glyph `GradientConfig` still only has `GradientHorizontal`/`GradientVertical` with no angle field.
-- [x] **Metal Test Hardening**: Resolve threading issues in `gui/backend/metal/render_test.go` to support reliable ARM64 macOS testing. (Added TestMain with `runtime.LockOSThread`; documented Cocoa main-thread constraint; skip prevents crash in goroutine-dispatched tests.)
-
-## Code Quality & Tooling
-
-- [x] **Multi-Repo Workflow**: Document `go.work` setup in `CONTRIBUTING.md` for sibling project development (`go-glyph`, `go-edit`). (Expanded to include go-charts, go-kite; covers go.work and replace-directive approaches.)
-- [x] **Aggressive Linting**: Enable additional linters (`gocritic`, `cyclop`) to maintain the structural integrity of complex widget logic. (gocritic enabled with ifElseChain disabled; cyclop at threshold 50; 14 gocritic violations fixed.)
+- [ ] **Keep core `gui` flat unless compile time becomes a real problem.** The
+  layout/render/event/window/widget trunk is tightly coupled by design. Continue
+  moving only leaf subsystems into subpackages.
+- [ ] **Track large-file hotspots.** The largest files are mostly SVG,
+  DataGrid, layout/render, and tests. Avoid broad refactors, but split files
+  when a cohesive helper can be extracted without changing public API.
+- [ ] **Preserve benchmark coverage for hot paths.** Keep benchmarks focused on
+  `GenerateViewLayout`, `layoutArrange`, `renderLayout`, event dispatch, SVG
+  parse/render, and list/grid preparation paths.

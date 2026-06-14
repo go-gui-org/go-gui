@@ -157,5 +157,4 @@ Example apps live in `examples/`. Each example should be a self-contained
 
 ## License
 
-Contributions are accepted under the
-[PolyForm Noncommercial License 1.0.0](LICENSE).
+Contributions are accepted under the [MIT License](LICENSE).

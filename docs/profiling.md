@@ -176,5 +176,6 @@ benchstat base.txt new.txt
 ```
 
 Statistically significant regressions (p < 0.05) are flagged with a delta
-percentage. Consider adding a benchmark comparison step to PR CI for the
-hot-path benchmarks listed above.
+percentage. The `benchmark-gate` job in CI (`.github/workflows/ci.yml`)
+runs this comparison automatically on every PR against a cached main-branch
+baseline.

@@ -6,7 +6,7 @@ LDFLAGS  = -X github.com/go-gui-org/go-gui/gui.Version=$(VERSION) \
 CC_WINDOWS ?= x86_64-w64-mingw32-gcc
 STATIC_TAG  = static,audio
 
-.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test vet lint check bench bench-gate
+.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test vet lint check bench bench-gate deps-doc deps-doc-check
 
 build-linux:
 	CGO_ENABLED=1 \
@@ -104,4 +104,15 @@ lint:
 	golangci-lint run ./...
 
 # Run all validation steps: test, vet, lint.
-check: test vet lint
+check: test vet lint deps-doc-check
+
+# Regenerate docs/dependencies.md from go.mod.
+deps-doc:
+	go run ./tools/depsdoc/ -w
+
+# Check that docs/dependencies.md is up to date with go.mod.
+deps-doc-check:
+	go run ./tools/depsdoc/ > /tmp/deps-generated.md
+	diff docs/dependencies.md /tmp/deps-generated.md || \
+	  { echo "::error::docs/dependencies.md is out of date. Run 'make deps-doc'." >&2; exit 1; }
+	rm -f /tmp/deps-generated.md
