@@ -65,34 +65,23 @@ Contributions are accepted under the [MIT License](LICENSE).
 
 ### Windows: `undefined reference to __ms_vsscanf`
 
-When building with `-tags static,audio` on Windows (MSYS2 MinGW), you may see:
+`gui/compat_mingw.go` provides a compatibility shim so **this error should not
+appear** when building with current go-gui. If you see it on an older revision:
 
-```
-undefined reference to `__ms_vsscanf'
-```
-
-This is a GCC incompatibility: go-sdl2's bundled static libraries were
-compiled with an older MinGW GCC, and your local MSYS2 GCC is newer.
-The `__ms_vsscanf` function was removed from MinGW-w64's runtime.
+**Why:** go-sdl2's bundled static libraries were compiled with an older MinGW
+GCC that emitted calls to `__ms_vsscanf`. MinGW-w64 GCC ≥15 removed this
+function from its runtime.
 
 **Solutions (pick one):**
 
-1. **Use dynamic linking** (simplest for development):
+1. **Update go-gui** to a revision that includes `gui/compat_mingw.go`.
+
+2. **Use dynamic linking** (simplest for development):
    ```bash
    CGO_ENABLED=1 go build ./examples/showcase/
    ```
    Requires SDL2 and SDL2_mixer DLLs at runtime. Run
    `bash scripts/bundle-windows-dlls.sh` to stage them.
 
-2. **Use the release zip's pre-built binary.** CI uses a known-good
-   MSYS2/GCC combination. Download from the latest GitHub release.
-
-3. **Install a compatible MinGW GCC:**
-   ```bash
-   pacman -S mingw-w64-x86_64-gcc
-   ```
-   If the error persists, try downgrading GCC or building from the
-   same MSYS2 environment CI uses (see `.github/workflows/release.yml`).
-
-The CI release workflow and `make build-windows` use static linking by
-default — these produce a self-contained `.exe` with no DLL dependencies.
+3. **Use the release zip's pre-built binary.** Download from the latest
+   GitHub release.

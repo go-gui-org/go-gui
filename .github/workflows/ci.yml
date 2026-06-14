@@ -410,7 +410,7 @@ jobs:
       - name: Build showcase
         working-directory: go-gui
         run: |
-          CGO_ENABLED=1 go build -tags static,audio \
+          CGO_ENABLED=1 go build -tags audio \
             -o build/showcase-windows.exe ./examples/showcase/
 
       - name: Smoke test showcase
