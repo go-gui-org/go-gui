@@ -8,8 +8,8 @@ github.com/dlclark/regexp2 v1.11.5 h1:Q/sSnsKerHeCkc/jSTNq1oCm7KiVgUMZRDUoRu0JQZ
 github.com/dlclark/regexp2 v1.11.5/go.mod h1:DHkYz0B9wPfa6wondMfaivmHpzrQ3v9q8cnmRbL6yW8=
 github.com/go-gl/gl v0.0.0-20260331235117-4566fea9a276 h1:IO5P06Pcj9K04d+l4nrf3c2U56+dAotIFG6u4P1wAHI=
 github.com/go-gl/gl v0.0.0-20260331235117-4566fea9a276/go.mod h1:9YTyiznxEY1fVinfM7RvRcjRHbw2xLBJ3AAGIT0I4Nw=
-github.com/go-gui-org/go-glyph v1.9.0 h1:PazYLyV2WwLo9WYVSFjNQL5j5MKoNakaExMWANqaiTU=
-github.com/go-gui-org/go-glyph v1.9.0/go.mod h1:l5NRdoWrIzCCLU60T+9GRY4qXvoTL2NuoLkvU26YIEU=
+github.com/go-gui-org/go-glyph v1.10.0 h1:2MnKFcA/vWxsKlG5g/tQiTlXHxi8KqQ2ZfwDKhQKS1U=
+github.com/go-gui-org/go-glyph v1.10.0/go.mod h1:l5NRdoWrIzCCLU60T+9GRY4qXvoTL2NuoLkvU26YIEU=
 github.com/go-pdf/fpdf v0.9.0 h1:PPvSaUuo1iMi9KkaAn90NuKi+P4gwMedWPHhj8YlJQw=
 github.com/go-pdf/fpdf v0.9.0/go.mod h1:oO8N111TkmKb9D7VvWGLvLJlaZUQVPM+6V42pp3iV4Y=
 github.com/godbus/dbus/v5 v5.2.2 h1:TUR3TgtSVDmjiXOgAAyaZbYmIeP3DPkld3jgKGV8mXQ=
