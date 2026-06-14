@@ -84,7 +84,7 @@ jobs:
         uses: actions/cache/save@v5
         with:
           path: go-gui/coverage.out
-          key: coverage-baseline-${{ matrix.os }}
+          key: coverage-baseline-${{ matrix.os }}-${{ github.sha }}
 
       - name: Restore baseline coverage for diff
         if: github.event_name == 'pull_request'
@@ -92,7 +92,9 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: go-gui/coverage-baseline.out
-          key: coverage-baseline-${{ matrix.os }}
+          key: coverage-baseline-${{ matrix.os }}-${{ github.event.pull_request.base.sha }}
+          restore-keys: |
+            coverage-baseline-${{ matrix.os }}-
 
       - name: Coverage diff on PR
         if: github.event_name == 'pull_request'
@@ -131,8 +133,6 @@ jobs:
           echo "|---------|----------|----|---|" >> $GITHUB_STEP_SUMMARY
 
           regressions=0
-          join -t $'\t' -a 1 -a 2 -e "-" -o 0,1.2,2.2 \
-            /tmp/baseline-cov.txt /tmp/pr-cov.txt |
           while IFS=$'\t' read -r pkg base cur; do
             if [ "$base" = "-" ]; then
               echo "| $pkg | — | ${cur}% | new |" >> $GITHUB_STEP_SUMMARY
@@ -146,7 +146,8 @@ jobs:
               fi
               echo "| $pkg | ${base}% | ${cur}% | ${delta}% |" >> $GITHUB_STEP_SUMMARY
             fi
-          done
+          done < <(join -t $'\t' -a 1 -a 2 -e "-" -o 0,1.2,2.2 \
+            /tmp/baseline-cov.txt /tmp/pr-cov.txt)
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "${regressions} package(s) with coverage drop > 2%." >> $GITHUB_STEP_SUMMARY
@@ -477,7 +478,7 @@ jobs:
         uses: actions/cache/save@v5
         with:
           path: benchmark-results.txt
-          key: benchmark-baseline
+          key: benchmark-baseline-${{ github.sha }}
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v5
@@ -516,7 +517,9 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: baseline-results.txt
-          key: benchmark-baseline
+          key: benchmark-baseline-${{ github.event.pull_request.base.sha }}
+          restore-keys: |
+            benchmark-baseline-
 
       - name: Run targeted benchmarks
         run: |
@@ -546,3 +549,26 @@ jobs:
       - name: No baseline available
         if: steps.cache.outputs.cache-hit != 'true'
         run: echo "::warning::No benchmark baseline cached from main. Skipping comparison."
+
+  security:
+    name: Security scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+          cache: false
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run govulncheck
+        run: govulncheck ./...
+
+      - name: Install gosec
+        run: go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+
+      - name: Run gosec
+        run: gosec -conf .gosec.json ./...

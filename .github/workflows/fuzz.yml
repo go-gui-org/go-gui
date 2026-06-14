@@ -104,7 +104,8 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
           if [ "$FAIL" -gt 0 ]; then
-            echo "::warning::${FAIL} fuzz target(s) found failing inputs"
+            echo "::error::${FAIL} fuzz target(s) found failing inputs"
+            exit 1
           fi
 
       - name: Upload fuzz corpus
