@@ -200,10 +200,8 @@ func DockTreeFindGroupByID(node *DockNode, groupID string) (*DockNode, bool) {
 				return g, true
 			}
 		}
-	} else {
-		if node.ID == groupID {
-			return node, true
-		}
+	} else if node.ID == groupID {
+		return node, true
 	}
 	return nil, false
 }
@@ -362,10 +360,8 @@ func DockTreeSelectPanel(nd *DockNode, groupID, panelID string) *DockNode {
 		if newFirst != nd.First || newSecond != nd.Second {
 			return DockSplit(nd.ID, nd.Dir, nd.Ratio, newFirst, newSecond)
 		}
-	} else {
-		if nd.ID == groupID && nd.SelectedID != panelID {
-			return DockPanelGroup(nd.ID, nd.PanelIDs, panelID)
-		}
+	} else if nd.ID == groupID && nd.SelectedID != panelID {
+		return DockPanelGroup(nd.ID, nd.PanelIDs, panelID)
 	}
 	return nd
 }

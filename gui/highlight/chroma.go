@@ -13,7 +13,7 @@ type chromaHighlighter struct{}
 // stateless and safe for concurrent use across windows.
 func New() Highlighter { return chromaHighlighter{} }
 
-var defaultHL = sync.OnceValue(func() Highlighter { return New() })
+var defaultHL = sync.OnceValue(New)
 
 // Default returns a process-wide singleton Highlighter. Use this
 // unless a custom Highlighter is needed.

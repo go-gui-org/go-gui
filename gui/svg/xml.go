@@ -466,7 +466,9 @@ func parseGroupOrLinkElement(c *xmlNode, inherited ComputedStyle, depth int,
 	if gs.GroupID != "" && gs.GroupID != inherited.GroupID {
 		state.recordGroupParent(gs.GroupID, inherited.GroupID)
 	}
-	childAncestors := append(ancestors, info)
+	childAncestors := make([]css.ElementInfo, len(ancestors), len(ancestors)+1)
+	copy(childAncestors, ancestors)
+	childAncestors = append(childAncestors, info)
 	animStart := len(state.animations)
 	var paths []VectorPath
 	pathStart := len(paths)
@@ -519,7 +521,9 @@ func parseNestedSvgElement(c *xmlNode, inherited ComputedStyle, depth int,
 		gs.ClipPathID = cid
 	}
 	state.curViewport = innerVB
-	childAncestors := append(ancestors, info)
+	childAncestors := make([]css.ElementInfo, len(ancestors), len(ancestors)+1)
+	copy(childAncestors, ancestors)
+	childAncestors = append(childAncestors, info)
 	var paths []VectorPath
 	paths = append(paths,
 		parseSvgContent(c, gs, depth+1, state, childAncestors)...)
@@ -589,7 +593,9 @@ func parseTextContentElement(
 		return
 	}
 	state.elemCount++
-	textAncestors := append(ancestors, info)
+	textAncestors := make([]css.ElementInfo, len(ancestors), len(ancestors)+1)
+	copy(textAncestors, ancestors)
+	textAncestors = append(textAncestors, info)
 	parseTextElement(c, textGS, state, textAncestors)
 }
 

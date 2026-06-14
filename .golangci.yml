@@ -14,9 +14,16 @@ linters:
     - modernize
     - unused
     - revive
+    - gocritic
+    - cyclop
   settings:
     gocyclo:
       min-complexity: 30
+    cyclop:
+      max-complexity: 50
+    gocritic:
+      disabled-checks:
+        - ifElseChain
     revive:
       rules:
         - name: exported
@@ -30,8 +37,12 @@ linters:
         linters:
           - errcheck
           - gocyclo
+          - cyclop
       - path: _test\.go
         text: SA5011
       - path: native_platform_noop\.go
         linters:
           - revive
+      - path: gui/backend/internal/sdlkey/sdlkey\.go
+        linters:
+          - cyclop

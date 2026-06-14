@@ -373,10 +373,8 @@ func rollerAdjustYear(
 	newYear := sel.Year() + delta
 	if wrap {
 		newYear = wrapRange(newYear, minYear, maxYear)
-	} else {
-		if newYear < minYear || newYear > maxYear {
-			return
-		}
+	} else if newYear < minYear || newYear > maxYear {
+		return
 	}
 	dim := datePickerDaysInMonth(int(sel.Month()), newYear)
 	day := min(sel.Day(), dim)

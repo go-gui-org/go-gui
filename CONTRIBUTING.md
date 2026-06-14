@@ -57,38 +57,61 @@ CI also enforces:
 - **Benchmark regression gate**: compares `Benchmark(Layout|GenerateViewLayout|...|RenderSvg)`
   against the main-branch baseline using `benchstat`.
 
-### Local development with go-glyph
+### Local development with sibling repos
 
-[go-glyph](https://github.com/go-gui-org/go-glyph) is a sibling repository that
-provides text shaping, rendering, and glyph rasterization. When working on both
-repos together, point go-gui at your local go-glyph checkout.
+go-gui has several sibling repositories under the `go-gui-org` namespace:
+
+| Repo | Purpose |
+|------|---------|
+| [go-glyph](https://github.com/go-gui-org/go-glyph) | Text shaping, rendering, glyph rasterization |
+| [go-edit](https://github.com/go-gui-org/go-edit) | Code editor widget |
+| [go-charts](https://github.com/go-gui-org/go-charts) | Charting and data visualization |
+| [go-kite](https://github.com/go-gui-org/go-kite) | Window management / tiling |
+
+When working across repos, point go-gui at local checkouts.
 
 **Option A: go.work (recommended)**
 
-Create a `go.work` file in the parent directory that contains both repos:
+Create a `go.work` file in the parent directory containing all repos you're
+working on:
 
 ```bash
 cd ~/Documents/github/
 go work init ./go-gui ./go-glyph
 ```
 
-Go toolchain automatically resolves `github.com/go-gui-org/go-glyph` to the
-local copy. No changes to `go.mod` needed. The `go.work` file is local-only —
-do not commit it.
+Add additional siblings as needed:
+
+```bash
+go work use ./go-edit ./go-charts
+```
+
+The Go toolchain automatically resolves `github.com/go-gui-org/go-*` imports
+to the local copies. No changes to `go.mod` needed. The `go.work` file is
+local-only — do not commit it.
+
+To see the current workspace:
+
+```bash
+go work sync
+cat go.work
+```
 
 **Option B: replace directive**
 
-Add a replace directive to `go.mod` (CI uses this approach):
+Add replace directives to `go.mod` (CI uses this approach):
 
 ```bash
 cd go-gui
 go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
+go mod edit -replace=github.com/go-gui-org/go-edit=../go-edit
 ```
 
 This modifies `go.mod`. Revert before committing:
 
 ```bash
 go mod edit -dropreplace=github.com/go-gui-org/go-glyph
+go mod edit -dropreplace=github.com/go-gui-org/go-edit
 ```
 
 ## Coding Conventions

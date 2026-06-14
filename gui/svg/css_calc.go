@@ -399,8 +399,7 @@ func formatCalcValue(v calcValue) string {
 		return ""
 	}
 	s := strconv.FormatFloat(v.num, 'f', -1, 64)
-	switch v.unit {
-	case calcUnitPx:
+	if v.unit == calcUnitPx {
 		return s + "px"
 	}
 	return s

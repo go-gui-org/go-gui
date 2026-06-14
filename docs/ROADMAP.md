@@ -23,9 +23,9 @@ New improvement items identified in the June 2026 codebase review.
 
 - [x] **CI Benchmarking**: Integrate allocation benchmarks for hot paths (`GenerateViewLayout`, `renderLayout`) into the CI pipeline. (Benchmark + benchstat regression gate in `ci.yml`; `make bench` / `make bench-gate` targets added.)
 - [ ] **SVG Gradients**: Support diagonal gradients in `gui/svg_cache.go` (once `go-glyph` adds angle support). **Blocked:** go-glyph `GradientConfig` still only has `GradientHorizontal`/`GradientVertical` with no angle field.
-- [x] **Metal Test Hardening**: Resolve threading issues in `gui/backend/metal/render_test.go` to support reliable ARM64 macOS testing. (Removed blanket darwin skip; relies on graceful `New(w)` fallback for headless environments.)
+- [x] **Metal Test Hardening**: Resolve threading issues in `gui/backend/metal/render_test.go` to support reliable ARM64 macOS testing. (Added TestMain with `runtime.LockOSThread`; documented Cocoa main-thread constraint; skip prevents crash in goroutine-dispatched tests.)
 
 ## Code Quality & Tooling
 
-- [ ] **Multi-Repo Workflow**: Document `go.work` setup in `CONTRIBUTING.md` for sibling project development (`go-glyph`, `go-edit`).
-- [ ] **Aggressive Linting**: Enable additional linters (`gocritic`, `cyclop`) to maintain the structural integrity of complex widget logic.
+- [x] **Multi-Repo Workflow**: Document `go.work` setup in `CONTRIBUTING.md` for sibling project development (`go-glyph`, `go-edit`). (Expanded to include go-charts, go-kite; covers go.work and replace-directive approaches.)
+- [x] **Aggressive Linting**: Enable additional linters (`gocritic`, `cyclop`) to maintain the structural integrity of complex widget logic. (gocritic enabled with ifElseChain disabled; cyclop at threshold 50; 14 gocritic violations fixed.)
