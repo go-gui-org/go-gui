@@ -9,9 +9,9 @@ New improvement items identified in the June 2026 codebase review.
 
 ## Documentation & Onboarding
 
-- [ ] **Advanced Cookbooks**: Add guides for async data binding in `DataGrid` and custom GPU shader integration.
-- [ ] **Native Platform Matrix**: Expand `docs/native-platform-matrix.md` with a detailed feature-support table (a11y, dialogs, tray) per OS/backend.
-- [ ] **Architecture Sync**: Update `docs/architecture.md` to reflect recent backend evolutions (WebGPU plans, Metal/UIKit on iOS).
+- [x] **Advanced Cookbooks**: Add guides for async data binding in `DataGrid` and custom GPU shader integration. (`docs/cookbook-datagrid-async.md`, `docs/cookbook-custom-shader.md`)
+- [x] **Native Platform Matrix**: Expand `docs/native-platform-matrix.md` with a detailed feature-support table (a11y, dialogs, tray) per OS/backend.
+- [x] **Architecture Sync**: Update `docs/architecture.md` to reflect recent backend evolutions (WebGPU plans, Metal/UIKit on iOS).
 
 ## Security Hardening
 

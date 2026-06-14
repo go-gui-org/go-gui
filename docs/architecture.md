@@ -50,33 +50,34 @@ entire UI from the view function.
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         BACKEND LAYER                               │
 │                                                                     │
-│  ┌─────────────────────────────────────────────────────────────┐    │
-│  │ SDL2 Backend (gui/backend/sdl2/)                            │    │
-│  │  ├─ Window management, input events                         │    │
-│  │  ├─ TextMeasurer (via glyph)                                │    │
-│  │  ├─ SvgParser (SVG parse + tessellate)                      │    │
-│  │  └─ NativePlatform (dialogs, notifications, a11y, IME)      │    │
-│  └────────────────────────┬────────────────────────────────────┘    │
-│                           │                                         │
-│              ┌────────────┴────────────┐                            │
-│              ▼                         ▼                            │
-│  ┌───────────────────┐    ┌───────────────────┐                     │
-│  │ Metal Renderer    │    │ OpenGL Renderer   │                     │
-│  │ (gui/backend/     │    │ (gui/backend/gl/) │                     │
-│  │  metal/)          │    │                   │                     │
-│  │ macOS             │    │ Linux/Windows     │                     │
-│  └───────────────────┘    └───────────────────┘                     │
+│  Build-tag dispatch (gui/backend/run_*.go):                         │
 │                                                                     │
-│  ┌───────────────────┐    ┌───────────────────┐                     │
-│  │ File Dialog       │    │ Print Dialog      │                     │
-│  │ (backend/         │    │ (backend/         │                     │
-│  │  filedialog/)     │    │  printdialog/)    │                     │
-│  └───────────────────┘    └───────────────────┘                     │
+│  darwin && !ios → Metal (CGo) + SDL2 windowing                      │
+│  ios            → Metal (CGo) + UIKit windowing                     │
+│  android        → OpenGL ES 3.0 (CGo) + Android Activity/View       │
+│  js && wasm     → Canvas2D + WebGL2 (custom shaders)                │
+│  !darwin && !js && !android && gl → OpenGL 3.3 + SDL2 windowing     │
+│  !darwin && !js && !android && !gl → SDL2 software renderer         │
 │                                                                     │
-│  ┌───────────────────┐                                              │
-│  │ Test Backend      │  ← headless no-op for unit tests             │
-│  │ (backend/test/)   │                                              │
-│  └───────────────────┘                                              │
+│  ┌──────────┬──────────┬──────────┬──────────┬──────────┐           │
+│  │ macOS    │ iOS      │ Linux    │ Windows  │ Web      │           │
+│  │ Metal    │ Metal    │ GL/SDL2  │ GL/SDL2  │ Canvas2D │           │
+│  │ + SDL2   │ + UIKit  │ + SDL2   │ + SDL2   │ + WebGL2 │           │
+│  └──────────┴──────────┴──────────┴──────────┴──────────┘           │
+│  ┌──────────────────────────────────────────────────────┐           │
+│  │ Android: GLES3 (CGo) + Android Activity/View         │           │
+│  └──────────────────────────────────────────────────────┘           │
+│                                                                     │
+│  Shared services (all backends):                                    │
+│  ├─ TextMeasurer (via go-glyph)                                     │
+│  ├─ SvgParser (SVG parse + tessellate)                              │
+│  ├─ NativeDialogs (filedialog / printdialog)                        │
+│  └─ NativePlatform (a11y, IME, tray, menubar, spellcheck,           │
+│       notifications, bookmarks, URI opening)                        │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────┐           │
+│  │ Test Backend (gui/backend/test/) — headless no-op    │           │
+│  └──────────────────────────────────────────────────────┘           │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -175,15 +176,16 @@ go-gui/
 │   ├── a11y*.go                  ← Accessibility tree
 │   ├── opt.go                    ← Opt[T] generic optional
 │   ├── view_<widget>.go          ← Widget factories (button, input, grid...)
+│   └── datagrid/                 ← DataGrid subpackage (data sources, ORM, export)
 │   └── backend/
 │       ├── sdl2/                 ← SDL2 backend (TextMeasurer, SvgParser, NativePlatform)
 │       ├── metal/                ← Metal renderer (macOS)
 │       ├── gl/                   ← OpenGL renderer (Linux/Windows)
 │       ├── filedialog/           ← Native file dialogs
 │       ├── printdialog/          ← Native print dialogs
-│       ├── android/              ← Android backend
-│       ├── ios/                  ← iOS backend
-│       ├── web/                  ← Web/WASM backend
+│       ├── android/              ← Android backend (GLES3 + JNI)
+│       ├── ios/                  ← iOS backend (Metal + UIKit)
+│       ├── web/                  ← Web/WASM backend (Canvas2D + WebGL2)
 │       ├── nativemenu/           ← Native menu support
 │       ├── atspi/                ← AT-SPI accessibility (Linux)
 │       ├── sni/                  ← StatusNotifierItem / system tray
@@ -198,3 +200,23 @@ go-gui/
     ├── snake/
     └── ...
 ```
+
+## Future Directions
+
+- **WebGPU**: The web backend currently uses Canvas2D with optional
+  WebGL2 for custom shaders. A future WebGPU backend (via the
+  `GPUCanvasContext` / `navigator.gpu` JS API) would provide lower
+  GPU overhead and compute shader support on the web target. No
+  implementation exists yet.
+- **iOS Metal/UIKit**: The iOS backend (`gui/backend/ios/`) is
+  functional with Metal rendering and UIKit windowing. Two
+  integration patterns are supported: Go-driven (C `UIApplicationMain`
+  entry point) and Swift-driven (c-archive with `SetWindow` / `Start`
+  / `Render` exported functions). See `examples/ios_demo/` for a
+  complete Xcode project.
+- **Android GLES**: The Android backend (`gui/backend/android/`) uses
+  OpenGL ES 3.0 via JNI/CGo with the Android Activity/View system.
+- **SDL2 deprecation**: The SDL2 renderer backend is the fallback on
+  Linux and Windows. It skips `RenderCustomShader` (no GPU pipeline).
+  Long-term direction is toward GL as the default on all desktop
+  platforms, with SDL2 retained for windowing and input only.
