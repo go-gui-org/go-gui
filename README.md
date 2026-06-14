@@ -20,12 +20,12 @@ in the upper-right corner that displays documentation about the widget._
 
 ## Try It
 
-| Platform         | Download                                                                                          |
-| ---------------- | ------------------------------------------------------------------------------------------------- |
-| Browser (WASM)   | [**Open Showcase**](https://go-gui-org.github.io/showcase/) — zero install, instant evaluation    |
-| macOS            | [Go-Gui-Showcase-\<version\>.dmg](https://github.com/go-gui-org/go-gui/releases)                  |
-| Linux            | [Go-Gui-Showcase-\<version\>-linux-amd64.tar.gz](https://github.com/go-gui-org/go-gui/releases)   |
-| Windows          | [Go-Gui-Showcase-\<version\>-windows-amd64.zip](https://github.com/go-gui-org/go-gui/releases)    |
+| Platform       | Download                                                                                        |
+| -------------- | ----------------------------------------------------------------------------------------------- |
+| Browser (WASM) | [**Open Showcase**](https://go-gui-org.github.io/showcase/) — zero install, instant evaluation  |
+| macOS          | [Go-Gui-Showcase-\<version\>.dmg](https://github.com/go-gui-org/go-gui/releases)                |
+| Linux          | [Go-Gui-Showcase-\<version\>-linux-amd64.tar.gz](https://github.com/go-gui-org/go-gui/releases) |
+| Windows        | [Go-Gui-Showcase-\<version\>-windows-amd64.zip](https://github.com/go-gui-org/go-gui/releases)  |
 
 Sibling projects:
 
@@ -247,14 +247,14 @@ gui.Input(gui.InputCfg{
 Data widgets accept Go stdlib types via convenience fields. This is the
 zero-configuration path:
 
-| Widget              | Field        | Type                    | Replaces          |
-| ------------------- | ------------ | ----------------------- | ----------------- |
-| Select, Combobox    | `Options`    | `[]string`              | _(already stdlib)_|
-| ListBox             | `Items`      | `[]string`              | `Data`            |
-| RadioButtonGroup    | `Items`      | `[]string`              | `Options`         |
-| Table               | `RawData`    | `[][]string`            | `Data`            |
-| Tree                | `ItemPaths`  | `[]string`              | `Nodes`           |
-| DataGrid            | `RowsData`   | `[]map[string]string`   | `Rows`            |
+| Widget           | Field       | Type                  | Replaces           |
+| ---------------- | ----------- | --------------------- | ------------------ |
+| Select, Combobox | `Options`   | `[]string`            | _(already stdlib)_ |
+| ListBox          | `Items`     | `[]string`            | `Data`             |
+| RadioButtonGroup | `Items`     | `[]string`            | `Options`          |
+| Table            | `RawData`   | `[][]string`          | `Data`             |
+| Tree             | `ItemPaths` | `[]string`            | `Nodes`            |
+| DataGrid         | `RowsData`  | `[]map[string]string` | `Rows`             |
 
 When both the stdlib field and the typed struct field are set, the stdlib
 field takes precedence. Use the typed field when you need IDs different
@@ -418,13 +418,13 @@ go build ./...
 
 The root `Makefile` builds standalone showcase binaries for each platform.
 
-| Target | Output | Command |
-| ------ | ------ | ------- |
-| `make build-linux` | `build/showcase-linux` | `go build -tags static` |
-| `make build-macos` | `build/showcase-macos` | `go build` |
+| Target               | Output                       | Command                                 |
+| -------------------- | ---------------------------- | --------------------------------------- |
+| `make build-linux`   | `build/showcase-linux`       | `go build -tags static`                 |
+| `make build-macos`   | `build/showcase-macos`       | `go build`                              |
 | `make build-windows` | `build/showcase-windows.exe` | `go build -tags static` (cross-compile) |
-| `make build-wasm` | `build/showcase.wasm` | `GOOS=js GOARCH=wasm go build` |
-| `make release` | `.tar.gz`, `.dmg`, `.zip` | All of the above + packaging |
+| `make build-wasm`    | `build/showcase.wasm`        | `GOOS=js GOARCH=wasm go build`          |
+| `make release`       | `.tar.gz`, `.dmg`, `.zip`    | All of the above + packaging            |
 
 **Linux and Windows** use `-tags static` which activates go-sdl2's bundled
 pre-compiled static libraries. No SDL2 installation required — a single

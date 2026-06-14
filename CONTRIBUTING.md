@@ -77,9 +77,11 @@ function from its runtime.
 1. **Update go-gui** to a revision that includes `gui/compat_mingw.go`.
 
 2. **Use dynamic linking** (simplest for development):
+
    ```bash
    CGO_ENABLED=1 go build ./examples/showcase/
    ```
+
    Requires SDL2 and SDL2_mixer DLLs at runtime. Run
    `bash scripts/bundle-windows-dlls.sh` to stage them.
 

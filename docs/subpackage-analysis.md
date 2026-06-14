@@ -25,6 +25,7 @@ Core types are mutually dependent. Examples:
 - Render engine (`render_layout.go`) walks `Layout` trees and reads animation state
 
 Moving `Layout` to `gui/layout` and animation to `gui/animation` creates:
+
 ```
 gui/layout → gui/animation  (Layout references animation state)
 gui/animation → gui/layout  (animation functions reference Layout)
@@ -37,12 +38,12 @@ not an accident, it's the architecture.
 
 Every subsystem references these types:
 
-| Type | Referenced by |
-|------|--------------|
+| Type     | Referenced by                                         |
+| -------- | ----------------------------------------------------- |
 | `Layout` | layout, render, animation, all widgets, window, event |
-| `Shape` | layout, render, all widgets, event, a11y |
-| `Window` | all widgets, event, state, animation |
-| `Sizing` | layout, all container widgets, theme |
+| `Shape`  | layout, render, all widgets, event, a11y              |
+| `Window` | all widgets, event, state, animation                  |
+| `Sizing` | layout, all container widgets, theme                  |
 
 These form the trunk of the dependency tree. Moving them out doesn't reduce
 coupling — it just moves the coupling across package boundaries, which Go
@@ -72,6 +73,7 @@ The existing approach is right:
 ## Decision
 
 **No subpackage split for core.** Revisit only if:
+
 - Compile times exceed 5s (10× current) AND
 - The slow package is `gui/` (not backend or examples) AND
 - Go tooling can't mitigate (build cache, Go workspaces)

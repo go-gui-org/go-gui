@@ -232,14 +232,14 @@ and command palette.
 
 The `keyName()` function provides display names for all supported keys:
 
-| Category    | Keys                                                                                 |
-| ----------- | ------------------------------------------------------------------------------------ |
-| Letters     | `KeyA` – `KeyZ` → `"A"` – `"Z"`                                                      |
-| Numbers     | `Key0` – `Key9` → `"0"` – `"9"`                                                      |
-| Function    | `KeyF1` – `KeyF25` → `"F1"` – `"F25"`                                                |
-| Keypad      | `KeyKP0` – `KeyKP9` → `"KP0"` – `"KP9"`                                              |
-| Navigation  | `KeyUp`, `KeyDown`, `KeyLeft`, `KeyRight`                                            |
-| Page        | `KeyHome`, `KeyEnd`, `KeyPageUp`, `KeyPageDown`                                      |
-| Editing     | `KeyBackspace`, `KeyDelete`, `KeyInsert`, `KeyTab`                                   |
-| Special     | `KeySpace`, `KeyEnter`, `KeyEscape`                                                  |
+| Category    | Keys                                                                                                                                                             |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Letters     | `KeyA` – `KeyZ` → `"A"` – `"Z"`                                                                                                                                  |
+| Numbers     | `Key0` – `Key9` → `"0"` – `"9"`                                                                                                                                  |
+| Function    | `KeyF1` – `KeyF25` → `"F1"` – `"F25"`                                                                                                                            |
+| Keypad      | `KeyKP0` – `KeyKP9` → `"KP0"` – `"KP9"`                                                                                                                          |
+| Navigation  | `KeyUp`, `KeyDown`, `KeyLeft`, `KeyRight`                                                                                                                        |
+| Page        | `KeyHome`, `KeyEnd`, `KeyPageUp`, `KeyPageDown`                                                                                                                  |
+| Editing     | `KeyBackspace`, `KeyDelete`, `KeyInsert`, `KeyTab`                                                                                                               |
+| Special     | `KeySpace`, `KeyEnter`, `KeyEscape`                                                                                                                              |
 | Punctuation | `KeyMinus`, `KeyEqual`, `KeyComma`, `KeyPeriod`, `KeySlash`, `KeyBackslash`,`KeyLeftBracket`, `KeyRightBracket`, `KeyApostrophe`, `KeySemicolon`,`KeyGraveAccen` |
