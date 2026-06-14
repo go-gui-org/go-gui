@@ -44,12 +44,16 @@ Improvement backlog from the June 2026 codebase review.
 
 ## Architecture And Maintenance
 
-- [ ] **Keep core `gui` flat unless compile time becomes a real problem.** The
+- [x] **Keep core `gui` flat unless compile time becomes a real problem.** The
   layout/render/event/window/widget trunk is tightly coupled by design. Continue
-  moving only leaf subsystems into subpackages.
-- [ ] **Track large-file hotspots.** The largest files are mostly SVG,
+  moving only leaf subsystems into subpackages. Core `gui/` has ~160 .go files
+  flat; leaf subsystems (svg/, datagrid/, markdown/, backend/, etc.) are subpackages.
+- [x] **Track large-file hotspots.** The largest files are mostly SVG,
   DataGrid, layout/render, and tests. Avoid broad refactors, but split files
   when a cohesive helper can be extracted without changing public API.
-- [ ] **Preserve benchmark coverage for hot paths.** Keep benchmarks focused on
+  `render_text.go` extracted from `render_layout.go` (856→385 lines).
+  Run `./scripts/large-files.sh` to monitor.
+- [x] **Preserve benchmark coverage for hot paths.** Keep benchmarks focused on
   `GenerateViewLayout`, `layoutArrange`, `renderLayout`, event dispatch, SVG
   parse/render, and list/grid preparation paths.
+  Added `BenchmarkDataGridPresentationRows` for grid preparation gap.

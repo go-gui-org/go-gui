@@ -11,6 +11,7 @@ go vet ./...           # static analysis
 golangci-lint run ./...      # full lint (govet, staticcheck, errcheck, gocyclo, modernize, unused, revive)
 go build ./...         # build all packages
 go run ./examples/get_started/  # run the example app (requires SDL2)
+./scripts/large-files.sh     # report Go files >800 lines in gui/
 ```
 
 ## Architecture
@@ -27,7 +28,8 @@ View fn → GenerateViewLayout() → Layout tree
 ### Packages
 
 - `gui/` — core: widget factories, layout engine, theme, animation,
-  event dispatch, state mgmt (~160 .go files)
+  event dispatch, state mgmt (~160 .go files). **Keep flat: only leaf
+  subsystems (svg/, datagrid/, markdown/, backend/, etc.) in subpackages.**
 - `gui/backend/sdl2/` — SDL2 backend. Implements `TextMeasurer`, `SvgParser`,
   `NativePlatform`. Wires into window via `sdl2.New(w)`
 - `gui/backend/metal/` — Metal backend (macOS)
