@@ -86,7 +86,8 @@ func main() {
 	go func() {
 		addr := "localhost:" + *pprofPort
 		fmt.Println("pprof: http://" + addr + "/debug/pprof/")
-		http.ListenAndServe(addr, nil) //nolint:errcheck,gosec
+		// #nosec G104,G114 — debug pprof server, intentional
+		http.ListenAndServe(addr, nil) //nolint:errcheck
 	}()
 
 	gui.SetTheme(gui.ThemeDark.WithBorders(true))

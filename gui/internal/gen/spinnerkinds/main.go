@@ -96,6 +96,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("gofmt: %v\n----\n%s", err, buf.String())
 	}
+	// #nosec G306 — standard 0644 for generated Go source
 	if err := os.WriteFile(outFile, src, 0o644); err != nil {
 		log.Fatalf("write %s: %v", outFile, err)
 	}

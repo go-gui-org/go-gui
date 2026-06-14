@@ -243,6 +243,7 @@ func loadSvgFile(path string) ([]byte, error) {
 	if info.Size() > maxSvgFileSize {
 		return nil, fmt.Errorf("SVG file too large: %d bytes", info.Size())
 	}
+	// #nosec G304 — path validated by caller through AllowedSvgRoots
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read SVG file: %w", err)

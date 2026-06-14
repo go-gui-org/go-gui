@@ -66,6 +66,7 @@ func OpenSafe(
 	if err != nil {
 		return nil, fmt.Errorf("open safe: stat: %w", err)
 	}
+	// #nosec G304 — path validated through AllowedImageRoots + TOCTOU guard
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("open safe: open: %w", err)

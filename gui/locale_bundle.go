@@ -61,6 +61,8 @@ func LocaleParse(content string) (Locale, error) {
 }
 
 // LocaleLoad reads a JSON bundle file and returns a Locale.
+//
+// #nosec G304 — path from filepath.Glob constrained to *.json
 func LocaleLoad(path string) (Locale, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {

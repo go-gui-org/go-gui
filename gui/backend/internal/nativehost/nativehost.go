@@ -59,6 +59,8 @@ func ValidateOpenURI(raw string) error {
 }
 
 // OpenURI validates uri and opens it in the default OS handler.
+//
+// #nosec G204 — uri validated via ValidateOpenURI (scheme allowlist)
 func OpenURI(uri string) error {
 	if err := ValidateOpenURI(uri); err != nil {
 		return err
@@ -87,6 +89,9 @@ func OpenURI(uri string) error {
 // title is capped at maxNotifyTitleLen; body is capped at
 // maxNotifyBodyLen to prevent argument-list overflow in the
 // underlying shell commands.
+//
+// #nosec G204 — length-capped, -- separator on Linux, single-quote
+// escaping on Windows
 func SendNotification(title, body string) gui.NativeNotificationResult {
 	if len(title) > maxNotifyTitleLen {
 		title = title[:maxNotifyTitleLen]

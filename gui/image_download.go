@@ -280,6 +280,7 @@ func downloadImage(
 	ext := contentTypeToExt(ct)
 	path := basePath + ext
 
+	// #nosec G304 — path hashed from URL, cache dir hardcoded
 	f, err := os.Create(path)
 	if err != nil {
 		log.Printf("image download create: %v", err)

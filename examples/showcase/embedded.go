@@ -172,10 +172,12 @@ func themeCfgSave(path string, cfg gui.ThemeCfg) error {
 	if err != nil {
 		return err
 	}
+	// #nosec G306 — standard 0644 for user config
 	return os.WriteFile(path, data, 0o644)
 }
 
 func themeCfgLoad(path string) (gui.ThemeCfg, error) {
+	// #nosec G304 — path from OS file dialog
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return gui.ThemeCfg{}, err

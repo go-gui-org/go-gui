@@ -511,6 +511,7 @@ func (w *Window) GetSvgDimensions(svgSrc string) (float32, float32, error) {
 	if strings.HasPrefix(svgSrc, "<") {
 		content = svgSrc
 	} else {
+		// #nosec G304 — resolvedSrc validated through AllowedSvgRoots
 		data, err := os.ReadFile(resolvedSrc)
 		if err != nil {
 			return 0, 0, fmt.Errorf("SVG not found: %s", resolvedSrc)

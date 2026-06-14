@@ -188,6 +188,7 @@ func run() error {
 
 	out := b.String()
 	if *write {
+		// #nosec G306 — standard 0644 for generated docs
 		if err := os.WriteFile("docs/dependencies.md", []byte(out), 0o644); err != nil {
 			return fmt.Errorf("writing docs/dependencies.md: %w", err)
 		}

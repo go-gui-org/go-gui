@@ -75,6 +75,7 @@ func run() error {
 	return build(o)
 }
 
+// #nosec G301 — standard macOS .app bundle permissions
 func build(o bundleOpts) error {
 	if err := validateMachO(o.Binary); err != nil {
 		return err
@@ -169,6 +170,7 @@ func validateMachO(path string) error {
 	return nil
 }
 
+// #nosec G304 — path is developer-controlled CLI flag
 func writePlist(path, execName, id, name, version, icon string) error {
 	t := template.Must(template.New("plist").Parse(infoPlistTmpl))
 	f, err := os.Create(path)
@@ -181,6 +183,7 @@ func writePlist(path, execName, id, name, version, icon string) error {
 	})
 }
 
+// #nosec G304 — src/dst are developer-controlled CLI flags
 func copyFile(src, dst string, mode os.FileMode) error {
 	in, err := os.Open(src)
 	if err != nil {
@@ -225,6 +228,7 @@ func installIcon(icon, resDir, execName string) (string, error) {
 	return icnsName, nil
 }
 
+// #nosec G204,G301 — build tool, all args from flags or temp dirs
 func pngToIcns(png, outIcns string) error {
 	tmp, err := os.MkdirTemp("", "buildapp-icon-*")
 	if err != nil {
@@ -274,6 +278,7 @@ func moveDir(src, dst string) error {
 // Contents/Frameworks, rewrites all install names to @rpath form, adds
 // an rpath of @executable_path/../Frameworks, and ad-hoc re-signs every
 // modified file. Recurses through transitive dependencies.
+// #nosec G204,G301 — build tool, args from otool output on own binaries
 func bundleDeps(binary, contents string) error {
 	for _, tool := range []string{"otool", "install_name_tool", "codesign"} {
 		if _, err := exec.LookPath(tool); err != nil {
@@ -343,6 +348,7 @@ func bundleDeps(binary, contents string) error {
 
 // otoolDeps returns the LC_LOAD_DYLIB paths recorded in path. The
 // binary's own LC_ID_DYLIB (first line) is dropped.
+// #nosec G204 — build tool, path from own binary
 func otoolDeps(path string) ([]string, error) {
 	out, err := exec.Command("otool", "-L", path).Output()
 	if err != nil {
@@ -379,6 +385,7 @@ func otoolDeps(path string) ([]string, error) {
 // signBundle ad-hoc signs the entire .app bundle.  A missing
 // bundle-level signature causes Gatekeeper to report the app as
 // "damaged" even when every binary inside is individually signed.
+// #nosec G204 — build tool, appDir from temp dir
 func signBundle(appDir string) error {
 	if _, err := exec.LookPath("codesign"); err != nil {
 		return fmt.Errorf("codesign not found")

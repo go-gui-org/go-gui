@@ -606,7 +606,7 @@ func tableRichTextWidth(rt *RichText, tm TextMeasurer) float32 {
 func tableColumnWidthHash(cfg *TableCfg) uint64 {
 	h := fnv.New64a()
 	n := len(cfg.Data)
-	h.Write([]byte{byte(n), byte(n >> 8), byte(n >> 16), byte(n >> 24)})
+	_, _ = h.Write([]byte{byte(n), byte(n >> 8), byte(n >> 16), byte(n >> 24)})
 	indices := make([]int, 0, 3)
 	if n > 0 {
 		indices = append(indices, 0)
@@ -619,7 +619,7 @@ func tableColumnWidthHash(cfg *TableCfg) uint64 {
 	}
 	for _, i := range indices {
 		for _, cell := range cfg.Data[i].Cells {
-			h.Write([]byte(cell.Value))
+			_, _ = h.Write([]byte(cell.Value))
 		}
 	}
 	return h.Sum64()
