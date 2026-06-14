@@ -1,59 +1,114 @@
 # Roadmap
 
-Improvement backlog from the June 2026 codebase review.
+Phase 2 backlog — June 2026 codebase review. Phase 1 (CI, docs hygiene,
+native-platform glue, large-file tooling) is complete.
 
-## CI And Quality Gates
+## Windows Reliability
 
-- [x] **Fail fuzz workflow on discovered crashes.** The fuzz workflow currently
-  records failing targets as warnings but does not fail the job. Keep the summary
-  table, then exit non-zero when any fuzz target fails.
-- [x] **Fix coverage-diff regression counting.** The PR coverage diff increments
-  `regressions` inside a shell pipeline subshell, so the final count can be
-  wrong. Rewrite the loop to preserve state in the parent shell.
-- [x] **Refresh coverage and benchmark baseline keys.** The cache keys for
-  coverage and benchmark baselines are fixed names, which can make baselines
-  stale. Include the main-branch commit SHA or an intentional rolling key.
-- [x] **Add recurring vulnerability/security scans.** Add `govulncheck ./...`
-  and a targeted `gosec` run to CI so security checks are enforced rather than
-  one-time manual audit notes.
+- [ ] **Close issue #8 — showcase on Windows.** Users report missing
+  `libFLAC.dll` at startup. Audio is already opt-in (`-tags audio`), and
+  release builds use `-tags static,audio`, but dynamic builds and incomplete
+  DLL bundles still fail. Verify the release zip includes all transitive
+  codec DLLs (`libFLAC.dll`, etc.), not just `SDL2*.dll`. Document the
+  supported Windows build path (MSYS2 + `-tags static,audio`, or use the
+  release zip as-is).
+- [ ] **Add Windows CI smoke test.** The Windows job currently only
+  `go build` + `go vet`. Add at least `go test ./gui/...` (headless backend)
+  and a post-build launch of `showcase-windows.exe` with a timeout to catch
+  missing-DLL startup failures before release.
+- [ ] **Align local and CI Windows packaging.** `scripts/bundle-windows-dlls.sh`
+  downloads upstream SDL2_mixer DLLs; the release workflow copies from MSYS2.
+  Pick one source of truth so `make release` and CI produce identical zips.
+- [ ] **Document MinGW static-link pitfalls.** `go build -tags static,audio`
+  fails on some toolchains with `undefined reference to __ms_vsscanf`
+  (go-sdl2 bundled libs vs MSYS2 GCC mismatch). Add a troubleshooting section
+  to `CONTRIBUTING.md` or `README.md`.
 
-## Documentation Hygiene
+## Platform Parity
 
-- [x] **Resolve license drift.** `LICENSE` and `README.md` identify the project
-  as MIT, while `CONTRIBUTING.md` says PolyForm Noncommercial. Pick the intended
-  license and make all references consistent.
-- [x] **Update dependency documentation.** `docs/dependencies.md` has stale module
-  versions compared with `go.mod`. Add a lightweight check or generation step so
-  this file does not drift.
-- [x] **Sync profiling docs with current CI.** `docs/profiling.md` still says to
-  consider adding benchmark comparison to PR CI, but the benchmark gate already
-  exists.
+Gaps from `docs/native-platform-matrix.md`, ordered by user impact.
 
-## Platform And Native Surface
+- [ ] **Windows accessibility (UIA bridge).** Screen readers do not work on
+  Windows — no UIA or AT-SPI bridge exists. macOS (VoiceOver) and Linux
+  (AT-SPI) are functional.
+- [ ] **Save/Discard/Cancel dialogs on Linux and Windows.** Underlying toolkits
+  (zenity/kdialog, Win32 MessageBox) support 3-button layouts; the filedialog
+  package does not expose them yet.
+- [ ] **Windows system tray.** macOS (`NSStatusBar`) and Linux (SNI D-Bus) are
+  functional; Windows GL and SDL2 backends are stubs.
+- [ ] **Windows spell check.** macOS (NSSpellChecker) and Linux (hunspell) are
+  functional; Windows and Web are stubs.
+- [ ] **Windows SDL2 notifications.** GL backend uses PowerShell toast API;
+  SDL2 backend returns stub — gap within the same OS.
+- [ ] **Dark titlebar.** No-op on all backends. Requires platform-specific
+  window manager calls (macOS `NSWindow.appearance`, Windows
+  `DwmSetWindowAttribute`, Linux GTK CSD).
+- [ ] **Security-scoped bookmarks (macOS sandbox).** C dialog layer parses
+  `bookmarkData` from `NSOpenPanel`; Go side does not consume it.
+- [ ] **iOS native surface.** Dialogs, a11y, IME, and OpenURI are stubs.
+  CI builds c-archive but runtime behavior is minimal.
+- [ ] **Android/iOS file dialogs.** Native dialog backends are stubs on
+  mobile; desktop and Web are functional.
 
-- [x] **Raise coverage on native platform behavior.** Core `gui` coverage is
-  healthy, but backend/native packages remain low. Prioritize testable behavior:
-  URI validation, command construction, notification errors, dialog result
-  mapping, menu callbacks, tray callbacks, and app-level routing.
-- [x] **Share duplicated native-platform glue.** The GL and SDL2 backends
-  duplicate OpenURI, dialog forwarding, notification, spellcheck, and IME logic.
-  Extract shared non-rendering behavior into a small backend-internal helper.
-- [x] **Add App native integration tests.** Cover `App.SetNativeMenubar`,
-  `ClearNativeMenubar`, `SetSystemTray`, `UpdateSystemTray`, and
-  `RemoveSystemTray` using `NoopNativePlatform`-based mocks.
+## Backend Test Coverage
 
-## Architecture And Maintenance
+Core `gui/` coverage is ~78% (CI threshold: 70%). Backend packages are
+largely untested in CI coverage reports.
 
-- [x] **Keep core `gui` flat unless compile time becomes a real problem.** The
-  layout/render/event/window/widget trunk is tightly coupled by design. Continue
-  moving only leaf subsystems into subpackages. Core `gui/` has ~160 .go files
-  flat; leaf subsystems (svg/, datagrid/, markdown/, backend/, etc.) are subpackages.
-- [x] **Track large-file hotspots.** The largest files are mostly SVG,
-  DataGrid, layout/render, and tests. Avoid broad refactors, but split files
-  when a cohesive helper can be extracted without changing public API.
-  `render_text.go` extracted from `render_layout.go` (856→385 lines).
-  Run `./scripts/large-files.sh` to monitor.
-- [x] **Preserve benchmark coverage for hot paths.** Keep benchmarks focused on
-  `GenerateViewLayout`, `layoutArrange`, `renderLayout`, event dispatch, SVG
-  parse/render, and list/grid preparation paths.
-  Added `BenchmarkDataGridPresentationRows` for grid preparation gap.
+| Package | Coverage | Priority |
+|---------|----------|----------|
+| `gui/backend/sdl2` | 0% | High — default Linux/Windows backend |
+| `gui/backend/metal` | ~2% | Medium — macOS default |
+| `gui/backend/gl` | ~2% | Medium — alt backend |
+| `gui/backend/filedialog` | 0% | High — testable via mocks |
+| `gui/backend/printdialog` | 0% | Medium |
+| `gui/backend/spellcheck` | 0% | Medium |
+| `gui/backend/nativemenu` | 0% | Medium |
+| `gui/audio` | ~34% | Low — opt-in, SDL2_mixer dependency |
+
+- [ ] **Extend mock-based native integration tests.** Follow the pattern in
+  `app_native_test.go` and `backend/internal/nativehost/`. Prioritize
+  testable behavior: URI validation, command construction, notification
+  errors, dialog result mapping, menu/tray callbacks, app-level routing.
+- [ ] **Consistent `*_other_test.go` stubs.** printdialog, sni, and spellcheck
+  already use build-tag stubs; apply the same pattern to filedialog and
+  nativemenu where missing.
+- [ ] **Optional per-package coverage floors.** CI enforces 70% on
+  `./gui/...` only. Consider adding floors for packages with mock-based
+  tests (e.g. filedialog ≥ 50%) without requiring display hardware.
+
+## Large-File Maintenance
+
+Run `./scripts/large-files.sh` to monitor. Split incrementally when already
+touching a file — no broad refactors.
+
+| Lines | File | Notes |
+|------:|------|-------|
+| 1317 | `gui/svg/style.go` | Largest file; candidate for style resolution helpers |
+| 1115 | `gui/svg/animation.go` | Already has `animation_resolve.go`; more to extract |
+| 934 | `gui/datagrid/view_data_grid_events.go` | Event dispatch vs row rendering |
+| 933 | `gui/svg/css/parse.go` | CSS parser leaf subpackage |
+| 898 | `gui/view_splitter.go` | Drag/resize logic |
+| 891 | `gui/styles_widget.go` | Theme/style application |
+
+- [ ] **Extract cohesive helpers from top hotspots.** Follow the
+  `render_text.go` extraction from `render_layout.go` (856 → 385 lines).
+- [ ] **SVG diagonal gradients.** One remaining code TODO in
+  `gui/svg_cache.go` — blocked on glyph angle support.
+
+## Documentation And DX
+
+- [ ] **Fix build-tag naming drift.** CHANGELOG references
+  `gui_showcase_audio`; the actual tag is `audio` (`demo_audio.go`).
+- [ ] **Windows developer onboarding.** Consolidate MSYS2 setup, static vs
+  dynamic linking, and audio opt-in into a single doc section.
+- [ ] **Refresh native-platform-matrix.md** as platform gaps close.
+
+## Deferred (revisit only when triggered)
+
+- **Core `gui/` subpackage split.** Compile time is ~0.28s; import cycles
+  prevent moving Layout/Shape/Window. See `docs/subpackage-analysis.md`.
+- **Raise global coverage threshold.** Core is at ~78%; 75% is reasonable
+  when backend mock tests land.
+- **Example smoke test expansion.** Many examples have `main_test.go`; only
+  expand for examples that demo fragile platform features.
