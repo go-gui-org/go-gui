@@ -115,7 +115,7 @@ touching a file — no broad refactors.
 
 ## Documentation And DX
 
-- [ ] **Fix build-tag naming drift.** CHANGELOG references
+- [x] **Fix build-tag naming drift.** CHANGELOG references
   `gui_showcase_audio`; the actual tag is `audio` (`demo_audio.go`).
 - [ ] **Windows developer onboarding.** Consolidate MSYS2 setup, static vs
   dynamic linking, and audio opt-in into a single doc section.

@@ -61,7 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Web backend keydown/keyup registered on `document` instead of `canvas`,
   fixing focus-edge-case missed keys.
 - Showcase wasm build missing `cleanupEmbeddedAssets` stub.
-- Showcase audio made opt-in behind `gui_showcase_audio` build tag, fixing
+- Showcase audio made opt-in behind `audio` build tag, fixing
   Windows FLAC DLL issue (#8).
 - CI showcase deploy race condition on GitHub Pages fixed.
 
