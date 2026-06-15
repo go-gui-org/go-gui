@@ -6,7 +6,6 @@ import (
 	"math"
 	"strconv"
 	"strings"
-	"syscall/js"
 
 	"github.com/go-gui-org/go-gui/gui"
 )
