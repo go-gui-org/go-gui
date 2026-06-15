@@ -206,3 +206,78 @@ func TestNoToolAlert(t *testing.T) {
 		t.Error("ErrorMessage should not be empty")
 	}
 }
+
+// consumeDetectOnce fires detectDialogTool once so the sync.OnceFunc
+// is spent, then pins detectedTool to toolNone. Subsequent dialog
+// calls take the "no tool available" branch, which is testable
+// without zenity/kdialog installed.
+func consumeDetectOnce() {
+	detectDialogTool()
+	detectedTool = toolNone
+}
+
+func TestShowOpenDialogNoTool(t *testing.T) {
+	consumeDetectOnce()
+	r := ShowOpenDialog("Open", "/tmp", nil, false)
+	if r.Status != gui.DialogError {
+		t.Errorf("Status = %d, want %d", r.Status, gui.DialogError)
+	}
+	if r.ErrorCode != "no_dialog_tool" {
+		t.Errorf("ErrorCode = %q, want %q", r.ErrorCode, "no_dialog_tool")
+	}
+}
+
+func TestShowSaveDialogNoTool(t *testing.T) {
+	consumeDetectOnce()
+	r := ShowSaveDialog("Save", "/tmp", "file.txt", "txt", nil, false)
+	if r.Status != gui.DialogError {
+		t.Errorf("Status = %d, want %d", r.Status, gui.DialogError)
+	}
+	if r.ErrorCode != "no_dialog_tool" {
+		t.Errorf("ErrorCode = %q, want %q", r.ErrorCode, "no_dialog_tool")
+	}
+}
+
+func TestShowFolderDialogNoTool(t *testing.T) {
+	consumeDetectOnce()
+	r := ShowFolderDialog("Folder", "/tmp")
+	if r.Status != gui.DialogError {
+		t.Errorf("Status = %d, want %d", r.Status, gui.DialogError)
+	}
+	if r.ErrorCode != "no_dialog_tool" {
+		t.Errorf("ErrorCode = %q, want %q", r.ErrorCode, "no_dialog_tool")
+	}
+}
+
+func TestShowMessageDialogNoTool(t *testing.T) {
+	consumeDetectOnce()
+	r := ShowMessageDialog("Msg", "body", gui.AlertInfo)
+	if r.Status != gui.DialogError {
+		t.Errorf("Status = %d, want %d", r.Status, gui.DialogError)
+	}
+	if r.ErrorCode != "no_dialog_tool" {
+		t.Errorf("ErrorCode = %q, want %q", r.ErrorCode, "no_dialog_tool")
+	}
+}
+
+func TestShowConfirmDialogNoTool(t *testing.T) {
+	consumeDetectOnce()
+	r := ShowConfirmDialog("Confirm", "body", gui.AlertInfo)
+	if r.Status != gui.DialogError {
+		t.Errorf("Status = %d, want %d", r.Status, gui.DialogError)
+	}
+	if r.ErrorCode != "no_dialog_tool" {
+		t.Errorf("ErrorCode = %q, want %q", r.ErrorCode, "no_dialog_tool")
+	}
+}
+
+func TestShowSaveDiscardDialogNoTool(t *testing.T) {
+	consumeDetectOnce()
+	r := ShowSaveDiscardDialog("Save?", "body", gui.AlertWarning)
+	if r.Status != gui.DialogError {
+		t.Errorf("Status = %d, want %d", r.Status, gui.DialogError)
+	}
+	if r.ErrorCode != "no_dialog_tool" {
+		t.Errorf("ErrorCode = %q, want %q", r.ErrorCode, "no_dialog_tool")
+	}
+}

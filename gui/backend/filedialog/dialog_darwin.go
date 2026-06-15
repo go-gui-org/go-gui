@@ -118,47 +118,54 @@ func ShowSaveDiscardDialog(title, body string,
 }
 
 func toAlertResult(r C.AlertResult) gui.NativeAlertResult {
-	var status gui.NativeDialogStatus
-	switch r.status {
-	case C.DIALOG_OK:
-		status = gui.DialogOK
-	case C.DIALOG_CANCEL:
-		status = gui.DialogCancel
-	default:
-		status = gui.DialogError
-	}
 	var errMsg string
 	if r.errorMessage != nil {
 		errMsg = C.GoString(r.errorMessage)
 		C.free(unsafe.Pointer(r.errorMessage))
 	}
-	return gui.NativeAlertResult{
-		Status:       status,
-		ErrorMessage: errMsg,
+	return buildAlertResult(int(r.status), errMsg)
+}
+
+// buildAlertResult maps a raw status code and error message to a
+// NativeAlertResult. Separated from the CGo glue so it can be
+// unit-tested (Go prohibits import "C" in _test.go files).
+func buildAlertResult(status int, errMsg string) gui.NativeAlertResult {
+	var s gui.NativeDialogStatus
+	switch status {
+	case int(C.DIALOG_OK):
+		s = gui.DialogOK
+	case int(C.DIALOG_CANCEL):
+		s = gui.DialogCancel
+	default:
+		s = gui.DialogError
 	}
+	return gui.NativeAlertResult{Status: s, ErrorMessage: errMsg}
 }
 
 func toSaveDiscardResult(r C.AlertResult) gui.NativeAlertResult {
-	var status gui.NativeDialogStatus
-	switch r.status {
-	case C.DIALOG_OK:
-		status = gui.DialogOK
-	case C.DIALOG_DISCARD:
-		status = gui.DialogDiscard
-	case C.DIALOG_CANCEL:
-		status = gui.DialogCancel
-	default:
-		status = gui.DialogError
-	}
 	var errMsg string
 	if r.errorMessage != nil {
 		errMsg = C.GoString(r.errorMessage)
 		C.free(unsafe.Pointer(r.errorMessage))
 	}
-	return gui.NativeAlertResult{
-		Status:       status,
-		ErrorMessage: errMsg,
+	return buildSaveDiscardResult(int(r.status), errMsg)
+}
+
+// buildSaveDiscardResult maps a raw status code and error message to
+// a NativeAlertResult including the discard variant.
+func buildSaveDiscardResult(status int, errMsg string) gui.NativeAlertResult {
+	var s gui.NativeDialogStatus
+	switch status {
+	case int(C.DIALOG_OK):
+		s = gui.DialogOK
+	case int(C.DIALOG_DISCARD):
+		s = gui.DialogDiscard
+	case int(C.DIALOG_CANCEL):
+		s = gui.DialogCancel
+	default:
+		s = gui.DialogError
 	}
+	return gui.NativeAlertResult{Status: s, ErrorMessage: errMsg}
 }
 
 // --- helpers ---
@@ -187,38 +194,51 @@ func freeCStringArray(arr **C.char, count C.int) {
 }
 
 func toResult(r C.DialogResult) gui.PlatformDialogResult {
-	var status gui.NativeDialogStatus
-	switch r.status {
-	case C.DIALOG_OK:
-		status = gui.DialogOK
-	case C.DIALOG_CANCEL:
-		status = gui.DialogCancel
-	default:
-		status = gui.DialogError
-	}
-
-	var paths []gui.PlatformPath
-	if r.pathCount > 0 {
-		cPaths := unsafe.Slice(r.paths, int(r.pathCount))
-		cBookmarks := unsafe.Slice(r.bookmarkData, int(r.pathCount))
-		cLens := unsafe.Slice(r.bookmarkLens, int(r.pathCount))
-		paths = make([]gui.PlatformPath, int(r.pathCount))
-		for i := range paths {
-			paths[i].Path = C.GoString(cPaths[i])
-			if cLens[i] > 0 && cBookmarks[i] != nil {
-				paths[i].BookmarkData = C.GoBytes(cBookmarks[i],
-					cLens[i])
-			}
-		}
-	}
-
+	paths := extractPaths(&r)
 	var errMsg string
 	if r.errorMessage != nil {
 		errMsg = C.GoString(r.errorMessage)
 	}
+	return buildDialogResult(int(r.status), paths, errMsg)
+}
 
+// extractPaths reads C string arrays and bookmark data from a
+// DialogResult into Go slices. The C memory is still owned by the
+// caller (filedialogFreeResult frees it); this only copies.
+func extractPaths(r *C.DialogResult) []gui.PlatformPath {
+	if r.pathCount <= 0 {
+		return nil
+	}
+	cPaths := unsafe.Slice(r.paths, int(r.pathCount))
+	cBookmarks := unsafe.Slice(r.bookmarkData, int(r.pathCount))
+	cLens := unsafe.Slice(r.bookmarkLens, int(r.pathCount))
+	paths := make([]gui.PlatformPath, int(r.pathCount))
+	for i := range paths {
+		paths[i].Path = C.GoString(cPaths[i])
+		if cLens[i] > 0 && cBookmarks[i] != nil {
+			paths[i].BookmarkData = C.GoBytes(cBookmarks[i],
+				cLens[i])
+		}
+	}
+	return paths
+}
+
+// buildDialogResult constructs a PlatformDialogResult from status,
+// paths, and error message. Separated from the CGo glue for
+// testability.
+func buildDialogResult(status int, paths []gui.PlatformPath,
+	errMsg string) gui.PlatformDialogResult {
+	var s gui.NativeDialogStatus
+	switch status {
+	case int(C.DIALOG_OK):
+		s = gui.DialogOK
+	case int(C.DIALOG_CANCEL):
+		s = gui.DialogCancel
+	default:
+		s = gui.DialogError
+	}
 	return gui.PlatformDialogResult{
-		Status:       status,
+		Status:       s,
 		Paths:        paths,
 		ErrorMessage: errMsg,
 	}
