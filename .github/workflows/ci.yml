@@ -15,11 +15,11 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           path: go-gui
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
@@ -154,7 +154,7 @@ jobs:
 
       - name: Upload coverage
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-${{ matrix.os }}
           path: go-gui/coverage.out
@@ -164,7 +164,7 @@ jobs:
     name: Vet
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-go@v6
         with:
@@ -197,11 +197,11 @@ jobs:
     name: Check (test + vet + lint)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           path: go-gui
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
@@ -239,11 +239,11 @@ jobs:
     name: Build examples
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           path: go-gui
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
@@ -278,11 +278,11 @@ jobs:
     name: iOS
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           path: go-gui
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
@@ -321,11 +321,11 @@ jobs:
     name: WASM
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           path: go-gui
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
@@ -343,7 +343,7 @@ jobs:
         working-directory: go-gui
         run: GOOS=js GOARCH=wasm go vet ./...
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
 
@@ -362,11 +362,11 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           path: go-gui
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
@@ -432,11 +432,11 @@ jobs:
     name: Android
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           path: go-gui
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
@@ -480,7 +480,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-go@v6
         with:
@@ -510,7 +510,7 @@ jobs:
           key: benchmark-baseline-${{ github.sha }}
 
       - name: Upload benchmark results
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: benchmark-results
           path: benchmark-results.txt
@@ -521,7 +521,7 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-go@v6
         with:
@@ -583,7 +583,7 @@ jobs:
     name: Security scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-go@v6
         with:

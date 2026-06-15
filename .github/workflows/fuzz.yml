@@ -17,11 +17,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           path: go-gui
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
@@ -110,7 +110,7 @@ jobs:
 
       - name: Upload fuzz corpus
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: fuzz-corpus
           path: go-gui/**/testdata/fuzz/**/*

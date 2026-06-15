@@ -14,16 +14,16 @@ jobs:
     name: Linux
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           path: go-gui
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: stable
 
@@ -61,7 +61,7 @@ jobs:
           tar czf "go-gui-showcase-${VERSION}-linux-amd64.tar.gz" \
             -C build showcase-linux
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: linux-asset
           path: go-gui/go-gui-showcase-*.tar.gz
@@ -70,16 +70,16 @@ jobs:
     name: macOS
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           path: go-gui
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: stable
 
@@ -105,7 +105,7 @@ jobs:
             -format UDZO "Go-Gui-Showcase-${VERSION}.dmg"
           codesign -s - --force "Go-Gui-Showcase-${VERSION}.dmg"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: macos-asset
           path: go-gui/Go-Gui-Showcase-*.dmg
@@ -117,11 +117,11 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           path: go-gui
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
@@ -140,7 +140,7 @@ jobs:
             mingw-w64-x86_64-SDL2_image
             zip
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: stable
 
@@ -173,7 +173,7 @@ jobs:
           zip "go-gui-showcase-${VERSION}-windows-amd64.zip" \
             build/showcase-windows.exe
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows-asset
           path: go-gui/go-gui-showcase-*.zip
@@ -182,16 +182,16 @@ jobs:
     name: iOS
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           path: go-gui
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: stable
 
@@ -250,7 +250,7 @@ jobs:
             ios-device/libgoguiapp.a ios-device/ios_app.h \
             -r ios-simulator/IOSDemo.app ios-simulator/README.md
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ios-asset
           path: go-gui/go-gui-ios-*.zip
@@ -259,16 +259,16 @@ jobs:
     name: Android
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           path: go-gui
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: stable
 
@@ -303,7 +303,7 @@ jobs:
           cd build && zip "../go-gui-android-${VERSION}.zip" \
             android/gogui.aar android/gogui-sources.jar
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: android-asset
           path: go-gui/go-gui-android-*.zip
@@ -313,13 +313,13 @@ jobs:
     needs: [linux, macos, windows, ios, android]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: '*-asset'
           merge-multiple: true
           path: assets
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: assets/*
