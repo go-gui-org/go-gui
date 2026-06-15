@@ -31,15 +31,19 @@ Gaps from `docs/native-platform-matrix.md`, ordered by user impact.
 - [ ] **Windows accessibility (UIA bridge).** Screen readers do not work on
   Windows — no UIA or AT-SPI bridge exists. macOS (VoiceOver) and Linux
   (AT-SPI) are functional.
-- [ ] **Save/Discard/Cancel dialogs on Linux and Windows.** Underlying toolkits
-  (zenity/kdialog, Win32 MessageBox) support 3-button layouts; the filedialog
-  package does not expose them yet.
-- [ ] **Windows system tray.** macOS (`NSStatusBar`) and Linux (SNI D-Bus) are
-  functional; Windows GL and SDL2 backends are stubs.
+- [x] **Save/Discard/Cancel dialogs on Linux and Windows.** Linux: zenity
+  `--question` + `--extra-button Discard`, kdialog `--warningyesnocancel`.
+  Windows: `MessageBoxW` with `MB_YESNOCANCEL`. Maps: Yes→Save, No→Discard,
+  Cancel→Cancel.
+- [x] **Windows system tray.** `Shell_NotifyIconW` with message-only window
+  for callbacks, PNG→HICON via `CreateDIBSection`+`CreateIconIndirect`,
+  popup menus via `CreatePopupMenu`+`TrackPopupMenu`. Wired into SDL2 and
+  GL backends via `sni.Tray` package.
 - [ ] **Windows spell check.** macOS (NSSpellChecker) and Linux (hunspell) are
   functional; Windows and Web are stubs.
-- [ ] **Windows SDL2 notifications.** GL backend uses PowerShell toast API;
-  SDL2 backend returns stub — gap within the same OS.
+- [x] **Windows SDL2 notifications.** Already resolved — both SDL2 and GL
+  backends delegate to `nativehost.SendNotification`, which uses PowerShell
+  on Windows.
 - [ ] **Dark titlebar.** No-op on all backends. Requires platform-specific
   window manager calls (macOS `NSWindow.appearance`, Windows
   `DwmSetWindowAttribute`, Linux GTK CSD).
@@ -94,7 +98,7 @@ touching a file — no broad refactors.
 - [ ] **Extract cohesive helpers from top hotspots.** Follow the
   `render_text.go` extraction from `render_layout.go` (856 → 385 lines).
 - [ ] **SVG diagonal gradients.** One remaining code TODO in
-  `gui/svg_cache.go` — blocked on glyph angle support.
+  `gui/svg_cache.go` 
 
 ## Documentation And DX
 

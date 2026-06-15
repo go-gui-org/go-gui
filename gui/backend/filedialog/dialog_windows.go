@@ -40,9 +40,12 @@ const (
 const (
 	mbOK          = 0x00000000
 	mbOKCancel    = 0x00000001
+	mbYesNoCancel = 0x00000003
 	mbIconInfo    = 0x00000040
 	mbIconWarning = 0x00000030
 	mbIconError   = 0x00000010
+	idYes         = 6
+	idNo          = 7
 	idCancel      = 2
 )
 
@@ -256,14 +259,30 @@ func ShowConfirmDialog(title, body string,
 	return gui.NativeAlertResult{Status: gui.DialogOK}
 }
 
-// ShowSaveDiscardDialog shows a Save/Discard/Cancel dialog.
-// Not available on Windows via MessageBox; returns DialogError.
-func ShowSaveDiscardDialog(_, _ string,
-	_ gui.NativeAlertLevel) gui.NativeAlertResult {
-	return gui.NativeAlertResult{
-		Status:       gui.DialogError,
-		ErrorCode:    "unsupported",
-		ErrorMessage: "3-button save dialog not available on Windows",
+// ShowSaveDiscardDialog shows a Save/Discard/Cancel dialog via
+// MessageBoxW with MB_YESNOCANCEL. Maps: Yes→Save, No→Discard,
+// Cancel→Cancel.
+func ShowSaveDiscardDialog(title, body string,
+	level gui.NativeAlertLevel) gui.NativeAlertResult {
+
+	titlePtr, _ := syscall.UTF16PtrFromString(title)
+	bodyPtr, _ := syscall.UTF16PtrFromString(body)
+
+	r, _, _ := procMessageBoxW.Call(
+		0,
+		uintptr(unsafe.Pointer(bodyPtr)),
+		uintptr(unsafe.Pointer(titlePtr)),
+		uintptr(mbYesNoCancel|alertIcon(level)))
+
+	switch r {
+	case idYes:
+		return gui.NativeAlertResult{Status: gui.DialogOK}
+	case idNo:
+		return gui.NativeAlertResult{Status: gui.DialogDiscard}
+	case idCancel:
+		return gui.NativeAlertResult{Status: gui.DialogCancel}
+	default:
+		return gui.NativeAlertResult{Status: gui.DialogCancel}
 	}
 }
 

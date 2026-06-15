@@ -1,4 +1,4 @@
-//go:build !linux && !js
+//go:build !linux && !windows && !js
 
 package sdl2
 

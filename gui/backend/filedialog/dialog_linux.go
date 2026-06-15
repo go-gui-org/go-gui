@@ -332,12 +332,65 @@ func noToolAlert() gui.NativeAlertResult {
 }
 
 // ShowSaveDiscardDialog shows a Save/Discard/Cancel dialog.
-// Not available on Linux; callers should handle DialogError.
-func ShowSaveDiscardDialog(_, _ string,
+//
+// kdialog: --warningyesnocancel (Yes→Save, No→Discard, Cancel→Cancel).
+// zenity: --question with --extra-button "Discard" (Save→exit 0,
+// Discard→exit 0 + stdout "Discard", Cancel→exit 1).
+func ShowSaveDiscardDialog(title, body string,
 	_ gui.NativeAlertLevel) gui.NativeAlertResult {
-	return gui.NativeAlertResult{
-		Status:       gui.DialogError,
-		ErrorCode:    "unsupported",
-		ErrorMessage: "3-button save dialog not available on Linux",
+
+	detectDialogTool()
+	var args []string
+
+	switch detectedTool {
+	case toolZenity:
+		args = []string{"zenity", "--question",
+			"--title", title, "--text", body,
+			"--ok-label", "Save", "--cancel-label", "Cancel",
+			"--extra-button", "Discard"}
+		out, status, err := runDialog(args)
+		if err != nil {
+			return gui.NativeAlertResult{
+				Status: gui.DialogError, ErrorMessage: err.Error(),
+			}
+		}
+		// Extra buttons print their label to stdout and return 0.
+		if strings.TrimSpace(out) == "Discard" {
+			return gui.NativeAlertResult{Status: gui.DialogDiscard}
+		}
+		return gui.NativeAlertResult{Status: status}
+
+	case toolKdialog:
+		// kdialog --warningyesnocancel: Yes=0, No=1, Cancel=2.
+		// Run directly (not via runDialog) to distinguish No
+		// from Cancel.
+		// #nosec G204 — binary set by code, no shell
+		cmd := exec.Command("kdialog",
+			"--warningyesnocancel", body,
+			"--title", title)
+		out, err := cmd.Output()
+		if err == nil {
+			return gui.NativeAlertResult{Status: gui.DialogOK}
+		}
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			switch exitErr.ExitCode() {
+			case 1:
+				return gui.NativeAlertResult{
+					Status: gui.DialogDiscard,
+				}
+			case 2:
+				return gui.NativeAlertResult{
+					Status: gui.DialogCancel,
+				}
+			}
+		}
+		_ = out
+		return gui.NativeAlertResult{
+			Status:       gui.DialogError,
+			ErrorMessage: err.Error(),
+		}
+
+	default:
+		return noToolAlert()
 	}
 }

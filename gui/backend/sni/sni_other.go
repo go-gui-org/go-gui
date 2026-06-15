@@ -1,7 +1,7 @@
-//go:build !linux
+//go:build !linux && !windows
 
-// Package sni provides StatusNotifierItem system tray on Linux.
-// This file is a no-op stub for non-Linux platforms.
+// Package sni provides system tray support.
+// This file is a no-op stub for platforms without native tray support.
 package sni
 
 import "github.com/go-gui-org/go-gui/gui"

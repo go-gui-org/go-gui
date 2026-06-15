@@ -11,13 +11,13 @@ Feature support per backend and operating system. ✓ = functional, ✗ = stub/u
 | Folder dialog  |       ✓       |     ✓      |      ✓       |      ✓       |       ✓        |     ✓²     |    ✗    |  ✗  |
 | Message dialog |       ✓       |     ✓      |      ✓       |      ✓       |       ✓        |     ✓      |    ✗    |  ✗  |
 | Confirm dialog |       ✓       |     ✓      |      ✓       |      ✓       |       ✓        |     ✓      |    ✗    |  ✗  |
-| Save/discard   |       ✓       |     ✗³     |      ✗³      |      ✗³      |       ✗³       |     ✗      |    ✗    |  ✗  |
+| Save/discard   |       ✓       |     ✓      |      ✓       |      ✓       |       ✓        |     ✗      |    ✗    |  ✗  |
 | Print dialog   |       ✓       |     ✓⁴     |      ✓⁴      |      ✓⁵      |       ✓⁵       |     ✓⁶     |    ✗    |  ✗  |
-| Notifications  |      ✓⁷       |     ✓⁸     |      ✓⁸      |      ✓⁹      |       ✗        |    ✓¹⁰     |    ✓    |  ✗  |
+| Notifications  |      ✓⁷       |     ✓⁸     |      ✓⁸      |      ✓⁹      |       ✓⁹       |    ✓¹⁰     |    ✓    |  ✗  |
 | A11y tree sync |      ✓¹¹      |    ✓¹²     |     ✓¹²      |      ✗       |       ✗        |    ✓¹³     |    ✓    |  ✗  |
 | IME input      |       ✓       |     ✓      |      ✓       |      ✓       |       ✓        |     ✓      |    ✓    |  ✗  |
 | Native menubar |      ✓¹⁴      |     ✗      |      ✗       |      ✗       |       ✗        |     ✗      |    ✗    |  ✗  |
-| System tray    |      ✓¹⁵      |    ✓¹⁶     |     ✓¹⁶      |      ✗       |       ✗        |     ✗      |    ✗    |  ✗  |
+| System tray    |      ✓¹⁵      |    ✓¹⁶     |     ✓¹⁶      |     ✓¹⁶      |      ✓¹⁶       |     ✗      |    ✗    |  ✗  |
 | Spell check    |      ✓¹⁷      |    ✓¹⁸     |     ✓¹⁸      |      ✗       |       ✗        |     ✗      |    ✗    |  ✗  |
 | Open URI       |       ✓       |     ✓      |      ✓       |      ✓       |       ✓        |     ✓      |    ✓    | ✗¹⁹ |
 | Dark titlebar  |       ✗       |     ✗      |      ✗       |      ✗       |       ✗        |     ✗      |    ✗    |  ✗  |
@@ -25,20 +25,20 @@ Feature support per backend and operating system. ✓ = functional, ✗ = stub/u
 
 ¹ Web save uses File System Access API (`showSaveFilePicker`); falls back to suggested filename.  
 ² Web folder uses `showDirectoryPicker`.  
-³ Linux zenity/kdialog and Windows Win32 MessageBox support 3-button layouts but the filedialog package does not expose them yet.  
+³ (removed — Save/Discard/Cancel now implemented on Linux and Windows)  
 ⁴ Linux: PDF rendered to temp file, opened via `lpr` or `xdg-open`.  
 ⁵ Windows: PDF rendered to temp file, opened via `ShellExecuteW "print"`.  
 ⁶ Web: renders canvas to PNG in hidden iframe, calls `window.print()`.  
 ⁷ macOS: `osascript` display notification.  
 ⁸ Linux: `notify-send` via D-Bus.  
-⁹ Windows GL backend: PowerShell `[Windows.UI.Notifications]`. SDL2: ✗ (gap).  
+⁹ Windows: PowerShell `System.Windows.Forms.NotifyIcon` balloon tip (GL and SDL2).  
 ¹⁰ Web: `Notification` API with permission request.  
 ¹¹ macOS: NSAccessibility protocol via C bridge (VoiceOver).  
 ¹² Linux: AT-SPI D-Bus via `atspi` bridge.  
 ¹³ Web: DOM ARIA attributes on canvas-adjacent elements. Windows lacks both UIA and AT-SPI bridges.  
 ¹⁴ macOS: `NSMenu`/`NSMenuItem` via C bridge. Native menubar is an AppKit-only concept.  
 ¹⁵ macOS: `NSStatusBar` via C bridge.  
-¹⁶ Linux: StatusNotifierItem D-Bus (`sni` package).  
+¹⁶ Linux: StatusNotifierItem D-Bus (`sni` package). Windows: `Shell_NotifyIconW` (`sni` package).  
 ¹⁷ macOS: NSSpellChecker via C bridge.  
 ¹⁸ Linux requires `hunspell` build tag and `libhunspell-dev` at build time.  
 ¹⁹ iOS validates URI scheme but returns "not implemented".
@@ -52,11 +52,11 @@ Feature support per backend and operating system. ✓ = functional, ✗ = stub/u
 | Open folder         |       ✓       |        ✓        |         ✓         |     ✓²     |    ✗    |  ✗  |
 | Message (alert)     |       ✓       |        ✓        |         ✓         |     ✓      |    ✗    |  ✗  |
 | Confirm (OK/Cancel) |       ✓       |        ✓        |         ✓         |     ✓      |    ✗    |  ✗  |
-| Save/Discard/Cancel |       ✓       |       ✗³        |        ✗³         |     ✗      |    ✗    |  ✗  |
+| Save/Discard/Cancel |       ✓       |        ✓        |         ✓         |     ✗      |    ✗    |  ✗  |
 
 ¹ Web save uses File System Access API (`showSaveFilePicker`); falls back to suggested filename.  
 ² Web folder uses `showDirectoryPicker`.  
-³ Linux zenity/kdialog and Windows Win32 MessageBox support 3-button layouts but the filedialog package does not expose them yet.
+³ Linux: zenity `--question --extra-button Discard` or kdialog `--warningyesnocancel`. Windows: `MessageBoxW` `MB_YESNOCANCEL`.
 
 ## Printing
 
@@ -76,7 +76,7 @@ Feature support per backend and operating system. ✓ = functional, ✗ = stub/u
 
 ¹ macOS: `osascript` display notification.  
 ² Linux: `notify-send` via D-Bus.  
-³ Windows GL backend: PowerShell `[Windows.UI.Notifications]`. SDL2: ✗ (gap).  
+³ Windows: PowerShell `System.Windows.Forms.NotifyIcon` balloon tip (GL and SDL2).  
 ⁴ Web: `Notification` API with permission request.
 
 ## Accessibility
@@ -113,10 +113,10 @@ macOS/GL/SDL2: via SDL2 text input API. Android: native Kotlin bridge. Web: hidd
 
 | Feature              | macOS (Metal) | Linux (GL/SDL2) | Windows (GL/SDL2) | Web (WASM) | Android | iOS |
 | -------------------- | :-----------: | :-------------: | :---------------: | :--------: | :-----: | :-: |
-| Create/Update/Remove |      ✓¹       |       ✓²        |         ✗         |     ✗      |    ✗    |  ✗  |
+| Create/Update/Remove |      ✓¹       |       ✓²        |        ✓²         |     ✗      |    ✗    |  ✗  |
 
 ¹ macOS: `NSStatusBar` via C bridge.  
-² Linux: StatusNotifierItem D-Bus (`sni` package). Windows and other platforms are stubs.
+² Linux: StatusNotifierItem D-Bus (`sni` package). Windows: `Shell_NotifyIconW` (`sni` package).
 
 ## Spell Check
 
