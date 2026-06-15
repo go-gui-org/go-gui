@@ -107,3 +107,82 @@ func TestValidateOpenURI_TooLong(t *testing.T) {
 		t.Error("URI exceeding maxURILen should be rejected")
 	}
 }
+
+func TestSendNotificationLengthCapping(t *testing.T) {
+	// title and body are capped at maxNotifyTitleLen / maxNotifyBodyLen
+	// before the exec call. Verify no panic with oversized inputs.
+	longTitle := strings.Repeat("T", maxNotifyTitleLen+100)
+	longBody := strings.Repeat("B", maxNotifyBodyLen+100)
+	result := SendNotification(longTitle, longBody)
+	if result.Status != gui.NotificationOK &&
+		result.Status != gui.NotificationError {
+		t.Errorf("unexpected status: %v", result.Status)
+	}
+}
+
+func TestSendNotificationEmptyBody(t *testing.T) {
+	result := SendNotification("test", "")
+	if result.Status != gui.NotificationOK &&
+		result.Status != gui.NotificationError {
+		t.Errorf("unexpected status: %v", result.Status)
+	}
+}
+
+func TestSendNotificationBoundaries(t *testing.T) {
+	title := strings.Repeat("T", maxNotifyTitleLen)
+	body := strings.Repeat("B", maxNotifyBodyLen)
+	result := SendNotification(title, body)
+	if result.Status != gui.NotificationOK &&
+		result.Status != gui.NotificationError {
+		t.Errorf("unexpected status: %v", result.Status)
+	}
+
+	// One byte over should also not panic.
+	titleOver := strings.Repeat("T", maxNotifyTitleLen+1)
+	bodyOver := strings.Repeat("B", maxNotifyBodyLen+1)
+	result = SendNotification(titleOver, bodyOver)
+	if result.Status != gui.NotificationOK &&
+		result.Status != gui.NotificationError {
+		t.Errorf("unexpected status: %v", result.Status)
+	}
+}
+
+func TestSpellForwarderLengthCaps(t *testing.T) {
+	// SpellCheck caps text at maxSpellTextLen (64 KB).
+	bigText := strings.Repeat("x", maxSpellTextLen+100)
+	ranges := SpellCheck(bigText)
+	_ = ranges // may be nil or not depending on platform
+
+	// SpellLearn caps word at maxSpellWordLen.
+	longWord := strings.Repeat("w", maxSpellWordLen+50)
+	SpellLearn(longWord) // must not panic
+}
+
+func TestSpellSuggestClampToBounds(t *testing.T) {
+	// startByte < 0 → clamped to 0.
+	suggestions := SpellSuggest("hello", -1, 3)
+	_ = suggestions
+
+	// startByte >= len(text) → nil.
+	suggestions = SpellSuggest("hello", 10, 1)
+	if suggestions != nil {
+		t.Errorf("expected nil for startByte beyond text length, got %v",
+			suggestions)
+	}
+
+	// lenBytes overflows → clamped to remaining length.
+	suggestions = SpellSuggest("hello", 2, 100)
+	_ = suggestions // should not panic
+
+	// lenBytes <= 0 → clamped to remaining length.
+	suggestions = SpellSuggest("hello", 1, 0)
+	_ = suggestions
+	suggestions = SpellSuggest("hello", 1, -5)
+	_ = suggestions
+}
+
+func TestDialogAndPrintForwardersNoPanic(t *testing.T) {
+	// Dialog forwarders open native dialogs on macOS — skip the CGo path.
+	// Print forwarder is safe on all platforms (returns error without UI).
+	_ = ShowPrintDialog(gui.NativePrintParams{})
+}

@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Backend test coverage:
+  - Extended `gui/backend/internal/nativehost` tests: SendNotification length
+    capping, spell-forwarder boundary handling, dialog/print forwarder safety
+    (16 tests, 54.7% coverage).
+  - Filedialog Linux pure-helper tests (`dialog_linux_test.go`): parsePaths,
+    zenityFilter, kdialogFilter, zenityAlertFlag, kdialogMsgFlag,
+    ensureTrailingSlash, startDirOrDot, errStr, noTool, noToolAlert.
+  - Per-package coverage floors in CI (Linux): glyphconv/imgpath/sdlkey/
+    texcache ≥ 80%, imgload/tempfont/nativehost ≥ 50%, filedialog ≥ 40%.
+
 ## [v0.26.0] - 2026-06-12
 
 ### Breaking

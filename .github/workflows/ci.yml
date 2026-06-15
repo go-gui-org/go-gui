@@ -79,6 +79,42 @@ jobs:
             }
           }'
 
+      - name: Check per-package coverage floors
+        if: runner.os == 'Linux' && always()
+        working-directory: go-gui
+        run: |
+          # Per-package coverage floors for packages with mock-based
+          # tests. Linux-gated — some packages only compile on Linux
+          # (filedialog helpers), others are pure-logic internal
+          # packages tested everywhere. Packages requiring display
+          # hardware (sdl2, metal, gl) are excluded.
+          failures=0
+          while IFS='|' read -r pkg floor; do
+            pct=$(go tool cover -func=coverage.out | \
+              awk -v pkg="$pkg" '
+                $1 ~ "^"pkg"/" { stmts += $2; if ($3 > 0) cov += $2 }
+                END { if (stmts > 0) printf "%.1f", 100 * cov / stmts;
+                      else print "0.0" }')
+            if [ -n "$pct" ] && awk "BEGIN { exit ($pct < $floor) ? 0 : 1 }"; then
+              echo "::error::$pkg coverage ${pct}% below ${floor}% floor"
+              failures=$((failures + 1))
+            fi
+          done << 'EOF'
+          github.com/go-gui-org/go-gui/gui/backend/internal/glyphconv|80
+          github.com/go-gui-org/go-gui/gui/backend/internal/imgpath|80
+          github.com/go-gui-org/go-gui/gui/backend/internal/sdlkey|80
+          github.com/go-gui-org/go-gui/gui/backend/internal/texcache|80
+          github.com/go-gui-org/go-gui/gui/backend/internal/imgload|50
+          github.com/go-gui-org/go-gui/gui/backend/internal/tempfont|50
+          github.com/go-gui-org/go-gui/gui/backend/internal/nativehost|50
+          github.com/go-gui-org/go-gui/gui/backend/filedialog|40
+          EOF
+          if [ "$failures" -gt 0 ]; then
+            echo "::error::$failures package(s) below coverage floor"
+            exit 1
+          fi
+          echo "All per-package coverage floors met."
+
       - name: Save baseline coverage
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v5

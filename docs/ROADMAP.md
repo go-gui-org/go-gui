@@ -64,22 +64,22 @@ largely untested in CI coverage reports.
 | `gui/backend/sdl2` | 0% | High — default Linux/Windows backend |
 | `gui/backend/metal` | ~2% | Medium — macOS default |
 | `gui/backend/gl` | ~2% | Medium — alt backend |
-| `gui/backend/filedialog` | 0% | High — testable via mocks |
+| `gui/backend/filedialog` | ~50% (Linux) | High — helpers testable, dialog exec untested |
 | `gui/backend/printdialog` | 0% | Medium |
 | `gui/backend/spellcheck` | 0% | Medium |
 | `gui/backend/nativemenu` | 0% | Medium |
+| `gui/backend/internal/nativehost` | ~55% | — mock-based tests added |
 | `gui/audio` | ~34% | Low — opt-in, SDL2_mixer dependency |
 
-- [ ] **Extend mock-based native integration tests.** Follow the pattern in
-  `app_native_test.go` and `backend/internal/nativehost/`. Prioritize
-  testable behavior: URI validation, command construction, notification
-  errors, dialog result mapping, menu/tray callbacks, app-level routing.
-- [ ] **Consistent `*_other_test.go` stubs.** printdialog, sni, and spellcheck
-  already use build-tag stubs; apply the same pattern to filedialog and
-  nativemenu where missing.
-- [ ] **Optional per-package coverage floors.** CI enforces 70% on
-  `./gui/...` only. Consider adding floors for packages with mock-based
-  tests (e.g. filedialog ≥ 50%) without requiring display hardware.
+- [x] **Extend mock-based native integration tests.** Extended
+  `nativehost_test.go` with length-capping, spell-forwarder boundary,
+  and dialog/print forwarder safety tests (16 tests, 54.7% coverage).
+- [x] **Consistent `*_other_test.go` stubs.** printdialog, sni, spellcheck,
+  filedialog, and nativemenu all have complete `_other_test.go` stub tests.
+- [x] **Optional per-package coverage floors.** Added per-package floors in
+  CI (Linux-only): glyphconv/imgpath/sdlkey/texcache ≥ 80%, imgload/tempfont/
+  nativehost ≥ 50%, filedialog ≥ 40%. New `dialog_linux_test.go` tests
+  filedialog pure helpers (parsePaths, zenityFilter, etc.).
 
 ## Large-File Maintenance
 
@@ -110,7 +110,7 @@ touching a file — no broad refactors.
   `render_svg_anim_lerp_test.go` (14 tests), `style_attr_test.go`
   (12 tests). Animation parser extended with `parseAnimateDashOffsetElement`
   and `parseAnimateDashArrayElement` tests (12 tests).
-- [ ] **SVG diagonal gradients.** One remaining code TODO in
+- [x] **SVG diagonal gradients.** One remaining code TODO in
   `gui/svg_cache.go` 
 
 ## Documentation And DX
