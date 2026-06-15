@@ -1131,3 +1131,221 @@ func TestParseRepeatCycle_RepeatDurIndefiniteClamped(t *testing.T) {
 		t.Fatalf("cycle=%v want %v", cycle, maxCycleSec)
 	}
 }
+
+// --- parseAnimateDashOffsetElement ---
+
+func TestParseAnimateDashOffsetElement_Valid(t *testing.T) {
+	elem := `<animate attributeName="stroke-dashoffset" ` +
+		`values="0;50;100" dur="2s"/>`
+	anim, ok := parseAnimateDashOffsetElement(elem, ComputedStyle{GroupID: "g1"})
+	if !ok {
+		t.Fatal("expected ok for valid dashoffset animation")
+	}
+	if anim.Kind != gui.SvgAnimDashOffset {
+		t.Errorf("Kind=%v want SvgAnimDashOffset", anim.Kind)
+	}
+	if len(anim.Values) != 3 {
+		t.Fatalf("Values=%v want 3 entries", anim.Values)
+	}
+	if anim.Values[0] != 0 || anim.Values[1] != 50 || anim.Values[2] != 100 {
+		t.Errorf("Values=%v want [0 50 100]", anim.Values)
+	}
+	if anim.DurSec <= 0 {
+		t.Error("DurSec must be > 0")
+	}
+}
+
+func TestParseAnimateDashOffsetElement_FromTo(t *testing.T) {
+	elem := `<animate attributeName="stroke-dashoffset" ` +
+		`from="10" to="20" dur="1s"/>`
+	anim, ok := parseAnimateDashOffsetElement(elem, ComputedStyle{GroupID: "g1"})
+	if !ok {
+		t.Fatal("expected ok for from/to dashoffset")
+	}
+	if len(anim.Values) != 2 || anim.Values[0] != 10 || anim.Values[1] != 20 {
+		t.Errorf("Values=%v want [10 20]", anim.Values)
+	}
+}
+
+func TestParseAnimateDashOffsetElement_By(t *testing.T) {
+	elem := `<animate attributeName="stroke-dashoffset" ` +
+		`by="5" dur="1s"/>`
+	anim, ok := parseAnimateDashOffsetElement(elem, ComputedStyle{GroupID: "g1"})
+	if !ok {
+		t.Fatal("expected ok for by= dashoffset")
+	}
+	if !anim.Additive {
+		t.Error("by= must imply additive")
+	}
+}
+
+func TestParseAnimateDashOffsetElement_ZeroDur(t *testing.T) {
+	elem := `<animate attributeName="stroke-dashoffset" ` +
+		`values="0;50" dur="0s"/>`
+	_, ok := parseAnimateDashOffsetElement(elem, ComputedStyle{})
+	if ok {
+		t.Fatal("zero dur must be rejected")
+	}
+}
+
+func TestParseAnimateDashOffsetElement_NoValues(t *testing.T) {
+	elem := `<animate attributeName="stroke-dashoffset" dur="1s"/>`
+	_, ok := parseAnimateDashOffsetElement(elem, ComputedStyle{GroupID: "g1"})
+	if ok {
+		t.Fatal("missing values/from/to/by must be rejected")
+	}
+}
+
+func TestParseAnimateDashOffsetElement_AdditiveSum(t *testing.T) {
+	elem := `<animate attributeName="stroke-dashoffset" ` +
+		`from="0" to="10" dur="1s" additive="sum"/>`
+	anim, ok := parseAnimateDashOffsetElement(elem, ComputedStyle{GroupID: "g1"})
+	if !ok {
+		t.Fatal("expected ok for additive=sum")
+	}
+	if !anim.Additive {
+		t.Error("additive=sum must set Additive flag")
+	}
+}
+
+func TestParseAnimateDashOffsetElement_AccumulateSum(t *testing.T) {
+	elem := `<animate attributeName="stroke-dashoffset" ` +
+		`from="0" to="10" dur="1s" accumulate="sum"/>`
+	anim, ok := parseAnimateDashOffsetElement(elem, ComputedStyle{GroupID: "g1"})
+	if !ok {
+		t.Fatal("expected ok for accumulate=sum")
+	}
+	if !anim.Accumulate {
+		t.Error("accumulate=sum must set Accumulate flag")
+	}
+}
+
+// --- parseAnimateDashArrayElement ---
+
+func TestParseAnimateDashArrayElement_Valid(t *testing.T) {
+	elem := `<animate attributeName="stroke-dasharray" ` +
+		`values="5 10; 15 20; 25 30" dur="2s"/>`
+	anim, ok := parseAnimateDashArrayElement(elem, ComputedStyle{GroupID: "g1"})
+	if !ok {
+		t.Fatal("expected ok for valid dasharray animation")
+	}
+	if anim.Kind != gui.SvgAnimDashArray {
+		t.Errorf("Kind=%v want SvgAnimDashArray", anim.Kind)
+	}
+	if anim.DashKeyframeLen != 2 {
+		t.Errorf("DashKeyframeLen=%d want 2", anim.DashKeyframeLen)
+	}
+	if len(anim.Values) != 6 {
+		t.Fatalf("Values=%v want 6 entries (3 frames × 2)", anim.Values)
+	}
+}
+
+func TestParseAnimateDashArrayElement_CommaSeparatedValues(t *testing.T) {
+	elem := `<animate attributeName="stroke-dasharray" ` +
+		`values="1,2;3,4" dur="1s"/>`
+	anim, ok := parseAnimateDashArrayElement(elem, ComputedStyle{GroupID: "g1"})
+	if !ok {
+		t.Fatal("expected ok for comma-separated dasharray values")
+	}
+	if anim.DashKeyframeLen != 2 {
+		t.Errorf("DashKeyframeLen=%d want 2", anim.DashKeyframeLen)
+	}
+}
+
+func TestParseAnimateDashArrayElement_SingleValueStride(t *testing.T) {
+	elem := `<animate attributeName="stroke-dasharray" ` +
+		`values="5;10;15" dur="1s"/>`
+	anim, ok := parseAnimateDashArrayElement(elem, ComputedStyle{GroupID: "g1"})
+	if !ok {
+		t.Fatal("expected ok for single-value dasharray (stride=1)")
+	}
+	if anim.DashKeyframeLen != 1 {
+		t.Errorf("DashKeyframeLen=%d want 1", anim.DashKeyframeLen)
+	}
+	if len(anim.Values) != 3 {
+		t.Errorf("Values=%v want 3 entries", anim.Values)
+	}
+}
+
+func TestParseAnimateDashArrayElement_MismatchedStrideRejected(t *testing.T) {
+	elem := `<animate attributeName="stroke-dasharray" ` +
+		`values="1 2; 3 4 5; 6 7" dur="1s"/>`
+	_, ok := parseAnimateDashArrayElement(elem, ComputedStyle{GroupID: "g1"})
+	if ok {
+		t.Fatal("mismatched strides must be rejected")
+	}
+}
+
+func TestParseAnimateDashArrayElement_EmptyValues(t *testing.T) {
+	elem := `<animate attributeName="stroke-dasharray" ` +
+		`values="" dur="1s"/>`
+	_, ok := parseAnimateDashArrayElement(elem, ComputedStyle{GroupID: "g1"})
+	if ok {
+		t.Fatal("empty values must be rejected")
+	}
+}
+
+func TestParseAnimateDashArrayElement_NoValuesAttr(t *testing.T) {
+	elem := `<animate attributeName="stroke-dasharray" dur="1s"/>`
+	_, ok := parseAnimateDashArrayElement(elem, ComputedStyle{GroupID: "g1"})
+	if ok {
+		t.Fatal("missing values attr must be rejected")
+	}
+}
+
+func TestParseAnimateDashArrayElement_SingleKeyframeRejected(t *testing.T) {
+	// Need at least 2 keyframes.
+	elem := `<animate attributeName="stroke-dasharray" ` +
+		`values="1 2" dur="1s"/>`
+	_, ok := parseAnimateDashArrayElement(elem, ComputedStyle{GroupID: "g1"})
+	if ok {
+		t.Fatal("single keyframe (1 frame * 2 stride) must be rejected")
+	}
+}
+
+func TestParseAnimateDashArrayElement_ZeroDur(t *testing.T) {
+	elem := `<animate attributeName="stroke-dasharray" ` +
+		`values="1 2; 3 4" dur="0s"/>`
+	_, ok := parseAnimateDashArrayElement(elem, ComputedStyle{})
+	if ok {
+		t.Fatal("zero dur must be rejected")
+	}
+}
+
+func TestParseAnimateDashArrayElement_EmptyFrameSkipped(t *testing.T) {
+	// Trailing semicolons produce empty frames; these are skipped.
+	// "1 2; ;3 4" → 2 frames, stride 2 → ok.
+	elem := `<animate attributeName="stroke-dasharray" ` +
+		`values="1 2;;3 4" dur="1s"/>`
+	anim, ok := parseAnimateDashArrayElement(elem, ComputedStyle{GroupID: "g1"})
+	if !ok {
+		t.Fatal("empty frames must be skipped, not rejected")
+	}
+	if len(anim.Values) != 4 {
+		t.Fatalf("Values=%v want 4 entries (2 frames × 2)", anim.Values)
+	}
+}
+
+func TestParseAnimateDashArrayElement_AdditiveSum(t *testing.T) {
+	elem := `<animate attributeName="stroke-dasharray" ` +
+		`values="1;2;3" dur="1s" additive="sum"/>`
+	anim, ok := parseAnimateDashArrayElement(elem, ComputedStyle{GroupID: "g1"})
+	if !ok {
+		t.Fatal("expected ok for additive=sum dasharray")
+	}
+	if !anim.Additive {
+		t.Error("additive=sum must set Additive flag")
+	}
+}
+
+func TestParseAnimateDashArrayElement_KeyTimes(t *testing.T) {
+	elem := `<animate attributeName="stroke-dasharray" ` +
+		`values="0;1;2" dur="3s" keyTimes="0;0.5;1"/>`
+	anim, ok := parseAnimateDashArrayElement(elem, ComputedStyle{GroupID: "g1"})
+	if !ok {
+		t.Fatal("expected ok for dasharray with keyTimes")
+	}
+	if len(anim.KeyTimes) != 3 {
+		t.Errorf("KeyTimes=%v want 3 entries", anim.KeyTimes)
+	}
+}

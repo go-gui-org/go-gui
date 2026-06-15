@@ -213,15 +213,38 @@ func svgGradientToGlyph(g SvgGradientDef) *glyph.GradientConfig {
 			Position: s.Offset,
 		}
 	}
-	dir := glyph.GradientHorizontal
-	// Determine direction from gradient vector. Diagonal gradients
-	// are forced to H or V — glyph does not support arbitrary
-	// angles yet.
-	// TODO: support diagonal gradients when glyph adds angle support
 	dx := g.X2 - g.X1
 	dy := g.Y2 - g.Y1
-	if dy*dy > dx*dx {
-		dir = glyph.GradientVertical
+	// Guard NaN/Inf — all subsequent comparisons silently go the wrong way.
+	dx64 := float64(dx)
+	dy64 := float64(dy)
+	if math.IsNaN(dx64) || math.IsInf(dx64, 0) {
+		dx = 0
+	}
+	if math.IsNaN(dy64) || math.IsInf(dy64, 0) {
+		dy = 0
+	}
+	dx2 := dx * dx
+	dy2 := dy * dy
+	// Classify gradient direction: horizontal, vertical, or diagonal.
+	// Diagonal when both axis components are significant (ratio ≥ 0.2,
+	// i.e. squared ratio ≥ 0.04).
+	var dir glyph.GradientDirection
+	switch {
+	case dx2 == 0 && dy2 == 0:
+		dir = glyph.GradientHorizontal
+	case dx2 > dy2:
+		if dy2 > 0 && float64(dy2)/float64(dx2) >= 0.04 {
+			dir = glyph.GradientDiagonal
+		} else {
+			dir = glyph.GradientHorizontal
+		}
+	default:
+		if dx2 > 0 && float64(dx2)/float64(dy2) >= 0.04 {
+			dir = glyph.GradientDiagonal
+		} else {
+			dir = glyph.GradientVertical
+		}
 	}
 	return &glyph.GradientConfig{
 		Stops:     stops,

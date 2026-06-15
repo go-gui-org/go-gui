@@ -88,15 +88,28 @@ touching a file — no broad refactors.
 
 | Lines | File | Notes |
 |------:|------|-------|
-| 1317 | `gui/svg/style.go` | Largest file; candidate for style resolution helpers |
-| 1115 | `gui/svg/animation.go` | Already has `animation_resolve.go`; more to extract |
-| 934 | `gui/datagrid/view_data_grid_events.go` | Event dispatch vs row rendering |
 | 933 | `gui/svg/css/parse.go` | CSS parser leaf subpackage |
-| 898 | `gui/view_splitter.go` | Drag/resize logic |
 | 891 | `gui/styles_widget.go` | Theme/style application |
 
-- [ ] **Extract cohesive helpers from top hotspots.** Follow the
-  `render_text.go` extraction from `render_layout.go` (856 → 385 lines).
+### Recently split (June 2026)
+
+| Was | Lines → | Now | Files extracted |
+|----:|--------:|-----|------------------|
+| 1317 | 237 | `gui/svg/style.go` | `style_attr.go`, `style_color.go`, `style_compute.go`, `style_stroke.go`, `style_transform.go` |
+| 1115 | 109 | `gui/svg/animation.go` | `animation_motion.go`, `animation_parse.go`, `animation_parse_value.go` |
+| 934 | 217 | `gui/datagrid/view_data_grid_events.go` | `view_data_grid_jump.go`, `view_data_grid_keys.go`, `view_data_grid_pager.go` |
+| 898 | 630 | `gui/view_splitter.go` | `view_splitter_handle.go` |
+| — | 454 | `gui/render_svg_animation.go` | `render_svg_anim_attr.go`, `render_svg_anim_lerp.go` |
+| — | 761 | `gui/canvas_draw.go` | `canvas_curve.go` |
+
+- [x] **Extract cohesive helpers from top hotspots.** All files that
+  were >800 lines have been split. `svg_cache.go` is the next candidate
+  at 427 lines.
+- [x] **Add tests for extracted code.** New tests: `style_compute_test.go`
+  (25 tests), `render_svg_anim_attr_test.go` (35 tests),
+  `render_svg_anim_lerp_test.go` (14 tests), `style_attr_test.go`
+  (12 tests). Animation parser extended with `parseAnimateDashOffsetElement`
+  and `parseAnimateDashArrayElement` tests (12 tests).
 - [ ] **SVG diagonal gradients.** One remaining code TODO in
   `gui/svg_cache.go` 
 

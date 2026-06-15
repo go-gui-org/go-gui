@@ -176,12 +176,10 @@ func TestLerpU8_Boundaries(t *testing.T) {
 }
 
 func TestLerpU8_NaNTreatedAsClamp(t *testing.T) {
-	// NaN compares false to both <=0 and >=1; falls into the linear
-	// branch, where NaN propagates and the float→uint8 cast yields 0.
-	// The test pins the behavior so a future change is intentional.
+	// NaN explicitly caught and clamped to the first endpoint (a).
 	got := lerpU8(50, 200, float32(math.NaN()))
-	if got != 0 {
-		t.Errorf("NaN frac got %d want 0 (current contract)", got)
+	if got != 50 {
+		t.Errorf("NaN frac got %d want 50 (clamped to a)", got)
 	}
 }
 
