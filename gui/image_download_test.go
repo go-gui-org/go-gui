@@ -2,11 +2,13 @@ package gui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -58,7 +60,7 @@ func removeCachedFor(url string) {
 	hash := hashString(url)
 	base := filepath.Join(
 		os.TempDir(), "gui_cache", "images",
-		fmt.Sprintf("%x", hash))
+		strconv.FormatUint(hash, 16))
 	for _, ext := range []string{
 		".png", ".jpg", ".jpeg", ".svg",
 	} {
@@ -139,7 +141,7 @@ func TestResolveImageSrcHTTPCached(t *testing.T) {
 	if err := os.MkdirAll(cacheDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	base := filepath.Join(cacheDir, fmt.Sprintf("%x", hash))
+	base := filepath.Join(cacheDir, strconv.FormatUint(hash, 16))
 	cached := base + ".png"
 	if err := os.WriteFile(cached, []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
@@ -371,7 +373,7 @@ func TestDownloadImageFetcherError(t *testing.T) {
 	fetcher := func(
 		_ context.Context, _ string,
 	) (*http.Response, error) {
-		return nil, fmt.Errorf("network is unreachable")
+		return nil, errors.New("network is unreachable")
 	}
 
 	dir := t.TempDir()

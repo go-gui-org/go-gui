@@ -3,8 +3,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend"
 )
@@ -56,7 +54,7 @@ func mainView(w *gui.Window) gui.View {
 		Action: func(id string, e *gui.Event, w *gui.Window) {
 			app := gui.State[App](w)
 			// Mirror the last menu action in the main view.
-			app.Status = fmt.Sprintf("Selected: %s", id)
+			app.Status = "Selected: " + id
 			e.IsHandled = true
 		},
 		Content: []gui.View{

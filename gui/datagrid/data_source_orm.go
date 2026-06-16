@@ -569,8 +569,7 @@ func gridOrmBuildQuickFilter(
 				"%"+escapedLower+"%")
 		} else {
 			orParts = append(orParts,
-				fmt.Sprintf("%s like ? escape '\\'",
-					col.DBField))
+				col.DBField+" like ? escape '\\'")
 			*params = append(*params,
 				"%"+escapedTrimmed+"%")
 		}

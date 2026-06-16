@@ -3,6 +3,7 @@
 package gl
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"unsafe"
@@ -136,7 +137,7 @@ func compileShader(src string, shaderType uint32) (uint32, error) {
 		gogl.GetShaderiv(shader, gogl.INFO_LOG_LENGTH, &logLen)
 		if logLen <= 1 {
 			gogl.DeleteShader(shader)
-			return 0, fmt.Errorf("compile failed")
+			return 0, errors.New("compile failed")
 		}
 		infoLog := make([]byte, logLen)
 		gogl.GetShaderInfoLog(shader, logLen, nil, &infoLog[0])
@@ -159,7 +160,7 @@ func linkProgram(vs, fs uint32) (uint32, error) {
 		gogl.GetProgramiv(prog, gogl.INFO_LOG_LENGTH, &logLen)
 		if logLen <= 1 {
 			gogl.DeleteProgram(prog)
-			return 0, fmt.Errorf("link failed")
+			return 0, errors.New("link failed")
 		}
 		infoLog := make([]byte, logLen)
 		gogl.GetProgramInfoLog(prog, logLen, nil, &infoLog[0])

@@ -208,7 +208,7 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 								Padding:     gui.SomeP(12, 18, 12, 18),
 								Content: []gui.View{
 									gui.Text(gui.TextCfg{
-										Text:      fmt.Sprintf("%s  PRESS TO BEGIN", gui.IconGamepad),
+										Text:      gui.IconGamepad + "  PRESS TO BEGIN",
 										TextStyle: textStyle(theme.B3, 18, gui.White),
 									}),
 								},

@@ -2,7 +2,7 @@ package gui
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -61,7 +61,7 @@ func TestMarkdownView_CustomMathFetcherCalled(t *testing.T) {
 	) ([]byte, error) {
 		calls.Add(1)
 		close(done)
-		return nil, fmt.Errorf("test fetcher")
+		return nil, errors.New("test fetcher")
 	}
 
 	w := &Window{}
@@ -93,7 +93,7 @@ func TestMarkdownView_CustomMermaidFetcherCalled(t *testing.T) {
 	) ([]byte, error) {
 		calls.Add(1)
 		close(done)
-		return nil, fmt.Errorf("test fetcher")
+		return nil, errors.New("test fetcher")
 	}
 
 	w := &Window{}

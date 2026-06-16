@@ -17,6 +17,7 @@ package svg
 
 import (
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"slices"
@@ -85,13 +86,13 @@ func decodeSvgTree(content string) (*xmlNode, error) {
 		case xml.StartElement:
 			elemCount++
 			if elemCount > maxElements {
-				return nil, fmt.Errorf("svg: element limit exceeded")
+				return nil, errors.New("svg: element limit exceeded")
 			}
 			depth++
 			if depth > maxGroupDepth+8 {
 				// +8 slack vs group depth: the root and defs can
 				// wrap genuine group nesting.
-				return nil, fmt.Errorf("svg: depth limit exceeded")
+				return nil, errors.New("svg: depth limit exceeded")
 			}
 			n := xmlNode{Name: t.Name.Local}
 			n.Attrs = make([]xmlAttr, 0, len(t.Attr))
@@ -185,7 +186,7 @@ func decodeSvgTree(content string) (*xmlNode, error) {
 			stack[len(stack)-1].Name)
 	}
 	if root == nil {
-		return nil, fmt.Errorf("svg: no root element")
+		return nil, errors.New("svg: no root element")
 	}
 	// Finalize: emit self-closing OpenTag for childless empty nodes
 	// so helpers that inspect the closing "/>" see the right form.

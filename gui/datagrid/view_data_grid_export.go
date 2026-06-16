@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -36,7 +37,7 @@ var dataGridXLSXReplacer = strings.NewReplacer(
 // and rows. First CSV row becomes column headers.
 func gridDataFromCSV(data string) (gridCsvData, error) {
 	if strings.TrimSpace(data) == "" {
-		return gridCsvData{}, fmt.Errorf("csv data is required")
+		return gridCsvData{}, errors.New("csv data is required")
 	}
 	source := data
 	if !strings.HasSuffix(source, "\n") {
@@ -46,7 +47,7 @@ func gridDataFromCSV(data string) (gridCsvData, error) {
 	reader.FieldsPerRecord = -1 // variable field count
 	header, err := reader.Read()
 	if err == io.EOF {
-		return gridCsvData{}, fmt.Errorf("csv data contains no rows")
+		return gridCsvData{}, errors.New("csv data contains no rows")
 	}
 	if err != nil {
 		return gridCsvData{}, fmt.Errorf("failed to parse CSV: %w", err)
@@ -95,7 +96,7 @@ func gridDataFromCSV(data string) (gridCsvData, error) {
 		nextRowID++
 	}
 	if len(columns) == 0 {
-		return gridCsvData{}, fmt.Errorf("csv header row is empty")
+		return gridCsvData{}, errors.New("csv header row is empty")
 	}
 	return gridCsvData{Columns: columns, Rows: rows}, nil
 }

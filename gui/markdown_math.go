@@ -5,6 +5,7 @@ package gui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -155,8 +156,7 @@ func defaultMathFetcher(
 	}
 
 	if len(body) > maxDiagramResponseBytes {
-		return nil, fmt.Errorf(
-			"response exceeds 10 MB limit")
+		return nil, errors.New("response exceeds 10 MB limit")
 	}
 	return body, nil
 }

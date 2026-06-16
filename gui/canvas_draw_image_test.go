@@ -2,10 +2,10 @@ package gui
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 )
 
@@ -84,7 +84,7 @@ func TestEmitDrawCanvasImagesHTTPCached(t *testing.T) {
 		t.Fatal(err)
 	}
 	cached := filepath.Join(
-		cacheDir, fmt.Sprintf("%x", hash)) + ".png"
+		cacheDir, strconv.FormatUint(hash, 16)) + ".png"
 	if err := os.WriteFile(cached, []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
 	}

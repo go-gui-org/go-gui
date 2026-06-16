@@ -440,7 +440,7 @@ func cpInputColumn(
 			Input(InputCfg{
 				ID:        inputID,
 				IDFocus:   FnvSum32(inputID),
-				Text:      fmt.Sprintf("%d", val),
+				Text:      strconv.Itoa(val),
 				TextStyle: cfg.Style.TextStyle,
 				Width:     50,
 				OnTextChanged: func(_ *Layout, text string, w *Window) {

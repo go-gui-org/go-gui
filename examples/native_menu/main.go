@@ -4,8 +4,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend"
 )
@@ -61,7 +59,7 @@ func main() {
 				OnAction: func(id string) {
 					w.QueueCommand(func(w *gui.Window) {
 						gui.State[App](w).LastAction =
-							fmt.Sprintf("Action: %s", id)
+							"Action: " + id
 					})
 				},
 			})

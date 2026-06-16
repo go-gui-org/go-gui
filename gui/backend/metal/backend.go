@@ -19,6 +19,7 @@ package metal
 import "C"
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -488,21 +489,21 @@ func createWindowState(w *gui.Window,
 		C.SDL_Metal_CreateView(cWin))
 	if metalView == nil {
 		_ = win.Destroy()
-		return nil, fmt.Errorf("MetalCreateView failed")
+		return nil, errors.New("MetalCreateView failed")
 	}
 	layer := C.SDL_Metal_GetLayer(
 		C.SDL_MetalView(metalView))
 	if layer == nil {
 		C.SDL_Metal_DestroyView(C.SDL_MetalView(metalView))
 		_ = win.Destroy()
-		return nil, fmt.Errorf("MetalGetLayer failed")
+		return nil, errors.New("MetalGetLayer failed")
 	}
 
 	ctx := C.metalCtxCreate(layer)
 	if ctx == nil {
 		C.SDL_Metal_DestroyView(C.SDL_MetalView(metalView))
 		_ = win.Destroy()
-		return nil, fmt.Errorf("metalCtxCreate failed")
+		return nil, errors.New("metalCtxCreate failed")
 	}
 
 	var dw, dh C.int

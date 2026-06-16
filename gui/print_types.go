@@ -2,6 +2,7 @@ package gui
 
 import (
 	"cmp"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -232,13 +233,13 @@ func PrintPageSize(paper PaperSize, orientation PrintOrientation) (float32, floa
 
 func validatePrintMargins(pageW, pageH float32, m PrintMargins) error {
 	if m.Left < 0 || m.Right < 0 || m.Top < 0 || m.Bottom < 0 {
-		return fmt.Errorf("margins must be non-negative")
+		return errors.New("margins must be non-negative")
 	}
 	if m.Left+m.Right >= pageW {
-		return fmt.Errorf("horizontal margins exceed printable width")
+		return errors.New("horizontal margins exceed printable width")
 	}
 	if m.Top+m.Bottom >= pageH {
-		return fmt.Errorf("vertical margins exceed printable height")
+		return errors.New("vertical margins exceed printable height")
 	}
 	return nil
 }
@@ -249,11 +250,11 @@ func validatePrintJob(job PrintJob) error {
 		return err
 	}
 	if job.Copies < 1 {
-		return fmt.Errorf("copies must be >= 1")
+		return errors.New("copies must be >= 1")
 	}
 	if job.Source.Kind == PrintSourcePDFPath {
 		if strings.TrimSpace(job.Source.PDFPath) == "" {
-			return fmt.Errorf("pdf_path is required for pdf_path source")
+			return errors.New("pdf_path is required for pdf_path source")
 		}
 	}
 	for _, r := range job.PageRanges {
@@ -268,17 +269,17 @@ func validatePrintJob(job PrintJob) error {
 		return err
 	}
 	if job.RasterDPI < 72 || job.RasterDPI > 1200 {
-		return fmt.Errorf("raster_dpi must be 72..1200")
+		return errors.New("raster_dpi must be 72..1200")
 	}
 	if job.JPEGQuality < 10 || job.JPEGQuality > 100 {
-		return fmt.Errorf("jpeg_quality must be 10..100")
+		return errors.New("jpeg_quality must be 10..100")
 	}
 	return nil
 }
 
 func validateExportPrintJob(job PrintJob) error {
 	if strings.TrimSpace(job.OutputPath) == "" {
-		return fmt.Errorf("output_path is required")
+		return errors.New("output_path is required")
 	}
 	return validatePrintJob(job)
 }

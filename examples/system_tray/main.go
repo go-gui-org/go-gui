@@ -5,7 +5,6 @@ package main
 
 import (
 	_ "embed"
-	"fmt"
 	"log"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -44,8 +43,7 @@ func main() {
 				OnAction: func(id string) {
 					w.QueueCommand(func(w *gui.Window) {
 						s := gui.State[App](w)
-						s.Status = fmt.Sprintf(
-							"Tray action: %s", id)
+						s.Status = "Tray action: " + id
 					})
 				},
 			})

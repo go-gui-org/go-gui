@@ -3,6 +3,7 @@
 package imgload
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"image/draw"
@@ -30,11 +31,11 @@ func ResolveValidatedPath(
 	src string, allowedRoots []string,
 ) (string, error) {
 	if strings.ContainsRune(src, 0) {
-		return "", fmt.Errorf("invalid image path: contains NUL")
+		return "", errors.New("invalid image path: contains NUL")
 	}
 	cleanPath := filepath.Clean(src)
 	if cleanPath == "." || cleanPath == "" {
-		return "", fmt.Errorf("invalid image path")
+		return "", errors.New("invalid image path")
 	}
 	pathAbs, err := filepath.Abs(cleanPath)
 	if err != nil {

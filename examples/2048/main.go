@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"time"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -295,7 +296,7 @@ func scoreBox(label string, value int) gui.View {
 				TextStyle: labelStyle,
 			}),
 			gui.Text(gui.TextCfg{
-				Text:      fmt.Sprintf("%d", value),
+				Text:      strconv.Itoa(value),
 				TextStyle: textStyle(theme.B2, 24, gui.White),
 			}),
 		},
@@ -372,7 +373,7 @@ func renderTile(x, y, val int) gui.View {
 		HAlign:  gui.HAlignCenter,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
-				Text:      fmt.Sprintf("%d", val),
+				Text:      strconv.Itoa(val),
 				TextStyle: textStyle(theme.B1, fontSize, fg),
 			}),
 		},

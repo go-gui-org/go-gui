@@ -7,12 +7,14 @@ package main
 
 import (
 	"debug/macho"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
 )
@@ -69,7 +71,7 @@ func run() error {
 	flag.Parse()
 	if flag.NArg() != 1 {
 		flag.Usage()
-		return fmt.Errorf("expected exactly one binary argument")
+		return errors.New("expected exactly one binary argument")
 	}
 	o.Binary = flag.Arg(0)
 	return build(o)
@@ -214,10 +216,10 @@ func installIcon(icon, resDir, execName string) (string, error) {
 		}
 	case ".png":
 		if _, err := exec.LookPath("sips"); err != nil {
-			return "", fmt.Errorf("sips not found (needed for .png icon)")
+			return "", errors.New("sips not found (needed for .png icon)")
 		}
 		if _, err := exec.LookPath("iconutil"); err != nil {
-			return "", fmt.Errorf("iconutil not found (needed for .png icon)")
+			return "", errors.New("iconutil not found (needed for .png icon)")
 		}
 		if err := pngToIcns(icon, dst); err != nil {
 			return "", err
@@ -251,7 +253,7 @@ func pngToIcns(png, outIcns string) error {
 	}
 	for _, s := range sizes {
 		out := filepath.Join(iconset, s.name)
-		cmd := exec.Command("sips", "-z", fmt.Sprint(s.px), fmt.Sprint(s.px), png, "--out", out)
+		cmd := exec.Command("sips", "-z", strconv.Itoa(s.px), strconv.Itoa(s.px), png, "--out", out)
 		if b, cerr := cmd.CombinedOutput(); cerr != nil {
 			return fmt.Errorf("sips: %v: %s", cerr, b)
 		}
@@ -388,7 +390,7 @@ func otoolDeps(path string) ([]string, error) {
 // #nosec G204 — build tool, appDir from temp dir
 func signBundle(appDir string) error {
 	if _, err := exec.LookPath("codesign"); err != nil {
-		return fmt.Errorf("codesign not found")
+		return errors.New("codesign not found")
 	}
 	cmd := exec.Command("codesign", "-s", "-", "--force", "--deep", appDir)
 	if out, err := cmd.CombinedOutput(); err != nil {

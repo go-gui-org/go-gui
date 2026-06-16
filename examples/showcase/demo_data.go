@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -207,7 +208,7 @@ func demoDataSource(w *gui.Window) gui.View {
 	stats := datagrid.GetSourceStats(w, "catalog-data-source")
 	countText := "?"
 	if stats.RowCount != nil {
-		countText = fmt.Sprintf("%d", *stats.RowCount)
+		countText = strconv.Itoa(*stats.RowCount)
 	}
 
 	return gui.Column(gui.ContainerCfg{
@@ -465,7 +466,7 @@ func showcaseDataSourceRows() []datagrid.GridRow {
 	for i := range 200 {
 		id := i + 1
 		rows = append(rows, datagrid.GridRow{
-			ID: fmt.Sprintf("%d", id),
+			ID: strconv.Itoa(id),
 			Cells: map[string]string{
 				"name":   fmt.Sprintf("%s %d", names[i%len(names)], id),
 				"team":   teams[(i/30)%len(teams)],

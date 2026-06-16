@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -43,7 +44,7 @@ func renderToPDF(renderers []RenderCmd, job PrintJob,
 	printableH := (pageH - m.Top - m.Bottom) * ptToMM
 
 	if printableW <= 0 || printableH <= 0 {
-		return fmt.Errorf("printable area is zero or negative")
+		return errors.New("printable area is zero or negative")
 	}
 
 	// Scale factor: fit source viewport into printable area.

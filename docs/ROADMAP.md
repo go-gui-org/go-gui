@@ -100,9 +100,16 @@ This document outlines the planned future directions for the Go-Gui project.
   - **Workflow Pinning**: Pin GitHub Actions to commit SHAs.
   - **Test Flake Detection**: `-count=2` or `gotestsum --rerun-fails`.
 
-### Tooling
+### Tooling ~done~
 
-- **Dependencies Doc**: Keep `docs/dependencies.md` auto-generated via
-  `make deps-doc`; CI validates freshness via `make deps-doc-check`.
-- **Linter Config**: Maintain `.golangci.yml` and `.gosec.json` as the
-  single source of truth for static analysis rules.
+- **Tooling** ~spec~ ~done~: Spec at [docs/specs/tooling.md](specs/tooling.md).
+  - **Dependencies Doc**: `docs/dependencies.md` auto-generated via
+    `make deps-doc`; CI validates freshness via `make deps-doc-check`.
+  - **Linter Config**: `.golangci.yml` and `.gosec.json` as single source
+    of truth. 11 linters enabled including `perfsprint` and `gosmopolitan`.
+  - **RequiredID Analyzer**: Custom `go vet` analyzer wired into `make vet`.
+  - **Makefile as Hub**: CI parity, version pinning, target composition.
+  - **License Check**: `make license-check` verifies all deps have
+    permitted licenses.
+  - **Coverage Report**: `make cov-report` generates HTML coverage dashboard.
+  - **Renovate**: `renovate.json` configured for automated dep bumps.

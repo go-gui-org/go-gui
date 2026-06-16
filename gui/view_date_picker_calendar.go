@@ -72,7 +72,7 @@ func datePickerMonth(
 	cellSize := datePickerCellSize(cfg)
 	viewTime := datePickerViewTime(state)
 	year, month := viewTime.Year(), viewTime.Month()
-	firstDay := time.Date(year, month, 1, 0, 0, 0, 0, time.Local)
+	firstDay := time.Date(year, month, 1, 0, 0, 0, 0, time.Local) //nolint:gosmopolitan // calendar widget uses local timezone
 	daysInMonth := datePickerDaysInMonth(int(month), year)
 	startDOW := int(firstDay.Weekday())
 	if cfg.MondayFirstDayOfWeek {
@@ -107,7 +107,7 @@ func datePickerMonth(
 				}
 				continue
 			}
-			cellDate := time.Date(year, month, d, 0, 0, 0, 0, time.Local)
+			cellDate := time.Date(year, month, d, 0, 0, 0, 0, time.Local) //nolint:gosmopolitan // calendar widget uses local timezone
 			isToday := isSameDay(cellDate, today)
 			selected := datePickerIsSelected(cellDate, cfg.Dates)
 			disabled := datePickerIsDisabled(cellDate, cfg)
@@ -376,7 +376,7 @@ func isSameDay(a, b time.Time) bool {
 // datePickerViewTime returns a time for the current view month/year.
 func datePickerViewTime(state datePickerState) time.Time {
 	return time.Date(state.ViewYear, time.Month(state.ViewMonth),
-		1, 0, 0, 0, 0, time.Local)
+		1, 0, 0, 0, 0, time.Local) //nolint:gosmopolitan // calendar widget uses local timezone
 }
 
 // datePickerWeekdayIndex returns the weekday index for column i.

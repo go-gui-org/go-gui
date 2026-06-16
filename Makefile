@@ -7,7 +7,7 @@ CC_WINDOWS ?= x86_64-w64-mingw32-gcc
 STATIC_TAG  = static,audio
 LINT_VERSION = v2.12.2
 
-.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test test-race vet lint check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit
+.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test test-race vet lint check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check
 
 build-linux:
 	CGO_ENABLED=1 \
@@ -102,6 +102,7 @@ test-race:
 # Run go vet static analysis.
 vet:
 	go vet ./...
+	go run ./tools/requiredid/cmd/requiredid ./...
 
 # Run golangci-lint (requires golangci-lint installed, pinned to LINT_VERSION).
 lint:
@@ -160,8 +161,8 @@ tidy-check:
 	    git diff go.mod go.sum; \
 	    exit 1; }
 
-# Run security scans (gosec + govulncheck).
-security: gosec govulncheck
+# Run security scans (gosec + govulncheck + license-check).
+security: gosec govulncheck license-check
 
 gosec:
 	gosec -include=G101,G104,G107,G201,G202,G203,G204,G301,G302,G303,G304,G306,G401,G402,G501,G502,G503,G504,G505 \
@@ -170,6 +171,18 @@ gosec:
 
 govulncheck:
 	govulncheck ./...
+
+# Verify all dependencies have permitted licenses.
+license-check:
+	go run github.com/google/go-licenses@latest check \
+	  --allowed_licenses MIT,BSD-2-Clause,BSD-3-Clause,Apache-2.0,ISC \
+	  --include_tests \
+	  ./...
+
+# Generate HTML coverage report in browser.
+cov-report:
+	go test -coverprofile=/tmp/go-gui-coverage.out -timeout=5m ./...
+	go tool cover -html=/tmp/go-gui-coverage.out
 
 # Audit workflow files for unpinned actions (excludes setup-go which uses major-version pinning by design).
 workflow-audit:

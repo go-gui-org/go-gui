@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"image/png"
 	"io"
@@ -240,7 +241,7 @@ func defaultMermaidFetcher(ctx context.Context, source string) ([]byte, error) {
 	// Defense-in-depth: caller guards this, but clamp here so
 	// a direct call can't pass an unbounded payload.
 	if len(source) > markdown.MaxMermaidSourceLen {
-		return nil, fmt.Errorf("mermaid source too large")
+		return nil, errors.New("mermaid source too large")
 	}
 	payload, err := json.Marshal(map[string]string{
 		"diagram_source": source,

@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -50,14 +51,14 @@ func localeDateReplace(t time.Time, format string) string {
 			fmt.Sprintf("%02d", int(t.Month())))
 	} else {
 		r = strings.ReplaceAll(r, "M",
-			fmt.Sprintf("%d", int(t.Month())))
+			strconv.Itoa(int(t.Month())))
 	}
 	if strings.Contains(r, "DD") {
 		r = strings.ReplaceAll(r, "DD",
 			fmt.Sprintf("%02d", t.Day()))
 	} else {
 		r = strings.ReplaceAll(r, "D",
-			fmt.Sprintf("%d", t.Day()))
+			strconv.Itoa(t.Day()))
 	}
 	r = strings.ReplaceAll(r, "HH",
 		fmt.Sprintf("%02d", t.Hour()))

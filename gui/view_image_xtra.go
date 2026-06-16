@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"slices"
@@ -30,7 +31,7 @@ func ValidateImagePath(fileName string) error {
 	clean := filepath.Clean(fileName)
 	if clean == ".." ||
 		strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
-		return fmt.Errorf("invalid image path: contains parent reference")
+		return errors.New("invalid image path: contains parent reference")
 	}
 	return ValidateImageExtension(clean)
 }

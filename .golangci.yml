@@ -16,6 +16,8 @@ linters:
     - revive
     - gocritic
     - cyclop
+    - perfsprint
+    - gosmopolitan
   settings:
     gocyclo:
       min-complexity: 30
@@ -40,6 +42,12 @@ linters:
           - cyclop
       - path: _test\.go
         text: SA5011
+      - path: _test\.go
+        linters:
+          - gosmopolitan
+      - path: examples/
+        linters:
+          - gosmopolitan
       - path: native_platform_noop\.go
         linters:
           - revive

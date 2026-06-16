@@ -107,7 +107,7 @@ func gestureOnGesture(app *ShowcaseApp, e *gui.Event) {
 		} else if e.VelocityX < 0 {
 			dir = "left"
 		}
-		app.GesturePadLabel = fmt.Sprintf("Swipe %s", dir)
+		app.GesturePadLabel = "Swipe " + dir
 
 	case gui.GesturePinch:
 		app.GesturePadScale = e.PinchScale

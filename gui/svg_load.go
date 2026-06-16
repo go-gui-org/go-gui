@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -186,15 +187,15 @@ func validateSvgSourceWithRoots(svgSrc string, allowedRoots []string) error {
 		return nil
 	}
 	if strings.ContainsRune(svgSrc, 0) {
-		return fmt.Errorf("invalid svg path: contains NUL")
+		return errors.New("invalid svg path: contains NUL")
 	}
 	cleanPath := filepath.Clean(svgSrc)
 	if cleanPath == "." {
-		return fmt.Errorf("invalid svg path")
+		return errors.New("invalid svg path")
 	}
 	for part := range strings.SplitSeq(filepath.ToSlash(cleanPath), "/") {
 		if part == ".." {
-			return fmt.Errorf("invalid svg path: contains parent directory reference")
+			return errors.New("invalid svg path: contains parent directory reference")
 		}
 	}
 	if ext := strings.ToLower(filepath.Ext(cleanPath)); ext != ".svg" {
@@ -276,7 +277,7 @@ func pathWithinRoot(path, root string) bool {
 func checkSvgSourceSize(svgSrc string) error {
 	if strings.HasPrefix(svgSrc, "<") {
 		if int64(len(svgSrc)) > maxSvgSourceBytes {
-			return fmt.Errorf("SVG source too large")
+			return errors.New("SVG source too large")
 		}
 		return nil
 	}
@@ -285,7 +286,7 @@ func checkSvgSourceSize(svgSrc string) error {
 		return fmt.Errorf("SVG not found: %s", svgSrc)
 	}
 	if info.Size() > maxSvgSourceBytes {
-		return fmt.Errorf("SVG file too large")
+		return errors.New("SVG file too large")
 	}
 	return nil
 }
@@ -377,7 +378,7 @@ func (w *Window) loadSvgWithOpts(svgSrc string, width, height float32,
 	}
 
 	if w.svgParser == nil {
-		return nil, fmt.Errorf("no SVG parser configured")
+		return nil, errors.New("no SVG parser configured")
 	}
 
 	var parsed *SvgParsed
@@ -504,7 +505,7 @@ func (w *Window) GetSvgDimensions(svgSrc string) (float32, float32, error) {
 	}
 
 	if w.svgParser == nil {
-		return 0, 0, fmt.Errorf("no SVG parser configured")
+		return 0, 0, errors.New("no SVG parser configured")
 	}
 
 	var content string

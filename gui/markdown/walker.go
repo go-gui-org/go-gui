@@ -484,6 +484,7 @@ func scanSource(source string) (string, map[string]string, map[string]string) {
 			result = append(result, "")
 			i++
 			contCount := 0
+			var contentSb487 strings.Builder
 			for i < len(lines) {
 				next := lines[i]
 				if len(next) == 0 {
@@ -492,7 +493,7 @@ func scanSource(source string) (string, map[string]string, map[string]string) {
 						(lines[i+1][0] == ' ' ||
 							lines[i+1][0] == '\t') {
 						if contCount < maxFootnoteContinuationLines {
-							content += "\n\n"
+							contentSb487.WriteString("\n\n")
 						}
 						result = append(result, "")
 						i++
@@ -504,12 +505,13 @@ func scanSource(source string) (string, map[string]string, map[string]string) {
 					break
 				}
 				if contCount < maxFootnoteContinuationLines {
-					content += " " + strings.TrimSpace(next)
+					contentSb487.WriteString(" " + strings.TrimSpace(next))
 					contCount++
 				}
 				result = append(result, "")
 				i++
 			}
+			content += contentSb487.String()
 			if len(footnoteDefs) < maxFootnoteDefs &&
 				len(id) > 0 && len(content) > 0 {
 				footnoteDefs[id] = content

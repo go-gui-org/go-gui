@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"time"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -75,7 +76,7 @@ func buttonFeatureRows(w *gui.Window) []gui.View {
 			Padding:     gui.Some(gui.CurrentTheme().PaddingMedium),
 			VAlign:      gui.Some(gui.VAlignMiddle),
 			Content: []gui.View{
-				gui.Text(gui.TextCfg{Text: fmt.Sprintf("%d", app.ButtonClicks), MinWidth: 25}),
+				gui.Text(gui.TextCfg{Text: strconv.Itoa(app.ButtonClicks), MinWidth: 25}),
 				gui.ProgressBar(gui.ProgressBarCfg{
 					ID:      "showcase-button-progress",
 					Percent: progress,

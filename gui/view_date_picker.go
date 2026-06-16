@@ -361,7 +361,7 @@ func datePickerUpdateSelections(
 	current []time.Time, multi bool,
 ) []time.Time {
 	sel := time.Date(state.ViewYear, time.Month(state.ViewMonth),
-		day, 0, 0, 0, 0, time.Local)
+		day, 0, 0, 0, 0, time.Local) //nolint:gosmopolitan // calendar widget uses local timezone
 	if !multi {
 		return []time.Time{sel}
 	}
