@@ -555,7 +555,7 @@ func TestMoveCursorLineStartEnd(t *testing.T) {
 
 func TestInputCursorRenderedWhenFocused(t *testing.T) {
 	w := newTestWindow()
-	w.viewState.inputCursorOn = true
+	w.viewState.inputCursorOn.Store(true)
 	w.SetIDFocus(700)
 	setInputState(w, 700, InputState{CursorPos: 2})
 	style := DefaultTextStyle
@@ -584,7 +584,7 @@ func TestInputCursorRenderedWhenFocused(t *testing.T) {
 
 func TestInputCursorNotRenderedWhenUnfocused(t *testing.T) {
 	w := newTestWindow()
-	w.viewState.inputCursorOn = true
+	w.viewState.inputCursorOn.Store(true)
 	style := DefaultTextStyle
 	shape := &Shape{
 		IDFocus:   700,
@@ -604,7 +604,7 @@ func TestInputCursorNotRenderedWhenUnfocused(t *testing.T) {
 func TestInputCursorNotRenderedWhenBlinkOff(t *testing.T) {
 	w := newTestWindow()
 	w.SetIDFocus(701)
-	w.viewState.inputCursorOn = false
+	w.viewState.inputCursorOn.Store(false)
 	style := DefaultTextStyle
 	shape := &Shape{
 		IDFocus:   701,
@@ -623,7 +623,7 @@ func TestInputCursorNotRenderedWhenBlinkOff(t *testing.T) {
 
 func TestInputCursorUsesColumnZeroForPlaceholder(t *testing.T) {
 	w := newTestWindow()
-	w.viewState.inputCursorOn = true
+	w.viewState.inputCursorOn.Store(true)
 	w.SetIDFocus(702)
 	setInputState(w, 702, InputState{CursorPos: 8})
 	style := DefaultTextStyle

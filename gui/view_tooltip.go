@@ -191,7 +191,7 @@ func withTooltipAmend(
 		case inside && ts.hoverID == "":
 			ts.hoverID = tipID
 			ts.hoverStart = time.Now()
-			w.animationAdd(&Animate{
+			w.AnimationAdd(&Animate{
 				AnimID: "___tooltip___",
 				Delay:  delay,
 				Callback: func(_ *Animate, w *Window) {

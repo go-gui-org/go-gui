@@ -39,8 +39,8 @@ func Pulsar(cfg PulsarCfg, w *Window) View {
 	// BlinkCursorAnimation provides. Use a dedicated Animate
 	// that piggybacks on the same inputCursorOn state but
 	// requests AnimationRefreshLayout.
-	if !w.hasAnimationLocked(blinkCursorAnimationID) {
-		w.animationAdd(NewBlinkCursorAnimation())
+	if !w.HasAnimation(blinkCursorAnimationID) {
+		w.AnimationAdd(NewBlinkCursorAnimation())
 	}
 	// Note: animation delay is sampled once on first render via
 	// touchViewBoundAnimation. Use a different widget ID to apply

@@ -43,7 +43,7 @@ func spellCheckTrigger(idFocus uint32, text string, w *Window) {
 	sm.Set(idFocus, spellCheckState{Text: text})
 
 	capturedText := text
-	w.animationAdd(&Animate{
+	w.AnimationAdd(&Animate{
 		AnimID: animID,
 		Delay:  spellCheckDelay,
 		Callback: func(_ *Animate, w *Window) {

@@ -9,13 +9,13 @@ This document outlines the planned future directions for the Go-Gui project.
   rendering requires Canvas2D for font measurement. A hybrid backend adds
   complexity without addressing the actual bottleneck (heap allocations).
   See CLAUDE.md § Rejected Approaches.
-- **Trap Quit Requests**: When displaying a dialog, the request to quit the program (cmd+q on mac) should be ignored.
+- **Trap Quit Requests** ~done~: When displaying a dialog, the request to quit the program (cmd+q on mac) should be ignored.
 
 ## Medium Priority
 
-- **Performance Optimizations**:
-    - Investigate releasing the `Window` mutex during user-provided View function execution.
-    - Further optimization of scratch pools for transient layout data.
+- **Performance Optimizations**: Spec at [docs/perf-optimizations.md](perf-optimizations.md).
+    - Release `Window` mutex during View function execution (add `animMu`, atomic `inputCursorOn`).
+    - Scratch pool cleanup (remove 4 unused `scratchSlice` fields).
 - **Text Roll Animation** for single line labels. Sometimes referred to as slot machine.
 
 ## Low Priority

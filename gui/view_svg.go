@@ -113,8 +113,8 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 			w, nsSvgAnimSeen, capImageCache)
 		animSeen.Set(animHash, time.Now().UnixNano())
 		animID := "svg_anim:" + animHash
-		if !w.hasAnimationLocked(animID) {
-			w.animationAdd(&Animate{
+		if !w.HasAnimation(animID) {
+			w.AnimationAdd(&Animate{
 				AnimID:  animID,
 				Delay:   animationCycle,
 				Repeat:  true,

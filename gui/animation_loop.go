@@ -11,14 +11,14 @@ const animViewBoundStale = 2 * int64(time.Second)
 // AnimationAdd registers a new animation. If an animation with the
 // same ID exists, it is replaced.
 func (w *Window) AnimationAdd(a Animation) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.animationAdd(a)
+	w.animMu.Lock()
+	defer w.animMu.Unlock()
+	w.animationAddLocked(a)
 }
 
-// animationAdd is the lock-free core of AnimationAdd. Callers
-// must already hold w.mu (e.g. during Update/GenerateLayout).
-func (w *Window) animationAdd(a Animation) {
+// animationAddLocked is the lock-free core of AnimationAdd. Callers
+// must already hold w.animMu (e.g. setIDFocusLocked).
+func (w *Window) animationAddLocked(a Animation) {
 	a.SetStart(time.Now())
 	if w.animations == nil {
 		w.animations = make(map[string]Animation)
@@ -54,9 +54,11 @@ func (w *Window) animationResume() {
 
 // animationAddViewBound registers an animation and marks it as view-bound.
 // View-bound animations auto-cancel when their widget leaves the view tree.
-// Caller must hold w.mu.
+// Called from View functions; acquires w.animMu internally.
 func (w *Window) animationAddViewBound(a Animation) {
-	w.animationAdd(a)
+	w.animMu.Lock()
+	defer w.animMu.Unlock()
+	w.animationAddLocked(a)
 	if w.animViewBound == nil {
 		w.animViewBound = make(map[string]int64)
 	}
@@ -65,8 +67,10 @@ func (w *Window) animationAddViewBound(a Animation) {
 
 // touchViewBoundAnimation updates the heartbeat for a view-bound animation
 // and reports whether the animation exists. Called each frame the widget is
-// visible. Caller must hold w.mu.
+// visible. Called from View functions; acquires w.animMu internally.
 func (w *Window) touchViewBoundAnimation(id string) bool {
+	w.animMu.Lock()
+	defer w.animMu.Unlock()
 	if !w.hasAnimationLocked(id) {
 		return false
 	}
@@ -78,8 +82,8 @@ func (w *Window) touchViewBoundAnimation(id string) bool {
 
 // AnimationRemove stops and removes an animation by ID.
 func (w *Window) AnimationRemove(id string) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
+	w.animMu.Lock()
+	defer w.animMu.Unlock()
 	delete(w.animations, id)
 	delete(w.animViewBound, id)
 }
@@ -92,8 +96,8 @@ func (w *Window) hasAnimationLocked(id string) bool {
 // HasAnimation returns true if an animation with the given ID is
 // currently active.
 func (w *Window) HasAnimation(id string) bool {
-	w.mu.Lock()
-	defer w.mu.Unlock()
+	w.animMu.Lock()
+	defer w.animMu.Unlock()
 	return w.hasAnimationLocked(id)
 }
 
@@ -133,7 +137,7 @@ func (w *Window) animationLoop() {
 		deferred = deferred[:0]
 		stoppedIDs = stoppedIDs[:0]
 
-		w.mu.Lock()
+		w.animMu.Lock()
 		ac := newAnimationCommands(&deferred)
 		for _, a := range w.animations {
 			updated := a.Update(w, dt, &ac)
@@ -157,7 +161,7 @@ func (w *Window) animationLoop() {
 			delete(w.animViewBound, id)
 		}
 		idle := len(w.animations) == 0
-		w.mu.Unlock()
+		w.animMu.Unlock()
 
 		if idle && ticker != nil {
 			ticker.Stop()
@@ -230,7 +234,11 @@ func updateBlinkCursor(b *BlinkCursorAnimation, w *Window) bool {
 		return false
 	}
 	if time.Since(b.start) > blinkCursorAnimationDelay {
-		w.viewState.inputCursorOn = !w.viewState.inputCursorOn
+		// Store(!Load()) is safe because all writers hold animMu:
+		// this (via animation goroutine) and resetBlinkCursorVisible
+		// (via main thread). If animMu is ever removed from either
+		// path, switch to CompareAndSwap.
+		w.viewState.inputCursorOn.Store(!w.viewState.inputCursorOn.Load())
 		b.start = b.start.Add(blinkCursorAnimationDelay)
 		return true
 	}

@@ -400,10 +400,10 @@ func TestSetIDFocusClearsInputSelections(t *testing.T) {
 
 func TestSetIDFocusEnablesCursorBlink(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int), Width: 100, Height: 100})
-	w.viewState.inputCursorOn = false
+	w.viewState.inputCursorOn.Store(false)
 	w.SetIDFocus(42)
 
-	if !w.viewState.inputCursorOn {
+	if !w.viewState.inputCursorOn.Load() {
 		t.Error("inputCursorOn should be true after SetIDFocus")
 	}
 }
@@ -458,9 +458,9 @@ func TestCloseAndCloseRequested(t *testing.T) {
 
 func TestResetBlinkCursorVisible(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int), Width: 100, Height: 100})
-	w.viewState.inputCursorOn = false
+	w.viewState.inputCursorOn.Store(false)
 	resetBlinkCursorVisible(w)
-	if !w.viewState.inputCursorOn {
+	if !w.viewState.inputCursorOn.Load() {
 		t.Error("inputCursorOn should be true after reset")
 	}
 }

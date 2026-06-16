@@ -105,11 +105,7 @@ type scratchPools struct {
 	floatingLayouts      []*Layout
 	floatingLayoutPool   []*Layout
 	placeholderShapePool []*Shape
-	filterRenderers      scratchSlice[RenderCmd]
 	focusCandidates      scratchSlice[focusCandidate]
-	gradientNormStops    scratchSlice[GradientStop]
-	gradientSampleStops  scratchSlice[GradientStop]
-	svgAnimVals          scratchSlice[float32]
 	wrapRows             scratchSlice[wrapRowRange]
 	layerLayouts         scratchSlice[Layout]
 
@@ -147,11 +143,7 @@ const (
 
 func newScratchPools() scratchPools {
 	return scratchPools{
-		filterRenderers:        scratchSlice[RenderCmd]{retainMax: 131_072, shrinkTo: 8192},
 		focusCandidates:        scratchSlice[focusCandidate]{retainMax: 4096, shrinkTo: 512},
-		gradientNormStops:      scratchSlice[GradientStop]{retainMax: 64, shrinkTo: 8},
-		gradientSampleStops:    scratchSlice[GradientStop]{retainMax: 64, shrinkTo: 8},
-		svgAnimVals:            scratchSlice[float32]{retainMax: 32, shrinkTo: 8},
 		wrapRows:               scratchSlice[wrapRowRange]{retainMax: 4096, shrinkTo: 256},
 		layerLayouts:           scratchSlice[Layout]{retainMax: 4096, shrinkTo: 256},
 		focusSeen:              scratchMap[uint32, struct{}]{retainMax: 4096},

@@ -4,7 +4,7 @@ import "testing"
 
 func TestPulsarShowsText1WhenCursorOn(t *testing.T) {
 	w := &Window{}
-	w.viewState.inputCursorOn = true
+	w.viewState.inputCursorOn.Store(true)
 	v := Pulsar(PulsarCfg{}, w)
 	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 1 {
@@ -18,7 +18,7 @@ func TestPulsarShowsText1WhenCursorOn(t *testing.T) {
 
 func TestPulsarShowsText2WhenCursorOff(t *testing.T) {
 	w := &Window{}
-	w.viewState.inputCursorOn = false
+	w.viewState.inputCursorOn.Store(false)
 	v := Pulsar(PulsarCfg{}, w)
 	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 1 {
@@ -32,7 +32,7 @@ func TestPulsarShowsText2WhenCursorOff(t *testing.T) {
 
 func TestPulsarCustomText(t *testing.T) {
 	w := &Window{}
-	w.viewState.inputCursorOn = true
+	w.viewState.inputCursorOn.Store(true)
 	v := Pulsar(PulsarCfg{Text1: "ON", Text2: "OFF"}, w)
 	layout := generateViewLayout(v, w)
 	tc := layout.Children[0].Shape.TC

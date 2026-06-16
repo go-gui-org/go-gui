@@ -10,8 +10,11 @@ func (w *Window) IDFocus() uint32 {
 }
 
 // SetIDFocus sets the focus id and clears input selections.
+// Acquires both w.mu (idFocus) and w.animMu (animations).
 func (w *Window) SetIDFocus(id uint32) {
 	w.mu.Lock()
+	w.animMu.Lock()
+	defer w.animMu.Unlock()
 	defer w.mu.Unlock()
 	w.setIDFocusLocked(id)
 }
@@ -22,9 +25,9 @@ func (w *Window) setIDFocusLocked(id uint32) {
 	w.imeClear()
 	w.viewState.idFocus = id
 	if id > 0 {
-		w.viewState.inputCursorOn = true
+		w.viewState.inputCursorOn.Store(true)
 		if !w.hasAnimationLocked(blinkCursorAnimationID) {
-			w.animationAdd(NewBlinkCursorAnimation())
+			w.animationAddLocked(NewBlinkCursorAnimation())
 		}
 	}
 	if np := w.nativePlatform; np != nil {
@@ -40,9 +43,9 @@ func (w *Window) setIDFocusLocked(id uint32) {
 // resetBlinkCursorVisible resets the blink timer so the cursor
 // stays visible during typing and cursor movement.
 func resetBlinkCursorVisible(w *Window) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.viewState.inputCursorOn = true
+	w.animMu.Lock()
+	defer w.animMu.Unlock()
+	w.viewState.inputCursorOn.Store(true)
 	if a, ok := w.animations[blinkCursorAnimationID]; ok {
 		a.SetStart(time.Now())
 	}

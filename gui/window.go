@@ -38,6 +38,7 @@ type windowRender struct {
 
 // windowAnimation holds animation lifecycle state.
 type windowAnimation struct {
+	animMu sync.Mutex // guards animations, animViewBound
 	// Active animations keyed by ID.
 	animations map[string]Animation
 	// View-bound animation heartbeats: animID → last-seen UnixNano.
@@ -103,7 +104,9 @@ type windowInspector struct {
 //
 // The backend runs the event loop on the main thread (OS requirement for
 // most GUI frameworks). View functions and event callbacks execute on the
-// calling goroutine — typically the main thread — under [Window.mu].
+// calling goroutine — typically the main thread. View functions run
+// without [Window.mu] held so the animation goroutine can tick during
+// slow View generation. Layout and render phases hold [Window.mu].
 // Use [Window.Ctx] for async operations that should abort on window close.
 //
 // # Key subsystems
@@ -246,7 +249,7 @@ type ViewState struct {
 	mousePosX                float32
 	mousePosY                float32
 	mouseCursor              MouseCursor
-	inputCursorOn            bool
+	inputCursorOn            atomic.Bool
 	menuKeyNav               bool
 	externalAPIWarningLogged bool
 }
@@ -336,7 +339,7 @@ func (w *Window) clearInputSelections() {
 
 // inputCursorOn returns the input cursor blink state.
 func (w *Window) inputCursorOn() bool {
-	return w.viewState.inputCursorOn
+	return w.viewState.inputCursorOn.Load()
 }
 
 // MouseIsLocked returns true if the mouse is locked (drag).
@@ -371,8 +374,8 @@ func (w *Window) TextMeasurer() TextMeasurer {
 // FrameCount returns the monotonic frame counter for this window.
 // Incremented once per FrameFn call. Useful for widgets that need
 // to detect whether a callback is being invoked multiple times
-// within the same render cycle. Must be called from the UI/view
-// goroutine (under w.mu); not safe for concurrent use.
+// within the same render cycle. Must be called from the main thread;
+// not safe for concurrent use.
 func (w *Window) FrameCount() uint64 {
 	return w.frameCount
 }

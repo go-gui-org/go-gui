@@ -318,7 +318,7 @@ func TestRenderLayoutStencilDepthClampsAt255(t *testing.T) {
 func TestRenderTextEmptyFocusedEmitsCursor(t *testing.T) {
 	w := makeWindowWithScratch()
 	w.viewState.idFocus = 100
-	w.viewState.inputCursorOn = true
+	w.viewState.inputCursorOn.Store(true)
 	style := DefaultTextStyle
 	shape := &Shape{
 		shapeType: shapeText,
@@ -416,7 +416,7 @@ func TestRenderTextZeroAlphaSkips(t *testing.T) {
 func TestRenderTextPlaceholderCursor(t *testing.T) {
 	w := makeWindowWithScratch()
 	w.viewState.idFocus = 200
-	w.viewState.inputCursorOn = true
+	w.viewState.inputCursorOn.Store(true)
 	style := TextStyle{Color: RGB(128, 128, 128), Size: 16}
 	shape := &Shape{
 		shapeType: shapeText,
@@ -474,7 +474,7 @@ func TestRenderInputCursorNotFocusedSkips(t *testing.T) {
 func TestRenderInputCursorBlinkOffSkips(t *testing.T) {
 	w := makeWindow()
 	w.viewState.idFocus = 100
-	w.viewState.inputCursorOn = false
+	w.viewState.inputCursorOn.Store(false)
 	style := DefaultTextStyle
 	shape := &Shape{
 		IDFocus: 100,
@@ -491,7 +491,7 @@ func TestRenderInputCursorBlinkOffSkips(t *testing.T) {
 func TestRenderInputCursorFallbackPosition(t *testing.T) {
 	w := makeWindow()
 	w.viewState.idFocus = 100
-	w.viewState.inputCursorOn = true
+	w.viewState.inputCursorOn.Store(true)
 	style := TextStyle{Color: RGB(0, 0, 0), Size: 14}
 	shape := &Shape{
 		IDFocus: 100,

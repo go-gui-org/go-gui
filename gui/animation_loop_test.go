@@ -156,7 +156,7 @@ func TestTouchViewBoundAnimation_ExistsUpdatesHeartbeat(t *testing.T) {
 func TestTouchViewBoundAnimation_NonViewBoundReturnsTrue(t *testing.T) {
 	w := &Window{}
 	tw := NewTweenAnimation("nv1", 0, 1, func(float32, *Window) {})
-	w.animationAdd(tw)
+	w.AnimationAdd(tw)
 	if !w.touchViewBoundAnimation("nv1") {
 		t.Error("should return true for non-view-bound animation that exists")
 	}

@@ -165,11 +165,11 @@ func (w *Window) FrameFn() bool {
 // Update performs a full layout rebuild and re-renders.
 func (w *Window) Update() {
 	w.mu.Lock()
-	defer w.mu.Unlock()
 	w.refreshLayout = false
 	w.refreshRenderOnly = false
 
 	if w.viewGenerator == nil {
+		w.mu.Unlock()
 		return
 	}
 
@@ -195,8 +195,17 @@ func (w *Window) Update() {
 	}
 
 	w.scratch.resetViewPools()
+
+	// Release w.mu during View generation so the animation goroutine
+	// (which holds w.animMu, not w.mu) can tick. View functions
+	// access scratch pools (frame-scoped, single-goroutine), atomic
+	// inputCursorOn, and animations (guarded by w.animMu).
+	w.mu.Unlock()
 	view := w.viewGenerator(w)
 	rootLayout := generateViewLayout(view, w)
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
 	if t {
 		t1 = time.Now()
 	}
