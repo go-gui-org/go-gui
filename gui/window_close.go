@@ -32,6 +32,10 @@ func DispatchQuitRequest(app *App) (vetoed bool) {
 		return false
 	}
 	for _, w := range app.Windows() {
+		if w.DialogIsVisible() {
+			vetoed = true
+			continue
+		}
 		if cb := w.Config.OnCloseRequest; cb != nil {
 			cb(w)
 			vetoed = true

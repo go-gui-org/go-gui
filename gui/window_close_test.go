@@ -121,6 +121,70 @@ func TestDispatchQuitRequest_MixedHooks(t *testing.T) {
 	}
 }
 
+func TestDispatchQuitRequest_DialogBlocksQuit(t *testing.T) {
+	a := NewApp()
+	w := NewWindow(WindowCfg{})
+	a.Register(1, w)
+	w.Dialog(DialogCfg{})
+
+	if !DispatchQuitRequest(a) {
+		t.Fatal("dialog visible: must report vetoed=true")
+	}
+	if w.CloseRequested() {
+		t.Fatal("dialog visible: must not mark close-requested")
+	}
+}
+
+func TestDispatchQuitRequest_DialogMixedWindows(t *testing.T) {
+	a := NewApp()
+	wDialog := NewWindow(WindowCfg{})
+	wNoDialog := NewWindow(WindowCfg{})
+	a.Register(1, wDialog)
+	a.Register(2, wNoDialog)
+	wDialog.Dialog(DialogCfg{})
+
+	if !DispatchQuitRequest(a) {
+		t.Fatal("dialog on any window: must report vetoed=true")
+	}
+	if wDialog.CloseRequested() {
+		t.Fatal("dialog visible: must not mark close-requested")
+	}
+	if !wNoDialog.CloseRequested() {
+		t.Fatal("no dialog: must still close")
+	}
+}
+
+func TestDispatchQuitRequest_DialogTakesPriorityOverHook(t *testing.T) {
+	var hookCalls int
+	a := NewApp()
+	w := NewWindow(WindowCfg{
+		OnCloseRequest: func(*Window) { hookCalls++ },
+	})
+	a.Register(1, w)
+	w.Dialog(DialogCfg{})
+
+	if !DispatchQuitRequest(a) {
+		t.Fatal("dialog visible: must report vetoed=true")
+	}
+	if hookCalls != 0 {
+		t.Fatalf("hookCalls = %d, want 0 (dialog takes priority)", hookCalls)
+	}
+	if w.CloseRequested() {
+		t.Fatal("dialog visible: must not mark close-requested")
+	}
+}
+
+func TestDispatchQuitRequest_DialogDoesNotBlockCloseRequest(t *testing.T) {
+	// Per-window close (DispatchCloseRequest) is NOT blocked by dialog
+	// visibility — only app-level quit is trapped.
+	w := NewWindow(WindowCfg{})
+	w.Dialog(DialogCfg{})
+	DispatchCloseRequest(w)
+	if !w.CloseRequested() {
+		t.Fatal("dialog must not block per-window close")
+	}
+}
+
 func TestDispatchQuitRequest_AllNoHooks(t *testing.T) {
 	a := NewApp()
 	w1 := NewWindow(WindowCfg{})
