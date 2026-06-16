@@ -94,10 +94,10 @@ func (b *Backend) drawQuadUV(x, y, w, h float32, c gui.Color,
 	cr, cg, cb, ca := gpu.NormColor(c.R, c.G, c.B, c.A)
 
 	verts := [4]gpu.Vertex{
-		{x, y, z, -1, -1, cr, cg, cb, ca},
-		{x + w, y, z, 1, -1, cr, cg, cb, ca},
-		{x + w, y + h, z, 1, 1, cr, cg, cb, ca},
-		{x, y + h, z, -1, 1, cr, cg, cb, ca},
+		{X: x, Y: y, Z: z, U: -1, V: -1, R: cr, G: cg, B: cb, A: ca},
+		{X: x + w, Y: y, Z: z, U: 1, V: -1, R: cr, G: cg, B: cb, A: ca},
+		{X: x + w, Y: y + h, Z: z, U: 1, V: 1, R: cr, G: cg, B: cb, A: ca},
+		{X: x, Y: y + h, Z: z, U: -1, V: 1, R: cr, G: cg, B: cb, A: ca},
 	}
 
 	gogl.BindVertexArray(b.quadVAO)
@@ -115,10 +115,10 @@ func (b *Backend) drawQuadTex(x, y, w, h float32, c gui.Color) {
 	cr, cg, cb, ca := gpu.NormColor(c.R, c.G, c.B, c.A)
 
 	verts := [4]gpu.Vertex{
-		{x, y, 0, 0, 1, cr, cg, cb, ca},
-		{x + w, y, 0, 1, 1, cr, cg, cb, ca},
-		{x + w, y + h, 0, 1, 0, cr, cg, cb, ca},
-		{x, y + h, 0, 0, 0, cr, cg, cb, ca},
+		{X: x, Y: y, Z: 0, U: 0, V: 1, R: cr, G: cg, B: cb, A: ca},
+		{X: x + w, Y: y, Z: 0, U: 1, V: 1, R: cr, G: cg, B: cb, A: ca},
+		{X: x + w, Y: y + h, Z: 0, U: 1, V: 0, R: cr, G: cg, B: cb, A: ca},
+		{X: x, Y: y + h, Z: 0, U: 0, V: 0, R: cr, G: cg, B: cb, A: ca},
 	}
 
 	gogl.BindVertexArray(b.quadVAO)

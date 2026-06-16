@@ -144,10 +144,10 @@ func (b *Backend) drawLine(r *gui.RenderCmd) {
 	cr, cg, cb, ca := gpu.NormColor(r.Color.R, r.Color.G, r.Color.B, r.Color.A)
 
 	verts := [4]vertex{
-		{x0 + nx, y0 + ny, 0, -1, -1, cr, cg, cb, ca},
-		{x1 + nx, y1 + ny, 0, 1, -1, cr, cg, cb, ca},
-		{x1 - nx, y1 - ny, 0, 1, 1, cr, cg, cb, ca},
-		{x0 - nx, y0 - ny, 0, -1, 1, cr, cg, cb, ca},
+		{X: x0 + nx, Y: y0 + ny, Z: 0, U: -1, V: -1, R: cr, G: cg, B: cb, A: ca},
+		{X: x1 + nx, Y: y1 + ny, Z: 0, U: 1, V: -1, R: cr, G: cg, B: cb, A: ca},
+		{X: x1 - nx, Y: y1 - ny, Z: 0, U: 1, V: 1, R: cr, G: cg, B: cb, A: ca},
+		{X: x0 - nx, Y: y0 - ny, Z: 0, U: -1, V: 1, R: cr, G: cg, B: cb, A: ca},
 	}
 
 	b.usePipeline(&b.pipelines.solid)
