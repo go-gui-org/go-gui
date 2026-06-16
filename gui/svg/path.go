@@ -353,6 +353,13 @@ func arcToCubic(x1, y1, rx, ry, phi float32, largeArc, sweep bool, x2, y2 float3
 	if rx == 0 || ry == 0 {
 		return []PathSegment{{CmdLineTo, []float32{x2, y2}}}
 	}
+	// SVG spec: "If the endpoints (x1, y1) and (x2, y2) are identical,
+	// then this is equivalent to omitting the elliptical arc segment
+	// entirely." Without this guard the denominator (rx2*y1p2 +
+	// ry2*x1p2) becomes zero, producing Inf → NaN in centre point.
+	if x1 == x2 && y1 == y2 {
+		return nil
+	}
 
 	rxAbs := f32Abs(rx)
 	ryAbs := f32Abs(ry)
