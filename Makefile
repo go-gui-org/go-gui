@@ -5,8 +5,9 @@ LDFLAGS  = -X github.com/go-gui-org/go-gui/gui.Version=$(VERSION) \
 
 CC_WINDOWS ?= x86_64-w64-mingw32-gcc
 STATIC_TAG  = static,audio
+LINT_VERSION = v2.6.0
 
-.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test vet lint check bench bench-gate deps-doc deps-doc-check
+.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test test-race vet lint check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit
 
 build-linux:
 	CGO_ENABLED=1 \
@@ -90,20 +91,30 @@ bench-gate:
 clean:
 	rm -rf build/
 
-# Run all tests.
+# Run all tests with explicit timeout.
 test:
-	go test ./...
+	go test -count=1 -timeout=5m ./...
+
+# Run all tests with race detector enabled.
+test-race:
+	go test -race -count=1 -timeout=10m ./...
 
 # Run go vet static analysis.
 vet:
 	go vet ./...
 
-# Run golangci-lint (requires golangci-lint installed).
+# Run golangci-lint (requires golangci-lint installed, pinned to LINT_VERSION).
 lint:
+	@golangci-lint --version | grep -q "$(LINT_VERSION)" || \
+	  { echo "::error::golangci-lint $(LINT_VERSION) required. Run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(LINT_VERSION)"; exit 1; }
 	golangci-lint run ./...
 
-# Run all validation steps: test, vet, lint.
-check: test vet lint deps-doc-check
+# Run non-duplicated validation steps for CI gate.
+# test and lint run as separate CI jobs with OS matrices.
+check: vet deps-doc-check large-files generate-check deadcode tidy-check
+
+# Run all validation steps: test, vet, lint, and gate checks.
+check-all: test lint check
 
 # Regenerate docs/dependencies.md from go.mod.
 deps-doc:
@@ -115,3 +126,52 @@ deps-doc-check:
 	diff docs/dependencies.md /tmp/deps-generated.md || \
 	  { echo "::error::docs/dependencies.md is out of date. Run 'make deps-doc'." >&2; exit 1; }
 	rm -f /tmp/deps-generated.md
+
+# Report Go source files exceeding 800 lines in gui/. Exit non-zero if any exist.
+large-files:
+	@scripts/large-files.sh
+	@count=$$(find gui -name '*.go' -not -name '*_test.go' \
+	  -exec wc -l {} \; | awk '$$1 > 800' | wc -l); \
+	if [ "$$count" -gt 0 ]; then \
+	  echo "::error::$$count Go source files exceed 800 lines"; \
+	  exit 1; \
+	fi
+
+# Check that go generate produces no changes (generated code matches source).
+generate-check:
+	go generate ./...
+	@if [ -n "$$(git status --porcelain)" ]; then \
+	  echo "::error::go generate produced changes. Run 'go generate ./...' and commit."; \
+	  git diff; \
+	  exit 1; \
+	fi
+
+# Report exported-but-unreachable functions (dead code).
+deadcode:
+	go run golang.org/x/tools/cmd/deadcode@latest \
+	  -test \
+	  ./...
+
+# Check that go.mod and go.sum are tidy.
+tidy-check:
+	go mod tidy
+	@git diff --exit-code go.mod go.sum || \
+	  { echo "::error::go.mod or go.sum is not tidy. Run 'go mod tidy'."; \
+	    git diff go.mod go.sum; \
+	    exit 1; }
+
+# Run security scans (gosec + govulncheck).
+security: gosec govulncheck
+
+gosec:
+	gosec -include=G101,G104,G107,G201,G202,G203,G204,G301,G302,G303,G304,G306,G401,G402,G501,G502,G503,G504,G505 \
+	  -conf .gosec.json \
+	  ./...
+
+govulncheck:
+	govulncheck ./...
+
+# Audit workflow files for unpinned actions (excludes setup-go which uses major-version pinning by design).
+workflow-audit:
+	@grep -n 'uses:.*@v[0-9]' .github/workflows/*.yml | grep -v setup-go || true
+	@echo "Lines above use version tags instead of SHAs."

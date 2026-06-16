@@ -27,7 +27,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: stable
-          cache: false
+          cache: true
 
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
@@ -63,10 +63,49 @@ jobs:
         working-directory: go-gui
         run: |
           CGO_LDFLAGS="${{ runner.os == 'macOS' && '-Wl,-no_warn_duplicate_libraries' || '' }}" \
-            go test ${{ runner.os == 'Linux' && '-race' || '' }} -coverprofile=coverage.out ./gui/...
+            go test -count=2 -race -timeout=10m ./gui/...
+
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: go-gui
+
+      - uses: actions/checkout@v6
+        with:
+          repository: go-gui-org/go-glyph
+          path: go-glyph
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+          cache: true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pkg-config \
+            libsdl2-dev \
+            libsdl2-mixer-dev \
+            libfreetype6-dev \
+            libharfbuzz-dev \
+            libpango1.0-dev \
+            libfontconfig1-dev \
+            libhunspell-dev
+
+      - name: Add go-glyph replace
+        working-directory: go-gui
+        run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
+
+      - name: Test with coverage
+        working-directory: go-gui
+        run: go test -count=1 -coverprofile=coverage.out ./gui/...
 
       - name: Check coverage threshold
-        if: always()
         working-directory: go-gui
         run: |
           go tool cover -func=coverage.out | awk 'END {
@@ -80,19 +119,8 @@ jobs:
           }'
 
       - name: Check per-package coverage floors
-        if: runner.os == 'Linux' && always()
         working-directory: go-gui
         run: |
-          # Per-package coverage floors for packages with mock-based
-          # tests. Linux-gated — some packages only compile on Linux
-          # (filedialog helpers), others are pure-logic internal
-          # packages tested everywhere. Packages requiring display
-          # hardware (sdl2, metal, gl) are excluded.
-          #
-          # Backend packages with hardware/OS deps (glyphconv, imgpath,
-          # sdlkey, texcache, imgload, tempfont, nativehost, filedialog)
-          # have 0% floor — untestable without display server, GPU, or
-          # native dialog infrastructure.
           failures=0
           while IFS='|' read -r pkg floor; do
             pct=$(go tool cover -func=coverage.out | \
@@ -125,7 +153,7 @@ jobs:
         uses: actions/cache/save@v5
         with:
           path: go-gui/coverage.out
-          key: coverage-baseline-${{ matrix.os }}-${{ github.sha }}
+          key: coverage-baseline-${{ github.sha }}
 
       - name: Restore baseline coverage for diff
         if: github.event_name == 'pull_request'
@@ -133,9 +161,9 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: go-gui/coverage-baseline.out
-          key: coverage-baseline-${{ matrix.os }}-${{ github.event.pull_request.base.sha }}
+          key: coverage-baseline-${{ github.event.pull_request.base.sha }}
           restore-keys: |
-            coverage-baseline-${{ matrix.os }}-
+            coverage-baseline-
 
       - name: Coverage diff on PR
         if: github.event_name == 'pull_request'
@@ -146,7 +174,6 @@ jobs:
             exit 0
           fi
 
-          # Write per-package coverage extraction awk script.
           cat > /tmp/pkgcov.awk << 'AWKEOF'
           NR == 1 { next }
           {
@@ -197,7 +224,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: coverage-${{ matrix.os }}
+          name: coverage
           path: go-gui/coverage.out
           retention-days: 30
 
@@ -210,7 +237,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: stable
-          cache: false
+          cache: true
 
       - name: Install system dependencies
         run: |
@@ -230,12 +257,15 @@ jobs:
 
       - name: Lint
         uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.6
 
       - name: Required-ID check
         run: go run ./tools/requiredid/cmd/requiredid ./...
 
   check:
-    name: Check (test + vet + lint)
+    name: Check (gate)
+    needs: [test, vet]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -250,7 +280,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: stable
-          cache: false
+          cache: true
 
       - name: Install system dependencies
         run: |
@@ -269,10 +299,7 @@ jobs:
         working-directory: go-gui
         run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
 
-      - name: Install golangci-lint
-        run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/main/install.sh | sh -s -- -b "$(go env GOPATH)/bin" latest
-
-      - name: make check
+      - name: Run gate checks
         working-directory: go-gui
         run: make check
 
@@ -292,7 +319,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: stable
-          cache: false
+          cache: true
 
       - name: Install system dependencies
         run: |
@@ -331,7 +358,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: stable
-          cache: false
+          cache: true
 
       - name: Add go-glyph replace
         working-directory: go-gui
@@ -374,7 +401,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: stable
-          cache: false
+          cache: true
 
       - name: Build
         working-directory: go-gui
@@ -430,7 +457,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: stable
-          cache: false
+          cache: true
 
       - name: Add go-glyph replace
         working-directory: go-gui
@@ -485,7 +512,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: stable
-          cache: false
+          cache: true
 
       - name: Add go-glyph replace
         working-directory: go-gui
@@ -526,7 +553,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: stable
-          cache: false
+          cache: true
 
       - name: Install system dependencies
         run: |
@@ -567,7 +594,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: stable
-          cache: false
+          cache: true
 
       - name: Install system dependencies
         run: |
@@ -629,7 +656,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: stable
-          cache: false
+          cache: true
 
       - name: Install system dependencies
         run: |

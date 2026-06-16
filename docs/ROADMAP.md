@@ -13,7 +13,7 @@ This document outlines the planned future directions for the Go-Gui project.
 
 ## Medium Priority
 
-- **Performance Optimizations**: Spec at [docs/perf-optimizations.md](perf-optimizations.md).
+- **Performance Optimizations**: ~done, Spec at [docs/perf-optimizations.md](perf-optimizations.md).
     - Release `Window` mutex during View function execution (add `animMu`, atomic `inputCursorOn`).
     - Scratch pool cleanup (remove 4 unused `scratchSlice` fields).
 - **Text Roll Animation** for single line labels. Sometimes referred to as slot machine.
@@ -79,11 +79,26 @@ This document outlines the planned future directions for the Go-Gui project.
 
 ### CI Hardening
 
-- **Race Detector**: Enable `go test -race` on macOS and Windows
-  (currently Linux-only).
-- **File-Size Gate**: Add CI step failing if any `gui/` source file exceeds
-  800 lines, using `scripts/large-files.sh`.
-- **Dead-Code Detection**: Add to CI `check` job.
+- **CI Hardening** ~spec~: Spec at [docs/specs/ci-hardening.md](specs/ci-hardening.md).
+  - **Race Detector**: Enable `go test -race` on macOS and Windows
+    (currently Linux-only).
+  - **File-Size Gate**: Add CI step failing if any `gui/` source file exceeds
+    800 lines, using `scripts/large-files.sh`.
+  - **Dead-Code Detection**: Add `golang.org/x/tools/cmd/deadcode` to CI.
+  - **Makefile Security Targets**: Add `make gosec`, `make govulncheck`,
+    `make security` for local CI parity.
+  - **Coverage Floor Improvements**: Set non-zero floors for backend
+    packages with existing tests.
+  - **Test Timeout Enforcement**: Add explicit `-timeout` flags.
+  - **golangci-lint Version Pinning**: Pin version in CI and Makefile.
+  - **Go Module Cache**: Enable module caching (`cache: false` → `true` on
+    11 `setup-go` steps).
+  - **Generated Code Freshness**: Verify `go generate` idempotence in CI.
+  - **CI Job Deduplication**: `check` job re-runs `test`/`vet` redundantly;
+    restructure as a lightweight gate.
+  - **`go mod tidy` Gate**: Fail CI if `go.mod`/`go.sum` are untidy.
+  - **Workflow Pinning**: Pin GitHub Actions to commit SHAs.
+  - **Test Flake Detection**: `-count=2` or `gotestsum --rerun-fails`.
 
 ### Tooling
 
