@@ -4,7 +4,11 @@ This document outlines the planned future directions for the Go-Gui project.
 
 ## High Priority
 
-- **WebGPU Backend**: Implement a WebGPU backend (via `GPUCanvasContext` / `navigator.gpu`) to provide lower GPU overhead and compute shader support on the web target.
+- **WebGPU Backend** ~explored, rejected~: Prototype proved the architecture works
+  (12 WGSL pipelines, solid rect + gradient + shadow rendering), but text
+  rendering requires Canvas2D for font measurement. A hybrid backend adds
+  complexity without addressing the actual bottleneck (heap allocations).
+  See CLAUDE.md § Rejected Approaches.
 - **Trap Quit Requests**: When displaying a dialog, the request to quit the program (cmd+q on mac) should be ignored.
 
 ## Medium Priority

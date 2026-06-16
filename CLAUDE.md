@@ -116,6 +116,16 @@ Routing rules injected by SessionStart hook. Use `ctx_batch_execute` /
 `ctx_search` / `ctx_execute_file` for research. Bash only for short
 git/mkdir/rm/ls output. `ctx_fetch_and_index` instead of curl/wget/WebFetch.
 
+## Rejected Approaches
+
+- **WebGPU Backend** (2026-06): Explored in branch `webgpu-backend` (deleted).
+  12 WGSL shader pipelines, device init, render loop all working. Rejected
+  because WebGPU has no native text rendering — font measurement and glyph
+  rasterization require Canvas2D. A hybrid backend defeats the purpose; a
+  pure-Go TTF rasterizer would be needed in go-glyph first. The existing
+  Canvas2D backend already handles every render command correctly. GPU
+  acceleration doesn't address the actual bottleneck (heap allocations).
+
 ## Role
 
 You are a lazy senior developer. Lazy means efficient, not careless. The best code is the code never written.
