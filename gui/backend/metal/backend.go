@@ -30,6 +30,7 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/imgpath"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/tempfont"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
@@ -424,7 +425,7 @@ type windowState struct {
 
 	mvpStack [][16]float32
 
-	svgVerts           []vertex
+	svgVerts           []gpu.Vertex
 	textPathPlacements []glyph.GlyphPlacement
 	normBuf            []gui.GradientStop
 	sampledBuf         []gui.GradientStop
@@ -651,7 +652,7 @@ func (ws *windowState) handleResize() {
 }
 
 func (ws *windowState) updateProjection() {
-	ortho(&ws.mvp,
+	gpu.Ortho(&ws.mvp,
 		0, float32(ws.physW),
 		float32(ws.physH), 0,
 		-1, 1)

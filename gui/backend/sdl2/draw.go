@@ -491,76 +491,13 @@ func (b *Backend) strokeRoundedRect(x, y, w, h, rad float32, c gui.Color) {
 // drawTextPath renders text along an SVG path using per-glyph
 // placement with rotation following the path tangent.
 func (b *Backend) drawTextPath(r *gui.RenderCmd) {
-	if b.textSys == nil || r.TextPath == nil || r.TextStylePtr == nil {
+	layout, placements, err := gui.ComputeTextPathPlacements(
+		r, b.textSys, b.textPathPlacements,
+		guiStyleToGlyphConfig)
+	if err != nil || len(placements) == 0 {
 		return
 	}
-	tp := r.TextPath
-
-	cfg := guiStyleToGlyphConfig(*r.TextStylePtr)
-	layout, err := b.textSys.LayoutTextCached(r.Text, cfg)
-	if err != nil {
-		return
-	}
-	positions := layout.GlyphPositions()
-	if len(positions) == 0 {
-		return
-	}
-
-	// Compute total advance from real glyph metrics.
-	var totalAdvance float32
-	for _, p := range positions {
-		totalAdvance += p.Advance
-	}
-
-	// Apply text-anchor adjustment.
-	offset := tp.Offset
-	switch tp.Anchor {
-	case gui.SvgTextAnchorMiddle:
-		offset -= totalAdvance / 2
-	case gui.SvgTextAnchorEnd:
-		offset -= totalAdvance
-	}
-
-	// method=stretch: scale advances to fill remaining path.
-	advScale := float32(1)
-	if tp.Method == gui.SvgTextPathMethodStretch && totalAdvance > 0 {
-		remaining := tp.TotalLen - offset
-		if remaining > 0 {
-			advScale = remaining / totalAdvance
-		}
-	}
-
-	// Build per-glyph placements along the path.
-	n := len(layout.Glyphs)
-	if cap(b.textPathPlacements) < n {
-		b.textPathPlacements = make([]glyph.GlyphPlacement, n)
-	}
-	placements := b.textPathPlacements[:n]
-	for i := range placements {
-		placements[i] = glyph.GlyphPlacement{X: -9999, Y: -9999}
-	}
-
-	cumAdv := float32(0)
-	for _, p := range positions {
-		advance := p.Advance * advScale
-		centerDist := offset + cumAdv + advance/2
-		px, py, angle := gui.SamplePathAt(
-			tp.Polyline, tp.Table, centerDist)
-
-		// Offset glyph origin back along tangent by half
-		// advance so glyph center sits on the path point.
-		halfAdv := advance / 2
-		cosA := float32(math.Cos(float64(angle)))
-		sinA := float32(math.Sin(float64(angle)))
-		gx := px + r.X - halfAdv*cosA
-		gy := py + r.Y - halfAdv*sinA
-
-		placements[p.Index] = glyph.GlyphPlacement{
-			X: gx, Y: gy, Angle: angle,
-		}
-		cumAdv += advance
-	}
-
+	b.textPathPlacements = placements
 	b.textSys.DrawLayoutPlaced(layout, placements)
 }
 
@@ -595,8 +532,5 @@ func (b *Backend) drawLayoutTransformed(r *gui.RenderCmd) {
 }
 
 func (b *Backend) drawRtf(r *gui.RenderCmd) {
-	if b.textSys == nil || r.LayoutPtr == nil {
-		return
-	}
-	b.textSys.DrawLayout(*r.LayoutPtr, r.X, r.Y)
+	b.drawLayout(r)
 }

@@ -5,6 +5,8 @@ package metal
 import (
 	"math"
 	"testing"
+
+	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
 )
 
 func identity() [16]float32 {
@@ -34,11 +36,11 @@ func TestMat4MulIdentity(t *testing.T) {
 		13, 14, 15, 16,
 	}
 	var out [16]float32
-	mat4Mul(&out, &a, &id)
+	gpu.Mat4Mul(&out, &a, &id)
 	if out != a {
 		t.Fatalf("A * I != A\ngot  %v\nwant %v", out, a)
 	}
-	mat4Mul(&out, &id, &a)
+	gpu.Mat4Mul(&out, &id, &a)
 	if out != a {
 		t.Fatalf("I * A != A\ngot  %v\nwant %v", out, a)
 	}
@@ -66,7 +68,7 @@ func TestMat4MulKnownProduct(t *testing.T) {
 		7, 9, 11, 1,
 	}
 	var out [16]float32
-	mat4Mul(&out, &a, &b)
+	gpu.Mat4Mul(&out, &a, &b)
 	if out != want {
 		t.Fatalf("translation compose failed\ngot  %v\nwant %v",
 			out, want)
@@ -76,7 +78,7 @@ func TestMat4MulKnownProduct(t *testing.T) {
 func TestApplyRotationZero(t *testing.T) {
 	mvp := identity()
 	orig := mvp
-	applyRotation(&mvp, 0, 100, 200)
+	gpu.ApplyRotation(&mvp, 0, 100, 200)
 	if !approxEq(mvp, orig, 1e-6) {
 		t.Fatalf("0-deg rotation changed MVP\ngot  %v\nwant %v",
 			mvp, orig)
@@ -86,7 +88,7 @@ func TestApplyRotationZero(t *testing.T) {
 func TestApplyRotation360(t *testing.T) {
 	mvp := identity()
 	orig := mvp
-	applyRotation(&mvp, 360, 50, 50)
+	gpu.ApplyRotation(&mvp, 360, 50, 50)
 	if !approxEq(mvp, orig, 1e-5) {
 		t.Fatalf("360-deg rotation changed MVP\ngot  %v\nwant %v",
 			mvp, orig)
@@ -95,7 +97,7 @@ func TestApplyRotation360(t *testing.T) {
 
 func TestApplyRotation90(t *testing.T) {
 	mvp := identity()
-	applyRotation(&mvp, 90, 0, 0)
+	gpu.ApplyRotation(&mvp, 90, 0, 0)
 	// 90 degrees around origin: cos=0, sin=1.
 	// Column-major: [0]=cos, [1]=sin, [4]=-sin, [5]=cos.
 	const tol = 1e-6
@@ -115,7 +117,7 @@ func TestApplyRotation90(t *testing.T) {
 
 func TestApplyRotation180(t *testing.T) {
 	mvp := identity()
-	applyRotation(&mvp, 180, 0, 0)
+	gpu.ApplyRotation(&mvp, 180, 0, 0)
 	const tol = 1e-5
 	if diff := mvp[0] - (-1); diff < -tol || diff > tol {
 		t.Fatalf("mvp[0] = %v, want ~-1", mvp[0])
@@ -129,7 +131,7 @@ func TestApplyRotationCenterOffset(t *testing.T) {
 	// Rotating 90 degrees around (10, 0) should produce
 	// tx = 10*(1-cos90) + 0*sin90 = 10, ty = 0 - 10*sin90 = -10.
 	mvp := identity()
-	applyRotation(&mvp, 90, 10, 0)
+	gpu.ApplyRotation(&mvp, 90, 10, 0)
 	const tol = 1e-5
 	wantTx := float32(10)
 	wantTy := float32(-10)

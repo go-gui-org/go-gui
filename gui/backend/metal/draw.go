@@ -16,6 +16,7 @@ import (
 	"github.com/go-gui-org/go-glyph"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/imgload"
 )
 
@@ -100,7 +101,7 @@ func (b *windowState) drawRect(r *gui.RenderCmd) {
 	s := b.dpiScale
 	C.metalSetPipeline(b.ctx, C.int(pipeSolid))
 	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
-	verts := buildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
+	verts := gpu.BuildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
 		r.Color, r.Radius*s, 0)
 	C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
 }
@@ -109,7 +110,7 @@ func (b *windowState) drawStrokeRect(r *gui.RenderCmd) {
 	s := b.dpiScale
 	C.metalSetPipeline(b.ctx, C.int(pipeSolid))
 	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
-	verts := buildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
+	verts := gpu.BuildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
 		r.Color, r.Radius*s, r.Thickness*s)
 	C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
 }
@@ -122,7 +123,7 @@ func (b *windowState) drawCircle(r *gui.RenderCmd) {
 	rad := r.Radius * s
 	C.metalSetPipeline(b.ctx, C.int(pipeSolid))
 	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
-	verts := buildQuad(
+	verts := gpu.BuildQuad(
 		(r.X-r.Radius)*s,
 		(r.Y-r.Radius)*s,
 		2*rad, 2*rad,
@@ -147,13 +148,13 @@ func (b *windowState) drawLine(r *gui.RenderCmd) {
 	nx := -dy / length * thick * 0.5
 	ny := dx / length * thick * 0.5
 
-	nc := normColor(r.Color.R, r.Color.G, r.Color.B, r.Color.A)
+	cr, cg, cb, ca := gpu.NormColor(r.Color.R, r.Color.G, r.Color.B, r.Color.A)
 
 	verts := [4]vertex{
-		{x0 + nx, y0 + ny, 0, -1, -1, nc.r, nc.g, nc.b, nc.a},
-		{x1 + nx, y1 + ny, 0, 1, -1, nc.r, nc.g, nc.b, nc.a},
-		{x1 - nx, y1 - ny, 0, 1, 1, nc.r, nc.g, nc.b, nc.a},
-		{x0 - nx, y0 - ny, 0, -1, 1, nc.r, nc.g, nc.b, nc.a},
+		{x0 + nx, y0 + ny, 0, -1, -1, cr, cg, cb, ca},
+		{x1 + nx, y1 + ny, 0, 1, -1, cr, cg, cb, ca},
+		{x1 - nx, y1 - ny, 0, 1, 1, cr, cg, cb, ca},
+		{x0 - nx, y0 - ny, 0, -1, 1, cr, cg, cb, ca},
 	}
 
 	C.metalSetPipeline(b.ctx, C.int(pipeSolid))
@@ -179,12 +180,12 @@ func (b *windowState) drawShadow(r *gui.RenderCmd) {
 	C.metalSetPipeline(b.ctx, C.int(pipeShadow))
 	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
 
-	tm := identityTM()
+	tm := gpu.IdentityTM()
 	tm[12] = r.OffsetX * s
 	tm[13] = r.OffsetY * s
 	C.metalSetTM(b.ctx, (*C.float)(&tm[0]))
 
-	verts := buildQuad(qx, qy, qw, qh, r.Color, rad, blur)
+	verts := gpu.BuildQuad(qx, qy, qw, qh, r.Color, rad, blur)
 	C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
 }
 
@@ -196,10 +197,10 @@ func (b *windowState) drawBlur(r *gui.RenderCmd) {
 
 	C.metalSetPipeline(b.ctx, C.int(pipeBlur))
 	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
-	tm := identityTM()
+	tm := gpu.IdentityTM()
 	C.metalSetTM(b.ctx, (*C.float)(&tm[0]))
 
-	verts := buildQuad(
+	verts := gpu.BuildQuad(
 		r.X*s-expand, r.Y*s-expand,
 		r.W*s+2*expand, r.H*s+2*expand,
 		r.Color, rad+expand, blur)
@@ -224,34 +225,13 @@ func (b *windowState) drawGradient(r *gui.RenderCmd) {
 		return
 	}
 
-	var tm [16]float32
-	for i := range min(len(stops), 5) {
-		col := i / 2
-		row := (i % 2) * 2
-		tm[col*4+row] = gui.PackRGB(stops[i].Color)
-		tm[col*4+row+1] = gui.PackAlphaPos(
-			stops[i].Color, stops[i].Pos)
-	}
-
-	if r.Gradient.Type == gui.GradientRadial {
-		tm[2*4+3] = max(w/2, h/2)
-		tm[3*4+2] = 1.0
-	} else {
-		dx, dy := gui.GradientDir(r.Gradient, r.W, r.H)
-		tm[2*4+2] = dx
-		tm[2*4+3] = dy
-		tm[3*4+2] = 0.0
-	}
-
-	tm[3*4+0] = w / 2
-	tm[3*4+1] = h / 2
-	tm[3*4+3] = float32(len(stops))
+	tm := gpu.PackGradientUniforms(r.Gradient, stops, w, h)
 
 	C.metalSetPipeline(b.ctx, C.int(pipeGradient))
 	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
 	C.metalSetTM(b.ctx, (*C.float)(&tm[0]))
 
-	verts := buildQuad(x, y, w, h, gui.White, rad, 0)
+	verts := gpu.BuildQuad(x, y, w, h, gui.White, rad, 0)
 	C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
 }
 
@@ -260,22 +240,13 @@ func (b *windowState) drawGradientBorder(r *gui.RenderCmd) {
 		return
 	}
 	s := b.dpiScale
-	th := r.Thickness * s
-	positions := [4]float32{0.0, 0.25, 0.5, 0.75}
-	type rect struct{ x, y, w, h float32 }
-	rects := [4]rect{
-		{r.X * s, r.Y * s, r.W * s, th},
-		{r.X * s, (r.Y+r.H)*s - th, r.W * s, th},
-		{r.X * s, r.Y * s, th, r.H * s},
-		{(r.X+r.W)*s - th, r.Y * s, th, r.H * s},
-	}
+	rects := gui.GradientBorderRects(r)
 	C.metalSetPipeline(b.ctx, C.int(pipeSolid))
 	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
 	for i := range 4 {
-		c := gui.SampleGradientStopColor(
-			r.Gradient.Stops, positions[i])
-		rc := rects[i]
-		verts := buildQuad(rc.x, rc.y, rc.w, rc.h, c, 0, 0)
+		rc := &rects[i]
+		verts := gpu.BuildQuad(rc.X*s, rc.Y*s, rc.W*s, rc.H*s,
+			rc.Color, 0, 0)
 		C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
 	}
 }
@@ -320,7 +291,7 @@ func (b *windowState) drawImage(r *gui.RenderCmd) {
 	if r.Color.A > 0 {
 		C.metalSetPipeline(b.ctx, C.int(pipeSolid))
 		C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
-		verts := buildQuad(x, y, w, h, r.Color, 0, 0)
+		verts := gpu.BuildQuad(x, y, w, h, r.Color, 0, 0)
 		C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
 	}
 
@@ -328,13 +299,13 @@ func (b *windowState) drawImage(r *gui.RenderCmd) {
 	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
 	C.metalBindTexture(b.ctx, C.int(tex.id))
 
-	z := packParams(r.ClipRadius*s, 0)
-	nc := normColor(255, 255, 255, 255)
+	z := gpu.PackParams(r.ClipRadius*s, 0)
+	cr, cg, cb, ca := gpu.NormColor(255, 255, 255, 255)
 	verts := [4]vertex{
-		{x, y, z, -1, -1, nc.r, nc.g, nc.b, nc.a},
-		{x + w, y, z, 1, -1, nc.r, nc.g, nc.b, nc.a},
-		{x + w, y + h, z, 1, 1, nc.r, nc.g, nc.b, nc.a},
-		{x, y + h, z, -1, 1, nc.r, nc.g, nc.b, nc.a},
+		{x, y, z, -1, -1, cr, cg, cb, ca},
+		{x + w, y, z, 1, -1, cr, cg, cb, ca},
+		{x + w, y + h, z, 1, 1, cr, cg, cb, ca},
+		{x, y + h, z, -1, 1, cr, cg, cb, ca},
 	}
 	C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
 }
@@ -369,12 +340,12 @@ func (b *windowState) drawSvg(r *gui.RenderCmd) {
 	}
 
 	if cap(b.svgVerts) < numVerts {
-		b.svgVerts = make([]vertex, numVerts)
+		b.svgVerts = make([]gpu.Vertex, numVerts)
 	}
 	verts := b.svgVerts[:numVerts]
-	var flatNC colF
+	var flatR, flatG, flatB, flatA float32
 	if !hasVCols {
-		flatNC = normColor(r.Color.R, r.Color.G,
+		flatR, flatG, flatB, flatA = gpu.NormColor(r.Color.R, r.Color.G,
 			r.Color.B, r.Color.A)
 	}
 	for i := range numVerts {
@@ -401,16 +372,16 @@ func (b *windowState) drawSvg(r *gui.RenderCmd) {
 			if r.HasVertexAlpha {
 				alpha = uint8(float32(alpha) * vAlpha)
 			}
-			nc := normColor(vc.R, vc.G, vc.B, alpha)
-			v.R = nc.r
-			v.G = nc.g
-			v.B = nc.b
-			v.A = nc.a
+			cr, cg, cb, ca := gpu.NormColor(vc.R, vc.G, vc.B, alpha)
+			v.R = cr
+			v.G = cg
+			v.B = cb
+			v.A = ca
 		} else {
-			v.R = flatNC.r
-			v.G = flatNC.g
-			v.B = flatNC.b
-			v.A = flatNC.a
+			v.R = flatR
+			v.G = flatG
+			v.B = flatB
+			v.A = flatA
 		}
 	}
 
@@ -456,73 +427,17 @@ func (b *windowState) drawText(r *gui.RenderCmd) {
 }
 
 func (b *windowState) drawTextPath(r *gui.RenderCmd) {
-	if b.textSys == nil || r.TextPath == nil ||
-		r.TextStylePtr == nil {
-		return
-	}
-	tp := r.TextPath
-	cfg := guiStyleToGlyphConfig(*r.TextStylePtr)
-	layout, err := b.textSys.LayoutTextCached(r.Text, cfg)
+	layout, placements, err := gui.ComputeTextPathPlacements(
+		r, b.textSys, b.textPathPlacements,
+		guiStyleToGlyphConfig)
 	if err != nil {
 		log.Printf("metal: drawTextPath: %v", err)
 		return
 	}
-	positions := layout.GlyphPositions()
-	if len(positions) == 0 {
+	if len(placements) == 0 {
 		return
 	}
-
-	var totalAdvance float32
-	for _, p := range positions {
-		totalAdvance += p.Advance
-	}
-
-	offset := tp.Offset
-	switch tp.Anchor {
-	case gui.SvgTextAnchorMiddle:
-		offset -= totalAdvance / 2
-	case gui.SvgTextAnchorEnd:
-		offset -= totalAdvance
-	}
-
-	advScale := float32(1)
-	if tp.Method == gui.SvgTextPathMethodStretch && totalAdvance > 0 {
-		remaining := tp.TotalLen - offset
-		if remaining > 0 {
-			advScale = remaining / totalAdvance
-		}
-	}
-
-	n := len(layout.Glyphs)
-	if cap(b.textPathPlacements) < n {
-		b.textPathPlacements = make([]glyph.GlyphPlacement, n)
-	}
-	placements := b.textPathPlacements[:n]
-	for i := range placements {
-		placements[i] = glyph.GlyphPlacement{
-			X: -9999, Y: -9999,
-		}
-	}
-
-	cumAdv := float32(0)
-	for _, p := range positions {
-		advance := p.Advance * advScale
-		centerDist := offset + cumAdv + advance/2
-		px, py, angle := gui.SamplePathAt(
-			tp.Polyline, tp.Table, centerDist)
-
-		halfAdv := advance / 2
-		cosAngle := float32(math.Cos(float64(angle)))
-		sinAngle := float32(math.Sin(float64(angle)))
-		gx := px + r.X - halfAdv*cosAngle
-		gy := py + r.Y - halfAdv*sinAngle
-
-		placements[p.Index] = glyph.GlyphPlacement{
-			X: gx, Y: gy, Angle: angle,
-		}
-		cumAdv += advance
-	}
-
+	b.textPathPlacements = placements
 	b.useGlyphPipeline()
 	b.textSys.DrawLayoutPlaced(layout, placements)
 }
@@ -594,7 +509,7 @@ func (b *windowState) drawCustomShader(r *gui.RenderCmd) {
 	}
 	C.metalSetTM(b.ctx, (*C.float)(&tm[0]))
 
-	verts := buildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
+	verts := gpu.BuildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
 		r.Color, r.Radius*s, 0)
 	C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
 }
@@ -682,7 +597,7 @@ func (b *windowState) beginStencilClip(r *gui.RenderCmd) {
 	s := b.dpiScale
 	C.metalSetPipeline(b.ctx, C.int(pipeSolid))
 	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
-	verts := buildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
+	verts := gpu.BuildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
 		gui.White, r.Radius*s, 0)
 	C.metalBeginStencilClip(b.ctx,
 		(*C.float)(unsafe.Pointer(&verts[0])),
@@ -694,7 +609,7 @@ func (b *windowState) beginStencilClip(r *gui.RenderCmd) {
 
 func (b *windowState) endStencilClip(r *gui.RenderCmd) {
 	s := b.dpiScale
-	verts := buildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
+	verts := gpu.BuildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
 		gui.White, r.Radius*s, 0)
 	C.metalEndStencilClip(b.ctx,
 		(*C.float)(unsafe.Pointer(&verts[0])),
@@ -711,7 +626,7 @@ func (b *windowState) beginRotation(r *gui.RenderCmd) {
 	s := b.dpiScale
 	cx := r.RotCX * s
 	cy := r.RotCY * s
-	applyRotation(&b.mvp, r.RotAngle, cx, cy)
+	gpu.ApplyRotation(&b.mvp, r.RotAngle, cx, cy)
 	C.metalSetPipeline(b.ctx, C.int(pipeSolid))
 	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
 }

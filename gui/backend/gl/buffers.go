@@ -3,33 +3,21 @@
 package gl
 
 import (
-	"math"
 	"unsafe"
 
 	gogl "github.com/go-gl/gl/v3.3-core/gl"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
 )
 
-// colF holds normalized (0..1) RGBA color components.
-type colF struct{ r, g, b, a float32 }
-
-// normColor normalizes 0-255 color components to 0..1 floats.
-func normColor(r, g, b, a uint8) colF {
-	return colF{float32(r) / 255, float32(g) / 255,
-		float32(b) / 255, float32(a) / 255}
-}
+// vertex is a local alias for gpu.Vertex to avoid unkeyed
+// composite literal warnings across packages.
+type vertex = gpu.Vertex
 
 // Vertex layout: position(vec3) + texcoord(vec2) + color(vec4)
-// 9 floats * 4 bytes = 36 bytes per vertex.
-const vertexStride = 9 * 4
-
-// vertex is the CPU-side vertex for quad uploads.
-type vertex struct {
-	X, Y, Z    float32 // position; Z = packed params
-	U, V       float32 // texcoord (-1..1 for SDF quads)
-	R, G, B, A float32 // color (0..1)
-}
+// 9 float32s * 4 bytes = 36 bytes per vertex.
+const vertexStride = 36
 
 func (b *Backend) initQuadBuffers() {
 	gogl.GenVertexArrays(1, &b.quadVAO)
@@ -83,28 +71,11 @@ func setupVertexAttribs() {
 		vertexStride, 5*4)
 }
 
-// packParams packs radius and thickness into a single float32
-// matching the shader unpacking: radius = floor(p/4096)/4,
-// thickness = mod(p,4096)/4.
-func packParams(radius, thickness float32) float32 {
-	r := float32(math.Floor(float64(radius)*4)) * 4096
-	t := float32(math.Floor(float64(thickness) * 4))
-	return r + t
-}
-
 // drawQuad uploads 4 vertices and draws an indexed quad.
 // UVs span -1..1 for SDF calculations in shaders.
 func (b *Backend) drawQuad(x, y, w, h float32, c gui.Color,
 	radius, thickness float32) {
-	z := packParams(radius, thickness)
-	nc := normColor(c.R, c.G, c.B, c.A)
-
-	verts := [4]vertex{
-		{x, y, z, -1, -1, nc.r, nc.g, nc.b, nc.a},       // TL
-		{x + w, y, z, 1, -1, nc.r, nc.g, nc.b, nc.a},    // TR
-		{x + w, y + h, z, 1, 1, nc.r, nc.g, nc.b, nc.a}, // BR
-		{x, y + h, z, -1, 1, nc.r, nc.g, nc.b, nc.a},    // BL
-	}
+	verts := gpu.BuildQuad(x, y, w, h, c, radius, thickness)
 
 	gogl.BindVertexArray(b.quadVAO)
 	gogl.BindBuffer(gogl.ARRAY_BUFFER, b.quadVBO)
@@ -119,14 +90,14 @@ func (b *Backend) drawQuad(x, y, w, h float32, c gui.Color,
 // for texture sampling).
 func (b *Backend) drawQuadUV(x, y, w, h float32, c gui.Color,
 	radius float32) {
-	z := packParams(radius, 0)
-	nc := normColor(c.R, c.G, c.B, c.A)
+	z := gpu.PackParams(radius, 0)
+	cr, cg, cb, ca := gpu.NormColor(c.R, c.G, c.B, c.A)
 
-	verts := [4]vertex{
-		{x, y, z, -1, -1, nc.r, nc.g, nc.b, nc.a},
-		{x + w, y, z, 1, -1, nc.r, nc.g, nc.b, nc.a},
-		{x + w, y + h, z, 1, 1, nc.r, nc.g, nc.b, nc.a},
-		{x, y + h, z, -1, 1, nc.r, nc.g, nc.b, nc.a},
+	verts := [4]gpu.Vertex{
+		{x, y, z, -1, -1, cr, cg, cb, ca},
+		{x + w, y, z, 1, -1, cr, cg, cb, ca},
+		{x + w, y + h, z, 1, 1, cr, cg, cb, ca},
+		{x, y + h, z, -1, 1, cr, cg, cb, ca},
 	}
 
 	gogl.BindVertexArray(b.quadVAO)
@@ -141,13 +112,13 @@ func (b *Backend) drawQuadUV(x, y, w, h float32, c gui.Color,
 // drawQuadTex draws a quad with texture UVs in 0..1 range, for
 // compositing FBO textures or images.
 func (b *Backend) drawQuadTex(x, y, w, h float32, c gui.Color) {
-	nc := normColor(c.R, c.G, c.B, c.A)
+	cr, cg, cb, ca := gpu.NormColor(c.R, c.G, c.B, c.A)
 
-	verts := [4]vertex{
-		{x, y, 0, 0, 1, nc.r, nc.g, nc.b, nc.a},
-		{x + w, y, 0, 1, 1, nc.r, nc.g, nc.b, nc.a},
-		{x + w, y + h, 0, 1, 0, nc.r, nc.g, nc.b, nc.a},
-		{x, y + h, 0, 0, 0, nc.r, nc.g, nc.b, nc.a},
+	verts := [4]gpu.Vertex{
+		{x, y, 0, 0, 1, cr, cg, cb, ca},
+		{x + w, y, 0, 1, 1, cr, cg, cb, ca},
+		{x + w, y + h, 0, 1, 0, cr, cg, cb, ca},
+		{x, y + h, 0, 0, 0, cr, cg, cb, ca},
 	}
 
 	gogl.BindVertexArray(b.quadVAO)
@@ -161,7 +132,7 @@ func (b *Backend) drawQuadTex(x, y, w, h float32, c gui.Color) {
 
 // uploadSvgVerts uploads an arbitrary vertex array for SVG
 // triangle rendering.
-func (b *Backend) uploadSvgVerts(verts []vertex) {
+func (b *Backend) uploadSvgVerts(verts []gpu.Vertex) {
 	n := len(verts)
 	if n == 0 {
 		return

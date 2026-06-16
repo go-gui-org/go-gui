@@ -11,6 +11,7 @@ import (
 	"github.com/go-gui-org/go-glyph"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/imgload"
 )
 
@@ -140,13 +141,13 @@ func (b *Backend) drawLine(r *gui.RenderCmd) {
 	nx := -dy / length * thick * 0.5
 	ny := dx / length * thick * 0.5
 
-	nc := normColor(r.Color.R, r.Color.G, r.Color.B, r.Color.A)
+	cr, cg, cb, ca := gpu.NormColor(r.Color.R, r.Color.G, r.Color.B, r.Color.A)
 
 	verts := [4]vertex{
-		{x0 + nx, y0 + ny, 0, -1, -1, nc.r, nc.g, nc.b, nc.a},
-		{x1 + nx, y1 + ny, 0, 1, -1, nc.r, nc.g, nc.b, nc.a},
-		{x1 - nx, y1 - ny, 0, 1, 1, nc.r, nc.g, nc.b, nc.a},
-		{x0 - nx, y0 - ny, 0, -1, 1, nc.r, nc.g, nc.b, nc.a},
+		{x0 + nx, y0 + ny, 0, -1, -1, cr, cg, cb, ca},
+		{x1 + nx, y1 + ny, 0, 1, -1, cr, cg, cb, ca},
+		{x1 - nx, y1 - ny, 0, 1, 1, cr, cg, cb, ca},
+		{x0 - nx, y0 - ny, 0, -1, 1, cr, cg, cb, ca},
 	}
 
 	b.usePipeline(&b.pipelines.solid)
@@ -177,8 +178,7 @@ func (b *Backend) drawShadow(r *gui.RenderCmd) {
 	b.usePipeline(&b.pipelines.shadow)
 
 	// Pack caster offset into tm matrix.
-	var tm [16]float32
-	identity(&tm)
+	tm := gpu.IdentityTM()
 	// Offset from shadow center to caster center in shadow-local
 	// pixel coordinates. Positive values move the caster clip in
 	// the same direction as the configured shadow offset.
@@ -197,8 +197,7 @@ func (b *Backend) drawBlur(r *gui.RenderCmd) {
 	expand := blur * 1.5
 
 	b.usePipeline(&b.pipelines.blur)
-	var tm [16]float32
-	identity(&tm)
+	tm := gpu.IdentityTM()
 	gogl.UniformMatrix4fv(b.pipelines.blur.uTM, 1, false,
 		&tm[0])
 
@@ -226,34 +225,7 @@ func (b *Backend) drawGradient(r *gui.RenderCmd) {
 		return
 	}
 
-	// Pack gradient data into tm matrix (4 columns).
-	var tm [16]float32
-	// Columns 0-2: packed stop data (rgb + alpha+pos pairs).
-	for i := range min(len(stops), 5) {
-		col := i / 2
-		row := (i % 2) * 2
-		tm[col*4+row] = gui.PackRGB(stops[i].Color)
-		tm[col*4+row+1] = gui.PackAlphaPos(
-			stops[i].Color, stops[i].Pos)
-	}
-
-	// Column 2, rows 2-3: direction or radial metadata.
-	if r.Gradient.Type == gui.GradientRadial {
-		// Radial: store target radius = max(hw, hh).
-		tm[2*4+3] = max(w/2, h/2)
-		// grad_type > 0.5 signals radial.
-		tm[3*4+2] = 1.0
-	} else {
-		dx, dy := gui.GradientDir(r.Gradient, r.W, r.H)
-		tm[2*4+2] = dx
-		tm[2*4+3] = dy
-		tm[3*4+2] = 0.0 // linear
-	}
-
-	// Column 3: metadata.
-	tm[3*4+0] = w / 2 // half-width
-	tm[3*4+1] = h / 2 // half-height
-	tm[3*4+3] = float32(len(stops))
+	tm := gpu.PackGradientUniforms(r.Gradient, stops, w, h)
 
 	b.usePipeline(&b.pipelines.gradient)
 	gogl.UniformMatrix4fv(b.pipelines.gradient.uTM, 1, false,
@@ -267,21 +239,11 @@ func (b *Backend) drawGradientBorder(r *gui.RenderCmd) {
 		return
 	}
 	s := b.dpiScale
-	th := r.Thickness * s
-	positions := [4]float32{0.0, 0.25, 0.5, 0.75}
-	type rect struct{ x, y, w, h float32 }
-	rects := [4]rect{
-		{r.X * s, r.Y * s, r.W * s, th},
-		{r.X * s, (r.Y+r.H)*s - th, r.W * s, th},
-		{r.X * s, r.Y * s, th, r.H * s},
-		{(r.X+r.W)*s - th, r.Y * s, th, r.H * s},
-	}
+	rects := gui.GradientBorderRects(r)
 	b.usePipeline(&b.pipelines.solid)
 	for i := range 4 {
-		c := gui.SampleGradientStopColor(
-			r.Gradient.Stops, positions[i])
-		rc := rects[i]
-		b.drawQuad(rc.x, rc.y, rc.w, rc.h, c, 0, 0)
+		rc := &rects[i]
+		b.drawQuad(rc.X*s, rc.Y*s, rc.W*s, rc.H*s, rc.Color, 0, 0)
 	}
 }
 
@@ -368,7 +330,7 @@ func (b *Backend) drawSvg(r *gui.RenderCmd) {
 	}
 
 	if cap(b.svgVerts) < numVerts {
-		b.svgVerts = make([]vertex, numVerts)
+		b.svgVerts = make([]gpu.Vertex, numVerts)
 	}
 	verts := b.svgVerts[:numVerts]
 	for i := range numVerts {
@@ -395,17 +357,17 @@ func (b *Backend) drawSvg(r *gui.RenderCmd) {
 			if r.HasVertexAlpha {
 				alpha = uint8(float32(alpha) * vAlpha)
 			}
-			nc := normColor(vc.R, vc.G, vc.B, alpha)
-			v.R = nc.r
-			v.G = nc.g
-			v.B = nc.b
-			v.A = nc.a
+			cr, cg, cb, ca := gpu.NormColor(vc.R, vc.G, vc.B, alpha)
+			v.R = cr
+			v.G = cg
+			v.B = cb
+			v.A = ca
 		} else {
-			nc := normColor(r.Color.R, r.Color.G, r.Color.B, r.Color.A)
-			v.R = nc.r
-			v.G = nc.g
-			v.B = nc.b
-			v.A = nc.a
+			cr, cg, cb, ca := gpu.NormColor(r.Color.R, r.Color.G, r.Color.B, r.Color.A)
+			v.R = cr
+			v.G = cg
+			v.B = cb
+			v.A = ca
 		}
 	}
 
@@ -450,70 +412,13 @@ func (b *Backend) drawText(r *gui.RenderCmd) {
 }
 
 func (b *Backend) drawTextPath(r *gui.RenderCmd) {
-	if b.textSys == nil || r.TextPath == nil ||
-		r.TextStylePtr == nil {
+	layout, placements, err := gui.ComputeTextPathPlacements(
+		r, b.textSys, b.textPathPlacements,
+		guiStyleToGlyphConfig)
+	if err != nil || len(placements) == 0 {
 		return
 	}
-	tp := r.TextPath
-	cfg := guiStyleToGlyphConfig(*r.TextStylePtr)
-	layout, err := b.textSys.LayoutTextCached(r.Text, cfg)
-	if err != nil {
-		return
-	}
-	positions := layout.GlyphPositions()
-	if len(positions) == 0 {
-		return
-	}
-
-	var totalAdvance float32
-	for _, p := range positions {
-		totalAdvance += p.Advance
-	}
-
-	offset := tp.Offset
-	switch tp.Anchor {
-	case gui.SvgTextAnchorMiddle:
-		offset -= totalAdvance / 2
-	case gui.SvgTextAnchorEnd:
-		offset -= totalAdvance
-	}
-
-	advScale := float32(1)
-	if tp.Method == gui.SvgTextPathMethodStretch && totalAdvance > 0 {
-		remaining := tp.TotalLen - offset
-		if remaining > 0 {
-			advScale = remaining / totalAdvance
-		}
-	}
-
-	n := len(layout.Glyphs)
-	if cap(b.textPathPlacements) < n {
-		b.textPathPlacements = make([]glyph.GlyphPlacement, n)
-	}
-	placements := b.textPathPlacements[:n]
-	for i := range placements {
-		placements[i] = glyph.GlyphPlacement{X: -9999, Y: -9999}
-	}
-
-	cumAdv := float32(0)
-	for _, p := range positions {
-		advance := p.Advance * advScale
-		centerDist := offset + cumAdv + advance/2
-		px, py, angle := gui.SamplePathAt(
-			tp.Polyline, tp.Table, centerDist)
-
-		halfAdv := advance / 2
-		cosAngle := float32(math.Cos(float64(angle)))
-		sinAngle := float32(math.Sin(float64(angle)))
-		gx := px + r.X - halfAdv*cosAngle
-		gy := py + r.Y - halfAdv*sinAngle
-
-		placements[p.Index] = glyph.GlyphPlacement{
-			X: gx, Y: gy, Angle: angle,
-		}
-		cumAdv += advance
-	}
-
+	b.textPathPlacements = placements
 	b.useGlyphPipeline()
 	b.textSys.DrawLayoutPlaced(layout, placements)
 	b.restoreAfterGlyph()
@@ -556,12 +461,7 @@ func (b *Backend) drawLayoutTransformed(r *gui.RenderCmd) {
 }
 
 func (b *Backend) drawRtf(r *gui.RenderCmd) {
-	if b.textSys == nil || r.LayoutPtr == nil {
-		return
-	}
-	b.useGlyphPipeline()
-	b.textSys.DrawLayout(*r.LayoutPtr, r.X, r.Y)
-	b.restoreAfterGlyph()
+	b.drawLayout(r)
 }
 
 func (b *Backend) drawCustomShader(r *gui.RenderCmd) {
@@ -752,8 +652,7 @@ func (b *Backend) useGlyphPipeline() {
 	if b.pipelines.filterTex.uTex >= 0 {
 		gogl.Uniform1i(b.pipelines.filterTex.uTex, 0)
 	}
-	var tm [16]float32
-	identity(&tm)
+	tm := gpu.IdentityTM()
 	gogl.UniformMatrix4fv(b.pipelines.filterTex.uTM, 1, false,
 		&tm[0])
 }
@@ -764,15 +663,6 @@ func (b *Backend) restoreAfterGlyph() {
 }
 
 // --- Helpers ---
-
-func identity(m *[16]float32) {
-	*m = [16]float32{
-		1, 0, 0, 0,
-		0, 1, 0, 0,
-		0, 0, 1, 0,
-		0, 0, 0, 1,
-	}
-}
 
 func vertPtr(v *vertex) unsafe.Pointer {
 	return unsafe.Pointer(v)

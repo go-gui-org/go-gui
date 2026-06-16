@@ -16,26 +16,49 @@ This document outlines the planned future directions for the Go-Gui project.
 
 ## Low Priority
 
-- **Upstream Feature Integration**:
-    - Support diagonal gradients in SVG once `go-glyph` adds angle support.
 - **Improved Tooling**:
     - Enhance time-travel debugging with better state inspection.
 
-## Maintenance
-
-Ongoing code-health and infrastructure work. Tracked across releases rather
-than tied to specific milestones.
-
 ### Code Health
 
-- **File-Size Reduction**: ✓ Complete. All `gui/` source files now ≤800 lines.
-  14 files split into 32 total (see `docs/file-size-reduction.md` for split
-  log). Enforced via `scripts/large-files.sh` in CI.
 - **Complexity Reduction**: Reduce `//nolint:gocyclo` suppressions (20+
   instances) across SVG parsing, event dispatch, backend event loops, drag
   reorder, tab control, and text rendering.
-- **Backend Draw Consolidation**: Evaluate shared structure across 6 `draw.go`
-  backends (web, gl, metal, sdl2, android, ios) for deduplication.
+- **Backend Draw Consolidation** ~done~: Extracted shared GPU types/functions
+  and draw helpers from 6 backends. Eliminated ~500 duplicated lines.
+
+  **Completed**:
+  - `gui/backend/internal/gpu/` — shared types and pure-Go functions for GPU
+    backends: `Vertex`, `BuildQuad`, `NormColor`, `PackParams`, `ApplyRotation`,
+    `Mat4Mul`, `Ortho`, `IdentityTM`, `PackGradientUniforms`.
+  - `gui/render_draw_common.go` — `ComputeTextPathPlacements` (55-line core
+    extracted from all 6 `drawTextPath` implementations) and
+    `GradientBorderRects` (4-edge rect computation shared by GPU backends).
+  - `drawRtf` reduced to one-line `drawLayout` delegate in all 6 backends.
+  - 4 copies of rotation/matrix/buffer/quad functions → 1 shared `gpu` package.
+  - 6 copies of text-path placement math → 1 shared function.
+
+  **Deferred**:
+  - `DrawBackend` interface — a 23-method interface with single compile-time
+    implementation is an anti-pattern. Per-backend dispatch loops (~60 lines
+    each) are clear, fast, and rarely change. Not worth the abstraction.
+  - 400-line `draw.go` target — remaining code is genuinely backend-specific
+    draw primitives. Not targetable without moving GPU API calls out of
+    backends, which defeats their purpose.
+
+  **Results** (draw.go lines):
+
+  | Backend | Before | After |
+  |---|---|---|
+  | gl | 779 | 669 |
+  | metal | 760 | 675 |
+  | ios | 744 | 660 |
+  | android | 717 | 633 |
+  | sdl2 | 602 | 536 |
+  | web | 682 | 624 |
+
+  Plus `gpu/` (361 lines) replacing ~300 lines of duplicated code across 12
+  `buffers.go`/`rotation.go` files (now stubs). Net reduction: ~500 lines.
 - **Build-Tag Surface**: 60+ build-tag-conditioned files create combinatorial
   testing burden. Reduce platform-specific code where backends share behavior.
 
@@ -57,8 +80,6 @@ than tied to specific milestones.
 - **File-Size Gate**: Add CI step failing if any `gui/` source file exceeds
   800 lines, using `scripts/large-files.sh`.
 - **Dead-Code Detection**: Add to CI `check` job.
-- **Coverage Floors as Config**: Extract per-package coverage floor values
-  from CI YAML into a standalone file so tweaks don't require YAML edits.
 
 ### Tooling
 

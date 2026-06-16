@@ -46,3 +46,5 @@ linters:
       - path: gui/backend/internal/sdlkey/sdlkey\.go
         linters:
           - cyclop
+      - path: gui/backend/(gl|metal|ios|android)/
+        text: "unkeyed fields"

@@ -22,6 +22,7 @@ import (
 	"github.com/go-gui-org/go-glyph"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/imgpath"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/tempfont"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
@@ -58,7 +59,7 @@ type Backend struct {
 	mvpStack [][16]float32
 
 	// Reusable buffers.
-	svgVerts           []vertex
+	svgVerts           []gpu.Vertex
 	textPathPlacements []glyph.GlyphPlacement
 	normBuf            []gui.GradientStop
 	sampledBuf         []gui.GradientStop
@@ -222,7 +223,7 @@ func (b *Backend) handleResize(w, h int32, scale float32) {
 }
 
 func (b *Backend) updateProjection() {
-	ortho(&b.mvp,
+	gpu.Ortho(&b.mvp,
 		0, float32(b.physW),
 		float32(b.physH), 0,
 		-1, 1)

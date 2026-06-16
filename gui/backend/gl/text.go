@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/glyphconv"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
 )
 
 // glyphBackend implements glyph.DrawBackend using OpenGL.
@@ -106,7 +107,7 @@ func (gb *glyphBackend) DrawTexturedQuad(id glyph.TextureID,
 		return
 	}
 
-	nc := normColor(c.R, c.G, c.B, c.A)
+	cr, cg, cb, ca := gpu.NormColor(c.R, c.G, c.B, c.A)
 
 	// UV from source rect (pixel coords → 0..1).
 	tw := float32(tex.w)
@@ -124,10 +125,10 @@ func (gb *glyphBackend) DrawTexturedQuad(id glyph.TextureID,
 	y1 := (dst.Y + dst.Height) * s
 
 	verts := [4][8]float32{
-		{x0, y0, u0, v0, nc.r, nc.g, nc.b, nc.a},
-		{x1, y0, u1, v0, nc.r, nc.g, nc.b, nc.a},
-		{x1, y1, u1, v1, nc.r, nc.g, nc.b, nc.a},
-		{x0, y1, u0, v1, nc.r, nc.g, nc.b, nc.a},
+		{x0, y0, u0, v0, cr, cg, cb, ca},
+		{x1, y0, u1, v0, cr, cg, cb, ca},
+		{x1, y1, u1, v1, cr, cg, cb, ca},
+		{x0, y1, u0, v1, cr, cg, cb, ca},
 	}
 
 	gogl.ActiveTexture(gogl.TEXTURE0)
@@ -142,7 +143,7 @@ func (gb *glyphBackend) DrawTexturedQuad(id glyph.TextureID,
 }
 
 func (gb *glyphBackend) DrawFilledRect(dst glyph.Rect, c glyph.Color) {
-	nc := normColor(c.R, c.G, c.B, c.A)
+	cr, cg, cb, ca := gpu.NormColor(c.R, c.G, c.B, c.A)
 
 	s := gb.dpiScale
 	x0 := dst.X * s
@@ -151,10 +152,10 @@ func (gb *glyphBackend) DrawFilledRect(dst glyph.Rect, c glyph.Color) {
 	y1 := (dst.Y + dst.Height) * s
 
 	verts := [4][8]float32{
-		{x0, y0, 0, 0, nc.r, nc.g, nc.b, nc.a},
-		{x1, y0, 0, 0, nc.r, nc.g, nc.b, nc.a},
-		{x1, y1, 0, 0, nc.r, nc.g, nc.b, nc.a},
-		{x0, y1, 0, 0, nc.r, nc.g, nc.b, nc.a},
+		{x0, y0, 0, 0, cr, cg, cb, ca},
+		{x1, y0, 0, 0, cr, cg, cb, ca},
+		{x1, y1, 0, 0, cr, cg, cb, ca},
+		{x0, y1, 0, 0, cr, cg, cb, ca},
 	}
 
 	gogl.BindVertexArray(gb.vao)
@@ -174,7 +175,7 @@ func (gb *glyphBackend) DrawTexturedQuadTransformed(
 		return
 	}
 
-	nc := normColor(c.R, c.G, c.B, c.A)
+	cr, cg, cb, ca := gpu.NormColor(c.R, c.G, c.B, c.A)
 
 	tw := float32(tex.w)
 	th := float32(tex.h)
@@ -204,7 +205,7 @@ func (gb *glyphBackend) DrawTexturedQuadTransformed(
 		ty := (t.YX*px + t.YY*py + t.Y0) * s
 		verts[i] = [8]float32{
 			tx, ty, uvs[i][0], uvs[i][1],
-			nc.r, nc.g, nc.b, nc.a,
+			cr, cg, cb, ca,
 		}
 	}
 

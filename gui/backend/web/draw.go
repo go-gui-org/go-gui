@@ -21,9 +21,6 @@ const (
 	maxFailedImageCacheSize = 256
 	failedImageCacheEvictN  = 16
 	colorCacheSize          = 8
-
-	// offscreenSentinel places unpositioned glyphs off-screen.
-	offscreenSentinel = -9999
 )
 
 // colorCacheEntry holds a cached Color→CSS-string mapping.
@@ -593,80 +590,22 @@ func (b *Backend) drawLayoutTransformed(r *gui.RenderCmd) {
 }
 
 func (b *Backend) drawTextPath(r *gui.RenderCmd) {
-	if b.textSys == nil || r.TextPath == nil ||
-		r.TextStylePtr == nil {
-		return
-	}
-	tp := r.TextPath
-	cfg := glyphconv.GuiStyleToGlyphConfig(*r.TextStylePtr)
-	layout, err := b.textSys.LayoutTextCached(r.Text, cfg)
+	layout, placements, err := gui.ComputeTextPathPlacements(
+		r, b.textSys, b.textPathPlacements,
+		glyphconv.GuiStyleToGlyphConfig)
 	if err != nil {
 		log.Printf("web: drawTextPath: %v", err)
 		return
 	}
-	positions := layout.GlyphPositions()
-	if len(positions) == 0 {
+	if len(placements) == 0 {
 		return
 	}
-
-	var totalAdvance float32
-	for _, p := range positions {
-		totalAdvance += p.Advance
-	}
-
-	offset := tp.Offset
-	if tp.Anchor == gui.SvgTextAnchorMiddle {
-		offset -= totalAdvance / 2
-	} else if tp.Anchor == gui.SvgTextAnchorEnd {
-		offset -= totalAdvance
-	}
-
-	advScale := float32(1)
-	if tp.Method == gui.SvgTextPathMethodStretch && totalAdvance > 0 {
-		remaining := tp.TotalLen - offset
-		if remaining > 0 {
-			advScale = remaining / totalAdvance
-		}
-	}
-
-	n := len(layout.Glyphs)
-	if cap(b.textPathPlacements) < n {
-		b.textPathPlacements = make([]glyph.GlyphPlacement, n)
-	}
-	placements := b.textPathPlacements[:n]
-	for i := range placements {
-		placements[i] = glyph.GlyphPlacement{
-			X: offscreenSentinel, Y: offscreenSentinel,
-		}
-	}
-
-	cumAdv := float32(0)
-	for _, p := range positions {
-		advance := p.Advance * advScale
-		centerDist := offset + cumAdv + advance/2
-		px, py, angle := gui.SamplePathAt(
-			tp.Polyline, tp.Table, centerDist)
-
-		halfAdv := advance / 2
-		cosAngle := float32(math.Cos(float64(angle)))
-		sinAngle := float32(math.Sin(float64(angle)))
-		gx := px + r.X - halfAdv*cosAngle
-		gy := py + r.Y - halfAdv*sinAngle
-
-		placements[p.Index] = glyph.GlyphPlacement{
-			X: gx, Y: gy, Angle: angle,
-		}
-		cumAdv += advance
-	}
-
+	b.textPathPlacements = placements
 	b.textSys.DrawLayoutPlaced(layout, placements)
 }
 
 func (b *Backend) drawRtf(r *gui.RenderCmd) {
-	if b.textSys == nil || r.LayoutPtr == nil {
-		return
-	}
-	b.textSys.DrawLayout(*r.LayoutPtr, r.X, r.Y)
+	b.drawLayout(r)
 }
 
 func (b *Backend) beginFilter(r *gui.RenderCmd) {

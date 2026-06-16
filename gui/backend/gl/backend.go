@@ -16,6 +16,7 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/imgpath"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/tempfont"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
@@ -40,7 +41,7 @@ type Backend struct {
 	mvpStack [][16]float32
 
 	textPathPlacements []glyph.GlyphPlacement
-	svgVerts           []vertex
+	svgVerts           []gpu.Vertex
 	normBuf            []gui.GradientStop
 	sampledBuf         []gui.GradientStop
 
@@ -354,7 +355,7 @@ func (b *Backend) handleResize() {
 }
 
 func (b *Backend) updateProjection() {
-	ortho(&b.mvp,
+	gpu.Ortho(&b.mvp,
 		0, float32(b.physW),
 		float32(b.physH), 0,
 		-1, 1)
@@ -648,27 +649,4 @@ func (b *Backend) Destroy() {
 		_ = b.window.Destroy()
 	}
 	sdl.Quit()
-}
-
-// ortho builds an orthographic projection matrix (column-major).
-func ortho(m *[16]float32, l, r, b, t, n, f float32) {
-	m[0] = 2 / (r - l)
-	m[1] = 0
-	m[2] = 0
-	m[3] = 0
-
-	m[4] = 0
-	m[5] = 2 / (t - b)
-	m[6] = 0
-	m[7] = 0
-
-	m[8] = 0
-	m[9] = 0
-	m[10] = -2 / (f - n)
-	m[11] = 0
-
-	m[12] = -(r + l) / (r - l)
-	m[13] = -(t + b) / (t - b)
-	m[14] = -(f + n) / (f - n)
-	m[15] = 1
 }
