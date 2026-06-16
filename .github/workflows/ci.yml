@@ -295,13 +295,20 @@ jobs:
             libfontconfig1-dev \
             libhunspell-dev
 
+      # tidy-check must run BEFORE the go-glyph replace directive is
+      # added, otherwise go mod tidy persists the replace into go.mod
+      # and prunes go-glyph from go.sum, triggering a spurious diff.
+      - name: Run tidy-check (before replace)
+        working-directory: go-gui
+        run: make tidy-check
+
       - name: Add go-glyph replace
         working-directory: go-gui
         run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
 
       - name: Run gate checks
         working-directory: go-gui
-        run: make check
+        run: make vet deps-doc-check large-files generate-check
 
   examples:
     name: Build examples
