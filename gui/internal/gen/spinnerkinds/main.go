@@ -16,8 +16,10 @@ import (
 )
 
 const (
-	assetsDir = "gui/assets/svg-spinners"
-	outFile   = "gui/svg_spinner_kinds_gen.go"
+	// Paths are relative to the gui/ package directory, which is
+	// the cwd when go generate runs the directive in view_svg_spinner.go.
+	assetsDir = "assets/svg-spinners"
+	outFile   = "svg_spinner_kinds_gen.go"
 	prefix    = "SvgSpinner"
 )
 

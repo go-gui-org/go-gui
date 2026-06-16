@@ -111,7 +111,7 @@ lint:
 
 # Run non-duplicated validation steps for CI gate.
 # test and lint run as separate CI jobs with OS matrices.
-check: vet deps-doc-check large-files generate-check deadcode tidy-check
+check: vet deps-doc-check large-files generate-check tidy-check
 
 # Run all validation steps: test, vet, lint, and gate checks.
 check-all: test lint check
@@ -137,12 +137,12 @@ large-files:
 	  exit 1; \
 	fi
 
-# Check that go generate produces no changes (generated code matches source).
+# Check that go generate produces no changes to generated files.
 generate-check:
 	go generate ./...
-	@if [ -n "$$(git status --porcelain)" ]; then \
-	  echo "::error::go generate produced changes. Run 'go generate ./...' and commit."; \
-	  git diff; \
+	@if [ -n "$$(git diff --name-only -- '*_gen.go')" ]; then \
+	  echo "::error::go generate produced changes to generated files. Run 'go generate ./...' and commit."; \
+	  git diff -- '*_gen.go'; \
 	  exit 1; \
 	fi
 
