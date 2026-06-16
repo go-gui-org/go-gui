@@ -34,8 +34,12 @@ func spellCheckTrigger(idFocus uint32, text string, w *Window) {
 	}
 
 	animID := spellCheckAnimID(idFocus)
-	// Cancel previous pending timer.
+	// Cancel previous pending timer. Must hold animMu — spellCheckTrigger
+	// runs under w.mu from AmendLayout, but w.animations is guarded by
+	// w.animMu (read by the animation goroutine).
+	w.animMu.Lock()
 	delete(w.animations, animID)
+	w.animMu.Unlock()
 
 	// Store pending state so subsequent AmendLayout calls see
 	// the text match and skip re-scheduling. Ranges are nil
@@ -62,12 +66,17 @@ func spellCheckTrigger(idFocus uint32, text string, w *Window) {
 }
 
 // spellCheckClear removes cached spell state for an input.
+// Called from AmendLayout (under w.mu). Acquires w.animMu to
+// safely delete from w.animations, which the animation goroutine
+// reads under w.animMu.
 func spellCheckClear(idFocus uint32, w *Window) {
 	sm := StateMapRead[uint32, spellCheckState](w, nsSpellCheck)
 	if sm != nil {
 		sm.Delete(idFocus)
 	}
+	w.animMu.Lock()
 	delete(w.animations, spellCheckAnimID(idFocus))
+	w.animMu.Unlock()
 }
 
 // spellCheckHasRanges returns true if completed spell check results

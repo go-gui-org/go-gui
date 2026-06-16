@@ -57,8 +57,12 @@ func captureHeroSnapshots(layout Layout) map[string]posSnapshot {
 }
 
 // applyHeroTransition modifies layout during render for hero effect.
+// Called from layoutPipeline under w.mu. Acquires w.animMu to safely
+// read w.animations (the animation goroutine may concurrently delete).
 func applyHeroTransition(layout *Layout, w *Window) {
+	w.animMu.Lock()
 	a, ok := w.animations[heroTransitionID]
+	w.animMu.Unlock()
 	if !ok {
 		return
 	}

@@ -73,8 +73,12 @@ func captureSnapshots(layout *Layout, snapshots map[string]posSnapshot, heroOnly
 }
 
 // getLayoutTransition returns the active layout transition, if any.
+// Acquires w.animMu to safely read w.animations (the animation
+// goroutine may concurrently delete stopped animations).
 func (w *Window) getLayoutTransition() *LayoutTransition {
+	w.animMu.Lock()
 	a, ok := w.animations[layoutTransitionID]
+	w.animMu.Unlock()
 	if !ok {
 		return nil
 	}

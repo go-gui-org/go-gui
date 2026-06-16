@@ -258,7 +258,7 @@ jobs:
       - name: Lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.6
+          version: v2.12
 
       - name: Required-ID check
         run: go run ./tools/requiredid/cmd/requiredid ./...
