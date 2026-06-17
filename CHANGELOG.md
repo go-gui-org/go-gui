@@ -7,16 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.27.0] - 2026-06-17
+
 ### Added
-- Backend test coverage:
-  - Extended `gui/backend/internal/nativehost` tests: SendNotification length
-    capping, spell-forwarder boundary handling, dialog/print forwarder safety
-    (16 tests, 54.7% coverage).
-  - Filedialog Linux pure-helper tests (`dialog_linux_test.go`): parsePaths,
-    zenityFilter, kdialogFilter, zenityAlertFlag, kdialogMsgFlag,
-    ensureTrailingSlash, startDirOrDot, errStr, noTool, noToolAlert.
-  - Per-package coverage floors in CI (Linux): glyphconv/imgpath/sdlkey/
-    texcache ≥ 80%, imgload/tempfont/nativehost ≥ 50%, filedialog ≥ 40%.
+
+- **Platform parity**: Save/Discard/Cancel close confirmations for unsaved
+  changes, plus Windows system tray icon support.
+- **Dialog quit guard**: quit requests are trapped when a modal dialog is
+  visible, preventing accidental app termination.
+- **Tooling spec**: automated linting, license checking, Renovate dependency
+  management, and coverage reporting integrated into CI.
+- **CI hardening**: race detector enabled, caching and cache-key rotation,
+  deduplication, 800-line file-size gate, deadcode detection, `go mod tidy`
+  check, fuzz-crash detection, and security scans (gosec).
+- **Shared native-platform glue**: `App` native integration tests and
+  extracted platform abstraction for backend consistency.
+
+### Changed
+
+- **Performance**: eliminated hot-path heap allocations across layout
+  calculation, gesture hit-testing, render command generation, and event
+  dispatch. Two-pass allocation scrub.
+- **Lock splitting**: animation lock separated from layout lock; `w.mu`
+  scope narrowed to reduce contention.
+- **GPU backend consolidation**: shared `gpu` package for vertex types and
+  draw code reused across Metal, OpenGL, and SDL2 backends.
+- **Large-file refactoring**: 14 files over 800 lines split into 32 focused
+  files; datagrid dot-imports removed; markdown fetcher uses dependency
+  injection.
+- **Dependencies**: go-glyph bumped to v1.10.0, golangci-lint to v2.12,
+  GitHub Actions to latest major versions.
+- **Test parallelization**: tests now run concurrently; per-package coverage
+  floors enforced in CI.
+
+### Fixed
+
+- **macOS**: `NSApp` activated before window creation, fixing focus issues
+  on launch.
+- **DataGrid**: scroll position read from correct state map; `UpdateView`
+  no longer clears `idFocus` on full rebuild.
+- **SVG**: `arcToCubic` guarded against coincident endpoints (NaN from
+  `Inf*0/1`).
+- **GPU**: `gpu.Vertex` struct literals use keyed fields across all backends.
+- **Web backend**: removed unused `syscall/js` import; restored `strconv`
+  import.
+- **Build tags**: drift corrected across source files and CHANGELOG.
+- **Animation**: map data races fixed under concurrent access.
+- **Windows**: `__ms_vsscanf` compat shim for MinGW GCC 15+; static builds
+  and DLL alignment hardened; CI smoke test added.
+- **Security**: 242 gosec issues resolved; G204 false positives suppressed
+  on `exec.Command` calls; privacy audit and resource caps applied.
+- **CI**: various workflow fixes — golangci-lint install path, tidy-check
+  ordering, generate-check path/scope, coverage subshell, fuzz timeout.
+
+### Docs
+
+- WebGPU backend documented as explored and rejected (2026-06).
+- Roadmap updated with new features and Phase 2 progress.
+- README, CONTRIBUTING, and docs trimmed of fluff.
+- Dependencies.md regenerated; depsdoc generator added.
+- Async DataGrid and custom shader cookbooks added.
+- Platform matrix, form validation patterns, time-travel example test
+  documented.
+- Godoc improved on core types; subpackage analysis and widget cookbook
+  added.
 
 ## [v0.26.0] - 2026-06-12
 
