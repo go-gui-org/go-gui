@@ -247,6 +247,7 @@ jobs:
         with:
           msystem: MINGW64
           update: false
+          release: false
           path-type: inherit
           install: >-
             mingw-w64-x86_64-gcc
