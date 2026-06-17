@@ -196,8 +196,8 @@ func Button(cfg ButtonCfg) View {
 		FloatOffsetX:    cfg.FloatOffsetX,
 		FloatOffsetY:    cfg.FloatOffsetY,
 		OnClick:         onClick,
-		OnChar:          spacebarToClick(onClick),
-		OnKeyDown:       enterToClick(onClick),
+		ClickOnSpace:    true,
+		ClickOnEnter:    true,
 		Content:         cfg.Content,
 	}).(*containerView)
 

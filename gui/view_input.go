@@ -395,8 +395,7 @@ func inputOnClick(idScroll uint32) func(*Layout, *Event, *Window) {
 			ds.runes = runes
 		}
 		if idScroll > 0 && layout.Parent != nil {
-			sy := StateMap[uint32, float32](
-				w, nsScrollY, capScroll)
+			sy := w.scrollY()
 			ds.scrollY0, _ = sy.Get(idScroll) // ok ignored: zero offset is correct initial scroll
 			p := layout.Parent.Shape
 			ds.viewTop = p.Y + p.Padding.Top

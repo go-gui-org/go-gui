@@ -81,8 +81,9 @@ func Radio(cfg RadioCfg) View {
 		A11YState:       a11yState,
 		A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Label),
 		A11YDescription: cfg.A11YDescription,
-		OnClick:         leftClickOnly(cfg.OnClick),
-		OnChar:          spacebarToClick(cfg.OnClick),
+		OnClick:         cfg.OnClick,
+		ClickButton:     MouseLeft,
+		ClickOnSpace:    true,
 		AmendLayout: func(layout *Layout, w *Window) {
 			if layout.Shape.Disabled ||
 				!layout.Shape.hasEvents() ||

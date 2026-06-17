@@ -194,3 +194,34 @@ func TestLeftClickOnly(t *testing.T) {
 		t.Error("right click should not fire")
 	}
 }
+
+func TestEnterToClick(t *testing.T) {
+	if enterToClick(nil) != nil {
+		t.Error("nil should return nil")
+	}
+
+	called := false
+	handler := enterToClick(
+		func(_ *Layout, _ *Event, _ *Window) {
+			called = true
+		},
+	)
+
+	// enter key fires
+	e := &Event{KeyCode: KeyEnter}
+	handler(nil, e, nil)
+	if !called {
+		t.Error("enter should fire handler")
+	}
+	if !e.IsHandled {
+		t.Error("event should be handled")
+	}
+
+	// non-enter does not fire
+	called = false
+	e2 := &Event{KeyCode: KeyA}
+	handler(nil, e2, nil)
+	if called {
+		t.Error("non-enter should not fire handler")
+	}
+}

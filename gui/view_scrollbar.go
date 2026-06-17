@@ -144,7 +144,7 @@ func scrollbarAmendLayout(cfg ScrollbarCfg, layout *Layout, w *Window) {
 		thumbWidth := f32Clamp(tWidth, cfg.MinThumbSize, layout.Shape.Width)
 		availWidth := layout.Shape.Width - thumbWidth
 
-		sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
+		sx := w.scrollX()
 		scrollOffset := float32(0)
 		if v, ok := sx.Get(cfg.IDScroll); ok {
 			scrollOffset = -v
@@ -183,7 +183,7 @@ func scrollbarAmendLayout(cfg ScrollbarCfg, layout *Layout, w *Window) {
 		thumbHeight := f32Clamp(tHeight, cfg.MinThumbSize, layout.Shape.Height)
 		availHeight := layout.Shape.Height - thumbHeight
 
-		sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+		sy := w.scrollY()
 		scrollOffset := float32(0)
 		if v, ok := sy.Get(cfg.IDScroll); ok {
 			scrollOffset = -v
@@ -265,16 +265,16 @@ func scrollbarMouseMove(orientation ScrollbarOrientation, idScroll uint32, layou
 	if orientation == ScrollbarHorizontal {
 		if e.MouseX >= ly.Shape.X-scrollExtend &&
 			e.MouseX <= ly.Shape.X+ly.Shape.Width+scrollExtend {
-			offset := offsetMouseChangeX(ly, e.MouseDX, idScroll, w)
-			sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
+			sx := w.scrollX()
+			offset := offsetMouseChangeX(sx, ly, e.MouseDX, idScroll)
 			sx.Set(idScroll, offset)
 			fireOnScroll(ly, w)
 		}
 	} else {
 		if e.MouseY >= ly.Shape.Y-scrollExtend &&
 			e.MouseY <= ly.Shape.Y+ly.Shape.Height+scrollExtend {
-			offset := offsetMouseChangeY(ly, e.MouseDY, idScroll, w)
-			sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+			sy := w.scrollY()
+			offset := offsetMouseChangeY(sy, ly, e.MouseDY, idScroll)
 			sy.Set(idScroll, offset)
 			fireOnScroll(ly, w)
 		}
@@ -283,10 +283,9 @@ func scrollbarMouseMove(orientation ScrollbarOrientation, idScroll uint32, layou
 
 // offsetMouseChangeX calculates new horizontal offset based on
 // mouse movement delta.
-func offsetMouseChangeX(layout *Layout, mouseDX float32, idScroll uint32, w *Window) float32 {
+func offsetMouseChangeX(sx *BoundedMap[uint32, float32], layout *Layout, mouseDX float32, idScroll uint32) float32 {
 	totalWidth := contentWidth(layout)
 	shapeWidth := layout.Shape.Width - layout.Shape.paddingWidth()
-	sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
 	oldOffset, _ := sx.Get(idScroll) // ok ignored: zero offset is correct initial scroll
 	newOffset := mouseDX * (totalWidth / shapeWidth)
 	offset := oldOffset - newOffset
@@ -295,10 +294,9 @@ func offsetMouseChangeX(layout *Layout, mouseDX float32, idScroll uint32, w *Win
 
 // offsetMouseChangeY calculates new vertical offset based on
 // mouse movement delta.
-func offsetMouseChangeY(layout *Layout, mouseDY float32, idScroll uint32, w *Window) float32 {
+func offsetMouseChangeY(sy *BoundedMap[uint32, float32], layout *Layout, mouseDY float32, idScroll uint32) float32 {
 	totalHeight := contentHeight(layout)
 	shapeHeight := layout.Shape.Height - layout.Shape.paddingHeight()
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
 	oldOffset, _ := sy.Get(idScroll) // ok ignored: zero offset is correct initial scroll
 	newOffset := mouseDY * (totalHeight / shapeHeight)
 	offset := oldOffset - newOffset
@@ -321,7 +319,7 @@ func offsetFromMouseX(layout *Layout, mouseX float32, idScroll uint32, w *Window
 	if percent >= scrollSnapMax {
 		percent = 1
 	}
-	sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
+	sx := w.scrollX()
 	sx.Set(idScroll, -percent*(totalWidth-sb.Shape.Width))
 	fireOnScroll(sb, w)
 }
@@ -342,7 +340,7 @@ func offsetFromMouseY(layout *Layout, mouseY float32, idScroll uint32, w *Window
 	if percent >= scrollSnapMax {
 		percent = 1
 	}
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	sy.Set(idScroll, -percent*(totalHeight-sb.Shape.Height))
 	fireOnScroll(sb, w)
 }

@@ -94,13 +94,19 @@ investigating performance:
 
 ## Allocation targets
 
-Zero-allocation is the goal on frame-critical hot paths:
+Zero-allocation is the goal on frame-critical hot paths.
 
-| Path                | Current allocs | Target |
-| ------------------- | -------------- | ------ |
-| SVG cache hit       | 0              | 0 ✓    |
-| renderLayout (flat) | varies         | ↓      |
-| generateViewLayout  | varies         | ↓      |
+See [docs/specs/perf-optimizations.md](specs/perf-optimizations.md) for the
+full optimization spec with designs, code changes, and deferred items.
+
+| Path                         | Current allocs | Target | Spec § |
+| ---------------------------- | -------------- | ------ | ------ |
+| SVG cache hit                | 0              | 0 ✓    |        |
+| layoutFillWidths/Heights     | 2 per node     | 0      | §4     |
+| StateMap (hot namespaces)    | 1 per shape    | 0      | §5     |
+| Event wrapper closures       | 2–3 per widget | 0      | §6     |
+| generateViewLayout children  | log₂(n) grows  | 0–1    | §7     |
+| renderLayout (flat)          | varies         | ↓      |        |
 
 Run benchmarks before and after changes to detect allocation regressions:
 

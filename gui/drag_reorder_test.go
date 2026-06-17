@@ -251,7 +251,7 @@ func TestDragReorderCalcIndexWithScrollDelta(t *testing.T) {
 	dragKey := "drag_scroll"
 	idScroll := uint32(100)
 
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	sy.Set(idScroll, -10.0)
 
 	state := dragReorderState{
@@ -453,7 +453,7 @@ func TestDragReorderScrollChangeUsesUniformEstimate(t *testing.T) {
 	dragKey := "drag_scroll_uniform"
 	idScroll := uint32(200)
 
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	sy.Set(idScroll, 10.0)
 
 	state := dragReorderState{

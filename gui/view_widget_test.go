@@ -763,7 +763,7 @@ func TestListBoxScrollWithSubheadings(t *testing.T) {
 	dataIdx := listBoxDataIndex(itemDataIndices, 7)
 	scrollEnsureVisible(idScroll, dataIdx, rowH, listH, w)
 
-	sy := StateReadOr(w, nsScrollY, idScroll, float32(0))
+	sy, _ := w.scrollY().Get(idScroll)
 	// Data index 9: bottom = 10*26 = 260 > 187 → scroll = -(260-187) = -73
 	want := -(float32(10)*rowH - listH)
 	if sy != want {

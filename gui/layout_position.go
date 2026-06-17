@@ -66,8 +66,8 @@ func layoutChildStartPos(
 	y = layout.Shape.Y + layout.Shape.PaddingTop()
 
 	if layout.Shape.IDScroll > 0 {
-		sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
-		sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+		sx := w.scrollX()
+		sy := w.scrollY()
 		if v, ok := sx.Get(layout.Shape.IDScroll); ok {
 			x += v
 		}
@@ -239,8 +239,8 @@ func layoutSetShapeClips(layout *Layout, clip drawClip) {
 func layoutAdjustScrollOffsets(layout *Layout, w *Window) {
 	idScroll := layout.Shape.IDScroll
 	if idScroll > 0 {
-		sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
-		sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+		sx := w.scrollX()
+		sy := w.scrollY()
 		maxOffsetX := f32Min(0, layout.Shape.Width-layout.Shape.paddingWidth()-contentWidth(layout))
 		if offsetX, ok := sx.Get(idScroll); ok {
 			sx.Set(idScroll, f32Clamp(offsetX, maxOffsetX, 0))

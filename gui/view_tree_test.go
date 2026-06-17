@@ -165,7 +165,7 @@ func TestTreeCollectFlatRowsLazyAutoClear(t *testing.T) {
 
 func TestTreeVisibleRange(t *testing.T) {
 	w := newTestWindow()
-	StateMap[uint32, float32](w, nsScrollY, capScroll).Set(55, -40)
+	w.scrollY().Set(55, -40)
 
 	gotFirst, gotLast := treeVisibleRange(50, 20, 100, 55, w)
 	wantFirst, wantLast := listCoreVisibleRange(100, 20, 50, -40)

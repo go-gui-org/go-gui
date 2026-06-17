@@ -360,10 +360,10 @@ func splitterLayoutChild(
 	child.Shape.Y = 0
 
 	layoutWidths(child)
-	layoutFillWidths(child)
+	layoutFillWidths(child, &w.scratch)
 	layoutWrapText(child, w)
 	layoutHeights(child)
-	layoutFillHeights(child)
+	layoutFillHeights(child, &w.scratch)
 	layoutAdjustScrollOffsets(child, w)
 	layoutPositions(child, x, y, w)
 	layoutAmend(child, w)

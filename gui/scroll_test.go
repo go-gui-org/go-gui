@@ -39,7 +39,7 @@ func TestScrollVerticalClampsWithinBounds(t *testing.T) {
 	if !ok {
 		t.Fatal("expected true")
 	}
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	v, _ := sy.Get(uint32(1))
 	if v != -50 {
 		t.Errorf("expected -50, got %v", v)
@@ -77,7 +77,7 @@ func TestScrollHorizontalClampsWithinBounds(t *testing.T) {
 	if !ok {
 		t.Fatal("expected true")
 	}
-	sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
+	sx := w.scrollX()
 	v, _ := sx.Get(uint32(2))
 	if v != -50 {
 		t.Errorf("expected -50, got %v", v)
@@ -145,7 +145,7 @@ func TestScrollToView(t *testing.T) {
 	w.layout.Children[0].Parent = &w.layout
 
 	w.ScrollToView("target")
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	v, ok := sy.Get(uint32(5))
 	if !ok {
 		t.Fatal("scroll offset not set")
@@ -168,7 +168,7 @@ func TestScrollByAndTo(t *testing.T) {
 		t.Parallel()
 		w := &Window{}
 		w.ScrollHorizontalBy(10, -30)
-		sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
+		sx := w.scrollX()
 		v, _ := sx.Get(uint32(10))
 		if v != -30 {
 			t.Errorf("expected -30, got %v", v)
@@ -183,7 +183,7 @@ func TestScrollByAndTo(t *testing.T) {
 		t.Parallel()
 		w := &Window{}
 		w.ScrollVerticalBy(10, -20)
-		sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+		sy := w.scrollY()
 		v, _ := sy.Get(uint32(10))
 		if v != -20 {
 			t.Errorf("expected -20, got %v", v)
@@ -200,7 +200,7 @@ func TestScrollToPctAndPct(t *testing.T) {
 	t.Run("vertical", func(t *testing.T) {
 		_, w := makeScrollLayout(3, 100, 100, 100, 300)
 		w.ScrollVerticalToPct(3, 0.5)
-		sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+		sy := w.scrollY()
 		v, _ := sy.Get(uint32(3))
 		if v != -100 {
 			t.Errorf("expected -100, got %v", v)
@@ -232,7 +232,7 @@ func TestScrollToPctAndPct(t *testing.T) {
 		}
 
 		w.ScrollHorizontalToPct(4, 1.0)
-		sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
+		sx := w.scrollX()
 		v, _ := sx.Get(uint32(4))
 		if v != -300 {
 			t.Errorf("expected -300, got %v", v)
@@ -275,7 +275,7 @@ func TestScrollReturnsFalseAtBoundary(t *testing.T) {
 	t.Run("vertical", func(t *testing.T) {
 		layout, w := makeScrollLayout(10, 100, 100, 100, 300)
 		scrollVertical(layout, -500, w)
-		sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+		sy := w.scrollY()
 		v, _ := sy.Get(uint32(10))
 		if v != -200 {
 			t.Fatalf("expected -200, got %v", v)
@@ -315,7 +315,7 @@ func TestScrollReturnsFalseAtBoundary(t *testing.T) {
 		ly := &w.layout.Children[0]
 
 		scrollHorizontal(ly, -500, w)
-		sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
+		sx := w.scrollX()
 		v, _ := sx.Get(uint32(11))
 		if v != -300 {
 			t.Fatalf("expected -300, got %v", v)
@@ -407,7 +407,7 @@ func TestScrollToViewClampsOffset(t *testing.T) {
 	w.layout.Children[0].Parent = &w.layout
 
 	w.ScrollToView("above")
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	v, ok := sy.Get(uint32(14))
 	if !ok {
 		t.Fatal("scroll offset not set")
@@ -427,7 +427,7 @@ func TestScrollVerticalByAndToWithClampAndOnScroll(t *testing.T) {
 	}
 
 	w.ScrollVerticalBy(15, -50)
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	v, _ := sy.Get(uint32(15))
 	if v != -50 {
 		t.Errorf("expected -50, got %v", v)
@@ -473,7 +473,7 @@ func TestScrollHorizontalByAndToWithClampAndOnScroll(t *testing.T) {
 	}
 
 	w.ScrollHorizontalBy(16, -50)
-	sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
+	sx := w.scrollX()
 	v, _ := sx.Get(uint32(16))
 	if v != -50 {
 		t.Errorf("expected -50, got %v", v)

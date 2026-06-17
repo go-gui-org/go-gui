@@ -326,19 +326,18 @@ func TestContainerLeftClickOnly(t *testing.T) {
 	if layout.Shape.events == nil {
 		t.Fatal("events should be set")
 	}
-	// left click fires
+	if layout.Shape.events.ClickButton != MouseLeft {
+		t.Fatal("ClickButton should be MouseLeft")
+	}
+	// left click fires (via dispatch's ClickButton check)
 	e := &Event{MouseButton: MouseLeft}
 	layout.Shape.events.OnClick(nil, e, nil)
 	if !called {
 		t.Error("left click should fire")
 	}
-	// right click does not fire
-	called = false
-	e2 := &Event{MouseButton: MouseRight}
-	layout.Shape.events.OnClick(nil, e2, nil)
-	if called {
-		t.Error("right click should not fire")
-	}
+	// right-click: OnClick is stored unwrapped; the filter is
+	// checked at dispatch time, not in the handler itself.
+	// Direct call still fires (bypasses dispatch).
 }
 
 func TestContainerOnAnyClickBypassesLeftOnly(t *testing.T) {
@@ -592,11 +591,12 @@ func TestButtonSpacebarActivation(t *testing.T) {
 	if layout.Shape.events == nil {
 		t.Fatal("events should be set")
 	}
-	if layout.Shape.events.OnChar == nil {
-		t.Fatal("OnChar should be set for spacebar")
+	if !layout.Shape.events.ClickOnSpace {
+		t.Fatal("ClickOnSpace should be set for spacebar activation")
 	}
-	e := &Event{CharCode: CharSpace}
-	layout.Shape.events.OnChar(nil, e, nil)
+	// The dispatch path (charHandler) checks ClickOnSpace and
+	// routes to OnClick. Direct call to OnClick simulates this.
+	layout.Shape.events.OnClick(nil, &Event{CharCode: CharSpace}, nil)
 	if !clicked {
 		t.Error("spacebar should trigger click")
 	}
@@ -636,16 +636,15 @@ func TestButtonEnterActivation(t *testing.T) {
 	if layout.Shape.events == nil {
 		t.Fatal("events should be set")
 	}
-	if layout.Shape.events.OnKeyDown == nil {
-		t.Fatal("OnKeyDown should be set for enter")
+	if !layout.Shape.events.ClickOnEnter {
+		t.Fatal("ClickOnEnter should be set for enter activation")
 	}
+	// The dispatch path (keydownHandler) checks ClickOnEnter and
+	// routes to OnClick. Direct call to OnClick simulates this.
 	e := &Event{KeyCode: KeyEnter}
-	layout.Shape.events.OnKeyDown(nil, e, nil)
+	layout.Shape.events.OnClick(nil, e, nil)
 	if !clicked {
 		t.Error("enter should trigger click")
-	}
-	if !e.IsHandled {
-		t.Error("event should be handled")
 	}
 }
 
@@ -972,5 +971,21 @@ func TestCursorHelpers(t *testing.T) {
 			t.Errorf("%s: got %d, want %d",
 				tt.name, w.viewState.mouseCursor, tt.want)
 		}
+	}
+}
+
+func TestGenerateViewLayout_ExcessiveChildren(t *testing.T) {
+	// maxEventChildren caps direct children at 10000.
+	n := maxEventChildren + 100
+	children := make([]View, n)
+	for i := range children {
+		children[i] = &stubView{id: "child"}
+	}
+	v := &stubView{id: "parent", children: children}
+	layout := generateViewLayout(v, &Window{})
+
+	if len(layout.Children) != maxEventChildren {
+		t.Errorf("children: got %d, want capped to %d",
+			len(layout.Children), maxEventChildren)
 	}
 }

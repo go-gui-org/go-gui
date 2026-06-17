@@ -248,10 +248,10 @@ func dragReorderStart(cfg dragReorderStartCfg, w *Window) {
 
 	var startScrollX, startScrollY float32
 	if idScroll > 0 {
-		if smx := StateMapRead[uint32, float32](w, nsScrollX); smx != nil {
+		if smx := w.scrollXRead(); smx != nil {
 			startScrollX, _ = smx.Get(idScroll)
 		}
-		if smy := StateMapRead[uint32, float32](w, nsScrollY); smy != nil {
+		if smy := w.scrollYRead(); smy != nil {
 			startScrollY, _ = smy.Get(idScroll)
 		}
 	}
@@ -380,11 +380,9 @@ func dragReorderOnMouseMove(
 		var scrollVal float32
 		switch axis {
 		case DragReorderVertical:
-			scrollVal = StateReadOr(
-				w, nsScrollY, state.idScroll, float32(0))
+			scrollVal, _ = w.scrollY().Get(state.idScroll)
 		case DragReorderHorizontal:
-			scrollVal = StateReadOr(
-				w, nsScrollX, state.idScroll, float32(0))
+			scrollVal, _ = w.scrollX().Get(state.idScroll)
 		}
 		var startScroll float32
 		switch axis {

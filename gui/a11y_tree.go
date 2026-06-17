@@ -314,7 +314,7 @@ func (w *Window) WindowCleanup() {
 		if w.nativePlatform != nil {
 			w.nativePlatform.A11yDestroy()
 		}
-		w.viewState.registry.Clear()
+		w.clearViewStateLocked()
 		w.renderGuardWarned = 0
 	})
 }

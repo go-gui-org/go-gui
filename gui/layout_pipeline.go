@@ -12,14 +12,14 @@ import (
 func layoutPipeline(layout *Layout, w *Window) {
 	// Width passes.
 	layoutWidths(layout)
-	layoutFillWidths(layout)
+	layoutFillWidths(layout, &w.scratch)
 	layoutWrapContainers(layout, w)
 	layoutOverflow(layout, w)
 	layoutWrapText(layout, w)
 
 	// Height passes.
 	layoutHeights(layout)
-	layoutFillHeights(layout)
+	layoutFillHeights(layout, &w.scratch)
 	layoutRotationSwap(layout)
 
 	// Position passes.
@@ -118,7 +118,7 @@ func layoutMouseLeave(layout *Layout, w *Window) {
 		shape.events.OnMouseLeave == nil || shape.ID == "" {
 		return
 	}
-	sm := StateMap[string, bool](w, nsHoverInside, capModerate)
+	sm := w.hoverInside()
 	inside := shape.PointInShape(w.viewState.mousePosX, w.viewState.mousePosY)
 	wasInside, _ := sm.Get(shape.ID)
 	if wasInside && !inside {

@@ -104,7 +104,7 @@ func TestLayoutFillWidthsAllGrow(t *testing.T) {
 		},
 	}
 	layoutWidths(root)
-	layoutFillWidths(root)
+	layoutFillWidths(root, &scratchPools{})
 	if !f32AreClose(root.Children[0].Shape.Width, 30) {
 		t.Errorf("c0 width: got %f, want 30", root.Children[0].Shape.Width)
 	}
@@ -131,7 +131,7 @@ func TestLayoutFillHeightsAllGrow(t *testing.T) {
 		},
 	}
 	layoutHeights(root)
-	layoutFillHeights(root)
+	layoutFillHeights(root, &scratchPools{})
 	if !f32AreClose(root.Children[0].Shape.Height, 30) {
 		t.Errorf("c0 height: got %f, want 30",
 			root.Children[0].Shape.Height)
@@ -192,5 +192,73 @@ func TestLayoutWidthsFixedSizingSkipsAccumulation(t *testing.T) {
 	// Fixed width root should stay at 200.
 	if !f32AreClose(root.Shape.Width, 200) {
 		t.Errorf("width: got %f, want 200", root.Shape.Width)
+	}
+}
+
+func TestLayoutFillWidths_NilPool(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{
+			Sizing: FixedFixed,
+			Width:  200,
+			Height: 100,
+			Axis:   AxisLeftToRight,
+		},
+		Children: []Layout{
+			{Shape: &Shape{
+				Sizing: FillFixed,
+				Width:  50,
+			}},
+			{Shape: &Shape{
+				Sizing: FillFixed,
+				Width:  50,
+			}},
+		},
+	}
+	layoutWidths(root)
+	// nil pool — should fall back to local slices without panic.
+	layoutFillWidths(root, nil)
+
+	// Each child should have grown: 200 - 100 = 100 remaining,
+	// split equally = 50 each → final widths = 100 each.
+	if !f32AreClose(root.Children[0].Shape.Width, 100) {
+		t.Errorf("c0 width: got %f, want 100",
+			root.Children[0].Shape.Width)
+	}
+	if !f32AreClose(root.Children[1].Shape.Width, 100) {
+		t.Errorf("c1 width: got %f, want 100",
+			root.Children[1].Shape.Width)
+	}
+}
+
+func TestLayoutFillHeights_NilPool(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{
+			Sizing: FixedFixed,
+			Width:  200,
+			Height: 200,
+			Axis:   AxisTopToBottom,
+		},
+		Children: []Layout{
+			{Shape: &Shape{
+				Sizing: FixedFill,
+				Height: 50,
+			}},
+			{Shape: &Shape{
+				Sizing: FixedFill,
+				Height: 50,
+			}},
+		},
+	}
+	layoutHeights(root)
+	// nil pool — should fall back to local slices without panic.
+	layoutFillHeights(root, nil)
+
+	if !f32AreClose(root.Children[0].Shape.Height, 100) {
+		t.Errorf("c0 height: got %f, want 100",
+			root.Children[0].Shape.Height)
+	}
+	if !f32AreClose(root.Children[1].Shape.Height, 100) {
+		t.Errorf("c1 height: got %f, want 100",
+			root.Children[1].Shape.Height)
 	}
 }

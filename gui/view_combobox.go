@@ -119,7 +119,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 	listH := cfg.MaxDropdownHeight - 2*sizeBorder - pad.Top - pad.Bottom
 	var scrollY float32
 	if cfg.IDScroll > 0 {
-		scrollY = StateReadOr(w, nsScrollY, cfg.IDScroll, float32(0))
+		scrollY, _ = w.scrollY().Get(cfg.IDScroll)
 	}
 	first, last := listCoreVisibleRange(len(filtered), rowH, listH, scrollY)
 
@@ -278,7 +278,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 			e.IsHandled = true
 		},
 	}
-	ccfg.OnClick = leftClickOnly(ccfg.OnClick)
+	ccfg.ClickButton = MouseLeft
 	outerRow := &containerView{
 		shape:   buildContainerShape(&ccfg),
 		content: content,
@@ -399,7 +399,7 @@ func comboboxOnKeyDown(cfgID string, onSelect func(string, *Event, *Window), idF
 func scrollEnsureVisible(
 	idScroll uint32, idx int, rowH, listH float32, w *Window,
 ) {
-	sm := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sm := w.scrollY()
 	scrollY, _ := sm.Get(idScroll)
 	top := float32(idx) * rowH
 	bottom := top + rowH

@@ -184,7 +184,7 @@ func TestLayoutFillWidthsLTRGrow(t *testing.T) {
 	}
 
 	layoutWidths(root)
-	layoutFillWidths(root)
+	layoutFillWidths(root, &scratchPools{})
 
 	// 3 shapeRectangle children → spacing = (3-1)*5 = 10
 	// Remaining: 100 - 20 - 0 - 0 - 0 (padding) - 10 (spacing) = 70
@@ -214,7 +214,7 @@ func TestLayoutFillHeightsTTBGrow(t *testing.T) {
 	}
 
 	layoutHeights(root)
-	layoutFillHeights(root)
+	layoutFillHeights(root, &scratchPools{})
 
 	// 3 shapeRectangle children → spacing = (3-1)*5 = 10
 	// Remaining: 100 - 20 - 0 - 0 - 0 - 10 = 70
@@ -369,7 +369,7 @@ func TestLayoutFillWidthsRootScrollFillNoParent(t *testing.T) {
 			Height:    40,
 		},
 	}
-	layoutFillWidths(root)
+	layoutFillWidths(root, &scratchPools{})
 	if !f32AreClose(root.Shape.Width, 120.0) {
 		t.Errorf("width: got %f, want 120", root.Shape.Width)
 	}
@@ -386,7 +386,7 @@ func TestLayoutFillHeightsRootScrollFillNoParent(t *testing.T) {
 			Height:    120,
 		},
 	}
-	layoutFillHeights(root)
+	layoutFillHeights(root, &scratchPools{})
 	if !f32AreClose(root.Shape.Height, 120.0) {
 		t.Errorf("height: got %f, want 120", root.Shape.Height)
 	}
@@ -409,7 +409,7 @@ func TestLayoutFillWidthsScrollChildNoRoundoffBias(t *testing.T) {
 		},
 	}
 	layoutParents(root, nil)
-	layoutFillWidths(root)
+	layoutFillWidths(root, &scratchPools{})
 	if !f32AreClose(root.Children[1].Shape.Width, 52.0) {
 		t.Errorf("scroll child width: got %f, want 52", root.Children[1].Shape.Width)
 	}
@@ -432,7 +432,7 @@ func TestLayoutFillHeightsScrollChildNoRoundoffBias(t *testing.T) {
 		},
 	}
 	layoutParents(root, nil)
-	layoutFillHeights(root)
+	layoutFillHeights(root, &scratchPools{})
 	if !f32AreClose(root.Children[1].Shape.Height, 52.0) {
 		t.Errorf("scroll child height: got %f, want 52", root.Children[1].Shape.Height)
 	}

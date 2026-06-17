@@ -423,9 +423,8 @@ func layoutHeights(layout *Layout) {
 const spacingSmall = 5
 
 // layoutFillWidths manages horizontal growth/shrinkage.
-func layoutFillWidths(layout *Layout) {
-	var candidates, fixedIndices []int
-	layoutFillWidthsImpl(layout, &candidates, &fixedIndices)
+func layoutFillWidths(layout *Layout, p *scratchPools) {
+	layoutFillWithPool(layout, p, layoutFillWidthsImpl)
 }
 
 func layoutFillWidthsImpl(layout *Layout, candidates, fixedIndices *[]int) {
@@ -457,9 +456,23 @@ func layoutFillWidthsImpl(layout *Layout, candidates, fixedIndices *[]int) {
 }
 
 // layoutFillHeights manages vertical growth/shrinkage.
-func layoutFillHeights(layout *Layout) {
-	var candidates, fixedIndices []int
-	layoutFillHeightsImpl(layout, &candidates, &fixedIndices)
+func layoutFillHeights(layout *Layout, p *scratchPools) {
+	layoutFillWithPool(layout, p, layoutFillHeightsImpl)
+}
+
+// layoutFillWithPool runs impl with scratch-pool-backed candidate
+// slices when p is non-nil, or local slices when nil.
+func layoutFillWithPool(layout *Layout, p *scratchPools, impl func(*Layout, *[]int, *[]int)) {
+	if p == nil {
+		var candidates, fixedIndices []int
+		impl(layout, &candidates, &fixedIndices)
+		return
+	}
+	candidates := p.fillCandidates.take(0)
+	fixedIndices := p.fixedIndices.take(0)
+	impl(layout, &candidates, &fixedIndices)
+	p.fillCandidates.put(candidates)
+	p.fixedIndices.put(fixedIndices)
 }
 
 func layoutFillHeightsImpl(layout *Layout, candidates, fixedIndices *[]int) {

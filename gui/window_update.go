@@ -137,7 +137,7 @@ func (w *Window) RequestRedraw() {
 func (w *Window) UpdateView(gen func(*Window) View) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	w.viewState.registry.Clear()
+	w.clearViewStateLocked()
 	w.viewGenerator = gen
 	w.markLayoutRefresh()
 }

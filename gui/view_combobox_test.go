@@ -94,7 +94,7 @@ func TestComboboxKeyNavScrolls(t *testing.T) {
 		t.Fatalf("highlight = %d, want 8", hl)
 	}
 
-	sy := StateReadOr(w, nsScrollY, idScroll, float32(0))
+	sy, _ := w.scrollY().Get(idScroll)
 	if sy >= 0 {
 		t.Fatalf("scrollY = %f, want negative (scrolled down)", sy)
 	}
@@ -119,7 +119,7 @@ func TestScrollEnsureVisible(t *testing.T) {
 
 	// Initially scrollY = 0. Item 7: bottom = 208 > 187. Should scroll.
 	scrollEnsureVisible(idScroll, 7, rowH, listH, w)
-	sy := StateReadOr(w, nsScrollY, idScroll, float32(0))
+	sy, _ := w.scrollY().Get(idScroll)
 	if sy >= 0 {
 		t.Errorf("expected negative scrollY, got %f", sy)
 	}
@@ -130,7 +130,7 @@ func TestScrollEnsureVisible(t *testing.T) {
 
 	// Scroll back up to item 0.
 	scrollEnsureVisible(idScroll, 0, rowH, listH, w)
-	sy = StateReadOr(w, nsScrollY, idScroll, float32(0))
+	sy, _ = w.scrollY().Get(idScroll)
 	if sy != 0 {
 		t.Errorf("scrollY = %f, want 0", sy)
 	}
@@ -196,7 +196,7 @@ func TestScrollEnsureVisibleSurvivesPipeline(t *testing.T) {
 	// Run the scroll offset adjustment.
 	layoutAdjustScrollOffsets(&dropdown, w)
 
-	sy := StateReadOr(w, nsScrollY, idScroll, float32(0))
+	sy, _ := w.scrollY().Get(idScroll)
 	if sy != want {
 		t.Fatalf("scrollY after pipeline = %f, want %f", sy, want)
 	}
@@ -208,7 +208,7 @@ func TestScrollPositionsShiftChildren(t *testing.T) {
 	rowH := float32(26)
 
 	// Set scroll state to -21 (scrolled down).
-	sm := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sm := w.scrollY()
 	sm.Set(idScroll, -21)
 
 	// Build dropdown layout.
@@ -282,7 +282,7 @@ func TestComboboxScrollEndToEnd(t *testing.T) {
 	}
 
 	// Verify scroll state was set.
-	syBefore := StateReadOr(w, nsScrollY, idScroll, float32(0))
+	syBefore, _ := w.scrollY().Get(idScroll)
 	if syBefore >= 0 {
 		t.Fatalf("scrollY before = %f, want negative", syBefore)
 	}
@@ -322,7 +322,7 @@ func TestComboboxScrollEndToEnd(t *testing.T) {
 	layoutPipeline(dropdown, w)
 
 	// Check scroll state survived pipeline.
-	syAfter := StateReadOr(w, nsScrollY, idScroll, float32(0))
+	syAfter, _ := w.scrollY().Get(idScroll)
 	t.Logf("scrollY: before=%f, after=%f, dropdownH=%f, contentH=%f",
 		syBefore, syAfter, dropdown.Shape.Height,
 		contentHeight(dropdown))

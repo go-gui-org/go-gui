@@ -52,6 +52,59 @@ func StateReadOr[K comparable, V any](w *Window, ns string, key K, defaultVal V)
 	return v
 }
 
+// Hot-namespace cached accessors. These bypass the StateRegistry's
+// map[string]any lookup + type assertion for namespaces that are
+// accessed per-shape in the layout pipeline. See §5 in
+// docs/specs/perf-optimizations.md.
+
+// lazyBoundedMap returns *pp, creating it via NewBoundedMap[K, V](cap)
+// if nil. Eliminates the repeated lazy-init boilerplate across
+// hot-namespace accessors.
+func lazyBoundedMap[K comparable, V any](pp **BoundedMap[K, V], cap int) *BoundedMap[K, V] {
+	if *pp == nil {
+		*pp = NewBoundedMap[K, V](cap)
+	}
+	return *pp
+}
+
+func (w *Window) hoverInside() *BoundedMap[string, bool] {
+	return lazyBoundedMap(&w.hoverInsideMap, capModerate)
+}
+
+func (w *Window) scrollX() *BoundedMap[uint32, float32] {
+	return lazyBoundedMap(&w.scrollXMap, capScroll)
+}
+
+func (w *Window) scrollY() *BoundedMap[uint32, float32] {
+	return lazyBoundedMap(&w.scrollYMap, capScroll)
+}
+
+func (w *Window) overflow() *BoundedMap[string, int] {
+	return lazyBoundedMap(&w.overflowMap, capModerate)
+}
+
+// scrollXRead returns the cached scroll-x map, or nil if it hasn't
+// been created yet. Matches StateMapRead semantics for cold paths
+// that must not lazily allocate.
+func (w *Window) scrollXRead() *BoundedMap[uint32, float32] {
+	return w.scrollXMap
+}
+
+// scrollYRead returns the cached scroll-y map, or nil if it hasn't
+// been created yet.
+func (w *Window) scrollYRead() *BoundedMap[uint32, float32] {
+	return w.scrollYMap
+}
+
+// clearHotMaps nils out the cached BoundedMap pointers so they are
+// recreated on next access. Call alongside registry.Clear().
+func (w *Window) clearHotMaps() {
+	w.hoverInsideMap = nil
+	w.scrollXMap = nil
+	w.scrollYMap = nil
+	w.overflowMap = nil
+}
+
 // RequireID panics if id is empty. Use in stateful widget factories
 // whose internal state is keyed by cfg.ID in StateMap.
 func RequireID(widget, id string) {

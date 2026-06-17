@@ -20,7 +20,7 @@ func TestOffsetMouseChangeX(t *testing.T) {
 		Children: []Layout{child},
 	}
 
-	offset := offsetMouseChangeX(layout, 10, 1, w)
+	offset := offsetMouseChangeX(w.scrollX(), layout, 10, 1)
 	// ratio = 400/100 = 4, newOffset = 10*4 = 40, offset = 0 - 40 = -40
 	// clamped: min(0, max(-40, 100-400)) = min(0, max(-40, -300)) = min(0, -40) = -40
 	if offset != -40 {
@@ -42,7 +42,7 @@ func TestOffsetMouseChangeY(t *testing.T) {
 		Children: []Layout{child},
 	}
 
-	offset := offsetMouseChangeY(layout, 5, 2, w)
+	offset := offsetMouseChangeY(w.scrollY(), layout, 5, 2)
 	// ratio = 500/100 = 5, newOffset = 5*5 = 25, offset = 0 - 25 = -25
 	// clamped: min(0, max(-25, 100-500)) = -25
 	if offset != -25 {
@@ -70,7 +70,7 @@ func TestOffsetFromMouseY(t *testing.T) {
 
 	// mouseY=50 → percent=50/100=0.5 → offset = -0.5*(400-100) = -150
 	offsetFromMouseY(root, 50, 3, w)
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	v, _ := sy.Get(uint32(3))
 	if v != -150 {
 		t.Errorf("expected -150, got %v", v)
@@ -98,7 +98,7 @@ func TestOffsetFromMouseX(t *testing.T) {
 	// mouseX=100 → percent=100/100=1.0 → snap to 1
 	// offset = -1*(300-100) = -200
 	offsetFromMouseX(root, 100, 4, w)
-	sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
+	sx := w.scrollX()
 	v, _ := sx.Get(uint32(4))
 	if v != -200 {
 		t.Errorf("expected -200, got %v", v)
@@ -125,7 +125,7 @@ func TestOffsetFromMouseYSnap(t *testing.T) {
 
 	// mouseY=2 → percent=0.02 → below snapMin(0.03) → snaps to 0
 	offsetFromMouseY(root, 2, 5, w)
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	v, _ := sy.Get(uint32(5))
 	if v != 0 {
 		t.Errorf("expected 0 (snap to start), got %v", v)
@@ -161,7 +161,7 @@ func TestScrollbarMouseMoveVertical(t *testing.T) {
 
 	e := &Event{MouseY: 50, MouseDY: 5}
 	scrollbarMouseMove(ScrollbarVertical, 6, &root, e, w)
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	v, _ := sy.Get(uint32(6))
 	// ratio=400/100=4, newOffset=5*4=20, offset=0-20=-20
 	if v != -20 {
@@ -190,7 +190,7 @@ func TestScrollbarMouseMoveHorizontal(t *testing.T) {
 
 	e := &Event{MouseX: 50, MouseDX: 10}
 	scrollbarMouseMove(ScrollbarHorizontal, 7, &root, e, w)
-	sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
+	sx := w.scrollX()
 	v, _ := sx.Get(uint32(7))
 	// ratio=300/100=3, newOffset=10*3=30, offset=0-30=-30
 	if v != -30 {
@@ -245,7 +245,7 @@ func TestOffsetFromMouseXWithNonZeroOrigin(t *testing.T) {
 	// percent = (100-50)/100 = 0.5
 	// offset = -0.5*(300-100) = -100
 	offsetFromMouseX(root, 100, 20, w)
-	sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
+	sx := w.scrollX()
 	v, _ := sx.Get(uint32(20))
 	if v != -100 {
 		t.Errorf("expected -100, got %v", v)
@@ -277,7 +277,7 @@ func TestOffsetFromMouseYWithNonZeroOrigin(t *testing.T) {
 	// percent = (250-200)/100 = 0.5
 	// offset = -0.5*(400-100) = -150
 	offsetFromMouseY(root, 250, 21, w)
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	v, _ := sy.Get(uint32(21))
 	if v != -150 {
 		t.Errorf("expected -150, got %v", v)
@@ -309,7 +309,7 @@ func TestGutterClickSetsOffsetAndLocks(t *testing.T) {
 	})
 	handler(nil, e, w)
 
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	v, _ := sy.Get(uint32(8))
 	// percent=50/100=0.5, offset = -0.5*(400-100) = -150
 	if math.Abs(float64(v+150)) > 0.01 {

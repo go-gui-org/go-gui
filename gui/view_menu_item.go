@@ -175,7 +175,7 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 
 // menuItemClick returns the OnClick handler for a menu item.
 func menuItemClick(cfg MenubarCfg, itemCfg MenuItemCfg) func(*Layout, *Event, *Window) {
-	return leftClickOnly(func(_ *Layout, e *Event, w *Window) {
+	return func(_ *Layout, e *Event, w *Window) {
 		w.SetIDFocus(cfg.IDFocus)
 
 		if !isSelectableMenuID(itemCfg.ID) {
@@ -205,5 +205,5 @@ func menuItemClick(cfg MenubarCfg, itemCfg MenuItemCfg) func(*Layout, *Event, *W
 		}
 
 		e.IsHandled = true
-	})
+	}
 }

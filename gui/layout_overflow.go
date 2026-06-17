@@ -55,7 +55,7 @@ func layoutOverflow(layout *Layout, w *Window) {
 		}
 	}
 
-	om := StateMap[string, int](w, nsOverflow, capModerate)
+	om := w.overflow()
 	old, ok := om.Get(layout.Shape.ID)
 	if !ok {
 		old = -1

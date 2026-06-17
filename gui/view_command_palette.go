@@ -119,7 +119,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 	rowH := listCoreRowHeightEstimate(cfg.TextStyle, PaddingTwoFive)
 	var scrollY float32
 	if cfg.IDScroll > 0 {
-		scrollY = StateReadOr(w, nsScrollY, cfg.IDScroll, float32(0))
+		scrollY, _ = w.scrollY().Get(cfg.IDScroll)
 	}
 	first, last := listCoreVisibleRange(len(filtered), rowH, cfg.MaxHeight, scrollY)
 
@@ -241,7 +241,7 @@ func CommandPaletteShow(id string, idFocus, idScroll uint32, w *Window) {
 	sh := StateMap[string, int](w, nsCmdPaletteHighlight, capModerate)
 	sh.Set(id, 0)
 	if idScroll > 0 {
-		sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+		sy := w.scrollY()
 		sy.Set(idScroll, 0)
 	}
 	w.SetIDFocus(idFocus)

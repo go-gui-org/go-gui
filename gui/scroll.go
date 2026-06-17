@@ -78,7 +78,7 @@ func inputScrollCursorIntoView(
 	}
 	adjustCursorTrailing(&cp, gl.Lines, byteIdx, is.CursorTrailing)
 
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	scrollOffset, _ := sy.Get(idScroll)
 	viewportH := layout.Shape.Height - layout.Shape.paddingHeight()
 
@@ -137,7 +137,7 @@ func textScrollCursorIntoView(layout *Layout, w *Window) {
 	}
 	adjustCursorTrailing(&cp, gl.Lines, byteIdx, is.CursorTrailing)
 
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	scrollOffset, _ := sy.Get(scrollID)
 	sp := scrollParent.Shape
 	viewportH := sp.Height - sp.paddingHeight()
@@ -173,7 +173,7 @@ func scrollHorizontal(layout *Layout, delta float32, w *Window) bool {
 	maxOffset := f32Min(0,
 		layout.Shape.Width-layout.Shape.paddingWidth()-
 			contentWidth(layout))
-	sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
+	sx := w.scrollX()
 	old, _ := sx.Get(idScroll)
 	clamped := f32Clamp(
 		old+delta*guiTheme.ScrollMultiplier, maxOffset, 0)
@@ -196,7 +196,7 @@ func scrollVertical(layout *Layout, delta float32, w *Window) bool {
 	maxOffset := f32Min(0,
 		layout.Shape.Height-layout.Shape.paddingHeight()-
 			contentHeight(layout))
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	old, _ := sy.Get(idScroll)
 	clamped := f32Clamp(
 		old+delta*guiTheme.ScrollMultiplier, maxOffset, 0)
@@ -220,7 +220,7 @@ func (w *Window) ScrollToView(id string) {
 		p = p.Parent
 		if p.Shape.IDScroll > 0 {
 			scrollID := p.Shape.IDScroll
-			sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+			sy := w.scrollY()
 			current, _ := sy.Get(scrollID)
 			baseY := p.Shape.Y + p.Shape.Padding.Top
 			newScroll := baseY - target.Shape.Y + current
@@ -237,7 +237,7 @@ func (w *Window) ScrollToView(id string) {
 
 // ScrollHorizontalBy scrolls the given scrollable by delta.
 func (w *Window) ScrollHorizontalBy(idScroll uint32, delta float32) {
-	sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
+	sx := w.scrollX()
 	current, _ := sx.Get(idScroll)
 	newVal := current + delta
 	if ly, ok := findScrollLayout(w, idScroll); ok {
@@ -255,7 +255,7 @@ func (w *Window) ScrollHorizontalBy(idScroll uint32, delta float32) {
 // ScrollHorizontalTo scrolls the given scrollable to offset
 // (negative).
 func (w *Window) ScrollHorizontalTo(idScroll uint32, offset float32) {
-	sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
+	sx := w.scrollX()
 	if ly, ok := findScrollLayout(w, idScroll); ok {
 		maxOffset := f32Min(0,
 			ly.Shape.Width-ly.Shape.paddingWidth()-
@@ -281,7 +281,7 @@ func (w *Window) ScrollHorizontalToPct(idScroll uint32, pct float32) {
 	if maxOffset == 0 {
 		return
 	}
-	sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
+	sx := w.scrollX()
 	sx.Set(idScroll, maxOffset*f32Clamp(pct, 0, 1))
 }
 
@@ -299,14 +299,14 @@ func (w *Window) ScrollHorizontalPct(idScroll uint32) float32 {
 	if maxOffset == 0 {
 		return 0
 	}
-	sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
+	sx := w.scrollX()
 	current, _ := sx.Get(idScroll)
 	return f32Clamp(current/maxOffset, 0, 1)
 }
 
 // ScrollVerticalBy scrolls the given scrollable by delta.
 func (w *Window) ScrollVerticalBy(idScroll uint32, delta float32) {
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	current, _ := sy.Get(idScroll)
 	newVal := current + delta
 	if ly, ok := findScrollLayout(w, idScroll); ok {
@@ -324,7 +324,7 @@ func (w *Window) ScrollVerticalBy(idScroll uint32, delta float32) {
 // ScrollVerticalTo scrolls the given scrollable to offset
 // (negative).
 func (w *Window) ScrollVerticalTo(idScroll uint32, offset float32) {
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	if ly, ok := findScrollLayout(w, idScroll); ok {
 		maxOffset := f32Min(0,
 			ly.Shape.Height-ly.Shape.paddingHeight()-
@@ -350,7 +350,7 @@ func (w *Window) ScrollVerticalToPct(idScroll uint32, pct float32) {
 	if maxOffset == 0 {
 		return
 	}
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	sy.Set(idScroll, maxOffset*f32Clamp(pct, 0, 1))
 }
 
@@ -368,7 +368,7 @@ func (w *Window) ScrollVerticalPct(idScroll uint32) float32 {
 	if maxOffset == 0 {
 		return 0
 	}
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	current, _ := sy.Get(idScroll)
 	return f32Clamp(current/maxOffset, 0, 1)
 }

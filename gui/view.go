@@ -38,8 +38,13 @@ func generateViewLayout(view View, w *Window) Layout {
 	layout := view.GenerateLayout(w)
 	ensureLayoutShape(&layout)
 	children := view.Content()
-	if len(children) > 0 && cap(layout.Children)-len(layout.Children) < len(children) {
-		grown := make([]Layout, len(layout.Children), len(layout.Children)+len(children))
+	if len(children) > maxEventChildren {
+		children = children[:maxEventChildren]
+	}
+	// Pre-size to final length so append never reallocates.
+	wantCap := len(layout.Children) + len(children)
+	if cap(layout.Children) < wantCap {
+		grown := make([]Layout, len(layout.Children), wantCap)
 		copy(grown, layout.Children)
 		layout.Children = grown
 	}

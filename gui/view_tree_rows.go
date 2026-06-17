@@ -81,8 +81,7 @@ func treeVisibleRange(
 	if w == nil {
 		return 0, totalRows - 1
 	}
-	scrollY := StateReadOr(
-		w, nsScrollY, idScroll, float32(0))
+	scrollY, _ := w.scrollY().Get(idScroll)
 	return listCoreVisibleRange(totalRows, rowHeight, treeHeight, scrollY)
 }
 

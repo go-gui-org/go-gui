@@ -9,10 +9,11 @@ import (
 
 // ImageCfg configures an image view.
 type ImageCfg struct {
-	OnClick func(*Layout, *Event, *Window)
-	OnHover func(*Layout, *Event, *Window)
-	ID      string
-	Src     string
+	OnClick     func(*Layout, *Event, *Window)
+	ClickButton MouseButton // left-click filter; avoids leftClickOnly closure
+	OnHover     func(*Layout, *Event, *Window)
+	ID          string
+	Src         string
 
 	// Accessibility
 	A11YLabel       string
@@ -41,7 +42,7 @@ func Image(cfg ImageCfg) View {
 	if cfg.Invisible {
 		return invisibleContainerView()
 	}
-	cfg.OnClick = leftClickOnly(cfg.OnClick)
+	cfg.ClickButton = MouseLeft
 	return &imageView{cfg: cfg}
 }
 
@@ -90,8 +91,9 @@ func (iv *imageView) GenerateLayout(w *Window) Layout {
 	var events *eventHandlers
 	if c.OnClick != nil || c.OnHover != nil {
 		events = &eventHandlers{
-			OnClick: c.OnClick,
-			OnHover: c.OnHover,
+			OnClick:     c.OnClick,
+			ClickButton: c.ClickButton,
+			OnHover:     c.OnHover,
 		}
 	}
 	layout := Layout{

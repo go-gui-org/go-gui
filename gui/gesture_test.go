@@ -461,7 +461,7 @@ func TestPanFallbackScroll(t *testing.T) {
 	gs.nowFn = fixedClock(32_000_000)
 	w.handleTouch(root, touchEvent(EventTouchesMoved, 1, 100, 60))
 
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	v, _ := sy.Get(1) // IDScroll = 1
 	if v == 0 {
 		t.Error("expected scroll offset to change from pan")

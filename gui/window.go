@@ -175,6 +175,16 @@ type Window struct {
 
 	scratch scratchPools // Reusable per-frame scratch buffers.
 
+	// Cached BoundedMap pointers for hot StateMap namespaces.
+	// Bypasses StateRegistry map[string]any lookup + type assertion
+	// on per-shape calls in the layout pipeline. Nil until first use;
+	// lazily allocated by accessor methods. See §5 in
+	// docs/specs/perf-optimizations.md.
+	hoverInsideMap *BoundedMap[string, bool]
+	scrollXMap     *BoundedMap[uint32, float32]
+	scrollYMap     *BoundedMap[uint32, float32]
+	overflowMap    *BoundedMap[string, int]
+
 	windowToast
 
 	// Embedded concern groups.
@@ -278,7 +288,13 @@ func (w *Window) Ctx() context.Context {
 func (w *Window) clearViewState() {
 	w.mu.Lock()
 	defer w.mu.Unlock()
+	w.clearViewStateLocked()
+}
+
+// clearViewStateLocked resets view state. Caller must hold w.mu.
+func (w *Window) clearViewStateLocked() {
 	w.viewState.registry.Clear()
+	w.clearHotMaps()
 	w.viewState.idFocus = 0
 }
 

@@ -95,8 +95,9 @@ func Toggle(cfg ToggleCfg) View {
 		A11YState:       a11yState,
 		A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Label),
 		A11YDescription: cfg.A11YDescription,
-		OnChar:          spacebarToClick(cfg.OnClick),
-		OnClick:         leftClickOnly(cfg.OnClick),
+		ClickOnSpace:    true,
+		OnClick:         cfg.OnClick,
+		ClickButton:     MouseLeft,
 		MinWidth:        cfg.MinWidth,
 		OnHover: func(layout *Layout, e *Event, w *Window) {
 			if layout.Shape.Disabled ||

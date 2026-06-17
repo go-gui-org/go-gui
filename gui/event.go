@@ -349,6 +349,10 @@ func eventRelativeTo(shape *Shape, e *Event) Event {
 	return ev
 }
 
+// Deprecated: Use eventHandlers.ClickOnSpace instead.
+// The dispatch path (charHandler) checks ClickOnSpace and
+// routes to OnClick, avoiding per-frame closure allocations.
+//
 // spacebarToClick wraps an onClick handler to fire when
 // spacebar is pressed. Enables keyboard activation for
 // clickable elements.
@@ -364,6 +368,10 @@ func spacebarToClick(onClick func(*Layout, *Event, *Window)) func(*Layout, *Even
 	}
 }
 
+// Deprecated: Use eventHandlers.ClickOnEnter instead.
+// The dispatch path (keydownHandler) checks ClickOnEnter and
+// routes to OnClick, avoiding per-frame closure allocations.
+//
 // enterToClick wraps an onClick handler to fire when
 // Enter is pressed.
 func enterToClick(onClick func(*Layout, *Event, *Window)) func(*Layout, *Event, *Window) {
@@ -378,6 +386,11 @@ func enterToClick(onClick func(*Layout, *Event, *Window)) func(*Layout, *Event, 
 	}
 }
 
+// Deprecated: Use eventHandlers.ClickButton instead.
+// Set ClickButton to MouseLeft on the eventHandlers struct;
+// the dispatch path (mouseDownHandler) checks ClickButton
+// before calling OnClick, avoiding per-frame closure allocations.
+//
 // leftClickOnly wraps a click handler to fire only on
 // left mouse button.
 func leftClickOnly(onClick func(*Layout, *Event, *Window)) func(*Layout, *Event, *Window) {

@@ -138,10 +138,10 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 	}
 
 	var events *eventHandlers
-	onClick := leftClickOnly(c.OnClick)
-	if onClick != nil {
+	if c.OnClick != nil {
 		events = &eventHandlers{
-			OnClick: onClick,
+			OnClick:     c.OnClick,
+			ClickButton: MouseLeft,
 		}
 	}
 	layout := Layout{

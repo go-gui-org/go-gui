@@ -775,3 +775,268 @@ func TestDrawCanvasOnFileDropWired(t *testing.T) {
 		t.Error("OnFileDrop callback not invoked")
 	}
 }
+
+func TestCharHandler_ClickOnSpace(t *testing.T) {
+	t.Parallel()
+	t.Run("fires", func(t *testing.T) {
+		t.Parallel()
+		clicked := false
+		root := focusedChild(1, &eventHandlers{
+			ClickOnSpace: true,
+			OnClick: func(_ *Layout, e *Event, _ *Window) {
+				clicked = true
+				e.IsHandled = true
+			},
+		})
+		w := &Window{}
+		w.SetIDFocus(1)
+		e := &Event{CharCode: CharSpace}
+		charHandler(root, e, w)
+		if !clicked {
+			t.Error("ClickOnSpace should fire OnClick via charHandler")
+		}
+		if !e.IsHandled {
+			t.Error("event should be handled")
+		}
+	})
+	t.Run("ignores_non_space", func(t *testing.T) {
+		t.Parallel()
+		clicked := false
+		root := focusedChild(1, &eventHandlers{
+			ClickOnSpace: true,
+			OnClick: func(_ *Layout, e *Event, _ *Window) {
+				clicked = true
+				e.IsHandled = true
+			},
+		})
+		w := &Window{}
+		w.SetIDFocus(1)
+		e := &Event{CharCode: 'x'}
+		charHandler(root, e, w)
+		if clicked {
+			t.Error("non-space char should not fire ClickOnSpace")
+		}
+	})
+	t.Run("requires_focus", func(t *testing.T) {
+		t.Parallel()
+		clicked := false
+		root := focusedChild(1, &eventHandlers{
+			ClickOnSpace: true,
+			OnClick: func(_ *Layout, e *Event, _ *Window) {
+				clicked = true
+				e.IsHandled = true
+			},
+		})
+		w := &Window{}
+		// No SetIDFocus — widget is not focused.
+		e := &Event{CharCode: CharSpace}
+		charHandler(root, e, w)
+		if clicked {
+			t.Error("unfocused widget should not fire ClickOnSpace")
+		}
+	})
+	t.Run("nil_onclick_no_panic", func(t *testing.T) {
+		t.Parallel()
+		root := focusedChild(1, &eventHandlers{
+			ClickOnSpace: true,
+			OnClick:      nil,
+		})
+		w := &Window{}
+		w.SetIDFocus(1)
+		e := &Event{CharCode: CharSpace}
+		// Must not panic.
+		charHandler(root, e, w)
+		if e.IsHandled {
+			t.Error("nil OnClick should leave event unhandled")
+		}
+	})
+}
+
+func TestKeydownHandler_ClickOnEnter(t *testing.T) {
+	t.Parallel()
+	t.Run("fires", func(t *testing.T) {
+		t.Parallel()
+		clicked := false
+		root := focusedChild(1, &eventHandlers{
+			ClickOnEnter: true,
+			OnClick: func(_ *Layout, e *Event, _ *Window) {
+				clicked = true
+				e.IsHandled = true
+			},
+		})
+		w := &Window{}
+		w.SetIDFocus(1)
+		e := &Event{KeyCode: KeyEnter}
+		keydownHandler(root, e, w)
+		if !clicked {
+			t.Error("ClickOnEnter should fire OnClick via keydownHandler")
+		}
+		if !e.IsHandled {
+			t.Error("event should be handled")
+		}
+	})
+	t.Run("ignores_non_enter", func(t *testing.T) {
+		t.Parallel()
+		clicked := false
+		root := focusedChild(1, &eventHandlers{
+			ClickOnEnter: true,
+			OnClick: func(_ *Layout, e *Event, _ *Window) {
+				clicked = true
+				e.IsHandled = true
+			},
+		})
+		w := &Window{}
+		w.SetIDFocus(1)
+		e := &Event{KeyCode: KeyA}
+		keydownHandler(root, e, w)
+		if clicked {
+			t.Error("non-Enter key should not fire ClickOnEnter")
+		}
+	})
+	t.Run("requires_focus", func(t *testing.T) {
+		t.Parallel()
+		clicked := false
+		root := focusedChild(1, &eventHandlers{
+			ClickOnEnter: true,
+			OnClick: func(_ *Layout, e *Event, _ *Window) {
+				clicked = true
+				e.IsHandled = true
+			},
+		})
+		w := &Window{}
+		// No SetIDFocus — widget is not focused.
+		e := &Event{KeyCode: KeyEnter}
+		keydownHandler(root, e, w)
+		if clicked {
+			t.Error("unfocused widget should not fire ClickOnEnter")
+		}
+	})
+	t.Run("nil_onclick_no_panic", func(t *testing.T) {
+		t.Parallel()
+		root := focusedChild(1, &eventHandlers{
+			ClickOnEnter: true,
+			OnClick:      nil,
+		})
+		w := &Window{}
+		w.SetIDFocus(1)
+		e := &Event{KeyCode: KeyEnter}
+		// Must not panic.
+		keydownHandler(root, e, w)
+		if e.IsHandled {
+			t.Error("nil OnClick should leave event unhandled")
+		}
+	})
+}
+
+func TestCharHandler_ExcessiveChildren(t *testing.T) {
+	t.Parallel()
+	root := &Layout{
+		Children: make([]Layout, maxEventChildren+1),
+	}
+	w := &Window{}
+	e := &Event{CharCode: 'a'}
+	// Must not panic or hang.
+	charHandler(root, e, w)
+	if e.IsHandled {
+		t.Error("excessive children should return early, unhandled")
+	}
+}
+
+func TestKeydownHandler_ExcessiveChildren(t *testing.T) {
+	t.Parallel()
+	root := &Layout{
+		Children: make([]Layout, maxEventChildren+1),
+	}
+	w := &Window{}
+	e := &Event{KeyCode: KeyEnter}
+	// Must not panic or hang.
+	keydownHandler(root, e, w)
+	if e.IsHandled {
+		t.Error("excessive children should return early, unhandled")
+	}
+}
+
+func TestMouseDownHandler_ClickButtonFilter(t *testing.T) {
+	t.Parallel()
+	t.Run("non_zero_allows_matching_button", func(t *testing.T) {
+		t.Parallel()
+		clicked := false
+		root := &Layout{
+			Shape: &Shape{},
+			Children: []Layout{
+				{Shape: &Shape{
+					shapeClip: drawClip{X: 0, Y: 0,
+						Width: 100, Height: 100},
+					events: &eventHandlers{
+						OnClick: func(_ *Layout, e *Event, _ *Window) {
+							clicked = true
+							e.IsHandled = true
+						},
+						ClickButton: MouseRight,
+					},
+				}},
+			},
+		}
+		w := &Window{windowWidth: 800, windowHeight: 600}
+		e := &Event{MouseX: 50, MouseY: 50,
+			MouseButton: MouseRight}
+		mouseDownHandler(root, false, e, w)
+		if !clicked {
+			t.Error("right click should fire when ClickButton=MouseRight")
+		}
+	})
+	t.Run("non_zero_blocks_wrong_button", func(t *testing.T) {
+		t.Parallel()
+		clicked := false
+		root := &Layout{
+			Shape: &Shape{},
+			Children: []Layout{
+				{Shape: &Shape{
+					shapeClip: drawClip{X: 0, Y: 0,
+						Width: 100, Height: 100},
+					events: &eventHandlers{
+						OnClick: func(_ *Layout, e *Event, _ *Window) {
+							clicked = true
+							e.IsHandled = true
+						},
+						ClickButton: MouseRight,
+					},
+				}},
+			},
+		}
+		w := &Window{windowWidth: 800, windowHeight: 600}
+		e := &Event{MouseX: 50, MouseY: 50,
+			MouseButton: MouseLeft}
+		mouseDownHandler(root, false, e, w)
+		if clicked {
+			t.Error("left click should not fire when ClickButton=MouseRight")
+		}
+	})
+	t.Run("zero_clickbutton_allows_any", func(t *testing.T) {
+		t.Parallel()
+		clicked := false
+		root := &Layout{
+			Shape: &Shape{},
+			Children: []Layout{
+				{Shape: &Shape{
+					shapeClip: drawClip{X: 0, Y: 0,
+						Width: 100, Height: 100},
+					events: &eventHandlers{
+						OnClick: func(_ *Layout, e *Event, _ *Window) {
+							clicked = true
+							e.IsHandled = true
+						},
+						ClickButton: 0,
+					},
+				}},
+			},
+		}
+		w := &Window{windowWidth: 800, windowHeight: 600}
+		e := &Event{MouseX: 50, MouseY: 50,
+			MouseButton: MouseRight}
+		mouseDownHandler(root, false, e, w)
+		if !clicked {
+			t.Error("ClickButton=0 should allow any mouse button")
+		}
+	})
+}

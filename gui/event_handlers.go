@@ -2,9 +2,21 @@ package gui
 
 import "slices"
 
+// maxEventChildren caps traversal depth to prevent DoS from
+// maliciously deep or wide layout trees.
+const maxEventChildren = 10000
+
+// overMaxChildren reports whether layout has excessive children.
+func overMaxChildren(layout *Layout) bool {
+	return len(layout.Children) > maxEventChildren
+}
+
 // charHandler handles character input events (typing).
 // Traverses forward (depth-first) and delivers to focused element.
 func charHandler(layout *Layout, e *Event, w *Window) {
+	if overMaxChildren(layout) {
+		return
+	}
 	for i := range layout.Children {
 		if !isChildEnabled(&layout.Children[i]) {
 			continue
@@ -18,10 +30,25 @@ func charHandler(layout *Layout, e *Event, w *Window) {
 		return
 	}
 	var onChar ShapeCallback
+	var events *eventHandlers
 	if layout.Shape.hasEvents() {
 		onChar = layout.Shape.events.OnChar
+		events = layout.Shape.events
 	}
-	executeFocusCallback(layout, e, w, onChar)
+	if executeFocusCallback(layout, e, w, onChar) {
+		return
+	}
+	// Spacebar-to-click: when ClickOnSpace is set, fire OnClick
+	// on spacebar instead of requiring a separate OnChar wrapper.
+	if events != nil &&
+		events.ClickOnSpace &&
+		e.CharCode == CharSpace &&
+		events.OnClick != nil {
+		if isFocusedTarget(layout, w) {
+			events.OnClick(layout, e, w)
+			e.IsHandled = true
+		}
+	}
 }
 
 // imeCompositionHandler handles IME composition events.
@@ -35,6 +62,12 @@ func imeCompositionHandler(_ *Layout, e *Event, w *Window) {
 // Traverses forward and delivers to focused element. Falls back to
 // keyboard scroll if the focused scroll container has no handler.
 func keydownHandler(layout *Layout, e *Event, w *Window) {
+
+	// Guard against excessive children count to prevent DoS.
+	if overMaxChildren(layout) {
+		return
+	}
+
 	for i := range layout.Children {
 		if !isChildEnabled(&layout.Children[i]) {
 			continue
@@ -48,11 +81,23 @@ func keydownHandler(layout *Layout, e *Event, w *Window) {
 		return
 	}
 	var onKeyDown ShapeCallback
+	var events *eventHandlers
 	if layout.Shape.hasEvents() {
 		onKeyDown = layout.Shape.events.OnKeyDown
+		events = layout.Shape.events
 	}
 	executeFocusCallback(layout, e, w, onKeyDown)
 	if e.IsHandled {
+		return
+	}
+	// Enter-to-click: when ClickOnEnter is set, fire OnClick on
+	// Enter key instead of requiring a separate OnKeyDown wrapper.
+	if events != nil &&
+		events.ClickOnEnter &&
+		e.KeyCode == KeyEnter &&
+		events.OnClick != nil {
+		events.OnClick(layout, e, w)
+		e.IsHandled = true
 		return
 	}
 	if layout.Shape.IDScroll > 0 {
@@ -69,7 +114,7 @@ func keyupHandler(layout *Layout, e *Event, w *Window) {
 	}
 
 	// Guard against excessive children count to prevent DoS
-	if len(layout.Children) > 10000 {
+	if overMaxChildren(layout) {
 		return
 	}
 
@@ -164,7 +209,11 @@ func mouseDownHandler(
 		}
 		var onClick ShapeCallback
 		if layout.Shape.hasEvents() {
-			onClick = layout.Shape.events.OnClick
+			events := layout.Shape.events
+			if events.ClickButton == 0 ||
+				e.MouseButton == events.ClickButton {
+				onClick = events.OnClick
+			}
 		}
 		executeMouseCallback(layout, e, w, onClick)
 	}

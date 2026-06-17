@@ -672,8 +672,7 @@ func inspectorApplyScrollTo(panelHeight float32, w *Window) {
 	targetY := float32(rowIdx) * rowHeight
 	newScroll := -(targetY - rowHeight*2)
 	newScroll = min(newScroll, 0)
-	StateMap[uint32, float32](w, nsScrollY, capScroll).
-		Set(inspectorIDScrollPanel, newScroll)
+	w.scrollY().Set(inspectorIDScrollPanel, newScroll)
 }
 
 func inspectorFlatRowIndex(

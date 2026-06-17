@@ -104,7 +104,7 @@ func BenchmarkLayoutFillWidths(b *testing.B) {
 		for j := range layout.Children {
 			layout.Children[j].Shape = &shapes[j]
 		}
-		layoutFillWidths(&layout)
+		layoutFillWidths(&layout, &scratchPools{})
 	}
 }
 
@@ -131,7 +131,7 @@ func BenchmarkLayoutFillHeights(b *testing.B) {
 	shapes := make([]Shape, len(template.Children))
 	clonePipelineLayout(&template, shapes, &layout)
 	layoutWidths(&layout)
-	layoutFillWidths(&layout)
+	layoutFillWidths(&layout, &scratchPools{})
 	layoutHeights(&layout)
 	sizedRoot := *layout.Shape
 	sizedShapes := make([]Shape, len(shapes))
@@ -144,7 +144,7 @@ func BenchmarkLayoutFillHeights(b *testing.B) {
 		for j := range layout.Children {
 			layout.Children[j].Shape = &shapes[j]
 		}
-		layoutFillHeights(&layout)
+		layoutFillHeights(&layout, &scratchPools{})
 	}
 }
 
@@ -160,9 +160,9 @@ func BenchmarkLayoutPositions(b *testing.B) {
 	shapes := make([]Shape, len(template.Children))
 	clonePipelineLayout(&template, shapes, &layout)
 	layoutWidths(&layout)
-	layoutFillWidths(&layout)
+	layoutFillWidths(&layout, &scratchPools{})
 	layoutHeights(&layout)
-	layoutFillHeights(&layout)
+	layoutFillHeights(&layout, &scratchPools{})
 	sizedRoot := *layout.Shape
 	sizedShapes := make([]Shape, len(shapes))
 	copy(sizedShapes, shapes)

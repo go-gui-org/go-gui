@@ -161,8 +161,7 @@ func (d *inputDragState) computeRunePos(
 ) int {
 	scrollDelta := float32(0)
 	if d.idScroll > 0 {
-		sy := StateMap[uint32, float32](
-			w, nsScrollY, capScroll)
+		sy := w.scrollY()
 		sNow, _ := sy.Get(d.idScroll) // ok ignored: zero offset is correct initial scroll
 		scrollDelta = sNow - d.scrollY0
 	}
@@ -208,7 +207,7 @@ func (d *inputDragState) scrollCallback(
 		w.AnimationRemove(animIDDragScroll)
 		return
 	}
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	cur, _ := sy.Get(d.idScroll)
 	newScroll := f32Clamp(cur+delta, d.maxScrollNeg, 0)
 	if newScroll == cur {

@@ -28,6 +28,21 @@ type ContainerCfg struct {
 	OnMouseMove func(*Layout, *Event, *Window)
 	OnMouseUp   func(*Layout, *Event, *Window)
 
+	// ClickButton filters OnClick by mouse button (0 = any).
+	// Set to MouseLeft for left-click-only widgets; avoids the
+	// per-frame closure allocation from leftClickOnly.
+	ClickButton MouseButton
+
+	// ClickOnSpace fires OnClick on spacebar via the char dispatch
+	// path. Avoids the per-frame closure allocation from
+	// spacebarToClick.
+	ClickOnSpace bool
+
+	// ClickOnEnter fires OnClick on Enter key via the key-down
+	// dispatch path. Avoids the per-frame closure allocation from
+	// enterToClick.
+	ClickOnEnter bool
+
 	// OnScroll fires when the container receives scroll events.
 	// Requires IDScroll > 0 and a scrollable Overflow/ScrollMode.
 	OnScroll func(*Layout, *Window)
@@ -261,18 +276,21 @@ func makeContainerEvents(c *ContainerCfg) *eventHandlers {
 		return nil
 	}
 	return &eventHandlers{
-		OnClick:     c.OnClick,
-		OnChar:      c.OnChar,
-		OnKeyDown:   c.OnKeyDown,
-		OnKeyUp:     c.OnKeyUp,
-		OnMouseMove: c.OnMouseMove,
-		OnMouseUp:   c.OnMouseUp,
-		OnHover:     c.OnHover,
-		OnGesture:   c.OnGesture,
-		OnFileDrop:  c.OnFileDrop,
-		OnIMECommit: c.OnIMECommit,
-		OnScroll:    c.OnScroll,
-		AmendLayout: c.AmendLayout,
+		OnClick:      c.OnClick,
+		OnChar:       c.OnChar,
+		OnKeyDown:    c.OnKeyDown,
+		OnKeyUp:      c.OnKeyUp,
+		OnMouseMove:  c.OnMouseMove,
+		OnMouseUp:    c.OnMouseUp,
+		OnHover:      c.OnHover,
+		OnGesture:    c.OnGesture,
+		OnFileDrop:   c.OnFileDrop,
+		OnIMECommit:  c.OnIMECommit,
+		OnScroll:     c.OnScroll,
+		AmendLayout:  c.AmendLayout,
+		ClickButton:  c.ClickButton,
+		ClickOnSpace: c.ClickOnSpace,
+		ClickOnEnter: c.ClickOnEnter,
 	}
 }
 
@@ -359,7 +377,7 @@ func container(cfg ContainerCfg) View {
 	if cfg.OnAnyClick != nil {
 		cfg.OnClick = cfg.OnAnyClick
 	} else {
-		cfg.OnClick = leftClickOnly(cfg.OnClick)
+		cfg.ClickButton = MouseLeft
 	}
 
 	content := cfg.Content

@@ -360,6 +360,13 @@ type eventHandlers struct {
 	OnFileDrop    func(*Layout, *Event, *Window)
 	OnIMECommit   func(*Layout, string, *Window)
 	OnDraw        func(*DrawContext)
+
+	// Click filters — set by widget factories to avoid per-frame
+	// closure allocations from leftClickOnly/spacebarToClick/
+	// enterToClick wrappers. See §6 of docs/specs/perf-optimizations.md.
+	ClickButton  MouseButton // non-zero filters OnClick by mouse button
+	ClickOnSpace bool        // fire OnClick on spacebar via OnChar dispatch
+	ClickOnEnter bool        // fire OnClick on Enter key via OnKeyDown dispatch
 }
 
 // shapeButtonColors holds per-button color state read by

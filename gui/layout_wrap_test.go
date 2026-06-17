@@ -102,7 +102,7 @@ func TestWrapPositions(t *testing.T) {
 
 	layoutWrapContainers(root, &Window{})
 	layoutHeights(root)
-	layoutFillHeights(root)
+	layoutFillHeights(root, &scratchPools{})
 	w := &Window{}
 	layoutPositions(root, 0, 0, w)
 
@@ -171,7 +171,7 @@ func TestWrapFillInColumn(t *testing.T) {
 	}
 
 	layoutWidths(root)
-	layoutFillWidths(root)
+	layoutFillWidths(root, &scratchPools{})
 
 	wrapLayout := &root.Children[0]
 	if !f32AreClose(wrapLayout.Shape.Width, 400) {

@@ -138,7 +138,7 @@ func BenchmarkListBoxGenerateLayout(b *testing.B) {
 	b.Run("bounded_virtualized", func(b *testing.B) {
 		w := newTestWindow()
 		scrollID := uint32(9903)
-		StateMap[uint32, float32](w, nsScrollY, capScroll).Set(scrollID, 1000)
+		w.scrollY().Set(scrollID, 1000)
 		v := ListBox(ListBoxCfg{
 			ID:          "bench-lb-v",
 			IDScroll:    scrollID,

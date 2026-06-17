@@ -297,8 +297,7 @@ func listBoxVisibleRange(
 	}
 	rowH = listCoreRowHeightEstimate(cfg.TextStyle, listBoxItemPad)
 	if virtualize && listH > 0 && len(cfg.Data) > 0 {
-		scrollY := StateReadOr(
-			w, nsScrollY, cfg.IDScroll, float32(0))
+		scrollY, _ := w.scrollY().Get(cfg.IDScroll)
 		first, last = listCoreVisibleRange(
 			len(cfg.Data), rowH, listH, scrollY)
 	} else {

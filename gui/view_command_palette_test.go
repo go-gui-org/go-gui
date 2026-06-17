@@ -263,7 +263,7 @@ func TestPaletteScrollResetOnShow(t *testing.T) {
 	var idScroll uint32 = 42
 
 	// Set scroll position to simulate previous scrolling.
-	sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+	sy := w.scrollY()
 	sy.Set(idScroll, 150)
 
 	CommandPaletteShow(id, 1, idScroll, w)

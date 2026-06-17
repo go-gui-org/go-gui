@@ -100,8 +100,7 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 	for p := layout.Parent; p != nil; p = p.Parent {
 		if p.Shape != nil && p.Shape.IDScroll > 0 {
 			scrollID = p.Shape.IDScroll
-			sy := StateMap[uint32, float32](
-				w, nsScrollY, capScroll)
+			sy := w.scrollY()
 			dragScrollY0, _ = sy.Get(scrollID)
 			sp := p.Shape
 			viewTop = sp.Y + sp.Padding.Top
@@ -119,8 +118,7 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 		if dragGLOK {
 			scrollDelta := float32(0)
 			if scrollID > 0 {
-				sy := StateMap[uint32, float32](
-					w, nsScrollY, capScroll)
+				sy := w.scrollY()
 				sNow, _ := sy.Get(scrollID)
 				scrollDelta = sNow - dragScrollY0
 			}
@@ -184,8 +182,7 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 			w.AnimationRemove(animIDTextDragScroll)
 			return
 		}
-		sy := StateMap[uint32, float32](
-			w, nsScrollY, capScroll)
+		sy := w.scrollY()
 		cur, _ := sy.Get(scrollID)
 		newScroll := f32Clamp(
 			cur+delta, maxScrollNeg, 0)

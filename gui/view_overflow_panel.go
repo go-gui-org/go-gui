@@ -30,8 +30,10 @@ type OverflowPanelCfg struct {
 func OverflowPanel(w *Window, cfg OverflowPanelCfg) View {
 	applyOverflowDefaults(&cfg)
 
-	visibleCount := StateReadOr(
-		w, nsOverflow, cfg.ID, len(cfg.Items))
+	visibleCount, ok := w.overflow().Get(cfg.ID)
+	if !ok {
+		visibleCount = len(cfg.Items)
+	}
 	isOpen := StateReadOr(
 		w, nsSelect, cfg.ID, false)
 

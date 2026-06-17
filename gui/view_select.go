@@ -195,7 +195,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 			e.IsHandled = true
 		},
 	}
-	ccfg.OnClick = leftClickOnly(ccfg.OnClick)
+	ccfg.ClickButton = MouseLeft
 	cv := &containerView{
 		shape:   buildContainerShape(&ccfg),
 		content: content,
