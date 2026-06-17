@@ -16,32 +16,10 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v6
-        with:
-          path: go-gui
 
-      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-go-glyph
         with:
-          repository: go-gui-org/go-glyph
-          path: go-glyph
-
-      - uses: actions/setup-go@v6
-        with:
-          go-version: stable
-          cache: true
-
-      - name: Install Linux system dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            pkg-config \
-            libsdl2-dev \
-            libsdl2-mixer-dev \
-            libfreetype6-dev \
-            libharfbuzz-dev \
-            libpango1.0-dev \
-            libfontconfig1-dev \
-            libhunspell-dev
+          install-linux-deps: 'true'
 
       - name: Install macOS system dependencies
         if: runner.os == 'macOS'
@@ -55,58 +33,25 @@ jobs:
             pango \
             fontconfig
 
-      - name: Add go-glyph replace
-        working-directory: go-gui
-        run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
-
       - name: Test
-        working-directory: go-gui
         run: |
           CGO_LDFLAGS="${{ runner.os == 'macOS' && '-Wl,-no_warn_duplicate_libraries' || '' }}" \
             go test -count=2 -race -timeout=10m ./gui/...
-
 
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup-go-glyph
         with:
-          path: go-gui
-
-      - uses: actions/checkout@v6
-        with:
-          repository: go-gui-org/go-glyph
-          path: go-glyph
-
-      - uses: actions/setup-go@v6
-        with:
-          go-version: stable
-          cache: true
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            pkg-config \
-            libsdl2-dev \
-            libsdl2-mixer-dev \
-            libfreetype6-dev \
-            libharfbuzz-dev \
-            libpango1.0-dev \
-            libfontconfig1-dev \
-            libhunspell-dev
-
-      - name: Add go-glyph replace
-        working-directory: go-gui
-        run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
+          install-linux-deps: 'true'
 
       - name: Test with coverage
-        working-directory: go-gui
         run: go test -count=1 -coverprofile=coverage.out ./gui/...
 
       - name: Check coverage threshold
-        working-directory: go-gui
         run: |
           go tool cover -func=coverage.out | awk 'END {
             gsub(/%/, "", $3);
@@ -119,7 +64,6 @@ jobs:
           }'
 
       - name: Check per-package coverage floors
-        working-directory: go-gui
         run: |
           failures=0
           while IFS='|' read -r pkg floor; do
@@ -152,7 +96,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v5
         with:
-          path: go-gui/coverage.out
+          path: coverage.out
           key: coverage-baseline-${{ github.sha }}
 
       - name: Restore baseline coverage for diff
@@ -160,72 +104,21 @@ jobs:
         id: cov-baseline
         uses: actions/cache/restore@v5
         with:
-          path: go-gui/coverage-baseline.out
+          path: coverage-baseline.out
           key: coverage-baseline-${{ github.event.pull_request.base.sha }}
           restore-keys: |
             coverage-baseline-
 
       - name: Coverage diff on PR
         if: github.event_name == 'pull_request'
-        working-directory: go-gui
-        run: |
-          if [ ! -f coverage-baseline.out ]; then
-            echo "::warning::No coverage baseline cached from main. Skipping diff."
-            exit 0
-          fi
-
-          cat > /tmp/pkgcov.awk << 'AWKEOF'
-          NR == 1 { next }
-          {
-              pkg = $1
-              idx = match(pkg, /\/[^\/]+$/)
-              if (idx > 0) pkg = substr(pkg, 1, idx - 1)
-              stmts[pkg] += $2
-              if ($3 > 0) covered[pkg] += $2
-          }
-          END {
-              for (p in stmts) {
-                  if (stmts[p] == 0) continue
-                  pct = 100.0 * covered[p] / stmts[p]
-                  printf "%s\t%.1f\n", p, pct
-              }
-          }
-          AWKEOF
-
-          awk -f /tmp/pkgcov.awk coverage-baseline.out | sort > /tmp/baseline-cov.txt
-          awk -f /tmp/pkgcov.awk coverage.out | sort > /tmp/pr-cov.txt
-
-          echo "## Coverage diff" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Package | Baseline | PR | Δ |" >> $GITHUB_STEP_SUMMARY
-          echo "|---------|----------|----|---|" >> $GITHUB_STEP_SUMMARY
-
-          regressions=0
-          while IFS=$'\t' read -r pkg base cur; do
-            if [ "$base" = "-" ]; then
-              echo "| $pkg | — | ${cur}% | new |" >> $GITHUB_STEP_SUMMARY
-            elif [ "$cur" = "-" ]; then
-              echo "| $pkg | ${base}% | — | removed |" >> $GITHUB_STEP_SUMMARY
-            else
-              delta=$(awk "BEGIN { printf \"%.1f\", $cur - $base }")
-              if (( $(awk "BEGIN { print ($delta < -2) ? 1 : 0 }") )); then
-                echo "::warning::$pkg coverage dropped ${delta}% (${base}% → ${cur}%)"
-                regressions=$((regressions + 1))
-              fi
-              echo "| $pkg | ${base}% | ${cur}% | ${delta}% |" >> $GITHUB_STEP_SUMMARY
-            fi
-          done < <(join -t $'\t' -a 1 -a 2 -e "-" -o 0,1.2,2.2 \
-            /tmp/baseline-cov.txt /tmp/pr-cov.txt)
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "${regressions} package(s) with coverage drop > 2%." >> $GITHUB_STEP_SUMMARY
+        run: scripts/cov-diff.sh --github-summary coverage-baseline.out coverage.out
 
       - name: Upload coverage
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: coverage
-          path: go-gui/coverage.out
+          path: coverage.out
           retention-days: 30
 
   vet:
@@ -240,17 +133,7 @@ jobs:
           cache: true
 
       - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            pkg-config \
-            libsdl2-dev \
-            libsdl2-mixer-dev \
-            libfreetype6-dev \
-            libharfbuzz-dev \
-            libpango1.0-dev \
-            libfontconfig1-dev \
-            libhunspell-dev
+        run: ./scripts/install-ubuntu-deps.sh
 
       - name: Vet
         run: go vet ./...
@@ -269,45 +152,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-        with:
-          path: go-gui
 
-      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-go-glyph
         with:
-          repository: go-gui-org/go-glyph
-          path: go-glyph
-
-      - uses: actions/setup-go@v6
-        with:
-          go-version: stable
-          cache: true
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            pkg-config \
-            libsdl2-dev \
-            libsdl2-mixer-dev \
-            libfreetype6-dev \
-            libharfbuzz-dev \
-            libpango1.0-dev \
-            libfontconfig1-dev \
-            libhunspell-dev
+          install-linux-deps: 'true'
+          add-replace: 'false'
 
       # tidy-check must run BEFORE the go-glyph replace directive is
       # added, otherwise go mod tidy persists the replace into go.mod
       # and prunes go-glyph from go.sum, triggering a spurious diff.
       - name: Run tidy-check (before replace)
-        working-directory: go-gui
         run: make tidy-check
 
       - name: Add go-glyph replace
-        working-directory: go-gui
-        run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
+        run: go mod edit -replace=github.com/go-gui-org/go-glyph=./go-glyph
 
       - name: Run gate checks
-        working-directory: go-gui
         run: make vet deps-doc-check large-files generate-check
 
   examples:
@@ -315,38 +175,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup-go-glyph
         with:
-          path: go-gui
-
-      - uses: actions/checkout@v6
-        with:
-          repository: go-gui-org/go-glyph
-          path: go-glyph
-
-      - uses: actions/setup-go@v6
-        with:
-          go-version: stable
-          cache: true
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            pkg-config \
-            libsdl2-dev \
-            libsdl2-mixer-dev \
-            libfreetype6-dev \
-            libharfbuzz-dev \
-            libpango1.0-dev \
-            libfontconfig1-dev \
-            libhunspell-dev
-
-      - name: Add go-glyph replace
-        working-directory: go-gui
-        run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
+          install-linux-deps: 'true'
 
       - name: Build examples
-        working-directory: go-gui
         run: make build-examples
 
   ios:
@@ -354,25 +188,11 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v6
-        with:
-          path: go-gui
 
-      - uses: actions/checkout@v6
-        with:
-          repository: go-gui-org/go-glyph
-          path: go-glyph
-
-      - uses: actions/setup-go@v6
-        with:
-          go-version: stable
-          cache: true
-
-      - name: Add go-glyph replace
-        working-directory: go-gui
-        run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
+      - uses: ./.github/actions/setup-go-glyph
 
       - name: Build c-archive
-        working-directory: go-gui/examples/ios_demo
+        working-directory: examples/ios_demo
         run: |
           SDK=$(xcrun --sdk iphoneos --show-sdk-path)
           CC=$(xcrun --sdk iphoneos --find clang)
@@ -383,7 +203,6 @@ jobs:
             go build -buildmode=c-archive -tags ios -o /dev/null .
 
       - name: Vet backend
-        working-directory: go-gui
         run: |
           SDK=$(xcrun --sdk iphoneos --show-sdk-path)
           CGO_ENABLED=1 \
@@ -397,25 +216,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-        with:
-          path: go-gui
 
-      - uses: actions/checkout@v6
-        with:
-          repository: go-gui-org/go-glyph
-          path: go-glyph
-
-      - uses: actions/setup-go@v6
-        with:
-          go-version: stable
-          cache: true
+      - uses: ./.github/actions/setup-go-glyph
 
       - name: Build
-        working-directory: go-gui
         run: GOOS=js GOARCH=wasm go build ./...
 
       - name: Vet
-        working-directory: go-gui
         run: GOOS=js GOARCH=wasm go vet ./...
 
       - uses: actions/setup-node@v6
@@ -423,7 +230,6 @@ jobs:
           node-version: 22
 
       - name: Test
-        working-directory: go-gui
         run: |
           NODE_JS="$(find "$(go env GOROOT)" -name wasm_exec_node.js -print -quit)"
           printf '#!/bin/bash\nexec node "%s" "$@"\n' "$NODE_JS" > /tmp/go_js_wasm_exec
@@ -437,15 +243,6 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v6
-        with:
-          path: go-gui
-
-      - uses: actions/checkout@v6
-        with:
-          repository: go-gui-org/go-glyph
-          path: go-glyph
-
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -461,35 +258,25 @@ jobs:
             mingw-w64-x86_64-pango
             mingw-w64-x86_64-fontconfig
 
-      - uses: actions/setup-go@v6
-        with:
-          go-version: stable
-          cache: true
+      - uses: actions/checkout@v6
 
-      - name: Add go-glyph replace
-        working-directory: go-gui
-        run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
+      - uses: ./.github/actions/setup-go-glyph
 
       - name: Build
-        working-directory: go-gui
         run: CGO_ENABLED=1 go build ./...
 
       - name: Vet
-        working-directory: go-gui
         run: CGO_ENABLED=1 go vet ./...
 
       - name: Test (headless)
-        working-directory: go-gui
         run: CGO_ENABLED=1 go test ./gui/...
 
       - name: Build showcase
-        working-directory: go-gui
         run: |
           CGO_ENABLED=1 go build -tags audio \
             -o build/showcase-windows.exe ./examples/showcase/
 
       - name: Smoke test showcase
-        working-directory: go-gui
         run: |
           echo "Launching showcase (10s timeout to catch DLL load failures)..."
           ./build/showcase-windows.exe &
@@ -508,22 +295,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-        with:
-          path: go-gui
 
-      - uses: actions/checkout@v6
-        with:
-          repository: go-gui-org/go-glyph
-          path: go-glyph
-
-      - uses: actions/setup-go@v6
-        with:
-          go-version: stable
-          cache: true
-
-      - name: Add go-glyph replace
-        working-directory: go-gui
-        run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
+      - uses: ./.github/actions/setup-go-glyph
 
       - name: Build Android native deps
         run: |
@@ -537,13 +310,12 @@ jobs:
           gomobile init
 
       - name: Build AAR
-        working-directory: go-gui/examples/android_demo
+        working-directory: examples/android_demo
         run: |
           gomobile bind -target=android/arm64 -androidapi 24 \
             -o /tmp/gogui.aar .
 
       - name: Vet backend
-        working-directory: go-gui
         run: |
           NDK_CC=$(find $ANDROID_NDK_ROOT -name "aarch64-linux-android*-clang" \
             | grep -v clang++ | sort | tail -1)
@@ -563,20 +335,10 @@ jobs:
           cache: true
 
       - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            pkg-config \
-            libsdl2-dev \
-            libsdl2-mixer-dev \
-            libfreetype6-dev \
-            libharfbuzz-dev \
-            libpango1.0-dev \
-            libfontconfig1-dev \
-            libhunspell-dev
+        run: ./scripts/install-ubuntu-deps.sh
 
       - name: Run benchmarks
-        run: go test -bench=. -benchmem -count=5 -run='^$' -timeout=30m ./gui/... | tee benchmark-results.txt
+        run: make bench | tee benchmark-results.txt
 
       - name: Cache benchmark baseline
         uses: actions/cache/save@v5
@@ -604,17 +366,7 @@ jobs:
           cache: true
 
       - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            pkg-config \
-            libsdl2-dev \
-            libsdl2-mixer-dev \
-            libfreetype6-dev \
-            libharfbuzz-dev \
-            libpango1.0-dev \
-            libfontconfig1-dev \
-            libhunspell-dev
+        run: ./scripts/install-ubuntu-deps.sh
 
       - name: Restore baseline
         id: cache
@@ -626,9 +378,7 @@ jobs:
             benchmark-baseline-
 
       - name: Run targeted benchmarks
-        run: |
-          FILTER='Benchmark(Layout|GenerateViewLayout|ParseSvg|Tessellate|BuildDefsPathDataCache|RenderLayout|RenderSvg)'
-          go test -bench="$FILTER" -benchmem -count=5 -run='^$' -timeout=15m ./gui/... | tee pr-benchmarks.txt
+        run: make bench-gate | tee pr-benchmarks.txt
 
       - name: Install benchstat
         run: go install golang.org/x/perf/cmd/benchstat@latest
@@ -666,26 +416,12 @@ jobs:
           cache: true
 
       - name: Install system dependencies
+        run: ./scripts/install-ubuntu-deps.sh
+
+      - name: Install scanners
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            pkg-config \
-            libsdl2-dev \
-            libsdl2-mixer-dev \
-            libfreetype6-dev \
-            libharfbuzz-dev \
-            libpango1.0-dev \
-            libfontconfig1-dev \
-            libhunspell-dev
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
 
-      - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest
-
-      - name: Run govulncheck
-        run: govulncheck ./...
-
-      - name: Install gosec
-        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
-
-      - name: Run gosec
-        run: gosec -include=G101,G104,G107,G201,G202,G203,G204,G301,G302,G303,G304,G306,G401,G402,G501,G502,G503,G504,G505 -conf .gosec.json ./...
+      - name: Run security scans
+        run: make gosec govulncheck

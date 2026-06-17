@@ -1,0 +1,37 @@
+name: Setup go-glyph
+description: |
+  Checkout go-glyph, install Go, and optionally install Linux system
+  dependencies and add the go-glyph replace directive.
+  Requires the go-gui repo already checked out (actions/checkout@v6
+  before this action).
+
+inputs:
+  install-linux-deps:
+    description: 'Run scripts/install-ubuntu-deps.sh (apt-get)'
+    default: 'false'
+  add-replace:
+    description: 'Add go-glyph replace directive to go.mod'
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v6
+      with:
+        repository: go-gui-org/go-glyph
+        path: go-glyph
+
+    - uses: actions/setup-go@v6
+      with:
+        go-version: stable
+        cache: true
+
+    - name: Install Ubuntu dependencies
+      if: inputs.install-linux-deps == 'true' && runner.os == 'Linux'
+      shell: bash
+      run: ./scripts/install-ubuntu-deps.sh
+
+    - name: Add go-glyph replace
+      if: inputs.add-replace == 'true'
+      shell: bash
+      run: go mod edit -replace=github.com/go-gui-org/go-glyph=./go-glyph
