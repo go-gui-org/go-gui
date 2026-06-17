@@ -428,7 +428,7 @@ func (b *windowState) drawText(r *gui.RenderCmd) {
 
 func (b *windowState) drawTextPath(r *gui.RenderCmd) {
 	layout, placements, err := gui.ComputeTextPathPlacements(
-		r, b.textSys, b.textPathPlacements,
+		r, b.textSys, &b.textPathPlacements,
 		guiStyleToGlyphConfig)
 	if err != nil {
 		log.Printf("metal: drawTextPath: %v", err)

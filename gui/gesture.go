@@ -46,6 +46,9 @@ type gestureState struct {
 	velocityX      float32
 	velocityY      float32
 
+	// Long-press arm-time snapshots (avoid closure allocation).
+	longPressSX, longPressSY float32
+
 	// Pinch.
 	initialSpan float32
 	prevSpan    float32
@@ -401,34 +404,39 @@ func handleTouchCancelled(
 
 // --- Long press ---
 
-func armLongPress(gs *gestureState, layout *Layout, w *Window) {
-	startX := gs.startX
-	startY := gs.startY
+func armLongPress(gs *gestureState, _ *Layout, w *Window) {
+	gs.longPressSX = gs.startX
+	gs.longPressSY = gs.startY
 	w.AnimationAdd(&Animate{
-		AnimID: gestureLongPressAnimID,
-		Delay:  gestureLongPressDur,
-		Repeat: false,
-		Callback: func(_ *Animate, w *Window) {
-			gst := &w.viewState.gesture
-			if gst.numTouches != 1 || gst.recognized {
-				return
-			}
-			t := gst.touches[0]
-			dx := t.x - startX
-			dy := t.y - startY
-			if dx*dx+dy*dy > gesturePanDist*gesturePanDist {
-				return
-			}
-			gst.recognized = true
-			gst.gestureType = GestureLongPress
-			ly := &w.layout
-			if w.dialogCfg.visible && len(w.layout.Children) > 0 {
-				ly = &w.layout.Children[len(w.layout.Children)-1]
-			}
-			emitGesture(gst, GestureLongPress, GesturePhaseBegan,
-				startX, startY, ly, w)
-		},
+		AnimID:   gestureLongPressAnimID,
+		Delay:    gestureLongPressDur,
+		Repeat:   false,
+		Callback: gestureLongPressFired,
 	})
+}
+
+// gestureLongPressFired is a package-level callback that reads
+// snapshotted longPressSX/longPressSY instead of capturing via
+// a per-invocation closure (avoids heap allocation on every touch).
+func gestureLongPressFired(_ *Animate, w *Window) {
+	gst := &w.viewState.gesture
+	if gst.numTouches != 1 || gst.recognized {
+		return
+	}
+	t := gst.touches[0]
+	dx := t.x - gst.longPressSX
+	dy := t.y - gst.longPressSY
+	if dx*dx+dy*dy > gesturePanDist*gesturePanDist {
+		return
+	}
+	gst.recognized = true
+	gst.gestureType = GestureLongPress
+	ly := &w.layout
+	if w.dialogCfg.visible && len(w.layout.Children) > 0 {
+		ly = &w.layout.Children[len(w.layout.Children)-1]
+	}
+	emitGesture(gst, GestureLongPress, GesturePhaseBegan,
+		gst.longPressSX, gst.longPressSY, ly, w)
 }
 
 func cancelLongPress(w *Window) {

@@ -139,13 +139,13 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 
 	var events *eventHandlers
 	if c.OnClick != nil {
-		events = &eventHandlers{
+		events = w.allocEventHandlers(eventHandlers{
 			OnClick:     c.OnClick,
 			ClickButton: MouseLeft,
-		}
+		})
 	}
 	layout := Layout{
-		Shape: &Shape{
+		Shape: w.allocShape(Shape{
 			shapeType: shapeSVG,
 			ID:        c.ID,
 			A11YRole:  AccessRoleImage,
@@ -162,7 +162,7 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 			Padding:  c.Padding.Get(Padding{}),
 			events:   events,
 			SvgOpts:  svgOpts,
-		},
+		}),
 	}
 	applyFixedSizingConstraints(layout.Shape)
 	return layout

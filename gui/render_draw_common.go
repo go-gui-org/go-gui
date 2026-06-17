@@ -20,7 +20,7 @@ const maxTextPathGlyphs = 10000
 func ComputeTextPathPlacements(
 	r *RenderCmd,
 	textSys *glyph.TextSystem,
-	placementsBuf []glyph.GlyphPlacement,
+	placementsBuf *[]glyph.GlyphPlacement,
 	styleToCfg func(TextStyle) glyph.TextConfig,
 ) (layout glyph.Layout, placements []glyph.GlyphPlacement, err error) {
 	if textSys == nil || r.TextPath == nil || r.TextStylePtr == nil {
@@ -59,10 +59,17 @@ func ComputeTextPathPlacements(
 	}
 
 	n := min(len(layout.Glyphs), maxTextPathGlyphs)
-	if cap(placementsBuf) < n {
-		placementsBuf = make([]glyph.GlyphPlacement, n)
+	var buf []glyph.GlyphPlacement
+	if placementsBuf != nil {
+		buf = *placementsBuf
 	}
-	placements = placementsBuf[:n]
+	if cap(buf) < n {
+		buf = make([]glyph.GlyphPlacement, n)
+		if placementsBuf != nil {
+			*placementsBuf = buf
+		}
+	}
+	placements = buf[:n]
 	for i := range placements {
 		placements[i] = glyph.GlyphPlacement{
 			X: offscreenSentinel, Y: offscreenSentinel,

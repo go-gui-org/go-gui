@@ -48,7 +48,7 @@ func DrawCanvas(cfg DrawCanvasCfg) View {
 
 func (dv *drawCanvasView) Content() []View { return nil }
 
-func (dv *drawCanvasView) GenerateLayout(_ *Window) Layout {
+func (dv *drawCanvasView) GenerateLayout(w *Window) Layout {
 	c := &dv.cfg
 
 	var events *eventHandlers
@@ -56,7 +56,7 @@ func (dv *drawCanvasView) GenerateLayout(_ *Window) Layout {
 		c.OnMouseUp != nil || c.OnMouseLeave != nil || c.OnGesture != nil ||
 		c.OnMouseScroll != nil || c.OnFileDrop != nil ||
 		c.OnKeyDown != nil || c.OnDraw != nil {
-		events = &eventHandlers{
+		events = w.allocEventHandlers(eventHandlers{
 			OnClick:       c.OnClick,
 			ClickButton:   MouseLeft,
 			OnHover:       c.OnHover,
@@ -68,7 +68,7 @@ func (dv *drawCanvasView) GenerateLayout(_ *Window) Layout {
 			OnFileDrop:    c.OnFileDrop,
 			OnKeyDown:     c.OnKeyDown,
 			OnDraw:        c.OnDraw,
-		}
+		})
 	}
 
 	// Focusable canvas advertises as a button to assistive tech
@@ -79,7 +79,7 @@ func (dv *drawCanvasView) GenerateLayout(_ *Window) Layout {
 	}
 
 	layout := Layout{
-		Shape: &Shape{
+		Shape: w.allocShape(Shape{
 			shapeType: shapeDrawCanvas,
 			ID:        c.ID,
 			Version:   c.Version,
@@ -98,7 +98,7 @@ func (dv *drawCanvasView) GenerateLayout(_ *Window) Layout {
 			Radius:    c.Radius,
 			IDFocus:   c.IDFocus,
 			events:    events,
-		},
+		}),
 	}
 	applyFixedSizingConstraints(layout.Shape)
 	return layout

@@ -134,27 +134,27 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 	var events *eventHandlers
 	switch {
 	case v.markdownID > 0:
-		events = &eventHandlers{
+		events = w.allocEventHandlers(eventHandlers{
 			OnClick:     markdownBlockOnClick,
 			OnMouseMove: rtfMouseMove,
 			AmendLayout: rtfMarkdownAmendLayout,
-		}
+		})
 	case v.IDFocus > 0:
-		events = &eventHandlers{
+		events = w.allocEventHandlers(eventHandlers{
 			OnClick:     rtfSelectOnClick,
 			OnKeyDown:   rtfSelectOnKeyDown,
 			OnMouseMove: rtfMouseMove,
 			AmendLayout: rtfSelectAmendLayout,
-		}
+		})
 	default:
-		events = &eventHandlers{
+		events = w.allocEventHandlers(eventHandlers{
 			OnClick:     rtfOnClick,
 			OnMouseMove: rtfMouseMove,
 			AmendLayout: rtfAmendTooltip,
-		}
+		})
 	}
 
-	shape := &Shape{
+	shape := w.allocShape(Shape{
 		shapeType: shapeRTF,
 		ID:        v.ID,
 		IDFocus:   v.IDFocus,
@@ -181,7 +181,7 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 			rtfGlyphRT:         &vgRT,
 			rtfMathHashes:      mathHashes,
 		},
-	}
+	})
 	l := Layout{Shape: shape}
 	blockKey := rtfRunsKey(shape.TC.RtfRuns)
 	if ts := &w.viewState.tooltip; ts.id != "" &&

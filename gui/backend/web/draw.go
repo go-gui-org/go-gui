@@ -591,7 +591,7 @@ func (b *Backend) drawLayoutTransformed(r *gui.RenderCmd) {
 
 func (b *Backend) drawTextPath(r *gui.RenderCmd) {
 	layout, placements, err := gui.ComputeTextPathPlacements(
-		r, b.textSys, b.textPathPlacements,
+		r, b.textSys, &b.textPathPlacements,
 		glyphconv.GuiStyleToGlyphConfig)
 	if err != nil {
 		log.Printf("web: drawTextPath: %v", err)

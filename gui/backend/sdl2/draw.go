@@ -492,7 +492,7 @@ func (b *Backend) strokeRoundedRect(x, y, w, h, rad float32, c gui.Color) {
 // placement with rotation following the path tangent.
 func (b *Backend) drawTextPath(r *gui.RenderCmd) {
 	layout, placements, err := gui.ComputeTextPathPlacements(
-		r, b.textSys, b.textPathPlacements,
+		r, b.textSys, &b.textPathPlacements,
 		guiStyleToGlyphConfig)
 	if err != nil || len(placements) == 0 {
 		return

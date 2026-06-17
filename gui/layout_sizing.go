@@ -2,6 +2,15 @@ package gui
 
 import "math"
 
+// fillBuffers bundles the candidate and fixed-index scratch slices
+// for the layout fill pipeline. Passing a single *fillBuffers through
+// recursive calls avoids two slice-header escapes per frame (one escape
+// for the struct pointer vs two for separate *[]int pointers).
+type fillBuffers struct {
+	candidates   []int
+	fixedIndices []int
+}
+
 // sentinelNextExtrema is a large finite float32 used as "no next extremum
 // found yet" in distributeGrow. math.MaxFloat32 overflows to +Inf in
 // float32, so math.MaxUint32 (≈4.29e9) is used instead.
@@ -127,16 +136,16 @@ type distributionExtrema struct {
 	nextExtrema float32
 }
 
-func collectDistributionCandidates(layout *Layout, axis distributeAxis, mode distributeMode, fillIndices, fixedIndices *[]int) {
-	*fillIndices = (*fillIndices)[:0]
+func collectDistributionCandidates(layout *Layout, axis distributeAxis, mode distributeMode, fb *fillBuffers) {
+	fb.candidates = fb.candidates[:0]
 	if mode == distributeShrink {
-		*fixedIndices = (*fixedIndices)[:0]
+		fb.fixedIndices = fb.fixedIndices[:0]
 	}
 	for i := range layout.Children {
 		if getSizing(layout.Children[i].Shape, axis) == SizingFill {
-			*fillIndices = append(*fillIndices, i)
+			fb.candidates = append(fb.candidates, i)
 		} else if mode == distributeShrink {
-			*fixedIndices = append(*fixedIndices, i)
+			fb.fixedIndices = append(fb.fixedIndices, i)
 		}
 	}
 }
@@ -237,10 +246,10 @@ func computeDistributionDelta(layout *Layout, remaining float32, mode distribute
 	return f32Clamp(sizeDelta, -saneDeltaLimit, saneDeltaLimit), true
 }
 
-func applyDistributionDelta(layout *Layout, axis distributeAxis, extremum, sizeDelta, remainingIn float32, fillIndices *[]int) (float32, bool) {
+func applyDistributionDelta(layout *Layout, axis distributeAxis, extremum, sizeDelta, remainingIn float32, fb *fillBuffers) (float32, bool) {
 	remaining := remainingIn
 	keepIdx := 0
-	fi := *fillIndices
+	fi := fb.candidates
 	for i := range fi {
 		idx := fi[i]
 		child := &layout.Children[idx]
@@ -280,33 +289,33 @@ func applyDistributionDelta(layout *Layout, axis distributeAxis, extremum, sizeD
 			keepIdx++
 		}
 	}
-	*fillIndices = fi[:keepIdx]
+	fb.candidates = fi[:keepIdx]
 	return remaining, true
 }
 
-func distributeSpace(layout *Layout, remainingIn float32, mode distributeMode, axis distributeAxis, candidates, fixedIndices *[]int) float32 {
+func distributeSpace(layout *Layout, remainingIn float32, mode distributeMode, axis distributeAxis, fb *fillBuffers) float32 {
 	if !f32IsFinite(remainingIn) {
 		return 0
 	}
 	remaining := remainingIn
 	prevRemaining := float32(0)
 
-	collectDistributionCandidates(layout, axis, mode, candidates, fixedIndices)
+	collectDistributionCandidates(layout, axis, mode, fb)
 
-	for shouldContinueDistribution(remaining, mode, len(*candidates)) {
+	for shouldContinueDistribution(remaining, mode, len(fb.candidates)) {
 		if f32AreClose(remaining, prevRemaining) {
 			break
 		}
 		prevRemaining = remaining
-		extrema, ok := findDistributionExtrema(layout, axis, mode, *candidates, *fixedIndices)
+		extrema, ok := findDistributionExtrema(layout, axis, mode, fb.candidates, fb.fixedIndices)
 		if !ok {
 			break
 		}
-		sizeDelta, ok := computeDistributionDelta(layout, remaining, mode, axis, extrema, len(*candidates), len(*fixedIndices))
+		sizeDelta, ok := computeDistributionDelta(layout, remaining, mode, axis, extrema, len(fb.candidates), len(fb.fixedIndices))
 		if !ok {
 			break
 		}
-		remaining, ok = applyDistributionDelta(layout, axis, extrema.extremum, sizeDelta, remaining, candidates)
+		remaining, ok = applyDistributionDelta(layout, axis, extrema.extremum, sizeDelta, remaining, fb)
 		if !ok {
 			break
 		}
@@ -427,7 +436,7 @@ func layoutFillWidths(layout *Layout, p *scratchPools) {
 	layoutFillWithPool(layout, p, layoutFillWidthsImpl)
 }
 
-func layoutFillWidthsImpl(layout *Layout, candidates, fixedIndices *[]int) {
+func layoutFillWidthsImpl(layout *Layout, fb *fillBuffers) {
 	remainingWidth := layout.Shape.Width - layout.Shape.paddingWidth()
 
 	switch layout.Shape.Axis {
@@ -441,17 +450,17 @@ func layoutFillWidthsImpl(layout *Layout, candidates, fixedIndices *[]int) {
 		remainingWidth -= layout.spacing()
 
 		if remainingWidth > f32Tolerance {
-			distributeSpace(layout, remainingWidth, distributeGrow, distributeHorizontal, candidates, fixedIndices)
+			distributeSpace(layout, remainingWidth, distributeGrow, distributeHorizontal, fb)
 		}
 		if remainingWidth < -f32Tolerance && !layout.Shape.Wrap && !layout.Shape.Overflow {
-			distributeSpace(layout, remainingWidth, distributeShrink, distributeHorizontal, candidates, fixedIndices)
+			distributeSpace(layout, remainingWidth, distributeShrink, distributeHorizontal, fb)
 		}
 	case AxisTopToBottom:
 		layoutFillCrossAxis(layout, distributeHorizontal)
 	}
 
 	for i := range layout.Children {
-		layoutFillWidthsImpl(&layout.Children[i], candidates, fixedIndices)
+		layoutFillWidthsImpl(&layout.Children[i], fb)
 	}
 }
 
@@ -462,20 +471,21 @@ func layoutFillHeights(layout *Layout, p *scratchPools) {
 
 // layoutFillWithPool runs impl with scratch-pool-backed candidate
 // slices when p is non-nil, or local slices when nil.
-func layoutFillWithPool(layout *Layout, p *scratchPools, impl func(*Layout, *[]int, *[]int)) {
+func layoutFillWithPool(layout *Layout, p *scratchPools, impl func(*Layout, *fillBuffers)) {
 	if p == nil {
-		var candidates, fixedIndices []int
-		impl(layout, &candidates, &fixedIndices)
+		var fb fillBuffers
+		impl(layout, &fb)
 		return
 	}
-	candidates := p.fillCandidates.take(0)
-	fixedIndices := p.fixedIndices.take(0)
-	impl(layout, &candidates, &fixedIndices)
-	p.fillCandidates.put(candidates)
-	p.fixedIndices.put(fixedIndices)
+	fb := &p.fillBufs
+	fb.candidates = p.fillCandidates.take(0)
+	fb.fixedIndices = p.fixedIndices.take(0)
+	impl(layout, fb)
+	p.fillCandidates.put(fb.candidates)
+	p.fixedIndices.put(fb.fixedIndices)
 }
 
-func layoutFillHeightsImpl(layout *Layout, candidates, fixedIndices *[]int) {
+func layoutFillHeightsImpl(layout *Layout, fb *fillBuffers) {
 	remainingHeight := layout.Shape.Height - layout.Shape.paddingHeight()
 
 	switch layout.Shape.Axis {
@@ -489,17 +499,17 @@ func layoutFillHeightsImpl(layout *Layout, candidates, fixedIndices *[]int) {
 		remainingHeight -= layout.spacing()
 
 		if remainingHeight > f32Tolerance {
-			distributeSpace(layout, remainingHeight, distributeGrow, distributeVertical, candidates, fixedIndices)
+			distributeSpace(layout, remainingHeight, distributeGrow, distributeVertical, fb)
 		}
 		// No Wrap/Overflow guard: both only apply to AxisLeftToRight.
 		if remainingHeight < -f32Tolerance {
-			distributeSpace(layout, remainingHeight, distributeShrink, distributeVertical, candidates, fixedIndices)
+			distributeSpace(layout, remainingHeight, distributeShrink, distributeVertical, fb)
 		}
 	case AxisLeftToRight:
 		layoutFillCrossAxis(layout, distributeVertical)
 	}
 
 	for i := range layout.Children {
-		layoutFillHeightsImpl(&layout.Children[i], candidates, fixedIndices)
+		layoutFillHeightsImpl(&layout.Children[i], fb)
 	}
 }

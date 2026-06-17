@@ -1,6 +1,10 @@
 package gui
 
-import "github.com/go-gui-org/go-glyph"
+import (
+	"strings"
+
+	"github.com/go-gui-org/go-glyph"
+)
 
 // Text rendering functions. Extracted from render_layout.go to keep
 // both files under 800 lines.
@@ -57,8 +61,12 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 			InputState{})
 		runes := []rune(text)
 		compInsertPos = min(is.CursorPos, len(runes))
-		text = string(runes[:compInsertPos]) + compText +
-			string(runes[compInsertPos:])
+		var sb strings.Builder
+		sb.Grow(len(text) + len(compText))
+		sb.WriteString(string(runes[:compInsertPos]))
+		sb.WriteString(compText)
+		sb.WriteString(string(runes[compInsertPos:]))
+		text = sb.String()
 	}
 
 	baseX := shape.X + shape.PaddingLeft()

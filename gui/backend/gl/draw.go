@@ -413,7 +413,7 @@ func (b *Backend) drawText(r *gui.RenderCmd) {
 
 func (b *Backend) drawTextPath(r *gui.RenderCmd) {
 	layout, placements, err := gui.ComputeTextPathPlacements(
-		r, b.textSys, b.textPathPlacements,
+		r, b.textSys, &b.textPathPlacements,
 		guiStyleToGlyphConfig)
 	if err != nil || len(placements) == 0 {
 		return

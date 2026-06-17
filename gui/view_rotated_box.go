@@ -34,15 +34,15 @@ func (v *rotatedBoxView) Content() []View {
 	return []View{v.content}
 }
 
-func (v *rotatedBoxView) GenerateLayout(_ *Window) Layout {
+func (v *rotatedBoxView) GenerateLayout(w *Window) Layout {
 	return Layout{
-		Shape: &Shape{
+		Shape: w.allocShape(Shape{
 			shapeType:    shapeRectangle,
 			Axis:         AxisTopToBottom,
 			QuarterTurns: v.turns,
 			Clip:         true,
 			Sizing:       FitFit,
 			Opacity:      1.0,
-		},
+		}),
 	}
 }

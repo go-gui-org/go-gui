@@ -90,14 +90,14 @@ func (iv *imageView) GenerateLayout(w *Window) Layout {
 
 	var events *eventHandlers
 	if c.OnClick != nil || c.OnHover != nil {
-		events = &eventHandlers{
+		events = w.allocEventHandlers(eventHandlers{
 			OnClick:     c.OnClick,
 			ClickButton: c.ClickButton,
 			OnHover:     c.OnHover,
-		}
+		})
 	}
 	layout := Layout{
-		Shape: &Shape{
+		Shape: w.allocShape(Shape{
 			shapeType: shapeImage,
 			ID:        c.ID,
 			A11YRole:  AccessRoleImage,
@@ -115,7 +115,7 @@ func (iv *imageView) GenerateLayout(w *Window) Layout {
 			MinHeight: c.MinHeight,
 			MaxHeight: c.MaxHeight,
 			events:    events,
-		},
+		}),
 	}
 	applyFixedSizingConstraints(layout.Shape)
 	return layout
