@@ -480,6 +480,18 @@ func TestWindowCtxNilFallback(t *testing.T) {
 	}
 }
 
+func TestUpdateViewPreservesIDFocus(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int), Width: 100, Height: 100})
+	w.viewState.idFocus = 42
+	w.UpdateView(func(_ *Window) View {
+		return Text(TextCfg{Text: "hi"})
+	})
+	if w.IDFocus() != 42 {
+		t.Errorf("IDFocus = %d, want 42 after UpdateView",
+			w.IDFocus())
+	}
+}
+
 func TestClearViewStateResetsIDFocus(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int), Width: 100, Height: 100})
 	w.viewState.idFocus = 42
