@@ -9,6 +9,7 @@ import (
 // --- boolDefault ---
 
 func TestBoolDefaultNilReturnsDefault(t *testing.T) {
+	t.Parallel()
 	if got := boolDefault(nil, true); !got {
 		t.Error("nil pointer should return default true")
 	}
@@ -18,6 +19,7 @@ func TestBoolDefaultNilReturnsDefault(t *testing.T) {
 }
 
 func TestBoolDefaultNonNilReturnsValue(t *testing.T) {
+	t.Parallel()
 	if got := boolDefault(new(bool), true); got {
 		t.Error("non-nil false should return false")
 	}
@@ -30,6 +32,7 @@ func TestBoolDefaultNonNilReturnsValue(t *testing.T) {
 // --- dataGridRowID ---
 
 func TestDataGridRowIDExplicit(t *testing.T) {
+	t.Parallel()
 	row := GridRow{ID: "abc", Cells: map[string]string{"x": "1"}}
 	if got := dataGridRowID(row, 5); got != "abc" {
 		t.Errorf("got %q, want %q", got, "abc")
@@ -37,6 +40,7 @@ func TestDataGridRowIDExplicit(t *testing.T) {
 }
 
 func TestDataGridRowIDAutoHash(t *testing.T) {
+	t.Parallel()
 	row := GridRow{Cells: map[string]string{"col": "val"}}
 	got := dataGridRowID(row, 7)
 	if got == "7" {
@@ -48,6 +52,7 @@ func TestDataGridRowIDAutoHash(t *testing.T) {
 }
 
 func TestDataGridRowIDIndexFallback(t *testing.T) {
+	t.Parallel()
 	row := GridRow{}
 	if got := dataGridRowID(row, 42); got != "42" {
 		t.Errorf("got %q, want %q", got, "42")
@@ -57,6 +62,7 @@ func TestDataGridRowIDIndexFallback(t *testing.T) {
 // --- dataGridRowAutoID ---
 
 func TestDataGridRowAutoIDStable(t *testing.T) {
+	t.Parallel()
 	row := GridRow{Cells: map[string]string{"a": "1", "b": "2"}}
 	id1 := dataGridRowAutoID(row)
 	id2 := dataGridRowAutoID(row)
@@ -69,6 +75,7 @@ func TestDataGridRowAutoIDStable(t *testing.T) {
 }
 
 func TestDataGridRowAutoIDEmpty(t *testing.T) {
+	t.Parallel()
 	row := GridRow{Cells: map[string]string{}}
 	if got := dataGridRowAutoID(row); got != "" {
 		t.Errorf("empty cells should return empty, got %q", got)
@@ -76,6 +83,7 @@ func TestDataGridRowAutoIDEmpty(t *testing.T) {
 }
 
 func TestDataGridRowAutoIDDifferentData(t *testing.T) {
+	t.Parallel()
 	r1 := GridRow{Cells: map[string]string{"a": "1"}}
 	r2 := GridRow{Cells: map[string]string{"a": "2"}}
 	if dataGridRowAutoID(r1) == dataGridRowAutoID(r2) {
@@ -86,6 +94,7 @@ func TestDataGridRowAutoIDDifferentData(t *testing.T) {
 // --- dataGridPageBounds ---
 
 func TestDataGridPageBoundsNoPagination(t *testing.T) {
+	t.Parallel()
 	start, end, pageIdx, pageCount := dataGridPageBounds(10, 0, 0)
 	if start != 0 || end != 10 {
 		t.Errorf("range: got [%d,%d), want [0,10)", start, end)
@@ -97,6 +106,7 @@ func TestDataGridPageBoundsNoPagination(t *testing.T) {
 }
 
 func TestDataGridPageBoundsFirstPage(t *testing.T) {
+	t.Parallel()
 	start, end, pageIdx, _ := dataGridPageBounds(25, 10, 0)
 	if start != 0 || end != 10 || pageIdx != 0 {
 		t.Errorf("first page: got start=%d end=%d idx=%d",
@@ -105,6 +115,7 @@ func TestDataGridPageBoundsFirstPage(t *testing.T) {
 }
 
 func TestDataGridPageBoundsLastPage(t *testing.T) {
+	t.Parallel()
 	start, end, pageIdx, pageCount := dataGridPageBounds(25, 10, 2)
 	if start != 20 || end != 25 {
 		t.Errorf("last page range: got [%d,%d), want [20,25)",
@@ -117,6 +128,7 @@ func TestDataGridPageBoundsLastPage(t *testing.T) {
 }
 
 func TestDataGridPageBoundsClampsBeyondLast(t *testing.T) {
+	t.Parallel()
 	_, _, pageIdx, pageCount := dataGridPageBounds(25, 10, 99)
 	if pageIdx != pageCount-1 {
 		t.Errorf("should clamp to last page: got %d, want %d",
@@ -125,6 +137,7 @@ func TestDataGridPageBoundsClampsBeyondLast(t *testing.T) {
 }
 
 func TestDataGridPageBoundsZeroRows(t *testing.T) {
+	t.Parallel()
 	start, end, _, pageCount := dataGridPageBounds(0, 10, 0)
 	if start != 0 || end != 0 || pageCount != 1 {
 		t.Errorf("zero rows: got start=%d end=%d pages=%d",
@@ -135,6 +148,7 @@ func TestDataGridPageBoundsZeroRows(t *testing.T) {
 // --- dataGridVisibleRangeForScroll ---
 
 func TestDataGridVisibleRangeTop(t *testing.T) {
+	t.Parallel()
 	first, last := dataGridVisibleRangeForScroll(
 		0, 100, 20, 50, 0, 0)
 	if first != 0 {
@@ -147,6 +161,7 @@ func TestDataGridVisibleRangeTop(t *testing.T) {
 }
 
 func TestDataGridVisibleRangeMiddle(t *testing.T) {
+	t.Parallel()
 	// scrollY=200, rowHeight=20 → first row index = 10
 	first, last := dataGridVisibleRangeForScroll(
 		200, 100, 20, 50, 0, 2)
@@ -160,6 +175,7 @@ func TestDataGridVisibleRangeMiddle(t *testing.T) {
 }
 
 func TestDataGridVisibleRangeBottom(t *testing.T) {
+	t.Parallel()
 	// scrollY large enough to push past end; 20 rows total
 	first, last := dataGridVisibleRangeForScroll(
 		1000, 100, 20, 20, 0, 0)
@@ -172,6 +188,7 @@ func TestDataGridVisibleRangeBottom(t *testing.T) {
 }
 
 func TestDataGridVisibleRangeEmpty(t *testing.T) {
+	t.Parallel()
 	first, last := dataGridVisibleRangeForScroll(
 		0, 100, 20, 0, 0, 0)
 	if first != 0 || last != -1 {
@@ -182,6 +199,7 @@ func TestDataGridVisibleRangeEmpty(t *testing.T) {
 // --- dataGridPresentationSignature ---
 
 func TestDataGridPresentationSignatureStable(t *testing.T) {
+	t.Parallel()
 	cfg := &DataGridCfg{
 		ID:   "g1",
 		Rows: []GridRow{{Cells: map[string]string{"a": "1"}}},
@@ -196,6 +214,7 @@ func TestDataGridPresentationSignatureStable(t *testing.T) {
 }
 
 func TestDataGridPresentationSignatureDiffers(t *testing.T) {
+	t.Parallel()
 	cfg1 := &DataGridCfg{
 		ID:      "g1",
 		GroupBy: []string{"a"},
@@ -219,6 +238,7 @@ func TestDataGridPresentationSignatureDiffers(t *testing.T) {
 }
 
 func TestDataGridPresentationSignatureFlatIgnoresCellValues(t *testing.T) {
+	t.Parallel()
 	cfg1 := &DataGridCfg{
 		ID:   "g1",
 		Rows: []GridRow{{ID: "r1", Cells: map[string]string{"a": "1"}}},
@@ -239,6 +259,7 @@ func TestDataGridPresentationSignatureFlatIgnoresCellValues(t *testing.T) {
 // --- dataGridBuildPresentation (via dataGridPresentationRows) ---
 
 func TestDataGridBuildPresentationFlat(t *testing.T) {
+	t.Parallel()
 	cfg := &DataGridCfg{
 		Rows: []GridRow{
 			{ID: "r0", Cells: map[string]string{"a": "x"}},
@@ -258,6 +279,7 @@ func TestDataGridBuildPresentationFlat(t *testing.T) {
 }
 
 func TestDataGridBuildPresentationGrouped(t *testing.T) {
+	t.Parallel()
 	cfg := &DataGridCfg{
 		GroupBy: []string{"dept"},
 		Rows: []GridRow{
@@ -288,6 +310,7 @@ func TestDataGridBuildPresentationGrouped(t *testing.T) {
 }
 
 func TestDataGridBuildPresentationDetail(t *testing.T) {
+	t.Parallel()
 	cfg := &DataGridCfg{
 		Rows: []GridRow{
 			{ID: "r0", Cells: map[string]string{"a": "1"}},
@@ -319,6 +342,7 @@ func TestDataGridBuildPresentationDetail(t *testing.T) {
 // --- dataGridGroupRanges ---
 
 func TestDataGridGroupRanges(t *testing.T) {
+	t.Parallel()
 	rows := []GridRow{
 		{Cells: map[string]string{"g": "A"}},
 		{Cells: map[string]string{"g": "A"}},
@@ -341,6 +365,7 @@ func TestDataGridGroupRanges(t *testing.T) {
 }
 
 func TestDataGridGroupRangesEmpty(t *testing.T) {
+	t.Parallel()
 	ranges := dataGridGroupRanges(nil, nil, []string{"g"})
 	if len(ranges) != 0 {
 		t.Errorf("should be empty, got %d entries", len(ranges))
@@ -350,6 +375,7 @@ func TestDataGridGroupRangesEmpty(t *testing.T) {
 // --- dataGridAggregateValue (compute aggregates) ---
 
 func TestDataGridAggregateCount(t *testing.T) {
+	t.Parallel()
 	rows := []GridRow{
 		{Cells: map[string]string{"v": "10"}},
 		{Cells: map[string]string{"v": "20"}},
@@ -363,6 +389,7 @@ func TestDataGridAggregateCount(t *testing.T) {
 }
 
 func TestDataGridAggregateSum(t *testing.T) {
+	t.Parallel()
 	rows := []GridRow{
 		{Cells: map[string]string{"v": "10"}},
 		{Cells: map[string]string{"v": "20"}},
@@ -376,6 +403,7 @@ func TestDataGridAggregateSum(t *testing.T) {
 }
 
 func TestDataGridAggregateAvg(t *testing.T) {
+	t.Parallel()
 	rows := []GridRow{
 		{Cells: map[string]string{"v": "10"}},
 		{Cells: map[string]string{"v": "20"}},
@@ -389,6 +417,7 @@ func TestDataGridAggregateAvg(t *testing.T) {
 }
 
 func TestDataGridAggregateMin(t *testing.T) {
+	t.Parallel()
 	rows := []GridRow{
 		{Cells: map[string]string{"v": "30"}},
 		{Cells: map[string]string{"v": "10"}},
@@ -402,6 +431,7 @@ func TestDataGridAggregateMin(t *testing.T) {
 }
 
 func TestDataGridAggregateMax(t *testing.T) {
+	t.Parallel()
 	rows := []GridRow{
 		{Cells: map[string]string{"v": "10"}},
 		{Cells: map[string]string{"v": "30"}},
@@ -415,6 +445,7 @@ func TestDataGridAggregateMax(t *testing.T) {
 }
 
 func TestDataGridAggregateNonNumeric(t *testing.T) {
+	t.Parallel()
 	rows := []GridRow{
 		{Cells: map[string]string{"v": "abc"}},
 	}
@@ -428,6 +459,7 @@ func TestDataGridAggregateNonNumeric(t *testing.T) {
 // --- dataGridActiveRowIndex ---
 
 func TestDataGridActiveRowIndexFound(t *testing.T) {
+	t.Parallel()
 	rows := []GridRow{
 		{ID: "a"}, {ID: "b"}, {ID: "c"},
 	}
@@ -438,6 +470,7 @@ func TestDataGridActiveRowIndexFound(t *testing.T) {
 }
 
 func TestDataGridActiveRowIndexMissing(t *testing.T) {
+	t.Parallel()
 	rows := []GridRow{{ID: "a"}, {ID: "b"}}
 	sel := GridSelection{ActiveRowID: "z"}
 	// Falls back to 0 when rows exist.
@@ -447,6 +480,7 @@ func TestDataGridActiveRowIndexMissing(t *testing.T) {
 }
 
 func TestDataGridActiveRowIndexEmpty(t *testing.T) {
+	t.Parallel()
 	sel := GridSelection{ActiveRowID: "x"}
 	if got := dataGridActiveRowIndex(nil, sel); got != -1 {
 		t.Errorf("got %d, want -1", got)
@@ -454,6 +488,7 @@ func TestDataGridActiveRowIndexEmpty(t *testing.T) {
 }
 
 func TestDataGridActiveRowIndexStrict(t *testing.T) {
+	t.Parallel()
 	rows := []GridRow{{ID: "a"}, {ID: "b"}}
 	sel := GridSelection{ActiveRowID: "z"}
 	if got := dataGridActiveRowIndexStrict(rows, sel); got != -1 {
@@ -462,6 +497,7 @@ func TestDataGridActiveRowIndexStrict(t *testing.T) {
 }
 
 func TestDataGridActiveRowIndexSelectedFallback(t *testing.T) {
+	t.Parallel()
 	rows := []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}}
 	sel := GridSelection{
 		SelectedRowIDs: map[string]bool{"b": true, "c": true},
@@ -474,6 +510,7 @@ func TestDataGridActiveRowIndexSelectedFallback(t *testing.T) {
 // --- dataGridHasRowID ---
 
 func TestDataGridHasRowIDFound(t *testing.T) {
+	t.Parallel()
 	rows := []GridRow{{ID: "a"}, {ID: "b"}}
 	if !dataGridHasRowID(rows, "b") {
 		t.Error("should find 'b'")
@@ -481,6 +518,7 @@ func TestDataGridHasRowIDFound(t *testing.T) {
 }
 
 func TestDataGridHasRowIDNotFound(t *testing.T) {
+	t.Parallel()
 	rows := []GridRow{{ID: "a"}, {ID: "b"}}
 	if dataGridHasRowID(rows, "z") {
 		t.Error("should not find 'z'")
@@ -488,6 +526,7 @@ func TestDataGridHasRowIDNotFound(t *testing.T) {
 }
 
 func TestDataGridHasRowIDEmpty(t *testing.T) {
+	t.Parallel()
 	rows := []GridRow{{ID: "a"}}
 	if dataGridHasRowID(rows, "") {
 		t.Error("empty rowID should return false")
@@ -497,6 +536,7 @@ func TestDataGridHasRowIDEmpty(t *testing.T) {
 // --- dataGridPagerEnabled ---
 
 func TestDataGridPagerEnabledTrue(t *testing.T) {
+	t.Parallel()
 	cfg := &DataGridCfg{PageSize: 10}
 	if !dataGridPagerEnabled(cfg, 3) {
 		t.Error("should be enabled with pageCount>1 and pageSize>0")
@@ -504,6 +544,7 @@ func TestDataGridPagerEnabledTrue(t *testing.T) {
 }
 
 func TestDataGridPagerEnabledSinglePage(t *testing.T) {
+	t.Parallel()
 	cfg := &DataGridCfg{PageSize: 10}
 	if dataGridPagerEnabled(cfg, 1) {
 		t.Error("should not be enabled with pageCount=1")
@@ -511,6 +552,7 @@ func TestDataGridPagerEnabledSinglePage(t *testing.T) {
 }
 
 func TestDataGridPagerEnabledZeroPageSize(t *testing.T) {
+	t.Parallel()
 	cfg := &DataGridCfg{PageSize: 0}
 	if dataGridPagerEnabled(cfg, 5) {
 		t.Error("should not be enabled with pageSize=0")
@@ -520,6 +562,7 @@ func TestDataGridPagerEnabledZeroPageSize(t *testing.T) {
 // --- dataGridIndicatorTextStyle ---
 
 func TestDataGridIndicatorTextStyleDimsAlpha(t *testing.T) {
+	t.Parallel()
 	base := gg.TextStyle{
 		Color: gg.RGBA(200, 100, 50, 255),
 		Size:  14,
@@ -540,6 +583,7 @@ func TestDataGridIndicatorTextStyleDimsAlpha(t *testing.T) {
 // --- DataGrid Disabled/Invisible propagation ---
 
 func TestDataGridDisabledPropagates(t *testing.T) {
+	t.Parallel()
 	w := &gg.Window{}
 	v := New(w, DataGridCfg{
 		ID:       "dg1",
@@ -554,6 +598,7 @@ func TestDataGridDisabledPropagates(t *testing.T) {
 }
 
 func TestDataGridInvisiblePropagates(t *testing.T) {
+	t.Parallel()
 	w := &gg.Window{}
 	v := New(w, DataGridCfg{
 		ID:        "dg2",
@@ -571,6 +616,7 @@ func TestDataGridInvisiblePropagates(t *testing.T) {
 }
 
 func TestDataGridRowsData(t *testing.T) {
+	t.Parallel()
 	w := &gg.Window{}
 	v := New(w, DataGridCfg{
 		ID: "dg-rowsdata",
@@ -586,6 +632,7 @@ func TestDataGridRowsData(t *testing.T) {
 }
 
 func TestDataGridRowsDataAutoColumns(t *testing.T) {
+	t.Parallel()
 	w := &gg.Window{}
 	v := New(w, DataGridCfg{
 		ID:       "dg-autocol",
@@ -601,6 +648,7 @@ func TestDataGridRowsDataAutoColumns(t *testing.T) {
 }
 
 func TestDataGridRowsDataPrecedence(t *testing.T) {
+	t.Parallel()
 	// RowsData takes precedence over Rows. DataSource still
 	// wins over both.
 	w := &gg.Window{}
@@ -618,6 +666,7 @@ func TestDataGridRowsDataPrecedence(t *testing.T) {
 }
 
 func TestDataGridRowsDataDataSourceWins(t *testing.T) {
+	t.Parallel()
 	// DataSource takes precedence over RowsData.
 	ds := NewInMemoryDataSource([]GridRow{
 		{ID: "ds1", Cells: map[string]string{"name": "FromDS"}},
@@ -638,6 +687,7 @@ func TestDataGridRowsDataDataSourceWins(t *testing.T) {
 }
 
 func TestDataGridRowsDataEmptyFirstRow(t *testing.T) {
+	t.Parallel()
 	w := &gg.Window{}
 	v := New(w, DataGridCfg{
 		ID: "dg-empty-first",

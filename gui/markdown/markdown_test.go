@@ -22,6 +22,7 @@ func assertContains(t *testing.T, s, sub string) {
 // --- Headers ---
 
 func TestMarkdownH1(t *testing.T) {
+	t.Parallel()
 	blocks := parse("# Hello")
 	if len(blocks) == 0 {
 		t.Fatal("no blocks")
@@ -33,6 +34,7 @@ func TestMarkdownH1(t *testing.T) {
 }
 
 func TestMarkdownH2(t *testing.T) {
+	t.Parallel()
 	blocks := parse("## World")
 	if len(blocks) == 0 || blocks[0].HeaderLevel != 2 {
 		t.Fatal("expected H2")
@@ -40,6 +42,7 @@ func TestMarkdownH2(t *testing.T) {
 }
 
 func TestMarkdownH3toH6(t *testing.T) {
+	t.Parallel()
 	for level := 3; level <= 6; level++ {
 		prefix := strings.Repeat("#", level)
 		blocks := parse(prefix + " Heading")
@@ -52,6 +55,7 @@ func TestMarkdownH3toH6(t *testing.T) {
 }
 
 func TestMarkdownSetextH1(t *testing.T) {
+	t.Parallel()
 	blocks := parse("Title\n=====")
 	if len(blocks) == 0 || blocks[0].HeaderLevel != 1 {
 		t.Fatal("expected setext H1")
@@ -59,6 +63,7 @@ func TestMarkdownSetextH1(t *testing.T) {
 }
 
 func TestMarkdownSetextH2(t *testing.T) {
+	t.Parallel()
 	blocks := parse("Title\n-----")
 	if len(blocks) == 0 || blocks[0].HeaderLevel != 2 {
 		t.Fatal("expected setext H2")
@@ -66,6 +71,7 @@ func TestMarkdownSetextH2(t *testing.T) {
 }
 
 func TestMarkdownHeadingAnchor(t *testing.T) {
+	t.Parallel()
 	blocks := parse("# Hello World")
 	if len(blocks) == 0 {
 		t.Fatal("no blocks")
@@ -78,6 +84,7 @@ func TestMarkdownHeadingAnchor(t *testing.T) {
 // --- Inline formatting ---
 
 func TestMarkdownBold(t *testing.T) {
+	t.Parallel()
 	blocks := parse("**bold**")
 	found := false
 	for _, b := range blocks {
@@ -94,6 +101,7 @@ func TestMarkdownBold(t *testing.T) {
 }
 
 func TestMarkdownItalic(t *testing.T) {
+	t.Parallel()
 	blocks := parse("*italic*")
 	found := false
 	for _, b := range blocks {
@@ -110,6 +118,7 @@ func TestMarkdownItalic(t *testing.T) {
 }
 
 func TestMarkdownBoldItalic(t *testing.T) {
+	t.Parallel()
 	blocks := parse("***both***")
 	found := false
 	for _, b := range blocks {
@@ -126,6 +135,7 @@ func TestMarkdownBoldItalic(t *testing.T) {
 }
 
 func TestMarkdownInlineCode(t *testing.T) {
+	t.Parallel()
 	blocks := parse("text `code` text")
 	found := false
 	for _, b := range blocks {
@@ -142,6 +152,7 @@ func TestMarkdownInlineCode(t *testing.T) {
 }
 
 func TestMarkdownStrikethrough(t *testing.T) {
+	t.Parallel()
 	blocks := parse("~~strikethrough~~")
 	found := false
 	for _, b := range blocks {
@@ -158,6 +169,7 @@ func TestMarkdownStrikethrough(t *testing.T) {
 }
 
 func TestMarkdownHighlight(t *testing.T) {
+	t.Parallel()
 	blocks := parse("==highlighted==")
 	found := false
 	for _, b := range blocks {
@@ -174,6 +186,7 @@ func TestMarkdownHighlight(t *testing.T) {
 }
 
 func TestMarkdownSuperscript(t *testing.T) {
+	t.Parallel()
 	blocks := parse("x^2^")
 	found := false
 	for _, b := range blocks {
@@ -190,6 +203,7 @@ func TestMarkdownSuperscript(t *testing.T) {
 }
 
 func TestMarkdownUnderline(t *testing.T) {
+	t.Parallel()
 	blocks := parse("++underlined++")
 	found := false
 	for _, b := range blocks {
@@ -206,6 +220,7 @@ func TestMarkdownUnderline(t *testing.T) {
 }
 
 func TestMarkdownUnderlineBold(t *testing.T) {
+	t.Parallel()
 	blocks := parse("++**bold underline**++")
 	found := false
 	for _, b := range blocks {
@@ -221,6 +236,7 @@ func TestMarkdownUnderlineBold(t *testing.T) {
 }
 
 func TestMarkdownSubscript(t *testing.T) {
+	t.Parallel()
 	blocks := parse("H~2~O")
 	found := false
 	for _, b := range blocks {
@@ -239,6 +255,7 @@ func TestMarkdownSubscript(t *testing.T) {
 // --- Links ---
 
 func TestMarkdownInlineLink(t *testing.T) {
+	t.Parallel()
 	blocks := parse("[click](https://example.com)")
 	found := false
 	for _, b := range blocks {
@@ -255,6 +272,7 @@ func TestMarkdownInlineLink(t *testing.T) {
 }
 
 func TestMarkdownAutoLink(t *testing.T) {
+	t.Parallel()
 	blocks := parse("<https://example.com>")
 	found := false
 	for _, b := range blocks {
@@ -271,6 +289,7 @@ func TestMarkdownAutoLink(t *testing.T) {
 }
 
 func TestMarkdownReferenceLink(t *testing.T) {
+	t.Parallel()
 	blocks := parse("[text][ref]\n\n[ref]: https://example.com")
 	found := false
 	for _, b := range blocks {
@@ -288,6 +307,7 @@ func TestMarkdownReferenceLink(t *testing.T) {
 // --- Images ---
 
 func TestMarkdownImage(t *testing.T) {
+	t.Parallel()
 	blocks := parse("![alt text](image.png)")
 	found := false
 	for _, b := range blocks {
@@ -301,6 +321,7 @@ func TestMarkdownImage(t *testing.T) {
 }
 
 func TestMarkdownImageRemoteWithDims(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		src  string
@@ -327,6 +348,7 @@ func TestMarkdownImageRemoteWithDims(t *testing.T) {
 }
 
 func TestMarkdownImageTraversal(t *testing.T) {
+	t.Parallel()
 	blocks := parse("![alt](../../../etc/passwd.png)")
 	for _, b := range blocks {
 		if b.IsImage && b.ImageSrc != "" {
@@ -338,6 +360,7 @@ func TestMarkdownImageTraversal(t *testing.T) {
 // --- Lists ---
 
 func TestMarkdownUnorderedList(t *testing.T) {
+	t.Parallel()
 	blocks := parse("- item1\n- item2\n- item3")
 	listCount := 0
 	for _, b := range blocks {
@@ -351,6 +374,7 @@ func TestMarkdownUnorderedList(t *testing.T) {
 }
 
 func TestMarkdownOrderedList(t *testing.T) {
+	t.Parallel()
 	blocks := parse("1. first\n2. second\n3. third")
 	listCount := 0
 	for _, b := range blocks {
@@ -364,6 +388,7 @@ func TestMarkdownOrderedList(t *testing.T) {
 }
 
 func TestMarkdownNestedList(t *testing.T) {
+	t.Parallel()
 	blocks := parse("- outer\n  - inner")
 	found := false
 	for _, b := range blocks {
@@ -377,6 +402,7 @@ func TestMarkdownNestedList(t *testing.T) {
 }
 
 func TestMarkdownNestedListOrder(t *testing.T) {
+	t.Parallel()
 	blocks := parse("1. parent\n   1. child")
 	if len(blocks) < 2 {
 		t.Fatalf("expected 2 list blocks, got %d",
@@ -393,6 +419,7 @@ func TestMarkdownNestedListOrder(t *testing.T) {
 }
 
 func TestMarkdownTaskList(t *testing.T) {
+	t.Parallel()
 	blocks := parse("- [x] done\n- [ ] todo")
 	if len(blocks) < 2 {
 		t.Fatal("expected at least 2 blocks")
@@ -402,6 +429,7 @@ func TestMarkdownTaskList(t *testing.T) {
 // --- Blockquotes ---
 
 func TestMarkdownBlockquote(t *testing.T) {
+	t.Parallel()
 	blocks := parse("> quoted text")
 	found := false
 	for _, b := range blocks {
@@ -415,6 +443,7 @@ func TestMarkdownBlockquote(t *testing.T) {
 }
 
 func TestMarkdownNestedBlockquote(t *testing.T) {
+	t.Parallel()
 	blocks := parse("> level1\n>> level2")
 	maxDepth := 0
 	for _, b := range blocks {
@@ -430,6 +459,7 @@ func TestMarkdownNestedBlockquote(t *testing.T) {
 // --- Tables ---
 
 func TestMarkdownTable(t *testing.T) {
+	t.Parallel()
 	blocks := parse("| A | B |\n|---|---|\n| 1 | 2 |")
 	found := false
 	for _, b := range blocks {
@@ -447,6 +477,7 @@ func TestMarkdownTable(t *testing.T) {
 }
 
 func TestMarkdownTableAlignments(t *testing.T) {
+	t.Parallel()
 	blocks := parse(
 		"| L | C | R |\n|:--|:--:|--:|\n| a | b | c |")
 	for _, b := range blocks {
@@ -468,6 +499,7 @@ func TestMarkdownTableAlignments(t *testing.T) {
 }
 
 func TestMarkdownTableNoOuterPipes(t *testing.T) {
+	t.Parallel()
 	blocks := parse("A | B\n---|---\n1 | 2")
 	found := false
 	for _, b := range blocks {
@@ -483,6 +515,7 @@ func TestMarkdownTableNoOuterPipes(t *testing.T) {
 // --- Code blocks ---
 
 func TestMarkdownFencedCodeBlock(t *testing.T) {
+	t.Parallel()
 	blocks := parse("```go\nfmt.Println(\"hi\")\n```")
 	found := false
 	for _, b := range blocks {
@@ -496,6 +529,7 @@ func TestMarkdownFencedCodeBlock(t *testing.T) {
 }
 
 func TestMarkdownTildeFence(t *testing.T) {
+	t.Parallel()
 	blocks := parse("~~~python\nprint('hi')\n~~~")
 	found := false
 	for _, b := range blocks {
@@ -509,6 +543,7 @@ func TestMarkdownTildeFence(t *testing.T) {
 }
 
 func TestMarkdownCodeBlockContent(t *testing.T) {
+	t.Parallel()
 	blocks := parse("```\nhello world\n```")
 	found := false
 	for _, b := range blocks {
@@ -525,6 +560,7 @@ func TestMarkdownCodeBlockContent(t *testing.T) {
 }
 
 func TestMarkdownCodeBlockCRLF(t *testing.T) {
+	t.Parallel()
 	blocks := parse("```\r\nline1\r\nline2\r\n```")
 	found := false
 	for _, b := range blocks {
@@ -546,6 +582,7 @@ func TestMarkdownCodeBlockCRLF(t *testing.T) {
 // --- HR ---
 
 func TestMarkdownHR(t *testing.T) {
+	t.Parallel()
 	blocks := parse("---")
 	found := false
 	for _, b := range blocks {
@@ -561,6 +598,7 @@ func TestMarkdownHR(t *testing.T) {
 // --- Math ---
 
 func TestMarkdownDisplayMath(t *testing.T) {
+	t.Parallel()
 	blocks := parse("$$\nE = mc^2\n$$")
 	found := false
 	for _, b := range blocks {
@@ -574,6 +612,7 @@ func TestMarkdownDisplayMath(t *testing.T) {
 }
 
 func TestMarkdownMathFence(t *testing.T) {
+	t.Parallel()
 	blocks := parse("```math\nE = mc^2\n```")
 	found := false
 	for _, b := range blocks {
@@ -587,6 +626,7 @@ func TestMarkdownMathFence(t *testing.T) {
 }
 
 func TestMarkdownInlineMath(t *testing.T) {
+	t.Parallel()
 	blocks := parse("The equation $E = mc^2$ is famous.")
 	found := false
 	for _, b := range blocks {
@@ -602,6 +642,7 @@ func TestMarkdownInlineMath(t *testing.T) {
 }
 
 func TestMarkdownNotMathDollarAmount(t *testing.T) {
+	t.Parallel()
 	blocks := parse("The price is $10.")
 	for _, b := range blocks {
 		for _, r := range b.Runs {
@@ -615,6 +656,7 @@ func TestMarkdownNotMathDollarAmount(t *testing.T) {
 // --- Footnotes ---
 
 func TestMarkdownFootnote(t *testing.T) {
+	t.Parallel()
 	blocks := parse(
 		"Text[^1] more.\n\n[^1]: Footnote content.")
 	foundFootnote := false
@@ -631,6 +673,7 @@ func TestMarkdownFootnote(t *testing.T) {
 }
 
 func TestMarkdownFootnoteNamed(t *testing.T) {
+	t.Parallel()
 	blocks := parse(
 		"Text[^note] more.\n\n[^note]: Named footnote.")
 	foundFootnote := false
@@ -647,6 +690,7 @@ func TestMarkdownFootnoteNamed(t *testing.T) {
 }
 
 func TestMarkdownFootnoteUndefined(t *testing.T) {
+	t.Parallel()
 	blocks := parse("Text[^undef] more.")
 	for _, b := range blocks {
 		for _, r := range b.Runs {
@@ -660,6 +704,7 @@ func TestMarkdownFootnoteUndefined(t *testing.T) {
 // --- Definition lists ---
 
 func TestMarkdownDefinitionList(t *testing.T) {
+	t.Parallel()
 	blocks := parse("Term\n:   Definition text")
 	hasTerm := false
 	hasValue := false
@@ -680,6 +725,7 @@ func TestMarkdownDefinitionList(t *testing.T) {
 // --- Abbreviations ---
 
 func TestMarkdownAbbreviation(t *testing.T) {
+	t.Parallel()
 	blocks := parse(
 		"The HTML spec.\n\n*[HTML]: HyperText Markup Language")
 	found := false
@@ -696,6 +742,7 @@ func TestMarkdownAbbreviation(t *testing.T) {
 }
 
 func TestMarkdownAbbrWordBoundary(t *testing.T) {
+	t.Parallel()
 	blocks := parse(
 		"HTMLX is not HTML.\n\n*[HTML]: Markup Language")
 	// Only standalone "HTML" should have tooltip,
@@ -712,6 +759,7 @@ func TestMarkdownAbbrWordBoundary(t *testing.T) {
 // --- Emoji ---
 
 func TestMarkdownEmoji(t *testing.T) {
+	t.Parallel()
 	blocks := parse(":smile:")
 	if len(blocks) == 0 {
 		t.Fatal("expected at least one block")
@@ -723,6 +771,7 @@ func TestMarkdownEmoji(t *testing.T) {
 }
 
 func TestMarkdownEmojiUnknown(t *testing.T) {
+	t.Parallel()
 	blocks := parse(":notarealemojicode:")
 	text := RunsToText(blocks[0].Runs)
 	if !strings.Contains(text, ":notarealemojicode:") {
@@ -731,6 +780,7 @@ func TestMarkdownEmojiUnknown(t *testing.T) {
 }
 
 func TestMarkdownBareColon(t *testing.T) {
+	t.Parallel()
 	blocks := parse("time: 3:00")
 	text := RunsToText(blocks[0].Runs)
 	assertContains(t, text, "time: 3:00")
@@ -739,6 +789,7 @@ func TestMarkdownBareColon(t *testing.T) {
 // --- Paragraph breaks ---
 
 func TestMarkdownParagraphBreak(t *testing.T) {
+	t.Parallel()
 	blocks := parse("Para 1.\n\nPara 2.")
 	if len(blocks) < 2 {
 		t.Fatalf("expected 2 paragraphs, got %d",
@@ -749,6 +800,7 @@ func TestMarkdownParagraphBreak(t *testing.T) {
 // --- Hard line breaks ---
 
 func TestMarkdownHardLineBreak(t *testing.T) {
+	t.Parallel()
 	blocks := parse("line1  \nline2")
 	text := RunsToText(blocks[0].Runs)
 	if !strings.Contains(text, "\n") {
@@ -759,6 +811,7 @@ func TestMarkdownHardLineBreak(t *testing.T) {
 // --- Escapes ---
 
 func TestMarkdownEscapes(t *testing.T) {
+	t.Parallel()
 	blocks := parse("\\*not bold\\*")
 	if len(blocks) == 0 {
 		t.Fatal("no blocks")
@@ -774,6 +827,7 @@ func TestMarkdownEscapes(t *testing.T) {
 // --- Security ---
 
 func TestMarkdownJavascriptLinkBlocked(t *testing.T) {
+	t.Parallel()
 	blocks := parse("[click](javascript:alert(1))")
 	for _, b := range blocks {
 		for _, r := range b.Runs {
@@ -789,6 +843,7 @@ func TestMarkdownJavascriptLinkBlocked(t *testing.T) {
 // --- Syntax highlighting ---
 
 func TestMarkdownSyntaxHighlightGo(t *testing.T) {
+	t.Parallel()
 	blocks := parse(
 		"```go\nfunc main() {\n\tfmt.Println(\"hello\")\n}\n```")
 	found := false
@@ -808,6 +863,7 @@ func TestMarkdownSyntaxHighlightGo(t *testing.T) {
 }
 
 func TestMarkdownSyntaxHighlightPython(t *testing.T) {
+	t.Parallel()
 	blocks := parse(
 		"```python\ndef hello():\n    print(\"hi\")\n```")
 	found := false
@@ -827,6 +883,7 @@ func TestMarkdownSyntaxHighlightPython(t *testing.T) {
 }
 
 func TestMarkdownSyntaxHighlightJS(t *testing.T) {
+	t.Parallel()
 	blocks := parse(
 		"```javascript\nconst x = 42;\n```")
 	found := false
@@ -846,6 +903,7 @@ func TestMarkdownSyntaxHighlightJS(t *testing.T) {
 }
 
 func TestMarkdownSyntaxHighlightString(t *testing.T) {
+	t.Parallel()
 	blocks := parse("```go\nvar s = \"hello\"\n```")
 	found := false
 	for _, b := range blocks {
@@ -861,6 +919,7 @@ func TestMarkdownSyntaxHighlightString(t *testing.T) {
 }
 
 func TestMarkdownSyntaxHighlightNumber(t *testing.T) {
+	t.Parallel()
 	blocks := parse("```go\nvar n = 42\n```")
 	found := false
 	for _, b := range blocks {
@@ -876,6 +935,7 @@ func TestMarkdownSyntaxHighlightNumber(t *testing.T) {
 }
 
 func TestMarkdownSyntaxHighlightComment(t *testing.T) {
+	t.Parallel()
 	blocks := parse("```go\n// comment\n```")
 	found := false
 	for _, b := range blocks {
@@ -893,6 +953,7 @@ func TestMarkdownSyntaxHighlightComment(t *testing.T) {
 // --- Misc ---
 
 func TestMarkdownEmpty(t *testing.T) {
+	t.Parallel()
 	blocks := parse("")
 	if len(blocks) != 0 {
 		t.Fatalf("empty source should produce 0 blocks, got %d",
@@ -901,6 +962,7 @@ func TestMarkdownEmpty(t *testing.T) {
 }
 
 func TestMarkdownPlainParagraph(t *testing.T) {
+	t.Parallel()
 	blocks := parse("Hello world.")
 	if len(blocks) == 0 {
 		t.Fatal("expected at least one block")
@@ -909,6 +971,7 @@ func TestMarkdownPlainParagraph(t *testing.T) {
 }
 
 func TestMarkdownMultipleBlocks(t *testing.T) {
+	t.Parallel()
 	blocks := parse("# Header\n\nParagraph.\n\n---\n\n> Quote")
 	hasHeader := false
 	hasHR := false
@@ -933,6 +996,7 @@ func TestMarkdownMultipleBlocks(t *testing.T) {
 // --- Code language detection ---
 
 func TestLangFromHint(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		hint string
 		want CodeLanguage
@@ -964,6 +1028,7 @@ func TestLangFromHint(t *testing.T) {
 }
 
 func TestMarkdownListPrefix(t *testing.T) {
+	t.Parallel()
 	blocks := parse("- item")
 	for _, b := range blocks {
 		if b.IsList {
@@ -975,6 +1040,7 @@ func TestMarkdownListPrefix(t *testing.T) {
 }
 
 func TestMarkdownOrderedListPrefix(t *testing.T) {
+	t.Parallel()
 	blocks := parse("1. first\n2. second")
 	for _, b := range blocks {
 		if b.IsList && strings.Contains(b.ListPrefix, "1") {
@@ -996,6 +1062,7 @@ func TestMarkdownOrderedListPrefix(t *testing.T) {
 // --- URL safety ---
 
 func TestIsSafeURL(t *testing.T) {
+	t.Parallel()
 	safe := []string{
 		"https://example.com",
 		"http://example.com",
@@ -1012,6 +1079,7 @@ func TestIsSafeURL(t *testing.T) {
 }
 
 func TestIsSafeURLBlocked(t *testing.T) {
+	t.Parallel()
 	blocked := []string{
 		"javascript:alert(1)",
 		"data:text/html,<h1>",
@@ -1032,6 +1100,7 @@ func TestIsSafeURLBlocked(t *testing.T) {
 }
 
 func TestIsSafeURLEdgeCases(t *testing.T) {
+	t.Parallel()
 	if IsSafeURL("") {
 		t.Error("empty should not be safe")
 	}
@@ -1047,6 +1116,7 @@ func TestIsSafeURLEdgeCases(t *testing.T) {
 }
 
 func TestIsSafeImagePath(t *testing.T) {
+	t.Parallel()
 	safe := []string{
 		"https://example.com/image.png",
 		"image.jpg",
@@ -1072,6 +1142,7 @@ func TestIsSafeImagePath(t *testing.T) {
 // --- Heading slug ---
 
 func TestHeadingSlug(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		input, want string
 	}{

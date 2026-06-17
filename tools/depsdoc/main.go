@@ -47,12 +47,13 @@ var directPurpose = map[string]string{
 
 // indirectPulledBy maps indirect-dependency modules to what pulls them in.
 var indirectPulledBy = map[string]string{
-	"github.com/dlclark/regexp2": "chroma",
-	"github.com/rivo/uniseg":     "grapheme segmentation (chroma/glyph)",
-	"golang.org/x/mobile":        "gobind tool (Android AAR builds)",
-	"golang.org/x/sync":          "x/tools",
-	"golang.org/x/sys":           "sdl2 / godbus",
-	"golang.org/x/text":          "misc. text processing (transitive)",
+	"github.com/dlclark/regexp2":    "chroma",
+	"github.com/dlclark/regexp2/v2": "chroma",
+	"github.com/rivo/uniseg":        "grapheme segmentation (chroma/glyph)",
+	"golang.org/x/mobile":           "gobind tool (Android AAR builds)",
+	"golang.org/x/sync":             "x/tools",
+	"golang.org/x/sys":              "sdl2 / godbus",
+	"golang.org/x/text":             "misc. text processing (transitive)",
 }
 
 func run() error {

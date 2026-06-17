@@ -8,6 +8,7 @@ import (
 )
 
 func TestTokenizeGoKeyword(t *testing.T) {
+	t.Parallel()
 	src := "package main\n\nfunc main() {}\n"
 	toks := Default().Tokenize("go", src)
 	if len(toks) == 0 {
@@ -31,6 +32,7 @@ func TestTokenizeGoKeyword(t *testing.T) {
 }
 
 func TestTokenizeUnknownLang(t *testing.T) {
+	t.Parallel()
 	toks := Default().Tokenize("", "hello")
 	if len(toks) != 1 || toks[0].Kind != KindPlain || toks[0].Text != "hello" {
 		t.Errorf("unexpected fallback: %+v", toks)
@@ -42,12 +44,14 @@ func TestTokenizeUnknownLang(t *testing.T) {
 }
 
 func TestTokenize_EmptySrc_ReturnsNil(t *testing.T) {
+	t.Parallel()
 	if toks := Default().Tokenize("go", ""); toks != nil {
 		t.Errorf("empty src: want nil, got %+v", toks)
 	}
 }
 
 func TestTokenize_OverMaxBytes_FallsBackToPlain(t *testing.T) {
+	t.Parallel()
 	src := strings.Repeat("a", maxTokenizeBytes+1)
 	toks := Default().Tokenize("go", src)
 	if len(toks) != 1 || toks[0].Kind != KindPlain {
@@ -59,6 +63,7 @@ func TestTokenize_OverMaxBytes_FallsBackToPlain(t *testing.T) {
 }
 
 func TestTokenize_AllKinds_GoSnippet(t *testing.T) {
+	t.Parallel()
 	src := `// c
 package main
 import "fmt"
@@ -85,6 +90,7 @@ func f() {
 }
 
 func TestMapKind_KeywordTypeBecomesType(t *testing.T) {
+	t.Parallel()
 	if got := mapKind(chroma.KeywordType); got != KindType {
 		t.Errorf("KeywordType: want KindType, got %d", got)
 	}
@@ -97,6 +103,7 @@ func TestMapKind_KeywordTypeBecomesType(t *testing.T) {
 }
 
 func TestLookupLexer_UncuratedReturnsNil(t *testing.T) {
+	t.Parallel()
 	if lookupLexer("fortran") != nil {
 		t.Error("fortran should not be in curated set")
 	}
@@ -109,6 +116,7 @@ func TestLookupLexer_UncuratedReturnsNil(t *testing.T) {
 }
 
 func TestRoundtripText(t *testing.T) {
+	t.Parallel()
 	src := "x := 1 + 2 // note\n"
 	toks := Default().Tokenize("go", src)
 	var b strings.Builder

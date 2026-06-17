@@ -8,6 +8,7 @@ import (
 // --- mergeFormat ---
 
 func TestMergeFormatPlainChild(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		parent, child, want Format
 	}{
@@ -27,6 +28,7 @@ func TestMergeFormatPlainChild(t *testing.T) {
 }
 
 func TestMergeFormatBoldCombinations(t *testing.T) {
+	t.Parallel()
 	// Bold + Italic → BoldItalic.
 	if mergeFormat(FormatBold, FormatItalic) != FormatBoldItalic {
 		t.Error("Bold+Italic should be BoldItalic")
@@ -46,6 +48,7 @@ func TestMergeFormatBoldCombinations(t *testing.T) {
 }
 
 func TestMergeFormatItalicCombinations(t *testing.T) {
+	t.Parallel()
 	if mergeFormat(FormatItalic, FormatBold) != FormatBoldItalic {
 		t.Error("Italic+Bold should be BoldItalic")
 	}
@@ -58,6 +61,7 @@ func TestMergeFormatItalicCombinations(t *testing.T) {
 }
 
 func TestMergeFormatBoldItalicStays(t *testing.T) {
+	t.Parallel()
 	// BoldItalic + anything (except Code) → BoldItalic.
 	for _, child := range []Format{
 		FormatPlain, FormatBold, FormatItalic, FormatBoldItalic,
@@ -69,6 +73,7 @@ func TestMergeFormatBoldItalicStays(t *testing.T) {
 }
 
 func TestMergeFormatCodeWins(t *testing.T) {
+	t.Parallel()
 	// Code in either position wins.
 	for _, other := range []Format{
 		FormatPlain, FormatBold, FormatItalic, FormatBoldItalic,
@@ -85,6 +90,7 @@ func TestMergeFormatCodeWins(t *testing.T) {
 // --- scanSource preprocessing ---
 
 func TestScanSourceAbbrStripped(t *testing.T) {
+	t.Parallel()
 	src := "Hello HTML.\n\n*[HTML]: HyperText Markup Language"
 	result, _, _ := scanSource(src)
 	if strings.Contains(result, "*[HTML]") {
@@ -93,6 +99,7 @@ func TestScanSourceAbbrStripped(t *testing.T) {
 }
 
 func TestScanSourceFootnoteStripped(t *testing.T) {
+	t.Parallel()
 	src := "Text[^1] more.\n\n[^1]: Footnote content."
 	result, _, _ := scanSource(src)
 	if strings.Contains(result, "[^1]: Footnote") {
@@ -101,6 +108,7 @@ func TestScanSourceFootnoteStripped(t *testing.T) {
 }
 
 func TestScanSourceFootnoteMultiline(t *testing.T) {
+	t.Parallel()
 	src := "[^1]: First line.\n    Continuation.\n\nParagraph."
 	result, _, _ := scanSource(src)
 	if strings.Contains(result, "Continuation") {
@@ -112,6 +120,7 @@ func TestScanSourceFootnoteMultiline(t *testing.T) {
 }
 
 func TestScanSourceMathFence(t *testing.T) {
+	t.Parallel()
 	src := "$$\nE = mc^2\n$$"
 	result, _, _ := scanSource(src)
 	if !strings.Contains(result, "```math") {
@@ -123,6 +132,7 @@ func TestScanSourceMathFence(t *testing.T) {
 }
 
 func TestScanSourceImageDims(t *testing.T) {
+	t.Parallel()
 	src := "![alt](image.png =200x100)"
 	result, _, _ := scanSource(src)
 	if !strings.Contains(result, "#dim=200x100") {
@@ -134,6 +144,7 @@ func TestScanSourceImageDims(t *testing.T) {
 }
 
 func TestScanSourcePassthrough(t *testing.T) {
+	t.Parallel()
 	src := "# Hello\n\nPlain paragraph."
 	result, _, _ := scanSource(src)
 	if result != src {
@@ -145,6 +156,7 @@ func TestScanSourcePassthrough(t *testing.T) {
 // --- scanSource abbr defs ---
 
 func TestScanSourceAbbrDefs(t *testing.T) {
+	t.Parallel()
 	src := "*[HTML]: HyperText Markup Language\n*[CSS]: Cascading Style Sheets"
 	_, defs, _ := scanSource(src)
 	if defs["HTML"] != "HyperText Markup Language" {
@@ -156,6 +168,7 @@ func TestScanSourceAbbrDefs(t *testing.T) {
 }
 
 func TestScanSourceAbbrDefsEmpty(t *testing.T) {
+	t.Parallel()
 	_, defs, _ := scanSource("No abbreviations here.")
 	if len(defs) != 0 {
 		t.Errorf("expected 0 abbr defs, got %d", len(defs))
@@ -163,6 +176,7 @@ func TestScanSourceAbbrDefsEmpty(t *testing.T) {
 }
 
 func TestScanSourceAbbrDefsMalformed(t *testing.T) {
+	t.Parallel()
 	_, defs, _ := scanSource("*[HTML HyperText")
 	if len(defs) != 0 {
 		t.Error("malformed abbr def should not be collected")
@@ -170,6 +184,7 @@ func TestScanSourceAbbrDefsMalformed(t *testing.T) {
 }
 
 func TestScanSourceAbbrDefsEmptyExpansion(t *testing.T) {
+	t.Parallel()
 	_, defs, _ := scanSource("*[HTML]:")
 	if len(defs) != 0 {
 		t.Error("empty expansion should not be collected")
@@ -179,6 +194,7 @@ func TestScanSourceAbbrDefsEmptyExpansion(t *testing.T) {
 // --- scanSource footnote defs ---
 
 func TestScanSourceFootnoteDefs(t *testing.T) {
+	t.Parallel()
 	src := "[^1]: First footnote.\n[^note]: Named footnote."
 	_, _, defs := scanSource(src)
 	if defs["1"] != "First footnote." {
@@ -190,6 +206,7 @@ func TestScanSourceFootnoteDefs(t *testing.T) {
 }
 
 func TestScanSourceFootnoteDefsEmpty(t *testing.T) {
+	t.Parallel()
 	_, _, defs := scanSource("No footnotes.")
 	if len(defs) != 0 {
 		t.Errorf("expected 0 footnote defs, got %d", len(defs))
@@ -197,6 +214,7 @@ func TestScanSourceFootnoteDefsEmpty(t *testing.T) {
 }
 
 func TestScanSourceFootnoteDefsContinuation(t *testing.T) {
+	t.Parallel()
 	src := "[^1]: Line one.\n    Line two."
 	_, _, defs := scanSource(src)
 	if !strings.Contains(defs["1"], "Line two") {
@@ -206,6 +224,7 @@ func TestScanSourceFootnoteDefsContinuation(t *testing.T) {
 }
 
 func TestScanSourceFootnoteDefsMalformed(t *testing.T) {
+	t.Parallel()
 	_, _, defs := scanSource("[^]: no id")
 	if len(defs) != 0 {
 		t.Error("malformed footnote should not be collected")
@@ -215,6 +234,7 @@ func TestScanSourceFootnoteDefsMalformed(t *testing.T) {
 // --- isAbbrDef ---
 
 func TestIsAbbrDef(t *testing.T) {
+	t.Parallel()
 	if !isAbbrDef("*[HTML]: HyperText Markup Language") {
 		t.Error("valid abbr def not recognized")
 	}
@@ -229,6 +249,7 @@ func TestIsAbbrDef(t *testing.T) {
 // --- isFootnoteDef ---
 
 func TestIsFootnoteDef(t *testing.T) {
+	t.Parallel()
 	if !isFootnoteDef("[^1]: Footnote content") {
 		t.Error("valid footnote def not recognized")
 	}
@@ -246,6 +267,7 @@ func TestIsFootnoteDef(t *testing.T) {
 // --- isWordBoundary ---
 
 func TestIsWordBoundary(t *testing.T) {
+	t.Parallel()
 	// Before start and after end are boundaries.
 	if !isWordBoundary("hello", -1) {
 		t.Error("pos -1 should be boundary")
@@ -278,6 +300,7 @@ func TestIsWordBoundary(t *testing.T) {
 // --- applyFootnoteRefs ---
 
 func TestApplyFootnoteRefsBasic(t *testing.T) {
+	t.Parallel()
 	defs := map[string]string{"1": "Footnote text."}
 	runs := []Run{{Text: "See[^1] here."}}
 	result := applyFootnoteRefs(runs, defs)
@@ -293,6 +316,7 @@ func TestApplyFootnoteRefsBasic(t *testing.T) {
 }
 
 func TestApplyFootnoteRefsNoDefs(t *testing.T) {
+	t.Parallel()
 	runs := []Run{{Text: "No footnotes."}}
 	result := applyFootnoteRefs(runs, nil)
 	if len(result) != 1 || result[0].Text != "No footnotes." {
@@ -301,6 +325,7 @@ func TestApplyFootnoteRefsNoDefs(t *testing.T) {
 }
 
 func TestApplyFootnoteRefsUndefined(t *testing.T) {
+	t.Parallel()
 	defs := map[string]string{"1": "Footnote."}
 	runs := []Run{{Text: "See[^2] here."}}
 	result := applyFootnoteRefs(runs, defs)
@@ -312,6 +337,7 @@ func TestApplyFootnoteRefsUndefined(t *testing.T) {
 }
 
 func TestApplyFootnoteRefsSkipsLinks(t *testing.T) {
+	t.Parallel()
 	defs := map[string]string{"1": "Footnote."}
 	runs := []Run{{Text: "See[^1] here.", Link: "http://x"}}
 	result := applyFootnoteRefs(runs, defs)
@@ -323,6 +349,7 @@ func TestApplyFootnoteRefsSkipsLinks(t *testing.T) {
 }
 
 func TestApplyFootnoteRefsSkipsTooltip(t *testing.T) {
+	t.Parallel()
 	defs := map[string]string{"1": "Footnote."}
 	runs := []Run{{Text: "See[^1].", Tooltip: "existing"}}
 	result := applyFootnoteRefs(runs, defs)
@@ -332,6 +359,7 @@ func TestApplyFootnoteRefsSkipsTooltip(t *testing.T) {
 }
 
 func TestApplyFootnoteRefsSkipsMath(t *testing.T) {
+	t.Parallel()
 	defs := map[string]string{"1": "Footnote."}
 	runs := []Run{{Text: "See[^1].", MathID: "math_123"}}
 	result := applyFootnoteRefs(runs, defs)
@@ -341,6 +369,7 @@ func TestApplyFootnoteRefsSkipsMath(t *testing.T) {
 }
 
 func TestApplyFootnoteRefsMultiple(t *testing.T) {
+	t.Parallel()
 	defs := map[string]string{
 		"1": "First.", "2": "Second.",
 	}
@@ -360,6 +389,7 @@ func TestApplyFootnoteRefsMultiple(t *testing.T) {
 // --- replaceAbbreviations ---
 
 func TestReplaceAbbreviationsBasic(t *testing.T) {
+	t.Parallel()
 	defs := map[string]string{"HTML": "HyperText Markup Language"}
 	runs := []Run{{Text: "The HTML spec."}}
 	result := replaceAbbreviations(runs, buildAbbrMatcher(defs))
@@ -376,6 +406,7 @@ func TestReplaceAbbreviationsBasic(t *testing.T) {
 }
 
 func TestReplaceAbbreviationsNoDefs(t *testing.T) {
+	t.Parallel()
 	runs := []Run{{Text: "HTML text."}}
 	result := replaceAbbreviations(runs, nil)
 	if len(result) != 1 || result[0].Text != "HTML text." {
@@ -384,6 +415,7 @@ func TestReplaceAbbreviationsNoDefs(t *testing.T) {
 }
 
 func TestReplaceAbbreviationsWordBoundary(t *testing.T) {
+	t.Parallel()
 	defs := map[string]string{"HTML": "HyperText Markup Language"}
 	runs := []Run{{Text: "HTMLX is not HTML."}}
 	result := replaceAbbreviations(runs, buildAbbrMatcher(defs))
@@ -405,6 +437,7 @@ func TestReplaceAbbreviationsWordBoundary(t *testing.T) {
 }
 
 func TestReplaceAbbreviationsSkipsLinks(t *testing.T) {
+	t.Parallel()
 	defs := map[string]string{"HTML": "Markup"}
 	runs := []Run{{Text: "HTML spec.", Link: "http://x"}}
 	result := replaceAbbreviations(runs, buildAbbrMatcher(defs))
@@ -414,6 +447,7 @@ func TestReplaceAbbreviationsSkipsLinks(t *testing.T) {
 }
 
 func TestReplaceAbbreviationsLongerFirst(t *testing.T) {
+	t.Parallel()
 	// Longer abbreviations should match first.
 	defs := map[string]string{
 		"CSS":  "Cascading Style Sheets",
@@ -430,6 +464,7 @@ func TestReplaceAbbreviationsLongerFirst(t *testing.T) {
 }
 
 func TestReplaceAbbreviationsMultipleOccurrences(t *testing.T) {
+	t.Parallel()
 	defs := map[string]string{"HTML": "Markup"}
 	runs := []Run{{Text: "HTML and HTML."}}
 	result := replaceAbbreviations(runs, buildAbbrMatcher(defs))
@@ -447,6 +482,7 @@ func TestReplaceAbbreviationsMultipleOccurrences(t *testing.T) {
 // --- mergeAdjacentRuns ---
 
 func TestMergeAdjacentRunsSameFormat(t *testing.T) {
+	t.Parallel()
 	runs := []Run{
 		{Text: "hello ", Format: FormatPlain},
 		{Text: "world", Format: FormatPlain},
@@ -461,6 +497,7 @@ func TestMergeAdjacentRunsSameFormat(t *testing.T) {
 }
 
 func TestMergeAdjacentRunsDifferentFormat(t *testing.T) {
+	t.Parallel()
 	runs := []Run{
 		{Text: "plain ", Format: FormatPlain},
 		{Text: "bold", Format: FormatBold},
@@ -472,6 +509,7 @@ func TestMergeAdjacentRunsDifferentFormat(t *testing.T) {
 }
 
 func TestMergeAdjacentRunsEmpty(t *testing.T) {
+	t.Parallel()
 	result := mergeAdjacentRuns(nil)
 	if len(result) != 0 {
 		t.Error("nil input should return nil")
@@ -479,6 +517,7 @@ func TestMergeAdjacentRunsEmpty(t *testing.T) {
 }
 
 func TestMergeAdjacentRunsSingle(t *testing.T) {
+	t.Parallel()
 	runs := []Run{{Text: "only"}}
 	result := mergeAdjacentRuns(runs)
 	if len(result) != 1 || result[0].Text != "only" {
@@ -487,6 +526,7 @@ func TestMergeAdjacentRunsSingle(t *testing.T) {
 }
 
 func TestMergeAdjacentRunsMathNotMerged(t *testing.T) {
+	t.Parallel()
 	runs := []Run{
 		{Text: "a", MathID: "m1"},
 		{Text: "b", MathID: "m2"},
@@ -498,6 +538,7 @@ func TestMergeAdjacentRunsMathNotMerged(t *testing.T) {
 }
 
 func TestMergeAdjacentRunsDifferentCodeToken(t *testing.T) {
+	t.Parallel()
 	runs := []Run{
 		{Text: "func", Format: FormatCode, CodeToken: TokenKeyword},
 		{Text: " ", Format: FormatCode, CodeToken: TokenPlain},
@@ -511,6 +552,7 @@ func TestMergeAdjacentRunsDifferentCodeToken(t *testing.T) {
 // --- applyTypography ---
 
 func TestApplyTypographyEmDash(t *testing.T) {
+	t.Parallel()
 	runs := []Run{{Text: "hello---world"}}
 	applyTypography(runs)
 	if runs[0].Text != "hello\u2014world" {
@@ -519,6 +561,7 @@ func TestApplyTypographyEmDash(t *testing.T) {
 }
 
 func TestApplyTypographyEnDash(t *testing.T) {
+	t.Parallel()
 	runs := []Run{{Text: "10--20"}}
 	applyTypography(runs)
 	if runs[0].Text != "10\u201320" {
@@ -527,6 +570,7 @@ func TestApplyTypographyEnDash(t *testing.T) {
 }
 
 func TestApplyTypographyEllipsis(t *testing.T) {
+	t.Parallel()
 	runs := []Run{{Text: "wait..."}}
 	applyTypography(runs)
 	if runs[0].Text != "wait\u2026" {
@@ -535,6 +579,7 @@ func TestApplyTypographyEllipsis(t *testing.T) {
 }
 
 func TestApplyTypographySkipsCode(t *testing.T) {
+	t.Parallel()
 	runs := []Run{{Text: "a---b", Format: FormatCode}}
 	applyTypography(runs)
 	if runs[0].Text != "a---b" {
@@ -543,6 +588,7 @@ func TestApplyTypographySkipsCode(t *testing.T) {
 }
 
 func TestApplyTypographySkipsMath(t *testing.T) {
+	t.Parallel()
 	runs := []Run{{Text: "a---b", MathID: "m1"}}
 	applyTypography(runs)
 	if runs[0].Text != "a---b" {
@@ -551,6 +597,7 @@ func TestApplyTypographySkipsMath(t *testing.T) {
 }
 
 func TestApplyTypographyOrderMatters(t *testing.T) {
+	t.Parallel()
 	// --- must be replaced before -- to avoid partial match.
 	runs := []Run{{Text: "a---b--c"}}
 	applyTypography(runs)
@@ -562,6 +609,7 @@ func TestApplyTypographyOrderMatters(t *testing.T) {
 // --- trimTrailingBreaks ---
 
 func TestTrimTrailingBreaks(t *testing.T) {
+	t.Parallel()
 	runs := []Run{
 		{Text: "hello"},
 		{Text: "\n"},
@@ -574,6 +622,7 @@ func TestTrimTrailingBreaks(t *testing.T) {
 }
 
 func TestTrimTrailingBreaksKeepsLinkBreak(t *testing.T) {
+	t.Parallel()
 	runs := []Run{
 		{Text: "hello"},
 		{Text: "\n", Link: "http://x"},
@@ -585,6 +634,7 @@ func TestTrimTrailingBreaksKeepsLinkBreak(t *testing.T) {
 }
 
 func TestTrimTrailingBreaksEmpty(t *testing.T) {
+	t.Parallel()
 	result := trimTrailingBreaks(nil)
 	if len(result) != 0 {
 		t.Error("nil should return nil")
@@ -594,6 +644,7 @@ func TestTrimTrailingBreaksEmpty(t *testing.T) {
 // --- RunsToText ---
 
 func TestRunsToTextBasic(t *testing.T) {
+	t.Parallel()
 	runs := []Run{
 		{Text: "hello "},
 		{Text: "world"},
@@ -604,6 +655,7 @@ func TestRunsToTextBasic(t *testing.T) {
 }
 
 func TestRunsToTextEmpty(t *testing.T) {
+	t.Parallel()
 	if RunsToText(nil) != "" {
 		t.Error("nil runs should return empty string")
 	}
@@ -612,6 +664,7 @@ func TestRunsToTextEmpty(t *testing.T) {
 // --- MathHash ---
 
 func TestMathHashDeterministic(t *testing.T) {
+	t.Parallel()
 	a := MathHash("E = mc^2")
 	b := MathHash("E = mc^2")
 	if a != b {
@@ -620,6 +673,7 @@ func TestMathHashDeterministic(t *testing.T) {
 }
 
 func TestMathHashDifferent(t *testing.T) {
+	t.Parallel()
 	a := MathHash("E = mc^2")
 	b := MathHash("a^2 + b^2 = c^2")
 	if a == b {
@@ -628,6 +682,7 @@ func TestMathHashDifferent(t *testing.T) {
 }
 
 func TestMathHashEmpty(t *testing.T) {
+	t.Parallel()
 	// FNV-1a offset basis for empty string.
 	if MathHash("") != 14695981039346656037 {
 		t.Errorf("empty string hash = %d, want FNV offset basis",
@@ -638,6 +693,7 @@ func TestMathHashEmpty(t *testing.T) {
 // --- parseImageSrc ---
 
 func TestParseImageSrcNoDims(t *testing.T) {
+	t.Parallel()
 	src, w, h := parseImageSrc("image.png")
 	if src != "image.png" || w != 0 || h != 0 {
 		t.Errorf("no dims: src=%q w=%v h=%v", src, w, h)
@@ -645,6 +701,7 @@ func TestParseImageSrcNoDims(t *testing.T) {
 }
 
 func TestParseImageSrcFragmentDims(t *testing.T) {
+	t.Parallel()
 	src, w, h := parseImageSrc("image.png#dim=200x100")
 	if src != "image.png" || w != 200 || h != 100 {
 		t.Errorf("fragment dims: src=%q w=%v h=%v", src, w, h)
@@ -652,6 +709,7 @@ func TestParseImageSrcFragmentDims(t *testing.T) {
 }
 
 func TestParseImageSrcSpaceDims(t *testing.T) {
+	t.Parallel()
 	src, w, h := parseImageSrc("image.png =200x100")
 	if src != "image.png" || w != 200 || h != 100 {
 		t.Errorf("space dims: src=%q w=%v h=%v", src, w, h)
@@ -659,6 +717,7 @@ func TestParseImageSrcSpaceDims(t *testing.T) {
 }
 
 func TestParseImageSrcURL(t *testing.T) {
+	t.Parallel()
 	src, w, h := parseImageSrc("https://example.com/img.png")
 	if src != "https://example.com/img.png" || w != 0 || h != 0 {
 		t.Errorf("url: src=%q w=%v h=%v", src, w, h)
@@ -668,6 +727,7 @@ func TestParseImageSrcURL(t *testing.T) {
 // --- parseDims ---
 
 func TestParseDims(t *testing.T) {
+	t.Parallel()
 	w, h, ok := parseDims("200x100")
 	if !ok || w != 200 || h != 100 {
 		t.Errorf("parseDims: w=%v h=%v ok=%v", w, h, ok)
@@ -675,6 +735,7 @@ func TestParseDims(t *testing.T) {
 }
 
 func TestParseDimsNoX(t *testing.T) {
+	t.Parallel()
 	_, _, ok := parseDims("200")
 	if ok {
 		t.Error("no 'x' should not parse")
@@ -682,6 +743,7 @@ func TestParseDimsNoX(t *testing.T) {
 }
 
 func TestParseDimsZero(t *testing.T) {
+	t.Parallel()
 	_, _, ok := parseDims("0x0")
 	if ok {
 		t.Error("0x0 should not be valid")
@@ -691,6 +753,7 @@ func TestParseDimsZero(t *testing.T) {
 // --- parseFloat32 ---
 
 func TestParseFloat32(t *testing.T) {
+	t.Parallel()
 	if parseFloat32("200") != 200 {
 		t.Error("200 should parse")
 	}
@@ -708,6 +771,7 @@ func TestParseFloat32(t *testing.T) {
 // --- canMergeRuns ---
 
 func TestCanMergeRunsIdentical(t *testing.T) {
+	t.Parallel()
 	a := Run{Text: "a", Format: FormatBold}
 	b := Run{Text: "b", Format: FormatBold}
 	if !canMergeRuns(a, b) {
@@ -716,6 +780,7 @@ func TestCanMergeRunsIdentical(t *testing.T) {
 }
 
 func TestCanMergeRunsDifferentFormat(t *testing.T) {
+	t.Parallel()
 	a := Run{Text: "a", Format: FormatBold}
 	b := Run{Text: "b", Format: FormatItalic}
 	if canMergeRuns(a, b) {
@@ -724,6 +789,7 @@ func TestCanMergeRunsDifferentFormat(t *testing.T) {
 }
 
 func TestCanMergeRunsDifferentStrikethrough(t *testing.T) {
+	t.Parallel()
 	a := Run{Text: "a", Strikethrough: true}
 	b := Run{Text: "b", Strikethrough: false}
 	if canMergeRuns(a, b) {
@@ -732,6 +798,7 @@ func TestCanMergeRunsDifferentStrikethrough(t *testing.T) {
 }
 
 func TestCanMergeRunsDifferentLink(t *testing.T) {
+	t.Parallel()
 	a := Run{Text: "a", Link: "http://x"}
 	b := Run{Text: "b", Link: "http://y"}
 	if canMergeRuns(a, b) {
@@ -740,6 +807,7 @@ func TestCanMergeRunsDifferentLink(t *testing.T) {
 }
 
 func TestCanMergeRunsMathBlocks(t *testing.T) {
+	t.Parallel()
 	a := Run{Text: "a", MathID: "m1"}
 	b := Run{Text: "b"}
 	if canMergeRuns(a, b) {
@@ -748,6 +816,7 @@ func TestCanMergeRunsMathBlocks(t *testing.T) {
 }
 
 func TestCanMergeRunsDifferentUnderline(t *testing.T) {
+	t.Parallel()
 	a := Run{Text: "a", Underline: true}
 	b := Run{Text: "b", Underline: false}
 	if canMergeRuns(a, b) {

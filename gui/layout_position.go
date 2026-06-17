@@ -1,8 +1,6 @@
 package gui
 
 // layoutPositions sets positions and handles alignment.
-//
-//nolint:gocyclo // alignment + float positioning
 func layoutPositions(layout *Layout, offsetX, offsetY float32, w *Window) {
 	layout.Shape.X += offsetX
 	layout.Shape.Y += offsetY
@@ -16,128 +14,18 @@ func layoutPositions(layout *Layout, offsetX, offsetY float32, w *Window) {
 
 	isRTL := effectiveTextDir(layout.Shape) == TextDirRTL
 
-	var x, y float32
-	if isRTL && axis == AxisLeftToRight {
-		x = layout.Shape.X + layout.Shape.Width - layout.Shape.Padding.Left - layout.Shape.SizeBorder
-	} else if isRTL {
-		x = layout.Shape.X + layout.Shape.Padding.Right + layout.Shape.SizeBorder
-	} else {
-		x = layout.Shape.X + layout.Shape.PaddingLeft()
-	}
-	y = layout.Shape.Y + layout.Shape.PaddingTop()
-
-	if layout.Shape.IDScroll > 0 {
-		sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
-		sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
-		if v, ok := sx.Get(layout.Shape.IDScroll); ok {
-			x += v
-		}
-		if v, ok := sy.Get(layout.Shape.IDScroll); ok {
-			y += v
-		}
-	}
-
-	// For rotated containers (90°/270°), children are positioned
-	// in the internal (unrotated) coordinate space, centered on
-	// the display rect.
-	layoutW := layout.Shape.Width
-	layoutH := layout.Shape.Height
-	turns := layout.Shape.QuarterTurns
-	if turns == 1 || turns == 3 {
-		contentW := layoutH // swapped back
-		contentH := layoutW
-		x += (layoutW - contentW) / 2
-		y += (layoutH - contentH) / 2
-		layoutW = contentW
-		layoutH = contentH
-	}
-
-	// Resolve start/end based on text direction
-	hAlign := layout.Shape.HAlign
-	switch hAlign {
-	case HAlignStart:
-		if isRTL {
-			hAlign = HAlignRight
-		} else {
-			hAlign = HAlignLeft
-		}
-	case HAlignEnd:
-		if isRTL {
-			hAlign = HAlignLeft
-		} else {
-			hAlign = HAlignRight
-		}
-	}
-
-	// Alignment along the axis
-	switch axis {
-	case AxisLeftToRight:
-		if isRTL {
-			if hAlign != HAlignRight {
-				remaining := layoutW - layout.Shape.paddingWidth()
-				remaining -= layout.spacing()
-				for i := range layout.Children {
-					remaining -= layout.Children[i].Shape.Width
-				}
-				if hAlign == HAlignCenter {
-					remaining /= 2
-				}
-				x -= remaining
-			}
-		} else {
-			if hAlign != HAlignLeft {
-				remaining := layoutW - layout.Shape.paddingWidth()
-				remaining -= layout.spacing()
-				for i := range layout.Children {
-					remaining -= layout.Children[i].Shape.Width
-				}
-				if hAlign == HAlignCenter {
-					remaining /= 2
-				}
-				x += remaining
-			}
-		}
-	case AxisTopToBottom:
-		if layout.Shape.VAlign != VAlignTop {
-			remaining := layoutH - layout.Shape.paddingHeight()
-			remaining -= layout.spacing()
-			for i := range layout.Children {
-				remaining -= layout.Children[i].Shape.Height
-			}
-			if layout.Shape.VAlign == VAlignMiddle {
-				remaining /= 2
-			}
-			y += remaining
-		}
-	}
+	x, y := layoutChildStartPos(layout, isRTL, axis, w)
+	layoutW, layoutH := layoutRotatedDims(layout, &x, &y)
+	hAlign := resolveHAlign(layout.Shape.HAlign, isRTL)
+	x, y = applyContainerAlignment(layout, hAlign, axis, isRTL, x, y, layoutW, layoutH)
 
 	for i := range layout.Children {
 		child := &layout.Children[i]
 		var xAlign, yAlign float32
-
-		switch axis {
-		case AxisLeftToRight:
-			remaining := layoutH - child.Shape.Height - layout.Shape.paddingHeight()
-			if remaining > 0 {
-				switch layout.Shape.VAlign {
-				case VAlignTop:
-				case VAlignMiddle:
-					yAlign = remaining / 2
-				default:
-					yAlign = remaining
-				}
-			}
-		case AxisTopToBottom:
-			remaining := layoutW - child.Shape.Width - layout.Shape.paddingWidth()
-			if remaining > 0 {
-				switch hAlign {
-				case HAlignLeft:
-				case HAlignCenter:
-					xAlign = remaining / 2
-				default:
-					xAlign = remaining
-				}
-			}
+		if axis == AxisLeftToRight {
+			yAlign = childCrossAxisVAlign(child, layout.Shape, layoutH)
+		} else {
+			xAlign = childCrossAxisHAlign(child, layout.Shape, hAlign, layoutW)
 		}
 
 		if isRTL && axis == AxisLeftToRight {
@@ -159,6 +47,151 @@ func layoutPositions(layout *Layout, offsetX, offsetY float32, w *Window) {
 			}
 		}
 	}
+}
+
+// layoutChildStartPos returns the starting x,y for child positioning,
+// adjusted for text direction, scroll offset, and padding.
+func layoutChildStartPos(
+	layout *Layout, isRTL bool, axis Axis, w *Window,
+) (x, y float32) {
+	if isRTL && axis == AxisLeftToRight {
+		x = layout.Shape.X + layout.Shape.Width -
+			layout.Shape.Padding.Left - layout.Shape.SizeBorder
+	} else if isRTL {
+		x = layout.Shape.X + layout.Shape.Padding.Right +
+			layout.Shape.SizeBorder
+	} else {
+		x = layout.Shape.X + layout.Shape.PaddingLeft()
+	}
+	y = layout.Shape.Y + layout.Shape.PaddingTop()
+
+	if layout.Shape.IDScroll > 0 {
+		sx := StateMap[uint32, float32](w, nsScrollX, capScroll)
+		sy := StateMap[uint32, float32](w, nsScrollY, capScroll)
+		if v, ok := sx.Get(layout.Shape.IDScroll); ok {
+			x += v
+		}
+		if v, ok := sy.Get(layout.Shape.IDScroll); ok {
+			y += v
+		}
+	}
+	return x, y
+}
+
+// layoutRotatedDims handles quarter-turn dimension swapping and
+// adjusts x,y to center children in the internal coordinate space.
+func layoutRotatedDims(layout *Layout, x, y *float32) (w, h float32) {
+	w = layout.Shape.Width
+	h = layout.Shape.Height
+	turns := layout.Shape.QuarterTurns
+	if turns == 1 || turns == 3 {
+		contentW := h // swapped back
+		contentH := w
+		*x += (w - contentW) / 2
+		*y += (h - contentH) / 2
+		w = contentW
+		h = contentH
+	}
+	return w, h
+}
+
+// resolveHAlign maps logical start/end alignment to physical
+// left/right based on text direction.
+func resolveHAlign(hAlign HorizontalAlign, isRTL bool) HorizontalAlign {
+	switch hAlign {
+	case HAlignStart:
+		if isRTL {
+			return HAlignRight
+		}
+		return HAlignLeft
+	case HAlignEnd:
+		if isRTL {
+			return HAlignLeft
+		}
+		return HAlignRight
+	default:
+		return hAlign
+	}
+}
+
+// applyContainerAlignment adjusts the start position based on
+// horizontal or vertical alignment within the container.
+func applyContainerAlignment(
+	layout *Layout, hAlign HorizontalAlign, axis Axis, isRTL bool,
+	x, y, layoutW, layoutH float32,
+) (float32, float32) {
+	switch axis {
+	case AxisLeftToRight:
+		var remaining float32
+		if isRTL && hAlign != HAlignRight ||
+			!isRTL && hAlign != HAlignLeft {
+			remaining = layoutW - layout.Shape.paddingWidth()
+			remaining -= layout.spacing()
+			for i := range layout.Children {
+				remaining -= layout.Children[i].Shape.Width
+			}
+			if hAlign == HAlignCenter {
+				remaining /= 2
+			}
+		}
+		if isRTL {
+			x -= remaining
+		} else {
+			x += remaining
+		}
+	case AxisTopToBottom:
+		if layout.Shape.VAlign != VAlignTop {
+			remaining := layoutH - layout.Shape.paddingHeight()
+			remaining -= layout.spacing()
+			for i := range layout.Children {
+				remaining -= layout.Children[i].Shape.Height
+			}
+			if layout.Shape.VAlign == VAlignMiddle {
+				remaining /= 2
+			}
+			y += remaining
+		}
+	}
+	return x, y
+}
+
+// childCrossAxisVAlign computes the vertical offset to center or
+// bottom-align a child within a horizontal layout (AxisLeftToRight).
+func childCrossAxisVAlign(
+	child *Layout, parent *Shape, layoutH float32,
+) (yAlign float32) {
+	remaining := layoutH - child.Shape.Height -
+		parent.paddingHeight()
+	if remaining > 0 {
+		switch parent.VAlign {
+		case VAlignTop:
+		case VAlignMiddle:
+			yAlign = remaining / 2
+		default:
+			yAlign = remaining
+		}
+	}
+	return yAlign
+}
+
+// childCrossAxisHAlign computes the horizontal offset to center or
+// right-align a child within a vertical layout (AxisTopToBottom).
+func childCrossAxisHAlign(
+	child *Layout, parent *Shape,
+	hAlign HorizontalAlign, layoutW float32,
+) (xAlign float32) {
+	remaining := layoutW - child.Shape.Width -
+		parent.paddingWidth()
+	if remaining > 0 {
+		switch hAlign {
+		case HAlignLeft:
+		case HAlignCenter:
+			xAlign = remaining / 2
+		default:
+			xAlign = remaining
+		}
+	}
+	return xAlign
 }
 
 // layoutScrollContainers identifies text views in scrollable containers.

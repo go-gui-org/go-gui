@@ -141,6 +141,52 @@ func TestLayoutSetShapeClipsNestedClipping(t *testing.T) {
 	}
 }
 
+func TestLayoutPositionsRTLEndAlign(t *testing.T) {
+	// RTL layout: HAlignEnd → HAlignLeft.
+	root := &Layout{
+		Shape: &Shape{
+			X: 0, Y: 0, Width: 200, Height: 50,
+			Axis:    AxisLeftToRight,
+			HAlign:  HAlignEnd,
+			TextDir: TextDirRTL,
+		},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 40, Height: 30}},
+		},
+	}
+	w := &Window{}
+	layoutParents(root, nil)
+	layoutPositions(root, 0, 0, w)
+
+	// HAlignEnd with RTL resolves to HAlignLeft — child at X=0.
+	if !f32AreClose(root.Children[0].Shape.X, 0) {
+		t.Errorf("X: got %f, want 0", root.Children[0].Shape.X)
+	}
+}
+
+func TestLayoutPositionsEndAlignLTR(t *testing.T) {
+	// Non-RTL layout: HAlignEnd → HAlignRight.
+	root := &Layout{
+		Shape: &Shape{
+			X: 0, Y: 0, Width: 200, Height: 50,
+			Axis:    AxisLeftToRight,
+			HAlign:  HAlignEnd,
+			TextDir: TextDirLTR,
+		},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 40, Height: 30}},
+		},
+	}
+	w := &Window{}
+	layoutParents(root, nil)
+	layoutPositions(root, 0, 0, w)
+
+	// HAlignEnd with LTR resolves to HAlignRight — child at X=160.
+	if !f32AreClose(root.Children[0].Shape.X, 160) {
+		t.Errorf("X: got %f, want 160", root.Children[0].Shape.X)
+	}
+}
+
 func TestLayoutScrollContainersNoScroll(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{shapeType: shapeRectangle},
