@@ -20,6 +20,15 @@ func TestMain(m *testing.M) {
 	// goroutines and cannot call Cocoa directly; TestBackendRenderSmoke
 	// skips for this reason.
 	runtime.LockOSThread()
+
+	// Run Cocoa-dependent regression tests on the main thread when
+	// GO_GUI_MAIN_THREAD_TESTS=1 is set. These create real windows
+	// and Metal contexts, so they are opt-in: they require a display
+	// and should not run in CI without a window server.
+	if os.Getenv("GO_GUI_MAIN_THREAD_TESTS") == "1" {
+		runMainThreadTests()
+	}
+
 	os.Exit(m.Run())
 }
 

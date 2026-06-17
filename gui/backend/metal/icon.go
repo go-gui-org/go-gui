@@ -5,6 +5,7 @@ package metal
 /*
 #cgo LDFLAGS: -framework Cocoa
 #include <stddef.h>
+void metalActivateApp(void);
 void metalSetDockIcon(const void *data, int len);
 */
 import "C"
@@ -54,6 +55,13 @@ func setWindowIcon(win *sdl.Window, png []byte) {
 	}
 	defer surface.Free()
 	win.SetIcon(surface)
+}
+
+// activateApp sets the NSApplication activation policy to Regular
+// and brings the app to the foreground. Must be called before
+// creating any windows for CLI-launched (non-bundled) binaries.
+func activateApp() {
+	C.metalActivateApp()
 }
 
 // setAppIcon sets the macOS Dock icon from PNG data.

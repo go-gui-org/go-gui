@@ -72,6 +72,10 @@ func New(w *gui.Window) (*Backend, error) {
 		return nil, fmt.Errorf("metal: Init: %w", err)
 	}
 
+	// Activate the app before creating any windows so the
+	// window is visible on macOS for CLI-launched binaries.
+	activateApp()
+
 	ws, err := createWindowState(w, nil)
 	if err != nil {
 		sdl.Quit()
@@ -212,6 +216,10 @@ func RunAppE(app *gui.App, initialWindows ...*gui.Window) error {
 		return fmt.Errorf("metal: Init: %w", err)
 	}
 	defer sdl.Quit()
+
+	// Activate the app before creating any windows so
+	// windows are visible on macOS for CLI-launched binaries.
+	activateApp()
 
 	// Shared resources.
 	cursors := createCursors()

@@ -1,5 +1,10 @@
 #import <Cocoa/Cocoa.h>
 
+void metalActivateApp(void) {
+    [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+    [NSApp activateIgnoringOtherApps:YES];
+}
+
 void metalSetDockIcon(const void *data, int len) {
     [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
 
