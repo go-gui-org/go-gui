@@ -71,12 +71,26 @@ func (w *Window) hoverInside() *BoundedMap[string, bool] {
 	return lazyBoundedMap(&w.hoverInsideMap, capModerate)
 }
 
-func (w *Window) scrollX() *BoundedMap[uint32, float32] {
+// ScrollX returns the horizontal scroll state map keyed by
+// IDScroll. Used by external packages that need to read scroll
+// position for virtualization.
+func (w *Window) ScrollX() *BoundedMap[uint32, float32] {
 	return lazyBoundedMap(&w.scrollXMap, capScroll)
 }
 
-func (w *Window) scrollY() *BoundedMap[uint32, float32] {
+// ScrollY returns the vertical scroll state map keyed by IDScroll.
+// Used by external packages that need to read scroll position for
+// virtualization.
+func (w *Window) ScrollY() *BoundedMap[uint32, float32] {
 	return lazyBoundedMap(&w.scrollYMap, capScroll)
+}
+
+func (w *Window) scrollX() *BoundedMap[uint32, float32] {
+	return w.ScrollX()
+}
+
+func (w *Window) scrollY() *BoundedMap[uint32, float32] {
+	return w.ScrollY()
 }
 
 func (w *Window) overflow() *BoundedMap[string, int] {

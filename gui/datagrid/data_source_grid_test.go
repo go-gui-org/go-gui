@@ -1,6 +1,7 @@
 package datagrid
 
 import (
+	"strconv"
 	"testing"
 
 	gg "github.com/go-gui-org/go-gui/gui"
@@ -518,6 +519,168 @@ func TestGetSourceStatsReturnsValue(t *testing.T) {
 }
 
 // --- dataGridSourceApplyPendingJumpSelection ---
+
+// --- ScrollY / ScrollX map integration ---
+
+func TestWindowScrollYMapRoundTrips(t *testing.T) {
+	// Regression: the datagrid must read scroll position from the
+	// same map the scroll system writes to (w.ScrollY()). A prior
+	// bug used gg.StateMap with a separate namespace, so scroll
+	// position was never shared and virtualization always saw zero.
+	t.Parallel()
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+
+	scrollID := gg.FnvSum32("dg:scroll")
+	const offset = float32(-350)
+
+	// Write.
+	w.ScrollY().Set(scrollID, offset)
+
+	// Read back through the same map.
+	v, ok := w.ScrollY().Get(scrollID)
+	if !ok {
+		t.Fatal("ScrollY key not found after Set")
+	}
+	if v != offset {
+		t.Fatalf("got %f, want %f", v, offset)
+	}
+}
+
+func TestWindowScrollXMapRoundTrips(t *testing.T) {
+	t.Parallel()
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+
+	scrollID := gg.FnvSum32("dg:hscroll")
+	const offset = float32(-120)
+
+	w.ScrollX().Set(scrollID, offset)
+
+	v, ok := w.ScrollX().Get(scrollID)
+	if !ok {
+		t.Fatal("ScrollX key not found after Set")
+	}
+	if v != offset {
+		t.Fatalf("got %f, want %f", v, offset)
+	}
+}
+
+func TestWindowScrollYMapsAreIndependent(t *testing.T) {
+	// Verify that ScrollX and ScrollY maps are separate, keyed
+	// by the same uint32 IDs but stored independently.
+	t.Parallel()
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+
+	id := gg.FnvSum32("dg:both")
+	w.ScrollY().Set(id, -100)
+	w.ScrollX().Set(id, -200)
+
+	vy, ok := w.ScrollY().Get(id)
+	if !ok || vy != -100 {
+		t.Fatalf("ScrollY: got (%f,%v), want (-100,true)", vy, ok)
+	}
+	vx, ok := w.ScrollX().Get(id)
+	if !ok || vx != -200 {
+		t.Fatalf("ScrollX: got (%f,%v), want (-200,true)", vx, ok)
+	}
+}
+
+// --- Scroll position affects visible rows (regression for
+//     datagrid reading scroll from wrong state map) ---
+
+func TestGridScrollShiftsVisibleRows(t *testing.T) {
+	// When the user scrolls down, w.ScrollY() holds the scroll
+	// offset.  The datagrid must read that offset to decide which
+	// rows to render.  Before the fix it read from a separate
+	// StateMap that was never written, so every frame looked like
+	// scrollY=0 and only the first ~20 rows ever rendered.
+	t.Parallel()
+
+	const (
+		rowHeight = 30
+		maxHeight = 300
+		numRows   = 100
+		// Scroll down enough that row 0 is well above the
+		// viewport and row 30 is visible.
+		scrollDown = float32(-750)
+	)
+
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+
+	rows := make([]GridRow, numRows)
+	for i := range numRows {
+		rows[i] = GridRow{
+			ID:    "r" + strconv.Itoa(i),
+			Cells: map[string]string{"a": strconv.Itoa(i)},
+		}
+	}
+
+	gridID := "dg-scroll-test"
+	scrollID := gg.FnvSum32(gridID + ":scroll")
+
+	// Simulate the user having scrolled down before this frame.
+	w.ScrollY().Set(scrollID, scrollDown)
+
+	v := New(w, DataGridCfg{
+		ID:        gridID,
+		MaxHeight: maxHeight,
+		RowHeight: rowHeight,
+		Columns:   []GridColumnCfg{{ID: "a", Title: "A"}},
+		Rows:      rows,
+	})
+	layout := gg.GenerateViewLayout(v, w) //nolint:staticcheck
+
+	// Row 0 must NOT be in the layout — it is above the visible
+	// range and the virtualizer replaces it with a spacer.
+	row0ID := gridID + ":row:r0"
+	if _, ok := layout.FindByID(row0ID); ok {
+		t.Error("row 0 should be scrolled off-screen and absent from layout")
+	}
+
+	// Row 30 should be visible (scrollDown / rowHeight ≈ 25,
+	// plus buffer = 27, so row 30 is inside the range).
+	row30ID := gridID + ":row:r30"
+	if _, ok := layout.FindByID(row30ID); !ok {
+		t.Error("row 30 should be visible when scrolled to offset -750")
+	}
+}
+
+func TestGridScrollTopShowsFirstRows(t *testing.T) {
+	// At scroll position 0 the first rows must be rendered.
+	t.Parallel()
+
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+
+	rows := make([]GridRow, 50)
+	for i := range 50 {
+		rows[i] = GridRow{
+			ID:    "r" + strconv.Itoa(i),
+			Cells: map[string]string{"a": strconv.Itoa(i)},
+		}
+	}
+
+	gridID := "dg-scroll-top"
+	v := New(w, DataGridCfg{
+		ID:        gridID,
+		MaxHeight: 200,
+		RowHeight: 30,
+		Columns:   []GridColumnCfg{{ID: "a", Title: "A"}},
+		Rows:      rows,
+	})
+	layout := gg.GenerateViewLayout(v, w) //nolint:staticcheck
+
+	// Row 0 and row 5 must be present.
+	for _, idx := range []int{0, 5} {
+		rowID := gridID + ":row:r" + strconv.Itoa(idx)
+		if _, ok := layout.FindByID(rowID); !ok {
+			t.Errorf("row %d should be visible at scroll=0", idx)
+		}
+	}
+}
 
 func TestSourceApplyPendingJumpSelection(t *testing.T) {
 	w := gg.NewWindow(gg.WindowCfg{})

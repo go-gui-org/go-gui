@@ -141,8 +141,7 @@ func dataGridScrollRowIntoViewEx(viewportH float32, rowIdx int, rowHeight, stati
 	if viewportH <= 0 || rowHeight <= 0 {
 		return
 	}
-	sy := gg.StateMap[uint32, float32](w, nsScrollY, capScroll)
-	currentNeg, _ := sy.Get(scrollID) // ok ignored: zero offset is correct initial scroll
+	currentNeg, _ := w.ScrollY().Get(scrollID) // ok ignored: zero offset is correct initial scroll
 	current := -currentNeg
 	rowTop := staticTop + float32(rowIdx)*rowHeight
 	rowBottom := rowTop + rowHeight

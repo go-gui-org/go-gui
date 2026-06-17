@@ -15,10 +15,6 @@ const (
 	nsDgSource       = "gui.dg.source"
 
 	capModerate = 50
-
-	nsScrollY = "gui.dg.scroll.y"
-	nsScrollX = "gui.dg.scroll.x"
-	capScroll = 200
 )
 
 func f32Max(a, b float32) float32 {

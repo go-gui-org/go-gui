@@ -524,8 +524,7 @@ func New(w *gg.Window, cfg DataGridCfg) gg.View {
 	virtualize := gridHeight > 0 && len(resolvedCfg.Rows) > 0
 	scrollY := float32(0)
 	if virtualize {
-		sy := gg.StateMap[uint32, float32](w, nsScrollY, capScroll)
-		if v, ok := sy.Get(scrollID); ok {
+		if v, ok := w.ScrollY().Get(scrollID); ok {
 			scrollY = -v
 		}
 	}
@@ -565,8 +564,7 @@ func New(w *gg.Window, cfg DataGridCfg) gg.View {
 	headerHeight := dataGridHeaderHeight(&resolvedCfg)
 	frozenTopViews, frozenTopDisplayRows := dataGridFrozenTopViews(dctx,
 		frozenTopIndices, rowDeleteEnabled)
-	sx := gg.StateMap[uint32, float32](w, nsScrollX, capScroll)
-	scrollX, _ := sx.Get(scrollID)
+	scrollX, _ := w.ScrollX().Get(scrollID)
 
 	// Visible range for virtualization.
 	firstVisible, lastVisible := 0, len(presentation.Rows)-1
