@@ -12,6 +12,7 @@ import (
 func layoutPipeline(layout *Layout, w *Window) {
 	// Width passes.
 	layoutWidths(layout)
+	w.scratch.beginFillPass()
 	layoutFillWidths(layout, &w.scratch)
 	layoutWrapContainers(layout, w)
 	layoutOverflow(layout, w)

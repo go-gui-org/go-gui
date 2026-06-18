@@ -262,3 +262,173 @@ func TestLayoutFillHeights_NilPool(t *testing.T) {
 			root.Children[1].Shape.Height)
 	}
 }
+
+func TestLayoutFillWidths_CachesContentDimensions(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{
+			Sizing: FixedFixed,
+			Width:  200,
+			Height: 100,
+			Axis:   AxisLeftToRight,
+		},
+		Children: []Layout{
+			{Shape: &Shape{
+				shapeType: shapeRectangle,
+				Sizing:    FixedFixed,
+				Width:     40, Height: 20,
+			}},
+			{Shape: &Shape{
+				shapeType: shapeRectangle,
+				Sizing:    FixedFixed,
+				Width:     60, Height: 20,
+			}},
+		},
+	}
+	var p scratchPools
+	p.beginFillPass()
+
+	layoutWidths(root)
+	layoutFillWidths(root, &p)
+
+	// After fill pass, fillGen must be non-zero so contentWidth
+	// returns the cached value.
+	if root.Shape.fillGen == 0 {
+		t.Fatal("fillGen must be set after fill pass")
+	}
+	if root.Shape.contentW == 0 {
+		t.Fatal("contentW must be cached after fill pass")
+	}
+
+	// Verify cached value matches a direct computation.
+	want := computeContentWidth(root)
+	if !f32AreClose(root.Shape.contentW, want) {
+		t.Errorf("cached contentW = %f, want %f", root.Shape.contentW, want)
+	}
+
+	// contentWidth must return cached value (fillGen != 0 path).
+	got := contentWidth(root)
+	if !f32AreClose(got, root.Shape.contentW) {
+		t.Errorf("contentWidth = %f, want cached %f", got, root.Shape.contentW)
+	}
+}
+
+func TestLayoutFillHeights_CachesContentDimensions(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{
+			Sizing: FixedFixed,
+			Width:  200,
+			Height: 200,
+			Axis:   AxisTopToBottom,
+		},
+		Children: []Layout{
+			{Shape: &Shape{
+				shapeType: shapeRectangle,
+				Sizing:    FixedFixed,
+				Width:     50, Height: 40,
+			}},
+			{Shape: &Shape{
+				shapeType: shapeRectangle,
+				Sizing:    FixedFixed,
+				Width:     50, Height: 60,
+			}},
+		},
+	}
+	var p scratchPools
+	p.beginFillPass()
+
+	layoutHeights(root)
+	layoutFillHeights(root, &p)
+
+	if root.Shape.fillGen == 0 {
+		t.Fatal("fillGen must be set after fill pass")
+	}
+	if root.Shape.contentH == 0 {
+		t.Fatal("contentH must be cached after fill pass")
+	}
+
+	want := computeContentHeight(root)
+	if !f32AreClose(root.Shape.contentH, want) {
+		t.Errorf("cached contentH = %f, want %f", root.Shape.contentH, want)
+	}
+
+	got := contentHeight(root)
+	if !f32AreClose(got, root.Shape.contentH) {
+		t.Errorf("contentHeight = %f, want cached %f", got, root.Shape.contentH)
+	}
+}
+
+func TestLayoutFillCrossAxis_SiblingSumCache(t *testing.T) {
+	// LTR parent with multiple TTB scroll-fill children.
+	// First child triggers sibling-sum computation + caching;
+	// subsequent children reuse the cached sum.
+	parent := &Layout{
+		Shape: &Shape{
+			Sizing:    FixedFixed,
+			Width:     300,
+			Height:    100,
+			Axis:      AxisLeftToRight,
+			shapeType: shapeRectangle,
+		},
+		Children: []Layout{
+			{Shape: &Shape{
+				shapeType: shapeRectangle,
+				Sizing:    FillFill,
+				Axis:      AxisTopToBottom,
+				IDScroll:  1,
+				Width:     0, Height: 20,
+			}},
+			{Shape: &Shape{
+				shapeType: shapeRectangle,
+				Sizing:    FillFill,
+				Axis:      AxisTopToBottom,
+				IDScroll:  2,
+				Width:     0, Height: 20,
+			}},
+			{Shape: &Shape{
+				shapeType: shapeRectangle,
+				Sizing:    FixedFixed,
+				Axis:      AxisTopToBottom,
+				Width:     50, Height: 20,
+			}},
+		},
+	}
+	layoutParents(parent, nil)
+
+	var p scratchPools
+	p.beginFillPass()
+	layoutWidths(parent)
+	layoutFillWidths(parent, &p)
+
+	// Parent siblingSumW must be cached after fill.
+	if parent.Shape.siblingSumW == 0 {
+		t.Fatal("siblingSumW must be cached on parent after cross-axis fill")
+	}
+	if parent.Shape.siblingSumGen == 0 {
+		t.Fatal("parent siblingSumGen must be set")
+	}
+
+	// All children must have non-zero, finite widths.
+	for i := range parent.Children {
+		ch := parent.Children[i].Shape
+		if ch.Width <= 0 || !f32IsFinite(ch.Width) {
+			t.Errorf("child %d width = %f, want > 0 and finite", i, ch.Width)
+		}
+	}
+
+	// The two fill children must get equal remaining width:
+	// 300 (parent) - 50 (fixed child) = 250, split equally = 125 each.
+	c0w := parent.Children[0].Shape.Width
+	c1w := parent.Children[1].Shape.Width
+	if !f32AreClose(c0w, 125) {
+		t.Errorf("child 0 width = %f, want 125", c0w)
+	}
+	if !f32AreClose(c1w, 125) {
+		t.Errorf("child 1 width = %f, want 125", c1w)
+	}
+
+	// Fixed child must keep its width.
+	c2w := parent.Children[2].Shape.Width
+	if !f32AreClose(c2w, 50) {
+		t.Errorf("child 2 width = %f, want 50", c2w)
+	}
+}

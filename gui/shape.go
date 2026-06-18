@@ -152,6 +152,31 @@ type Shape struct {
 	// increments (0–3). Rotation is applied around the element
 	// center.
 	QuarterTurns uint8
+
+	// fillGen matches scratchPools.fillGen when contentW and
+	// contentH are valid for the current frame. Set during the
+	// fill-height pass; read during position and scroll-offset
+	// passes.
+	fillGen uint32
+
+	// contentW and contentH cache total content dimensions
+	// computed during the fill phase, avoiding redundant
+	// child-tree summation in position and scroll passes.
+	contentW, contentH float32
+
+	// siblingSumGen matches scratchPools.fillGen when
+	// siblingSumW and siblingSumH are valid for the current
+	// frame. Separate from fillGen because sibling sums are
+	// set on-demand inside layoutFillCrossAxis (not at
+	// end-of-pass on every shape), and the width pass stamps
+	// fillGen on all shapes before the height pass runs.
+	siblingSumGen uint32
+
+	// siblingSumW and siblingSumH cache the sum of sibling sizes
+	// on the cross axis, computed during layoutFillCrossAxis.
+	// Avoids O(n²) sibling iteration when multiple children of
+	// the same parent trigger cross-axis fill.
+	siblingSumW, siblingSumH float32
 }
 
 // NewShape returns a Shape with default field values.

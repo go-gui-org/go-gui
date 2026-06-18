@@ -9,6 +9,7 @@ import "math"
 type fillBuffers struct {
 	candidates   []int
 	fixedIndices []int
+	fillGen      uint32 // generation counter for fill-pass cache invalidation
 }
 
 // sentinelNextExtrema is a large finite float32 used as "no next extremum
@@ -77,6 +78,16 @@ func getPadding(shape *Shape, axis distributeAxis) float32 {
 	return shape.paddingHeight()
 }
 
+// siblingSumPtr returns a pointer to siblingSumW or siblingSumH
+// depending on axis. Used to read and write the sibling-sum cache
+// in layoutFillCrossAxis without repeating the axis branch.
+func siblingSumPtr(shape *Shape, axis distributeAxis) *float32 {
+	if axis == distributeHorizontal {
+		return &shape.siblingSumW
+	}
+	return &shape.siblingSumH
+}
+
 // mainAxisOf returns the layout axis that distributes children
 // along the given dimension (horizontal → LeftToRight, etc.).
 func mainAxisOf(axis distributeAxis) Axis {
@@ -108,13 +119,25 @@ func clampMinMax(shape *Shape, axis distributeAxis) {
 // layoutFillCrossAxis handles cross-axis fill sizing: adjusts scroll
 // containers to fit parent's remaining space, clamps to min/max, and
 // propagates fill size to children.
-func layoutFillCrossAxis(layout *Layout, axis distributeAxis) {
+func layoutFillCrossAxis(layout *Layout, axis distributeAxis, fb *fillBuffers) {
 	if layout.Shape.IDScroll > 0 && getSizing(layout.Shape, axis) == SizingFill &&
 		!scrollExcludesAxis(layout.Shape.ScrollMode, axis) &&
 		layout.Parent != nil && layout.Parent.Shape.Axis == mainAxisOf(axis) {
+		// Use cached sibling sum from parent Shape to avoid O(n²)
+		// iteration when multiple siblings trigger cross-axis fill.
+		// fillGen 0 is the zero value (no cache); compare against
+		// fb.fillGen which is ≥1 after beginFillPass.
+		parentShape := layout.Parent.Shape
+		sum := siblingSumPtr(parentShape, axis)
 		var totalChild float32
-		for j := range layout.Parent.Children {
-			totalChild += getSize(layout.Parent.Children[j].Shape, axis)
+		if fb.fillGen != 0 && parentShape.siblingSumGen == fb.fillGen {
+			totalChild = *sum
+		} else {
+			for j := range layout.Parent.Children {
+				totalChild += getSize(layout.Parent.Children[j].Shape, axis)
+			}
+			*sum = totalChild
+			parentShape.siblingSumGen = fb.fillGen
 		}
 		sibling := totalChild - getSize(layout.Shape, axis)
 		target := getSize(layout.Parent.Shape, axis) - sibling -
@@ -456,12 +479,16 @@ func layoutFillWidthsImpl(layout *Layout, fb *fillBuffers) {
 			distributeSpace(layout, remainingWidth, distributeShrink, distributeHorizontal, fb)
 		}
 	case AxisTopToBottom:
-		layoutFillCrossAxis(layout, distributeHorizontal)
+		layoutFillCrossAxis(layout, distributeHorizontal, fb)
 	}
 
 	for i := range layout.Children {
 		layoutFillWidthsImpl(&layout.Children[i], fb)
 	}
+
+	// Cache content width after all children have final widths.
+	layout.Shape.contentW = computeContentWidth(layout)
+	layout.Shape.fillGen = fb.fillGen
 }
 
 // layoutFillHeights manages vertical growth/shrinkage.
@@ -478,6 +505,7 @@ func layoutFillWithPool(layout *Layout, p *scratchPools, impl func(*Layout, *fil
 		return
 	}
 	fb := &p.fillBufs
+	fb.fillGen = p.fillGen
 	fb.candidates = p.fillCandidates.take(0)
 	fb.fixedIndices = p.fixedIndices.take(0)
 	impl(layout, fb)
@@ -506,10 +534,14 @@ func layoutFillHeightsImpl(layout *Layout, fb *fillBuffers) {
 			distributeSpace(layout, remainingHeight, distributeShrink, distributeVertical, fb)
 		}
 	case AxisLeftToRight:
-		layoutFillCrossAxis(layout, distributeVertical)
+		layoutFillCrossAxis(layout, distributeVertical, fb)
 	}
 
 	for i := range layout.Children {
 		layoutFillHeightsImpl(&layout.Children[i], fb)
 	}
+
+	// Cache content height after all children have final heights.
+	layout.Shape.contentH = computeContentHeight(layout)
+	layout.Shape.fillGen = fb.fillGen
 }

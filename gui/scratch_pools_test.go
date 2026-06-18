@@ -333,3 +333,29 @@ func TestGrowCap_HandlesOverflow(t *testing.T) {
 			got, huge)
 	}
 }
+
+func TestBeginFillPass(t *testing.T) {
+	var p scratchPools
+	if p.fillGen != 0 {
+		t.Fatal("zero value fillGen must be 0")
+	}
+
+	p.beginFillPass()
+	if p.fillGen != 1 {
+		t.Fatalf("first beginFillPass: got %d, want 1", p.fillGen)
+	}
+
+	p.beginFillPass()
+	if p.fillGen != 2 {
+		t.Fatalf("second beginFillPass: got %d, want 2", p.fillGen)
+	}
+}
+
+func TestBeginFillPass_SkipsZero(t *testing.T) {
+	var p scratchPools
+	p.fillGen = ^uint32(0) // math.MaxUint32
+	p.beginFillPass()
+	if p.fillGen != 1 {
+		t.Fatalf("overflow must skip 0: got %d, want 1", p.fillGen)
+	}
+}

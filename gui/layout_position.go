@@ -115,7 +115,9 @@ func resolveHAlign(hAlign HorizontalAlign, isRTL bool) HorizontalAlign {
 }
 
 // applyContainerAlignment adjusts the start position based on
-// horizontal or vertical alignment within the container.
+// horizontal or vertical alignment within the container. Uses the
+// fill-pass content dimension cache to avoid redundant child-tree
+// summation.
 func applyContainerAlignment(
 	layout *Layout, hAlign HorizontalAlign, axis Axis, isRTL bool,
 	x, y, layoutW, layoutH float32,
@@ -125,11 +127,8 @@ func applyContainerAlignment(
 		var remaining float32
 		if isRTL && hAlign != HAlignRight ||
 			!isRTL && hAlign != HAlignLeft {
-			remaining = layoutW - layout.Shape.paddingWidth()
-			remaining -= layout.spacing()
-			for i := range layout.Children {
-				remaining -= layout.Children[i].Shape.Width
-			}
+			remaining = layoutW - layout.Shape.paddingWidth() -
+				contentWidth(layout)
 			if hAlign == HAlignCenter {
 				remaining /= 2
 			}
@@ -141,11 +140,8 @@ func applyContainerAlignment(
 		}
 	case AxisTopToBottom:
 		if layout.Shape.VAlign != VAlignTop {
-			remaining := layoutH - layout.Shape.paddingHeight()
-			remaining -= layout.spacing()
-			for i := range layout.Children {
-				remaining -= layout.Children[i].Shape.Height
-			}
+			remaining := layoutH - layout.Shape.paddingHeight() -
+				contentHeight(layout)
 			if layout.Shape.VAlign == VAlignMiddle {
 				remaining /= 2
 			}

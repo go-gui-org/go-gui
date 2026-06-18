@@ -139,6 +139,12 @@ type scratchPools struct {
 
 	floatingPoolUsed    int
 	placeholderPoolUsed int
+
+	// fillGen increments at the start of each fill pass
+	// (layoutFillWidths + layoutFillHeights). Shapes cache
+	// content and sibling-sum dimensions keyed to this
+	// generation, avoiding per-frame cache-invalidation walks.
+	fillGen uint32
 }
 
 const (
@@ -169,6 +175,16 @@ func newScratchPools() scratchPools {
 		renderTextStyles:       scratchObjPool[TextStyle]{retainMax: 4096, shrinkTo: 256},
 		renderGlyphLayouts:     scratchObjPool[glyph.Layout]{retainMax: 1024, shrinkTo: 64},
 		renderAffineTransforms: scratchObjPool[glyph.AffineTransform]{retainMax: 256, shrinkTo: 16},
+	}
+}
+
+// beginFillPass increments the fill generation counter. Called
+// before layoutFillWidths + layoutFillHeights so Shape caches from
+// the previous frame are invalidated without a tree walk.
+func (p *scratchPools) beginFillPass() {
+	p.fillGen++
+	if p.fillGen == 0 {
+		p.fillGen = 1 // never wrap to 0; 0 is the cache-invalid sentinel
 	}
 }
 
