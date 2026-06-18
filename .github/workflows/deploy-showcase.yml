@@ -37,6 +37,7 @@ jobs:
           cp /tmp/website/CNAME /tmp/website/index.html /tmp/website/.nojekyll deploy/ 2>/dev/null || true
           cp /tmp/website/.gitattributes deploy/ 2>/dev/null || true
           cp /tmp/website/CLAUDE.md deploy/ 2>/dev/null || true
+          cp /tmp/website/status.html deploy/ 2>/dev/null || true
           cp -a examples/showcase/*.js examples/showcase/*.wasm examples/showcase/*.html deploy/showcase/ 2>/dev/null || true
           ls -la deploy/ deploy/showcase/
 
