@@ -296,3 +296,83 @@ func TestPathArcToCubicQuarterCircle(t *testing.T) {
 		t.Fatalf("endpoint should be near (0,10), got (%f,%f)", ex, ey)
 	}
 }
+
+// arcToCubic regression: non-finite / overflow inputs must not panic.
+// See gui/svg/path.go arcToCubic guard and nSegs clamp.
+func TestPathArcToCubicNonFinite(t *testing.T) {
+	tests := []struct {
+		name                string
+		x1, y1, rx, ry, phi float32
+		largeArc, sweep     bool
+		x2, y2              float32
+	}{
+		{
+			name: "rx NaN",
+			rx:   float32(math.NaN()), ry: 10, x1: 0, y1: 0, x2: 10, y2: 10,
+		},
+		{
+			name: "ry NaN",
+			rx:   10, ry: float32(math.NaN()), x1: 0, y1: 0, x2: 10, y2: 10,
+		},
+		{
+			name: "rx +Inf",
+			rx:   float32(math.Inf(1)), ry: 10, x1: 0, y1: 0, x2: 10, y2: 10,
+		},
+		{
+			name: "ry -Inf",
+			rx:   10, ry: float32(math.Inf(-1)), x1: 0, y1: 0, x2: 10, y2: 10,
+		},
+		{
+			// Squares overflow float32: 2e19 * 2e19 = 4e38 → +Inf
+			name: "large radii overflow float32 squares",
+			rx:   2e19, ry: 2e19, x1: 0, y1: 0, x2: 10, y2: 10,
+		},
+		{
+			// Extreme y2 produces near-coincident endpoints after
+			// transform, denominator ~0 before the identical-endpoint
+			// guard fires.
+			name: "extreme y2 with large radii",
+			rx:   5, ry: 5, x1: 0, y1: 0, phi: 45,
+			largeArc: false, sweep: false, x2: 8, y2: 1e19,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Must not panic.
+			segs := arcToCubic(tt.x1, tt.y1, tt.rx, tt.ry,
+				tt.phi, tt.largeArc, tt.sweep, tt.x2, tt.y2)
+			// Must produce a valid fallback segment.
+			if len(segs) == 0 {
+				t.Fatal("expected fallback segment, got empty")
+			}
+			for _, s := range segs {
+				if s.Cmd != CmdLineTo && s.Cmd != CmdCubicTo {
+					t.Fatalf("expected LineTo or CubicTo, got cmd=%d", s.Cmd)
+				}
+				for _, v := range s.Points {
+					if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
+						t.Fatalf("non-finite point %v in segment", v)
+					}
+				}
+			}
+		})
+	}
+}
+
+// Regression: FuzzParseSvg found input where arc radii overflow during
+// squaring (ryAbs*ryAbs → +Inf), producing NaN in the centre-point
+// denominator, then NaN nSegs, then panic in make().
+func TestPathArcToCubicFuzzRegression(t *testing.T) {
+	// Equivalent to the fuzzer's path:
+	// <path d="...A 1000000000000000000000000000000 ..."/>
+	ry := float32(1e30)
+	// Must not panic, must fall back to line.
+	segs := arcToCubic(0, 0, 5, ry, 0, false, false, 10, 10)
+	if len(segs) == 0 {
+		t.Fatal("expected fallback segment")
+	}
+	if segs[0].Cmd != CmdLineTo {
+		t.Fatalf("expected LineTo fallback, got cmd=%d", segs[0].Cmd)
+	}
+}

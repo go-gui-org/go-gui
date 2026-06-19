@@ -329,7 +329,8 @@ func (p *pathParser) parseArcTo(cmd byte) byte {
 			ey += p.curY
 		}
 
-		if rx <= 0 || ry <= 0 {
+		if rx <= 0 || ry <= 0 || math.IsNaN(float64(rx)) || math.IsInf(float64(rx), 0) ||
+			math.IsNaN(float64(ry)) || math.IsInf(float64(ry), 0) {
 			p.segments = append(p.segments, PathSegment{CmdLineTo, []float32{ex, ey}})
 		} else {
 			arcSegs := arcToCubic(p.curX, p.curY, rx, ry, phi, largeArc, sweep, ex, ey)
@@ -350,7 +351,8 @@ func (p *pathParser) parseClose(cmd byte) byte {
 
 // arcToCubic converts an SVG arc to cubic bezier curves.
 func arcToCubic(x1, y1, rx, ry, phi float32, largeArc, sweep bool, x2, y2 float32) []PathSegment {
-	if rx == 0 || ry == 0 {
+	if rx == 0 || ry == 0 || math.IsNaN(float64(rx)) || math.IsInf(float64(rx), 0) ||
+		math.IsNaN(float64(ry)) || math.IsInf(float64(ry), 0) {
 		return []PathSegment{{CmdLineTo, []float32{x2, y2}}}
 	}
 	// SVG spec: "If the endpoints (x1, y1) and (x2, y2) are identical,
@@ -409,6 +411,10 @@ func arcToCubic(x1, y1, rx, ry, phi float32, largeArc, sweep bool, x2, y2 float3
 	}
 
 	nSegs := int(math.Ceil(math.Abs(float64(dtheta)) / (math.Pi / 2)))
+	if nSegs < 1 || nSegs > 4096 {
+		// Degenerate or NaN-produced nSegs; fall back to line segment.
+		return []PathSegment{{CmdLineTo, []float32{x2, y2}}}
+	}
 	dTheta := dtheta / float32(nSegs)
 
 	segments := make([]PathSegment, 0, nSegs)
