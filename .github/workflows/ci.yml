@@ -21,18 +21,6 @@ jobs:
         with:
           install-linux-deps: 'true'
 
-      - name: Install macOS system dependencies
-        if: runner.os == 'macOS'
-        run: |
-          brew install \
-            pkg-config \
-            sdl2 \
-            sdl2_mixer \
-            freetype \
-            harfbuzz \
-            pango \
-            fontconfig
-
       - name: Test
         run: |
           CGO_LDFLAGS="${{ runner.os == 'macOS' && '-Wl,-no_warn_duplicate_libraries' || '' }}" \
