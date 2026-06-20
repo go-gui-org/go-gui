@@ -39,10 +39,17 @@ func runMainThreadTests() {
 	//    exists, compiles, links, and can be called.
 	activateApp()
 
-	// 2. New() must succeed with activation — creates a real SDL
-	//    window and Metal context, then tears down. Catches the
-	//    regression where activateApp is removed from the New() path
-	//    and the window becomes invisible on macOS.
+	// 2. activation policy must be Regular so the app appears in
+	//    the Dock and can become active. Regression test for
+	//    window not appearing on macOS (activation skipped).
+	if !testActivationPolicyRegular() {
+		panic("metalActivateApp: activation policy not Regular")
+	}
+
+	// 3. New() must succeed with activation — creates a real window
+	//    and Metal context, then tears down. Validates that
+	//    metalActivateApp + metalWindowCreate work end-to-end.
+	//    Regression test for window opening behind terminal.
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  new(int),
 		Width:  200,
@@ -52,5 +59,27 @@ func runMainThreadTests() {
 	if err != nil {
 		panic("metal.New with activation: " + err.Error())
 	}
+
+	// 4. Window must have a delegate for close/resize/focus
+	//    callbacks. Regression test for single-window close
+	//    button not working.
+	if !testWindowDelegateExists(b.window) {
+		panic("metal.New: window delegate not set")
+	}
+
+	// 5. Verify the window is registered in the lookup table so
+	//    C→Go callbacks (file drop, close, resize) can find it.
+	//    Regression test for setAttachedWindow not being called.
+	winID := testWindowID(b.window)
+	if ws := lookupWindow(winID); ws == nil {
+		panic("metal.New: window not registered in windowRegistry")
+	}
+
 	b.Destroy()
+
+	// 6. Destroy must unregister the window. Regression test for
+	//    leaked entries in the windowRegistry after close.
+	if ws := lookupWindow(winID); ws != nil {
+		panic("metal.Destroy: window still in windowRegistry after destroy")
+	}
 }

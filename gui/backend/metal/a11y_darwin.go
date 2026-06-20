@@ -15,12 +15,15 @@ import (
 	"unsafe"
 
 	"github.com/go-gui-org/go-gui/gui"
-	"github.com/veandco/go-sdl2/sdl"
 )
 
 // a11yActionCallback stores the Go callback invoked from ObjC
 // when VoiceOver triggers an action.
 var a11yActionCallback func(action, index int)
+
+func setA11yCallback(cb func(action, index int)) {
+	a11yActionCallback = cb
+}
 
 //export goA11yAction
 func goA11yAction(action, index C.int) {
@@ -36,14 +39,16 @@ var (
 	cStringBuf []*C.char
 )
 
-func a11yInitBridge(win *sdl.Window) {
-	cWin := (*C.SDL_Window)(unsafe.Pointer(win))
-	C.a11yInit(cWin)
-}
+// maxA11yNodes caps the accessibility node count to prevent
+// unbounded C allocations from buggy or malicious callers.
+const maxA11yNodes = 50000
 
 func a11ySyncBridge(nodes []gui.A11yNode, count, focusedIdx int, windowH float32) {
 	if count <= 0 {
 		return
+	}
+	if count > maxA11yNodes {
+		count = maxA11yNodes
 	}
 	a11yMu.Lock()
 	defer a11yMu.Unlock()
@@ -82,10 +87,10 @@ func a11ySyncBridge(nodes []gui.A11yNode, count, focusedIdx int, windowH float32
 		C.float(windowH),
 	)
 
-	// Free all C strings and nil out to avoid dangling pointers.
-	for i, cs := range cStringBuf {
+	// Free all C strings. cStringBuf is re-sliced to zero on
+	// the next call, so explicit nil-assignment is unnecessary.
+	for _, cs := range cStringBuf {
 		C.free(unsafe.Pointer(cs))
-		cStringBuf[i] = nil
 	}
 }
 
@@ -110,3 +115,12 @@ func a11yAnnounceBridge(text string) {
 	defer C.free(unsafe.Pointer(cs))
 	C.a11yAnnounce(cs)
 }
+
+// Test helpers — wrap C types and calls so _test.go files
+// don't need their own import "C" block (not supported by the
+// go toolchain for in-package cgo tests).
+
+type cchar = *C.char
+
+func cFree(p cchar)            { C.free(unsafe.Pointer(p)) }
+func cGoString(p cchar) string { return C.GoString(p) }
