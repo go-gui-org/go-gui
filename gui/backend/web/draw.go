@@ -164,7 +164,7 @@ func (b *Backend) rebuildClipStack() {
 		b.clipDepth++
 		b.ctx2d.Call("beginPath")
 		if clip.kind == clipKindStencil && clip.radius > 0 {
-			b.ctx2d.Call("roundRect",
+			b.roundedRectPath(
 				float64(clip.x), float64(clip.y),
 				float64(clip.w), float64(clip.h),
 				float64(clip.radius))
@@ -196,7 +196,7 @@ func (b *Backend) drawStrokeRect(r *gui.RenderCmd) {
 	b.ctx2d.Set("lineWidth", max(float64(r.Thickness), 1.0))
 	if r.Radius > 0 {
 		b.ctx2d.Call("beginPath")
-		b.ctx2d.Call("roundRect",
+		b.roundedRectPath(
 			float64(r.X), float64(r.Y),
 			float64(r.W), float64(r.H),
 			float64(r.Radius))
@@ -344,7 +344,7 @@ func (b *Backend) drawGradient(r *gui.RenderCmd) {
 	b.ctx2d.Set("fillStyle", grad)
 	if r.Radius > 0 {
 		b.ctx2d.Call("beginPath")
-		b.ctx2d.Call("roundRect",
+		b.roundedRectPath(
 			float64(r.X), float64(r.Y),
 			float64(r.W), float64(r.H),
 			float64(r.Radius))
@@ -448,7 +448,7 @@ func (b *Backend) drawImage(r *gui.RenderCmd) {
 	if r.ClipRadius > 0 {
 		b.ctx2d.Call("save")
 		b.ctx2d.Call("beginPath")
-		b.ctx2d.Call("roundRect",
+		b.roundedRectPath(
 			float64(r.X), float64(r.Y),
 			float64(r.W), float64(r.H),
 			float64(r.ClipRadius))

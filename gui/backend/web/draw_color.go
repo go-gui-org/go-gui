@@ -52,11 +52,47 @@ func (b *Backend) endRotation() {
 func (b *Backend) fillRoundedRect(
 	x, y, w, h, radius float32) {
 	b.ctx2d.Call("beginPath")
-	b.ctx2d.Call("roundRect",
-		float64(x), float64(y),
-		float64(w), float64(h),
-		float64(radius))
+	b.roundedRectPath(float64(x), float64(y),
+		float64(w), float64(h), float64(radius))
 	b.ctx2d.Call("fill")
+}
+
+// roundedRectPath adds a rounded-rectangle path to the current
+// context. Uses the native roundRect method when available
+// (Safari 15.4+, all Chrome/Firefox); falls back to arcTo
+// construction for older browsers.
+//
+// NaN/Inf radius is clamped to 0. Degenerate dimensions (NaN,
+// Inf, ≤0) produce an empty zero-area rect so the caller's
+// subsequent fill/stroke/clip is a no-op.
+func (b *Backend) roundedRectPath(
+	x, y, w, h, radius float64,
+) {
+	// Clamp NaN/Inf radius to 0 — NaN comparisons always
+	// return false, so they'd escape the radius≤0 fast-path.
+	if math.IsNaN(radius) || math.IsInf(radius, 0) {
+		radius = 0
+	}
+	if math.IsNaN(w) || math.IsInf(w, 0) || w <= 0 ||
+		math.IsNaN(h) || math.IsInf(h, 0) || h <= 0 {
+		b.ctx2d.Call("rect", 0, 0, 0, 0)
+		return
+	}
+	if radius <= 0 || !b.hasRoundRect {
+		// Fallback via arcTo — works everywhere.
+		if radius <= 0 {
+			b.ctx2d.Call("rect", x, y, w, h)
+			return
+		}
+		b.ctx2d.Call("moveTo", x+radius, y)
+		b.ctx2d.Call("arcTo", x+w, y, x+w, y+radius, radius)
+		b.ctx2d.Call("arcTo", x+w, y+h, x+w-radius, y+h, radius)
+		b.ctx2d.Call("arcTo", x, y+h, x, y+h-radius, radius)
+		b.ctx2d.Call("arcTo", x, y, x+radius, y, radius)
+		b.ctx2d.Call("closePath")
+		return
+	}
+	b.ctx2d.Call("roundRect", x, y, w, h, radius)
 }
 
 // cssColorBuf formats c into b.colorBuf and returns the

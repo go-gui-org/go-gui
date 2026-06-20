@@ -47,6 +47,8 @@ type Backend struct {
 	colorCacheLen int
 	colorCacheIdx int
 	callbacks     []js.Func // prevent GC of registered callbacks
+
+	hasRoundRect bool // Canvas2D roundRect support (missing on Safari <15.4)
 }
 
 type clipKind uint8
@@ -106,6 +108,14 @@ func newBackend(w *gui.Window) (*Backend, error) {
 	// are ignored — the browser window IS the application window.
 	cssW := js.Global().Get("innerWidth").Int()
 	cssH := js.Global().Get("innerHeight").Int()
+	// Guard against iPadOS Safari returning 0 during split-screen
+	// transitions or on-screen keyboard appearance.
+	if cssW <= 0 {
+		cssW = 800
+	}
+	if cssH <= 0 {
+		cssH = 600
+	}
 
 	canvas.Get("style").Set("width", itoa(cssW)+"px")
 	canvas.Get("style").Set("height", itoa(cssH)+"px")
@@ -113,6 +123,10 @@ func newBackend(w *gui.Window) (*Backend, error) {
 	canvas.Set("height", int(float32(cssH)*dpiScale))
 
 	ctx2d := canvas.Call("getContext", "2d")
+
+	// Detect Canvas2D roundRect support. Safari added it in 15.4
+	// (March 2022); older versions need an arcTo fallback.
+	hasRR := ctx2d.Get("roundRect").Type() == js.TypeFunction
 
 	// Scale context for HiDPI.
 	if dpiScale != 1.0 {
@@ -143,6 +157,7 @@ func newBackend(w *gui.Window) (*Backend, error) {
 		height:       cssH,
 		imgCache:     make(map[string]js.Value),
 		failedImages: make(map[string]struct{}),
+		hasRoundRect: hasRR,
 	}
 	b.shaders = newCustomShaderRenderer(doc, &b.callbacks)
 
@@ -197,6 +212,15 @@ func (b *Backend) run(w *gui.Window) {
 	// requestAnimationFrame render loop.
 	var renderFunc js.Func
 	renderFunc = js.FuncOf(func(_ js.Value, _ []js.Value) any {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("web: render panic: %v", r)
+				// Keep the loop alive so a transient error
+				// doesn't kill the entire WASM instance.
+				js.Global().Call("requestAnimationFrame",
+					renderFunc)
+			}
+		}()
 		w.FrameFn()
 		b.renderFrame(w)
 
@@ -267,6 +291,11 @@ func (b *Backend) updateCanvasRect() {
 }
 
 func (b *Backend) resizeCanvas(cssW, cssH int) {
+	// Guard against transient 0-dimension reports on iPadOS
+	// Safari (split-screen transitions, keyboard appearance).
+	if cssW <= 0 || cssH <= 0 {
+		return
+	}
 	// Re-read devicePixelRatio — it may change when the window
 	// moves between displays with different DPI.
 	dpr := js.Global().Get("devicePixelRatio")
