@@ -21,6 +21,10 @@ jobs:
         with:
           install-linux-deps: 'true'
 
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: brew install sdl2 sdl2_mixer
+
       - name: Test
         run: |
           CGO_LDFLAGS="${{ runner.os == 'macOS' && '-Wl,-no_warn_duplicate_libraries' || '' }}" \
