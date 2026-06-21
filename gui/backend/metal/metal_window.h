@@ -113,9 +113,14 @@ int         metalEventIMELength(void); // composition length
 
 // ─── Cursors ───────────────────────────────────────────────────
 
-// Set the system cursor for the given window.
+// Set the system cursor for the given window. mouseX/mouseY are the
+// last-known mouse position in content-view coordinates (origin top-left).
+// When the mouse is outside the content bounds (e.g. in the title bar or
+// window border), the call is a no-op — the window server owns cursor
+// management for the frame area.
 // cursorName: NSCursor class method selector name (e.g., "arrowCursor").
-void metalWindowSetCursor(GoGuiNSWindow w, const char *cursorName);
+void metalWindowSetCursor(GoGuiNSWindow w, const char *cursorName,
+                          float mouseX, float mouseY);
 
 // ─── Clipboard ─────────────────────────────────────────────────
 

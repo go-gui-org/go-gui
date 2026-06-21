@@ -66,10 +66,8 @@ func mapMetalEvent() (gui.Event, bool) {
 		kc := mapMacKeyCode(uint16(C.metalEventKeyCode()))
 		mods := mapMetalModifiers(uint32(C.metalEventModifiers()))
 		// Cmd+Q → quit request. The menu key equivalent path
-		// (handleQuit: via performKeyEquivalent:) is not
-		// guaranteed — it depends on metalActivateApp finding
-		// and patching the Quit menu item. This check catches
-		// Cmd+Q regardless of menu state.
+		// (quit: on delegate via performKeyEquivalent:) is the
+		// primary path.  This check catches Cmd+Q as a fallback.
 		if kc == gui.KeyQ && mods&gui.ModSuper != 0 {
 			return gui.Event{Type: gui.EventQuitRequested}, true
 		}

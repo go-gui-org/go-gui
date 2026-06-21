@@ -15,9 +15,11 @@
 #include <string.h>
 #include <stdlib.h>
 
-// Event mask covering all event types go-gui handles.
-// NSEventMaskAny is deprecated (10.12) and may not include
-// scroll wheel or gesture events in all SDK versions.
+// Event mask covering all event types the app needs to receive.
+// MouseEntered/Exited are required by AppKit's internal tracking-
+// area system — filtering them out prevents traffic-light button
+// hover effects and cursor-rect transitions from firing.
+// Periodic is needed for tracking-loop timers (window resize).
 static const NSEventMask ALL_EVENTS =
     NSEventMaskLeftMouseDown | NSEventMaskLeftMouseUp |
     NSEventMaskRightMouseDown | NSEventMaskRightMouseUp |
@@ -25,11 +27,13 @@ static const NSEventMask ALL_EVENTS =
     NSEventMaskMouseMoved |
     NSEventMaskLeftMouseDragged | NSEventMaskRightMouseDragged |
     NSEventMaskOtherMouseDragged |
+    NSEventMaskMouseEntered | NSEventMaskMouseExited |
     NSEventMaskScrollWheel |
     NSEventMaskKeyDown | NSEventMaskKeyUp |
     NSEventMaskFlagsChanged |
     NSEventMaskAppKitDefined | NSEventMaskSystemDefined |
     NSEventMaskApplicationDefined |
+    NSEventMaskPeriodic |
     NSEventMaskGesture |
     NSEventMaskMagnify | NSEventMaskRotate | NSEventMaskSwipe |
     NSEventMaskBeginGesture | NSEventMaskEndGesture |
@@ -105,11 +109,22 @@ static uint32_t _nextWindowID = 1;
     return YES;
 }
 
-// Prevent AppKit from setting IBeam cursor on this view just because
-// it conforms to NSTextInputClient. Cursor is managed by Go via
-// metalWindowSetCursor.
+// Participate in AppKit's cursor-rect system so the window server
+// can properly manage cursors for the window frame (resize edges,
+// title-bar buttons).  Without at least one cursor rect, AppKit
+// cursor-tracking is effectively dead — even for the frame region.
+// Go overrides the content cursor via metalWindowSetCursor when
+// widgets request a different shape.
 - (void)resetCursorRects {
-    // Intentionally empty — Go owns cursor state.
+    [self addCursorRect:self.bounds cursor:[NSCursor arrowCursor]];
+}
+
+// Explicitly invalidate cursor rects when added to a window.
+// AppKit may not call resetCursorRects automatically during
+// setContentView:, which would leave cursor tracking dormant.
+- (void)viewDidMoveToWindow {
+    [super viewDidMoveToWindow];
+    [self.window invalidateCursorRectsForView:self];
 }
 
 // Route all key events through the input method system so
@@ -256,6 +271,11 @@ static uint32_t _nextWindowID = 1;
         _windowID = windowID;
         _closed = NO;
         self.delegate = self;
+        // Use the property setter, not a getter override.
+        // acceptsMouseMovedEvents is a stored ivar in NSWindow;
+        // the setter tells AppKit to post NSEventTypeMouseMoved
+        // events even when no button is pressed.
+        self.acceptsMouseMovedEvents = YES;
         [self registerForDraggedTypes:@[NSPasteboardTypeFileURL]];
     }
     return self;
@@ -267,10 +287,14 @@ static uint32_t _nextWindowID = 1;
 // ─── NSWindowDelegate ──────────────────────────────────────────
 
 - (void)windowDidResize:(NSNotification *)notification {
-    NSRect frame = self.frame;
+    // Report content-bounds size, not frame size. The frame
+    // includes title bar and window borders (~28pt extra height),
+    // which would cause the Go layout to allocate space for
+    // widgets that cannot be rendered.
+    NSRect bounds = self.contentView.bounds;
     goMetalWindowResized(_windowID,
-                         (int)frame.size.width,
-                         (int)frame.size.height);
+                         (int)bounds.size.width,
+                         (int)bounds.size.height);
 }
 
 - (BOOL)windowShouldClose:(NSWindow *)sender {
@@ -377,6 +401,11 @@ GoGuiNSWindow metalWindowCreate(const char *title, int width, int height,
     [win setCollectionBehavior:NSWindowCollectionBehaviorMoveToActiveSpace];
     [win makeKeyAndOrderFront:nil];
 
+    // Tell AppKit to update window state — required for cursor
+    // tracking and frame management to initialize on windows
+    // created before the run loop is running.
+    [NSApp setWindowsNeedUpdate:YES];
+
     // Bring the app forward for dynamically-opened windows.
     // For initial windows, metalActivateNow is also called from Go
     // after all windows are on screen.
@@ -418,9 +447,11 @@ void metalWindowGetSize(GoGuiNSWindow w, int *width, int *height) {
     *width = 0; *height = 0;
     if (!w) return;
     GoGuiWindow *gw = (GoGuiWindow *)w;
-    NSRect frame = gw->nsWindow.frame;
-    *width  = (int)frame.size.width;
-    *height = (int)frame.size.height;
+    // Content bounds, not frame — matches the coordinate space the Go
+    // framework renders into and what goMetalWindowResized reports.
+    NSRect bounds = gw->contentView.bounds;
+    *width  = (int)bounds.size.width;
+    *height = (int)bounds.size.height;
 }
 
 void metalWindowGetFramebufferSize(GoGuiNSWindow w, int *width, int *height) {
@@ -678,8 +709,21 @@ int metalEventIMELength(void) { return _evIMELength; }
 
 // ─── Cursors ───────────────────────────────────────────────────
 
-void metalWindowSetCursor(GoGuiNSWindow w, const char *cursorName) {
+void metalWindowSetCursor(GoGuiNSWindow w, const char *cursorName,
+                          float mouseX, float mouseY) {
     if (!w || !cursorName) return;
+    GoGuiWindow *gw = (GoGuiWindow *)w;
+
+    // Do not set the cursor when the mouse is outside the content
+    // view — the window server manages cursors for the frame area
+    // (resize edges, title-bar buttons).  Overriding there would
+    // prevent edge-resize cursors and traffic-light hover effects.
+    NSRect bounds = gw->contentView.bounds;
+    if (mouseX < 0 || mouseX > bounds.size.width ||
+        mouseY < 0 || mouseY > bounds.size.height) {
+        return;
+    }
+
     SEL sel = sel_registerName(cursorName);
     if (sel && [NSCursor respondsToSelector:sel]) {
         NSCursor *cursor = [NSCursor performSelector:sel];
@@ -763,16 +807,14 @@ void metalPostEmptyEvent(void) {
 
 @implementation GoGuiAppDelegate
 
-- (NSApplicationTerminateReply)applicationShouldTerminate:
-    (NSApplication *)sender {
+// Direct quit action — sets the quit event flag that the Go
+// event loop reads.  We cannot use terminate: because our custom
+// event loop ignores [NSApp stop:nil].
+- (void)quit:(id)sender {
     _evType = METAL_EVENT_QUIT;
-    return NSTerminateCancel;
-}
-
-// Direct target for the Quit menu item. Cmd+Q triggers this
-// via the menu's key equivalent, bypassing terminate: entirely.
-- (void)handleQuit:(id)sender {
-    _evType = METAL_EVENT_QUIT;
+    // Also close the key window immediately.  This bypasses the
+    // Go event loop's wid==0 dispatch issue for menu bar clicks.
+    [[NSApp keyWindow] performClose:nil];
 }
 
 @end
@@ -785,107 +827,40 @@ void metalActivateApp(void) {
     if (activated) return;
     activated = YES;
 
-    // Step 0: Instantiate our NSApplication subclass. Must be
-    // called before any other NSApp access — matches SDL2's
-    // [SDLApplication sharedApplication].
     [GUIApplication sharedApplication];
-
-    // Step 1: Set policy so the app appears in the Dock and can
-    // own the menu bar.
     [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
 
-    // Step 2: Build the menu bar BEFORE finishLaunching. Matches
-    // SDL2's approach. setAppleMenu: and setWindowsMenu: tell
-    // Cocoa the app has a proper menu bar, which enables standard
-    // window-manager activation without Carbon APIs.
     NSString *appName = [[NSProcessInfo processInfo] processName];
     if (!appName || [appName length] == 0) {
         appName = @"go-gui";
     }
+
+    // Static — NSMenuItem.target is weak, and NSApp.delegate is
+    // weak.  The static keeps the delegate alive.
+    static GoGuiAppDelegate *delegate = nil;
+    if (!delegate) {
+        delegate = [[GoGuiAppDelegate alloc] init];
+    }
+
     NSMenu *bar = [[NSMenu alloc] init];
+    NSMenu *appMenu = [[NSMenu alloc] init];
 
-    // ── Apple menu ──
-    NSMenu *appleMenu = [[NSMenu alloc] init];
-    [appleMenu addItemWithTitle:
-        [@"About " stringByAppendingString:appName]
-                       action:@selector(orderFrontStandardAboutPanel:)
-                keyEquivalent:@""];
-    [appleMenu addItem:[NSMenuItem separatorItem]];
-    // Services
-    NSMenuItem *svcItem = [[NSMenuItem alloc] initWithTitle:@"Services"
-                                                     action:nil
-                                              keyEquivalent:@""];
-    NSMenu *svcMenu = [[NSMenu alloc] init];
-    [svcItem setSubmenu:svcMenu];
-    [appleMenu addItem:svcItem];
-    [appleMenu addItem:[NSMenuItem separatorItem]];
-    // Hide
-    [appleMenu addItemWithTitle:[@"Hide " stringByAppendingString:appName]
-                         action:@selector(hide:)
-                  keyEquivalent:@"h"];
-    NSMenuItem *hideOthers =
-        [appleMenu addItemWithTitle:@"Hide Others"
-                             action:@selector(hideOtherApplications:)
-                      keyEquivalent:@"h"];
-    [hideOthers setKeyEquivalentModifierMask:
-        NSEventModifierFlagCommand | NSEventModifierFlagOption];
-    [appleMenu addItemWithTitle:@"Show All"
-                         action:@selector(unhideAllApplications:)
-                  keyEquivalent:@""];
-    [appleMenu addItem:[NSMenuItem separatorItem]];
-    // Quit (routed through delegate → METAL_EVENT_QUIT)
     NSMenuItem *quitItem =
-        [appleMenu addItemWithTitle:[@"Quit " stringByAppendingString:appName]
-                             action:@selector(handleQuit:)
-                      keyEquivalent:@"q"];
+        [appMenu addItemWithTitle:[@"Quit " stringByAppendingString:appName]
+                           action:@selector(quit:)
+                    keyEquivalent:@"q"];
     [quitItem setKeyEquivalentModifierMask:NSEventModifierFlagCommand];
-
-    // Assemble apple menu into bar.
-    NSMenuItem *appleItem = [[NSMenuItem alloc] initWithTitle:appName
-                                                       action:nil
-                                                keyEquivalent:@""];
-    [appleItem setSubmenu:appleMenu];
-    [bar addItem:appleItem];
-    [NSApp setMainMenu:bar];
-    [NSApp setAppleMenu:appleMenu];
-    [NSApp setServicesMenu:svcMenu];
-
-    // ── Window menu ──
-    NSMenu *windowMenu = [[NSMenu alloc] init];
-    [windowMenu addItemWithTitle:@"Close"
-                          action:@selector(performClose:)
-                   keyEquivalent:@"w"];
-    [windowMenu addItemWithTitle:@"Minimize"
-                          action:@selector(performMiniaturize:)
-                   keyEquivalent:@"m"];
-    [windowMenu addItemWithTitle:@"Zoom"
-                          action:@selector(performZoom:)
-                   keyEquivalent:@""];
-    [windowMenu addItem:[NSMenuItem separatorItem]];
-    [windowMenu addItemWithTitle:@"Bring All to Front"
-                          action:@selector(arrangeInFront:)
-                   keyEquivalent:@""];
-
-    NSMenuItem *windowItem = [[NSMenuItem alloc] initWithTitle:@"Window"
-                                                        action:nil
-                                                 keyEquivalent:@""];
-    [windowItem setSubmenu:windowMenu];
-    [bar addItem:windowItem];
-    [NSApp setWindowsMenu:windowMenu];
-
-    // Step 3: Set delegate so applicationShouldTerminate:
-    // intercepts Quit and the Quit menu item target resolves.
-    GoGuiAppDelegate *delegate = [[GoGuiAppDelegate alloc] init];
-    [NSApp setDelegate:delegate];
     [quitItem setTarget:delegate];
 
-    // Step 4: finishLaunching posts
-    // NSApplicationDidFinishLaunchingNotification.
-    [NSApp finishLaunching];
+    NSMenuItem *appItem = [[NSMenuItem alloc] initWithTitle:appName
+                                                     action:nil
+                                              keyEquivalent:@""];
+    [appItem setSubmenu:appMenu];
+    [bar addItem:appItem];
+    [NSApp setMainMenu:bar];
 
-    // No Carbon. No activateIgnoringOtherApps. setAppleMenu:
-    // tells Cocoa the app owns the menu bar; standard window-
-    // manager activation handles the rest.
+    [NSApp setDelegate:delegate];
+    [NSApp finishLaunching];
 }
 
 // ─── Test helpers (called from Go tests via cgo) ─────────────────
@@ -926,7 +901,7 @@ int metalTestMenuQuitWired(void) {
     NSMenu *appMenu = [[mainMenu itemAtIndex:0] submenu];
     if (!appMenu) return 0;
     for (NSMenuItem *item in [appMenu itemArray]) {
-        if ([item action] == @selector(handleQuit:) &&
+        if ([item action] == @selector(quit:) &&
             [item target] == delegate) {
             return 1;
         }

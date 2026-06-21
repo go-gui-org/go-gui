@@ -144,7 +144,9 @@ func (b *Backend) Run(w *gui.Window) {
 		mc := w.MouseCursorState()
 		if cs := cursorSelector(mc); cs != "" {
 			cstr := C.CString(cs)
-			C.metalWindowSetCursor(b.window, cstr)
+			C.metalWindowSetCursor(b.window, cstr,
+				C.metalEventMouseX(),
+				C.metalEventMouseY())
 			C.free(unsafe.Pointer(cstr))
 		}
 	}
@@ -289,9 +291,12 @@ func RunAppE(app *gui.App, initialWindows ...*gui.Window) error {
 			// all windows.
 			if evt.Type == gui.EventQuitRequested {
 				if wid == 0 {
-					app.Broadcast(func(w *gui.Window) {
-						gui.DispatchCloseRequest(w)
-					})
+					for _, ws := range states {
+						if w := ws.attachedWindow; w != nil {
+							gui.DispatchCloseRequest(w)
+							break
+						}
+					}
 				} else {
 					gui.DispatchCloseRequest(app.Window(wid))
 				}
@@ -360,7 +365,9 @@ func RunAppE(app *gui.App, initialWindows ...*gui.Window) error {
 			mc := w.MouseCursorState()
 			if cs := cursorSelector(mc); cs != "" {
 				cstr := C.CString(cs)
-				C.metalWindowSetCursor(ws.window, cstr)
+				C.metalWindowSetCursor(ws.window, cstr,
+					C.metalEventMouseX(),
+					C.metalEventMouseY())
 				C.free(unsafe.Pointer(cstr))
 			}
 		}

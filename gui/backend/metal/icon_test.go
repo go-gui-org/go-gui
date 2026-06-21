@@ -47,8 +47,8 @@ func runMainThreadTests() {
 	}
 
 	// 3. Menu bar must be fully wired — delegate, main menu, and
-	//    Quit→handleQuit:. Regression test for Cmd+Q silently
-	//    failing or falling through to terminate:.
+	//    Quit wired to delegate. Regression test for Cmd+Q silently
+	//    failing.
 	if !testDelegateSet() {
 		panic("metalActivateApp: delegate not set")
 	}
@@ -56,7 +56,7 @@ func runMainThreadTests() {
 		panic("metalActivateApp: main menu not created")
 	}
 	if !testMenuQuitWired() {
-		panic("metalActivateApp: Quit menu not wired to handleQuit:")
+		panic("metalActivateApp: Quit menu not wired to delegate")
 	}
 
 	// 4. New() must succeed with activation — creates a real window
