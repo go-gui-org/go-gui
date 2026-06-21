@@ -88,6 +88,9 @@ func (b *Backend) Run(w *gui.Window) {
 	// initialization is complete.
 	iconSet := false
 
+	// Activate now that windows exist on screen.
+	C.metalActivateNow()
+
 	running := true
 	rendered := true
 	evt := new(gui.Event)
@@ -223,6 +226,9 @@ func RunAppE(app *gui.App, initialWindows ...*gui.Window) error {
 	for _, w := range initialWindows {
 		setWakeFn(w)
 	}
+
+	// Activate now that windows exist on screen.
+	C.metalActivateNow()
 
 	running := true
 	rendered := true

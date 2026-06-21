@@ -3,8 +3,14 @@
 
 #import "metal_window.h"
 #import <Cocoa/Cocoa.h>
-#import <Carbon/Carbon.h>
 #import <Metal/Metal.h>
+
+// setAppleMenu: has been private API since macOS 10.6 but remains
+// functional at runtime and is used by SDL2 to tell Cocoa the app
+// owns a proper menu bar.
+@interface NSApplication (GoGuiAppleMenu)
+- (void)setAppleMenu:(NSMenu *)menu;
+@end
 #import <QuartzCore/CAMetalLayer.h>
 #include <string.h>
 #include <stdlib.h>
@@ -212,6 +218,22 @@ static uint32_t _nextWindowID = 1;
 
 @end
 
+// ─── GUIApplication (NSApplication subclass) ────────────────────
+// Exists so [GUIApplication sharedApplication] returns an instance
+// of this class rather than plain NSApplication. This matches
+// SDL2's SDLApplication pattern — any code that checks
+// isKindOfClass: or swizzles on the application class will see
+// GUIApplication. The sendEvent: override is intentionally a
+// passthrough; custom event routing happens in metalPollEvent.
+
+@interface GUIApplication : NSApplication
+@end
+@implementation GUIApplication
+- (void)sendEvent:(NSEvent *)event {
+    [super sendEvent:event];
+}
+@end
+
 // ─── GUIWindow (NSWindow subclass) ────────────────────────────
 
 @interface GUIWindow : NSWindow <NSWindowDelegate, NSDraggingDestination>
@@ -354,6 +376,11 @@ GoGuiNSWindow metalWindowCreate(const char *title, int width, int height,
 
     [win setCollectionBehavior:NSWindowCollectionBehaviorMoveToActiveSpace];
     [win makeKeyAndOrderFront:nil];
+
+    // Bring the app forward for dynamically-opened windows.
+    // For initial windows, metalActivateNow is also called from Go
+    // after all windows are on screen.
+    metalActivateNow();
 
     // Allocate GoGuiWindow on heap.
     GoGuiWindow *gw = (GoGuiWindow *)calloc(1, sizeof(GoGuiWindow));
@@ -753,45 +780,130 @@ void metalPostEmptyEvent(void) {
 // ─── App-level ─────────────────────────────────────────────────
 
 void metalActivateApp(void) {
-    // Step 1: Set policy so the app appears in the Dock.
+    // Idempotent — safe to call multiple times.
+    static BOOL activated = NO;
+    if (activated) return;
+    activated = YES;
+
+    // Step 0: Instantiate our NSApplication subclass. Must be
+    // called before any other NSApp access — matches SDL2's
+    // [SDLApplication sharedApplication].
+    [GUIApplication sharedApplication];
+
+    // Step 1: Set policy so the app appears in the Dock and can
+    // own the menu bar.
     [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
 
-    // Step 2: Set delegate before finishLaunching so
-    // applicationShouldTerminate: intercepts the Quit menu item.
-    static GoGuiAppDelegate *delegate = nil;
-    if (!delegate) {
-        delegate = [[GoGuiAppDelegate alloc] init];
-        [NSApp setDelegate:delegate];
+    // Step 2: Build the menu bar BEFORE finishLaunching. Matches
+    // SDL2's approach. setAppleMenu: and setWindowsMenu: tell
+    // Cocoa the app has a proper menu bar, which enables standard
+    // window-manager activation without Carbon APIs.
+    NSString *appName = [[NSProcessInfo processInfo] processName];
+    if (!appName || [appName length] == 0) {
+        appName = @"go-gui";
     }
+    NSMenu *bar = [[NSMenu alloc] init];
 
-    // Step 3: finishLaunching transitions to a foreground app
-    // and creates a default main menu with Quit→terminate:.
+    // ── Apple menu ──
+    NSMenu *appleMenu = [[NSMenu alloc] init];
+    [appleMenu addItemWithTitle:
+        [@"About " stringByAppendingString:appName]
+                       action:@selector(orderFrontStandardAboutPanel:)
+                keyEquivalent:@""];
+    [appleMenu addItem:[NSMenuItem separatorItem]];
+    // Services
+    NSMenuItem *svcItem = [[NSMenuItem alloc] initWithTitle:@"Services"
+                                                     action:nil
+                                              keyEquivalent:@""];
+    NSMenu *svcMenu = [[NSMenu alloc] init];
+    [svcItem setSubmenu:svcMenu];
+    [appleMenu addItem:svcItem];
+    [appleMenu addItem:[NSMenuItem separatorItem]];
+    // Hide
+    [appleMenu addItemWithTitle:[@"Hide " stringByAppendingString:appName]
+                         action:@selector(hide:)
+                  keyEquivalent:@"h"];
+    NSMenuItem *hideOthers =
+        [appleMenu addItemWithTitle:@"Hide Others"
+                             action:@selector(hideOtherApplications:)
+                      keyEquivalent:@"h"];
+    [hideOthers setKeyEquivalentModifierMask:
+        NSEventModifierFlagCommand | NSEventModifierFlagOption];
+    [appleMenu addItemWithTitle:@"Show All"
+                         action:@selector(unhideAllApplications:)
+                  keyEquivalent:@""];
+    [appleMenu addItem:[NSMenuItem separatorItem]];
+    // Quit (routed through delegate → METAL_EVENT_QUIT)
+    NSMenuItem *quitItem =
+        [appleMenu addItemWithTitle:[@"Quit " stringByAppendingString:appName]
+                             action:@selector(handleQuit:)
+                      keyEquivalent:@"q"];
+    [quitItem setKeyEquivalentModifierMask:NSEventModifierFlagCommand];
+
+    // Assemble apple menu into bar.
+    NSMenuItem *appleItem = [[NSMenuItem alloc] initWithTitle:appName
+                                                       action:nil
+                                                keyEquivalent:@""];
+    [appleItem setSubmenu:appleMenu];
+    [bar addItem:appleItem];
+    [NSApp setMainMenu:bar];
+    [NSApp setAppleMenu:appleMenu];
+    [NSApp setServicesMenu:svcMenu];
+
+    // ── Window menu ──
+    NSMenu *windowMenu = [[NSMenu alloc] init];
+    [windowMenu addItemWithTitle:@"Close"
+                          action:@selector(performClose:)
+                   keyEquivalent:@"w"];
+    [windowMenu addItemWithTitle:@"Minimize"
+                          action:@selector(performMiniaturize:)
+                   keyEquivalent:@"m"];
+    [windowMenu addItemWithTitle:@"Zoom"
+                          action:@selector(performZoom:)
+                   keyEquivalent:@""];
+    [windowMenu addItem:[NSMenuItem separatorItem]];
+    [windowMenu addItemWithTitle:@"Bring All to Front"
+                          action:@selector(arrangeInFront:)
+                   keyEquivalent:@""];
+
+    NSMenuItem *windowItem = [[NSMenuItem alloc] initWithTitle:@"Window"
+                                                        action:nil
+                                                 keyEquivalent:@""];
+    [windowItem setSubmenu:windowMenu];
+    [bar addItem:windowItem];
+    [NSApp setWindowsMenu:windowMenu];
+
+    // Step 3: Set delegate so applicationShouldTerminate:
+    // intercepts Quit and the Quit menu item target resolves.
+    GoGuiAppDelegate *delegate = [[GoGuiAppDelegate alloc] init];
+    [NSApp setDelegate:delegate];
+    [quitItem setTarget:delegate];
+
+    // Step 4: finishLaunching posts
+    // NSApplicationDidFinishLaunchingNotification.
     [NSApp finishLaunching];
 
-    // Step 4: Redirect the Quit menu item to our delegate so
-    // Cmd+Q sets METAL_EVENT_QUIT without calling terminate:.
-    NSMenu *mainMenu = [NSApp mainMenu];
-    if (mainMenu && [mainMenu numberOfItems] > 0) {
-        NSMenu *appMenu = [[mainMenu itemAtIndex:0] submenu];
-        if (appMenu) {
-            for (NSMenuItem *item in [appMenu itemArray]) {
-                if ([item action] == @selector(terminate:)) {
-                    [item setTarget:delegate];
-                    [item setAction:@selector(handleQuit:)];
-                }
-            }
-        }
-    }
-
-    // Step 5: Aggressive foreground activation. Carbon APIs work
-    // at the WindowServer level and may succeed where Cocoa
-    // activation is denied for CLI-launched binaries.
-    ProcessSerialNumber psn = {0, kCurrentProcess};
-    TransformProcessType(&psn, kProcessTransformToForegroundApplication);
-    SetFrontProcess(&psn);
+    // No Carbon. No activateIgnoringOtherApps. setAppleMenu:
+    // tells Cocoa the app owns the menu bar; standard window-
+    // manager activation handles the rest.
 }
 
 // ─── Test helpers (called from Go tests via cgo) ─────────────────
+
+// Activate the app now that windows exist. Called from Go right
+// before the event loop starts, after all windows are created.
+// Deprecated since macOS 14 (where focus-stealing is dead
+// regardless of API), but required on older macOS for
+// CLI-launched binaries to appear above Terminal.
+void metalActivateNow(void) {
+    // Intentionally not idempotent — called from both
+    // metalWindowCreate (dynamic windows) and Go (post-startup).
+    // Each call must reach activateIgnoringOtherApps:YES.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    [NSApp activateIgnoringOtherApps:YES];
+#pragma clang diagnostic pop
+}
 
 int metalTestActivationPolicyIsRegular(void) {
     return [NSApp activationPolicy] == NSApplicationActivationPolicyRegular ? 1 : 0;

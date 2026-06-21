@@ -46,7 +46,20 @@ func runMainThreadTests() {
 		panic("metalActivateApp: activation policy not Regular")
 	}
 
-	// 3. New() must succeed with activation — creates a real window
+	// 3. Menu bar must be fully wired — delegate, main menu, and
+	//    Quit→handleQuit:. Regression test for Cmd+Q silently
+	//    failing or falling through to terminate:.
+	if !testDelegateSet() {
+		panic("metalActivateApp: delegate not set")
+	}
+	if !testMenuExists() {
+		panic("metalActivateApp: main menu not created")
+	}
+	if !testMenuQuitWired() {
+		panic("metalActivateApp: Quit menu not wired to handleQuit:")
+	}
+
+	// 4. New() must succeed with activation — creates a real window
 	//    and Metal context, then tears down. Validates that
 	//    metalActivateApp + metalWindowCreate work end-to-end.
 	//    Regression test for window opening behind terminal.
@@ -60,14 +73,14 @@ func runMainThreadTests() {
 		panic("metal.New with activation: " + err.Error())
 	}
 
-	// 4. Window must have a delegate for close/resize/focus
+	// 5. Window must have a delegate for close/resize/focus
 	//    callbacks. Regression test for single-window close
 	//    button not working.
 	if !testWindowDelegateExists(b.window) {
 		panic("metal.New: window delegate not set")
 	}
 
-	// 5. Verify the window is registered in the lookup table so
+	// 6. Verify the window is registered in the lookup table so
 	//    C→Go callbacks (file drop, close, resize) can find it.
 	//    Regression test for setAttachedWindow not being called.
 	winID := testWindowID(b.window)
@@ -75,9 +88,14 @@ func runMainThreadTests() {
 		panic("metal.New: window not registered in windowRegistry")
 	}
 
+	// 7. metalActivateNow must not crash — validates the C function
+	//    exists, links, and can be called from Go. Regression test
+	//    for the activation call added before the event loop.
+	testActivateNow()
+
 	b.Destroy()
 
-	// 6. Destroy must unregister the window. Regression test for
+	// 8. Destroy must unregister the window. Regression test for
 	//    leaked entries in the windowRegistry after close.
 	if ws := lookupWindow(winID); ws != nil {
 		panic("metal.Destroy: window still in windowRegistry after destroy")

@@ -153,6 +153,10 @@ void metalPostEmptyEvent(void);
 // for CLI-launched binaries).
 void metalActivateApp(void);
 
+// Activate the app after all windows are created. Called just before
+// the event loop starts to ensure the app is frontmost.
+void metalActivateNow(void);
+
 // Set the dock icon from PNG data.
 void metalSetDockIcon(const void *data, int len);
 

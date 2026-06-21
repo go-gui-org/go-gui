@@ -77,6 +77,12 @@ func testWindowID(handle C.GoGuiNSWindow) uint32 {
 	return uint32(C.metalWindowGetID(handle))
 }
 
+// testActivateNow calls C.metalActivateNow directly to verify
+// the activation function exists, links, and runs without crashing.
+func testActivateNow() {
+	C.metalActivateNow()
+}
+
 // testInjectKeyDown sets up the C event globals to simulate a
 // key-down event, so mapMetalEvent can be tested without a
 // running event loop.
