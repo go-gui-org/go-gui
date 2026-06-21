@@ -25,7 +25,7 @@ Single quit dispatch path in Metal that matches gl/sdl2: `METAL_EVENT_QUIT` →
 
 Remove the workaround `performClose:` from `quit:`.
 
-## Plan
+## Implementation
 
 ### 1. Change `METAL_EVENT_QUIT` to return `cont=false`
 
@@ -44,70 +44,76 @@ Returning `cont=false` with an empty event triggers the existing `!cont` branch
 at `backend.go:277-282`, which already calls `gui.DispatchQuitRequest(app)` and
 sets `running` from its veto result.
 
-### 2. Remove the wid==0 EventQuitRequested branch
+### 2. Update Cmd+Q fallback to return `cont=false`
 
-`backend.go:289-303` — delete the entire `if evt.Type == gui.EventQuitRequested`
-block from both `RunAppE` and `Run`. The `!cont` branch above handles quit
-uniformly.
+`events.go:68-73` — the Cmd+Q key-event fallback (used when
+`performKeyEquivalent:` fails) now also returns `cont=false` instead of
+`(EventQuitRequested, true)`, matching the primary `METAL_EVENT_QUIT` path.
 
-For `Run` (single-window): the `!cont` branch at `backend.go:106-108` sets
-`running = false` and breaks. After the inner event loop, `w.CloseRequested()`
-is checked — but the window's close handler was already invoked by
-`DispatchQuitRequest`, so `Close()` has been called.
+### 3. Fix single-window `Run` `!cont` branch
 
-Wait — `Run`'s `!cont` branch doesn't call `DispatchQuitRequest`; it only has
-`running = false; break`. For single-window mode, the window is `w`, so
-`DispatchCloseRequest(w)` is the right call. But `DispatchQuitRequest` takes an
-`*App`, which doesn't exist in single-window mode.
+`backend.go:106-108` — `Run`'s `!cont` branch now calls
+`gui.DispatchCloseRequest(w)` before `running = false; break`. Previously it
+only set `running = false` without dispatching the close request, which would
+skip `OnCloseRequest` hooks.
 
-**Correction:** keep the `EventQuitRequested` handler in `Run` (single-window) —
-it's already correct. Only change `RunAppE`.
+### 4. Remove `EventQuitRequested` handler from both `Run` and `RunAppE`
 
-### 3. Remove `performClose:` from `quit:`
+`backend.go:110-114` and `backend.go:289-303` — deleted. The `!cont` branch
+handles quit uniformly now.
 
-`metal_window.m` `quit:` delegate method: remove the `[[NSApp keyWindow]
-performClose:nil]` call. With the unified dispatch, `DispatchQuitRequest`
-handles all windows uniformly — no need for a synchronous workaround.
+### 5. Remove `performClose:` from `quit:`
 
-### 4. (Optional) Verify Cmd+Q fallback still works
+`metal_window.m` `quit:` delegate method — removed the synchronous
+`[[NSApp keyWindow] performClose:nil]` call. The Go-side `DispatchQuitRequest`
+handles all windows.
 
-`events.go:71-72` — the Cmd+Q key-event fallback maps to `EventQuitRequested`
-with `cont=true`. After this change, Cmd+Q goes through `performKeyEquivalent:`
-→ `quit:` → `_evType = METAL_EVENT_QUIT` → `cont=false` →
-`DispatchQuitRequest`. The key-event fallback is only used if
-`performKeyEquivalent:` fails (unlikely with a properly wired menu). Leave it
-as a safety net.
+### 6. Add `_quitRequested` flag for out-of-band quit events
+
+**Deviation from original spec.** The spec assumed menu-bar quit clicks would
+be dequeued by `metalPollEvent` like keyboard events. In practice, menu-bar
+tracking runs in `NSEventTrackingRunLoopMode`, while `metalPollEvent` only
+dequeues from `NSDefaultRunLoopMode`. Without `performClose:`, `quit:` would
+set `_evType = METAL_EVENT_QUIT` but `metalPollEvent` would return 0 (no event
+in default mode), so Go never saw the quit.
+
+Added `static int _quitRequested` to the ObjC event state, set by `quit:` and
+`applicationShouldTerminate:`. Checked at the top of `metalPollEvent` before
+any dequeue (same pattern as the IME generation check). When set, it
+synthesizes `_evType = METAL_EVENT_QUIT` and returns 1 immediately. Consumed on
+first read so vetoed quits don't re-fire.
+
+This covers both inline cases (Cmd+Q via `performKeyEquivalent:` during
+`sendEvent:`) and out-of-band cases (menu-bar click, system logout).
 
 ## Affected files
 
 | File | Change |
 |------|--------|
 | `gui/backend/metal/events.go:24-25` | `METAL_EVENT_QUIT` → `cont=false` |
-| `gui/backend/metal/backend.go:289-303` | Remove `EventQuitRequested` handler from `RunAppE` |
-| `gui/backend/metal/metal_window.m` `quit:` | Remove `performClose:` call |
+| `gui/backend/metal/events.go:68-73` | Cmd+Q fallback → `cont=false` |
+| `gui/backend/metal/backend.go:106-108` | `Run` `!cont` branch now calls `DispatchCloseRequest(w)` |
+| `gui/backend/metal/backend.go:110-114` | Removed `EventQuitRequested` handler from `Run` |
+| `gui/backend/metal/backend.go:289-303` | Removed `EventQuitRequested` handler from `RunAppE` |
+| `gui/backend/metal/metal_window.m` | Added `_quitRequested` flag + poll check; removed `performClose:` from `quit:` |
+| `gui/backend/metal/events_test.go:206-222` | Updated Cmd+Q test to expect `cont=false` |
 
 ## Risks
 
-- **Cmd+Q regression**: if `performKeyEquivalent:` doesn't fire (menu not wired),
-  the key-event fallback still maps to `EventQuitRequested` with `cont=true`.
-  The deleted wid==0 handler was the only consumer of this event in `RunAppE`.
-  If the fallback fires, the event would pass through to `w.EventFn(evt)` as a
-  regular event — no quit would happen. **Mitigation**: keep the key-event
-  fallback but have it also return `cont=false`, matching the
-  `METAL_EVENT_QUIT` path. Or convert it to inject `METAL_EVENT_QUIT` state
-  and skip the key-event mapping entirely.
+- **Cmd+Q regression**: mitigated by keeping the key-event fallback in
+  `events.go` with `cont=false` and the `_quitRequested` flag.
 
 - **Dialog veto**: `DispatchQuitRequest` checks `DialogIsVisible()` and skips
   close for dialog windows. This is new behavior for Metal — previously, the
   `Broadcast` closed all windows regardless. If the app has a visible dialog
   during quit, the dialog stays open and the quit does nothing. This is correct
-  per the gl/sdl2 convention but may surprise existing Metal users.
+  per the gl/sdl2 convention.
 
-- **Double OnCloseRequest goes away**: currently the `quit:` delegate method
-  calls `performClose:` (synchronous `OnCloseRequest`) AND the Go event loop
-  dispatches it again. After this change, only `DispatchQuitRequest` fires it.
-  This is the desired behavior but changes timing — the synchronous dispatch
-  during menu-bar tracking is gone, replaced by event-loop dispatch.
+- **Double OnCloseRequest goes away**: previously `quit:` called `performClose:`
+  (synchronous `OnCloseRequest`) AND the Go event loop dispatched it again.
+  Now only `DispatchQuitRequest` fires it. This changes timing — the
+  synchronous dispatch during menu-bar tracking is gone, replaced by
+  event-loop dispatch.
 
 ## Testing
 

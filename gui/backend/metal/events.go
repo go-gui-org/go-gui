@@ -22,7 +22,7 @@ func mapMetalEvent() (gui.Event, bool) {
 		return gui.Event{}, true
 
 	case C.METAL_EVENT_QUIT:
-		return gui.Event{Type: gui.EventQuitRequested}, true
+		return gui.Event{}, false
 
 	case C.METAL_EVENT_MOUSE_DOWN:
 		return gui.Event{
@@ -65,11 +65,19 @@ func mapMetalEvent() (gui.Event, bool) {
 	case C.METAL_EVENT_KEY_DOWN:
 		kc := mapMacKeyCode(uint16(C.metalEventKeyCode()))
 		mods := mapMetalModifiers(uint32(C.metalEventModifiers()))
-		// Cmd+Q → quit request. The menu key equivalent path
-		// (quit: on delegate via performKeyEquivalent:) is the
-		// primary path.  This check catches Cmd+Q as a fallback.
+		// Cmd+Q → quit. The menu key equivalent path (quit: on
+		// delegate via performKeyEquivalent:) is the primary path.
+		// This check catches Cmd+Q as a fallback when the menu is
+		// not wired.
+		//
+		// When performKeyEquivalent: fires first, quit: sets
+		// _quitRequested=1; metalPollEvent consumes it before
+		// dequeueing this key-down. On a vetoed quit, this
+		// key-down arrives on the next poll and acts as a retry
+		// (correct). On an un-vetoed quit, the loop already
+		// exited before the second poll (harmless).
 		if kc == gui.KeyQ && mods&gui.ModSuper != 0 {
-			return gui.Event{Type: gui.EventQuitRequested}, true
+			return gui.Event{}, false
 		}
 		return gui.Event{
 			Type:      gui.EventKeyDown,

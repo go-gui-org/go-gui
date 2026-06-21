@@ -104,13 +104,13 @@ func (b *Backend) Run(w *gui.Window) {
 			mapped, cont := mapMetalEvent()
 			*evt = mapped
 			if !cont {
+				// Single-window Run does not support quit
+				// veto — running=false unconditionally.
+				// OnCloseRequest fires so hooks can save
+				// state, but the window exits regardless.
+				gui.DispatchCloseRequest(w)
 				running = false
 				break
-			}
-			if evt.Type == gui.EventQuitRequested {
-				gui.DispatchCloseRequest(w)
-				ev = C.metalPollEvent(0)
-				continue
 			}
 			if evt.Type != gui.EventInvalid {
 				w.EventFn(evt)
@@ -282,22 +282,6 @@ func RunAppE(app *gui.App, initialWindows ...*gui.Window) error {
 				break
 			}
 			if evt.Type == gui.EventInvalid {
-				ev = C.metalPollEvent(0)
-				continue
-			}
-
-			// wid=0 is global quit (Cmd+Q or system
-			// termination) — broadcast close to every
-			// window so per-window OnCloseRequest
-			// hooks can veto or save state.
-			if evt.Type == gui.EventQuitRequested {
-				if wid == 0 {
-					app.Broadcast(func(w *gui.Window) {
-						gui.DispatchCloseRequest(w)
-					})
-				} else {
-					gui.DispatchCloseRequest(app.Window(wid))
-				}
 				ev = C.metalPollEvent(0)
 				continue
 			}

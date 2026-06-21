@@ -65,13 +65,23 @@ func runMainThreadTests() {
 		panic("metalActivateApp: Windows menu not registered")
 	}
 
-	// 4. Delegate methods must set quit event —
+	// 4. Delegate methods must set quit event AND _quitRequested —
 	//    regression for menu-click quit and system termination.
+	//    _quitRequested is how metalPollEvent surfaces the quit when
+	//    the triggering event is not in NSDefaultRunLoopMode.
 	if !testQuitActionSetsQuitEvent() {
-		panic("GoGuiAppDelegate.quit: did not set quit event")
+		panic("GoGuiAppDelegate.quit: did not set quit event or _quitRequested")
 	}
 	if !testAppShouldTerminateCorrect() {
 		panic("GoGuiAppDelegate.applicationShouldTerminate: wrong return or no quit event")
+	}
+
+	// 4b. metalPollEvent must return immediately when _quitRequested
+	//    is set (before any event dequeue) — regression for menu-bar
+	//    quit silently lost because no event lands in
+	//    NSDefaultRunLoopMode.
+	if !testPollReturnsOnQuitRequested() {
+		panic("metalPollEvent: _quitRequested not consumed correctly")
 	}
 
 	// 5. New() must succeed with activation — creates a real window

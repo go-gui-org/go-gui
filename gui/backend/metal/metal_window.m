@@ -53,6 +53,7 @@ static int             _evIMEStart;
 static int             _evIMELength;
 static int             _evIMEGeneration;   // incremented on each IME event
 static int             _evIMEConsumedGen;  // last generation consumed by poll
+static int             _quitRequested;     // set by quit:/appShouldTerminate: (main thread only)
 
 // ─── Window ID counter ─────────────────────────────────────────
 
@@ -611,6 +612,18 @@ int metalPollEvent(int timeoutMs) {
     // Drain queued events first (non-blocking), then wait if empty.
     NSEvent *event = nil;
 
+    // Quit request from app delegate (quit:, applicationShouldTerminate:).
+    // These may fire without a corresponding event in NSDefaultRunLoopMode
+    // (menu-bar quit, system logout), so they won't be caught by the
+    // normal dequeue below.  Consume the flag here so a vetoed quit
+    // does not re-fire on the next poll.
+    if (_quitRequested) {
+        _quitRequested = 0;
+        _evType = METAL_EVENT_QUIT;
+        _evWindowID = 0;
+        return 1;
+    }
+
     // Check for unconsumed IME events (char / composition) stored
     // by NSTextInputClient callbacks during the previous sendEvent.
     // Uses a generation counter so stale _evType values are not
@@ -811,20 +824,25 @@ void metalPostEmptyEvent(void) {
 
 @implementation GoGuiAppDelegate
 
-// Sets quit event + closes key window. performClose: handles
-// menu-bar clicks where _evWindowID is 0. Double-dispatch from
-// the Go event loop is harmless (Close is idempotent).
+// Sets both _evType (immediate delivery when quit fires during a
+// poll's sendEvent:) and _quitRequested (delivery on the next poll
+// when quit fires out-of-band, e.g. menu-bar click during tracking
+// mode).  Both are necessary: _evType gives same-poll dispatch;
+// _quitRequested is the only signal that survives when the quit
+// lands outside NSDefaultRunLoopMode.
 - (void)quit:(id)sender {
     _evType = METAL_EVENT_QUIT;
-    [[NSApp keyWindow] performClose:nil];
+    _quitRequested = 1;
 }
 
 // Intercept system-initiated termination (logout, shutdown,
 // [NSApp terminate:]) so the Go event loop can run its own
-// teardown path instead of being SIGKILL'd.
+// teardown path instead of being SIGKILL'd.  Sets both _evType
+// and _quitRequested for same reason as quit: above.
 - (NSApplicationTerminateReply)applicationShouldTerminate:
     (NSApplication *)sender {
     _evType = METAL_EVENT_QUIT;
+    _quitRequested = 1;
     return NSTerminateCancel;
 }
 
@@ -972,28 +990,55 @@ void metalTestInjectKeyDown(unsigned short keyCode, unsigned int modifiers) {
     _evKeyRepeat = 0;
 }
 
+// Inject a synthetic quit event so Go tests can verify mapMetalEvent
+// returns cont=false for METAL_EVENT_QUIT.
+void metalTestInjectQuitEvent(void) {
+    _evType = METAL_EVENT_QUIT;
+    _evWindowID = 0;
+}
+
 // Directly invoke -[GoGuiAppDelegate quit:] on the current delegate
-// and verify it sets the quit event. Safe when no key window exists
-// (performClose: sends to nil, which is a no-op).
+// and verify it sets both _evType and _quitRequested.  The
+// _quitRequested flag is how metalPollEvent surfaces the quit when
+// the triggering event is not in NSDefaultRunLoopMode (menu-bar
+// click, system termination); if it is not set the quit is silently
+// lost.
 int metalTestQuitActionSetsQuitEvent(void) {
     id delegate = [NSApp delegate];
     if (!delegate) return 0;
     _evType = METAL_EVENT_NONE;
+    _quitRequested = 0;
     [delegate quit:nil];
-    return _evType == METAL_EVENT_QUIT ? 1 : 0;
+    return (_evType == METAL_EVENT_QUIT && _quitRequested == 1) ? 1 : 0;
 }
 
 // Directly invoke -applicationShouldTerminate: on the current delegate
-// and verify (a) it returns NSTerminateCancel and (b) it sets the quit
-// event flag.
+// and verify (a) it returns NSTerminateCancel, (b) it sets the quit
+// event flag, and (c) it sets _quitRequested so metalPollEvent
+// surfaces the quit in NSDefaultRunLoopMode.
 int metalTestAppShouldTerminateCorrect(void) {
     id delegate = [NSApp delegate];
     if (!delegate) return 0;
     _evType = METAL_EVENT_NONE;
+    _quitRequested = 0;
     NSApplicationTerminateReply reply =
         [delegate applicationShouldTerminate:NSApp];
     return (reply == NSTerminateCancel &&
-            _evType == METAL_EVENT_QUIT) ? 1 : 0;
+            _evType == METAL_EVENT_QUIT &&
+            _quitRequested == 1) ? 1 : 0;
+}
+
+// Verify that metalPollEvent returns 1 when _quitRequested is set
+// (before any event dequeue), sets _evType to METAL_EVENT_QUIT, and
+// consumes the flag.  Regression test for the out-of-band quit path
+// (menu-bar click, system termination) not landing in the event loop.
+int metalTestPollReturnsOnQuitRequested(void) {
+    _evType = METAL_EVENT_NONE;
+    _quitRequested = 1;
+    int ret = metalPollEvent(0);
+    return (ret == 1 &&
+            _evType == METAL_EVENT_QUIT &&
+            _quitRequested == 0) ? 1 : 0;
 }
 
 // Delegates to the shared metalCursorInContentBounds helper so the

@@ -13,8 +13,10 @@ int metalTestMainMenuExists(void);
 int metalTestMenuQuitWired(void);
 int metalTestWindowDelegateExists(void *windowHandle);
 void metalTestInjectKeyDown(unsigned short keyCode, unsigned int modifiers);
+void metalTestInjectQuitEvent(void);
 int metalTestQuitActionSetsQuitEvent(void);
 int metalTestAppShouldTerminateCorrect(void);
+int metalTestPollReturnsOnQuitRequested(void);
 int metalTestCursorBoundsCheck(float mouseX, float mouseY,
                                float width, float height);
 int metalTestMenuAboutExists(void);
@@ -96,12 +98,25 @@ func testInjectKeyDown(keyCode uint16, modifiers uint32) {
 	C.metalTestInjectKeyDown(C.ushort(keyCode), C.uint(modifiers))
 }
 
+// testInjectQuitEvent sets up the C event globals to simulate a
+// quit event so mapMetalEvent's METAL_EVENT_QUIT branch can be
+// tested without a running event loop.
+func testInjectQuitEvent() {
+	C.metalTestInjectQuitEvent()
+}
+
 func testQuitActionSetsQuitEvent() bool {
 	return C.metalTestQuitActionSetsQuitEvent() != 0
 }
 
 func testAppShouldTerminateCorrect() bool {
 	return C.metalTestAppShouldTerminateCorrect() != 0
+}
+
+// testPollReturnsOnQuitRequested verifies metalPollEvent returns
+// immediately when _quitRequested is set, before any event dequeue.
+func testPollReturnsOnQuitRequested() bool {
+	return C.metalTestPollReturnsOnQuitRequested() != 0
 }
 
 func testCursorBoundsCheck(mouseX, mouseY, width, height float32) bool {

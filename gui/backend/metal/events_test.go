@@ -203,7 +203,16 @@ func TestCursorSelector_Unknown(t *testing.T) {
 
 // ─── mapMetalEvent integration (C state injection) ────────────
 
-func TestMapMetalEvent_CmdQ_ReturnsQuitRequested(t *testing.T) {
+func TestMapMetalEvent_Quit_ReturnsContFalse(t *testing.T) {
+	testInjectQuitEvent()
+
+	_, cont := mapMetalEvent()
+	if cont {
+		t.Fatalf("METAL_EVENT_QUIT: got cont=true, want false")
+	}
+}
+
+func TestMapMetalEvent_CmdQ_ReturnsContFalse(t *testing.T) {
 	// kVK_ANSI_Q = 0x0C, NSEventModifierFlagCommand = 1<<20
 	const (
 		kvkQ   = uint16(0x0C)
@@ -211,13 +220,9 @@ func TestMapMetalEvent_CmdQ_ReturnsQuitRequested(t *testing.T) {
 	)
 	testInjectKeyDown(kvkQ, modCmd)
 
-	evt, cont := mapMetalEvent()
-	if !cont {
-		t.Fatal("Cmd+Q should continue (not stop loop)")
-	}
-	if evt.Type != gui.EventQuitRequested {
-		t.Fatalf("Cmd+Q: got event type %v, want EventQuitRequested",
-			evt.Type)
+	_, cont := mapMetalEvent()
+	if cont {
+		t.Fatalf("Cmd+Q: got cont=true, want false")
 	}
 }
 
