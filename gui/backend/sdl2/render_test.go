@@ -3,7 +3,6 @@
 package sdl2
 
 import (
-	"runtime"
 	"testing"
 	"unsafe"
 
