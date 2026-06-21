@@ -5,15 +5,10 @@
 #import <Cocoa/Cocoa.h>
 #import <Metal/Metal.h>
 
-// setAppleMenu: has been private API since macOS 10.6 but remains
-// functional at runtime and is used by SDL2 to tell Cocoa the app
-// owns a proper menu bar.
-@interface NSApplication (GoGuiAppleMenu)
-- (void)setAppleMenu:(NSMenu *)menu;
-@end
 #import <QuartzCore/CAMetalLayer.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 // Event mask covering all event types the app needs to receive.
 // MouseEntered/Exited are required by AppKit's internal tracking-
@@ -709,6 +704,15 @@ int metalEventIMELength(void) { return _evIMELength; }
 
 // ─── Cursors ───────────────────────────────────────────────────
 
+// Shared bounds guard used by metalWindowSetCursor (production) and
+// metalTestCursorBoundsCheck (test helper) so the test always runs
+// the exact same logic as production.
+static inline bool metalCursorInContentBounds(float mouseX, float mouseY,
+                                               float width, float height) {
+    if (!isfinite(mouseX) || !isfinite(mouseY)) return false;
+    return mouseX >= 0 && mouseX < width && mouseY >= 0 && mouseY < height;
+}
+
 void metalWindowSetCursor(GoGuiNSWindow w, const char *cursorName,
                           float mouseX, float mouseY) {
     if (!w || !cursorName) return;
@@ -719,8 +723,8 @@ void metalWindowSetCursor(GoGuiNSWindow w, const char *cursorName,
     // (resize edges, title-bar buttons).  Overriding there would
     // prevent edge-resize cursors and traffic-light hover effects.
     NSRect bounds = gw->contentView.bounds;
-    if (mouseX < 0 || mouseX > bounds.size.width ||
-        mouseY < 0 || mouseY > bounds.size.height) {
+    if (!metalCursorInContentBounds(mouseX, mouseY,
+                                     bounds.size.width, bounds.size.height)) {
         return;
     }
 
@@ -807,14 +811,21 @@ void metalPostEmptyEvent(void) {
 
 @implementation GoGuiAppDelegate
 
-// Direct quit action — sets the quit event flag that the Go
-// event loop reads.  We cannot use terminate: because our custom
-// event loop ignores [NSApp stop:nil].
+// Sets quit event + closes key window. performClose: handles
+// menu-bar clicks where _evWindowID is 0. Double-dispatch from
+// the Go event loop is harmless (Close is idempotent).
 - (void)quit:(id)sender {
     _evType = METAL_EVENT_QUIT;
-    // Also close the key window immediately.  This bypasses the
-    // Go event loop's wid==0 dispatch issue for menu bar clicks.
     [[NSApp keyWindow] performClose:nil];
+}
+
+// Intercept system-initiated termination (logout, shutdown,
+// [NSApp terminate:]) so the Go event loop can run its own
+// teardown path instead of being SIGKILL'd.
+- (NSApplicationTerminateReply)applicationShouldTerminate:
+    (NSApplication *)sender {
+    _evType = METAL_EVENT_QUIT;
+    return NSTerminateCancel;
 }
 
 @end
@@ -845,6 +856,12 @@ void metalActivateApp(void) {
     NSMenu *bar = [[NSMenu alloc] init];
     NSMenu *appMenu = [[NSMenu alloc] init];
 
+    [appMenu addItemWithTitle:
+        [@"About " stringByAppendingString:appName]
+                       action:@selector(orderFrontStandardAboutPanel:)
+                keyEquivalent:@""];
+    [appMenu addItem:[NSMenuItem separatorItem]];
+
     NSMenuItem *quitItem =
         [appMenu addItemWithTitle:[@"Quit " stringByAppendingString:appName]
                            action:@selector(quit:)
@@ -857,6 +874,28 @@ void metalActivateApp(void) {
                                               keyEquivalent:@""];
     [appItem setSubmenu:appMenu];
     [bar addItem:appItem];
+    // ── Window menu ──
+    NSMenu *windowMenu = [[NSMenu alloc] init];
+    [windowMenu addItemWithTitle:@"Close"
+                          action:@selector(performClose:)
+                   keyEquivalent:@"w"];
+    [windowMenu addItemWithTitle:@"Minimize"
+                          action:@selector(performMiniaturize:)
+                   keyEquivalent:@"m"];
+    [windowMenu addItemWithTitle:@"Zoom"
+                          action:@selector(performZoom:)
+                   keyEquivalent:@""];
+    [windowMenu addItem:[NSMenuItem separatorItem]];
+    [windowMenu addItemWithTitle:@"Bring All to Front"
+                          action:@selector(arrangeInFront:)
+                   keyEquivalent:@""];
+
+    NSMenuItem *windowItem = [[NSMenuItem alloc] initWithTitle:@"Window"
+                                                        action:nil
+                                                 keyEquivalent:@""];
+    [windowItem setSubmenu:windowMenu];
+    [bar addItem:windowItem];
+    [NSApp setWindowsMenu:windowMenu];
     [NSApp setMainMenu:bar];
 
     [NSApp setDelegate:delegate];
@@ -893,14 +932,20 @@ int metalTestMainMenuExists(void) {
     return (mainMenu && [mainMenu numberOfItems] > 0) ? 1 : 0;
 }
 
+// Shared menu-navigation helper used by metalTestMenuQuitWired,
+// metalTestMenuAboutExists, and any future menu-item tests.
+static NSMenu *metalTestAppMenu(void) {
+    NSMenu *mainMenu = [NSApp mainMenu];
+    if (!mainMenu || [mainMenu numberOfItems] == 0) return NULL;
+    return [[mainMenu itemAtIndex:0] submenu];
+}
+
 int metalTestMenuQuitWired(void) {
     id delegate = [NSApp delegate];
     if (!delegate) return 0;
-    NSMenu *mainMenu = [NSApp mainMenu];
-    if (!mainMenu || [mainMenu numberOfItems] == 0) return 0;
-    NSMenu *appMenu = [[mainMenu itemAtIndex:0] submenu];
-    if (!appMenu) return 0;
-    for (NSMenuItem *item in [appMenu itemArray]) {
+    NSMenu *am = metalTestAppMenu();
+    if (!am) return 0;
+    for (NSMenuItem *item in [am itemArray]) {
         if ([item action] == @selector(quit:) &&
             [item target] == delegate) {
             return 1;
@@ -925,6 +970,54 @@ void metalTestInjectKeyDown(unsigned short keyCode, unsigned int modifiers) {
     _evKeyCode = keyCode;
     _evModifiers = modifiers;
     _evKeyRepeat = 0;
+}
+
+// Directly invoke -[GoGuiAppDelegate quit:] on the current delegate
+// and verify it sets the quit event. Safe when no key window exists
+// (performClose: sends to nil, which is a no-op).
+int metalTestQuitActionSetsQuitEvent(void) {
+    id delegate = [NSApp delegate];
+    if (!delegate) return 0;
+    _evType = METAL_EVENT_NONE;
+    [delegate quit:nil];
+    return _evType == METAL_EVENT_QUIT ? 1 : 0;
+}
+
+// Directly invoke -applicationShouldTerminate: on the current delegate
+// and verify (a) it returns NSTerminateCancel and (b) it sets the quit
+// event flag.
+int metalTestAppShouldTerminateCorrect(void) {
+    id delegate = [NSApp delegate];
+    if (!delegate) return 0;
+    _evType = METAL_EVENT_NONE;
+    NSApplicationTerminateReply reply =
+        [delegate applicationShouldTerminate:NSApp];
+    return (reply == NSTerminateCancel &&
+            _evType == METAL_EVENT_QUIT) ? 1 : 0;
+}
+
+// Delegates to the shared metalCursorInContentBounds helper so the
+// 10 Go tests exercise the exact same logic as production code.
+int metalTestCursorBoundsCheck(float mouseX, float mouseY,
+                               float width, float height) {
+    return metalCursorInContentBounds(mouseX, mouseY, width, height) ? 0 : 1;
+}
+
+int metalTestMenuAboutExists(void) {
+    NSMenu *am = metalTestAppMenu();
+    if (!am) return 0;
+    for (NSMenuItem *item in [am itemArray]) {
+        if ([item action] == @selector(orderFrontStandardAboutPanel:)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+// Verify the Windows menu is registered with AppKit.
+int metalTestWindowsMenuExists(void) {
+    NSMenu *wm = [NSApp windowsMenu];
+    return (wm && [wm numberOfItems] > 0) ? 1 : 0;
 }
 
 void metalSetDockIcon(const void *data, int len) {

@@ -58,8 +58,23 @@ func runMainThreadTests() {
 	if !testMenuQuitWired() {
 		panic("metalActivateApp: Quit menu not wired to delegate")
 	}
+	if !testMenuAboutExists() {
+		panic("metalActivateApp: About menu item not found")
+	}
+	if !testWindowsMenuExists() {
+		panic("metalActivateApp: Windows menu not registered")
+	}
 
-	// 4. New() must succeed with activation — creates a real window
+	// 4. Delegate methods must set quit event —
+	//    regression for menu-click quit and system termination.
+	if !testQuitActionSetsQuitEvent() {
+		panic("GoGuiAppDelegate.quit: did not set quit event")
+	}
+	if !testAppShouldTerminateCorrect() {
+		panic("GoGuiAppDelegate.applicationShouldTerminate: wrong return or no quit event")
+	}
+
+	// 5. New() must succeed with activation — creates a real window
 	//    and Metal context, then tears down. Validates that
 	//    metalActivateApp + metalWindowCreate work end-to-end.
 	//    Regression test for window opening behind terminal.
@@ -73,14 +88,14 @@ func runMainThreadTests() {
 		panic("metal.New with activation: " + err.Error())
 	}
 
-	// 5. Window must have a delegate for close/resize/focus
+	// 6. Window must have a delegate for close/resize/focus
 	//    callbacks. Regression test for single-window close
 	//    button not working.
 	if !testWindowDelegateExists(b.window) {
 		panic("metal.New: window delegate not set")
 	}
 
-	// 6. Verify the window is registered in the lookup table so
+	// 7. Verify the window is registered in the lookup table so
 	//    C→Go callbacks (file drop, close, resize) can find it.
 	//    Regression test for setAttachedWindow not being called.
 	winID := testWindowID(b.window)
@@ -88,14 +103,14 @@ func runMainThreadTests() {
 		panic("metal.New: window not registered in windowRegistry")
 	}
 
-	// 7. metalActivateNow must not crash — validates the C function
+	// 8. metalActivateNow must not crash — validates the C function
 	//    exists, links, and can be called from Go. Regression test
 	//    for the activation call added before the event loop.
 	testActivateNow()
 
 	b.Destroy()
 
-	// 8. Destroy must unregister the window. Regression test for
+	// 9. Destroy must unregister the window. Regression test for
 	//    leaked entries in the windowRegistry after close.
 	if ws := lookupWindow(winID); ws != nil {
 		panic("metal.Destroy: window still in windowRegistry after destroy")

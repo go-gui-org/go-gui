@@ -13,6 +13,12 @@ int metalTestMainMenuExists(void);
 int metalTestMenuQuitWired(void);
 int metalTestWindowDelegateExists(void *windowHandle);
 void metalTestInjectKeyDown(unsigned short keyCode, unsigned int modifiers);
+int metalTestQuitActionSetsQuitEvent(void);
+int metalTestAppShouldTerminateCorrect(void);
+int metalTestCursorBoundsCheck(float mouseX, float mouseY,
+                               float width, float height);
+int metalTestMenuAboutExists(void);
+int metalTestWindowsMenuExists(void);
 */
 import "C"
 import (
@@ -88,6 +94,27 @@ func testActivateNow() {
 // running event loop.
 func testInjectKeyDown(keyCode uint16, modifiers uint32) {
 	C.metalTestInjectKeyDown(C.ushort(keyCode), C.uint(modifiers))
+}
+
+func testQuitActionSetsQuitEvent() bool {
+	return C.metalTestQuitActionSetsQuitEvent() != 0
+}
+
+func testAppShouldTerminateCorrect() bool {
+	return C.metalTestAppShouldTerminateCorrect() != 0
+}
+
+func testCursorBoundsCheck(mouseX, mouseY, width, height float32) bool {
+	return C.metalTestCursorBoundsCheck(C.float(mouseX), C.float(mouseY),
+		C.float(width), C.float(height)) != 0
+}
+
+func testMenuAboutExists() bool {
+	return C.metalTestMenuAboutExists() != 0
+}
+
+func testWindowsMenuExists() bool {
+	return C.metalTestWindowsMenuExists() != 0
 }
 
 // ─── C callbacks (weak in metal_window.m, strong here) ───────

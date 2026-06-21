@@ -3,6 +3,7 @@
 package metal
 
 import (
+	"math"
 	"testing"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -234,5 +235,34 @@ func TestMapMetalEvent_PlainKeyDown_ReturnsKeyDown(t *testing.T) {
 	}
 	if evt.KeyCode != gui.KeyA {
 		t.Fatalf("plain key: got keycode %v, want KeyA", evt.KeyCode)
+	}
+}
+
+// ─── Cursor bounds guard ────────────────────────────────────────
+
+func TestCursorBoundsCheck(t *testing.T) {
+	tests := []struct {
+		name         string
+		x, y, w, h   float32
+		wantRejected bool
+	}{
+		{"Inside", 50, 50, 100, 100, false},
+		{"NegX", -1, 50, 100, 100, true},
+		{"NegY", 50, -1, 100, 100, true},
+		{"ExactEdgeX", 100, 50, 100, 100, true},
+		{"ExactEdgeY", 50, 100, 100, 100, true},
+		{"NaN_X", float32(math.NaN()), 50, 100, 100, true},
+		{"NaN_Y", 50, float32(math.NaN()), 100, 100, true},
+		{"InfX", float32(math.Inf(1)), 50, 100, 100, true},
+		{"InfY", 50, float32(math.Inf(-1)), 100, 100, true},
+		{"Zero_Zero", 0, 0, 100, 100, false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := testCursorBoundsCheck(tc.x, tc.y, tc.w, tc.h)
+			if got != tc.wantRejected {
+				t.Errorf("got rejected=%v, want rejected=%v", got, tc.wantRejected)
+			}
+		})
 	}
 }

@@ -286,17 +286,15 @@ func RunAppE(app *gui.App, initialWindows ...*gui.Window) error {
 				continue
 			}
 
-			// Window close event. wid=0 is global quit (Cmd+Q)
-			// from the NSApplicationDelegate — broadcast to
-			// all windows.
+			// wid=0 is global quit (Cmd+Q or system
+			// termination) — broadcast close to every
+			// window so per-window OnCloseRequest
+			// hooks can veto or save state.
 			if evt.Type == gui.EventQuitRequested {
 				if wid == 0 {
-					for _, ws := range states {
-						if w := ws.attachedWindow; w != nil {
-							gui.DispatchCloseRequest(w)
-							break
-						}
-					}
+					app.Broadcast(func(w *gui.Window) {
+						gui.DispatchCloseRequest(w)
+					})
 				} else {
 					gui.DispatchCloseRequest(app.Window(wid))
 				}
