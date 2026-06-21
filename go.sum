@@ -10,8 +10,8 @@ github.com/go-gl/gl v0.0.0-20260331235117-4566fea9a276 h1:IO5P06Pcj9K04d+l4nrf3c
 github.com/go-gl/gl v0.0.0-20260331235117-4566fea9a276/go.mod h1:9YTyiznxEY1fVinfM7RvRcjRHbw2xLBJ3AAGIT0I4Nw=
 github.com/go-gui-org/go-glyph v1.11.0 h1:v6/ZhHrQY5ZqJzoNAlCfVhQGA2g3RrtLVP6LVB5I8Fk=
 github.com/go-gui-org/go-glyph v1.11.0/go.mod h1:TGH4KhHIaROHLy5m8gEId+ZInQjbMFVxlieyvrfZHXI=
-github.com/go-gui-org/go-glyph/backend/sdl2 v1.11.0 h1:vfyr/fjEehabdwcjaJLh7I0k0TMwWkm9w6uwzCcrnhs=
-github.com/go-gui-org/go-glyph/backend/sdl2 v1.11.0/go.mod h1:qMxLGGkkoY5iznvEcYzAeZ5ped1wkKZU87rvV9XT0NQ=
+github.com/go-gui-org/go-glyph/backend/sdl2 v1.11.0 h1:dY3P+G2f35RQWJKUK+l9B5boqwaESpUb/GyXXvzPJjc=
+github.com/go-gui-org/go-glyph/backend/sdl2 v1.11.0/go.mod h1:yvpNc9gZY96Asllunh0faTK02eb0t3xSR7QAw3GVrwg=
 github.com/go-pdf/fpdf v0.9.0 h1:PPvSaUuo1iMi9KkaAn90NuKi+P4gwMedWPHhj8YlJQw=
 github.com/go-pdf/fpdf v0.9.0/go.mod h1:oO8N111TkmKb9D7VvWGLvLJlaZUQVPM+6V42pp3iV4Y=
 github.com/godbus/dbus/v5 v5.2.2 h1:TUR3TgtSVDmjiXOgAAyaZbYmIeP3DPkld3jgKGV8mXQ=
