@@ -72,7 +72,7 @@ func New(w *gui.Window) (*Backend, error) {
 	}
 
 	b := &Backend{windowState: *ws}
-	ws.setAttachedWindow(w)
+	b.setAttachedWindow(w)
 	injectInterfaces(w, &b.windowState)
 	return b, nil
 }
