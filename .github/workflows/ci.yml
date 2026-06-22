@@ -21,17 +21,9 @@ jobs:
         with:
           install-linux-deps: 'true'
 
-      - name: Install macOS system dependencies
+      - name: Install macOS dependencies
         if: runner.os == 'macOS'
-        run: |
-          brew install \
-            pkg-config \
-            sdl2 \
-            sdl2_mixer \
-            freetype \
-            harfbuzz \
-            pango \
-            fontconfig
+        run: brew install sdl2 sdl2_mixer
 
       - name: Test
         run: |

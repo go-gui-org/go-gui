@@ -1,5 +1,4 @@
 #import <AppKit/AppKit.h>
-#import <SDL_syswm.h>
 #include "a11y_darwin.h"
 
 // ─── Role Map ────────────────────────────────────────────────
@@ -216,16 +215,12 @@ static NSRect convertFrame(float x, float y, float w, float h,
 
 // ─── Public API ──────────────────────────────────────────────
 
-void a11yInit(SDL_Window *win) {
+void a11yInit(GoGuiNSWindow w) {
     initRoleMap();
 
-    // Extract NSWindow/NSView from SDL_Window.
-    SDL_SysWMinfo info;
-    SDL_VERSION(&info.version);
-    if (!SDL_GetWindowWMInfo(win, &info)) {
-        return;
-    }
-    _nsWindow = info.info.cocoa.window;
+    // Extract NSWindow/NSView from native window handle.
+    _nsWindow = (__bridge NSWindow *)metalWindowGetNSWindow(w);
+    if (!_nsWindow) return;
     _nsView = [_nsWindow contentView];
     if (!_nsView) {
         return;

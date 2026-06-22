@@ -1,9 +1,8 @@
-//go:build !js
+//go:build !js && !darwin
 
 package sdl2
 
 import (
-	"runtime"
 	"testing"
 	"unsafe"
 
@@ -74,14 +73,6 @@ func TestBackendRenderSmoke(t *testing.T) {
 			},
 		})
 	})
-
-	// SDL2 init on macOS requires the main thread for Cocoa.
-	// go test runs tests in goroutines, so TestBackendRenderSmoke
-	// is only safe on Linux where SDL has no main-thread constraint.
-	if runtime.GOOS == "darwin" {
-		t.Skip("SDL init requires main thread on macOS; " +
-			"backend smoke test runs on Linux CI instead")
-	}
 
 	b, err := New(w)
 	if err != nil {

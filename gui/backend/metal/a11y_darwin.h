@@ -1,7 +1,7 @@
 #ifndef A11Y_DARWIN_H
 #define A11Y_DARWIN_H
 
-#include <SDL.h>
+#include "metal_window.h"
 
 // Role constants matching gui.AccessRole iota order (0-34).
 enum {
@@ -65,9 +65,8 @@ typedef struct {
     int         childrenCount;
 } A11yCNode;
 
-// Initialize the accessibility element tree. Extracts the
-// NSWindow/NSView from the SDL_Window.
-void a11yInit(SDL_Window *win);
+// Initialize the accessibility element tree.
+void a11yInit(GoGuiNSWindow w);
 
 // Sync the accessibility tree with the current frame's nodes.
 void a11ySync(const A11yCNode *nodes, int count, int focusedIdx,

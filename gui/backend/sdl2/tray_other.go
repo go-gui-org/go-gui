@@ -1,4 +1,4 @@
-//go:build !linux && !windows && !js
+//go:build !linux && !windows && !js && !darwin
 
 package sdl2
 

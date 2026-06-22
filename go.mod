@@ -5,7 +5,8 @@ go 1.26.0
 require (
 	github.com/alecthomas/chroma/v2 v2.26.1
 	github.com/go-gl/gl v0.0.0-20260331235117-4566fea9a276
-	github.com/go-gui-org/go-glyph v1.10.0
+	github.com/go-gui-org/go-glyph v1.11.0
+	github.com/go-gui-org/go-glyph/backend/sdl2 v1.11.0
 	github.com/go-pdf/fpdf v0.9.0
 	github.com/godbus/dbus/v5 v5.2.2
 	github.com/tdewolff/parse/v2 v2.8.13

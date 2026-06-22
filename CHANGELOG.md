@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.27.1] - 2026-06-20
+
+### Fixed
+
+- **Windows CI**: pin MSYS2 to stable release to fix `__ms_vsscanf`
+  undefined reference linker error with GCC 16.1.0.
+
 ## [v0.27.0] - 2026-06-17
 
 ### Added

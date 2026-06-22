@@ -2,17 +2,23 @@
 
 package metal
 
+/*
+#include <stdlib.h>
+#include "metal_window.h"
+#include "a11y_darwin.h"
+*/
+import "C"
 import (
+	"unsafe"
+
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/nativehost"
 	"github.com/go-gui-org/go-gui/gui/backend/nativemenu"
-	"github.com/veandco/go-sdl2/sdl"
 )
 
-// nativePlatform implements gui.NativePlatform for the Metal
-// backend.
+// nativePlatform implements gui.NativePlatform for the Metal backend.
 type nativePlatform struct {
-	window *sdl.Window
+	window C.GoGuiNSWindow
 }
 
 // --- URI ---
@@ -68,29 +74,39 @@ func (n *nativePlatform) BookmarkStopAccess(_ []byte)                  {}
 // --- Accessibility ---
 
 func (n *nativePlatform) A11yInit(cb func(action, index int)) {
-	a11yActionCallback = cb
-	a11yInitBridge(n.window)
+	setA11yCallback(cb)
+	C.a11yInit(n.window)
 }
 
 func (n *nativePlatform) A11ySync(nodes []gui.A11yNode, count, focusedIdx int) {
-	_, h := n.window.GetSize()
-	a11ySyncBridge(nodes, count, focusedIdx, float32(h))
+	var logW, logH C.int
+	C.metalWindowGetSize(n.window, &logW, &logH)
+	a11ySyncBridge(nodes, count, focusedIdx, float32(logH))
 }
 
 func (n *nativePlatform) A11yDestroy() {
-	a11yDestroyBridge()
+	C.a11yDestroy()
 }
 
 func (n *nativePlatform) A11yAnnounce(text string) {
-	a11yAnnounceBridge(text)
+	cstr := C.CString(text)
+	defer C.free(unsafe.Pointer(cstr))
+	C.a11yAnnounce(cstr)
 }
 
 // --- IME ---
 
-func (n *nativePlatform) IMEStart() { sdl.StartTextInput() }
-func (n *nativePlatform) IMEStop()  { sdl.StopTextInput() }
+func (n *nativePlatform) IMEStart() {
+	C.metalWindowIMESetActive(n.window, 1)
+}
+
+func (n *nativePlatform) IMEStop() {
+	C.metalWindowIMESetActive(n.window, 0)
+}
+
 func (n *nativePlatform) IMESetRect(x, y, w, h int32) {
-	sdl.SetTextInputRect(&sdl.Rect{X: x, Y: y, W: w, H: h})
+	C.metalWindowIMESetCursorRect(n.window,
+		C.float(x), C.float(y), C.float(w), C.float(h))
 }
 
 // --- Appearance ---

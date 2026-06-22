@@ -1,4 +1,4 @@
-//go:build !js
+//go:build !js && !darwin
 
 // Package sdl2 provides an SDL2-based backend for go-gui.
 package sdl2
@@ -205,7 +205,7 @@ func (b *Backend) Run(w *gui.Window) {
 	// blocks PollEvent. This callback fires from within that loop,
 	// allowing re-layout and re-render at the new size.
 	var watchHandle sdl.EventWatchHandle
-	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
+	if runtime.GOOS == "windows" {
 		watchHandle = sdl.AddEventWatchFunc(
 			func(ev sdl.Event, _ any) bool {
 				we, ok := ev.(*sdl.WindowEvent)
@@ -362,10 +362,10 @@ func RunAppE(app *gui.App, initialWindows ...*gui.Window) error {
 		}
 	}
 
-	// Event watcher for live resize on macOS and Windows.
+	// Event watcher for live resize on Windows.
 	resizeEvent := &gui.Event{Type: gui.EventResized}
 	var watchHandle sdl.EventWatchHandle
-	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
+	if runtime.GOOS == "windows" {
 		watchHandle = sdl.AddEventWatchFunc(
 			func(ev sdl.Event, _ any) bool {
 				we, ok := ev.(*sdl.WindowEvent)
