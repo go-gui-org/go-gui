@@ -216,6 +216,79 @@ func TestDockGroupViewDraggedTabHidden(t *testing.T) {
 	// The dragged tab "a" should be skipped, "b" shown
 }
 
+func TestDockGroupViewHideSingleTab(t *testing.T) {
+	tests := []struct {
+		name         string
+		panelIDs     []string
+		hideSingle   bool
+		wantChildren int
+	}{
+		{
+			name:         "single panel hidden",
+			panelIDs:     []string{"a"},
+			hideSingle:   true,
+			wantChildren: 1,
+		},
+		{
+			name:         "multi panel still visible",
+			panelIDs:     []string{"a", "b"},
+			hideSingle:   true,
+			wantChildren: 2,
+		},
+		{
+			name:         "single panel default visible",
+			panelIDs:     []string{"a"},
+			hideSingle:   false,
+			wantChildren: 2,
+		},
+		{
+			name:         "no panels hidden",
+			panelIDs:     []string{},
+			hideSingle:   true,
+			wantChildren: 1,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := &Window{}
+			sel := ""
+			if len(tt.panelIDs) > 0 {
+				sel = tt.panelIDs[0]
+			}
+			group := DockPanelGroup("g1", tt.panelIDs, sel)
+			cfg := &DockLayoutCfg{
+				ID:             "dock1",
+				Root:           group,
+				Panels:         panelDefsFor(tt.panelIDs...),
+				HideSingleTab:  tt.hideSingle,
+				OnLayoutChange: func(_ *DockNode, _ *Window) {},
+			}
+			applyDockLayoutDefaults(cfg)
+
+			v := dockGroupView(newDockLayoutCore(cfg), group, cfg,
+				dockDragState{})
+			layout := generateViewLayout(v, w)
+			if layout.Shape == nil {
+				t.Fatal("nil layout")
+			}
+			if len(layout.Children) != tt.wantChildren {
+				t.Fatalf("got %d children, want %d",
+					len(layout.Children), tt.wantChildren)
+			}
+		})
+	}
+}
+
+// panelDefsFor converts panel IDs to DockPanelDefs with a "Label"
+// matching the ID.
+func panelDefsFor(ids ...string) []DockPanelDef {
+	defs := make([]DockPanelDef, len(ids))
+	for i, id := range ids {
+		defs[i] = DockPanelDef{ID: id, Label: id}
+	}
+	return defs
+}
+
 // --- dockSplitView ---
 
 func TestDockSplitViewOrientation(t *testing.T) {
@@ -448,6 +521,41 @@ func TestDockTabButtonWithSelect(t *testing.T) {
 	}
 }
 
+func TestDockTabButtonCloseButtonHasTextColor(t *testing.T) {
+	w := &Window{}
+	group := DockPanelGroup("g1", []string{"a"}, "a")
+	cfg := &DockLayoutCfg{
+		ID:   "dock1",
+		Root: group,
+		Panels: []DockPanelDef{
+			{ID: "a", Label: "Alpha", Closable: true},
+		},
+		OnLayoutChange: func(_ *DockNode, _ *Window) {},
+		OnPanelClose:   func(_ string, _ *Window) {},
+	}
+	applyDockLayoutDefaults(cfg)
+	core := newDockLayoutCore(cfg)
+
+	panel := DockPanelDef{ID: "a", Label: "Alpha", Closable: true}
+	v := dockTabButton(core, group, panel, true, cfg)
+	layout := generateViewLayout(v, w)
+
+	// Find the close button (dock_close:a) then its child Text.
+	closeBtn := findShapeByID(&layout, "dock_close:a")
+	if closeBtn == nil {
+		t.Fatal("close button not found")
+	}
+	if len(closeBtn.Children) == 0 {
+		t.Fatal("close button has no children")
+	}
+	xShape := closeBtn.Children[0].Shape
+	if xShape == nil || xShape.TC == nil || xShape.TC.TextStyle == nil {
+		t.Fatal("× text shape or TextStyle is nil")
+	}
+	if !xShape.TC.TextStyle.Color.IsSet() {
+		t.Fatal("× text color is not set — would render invisible")
+	}
+}
 func TestDockGroupViewFallbackContent(t *testing.T) {
 	w := &Window{}
 	// Selected panel "a" is being dragged, fallback to "b"
@@ -475,4 +583,21 @@ func TestDockGroupViewFallbackContent(t *testing.T) {
 	if layout.Shape == nil {
 		t.Fatal("nil layout")
 	}
+}
+
+// findShapeByID recursively searches a layout tree for a Shape with
+// the given ID.
+func findShapeByID(layout *Layout, id string) *Layout {
+	if layout == nil {
+		return nil
+	}
+	if layout.Shape != nil && layout.Shape.ID == id {
+		return layout
+	}
+	for i := range layout.Children {
+		if found := findShapeByID(&layout.Children[i], id); found != nil {
+			return found
+		}
+	}
+	return nil
 }

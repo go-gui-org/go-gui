@@ -29,6 +29,7 @@ type DockLayoutCfg struct {
 	ColorTabSeparator Color
 	ColorContent      Color
 	Sizing            Sizing
+	HideSingleTab     bool
 }
 
 // dockLayoutCore holds callback-relevant fields without content
@@ -269,15 +270,18 @@ func dockGroupView(
 
 	groupContent := make([]View, 0, 2)
 
-	// Tab header row.
-	groupContent = append(groupContent, Row(ContainerCfg{
-		Sizing:     FillFit,
-		Padding:    SomeP(2, 4, 0, 4),
-		Spacing:    NoSpacing,
-		SizeBorder: NoBorder,
-		Color:      cfg.ColorTabBar,
-		Content:    tabButtons,
-	}))
+	// Tab header row — hidden when HideSingleTab is set and the
+	// group has only one panel.
+	if !cfg.HideSingleTab || len(group.PanelIDs) > 1 {
+		groupContent = append(groupContent, Row(ContainerCfg{
+			Sizing:     FillFit,
+			Padding:    SomeP(2, 4, 0, 4),
+			Spacing:    NoSpacing,
+			SizeBorder: NoBorder,
+			Color:      cfg.ColorTabBar,
+			Content:    tabButtons,
+		}))
+	}
 
 	// Content area.
 	groupContent = append(groupContent, Column(ContainerCfg{
@@ -332,7 +336,7 @@ func dockTabButton(
 			Sizing:     FixedFixed,
 			Padding:    NoPadding,
 			SizeBorder: NoBorder,
-			Color:      ColorTransparent,
+			Color:      colorTab,
 			ColorHover: guiTheme.ColorHover,
 			Radius:     SomeF(2),
 			OnClick: func(_ *Layout, _ *Event, w *Window) {
@@ -340,10 +344,8 @@ func dockTabButton(
 			},
 			Content: []View{
 				Text(TextCfg{
-					Text: "\u00D7", // ×
-					TextStyle: TextStyle{
-						Size: 10,
-					},
+					Text:      "×", // ×
+					TextStyle: mergeTextStyle(TextStyle{Size: SizeTextTiny}, DefaultTextStyle),
 				}),
 			},
 		}))
