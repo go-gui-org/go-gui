@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.28.1] - 2026-06-22
+
+### Fixed
+
+- **macOS Metal backend**: `finishLaunching` deferred until after first window
+  is created, fixing off-screen windows when launched as a `.app` bundle via
+  Finder/Launch Services.
+
 ## [v0.28.0] - 2026-06-22
 
 ### Added
