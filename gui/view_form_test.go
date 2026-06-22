@@ -2,6 +2,7 @@ package gui
 
 import (
 	"runtime"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -305,12 +306,12 @@ func TestFormAbortOnRevalidation(t *testing.T) {
 	w := newTestWindow()
 	formID := "abort-form"
 
-	callCount := 0
+	var callCount atomic.Int32
 	slow := func(
 		_ FormFieldSnapshot, _ FormSnapshot,
 		_ *GridAbortSignal,
 	) []FormIssue {
-		callCount++
+		callCount.Add(1)
 		return nil
 	}
 
