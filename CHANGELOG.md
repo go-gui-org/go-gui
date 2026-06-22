@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.28.0] - 2026-06-22
+
+### Added
+
+- **Native macOS backend**: new Metal-based backend with native window
+  management, event handling, cursor support, and menu integration via
+  AppKit. Replaces the SDL2 backend on macOS for proper platform
+  behavior.
+- **DockLayout**: `HideSingleTab` option hides the tab bar when only one
+  tab is present.
+
+### Changed
+
+- **Performance**: content dimensions and sibling sums cached during
+  fill pass to avoid redundant recalculation during layout.
+
+### Fixed
+
+- **DockLayout**: close button rendered as × instead of an empty box.
+- **WASM backend**: hardened against iPadOS Safari crashes.
+- **SVG**: `arcToCubic` guarded against NaN/Inf radii and float32
+  overflow panic.
+- **Website**: `status.html` included in deploy output.
+- **Windows CI**: MSYS2 pinned to stable release.
+
 ## [v0.27.1] - 2026-06-20
 
 ### Fixed
