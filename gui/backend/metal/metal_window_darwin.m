@@ -917,20 +917,29 @@ void metalActivateApp(void) {
     [NSApp setMainMenu:bar];
 
     [NSApp setDelegate:delegate];
-    [NSApp finishLaunching];
+    // finishLaunching is deferred to metalActivateNow — called after
+    // the first window is created and ordered front, which is required
+    // for .app bundles to show windows on the active Space.  Calling it
+    // here (before any window exists) causes windows to remain
+    // off-screen when launched via Finder/Launch Services.
 }
 
 // ─── Test helpers (called from Go tests via cgo) ─────────────────
 
-// Activate the app now that windows exist. Called from Go right
-// before the event loop starts, after all windows are created.
-// Deprecated since macOS 14 (where focus-stealing is dead
-// regardless of API), but required on older macOS for
-// CLI-launched binaries to appear above Terminal.
+// Activate the app now that windows exist.  Called from Go right
+// before the event loop starts and from metalWindowCreate for
+// dynamically-opened windows.  When windows have been created, the
+// first call also posts finishLaunching (deferred from
+// metalActivateApp so the notification fires with windows on screen,
+// which is required for .app bundles to display on the active Space).
 void metalActivateNow(void) {
-    // Intentionally not idempotent — called from both
-    // metalWindowCreate (dynamic windows) and Go (post-startup).
-    // Each call must reach activateIgnoringOtherApps:YES.
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        [NSApp finishLaunching];
+    });
+    // Intentionally not idempotent for the activation itself —
+    // called from both metalWindowCreate (dynamic windows) and Go
+    // (post-startup).  Each call must activate the app.
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
     [NSApp activateIgnoringOtherApps:YES];
