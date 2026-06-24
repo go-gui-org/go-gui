@@ -325,14 +325,16 @@ func dockTabButton(
 	}
 	colorHover := cfg.ColorTabHover
 
-	btnContent := make([]View, 0, 2)
+	btnContent := make([]View, 0, 3)
 	btnContent = append(btnContent, Text(TextCfg{Text: panel.Label}))
 
 	if panel.Closable && onPanelClose != nil {
+		btnContent = append(btnContent,
+			Rectangle(RectangleCfg{Sizing: FillFill, Color: ColorTransparent}))
 		btnContent = append(btnContent, Button(ButtonCfg{
 			ID:         "dock_close:" + panelID,
-			Width:      14,
-			Height:     14,
+			Width:      18,
+			Height:     18,
 			Sizing:     FixedFixed,
 			Padding:    NoPadding,
 			SizeBorder: NoBorder,
@@ -345,7 +347,7 @@ func dockTabButton(
 			Content: []View{
 				Text(TextCfg{
 					Text:      "×", // ×
-					TextStyle: mergeTextStyle(TextStyle{Size: SizeTextTiny}, DefaultTextStyle),
+					TextStyle: mergeTextStyle(TextStyle{Size: SizeTextSmall}, DefaultTextStyle),
 				}),
 			},
 		}))
