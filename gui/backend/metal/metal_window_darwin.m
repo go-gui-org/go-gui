@@ -846,6 +846,18 @@ void metalPostEmptyEvent(void) {
     return NSTerminateCancel;
 }
 
+// After a system dialog (e.g. TCC permissions) dismisses, the
+// app becomes active but windowDidBecomeKey: may not fire if the
+// dialog only changed app activation state, not window key state.
+// Fire EventFocused for the key window so Go resets w.focused.
+- (void)applicationDidBecomeActive:(NSNotification *)notification {
+    NSWindow *keyWindow = [NSApp keyWindow];
+    if (keyWindow && [keyWindow isKindOfClass:[GUIWindow class]]) {
+        GUIWindow *gw = (GUIWindow *)keyWindow;
+        goMetalWindowFocusChanged(gw.windowID, 1);
+    }
+}
+
 @end
 
 // ─── App-level ─────────────────────────────────────────────────
