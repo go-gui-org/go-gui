@@ -21,6 +21,8 @@ int metalTestCursorBoundsCheck(float mouseX, float mouseY,
                                float width, float height);
 int metalTestMenuAboutExists(void);
 int metalTestWindowsMenuExists(void);
+int metalTestFocusedGUIWindowMatches(void *windowHandle);
+int metalTestApplicationDidBecomeActive(void);
 */
 import "C"
 import (
@@ -130,6 +132,14 @@ func testMenuAboutExists() bool {
 
 func testWindowsMenuExists() bool {
 	return C.metalTestWindowsMenuExists() != 0
+}
+
+func testFocusedGUIWindowMatches(handle C.GoGuiNSWindow) bool {
+	return C.metalTestFocusedGUIWindowMatches(unsafe.Pointer(handle)) != 0
+}
+
+func testApplicationDidBecomeActive() bool {
+	return C.metalTestApplicationDidBecomeActive() != 0
 }
 
 // ─── C callbacks (weak in metal_window.m, strong here) ───────

@@ -118,6 +118,15 @@ func runMainThreadTests() {
 	//    for the activation call added before the event loop.
 	testActivateNow()
 
+	// 8b. metalFocusedGUIWindow must find the created window.
+	//     Regression for app-switch focus when keyWindow is nil.
+	if !testFocusedGUIWindowMatches(b.window) {
+		panic("metalFocusedGUIWindow: did not find created window")
+	}
+	if !testApplicationDidBecomeActive() {
+		panic("applicationDidBecomeActive: delegate not set")
+	}
+
 	b.Destroy()
 
 	// 9. Destroy must unregister the window. Regression test for
