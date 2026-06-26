@@ -64,7 +64,7 @@ func New(w *gui.Window) (*Backend, error) {
 
 	// Activate the app before creating any windows so the
 	// window is visible on macOS for CLI-launched binaries.
-	C.metalActivateApp()
+	C.metalAppInit()
 
 	ws, err := createWindowState(w)
 	if err != nil {
@@ -89,7 +89,7 @@ func (b *Backend) Run(w *gui.Window) {
 	iconSet := false
 
 	// Activate now that windows exist on screen.
-	C.metalActivateNow()
+	C.metalAppFinishLaunch()
 
 	wakeUp := func() {
 		C.metalPostEmptyEvent()
@@ -198,7 +198,7 @@ func RunAppE(app *gui.App, initialWindows ...*gui.Window) error {
 
 	// Activate the app before creating any windows so
 	// windows are visible on macOS for CLI-launched binaries.
-	C.metalActivateApp()
+	C.metalAppInit()
 
 	states := make(map[uint32]*windowState)
 
@@ -235,7 +235,7 @@ func RunAppE(app *gui.App, initialWindows ...*gui.Window) error {
 	}
 
 	// Activate now that windows exist on screen.
-	C.metalActivateNow()
+	C.metalAppFinishLaunch()
 
 	running := true
 	rendered := true

@@ -403,9 +403,9 @@ GoGuiNSWindow metalWindowCreate(const char *title, int width, int height,
     [NSApp setWindowsNeedUpdate:YES];
 
     // Bring the app forward for dynamically-opened windows.
-    // For initial windows, metalActivateNow is also called from Go
+    // For initial windows, metalAppFinishLaunch is also called from Go
     // after all windows are on screen.
-    metalActivateNow();
+    metalAppFinishLaunch();
 
     // Allocate GoGuiWindow on heap.
     GoGuiWindow *gw = (GoGuiWindow *)calloc(1, sizeof(GoGuiWindow));
@@ -869,23 +869,27 @@ static GUIWindow *metalFocusedGUIWindow(void) {
 // TCC permissions), applicationDidBecomeActive: fires but
 // windowDidBecomeKey: may not — leaving w.focused=false in Go and
 // blocking keyboard/left-click input via eventAllowed(). Restore
-// focus for the frontmost GUIWindow and make it key if needed.
+// focus for the frontmost GUIWindow.
 - (void)applicationDidBecomeActive:(NSNotification *)notification {
     GUIWindow *gw = metalFocusedGUIWindow();
     if (!gw) return;
     if ([NSApp keyWindow] != gw) {
+        // Window is not key: makeKeyAndOrderFront triggers
+        // windowDidBecomeKey:, which delivers EventFocused. Do not
+        // also fire it here, or Go's OnEvent sees a duplicate.
         [gw makeKeyAndOrderFront:nil];
+        return;
     }
+    // Window is already key but Go's focus state may have drifted to
+    // false (windowDidBecomeKey: not re-fired on reactivation). This
+    // is the only path that re-asserts focus directly.
     goMetalWindowFocusChanged(gw.windowID, 1);
 }
 
-// Completes the Launch Services launch handshake.  For a .app launched
-// via LS, AppKit posts applicationWillFinishLaunching: but withholds
-// applicationDidFinishLaunching: until the loop processes the
-// kAEOpenApplication event; metalActivateNow runs [NSApp run] to reach
-// this point.  Stop that bootstrap run so the custom event loop can take
-// over.  -stop: only takes effect after the next event is dequeued, so
-// post a dummy event to wake the run loop and force it to return.
+// Stops the bootstrap [NSApp run] started by metalAppFinishLaunch so
+// the custom event loop can take over.  -stop: only takes effect after
+// the next event is dequeued, so post a dummy event to force a return.
+// See the App-level section header for the full handshake narrative.
 - (void)applicationDidFinishLaunching:(NSNotification *)note {
     [NSApp stop:nil];
     NSEvent *wake = [NSEvent otherEventWithType:NSEventTypeApplicationDefined
@@ -903,6 +907,35 @@ static GUIWindow *metalFocusedGUIWindow(void) {
 @end
 
 // ─── App-level ─────────────────────────────────────────────────
+//
+// Launch / activation sequence. Three steps, called in order; the
+// header (metal_window.h) lists the Go call sites.
+//
+//   1. metalAppInit  (before any window exists)
+//        NSApplication singleton + activation policy + menu bar +
+//        delegate.  Force-activates early so Launch Services registers
+//        the Dock tile and Cmd+Tab entry before it times out.
+//
+//   2. metalWindowCreate  (per window)
+//        Orders the window front and force-activates again.
+//
+//   3. metalAppFinishLaunch  (after the first window exists)
+//        finishLaunching is deferred to here: a .app bundle only shows
+//        windows on the active Space if the notification fires with a
+//        window already on screen.  The first call also drives the
+//        Launch Services handshake (below); every call force-activates
+//        so dynamically-opened windows come forward.
+//
+// Launch Services handshake: a .app launched via LS receives
+// applicationWillFinishLaunching: but NEVER applicationDidFinish-
+// Launching: until the run loop processes the kAEOpenApplication
+// event.  Until then the app is in launch-limbo (no Cmd+Tab, gray
+// titlebar, two-click close) even though -isActive is YES.
+// metalAppFinishLaunch runs [NSApp run] once to process that event;
+// applicationDidFinishLaunching: then calls [NSApp stop:] (plus a wake
+// event, since -stop takes effect only after the next dequeue) so the
+// custom event loop can take over.  A bare CLI exec has no handshake;
+// -run still calls finishLaunching and returns via the same stop.
 
 // Force the app to the foreground.  [NSApp activate] (macOS 14+) is
 // cooperative: it refuses to steal focus from the currently-active
@@ -918,7 +951,7 @@ static void metalForceActivate(void) {
 #pragma clang diagnostic pop
 }
 
-void metalActivateApp(void) {
+void metalAppInit(void) {
     // Idempotent — safe to call multiple times.
     static BOOL activated = NO;
     if (activated) return;
@@ -985,53 +1018,36 @@ void metalActivateApp(void) {
     [NSApp setMainMenu:bar];
 
     [NSApp setDelegate:delegate];
-    // finishLaunching is deferred to metalActivateNow — called after
-    // the first window is created and ordered front, which is required
-    // for .app bundles to show windows on the active Space.  Calling it
-    // here (before any window exists) causes windows to remain
-    // off-screen when launched via Finder/Launch Services.
-    //
-    // Activate early so the Dock and Cmd+Tab switcher register the app
-    // promptly.  Without this, Launch Services may time out waiting for
-    // the app to confirm it is a foreground process and drop the Dock
-    // tile.  The activate call here is idempotent; metalActivateNow
-    // calls it again once windows exist to ensure foreground ordering.
+    // finishLaunching is deferred to metalAppFinishLaunch; activate
+    // early so Launch Services registers the app before timing out.
+    // See the App-level section header for why.
     metalForceActivate();
 }
 
-// ─── Test helpers (called from Go tests via cgo) ─────────────────
-
-// Activate the app now that windows exist.  Called from Go right
-// before the event loop starts and from metalWindowCreate for
-// dynamically-opened windows.  When windows have been created, the
-// first call also posts finishLaunching (deferred from
-// metalActivateApp so the notification fires with windows on screen,
-// which is required for .app bundles to display on the active Space).
-void metalActivateNow(void) {
+void metalAppFinishLaunch(void) {
+    // Run the Launch Services handshake exactly once (see the App-level
+    // section header).  Skipped for a bare CLI exec, which is already
+    // finished launching.
     static dispatch_once_t once;
     dispatch_once(&once, ^{
-        // Complete the Launch Services launch handshake.  For a .app
-        // launched via LS, [NSApp finishLaunching] alone posts
-        // applicationWillFinishLaunching: but NEVER applicationDidFinish-
-        // Launching: — AppKit only posts the latter after the loop
-        // processes the kAEOpenApplication event.  Without it the app
-        // stays in launch-limbo (absent from Cmd+Tab, gray titlebar,
-        // two-click close) even though -isActive reports YES.  Running
-        // the loop until applicationDidFinishLaunching: fires (which
-        // calls [NSApp stop:]) processes that event and fully registers
-        // the app, then returns so the custom event loop takes over.
-        // A bare CLI exec has no such handshake; -run still calls
-        // finishLaunching and returns immediately via the same stop.
         if (![[NSRunningApplication currentApplication] isFinishedLaunching]) {
             [NSApp run];
         }
     });
-    // Intentionally not idempotent for the activation itself —
-    // called from both metalWindowCreate (dynamic windows) and Go
-    // (post-startup).  Each call must activate the app so newly-
-    // created windows come to the foreground.
+    // Not guarded by the dispatch_once: every call must re-activate so
+    // newly-created windows come to the foreground.
     metalForceActivate();
 }
+
+// ─── Test helpers (called from Go tests via cgo) ─────────────────
+//
+// These live in the production file, not a separate _test.m, on
+// purpose: they reach file-static state — the event globals (_evType,
+// _quitRequested, _evIMEGeneration…), metalCursorInContentBounds, and
+// metalFocusedGUIWindow. C `static` is translation-unit-local, so a
+// split would force exposing those symbols via the header, widening
+// the production surface just to relocate test code. Keeping the
+// helpers here preserves that encapsulation.
 
 int metalTestActivationPolicyIsRegular(void) {
     return [NSApp activationPolicy] == NSApplicationActivationPolicyRegular ? 1 : 0;

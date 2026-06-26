@@ -87,10 +87,10 @@ func testWindowID(handle C.GoGuiNSWindow) uint32 {
 	return uint32(C.metalWindowGetID(handle))
 }
 
-// testActivateNow calls C.metalActivateNow directly to verify
+// testActivateNow calls C.metalAppFinishLaunch directly to verify
 // the activation function exists, links, and runs without crashing.
 func testActivateNow() {
-	C.metalActivateNow()
+	C.metalAppFinishLaunch()
 }
 
 // testInjectKeyDown sets up the C event globals to simulate a
