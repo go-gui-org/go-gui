@@ -846,21 +846,77 @@ void metalPostEmptyEvent(void) {
     return NSTerminateCancel;
 }
 
-// After a system dialog (e.g. TCC permissions) dismisses, the
-// app becomes active but windowDidBecomeKey: may not fire if the
-// dialog only changed app activation state, not window key state.
-// Fire EventFocused for the key window so Go resets w.focused.
-- (void)applicationDidBecomeActive:(NSNotification *)notification {
+// Return the GUIWindow that should receive focus events, preferring
+// the key window, then main, then any visible GUIWindow.
+static GUIWindow *metalFocusedGUIWindow(void) {
     NSWindow *keyWindow = [NSApp keyWindow];
     if (keyWindow && [keyWindow isKindOfClass:[GUIWindow class]]) {
-        GUIWindow *gw = (GUIWindow *)keyWindow;
-        goMetalWindowFocusChanged(gw.windowID, 1);
+        return (GUIWindow *)keyWindow;
     }
+    NSWindow *mainWindow = [NSApp mainWindow];
+    if (mainWindow && [mainWindow isKindOfClass:[GUIWindow class]]) {
+        return (GUIWindow *)mainWindow;
+    }
+    for (NSWindow *win in [NSApp windows]) {
+        if ([win isKindOfClass:[GUIWindow class]] && [win isVisible]) {
+            return (GUIWindow *)win;
+        }
+    }
+    return nil;
+}
+
+// After switching back from another app (or a system dialog such as
+// TCC permissions), applicationDidBecomeActive: fires but
+// windowDidBecomeKey: may not — leaving w.focused=false in Go and
+// blocking keyboard/left-click input via eventAllowed(). Restore
+// focus for the frontmost GUIWindow and make it key if needed.
+- (void)applicationDidBecomeActive:(NSNotification *)notification {
+    GUIWindow *gw = metalFocusedGUIWindow();
+    if (!gw) return;
+    if ([NSApp keyWindow] != gw) {
+        [gw makeKeyAndOrderFront:nil];
+    }
+    goMetalWindowFocusChanged(gw.windowID, 1);
+}
+
+// Completes the Launch Services launch handshake.  For a .app launched
+// via LS, AppKit posts applicationWillFinishLaunching: but withholds
+// applicationDidFinishLaunching: until the loop processes the
+// kAEOpenApplication event; metalActivateNow runs [NSApp run] to reach
+// this point.  Stop that bootstrap run so the custom event loop can take
+// over.  -stop: only takes effect after the next event is dequeued, so
+// post a dummy event to wake the run loop and force it to return.
+- (void)applicationDidFinishLaunching:(NSNotification *)note {
+    [NSApp stop:nil];
+    NSEvent *wake = [NSEvent otherEventWithType:NSEventTypeApplicationDefined
+                                       location:NSZeroPoint
+                                  modifierFlags:0
+                                      timestamp:0
+                                   windowNumber:0
+                                        context:nil
+                                        subtype:0
+                                          data1:0
+                                          data2:0];
+    [NSApp postEvent:wake atStart:YES];
 }
 
 @end
 
 // ─── App-level ─────────────────────────────────────────────────
+
+// Force the app to the foreground.  [NSApp activate] (macOS 14+) is
+// cooperative: it refuses to steal focus from the currently-active
+// app (the launching terminal/Finder), so a freshly-launched window
+// comes up inactive — gray traffic lights, two-click close, and no
+// Cmd+Tab entry until the user clicks the window.  activateIgnoring-
+// OtherApps: forces foreground regardless of who is active; it is
+// deprecated on 14+ but remains the only reliable launch-time path.
+static void metalForceActivate(void) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    [NSApp activateIgnoringOtherApps:YES];
+#pragma clang diagnostic pop
+}
 
 void metalActivateApp(void) {
     // Idempotent — safe to call multiple times.
@@ -934,6 +990,13 @@ void metalActivateApp(void) {
     // for .app bundles to show windows on the active Space.  Calling it
     // here (before any window exists) causes windows to remain
     // off-screen when launched via Finder/Launch Services.
+    //
+    // Activate early so the Dock and Cmd+Tab switcher register the app
+    // promptly.  Without this, Launch Services may time out waiting for
+    // the app to confirm it is a foreground process and drop the Dock
+    // tile.  The activate call here is idempotent; metalActivateNow
+    // calls it again once windows exist to ensure foreground ordering.
+    metalForceActivate();
 }
 
 // ─── Test helpers (called from Go tests via cgo) ─────────────────
@@ -947,15 +1010,27 @@ void metalActivateApp(void) {
 void metalActivateNow(void) {
     static dispatch_once_t once;
     dispatch_once(&once, ^{
-        [NSApp finishLaunching];
+        // Complete the Launch Services launch handshake.  For a .app
+        // launched via LS, [NSApp finishLaunching] alone posts
+        // applicationWillFinishLaunching: but NEVER applicationDidFinish-
+        // Launching: — AppKit only posts the latter after the loop
+        // processes the kAEOpenApplication event.  Without it the app
+        // stays in launch-limbo (absent from Cmd+Tab, gray titlebar,
+        // two-click close) even though -isActive reports YES.  Running
+        // the loop until applicationDidFinishLaunching: fires (which
+        // calls [NSApp stop:]) processes that event and fully registers
+        // the app, then returns so the custom event loop takes over.
+        // A bare CLI exec has no such handshake; -run still calls
+        // finishLaunching and returns immediately via the same stop.
+        if (![[NSRunningApplication currentApplication] isFinishedLaunching]) {
+            [NSApp run];
+        }
     });
     // Intentionally not idempotent for the activation itself —
     // called from both metalWindowCreate (dynamic windows) and Go
-    // (post-startup).  Each call must activate the app.
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    [NSApp activateIgnoringOtherApps:YES];
-#pragma clang diagnostic pop
+    // (post-startup).  Each call must activate the app so newly-
+    // created windows come to the foreground.
+    metalForceActivate();
 }
 
 int metalTestActivationPolicyIsRegular(void) {
@@ -1084,6 +1159,25 @@ int metalTestMenuAboutExists(void) {
 int metalTestWindowsMenuExists(void) {
     NSMenu *wm = [NSApp windowsMenu];
     return (wm && [wm numberOfItems] > 0) ? 1 : 0;
+}
+
+// Verify metalFocusedGUIWindow finds the given window handle.
+int metalTestFocusedGUIWindowMatches(void *windowHandle) {
+    if (!windowHandle) return 0;
+    GoGuiWindow *gw = (GoGuiWindow *)windowHandle;
+    GUIWindow *focused = metalFocusedGUIWindow();
+    return (focused == gw->nsWindow) ? 1 : 0;
+}
+
+// Invoke applicationDidBecomeActive: on the app delegate. Regression
+// test for app-switch focus restoration when keyWindow is nil.
+int metalTestApplicationDidBecomeActive(void) {
+    id delegate = [NSApp delegate];
+    if (!delegate) return 0;
+    NSNotification *note = [NSNotification notificationWithName:
+        NSApplicationDidBecomeActiveNotification object:NSApp];
+    [delegate applicationDidBecomeActive:note];
+    return 1;
 }
 
 void metalSetDockIcon(const void *data, int len) {

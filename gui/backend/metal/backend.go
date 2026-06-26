@@ -91,6 +91,11 @@ func (b *Backend) Run(w *gui.Window) {
 	// Activate now that windows exist on screen.
 	C.metalActivateNow()
 
+	wakeUp := func() {
+		C.metalPostEmptyEvent()
+	}
+	w.SetWakeMainFn(wakeUp)
+
 	running := true
 	rendered := true
 	evt := new(gui.Event)
