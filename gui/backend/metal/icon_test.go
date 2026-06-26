@@ -43,26 +43,26 @@ func runMainThreadTests() {
 	//    the Dock and can become active. Regression test for
 	//    window not appearing on macOS (activation skipped).
 	if !testActivationPolicyRegular() {
-		panic("metalActivateApp: activation policy not Regular")
+		panic("metalAppInit: activation policy not Regular")
 	}
 
 	// 3. Menu bar must be fully wired — delegate, main menu, and
 	//    Quit wired to delegate. Regression test for Cmd+Q silently
 	//    failing.
 	if !testDelegateSet() {
-		panic("metalActivateApp: delegate not set")
+		panic("metalAppInit: delegate not set")
 	}
 	if !testMenuExists() {
-		panic("metalActivateApp: main menu not created")
+		panic("metalAppInit: main menu not created")
 	}
 	if !testMenuQuitWired() {
-		panic("metalActivateApp: Quit menu not wired to delegate")
+		panic("metalAppInit: Quit menu not wired to delegate")
 	}
 	if !testMenuAboutExists() {
-		panic("metalActivateApp: About menu item not found")
+		panic("metalAppInit: About menu item not found")
 	}
 	if !testWindowsMenuExists() {
-		panic("metalActivateApp: Windows menu not registered")
+		panic("metalAppInit: Windows menu not registered")
 	}
 
 	// 4. Delegate methods must set quit event AND _quitRequested —
@@ -86,7 +86,7 @@ func runMainThreadTests() {
 
 	// 5. New() must succeed with activation — creates a real window
 	//    and Metal context, then tears down. Validates that
-	//    metalActivateApp + metalWindowCreate work end-to-end.
+	//    metalAppInit + metalWindowCreate work end-to-end.
 	//    Regression test for window opening behind terminal.
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  new(int),
@@ -113,7 +113,7 @@ func runMainThreadTests() {
 		panic("metal.New: window not registered in windowRegistry")
 	}
 
-	// 8. metalActivateNow must not crash — validates the C function
+	// 8. metalAppFinishLaunch must not crash — validates the C function
 	//    exists, links, and can be called from Go. Regression test
 	//    for the activation call added before the event loop.
 	testActivateNow()

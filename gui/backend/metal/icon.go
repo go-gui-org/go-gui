@@ -16,7 +16,7 @@ import (
 // and brings the app to the foreground. Must be called before
 // creating any windows for CLI-launched (non-bundled) binaries.
 func activateApp() {
-	C.metalActivateApp()
+	C.metalAppInit()
 }
 
 // setAppIcon sets the macOS Dock icon from PNG data.

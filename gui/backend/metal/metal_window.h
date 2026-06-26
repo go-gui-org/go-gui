@@ -153,14 +153,24 @@ void metalWindowIMESetActive(GoGuiNSWindow w, int active);
 void metalPostEmptyEvent(void);
 
 // ─── App-level ─────────────────────────────────────────────────
+//
+// Launch sequence (see metal_window_darwin.m for the full narrative):
+//   1. metalAppInit         — before any window: NSApplication singleton,
+//                             activation policy, menu bar, app delegate.
+//   2. metalWindowCreate    — order each window front.
+//   3. metalAppFinishLaunch — after windows exist: complete the Launch
+//                             Services handshake, bring app to foreground.
 
-// Activate the NSApplication (must be called before creating windows
-// for CLI-launched binaries).
-void metalActivateApp(void);
+// Initialize the NSApplication singleton, menu bar, and delegate.
+// Must be called once before creating any windows. Idempotent.
+void metalAppInit(void);
 
-// Activate the app after all windows are created. Called just before
-// the event loop starts to ensure the app is frontmost.
-void metalActivateNow(void);
+// Complete launch and bring the app to the foreground. Must be called
+// after the first window exists (required for .app bundles to display
+// on the active Space). Runs the Launch Services handshake once;
+// re-activates the app on every call so dynamically-opened windows
+// come forward.
+void metalAppFinishLaunch(void);
 
 // Set the dock icon from PNG data.
 void metalSetDockIcon(const void *data, int len);
