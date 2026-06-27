@@ -802,18 +802,23 @@ void metalWindowIMESetActive(GoGuiNSWindow w, int active) {
 
 // ─── Wake ─────────────────────────────────────────────────────
 
+// Build the dummy application-defined event used to wake or unblock
+// the run loop (poll wake and the launch-handshake stop:).
+static NSEvent *metalWakeEvent(void) {
+    return [NSEvent otherEventWithType:NSEventTypeApplicationDefined
+                             location:NSZeroPoint
+                        modifierFlags:0
+                            timestamp:0
+                         windowNumber:0
+                              context:nil
+                              subtype:0
+                                data1:0
+                                data2:0];
+}
+
 void metalPostEmptyEvent(void) {
     dispatch_async(dispatch_get_main_queue(), ^{
-        NSEvent *dummy = [NSEvent otherEventWithType:NSEventTypeApplicationDefined
-                                            location:NSZeroPoint
-                                       modifierFlags:0
-                                           timestamp:0
-                                        windowNumber:0
-                                             context:nil
-                                             subtype:0
-                                               data1:0
-                                               data2:0];
-        [NSApp postEvent:dummy atStart:NO];
+        [NSApp postEvent:metalWakeEvent() atStart:NO];
     });
 }
 
@@ -892,16 +897,7 @@ static GUIWindow *metalFocusedGUIWindow(void) {
 // See the App-level section header for the full handshake narrative.
 - (void)applicationDidFinishLaunching:(NSNotification *)note {
     [NSApp stop:nil];
-    NSEvent *wake = [NSEvent otherEventWithType:NSEventTypeApplicationDefined
-                                       location:NSZeroPoint
-                                  modifierFlags:0
-                                      timestamp:0
-                                   windowNumber:0
-                                        context:nil
-                                        subtype:0
-                                          data1:0
-                                          data2:0];
-    [NSApp postEvent:wake atStart:YES];
+    [NSApp postEvent:metalWakeEvent() atStart:YES];
 }
 
 @end
