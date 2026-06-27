@@ -146,14 +146,7 @@ func (b *Backend) Run(w *gui.Window) {
 		}
 
 		// Update cursor.
-		mc := w.MouseCursorState()
-		if cs := cursorSelector(mc); cs != "" {
-			cstr := C.CString(cs)
-			C.metalWindowSetCursor(b.window, cstr,
-				C.metalEventMouseX(),
-				C.metalEventMouseY())
-			C.free(unsafe.Pointer(cstr))
-		}
+		b.updateCursor(w.MouseCursorState())
 	}
 }
 
@@ -349,23 +342,18 @@ func RunAppE(app *gui.App, initialWindows ...*gui.Window) error {
 			if w == nil {
 				continue
 			}
-			mc := w.MouseCursorState()
-			if cs := cursorSelector(mc); cs != "" {
-				cstr := C.CString(cs)
-				C.metalWindowSetCursor(ws.window, cstr,
-					C.metalEventMouseX(),
-					C.metalEventMouseY())
-				C.free(unsafe.Pointer(cstr))
-			}
+			ws.updateCursor(w.MouseCursorState())
 		}
 	}
 
-	// Cleanup remaining windows.
+	// Cleanup remaining windows. Delete each entry so the deferred
+	// cleanup above does not destroy it a second time.
 	for wid, ws := range states {
 		if w := app.Window(wid); w != nil {
 			w.WindowCleanup()
 		}
 		ws.destroy()
+		delete(states, wid)
 	}
 	return nil
 }
@@ -397,6 +385,39 @@ func cursorSelector(mc gui.MouseCursor) string {
 	default:
 		return ""
 	}
+}
+
+// cursorCStrings caches each NSCursor selector name as a C string,
+// allocated once at startup, so the per-frame cursor update avoids a
+// C.CString alloc+free on the hot path. The strings live for the
+// process lifetime and are intentionally never freed.
+var cursorCStrings = func() map[gui.MouseCursor]*C.char {
+	cursors := []gui.MouseCursor{
+		gui.CursorDefault, gui.CursorArrow, gui.CursorIBeam,
+		gui.CursorCrosshair, gui.CursorPointingHand,
+		gui.CursorResizeEW, gui.CursorResizeNS,
+		gui.CursorResizeNWSE, gui.CursorResizeNESW,
+		gui.CursorResizeAll, gui.CursorNotAllowed,
+	}
+	m := make(map[gui.MouseCursor]*C.char, len(cursors))
+	for _, c := range cursors {
+		if sel := cursorSelector(c); sel != "" {
+			m[c] = C.CString(sel)
+		}
+	}
+	return m
+}()
+
+// updateCursor sets the native cursor for the window from a cached
+// C string. No-op when the cursor has no NSCursor mapping.
+func (ws *windowState) updateCursor(mc gui.MouseCursor) {
+	cstr := cursorCStrings[mc]
+	if cstr == nil {
+		return
+	}
+	C.metalWindowSetCursor(ws.window, cstr,
+		C.metalEventMouseX(),
+		C.metalEventMouseY())
 }
 
 // windowState holds per-window backend resources for

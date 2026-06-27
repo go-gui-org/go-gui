@@ -201,6 +201,42 @@ func TestCursorSelector_Unknown(t *testing.T) {
 	}
 }
 
+// The cursorCStrings cache hand-lists the cursors it allocates. Guard
+// against drift from cursorSelector: every cursor with a selector must
+// have a cached C string whose value matches, or updateCursor silently
+// no-ops for that cursor.
+func TestCursorCStrings_MatchSelector(t *testing.T) {
+	cursors := []gui.MouseCursor{
+		gui.CursorDefault, gui.CursorArrow, gui.CursorIBeam,
+		gui.CursorCrosshair, gui.CursorPointingHand,
+		gui.CursorResizeEW, gui.CursorResizeNS,
+		gui.CursorResizeNWSE, gui.CursorResizeNESW,
+		gui.CursorResizeAll, gui.CursorNotAllowed,
+	}
+	for _, mc := range cursors {
+		sel := cursorSelector(mc)
+		if sel == "" {
+			continue
+		}
+		cstr, ok := cursorCStrings[mc]
+		if !ok || cstr == nil {
+			t.Errorf("cursor %v: selector %q but no cached C string",
+				mc, sel)
+			continue
+		}
+		if got := cGoString(cstr); got != sel {
+			t.Errorf("cursor %v: cached %q, want %q", mc, got, sel)
+		}
+	}
+}
+
+// An unmapped cursor must return before dereferencing ws.window, so
+// updateCursor is safe on a zero-value windowState.
+func TestUpdateCursor_UnknownCursorNoOp(t *testing.T) {
+	ws := &windowState{}
+	ws.updateCursor(gui.MouseCursor(255)) // must not panic or touch C
+}
+
 // ─── mapMetalEvent integration (C state injection) ────────────
 
 func TestMapMetalEvent_Quit_ReturnsContFalse(t *testing.T) {
