@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.28.2] - 2026-06-26
+
+### Fixed
+
+- **macOS Metal backend**: complete the Launch Services launch handshake so
+  a `.app` bundle launched from Finder is fully registered as a foreground
+  app — fixes absence from Cmd+Tab, gray titlebar buttons, and the
+  double-click-to-close behavior. Restore `activateIgnoringOtherApps:` for
+  the CLI-launch case so bare-exec windows come up active.
+- **macOS Metal backend**: fire `EventFocused` on
+  `applicationDidBecomeActive:` so keyboard and left-click input are
+  restored after a system dialog (e.g. TCC permissions) is dismissed, and
+  re-key the frontmost window when `keyWindow` is nil on app switch.
+- **DockLayout**: enlarge the tab close button (14×14 → 18×18) with a larger
+  × glyph, and add a spacer between the tab label and close button.
+
+### Changed
+
+- **macOS Metal backend**: cache NSCursor selector C strings once at startup
+  to drop per-frame `C.CString` alloc/free from the cursor-update hot path.
+- **macOS Metal backend**: rename app-launch entry points to reflect their
+  lifecycle stage (`metalAppInit` / `metalAppFinishLaunch`) and dedupe the
+  wake-event construction and activation-focus paths.
+
 ## [v0.28.1] - 2026-06-22
 
 ### Fixed
