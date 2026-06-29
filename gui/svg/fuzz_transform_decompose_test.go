@@ -28,6 +28,11 @@ func FuzzDecomposeTRS(f *testing.F) {
 		float32(0), float32(0))
 	f.Add(float32(math.Inf(1)), float32(0), float32(0), float32(1),
 		float32(0), float32(0))
+	// Large anisotropic scale + tiny rotation: float32 angle quantization
+	// perturbs the off-diagonal by ~1.5e-3, exact relative to the column
+	// norm. Regression for the conditioning-aware compare below.
+	f.Add(float32(-16002), float32(1), float32(0), float32(0.0125),
+		float32(0), float32(0))
 
 	f.Fuzz(func(t *testing.T, a, b, c, d, e, fv float32) {
 		m := [6]float32{a, b, c, d, e, fv}
@@ -51,23 +56,29 @@ func FuzzDecomposeTRS(f *testing.F) {
 		re := tx
 		rf := ty
 		const slack = 1e-3
-		relClose := func(want, got float32) bool {
-			if math.IsNaN(float64(want)) || math.IsInf(float64(want), 0) {
-				return false
+		// Compare each column pair against the column's Euclidean
+		// magnitude, not a per-component floor of 1. The rotation is
+		// recomposed from a float32-quantized degree angle; for a large
+		// anisotropic scale that quantization perturbs the off-diagonal
+		// term by an amount that scales with the column norm (e.g.
+		// scale(16002) with a ~0.004° rotation moves b by 1.5e-3 yet is
+		// exact to 9e-8 relative to the column). Judging the off-diagonal
+		// in isolation would flag a numerically faithful reconstruction.
+		colClose := func(wx, wy, gx, gy float32) bool {
+			for _, w := range []float32{wx, wy} {
+				if math.IsNaN(float64(w)) || math.IsInf(float64(w), 0) {
+					return false
+				}
 			}
-			diff := float64(got - want)
-			if diff < 0 {
-				diff = -diff
-			}
-			mag := math.Abs(float64(want))
+			mag := math.Hypot(float64(wx), float64(wy))
 			if mag < 1 {
 				mag = 1
 			}
-			return diff <= slack*mag
+			return math.Abs(float64(gx-wx)) <= slack*mag &&
+				math.Abs(float64(gy-wy)) <= slack*mag
 		}
-		if !relClose(a, ra) || !relClose(b, rb) ||
-			!relClose(c, rc) || !relClose(d, rd) ||
-			!relClose(e, re) || !relClose(fv, rf) {
+		if !colClose(a, b, ra, rb) || !colClose(c, d, rc, rd) ||
+			!colClose(e, fv, re, rf) {
 			t.Fatalf("recompose mismatch input=%v got=[%v %v %v %v %v %v]",
 				m, ra, rb, rc, rd, re, rf)
 		}
