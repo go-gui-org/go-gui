@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.29.0] - 2026-06-28
+
+### Added
+
+- **`TextStyle.EmojiBoxWidth`**: optional target cell-box width (logical px),
+  threaded through `ToGlyphStyle` and the GPU backend draw path
+  (`GuiStyleToGlyphConfig`). When > 0, go-glyph scales color/emoji glyphs to
+  fill the caller's cell box instead of the font's natural emoji advance. Used
+  by grid callers such as go-term. Requires go-glyph v1.12.0.
+
 ## [v0.28.2] - 2026-06-26
 
 ### Fixed

@@ -12,7 +12,7 @@ Go toolchain pin: `go 1.26.0`.
 | ------ | ------- | ------- |
 | `github.com/alecthomas/chroma/v2` | v2.26.1 | Syntax highlighting in the markdown widget. |
 | `github.com/go-gl/gl` | v0.0.0-20260331235117-4566fea9a276 | OpenGL bindings for `gui/backend/gl`. |
-| `github.com/go-gui-org/go-glyph` | v1.11.0 | Text shaping + glyph rasterization. Required by every backend. |
+| `github.com/go-gui-org/go-glyph` | v1.12.0 | Text shaping + glyph rasterization. Required by every backend. |
 | `github.com/go-gui-org/go-glyph/backend/sdl2` | v1.11.0 | ⚠ UNKNOWN — update directPurpose map in tools/depsdoc/main.go |
 | `github.com/go-pdf/fpdf` | v0.9.0 | PDF generation for the print-dialog backend. |
 | `github.com/godbus/dbus/v5` | v5.2.2 | Linux native platform: notifications, portals. |

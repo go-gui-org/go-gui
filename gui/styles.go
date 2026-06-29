@@ -53,12 +53,16 @@ type TextStyle struct {
 	LetterSpacing   float32
 	RotationRadians float32
 	StrokeWidth     float32
-	Color           Color
-	BgColor         Color
-	StrokeColor     Color
-	Align           TextAlignment
-	Underline       bool
-	Strikethrough   bool
+	// EmojiBoxWidth, when > 0, makes color/emoji glyphs scale to fill this
+	// box width (logical px), preserving aspect and centered. Grid callers
+	// (terminals) set it to cells×cellWidth. 0 = default emoji sizing.
+	EmojiBoxWidth float32
+	Color         Color
+	BgColor       Color
+	StrokeColor   Color
+	Align         TextAlignment
+	Underline     bool
+	Strikethrough bool
 }
 
 // mergeTextStyle fills zero fields in s from fallback.
@@ -80,6 +84,7 @@ func (ts TextStyle) ToGlyphStyle() glyph.TextStyle {
 		BgColor:       glyph.Color{R: ts.BgColor.R, G: ts.BgColor.G, B: ts.BgColor.B, A: ts.BgColor.A},
 		Size:          ts.Size,
 		LetterSpacing: ts.LetterSpacing,
+		EmojiBoxWidth: ts.EmojiBoxWidth,
 		Features:      ts.Features,
 		Underline:     ts.Underline,
 		Strikethrough: ts.Strikethrough,
