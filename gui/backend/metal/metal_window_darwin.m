@@ -10,6 +10,14 @@
 #include <stdlib.h>
 #include <math.h>
 
+// Scale applied to AppKit precise (trackpad / high-res) scrolling
+// deltas before they reach the shared gui ScrollMultiplier. AppKit
+// reports precise deltas in points; the gui multiplier was tuned
+// against the SDL2 backend, which delivers deltas pre-scaled to a
+// smaller unit. Without this factor trackpad scrolling runs ~2x too
+// fast on the native macOS backend. See go-gui-org/go-gui#22.
+static const float kPreciseScrollScale = 0.5f;
+
 // Event mask covering all event types the app needs to receive.
 // MouseEntered/Exited are required by AppKit's internal tracking-
 // area system — filtering them out prevents traffic-light button
@@ -575,8 +583,8 @@ static void storeEvent(NSEvent *event, uint32_t wid) {
                 else                                     _evScrollPhase = 0;
             }
             if ([event hasPreciseScrollingDeltas]) {
-                _evScrollX = (float)[event scrollingDeltaX];
-                _evScrollY = (float)[event scrollingDeltaY];
+                _evScrollX = (float)[event scrollingDeltaX] * kPreciseScrollScale;
+                _evScrollY = (float)[event scrollingDeltaY] * kPreciseScrollScale;
             } else {
                 // Mouse wheel: multiply by 10 for line-to-pixel conversion.
                 _evScrollX = (float)([event scrollingDeltaX] * 10.0);
