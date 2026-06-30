@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Native dialogs**: track native (OS) modal visibility so `DialogIsVisible`
+  and the quit/close dedup see `NSAlert`-style dialogs too. Previously a
+  native confirm-before-quit could stack a duplicate dialog because the
+  second quit/close re-invoked `OnCloseRequest`. `DispatchCloseRequest` now
+  guards its hook path while a dialog is showing (the no-hook path still
+  closes). (#18)
+- **Modal dialogs**: retain keyboard focus inside an in-app modal dialog when
+  a focus-claiming widget (one that re-asserts `SetIDFocus` every view
+  rebuild) tries to steal it, so Tab/Esc/Enter keep working. Apps no longer
+  need to guard their own `SetIDFocus` with `DialogIsVisible`. (#18)
+
 ## [v0.29.0] - 2026-06-28
 
 ### Added
