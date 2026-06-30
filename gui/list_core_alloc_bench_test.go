@@ -58,6 +58,7 @@ func BenchmarkComboboxGenerateLayout(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for b.Loop() {
+			w.scratch.resetViewPools()
 			_ = generateViewLayout(v, w)
 		}
 	})
@@ -71,6 +72,7 @@ func BenchmarkComboboxGenerateLayout(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for b.Loop() {
+			w.scratch.resetViewPools()
 			_ = generateViewLayout(v, w)
 		}
 	})
@@ -104,6 +106,7 @@ func BenchmarkCommandPaletteGenerateLayout(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
+		w.scratch.resetViewPools()
 		_ = generateViewLayout(v, w)
 	}
 }
@@ -131,6 +134,7 @@ func BenchmarkListBoxGenerateLayout(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for b.Loop() {
+			w.scratch.resetViewPools()
 			_ = generateViewLayout(v, w)
 		}
 	})
@@ -151,6 +155,7 @@ func BenchmarkListBoxGenerateLayout(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for b.Loop() {
+			w.scratch.resetViewPools()
 			_ = generateViewLayout(v, w)
 		}
 	})

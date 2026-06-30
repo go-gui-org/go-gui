@@ -41,10 +41,19 @@ func generateViewLayout(view View, w *Window) Layout {
 	if len(children) > maxEventChildren {
 		children = children[:maxEventChildren]
 	}
-	// Pre-size to final length so append never reallocates.
+	// Pre-size to final length so append never reallocates. Child
+	// slices come from a frame-scoped arena (reset each frame in
+	// resetViewPools) to avoid a per-node heap allocation; the
+	// reservation is pinned to wantCap so appends stay in-region.
 	wantCap := len(layout.Children) + len(children)
 	if cap(layout.Children) < wantCap {
-		grown := make([]Layout, len(layout.Children), wantCap)
+		var grown []Layout
+		if w != nil {
+			grown = w.scratch.takeLayoutChildren(wantCap)
+		} else {
+			grown = make([]Layout, 0, wantCap)
+		}
+		grown = grown[:len(layout.Children)]
 		copy(grown, layout.Children)
 		layout.Children = grown
 	}
