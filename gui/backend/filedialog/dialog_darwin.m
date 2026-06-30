@@ -61,6 +61,9 @@ static DialogResult resultFromURLs(NSArray<NSURL *> *urls) {
     return r;
 }
 
+// Defined below, near the alert helpers; used by the panels too.
+static void activateForModal(void);
+
 static void setDirectoryURL(NSSavePanel *panel, const char *dir) {
     if (dir != NULL && dir[0] != '\0') {
         NSString *s = [NSString stringWithUTF8String:dir];
@@ -84,6 +87,7 @@ DialogResult filedialogOpen(const char *title, const char *startDir,
         if (types != nil)
             panel.allowedContentTypes = types;
 
+        activateForModal();
         NSModalResponse resp = [panel runModal];
         if (resp != NSModalResponseOK) {
             DialogResult r = {0};
@@ -115,6 +119,7 @@ DialogResult filedialogSave(const char *title, const char *startDir,
         if (types != nil)
             panel.allowedContentTypes = types;
 
+        activateForModal();
         NSModalResponse resp = [panel runModal];
         if (resp != NSModalResponseOK) {
             DialogResult r = {0};
@@ -135,6 +140,7 @@ DialogResult filedialogFolder(const char *title, const char *startDir) {
         panel.canChooseDirectories = YES;
         panel.allowsMultipleSelection = NO;
 
+        activateForModal();
         NSModalResponse resp = [panel runModal];
         if (resp != NSModalResponseOK) {
             DialogResult r = {0};
@@ -153,6 +159,34 @@ static NSAlertStyle alertStyleFromLevel(int level) {
     }
 }
 
+// Force the app frontmost and pump the run loop until activation lands,
+// so a modal NSAlert / NSSavePanel reliably becomes key on its FIRST
+// presentation. Manual-pump backends (metal) start the modal loop
+// before the asynchronous activateIgnoringOtherApps: takes effect,
+// leaving the dialog non-key (Return/Esc/Tab dead) until a later one
+// happens to come up after activation — the "first no, second yes"
+// race. Spinning here makes activation synchronous w.r.t. runModal.
+// No-op when already active; bounded so it degrades to prior behavior
+// if activation never lands.
+static void activateForModal(void) {
+    // Nil guard: with NSApp nil, [nil isActive] is NO and
+    // [nil nextEventMatchingMask:...] returns immediately rather than
+    // blocking to the deadline, turning the wait into a 0.5s hot spin.
+    if (NSApp == nil || [NSApp isActive]) return;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    [NSApp activateIgnoringOtherApps:YES];
+#pragma clang diagnostic pop
+    NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:0.5];
+    while (![NSApp isActive] && [deadline timeIntervalSinceNow] > 0) {
+        NSEvent *e = [NSApp nextEventMatchingMask:NSEventMaskAny
+            untilDate:deadline
+            inMode:NSDefaultRunLoopMode
+            dequeue:YES];
+        if (e != nil) [NSApp sendEvent:e];
+    }
+}
+
 AlertResult filedialogMessage(const char *title, const char *body,
     int level) {
     @autoreleasepool {
@@ -165,6 +199,7 @@ AlertResult filedialogMessage(const char *title, const char *body,
             alert.informativeText =
                 [NSString stringWithUTF8String:body];
         [alert addButtonWithTitle:@"OK"];
+        activateForModal();
         [alert runModal];
         AlertResult r = {0};
         r.status = DIALOG_OK;
@@ -185,6 +220,7 @@ AlertResult filedialogConfirm(const char *title, const char *body,
                 [NSString stringWithUTF8String:body];
         [alert addButtonWithTitle:@"OK"];
         [alert addButtonWithTitle:@"Cancel"];
+        activateForModal();
         NSModalResponse resp = [alert runModal];
         AlertResult r = {0};
         r.status = (resp == NSAlertFirstButtonReturn)
@@ -212,6 +248,7 @@ AlertResult filedialogSaveDiscard(const char *title, const char *body,
         [alert addButtonWithTitle:@"Save"];
         [alert addButtonWithTitle:@"Cancel"];
         [alert addButtonWithTitle:@"Don't Save"];
+        activateForModal();
         NSModalResponse resp = [alert runModal];
         AlertResult r = {0};
         if (resp == NSAlertFirstButtonReturn)
