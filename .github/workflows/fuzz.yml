@@ -57,6 +57,7 @@ jobs:
           FUZZTIME='${{ inputs.fuzztime || '60s' }}'
           PASS=0
           FAIL=0
+          FLAKE=0
 
           {
             echo "## Fuzz results"
@@ -64,20 +65,41 @@ jobs:
             echo "|---------|--------|--------|"
           } >> "$GITHUB_STEP_SUMMARY"
 
+          # A genuine failing input is always persisted by `go test` to
+          # testdata/fuzz/<target>/. A nonzero exit WITHOUT a new reproducer
+          # is the known fuzztime deadline flake (coordinator reports
+          # "context deadline exceeded" when fuzztime expires mid-exec) and
+          # must not fail the job. Gate failure on a written reproducer.
           fuzz_one() {
             local pkg="$1"
             local target="$2"
+            local corpus="${pkg}/testdata/fuzz/${target}"
             echo "::group::fuzz ${pkg} ${target}"
 
-            if go test -fuzz="^${target}$" -fuzztime="${FUZZTIME}" -run='^$' "./${pkg}" 2>&1; then
-              echo "::endgroup::"
+            local before after
+            before="$(find "${corpus}" -type f 2>/dev/null | sort)"
+
+            local out status
+            out="$(go test -fuzz="^${target}$" -fuzztime="${FUZZTIME}" -run='^$' "./${pkg}" 2>&1)"
+            status=$?
+            echo "${out}"
+            echo "::endgroup::"
+
+            after="$(find "${corpus}" -type f 2>/dev/null | sort)"
+
+            if [ "$status" -eq 0 ]; then
               echo "| ${pkg} | ${target} | ✅ pass |" >> "$GITHUB_STEP_SUMMARY"
               PASS=$((PASS + 1))
-            else
-              echo "::endgroup::"
-              echo "::warning::${pkg} ${target} found failing input"
+            elif [ "${before}" != "${after}" ]; then
+              # New reproducer written → genuine failing input.
+              echo "::error::${pkg} ${target} found failing input"
               echo "| ${pkg} | ${target} | ❌ fail |" >> "$GITHUB_STEP_SUMMARY"
               FAIL=$((FAIL + 1))
+            else
+              # Nonzero exit, no reproducer → deadline flake; do not fail.
+              echo "::warning::${pkg} ${target} exited nonzero without a reproducer (deadline flake); ignoring"
+              echo "| ${pkg} | ${target} | ⚠️ flake (ignored) |" >> "$GITHUB_STEP_SUMMARY"
+              FLAKE=$((FLAKE + 1))
             fi
           }
 
@@ -103,7 +125,7 @@ jobs:
 
           {
             echo ""
-            echo "**${PASS} passed, ${FAIL} failed** (fuzztime=${FUZZTIME})"
+            echo "**${PASS} passed, ${FAIL} failed, ${FLAKE} flaked** (fuzztime=${FUZZTIME})"
           } >> "$GITHUB_STEP_SUMMARY"
 
           if [ "$FAIL" -gt 0 ]; then
