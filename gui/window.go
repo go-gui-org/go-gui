@@ -194,6 +194,13 @@ type Window struct {
 	// Dialog state.
 	dialogCfg DialogCfg
 
+	// nativeDialogVisible is true while a native (OS) modal dialog is
+	// showing. Native dialogs block in runModal and never touch
+	// dialogCfg, so this flag lets DialogIsVisible — and the quit/close
+	// dedup that relies on it — see them too. Set/cleared on the command
+	// goroutine around the blocking platform call (see native_dialog.go).
+	nativeDialogVisible bool
+
 	windowAnimation
 
 	// Window dimensions (logical pixels).

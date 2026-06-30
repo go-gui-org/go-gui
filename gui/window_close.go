@@ -5,12 +5,21 @@ package gui
 // hook owns calling Window.Close() to proceed. Otherwise the window
 // is marked for destruction via the closeReq loop.
 //
+// While a dialog (in-app or native) is already showing, the
+// OnCloseRequest hook is not re-invoked: a second close — e.g. a
+// repeated window-close click while a confirm dialog is up — would
+// otherwise stack a duplicate dialog. The no-hook path still closes,
+// so a dialog does not trap an explicit per-window close.
+//
 // Intended for backend use. Safe for a nil window (no-op).
 func DispatchCloseRequest(w *Window) {
 	if w == nil {
 		return
 	}
 	if cb := w.Config.OnCloseRequest; cb != nil {
+		if w.DialogIsVisible() {
+			return
+		}
 		cb(w)
 		return
 	}

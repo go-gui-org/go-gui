@@ -155,6 +155,17 @@ func (w *Window) NativeSaveDiscardDialog(cfg NativeSaveDiscardDialogCfg) {
 
 // --- impl functions ---
 
+// markNativeDialogVisible flags the window as showing a native modal
+// for the duration of the blocking platform call. The returned cleanup
+// must be deferred. Lets DialogIsVisible — and quit/close dedup — see
+// native dialogs, which otherwise never touch dialogCfg. The platform
+// call and this flag both run on the command goroutine, so the modal's
+// nested event loop sees the flag set.
+func markNativeDialogVisible(w *Window) func() {
+	w.nativeDialogVisible = true
+	return func() { w.nativeDialogVisible = false }
+}
+
 func nativeOpenDialogImpl(w *Window, cfg NativeOpenDialogCfg) {
 	extensions, err := nativeExtensionsFromFilters(cfg.Filters)
 	if err != nil {
@@ -165,6 +176,7 @@ func nativeOpenDialogImpl(w *Window, cfg NativeOpenDialogCfg) {
 		dispatchDialogDone(w, cfg.OnDone, nativeDialogErrorResult("unsupported", "no native platform"))
 		return
 	}
+	defer markNativeDialogVisible(w)()
 	pr := w.nativePlatform.ShowOpenDialog(cfg.Title, cfg.StartDir, extensions, cfg.AllowMultiple)
 	dispatchDialogDone(w, cfg.OnDone, nativeResultFromPlatform(pr, w))
 }
@@ -184,6 +196,7 @@ func nativeSaveDialogImpl(w *Window, cfg NativeSaveDialogCfg) {
 		dispatchDialogDone(w, cfg.OnDone, nativeDialogErrorResult("unsupported", "no native platform"))
 		return
 	}
+	defer markNativeDialogVisible(w)()
 	pr := w.nativePlatform.ShowSaveDialog(cfg.Title, cfg.StartDir, cfg.DefaultName, defaultExt, extensions, cfg.ConfirmOverwrite)
 	dispatchDialogDone(w, cfg.OnDone, nativeResultFromPlatform(pr, w))
 }
@@ -193,6 +206,7 @@ func nativeFolderDialogImpl(w *Window, cfg NativeFolderDialogCfg) {
 		dispatchDialogDone(w, cfg.OnDone, nativeDialogErrorResult("unsupported", "no native platform"))
 		return
 	}
+	defer markNativeDialogVisible(w)()
 	pr := w.nativePlatform.ShowFolderDialog(cfg.Title, cfg.StartDir)
 	dispatchDialogDone(w, cfg.OnDone, nativeResultFromPlatform(pr, w))
 }
@@ -202,6 +216,7 @@ func nativeMessageDialogImpl(w *Window, cfg NativeMessageDialogCfg) {
 		dispatchAlertDone(w, cfg.OnDone, nativeAlertErrorResult("unsupported", "no native platform"))
 		return
 	}
+	defer markNativeDialogVisible(w)()
 	result := w.nativePlatform.ShowMessageDialog(cfg.Title, cfg.Body, cfg.Level)
 	dispatchAlertDone(w, cfg.OnDone, result)
 }
@@ -211,6 +226,7 @@ func nativeConfirmDialogImpl(w *Window, cfg NativeConfirmDialogCfg) {
 		dispatchAlertDone(w, cfg.OnDone, nativeAlertErrorResult("unsupported", "no native platform"))
 		return
 	}
+	defer markNativeDialogVisible(w)()
 	result := w.nativePlatform.ShowConfirmDialog(cfg.Title, cfg.Body, cfg.Level)
 	dispatchAlertDone(w, cfg.OnDone, result)
 }
@@ -220,6 +236,7 @@ func nativeSaveDiscardDialogImpl(w *Window, cfg NativeSaveDiscardDialogCfg) {
 		dispatchAlertDone(w, cfg.OnDone, nativeAlertErrorResult("unsupported", "no native platform"))
 		return
 	}
+	defer markNativeDialogVisible(w)()
 	result := w.nativePlatform.ShowSaveDiscardDialog(cfg.Title, cfg.Body, cfg.Level)
 	dispatchAlertDone(w, cfg.OnDone, result)
 }

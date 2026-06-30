@@ -33,6 +33,34 @@ func TestDispatchCloseRequest_HookVetoes(t *testing.T) {
 	}
 }
 
+func TestDispatchCloseRequest_DialogDedupsHook(t *testing.T) {
+	// A close request while a dialog is already showing must not
+	// re-invoke OnCloseRequest, which would stack a duplicate dialog.
+	var calls int
+	w := NewWindow(WindowCfg{
+		OnCloseRequest: func(*Window) { calls++ },
+	})
+	w.Dialog(DialogCfg{})
+	DispatchCloseRequest(w)
+	if calls != 0 {
+		t.Fatalf("calls = %d, want 0 (dialog visible: hook deduped)", calls)
+	}
+}
+
+func TestDispatchCloseRequest_NativeDialogDedupsHook(t *testing.T) {
+	// Native modal visibility (nativeDialogVisible) must dedup the close
+	// hook just like the in-app dialog, preventing a stacked dialog.
+	var calls int
+	w := NewWindow(WindowCfg{
+		OnCloseRequest: func(*Window) { calls++ },
+	})
+	w.nativeDialogVisible = true
+	DispatchCloseRequest(w)
+	if calls != 0 {
+		t.Fatalf("calls = %d, want 0 (native dialog visible: hook deduped)", calls)
+	}
+}
+
 func TestDispatchCloseRequest_HookProceeds(t *testing.T) {
 	w := NewWindow(WindowCfg{
 		OnCloseRequest: func(w *Window) { w.Close() },
@@ -132,6 +160,29 @@ func TestDispatchQuitRequest_DialogBlocksQuit(t *testing.T) {
 	}
 	if w.CloseRequested() {
 		t.Fatal("dialog visible: must not mark close-requested")
+	}
+}
+
+func TestDispatchQuitRequest_NativeDialogBlocksQuit(t *testing.T) {
+	// A native (OS) modal — tracked via nativeDialogVisible, not the
+	// in-app dialogCfg — must also veto quit and not re-invoke the hook.
+	// This is issue #18's native confirm-before-quit scenario.
+	var hookCalls int
+	a := NewApp()
+	w := NewWindow(WindowCfg{
+		OnCloseRequest: func(*Window) { hookCalls++ },
+	})
+	a.Register(1, w)
+	w.nativeDialogVisible = true
+
+	if !DispatchQuitRequest(a) {
+		t.Fatal("native dialog visible: must report vetoed=true")
+	}
+	if hookCalls != 0 {
+		t.Fatalf("hookCalls = %d, want 0 (native dialog dedups)", hookCalls)
+	}
+	if w.CloseRequested() {
+		t.Fatal("native dialog visible: must not mark close-requested")
 	}
 }
 

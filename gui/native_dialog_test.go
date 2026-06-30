@@ -394,6 +394,73 @@ func TestNativeConfirmDialogSuccess(t *testing.T) {
 	}
 }
 
+// TestNativeConfirmDialogMarksVisible verifies the window reports a
+// native dialog as visible for the duration of the blocking platform
+// call (so quit/close dedup can see it) and clears the flag afterward.
+func TestNativeConfirmDialogMarksVisible(t *testing.T) {
+	w := &Window{}
+	var visibleDuring bool
+	w.nativePlatform = mockDialogPlatform{
+		alertResult: NativeAlertResult{Status: DialogOK},
+	}
+	cfg := NativeConfirmDialogCfg{
+		Title: "Confirm?",
+		// OnDone runs inside the impl, before the visibility flag's
+		// deferred clear, so it observes the modal as visible.
+		OnDone: func(NativeAlertResult, *Window) {
+			visibleDuring = w.DialogIsVisible()
+		},
+	}
+	nativeConfirmDialogImpl(w, cfg)
+	if !visibleDuring {
+		t.Fatal("DialogIsVisible must be true while native dialog shows")
+	}
+	if w.DialogIsVisible() {
+		t.Fatal("DialogIsVisible must be false after native dialog closes")
+	}
+}
+
+// TestNativeOpenDialogMarksVisible covers the dialog-result dispatch path
+// (dispatchDialogDone), distinct from the alert path above.
+func TestNativeOpenDialogMarksVisible(t *testing.T) {
+	w := &Window{}
+	var visibleDuring bool
+	w.nativePlatform = mockDialogPlatform{
+		openResult: PlatformDialogResult{Status: DialogCancel},
+	}
+	cfg := NativeOpenDialogCfg{
+		OnDone: func(NativeDialogResult, *Window) {
+			visibleDuring = w.DialogIsVisible()
+		},
+	}
+	nativeOpenDialogImpl(w, cfg)
+	if !visibleDuring {
+		t.Fatal("DialogIsVisible must be true while native dialog shows")
+	}
+	if w.DialogIsVisible() {
+		t.Fatal("DialogIsVisible must be false after native dialog closes")
+	}
+}
+
+// TestNativeSaveDiscardDialogMarksVisible covers the 3-button alert path.
+func TestNativeSaveDiscardDialogMarksVisible(t *testing.T) {
+	w := &Window{}
+	var visibleDuring bool
+	w.nativePlatform = saveDiscardPlatform{}
+	cfg := NativeSaveDiscardDialogCfg{
+		OnDone: func(NativeAlertResult, *Window) {
+			visibleDuring = w.DialogIsVisible()
+		},
+	}
+	nativeSaveDiscardDialogImpl(w, cfg)
+	if !visibleDuring {
+		t.Fatal("DialogIsVisible must be true while native dialog shows")
+	}
+	if w.DialogIsVisible() {
+		t.Fatal("DialogIsVisible must be false after native dialog closes")
+	}
+}
+
 func TestNativeOpenDialogCancelled(t *testing.T) {
 	w := &Window{}
 	w.nativePlatform = mockDialogPlatform{
