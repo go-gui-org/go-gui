@@ -293,7 +293,38 @@ func (w *Window) DialogDismiss() {
 	w.SetIDFocus(oldFocus)
 }
 
-// DialogIsVisible returns true if a dialog is showing.
+// DialogIsVisible returns true if a dialog is showing — either the
+// in-app modal overlay or a native (OS) modal dialog.
 func (w *Window) DialogIsVisible() bool {
-	return w.dialogCfg.visible
+	return w.dialogCfg.visible || w.nativeDialogVisible
+}
+
+// retainDialogFocus keeps keyboard focus inside the modal dialog. A
+// focus-claiming widget (one that re-asserts SetIDFocus on every view
+// rebuild, e.g. a terminal that wants keystrokes without a prior click)
+// can steal idFocus back from the dialog overlay. Events still route to
+// the dialog layer, but with no focused element there Tab/Esc/Enter stop
+// working while mouse clicks still land by coordinate. When the current
+// focus is not a focusable element within the freshly generated dialog
+// subtree, reassert the dialog's focus id so apps need not guard their
+// own SetIDFocus with DialogIsVisible.
+//
+// dialog is the dialog's layout for this frame. Called from layoutArrange
+// under w.mu; acquires w.animMu only when a reassert is needed.
+func (w *Window) retainDialogFocus(dialog *Layout) {
+	// A malformed/empty dialog layer has no focusable target; leave focus
+	// untouched rather than blindly reasserting (which could steal it).
+	if dialog == nil || dialog.Shape == nil {
+		return
+	}
+	// idFocus 0 means nothing is focused: FindLayoutByIDFocus would match
+	// the dialog root (its IDFocus is 0), so treat it as escaped.
+	if id := w.viewState.idFocus; id != 0 {
+		if _, ok := FindLayoutByIDFocus(dialog, id); ok {
+			return
+		}
+	}
+	w.animMu.Lock()
+	w.setIDFocusLocked(w.dialogCfg.IDFocus)
+	w.animMu.Unlock()
 }

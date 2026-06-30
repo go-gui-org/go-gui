@@ -37,6 +37,9 @@ func layoutArrange(layout *Layout, w *Window) []Layout {
 	// Inject dialog as last floating layer (always on top).
 	if w.dialogCfg.visible {
 		injectFloatingLayer(dialogViewGenerator(w.dialogCfg), w, &floatingLayouts)
+		if n := len(floatingLayouts); n > 0 {
+			w.retainDialogFocus(floatingLayouts[n-1])
+		}
 	}
 
 	// Run pipeline on main layout.

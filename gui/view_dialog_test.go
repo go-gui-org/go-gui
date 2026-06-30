@@ -2,6 +2,82 @@ package gui
 
 import "testing"
 
+// TestRetainDialogFocus_RestoresStolenFocus verifies that when a
+// focus-claiming widget steals idFocus away from a visible modal dialog,
+// retainDialogFocus reasserts the dialog's focus id so keyboard routing
+// (Tab/Esc/Enter) keeps working.
+func TestRetainDialogFocus_RestoresStolenFocus(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	w.Dialog(DialogCfg{DialogType: DialogConfirm, Title: "Quit?"})
+	dialog := GenerateViewLayout(dialogViewGenerator(w.dialogCfg), w)
+
+	// Simulate a widget re-asserting focus onto itself (id 42, not in
+	// the dialog subtree).
+	w.SetIDFocus(42)
+	w.retainDialogFocus(&dialog)
+
+	if got := w.IDFocus(); got != w.dialogCfg.IDFocus {
+		t.Fatalf("idFocus = %d, want dialog focus %d", got, w.dialogCfg.IDFocus)
+	}
+}
+
+// TestRetainDialogFocus_KeepsDialogFocus verifies focus already inside
+// the dialog subtree (e.g. after Tab) is left untouched.
+func TestRetainDialogFocus_KeepsDialogFocus(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	w.Dialog(DialogCfg{DialogType: DialogConfirm, Title: "Quit?"})
+	dialog := GenerateViewLayout(dialogViewGenerator(w.dialogCfg), w)
+
+	// Confirm dialog's "Yes" button uses IDFocus+1; a legitimate Tab
+	// target inside the dialog must be preserved.
+	yes := w.dialogCfg.IDFocus + 1
+	w.SetIDFocus(yes)
+	w.retainDialogFocus(&dialog)
+
+	if got := w.IDFocus(); got != yes {
+		t.Fatalf("idFocus = %d, want %d (in-dialog focus preserved)", got, yes)
+	}
+}
+
+// TestRetainDialogFocus_NoFocusReasserts verifies that no focus (id 0),
+// which would spuriously match the dialog root, is treated as escaped.
+func TestRetainDialogFocus_NoFocusReasserts(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	w.Dialog(DialogCfg{DialogType: DialogConfirm, Title: "Quit?"})
+	dialog := GenerateViewLayout(dialogViewGenerator(w.dialogCfg), w)
+
+	w.SetIDFocus(0)
+	w.retainDialogFocus(&dialog)
+
+	if got := w.IDFocus(); got != w.dialogCfg.IDFocus {
+		t.Fatalf("idFocus = %d, want dialog focus %d", got, w.dialogCfg.IDFocus)
+	}
+}
+
+// TestRetainDialogFocus_NilLayoutNoPanic verifies a nil dialog layer is
+// a no-op (no panic, focus untouched) rather than dereferencing it.
+func TestRetainDialogFocus_NilLayoutNoPanic(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	w.Dialog(DialogCfg{DialogType: DialogConfirm, Title: "Quit?"})
+	w.SetIDFocus(42)
+	w.retainDialogFocus(nil)
+	if got := w.IDFocus(); got != 42 {
+		t.Fatalf("idFocus = %d, want 42 (nil layer must not touch focus)", got)
+	}
+}
+
+// TestRetainDialogFocus_NilShapeNoPanic verifies a layout with a nil
+// Shape (which FindLayoutByIDFocus would dereference) is a no-op.
+func TestRetainDialogFocus_NilShapeNoPanic(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	w.Dialog(DialogCfg{DialogType: DialogConfirm, Title: "Quit?"})
+	w.SetIDFocus(42)
+	w.retainDialogFocus(&Layout{})
+	if got := w.IDFocus(); got != 42 {
+		t.Fatalf("idFocus = %d, want 42 (nil Shape must not touch focus)", got)
+	}
+}
+
 func TestDialogCfgDefaults(t *testing.T) {
 	cfg := DialogCfg{}
 	applyDialogDefaults(&cfg)
