@@ -8,7 +8,7 @@ Guidance for Claude Code (claude.ai/code) in this repo.
 go test ./...          # run all tests (headless, ~12s)
 go test ./gui/... -run TestFoo  # run single test
 go vet ./...           # static analysis
-golangci-lint run ./...      # full lint (govet, staticcheck, errcheck, gocyclo, modernize, unused, revive)
+golangci-lint run ./...      # full lint: govet, staticcheck, errcheck, gocyclo, cyclop, modernize, unused, revive, gocritic, perfsprint, gosmopolitan (+ gofmt/goimports formatters)
 go build ./...         # build all packages
 go run ./examples/get_started/  # run the example app (requires SDL2)
 ./scripts/large-files.sh     # report Go files >800 lines in gui/
@@ -28,16 +28,18 @@ View fn → GenerateViewLayout() → Layout tree
 ### Packages
 
 - `gui/` — core: widget factories, layout engine, theme, animation,
-  event dispatch, state mgmt (~160 .go files). **Keep flat: only leaf
-  subsystems (svg/, datagrid/, markdown/, backend/, etc.) in subpackages.**
+  event dispatch, state mgmt (~400 non-test .go files at top level).
+  **Keep flat: only leaf subsystems (svg/, datagrid/, markdown/,
+  backend/, etc.) in subpackages.**
 - `gui/backend/sdl2/` — SDL2 backend. Implements `TextMeasurer`, `SvgParser`,
   `NativePlatform`. Wires into window via `sdl2.New(w)`
 - `gui/backend/metal/` — Metal backend (macOS)
-- `gui/backend/gl/` — OpenGL backend
-- `gui/backend/filedialog/` — native file dialog
-- `gui/backend/printdialog/` — native print dialog
+- `gui/backend/gl/` — OpenGL backend; `web/`, `android/`, `ios/` — other
+  platform backends
+- `gui/backend/filedialog/`, `printdialog/`, `nativemenu/` — native dialogs/menus
+- `gui/backend/atspi/`, `sni/`, `spellcheck/` — Linux a11y / tray / spelling
 - `gui/backend/internal/` — shared backend internals
-- `gui/backend/test/` — headless no-op backend for unit tests
+- (no test backend package; tests run with nil injected interfaces)
 - `examples/` — 50+ example apps (get_started, showcase, calculator, todo,
   snake, markdown, custom_shader, draw_canvas, etc.)
 
@@ -72,8 +74,9 @@ tab-order focus.
 
 ### External Dependencies
 
-- `glyph` — text shaping/rendering lib. Local replace directive points to
-  `../go-glyph` (`~/Documents/github/go-glyph`).
+- `glyph` — text shaping/rendering lib. Consumed as versioned module; a
+  `go.work` (`use (. ../go-glyph)`) points the local build at the working
+  copy in `~/Documents/github/go-glyph`. No `replace` directive.
   For text work, check glyph first. Only add new text routines when glyph
   lacks them.
 
@@ -143,6 +146,43 @@ behavior is broken (cursors, menus, title bar, window management):
   Use `=` to assign existing var, or pick distinct name.
 - Committed code must pass `golangci-lint run ./...` and `gofmt`.
   PostToolUse hook auto-runs lint-fix + tests on every .go edit.
+- **Minimal scoped diffs.** Touch only what the request needs. No
+  cosmetic comment/formatting churn, no drive-by edits to unrelated
+  code. Rename/regex passes must not alter comment prose (e.g.
+  apostrophes in possessives).
+
+## Verification
+
+- Rebuild AND run the relevant tests before claiming a fix works.
+  Never report success on an unverified change. State failures plainly
+  with the output; if a step was skipped, say so.
+- Native/CGo or focus/activation bugs: confirm root cause with
+  instrumented logging (evidence) before editing. Reproduce before,
+  verify symptom gone after. Never leave the app non-launching. See
+  "Debugging native backends" for the logging technique.
+- Verify factual / root-cause claims against the code before asserting
+  them. Don't state "go-glyph has a pure-Go path", "X is a table-version
+  difference", etc. as fact without checking.
+
+## CI signals
+
+- Distinguish CI runner noise (CPU variance, ns/op jitter) from real
+  regressions. Keep alloc gates hard; treat timing gates as advisory.
+
+## Git Workflow
+
+- Before reviewing or editing a branch, confirm it is rebased on the
+  current base branch. If stale, update first — do not build work on a
+  stale base.
+
+## Release / Multi-repo
+
+- Direct go-gui consumers (require a go-gui bump on release): **go-charts,
+  go-edit, go-kite, go-map, go-term**. Verified against each repo's
+  `go.mod` `require` (all `github.com/go-gui-org/*`). go-glyph is
+  *upstream* — go-gui depends on it, not the reverse; never a bump target.
+- On release, re-verify the list from `go.mod` files; don't rely on
+  memory. New consumers get added without updating this note.
 
 ## context-mode
 
