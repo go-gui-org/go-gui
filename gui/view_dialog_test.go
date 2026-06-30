@@ -323,6 +323,64 @@ func TestDialogMinMaxWidthResolved(t *testing.T) {
 	}
 }
 
+func TestDialogConfirmDefaultButtonNo(t *testing.T) {
+	w := &Window{}
+	w.Dialog(DialogCfg{DialogType: DialogConfirm, Title: "Quit?"})
+	// Default (DialogButtonNo) focuses the base IDFocus ("No").
+	if got := w.IDFocus(); got != w.dialogCfg.IDFocus {
+		t.Fatalf("idFocus = %d, want No button %d", got, w.dialogCfg.IDFocus)
+	}
+}
+
+func TestDialogConfirmDefaultButtonYes(t *testing.T) {
+	w := &Window{}
+	w.Dialog(DialogCfg{
+		DialogType:    DialogConfirm,
+		Title:         "Quit?",
+		DefaultButton: DialogButtonYes,
+	})
+	// DialogButtonYes focuses IDFocus+1 ("Yes").
+	want := w.dialogCfg.IDFocus + 1
+	if got := w.IDFocus(); got != want {
+		t.Fatalf("idFocus = %d, want Yes button %d", got, want)
+	}
+}
+
+// TestDialogDefaultButtonYesIgnoredForNonConfirm verifies DefaultButton
+// only affects confirm dialogs; a message dialog still focuses its base id.
+func TestDialogDefaultButtonYesIgnoredForNonConfirm(t *testing.T) {
+	w := &Window{}
+	w.Dialog(DialogCfg{
+		DialogType:    DialogMessage,
+		Title:         "Done",
+		DefaultButton: DialogButtonYes,
+	})
+	if got := w.IDFocus(); got != w.dialogCfg.IDFocus {
+		t.Fatalf("idFocus = %d, want base %d", got, w.dialogCfg.IDFocus)
+	}
+}
+
+// TestRetainDialogFocus_DefaultButtonYes verifies focus reassertion
+// honors DefaultButton: a confirm dialog defaulting to Yes reasserts the
+// Yes button id, not the base id.
+func TestRetainDialogFocus_DefaultButtonYes(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	w.Dialog(DialogCfg{
+		DialogType:    DialogConfirm,
+		Title:         "Quit?",
+		DefaultButton: DialogButtonYes,
+	})
+	dialog := GenerateViewLayout(dialogViewGenerator(w.dialogCfg), w)
+
+	w.SetIDFocus(42) // steal focus outside the dialog
+	w.retainDialogFocus(&dialog)
+
+	want := w.dialogCfg.IDFocus + 1
+	if got := w.IDFocus(); got != want {
+		t.Fatalf("idFocus = %d, want Yes button %d", got, want)
+	}
+}
+
 func TestDialogConfirmView(t *testing.T) {
 	cfg := DialogCfg{
 		Title:      "Confirm?",

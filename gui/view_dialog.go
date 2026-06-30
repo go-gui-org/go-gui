@@ -11,6 +11,17 @@ const (
 	DialogCustom
 )
 
+// DialogButton identifies which button of a confirm dialog receives
+// initial keyboard focus. The zero value (DialogButtonNo) keeps the safe
+// default for destructive actions.
+type DialogButton uint8
+
+// DialogButton constants.
+const (
+	DialogButtonNo DialogButton = iota
+	DialogButtonYes
+)
+
 const dialogBaseIDFocus uint32 = 7568971
 
 // DialogCfg configures a modal dialog.
@@ -48,6 +59,12 @@ type DialogCfg struct {
 	ColorBorder  Color
 	DialogType   DialogType
 	AlignButtons HorizontalAlign
+
+	// DefaultButton selects which confirm-dialog button gets initial
+	// keyboard focus (so Enter/Space activate it). Defaults to
+	// DialogButtonNo, preserving the safe default for destructive
+	// actions. Ignored for non-confirm dialog types.
+	DefaultButton DialogButton
 
 	// unexported
 	visible bool
@@ -277,13 +294,24 @@ func applyDialogDefaults(cfg *DialogCfg) {
 	}
 }
 
+// dialogFocusID returns the IDFocus of the button that should receive
+// initial keyboard focus. For confirm dialogs with DefaultButton set to
+// DialogButtonYes, this is the "Yes" button (cfg.IDFocus+1); otherwise
+// the base IDFocus (the "No"/"OK"/input element).
+func dialogFocusID(cfg DialogCfg) uint32 {
+	if cfg.DialogType == DialogConfirm && cfg.DefaultButton == DialogButtonYes {
+		return cfg.IDFocus + 1
+	}
+	return cfg.IDFocus
+}
+
 // Dialog shows a modal dialog.
 func (w *Window) Dialog(cfg DialogCfg) {
 	applyDialogDefaults(&cfg)
 	cfg.visible = true
 	cfg.oldIDFocus = w.viewState.idFocus
 	w.dialogCfg = cfg
-	w.SetIDFocus(cfg.IDFocus)
+	w.SetIDFocus(dialogFocusID(cfg))
 }
 
 // DialogDismiss closes the current dialog.
@@ -325,6 +353,6 @@ func (w *Window) retainDialogFocus(dialog *Layout) {
 		}
 	}
 	w.animMu.Lock()
-	w.setIDFocusLocked(w.dialogCfg.IDFocus)
+	w.setIDFocusLocked(dialogFocusID(w.dialogCfg))
 	w.animMu.Unlock()
 }
