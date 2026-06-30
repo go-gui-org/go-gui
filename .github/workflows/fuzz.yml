@@ -11,6 +11,9 @@ on:
         default: '60s'
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   fuzz:
     name: Fuzz
