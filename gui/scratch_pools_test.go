@@ -310,6 +310,111 @@ func TestResetRenderPools_ShrinksOversizedVColArena(t *testing.T) {
 	}
 }
 
+// --- takeLayoutChildren ---
+
+func TestTakeLayoutChildren_NonPositiveReturnsNil(t *testing.T) {
+	var p scratchPools
+	if p.takeLayoutChildren(0) != nil {
+		t.Fatal("n=0 must return nil")
+	}
+	if p.takeLayoutChildren(-5) != nil {
+		t.Fatal("negative n must return nil")
+	}
+}
+
+func TestTakeLayoutChildren_BasicReservation(t *testing.T) {
+	var p scratchPools
+	// Reservations are zero-length with the cap pinned to n so the
+	// caller's appends stay in-region (mirrors view.go usage).
+	a := p.takeLayoutChildren(4)
+	if len(a) != 0 || cap(a) != 4 {
+		t.Fatalf("want len=0 cap=4, got len=%d cap=%d", len(a), cap(a))
+	}
+	marker := &Shape{}
+	for range cap(a) {
+		a = append(a, Layout{Shape: marker})
+	}
+	// The next reservation must not overlap a.
+	b := p.takeLayoutChildren(3)
+	if len(b) != 0 || cap(b) != 3 {
+		t.Fatalf("want len=0 cap=3, got len=%d cap=%d", len(b), cap(b))
+	}
+	other := &Shape{}
+	for range cap(b) {
+		b = append(b, Layout{Shape: other})
+	}
+	// Writes to b must not overwrite a.
+	for i := range a {
+		if a[i].Shape != marker {
+			t.Fatalf("a[%d] clobbered by b", i)
+		}
+	}
+}
+
+// Arena growth must preserve slices returned before the realloc.
+// Prior reservations reference the old backing array; Go's GC
+// keeps it alive.
+func TestTakeLayoutChildren_ArenaGrowthPreservesPriorSlices(t *testing.T) {
+	var p scratchPools
+	first := p.takeLayoutChildren(4)
+	markers := [4]*Shape{{}, {}, {}, {}}
+	for i := range markers {
+		first = append(first, Layout{Shape: markers[i]})
+	}
+	// Force at least one realloc by requesting a large chunk.
+	_ = p.takeLayoutChildren(4096)
+	for i := range first {
+		if first[i].Shape != markers[i] {
+			t.Fatalf("first[%d] clobbered by arena growth", i)
+		}
+	}
+}
+
+func TestTakeLayoutChildren_OversizeBypassesArena(t *testing.T) {
+	var p scratchPools
+	// Large n must bypass the arena; the returned slice has cap=n but
+	// the arena stays empty (no capacity held across frames).
+	a := p.takeLayoutChildren(maxLayoutChildrenReservation + 10)
+	if cap(a) != maxLayoutChildrenReservation+10 {
+		t.Fatalf("expected cap=%d, got %d",
+			maxLayoutChildrenReservation+10, cap(a))
+	}
+	if len(p.layoutChildrenArena) != 0 {
+		t.Fatalf("arena should stay empty for oversize requests, "+
+			"got len=%d", len(p.layoutChildrenArena))
+	}
+}
+
+func TestResetViewPools_TruncatesLayoutChildrenArena(t *testing.T) {
+	var p scratchPools
+	_ = p.takeLayoutChildren(32)
+	if len(p.layoutChildrenArena) == 0 {
+		t.Fatal("precondition: arena should have content")
+	}
+	prevCap := cap(p.layoutChildrenArena)
+	p.resetViewPools()
+	if len(p.layoutChildrenArena) != 0 {
+		t.Fatalf("arena len should reset to 0, got %d",
+			len(p.layoutChildrenArena))
+	}
+	if cap(p.layoutChildrenArena) != prevCap {
+		t.Fatal("small arena cap should be retained across reset")
+	}
+}
+
+// A spike frame must not hold the child capacity forever; the arena
+// shrinks back to layoutChildrenShrinkTo when it has grown past
+// layoutChildrenRetainMax.
+func TestResetViewPools_ShrinksOversizedLayoutChildrenArena(t *testing.T) {
+	var p scratchPools
+	_ = p.takeLayoutChildren(layoutChildrenRetainMax + 1)
+	p.resetViewPools()
+	if cap(p.layoutChildrenArena) > layoutChildrenShrinkTo {
+		t.Fatalf("expected shrink to <=%d, got cap=%d",
+			layoutChildrenShrinkTo, cap(p.layoutChildrenArena))
+	}
+}
+
 // --- growCap ---
 
 func TestGrowCap_NormalDoubling(t *testing.T) {

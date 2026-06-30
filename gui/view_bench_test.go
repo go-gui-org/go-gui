@@ -69,11 +69,16 @@ func benchViewDeep(depth int) *benchView {
 }
 
 func BenchmarkGenerateViewLayout(b *testing.B) {
+	// resetViewPools runs once per frame in the real pipeline
+	// (window_update.go), recycling the frame-scoped layout-children
+	// arena. Mirror that here so steady-state per-frame cost is
+	// measured rather than unbounded cross-iteration arena growth.
 	b.Run("flat_100", func(b *testing.B) {
 		w := &Window{scratch: newScratchPools()}
 		view := benchViewFlat(100)
 		b.ReportAllocs()
 		for b.Loop() {
+			w.scratch.resetViewPools()
 			_ = generateViewLayout(view, w)
 		}
 	})
@@ -83,6 +88,7 @@ func BenchmarkGenerateViewLayout(b *testing.B) {
 		view := benchViewNested(3, 10)
 		b.ReportAllocs()
 		for b.Loop() {
+			w.scratch.resetViewPools()
 			_ = generateViewLayout(view, w)
 		}
 	})
@@ -92,6 +98,7 @@ func BenchmarkGenerateViewLayout(b *testing.B) {
 		view := benchViewDeep(12)
 		b.ReportAllocs()
 		for b.Loop() {
+			w.scratch.resetViewPools()
 			_ = generateViewLayout(view, w)
 		}
 	})

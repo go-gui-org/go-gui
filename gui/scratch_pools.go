@@ -102,6 +102,15 @@ type scratchPools struct {
 	// still reference it.
 	svgVColArena []Color
 
+	// layoutChildrenArena is a grow-only, frame-scoped arena for the
+	// []Layout child slices built by generateViewLayout. Each node
+	// reserves a pinned subslice via takeLayoutChildren; the arena is
+	// reset to len=0 in resetViewPools. Realloc mid-build is safe by
+	// the same argument as svgVColArena: a parent that reserved before
+	// a realloc keeps the old backing array alive through its slice
+	// header, and per-node Children headers stay internally consistent.
+	layoutChildrenArena []Layout
+
 	floatingLayouts      []*Layout
 	floatingLayoutPool   []*Layout
 	placeholderShapePool []*Shape
@@ -189,11 +198,54 @@ func (p *scratchPools) beginFillPass() {
 }
 
 // resetViewPools resets the view-phase object pools. Called
-// before generateViewLayout.
+// before generateViewLayout. The layoutChildrenArena is shrunk when
+// it has grown past its retain cap so a one-off deep frame does not
+// hold the capacity indefinitely.
 func (p *scratchPools) resetViewPools() {
 	p.viewShapes.reset()
 	p.buttonColors.reset()
 	p.viewEvents.reset()
+	if cap(p.layoutChildrenArena) > layoutChildrenRetainMax {
+		p.layoutChildrenArena = make([]Layout, 0, layoutChildrenShrinkTo)
+	} else {
+		p.layoutChildrenArena = p.layoutChildrenArena[:0]
+	}
+}
+
+const (
+	layoutChildrenRetainMax = 1 << 14 // 16 384 Layout values
+	layoutChildrenShrinkTo  = 1 << 10 // 1 024 Layout values
+
+	// maxLayoutChildrenReservation bounds a single reservation. Beyond
+	// this a standalone slice is returned so arena memory is not held
+	// across frames and no arithmetic overflow can occur.
+	maxLayoutChildrenReservation = 1 << 20
+)
+
+// takeLayoutChildren reserves a pinned, zero-length subslice with
+// capacity n from the frame-scoped layout-children arena. The cap is
+// pinned to n so the caller's appends cannot bleed into a later
+// reservation. Realloc of the underlying arena is safe: prior
+// reservations stay valid because their slice headers keep the old
+// backing array alive. Non-positive n returns nil; pathological sizes
+// bypass the arena entirely.
+func (p *scratchPools) takeLayoutChildren(n int) []Layout {
+	if n <= 0 {
+		return nil
+	}
+	if n > maxLayoutChildrenReservation {
+		return make([]Layout, 0, n)
+	}
+	start := len(p.layoutChildrenArena)
+	need := start + n
+	if cap(p.layoutChildrenArena) < need {
+		grown := make([]Layout, need, growCap(cap(p.layoutChildrenArena), need))
+		copy(grown, p.layoutChildrenArena)
+		p.layoutChildrenArena = grown
+	} else {
+		p.layoutChildrenArena = p.layoutChildrenArena[:need]
+	}
+	return p.layoutChildrenArena[start:start:need]
 }
 
 // resetRenderPools resets the render-phase object pools. Called at the
