@@ -455,6 +455,12 @@ golangci-lint run ./...
 
 ---
 
+## Roadmap
+
+Planning lives in [GitHub Issues](../../issues) and the go-gui-org project
+board, not a checked-in roadmap file. Browse open issues for current and
+planned work.
+
 ## License
 
 [MIT](LICENSE)
