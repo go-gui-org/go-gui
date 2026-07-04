@@ -19,16 +19,16 @@ go run ./examples/get_started/  # run the example app (requires SDL2)
 Immediate-mode pipeline. No virtual DOM, no diffing:
 
 ```
-View fn → GenerateViewLayout() → Layout tree
+View fn → generateViewLayout() → Layout tree
   → layoutArrange() (Fit/Fixed/Grow sizing)
-  → renderLayout() → []RenderCmd
-  → Backend (SDL2 + Metal/OpenGL)
+  → renderLayout() (emits into w.renderers)
+  → Backend (Metal + SDL2 windowing on macOS; SDL2 or GL on Linux/Windows)
 ```
 
 ### Packages
 
 - `gui/` — core: widget factories, layout engine, theme, animation,
-  event dispatch, state mgmt (~400 non-test .go files at top level).
+  event dispatch, state mgmt (~200 non-test .go files at top level).
   **Keep flat: only leaf subsystems (svg/, datagrid/, markdown/,
   backend/, etc.) in subpackages.**
 - `gui/backend/sdl2/` — SDL2 backend. Implements `TextMeasurer`, `SvgParser`,
@@ -40,7 +40,7 @@ View fn → GenerateViewLayout() → Layout tree
 - `gui/backend/atspi/`, `sni/`, `spellcheck/` — Linux a11y / tray / spelling
 - `gui/backend/internal/` — shared backend internals
 - (no test backend package; tests run with nil injected interfaces)
-- `examples/` — 50+ example apps (get_started, showcase, calculator, todo,
+- `examples/` — 53 example apps (get_started, showcase, calculator, todo,
   snake, markdown, custom_shader, draw_canvas, etc.)
 
 ### Core Types

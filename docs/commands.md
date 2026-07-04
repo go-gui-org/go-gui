@@ -74,7 +74,7 @@ auto-disable.
 Commands are registered on a `*Window` and stored in its registry.
 
 ```go
-w.RegisterCommand(gui.Command{
+if err := w.RegisterCommand(gui.Command{
     ID:       "file.save",
     Label:    "Save",
     Group:    "File",
@@ -83,7 +83,9 @@ w.RegisterCommand(gui.Command{
     Execute: func(_ *gui.Event, w *gui.Window) {
         // save logic
     },
-})
+}); err != nil {
+    panic(err)
+}
 ```
 
 **Batch registration:**

@@ -50,10 +50,10 @@ Each frame, a plain Go view function returns a layout tree. The framework sizes,
 positions, and renders it in a single pass — no virtual DOM, no diffing.
 
 ```
-View fn → GenerateViewLayout() → Layout tree
+View fn → generateViewLayout() → Layout tree
   → layoutArrange() (Fit/Fixed/Grow sizing)
-  → renderLayout() → []RenderCmd
-  → Backend (Metal / OpenGL / Web/WASM)
+  → renderLayout() (emits draw commands)
+  → Backend (Metal / SDL2 / OpenGL / Web/WASM)
 ```
 
 State lives in a typed slot per window (`gui.State[T](w)`). Backend interfaces
@@ -175,12 +175,12 @@ go get github.com/go-gui-org/go-gui
 
 ### Backend Selection
 
-`backend.Run(w)` auto-selects Metal on macOS and OpenGL elsewhere:
+`backend.Run(w)` auto-selects Metal on macOS, SDL2 on Linux/Windows (OpenGL with the `gl` build tag):
 
 ```go
 import "github.com/go-gui-org/go-gui/gui/backend"
 
-backend.Run(w) // Metal on macOS, GL on Linux/Windows
+backend.Run(w) // Metal on macOS, SDL2 (or GL with -tags gl) on Linux/Windows
 ```
 
 To force a specific backend, import it directly:
@@ -309,7 +309,7 @@ w.DataGrid(gui.DataGridCfg{
 
 ### Example Apps
 
-45+ example apps in [`examples/`](examples/) — from `get_started` to
+53 example apps in [`examples/`](examples/) — from `get_started` to
 `showcase`, `calculator`, `snake`, `dock_layout`, `digital_rain`, and more.
 
 ```bash

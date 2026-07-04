@@ -5,8 +5,8 @@ package into subpackages (`gui/layout/`, `gui/animation/`, etc.).
 
 ## Current state
 
-- Root `gui/` package: 170+ non-test .go files, ~95K LoC
-- 25 total packages (most under `backend/`)
+- Root `gui/` package: ~200 non-test .go files at top level (~400 including tests)
+- 33 total packages (most under `backend/`)
 - Compile time: 0.28s — not a problem
 - File naming convention: `layout_*.go`, `render_*.go`, `view_*.go`,
   `animation_*.go` — provides grep-level discoverability

@@ -20,7 +20,7 @@ entire UI from the view function.
 │                     FRAME PIPELINE (per frame)                      │
 │                                                                     │
 │  ┌──────────────┐    ┌──────────────┐    ┌───────────────────────┐  │
-│  │ View func    │───▶│ GenerateView │───▶│ Layout tree           │  │
+│  │ View func    │───▶│ generateView │───▶│ Layout tree           │  │
 │  │ (user code)  │    │ Layout()     │    │ (Layout + Shape nodes)│  │
 │  └──────────────┘    └──────────────┘    └───────────┬───────────┘  │
 │                                                      │              │
@@ -35,7 +35,7 @@ entire UI from the view function.
 │                                      │                              │
 │                                      ▼                              │
 │  ┌───────────────────────────────────────────────────────────────┐  │
-│  │ renderLayout() → []RenderCmd                                  │  │
+│  │ renderLayout(bgColor, clip, w) → emits into w.renderers       │  │
 │  │  ├─ walk arranged tree                                        │  │
 │  │  ├─ emit RenderCmd per Shape (rect, text, circle, image, SVG) │  │
 │  │  ├─ apply ColorFilter / effects                               │  │
@@ -43,7 +43,7 @@ entire UI from the view function.
 │  └───────────────────────────────────┬───────────────────────────┘  │
 │                                      │                              │
 │                                      ▼                              │
-│                              []RenderCmd                            │
+│                              w.renderers                            │
 └──────────────────────────────┬──────────────────────────────────────┘
                                │
                                ▼
@@ -76,7 +76,7 @@ entire UI from the view function.
 │       notifications, bookmarks, URI opening)                        │
 │                                                                     │
 │  ┌──────────────────────────────────────────────────────┐           │
-│  │ Test Backend (gui/backend/test/) — headless no-op    │           │
+│  │ Tests: nil injected interfaces — no backend needed   │           │
 │  └──────────────────────────────────────────────────────┘           │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -164,8 +164,8 @@ entire UI from the view function.
 
 ```
 go-gui/
-├── gui/                          ← core (~640 files)
-│   ├── view*.go                  ← View interface, GenerateViewLayout
+├── gui/                          ← core (~200 non-test .go files at top level)
+│   ├── view*.go                  ← View interface, generateViewLayout
 │   ├── layout*.go                ← Layout tree, arrange, query
 │   ├── shape*.go                 ← Shape type + ShapeTextConfig
 │   ├── render*.go                ← renderLayout, RenderCmd, filters
@@ -190,9 +190,8 @@ go-gui/
 │       ├── atspi/                ← AT-SPI accessibility (Linux)
 │       ├── sni/                  ← StatusNotifierItem / system tray
 │       ├── spellcheck/           ← Spell checking
-│       ├── internal/             ← Shared backend internals
-│       └── test/                 ← Headless no-op backend
-└── examples/                     ← 52 example apps
+│       └── internal/             ← Shared backend internals
+└── examples/                     ← 53 example apps
     ├── get_started/
     ├── showcase/
     ├── calculator/
@@ -203,10 +202,11 @@ go-gui/
 
 ## Future Directions
 
-- **WebGPU**: A future WebGPU backend (via `GPUCanvasContext` /
-  `navigator.gpu`) would provide lower GPU overhead and compute shader
-  support on the web target. No implementation exists yet.
-- **SDL2 deprecation**: The SDL2 renderer backend is the fallback on
-  Linux and Windows. It skips `RenderCustomShader` (no GPU pipeline).
-  Long-term direction is toward GL as the default on all desktop
-  platforms, with SDL2 retained for windowing and input only.
+- **WebGPU**: Explored on the `webgpu-backend` branch (deleted) — 12
+  WGSL shader pipelines, device init, and render loop were working.
+  Rejected because WebGPU has no native text rendering path; a pure-Go
+  TTF rasterizer in go-glyph would be needed first.
+- **SDL2 on desktop**: SDL2 is the default renderer on Linux and
+  Windows. OpenGL is opt-in via the `gl` build tag. On macOS, SDL2
+  provides windowing and input while Metal handles rendering.
+  SDL2's own renderer skips `RenderCustomShader` (no GPU pipeline).

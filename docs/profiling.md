@@ -81,32 +81,29 @@ before diving into pprof.
 The go-gui render pipeline has well-defined hot paths. Profile these first when
 investigating performance:
 
-| Path                  | Function                | Benchmark                               |
-| --------------------- | ----------------------- | --------------------------------------- |
-| View → Layout tree    | `generateViewLayout`    | `BenchmarkGenerateViewLayout`           |
-| Layout → RenderCmd    | `renderLayout`          | `BenchmarkRenderLayout`                 |
-| Layout arrangement    | `layoutArrange`         | `BenchmarkLayoutArrange`                |
-| SVG cache hit         | `LoadSvg` (cached)      | `BenchmarkSvgLoadCacheHit`              |
-| SVG cache miss        | `LoadSvg` (uncached)    | `BenchmarkSvgLoadCacheMiss`             |
-| SVG render            | `renderSvg`             | `BenchmarkRenderSvgAnimated`            |
-| Wrap container layout | `layoutWrapContainers`  | `BenchmarkLayoutWrapContainers`         |
-| Focus traversal       | `NextFocusable`         | `BenchmarkFocusTraversal`               |
+| Path                  | Function               | Benchmark                       |
+| --------------------- | ---------------------- | ------------------------------- |
+| View → Layout tree    | `generateViewLayout`   | `BenchmarkGenerateViewLayout`   |
+| Layout → RenderCmd    | `renderLayout`         | `BenchmarkRenderLayout`         |
+| Layout arrangement    | `layoutArrange`        | `BenchmarkLayoutArrange`        |
+| SVG cache hit         | `LoadSvg` (cached)     | `BenchmarkSvgLoadCacheHit`      |
+| SVG cache miss        | `LoadSvg` (uncached)   | `BenchmarkSvgLoadCacheMiss`     |
+| SVG render            | `renderSvg`            | `BenchmarkRenderSvgAnimated`    |
+| Wrap container layout | `layoutWrapContainers` | `BenchmarkLayoutWrapContainers` |
+| Focus traversal       | `NextFocusable`        | `BenchmarkFocusTraversal`       |
 
 ## Allocation targets
 
 Zero-allocation is the goal on frame-critical hot paths.
 
-See [docs/specs/perf-optimizations.md](specs/perf-optimizations.md) for the
-full optimization spec with designs, code changes, and deferred items.
-
-| Path                         | Current allocs | Target | Spec § |
-| ---------------------------- | -------------- | ------ | ------ |
-| SVG cache hit                | 0              | 0 ✓    |        |
-| layoutFillWidths/Heights     | 2 per node     | 0      | §4     |
-| StateMap (hot namespaces)    | 1 per shape    | 0      | §5     |
-| Event wrapper closures       | 2–3 per widget | 0      | §6     |
-| generateViewLayout children  | log₂(n) grows  | 0–1    | §7     |
-| renderLayout (flat)          | varies         | ↓      |        |
+| Path                        | Current allocs | Target |
+| --------------------------- | -------------- | ------ |
+| SVG cache hit               | 0              | 0 ✓    |
+| layoutFillWidths/Heights    | 2 per node     | 0      |
+| StateMap (hot namespaces)   | 1 per shape    | 0      |
+| Event wrapper closures      | 2–3 per widget | 0      |
+| generateViewLayout children | log₂(n) grows  | 0–1    |
+| renderLayout (flat)         | varies         | ↓      |
 
 Run benchmarks before and after changes to detect allocation regressions:
 
@@ -129,10 +126,10 @@ benchstat before.txt after.txt
 SVG tessellation and animation changes must keep golden tests passing. Golden
 files live in `gui/svg/testdata/`:
 
-| Golden file                    | Covers                    | Regenerate flag       |
-| ------------------------------ | ------------------------- | --------------------- |
-| `phase0_smil_goldens.txt`      | SMIL animation output     | `-phase0-update`      |
-| `phaseG_css_goldens.txt`       | CSS spinner fingerprints  | `-phaseG-update`      |
+| Golden file               | Covers                   | Regenerate flag  |
+| ------------------------- | ------------------------ | ---------------- |
+| `phase0_smil_goldens.txt` | SMIL animation output    | `-phase0-update` |
+| `phaseG_css_goldens.txt`  | CSS spinner fingerprints | `-phaseG-update` |
 
 Run goldens before and after SVG changes:
 
@@ -171,4 +168,3 @@ The most common allocation source in hot paths is slice growth. Pre-size with
 
 `scratchPools` in `gui/scratch.go` holds per-window pools for frequently
 allocated types. When adding new hot-path allocations, consider pooling.
-
