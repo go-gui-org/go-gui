@@ -8,33 +8,33 @@ Go toolchain pin: `go 1.26.0`.
 
 ## Direct Dependencies
 
-| Module                                        | Version                            | Purpose                                                                  |
-| --------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------ |
-| `github.com/alecthomas/chroma/v2`             | v2.26.1                            | Syntax highlighting in the markdown widget.                              |
-| `github.com/go-gl/gl`                         | v0.0.0-20260331235117-4566fea9a276 | OpenGL bindings for `gui/backend/gl`.                                    |
-| `github.com/go-gui-org/go-glyph`              | v1.12.0                            | Text shaping + glyph rasterization. Required by every backend.           |
-| `github.com/go-gui-org/go-glyph/backend/sdl2` | v1.11.0                            | SDL2-specific glyph rasterisation backend used by `gui/backend/sdl2`.    |
-| `github.com/go-pdf/fpdf`                      | v0.9.0                             | PDF generation for the print-dialog backend.                             |
-| `github.com/godbus/dbus/v5`                   | v5.2.2                             | Linux native platform: notifications, portals.                           |
-| `github.com/tdewolff/parse/v2`                | v2.8.13                            | CSS tokenizer for the SVG `<style>` / `style=""` cascade pipeline.       |
-| `github.com/veandco/go-sdl2`                  | v0.4.40                            | SDL2 backend (`gui/backend/sdl2`). Window, input, GL/Metal context glue. |
-| `github.com/yuin/goldmark`                    | v1.8.2                             | Markdown parser (markdown widget + showcase docs).                       |
-| `github.com/yuin/goldmark-emoji`              | v1.0.6                             | Goldmark extension: `:emoji:` shortcodes.                                |
-| `golang.org/x/mod`                            | v0.37.0                            | Module version parsing; imported by `requiredid` analyzer.               |
-| `golang.org/x/tools`                          | v0.46.0                            | `go/analysis` framework for the `requiredid` analyzer (`tools/`).        |
+| Module | Version | Purpose |
+| ------ | ------- | ------- |
+| `github.com/alecthomas/chroma/v2` | v2.26.1 | Syntax highlighting in the markdown widget. |
+| `github.com/go-gl/gl` | v0.0.0-20260331235117-4566fea9a276 | OpenGL bindings for `gui/backend/gl`. |
+| `github.com/go-gui-org/go-glyph` | v1.12.0 | Text shaping + glyph rasterization. Required by every backend. |
+| `github.com/go-gui-org/go-glyph/backend/sdl2` | v1.11.0 | SDL2-specific glyph rasterisation backend used by `gui/backend/sdl2`. |
+| `github.com/go-pdf/fpdf` | v0.9.0 | PDF generation for the print-dialog backend. |
+| `github.com/godbus/dbus/v5` | v5.2.2 | Linux native platform: notifications, portals. |
+| `github.com/tdewolff/parse/v2` | v2.8.13 | CSS tokenizer for the SVG `<style>` / `style=""` cascade pipeline. |
+| `github.com/veandco/go-sdl2` | v0.4.40 | SDL2 backend (`gui/backend/sdl2`). Window, input, GL/Metal context glue. |
+| `github.com/yuin/goldmark` | v1.8.2 | Markdown parser (markdown widget + showcase docs). |
+| `github.com/yuin/goldmark-emoji` | v1.0.6 | Goldmark extension: `:emoji:` shortcodes. |
+| `golang.org/x/mod` | v0.37.0 | Module version parsing; imported by `requiredid` analyzer. |
+| `golang.org/x/tools` | v0.46.0 | `go/analysis` framework for the `requiredid` analyzer (`tools/`). |
 
 ## Indirect Dependencies
 
 Pulled in transitively; listed for completeness.
 
-| Module                          | Version                            | Pulled in by                         |
-| ------------------------------- | ---------------------------------- | ------------------------------------ |
-| `github.com/dlclark/regexp2/v2` | v2.2.2                             | chroma                               |
-| `github.com/rivo/uniseg`        | v0.4.7                             | grapheme segmentation (chroma/glyph) |
-| `golang.org/x/mobile`           | v0.0.0-20260602190626-68735029466e | gobind tool (Android AAR builds)     |
-| `golang.org/x/sync`             | v0.21.0                            | x/tools                              |
-| `golang.org/x/sys`              | v0.46.0                            | sdl2 / godbus                        |
-| `golang.org/x/text`             | v0.38.0                            | misc. text processing (transitive)   |
+| Module | Version | Pulled in by |
+| ------ | ------- | ------------ |
+| `github.com/dlclark/regexp2/v2` | v2.2.2 | chroma |
+| `github.com/rivo/uniseg` | v0.4.7 | grapheme segmentation (chroma/glyph) |
+| `golang.org/x/mobile` | v0.0.0-20260602190626-68735029466e | gobind tool (Android AAR builds) |
+| `golang.org/x/sync` | v0.21.0 | x/tools |
+| `golang.org/x/sys` | v0.46.0 | sdl2 / godbus |
+| `golang.org/x/text` | v0.38.0 | misc. text processing (transitive) |
 
 ## Updating
 
@@ -59,18 +59,21 @@ make deps-doc
 ## Local go-glyph Workflow
 
 Day-to-day text work often runs against a sibling checkout at
-`~/Documents/github/go-glyph`. Wire it in via a `go.work` file
-(recommended; do not commit to the repo):
+`~/Documents/github/go-glyph`. Wire it in via a `replace` directive:
 
 ```bash
-cd ~/Documents/github/
-go work init ./go-gui ./go-glyph
-go work use ./go-edit ./go-charts  # add other sibling repos as needed
+go mod edit -replace github.com/go-gui-org/go-glyph=../go-glyph
 ```
 
-The repo's `go.work` file points the local build at the working copy
-of go-glyph. No `replace` directive needed in `go.mod`. CI fetches the
-tagged module from the module proxy.
+Drop the replace before tagging:
+
+```bash
+go mod edit -dropreplace github.com/go-gui-org/go-glyph
+go mod tidy
+```
+
+`go.mod` on `main` must not carry a local replace — CI fetches the
+tagged module.
 
 ## Verification
 

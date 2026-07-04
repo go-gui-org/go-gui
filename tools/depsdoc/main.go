@@ -32,7 +32,8 @@ func main() {
 
 // directPurpose maps direct-dependency modules to a short purpose string.
 var directPurpose = map[string]string{
-	"github.com/go-gui-org/go-glyph":  "Text shaping + glyph rasterization. Required by every backend.",
+	"github.com/go-gui-org/go-glyph":              "Text shaping + glyph rasterization. Required by every backend.",
+	"github.com/go-gui-org/go-glyph/backend/sdl2": "SDL2-specific glyph rasterisation backend used by `gui/backend/sdl2`.",
 	"github.com/veandco/go-sdl2":      "SDL2 backend (`gui/backend/sdl2`). Window, input, GL/Metal context glue.",
 	"github.com/go-gl/gl":             "OpenGL bindings for `gui/backend/gl`.",
 	"github.com/tdewolff/parse/v2":    "CSS tokenizer for the SVG `<style>` / `style=\"\"` cascade pipeline.",
