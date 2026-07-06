@@ -113,6 +113,10 @@ func (n *nativePlatform) IMESetRect(x, y, w, h int32) {
 
 func (n *nativePlatform) TitlebarDark(_ bool) {}
 
+func (n *nativePlatform) SetWindowVibrancy(m gui.VibrancyMaterial) {
+	C.metalWindowSetVibrancy(n.window, C.int(m))
+}
+
 // --- Spell check ---
 
 func (n *nativePlatform) SpellCheck(text string) []gui.SpellRange {

@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Window vibrancy** (macOS): `Window.SetWindowVibrancy(VibrancyMaterial)`
+  places a translucent, blurred native `NSVisualEffectView` backdrop behind
+  the window content. Pair with a translucent `WindowCfg.BgColor` (alpha <
+  255) to reveal the backdrop; `VibrancyNone` restores an opaque window.
+  Implemented on the Metal backend (makes the window and its `CAMetalLayer`
+  non-opaque so content composites over the blur); no-op on SDL2, OpenGL,
+  web, iOS, and Android (Linux/Windows are out of scope, matching the
+  `TermGrid` issue). Built for go-term. See `examples/vibrancy`. (#31)
 - **`TermGrid` primitive**: a terminal character-grid widget
   (`TermGrid`/`TermGridCfg`) that draws a fixed-pitch cell buffer in a single
   `RenderTermGrid` command — no per-cell `Layout` node and no per-cell
