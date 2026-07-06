@@ -396,6 +396,8 @@ func (n *nativePlatform) IMESetRect(x, y, _, _ int32) {
 
 func (n *nativePlatform) TitlebarDark(_ bool) {}
 
+func (n *nativePlatform) SetWindowVibrancy(_ gui.VibrancyMaterial) {}
+
 // --- Spell check (no browser JS API exposes spell results) ---
 
 func (n *nativePlatform) SpellCheck(_ string) []gui.SpellRange     { return nil }

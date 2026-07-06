@@ -78,6 +78,7 @@ type NativePlatform interface {
 	NativeSystemTray
 	OpenURI(uri string) error
 	TitlebarDark(dark bool)
+	SetWindowVibrancy(material VibrancyMaterial)
 }
 
 // SpellRange represents a misspelled byte range in text.

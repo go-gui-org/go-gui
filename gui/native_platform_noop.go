@@ -44,6 +44,7 @@ func (NoopNativePlatform) IMEStop()                                            {
 func (NoopNativePlatform) IMESetRect(_, _, _, _ int32)                         {}
 func (NoopNativePlatform) OpenURI(_ string) error                              { return nil }
 func (NoopNativePlatform) TitlebarDark(_ bool)                                 {}
+func (NoopNativePlatform) SetWindowVibrancy(_ VibrancyMaterial)                {}
 func (NoopNativePlatform) SpellCheck(_ string) []SpellRange                    { return nil }
 func (NoopNativePlatform) SpellSuggest(_ string, _, _ int) []string            { return nil }
 func (NoopNativePlatform) SpellLearn(_ string)                                 {}

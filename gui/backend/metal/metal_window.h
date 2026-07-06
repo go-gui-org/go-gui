@@ -122,6 +122,15 @@ int         metalEventIMELength(void); // composition length
 void metalWindowSetCursor(GoGuiNSWindow w, const char *cursorName,
                           float mouseX, float mouseY);
 
+// ─── Vibrancy ──────────────────────────────────────────────────
+
+// Set the window's translucent backdrop material (macOS NSVisualEffectView).
+// material: 0 = None (opaque window, effect removed); 1..N map to
+// NSVisualEffectMaterial (see metalWindowSetVibrancy in the .m file). Makes the
+// window and its CAMetalLayer non-opaque so the backdrop shows through content
+// drawn with a translucent clear color.
+void metalWindowSetVibrancy(GoGuiNSWindow w, int material);
+
 // ─── Clipboard ─────────────────────────────────────────────────
 
 // Get the clipboard text. Returns NULL if empty or not a string.

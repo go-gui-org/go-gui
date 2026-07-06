@@ -80,6 +80,9 @@ func (n *nativePlatform) IMEStop()                                {}
 func (n *nativePlatform) IMESetRect(_, _, _, _ int32)             {}
 func (n *nativePlatform) TitlebarDark(_ bool)                     {}
 func (n *nativePlatform) SpellCheck(text string) []gui.SpellRange { return spellcheck.Check(text) }
+
+func (n *nativePlatform) SetWindowVibrancy(_ gui.VibrancyMaterial) {}
+
 func (n *nativePlatform) SpellSuggest(text string, s, l int) []string {
 	return spellcheck.Suggest(text, s, l)
 }

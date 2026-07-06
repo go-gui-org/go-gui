@@ -348,6 +348,7 @@ static uint32_t _nextWindowID = 1;
 typedef struct {
     GUIWindow          *nsWindow;
     MetalContentView   *contentView;
+    NSVisualEffectView *effectView;  // vibrancy backdrop; nil when opaque
     uint32_t            windowID;
 } GoGuiWindow;
 
@@ -489,6 +490,59 @@ unsigned int metalWindowGetID(GoGuiNSWindow w) {
     if (!w) return 0;
     GoGuiWindow *gw = (GoGuiWindow *)w;
     return gw->windowID;
+}
+
+// ─── Vibrancy ──────────────────────────────────────────────────
+
+// Map the cross-platform material enum (see gui.VibrancyMaterial) to an
+// NSVisualEffectMaterial. Keep in sync with the Go enum order.
+static NSVisualEffectMaterial vibrancyMaterial(int material) {
+    switch (material) {
+        case 1:  return NSVisualEffectMaterialSidebar;
+        case 2:  return NSVisualEffectMaterialMenu;
+        case 3:  return NSVisualEffectMaterialHUDWindow;
+        case 4:  return NSVisualEffectMaterialUnderWindowBackground;
+        default: return NSVisualEffectMaterialUnderWindowBackground;
+    }
+}
+
+void metalWindowSetVibrancy(GoGuiNSWindow w, int material) {
+    if (!w) return;
+    GoGuiWindow *gw = (GoGuiWindow *)w;
+    CAMetalLayer *layer = (CAMetalLayer *)gw->contentView.layer;
+
+    if (material == 0) {
+        // Disable: remove the backdrop and restore an opaque window.
+        [gw->effectView removeFromSuperview];
+        gw->effectView = nil;
+        gw->nsWindow.opaque = YES;
+        gw->nsWindow.backgroundColor = [NSColor windowBackgroundColor];
+        layer.opaque = YES;
+        return;
+    }
+
+    // Lazily create the effect view and insert it behind the Metal content
+    // view (as a sibling in the window frame). The content view stays the
+    // first responder, so key events, resize, and cursor tracking are
+    // unaffected.
+    if (!gw->effectView) {
+        NSVisualEffectView *fx =
+            [[NSVisualEffectView alloc] initWithFrame:gw->contentView.frame];
+        fx.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+        fx.blendingMode = NSVisualEffectBlendingModeBehindWindow;
+        fx.state = NSVisualEffectStateActive;
+        [gw->contentView.superview addSubview:fx
+                                   positioned:NSWindowBelow
+                                   relativeTo:gw->contentView];
+        gw->effectView = fx;
+    }
+    gw->effectView.material = vibrancyMaterial(material);
+
+    // Make the window and drawable non-opaque so the backdrop shows through
+    // content cleared with a translucent color (see renderFrame in Go).
+    gw->nsWindow.opaque = NO;
+    gw->nsWindow.backgroundColor = [NSColor clearColor];
+    layer.opaque = NO;
 }
 
 // ─── Event callbacks (weak, defined in Go) ─────────────────────
