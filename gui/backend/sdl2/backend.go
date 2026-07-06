@@ -37,6 +37,9 @@ type Backend struct {
 	filterPixels       []uint32     // reusable pixel buffer for color matrix
 	svgVerts           []sdl.Vertex // reusable vertex buffer for SVG geometry
 	textPathPlacements []glyph.GlyphPlacement
+	termRunText        []rune                 // TermGrid: scratch run text
+	termRunCols        []int                  // TermGrid: scratch run columns
+	termPlace          []glyph.GlyphPlacement // TermGrid: scratch placements
 	allowedImageRoots  []string
 	roundedClipStack   []roundedClipState
 	normBuf            []gui.GradientStop // reusable buffer for gradient normalization

@@ -63,6 +63,8 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 		case gui.RenderStencilEnd:
 			b.endStencilClip()
 
+		case gui.RenderTermGrid:
+			b.drawTermGrid(r)
 		case gui.RenderRotateBegin,
 			gui.RenderRotateEnd:
 			// Rotation requires MVP transform — unsupported in SDL2.
