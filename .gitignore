@@ -71,3 +71,4 @@ deep-dive/
 
 .direnv/
 docs/specs/
+.tokensave/
