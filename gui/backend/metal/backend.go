@@ -435,6 +435,9 @@ type windowState struct {
 
 	svgVerts           []gpu.Vertex
 	textPathPlacements []glyph.GlyphPlacement
+	termRunText        []rune                 // TermGrid: scratch run text
+	termRunCols        []int                  // TermGrid: scratch run columns
+	termPlace          []glyph.GlyphPlacement // TermGrid: scratch placements
 	normBuf            []gui.GradientStop
 	sampledBuf         []gui.GradientStop
 

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`TermGrid` primitive**: a terminal character-grid widget
+  (`TermGrid`/`TermGridCfg`) that draws a fixed-pitch cell buffer in a single
+  `RenderTermGrid` command — no per-cell `Layout` node and no per-cell
+  `RenderText`. Callers hand over a row-major `[]TermCell` with pre-resolved
+  RGBA foreground/background, plus cursor and selection state; the backend
+  batches same-background runs into fills and pins glyphs to exact cell
+  columns via `DrawLayoutPlaced`. Honors the reverse and underline
+  attributes; bold/italic are reserved in `TermAttr` for a follow-up.
+  Rendered by the Metal and SDL2 backends (OpenGL out of scope). Built for
+  go-term and reusable across siblings. See `examples/termgrid`. (#30)
+
 ### Fixed
 
 - **Native dialogs**: track native (OS) modal visibility so `DialogIsVisible`

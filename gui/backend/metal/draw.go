@@ -60,6 +60,8 @@ func (b *windowState) renderersDraw(w *gui.Window) {
 			b.drawRtf(r)
 		case gui.RenderCustomShader:
 			b.drawCustomShader(r)
+		case gui.RenderTermGrid:
+			b.drawTermGrid(r)
 		case gui.RenderFilterBegin:
 			b.beginFilter(r)
 		case gui.RenderFilterEnd:

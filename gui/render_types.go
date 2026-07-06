@@ -35,6 +35,7 @@ const (
 	RenderRotateEnd
 	RenderStencilBegin
 	RenderStencilEnd
+	RenderTermGrid
 )
 
 // RenderCmd is a flat discriminated struct holding all draw
@@ -50,6 +51,7 @@ type RenderCmd struct {
 	TextStylePtr    *TextStyle            // full text style (typeface, etc.)
 	TextGradient    *glyph.GradientConfig // text gradient for glyph-layout draws
 	TextPath        *TextPathData         // SVG textPath placement data
+	TermGrid        *TermGridData         // terminal grid buffer (RenderTermGrid)
 	LayoutPtr       *glyph.Layout         // pre-shaped glyph layout
 	LayoutTransform *glyph.AffineTransform
 

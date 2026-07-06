@@ -22,6 +22,7 @@ type Shape struct {
 	A11Y    *AccessInfo        // accessibility metadata
 	bc      *shapeButtonColors // button hover/focus colors
 	SvgOpts *SvgParseOpts      // per-render SVG parse overrides
+	tg      *TermGridData      // terminal grid buffer (shapeTermGrid)
 
 	// ID is a user-assigned string identifier. Used for event routing,
 	// form field lookup, and debugging. Optional but recommended for
@@ -200,6 +201,7 @@ const (
 	shapeRTF
 	shapeSVG
 	shapeDrawCanvas
+	shapeTermGrid
 )
 
 // TextDirection controls text/layout direction.
