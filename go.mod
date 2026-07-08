@@ -10,6 +10,7 @@ require (
 	github.com/go-gui-org/go-glyph/backend/sdl2 v1.11.0
 	github.com/go-pdf/fpdf v0.9.0
 	github.com/godbus/dbus/v5 v5.2.2
+	github.com/gopxl/beep/v2 v2.1.1
 	github.com/jezek/xgb v1.3.1
 	github.com/tdewolff/parse/v2 v2.8.13
 	github.com/veandco/go-sdl2 v0.4.40
@@ -22,6 +23,14 @@ require (
 
 require (
 	github.com/dlclark/regexp2/v2 v2.2.2 // indirect
+	github.com/ebitengine/oto/v3 v3.3.2 // indirect
+	github.com/hajimehoshi/go-mp3 v0.3.4 // indirect
+	github.com/icza/bitio v1.1.0 // indirect
+	github.com/jfreymuth/oggvorbis v1.0.5 // indirect
+	github.com/jfreymuth/vorbis v1.0.2 // indirect
+	github.com/mewkiz/flac v1.0.12 // indirect
+	github.com/mewkiz/pkg v0.0.0-20230226050401-4010bf0fec14 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	golang.org/x/mobile v0.0.0-20260602190626-68735029466e // indirect
 	golang.org/x/sync v0.21.0 // indirect

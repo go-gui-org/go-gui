@@ -1,4 +1,4 @@
-//go:build !audio || js || android || ios
+//go:build js || android || ios
 
 package main
 
@@ -11,7 +11,7 @@ func demoAudio(w *gui.Window) gui.View {
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
-				Text:      "Audio disabled (build with -tags audio). Requires SDL2_mixer.",
+				Text:      "Audio not available on this platform.",
 				TextStyle: t.N3,
 				Mode:      gui.TextModeWrap,
 			}),
