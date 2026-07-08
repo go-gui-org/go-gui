@@ -1,6 +1,5 @@
-Opt-in audio playback via SDL_mixer. Supports sound effects on
-multiple mixing channels and one music track. Desktop only
-(macOS, Windows, Linux).
+Audio playback via beep. Supports sound effects on multiple mixing
+channels and one music track. Desktop only (macOS, Windows, Linux).
 
 ## Setup
 
@@ -32,8 +31,8 @@ snd.Play(-1, 0) // channel -1 = first free, 0 = no loop
 ```go
 bgm, _ := audio.LoadMusic("theme.ogg")
 defer bgm.Free()
-bgm.Play(-1)        // -1 = loop forever
-bgm.FadeIn(-1, 2000) // fade in over 2 s
+bgm.Play(-1)          // -1 = loop forever
+bgm.FadeIn(-1, 2000)  // fade in over 2 s
 
 audio.PauseMusic()
 audio.ResumeMusic()
@@ -51,20 +50,18 @@ snd.SetVolume(0.3)         // per-sound volume
 
 ## audio.Cfg
 
-| Field          | Type   | Default                      |
-|----------------|--------|------------------------------|
-| Frequency      | int    | 44100                        |
-| Format         | uint16 | mix.DEFAULT_FORMAT           |
-| OutputChannels | int    | 2 (stereo)                   |
-| ChunkSize      | int    | 2048                         |
-| MixChannels    | int    | 16                           |
-| Formats        | int    | INIT_OGG | INIT_MP3 |
+| Field          | Type | Default | Notes                       |
+|----------------|------|---------|-----------------------------|
+| Frequency      | int  | 44100   | Speaker sample rate (Hz)    |
+| OutputChannels | int  | 2       | Ignored (beep is stereo)    |
+| ChunkSize      | int  | 2048    | Speaker buffer size (samples) |
+| MixChannels    | int  | 16      | Sound-effect channel count  |
 
 ## Sound API
 
 | Function              | Description                              |
 |-----------------------|------------------------------------------|
-| LoadSound(path)       | Load from file (WAV, OGG, FLAC, …)      |
+| LoadSound(path)       | Load from file (WAV, OGG, MP3, FLAC)    |
 | LoadSoundBytes(data)  | Load from byte slice                     |
 | Play(channel, loops)  | Play on channel (-1 = auto)              |
 | PlayOnce()            | Shorthand for Play(-1, 0)                |
@@ -76,26 +73,33 @@ snd.SetVolume(0.3)         // per-sound volume
 
 | Function           | Description                                 |
 |--------------------|---------------------------------------------|
-| LoadMusic(path)    | Load music file (OGG, MP3, FLAC, MOD, …)   |
+| LoadMusic(path)    | Load music file (WAV, OGG, MP3, FLAC)      |
 | Play(loops)        | Play (0 = once, -1 = forever)               |
 | FadeIn(loops, ms)  | Play with fade-in                           |
 | Free()             | Release resources                           |
 
 ## Global Controls
 
-| Function            | Description                                |
-|---------------------|--------------------------------------------|
-| SetMasterVolume(v)  | All sound channels 0.0–1.0                 |
-| SetMusicVolume(v)   | Music channel 0.0–1.0                      |
-| HaltChannel(ch)     | Stop channel (-1 = all)                    |
-| HaltMusic()         | Stop music immediately                     |
-| FadeOutMusic(ms)    | Fade out music                             |
-| PauseMusic()        | Pause music                                |
-| ResumeMusic()       | Resume music                               |
+| Function                 | Description                             |
+|--------------------------|-----------------------------------------|
+| SetMasterVolume(v)       | All sound channels 0.0–1.0              |
+| SetMusicVolume(v)        | Music channel 0.0–1.0                   |
+| HaltChannel(ch)          | Stop channel (-1 = all)                 |
+| FadeOutChannel(ch, ms)   | Fade out channel                        |
+| HaltMusic()              | Stop music immediately                  |
+| FadeOutMusic(ms)         | Fade out music then halt                |
+| PauseMusic()             | Pause music                             |
+| ResumeMusic()            | Resume music                            |
+| PauseChannel(ch)         | Pause channel (-1 = all)                |
+| ResumeChannel(ch)        | Resume channel (-1 = all)               |
+| RewindMusic()            | Rewind to beginning                     |
+| IsMusicPlaying()         | Whether music is playing                |
+| IsMusicPaused()          | Whether music is paused                 |
+| IsPlaying(ch)            | Whether channel is playing              |
 
 ## Notes
 
-- Only **one music track** plays at a time (SDL_mixer limitation)
+- Only **one music track** plays at a time (global music channel)
 - Do not Free a Sound while it is still playing
-- Call Init from the **main goroutine** (same thread as SDL event loop)
-- Requires SDL_mixer system library (`brew install sdl2_mixer` on macOS)
+- No external libraries required — beep is pure Go on macOS/Windows; Linux needs
+  `-ldl` only

@@ -132,7 +132,10 @@ type ShowcaseApp struct {
 	SplitterMainState   gui.SplitterState
 	SplitterDetailState gui.SplitterState
 	RangeValue          float32
-	AudioVolume         float32
+	AudioVolume         float64
+	AudioMusicLoaded    bool
+	AudioMusicPlaying   bool
+	AudioMusicPaused    bool
 
 	AnimTweenX    float32
 	AnimSpringX   float32
@@ -348,7 +351,7 @@ var demoEntries = []DemoEntry{
 	{ID: "spinner", Label: "Math Spinner", Group: groupFeedback, Summary: "Animated mathematical curves as loading indicators.", Tags: []string{"math spinner", "loading", "curve", "animation", "rose", "lissajous", "butterfly", "cardioid", "spiral"}},
 	{ID: "svg_spinner", Label: "SVG Spinner", Group: groupFeedback, Summary: "One hundred six built-in animated SVG spinners grouped by visual family.", Tags: []string{"svg", "spinner", "loading", "animation", "dots", "bars", "ring", "loader", "blocks"}},
 	{ID: "native_notification", Label: "Native Notification", Group: groupFeedback, Summary: "OS-level notifications on macOS, Windows, and Linux.", Tags: []string{"notification", "native", "os", "alert", "push"}},
-	{ID: "audio", Label: "Audio", Group: groupFeedback, Summary: "Opt-in sound effects and music playback via SDL_mixer.", Tags: []string{"audio", "sound", "music", "sfx", "beep", "mixer"}},
+	{ID: "audio", Label: "Audio", Group: groupFeedback, Summary: "Sound effects and music playback via beep.", Tags: []string{"audio", "sound", "music", "sfx", "beep", "mixer"}},
 
 	{ID: "dialog", Label: "Dialog", Group: groupOverlays, Summary: "Message, confirm, prompt, and custom dialogs.", Tags: []string{"modal", "confirm", "prompt"}},
 	{ID: "expand_panel", Label: "Expand Panel", Group: groupLayout, Summary: "Collapsible region with custom header and content.", Tags: []string{"accordion", "collapse", "panel"}},

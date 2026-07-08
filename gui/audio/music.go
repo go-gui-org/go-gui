@@ -2,79 +2,62 @@
 
 package audio
 
-import (
-	"fmt"
+import "github.com/gopxl/beep/v2"
 
-	"github.com/veandco/go-sdl2/mix"
-)
-
-// Music is a loaded music track (wraps [*mix.Music]).
+// Music is a loaded music track.
 //
-// SDL_mixer supports only ONE music track playing at a time.
-// Starting a new track halts the previous one. For layered or
-// simultaneous audio, use [Sound] on separate channels.
+// Only one music track can play at a time.  Starting a new track
+// halts the previous one.  For layered or simultaneous audio, use
+// [Sound] on separate channels.
 type Music struct {
-	mus *mix.Music
+	beepStream beep.StreamSeekCloser
+	format     beep.Format
 }
 
 // LoadMusic loads a music track from a file path.
-// Supports WAV, MOD, MIDI, OGG, MP3, FLAC depending on
-// initialized decoders.
+// Supports WAV, MP3, OGG, FLAC depending on file extension.
 func LoadMusic(path string) (*Music, error) {
-	mus, err := mix.LoadMUS(path)
-	if err != nil {
-		return nil, fmt.Errorf("audio: load music %q: %w", path, err)
-	}
-	return &Music{mus: mus}, nil
+	return backend.LoadMusic(path)
 }
 
-// Play starts music playback. loops is the number of extra loops
-// (0 = play once, -1 = loop forever). Any currently playing music
+// Play starts music playback.  loops is the number of extra loops
+// (0 = play once, -1 = loop forever).  Any currently playing music
 // is halted first.
 func (m *Music) Play(loops int) error {
-	if err := m.mus.Play(loops); err != nil {
-		return fmt.Errorf("audio: play music: %w", err)
-	}
-	return nil
+	return backend.MusicPlay(m, loops)
 }
 
 // FadeIn starts music with a fade-in over ms milliseconds.
 func (m *Music) FadeIn(loops, ms int) error {
-	if err := m.mus.FadeIn(loops, ms); err != nil {
-		return fmt.Errorf("audio: fade-in music: %w", err)
-	}
-	return nil
+	return backend.MusicFadeIn(m, loops, ms)
 }
 
-// Free releases the underlying SDL_mixer music. The Music must not
-// be used after calling Free. Safe to call on a nil Music.
+// Free releases the underlying resources.  The Music must not be used
+// after calling Free.  Safe to call on a nil Music.
 func (m *Music) Free() {
-	if m == nil || m.mus == nil {
-		return
-	}
-	m.mus.Free()
-	m.mus = nil
+	backend.MusicFree(m)
 }
 
 // --- Global music controls (single music channel) ---
 
 // HaltMusic stops the currently playing music immediately.
-func HaltMusic() { mix.HaltMusic() }
+func HaltMusic() { backend.HaltMusic() }
 
-// FadeOutMusic fades out the current music over ms milliseconds.
-func FadeOutMusic(ms int) { mix.FadeOutMusic(ms) }
+// FadeOutMusic fades out the current music over ms milliseconds,
+// then halts it.
+func FadeOutMusic(ms int) { backend.FadeOutMusic(ms) }
 
 // PauseMusic pauses music playback.
-func PauseMusic() { mix.PauseMusic() }
+func PauseMusic() { backend.PauseMusic() }
 
 // ResumeMusic resumes paused music.
-func ResumeMusic() { mix.ResumeMusic() }
+func ResumeMusic() { backend.ResumeMusic() }
 
 // IsMusicPlaying reports whether music is currently playing.
-func IsMusicPlaying() bool { return mix.PlayingMusic() }
+func IsMusicPlaying() bool { return backend.IsMusicPlaying() }
 
 // IsMusicPaused reports whether music is currently paused.
-func IsMusicPaused() bool { return mix.PausedMusic() }
+func IsMusicPaused() bool { return backend.IsMusicPaused() }
 
 // RewindMusic rewinds to the beginning.
-func RewindMusic() { mix.RewindMusic() }
+func RewindMusic() { backend.RewindMusic() }
