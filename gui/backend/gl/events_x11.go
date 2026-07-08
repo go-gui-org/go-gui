@@ -114,8 +114,9 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 		})
 
 	case xproto.ConfigureNotifyEvent:
+		scaleChanged := b.maybeRescaleDPI()
 		nw, nh := int32(e.Width), int32(e.Height)
-		if nw == b.plat.physW && nh == b.plat.physH {
+		if !scaleChanged && nw == b.plat.physW && nh == b.plat.physH {
 			return
 		}
 		b.plat.physW = nw
