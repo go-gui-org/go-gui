@@ -36,6 +36,8 @@ var directPurpose = map[string]string{
 	"github.com/go-gui-org/go-glyph/backend/sdl2": "SDL2-specific glyph rasterisation backend used by `gui/backend/sdl2`.",
 	"github.com/veandco/go-sdl2":                  "SDL2 backend (`gui/backend/sdl2`). Window, input, GL/Metal context glue.",
 	"github.com/go-gl/gl":                         "OpenGL bindings for `gui/backend/gl`.",
+	"github.com/jezek/xgb":                        "Pure-Go X11 windowing + events for the native Linux backend (`gui/backend/gl`).",
+	"github.com/ebitengine/purego":                "cgo-free dynamic loading of libEGL for the native Linux backend (`gui/backend/gl`).",
 	"github.com/tdewolff/parse/v2":                "CSS tokenizer for the SVG `<style>` / `style=\"\"` cascade pipeline.",
 	"github.com/alecthomas/chroma/v2":             "Syntax highlighting in the markdown widget.",
 	"github.com/yuin/goldmark":                    "Markdown parser (markdown widget + showcase docs).",
