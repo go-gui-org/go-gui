@@ -336,9 +336,11 @@ func (b *beepBackend) Quit() {
 	if !b.initialized {
 		return
 	}
+	// Stop the speaker's playback goroutine before mutating the streamers
+	// it reads; otherwise halt/Streamer writes race the mixer callback.
+	speaker.Close()
 	b.channels.halt(-1)
 	b.music.ctrl.Streamer = nil
-	speaker.Close()
 	b.initialized = false
 }
 
@@ -366,6 +368,8 @@ func (b *beepBackend) MusicVolume() float64 {
 
 func (b *beepBackend) LoadMusic(path string) (*Music, error) {
 	ext := filepath.Ext(path)
+	// #nosec G304 — path is a public-API argument; loading a caller-named
+	// audio file by arbitrary path is the intended behavior.
 	rc, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("audio: open music %q: %w", path, err)
@@ -379,6 +383,8 @@ func (b *beepBackend) LoadMusic(path string) (*Music, error) {
 }
 
 func (b *beepBackend) LoadSound(path string) (*Sound, error) {
+	// #nosec G304 — path is a public-API argument; loading a caller-named
+	// audio file by arbitrary path is the intended behavior.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("audio: read sound %q: %w", path, err)
