@@ -4,14 +4,18 @@
 package backend
 
 import (
+	"fmt"
+	"runtime"
+
 	"github.com/go-gui-org/go-gui/gui"
-	sdl2backend "github.com/go-gui-org/go-gui/gui/backend/sdl2"
 )
 
-// Run starts the application event loop using the SDL2 renderer backend.
-func Run(w *gui.Window) { sdl2backend.Run(w) }
+// Run is not available on this platform.
+func Run(w *gui.Window) {
+	panic(fmt.Sprintf("backend.Run: unsupported platform %s/%s — no native backend available", runtime.GOOS, runtime.GOARCH))
+}
 
-// RunApp starts a multi-window event loop using the SDL2 renderer backend.
+// RunApp is not available on this platform.
 func RunApp(app *gui.App, windows ...*gui.Window) {
-	sdl2backend.RunApp(app, windows...)
+	panic(fmt.Sprintf("backend.RunApp: unsupported platform %s/%s — no native backend available", runtime.GOOS, runtime.GOARCH))
 }

@@ -13,7 +13,7 @@
 //		"fmt"
 //
 //		"github.com/go-gui-org/go-gui/gui"
-//		sdl2 "github.com/go-gui-org/go-gui/gui/backend/sdl2"
+//		"github.com/go-gui-org/go-gui/gui/backend"
 //	)
 //
 //	type App struct{ Clicks int }
@@ -27,7 +27,7 @@
 //			Height: 300,
 //			OnInit: func(w *gui.Window) { w.UpdateView(view) },
 //		})
-//		sdl2.Run(w)
+//		backend.Run(w)
 //	}
 //
 //	func view(w *gui.Window) gui.View {

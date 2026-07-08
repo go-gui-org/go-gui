@@ -3,8 +3,8 @@
 // Package gl provides an OpenGL 3.3 backend for go-gui.
 //
 // Windowing, GL-context creation, and the event loop are
-// platform-specific and selected by build tag: SDL2 on non-Windows
-// (platform_sdl2.go), native Win32 + WGL on Windows (platform_win32.go).
+// platform-specific and selected by build tag: native X11+EGL on Linux
+// (platform_x11.go), native Win32+WGL on Windows (platform_win32.go).
 // The rendering pipeline in this and the other shared files
 // (draw.go, pipeline.go, buffers.go, textures.go, rotation.go,
 // text.go) is pure OpenGL and platform-agnostic.

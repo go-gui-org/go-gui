@@ -32,21 +32,20 @@ func main() {
 
 // directPurpose maps direct-dependency modules to a short purpose string.
 var directPurpose = map[string]string{
-	"github.com/go-gui-org/go-glyph":              "Text shaping + glyph rasterization. Required by every backend.",
-	"github.com/go-gui-org/go-glyph/backend/sdl2": "SDL2-specific glyph rasterisation backend used by `gui/backend/sdl2`.",
-	"github.com/veandco/go-sdl2":                  "SDL2 backend (`gui/backend/sdl2`). Window, input, GL/Metal context glue.",
-	"github.com/go-gl/gl":                         "OpenGL bindings for `gui/backend/gl`.",
-	"github.com/jezek/xgb":                        "Pure-Go X11 windowing + events for the native Linux backend (`gui/backend/gl`).",
-	"github.com/ebitengine/purego":                "cgo-free dynamic loading of libEGL for the native Linux backend (`gui/backend/gl`).",
-	"github.com/tdewolff/parse/v2":                "CSS tokenizer for the SVG `<style>` / `style=\"\"` cascade pipeline.",
-	"github.com/alecthomas/chroma/v2":             "Syntax highlighting in the markdown widget.",
-	"github.com/yuin/goldmark":                    "Markdown parser (markdown widget + showcase docs).",
-	"github.com/yuin/goldmark-emoji":              "Goldmark extension: `:emoji:` shortcodes.",
-	"github.com/go-pdf/fpdf":                      "PDF generation for the print-dialog backend.",
-	"github.com/godbus/dbus/v5":                   "Linux native platform: notifications, portals.",
-	"golang.org/x/mod":                            "Module version parsing; imported by `requiredid` analyzer.",
-	"golang.org/x/sys":                            "Win32 + WGL syscalls for the native Windows backend (`gui/backend/gl`, `winkey`).",
-	"golang.org/x/tools":                          "`go/analysis` framework for the `requiredid` analyzer (`tools/`).",
+	"github.com/go-gui-org/go-glyph":  "Text shaping + glyph rasterization. Required by every backend.",
+	"github.com/go-gl/gl":             "OpenGL bindings for `gui/backend/gl`.",
+	"github.com/jezek/xgb":            "Pure-Go X11 windowing + events for the native Linux backend (`gui/backend/gl`).",
+	"github.com/ebitengine/purego":    "cgo-free dynamic loading of libEGL for the native Linux backend (`gui/backend/gl`).",
+	"github.com/gopxl/beep/v2":        "Audio playback (sound effects, music, mixer, fade) for `gui/audio`.",
+	"github.com/tdewolff/parse/v2":    "CSS tokenizer for the SVG `<style>` / `style=\"\"` cascade pipeline.",
+	"github.com/alecthomas/chroma/v2": "Syntax highlighting in the markdown widget.",
+	"github.com/yuin/goldmark":        "Markdown parser (markdown widget + showcase docs).",
+	"github.com/yuin/goldmark-emoji":  "Goldmark extension: `:emoji:` shortcodes.",
+	"github.com/go-pdf/fpdf":          "PDF generation for the print-dialog backend.",
+	"github.com/godbus/dbus/v5":       "Linux native platform: notifications, portals.",
+	"golang.org/x/mod":                "Module version parsing; imported by `requiredid` analyzer.",
+	"golang.org/x/sys":                "Win32 + WGL syscalls for the native Windows backend (`gui/backend/gl`, `winkey`).",
+	"golang.org/x/tools":              "`go/analysis` framework for the `requiredid` analyzer (`tools/`).",
 }
 
 // indirectPulledBy maps indirect-dependency modules to what pulls them in.
