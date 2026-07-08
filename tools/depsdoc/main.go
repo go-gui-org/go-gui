@@ -50,12 +50,20 @@ var directPurpose = map[string]string{
 
 // indirectPulledBy maps indirect-dependency modules to what pulls them in.
 var indirectPulledBy = map[string]string{
-	"github.com/dlclark/regexp2":    "chroma",
-	"github.com/dlclark/regexp2/v2": "chroma",
-	"github.com/rivo/uniseg":        "grapheme segmentation (chroma/glyph)",
-	"golang.org/x/mobile":           "gobind tool (Android AAR builds)",
-	"golang.org/x/sync":             "x/tools",
-	"golang.org/x/text":             "misc. text processing (transitive)",
+	"github.com/dlclark/regexp2":     "chroma",
+	"github.com/dlclark/regexp2/v2":  "chroma",
+	"github.com/ebitengine/oto/v3":   "gopxl/beep (audio output)",
+	"github.com/hajimehoshi/go-mp3":  "gopxl/beep (MP3 decode)",
+	"github.com/icza/bitio":          "mewkiz/flac (FLAC decode)",
+	"github.com/jfreymuth/oggvorbis": "gopxl/beep (Vorbis decode)",
+	"github.com/jfreymuth/vorbis":    "jfreymuth/oggvorbis (Vorbis decode)",
+	"github.com/mewkiz/flac":         "gopxl/beep (FLAC decode)",
+	"github.com/mewkiz/pkg":          "mewkiz/flac (FLAC decode)",
+	"github.com/pkg/errors":          "gopxl/beep (audio)",
+	"github.com/rivo/uniseg":         "grapheme segmentation (chroma/glyph)",
+	"golang.org/x/mobile":            "gobind tool (Android AAR builds)",
+	"golang.org/x/sync":              "x/tools",
+	"golang.org/x/text":              "misc. text processing (transitive)",
 }
 
 func run() error {
