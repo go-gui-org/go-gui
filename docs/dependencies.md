@@ -21,6 +21,7 @@ Go toolchain pin: `go 1.26.0`.
 | `github.com/yuin/goldmark` | v1.8.2 | Markdown parser (markdown widget + showcase docs). |
 | `github.com/yuin/goldmark-emoji` | v1.0.6 | Goldmark extension: `:emoji:` shortcodes. |
 | `golang.org/x/mod` | v0.37.0 | Module version parsing; imported by `requiredid` analyzer. |
+| `golang.org/x/sys` | v0.46.0 | Win32 + WGL syscalls for the native Windows backend (`gui/backend/gl`, `winkey`). |
 | `golang.org/x/tools` | v0.46.0 | `go/analysis` framework for the `requiredid` analyzer (`tools/`). |
 
 ## Indirect Dependencies
@@ -33,7 +34,6 @@ Pulled in transitively; listed for completeness.
 | `github.com/rivo/uniseg` | v0.4.7 | grapheme segmentation (chroma/glyph) |
 | `golang.org/x/mobile` | v0.0.0-20260602190626-68735029466e | gobind tool (Android AAR builds) |
 | `golang.org/x/sync` | v0.21.0 | x/tools |
-| `golang.org/x/sys` | v0.46.0 | sdl2 / godbus |
 | `golang.org/x/text` | v0.38.0 | misc. text processing (transitive) |
 
 ## Updating
