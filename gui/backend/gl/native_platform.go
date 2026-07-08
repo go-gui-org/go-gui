@@ -5,7 +5,6 @@ package gl
 import (
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/nativehost"
-	"github.com/veandco/go-sdl2/sdl"
 )
 
 // nativePlatform implements gui.NativePlatform for the GL backend.
@@ -61,13 +60,8 @@ func (n *nativePlatform) BookmarkLoadAll(_ string) []gui.BookmarkEntry { return 
 func (n *nativePlatform) BookmarkPersist(_, _ string, _ []byte)        {}
 func (n *nativePlatform) BookmarkStopAccess(_ []byte)                  {}
 
-// --- IME ---
-
-func (n *nativePlatform) IMEStart() { sdl.StartTextInput() }
-func (n *nativePlatform) IMEStop()  { sdl.StopTextInput() }
-func (n *nativePlatform) IMESetRect(x, y, w, h int32) {
-	sdl.SetTextInputRect(&sdl.Rect{X: x, Y: y, W: w, H: h})
-}
+// IME methods (IMEStart/IMEStop/IMESetRect) are platform-specific
+// and defined in platform_sdl2.go / platform_win32.go.
 
 // --- Appearance ---
 
