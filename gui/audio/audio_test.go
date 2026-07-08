@@ -10,6 +10,20 @@ import (
 	"testing"
 )
 
+// TestMain skips the whole package under the race detector. Many tests
+// call Init(), which on macOS reaches ebitengine/oto's CoreAudio context
+// creation — an upstream data race in newContext (driver_darwin.go) that
+// trips -race regardless of anything in this package. The audio path can
+// only be exercised with a live speaker, so there is nothing here worth
+// race-checking once that init is excluded.
+func TestMain(m *testing.M) {
+	if raceEnabled {
+		fmt.Println("gui/audio: skipping under -race (upstream oto init race)")
+		os.Exit(0)
+	}
+	os.Exit(m.Run())
+}
+
 // wavSilence is a minimal valid 8-bit mono PCM WAV file (10 samples of
 // silence at 8000 Hz).  Used to exercise LoadSoundBytes success path
 // without requiring a fixture file on disk.

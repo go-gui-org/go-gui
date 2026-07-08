@@ -14,12 +14,11 @@ Go toolchain pin: `go 1.26.0`.
 | `github.com/ebitengine/purego` | v0.10.1 | cgo-free dynamic loading of libEGL for the native Linux backend (`gui/backend/gl`). |
 | `github.com/go-gl/gl` | v0.0.0-20260331235117-4566fea9a276 | OpenGL bindings for `gui/backend/gl`. |
 | `github.com/go-gui-org/go-glyph` | v1.12.0 | Text shaping + glyph rasterization. Required by every backend. |
-| `github.com/go-gui-org/go-glyph/backend/sdl2` | v1.11.0 | SDL2-specific glyph rasterisation backend used by `gui/backend/sdl2`. |
 | `github.com/go-pdf/fpdf` | v0.9.0 | PDF generation for the print-dialog backend. |
 | `github.com/godbus/dbus/v5` | v5.2.2 | Linux native platform: notifications, portals. |
+| `github.com/gopxl/beep/v2` | v2.1.1 | Audio playback (sound effects, music, mixer, fade) for `gui/audio`. |
 | `github.com/jezek/xgb` | v1.3.1 | Pure-Go X11 windowing + events for the native Linux backend (`gui/backend/gl`). |
 | `github.com/tdewolff/parse/v2` | v2.8.13 | CSS tokenizer for the SVG `<style>` / `style=""` cascade pipeline. |
-| `github.com/veandco/go-sdl2` | v0.4.40 | SDL2 backend (`gui/backend/sdl2`). Window, input, GL/Metal context glue. |
 | `github.com/yuin/goldmark` | v1.8.2 | Markdown parser (markdown widget + showcase docs). |
 | `github.com/yuin/goldmark-emoji` | v1.0.6 | Goldmark extension: `:emoji:` shortcodes. |
 | `golang.org/x/mod` | v0.37.0 | Module version parsing; imported by `requiredid` analyzer. |
@@ -33,6 +32,14 @@ Pulled in transitively; listed for completeness.
 | Module | Version | Pulled in by |
 | ------ | ------- | ------------ |
 | `github.com/dlclark/regexp2/v2` | v2.2.2 | chroma |
+| `github.com/ebitengine/oto/v3` | v3.3.2 | gopxl/beep (audio output) |
+| `github.com/hajimehoshi/go-mp3` | v0.3.4 | gopxl/beep (MP3 decode) |
+| `github.com/icza/bitio` | v1.1.0 | mewkiz/flac (FLAC decode) |
+| `github.com/jfreymuth/oggvorbis` | v1.0.5 | gopxl/beep (Vorbis decode) |
+| `github.com/jfreymuth/vorbis` | v1.0.2 | jfreymuth/oggvorbis (Vorbis decode) |
+| `github.com/mewkiz/flac` | v1.0.12 | gopxl/beep (FLAC decode) |
+| `github.com/mewkiz/pkg` | v0.0.0-20230226050401-4010bf0fec14 | mewkiz/flac (FLAC decode) |
+| `github.com/pkg/errors` | v0.9.1 | gopxl/beep (audio) |
 | `github.com/rivo/uniseg` | v0.4.7 | grapheme segmentation (chroma/glyph) |
 | `golang.org/x/mobile` | v0.0.0-20260602190626-68735029466e | gobind tool (Android AAR builds) |
 | `golang.org/x/sync` | v0.21.0 | x/tools |
