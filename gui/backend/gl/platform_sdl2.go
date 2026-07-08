@@ -1,4 +1,4 @@
-//go:build !windows && !js
+//go:build !windows && !js && !linux
 
 package gl
 

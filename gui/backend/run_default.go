@@ -1,4 +1,4 @@
-//go:build !darwin && !js && !android && !gl && !windows
+//go:build !darwin && !js && !android && !gl && !windows && !linux
 
 // Package backend provides platform-specific backend initialization.
 package backend

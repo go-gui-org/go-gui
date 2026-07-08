@@ -65,6 +65,9 @@ build/
 # Graphify
 graphify-out/
 
+# TokenSave
+.tokensave/
+
 # Anitivibe
 deep-dive/
 
