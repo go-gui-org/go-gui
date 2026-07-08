@@ -253,6 +253,7 @@ jobs:
             mingw-w64-x86_64-harfbuzz
             mingw-w64-x86_64-pango
             mingw-w64-x86_64-fontconfig
+            mingw-w64-x86_64-mesa
 
       - uses: actions/checkout@v6
 
@@ -274,6 +275,12 @@ jobs:
 
       - name: Smoke test showcase
         run: |
+          # The runner has no GPU: system opengl32.dll is GDI-generic
+          # OpenGL 1.1, but the native backend needs 3.3. Drop Mesa's
+          # software opengl32.dll (llvmpipe) next to the exe so the
+          # app-dir DLL search resolves it first.
+          cp /mingw64/bin/opengl32.dll build/
+          export GALLIUM_DRIVER=llvmpipe
           echo "Launching showcase (10s timeout to catch DLL load failures)..."
           ./build/showcase-windows.exe &
           PID=$!
