@@ -57,6 +57,16 @@ type platformState struct {
 	keymap     *xproto.GetKeyboardMappingReply
 	minKeycode xproto.Keycode
 
+	// Clipboard (X11 CLIPBOARD selection).
+	atomClipboard xproto.Atom
+	atomUTF8      xproto.Atom
+	atomTargets   xproto.Atom
+	atomClipProp  xproto.Atom
+	clipboardText string
+	ownsClipboard bool
+	clipReadConn  *xgb.Conn     // dedicated connection for reads
+	clipReadWin   xproto.Window // requestor window on clipReadConn
+
 	physW, physH int32
 	scale        float32
 
@@ -132,6 +142,10 @@ func (p *platformState) destroy() {
 	if p.wakeConn != nil {
 		p.wakeConn.Close()
 		p.wakeConn = nil
+	}
+	if p.clipReadConn != nil {
+		p.clipReadConn.Close()
+		p.clipReadConn = nil
 	}
 	if p.conn != nil {
 		p.conn.Close()
@@ -231,6 +245,10 @@ func New(w *gui.Window) (*Backend, error) {
 	setWindowTitle(conn, win, title)
 	b.plat.wmDelete = setupCloseProtocol(conn, win)
 	b.plat.wakeAtom = internAtom(conn, "_GOGUI_WAKE")
+	b.plat.atomClipboard = internAtom(conn, "CLIPBOARD")
+	b.plat.atomUTF8 = internAtom(conn, "UTF8_STRING")
+	b.plat.atomTargets = internAtom(conn, "TARGETS")
+	b.plat.atomClipProp = internAtom(conn, "_GOGUI_CLIPBOARD")
 	b.plat.minKeycode = setup.MinKeycode
 	b.plat.keymap = loadKeymap(conn, setup)
 
@@ -272,9 +290,8 @@ func New(w *gui.Window) (*Backend, error) {
 	}
 
 	w.SetTitleFn(func(t string) { setWindowTitle(conn, win, t) })
-	// Clipboard support is deferred (X11 selection protocol). No-op for now.
-	w.SetClipboardFn(func(string) {})
-	w.SetClipboardGetFn(func() string { return "" })
+	w.SetClipboardFn(func(s string) { setClipboard(&b.plat, s) })
+	w.SetClipboardGetFn(func() string { return getClipboard(&b.plat) })
 
 	return b, nil
 }

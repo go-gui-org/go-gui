@@ -146,6 +146,12 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 			b.emit(gui.Event{Type: gui.EventUnfocused})
 		}
 
+	case xproto.SelectionRequestEvent:
+		b.plat.serveSelectionRequest(e)
+
+	case xproto.SelectionClearEvent:
+		b.plat.ownsClipboard = false
+
 	case xproto.ExposeEvent:
 		// Damage is repainted by the next frame; nothing to do.
 	}
