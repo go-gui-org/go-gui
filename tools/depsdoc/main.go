@@ -43,6 +43,7 @@ var directPurpose = map[string]string{
 	"github.com/go-pdf/fpdf":                      "PDF generation for the print-dialog backend.",
 	"github.com/godbus/dbus/v5":                   "Linux native platform: notifications, portals.",
 	"golang.org/x/mod":                            "Module version parsing; imported by `requiredid` analyzer.",
+	"golang.org/x/sys":                            "Win32 + WGL syscalls for the native Windows backend (`gui/backend/gl`, `winkey`).",
 	"golang.org/x/tools":                          "`go/analysis` framework for the `requiredid` analyzer (`tools/`).",
 }
 
@@ -53,7 +54,6 @@ var indirectPulledBy = map[string]string{
 	"github.com/rivo/uniseg":        "grapheme segmentation (chroma/glyph)",
 	"golang.org/x/mobile":           "gobind tool (Android AAR builds)",
 	"golang.org/x/sync":             "x/tools",
-	"golang.org/x/sys":              "sdl2 / godbus",
 	"golang.org/x/text":             "misc. text processing (transitive)",
 }
 
