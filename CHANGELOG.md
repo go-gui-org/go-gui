@@ -5,7 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v0.30.0] - 2026-07-08
+
+### Changed
+
+- **Dependencies**: go-glyph bumped to v1.13.0 (FreeType+HarfBuzz replaces
+  Pango/SDL2, native GLX+WGL backends, ASCII monospace shaping fast-path on
+  Darwin). The prior v2.0.0 tag was retracted — it lacks the `/v2` module
+  path suffix required by Go module conventions.
 
 ### Added
 
@@ -30,6 +37,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **GL backend**: narrow build tags from `!js` to `!js && !darwin` on the
+  real implementation files so they don't compile on macOS where
+  `platform_other.go` returns nil. Eliminates 50 unused-code lint warnings
+  on the default dev platform. macOS uses Metal, not GL.
 - **Native dialogs**: track native (OS) modal visibility so `DialogIsVisible`
   and the quit/close dedup see `NSAlert`-style dialogs too. Previously a
   native confirm-before-quit could stack a duplicate dialog because the
@@ -40,6 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a focus-claiming widget (one that re-asserts `SetIDFocus` every view
   rebuild) tries to steal it, so Tab/Esc/Enter keep working. Apps no longer
   need to guard their own `SetIDFocus` with `DialogIsVisible`. (#18)
+
+## [Unreleased]
 
 ## [v0.29.0] - 2026-06-28
 
