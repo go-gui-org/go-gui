@@ -149,7 +149,7 @@ func run() error {
 	b.WriteString("```\n\n")
 	b.WriteString("Example:\n\n")
 	b.WriteString("```bash\n")
-	b.WriteString("go get github.com/go-gui-org/go-glyph@v1.9.0\n")
+	b.WriteString("go get github.com/go-gui-org/go-glyph@v1.13.0\n")
 	b.WriteString("go mod tidy\n")
 	b.WriteString("```\n\n")
 	b.WriteString("After updating dependencies, regenerate this file:\n\n")
