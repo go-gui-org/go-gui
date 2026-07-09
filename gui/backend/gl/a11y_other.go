@@ -1,4 +1,4 @@
-//go:build !linux && !js
+//go:build !linux && !js && !darwin
 
 package gl
 

@@ -1,4 +1,4 @@
-//go:build !js
+//go:build !js && !darwin
 
 // Package gl provides an OpenGL 3.3 backend for go-gui.
 //
