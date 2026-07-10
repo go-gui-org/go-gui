@@ -53,7 +53,7 @@ positions, and renders it in a single pass — no virtual DOM, no diffing.
 View fn → generateViewLayout() → Layout tree
   → layoutArrange() (Fit/Fixed/Grow sizing)
   → renderLayout() (emits draw commands)
-  → Backend (Metal / SDL2 / OpenGL / Web/WASM)
+  → Backend (Metal / OpenGL / Web/WASM)
 ```
 
 State lives in a typed slot per window (`gui.State[T](w)`). Backend interfaces
@@ -193,7 +193,6 @@ To force a specific backend, import it directly:
 ```go
 import metal "github.com/go-gui-org/go-gui/gui/backend/metal" // macOS only
 import gl    "github.com/go-gui-org/go-gui/gui/backend/gl"    // cross-platform
-import sdl2  "github.com/go-gui-org/go-gui/gui/backend/sdl2"  // software fallback
 import web   "github.com/go-gui-org/go-gui/gui/backend/web"   // WASM/browser
 import ios   "github.com/go-gui-org/go-gui/gui/backend/ios"   // iOS
 ```
@@ -367,8 +366,7 @@ Full widget reference: [Widget Catalogue](https://github.com/go-gui-org/go-gui/w
 └───────┬──────┘ └───────┬──────┘ └────────┬───────┘
         │                │                 │
 ┌───────▼────────────────▼─────────────────▼───────────┐
-│               backend/sdl2/                          │
-│  Injects interfaces at startup · Window management   │
+│  │  Injects interfaces at startup · Window management   │
 ├──────────────┬───────────────┬───────────────────────┤
 │  backend/    │  backend/gl/  │  backend/filedialog/  │
 │  metal/      │  OpenGL       │  backend/printdialog/ │
@@ -431,9 +429,9 @@ The root `Makefile` builds standalone showcase binaries for each platform.
 | `make build-wasm`    | `build/showcase.wasm`        | `GOOS=js GOARCH=wasm go build`          |
 | `make release`       | `.tar.gz`, `.dmg`, `.zip`    | All of the above + packaging            |
 
-**Linux and Windows** produce self-contained binaries with no SDL2
-dependency: go-glyph statically bundles FreeType/HarfBuzz on Linux, and
-Windows text uses the system DirectWrite DLL. A plain
+**Linux and Windows** produce self-contained binaries with no external
+library dependencies: go-glyph statically bundles FreeType/HarfBuzz on
+Linux, and Windows text uses the system DirectWrite DLL. A plain
 `go build ./examples/showcase/` is self-contained; add `-tags audio` for
 sound.
 

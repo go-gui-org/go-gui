@@ -65,8 +65,8 @@ type windowBackend struct {
 	clipboardGetFn func() string
 	// setTitleFn updates the OS window title. Set by backend; nil-safe.
 	setTitleFn func(string)
-	// wakeMainFn pushes an SDL user event to wake the main
-	// thread from WaitEventTimeout. Set by backend; nil-safe.
+	// wakeMainFn wakes the main thread from WaitEventTimeout.
+	// Set by backend; nil-safe.
 	wakeMainFn func()
 }
 
@@ -92,7 +92,6 @@ type windowInspector struct {
 // view generator, user state, and window properties. The window is then
 // handed to a backend for the event loop:
 //
-//	sdl2.Run(w)       // SDL2 + Metal/OpenGL
 //	metal.Run(w)      // Metal-only (macOS)
 //	gl.Run(w)         // OpenGL-only
 //
@@ -132,7 +131,7 @@ type Window struct {
 	// in-flight async goroutines (HTTP fetches, notifications, etc.).
 	ctx context.Context
 
-	// Multi-window: parent App and SDL window ID.
+	// Multi-window: parent App and platform window ID.
 	app *App
 
 	// View generator — produces the root View each frame.
@@ -483,8 +482,8 @@ const maxTitleBytes = 4096
 // the backend has not wired a title function (e.g. headless tests).
 // Input is truncated to maxTitleBytes and stripped of embedded NUL
 // bytes (which would silently cut the title in C.CString). Must be
-// called from the main thread; SDL_SetWindowTitle is not thread-safe
-// on macOS.
+// called from the main thread; window title updates are not
+// thread-safe on macOS.
 func (w *Window) SetTitle(title string) {
 	title = sanitizeTitle(title)
 	w.Config.Title = title
@@ -539,7 +538,7 @@ func (w *Window) SetTheme(t Theme) {
 // App returns the parent App, or nil for single-window mode.
 func (w *Window) App() *App { return w.app }
 
-// PlatformID returns the SDL window ID (0 if not yet registered).
+// PlatformID returns the platform-native window ID (0 if not yet registered).
 func (w *Window) PlatformID() uint32 { return w.platformID }
 
 // Close requests the window be closed on the next frame.

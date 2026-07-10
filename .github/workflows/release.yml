@@ -31,7 +31,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libsdl2-dev libgl1-mesa-dev \
+            libgl1-mesa-dev \
             libfreetype6-dev libharfbuzz-dev libpango1.0-dev \
             libfontconfig1-dev libglib2.0-dev \
             libx11-dev libxext-dev libxcursor-dev libxinerama-dev \
@@ -49,10 +49,7 @@ jobs:
       - name: Verify static linking
         working-directory: go-gui
         run: |
-          if ldd build/showcase-linux 2>&1 | grep -q libSDL2; then
-            echo "FAIL: binary references dynamic SDL2"; exit 1
-          fi
-          echo "OK: no dynamic SDL2 references"
+          echo "OK: binary built successfully"
 
       - name: Package
         working-directory: go-gui
@@ -82,9 +79,6 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: stable
-
-      - name: Install system dependencies
-        run: brew install sdl2 sdl2_mixer sdl2_ttf sdl2_image
 
       - name: Add go-glyph replace
         working-directory: go-gui
@@ -135,10 +129,6 @@ jobs:
           install: >-
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-pkg-config
-            mingw-w64-x86_64-SDL2
-            mingw-w64-x86_64-SDL2_mixer
-            mingw-w64-x86_64-SDL2_ttf
-            mingw-w64-x86_64-SDL2_image
             zip
 
       - uses: actions/setup-go@v6
@@ -159,16 +149,12 @@ jobs:
                -X github.com/go-gui-org/go-gui/gui.Commit=$(git rev-parse --short HEAD)" \
             -o build/showcase-windows.exe ./examples/showcase/
 
-      - name: Bundle SDL2 runtime DLLs
-        working-directory: go-gui
-        run: bash scripts/bundle-windows-dlls.sh
-
       - name: Package
         working-directory: go-gui
         run: |
           VERSION=$(git describe --tags --always 2>/dev/null || echo "dev")
           zip "go-gui-showcase-${VERSION}-windows-amd64.zip" \
-            build/showcase-windows.exe build/dlls/flat/*.dll
+            build/showcase-windows.exe
 
       - uses: actions/upload-artifact@v7
         with:

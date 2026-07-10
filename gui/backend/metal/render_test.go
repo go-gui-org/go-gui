@@ -11,7 +11,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	// Metal/SDL init must call Cocoa from the process's initial main
+	// Metal init must call Cocoa from the process's initial main
 	// thread (thread 0). runtime.LockOSThread pins the calling
 	// goroutine to a specific OS thread but does not make it the
 	// "main thread" in Cocoa's sense. go test runs TestMain on the
@@ -96,13 +96,13 @@ func TestBackendRenderSmoke(t *testing.T) {
 	})
 
 	// Cocoa requires the process's initial main thread (thread 0)
-	// for NSApplication / SDL init. go test dispatches TestXxx
-	// functions in goroutines, which are not thread 0 even when
+	// for NSApplication init. go test dispatches TestXxx functions
+	// in goroutines, which are not thread 0 even when
 	// runtime.LockOSThread is called in TestMain. The backend smoke
 	// test must run from TestMain — keep this skip as a safety net
 	// when the test is invoked directly via go test -run.
 	if runtime.GOOS == "darwin" {
-		t.Skip("SDL init requires Cocoa main thread; " +
+		t.Skip("Cocoa init requires main thread; " +
 			"backend smoke validated via TestMain")
 	}
 

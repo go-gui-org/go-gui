@@ -2,7 +2,7 @@
 
 // Package metal provides a native Metal backend for go-gui on macOS.
 // Uses NSWindow + CAMetalLayer for windowing and Metal for GPU rendering.
-// Zero SDL dependency — system frameworks only.
+// System frameworks only — no external library dependencies.
 package metal
 
 /*

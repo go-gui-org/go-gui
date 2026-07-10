@@ -1,5 +1,5 @@
 // Package imgpath provides shared image path validation used
-// by all GPU backends (SDL2, GL, Metal).
+// by all GPU backends (GL, Metal).
 package imgpath
 
 import (

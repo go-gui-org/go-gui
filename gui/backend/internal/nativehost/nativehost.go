@@ -1,5 +1,5 @@
 // Package nativehost provides shared native-platform helpers
-// used by desktop backends (SDL2, GL, Metal). It consolidates
+// used by desktop backends (GL, Metal). It consolidates
 // URI validation, notification dispatch, and thin forwarders to
 // sub-packages so each backend doesn't duplicate the same glue.
 package nativehost

@@ -23,7 +23,7 @@ so the shader respects the widget's `Radius`.
 | OpenGL (Linux/Windows) |    ✓    | GLSL 3.30. Up to 32 cached programs.                                                                                        |
 | OpenGL ES (Android)    |    ✓    | GLSL ES 3.00 via JNI/CGo.                                                                                                   |
 | Web (WASM)             |    ✓    | WebGL2 offscreen canvas composited into Canvas2D. Up to 32 cached programs. Falls back to solid fill if WebGL2 unavailable. |
-| SDL2                   |    ✗    | Skipped — no GPU pipeline. Falls back to solid fill.                                                                        |
+| -                      |    -    | No desktop GL backend without shader support.                                                                               |
 
 ## 2. The Shader type
 
@@ -267,10 +267,10 @@ es`, `out vec4 _frag_out`).
 - Falls back to solid fill when WebGL2 is unavailable (older browsers,
   strict CSP).
 
-### SDL2
+### Desktop GL
 
-Custom shaders are skipped. The widget renders with its solid
-background color instead.
+Custom shaders are fully supported on Linux and Windows via the native
+GL backend (OpenGL 3.3+).
 
 ## 7. Pre-built shaders
 
@@ -310,7 +310,7 @@ animation tick, and both Metal + GLSL shader bodies.
       vector (p0–p3).
 - [ ] Set up a repeating `Animate` callback to keep the frame loop hot
       for time-based effects.
-- [ ] Test on all target backends. The SDL2 backend skips custom
-      shaders — provide a fallback background color for those users.
+- [ ] Test on all target backends. The GL backend supports custom
+      shaders on desktop; provide a solid fill fallback on all backends.
 - [ ] Shader compilation failures are silent (logged to stderr). Test
       with a known-good shader first.

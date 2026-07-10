@@ -46,8 +46,7 @@ func hiWordS(v uintptr) int32 { return int32(int16((v >> 16) & 0xFFFF)) }
 
 // emit dispatches an event, reusing a single gui.Event stored on the
 // platform state to avoid a heap allocation per message. EventFn does
-// not retain the pointer beyond the call (same contract the SDL2 path
-// relies on).
+// not retain the pointer beyond the call.
 func (b *Backend) emit(e gui.Event) {
 	b.plat.evt = e
 	b.plat.w.EventFn(&b.plat.evt)

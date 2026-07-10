@@ -260,7 +260,7 @@ func TestIsSystemLib(t *testing.T) {
 		"/usr/lib/libSystem.B.dylib":                         true,
 		"/System/Library/Frameworks/Cocoa.framework/A/Cocoa": true,
 		"/Library/Apple/usr/lib/libfoo.dylib":                true,
-		"/opt/homebrew/opt/sdl2/lib/libSDL2-2.0.0.dylib":     false,
+		"/opt/homebrew/opt/somepkg/lib/libFoo-1.0.0.dylib":   false,
 		"/usr/local/lib/libpng.dylib":                        false,
 		"@rpath/libfoo.dylib":                                false,
 	}
