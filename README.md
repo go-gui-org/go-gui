@@ -153,16 +153,19 @@ version and [`examples/web_demo/`](examples/web_demo/) for the browser build.
 
 ## Installation
 
-Requires **Go 1.26+** and SDL2 development libraries. See the
+Requires **Go 1.26+** and a C toolchain (CGo). The desktop backends are
+SDL2-free: macOS uses Metal + CoreText, Linux uses native X11/GLX +
+FreeType/HarfBuzz (bundled), and Windows uses native Win32/WGL +
+DirectWrite. See the
 [Installation Guide](https://github.com/go-gui-org/go-gui/wiki/Installation)
 for platform-specific instructions.
 
 ```bash
-# macOS:   brew install go pkg-config sdl2 sdl2_mixer freetype harfbuzz pango fontconfig
-# Ubuntu:  sudo apt-get install golang libsdl2-dev libsdl2-mixer-dev libfreetype6-dev libharfbuzz-dev libpango1.0-dev libfontconfig1-dev
-# Fedora:  sudo dnf install golang SDL2-devel SDL2_mixer-devel freetype-devel harfbuzz-devel pango-devel fontconfig-devel
-# Arch:    sudo pacman -S go sdl2 sdl2_mixer freetype2 harfbuzz pango fontconfig
-# Windows: Use MSYS2 MinGW x64 — pacman -S mingw-w64-x86_64-go mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_mixer mingw-w64-x86_64-freetype mingw-w64-x86_64-harfbuzz mingw-w64-x86_64-pango mingw-w64-x86_64-fontconfig
+# macOS:   brew install go                  # Metal + CoreText are system frameworks
+# Ubuntu:  sudo apt-get install golang gcc pkg-config libgl1-mesa-dev libx11-dev
+# Fedora:  sudo dnf install golang gcc pkgconf-pkg-config mesa-libGL-devel libX11-devel
+# Arch:    sudo pacman -S go gcc pkgconf mesa libx11
+# Windows: Use MSYS2 MinGW x64 — pacman -S mingw-w64-x86_64-go mingw-w64-x86_64-gcc
 
 go get github.com/go-gui-org/go-gui
 ```
@@ -175,12 +178,14 @@ go get github.com/go-gui-org/go-gui
 
 ### Backend Selection
 
-`backend.Run(w)` auto-selects Metal on macOS, SDL2 on Linux/Windows (OpenGL with the `gl` build tag):
+`backend.Run(w)` auto-selects the native backend per platform — Metal on
+macOS, X11/GLX on Linux, Win32/WGL on Windows (force portable OpenGL with
+the `gl` build tag):
 
 ```go
 import "github.com/go-gui-org/go-gui/gui/backend"
 
-backend.Run(w) // Metal on macOS, SDL2 (or GL with -tags gl) on Linux/Windows
+backend.Run(w) // Metal on macOS; native X11/Win32 GL on Linux/Windows (portable GL with -tags gl)
 ```
 
 To force a specific backend, import it directly:
@@ -426,10 +431,11 @@ The root `Makefile` builds standalone showcase binaries for each platform.
 | `make build-wasm`    | `build/showcase.wasm`        | `GOOS=js GOARCH=wasm go build`          |
 | `make release`       | `.tar.gz`, `.dmg`, `.zip`    | All of the above + packaging            |
 
-**Linux and Windows** use `-tags static` which activates go-sdl2's bundled
-pre-compiled static libraries. No SDL2 installation required — a single
-`go build -tags static ./examples/showcase/` produces a self-contained
-binary.
+**Linux and Windows** produce self-contained binaries with no SDL2
+dependency: go-glyph statically bundles FreeType/HarfBuzz on Linux, and
+Windows text uses the system DirectWrite DLL. A plain
+`go build ./examples/showcase/` is self-contained; add `-tags audio` for
+sound.
 
 **Windows cross-compilation** requires `mingw-w64`. On Windows (MSYS2),
 use `make build-windows CC_WINDOWS=gcc`.
@@ -440,7 +446,7 @@ Version and commit are injected from git tags via `-ldflags`.
 
 ## Contributing
 
-1. Install **Go 1.26+** and SDL2 development libraries (see
+1. Install **Go 1.26+** and a C toolchain (see
    [Installation](#installation)).
 2. Clone the repo.
 3. Run tests and lint:
