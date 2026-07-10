@@ -11,8 +11,6 @@
 package gl
 
 import (
-	"errors"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -89,47 +87,11 @@ func (b *Backend) initCaches(cfg gui.WindowCfg) {
 	b.allowedImageRoots = imgpath.NormalizeRoots(cfg.AllowedImageRoots)
 }
 
-// Minimum OpenGL version the rendering pipeline requires. The shader
-// and vertex-array-object calls in initGLResources are core 3.3.
-const (
-	minGLMajor = 3
-	minGLMinor = 3
-)
-
-// checkGLVersion verifies the current context exposes at least OpenGL
-// 3.3. A GL context must already be current. Some GPU-less environments
-// (e.g. Windows' GDI-generic software OpenGL 1.1) hand back a usable
-// context whose 2.0+/3.0+ entry points are absent; issuing the
-// pipeline's shader and VAO calls against such a context aborts the
-// process instead of failing gracefully. Returning an error here lets
-// callers (and the headless smoke test) treat it as "no usable GL
-// backend" and skip rather than crash.
-func checkGLVersion() error {
-	verPtr := gl.GetString(gl.VERSION)
-	if verPtr == nil {
-		return errors.New("gl: GL_VERSION unavailable; no usable OpenGL context")
-	}
-	ver := gl.GoStr(verPtr)
-	var major, minor int
-	if _, err := fmt.Sscanf(ver, "%d.%d", &major, &minor); err != nil {
-		return fmt.Errorf("gl: cannot parse OpenGL version %q: %w", ver, err)
-	}
-	if major < minGLMajor || (major == minGLMajor && minor < minGLMinor) {
-		return fmt.Errorf("gl: OpenGL %d.%d+ required, have %q",
-			minGLMajor, minGLMinor, ver)
-	}
-	return nil
-}
-
 // initGLResources sets up GL state, shader pipelines, buffers, and
 // the glyph text system, then wires the platform-neutral injected
 // interfaces onto the window. b.physW, b.physH, and b.dpiScale must
 // be set before calling. The GL context must already be current.
 func (b *Backend) initGLResources(w *gui.Window) error {
-	if err := checkGLVersion(); err != nil {
-		return err
-	}
-
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	gl.Disable(gl.DEPTH_TEST)

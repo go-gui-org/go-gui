@@ -275,7 +275,23 @@ jobs:
         run: CGO_ENABLED=1 go vet ./...
 
       - name: Test (headless)
-        run: CGO_ENABLED=1 go test ./gui/...
+        run: |
+          set -eo pipefail
+          # Every gui package except the gl backend is headless-safe and
+          # needs no GL context.
+          CGO_ENABLED=1 go test $(go list ./gui/... | grep -v '/gui/backend/gl$')
+          # The gl backend smoke test opens a real OpenGL 3.3 context in
+          # New(). The runner has no GPU: the system opengl32.dll is
+          # GDI-generic OpenGL 1.1 and Mesa's default d3d12 driver aborts
+          # headless (the whole test binary exits with status 0x80070057).
+          # Build the gl test binary and drop Mesa's software opengl32.dll
+          # (llvmpipe) next to it so the app-dir DLL search resolves a real
+          # 3.3 context first, with GALLIUM_DRIVER=llvmpipe forcing the
+          # software rasterizer. Mirrors the showcase smoke test below.
+          mkdir -p build/gltest
+          cp /mingw64/bin/opengl32.dll build/gltest/
+          CGO_ENABLED=1 go test -c -o build/gltest/gl.test.exe ./gui/backend/gl/
+          (cd build/gltest && GALLIUM_DRIVER=llvmpipe ./gl.test.exe)
 
       - name: Build showcase
         run: |
