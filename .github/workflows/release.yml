@@ -12,7 +12,7 @@ permissions:
 jobs:
   linux:
     name: Linux
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v6
         with:
@@ -68,7 +68,7 @@ jobs:
 
   macos:
     name: macOS
-    runs-on: macos-latest
+    runs-on: blacksmith-6vcpu-macos-15
     steps:
       - uses: actions/checkout@v6
         with:
@@ -112,7 +112,7 @@ jobs:
 
   windows:
     name: Windows
-    runs-on: windows-latest
+    runs-on: blacksmith-4vcpu-windows-2025
     defaults:
       run:
         shell: msys2 {0}
@@ -177,7 +177,7 @@ jobs:
 
   ios:
     name: iOS
-    runs-on: macos-latest
+    runs-on: blacksmith-6vcpu-macos-15
     steps:
       - uses: actions/checkout@v6
         with:
@@ -254,7 +254,7 @@ jobs:
 
   android:
     name: Android
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v6
         with:
@@ -308,7 +308,7 @@ jobs:
   publish:
     name: Publish Release
     needs: [linux, macos, windows, ios, android]
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/download-artifact@v8
         with:

@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [blacksmith-4vcpu-ubuntu-2404, macos-latest]
     steps:
       - uses: actions/checkout@v6
 
@@ -35,7 +35,7 @@ jobs:
 
   coverage:
     name: Coverage
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v6
 
@@ -118,7 +118,7 @@ jobs:
 
   vet:
     name: Vet
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v6
 
@@ -144,7 +144,7 @@ jobs:
   check:
     name: Check (gate)
     needs: [test, vet]
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v6
 
@@ -167,7 +167,7 @@ jobs:
 
   examples:
     name: Build examples
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v6
 
@@ -180,7 +180,7 @@ jobs:
 
   ios:
     name: iOS
-    runs-on: macos-latest
+    runs-on: blacksmith-6vcpu-macos-15
     steps:
       - uses: actions/checkout@v6
 
@@ -208,7 +208,7 @@ jobs:
 
   wasm:
     name: WASM
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v6
 
@@ -233,7 +233,7 @@ jobs:
 
   windows:
     name: Windows
-    runs-on: windows-latest
+    runs-on: blacksmith-4vcpu-windows-2025
     defaults:
       run:
         shell: msys2 {0}
@@ -295,7 +295,7 @@ jobs:
 
   android:
     name: Android
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v6
 
@@ -328,7 +328,7 @@ jobs:
   benchmark:
     name: Benchmarks
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v6
 
@@ -359,7 +359,7 @@ jobs:
   benchmark-gate:
     name: Benchmark regression gate
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v6
 
@@ -409,7 +409,7 @@ jobs:
 
   security:
     name: Security scan
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v6
 
