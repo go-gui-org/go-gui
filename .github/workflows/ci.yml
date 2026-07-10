@@ -227,7 +227,12 @@ jobs:
       - name: Test
         run: |
           NODE_JS="$(find "$(go env GOROOT)" -name wasm_exec_node.js -print -quit)"
-          printf '#!/bin/bash\nexec node "%s" "$@"\n' "$NODE_JS" > /tmp/go_js_wasm_exec
+          # wasm_exec_node.js copies the entire process environment into a fixed
+          # 8KB region of wasm memory; a full CI runner environment overflows it
+          # ("total length of command line and environment variables exceeds
+          # limit"). Run node with a minimal environment so only argv + a couple
+          # of small vars are forwarded to the wasm test binary.
+          printf '#!/bin/bash\nexec env -i PATH="%s" HOME="%s" node "%s" "$@"\n' "$PATH" "$HOME" "$NODE_JS" > /tmp/go_js_wasm_exec
           chmod +x /tmp/go_js_wasm_exec
           GOOS=js GOARCH=wasm go test -exec=/tmp/go_js_wasm_exec ./gui/...
 
