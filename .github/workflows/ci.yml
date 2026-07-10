@@ -247,7 +247,11 @@ jobs:
         with:
           msystem: MINGW64
           update: false
-          release: false
+          # Install a fresh MSYS2 tarball. release: false reuses the MSYS2
+          # pre-installed at C:\msys64 on GitHub-hosted windows images, which
+          # the Blacksmith windows runner does not ship ("MSYS2 installation
+          # not found at C:\msys64").
+          release: true
           path-type: inherit
           install: >-
             mingw-w64-x86_64-gcc
