@@ -83,5 +83,5 @@ GetStarted.app/
 - Existing `.app` at the destination is overwritten without prompting.
 - No code signing is performed. For Gatekeeper-friendly distribution,
   run `codesign` and `notarytool` separately.
-- Shared libraries (e.g. SDL2) are not bundled; the target machine must
+- Shared libraries are not bundled; the target machine must
   have them installed.

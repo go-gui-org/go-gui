@@ -18,7 +18,7 @@ type WindowCfg struct {
 	// callback owns the decision: call Window.Close() to proceed, or
 	// do nothing to cancel. Use for save/discard/cancel prompts.
 	// Re-clicking the close control is required to retry after a veto
-	// since the original SDL event is already drained.
+	// since the original close event is already drained.
 	OnCloseRequest func(*Window)
 	Title          string
 	// AllowedSvgRoots restricts file-based SVG loads to these paths.

@@ -6,8 +6,6 @@ set -euo pipefail
 sudo apt-get update
 sudo apt-get install -y \
   pkg-config \
-  libsdl2-dev \
-  libsdl2-mixer-dev \
   libfreetype6-dev \
   libharfbuzz-dev \
   libpango1.0-dev \

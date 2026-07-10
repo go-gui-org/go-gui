@@ -139,5 +139,5 @@ gui.Column(gui.ContainerCfg{
 - Operates on premultiplied-alpha pixels from the FBO.
 - Contrast and invert inject bias via the alpha column of the
   matrix, which is correct for premultiplied content.
-- Rendered via Metal and OpenGL backends. SDL2 software backend
+- Rendered via Metal and OpenGL backends.
   ignores the color matrix.

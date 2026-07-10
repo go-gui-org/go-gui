@@ -68,9 +68,9 @@ Contributions are accepted under the [MIT License](LICENSE).
 `gui/compat_mingw.go` provides a compatibility shim so **this error should not
 appear** when building with current go-gui. If you see it on an older revision:
 
-**Why:** go-sdl2's bundled static libraries were compiled with an older MinGW
-GCC that emitted calls to `__ms_vsscanf`. MinGW-w64 GCC ≥15 removed this
-function from its runtime.
+**Why:** Bundled static libraries compiled against older MinGW GCC may
+reference `__ms_vsscanf`, which was removed in MinGW-w64 GCC ≥15. The
+`gui/compat_mingw.go` file provides a compatibility shim.
 
 **Solutions (pick one):**
 
@@ -81,9 +81,6 @@ function from its runtime.
    ```bash
    CGO_ENABLED=1 go build ./examples/showcase/
    ```
-
-   Requires SDL2 and SDL2_mixer DLLs at runtime. Run
-   `bash scripts/bundle-windows-dlls.sh` to stage them.
 
 3. **Use the release zip's pre-built binary.** Download from the latest
    GitHub release.

@@ -10,7 +10,7 @@ go test ./gui/... -run TestFoo  # run single test
 go vet ./...           # static analysis
 golangci-lint run ./...      # full lint: govet, staticcheck, errcheck, gocyclo, cyclop, modernize, unused, revive, gocritic, perfsprint, gosmopolitan (+ gofmt/goimports formatters)
 go build ./...         # build all packages
-go run ./examples/get_started/  # run the example app (requires SDL2)
+go run ./examples/get_started/  # run the example app
 ./scripts/large-files.sh     # report Go files >800 lines in gui/
 ```
 
@@ -22,7 +22,7 @@ Immediate-mode pipeline. No virtual DOM, no diffing:
 View fn → generateViewLayout() → Layout tree
   → layoutArrange() (Fit/Fixed/Grow sizing)
   → renderLayout() (emits into w.renderers)
-  → Backend (Metal + SDL2 windowing on macOS; SDL2 or GL on Linux/Windows)
+  → Backend (Metal on macOS; native GL on Linux/Windows)
 ```
 
 ### Packages
@@ -31,8 +31,6 @@ View fn → generateViewLayout() → Layout tree
   event dispatch, state mgmt (~200 non-test .go files at top level).
   **Keep flat: only leaf subsystems (svg/, datagrid/, markdown/,
   backend/, etc.) in subpackages.**
-- `gui/backend/sdl2/` — SDL2 backend. Implements `TextMeasurer`, `SvgParser`,
-  `NativePlatform`. Wires into window via `sdl2.New(w)`
 - `gui/backend/metal/` — Metal backend (macOS)
 - `gui/backend/gl/` — OpenGL backend; `web/`, `android/`, `ios/` — other
   platform backends
@@ -83,6 +81,7 @@ tab-order focus.
 ### Injected Interfaces
 
 Backend injects at startup. Nil in tests:
+
 - `TextMeasurer` — glyph metrics for layout
 - `SvgParser` — SVG parse + tessellate
 - `NativePlatform` — native dialogs, notifications, print, a11y, IME, titlebar
@@ -134,7 +133,7 @@ behavior is broken (cursors, menus, title bar, window management):
   (e.g. `[NSApp run]` vs custom event loop, plain NSView vs
   CAMetalLayer, `NSEventMaskAny` vs explicit mask). The test programs
   in `gui/backend/metal/test_*.m` (untracked, build with `clang
-  -fobjc-arc -framework AppKit -framework Metal -framework QuartzCore`)
+-fobjc-arc -framework AppKit -framework Metal -framework QuartzCore`)
   were essential to isolating the event-mask and menu bugs.
 - Ask "what would a Cocoa developer check first?" — the answer is
   usually event masks, tracking areas, or run-loop configuration, not
@@ -180,7 +179,7 @@ behavior is broken (cursors, menus, title bar, window management):
 - Direct go-gui consumers (require a go-gui bump on release): **go-charts,
   go-edit, go-kite, go-map, go-term**. Verified against each repo's
   `go.mod` `require` (all `github.com/go-gui-org/*`). go-glyph is
-  *upstream* — go-gui depends on it, not the reverse; never a bump target.
+  _upstream_ — go-gui depends on it, not the reverse; never a bump target.
 - On release, re-verify the list from `go.mod` files; don't rely on
   memory. New consumers get added without updating this note.
 
@@ -201,4 +200,5 @@ git/mkdir/rm/ls output. `ctx_fetch_and_index` instead of curl/wget/WebFetch.
   acceleration doesn't address the actual bottleneck (heap allocations).
 
 ## Specs
+
 - Specs should be written to docs/specs folder.

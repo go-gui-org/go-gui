@@ -52,17 +52,17 @@ entire UI from the view function.
 │                                                                     │
 │  Build-tag dispatch (gui/backend/run_*.go):                         │
 │                                                                     │
-│  darwin && !ios → Metal (CGo) + SDL2 windowing                      │
+│  darwin && !ios → Metal (CGo) + AppKit windowing                    │
 │  ios            → Metal (CGo) + UIKit windowing                     │
 │  android        → OpenGL ES 3.0 (CGo) + Android Activity/View       │
 │  js && wasm     → Canvas2D + WebGL2 (custom shaders)                │
-│  !darwin && !js && !android && gl → OpenGL 3.3 + SDL2 windowing     │
-│  !darwin && !js && !android && !gl → SDL2 software renderer         │
+│  !darwin && !js && !android && gl → OpenGL 3.3 + native windowing   │
+│  !darwin && !js && !android && !gl → native GL backend              │
 │                                                                     │
 │  ┌──────────┬──────────┬──────────┬──────────┬──────────┐           │
 │  │ macOS    │ iOS      │ Linux    │ Windows  │ Web      │           │
-│  │ Metal    │ Metal    │ GL/SDL2  │ GL/SDL2  │ Canvas2D │           │
-│  │ + SDL2   │ + UIKit  │ + SDL2   │ + SDL2   │ + WebGL2 │           │
+│  │ Metal    │ Metal    │ GL       │ GL       │ Canvas2D │           │
+│  │ + AppKit │ + UIKit  │ + X11    │ + Win32  │ + WebGL2 │           │
 │  └──────────┴──────────┴──────────┴──────────┴──────────┘           │
 │  ┌──────────────────────────────────────────────────────┐           │
 │  │ Android: GLES3 (CGo) + Android Activity/View         │           │
@@ -123,7 +123,7 @@ entire UI from the view function.
 ┌───────────────────────────────────┐  ┌──────────────────────────────┐
 │ EVENT DISPATCH                    │  │ ANIMATION                    │
 │                                   │  │                              │
-│ OS event → SDL2 → Event struct    │  │ Animation interface:         │
+│ OS event → Event struct              │  │ Animation interface:      │
 │  ├─ hit-test Layout tree          │  │  ├─ Tween (value lerp)       │
 │  ├─ bubble up to ancestors        │  │  ├─ Spring (physics-based)   │
 │  ├─ e.IsHandled stops propagation │  │  ├─ Keyframe (waypoints)     │
@@ -178,7 +178,6 @@ go-gui/
 │   ├── view_<widget>.go          ← Widget factories (button, input, grid...)
 │   └── datagrid/                 ← DataGrid subpackage (data sources, ORM, export)
 │   └── backend/
-│       ├── sdl2/                 ← SDL2 backend (TextMeasurer, SvgParser, NativePlatform)
 │       ├── metal/                ← Metal renderer (macOS)
 │       ├── gl/                   ← OpenGL renderer (Linux/Windows)
 │       ├── filedialog/           ← Native file dialogs
@@ -206,7 +205,7 @@ go-gui/
   WGSL shader pipelines, device init, and render loop were working.
   Rejected because WebGPU has no native text rendering path; a pure-Go
   TTF rasterizer in go-glyph would be needed first.
-- **SDL2 on desktop**: SDL2 is the default renderer on Linux and
-  Windows. OpenGL is opt-in via the `gl` build tag. On macOS, SDL2
-  provides windowing and input while Metal handles rendering.
-  SDL2's own renderer skips `RenderCustomShader` (no GPU pipeline).
+- **Native GL on desktop**: The native GL backend is the default
+  renderer on Linux and Windows. It provides direct platform windowing
+  (X11 on Linux, Win32 on Windows) with EGL/WGL contexts — no
+  intermediate library dependency.

@@ -61,7 +61,7 @@ func (n *nativePlatform) BookmarkPersist(_, _ string, _ []byte)        {}
 func (n *nativePlatform) BookmarkStopAccess(_ []byte)                  {}
 
 // IME methods (IMEStart/IMEStop/IMESetRect) are platform-specific
-// and defined in platform_sdl2.go / platform_win32.go.
+// and defined in platform_win32.go / platform_x11.go.
 
 // --- Appearance ---
 

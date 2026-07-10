@@ -6,10 +6,9 @@ package gui
 #include <stdarg.h>
 
 // __ms_vsscanf was dropped from MinGW-w64 runtime (GCC ≥13).
-// go-sdl2 bundled static libs compiled against older MinGW still
-// reference it. Provide a weak definition: on new toolchains it
-// fills the gap; on old toolchains (where libmingwex already
-// provides it) the weak symbol is silently ignored.
+// Provide a weak definition: on new toolchains it fills the gap;
+// on old toolchains (where libmingwex already provides it) the
+// weak symbol is silently ignored.
 //
 // Don't include <stdio.h> — vsscanf is a macro there and would
 // expand to the very symbol we're defining.
