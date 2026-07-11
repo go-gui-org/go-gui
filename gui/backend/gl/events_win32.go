@@ -72,10 +72,13 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 	switch msg {
 	case wmMouseMove:
 		x, y := b.logicalXY(loWordS(lparam), hiWordS(lparam))
+		dx, dy := b.mouseDelta(x, y)
 		b.emit(gui.Event{
 			Type:      gui.EventMouseMove,
 			MouseX:    x,
 			MouseY:    y,
+			MouseDX:   dx,
+			MouseDY:   dy,
 			Modifiers: winkey.ModState() | winkey.MouseButtons(wparam),
 		})
 		return 0, true

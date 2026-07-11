@@ -59,9 +59,15 @@ type Backend struct {
 	dpiScale float32
 	physW    int32
 	physH    int32
-	quadVAO  uint32
-	quadVBO  uint32
-	quadIBO  uint32
+
+	// Previous logical mouse position, for MouseDX/DY deltas.
+	lastMouseX    float32
+	lastMouseY    float32
+	haveLastMouse bool
+
+	quadVAO uint32
+	quadVBO uint32
+	quadIBO uint32
 
 	// Reusable buffers.
 	svgVAO        uint32
@@ -75,6 +81,20 @@ type Backend struct {
 	filterBlur    float32
 
 	customOnce sync.Once
+}
+
+// mouseDelta returns the logical-point movement since the previous
+// mouse position and records the new position. The first call after
+// a window gains the pointer returns (0, 0) so no phantom jump is
+// reported. GL backends emit motion events without native deltas, so
+// this reconstructs MouseDX/DY (needed for scrollbar-thumb dragging).
+func (b *Backend) mouseDelta(x, y float32) (dx, dy float32) {
+	if b.haveLastMouse {
+		dx, dy = x-b.lastMouseX, y-b.lastMouseY
+	}
+	b.lastMouseX, b.lastMouseY = x, y
+	b.haveLastMouse = true
+	return dx, dy
 }
 
 // initCaches initializes the platform-neutral caches and image
