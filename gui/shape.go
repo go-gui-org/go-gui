@@ -336,6 +336,7 @@ type ShapeTextConfig struct {
 	textLayoutText     string
 	rtfMathHashes      []int64 // cache keys per inline math object
 	RtfBaseStyle       glyph.TextStyle
+	RtfLineSpacing     float32 // gui LineSpacing; glyph.TextStyle drops it, so carried separately for BlockStyle
 	TextSelBeg         uint32
 	TextSelEnd         uint32
 	TextTabSize        uint32

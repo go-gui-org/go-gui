@@ -367,11 +367,12 @@ func mdRenderHeading(
 			}))
 	}
 	views = append(views, Column(ContainerCfg{
-		Sizing:   FillFit,
-		Padding:  NoPadding,
-		A11YRole: AccessRoleHeading,
-		A11Y:     &AccessInfo{},
-		Content:  headingContent,
+		Sizing:     FillFit,
+		Padding:    NoPadding,
+		SizeBorder: NoBorder,
+		A11YRole:   AccessRoleHeading,
+		A11Y:       &AccessInfo{},
+		Content:    headingContent,
 	}))
 	return views
 }

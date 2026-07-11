@@ -41,6 +41,50 @@ func (m *rtfStubTextMeasurer) LayoutRichText(
 	return m.layout, nil
 }
 
+// rtfCaptureMeasurer records the TextConfig passed to LayoutRichText
+// so tests can assert on the derived glyph BlockStyle.
+type rtfCaptureMeasurer struct {
+	rtfStubTextMeasurer
+	gotConfig glyph.TextConfig
+}
+
+func (m *rtfCaptureMeasurer) LayoutRichText(
+	_ glyph.RichText, cfg glyph.TextConfig,
+) (glyph.Layout, error) {
+	m.gotConfig = cfg
+	return m.layout, nil
+}
+
+// TestLayoutWrapRTFLineSpacing verifies the gui base-style LineSpacing
+// reaches glyph's BlockStyle — it lives on BlockStyle, not TextStyle,
+// so ToGlyphStyle drops it and it must be carried via RtfLineSpacing.
+func TestLayoutWrapRTFLineSpacing(t *testing.T) {
+	m := &rtfCaptureMeasurer{
+		rtfStubTextMeasurer: rtfStubTextMeasurer{
+			layout: glyph.Layout{Width: 80, Height: 24},
+		},
+	}
+	w := &Window{windowBackend: windowBackend{textMeasurer: m}}
+
+	rt := RichText{Runs: []RichTextRun{{Text: "hi", Style: TextStyle{Size: 12}}}}
+	shape := &Shape{
+		shapeType: shapeRTF,
+		Width:     100,
+		TC: &ShapeTextConfig{
+			TextMode:       TextModeWrap,
+			RtfBaseStyle:   glyph.TextStyle{Size: 12},
+			RtfLineSpacing: 3,
+			RtfRuns:        &rt,
+		},
+	}
+
+	layoutWrapRTF(shape, shape.TC, w)
+
+	if got := m.gotConfig.Block.LineSpacing; got != 3 {
+		t.Fatalf("Block.LineSpacing = %v, want 3", got)
+	}
+}
+
 func TestRtfHitTestLogic(t *testing.T) {
 	item := glyph.Item{
 		X: 10, Y: 20, Width: 50,

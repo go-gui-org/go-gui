@@ -68,17 +68,26 @@ type MarkdownStyle struct {
 // DefaultMarkdownStyle returns a MarkdownStyle using the
 // current theme.
 func DefaultMarkdownStyle() MarkdownStyle {
+	text := guiTheme.N4
+	text.LineSpacing = 3
+	bold := guiTheme.B4
+	bold.LineSpacing = 3
+	italic := guiTheme.I4
+	italic.LineSpacing = 3
+	bi := guiTheme.BI4
+	bi.LineSpacing = 3
+
 	return MarkdownStyle{
-		Text:              guiTheme.N3,
+		Text:              text,
 		H1:                guiTheme.B1,
 		H2:                guiTheme.B2,
 		H3:                guiTheme.B3,
 		H4:                guiTheme.B4,
 		H5:                guiTheme.B5,
 		H6:                guiTheme.B6,
-		Bold:              guiTheme.B3,
-		Italic:            guiTheme.I3,
-		BoldItalic:        guiTheme.BI3,
+		Bold:              bold,
+		Italic:            italic,
+		BoldItalic:        bi,
 		Code:              guiTheme.M5,
 		CodeBlockText:     guiTheme.M5,
 		CodeBlockBG:       RGBA(0, 0, 0, 50),
@@ -94,7 +103,7 @@ func DefaultMarkdownStyle() MarkdownStyle {
 		LinkColor:         guiTheme.ColorSelect,
 		BlockquoteBorder:  guiTheme.ColorBorder,
 		BlockquoteBG:      RGBA(128, 128, 128, 20),
-		BlockSpacing:      8,
+		BlockSpacing:      12,
 		NestIndent:        16,
 		PrefixCharWidth:   4,
 		CodeBlockPadding:  Some(PadAll(10)),
