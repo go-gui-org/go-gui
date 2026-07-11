@@ -93,12 +93,16 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 	vgRT, mathHashes := v.RichText.toGlyphRichTextWithMath(
 		w.viewState.diagramCache)
 
-	// Determine base style.
+	// Determine base style. LineSpacing lives on glyph's BlockStyle,
+	// not glyph.TextStyle, so ToGlyphStyle drops it; carry it here.
 	var baseStyle glyph.TextStyle
+	var lineSpacing float32
 	if v.BaseTextStyle != nil {
 		baseStyle = v.BaseTextStyle.ToGlyphStyle()
-	} else if len(vgRT.Runs) > 0 {
+		lineSpacing = v.BaseTextStyle.LineSpacing
+	} else if len(v.RichText.Runs) > 0 {
 		baseStyle = vgRT.Runs[0].Style
+		lineSpacing = v.RichText.Runs[0].Style.LineSpacing
 	}
 
 	// For wrapped modes, skip the initial LayoutRichText — Width is
@@ -112,9 +116,10 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 		cfg := glyph.TextConfig{
 			Style: baseStyle,
 			Block: glyph.BlockStyle{
-				Wrap:   glyph.WrapWord,
-				Width:  -1.0,
-				Indent: -v.HangingIndent,
+				Wrap:        glyph.WrapWord,
+				Width:       -1.0,
+				Indent:      -v.HangingIndent,
+				LineSpacing: lineSpacing,
 			},
 		}
 		if w.textMeasurer != nil {
@@ -172,6 +177,7 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 			TextMode:           v.Mode,
 			HangingIndent:      v.HangingIndent,
 			RtfBaseStyle:       baseStyle,
+			RtfLineSpacing:     lineSpacing,
 			RtfLayout:          &layout,
 			RtfRuns:            &v.RichText,
 			RtfFlatText:        flatText,

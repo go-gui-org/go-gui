@@ -211,7 +211,8 @@ func layoutWrapRTF(shape *Shape, tc *ShapeTextConfig, w *Window) {
 	styleKey := rtfStyleKey(tc.RtfBaseStyle)
 	mathKey := rtfMathStateKey(tc.RtfRuns, w.viewState.diagramCache)
 	cacheKey := contentKey ^ styleKey ^ mathKey ^
-		uint64(math.Float32bits(shape.Width))
+		uint64(math.Float32bits(shape.Width)) ^
+		(uint64(math.Float32bits(tc.RtfLineSpacing)) << 1)
 	vs := &w.viewState
 
 	// Invalidate on theme change.
@@ -254,9 +255,10 @@ func layoutWrapRTF(shape *Shape, tc *ShapeTextConfig, w *Window) {
 	cfg := glyph.TextConfig{
 		Style: tc.RtfBaseStyle,
 		Block: glyph.BlockStyle{
-			Wrap:   glyph.WrapWord,
-			Width:  shape.Width,
-			Indent: -tc.HangingIndent,
+			Wrap:        glyph.WrapWord,
+			Width:       shape.Width,
+			Indent:      -tc.HangingIndent,
+			LineSpacing: tc.RtfLineSpacing,
 		},
 	}
 	l, err := tm.LayoutRichText(vgRT, cfg)
