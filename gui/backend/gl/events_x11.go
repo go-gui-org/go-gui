@@ -106,10 +106,13 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 
 	case xproto.MotionNotifyEvent:
 		x, y := b.logicalXY(int32(e.EventX), int32(e.EventY))
+		dx, dy := b.mouseDelta(x, y)
 		b.emit(gui.Event{
 			Type:      gui.EventMouseMove,
 			MouseX:    x,
 			MouseY:    y,
+			MouseDX:   dx,
+			MouseDY:   dy,
 			Modifiers: x11key.MapModifiers(e.State),
 		})
 
