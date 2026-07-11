@@ -5,7 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v0.31.0] - 2026-07-11
+
+### Changed
+
+- **Dependencies**: go-glyph bumped to v1.15.0 — pure-Go text backends on
+  Linux, Android, macOS, and Windows (`go-text/typesetting` +
+  `x/image/vector`, `CGO_ENABLED=0`), replacing the cgo FreeType+HarfBuzz
+  stack. Pulls in `go-text/typesetting` and `golang.org/x/image` as indirect
+  deps; regenerates `docs/dependencies.md`. Drops the obsolete Android
+  native-deps build step from CI/release workflows.
+- **Markdown defaults**: paragraph `LineSpacing` reduced to 3 and
+  `BlockSpacing` raised to 12 so inter-block gaps stay larger than
+  intra-line gaps (fixes cramped spacing between wrapped list items).
 
 ### Fixed
 
@@ -13,12 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rich-text (RTF) rendering. Line spacing lives on glyph's `BlockStyle`, so
   `ToGlyphStyle` dropped it and markdown paragraph/list line spacing was a
   no-op; the value is now carried through both RTF layout paths.
-
-### Changed
-
-- **Markdown defaults**: paragraph `LineSpacing` reduced to 3 and
-  `BlockSpacing` raised to 12 so inter-block gaps stay larger than
-  intra-line gaps (fixes cramped spacing between wrapped list items).
 
 ## [v0.30.2] - 2026-07-10
 
