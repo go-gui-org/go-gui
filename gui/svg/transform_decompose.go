@@ -9,8 +9,12 @@ const decomposeTRSEpsilon = 1e-4
 // Convention: (x',y') = (a*x + c*y + e, b*x + d*y + f).
 // ok=false when the matrix has shear; caller must bake instead.
 func decomposeTRS(m [6]float32) (tx, ty, sx, sy, rotDeg float32, ok bool) {
-	a, b, c, d := m[0], m[1], m[2], m[3]
 	tx, ty = m[4], m[5]
+	if math.IsNaN(float64(tx)) || math.IsInf(float64(tx), 0) ||
+		math.IsNaN(float64(ty)) || math.IsInf(float64(ty), 0) {
+		return 0, 0, 0, 0, 0, false
+	}
+	a, b, c, d := m[0], m[1], m[2], m[3]
 
 	sx = float32(math.Sqrt(float64(a*a + b*b)))
 	if sx == 0 {

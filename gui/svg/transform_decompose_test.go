@@ -111,6 +111,38 @@ func TestDecomposeTRSShearFallback(t *testing.T) {
 	}
 }
 
+func TestDecomposeTRSRejectsNonFiniteTX(t *testing.T) {
+	m := [6]float32{1, 0, 0, 1, float32(math.NaN()), 0}
+	_, _, _, _, _, ok := decomposeTRS(m)
+	if ok {
+		t.Fatalf("matrix with NaN tx must not decompose ok")
+	}
+}
+
+func TestDecomposeTRSRejectsNonFiniteTY(t *testing.T) {
+	m := [6]float32{1, 0, 0, 1, 0, float32(math.Inf(1))}
+	_, _, _, _, _, ok := decomposeTRS(m)
+	if ok {
+		t.Fatalf("matrix with +Inf ty must not decompose ok")
+	}
+}
+
+func TestDecomposeTRSRejectsNegativeInfTX(t *testing.T) {
+	m := [6]float32{1, 0, 0, 1, float32(math.Inf(-1)), 0}
+	_, _, _, _, _, ok := decomposeTRS(m)
+	if ok {
+		t.Fatalf("matrix with -Inf tx must not decompose ok")
+	}
+}
+
+func TestDecomposeTRSRejectsNaN_TY(t *testing.T) {
+	m := [6]float32{1, 0, 0, 1, 0, float32(math.NaN())}
+	_, _, _, _, _, ok := decomposeTRS(m)
+	if ok {
+		t.Fatalf("matrix with NaN ty must not decompose ok")
+	}
+}
+
 func TestDecomposeTRSRotate45Scale2(t *testing.T) {
 	// rotate(45) * scale(2): a=2*cos45, b=2*sin45, c=-2*sin45, d=2*cos45.
 	c45 := float32(math.Cos(math.Pi / 4))
