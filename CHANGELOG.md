@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.32.1] - 2026-07-12
+
+### Fixed
+
+- **Dependencies**: go-glyph bumped to v1.16.1 — text symbols such as
+  U+23F5 ⏵ (the Misc Technical media triangles) no longer render as the
+  base font's `.notdef` tofu box; they now fall back to a real glyph
+  (STIX), matching Core Text.
+
 ## [v0.32.0] - 2026-07-12
 
 ### Changed
