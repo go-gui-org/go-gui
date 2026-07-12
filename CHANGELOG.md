@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.32.0] - 2026-07-12
+
+### Changed
+
+- **Dependencies**: go-glyph bumped to v1.16.0 — supplies a recommended line
+  height (`TextMetrics.LineHeight`: font leading floored to 1.15×em) and no
+  longer discards leading in multi-line layout, so wrapped text stacks with
+  correct spacing. Regenerates `docs/dependencies.md`.
+- **Markdown defaults**: removed the manual paragraph `LineSpacing = 3`
+  workaround in `DefaultMarkdownStyle`; line spacing now comes from the font's
+  recommended line height provided by go-glyph.
+
+### Fixed
+
+- **gl backend**: populate `MouseDX`/`MouseDY` on motion events so scrollbar
+  thumb drags track the pointer. (#66)
+- **svg**: reject non-finite `tx`/`ty` in `decomposeTRS`. (#67)
+
 ## [v0.31.0] - 2026-07-11
 
 ### Changed
