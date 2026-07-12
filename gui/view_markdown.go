@@ -68,14 +68,12 @@ type MarkdownStyle struct {
 // DefaultMarkdownStyle returns a MarkdownStyle using the
 // current theme.
 func DefaultMarkdownStyle() MarkdownStyle {
+	// Line spacing comes from go-glyph's recommended line height (font
+	// leading, floored to a minimum em ratio); no manual LineSpacing needed.
 	text := guiTheme.N4
-	text.LineSpacing = 3
 	bold := guiTheme.B4
-	bold.LineSpacing = 3
 	italic := guiTheme.I4
-	italic.LineSpacing = 3
 	bi := guiTheme.BI4
-	bi.LineSpacing = 3
 
 	return MarkdownStyle{
 		Text:              text,
