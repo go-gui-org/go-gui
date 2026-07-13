@@ -155,6 +155,40 @@ func TestMarkdownBuildTableData(t *testing.T) {
 	}
 }
 
+func TestMarkdownTableHeaderHonorsColumnAlignment(t *testing.T) {
+	style := DefaultMarkdownStyle()
+	// Default (start/left), centered, right-aligned columns.
+	blocks := markdownToBlocks(
+		"| L | C | R |\n|:--|:-:|--:|\n| a | b | c |", style)
+
+	var td *ParsedTable
+	for i := range blocks {
+		if blocks[i].IsTable && blocks[i].TableData != nil {
+			td = blocks[i].TableData
+			break
+		}
+	}
+	if td == nil {
+		t.Fatal("expected table block with data")
+	}
+
+	rows := buildMarkdownTableData(*td, style)
+	if len(rows) < 1 || len(rows[0].Cells) != 3 {
+		t.Fatalf("header cells: got %v", rows)
+	}
+
+	want := []HorizontalAlign{HAlignLeft, HAlignCenter, HAlignRight}
+	for i, c := range rows[0].Cells {
+		if c.HAlign == nil {
+			t.Fatalf("header cell %d: HAlign = nil, want %v", i, want[i])
+		}
+		if *c.HAlign != want[i] {
+			t.Errorf("header cell %d: HAlign = %v, want %v",
+				i, *c.HAlign, want[i])
+		}
+	}
+}
+
 func TestMarkdownDefaultsToWrap(t *testing.T) {
 	w := &Window{}
 	layout := generateViewLayout(w.Markdown(MarkdownCfg{

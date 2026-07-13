@@ -212,11 +212,13 @@ func buildMarkdownTableData(
 ) []TableRowCfg {
 	rows := make([]TableRowCfg, 0, len(parsed.Rows)+1)
 
-	// Header row.
+	// Header row. Honor per-column alignment (GFM: the delimiter
+	// row's alignment applies to header and body alike) instead of
+	// the table's default head alignment.
 	hCells := make([]TableCellCfg, 0, len(parsed.Headers))
-	for _, h := range parsed.Headers {
+	for i, h := range parsed.Headers {
 		rt := h
-		hCells = append(hCells, TableCellCfg{
+		cell := TableCellCfg{
 			Value:    richTextPlain(h),
 			HeadCell: true,
 			RichText: &rt,
@@ -224,7 +226,12 @@ func buildMarkdownTableData(
 				RichText: h,
 				Mode:     TextModeSingleLine,
 			}),
-		})
+		}
+		if i < len(parsed.Alignments) {
+			a := parsed.Alignments[i]
+			cell.HAlign = &a
+		}
+		hCells = append(hCells, cell)
 	}
 	rows = append(rows, TableRowCfg{Cells: hCells})
 
