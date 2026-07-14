@@ -89,6 +89,8 @@ func styleMdBlock(
 		IsMath:          block.IsMath,
 		IsDefTerm:       block.IsDefTerm,
 		IsDefValue:      block.IsDefValue,
+		IsTaskItem:      block.IsTaskItem,
+		TaskChecked:     block.TaskChecked,
 		BlockquoteDepth: block.BlockquoteDepth,
 		ListPrefix:      block.ListPrefix,
 		ListIndent:      block.ListIndent,

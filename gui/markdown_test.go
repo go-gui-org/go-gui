@@ -259,6 +259,46 @@ func TestMarkdownListWrappersHaveNoBorder(t *testing.T) {
 	}
 }
 
+func TestMarkdownTaskListRendersCheckbox(t *testing.T) {
+	layout := markdownLayoutForSource(t, "- [x] done\n- [ ] todo")
+	if len(layout.Children) == 0 {
+		t.Fatal("len(layout.Children) = 0, want list wrapper")
+	}
+
+	list := layout.Children[0]
+	if len(list.Children) != 2 {
+		t.Fatalf("len(list.Children) = %d, want 2 task rows", len(list.Children))
+	}
+
+	style := DefaultMarkdownStyle()
+
+	checkedBox := list.Children[0].Children[0].Children[0]
+	if got, want := checkedBox.Shape.Color, style.LinkColor; got != want {
+		t.Errorf("checked box Color = %v, want %v (LinkColor)", got, want)
+	}
+	if len(checkedBox.Children) != 1 {
+		t.Errorf("len(checked box Children) = %d, want 1 (checkmark)", len(checkedBox.Children))
+	}
+
+	uncheckedBox := list.Children[1].Children[0].Children[0]
+	if got, want := uncheckedBox.Shape.Color, ColorTransparent; got != want {
+		t.Errorf("unchecked box Color = %v, want %v (transparent)", got, want)
+	}
+	if len(uncheckedBox.Children) != 0 {
+		t.Errorf("len(unchecked box Children) = %d, want 0 (no checkmark)", len(uncheckedBox.Children))
+	}
+
+	// Checked and unchecked boxes must be pixel-identical in size — the
+	// bug this rendering approach fixes (Unicode ☑/☐ glyphs sized
+	// differently depending on platform font/glyph-fallback).
+	if got, want := checkedBox.Shape.Width, uncheckedBox.Shape.Width; !f32AreClose(got, want) {
+		t.Errorf("checked box Width = %v, unchecked box Width = %v, want equal", got, want)
+	}
+	if got, want := checkedBox.Shape.Height, uncheckedBox.Shape.Height; !f32AreClose(got, want) {
+		t.Errorf("checked box Height = %v, unchecked box Height = %v, want equal", got, want)
+	}
+}
+
 func TestMarkdownBlockquoteWrappersHaveNoBorder(t *testing.T) {
 	layout := markdownLayoutForSource(t, "> quote")
 	if len(layout.Children) == 0 {
