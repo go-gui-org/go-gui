@@ -409,13 +409,30 @@ func mdRenderListItem(
 ) View {
 	indentW := float32(block.ListIndent) *
 		cfg.Style.NestIndent
-	prefixW := float32(len(block.ListPrefix)) *
-		cfg.Style.PrefixCharWidth
-	if block.ListPrefix == "• " {
-		prefixW /= 2
-	} else if block.ListIndent > 0 {
-		indentW += 4
+
+	var prefixW float32
+	var prefixView View
+	if block.IsTaskItem {
+		boxSize := cfg.Style.Text.Size * 0.8
+		prefixW = boxSize + 6
+		prefixView = mdTaskCheckbox(block.TaskChecked, boxSize, cfg)
+		if block.ListIndent > 0 {
+			indentW += 4
+		}
+	} else {
+		prefixW = float32(len(block.ListPrefix)) *
+			cfg.Style.PrefixCharWidth
+		if block.ListPrefix == "• " {
+			prefixW /= 2
+		} else if block.ListIndent > 0 {
+			indentW += 4
+		}
+		prefixView = Text(TextCfg{
+			Text:      block.ListPrefix,
+			TextStyle: cfg.Style.Text,
+		})
 	}
+
 	rtfCfg := RtfCfg{
 		RichText:      block.Content,
 		Mode:          mode,
@@ -432,12 +449,8 @@ func mdRenderListItem(
 				Padding:    NoPadding,
 				SizeBorder: NoBorder,
 				Width:      prefixW,
-				Content: []View{
-					Text(TextCfg{
-						Text:      block.ListPrefix,
-						TextStyle: cfg.Style.Text,
-					}),
-				},
+				VAlign:     VAlignMiddle,
+				Content:    []View{prefixView},
 			}),
 			Column(ContainerCfg{
 				Sizing:     FillFit,
@@ -446,6 +459,41 @@ func mdRenderListItem(
 				Content:    []View{RTF(rtfCfg)},
 			}),
 		},
+	})
+}
+
+// mdTaskCheckbox renders a fixed-size box for a GFM task-list item.
+// Drawing a real box (rather than relying on Unicode ballot-box glyphs
+// like ☑/☐) keeps checked/unchecked states pixel-identical regardless
+// of platform font/glyph-fallback differences.
+func mdTaskCheckbox(checked bool, boxSize float32, cfg MarkdownCfg) View {
+	boxColor := ColorTransparent
+	var content []View
+	if checked {
+		boxColor = cfg.Style.LinkColor
+		checkStyle := guiTheme.Icon5
+		checkStyle.Size = boxSize * 1.1
+		checkStyle.Color = White
+		content = []View{
+			Text(TextCfg{Text: IconCheck, TextStyle: checkStyle}),
+		}
+	}
+
+	return Column(ContainerCfg{
+		Sizing: FixedFixed,
+		Width:  boxSize,
+		Height: boxSize,
+		Color:  boxColor,
+		// No dedicated checkbox-border style field exists yet; HRColor
+		// is reused as the neutral, low-emphasis border color other
+		// MarkdownStyle divider/border colors already use.
+		ColorBorder: cfg.Style.HRColor,
+		SizeBorder:  Some(float32(1)),
+		Radius:      Some(float32(2)),
+		Padding:     NoPadding,
+		HAlign:      HAlignCenter,
+		VAlign:      VAlignMiddle,
+		Content:     content,
 	})
 }
 

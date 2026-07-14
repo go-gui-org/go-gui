@@ -292,18 +292,19 @@ func (w *mdWalker) walkList(list *ast.List) {
 			prefix = "• "
 		}
 
-		// Check for task checkbox.
+		// Check for task checkbox. Rendered as a drawn box (not a
+		// prefix glyph) so checked/unchecked states are pixel-identical
+		// regardless of font/glyph-fallback quirks.
+		var isTaskItem, taskChecked bool
 		if li.HasChildren() {
 			p := li.FirstChild()
 			if p.HasChildren() {
 				fc := p.FirstChild()
 				if fc.Kind() == east.KindTaskCheckBox {
 					cb := fc.(*east.TaskCheckBox)
-					if cb.IsChecked {
-						prefix = "☑ "
-					} else {
-						prefix = "☐ "
-					}
+					isTaskItem = true
+					taskChecked = cb.IsChecked
+					prefix = ""
 				}
 			}
 		}
@@ -326,10 +327,12 @@ func (w *mdWalker) walkList(list *ast.List) {
 		}
 		runs = trimTrailingBreaks(runs)
 		w.blocks = append(w.blocks, Block{
-			IsList:     true,
-			ListPrefix: prefix,
-			ListIndent: w.listDepth,
-			Runs:       runs,
+			IsList:      true,
+			ListPrefix:  prefix,
+			ListIndent:  w.listDepth,
+			Runs:        runs,
+			IsTaskItem:  isTaskItem,
+			TaskChecked: taskChecked,
 		})
 		for _, nl := range nested {
 			w.listDepth++

@@ -426,6 +426,68 @@ func TestMarkdownTaskList(t *testing.T) {
 	}
 }
 
+func TestMarkdownTaskListSetsIsTaskItemAndChecked(t *testing.T) {
+	t.Parallel()
+	blocks := parse("- [x] done\n- [ ] todo")
+	if len(blocks) != 2 {
+		t.Fatalf("expected 2 blocks, got %d", len(blocks))
+	}
+
+	if !blocks[0].IsTaskItem {
+		t.Error("blocks[0].IsTaskItem = false, want true")
+	}
+	if !blocks[0].TaskChecked {
+		t.Error("blocks[0].TaskChecked = false, want true")
+	}
+	if blocks[0].ListPrefix != "" {
+		t.Errorf("blocks[0].ListPrefix = %q, want empty", blocks[0].ListPrefix)
+	}
+
+	if !blocks[1].IsTaskItem {
+		t.Error("blocks[1].IsTaskItem = false, want true")
+	}
+	if blocks[1].TaskChecked {
+		t.Error("blocks[1].TaskChecked = true, want false")
+	}
+	if blocks[1].ListPrefix != "" {
+		t.Errorf("blocks[1].ListPrefix = %q, want empty", blocks[1].ListPrefix)
+	}
+}
+
+func TestMarkdownUnorderedListIsNotTaskItem(t *testing.T) {
+	t.Parallel()
+	blocks := parse("- plain item")
+	if len(blocks) != 1 {
+		t.Fatalf("expected 1 block, got %d", len(blocks))
+	}
+	if blocks[0].IsTaskItem {
+		t.Error("blocks[0].IsTaskItem = true, want false for a non-task list item")
+	}
+	if blocks[0].ListPrefix != "• " {
+		t.Errorf("blocks[0].ListPrefix = %q, want %q", blocks[0].ListPrefix, "• ")
+	}
+}
+
+func TestMarkdownNestedTaskListIndent(t *testing.T) {
+	t.Parallel()
+	blocks := parse("- [x] parent\n  - [ ] child")
+	if len(blocks) != 2 {
+		t.Fatalf("expected 2 blocks, got %d", len(blocks))
+	}
+	if blocks[0].ListIndent != 0 {
+		t.Errorf("blocks[0].ListIndent = %d, want 0", blocks[0].ListIndent)
+	}
+	if !blocks[0].IsTaskItem || !blocks[0].TaskChecked {
+		t.Error("blocks[0] expected checked task item")
+	}
+	if blocks[1].ListIndent != 1 {
+		t.Errorf("blocks[1].ListIndent = %d, want 1", blocks[1].ListIndent)
+	}
+	if !blocks[1].IsTaskItem || blocks[1].TaskChecked {
+		t.Error("blocks[1] expected unchecked task item")
+	}
+}
+
 // --- Blockquotes ---
 
 func TestMarkdownBlockquote(t *testing.T) {

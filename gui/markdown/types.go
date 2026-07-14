@@ -114,7 +114,12 @@ type Run struct {
 
 // Block is a parsed block of markdown content.
 type Block struct {
-	TableData       *Table
+	TableData *Table
+	// ListPrefix is the visible list marker ("1. ", "• ") for ordinary
+	// list items. Task-list items (IsTaskItem) leave this empty and
+	// carry their checked state in TaskChecked instead — callers
+	// rendering task items must check IsTaskItem rather than assuming
+	// ListPrefix always holds a marker.
 	ListPrefix      string
 	ImageSrc        string
 	ImageAlt        string
@@ -136,6 +141,8 @@ type Block struct {
 	IsMath          bool
 	IsDefTerm       bool
 	IsDefValue      bool
+	IsTaskItem      bool
+	TaskChecked     bool
 }
 
 // Table holds parsed table data.
