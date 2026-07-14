@@ -139,7 +139,7 @@ type dataGridCrudSaveContext struct {
 	onSelectionChange func(GridSelection, *gg.Event, *gg.Window)
 	query             GridQueryState
 	gridID            string
-	focusID           uint32
+	focusID           string
 	caps              GridDataCapabilities
 	hasSource         bool
 }
@@ -285,7 +285,7 @@ func dataGridCrudExecMutations(source DataGridDataSource, gridID string, query G
 	}
 }
 
-func dataGridCrudApplySaveResult(gridID string, result dataGridCrudMutationResult, snapshotRows []GridRow, onCRUDError func(string, *gg.Event, *gg.Window), onRowsChange func([]GridRow, *gg.Event, *gg.Window), selection GridSelection, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), focusID uint32, w *gg.Window) {
+func dataGridCrudApplySaveResult(gridID string, result dataGridCrudMutationResult, snapshotRows []GridRow, onCRUDError func(string, *gg.Event, *gg.Window), onRowsChange func([]GridRow, *gg.Event, *gg.Window), selection GridSelection, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), focusID string, w *gg.Window) {
 	e := &gg.Event{}
 	if result.errMsg != "" {
 		dataGridCrudRestoreOnError(gridID, result.errPhase, onCRUDError,
@@ -307,7 +307,7 @@ func dataGridCrudApplySaveResult(gridID string, result dataGridCrudMutationResul
 		onRowsChange, true, focusID, e, w)
 }
 
-func dataGridCrudFinishSave(gridID string, _ map[string]string, rowCount int, onRowsChange func([]GridRow, *gg.Event, *gg.Window), hasSource bool, focusID uint32, e *gg.Event, w *gg.Window) {
+func dataGridCrudFinishSave(gridID string, _ map[string]string, rowCount int, onRowsChange func([]GridRow, *gg.Event, *gg.Window), hasSource bool, focusID string, e *gg.Event, w *gg.Window) {
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 	state, _ := dgCrud.Get(gridID)
 	state.CommittedRows = cloneRows(state.WorkingRows)
@@ -331,8 +331,8 @@ func dataGridCrudFinishSave(gridID string, _ map[string]string, rowCount int, on
 		dataGridSourceApplyLocalMutation(gridID, rowsCopy, rc, w)
 		dataGridSourceForceRefetch(gridID, w)
 	}
-	if focusID > 0 {
-		w.SetIDFocus(focusID)
+	if focusID != "" {
+		w.SetFocus(focusID)
 	}
 }
 

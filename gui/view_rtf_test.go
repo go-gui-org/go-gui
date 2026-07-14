@@ -669,9 +669,9 @@ func TestShowLinkContextMenuSetsState(t *testing.T) {
 	if st.BlockKey != 42 {
 		t.Fatalf("expected BlockKey=42 got %d", st.BlockKey)
 	}
-	if w.IDFocus() != rtfLinkMenuIDFocus {
-		t.Fatalf("expected focus=%d got %d",
-			rtfLinkMenuIDFocus, w.IDFocus())
+	if w.FocusID() != rtfLinkMenuFocusID {
+		t.Fatalf("expected focus=%q got %q",
+			rtfLinkMenuFocusID, w.FocusID())
 	}
 }
 
@@ -685,8 +685,8 @@ func TestRtfLinkMenuDismissClearsState(t *testing.T) {
 	if st.Open {
 		t.Fatal("expected Open=false after dismiss")
 	}
-	if w.IDFocus() != 0 {
-		t.Fatalf("expected focus=0 got %d", w.IDFocus())
+	if w.FocusID() != "" {
+		t.Fatalf("expected empty focus got %q", w.FocusID())
 	}
 }
 
@@ -743,7 +743,7 @@ func TestRtfAmendTooltipDismissesMenuOnFocusLoss(t *testing.T) {
 	w := newTestWindow()
 	showLinkContextMenu(w, "https://example.com", 50, 100, 0)
 	// Simulate focus moving away.
-	w.SetIDFocus(0)
+	w.ClearFocus()
 
 	l := &Layout{Shape: &Shape{}}
 	rtfAmendTooltip(l, w)

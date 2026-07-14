@@ -5,8 +5,8 @@ import "testing"
 func TestOverflowPanelLayout(t *testing.T) {
 	w := &Window{}
 	cfg := OverflowPanelCfg{
-		ID:      "op",
-		IDFocus: 200,
+		ID:        "op",
+		Focusable: true,
 		Items: []OverflowItem{
 			{ID: "a", View: Text(TextCfg{Text: "A"})},
 			{ID: "b", View: Text(TextCfg{Text: "B"})},
@@ -30,8 +30,8 @@ func TestOverflowPanelLayout(t *testing.T) {
 func TestOverflowPanelTrigger(t *testing.T) {
 	w := &Window{}
 	cfg := OverflowPanelCfg{
-		ID:      "op",
-		IDFocus: 200,
+		ID:        "op",
+		Focusable: true,
 		Items: []OverflowItem{
 			{ID: "a", View: Text(TextCfg{Text: "A"})},
 		},
@@ -52,8 +52,8 @@ func TestOverflowPanelTrigger(t *testing.T) {
 func TestOverflowPanelClosed(t *testing.T) {
 	w := &Window{}
 	cfg := OverflowPanelCfg{
-		ID:      "op",
-		IDFocus: 200,
+		ID:        "op",
+		Focusable: true,
 		Items: []OverflowItem{
 			{ID: "a", View: Text(TextCfg{Text: "A"})},
 		},

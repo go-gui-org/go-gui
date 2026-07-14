@@ -165,7 +165,7 @@ func treeRowView(
 	if row.IsExpanded && row.HasChildren {
 		a11yState = AccessStateExpanded
 	}
-	rootFocusID := cfg.IDFocus
+	rootFocusID := cfg.ID
 	onSelect := cfg.OnSelect
 	onLazyLoad := cfg.OnLazyLoad
 
@@ -220,7 +220,7 @@ func treeDragRowView(
 	if row.IsExpanded && row.HasChildren {
 		a11yState = AccessStateExpanded
 	}
-	rootFocusID := cfg.IDFocus
+	rootFocusID := cfg.ID
 	onSelect := cfg.OnSelect
 	onLazyLoad := cfg.OnLazyLoad
 	onReorder := cfg.OnReorder
@@ -330,15 +330,15 @@ func treeIconText(icon string) string {
 func treeRowClick(
 	treeID string,
 	row treeFlatRow,
-	rootFocusID uint32,
+	rootFocusID string,
 	onSelect func(string, *Event, *Window),
 	onLazyLoad func(string, string, *Window),
 	e *Event,
 	w *Window,
 ) {
 	treeFocusedSet(w, treeID, row.ID)
-	if rootFocusID > 0 {
-		w.SetIDFocus(rootFocusID)
+	if rootFocusID != "" {
+		w.SetFocus(rootFocusID)
 	}
 	if row.HasChildren {
 		nextExpanded := !row.IsExpanded

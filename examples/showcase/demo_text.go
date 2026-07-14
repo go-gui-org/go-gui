@@ -127,7 +127,7 @@ func demoText(_ *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				ID:        "text-selectable-block",
-				IDFocus:   9155,
+				Focusable: true,
 				FocusSkip: false,
 				Mode:      gui.TextModeMultiline,
 				Sizing:    gui.FillFit,
@@ -320,8 +320,8 @@ func demoRtf(_ *gui.Window) gui.View {
 			// Mixed inline styles in a single paragraph
 			sectionLabel(t, "Mixed Inline Styles"),
 			gui.RTF(gui.RtfCfg{
-				IDFocus: 9201,
-				Mode:    gui.TextModeWrap,
+				Focusable: true,
+				Mode:      gui.TextModeWrap,
 				RichText: gui.RichText{
 					Runs: []gui.RichTextRun{
 						gui.RichRun("Rich text supports ", t.N3),
@@ -345,8 +345,8 @@ func demoRtf(_ *gui.Window) gui.View {
 			// Underline and strikethrough
 			sectionLabel(t, "Decorations"),
 			gui.RTF(gui.RtfCfg{
-				IDFocus: 9202,
-				Mode:    gui.TextModeWrap,
+				Focusable: true,
+				Mode:      gui.TextModeWrap,
 				RichText: gui.RichText{
 					Runs: []gui.RichTextRun{
 						gui.RichRun("Underlined", gui.TextStyle{
@@ -368,8 +368,8 @@ func demoRtf(_ *gui.Window) gui.View {
 			// Clickable link
 			sectionLabel(t, "Links & Abbreviations"),
 			gui.RTF(gui.RtfCfg{
-				IDFocus: 9203,
-				Mode:    gui.TextModeWrap,
+				Focusable: true,
+				Mode:      gui.TextModeWrap,
 				RichText: gui.RichText{
 					Runs: []gui.RichTextRun{
 						gui.RichRun("Visit the ", t.N3),
@@ -390,8 +390,8 @@ func demoRtf(_ *gui.Window) gui.View {
 			// Multi-line with breaks
 			sectionLabel(t, "Line Breaks"),
 			gui.RTF(gui.RtfCfg{
-				IDFocus: 9204,
-				Mode:    gui.TextModeWrap,
+				Focusable: true,
+				Mode:      gui.TextModeWrap,
 				RichText: gui.RichText{
 					Runs: []gui.RichTextRun{
 						gui.RichRun("First line of text.", t.N3),
@@ -412,9 +412,9 @@ func demoMarkdown(w *gui.Window) gui.View {
 	style := gui.DefaultMarkdownStyle()
 	style.CodeHighlighter = highlight.Default()
 	return w.Markdown(gui.MarkdownCfg{
-		IDFocus: 9210,
-		Style:   style,
-		Source:  embeddedText("docs/markdown_demo.md"),
+		Focusable: true,
+		Style:     style,
+		Source:    embeddedText("docs/markdown_demo.md"),
 	})
 }
 

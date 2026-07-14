@@ -39,7 +39,8 @@
 //			HAlign: gui.HAlignCenter, VAlign: gui.VAlignMiddle,
 //			Content: []gui.View{
 //				gui.Button(gui.ButtonCfg{
-//					IDFocus: 1,
+//					ID:        "clicks",
+//					Focusable: true,
 //					Content: []gui.View{gui.Text(gui.TextCfg{
 //						Text: fmt.Sprintf("%d clicks", app.Clicks),
 //					})},
@@ -65,8 +66,9 @@
 //     cfg.Radius.Set(5).
 //   - required tags: fields tagged `gui:"required"` (e.g. FormCfg.ID)
 //     must be non-empty. Enforced by the requiredid vet analyzer.
-//   - IDFocus > 0: opts the widget into tab-order focus. The numeric
-//     value determines tab sequence (lower = earlier).
+//   - Focusable: true opts the widget into keyboard focus (click or
+//     Tab). Requires a non-empty ID. Tab order follows layout-tree
+//     (depth-first) order.
 //   - Common fields: Sizing, Float, FloatAnchor, FloatTieOff,
 //     Disabled, Invisible, Padding, Radius, SizeBorder appear on
 //     most Cfg types with identical semantics.

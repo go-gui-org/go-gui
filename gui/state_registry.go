@@ -128,6 +128,15 @@ func RequireID(widget, id string) {
 	}
 }
 
+// RequireFocusID panics if a Focusable widget has an empty ID. Focus
+// identity and per-widget input state are keyed by Cfg.ID, so a
+// focusable widget must supply one.
+func RequireFocusID(widget string, focusable bool, id string) {
+	if focusable && id == "" {
+		panic("gui: " + widget + " with Focusable:true requires a non-empty Cfg.ID")
+	}
+}
+
 // Clear drops all registry references.
 func (r *StateRegistry) Clear() {
 	clear(r.maps)

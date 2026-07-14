@@ -1,7 +1,7 @@
 package gui
 
 // markdown_select.go implements cross-block text selection for the Markdown widget.
-// Selection state is keyed by MarkdownCfg.IDFocus and spans all RTF blocks
+// Selection state is keyed by MarkdownCfg.ID and spans all RTF blocks
 // (paragraphs, headings, list items, blockquotes). Non-RTF blocks (tables,
 // images, code, math, HR) are skipped; their content is not selectable.
 
@@ -38,7 +38,7 @@ type mdBlockInfo struct {
 // offset so render functions can stamp each RTF block with its position within
 // the markdown's virtual flat text.
 type mdBlockCtx struct {
-	ID    uint32
+	ID    string
 	Start uint32
 }
 
@@ -47,7 +47,7 @@ type mdBlockCtx struct {
 // block is covered by the markdown selection and writes TextSelBeg/TextSelEnd.
 func markdownBlockAmendSel(l *Layout, w *Window) {
 	tc := l.Shape.TC
-	if tc == nil || tc.MarkdownID == 0 {
+	if tc == nil || tc.MarkdownID == "" {
 		return
 	}
 	mdID := tc.MarkdownID
@@ -70,8 +70,8 @@ func markdownBlockAmendSel(l *Layout, w *Window) {
 // It walks all RTF descendants belonging to this markdown widget, rebuilds the
 // block-position list in the StateMap, and triggers per-block selection update.
 func markdownContainerAmendLayout(l *Layout, w *Window) {
-	mdID := l.Shape.IDFocus
-	if mdID == 0 {
+	mdID := l.Shape.ID
+	if mdID == "" {
 		return
 	}
 
@@ -85,13 +85,13 @@ func markdownContainerAmendLayout(l *Layout, w *Window) {
 	})
 
 	// Persist for drag callbacks.
-	bm := StateMap[uint32, []mdBlockInfo](w, nsMdBlocks, capMany)
+	bm := StateMap[string, []mdBlockInfo](w, nsMdBlocks, capMany)
 	bm.Set(mdID, blocks)
 }
 
 // mdWalkBlocks recursively walks the layout tree to collect RTF blocks
 // belonging to the given markdown widget.
-func mdWalkBlocks(l *Layout, mdID uint32, out *[]mdBlockInfo) {
+func mdWalkBlocks(l *Layout, mdID string, out *[]mdBlockInfo) {
 	if l.Shape != nil && l.Shape.TC != nil &&
 		l.Shape.TC.MarkdownID == mdID &&
 		l.Shape.hasRtfLayout() {
@@ -124,10 +124,10 @@ func markdownBlockOnClick(l *Layout, e *Event, w *Window) {
 		return
 	}
 	mdID := shape.TC.MarkdownID
-	if mdID == 0 {
+	if mdID == "" {
 		return
 	}
-	w.SetIDFocus(mdID)
+	w.SetFocus(mdID)
 
 	// Compute abs rune position within the markdown flat text.
 	gl := shape.TC.RtfLayout
@@ -136,7 +136,7 @@ func markdownBlockOnClick(l *Layout, e *Event, w *Window) {
 	localRune := byteToRuneIndex(flatText, byteIdx)
 	absRune := uint32(localRune) + shape.TC.MarkdownBlockStart
 
-	imap := StateMap[uint32, mdSelState](w, nsMdSel, capMany)
+	imap := StateMap[string, mdSelState](w, nsMdSel, capMany)
 	st, _ := imap.Get(mdID)
 
 	now := time.Now().UnixMilli()
@@ -168,12 +168,12 @@ func markdownBlockOnClick(l *Layout, e *Event, w *Window) {
 
 	w.MouseLock(MouseLockCfg{
 		MouseMove: func(_ *Layout, e *Event, w *Window) {
-			bm := StateMap[uint32, []mdBlockInfo](w, nsMdBlocks, capMany)
+			bm := StateMap[string, []mdBlockInfo](w, nsMdBlocks, capMany)
 			blocks, _ := bm.Get(dragMdID)
 			absPos := mdHitAbsRune(e.MouseX, e.MouseY,
 				blocks, dragGl, dragFlatText, dragBlockStart)
 
-			dim := StateMap[uint32, mdSelState](w, nsMdSel, capMany)
+			dim := StateMap[string, mdSelState](w, nsMdSel, capMany)
 			dst, _ := dim.Get(dragMdID)
 			if isDouble {
 				// Extend word-by-word.
@@ -231,11 +231,11 @@ func mdHitAbsRune(
 // markdownContainerOnKeyDown handles keyboard events for the markdown container.
 // Supports Ctrl+A (select all) and Ctrl+C (copy).
 func markdownContainerOnKeyDown(l *Layout, e *Event, w *Window) {
-	mdID := l.Shape.IDFocus
-	if mdID == 0 || !w.IsFocus(mdID) {
+	mdID := l.Shape.ID
+	if mdID == "" || !w.IsFocus(mdID) {
 		return
 	}
-	bm := StateMap[uint32, []mdBlockInfo](w, nsMdBlocks, capMany)
+	bm := StateMap[string, []mdBlockInfo](w, nsMdBlocks, capMany)
 	blocks, _ := bm.Get(mdID)
 	if len(blocks) == 0 {
 		return
@@ -249,7 +249,7 @@ func markdownContainerOnKeyDown(l *Layout, e *Event, w *Window) {
 			for _, b := range blocks {
 				totalRunes += b.RuneLen
 			}
-			imap := StateMap[uint32, mdSelState](w, nsMdSel, capMany)
+			imap := StateMap[string, mdSelState](w, nsMdSel, capMany)
 			st, _ := imap.Get(mdID)
 			st.SelBeg = 0
 			st.SelEnd = totalRunes
@@ -259,7 +259,7 @@ func markdownContainerOnKeyDown(l *Layout, e *Event, w *Window) {
 		}
 	case KeyC:
 		if e.Modifiers.HasAny(ModCtrl, ModSuper) {
-			imap := StateMap[uint32, mdSelState](w, nsMdSel, capMany)
+			imap := StateMap[string, mdSelState](w, nsMdSel, capMany)
 			st, _ := imap.Get(mdID)
 			if st.SelBeg != st.SelEnd {
 				beg, end := u32Sort(st.SelBeg, st.SelEnd)

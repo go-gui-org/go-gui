@@ -4,37 +4,43 @@ import "time"
 
 // window_focus.go — keyboard focus management.
 
-// IDFocus returns the current focus ID.
-func (w *Window) IDFocus() uint32 {
-	return w.viewState.idFocus
+// FocusID returns the current focus ID.
+func (w *Window) FocusID() string {
+	return w.viewState.focusID
 }
 
-// SetIDFocus sets the focus id and clears input selections.
-// Acquires both w.mu (idFocus) and w.animMu (animations).
-func (w *Window) SetIDFocus(id uint32) {
+// SetFocus sets the focused widget by its string ID and clears
+// input selections. Acquires both w.mu (focusID) and w.animMu
+// (animations). Use ClearFocus to remove focus.
+func (w *Window) SetFocus(id string) {
 	w.mu.Lock()
 	w.animMu.Lock()
 	defer w.animMu.Unlock()
 	defer w.mu.Unlock()
-	w.setIDFocusLocked(id)
+	w.setFocusLocked(id)
 }
 
-func (w *Window) setIDFocusLocked(id uint32) {
-	prev := w.viewState.idFocus
+// ClearFocus removes keyboard focus from any widget.
+func (w *Window) ClearFocus() {
+	w.SetFocus("")
+}
+
+func (w *Window) setFocusLocked(id string) {
+	prev := w.viewState.focusID
 	w.clearInputSelections()
 	w.imeClear()
-	w.viewState.idFocus = id
-	if id > 0 {
+	w.viewState.focusID = id
+	if id != "" {
 		w.viewState.inputCursorOn.Store(true)
 		if !w.hasAnimationLocked(blinkCursorAnimationID) {
 			w.animationAddLocked(NewBlinkCursorAnimation())
 		}
 	}
 	if np := w.nativePlatform; np != nil {
-		if prev > 0 && id != prev {
+		if prev != "" && id != prev {
 			np.IMEStop()
 		}
-		if id > 0 {
+		if id != "" {
 			np.IMEStart()
 		}
 	}
@@ -51,9 +57,9 @@ func resetBlinkCursorVisible(w *Window) {
 	}
 }
 
-// IsFocus tests if the given id_focus equals the window's id_focus.
-func (w *Window) IsFocus(idFocus uint32) bool {
-	return w.viewState.idFocus > 0 && w.viewState.idFocus == idFocus
+// IsFocus tests if the given focus id equals the window's focus id.
+func (w *Window) IsFocus(id string) bool {
+	return w.viewState.focusID != "" && w.viewState.focusID == id
 }
 
 // hasFocus returns true if the window has focus.

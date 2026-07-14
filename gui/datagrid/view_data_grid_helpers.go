@@ -116,11 +116,8 @@ func dataGridStaticTopHeight(cfg *DataGridCfg, _ float32, chooserOpen bool, incl
 	return top
 }
 
-func dataGridFocusID(cfg *DataGridCfg) uint32 {
-	if cfg.IDFocus > 0 {
-		return cfg.IDFocus
-	}
-	return gg.FnvSum32(cfg.ID + ":focus")
+func dataGridFocusID(cfg *DataGridCfg) string {
+	return cfg.ID
 }
 
 func dataGridScrollID(cfg *DataGridCfg) uint32 {

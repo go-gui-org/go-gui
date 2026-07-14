@@ -9,7 +9,6 @@ import (
 
 const (
 	capInspector            = 8
-	inspectorIDFocus        = uint32(0xFFF00000)
 	inspectorIDScrollPanel  = uint32(0xFFF00001)
 	inspectorTreeID         = "__inspector_tree__"
 	inspectorPanelMinWidth  = float32(300)
@@ -61,7 +60,7 @@ type inspectorNodeProps struct {
 	Height      float32
 	Spacing     float32
 	Radius      float32
-	IDFocus     uint32
+	Focusable   bool
 	IDScroll    uint32
 	Opacity     float32
 	Color       Color
@@ -199,12 +198,12 @@ func inspectorTreeView(w *Window) View {
 		nodes = w.inspectorTreeCache
 	}
 	return Tree(TreeCfg{
-		ID:       inspectorTreeID,
-		IDFocus:  inspectorIDFocus,
-		Indent:   16,
-		Spacing:  1,
-		Nodes:    nodes,
-		OnSelect: func(id string, _ *Event, w *Window) { inspectorSelect(id, w) },
+		ID:        inspectorTreeID,
+		Focusable: true,
+		Indent:    16,
+		Spacing:   1,
+		Nodes:     nodes,
+		OnSelect:  func(id string, _ *Event, w *Window) { inspectorSelect(id, w) },
 	})
 }
 
@@ -425,10 +424,10 @@ func inspectorPropsNodes(p inspectorNodeProps) []TreeNodeCfg {
 			inspectorPropNode(inspectorPropRadiusID,
 				"radius: "+strconv.Itoa(int(p.Radius)), ps, pis))
 	}
-	if p.IDFocus > 0 {
+	if p.Focusable {
 		nodes = append(nodes,
 			inspectorPropNode(inspectorPropFocusID,
-				"id_focus: "+strconv.Itoa(int(p.IDFocus)), ps, pis))
+				"focusable: true", ps, pis))
 	}
 	if p.IDScroll > 0 {
 		nodes = append(nodes,
@@ -491,7 +490,7 @@ func inspectorSnapshotProps(layout *Layout) inspectorNodeProps {
 		Spacing:     shape.Spacing,
 		Color:       shape.Color,
 		Radius:      shape.Radius,
-		IDFocus:     shape.IDFocus,
+		Focusable:   shape.Focusable,
 		IDScroll:    shape.IDScroll,
 		HAlign:      shape.HAlign,
 		VAlign:      shape.VAlign,

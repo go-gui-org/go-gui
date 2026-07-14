@@ -44,7 +44,7 @@ type TabControlCfg struct {
 	RadiusTab           Opt[float32]
 	Spacing             Opt[float32]
 	SpacingHeader       Opt[float32]
-	IDFocus             uint32
+	Focusable           bool
 	Color               Color
 	ColorBorder         Color
 	ColorHeader         Color
@@ -149,14 +149,14 @@ func TabControl(cfg TabControlCfg) View {
 
 func makeTabOnClick(
 	onSelect func(string, *Event, *Window),
-	id string, idFocus uint32,
+	id string, focusID string,
 ) func(*Layout, *Event, *Window) {
 	return func(_ *Layout, e *Event, w *Window) {
 		if onSelect != nil {
 			onSelect(id, e, w)
 		}
-		if idFocus > 0 {
-			w.SetIDFocus(idFocus)
+		if focusID != "" {
+			w.SetFocus(focusID)
 		}
 		e.IsHandled = true
 	}
@@ -170,7 +170,7 @@ func makeTabDragClick(
 	onReorder func(string, string, *Window),
 	tabLayoutIDs []string,
 	onSelect func(string, *Event, *Window),
-	idFocus uint32,
+	focusID string,
 ) func(*Layout, *Event, *Window) {
 	return func(layout *Layout, e *Event, w *Window) {
 		dragReorderStart(dragReorderStartCfg{
@@ -187,8 +187,8 @@ func makeTabDragClick(
 		if onSelect != nil {
 			onSelect(itemID, e, w)
 		}
-		if idFocus > 0 {
-			w.SetIDFocus(idFocus)
+		if focusID != "" {
+			w.SetFocus(focusID)
 		}
 		e.IsHandled = true
 	}
@@ -300,10 +300,10 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 		if cfg.Reorderable && !isDisabled {
 			onClick = makeTabDragClick(cfg.ID, tabDragIdx[i],
 				item.ID, tabIDs, onReorder, tabLayoutIDs,
-				cfg.OnSelect, cfg.IDFocus)
+				cfg.OnSelect, cfg.ID)
 		} else if !isDisabled {
 			onClick = makeTabOnClick(
-				cfg.OnSelect, item.ID, cfg.IDFocus)
+				cfg.OnSelect, item.ID, cfg.ID)
 		}
 
 		tabBtn := Button(ButtonCfg{
@@ -359,13 +359,13 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 	disabled := cfg.Disabled
 	selected := cfg.Selected
 	onSelect := cfg.OnSelect
-	idFocus := cfg.IDFocus
+	focusID := cfg.ID
 	reorderable := cfg.Reorderable
 	controlID := cfg.ID
 
 	return generateViewLayout(Column(ContainerCfg{
 		ID:              cfg.ID,
-		IDFocus:         cfg.IDFocus,
+		Focusable:       cfg.Focusable,
 		A11YRole:        AccessRoleTab,
 		A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.ID),
 		A11YDescription: cfg.A11YDescription,
@@ -400,7 +400,7 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 			}
 			tabControlOnKeydown(disabled, tabNavIDs,
 				tabNavDisabled, selected, onSelect,
-				idFocus, e, w)
+				focusID, e, w)
 		},
 		Content: []View{
 			Row(ContainerCfg{
@@ -432,7 +432,7 @@ func tabControlOnKeydown(
 	tabNavDisabled []bool,
 	selected string,
 	onSelect func(string, *Event, *Window),
-	idFocus uint32,
+	focusID string,
 	e *Event,
 	w *Window,
 ) {
@@ -492,8 +492,8 @@ func tabControlOnKeydown(
 			onSelect(targetID, e, w)
 		}
 	}
-	if idFocus > 0 {
-		w.SetIDFocus(idFocus)
+	if focusID != "" {
+		w.SetFocus(focusID)
 	}
 	e.IsHandled = true
 }

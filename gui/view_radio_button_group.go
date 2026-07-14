@@ -1,5 +1,7 @@
 package gui
 
+import "strconv"
+
 // RadioOption defines a radio button for a RadioButtonGroupCfg.
 type RadioOption struct {
 	Label string
@@ -26,12 +28,13 @@ type RadioButtonGroupCfg struct {
 	// Items takes precedence over Options.
 	Items       []string
 	Options     []RadioOption
+	ID          string
 	Padding     Opt[Padding]
 	Spacing     Opt[float32]
 	SizeBorder  Opt[float32]
 	MinWidth    float32
 	MinHeight   float32
-	IDFocus     uint32
+	Focusable   bool
 	ColorBorder Color
 	TitleBG     Color
 	Sizing      Sizing
@@ -86,13 +89,13 @@ func radioGroup(cfg RadioButtonGroupCfg, axis func(ContainerCfg) View) View {
 
 func buildRadioOptions(cfg RadioButtonGroupCfg) []View {
 	content := make([]View, 0, len(cfg.Options))
-	idFocus := cfg.IDFocus
 	onSelect := cfg.OnSelect
-	for _, opt := range cfg.Options {
+	for i, opt := range cfg.Options {
 		optValue := opt.Value
 		content = append(content, Radio(RadioCfg{
+			ID:        cfg.ID + "/" + strconv.Itoa(i),
 			Label:     opt.Label,
-			IDFocus:   idFocus,
+			Focusable: cfg.Focusable,
 			Selected:  cfg.Value == opt.Value,
 			Disabled:  cfg.Disabled,
 			TextStyle: cfg.TextStyle,
@@ -102,9 +105,6 @@ func buildRadioOptions(cfg RadioButtonGroupCfg) []View {
 				}
 			},
 		}))
-		if cfg.IDFocus != 0 {
-			idFocus++
-		}
 	}
 	return content
 }

@@ -35,8 +35,8 @@ func demoTabControl(w *gui.Window) gui.View {
 	app := gui.State[ShowcaseApp](w)
 	t := gui.CurrentTheme()
 	return gui.TabControl(gui.TabControlCfg{
-		ID:      "tab-demo",
-		IDFocus: focusTabDemo,
+		ID:        "tab-demo",
+		Focusable: true,
 		Items: []gui.TabItemCfg{
 			gui.NewTabItem("tab1", "Overview", []gui.View{
 				gui.Column(gui.ContainerCfg{
@@ -77,8 +77,7 @@ func demoMenus(w *gui.Window) gui.View {
 	app := gui.State[ShowcaseApp](w)
 
 	return gui.Menubar(w, gui.MenubarCfg{
-		ID:      "menubar-demo",
-		IDFocus: focusMenu,
+		ID: "menubar-demo",
 		Items: []gui.MenuItemCfg{
 			{
 				ID:   "file",
@@ -170,7 +169,7 @@ func demoMenus(w *gui.Window) gui.View {
 						Padding: gui.NoPadding,
 						CustomView: gui.Input(gui.InputCfg{
 							Text:        app.MenuSearchText,
-							IDFocus:     focusMenuSearch,
+							Focusable:   true,
 							Width:       100,
 							MinWidth:    100,
 							MaxWidth:    100,
@@ -205,7 +204,6 @@ func demoCommandPalette(w *gui.Window) gui.View {
 	app := gui.State[ShowcaseApp](w)
 
 	const paletteID = "cmd-palette"
-	const paletteFocus uint32 = 500
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
@@ -219,7 +217,7 @@ func demoCommandPalette(w *gui.Window) gui.View {
 					gui.Text(gui.TextCfg{Text: "Open Command Palette", TextStyle: t.N3}),
 				},
 				OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-					gui.CommandPaletteToggle(paletteID, paletteFocus, 0, w)
+					gui.CommandPaletteToggle(paletteID, 0, w)
 					e.IsHandled = true
 				},
 			}),
@@ -229,7 +227,6 @@ func demoCommandPalette(w *gui.Window) gui.View {
 			}),
 			gui.CommandPalette(gui.CommandPaletteCfg{
 				ID:          paletteID,
-				IDFocus:     paletteFocus,
 				Placeholder: "Type a command...",
 				Items: []gui.CommandPaletteItem{
 					{ID: "new-file", Label: "New File", Icon: gui.IconPlus, Group: "File"},

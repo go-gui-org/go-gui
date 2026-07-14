@@ -150,8 +150,7 @@ func TestFindMenuItemCfg(t *testing.T) {
 
 func TestMenuItemHasID(t *testing.T) {
 	cfg := MenubarCfg{
-		ID:      "mb",
-		IDFocus: 100,
+		ID: "mb",
 		Items: []MenuItemCfg{
 			MenuItemText("file", "File"),
 			MenuItemText("edit", "Edit"),

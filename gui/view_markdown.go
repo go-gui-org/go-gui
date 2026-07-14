@@ -128,7 +128,7 @@ type MarkdownCfg struct {
 	Padding             Opt[Padding]
 	SizeBorder          Opt[float32]
 	Radius              Opt[float32]
-	IDFocus             uint32
+	Focusable           bool
 	MinWidth            float32
 	Color               Color
 	ColorBorder         Color
@@ -316,8 +316,8 @@ func (w *Window) Markdown(cfg MarkdownCfg) View {
 		Sizing:      sizing,
 		Content:     content,
 	}
-	if cfg.IDFocus > 0 {
-		colCfg.IDFocus = cfg.IDFocus
+	if cfg.Focusable {
+		colCfg.Focusable = cfg.Focusable
 		colCfg.FocusSkip = true
 		colCfg.AmendLayout = markdownContainerAmendLayout
 		colCfg.OnKeyDown = markdownContainerOnKeyDown
@@ -368,13 +368,13 @@ func markdownBuildContent(
 	var listItems []View
 	prevWasBQ := false
 	runeOffset := uint32(0)
-	selEnabled := cfg.IDFocus > 0
+	selEnabled := cfg.Focusable
 
 	makeCtx := func(block MarkdownBlock) *mdBlockCtx {
 		if !selEnabled {
 			return nil
 		}
-		ctx := &mdBlockCtx{ID: cfg.IDFocus, Start: runeOffset}
+		ctx := &mdBlockCtx{ID: cfg.ID, Start: runeOffset}
 		runeOffset += uint32(rtfRuneCountFromRuns(&block.Content))
 		return ctx
 	}

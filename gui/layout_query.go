@@ -1,5 +1,23 @@
 package gui
 
+import (
+	"fmt"
+	"os"
+)
+
+// focusDebug enables dev-mode focus diagnostics (duplicate focusable
+// IDs). Enable with GOGUI_FOCUS_DEBUG=1.
+var focusDebug = os.Getenv("GOGUI_FOCUS_DEBUG") == "1"
+
+// focusDupWarn reports a duplicate focusable ID in dev mode. Duplicate
+// IDs collapse to a single tab stop; the extra widget is skipped.
+func focusDupWarn(id string) {
+	if focusDebug {
+		fmt.Fprintf(os.Stderr,
+			"gui: duplicate focusable ID %q; collapsing to one tab stop\n", id)
+	}
+}
+
 // FindShape walks the layout depth-first until predicate is satisfied.
 func (layout *Layout) FindShape(predicate func(Layout) bool) (*Shape, bool) {
 	for i := range layout.Children {
@@ -26,13 +44,13 @@ func (layout *Layout) FindLayout(predicate func(Layout) bool) (*Layout, bool) {
 	return nil, false
 }
 
-// FindLayoutByIDFocus recursively searches for a layout with matching IDFocus.
-func FindLayoutByIDFocus(layout *Layout, idFocus uint32) (*Layout, bool) {
-	if layout.Shape.IDFocus == idFocus {
+// FindLayoutByFocusID recursively searches for a layout with matching focus ID.
+func FindLayoutByFocusID(layout *Layout, id string) (*Layout, bool) {
+	if id != "" && layout.Shape.Focusable && layout.Shape.ID == id {
 		return layout, true
 	}
 	for i := range layout.Children {
-		if ly, ok := FindLayoutByIDFocus(&layout.Children[i], idFocus); ok {
+		if ly, ok := FindLayoutByFocusID(&layout.Children[i], id); ok {
 			return ly, true
 		}
 	}
@@ -67,19 +85,20 @@ func (layout *Layout) FindByID(id string) (*Layout, bool) {
 
 type focusCandidate struct {
 	shape *Shape
-	id    uint32
+	id    string
 }
 
-func collectFocusCandidates(layout *Layout, candidates *[]focusCandidate, seen map[uint32]struct{}) {
-	if layout.Shape.IDFocus > 0 && !layout.Shape.FocusSkip {
-		if !layout.Shape.Disabled {
-			if _, ok := seen[layout.Shape.IDFocus]; !ok {
-				seen[layout.Shape.IDFocus] = struct{}{}
-				*candidates = append(*candidates, focusCandidate{
-					id:    layout.Shape.IDFocus,
-					shape: layout.Shape,
-				})
-			}
+func collectFocusCandidates(layout *Layout, candidates *[]focusCandidate, seen map[string]struct{}) {
+	s := layout.Shape
+	if s.Focusable && !s.FocusSkip && !s.Disabled && s.ID != "" {
+		if _, ok := seen[s.ID]; ok {
+			focusDupWarn(s.ID)
+		} else {
+			seen[s.ID] = struct{}{}
+			*candidates = append(*candidates, focusCandidate{
+				id:    s.ID,
+				shape: s,
+			})
 		}
 	}
 	for i := range layout.Children {
@@ -87,75 +106,56 @@ func collectFocusCandidates(layout *Layout, candidates *[]focusCandidate, seen m
 	}
 }
 
-func focusFindNext(candidates []focusCandidate, idFocus uint32) (*Shape, bool) {
-	var minID uint32 = 0xffffffff
-	var minShape *Shape
-	var nextID uint32 = 0xffffffff
-	var nextShape *Shape
-	for _, c := range candidates {
-		if c.id < minID {
-			minID = c.id
-			minShape = c.shape
-		}
-		if idFocus > 0 && c.id > idFocus && c.id < nextID {
-			nextID = c.id
-			nextShape = c.shape
+// focusFindNext returns the candidate after the one whose id equals
+// focusID, in DFS (tab) order, wrapping to the first. When focusID
+// is not among the candidates, returns the first.
+func focusFindNext(candidates []focusCandidate, focusID string) (*Shape, bool) {
+	if len(candidates) == 0 {
+		return nil, false
+	}
+	for i, c := range candidates {
+		if c.id == focusID {
+			return candidates[(i+1)%len(candidates)].shape, true
 		}
 	}
-	if nextShape != nil {
-		return nextShape, true
-	}
-	if minShape != nil {
-		return minShape, true
-	}
-	return nil, false
+	return candidates[0].shape, true
 }
 
-func focusFindPrevious(candidates []focusCandidate, idFocus uint32) (*Shape, bool) {
-	var maxID uint32
-	var maxShape *Shape
-	var prevID uint32
-	var prevShape *Shape
-	for _, c := range candidates {
-		if maxShape == nil || c.id > maxID {
-			maxID = c.id
-			maxShape = c.shape
-		}
-		if idFocus > 0 && c.id < idFocus &&
-			(prevShape == nil || c.id > prevID) {
-			prevID = c.id
-			prevShape = c.shape
+// focusFindPrevious returns the candidate before the one whose id
+// equals focusID, in DFS (tab) order, wrapping to the last. When
+// focusID is not among the candidates, returns the last.
+func focusFindPrevious(candidates []focusCandidate, focusID string) (*Shape, bool) {
+	if len(candidates) == 0 {
+		return nil, false
+	}
+	for i, c := range candidates {
+		if c.id == focusID {
+			return candidates[(i-1+len(candidates))%len(candidates)].shape, true
 		}
 	}
-	if prevShape != nil {
-		return prevShape, true
-	}
-	if maxShape != nil {
-		return maxShape, true
-	}
-	return nil, false
+	return candidates[len(candidates)-1].shape, true
 }
 
-type focusFinder func([]focusCandidate, uint32) (*Shape, bool)
+type focusFinder func([]focusCandidate, string) (*Shape, bool)
 
 func (layout *Layout) findFocusable(w *Window, find focusFinder) (*Shape, bool) {
 	var candidates []focusCandidate
-	var seen map[uint32]struct{}
-	var idFocus uint32
+	var seen map[string]struct{}
+	var focusID string
 	if w != nil {
 		candidates = w.scratch.focusCandidates.take(0)
 		defer func() { w.scratch.focusCandidates.put(candidates) }()
 		seen = w.scratch.focusSeen.take(len(candidates))
 		defer func() { w.scratch.focusSeen.put(seen) }()
-		idFocus = w.viewState.idFocus
+		focusID = w.viewState.focusID
 	} else {
-		seen = make(map[uint32]struct{})
+		seen = make(map[string]struct{})
 	}
 	collectFocusCandidates(layout, &candidates, seen)
 	if len(candidates) == 0 {
 		return nil, false
 	}
-	return find(candidates, idFocus)
+	return find(candidates, focusID)
 }
 
 // NextFocusable returns the next focusable shape after the

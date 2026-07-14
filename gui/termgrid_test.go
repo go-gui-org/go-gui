@@ -159,8 +159,8 @@ func TestTermGridLayoutIDFocusSetsA11YRole(t *testing.T) {
 	w := makeWindowWithScratch()
 	v := TermGrid(TermGridCfg{
 		Cols: 4, Rows: 2, CellW: 8, CellH: 16,
-		Cells:   termCells(4, 2),
-		IDFocus: 1,
+		Cells:     termCells(4, 2),
+		Focusable: true, ID: "f1",
 	})
 	l := v.GenerateLayout(w)
 	if l.Shape.A11YRole != AccessRoleTextArea {

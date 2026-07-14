@@ -753,7 +753,7 @@ func demoDrawCanvasInteractive(app *ShowcaseApp) gui.View {
 		Padding: gui.Some(gui.Padding{
 			Top: 20, Right: 20, Bottom: 20, Left: 20,
 		}),
-		IDFocus:         focusDrawCanvas,
+		Focusable:       true,
 		A11YLabel:       "Interactive draw canvas",
 		A11YDescription: "Arrow keys move the marker",
 		OnDraw: func(dc *gui.DrawContext) {

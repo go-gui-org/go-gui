@@ -138,7 +138,7 @@ func dataGridCrudResolveCfg(cfg DataGridCfg, w *gg.Window) (DataGridCfg, dataGri
 	return out, state
 }
 
-func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps GridDataCapabilities, hasSource bool, focusID uint32) gg.View {
+func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps GridDataCapabilities, hasSource bool, focusID string) gg.View {
 	hasUnsaved := dataGridCrudHasUnsaved(state)
 	canCreate := boolDefault(cfg.AllowCreate, true) && (!hasSource || caps.SupportsCreate)
 	canDelete := boolDefault(cfg.AllowDelete, true) && (!hasSource || caps.SupportsDelete)
@@ -249,7 +249,7 @@ func dataGridCrudDefaultCells(columns []GridColumnCfg) map[string]string {
 	return cells
 }
 
-func dataGridCrudAddRow(gridID string, columns []GridColumnCfg, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), focusID, scrollID uint32, pageSize, pageIndex int, onPageChange func(int, *gg.Event, *gg.Window), e *gg.Event, w *gg.Window) {
+func dataGridCrudAddRow(gridID string, columns []GridColumnCfg, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), focusID string, scrollID uint32, pageSize, pageIndex int, onPageChange func(int, *gg.Event, *gg.Window), e *gg.Event, w *gg.Window) {
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 	state, _ := dgCrud.Get(gridID)
 	state.NextDraftSeq++
@@ -284,13 +284,13 @@ func dataGridCrudAddRow(gridID string, columns []GridColumnCfg, onSelectionChang
 		onPageChange(0, e, w)
 	}
 	w.ScrollVerticalTo(scrollID, 0)
-	if focusID > 0 {
-		w.SetIDFocus(focusID)
+	if focusID != "" {
+		w.SetFocus(focusID)
 	}
 	e.IsHandled = true
 }
 
-func dataGridCrudDeleteSelected(gridID string, selection GridSelection, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), focusID uint32, e *gg.Event, w *gg.Window) {
+func dataGridCrudDeleteSelected(gridID string, selection GridSelection, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), focusID string, e *gg.Event, w *gg.Window) {
 	if len(selection.SelectedRowIDs) == 0 {
 		return
 	}
@@ -303,7 +303,7 @@ func dataGridCrudDeleteSelected(gridID string, selection GridSelection, onSelect
 	dataGridCrudDeleteRows(gridID, selection, onSelectionChange, ids, focusID, e, w)
 }
 
-func dataGridCrudDeleteRows(gridID string, selection GridSelection, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), rowIDs []string, focusID uint32, e *gg.Event, w *gg.Window) {
+func dataGridCrudDeleteRows(gridID string, selection GridSelection, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), rowIDs []string, focusID string, e *gg.Event, w *gg.Window) {
 	if len(rowIDs) == 0 {
 		return
 	}
@@ -348,8 +348,8 @@ func dataGridCrudDeleteRows(gridID string, selection GridSelection, onSelectionC
 		nextSel := dataGridSelectionRemoveIDs(selection, deleteIDs)
 		onSelectionChange(nextSel, e, w)
 	}
-	if focusID > 0 {
-		w.SetIDFocus(focusID)
+	if focusID != "" {
+		w.SetFocus(focusID)
 	}
 	e.IsHandled = true
 }
@@ -408,7 +408,7 @@ func dataGridCrudApplyCellEdit(gridID string, crudEnabled bool, onCellEdit func(
 	}
 }
 
-func dataGridCrudCancel(gridID string, focusID uint32, e *gg.Event, w *gg.Window) {
+func dataGridCrudCancel(gridID string, focusID string, e *gg.Event, w *gg.Window) {
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 	state, _ := dgCrud.Get(gridID)
 	state.WorkingRows = cloneRows(state.CommittedRows)
@@ -418,8 +418,8 @@ func dataGridCrudCancel(gridID string, focusID uint32, e *gg.Event, w *gg.Window
 	state.SourceChanged = false
 	dgCrud.Set(gridID, state)
 	dataGridClearEditingRow(gridID, w)
-	if focusID > 0 {
-		w.SetIDFocus(focusID)
+	if focusID != "" {
+		w.SetFocus(focusID)
 	}
 	e.IsHandled = true
 }

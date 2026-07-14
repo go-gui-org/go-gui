@@ -48,12 +48,15 @@ func TestButtonDisabledFlag(t *testing.T) {
 	}
 }
 
-func TestButtonIDFocus(t *testing.T) {
+func TestButtonFocusable(t *testing.T) {
 	w := &Window{}
-	v := Button(ButtonCfg{ID: "b4", IDFocus: 42})
+	v := Button(ButtonCfg{ID: "b4", Focusable: true})
 	layout := generateViewLayout(v, w)
-	if layout.Shape.IDFocus != 42 {
-		t.Errorf("IDFocus: got %d, want 42", layout.Shape.IDFocus)
+	if !layout.Shape.Focusable {
+		t.Error("Focusable: want true")
+	}
+	if layout.Shape.ID != "b4" {
+		t.Errorf("ID: got %q, want b4", layout.Shape.ID)
 	}
 }
 

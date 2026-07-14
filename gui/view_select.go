@@ -33,7 +33,7 @@ type SelectCfg struct {
 	Radius           Opt[float32]
 	MinWidth         float32
 	MaxWidth         float32
-	IDFocus          uint32
+	Focusable        bool
 	Color            Color
 	ColorBorder      Color
 	ColorBorderFocus Color
@@ -155,7 +155,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 	// Build the outer row layout directly.
 	ccfg := ContainerCfg{
 		ID:          cfg.ID,
-		IDFocus:     cfg.IDFocus,
+		Focusable:   cfg.Focusable,
 		Clip:        clip,
 		A11YRole:    AccessRoleComboBox,
 		A11YLabel:   a11yLabel(cfg.A11YLabel, cfg.Placeholder),
@@ -174,7 +174,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 			if layout.Shape.Disabled {
 				return
 			}
-			if w.IsFocus(layout.Shape.IDFocus) {
+			if w.IsFocus(layout.Shape.ID) {
 				layout.Shape.Color = colorFocus
 				layout.Shape.ColorBorder = colorBorderFocus
 			}

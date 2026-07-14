@@ -177,7 +177,8 @@ func (c *TimeTravelController) View(w *Window) View {
 
 	ww, wh := w.WindowSize()
 	return Column(ContainerCfg{
-		IDFocus:   ttDebugFocusID,
+		ID:        ttDebugFocusID,
+		Focusable: true,
 		Width:     float32(ww),
 		Height:    float32(wh),
 		OnKeyDown: c.handleKey,
@@ -236,9 +237,9 @@ const (
 	ttSliderID     = "gui.time_travel.slider"
 )
 
-// ttDebugFocusID is the IDFocus for the debug window's root
+// ttDebugFocusID is the focus ID for the debug window's root
 // container.
-const ttDebugFocusID uint32 = 1
+const ttDebugFocusID = "__tt_debug__"
 
 // handleKey maps scrubber keyboard shortcuts to controller
 // actions. Called from the root container's OnKeyDown.

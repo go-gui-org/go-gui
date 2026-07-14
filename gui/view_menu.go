@@ -8,20 +8,18 @@ import "fmt"
 // Escape to close, Right/Left for submenus.
 func Menu(w *Window, cfg MenubarCfg) View {
 	applyMenubarDefaults(&cfg)
-	if cfg.IDFocus == 0 {
-		cfg.IDFocus = FnvSum32("menu_" + cfg.ID)
-	}
+	RequireID("Menu", cfg.ID)
 	checkForDuplicateMenuIDs(cfg.Items)
 
 	// Auto-select first item on focus.
-	if w.IsFocus(cfg.IDFocus) {
+	if w.IsFocus(cfg.ID) {
 		sel := StateReadOr(
-			w, nsMenu, cfg.IDFocus, "")
+			w, nsMenu, cfg.ID, "")
 		if sel == "" {
 			if first, ok := firstSelectable(cfg.Items); ok {
-				sm := StateMap[uint32, string](
+				sm := StateMap[string, string](
 					w, nsMenu, capModerate)
-				sm.Set(cfg.IDFocus, first.ID)
+				sm.Set(cfg.ID, first.ID)
 			}
 		}
 	}
@@ -43,9 +41,9 @@ func Menu(w *Window, cfg MenubarCfg) View {
 		FloatTieOff:   cfg.FloatTieOff,
 		FloatOffsetX:  cfg.FloatOffsetX,
 		FloatOffsetY:  cfg.FloatOffsetY,
-		IDFocus:       cfg.IDFocus,
+		Focusable:     true,
 		OnKeyDown:     makeMenuOnKeyDown(cfg),
-		AmendLayout:   makeMenuAmendLayout(cfg.IDFocus),
+		AmendLayout:   makeMenuAmendLayout(cfg.ID),
 		Content:       menuBuild(cfg, 1, cfg.Items, w),
 	})
 }
@@ -65,16 +63,16 @@ func menuOnKeyDown(cfg MenubarCfg,
 	mapper func([]MenuItemCfg) MenuIDMap,
 	e *Event, w *Window) {
 
-	sm := StateMap[uint32, string](w, nsMenu, capModerate)
+	sm := StateMap[string, string](w, nsMenu, capModerate)
 
 	switch e.KeyCode {
 	case KeyEscape:
-		w.SetIDFocus(0)
-		sm.Delete(cfg.IDFocus)
+		w.ClearFocus()
+		sm.Delete(cfg.ID)
 		e.IsHandled = true
 
 	case KeySpace, KeyEnter:
-		sel, _ := sm.Get(cfg.IDFocus) // ok ignored: empty string checked immediately below
+		sel, _ := sm.Get(cfg.ID) // ok ignored: empty string checked immediately below
 		if sel == "" {
 			return
 		}
@@ -89,13 +87,13 @@ func menuOnKeyDown(cfg MenubarCfg,
 			cfg.Action(sel, e, w)
 		}
 		if len(item.Submenu) == 0 {
-			w.SetIDFocus(0)
-			sm.Delete(cfg.IDFocus)
+			w.ClearFocus()
+			sm.Delete(cfg.ID)
 		}
 		e.IsHandled = true
 
 	case KeyLeft, KeyRight, KeyUp, KeyDown:
-		sel, _ := sm.Get(cfg.IDFocus) // ok ignored: empty string checked immediately below
+		sel, _ := sm.Get(cfg.ID) // ok ignored: empty string checked immediately below
 		if sel == "" {
 			return
 		}
@@ -116,7 +114,7 @@ func menuOnKeyDown(cfg MenubarCfg,
 			target = node.Down
 		}
 		if target != "" && target != sel {
-			sm.Set(cfg.IDFocus, target)
+			sm.Set(cfg.ID, target)
 			w.viewState.menuKeyNav = true
 		}
 		e.IsHandled = true
@@ -131,7 +129,7 @@ func menuBuild(cfg MenubarCfg, level int, items []MenuItemCfg, w *Window) []View
 	}
 
 	selectedID := StateReadOr(
-		w, nsMenu, cfg.IDFocus, "")
+		w, nsMenu, cfg.ID, "")
 
 	views := make([]View, 0, len(items))
 	for _, item := range items {
@@ -229,13 +227,13 @@ func menuBuild(cfg MenubarCfg, level int, items []MenuItemCfg, w *Window) []View
 
 // makeMenuAmendLayout clears menu selection when the widget
 // loses focus.
-func makeMenuAmendLayout(idFocus uint32) func(*Layout, *Window) {
+func makeMenuAmendLayout(focusID string) func(*Layout, *Window) {
 	return func(_ *Layout, w *Window) {
-		if !w.IsFocus(idFocus) {
+		if !w.IsFocus(focusID) {
 			// StateMapRead returns nil if map not yet created.
-			sm := StateMapRead[uint32, string](w, nsMenu)
+			sm := StateMapRead[string, string](w, nsMenu)
 			if sm != nil {
-				sm.Delete(idFocus)
+				sm.Delete(focusID)
 			}
 		}
 	}

@@ -27,13 +27,13 @@ func newSpellCheckWindow(spellChk bool, text string) *Window {
 	w.viewGenerator = func(w *Window) View {
 		app := State[appState](w)
 		return Input(InputCfg{
-			IDFocus:    1,
+			Focusable: true, ID: "f1",
 			Sizing:     FillFit,
 			Text:       app.text,
 			SpellCheck: spellChk,
 		})
 	}
-	w.SetIDFocus(1)
+	w.SetFocus("f1")
 	return w
 }
 
@@ -44,9 +44,9 @@ func TestSpellCheckTriggerOnEnable(t *testing.T) {
 	w.Update()
 
 	// No spell state should exist yet.
-	sm := StateMapRead[uint32, spellCheckState](w, nsSpellCheck)
+	sm := StateMapRead[string, spellCheckState](w, nsSpellCheck)
 	if sm != nil {
-		if _, ok := sm.Get(1); ok {
+		if _, ok := sm.Get("f1"); ok {
 			t.Fatal("spell state should not exist before enable")
 		}
 	}
@@ -54,7 +54,7 @@ func TestSpellCheckTriggerOnEnable(t *testing.T) {
 	// Enable spell check by switching the view generator.
 	w.viewGenerator = func(_ *Window) View {
 		return Input(InputCfg{
-			IDFocus:    1,
+			Focusable: true, ID: "f1",
 			Sizing:     FillFit,
 			Text:       "helo",
 			SpellCheck: true,
@@ -64,11 +64,11 @@ func TestSpellCheckTriggerOnEnable(t *testing.T) {
 	w.Update()
 
 	// Pending state should exist (text set, ranges nil).
-	sm = StateMapRead[uint32, spellCheckState](w, nsSpellCheck)
+	sm = StateMapRead[string, spellCheckState](w, nsSpellCheck)
 	if sm == nil {
 		t.Fatal("spell state map should exist after trigger")
 	}
-	state, ok := sm.Get(1)
+	state, ok := sm.Get("f1")
 	if !ok {
 		t.Fatal("pending spell state should exist for IDFocus 1")
 	}
@@ -80,7 +80,7 @@ func TestSpellCheckTriggerOnEnable(t *testing.T) {
 	}
 
 	// Simulate animation firing: directly invoke the callback.
-	animID := spellCheckAnimID(1)
+	animID := spellCheckAnimID("f1")
 	anim, ok := w.animations[animID]
 	if !ok {
 		t.Fatal("spell check animation should be registered")
@@ -92,7 +92,7 @@ func TestSpellCheckTriggerOnEnable(t *testing.T) {
 	a.Callback(a, w)
 
 	// Results should now be stored.
-	state, ok = sm.Get(1)
+	state, ok = sm.Get("f1")
 	if !ok {
 		t.Fatal("spell state should exist after callback")
 	}
@@ -109,7 +109,7 @@ func TestSpellCheckPendingPreventsTimerReset(t *testing.T) {
 	w.Update()
 
 	// Trigger happened during Update. Get the animation.
-	animID := spellCheckAnimID(1)
+	animID := spellCheckAnimID("f1")
 	anim1, ok := w.animations[animID]
 	if !ok {
 		t.Fatal("animation should exist after first Update")
@@ -137,18 +137,18 @@ func TestSpellCheckClearOnDisable(t *testing.T) {
 	w.Update()
 
 	// State should exist (pending).
-	sm := StateMapRead[uint32, spellCheckState](w, nsSpellCheck)
+	sm := StateMapRead[string, spellCheckState](w, nsSpellCheck)
 	if sm == nil {
 		t.Fatal("state map should exist")
 	}
-	if _, ok := sm.Get(1); !ok {
+	if _, ok := sm.Get("f1"); !ok {
 		t.Fatal("pending state should exist")
 	}
 
 	// Disable spell check.
 	w.viewGenerator = func(_ *Window) View {
 		return Input(InputCfg{
-			IDFocus:    1,
+			Focusable: true, ID: "f1",
 			Sizing:     FillFit,
 			Text:       "helo",
 			SpellCheck: false,
@@ -158,11 +158,11 @@ func TestSpellCheckClearOnDisable(t *testing.T) {
 	w.Update()
 
 	// State should be cleared.
-	state, ok := sm.Get(1)
+	state, ok := sm.Get("f1")
 	if ok && len(state.Ranges) > 0 {
 		t.Fatal("spell state should be cleared after disable")
 	}
-	if _, ok := w.animations[spellCheckAnimID(1)]; ok {
+	if _, ok := w.animations[spellCheckAnimID("f1")]; ok {
 		t.Fatal("animation should be cancelled after disable")
 	}
 }

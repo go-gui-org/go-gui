@@ -101,10 +101,10 @@ func demoTable(w *gui.Window) gui.View {
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					gui.RadioButtonGroupRow(gui.RadioButtonGroupCfg{
-						IDFocus: 9108,
-						Title:   "Border style",
-						TitleBG: gui.CurrentTheme().ColorBackground,
-						Value:   app.TableBorderStyle,
+						Focusable: true,
+						Title:     "Border style",
+						TitleBG:   gui.CurrentTheme().ColorBackground,
+						Value:     app.TableBorderStyle,
 						Options: []gui.RadioOption{
 							gui.NewRadioOption("All", "all"),
 							gui.NewRadioOption("Horizontal", "horizontal"),
@@ -121,9 +121,9 @@ func demoTable(w *gui.Window) gui.View {
 						Spacing:    gui.SomeF(6),
 						Content: []gui.View{
 							gui.Toggle(gui.ToggleCfg{
-								IDFocus:  9109,
-								Label:    "Multi-select",
-								Selected: app.TableMultiSelect,
+								Focusable: true,
+								Label:     "Multi-select",
+								Selected:  app.TableMultiSelect,
 								OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
 									a := gui.State[ShowcaseApp](w)
 									a.TableMultiSelect = !a.TableMultiSelect
@@ -131,9 +131,9 @@ func demoTable(w *gui.Window) gui.View {
 								},
 							}),
 							gui.Toggle(gui.ToggleCfg{
-								IDFocus:  9111,
-								Label:    "Freeze header",
-								Selected: app.TableFreezeHeader,
+								Focusable: true,
+								Label:     "Freeze header",
+								Selected:  app.TableFreezeHeader,
 								OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
 									gui.State[ShowcaseApp](w).TableFreezeHeader = !app.TableFreezeHeader
 								},
@@ -173,7 +173,6 @@ func demoDataGrid(w *gui.Window) gui.View {
 			}),
 			datagrid.New(w, datagrid.DataGridCfg{
 				ID:                "catalog-data-grid",
-				IDFocus:           9162,
 				Sizing:            gui.Some(gui.FitFit),
 				Columns:           showcaseDataGridColumns(),
 				Rows:              rows,
@@ -221,7 +220,6 @@ func demoDataSource(w *gui.Window) gui.View {
 			}),
 			datagrid.New(w, datagrid.DataGridCfg{
 				ID:              "catalog-data-source",
-				IDFocus:         9175,
 				Sizing:          gui.Some(gui.FitFit),
 				Columns:         showcaseDataSourceColumns(),
 				DataSource:      app.DataSource,
@@ -265,10 +263,10 @@ func demoTree(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{Text: "Basic tree", TextStyle: gui.CurrentTheme().B3}),
 			gui.Tree(gui.TreeCfg{
-				ID:       "showcase-tree-basic",
-				IDFocus:  9180,
-				Sizing:   gui.FillFit,
-				OnSelect: showcaseTreeOnSelect,
+				ID:        "showcase-tree-basic",
+				Focusable: true,
+				Sizing:    gui.FillFit,
+				OnSelect:  showcaseTreeOnSelect,
 				Nodes: []gui.TreeNodeCfg{
 					{
 						Text: "Mammals",
@@ -301,7 +299,7 @@ func demoTree(w *gui.Window) gui.View {
 			gui.Text(gui.TextCfg{Text: "Virtualized tree (scroll)", TextStyle: gui.CurrentTheme().B3}),
 			gui.Tree(gui.TreeCfg{
 				ID:        "showcase-tree-virtual",
-				IDFocus:   9181,
+				Focusable: true,
 				IDScroll:  9182,
 				Sizing:    gui.FillFit,
 				MaxHeight: 200,
@@ -311,7 +309,7 @@ func demoTree(w *gui.Window) gui.View {
 			gui.Text(gui.TextCfg{Text: "Lazy-loading tree", TextStyle: gui.CurrentTheme().B3}),
 			gui.Tree(gui.TreeCfg{
 				ID:         "showcase-tree-lazy",
-				IDFocus:    9183,
+				Focusable:  true,
 				Sizing:     gui.FillFit,
 				OnSelect:   showcaseTreeOnSelect,
 				OnLazyLoad: showcaseTreeOnLazyLoad,

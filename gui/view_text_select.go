@@ -16,10 +16,10 @@ const (
 // drag-to-select via MouseLock.
 func textOnClick(layout *Layout, e *Event, w *Window) {
 	shape := layout.Shape
-	if shape.TC == nil || shape.IDFocus == 0 {
+	if shape.TC == nil || shape.ID == "" || !shape.Focusable {
 		return
 	}
-	w.SetIDFocus(shape.IDFocus)
+	w.SetFocus(shape.ID)
 
 	text := shape.TC.Text
 	style := textStyleOrDefault(shape)
@@ -45,11 +45,11 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 		runePos = intClamp(runePos, 0, runeLen)
 	}
 
-	idFocus := shape.IDFocus
-	imap := StateMap[uint32, InputState](
+	focusID := shape.ID
+	imap := StateMap[string, InputState](
 		w, nsInput, capMany,
 	)
-	is, _ := imap.Get(idFocus)
+	is, _ := imap.Get(focusID)
 
 	// Double-click detection.
 	now := time.Now().UnixMilli()
@@ -77,7 +77,7 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 		is.SelectEnd = uint32(runePos)
 	}
 	is.CursorOffset = -1
-	imap.Set(idFocus, is)
+	imap.Set(focusID, is)
 	resetBlinkCursorVisible(w)
 	e.IsHandled = true
 
@@ -86,7 +86,7 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 	anchorEnd := is.SelectEnd
 	dragGL := gl
 	dragGLOK := glOK
-	dragIDFocus := idFocus
+	dragFocusID := focusID
 	dragShapeX := shape.X
 	dragShapeY := shape.Y
 
@@ -139,10 +139,10 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 
 	runes := []rune(text)
 	updateDragSelection := func(rp int, w *Window) {
-		dim := StateMap[uint32, InputState](
+		dim := StateMap[string, InputState](
 			w, nsInput, capMany,
 		)
-		dis, _ := dim.Get(dragIDFocus)
+		dis, _ := dim.Get(dragFocusID)
 		if doubleClick {
 			var wb, we int
 			if dragGLOK {
@@ -168,7 +168,7 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 			dis.SelectEnd = uint32(rp)
 		}
 		dis.CursorOffset = -1
-		dim.Set(dragIDFocus, dis)
+		dim.Set(dragFocusID, dis)
 		resetBlinkCursorVisible(w)
 	}
 
@@ -231,13 +231,13 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 // and copy. No editing keys (paste, cut, delete).
 func textOnKeyDown(layout *Layout, e *Event, w *Window) {
 	shape := layout.Shape
-	if shape.TC == nil || shape.IDFocus == 0 ||
-		!w.IsFocus(shape.IDFocus) {
+	if shape.TC == nil || shape.ID == "" || !shape.Focusable ||
+		!w.IsFocus(shape.ID) {
 		return
 	}
-	id := shape.IDFocus
+	id := shape.ID
 	text := shape.TC.Text
-	imap := StateMap[uint32, InputState](
+	imap := StateMap[string, InputState](
 		w, nsInput, capMany,
 	)
 	is, _ := imap.Get(id)
@@ -305,7 +305,7 @@ func textOnKeyDown(layout *Layout, e *Event, w *Window) {
 // textKeyVertical handles KeyUp/KeyDown for text selection.
 // Returns false when the key is unhandled (single-line mode).
 func textKeyVertical(
-	imap *BoundedMap[uint32, InputState], id uint32, is InputState,
+	imap *BoundedMap[string, InputState], id string, is InputState,
 	text string, pos int, isShift bool,
 	savedOffset float32, up bool, mode TextMode,
 	gl glyph.Layout, glOK bool,
@@ -345,11 +345,11 @@ func textKeyVertical(
 // TextSelBeg/TextSelEnd for rendering. Unlike input's nested
 // structure, text is a flat shape — no child traversal needed.
 func textAmendLayout(layout *Layout, w *Window) {
-	if layout.Shape.IDFocus == 0 || layout.Shape.TC == nil {
+	if layout.Shape.ID == "" || !layout.Shape.Focusable || layout.Shape.TC == nil {
 		return
 	}
 	is := StateReadOr(
-		w, nsInput, layout.Shape.IDFocus, InputState{},
+		w, nsInput, layout.Shape.ID, InputState{},
 	)
 	layout.Shape.TC.TextSelBeg = is.SelectBeg
 	layout.Shape.TC.TextSelEnd = is.SelectEnd

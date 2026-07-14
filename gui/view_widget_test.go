@@ -9,9 +9,9 @@ func noop(_ *Layout, _ *Event, _ *Window) {}
 func TestRadioGeneratesLayout(t *testing.T) {
 	w := newTestWindow()
 	v := Radio(RadioCfg{
-		Label:   "Option A",
-		OnClick: noop,
-		IDFocus: 1,
+		Label:     "Option A",
+		OnClick:   noop,
+		Focusable: true, ID: "f1",
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleRadioButton {
@@ -48,8 +48,8 @@ func TestRadioNoLabel(t *testing.T) {
 func TestRadioDisabledCircle(t *testing.T) {
 	w := newTestWindow()
 	v := Radio(RadioCfg{
-		OnClick:  noop,
-		IDFocus:  1,
+		OnClick:   noop,
+		Focusable: true, ID: "f1",
 		Disabled: true,
 	})
 	layout := generateViewLayout(v, w)
@@ -101,8 +101,8 @@ func TestRadioClickHoverChangesBorder(t *testing.T) {
 
 func TestRadioFocusBorder(t *testing.T) {
 	w := newTestWindow()
-	w.viewState.idFocus = 5
-	v := Radio(RadioCfg{OnClick: noop, IDFocus: 5})
+	w.viewState.focusID = "f5"
+	v := Radio(RadioCfg{OnClick: noop, Focusable: true, ID: "f5"})
 	layout := generateViewLayout(v, w)
 	layout.Shape.events.AmendLayout(&layout, w)
 	if layout.Children[0].Shape.ColorBorder != DefaultRadioStyle.ColorBorderFocus {
@@ -151,9 +151,9 @@ func TestRadioCustomTextStyleMerged(t *testing.T) {
 func TestToggleGeneratesLayout(t *testing.T) {
 	w := newTestWindow()
 	v := Toggle(ToggleCfg{
-		Label:   "Accept",
-		OnClick: noop,
-		IDFocus: 2,
+		Label:     "Accept",
+		OnClick:   noop,
+		Focusable: true, ID: "f2",
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleCheckbox {
@@ -237,8 +237,8 @@ func TestToggleClickHoverChangesColor(t *testing.T) {
 
 func TestToggleFocusBorder(t *testing.T) {
 	w := newTestWindow()
-	w.viewState.idFocus = 5
-	v := Toggle(ToggleCfg{OnClick: noop, IDFocus: 5})
+	w.viewState.focusID = "f5"
+	v := Toggle(ToggleCfg{OnClick: noop, Focusable: true, ID: "f5"})
 	layout := generateViewLayout(v, w)
 	layout.Shape.events.AmendLayout(&layout, w)
 	if layout.Children[0].Shape.ColorBorder != DefaultToggleStyle.ColorBorderFocus {
@@ -298,9 +298,9 @@ func TestToggleUnselectedText(t *testing.T) {
 func TestSwitchGeneratesLayout(t *testing.T) {
 	w := newTestWindow()
 	v := Switch(SwitchCfg{
-		Label:   "Dark mode",
-		OnClick: noop,
-		IDFocus: 3,
+		Label:     "Dark mode",
+		OnClick:   noop,
+		Focusable: true, ID: "f3",
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleSwitchToggle {
@@ -385,9 +385,9 @@ func TestSwitchClickHoverChangesColor(t *testing.T) {
 
 func TestSwitchFocusBorder(t *testing.T) {
 	w := newTestWindow()
-	v := Switch(SwitchCfg{OnClick: noop, IDFocus: 5})
+	v := Switch(SwitchCfg{OnClick: noop, Focusable: true, ID: "f5"})
 	layout := generateViewLayout(v, w)
-	w.SetIDFocus(5)
+	w.SetFocus("f5")
 	layout.Shape.events.AmendLayout(&layout, w)
 	if layout.Shape.ColorBorder != DefaultSwitchStyle.ColorBorderFocus {
 		t.Error("focused switch should have focus border color")
@@ -450,10 +450,10 @@ func TestSwitchOuterRowNoBorder(t *testing.T) {
 func TestSelectGeneratesLayout(t *testing.T) {
 	w := newTestWindow()
 	v := Select(SelectCfg{
-		ID:       "country",
-		Options:  []string{"US", "UK", "DE"},
-		OnSelect: func(_ []string, _ *Event, _ *Window) {},
-		IDFocus:  10,
+		ID:        "country",
+		Options:   []string{"US", "UK", "DE"},
+		OnSelect:  func(_ []string, _ *Event, _ *Window) {},
+		Focusable: true,
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleComboBox {
@@ -506,9 +506,9 @@ func TestSelectShowsSelected(t *testing.T) {
 func TestNumericInputGeneratesLayout(t *testing.T) {
 	w := newTestWindow()
 	v := NumericInput(NumericInputCfg{
-		ID:      "qty",
-		Text:    "42",
-		IDFocus: 20,
+		ID:        "qty",
+		Text:      "42",
+		Focusable: true,
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleTextField {
@@ -519,10 +519,10 @@ func TestNumericInputGeneratesLayout(t *testing.T) {
 func TestNumericInputNoButtons(t *testing.T) {
 	w := newTestWindow()
 	v := NumericInput(NumericInputCfg{
-		ID:      "qty",
-		Text:    "10",
-		StepCfg: NumericStepCfg{ShowButtons: false},
-		IDFocus: 21,
+		ID:        "qty",
+		Text:      "10",
+		StepCfg:   NumericStepCfg{ShowButtons: false},
+		Focusable: true,
 	})
 	layout := generateViewLayout(v, w)
 	// Should be a Column (Input view), not Row with step buttons.
@@ -534,10 +534,10 @@ func TestNumericInputNoButtons(t *testing.T) {
 func TestNumericInputWithButtons(t *testing.T) {
 	w := newTestWindow()
 	v := NumericInput(NumericInputCfg{
-		ID:      "qty",
-		Text:    "10",
-		StepCfg: NumericStepCfg{ShowButtons: true, Step: 1},
-		IDFocus: 22,
+		ID:        "qty",
+		Text:      "10",
+		StepCfg:   NumericStepCfg{ShowButtons: true, Step: 1},
+		Focusable: true,
 	})
 	layout := generateViewLayout(v, w)
 	// Row with field + step button column.
@@ -557,8 +557,8 @@ func TestListBoxGeneratesLayout(t *testing.T) {
 			{ID: "b", Name: "Banana"},
 			{ID: "c", Name: "Cherry"},
 		},
-		OnSelect: func(_ []string, _ *Event, _ *Window) {},
-		IDFocus:  30,
+		OnSelect:  func(_ []string, _ *Event, _ *Window) {},
+		Focusable: true,
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleList {

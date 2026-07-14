@@ -45,7 +45,6 @@ type CommandPaletteCfg struct {
 	Radius         Opt[float32]
 	Width          float32
 	MaxHeight      float32
-	IDFocus        uint32
 	IDScroll       uint32
 	Color          Color
 	ColorBorder    Color
@@ -183,7 +182,6 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 		Content: []View{
 			Column(ContainerCfg{
 				ID:          cfg.ID,
-				IDFocus:     cfg.IDFocus,
 				A11YRole:    AccessRoleDialog,
 				Color:       cfg.Color,
 				ColorBorder: cfg.ColorBorder,
@@ -193,7 +191,6 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 				Padding:     NoPadding,
 				Spacing:     SomeF(0),
 				Sizing:      FixedFit,
-				OnKeyDown:   makePaletteOnKeyDown(paletteID, onAction, onDismiss, filtered, filteredIDs),
 				OnClick: func(_ *Layout, e *Event, _ *Window) {
 					// Prevent backdrop click when clicking card.
 					e.IsHandled = true
@@ -209,9 +206,10 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 								Text:          query,
 								Placeholder:   cfg.Placeholder,
 								TextStyle:     cfg.TextStyle,
-								IDFocus:       cfg.IDFocus,
+								Focusable:     true,
 								Sizing:        FillFit,
 								OnTextChanged: makePaletteOnTextChanged(cfg.ID),
+								OnKeyDown:     makePaletteOnKeyDown(paletteID, onAction, onDismiss, filtered, filteredIDs),
 								OnEnter:       makePaletteOnEnter(paletteID, onAction, onDismiss, filtered, filteredIDs),
 							}),
 						},
@@ -233,7 +231,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 }
 
 // CommandPaletteShow makes the palette visible and focuses input.
-func CommandPaletteShow(id string, idFocus, idScroll uint32, w *Window) {
+func CommandPaletteShow(id string, idScroll uint32, w *Window) {
 	ss := StateMap[string, bool](w, nsCmdPalette, capModerate)
 	ss.Set(id, true)
 	sq := StateMap[string, string](w, nsCmdPaletteQuery, capModerate)
@@ -244,7 +242,7 @@ func CommandPaletteShow(id string, idFocus, idScroll uint32, w *Window) {
 		sy := w.scrollY()
 		sy.Set(idScroll, 0)
 	}
-	w.SetIDFocus(idFocus)
+	w.SetFocus(id + ".input")
 	w.UpdateWindow()
 }
 
@@ -260,12 +258,12 @@ func CommandPaletteDismiss(id string, w *Window) {
 }
 
 // CommandPaletteToggle toggles palette visibility.
-func CommandPaletteToggle(id string, idFocus, idScroll uint32, w *Window) {
+func CommandPaletteToggle(id string, idScroll uint32, w *Window) {
 	visible := StateReadOr(w, nsCmdPalette, id, false)
 	if visible {
 		CommandPaletteDismiss(id, w)
 	} else {
-		CommandPaletteShow(id, idFocus, idScroll, w)
+		CommandPaletteShow(id, idScroll, w)
 	}
 }
 

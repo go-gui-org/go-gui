@@ -2,7 +2,6 @@ package datagrid
 
 import (
 	"fmt"
-	"math"
 	"slices"
 
 	gg "github.com/go-gui-org/go-gui/gui"
@@ -10,7 +9,7 @@ import (
 
 // dataGridHeaderRow builds the header row with all column
 // header cells.
-func dataGridHeaderRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths map[string]float32, focusID uint32, hoveredColID, resizingColID, focusedColID string) gg.View {
+func dataGridHeaderRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths map[string]float32, focusID string, hoveredColID, resizingColID, focusedColID string) gg.View {
 	cells := make([]gg.View, 0, len(columns))
 	for idx, col := range columns {
 		width := dataGridColumnWidthFor(col, columnWidths)
@@ -29,11 +28,11 @@ func dataGridHeaderRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths m
 	})
 }
 
-func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount int, width float32, focusID uint32, showControls bool) gg.View {
+func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount int, width float32, focusID string, showControls bool) gg.View {
 	hasReorder := showControls && cfg.OnColumnOrderChange != nil && col.Reorderable
 	hasPin := showControls && cfg.OnColumnPinChange != nil
 	headerControls := dataGridHeaderControlState(width, cfg.PaddingHeader.Get(gg.Padding{}), hasReorder, hasPin, showControls && col.Resizable)
-	headerFocusID := dataGridHeaderFocusID(cfg, colCount, colIdx)
+	headerFocusID := cfg.ID + ":header:" + col.ID
 
 	content := make([]gg.View, 0, 5)
 	indicator := dataGridHeaderIndicator(cfg.Query, col.ID)
@@ -110,10 +109,10 @@ func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount in
 				next := dataGridToggleSort(query, colID, multiSort, shiftSort)
 				onQueryChange(next, e, w)
 			}
-			if headerFocusID > 0 {
-				w.SetIDFocus(headerFocusID)
-			} else if focusID > 0 {
-				w.SetIDFocus(focusID)
+			if headerFocusID != "" {
+				w.SetFocus(headerFocusID)
+			} else if focusID != "" {
+				w.SetFocus(focusID)
 			}
 		},
 		OnHover: func(layout *gg.Layout, _ *gg.Event, w *gg.Window) {
@@ -125,12 +124,12 @@ func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount in
 				layout.Shape.Color = colorHeaderHover
 			}
 		},
-		IDFocus: headerFocusID,
-		Content: content,
+		Focusable: true,
+		Content:   content,
 	})
 }
 
-func dataGridResizeHandle(cfg *DataGridCfg, col GridColumnCfg, focusID uint32) gg.View {
+func dataGridResizeHandle(cfg *DataGridCfg, col GridColumnCfg, focusID string) gg.View {
 	gridID := cfg.ID
 	columns := cfg.Columns
 	rows := cfg.Rows
@@ -315,7 +314,7 @@ func dataGridFilterCell(cfg *DataGridCfg, col GridColumnCfg, width float32) gg.V
 		Content: []gg.View{
 			gg.Input(gg.InputCfg{
 				ID:          inputID,
-				IDFocus:     gg.FnvSum32(inputID),
+				Focusable:   true,
 				Text:        value,
 				Placeholder: placeholder,
 				Disabled:    !col.Filterable || onQueryChange == nil,
@@ -340,9 +339,9 @@ func dataGridFilterCell(cfg *DataGridCfg, col GridColumnCfg, width float32) gg.V
 	})
 }
 
-func dataGridStartResize(gridID string, columns []GridColumnCfg, rows []GridRow, textStyleHeader, textStyle gg.TextStyle, paddingCell gg.Padding, col GridColumnCfg, focusID uint32, startMouseX float32, e *gg.Event, w *gg.Window) {
-	if focusID > 0 {
-		w.SetIDFocus(focusID)
+func dataGridStartResize(gridID string, columns []GridColumnCfg, rows []GridRow, textStyleHeader, textStyle gg.TextStyle, paddingCell gg.Padding, col GridColumnCfg, focusID string, startMouseX float32, e *gg.Event, w *gg.Window) {
+	if focusID != "" {
+		w.SetFocus(focusID)
 	}
 	dgRS := gg.StateMap[string, dataGridResizeState](w, nsDgResize, capModerate)
 	runtime, _ := dgRS.Get(gridID)
@@ -374,8 +373,8 @@ func dataGridStartResize(gridID string, columns []GridColumnCfg, rows []GridRow,
 		MouseUp: func(_ *gg.Layout, _ *gg.Event, w *gg.Window) {
 			dataGridEndResize(gridID, w)
 			w.MouseUnlock()
-			if focusID > 0 {
-				w.SetIDFocus(focusID)
+			if focusID != "" {
+				w.SetFocus(focusID)
 			}
 		},
 	})
@@ -452,50 +451,17 @@ func dataGridActiveResizeColID(gridID string, w *gg.Window) string {
 	return ""
 }
 
-func dataGridHeaderFocusBaseID(cfg *DataGridCfg, colCount int) uint32 {
-	if colCount <= 0 {
-		return 0
-	}
-	span := uint32(colCount)
-	body := dataGridFocusID(cfg)
-	if body <= math.MaxUint32-span {
-		return body + 1
-	}
-	if body > span {
-		return body - span
-	}
-	return 1
-}
-
-func dataGridHeaderFocusID(cfg *DataGridCfg, colCount, colIdx int) uint32 {
-	if colCount <= 0 || colIdx < 0 || colIdx >= colCount {
-		return 0
-	}
-	base := dataGridHeaderFocusBaseID(cfg, colCount)
-	return base + uint32(colIdx)
-}
-
-func dataGridHeaderFocusIndex(cfg *DataGridCfg, colCount int, focusID uint32) int {
-	if colCount <= 0 || focusID == 0 {
-		return -1
-	}
-	base := dataGridHeaderFocusBaseID(cfg, colCount)
-	if focusID < base {
-		return -1
-	}
-	idx := int(focusID - base)
-	if idx < 0 || idx >= colCount {
-		return -1
-	}
-	return idx
-}
-
-func dataGridHeaderFocusedColID(cfg *DataGridCfg, columns []GridColumnCfg, focusID uint32) string {
-	idx := dataGridHeaderFocusIndex(cfg, len(columns), focusID)
-	if idx < 0 || idx >= len(columns) {
+func dataGridHeaderFocusedColID(cfg *DataGridCfg, columns []GridColumnCfg, focusID string) string {
+	colID := dataGridHeaderColIDFromLayoutID(cfg.ID, focusID)
+	if colID == "" {
 		return ""
 	}
-	return columns[idx].ID
+	for _, c := range columns {
+		if c.ID == colID {
+			return colID
+		}
+	}
+	return ""
 }
 
 func dataGridShowHeaderControls(colID, hoveredColID, resizingColID, focusedColID string) bool {

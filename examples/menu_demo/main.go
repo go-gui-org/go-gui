@@ -9,12 +9,6 @@ import (
 	"github.com/go-gui-org/go-gui/gui/backend"
 )
 
-const (
-	idFocusMenu   uint32 = 1
-	idFocusButton uint32 = 2
-	idFocusSearch uint32 = 3
-)
-
 type MenuApp struct {
 	SearchText string
 	SelectedID string
@@ -57,10 +51,10 @@ func menu(w *gui.Window) gui.View {
 	app := gui.State[MenuApp](w)
 
 	return gui.Menubar(w, gui.MenubarCfg{
+		ID:          "menubar",
 		Float:       true,
 		FloatAnchor: gui.FloatTopCenter,
 		FloatTieOff: gui.FloatTopCenter,
-		IDFocus:     idFocusMenu,
 		Action: func(id string, _ *gui.Event, w *gui.Window) {
 			gui.State[MenuApp](w).SelectedID = id
 		},
@@ -155,7 +149,7 @@ func menu(w *gui.Window) gui.View {
 						Padding: gui.NoPadding,
 						CustomView: gui.Input(gui.InputCfg{
 							Text:        app.SearchText,
-							IDFocus:     idFocusSearch,
+							Focusable:   true,
 							Width:       100,
 							MinWidth:    100,
 							MaxWidth:    100,
@@ -213,7 +207,7 @@ func body(w *gui.Window) gui.View {
 				TextStyle: theme.B1,
 			}),
 			gui.Button(gui.ButtonCfg{
-				IDFocus: idFocusButton,
+				Focusable: true,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text: fmt.Sprintf("%d Clicks", app.Clicks),

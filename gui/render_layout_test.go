@@ -317,13 +317,13 @@ func TestRenderLayoutStencilDepthClampsAt255(t *testing.T) {
 
 func TestRenderTextEmptyFocusedEmitsCursor(t *testing.T) {
 	w := makeWindowWithScratch()
-	w.viewState.idFocus = 100
+	w.viewState.focusID = "f100"
 	w.viewState.inputCursorOn.Store(true)
 	style := DefaultTextStyle
 	shape := &Shape{
 		shapeType: shapeText,
-		IDFocus:   100,
-		Width:     100, Height: 20,
+		Focusable: true, ID: "f100",
+		Width: 100, Height: 20,
 		Opacity: 1.0,
 		TC: &ShapeTextConfig{
 			Text:      "",
@@ -350,8 +350,8 @@ func TestRenderTextEmptyUnfocusedNoOutput(t *testing.T) {
 	style := DefaultTextStyle
 	shape := &Shape{
 		shapeType: shapeText,
-		IDFocus:   100,
-		Width:     100, Height: 20,
+		Focusable: true, ID: "f100",
+		Width: 100, Height: 20,
 		Opacity: 1.0,
 		TC: &ShapeTextConfig{
 			Text:      "",
@@ -415,13 +415,13 @@ func TestRenderTextZeroAlphaSkips(t *testing.T) {
 
 func TestRenderTextPlaceholderCursor(t *testing.T) {
 	w := makeWindowWithScratch()
-	w.viewState.idFocus = 200
+	w.viewState.focusID = "f200"
 	w.viewState.inputCursorOn.Store(true)
 	style := TextStyle{Color: RGB(128, 128, 128), Size: 16}
 	shape := &Shape{
 		shapeType: shapeText,
-		IDFocus:   200,
-		Width:     100, Height: 20,
+		Focusable: true, ID: "f200",
+		Width: 100, Height: 20,
 		Opacity: 1.0,
 		TC: &ShapeTextConfig{
 			Text:              "Enter name",
@@ -457,11 +457,11 @@ func TestRenderTextPlaceholderCursor(t *testing.T) {
 
 func TestRenderInputCursorNotFocusedSkips(t *testing.T) {
 	w := makeWindow()
-	w.viewState.idFocus = 999
+	w.viewState.focusID = "f999"
 	style := DefaultTextStyle
 	shape := &Shape{
-		IDFocus: 100,
-		TC:      &ShapeTextConfig{TextStyle: &style},
+		Focusable: true, ID: "f100",
+		TC: &ShapeTextConfig{TextStyle: &style},
 	}
 
 	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
@@ -473,12 +473,12 @@ func TestRenderInputCursorNotFocusedSkips(t *testing.T) {
 
 func TestRenderInputCursorBlinkOffSkips(t *testing.T) {
 	w := makeWindow()
-	w.viewState.idFocus = 100
+	w.viewState.focusID = "f100"
 	w.viewState.inputCursorOn.Store(false)
 	style := DefaultTextStyle
 	shape := &Shape{
-		IDFocus: 100,
-		TC:      &ShapeTextConfig{TextStyle: &style},
+		Focusable: true, ID: "f100",
+		TC: &ShapeTextConfig{TextStyle: &style},
 	}
 
 	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
@@ -490,14 +490,14 @@ func TestRenderInputCursorBlinkOffSkips(t *testing.T) {
 
 func TestRenderInputCursorFallbackPosition(t *testing.T) {
 	w := makeWindow()
-	w.viewState.idFocus = 100
+	w.viewState.focusID = "f100"
 	w.viewState.inputCursorOn.Store(true)
 	style := TextStyle{Color: RGB(0, 0, 0), Size: 14}
 	shape := &Shape{
-		IDFocus: 100,
-		TC:      &ShapeTextConfig{TextStyle: &style},
+		Focusable: true, ID: "f100",
+		TC: &ShapeTextConfig{TextStyle: &style},
 	}
-	setInputState(w, 100, InputState{CursorPos: 3})
+	setInputState(w, "f100", InputState{CursorPos: 3})
 
 	renderInputCursor(shape, "hello", 10, 20, glyph.Layout{}, false, w)
 

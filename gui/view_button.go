@@ -3,7 +3,7 @@ package gui
 // ButtonCfg configures a clickable button. Without an OnClick handler,
 // it renders as a styled label with no mouse interaction.
 //
-// Focus-driven keyboard interaction: when IDFocus > 0, pressing Space
+// Focus-driven keyboard interaction: when Focusable is true, pressing Space
 // or Enter while focused triggers OnClick.
 type ButtonCfg struct {
 	Shadow   *BoxShadow
@@ -35,7 +35,7 @@ type ButtonCfg struct {
 
 	FloatOffsetX float32
 	FloatOffsetY float32
-	IDFocus      uint32
+	Focusable    bool
 	Width        float32
 	Height       float32
 	MinWidth     float32
@@ -114,7 +114,7 @@ func buttonAmendLayout(layout *Layout, w *Window) {
 		layout.Shape.events.OnClick == nil {
 		return
 	}
-	if w.IsFocus(layout.Shape.IDFocus) {
+	if w.IsFocus(layout.Shape.ID) {
 		layout.Shape.Color = layout.Shape.bc.ColorFocus
 		layout.Shape.ColorBorder = layout.Shape.bc.ColorBorderFocus
 	}
@@ -130,7 +130,7 @@ func buttonOnHover(layout *Layout, e *Event, w *Window) {
 		return
 	}
 	w.setMouseCursor(CursorPointingHand)
-	if !w.IsFocus(layout.Shape.IDFocus) {
+	if !w.IsFocus(layout.Shape.ID) {
 		layout.Shape.Color = layout.Shape.bc.ColorHover
 	}
 	if e.MouseButton == MouseLeft {
@@ -167,7 +167,7 @@ func Button(cfg ButtonCfg) View {
 
 	cv := Row(ContainerCfg{
 		ID:              cfg.ID,
-		IDFocus:         cfg.IDFocus,
+		Focusable:       cfg.Focusable,
 		A11YRole:        a11yRole,
 		A11YState:       cfg.A11YState,
 		A11YLabel:       cfg.A11YLabel,

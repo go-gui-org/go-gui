@@ -89,7 +89,7 @@ func (p *scratchObjPool[T]) reset() {
 
 // scratchPools holds reusable per-frame buffers.
 type scratchPools struct {
-	focusSeen        scratchMap[uint32, struct{}]
+	focusSeen        scratchMap[string, struct{}]
 	svgAnimStates    scratchMap[uint32, svgAnimState]
 	svgAnimOverrides scratchMap[uint32, SvgAnimAttrOverride]
 	svgAnimByPID     scratchMap[uint32, []float32]
@@ -170,7 +170,7 @@ func newScratchPools() scratchPools {
 		focusCandidates:        scratchSlice[focusCandidate]{retainMax: 4096, shrinkTo: 512},
 		wrapRows:               scratchSlice[wrapRowRange]{retainMax: 4096, shrinkTo: 256},
 		layerLayouts:           scratchSlice[Layout]{retainMax: 4096, shrinkTo: 256},
-		focusSeen:              scratchMap[uint32, struct{}]{retainMax: 4096},
+		focusSeen:              scratchMap[string, struct{}]{retainMax: 4096},
 		svgAnimStates:          scratchMap[uint32, svgAnimState]{retainMax: 4096},
 		svgAnimOverrides:       scratchMap[uint32, SvgAnimAttrOverride]{retainMax: 4096},
 		svgAnimByPID:           scratchMap[uint32, []float32]{retainMax: 256},

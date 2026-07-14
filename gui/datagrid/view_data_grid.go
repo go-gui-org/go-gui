@@ -235,7 +235,6 @@ type DataGridCfg struct {
 	PaddingFilter       gg.Opt[gg.Padding]
 	Radius              gg.Opt[float32]
 	SizeBorder          gg.Opt[float32]
-	IDFocus             uint32
 	IDScroll            uint32
 	RowHeight           float32
 	HeaderHeight        float32
@@ -447,7 +446,7 @@ type dataGridCtx struct {
 	editingRowID string
 	columns      []GridColumnCfg
 	rowHeight    float32
-	focusID      uint32
+	focusID      string
 	scrollID     uint32
 }
 
@@ -544,7 +543,7 @@ func New(w *gg.Window, cfg DataGridCfg) gg.View {
 		dataGridClearEditingRow(resolvedCfg.ID, w)
 		editingRowID = ""
 	}
-	focusedColID := dataGridHeaderFocusedColID(&resolvedCfg, columns, w.IDFocus())
+	focusedColID := dataGridHeaderFocusedColID(&resolvedCfg, columns, w.FocusID())
 
 	// Column widths and header.
 	columnWidths := dataGridColumnWidths(resolvedCfg.ID, resolvedCfg.Columns, w)
@@ -603,7 +602,7 @@ func New(w *gg.Window, cfg DataGridCfg) gg.View {
 
 	return gg.Column(gg.ContainerCfg{
 		ID:              resolvedCfg.ID,
-		IDFocus:         focusID,
+		Focusable:       true,
 		A11YRole:        gg.AccessRoleGrid,
 		A11YLabel:       resolvedCfg.A11YLabel,
 		A11YDescription: resolvedCfg.A11YDescription,

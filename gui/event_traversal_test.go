@@ -20,7 +20,7 @@ func TestIsFocusedTargetReservedDialog(t *testing.T) {
 
 func TestIsFocusedTargetZeroIDFocus(t *testing.T) {
 	w := &Window{}
-	l := &Layout{Shape: &Shape{IDFocus: 0}}
+	l := &Layout{Shape: &Shape{Focusable: true, ID: "f0"}}
 	if isFocusedTarget(l, w) {
 		t.Error("IDFocus 0 should return false")
 	}
@@ -28,8 +28,8 @@ func TestIsFocusedTargetZeroIDFocus(t *testing.T) {
 
 func TestIsFocusedTargetMatches(t *testing.T) {
 	w := &Window{}
-	w.viewState.idFocus = 42
-	l := &Layout{Shape: &Shape{IDFocus: 42}}
+	w.viewState.focusID = "f42"
+	l := &Layout{Shape: &Shape{Focusable: true, ID: "f42"}}
 	if !isFocusedTarget(l, w) {
 		t.Error("matching IDFocus should return true")
 	}
@@ -37,7 +37,7 @@ func TestIsFocusedTargetMatches(t *testing.T) {
 
 func TestExecuteFocusCallbackNil(t *testing.T) {
 	w := &Window{}
-	w.viewState.idFocus = 1
+	w.viewState.focusID = "f1"
 	l := &Layout{Shape: &Shape{ID: reservedDialogID}}
 	e := &Event{}
 	if executeFocusCallback(l, e, w, nil) {

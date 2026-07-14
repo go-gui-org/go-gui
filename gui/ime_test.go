@@ -68,7 +68,7 @@ func TestIMEClearedOnFocusChange(t *testing.T) {
 		Type:    EventIMEComposition,
 		IMEText: "字",
 	})
-	w.SetIDFocus(42)
+	w.SetFocus("f42")
 	if w.IMEComposing() {
 		t.Fatal("expected composing=false after focus change")
 	}

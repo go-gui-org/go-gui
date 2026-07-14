@@ -171,10 +171,10 @@ func benchView(w *gui.Window) gui.View {
 						TextStyle: theme.B3,
 					}),
 					gui.Select(gui.SelectCfg{
-						ID:       "bench-count",
-						Selected: []string{selectedCount},
-						Options:  countOptions,
-						IDFocus:  1,
+						ID:        "bench-count",
+						Selected:  []string{selectedCount},
+						Options:   countOptions,
+						Focusable: true,
 						OnSelect: func(sel []string, _ *gui.Event, w *gui.Window) {
 							if len(sel) > 0 {
 								if n, err := strconv.Atoi(sel[0]); err == nil {
@@ -190,10 +190,10 @@ func benchView(w *gui.Window) gui.View {
 						TextStyle: theme.B3,
 					}),
 					gui.Select(gui.SelectCfg{
-						ID:       "bench-type",
-						Selected: []string{app.WidgetType},
-						Options:  typeOptions,
-						IDFocus:  2,
+						ID:        "bench-type",
+						Selected:  []string{app.WidgetType},
+						Options:   typeOptions,
+						Focusable: true,
 						OnSelect: func(sel []string, _ *gui.Event, w *gui.Window) {
 							if len(sel) > 0 {
 								app := gui.State[App](w)
@@ -203,7 +203,7 @@ func benchView(w *gui.Window) gui.View {
 						},
 					}),
 					gui.Button(gui.ButtonCfg{
-						IDFocus: 3,
+						Focusable: true,
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{Text: btnLabel}),
 						},

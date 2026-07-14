@@ -131,7 +131,7 @@ func TestBcOnKeydown(t *testing.T) {
 	w := &Window{}
 	e := &Event{KeyCode: KeyRight}
 
-	bcOnKeydown(false, items, "a", onSelect, 0, e, w)
+	bcOnKeydown(false, items, "a", onSelect, "", e, w)
 	if selected != "b" {
 		t.Errorf("selected = %q, want b", selected)
 	}

@@ -18,7 +18,7 @@ const (
 	shellHeight  = float32(420)
 	buttonSize   = float32(42)
 	buttonGap    = float32(6)
-	displayFocus = 1
+	displayFocus = "display"
 )
 
 var (
@@ -90,7 +90,7 @@ func main() {
 		BgColor:   colorBackdrop,
 		OnInit: func(w *gui.Window) {
 			w.UpdateView(mainView)
-			w.SetIDFocus(displayFocus)
+			w.SetFocus(displayFocus)
 		},
 		OnEvent: handleKeyEvent,
 	})
@@ -300,7 +300,8 @@ func displayView(w *gui.Window) gui.View {
 		Padding: gui.SomeP(2, 4, 2, 4),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
-				IDFocus:   displayFocus,
+				ID:        displayFocus,
+				Focusable: true,
 				Text:      displayText,
 				TextStyle: style,
 			}),

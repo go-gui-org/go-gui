@@ -12,8 +12,6 @@ import (
 )
 
 const (
-	idFocusMenu     uint32 = 1
-	idFocusPalette  uint32 = 2
 	idScrollPalette uint32 = 3
 )
 
@@ -120,7 +118,7 @@ func registerCommands(w *gui.Window) {
 			Global:   true,
 			Execute: func(_ *gui.Event, w *gui.Window) {
 				gui.CommandPaletteToggle(
-					"palette", idFocusPalette, idScrollPalette, w)
+					"palette", idScrollPalette, w)
 			},
 		},
 	)
@@ -143,7 +141,6 @@ func mainView(w *gui.Window) gui.View {
 			statusBar(app, theme),
 			gui.CommandPalette(gui.CommandPaletteCfg{
 				ID:        "palette",
-				IDFocus:   idFocusPalette,
 				IDScroll:  idScrollPalette,
 				Items:     w.CommandPaletteItems(),
 				OnAction:  paletteAction,
@@ -155,10 +152,10 @@ func mainView(w *gui.Window) gui.View {
 
 func menuBar(w *gui.Window) gui.View {
 	return gui.Menubar(w, gui.MenubarCfg{
+		ID:          "menubar",
 		Float:       true,
 		FloatAnchor: gui.FloatTopCenter,
 		FloatTieOff: gui.FloatTopCenter,
-		IDFocus:     idFocusMenu,
 		Items: []gui.MenuItemCfg{
 			gui.MenuSubmenu("file", "File", []gui.MenuItemCfg{
 				{ID: "file.new", CommandID: "file.new"},
@@ -211,11 +208,11 @@ func body(w *gui.Window, app *App, theme gui.Theme) gui.View {
 				Padding:    gui.NoPadding,
 				Content: []gui.View{
 					gui.CommandButton(w, "edit.increment",
-						gui.ButtonCfg{IDFocus: 10}),
+						gui.ButtonCfg{Focusable: true}),
 					gui.CommandButton(w, "edit.decrement",
-						gui.ButtonCfg{IDFocus: 11}),
+						gui.ButtonCfg{Focusable: true}),
 					gui.CommandButton(w, "edit.undo",
-						gui.ButtonCfg{IDFocus: 12}),
+						gui.ButtonCfg{Focusable: true}),
 				},
 			}),
 			gui.Text(gui.TextCfg{Text: ""}),
@@ -225,9 +222,9 @@ func body(w *gui.Window, app *App, theme gui.Theme) gui.View {
 				Padding:    gui.NoPadding,
 				Content: []gui.View{
 					gui.CommandButton(w, "file.new",
-						gui.ButtonCfg{IDFocus: 13}),
+						gui.ButtonCfg{Focusable: true}),
 					gui.CommandButton(w, "file.save",
-						gui.ButtonCfg{IDFocus: 14}),
+						gui.ButtonCfg{Focusable: true}),
 				},
 			}),
 		},

@@ -136,7 +136,7 @@ type SplitterCfg struct {
 	SizeBorder          Opt[float32]
 	Radius              Opt[float32]
 	RadiusBorder        Opt[float32]
-	IDFocus             uint32
+	Focusable           bool
 	ColorHandle         Color
 	ColorHandleHover    Color
 	ColorHandleActive   Color
@@ -160,7 +160,7 @@ type splitterCore struct {
 	id            string
 	first         splitterPaneCore
 	second        splitterPaneCore
-	idFocus       uint32
+	focusID       string
 	ratio         float32
 	handleSize    float32
 	dragStep      float32
@@ -182,7 +182,7 @@ func newSplitterCore(cfg *SplitterCfg) *splitterCore {
 	s := &DefaultSplitterStyle
 	return &splitterCore{
 		id:          cfg.ID,
-		idFocus:     cfg.IDFocus,
+		focusID:     cfg.ID,
 		orientation: cfg.Orientation,
 		ratio:       cfg.Ratio.Get(splitterDefaultRatio),
 		collapsed:   cfg.Collapsed,
@@ -247,7 +247,7 @@ func Splitter(cfg SplitterCfg) View {
 
 	return Canvas(ContainerCfg{
 		ID:              cfg.ID,
-		IDFocus:         cfg.IDFocus,
+		Focusable:       cfg.Focusable,
 		A11YRole:        AccessRoleSplitter,
 		A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.ID),
 		A11YDescription: cfg.A11YDescription,
@@ -616,8 +616,8 @@ func splitterEmitChange(
 }
 
 func splitterFocus(core *splitterCore, w *Window) {
-	if core.idFocus > 0 {
-		w.SetIDFocus(core.idFocus)
+	if core.focusID != "" {
+		w.SetFocus(core.focusID)
 	}
 }
 

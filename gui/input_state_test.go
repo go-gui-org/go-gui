@@ -3,8 +3,8 @@ package gui
 import "testing"
 
 // inputHasSelection returns true if text is selected.
-func inputHasSelection(idFocus uint32, w *Window) bool {
-	is := StateReadOr(w, nsInput, idFocus, InputState{})
+func inputHasSelection(focusID string, w *Window) bool {
+	is := StateReadOr(w, nsInput, focusID, InputState{})
 	return is.SelectBeg != is.SelectEnd
 }
 
@@ -12,19 +12,19 @@ func newTestWindow() *Window {
 	return &Window{}
 }
 
-func setInputState(w *Window, idFocus uint32, is InputState) {
-	StateMap[uint32, InputState](w, nsInput, capMany).Set(idFocus, is)
+func setInputState(w *Window, focusID string, is InputState) {
+	StateMap[string, InputState](w, nsInput, capMany).Set(focusID, is)
 }
 
-func getInputState(w *Window, idFocus uint32) InputState {
-	return StateReadOr(w, nsInput, idFocus, InputState{})
+func getInputState(w *Window, focusID string) InputState {
+	return StateReadOr(w, nsInput, focusID, InputState{})
 }
 
 // --- Insert ---
 
 func TestInsertEmojiAtStart(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(10001)
+	id := "f10001"
 	setInputState(w, id, InputState{CursorPos: 0})
 	got := inputInsert("abc", "😀", id, w)
 	if got != "😀abc" {
@@ -34,7 +34,7 @@ func TestInsertEmojiAtStart(t *testing.T) {
 
 func TestInsertEmojiAtMiddle(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(10002)
+	id := "f10002"
 	setInputState(w, id, InputState{CursorPos: 1})
 	got := inputInsert("ab", "😀", id, w)
 	if got != "a😀b" {
@@ -44,7 +44,7 @@ func TestInsertEmojiAtMiddle(t *testing.T) {
 
 func TestInsertCJKString(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(10003)
+	id := "f10003"
 	setInputState(w, id, InputState{CursorPos: 0})
 	got := inputInsert("", "日本語", id, w)
 	if got != "日本語" {
@@ -56,7 +56,7 @@ func TestInsertCJKString(t *testing.T) {
 
 func TestInsertCombiningChar(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(10004)
+	id := "f10004"
 	setInputState(w, id, InputState{CursorPos: 1})
 	got := inputInsert("e", "\u0301", id, w)
 	if got != "e\u0301" {
@@ -66,7 +66,7 @@ func TestInsertCombiningChar(t *testing.T) {
 
 func TestInsertASCIIIntoMultibyte(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(10005)
+	id := "f10005"
 	setInputState(w, id, InputState{CursorPos: 1})
 	got := inputInsert("日本", "x", id, w)
 	if got != "日x本" {
@@ -76,7 +76,7 @@ func TestInsertASCIIIntoMultibyte(t *testing.T) {
 
 func TestInsertEmptyString(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(10050)
+	id := "f10050"
 	setInputState(w, id, InputState{CursorPos: 1})
 	got := inputInsert("日本", "", id, w)
 	if got != "日本" {
@@ -88,7 +88,7 @@ func TestInsertEmptyString(t *testing.T) {
 
 func TestBackspaceAfterEmoji(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(10010)
+	id := "f10010"
 	setInputState(w, id, InputState{CursorPos: 1})
 	got, ok := inputDelete("😀x", id, false, w)
 	if !ok {
@@ -101,7 +101,7 @@ func TestBackspaceAfterEmoji(t *testing.T) {
 
 func TestBackspaceAfter3Byte(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(10011)
+	id := "f10011"
 	setInputState(w, id, InputState{CursorPos: 1})
 	got, ok := inputDelete("€x", id, false, w)
 	if !ok {
@@ -114,7 +114,7 @@ func TestBackspaceAfter3Byte(t *testing.T) {
 
 func TestForwardDeleteOnEmoji(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(10012)
+	id := "f10012"
 	setInputState(w, id, InputState{CursorPos: 0})
 	got, ok := inputDelete("😀x", id, true, w)
 	if !ok {
@@ -127,7 +127,7 @@ func TestForwardDeleteOnEmoji(t *testing.T) {
 
 func TestBackspaceCombiningChar(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(10013)
+	id := "f10013"
 	setInputState(w, id, InputState{CursorPos: 2})
 	got, ok := inputDelete("e\u0301", id, false, w)
 	if !ok {
@@ -140,7 +140,7 @@ func TestBackspaceCombiningChar(t *testing.T) {
 
 func TestDeleteEmptyText(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(10051)
+	id := "f10051"
 	setInputState(w, id, InputState{CursorPos: 0})
 	got, ok := inputDelete("", id, false, w)
 	if !ok {
@@ -155,7 +155,7 @@ func TestDeleteEmptyText(t *testing.T) {
 
 func TestCopySingleMultibyteChar(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(10020)
+	id := "f10020"
 	setInputState(w, id, InputState{SelectBeg: 0, SelectEnd: 1})
 	got, ok := inputCopy("€ab", id, false, w)
 	if !ok {
@@ -168,7 +168,7 @@ func TestCopySingleMultibyteChar(t *testing.T) {
 
 func TestCopySpanAcrossMultibyte(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(10021)
+	id := "f10021"
 	setInputState(w, id, InputState{SelectBeg: 1, SelectEnd: 3})
 	got, ok := inputCopy("a€b\u00e9", id, false, w)
 	if !ok {
@@ -181,7 +181,7 @@ func TestCopySpanAcrossMultibyte(t *testing.T) {
 
 func TestCopyEmoji(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(10022)
+	id := "f10022"
 	setInputState(w, id, InputState{SelectBeg: 1, SelectEnd: 2})
 	got, ok := inputCopy("a😀b", id, false, w)
 	if !ok {
@@ -196,7 +196,7 @@ func TestCopyEmoji(t *testing.T) {
 
 func TestReplaceMultibyteSelectionWithASCII(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(10030)
+	id := "f10030"
 	setInputState(w, id, InputState{CursorPos: 1, SelectBeg: 1, SelectEnd: 2})
 	got := inputInsert("a😀b", "x", id, w)
 	if got != "axb" {
@@ -206,7 +206,7 @@ func TestReplaceMultibyteSelectionWithASCII(t *testing.T) {
 
 func TestReplaceASCIISelectionWithEmoji(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(10031)
+	id := "f10031"
 	setInputState(w, id, InputState{CursorPos: 1, SelectBeg: 1, SelectEnd: 3})
 	got := inputInsert("abcd", "😀", id, w)
 	if got != "a😀d" {
@@ -218,7 +218,7 @@ func TestReplaceASCIISelectionWithEmoji(t *testing.T) {
 
 func TestIMECommitCJKIntoEmpty(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(10040)
+	id := "f10040"
 	setInputState(w, id, InputState{CursorPos: 0})
 	got := inputInsert("", "中文", id, w)
 	if got != "中文" {
@@ -230,7 +230,7 @@ func TestIMECommitCJKIntoEmpty(t *testing.T) {
 
 func TestIMECommitCJKAtCursor(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(10041)
+	id := "f10041"
 	setInputState(w, id, InputState{CursorPos: 2})
 	got := inputInsert("abcd", "漢字", id, w)
 	if got != "ab漢字cd" {
@@ -242,7 +242,7 @@ func TestIMECommitCJKAtCursor(t *testing.T) {
 
 func TestIMECommitReplacingSelection(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(10042)
+	id := "f10042"
 	setInputState(w, id, InputState{CursorPos: 1, SelectBeg: 1, SelectEnd: 3})
 	got := inputInsert("abcd", "日", id, w)
 	if got != "a日d" {
@@ -256,7 +256,7 @@ func TestIMECommitReplacingSelection(t *testing.T) {
 
 func TestMixedScriptSequentialInsert(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(10052)
+	id := "f10052"
 	setInputState(w, id, InputState{CursorPos: 0})
 	text1 := inputInsert("", "abc", id, w)
 	if text1 != "abc" {
@@ -276,7 +276,7 @@ func TestMixedScriptSequentialInsert(t *testing.T) {
 
 func TestUndoRedoBasic(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(20001)
+	id := "f20001"
 	setInputState(w, id, InputState{CursorPos: 0})
 	text1 := inputInsert("", "hello", id, w)
 	if text1 != "hello" {
@@ -298,7 +298,7 @@ func TestUndoRedoBasic(t *testing.T) {
 
 func TestSelectAll(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(20002)
+	id := "f20002"
 	setInputState(w, id, InputState{CursorPos: 2})
 	inputSelectAll("hello", id, w)
 	is := getInputState(w, id)
@@ -311,7 +311,7 @@ func TestSelectAll(t *testing.T) {
 
 func TestHasSelection(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(20003)
+	id := "f20003"
 	setInputState(w, id, InputState{SelectBeg: 1, SelectEnd: 3})
 	if !inputHasSelection(id, w) {
 		t.Fatal("expected selection")
@@ -326,7 +326,7 @@ func TestHasSelection(t *testing.T) {
 
 func TestInputCfgMaskedInsertDelete(t *testing.T) {
 	w := newTestWindow()
-	id := uint32(1001)
+	id := "f1001"
 	setInputState(w, id, InputState{CursorPos: 0})
 
 	// Simulate masked insert.

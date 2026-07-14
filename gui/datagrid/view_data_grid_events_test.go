@@ -962,7 +962,7 @@ func TestMakeColumnChooserOnClick(t *testing.T) {
 	columns := []GridColumnCfg{
 		{ID: "col1"}, {ID: "col2"}, {ID: "col3"},
 	}
-	fn := dataGridMakeColumnChooserOnClick(cb, hidden, columns, "col2", 0)
+	fn := dataGridMakeColumnChooserOnClick(cb, hidden, columns, "col2", "")
 	e := &gg.Event{}
 	fn(nil, e, w)
 	if !e.IsHandled {
@@ -978,7 +978,7 @@ func TestMakeColumnChooserOnClickNilCallback(t *testing.T) {
 	defer w.Close()
 	hidden := map[string]bool{}
 	columns := []GridColumnCfg{{ID: "col1"}}
-	fn := dataGridMakeColumnChooserOnClick(nil, hidden, columns, "col1", 0)
+	fn := dataGridMakeColumnChooserOnClick(nil, hidden, columns, "col1", "")
 	e := &gg.Event{}
 	fn(nil, e, w)
 	// Should not panic; event not marked handled when callback is nil.
@@ -1024,7 +1024,7 @@ func TestSubmitLocalJumpValid(t *testing.T) {
 		staticTop:     0,
 		scrollID:      1,
 		dataToDisplay: map[int]int{0: 0, 1: 1, 2: 2},
-		focusID:       10,
+		focusID:       "g1",
 	}
 	// Set jump input to "2"
 	dgJI := gg.StateMap[string, string](w, nsDgJump, 4)
@@ -1241,7 +1241,7 @@ func TestPagerPrevButton(t *testing.T) {
 		TextStyleHeader:  gg.DefaultTextStyle,
 		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
 	}
-	v := dataGridPagerPrevButton(cfg, nil, 1, 0, true, "◀")
+	v := dataGridPagerPrevButton(cfg, nil, 1, "", true, "◀")
 	if v == nil {
 		t.Fatal("prev button should return a view")
 	}
@@ -1252,7 +1252,7 @@ func TestPagerNextButton(t *testing.T) {
 		TextStyleHeader:  gg.DefaultTextStyle,
 		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
 	}
-	v := dataGridPagerNextButton(cfg, nil, 0, 5, 0, true, "▶")
+	v := dataGridPagerNextButton(cfg, nil, 0, 5, "", true, "▶")
 	if v == nil {
 		t.Fatal("next button should return a view")
 	}
@@ -1271,7 +1271,7 @@ func TestPagerPrevButtonOnClick(t *testing.T) {
 	}
 	// Build the layout. The button's OnClick is wired through
 	// dataGridIndicatorButton. We verify construction succeeds.
-	v := dataGridPagerPrevButton(cfg, cb, 1, 0, false, "◀")
+	v := dataGridPagerPrevButton(cfg, cb, 1, "", false, "◀")
 	if v == nil {
 		t.Fatal("prev button should return a view")
 	}
@@ -1291,7 +1291,7 @@ func TestPagerNextButtonOnClick(t *testing.T) {
 		TextStyleHeader:  gg.DefaultTextStyle,
 		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
 	}
-	dataGridPagerNextButton(cfg, cb, 0, 5, 0, false, "▶")
+	dataGridPagerNextButton(cfg, cb, 0, 5, "", false, "▶")
 	// Callback fires through the button's OnClick; verified indirectly.
 	_ = nextPage
 }
@@ -1306,7 +1306,7 @@ func TestBuildPagerRow(t *testing.T) {
 	}
 	pctx := dataGridPagerContext{
 		cfg:           cfg,
-		focusID:       0,
+		focusID:       "",
 		pageIndex:     0,
 		pageCount:     3,
 		pageStart:     0,

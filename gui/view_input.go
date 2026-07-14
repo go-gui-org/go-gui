@@ -74,8 +74,8 @@ type InputCfg struct {
 	MinHeight  float32
 	MaxHeight  float32
 
-	IDFocus  uint32
-	IDScroll uint32
+	Focusable bool
+	IDScroll  uint32
 
 	Color            Color
 	ColorHover       Color
@@ -125,12 +125,12 @@ func Input(cfg InputCfg) View {
 
 	colorBorderFocus := cfg.ColorBorderFocus
 	colorHover := cfg.ColorHover
-	idFocus := cfg.IDFocus
+	focusID := cfg.ID
 	spellChk := cfg.SpellCheck && !cfg.IsPassword
 	onBlur := cfg.OnBlur
 
 	hcfg := inputHandlerCfg{
-		IDFocus:             cfg.IDFocus,
+		FocusID:             cfg.ID,
 		IDScroll:            cfg.IDScroll,
 		IsPassword:          cfg.IsPassword,
 		Mode:                cfg.Mode,
@@ -156,7 +156,9 @@ func Input(cfg InputCfg) View {
 
 	txtContent := []View{
 		Text(TextCfg{
-			IDFocus:           cfg.IDFocus,
+			ID:                cfg.ID,
+			Focusable:         cfg.Focusable,
+			FocusSkip:         true,
 			Sizing:            txtSizing,
 			Text:              txt,
 			TextStyle:         txtStyle,
@@ -171,7 +173,7 @@ func Input(cfg InputCfg) View {
 		a11yRole = AccessRoleTextArea
 	}
 	a11yState := AccessStateNone
-	if cfg.IDFocus == 0 {
+	if !cfg.Focusable {
 		a11yState = AccessStateReadOnly
 	}
 
@@ -197,7 +199,7 @@ func Input(cfg InputCfg) View {
 
 	return Column(ContainerCfg{
 		ID:              cfg.ID,
-		IDFocus:         cfg.IDFocus,
+		Focusable:       cfg.Focusable,
 		A11YRole:        a11yRole,
 		A11YState:       a11yState,
 		A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Placeholder),
@@ -224,11 +226,11 @@ func Input(cfg InputCfg) View {
 		OnKeyUp:         makeInputOnKeyUp(hcfg),
 		OnHover: func(layout *Layout, _ *Event, w *Window) {
 			w.setMouseCursor(CursorIBeam)
-			if !w.IsFocus(idFocus) {
+			if !w.IsFocus(focusID) {
 				layout.Shape.Color = colorHover
 			}
 		},
-		AmendLayout: inputAmendLayout(hcfg, idFocus,
+		AmendLayout: inputAmendLayout(hcfg, focusID,
 			colorBorderFocus, spellChk, onBlur),
 		Content: []View{inner},
 	})
@@ -278,7 +280,7 @@ type inputHandlerCfg struct {
 	PostCommitNormalize func(text string, reason InputCommitReason) string
 	Mask                string
 	MaskTokens          []MaskTokenDef
-	IDFocus             uint32
+	FocusID             string
 	IDScroll            uint32
 	IsPassword          bool
 	Mode                InputMode
@@ -309,22 +311,22 @@ func inputOnClick(idScroll uint32) func(*Layout, *Event, *Window) {
 			return
 		}
 		ly := layout.Children[0]
-		if ly.Shape.IDFocus > 0 {
-			w.SetIDFocus(ly.Shape.IDFocus)
+		if ly.Shape.Focusable && ly.Shape.ID != "" {
+			w.SetFocus(ly.Shape.ID)
 		}
 		if ly.Shape.TC == nil {
 			return
 		}
 		if ly.Shape.TC.TextIsPlaceholder {
-			imap := StateMap[uint32, InputState](
+			imap := StateMap[string, InputState](
 				w, nsInput, capMany,
 			)
-			is, _ := imap.Get(ly.Shape.IDFocus) // ok ignored: zero value seeds initial state
+			is, _ := imap.Get(ly.Shape.ID) // ok ignored: zero value seeds initial state
 			is.CursorPos = 0
 			is.SelectBeg = 0
 			is.SelectEnd = 0
 			is.CursorOffset = -1
-			imap.Set(ly.Shape.IDFocus, is)
+			imap.Set(ly.Shape.ID, is)
 			resetBlinkCursorVisible(w)
 			e.IsHandled = true
 			return
@@ -345,12 +347,12 @@ func inputOnClick(idScroll uint32) func(*Layout, *Event, *Window) {
 			displayText = passwordMask(text)
 		}
 		runePos := byteToRuneIndex(displayText, byteIdx)
-		imap := StateMap[uint32, InputState](
+		imap := StateMap[string, InputState](
 			w, nsInput, capMany,
 		)
 		// ok ignored: zero LastClickTime safely gates double-click
 		// (the > 0 check on line below prevents false match).
-		is, _ := imap.Get(ly.Shape.IDFocus)
+		is, _ := imap.Get(ly.Shape.ID)
 
 		// Double-click selects word.
 		now := time.Now().UnixMilli()
@@ -371,7 +373,7 @@ func inputOnClick(idScroll uint32) func(*Layout, *Event, *Window) {
 			is.SelectEnd = uint32(runePos)
 		}
 		is.CursorOffset = -1
-		imap.Set(ly.Shape.IDFocus, is)
+		imap.Set(ly.Shape.ID, is)
 		resetBlinkCursorVisible(w)
 		if idScroll > 0 && layout.Parent != nil {
 			inputScrollCursorIntoView(
@@ -388,7 +390,7 @@ func inputOnClick(idScroll uint32) func(*Layout, *Event, *Window) {
 			displayText: displayText,
 			txtOffX:     ly.Shape.X - layout.Shape.X,
 			txtOffY:     ly.Shape.Y - layout.Shape.Y,
-			idFocus:     ly.Shape.IDFocus,
+			focusID:     ly.Shape.ID,
 			idScroll:    idScroll,
 		}
 		if doubleClick {
@@ -409,25 +411,25 @@ func inputOnClick(idScroll uint32) func(*Layout, *Event, *Window) {
 }
 
 func inputAmendLayout(
-	hcfg inputHandlerCfg, idFocus uint32,
+	hcfg inputHandlerCfg, focusID string,
 	colorBorderFocus Color, spellChk bool,
 	onBlur func(*Layout, *Window),
 ) func(*Layout, *Window) {
 	return func(layout *Layout, w *Window) {
-		if layout.Shape.IDFocus == 0 {
+		if !layout.Shape.Focusable || layout.Shape.ID == "" {
 			return
 		}
 		focused := !layout.Shape.Disabled &&
-			layout.Shape.IDFocus == w.IDFocus()
+			w.IsFocus(layout.Shape.ID)
 		if focused {
 			layout.Shape.ColorBorder = colorBorderFocus
 		}
 
 		// Blur detection: fire commit on focus loss.
-		focusMap := StateMap[uint32, bool](
+		focusMap := StateMap[string, bool](
 			w, nsInputFocus, capMany)
-		wasFocused, _ := focusMap.Get(layout.Shape.IDFocus) // ok ignored: false means "wasn't focused"
-		focusMap.Set(layout.Shape.IDFocus, focused)
+		wasFocused, _ := focusMap.Get(layout.Shape.ID) // ok ignored: false means "wasn't focused"
+		focusMap.Set(layout.Shape.ID, focused)
 		if wasFocused && !focused {
 			text := inputTextFromLayout(layout)
 			if hcfg.PostCommitNormalize != nil {
@@ -447,7 +449,7 @@ func inputAmendLayout(
 			}
 			if spellChk {
 				spellCheckClear(
-					layout.Shape.IDFocus, w)
+					layout.Shape.ID, w)
 			}
 			if onBlur != nil {
 				onBlur(layout, w)
@@ -461,7 +463,7 @@ func inputAmendLayout(
 				txt := &inner.Children[0]
 				if txt.Shape.TC != nil {
 					is := StateReadOr(w, nsInput,
-						layout.Shape.IDFocus,
+						layout.Shape.ID,
 						InputState{})
 					txt.Shape.TC.TextSelBeg = is.SelectBeg
 					txt.Shape.TC.TextSelEnd = is.SelectEnd
@@ -474,15 +476,15 @@ func inputAmendLayout(
 		if spellChk && focused {
 			text := inputTextFromLayout(layout)
 			spellCheckTrigger(
-				layout.Shape.IDFocus, text, w)
+				layout.Shape.ID, text, w)
 		} else if !spellChk {
-			spellCheckClear(layout.Shape.IDFocus, w)
+			spellCheckClear(layout.Shape.ID, w)
 		}
 	}
 }
 
 // inputTextChange handles text modification logic for input widgets
-func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id uint32, w *Window) (string, bool) {
+func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id string, w *Window) (string, bool) {
 	mask := hcfg.CompiledMask
 	if mask != nil {
 		is := inputStateOrDefault(id, w)
@@ -490,7 +492,7 @@ func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id 
 		if res.Changed {
 			undo := inputPushUndo(is, text)
 			text = res.Text
-			StateMap[uint32, InputState](w, nsInput, capMany).Set(id, InputState{
+			StateMap[string, InputState](w, nsInput, capMany).Set(id, InputState{
 				CursorPos: res.CursorPos, Undo: undo,
 			})
 			return text, true
@@ -516,11 +518,11 @@ func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id 
 
 func makeInputOnChar(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
 	return func(layout *Layout, e *Event, w *Window) {
-		if hcfg.IDFocus == 0 || !w.IsFocus(hcfg.IDFocus) {
+		if hcfg.FocusID == "" || !w.IsFocus(hcfg.FocusID) {
 			return
 		}
 		ch := e.CharCode
-		id := hcfg.IDFocus
+		id := hcfg.FocusID
 
 		// Control characters are handled by OnKeyDown.
 		if ch < CharSpace {
@@ -551,11 +553,11 @@ func makeInputOnChar(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
 func makeInputOnKeyDown(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
 	mask := hcfg.CompiledMask
 	return func(layout *Layout, e *Event, w *Window) {
-		if hcfg.IDFocus == 0 || !w.IsFocus(hcfg.IDFocus) {
+		if hcfg.FocusID == "" || !w.IsFocus(hcfg.FocusID) {
 			return
 		}
-		id := hcfg.IDFocus
-		imap := StateMap[uint32, InputState](w, nsInput, capMany)
+		id := hcfg.FocusID
+		imap := StateMap[string, InputState](w, nsInput, capMany)
 		// ok ignored: zero CursorOffset/CursorTrailing seed initial state;
 		// both are immediately overwritten below.
 		is, _ := imap.Get(id)
@@ -650,7 +652,7 @@ func makeInputOnKeyDown(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
 
 func makeInputOnKeyUp(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
 	return func(layout *Layout, e *Event, w *Window) {
-		if hcfg.IDFocus == 0 || !w.IsFocus(hcfg.IDFocus) {
+		if hcfg.FocusID == "" || !w.IsFocus(hcfg.FocusID) {
 			return
 		}
 		if hcfg.OnKeyUp != nil {
@@ -661,7 +663,7 @@ func makeInputOnKeyUp(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
 
 func inputKeyEnter(
 	hcfg inputHandlerCfg, layout *Layout, text string,
-	id uint32, e *Event, w *Window,
+	id string, e *Event, w *Window,
 ) (string, bool) {
 	if hcfg.Mode == InputMultiline {
 		return inputInsert(text, "\n", id, w), true
@@ -671,7 +673,7 @@ func inputKeyEnter(
 }
 
 func inputKeyEscape(
-	imap *BoundedMap[uint32, InputState], id uint32, is InputState,
+	imap *BoundedMap[string, InputState], id string, is InputState,
 ) {
 	is.SelectBeg = 0
 	is.SelectEnd = 0
@@ -679,7 +681,7 @@ func inputKeyEscape(
 }
 
 func inputKeyCopy(
-	text string, id uint32, isPassword bool, e *Event, w *Window,
+	text string, id string, isPassword bool, e *Event, w *Window,
 ) bool {
 	if !e.Modifiers.HasAny(ModCtrl, ModSuper) {
 		return false
@@ -691,7 +693,7 @@ func inputKeyCopy(
 }
 
 func inputKeyCut(
-	text string, id uint32, isPassword bool, e *Event, w *Window,
+	text string, id string, isPassword bool, e *Event, w *Window,
 ) (string, bool, bool) {
 	if !e.Modifiers.HasAny(ModCtrl, ModSuper) {
 		return text, false, false
@@ -705,7 +707,7 @@ func inputKeyCut(
 }
 
 func inputKeyUndoRedo(
-	text string, id uint32, e *Event, w *Window,
+	text string, id string, e *Event, w *Window,
 ) (string, bool, bool) {
 	if !e.Modifiers.HasAny(ModCtrl, ModSuper) {
 		return text, false, false
@@ -723,7 +725,7 @@ func inputKeyUndoRedo(
 }
 
 func inputKeyBackspaceOrDelete(
-	text string, id uint32, forward bool,
+	text string, id string, forward bool,
 	mask *CompiledInputMask, layout *Layout, w *Window,
 ) (string, bool) {
 	if newText, ok := inputHandleDelete(

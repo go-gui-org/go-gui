@@ -22,7 +22,7 @@ const (
 	DialogButtonYes
 )
 
-const dialogBaseIDFocus uint32 = 7568971
+const dialogBaseFocusID = "__gui_dialog__"
 
 // DialogCfg configures a modal dialog.
 type DialogCfg struct {
@@ -53,8 +53,8 @@ type DialogCfg struct {
 	MinHeight float32
 	MaxHeight float32
 
-	IDFocus      uint32
-	oldIDFocus   uint32
+	FocusID      string
+	oldFocusID   string
 	Color        Color
 	ColorBorder  Color
 	DialogType   DialogType
@@ -146,8 +146,9 @@ func messageView(cfg DialogCfg) View {
 		SizeBorder: NoBorder,
 		Content: []View{
 			Button(ButtonCfg{
-				IDFocus: cfg.IDFocus,
-				Content: []View{Text(TextCfg{Text: "OK"})},
+				ID:        cfg.FocusID,
+				Focusable: true,
+				Content:   []View{Text(TextCfg{Text: "OK"})},
 				OnClick: func(_ *Layout, _ *Event, w *Window) {
 					w.DialogDismiss()
 					if onOkYes != nil {
@@ -171,7 +172,7 @@ func confirmView(cfg DialogCfg) View {
 		Spacing:    Some(SpacingMedium),
 		Content: []View{
 			Button(ButtonCfg{
-				IDFocus: cfg.IDFocus + 1,
+				ID: cfg.FocusID + "/1", Focusable: true,
 				Content: []View{Text(TextCfg{Text: "Yes"})},
 				OnClick: func(_ *Layout, _ *Event, w *Window) {
 					w.DialogDismiss()
@@ -181,7 +182,7 @@ func confirmView(cfg DialogCfg) View {
 				},
 			}),
 			Button(ButtonCfg{
-				IDFocus: cfg.IDFocus,
+				ID: cfg.FocusID, Focusable: true,
 				Content: []View{Text(TextCfg{Text: "No"})},
 				OnClick: func(_ *Layout, _ *Event, w *Window) {
 					w.DialogDismiss()
@@ -202,10 +203,10 @@ func promptView(cfg DialogCfg) []View {
 	var views []View
 
 	views = append(views, Input(InputCfg{
-		ID:      "dialog_prompt_input",
-		Text:    cfg.Reply,
-		Sizing:  FillFit,
-		IDFocus: cfg.IDFocus,
+		ID:        cfg.FocusID,
+		Focusable: true,
+		Text:      cfg.Reply,
+		Sizing:    FillFit,
 		OnTextChanged: func(_ *Layout, text string, w *Window) {
 			w.dialogCfg.Reply = text
 		},
@@ -219,7 +220,7 @@ func promptView(cfg DialogCfg) []View {
 		Spacing:    Some(SpacingMedium),
 		Content: []View{
 			Button(ButtonCfg{
-				IDFocus:  cfg.IDFocus + 1,
+				ID: cfg.FocusID + "/1", Focusable: true,
 				Disabled: len(cfg.Reply) == 0,
 				Content:  []View{Text(TextCfg{Text: "OK"})},
 				OnClick: func(_ *Layout, _ *Event, w *Window) {
@@ -231,7 +232,7 @@ func promptView(cfg DialogCfg) []View {
 				},
 			}),
 			Button(ButtonCfg{
-				IDFocus: cfg.IDFocus + 2,
+				ID: cfg.FocusID + "/2", Focusable: true,
 				Content: []View{Text(TextCfg{Text: "Cancel"})},
 				OnClick: func(_ *Layout, _ *Event, w *Window) {
 					w.DialogDismiss()
@@ -284,8 +285,8 @@ func applyDialogDefaults(cfg *DialogCfg) {
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.TextStyle
 	}
-	if cfg.IDFocus == 0 {
-		cfg.IDFocus = dialogBaseIDFocus
+	if cfg.FocusID == "" {
+		cfg.FocusID = dialogBaseFocusID
 	}
 	// HAlignStart is 0 (zero value), so explicit HAlignStart cannot be
 	// distinguished from unset. Use HAlignLeft for left alignment.
@@ -294,31 +295,31 @@ func applyDialogDefaults(cfg *DialogCfg) {
 	}
 }
 
-// dialogFocusID returns the IDFocus of the button that should receive
+// dialogFocusID returns the focus ID of the button that should receive
 // initial keyboard focus. For confirm dialogs with DefaultButton set to
-// DialogButtonYes, this is the "Yes" button (cfg.IDFocus+1); otherwise
-// the base IDFocus (the "No"/"OK"/input element).
-func dialogFocusID(cfg DialogCfg) uint32 {
+// DialogButtonYes, this is the "Yes" button (cfg.FocusID+"/1"); otherwise
+// the base focus ID (the "No"/"OK"/input element).
+func dialogFocusID(cfg DialogCfg) string {
 	if cfg.DialogType == DialogConfirm && cfg.DefaultButton == DialogButtonYes {
-		return cfg.IDFocus + 1
+		return cfg.FocusID + "/1"
 	}
-	return cfg.IDFocus
+	return cfg.FocusID
 }
 
 // Dialog shows a modal dialog.
 func (w *Window) Dialog(cfg DialogCfg) {
 	applyDialogDefaults(&cfg)
 	cfg.visible = true
-	cfg.oldIDFocus = w.viewState.idFocus
+	cfg.oldFocusID = w.viewState.focusID
 	w.dialogCfg = cfg
-	w.SetIDFocus(dialogFocusID(cfg))
+	w.SetFocus(dialogFocusID(cfg))
 }
 
 // DialogDismiss closes the current dialog.
 func (w *Window) DialogDismiss() {
-	oldFocus := w.dialogCfg.oldIDFocus
+	oldFocus := w.dialogCfg.oldFocusID
 	w.dialogCfg = DialogCfg{}
-	w.SetIDFocus(oldFocus)
+	w.SetFocus(oldFocus)
 }
 
 // DialogIsVisible returns true if a dialog is showing — either the
@@ -328,14 +329,14 @@ func (w *Window) DialogIsVisible() bool {
 }
 
 // retainDialogFocus keeps keyboard focus inside the modal dialog. A
-// focus-claiming widget (one that re-asserts SetIDFocus on every view
+// focus-claiming widget (one that re-asserts SetFocus on every view
 // rebuild, e.g. a terminal that wants keystrokes without a prior click)
 // can steal idFocus back from the dialog overlay. Events still route to
 // the dialog layer, but with no focused element there Tab/Esc/Enter stop
 // working while mouse clicks still land by coordinate. When the current
 // focus is not a focusable element within the freshly generated dialog
 // subtree, reassert the dialog's focus id so apps need not guard their
-// own SetIDFocus with DialogIsVisible.
+// own SetFocus with DialogIsVisible.
 //
 // dialog is the dialog's layout for this frame. Called from layoutArrange
 // under w.mu; acquires w.animMu only when a reassert is needed.
@@ -345,14 +346,14 @@ func (w *Window) retainDialogFocus(dialog *Layout) {
 	if dialog == nil || dialog.Shape == nil {
 		return
 	}
-	// idFocus 0 means nothing is focused: FindLayoutByIDFocus would match
-	// the dialog root (its IDFocus is 0), so treat it as escaped.
-	if id := w.viewState.idFocus; id != 0 {
-		if _, ok := FindLayoutByIDFocus(dialog, id); ok {
+	// empty focus means nothing is focused: FindLayoutByFocusID would match
+	// the dialog root (it is not focusable), so treat it as escaped.
+	if id := w.viewState.focusID; id != "" {
+		if _, ok := FindLayoutByFocusID(dialog, id); ok {
 			return
 		}
 	}
 	w.animMu.Lock()
-	w.setIDFocusLocked(dialogFocusID(w.dialogCfg))
+	w.setFocusLocked(dialogFocusID(w.dialogCfg))
 	w.animMu.Unlock()
 }

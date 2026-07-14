@@ -73,7 +73,7 @@ type DatePickerCfg struct {
 	CellSpacing          Opt[float32]
 	Radius               Opt[float32]
 	RadiusBorder         Opt[float32]
-	IDFocus              uint32
+	Focusable            bool
 	Color                Color
 	ColorHover           Color
 	ColorFocus           Color
@@ -148,7 +148,7 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 	cfgID := cfg.ID
 	col := Column(ContainerCfg{
 		ID:          cfg.ID,
-		IDFocus:     cfg.IDFocus,
+		Focusable:   cfg.Focusable,
 		A11YRole:    AccessRoleGrid,
 		A11YLabel:   a11yLabel(cfg.A11YLabel, "Date Picker"),
 		Color:       cfg.Color,
@@ -163,13 +163,13 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 		Invisible:   cfg.Invisible,
 		Content:     content,
 		AmendLayout: func(lo *Layout, w *Window) {
-			if w.IsFocus(cfg.IDFocus) {
+			if w.IsFocus(cfg.ID) {
 				lo.Shape.ColorBorder = cfg.ColorBorderFocus
 			}
 		},
 		OnClick: func(_ *Layout, e *Event, w *Window) {
-			if cfg.IDFocus > 0 && !cfg.Disabled {
-				w.SetIDFocus(cfg.IDFocus)
+			if cfg.Focusable && !cfg.Disabled {
+				w.SetFocus(cfg.ID)
 				e.IsHandled = true
 			}
 		},
@@ -224,30 +224,30 @@ func datePickerControls(
 		ActiveLocale.Date.MonthYear,
 	)
 
-	idFocus := cfg.IDFocus
+	focusID := cfg.ID
 	onToggle := func(_ *Layout, e *Event, w *Window) {
 		sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
 		s, _ := sm.Get(cfgID)
 		s.ShowYearMonthPicker = !s.ShowYearMonthPicker
 		sm.Set(cfgID, s)
-		if idFocus > 0 {
-			w.SetIDFocus(idFocus)
+		if focusID != "" {
+			w.SetFocus(focusID)
 		}
 		w.UpdateWindow()
 		e.IsHandled = true
 	}
 
 	onPrev := func(_ *Layout, e *Event, w *Window) {
-		if idFocus > 0 {
-			w.SetIDFocus(idFocus)
+		if focusID != "" {
+			w.SetFocus(focusID)
 		}
 		datePickerNavMonth(cfgID, -1, w)
 		e.IsHandled = true
 	}
 
 	onNext := func(_ *Layout, e *Event, w *Window) {
-		if idFocus > 0 {
-			w.SetIDFocus(idFocus)
+		if focusID != "" {
+			w.SetFocus(focusID)
 		}
 		datePickerNavMonth(cfgID, 1, w)
 		e.IsHandled = true

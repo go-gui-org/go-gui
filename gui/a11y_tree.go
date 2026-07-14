@@ -47,7 +47,7 @@ type a11y struct {
 	prevLiveValues map[string]string
 	nodes          []A11yNode // reused across frames
 	liveNodes      []liveNode // reused across frames
-	prevIDFocus    uint32
+	prevFocusID    string
 	initialized    bool
 }
 
@@ -90,7 +90,7 @@ func (w *Window) syncA11y() {
 	focusedIdx := a11yCollect(
 		&w.layout, -1,
 		&w.a11y.nodes,
-		w.viewState.idFocus,
+		w.viewState.focusID,
 		&w.a11y.liveNodes,
 	)
 
@@ -116,7 +116,7 @@ func (w *Window) syncA11y() {
 	for _, ln := range w.a11y.liveNodes {
 		w.a11y.prevLiveValues[ln.label] = ln.value
 	}
-	w.a11y.prevIDFocus = w.viewState.idFocus
+	w.a11y.prevFocusID = w.viewState.focusID
 }
 
 // a11yCollect recursively walks the layout tree and appends
@@ -126,7 +126,7 @@ func a11yCollect(
 	layout *Layout,
 	parentIdx int,
 	nodes *[]A11yNode,
-	idFocus uint32,
+	focusID string,
 	live *[]liveNode,
 ) int {
 	focusedIdx := -1
@@ -138,7 +138,7 @@ func a11yCollect(
 	// Skip shapes without a11y role but recurse children.
 	if s.A11YRole == AccessRoleNone {
 		for i := range layout.Children {
-			if fi := a11yCollect(&layout.Children[i], parentIdx, nodes, idFocus, live); fi >= 0 {
+			if fi := a11yCollect(&layout.Children[i], parentIdx, nodes, focusID, live); fi >= 0 {
 				focusedIdx = fi
 			}
 		}
@@ -187,7 +187,7 @@ func a11yCollect(
 		ParentIdx:   parentIdx,
 	})
 
-	if idFocus > 0 && s.IDFocus == idFocus {
+	if focusID != "" && s.Focusable && s.ID == focusID {
 		focusedIdx = nodeIdx
 	}
 
@@ -199,7 +199,7 @@ func a11yCollect(
 	// Process children.
 	childrenStart := len(*nodes)
 	for i := range layout.Children {
-		if fi := a11yCollect(&layout.Children[i], nodeIdx, nodes, idFocus, live); fi >= 0 {
+		if fi := a11yCollect(&layout.Children[i], nodeIdx, nodes, focusID, live); fi >= 0 {
 			focusedIdx = fi
 		}
 	}

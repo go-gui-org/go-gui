@@ -3,13 +3,14 @@ package gui
 import "testing"
 
 // focusedChild builds a layout with one focused child that has events.
-func focusedChild(idFocus uint32, eh *eventHandlers) *Layout {
+func focusedChild(focusID string, eh *eventHandlers) *Layout {
 	return &Layout{
 		Shape: &Shape{},
 		Children: []Layout{
 			{Shape: &Shape{
-				IDFocus: idFocus,
-				events:  eh,
+				Focusable: true,
+				ID:        focusID,
+				events:    eh,
 				shapeClip: drawClip{
 					X: 0, Y: 0, Width: 100, Height: 100,
 				},
@@ -23,14 +24,14 @@ func TestCharHandler(t *testing.T) {
 	t.Run("delivers", func(t *testing.T) {
 		t.Parallel()
 		called := false
-		root := focusedChild(1, &eventHandlers{
+		root := focusedChild("f1", &eventHandlers{
 			OnChar: func(_ *Layout, e *Event, _ *Window) {
 				called = true
 				e.IsHandled = true
 			},
 		})
 		w := &Window{}
-		w.SetIDFocus(1)
+		w.SetFocus("f1")
 		e := &Event{CharCode: 'a'}
 		charHandler(root, e, w)
 		if !called {
@@ -47,7 +48,7 @@ func TestCharHandler(t *testing.T) {
 			Shape: &Shape{},
 			Children: []Layout{
 				{Shape: &Shape{
-					IDFocus:  1,
+					Focusable: true, ID: "f1",
 					Disabled: true,
 					events: &eventHandlers{
 						OnChar: func(_ *Layout, e *Event, _ *Window) {
@@ -59,7 +60,7 @@ func TestCharHandler(t *testing.T) {
 			},
 		}
 		w := &Window{}
-		w.SetIDFocus(1)
+		w.SetFocus("f1")
 		e := &Event{CharCode: 'a'}
 		charHandler(root, e, w)
 		if called {
@@ -71,14 +72,14 @@ func TestCharHandler(t *testing.T) {
 func TestKeydownHandlerDelivers(t *testing.T) {
 	t.Parallel()
 	called := false
-	root := focusedChild(1, &eventHandlers{
+	root := focusedChild("f1", &eventHandlers{
 		OnKeyDown: func(_ *Layout, e *Event, _ *Window) {
 			called = true
 			e.IsHandled = true
 		},
 	})
 	w := &Window{}
-	w.SetIDFocus(1)
+	w.SetFocus("f1")
 	e := &Event{KeyCode: KeyEnter}
 	keydownHandler(root, e, w)
 	if !called {
@@ -89,14 +90,14 @@ func TestKeydownHandlerDelivers(t *testing.T) {
 func TestKeyupHandlerDelivers(t *testing.T) {
 	t.Parallel()
 	called := false
-	root := focusedChild(1, &eventHandlers{
+	root := focusedChild("f1", &eventHandlers{
 		OnKeyUp: func(_ *Layout, e *Event, _ *Window) {
 			called = true
 			e.IsHandled = true
 		},
 	})
 	w := &Window{}
-	w.SetIDFocus(1)
+	w.SetFocus("f1")
 	e := &Event{KeyCode: KeyEnter}
 	keyupHandler(root, e, w)
 	if !called {
@@ -142,7 +143,7 @@ func TestKeydownHandlerFallbackScroll(t *testing.T) {
 		Children: []Layout{
 			{
 				Shape: &Shape{
-					IDFocus:  1,
+					Focusable: true, ID: "f1",
 					IDScroll: 1,
 					Width:    100,
 					Height:   100,
@@ -157,7 +158,7 @@ func TestKeydownHandlerFallbackScroll(t *testing.T) {
 		},
 	}
 	w := &Window{}
-	w.SetIDFocus(1)
+	w.SetFocus("f1")
 	guiTheme.ScrollDeltaLine = 20
 	e := &Event{KeyCode: KeyDown, Modifiers: ModNone}
 	keydownHandler(root, e, w)
@@ -241,7 +242,7 @@ func TestMouseDownHandler(t *testing.T) {
 			Shape: &Shape{},
 			Children: []Layout{
 				{Shape: &Shape{
-					IDFocus: 42,
+					Focusable: true, ID: "f42",
 					shapeClip: drawClip{X: 0, Y: 0,
 						Width: 100, Height: 100},
 				}},
@@ -250,8 +251,8 @@ func TestMouseDownHandler(t *testing.T) {
 		w := &Window{windowWidth: 800, windowHeight: 600}
 		e := &Event{MouseX: 50, MouseY: 50}
 		mouseDownHandler(root, false, e, w)
-		if w.IDFocus() != 42 {
-			t.Errorf("focus: got %d, want 42", w.IDFocus())
+		if w.FocusID() != "f42" {
+			t.Errorf("focus: got %q, want f42", w.FocusID())
 		}
 	})
 	t.Run("respects_mouse_lock", func(t *testing.T) {
@@ -418,7 +419,7 @@ func TestMouseScrollHandlerFocusedOnMouseScroll(t *testing.T) {
 		Shape: &Shape{},
 		Children: []Layout{
 			{Shape: &Shape{
-				IDFocus: 5,
+				Focusable: true, ID: "f5",
 				events: &eventHandlers{
 					OnMouseScroll: func(_ *Layout, e *Event, _ *Window) {
 						called = true
@@ -429,7 +430,7 @@ func TestMouseScrollHandlerFocusedOnMouseScroll(t *testing.T) {
 		},
 	}
 	w := &Window{windowWidth: 800, windowHeight: 600}
-	w.SetIDFocus(5)
+	w.SetFocus("f5")
 	e := &Event{MouseX: 50, MouseY: 50, ScrollY: -10}
 	mouseScrollHandler(root, e, w)
 	if !called {
@@ -446,7 +447,7 @@ func TestMouseScrollUnhandledCascadesToScrollContainer(t *testing.T) {
 		Shape: &Shape{},
 		Children: []Layout{
 			{Shape: &Shape{
-				IDFocus: 7,
+				Focusable: true, ID: "f7",
 				events: &eventHandlers{
 					OnMouseScroll: func(_ *Layout, _ *Event, _ *Window) {
 						focusCalled = true
@@ -467,7 +468,7 @@ func TestMouseScrollUnhandledCascadesToScrollContainer(t *testing.T) {
 		},
 	}
 	w := &Window{windowWidth: 800, windowHeight: 600}
-	w.SetIDFocus(7)
+	w.SetFocus("f7")
 	e := &Event{
 		MouseX: 50, MouseY: 25,
 		ScrollY: -10, Modifiers: ModNone,
@@ -781,7 +782,7 @@ func TestCharHandler_ClickOnSpace(t *testing.T) {
 	t.Run("fires", func(t *testing.T) {
 		t.Parallel()
 		clicked := false
-		root := focusedChild(1, &eventHandlers{
+		root := focusedChild("f1", &eventHandlers{
 			ClickOnSpace: true,
 			OnClick: func(_ *Layout, e *Event, _ *Window) {
 				clicked = true
@@ -789,7 +790,7 @@ func TestCharHandler_ClickOnSpace(t *testing.T) {
 			},
 		})
 		w := &Window{}
-		w.SetIDFocus(1)
+		w.SetFocus("f1")
 		e := &Event{CharCode: CharSpace}
 		charHandler(root, e, w)
 		if !clicked {
@@ -802,7 +803,7 @@ func TestCharHandler_ClickOnSpace(t *testing.T) {
 	t.Run("ignores_non_space", func(t *testing.T) {
 		t.Parallel()
 		clicked := false
-		root := focusedChild(1, &eventHandlers{
+		root := focusedChild("f1", &eventHandlers{
 			ClickOnSpace: true,
 			OnClick: func(_ *Layout, e *Event, _ *Window) {
 				clicked = true
@@ -810,7 +811,7 @@ func TestCharHandler_ClickOnSpace(t *testing.T) {
 			},
 		})
 		w := &Window{}
-		w.SetIDFocus(1)
+		w.SetFocus("f1")
 		e := &Event{CharCode: 'x'}
 		charHandler(root, e, w)
 		if clicked {
@@ -820,7 +821,7 @@ func TestCharHandler_ClickOnSpace(t *testing.T) {
 	t.Run("requires_focus", func(t *testing.T) {
 		t.Parallel()
 		clicked := false
-		root := focusedChild(1, &eventHandlers{
+		root := focusedChild("f1", &eventHandlers{
 			ClickOnSpace: true,
 			OnClick: func(_ *Layout, e *Event, _ *Window) {
 				clicked = true
@@ -837,12 +838,12 @@ func TestCharHandler_ClickOnSpace(t *testing.T) {
 	})
 	t.Run("nil_onclick_no_panic", func(t *testing.T) {
 		t.Parallel()
-		root := focusedChild(1, &eventHandlers{
+		root := focusedChild("f1", &eventHandlers{
 			ClickOnSpace: true,
 			OnClick:      nil,
 		})
 		w := &Window{}
-		w.SetIDFocus(1)
+		w.SetFocus("f1")
 		e := &Event{CharCode: CharSpace}
 		// Must not panic.
 		charHandler(root, e, w)
@@ -857,7 +858,7 @@ func TestKeydownHandler_ClickOnEnter(t *testing.T) {
 	t.Run("fires", func(t *testing.T) {
 		t.Parallel()
 		clicked := false
-		root := focusedChild(1, &eventHandlers{
+		root := focusedChild("f1", &eventHandlers{
 			ClickOnEnter: true,
 			OnClick: func(_ *Layout, e *Event, _ *Window) {
 				clicked = true
@@ -865,7 +866,7 @@ func TestKeydownHandler_ClickOnEnter(t *testing.T) {
 			},
 		})
 		w := &Window{}
-		w.SetIDFocus(1)
+		w.SetFocus("f1")
 		e := &Event{KeyCode: KeyEnter}
 		keydownHandler(root, e, w)
 		if !clicked {
@@ -878,7 +879,7 @@ func TestKeydownHandler_ClickOnEnter(t *testing.T) {
 	t.Run("ignores_non_enter", func(t *testing.T) {
 		t.Parallel()
 		clicked := false
-		root := focusedChild(1, &eventHandlers{
+		root := focusedChild("f1", &eventHandlers{
 			ClickOnEnter: true,
 			OnClick: func(_ *Layout, e *Event, _ *Window) {
 				clicked = true
@@ -886,7 +887,7 @@ func TestKeydownHandler_ClickOnEnter(t *testing.T) {
 			},
 		})
 		w := &Window{}
-		w.SetIDFocus(1)
+		w.SetFocus("f1")
 		e := &Event{KeyCode: KeyA}
 		keydownHandler(root, e, w)
 		if clicked {
@@ -896,7 +897,7 @@ func TestKeydownHandler_ClickOnEnter(t *testing.T) {
 	t.Run("requires_focus", func(t *testing.T) {
 		t.Parallel()
 		clicked := false
-		root := focusedChild(1, &eventHandlers{
+		root := focusedChild("f1", &eventHandlers{
 			ClickOnEnter: true,
 			OnClick: func(_ *Layout, e *Event, _ *Window) {
 				clicked = true
@@ -913,12 +914,12 @@ func TestKeydownHandler_ClickOnEnter(t *testing.T) {
 	})
 	t.Run("nil_onclick_no_panic", func(t *testing.T) {
 		t.Parallel()
-		root := focusedChild(1, &eventHandlers{
+		root := focusedChild("f1", &eventHandlers{
 			ClickOnEnter: true,
 			OnClick:      nil,
 		})
 		w := &Window{}
-		w.SetIDFocus(1)
+		w.SetFocus("f1")
 		e := &Event{KeyCode: KeyEnter}
 		// Must not panic.
 		keydownHandler(root, e, w)

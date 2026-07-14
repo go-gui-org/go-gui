@@ -10,10 +10,10 @@ import (
 // TextSelBeg/TextSelEnd for rendering and calls rtfAmendTooltip.
 func rtfSelectAmendLayout(l *Layout, w *Window) {
 	rtfAmendTooltip(l, w)
-	if l.Shape.IDFocus == 0 || l.Shape.TC == nil {
+	if l.Shape.ID == "" || !l.Shape.Focusable || l.Shape.TC == nil {
 		return
 	}
-	is := StateReadOr(w, nsInput, l.Shape.IDFocus, InputState{})
+	is := StateReadOr(w, nsInput, l.Shape.ID, InputState{})
 	l.Shape.TC.TextSelBeg = is.SelectBeg
 	l.Shape.TC.TextSelEnd = is.SelectEnd
 }
@@ -33,10 +33,10 @@ func rtfSelectOnClick(l *Layout, e *Event, w *Window) {
 		return
 	}
 	shape := l.Shape
-	if shape.TC == nil || !shape.hasRtfLayout() || shape.IDFocus == 0 {
+	if shape.TC == nil || !shape.hasRtfLayout() || shape.ID == "" || !shape.Focusable {
 		return
 	}
-	w.SetIDFocus(shape.IDFocus)
+	w.SetFocus(shape.ID)
 
 	gl := shape.TC.RtfLayout
 	flatText := shape.TC.RtfFlatText
@@ -44,9 +44,9 @@ func rtfSelectOnClick(l *Layout, e *Event, w *Window) {
 	byteIdx := gl.GetClosestOffset(e.MouseX, e.MouseY)
 	runePos := byteToRuneIndex(flatText, byteIdx)
 
-	idFocus := shape.IDFocus
-	imap := StateMap[uint32, InputState](w, nsInput, capMany)
-	is, _ := imap.Get(idFocus)
+	focusID := shape.ID
+	imap := StateMap[string, InputState](w, nsInput, capMany)
+	is, _ := imap.Get(focusID)
 
 	now := time.Now().UnixMilli()
 	doubleClick := is.LastClickTime > 0 &&
@@ -66,7 +66,7 @@ func rtfSelectOnClick(l *Layout, e *Event, w *Window) {
 		is.SelectEnd = uint32(runePos)
 	}
 	is.CursorOffset = -1
-	imap.Set(idFocus, is)
+	imap.Set(focusID, is)
 	e.IsHandled = true
 
 	anchorPos := is.SelectBeg
@@ -108,8 +108,8 @@ func rtfSelectOnClick(l *Layout, e *Event, w *Window) {
 	}
 
 	updateDrag := func(rp int, w *Window) {
-		dim := StateMap[uint32, InputState](w, nsInput, capMany)
-		dis, _ := dim.Get(idFocus)
+		dim := StateMap[string, InputState](w, nsInput, capMany)
+		dis, _ := dim.Get(focusID)
 		if doubleClick {
 			bi := runeToByteIndex(flatText, rp)
 			bBeg, bEnd := gl.GetWordAtIndex(bi)
@@ -130,7 +130,7 @@ func rtfSelectOnClick(l *Layout, e *Event, w *Window) {
 			dis.SelectEnd = uint32(rp)
 		}
 		dis.CursorOffset = -1
-		dim.Set(idFocus, dis)
+		dim.Set(focusID, dis)
 	}
 
 	dragScrollCB := func(_ *Animate, w *Window) {
@@ -185,15 +185,15 @@ func rtfSelectOnClick(l *Layout, e *Event, w *Window) {
 // rtfSelectOnKeyDown handles keyboard navigation and copy for selectable RTF.
 func rtfSelectOnKeyDown(l *Layout, e *Event, w *Window) {
 	shape := l.Shape
-	if shape.TC == nil || shape.IDFocus == 0 ||
-		!w.IsFocus(shape.IDFocus) {
+	if shape.TC == nil || shape.ID == "" || !shape.Focusable ||
+		!w.IsFocus(shape.ID) {
 		return
 	}
-	id := shape.IDFocus
+	id := shape.ID
 	flatText := shape.TC.RtfFlatText
 	gl := *shape.TC.RtfLayout
 
-	imap := StateMap[uint32, InputState](w, nsInput, capMany)
+	imap := StateMap[string, InputState](w, nsInput, capMany)
 	is, _ := imap.Get(id)
 	savedOffset := is.CursorOffset
 	savedTrailing := is.CursorTrailing

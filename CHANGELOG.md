@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.34.0] - 2026-07-14
+
+### Changed
+
+- **BREAKING — Focus API**: `Shape.IDFocus uint32` is replaced by
+  `Focusable bool` plus string focus identity (the widget's `ID`). Tab
+  order now follows layout-tree (DFS) order instead of ascending numeric
+  IDs. Window API: `SetFocus(id string)`, `FocusID() string`,
+  `IsFocus(id string)`, and `ClearFocus()` replace the uint32 variants.
+  Migration: `IDFocus: N` → `Focusable: true` (with a non-empty `ID`);
+  `SetIDFocus(0)` → `ClearFocus()`.
+- **BREAKING — Widget cfgs**: `MenubarCfg`, `ContextMenuCfg`,
+  `CommandPaletteCfg`, and `DataGridCfg` lose `IDFocus`;
+  `DialogCfg.IDFocus` → `FocusID string`; `RadioButtonGroupCfg` gains
+  `ID`; menus and context menus now require an `ID`.
+  `CommandPaletteShow`/`CommandPaletteToggle` drop the `idFocus`
+  parameter (focus derives from the palette input's ID).
+- **Focus internals**: six per-window state namespaces rekeyed
+  uint32→string; FnvSum32 focus-hash derivation removed from menus and
+  datagrid (header/editor focus ids now derive from cell ID and column
+  index). Duplicate focusable IDs collapse to one tab stop with a
+  dev-mode warning (`GOGUI_FOCUS_DEBUG=1`). `IDScroll` is unchanged.
+
 ## [v0.33.1] - 2026-07-14
 
 ### Fixed

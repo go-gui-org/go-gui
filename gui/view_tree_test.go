@@ -189,7 +189,7 @@ func TestTreeRowClickTogglesAndSelects(t *testing.T) {
 	treeRowClick(
 		"tree",
 		row,
-		88,
+		"tree-focus",
 		func(id string, _ *Event, w *Window) {
 			selectedID = id
 			selectSawExpanded = treeExpandedState(w, "tree")["remote"]
@@ -222,8 +222,8 @@ func TestTreeRowClickTogglesAndSelects(t *testing.T) {
 	if loading, ok := StateMap[string, bool](w, nsTreeLazy, capMany).Get(treeLazyKey("tree", "remote")); !ok || !loading {
 		t.Fatal("lazy loading state should be set after first expansion")
 	}
-	if got := w.IDFocus(); got != 88 {
-		t.Fatalf("w.IDFocus() = %d, want 88", got)
+	if got := w.FocusID(); got != "tree-focus" {
+		t.Fatalf("w.FocusID() = %q, want tree-focus", got)
 	}
 	if !e.IsHandled {
 		t.Fatal("click event should be handled")
@@ -238,7 +238,7 @@ func TestTreeRowClickCollapseClearsLoading(t *testing.T) {
 	treeRowClick(
 		"tree",
 		treeFlatRow{ID: "remote", HasChildren: true, IsExpanded: true, IsLazy: true},
-		0,
+		"",
 		nil,
 		nil,
 		&Event{},

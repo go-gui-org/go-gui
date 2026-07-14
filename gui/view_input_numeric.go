@@ -31,7 +31,7 @@ type NumericInputCfg struct {
 	Padding    Opt[Padding]
 	Radius     Opt[float32]
 	SizeBorder Opt[float32]
-	IDFocus    uint32
+	Focusable  bool
 	Width      float32
 	Height     float32
 	MinWidth   float32
@@ -78,7 +78,7 @@ func NumericInput(cfg NumericInputCfg) View {
 
 	colorHover := cfg.ColorHover
 	colorBorderFocus := cfg.ColorBorderFocus
-	idFocus := cfg.IDFocus
+	focusID := cfg.ID
 
 	content := []View{
 		field,
@@ -87,7 +87,7 @@ func NumericInput(cfg NumericInputCfg) View {
 
 	return Row(ContainerCfg{
 		ID:          cfg.ID,
-		IDFocus:     cfg.IDFocus,
+		Focusable:   cfg.Focusable,
 		A11YRole:    AccessRoleTextField,
 		A11YLabel:   a11yLabel(cfg.A11YLabel, cfg.Placeholder),
 		Width:       cfg.Width,
@@ -108,12 +108,12 @@ func NumericInput(cfg NumericInputCfg) View {
 		VAlign:      VAlignMiddle,
 		Spacing:     SomeF(0),
 		OnClick: func(_ *Layout, _ *Event, w *Window) {
-			if idFocus > 0 {
-				w.SetIDFocus(idFocus)
+			if focusID != "" {
+				w.SetFocus(focusID)
 			}
 		},
 		OnHover: func(layout *Layout, _ *Event, w *Window) {
-			if w.IsFocus(idFocus) {
+			if w.IsFocus(focusID) {
 				w.setMouseCursor(CursorIBeam)
 			} else {
 				layout.Shape.Color = colorHover
@@ -123,7 +123,7 @@ func NumericInput(cfg NumericInputCfg) View {
 			if layout.Shape.Disabled {
 				return
 			}
-			if idFocus > 0 && w.IsFocus(idFocus) {
+			if focusID != "" && w.IsFocus(focusID) {
 				layout.Shape.ColorBorder = colorBorderFocus
 			}
 		},
@@ -167,7 +167,7 @@ func numericInputField(cfg NumericInputCfg, locale NumericLocaleCfg, _ NumericSt
 
 	return Input(InputCfg{
 		ID:               inputID,
-		IDFocus:          cfg.IDFocus,
+		Focusable:        cfg.Focusable,
 		Text:             cfg.Text,
 		Placeholder:      cfg.Placeholder,
 		Sizing:           sizing,

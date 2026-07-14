@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"strconv"
+	"testing"
+)
 
 func benchScrollLayout(scrollRegions, childrenPer int) Layout {
 	root := Layout{
@@ -30,7 +33,8 @@ func benchScrollLayout(scrollRegions, childrenPer int) Layout {
 					shapeType: shapeRectangle,
 					Width:     1200,
 					Height:    40,
-					IDFocus:   uint32(i*childrenPer + j + 1),
+					Focusable: true,
+					ID:        "f" + strconv.Itoa(i*childrenPer+j+1),
 				},
 			}
 		}

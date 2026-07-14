@@ -23,7 +23,7 @@ var (
 )
 
 const (
-	todoInputFocusID = 1
+	todoInputFocusID = "todo-input"
 	windowWidth      = 540
 	windowHeight     = 640
 )
@@ -64,7 +64,7 @@ func main() {
 		OnInit: func(w *gui.Window) {
 			// Render once and put the caret in the input field.
 			w.UpdateView(mainView)
-			w.SetIDFocus(todoInputFocusID)
+			w.SetFocus(todoInputFocusID)
 		},
 	})
 
@@ -137,7 +137,7 @@ func composerView(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Input(gui.InputCfg{
 				ID:               "todo-input",
-				IDFocus:          todoInputFocusID,
+				Focusable:        true,
 				Sizing:           gui.FillFit,
 				Text:             app.Draft,
 				Placeholder:      "Add your task",
@@ -321,7 +321,7 @@ func addTodo(w *gui.Window, title string) {
 	app.NextID++
 	app.Draft = ""
 	// Re-focus the input so the next task can be entered immediately.
-	w.SetIDFocus(todoInputFocusID)
+	w.SetFocus(todoInputFocusID)
 }
 
 func toggleTodo(w *gui.Window, id int) {

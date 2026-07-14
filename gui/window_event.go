@@ -131,11 +131,11 @@ func (w *Window) handleKeyDownEvent(layout *Layout, e *Event) {
 	if !e.IsHandled && e.KeyCode == KeyTab &&
 		e.Modifiers == ModShift {
 		if shape, ok := layout.PreviousFocusable(w); ok {
-			w.SetIDFocus(shape.IDFocus)
+			w.SetFocus(shape.ID)
 		}
 	} else if !e.IsHandled && e.KeyCode == KeyTab {
 		if shape, ok := layout.NextFocusable(w); ok {
-			w.SetIDFocus(shape.IDFocus)
+			w.SetFocus(shape.ID)
 		}
 	}
 	// Non-global commands fire as fallback.
@@ -171,7 +171,7 @@ func (w *Window) handleMouseDownEvent(layout *Layout, e *Event) {
 	// is only cleared when a popup was actually open
 	// to avoid interfering with normal focus flow.
 	if dismissPopups(w) {
-		w.SetIDFocus(0)
+		w.ClearFocus()
 	}
 	if !e.IsHandled {
 		mouseDownHandler(layout, false, e, w)
@@ -230,7 +230,7 @@ func (w *Window) eventAllowed(e *Event) bool {
 func dismissPopups(w *Window) bool {
 	a := clearStateMap[string, contextMenuState](w, nsContextMenu)
 	b := clearStateMap[string, rtfLinkMenuState](w, nsRtfLinkMenu)
-	c := clearStateMap[uint32, string](w, nsMenu)
+	c := clearStateMap[string, string](w, nsMenu)
 	return a || b || c
 }
 

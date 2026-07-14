@@ -16,19 +16,19 @@ func TestMarkdownBlockAmendSel_NilTC_NoOp(t *testing.T) {
 
 func TestMarkdownBlockAmendSel_ZeroMarkdownID_NoOp(t *testing.T) {
 	w := &Window{}
-	tc := &ShapeTextConfig{MarkdownID: 0, TextSelBeg: 99, TextSelEnd: 99}
+	tc := &ShapeTextConfig{MarkdownID: "", TextSelBeg: 99, TextSelEnd: 99}
 	l := &Layout{Shape: &Shape{TC: tc}}
 	markdownBlockAmendSel(l, w)
 	// No state written; values unchanged.
 	if tc.TextSelBeg != 99 {
-		t.Error("unexpected mutation when MarkdownID == 0")
+		t.Error("unexpected mutation when MarkdownID is empty")
 	}
 }
 
 func TestMarkdownBlockAmendSel_SelectionBeforeBlock_ZeroOut(t *testing.T) {
 	w := &Window{}
-	mdID := uint32(1)
-	StateMap[uint32, mdSelState](w, nsMdSel, capMany).Set(mdID,
+	mdID := "md1"
+	StateMap[string, mdSelState](w, nsMdSel, capMany).Set(mdID,
 		mdSelState{SelBeg: 0, SelEnd: 5})
 	tc := &ShapeTextConfig{
 		MarkdownID:         mdID,
@@ -45,8 +45,8 @@ func TestMarkdownBlockAmendSel_SelectionBeforeBlock_ZeroOut(t *testing.T) {
 
 func TestMarkdownBlockAmendSel_SelectionAfterBlock_ZeroOut(t *testing.T) {
 	w := &Window{}
-	mdID := uint32(2)
-	StateMap[uint32, mdSelState](w, nsMdSel, capMany).Set(mdID,
+	mdID := "md2"
+	StateMap[string, mdSelState](w, nsMdSel, capMany).Set(mdID,
 		mdSelState{SelBeg: 20, SelEnd: 30})
 	tc := &ShapeTextConfig{
 		MarkdownID:         mdID,
@@ -63,9 +63,9 @@ func TestMarkdownBlockAmendSel_SelectionAfterBlock_ZeroOut(t *testing.T) {
 
 func TestMarkdownBlockAmendSel_SelectionAtExactBlockBoundary_ZeroOut(t *testing.T) {
 	w := &Window{}
-	mdID := uint32(3)
+	mdID := "md3"
 	// end == blockStart: guard is end <= blockStart, so no overlap.
-	StateMap[uint32, mdSelState](w, nsMdSel, capMany).Set(mdID,
+	StateMap[string, mdSelState](w, nsMdSel, capMany).Set(mdID,
 		mdSelState{SelBeg: 0, SelEnd: 10})
 	tc := &ShapeTextConfig{
 		MarkdownID:         mdID,
@@ -82,8 +82,8 @@ func TestMarkdownBlockAmendSel_SelectionAtExactBlockBoundary_ZeroOut(t *testing.
 
 func TestMarkdownBlockAmendSel_SelectionSpansEntireBlock(t *testing.T) {
 	w := &Window{}
-	mdID := uint32(4)
-	StateMap[uint32, mdSelState](w, nsMdSel, capMany).Set(mdID,
+	mdID := "md4"
+	StateMap[string, mdSelState](w, nsMdSel, capMany).Set(mdID,
 		mdSelState{SelBeg: 0, SelEnd: 20})
 	tc := &ShapeTextConfig{
 		MarkdownID:         mdID,
@@ -99,9 +99,9 @@ func TestMarkdownBlockAmendSel_SelectionSpansEntireBlock(t *testing.T) {
 
 func TestMarkdownBlockAmendSel_PartialOverlapStart(t *testing.T) {
 	w := &Window{}
-	mdID := uint32(5)
+	mdID := "md5"
 	// Selection starts before block, ends inside block.
-	StateMap[uint32, mdSelState](w, nsMdSel, capMany).Set(mdID,
+	StateMap[string, mdSelState](w, nsMdSel, capMany).Set(mdID,
 		mdSelState{SelBeg: 5, SelEnd: 12})
 	tc := &ShapeTextConfig{
 		MarkdownID:         mdID,
@@ -117,9 +117,9 @@ func TestMarkdownBlockAmendSel_PartialOverlapStart(t *testing.T) {
 
 func TestMarkdownBlockAmendSel_PartialOverlapEnd(t *testing.T) {
 	w := &Window{}
-	mdID := uint32(6)
+	mdID := "md6"
 	// Selection starts inside block, ends after block.
-	StateMap[uint32, mdSelState](w, nsMdSel, capMany).Set(mdID,
+	StateMap[string, mdSelState](w, nsMdSel, capMany).Set(mdID,
 		mdSelState{SelBeg: 13, SelEnd: 25})
 	tc := &ShapeTextConfig{
 		MarkdownID:         mdID,
@@ -135,9 +135,9 @@ func TestMarkdownBlockAmendSel_PartialOverlapEnd(t *testing.T) {
 
 func TestMarkdownBlockAmendSel_InvertedSelection_SortsCorrectly(t *testing.T) {
 	w := &Window{}
-	mdID := uint32(7)
+	mdID := "md7"
 	// SelEnd < SelBeg (drag rightward from end to start); u32Sort normalizes.
-	StateMap[uint32, mdSelState](w, nsMdSel, capMany).Set(mdID,
+	StateMap[string, mdSelState](w, nsMdSel, capMany).Set(mdID,
 		mdSelState{SelBeg: 15, SelEnd: 5})
 	tc := &ShapeTextConfig{
 		MarkdownID:         mdID,

@@ -6,7 +6,7 @@ type ThemePickerCfg struct {
 	ID              string
 	A11YLabel       string
 	A11YDescription string
-	IDFocus         uint32
+	Focusable       bool
 	FloatOffsetX    float32
 	FloatOffsetY    float32
 	Sizing          Sizing
@@ -31,7 +31,7 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 	isOpen := StateReadOr(w, nsSelect, cfg.ID, false)
 	id := cfg.ID
 	currentName := guiTheme.Name
-	idFocus := cfg.IDFocus
+	focusID := cfg.ID
 	onSel := cfg.OnSelect
 	lbID := cfg.ID + "lb"
 
@@ -91,7 +91,7 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 
 	return generateViewLayout(Row(ContainerCfg{
 		ID:        cfg.ID,
-		IDFocus:   idFocus,
+		Focusable: cfg.Focusable,
 		A11YRole:  AccessRoleButton,
 		A11YLabel: a11yLabel(cfg.A11YLabel, "Theme Picker"),
 		Sizing:    cfg.Sizing,
@@ -107,7 +107,7 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 			e.IsHandled = true
 		},
 		AmendLayout: func(layout *Layout, w *Window) {
-			if w.IsFocus(idFocus) {
+			if w.IsFocus(focusID) {
 				layout.Shape.Color = colorFocus
 				layout.Shape.ColorBorder = colorBorderFocus
 			}

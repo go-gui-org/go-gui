@@ -157,93 +157,31 @@ func TestHeaderControlsWidthNone(t *testing.T) {
 	}
 }
 
-// --- dataGridHeaderFocusBaseID ---
-
-func TestHeaderFocusBaseIDNormal(t *testing.T) {
-	cfg := &DataGridCfg{ID: "g", IDFocus: 100}
-	got := dataGridHeaderFocusBaseID(cfg, 3)
-	// body = 100, base = 101
-	if got != 101 {
-		t.Errorf("got %d, want 101", got)
-	}
-}
-
-func TestHeaderFocusBaseIDZeroCols(t *testing.T) {
-	cfg := &DataGridCfg{ID: "g", IDFocus: 100}
-	got := dataGridHeaderFocusBaseID(cfg, 0)
-	if got != 0 {
-		t.Errorf("got %d, want 0", got)
-	}
-}
-
-// --- dataGridHeaderFocusID ---
-
-func TestHeaderFocusID(t *testing.T) {
-	cfg := &DataGridCfg{ID: "g", IDFocus: 100}
-	got := dataGridHeaderFocusID(cfg, 3, 0)
-	if got != 101 {
-		t.Errorf("col0: got %d, want 101", got)
-	}
-	got = dataGridHeaderFocusID(cfg, 3, 2)
-	if got != 103 {
-		t.Errorf("col2: got %d, want 103", got)
-	}
-}
-
-func TestHeaderFocusIDOutOfRange(t *testing.T) {
-	cfg := &DataGridCfg{ID: "g", IDFocus: 100}
-	got := dataGridHeaderFocusID(cfg, 3, 3)
-	if got != 0 {
-		t.Errorf("out of range: got %d, want 0", got)
-	}
-	got = dataGridHeaderFocusID(cfg, 3, -1)
-	if got != 0 {
-		t.Errorf("negative: got %d, want 0", got)
-	}
-}
-
-// --- dataGridHeaderFocusIndex ---
-
-func TestHeaderFocusIndex(t *testing.T) {
-	cfg := &DataGridCfg{ID: "g", IDFocus: 100}
-	got := dataGridHeaderFocusIndex(cfg, 3, 102)
-	if got != 1 {
-		t.Errorf("got %d, want 1", got)
-	}
-}
-
-func TestHeaderFocusIndexNotInRange(t *testing.T) {
-	cfg := &DataGridCfg{ID: "g", IDFocus: 100}
-	got := dataGridHeaderFocusIndex(cfg, 3, 50)
-	if got != -1 {
-		t.Errorf("got %d, want -1", got)
-	}
-}
-
-func TestHeaderFocusIndexZeroFocus(t *testing.T) {
-	cfg := &DataGridCfg{ID: "g", IDFocus: 100}
-	got := dataGridHeaderFocusIndex(cfg, 3, 0)
-	if got != -1 {
-		t.Errorf("got %d, want -1", got)
-	}
-}
-
 // --- dataGridHeaderFocusedColID ---
 
 func TestHeaderFocusedColID(t *testing.T) {
-	cfg := &DataGridCfg{ID: "g", IDFocus: 100}
+	cfg := &DataGridCfg{ID: "g"}
 	columns := []GridColumnCfg{{ID: "a"}, {ID: "b"}, {ID: "c"}}
-	got := dataGridHeaderFocusedColID(cfg, columns, 102)
+	// Header cell focus ids are cfg.ID + ":header:" + colID.
+	got := dataGridHeaderFocusedColID(cfg, columns, "g:header:b")
 	if got != "b" {
 		t.Errorf("got %q, want %q", got, "b")
 	}
 }
 
 func TestHeaderFocusedColIDOutOfRange(t *testing.T) {
-	cfg := &DataGridCfg{ID: "g", IDFocus: 100}
+	cfg := &DataGridCfg{ID: "g"}
 	columns := []GridColumnCfg{{ID: "a"}}
-	got := dataGridHeaderFocusedColID(cfg, columns, 50)
+	got := dataGridHeaderFocusedColID(cfg, columns, "g:header:zzz")
 	if got != "" {
+		t.Errorf("got %q, want empty", got)
+	}
+}
+
+func TestHeaderFocusedColIDEmpty(t *testing.T) {
+	cfg := &DataGridCfg{ID: "g"}
+	columns := []GridColumnCfg{{ID: "a"}}
+	if got := dataGridHeaderFocusedColID(cfg, columns, ""); got != "" {
 		t.Errorf("got %q, want empty", got)
 	}
 }
@@ -411,7 +349,7 @@ func TestResizeHandleReturnsView(t *testing.T) {
 		Columns:           []GridColumnCfg{{ID: "c1"}},
 	}
 	col := GridColumnCfg{ID: "c1"}
-	v := dataGridResizeHandle(cfg, col, 0)
+	v := dataGridResizeHandle(cfg, col, "")
 	if v == nil {
 		t.Fatal("resize handle should return a view")
 	}
@@ -488,7 +426,7 @@ func TestHeaderRowReturnsView(t *testing.T) {
 		TextStyleHeader: gg.DefaultTextStyle,
 	}
 	columns := []GridColumnCfg{{ID: "c1"}, {ID: "c2"}}
-	v := dataGridHeaderRow(cfg, columns, nil, 0, "", "", "")
+	v := dataGridHeaderRow(cfg, columns, nil, "", "", "", "")
 	if v == nil {
 		t.Fatal("header row should return a view")
 	}
@@ -507,7 +445,7 @@ func TestHeaderCellReturnsView(t *testing.T) {
 		ColorHeaderHover: gg.RGBA(220, 220, 220, 255),
 	}
 	col := GridColumnCfg{ID: "c1", Title: "Column 1"}
-	v := dataGridHeaderCell(cfg, col, 0, 2, 100, 0, false)
+	v := dataGridHeaderCell(cfg, col, 0, 2, 100, "", false)
 	if v == nil {
 		t.Fatal("header cell should return a view")
 	}
@@ -529,7 +467,7 @@ func TestHeaderCellWithControls(t *testing.T) {
 		ID: "c1", Title: "Column 1",
 		Reorderable: true, Resizable: true, Pin: GridColumnPinNone,
 	}
-	v := dataGridHeaderCell(cfg, col, 0, 2, 300, 0, true)
+	v := dataGridHeaderCell(cfg, col, 0, 2, 300, "", true)
 	if v == nil {
 		t.Fatal("header cell with controls should return a view")
 	}

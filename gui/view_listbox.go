@@ -46,7 +46,7 @@ type ListBoxCfg struct {
 	MinHeight   float32
 	MaxHeight   float32
 	IDScroll    uint32
-	IDFocus     uint32
+	Focusable   bool
 	Color       Color
 	ColorHover  Color
 	ColorBorder Color
@@ -85,7 +85,7 @@ func ListBox(cfg ListBoxCfg) View {
 	}
 	if listBoxCanVirtualize(&cfg) ||
 		(cfg.Reorderable && cfg.OnReorder != nil) ||
-		cfg.IDFocus > 0 {
+		cfg.Focusable {
 		return &listBoxView{cfg: cfg}
 	}
 
@@ -114,7 +114,7 @@ func ListBox(cfg ListBoxCfg) View {
 		ID:        cfg.ID,
 		A11YRole:  AccessRoleList,
 		A11YLabel: a11yLabel(cfg.A11YLabel, cfg.ID),
-		IDFocus:   cfg.IDFocus,
+		Focusable: cfg.Focusable,
 		IDScroll:  cfg.IDScroll,
 		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
 			listBoxOnKeyDown(listBoxID, itemIDs,
@@ -213,7 +213,7 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 		ID:        cfg.ID,
 		A11YRole:  AccessRoleList,
 		A11YLabel: a11yLabel(cfg.A11YLabel, cfg.ID),
-		IDFocus:   cfg.IDFocus,
+		Focusable: cfg.Focusable,
 		IDScroll:  cfg.IDScroll,
 		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
 			if canReorder {

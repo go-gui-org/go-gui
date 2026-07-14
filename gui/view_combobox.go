@@ -42,7 +42,7 @@ type ComboboxCfg struct {
 	MinWidth          float32
 	MaxWidth          float32
 	MaxDropdownHeight float32
-	IDFocus           uint32
+	Focusable         bool
 	IDScroll          uint32
 	Color             Color
 	ColorBorder       Color
@@ -241,11 +241,11 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 
 	colorFocus := cfg.ColorFocus
 	colorBorderFocus := cfg.ColorBorderFocus
-	idFocus := cfg.IDFocus
+	focusID := cfg.ID
 
 	ccfg := ContainerCfg{
 		ID:          cfg.ID,
-		IDFocus:     idFocus,
+		Focusable:   cfg.Focusable,
 		A11YRole:    AccessRoleComboBox,
 		A11YLabel:   a11yLabel(cfg.A11YLabel, cfg.Placeholder),
 		Color:       cfg.Color,
@@ -262,18 +262,18 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 			if layout.Shape.Disabled {
 				return
 			}
-			if w.IsFocus(layout.Shape.IDFocus) {
+			if w.IsFocus(layout.Shape.ID) {
 				layout.Shape.Color = colorFocus
 				layout.Shape.ColorBorder = colorBorderFocus
 			}
 		},
-		OnKeyDown: makeComboboxOnKeyDown(cfg.ID, onSelect, idFocus, filteredIDs, cfg.IDScroll, rowH, listH),
+		OnKeyDown: makeComboboxOnKeyDown(cfg.ID, onSelect, focusID, filteredIDs, cfg.IDScroll, rowH, listH),
 		OnChar:    makeComboboxOnChar(cfg.ID),
 		OnClick: func(_ *Layout, e *Event, w *Window) {
 			if isOpen {
 				comboboxClose(cfgID, w)
 			} else {
-				comboboxOpen(cfgID, idFocus, w)
+				comboboxOpen(cfgID, focusID, w)
 			}
 			e.IsHandled = true
 		},
@@ -286,15 +286,15 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 	return generateViewLayout(outerRow, w)
 }
 
-func comboboxOpen(id string, idFocus uint32, w *Window) {
+func comboboxOpen(id string, focusID string, w *Window) {
 	ss := StateMap[string, bool](w, nsCombobox, capModerate)
 	ss.Set(id, true)
 	sq := StateMap[string, string](w, nsComboboxQuery, capModerate)
 	sq.Set(id, "")
 	sh := StateMap[string, int](w, nsComboboxHighlight, capModerate)
 	sh.Set(id, 0)
-	if idFocus > 0 {
-		w.SetIDFocus(idFocus)
+	if focusID != "" {
+		w.SetFocus(focusID)
 	}
 	w.UpdateWindow()
 }
@@ -332,20 +332,20 @@ func makeComboboxOnChar(cfgID string) func(*Layout, *Event, *Window) {
 	}
 }
 
-func makeComboboxOnKeyDown(cfgID string, onSelect func(string, *Event, *Window), idFocus uint32, filteredIDs []string, idScroll uint32, rowH, listH float32) func(*Layout, *Event, *Window) {
+func makeComboboxOnKeyDown(cfgID string, onSelect func(string, *Event, *Window), focusID string, filteredIDs []string, idScroll uint32, rowH, listH float32) func(*Layout, *Event, *Window) {
 	return func(_ *Layout, e *Event, w *Window) {
-		comboboxOnKeyDown(cfgID, onSelect, idFocus, filteredIDs, idScroll, rowH, listH, e, w)
+		comboboxOnKeyDown(cfgID, onSelect, focusID, filteredIDs, idScroll, rowH, listH, e, w)
 	}
 }
 
-func comboboxOnKeyDown(cfgID string, onSelect func(string, *Event, *Window), idFocus uint32, filteredIDs []string, idScroll uint32, rowH, listH float32, e *Event, w *Window) {
+func comboboxOnKeyDown(cfgID string, onSelect func(string, *Event, *Window), focusID string, filteredIDs []string, idScroll uint32, rowH, listH float32, e *Event, w *Window) {
 	ss := StateMap[string, bool](w, nsCombobox, capModerate)
 	isOpen, _ := ss.Get(cfgID) // ok ignored: false means "not open"
 
 	if !isOpen {
 		if e.KeyCode == KeySpace || e.KeyCode == KeyEnter ||
 			e.KeyCode == KeyUp || e.KeyCode == KeyDown {
-			comboboxOpen(cfgID, idFocus, w)
+			comboboxOpen(cfgID, focusID, w)
 			e.IsHandled = true
 		}
 		return

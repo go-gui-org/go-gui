@@ -49,7 +49,7 @@ func mainView(w *gui.Window) gui.View {
 				Text: "Click to increment counter",
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
-						IDFocus: 1,
+						Focusable: true,
 						Shadow: &gui.BoxShadow{
 							Color:      gui.RGBA(0, 0, 64, 64),
 							BlurRadius: 3,

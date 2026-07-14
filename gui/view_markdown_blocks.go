@@ -513,7 +513,7 @@ func mdRenderParagraph(
 	}
 	applyMdCtx(&rtfCfg, ctx)
 	if ctx == nil {
-		rtfCfg.IDFocus = cfg.IDFocus
+		rtfCfg.Focusable = cfg.Focusable
 	}
 	return RTF(rtfCfg)
 }

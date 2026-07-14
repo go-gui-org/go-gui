@@ -157,7 +157,7 @@ func landingView(w *gui.Window) gui.View {
 					}),
 
 					gui.Button(gui.ButtonCfg{
-						IDFocus:     1,
+						Focusable:   true,
 						MinWidth:    200,
 						Color:       gui.RGB(237, 194, 46),
 						ColorHover:  gui.RGB(245, 210, 80),
@@ -398,9 +398,9 @@ func gameOverlay(msg string) gui.View {
 				TextStyle: textStyle(theme.B1, 48, gui.RGB(119, 110, 101)),
 			}),
 			gui.Button(gui.ButtonCfg{
-				IDFocus: 10,
-				Color:   gui.RGB(143, 122, 102),
-				Padding: gui.SomeP(12, 24, 12, 24),
+				Focusable: true,
+				Color:     gui.RGB(143, 122, 102),
+				Padding:   gui.SomeP(12, 24, 12, 24),
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      "TRY AGAIN",

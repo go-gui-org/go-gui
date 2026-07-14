@@ -295,8 +295,8 @@ func TestDemoTextLayout(t *testing.T) {
 		if !ok {
 			t.Fatal("text-selectable-block not found")
 		}
-		if l.Shape.IDFocus == 0 {
-			t.Fatal("text-selectable-block should have IDFocus > 0")
+		if !l.Shape.Focusable {
+			t.Fatal("text-selectable-block should be focusable")
 		}
 		if l.Shape.TC == nil || l.Shape.TC.TextMode != gui.TextModeMultiline {
 			t.Fatal("text-selectable-block should use TextModeMultiline")

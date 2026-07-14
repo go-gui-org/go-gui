@@ -265,7 +265,7 @@ type ViewState struct {
 	markdownTheme            string
 	rtfLayoutTheme           string
 	diagramRequestSeq        uint64
-	idFocus                  uint32
+	focusID                  string
 	mousePosX                float32
 	mousePosY                float32
 	mouseCursor              MouseCursor
@@ -305,7 +305,7 @@ func (w *Window) clearViewState() {
 func (w *Window) clearViewStateLocked() {
 	w.viewState.registry.Clear()
 	w.clearHotMaps()
-	w.viewState.idFocus = 0
+	w.viewState.focusID = ""
 }
 
 // ClearDrawCanvasCache drops all cached tessellation data,
@@ -351,11 +351,11 @@ func (w *Window) PointerOverApp(e *Event) bool {
 // clearInputSelections zeros SelectBeg/SelectEnd for all
 // input states.
 func (w *Window) clearInputSelections() {
-	imap := StateMapRead[uint32, InputState](w, nsInput)
+	imap := StateMapRead[string, InputState](w, nsInput)
 	if imap == nil {
 		return
 	}
-	imap.Range(func(key uint32, v InputState) bool {
+	imap.Range(func(key string, v InputState) bool {
 		v.SelectBeg = 0
 		v.SelectEnd = 0
 		imap.Set(key, v)

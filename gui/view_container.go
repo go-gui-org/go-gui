@@ -94,7 +94,7 @@ type ContainerCfg struct {
 	BlurRadius float32
 
 	// Behavior
-	IDFocus      uint32
+	Focusable    bool
 	IDScroll     uint32
 	FloatOffsetX float32
 	FloatOffsetY float32
@@ -318,7 +318,7 @@ func buildContainerShape(cfg *ContainerCfg) *Shape {
 	shape := &Shape{
 		shapeType:            shapeRectangle,
 		ID:                   cfg.ID,
-		IDFocus:              cfg.IDFocus,
+		Focusable:            cfg.Focusable,
 		Axis:                 cfg.axis,
 		ScrollbarOrientation: cfg.scrollbarOrientation,
 		X:                    cfg.X,

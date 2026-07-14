@@ -32,7 +32,7 @@ func demoInput(w *gui.Window) gui.View {
 			}),
 			labeledRow(t, "Text", gui.Input(gui.InputCfg{
 				ID:          "input-text",
-				IDFocus:     9160,
+				Focusable:   true,
 				Sizing:      gui.FillFit,
 				Text:        app.InputText,
 				Placeholder: "Enter text...",
@@ -43,7 +43,7 @@ func demoInput(w *gui.Window) gui.View {
 			})),
 			labeledRow(t, "Password", gui.Input(gui.InputCfg{
 				ID:          "input-password",
-				IDFocus:     9161,
+				Focusable:   true,
 				Sizing:      gui.FillFit,
 				Text:        app.InputPassword,
 				Placeholder: "Enter password...",
@@ -54,7 +54,7 @@ func demoInput(w *gui.Window) gui.View {
 			})),
 			labeledRow(t, "Phone", gui.Input(gui.InputCfg{
 				ID:          "input-phone",
-				IDFocus:     9162,
+				Focusable:   true,
 				Sizing:      gui.FillFit,
 				Text:        app.InputPhone,
 				Placeholder: "(555) 000-0000",
@@ -65,7 +65,7 @@ func demoInput(w *gui.Window) gui.View {
 			})),
 			labeledRow(t, "Expiry", gui.Input(gui.InputCfg{
 				ID:          "input-expiry",
-				IDFocus:     9163,
+				Focusable:   true,
 				Sizing:      gui.FillFit,
 				Text:        app.InputExpiry,
 				Placeholder: "MM/YY",
@@ -76,7 +76,7 @@ func demoInput(w *gui.Window) gui.View {
 			})),
 			labeledRow(t, "Multiline", gui.Input(gui.InputCfg{
 				ID:          "input-multi",
-				IDFocus:     9164,
+				Focusable:   true,
 				Sizing:      gui.FillFit,
 				Text:        app.InputMultiline,
 				Placeholder: "Multiple lines...",
@@ -103,15 +103,15 @@ func demoNumericInput(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Default (en_US)", TextStyle: titleStyle}),
 			gui.NumericInput(gui.NumericInputCfg{
-				ID:       "num-en",
-				IDFocus:  9170,
-				Text:     app.NumericENText,
-				Value:    app.NumericENValue,
-				Decimals: 2,
-				Min:      gui.Some(0.0),
-				Max:      gui.Some(10000.0),
-				Width:    220,
-				Sizing:   gui.FixedFit,
+				ID:        "num-en",
+				Focusable: true,
+				Text:      app.NumericENText,
+				Value:     app.NumericENValue,
+				Decimals:  2,
+				Min:       gui.Some(0.0),
+				Max:       gui.Some(10000.0),
+				Width:     220,
+				Sizing:    gui.FixedFit,
 				OnTextChanged: func(_ *gui.Layout, text string, w *gui.Window) {
 					gui.State[ShowcaseApp](w).NumericENText = text
 				},
@@ -125,11 +125,11 @@ func demoNumericInput(w *gui.Window) gui.View {
 
 			gui.Text(gui.TextCfg{Text: "German (de_DE)", TextStyle: titleStyle}),
 			gui.NumericInput(gui.NumericInputCfg{
-				ID:       "num-de",
-				IDFocus:  9171,
-				Text:     app.NumericDEText,
-				Value:    app.NumericDEValue,
-				Decimals: 2,
+				ID:        "num-de",
+				Focusable: true,
+				Text:      app.NumericDEText,
+				Value:     app.NumericDEValue,
+				Decimals:  2,
 				Locale: gui.NumericLocaleCfg{
 					DecimalSep: ',',
 					GroupSep:   '.',
@@ -151,16 +151,16 @@ func demoNumericInput(w *gui.Window) gui.View {
 
 			gui.Text(gui.TextCfg{Text: "Currency mode", TextStyle: titleStyle}),
 			gui.NumericInput(gui.NumericInputCfg{
-				ID:       "num-currency",
-				IDFocus:  9173,
-				Text:     app.NumericCurrencyText,
-				Value:    app.NumericCurrencyValue,
-				Mode:     gui.NumericCurrency,
-				Decimals: 2,
-				Min:      gui.Some(0.0),
-				Max:      gui.Some(10000.0),
-				Width:    220,
-				Sizing:   gui.FixedFit,
+				ID:        "num-currency",
+				Focusable: true,
+				Text:      app.NumericCurrencyText,
+				Value:     app.NumericCurrencyValue,
+				Mode:      gui.NumericCurrency,
+				Decimals:  2,
+				Min:       gui.Some(0.0),
+				Max:       gui.Some(10000.0),
+				Width:     220,
+				Sizing:    gui.FixedFit,
 				OnTextChanged: func(_ *gui.Layout, text string, w *gui.Window) {
 					gui.State[ShowcaseApp](w).NumericCurrencyText = text
 				},
@@ -174,16 +174,16 @@ func demoNumericInput(w *gui.Window) gui.View {
 
 			gui.Text(gui.TextCfg{Text: "Percent mode (ratio value)", TextStyle: titleStyle}),
 			gui.NumericInput(gui.NumericInputCfg{
-				ID:       "num-percent",
-				IDFocus:  9174,
-				Text:     app.NumericPercentText,
-				Value:    app.NumericPercentValue,
-				Mode:     gui.NumericPercent,
-				Decimals: 2,
-				Min:      gui.Some(0.0),
-				Max:      gui.Some(1.0),
-				Width:    220,
-				Sizing:   gui.FixedFit,
+				ID:        "num-percent",
+				Focusable: true,
+				Text:      app.NumericPercentText,
+				Value:     app.NumericPercentValue,
+				Mode:      gui.NumericPercent,
+				Decimals:  2,
+				Min:       gui.Some(0.0),
+				Max:       gui.Some(1.0),
+				Width:     220,
+				Sizing:    gui.FixedFit,
 				OnTextChanged: func(_ *gui.Layout, text string, w *gui.Window) {
 					gui.State[ShowcaseApp](w).NumericPercentText = text
 				},
@@ -197,11 +197,11 @@ func demoNumericInput(w *gui.Window) gui.View {
 
 			gui.Text(gui.TextCfg{Text: "Plain", TextStyle: titleStyle}),
 			gui.NumericInput(gui.NumericInputCfg{
-				ID:       "num-plain",
-				IDFocus:  9172,
-				Text:     app.NumericPlainText,
-				Value:    app.NumericPlainValue,
-				Decimals: 0,
+				ID:        "num-plain",
+				Focusable: true,
+				Text:      app.NumericPlainText,
+				Value:     app.NumericPlainValue,
+				Decimals:  0,
 				StepCfg: gui.NumericStepCfg{
 					ShowButtons: false,
 				},
@@ -276,7 +276,7 @@ func demoDatePicker(w *gui.Window) gui.View {
 				Content: []gui.View{
 					gui.DatePicker(gui.DatePickerCfg{
 						ID:             "date-picker",
-						IDFocus:        2,
+						Focusable:      true,
 						Dates:          app.DatePickerDates,
 						SelectMultiple: true,
 						OnSelect: func(dates []time.Time, _ *gui.Event, w *gui.Window) {
@@ -302,7 +302,7 @@ func demoDatePickerRoller(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.DatePickerRoller(gui.DatePickerRollerCfg{
 				ID:           "date-roller",
-				IDFocus:      1,
+				Focusable:    true,
 				SelectedDate: app.RollerDate,
 				OnChange: func(date time.Time, w *gui.Window) {
 					gui.State[ShowcaseApp](w).RollerDate = date
@@ -325,7 +325,7 @@ func demoInputDate(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.InputDate(gui.InputDateCfg{
 				ID:          "input-date",
-				IDFocus:     9175,
+				Focusable:   true,
 				Date:        app.InputDate,
 				Placeholder: "Pick a date",
 				Sizing:      gui.FillFit,
@@ -383,7 +383,7 @@ func demoForms(w *gui.Window) gui.View {
 		Content: []gui.View{
 			showcaseFormRow("Username", gui.Input(gui.InputCfg{
 				ID:          "showcase-form-username",
-				IDFocus:     9180,
+				Focusable:   true,
 				Width:       260,
 				Sizing:      gui.FixedFit,
 				Text:        form.Username,
@@ -402,7 +402,7 @@ func demoForms(w *gui.Window) gui.View {
 
 			showcaseFormRow("Email", gui.Input(gui.InputCfg{
 				ID:          "showcase-form-email",
-				IDFocus:     9181,
+				Focusable:   true,
 				Width:       260,
 				Sizing:      gui.FixedFit,
 				Text:        form.Email,
@@ -420,15 +420,15 @@ func demoForms(w *gui.Window) gui.View {
 			showcaseFormFieldIssues(w, "email"),
 
 			showcaseFormRow("Age", gui.NumericInput(gui.NumericInputCfg{
-				ID:       "showcase-form-age",
-				IDFocus:  9182,
-				Width:    120,
-				Sizing:   gui.FixedFit,
-				Decimals: 0,
-				Min:      gui.Some(0.0),
-				Max:      gui.Some(120.0),
-				Text:     form.AgeText,
-				Value:    form.AgeValue,
+				ID:        "showcase-form-age",
+				Focusable: true,
+				Width:     120,
+				Sizing:    gui.FixedFit,
+				Decimals:  0,
+				Min:       gui.Some(0.0),
+				Max:       gui.Some(120.0),
+				Text:      form.AgeText,
+				Value:     form.AgeValue,
 				OnTextChanged: func(l *gui.Layout, text string, w *gui.Window) {
 					gui.State[ShowcaseApp](w).Form.AgeText = text
 					gui.FormOnFieldEvent(w, l, ageAdapterCfg(text), gui.FormTriggerChange)

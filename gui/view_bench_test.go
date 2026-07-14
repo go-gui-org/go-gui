@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"strconv"
+	"testing"
+)
 
 type benchView struct {
 	shape    Shape
@@ -33,7 +36,8 @@ func benchViewFlat(n int) *benchView {
 				shapeType: shapeRectangle,
 				Width:     200,
 				Height:    40,
-				IDFocus:   uint32(i + 1),
+				Focusable: true,
+				ID:        "f" + strconv.Itoa(i+1),
 			},
 		}
 	}

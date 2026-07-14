@@ -18,9 +18,9 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 		return
 	}
 	if len(tc.Text) == 0 &&
-		(shape.IDFocus <= 0 || shape.IDFocus != w.IDFocus() || !w.IMEComposing()) {
+		(!shape.Focusable || !w.IsFocus(shape.ID) || !w.IMEComposing()) {
 		// Empty text — still render cursor if focused.
-		if shape.IDFocus > 0 && shape.IDFocus == w.IDFocus() {
+		if shape.Focusable && w.IsFocus(shape.ID) {
 			baseX := shape.X + shape.PaddingLeft()
 			baseY := shape.Y + shape.PaddingTop()
 			renderInputCursor(shape, "", baseX, baseY,
@@ -48,8 +48,7 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	}
 
 	// Insert IME preedit text at cursor position for display.
-	imeComposing := shape.IDFocus > 0 &&
-		shape.IDFocus == w.IDFocus() && w.IMEComposing()
+	imeComposing := shape.Focusable && w.IsFocus(shape.ID) && w.IMEComposing()
 	compText := ""
 	compRuneLen := 0
 	compInsertPos := 0
@@ -57,7 +56,7 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 		compText = w.IMECompText()
 		compRunes := []rune(compText)
 		compRuneLen = len(compRunes)
-		is := StateReadOr(w, nsInput, shape.IDFocus,
+		is := StateReadOr(w, nsInput, shape.ID,
 			InputState{})
 		runes := []rune(text)
 		compInsertPos = min(is.CursorPos, len(runes))
@@ -94,9 +93,9 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	var preLayout glyph.Layout
 	hasPreLayout := false
 	needLayout := tc.TextSelBeg != tc.TextSelEnd ||
-		(shape.IDFocus > 0 && shape.IDFocus == w.IDFocus() && w.inputCursorOn()) ||
+		(shape.Focusable && w.IsFocus(shape.ID) && w.inputCursorOn()) ||
 		imeComposing ||
-		spellCheckHasRanges(shape.IDFocus, w)
+		spellCheckHasRanges(shape.ID, w)
 	renderWithLayout := plainTextNeedsGlyphLayout(shape, tc, renderStyle)
 	if needLayout || renderWithLayout {
 		preLayout, hasPreLayout = inputGlyphLayoutResolved(text, shape, renderStyle, w, true)
@@ -178,7 +177,7 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 // layout engine for precise character-boundary positioning.
 func renderInputCursor(shape *Shape, text string, baseX, baseY float32,
 	preLayout glyph.Layout, hasPreLayout bool, w *Window) {
-	if shape.IDFocus == 0 || shape.IDFocus != w.IDFocus() {
+	if !shape.Focusable || !w.IsFocus(shape.ID) {
 		return
 	}
 	if !w.inputCursorOn() {
@@ -187,7 +186,7 @@ func renderInputCursor(shape *Shape, text string, baseX, baseY float32,
 	if shape.TC != nil && shape.TC.TextIsPlaceholder {
 		text = ""
 	}
-	is := StateReadOr(w, nsInput, shape.IDFocus, InputState{})
+	is := StateReadOr(w, nsInput, shape.ID, InputState{})
 	runeLen := utf8RuneCount(text)
 	pos := min(is.CursorPos, runeLen)
 

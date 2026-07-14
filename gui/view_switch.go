@@ -13,7 +13,7 @@ type SwitchCfg struct {
 	SizeBorder       Opt[float32]
 	Width            Opt[float32]
 	Height           Opt[float32]
-	IDFocus          uint32
+	Focusable        bool
 	Color            Color
 	ColorFocus       Color
 	ColorHover       Color
@@ -88,7 +88,8 @@ func Switch(cfg SwitchCfg) View {
 	}
 
 	return Row(ContainerCfg{
-		IDFocus:         cfg.IDFocus,
+		ID:              cfg.ID,
+		Focusable:       cfg.Focusable,
 		Disabled:        cfg.Disabled,
 		Invisible:       cfg.Invisible,
 		SizeBorder:      NoBorder,
@@ -120,7 +121,7 @@ func Switch(cfg SwitchCfg) View {
 				layout.Shape.events.OnClick == nil {
 				return
 			}
-			if w.IsFocus(layout.Shape.IDFocus) {
+			if w.IsFocus(layout.Shape.ID) {
 				layout.Shape.Color = colorFocus
 				layout.Shape.ColorBorder = colorBorderFocus
 			}

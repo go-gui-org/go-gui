@@ -66,7 +66,7 @@ func inputScrollCursorIntoView(
 	}
 
 	is := StateReadOr(w, nsInput,
-		layout.Shape.IDFocus, InputState{})
+		layout.Shape.ID, InputState{})
 	runeLen := utf8RuneCount(text)
 	pos := is.CursorPos
 	pos = min(pos, runeLen)
@@ -102,7 +102,7 @@ func inputScrollCursorIntoView(
 func textScrollCursorIntoView(layout *Layout, w *Window) {
 	shape := layout.Shape
 	if shape == nil || shape.TC == nil ||
-		shape.IDFocus == 0 || w.textMeasurer == nil {
+		!shape.Focusable || shape.ID == "" || w.textMeasurer == nil {
 		return
 	}
 
@@ -127,7 +127,7 @@ func textScrollCursorIntoView(layout *Layout, w *Window) {
 	}
 
 	is := StateReadOr(
-		w, nsInput, shape.IDFocus, InputState{})
+		w, nsInput, shape.ID, InputState{})
 	runeLen := utf8RuneCount(text)
 	pos := is.CursorPos
 	pos = min(pos, runeLen)

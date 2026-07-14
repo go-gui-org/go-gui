@@ -93,12 +93,12 @@ type TermGridCfg struct {
 	Selection TermSelRange
 	TextStyle TextStyle
 
-	Cols    int
-	Rows    int
-	CellW   float32
-	CellH   float32
-	IDFocus uint32
-	Sizing  Sizing
+	Cols      int
+	Rows      int
+	CellW     float32
+	CellH     float32
+	Focusable bool
+	Sizing    Sizing
 }
 
 // termGridView implements View for a terminal character grid.
@@ -149,7 +149,7 @@ func (tv *termGridView) GenerateLayout(w *Window) Layout {
 
 	// Focusable grid advertises as a text box to assistive tech.
 	a11yRole := AccessRoleImage
-	if c.IDFocus > 0 {
+	if c.Focusable {
 		a11yRole = AccessRoleTextArea
 	}
 
@@ -173,7 +173,7 @@ func (tv *termGridView) GenerateLayout(w *Window) Layout {
 			Width:     width,
 			Height:    height,
 			Sizing:    c.Sizing,
-			IDFocus:   c.IDFocus,
+			Focusable: c.Focusable,
 			events:    events,
 			tg:        tg,
 		}),

@@ -42,7 +42,7 @@ type BreadcrumbCfg struct {
 	SpacingTrail       Opt[float32]
 	SizeBorder         Opt[float32]
 	SizeContentBorder  Opt[float32]
-	IDFocus            uint32
+	Focusable          bool
 	Color              Color
 	ColorBorder        Color
 	ColorTrail         Color
@@ -178,7 +178,7 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 		var onClick func(*Layout, *Event, *Window)
 		var onHover func(*Layout, *Event, *Window)
 		if !isDisabled {
-			onClick = makeBcOnClick(cfg.OnSelect, item.ID, cfg.IDFocus)
+			onClick = makeBcOnClick(cfg.OnSelect, item.ID, cfg.ID)
 			onHover = makeBcOnHover(hoverColor, clickColor)
 		}
 
@@ -222,7 +222,7 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 
 	return Column(ContainerCfg{
 		ID:              cfg.ID,
-		IDFocus:         cfg.IDFocus,
+		Focusable:       cfg.Focusable,
 		A11YRole:        AccessRoleToolbar,
 		A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.ID),
 		A11YDescription: cfg.A11YDescription,
@@ -237,7 +237,7 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 		Invisible:       cfg.Invisible,
 		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
 			bcOnKeydown(cfg.Disabled, cfg.Items, cfg.Selected,
-				cfg.OnSelect, cfg.IDFocus, e, w)
+				cfg.OnSelect, cfg.ID, e, w)
 		},
 		Content: outerContent,
 	})
@@ -245,14 +245,14 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 
 func makeBcOnClick(
 	onSelect func(string, *Event, *Window),
-	id string, idFocus uint32,
+	id string, focusID string,
 ) func(*Layout, *Event, *Window) {
 	return func(_ *Layout, e *Event, w *Window) {
 		if onSelect != nil {
 			onSelect(id, e, w)
 		}
-		if idFocus > 0 {
-			w.SetIDFocus(idFocus)
+		if focusID != "" {
+			w.SetFocus(focusID)
 		}
 		e.IsHandled = true
 	}
@@ -279,7 +279,7 @@ func bcOnKeydown(
 	items []BreadcrumbItemCfg,
 	selected string,
 	onSelect func(string, *Event, *Window),
-	idFocus uint32,
+	focusID string,
 	e *Event,
 	w *Window,
 ) {
@@ -339,8 +339,8 @@ func bcOnKeydown(
 			onSelect(targetID, e, w)
 		}
 	}
-	if idFocus > 0 {
-		w.SetIDFocus(idFocus)
+	if focusID != "" {
+		w.SetFocus(focusID)
 	}
 	e.IsHandled = true
 }
