@@ -274,18 +274,10 @@ func TestStaticTopHeightNoHeader(t *testing.T) {
 
 // --- dataGridFocusID ---
 
-func TestFocusIDConfigured(t *testing.T) {
-	cfg := &DataGridCfg{IDFocus: 42}
-	if got := dataGridFocusID(cfg); got != 42 {
-		t.Errorf("got %d, want 42", got)
-	}
-}
-
-func TestFocusIDDerivedFromID(t *testing.T) {
+func TestFocusIDIsGridID(t *testing.T) {
 	cfg := &DataGridCfg{ID: "mygrid"}
-	got := dataGridFocusID(cfg)
-	if got == 0 {
-		t.Fatal("should derive non-zero focus ID")
+	if got := dataGridFocusID(cfg); got != "mygrid" {
+		t.Errorf("got %q, want mygrid", got)
 	}
 }
 

@@ -193,7 +193,7 @@ func view(w *gui.Window) gui.View {
 				Text: "Tap the button to increment.",
 			}),
 			gui.Button(gui.ButtonCfg{
-				IDFocus: 1,
+				Focusable: true,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text: fmt.Sprintf("%d Clicks",

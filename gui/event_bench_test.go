@@ -37,7 +37,7 @@ func BenchmarkEventFnMouseScrollFocused(b *testing.B) {
 		Shape: &Shape{},
 		Children: []Layout{
 			{Shape: &Shape{
-				IDFocus: 77,
+				Focusable: true, ID: "f77",
 				events: &eventHandlers{
 					OnMouseScroll: func(_ *Layout, _ *Event, _ *Window) {},
 				},
@@ -54,7 +54,7 @@ func BenchmarkEventFnMouseScrollFocused(b *testing.B) {
 			}},
 		},
 	}
-	w.SetIDFocus(77)
+	w.SetFocus("f77")
 	b.ReportAllocs()
 	b.ResetTimer()
 	e := &Event{

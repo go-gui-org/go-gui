@@ -91,16 +91,16 @@ func demoThemeGen(w *gui.Window) gui.View {
 										Content: []gui.View{
 											gui.Text(gui.TextCfg{Text: "Radius", TextStyle: t.N3}),
 											gui.NumericInput(gui.NumericInputCfg{
-												ID:       "theme-gen-radius",
-												IDFocus:  9180,
-												Disabled: pickText,
-												Text:     app.ThemeGenRadiusText,
-												Value:    gui.Some(float64(app.ThemeGenRadius)),
-												Decimals: 1,
-												Min:      gui.Some(0.0),
-												Max:      gui.Some(30.0),
-												Width:    80,
-												Sizing:   gui.FixedFit,
+												ID:        "theme-gen-radius",
+												Focusable: true,
+												Disabled:  pickText,
+												Text:      app.ThemeGenRadiusText,
+												Value:     gui.Some(float64(app.ThemeGenRadius)),
+												Decimals:  1,
+												Min:       gui.Some(0.0),
+												Max:       gui.Some(30.0),
+												Width:     80,
+												Sizing:    gui.FixedFit,
 												OnTextChanged: func(_ *gui.Layout, text string, w *gui.Window) {
 													gui.State[ShowcaseApp](w).ThemeGenRadiusText = text
 												},
@@ -122,16 +122,16 @@ func demoThemeGen(w *gui.Window) gui.View {
 										Content: []gui.View{
 											gui.Text(gui.TextCfg{Text: "Border", TextStyle: t.N3}),
 											gui.NumericInput(gui.NumericInputCfg{
-												ID:       "theme-gen-border",
-												IDFocus:  9181,
-												Disabled: pickText,
-												Text:     app.ThemeGenBorderText,
-												Value:    gui.Some(float64(app.ThemeGenBorder)),
-												Decimals: 1,
-												Min:      gui.Some(0.0),
-												Max:      gui.Some(10.0),
-												Width:    80,
-												Sizing:   gui.FixedFit,
+												ID:        "theme-gen-border",
+												Focusable: true,
+												Disabled:  pickText,
+												Text:      app.ThemeGenBorderText,
+												Value:     gui.Some(float64(app.ThemeGenBorder)),
+												Decimals:  1,
+												Min:       gui.Some(0.0),
+												Max:       gui.Some(10.0),
+												Width:     80,
+												Sizing:    gui.FixedFit,
 												OnTextChanged: func(_ *gui.Layout, text string, w *gui.Window) {
 													gui.State[ShowcaseApp](w).ThemeGenBorderText = text
 												},

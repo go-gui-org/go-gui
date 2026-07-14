@@ -26,7 +26,7 @@ type InputDateCfg struct {
 	CellSpacing          Opt[float32]
 	Radius               Opt[float32]
 	RadiusBorder         Opt[float32]
-	IDFocus              uint32
+	Focusable            bool
 	Width                float32
 	Height               float32
 	MinWidth             float32
@@ -197,7 +197,7 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 		Invisible:   cfg.Invisible,
 		Content:     content,
 		AmendLayout: func(layout *Layout, w *Window) {
-			if w.IsFocus(cfg.IDFocus) {
+			if w.IsFocus(cfg.ID) {
 				layout.Shape.ColorBorder = cfg.ColorBorderFocus
 			}
 		},
@@ -220,7 +220,7 @@ func inputDateTextField(
 	}
 	return Input(InputCfg{
 		ID:               cfgID + ".input",
-		IDFocus:          cfg.IDFocus,
+		Focusable:        cfg.Focusable,
 		Text:             dateText,
 		Placeholder:      inputDatePlaceholder(cfg),
 		Mask:             localeDateMaskPattern(ActiveLocale.Date.ShortDate),

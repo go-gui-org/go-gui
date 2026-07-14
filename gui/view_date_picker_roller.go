@@ -30,7 +30,7 @@ type DatePickerRollerCfg struct {
 	Padding          Opt[Padding]
 	SizeBorder       Opt[float32]
 	Radius           Opt[float32]
-	IDFocus          uint32
+	Focusable        bool
 	ItemHeight       float32
 	MinWidth         float32
 	MaxWidth         float32
@@ -79,7 +79,7 @@ func (rv *datePickerRollerView) GenerateLayout(w *Window) Layout {
 
 	return generateViewLayout(container(ContainerCfg{
 		ID:          cfg.ID,
-		IDFocus:     cfg.IDFocus,
+		Focusable:   cfg.Focusable,
 		A11YRole:    AccessRoleDateField,
 		A11YLabel:   a11yLabel(cfg.A11YLabel, "Date Roller"),
 		Color:       cfg.Color,
@@ -98,13 +98,13 @@ func (rv *datePickerRollerView) GenerateLayout(w *Window) Layout {
 				minYear, maxYear, e, w, mode, wrapYear)
 		},
 		OnClick: func(_ *Layout, e *Event, w *Window) {
-			if cfg.IDFocus > 0 {
-				w.SetIDFocus(cfg.IDFocus)
+			if cfg.Focusable {
+				w.SetFocus(cfg.ID)
 				e.IsHandled = true
 			}
 		},
 		AmendLayout: func(lo *Layout, w *Window) {
-			if cfg.IDFocus > 0 && w.IsFocus(cfg.IDFocus) {
+			if cfg.Focusable && w.IsFocus(cfg.ID) {
 				lo.Shape.ColorBorder = cfg.ColorBorderFocus
 			}
 			lo.Shape.events.OnMouseScroll = func(

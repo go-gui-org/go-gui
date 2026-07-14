@@ -83,7 +83,7 @@ func TestTabControlOnKeydown(t *testing.T) {
 	}
 	w := &Window{}
 	e := &Event{KeyCode: KeyRight}
-	tabControlOnKeydown(false, ids, disabled, "a", onSelect, 0, e, w)
+	tabControlOnKeydown(false, ids, disabled, "a", onSelect, "", e, w)
 	if selected != "b" {
 		t.Errorf("selected = %q, want b", selected)
 	}
@@ -115,7 +115,7 @@ func TestTabControlDisabled(t *testing.T) {
 	}
 	w := &Window{}
 	e := &Event{KeyCode: KeyRight}
-	tabControlOnKeydown(true, ids, disabled, "a", onSelect, 0, e, w)
+	tabControlOnKeydown(true, ids, disabled, "a", onSelect, "", e, w)
 	if selected != "" {
 		t.Errorf("expected no selection, got %q", selected)
 	}

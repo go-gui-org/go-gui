@@ -268,7 +268,7 @@ func landingContent(w *gui.Window, app *App, theme gui.Theme) []gui.View {
 func diffButton(w *gui.Window, title, subtitle string, diff Difficulty, color gui.Color) gui.View {
 	theme := gui.CurrentTheme()
 	return gui.Button(gui.ButtonCfg{
-		IDFocus:     uint32(diff) + 1,
+		Focusable:   true,
 		MinWidth:    130,
 		Color:       color.WithOpacity(0.15),
 		ColorHover:  color.WithOpacity(0.3),
@@ -549,7 +549,7 @@ func headerView(app *App, theme gui.Theme, boardW float32) gui.View {
 				HAlign: gui.HAlignCenter, VAlign: gui.VAlignMiddle,
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
-						IDFocus:     10,
+						Focusable:   true,
 						Color:       gui.RGB(40, 44, 52),
 						ColorHover:  gui.RGB(55, 60, 68),
 						ColorClick:  gui.RGB(30, 34, 40),

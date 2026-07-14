@@ -3,7 +3,7 @@ package gui
 const inputMaxInsertRunes = 65_536
 
 // InputState manages cursor, selection, and undo/redo for
-// an input field. Stored in StateRegistry keyed by IDFocus.
+// an input field. Stored in StateRegistry keyed by ID.
 type InputState struct {
 	Undo           *BoundedStack[InputMemento]
 	Redo           *BoundedStack[InputMemento]
@@ -44,9 +44,9 @@ const (
 
 const undoMaxSize = 50
 
-func inputStateOrDefault(idFocus uint32, w *Window) InputState {
-	m := StateMap[uint32, InputState](w, nsInput, capMany)
-	if v, ok := m.Get(idFocus); ok {
+func inputStateOrDefault(focusID string, w *Window) InputState {
+	m := StateMap[string, InputState](w, nsInput, capMany)
+	if v, ok := m.Get(focusID); ok {
 		return v
 	}
 	return InputState{}
@@ -84,7 +84,7 @@ func inputStateFromMemento(m InputMemento, undo, redo *BoundedStack[InputMemento
 
 // inputProposedText returns the text that would result from
 // inserting insertText at the cursor without modifying state.
-func inputProposedText(text, insertText string, idFocus uint32, w *Window) string {
+func inputProposedText(text, insertText string, focusID string, w *Window) string {
 	if len(insertText) == 0 {
 		return text
 	}
@@ -93,7 +93,7 @@ func inputProposedText(text, insertText string, idFocus uint32, w *Window) strin
 		insertRunes = insertRunes[:inputMaxInsertRunes]
 	}
 	runes := []rune(text)
-	is := inputStateOrDefault(idFocus, w)
+	is := inputStateOrDefault(focusID, w)
 	cursorPos := min(is.CursorPos, len(runes))
 	if cursorPos < 0 {
 		return text + string(insertRunes)
@@ -118,7 +118,7 @@ func inputProposedText(text, insertText string, idFocus uint32, w *Window) strin
 
 // inputInsert inserts text at cursor or replaces selection.
 // Returns resulting text.
-func inputInsert(text string, insertText string, idFocus uint32, w *Window) string {
+func inputInsert(text string, insertText string, focusID string, w *Window) string {
 	if len(insertText) == 0 {
 		return text
 	}
@@ -128,7 +128,7 @@ func inputInsert(text string, insertText string, idFocus uint32, w *Window) stri
 	}
 
 	runes := []rune(text)
-	is := inputStateOrDefault(idFocus, w)
+	is := inputStateOrDefault(focusID, w)
 	cursorPos := min(is.CursorPos, len(runes))
 	if cursorPos < 0 {
 		runes = append([]rune(text), insertRunes...)
@@ -155,8 +155,8 @@ func inputInsert(text string, insertText string, idFocus uint32, w *Window) stri
 
 	nextText := string(runes)
 	undo := inputPushUndo(is, text)
-	imap := StateMap[uint32, InputState](w, nsInput, capMany)
-	imap.Set(idFocus, InputState{
+	imap := StateMap[string, InputState](w, nsInput, capMany)
+	imap.Set(focusID, InputState{
 		CursorPos:    cursorPos,
 		CursorOffset: -1,
 		Undo:         undo,
@@ -167,11 +167,11 @@ func inputInsert(text string, insertText string, idFocus uint32, w *Window) stri
 // inputSetTextAndCursorAtEnd pushes undo and places cursor at end
 // of newText. Used when PreTextChange returns adjusted text where
 // positional cursor mapping is unreliable.
-func inputSetTextAndCursorAtEnd(oldText, newText string, idFocus uint32, w *Window) {
-	is := inputStateOrDefault(idFocus, w)
+func inputSetTextAndCursorAtEnd(oldText, newText string, focusID string, w *Window) {
+	is := inputStateOrDefault(focusID, w)
 	undo := inputPushUndo(is, oldText)
-	imap := StateMap[uint32, InputState](w, nsInput, capMany)
-	imap.Set(idFocus, InputState{
+	imap := StateMap[string, InputState](w, nsInput, capMany)
+	imap.Set(focusID, InputState{
 		CursorPos:    utf8RuneCount(newText),
 		CursorOffset: -1,
 		Undo:         undo,
@@ -180,9 +180,9 @@ func inputSetTextAndCursorAtEnd(oldText, newText string, idFocus uint32, w *Wind
 
 // inputDelete removes text at cursor or selected range.
 // forwardDelete=true for Delete key, false for Backspace.
-func inputDelete(text string, idFocus uint32, forwardDelete bool, w *Window) (string, bool) {
+func inputDelete(text string, focusID string, forwardDelete bool, w *Window) (string, bool) {
 	runes := []rune(text)
-	is := inputStateOrDefault(idFocus, w)
+	is := inputStateOrDefault(focusID, w)
 	cursorPos := min(is.CursorPos, len(runes))
 	if cursorPos < 0 {
 		cursorPos = len(runes)
@@ -223,8 +223,8 @@ func inputDelete(text string, idFocus uint32, forwardDelete bool, w *Window) (st
 
 	nextText := string(runes)
 	undo := inputPushUndo(is, text)
-	imap := StateMap[uint32, InputState](w, nsInput, capMany)
-	imap.Set(idFocus, InputState{
+	imap := StateMap[string, InputState](w, nsInput, capMany)
+	imap.Set(focusID, InputState{
 		CursorPos:    cursorPos,
 		CursorOffset: -1,
 		Undo:         undo,
@@ -234,11 +234,11 @@ func inputDelete(text string, idFocus uint32, forwardDelete bool, w *Window) (st
 
 // inputCopy returns the selected text. Returns ("", false) if
 // no selection or password mode.
-func inputCopy(text string, idFocus uint32, isPassword bool, w *Window) (string, bool) {
+func inputCopy(text string, focusID string, isPassword bool, w *Window) (string, bool) {
 	if isPassword {
 		return "", false
 	}
-	is := StateReadOr(w, nsInput, idFocus, InputState{})
+	is := StateReadOr(w, nsInput, focusID, InputState{})
 	if is.SelectBeg == is.SelectEnd {
 		return "", false
 	}
@@ -253,22 +253,22 @@ func inputCopy(text string, idFocus uint32, isPassword bool, w *Window) (string,
 }
 
 // inputCut copies selected text then deletes it.
-func inputCut(text string, idFocus uint32, isPassword bool, w *Window) (string, string, bool) {
+func inputCut(text string, focusID string, isPassword bool, w *Window) (string, string, bool) {
 	if isPassword {
 		return text, "", false
 	}
-	copied, ok := inputCopy(text, idFocus, false, w)
+	copied, ok := inputCopy(text, focusID, false, w)
 	if !ok {
 		return text, "", false
 	}
-	newText, _ := inputDelete(text, idFocus, false, w)
+	newText, _ := inputDelete(text, focusID, false, w)
 	return newText, copied, true
 }
 
 // inputUndo reverts to previous state. Returns restored text.
-func inputUndo(text string, idFocus uint32, w *Window) string {
-	imap := StateMap[uint32, InputState](w, nsInput, capMany)
-	is, _ := imap.Get(idFocus)
+func inputUndo(text string, focusID string, w *Window) string {
+	imap := StateMap[string, InputState](w, nsInput, capMany)
+	is, _ := imap.Get(focusID)
 	if is.Undo == nil || is.Undo.IsEmpty() {
 		return text
 	}
@@ -281,14 +281,14 @@ func inputUndo(text string, idFocus uint32, w *Window) string {
 		redo = NewBoundedStack[InputMemento](undoMaxSize)
 	}
 	redo.Push(inputMementoFromState(text, is))
-	imap.Set(idFocus, inputStateFromMemento(memento, is.Undo, redo))
+	imap.Set(focusID, inputStateFromMemento(memento, is.Undo, redo))
 	return memento.Text
 }
 
 // inputRedo reapplies a previously undone operation.
-func inputRedo(text string, idFocus uint32, w *Window) string {
-	imap := StateMap[uint32, InputState](w, nsInput, capMany)
-	is, _ := imap.Get(idFocus)
+func inputRedo(text string, focusID string, w *Window) string {
+	imap := StateMap[string, InputState](w, nsInput, capMany)
+	is, _ := imap.Get(focusID)
 	if is.Redo == nil || is.Redo.IsEmpty() {
 		return text
 	}
@@ -301,26 +301,26 @@ func inputRedo(text string, idFocus uint32, w *Window) string {
 		undo = NewBoundedStack[InputMemento](undoMaxSize)
 	}
 	undo.Push(inputMementoFromState(text, is))
-	imap.Set(idFocus, inputStateFromMemento(memento, undo, is.Redo))
+	imap.Set(focusID, inputStateFromMemento(memento, undo, is.Redo))
 	return memento.Text
 }
 
 // inputSelectAll selects all text.
-func inputSelectAll(text string, idFocus uint32, w *Window) {
+func inputSelectAll(text string, focusID string, w *Window) {
 	runeCount := utf8RuneCount(text)
-	imap := StateMap[uint32, InputState](w, nsInput, capMany)
-	is, _ := imap.Get(idFocus)
+	imap := StateMap[string, InputState](w, nsInput, capMany)
+	is, _ := imap.Get(focusID)
 	is.SelectBeg = 0
 	is.SelectEnd = uint32(runeCount)
 	is.CursorPos = runeCount
-	imap.Set(idFocus, is)
+	imap.Set(focusID, is)
 }
 
 // updateCursorAndSelection moves cursor to newPos, extending
 // or resetting selection based on shift modifier.
 func updateCursorAndSelection(
-	imap *BoundedMap[uint32, InputState],
-	idFocus uint32,
+	imap *BoundedMap[string, InputState],
+	focusID string,
 	is InputState,
 	newPos int,
 	isShift bool,
@@ -343,7 +343,7 @@ func updateCursorAndSelection(
 		is.SelectEnd = 0
 	}
 	is.CursorPos = newPos
-	imap.Set(idFocus, is)
+	imap.Set(focusID, is)
 }
 
 // moveCursorWordLeft scans backwards to the previous word boundary.

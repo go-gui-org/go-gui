@@ -201,9 +201,9 @@ func demoOverflowPanel(w *gui.Window) gui.View {
 		}
 	}
 	return gui.OverflowPanel(w, gui.OverflowPanelCfg{
-		ID:      "overflow_panel_demo",
-		IDFocus: 200,
-		Items:   items,
+		ID:        "overflow_panel_demo",
+		Focusable: true,
+		Items:     items,
 	})
 }
 
@@ -337,7 +337,7 @@ func showcaseSplitterMain(w *gui.Window) gui.View {
 	app := gui.State[ShowcaseApp](w)
 	return gui.Splitter(gui.SplitterCfg{
 		ID:          "catalog-splitter-main",
-		IDFocus:     9160,
+		Focusable:   true,
 		Sizing:      gui.FillFill,
 		Orientation: gui.SplitterHorizontal,
 		Ratio:       gui.SomeF(app.SplitterMainState.Ratio),
@@ -363,7 +363,7 @@ func showcaseSplitterDetail(w *gui.Window) gui.View {
 	app := gui.State[ShowcaseApp](w)
 	return gui.Splitter(gui.SplitterCfg{
 		ID:                  "catalog-splitter-detail",
-		IDFocus:             9161,
+		Focusable:           true,
 		Orientation:         gui.SplitterVertical,
 		Sizing:              gui.FillFill,
 		HandleSize:          gui.SomeF(10),
@@ -533,10 +533,10 @@ func demoMultiWindow(w *gui.Window) gui.View {
 				Mode:      gui.TextModeWrap,
 			}),
 			gui.Button(gui.ButtonCfg{
-				ID:       "btn-open-child-window",
-				IDFocus:  9200,
-				Disabled: childActive,
-				Padding:  gui.SomeP(8, 16, 8, 16),
+				ID:        "btn-open-child-window",
+				Focusable: true,
+				Disabled:  childActive,
+				Padding:   gui.SomeP(8, 16, 8, 16),
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      "Open Child Window",
@@ -588,8 +588,8 @@ func multiWindowChildView(parent *gui.Window) func(*gui.Window) gui.View {
 					TextStyle: t.B2,
 				}),
 				gui.Button(gui.ButtonCfg{
-					IDFocus: 1,
-					Padding: gui.SomeP(8, 16, 8, 16),
+					Focusable: true,
+					Padding:   gui.SomeP(8, 16, 8, 16),
 					Content: []gui.View{
 						gui.Text(gui.TextCfg{
 							Text:      "Say Hello to Parent",
@@ -617,8 +617,8 @@ func multiWindowChildView(parent *gui.Window) func(*gui.Window) gui.View {
 					Padding: gui.NoPadding,
 				}),
 				gui.Button(gui.ButtonCfg{
-					IDFocus: 2,
-					Padding: gui.SomeP(8, 16, 8, 16),
+					Focusable: true,
+					Padding:   gui.SomeP(8, 16, 8, 16),
 					Content: []gui.View{
 						gui.Text(gui.TextCfg{
 							Text:      "Close",

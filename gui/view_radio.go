@@ -12,7 +12,7 @@ type RadioCfg struct {
 	Padding          Opt[Padding]
 	Size             Opt[float32]
 	SizeBorder       Opt[float32]
-	IDFocus          uint32
+	Focusable        bool
 	Color            Color
 	ColorHover       Color
 	ColorFocus       Color
@@ -72,7 +72,7 @@ func Radio(cfg RadioCfg) View {
 
 	return Row(ContainerCfg{
 		ID:              cfg.ID,
-		IDFocus:         cfg.IDFocus,
+		Focusable:       cfg.Focusable,
 		Disabled:        cfg.Disabled,
 		Invisible:       cfg.Invisible,
 		Padding:         cfg.Padding,
@@ -93,7 +93,7 @@ func Radio(cfg RadioCfg) View {
 			if len(layout.Children) == 0 {
 				return
 			}
-			if w.IsFocus(layout.Shape.IDFocus) {
+			if w.IsFocus(layout.Shape.ID) {
 				layout.Children[0].Shape.ColorBorder = colorBorderFocus
 			}
 		},

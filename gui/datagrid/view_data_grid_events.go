@@ -15,7 +15,7 @@ func dataGridQuickFilterRow(cfg *DataGridCfg) gg.View {
 	query := cfg.Query
 	value := query.QuickFilter
 	inputID := cfg.ID + ":quick_filter"
-	inputFocusID := gg.FnvSum32(inputID)
+	inputFocusID := inputID
 	matchesText := dataGridQuickFilterMatchesText(cfg)
 	clearDisabled := value == "" || queryCallback == nil
 	debounce := cfg.QuickFilterDebounce
@@ -35,15 +35,15 @@ func dataGridQuickFilterRow(cfg *DataGridCfg) gg.View {
 		Spacing:     gg.SomeF(6),
 		VAlign:      gg.VAlignMiddle,
 		OnClick: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
-			if inputFocusID > 0 {
-				w.SetIDFocus(inputFocusID)
+			if inputFocusID != "" {
+				w.SetFocus(inputFocusID)
 			}
 			e.IsHandled = true
 		},
 		Content: []gg.View{
 			gg.Input(gg.InputCfg{
 				ID:               inputID,
-				IDFocus:          inputFocusID,
+				Focusable:        true,
 				Text:             value,
 				Placeholder:      cfg.QuickFilterPlaceholder,
 				Sizing:           gg.FillFill,
@@ -103,8 +103,8 @@ func dataGridQuickFilterRow(cfg *DataGridCfg) gg.View {
 						QuickFilter: "",
 					}
 					queryCallback(next, e, w)
-					if inputFocusID > 0 {
-						w.SetIDFocus(inputFocusID)
+					if inputFocusID != "" {
+						w.SetFocus(inputFocusID)
 					}
 					e.IsHandled = true
 				}),
@@ -124,7 +124,7 @@ func dataGridQuickFilterMatchesText(cfg *DataGridCfg) string {
 
 // --- Column chooser ---
 
-func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID uint32) gg.View {
+func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.View {
 	onHiddenColumnsChange := cfg.OnHiddenColumnsChange
 	hasVisibilityCallback := onHiddenColumnsChange != nil
 	chooserLabel := gg.ActiveLocale.StrColumns + " ▶" // ▶
@@ -149,8 +149,8 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID uint32) gg.
 			dataGridIndicatorButton(chooserLabel, cfg.TextStyleFilter, cfg.ColorHeaderHover,
 				false, 0, func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 					dataGridToggleColumnChooserOpen(gridID, w)
-					if focusID > 0 {
-						w.SetIDFocus(focusID)
+					if focusID != "" {
+						w.SetFocus(focusID)
 					}
 					e.IsHandled = true
 				}),
@@ -196,15 +196,15 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID uint32) gg.
 	})
 }
 
-func dataGridMakeColumnChooserOnClick(onHiddenColumnsChange func(map[string]bool, *gg.Event, *gg.Window), hiddenColumnIDs map[string]bool, columns []GridColumnCfg, colID string, focusID uint32) func(*gg.Layout, *gg.Event, *gg.Window) {
+func dataGridMakeColumnChooserOnClick(onHiddenColumnsChange func(map[string]bool, *gg.Event, *gg.Window), hiddenColumnIDs map[string]bool, columns []GridColumnCfg, colID string, focusID string) func(*gg.Layout, *gg.Event, *gg.Window) {
 	return func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 		if onHiddenColumnsChange == nil {
 			return
 		}
 		nextHidden := dataGridNextHiddenColumns(hiddenColumnIDs, colID, columns)
 		onHiddenColumnsChange(nextHidden, e, w)
-		if focusID > 0 {
-			w.SetIDFocus(focusID)
+		if focusID != "" {
+			w.SetFocus(focusID)
 		}
 		e.IsHandled = true
 	}

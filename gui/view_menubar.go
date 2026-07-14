@@ -24,7 +24,6 @@ type MenubarCfg struct {
 	RadiusMenuItem    Opt[float32]
 	Spacing           Opt[float32]
 	SpacingSubmenu    Opt[float32]
-	IDFocus           uint32
 	FloatOffsetX      float32
 	FloatOffsetY      float32
 	Color             Color
@@ -43,27 +42,25 @@ type MenubarCfg struct {
 // navigation.
 func Menubar(w *Window, cfg MenubarCfg) View {
 	applyMenubarDefaults(&cfg)
-	if cfg.IDFocus == 0 {
-		cfg.IDFocus = FnvSum32("menubar_" + cfg.ID)
-	}
+	RequireID("Menubar", cfg.ID)
 	checkForDuplicateMenuIDs(cfg.Items)
 
 	// On focus with no selection, select first item.
-	if w.IsFocus(cfg.IDFocus) {
+	if w.IsFocus(cfg.ID) {
 		sel := StateReadOr(
-			w, nsMenu, cfg.IDFocus, "")
+			w, nsMenu, cfg.ID, "")
 		if sel == "" {
 			if first, ok := firstSelectable(cfg.Items); ok {
-				sm := StateMap[uint32, string](
+				sm := StateMap[string, string](
 					w, nsMenu, capModerate)
-				sm.Set(cfg.IDFocus, first.ID)
+				sm.Set(cfg.ID, first.ID)
 			}
 		}
 	}
 
 	return Row(ContainerCfg{
 		ID:            cfg.ID,
-		IDFocus:       cfg.IDFocus,
+		Focusable:     true,
 		Color:         cfg.Color,
 		ColorBorder:   cfg.ColorBorder,
 		SizeBorder:    cfg.SizeBorder,
@@ -82,7 +79,7 @@ func Menubar(w *Window, cfg MenubarCfg) View {
 		Invisible:     cfg.Invisible,
 		A11YRole:      AccessRoleMenuBar,
 		OnKeyDown:     makeMenubarOnKeyDown(cfg),
-		AmendLayout:   makeMenuAmendLayout(cfg.IDFocus),
+		AmendLayout:   makeMenuAmendLayout(cfg.ID),
 		Content:       menuBuild(cfg, 0, cfg.Items, w),
 	})
 }

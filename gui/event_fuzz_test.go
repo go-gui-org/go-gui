@@ -2,6 +2,7 @@ package gui
 
 import (
 	"math"
+	"strconv"
 	"testing"
 )
 
@@ -29,7 +30,8 @@ func buildFuzzEventLayoutTree(depth, childCount int, w *Window) Layout {
 			}
 		case 1:
 			// Shape with focus ID only.
-			shape.IDFocus = uint32(100 + i)
+			shape.Focusable = true
+			shape.ID = "fa" + strconv.Itoa(i)
 		case 2:
 			// Shape with scroll container.
 			shape.IDScroll = uint32(200 + i)
@@ -37,7 +39,8 @@ func buildFuzzEventLayoutTree(depth, childCount int, w *Window) Layout {
 			shape.Height = 100
 		case 3:
 			// Shape with events and focus.
-			shape.IDFocus = uint32(300 + i)
+			shape.Focusable = true
+			shape.ID = "fb" + strconv.Itoa(i)
 			shape.events = &eventHandlers{
 				OnKeyDown: func(_ *Layout, e *Event, _ *Window) {
 					e.IsHandled = true
@@ -106,8 +109,8 @@ func FuzzEventDispatch(f *testing.F) {
 		w.layout = eventLayout
 
 		// Set focus to a random child if one exists with IDFocus.
-		if got, ok := FindLayoutByIDFocus(&w.layout, uint32(100)); ok {
-			w.SetIDFocus(got.Shape.IDFocus)
+		if got, ok := FindLayoutByFocusID(&w.layout, "fa0"); ok {
+			w.SetFocus(got.Shape.ID)
 		}
 
 		e := &Event{
@@ -156,7 +159,7 @@ func FuzzEventDispatchWithDialog(f *testing.F) {
 		dialogLayout := Layout{
 			Shape: w.allocShape(Shape{
 				ID:        reservedDialogID,
-				IDFocus:   1,
+				Focusable: true,
 				Width:     400,
 				Height:    300,
 				shapeClip: drawClip{X: 0, Y: 0, Width: 400, Height: 300},

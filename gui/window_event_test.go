@@ -17,7 +17,7 @@ func TestEventFnRoutesChar(t *testing.T) {
 		Shape: &Shape{},
 		Children: []Layout{
 			{Shape: &Shape{
-				IDFocus: 1,
+				Focusable: true, ID: "f1",
 				events: &eventHandlers{
 					OnChar: func(_ *Layout, e *Event, _ *Window) {
 						called = true
@@ -27,7 +27,7 @@ func TestEventFnRoutesChar(t *testing.T) {
 			}},
 		},
 	}
-	w.SetIDFocus(1)
+	w.SetFocus("f1")
 	e := &Event{Type: EventChar, CharCode: 'x'}
 	w.EventFn(e)
 	if !called {
@@ -40,17 +40,17 @@ func TestEventFnTabCyclesFocus(t *testing.T) {
 	w.layout = Layout{
 		Shape: &Shape{},
 		Children: []Layout{
-			{Shape: &Shape{IDFocus: 10}},
-			{Shape: &Shape{IDFocus: 20}},
-			{Shape: &Shape{IDFocus: 30}},
+			{Shape: &Shape{Focusable: true, ID: "f10"}},
+			{Shape: &Shape{Focusable: true, ID: "f20"}},
+			{Shape: &Shape{Focusable: true, ID: "f30"}},
 		},
 	}
-	w.SetIDFocus(10)
+	w.SetFocus("f10")
 
 	e := &Event{Type: EventKeyDown, KeyCode: KeyTab}
 	w.EventFn(e)
-	if w.IDFocus() != 20 {
-		t.Errorf("tab: got %d, want 20", w.IDFocus())
+	if w.FocusID() != "f20" {
+		t.Errorf("tab: got %q, want f20", w.FocusID())
 	}
 
 	e = &Event{
@@ -59,8 +59,8 @@ func TestEventFnTabCyclesFocus(t *testing.T) {
 		Modifiers: ModShift,
 	}
 	w.EventFn(e)
-	if w.IDFocus() != 10 {
-		t.Errorf("shift+tab: got %d, want 10", w.IDFocus())
+	if w.FocusID() != "f10" {
+		t.Errorf("shift+tab: got %q, want f10", w.FocusID())
 	}
 }
 
@@ -70,7 +70,7 @@ func TestEventFnMouseDownSetsFocus(t *testing.T) {
 		Shape: &Shape{},
 		Children: []Layout{
 			{Shape: &Shape{
-				IDFocus: 7,
+				Focusable: true, ID: "f7",
 				shapeClip: drawClip{X: 0, Y: 0,
 					Width: 100, Height: 100},
 			}},
@@ -82,8 +82,8 @@ func TestEventFnMouseDownSetsFocus(t *testing.T) {
 		MouseY: 50,
 	}
 	w.EventFn(e)
-	if w.IDFocus() != 7 {
-		t.Errorf("focus: got %d, want 7", w.IDFocus())
+	if w.FocusID() != "f7" {
+		t.Errorf("focus: got %q, want f7", w.FocusID())
 	}
 }
 
@@ -112,7 +112,7 @@ func TestEventFnBlocksWhenUnfocused(t *testing.T) {
 		Shape: &Shape{},
 		Children: []Layout{
 			{Shape: &Shape{
-				IDFocus: 1,
+				Focusable: true, ID: "f1",
 				events: &eventHandlers{
 					OnChar: func(_ *Layout, _ *Event, _ *Window) {
 						called = true
@@ -121,7 +121,7 @@ func TestEventFnBlocksWhenUnfocused(t *testing.T) {
 			}},
 		},
 	}
-	w.SetIDFocus(1)
+	w.SetFocus("f1")
 
 	// Char should be blocked.
 	e := &Event{Type: EventChar, CharCode: 'a'}
@@ -188,7 +188,7 @@ func TestEventFnDialogModalRouting(t *testing.T) {
 		Shape: &Shape{},
 		Children: []Layout{
 			{Shape: &Shape{
-				IDFocus: 1,
+				Focusable: true, ID: "f1",
 				events: &eventHandlers{
 					OnChar: func(_ *Layout, e *Event, _ *Window) {
 						mainCalled = true
@@ -197,7 +197,7 @@ func TestEventFnDialogModalRouting(t *testing.T) {
 				},
 			}},
 			{Shape: &Shape{
-				IDFocus: 2,
+				Focusable: true, ID: "f2",
 				events: &eventHandlers{
 					OnChar: func(_ *Layout, e *Event, _ *Window) {
 						dialogCalled = true
@@ -208,7 +208,7 @@ func TestEventFnDialogModalRouting(t *testing.T) {
 		},
 	}
 	w.dialogCfg.visible = true
-	w.SetIDFocus(2)
+	w.SetFocus("f2")
 
 	e := &Event{Type: EventChar, CharCode: 'a'}
 	w.EventFn(e)
@@ -281,7 +281,7 @@ func TestEventFnMouseScrollFocusedHandlerPrecedence(t *testing.T) {
 		Shape: &Shape{},
 		Children: []Layout{
 			{Shape: &Shape{
-				IDFocus: 11,
+				Focusable: true, ID: "f11",
 				events: &eventHandlers{
 					OnMouseScroll: func(_ *Layout, e *Event, _ *Window) {
 						focusedCalled = true
@@ -301,7 +301,7 @@ func TestEventFnMouseScrollFocusedHandlerPrecedence(t *testing.T) {
 			}},
 		},
 	}
-	w.SetIDFocus(11)
+	w.SetFocus("f11")
 	guiTheme.ScrollMultiplier = 1
 	e := &Event{
 		Type:      EventMouseScroll,
@@ -326,7 +326,7 @@ func TestEventFnRoutesKeyUp(t *testing.T) {
 		Shape: &Shape{},
 		Children: []Layout{
 			{Shape: &Shape{
-				IDFocus: 1,
+				Focusable: true, ID: "f1",
 				events: &eventHandlers{
 					OnKeyUp: func(_ *Layout, e *Event, _ *Window) {
 						called = true
@@ -336,7 +336,7 @@ func TestEventFnRoutesKeyUp(t *testing.T) {
 			}},
 		},
 	}
-	w.SetIDFocus(1)
+	w.SetFocus("f1")
 	e := &Event{
 		Type:    EventKeyUp,
 		KeyCode: KeyEnter,
@@ -357,8 +357,8 @@ func TestKeyUpEventFlow_WindowToInput(t *testing.T) {
 
 	// Create an input widget with OnKeyUp handler
 	input := Input(InputCfg{
-		ID:      "test-input",
-		IDFocus: 42,
+		ID:        "test-input",
+		Focusable: true,
 		OnKeyUp: func(_ *Layout, e *Event, _ *Window) {
 			called = true
 			e.IsHandled = true
@@ -367,7 +367,7 @@ func TestKeyUpEventFlow_WindowToInput(t *testing.T) {
 
 	// Set up window layout with the input
 	w.layout = generateViewLayout(input, w)
-	w.SetIDFocus(42)
+	w.SetFocus("test-input")
 
 	// Send key up event through window
 	e := &Event{

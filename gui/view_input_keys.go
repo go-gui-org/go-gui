@@ -5,7 +5,7 @@ import (
 )
 
 func inputKeyLeft(
-	imap *BoundedMap[uint32, InputState], id uint32, is InputState,
+	imap *BoundedMap[string, InputState], id string, is InputState,
 	text string, pos int, isShift, isWordMod bool,
 	gl glyph.Layout, glOK bool,
 ) {
@@ -40,7 +40,7 @@ func inputKeyLeft(
 }
 
 func inputKeyRight(
-	imap *BoundedMap[uint32, InputState], id uint32, is InputState,
+	imap *BoundedMap[string, InputState], id string, is InputState,
 	text string, pos, runeLen int, isShift, isWordMod bool,
 	gl glyph.Layout, glOK bool,
 ) {
@@ -75,7 +75,7 @@ func inputKeyRight(
 }
 
 func inputKeyHome(
-	imap *BoundedMap[uint32, InputState], id uint32, is InputState,
+	imap *BoundedMap[string, InputState], id string, is InputState,
 	text string, pos int, isShift, savedTrailing bool,
 	gl glyph.Layout, glOK bool,
 ) {
@@ -111,7 +111,7 @@ func inputKeyHome(
 }
 
 func inputKeyEnd(
-	imap *BoundedMap[uint32, InputState], id uint32, is InputState,
+	imap *BoundedMap[string, InputState], id string, is InputState,
 	text string, pos int, isShift, savedTrailing bool,
 	gl glyph.Layout, glOK bool,
 ) {
@@ -154,7 +154,7 @@ func inputKeyEnd(
 // for multiline inputs. Returns false when the key is unhandled
 // (single-line mode).
 func inputKeyVertical(
-	imap *BoundedMap[uint32, InputState], id uint32, is InputState,
+	imap *BoundedMap[string, InputState], id string, is InputState,
 	text string, pos int, isShift bool,
 	savedOffset float32, up bool, mode InputMode,
 	gl glyph.Layout, glOK bool,
@@ -195,7 +195,7 @@ func inputKeyVertical(
 // and plain-text branches. Returns updated text and whether it
 // changed.
 func inputKeyPaste(
-	text, clip string, id uint32,
+	text, clip string, id string,
 	mask *CompiledInputMask,
 	hcfg inputHandlerCfg, w *Window,
 ) (string, bool) {
@@ -210,7 +210,7 @@ func inputKeyPaste(
 			cis.SelectEnd, clip, mask)
 		if res.Changed {
 			undo := inputPushUndo(cis, text)
-			StateMap[uint32, InputState](
+			StateMap[string, InputState](
 				w, nsInput, capMany,
 			).Set(id, InputState{
 				CursorPos: res.CursorPos,
@@ -265,7 +265,7 @@ func inputCommitEnter(
 // inputHandleDelete handles Backspace/Delete for both masked and
 // unmasked inputs.
 func inputHandleDelete(
-	text string, id uint32, forward bool,
+	text string, id string, forward bool,
 	mask *CompiledInputMask,
 	layout *Layout, w *Window,
 ) (string, bool) {
@@ -283,7 +283,7 @@ func inputHandleDelete(
 			return text, false
 		}
 		undo := inputPushUndo(is, text)
-		StateMap[uint32, InputState](
+		StateMap[string, InputState](
 			w, nsInput, capMany,
 		).Set(id, InputState{
 			CursorPos: res.CursorPos, Undo: undo,

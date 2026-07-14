@@ -69,8 +69,8 @@ func mainView(w *gui.Window) gui.View {
 
 func messageButton() gui.View {
 	return gui.Button(gui.ButtonCfg{
-		IDFocus: 1,
-		Sizing:  gui.FillFit,
+		Focusable: true,
+		Sizing:    gui.FillFit,
 		Content: []gui.View{gui.Text(gui.TextCfg{
 			Text: "DialogMessage",
 		})},
@@ -90,8 +90,8 @@ func messageButton() gui.View {
 
 func confirmButton() gui.View {
 	return gui.Button(gui.ButtonCfg{
-		IDFocus: 2,
-		Sizing:  gui.FillFit,
+		Focusable: true,
+		Sizing:    gui.FillFit,
 		Content: []gui.View{gui.Text(gui.TextCfg{
 			Text: "DialogConfirm",
 		})},
@@ -113,8 +113,8 @@ func confirmButton() gui.View {
 
 func promptButton() gui.View {
 	return gui.Button(gui.ButtonCfg{
-		IDFocus: 3,
-		Sizing:  gui.FillFit,
+		Focusable: true,
+		Sizing:    gui.FillFit,
 		Content: []gui.View{gui.Text(gui.TextCfg{
 			Text: "DialogPrompt",
 		})},
@@ -139,8 +139,8 @@ func promptButton() gui.View {
 
 func customButton() gui.View {
 	return gui.Button(gui.ButtonCfg{
-		IDFocus: 4,
-		Sizing:  gui.FillFit,
+		Focusable: true,
+		Sizing:    gui.FillFit,
 		Content: []gui.View{gui.Text(gui.TextCfg{
 			Text: "DialogCustom",
 		})},
@@ -156,7 +156,7 @@ func customButton() gui.View {
 								Text: "Custom Content",
 							}),
 							gui.Button(gui.ButtonCfg{
-								IDFocus: 7568971, // dialogBaseIDFocus
+								Focusable: true, // dialogBaseIDFocus
 								Content: []gui.View{gui.Text(gui.TextCfg{
 									Text: "Close Me",
 								})},
@@ -174,8 +174,8 @@ func customButton() gui.View {
 
 func nativeOpenButton() gui.View {
 	return gui.Button(gui.ButtonCfg{
-		IDFocus: 5,
-		Sizing:  gui.FillFit,
+		Focusable: true,
+		Sizing:    gui.FillFit,
 		Content: []gui.View{gui.Text(gui.TextCfg{
 			Text: "NativeOpenDialog",
 		})},
@@ -201,8 +201,8 @@ func nativeOpenButton() gui.View {
 
 func nativeSaveButton() gui.View {
 	return gui.Button(gui.ButtonCfg{
-		IDFocus: 6,
-		Sizing:  gui.FillFit,
+		Focusable: true,
+		Sizing:    gui.FillFit,
 		Content: []gui.View{gui.Text(gui.TextCfg{
 			Text: "NativeSaveDialog",
 		})},
@@ -224,8 +224,8 @@ func nativeSaveButton() gui.View {
 
 func nativeFolderButton() gui.View {
 	return gui.Button(gui.ButtonCfg{
-		IDFocus: 7,
-		Sizing:  gui.FillFit,
+		Focusable: true,
+		Sizing:    gui.FillFit,
 		Content: []gui.View{gui.Text(gui.TextCfg{
 			Text: "NativeFolderDialog",
 		})},
@@ -242,8 +242,8 @@ func nativeFolderButton() gui.View {
 
 func nativeMessageButton() gui.View {
 	return gui.Button(gui.ButtonCfg{
-		IDFocus: 8,
-		Sizing:  gui.FillFit,
+		Focusable: true,
+		Sizing:    gui.FillFit,
 		Content: []gui.View{gui.Text(gui.TextCfg{
 			Text: "NativeMessageDialog",
 		})},
@@ -262,8 +262,8 @@ func nativeMessageButton() gui.View {
 
 func nativeConfirmButton() gui.View {
 	return gui.Button(gui.ButtonCfg{
-		IDFocus: 9,
-		Sizing:  gui.FillFit,
+		Focusable: true,
+		Sizing:    gui.FillFit,
 		Content: []gui.View{gui.Text(gui.TextCfg{
 			Text: "NativeConfirmDialog",
 		})},

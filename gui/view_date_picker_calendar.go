@@ -124,7 +124,7 @@ func datePickerMonth(
 			if isToday && !cfg.HideTodayIndicator {
 				borderColor = cfg.TextStyle.Color
 			}
-			if isFocused && w.IsFocus(cfg.IDFocus) {
+			if isFocused && w.IsFocus(cfg.ID) {
 				borderColor = cfg.ColorBorderFocus
 			}
 
@@ -157,8 +157,8 @@ func datePickerMonth(
 					s.FocusDay = dayVal
 					sm.Set(cfgID, s)
 
-					if cfg.IDFocus > 0 {
-						w.SetIDFocus(cfg.IDFocus)
+					if cfg.Focusable {
+						w.SetFocus(cfg.ID)
 					}
 
 					dates := datePickerUpdateSelections(
@@ -229,8 +229,8 @@ func datePickerAdjacentCell(
 			TextStyle: ts,
 		})},
 		OnClick: func(_ *Layout, e *Event, w *Window) {
-			if cfg.IDFocus > 0 {
-				w.SetIDFocus(cfg.IDFocus)
+			if cfg.Focusable {
+				w.SetFocus(cfg.ID)
 			}
 			datePickerNavMonth(cfgID, delta, w)
 			// After navigation, select the day in the new month.
@@ -262,8 +262,8 @@ func datePickerYearMonthPicker(
 		ColorBorder:  ColorTransparent,
 		SizeBorder:   NoBorder,
 		OnChange: func(t time.Time, w *Window) {
-			if cfg.IDFocus > 0 {
-				w.SetIDFocus(cfg.IDFocus)
+			if cfg.Focusable {
+				w.SetFocus(cfg.ID)
 			}
 			sm := StateMap[string, datePickerState](
 				w, nsDatePicker, capModerate)

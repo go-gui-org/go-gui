@@ -25,7 +25,7 @@ func main() {
 		OnInit: func(w *gui.Window) {
 			w.UpdateView(mainView)
 			// Give the scroll panel focus so its scrollbar is visible on startup.
-			w.SetIDFocus(1)
+			w.SetFocus("scroll-panel")
 		},
 	})
 
@@ -45,20 +45,20 @@ func mainView(w *gui.Window) gui.View {
 			gui.Rectangle(gui.RectangleCfg{Height: 0.5, Sizing: gui.FillFixed}),
 			pctRow(app),
 			gui.Rectangle(gui.RectangleCfg{Height: 0.5, Sizing: gui.FillFixed}),
-			scrollColumn(1, scrollText, w),
+			scrollColumn(1, "scroll-panel", scrollText, w),
 		},
 	})
 }
 
-func scrollColumn(id uint32, text string, w *gui.Window) gui.View {
+func scrollColumn(scrollID uint32, focusID string, text string, w *gui.Window) gui.View {
 	theme := gui.CurrentTheme()
 	overflow := gui.ScrollbarHidden
-	if w.IsFocus(id) {
+	if w.IsFocus(focusID) {
 		overflow = gui.ScrollbarVisible
 	}
 
 	var colorBorder gui.Color
-	if w.IsFocus(id) {
+	if w.IsFocus(focusID) {
 		colorBorder = theme.ButtonStyle.ColorBorderFocus
 	} else {
 		colorBorder = theme.ContainerStyle.Color
@@ -68,7 +68,7 @@ func scrollColumn(id uint32, text string, w *gui.Window) gui.View {
 	pad.Right = theme.ScrollbarStyle.Size + 4
 
 	return gui.Column(gui.ContainerCfg{
-		IDScroll: id,
+		IDScroll: scrollID,
 		ScrollbarCfgY: &gui.ScrollbarCfg{
 			Overflow: overflow,
 		},
@@ -77,9 +77,10 @@ func scrollColumn(id uint32, text string, w *gui.Window) gui.View {
 		Sizing:      gui.FillFill,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
-				IDFocus: id,
-				Text:    text,
-				Mode:    gui.TextModeWrap,
+				ID:        focusID,
+				Focusable: true,
+				Text:      text,
+				Mode:      gui.TextModeWrap,
 			}),
 		},
 	})
@@ -145,7 +146,7 @@ func themeButton(app *App) gui.View {
 	textSel := gui.IconMoon
 	textUnsel := gui.IconSunnyO
 	return gui.Toggle(gui.ToggleCfg{
-		IDFocus:      3,
+		Focusable:    true,
 		TextSelect:   textSel,
 		TextUnselect: textUnsel,
 		TextStyle:    gui.CurrentTheme().Icon3,

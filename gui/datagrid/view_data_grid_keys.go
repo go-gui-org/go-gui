@@ -85,7 +85,7 @@ type dataGridKeydownContext struct {
 	firstEditColIdx   int
 	colCount          int
 	viewportH         float32
-	editorFocusBase   uint32
+	editorFocusBase   string
 	rowHeight         float32
 	staticTop         float32
 	scrollID          uint32
@@ -167,7 +167,7 @@ func dataGridHandleEscapeKey(kc dataGridKeydownContext, e *gg.Event, w *gg.Windo
 	}
 	if kc.crudEnabled {
 		e.IsHandled = true
-		dataGridCrudCancel(kc.gridID, 0, e, w)
+		dataGridCrudCancel(kc.gridID, "", e, w)
 		return true
 	}
 	e.IsHandled = true
@@ -180,11 +180,11 @@ func dataGridHandleCrudKeys(kc dataGridKeydownContext, e *gg.Event, w *gg.Window
 	}
 	switch e.KeyCode {
 	case gg.KeyInsert:
-		dataGridCrudAddRow(kc.gridID, kc.columns, kc.onSelectionChange, 0, kc.scrollID, kc.pageSize, kc.pageIndex, kc.onPageChange, e, w)
+		dataGridCrudAddRow(kc.gridID, kc.columns, kc.onSelectionChange, "", kc.scrollID, kc.pageSize, kc.pageIndex, kc.onPageChange, e, w)
 		e.IsHandled = true
 		return true
 	case gg.KeyDelete:
-		dataGridCrudDeleteSelected(kc.gridID, kc.selection, kc.onSelectionChange, 0, e, w)
+		dataGridCrudDeleteSelected(kc.gridID, kc.selection, kc.onSelectionChange, "", e, w)
 		e.IsHandled = true
 		return true
 	}
@@ -201,8 +201,8 @@ func dataGridHandleEditStartKey(kc dataGridKeydownContext, e *gg.Event, w *gg.Wi
 			rowID := dataGridRowID(kc.rows[rowIdx], rowIdx)
 			dataGridSetEditingRow(kc.gridID, rowID, w)
 			editorFocusID := dataGridEditorFocusIDFromBase(kc.editorFocusBase, kc.colCount, kc.firstEditColIdx)
-			if editorFocusID > 0 {
-				w.SetIDFocus(editorFocusID)
+			if editorFocusID != "" {
+				w.SetFocus(editorFocusID)
 			}
 			e.IsHandled = true
 		}

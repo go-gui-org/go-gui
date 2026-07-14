@@ -272,7 +272,7 @@ func weekdaysLenGroup(app *App) gui.View {
 				gui.NewRadioOption("Three letter", "three"),
 				gui.NewRadioOption("Full", "full"),
 			},
-			IDFocus: 100,
+			Focusable: true,
 			OnSelect: func(value string, w *gui.Window) {
 				gui.State[App](w).WeekdaysLen = value
 			},

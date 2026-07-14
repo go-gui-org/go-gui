@@ -5,8 +5,7 @@ import "testing"
 func TestMenubarLayout(t *testing.T) {
 	w := &Window{}
 	cfg := MenubarCfg{
-		ID:      "mb",
-		IDFocus: 100,
+		ID: "mb",
 		Items: []MenuItemCfg{
 			MenuItemText("file", "File"),
 			MenuItemText("edit", "Edit"),
@@ -33,13 +32,12 @@ func TestMenubarLayout(t *testing.T) {
 
 func TestMenubarKeydownEscape(t *testing.T) {
 	w := &Window{}
-	w.viewState.idFocus = 100
-	sm := StateMap[uint32, string](w, nsMenu, capModerate)
-	sm.Set(100, "file")
+	w.viewState.focusID = "mb"
+	sm := StateMap[string, string](w, nsMenu, capModerate)
+	sm.Set("mb", "file")
 
 	cfg := MenubarCfg{
-		ID:      "mb",
-		IDFocus: 100,
+		ID: "mb",
 		Items: []MenuItemCfg{
 			MenuItemText("file", "File"),
 		},
@@ -51,10 +49,10 @@ func TestMenubarKeydownEscape(t *testing.T) {
 	if e.IsHandled != true {
 		t.Error("escape should be handled")
 	}
-	if w.viewState.idFocus != 0 {
+	if w.viewState.focusID != "" {
 		t.Error("focus should be cleared")
 	}
-	sel, _ := sm.Get(100)
+	sel, _ := sm.Get("mb")
 	if sel != "" {
 		t.Errorf("selection = %q, want empty", sel)
 	}
@@ -62,13 +60,12 @@ func TestMenubarKeydownEscape(t *testing.T) {
 
 func TestMenubarKeydownNavigation(t *testing.T) {
 	w := &Window{}
-	w.viewState.idFocus = 100
-	sm := StateMap[uint32, string](w, nsMenu, capModerate)
-	sm.Set(100, "file")
+	w.viewState.focusID = "mb"
+	sm := StateMap[string, string](w, nsMenu, capModerate)
+	sm.Set("mb", "file")
 
 	cfg := MenubarCfg{
-		ID:      "mb",
-		IDFocus: 100,
+		ID: "mb",
 		Items: []MenuItemCfg{
 			MenuItemText("file", "File"),
 			MenuItemText("edit", "Edit"),
@@ -79,7 +76,7 @@ func TestMenubarKeydownNavigation(t *testing.T) {
 	// Right arrow: file -> edit.
 	e := &Event{Type: EventKeyDown, KeyCode: KeyRight}
 	menuOnKeyDown(cfg, menuMapper, e, w)
-	sel, _ := sm.Get(100)
+	sel, _ := sm.Get("mb")
 	if sel != "edit" {
 		t.Errorf("after Right: sel = %q, want edit", sel)
 	}
@@ -87,7 +84,7 @@ func TestMenubarKeydownNavigation(t *testing.T) {
 	// Left arrow: edit -> file.
 	e = &Event{Type: EventKeyDown, KeyCode: KeyLeft}
 	menuOnKeyDown(cfg, menuMapper, e, w)
-	sel, _ = sm.Get(100)
+	sel, _ = sm.Get("mb")
 	if sel != "file" {
 		t.Errorf("after Left: sel = %q, want file", sel)
 	}
@@ -95,14 +92,14 @@ func TestMenubarKeydownNavigation(t *testing.T) {
 
 func TestMenubarAmendLayoutClearOnDefocus(t *testing.T) {
 	w := &Window{}
-	sm := StateMap[uint32, string](w, nsMenu, capModerate)
-	sm.Set(100, "file")
+	sm := StateMap[string, string](w, nsMenu, capModerate)
+	sm.Set("mb", "file")
 
-	amend := makeMenuAmendLayout(100)
+	amend := makeMenuAmendLayout("mb")
 	layout := &Layout{Shape: &Shape{}}
 	amend(layout, w)
 
-	sel, ok := sm.Get(100)
+	sel, ok := sm.Get("mb")
 	if ok && sel != "" {
 		t.Errorf("should clear selection when defocused, got %q", sel)
 	}

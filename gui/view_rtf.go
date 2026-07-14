@@ -23,13 +23,13 @@ type RtfCfg struct {
 	A11YDescription string
 	RichText        RichText
 	MinWidth        float32
-	IDFocus         uint32
+	Focusable       bool
 	HangingIndent   float32 // negative indent for wrapped lines
 
 	// markdownID > 0 when this block belongs to a markdown widget.
 	// markdownBlockStart is the rune offset of this block in the
 	// markdown's flat text. Both are set by view_markdown.go only.
-	markdownID         uint32
+	markdownID         string
 	markdownBlockStart uint32
 	Mode               TextMode
 	Invisible          bool
@@ -138,13 +138,13 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 
 	var events *eventHandlers
 	switch {
-	case v.markdownID > 0:
+	case v.markdownID != "":
 		events = w.allocEventHandlers(eventHandlers{
 			OnClick:     markdownBlockOnClick,
 			OnMouseMove: rtfMouseMove,
 			AmendLayout: rtfMarkdownAmendLayout,
 		})
-	case v.IDFocus > 0:
+	case v.Focusable:
 		events = w.allocEventHandlers(eventHandlers{
 			OnClick:     rtfSelectOnClick,
 			OnKeyDown:   rtfSelectOnKeyDown,
@@ -162,7 +162,7 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 	shape := w.allocShape(Shape{
 		shapeType: shapeRTF,
 		ID:        v.ID,
-		IDFocus:   v.IDFocus,
+		Focusable: v.Focusable,
 		A11YRole:  AccessRoleStaticText,
 		A11Y:      makeA11YInfo(v.A11YLabel, v.A11YDescription),
 		Width:     layout.Width,
@@ -336,7 +336,7 @@ func rtfAmendTooltip(_ *Layout, w *Window) {
 		}
 	}
 	// Dismiss link context menu when focus moves away.
-	if !w.IsFocus(rtfLinkMenuIDFocus) {
+	if !w.IsFocus(rtfLinkMenuFocusID) {
 		sm := StateMapRead[string, rtfLinkMenuState](
 			w, nsRtfLinkMenu)
 		if sm != nil {
@@ -518,7 +518,7 @@ type rtfLinkMenuState struct {
 	Open     bool
 }
 
-const rtfLinkMenuIDFocus uint32 = 8492137
+const rtfLinkMenuFocusID = "rtf_link_menu"
 
 // showLinkContextMenu opens a context menu for an RTF link.
 func showLinkContextMenu(
@@ -534,7 +534,7 @@ func showLinkContextMenu(
 		Y:        my,
 		BlockKey: blockKey,
 	})
-	w.SetIDFocus(rtfLinkMenuIDFocus)
+	w.SetFocus(rtfLinkMenuFocusID)
 }
 
 // rtfLinkMenuDismiss clears the link context menu state.
@@ -544,7 +544,7 @@ func rtfLinkMenuDismiss(w *Window) {
 	if sm != nil {
 		sm.Delete(nsRtfLinkMenu)
 	}
-	w.SetIDFocus(0)
+	w.ClearFocus()
 }
 
 // rtfLinkMenuView builds the floating context menu popup
@@ -552,8 +552,7 @@ func rtfLinkMenuDismiss(w *Window) {
 func rtfLinkMenuView(w *Window, st rtfLinkMenuState) View {
 	link := st.Link
 	return Menu(w, MenubarCfg{
-		ID:      "rtf_link_menu",
-		IDFocus: rtfLinkMenuIDFocus,
+		ID: rtfLinkMenuFocusID,
 		Items: []MenuItemCfg{
 			{ID: "open_link", Text: "Open Link"},
 			{ID: "copy_link", Text: "Copy Link"},

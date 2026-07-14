@@ -3,8 +3,8 @@ package gui
 import "testing"
 
 func TestCollectFocusCandidatesDedupes(t *testing.T) {
-	s1 := &Shape{IDFocus: 9}
-	s2 := &Shape{IDFocus: 9}
+	s1 := &Shape{Focusable: true, ID: "f9"}
+	s2 := &Shape{Focusable: true, ID: "f9"}
 	root := &Layout{
 		Shape: &Shape{},
 		Children: []Layout{
@@ -13,38 +13,40 @@ func TestCollectFocusCandidatesDedupes(t *testing.T) {
 		},
 	}
 	var candidates []focusCandidate
-	seen := make(map[uint32]struct{})
+	seen := make(map[string]struct{})
 	collectFocusCandidates(root, &candidates, seen)
 	if len(candidates) != 1 {
 		t.Fatalf("candidates: got %d, want 1", len(candidates))
 	}
-	if candidates[0].id != 9 {
-		t.Errorf("id: got %d, want 9", candidates[0].id)
+	if candidates[0].id != "f9" {
+		t.Errorf("id: got %q, want f9", candidates[0].id)
 	}
 }
 
 func TestFocusFindNextByID(t *testing.T) {
-	s1 := &Shape{IDFocus: 30}
-	s2 := &Shape{IDFocus: 10}
-	s3 := &Shape{IDFocus: 40}
+	s1 := &Shape{Focusable: true, ID: "f30"}
+	s2 := &Shape{Focusable: true, ID: "f10"}
+	s3 := &Shape{Focusable: true, ID: "f40"}
 	candidates := []focusCandidate{
-		{id: 30, shape: s1},
-		{id: 10, shape: s2},
-		{id: 40, shape: s3},
+		{id: "f30", shape: s1},
+		{id: "f10", shape: s2},
+		{id: "f40", shape: s3},
 	}
-	next, ok := focusFindNext(candidates, 20)
+	// Positional: the entry after f30 in DFS order is f10.
+	next, ok := focusFindNext(candidates, "f30")
 	if !ok {
 		t.Fatal("missing next focus")
 	}
-	if next.IDFocus != 30 {
-		t.Errorf("next: got %d, want 30", next.IDFocus)
+	if next.ID != "f10" {
+		t.Errorf("next: got %q, want f10", next.ID)
 	}
-	fallback, ok := focusFindNext(candidates, 99)
+	// Unknown focus falls back to the first candidate.
+	fallback, ok := focusFindNext(candidates, "nope")
 	if !ok {
 		t.Fatal("missing fallback")
 	}
-	if fallback.IDFocus != 10 {
-		t.Errorf("fallback: got %d, want 10", fallback.IDFocus)
+	if fallback.ID != "f30" {
+		t.Errorf("fallback: got %q, want f30", fallback.ID)
 	}
 }
 
@@ -52,22 +54,22 @@ func TestNextFocusable(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{},
 		Children: []Layout{
-			{Shape: &Shape{IDFocus: 10}},
-			{Shape: &Shape{IDFocus: 20}},
-			{Shape: &Shape{IDFocus: 30}},
+			{Shape: &Shape{Focusable: true, ID: "f10"}},
+			{Shape: &Shape{Focusable: true, ID: "f20"}},
+			{Shape: &Shape{Focusable: true, ID: "f30"}},
 		},
 	}
 	w := &Window{}
-	w.viewState.idFocus = 10
+	w.viewState.focusID = "f10"
 
 	s, ok := root.NextFocusable(w)
-	if !ok || s.IDFocus != 20 {
+	if !ok || s.ID != "f20" {
 		t.Errorf("next from 10: got %v, want 20", s)
 	}
 
-	w.viewState.idFocus = 30
+	w.viewState.focusID = "f30"
 	s, ok = root.NextFocusable(w)
-	if !ok || s.IDFocus != 10 {
+	if !ok || s.ID != "f10" {
 		t.Errorf("wrap from 30: got %v, want 10", s)
 	}
 }
@@ -76,22 +78,22 @@ func TestPreviousFocusable(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{},
 		Children: []Layout{
-			{Shape: &Shape{IDFocus: 10}},
-			{Shape: &Shape{IDFocus: 20}},
-			{Shape: &Shape{IDFocus: 30}},
+			{Shape: &Shape{Focusable: true, ID: "f10"}},
+			{Shape: &Shape{Focusable: true, ID: "f20"}},
+			{Shape: &Shape{Focusable: true, ID: "f30"}},
 		},
 	}
 	w := &Window{}
-	w.viewState.idFocus = 20
+	w.viewState.focusID = "f20"
 
 	s, ok := root.PreviousFocusable(w)
-	if !ok || s.IDFocus != 10 {
+	if !ok || s.ID != "f10" {
 		t.Errorf("prev from 20: got %v, want 10", s)
 	}
 
-	w.viewState.idFocus = 10
+	w.viewState.focusID = "f10"
 	s, ok = root.PreviousFocusable(w)
-	if !ok || s.IDFocus != 30 {
+	if !ok || s.ID != "f30" {
 		t.Errorf("wrap from 10: got %v, want 30", s)
 	}
 }
@@ -100,17 +102,17 @@ func TestFocusableSkipsDisabledAndFocusSkip(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{},
 		Children: []Layout{
-			{Shape: &Shape{IDFocus: 10}},
-			{Shape: &Shape{IDFocus: 20, Disabled: true}},
-			{Shape: &Shape{IDFocus: 30, FocusSkip: true}},
-			{Shape: &Shape{IDFocus: 40}},
+			{Shape: &Shape{Focusable: true, ID: "f10"}},
+			{Shape: &Shape{Focusable: true, ID: "f20", Disabled: true}},
+			{Shape: &Shape{Focusable: true, ID: "f30", FocusSkip: true}},
+			{Shape: &Shape{Focusable: true, ID: "f40"}},
 		},
 	}
 	w := &Window{}
-	w.viewState.idFocus = 10
+	w.viewState.focusID = "f10"
 
 	s, ok := root.NextFocusable(w)
-	if !ok || s.IDFocus != 40 {
+	if !ok || s.ID != "f40" {
 		t.Errorf("next from 10 skipping disabled/focusskip: got %v, want 40", s)
 	}
 }
@@ -130,27 +132,29 @@ func TestFocusableEmpty(t *testing.T) {
 }
 
 func TestFocusFindPreviousByID(t *testing.T) {
-	s1 := &Shape{IDFocus: 30}
-	s2 := &Shape{IDFocus: 10}
-	s3 := &Shape{IDFocus: 40}
+	s1 := &Shape{Focusable: true, ID: "f30"}
+	s2 := &Shape{Focusable: true, ID: "f10"}
+	s3 := &Shape{Focusable: true, ID: "f40"}
 	candidates := []focusCandidate{
-		{id: 30, shape: s1},
-		{id: 10, shape: s2},
-		{id: 40, shape: s3},
+		{id: "f30", shape: s1},
+		{id: "f10", shape: s2},
+		{id: "f40", shape: s3},
 	}
-	prev, ok := focusFindPrevious(candidates, 35)
+	// Positional: the entry before f10 in DFS order is f30.
+	prev, ok := focusFindPrevious(candidates, "f10")
 	if !ok {
 		t.Fatal("missing previous")
 	}
-	if prev.IDFocus != 30 {
-		t.Errorf("prev: got %d, want 30", prev.IDFocus)
+	if prev.ID != "f30" {
+		t.Errorf("prev: got %q, want f30", prev.ID)
 	}
-	fallback, ok := focusFindPrevious(candidates, 1)
+	// Unknown focus falls back to the last candidate.
+	fallback, ok := focusFindPrevious(candidates, "nope")
 	if !ok {
 		t.Fatal("missing fallback")
 	}
-	if fallback.IDFocus != 40 {
-		t.Errorf("fallback: got %d, want 40", fallback.IDFocus)
+	if fallback.ID != "f40" {
+		t.Errorf("fallback: got %q, want f40", fallback.ID)
 	}
 }
 
@@ -211,19 +215,19 @@ func TestNextPreviousFocusableNilWindow(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{},
 		Children: []Layout{
-			{Shape: &Shape{IDFocus: 10}},
-			{Shape: &Shape{IDFocus: 20}},
-			{Shape: &Shape{IDFocus: 30}},
+			{Shape: &Shape{Focusable: true, ID: "f10"}},
+			{Shape: &Shape{Focusable: true, ID: "f20"}},
+			{Shape: &Shape{Focusable: true, ID: "f30"}},
 		},
 	}
 
 	next, ok := root.NextFocusable(nil)
-	if !ok || next.IDFocus != 10 {
-		t.Fatalf("next nil window: got %v, want IDFocus 10", next)
+	if !ok || next.ID != "f10" {
+		t.Fatalf("next nil window: got %v, want ID f10", next)
 	}
 
 	prev, ok := root.PreviousFocusable(nil)
-	if !ok || prev.IDFocus != 30 {
-		t.Fatalf("prev nil window: got %v, want IDFocus 30", prev)
+	if !ok || prev.ID != "f30" {
+		t.Fatalf("prev nil window: got %v, want ID f30", prev)
 	}
 }

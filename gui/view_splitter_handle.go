@@ -219,15 +219,15 @@ func splitterOnHandleClick(core *splitterCore, e *Event, w *Window) {
 	splitterSetCursor(core.orientation, w)
 	splitterFocus(core, w)
 
-	idFocus := core.idFocus
+	focusID := core.focusID
 	w.MouseLock(MouseLockCfg{
 		MouseMove: func(_ *Layout, e *Event, w *Window) {
 			splitterOnDragMove(core, e, w)
 		},
 		MouseUp: func(_ *Layout, _ *Event, w *Window) {
 			w.MouseUnlock()
-			if idFocus > 0 {
-				w.SetIDFocus(idFocus)
+			if focusID != "" {
+				w.SetFocus(focusID)
 			}
 		},
 	})

@@ -220,7 +220,7 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 				Color:  colorNeonCyan.WithOpacity(0.3),
 			}),
 			gui.Button(gui.ButtonCfg{
-				IDFocus:     1,
+				Focusable:   true,
 				MinWidth:    180,
 				Color:       colorNeonGreen.WithOpacity(0.12),
 				ColorHover:  colorNeonGreen.WithOpacity(0.3),
@@ -335,7 +335,7 @@ func sidebarView(w *gui.Window, wh float32) gui.View {
 						ID:          "emitter-type",
 						Selected:    []string{emitterName(app.EmitterType)},
 						Options:     []string{"Point", "Ring", "Line"},
-						IDFocus:     10,
+						Focusable:   true,
 						FloatZIndex: 10,
 						OnSelect: func(sel []string, _ *gui.Event, w *gui.Window) {
 							a := gui.State[App](w)

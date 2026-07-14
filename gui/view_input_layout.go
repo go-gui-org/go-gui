@@ -85,17 +85,17 @@ func trailingLineEnd(lines []glyph.Line, byteIdx, fallback int) int {
 // inputDeleteGrapheme deletes a grapheme cluster at cursor using
 // glyph when available, falling back to rune-based inputDelete.
 func inputDeleteGrapheme(
-	text string, idFocus uint32, forward bool,
+	text string, focusID string, forward bool,
 	layout *Layout, w *Window,
 ) (string, bool) {
 	gl, glOK := inputGlyphLayoutFor(layout, w)
 	if !glOK {
-		newText, _ := inputDelete(text, idFocus, forward, w)
+		newText, _ := inputDelete(text, focusID, forward, w)
 		return newText, newText != text
 	}
-	is := inputStateOrDefault(idFocus, w)
+	is := inputStateOrDefault(focusID, w)
 	if is.SelectBeg != is.SelectEnd {
-		newText, _ := inputDelete(text, idFocus, forward, w)
+		newText, _ := inputDelete(text, focusID, forward, w)
 		return newText, newText != text
 	}
 	pos := min(is.CursorPos, utf8RuneCount(text))
@@ -111,8 +111,8 @@ func inputDeleteGrapheme(
 	}
 	newPos := byteToRuneIndex(res.NewText, res.CursorPos)
 	undo := inputPushUndo(is, text)
-	imap := StateMap[uint32, InputState](w, nsInput, capMany)
-	imap.Set(idFocus, InputState{
+	imap := StateMap[string, InputState](w, nsInput, capMany)
+	imap.Set(focusID, InputState{
 		CursorPos:    newPos,
 		CursorOffset: -1,
 		Undo:         undo,
@@ -148,7 +148,7 @@ type inputDragState struct {
 	gl                     glyph.Layout
 	anchorPos, anchorEnd   uint32
 	txtOffX, txtOffY       float32
-	idFocus                uint32
+	focusID                string
 	idScroll               uint32
 	lastMouseX, lastMouseY float32
 	scrollY0               float32
@@ -172,8 +172,8 @@ func (d *inputDragState) computeRunePos(
 }
 
 func (d *inputDragState) updateSelection(rp int, w *Window) {
-	imap := StateMap[uint32, InputState](w, nsInput, capMany)
-	is, _ := imap.Get(d.idFocus)
+	imap := StateMap[string, InputState](w, nsInput, capMany)
+	is, _ := imap.Get(d.focusID)
 	if d.runes != nil {
 		wb, we := wordBoundsAt(d.runes, rp)
 		if rp < int(d.anchorPos) {
@@ -191,7 +191,7 @@ func (d *inputDragState) updateSelection(rp int, w *Window) {
 		is.SelectEnd = uint32(rp)
 	}
 	is.CursorOffset = -1
-	imap.Set(d.idFocus, is)
+	imap.Set(d.focusID, is)
 	resetBlinkCursorVisible(w)
 }
 

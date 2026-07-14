@@ -5,9 +5,9 @@ import "testing"
 func TestNumericInputIDPassthrough(t *testing.T) {
 	w := &Window{}
 	v := NumericInput(NumericInputCfg{
-		ID:      "ni1",
-		IDFocus: 100,
-		StepCfg: NumericStepCfg{ShowButtons: true, Step: 1},
+		ID:        "ni1",
+		Focusable: true,
+		StepCfg:   NumericStepCfg{ShowButtons: true, Step: 1},
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "ni1" {
@@ -18,10 +18,10 @@ func TestNumericInputIDPassthrough(t *testing.T) {
 func TestNumericInputDisabledFlag(t *testing.T) {
 	w := &Window{}
 	v := NumericInput(NumericInputCfg{
-		ID:       "ni2",
-		IDFocus:  101,
-		Disabled: true,
-		StepCfg:  NumericStepCfg{ShowButtons: true, Step: 1},
+		ID:        "ni2",
+		Focusable: true,
+		Disabled:  true,
+		StepCfg:   NumericStepCfg{ShowButtons: true, Step: 1},
 	})
 	layout := generateViewLayout(v, w)
 	if !layout.Shape.Disabled {
@@ -32,9 +32,9 @@ func TestNumericInputDisabledFlag(t *testing.T) {
 func TestNumericInputStepButtonCount(t *testing.T) {
 	w := &Window{}
 	v := NumericInput(NumericInputCfg{
-		ID:      "ni3",
-		IDFocus: 102,
-		StepCfg: NumericStepCfg{ShowButtons: true, Step: 1},
+		ID:        "ni3",
+		Focusable: true,
+		StepCfg:   NumericStepCfg{ShowButtons: true, Step: 1},
 	})
 	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 2 {
@@ -46,7 +46,7 @@ func TestNumericInputPlaceholder(t *testing.T) {
 	w := &Window{}
 	v := NumericInput(NumericInputCfg{
 		ID:          "ni4",
-		IDFocus:     103,
+		Focusable:   true,
 		Placeholder: "Enter...",
 	})
 	layout := generateViewLayout(v, w)

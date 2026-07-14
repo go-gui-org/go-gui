@@ -31,7 +31,7 @@ import (
 	"github.com/go-gui-org/go-gui/gui/backend"
 )
 
-const inputIDFocus uint32 = 1
+const inputFocusID = "input"
 const inputIDScroll uint32 = 1
 
 const loremText = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod ` +
@@ -88,7 +88,7 @@ func main() {
 		Height: 300,
 		OnInit: func(w *gui.Window) {
 			w.UpdateView(mainView)
-			w.SetIDFocus(inputIDFocus)
+			w.SetFocus(inputFocusID)
 		},
 	})
 
@@ -105,11 +105,12 @@ func mainView(w *gui.Window) gui.View {
 		Sizing: gui.FixedFixed,
 		Content: []gui.View{
 			gui.Input(gui.InputCfg{
-				IDFocus:  inputIDFocus,
-				IDScroll: inputIDScroll,
-				Mode:     gui.InputMultiline,
-				Sizing:   gui.FillFill,
-				Text:     app.Text,
+				ID:        inputFocusID,
+				Focusable: true,
+				IDScroll:  inputIDScroll,
+				Mode:      gui.InputMultiline,
+				Sizing:    gui.FillFill,
+				Text:      app.Text,
 				OnTextChanged: func(_ *gui.Layout, s string, w *gui.Window) {
 					gui.State[App](w).Text = s
 				},

@@ -63,7 +63,7 @@ func mainView(w *gui.Window) gui.View {
 					gui.Rectangle(gui.RectangleCfg{Sizing: gui.FillFit}),
 					gui.ThemePicker(gui.ThemePickerCfg{
 						ID:          "theme-picker",
-						IDFocus:     1,
+						Focusable:   true,
 						FloatAnchor: gui.FloatBottomRight,
 						FloatTieOff: gui.FloatTopRight,
 					}),

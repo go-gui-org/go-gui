@@ -48,7 +48,7 @@ func mainView(w *gui.Window) gui.View {
 				TextStyle: gui.CurrentTheme().B1,
 			}),
 			gui.Button(gui.ButtonCfg{
-				IDFocus: 1,
+				Focusable: true,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{Text: "Cycle material"}),
 				},

@@ -200,18 +200,18 @@ func TestDrawCanvasFocusWiring(t *testing.T) {
 	w := &Window{}
 	called := false
 	v := DrawCanvas(DrawCanvasCfg{
-		ID:      "dc-focus",
-		Width:   50,
-		Height:  50,
-		IDFocus: 42,
+		ID:        "dc-focus",
+		Width:     50,
+		Height:    50,
+		Focusable: true,
 		OnKeyDown: func(_ *Layout, _ *Event, _ *Window) {
 			called = true
 		},
 	})
 	layout := generateViewLayout(v, w)
 
-	if layout.Shape.IDFocus != 42 {
-		t.Errorf("Shape.IDFocus = %d, want 42", layout.Shape.IDFocus)
+	if !layout.Shape.Focusable {
+		t.Error("Shape.Focusable = false, want true")
 	}
 	if layout.Shape.A11YRole != AccessRoleButton {
 		t.Errorf("A11YRole = %v, want AccessRoleButton when focusable",
@@ -233,11 +233,11 @@ func TestDrawCanvasNonFocusableA11Role(t *testing.T) {
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleImage {
-		t.Errorf("A11YRole = %v, want AccessRoleImage when IDFocus=0",
+		t.Errorf("A11YRole = %v, want AccessRoleImage when not focusable",
 			layout.Shape.A11YRole)
 	}
-	if layout.Shape.IDFocus != 0 {
-		t.Errorf("Shape.IDFocus = %d, want 0", layout.Shape.IDFocus)
+	if layout.Shape.Focusable {
+		t.Error("Shape.Focusable = true, want false")
 	}
 }
 
@@ -245,10 +245,10 @@ func TestDrawCanvasFocusedReceivesKeydown(t *testing.T) {
 	w := &Window{}
 	var gotKey KeyCode
 	v := DrawCanvas(DrawCanvasCfg{
-		ID:      "dc-key",
-		Width:   50,
-		Height:  50,
-		IDFocus: 7,
+		ID:        "dc-key",
+		Width:     50,
+		Height:    50,
+		Focusable: true,
 		OnKeyDown: func(_ *Layout, e *Event, _ *Window) {
 			gotKey = e.KeyCode
 			e.IsHandled = true
@@ -257,7 +257,7 @@ func TestDrawCanvasFocusedReceivesKeydown(t *testing.T) {
 	layout := generateViewLayout(v, w)
 	root := Layout{Shape: &Shape{}, Children: []Layout{layout}}
 
-	w.SetIDFocus(7)
+	w.SetFocus("dc-key")
 	e := &Event{KeyCode: KeyRight}
 	keydownHandler(&root, e, w)
 

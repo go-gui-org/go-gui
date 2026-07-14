@@ -4,15 +4,15 @@ import "testing"
 
 func TestTextSelectAllAndCopy(t *testing.T) {
 	w := newTestWindow()
-	v := Text(TextCfg{Text: "hello world", IDFocus: 42})
+	v := Text(TextCfg{Text: "hello world", Focusable: true, ID: "f42"})
 	layout := generateViewLayout(v, w)
-	w.SetIDFocus(42)
+	w.SetFocus("f42")
 
 	// Ctrl+A selects all.
 	e := &Event{KeyCode: KeyA, Modifiers: ModCtrl}
 	layout.Shape.events.OnKeyDown(&layout, e, w)
 
-	is := getInputState(w, 42)
+	is := getInputState(w, "f42")
 	if is.SelectBeg != 0 || is.SelectEnd != 11 {
 		t.Fatalf("select-all: got %d-%d, want 0-11",
 			is.SelectBeg, is.SelectEnd)
@@ -35,7 +35,7 @@ func TestTextSelectAllAndCopy(t *testing.T) {
 
 func TestTextDoubleClickWordSelect(t *testing.T) {
 	w := newTestWindow()
-	v := Text(TextCfg{Text: "hello world", IDFocus: 42})
+	v := Text(TextCfg{Text: "hello world", Focusable: true, ID: "f42"})
 	layout := generateViewLayout(v, w)
 
 	// charWidth = 16 * 0.6 = 9.6 in test fallback.
@@ -47,7 +47,7 @@ func TestTextDoubleClickWordSelect(t *testing.T) {
 	e1 := &Event{MouseX: clickX, MouseY: clickY}
 	layout.Shape.events.OnClick(&layout, e1, w)
 
-	is := getInputState(w, 42)
+	is := getInputState(w, "f42")
 	if is.CursorPos != 6 {
 		t.Fatalf("single click: cursor %d, want 6",
 			is.CursorPos)
@@ -57,7 +57,7 @@ func TestTextDoubleClickWordSelect(t *testing.T) {
 	e2 := &Event{MouseX: clickX, MouseY: clickY}
 	layout.Shape.events.OnClick(&layout, e2, w)
 
-	is = getInputState(w, 42)
+	is = getInputState(w, "f42")
 	beg, end := u32Sort(is.SelectBeg, is.SelectEnd)
 	if beg != 6 || end != 11 {
 		t.Fatalf("double click: got %d-%d, want 6-11",
@@ -67,12 +67,12 @@ func TestTextDoubleClickWordSelect(t *testing.T) {
 
 func TestTextShiftArrowSelection(t *testing.T) {
 	w := newTestWindow()
-	v := Text(TextCfg{Text: "abcdef", IDFocus: 42})
+	v := Text(TextCfg{Text: "abcdef", Focusable: true, ID: "f42"})
 	layout := generateViewLayout(v, w)
-	w.SetIDFocus(42)
+	w.SetFocus("f42")
 
 	// Place cursor at position 2.
-	setInputState(w, 42, InputState{CursorPos: 2})
+	setInputState(w, "f42", InputState{CursorPos: 2})
 
 	// Shift+Right x3 → select positions 2-5.
 	for range 3 {
@@ -83,7 +83,7 @@ func TestTextShiftArrowSelection(t *testing.T) {
 		layout.Shape.events.OnKeyDown(&layout, e, w)
 	}
 
-	is := getInputState(w, 42)
+	is := getInputState(w, "f42")
 	beg, end := u32Sort(is.SelectBeg, is.SelectEnd)
 	if beg != 2 || end != 5 {
 		t.Fatalf("shift-right: got %d-%d, want 2-5",
@@ -103,11 +103,11 @@ func TestTextNoHandlersWithoutFocus(t *testing.T) {
 
 func TestTextAmendLayout(t *testing.T) {
 	w := newTestWindow()
-	v := Text(TextCfg{Text: "test text", IDFocus: 42})
+	v := Text(TextCfg{Text: "test text", Focusable: true, ID: "f42"})
 	layout := generateViewLayout(v, w)
 
 	// Set selection in input state.
-	setInputState(w, 42, InputState{
+	setInputState(w, "f42", InputState{
 		CursorPos: 9,
 		SelectBeg: 5,
 		SelectEnd: 9,
@@ -126,11 +126,11 @@ func TestTextAmendLayout(t *testing.T) {
 
 func TestTextEscapeClearsSelection(t *testing.T) {
 	w := newTestWindow()
-	v := Text(TextCfg{Text: "hello", IDFocus: 42})
+	v := Text(TextCfg{Text: "hello", Focusable: true, ID: "f42"})
 	layout := generateViewLayout(v, w)
-	w.SetIDFocus(42)
+	w.SetFocus("f42")
 
-	setInputState(w, 42, InputState{
+	setInputState(w, "f42", InputState{
 		CursorPos: 5,
 		SelectBeg: 0,
 		SelectEnd: 5,
@@ -139,7 +139,7 @@ func TestTextEscapeClearsSelection(t *testing.T) {
 	e := &Event{KeyCode: KeyEscape}
 	layout.Shape.events.OnKeyDown(&layout, e, w)
 
-	is := getInputState(w, 42)
+	is := getInputState(w, "f42")
 	if is.SelectBeg != 0 || is.SelectEnd != 0 {
 		t.Fatalf("escape: selection %d-%d, want 0-0",
 			is.SelectBeg, is.SelectEnd)

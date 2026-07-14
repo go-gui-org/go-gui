@@ -1,7 +1,7 @@
 package gui
 
 // TextCfg configures a text view. Use for labels, headings, or
-// multiline text blocks. Set IDFocus > 0 to enable text selection
+// multiline text blocks. Set Focusable to enable text selection
 // and clipboard copy.
 type TextCfg struct {
 	TextStyle TextStyle
@@ -11,7 +11,7 @@ type TextCfg struct {
 	A11YLabel       string
 	A11YDescription string
 	Opacity         Opt[float32]
-	IDFocus         uint32
+	Focusable       bool
 
 	// TabSize sets the tab stop width in spaces (default 4).
 	TabSize uint32
@@ -71,7 +71,7 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 		Shape: w.allocShape(Shape{
 			shapeType: shapeText,
 			ID:        c.ID,
-			IDFocus:   c.IDFocus,
+			Focusable: c.Focusable,
 			A11YRole:  AccessRoleStaticText,
 			A11Y: makeA11YInfo(
 				a11yLabel(c.A11YLabel, c.Text), c.A11YDescription,
@@ -109,7 +109,7 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 	}
 	applyFixedSizingConstraints(layout.Shape)
 
-	if c.IDFocus > 0 {
+	if c.Focusable {
 		layout.Shape.events = textEventHandlers
 	}
 

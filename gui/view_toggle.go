@@ -16,7 +16,7 @@ type ToggleCfg struct {
 	SizeBorder       Opt[float32]
 	Radius           Opt[float32]
 	MinWidth         float32
-	IDFocus          uint32
+	Focusable        bool
 	Color            Color
 	ColorFocus       Color
 	ColorHover       Color
@@ -85,7 +85,7 @@ func Toggle(cfg ToggleCfg) View {
 
 	return Row(ContainerCfg{
 		ID:              cfg.ID,
-		IDFocus:         cfg.IDFocus,
+		Focusable:       cfg.Focusable,
 		Disabled:        cfg.Disabled,
 		Invisible:       cfg.Invisible,
 		SizeBorder:      NoBorder,
@@ -123,7 +123,7 @@ func Toggle(cfg ToggleCfg) View {
 			if len(layout.Children) == 0 {
 				return
 			}
-			if w.IsFocus(layout.Shape.IDFocus) {
+			if w.IsFocus(layout.Shape.ID) {
 				layout.Children[0].Shape.Color = colorFocus
 				layout.Children[0].Shape.ColorBorder = colorBorderFocus
 			}

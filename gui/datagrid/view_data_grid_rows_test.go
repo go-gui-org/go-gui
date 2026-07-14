@@ -284,20 +284,20 @@ func TestHasKeyboardModifiers(t *testing.T) {
 // --- dataGridEditorFocusIDFromBase ---
 
 func TestEditorFocusIDFromBase(t *testing.T) {
-	if got := dataGridEditorFocusIDFromBase(100, 3, 0); got != 100 {
-		t.Errorf("got %d, want 100", got)
+	if got := dataGridEditorFocusIDFromBase("g:efocus:", 3, 0); got != "g:efocus:0" {
+		t.Errorf("got %q, want g:efocus:0", got)
 	}
-	if got := dataGridEditorFocusIDFromBase(100, 3, 2); got != 102 {
-		t.Errorf("got %d, want 102", got)
+	if got := dataGridEditorFocusIDFromBase("g:efocus:", 3, 2); got != "g:efocus:2" {
+		t.Errorf("got %q, want g:efocus:2", got)
 	}
-	if got := dataGridEditorFocusIDFromBase(0, 3, 0); got != 0 {
-		t.Errorf("zero base: got %d, want 0", got)
+	if got := dataGridEditorFocusIDFromBase("", 3, 0); got != "" {
+		t.Errorf("empty base: got %q, want empty", got)
 	}
-	if got := dataGridEditorFocusIDFromBase(100, 3, 3); got != 0 {
-		t.Errorf("out of range: got %d, want 0", got)
+	if got := dataGridEditorFocusIDFromBase("g:efocus:", 3, 3); got != "" {
+		t.Errorf("out of range: got %q, want empty", got)
 	}
-	if got := dataGridEditorFocusIDFromBase(100, 3, -1); got != 0 {
-		t.Errorf("negative: got %d, want 0", got)
+	if got := dataGridEditorFocusIDFromBase("g:efocus:", 3, -1); got != "" {
+		t.Errorf("negative: got %q, want empty", got)
 	}
 }
 
@@ -361,14 +361,14 @@ func TestTrackRowEditClickDoubleClick(t *testing.T) {
 
 	// First click at frame 5.
 	e1 := &gg.Event{FrameCount: 5}
-	dataGridTrackRowEditClick("g1", true, 100, 1, cols, 0, "row1", 1, e1, w)
+	dataGridTrackRowEditClick("g1", true, "g1:efocus:", 1, cols, 0, "row1", "g1", e1, w)
 	if got := dataGridEditingRowID("g1", w); got != "" {
 		t.Fatalf("after first click: editing=%q, want empty", got)
 	}
 
 	// Second click within threshold → double-click.
 	e2 := &gg.Event{FrameCount: 10}
-	dataGridTrackRowEditClick("g1", true, 100, 1, cols, 0, "row1", 1, e2, w)
+	dataGridTrackRowEditClick("g1", true, "g1:efocus:", 1, cols, 0, "row1", "g1", e2, w)
 	if got := dataGridEditingRowID("g1", w); got != "row1" {
 		t.Fatalf("after double click: editing=%q, want row1", got)
 	}
@@ -380,11 +380,11 @@ func TestTrackRowEditClickTooSlow(t *testing.T) {
 	cols := []GridColumnCfg{{ID: "name", Editable: true}}
 
 	e1 := &gg.Event{FrameCount: 5}
-	dataGridTrackRowEditClick("g1", true, 100, 1, cols, 0, "row1", 1, e1, w)
+	dataGridTrackRowEditClick("g1", true, "g1:efocus:", 1, cols, 0, "row1", "g1", e1, w)
 
 	// Second click beyond threshold.
 	e2 := &gg.Event{FrameCount: 5 + dataGridEditDoubleClickFrames + 1}
-	dataGridTrackRowEditClick("g1", true, 100, 1, cols, 0, "row1", 1, e2, w)
+	dataGridTrackRowEditClick("g1", true, "g1:efocus:", 1, cols, 0, "row1", "g1", e2, w)
 	if got := dataGridEditingRowID("g1", w); got != "" {
 		t.Fatalf("slow double click: editing=%q, want empty", got)
 	}
@@ -396,11 +396,11 @@ func TestTrackRowEditClickDifferentRow(t *testing.T) {
 	cols := []GridColumnCfg{{ID: "name", Editable: true}}
 
 	e1 := &gg.Event{FrameCount: 5}
-	dataGridTrackRowEditClick("g1", true, 100, 1, cols, 0, "row1", 1, e1, w)
+	dataGridTrackRowEditClick("g1", true, "g1:efocus:", 1, cols, 0, "row1", "g1", e1, w)
 
 	// Second click on different row — not a double click.
 	e2 := &gg.Event{FrameCount: 10}
-	dataGridTrackRowEditClick("g1", true, 100, 1, cols, 0, "row2", 1, e2, w)
+	dataGridTrackRowEditClick("g1", true, "g1:efocus:", 1, cols, 0, "row2", "g1", e2, w)
 	if got := dataGridEditingRowID("g1", w); got != "" {
 		t.Fatalf("different row: editing=%q, want empty", got)
 	}
@@ -409,39 +409,38 @@ func TestTrackRowEditClickDifferentRow(t *testing.T) {
 // --- dataGridCellEditorFocusBaseID ---
 
 func TestCellEditorFocusBaseID(t *testing.T) {
-	cfg := &DataGridCfg{ID: "g", IDFocus: 100}
+	cfg := &DataGridCfg{ID: "g"}
 	got := dataGridCellEditorFocusBaseID(cfg, 3)
-	// headerBase = 101, +3 → 104
-	if got != 104 {
-		t.Errorf("got %d, want 104", got)
+	if got != "g:efocus:" {
+		t.Errorf("got %q, want g:efocus:", got)
 	}
 }
 
 func TestCellEditorFocusBaseIDZeroCols(t *testing.T) {
-	cfg := &DataGridCfg{ID: "g", IDFocus: 100}
+	cfg := &DataGridCfg{ID: "g"}
 	got := dataGridCellEditorFocusBaseID(cfg, 0)
-	if got != 0 {
-		t.Errorf("got %d, want 0", got)
+	if got != "" {
+		t.Errorf("got %q, want empty", got)
 	}
 }
 
 // --- dataGridCellEditorFocusID ---
 
 func TestCellEditorFocusID(t *testing.T) {
-	cfg := &DataGridCfg{ID: "g", IDFocus: 100}
+	cfg := &DataGridCfg{ID: "g"}
 	got := dataGridCellEditorFocusID(cfg, 3, 0, 0)
-	if got != 104 {
-		t.Errorf("got %d, want 104", got)
+	if got != "g:efocus:0" {
+		t.Errorf("got %q, want g:efocus:0", got)
 	}
 }
 
 func TestCellEditorFocusIDOutOfRange(t *testing.T) {
-	cfg := &DataGridCfg{ID: "g", IDFocus: 100}
-	if got := dataGridCellEditorFocusID(cfg, 3, -1, 0); got != 0 {
-		t.Errorf("negative row: got %d, want 0", got)
+	cfg := &DataGridCfg{ID: "g"}
+	if got := dataGridCellEditorFocusID(cfg, 3, -1, 0); got != "" {
+		t.Errorf("negative row: got %q, want empty", got)
 	}
-	if got := dataGridCellEditorFocusID(cfg, 3, 0, 3); got != 0 {
-		t.Errorf("col out of range: got %d, want 0", got)
+	if got := dataGridCellEditorFocusID(cfg, 3, 0, 3); got != "" {
+		t.Errorf("col out of range: got %q, want empty", got)
 	}
 }
 
@@ -477,7 +476,7 @@ func TestMakeEditorOnKeydownEscape(t *testing.T) {
 	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	dataGridSetEditingRow("g1", "r1", w)
-	fn := dataGridMakeEditorOnKeydown("g1", 10)
+	fn := dataGridMakeEditorOnKeydown("g1", "g1")
 	e := &gg.Event{KeyCode: gg.KeyEscape}
 	fn(nil, e, w)
 	if !e.IsHandled {
@@ -492,7 +491,7 @@ func TestMakeEditorOnKeydownNonEscape(t *testing.T) {
 	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	dataGridSetEditingRow("g1", "r1", w)
-	fn := dataGridMakeEditorOnKeydown("g1", 10)
+	fn := dataGridMakeEditorOnKeydown("g1", "g1")
 	e := &gg.Event{KeyCode: gg.KeyEnter}
 	fn(nil, e, w)
 	if e.IsHandled {
@@ -507,7 +506,7 @@ func TestMakeEditorOnKeydownEscapeWithModifiers(t *testing.T) {
 	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	dataGridSetEditingRow("g1", "r1", w)
-	fn := dataGridMakeEditorOnKeydown("g1", 10)
+	fn := dataGridMakeEditorOnKeydown("g1", "g1")
 	e := &gg.Event{KeyCode: gg.KeyEscape, Modifiers: gg.ModShift}
 	fn(nil, e, w)
 	if e.IsHandled {
@@ -655,7 +654,7 @@ func TestRowClickWithCallback(t *testing.T) {
 	e := &gg.Event{FrameCount: 5}
 	dataGridRowClick(rows, sel, "g1", true, true,
 		func(s GridSelection, _ *gg.Event, _ *gg.Window) { selected = s },
-		false, 0, 0, 0, "a", 10,
+		false, "", 0, 0, "a", "g1",
 		[]GridColumnCfg{}, e, w)
 	if selected.ActiveRowID != "a" {
 		t.Errorf("active: got %q, want a", selected.ActiveRowID)
@@ -672,7 +671,7 @@ func TestRowClickOutOfRange(t *testing.T) {
 	e := &gg.Event{}
 	// Should not panic for out-of-range index.
 	dataGridRowClick(rows, GridSelection{}, "g1", true, true, nil,
-		false, 0, 0, -1, "x", 0, nil, e, w)
+		false, "", 0, -1, "x", "", nil, e, w)
 }
 
 // --- dataGridDetailToggleControl ---
@@ -683,7 +682,7 @@ func TestDetailToggleControlCollapsed(t *testing.T) {
 		TextStyle:     gg.DefaultTextStyle,
 		ColorRowHover: gg.RGBA(220, 220, 220, 255),
 	}
-	v := dataGridDetailToggleControl(cfg, "r1", false, true, 10)
+	v := dataGridDetailToggleControl(cfg, "r1", false, true, "g1")
 	if v == nil {
 		t.Fatal("detail toggle should return a view")
 	}
@@ -695,7 +694,7 @@ func TestDetailToggleControlExpanded(t *testing.T) {
 		TextStyle:     gg.DefaultTextStyle,
 		ColorRowHover: gg.RGBA(220, 220, 220, 255),
 	}
-	v := dataGridDetailToggleControl(cfg, "r1", true, true, 10)
+	v := dataGridDetailToggleControl(cfg, "r1", true, true, "g1")
 	if v == nil {
 		t.Fatal("expanded toggle should return a view")
 	}
@@ -706,7 +705,7 @@ func TestDetailToggleControlDisabled(t *testing.T) {
 		ID:        "g1",
 		TextStyle: gg.DefaultTextStyle,
 	}
-	v := dataGridDetailToggleControl(cfg, "r1", false, false, 0)
+	v := dataGridDetailToggleControl(cfg, "r1", false, false, "")
 	if v == nil {
 		t.Fatal("disabled toggle should return a view")
 	}
@@ -787,9 +786,9 @@ func TestTrackRowEditClickDisabled(t *testing.T) {
 	cols := []GridColumnCfg{{ID: "name", Editable: true}}
 
 	e1 := &gg.Event{FrameCount: 5}
-	dataGridTrackRowEditClick("g1", false, 100, 1, cols, 0, "row1", 1, e1, w)
+	dataGridTrackRowEditClick("g1", false, "g1:efocus:", 1, cols, 0, "row1", "g1", e1, w)
 	e2 := &gg.Event{FrameCount: 10}
-	dataGridTrackRowEditClick("g1", false, 100, 1, cols, 0, "row1", 1, e2, w)
+	dataGridTrackRowEditClick("g1", false, "g1:efocus:", 1, cols, 0, "row1", "g1", e2, w)
 	if got := dataGridEditingRowID("g1", w); got != "" {
 		t.Fatalf("edit disabled: editing=%q, want empty", got)
 	}

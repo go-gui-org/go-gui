@@ -82,9 +82,9 @@ func mainView(w *gui.Window) gui.View {
 				Spacing: gui.Some(theme.SpacingSmall),
 				Content: []gui.View{
 					gui.Switch(gui.SwitchCfg{
-						IDFocus:  301,
-						Label:    "Use offset pagination",
-						Selected: app.UseOffset,
+						Focusable: true,
+						Label:     "Use offset pagination",
+						Selected:  app.UseOffset,
 						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
 							state := gui.State[App](w)
 							state.UseOffset = !state.UseOffset
@@ -93,9 +93,9 @@ func mainView(w *gui.Window) gui.View {
 						},
 					}),
 					gui.Switch(gui.SwitchCfg{
-						IDFocus:  302,
-						Label:    "Simulate latency",
-						Selected: app.SimulateLatency,
+						Focusable: true,
+						Label:     "Simulate latency",
+						Selected:  app.SimulateLatency,
 						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
 							state := gui.State[App](w)
 							state.SimulateLatency = !state.SimulateLatency

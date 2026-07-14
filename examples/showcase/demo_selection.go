@@ -14,20 +14,20 @@ func demoToggle(w *gui.Window) gui.View {
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Toggle(gui.ToggleCfg{
-				ID:       "toggle-a",
-				IDFocus:  108,
-				Label:    "Toggle",
-				Selected: app.ToggleA,
+				ID:        "toggle-a",
+				Focusable: true,
+				Label:     "Toggle",
+				Selected:  app.ToggleA,
 				OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
 					a := gui.State[ShowcaseApp](w)
 					a.ToggleA = !a.ToggleA
 				},
 			}),
 			gui.Toggle(gui.ToggleCfg{
-				ID:       "checkbox-a",
-				IDFocus:  109,
-				Label:    "Checkbox",
-				Selected: app.CheckboxA,
+				ID:        "checkbox-a",
+				Focusable: true,
+				Label:     "Checkbox",
+				Selected:  app.CheckboxA,
 				OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
 					a := gui.State[ShowcaseApp](w)
 					a.CheckboxA = !a.CheckboxA
@@ -46,10 +46,10 @@ func demoSwitch(w *gui.Window) gui.View {
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
 			gui.Switch(gui.SwitchCfg{
-				ID:       "switch-a",
-				IDFocus:  107,
-				Label:    "Enable feature",
-				Selected: app.SwitchA,
+				ID:        "switch-a",
+				Focusable: true,
+				Label:     "Enable feature",
+				Selected:  app.SwitchA,
 				OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
 					a := gui.State[ShowcaseApp](w)
 					a.SwitchA = !a.SwitchA
@@ -174,7 +174,7 @@ func demoListBox(w *gui.Window) gui.View {
 			gui.Text(gui.TextCfg{Text: "Virtualized list (scroll)", TextStyle: t.B3}),
 			gui.ListBox(gui.ListBoxCfg{
 				ID:          "listbox-demo",
-				IDFocus:     106,
+				Focusable:   true,
 				IDScroll:    103,
 				Sizing:      gui.FillFit,
 				MaxHeight:   200,
@@ -218,7 +218,7 @@ func demoCombobox(w *gui.Window) gui.View {
 			}),
 			gui.Combobox(gui.ComboboxCfg{
 				ID:          "combobox-demo",
-				IDFocus:     105,
+				Focusable:   true,
 				IDScroll:    104,
 				Placeholder: "Type to search...",
 				Value:       app.ComboboxValue,

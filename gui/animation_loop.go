@@ -17,7 +17,7 @@ func (w *Window) AnimationAdd(a Animation) {
 }
 
 // animationAddLocked is the lock-free core of AnimationAdd. Callers
-// must already hold w.animMu (e.g. setIDFocusLocked).
+// must already hold w.animMu (e.g. setFocusLocked).
 func (w *Window) animationAddLocked(a Animation) {
 	a.SetStart(time.Now())
 	if w.animations == nil {

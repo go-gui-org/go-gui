@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"strconv"
+	"testing"
+)
 
 func benchmarkArrangeLayout() Layout {
 	root := Layout{
@@ -98,11 +101,12 @@ func benchmarkFocusLayout() *Layout {
 		Shape: &Shape{shapeType: shapeRectangle},
 	}
 	root.Children = make([]Layout, 0, 200)
-	for i := uint32(1); i <= 200; i++ {
+	for i := 1; i <= 200; i++ {
 		root.Children = append(root.Children, Layout{
 			Shape: &Shape{
 				shapeType: shapeRectangle,
-				IDFocus:   i,
+				Focusable: true,
+				ID:        "f" + strconv.Itoa(i),
 			},
 		})
 	}
@@ -115,7 +119,7 @@ func BenchmarkFocusTraversal(b *testing.B) {
 	b.ReportAllocs()
 	for b.Loop() {
 		if s, ok := root.NextFocusable(w); ok {
-			w.SetIDFocus(s.IDFocus)
+			w.SetFocus(s.ID)
 		}
 	}
 }

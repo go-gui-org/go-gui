@@ -55,7 +55,7 @@ func catalogPanel(w *gui.Window) gui.View {
 					toggleLocale(app),
 					gui.ThemePicker(gui.ThemePickerCfg{
 						ID:          "showcase-theme",
-						IDFocus:     9190,
+						Focusable:   true,
 						FloatAnchor: gui.FloatTopRight,
 						FloatTieOff: gui.FloatBottomRight,
 						OnSelect: func(name string, _ *gui.Event, w *gui.Window) {
@@ -75,7 +75,7 @@ func catalogPanel(w *gui.Window) gui.View {
 func searchInput(app *ShowcaseApp) gui.View {
 	return gui.Input(gui.InputCfg{
 		ID:          "showcase-nav-search",
-		IDFocus:     focusSearch,
+		Focusable:   true,
 		Sizing:      gui.FillFit,
 		Text:        app.NavQuery,
 		Placeholder: "Search controls...",

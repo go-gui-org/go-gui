@@ -197,7 +197,7 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 								TextStyle: textStyle(theme.M4, 14, gui.RGB(178, 191, 222)),
 							}),
 							gui.Button(gui.ButtonCfg{
-								IDFocus:     startButtonID,
+								Focusable:   true,
 								MinWidth:    230,
 								Color:       gui.RGB(255, 110, 61),
 								ColorHover:  gui.RGB(255, 135, 90),
@@ -386,8 +386,8 @@ func renderControls(g *Game) gui.View {
 
 func controlButton(label string, id uint32, action func(*Game)) gui.View {
 	return gui.Button(gui.ButtonCfg{
-		IDFocus:  id,
-		MinWidth: 72,
+		Focusable: true,
+		MinWidth:  72,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: label}),
 		},

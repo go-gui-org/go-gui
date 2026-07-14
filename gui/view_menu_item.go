@@ -133,23 +133,23 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 	}
 
 	itemID := itemCfg.ID
-	cfgIDFocus := menubarCfg.IDFocus
+	cfgFocusID := menubarCfg.ID
 
 	var onHover func(*Layout, *Event, *Window)
 	if !itemCfg.disabled {
 		onHover = func(_ *Layout, _ *Event, w *Window) {
-			if !w.IsFocus(cfgIDFocus) {
+			if !w.IsFocus(cfgFocusID) {
 				return
 			}
 			if w.viewState.menuKeyNav {
 				return
 			}
 			w.setMouseCursor(CursorPointingHand)
-			sm := StateMap[uint32, string](
+			sm := StateMap[string, string](
 				w, nsMenu, capModerate)
-			cur, _ := sm.Get(cfgIDFocus)
+			cur, _ := sm.Get(cfgFocusID)
 			if cur != itemID {
-				sm.Set(cfgIDFocus, itemID)
+				sm.Set(cfgFocusID, itemID)
 			}
 		}
 	}
@@ -176,20 +176,20 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 // menuItemClick returns the OnClick handler for a menu item.
 func menuItemClick(cfg MenubarCfg, itemCfg MenuItemCfg) func(*Layout, *Event, *Window) {
 	return func(_ *Layout, e *Event, w *Window) {
-		w.SetIDFocus(cfg.IDFocus)
+		w.SetFocus(cfg.ID)
 
 		if !isSelectableMenuID(itemCfg.ID) {
 			return
 		}
 
-		sm := StateMap[uint32, string](
+		sm := StateMap[string, string](
 			w, nsMenu, capModerate)
-		sm.Set(cfg.IDFocus, itemCfg.ID)
+		sm.Set(cfg.ID, itemCfg.ID)
 
 		if itemCfg.Action != nil {
 			itemCfg.Action(&itemCfg, e, w)
 		}
-		focusBeforeAction := w.IDFocus()
+		focusBeforeAction := w.FocusID()
 		if cfg.Action != nil {
 			cfg.Action(itemCfg.ID, e, w)
 		}
@@ -198,10 +198,10 @@ func menuItemClick(cfg MenubarCfg, itemCfg MenuItemCfg) func(*Layout, *Event, *W
 		// zero if neither action callback changed it — an action that
 		// restores a previous focus should win.
 		if len(itemCfg.Submenu) == 0 {
-			if w.IDFocus() == focusBeforeAction {
-				w.SetIDFocus(0)
+			if w.FocusID() == focusBeforeAction {
+				w.ClearFocus()
 			}
-			sm.Delete(cfg.IDFocus)
+			sm.Delete(cfg.ID)
 		}
 
 		e.IsHandled = true

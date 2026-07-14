@@ -29,26 +29,26 @@ func TestScrollShapeID(t *testing.T) {
 }
 
 func TestFocusCallbackConditions(t *testing.T) {
-	noFocus := Layout{Shape: &Shape{IDFocus: 0}}
-	withFocus := Layout{Shape: &Shape{IDFocus: 1}}
+	noFocus := Layout{Shape: &Shape{}}
+	withFocus := Layout{Shape: &Shape{Focusable: true, ID: "f1"}}
 
-	if noFocus.Shape.IDFocus != 0 {
-		t.Error("no-focus should have IDFocus 0")
+	if noFocus.Shape.Focusable {
+		t.Error("no-focus should not be focusable")
 	}
-	if withFocus.Shape.IDFocus != 1 {
-		t.Error("with-focus should have IDFocus 1")
+	if !withFocus.Shape.Focusable || withFocus.Shape.ID != "f1" {
+		t.Error("with-focus should be focusable with ID f1")
 	}
 }
 
 func TestExecuteFocusCallbackNoFocus(t *testing.T) {
-	layout := &Layout{Shape: &Shape{IDFocus: 0}}
+	layout := &Layout{Shape: &Shape{}}
 	e := &Event{}
 	w := &Window{}
 	called := false
 	cb := func(_ *Layout, _ *Event, _ *Window) { called = true }
 
 	if executeFocusCallback(layout, e, w, cb) {
-		t.Error("should not execute with IDFocus=0")
+		t.Error("should not execute when not focusable")
 	}
 	if called {
 		t.Error("callback should not be called")
@@ -56,10 +56,10 @@ func TestExecuteFocusCallbackNoFocus(t *testing.T) {
 }
 
 func TestExecuteFocusCallbackNotFocused(t *testing.T) {
-	layout := &Layout{Shape: &Shape{IDFocus: 1}}
+	layout := &Layout{Shape: &Shape{Focusable: true, ID: "f1"}}
 	e := &Event{}
 	w := &Window{}
-	w.SetIDFocus(2) // different focus
+	w.SetFocus("f2") // different focus
 	called := false
 	cb := func(_ *Layout, _ *Event, _ *Window) { called = true }
 
@@ -72,10 +72,10 @@ func TestExecuteFocusCallbackNotFocused(t *testing.T) {
 }
 
 func TestExecuteFocusCallbackFocused(t *testing.T) {
-	layout := &Layout{Shape: &Shape{IDFocus: 1}}
+	layout := &Layout{Shape: &Shape{Focusable: true, ID: "f1"}}
 	e := &Event{}
 	w := &Window{}
-	w.SetIDFocus(1)
+	w.SetFocus("f1")
 
 	cb := func(_ *Layout, e *Event, _ *Window) {
 		e.IsHandled = true
@@ -89,10 +89,10 @@ func TestExecuteFocusCallbackFocused(t *testing.T) {
 }
 
 func TestExecuteFocusCallbackNilCallback(t *testing.T) {
-	layout := &Layout{Shape: &Shape{IDFocus: 1}}
+	layout := &Layout{Shape: &Shape{Focusable: true, ID: "f1"}}
 	e := &Event{}
 	w := &Window{}
-	w.SetIDFocus(1)
+	w.SetFocus("f1")
 
 	if executeFocusCallback(layout, e, w, nil) {
 		t.Error("nil callback should return false")
@@ -604,10 +604,10 @@ func TestButtonSpacebarActivation(t *testing.T) {
 
 func TestButtonAmendLayoutFocus(t *testing.T) {
 	v := Button(ButtonCfg{
-		ID:      "btn",
-		IDFocus: 1,
-		OnClick: func(_ *Layout, _ *Event, _ *Window) {},
-		Color:   RGB(50, 50, 50),
+		ID:        "btn",
+		Focusable: true,
+		OnClick:   func(_ *Layout, _ *Event, _ *Window) {},
+		Color:     RGB(50, 50, 50),
 	})
 	layout := v.GenerateLayout(&Window{})
 	if layout.Shape.events.AmendLayout == nil {
@@ -615,7 +615,7 @@ func TestButtonAmendLayoutFocus(t *testing.T) {
 	}
 
 	w := &Window{}
-	w.SetIDFocus(1)
+	w.SetFocus("btn")
 	layout.Shape.events.AmendLayout(&layout, w)
 
 	// Color should change to focus color
@@ -651,9 +651,9 @@ func TestButtonEnterActivation(t *testing.T) {
 func TestButtonDisabledSuppressesOnClick(t *testing.T) {
 	clicked := false
 	v := Button(ButtonCfg{
-		ID:       "btn",
-		IDFocus:  1,
-		Disabled: true,
+		ID:        "btn",
+		Focusable: true,
+		Disabled:  true,
 		OnClick: func(_ *Layout, _ *Event, _ *Window) {
 			clicked = true
 		},
@@ -663,7 +663,7 @@ func TestButtonDisabledSuppressesOnClick(t *testing.T) {
 
 	// AmendLayout should not change color on disabled button.
 	origColor := layout.Shape.Color
-	w.SetIDFocus(1)
+	w.SetFocus("f1")
 	layout.Shape.events.AmendLayout(&layout, w)
 	if layout.Shape.Color != origColor {
 		t.Error("AmendLayout should not change color when disabled")
@@ -845,20 +845,20 @@ func TestPointerOverApp(t *testing.T) {
 
 func TestClearInputSelections(t *testing.T) {
 	w := &Window{}
-	imap := StateMap[uint32, InputState](w, nsInput, capMany)
-	imap.Set(1, InputState{CursorPos: 5, SelectBeg: 2, SelectEnd: 8})
-	imap.Set(2, InputState{CursorPos: 3, SelectBeg: 0, SelectEnd: 4})
+	imap := StateMap[string, InputState](w, nsInput, capMany)
+	imap.Set("a", InputState{CursorPos: 5, SelectBeg: 2, SelectEnd: 8})
+	imap.Set("b", InputState{CursorPos: 3, SelectBeg: 0, SelectEnd: 4})
 
 	w.clearInputSelections()
 
-	v1, _ := imap.Get(1)
+	v1, _ := imap.Get("a")
 	if v1.SelectBeg != 0 || v1.SelectEnd != 0 {
 		t.Error("selection 1 not cleared")
 	}
 	if v1.CursorPos != 5 {
 		t.Error("cursor pos should be preserved")
 	}
-	v2, _ := imap.Get(2)
+	v2, _ := imap.Get("b")
 	if v2.SelectBeg != 0 || v2.SelectEnd != 0 {
 		t.Error("selection 2 not cleared")
 	}
@@ -866,16 +866,16 @@ func TestClearInputSelections(t *testing.T) {
 
 func TestSetIDFocusClearsSelections(t *testing.T) {
 	w := &Window{}
-	imap := StateMap[uint32, InputState](w, nsInput, capMany)
-	imap.Set(1, InputState{SelectBeg: 1, SelectEnd: 5})
+	imap := StateMap[string, InputState](w, nsInput, capMany)
+	imap.Set("f1", InputState{SelectBeg: 1, SelectEnd: 5})
 
-	w.SetIDFocus(2)
+	w.SetFocus("f2")
 
-	v, _ := imap.Get(1)
+	v, _ := imap.Get("f1")
 	if v.SelectBeg != 0 || v.SelectEnd != 0 {
 		t.Error("SetIDFocus should clear selections")
 	}
-	if w.IDFocus() != 2 {
+	if w.FocusID() != "f2" {
 		t.Error("focus not set")
 	}
 }

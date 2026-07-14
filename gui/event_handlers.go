@@ -203,8 +203,9 @@ func mouseDownHandler(
 		return
 	}
 	if layout.Shape.PointInShape(e.MouseX, e.MouseY) {
-		if layout.Shape.IDFocus > 0 && e.MouseButton != MouseRight {
-			w.SetIDFocus(layout.Shape.IDFocus)
+		if layout.Shape.Focusable && layout.Shape.ID != "" &&
+			e.MouseButton != MouseRight {
+			w.SetFocus(layout.Shape.ID)
 			e.IsHandled = true
 		}
 		var onClick ShapeCallback
@@ -284,11 +285,11 @@ func focusedScrollTarget(layout *Layout, w *Window) *Layout {
 	if w == nil {
 		return nil
 	}
-	idFocus := w.IDFocus()
-	if idFocus == 0 {
+	focusID := w.FocusID()
+	if focusID == "" {
 		return nil
 	}
-	ly, ok := FindLayoutByIDFocus(layout, idFocus)
+	ly, ok := FindLayoutByFocusID(layout, focusID)
 	if !ok || ly.Shape == nil || !ly.Shape.hasEvents() ||
 		ly.Shape.events.OnMouseScroll == nil {
 		return nil

@@ -32,8 +32,8 @@ type TreeCfg struct {
 	Indent  float32
 	Spacing float32
 
-	IDFocus  uint32
-	IDScroll uint32
+	Focusable bool
+	IDScroll  uint32
 
 	Width     float32
 	Height    float32
@@ -234,7 +234,7 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 		A11YRole:  AccessRoleTree,
 		A11YLabel: a11yLabel(cfg.A11YLabel, cfg.ID),
 		A11Y:      makeA11YInfo(a11yLabel(cfg.A11YLabel, cfg.ID), cfg.A11YDescription),
-		IDFocus:   cfg.IDFocus,
+		Focusable: cfg.Focusable,
 		IDScroll:  cfg.IDScroll,
 		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
 			if canReorder {

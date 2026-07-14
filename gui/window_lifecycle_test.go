@@ -388,10 +388,10 @@ func TestSetClipboardNilSafe(t *testing.T) {
 
 func TestSetIDFocusClearsInputSelections(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int), Width: 100, Height: 100})
-	setInputState(w, 10, InputState{SelectBeg: 1, SelectEnd: 5})
-	w.SetIDFocus(20)
+	setInputState(w, "f10", InputState{SelectBeg: 1, SelectEnd: 5})
+	w.SetFocus("f20")
 
-	is := getInputState(w, 10)
+	is := getInputState(w, "f10")
 	if is.SelectBeg != 0 || is.SelectEnd != 0 {
 		t.Errorf("selection not cleared: beg=%d end=%d",
 			is.SelectBeg, is.SelectEnd)
@@ -401,7 +401,7 @@ func TestSetIDFocusClearsInputSelections(t *testing.T) {
 func TestSetIDFocusEnablesCursorBlink(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int), Width: 100, Height: 100})
 	w.viewState.inputCursorOn.Store(false)
-	w.SetIDFocus(42)
+	w.SetFocus("f42")
 
 	if !w.viewState.inputCursorOn.Load() {
 		t.Error("inputCursorOn should be true after SetIDFocus")
@@ -482,38 +482,38 @@ func TestWindowCtxNilFallback(t *testing.T) {
 
 func TestUpdateViewPreservesIDFocus(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int), Width: 100, Height: 100})
-	w.viewState.idFocus = 42
+	w.viewState.focusID = "f42"
 	w.UpdateView(func(_ *Window) View {
 		return Text(TextCfg{Text: "hi"})
 	})
-	if w.IDFocus() != 42 {
-		t.Errorf("IDFocus = %d, want 42 after UpdateView",
-			w.IDFocus())
+	if w.FocusID() != "f42" {
+		t.Errorf("FocusID = %q, want f42 after UpdateView",
+			w.FocusID())
 	}
 }
 
 func TestClearViewStateResetsIDFocus(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int), Width: 100, Height: 100})
-	w.viewState.idFocus = 42
+	w.viewState.focusID = "f42"
 	w.clearViewState()
-	if w.IDFocus() != 0 {
-		t.Errorf("IDFocus = %d, want 0 after ClearViewState",
-			w.IDFocus())
+	if w.FocusID() != "" {
+		t.Errorf("FocusID = %q, want empty after ClearViewState",
+			w.FocusID())
 	}
 }
 
 func TestIsFocusMatchesAndZero(t *testing.T) {
 	w := &Window{}
-	w.viewState.idFocus = 10
-	if !w.IsFocus(10) {
-		t.Error("IsFocus(10) should be true")
+	w.viewState.focusID = "f10"
+	if !w.IsFocus("f10") {
+		t.Error("IsFocus(f10) should be true")
 	}
-	if w.IsFocus(99) {
-		t.Error("IsFocus(99) should be false")
+	if w.IsFocus("f99") {
+		t.Error("IsFocus(f99) should be false")
 	}
-	w.viewState.idFocus = 0
-	if w.IsFocus(0) {
-		t.Error("IsFocus(0) should always be false")
+	w.viewState.focusID = ""
+	if w.IsFocus("") {
+		t.Error("IsFocus(empty) should always be false")
 	}
 }
 

@@ -13,11 +13,11 @@ func TestRetainDialogFocus_RestoresStolenFocus(t *testing.T) {
 
 	// Simulate a widget re-asserting focus onto itself (id 42, not in
 	// the dialog subtree).
-	w.SetIDFocus(42)
+	w.SetFocus("f42")
 	w.retainDialogFocus(&dialog)
 
-	if got := w.IDFocus(); got != w.dialogCfg.IDFocus {
-		t.Fatalf("idFocus = %d, want dialog focus %d", got, w.dialogCfg.IDFocus)
+	if got := w.FocusID(); got != w.dialogCfg.FocusID {
+		t.Fatalf("focus = %q, want dialog focus %q", got, w.dialogCfg.FocusID)
 	}
 }
 
@@ -30,12 +30,12 @@ func TestRetainDialogFocus_KeepsDialogFocus(t *testing.T) {
 
 	// Confirm dialog's "Yes" button uses IDFocus+1; a legitimate Tab
 	// target inside the dialog must be preserved.
-	yes := w.dialogCfg.IDFocus + 1
-	w.SetIDFocus(yes)
+	yes := w.dialogCfg.FocusID + "/1"
+	w.SetFocus(yes)
 	w.retainDialogFocus(&dialog)
 
-	if got := w.IDFocus(); got != yes {
-		t.Fatalf("idFocus = %d, want %d (in-dialog focus preserved)", got, yes)
+	if got := w.FocusID(); got != yes {
+		t.Fatalf("focus = %q, want %q (in-dialog focus preserved)", got, yes)
 	}
 }
 
@@ -46,11 +46,11 @@ func TestRetainDialogFocus_NoFocusReasserts(t *testing.T) {
 	w.Dialog(DialogCfg{DialogType: DialogConfirm, Title: "Quit?"})
 	dialog := GenerateViewLayout(dialogViewGenerator(w.dialogCfg), w)
 
-	w.SetIDFocus(0)
+	w.ClearFocus()
 	w.retainDialogFocus(&dialog)
 
-	if got := w.IDFocus(); got != w.dialogCfg.IDFocus {
-		t.Fatalf("idFocus = %d, want dialog focus %d", got, w.dialogCfg.IDFocus)
+	if got := w.FocusID(); got != w.dialogCfg.FocusID {
+		t.Fatalf("focus = %q, want dialog focus %q", got, w.dialogCfg.FocusID)
 	}
 }
 
@@ -59,22 +59,22 @@ func TestRetainDialogFocus_NoFocusReasserts(t *testing.T) {
 func TestRetainDialogFocus_NilLayoutNoPanic(t *testing.T) {
 	w := NewWindow(WindowCfg{})
 	w.Dialog(DialogCfg{DialogType: DialogConfirm, Title: "Quit?"})
-	w.SetIDFocus(42)
+	w.SetFocus("f42")
 	w.retainDialogFocus(nil)
-	if got := w.IDFocus(); got != 42 {
-		t.Fatalf("idFocus = %d, want 42 (nil layer must not touch focus)", got)
+	if got := w.FocusID(); got != "f42" {
+		t.Fatalf("focus = %q, want f42 (nil layer must not touch focus)", got)
 	}
 }
 
 // TestRetainDialogFocus_NilShapeNoPanic verifies a layout with a nil
-// Shape (which FindLayoutByIDFocus would dereference) is a no-op.
+// Shape (which FindLayoutByFocusID would dereference) is a no-op.
 func TestRetainDialogFocus_NilShapeNoPanic(t *testing.T) {
 	w := NewWindow(WindowCfg{})
 	w.Dialog(DialogCfg{DialogType: DialogConfirm, Title: "Quit?"})
-	w.SetIDFocus(42)
+	w.SetFocus("f42")
 	w.retainDialogFocus(&Layout{})
-	if got := w.IDFocus(); got != 42 {
-		t.Fatalf("idFocus = %d, want 42 (nil Shape must not touch focus)", got)
+	if got := w.FocusID(); got != "f42" {
+		t.Fatalf("focus = %q, want f42 (nil Shape must not touch focus)", got)
 	}
 }
 
@@ -85,9 +85,9 @@ func TestDialogCfgDefaults(t *testing.T) {
 	if !cfg.Color.IsSet() {
 		t.Error("expected non-zero Color")
 	}
-	if cfg.IDFocus != dialogBaseIDFocus {
-		t.Errorf("expected IDFocus=%d, got %d",
-			dialogBaseIDFocus, cfg.IDFocus)
+	if cfg.FocusID != dialogBaseFocusID {
+		t.Errorf("expected FocusID=%q, got %q",
+			dialogBaseFocusID, cfg.FocusID)
 	}
 	if cfg.MinWidth.IsSet() {
 		t.Error("expected MinWidth unset (resolved from style)")
@@ -120,7 +120,7 @@ func TestDialogViewGeneratorReturnsView(t *testing.T) {
 
 func TestDialogShowDismissLifecycle(t *testing.T) {
 	w := &Window{}
-	w.SetIDFocus(42)
+	w.SetFocus("f42")
 
 	w.Dialog(DialogCfg{
 		Title:      "Test",
@@ -129,18 +129,18 @@ func TestDialogShowDismissLifecycle(t *testing.T) {
 	if !w.DialogIsVisible() {
 		t.Error("expected dialog visible after Dialog()")
 	}
-	if w.IDFocus() != dialogBaseIDFocus {
-		t.Errorf("expected focus=%d, got %d",
-			dialogBaseIDFocus, w.IDFocus())
+	if w.FocusID() != dialogBaseFocusID {
+		t.Errorf("expected focus=%q, got %q",
+			dialogBaseFocusID, w.FocusID())
 	}
 
 	w.DialogDismiss()
 	if w.DialogIsVisible() {
 		t.Error("expected dialog hidden after Dismiss()")
 	}
-	if w.IDFocus() != 42 {
-		t.Errorf("expected focus restored to 42, got %d",
-			w.IDFocus())
+	if w.FocusID() != "f42" {
+		t.Errorf("expected focus restored to f42, got %q",
+			w.FocusID())
 	}
 }
 
@@ -327,8 +327,8 @@ func TestDialogConfirmDefaultButtonNo(t *testing.T) {
 	w := &Window{}
 	w.Dialog(DialogCfg{DialogType: DialogConfirm, Title: "Quit?"})
 	// Default (DialogButtonNo) focuses the base IDFocus ("No").
-	if got := w.IDFocus(); got != w.dialogCfg.IDFocus {
-		t.Fatalf("idFocus = %d, want No button %d", got, w.dialogCfg.IDFocus)
+	if got := w.FocusID(); got != w.dialogCfg.FocusID {
+		t.Fatalf("focus = %q, want No button %q", got, w.dialogCfg.FocusID)
 	}
 }
 
@@ -340,9 +340,9 @@ func TestDialogConfirmDefaultButtonYes(t *testing.T) {
 		DefaultButton: DialogButtonYes,
 	})
 	// DialogButtonYes focuses IDFocus+1 ("Yes").
-	want := w.dialogCfg.IDFocus + 1
-	if got := w.IDFocus(); got != want {
-		t.Fatalf("idFocus = %d, want Yes button %d", got, want)
+	want := w.dialogCfg.FocusID + "/1"
+	if got := w.FocusID(); got != want {
+		t.Fatalf("focus = %q, want Yes button %q", got, want)
 	}
 }
 
@@ -355,8 +355,8 @@ func TestDialogDefaultButtonYesIgnoredForNonConfirm(t *testing.T) {
 		Title:         "Done",
 		DefaultButton: DialogButtonYes,
 	})
-	if got := w.IDFocus(); got != w.dialogCfg.IDFocus {
-		t.Fatalf("idFocus = %d, want base %d", got, w.dialogCfg.IDFocus)
+	if got := w.FocusID(); got != w.dialogCfg.FocusID {
+		t.Fatalf("focus = %q, want base %q", got, w.dialogCfg.FocusID)
 	}
 }
 
@@ -372,12 +372,12 @@ func TestRetainDialogFocus_DefaultButtonYes(t *testing.T) {
 	})
 	dialog := GenerateViewLayout(dialogViewGenerator(w.dialogCfg), w)
 
-	w.SetIDFocus(42) // steal focus outside the dialog
+	w.SetFocus("f42") // steal focus outside the dialog
 	w.retainDialogFocus(&dialog)
 
-	want := w.dialogCfg.IDFocus + 1
-	if got := w.IDFocus(); got != want {
-		t.Fatalf("idFocus = %d, want Yes button %d", got, want)
+	want := w.dialogCfg.FocusID + "/1"
+	if got := w.FocusID(); got != want {
+		t.Fatalf("focus = %q, want Yes button %q", got, want)
 	}
 }
 

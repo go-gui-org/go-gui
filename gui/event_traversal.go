@@ -12,10 +12,10 @@ func isFocusedTarget(layout *Layout, w *Window) bool {
 	if layout.Shape.ID == reservedDialogID {
 		return true
 	}
-	if layout.Shape.IDFocus == 0 {
+	if !layout.Shape.Focusable || layout.Shape.ID == "" {
 		return false
 	}
-	return w.IsFocus(layout.Shape.IDFocus)
+	return w.IsFocus(layout.Shape.ID)
 }
 
 func executeFocusCallback(

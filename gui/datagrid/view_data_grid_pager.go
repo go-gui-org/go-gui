@@ -15,14 +15,14 @@ type dataGridPagerContext struct {
 	pageStart     int
 	pageEnd       int
 	totalRows     int
-	focusID       uint32
+	focusID       string
 	viewportH     float32
 	rowHeight     float32
 	staticTop     float32
 	scrollID      uint32
 }
 
-func dataGridPagerRow(cfg *DataGridCfg, focusID uint32, pageIndex, pageCount, pageStart, pageEnd, totalRows int, viewportH, rowHeight, staticTop float32, scrollID uint32, dataToDisplay map[int]int, jumpText string) gg.View {
+func dataGridPagerRow(cfg *DataGridCfg, focusID string, pageIndex, pageCount, pageStart, pageEnd, totalRows int, viewportH, rowHeight, staticTop float32, scrollID uint32, dataToDisplay map[int]int, jumpText string) gg.View {
 	return dataGridBuildPagerRow(dataGridPagerContext{
 		cfg: cfg, focusID: focusID, pageIndex: pageIndex, pageCount: pageCount,
 		pageStart: pageStart, pageEnd: pageEnd, totalRows: totalRows,
@@ -57,7 +57,7 @@ func dataGridPagerContent(pctx dataGridPagerContext) []gg.View {
 	jumpCtx := dataGridJumpContextFromPager(pctx)
 	jumpEnabled := dataGridJumpEnabledLocal(len(cfg.Rows), cfg.OnSelectionChange, cfg.OnPageChange, cfg.PageSize, pctx.totalRows)
 	jumpInputID := cfg.ID + ":jump"
-	jumpFocusID := gg.FnvSum32(jumpInputID)
+	jumpFocusID := jumpInputID
 	prevArrow, nextArrow := dataGridPagerArrows()
 
 	content := make([]gg.View, 0, 9)
@@ -91,7 +91,7 @@ func dataGridPagerArrows() (string, string) {
 	return prev, next
 }
 
-func dataGridPagerPrevButton(cfg *DataGridCfg, onPageChange func(int, *gg.Event, *gg.Window), pageIndex int, focusID uint32, isFirst bool, prevArrow string) gg.View {
+func dataGridPagerPrevButton(cfg *DataGridCfg, onPageChange func(int, *gg.Event, *gg.Window), pageIndex int, focusID string, isFirst bool, prevArrow string) gg.View {
 	return dataGridIndicatorButton(prevArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover,
 		onPageChange == nil || isFirst, dataGridHeaderControlWidth+10,
 		func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
@@ -100,14 +100,14 @@ func dataGridPagerPrevButton(cfg *DataGridCfg, onPageChange func(int, *gg.Event,
 			}
 			next := max(0, pageIndex-1)
 			onPageChange(next, e, w)
-			if focusID > 0 {
-				w.SetIDFocus(focusID)
+			if focusID != "" {
+				w.SetFocus(focusID)
 			}
 			e.IsHandled = true
 		})
 }
 
-func dataGridPagerNextButton(cfg *DataGridCfg, onPageChange func(int, *gg.Event, *gg.Window), pageIndex, pageCount int, focusID uint32, isLast bool, nextArrow string) gg.View {
+func dataGridPagerNextButton(cfg *DataGridCfg, onPageChange func(int, *gg.Event, *gg.Window), pageIndex, pageCount int, focusID string, isLast bool, nextArrow string) gg.View {
 	return dataGridIndicatorButton(nextArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover,
 		onPageChange == nil || isLast, dataGridHeaderControlWidth+10,
 		func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
@@ -116,8 +116,8 @@ func dataGridPagerNextButton(cfg *DataGridCfg, onPageChange func(int, *gg.Event,
 			}
 			next := min(pageCount-1, pageIndex+1)
 			onPageChange(next, e, w)
-			if focusID > 0 {
-				w.SetIDFocus(focusID)
+			if focusID != "" {
+				w.SetFocus(focusID)
 			}
 			e.IsHandled = true
 		})
@@ -168,10 +168,10 @@ func dataGridJumpContextFromPager(pctx dataGridPagerContext) dataGridJumpContext
 	}
 }
 
-func dataGridPagerJumpInput(cfg *DataGridCfg, inputID string, focusID uint32, jumpText string, jumpEnabled bool, jumpCtx dataGridJumpContext, gridFocusID uint32) gg.View {
+func dataGridPagerJumpInput(cfg *DataGridCfg, inputID string, focusID string, jumpText string, jumpEnabled bool, jumpCtx dataGridJumpContext, gridFocusID string) gg.View {
 	return gg.Input(gg.InputCfg{
 		ID:          inputID,
-		IDFocus:     focusID,
+		Focusable:   true,
 		Text:        jumpText,
 		Placeholder: "#",
 		Disabled:    !jumpEnabled,

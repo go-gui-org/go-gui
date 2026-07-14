@@ -62,11 +62,6 @@ type Shape struct {
 	// anchor position after FloatAnchor/FloatTieOff alignment.
 	FloatOffsetY float32
 
-	// IDFocus > 0 makes the widget focusable. The numeric value
-	// determines tab order — lower values receive focus first.
-	// Focused widgets receive keyboard events.
-	IDFocus uint32
-
 	// IDScroll > 0 makes the widget respond to scroll events
 	// (mouse wheel, trackpad). Used with ScrollMode to control
 	// which axes scroll.
@@ -127,6 +122,15 @@ type Shape struct {
 	// to keep the element within the window bounds.
 	FloatAutoFlip bool
 
+	// Focusable opts the widget into the keyboard-focus system.
+	// It receives focus via click or Tab, and its per-widget input
+	// state (cursor, selection, undo/redo) is keyed by ID. Requires
+	// a non-empty ID. Tab order follows layout-tree (DFS) order.
+	Focusable bool
+
+	// FocusSkip excludes a Focusable widget from Tab traversal while
+	// keeping it click-focusable and able to hold selection state
+	// (used by Text/Rtf/Markdown selection).
 	FocusSkip bool
 
 	// OverDraw draws this element on top of siblings in the same
@@ -341,7 +345,7 @@ type ShapeTextConfig struct {
 	TextSelEnd         uint32
 	TextTabSize        uint32
 	HangingIndent      float32
-	MarkdownID         uint32 // non-zero when this RTF block belongs to a markdown widget
+	MarkdownID         string // non-empty when this RTF block belongs to a markdown widget
 	MarkdownBlockStart uint32 // rune offset of this block within the markdown flat text
 	MarkdownRuneLen    uint32 // rune count of this block's flat text
 	wrapCacheWidth     float32

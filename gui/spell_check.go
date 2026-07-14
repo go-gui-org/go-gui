@@ -1,7 +1,6 @@
 package gui
 
 import (
-	"strconv"
 	"time"
 
 	"github.com/go-gui-org/go-glyph"
@@ -15,25 +14,25 @@ type spellCheckState struct {
 
 const spellCheckDelay = 300 * time.Millisecond
 
-func spellCheckAnimID(idFocus uint32) string {
-	return "spell-check-" + strconv.FormatUint(uint64(idFocus), 10)
+func spellCheckAnimID(focusID string) string {
+	return "spell-check-" + focusID
 }
 
 // spellCheckTrigger schedules a debounced spell check for the given
 // input. Cancels any pending timer and schedules a new one. Called
 // from AmendLayout (under w.mu).
-func spellCheckTrigger(idFocus uint32, text string, w *Window) {
+func spellCheckTrigger(focusID string, text string, w *Window) {
 	if w.nativePlatform == nil {
 		return
 	}
-	sm := StateMap[uint32, spellCheckState](
+	sm := StateMap[string, spellCheckState](
 		w, nsSpellCheck, capMany)
-	cached, _ := sm.Get(idFocus)
+	cached, _ := sm.Get(focusID)
 	if cached.Text == text {
 		return
 	}
 
-	animID := spellCheckAnimID(idFocus)
+	animID := spellCheckAnimID(focusID)
 	// Cancel previous pending timer. Must hold animMu — spellCheckTrigger
 	// runs under w.mu from AmendLayout, but w.animations is guarded by
 	// w.animMu (read by the animation goroutine).
@@ -44,7 +43,7 @@ func spellCheckTrigger(idFocus uint32, text string, w *Window) {
 	// Store pending state so subsequent AmendLayout calls see
 	// the text match and skip re-scheduling. Ranges are nil
 	// until the callback populates them.
-	sm.Set(idFocus, spellCheckState{Text: text})
+	sm.Set(focusID, spellCheckState{Text: text})
 
 	capturedText := text
 	w.AnimationAdd(&Animate{
@@ -55,9 +54,9 @@ func spellCheckTrigger(idFocus uint32, text string, w *Window) {
 				return
 			}
 			ranges := w.nativePlatform.SpellCheck(capturedText)
-			sm := StateMap[uint32, spellCheckState](
+			sm := StateMap[string, spellCheckState](
 				w, nsSpellCheck, capMany)
-			sm.Set(idFocus, spellCheckState{
+			sm.Set(focusID, spellCheckState{
 				Text:   capturedText,
 				Ranges: ranges,
 			})
@@ -69,25 +68,25 @@ func spellCheckTrigger(idFocus uint32, text string, w *Window) {
 // Called from AmendLayout (under w.mu). Acquires w.animMu to
 // safely delete from w.animations, which the animation goroutine
 // reads under w.animMu.
-func spellCheckClear(idFocus uint32, w *Window) {
-	sm := StateMapRead[uint32, spellCheckState](w, nsSpellCheck)
+func spellCheckClear(focusID string, w *Window) {
+	sm := StateMapRead[string, spellCheckState](w, nsSpellCheck)
 	if sm != nil {
-		sm.Delete(idFocus)
+		sm.Delete(focusID)
 	}
 	w.animMu.Lock()
-	delete(w.animations, spellCheckAnimID(idFocus))
+	delete(w.animations, spellCheckAnimID(focusID))
 	w.animMu.Unlock()
 }
 
 // spellCheckHasRanges returns true if completed spell check results
 // exist for the given input. Used by the render path to ensure a
 // glyph layout is computed for underline positioning.
-func spellCheckHasRanges(idFocus uint32, w *Window) bool {
-	sm := StateMapRead[uint32, spellCheckState](w, nsSpellCheck)
+func spellCheckHasRanges(focusID string, w *Window) bool {
+	sm := StateMapRead[string, spellCheckState](w, nsSpellCheck)
 	if sm == nil {
 		return false
 	}
-	state, ok := sm.Get(idFocus)
+	state, ok := sm.Get(focusID)
 	return ok && len(state.Ranges) > 0
 }
 
@@ -100,14 +99,14 @@ func renderSpellCheckUnderlines(
 	gl glyph.Layout,
 	w *Window,
 ) {
-	if shape.IDFocus == 0 {
+	if shape.ID == "" || !shape.Focusable {
 		return
 	}
-	sm := StateMapRead[uint32, spellCheckState](w, nsSpellCheck)
+	sm := StateMapRead[string, spellCheckState](w, nsSpellCheck)
 	if sm == nil {
 		return
 	}
-	state, ok := sm.Get(shape.IDFocus)
+	state, ok := sm.Get(shape.ID)
 	if !ok || len(state.Ranges) == 0 {
 		return
 	}

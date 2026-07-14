@@ -24,7 +24,7 @@ type DrawCanvasCfg struct {
 	MinHeight       float32
 	MaxHeight       float32
 	Radius          float32
-	IDFocus         uint32
+	Focusable       bool
 	Color           Color
 	Sizing          Sizing
 	Clip            bool
@@ -74,7 +74,7 @@ func (dv *drawCanvasView) GenerateLayout(w *Window) Layout {
 	// Focusable canvas advertises as a button to assistive tech
 	// so screen readers announce it as interactive.
 	a11yRole := AccessRoleImage
-	if c.IDFocus > 0 {
+	if c.Focusable {
 		a11yRole = AccessRoleButton
 	}
 
@@ -96,7 +96,7 @@ func (dv *drawCanvasView) GenerateLayout(w *Window) Layout {
 			Clip:      c.Clip,
 			Color:     c.Color,
 			Radius:    c.Radius,
-			IDFocus:   c.IDFocus,
+			Focusable: c.Focusable,
 			events:    events,
 		}),
 	}

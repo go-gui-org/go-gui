@@ -19,7 +19,7 @@ type dataGridJumpContext struct {
 	rowHeight         float32
 	staticTop         float32
 	scrollID          uint32
-	focusID           uint32
+	focusID           string
 }
 
 // --- Jump ---
@@ -75,8 +75,8 @@ func dataGridSubmitLocalJump(ctx dataGridJumpContext, e *gg.Event, w *gg.Window)
 	}
 	dgJI.Set(ctx.gridID, strconv.Itoa(targetIdx+1))
 	dataGridJumpToLocalRow(ctx, targetIdx, e, w)
-	if ctx.focusID > 0 {
-		w.SetIDFocus(ctx.focusID)
+	if ctx.focusID != "" {
+		w.SetFocus(ctx.focusID)
 	}
 	e.IsHandled = true
 }

@@ -25,7 +25,7 @@ type SliderCfg struct {
 	Height          float32
 	Size            float32
 	ThumbSize       float32
-	IDFocus         uint32
+	Focusable       bool
 	Color           Color
 	ColorBorder     Color
 	ColorThumb      Color
@@ -118,7 +118,7 @@ func Slider(cfg SliderCfg) View {
 	colorFocus := cfg.ColorFocus
 	colorHover := cfg.ColorHover
 	disabled := cfg.Disabled
-	idFocus := cfg.IDFocus
+	focusID := cfg.ID
 
 	trackSizing := FillFixed
 	if cfg.Vertical {
@@ -136,9 +136,9 @@ func Slider(cfg SliderCfg) View {
 	}
 
 	return container(ContainerCfg{
-		ID:       cfg.ID,
-		IDFocus:  cfg.IDFocus,
-		A11YRole: AccessRoleSlider,
+		ID:        cfg.ID,
+		Focusable: cfg.Focusable,
+		A11YRole:  AccessRoleSlider,
 		A11Y: &AccessInfo{
 			Label:       a11yLabel(cfg.A11YLabel, cfg.ID),
 			Description: cfg.A11YDescription,
@@ -185,7 +185,7 @@ func Slider(cfg SliderCfg) View {
 		AmendLayout: func(layout *Layout, w *Window) {
 			sliderAmendLayoutSlide(layout, w,
 				onChange, value, minVal, maxVal, size, szBorder,
-				vertical, colorFocus, cfg.ColorLeft, disabled, idFocus,
+				vertical, colorFocus, cfg.ColorLeft, disabled, focusID,
 				roundValue)
 		},
 		OnHover: func(layout *Layout, _ *Event, w *Window) {
@@ -243,7 +243,7 @@ func sliderAmendLayoutSlide(
 	onChange func(float32, *Event, *Window),
 	value, minVal, maxVal, size, sizeBorder float32,
 	vertical bool, colorFocus, colorLeft Color,
-	disabled bool, idFocus uint32, roundValue bool,
+	disabled bool, focusID string, roundValue bool,
 ) {
 	if layout.Shape.events == nil {
 		layout.Shape.events = &eventHandlers{}
@@ -291,7 +291,7 @@ func sliderAmendLayoutSlide(
 				return
 			}
 		}
-		if w.IsFocus(idFocus) {
+		if w.IsFocus(focusID) {
 			thumb.Shape.Color = colorFocus
 		}
 	}

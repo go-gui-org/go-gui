@@ -579,7 +579,7 @@ func dataGridSourceJumpEnabled(onSelectionChange func(GridSelection, *gg.Event, 
 	return false
 }
 
-func dataGridSourceSubmitJump(onSelectionChange func(GridSelection, *gg.Event, *gg.Window), rowCount *int, loading bool, loadError string, kind GridPaginationKind, pageLimit int, gridID string, focusID uint32, e *gg.Event, w *gg.Window) {
+func dataGridSourceSubmitJump(onSelectionChange func(GridSelection, *gg.Event, *gg.Window), rowCount *int, loading bool, loadError string, kind GridPaginationKind, pageLimit int, gridID string, focusID string, e *gg.Event, w *gg.Window) {
 	if !dataGridSourceJumpEnabled(onSelectionChange, rowCount, loading, loadError, kind, pageLimit) {
 		return
 	}
@@ -595,8 +595,8 @@ func dataGridSourceSubmitJump(onSelectionChange func(GridSelection, *gg.Event, *
 	}
 	dgJI.Set(gridID, strconv.Itoa(targetIdx+1))
 	dataGridSourceJumpToRow(gridID, targetIdx, pageLimit, w)
-	if focusID > 0 {
-		w.SetIDFocus(focusID)
+	if focusID != "" {
+		w.SetFocus(focusID)
 	}
 	e.IsHandled = true
 }
@@ -613,7 +613,7 @@ func dataGridSourceRetry(gridID string, w *gg.Window) {
 	w.UpdateWindow()
 }
 
-func dataGridSourcePagerRow(cfg *DataGridCfg, focusID uint32, state dataGridSourceState, caps GridDataCapabilities, jumpText string) gg.View {
+func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSourceState, caps GridDataCapabilities, jumpText string) gg.View {
 	kind := dataGridSourceEffectivePaginationKind(cfg.PaginationKind, caps)
 	pageLimit := dataGridPageLimit(cfg)
 	hasPrev := dataGridSourceCanPrev(kind, state, pageLimit)
@@ -647,8 +647,8 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID uint32, state dataGridSour
 	content = append(content, dataGridIndicatorButton("\u25C0", cfg.TextStyleHeader, cfg.ColorHeaderHover,
 		state.Loading || !hasPrev, dataGridHeaderControlWidth+10, func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 			dataGridSourcePrevPage(gridID, kind, pageLimit, w)
-			if focusID > 0 {
-				w.SetIDFocus(focusID)
+			if focusID != "" {
+				w.SetFocus(focusID)
 			}
 			e.IsHandled = true
 		}))
@@ -662,8 +662,8 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID uint32, state dataGridSour
 	content = append(content, dataGridIndicatorButton("\u25B6", cfg.TextStyleHeader, cfg.ColorHeaderHover,
 		state.Loading || !hasNext, dataGridHeaderControlWidth+10, func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 			dataGridSourceNextPage(gridID, kind, pageLimit, w)
-			if focusID > 0 {
-				w.SetIDFocus(focusID)
+			if focusID != "" {
+				w.SetFocus(focusID)
 			}
 			e.IsHandled = true
 		}))
@@ -686,8 +686,8 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID uint32, state dataGridSour
 			ColorBorder: gg.ColorTransparent,
 			OnClick: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 				dataGridSourceRetry(gridID, w)
-				if focusID > 0 {
-					w.SetIDFocus(focusID)
+				if focusID != "" {
+					w.SetFocus(focusID)
 				}
 				e.IsHandled = true
 			},
@@ -722,7 +722,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID uint32, state dataGridSour
 		}))
 		content = append(content, gg.Input(gg.InputCfg{
 			ID:          jumpInputID,
-			IDFocus:     gg.FnvSum32(jumpInputID),
+			Focusable:   true,
 			Text:        jumpText,
 			Placeholder: "#",
 			Disabled:    !jumpEnabled,
@@ -741,7 +741,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID uint32, state dataGridSour
 				dgJI.Set(gridID, digits)
 				e := &gg.Event{}
 				dataGridSourceSubmitJump(onSelectionChange, rowCount, loading,
-					loadError, kind, pageLimit, gridID, 0, e, w)
+					loadError, kind, pageLimit, gridID, "", e, w)
 			},
 			OnEnter: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 				dataGridSourceSubmitJump(onSelectionChange, rowCount, loading,

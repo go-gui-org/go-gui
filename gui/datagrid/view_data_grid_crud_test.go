@@ -523,7 +523,7 @@ func TestCrudToolbarRowReturnsView(t *testing.T) {
 		Columns:          []GridColumnCfg{{ID: "c1"}},
 	}
 	state := dataGridCrudState{}
-	v := dataGridCrudToolbarRow(cfg, state, GridDataCapabilities{}, false, 0)
+	v := dataGridCrudToolbarRow(cfg, state, GridDataCapabilities{}, false, "")
 	if v == nil {
 		t.Fatal("toolbar row should return a view")
 	}
@@ -541,7 +541,7 @@ func TestCrudToolbarRowWithUnsaved(t *testing.T) {
 	state := dataGridCrudState{
 		DirtyRowIDs: map[string]bool{"r1": true},
 	}
-	v := dataGridCrudToolbarRow(cfg, state, GridDataCapabilities{}, false, 0)
+	v := dataGridCrudToolbarRow(cfg, state, GridDataCapabilities{}, false, "")
 	if v == nil {
 		t.Fatal("toolbar row with unsaved should return a view")
 	}
@@ -557,7 +557,7 @@ func TestCrudToolbarRowSaving(t *testing.T) {
 		Columns:          []GridColumnCfg{{ID: "c1"}},
 	}
 	state := dataGridCrudState{Saving: true}
-	v := dataGridCrudToolbarRow(cfg, state, GridDataCapabilities{}, false, 0)
+	v := dataGridCrudToolbarRow(cfg, state, GridDataCapabilities{}, false, "")
 	if v == nil {
 		t.Fatal("toolbar row while saving should return a view")
 	}
@@ -633,7 +633,7 @@ func TestCrudCancel(t *testing.T) {
 		SourceChanged: true,
 	})
 	e := &gg.Event{}
-	dataGridCrudCancel("g1", 10, e, w)
+	dataGridCrudCancel("g1", "", e, w)
 	state, _ := dgCrud.Get("g1")
 	if len(state.DirtyRowIDs) != 0 {
 		t.Error("dirty should be cleared")
@@ -671,7 +671,7 @@ func TestCrudDeleteRows(t *testing.T) {
 	e := &gg.Event{}
 	dataGridCrudDeleteRows("g1", GridSelection{}, func(s GridSelection, _ *gg.Event, _ *gg.Window) {
 		captured = s
-	}, []string{"__draft_1", "r2"}, 10, e, w)
+	}, []string{"__draft_1", "r2"}, "", e, w)
 	state, _ := dgCrud.Get("g1")
 	if len(state.WorkingRows) != 1 {
 		t.Errorf("working rows: got %d, want 1", len(state.WorkingRows))
@@ -695,14 +695,14 @@ func TestCrudDeleteRowsEmptyList(t *testing.T) {
 	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	// Should not panic.
-	dataGridCrudDeleteRows("g1", GridSelection{}, nil, nil, 0, &gg.Event{}, w)
+	dataGridCrudDeleteRows("g1", GridSelection{}, nil, nil, "", &gg.Event{}, w)
 }
 
 func TestCrudDeleteRowsAllWhitespace(t *testing.T) {
 	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	// Should not panic with whitespace-only IDs.
-	dataGridCrudDeleteRows("g1", GridSelection{}, nil, []string{"  ", ""}, 0, &gg.Event{}, w)
+	dataGridCrudDeleteRows("g1", GridSelection{}, nil, []string{"  ", ""}, "", &gg.Event{}, w)
 }
 
 // --- dataGridCrudAddRow ---
@@ -715,7 +715,7 @@ func TestCrudAddRow(t *testing.T) {
 	e := &gg.Event{}
 	dataGridCrudAddRow("g1", columns, func(s GridSelection, _ *gg.Event, _ *gg.Window) {
 		captured = s
-	}, 10, 1, 0, 0, func(int, *gg.Event, *gg.Window) {}, e, w)
+	}, "", 1, 0, 0, func(int, *gg.Event, *gg.Window) {}, e, w)
 	if captured.ActiveRowID == "" {
 		t.Fatal("should have an active row")
 	}
@@ -748,7 +748,7 @@ func TestCrudDeleteSelected(t *testing.T) {
 		SelectedRowIDs: map[string]bool{"r1": true, "r2": true},
 	}
 	e := &gg.Event{}
-	dataGridCrudDeleteSelected("g1", sel, nil, 0, e, w)
+	dataGridCrudDeleteSelected("g1", sel, nil, "", e, w)
 	state, _ := dgCrud.Get("g1")
 	if len(state.WorkingRows) != 0 {
 		t.Errorf("working rows: got %d, want 0", len(state.WorkingRows))
@@ -759,7 +759,7 @@ func TestCrudDeleteSelectedEmptySelection(t *testing.T) {
 	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	// Should not panic.
-	dataGridCrudDeleteSelected("g1", GridSelection{}, nil, 0, &gg.Event{}, w)
+	dataGridCrudDeleteSelected("g1", GridSelection{}, nil, "", &gg.Event{}, w)
 }
 
 // --- dataGridCrudBuildPayload additional ---

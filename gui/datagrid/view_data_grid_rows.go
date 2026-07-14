@@ -70,8 +70,8 @@ func dataGridDetailRowView(dctx dataGridCtx, rowData GridRow, rowIdx int) gg.Vie
 			}),
 		},
 		OnClick: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
-			if focusID > 0 {
-				w.SetIDFocus(focusID)
+			if focusID != "" {
+				w.SetFocus(focusID)
 			}
 			e.IsHandled = true
 		},
@@ -232,9 +232,9 @@ func dataGridResolveCellFormat(base gg.TextStyle, format GridCellFormat) (gg.Tex
 	return textStyle, bgColor
 }
 
-func dataGridRowClick(rows []GridRow, selection GridSelection, gridID string, multiSelect, rangeSelect bool, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), editEnabled bool, editorFocusBase uint32, colCount, rowIdx int, rowID string, focusID uint32, columns []GridColumnCfg, e *gg.Event, w *gg.Window) {
-	if focusID > 0 {
-		w.SetIDFocus(focusID)
+func dataGridRowClick(rows []GridRow, selection GridSelection, gridID string, multiSelect, rangeSelect bool, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), editEnabled bool, editorFocusBase string, colCount, rowIdx int, rowID string, focusID string, columns []GridColumnCfg, e *gg.Event, w *gg.Window) {
+	if focusID != "" {
+		w.SetFocus(focusID)
 	}
 	if rowIdx < 0 || rowIdx >= len(rows) {
 		return
@@ -357,7 +357,7 @@ func dataGridRangeIndices(rows []GridRow, anchorID, targetID string) (int, int) 
 
 // --- Detail expansion ---
 
-func dataGridDetailToggleControl(cfg *DataGridCfg, rowID string, expanded, enabled bool, focusID uint32) gg.View {
+func dataGridDetailToggleControl(cfg *DataGridCfg, rowID string, expanded, enabled bool, focusID string) gg.View {
 	label := "\u25B6" // ▶
 	if expanded {
 		label = "\u25BC" // ▼
@@ -397,8 +397,8 @@ func dataGridDetailToggleControl(cfg *DataGridCfg, rowID string, expanded, enabl
 			}
 			next := dataGridNextDetailExpandedMap(detailExpandedRowIDs, rowID)
 			onDetailExpandedChange(next, e, w)
-			if focusID > 0 {
-				w.SetIDFocus(focusID)
+			if focusID != "" {
+				w.SetFocus(focusID)
 			}
 			e.IsHandled = true
 		},

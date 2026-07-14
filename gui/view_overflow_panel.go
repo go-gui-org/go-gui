@@ -17,7 +17,7 @@ type OverflowPanelCfg struct {
 	FloatZIndex  int
 	Padding      Opt[Padding]
 	Spacing      Opt[float32]
-	IDFocus      uint32
+	Focusable    bool
 	FloatOffsetX float32
 	FloatOffsetY float32
 	FloatAnchor  FloatAttach
@@ -101,15 +101,15 @@ func OverflowPanel(w *Window, cfg OverflowPanelCfg) View {
 	}
 
 	return Row(ContainerCfg{
-		ID:       cfg.ID,
-		IDFocus:  cfg.IDFocus,
-		A11YRole: AccessRoleGroup,
-		Sizing:   FillFit,
-		Padding:  NoPadding,
-		Spacing:  cfg.Spacing,
-		Overflow: true,
-		Disabled: cfg.Disabled,
-		Content:  content,
+		ID:        cfg.ID,
+		Focusable: cfg.Focusable,
+		A11YRole:  AccessRoleGroup,
+		Sizing:    FillFit,
+		Padding:   NoPadding,
+		Spacing:   cfg.Spacing,
+		Overflow:  true,
+		Disabled:  cfg.Disabled,
+		Content:   content,
 	})
 }
 

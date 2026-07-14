@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"strconv"
+	"testing"
+)
 
 func TestRadioButtonGroupColumnBasic(t *testing.T) {
 	v := RadioButtonGroupColumn(RadioButtonGroupCfg{
@@ -33,10 +36,11 @@ func TestRadioButtonGroupRowBasic(t *testing.T) {
 	}
 }
 
-func TestRadioButtonGroupIDFocusIncrement(t *testing.T) {
+func TestRadioButtonGroupFocusIDs(t *testing.T) {
 	v := RadioButtonGroupColumn(RadioButtonGroupCfg{
-		Value:   "a",
-		IDFocus: 100,
+		Value:     "a",
+		ID:        "rbg",
+		Focusable: true,
 		Options: []RadioOption{
 			{Label: "A", Value: "a"},
 			{Label: "B", Value: "b"},
@@ -49,13 +53,16 @@ func TestRadioButtonGroupIDFocusIncrement(t *testing.T) {
 	if len(kids) != 3 {
 		t.Fatalf("children = %d, want 3", len(kids))
 	}
-	// Each radio should get incrementing IDFocus.
+	// Each radio gets a per-index focus ID derived from the group ID.
 	for i, child := range kids {
 		layout := child.GenerateLayout(w)
-		expected := uint32(100 + i)
-		if layout.Shape.IDFocus != expected {
-			t.Errorf("child[%d] IDFocus = %d, want %d",
-				i, layout.Shape.IDFocus, expected)
+		expected := "rbg/" + strconv.Itoa(i)
+		if !layout.Shape.Focusable {
+			t.Errorf("child[%d] not focusable", i)
+		}
+		if layout.Shape.ID != expected {
+			t.Errorf("child[%d] ID = %q, want %q",
+				i, layout.Shape.ID, expected)
 		}
 	}
 }

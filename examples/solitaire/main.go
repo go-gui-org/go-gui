@@ -238,7 +238,7 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 func modeButton(w *gui.Window, title string, mode DrawMode, color gui.Color) gui.View {
 	theme := gui.CurrentTheme()
 	return gui.Button(gui.ButtonCfg{
-		IDFocus:     uint32(mode) + 10,
+		Focusable:   true,
 		MinWidth:    140,
 		Color:       color.WithOpacity(0.12),
 		ColorHover:  color.WithOpacity(0.3),

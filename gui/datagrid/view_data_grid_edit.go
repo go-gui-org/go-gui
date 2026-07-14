@@ -1,8 +1,8 @@
 package datagrid
 
 import (
-	"math"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -11,8 +11,8 @@ import (
 
 // --- Cell editors ---
 
-func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col GridColumnCfg, value string, editorFocusID, gridFocusID uint32, _ *gg.Window) gg.View {
-	editorID := cfg.ID + ":editor:" + rowID + ":" + col.ID
+func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col GridColumnCfg, value string, editorFocusID, gridFocusID string, _ *gg.Window) gg.View {
+	editorID := editorFocusID
 	colID := col.ID
 	gridID := cfg.ID
 	crudEnabled := dataGridCrudEnabled(cfg)
@@ -32,7 +32,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 		}
 		editor = gg.Select(gg.SelectCfg{
 			ID:         editorID,
-			IDFocus:    editorFocusID,
+			Focusable:  true,
 			Selected:   selectVal,
 			Options:    options,
 			Sizing:     gg.FillFill,
@@ -57,11 +57,11 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 	case GridCellEditorDate:
 		date := dataGridParseEditorDate(value)
 		editor = gg.InputDate(gg.InputDateCfg{
-			ID:      editorID,
-			IDFocus: editorFocusID,
-			Date:    date,
-			Sizing:  gg.FillFill,
-			Padding: gg.NoPadding,
+			ID:        editorID,
+			Focusable: true,
+			Date:      date,
+			Sizing:    gg.FillFill,
+			Padding:   gg.NoPadding,
 			OnSelect: func(dates []time.Time, e *gg.Event, w *gg.Window) {
 				if len(dates) == 0 {
 					return
@@ -82,10 +82,10 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 		editorTrueValue := col.EditorTrueValue
 		editorFalseValue := col.EditorFalseValue
 		editor = gg.Toggle(gg.ToggleCfg{
-			ID:       editorID,
-			IDFocus:  editorFocusID,
-			Selected: checked,
-			Padding:  gg.NoPadding,
+			ID:        editorID,
+			Focusable: true,
+			Selected:  checked,
+			Padding:   gg.NoPadding,
 			OnClick: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 				nextValue := editorFalseValue
 				if !checked {
@@ -105,7 +105,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 	default: // GridCellEditorText
 		editor = gg.Input(gg.InputCfg{
 			ID:         editorID,
-			IDFocus:    editorFocusID,
+			Focusable:  true,
 			Text:       value,
 			Sizing:     gg.FillFill,
 			Padding:    gg.NoPadding,
@@ -124,8 +124,8 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 			},
 			OnEnter: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 				dataGridClearEditingRow(gridID, w)
-				if gridFocusID > 0 {
-					w.SetIDFocus(gridFocusID)
+				if gridFocusID != "" {
+					w.SetFocus(gridFocusID)
 				}
 				e.IsHandled = true
 			},
@@ -134,7 +134,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 
 	return gg.Row(gg.ContainerCfg{
 		ID:        editorID + ":wrap",
-		IDFocus:   editorFocusID,
+		Focusable: true,
 		FocusSkip: true,
 		Sizing:    gg.FillFill,
 		Padding:   gg.NoPadding,
@@ -144,20 +144,20 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 	})
 }
 
-func dataGridMakeEditorOnKeydown(gridID string, gridFocusID uint32) func(*gg.Layout, *gg.Event, *gg.Window) {
+func dataGridMakeEditorOnKeydown(gridID string, gridFocusID string) func(*gg.Layout, *gg.Event, *gg.Window) {
 	return func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 		if e.Modifiers != 0 || e.KeyCode != gg.KeyEscape {
 			return
 		}
 		dataGridClearEditingRow(gridID, w)
-		if gridFocusID > 0 {
-			w.SetIDFocus(gridFocusID)
+		if gridFocusID != "" {
+			w.SetFocus(gridFocusID)
 		}
 		e.IsHandled = true
 	}
 }
 
-func dataGridTrackRowEditClick(gridID string, editEnabled bool, editorFocusBase uint32, colCount int, columns []GridColumnCfg, _ int, rowID string, gridFocusID uint32, e *gg.Event, w *gg.Window) {
+func dataGridTrackRowEditClick(gridID string, editEnabled bool, editorFocusBase string, colCount int, columns []GridColumnCfg, _ int, rowID string, gridFocusID string, e *gg.Event, w *gg.Window) {
 	if !editEnabled || dataGridHasKeyboardModifiers(e) {
 		return
 	}
@@ -176,10 +176,10 @@ func dataGridTrackRowEditClick(gridID string, editEnabled bool, editorFocusBase 
 		state.LastClickFrame = 0
 		dgES.Set(gridID, state)
 		editorFocusID := dataGridEditorFocusIDFromBase(editorFocusBase, colCount, firstColIdx)
-		if editorFocusID > 0 {
-			w.SetIDFocus(editorFocusID)
-		} else if gridFocusID > 0 {
-			w.SetIDFocus(gridFocusID)
+		if editorFocusID != "" {
+			w.SetFocus(editorFocusID)
+		} else if gridFocusID != "" {
+			w.SetFocus(gridFocusID)
 		}
 		return
 	}
@@ -216,47 +216,27 @@ func dataGridFirstEditableColumnIndexEx(columns []GridColumnCfg) int {
 	return -1
 }
 
-// dataGridCellEditorFocusBaseID returns the first focus ID for
-// editor cells. Header cells occupy [base+1 .. base+col_count];
-// editor cells start at base+col_count+1.
-func dataGridCellEditorFocusBaseID(cfg *DataGridCfg, colCount int) uint32 {
+// dataGridCellEditorFocusBaseID returns the focus-ID prefix for
+// editor cells. Each cell appends its column index.
+func dataGridCellEditorFocusBaseID(cfg *DataGridCfg, colCount int) string {
 	if colCount <= 0 {
-		return 0
+		return ""
 	}
-	headerBase := dataGridHeaderFocusBaseID(cfg, colCount)
-	if headerBase == 0 {
-		return 0
-	}
-	if headerBase > math.MaxUint32-uint32(colCount) {
-		return 0
-	}
-	return headerBase + uint32(colCount)
+	return cfg.ID + ":efocus:"
 }
 
-func dataGridCellEditorFocusID(cfg *DataGridCfg, colCount, rowIdx, colIdx int) uint32 {
+func dataGridCellEditorFocusID(cfg *DataGridCfg, colCount, rowIdx, colIdx int) string {
 	if colCount <= 0 || rowIdx < 0 || colIdx < 0 || colIdx >= colCount {
-		return 0
+		return ""
 	}
-	base := dataGridCellEditorFocusBaseID(cfg, colCount)
-	if base == 0 {
-		return 0
-	}
-	cellOffset := uint64(colIdx)
-	if cellOffset > uint64(math.MaxUint32-base) {
-		return 0
-	}
-	return base + uint32(cellOffset)
+	return cfg.ID + ":efocus:" + strconv.Itoa(colIdx)
 }
 
-func dataGridEditorFocusIDFromBase(base uint32, colCount, colIdx int) uint32 {
-	if base == 0 || colCount <= 0 || colIdx < 0 || colIdx >= colCount {
-		return 0
+func dataGridEditorFocusIDFromBase(base string, colCount, colIdx int) string {
+	if base == "" || colCount <= 0 || colIdx < 0 || colIdx >= colCount {
+		return ""
 	}
-	cellOffset := uint64(colIdx)
-	if cellOffset > uint64(math.MaxUint32-base) {
-		return 0
-	}
-	return base + uint32(cellOffset)
+	return base + strconv.Itoa(colIdx)
 }
 
 func dataGridEditingRowID(gridID string, w *gg.Window) string {

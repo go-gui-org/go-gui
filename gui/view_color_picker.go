@@ -21,7 +21,7 @@ type ColorPickerCfg struct {
 
 	A11YLabel       string
 	A11YDescription string
-	IDFocus         uint32
+	Focusable       bool
 	Width           float32
 	Height          float32
 
@@ -84,7 +84,7 @@ func (cv *colorPickerView) GenerateLayout(w *Window) Layout {
 
 	ccfg := ContainerCfg{
 		ID:          cfg.ID,
-		IDFocus:     cfg.IDFocus,
+		Focusable:   cfg.Focusable,
 		A11YRole:    AccessRoleColorWell,
 		A11YLabel:   a11yLabel(cfg.A11YLabel, "Color Picker"),
 		Color:       style.Color,
@@ -97,7 +97,7 @@ func (cv *colorPickerView) GenerateLayout(w *Window) Layout {
 		Height:      cfg.Height,
 		axis:        AxisTopToBottom,
 		AmendLayout: func(layout *Layout, w *Window) {
-			if cfg.IDFocus > 0 && w.IsFocus(cfg.IDFocus) {
+			if cfg.Focusable && w.IsFocus(cfg.ID) {
 				layout.Shape.ColorBorder = style.ColorBorderFocus
 			}
 		},
@@ -337,7 +337,7 @@ func cpPreviewRow(cfg *ColorPickerCfg) View {
 			}),
 			Input(InputCfg{
 				ID:        cfgID + ".hex",
-				IDFocus:   FnvSum32(cfgID + ".hex"),
+				Focusable: true,
 				Text:      c.ToHexString(),
 				TextStyle: cfg.Style.TextStyle,
 				Width:     100,
@@ -439,7 +439,7 @@ func cpInputColumn(
 			}),
 			Input(InputCfg{
 				ID:        inputID,
-				IDFocus:   FnvSum32(inputID),
+				Focusable: true,
 				Text:      strconv.Itoa(val),
 				TextStyle: cfg.Style.TextStyle,
 				Width:     50,

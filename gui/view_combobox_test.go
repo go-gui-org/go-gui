@@ -40,7 +40,7 @@ func TestComboboxOpenLayout(t *testing.T) {
 
 func TestComboboxOpenClose(t *testing.T) {
 	w := &Window{}
-	comboboxOpen("test-oc", 0, w)
+	comboboxOpen("test-oc", "", w)
 	isOpen := StateReadOr(w, nsCombobox, "test-oc", false)
 	if !isOpen {
 		t.Error("expected open")
@@ -59,14 +59,14 @@ func TestComboboxKeyDownOpenClose(t *testing.T) {
 
 	// Open via Enter.
 	e := &Event{KeyCode: KeyEnter}
-	comboboxOnKeyDown("cb-kd", onSel, 0, []string{"x", "y"}, 0, 0, 0, e, w)
+	comboboxOnKeyDown("cb-kd", onSel, "", []string{"x", "y"}, 0, 0, 0, e, w)
 	if !StateReadOr(w, nsCombobox, "cb-kd", false) {
 		t.Error("enter should open")
 	}
 
 	// Select via Enter.
 	e = &Event{KeyCode: KeyEnter}
-	comboboxOnKeyDown("cb-kd", onSel, 0, []string{"x", "y"}, 0, 0, 0, e, w)
+	comboboxOnKeyDown("cb-kd", onSel, "", []string{"x", "y"}, 0, 0, 0, e, w)
 	if called != "x" {
 		t.Errorf("selected = %q, want x", called)
 	}
@@ -81,12 +81,12 @@ func TestComboboxKeyNavScrolls(t *testing.T) {
 	onSel := func(_ string, _ *Event, _ *Window) {}
 
 	// Open the combobox.
-	comboboxOpen("cb-nav", 0, w)
+	comboboxOpen("cb-nav", "", w)
 
 	// Navigate down 8 times (past visible ~7 items).
 	for range 8 {
 		e := &Event{KeyCode: KeyDown}
-		comboboxOnKeyDown("cb-nav", onSel, 0, ids, idScroll, rowH, listH, e, w)
+		comboboxOnKeyDown("cb-nav", onSel, "", ids, idScroll, rowH, listH, e, w)
 	}
 
 	hl := StateReadOr(w, nsComboboxHighlight, "cb-nav", -1)
@@ -141,13 +141,13 @@ func TestComboboxBackspaceNotDelete(t *testing.T) {
 	id := "cb-del"
 
 	// Open and set a query.
-	comboboxOpen(id, 0, w)
+	comboboxOpen(id, "", w)
 	sq := StateMap[string, string](w, nsComboboxQuery, capModerate)
 	sq.Set(id, "abc")
 
 	// Delete key should not remove characters.
 	e := &Event{KeyCode: KeyDelete}
-	comboboxOnKeyDown(id, nil, 0, []string{"a"}, 0, 0, 0, e, w)
+	comboboxOnKeyDown(id, nil, "", []string{"a"}, 0, 0, 0, e, w)
 	q, _ := sq.Get(id)
 	if q != "abc" {
 		t.Errorf("Delete modified query: got %q, want abc", q)
@@ -155,7 +155,7 @@ func TestComboboxBackspaceNotDelete(t *testing.T) {
 
 	// Backspace should remove the last character.
 	e = &Event{KeyCode: KeyBackspace}
-	comboboxOnKeyDown(id, nil, 0, []string{"a"}, 0, 0, 0, e, w)
+	comboboxOnKeyDown(id, nil, "", []string{"a"}, 0, 0, 0, e, w)
 	q, _ = sq.Get(id)
 	if q != "ab" {
 		t.Errorf("Backspace: got %q, want ab", q)
@@ -272,13 +272,13 @@ func TestComboboxScrollEndToEnd(t *testing.T) {
 	options := []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"}
 
 	// Open the combobox.
-	comboboxOpen("cb-e2e", 0, w)
+	comboboxOpen("cb-e2e", "", w)
 
 	// Navigate down 8 times to trigger scroll.
 	for range 8 {
 		e := &Event{KeyCode: KeyDown}
 		comboboxOnKeyDown("cb-e2e", func(_ string, _ *Event, _ *Window) {},
-			0, options, idScroll, 26, 187, e, w)
+			"", options, idScroll, 26, 187, e, w)
 	}
 
 	// Verify scroll state was set.

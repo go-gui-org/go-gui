@@ -9,7 +9,7 @@ func TestA11yCollectEmpty(t *testing.T) {
 	layout := Layout{}
 	var nodes []A11yNode
 	var live []liveNode
-	idx := a11yCollect(&layout, -1, &nodes, 0, &live)
+	idx := a11yCollect(&layout, -1, &nodes, "", &live)
 	if idx != -1 {
 		t.Errorf("focusedIdx: got %d, want -1", idx)
 	}
@@ -22,7 +22,7 @@ func TestA11yCollectNilShape(t *testing.T) {
 	layout := Layout{Shape: nil}
 	var nodes []A11yNode
 	var live []liveNode
-	idx := a11yCollect(&layout, -1, &nodes, 0, &live)
+	idx := a11yCollect(&layout, -1, &nodes, "", &live)
 	if idx != -1 || len(nodes) != 0 {
 		t.Error("nil shape should produce no nodes")
 	}
@@ -34,7 +34,7 @@ func TestA11yCollectSkipNoneRole(t *testing.T) {
 	}
 	var nodes []A11yNode
 	var live []liveNode
-	a11yCollect(&layout, -1, &nodes, 0, &live)
+	a11yCollect(&layout, -1, &nodes, "", &live)
 	if len(nodes) != 0 {
 		t.Errorf("AccessRoleNone should not emit a node, got %d", len(nodes))
 	}
@@ -50,7 +50,7 @@ func TestA11yCollectSingleButton(t *testing.T) {
 	}
 	var nodes []A11yNode
 	var live []liveNode
-	a11yCollect(&layout, -1, &nodes, 0, &live)
+	a11yCollect(&layout, -1, &nodes, "", &live)
 	if len(nodes) != 1 {
 		t.Fatalf("expected 1 node, got %d", len(nodes))
 	}
@@ -78,7 +78,7 @@ func TestA11yCollectLabelFromText(t *testing.T) {
 	}
 	var nodes []A11yNode
 	var live []liveNode
-	a11yCollect(&layout, -1, &nodes, 0, &live)
+	a11yCollect(&layout, -1, &nodes, "", &live)
 	if len(nodes) != 1 {
 		t.Fatalf("expected 1 node, got %d", len(nodes))
 	}
@@ -97,7 +97,7 @@ func TestA11yCollectA11YLabelOverridesText(t *testing.T) {
 	}
 	var nodes []A11yNode
 	var live []liveNode
-	a11yCollect(&layout, -1, &nodes, 0, &live)
+	a11yCollect(&layout, -1, &nodes, "", &live)
 	if nodes[0].Label != "Close dialog" {
 		t.Errorf("Label: got %q", nodes[0].Label)
 	}
@@ -113,7 +113,7 @@ func TestA11yCollectWithChildren(t *testing.T) {
 	}
 	var nodes []A11yNode
 	var live []liveNode
-	a11yCollect(&layout, -1, &nodes, 0, &live)
+	a11yCollect(&layout, -1, &nodes, "", &live)
 	if len(nodes) != 3 {
 		t.Fatalf("expected 3 nodes, got %d", len(nodes))
 	}
@@ -138,7 +138,7 @@ func TestA11yCollectNoneRolePassesChildren(t *testing.T) {
 	}
 	var nodes []A11yNode
 	var live []liveNode
-	a11yCollect(&layout, -1, &nodes, 0, &live)
+	a11yCollect(&layout, -1, &nodes, "", &live)
 	if len(nodes) != 1 {
 		t.Fatalf("expected 1 node from child, got %d", len(nodes))
 	}
@@ -155,13 +155,13 @@ func TestA11yCollectFocusTracking(t *testing.T) {
 	layout := Layout{
 		Shape: &Shape{A11YRole: AccessRoleGroup},
 		Children: []Layout{
-			{Shape: &Shape{A11YRole: AccessRoleButton, IDFocus: 1}},
-			{Shape: &Shape{A11YRole: AccessRoleButton, IDFocus: 2}},
+			{Shape: &Shape{A11YRole: AccessRoleButton, Focusable: true, ID: "f1"}},
+			{Shape: &Shape{A11YRole: AccessRoleButton, Focusable: true, ID: "f2"}},
 		},
 	}
 	var nodes []A11yNode
 	var live []liveNode
-	idx := a11yCollect(&layout, -1, &nodes, 2, &live)
+	idx := a11yCollect(&layout, -1, &nodes, "f2", &live)
 	if idx != 2 { // third node (index 2) has IDFocus=2
 		t.Errorf("focusedIdx: got %d, want 2", idx)
 	}
@@ -169,11 +169,11 @@ func TestA11yCollectFocusTracking(t *testing.T) {
 
 func TestA11yCollectNoFocus(t *testing.T) {
 	layout := Layout{
-		Shape: &Shape{A11YRole: AccessRoleButton, IDFocus: 1},
+		Shape: &Shape{A11YRole: AccessRoleButton, Focusable: true, ID: "f1"},
 	}
 	var nodes []A11yNode
 	var live []liveNode
-	idx := a11yCollect(&layout, -1, &nodes, 99, &live)
+	idx := a11yCollect(&layout, -1, &nodes, "f99", &live)
 	if idx != -1 {
 		t.Errorf("focusedIdx: got %d, want -1", idx)
 	}
@@ -189,7 +189,7 @@ func TestA11yCollectLiveRegion(t *testing.T) {
 	}
 	var nodes []A11yNode
 	var live []liveNode
-	a11yCollect(&layout, -1, &nodes, 0, &live)
+	a11yCollect(&layout, -1, &nodes, "", &live)
 	if len(live) != 1 {
 		t.Fatalf("expected 1 live node, got %d", len(live))
 	}
@@ -212,7 +212,7 @@ func TestA11yCollectValueFields(t *testing.T) {
 	}
 	var nodes []A11yNode
 	var live []liveNode
-	a11yCollect(&layout, -1, &nodes, 0, &live)
+	a11yCollect(&layout, -1, &nodes, "", &live)
 	if len(nodes) != 1 {
 		t.Fatalf("expected 1 node, got %d", len(nodes))
 	}
@@ -237,7 +237,7 @@ func TestA11yCollectValueFieldsNilA11Y(t *testing.T) {
 	}
 	var nodes []A11yNode
 	var live []liveNode
-	a11yCollect(&layout, -1, &nodes, 0, &live)
+	a11yCollect(&layout, -1, &nodes, "", &live)
 	if len(nodes) != 1 {
 		t.Fatalf("expected 1 node, got %d", len(nodes))
 	}
@@ -292,7 +292,7 @@ func TestA11yDeepNesting(t *testing.T) {
 	}
 	var nodes []A11yNode
 	var live []liveNode
-	a11yCollect(&layout, -1, &nodes, 0, &live)
+	a11yCollect(&layout, -1, &nodes, "", &live)
 	if len(nodes) != 3 {
 		t.Fatalf("expected 3 nodes, got %d", len(nodes))
 	}
@@ -311,7 +311,7 @@ func TestA11yCollectDisabledState(t *testing.T) {
 	}
 	var nodes []A11yNode
 	var live []liveNode
-	a11yCollect(&layout, -1, &nodes, 0, &live)
+	a11yCollect(&layout, -1, &nodes, "", &live)
 	if len(nodes) != 1 {
 		t.Fatalf("expected 1 node, got %d", len(nodes))
 	}
@@ -330,7 +330,7 @@ func TestA11yCollectDisabledPreservesExplicitState(t *testing.T) {
 	}
 	var nodes []A11yNode
 	var live []liveNode
-	a11yCollect(&layout, -1, &nodes, 0, &live)
+	a11yCollect(&layout, -1, &nodes, "", &live)
 	if len(nodes) != 1 {
 		t.Fatalf("expected 1 node, got %d", len(nodes))
 	}
@@ -362,7 +362,7 @@ func TestA11yActionCallbackPress(t *testing.T) {
 	// Build node array so index is valid.
 	w.a11y.nodes = w.a11y.nodes[:0]
 	var live []liveNode
-	a11yCollect(&w.layout, -1, &w.a11y.nodes, 0, &live)
+	a11yCollect(&w.layout, -1, &w.a11y.nodes, "", &live)
 
 	a11yActionCallback(w, A11yActionPress, 0)
 	if !clicked {
@@ -386,7 +386,7 @@ func TestA11yActionCallbackIncrement(t *testing.T) {
 	w.layout = layout
 	w.a11y.nodes = w.a11y.nodes[:0]
 	var live []liveNode
-	a11yCollect(&w.layout, -1, &w.a11y.nodes, 0, &live)
+	a11yCollect(&w.layout, -1, &w.a11y.nodes, "", &live)
 
 	a11yActionCallback(w, A11yActionIncrement, 0)
 	if gotKey != KeyUp {
@@ -410,7 +410,7 @@ func TestA11yActionCallbackDecrement(t *testing.T) {
 	w.layout = layout
 	w.a11y.nodes = w.a11y.nodes[:0]
 	var live []liveNode
-	a11yCollect(&w.layout, -1, &w.a11y.nodes, 0, &live)
+	a11yCollect(&w.layout, -1, &w.a11y.nodes, "", &live)
 
 	a11yActionCallback(w, A11yActionDecrement, 0)
 	if gotKey != KeyDown {
@@ -434,7 +434,7 @@ func TestA11yActionCallbackNilEvents(_ *testing.T) {
 	w.layout = layout
 	w.a11y.nodes = w.a11y.nodes[:0]
 	var live []liveNode
-	a11yCollect(&w.layout, -1, &w.a11y.nodes, 0, &live)
+	a11yCollect(&w.layout, -1, &w.a11y.nodes, "", &live)
 	// Should not panic — no events on shape.
 	a11yActionCallback(w, A11yActionPress, 0)
 }
@@ -455,7 +455,7 @@ func TestA11yActionCallbackConfirmCancel(t *testing.T) {
 	w.layout = layout
 	w.a11y.nodes = w.a11y.nodes[:0]
 	var live []liveNode
-	a11yCollect(&w.layout, -1, &w.a11y.nodes, 0, &live)
+	a11yCollect(&w.layout, -1, &w.a11y.nodes, "", &live)
 
 	a11yActionCallback(w, A11yActionConfirm, 0)
 	a11yActionCallback(w, A11yActionCancel, 0)
@@ -665,17 +665,17 @@ func TestSyncA11yBuildsAndSyncsTree(t *testing.T) {
 func TestSyncA11yTrackedFocus(t *testing.T) {
 	w := newA11yWindow()
 	w.a11y.initialized = true
-	w.viewState.idFocus = 2
+	w.viewState.focusID = "f2"
 	w.layout = Layout{
 		Shape: &Shape{A11YRole: AccessRoleGroup},
 		Children: []Layout{
 			{Shape: &Shape{
-				A11YRole: AccessRoleButton,
-				IDFocus:  1,
+				A11YRole:  AccessRoleButton,
+				Focusable: true, ID: "f1",
 			}},
 			{Shape: &Shape{
-				A11YRole: AccessRoleButton,
-				IDFocus:  2,
+				A11YRole:  AccessRoleButton,
+				Focusable: true, ID: "f2",
 			}},
 		},
 	}
