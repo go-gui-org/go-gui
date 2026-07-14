@@ -268,6 +268,7 @@ func scrollbarMouseMove(orientation ScrollbarOrientation, idScroll uint32, layou
 			sx := w.scrollX()
 			offset := offsetMouseChangeX(sx, ly, e.MouseDX, idScroll)
 			sx.Set(idScroll, offset)
+			scrollSmoothCancel(w, idScroll, scrollAxisX)
 			fireOnScroll(ly, w)
 		}
 	} else {
@@ -276,6 +277,7 @@ func scrollbarMouseMove(orientation ScrollbarOrientation, idScroll uint32, layou
 			sy := w.scrollY()
 			offset := offsetMouseChangeY(sy, ly, e.MouseDY, idScroll)
 			sy.Set(idScroll, offset)
+			scrollSmoothCancel(w, idScroll, scrollAxisY)
 			fireOnScroll(ly, w)
 		}
 	}
@@ -321,6 +323,7 @@ func offsetFromMouseX(layout *Layout, mouseX float32, idScroll uint32, w *Window
 	}
 	sx := w.scrollX()
 	sx.Set(idScroll, -percent*(totalWidth-sb.Shape.Width))
+	scrollSmoothCancel(w, idScroll, scrollAxisX)
 	fireOnScroll(sb, w)
 }
 
@@ -342,5 +345,6 @@ func offsetFromMouseY(layout *Layout, mouseY float32, idScroll uint32, w *Window
 	}
 	sy := w.scrollY()
 	sy.Set(idScroll, -percent*(totalHeight-sb.Shape.Height))
+	scrollSmoothCancel(w, idScroll, scrollAxisY)
 	fireOnScroll(sb, w)
 }

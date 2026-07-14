@@ -100,6 +100,7 @@ int   metalEventClickCount(void);
 float metalEventScrollX(void);
 float metalEventScrollY(void);
 int   metalEventScrollPhase(void);   // 0=normal, 1=maybegin, 2=began, 3=ended
+int   metalEventScrollPrecise(void); // 1 if trackpad/high-res precise deltas
 
 // Keyboard event fields.
 unsigned short metalEventKeyCode(void);   // macOS virtual key code

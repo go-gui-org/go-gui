@@ -335,16 +335,25 @@ func mouseScrollFallbackHandler(layout *Layout, e *Event, w *Window) {
 			}
 		}
 	}
-	// Handle scroll on scroll container under cursor.
+	// Handle scroll on scroll container under cursor. Discrete mouse
+	// wheels (ScrollPrecise == false) ease toward their target via
+	// scrollSmoothBy; trackpad/precise deltas already carry OS
+	// momentum and scroll instantly.
 	if layout.Shape.IDScroll > 0 {
 		if layout.Shape.PointInShape(e.MouseX, e.MouseY) {
 			switch e.Modifiers {
 			case ModShift:
-				e.IsHandled = scrollHorizontal(
-					layout, e.ScrollX, w)
+				if e.ScrollPrecise {
+					e.IsHandled = scrollHorizontal(layout, e.ScrollX, w)
+				} else {
+					e.IsHandled = scrollSmoothBy(w, layout, scrollAxisX, e.ScrollX)
+				}
 			case ModNone:
-				e.IsHandled = scrollVertical(
-					layout, e.ScrollY, w)
+				if e.ScrollPrecise {
+					e.IsHandled = scrollVertical(layout, e.ScrollY, w)
+				} else {
+					e.IsHandled = scrollSmoothBy(w, layout, scrollAxisY, e.ScrollY)
+				}
 			}
 		}
 	}
