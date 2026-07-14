@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.33.1] - 2026-07-14
+
+### Fixed
+
+- **Dependencies**: go-glyph bumped to v1.16.2 — text symbols across many
+  Unicode blocks (heavy asterisk U+2731 ✱, mahjong tiles, playing cards,
+  alchemical and chess symbols, Supplemental Arrows-C, ~760 codepoints) no
+  longer render as the base font's `.notdef` tofu box, and default-text
+  emoji such as U+2733 ✳, ❄, ❤, ☀ now render as monochrome text glyphs
+  instead of being forced to color, matching Core Text and Ghostty. Also
+  propagates InlineObject metadata through rich-text layout and applies
+  script fallback in `LayoutRichText`.
+
 ## [v0.32.1] - 2026-07-12
 
 ### Fixed
