@@ -11,12 +11,21 @@
 #include <math.h>
 
 // Scale applied to AppKit precise (trackpad / high-res) scrolling
-// deltas before they reach the shared gui ScrollMultiplier. AppKit
-// reports precise deltas in points; the gui multiplier was tuned
-// against the SDL2 backend, which delivers deltas pre-scaled to a
-// smaller unit. Without this factor trackpad scrolling runs ~2x too
-// fast on the native macOS backend. See go-gui-org/go-gui#22.
-static const float kPreciseScrollScale = 0.5f;
+// deltas before they reach the shared gui ScrollMultiplier (20).
+// AppKit reports precise deltas in points; combined with the gui
+// multiplier this factor lands trackpad motion at ~1.5x raw points,
+// close to a 1:1 feel. NOTE: this value is coupled to gui's
+// ScrollMultiplier — it exists to divide most of that gain back out
+// for the precise path, which (unlike the mouse wheel) is not
+// smoothed on the gui side. See go-gui-org/go-gui#22.
+static const float kPreciseScrollScale = 0.075f;
+
+// Scale applied to AppKit line-based (discrete mouse wheel) scrolling
+// deltas. A notch reports ~1 line; combined with gui's ScrollMultiplier
+// (20) this lands one notch at ~50px, which the gui side then eases
+// into place (exponential smoothing). Was 10.0 (net ~200px/notch),
+// which felt far too fast and abrupt.
+static const float kWheelScrollScale = 2.5f;
 
 // Event mask covering all event types the app needs to receive.
 // MouseEntered/Exited are required by AppKit's internal tracking-
@@ -53,6 +62,7 @@ static int             _evMouseButton;
 static int             _evClickCount;
 static float           _evScrollX, _evScrollY;
 static int             _evScrollPhase;
+static int             _evScrollPrecise;  // 1 if hasPreciseScrollingDeltas
 static unsigned short  _evKeyCode;
 static unsigned int    _evModifiers;
 static int             _evKeyRepeat;
@@ -637,12 +647,14 @@ static void storeEvent(NSEvent *event, uint32_t wid) {
                 else                                     _evScrollPhase = 0;
             }
             if ([event hasPreciseScrollingDeltas]) {
+                _evScrollPrecise = 1;
                 _evScrollX = (float)[event scrollingDeltaX] * kPreciseScrollScale;
                 _evScrollY = (float)[event scrollingDeltaY] * kPreciseScrollScale;
             } else {
-                // Mouse wheel: multiply by 10 for line-to-pixel conversion.
-                _evScrollX = (float)([event scrollingDeltaX] * 10.0);
-                _evScrollY = (float)([event scrollingDeltaY] * 10.0);
+                // Discrete mouse wheel: line deltas scaled toward pixels.
+                _evScrollPrecise = 0;
+                _evScrollX = (float)[event scrollingDeltaX] * kWheelScrollScale;
+                _evScrollY = (float)[event scrollingDeltaY] * kWheelScrollScale;
             }
             break;
 
@@ -766,6 +778,7 @@ int   metalEventClickCount(void) { return _evClickCount; }
 float metalEventScrollX(void) { return _evScrollX; }
 float metalEventScrollY(void) { return _evScrollY; }
 int   metalEventScrollPhase(void) { return _evScrollPhase; }
+int   metalEventScrollPrecise(void) { return _evScrollPrecise; }
 unsigned short metalEventKeyCode(void) { return _evKeyCode; }
 unsigned int   metalEventModifiers(void) { return _evModifiers; }
 int            metalEventKeyRepeat(void) { return _evKeyRepeat; }

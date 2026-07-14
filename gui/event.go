@@ -338,6 +338,10 @@ type Event struct {
 	GesturePhase      GesturePhase
 	KeyRepeat         bool
 	IsHandled         bool
+	// ScrollPrecise is true for high-res / trackpad scroll deltas
+	// (already carrying OS momentum). False for discrete mouse-wheel
+	// notches, which the gui side eases via scrollSmoothAnimation.
+	ScrollPrecise bool
 }
 
 // eventRelativeTo returns a copy of the event with mouse

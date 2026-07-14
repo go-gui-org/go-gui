@@ -89,8 +89,10 @@ func inputScrollCursorIntoView(
 
 	if cursorTop < visibleTop {
 		sy.Set(idScroll, -cursorTop)
+		scrollSmoothCancel(w, idScroll, scrollAxisY)
 	} else if cursorBot > visibleBot {
 		sy.Set(idScroll, -(cursorBot - viewportH))
+		scrollSmoothCancel(w, idScroll, scrollAxisY)
 	}
 }
 
@@ -154,25 +156,43 @@ func textScrollCursorIntoView(layout *Layout, w *Window) {
 			(viewTop - cursorAbsTop)
 		sy.Set(scrollID,
 			f32Clamp(newScroll, maxScrollNeg, 0))
+		scrollSmoothCancel(w, scrollID, scrollAxisY)
 	} else if cursorAbsBot > viewBot {
 		newScroll := scrollOffset -
 			(cursorAbsBot - viewBot)
 		sy.Set(scrollID,
 			f32Clamp(newScroll, maxScrollNeg, 0))
+		scrollSmoothCancel(w, scrollID, scrollAxisY)
 	}
 }
 
+// scrollMaxOffsetX returns the most-negative horizontal offset a
+// layout can scroll to (0 when content fits).
+func scrollMaxOffsetX(layout *Layout) float32 {
+	return f32Min(0,
+		layout.Shape.Width-layout.Shape.paddingWidth()-
+			contentWidth(layout))
+}
+
+// scrollMaxOffsetY returns the most-negative vertical offset a
+// layout can scroll to (0 when content fits).
+func scrollMaxOffsetY(layout *Layout) float32 {
+	return f32Min(0,
+		layout.Shape.Height-layout.Shape.paddingHeight()-
+			contentHeight(layout))
+}
+
 // scrollHorizontal adjusts the horizontal scroll offset of a
-// scrollable layout. Returns true if offset was adjusted.
+// scrollable layout. Returns true if offset was adjusted. Instant:
+// used by the precise/trackpad and keyboard paths. The discrete
+// mouse-wheel path eases via scrollSmoothBy instead.
 func scrollHorizontal(layout *Layout, delta float32, w *Window) bool {
 	idScroll := layout.Shape.IDScroll
 	if idScroll == 0 ||
 		layout.Shape.ScrollMode == ScrollVerticalOnly {
 		return false
 	}
-	maxOffset := f32Min(0,
-		layout.Shape.Width-layout.Shape.paddingWidth()-
-			contentWidth(layout))
+	maxOffset := scrollMaxOffsetX(layout)
 	sx := w.scrollX()
 	old, _ := sx.Get(idScroll)
 	clamped := f32Clamp(
@@ -181,21 +201,22 @@ func scrollHorizontal(layout *Layout, delta float32, w *Window) bool {
 		return false
 	}
 	sx.Set(idScroll, clamped)
+	scrollSmoothCancel(w, idScroll, scrollAxisX)
 	fireOnScroll(layout, w)
 	return true
 }
 
 // scrollVertical adjusts the vertical scroll offset of a
-// scrollable layout. Returns true if offset was adjusted.
+// scrollable layout. Returns true if offset was adjusted. Instant:
+// used by the precise/trackpad and keyboard paths. The discrete
+// mouse-wheel path eases via scrollSmoothBy instead.
 func scrollVertical(layout *Layout, delta float32, w *Window) bool {
 	idScroll := layout.Shape.IDScroll
 	if idScroll == 0 ||
 		layout.Shape.ScrollMode == ScrollHorizontalOnly {
 		return false
 	}
-	maxOffset := f32Min(0,
-		layout.Shape.Height-layout.Shape.paddingHeight()-
-			contentHeight(layout))
+	maxOffset := scrollMaxOffsetY(layout)
 	sy := w.scrollY()
 	old, _ := sy.Get(idScroll)
 	clamped := f32Clamp(
@@ -204,6 +225,7 @@ func scrollVertical(layout *Layout, delta float32, w *Window) bool {
 		return false
 	}
 	sy.Set(idScroll, clamped)
+	scrollSmoothCancel(w, idScroll, scrollAxisY)
 	fireOnScroll(layout, w)
 	return true
 }
@@ -224,11 +246,10 @@ func (w *Window) ScrollToView(id string) {
 			current, _ := sy.Get(scrollID)
 			baseY := p.Shape.Y + p.Shape.Padding.Top
 			newScroll := baseY - target.Shape.Y + current
-			maxScrollNeg := f32Min(0,
-				p.Shape.Height-p.Shape.paddingHeight()-
-					contentHeight(p))
+			maxScrollNeg := scrollMaxOffsetY(p)
 			sy.Set(scrollID,
 				f32Clamp(newScroll, maxScrollNeg, 0))
+			scrollSmoothCancel(w, scrollID, scrollAxisY)
 			w.UpdateWindow()
 			return
 		}
@@ -237,13 +258,12 @@ func (w *Window) ScrollToView(id string) {
 
 // ScrollHorizontalBy scrolls the given scrollable by delta.
 func (w *Window) ScrollHorizontalBy(idScroll uint32, delta float32) {
+	scrollSmoothCancel(w, idScroll, scrollAxisX)
 	sx := w.scrollX()
 	current, _ := sx.Get(idScroll)
 	newVal := current + delta
 	if ly, ok := findScrollLayout(w, idScroll); ok {
-		maxOffset := f32Min(0,
-			ly.Shape.Width-ly.Shape.paddingWidth()-
-				contentWidth(ly))
+		maxOffset := scrollMaxOffsetX(ly)
 		newVal = f32Clamp(newVal, maxOffset, 0)
 		sx.Set(idScroll, newVal)
 		fireOnScroll(ly, w)
@@ -255,11 +275,10 @@ func (w *Window) ScrollHorizontalBy(idScroll uint32, delta float32) {
 // ScrollHorizontalTo scrolls the given scrollable to offset
 // (negative).
 func (w *Window) ScrollHorizontalTo(idScroll uint32, offset float32) {
+	scrollSmoothCancel(w, idScroll, scrollAxisX)
 	sx := w.scrollX()
 	if ly, ok := findScrollLayout(w, idScroll); ok {
-		maxOffset := f32Min(0,
-			ly.Shape.Width-ly.Shape.paddingWidth()-
-				contentWidth(ly))
+		maxOffset := scrollMaxOffsetX(ly)
 		sx.Set(idScroll, f32Clamp(offset, maxOffset, 0))
 		fireOnScroll(ly, w)
 		return
@@ -275,14 +294,13 @@ func (w *Window) ScrollHorizontalToPct(idScroll uint32, pct float32) {
 	if !ok {
 		return
 	}
-	maxOffset := f32Min(0,
-		ly.Shape.Width-ly.Shape.paddingWidth()-
-			contentWidth(ly))
+	maxOffset := scrollMaxOffsetX(ly)
 	if maxOffset == 0 {
 		return
 	}
 	sx := w.scrollX()
 	sx.Set(idScroll, maxOffset*f32Clamp(pct, 0, 1))
+	scrollSmoothCancel(w, idScroll, scrollAxisX)
 }
 
 // ScrollHorizontalPct returns the current horizontal scroll
@@ -293,9 +311,7 @@ func (w *Window) ScrollHorizontalPct(idScroll uint32) float32 {
 	if !ok {
 		return 0
 	}
-	maxOffset := f32Min(0,
-		ly.Shape.Width-ly.Shape.paddingWidth()-
-			contentWidth(ly))
+	maxOffset := scrollMaxOffsetX(ly)
 	if maxOffset == 0 {
 		return 0
 	}
@@ -306,13 +322,12 @@ func (w *Window) ScrollHorizontalPct(idScroll uint32) float32 {
 
 // ScrollVerticalBy scrolls the given scrollable by delta.
 func (w *Window) ScrollVerticalBy(idScroll uint32, delta float32) {
+	scrollSmoothCancel(w, idScroll, scrollAxisY)
 	sy := w.scrollY()
 	current, _ := sy.Get(idScroll)
 	newVal := current + delta
 	if ly, ok := findScrollLayout(w, idScroll); ok {
-		maxOffset := f32Min(0,
-			ly.Shape.Height-ly.Shape.paddingHeight()-
-				contentHeight(ly))
+		maxOffset := scrollMaxOffsetY(ly)
 		newVal = f32Clamp(newVal, maxOffset, 0)
 		sy.Set(idScroll, newVal)
 		fireOnScroll(ly, w)
@@ -324,11 +339,10 @@ func (w *Window) ScrollVerticalBy(idScroll uint32, delta float32) {
 // ScrollVerticalTo scrolls the given scrollable to offset
 // (negative).
 func (w *Window) ScrollVerticalTo(idScroll uint32, offset float32) {
+	scrollSmoothCancel(w, idScroll, scrollAxisY)
 	sy := w.scrollY()
 	if ly, ok := findScrollLayout(w, idScroll); ok {
-		maxOffset := f32Min(0,
-			ly.Shape.Height-ly.Shape.paddingHeight()-
-				contentHeight(ly))
+		maxOffset := scrollMaxOffsetY(ly)
 		sy.Set(idScroll, f32Clamp(offset, maxOffset, 0))
 		fireOnScroll(ly, w)
 		return
@@ -344,14 +358,13 @@ func (w *Window) ScrollVerticalToPct(idScroll uint32, pct float32) {
 	if !ok {
 		return
 	}
-	maxOffset := f32Min(0,
-		ly.Shape.Height-ly.Shape.paddingHeight()-
-			contentHeight(ly))
+	maxOffset := scrollMaxOffsetY(ly)
 	if maxOffset == 0 {
 		return
 	}
 	sy := w.scrollY()
 	sy.Set(idScroll, maxOffset*f32Clamp(pct, 0, 1))
+	scrollSmoothCancel(w, idScroll, scrollAxisY)
 }
 
 // ScrollVerticalPct returns the current vertical scroll
@@ -362,9 +375,7 @@ func (w *Window) ScrollVerticalPct(idScroll uint32) float32 {
 	if !ok {
 		return 0
 	}
-	maxOffset := f32Min(0,
-		ly.Shape.Height-ly.Shape.paddingHeight()-
-			contentHeight(ly))
+	maxOffset := scrollMaxOffsetY(ly)
 	if maxOffset == 0 {
 		return 0
 	}

@@ -184,6 +184,10 @@ type Window struct {
 	scrollYMap     *BoundedMap[uint32, float32]
 	overflowMap    *BoundedMap[string, int]
 
+	// scrollSmooth eases discrete mouse-wheel scrolling toward a
+	// target offset. Guarded by animMu (see gui/scroll_smooth.go).
+	scrollSmooth *scrollSmoothAnimation
+
 	windowToast
 
 	// Embedded concern groups.

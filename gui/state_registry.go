@@ -117,6 +117,7 @@ func (w *Window) clearHotMaps() {
 	w.scrollXMap = nil
 	w.scrollYMap = nil
 	w.overflowMap = nil
+	w.scrollSmoothReset()
 }
 
 // RequireID panics if id is empty. Use in stateful widget factories

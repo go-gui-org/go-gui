@@ -53,13 +53,15 @@ func mapMetalEvent() (gui.Event, bool) {
 		}, true
 
 	case C.METAL_EVENT_SCROLL_WHEEL:
+		precise := C.metalEventScrollPrecise() != 0
 		return gui.Event{
-			Type:      gui.EventMouseScroll,
-			MouseX:    float32(C.metalEventMouseX()),
-			MouseY:    float32(C.metalEventMouseY()),
-			ScrollX:   float32(C.metalEventScrollX()),
-			ScrollY:   float32(C.metalEventScrollY()),
-			Modifiers: mapMetalModifiers(uint32(C.metalEventModifiers())),
+			Type:          gui.EventMouseScroll,
+			MouseX:        float32(C.metalEventMouseX()),
+			MouseY:        float32(C.metalEventMouseY()),
+			ScrollX:       float32(C.metalEventScrollX()),
+			ScrollY:       float32(C.metalEventScrollY()),
+			ScrollPrecise: precise,
+			Modifiers:     mapMetalModifiers(uint32(C.metalEventModifiers())),
 		}, true
 
 	case C.METAL_EVENT_KEY_DOWN:
