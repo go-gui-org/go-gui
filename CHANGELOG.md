@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v0.35.1] - 2026-07-15
+
+Documentation-only release. No code or behavior changes; no migration needed.
 
 ### Changed
 
@@ -18,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   avoid the warning should call `GenerateViewLayout` again; it applies
   shape normalization, the child-count clamp, and frame-arena pre-sizing
   that a hand-rolled copy misses. (#52)
+
+### Fixed
+
+- **README**: removed SDL2-era install steps, corrected the text stack
+  description to the current pure-Go path, and refreshed the code samples
+  to the current API.
 
 ## [v0.35.0] - 2026-07-15
 
