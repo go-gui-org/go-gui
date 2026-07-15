@@ -3,7 +3,7 @@
 ![Go version](https://img.shields.io/badge/go-1.26%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![CI](https://github.com/go-gui-org/go-gui/actions/workflows/ci.yml/badge.svg)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/mike-ward/go-gui)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/go-gui-org/go-gui)
 [![Wiki](https://img.shields.io/badge/docs-wiki-blue)](https://github.com/go-gui-org/go-gui/wiki)
 
 **Cross-platform, hybrid immediate-mode GUI framework for Go — no virtual DOM,
@@ -30,13 +30,16 @@ in the upper-right corner that displays documentation about the widget._
 Sibling projects:
 
 - **go-charts**\
-  Interactive chart widgets. https://github.com/mike-ward/go-charts
+  Interactive chart widgets. https://github.com/go-gui-org/go-charts
 
 - **go-edit**\
-  Code editor widget. https://github.com/mike-ward/go-edit
+  Code editor widget. https://github.com/go-gui-org/go-edit
+
+- **go-kite**\
+  Desktop Bluesky client. https://github.com/go-gui-org/go-kite
 
 - **go-map**\
-  SMIL map widgets. https://github.com/mike-ward/go-map
+  SMIL map widgets. https://github.com/go-gui-org/go-map
 
 - **go-term**\
   Embeddable terminal emulator. https://github.com/go-gui-org/go-term
@@ -58,7 +61,7 @@ View fn → generateViewLayout() → Layout tree
 
 State lives in a typed slot per window (`gui.State[T](w)`). Backend interfaces
 (TextMeasurer, SvgParser, NativePlatform) are injected at startup — swap backends
-without changing widget code. Headless test backend included.
+without changing widget code. Tests run headlessly with no backend at all.
 
 ---
 
@@ -76,7 +79,7 @@ without changing widget code. Headless test backend included.
 - **Time-travel debugging** — opt-in scrubber rewinds/replays app state
   frame-by-frame; implement `Snapshotter` on your state type and set
   `DebugTimeTravel: true`
-- **Headless test backend** — all layout and widget logic runs without a display
+- **Headless testing** — all layout and widget logic runs without a display
 - **Cross-platform integration** — native file dialogs, menus, notifications,
   print/PDF, system tray, IME, a11y, spell check
 - **go-glyph powered** — professional text shaping, rendering, bidirectional
@@ -101,7 +104,7 @@ import (
 type App struct{ Clicks int }
 
 func main() {
-    gui.SetTheme(gui.ThemeDarkBordered)
+    gui.SetTheme(gui.ThemeDark.WithBorders(true))
 
     w := gui.NewWindow(gui.WindowCfg{
         State:  &App{},
@@ -130,7 +133,7 @@ func mainView(w *gui.Window) gui.View {
                 TextStyle: gui.CurrentTheme().B1,
             }),
             gui.Button(gui.ButtonCfg{
-                IDFocus: 1,
+                Focusable: true,
                 Content: []gui.View{
                     gui.Text(gui.TextCfg{
                         Text: fmt.Sprintf("%d Clicks", app.Clicks),
@@ -154,18 +157,20 @@ version and [`examples/web_demo/`](examples/web_demo/) for the browser build.
 ## Installation
 
 Requires **Go 1.26+** and a C toolchain (CGo). The desktop backends are
-SDL2-free: macOS uses Metal + CoreText, Linux uses native X11/GLX +
-FreeType/HarfBuzz (bundled), and Windows uses native Win32/WGL +
-DirectWrite. See the
+native and SDL2-free: Metal on macOS, X11 + EGL on Linux, Win32 + WGL on
+Windows. Text shaping and rasterization are pure Go via go-glyph — no
+FreeType, HarfBuzz, Pango, CoreText, or DirectWrite libraries required. See
+the
 [Installation Guide](https://github.com/go-gui-org/go-gui/wiki/Installation)
 for platform-specific instructions.
 
 ```bash
-# macOS:   brew install go                  # Metal + CoreText are system frameworks
+# macOS:   xcode-select --install && brew install go   # Metal is a system framework
 # Ubuntu:  sudo apt-get install golang gcc pkg-config libgl1-mesa-dev libx11-dev
 # Fedora:  sudo dnf install golang gcc pkgconf-pkg-config mesa-libGL-devel libX11-devel
 # Arch:    sudo pacman -S go gcc pkgconf mesa libx11
-# Windows: Use MSYS2 MinGW x64 — pacman -S mingw-w64-x86_64-go mingw-w64-x86_64-gcc
+# Windows: mingw-w64 GCC required (e.g. MSYS2 MinGW x64) —
+#          pacman -S mingw-w64-x86_64-go mingw-w64-x86_64-gcc
 
 go get github.com/go-gui-org/go-gui
 ```
@@ -179,7 +184,7 @@ go get github.com/go-gui-org/go-gui
 ### Backend Selection
 
 `backend.Run(w)` auto-selects the native backend per platform — Metal on
-macOS, X11/GLX on Linux, Win32/WGL on Windows (force portable OpenGL with
+macOS, X11 + EGL on Linux, Win32/WGL on Windows (force portable OpenGL with
 the `gl` build tag):
 
 ```go
@@ -200,13 +205,13 @@ import ios   "github.com/go-gui-org/go-gui/gui/backend/ios"   // iOS
 ### Themes
 
 ```go
-gui.SetTheme(gui.ThemeDark)          // set globally before NewWindow
-gui.SetTheme(gui.ThemeDarkBordered)  // dark with visible borders
-t := gui.CurrentTheme()              // read anywhere
+gui.SetTheme(gui.ThemeDark)                   // set globally before NewWindow
+gui.SetTheme(gui.ThemeDark.WithBorders(true)) // dark with visible borders
+t := gui.CurrentTheme()                       // read anywhere
 ```
 
 Custom themes are built with `gui.ThemeMaker` and registered via
-`gui.RegisterTheme`.
+`gui.ThemeRegister`.
 
 ---
 
@@ -232,7 +237,7 @@ Events are wired through `Cfg` structs:
 
 ```go
 gui.Button(gui.ButtonCfg{
-    IDFocus: 1,
+    Focusable: true,
     OnClick: func(l *gui.Layout, e *gui.Event, w *gui.Window) {
         // handle click
         e.IsHandled = true
@@ -302,7 +307,9 @@ gui.Tree(gui.TreeCfg{
 **DataGrid — key-value maps**
 
 ```go
-w.DataGrid(gui.DataGridCfg{
+import "github.com/go-gui-org/go-gui/gui/datagrid"
+
+datagrid.New(w, datagrid.DataGridCfg{
     ID: "simple-grid",
     RowsData: []map[string]string{
         {"name": "Alice", "age": "30"},
@@ -313,7 +320,7 @@ w.DataGrid(gui.DataGridCfg{
 
 ### Example Apps
 
-53 example apps in [`examples/`](examples/) — from `get_started` to
+55 example apps in [`examples/`](examples/) — from `get_started` to
 `showcase`, `calculator`, `snake`, `dock_layout`, `digital_rain`, and more.
 
 ```bash
@@ -361,12 +368,12 @@ Full widget reference: [Widget Catalogue](https://github.com/go-gui-org/go-gui/w
         ┌────────────────┼─────────────────┐
         │                │                 │
 ┌───────▼──────┐ ┌───────▼──────┐ ┌────────▼───────┐
-│  TextMeasurer│ │  SvgParser   │ │ NativePlatform │
+│ TextMeasurer │ │   SvgParser  │ │ NativePlatform │
 │  (interface) │ │  (interface) │ │  (interface)   │
 └───────┬──────┘ └───────┬──────┘ └────────┬───────┘
         │                │                 │
 ┌───────▼────────────────▼─────────────────▼───────────┐
-│  │  Injects interfaces at startup · Window management   │
+│  Injects interfaces at startup · Window management   │
 ├──────────────┬───────────────┬───────────────────────┤
 │  backend/    │  backend/gl/  │  backend/filedialog/  │
 │  metal/      │  OpenGL       │  backend/printdialog/ │
@@ -394,8 +401,8 @@ Full widget reference: [Widget Catalogue](https://github.com/go-gui-org/go-gui/w
 
 ## Running Tests
 
-Tests run headlessly via the `gui/backend/test` no-op backend — no display
-server required.
+Tests run headlessly — the injected backend interfaces are nil in tests, so
+no display server is required.
 
 ```bash
 # Run all tests
@@ -407,8 +414,8 @@ go test ./gui/... -run TestFoo
 # Static analysis
 go vet ./...
 
-# Full lint suite (govet, staticcheck, errcheck, gosimple, unused,
-# gofmt, goimports, revive)
+# Full lint suite (govet, staticcheck, errcheck, gocyclo, cyclop, modernize,
+# unused, revive, gocritic, perfsprint, gosmopolitan + gofmt/goimports)
 golangci-lint run ./...
 
 # Build all packages
@@ -430,10 +437,10 @@ The root `Makefile` builds standalone showcase binaries for each platform.
 | `make release`       | `.tar.gz`, `.dmg`, `.zip`    | All of the above + packaging            |
 
 **Linux and Windows** produce self-contained binaries with no external
-library dependencies: go-glyph statically bundles FreeType/HarfBuzz on
-Linux, and Windows text uses the system DirectWrite DLL. A plain
-`go build ./examples/showcase/` is self-contained; add `-tags audio` for
-sound.
+library dependencies: text shaping and rasterization are pure Go
+(go-glyph). A plain `go build ./examples/showcase/` is self-contained;
+on Linux the showcase's audio demo needs ALSA headers at build time
+(`libasound2-dev`).
 
 **Windows cross-compilation** requires `mingw-w64`. On Windows (MSYS2),
 use `make build-windows CC_WINDOWS=gcc`.
