@@ -631,7 +631,7 @@ func TestGridScrollShiftsVisibleRows(t *testing.T) {
 		Columns:   []GridColumnCfg{{ID: "a", Title: "A"}},
 		Rows:      rows,
 	})
-	layout := gg.GenerateViewLayout(v, w) //nolint:staticcheck
+	layout := gg.GenerateViewLayout(v, w)
 
 	// Row 0 must NOT be in the layout — it is above the visible
 	// range and the virtualizer replaces it with a spacer.
@@ -671,7 +671,7 @@ func TestGridScrollTopShowsFirstRows(t *testing.T) {
 		Columns:   []GridColumnCfg{{ID: "a", Title: "A"}},
 		Rows:      rows,
 	})
-	layout := gg.GenerateViewLayout(v, w) //nolint:staticcheck
+	layout := gg.GenerateViewLayout(v, w)
 
 	// Row 0 and row 5 must be present.
 	for _, idx := range []int{0, 5} {

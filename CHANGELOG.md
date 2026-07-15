@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **`GenerateViewLayout` is no longer deprecated**. It is the supported
+  entry point for composite View widgets, which need to recurse a View
+  tree into a Layout tree. The deprecation pointed at
+  `View.GenerateLayout`, which builds a single node and does not recurse
+  into `Content()` — it was never an equivalent replacement, and no other
+  exported path existed. Callers that hand-rolled their own recursion to
+  avoid the warning should call `GenerateViewLayout` again; it applies
+  shape normalization, the child-count clamp, and frame-arena pre-sizing
+  that a hand-rolled copy misses. (#52)
+
 ## [v0.35.0] - 2026-07-15
 
 ### Changed

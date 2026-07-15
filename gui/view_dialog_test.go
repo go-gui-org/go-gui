@@ -9,7 +9,7 @@ import "testing"
 func TestRetainDialogFocus_RestoresStolenFocus(t *testing.T) {
 	w := NewWindow(WindowCfg{})
 	w.Dialog(DialogCfg{DialogType: DialogConfirm, Title: "Quit?"})
-	dialog := GenerateViewLayout(dialogViewGenerator(w.dialogCfg), w)
+	dialog := generateViewLayout(dialogViewGenerator(w.dialogCfg), w)
 
 	// Simulate a widget re-asserting focus onto itself (id 42, not in
 	// the dialog subtree).
@@ -26,7 +26,7 @@ func TestRetainDialogFocus_RestoresStolenFocus(t *testing.T) {
 func TestRetainDialogFocus_KeepsDialogFocus(t *testing.T) {
 	w := NewWindow(WindowCfg{})
 	w.Dialog(DialogCfg{DialogType: DialogConfirm, Title: "Quit?"})
-	dialog := GenerateViewLayout(dialogViewGenerator(w.dialogCfg), w)
+	dialog := generateViewLayout(dialogViewGenerator(w.dialogCfg), w)
 
 	// Confirm dialog's "Yes" button uses IDFocus+1; a legitimate Tab
 	// target inside the dialog must be preserved.
@@ -44,7 +44,7 @@ func TestRetainDialogFocus_KeepsDialogFocus(t *testing.T) {
 func TestRetainDialogFocus_NoFocusReasserts(t *testing.T) {
 	w := NewWindow(WindowCfg{})
 	w.Dialog(DialogCfg{DialogType: DialogConfirm, Title: "Quit?"})
-	dialog := GenerateViewLayout(dialogViewGenerator(w.dialogCfg), w)
+	dialog := generateViewLayout(dialogViewGenerator(w.dialogCfg), w)
 
 	w.ClearFocus()
 	w.retainDialogFocus(&dialog)
@@ -370,7 +370,7 @@ func TestRetainDialogFocus_DefaultButtonYes(t *testing.T) {
 		Title:         "Quit?",
 		DefaultButton: DialogButtonYes,
 	})
-	dialog := GenerateViewLayout(dialogViewGenerator(w.dialogCfg), w)
+	dialog := generateViewLayout(dialogViewGenerator(w.dialogCfg), w)
 
 	w.SetFocus("f42") // steal focus outside the dialog
 	w.retainDialogFocus(&dialog)

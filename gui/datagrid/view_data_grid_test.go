@@ -591,7 +591,7 @@ func TestDataGridDisabledPropagates(t *testing.T) {
 		Columns:  []GridColumnCfg{{ID: "a", Title: "A"}},
 		Rows:     []GridRow{{ID: "r0", Cells: map[string]string{"a": "1"}}},
 	})
-	layout := gg.GenerateViewLayout(v, w) //nolint:staticcheck
+	layout := gg.GenerateViewLayout(v, w)
 	if !layout.Shape.Disabled {
 		t.Error("outer container should be disabled")
 	}
@@ -606,7 +606,7 @@ func TestDataGridInvisiblePropagates(t *testing.T) {
 		Columns:   []GridColumnCfg{{ID: "a", Title: "A"}},
 		Rows:      []GridRow{{ID: "r0", Cells: map[string]string{"a": "1"}}},
 	})
-	layout := gg.GenerateViewLayout(v, w) //nolint:staticcheck
+	layout := gg.GenerateViewLayout(v, w)
 	if !layout.Shape.Disabled {
 		t.Error("invisible should be disabled")
 	}
@@ -625,7 +625,7 @@ func TestDataGridRowsData(t *testing.T) {
 			{"name": "Bob", "age": "25"},
 		},
 	})
-	layout := gg.GenerateViewLayout(v, w) //nolint:staticcheck
+	layout := gg.GenerateViewLayout(v, w)
 	if len(layout.Children) == 0 {
 		t.Fatal("expected children")
 	}
@@ -641,7 +641,7 @@ func TestDataGridRowsDataAutoColumns(t *testing.T) {
 			{"name": "Alice", "age": "30"},
 		},
 	})
-	layout := gg.GenerateViewLayout(v, w) //nolint:staticcheck
+	layout := gg.GenerateViewLayout(v, w)
 	if len(layout.Children) == 0 {
 		t.Fatal("expected children")
 	}
@@ -659,7 +659,7 @@ func TestDataGridRowsDataPrecedence(t *testing.T) {
 		},
 		Rows: []GridRow{{ID: "ignored", Cells: map[string]string{"x": "y"}}},
 	})
-	layout := gg.GenerateViewLayout(v, w) //nolint:staticcheck
+	layout := gg.GenerateViewLayout(v, w)
 	if len(layout.Children) == 0 {
 		t.Fatal("expected children")
 	}
@@ -680,7 +680,7 @@ func TestDataGridRowsDataDataSourceWins(t *testing.T) {
 			{"name": "FromRowsData"},
 		},
 	})
-	layout := gg.GenerateViewLayout(v, w) //nolint:staticcheck
+	layout := gg.GenerateViewLayout(v, w)
 	if len(layout.Children) == 0 {
 		t.Fatal("expected children from DataSource")
 	}
@@ -695,7 +695,7 @@ func TestDataGridRowsDataEmptyFirstRow(t *testing.T) {
 			{},
 		},
 	})
-	layout := gg.GenerateViewLayout(v, w) //nolint:staticcheck
+	layout := gg.GenerateViewLayout(v, w)
 	// Empty first-row map means no auto-generated columns,
 	// but a row should still be created.
 	if len(layout.Children) == 0 {
