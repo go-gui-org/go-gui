@@ -100,7 +100,7 @@ func TestDocPagesExist(t *testing.T) {
 }
 
 func TestTreeTitleBarShowsDocToggle(t *testing.T) {
-	layout := gui.GenerateViewLayout(viewTitleBar(DemoEntry{ //nolint:staticcheck
+	layout := gui.GenerateViewLayout(viewTitleBar(DemoEntry{
 		ID:    "tree",
 		Label: "Tree View",
 	}, false), &gui.Window{})
@@ -111,7 +111,7 @@ func TestTreeTitleBarShowsDocToggle(t *testing.T) {
 }
 
 func TestTreeTitleBarSpacerHasNoBorder(t *testing.T) {
-	layout := gui.GenerateViewLayout(viewTitleBar(DemoEntry{ //nolint:staticcheck
+	layout := gui.GenerateViewLayout(viewTitleBar(DemoEntry{
 		ID:    "tree",
 		Label: "Tree View",
 	}, false), &gui.Window{})
@@ -133,7 +133,7 @@ func TestTreeTitleBarSpacerHasNoBorder(t *testing.T) {
 func TestDemoTreeWrapsIntroText(t *testing.T) {
 	w := gui.NewWindow(gui.WindowCfg{State: newShowcaseApp()})
 
-	layout := gui.GenerateViewLayout(demoTree(w), w) //nolint:staticcheck
+	layout := gui.GenerateViewLayout(demoTree(w), w)
 	if len(layout.Children) < 2 {
 		t.Fatalf("len(layout.Children) = %d, want >= 2", len(layout.Children))
 	}
@@ -155,7 +155,7 @@ func TestDetailPanelSummaryWraps(t *testing.T) {
 	app.SelectedComponent = "tree"
 	w := gui.NewWindow(gui.WindowCfg{State: app})
 
-	layout := gui.GenerateViewLayout(detailPanel(w), w) //nolint:staticcheck
+	layout := gui.GenerateViewLayout(detailPanel(w), w)
 	if len(layout.Children) < 2 {
 		t.Fatalf("len(layout.Children) = %d, want >= 2", len(layout.Children))
 	}
@@ -175,7 +175,7 @@ func TestDetailPanelWelcomeWrappersHaveNoBorder(t *testing.T) {
 	app.SelectedComponent = "welcome"
 	w := gui.NewWindow(gui.WindowCfg{State: app})
 
-	layout := gui.GenerateViewLayout(detailPanel(w), w) //nolint:staticcheck
+	layout := gui.GenerateViewLayout(detailPanel(w), w)
 	if got, want := layout.Shape.SizeBorder, float32(0); got != want {
 		t.Fatalf("layout.Shape.SizeBorder = %v, want %v", got, want)
 	}
@@ -203,7 +203,7 @@ func TestDetailPanelWelcomeWrappersHaveNoBorder(t *testing.T) {
 
 func TestDemoWelcomePanelHasNoBorder(t *testing.T) {
 	w := &gui.Window{}
-	layout := gui.GenerateViewLayout(demoWelcome(w), w) //nolint:staticcheck
+	layout := gui.GenerateViewLayout(demoWelcome(w), w)
 	if got, want := layout.Shape.SizeBorder, float32(0); got != want {
 		t.Fatalf("layout.Shape.SizeBorder = %v, want %v", got, want)
 	}
@@ -261,7 +261,7 @@ func TestThemeCfgSaveLoadRoundTrip(t *testing.T) {
 
 func TestDemoTextLayout(t *testing.T) {
 	w := &gui.Window{}
-	layout := gui.GenerateViewLayout(demoText(w), w) //nolint:staticcheck
+	layout := gui.GenerateViewLayout(demoText(w), w)
 
 	t.Run("intro text wraps", func(t *testing.T) {
 		l, ok := layout.FindByID("text-intro")
@@ -386,7 +386,7 @@ func TestDetailPanel_BumpsAbortCounterWhenNavigatingAwayFromTree(t *testing.T) {
 	// Staying on "tree" should not bump the abort counter or clear
 	// lazy nodes.
 	abortBefore := app.TreeLazyLoadAbort
-	_ = gui.GenerateViewLayout(detailPanel(w), w) //nolint:staticcheck
+	_ = gui.GenerateViewLayout(detailPanel(w), w)
 	if app.TreeLazyLoadAbort != abortBefore {
 		t.Fatal("abort counter bumped while still viewing tree demo")
 	}
@@ -398,7 +398,7 @@ func TestDetailPanel_BumpsAbortCounterWhenNavigatingAwayFromTree(t *testing.T) {
 	// are discarded.
 	app.SelectedComponent = "button"
 	app.SelectedGroup = groupButtons
-	_ = gui.GenerateViewLayout(detailPanel(w), w) //nolint:staticcheck
+	_ = gui.GenerateViewLayout(detailPanel(w), w)
 	if app.TreeLazyLoadAbort != abortBefore+1 {
 		t.Fatalf("TreeLazyLoadAbort = %d, want %d",
 			app.TreeLazyLoadAbort, abortBefore+1)

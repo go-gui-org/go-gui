@@ -26,9 +26,10 @@ func ensureLayoutShape(layout *Layout) {
 // View tree. Each View produces its own layout, then child
 // Views are appended.
 //
-// Deprecated: Internal pipeline function. Not part of the stable
-// public API. Will be removed in a future version. Use
-// View.GenerateLayout for individual layout generation.
+// This is the supported entry point for composite View widgets.
+// View.GenerateLayout produces a single node and does not recurse;
+// GenerateViewLayout walks Content() to build the whole subtree. A
+// widget package assembling a tree from child Views wants this one.
 func GenerateViewLayout(view View, w *Window) Layout {
 	return generateViewLayout(view, w)
 }
