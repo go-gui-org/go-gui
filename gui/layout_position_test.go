@@ -186,16 +186,3 @@ func TestLayoutPositionsEndAlignLTR(t *testing.T) {
 		t.Errorf("X: got %f, want 160", root.Children[0].Shape.X)
 	}
 }
-
-func TestLayoutScrollContainersNoScroll(t *testing.T) {
-	root := &Layout{
-		Shape: &Shape{shapeType: shapeRectangle},
-		Children: []Layout{
-			{Shape: &Shape{shapeType: shapeText}},
-		},
-	}
-	layoutScrollContainers(root, 0)
-	if root.Children[0].Shape.IDScrollContainer != 0 {
-		t.Error("should be 0 with no scroll parent")
-	}
-}

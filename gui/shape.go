@@ -67,10 +67,6 @@ type Shape struct {
 	// which axes scroll.
 	IDScroll uint32
 
-	// IDScrollContainer identifies a parent scroll container.
-	// When set, scroll events bubble up to the matching IDScroll.
-	IDScrollContainer uint32
-
 	// SizeBorder is the width of the border drawn inside the
 	// layout bounds. Affects content area calculation.
 	SizeBorder float32

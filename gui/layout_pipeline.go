@@ -28,7 +28,6 @@ func layoutPipeline(layout *Layout, w *Window) {
 	fx, fy := floatAttachLayout(layout, w.windowRect())
 	layoutPositions(layout, fx, fy, w)
 	layoutDisables(layout, false)
-	layoutScrollContainers(layout, 0)
 
 	// Post-position passes.
 	layoutAmend(layout, w)

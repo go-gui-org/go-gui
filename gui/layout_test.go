@@ -331,33 +331,6 @@ func TestLayoutRemoveFloatingLayoutsDistinctPlaceholders(t *testing.T) {
 	}
 }
 
-func TestLayoutScrollContainersNearestScrollParent(t *testing.T) {
-	root := &Layout{
-		Shape: &Shape{shapeType: shapeRectangle},
-		Children: []Layout{
-			{
-				Shape: &Shape{shapeType: shapeRectangle, IDScroll: 10},
-				Children: []Layout{
-					{Shape: &Shape{shapeType: shapeText}},
-					{
-						Shape: &Shape{shapeType: shapeRectangle, IDScroll: 20},
-						Children: []Layout{
-							{Shape: &Shape{shapeType: shapeText}},
-						},
-					},
-				},
-			},
-		},
-	}
-	layoutScrollContainers(root, 0)
-	if root.Children[0].Children[0].Shape.IDScrollContainer != 10 {
-		t.Errorf("got %d, want 10", root.Children[0].Children[0].Shape.IDScrollContainer)
-	}
-	if root.Children[0].Children[1].Children[0].Shape.IDScrollContainer != 20 {
-		t.Errorf("got %d, want 20", root.Children[0].Children[1].Children[0].Shape.IDScrollContainer)
-	}
-}
-
 func TestLayoutFillWidthsRootScrollFillNoParent(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{

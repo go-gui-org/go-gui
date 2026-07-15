@@ -190,20 +190,6 @@ func childCrossAxisHAlign(
 	return xAlign
 }
 
-// layoutScrollContainers identifies text views in scrollable containers.
-func layoutScrollContainers(layout *Layout, idScrollContainer uint32) {
-	activeID := idScrollContainer
-	if layout.Shape.IDScroll > 0 {
-		activeID = layout.Shape.IDScroll
-	}
-	if layout.Shape.shapeType == shapeText {
-		layout.Shape.IDScrollContainer = activeID
-	}
-	for i := range layout.Children {
-		layoutScrollContainers(&layout.Children[i], activeID)
-	}
-}
-
 // layoutSetShapeClips sets shape clips used for hit testing.
 func layoutSetShapeClips(layout *Layout, clip drawClip) {
 	shapeClip := shapeBounds(layout.Shape)
