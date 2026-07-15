@@ -33,7 +33,10 @@ type TreeCfg struct {
 	Spacing float32
 
 	Focusable bool
-	IDScroll  uint32
+
+	// Scrollable opts the tree into the scroll system. Scroll state
+	// is keyed by Cfg.ID - pass that same id to Window.ScrollVerticalTo.
+	Scrollable bool
 
 	Width     float32
 	Height    float32
@@ -172,13 +175,13 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 	if listHeight <= 0 {
 		listHeight = cfg.MaxHeight
 	}
-	virtualize := cfg.IDScroll > 0 && listHeight > 0 && len(flatRows) > 0
+	virtualize := cfg.Scrollable && listHeight > 0 && len(flatRows) > 0
 	rowHeight := float32(0)
 	first, last := 0, len(flatRows)-1
 	if virtualize {
 		rowHeight = treeEstimateRowHeight(*cfg, w)
 		first, last = treeVisibleRange(
-			listHeight, rowHeight, len(flatRows), cfg.IDScroll, w)
+			listHeight, rowHeight, len(flatRows), cfg.ID, w)
 	}
 
 	focusedID := StateReadOr(w, nsTreeFocus, cfg.ID, "")
@@ -186,7 +189,7 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 
 	canReorder := cfg.Reorderable && cfg.OnReorder != nil
 	onReorder := cfg.OnReorder
-	idScroll := cfg.IDScroll
+	scrollID := cfg.ID
 
 	parentOf, siblingsByParent := treeBuildParentMaps(
 		flatRows, visibleIDs, canReorder)
@@ -210,7 +213,7 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 	rows, ghostContent := treeBuildRows(
 		cfg, flatRows, focusedID, iconWidth,
 		parentOf, siblingsByParent, siblingIdx,
-		parentLayoutIDs, parentMidsOff, idScroll,
+		parentLayoutIDs, parentMidsOff, scrollID,
 		canReorder, dragging, drag, dragParent,
 		virtualize, rowHeight, first, last)
 
@@ -230,12 +233,12 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 	radius := cfg.Radius.Get(DefaultTreeStyle.Radius)
 
 	return generateViewLayout(Column(ContainerCfg{
-		ID:        cfg.ID,
-		A11YRole:  AccessRoleTree,
-		A11YLabel: a11yLabel(cfg.A11YLabel, cfg.ID),
-		A11Y:      makeA11YInfo(a11yLabel(cfg.A11YLabel, cfg.ID), cfg.A11YDescription),
-		Focusable: cfg.Focusable,
-		IDScroll:  cfg.IDScroll,
+		ID:         cfg.ID,
+		A11YRole:   AccessRoleTree,
+		A11YLabel:  a11yLabel(cfg.A11YLabel, cfg.ID),
+		A11Y:       makeA11YInfo(a11yLabel(cfg.A11YLabel, cfg.ID), cfg.A11YDescription),
+		Focusable:  cfg.Focusable,
+		Scrollable: cfg.Scrollable,
 		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
 			if canReorder {
 				if dragReorderEscape(cfg.ID, e.KeyCode, w) {
@@ -262,7 +265,7 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 			}
 			treeOnKeyDown(cfg.ID, visibleIDs, rowByID,
 				cfg.OnSelect, cfg.OnLazyLoad,
-				idScroll, rowHeight, listHeight, e, w)
+				scrollID, rowHeight, listHeight, e, w)
 		},
 		Sizing:      cfg.Sizing,
 		Width:       cfg.Width,
@@ -376,7 +379,7 @@ func treeBuildRows(
 	siblingIdx map[string]int,
 	parentLayoutIDs map[string][]string,
 	parentMidsOff map[string]int,
-	idScroll uint32,
+	scrollID string,
 	canReorder, dragging bool,
 	drag dragReorderState, dragParent string,
 	virtualize bool, rowHeight float32,
@@ -427,7 +430,7 @@ func treeBuildRows(
 				siblingsByParent[rowParent],
 				parentLayoutIDs[rowParent],
 				parentMidsOff[rowParent],
-				idScroll))
+				scrollID))
 		} else {
 			rows = append(rows, treeRowView(
 				*cfg, row, iconWidth, focusedID))

@@ -44,7 +44,7 @@ type ContainerCfg struct {
 	ClickOnEnter bool
 
 	// OnScroll fires when the container receives scroll events.
-	// Requires IDScroll > 0 and a scrollable Overflow/ScrollMode.
+	// Requires Scrollable and a scrollable Overflow/ScrollMode.
 	OnScroll func(*Layout, *Window)
 
 	// AmendLayout runs after sizing to reposition overlays
@@ -59,7 +59,7 @@ type ContainerCfg struct {
 
 	// ScrollbarCfgX/Y override scrollbar appearance for this
 	// container. nil uses theme defaults. Only active when
-	// IDScroll > 0.
+	// Scrollable.
 	ScrollbarCfgX *ScrollbarCfg
 	ScrollbarCfgY *ScrollbarCfg
 
@@ -94,8 +94,12 @@ type ContainerCfg struct {
 	BlurRadius float32
 
 	// Behavior
-	Focusable    bool
-	IDScroll     uint32
+	Focusable bool
+
+	// Scrollable opts the container into the scroll system. Scroll
+	// state is keyed by Cfg.ID — pass that same id to
+	// Window.ScrollVerticalTo and friends. Requires a non-empty ID.
+	Scrollable   bool
 	FloatOffsetX float32
 	FloatOffsetY float32
 
@@ -305,7 +309,7 @@ func deriveContainerA11YRole(c *ContainerCfg) AccessRole {
 	if c.A11YRole != AccessRoleNone {
 		return c.A11YRole
 	}
-	if c.IDScroll > 0 {
+	if c.Scrollable {
 		return AccessRoleScrollArea
 	}
 	return AccessRoleNone
@@ -314,6 +318,7 @@ func deriveContainerA11YRole(c *ContainerCfg) AccessRole {
 // buildContainerShape constructs a Shape from a ContainerCfg.
 // Used by widgets that build containerView directly.
 func buildContainerShape(cfg *ContainerCfg) *Shape {
+	RequireScrollID("container", cfg.Scrollable, cfg.ID)
 	spacing, sizeBorder, radius, padding := applyContainerDefaults(cfg)
 	shape := &Shape{
 		shapeType:            shapeRectangle,
@@ -351,7 +356,7 @@ func buildContainerShape(cfg *ContainerCfg) *Shape {
 		FloatOffsetX:         cfg.FloatOffsetX,
 		FloatOffsetY:         cfg.FloatOffsetY,
 		FloatZIndex:          cfg.FloatZIndex,
-		IDScroll:             cfg.IDScroll,
+		Scrollable:           cfg.Scrollable,
 		OverDraw:             cfg.OverDraw,
 		ScrollMode:           cfg.ScrollMode,
 		events:               makeContainerEvents(cfg),
@@ -381,13 +386,13 @@ func container(cfg ContainerCfg) View {
 	}
 
 	content := cfg.Content
-	if cfg.IDScroll > 0 {
+	if cfg.Scrollable {
 		content = make([]View, 0, len(cfg.Content)+2)
 		content = append(content, cfg.Content...)
 		content = appendScrollbar(content, cfg.ScrollbarCfgX,
-			ScrollbarHorizontal, cfg.IDScroll)
+			ScrollbarHorizontal, cfg.ID)
 		content = appendScrollbar(content, cfg.ScrollbarCfgY,
-			ScrollbarVertical, cfg.IDScroll)
+			ScrollbarVertical, cfg.ID)
 	}
 
 	return &containerView{
@@ -433,19 +438,19 @@ func Circle(cfg ContainerCfg) View {
 	return cv
 }
 
-func appendScrollbar(content []View, override *ScrollbarCfg, orientation ScrollbarOrientation, idScroll uint32) []View {
+func appendScrollbar(content []View, override *ScrollbarCfg, orientation ScrollbarOrientation, id string) []View {
 	if override != nil {
 		if override.Overflow == ScrollbarHidden {
 			return content
 		}
 		merged := *override
 		merged.Orientation = orientation
-		merged.IDScroll = idScroll
+		merged.ScrollID = id
 		return append(content, Scrollbar(merged))
 	}
 	return append(content, Scrollbar(ScrollbarCfg{
 		Orientation: orientation,
-		IDScroll:    idScroll,
+		ScrollID:    id,
 	}))
 }
 

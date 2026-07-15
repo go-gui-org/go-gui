@@ -120,11 +120,8 @@ func dataGridFocusID(cfg *DataGridCfg) string {
 	return cfg.ID
 }
 
-func dataGridScrollID(cfg *DataGridCfg) uint32 {
-	if cfg.IDScroll > 0 {
-		return cfg.IDScroll
-	}
-	return gg.FnvSum32(cfg.ID + ":scroll")
+func dataGridScrollID(cfg *DataGridCfg) string {
+	return cfg.ID + ":scroll"
 }
 
 // dataGridVisibleRangeForScroll converts scroll position to

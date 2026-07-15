@@ -55,8 +55,8 @@ When `RowsData` is set, `Rows` is ignored.
 
 ## Virtualization
 
-Automatically virtualizes when `Height` or `MaxHeight > 0`. A scroll
-ID is derived from the widget ID; setting `IDScroll` is optional.
+Automatically virtualizes when `Height` or `MaxHeight > 0`. Scroll
+state is keyed by the widget's string ID + `":scroll"` suffix.
 
 ```go
 datagrid.New(w, datagrid.DataGridCfg{
@@ -100,7 +100,7 @@ datagrid.New(w, datagrid.DataGridCfg{
 | RowHeight              | float32            | Row height in pixels                 |
 | HeaderHeight           | float32            | Header height in pixels              |
 | IDFocus                | uint32             | Tab-order focus ID (> 0 to enable)   |
-| IDScroll               | uint32             | Scroll ID (auto-generated if omitted)|
+| Scrollable             | bool               | Opt into the scroll system (state keyed by ID)|
 | Disabled               | bool               | Disable interaction                  |
 | Invisible              | bool               | Hide without removing from layout    |
 | Sizing                 | Sizing             | Combined axis sizing mode            |

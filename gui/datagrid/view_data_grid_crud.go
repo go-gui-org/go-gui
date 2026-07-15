@@ -249,7 +249,7 @@ func dataGridCrudDefaultCells(columns []GridColumnCfg) map[string]string {
 	return cells
 }
 
-func dataGridCrudAddRow(gridID string, columns []GridColumnCfg, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), focusID string, scrollID uint32, pageSize, pageIndex int, onPageChange func(int, *gg.Event, *gg.Window), e *gg.Event, w *gg.Window) {
+func dataGridCrudAddRow(gridID string, columns []GridColumnCfg, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), focusID string, scrollID string, pageSize, pageIndex int, onPageChange func(int, *gg.Event, *gg.Window), e *gg.Event, w *gg.Window) {
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 	state, _ := dgCrud.Get(gridID)
 	state.NextDraftSeq++

@@ -357,10 +357,10 @@ func TestTableVirtualization(t *testing.T) {
 	}
 
 	v := w.Table(TableCfg{
-		ID:        "virtual-test",
-		IDScroll:  9999,
-		MaxHeight: 200,
-		Data:      data,
+		ID:         "virtual-test",
+		Scrollable: true,
+		MaxHeight:  200,
+		Data:       data,
 	})
 	layout := generateViewLayout(v, w)
 	// Should have fewer children than total rows due to
@@ -412,7 +412,7 @@ func TestTableFreezeHeader(t *testing.T) {
 	w.textMeasurer = &tableTestMeasurer{}
 	v := w.Table(TableCfg{
 		ID:           "freeze-test",
-		IDScroll:     8800,
+		Scrollable:   true,
 		MaxHeight:    200,
 		FreezeHeader: true,
 		Data: []TableRowCfg{
@@ -445,7 +445,7 @@ func TestTableFreezeHeaderWithSeparator(t *testing.T) {
 	w.textMeasurer = &tableTestMeasurer{}
 	v := w.Table(TableCfg{
 		ID:           "freeze-sep-test",
-		IDScroll:     8801,
+		Scrollable:   true,
 		MaxHeight:    200,
 		FreezeHeader: true,
 		BorderStyle:  TableBorderHeaderOnly,
@@ -475,7 +475,7 @@ func TestTableFreezeHeaderWithSeparator(t *testing.T) {
 }
 
 func TestTableFreezeHeaderNoScroll(t *testing.T) {
-	// FreezeHeader=true but IDScroll=0 → falls back to single Column.
+	// FreezeHeader=true but Scrollable=false → falls back to single Column.
 	v := Table(TableCfg{
 		ID:           "tbl-test",
 		FreezeHeader: true,
@@ -505,7 +505,7 @@ func TestTableFreezeHeaderVirtualization(t *testing.T) {
 
 	v := w.Table(TableCfg{
 		ID:           "freeze-virtual-test",
-		IDScroll:     8802,
+		Scrollable:   true,
 		MaxHeight:    200,
 		FreezeHeader: true,
 		Data:         data,

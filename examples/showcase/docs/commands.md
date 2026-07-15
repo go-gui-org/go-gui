@@ -185,12 +185,11 @@ Include the palette view in the view tree (hidden by default):
 
 ```go
 gui.CommandPalette(gui.CommandPaletteCfg{
-    ID:        "palette",
-    IDFocus:   idFocusPalette,
-    IDScroll:  idScrollPalette,
-    Items:     w.CommandPaletteItems(),
-    OnAction:  paletteAction,
-    OnDismiss: func(_ *gui.Window) {},
+    ID:         "palette",
+    Scrollable: true,
+    Items:      w.CommandPaletteItems(),
+    OnAction:   paletteAction,
+    OnDismiss:  func(_ *gui.Window) {},
 })
 ```
 
@@ -203,7 +202,7 @@ gui.Command{
     Shortcut: gui.Shortcut{Key: gui.KeyP, Modifiers: gui.ModSuperShift},
     Global:   true,
     Execute: func(_ *gui.Event, w *gui.Window) {
-        gui.CommandPaletteToggle("palette", idFocusPalette, idScrollPalette, w)
+        gui.CommandPaletteToggle("palette", w)
     },
 }
 ```
@@ -223,9 +222,9 @@ func paletteAction(id string, e *gui.Event, w *gui.Window) {
 
 | Function                                         | Description          |
 | ------------------------------------------------ | -------------------- |
-| `CommandPaletteShow(id, idFocus, idScroll, w)`   | Show and focus input |
+| `CommandPaletteShow(id, w)`               | Show and focus input |
 | `CommandPaletteDismiss(id, w)`                   | Hide and reset query |
-| `CommandPaletteToggle(id, idFocus, idScroll, w)` | Toggle visibility    |
+| `CommandPaletteToggle(id, w)`             | Toggle visibility    |
 | `CommandPaletteIsVisible(id, w) bool`            | Check if showing     |
 
 ### Palette Keyboard Navigation
@@ -259,7 +258,7 @@ resets to the first item on each keystroke.
 | `MaxHeight`      | `float32`                       | Max list height (default 400) |
 | `BackdropColor`  | `Color`                         | Semi-transparent overlay      |
 | `IDFocus`        | `uint32`                        | Focus ID for the input        |
-| `IDScroll`       | `uint32`                        | Scroll state ID               |
+| `Scrollable`     | `bool`                          | Opt results list into scroll (key `ID+":scroll"`) |
 | `FloatZIndex`    | `int`                           | Z-order (default 1000)        |
 
 ### CommandPaletteItem
@@ -320,7 +319,7 @@ func registerCommands(w *gui.Window) {
             Shortcut: gui.Shortcut{Key: gui.KeyP, Modifiers: gui.ModSuperShift},
             Global:   true,
             Execute: func(_ *gui.Event, w *gui.Window) {
-                gui.CommandPaletteToggle("palette", idFocusPalette, idScrollPalette, w)
+                gui.CommandPaletteToggle("palette", w)
             },
         },
     )

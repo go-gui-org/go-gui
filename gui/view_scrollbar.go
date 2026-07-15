@@ -20,7 +20,7 @@ type ScrollbarCfg struct {
 	RadiusThumb     float32
 	GapEdge         float32
 	GapEnd          float32
-	IDScroll        uint32
+	ScrollID        string `gui:"required"`
 	ColorThumb      Color
 	ColorBackground Color
 	Overflow        ScrollbarOverflow
@@ -146,7 +146,7 @@ func scrollbarAmendLayout(cfg ScrollbarCfg, layout *Layout, w *Window) {
 
 		sx := w.scrollX()
 		scrollOffset := float32(0)
-		if v, ok := sx.Get(cfg.IDScroll); ok {
+		if v, ok := sx.Get(cfg.ScrollID); ok {
 			scrollOffset = -v
 		}
 
@@ -185,7 +185,7 @@ func scrollbarAmendLayout(cfg ScrollbarCfg, layout *Layout, w *Window) {
 
 		sy := w.scrollY()
 		scrollOffset := float32(0)
-		if v, ok := sy.Get(cfg.IDScroll); ok {
+		if v, ok := sy.Get(cfg.ScrollID); ok {
 			scrollOffset = -v
 		}
 
@@ -215,11 +215,11 @@ func scrollbarAmendLayout(cfg ScrollbarCfg, layout *Layout, w *Window) {
 // that initiates a drag via MouseLock.
 func makeScrollbarOnMouseDown(cfg ScrollbarCfg) func(*Layout, *Event, *Window) {
 	orientation := cfg.Orientation
-	idScroll := cfg.IDScroll
+	scrollID := cfg.ScrollID
 	return func(_ *Layout, e *Event, w *Window) {
 		w.MouseLock(MouseLockCfg{
 			MouseMove: func(layout *Layout, e *Event, w *Window) {
-				scrollbarMouseMove(orientation, idScroll, layout, e, w)
+				scrollbarMouseMove(orientation, scrollID, layout, e, w)
 			},
 			MouseUp: func(_ *Layout, _ *Event, w *Window) {
 				w.MouseUnlock()
@@ -234,19 +234,19 @@ func makeScrollbarOnMouseDown(cfg ScrollbarCfg) func(*Layout, *Event, *Window) {
 // for continued dragging.
 func makeScrollbarGutterClick(cfg ScrollbarCfg) func(*Layout, *Event, *Window) {
 	orientation := cfg.Orientation
-	idScroll := cfg.IDScroll
+	scrollID := cfg.ScrollID
 	return func(_ *Layout, e *Event, w *Window) {
 		if w.MouseIsLocked() {
 			return
 		}
 		if orientation == ScrollbarHorizontal {
-			offsetFromMouseX(&w.layout, e.MouseX, idScroll, w)
+			offsetFromMouseX(&w.layout, e.MouseX, scrollID, w)
 		} else {
-			offsetFromMouseY(&w.layout, e.MouseY, idScroll, w)
+			offsetFromMouseY(&w.layout, e.MouseY, scrollID, w)
 		}
 		w.MouseLock(MouseLockCfg{
 			MouseMove: func(layout *Layout, e *Event, w *Window) {
-				scrollbarMouseMove(orientation, idScroll, layout, e, w)
+				scrollbarMouseMove(orientation, scrollID, layout, e, w)
 			},
 			MouseUp: func(_ *Layout, _ *Event, w *Window) {
 				w.MouseUnlock()
@@ -257,8 +257,8 @@ func makeScrollbarGutterClick(cfg ScrollbarCfg) func(*Layout, *Event, *Window) {
 }
 
 // scrollbarMouseMove handles mouse movement during thumb drag.
-func scrollbarMouseMove(orientation ScrollbarOrientation, idScroll uint32, layout *Layout, e *Event, w *Window) {
-	ly, ok := FindLayoutByIDScroll(layout, idScroll)
+func scrollbarMouseMove(orientation ScrollbarOrientation, scrollID string, layout *Layout, e *Event, w *Window) {
+	ly, ok := FindLayoutByScrollID(layout, scrollID)
 	if !ok {
 		return
 	}
@@ -266,18 +266,18 @@ func scrollbarMouseMove(orientation ScrollbarOrientation, idScroll uint32, layou
 		if e.MouseX >= ly.Shape.X-scrollExtend &&
 			e.MouseX <= ly.Shape.X+ly.Shape.Width+scrollExtend {
 			sx := w.scrollX()
-			offset := offsetMouseChangeX(sx, ly, e.MouseDX, idScroll)
-			sx.Set(idScroll, offset)
-			scrollSmoothCancel(w, idScroll, scrollAxisX)
+			offset := offsetMouseChangeX(sx, ly, e.MouseDX, scrollID)
+			sx.Set(scrollID, offset)
+			scrollSmoothCancel(w, scrollID, scrollAxisX)
 			fireOnScroll(ly, w)
 		}
 	} else {
 		if e.MouseY >= ly.Shape.Y-scrollExtend &&
 			e.MouseY <= ly.Shape.Y+ly.Shape.Height+scrollExtend {
 			sy := w.scrollY()
-			offset := offsetMouseChangeY(sy, ly, e.MouseDY, idScroll)
-			sy.Set(idScroll, offset)
-			scrollSmoothCancel(w, idScroll, scrollAxisY)
+			offset := offsetMouseChangeY(sy, ly, e.MouseDY, scrollID)
+			sy.Set(scrollID, offset)
+			scrollSmoothCancel(w, scrollID, scrollAxisY)
 			fireOnScroll(ly, w)
 		}
 	}
@@ -285,10 +285,10 @@ func scrollbarMouseMove(orientation ScrollbarOrientation, idScroll uint32, layou
 
 // offsetMouseChangeX calculates new horizontal offset based on
 // mouse movement delta.
-func offsetMouseChangeX(sx *BoundedMap[uint32, float32], layout *Layout, mouseDX float32, idScroll uint32) float32 {
+func offsetMouseChangeX(sx *BoundedMap[string, float32], layout *Layout, mouseDX float32, scrollID string) float32 {
 	totalWidth := contentWidth(layout)
 	shapeWidth := layout.Shape.Width - layout.Shape.paddingWidth()
-	oldOffset, _ := sx.Get(idScroll) // ok ignored: zero offset is correct initial scroll
+	oldOffset, _ := sx.Get(scrollID) // ok ignored: zero offset is correct initial scroll
 	newOffset := mouseDX * (totalWidth / shapeWidth)
 	offset := oldOffset - newOffset
 	return f32Min(0, f32Max(offset, shapeWidth-totalWidth))
@@ -296,10 +296,10 @@ func offsetMouseChangeX(sx *BoundedMap[uint32, float32], layout *Layout, mouseDX
 
 // offsetMouseChangeY calculates new vertical offset based on
 // mouse movement delta.
-func offsetMouseChangeY(sy *BoundedMap[uint32, float32], layout *Layout, mouseDY float32, idScroll uint32) float32 {
+func offsetMouseChangeY(sy *BoundedMap[string, float32], layout *Layout, mouseDY float32, scrollID string) float32 {
 	totalHeight := contentHeight(layout)
 	shapeHeight := layout.Shape.Height - layout.Shape.paddingHeight()
-	oldOffset, _ := sy.Get(idScroll) // ok ignored: zero offset is correct initial scroll
+	oldOffset, _ := sy.Get(scrollID) // ok ignored: zero offset is correct initial scroll
 	newOffset := mouseDY * (totalHeight / shapeHeight)
 	offset := oldOffset - newOffset
 	return f32Min(0, f32Max(offset, shapeHeight-totalHeight))
@@ -307,8 +307,8 @@ func offsetMouseChangeY(sy *BoundedMap[uint32, float32], layout *Layout, mouseDY
 
 // offsetFromMouseX calculates and applies horizontal offset
 // from absolute mouse x position.
-func offsetFromMouseX(layout *Layout, mouseX float32, idScroll uint32, w *Window) {
-	sb, ok := FindLayoutByIDScroll(layout, idScroll)
+func offsetFromMouseX(layout *Layout, mouseX float32, scrollID string, w *Window) {
+	sb, ok := FindLayoutByScrollID(layout, scrollID)
 	if !ok {
 		return
 	}
@@ -322,15 +322,15 @@ func offsetFromMouseX(layout *Layout, mouseX float32, idScroll uint32, w *Window
 		percent = 1
 	}
 	sx := w.scrollX()
-	sx.Set(idScroll, -percent*(totalWidth-sb.Shape.Width))
-	scrollSmoothCancel(w, idScroll, scrollAxisX)
+	sx.Set(scrollID, -percent*(totalWidth-sb.Shape.Width))
+	scrollSmoothCancel(w, scrollID, scrollAxisX)
 	fireOnScroll(sb, w)
 }
 
 // offsetFromMouseY calculates and applies vertical offset
 // from absolute mouse y position.
-func offsetFromMouseY(layout *Layout, mouseY float32, idScroll uint32, w *Window) {
-	sb, ok := FindLayoutByIDScroll(layout, idScroll)
+func offsetFromMouseY(layout *Layout, mouseY float32, scrollID string, w *Window) {
+	sb, ok := FindLayoutByScrollID(layout, scrollID)
 	if !ok {
 		return
 	}
@@ -344,7 +344,7 @@ func offsetFromMouseY(layout *Layout, mouseY float32, idScroll uint32, w *Window
 		percent = 1
 	}
 	sy := w.scrollY()
-	sy.Set(idScroll, -percent*(totalHeight-sb.Shape.Height))
-	scrollSmoothCancel(w, idScroll, scrollAxisY)
+	sy.Set(scrollID, -percent*(totalHeight-sb.Shape.Height))
+	scrollSmoothCancel(w, scrollID, scrollAxisY)
 	fireOnScroll(sb, w)
 }

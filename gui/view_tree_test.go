@@ -165,9 +165,9 @@ func TestTreeCollectFlatRowsLazyAutoClear(t *testing.T) {
 
 func TestTreeVisibleRange(t *testing.T) {
 	w := newTestWindow()
-	w.scrollY().Set(55, -40)
+	w.scrollY().Set("55", -40)
 
-	gotFirst, gotLast := treeVisibleRange(50, 20, 100, 55, w)
+	gotFirst, gotLast := treeVisibleRange(50, 20, 100, "55", w)
 	wantFirst, wantLast := listCoreVisibleRange(100, 20, 50, -40)
 	if gotFirst != wantFirst || gotLast != wantLast {
 		t.Fatalf("treeVisibleRange() = (%d, %d), want (%d, %d)", gotFirst, gotLast, wantFirst, wantLast)
@@ -264,19 +264,19 @@ func TestTreeOnKeyDownNavigation(t *testing.T) {
 	treeFocusedSet(w, "tree", "b")
 
 	eUp := &Event{KeyCode: KeyUp}
-	treeOnKeyDown("tree", visibleIDs, rowByID, nil, nil, 0, 0, 0, eUp, w)
+	treeOnKeyDown("tree", visibleIDs, rowByID, nil, nil, "", 0, 0, eUp, w)
 	if got := StateReadOr(w, nsTreeFocus, "tree", ""); got != "a" {
 		t.Fatalf("focus after KeyUp = %q, want %q", got, "a")
 	}
 
 	eEnd := &Event{KeyCode: KeyEnd}
-	treeOnKeyDown("tree", visibleIDs, rowByID, nil, nil, 0, 0, 0, eEnd, w)
+	treeOnKeyDown("tree", visibleIDs, rowByID, nil, nil, "", 0, 0, eEnd, w)
 	if got := StateReadOr(w, nsTreeFocus, "tree", ""); got != "c" {
 		t.Fatalf("focus after KeyEnd = %q, want %q", got, "c")
 	}
 
 	eHome := &Event{KeyCode: KeyHome}
-	treeOnKeyDown("tree", visibleIDs, rowByID, nil, nil, 0, 0, 0, eHome, w)
+	treeOnKeyDown("tree", visibleIDs, rowByID, nil, nil, "", 0, 0, eHome, w)
 	if got := StateReadOr(w, nsTreeFocus, "tree", ""); got != "a" {
 		t.Fatalf("focus after KeyHome = %q, want %q", got, "a")
 	}
@@ -289,7 +289,7 @@ func TestTreeOnKeyDownNavigation(t *testing.T) {
 		rowByID,
 		func(id string, _ *Event, _ *Window) { selectedID = id },
 		nil,
-		0, 0, 0,
+		"", 0, 0,
 		eEnter,
 		w,
 	)
@@ -319,7 +319,7 @@ func TestTreeOnKeyDownLeftCollapses(t *testing.T) {
 		},
 		nil,
 		nil,
-		0, 0, 0,
+		"", 0, 0,
 		&Event{KeyCode: KeyLeft},
 		w,
 	)
@@ -353,8 +353,8 @@ func TestTreeOnKeyDownRightTriggersLazyLoad(t *testing.T) {
 	}
 
 	eRight := &Event{KeyCode: KeyRight}
-	treeOnKeyDown("tree", visibleIDs, rowByID, nil, onLazyLoad, 0, 0, 0, eRight, w)
-	treeOnKeyDown("tree", visibleIDs, rowByID, nil, onLazyLoad, 0, 0, 0, &Event{KeyCode: KeyRight}, w)
+	treeOnKeyDown("tree", visibleIDs, rowByID, nil, onLazyLoad, "", 0, 0, eRight, w)
+	treeOnKeyDown("tree", visibleIDs, rowByID, nil, onLazyLoad, "", 0, 0, &Event{KeyCode: KeyRight}, w)
 
 	if !treeExpandedState(w, "tree")["remote"] {
 		t.Fatal("remote should be expanded after KeyRight")

@@ -4,8 +4,9 @@ import "testing"
 
 func TestContainerIDScrollAutoAppendsScrollbars(t *testing.T) {
 	v := Column(ContainerCfg{
-		IDScroll: 1,
-		Content:  []View{Rectangle(RectangleCfg{})},
+		Scrollable: true,
+		ID:         "test-scroll-1",
+		Content:    []View{Rectangle(RectangleCfg{})},
 	})
 	cv := v.(*containerView)
 	// 1 user child + 2 scrollbars = 3
@@ -16,7 +17,8 @@ func TestContainerIDScrollAutoAppendsScrollbars(t *testing.T) {
 
 func TestContainerScrollbarCfgXHiddenSuppresses(t *testing.T) {
 	v := Column(ContainerCfg{
-		IDScroll:      2,
+		Scrollable:    true,
+		ID:            "test-scroll-2",
 		ScrollbarCfgX: &ScrollbarCfg{Overflow: ScrollbarHidden},
 		Content:       []View{Rectangle(RectangleCfg{})},
 	})
@@ -30,7 +32,8 @@ func TestContainerScrollbarCfgXHiddenSuppresses(t *testing.T) {
 func TestContainerScrollbarCfgYOverrides(t *testing.T) {
 	customThumb := RGB(255, 0, 0)
 	v := Column(ContainerCfg{
-		IDScroll:      3,
+		Scrollable:    true,
+		ID:            "test-scroll-3",
 		ScrollbarCfgY: &ScrollbarCfg{ColorThumb: customThumb},
 		Content:       []View{Rectangle(RectangleCfg{})},
 	})

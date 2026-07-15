@@ -132,7 +132,7 @@ type dragReorderState struct {
 	itemHeight        float32
 	parentX           float32
 	parentY           float32
-	idScroll          uint32
+	scrollID          string
 	containerStart    float32
 	containerEnd      float32
 	startScrollX      float32
@@ -207,7 +207,7 @@ type dragReorderStartCfg struct {
 	ItemLayoutIDs []string
 	Index         int
 	MidsOffset    int
-	IDScroll      uint32
+	ScrollID      string
 	Axis          DragReorderAxis
 }
 
@@ -223,7 +223,7 @@ func dragReorderStart(cfg dragReorderStartCfg, w *Window) {
 	onReorder := cfg.OnReorder
 	itemLayoutIDs := cfg.ItemLayoutIDs
 	midsOffset := cfg.MidsOffset
-	idScroll := cfg.IDScroll
+	scrollID := cfg.ScrollID
 	layout := cfg.Layout
 	e := cfg.Event
 	var parentX, parentY float32
@@ -233,7 +233,7 @@ func dragReorderStart(cfg dragReorderStartCfg, w *Window) {
 	}
 
 	var containerStart, containerEnd float32
-	if idScroll > 0 && layout.Parent != nil {
+	if scrollID != "" && layout.Parent != nil {
 		switch axis {
 		case DragReorderVertical:
 			containerStart = layout.Parent.Shape.Y
@@ -247,12 +247,12 @@ func dragReorderStart(cfg dragReorderStartCfg, w *Window) {
 	}
 
 	var startScrollX, startScrollY float32
-	if idScroll > 0 {
+	if scrollID != "" {
 		if smx := w.scrollXRead(); smx != nil {
-			startScrollX, _ = smx.Get(idScroll)
+			startScrollX, _ = smx.Get(scrollID)
 		}
 		if smy := w.scrollYRead(); smy != nil {
-			startScrollY, _ = smy.Get(idScroll)
+			startScrollY, _ = smy.Get(scrollID)
 		}
 	}
 
@@ -287,7 +287,7 @@ func dragReorderStart(cfg dragReorderStartCfg, w *Window) {
 		parentX:        parentX,
 		parentY:        parentY,
 		itemID:         itemID,
-		idScroll:       idScroll,
+		scrollID:       scrollID,
 		containerStart: containerStart,
 		containerEnd:   containerEnd,
 		startScrollX:   startScrollX,
@@ -376,13 +376,13 @@ func dragReorderOnMouseMove(
 	mouseOrig := mouseMain
 	scrolledSinceStart := false
 
-	if state.idScroll > 0 {
+	if state.scrollID != "" {
 		var scrollVal float32
 		switch axis {
 		case DragReorderVertical:
-			scrollVal, _ = w.scrollY().Get(state.idScroll)
+			scrollVal, _ = w.scrollY().Get(state.scrollID)
 		case DragReorderHorizontal:
-			scrollVal, _ = w.scrollX().Get(state.idScroll)
+			scrollVal, _ = w.scrollX().Get(state.scrollID)
 		}
 		var startScroll float32
 		switch axis {
@@ -420,7 +420,7 @@ func dragReorderOnMouseMove(
 
 	didScroll := dragReorderAutoScroll(
 		mouseOrig, state.containerStart, state.containerEnd,
-		state.idScroll, axis, w)
+		state.scrollID, axis, w)
 
 	if didScroll && !state.scrollTimerActive {
 		state.scrollTimerActive = true
@@ -524,11 +524,11 @@ func dragReorderCancel(dragKey string, w *Window) {
 // of a scrollable container and scrolls accordingly.
 func dragReorderAutoScroll(
 	mouseMain, containerStart, containerEnd float32,
-	idScroll uint32,
+	scrollID string,
 	axis DragReorderAxis,
 	w *Window,
 ) bool {
-	if idScroll == 0 {
+	if scrollID == "" {
 		return false
 	}
 	nearStart := mouseMain - containerStart
@@ -540,9 +540,9 @@ func dragReorderAutoScroll(
 		if delta != 0 {
 			switch axis {
 			case DragReorderVertical:
-				w.ScrollVerticalBy(idScroll, delta)
+				w.ScrollVerticalBy(scrollID, delta)
 			case DragReorderHorizontal:
-				w.ScrollHorizontalBy(idScroll, delta)
+				w.ScrollHorizontalBy(scrollID, delta)
 			}
 			return true
 		}
@@ -552,9 +552,9 @@ func dragReorderAutoScroll(
 		if delta != 0 {
 			switch axis {
 			case DragReorderVertical:
-				w.ScrollVerticalBy(idScroll, delta)
+				w.ScrollVerticalBy(scrollID, delta)
 			case DragReorderHorizontal:
-				w.ScrollHorizontalBy(idScroll, delta)
+				w.ScrollHorizontalBy(scrollID, delta)
 			}
 			return true
 		}

@@ -525,7 +525,7 @@ func gestureHandler(layout *Layout, e *Event, w *Window) {
 	// Pan fallback: auto-scroll containers.
 	if e.GestureType == GesturePan &&
 		e.GesturePhase == GesturePhaseChanged &&
-		layout.Shape.IDScroll > 0 {
+		layout.Shape.Scrollable {
 		scrollVertical(layout, e.GestureDY, w)
 		scrollHorizontal(layout, e.GestureDX, w)
 		e.IsHandled = true

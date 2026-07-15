@@ -35,17 +35,19 @@ type ListBoxCfg struct {
 	// Items is a convenience field for simple string lists. Each
 	// string becomes a ListBoxOption with ID==Name==Value. When
 	// set, Items takes precedence over Data.
-	Items       []string
-	Data        []ListBoxOption
-	Padding     Opt[Padding]
-	Radius      Opt[float32]
-	SizeBorder  Opt[float32]
-	Height      float32
-	MinWidth    float32
-	MaxWidth    float32
-	MinHeight   float32
-	MaxHeight   float32
-	IDScroll    uint32
+	Items      []string
+	Data       []ListBoxOption
+	Padding    Opt[Padding]
+	Radius     Opt[float32]
+	SizeBorder Opt[float32]
+	Height     float32
+	MinWidth   float32
+	MaxWidth   float32
+	MinHeight  float32
+	MaxHeight  float32
+	// Scrollable opts the list into the scroll system. Scroll state
+	// is keyed by Cfg.ID — pass that same id to Window.ScrollVerticalTo.
+	Scrollable  bool
 	Focusable   bool
 	Color       Color
 	ColorHover  Color
@@ -111,15 +113,15 @@ func ListBox(cfg ListBoxCfg) View {
 	}
 
 	return Column(ContainerCfg{
-		ID:        cfg.ID,
-		A11YRole:  AccessRoleList,
-		A11YLabel: a11yLabel(cfg.A11YLabel, cfg.ID),
-		Focusable: cfg.Focusable,
-		IDScroll:  cfg.IDScroll,
+		ID:         cfg.ID,
+		A11YRole:   AccessRoleList,
+		A11YLabel:  a11yLabel(cfg.A11YLabel, cfg.ID),
+		Focusable:  cfg.Focusable,
+		Scrollable: cfg.Scrollable,
 		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
 			listBoxOnKeyDown(listBoxID, itemIDs,
 				isMultiple, onSelect, selectedIDs,
-				0, 0, 0, nil, e, w)
+				"", 0, 0, nil, e, w)
 		},
 		Width:       cfg.MaxWidth,
 		Height:      cfg.Height,
@@ -141,7 +143,7 @@ func ListBox(cfg ListBoxCfg) View {
 }
 
 func listBoxCanVirtualize(cfg *ListBoxCfg) bool {
-	if cfg == nil || cfg.IDScroll == 0 {
+	if cfg == nil || !cfg.Scrollable {
 		return false
 	}
 	return cfg.Height > 0 || cfg.MaxHeight > 0
@@ -184,7 +186,7 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 	}
 	dragging := canReorder && drag.active && !drag.cancelled
 	onReorder := cfg.OnReorder
-	idScroll := cfg.IDScroll
+	scrollID := cfg.ID
 
 	dragIdxByRow := listBoxDragIndexByRow(cfg, canReorder)
 	itemLayoutIDs, midsOffset := listBoxItemLayoutIDs(
@@ -196,7 +198,7 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 
 	list, ghostContent := listBoxBuildItems(
 		cfg, selectedSet, focusedID, dragIdxByRow,
-		itemIDs, itemLayoutIDs, midsOffset, idScroll,
+		itemIDs, itemLayoutIDs, midsOffset, scrollID,
 		canReorder, dragging, drag,
 		virtualize, first, last)
 
@@ -210,11 +212,11 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 	}
 
 	return generateViewLayout(Column(ContainerCfg{
-		ID:        cfg.ID,
-		A11YRole:  AccessRoleList,
-		A11YLabel: a11yLabel(cfg.A11YLabel, cfg.ID),
-		Focusable: cfg.Focusable,
-		IDScroll:  cfg.IDScroll,
+		ID:         cfg.ID,
+		A11YRole:   AccessRoleList,
+		A11YLabel:  a11yLabel(cfg.A11YLabel, cfg.ID),
+		Focusable:  cfg.Focusable,
+		Scrollable: cfg.Scrollable,
 		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
 			if canReorder {
 				if dragReorderEscape(
@@ -235,7 +237,7 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 			}
 			listBoxOnKeyDown(listBoxID, itemIDs,
 				isMultiple, onSelect, selectedIDs,
-				idScroll, rowH, listH, itemDataIndices, e, w)
+				scrollID, rowH, listH, itemDataIndices, e, w)
 		},
 		Width:       cfg.MaxWidth,
 		Height:      cfg.Height,
@@ -290,14 +292,14 @@ func listBoxVisibleRange(
 ) (first, last int, virtualize bool, listH, rowH float32) {
 	first = 0
 	last = len(cfg.Data) - 1
-	virtualize = cfg.IDScroll > 0
+	virtualize = cfg.Scrollable
 	listH = cfg.Height
 	if listH <= 0 {
 		listH = cfg.MaxHeight
 	}
 	rowH = listCoreRowHeightEstimate(cfg.TextStyle, listBoxItemPad)
 	if virtualize && listH > 0 && len(cfg.Data) > 0 {
-		scrollY, _ := w.scrollY().Get(cfg.IDScroll)
+		scrollY, _ := w.scrollY().Get(cfg.ID)
 		first, last = listCoreVisibleRange(
 			len(cfg.Data), rowH, listH, scrollY)
 	} else {
@@ -361,7 +363,7 @@ func listBoxBuildItems(
 	focusedID string,
 	dragIdxByRow []int,
 	itemIDs, itemLayoutIDs []string,
-	midsOffset int, idScroll uint32,
+	midsOffset int, scrollID string,
 	canReorder, dragging bool,
 	drag dragReorderState,
 	virtualize bool, first, last int,
@@ -411,7 +413,7 @@ func listBoxBuildItems(
 		if canReorder && isDraggable {
 			list = append(list, listBoxReorderItemView(
 				cfg.Data[idx], *cfg, selectedSet, di,
-				itemIDs, itemLayoutIDs, midsOffset, idScroll))
+				itemIDs, itemLayoutIDs, midsOffset, scrollID))
 		} else {
 			list = append(list,
 				listBoxItemView(
@@ -491,7 +493,7 @@ func listBoxReorderItemView(
 	itemIDs []string,
 	itemLayoutIDs []string,
 	midsOffset int,
-	idScroll uint32,
+	scrollID string,
 ) View {
 	color := ColorTransparent
 	if listCoreContainsSelected(selectedSet, cfg.SelectedIDs, dat.ID) {
@@ -534,7 +536,7 @@ func listBoxReorderItemView(
 				OnReorder:     onReorder,
 				ItemLayoutIDs: itemLayoutIDs,
 				MidsOffset:    midsOffset,
-				IDScroll:      idScroll,
+				ScrollID:      scrollID,
 				Layout:        layout,
 				Event:         e,
 			}, w)
@@ -603,7 +605,7 @@ func listBoxOnKeyDown(
 	isMultiple bool,
 	onSelect func([]string, *Event, *Window),
 	selectedIDs []string,
-	idScroll uint32, rowH, listH float32,
+	scrollID string, rowH, listH float32,
 	itemDataIndices []int,
 	e *Event,
 	w *Window,
@@ -637,8 +639,8 @@ func listBoxOnKeyDown(
 	next, changed := listCoreApplyNav(action, curIdx, len(itemIDs))
 	if changed {
 		lbf.Set(listBoxID, next)
-		if idScroll > 0 && rowH > 0 {
-			scrollEnsureVisible(idScroll,
+		if scrollID != "" && rowH > 0 {
+			scrollEnsureVisible(scrollID,
 				listBoxDataIndex(itemDataIndices, next),
 				rowH, listH, w)
 		}

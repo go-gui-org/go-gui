@@ -5,6 +5,61 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.35.0] - 2026-07-15
+
+### Changed
+
+- **BREAKING — Scroll API**: `Shape.IDScroll uint32` is replaced by
+  `Scrollable bool` plus string scroll identity (the widget's `ID`). A
+  container opts into the scroll system with `Scrollable: true` and a
+  non-empty `ID`; scroll offset is keyed by that `ID`. Migration:
+  `IDScroll: N` → `Scrollable: true` (with a non-empty `ID`). Scrollable
+  containers now panic at build if `ID` is empty (`RequireScrollID`).
+- **BREAKING — Lost scroll handle**: the caller-supplied `IDScroll uint32`
+  is removed from `ContainerCfg`, `ListBoxCfg`, `TreeCfg`, `TableCfg`,
+  `ComboboxCfg`, `CommandPaletteCfg`, `InputCfg` and `DataGridCfg`. The
+  scroll key is now *derived* from the widget's `ID`; pass that same
+  derived string to `Window.ScrollVerticalTo`/`ScrollHorizontalTo`/`…Pct`
+  etc. Derived keys:
+
+  | Cfg | scroll key |
+  |-----|------------|
+  | `ContainerCfg`, `ListBoxCfg`, `TreeCfg`, `InputCfg` | `cfg.ID` |
+  | `TableCfg` | `cfg.ID`, or `cfg.ID + ":scroll"` when `FreezeHeader` |
+  | `ComboboxCfg` | `cfg.ID + ".dropdown"` |
+  | `CommandPaletteCfg` | `cfg.ID + ":scroll"` |
+  | `DataGridCfg` | `cfg.ID + ":scroll"` |
+
+  `DataGridCfg.IDScroll` (an identity override) is deleted, not migrated;
+  the key always derives from `cfg.ID + ":scroll"`.
+- **BREAKING — Window scroll offset maps**: `Window.ScrollX()` and
+  `Window.ScrollY()` now return `*BoundedMap[string, float32]` (was
+  `*BoundedMap[uint32, float32]`). All `Window.Scroll*` methods
+  (`ScrollHorizontalBy/To/ToPct/Pct`, `ScrollVerticalBy/To/ToPct/Pct`)
+  and `FindLayoutByScrollID` (renamed from `FindLayoutByIDScroll`) take a
+  `string` id.
+- **BREAKING — Scrollbar/command-palette cfgs**: `ScrollbarCfg.IDScroll
+  uint32` → `ScrollID string` (points at the target container's scroll
+  key). `CommandPaletteShow`/`CommandPaletteToggle` drop the `idScroll`
+  parameter; Show always resets the results scroll (keyed
+  `id + ":scroll"`) to the top.
+- **Scroll internals**: the scroll-offset maps are rekeyed uint32→string,
+  which sidesteps the `BoundedMap[uint32]` generic lookup penalty
+  ([#77](https://github.com/go-gui-org/go-gui/issues/77)); FnvSum32
+  scroll-hash derivation removed from Select, Combobox, DataGrid and the
+  theme picker. `Shape` shrinks 272 → 264 bytes (this change −8 with the
+  `IDScrollContainer` removal below).
+
+### Removed
+
+- Dead `Shape.IDScrollContainer uint32` field and its per-frame
+  whole-tree `layoutScrollContainers` pass (zero readers).
+
+### Added
+
+- `BenchmarkViewFrame` gates `sizeof(Shape)` regressions by allocating
+  Shapes inside the hot loop (added to the `bench-gate` target).
+
 ## [v0.34.0] - 2026-07-14
 
 ### Changed

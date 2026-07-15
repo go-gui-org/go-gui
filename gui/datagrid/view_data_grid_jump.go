@@ -18,7 +18,7 @@ type dataGridJumpContext struct {
 	viewportH         float32
 	rowHeight         float32
 	staticTop         float32
-	scrollID          uint32
+	scrollID          string
 	focusID           string
 }
 
@@ -116,7 +116,7 @@ func dataGridJumpToLocalRow(ctx dataGridJumpContext, targetIdx int, e *gg.Event,
 	dataGridScrollRowIntoViewEx(ctx.viewportH, displayIdx, ctx.rowHeight, ctx.staticTop, ctx.scrollID, w)
 }
 
-func dataGridApplyPendingLocalJumpScroll(cfg *DataGridCfg, viewportH, rowHeight, staticTop float32, scrollID uint32, dataToDisplay map[int]int, w *gg.Window) {
+func dataGridApplyPendingLocalJumpScroll(cfg *DataGridCfg, viewportH, rowHeight, staticTop float32, scrollID string, dataToDisplay map[int]int, w *gg.Window) {
 	dgPJ := gg.StateMap[string, int](w, nsDgPendingJump, capModerate)
 	targetIdx, ok := dgPJ.Get(cfg.ID)
 	if !ok {
@@ -137,7 +137,7 @@ func dataGridApplyPendingLocalJumpScroll(cfg *DataGridCfg, viewportH, rowHeight,
 
 // --- Scroll ---
 
-func dataGridScrollRowIntoViewEx(viewportH float32, rowIdx int, rowHeight, staticTop float32, scrollID uint32, w *gg.Window) {
+func dataGridScrollRowIntoViewEx(viewportH float32, rowIdx int, rowHeight, staticTop float32, scrollID string, w *gg.Window) {
 	if viewportH <= 0 || rowHeight <= 0 {
 		return
 	}

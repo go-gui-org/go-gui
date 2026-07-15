@@ -92,14 +92,14 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 
 	// Find nearest scroll ancestor.
 	var lastMouseX, lastMouseY float32
-	scrollID := uint32(0)
+	scrollID := ""
 	dragScrollY0 := float32(0)
 	viewTop := float32(0)
 	viewBot := float32(0)
 	maxScrollNeg := float32(0)
 	for p := layout.Parent; p != nil; p = p.Parent {
-		if p.Shape != nil && p.Shape.IDScroll > 0 {
-			scrollID = p.Shape.IDScroll
+		if p.Shape != nil && p.Shape.Scrollable {
+			scrollID = p.Shape.ID
 			sy := w.scrollY()
 			dragScrollY0, _ = sy.Get(scrollID)
 			sp := p.Shape
@@ -117,7 +117,7 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 	) int {
 		if dragGLOK {
 			scrollDelta := float32(0)
-			if scrollID > 0 {
+			if scrollID != "" {
 				sy := w.scrollY()
 				sNow, _ := sy.Get(scrollID)
 				scrollDelta = sNow - dragScrollY0
@@ -202,7 +202,7 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 			rp := computeRunePos(
 				e.MouseX, e.MouseY, w)
 			updateDragSelection(rp, w)
-			if scrollID > 0 {
+			if scrollID != "" {
 				outside := e.MouseY < viewTop ||
 					e.MouseY > viewBot
 				if outside && !w.HasAnimation(

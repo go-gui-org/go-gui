@@ -230,8 +230,9 @@ func benchView(w *gui.Window) gui.View {
 			}),
 			// Widget area.
 			gui.Column(gui.ContainerCfg{
-				Sizing:   gui.FillFill,
-				IDScroll: 1,
+				ID:         "widget-scroll",
+				Sizing:     gui.FillFill,
+				Scrollable: true,
 				Content: []gui.View{
 					gui.Wrap(gui.ContainerCfg{
 						Sizing:  gui.FillFit,

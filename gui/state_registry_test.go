@@ -98,14 +98,14 @@ func TestClearViewStateClearsHotMaps(t *testing.T) {
 	w := &Window{}
 	// Populate hot maps.
 	sy := w.scrollY()
-	sy.Set(1, float32(-50))
+	sy.Set("1", float32(-50))
 	sx := w.scrollX()
-	sx.Set(2, float32(-30))
+	sx.Set("2", float32(-30))
 	w.hoverInside().Set("h", true)
 	w.overflow().Set("o", 5)
 
 	// Verify values are present.
-	if v, ok := sy.Get(1); !ok || v != -50 {
+	if v, ok := sy.Get("1"); !ok || v != -50 {
 		t.Errorf("scrollY before clear: got %v, %v", v, ok)
 	}
 
@@ -117,10 +117,10 @@ func TestClearViewStateClearsHotMaps(t *testing.T) {
 	if sy2 == sy {
 		t.Error("scrollY should be a new instance after clear")
 	}
-	if _, ok := sy2.Get(1); ok {
+	if _, ok := sy2.Get("1"); ok {
 		t.Error("scrollY value should be cleared")
 	}
-	if _, ok := w.scrollX().Get(2); ok {
+	if _, ok := w.scrollX().Get("2"); ok {
 		t.Error("scrollX value should be cleared")
 	}
 	if _, ok := w.hoverInside().Get("h"); ok {
@@ -135,13 +135,13 @@ func TestHotMapAccessorSameInstance(t *testing.T) {
 	w := &Window{}
 
 	sy1 := w.scrollY()
-	sy1.Set(1, float32(-42))
+	sy1.Set("1", float32(-42))
 
 	sy2 := w.scrollY()
 	if sy1 != sy2 {
 		t.Error("scrollY should return same instance across calls")
 	}
-	if v, ok := sy2.Get(1); !ok || v != -42 {
+	if v, ok := sy2.Get("1"); !ok || v != -42 {
 		t.Errorf("value not preserved across accessor calls: %v, %v", v, ok)
 	}
 

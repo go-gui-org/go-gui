@@ -30,8 +30,9 @@ func scrollLayout() *Layout {
 		},
 		Children: []Layout{{
 			Shape: &Shape{
-				IDScroll: 1,
-				Width:    400, Height: 200,
+				Scrollable: true,
+				ID:         "1",
+				Width:      400, Height: 200,
 				Axis: AxisTopToBottom,
 				shapeClip: drawClip{
 					X: 0, Y: 0, Width: 400, Height: 200,
@@ -462,7 +463,7 @@ func TestPanFallbackScroll(t *testing.T) {
 	w.handleTouch(root, touchEvent(EventTouchesMoved, 1, 100, 60))
 
 	sy := w.scrollY()
-	v, _ := sy.Get(1) // IDScroll = 1
+	v, _ := sy.Get("1") // scroll ID = "1"
 	if v == 0 {
 		t.Error("expected scroll offset to change from pan")
 	}

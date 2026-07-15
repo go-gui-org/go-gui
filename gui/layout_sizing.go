@@ -120,7 +120,7 @@ func clampMinMax(shape *Shape, axis distributeAxis) {
 // containers to fit parent's remaining space, clamps to min/max, and
 // propagates fill size to children.
 func layoutFillCrossAxis(layout *Layout, axis distributeAxis, fb *fillBuffers) {
-	if layout.Shape.IDScroll > 0 && getSizing(layout.Shape, axis) == SizingFill &&
+	if layout.Shape.Scrollable && getSizing(layout.Shape, axis) == SizingFill &&
 		!scrollExcludesAxis(layout.Shape.ScrollMode, axis) &&
 		layout.Parent != nil && layout.Parent.Shape.Axis == mainAxisOf(axis) {
 		// Use cached sibling sum from parent Shape to avoid O(n²)
@@ -430,7 +430,7 @@ func layoutHeights(layout *Layout) {
 			if layout.Shape.MinHeight > 0 {
 				layout.Shape.Height = f32Max(layout.Shape.MinHeight, layout.Shape.Height)
 			}
-			if layout.Shape.Sizing.Height == SizingFill && layout.Shape.IDScroll > 0 {
+			if layout.Shape.Sizing.Height == SizingFill && layout.Shape.Scrollable {
 				layout.Shape.MinHeight = spacingSmall
 			}
 		}

@@ -62,15 +62,6 @@ type Shape struct {
 	// anchor position after FloatAnchor/FloatTieOff alignment.
 	FloatOffsetY float32
 
-	// IDScroll > 0 makes the widget respond to scroll events
-	// (mouse wheel, trackpad). Used with ScrollMode to control
-	// which axes scroll.
-	IDScroll uint32
-
-	// IDScrollContainer identifies a parent scroll container.
-	// When set, scroll events bubble up to the matching IDScroll.
-	IDScrollContainer uint32
-
 	// SizeBorder is the width of the border drawn inside the
 	// layout bounds. Affects content area calculation.
 	SizeBorder float32
@@ -133,6 +124,12 @@ type Shape struct {
 	// (used by Text/Rtf/Markdown selection).
 	FocusSkip bool
 
+	// Scrollable makes the widget respond to scroll events (mouse
+	// wheel, trackpad) and injects scrollbars. Scroll offset is keyed
+	// by ID, so a Scrollable shape requires a non-empty ID. Used with
+	// ScrollMode to control which axes scroll.
+	Scrollable bool
+
 	// OverDraw draws this element on top of siblings in the same
 	// container without affecting layout. Used for overlays,
 	// tooltips, and drag indicators.
@@ -150,7 +147,7 @@ type Shape struct {
 
 	// Overflow allows content to extend beyond this element's
 	// bounds. When false (default), content is clipped. When
-	// true, scrollbars may appear if IDScroll is set.
+	// true, scrollbars may appear if Scrollable is set.
 	Overflow bool
 
 	// QuarterTurns rotates the element in 90° clockwise

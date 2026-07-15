@@ -59,14 +59,14 @@ func TestComboboxKeyDownOpenClose(t *testing.T) {
 
 	// Open via Enter.
 	e := &Event{KeyCode: KeyEnter}
-	comboboxOnKeyDown("cb-kd", onSel, "", []string{"x", "y"}, 0, 0, 0, e, w)
+	comboboxOnKeyDown("cb-kd", onSel, "", []string{"x", "y"}, "", 0, 0, e, w)
 	if !StateReadOr(w, nsCombobox, "cb-kd", false) {
 		t.Error("enter should open")
 	}
 
 	// Select via Enter.
 	e = &Event{KeyCode: KeyEnter}
-	comboboxOnKeyDown("cb-kd", onSel, "", []string{"x", "y"}, 0, 0, 0, e, w)
+	comboboxOnKeyDown("cb-kd", onSel, "", []string{"x", "y"}, "", 0, 0, e, w)
 	if called != "x" {
 		t.Errorf("selected = %q, want x", called)
 	}
@@ -74,7 +74,7 @@ func TestComboboxKeyDownOpenClose(t *testing.T) {
 
 func TestComboboxKeyNavScrolls(t *testing.T) {
 	w := &Window{}
-	var idScroll uint32 = 77
+	idScroll := "77"
 	rowH := float32(26)
 	listH := float32(187)
 	ids := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
@@ -113,7 +113,7 @@ func TestComboboxDefaults(t *testing.T) {
 
 func TestScrollEnsureVisible(t *testing.T) {
 	w := &Window{}
-	var idScroll uint32 = 50
+	idScroll := "50"
 	rowH := float32(26)
 	listH := float32(187)
 
@@ -147,7 +147,7 @@ func TestComboboxBackspaceNotDelete(t *testing.T) {
 
 	// Delete key should not remove characters.
 	e := &Event{KeyCode: KeyDelete}
-	comboboxOnKeyDown(id, nil, "", []string{"a"}, 0, 0, 0, e, w)
+	comboboxOnKeyDown(id, nil, "", []string{"a"}, "", 0, 0, e, w)
 	q, _ := sq.Get(id)
 	if q != "abc" {
 		t.Errorf("Delete modified query: got %q, want abc", q)
@@ -155,7 +155,7 @@ func TestComboboxBackspaceNotDelete(t *testing.T) {
 
 	// Backspace should remove the last character.
 	e = &Event{KeyCode: KeyBackspace}
-	comboboxOnKeyDown(id, nil, "", []string{"a"}, 0, 0, 0, e, w)
+	comboboxOnKeyDown(id, nil, "", []string{"a"}, "", 0, 0, e, w)
 	q, _ = sq.Get(id)
 	if q != "ab" {
 		t.Errorf("Backspace: got %q, want ab", q)
@@ -164,7 +164,7 @@ func TestComboboxBackspaceNotDelete(t *testing.T) {
 
 func TestScrollEnsureVisibleSurvivesPipeline(t *testing.T) {
 	w := &Window{}
-	var idScroll uint32 = 60
+	idScroll := "60"
 	rowH := float32(26)
 	listH := float32(187)
 
@@ -184,7 +184,8 @@ func TestScrollEnsureVisibleSurvivesPipeline(t *testing.T) {
 	}
 	dropdown := Layout{
 		Shape: &Shape{
-			IDScroll:   idScroll,
+			Scrollable: true,
+			ID:         idScroll,
 			Height:     200, // MaxHeight clamped
 			Axis:       AxisTopToBottom,
 			Padding:    Padding{Top: 5, Right: 5, Bottom: 5, Left: 5},
@@ -204,7 +205,7 @@ func TestScrollEnsureVisibleSurvivesPipeline(t *testing.T) {
 
 func TestScrollPositionsShiftChildren(t *testing.T) {
 	w := &Window{}
-	var idScroll uint32 = 61
+	idScroll := "61"
 	rowH := float32(26)
 
 	// Set scroll state to -21 (scrolled down).
@@ -222,7 +223,8 @@ func TestScrollPositionsShiftChildren(t *testing.T) {
 	}
 	dropdown := Layout{
 		Shape: &Shape{
-			IDScroll:   idScroll,
+			Scrollable: true,
+			ID:         idScroll,
 			Height:     200,
 			Axis:       AxisTopToBottom,
 			Padding:    Padding{Top: 5, Right: 5, Bottom: 5, Left: 5},
@@ -268,7 +270,7 @@ func TestComboboxScrollEndToEnd(t *testing.T) {
 	w.windowWidth = 800
 	w.windowHeight = 600
 
-	var idScroll uint32 = 88
+	idScroll := "cb-e2e.dropdown"
 	options := []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"}
 
 	// Open the combobox.
@@ -289,10 +291,10 @@ func TestComboboxScrollEndToEnd(t *testing.T) {
 
 	// Generate the layout (simulates next frame).
 	v := Combobox(ComboboxCfg{
-		ID:       "cb-e2e",
-		IDScroll: idScroll,
-		Options:  options,
-		OnSelect: func(_ string, _ *Event, _ *Window) {},
+		ID:         "cb-e2e",
+		Scrollable: true,
+		Options:    options,
+		OnSelect:   func(_ string, _ *Event, _ *Window) {},
 	})
 	layout := generateViewLayout(v, w)
 
@@ -309,7 +311,7 @@ func TestComboboxScrollEndToEnd(t *testing.T) {
 	// Find the dropdown float (has IDScroll).
 	var dropdown *Layout
 	for _, f := range floats {
-		if f.Shape.IDScroll == idScroll {
+		if f.Shape.Scrollable && f.Shape.ID == idScroll {
 			dropdown = f
 			break
 		}

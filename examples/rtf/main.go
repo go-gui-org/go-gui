@@ -72,11 +72,12 @@ func mainView(w *gui.Window) gui.View {
 	}}
 
 	return gui.Column(gui.ContainerCfg{
-		Width:    float32(ww),
-		Height:   float32(wh),
-		Sizing:   gui.FixedFixed,
-		IDScroll: 1,
-		Padding:  gui.SomeP(10, 10, 10, 10),
+		ID:         "rtf-scroll",
+		Width:      float32(ww),
+		Height:     float32(wh),
+		Sizing:     gui.FixedFixed,
+		Scrollable: true,
+		Padding:    gui.SomeP(10, 10, 10, 10),
 		Content: []gui.View{
 			gui.RTF(gui.RtfCfg{
 				RichText:      rt,

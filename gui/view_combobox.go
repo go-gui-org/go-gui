@@ -43,15 +43,18 @@ type ComboboxCfg struct {
 	MaxWidth          float32
 	MaxDropdownHeight float32
 	Focusable         bool
-	IDScroll          uint32
-	Color             Color
-	ColorBorder       Color
-	ColorBorderFocus  Color
-	ColorFocus        Color
-	ColorHighlight    Color
-	ColorHover        Color
-	Sizing            Sizing
-	Disabled          bool
+
+	// Scrollable opts the dropdown into the scroll system. Scroll
+	// state is keyed by Cfg.ID + ".dropdown".
+	Scrollable       bool
+	Color            Color
+	ColorBorder      Color
+	ColorBorderFocus Color
+	ColorFocus       Color
+	ColorHighlight   Color
+	ColorHover       Color
+	Sizing           Sizing
+	Disabled         bool
 }
 
 // comboboxView implements View for combobox.
@@ -118,8 +121,9 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 	pad := cfg.Padding.Get(Padding{})
 	listH := cfg.MaxDropdownHeight - 2*sizeBorder - pad.Top - pad.Bottom
 	var scrollY float32
-	if cfg.IDScroll > 0 {
-		scrollY, _ = w.scrollY().Get(cfg.IDScroll)
+	dropdownScrollID := cfg.ID + ".dropdown"
+	if cfg.Scrollable {
+		scrollY, _ = w.scrollY().Get(dropdownScrollID)
 	}
 	first, last := listCoreVisibleRange(len(filtered), rowH, listH, scrollY)
 
@@ -204,7 +208,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 			cache.viewKey = viewKey
 		}
 		content = append(content, Column(ContainerCfg{
-			ID:           cfg.ID + ".dropdown",
+			ID:           dropdownScrollID,
 			SizeBorder:   Some(sizeBorder),
 			Radius:       Some(radius),
 			ColorBorder:  cfg.ColorBorder,
@@ -216,7 +220,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 			FloatTieOff:  FloatTopLeft,
 			FloatOffsetY: -sizeBorder,
 			FloatZIndex:  cfg.FloatZIndex,
-			IDScroll:     cfg.IDScroll,
+			Scrollable:   cfg.Scrollable,
 			Padding:      cfg.Padding,
 			Spacing:      SomeF(0),
 			Content:      dropdownContent,
@@ -267,7 +271,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 				layout.Shape.ColorBorder = colorBorderFocus
 			}
 		},
-		OnKeyDown: makeComboboxOnKeyDown(cfg.ID, onSelect, focusID, filteredIDs, cfg.IDScroll, rowH, listH),
+		OnKeyDown: makeComboboxOnKeyDown(cfg.ID, onSelect, focusID, filteredIDs, dropdownScrollID, rowH, listH),
 		OnChar:    makeComboboxOnChar(cfg.ID),
 		OnClick: func(_ *Layout, e *Event, w *Window) {
 			if isOpen {
@@ -332,13 +336,13 @@ func makeComboboxOnChar(cfgID string) func(*Layout, *Event, *Window) {
 	}
 }
 
-func makeComboboxOnKeyDown(cfgID string, onSelect func(string, *Event, *Window), focusID string, filteredIDs []string, idScroll uint32, rowH, listH float32) func(*Layout, *Event, *Window) {
+func makeComboboxOnKeyDown(cfgID string, onSelect func(string, *Event, *Window), focusID string, filteredIDs []string, scrollID string, rowH, listH float32) func(*Layout, *Event, *Window) {
 	return func(_ *Layout, e *Event, w *Window) {
-		comboboxOnKeyDown(cfgID, onSelect, focusID, filteredIDs, idScroll, rowH, listH, e, w)
+		comboboxOnKeyDown(cfgID, onSelect, focusID, filteredIDs, scrollID, rowH, listH, e, w)
 	}
 }
 
-func comboboxOnKeyDown(cfgID string, onSelect func(string, *Event, *Window), focusID string, filteredIDs []string, idScroll uint32, rowH, listH float32, e *Event, w *Window) {
+func comboboxOnKeyDown(cfgID string, onSelect func(string, *Event, *Window), focusID string, filteredIDs []string, scrollID string, rowH, listH float32, e *Event, w *Window) {
 	ss := StateMap[string, bool](w, nsCombobox, capModerate)
 	isOpen, _ := ss.Get(cfgID) // ok ignored: false means "not open"
 
@@ -387,8 +391,8 @@ func comboboxOnKeyDown(cfgID string, onSelect func(string, *Event, *Window), foc
 	next, changed := listCoreApplyNav(action, cur, itemCount)
 	if changed {
 		sh.Set(cfgID, next)
-		if idScroll > 0 && rowH > 0 {
-			scrollEnsureVisible(idScroll, next, rowH, listH, w)
+		if scrollID != "" && rowH > 0 {
+			scrollEnsureVisible(scrollID, next, rowH, listH, w)
 		}
 		w.UpdateWindow()
 		e.IsHandled = true
@@ -397,17 +401,17 @@ func comboboxOnKeyDown(cfgID string, onSelect func(string, *Event, *Window), foc
 
 // scrollEnsureVisible scrolls so the item at index idx is visible.
 func scrollEnsureVisible(
-	idScroll uint32, idx int, rowH, listH float32, w *Window,
+	id string, idx int, rowH, listH float32, w *Window,
 ) {
 	sm := w.scrollY()
-	scrollY, _ := sm.Get(idScroll)
+	scrollY, _ := sm.Get(id)
 	top := float32(idx) * rowH
 	bottom := top + rowH
 	visible := -scrollY
 	if top < visible {
-		sm.Set(idScroll, -top)
+		sm.Set(id, -top)
 	} else if bottom > visible+listH {
-		sm.Set(idScroll, -(bottom - listH))
+		sm.Set(id, -(bottom - listH))
 	}
 }
 

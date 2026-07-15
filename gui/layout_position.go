@@ -8,7 +8,7 @@ func layoutPositions(layout *Layout, offsetX, offsetY float32, w *Window) {
 	axis := layout.Shape.Axis
 	spacing := layout.Shape.Spacing
 
-	if layout.Shape.IDScroll > 0 {
+	if layout.Shape.Scrollable {
 		layout.Shape.Clip = true
 	}
 
@@ -65,13 +65,13 @@ func layoutChildStartPos(
 	}
 	y = layout.Shape.Y + layout.Shape.PaddingTop()
 
-	if layout.Shape.IDScroll > 0 {
+	if layout.Shape.Scrollable {
 		sx := w.scrollX()
 		sy := w.scrollY()
-		if v, ok := sx.Get(layout.Shape.IDScroll); ok {
+		if v, ok := sx.Get(layout.Shape.ID); ok {
 			x += v
 		}
-		if v, ok := sy.Get(layout.Shape.IDScroll); ok {
+		if v, ok := sy.Get(layout.Shape.ID); ok {
 			y += v
 		}
 	}
@@ -190,20 +190,6 @@ func childCrossAxisHAlign(
 	return xAlign
 }
 
-// layoutScrollContainers identifies text views in scrollable containers.
-func layoutScrollContainers(layout *Layout, idScrollContainer uint32) {
-	activeID := idScrollContainer
-	if layout.Shape.IDScroll > 0 {
-		activeID = layout.Shape.IDScroll
-	}
-	if layout.Shape.shapeType == shapeText {
-		layout.Shape.IDScrollContainer = activeID
-	}
-	for i := range layout.Children {
-		layoutScrollContainers(&layout.Children[i], activeID)
-	}
-}
-
 // layoutSetShapeClips sets shape clips used for hit testing.
 func layoutSetShapeClips(layout *Layout, clip drawClip) {
 	shapeClip := shapeBounds(layout.Shape)
@@ -233,21 +219,21 @@ func layoutSetShapeClips(layout *Layout, clip drawClip) {
 
 // layoutAdjustScrollOffsets ensures scroll offsets are in range.
 func layoutAdjustScrollOffsets(layout *Layout, w *Window) {
-	idScroll := layout.Shape.IDScroll
-	if idScroll > 0 {
+	id := layout.Shape.ID
+	if layout.Shape.Scrollable && id != "" {
 		sx := w.scrollX()
 		sy := w.scrollY()
 		maxOffsetX := f32Min(0, layout.Shape.Width-layout.Shape.paddingWidth()-contentWidth(layout))
-		if offsetX, ok := sx.Get(idScroll); ok {
-			sx.Set(idScroll, f32Clamp(offsetX, maxOffsetX, 0))
+		if offsetX, ok := sx.Get(id); ok {
+			sx.Set(id, f32Clamp(offsetX, maxOffsetX, 0))
 		} else {
-			sx.Set(idScroll, f32Clamp(0, maxOffsetX, 0))
+			sx.Set(id, f32Clamp(0, maxOffsetX, 0))
 		}
 		maxOffsetY := f32Min(0, layout.Shape.Height-layout.Shape.paddingHeight()-contentHeight(layout))
-		if offsetY, ok := sy.Get(idScroll); ok {
-			sy.Set(idScroll, f32Clamp(offsetY, maxOffsetY, 0))
+		if offsetY, ok := sy.Get(id); ok {
+			sy.Set(id, f32Clamp(offsetY, maxOffsetY, 0))
 		} else {
-			sy.Set(idScroll, f32Clamp(0, maxOffsetY, 0))
+			sy.Set(id, f32Clamp(0, maxOffsetY, 0))
 		}
 	}
 	for i := range layout.Children {

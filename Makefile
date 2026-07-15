@@ -85,7 +85,7 @@ bench:
 # Run targeted hot-path benchmarks for regression checking (matching CI gate job).
 bench-gate:
 	go test \
-	  -bench='Benchmark(Layout|GenerateViewLayout|ParseSvg|Tessellate|BuildDefsPathDataCache|RenderLayout|RenderSvg)' \
+	  -bench='Benchmark(Layout|GenerateViewLayout|ViewFrame|ParseSvg|Tessellate|BuildDefsPathDataCache|RenderLayout|RenderSvg)' \
 	  -benchmem -count=5 -run='^$' -timeout=15m ./gui/...
 
 clean:

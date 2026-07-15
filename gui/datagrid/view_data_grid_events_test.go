@@ -635,13 +635,13 @@ func TestScrollRowIntoViewExZeroViewport(_ *testing.T) {
 	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	// Should not panic.
-	dataGridScrollRowIntoViewEx(0, 0, 30, 0, 1, w)
+	dataGridScrollRowIntoViewEx(0, 0, 30, 0, "1", w)
 }
 
 func TestScrollRowIntoViewExZeroRowHeight(t *testing.T) {
 	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
-	dataGridScrollRowIntoViewEx(100, 0, 0, 0, 1, w)
+	dataGridScrollRowIntoViewEx(100, 0, 0, 0, "1", w)
 }
 
 // --- dataGridHandleEnterKey ---
@@ -801,7 +801,7 @@ func TestJumpContextFromPager(t *testing.T) {
 		viewportH:     400,
 		rowHeight:     25,
 		staticTop:     0,
-		scrollID:      1,
+		scrollID:      "1",
 		dataToDisplay: map[int]int{0: 0},
 	}
 	got := dataGridJumpContextFromPager(pctx)
@@ -1022,7 +1022,7 @@ func TestSubmitLocalJumpValid(t *testing.T) {
 		viewportH:     100,
 		rowHeight:     25,
 		staticTop:     0,
-		scrollID:      1,
+		scrollID:      "1",
 		dataToDisplay: map[int]int{0: 0, 1: 1, 2: 2},
 		focusID:       "g1",
 	}
@@ -1072,7 +1072,7 @@ func TestJumpToLocalRow(t *testing.T) {
 		dataToDisplay: map[int]int{1: 1},
 		viewportH:     100,
 		rowHeight:     25,
-		scrollID:      1,
+		scrollID:      "1",
 	}
 	e := &gg.Event{}
 	dataGridJumpToLocalRow(ctx, 1, e, w)
@@ -1105,7 +1105,7 @@ func TestApplyPendingLocalJumpScroll(t *testing.T) {
 	}
 	dgPJ := gg.StateMap[string, int](w, nsDgPendingJump, 4)
 	dgPJ.Set("g1", 0)
-	dataGridApplyPendingLocalJumpScroll(cfg, 100, 25, 0, 1,
+	dataGridApplyPendingLocalJumpScroll(cfg, 100, 25, 0, "1",
 		map[int]int{0: 0}, w)
 	// After application, pending jump should be cleared.
 	_, ok := dgPJ.Get("g1")
@@ -1119,7 +1119,7 @@ func TestApplyPendingLocalJumpScrollNoPending(t *testing.T) {
 	defer w.Close()
 	cfg := &DataGridCfg{ID: "g1", Rows: []GridRow{{ID: "a"}}}
 	// Should not panic when there's no pending jump.
-	dataGridApplyPendingLocalJumpScroll(cfg, 100, 25, 0, 1,
+	dataGridApplyPendingLocalJumpScroll(cfg, 100, 25, 0, "1",
 		map[int]int{0: 0}, w)
 }
 
@@ -1132,7 +1132,7 @@ func TestApplyPendingLocalJumpScrollOutOfRange(t *testing.T) {
 	}
 	dgPJ := gg.StateMap[string, int](w, nsDgPendingJump, 4)
 	dgPJ.Set("g1", 99) // out of range
-	dataGridApplyPendingLocalJumpScroll(cfg, 100, 25, 0, 1,
+	dataGridApplyPendingLocalJumpScroll(cfg, 100, 25, 0, "1",
 		map[int]int{}, w)
 	// Should clear pending jump even for out-of-range target.
 	_, ok := dgPJ.Get("g1")
@@ -1228,7 +1228,7 @@ func TestMakeOnKeydownReturnsCallback(t *testing.T) {
 		Columns:  []GridColumnCfg{{ID: "col1"}},
 		PageSize: 0,
 	}
-	fn := dataGridMakeOnKeydown(cfg, cfg.Columns, 25, 0, 1, nil, nil, nil)
+	fn := dataGridMakeOnKeydown(cfg, cfg.Columns, 25, 0, "1", nil, nil, nil)
 	if fn == nil {
 		t.Fatal("should return a callback")
 	}
@@ -1315,7 +1315,7 @@ func TestBuildPagerRow(t *testing.T) {
 		viewportH:     400,
 		rowHeight:     25,
 		staticTop:     0,
-		scrollID:      1,
+		scrollID:      "1",
 		dataToDisplay: map[int]int{},
 		jumpText:      "",
 	}

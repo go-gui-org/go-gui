@@ -75,13 +75,13 @@ func treeEstimateRowHeight(cfg TreeCfg, w *Window) float32 {
 func treeVisibleRange(
 	treeHeight, rowHeight float32,
 	totalRows int,
-	idScroll uint32,
+	scrollID string,
 	w *Window,
 ) (int, int) {
 	if w == nil {
 		return 0, totalRows - 1
 	}
-	scrollY, _ := w.scrollY().Get(idScroll)
+	scrollY, _ := w.scrollY().Get(scrollID)
 	return listCoreVisibleRange(totalRows, rowHeight, treeHeight, scrollY)
 }
 
@@ -204,7 +204,7 @@ func treeDragRowView(
 	siblingIDs []string,
 	itemLayoutIDs []string,
 	midsOffset int,
-	idScroll uint32,
+	scrollID string,
 ) View {
 	if row.IsLoading {
 		return treeRowView(cfg, row, iconWidth, focusedID)
@@ -251,7 +251,7 @@ func treeDragRowView(
 				OnReorder:     onReorder,
 				ItemLayoutIDs: itemLayoutIDs,
 				MidsOffset:    midsOffset,
-				IDScroll:      idScroll,
+				ScrollID:      scrollID,
 				Layout:        layout,
 				Event:         e,
 			}, w)
@@ -362,7 +362,7 @@ func treeOnKeyDown(
 	rowByID map[string]treeFlatRow,
 	onSelect func(string, *Event, *Window),
 	onLazyLoad func(string, string, *Window),
-	idScroll uint32,
+	scrollID string,
 	rowHeight float32,
 	listHeight float32,
 	e *Event,
@@ -382,7 +382,7 @@ func treeOnKeyDown(
 			next = cur - 1
 		}
 		focusMap.Set(treeID, visibleIDs[next])
-		treeScrollTo(idScroll, next, rowHeight, listHeight, w)
+		treeScrollTo(scrollID, next, rowHeight, listHeight, w)
 		e.IsHandled = true
 	case KeyDown:
 		next := 0
@@ -390,16 +390,16 @@ func treeOnKeyDown(
 			next = min(cur+1, len(visibleIDs)-1)
 		}
 		focusMap.Set(treeID, visibleIDs[next])
-		treeScrollTo(idScroll, next, rowHeight, listHeight, w)
+		treeScrollTo(scrollID, next, rowHeight, listHeight, w)
 		e.IsHandled = true
 	case KeyHome:
 		focusMap.Set(treeID, visibleIDs[0])
-		treeScrollTo(idScroll, 0, rowHeight, listHeight, w)
+		treeScrollTo(scrollID, 0, rowHeight, listHeight, w)
 		e.IsHandled = true
 	case KeyEnd:
 		last := len(visibleIDs) - 1
 		focusMap.Set(treeID, visibleIDs[last])
-		treeScrollTo(idScroll, last, rowHeight, listHeight, w)
+		treeScrollTo(scrollID, last, rowHeight, listHeight, w)
 		e.IsHandled = true
 	case KeyLeft:
 		if cur < 0 {
@@ -419,7 +419,7 @@ func treeOnKeyDown(
 			pi := treeFocusedIndex(visibleIDs, row.ParentID)
 			if pi >= 0 {
 				focusMap.Set(treeID, row.ParentID)
-				treeScrollTo(idScroll, pi, rowHeight, listHeight, w)
+				treeScrollTo(scrollID, pi, rowHeight, listHeight, w)
 				e.IsHandled = true
 			}
 		}
@@ -480,9 +480,9 @@ func treeClearLoading(treeID, nodeID string, w *Window) {
 }
 
 func treeScrollTo(
-	idScroll uint32, idx int, rowH, listH float32, w *Window,
+	scrollID string, idx int, rowH, listH float32, w *Window,
 ) {
-	if idScroll > 0 && rowH > 0 {
-		scrollEnsureVisible(idScroll, idx, rowH, listH, w)
+	if scrollID != "" && rowH > 0 {
+		scrollEnsureVisible(scrollID, idx, rowH, listH, w)
 	}
 }

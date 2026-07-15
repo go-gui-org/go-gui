@@ -30,7 +30,7 @@ func demoTable(w *gui.Window) gui.View {
 	rows := showcaseTableRowsSorted(app.TableSortBy)
 	cfg := gui.TableCfgFromData(rows)
 	cfg.ID = "catalog-table"
-	cfg.IDScroll = 9110
+	cfg.Scrollable = true
 	cfg.Sizing = gui.FitFit
 	cfg.MaxHeight = 260
 	cfg.SizeBorder = 1
@@ -298,13 +298,13 @@ func demoTree(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{Text: "Virtualized tree (scroll)", TextStyle: gui.CurrentTheme().B3}),
 			gui.Tree(gui.TreeCfg{
-				ID:        "showcase-tree-virtual",
-				Focusable: true,
-				IDScroll:  9182,
-				Sizing:    gui.FillFit,
-				MaxHeight: 200,
-				OnSelect:  showcaseTreeOnSelect,
-				Nodes:     showcaseBigTreeNodes(),
+				ID:         "showcase-tree-virtual",
+				Focusable:  true,
+				Scrollable: true,
+				Sizing:     gui.FillFit,
+				MaxHeight:  200,
+				OnSelect:   showcaseTreeOnSelect,
+				Nodes:      showcaseBigTreeNodes(),
 			}),
 			gui.Text(gui.TextCfg{Text: "Lazy-loading tree", TextStyle: gui.CurrentTheme().B3}),
 			gui.Tree(gui.TreeCfg{

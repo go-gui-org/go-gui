@@ -65,7 +65,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
 	radius := cfg.Radius.Get(dn.Radius)
 	isOpen := StateReadOr(w, nsSelect, cfg.ID, false)
-	idScroll := FnvSum32(cfg.ID + ".dropdown")
+	dropdownScrollID := cfg.ID + ".dropdown"
 
 	empty := len(cfg.Selected) == 0 || len(cfg.Selected[0]) == 0
 	clip := cfg.SelectMultiple && cfg.NoWrap
@@ -125,7 +125,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 			}
 		}
 		content = append(content, Column(ContainerCfg{
-			ID:            cfg.ID + ".dropdown",
+			ID:            dropdownScrollID,
 			SizeBorder:    Some(sizeBorder),
 			Radius:        Some(radius),
 			ColorBorder:   cfg.ColorBorder,
@@ -140,7 +140,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 			FloatTieOff:   FloatTopLeft,
 			FloatOffsetY:  -sizeBorder,
 			FloatZIndex:   cfg.FloatZIndex,
-			IDScroll:      idScroll,
+			Scrollable:    true,
 			Padding: SomeP(
 				PadSmall, PadMedium, PadSmall, PadSmall),
 			Spacing: NoSpacing,
@@ -179,7 +179,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 				layout.Shape.ColorBorder = colorBorderFocus
 			}
 		},
-		OnKeyDown: makeSelectOnKeyDown(&sv.cfg, idScroll),
+		OnKeyDown: makeSelectOnKeyDown(&sv.cfg, dropdownScrollID),
 		OnClick: func(_ *Layout, e *Event, w *Window) {
 			ss := StateMap[string, bool](
 				w, nsSelect, capModerate)
@@ -317,9 +317,9 @@ func selectSubHeaderView(cfg *SelectCfg, option string) View {
 	})
 }
 
-func makeSelectOnKeyDown(cfg *SelectCfg, idScroll uint32) func(*Layout, *Event, *Window) {
+func makeSelectOnKeyDown(cfg *SelectCfg, scrollID string) func(*Layout, *Event, *Window) {
 	return func(_ *Layout, e *Event, w *Window) {
-		selectOnKeyDown(cfg, idScroll, e, w)
+		selectOnKeyDown(cfg, scrollID, e, w)
 	}
 }
 
@@ -336,7 +336,7 @@ func selectInitialHighlight(selected, options []string) int {
 	return 0
 }
 
-func selectOnKeyDown(cfg *SelectCfg, idScroll uint32, e *Event, w *Window) {
+func selectOnKeyDown(cfg *SelectCfg, scrollID string, e *Event, w *Window) {
 	if len(cfg.Options) == 0 {
 		return
 	}
@@ -399,7 +399,7 @@ func selectOnKeyDown(cfg *SelectCfg, idScroll uint32, e *Event, w *Window) {
 		}
 		if nextIdx >= 0 {
 			sh.Set(cfg.ID, nextIdx)
-			selectScrollTo(cfg, idScroll, nextIdx, w)
+			selectScrollTo(cfg, scrollID, nextIdx, w)
 			e.IsHandled = true
 		}
 		return
@@ -414,7 +414,7 @@ func selectOnKeyDown(cfg *SelectCfg, idScroll uint32, e *Event, w *Window) {
 			cfg.Options, currentIdx+dir, dir)
 		if nextIdx >= 0 {
 			sh.Set(cfg.ID, nextIdx)
-			selectScrollTo(cfg, idScroll, nextIdx, w)
+			selectScrollTo(cfg, scrollID, nextIdx, w)
 			e.IsHandled = true
 		}
 	}
@@ -431,11 +431,11 @@ func selectNextSelectable(options []string, start, dir int) int {
 	return -1
 }
 
-func selectScrollTo(cfg *SelectCfg, idScroll uint32, idx int, w *Window) {
+func selectScrollTo(cfg *SelectCfg, scrollID string, idx int, w *Window) {
 	rowH := cfg.TextStyle.Size + 4
 	listH := selectDropdownMaxH - 2*cfg.SizeBorder.Get(
 		DefaultSelectStyle.SizeBorder)
-	scrollEnsureVisible(idScroll, idx, rowH, listH, w)
+	scrollEnsureVisible(scrollID, idx, rowH, listH, w)
 }
 
 func applySelectDefaults(cfg *SelectCfg) {

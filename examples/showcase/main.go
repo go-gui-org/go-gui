@@ -7,16 +7,8 @@ import (
 )
 
 const (
-	scrollCatalog uint32 = iota + 1
-	scrollDetail
-	scrollPlaceholderA
-	scrollPlaceholderB
-	focusSearch
-	focusMenu
-	focusMenuSearch
-	focusDocToggle
-	focusTabDemo
-	focusDrawCanvas
+	scrollCatalog = "catalog"
+	scrollDetail  = "detail"
 )
 
 const catalogWidth float32 = 300

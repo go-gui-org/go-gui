@@ -320,7 +320,8 @@ func sidebarView(w *gui.Window, wh float32) gui.View {
 		Spacing:    gui.SomeF(15),
 		Padding:    gui.SomeP(10, 10, 10, 10),
 		SizeBorder: gui.NoBorder,
-		IDScroll:   1,
+		ID:         "particles-scroll",
+		Scrollable: true,
 		Content: []gui.View{
 			// --- Emitter section ---
 			gui.Column(gui.ContainerCfg{

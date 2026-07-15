@@ -29,19 +29,19 @@ const (
 // what layout reads (pushed to the scrollX/scrollY map each tick);
 // target is where the wheel deltas want it.
 type scrollSmoothEntry struct {
-	idScroll uint32
-	axis     scrollAxis
-	target   float32
-	current  float32
-	active   bool
-	settled  bool // reached target this tick; retire next tick
+	id      string
+	axis    scrollAxis
+	target  float32
+	current float32
+	active  bool
+	settled bool // reached target this tick; retire next tick
 }
 
 // scrollApply is a lock-free snapshot of an entry for the apply pass.
 type scrollApply struct {
-	idScroll uint32
-	axis     scrollAxis
-	val      float32
+	id   string
+	axis scrollAxis
+	val  float32
 }
 
 // scrollSmoothAnimation is a per-window singleton Animation that eases
@@ -110,21 +110,21 @@ func (s *scrollSmoothAnimation) Update(_ *Window, _ float32, ac *AnimationComman
 	return true
 }
 
-// entryFor returns the entry for idScroll+axis, creating an inactive
+// entryFor returns the entry for id+axis, creating an inactive
 // one if absent. Caller must hold w.animMu.
-func (s *scrollSmoothAnimation) entryFor(idScroll uint32, axis scrollAxis) *scrollSmoothEntry {
-	if e := s.findEntry(idScroll, axis); e != nil {
+func (s *scrollSmoothAnimation) entryFor(id string, axis scrollAxis) *scrollSmoothEntry {
+	if e := s.findEntry(id, axis); e != nil {
 		return e
 	}
-	s.entries = append(s.entries, scrollSmoothEntry{idScroll: idScroll, axis: axis})
+	s.entries = append(s.entries, scrollSmoothEntry{id: id, axis: axis})
 	return &s.entries[len(s.entries)-1]
 }
 
-// findEntry returns the entry for idScroll+axis, or nil. Caller must
+// findEntry returns the entry for id+axis, or nil. Caller must
 // hold w.animMu.
-func (s *scrollSmoothAnimation) findEntry(idScroll uint32, axis scrollAxis) *scrollSmoothEntry {
+func (s *scrollSmoothAnimation) findEntry(id string, axis scrollAxis) *scrollSmoothEntry {
 	for i := range s.entries {
-		if s.entries[i].idScroll == idScroll && s.entries[i].axis == axis {
+		if s.entries[i].id == id && s.entries[i].axis == axis {
 			return &s.entries[i]
 		}
 	}
@@ -137,8 +137,8 @@ func (s *scrollSmoothAnimation) findEntry(idScroll uint32, axis scrollAxis) *scr
 // the displayed offset to the animation. Returns true if a repaint is
 // warranted. Main goroutine only.
 func scrollSmoothBy(w *Window, layout *Layout, axis scrollAxis, delta float32) bool {
-	idScroll := layout.Shape.IDScroll
-	if idScroll == 0 {
+	id := layout.Shape.ID
+	if !layout.Shape.Scrollable || id == "" {
 		return false
 	}
 	if axis == scrollAxisY && layout.Shape.ScrollMode == ScrollHorizontalOnly {
@@ -151,10 +151,10 @@ func scrollSmoothBy(w *Window, layout *Layout, axis scrollAxis, delta float32) b
 	var maxOffset, displayed float32
 	if axis == scrollAxisY {
 		maxOffset = scrollMaxOffsetY(layout)
-		displayed, _ = w.scrollY().Get(idScroll)
+		displayed, _ = w.scrollY().Get(id)
 	} else {
 		maxOffset = scrollMaxOffsetX(layout)
-		displayed, _ = w.scrollX().Get(idScroll)
+		displayed, _ = w.scrollX().Get(id)
 	}
 	increment := delta * guiTheme.ScrollMultiplier
 
@@ -164,7 +164,7 @@ func scrollSmoothBy(w *Window, layout *Layout, axis scrollAxis, delta float32) b
 		w.scrollSmooth = &scrollSmoothAnimation{}
 	}
 	ss := w.scrollSmooth
-	e := ss.entryFor(idScroll, axis)
+	e := ss.entryFor(id, axis)
 
 	base := displayed
 	if e.active {
@@ -190,24 +190,24 @@ func scrollSmoothBy(w *Window, layout *Layout, axis scrollAxis, delta float32) b
 	return true
 }
 
-// scrollSmoothCancel deactivates any eased scroll for idScroll+axis so
+// scrollSmoothCancel deactivates any eased scroll for id+axis so
 // a direct offset write (trackpad, keyboard, scrollbar drag,
 // programmatic) is not overwritten by an in-flight ease. No-op if none
 // active. Main goroutine only.
-func scrollSmoothCancel(w *Window, idScroll uint32, axis scrollAxis) {
+func scrollSmoothCancel(w *Window, id string, axis scrollAxis) {
 	w.animMu.Lock()
 	defer w.animMu.Unlock()
 	if w.scrollSmooth == nil {
 		return
 	}
-	if e := w.scrollSmooth.findEntry(idScroll, axis); e != nil {
+	if e := w.scrollSmooth.findEntry(id, axis); e != nil {
 		e.active = false
 		e.settled = false
 	}
 }
 
 // scrollSmoothReset drops all eased-scroll state. Called when the view
-// tree is rebuilt (clearHotMaps), since idScroll keys may change.
+// tree is rebuilt (clearHotMaps), since scroll id keys may change.
 func (w *Window) scrollSmoothReset() {
 	w.animMu.Lock()
 	defer w.animMu.Unlock()
@@ -234,18 +234,18 @@ func commandApplyScrollSmooth(w *Window) {
 			continue
 		}
 		ss.pending = append(ss.pending, scrollApply{
-			idScroll: e.idScroll, axis: e.axis, val: e.current,
+			id: e.id, axis: e.axis, val: e.current,
 		})
 	}
 	w.animMu.Unlock()
 
 	for _, p := range ss.pending {
 		if p.axis == scrollAxisY {
-			w.scrollY().Set(p.idScroll, p.val)
+			w.scrollY().Set(p.id, p.val)
 		} else {
-			w.scrollX().Set(p.idScroll, p.val)
+			w.scrollX().Set(p.id, p.val)
 		}
-		if ly, ok := findScrollLayout(w, p.idScroll); ok {
+		if ly, ok := findScrollLayout(w, p.id); ok {
 			fireOnScroll(ly, w)
 		}
 	}

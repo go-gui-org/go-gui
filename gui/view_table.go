@@ -65,9 +65,11 @@ type TableCfg struct {
 	SizeBorder         float32
 	SizeBorderHeader   float32
 
-	// IDScroll enables scrolling. When set with Height or
-	// MaxHeight, virtualization renders only visible rows.
-	IDScroll    uint32
+	// Scrollable enables scrolling. When set with Height or
+	// MaxHeight, virtualization renders only visible rows. Scroll
+	// state is keyed by Cfg.ID, or Cfg.ID + ":scroll" when
+	// FreezeHeader is set — pass that to Window.ScrollVerticalTo.
+	Scrollable  bool
 	Width       float32
 	Height      float32
 	MinWidth    float32
@@ -147,6 +149,16 @@ func (w *Window) Table(cfg TableCfg) View {
 	return tableView(cfg, w)
 }
 
+// tableScrollID returns the scroll key for a table. The freeze path
+// scrolls an inner body container that needs its own identity; the
+// non-freeze path scrolls the outer Column, which carries cfg.ID.
+func tableScrollID(cfg *TableCfg, freeze bool) string {
+	if freeze {
+		return cfg.ID + ":scroll" // inner bodyCfg carries it
+	}
+	return cfg.ID // outerCfg carries it
+}
+
 func tableView(cfg TableCfg, w *Window) View {
 	if len(cfg.RawData) > 0 {
 		n := min(len(cfg.RawData), maxDataConvLen)
@@ -172,7 +184,10 @@ func tableView(cfg TableCfg, w *Window) View {
 	}
 
 	columnWidths := tableColumnWidths(&cfg, w)
-	freeze := cfg.FreezeHeader && cfg.IDScroll > 0 && len(cfg.Data) > 1
+	freeze := cfg.FreezeHeader && cfg.Scrollable && len(cfg.Data) > 1
+	// Derived once per view: the freeze path's concatenation must not
+	// be repeated at each use (virtualization read + bodyCfg literal).
+	scrollID := tableScrollID(&cfg, freeze)
 
 	// Hoist loop-invariant values.
 	onSelect := cfg.OnSelect
@@ -193,13 +208,13 @@ func tableView(cfg TableCfg, w *Window) View {
 		dataCount = len(cfg.Data) - 1
 	}
 
-	virtualize := cfg.IDScroll > 0 && listHeight > 0 &&
+	virtualize := cfg.Scrollable && listHeight > 0 &&
 		dataCount > 0 && w != nil
 	rowHeight := float32(0)
 	first, last := dataStart, lastRowIdx
 	if virtualize {
 		rowHeight = tableEstimateRowHeight(&cfg, w)
-		scrollY, _ := w.scrollY().Get(cfg.IDScroll)
+		scrollY, _ := w.scrollY().Get(scrollID)
 		vFirst, vLast := listCoreVisibleRange(
 			dataCount, rowHeight, listHeight, scrollY)
 		first = vFirst + dataStart
@@ -265,7 +280,7 @@ func tableView(cfg TableCfg, w *Window) View {
 	if freeze {
 		return tableFreezeLayout(&cfg, columnWidths, cellBorder,
 			rowSpacing, selected, multiSelect, colorHover,
-			onSelect, rows)
+			onSelect, rows, scrollID)
 	}
 
 	outerCfg := ContainerCfg{
@@ -286,8 +301,8 @@ func tableView(cfg TableCfg, w *Window) View {
 		Content:   rows,
 	}
 
-	if cfg.IDScroll > 0 {
-		outerCfg.IDScroll = cfg.IDScroll
+	if cfg.Scrollable {
+		outerCfg.Scrollable = true
 		outerCfg.Padding = Some(Padding{Right: DefaultScrollbarStyle.Size + PadXSmall})
 		outerCfg.ScrollbarCfgX = &ScrollbarCfg{
 			Overflow: ScrollbarHidden,
@@ -431,6 +446,7 @@ func tableFreezeLayout(
 	multiSelect bool, colorHover Color,
 	onSelect func(map[int]bool, int, *Event, *Window),
 	bodyRows []View,
+	scrollID string,
 ) View {
 	// Header zone: row 0 + optional separator.
 	headerViews := []View{
@@ -468,7 +484,8 @@ func tableFreezeLayout(
 		Padding:    Some(Padding{Right: DefaultScrollbarStyle.Size + PadXSmall}),
 		Spacing:    Some(rowSpacing),
 		SizeBorder: NoBorder,
-		IDScroll:   cfg.IDScroll,
+		ID:         scrollID,
+		Scrollable: true,
 		Content:    bodyRows,
 		ScrollbarCfgX: &ScrollbarCfg{
 			Overflow: ScrollbarHidden,

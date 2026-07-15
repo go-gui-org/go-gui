@@ -32,7 +32,6 @@ import (
 )
 
 const inputFocusID = "input"
-const inputIDScroll uint32 = 1
 
 const loremText = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod ` +
 	`tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, ` +
@@ -105,12 +104,12 @@ func mainView(w *gui.Window) gui.View {
 		Sizing: gui.FixedFixed,
 		Content: []gui.View{
 			gui.Input(gui.InputCfg{
-				ID:        inputFocusID,
-				Focusable: true,
-				IDScroll:  inputIDScroll,
-				Mode:      gui.InputMultiline,
-				Sizing:    gui.FillFill,
-				Text:      app.Text,
+				ID:         inputFocusID,
+				Focusable:  true,
+				Scrollable: true,
+				Mode:       gui.InputMultiline,
+				Sizing:     gui.FillFill,
+				Text:       app.Text,
 				OnTextChanged: func(_ *gui.Layout, s string, w *gui.Window) {
 					gui.State[App](w).Text = s
 				},

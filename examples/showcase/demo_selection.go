@@ -175,7 +175,7 @@ func demoListBox(w *gui.Window) gui.View {
 			gui.ListBox(gui.ListBoxCfg{
 				ID:          "listbox-demo",
 				Focusable:   true,
-				IDScroll:    103,
+				Scrollable:  true,
 				Sizing:      gui.FillFit,
 				MaxHeight:   200,
 				Multiple:    true,
@@ -219,7 +219,7 @@ func demoCombobox(w *gui.Window) gui.View {
 			gui.Combobox(gui.ComboboxCfg{
 				ID:          "combobox-demo",
 				Focusable:   true,
-				IDScroll:    104,
+				Scrollable:  true,
 				Placeholder: "Type to search...",
 				Value:       app.ComboboxValue,
 				Options:     []string{"Go", "Rust", "Zig", "C", "C++", "Python", "TypeScript", "JavaScript", "Ruby", "Elixir"},
@@ -268,7 +268,7 @@ func demoDragReorder(w *gui.Window) gui.View {
 				ID:          "drag-listbox",
 				Sizing:      gui.FillFit,
 				MaxHeight:   200,
-				IDScroll:    101,
+				Scrollable:  true,
 				Data:        app.DragListItems,
 				Reorderable: true,
 				OnReorder: func(movedID, beforeID string, w *gui.Window) {
@@ -308,7 +308,7 @@ func demoDragReorder(w *gui.Window) gui.View {
 				Nodes:       app.DragTreeNodes,
 				Sizing:      gui.FillFit,
 				MaxHeight:   250,
-				IDScroll:    102,
+				Scrollable:  true,
 				Reorderable: true,
 				OnReorder: func(movedID, beforeID string, w *gui.Window) {
 					a := gui.State[ShowcaseApp](w)

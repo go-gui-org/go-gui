@@ -19,11 +19,12 @@ func benchScrollLayout(scrollRegions, childrenPer int) Layout {
 	for i := range scrollRegions {
 		container := Layout{
 			Shape: &Shape{
-				shapeType: shapeRectangle,
-				Axis:      AxisTopToBottom,
-				IDScroll:  uint32(i + 1),
-				Width:     1200,
-				Height:    200,
+				shapeType:  shapeRectangle,
+				Axis:       AxisTopToBottom,
+				Scrollable: true,
+				ID:         "test-scroll-" + strconv.Itoa(i+1),
+				Width:      1200,
+				Height:     200,
 			},
 			Children: make([]Layout, childrenPer),
 		}

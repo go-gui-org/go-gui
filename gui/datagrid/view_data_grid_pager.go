@@ -19,10 +19,10 @@ type dataGridPagerContext struct {
 	viewportH     float32
 	rowHeight     float32
 	staticTop     float32
-	scrollID      uint32
+	scrollID      string
 }
 
-func dataGridPagerRow(cfg *DataGridCfg, focusID string, pageIndex, pageCount, pageStart, pageEnd, totalRows int, viewportH, rowHeight, staticTop float32, scrollID uint32, dataToDisplay map[int]int, jumpText string) gg.View {
+func dataGridPagerRow(cfg *DataGridCfg, focusID string, pageIndex, pageCount, pageStart, pageEnd, totalRows int, viewportH, rowHeight, staticTop float32, scrollID string, dataToDisplay map[int]int, jumpText string) gg.View {
 	return dataGridBuildPagerRow(dataGridPagerContext{
 		cfg: cfg, focusID: focusID, pageIndex: pageIndex, pageCount: pageCount,
 		pageStart: pageStart, pageEnd: pageEnd, totalRows: totalRows,

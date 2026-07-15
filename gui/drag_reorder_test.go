@@ -249,7 +249,7 @@ func TestDragReorderCalcIndexWithScrollDelta(t *testing.T) {
 	w := &Window{}
 	w.layout = Layout{Shape: &Shape{ID: "root"}}
 	dragKey := "drag_scroll"
-	idScroll := uint32(100)
+	idScroll := "100"
 
 	sy := w.scrollY()
 	sy.Set(idScroll, -10.0)
@@ -260,7 +260,7 @@ func TestDragReorderCalcIndexWithScrollDelta(t *testing.T) {
 		itemHeight:   20.0,
 		sourceIndex:  0,
 		itemCount:    5,
-		idScroll:     idScroll,
+		scrollID:     idScroll,
 		startScrollY: -10.0,
 	}
 	dragReorderSet(w, dragKey, state)
@@ -281,7 +281,7 @@ func TestDragReorderAutoScrollTimerActivation(t *testing.T) {
 	w := &Window{}
 	w.layout = Layout{Shape: &Shape{ID: "root"}}
 	dragKey := "drag_timer"
-	idScroll := uint32(100)
+	idScroll := "100"
 
 	state := dragReorderState{
 		active:         true,
@@ -289,7 +289,7 @@ func TestDragReorderAutoScrollTimerActivation(t *testing.T) {
 		itemHeight:     20.0,
 		sourceIndex:    0,
 		itemCount:      5,
-		idScroll:       idScroll,
+		scrollID:       idScroll,
 		containerStart: 0.0,
 		containerEnd:   100.0,
 	}
@@ -451,7 +451,7 @@ func TestDragReorderScrollChangeUsesUniformEstimate(t *testing.T) {
 	w := &Window{}
 	w.layout = Layout{Shape: &Shape{ID: "root"}}
 	dragKey := "drag_scroll_uniform"
-	idScroll := uint32(200)
+	idScroll := "200"
 
 	sy := w.scrollY()
 	sy.Set(idScroll, 10.0)
@@ -462,7 +462,7 @@ func TestDragReorderScrollChangeUsesUniformEstimate(t *testing.T) {
 		itemHeight:   10.0,
 		sourceIndex:  0,
 		itemCount:    5,
-		idScroll:     idScroll,
+		scrollID:     idScroll,
 		startScrollY: 0.0,
 		itemMids:     []float32{25, 35},
 		midsOffset:   2,
