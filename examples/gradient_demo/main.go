@@ -134,10 +134,11 @@ func mainView(w *gui.Window) gui.View {
 	}
 
 	return gui.Row(gui.ContainerCfg{
-		Width:    float32(ww),
-		Height:   float32(wh),
-		Sizing:   gui.FixedFixed,
-		IDScroll: 1,
+		ID:         "gradient-scroll",
+		Width:      float32(ww),
+		Height:     float32(wh),
+		Sizing:     gui.FixedFixed,
+		Scrollable: true,
 		ScrollbarCfgY: &gui.ScrollbarCfg{
 			Overflow: gui.ScrollbarAuto,
 		},

@@ -44,10 +44,12 @@ w.Table(gui.TableCfg{
 ## Virtualization
 
 Renders only visible rows when scrolling is enabled. Requires
-`IDScroll > 0` and `Height` or `MaxHeight > 0`.
+`Scrollable: true` and `Height` or `MaxHeight > 0`.
+Scroll state is keyed by `cfg.ID`, or `cfg.ID + ":scroll"` when
+`FreezeHeader` is set.
 
 ```go
-cfg.IDScroll  = 100
+cfg.Scrollable = true
 cfg.MaxHeight = 260
 ```
 
@@ -89,7 +91,7 @@ When `RawData` is set, `Data` is ignored.
 | AlignHead          | HorizontalAlign   | Header row alignment                 |
 | MultiSelect        | bool              | Allow multi-row selection            |
 | Selected           | map[int]bool      | Selected row indices                 |
-| IDScroll           | uint32            | Scroll ID (enables virtualization)   |
+| Scrollable         | bool              | Opt into the scroll system (state keyed by ID)|
 | Scrollbar          | ScrollbarOverflow | Scrollbar overflow mode              |
 | BorderStyle        | TableBorderStyle  | Cell border style                    |
 | Sizing             | Sizing            | Combined axis sizing mode            |

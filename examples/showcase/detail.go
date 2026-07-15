@@ -11,7 +11,8 @@ func detailPanel(w *gui.Window) gui.View {
 
 	if len(entries) == 0 {
 		return gui.Column(gui.ContainerCfg{
-			IDScroll:   scrollDetail,
+			ID:         scrollDetail,
+			Scrollable: true,
 			Sizing:     gui.FillFill,
 			SizeBorder: gui.NoBorder,
 			Padding:    gui.Some(detailPanelPadding()),
@@ -66,7 +67,8 @@ func detailPanel(w *gui.Window) gui.View {
 	}
 
 	return gui.Column(gui.ContainerCfg{
-		IDScroll:   scrollDetail,
+		ID:         scrollDetail,
+		Scrollable: true,
 		Sizing:     gui.FillFill,
 		Color:      gui.CurrentTheme().ColorBackground,
 		SizeBorder: gui.NoBorder,

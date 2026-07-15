@@ -477,10 +477,11 @@ func demoScrollbar(_ *gui.Window) gui.View {
 		Content: []gui.View{
 			sectionLabel(t, "Vertical Scrollbar"),
 			gui.Column(gui.ContainerCfg{
+				ID:            "layout-vscroll",
 				Sizing:        gui.FillFixed,
 				Height:        180,
 				Overflow:      true,
-				IDScroll:      101,
+				Scrollable:    true,
 				Padding:       gui.NoPadding,
 				Spacing:       gui.SomeF(4),
 				ScrollbarCfgY: &gui.ScrollbarCfg{GapEdge: 4},
@@ -488,10 +489,11 @@ func demoScrollbar(_ *gui.Window) gui.View {
 			}),
 			sectionLabel(t, "Horizontal Scrollbar"),
 			gui.Row(gui.ContainerCfg{
+				ID:            "layout-hscroll",
 				Sizing:        gui.FillFixed,
 				Height:        50,
 				Overflow:      true,
-				IDScroll:      102,
+				Scrollable:    true,
 				ScrollMode:    gui.ScrollHorizontalOnly,
 				Padding:       gui.NoPadding,
 				Spacing:       gui.SomeF(4),

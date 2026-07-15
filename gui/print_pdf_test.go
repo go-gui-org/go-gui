@@ -586,7 +586,8 @@ func TestRenderToPDF_FullPipeline(t *testing.T) {
 		Content: []View{
 			// Left panel (scrollable).
 			Column(ContainerCfg{
-				IDScroll:   1,
+				ID:         "pdf-left",
+				Scrollable: true,
 				Width:      300,
 				Sizing:     FixedFill,
 				Padding:    SomeP(8, 8, 8, 8),
@@ -601,7 +602,8 @@ func TestRenderToPDF_FullPipeline(t *testing.T) {
 			}),
 			// Right panel (scrollable).
 			Column(ContainerCfg{
-				IDScroll:   2,
+				ID:         "pdf-right",
+				Scrollable: true,
 				Sizing:     FillFill,
 				Padding:    SomeP(8, 8, 8, 8),
 				SizeBorder: NoBorder,

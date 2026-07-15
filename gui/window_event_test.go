@@ -290,9 +290,10 @@ func TestEventFnMouseScrollFocusedHandlerPrecedence(t *testing.T) {
 				},
 			}},
 			{Shape: &Shape{
-				IDScroll: 1,
-				Width:    100,
-				Height:   50,
+				Scrollable: true,
+				ID:         "1",
+				Width:      100,
+				Height:     50,
 				shapeClip: drawClip{
 					X: 0, Y: 0, Width: 100, Height: 50,
 				},

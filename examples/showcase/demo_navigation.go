@@ -217,7 +217,7 @@ func demoCommandPalette(w *gui.Window) gui.View {
 					gui.Text(gui.TextCfg{Text: "Open Command Palette", TextStyle: t.N3}),
 				},
 				OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-					gui.CommandPaletteToggle(paletteID, 0, w)
+					gui.CommandPaletteToggle(paletteID, w)
 					e.IsHandled = true
 				},
 			}),

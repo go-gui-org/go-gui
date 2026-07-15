@@ -75,14 +75,14 @@ func rtfSelectOnClick(l *Layout, e *Event, w *Window) {
 	dragShapeY := shape.Y
 
 	var lastMouseX, lastMouseY float32
-	scrollID := uint32(0)
+	scrollID := ""
 	dragScrollY0 := float32(0)
 	viewTop := float32(0)
 	viewBot := float32(0)
 	maxScrollNeg := float32(0)
 	for p := l.Parent; p != nil; p = p.Parent {
-		if p.Shape != nil && p.Shape.IDScroll > 0 {
-			scrollID = p.Shape.IDScroll
+		if p.Shape != nil && p.Shape.Scrollable {
+			scrollID = p.Shape.ID
 			sy := w.scrollY()
 			dragScrollY0, _ = sy.Get(scrollID)
 			sp := p.Shape
@@ -96,7 +96,7 @@ func rtfSelectOnClick(l *Layout, e *Event, w *Window) {
 
 	computeRunePos := func(mx, my float32, w *Window) int {
 		scrollDelta := float32(0)
-		if scrollID > 0 {
+		if scrollID != "" {
 			sy := w.scrollY()
 			sNow, _ := sy.Get(scrollID)
 			scrollDelta = sNow - dragScrollY0
@@ -160,7 +160,7 @@ func rtfSelectOnClick(l *Layout, e *Event, w *Window) {
 			lastMouseY = e.MouseY
 			rp := computeRunePos(e.MouseX, e.MouseY, w)
 			updateDrag(rp, w)
-			if scrollID > 0 {
+			if scrollID != "" {
 				outside := e.MouseY < viewTop || e.MouseY > viewBot
 				if outside && !w.HasAnimation(animIDTextDragScroll) {
 					w.AnimationAdd(&Animate{

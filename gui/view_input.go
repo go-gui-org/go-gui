@@ -75,7 +75,11 @@ type InputCfg struct {
 	MaxHeight  float32
 
 	Focusable bool
-	IDScroll  uint32
+
+	// Scrollable opts a multiline input into the scroll system.
+	// Scroll state is keyed by Cfg.ID - pass that same id to
+	// Window.ScrollVerticalTo. Requires Mode == InputMultiline.
+	Scrollable bool
 
 	Color            Color
 	ColorHover       Color
@@ -131,7 +135,7 @@ func Input(cfg InputCfg) View {
 
 	hcfg := inputHandlerCfg{
 		FocusID:             cfg.ID,
-		IDScroll:            cfg.IDScroll,
+		ScrollID:            inputScrollIDFor(&cfg),
 		IsPassword:          cfg.IsPassword,
 		Mode:                cfg.Mode,
 		Mask:                cfg.Mask,
@@ -149,7 +153,7 @@ func Input(cfg InputCfg) View {
 
 	txtSizing := Sizing(FillFill)
 	innerSizing := Sizing(FillFill)
-	if cfg.Mode == InputMultiline && cfg.IDScroll > 0 {
+	if cfg.Mode == InputMultiline && cfg.Scrollable {
 		txtSizing = FillFit
 		innerSizing = FillFit
 	}
@@ -182,12 +186,12 @@ func Input(cfg InputCfg) View {
 		vAlign = VAlignTop
 	}
 
-	idScroll := cfg.IDScroll
+	scrollID := inputScrollIDFor(&cfg)
 	innerCfg := ContainerCfg{
 		Padding: NoPadding,
 		Sizing:  innerSizing,
 		VAlign:  vAlign,
-		OnClick: inputOnClick(idScroll),
+		OnClick: inputOnClick(scrollID),
 		Content: txtContent,
 	}
 	var inner View
@@ -219,7 +223,7 @@ func Input(cfg InputCfg) View {
 		Padding:         cfg.Padding,
 		Radius:          Some(radius),
 		Sizing:          cfg.Sizing,
-		IDScroll:        cfg.IDScroll,
+		Scrollable:      cfg.Scrollable,
 		Spacing:         SomeF(0),
 		OnChar:          makeInputOnChar(hcfg),
 		OnKeyDown:       makeInputOnKeyDown(hcfg),
@@ -281,7 +285,7 @@ type inputHandlerCfg struct {
 	Mask                string
 	MaskTokens          []MaskTokenDef
 	FocusID             string
-	IDScroll            uint32
+	ScrollID            string
 	IsPassword          bool
 	Mode                InputMode
 	MaskPreset          InputMaskPreset
@@ -305,7 +309,17 @@ func (h *inputHandlerCfg) compiledMask() *CompiledInputMask {
 	return &c
 }
 
-func inputOnClick(idScroll uint32) func(*Layout, *Event, *Window) {
+// inputScrollIDFor returns the scroll key for a multiline input, or
+// "" when the input does not opt into scrolling. Multiline-only:
+// single-line inputs never scroll vertically.
+func inputScrollIDFor(cfg *InputCfg) string {
+	if cfg.Mode == InputMultiline && cfg.Scrollable {
+		return cfg.ID
+	}
+	return ""
+}
+
+func inputOnClick(scrollID string) func(*Layout, *Event, *Window) {
 	return func(layout *Layout, e *Event, w *Window) {
 		if len(layout.Children) < 1 {
 			return
@@ -375,9 +389,9 @@ func inputOnClick(idScroll uint32) func(*Layout, *Event, *Window) {
 		is.CursorOffset = -1
 		imap.Set(ly.Shape.ID, is)
 		resetBlinkCursorVisible(w)
-		if idScroll > 0 && layout.Parent != nil {
+		if scrollID != "" && layout.Parent != nil {
 			inputScrollCursorIntoView(
-				idScroll, text, layout.Parent, w,
+				scrollID, text, layout.Parent, w,
 			)
 		}
 		e.IsHandled = true
@@ -391,14 +405,14 @@ func inputOnClick(idScroll uint32) func(*Layout, *Event, *Window) {
 			txtOffX:     ly.Shape.X - layout.Shape.X,
 			txtOffY:     ly.Shape.Y - layout.Shape.Y,
 			focusID:     ly.Shape.ID,
-			idScroll:    idScroll,
+			scrollID:    scrollID,
 		}
 		if doubleClick {
 			ds.runes = runes
 		}
-		if idScroll > 0 && layout.Parent != nil {
+		if scrollID != "" && layout.Parent != nil {
 			sy := w.scrollY()
-			ds.scrollY0, _ = sy.Get(idScroll) // ok ignored: zero offset is correct initial scroll
+			ds.scrollY0, _ = sy.Get(scrollID) // ok ignored: zero offset is correct initial scroll
 			p := layout.Parent.Shape
 			ds.viewTop = p.Y + p.Padding.Top
 			viewH := p.Height - p.paddingHeight()
@@ -543,7 +557,7 @@ func makeInputOnChar(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
 				hcfg.OnTextChanged(layout, text, w)
 			}
 			inputScrollCursorIntoView(
-				hcfg.IDScroll, text, layout, w,
+				hcfg.ScrollID, text, layout, w,
 			)
 		}
 		e.IsHandled = true
@@ -641,7 +655,7 @@ func makeInputOnKeyDown(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
 				hcfg.OnTextChanged(layout, text, w)
 			}
 			inputScrollCursorIntoView(
-				hcfg.IDScroll, text, layout, w,
+				hcfg.ScrollID, text, layout, w,
 			)
 			e.IsHandled = true
 		} else if hcfg.OnKeyDown != nil {

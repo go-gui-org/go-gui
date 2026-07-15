@@ -45,12 +45,12 @@ func mainView(w *gui.Window) gui.View {
 			gui.Rectangle(gui.RectangleCfg{Height: 0.5, Sizing: gui.FillFixed}),
 			pctRow(app),
 			gui.Rectangle(gui.RectangleCfg{Height: 0.5, Sizing: gui.FillFixed}),
-			scrollColumn(1, "scroll-panel", scrollText, w),
+			scrollColumn("scroll-panel", "scroll-panel", scrollText, w),
 		},
 	})
 }
 
-func scrollColumn(scrollID uint32, focusID string, text string, w *gui.Window) gui.View {
+func scrollColumn(scrollID string, focusID string, text string, w *gui.Window) gui.View {
 	theme := gui.CurrentTheme()
 	overflow := gui.ScrollbarHidden
 	if w.IsFocus(focusID) {
@@ -68,7 +68,8 @@ func scrollColumn(scrollID uint32, focusID string, text string, w *gui.Window) g
 	pad.Right = theme.ScrollbarStyle.Size + 4
 
 	return gui.Column(gui.ContainerCfg{
-		IDScroll: scrollID,
+		ID:         scrollID,
+		Scrollable: true,
 		ScrollbarCfgY: &gui.ScrollbarCfg{
 			Overflow: overflow,
 		},
@@ -98,16 +99,16 @@ func pctRow(app *App) gui.View {
 				Text:      fmt.Sprintf("%.0f%%", app.Pct*100),
 				TextStyle: gui.CurrentTheme().B3,
 			}),
-			pctButton(1, 0),
-			pctButton(1, 25),
-			pctButton(1, 50),
-			pctButton(1, 75),
-			pctButton(1, 100),
+			pctButton("scroll-panel", 0),
+			pctButton("scroll-panel", 25),
+			pctButton("scroll-panel", 50),
+			pctButton("scroll-panel", 75),
+			pctButton("scroll-panel", 100),
 		},
 	})
 }
 
-func pctButton(idScroll uint32, pct int) gui.View {
+func pctButton(idScroll string, pct int) gui.View {
 	pctF := float32(pct) / 100
 	return gui.Button(gui.ButtonCfg{
 		Content: []gui.View{

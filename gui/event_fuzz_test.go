@@ -34,7 +34,8 @@ func buildFuzzEventLayoutTree(depth, childCount int, w *Window) Layout {
 			shape.ID = "fa" + strconv.Itoa(i)
 		case 2:
 			// Shape with scroll container.
-			shape.IDScroll = uint32(200 + i)
+			shape.Scrollable = true
+			shape.ID = "test-scroll-" + strconv.Itoa(200+i)
 			shape.Width = 100
 			shape.Height = 100
 		case 3:

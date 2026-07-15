@@ -715,7 +715,7 @@ func TestCrudAddRow(t *testing.T) {
 	e := &gg.Event{}
 	dataGridCrudAddRow("g1", columns, func(s GridSelection, _ *gg.Event, _ *gg.Window) {
 		captured = s
-	}, "", 1, 0, 0, func(int, *gg.Event, *gg.Window) {}, e, w)
+	}, "", "1", 0, 0, func(int, *gg.Event, *gg.Window) {}, e, w)
 	if captured.ActiveRowID == "" {
 		t.Fatal("should have an active row")
 	}

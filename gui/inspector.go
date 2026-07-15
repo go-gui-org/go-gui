@@ -9,7 +9,7 @@ import (
 
 const (
 	capInspector            = 8
-	inspectorIDScrollPanel  = uint32(0xFFF00001)
+	inspectorScrollPanel    = "gui:inspector:panel"
 	inspectorTreeID         = "__inspector_tree__"
 	inspectorPanelMinWidth  = float32(300)
 	inspectorResizeStep     = float32(50)
@@ -61,7 +61,7 @@ type inspectorNodeProps struct {
 	Spacing     float32
 	Radius      float32
 	Focusable   bool
-	IDScroll    uint32
+	Scrollable  bool
 	Opacity     float32
 	Color       Color
 	Sizing      Sizing
@@ -153,7 +153,8 @@ func inspectorFloatingPanel(w *Window) View {
 		Color:         guiTheme.InspectorStyle.ColorPanel,
 		Radius:        SomeF(8),
 		Clip:          true,
-		IDScroll:      inspectorIDScrollPanel,
+		ID:            inspectorScrollPanel,
+		Scrollable:    true,
 		ScrollbarCfgX: scrollbarCfg,
 		ScrollbarCfgY: scrollbarCfg,
 		Padding:       SomeP(0, scrollbarPad, 0, 0),
@@ -429,10 +430,10 @@ func inspectorPropsNodes(p inspectorNodeProps) []TreeNodeCfg {
 			inspectorPropNode(inspectorPropFocusID,
 				"focusable: true", ps, pis))
 	}
-	if p.IDScroll > 0 {
+	if p.Scrollable {
 		nodes = append(nodes,
 			inspectorPropNode(inspectorPropScrollID,
-				"id_scroll: "+strconv.Itoa(int(p.IDScroll)), ps, pis))
+				"scrollable: true", ps, pis))
 	}
 	if p.HAlign != HAlignStart || p.VAlign != VAlignTop {
 		nodes = append(nodes,
@@ -491,7 +492,7 @@ func inspectorSnapshotProps(layout *Layout) inspectorNodeProps {
 		Color:       shape.Color,
 		Radius:      shape.Radius,
 		Focusable:   shape.Focusable,
-		IDScroll:    shape.IDScroll,
+		Scrollable:  shape.Scrollable,
 		HAlign:      shape.HAlign,
 		VAlign:      shape.VAlign,
 		IsFloat:     shape.Float,
@@ -673,7 +674,7 @@ func inspectorApplyScrollTo(panelHeight float32, w *Window) {
 	targetY := float32(rowIdx) * rowHeight
 	newScroll := -(targetY - rowHeight*2)
 	newScroll = min(newScroll, 0)
-	w.scrollY().Set(inspectorIDScrollPanel, newScroll)
+	w.scrollY().Set(inspectorScrollPanel, newScroll)
 }
 
 func inspectorFlatRowIndex(

@@ -8,7 +8,7 @@ search input and scrollable results list.
 gui.CommandPalette(gui.CommandPaletteCfg{
     ID:       "cmd",
     IDFocus:  focusPalette,
-    IDScroll: scrollPalette,
+    Scrollable: true,
     Items:    items,
     OnAction: func(id string, _ *gui.Event, w *gui.Window) {
         // handle action
@@ -16,16 +16,16 @@ gui.CommandPalette(gui.CommandPaletteCfg{
 })
 
 // Toggle with Ctrl+K or programmatically:
-gui.CommandPaletteToggle("cmd", focusPalette, w)
+gui.CommandPaletteToggle("cmd", w)
 ```
 
 ## API
 
 | Function                                     | Description              |
 |----------------------------------------------|--------------------------|
-| CommandPaletteShow(id, idFocus, idScroll, w) | Show and focus palette   |
-| CommandPaletteDismiss(id, w)                 | Hide palette             |
-| CommandPaletteToggle(id, idFocus, idScroll, w) | Toggle visibility      |
+| CommandPaletteShow(id, w)           | Show and focus palette   |
+| CommandPaletteDismiss(id, w)        | Hide palette             |
+| CommandPaletteToggle(id, w)         | Toggle visibility        |
 | CommandPaletteIsVisible(id, w) bool          | Check if visible         |
 
 ## Key Properties
@@ -38,7 +38,7 @@ gui.CommandPaletteToggle("cmd", focusPalette, w)
 | Width       | float32              | Palette width                    |
 | MaxHeight   | float32              | Maximum dropdown height          |
 | IDFocus     | uint32               | Focus ID for input               |
-| IDScroll    | uint32               | Scroll ID for results list       |
+| Scrollable  | bool                 | Opt into the scroll system (state keyed by ID)|
 | FloatZIndex | int                  | Z-index for float layering       |
 
 ## Appearance

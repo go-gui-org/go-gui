@@ -69,7 +69,7 @@ func mainView(w *gui.Window) gui.View {
 			}),
 			gui.ListBox(gui.ListBoxCfg{
 				ID:          "virtual-listbox-10k",
-				IDScroll:    1,
+				Scrollable:  true,
 				Height:      float32(wh) - 70,
 				Sizing:      gui.FillFixed,
 				SelectedIDs: app.SelectedIDs,

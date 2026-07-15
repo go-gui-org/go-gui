@@ -17,14 +17,14 @@ func TestIsChildEnabled(t *testing.T) {
 }
 
 func TestScrollShapeID(t *testing.T) {
-	scrollable := Shape{IDScroll: 100, Height: 200}
-	nonScrollable := Shape{IDScroll: 0, Height: 200}
+	scrollable := Shape{Scrollable: true, Height: 200}
+	nonScrollable := Shape{Scrollable: false, Height: 200}
 
-	if scrollable.IDScroll == 0 {
-		t.Error("scrollable should have IDScroll > 0")
+	if !scrollable.Scrollable {
+		t.Error("scrollable should have Scrollable=true")
 	}
-	if nonScrollable.IDScroll != 0 {
-		t.Error("non-scrollable should have IDScroll == 0")
+	if nonScrollable.Scrollable {
+		t.Error("non-scrollable should have Scrollable=false")
 	}
 }
 
@@ -389,7 +389,7 @@ func TestContainerEffectsAllocated(t *testing.T) {
 
 func TestContainerA11YDerivation(t *testing.T) {
 	// scrollable → ScrollArea
-	v := Column(ContainerCfg{IDScroll: 1})
+	v := Column(ContainerCfg{Scrollable: true, ID: "a11y-scroll"})
 	layout := v.GenerateLayout(&Window{})
 	if layout.Shape.A11YRole != AccessRoleScrollArea {
 		t.Error("scrollable should derive ScrollArea role")

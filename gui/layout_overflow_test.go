@@ -88,9 +88,10 @@ func TestLayoutOverflowSkipsScrollContainer(t *testing.T) {
 	defer w.Close()
 	layout := &Layout{
 		Shape: &Shape{
-			Overflow: true,
-			Axis:     AxisLeftToRight,
-			IDScroll: 1,
+			Overflow:   true,
+			Axis:       AxisLeftToRight,
+			Scrollable: true,
+			ID:         "1",
 		},
 		Children: []Layout{
 			{Shape: &Shape{shapeType: shapeRectangle, Width: 50}},

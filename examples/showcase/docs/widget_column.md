@@ -17,9 +17,10 @@ gui.Column(gui.ContainerCfg{
 
 ```go
 gui.Column(gui.ContainerCfg{
-    IDScroll: 1,
-    Sizing:   gui.FillFill,
-    Content:  items,
+    ID:         "my-column",
+    Scrollable: true,
+    Sizing:     gui.FillFill,
+    Content:    items,
 })
 ```
 
@@ -52,7 +53,7 @@ gui.Column(gui.ContainerCfg{
 | VAlign     | VerticalAlign   | Vertical content alignment           |
 | TextDir    | TextDirection   | Text/layout direction (LTR/RTL)      |
 | IDFocus    | uint32          | Tab-order focus ID (> 0 to enable)   |
-| IDScroll   | uint32          | Enable scrolling (> 0 to enable)     |
+| Scrollable  | bool            | Opt into the scroll system (state keyed by ID)|
 | ScrollMode | ScrollMode      | Scroll axis mode                     |
 | Clip       | bool            | Clip children to bounds              |
 | Disabled   | bool            | Disable interaction                  |

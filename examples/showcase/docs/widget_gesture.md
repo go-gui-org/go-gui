@@ -29,6 +29,6 @@ events for backward compatibility.
 | e.VelocityX/Y     | float32      | Swipe velocity in px/s              |
 | e.CentroidX/Y     | float32      | Center of active touches            |
 
-Pan gestures automatically scroll containers with `IDScroll > 0`.
+Pan gestures automatically scroll containers with `Scrollable: true`.
 Available on `ContainerCfg` and `DrawCanvasCfg`.
 Use Chrome DevTools touch emulation or a touchscreen to test.

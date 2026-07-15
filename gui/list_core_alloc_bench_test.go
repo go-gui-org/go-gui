@@ -45,10 +45,10 @@ func BenchmarkComboboxGenerateLayout(b *testing.B) {
 	options := benchmarkOptions(500)
 	w := newTestWindow()
 	cfg := ComboboxCfg{
-		ID:       "bench-cb",
-		Options:  options,
-		OnSelect: func(_ string, _ *Event, _ *Window) {},
-		IDScroll: 9901,
+		ID:         "bench-cb",
+		Options:    options,
+		OnSelect:   func(_ string, _ *Event, _ *Window) {},
+		Scrollable: true,
 	}
 
 	b.Run("closed", func(b *testing.B) {
@@ -91,15 +91,15 @@ func BenchmarkCommandPaletteGenerateLayout(b *testing.B) {
 
 	w := newTestWindow()
 	id := "bench-cp"
-	CommandPaletteShow(id, 0, w)
+	CommandPaletteShow(id, w)
 	StateMap[string, string](w, nsCmdPaletteQuery, capModerate).
 		Set(id, "49")
 
 	v := CommandPalette(CommandPaletteCfg{
-		ID:       id,
-		Items:    items,
-		OnAction: func(_ string, _ *Event, _ *Window) {},
-		IDScroll: 9902,
+		ID:         id,
+		Items:      items,
+		OnAction:   func(_ string, _ *Event, _ *Window) {},
+		Scrollable: true,
 	})
 
 	b.ReportAllocs()
@@ -140,11 +140,11 @@ func BenchmarkListBoxGenerateLayout(b *testing.B) {
 
 	b.Run("bounded_virtualized", func(b *testing.B) {
 		w := newTestWindow()
-		scrollID := uint32(9903)
+		scrollID := "9903"
 		w.scrollY().Set(scrollID, 1000)
 		v := ListBox(ListBoxCfg{
 			ID:          "bench-lb-v",
-			IDScroll:    scrollID,
+			Scrollable:  true,
 			MaxHeight:   220,
 			Data:        data,
 			SelectedIDs: selected,

@@ -235,7 +235,6 @@ type DataGridCfg struct {
 	PaddingFilter       gg.Opt[gg.Padding]
 	Radius              gg.Opt[float32]
 	SizeBorder          gg.Opt[float32]
-	IDScroll            uint32
 	RowHeight           float32
 	HeaderHeight        float32
 	Width               float32
@@ -447,7 +446,7 @@ type dataGridCtx struct {
 	columns      []GridColumnCfg
 	rowHeight    float32
 	focusID      string
-	scrollID     uint32
+	scrollID     string
 }
 
 // New creates a controlled, virtualized data grid view.
@@ -581,8 +580,8 @@ func New(w *gg.Window, cfg DataGridCfg) gg.View {
 	// Scrollable body.
 	scrollbarCfg := gg.ScrollbarCfg{Overflow: resolvedCfg.Scrollbar}
 	scrollBody := gg.Column(gg.ContainerCfg{
-		ID:            resolvedCfg.ID + ":scroll",
-		IDScroll:      scrollID,
+		ID:            scrollID,
+		Scrollable:    true,
 		ScrollbarCfgX: &scrollbarCfg,
 		ScrollbarCfgY: &scrollbarCfg,
 		Color:         resolvedCfg.ColorBackground,

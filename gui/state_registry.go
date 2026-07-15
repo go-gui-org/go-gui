@@ -71,25 +71,25 @@ func (w *Window) hoverInside() *BoundedMap[string, bool] {
 	return lazyBoundedMap(&w.hoverInsideMap, capModerate)
 }
 
-// ScrollX returns the horizontal scroll state map keyed by
-// IDScroll. Used by external packages that need to read scroll
+// ScrollX returns the horizontal scroll state map keyed by the
+// scrollable's ID. Used by external packages that need to read scroll
 // position for virtualization.
-func (w *Window) ScrollX() *BoundedMap[uint32, float32] {
+func (w *Window) ScrollX() *BoundedMap[string, float32] {
 	return lazyBoundedMap(&w.scrollXMap, capScroll)
 }
 
-// ScrollY returns the vertical scroll state map keyed by IDScroll.
-// Used by external packages that need to read scroll position for
-// virtualization.
-func (w *Window) ScrollY() *BoundedMap[uint32, float32] {
+// ScrollY returns the vertical scroll state map keyed by the
+// scrollable's ID. Used by external packages that need to read scroll
+// position for virtualization.
+func (w *Window) ScrollY() *BoundedMap[string, float32] {
 	return lazyBoundedMap(&w.scrollYMap, capScroll)
 }
 
-func (w *Window) scrollX() *BoundedMap[uint32, float32] {
+func (w *Window) scrollX() *BoundedMap[string, float32] {
 	return w.ScrollX()
 }
 
-func (w *Window) scrollY() *BoundedMap[uint32, float32] {
+func (w *Window) scrollY() *BoundedMap[string, float32] {
 	return w.ScrollY()
 }
 
@@ -100,13 +100,13 @@ func (w *Window) overflow() *BoundedMap[string, int] {
 // scrollXRead returns the cached scroll-x map, or nil if it hasn't
 // been created yet. Matches StateMapRead semantics for cold paths
 // that must not lazily allocate.
-func (w *Window) scrollXRead() *BoundedMap[uint32, float32] {
+func (w *Window) scrollXRead() *BoundedMap[string, float32] {
 	return w.scrollXMap
 }
 
 // scrollYRead returns the cached scroll-y map, or nil if it hasn't
 // been created yet.
-func (w *Window) scrollYRead() *BoundedMap[uint32, float32] {
+func (w *Window) scrollYRead() *BoundedMap[string, float32] {
 	return w.scrollYMap
 }
 
@@ -134,6 +134,15 @@ func RequireID(widget, id string) {
 func RequireFocusID(widget string, focusable bool, id string) {
 	if focusable && id == "" {
 		panic("gui: " + widget + " with Focusable:true requires a non-empty Cfg.ID")
+	}
+}
+
+// RequireScrollID panics if a Scrollable widget has an empty ID.
+// Scroll identity and offset state are keyed by Cfg.ID, so a
+// scrollable widget must supply one.
+func RequireScrollID(widget string, scrollable bool, id string) {
+	if scrollable && id == "" {
+		panic("gui: " + widget + " with Scrollable:true requires a non-empty Cfg.ID")
 	}
 }
 

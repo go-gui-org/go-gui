@@ -144,10 +144,10 @@ func TestKeydownHandlerFallbackScroll(t *testing.T) {
 			{
 				Shape: &Shape{
 					Focusable: true, ID: "f1",
-					IDScroll: 1,
-					Width:    100,
-					Height:   100,
-					Axis:     AxisTopToBottom,
+					Scrollable: true,
+					Width:      100,
+					Height:     100,
+					Axis:       AxisTopToBottom,
 				},
 				Children: []Layout{
 					{Shape: &Shape{
@@ -174,7 +174,8 @@ func TestKeyDownScrollHandlerArrows(t *testing.T) {
 
 	layout := &Layout{
 		Shape: &Shape{
-			IDScroll: 1, Width: 100, Height: 100,
+			Scrollable: true,
+			ID:         "1", Width: 100, Height: 100,
 			Axis: AxisTopToBottom,
 		},
 		Children: []Layout{
@@ -366,9 +367,10 @@ func TestMouseMoveHandlerSkipsOutOfWindow(t *testing.T) {
 func TestMouseScrollHandlerVertical(t *testing.T) {
 	guiTheme.ScrollMultiplier = 1
 	root := &Layout{Shape: &Shape{
-		IDScroll: 1,
-		Width:    100,
-		Height:   50,
+		Scrollable: true,
+		ID:         "1",
+		Width:      100,
+		Height:     50,
 		shapeClip: drawClip{X: 0, Y: 0,
 			Width: 100, Height: 50},
 	}, Children: []Layout{
@@ -390,9 +392,10 @@ func TestMouseScrollHandlerVertical(t *testing.T) {
 func TestMouseScrollHandlerHorizontalShift(t *testing.T) {
 	guiTheme.ScrollMultiplier = 1
 	root := &Layout{Shape: &Shape{
-		IDScroll: 1,
-		Width:    50,
-		Height:   100,
+		Scrollable: true,
+		ID:         "1",
+		Width:      50,
+		Height:     100,
 		shapeClip: drawClip{X: 0, Y: 0,
 			Width: 50, Height: 100},
 		Axis: AxisLeftToRight,
@@ -456,9 +459,10 @@ func TestMouseScrollUnhandledCascadesToScrollContainer(t *testing.T) {
 				},
 			}},
 			{Shape: &Shape{
-				IDScroll: 1,
-				Width:    100,
-				Height:   50,
+				Scrollable: true,
+				ID:         "1",
+				Width:      100,
+				Height:     50,
 				shapeClip: drawClip{
 					X: 0, Y: 0, Width: 100, Height: 50,
 				},
@@ -489,8 +493,9 @@ func TestMouseScrollFallbackRespectsIsHandled(t *testing.T) {
 	handlerCalled := false
 	root := &Layout{
 		Shape: &Shape{
-			IDScroll: 1,
-			Width:    200, Height: 100,
+			Scrollable: true,
+			ID:         "1",
+			Width:      200, Height: 100,
 			shapeClip: drawClip{
 				X: 0, Y: 0, Width: 200, Height: 100,
 			},
@@ -531,8 +536,9 @@ func TestMouseScrollFallbackUnhandledReachesContainer(t *testing.T) {
 	// fall through to the parent scroll container.
 	root := &Layout{
 		Shape: &Shape{
-			IDScroll: 1,
-			Width:    200, Height: 100,
+			Scrollable: true,
+			ID:         "1",
+			Width:      200, Height: 100,
 			shapeClip: drawClip{
 				X: 0, Y: 0, Width: 200, Height: 100,
 			},

@@ -6,7 +6,8 @@ Supports drag, gutter click, and auto-hide behavior.
 
 ```go
 gui.Column(gui.ContainerCfg{
-    IDScroll:      myScrollID,
+    ID:            "scrolling-panel",
+    Scrollable:    true,
     ScrollbarCfgY: &gui.ScrollbarCfg{
         GapEdge:  4,
         Overflow: gui.ScrollbarOnHover,
@@ -19,7 +20,8 @@ gui.Column(gui.ContainerCfg{
 
 ```go
 gui.Column(gui.ContainerCfg{
-    IDScroll:      myScrollID,
+    ID:            "hidden-scroll",
+    Scrollable:    true,
     ScrollbarCfgX: &gui.ScrollbarCfg{
         Overflow: gui.ScrollbarHidden,
     },
@@ -32,7 +34,7 @@ gui.Column(gui.ContainerCfg{
 | Property        | Type               | Description                      |
 |-----------------|--------------------|----------------------------------|
 | ID              | string             | Unique identifier                |
-| IDScroll        | uint32             | Scroll container to attach to    |
+| ScrollID       | string             | Scroll container ID to attach to    |
 | Orientation     | ScrollbarOrientation | Horizontal or vertical         |
 | Size            | float32            | Scrollbar thickness              |
 | MinThumbSize    | float32            | Minimum thumb length             |

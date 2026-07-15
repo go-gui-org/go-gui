@@ -33,14 +33,15 @@ gui.Combobox(gui.ComboboxCfg{
 
 ## Virtualization
 
-The dropdown list virtualizes when `IDScroll > 0` and
-`MaxDropdownHeight > 0`.
+The dropdown list virtualizes when `Scrollable: true` and
+`MaxDropdownHeight > 0`. Scroll state is keyed by the widget's ID + `".dropdown"`.
 
 ```go
 gui.Combobox(gui.ComboboxCfg{
-    IDScroll:          900,
-    MaxDropdownHeight: 200,
-    Options:           largeList,
+    ID:                 "large-cb",
+    Scrollable:         true,
+    MaxDropdownHeight:  200,
+    Options:            largeList,
 })
 ```
 
@@ -53,7 +54,7 @@ gui.Combobox(gui.ComboboxCfg{
 | Options           | []string | Searchable options                   |
 | MaxDropdownHeight | float32  | Max dropdown pixel height            |
 | IDFocus           | uint32   | Tab-order focus ID (> 0 to enable)   |
-| IDScroll          | uint32   | Scroll ID (enables virtualization)   |
+| Scrollable         | bool     | Opt into the scroll system (state keyed by ID)|
 | MinWidth          | float32  | Minimum width                        |
 | MaxWidth          | float32  | Maximum width                        |
 | FloatZIndex       | int      | Z-order for dropdown overlay         |

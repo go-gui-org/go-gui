@@ -33,19 +33,22 @@ type CommandPaletteItem struct {
 
 // CommandPaletteCfg configures a command palette view.
 type CommandPaletteCfg struct {
-	TextStyle      TextStyle
-	DetailStyle    TextStyle
-	OnAction       func(string, *Event, *Window)
-	OnDismiss      func(*Window)
-	ID             string `gui:"required"`
-	Placeholder    string
-	Items          []CommandPaletteItem
-	FloatZIndex    int
-	SizeBorder     Opt[float32]
-	Radius         Opt[float32]
-	Width          float32
-	MaxHeight      float32
-	IDScroll       uint32
+	TextStyle   TextStyle
+	DetailStyle TextStyle
+	OnAction    func(string, *Event, *Window)
+	OnDismiss   func(*Window)
+	ID          string `gui:"required"`
+	Placeholder string
+	Items       []CommandPaletteItem
+	FloatZIndex int
+	SizeBorder  Opt[float32]
+	Radius      Opt[float32]
+	Width       float32
+	MaxHeight   float32
+
+	// Scrollable opts the results list into the scroll system. Scroll
+	// state is keyed by Cfg.ID + ":scroll".
+	Scrollable     bool
 	Color          Color
 	ColorBorder    Color
 	ColorHighlight Color
@@ -116,9 +119,10 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 
 	// Virtualization.
 	rowH := listCoreRowHeightEstimate(cfg.TextStyle, PaddingTwoFive)
+	scrollID := cfg.ID + ":scroll"
 	var scrollY float32
-	if cfg.IDScroll > 0 {
-		scrollY, _ = w.scrollY().Get(cfg.IDScroll)
+	if cfg.Scrollable {
+		scrollY, _ = w.scrollY().Get(scrollID)
 	}
 	first, last := listCoreVisibleRange(len(filtered), rowH, cfg.MaxHeight, scrollY)
 
@@ -215,7 +219,8 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 						},
 					}),
 					Column(ContainerCfg{
-						IDScroll:   cfg.IDScroll,
+						ID:         scrollID,
+						Scrollable: true,
 						MaxHeight:  cfg.MaxHeight,
 						Sizing:     FillFit,
 						Padding:    NoPadding,
@@ -231,17 +236,15 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 }
 
 // CommandPaletteShow makes the palette visible and focuses input.
-func CommandPaletteShow(id string, idScroll uint32, w *Window) {
+// It always resets the results scroll (keyed id+":scroll") to the top.
+func CommandPaletteShow(id string, w *Window) {
 	ss := StateMap[string, bool](w, nsCmdPalette, capModerate)
 	ss.Set(id, true)
 	sq := StateMap[string, string](w, nsCmdPaletteQuery, capModerate)
 	sq.Set(id, "")
 	sh := StateMap[string, int](w, nsCmdPaletteHighlight, capModerate)
 	sh.Set(id, 0)
-	if idScroll > 0 {
-		sy := w.scrollY()
-		sy.Set(idScroll, 0)
-	}
+	w.scrollY().Set(id+":scroll", 0)
 	w.SetFocus(id + ".input")
 	w.UpdateWindow()
 }
@@ -258,12 +261,12 @@ func CommandPaletteDismiss(id string, w *Window) {
 }
 
 // CommandPaletteToggle toggles palette visibility.
-func CommandPaletteToggle(id string, idScroll uint32, w *Window) {
+func CommandPaletteToggle(id string, w *Window) {
 	visible := StateReadOr(w, nsCmdPalette, id, false)
 	if visible {
 		CommandPaletteDismiss(id, w)
 	} else {
-		CommandPaletteShow(id, idScroll, w)
+		CommandPaletteShow(id, w)
 	}
 }
 

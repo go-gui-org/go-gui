@@ -61,7 +61,7 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 			Content: []View{
 				ListBox(ListBoxCfg{
 					ID:          lbID,
-					IDScroll:    FnvSum32(lbID),
+					Scrollable:  true,
 					MinWidth:    140,
 					MaxHeight:   300,
 					Data:        data,

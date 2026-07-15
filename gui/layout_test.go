@@ -334,12 +334,13 @@ func TestLayoutRemoveFloatingLayoutsDistinctPlaceholders(t *testing.T) {
 func TestLayoutFillWidthsRootScrollFillNoParent(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			shapeType: shapeRectangle,
-			Axis:      AxisTopToBottom,
-			IDScroll:  1,
-			Sizing:    FillFill,
-			Width:     120,
-			Height:    40,
+			shapeType:  shapeRectangle,
+			Axis:       AxisTopToBottom,
+			Scrollable: true,
+			ID:         "1",
+			Sizing:     FillFill,
+			Width:      120,
+			Height:     40,
 		},
 	}
 	layoutFillWidths(root, &scratchPools{})
@@ -351,12 +352,13 @@ func TestLayoutFillWidthsRootScrollFillNoParent(t *testing.T) {
 func TestLayoutFillHeightsRootScrollFillNoParent(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			shapeType: shapeRectangle,
-			Axis:      AxisLeftToRight,
-			IDScroll:  1,
-			Sizing:    FillFill,
-			Width:     40,
-			Height:    120,
+			shapeType:  shapeRectangle,
+			Axis:       AxisLeftToRight,
+			Scrollable: true,
+			ID:         "1",
+			Sizing:     FillFill,
+			Width:      40,
+			Height:     120,
 		},
 	}
 	layoutFillHeights(root, &scratchPools{})
@@ -378,7 +380,7 @@ func TestLayoutFillWidthsScrollChildNoRoundoffBias(t *testing.T) {
 		},
 		Children: []Layout{
 			{Shape: &Shape{shapeType: shapeRectangle, Axis: AxisNone, Sizing: FixedFill, Width: 30, Height: 20}},
-			{Shape: &Shape{shapeType: shapeRectangle, Axis: AxisTopToBottom, Sizing: FillFill, IDScroll: 11, Width: 0, Height: 20}},
+			{Shape: &Shape{shapeType: shapeRectangle, Axis: AxisTopToBottom, Sizing: FillFill, Scrollable: true, ID: "11", Width: 0, Height: 20}},
 		},
 	}
 	layoutParents(root, nil)
@@ -401,7 +403,7 @@ func TestLayoutFillHeightsScrollChildNoRoundoffBias(t *testing.T) {
 		},
 		Children: []Layout{
 			{Shape: &Shape{shapeType: shapeRectangle, Axis: AxisNone, Sizing: FillFixed, Width: 20, Height: 30}},
-			{Shape: &Shape{shapeType: shapeRectangle, Axis: AxisLeftToRight, Sizing: FillFill, IDScroll: 12, Width: 20, Height: 0}},
+			{Shape: &Shape{shapeType: shapeRectangle, Axis: AxisLeftToRight, Sizing: FillFill, Scrollable: true, ID: "12", Width: 20, Height: 0}},
 		},
 	}
 	layoutParents(root, nil)

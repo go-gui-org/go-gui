@@ -149,7 +149,7 @@ type inputDragState struct {
 	anchorPos, anchorEnd   uint32
 	txtOffX, txtOffY       float32
 	focusID                string
-	idScroll               uint32
+	scrollID               string
 	lastMouseX, lastMouseY float32
 	scrollY0               float32
 	viewTop, viewBot       float32
@@ -160,9 +160,9 @@ func (d *inputDragState) computeRunePos(
 	mx, my float32, w *Window,
 ) int {
 	scrollDelta := float32(0)
-	if d.idScroll > 0 {
+	if d.scrollID != "" {
 		sy := w.scrollY()
-		sNow, _ := sy.Get(d.idScroll) // ok ignored: zero offset is correct initial scroll
+		sNow, _ := sy.Get(d.scrollID) // ok ignored: zero offset is correct initial scroll
 		scrollDelta = sNow - d.scrollY0
 	}
 	relX := mx - d.txtOffX
@@ -208,12 +208,12 @@ func (d *inputDragState) scrollCallback(
 		return
 	}
 	sy := w.scrollY()
-	cur, _ := sy.Get(d.idScroll)
+	cur, _ := sy.Get(d.scrollID)
 	newScroll := f32Clamp(cur+delta, d.maxScrollNeg, 0)
 	if newScroll == cur {
 		return
 	}
-	sy.Set(d.idScroll, newScroll)
+	sy.Set(d.scrollID, newScroll)
 	rp := d.computeRunePos(d.lastMouseX, d.lastMouseY, w)
 	d.updateSelection(rp, w)
 }
@@ -226,7 +226,7 @@ func startInputDrag(d *inputDragState, w *Window) {
 			d.lastMouseY = e.MouseY
 			rp := d.computeRunePos(e.MouseX, e.MouseY, w)
 			d.updateSelection(rp, w)
-			if d.idScroll > 0 {
+			if d.scrollID != "" {
 				outside := e.MouseY < d.viewTop ||
 					e.MouseY > d.viewBot
 				if outside && !w.HasAnimation(

@@ -167,12 +167,11 @@ Include the palette view in the view tree (hidden by default):
 
 ```go
 gui.CommandPalette(gui.CommandPaletteCfg{
-    ID:        "palette",
-    IDFocus:   idFocusPalette,
-    IDScroll:  idScrollPalette,
-    Items:     w.CommandPaletteItems(),
-    OnAction:  paletteAction,
-    OnDismiss: func(_ *gui.Window) {},
+    ID:         "palette",
+    Scrollable: true,
+    Items:      w.CommandPaletteItems(),
+    OnAction:   paletteAction,
+    OnDismiss:  func(_ *gui.Window) {},
 })
 ```
 
@@ -185,7 +184,7 @@ gui.Command{
     Shortcut: gui.Shortcut{Key: gui.KeyP, Modifiers: gui.ModSuperShift},
     Global:   true,
     Execute: func(_ *gui.Event, w *gui.Window) {
-        gui.CommandPaletteToggle("palette", idFocusPalette, idScrollPalette, w)
+        gui.CommandPaletteToggle("palette", w)
     },
 }
 ```

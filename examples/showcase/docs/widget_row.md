@@ -17,7 +17,8 @@ gui.Row(gui.ContainerCfg{
 
 ```go
 gui.Row(gui.ContainerCfg{
-    IDScroll:   1,
+    ID:         "my-row",
+    Scrollable: true,
     ScrollMode: gui.ScrollModeX,
     Sizing:     gui.FillFixed,
     Height:     200,
@@ -54,7 +55,7 @@ gui.Row(gui.ContainerCfg{
 | VAlign     | VerticalAlign   | Vertical content alignment           |
 | TextDir    | TextDirection   | Text/layout direction (LTR/RTL)      |
 | IDFocus    | uint32          | Tab-order focus ID (> 0 to enable)   |
-| IDScroll   | uint32          | Enable scrolling (> 0 to enable)     |
+| Scrollable  | bool            | Opt into the scroll system (state keyed by ID)|
 | ScrollMode | ScrollMode      | Scroll axis mode                     |
 | Clip       | bool            | Clip children to bounds              |
 | Disabled   | bool            | Disable interaction                  |

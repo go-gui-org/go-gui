@@ -100,7 +100,7 @@ func keydownHandler(layout *Layout, e *Event, w *Window) {
 		e.IsHandled = true
 		return
 	}
-	if layout.Shape.IDScroll > 0 {
+	if layout.Shape.Scrollable {
 		keyDownScrollHandler(layout, e, w)
 	}
 }
@@ -340,7 +340,7 @@ func mouseScrollFallbackHandler(layout *Layout, e *Event, w *Window) {
 	// wheels (ScrollPrecise == false) ease toward their target via
 	// scrollSmoothBy; trackpad/precise deltas already carry OS
 	// momentum and scroll instantly.
-	if layout.Shape.IDScroll > 0 {
+	if layout.Shape.Scrollable {
 		if layout.Shape.PointInShape(e.MouseX, e.MouseY) {
 			switch e.Modifiers {
 			case ModShift:

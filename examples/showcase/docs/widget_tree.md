@@ -6,8 +6,8 @@ lazy-loading, keyboard navigation, and drag-reorder support.
 ```go
 gui.Tree(gui.TreeCfg{
     ID:        "project-tree",
-    IDFocus:   2001,
-    IDScroll:  2002,
+    IDFocus:    2001,
+    Scrollable: true,
     MaxHeight: 240,
     OnSelect: func(nodeID string, _ *gui.Event, w *gui.Window) {
         gui.State[AppState](w).SelectedNode = nodeID
@@ -45,7 +45,8 @@ gui.Tree(gui.TreeCfg{
 ## Virtualization
 
 Renders only visible nodes (flattened) when height is constrained.
-Requires `IDScroll > 0` and `Height` or `MaxHeight > 0`.
+Requires `Scrollable: true` and `Height` or `MaxHeight > 0`.
+Scroll state is keyed by the widget's string ID.
 The main usage example above shows the required configuration.
 
 ## Keyboard Navigation
@@ -76,7 +77,7 @@ When `ItemPaths` is set, `Nodes` is ignored.
 | Indent      | float32         | Indent per nesting level             |
 | Spacing     | float32         | Vertical spacing between rows        |
 | IDFocus     | uint32          | Tab-order focus ID (> 0 to enable)   |
-| IDScroll    | uint32          | Scroll ID (enables virtualization)   |
+| Scrollable  | bool            | Opt into the scroll system (state keyed by ID)|
 | Reorderable | bool            | Enable drag-reorder of siblings      |
 | Disabled    | bool            | Disable interaction                  |
 | Invisible   | bool            | Hide without removing from layout    |

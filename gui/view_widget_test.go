@@ -712,7 +712,7 @@ func TestListBoxOnKeyDownHandled(t *testing.T) {
 	e := &Event{KeyCode: KeyDown}
 	listBoxOnKeyDown("lb", itemIDs, false,
 		func(_ []string, _ *Event, _ *Window) {}, nil,
-		0, 0, 0, nil, e, w)
+		"", 0, 0, nil, e, w)
 	if !e.IsHandled {
 		t.Fatal("expected key navigation event to be handled")
 	}
@@ -721,7 +721,7 @@ func TestListBoxOnKeyDownHandled(t *testing.T) {
 	called := false
 	listBoxOnKeyDown("lb", itemIDs, false,
 		func(_ []string, _ *Event, _ *Window) { called = true },
-		nil, 0, 0, 0, nil, e, w)
+		nil, "", 0, 0, nil, e, w)
 	if !e.IsHandled {
 		t.Fatal("expected key select event to be handled")
 	}
@@ -751,7 +751,7 @@ func TestListBoxDataIndex(t *testing.T) {
 
 func TestListBoxScrollWithSubheadings(t *testing.T) {
 	w := &Window{}
-	var idScroll uint32 = 90
+	idScroll := "90"
 	rowH := float32(26)
 	listH := float32(187)
 

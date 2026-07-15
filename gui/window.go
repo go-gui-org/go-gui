@@ -180,8 +180,8 @@ type Window struct {
 	// lazily allocated by accessor methods. See §5 in
 	// docs/specs/perf-optimizations.md.
 	hoverInsideMap *BoundedMap[string, bool]
-	scrollXMap     *BoundedMap[uint32, float32]
-	scrollYMap     *BoundedMap[uint32, float32]
+	scrollXMap     *BoundedMap[string, float32]
+	scrollYMap     *BoundedMap[string, float32]
 	overflowMap    *BoundedMap[string, int]
 
 	// scrollSmooth eases discrete mouse-wheel scrolling toward a

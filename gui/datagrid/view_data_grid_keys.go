@@ -88,14 +88,14 @@ type dataGridKeydownContext struct {
 	editorFocusBase   string
 	rowHeight         float32
 	staticTop         float32
-	scrollID          uint32
+	scrollID          string
 	multiSelect       bool
 	rangeSelect       bool
 	editEnabled       bool
 	crudEnabled       bool
 }
 
-func dataGridMakeOnKeydown(cfg *DataGridCfg, columns []GridColumnCfg, rowHeight, staticTop float32, scrollID uint32, pageIndices []int, frozenTopIDs map[string]bool, dataToDisplay map[int]int) func(*gg.Layout, *gg.Event, *gg.Window) {
+func dataGridMakeOnKeydown(cfg *DataGridCfg, columns []GridColumnCfg, rowHeight, staticTop float32, scrollID string, pageIndices []int, frozenTopIDs map[string]bool, dataToDisplay map[int]int) func(*gg.Layout, *gg.Event, *gg.Window) {
 	keyCtx := dataGridKeydownContext{
 		gridID:            cfg.ID,
 		rows:              cfg.Rows,

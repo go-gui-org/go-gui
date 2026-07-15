@@ -284,17 +284,17 @@ func TestFocusIDIsGridID(t *testing.T) {
 // --- dataGridScrollID ---
 
 func TestScrollIDConfigured(t *testing.T) {
-	cfg := &DataGridCfg{IDScroll: 99}
-	if got := dataGridScrollID(cfg); got != 99 {
-		t.Errorf("got %d, want 99", got)
+	cfg := &DataGridCfg{ID: "99"}
+	if got := dataGridScrollID(cfg); got != "99:scroll" {
+		t.Errorf("got %q, want 99:scroll", got)
 	}
 }
 
 func TestScrollIDDerived(t *testing.T) {
 	cfg := &DataGridCfg{ID: "mygrid"}
 	got := dataGridScrollID(cfg)
-	if got == 0 {
-		t.Fatal("should derive non-zero scroll ID")
+	if got == "" {
+		t.Fatal("should derive non-empty scroll ID")
 	}
 }
 

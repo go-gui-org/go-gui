@@ -11,10 +11,6 @@ import (
 	"github.com/go-gui-org/go-gui/gui/backend"
 )
 
-const (
-	idScrollPalette uint32 = 3
-)
-
 type App struct {
 	Log     string
 	Counter int
@@ -117,8 +113,7 @@ func registerCommands(w *gui.Window) {
 			Shortcut: gui.Shortcut{Key: gui.KeyP, Modifiers: gui.ModSuperShift},
 			Global:   true,
 			Execute: func(_ *gui.Event, w *gui.Window) {
-				gui.CommandPaletteToggle(
-					"palette", idScrollPalette, w)
+				gui.CommandPaletteToggle("palette", w)
 			},
 		},
 	)
@@ -140,11 +135,11 @@ func mainView(w *gui.Window) gui.View {
 			body(w, app, theme),
 			statusBar(app, theme),
 			gui.CommandPalette(gui.CommandPaletteCfg{
-				ID:        "palette",
-				IDScroll:  idScrollPalette,
-				Items:     w.CommandPaletteItems(),
-				OnAction:  paletteAction,
-				OnDismiss: func(_ *gui.Window) {},
+				ID:         "palette",
+				Scrollable: true,
+				Items:      w.CommandPaletteItems(),
+				OnAction:   paletteAction,
+				OnDismiss:  func(_ *gui.Window) {},
 			}),
 		},
 	})

@@ -57,13 +57,14 @@ func FindLayoutByFocusID(layout *Layout, id string) (*Layout, bool) {
 	return nil, false
 }
 
-// FindLayoutByIDScroll recursively searches for a layout with matching IDScroll.
-func FindLayoutByIDScroll(layout *Layout, idScroll uint32) (*Layout, bool) {
-	if layout.Shape.IDScroll == idScroll {
+// FindLayoutByScrollID recursively searches for a Scrollable layout
+// with matching scroll ID. An empty id never matches.
+func FindLayoutByScrollID(layout *Layout, id string) (*Layout, bool) {
+	if id != "" && layout.Shape.Scrollable && layout.Shape.ID == id {
 		return layout, true
 	}
 	for i := range layout.Children {
-		if ly, ok := FindLayoutByIDScroll(&layout.Children[i], idScroll); ok {
+		if ly, ok := FindLayoutByScrollID(&layout.Children[i], id); ok {
 			return ly, true
 		}
 	}

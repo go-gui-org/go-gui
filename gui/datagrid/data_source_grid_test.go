@@ -531,7 +531,7 @@ func TestWindowScrollYMapRoundTrips(t *testing.T) {
 	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 
-	scrollID := gg.FnvSum32("dg:scroll")
+	scrollID := "dg:scroll"
 	const offset = float32(-350)
 
 	// Write.
@@ -552,7 +552,7 @@ func TestWindowScrollXMapRoundTrips(t *testing.T) {
 	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 
-	scrollID := gg.FnvSum32("dg:hscroll")
+	scrollID := "dg:hscroll"
 	const offset = float32(-120)
 
 	w.ScrollX().Set(scrollID, offset)
@@ -573,7 +573,7 @@ func TestWindowScrollYMapsAreIndependent(t *testing.T) {
 	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 
-	id := gg.FnvSum32("dg:both")
+	id := "dg:both"
 	w.ScrollY().Set(id, -100)
 	w.ScrollX().Set(id, -200)
 
@@ -619,7 +619,7 @@ func TestGridScrollShiftsVisibleRows(t *testing.T) {
 	}
 
 	gridID := "dg-scroll-test"
-	scrollID := gg.FnvSum32(gridID + ":scroll")
+	scrollID := gridID + ":scroll"
 
 	// Simulate the user having scrolled down before this frame.
 	w.ScrollY().Set(scrollID, scrollDown)

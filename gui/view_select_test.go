@@ -128,7 +128,7 @@ func TestSelectKeyboardNavigation(t *testing.T) {
 		OnSelect: func([]string, *Event, *Window) {},
 	}
 	applySelectDefaults(&cfg)
-	idScroll := FnvSum32(cfg.ID + ".dropdown")
+	idScroll := cfg.ID + ".dropdown"
 
 	// Open via space.
 	e := &Event{KeyCode: KeySpace}
@@ -177,7 +177,7 @@ func TestSelectKeyboardSelectItem(t *testing.T) {
 		},
 	}
 	applySelectDefaults(&cfg)
-	idScroll := FnvSum32(cfg.ID + ".dropdown")
+	idScroll := cfg.ID + ".dropdown"
 
 	// Open.
 	e := &Event{KeyCode: KeySpace}
@@ -202,7 +202,7 @@ func TestSelectSkipsSubHeaders(t *testing.T) {
 		OnSelect: func([]string, *Event, *Window) {},
 	}
 	applySelectDefaults(&cfg)
-	idScroll := FnvSum32(cfg.ID + ".dropdown")
+	idScroll := cfg.ID + ".dropdown"
 
 	// Open.
 	e := &Event{KeyCode: KeySpace}
@@ -230,7 +230,7 @@ func TestSelectHomeEndKeys(t *testing.T) {
 		OnSelect: func([]string, *Event, *Window) {},
 	}
 	applySelectDefaults(&cfg)
-	idScroll := FnvSum32(cfg.ID + ".dropdown")
+	idScroll := cfg.ID + ".dropdown"
 
 	// Open.
 	e := &Event{KeyCode: KeySpace}

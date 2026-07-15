@@ -36,8 +36,9 @@ func catalogPanel(w *gui.Window) gui.View {
 			groupPicker(app),
 			line(),
 			gui.Column(gui.ContainerCfg{
-				IDScroll: scrollCatalog,
-				Sizing:   gui.FillFill,
+				ID:         scrollCatalog,
+				Scrollable: true,
+				Sizing:     gui.FillFill,
 				Padding: gui.Some(gui.Padding{
 					Right: t.ScrollbarStyle.Size + 4,
 				}),
