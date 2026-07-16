@@ -121,6 +121,7 @@ func demoTable(w *gui.Window) gui.View {
 						Spacing:    gui.SomeF(6),
 						Content: []gui.View{
 							gui.Toggle(gui.ToggleCfg{
+								ID:        "showcase_table_multiselect",
 								Focusable: true,
 								Label:     "Multi-select",
 								Selected:  app.TableMultiSelect,
@@ -131,6 +132,7 @@ func demoTable(w *gui.Window) gui.View {
 								},
 							}),
 							gui.Toggle(gui.ToggleCfg{
+								ID:        "showcase_table_freeze_header",
 								Focusable: true,
 								Label:     "Freeze header",
 								Selected:  app.TableFreezeHeader,

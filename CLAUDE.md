@@ -47,7 +47,10 @@ View fn → generateViewLayout() → Layout tree
 - `Shape` — central renderable. Position, size, color, type, events, text, effects
 - `RenderCmd` — single draw op (rect, text, circle, image, SVG, …)
 - `Window` — top-level container. Holds typed state slot, layout tree, animations
-- `View` — interface satisfied by `*Layout`. Widget factories return `*Layout`
+- `View` — interface (`Content() []View`, `GenerateLayout(*Window) Layout`).
+  Widget factories return `View`, not `*Layout`; `*Layout` does NOT
+  implement it. In tests, reach a widget's shape via
+  `v.GenerateLayout(w).Shape`
 
 ### State Management
 
@@ -67,8 +70,15 @@ app := gui.State[App](w)  // type-asserts; panics if wrong type
 ### Widgets
 
 All widgets take `*Cfg` struct (zero-initializable). Event callbacks share
-sig `func(*Layout, *Event, *Window)`. `IDFocus uint32 > 0` opts widget into
-tab-order focus.
+sig `func(*Layout, *Event, *Window)`.
+
+Focus requires **both** `Focusable: true` **and** a non-empty `ID`
+(`isFocusedTarget`, `gui/event_traversal.go`); tab order additionally
+needs `!FocusSkip && !Disabled` (`layout_query.go`). `Focusable: true`
+without an `ID` is a silent no-op — the widget renders and clicks but
+never joins the tab order. The `requiredid` analyzer flags this. IDs must
+be unique per window: menu items are keyed by raw command ID, so
+`CommandButton` namespaces its auto-filled ID with `cmdbtn:`.
 
 ### External Dependencies
 

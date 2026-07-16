@@ -69,6 +69,7 @@ func mainView(w *gui.Window) gui.View {
 
 func messageButton() gui.View {
 	return gui.Button(gui.ButtonCfg{
+		ID:        "dlg_message",
 		Focusable: true,
 		Sizing:    gui.FillFit,
 		Content: []gui.View{gui.Text(gui.TextCfg{
@@ -90,6 +91,7 @@ func messageButton() gui.View {
 
 func confirmButton() gui.View {
 	return gui.Button(gui.ButtonCfg{
+		ID:        "dlg_confirm",
 		Focusable: true,
 		Sizing:    gui.FillFit,
 		Content: []gui.View{gui.Text(gui.TextCfg{
@@ -113,6 +115,7 @@ func confirmButton() gui.View {
 
 func promptButton() gui.View {
 	return gui.Button(gui.ButtonCfg{
+		ID:        "dlg_prompt",
 		Focusable: true,
 		Sizing:    gui.FillFit,
 		Content: []gui.View{gui.Text(gui.TextCfg{
@@ -139,6 +142,7 @@ func promptButton() gui.View {
 
 func customButton() gui.View {
 	return gui.Button(gui.ButtonCfg{
+		ID:        "dlg_custom",
 		Focusable: true,
 		Sizing:    gui.FillFit,
 		Content: []gui.View{gui.Text(gui.TextCfg{
@@ -156,7 +160,8 @@ func customButton() gui.View {
 								Text: "Custom Content",
 							}),
 							gui.Button(gui.ButtonCfg{
-								Focusable: true, // dialogBaseIDFocus
+								ID:        "dlg_custom_close",
+								Focusable: true,
 								Content: []gui.View{gui.Text(gui.TextCfg{
 									Text: "Close Me",
 								})},
@@ -174,6 +179,7 @@ func customButton() gui.View {
 
 func nativeOpenButton() gui.View {
 	return gui.Button(gui.ButtonCfg{
+		ID:        "dlg_native_open",
 		Focusable: true,
 		Sizing:    gui.FillFit,
 		Content: []gui.View{gui.Text(gui.TextCfg{
@@ -201,6 +207,7 @@ func nativeOpenButton() gui.View {
 
 func nativeSaveButton() gui.View {
 	return gui.Button(gui.ButtonCfg{
+		ID:        "dlg_native_save",
 		Focusable: true,
 		Sizing:    gui.FillFit,
 		Content: []gui.View{gui.Text(gui.TextCfg{
@@ -224,6 +231,7 @@ func nativeSaveButton() gui.View {
 
 func nativeFolderButton() gui.View {
 	return gui.Button(gui.ButtonCfg{
+		ID:        "dlg_native_folder",
 		Focusable: true,
 		Sizing:    gui.FillFit,
 		Content: []gui.View{gui.Text(gui.TextCfg{
@@ -242,6 +250,7 @@ func nativeFolderButton() gui.View {
 
 func nativeMessageButton() gui.View {
 	return gui.Button(gui.ButtonCfg{
+		ID:        "dlg_native_message",
 		Focusable: true,
 		Sizing:    gui.FillFit,
 		Content: []gui.View{gui.Text(gui.TextCfg{
@@ -262,6 +271,7 @@ func nativeMessageButton() gui.View {
 
 func nativeConfirmButton() gui.View {
 	return gui.Button(gui.ButtonCfg{
+		ID:        "dlg_native_confirm",
 		Focusable: true,
 		Sizing:    gui.FillFit,
 		Content: []gui.View{gui.Text(gui.TextCfg{

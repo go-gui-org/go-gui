@@ -1,6 +1,10 @@
 // Package requiredid provides a go/analysis pass that flags composite
 // literals of struct types whose fields are tagged `gui:"required"`
 // when the required field is absent or set to an empty string literal.
+//
+// It also flags Cfg literals that set Focusable: true without an ID.
+// Focus traversal is keyed by ID, so such a widget is silently
+// unreachable by keyboard.
 package requiredid
 
 import (
@@ -50,24 +54,55 @@ func run(pass *analysis.Pass) (any, error) {
 			if !isFactoryArg(lit, named.Obj().Name(), parents) {
 				return true
 			}
-			required := requiredFields(st)
-			if len(required) == 0 {
-				return true
-			}
 			if ignored[pass.Fset.Position(lit.Pos()).Line] {
 				return true
 			}
-			for _, name := range required {
-				if !hasNonEmptyField(lit, name) {
-					pass.Reportf(lit.Pos(),
-						"%s.%s is required (gui:\"required\") and must be non-empty",
-						named.Obj().Name(), name)
-				}
-			}
+			checkRequired(pass, lit, named, st)
+			checkFocusableID(pass, lit, named, st)
 			return true
 		})
 	}
 	return nil, nil
+}
+
+// checkRequired reports fields tagged gui:"required" that are absent
+// or set to an empty string literal.
+func checkRequired(
+	pass *analysis.Pass, lit *ast.CompositeLit,
+	named *types.Named, st *types.Struct,
+) {
+	for _, name := range requiredFields(st) {
+		if !hasNonEmptyField(lit, name) {
+			pass.Reportf(lit.Pos(),
+				"%s.%s is required (gui:\"required\") and must be non-empty",
+				named.Obj().Name(), name)
+		}
+	}
+}
+
+// checkFocusableID reports literals that set Focusable: true but leave
+// ID unset or empty. Focus traversal skips shapes with an empty ID
+// (see isFocusedTarget in the gui package), so Focusable: true alone
+// is a silent no-op: the widget renders but never joins the tab order.
+func checkFocusableID(
+	pass *analysis.Pass, lit *ast.CompositeLit,
+	named *types.Named, st *types.Struct,
+) {
+	if !hasTrueField(lit, "Focusable") {
+		return
+	}
+	// A Cfg with no ID field at all has no way to satisfy the rule;
+	// stay quiet rather than emit an unfixable diagnostic.
+	if !hasField(st, "ID") {
+		return
+	}
+	if hasNonEmptyField(lit, "ID") {
+		return
+	}
+	pass.Reportf(lit.Pos(),
+		"%s sets Focusable: true without an ID; focus traversal is keyed "+
+			"by ID, so the widget is not keyboard-reachable",
+		named.Obj().Name())
 }
 
 // parentCalls maps each CompositeLit directly used as a call
@@ -134,6 +169,36 @@ func requiredFields(st *types.Struct) []string {
 		}
 	}
 	return out
+}
+
+// hasField reports whether st declares a field with the given name.
+func hasField(st *types.Struct, name string) bool {
+	for f := range st.Fields() {
+		if f.Name() == name {
+			return true
+		}
+	}
+	return false
+}
+
+// hasTrueField reports whether the literal sets name to the bool
+// literal true. A non-literal value (variable, call) is treated as
+// not-true: the analyzer cannot know it statically, and guessing
+// would produce false positives.
+func hasTrueField(lit *ast.CompositeLit, name string) bool {
+	for _, e := range lit.Elts {
+		kv, ok := e.(*ast.KeyValueExpr)
+		if !ok {
+			continue
+		}
+		id, ok := kv.Key.(*ast.Ident)
+		if !ok || id.Name != name {
+			continue
+		}
+		val, ok := kv.Value.(*ast.Ident)
+		return ok && val.Name == "true"
+	}
+	return false
 }
 
 func hasNonEmptyField(lit *ast.CompositeLit, name string) bool {

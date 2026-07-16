@@ -412,6 +412,7 @@ func demoMarkdown(w *gui.Window) gui.View {
 	style := gui.DefaultMarkdownStyle()
 	style.CodeHighlighter = highlight.Default()
 	return w.Markdown(gui.MarkdownCfg{
+		ID:        "showcase_markdown",
 		Focusable: true,
 		Style:     style,
 		Source:    embeddedText("docs/markdown_demo.md"),
