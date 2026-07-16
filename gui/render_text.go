@@ -48,7 +48,11 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	}
 
 	// Insert IME preedit text at cursor position for display.
-	imeComposing := shape.Focusable && w.IsFocus(shape.ID) && w.IMEComposing()
+	// A read-only field stays Focusable (to keep selection and
+	// cursor) but can never commit a composition, so its preedit
+	// must not render — makeInputOnChar would swallow the commit.
+	imeComposing := shape.Focusable && !tc.TextReadOnly &&
+		w.IsFocus(shape.ID) && w.IMEComposing()
 	compText := ""
 	compRuneLen := 0
 	compInsertPos := 0

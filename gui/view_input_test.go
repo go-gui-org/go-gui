@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"strings"
 	"testing"
 	"unicode/utf8"
 
@@ -1215,5 +1216,74 @@ func TestInputEditableEnterStillNormalizes(t *testing.T) {
 	if changed != "NORMALIZED" {
 		t.Errorf("editable field: OnTextChanged got %q, want NORMALIZED",
 			changed)
+	}
+}
+
+// renderInnerInputText renders the inner Text shape of an Input and
+// returns the concatenation of every emitted command's Text field.
+// The rendered string includes the IME preedit when the field is
+// composing, so it is the observable signal for #85.
+func renderInnerInputText(t *testing.T, w *Window, v View) string {
+	t.Helper()
+	layout := generateViewLayout(v, w)
+	// Input tree is Column -> Row/Column -> Text.
+	if len(layout.Children) == 0 || len(layout.Children[0].Children) == 0 {
+		t.Fatal("input layout missing inner text child")
+	}
+	txt := layout.Children[0].Children[0].Shape
+	if txt.TC == nil {
+		t.Fatal("inner text shape has no TC")
+	}
+	// Give the shape a real box so it overlaps the clip rect
+	// (rectsOverlap is strict-<, so a zero-size shape never draws).
+	txt.X, txt.Y, txt.Width, txt.Height = 0, 0, 100, 20
+	w.renderers = w.renderers[:0]
+	renderText(txt, drawClip{Width: 800, Height: 600}, w)
+	var sb strings.Builder
+	for i := range w.renderers {
+		sb.WriteString(w.renderers[i].Text)
+	}
+	return sb.String()
+}
+
+// TestInputReadOnlyDoesNotRenderIMEPreedit covers #85: a composition
+// started on a read-only field must not render its preedit, because
+// makeInputOnChar swallows the commit and the preedit would sit there
+// until focus change. The editable control case proves the probe
+// actually observes preedit rendering (guards against a vacuous pass:
+// remove the !tc.TextReadOnly gate in render_text.go and the read-only
+// assertion below fails).
+func TestInputReadOnlyDoesNotRenderIMEPreedit(t *testing.T) {
+	const id = "f-ro-ime"
+	const preedit = "ㅎ" // Hangul jamo, mid-composition
+
+	// Control: an editable field with the same IME state DOES insert
+	// the preedit into the rendered text.
+	we := newTestWindow()
+	we.SetFocus(id)
+	we.ime.composing = true
+	we.ime.compText = preedit
+	editable := renderInnerInputText(t, we, Input(InputCfg{
+		ID: id, Focusable: true, Text: "abc",
+	}))
+	if !strings.Contains(editable, preedit) {
+		t.Fatalf("editable field: preedit not rendered; got %q", editable)
+	}
+
+	// Read-only field with identical IME state must not render preedit.
+	wr := newTestWindow()
+	wr.SetFocus(id)
+	wr.ime.composing = true
+	wr.ime.compText = preedit
+	readonly := renderInnerInputText(t, wr, Input(InputCfg{
+		ID: id, Focusable: true, ReadOnly: true, Text: "abc",
+	}))
+	if strings.Contains(readonly, preedit) {
+		t.Fatalf("read-only field rendered IME preedit; got %q", readonly)
+	}
+	// Sanity: the underlying text is still rendered — only the preedit
+	// is suppressed, not the field content.
+	if !strings.Contains(readonly, "abc") {
+		t.Fatalf("read-only field dropped its text; got %q", readonly)
 	}
 }

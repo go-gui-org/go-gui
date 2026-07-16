@@ -36,6 +36,11 @@ type TextCfg struct {
 	// Hero marks this text element for hero transition
 	// animations between views.
 	Hero bool
+
+	// readOnly is set by input widgets (view_input.go) to suppress
+	// IME preedit on a read-only field that stays Focusable.
+	// Unexported: not a meaningful knob for standalone Text callers.
+	readOnly bool
 }
 
 // textView implements View for text rendering.
@@ -65,6 +70,7 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 		TextIsPlaceholder: c.PlaceholderActive,
 		TextMode:          c.Mode,
 		TextTabSize:       c.TabSize,
+		TextReadOnly:      c.readOnly,
 	}
 
 	layout := Layout{
