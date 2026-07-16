@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`InputCfg.ReadOnly`** — blocks text edits while the field stays
+  focusable and selectable. Navigation, selection, and copy keep
+  working; typing, IME text, paste, cut, undo/redo, delete, multiline
+  Enter, and `PostCommitNormalize` are all skipped. Single-line Enter
+  still fires `OnEnter`/`OnTextCommit`, with the text uncommitted and
+  unnormalized. The field is announced to assistive tech as
+  `AccessStateReadOnly`. Mirrors HTML's `readonly`, and is distinct from
+  `Disabled`, which removes the field from interaction entirely.
+
+  This state was previously inexpressible: `AccessStateReadOnly` could
+  only be produced by setting `Focusable: false`, which also dropped the
+  field from the tab order — so an Input was either editable or
+  unreachable, with nothing in between. Non-focusable Inputs still
+  report read-only, so existing behavior is unchanged.
+
+  Known limitation: an IME composition started on a read-only field
+  renders a preedit that can never commit. It clears on focus change.
+
 ### Fixed
 
 - **`CommandButton` now auto-fills `ID`** from the command ID, prefixed

@@ -242,16 +242,11 @@ func inputCommitEnter(
 	layout *Layout, text string, e *Event, w *Window,
 ) {
 	commitText := text
-	if hcfg.PostCommitNormalize != nil {
-		normalized := hcfg.PostCommitNormalize(
-			text, CommitEnter)
-		if normalized != text {
-			commitText = normalized
-			if hcfg.OnTextChanged != nil {
-				hcfg.OnTextChanged(
-					layout, commitText, w)
-			}
-		}
+	if normalized := hcfg.normalizeOnCommit(
+		text, CommitEnter,
+	); normalized != text {
+		commitText = normalized
+		hcfg.fireTextChanged(layout, commitText, w)
 	}
 	if hcfg.OnTextCommit != nil {
 		hcfg.OnTextCommit(
