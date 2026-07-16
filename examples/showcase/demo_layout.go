@@ -590,6 +590,7 @@ func multiWindowChildView(parent *gui.Window) func(*gui.Window) gui.View {
 					TextStyle: t.B2,
 				}),
 				gui.Button(gui.ButtonCfg{
+					ID:        "showcase_child_window_button",
 					Focusable: true,
 					Padding:   gui.SomeP(8, 16, 8, 16),
 					Content: []gui.View{
@@ -619,6 +620,7 @@ func multiWindowChildView(parent *gui.Window) func(*gui.Window) gui.View {
 					Padding: gui.NoPadding,
 				}),
 				gui.Button(gui.ButtonCfg{
+					ID:        "showcase_child_window_close",
 					Focusable: true,
 					Padding:   gui.SomeP(8, 16, 8, 16),
 					Content: []gui.View{

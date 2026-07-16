@@ -169,6 +169,7 @@ func demoMenus(w *gui.Window) gui.View {
 						Padding: gui.NoPadding,
 						CustomView: gui.Input(gui.InputCfg{
 							Text:        app.MenuSearchText,
+							ID:          "showcase_menu_search",
 							Focusable:   true,
 							Width:       100,
 							MinWidth:    100,

@@ -268,6 +268,9 @@ func landingContent(w *gui.Window, app *App, theme gui.Theme) []gui.View {
 func diffButton(w *gui.Window, title, subtitle string, diff Difficulty, color gui.Color) gui.View {
 	theme := gui.CurrentTheme()
 	return gui.Button(gui.ButtonCfg{
+		// title is a distinct literal at every call site, so it yields a
+		// unique, frame-stable focus ID without widening the signature.
+		ID:          "mine_diff_" + title,
 		Focusable:   true,
 		MinWidth:    130,
 		Color:       color.WithOpacity(0.15),
@@ -549,6 +552,7 @@ func headerView(app *App, theme gui.Theme, boardW float32) gui.View {
 				HAlign: gui.HAlignCenter, VAlign: gui.VAlignMiddle,
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
+						ID:          "mine_reset",
 						Focusable:   true,
 						Color:       gui.RGB(40, 44, 52),
 						ColorHover:  gui.RGB(55, 60, 68),

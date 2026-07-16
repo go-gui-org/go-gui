@@ -46,6 +46,7 @@ func mainView(w *gui.Window) gui.View {
 				TextStyle: gui.CurrentTheme().B1,
 			}),
 			gui.Button(gui.ButtonCfg{
+				ID:        "web_demo_button",
 				Focusable: true,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{

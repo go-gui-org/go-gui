@@ -220,6 +220,7 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 				Color:  colorNeonCyan.WithOpacity(0.3),
 			}),
 			gui.Button(gui.ButtonCfg{
+				ID:          "particles_start",
 				Focusable:   true,
 				MinWidth:    180,
 				Color:       colorNeonGreen.WithOpacity(0.12),

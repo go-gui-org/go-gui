@@ -275,6 +275,70 @@ func TestCommandButtonUnknownReturnsErrorView(t *testing.T) {
 	}
 }
 
+// A CommandButton must carry an ID: focus traversal is keyed by it, so
+// Focusable: true is a silent no-op without one.
+func TestCommandButtonDefaultsIDToCommandID(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	w.RegisterCommand(Command{
+		ID:      "edit.increment",
+		Label:   "Increment",
+		Execute: func(_ *Event, _ *Window) {},
+	})
+
+	v := CommandButton(w, "edit.increment", ButtonCfg{Focusable: true})
+	l := v.GenerateLayout(w)
+	want := commandButtonIDPrefix + "edit.increment"
+	if got := l.Shape.ID; got != want {
+		t.Errorf("ID = %q, want %q", got, want)
+	}
+	if !l.Shape.Focusable {
+		t.Error("Focusable should survive to the shape")
+	}
+	// Focusable && ID != "" is what isFocusedTarget requires.
+	w.SetFocus(want)
+	if !isFocusedTarget(&l, w) {
+		t.Error("button is not keyboard-reachable after SetFocus")
+	}
+}
+
+// The auto-filled ID must not collide with the menu item that the same
+// command drives: menu item shapes carry the raw command ID, so an
+// unprefixed button ID would put two shapes under one focus ID.
+func TestCommandButtonIDDoesNotCollideWithMenuItem(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	w.RegisterCommand(Command{
+		ID:      "file.new",
+		Label:   "New",
+		Execute: func(_ *Event, _ *Window) {},
+	})
+
+	btn := CommandButton(w, "file.new", ButtonCfg{Focusable: true})
+	btnID := btn.GenerateLayout(w).Shape.ID
+
+	// A menubar item for the same command renders a shape keyed by the
+	// raw command ID (view_menu_item.go sets ID: itemCfg.ID).
+	if btnID == "file.new" {
+		t.Errorf("button ID %q collides with the menu item ID for the "+
+			"same command", btnID)
+	}
+}
+
+// An explicit ID must win over the command-ID default.
+func TestCommandButtonExplicitIDWins(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	w.RegisterCommand(Command{
+		ID:      "edit.undo",
+		Label:   "Undo",
+		Execute: func(_ *Event, _ *Window) {},
+	})
+
+	v := CommandButton(w, "edit.undo", ButtonCfg{ID: "custom"})
+	l := v.GenerateLayout(w)
+	if got := l.Shape.ID; got != "custom" {
+		t.Errorf("ID = %q, want %q", got, "custom")
+	}
+}
+
 func TestUnregisterCommandNoOp(_ *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int)})
 	// Should not panic when unregistering a non-existent ID.

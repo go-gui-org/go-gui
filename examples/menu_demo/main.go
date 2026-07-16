@@ -149,6 +149,7 @@ func menu(w *gui.Window) gui.View {
 						Padding: gui.NoPadding,
 						CustomView: gui.Input(gui.InputCfg{
 							Text:        app.SearchText,
+							ID:          "menu_search_input",
 							Focusable:   true,
 							Width:       100,
 							MinWidth:    100,
@@ -207,6 +208,7 @@ func body(w *gui.Window) gui.View {
 				TextStyle: theme.B1,
 			}),
 			gui.Button(gui.ButtonCfg{
+				ID:        "menu_welcome_button",
 				Focusable: true,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{

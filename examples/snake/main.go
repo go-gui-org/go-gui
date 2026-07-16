@@ -11,14 +11,13 @@ import (
 )
 
 const (
-	gridWidth      = 20
-	gridHeight     = 20
-	cellSize       = 18
-	tickMs         = 120
-	tickAnimation  = "snake-tick"
-	paddingOuter   = 16
-	controlsIDBase = 100
-	startButtonID  = 1
+	gridWidth     = 20
+	gridHeight    = 20
+	cellSize      = 18
+	tickMs        = 120
+	tickAnimation = "snake-tick"
+	paddingOuter  = 16
+	startButtonID = "snake_start"
 )
 
 type App struct {
@@ -197,6 +196,7 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 								TextStyle: textStyle(theme.M4, 14, gui.RGB(178, 191, 222)),
 							}),
 							gui.Button(gui.ButtonCfg{
+								ID:          startButtonID,
 								Focusable:   true,
 								MinWidth:    230,
 								Color:       gui.RGB(255, 110, 61),
@@ -362,30 +362,35 @@ func renderControls(g *Game) gui.View {
 		HAlign:  gui.HAlignCenter,
 		Spacing: gui.Some[float32](8),
 		Content: []gui.View{
-			controlButton("Up", controlsIDBase+1, func(g *Game) { g.SetDirection(DirUp) }),
+			controlButton("Up", "snake_up", func(g *Game) { g.SetDirection(DirUp) }),
 			gui.Row(gui.ContainerCfg{
 				HAlign:  gui.HAlignCenter,
 				Spacing: gui.Some[float32](8),
 				Content: []gui.View{
-					controlButton("Left", controlsIDBase+2, func(g *Game) { g.SetDirection(DirLeft) }),
-					controlButton("Down", controlsIDBase+3, func(g *Game) { g.SetDirection(DirDown) }),
-					controlButton("Right", controlsIDBase+4, func(g *Game) { g.SetDirection(DirRight) }),
+					controlButton("Left", "snake_left", func(g *Game) { g.SetDirection(DirLeft) }),
+					controlButton("Down", "snake_down", func(g *Game) { g.SetDirection(DirDown) }),
+					controlButton("Right", "snake_right", func(g *Game) { g.SetDirection(DirRight) }),
 				},
 			}),
 			gui.Row(gui.ContainerCfg{
 				HAlign:  gui.HAlignCenter,
 				Spacing: gui.Some[float32](8),
 				Content: []gui.View{
-					controlButton(pauseLabel, controlsIDBase+5, func(g *Game) { g.TogglePause() }),
-					controlButton("Restart", controlsIDBase+6, func(g *Game) { g.Reset() }),
+					controlButton(pauseLabel, "snake_pause", func(g *Game) { g.TogglePause() }),
+					controlButton("Restart", "snake_restart", func(g *Game) { g.Reset() }),
 				},
 			}),
 		},
 	})
 }
 
-func controlButton(label string, id uint32, action func(*Game)) gui.View {
+// controlButton builds one on-screen D-pad/action button. id must be
+// stable across frames and independent of label: the pause button's
+// label flips between Pause/Resume, and a label-derived ID would drop
+// focus on every toggle.
+func controlButton(label, id string, action func(*Game)) gui.View {
 	return gui.Button(gui.ButtonCfg{
+		ID:        id,
 		Focusable: true,
 		MinWidth:  72,
 		Content: []gui.View{

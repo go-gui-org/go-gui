@@ -63,6 +63,7 @@ func mainView(w *gui.Window) gui.View {
 				TextStyle: gui.CurrentTheme().B1,
 			}),
 			gui.Button(gui.ButtonCfg{
+				ID:        "mw_open_child",
 				Focusable: true,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
@@ -93,6 +94,7 @@ func mainView(w *gui.Window) gui.View {
 				},
 			}),
 			gui.Button(gui.ButtonCfg{
+				ID:        "mw_close_child",
 				Focusable: true,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{

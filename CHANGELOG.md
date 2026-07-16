@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`CommandButton` now auto-fills `ID`** from the command ID, prefixed
+  with `cmdbtn:`. Focus traversal is keyed by `Shape.ID`, so a
+  `CommandButton` with `Focusable: true` but no explicit `ID` was
+  silently unreachable by keyboard. The prefix keeps the button's focus
+  ID distinct from the menu item driven by the same command, which
+  carries the raw command ID. Widgets that were dead tab stops now join
+  the tab order; pass an explicit `cfg.ID` for two buttons on one
+  command in the same window.
+- **36 examples** set `Focusable: true` without an `ID` and were not
+  keyboard-reachable, including `get_started`. All now carry stable IDs.
+  `snake` also dropped `controlsIDBase`/`startButtonID` numeric focus
+  IDs left over from the removed `IDFocus uint32` API.
+
+### Changed
+
+- **`requiredid` analyzer** now also flags Cfg literals that set
+  `Focusable: true` without a non-empty `ID`, catching this class of
+  silent no-op at `go vet` time.
+
 ## [v0.35.1] - 2026-07-15
 
 Documentation-only release. No code or behavior changes; no migration needed.
