@@ -46,6 +46,13 @@ type InputDateCfg struct {
 	HideTodayIndicator   bool
 	MondayFirstDayOfWeek bool
 	ShowAdjacentMonths   bool
+
+	// ReadOnly blocks date edits while the field stays focusable and
+	// selectable, mirroring InputCfg.ReadOnly. Typing is blocked on the
+	// inner Input and the calendar popup is gated shut so it cannot
+	// change the date. Distinct from Disabled, which removes interaction
+	// entirely.
+	ReadOnly bool
 }
 
 type inputDateView struct {
@@ -63,7 +70,10 @@ func InputDate(cfg InputDateCfg) View {
 func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 	cfg := &idv.cfg
 
-	isOpen := StateReadOr(w, nsInputDate, cfg.ID, false)
+	// A read-only date field never opens the calendar popup, closing
+	// the picker's OnSelect mutation path structurally regardless of any
+	// stored open state.
+	isOpen := StateReadOr(w, nsInputDate, cfg.ID, false) && !cfg.ReadOnly
 	cfgID := cfg.ID
 
 	// Format date for display.
@@ -105,7 +115,7 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 			Content: []View{
 				inputDateTextField(cfg, cfgID, isOpen, editText),
 				Button(ButtonCfg{
-					Disabled:   cfg.Disabled,
+					Disabled:   cfg.Disabled || cfg.ReadOnly,
 					Padding:    NoPadding,
 					SizeBorder: NoBorder,
 					Content: []View{Text(TextCfg{
@@ -182,6 +192,7 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 	col := Column(ContainerCfg{
 		ID:          cfg.ID,
 		A11YRole:    AccessRoleDateField,
+		A11YState:   a11yReadOnlyState(cfg.ReadOnly),
 		A11YLabel:   a11yLabel(cfg.A11YLabel, "Date Input"),
 		Color:       cfg.Color,
 		ColorBorder: cfg.ColorBorder,
@@ -221,6 +232,7 @@ func inputDateTextField(
 	return Input(InputCfg{
 		ID:               cfgID + ".input",
 		Focusable:        cfg.Focusable,
+		ReadOnly:         cfg.ReadOnly,
 		Text:             dateText,
 		Placeholder:      inputDatePlaceholder(cfg),
 		Mask:             localeDateMaskPattern(ActiveLocale.Date.ShortDate),
@@ -236,6 +248,11 @@ func inputDateTextField(
 			sm.Set(cfgID, s)
 		},
 		OnTextCommit: func(_ *Layout, text string, _ InputCommitReason, w *Window) {
+			// A read-only inner Input still fires OnTextCommit on Enter
+			// (text unchanged); do not surface it as a date selection.
+			if cfg.ReadOnly {
+				return
+			}
 			if text == "" {
 				if cfg.OnSelect != nil {
 					cfg.OnSelect(nil, &Event{}, w)

@@ -48,6 +48,13 @@ type NumericInputCfg struct {
 	Sizing Sizing
 	Mode   NumericInputMode
 
+	// ReadOnly blocks value edits while the field stays focusable and
+	// selectable, mirroring InputCfg.ReadOnly. Typing is blocked on the
+	// inner Input and the step buttons are gated so they cannot mutate
+	// the value. Distinct from Disabled, which removes interaction
+	// entirely.
+	ReadOnly bool
+
 	Disabled  bool
 	Invisible bool
 }
@@ -89,6 +96,7 @@ func NumericInput(cfg NumericInputCfg) View {
 		ID:          cfg.ID,
 		Focusable:   cfg.Focusable,
 		A11YRole:    AccessRoleTextField,
+		A11YState:   a11yReadOnlyState(cfg.ReadOnly),
 		A11YLabel:   a11yLabel(cfg.A11YLabel, cfg.Placeholder),
 		Width:       cfg.Width,
 		Height:      cfg.Height,
@@ -168,6 +176,7 @@ func numericInputField(cfg NumericInputCfg, locale NumericLocaleCfg, _ NumericSt
 	return Input(InputCfg{
 		ID:               inputID,
 		Focusable:        cfg.Focusable,
+		ReadOnly:         cfg.ReadOnly,
 		Text:             cfg.Text,
 		Placeholder:      cfg.Placeholder,
 		Sizing:           sizing,
@@ -200,6 +209,11 @@ func numericInputField(cfg NumericInputCfg, locale NumericLocaleCfg, _ NumericSt
 			return committed
 		},
 		OnTextCommit: func(layout *Layout, text string, _ InputCommitReason, w *Window) {
+			// A read-only inner Input still fires OnTextCommit on Enter
+			// (with text unchanged); do not surface it as a value commit.
+			if cfg.ReadOnly {
+				return
+			}
 			value, committed := numericInputCommitResultMode(
 				text, cfg.Value, cfg.Min, cfg.Max,
 				cfg.Decimals, locale, modeCfg)
@@ -228,15 +242,21 @@ func numericInputStepButtons(cfg NumericInputCfg, locale NumericLocaleCfg, stepC
 		stepDownID = cfg.ID + "_step_down"
 	}
 
+	// Read-only fields disable the steppers so they cannot mutate the
+	// value (numericInputApplyStep is the load-bearing gate; this is the
+	// affordance).
+	stepDisabled := cfg.Disabled || cfg.ReadOnly
+
 	return Column(ContainerCfg{
 		Spacing:   SomeF(0),
 		Sizing:    FitFill,
-		Disabled:  cfg.Disabled,
+		Disabled:  stepDisabled,
 		Invisible: cfg.Invisible,
 		Padding:   SomeP(0, PadSmall, 0, 0),
 		Content: []View{
 			Button(ButtonCfg{
 				ID:          stepUpID,
+				Disabled:    stepDisabled,
 				Sizing:      FillFill,
 				Padding:     NoPadding,
 				Color:       baseColor,
@@ -260,6 +280,7 @@ func numericInputStepButtons(cfg NumericInputCfg, locale NumericLocaleCfg, stepC
 			}),
 			Button(ButtonCfg{
 				ID:          stepDownID,
+				Disabled:    stepDisabled,
 				Sizing:      FillFill,
 				Padding:     NoPadding,
 				Color:       baseColor,
@@ -294,6 +315,12 @@ func numericInputApplyStep(
 	e *Event,
 	w *Window,
 ) {
+	// Choke point for every step mutation. Read-only fields must not
+	// change value, so gate here by construction — even if a disabled
+	// step button's OnClick were somehow reached.
+	if cfg.ReadOnly {
+		return
+	}
 	modeCfg := numericModeCfgFromInput(cfg)
 	value, committed := numericInputStepResultMode(
 		cfg.Text, cfg.Value, cfg.Min, cfg.Max,
