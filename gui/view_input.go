@@ -115,6 +115,17 @@ type InputCfg struct {
 	Invisible bool
 }
 
+// a11yReadOnlyState maps a ReadOnly flag to the announced accessibility
+// state. Used by the NumericInput/InputDate wrappers, which are always
+// focusable in practice and so need only the ReadOnly signal (unlike
+// Input, which also reports read-only for non-focusable fields).
+func a11yReadOnlyState(readOnly bool) AccessState {
+	if readOnly {
+		return AccessStateReadOnly
+	}
+	return AccessStateNone
+}
+
 // Input creates a text input field view.
 func Input(cfg InputCfg) View {
 	applyInputDefaults(&cfg)

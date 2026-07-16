@@ -24,6 +24,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unreachable, with nothing in between. Non-focusable Inputs still
   report read-only, so existing behavior is unchanged.
 
+- **`NumericInputCfg.ReadOnly` and `InputDateCfg.ReadOnly`** — extend
+  `InputCfg.ReadOnly` to the two composite wrappers. Both forward the
+  flag to their inner `Input` (blocking typing) and gate the secondary
+  mutation paths that bypass the text field: `NumericInput` disables and
+  gates its step buttons at the `numericInputApplyStep` choke point, and
+  `InputDate` keeps the calendar popup closed so its picker can never
+  emit a selection. Enter-commit on the read-only inner `Input` no longer
+  surfaces a value/date change. Both wrappers announce
+  `AccessStateReadOnly`. `NumericInputCfg` and `InputDateCfg` already had
+  `Disabled`; `ReadOnly` is the focusable-but-uneditable counterpart.
+
 ### Fixed
 
 - **Read-only Input no longer renders IME preedit.** A composition

@@ -189,3 +189,63 @@ func layoutContainsText(l *Layout, text string) bool {
 	}
 	return false
 }
+
+// TestInputDateReadOnlyForwardsToInput checks that a read-only
+// InputDate forwards ReadOnly to its inner Input (announced as
+// AccessStateReadOnly) and that the outer date field announces it too.
+func TestInputDateReadOnlyForwardsToInput(t *testing.T) {
+	w := &Window{}
+	v := InputDate(InputDateCfg{
+		ID:        "id-ro-fwd",
+		Focusable: true,
+		ReadOnly:  true,
+		Date:      time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local),
+	})
+	layout := generateViewLayout(v, w)
+	if layout.Shape.A11YState != AccessStateReadOnly {
+		t.Errorf("outer A11YState=%d, want ReadOnly", layout.Shape.A11YState)
+	}
+	inp := findShapeByID(&layout, "id-ro-fwd.input")
+	if inp == nil {
+		t.Fatal("inner input not found")
+	}
+	if inp.Shape.A11YState != AccessStateReadOnly {
+		t.Errorf("inner input A11YState=%d, want ReadOnly", inp.Shape.A11YState)
+	}
+}
+
+// TestInputDateReadOnlyDoesNotOpenPicker covers #82: a read-only date
+// field must not open the calendar popup, which fires OnSelect
+// independently of the text field. The stored open-state is forced true
+// so only the ReadOnly gate can keep the picker closed. The editable
+// control proves the probe observes the open picker (remove the
+// !cfg.ReadOnly clause on isOpen and the read-only assertion fails).
+func TestInputDateReadOnlyDoesNotOpenPicker(t *testing.T) {
+	openChildren := func(readOnly bool) int {
+		w := &Window{}
+		inputDateOpen("id-open", w) // force stored open-state true
+		v := InputDate(InputDateCfg{
+			ID:        "id-open",
+			Focusable: true,
+			ReadOnly:  readOnly,
+		})
+		layout := generateViewLayout(v, w)
+		// Closed: 1 child (the text+icon row). Open: 3 (row, backdrop,
+		// floating picker). The picker's presence is the OnSelect path.
+		hasPicker := findShapeByID(&layout, "id-open.picker") != nil
+		if readOnly && hasPicker {
+			t.Error("read-only date field opened the calendar picker")
+		}
+		if !readOnly && !hasPicker {
+			t.Error("editable open date field did not render the picker")
+		}
+		return len(layout.Children)
+	}
+
+	if got := openChildren(false); got != 3 {
+		t.Errorf("editable open field: got %d children, want 3", got)
+	}
+	if got := openChildren(true); got != 1 {
+		t.Errorf("read-only field: got %d children, want 1 (picker gated)", got)
+	}
+}
