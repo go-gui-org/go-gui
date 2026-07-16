@@ -15,7 +15,7 @@ Create a new widget in the `gui/` package following established conventions.
 
 Every widget consists of:
 1. A `*Cfg` struct (zero-initializable, exported fields)
-2. A factory function returning `*Layout`
+2. A factory function returning `View`
 3. Event callbacks using `func(*Layout, *Event, *Window)` signature
 
 ## Template
@@ -25,8 +25,16 @@ package gui
 
 // <Name>Cfg configures the <Name> widget.
 type <Name>Cfg struct {
-    // IDFocus opts into tab-order focus when > 0.
-    IDFocus uint32
+    // ID keys focus, scroll, and widget state. Focus requires a
+    // non-empty ID — without one the widget is inert (never a tab
+    // stop).
+    ID string
+
+    // Focusable opts into the focus system (with a non-empty ID).
+    // NOTE: input controls (Input, Select, Slider, Toggle, Switch)
+    // are focusable by default and expose FocusDisabled instead —
+    // pick the convention that matches the widget class.
+    Focusable bool
 
     // Widget-specific fields...
 
@@ -35,10 +43,10 @@ type <Name>Cfg struct {
 }
 
 // <Name> creates a <Name> widget.
-func <Name>(cfg <Name>Cfg) *Layout {
+func <Name>(cfg <Name>Cfg) View {
     // Build layout tree
     // Wire event handlers (set e.IsHandled = true when consumed)
-    // Return root *Layout
+    // Return root View
 }
 ```
 
@@ -46,7 +54,9 @@ func <Name>(cfg <Name>Cfg) *Layout {
 - File name: `view_<lowercase_name>.go` in `gui/`
 - Cfg struct must be zero-initializable (sensible defaults)
 - Event callbacks: `func(*Layout, *Event, *Window)`, set `e.IsHandled = true`
-- `IDFocus uint32` field for tab-order focus support
+- Focus needs both `Focusable` (or default-on with no `FocusDisabled`)
+  **and** a non-empty `ID`; the `requiredid` analyzer flags
+  `Focusable: true` without an `ID`
 - No variable shadowing (use `=` not `:=` for outer-scope vars)
 - Read existing widgets (e.g., `view_button.go`, `view_slider.go`) for patterns
 - Must pass `golangci-lint run ./gui/...`

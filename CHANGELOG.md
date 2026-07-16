@@ -21,8 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   This state was previously inexpressible: `AccessStateReadOnly` could
   only be produced by setting `Focusable: false`, which also dropped the
   field from the tab order — so an Input was either editable or
-  unreachable, with nothing in between. Non-focusable Inputs still
-  report read-only, so existing behavior is unchanged.
+  unreachable, with nothing in between. (With the focusable-by-default
+  flip below, `ReadOnly` is now the only trigger for the read-only
+  announcement.)
 
 - **`NumericInputCfg.ReadOnly` and `InputDateCfg.ReadOnly`** — extend
   `InputCfg.ReadOnly` to the two composite wrappers. Both forward the
@@ -58,6 +59,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   IDs left over from the removed `IDFocus uint32` API.
 
 ### Changed
+
+- **BREAKING: input controls are focusable by default.** `InputCfg`,
+  `SelectCfg`, `SliderCfg`, `ToggleCfg`, and `SwitchCfg` drop
+  `Focusable bool` and gain `FocusDisabled bool`: the zero value is now
+  _focusable_, and `FocusDisabled: true` is the explicit opt-out. An
+  input the user can't tab to is a bug, not a design choice — and for
+  `Select`/`Slider`/`Toggle`/`Switch` this is an accessibility fix, not
+  just deboilerplating: ID-bearing call sites that never set `Focusable`
+  now join the Tab order (a slider should be keyboard-adjustable).
+
+  Focus still requires a non-empty `ID` (`Focusable && ID != ""`). An
+  ID-less control is **inert**: it renders but never becomes a tab stop,
+  and no ID is ever fabricated. `Disabled` still excludes a control from
+  the tab order; `ReadOnly` still keeps it focusable.
+
+  Migration (compile error on the removed field is the guide):
+  - `Focusable: true` → delete the line (now the default).
+  - `Focusable: <expr>` → `FocusDisabled: !<expr>`.
+  - `Focusable: false` → `FocusDisabled: true`.
+
+  Out-of-scope widgets keep opt-in `Focusable bool`: Button, Container,
+  Text, and the composites/wrappers (`Combobox`, `DatePicker`,
+  `ListBox`, `RadioButtonGroup`, `NumericInput`, `InputDate`, `Radio`,
+  ColorPicker, ThemePicker, Tree) — the wrappers translate their
+  `Focusable` into the inner Input's `FocusDisabled`.
+
+  The four focus flags, disambiguated:
+
+  | Flag                  | Meaning                                                 |
+  | --------------------- | ------------------------------------------------------- |
+  | `Shape.Focusable`     | widget participates in the focus system                 |
+  | `FocusSkip`           | focusable + click/selection, but excluded from Tab order |
+  | `FocusDisabled` (Cfg) | opt out of the default-on focus (in-scope Cfgs)         |
+  | `Disabled`            | non-interactive; also excluded from Tab order           |
+
+- **A non-focusable Input no longer announces `AccessStateReadOnly`.**
+  Before the flip, `Focusable: false` was the only way to express an
+  uneditable field, so it doubled as the read-only signal. Now that
+  non-focusable means an explicit `FocusDisabled` opt-out, only
+  `ReadOnly: true` announces read-only.
 
 - **`requiredid` analyzer** now also flags Cfg literals that set
   `Focusable: true` without a non-empty `ID`, catching this class of
