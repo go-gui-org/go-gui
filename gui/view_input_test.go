@@ -913,3 +913,307 @@ func TestMakeInputOnKeyUp_NilHandler(t *testing.T) {
 
 	handler(layout, e, w)
 }
+
+// --- ReadOnly tests ---
+
+// newInputTestReadOnly mirrors newInputTest but marks the field
+// read-only. Focusable stays true: the point of ReadOnly is a field
+// that keeps focus and selection while refusing edits.
+func newInputTestReadOnly(
+	text string, focusID string, cursorPos int, mode InputMode,
+) *inputTestCtx {
+	ctx := &inputTestCtx{}
+	ctx.w = newTestWindow()
+	ctx.lastText = text
+	ctx.w.SetFocus(focusID)
+	setInputState(ctx.w, focusID, InputState{CursorPos: cursorPos})
+	ctx.layout = generateViewLayout(Input(InputCfg{
+		Text:      text,
+		ID:        focusID,
+		Focusable: true,
+		ReadOnly:  true,
+		Mode:      mode,
+		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
+			ctx.lastText = newText
+		},
+	}), ctx.w)
+	return ctx
+}
+
+// The state that was previously inexpressible: focusable AND announced
+// read-only. Before ReadOnly, AccessStateReadOnly required
+// Focusable: false, which also dropped the field from the tab order.
+func TestInputReadOnlyIsFocusableAndAnnouncedReadOnly(t *testing.T) {
+	w := newTestWindow()
+	v := Input(InputCfg{
+		ID: "ro_a11y", Text: "x", Focusable: true, ReadOnly: true,
+	})
+	layout := generateViewLayout(v, w)
+
+	if layout.Shape.A11YState != AccessStateReadOnly {
+		t.Errorf("A11YState = %d, want AccessStateReadOnly",
+			layout.Shape.A11YState)
+	}
+	// Focusable && ID != "" is what isFocusedTarget requires.
+	if !layout.Shape.Focusable || layout.Shape.ID == "" {
+		t.Error("read-only field must stay keyboard-reachable")
+	}
+}
+
+func TestInputReadOnlyBlocksTyping(t *testing.T) {
+	ctx := newInputTestReadOnly("hello", "ro1", 5, InputSingleLine)
+	ctx.fireChar('!')
+	if ctx.lastText != "hello" {
+		t.Fatalf("typing mutated read-only field: got %q", ctx.lastText)
+	}
+}
+
+func TestInputReadOnlyBlocksIMEText(t *testing.T) {
+	ctx := newInputTestReadOnly("hello", "ro_ime", 5, InputSingleLine)
+	e := &Event{Type: EventChar, CharCode: 'a', IMEText: "日本"}
+	ctx.layout.Shape.events.OnChar(&ctx.layout, e, ctx.w)
+	if ctx.lastText != "hello" {
+		t.Fatalf("IME text mutated read-only field: got %q", ctx.lastText)
+	}
+}
+
+func TestInputReadOnlyBlocksDeleteKeys(t *testing.T) {
+	for _, key := range []struct {
+		name string
+		code KeyCode
+	}{{"backspace", KeyBackspace}, {"delete", KeyDelete}} {
+		ctx := newInputTestReadOnly("hello", "ro_"+key.name, 3,
+			InputSingleLine)
+		ctx.fireKeyDown(key.code, 0)
+		if ctx.lastText != "hello" {
+			t.Errorf("%s mutated read-only field: got %q",
+				key.name, ctx.lastText)
+		}
+	}
+}
+
+func TestInputReadOnlyBlocksPaste(t *testing.T) {
+	ctx := newInputTestReadOnly("hello", "ro2", 5, InputSingleLine)
+	ctx.w.SetClipboardGetFn(func() string { return "XX" })
+	ctx.fireKeyDown(KeyV, ModCtrl)
+	if ctx.lastText != "hello" {
+		t.Fatalf("paste mutated read-only field: got %q", ctx.lastText)
+	}
+}
+
+func TestInputReadOnlyBlocksCut(t *testing.T) {
+	var clipboard string
+	ctx := newInputTestReadOnly("abcd", "ro3", 2, InputSingleLine)
+	ctx.w.SetClipboardFn(func(s string) { clipboard = s })
+	setInputState(ctx.w, "ro3", InputState{
+		CursorPos: 2, SelectBeg: 1, SelectEnd: 3,
+	})
+	ctx.fireKeyDown(KeyX, ModCtrl)
+	if ctx.lastText != "abcd" {
+		t.Errorf("cut mutated read-only field: got %q", ctx.lastText)
+	}
+	if clipboard != "" {
+		t.Errorf("cut wrote clipboard %q on read-only field", clipboard)
+	}
+}
+
+// Undo needs real history to be a meaningful test: seed it by editing
+// the field while it is still editable, then flip it to read-only and
+// confirm Ctrl+Z cannot roll the text back.
+func TestInputReadOnlyBlocksUndo(t *testing.T) {
+	ctx := newInputTest("hello", "ro4", 5)
+	ctx.fireChar('!')
+	if ctx.lastText != "hello!" {
+		t.Fatalf("setup: insert failed, got %q", ctx.lastText)
+	}
+
+	ctx.layout = generateViewLayout(Input(InputCfg{
+		Text: ctx.lastText, ID: "ro4", Focusable: true, ReadOnly: true,
+		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
+			ctx.lastText = newText
+		},
+	}), ctx.w)
+
+	ctx.fireKeyDown(KeyZ, ModCtrl)
+	if ctx.lastText != "hello!" {
+		t.Fatalf("undo mutated read-only field: got %q, want %q",
+			ctx.lastText, "hello!")
+	}
+}
+
+func TestInputReadOnlyBlocksMultilineEnter(t *testing.T) {
+	ctx := newInputTestReadOnly("ab", "ro5", 1, InputMultiline)
+	ctx.fireKeyDown(KeyEnter, 0)
+	if ctx.lastText != "ab" {
+		t.Fatalf("Enter inserted newline in read-only multiline: got %q",
+			ctx.lastText)
+	}
+}
+
+// Single-line Enter commits without changing text, so it must still
+// reach OnEnter on a read-only field (HTML readonly submits too).
+func TestInputReadOnlySingleLineEnterStillCommits(t *testing.T) {
+	w := newTestWindow()
+	w.SetFocus("ro6")
+	enterFired := false
+	layout := generateViewLayout(Input(InputCfg{
+		Text: "hello", ID: "ro6", Focusable: true, ReadOnly: true,
+		OnEnter: func(_ *Layout, _ *Event, _ *Window) {
+			enterFired = true
+		},
+	}), w)
+	e := &Event{Type: EventKeyDown, KeyCode: KeyEnter}
+	layout.Shape.events.OnKeyDown(&layout, e, w)
+	if !enterFired {
+		t.Error("single-line Enter should still commit when read-only")
+	}
+}
+
+// Navigation, selection, and copy are the whole reason ReadOnly is not
+// just Focusable: false — they must keep working.
+func TestInputReadOnlyAllowsNavigation(t *testing.T) {
+	ctx := newInputTestReadOnly("hello", "ro7", 0, InputSingleLine)
+	ctx.fireKeyDown(KeyRight, 0)
+	if got := ctx.state().CursorPos; got != 1 {
+		t.Fatalf("CursorPos = %d, want 1: arrows must work read-only", got)
+	}
+}
+
+func TestInputReadOnlyAllowsSelectAll(t *testing.T) {
+	ctx := newInputTestReadOnly("abc", "ro8", 1, InputSingleLine)
+	ctx.fireKeyDown(KeyA, ModCtrl)
+	is := ctx.state()
+	if is.SelectBeg != 0 || is.SelectEnd != 3 {
+		t.Fatalf("select all: got %d-%d, want 0-3",
+			is.SelectBeg, is.SelectEnd)
+	}
+}
+
+func TestInputReadOnlyAllowsCopy(t *testing.T) {
+	var clipboard string
+	ctx := newInputTestReadOnly("hello", "ro9", 5, InputSingleLine)
+	ctx.w.SetClipboardFn(func(s string) { clipboard = s })
+	setInputState(ctx.w, "ro9", InputState{
+		CursorPos: 5, SelectBeg: 0, SelectEnd: 5,
+	})
+	ctx.fireKeyDown(KeyC, ModCtrl)
+	if clipboard != "hello" {
+		t.Fatalf("copy: clipboard=%q, want hello", clipboard)
+	}
+}
+
+// Default (ReadOnly: false) must be unaffected.
+func TestInputNotReadOnlyStillEdits(t *testing.T) {
+	ctx := newInputTest("hello", "ro10", 5)
+	ctx.fireChar('!')
+	if ctx.lastText != "hello!" {
+		t.Fatalf("got %q, want %q", ctx.lastText, "hello!")
+	}
+}
+
+// --- ReadOnly commit-path tests ---
+//
+// These cover the paths that the char/key gates cannot see:
+// PostCommitNormalize transforms text and notifies via OnTextChanged
+// without going through any text mutator, so gating the two
+// dispatchers left it reachable. Both cases below failed before
+// normalizeOnCommit/fireTextChanged existed.
+
+func TestInputReadOnlyEnterDoesNotNormalize(t *testing.T) {
+	w := newTestWindow()
+	w.SetFocus("ro_norm_enter")
+	changed := ""
+	committed := ""
+	layout := generateViewLayout(Input(InputCfg{
+		Text: "  hi  ", ID: "ro_norm_enter", Focusable: true,
+		ReadOnly: true,
+		PostCommitNormalize: func(_ string, _ InputCommitReason) string {
+			return "NORMALIZED"
+		},
+		OnTextChanged: func(_ *Layout, nt string, _ *Window) {
+			changed = nt
+		},
+		OnTextCommit: func(
+			_ *Layout, ct string, _ InputCommitReason, _ *Window,
+		) {
+			committed = ct
+		},
+	}), w)
+
+	e := &Event{Type: EventKeyDown, KeyCode: KeyEnter}
+	layout.Shape.events.OnKeyDown(&layout, e, w)
+
+	if changed != "" {
+		t.Errorf("OnTextChanged fired with %q on a read-only field", changed)
+	}
+	// Commit still fires — with the original text, not the normalized one.
+	if committed != "  hi  " {
+		t.Errorf("OnTextCommit got %q, want the unnormalized %q",
+			committed, "  hi  ")
+	}
+}
+
+func TestInputReadOnlyBlurDoesNotNormalize(t *testing.T) {
+	w := newTestWindow()
+	changed := ""
+	committed := ""
+	cfg := InputCfg{
+		Text: "  hi  ", ID: "ro_norm_blur", Focusable: true,
+		ReadOnly: true,
+		PostCommitNormalize: func(_ string, _ InputCommitReason) string {
+			return "NORMALIZED"
+		},
+		OnTextChanged: func(_ *Layout, nt string, _ *Window) {
+			changed = nt
+		},
+		OnTextCommit: func(
+			_ *Layout, ct string, _ InputCommitReason, _ *Window,
+		) {
+			committed = ct
+		},
+	}
+
+	// Frame 1: focused. AmendLayout records focus in nsInputFocus.
+	w.SetFocus("ro_norm_blur")
+	l1 := generateViewLayout(Input(cfg), w)
+	l1.Shape.events.AmendLayout(&l1, w)
+
+	// Frame 2: focus moved away -> blur commit path runs.
+	w.SetFocus("elsewhere")
+	l2 := generateViewLayout(Input(cfg), w)
+	l2.Shape.events.AmendLayout(&l2, w)
+
+	if changed != "" {
+		t.Errorf("OnTextChanged fired with %q on blur of a read-only field",
+			changed)
+	}
+	if committed != "  hi  " {
+		t.Errorf("OnTextCommit got %q, want the unnormalized %q",
+			committed, "  hi  ")
+	}
+}
+
+// An editable field must still normalize on both paths — the guard
+// must not have disabled the feature outright.
+func TestInputEditableEnterStillNormalizes(t *testing.T) {
+	w := newTestWindow()
+	w.SetFocus("rw_norm_enter")
+	changed := ""
+	layout := generateViewLayout(Input(InputCfg{
+		Text: "  hi  ", ID: "rw_norm_enter", Focusable: true,
+		PostCommitNormalize: func(_ string, _ InputCommitReason) string {
+			return "NORMALIZED"
+		},
+		OnTextChanged: func(_ *Layout, nt string, _ *Window) {
+			changed = nt
+		},
+	}), w)
+
+	e := &Event{Type: EventKeyDown, KeyCode: KeyEnter}
+	layout.Shape.events.OnKeyDown(&layout, e, w)
+
+	if changed != "NORMALIZED" {
+		t.Errorf("editable field: OnTextChanged got %q, want NORMALIZED",
+			changed)
+	}
+}

@@ -76,6 +76,21 @@ type InputCfg struct {
 
 	Focusable bool
 
+	// ReadOnly blocks text edits while the field stays focusable and
+	// selectable: navigation, selection, and copy keep working, and the
+	// field is announced to assistive tech as read-only. Typing, paste,
+	// cut, undo/redo, delete, and PostCommitNormalize are all skipped.
+	// Mirrors HTML's readonly.
+	//
+	// Distinct from Disabled, which also removes the field from
+	// interaction entirely and announces AccessStateDisabled.
+	//
+	// Known limitation: an IME composition started on a read-only field
+	// still renders its preedit (render_text.go gates that on Focusable,
+	// which read-only fields keep). The composition can never commit and
+	// clears on focus change, so the effect is a transient artifact.
+	ReadOnly bool
+
 	// Scrollable opts a multiline input into the scroll system.
 	// Scroll state is keyed by Cfg.ID - pass that same id to
 	// Window.ScrollVerticalTo. Requires Mode == InputMultiline.
@@ -137,6 +152,7 @@ func Input(cfg InputCfg) View {
 		FocusID:             cfg.ID,
 		ScrollID:            inputScrollIDFor(&cfg),
 		IsPassword:          cfg.IsPassword,
+		ReadOnly:            cfg.ReadOnly,
 		Mode:                cfg.Mode,
 		Mask:                cfg.Mask,
 		MaskPreset:          cfg.MaskPreset,
@@ -176,8 +192,14 @@ func Input(cfg InputCfg) View {
 	if cfg.Mode == InputMultiline {
 		a11yRole = AccessRoleTextArea
 	}
+	// ReadOnly states it outright. A non-focusable field is also
+	// uneditable in practice, so it keeps reporting read-only; that
+	// fallback is the only way this was expressible before ReadOnly
+	// existed. If Focusable ever defaults to true, drop the second
+	// clause — a missing ID would otherwise announce read-only on a
+	// field the caller never marked as such.
 	a11yState := AccessStateNone
-	if !cfg.Focusable {
+	if cfg.ReadOnly || !cfg.Focusable {
 		a11yState = AccessStateReadOnly
 	}
 
@@ -287,8 +309,37 @@ type inputHandlerCfg struct {
 	FocusID             string
 	ScrollID            string
 	IsPassword          bool
+	ReadOnly            bool
 	Mode                InputMode
 	MaskPreset          InputMaskPreset
+}
+
+// fireTextChanged notifies the caller that the text changed. Every
+// mutation path in this file ends here, which makes it the one place
+// ReadOnly has to be enforced: a read-only field by definition never
+// changes text, so the notification is dropped rather than relying on
+// each entry point to remember to check. Gating only the entry points
+// missed the commit paths, where PostCommitNormalize reaches this
+// without going through any text mutator.
+func (h *inputHandlerCfg) fireTextChanged(
+	layout *Layout, text string, w *Window,
+) {
+	if h.ReadOnly || h.OnTextChanged == nil {
+		return
+	}
+	h.OnTextChanged(layout, text, w)
+}
+
+// normalizeOnCommit applies PostCommitNormalize, which transforms the
+// text and is therefore an edit: read-only fields skip it and commit
+// the text unchanged.
+func (h *inputHandlerCfg) normalizeOnCommit(
+	text string, reason InputCommitReason,
+) string {
+	if h.ReadOnly || h.PostCommitNormalize == nil {
+		return text
+	}
+	return h.PostCommitNormalize(text, reason)
 }
 
 // compiledMask returns a non-nil *CompiledInputMask if the
@@ -446,16 +497,11 @@ func inputAmendLayout(
 		focusMap.Set(layout.Shape.ID, focused)
 		if wasFocused && !focused {
 			text := inputTextFromLayout(layout)
-			if hcfg.PostCommitNormalize != nil {
-				normalized := hcfg.PostCommitNormalize(
-					text, CommitBlur)
-				if normalized != text {
-					text = normalized
-					if hcfg.OnTextChanged != nil {
-						hcfg.OnTextChanged(
-							layout, text, w)
-					}
-				}
+			if normalized := hcfg.normalizeOnCommit(
+				text, CommitBlur,
+			); normalized != text {
+				text = normalized
+				hcfg.fireTextChanged(layout, text, w)
 			}
 			if hcfg.OnTextCommit != nil {
 				hcfg.OnTextCommit(
@@ -535,6 +581,12 @@ func makeInputOnChar(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
 		if hcfg.FocusID == "" || !w.IsFocus(hcfg.FocusID) {
 			return
 		}
+		// Swallow typed and IME-composed text; the field keeps focus so
+		// navigation, selection, and copy still work.
+		if hcfg.ReadOnly {
+			e.IsHandled = true
+			return
+		}
 		ch := e.CharCode
 		id := hcfg.FocusID
 
@@ -553,9 +605,7 @@ func makeInputOnChar(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
 
 		if changed {
 			resetBlinkCursorVisible(w)
-			if hcfg.OnTextChanged != nil {
-				hcfg.OnTextChanged(layout, text, w)
-			}
+			hcfg.fireTextChanged(layout, text, w)
 			inputScrollCursorIntoView(
 				hcfg.ScrollID, text, layout, w,
 			)
@@ -564,10 +614,35 @@ func makeInputOnChar(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
 	}
 }
 
+// inputKeyMutatesText reports whether a key event would change the
+// input's text. Read-only fields swallow these while navigation
+// (arrows/Home/End), selection (Shift, Ctrl+A), and copy (Ctrl+C) stay
+// live. Cut/undo/redo only mutate with a Ctrl/Super modifier; without
+// one their handlers decline the key, so it must not be swallowed here.
+func inputKeyMutatesText(e *Event, mode InputMode) bool {
+	switch e.KeyCode {
+	case KeyBackspace, KeyDelete:
+		return true
+	case KeyEnter:
+		// Multiline Enter inserts a newline. Single-line Enter commits
+		// and must stay allowed so OnEnter/OnTextCommit still fire; its
+		// one edit is PostCommitNormalize, which normalizeOnCommit
+		// skips when read-only.
+		return mode == InputMultiline
+	case KeyV, KeyX, KeyZ:
+		return e.Modifiers.HasAny(ModCtrl, ModSuper)
+	}
+	return false
+}
+
 func makeInputOnKeyDown(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
 	mask := hcfg.CompiledMask
 	return func(layout *Layout, e *Event, w *Window) {
 		if hcfg.FocusID == "" || !w.IsFocus(hcfg.FocusID) {
+			return
+		}
+		if hcfg.ReadOnly && inputKeyMutatesText(e, hcfg.Mode) {
+			e.IsHandled = true
 			return
 		}
 		id := hcfg.FocusID
@@ -651,8 +726,8 @@ func makeInputOnKeyDown(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
 
 		if handled {
 			resetBlinkCursorVisible(w)
-			if textChanged && hcfg.OnTextChanged != nil {
-				hcfg.OnTextChanged(layout, text, w)
+			if textChanged {
+				hcfg.fireTextChanged(layout, text, w)
 			}
 			inputScrollCursorIntoView(
 				hcfg.ScrollID, text, layout, w,
