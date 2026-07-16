@@ -14,19 +14,21 @@ type InputDateCfg struct {
 	ID               string
 	Placeholder      string
 
-	A11YLabel            string
-	A11YDescription      string
-	Dates                []time.Time
-	AllowedWeekdays      []DatePickerWeekdays
-	AllowedMonths        []DatePickerMonths
-	AllowedYears         []int
-	AllowedDates         []time.Time
-	Padding              Opt[Padding]
-	SizeBorder           Opt[float32]
-	CellSpacing          Opt[float32]
-	Radius               Opt[float32]
-	RadiusBorder         Opt[float32]
-	Focusable            bool
+	A11YLabel       string
+	A11YDescription string
+	Dates           []time.Time
+	AllowedWeekdays []DatePickerWeekdays
+	AllowedMonths   []DatePickerMonths
+	AllowedYears    []int
+	AllowedDates    []time.Time
+	Padding         Opt[Padding]
+	SizeBorder      Opt[float32]
+	CellSpacing     Opt[float32]
+	Radius          Opt[float32]
+	RadiusBorder    Opt[float32]
+	// FocusDisabled opts out of the default-on focus. Focus also
+	// requires a non-empty ID; without one the control is inert.
+	FocusDisabled        bool
 	Width                float32
 	Height               float32
 	MinWidth             float32
@@ -191,6 +193,7 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 
 	col := Column(ContainerCfg{
 		ID:          cfg.ID,
+		Focusable:   !cfg.FocusDisabled,
 		A11YRole:    AccessRoleDateField,
 		A11YState:   a11yReadOnlyState(cfg.ReadOnly),
 		A11YLabel:   a11yLabel(cfg.A11YLabel, "Date Input"),
@@ -231,9 +234,9 @@ func inputDateTextField(
 	}
 	return Input(InputCfg{
 		ID: cfgID + ".input",
-		// InputDate stays opt-in (deferred from the focusable-
-		// by-default flip); translate its Focusable intent.
-		FocusDisabled:    !cfg.Focusable,
+		// InputDate focus is default-on; propagate FocusDisabled
+		// intent to the inner Input.
+		FocusDisabled:    cfg.FocusDisabled,
 		ReadOnly:         cfg.ReadOnly,
 		Text:             dateText,
 		Placeholder:      inputDatePlaceholder(cfg),

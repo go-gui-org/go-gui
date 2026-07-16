@@ -197,7 +197,6 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 							}),
 							gui.Button(gui.ButtonCfg{
 								ID:          startButtonID,
-								Focusable:   true,
 								MinWidth:    230,
 								Color:       gui.RGB(255, 110, 61),
 								ColorHover:  gui.RGB(255, 135, 90),
@@ -390,9 +389,8 @@ func renderControls(g *Game) gui.View {
 // focus on every toggle.
 func controlButton(label, id string, action func(*Game)) gui.View {
 	return gui.Button(gui.ButtonCfg{
-		ID:        id,
-		Focusable: true,
-		MinWidth:  72,
+		ID:       id,
+		MinWidth: 72,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: label}),
 		},

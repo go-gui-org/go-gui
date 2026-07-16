@@ -58,22 +58,24 @@ type datePickerState struct {
 
 // DatePickerCfg configures a date picker calendar view.
 type DatePickerCfg struct {
-	TextStyle            TextStyle
-	OnSelect             func([]time.Time, *Event, *Window)
-	ID                   string `gui:"required"`
-	A11YLabel            string
-	A11YDescription      string
-	Dates                []time.Time
-	AllowedWeekdays      []DatePickerWeekdays
-	AllowedMonths        []DatePickerMonths
-	AllowedYears         []int
-	AllowedDates         []time.Time
-	Padding              Opt[Padding]
-	SizeBorder           Opt[float32]
-	CellSpacing          Opt[float32]
-	Radius               Opt[float32]
-	RadiusBorder         Opt[float32]
-	Focusable            bool
+	TextStyle       TextStyle
+	OnSelect        func([]time.Time, *Event, *Window)
+	ID              string `gui:"required"`
+	A11YLabel       string
+	A11YDescription string
+	Dates           []time.Time
+	AllowedWeekdays []DatePickerWeekdays
+	AllowedMonths   []DatePickerMonths
+	AllowedYears    []int
+	AllowedDates    []time.Time
+	Padding         Opt[Padding]
+	SizeBorder      Opt[float32]
+	CellSpacing     Opt[float32]
+	Radius          Opt[float32]
+	RadiusBorder    Opt[float32]
+	// FocusDisabled opts out of the default-on focus. Focus also
+	// requires a non-empty ID; without one the control is inert.
+	FocusDisabled        bool
 	Color                Color
 	ColorHover           Color
 	ColorFocus           Color
@@ -148,7 +150,7 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 	cfgID := cfg.ID
 	col := Column(ContainerCfg{
 		ID:          cfg.ID,
-		Focusable:   cfg.Focusable,
+		Focusable:   !cfg.FocusDisabled,
 		A11YRole:    AccessRoleGrid,
 		A11YLabel:   a11yLabel(cfg.A11YLabel, "Date Picker"),
 		Color:       cfg.Color,
@@ -168,7 +170,7 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 			}
 		},
 		OnClick: func(_ *Layout, e *Event, w *Window) {
-			if cfg.Focusable && !cfg.Disabled {
+			if !cfg.Disabled {
 				w.SetFocus(cfg.ID)
 				e.IsHandled = true
 			}

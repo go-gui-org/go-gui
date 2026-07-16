@@ -38,9 +38,8 @@ func TestRadioButtonGroupRowBasic(t *testing.T) {
 
 func TestRadioButtonGroupFocusIDs(t *testing.T) {
 	v := RadioButtonGroupColumn(RadioButtonGroupCfg{
-		Value:     "a",
-		ID:        "rbg",
-		Focusable: true,
+		Value: "a",
+		ID:    "rbg",
 		Options: []RadioOption{
 			{Label: "A", Value: "a"},
 			{Label: "B", Value: "b"},

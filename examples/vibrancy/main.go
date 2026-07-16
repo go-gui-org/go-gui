@@ -48,8 +48,7 @@ func mainView(w *gui.Window) gui.View {
 				TextStyle: gui.CurrentTheme().B1,
 			}),
 			gui.Button(gui.ButtonCfg{
-				ID:        "vibrancy_button",
-				Focusable: true,
+				ID: "vibrancy_button",
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{Text: "Cycle material"}),
 				},

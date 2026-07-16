@@ -44,7 +44,7 @@ func TestRadioOnClickCallback(t *testing.T) {
 func TestRadioFocusablePassthrough(t *testing.T) {
 	w := &Window{}
 	layout := generateViewLayout(
-		Radio(RadioCfg{ID: "r4", Focusable: true, OnClick: noop}), w)
+		Radio(RadioCfg{ID: "r4", OnClick: noop}), w)
 	if !layout.Shape.Focusable {
 		t.Error("Focusable: want true")
 	}

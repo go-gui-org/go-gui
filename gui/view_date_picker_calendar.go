@@ -157,7 +157,7 @@ func datePickerMonth(
 					s.FocusDay = dayVal
 					sm.Set(cfgID, s)
 
-					if cfg.Focusable {
+					if !cfg.FocusDisabled {
 						w.SetFocus(cfg.ID)
 					}
 
@@ -229,7 +229,7 @@ func datePickerAdjacentCell(
 			TextStyle: ts,
 		})},
 		OnClick: func(_ *Layout, e *Event, w *Window) {
-			if cfg.Focusable {
+			if !cfg.FocusDisabled {
 				w.SetFocus(cfg.ID)
 			}
 			datePickerNavMonth(cfgID, delta, w)
@@ -262,7 +262,7 @@ func datePickerYearMonthPicker(
 		ColorBorder:  ColorTransparent,
 		SizeBorder:   NoBorder,
 		OnChange: func(t time.Time, w *Window) {
-			if cfg.Focusable {
+			if !cfg.FocusDisabled {
 				w.SetFocus(cfg.ID)
 			}
 			sm := StateMap[string, datePickerState](

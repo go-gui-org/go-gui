@@ -171,7 +171,6 @@ func demoListBox(w *gui.Window) gui.View {
 			gui.Text(gui.TextCfg{Text: "Virtualized list (scroll)", TextStyle: t.B3}),
 			gui.ListBox(gui.ListBoxCfg{
 				ID:          "listbox-demo",
-				Focusable:   true,
 				Scrollable:  true,
 				Sizing:      gui.FillFit,
 				MaxHeight:   200,
@@ -215,7 +214,6 @@ func demoCombobox(w *gui.Window) gui.View {
 			}),
 			gui.Combobox(gui.ComboboxCfg{
 				ID:          "combobox-demo",
-				Focusable:   true,
 				Scrollable:  true,
 				Placeholder: "Type to search...",
 				Value:       app.ComboboxValue,

@@ -32,7 +32,9 @@ type TreeCfg struct {
 	Indent  float32
 	Spacing float32
 
-	Focusable bool
+	// FocusDisabled opts out of the default-on focus. Focus also
+	// requires a non-empty ID; without one the control is inert.
+	FocusDisabled bool
 
 	// Scrollable opts the tree into the scroll system. Scroll state
 	// is keyed by Cfg.ID - pass that same id to Window.ScrollVerticalTo.
@@ -237,7 +239,7 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 		A11YRole:   AccessRoleTree,
 		A11YLabel:  a11yLabel(cfg.A11YLabel, cfg.ID),
 		A11Y:       makeA11YInfo(a11yLabel(cfg.A11YLabel, cfg.ID), cfg.A11YDescription),
-		Focusable:  cfg.Focusable,
+		Focusable:  !cfg.FocusDisabled,
 		Scrollable: cfg.Scrollable,
 		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
 			if canReorder {

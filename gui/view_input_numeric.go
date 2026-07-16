@@ -31,13 +31,15 @@ type NumericInputCfg struct {
 	Padding    Opt[Padding]
 	Radius     Opt[float32]
 	SizeBorder Opt[float32]
-	Focusable  bool
-	Width      float32
-	Height     float32
-	MinWidth   float32
-	MaxWidth   float32
-	MinHeight  float32
-	MaxHeight  float32
+	// FocusDisabled opts out of the default-on focus. Focus also
+	// requires a non-empty ID; without one the control is inert.
+	FocusDisabled bool
+	Width         float32
+	Height        float32
+	MinWidth      float32
+	MaxWidth      float32
+	MinHeight     float32
+	MaxHeight     float32
 
 	Color            Color
 	ColorHover       Color
@@ -94,7 +96,7 @@ func NumericInput(cfg NumericInputCfg) View {
 
 	return Row(ContainerCfg{
 		ID:          cfg.ID,
-		Focusable:   cfg.Focusable,
+		Focusable:   !cfg.FocusDisabled,
 		A11YRole:    AccessRoleTextField,
 		A11YState:   a11yReadOnlyState(cfg.ReadOnly),
 		A11YLabel:   a11yLabel(cfg.A11YLabel, cfg.Placeholder),
@@ -175,9 +177,9 @@ func numericInputField(cfg NumericInputCfg, locale NumericLocaleCfg, _ NumericSt
 
 	return Input(InputCfg{
 		ID: inputID,
-		// NumericInput stays opt-in (deferred from the focusable-
-		// by-default flip); translate its Focusable intent.
-		FocusDisabled:    !cfg.Focusable,
+		// NumericInput focus is default-on; propagate FocusDisabled
+		// intent to the inner Input.
+		FocusDisabled:    cfg.FocusDisabled,
 		ReadOnly:         cfg.ReadOnly,
 		Text:             cfg.Text,
 		Placeholder:      cfg.Placeholder,

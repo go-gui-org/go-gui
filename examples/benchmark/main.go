@@ -201,8 +201,7 @@ func benchView(w *gui.Window) gui.View {
 						},
 					}),
 					gui.Button(gui.ButtonCfg{
-						ID:        "bench_run",
-						Focusable: true,
+						ID: "bench_run",
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{Text: btnLabel}),
 						},

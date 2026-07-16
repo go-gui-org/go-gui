@@ -101,10 +101,9 @@ func demoTable(w *gui.Window) gui.View {
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					gui.RadioButtonGroupRow(gui.RadioButtonGroupCfg{
-						Focusable: true,
-						Title:     "Border style",
-						TitleBG:   gui.CurrentTheme().ColorBackground,
-						Value:     app.TableBorderStyle,
+						Title:   "Border style",
+						TitleBG: gui.CurrentTheme().ColorBackground,
+						Value:   app.TableBorderStyle,
 						Options: []gui.RadioOption{
 							gui.NewRadioOption("All", "all"),
 							gui.NewRadioOption("Horizontal", "horizontal"),
@@ -263,10 +262,9 @@ func demoTree(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{Text: "Basic tree", TextStyle: gui.CurrentTheme().B3}),
 			gui.Tree(gui.TreeCfg{
-				ID:        "showcase-tree-basic",
-				Focusable: true,
-				Sizing:    gui.FillFit,
-				OnSelect:  showcaseTreeOnSelect,
+				ID:       "showcase-tree-basic",
+				Sizing:   gui.FillFit,
+				OnSelect: showcaseTreeOnSelect,
 				Nodes: []gui.TreeNodeCfg{
 					{
 						Text: "Mammals",
@@ -299,7 +297,6 @@ func demoTree(w *gui.Window) gui.View {
 			gui.Text(gui.TextCfg{Text: "Virtualized tree (scroll)", TextStyle: gui.CurrentTheme().B3}),
 			gui.Tree(gui.TreeCfg{
 				ID:         "showcase-tree-virtual",
-				Focusable:  true,
 				Scrollable: true,
 				Sizing:     gui.FillFit,
 				MaxHeight:  200,
@@ -309,7 +306,6 @@ func demoTree(w *gui.Window) gui.View {
 			gui.Text(gui.TextCfg{Text: "Lazy-loading tree", TextStyle: gui.CurrentTheme().B3}),
 			gui.Tree(gui.TreeCfg{
 				ID:         "showcase-tree-lazy",
-				Focusable:  true,
 				Sizing:     gui.FillFit,
 				OnSelect:   showcaseTreeOnSelect,
 				OnLazyLoad: showcaseTreeOnLazyLoad,

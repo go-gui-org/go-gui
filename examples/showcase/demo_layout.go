@@ -535,10 +535,9 @@ func demoMultiWindow(w *gui.Window) gui.View {
 				Mode:      gui.TextModeWrap,
 			}),
 			gui.Button(gui.ButtonCfg{
-				ID:        "btn-open-child-window",
-				Focusable: true,
-				Disabled:  childActive,
-				Padding:   gui.SomeP(8, 16, 8, 16),
+				ID:       "btn-open-child-window",
+				Disabled: childActive,
+				Padding:  gui.SomeP(8, 16, 8, 16),
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      "Open Child Window",
@@ -590,9 +589,8 @@ func multiWindowChildView(parent *gui.Window) func(*gui.Window) gui.View {
 					TextStyle: t.B2,
 				}),
 				gui.Button(gui.ButtonCfg{
-					ID:        "showcase_child_window_button",
-					Focusable: true,
-					Padding:   gui.SomeP(8, 16, 8, 16),
+					ID:      "showcase_child_window_button",
+					Padding: gui.SomeP(8, 16, 8, 16),
 					Content: []gui.View{
 						gui.Text(gui.TextCfg{
 							Text:      "Say Hello to Parent",
@@ -620,9 +618,8 @@ func multiWindowChildView(parent *gui.Window) func(*gui.Window) gui.View {
 					Padding: gui.NoPadding,
 				}),
 				gui.Button(gui.ButtonCfg{
-					ID:        "showcase_child_window_close",
-					Focusable: true,
-					Padding:   gui.SomeP(8, 16, 8, 16),
+					ID:      "showcase_child_window_close",
+					Padding: gui.SomeP(8, 16, 8, 16),
 					Content: []gui.View{
 						gui.Text(gui.TextCfg{
 							Text:      "Close",

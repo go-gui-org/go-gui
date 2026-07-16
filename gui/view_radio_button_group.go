@@ -26,19 +26,21 @@ type RadioButtonGroupCfg struct {
 	// Items is a convenience field for simple string lists. Each
 	// string becomes a RadioOption with Label==Value. When set,
 	// Items takes precedence over Options.
-	Items       []string
-	Options     []RadioOption
-	ID          string
-	Padding     Opt[Padding]
-	Spacing     Opt[float32]
-	SizeBorder  Opt[float32]
-	MinWidth    float32
-	MinHeight   float32
-	Focusable   bool
-	ColorBorder Color
-	TitleBG     Color
-	Sizing      Sizing
-	Disabled    bool
+	Items      []string
+	Options    []RadioOption
+	ID         string
+	Padding    Opt[Padding]
+	Spacing    Opt[float32]
+	SizeBorder Opt[float32]
+	MinWidth   float32
+	MinHeight  float32
+	// FocusDisabled opts out of the default-on focus. Focus also
+	// requires a non-empty ID; without one the control is inert.
+	FocusDisabled bool
+	ColorBorder   Color
+	TitleBG       Color
+	Sizing        Sizing
+	Disabled      bool
 }
 
 // DefaultRadioGroupStyle holds defaults for RadioButtonGroupCfg Opt fields.
@@ -93,12 +95,12 @@ func buildRadioOptions(cfg RadioButtonGroupCfg) []View {
 	for i, opt := range cfg.Options {
 		optValue := opt.Value
 		content = append(content, Radio(RadioCfg{
-			ID:        cfg.ID + "/" + strconv.Itoa(i),
-			Label:     opt.Label,
-			Focusable: cfg.Focusable,
-			Selected:  cfg.Value == opt.Value,
-			Disabled:  cfg.Disabled,
-			TextStyle: cfg.TextStyle,
+			ID:            cfg.ID + "/" + strconv.Itoa(i),
+			Label:         opt.Label,
+			FocusDisabled: cfg.FocusDisabled,
+			Selected:      cfg.Value == opt.Value,
+			Disabled:      cfg.Disabled,
+			TextStyle:     cfg.TextStyle,
 			OnClick: func(_ *Layout, _ *Event, w *Window) {
 				if onSelect != nil {
 					onSelect(optValue, w)

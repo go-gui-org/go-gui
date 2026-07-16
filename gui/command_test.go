@@ -285,7 +285,7 @@ func TestCommandButtonDefaultsIDToCommandID(t *testing.T) {
 		Execute: func(_ *Event, _ *Window) {},
 	})
 
-	v := CommandButton(w, "edit.increment", ButtonCfg{Focusable: true})
+	v := CommandButton(w, "edit.increment", ButtonCfg{})
 	l := v.GenerateLayout(w)
 	want := commandButtonIDPrefix + "edit.increment"
 	if got := l.Shape.ID; got != want {
@@ -312,7 +312,7 @@ func TestCommandButtonIDDoesNotCollideWithMenuItem(t *testing.T) {
 		Execute: func(_ *Event, _ *Window) {},
 	})
 
-	btn := CommandButton(w, "file.new", ButtonCfg{Focusable: true})
+	btn := CommandButton(w, "file.new", ButtonCfg{})
 	btnID := btn.GenerateLayout(w).Shape.ID
 
 	// A menubar item for the same command renders a shape keyed by the

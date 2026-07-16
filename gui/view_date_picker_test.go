@@ -211,9 +211,8 @@ func TestDatePickerSubElementClickFocus(t *testing.T) {
 	// Pin to June 2025 — June 1 is Sunday so the first cell in
 	// row 0 is day 1 (no blank placeholders).
 	cfg := DatePickerCfg{
-		ID:        "dp-sub-click",
-		Focusable: true,
-		Dates:     []time.Time{time.Date(2025, 6, 1, 0, 0, 0, 0, time.Local)},
+		ID:    "dp-sub-click",
+		Dates: []time.Time{time.Date(2025, 6, 1, 0, 0, 0, 0, time.Local)},
 	}
 	applyDatePickerDefaults(&cfg)
 
@@ -256,7 +255,6 @@ func TestDatePickerFocusIndicator(t *testing.T) {
 	focusedColor := RGBA(255, 0, 0, 255)
 	cfg := DatePickerCfg{
 		ID:               "dp-focus",
-		Focusable:        true,
 		ColorBorderFocus: focusedColor,
 	}
 	applyDatePickerDefaults(&cfg)
@@ -283,8 +281,7 @@ func TestDatePickerFocusIndicator(t *testing.T) {
 func TestDatePickerClickFocus(t *testing.T) {
 	w := &Window{}
 	cfg := DatePickerCfg{
-		ID:        "dp-click",
-		Focusable: true,
+		ID: "dp-click",
 	}
 	applyDatePickerDefaults(&cfg)
 
@@ -352,9 +349,8 @@ func TestDatePickerClickAdjacentMonth(t *testing.T) {
 func TestDatePickerKeyboardNav(t *testing.T) {
 	w := &Window{}
 	cfg := DatePickerCfg{
-		ID:        "dp-key",
-		Focusable: true,
-		Dates:     []time.Time{time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local)},
+		ID:    "dp-key",
+		Dates: []time.Time{time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local)},
 	}
 	applyDatePickerDefaults(&cfg)
 	w.SetFocus("dp-key")
