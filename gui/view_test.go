@@ -30,7 +30,7 @@ func TestScrollShapeID(t *testing.T) {
 
 func TestFocusCallbackConditions(t *testing.T) {
 	noFocus := Layout{Shape: &Shape{}}
-	withFocus := Layout{Shape: &Shape{Focusable: true, ID: "f1"}}
+	withFocus := Layout{Shape: &Shape{ID: "f1", Focusable: true}}
 
 	if noFocus.Shape.Focusable {
 		t.Error("no-focus should not be focusable")
@@ -56,7 +56,7 @@ func TestExecuteFocusCallbackNoFocus(t *testing.T) {
 }
 
 func TestExecuteFocusCallbackNotFocused(t *testing.T) {
-	layout := &Layout{Shape: &Shape{Focusable: true, ID: "f1"}}
+	layout := &Layout{Shape: &Shape{ID: "f1", Focusable: true}}
 	e := &Event{}
 	w := &Window{}
 	w.SetFocus("f2") // different focus
@@ -72,7 +72,7 @@ func TestExecuteFocusCallbackNotFocused(t *testing.T) {
 }
 
 func TestExecuteFocusCallbackFocused(t *testing.T) {
-	layout := &Layout{Shape: &Shape{Focusable: true, ID: "f1"}}
+	layout := &Layout{Shape: &Shape{ID: "f1", Focusable: true}}
 	e := &Event{}
 	w := &Window{}
 	w.SetFocus("f1")
@@ -89,7 +89,7 @@ func TestExecuteFocusCallbackFocused(t *testing.T) {
 }
 
 func TestExecuteFocusCallbackNilCallback(t *testing.T) {
-	layout := &Layout{Shape: &Shape{Focusable: true, ID: "f1"}}
+	layout := &Layout{Shape: &Shape{ID: "f1", Focusable: true}}
 	e := &Event{}
 	w := &Window{}
 	w.SetFocus("f1")
@@ -604,10 +604,9 @@ func TestButtonSpacebarActivation(t *testing.T) {
 
 func TestButtonAmendLayoutFocus(t *testing.T) {
 	v := Button(ButtonCfg{
-		ID:        "btn",
-		Focusable: true,
-		OnClick:   func(_ *Layout, _ *Event, _ *Window) {},
-		Color:     RGB(50, 50, 50),
+		ID:      "btn",
+		OnClick: func(_ *Layout, _ *Event, _ *Window) {},
+		Color:   RGB(50, 50, 50),
 	})
 	layout := v.GenerateLayout(&Window{})
 	if layout.Shape.events.AmendLayout == nil {
@@ -651,9 +650,8 @@ func TestButtonEnterActivation(t *testing.T) {
 func TestButtonDisabledSuppressesOnClick(t *testing.T) {
 	clicked := false
 	v := Button(ButtonCfg{
-		ID:        "btn",
-		Focusable: true,
-		Disabled:  true,
+		ID:       "btn",
+		Disabled: true,
 		OnClick: func(_ *Layout, _ *Event, _ *Window) {
 			clicked = true
 		},

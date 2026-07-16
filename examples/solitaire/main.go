@@ -241,7 +241,6 @@ func modeButton(w *gui.Window, title string, mode DrawMode, color gui.Color) gui
 		// title is a distinct literal at every call site, so it yields a
 		// unique, frame-stable focus ID without widening the signature.
 		ID:          "sol_mode_" + title,
-		Focusable:   true,
 		MinWidth:    140,
 		Color:       color.WithOpacity(0.12),
 		ColorHover:  color.WithOpacity(0.3),

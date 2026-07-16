@@ -158,7 +158,6 @@ func mainView(w *gui.Window) gui.View {
 					gui.RadioButtonGroupColumn(gui.RadioButtonGroupCfg{
 						Value:       directionName(dir),
 						Options:     dirOptions,
-						Focusable:   true,
 						SizeBorder:  gui.Some[float32](1),
 						ColorBorder: gui.DarkGray,
 						OnSelect: func(value string, w *gui.Window) {

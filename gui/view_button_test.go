@@ -50,7 +50,7 @@ func TestButtonDisabledFlag(t *testing.T) {
 
 func TestButtonFocusable(t *testing.T) {
 	w := &Window{}
-	v := Button(ButtonCfg{ID: "b4", Focusable: true})
+	v := Button(ButtonCfg{ID: "b4"})
 	layout := generateViewLayout(v, w)
 	if !layout.Shape.Focusable {
 		t.Error("Focusable: want true")

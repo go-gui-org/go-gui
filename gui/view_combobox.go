@@ -42,7 +42,9 @@ type ComboboxCfg struct {
 	MinWidth          float32
 	MaxWidth          float32
 	MaxDropdownHeight float32
-	Focusable         bool
+	// FocusDisabled opts out of the default-on focus. Focus also
+	// requires a non-empty ID; without one the control is inert.
+	FocusDisabled bool
 
 	// Scrollable opts the dropdown into the scroll system. Scroll
 	// state is keyed by Cfg.ID + ".dropdown".
@@ -249,7 +251,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 
 	ccfg := ContainerCfg{
 		ID:          cfg.ID,
-		Focusable:   cfg.Focusable,
+		Focusable:   !cfg.FocusDisabled,
 		A11YRole:    AccessRoleComboBox,
 		A11YLabel:   a11yLabel(cfg.A11YLabel, cfg.Placeholder),
 		Color:       cfg.Color,

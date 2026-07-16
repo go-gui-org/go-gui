@@ -47,17 +47,19 @@ type ListBoxCfg struct {
 	MaxHeight  float32
 	// Scrollable opts the list into the scroll system. Scroll state
 	// is keyed by Cfg.ID — pass that same id to Window.ScrollVerticalTo.
-	Scrollable  bool
-	Focusable   bool
-	Color       Color
-	ColorHover  Color
-	ColorBorder Color
-	ColorSelect Color
-	Sizing      Sizing
-	Multiple    bool
-	Disabled    bool
-	Invisible   bool
-	Reorderable bool
+	Scrollable bool
+	// FocusDisabled opts out of the default-on focus. Focus also
+	// requires a non-empty ID; without one the control is inert.
+	FocusDisabled bool
+	Color         Color
+	ColorHover    Color
+	ColorBorder   Color
+	ColorSelect   Color
+	Sizing        Sizing
+	Multiple      bool
+	Disabled      bool
+	Invisible     bool
+	Reorderable   bool
 }
 
 // ListBoxOption helpers.
@@ -87,7 +89,7 @@ func ListBox(cfg ListBoxCfg) View {
 	}
 	if listBoxCanVirtualize(&cfg) ||
 		(cfg.Reorderable && cfg.OnReorder != nil) ||
-		cfg.Focusable {
+		!cfg.FocusDisabled {
 		return &listBoxView{cfg: cfg}
 	}
 
@@ -116,7 +118,7 @@ func ListBox(cfg ListBoxCfg) View {
 		ID:         cfg.ID,
 		A11YRole:   AccessRoleList,
 		A11YLabel:  a11yLabel(cfg.A11YLabel, cfg.ID),
-		Focusable:  cfg.Focusable,
+		Focusable:  !cfg.FocusDisabled,
 		Scrollable: cfg.Scrollable,
 		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
 			listBoxOnKeyDown(listBoxID, itemIDs,
@@ -215,7 +217,7 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 		ID:         cfg.ID,
 		A11YRole:   AccessRoleList,
 		A11YLabel:  a11yLabel(cfg.A11YLabel, cfg.ID),
-		Focusable:  cfg.Focusable,
+		Focusable:  !cfg.FocusDisabled,
 		Scrollable: cfg.Scrollable,
 		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
 			if canReorder {

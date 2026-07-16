@@ -146,9 +146,8 @@ func messageView(cfg DialogCfg) View {
 		SizeBorder: NoBorder,
 		Content: []View{
 			Button(ButtonCfg{
-				ID:        cfg.FocusID,
-				Focusable: true,
-				Content:   []View{Text(TextCfg{Text: "OK"})},
+				ID:      cfg.FocusID,
+				Content: []View{Text(TextCfg{Text: "OK"})},
 				OnClick: func(_ *Layout, _ *Event, w *Window) {
 					w.DialogDismiss()
 					if onOkYes != nil {
@@ -172,7 +171,7 @@ func confirmView(cfg DialogCfg) View {
 		Spacing:    Some(SpacingMedium),
 		Content: []View{
 			Button(ButtonCfg{
-				ID: cfg.FocusID + "/1", Focusable: true,
+				ID:      cfg.FocusID + "/1",
 				Content: []View{Text(TextCfg{Text: "Yes"})},
 				OnClick: func(_ *Layout, _ *Event, w *Window) {
 					w.DialogDismiss()
@@ -182,7 +181,7 @@ func confirmView(cfg DialogCfg) View {
 				},
 			}),
 			Button(ButtonCfg{
-				ID: cfg.FocusID, Focusable: true,
+				ID:      cfg.FocusID,
 				Content: []View{Text(TextCfg{Text: "No"})},
 				OnClick: func(_ *Layout, _ *Event, w *Window) {
 					w.DialogDismiss()
@@ -219,7 +218,7 @@ func promptView(cfg DialogCfg) []View {
 		Spacing:    Some(SpacingMedium),
 		Content: []View{
 			Button(ButtonCfg{
-				ID: cfg.FocusID + "/1", Focusable: true,
+				ID:       cfg.FocusID + "/1",
 				Disabled: len(cfg.Reply) == 0,
 				Content:  []View{Text(TextCfg{Text: "OK"})},
 				OnClick: func(_ *Layout, _ *Event, w *Window) {
@@ -231,7 +230,7 @@ func promptView(cfg DialogCfg) []View {
 				},
 			}),
 			Button(ButtonCfg{
-				ID: cfg.FocusID + "/2", Focusable: true,
+				ID:      cfg.FocusID + "/2",
 				Content: []View{Text(TextCfg{Text: "Cancel"})},
 				OnClick: func(_ *Layout, _ *Event, w *Window) {
 					w.DialogDismiss()

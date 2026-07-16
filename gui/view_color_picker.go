@@ -21,9 +21,11 @@ type ColorPickerCfg struct {
 
 	A11YLabel       string
 	A11YDescription string
-	Focusable       bool
-	Width           float32
-	Height          float32
+	// FocusDisabled opts out of the default-on focus. Focus also
+	// requires a non-empty ID; without one the control is inert.
+	FocusDisabled bool
+	Width         float32
+	Height        float32
 
 	Color   Color
 	Sizing  Sizing
@@ -84,7 +86,7 @@ func (cv *colorPickerView) GenerateLayout(w *Window) Layout {
 
 	ccfg := ContainerCfg{
 		ID:          cfg.ID,
-		Focusable:   cfg.Focusable,
+		Focusable:   !cfg.FocusDisabled,
 		A11YRole:    AccessRoleColorWell,
 		A11YLabel:   a11yLabel(cfg.A11YLabel, "Color Picker"),
 		Color:       style.Color,
@@ -97,7 +99,7 @@ func (cv *colorPickerView) GenerateLayout(w *Window) Layout {
 		Height:      cfg.Height,
 		axis:        AxisTopToBottom,
 		AmendLayout: func(layout *Layout, w *Window) {
-			if cfg.Focusable && w.IsFocus(cfg.ID) {
+			if w.IsFocus(cfg.ID) {
 				layout.Shape.ColorBorder = style.ColorBorderFocus
 			}
 		},

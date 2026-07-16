@@ -56,11 +56,10 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 	case GridCellEditorDate:
 		date := dataGridParseEditorDate(value)
 		editor = gg.InputDate(gg.InputDateCfg{
-			ID:        editorID,
-			Focusable: true,
-			Date:      date,
-			Sizing:    gg.FillFill,
-			Padding:   gg.NoPadding,
+			ID:      editorID,
+			Date:    date,
+			Sizing:  gg.FillFill,
+			Padding: gg.NoPadding,
 			OnSelect: func(dates []time.Time, e *gg.Event, w *gg.Window) {
 				if len(dates) == 0 {
 					return

@@ -5,9 +5,8 @@ import "testing"
 func TestNumericInputIDPassthrough(t *testing.T) {
 	w := &Window{}
 	v := NumericInput(NumericInputCfg{
-		ID:        "ni1",
-		Focusable: true,
-		StepCfg:   NumericStepCfg{ShowButtons: true, Step: 1},
+		ID:      "ni1",
+		StepCfg: NumericStepCfg{ShowButtons: true, Step: 1},
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "ni1" {
@@ -18,10 +17,9 @@ func TestNumericInputIDPassthrough(t *testing.T) {
 func TestNumericInputDisabledFlag(t *testing.T) {
 	w := &Window{}
 	v := NumericInput(NumericInputCfg{
-		ID:        "ni2",
-		Focusable: true,
-		Disabled:  true,
-		StepCfg:   NumericStepCfg{ShowButtons: true, Step: 1},
+		ID:       "ni2",
+		Disabled: true,
+		StepCfg:  NumericStepCfg{ShowButtons: true, Step: 1},
 	})
 	layout := generateViewLayout(v, w)
 	if !layout.Shape.Disabled {
@@ -32,9 +30,8 @@ func TestNumericInputDisabledFlag(t *testing.T) {
 func TestNumericInputStepButtonCount(t *testing.T) {
 	w := &Window{}
 	v := NumericInput(NumericInputCfg{
-		ID:        "ni3",
-		Focusable: true,
-		StepCfg:   NumericStepCfg{ShowButtons: true, Step: 1},
+		ID:      "ni3",
+		StepCfg: NumericStepCfg{ShowButtons: true, Step: 1},
 	})
 	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 2 {
@@ -46,7 +43,6 @@ func TestNumericInputPlaceholder(t *testing.T) {
 	w := &Window{}
 	v := NumericInput(NumericInputCfg{
 		ID:          "ni4",
-		Focusable:   true,
 		Placeholder: "Enter...",
 	})
 	layout := generateViewLayout(v, w)
@@ -61,10 +57,9 @@ func TestNumericInputPlaceholder(t *testing.T) {
 func TestNumericInputReadOnlyForwardsToInput(t *testing.T) {
 	w := &Window{}
 	v := NumericInput(NumericInputCfg{
-		ID:        "ni-ro-plain",
-		Focusable: true,
-		ReadOnly:  true,
-		Text:      "5",
+		ID:       "ni-ro-plain",
+		ReadOnly: true,
+		Text:     "5",
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YState != AccessStateReadOnly {
@@ -85,11 +80,10 @@ func TestNumericInputReadOnlyStepButtonsGated(t *testing.T) {
 		committed := false
 		w := &Window{}
 		v := NumericInput(NumericInputCfg{
-			ID:        "ni-step",
-			Focusable: true,
-			ReadOnly:  readOnly,
-			Text:      "5",
-			StepCfg:   NumericStepCfg{ShowButtons: true, Step: 1},
+			ID:       "ni-step",
+			ReadOnly: readOnly,
+			Text:     "5",
+			StepCfg:  NumericStepCfg{ShowButtons: true, Step: 1},
 			OnValueCommit: func(_ *Layout, _ Opt[float64], _ string, _ *Window) {
 				committed = true
 			},

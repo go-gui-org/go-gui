@@ -21,6 +21,9 @@ func TestInputDateLayout(t *testing.T) {
 	if layout.Shape.ID != "id1" {
 		t.Errorf("ID = %q", layout.Shape.ID)
 	}
+	if !layout.Shape.Focusable {
+		t.Error("InputDate outer Column should be focusable by default")
+	}
 	if layout.Shape.shapeType != shapeRectangle {
 		t.Errorf("type = %d", layout.Shape.shapeType)
 	}
@@ -196,10 +199,9 @@ func layoutContainsText(l *Layout, text string) bool {
 func TestInputDateReadOnlyForwardsToInput(t *testing.T) {
 	w := &Window{}
 	v := InputDate(InputDateCfg{
-		ID:        "id-ro-fwd",
-		Focusable: true,
-		ReadOnly:  true,
-		Date:      time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local),
+		ID:       "id-ro-fwd",
+		ReadOnly: true,
+		Date:     time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local),
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YState != AccessStateReadOnly {
@@ -225,9 +227,8 @@ func TestInputDateReadOnlyDoesNotOpenPicker(t *testing.T) {
 		w := &Window{}
 		inputDateOpen("id-open", w) // force stored open-state true
 		v := InputDate(InputDateCfg{
-			ID:        "id-open",
-			Focusable: true,
-			ReadOnly:  readOnly,
+			ID:       "id-open",
+			ReadOnly: readOnly,
 		})
 		layout := generateViewLayout(v, w)
 		// Closed: 1 child (the text+icon row). Open: 3 (row, backdrop,
@@ -247,5 +248,18 @@ func TestInputDateReadOnlyDoesNotOpenPicker(t *testing.T) {
 	}
 	if got := openChildren(true); got != 1 {
 		t.Errorf("read-only field: got %d children, want 1 (picker gated)", got)
+	}
+}
+
+func TestInputDateFocusDisabled(t *testing.T) {
+	w := &Window{}
+	v := InputDate(InputDateCfg{
+		ID:            "id-fd",
+		FocusDisabled: true,
+		Date:          time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local),
+	})
+	layout := generateViewLayout(v, w)
+	if layout.Shape.Focusable {
+		t.Error("FocusDisabled: true should produce a non-focusable outer Column")
 	}
 }

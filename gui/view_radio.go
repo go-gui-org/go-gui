@@ -7,12 +7,14 @@ type RadioCfg struct {
 	ID        string
 	Label     string
 
-	A11YLabel        string
-	A11YDescription  string
-	Padding          Opt[Padding]
-	Size             Opt[float32]
-	SizeBorder       Opt[float32]
-	Focusable        bool
+	A11YLabel       string
+	A11YDescription string
+	Padding         Opt[Padding]
+	Size            Opt[float32]
+	SizeBorder      Opt[float32]
+	// FocusDisabled opts out of the default-on focus. Focus also
+	// requires a non-empty ID; without one the control is inert.
+	FocusDisabled    bool
 	Color            Color
 	ColorHover       Color
 	ColorFocus       Color
@@ -72,7 +74,7 @@ func Radio(cfg RadioCfg) View {
 
 	return Row(ContainerCfg{
 		ID:              cfg.ID,
-		Focusable:       cfg.Focusable,
+		Focusable:       !cfg.FocusDisabled,
 		Disabled:        cfg.Disabled,
 		Invisible:       cfg.Invisible,
 		Padding:         cfg.Padding,

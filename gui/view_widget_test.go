@@ -9,9 +9,8 @@ func noop(_ *Layout, _ *Event, _ *Window) {}
 func TestRadioGeneratesLayout(t *testing.T) {
 	w := newTestWindow()
 	v := Radio(RadioCfg{
-		Label:     "Option A",
-		OnClick:   noop,
-		Focusable: true, ID: "f1",
+		Label:   "Option A",
+		OnClick: noop, ID: "f1",
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleRadioButton {
@@ -48,8 +47,7 @@ func TestRadioNoLabel(t *testing.T) {
 func TestRadioDisabledCircle(t *testing.T) {
 	w := newTestWindow()
 	v := Radio(RadioCfg{
-		OnClick:   noop,
-		Focusable: true, ID: "f1",
+		OnClick: noop, ID: "f1",
 		Disabled: true,
 	})
 	layout := generateViewLayout(v, w)
@@ -102,7 +100,7 @@ func TestRadioClickHoverChangesBorder(t *testing.T) {
 func TestRadioFocusBorder(t *testing.T) {
 	w := newTestWindow()
 	w.viewState.focusID = "f5"
-	v := Radio(RadioCfg{OnClick: noop, Focusable: true, ID: "f5"})
+	v := Radio(RadioCfg{OnClick: noop, ID: "f5"})
 	layout := generateViewLayout(v, w)
 	layout.Shape.events.AmendLayout(&layout, w)
 	if layout.Children[0].Shape.ColorBorder != DefaultRadioStyle.ColorBorderFocus {
@@ -505,9 +503,8 @@ func TestSelectShowsSelected(t *testing.T) {
 func TestNumericInputGeneratesLayout(t *testing.T) {
 	w := newTestWindow()
 	v := NumericInput(NumericInputCfg{
-		ID:        "qty",
-		Text:      "42",
-		Focusable: true,
+		ID:   "qty",
+		Text: "42",
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleTextField {
@@ -518,10 +515,9 @@ func TestNumericInputGeneratesLayout(t *testing.T) {
 func TestNumericInputNoButtons(t *testing.T) {
 	w := newTestWindow()
 	v := NumericInput(NumericInputCfg{
-		ID:        "qty",
-		Text:      "10",
-		StepCfg:   NumericStepCfg{ShowButtons: false},
-		Focusable: true,
+		ID:      "qty",
+		Text:    "10",
+		StepCfg: NumericStepCfg{ShowButtons: false},
 	})
 	layout := generateViewLayout(v, w)
 	// Should be a Column (Input view), not Row with step buttons.
@@ -533,10 +529,9 @@ func TestNumericInputNoButtons(t *testing.T) {
 func TestNumericInputWithButtons(t *testing.T) {
 	w := newTestWindow()
 	v := NumericInput(NumericInputCfg{
-		ID:        "qty",
-		Text:      "10",
-		StepCfg:   NumericStepCfg{ShowButtons: true, Step: 1},
-		Focusable: true,
+		ID:      "qty",
+		Text:    "10",
+		StepCfg: NumericStepCfg{ShowButtons: true, Step: 1},
 	})
 	layout := generateViewLayout(v, w)
 	// Row with field + step button column.
@@ -556,8 +551,7 @@ func TestListBoxGeneratesLayout(t *testing.T) {
 			{ID: "b", Name: "Banana"},
 			{ID: "c", Name: "Cherry"},
 		},
-		OnSelect:  func(_ []string, _ *Event, _ *Window) {},
-		Focusable: true,
+		OnSelect: func(_ []string, _ *Event, _ *Window) {},
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleList {

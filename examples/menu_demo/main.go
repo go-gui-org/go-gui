@@ -207,8 +207,7 @@ func body(w *gui.Window) gui.View {
 				TextStyle: theme.B1,
 			}),
 			gui.Button(gui.ButtonCfg{
-				ID:        "menu_welcome_button",
-				Focusable: true,
+				ID: "menu_welcome_button",
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text: fmt.Sprintf("%d Clicks", app.Clicks),

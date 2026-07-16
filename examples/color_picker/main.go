@@ -52,10 +52,9 @@ func mainView(w *gui.Window) gui.View {
 				},
 			}),
 			gui.ColorPicker(gui.ColorPickerCfg{
-				ID:        "picker",
-				Color:     app.Color,
-				Focusable: true,
-				ShowHSV:   app.ShowHSV,
+				ID:      "picker",
+				Color:   app.Color,
+				ShowHSV: app.ShowHSV,
 				OnColorChange: func(c gui.Color, _ *gui.Event, w *gui.Window) {
 					// Keep the picker controlled by the window state.
 					gui.State[App](w).Color = c

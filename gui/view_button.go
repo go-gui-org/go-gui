@@ -3,8 +3,8 @@ package gui
 // ButtonCfg configures a clickable button. Without an OnClick handler,
 // it renders as a styled label with no mouse interaction.
 //
-// Focus-driven keyboard interaction: when Focusable is true, pressing Space
-// or Enter while focused triggers OnClick.
+// Buttons are focusable by default — pressing Space or Enter while
+// focused triggers OnClick. Set FocusDisabled to opt out.
 type ButtonCfg struct {
 	Shadow   *BoxShadow
 	Gradient *GradientDef
@@ -35,13 +35,15 @@ type ButtonCfg struct {
 
 	FloatOffsetX float32
 	FloatOffsetY float32
-	Focusable    bool
-	Width        float32
-	Height       float32
-	MinWidth     float32
-	MaxWidth     float32
-	MinHeight    float32
-	MaxHeight    float32
+	// FocusDisabled opts out of the default-on focus. Focus also
+	// requires a non-empty ID; without one the control is inert.
+	FocusDisabled bool
+	Width         float32
+	Height        float32
+	MinWidth      float32
+	MaxWidth      float32
+	MinHeight     float32
+	MaxHeight     float32
 
 	A11YState AccessState
 	Color     Color
@@ -167,7 +169,7 @@ func Button(cfg ButtonCfg) View {
 
 	cv := Row(ContainerCfg{
 		ID:              cfg.ID,
-		Focusable:       cfg.Focusable,
+		Focusable:       !cfg.FocusDisabled,
 		A11YRole:        a11yRole,
 		A11YState:       cfg.A11YState,
 		A11YLabel:       cfg.A11YLabel,

@@ -199,12 +199,11 @@ func inspectorTreeView(w *Window) View {
 		nodes = w.inspectorTreeCache
 	}
 	return Tree(TreeCfg{
-		ID:        inspectorTreeID,
-		Focusable: true,
-		Indent:    16,
-		Spacing:   1,
-		Nodes:     nodes,
-		OnSelect:  func(id string, _ *Event, w *Window) { inspectorSelect(id, w) },
+		ID:       inspectorTreeID,
+		Indent:   16,
+		Spacing:  1,
+		Nodes:    nodes,
+		OnSelect: func(id string, _ *Event, w *Window) { inspectorSelect(id, w) },
 	})
 }
 
