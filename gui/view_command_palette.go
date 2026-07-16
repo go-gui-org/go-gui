@@ -210,7 +210,6 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 								Text:          query,
 								Placeholder:   cfg.Placeholder,
 								TextStyle:     cfg.TextStyle,
-								Focusable:     true,
 								Sizing:        FillFit,
 								OnTextChanged: makePaletteOnTextChanged(cfg.ID),
 								OnKeyDown:     makePaletteOnKeyDown(paletteID, onAction, onDismiss, filtered, filteredIDs),

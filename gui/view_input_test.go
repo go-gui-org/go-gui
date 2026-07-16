@@ -14,7 +14,6 @@ func TestInputGeneratesLayout(t *testing.T) {
 		ID:          "email",
 		Text:        "hello",
 		Placeholder: "Enter email",
-		Focusable:   true,
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "email" {
@@ -28,8 +27,8 @@ func TestInputGeneratesLayout(t *testing.T) {
 func TestInputMultilineRole(t *testing.T) {
 	w := newTestWindow()
 	v := Input(InputCfg{
-		Mode:      InputMultiline,
-		Focusable: true, ID: "f11",
+		Mode: InputMultiline,
+		ID:   "f11",
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleTextArea {
@@ -37,12 +36,63 @@ func TestInputMultilineRole(t *testing.T) {
 	}
 }
 
+// ReadOnly is the only trigger for the read-only announcement.
+// FocusDisabled alone must NOT announce read-only: with the
+// focusable-by-default flip, non-focusable is an explicit opt-out,
+// not the historical proxy for an uneditable field.
 func TestInputReadOnlyWithoutFocus(t *testing.T) {
 	w := newTestWindow()
-	v := Input(InputCfg{Text: "readonly"})
-	layout := generateViewLayout(v, w)
-	if layout.Shape.A11YState != AccessStateReadOnly {
-		t.Fatalf("got state %d, want ReadOnly", layout.Shape.A11YState)
+
+	ro := generateViewLayout(Input(InputCfg{Text: "readonly", ReadOnly: true}), w)
+	if ro.Shape.A11YState != AccessStateReadOnly {
+		t.Fatalf("ReadOnly: got state %d, want ReadOnly", ro.Shape.A11YState)
+	}
+
+	fd := generateViewLayout(Input(InputCfg{Text: "x", FocusDisabled: true}), w)
+	if fd.Shape.A11YState == AccessStateReadOnly {
+		t.Fatal("FocusDisabled alone must not announce ReadOnly")
+	}
+}
+
+// countFocusCandidates walks the layout and returns the number of
+// distinct tab stops, pinning against duplicate focus candidates.
+func countFocusCandidates(layout *Layout) int {
+	var candidates []focusCandidate
+	collectFocusCandidates(layout, &candidates, map[string]struct{}{})
+	return len(candidates)
+}
+
+// An Input with an ID and no FocusDisabled is focusable by default and
+// exposes exactly one tab stop (the inner Text is FocusSkip).
+func TestInputFocusableByDefaultOneCandidate(t *testing.T) {
+	w := newTestWindow()
+	layout := generateViewLayout(Input(InputCfg{ID: "f_def", Text: "x"}), w)
+	if got := countFocusCandidates(&layout); got != 1 {
+		t.Fatalf("got %d focus candidates, want 1", got)
+	}
+}
+
+// FocusDisabled opts out: zero candidates.
+func TestInputFocusDisabledNoCandidates(t *testing.T) {
+	w := newTestWindow()
+	layout := generateViewLayout(Input(InputCfg{
+		ID: "f_off", Text: "x", FocusDisabled: true,
+	}), w)
+	if got := countFocusCandidates(&layout); got != 0 {
+		t.Fatalf("got %d focus candidates, want 0", got)
+	}
+}
+
+// No ID → inert: focusable by default but never a tab stop (focus
+// requires a non-empty ID). The field still renders.
+func TestInputNoIDInert(t *testing.T) {
+	w := newTestWindow()
+	layout := generateViewLayout(Input(InputCfg{Text: "x"}), w)
+	if got := countFocusCandidates(&layout); got != 0 {
+		t.Fatalf("got %d focus candidates, want 0", got)
+	}
+	if layout.Shape.shapeType == shapeNone {
+		t.Fatal("ID-less input must still render")
 	}
 }
 
@@ -50,7 +100,7 @@ func TestInputPlaceholderWhenEmpty(t *testing.T) {
 	w := newTestWindow()
 	v := Input(InputCfg{
 		Placeholder: "Type here",
-		Focusable:   true, ID: "f12",
+		ID:          "f12",
 	})
 	layout := generateViewLayout(v, w)
 	// The inner Row → Text child should use placeholder text.
@@ -80,7 +130,7 @@ func TestInputClickPlaceholderResetsCursorToStart(t *testing.T) {
 	})
 	layout := generateViewLayout(Input(InputCfg{
 		Placeholder: "Type here",
-		Focusable:   true, ID: "f14",
+		ID:          "f14",
 	}), w)
 	if len(layout.Children) == 0 {
 		t.Fatal("no children")
@@ -142,7 +192,7 @@ func TestInputA11YLabelFallback(t *testing.T) {
 	w := newTestWindow()
 	v := Input(InputCfg{
 		Placeholder: "Search...",
-		Focusable:   true, ID: "f13",
+		ID:          "f13",
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.A11Y == nil {
@@ -170,9 +220,8 @@ func newInputTest(text string, focusID string, cursorPos int) *inputTestCtx {
 	ctx.w.SetFocus(focusID)
 	setInputState(ctx.w, focusID, InputState{CursorPos: cursorPos})
 	ctx.layout = generateViewLayout(Input(InputCfg{
-		Text:      text,
-		ID:        focusID,
-		Focusable: true,
+		Text: text,
+		ID:   focusID,
 		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
 			ctx.lastText = newText
 		},
@@ -187,10 +236,9 @@ func newInputTestMultiline(text string, focusID string, cursorPos int) *inputTes
 	ctx.w.SetFocus(focusID)
 	setInputState(ctx.w, focusID, InputState{CursorPos: cursorPos})
 	ctx.layout = generateViewLayout(Input(InputCfg{
-		Text:      text,
-		ID:        focusID,
-		Focusable: true,
-		Mode:      InputMultiline,
+		Text: text,
+		ID:   focusID,
+		Mode: InputMultiline,
 		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
 			ctx.lastText = newText
 		},
@@ -264,8 +312,8 @@ func TestInputKeyDownEnterSingleLine(t *testing.T) {
 	w.SetFocus("f600")
 	setInputState(w, "f600", InputState{CursorPos: 2})
 	layout := generateViewLayout(Input(InputCfg{
-		Text:      "hi",
-		Focusable: true, ID: "f600",
+		Text: "hi",
+		ID:   "f600",
 		OnTextCommit: func(_ *Layout, _ string, reason InputCommitReason, _ *Window) {
 			committed = true
 			if reason != CommitEnter {
@@ -288,8 +336,8 @@ func TestInputOnCharUndo(t *testing.T) {
 	}
 	// Rebuild layout with new text for undo.
 	ctx.layout = generateViewLayout(Input(InputCfg{
-		Text:      ctx.lastText,
-		Focusable: true, ID: "f506",
+		Text: ctx.lastText,
+		ID:   "f506",
 		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
 			ctx.lastText = newText
 		},
@@ -305,16 +353,16 @@ func TestInputOnCharRedo(t *testing.T) {
 	ctx.fireChar('!')
 	// Rebuild with new text.
 	ctx.layout = generateViewLayout(Input(InputCfg{
-		Text:      ctx.lastText,
-		Focusable: true, ID: "f507",
+		Text: ctx.lastText,
+		ID:   "f507",
 		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
 			ctx.lastText = newText
 		},
 	}), ctx.w)
 	ctx.fireKeyDown(KeyZ, ModCtrl) // undo
 	ctx.layout = generateViewLayout(Input(InputCfg{
-		Text:      ctx.lastText,
-		Focusable: true, ID: "f507",
+		Text: ctx.lastText,
+		ID:   "f507",
 		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
 			ctx.lastText = newText
 		},
@@ -351,8 +399,8 @@ func TestInputCopyPaste(t *testing.T) {
 	// Move cursor to end, paste.
 	setInputState(ctx.w, "f509", InputState{CursorPos: 5})
 	ctx.layout = generateViewLayout(Input(InputCfg{
-		Text:      "hello",
-		Focusable: true, ID: "f509",
+		Text: "hello",
+		ID:   "f509",
 		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
 			ctx.lastText = newText
 		},
@@ -918,8 +966,9 @@ func TestMakeInputOnKeyUp_NilHandler(t *testing.T) {
 // --- ReadOnly tests ---
 
 // newInputTestReadOnly mirrors newInputTest but marks the field
-// read-only. Focusable stays true: the point of ReadOnly is a field
-// that keeps focus and selection while refusing edits.
+// read-only. The field stays focusable (the default): the point of
+// ReadOnly is a field that keeps focus and selection while refusing
+// edits.
 func newInputTestReadOnly(
 	text string, focusID string, cursorPos int, mode InputMode,
 ) *inputTestCtx {
@@ -929,11 +978,10 @@ func newInputTestReadOnly(
 	ctx.w.SetFocus(focusID)
 	setInputState(ctx.w, focusID, InputState{CursorPos: cursorPos})
 	ctx.layout = generateViewLayout(Input(InputCfg{
-		Text:      text,
-		ID:        focusID,
-		Focusable: true,
-		ReadOnly:  true,
-		Mode:      mode,
+		Text:     text,
+		ID:       focusID,
+		ReadOnly: true,
+		Mode:     mode,
 		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
 			ctx.lastText = newText
 		},
@@ -947,7 +995,7 @@ func newInputTestReadOnly(
 func TestInputReadOnlyIsFocusableAndAnnouncedReadOnly(t *testing.T) {
 	w := newTestWindow()
 	v := Input(InputCfg{
-		ID: "ro_a11y", Text: "x", Focusable: true, ReadOnly: true,
+		ID: "ro_a11y", Text: "x", ReadOnly: true,
 	})
 	layout := generateViewLayout(v, w)
 
@@ -1029,7 +1077,7 @@ func TestInputReadOnlyBlocksUndo(t *testing.T) {
 	}
 
 	ctx.layout = generateViewLayout(Input(InputCfg{
-		Text: ctx.lastText, ID: "ro4", Focusable: true, ReadOnly: true,
+		Text: ctx.lastText, ID: "ro4", ReadOnly: true,
 		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
 			ctx.lastText = newText
 		},
@@ -1058,7 +1106,7 @@ func TestInputReadOnlySingleLineEnterStillCommits(t *testing.T) {
 	w.SetFocus("ro6")
 	enterFired := false
 	layout := generateViewLayout(Input(InputCfg{
-		Text: "hello", ID: "ro6", Focusable: true, ReadOnly: true,
+		Text: "hello", ID: "ro6", ReadOnly: true,
 		OnEnter: func(_ *Layout, _ *Event, _ *Window) {
 			enterFired = true
 		},
@@ -1126,8 +1174,7 @@ func TestInputReadOnlyEnterDoesNotNormalize(t *testing.T) {
 	changed := ""
 	committed := ""
 	layout := generateViewLayout(Input(InputCfg{
-		Text: "  hi  ", ID: "ro_norm_enter", Focusable: true,
-		ReadOnly: true,
+		Text: "  hi  ", ID: "ro_norm_enter", ReadOnly: true,
 		PostCommitNormalize: func(_ string, _ InputCommitReason) string {
 			return "NORMALIZED"
 		},
@@ -1159,8 +1206,7 @@ func TestInputReadOnlyBlurDoesNotNormalize(t *testing.T) {
 	changed := ""
 	committed := ""
 	cfg := InputCfg{
-		Text: "  hi  ", ID: "ro_norm_blur", Focusable: true,
-		ReadOnly: true,
+		Text: "  hi  ", ID: "ro_norm_blur", ReadOnly: true,
 		PostCommitNormalize: func(_ string, _ InputCommitReason) string {
 			return "NORMALIZED"
 		},
@@ -1201,8 +1247,7 @@ func TestInputEditableEnterStillNormalizes(t *testing.T) {
 	w.SetFocus("rw_norm_enter")
 	changed := ""
 	layout := generateViewLayout(Input(InputCfg{
-		Text: "  hi  ", ID: "rw_norm_enter", Focusable: true,
-		PostCommitNormalize: func(_ string, _ InputCommitReason) string {
+		Text: "  hi  ", ID: "rw_norm_enter", PostCommitNormalize: func(_ string, _ InputCommitReason) string {
 			return "NORMALIZED"
 		},
 		OnTextChanged: func(_ *Layout, nt string, _ *Window) {
@@ -1264,7 +1309,7 @@ func TestInputReadOnlyDoesNotRenderIMEPreedit(t *testing.T) {
 	we.ime.composing = true
 	we.ime.compText = preedit
 	editable := renderInnerInputText(t, we, Input(InputCfg{
-		ID: id, Focusable: true, Text: "abc",
+		ID: id, Text: "abc",
 	}))
 	if !strings.Contains(editable, preedit) {
 		t.Fatalf("editable field: preedit not rendered; got %q", editable)
@@ -1276,7 +1321,7 @@ func TestInputReadOnlyDoesNotRenderIMEPreedit(t *testing.T) {
 	wr.ime.composing = true
 	wr.ime.compText = preedit
 	readonly := renderInnerInputText(t, wr, Input(InputCfg{
-		ID: id, Focusable: true, ReadOnly: true, Text: "abc",
+		ID: id, ReadOnly: true, Text: "abc",
 	}))
 	if strings.Contains(readonly, preedit) {
 		t.Fatalf("read-only field rendered IME preedit; got %q", readonly)

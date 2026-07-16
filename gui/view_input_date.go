@@ -230,8 +230,10 @@ func inputDateTextField(
 		})
 	}
 	return Input(InputCfg{
-		ID:               cfgID + ".input",
-		Focusable:        cfg.Focusable,
+		ID: cfgID + ".input",
+		// InputDate stays opt-in (deferred from the focusable-
+		// by-default flip); translate its Focusable intent.
+		FocusDisabled:    !cfg.Focusable,
 		ReadOnly:         cfg.ReadOnly,
 		Text:             dateText,
 		Placeholder:      inputDatePlaceholder(cfg),

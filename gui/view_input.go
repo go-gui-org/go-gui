@@ -74,7 +74,11 @@ type InputCfg struct {
 	MinHeight  float32
 	MaxHeight  float32
 
-	Focusable bool
+	// FocusDisabled opts the field out of the focus system. Inputs
+	// are focusable by default; set this to exclude the field from
+	// Tab order and focus. Note focus also requires a non-empty ID —
+	// an ID-less input renders but is inert (never a tab stop).
+	FocusDisabled bool
 
 	// ReadOnly blocks text edits while the field stays focusable and
 	// selectable: navigation, selection, and copy keep working, and the
@@ -116,9 +120,7 @@ type InputCfg struct {
 }
 
 // a11yReadOnlyState maps a ReadOnly flag to the announced accessibility
-// state. Used by the NumericInput/InputDate wrappers, which are always
-// focusable in practice and so need only the ReadOnly signal (unlike
-// Input, which also reports read-only for non-focusable fields).
+// state. Used by the NumericInput/InputDate wrappers.
 func a11yReadOnlyState(readOnly bool) AccessState {
 	if readOnly {
 		return AccessStateReadOnly
@@ -183,7 +185,7 @@ func Input(cfg InputCfg) View {
 	txtContent := []View{
 		Text(TextCfg{
 			ID:                cfg.ID,
-			Focusable:         cfg.Focusable,
+			Focusable:         !cfg.FocusDisabled,
 			FocusSkip:         true,
 			Sizing:            txtSizing,
 			Text:              txt,
@@ -199,14 +201,12 @@ func Input(cfg InputCfg) View {
 	if cfg.Mode == InputMultiline {
 		a11yRole = AccessRoleTextArea
 	}
-	// ReadOnly states it outright. A non-focusable field is also
-	// uneditable in practice, so it keeps reporting read-only; that
-	// fallback is the only way this was expressible before ReadOnly
-	// existed. If Focusable ever defaults to true, drop the second
-	// clause — a missing ID would otherwise announce read-only on a
-	// field the caller never marked as such.
+	// ReadOnly is the only signal for the read-only announcement.
+	// Inputs are focusable by default, so non-focusable is now an
+	// explicit FocusDisabled opt-out — no longer a proxy for
+	// read-only.
 	a11yState := AccessStateNone
-	if cfg.ReadOnly || !cfg.Focusable {
+	if cfg.ReadOnly {
 		a11yState = AccessStateReadOnly
 	}
 
@@ -232,7 +232,7 @@ func Input(cfg InputCfg) View {
 
 	return Column(ContainerCfg{
 		ID:              cfg.ID,
-		Focusable:       cfg.Focusable,
+		Focusable:       !cfg.FocusDisabled,
 		A11YRole:        a11yRole,
 		A11YState:       a11yState,
 		A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Placeholder),

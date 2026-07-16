@@ -358,8 +358,7 @@ func TestKeyUpEventFlow_WindowToInput(t *testing.T) {
 
 	// Create an input widget with OnKeyUp handler
 	input := Input(InputCfg{
-		ID:        "test-input",
-		Focusable: true,
+		ID: "test-input",
 		OnKeyUp: func(_ *Layout, e *Event, _ *Window) {
 			called = true
 			e.IsHandled = true

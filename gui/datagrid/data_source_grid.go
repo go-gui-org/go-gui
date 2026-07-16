@@ -722,7 +722,6 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 		}))
 		content = append(content, gg.Input(gg.InputCfg{
 			ID:          jumpInputID,
-			Focusable:   true,
 			Text:        jumpText,
 			Placeholder: "#",
 			Disabled:    !jumpEnabled,

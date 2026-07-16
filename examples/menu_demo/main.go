@@ -150,7 +150,6 @@ func menu(w *gui.Window) gui.View {
 						CustomView: gui.Input(gui.InputCfg{
 							Text:        app.SearchText,
 							ID:          "menu_search_input",
-							Focusable:   true,
 							Width:       100,
 							MinWidth:    100,
 							MaxWidth:    100,

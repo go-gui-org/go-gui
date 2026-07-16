@@ -314,7 +314,6 @@ func dataGridFilterCell(cfg *DataGridCfg, col GridColumnCfg, width float32) gg.V
 		Content: []gg.View{
 			gg.Input(gg.InputCfg{
 				ID:          inputID,
-				Focusable:   true,
 				Text:        value,
 				Placeholder: placeholder,
 				Disabled:    !col.Filterable || onQueryChange == nil,

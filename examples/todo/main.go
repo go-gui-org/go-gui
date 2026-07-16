@@ -137,7 +137,6 @@ func composerView(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Input(gui.InputCfg{
 				ID:               "todo-input",
-				Focusable:        true,
 				Sizing:           gui.FillFit,
 				Text:             app.Draft,
 				Placeholder:      "Add your task",

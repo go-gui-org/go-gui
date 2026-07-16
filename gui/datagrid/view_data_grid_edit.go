@@ -105,7 +105,6 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 	default: // GridCellEditorText
 		editor = gg.Input(gg.InputCfg{
 			ID:         editorID,
-			Focusable:  true,
 			Text:       value,
 			Sizing:     gg.FillFill,
 			Padding:    gg.NoPadding,

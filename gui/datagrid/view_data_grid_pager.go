@@ -171,7 +171,6 @@ func dataGridJumpContextFromPager(pctx dataGridPagerContext) dataGridJumpContext
 func dataGridPagerJumpInput(cfg *DataGridCfg, inputID string, focusID string, jumpText string, jumpEnabled bool, jumpCtx dataGridJumpContext, gridFocusID string) gg.View {
 	return gg.Input(gg.InputCfg{
 		ID:          inputID,
-		Focusable:   true,
 		Text:        jumpText,
 		Placeholder: "#",
 		Disabled:    !jumpEnabled,

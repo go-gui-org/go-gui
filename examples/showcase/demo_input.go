@@ -32,7 +32,6 @@ func demoInput(w *gui.Window) gui.View {
 			}),
 			labeledRow(t, "Text", gui.Input(gui.InputCfg{
 				ID:          "input-text",
-				Focusable:   true,
 				Sizing:      gui.FillFit,
 				Text:        app.InputText,
 				Placeholder: "Enter text...",
@@ -43,7 +42,6 @@ func demoInput(w *gui.Window) gui.View {
 			})),
 			labeledRow(t, "Password", gui.Input(gui.InputCfg{
 				ID:          "input-password",
-				Focusable:   true,
 				Sizing:      gui.FillFit,
 				Text:        app.InputPassword,
 				Placeholder: "Enter password...",
@@ -54,7 +52,6 @@ func demoInput(w *gui.Window) gui.View {
 			})),
 			labeledRow(t, "Phone", gui.Input(gui.InputCfg{
 				ID:          "input-phone",
-				Focusable:   true,
 				Sizing:      gui.FillFit,
 				Text:        app.InputPhone,
 				Placeholder: "(555) 000-0000",
@@ -65,7 +62,6 @@ func demoInput(w *gui.Window) gui.View {
 			})),
 			labeledRow(t, "Expiry", gui.Input(gui.InputCfg{
 				ID:          "input-expiry",
-				Focusable:   true,
 				Sizing:      gui.FillFit,
 				Text:        app.InputExpiry,
 				Placeholder: "MM/YY",
@@ -76,7 +72,6 @@ func demoInput(w *gui.Window) gui.View {
 			})),
 			labeledRow(t, "Multiline", gui.Input(gui.InputCfg{
 				ID:          "input-multi",
-				Focusable:   true,
 				Sizing:      gui.FillFit,
 				Text:        app.InputMultiline,
 				Placeholder: "Multiple lines...",
@@ -383,7 +378,6 @@ func demoForms(w *gui.Window) gui.View {
 		Content: []gui.View{
 			showcaseFormRow("Username", gui.Input(gui.InputCfg{
 				ID:          "showcase-form-username",
-				Focusable:   true,
 				Width:       260,
 				Sizing:      gui.FixedFit,
 				Text:        form.Username,
@@ -402,7 +396,6 @@ func demoForms(w *gui.Window) gui.View {
 
 			showcaseFormRow("Email", gui.Input(gui.InputCfg{
 				ID:          "showcase-form-email",
-				Focusable:   true,
 				Width:       260,
 				Sizing:      gui.FixedFit,
 				Text:        form.Email,

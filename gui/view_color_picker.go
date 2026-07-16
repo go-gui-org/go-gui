@@ -337,7 +337,6 @@ func cpPreviewRow(cfg *ColorPickerCfg) View {
 			}),
 			Input(InputCfg{
 				ID:        cfgID + ".hex",
-				Focusable: true,
 				Text:      c.ToHexString(),
 				TextStyle: cfg.Style.TextStyle,
 				Width:     100,
@@ -439,7 +438,6 @@ func cpInputColumn(
 			}),
 			Input(InputCfg{
 				ID:        inputID,
-				Focusable: true,
 				Text:      strconv.Itoa(val),
 				TextStyle: cfg.Style.TextStyle,
 				Width:     50,
