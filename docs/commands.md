@@ -126,7 +126,7 @@ stages are skipped. This means:
 Creates a button automatically wired to a registered command.
 
 ```go
-gui.CommandButton(w, "edit.undo", gui.ButtonCfg{Focusable: true})
+gui.CommandButton(w, "edit.undo", gui.ButtonCfg{})
 ```
 
 **Auto behaviors:**
