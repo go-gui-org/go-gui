@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.37.0] - 2026-07-16
+
+### Changed
+
+- **BREAKING: remaining interactive controls are focusable by default.**
+  `ButtonCfg`, `RadioCfg`, `RadioButtonGroupCfg`, `ComboboxCfg`,
+  `ListBoxCfg`, `TreeCfg`, `DatePickerCfg`, `ColorPickerCfg`,
+  `NumericInputCfg`, and `InputDateCfg` drop `Focusable bool` and gain
+  `FocusDisabled bool`: the zero value is now _focusable_, and
+  `FocusDisabled: true` is the explicit opt-out. This completes the
+  focusable-by-default flip started in v0.36.0 (which covered Input,
+  Select, Slider, Toggle, and Switch).
+
+  Focus still requires a non-empty `ID` — an ID-less control is inert.
+  `Disabled` still excludes from the tab order.
+
+  Migration (compile error on the removed field is the guide):
+  - `Focusable: true` → delete the line (now the default).
+  - `Focusable: <expr>` → `FocusDisabled: !<expr>`.
+  - `Focusable: false` → `FocusDisabled: true`.
+
+- **`InputDateCfg` outer Column gains focusability.** Previously the
+  outer container never set `Focusable`, so even with `Focusable: true`
+  the date field was unreachable by keyboard. The outer Column now maps
+  to `Focusable: !cfg.FocusDisabled`, matching the inner Input's focus
+  state.
+
+- **`DatePickerCfg` and `ColorPickerCfg` drop redundant `cfg.Focusable`
+  gates** on focus-visual handlers. Focus visuals (border, color) now
+  always apply when focused; `Disabled` remains the guard.
+
+- **`NumericInputCfg` and `InputDateCfg` propagate `FocusDisabled`
+  directly** to their inner `Input` instead of translating the inverse
+  (`!cfg.Focusable`). The opt-out intent passes through transparently.
+
+### Fixed
+
+- `InputDateCfg` callers: the outer Column was never focusable even with
+  `Focusable: true`. The inner `Input` was reachable but the container
+  wasn't — focus now flows consistently through the composite widget.
+
 ## [v0.36.0] - 2026-07-16
 
 ### Added
