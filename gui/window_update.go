@@ -206,6 +206,24 @@ func (w *Window) Update() {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
+	// The root layout has no parent to Fill against, so a FillFill
+	// root would otherwise collapse to content size. Pin each Fill
+	// axis to the window dimension via min=max so the intuitive
+	// spelling (Sizing: FillFill, no Width/Height) fills the window
+	// and tracks resize automatically. Constraining min=max (rather
+	// than seeding Width/Height) is robust to the fit pass, which
+	// accumulates on the main axis, and the subsequent fill pass still
+	// distributes the remaining space to any Fill children.
+	ensureLayoutShape(&rootLayout)
+	if rootLayout.Shape.Sizing.Width == SizingFill {
+		rootLayout.Shape.MinWidth = float32(w.windowWidth)
+		rootLayout.Shape.MaxWidth = float32(w.windowWidth)
+	}
+	if rootLayout.Shape.Sizing.Height == SizingFill {
+		rootLayout.Shape.MinHeight = float32(w.windowHeight)
+		rootLayout.Shape.MaxHeight = float32(w.windowHeight)
+	}
+
 	if t {
 		t1 = time.Now()
 	}

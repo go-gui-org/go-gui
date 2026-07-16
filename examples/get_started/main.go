@@ -18,7 +18,7 @@ func main() {
 
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  &App{},
-		Title:  "get_started",
+		Title:  "Get Started",
 		Width:  300,
 		Height: 300,
 		OnInit: func(w *gui.Window) {
@@ -30,13 +30,12 @@ func main() {
 }
 
 func mainView(w *gui.Window) gui.View {
-	ww, wh := w.WindowSize()
 	app := gui.State[App](w)
 
+	// FillFill fills the window and tracks resize automatically — no
+	// need to fetch WindowSize() or set an explicit Width/Height.
 	return gui.Column(gui.ContainerCfg{
-		Width:  float32(ww),
-		Height: float32(wh),
-		Sizing: gui.FixedFixed,
+		Sizing: gui.FillFill,
 		HAlign: gui.HAlignCenter,
 		VAlign: gui.VAlignMiddle,
 		Content: []gui.View{
@@ -44,27 +43,17 @@ func mainView(w *gui.Window) gui.View {
 				Text:      "Hello GUI! 😀🚀🎉👍",
 				TextStyle: gui.CurrentTheme().B1,
 			}),
-			gui.WithTooltip(w, gui.WithTooltipCfg{
-				ID:   "btn_tip",
-				Text: "Click to increment counter",
+			gui.Button(gui.ButtonCfg{
+				ID: "gs_counter",
 				Content: []gui.View{
-					gui.Button(gui.ButtonCfg{
-						ID: "gs_counter",
-						Shadow: &gui.BoxShadow{
-							Color:      gui.RGBA(0, 0, 64, 64),
-							BlurRadius: 3,
-						},
-						Content: []gui.View{
-							gui.Text(gui.TextCfg{
-								Text: fmt.Sprintf("%d Clicks", app.Clicks),
-							}),
-						},
-						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-							// Update the typed window state; the next frame reads it back.
-							gui.State[App](w).Clicks++
-							e.IsHandled = true
-						},
+					gui.Text(gui.TextCfg{
+						Text: fmt.Sprintf("%d Clicks", app.Clicks),
 					}),
+				},
+				OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
+					// Update the typed window state; the next frame reads it back.
+					gui.State[App](w).Clicks++
+					e.IsHandled = true
 				},
 			}),
 		},
