@@ -126,7 +126,7 @@ stages are skipped. This means:
 Creates a button automatically wired to a registered command.
 
 ```go
-gui.CommandButton(w, "edit.undo", gui.ButtonCfg{IDFocus: 10})
+gui.CommandButton(w, "edit.undo", gui.ButtonCfg{Focusable: true})
 ```
 
 **Auto behaviors:**
@@ -202,12 +202,15 @@ func paletteAction(id string, e *gui.Event, w *gui.Window) {
 
 ### Visibility Functions
 
-| Function                                         | Description          |
-| ------------------------------------------------ | -------------------- |
-| `CommandPaletteShow(id, idFocus, idScroll, w)`   | Show and focus input |
-| `CommandPaletteDismiss(id, w)`                   | Hide and reset query |
-| `CommandPaletteToggle(id, idFocus, idScroll, w)` | Toggle visibility    |
-| `CommandPaletteIsVisible(id, w) bool`            | Check if showing     |
+| Function                              | Description          |
+| ------------------------------------- | -------------------- |
+| `CommandPaletteShow(id, w)`           | Show and focus input |
+| `CommandPaletteDismiss(id, w)`        | Hide and reset query |
+| `CommandPaletteToggle(id, w)`         | Toggle visibility    |
+| `CommandPaletteIsVisible(id, w) bool` | Check if showing     |
+
+The palette derives its internal focus and scroll identities from `id`
+(`id + ".input"` and `id + ":scroll"`).
 
 ### Palette Keyboard Navigation
 

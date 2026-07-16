@@ -56,8 +56,10 @@ entire UI from the view function.
 │  ios            → Metal (CGo) + UIKit windowing                     │
 │  android        → OpenGL ES 3.0 (CGo) + Android Activity/View       │
 │  js && wasm     → Canvas2D + WebGL2 (custom shaders)                │
-│  !darwin && !js && !android && gl → OpenGL 3.3 + native windowing   │
-│  !darwin && !js && !android && !gl → native GL backend              │
+│  linux   && !js && !android && !gl → native GL backend              │
+│  windows && !js && !android && !gl → native GL backend              │
+│  !darwin && !js && !android && gl  → force GL backend               │
+│  (any other combination            → panics: unsupported platform)  │
 │                                                                     │
 │  ┌──────────┬──────────┬──────────┬──────────┬──────────┐           │
 │  │ macOS    │ iOS      │ Linux    │ Windows  │ Web      │           │
@@ -110,7 +112,7 @@ entire UI from the view function.
 │  └─ AmendLayout func       ← post-sizing hook                    │
 ├──────────────────────────────────────────────────────────────────┤
 │ RenderCmd                                                        │
-│  ├─ Kind     RenderCmdKind ← what to draw                        │
+│  ├─ Kind     RenderKind    ← what to draw                        │
 │  ├─ Pos, Size              ← screen coordinates                  │
 │  ├─ Color, Radius          ← visual properties                   │
 │  └─ ...per-kind fields     ← text, image, SVG data, clip, etc.   │
