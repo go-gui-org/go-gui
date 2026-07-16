@@ -6,7 +6,8 @@ package into subpackages (`gui/layout/`, `gui/animation/`, etc.).
 ## Current state
 
 - Root `gui/` package: ~200 non-test .go files at top level (~400 including tests)
-- 33 total packages (most under `backend/`)
+- 25 library packages under `gui/` (16 under `backend/`); 82 total in the
+  module including examples and tools
 - Compile time: 0.28s — not a problem
 - File naming convention: `layout_*.go`, `render_*.go`, `view_*.go`,
   `animation_*.go` — provides grep-level discoverability
@@ -19,16 +20,19 @@ package into subpackages (`gui/layout/`, `gui/animation/`, etc.).
 
 Core types are mutually dependent. Examples:
 
-- `Layout` embeds animation state (`AnimationOffset`, `AnimationOpacity`, etc.)
-- Animation functions (`animation_layout.go`) reference `Layout`, `Sizing`
+- `Window` embeds animation lifecycle state (`windowAnimation`: the active
+  `map[string]Animation`, loop state)
+- Animation types (`animation_layout.go`, `animation_tween.go`) reference
+  `Window`, `Layout`, `Sizing`
 - Layout engine (`layout_arrange.go`) references `Shape`, `Layout`
-- Render engine (`render_layout.go`) walks `Layout` trees and reads animation state
+- Render engine (`render_layout.go`) walks `Layout` trees and reads shape
+  state (e.g. `Opacity`) that animations mutate
 
-Moving `Layout` to `gui/layout` and animation to `gui/animation` creates:
+Moving `Window` to `gui/window` and animation to `gui/animation` creates:
 
 ```
-gui/layout → gui/animation  (Layout references animation state)
-gui/animation → gui/layout  (animation functions reference Layout)
+gui/window → gui/animation  (Window embeds animation lifecycle state)
+gui/animation → gui/window  (Animation.Update takes *Window)
 ```
 
 Go forbids import cycles. The single-package design avoids this by design — it's

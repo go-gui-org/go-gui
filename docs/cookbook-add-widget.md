@@ -14,7 +14,11 @@ Every widget has a `*Cfg` struct. Conventions:
   distinguish "not set" from an explicit zero. Use `cfg.Radius.Get(default)`
   in the factory.
 - **Common fields** — every interactive widget includes: `ID string`,
-  `IDFocus uint32`, `Disabled bool`, `Invisible bool`. Container-like
+  `Disabled bool`, `Invisible bool`, and a focus field: either
+  `Focusable bool` (opt-in, e.g. Button) or `FocusDisabled bool`
+  (opt-out, for controls focusable by default, e.g. Input, Toggle,
+  Slider, Select). Focus always requires a non-empty `ID` — without
+  one the control never joins the tab order. Container-like
   widgets add `Sizing Sizing`, `Float bool`, `FloatAnchor FloatAttach`,
   `FloatTieOff FloatAttach`, `Padding Opt[Padding]`, `Radius Opt[float32]`,
   `SizeBorder Opt[float32]`.
@@ -44,8 +48,9 @@ type ToggleCfg struct {
     Padding          Opt[Padding]
     SizeBorder       Opt[float32]
     Radius           Opt[float32]
-    MinWidth         float32
-    IDFocus          uint32
+    MinWidth        float32
+    // FocusDisabled opts out of the default-on focus.
+    FocusDisabled    bool
     Color            Color
     ColorFocus       Color
     ColorHover       Color
@@ -120,9 +125,14 @@ func Toggle(cfg ToggleCfg) View {
         a11yState = AccessStateChecked
     }
 
+    colorFocus := cfg.ColorFocus
+    colorBorderFocus := cfg.ColorBorderFocus
+    colorHover := cfg.ColorHover
+    colorClick := cfg.ColorClick
+
     return Row(ContainerCfg{
         ID:              cfg.ID,
-        IDFocus:         cfg.IDFocus,
+        Focusable:       !cfg.FocusDisabled,
         Disabled:        cfg.Disabled,
         Invisible:       cfg.Invisible,
         SizeBorder:      NoBorder,
@@ -132,8 +142,10 @@ func Toggle(cfg ToggleCfg) View {
         A11YState:       a11yState,
         A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Label),
         A11YDescription: cfg.A11YDescription,
-        OnChar:          spacebarToClick(cfg.OnClick),
-        OnClick:         leftClickOnly(cfg.OnClick),
+        ClickOnSpace:    true,
+        OnClick:         cfg.OnClick,
+        ClickButton:     MouseLeft,
+        MinWidth:        cfg.MinWidth,
         OnHover:         /* hover highlight */,
         AmendLayout:     /* focus highlight */,
         Content:         content,
@@ -143,19 +155,21 @@ func Toggle(cfg ToggleCfg) View {
 
 ### Key patterns
 
-**OnClick wrapping** — wrap raw callbacks with event filters:
+**OnClick + keyboard activation** — use `ContainerCfg` fields to wire
+standard click semantics without per-frame closures:
 
 ```go
-// Only fire on left-click (not right/middle).
-OnClick: leftClickOnly(cfg.OnClick),
+// Left-click only (not right/middle).
+OnClick:     cfg.OnClick,
+ClickButton: MouseLeft,
 
-// Fire on Space/Enter keyboard activation (IDFocus required).
-OnChar: spacebarToClick(cfg.OnClick),
+// Space/Enter keyboard activation (Focusable + non-empty ID required).
+ClickOnSpace: true,
 ```
 
 **Hover/focus feedback** — use `OnHover` for mouse hover, `AmendLayout`
 for keyboard focus. `AmendLayout` runs every frame after sizing — use it
-to update child colors based on `w.IsFocus(idFocus)`.
+to update child colors based on `w.IsFocus(layout.Shape.ID)`.
 
 **a11yLabel helper** — `a11yLabel(userLabel, fallback)` returns the
 user-supplied label if non-empty, otherwise the fallback. Always set
@@ -317,8 +331,8 @@ go run ./examples/showcase/ # visual check
 - [ ] Cfg zero-initializable, Opt[T] for optional fields
 - [ ] `gui:"required"` tag on mandatory fields (if any)
 - [ ] a11y role, state, label set on the root shape
-- [ ] Callbacks wrapped with `leftClickOnly` / `spacebarToClick` where
-      appropriate
+- [ ] Keyboard/click semantics via `ClickOnSpace` / `ClickButton` /
+      `ClickOnEnter` where appropriate
 - [ ] Theme defaults in `theme_defaults.go` (or skip if not needed)
 - [ ] `apply<Name>Defaults` function for theme fallback
 - [ ] `gui/view_<name>_test.go` — layout structure, config passthrough,

@@ -134,14 +134,14 @@ files live in `gui/svg/testdata/`:
 Run goldens before and after SVG changes:
 
 ```bash
-go test ./gui/svg/ -run 'TestPhase0_Golden|TestPhaseG_Golden' -count=1
+go test ./gui/svg/ -run 'TestPhase0SmilSpinnerFingerprint|TestPhaseGCssSpinnerFingerprint' -count=1
 ```
 
 If a tessellation or animation change intentionally alters output, regenerate:
 
 ```bash
-go test ./gui/svg/ -run TestPhase0_Golden -phase0-update
-go test ./gui/svg/ -run TestPhaseG_Golden  -phaseG-update
+go test ./gui/svg/ -run TestPhase0SmilSpinnerFingerprint -phase0-update
+go test ./gui/svg/ -run TestPhaseGCssSpinnerFingerprint -phaseG-update
 ```
 
 Review the diff in `testdata/` before committing regenerated goldens.
@@ -164,7 +164,8 @@ The most common allocation source in hot paths is slice growth. Pre-size with
 `make([]T, 0, cap)` when the upper bound is known. Check `renderLayout` and
 `generateViewLayout` call trees for slice append without pre-allocation.
 
-### sync.Pool review
+### Scratch pool review
 
-`scratchPools` in `gui/scratch.go` holds per-window pools for frequently
-allocated types. When adding new hot-path allocations, consider pooling.
+`scratchPools` in `gui/scratch_pools.go` holds reusable per-frame buffers
+for frequently allocated types. When adding new hot-path allocations,
+consider pooling.

@@ -156,13 +156,15 @@ No-op on all backends. Requires platform-specific window manager calls (macOS `N
 
 ## Backend Selection Summary
 
-| OS      | Default Backend | Alt Backend |        Build Tag        |
-| ------- | :-------------: | :---------: | :---------------------: |
-| macOS   |      Metal      |     GL      |    `darwin && !ios`     |
-| Linux   |       GL        |      —      | `!darwin && !js && !gl` |
-| Windows |       GL        |      —      | `!darwin && !js && !gl` |
-| Web     |   Web (WASM)    |      —      |      `js && wasm`       |
-| Android |     Android     |      —      |        `android`        |
-| iOS     |       iOS       |      —      |          `ios`          |
+| OS      | Default Backend | Alt Backend |              Build Tag              |
+| ------- | :-------------: | :---------: | :---------------------------------: |
+| macOS   |      Metal      |      —      |          `darwin && !ios`           |
+| Linux   |       GL        |      —      |  `linux && !js && !android && !gl`  |
+| Windows |       GL        |      —      | `windows && !js && !android && !gl` |
+| Web     |   Web (WASM)    |      —      |            `js && wasm`             |
+| Android |     Android     |      —      |              `android`              |
+| iOS     |       iOS       |      —      |                `ios`                |
 
-GL backend is selected with `-tags gl`. On macOS, GL can be forced with `-tags gl` (overrides the Metal default).
+The GL backend can be forced on non-Apple desktop platforms with `-tags gl`
+(build tag `!darwin && !js && !android && gl`). macOS always uses Metal —
+`run_darwin.go` matches `darwin && !ios` unconditionally.
