@@ -14,20 +14,18 @@ func demoToggle(w *gui.Window) gui.View {
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Toggle(gui.ToggleCfg{
-				ID:        "toggle-a",
-				Focusable: true,
-				Label:     "Toggle",
-				Selected:  app.ToggleA,
+				ID:       "toggle-a",
+				Label:    "Toggle",
+				Selected: app.ToggleA,
 				OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
 					a := gui.State[ShowcaseApp](w)
 					a.ToggleA = !a.ToggleA
 				},
 			}),
 			gui.Toggle(gui.ToggleCfg{
-				ID:        "checkbox-a",
-				Focusable: true,
-				Label:     "Checkbox",
-				Selected:  app.CheckboxA,
+				ID:       "checkbox-a",
+				Label:    "Checkbox",
+				Selected: app.CheckboxA,
 				OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
 					a := gui.State[ShowcaseApp](w)
 					a.CheckboxA = !a.CheckboxA
@@ -46,10 +44,9 @@ func demoSwitch(w *gui.Window) gui.View {
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
 			gui.Switch(gui.SwitchCfg{
-				ID:        "switch-a",
-				Focusable: true,
-				Label:     "Enable feature",
-				Selected:  app.SwitchA,
+				ID:       "switch-a",
+				Label:    "Enable feature",
+				Selected: app.SwitchA,
 				OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
 					a := gui.State[ShowcaseApp](w)
 					a.SwitchA = !a.SwitchA

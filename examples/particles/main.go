@@ -337,7 +337,6 @@ func sidebarView(w *gui.Window, wh float32) gui.View {
 						ID:          "emitter-type",
 						Selected:    []string{emitterName(app.EmitterType)},
 						Options:     []string{"Point", "Ring", "Line"},
-						Focusable:   true,
 						FloatZIndex: 10,
 						OnSelect: func(sel []string, _ *gui.Event, w *gui.Window) {
 							a := gui.State[App](w)

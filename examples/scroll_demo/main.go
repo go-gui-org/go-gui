@@ -148,7 +148,6 @@ func themeButton(app *App) gui.View {
 	textUnsel := gui.IconSunnyO
 	return gui.Toggle(gui.ToggleCfg{
 		ID:           "scroll_theme_toggle",
-		Focusable:    true,
 		TextSelect:   textSel,
 		TextUnselect: textUnsel,
 		TextStyle:    gui.CurrentTheme().Icon3,

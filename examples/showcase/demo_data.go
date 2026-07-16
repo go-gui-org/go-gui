@@ -121,10 +121,9 @@ func demoTable(w *gui.Window) gui.View {
 						Spacing:    gui.SomeF(6),
 						Content: []gui.View{
 							gui.Toggle(gui.ToggleCfg{
-								ID:        "showcase_table_multiselect",
-								Focusable: true,
-								Label:     "Multi-select",
-								Selected:  app.TableMultiSelect,
+								ID:       "showcase_table_multiselect",
+								Label:    "Multi-select",
+								Selected: app.TableMultiSelect,
 								OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
 									a := gui.State[ShowcaseApp](w)
 									a.TableMultiSelect = !a.TableMultiSelect
@@ -132,10 +131,9 @@ func demoTable(w *gui.Window) gui.View {
 								},
 							}),
 							gui.Toggle(gui.ToggleCfg{
-								ID:        "showcase_table_freeze_header",
-								Focusable: true,
-								Label:     "Freeze header",
-								Selected:  app.TableFreezeHeader,
+								ID:       "showcase_table_freeze_header",
+								Label:    "Freeze header",
+								Selected: app.TableFreezeHeader,
 								OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
 									gui.State[ShowcaseApp](w).TableFreezeHeader = !app.TableFreezeHeader
 								},

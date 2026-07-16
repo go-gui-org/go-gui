@@ -151,9 +151,9 @@ func TestRadioCustomTextStyleMerged(t *testing.T) {
 func TestToggleGeneratesLayout(t *testing.T) {
 	w := newTestWindow()
 	v := Toggle(ToggleCfg{
-		Label:     "Accept",
-		OnClick:   noop,
-		Focusable: true, ID: "f2",
+		Label:   "Accept",
+		OnClick: noop,
+		ID:      "f2",
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleCheckbox {
@@ -238,7 +238,7 @@ func TestToggleClickHoverChangesColor(t *testing.T) {
 func TestToggleFocusBorder(t *testing.T) {
 	w := newTestWindow()
 	w.viewState.focusID = "f5"
-	v := Toggle(ToggleCfg{OnClick: noop, Focusable: true, ID: "f5"})
+	v := Toggle(ToggleCfg{OnClick: noop, ID: "f5"})
 	layout := generateViewLayout(v, w)
 	layout.Shape.events.AmendLayout(&layout, w)
 	if layout.Children[0].Shape.ColorBorder != DefaultToggleStyle.ColorBorderFocus {
@@ -298,9 +298,9 @@ func TestToggleUnselectedText(t *testing.T) {
 func TestSwitchGeneratesLayout(t *testing.T) {
 	w := newTestWindow()
 	v := Switch(SwitchCfg{
-		Label:     "Dark mode",
-		OnClick:   noop,
-		Focusable: true, ID: "f3",
+		Label:   "Dark mode",
+		OnClick: noop,
+		ID:      "f3",
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleSwitchToggle {
@@ -385,7 +385,7 @@ func TestSwitchClickHoverChangesColor(t *testing.T) {
 
 func TestSwitchFocusBorder(t *testing.T) {
 	w := newTestWindow()
-	v := Switch(SwitchCfg{OnClick: noop, Focusable: true, ID: "f5"})
+	v := Switch(SwitchCfg{OnClick: noop, ID: "f5"})
 	layout := generateViewLayout(v, w)
 	w.SetFocus("f5")
 	layout.Shape.events.AmendLayout(&layout, w)
@@ -450,10 +450,9 @@ func TestSwitchOuterRowNoBorder(t *testing.T) {
 func TestSelectGeneratesLayout(t *testing.T) {
 	w := newTestWindow()
 	v := Select(SelectCfg{
-		ID:        "country",
-		Options:   []string{"US", "UK", "DE"},
-		OnSelect:  func(_ []string, _ *Event, _ *Window) {},
-		Focusable: true,
+		ID:       "country",
+		Options:  []string{"US", "UK", "DE"},
+		OnSelect: func(_ []string, _ *Event, _ *Window) {},
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleComboBox {
@@ -768,5 +767,63 @@ func TestListBoxScrollWithSubheadings(t *testing.T) {
 	want := -(float32(10)*rowH - listH)
 	if sy != want {
 		t.Fatalf("scrollY = %f, want %f", sy, want)
+	}
+}
+
+// --- Focusable-by-default (Phase 2 flip) ---
+
+// Each in-scope control with an ID and no FocusDisabled exposes exactly
+// one focus candidate; FocusDisabled yields zero; and for optional-ID
+// controls, no ID yields zero (inert). Pins against duplicate tab stops.
+func TestPhase2WidgetsFocusableByDefault(t *testing.T) {
+	w := newTestWindow()
+	cases := []struct {
+		name     string
+		withID   View
+		disabled View
+		noID     View // nil when the widget requires an ID
+	}{
+		{
+			name:     "Toggle",
+			withID:   Toggle(ToggleCfg{ID: "fc-t", OnClick: noop}),
+			disabled: Toggle(ToggleCfg{ID: "fc-t", OnClick: noop, FocusDisabled: true}),
+			noID:     Toggle(ToggleCfg{OnClick: noop}),
+		},
+		{
+			name:     "Switch",
+			withID:   Switch(SwitchCfg{ID: "fc-s", OnClick: noop}),
+			disabled: Switch(SwitchCfg{ID: "fc-s", OnClick: noop, FocusDisabled: true}),
+			noID:     Switch(SwitchCfg{OnClick: noop}),
+		},
+		{
+			name:     "Select",
+			withID:   Select(SelectCfg{ID: "fc-sel", Options: []string{"a"}}),
+			disabled: Select(SelectCfg{ID: "fc-sel", Options: []string{"a"}, FocusDisabled: true}),
+			noID:     Select(SelectCfg{Options: []string{"a"}}),
+		},
+		{
+			// Slider's ID is required (RequireID panics without one),
+			// so the no-ID case does not apply.
+			name:     "Slider",
+			withID:   Slider(SliderCfg{ID: "fc-sl", Max: 10}),
+			disabled: Slider(SliderCfg{ID: "fc-sl", Max: 10, FocusDisabled: true}),
+		},
+	}
+	for _, tc := range cases {
+		layout := generateViewLayout(tc.withID, w)
+		if got := countFocusCandidates(&layout); got != 1 {
+			t.Errorf("%s with ID: got %d focus candidates, want 1", tc.name, got)
+		}
+		layout = generateViewLayout(tc.disabled, w)
+		if got := countFocusCandidates(&layout); got != 0 {
+			t.Errorf("%s FocusDisabled: got %d focus candidates, want 0", tc.name, got)
+		}
+		if tc.noID == nil {
+			continue
+		}
+		layout = generateViewLayout(tc.noID, w)
+		if got := countFocusCandidates(&layout); got != 0 {
+			t.Errorf("%s without ID: got %d focus candidates, want 0 (inert)", tc.name, got)
+		}
 	}
 }
