@@ -358,7 +358,7 @@ func getClipboard(hwnd uintptr) string {
 // --- lifecycle ---
 
 // New creates an OpenGL 3.3 backend backed by a native Win32 window
-// and a WGL context. No SDL2.
+// and a WGL context.
 func New(w *gui.Window) (*Backend, error) {
 	runtime.LockOSThread()
 

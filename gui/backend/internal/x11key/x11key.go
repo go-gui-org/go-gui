@@ -1,8 +1,8 @@
 //go:build linux
 
 // Package x11key maps X11 keysyms and modifier/button state to go-gui
-// key, modifier, and mouse-button values. It mirrors the winkey and
-// sdlkey packages for the native Linux (X11) backend.
+// key, modifier, and mouse-button values. It mirrors the winkey
+// package for the native Linux (X11) backend.
 package x11key
 
 import "github.com/go-gui-org/go-gui/gui"

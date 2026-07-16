@@ -1,7 +1,7 @@
 //go:build windows
 
 // Package winkey maps Win32 virtual-key codes and modifier state to
-// go-gui key and modifier values. It mirrors the sdlkey package for
+// go-gui key and modifier values. It mirrors the x11key package for
 // the native Windows backend.
 package winkey
 

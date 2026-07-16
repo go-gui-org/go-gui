@@ -180,7 +180,7 @@ func (p *platformState) pumpEvents(ch chan<- xgb.Event) {
 }
 
 // New creates an OpenGL 3.3 backend backed by a native X11 window and an
-// EGL context. Pure Go via xgb + purego — no SDL2, no cgo.
+// EGL context. Pure Go via xgb + purego — no cgo.
 func New(w *gui.Window) (*Backend, error) {
 	runtime.LockOSThread()
 

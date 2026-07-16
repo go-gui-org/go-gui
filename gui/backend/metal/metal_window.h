@@ -2,7 +2,7 @@
 #define METAL_WINDOW_H
 
 // metal_window.h — Native NSWindow + CAMetalLayer window manager.
-// Replaces SDL2 window creation and event loop for the Metal backend.
+// Owns window creation and the event loop for the Metal backend.
 
 #ifdef __OBJC__
 #import <Cocoa/Cocoa.h>
