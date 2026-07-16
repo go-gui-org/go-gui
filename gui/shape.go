@@ -351,9 +351,13 @@ type ShapeTextConfig struct {
 	TextMode           TextMode
 	TextIsPassword     bool
 	TextIsPlaceholder  bool
-	wrapCacheValid     bool
-	textLayoutValid    bool
-	textLayoutMode     TextMode
+	// TextReadOnly suppresses IME preedit rendering for read-only
+	// fields, which stay Focusable (for selection/cursor) but can
+	// never commit a composition. See render_text.go.
+	TextReadOnly    bool
+	wrapCacheValid  bool
+	textLayoutValid bool
+	textLayoutMode  TextMode
 }
 
 // hasRtfLayout returns true if the shape has an RTF layout.

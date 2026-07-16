@@ -84,11 +84,6 @@ type InputCfg struct {
 	//
 	// Distinct from Disabled, which also removes the field from
 	// interaction entirely and announces AccessStateDisabled.
-	//
-	// Known limitation: an IME composition started on a read-only field
-	// still renders its preedit (render_text.go gates that on Focusable,
-	// which read-only fields keep). The composition can never commit and
-	// clears on focus change, so the effect is a transient artifact.
 	ReadOnly bool
 
 	// Scrollable opts a multiline input into the scroll system.
@@ -185,6 +180,7 @@ func Input(cfg InputCfg) View {
 			Mode:              mode,
 			IsPassword:        cfg.IsPassword,
 			PlaceholderActive: placeholderActive,
+			readOnly:          cfg.ReadOnly,
 		}),
 	}
 

@@ -24,10 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unreachable, with nothing in between. Non-focusable Inputs still
   report read-only, so existing behavior is unchanged.
 
-  Known limitation: an IME composition started on a read-only field
-  renders a preedit that can never commit. It clears on focus change.
-
 ### Fixed
+
+- **Read-only Input no longer renders IME preedit.** A composition
+  started on a read-only field displayed preedit text that could never
+  commit (`makeInputOnChar` swallows the commit), leaving a stray
+  artifact until focus change. Preedit rendering is now suppressed for
+  read-only fields; selection and cursor still render, since the field
+  stays `Focusable`. Editable fields are unaffected.
 
 - **`CommandButton` now auto-fills `ID`** from the command ID, prefixed
   with `cmdbtn:`. Focus traversal is keyed by `Shape.ID`, so a
