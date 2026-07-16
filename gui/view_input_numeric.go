@@ -174,8 +174,10 @@ func numericInputField(cfg NumericInputCfg, locale NumericLocaleCfg, _ NumericSt
 	modeCfg := numericModeCfgFromInput(cfg)
 
 	return Input(InputCfg{
-		ID:               inputID,
-		Focusable:        cfg.Focusable,
+		ID: inputID,
+		// NumericInput stays opt-in (deferred from the focusable-
+		// by-default flip); translate its Focusable intent.
+		FocusDisabled:    !cfg.Focusable,
 		ReadOnly:         cfg.ReadOnly,
 		Text:             cfg.Text,
 		Placeholder:      cfg.Placeholder,

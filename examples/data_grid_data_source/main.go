@@ -82,10 +82,9 @@ func mainView(w *gui.Window) gui.View {
 				Spacing: gui.Some(theme.SpacingSmall),
 				Content: []gui.View{
 					gui.Switch(gui.SwitchCfg{
-						ID:        "dgds_use_offset",
-						Focusable: true,
-						Label:     "Use offset pagination",
-						Selected:  app.UseOffset,
+						ID:       "dgds_use_offset",
+						Label:    "Use offset pagination",
+						Selected: app.UseOffset,
 						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
 							state := gui.State[App](w)
 							state.UseOffset = !state.UseOffset
@@ -94,10 +93,9 @@ func mainView(w *gui.Window) gui.View {
 						},
 					}),
 					gui.Switch(gui.SwitchCfg{
-						ID:        "dgds_slow_mode",
-						Focusable: true,
-						Label:     "Simulate latency",
-						Selected:  app.SimulateLatency,
+						ID:       "dgds_slow_mode",
+						Label:    "Simulate latency",
+						Selected: app.SimulateLatency,
 						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
 							state := gui.State[App](w)
 							state.SimulateLatency = !state.SimulateLatency

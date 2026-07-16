@@ -251,6 +251,21 @@ gui.Input(gui.InputCfg{
 })
 ```
 
+### Focus
+
+Input controls (`Input`, `Select`, `Slider`, `Toggle`, `Switch`) are
+**focusable by default**; opt out with `FocusDisabled: true`. Other
+widgets (e.g. `Button`) opt in with `Focusable: true`. Focus always
+requires a non-empty `ID` — a focusable control without an `ID` is
+inert: it renders but never joins the Tab order.
+
+| Flag                  | Meaning                                                  |
+| --------------------- | -------------------------------------------------------- |
+| `Focusable`           | opt in to the focus system (opt-in widgets)              |
+| `FocusDisabled`       | opt out of the default-on focus (input controls)         |
+| `FocusSkip`           | focusable + click/selection, but excluded from Tab order |
+| `Disabled`            | non-interactive; also excluded from Tab order            |
+
 ### Stdlib Data Binding
 
 Data widgets accept Go stdlib types via convenience fields. This is the

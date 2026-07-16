@@ -32,7 +32,6 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 		}
 		editor = gg.Select(gg.SelectCfg{
 			ID:         editorID,
-			Focusable:  true,
 			Selected:   selectVal,
 			Options:    options,
 			Sizing:     gg.FillFill,
@@ -82,10 +81,9 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 		editorTrueValue := col.EditorTrueValue
 		editorFalseValue := col.EditorFalseValue
 		editor = gg.Toggle(gg.ToggleCfg{
-			ID:        editorID,
-			Focusable: true,
-			Selected:  checked,
-			Padding:   gg.NoPadding,
+			ID:       editorID,
+			Selected: checked,
+			Padding:  gg.NoPadding,
 			OnClick: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
 				nextValue := editorFalseValue
 				if !checked {
@@ -105,7 +103,6 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 	default: // GridCellEditorText
 		editor = gg.Input(gg.InputCfg{
 			ID:         editorID,
-			Focusable:  true,
 			Text:       value,
 			Sizing:     gg.FillFill,
 			Padding:    gg.NoPadding,

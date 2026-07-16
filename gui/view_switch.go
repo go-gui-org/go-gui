@@ -7,13 +7,15 @@ type SwitchCfg struct {
 	ID        string
 	Label     string
 
-	A11YLabel        string
-	A11YDescription  string
-	Padding          Opt[Padding]
-	SizeBorder       Opt[float32]
-	Width            Opt[float32]
-	Height           Opt[float32]
-	Focusable        bool
+	A11YLabel       string
+	A11YDescription string
+	Padding         Opt[Padding]
+	SizeBorder      Opt[float32]
+	Width           Opt[float32]
+	Height          Opt[float32]
+	// FocusDisabled opts out of the default-on focus. Focus also
+	// requires a non-empty ID; without one the control is inert.
+	FocusDisabled    bool
 	Color            Color
 	ColorFocus       Color
 	ColorHover       Color
@@ -89,7 +91,7 @@ func Switch(cfg SwitchCfg) View {
 
 	return Row(ContainerCfg{
 		ID:              cfg.ID,
-		Focusable:       cfg.Focusable,
+		Focusable:       !cfg.FocusDisabled,
 		Disabled:        cfg.Disabled,
 		Invisible:       cfg.Invisible,
 		SizeBorder:      NoBorder,

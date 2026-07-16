@@ -27,7 +27,7 @@ func newSpellCheckWindow(spellChk bool, text string) *Window {
 	w.viewGenerator = func(w *Window) View {
 		app := State[appState](w)
 		return Input(InputCfg{
-			Focusable: true, ID: "f1",
+			ID:         "f1",
 			Sizing:     FillFit,
 			Text:       app.text,
 			SpellCheck: spellChk,
@@ -54,7 +54,7 @@ func TestSpellCheckTriggerOnEnable(t *testing.T) {
 	// Enable spell check by switching the view generator.
 	w.viewGenerator = func(_ *Window) View {
 		return Input(InputCfg{
-			Focusable: true, ID: "f1",
+			ID:         "f1",
 			Sizing:     FillFit,
 			Text:       "helo",
 			SpellCheck: true,
@@ -148,7 +148,7 @@ func TestSpellCheckClearOnDisable(t *testing.T) {
 	// Disable spell check.
 	w.viewGenerator = func(_ *Window) View {
 		return Input(InputCfg{
-			Focusable: true, ID: "f1",
+			ID:         "f1",
 			Sizing:     FillFit,
 			Text:       "helo",
 			SpellCheck: false,

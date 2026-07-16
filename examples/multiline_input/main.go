@@ -105,7 +105,6 @@ func mainView(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Input(gui.InputCfg{
 				ID:         inputFocusID,
-				Focusable:  true,
 				Scrollable: true,
 				Mode:       gui.InputMultiline,
 				Sizing:     gui.FillFill,

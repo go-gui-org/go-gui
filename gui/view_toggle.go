@@ -10,13 +10,15 @@ type ToggleCfg struct {
 	TextSelect     string
 	TextUnselect   string
 
-	A11YLabel        string
-	A11YDescription  string
-	Padding          Opt[Padding]
-	SizeBorder       Opt[float32]
-	Radius           Opt[float32]
-	MinWidth         float32
-	Focusable        bool
+	A11YLabel       string
+	A11YDescription string
+	Padding         Opt[Padding]
+	SizeBorder      Opt[float32]
+	Radius          Opt[float32]
+	MinWidth        float32
+	// FocusDisabled opts out of the default-on focus. Focus also
+	// requires a non-empty ID; without one the control is inert.
+	FocusDisabled    bool
 	Color            Color
 	ColorFocus       Color
 	ColorHover       Color
@@ -85,7 +87,7 @@ func Toggle(cfg ToggleCfg) View {
 
 	return Row(ContainerCfg{
 		ID:              cfg.ID,
-		Focusable:       cfg.Focusable,
+		Focusable:       !cfg.FocusDisabled,
 		Disabled:        cfg.Disabled,
 		Invisible:       cfg.Invisible,
 		SizeBorder:      NoBorder,

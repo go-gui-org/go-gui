@@ -21,6 +21,14 @@ type NoIDCfg struct {
 	Focusable bool
 }
 
+// FlipCfg mirrors the focusable-by-default Cfgs (Input, Select, …):
+// no Focusable field, FocusDisabled opt-out. The analyzer keys on the
+// literal `Focusable` field, so these literals must never diagnose.
+type FlipCfg struct {
+	ID            string
+	FocusDisabled bool
+}
+
 type S struct{}
 
 func (S) Widget(_ WidgetCfg) {}
@@ -30,6 +38,7 @@ func helper(_ WidgetCfg) {}
 func useN(_ NoReqCfg)    {}
 func Focus(_ FocusCfg)   {}
 func NoID(_ NoIDCfg)     {}
+func Flip(_ FlipCfg)     {}
 
 func good() {
 	Widget(WidgetCfg{ID: "ok", Name: "x"})
@@ -103,4 +112,13 @@ func focusableCfgWithoutIDField() {
 
 func focusableIgnoredByDirective() {
 	Focus(FocusCfg{Focusable: true}) //requiredid:ignore
+}
+
+// Focusable-by-default Cfgs never set Focusable, so the rule stays
+// silent — with or without an ID (no-ID is a valid inert choice), and
+// regardless of FocusDisabled.
+func flippedCfgSilent() {
+	Flip(FlipCfg{})
+	Flip(FlipCfg{ID: "ok"})
+	Flip(FlipCfg{FocusDisabled: true})
 }

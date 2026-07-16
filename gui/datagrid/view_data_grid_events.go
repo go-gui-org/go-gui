@@ -43,7 +43,6 @@ func dataGridQuickFilterRow(cfg *DataGridCfg) gg.View {
 		Content: []gg.View{
 			gg.Input(gg.InputCfg{
 				ID:               inputID,
-				Focusable:        true,
 				Text:             value,
 				Placeholder:      cfg.QuickFilterPlaceholder,
 				Sizing:           gg.FillFill,

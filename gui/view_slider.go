@@ -25,19 +25,21 @@ type SliderCfg struct {
 	Height          float32
 	Size            float32
 	ThumbSize       float32
-	Focusable       bool
-	Color           Color
-	ColorBorder     Color
-	ColorThumb      Color
-	ColorFocus      Color
-	ColorHover      Color
-	ColorLeft       Color
-	ColorClick      Color
-	Sizing          Sizing
-	RoundValue      bool
-	Vertical        bool
-	Disabled        bool
-	Invisible       bool
+	// FocusDisabled opts out of the default-on focus. Focus also
+	// requires a non-empty ID; without one the control is inert.
+	FocusDisabled bool
+	Color         Color
+	ColorBorder   Color
+	ColorThumb    Color
+	ColorFocus    Color
+	ColorHover    Color
+	ColorLeft     Color
+	ColorClick    Color
+	Sizing        Sizing
+	RoundValue    bool
+	Vertical      bool
+	Disabled      bool
+	Invisible     bool
 }
 
 // Slider creates a slider view.
@@ -137,7 +139,7 @@ func Slider(cfg SliderCfg) View {
 
 	return container(ContainerCfg{
 		ID:        cfg.ID,
-		Focusable: cfg.Focusable,
+		Focusable: !cfg.FocusDisabled,
 		A11YRole:  AccessRoleSlider,
 		A11Y: &AccessInfo{
 			Label:       a11yLabel(cfg.A11YLabel, cfg.ID),

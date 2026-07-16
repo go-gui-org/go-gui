@@ -52,9 +52,8 @@ func mainView(w *gui.Window) gui.View {
 				Text: fmt.Sprintf("Key Up: %d (Last: %v)", app.keyUpCount, app.lastKeyUp),
 			}),
 			gui.Input(gui.InputCfg{
-				ID:        "kud_input",
-				Focusable: true,
-				Text:      "Type here to test key up events...",
+				ID:   "kud_input",
+				Text: "Type here to test key up events...",
 				OnKeyDown: func(layout *gui.Layout, e *gui.Event, w *gui.Window) {
 					app := gui.State[App](w)
 					app.keyDownCount++

@@ -23,17 +23,19 @@ type SelectCfg struct {
 	ID               string
 	Placeholder      string
 
-	A11YLabel        string
-	A11YDescription  string
-	Selected         []string // currently selected option text(s)
-	Options          []string
-	FloatZIndex      int
-	Padding          Opt[Padding]
-	SizeBorder       Opt[float32]
-	Radius           Opt[float32]
-	MinWidth         float32
-	MaxWidth         float32
-	Focusable        bool
+	A11YLabel       string
+	A11YDescription string
+	Selected        []string // currently selected option text(s)
+	Options         []string
+	FloatZIndex     int
+	Padding         Opt[Padding]
+	SizeBorder      Opt[float32]
+	Radius          Opt[float32]
+	MinWidth        float32
+	MaxWidth        float32
+	// FocusDisabled opts out of the default-on focus. Focus also
+	// requires a non-empty ID; without one the control is inert.
+	FocusDisabled    bool
 	Color            Color
 	ColorBorder      Color
 	ColorBorderFocus Color
@@ -155,7 +157,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 	// Build the outer row layout directly.
 	ccfg := ContainerCfg{
 		ID:          cfg.ID,
-		Focusable:   cfg.Focusable,
+		Focusable:   !cfg.FocusDisabled,
 		Clip:        clip,
 		A11YRole:    AccessRoleComboBox,
 		A11YLabel:   a11yLabel(cfg.A11YLabel, cfg.Placeholder),
