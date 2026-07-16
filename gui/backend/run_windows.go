@@ -8,7 +8,7 @@ import (
 )
 
 // Run starts the application event loop using the native Win32 + WGL
-// backend (SDL2-free).
+// backend.
 func Run(w *gui.Window) { glbackend.Run(w) }
 
 // RunApp starts a multi-window event loop. Multi-window is not yet

@@ -1,5 +1,5 @@
 // metal_window.m — Native NSWindow + CAMetalLayer window manager.
-// Replaces SDL2 window creation, event loop, clipboard, cursors, and IME.
+// Owns window creation, the event loop, clipboard, cursors, and IME.
 
 #import "metal_window.h"
 #import <Cocoa/Cocoa.h>
@@ -249,10 +249,9 @@ static uint32_t _nextWindowID = 1;
 
 // ─── GUIApplication (NSApplication subclass) ────────────────────
 // Exists so [GUIApplication sharedApplication] returns an instance
-// of this class rather than plain NSApplication. This matches
-// SDL2's SDLApplication pattern — any code that checks
-// isKindOfClass: or swizzles on the application class will see
-// GUIApplication. The sendEvent: override is intentionally a
+// of this class rather than plain NSApplication — any code that
+// checks isKindOfClass: or swizzles on the application class will
+// see GUIApplication. The sendEvent: override is intentionally a
 // passthrough; custom event routing happens in metalPollEvent.
 
 @interface GUIApplication : NSApplication

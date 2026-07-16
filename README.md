@@ -24,8 +24,8 @@ in the upper-right corner that displays documentation about the widget._
 | -------------- | ----------------------------------------------------------------------------------------------- |
 | Browser (WASM) | [**Open Showcase**](https://go-gui-org.github.io/showcase/) — zero install, instant evaluation  |
 | macOS          | [Go-Gui-Showcase-\<version\>.dmg](https://github.com/go-gui-org/go-gui/releases)                |
-| Linux          | [Go-Gui-Showcase-\<version\>-linux-amd64.tar.gz](https://github.com/go-gui-org/go-gui/releases) |
-| Windows        | [Go-Gui-Showcase-\<version\>-windows-amd64.zip](https://github.com/go-gui-org/go-gui/releases)  |
+| Linux          | [go-gui-showcase-\<version\>-linux-amd64.tar.gz](https://github.com/go-gui-org/go-gui/releases) |
+| Windows        | [go-gui-showcase-\<version\>-windows-amd64.zip](https://github.com/go-gui-org/go-gui/releases)  |
 
 Sibling projects:
 
@@ -157,7 +157,7 @@ version and [`examples/web_demo/`](examples/web_demo/) for the browser build.
 ## Installation
 
 Requires **Go 1.26+** and a C toolchain (CGo). The desktop backends are
-native and SDL2-free: Metal on macOS, X11 + EGL on Linux, Win32 + WGL on
+native: Metal on macOS, X11 + EGL on Linux, Win32 + WGL on
 Windows. Text shaping and rasterization are pure Go via go-glyph — no
 FreeType, HarfBuzz, Pango, CoreText, or DirectWrite libraries required. See
 the
@@ -428,13 +428,17 @@ go build ./...
 
 The root `Makefile` builds standalone showcase binaries for each platform.
 
-| Target               | Output                       | Command                                 |
-| -------------------- | ---------------------------- | --------------------------------------- |
-| `make build-linux`   | `build/showcase-linux`       | `go build -tags static`                 |
-| `make build-macos`   | `build/showcase-macos`       | `go build`                              |
-| `make build-windows` | `build/showcase-windows.exe` | `go build -tags static` (cross-compile) |
-| `make build-wasm`    | `build/showcase.wasm`        | `GOOS=js GOARCH=wasm go build`          |
-| `make release`       | `.tar.gz`, `.dmg`, `.zip`    | All of the above + packaging            |
+| Target               | Output                                 | Command                              |
+| -------------------- | -------------------------------------- | ------------------------------------ |
+| `make build-macos`   | `build/showcase-macos`                 | `go build`                           |
+| `make build-linux`   | `build/showcase-linux`                 | `go build`                           |
+| `make build-windows` | `build/showcase-windows.exe`           | `go build` (mingw-w64 cross-compile) |
+| `make build-wasm`    | `build/showcase.wasm` + `wasm_exec.js` | `GOOS=js GOARCH=wasm go build`       |
+| `make release`       | `.tar.gz`, `.zip`, `.dmg`              | All of the above + packaging         |
+
+Related targets: `make build-ios` (c-archive for the iOS demo),
+`make build-android` (gomobile `.aar`), `make build-examples` (compile
+every example to `examples/bin/`).
 
 **Linux and Windows** produce self-contained binaries with no external
 library dependencies: text shaping and rasterization are pure Go

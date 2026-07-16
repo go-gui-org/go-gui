@@ -51,8 +51,5 @@ linters:
       - path: native_platform_noop\.go
         linters:
           - revive
-      - path: gui/backend/internal/sdlkey/sdlkey\.go
-        linters:
-          - cyclop
       - path: gui/backend/(gl|metal|ios|android)/
         text: "unkeyed fields"

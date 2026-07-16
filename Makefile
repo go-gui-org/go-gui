@@ -4,19 +4,18 @@ LDFLAGS  = -X github.com/go-gui-org/go-gui/gui.Version=$(VERSION) \
            -X github.com/go-gui-org/go-gui/gui.Commit=$(COMMIT)
 
 CC_WINDOWS ?= x86_64-w64-mingw32-gcc
-STATIC_TAG  = static,audio
 LINT_VERSION = v2.12.2
 
 .PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test test-race vet lint check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check
 
 build-linux:
 	CGO_ENABLED=1 \
-	go build -tags $(STATIC_TAG) -ldflags "$(LDFLAGS)" \
+	go build -ldflags "$(LDFLAGS)" \
 	  -o build/showcase-linux ./examples/showcase/
 
 build-windows:
 	CGO_ENABLED=1 GOOS=windows GOARCH=amd64 CC=$(CC_WINDOWS) \
-	go build -tags $(STATIC_TAG) -ldflags "$(LDFLAGS)" \
+	go build -ldflags "$(LDFLAGS)" \
 	  -o build/showcase-windows.exe ./examples/showcase/
 
 build-macos:
