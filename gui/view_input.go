@@ -76,6 +76,21 @@ type InputCfg struct {
 
 	Focusable bool
 
+	// ReadOnly blocks text edits while the field stays focusable and
+	// selectable: navigation, selection, and copy keep working, and the
+	// field is announced to assistive tech as read-only. Typing, paste,
+	// cut, undo/redo, delete, and PostCommitNormalize are all skipped.
+	// Mirrors HTML's readonly.
+	//
+	// Distinct from Disabled, which also removes the field from
+	// interaction entirely and announces AccessStateDisabled.
+	//
+	// Known limitation: an IME composition started on a read-only field
+	// still renders its preedit (render_text.go gates that on Focusable,
+	// which read-only fields keep). The composition can never commit and
+	// clears on focus change, so the effect is a transient artifact.
+	ReadOnly bool
+
 	// Scrollable opts a multiline input into the scroll system.
 	// Scroll state is keyed by Cfg.ID - pass that same id to
 	// Window.ScrollVerticalTo. Requires Mode == InputMultiline.
@@ -137,6 +152,7 @@ func Input(cfg InputCfg) View {
 		FocusID:             cfg.ID,
 		ScrollID:            inputScrollIDFor(&cfg),
 		IsPassword:          cfg.IsPassword,
+		ReadOnly:            cfg.ReadOnly,
 		Mode:                cfg.Mode,
 		Mask:                cfg.Mask,
 		MaskPreset:          cfg.MaskPreset,
@@ -176,8 +192,14 @@ func Input(cfg InputCfg) View {
 	if cfg.Mode == InputMultiline {
 		a11yRole = AccessRoleTextArea
 	}
+	// ReadOnly states it outright. A non-focusable field is also
+	// uneditable in practice, so it keeps reporting read-only; that
+	// fallback is the only way this was expressible before ReadOnly
+	// existed. If Focusable ever defaults to true, drop the second
+	// clause — a missing ID would otherwise announce read-only on a
+	// field the caller never marked as such.
 	a11yState := AccessStateNone
-	if !cfg.Focusable {
+	if cfg.ReadOnly || !cfg.Focusable {
 		a11yState = AccessStateReadOnly
 	}
 
@@ -287,8 +309,37 @@ type inputHandlerCfg struct {
 	FocusID             string
 	ScrollID            string
 	IsPassword          bool
+	ReadOnly            bool
 	Mode                InputMode
 	MaskPreset          InputMaskPreset
+}
+
+// fireTextChanged notifies the caller that the text changed. Every
+// mutation path in this file ends here, which makes it the one place
+// ReadOnly has to be enforced: a read-only field by definition never
+// changes text, so the notification is dropped rather than relying on
+// each entry point to remember to check. Gating only the entry points
+// missed the commit paths, where PostCommitNormalize reaches this
+// without going through any text mutator.
+func (h *inputHandlerCfg) fireTextChanged(
+	layout *Layout, text string, w *Window,
+) {
+	if h.ReadOnly || h.OnTextChanged == nil {
+		return
+	}
+	h.OnTextChanged(layout, text, w)
+}
+
+// normalizeOnCommit applies PostCommitNormalize, which transforms the
+// text and is therefore an edit: read-only fields skip it and commit
+// the text unchanged.
+func (h *inputHandlerCfg) normalizeOnCommit(
+	text string, reason InputCommitReason,
+) string {
+	if h.ReadOnly || h.PostCommitNormalize == nil {
+		return text
+	}
+	return h.PostCommitNormalize(text, reason)
 }
 
 // compiledMask returns a non-nil *CompiledInputMask if the
@@ -446,16 +497,11 @@ func inputAmendLayout(
 		focusMap.Set(layout.Shape.ID, focused)
 		if wasFocused && !focused {
 			text := inputTextFromLayout(layout)
-			if hcfg.PostCommitNormalize != nil {
-				normalized := hcfg.PostCommitNormalize(
-					text, CommitBlur)
-				if normalized != text {
-					text = normalized
-					if hcfg.OnTextChanged != nil {
-						hcfg.OnTextChanged(
-							layout, text, w)
-					}
-				}
+			if normalized := hcfg.normalizeOnCommit(
+				text, CommitBlur,
+			); normalized != text {
+				text = normalized
+				hcfg.fireTextChanged(layout, text, w)
 			}
 			if hcfg.OnTextCommit != nil {
 				hcfg.OnTextCommit(
@@ -498,254 +544,3 @@ func inputAmendLayout(
 }
 
 // inputTextChange handles text modification logic for input widgets
-func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id string, w *Window) (string, bool) {
-	mask := hcfg.CompiledMask
-	if mask != nil {
-		is := inputStateOrDefault(id, w)
-		res := InputMaskInsert(text, is.CursorPos, is.SelectBeg, is.SelectEnd, ins, mask)
-		if res.Changed {
-			undo := inputPushUndo(is, text)
-			text = res.Text
-			StateMap[string, InputState](w, nsInput, capMany).Set(id, InputState{
-				CursorPos: res.CursorPos, Undo: undo,
-			})
-			return text, true
-		}
-	} else if hcfg.PreTextChange != nil {
-		proposed := inputProposedText(text, ins, id, w)
-		if adjusted, ok := hcfg.PreTextChange(text, proposed); ok {
-			if adjusted == proposed {
-				text = inputInsert(text, ins, id, w)
-			} else {
-				inputSetTextAndCursorAtEnd(
-					text, adjusted, id, w)
-				text = adjusted
-			}
-			return text, true
-		}
-	} else {
-		text = inputInsert(text, ins, id, w)
-		return text, true
-	}
-	return text, false
-}
-
-func makeInputOnChar(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
-	return func(layout *Layout, e *Event, w *Window) {
-		if hcfg.FocusID == "" || !w.IsFocus(hcfg.FocusID) {
-			return
-		}
-		ch := e.CharCode
-		id := hcfg.FocusID
-
-		// Control characters are handled by OnKeyDown.
-		if ch < CharSpace {
-			e.IsHandled = true
-			return
-		}
-
-		text := inputTextFromLayout(layout)
-		ins := e.IMEText
-		if len(ins) == 0 {
-			ins = string(rune(ch))
-		}
-		text, changed := inputTextChange(hcfg, layout, text, ins, id, w)
-
-		if changed {
-			resetBlinkCursorVisible(w)
-			if hcfg.OnTextChanged != nil {
-				hcfg.OnTextChanged(layout, text, w)
-			}
-			inputScrollCursorIntoView(
-				hcfg.ScrollID, text, layout, w,
-			)
-		}
-		e.IsHandled = true
-	}
-}
-
-func makeInputOnKeyDown(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
-	mask := hcfg.CompiledMask
-	return func(layout *Layout, e *Event, w *Window) {
-		if hcfg.FocusID == "" || !w.IsFocus(hcfg.FocusID) {
-			return
-		}
-		id := hcfg.FocusID
-		imap := StateMap[string, InputState](w, nsInput, capMany)
-		// ok ignored: zero CursorOffset/CursorTrailing seed initial state;
-		// both are immediately overwritten below.
-		is, _ := imap.Get(id)
-		savedOffset := is.CursorOffset
-		savedTrailing := is.CursorTrailing
-		is.CursorOffset = -1
-		is.CursorTrailing = false
-		text := inputTextFromLayout(layout)
-		runeLen := utf8RuneCount(text)
-		pos := is.CursorPos
-		pos = min(pos, runeLen)
-		isShift := e.Modifiers.Has(ModShift)
-		isWordMod := e.Modifiers.HasAny(ModCtrl, ModAlt, ModSuper)
-		handled := true
-		textChanged := false
-
-		// Use glyph layout for cursor navigation when available.
-		gl, glOK := inputGlyphLayoutWithText(text, layout, w)
-
-		switch e.KeyCode {
-		case KeyLeft:
-			inputKeyLeft(imap, id, is, text, pos,
-				isShift, isWordMod, gl, glOK)
-		case KeyRight:
-			inputKeyRight(imap, id, is, text, pos, runeLen,
-				isShift, isWordMod, gl, glOK)
-		case KeyHome:
-			inputKeyHome(imap, id, is, text, pos,
-				isShift, savedTrailing, gl, glOK)
-		case KeyEnd:
-			inputKeyEnd(imap, id, is, text, pos,
-				isShift, savedTrailing, gl, glOK)
-		case KeyUp:
-			handled = inputKeyVertical(imap, id, is, text, pos,
-				isShift, savedOffset, true, hcfg.Mode, gl, glOK)
-		case KeyDown:
-			handled = inputKeyVertical(imap, id, is, text, pos,
-				isShift, savedOffset, false, hcfg.Mode, gl, glOK)
-		case KeyEnter:
-			text, textChanged = inputKeyEnter(
-				hcfg, layout, text, id, e, w)
-		case KeyEscape:
-			inputKeyEscape(imap, id, is)
-			handled = false
-		case KeyA:
-			if e.Modifiers.HasAny(ModCtrl, ModSuper) {
-				inputSelectAll(text, id, w)
-			} else {
-				handled = false
-			}
-		case KeyC:
-			handled = inputKeyCopy(
-				text, id, hcfg.IsPassword, e, w)
-		case KeyV:
-			if e.Modifiers.HasAny(ModCtrl, ModSuper) {
-				text, textChanged = inputKeyPaste(
-					text, w.GetClipboard(), id,
-					mask, hcfg, w)
-			} else {
-				handled = false
-			}
-		case KeyX:
-			text, textChanged, handled = inputKeyCut(
-				text, id, hcfg.IsPassword, e, w)
-		case KeyZ:
-			text, textChanged, handled = inputKeyUndoRedo(
-				text, id, e, w)
-		case KeyBackspace:
-			text, textChanged = inputKeyBackspaceOrDelete(
-				text, id, false, mask, layout, w)
-		case KeyDelete:
-			text, textChanged = inputKeyBackspaceOrDelete(
-				text, id, true, mask, layout, w)
-		default:
-			handled = false
-		}
-
-		if handled {
-			resetBlinkCursorVisible(w)
-			if textChanged && hcfg.OnTextChanged != nil {
-				hcfg.OnTextChanged(layout, text, w)
-			}
-			inputScrollCursorIntoView(
-				hcfg.ScrollID, text, layout, w,
-			)
-			e.IsHandled = true
-		} else if hcfg.OnKeyDown != nil {
-			hcfg.OnKeyDown(layout, e, w)
-		}
-	}
-}
-
-func makeInputOnKeyUp(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
-	return func(layout *Layout, e *Event, w *Window) {
-		if hcfg.FocusID == "" || !w.IsFocus(hcfg.FocusID) {
-			return
-		}
-		if hcfg.OnKeyUp != nil {
-			hcfg.OnKeyUp(layout, e, w)
-		}
-	}
-}
-
-func inputKeyEnter(
-	hcfg inputHandlerCfg, layout *Layout, text string,
-	id string, e *Event, w *Window,
-) (string, bool) {
-	if hcfg.Mode == InputMultiline {
-		return inputInsert(text, "\n", id, w), true
-	}
-	inputCommitEnter(hcfg, layout, text, e, w)
-	return text, false
-}
-
-func inputKeyEscape(
-	imap *BoundedMap[string, InputState], id string, is InputState,
-) {
-	is.SelectBeg = 0
-	is.SelectEnd = 0
-	imap.Set(id, is)
-}
-
-func inputKeyCopy(
-	text string, id string, isPassword bool, e *Event, w *Window,
-) bool {
-	if !e.Modifiers.HasAny(ModCtrl, ModSuper) {
-		return false
-	}
-	if copied, ok := inputCopy(text, id, isPassword, w); ok {
-		w.SetClipboard(copied)
-	}
-	return true
-}
-
-func inputKeyCut(
-	text string, id string, isPassword bool, e *Event, w *Window,
-) (string, bool, bool) {
-	if !e.Modifiers.HasAny(ModCtrl, ModSuper) {
-		return text, false, false
-	}
-	newText, copied, ok := inputCut(text, id, isPassword, w)
-	if ok {
-		w.SetClipboard(copied)
-		return newText, true, true
-	}
-	return text, false, true
-}
-
-func inputKeyUndoRedo(
-	text string, id string, e *Event, w *Window,
-) (string, bool, bool) {
-	if !e.Modifiers.HasAny(ModCtrl, ModSuper) {
-		return text, false, false
-	}
-	if e.Modifiers.Has(ModShift) {
-		if nt := inputRedo(text, id, w); nt != text {
-			return nt, true, true
-		}
-	} else {
-		if nt := inputUndo(text, id, w); nt != text {
-			return nt, true, true
-		}
-	}
-	return text, false, true
-}
-
-func inputKeyBackspaceOrDelete(
-	text string, id string, forward bool,
-	mask *CompiledInputMask, layout *Layout, w *Window,
-) (string, bool) {
-	if newText, ok := inputHandleDelete(
-		text, id, forward, mask, layout, w,
-	); ok {
-		return newText, true
-	}
-	return text, false
-}
