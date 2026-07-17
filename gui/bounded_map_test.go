@@ -22,6 +22,25 @@ func TestBoundedMapBasicOperations(t *testing.T) {
 	}
 }
 
+func TestBoundedMapGetOr(t *testing.T) {
+	m := NewBoundedMap[string, int](3)
+	m.Set("a", 1)
+
+	// Present key returns the stored value, not the default.
+	if v := m.GetOr("a", 99); v != 1 {
+		t.Errorf("present: got %d, want 1", v)
+	}
+	// Missing key returns the supplied default.
+	if v := m.GetOr("missing", 99); v != 99 {
+		t.Errorf("missing: got %d, want 99", v)
+	}
+	// Stored zero value is distinguishable from a non-zero default.
+	m.Set("z", 0)
+	if v := m.GetOr("z", 99); v != 0 {
+		t.Errorf("stored zero: got %d, want 0", v)
+	}
+}
+
 func TestBoundedMapEviction(t *testing.T) {
 	m := NewBoundedMap[string, int](3)
 	m.Set("a", 1)

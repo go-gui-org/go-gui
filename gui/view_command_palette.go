@@ -122,7 +122,8 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 	scrollID := cfg.ID + ":scroll"
 	var scrollY float32
 	if cfg.Scrollable {
-		scrollY, _ = w.scrollY().Get(scrollID)
+		// Default 0: unscrolled list before first scroll event.
+		scrollY = w.scrollY().GetOr(scrollID, 0)
 	}
 	first, last := listCoreVisibleRange(len(filtered), rowH, cfg.MaxHeight, scrollY)
 

@@ -248,11 +248,12 @@ func dragReorderStart(cfg dragReorderStartCfg, w *Window) {
 
 	var startScrollX, startScrollY float32
 	if scrollID != "" {
+		// Default 0: unscrolled position when no offset recorded yet.
 		if smx := w.scrollXRead(); smx != nil {
-			startScrollX, _ = smx.Get(scrollID)
+			startScrollX = smx.GetOr(scrollID, 0)
 		}
 		if smy := w.scrollYRead(); smy != nil {
-			startScrollY, _ = smy.Get(scrollID)
+			startScrollY = smy.GetOr(scrollID, 0)
 		}
 	}
 
@@ -377,12 +378,13 @@ func dragReorderOnMouseMove(
 	scrolledSinceStart := false
 
 	if state.scrollID != "" {
+		// Default 0: unscrolled position when no offset recorded yet.
 		var scrollVal float32
 		switch axis {
 		case DragReorderVertical:
-			scrollVal, _ = w.scrollY().Get(state.scrollID)
+			scrollVal = w.scrollY().GetOr(state.scrollID, 0)
 		case DragReorderHorizontal:
-			scrollVal, _ = w.scrollX().Get(state.scrollID)
+			scrollVal = w.scrollX().GetOr(state.scrollID, 0)
 		}
 		var startScroll float32
 		switch axis {

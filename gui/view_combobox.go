@@ -125,7 +125,8 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 	var scrollY float32
 	dropdownScrollID := cfg.ID + ".dropdown"
 	if cfg.Scrollable {
-		scrollY, _ = w.scrollY().Get(dropdownScrollID)
+		// Default 0: unscrolled dropdown before first scroll event.
+		scrollY = w.scrollY().GetOr(dropdownScrollID, 0)
 	}
 	first, last := listCoreVisibleRange(len(filtered), rowH, listH, scrollY)
 
@@ -318,7 +319,8 @@ func comboboxClose(id string, w *Window) {
 func makeComboboxOnChar(cfgID string) func(*Layout, *Event, *Window) {
 	return func(_ *Layout, e *Event, w *Window) {
 		ss := StateMap[string, bool](w, nsCombobox, capModerate)
-		isOpen, _ := ss.Get(cfgID) // ok ignored: false means "not open"
+		// Default false: absent entry means "not open".
+		isOpen := ss.GetOr(cfgID, false)
 		if !isOpen {
 			return
 		}
@@ -327,8 +329,8 @@ func makeComboboxOnChar(cfgID string) func(*Layout, *Event, *Window) {
 			return
 		}
 		sq := StateMap[string, string](w, nsComboboxQuery, capModerate)
-		// ok ignored: empty string is correct initial query.
-		query, _ := sq.Get(cfgID)
+		// Default "": absent entry means empty initial query.
+		query := sq.GetOr(cfgID, "")
 		query += string(ch)
 		sq.Set(cfgID, query)
 		sh := StateMap[string, int](w, nsComboboxHighlight, capModerate)
@@ -346,7 +348,8 @@ func makeComboboxOnKeyDown(cfgID string, onSelect func(string, *Event, *Window),
 
 func comboboxOnKeyDown(cfgID string, onSelect func(string, *Event, *Window), focusID string, filteredIDs []string, scrollID string, rowH, listH float32, e *Event, w *Window) {
 	ss := StateMap[string, bool](w, nsCombobox, capModerate)
-	isOpen, _ := ss.Get(cfgID) // ok ignored: false means "not open"
+	// Default false: absent entry means "not open".
+	isOpen := ss.GetOr(cfgID, false)
 
 	if !isOpen {
 		if e.KeyCode == KeySpace || e.KeyCode == KeyEnter ||
@@ -365,7 +368,8 @@ func comboboxOnKeyDown(cfgID string, onSelect func(string, *Event, *Window), foc
 
 	if e.KeyCode == KeyBackspace {
 		sq := StateMap[string, string](w, nsComboboxQuery, capModerate)
-		query, _ := sq.Get(cfgID) // ok ignored: empty string, len checked below
+		// Default "": absent entry means empty query, len check below.
+		query := sq.GetOr(cfgID, "")
 		if len(query) > 0 {
 			_, sz := utf8.DecodeLastRuneInString(query)
 			sq.Set(cfgID, query[:len(query)-sz])
@@ -379,7 +383,8 @@ func comboboxOnKeyDown(cfgID string, onSelect func(string, *Event, *Window), foc
 
 	itemCount := len(filteredIDs)
 	sh := StateMap[string, int](w, nsComboboxHighlight, capModerate)
-	cur, _ := sh.Get(cfgID)
+	// Default 0: first item highlighted; bounds-checked before use.
+	cur := sh.GetOr(cfgID, 0)
 	action := listCoreNavigate(e.KeyCode, itemCount)
 
 	if action == listCoreSelectItem {
@@ -406,7 +411,8 @@ func scrollEnsureVisible(
 	id string, idx int, rowH, listH float32, w *Window,
 ) {
 	sm := w.scrollY()
-	scrollY, _ := sm.Get(id)
+	// Default 0: unscrolled list before first scroll event.
+	scrollY := sm.GetOr(id, 0)
 	top := float32(idx) * rowH
 	bottom := top + rowH
 	visible := -scrollY

@@ -470,7 +470,8 @@ func inputOnClick(scrollID string) func(*Layout, *Event, *Window) {
 		}
 		if scrollID != "" && layout.Parent != nil {
 			sy := w.scrollY()
-			ds.scrollY0, _ = sy.Get(scrollID) // ok ignored: zero offset is correct initial scroll
+			// Default 0: unscrolled input before first scroll event.
+			ds.scrollY0 = sy.GetOr(scrollID, 0)
 			p := layout.Parent.Shape
 			ds.viewTop = p.Y + p.Padding.Top
 			viewH := p.Height - p.paddingHeight()
