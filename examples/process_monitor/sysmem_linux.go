@@ -17,7 +17,7 @@ func systemMemory() (total, used uint64) {
 	if err != nil {
 		return 0, 0
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	var memTotal, memAvail uint64
 	var haveTotal, haveAvail bool
