@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.38.0] - 2026-07-17
+
+### Added
+
+- **Font viewer example + font-enumeration API.** New `examples/fontviewer`
+  browses installed system fonts in a virtualized card grid — name filter,
+  editable sample text, 12–72 px size slider, click-to-copy. Backed by new
+  public API: `gui.ListSystemFonts` with the optional `FontLister` backend
+  capability, and `gui.ListVisibleRange(itemCount, rowHeight, listHeight,
+  scrollY, overscan)` for grid/list virtualization. Requires go-glyph
+  v1.17.0.
+
+### Changed
+
+- **`Sizing: FillFill` root now fills the window.** A root layout has no
+  parent to fill against, so a `FillFill` root previously collapsed to
+  content size; filling the window required boilerplate `WindowSize()` plus
+  an explicit `Width`/`Height` and `FixedFixed`. Each Fill axis of the root
+  is now pinned to the window dimension, so the intuitive spelling works and
+  the examples/docs drop the boilerplate.
+
+### Fixed
+
+- **Fixed-size containers with a 0 dimension no longer break clipping and
+  hit-testing.** A container with `SizingFixed` and an explicit 0
+  width/height rendered (its children self-draw) but kept zero-area bounds,
+  collapsing the `shapeClip` — and therefore the clip region and the
+  pointer/hit-test region — of every descendant, so a child with `Clip:
+  true` vanished and interactive children went inert. Such a box now
+  degrades to content sizing on the zero axis. (#94)
+
 ## [v0.37.0] - 2026-07-16
 
 ### Changed
