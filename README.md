@@ -9,9 +9,6 @@
 **Cross-platform, hybrid immediate-mode GUI framework for Go — no virtual DOM,
 no diffing, just fast, composable UI.**
 
-_Showcase contains the framework documentation. Every widget demo has a button
-in the upper-right corner that displays documentation about the widget._
-
 ```go
 package main
 
@@ -76,6 +73,9 @@ https://go-gui.com
 | Windows        | [go-gui-showcase-\<version\>-windows-amd64.zip](https://github.com/go-gui-org/go-gui/releases)  |
 
 ![showcase](assets/showcase.png)
+
+_Showcase contains the framework documentation. Every widget demo has a button
+in the upper-right corner that displays documentation about the widget._
 
 Sibling projects:
 
