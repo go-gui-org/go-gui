@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Process monitor example.** New `examples/process_monitor` — a live task
+  manager: filterable process list with flat/tree views, sortable columns, and
+  per-process CPU/RAM history charts built from plain containers. Data is
+  collected dependency-free (`ps` on macOS/Linux, `tasklist` on Windows;
+  `/proc/meminfo` or `sysctl`+`vm_stat` for system memory), sampled on a
+  background goroutine that publishes under the window lock and refreshes via
+  `Window.UpdateWindow`. Styled entirely from the standard theme tokens.
+  Includes a headless `-once` terminal report. Functional port of the go-shirei
+  example of the same name.
+
 ## [v0.38.1] - 2026-07-17
 
 ### Changed
