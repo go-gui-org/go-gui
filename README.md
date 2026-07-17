@@ -57,6 +57,8 @@ func mainView(w *gui.Window) gui.View {
 See [`examples/get_started/`](examples/get_started/) for the full runnable
 version and [`examples/web_demo/`](examples/web_demo/) for the browser build.
 
+---
+
 https://go-gui.com
 
 📜 [Documentation](https://github.com/go-gui-org/go-gui/wiki)
@@ -137,8 +139,7 @@ sharing the same rendering pipeline and event system.
 
 Requires **Go 1.26+** and a **C toolchain** (CGo). The desktop backends are
 native: Metal on macOS, X11 + EGL on Linux, Win32 + WGL on Windows. Text
-shaping and rasterization are pure Go via go-glyph — no FreeType, HarfBuzz,
-Pango, CoreText, or DirectWrite libraries required.
+shaping and rasterization are pure Go via go-glyph.
 
 ```bash
 go get github.com/go-gui-org/go-gui
@@ -148,37 +149,6 @@ See the [Installation Guide](https://github.com/go-gui-org/go-gui/wiki/Installat
 for platform-specific instructions.
 
 ![todo example](assets/todo.png)
-
----
-
-## Building the Showcase
-
-The root `Makefile` builds standalone showcase binaries for each platform.
-
-| Target               | Output                                 | Command                              |
-| -------------------- | -------------------------------------- | ------------------------------------ |
-| `make build-macos`   | `build/showcase-macos`                 | `go build`                           |
-| `make build-linux`   | `build/showcase-linux`                 | `go build`                           |
-| `make build-windows` | `build/showcase-windows.exe`           | `go build` (mingw-w64 cross-compile) |
-| `make build-wasm`    | `build/showcase.wasm` + `wasm_exec.js` | `GOOS=js GOARCH=wasm go build`       |
-| `make release`       | `.tar.gz`, `.zip`, `.dmg`              | All of the above + packaging         |
-
-Related targets: `make build-ios` (c-archive for the iOS demo),
-`make build-android` (gomobile `.aar`), `make build-examples` (compile
-every example to `examples/bin/`).
-
-**Linux and Windows** produce self-contained binaries with no external
-library dependencies: text shaping and rasterization are pure Go
-(go-glyph). A plain `go build ./examples/showcase/` is self-contained;
-on Linux the showcase's audio demo needs ALSA headers at build time
-(`libasound2-dev`).
-
-**Windows cross-compilation** requires `mingw-w64`. On Windows (MSYS2),
-use `make build-windows CC_WINDOWS=gcc`.
-
-Version and commit are injected from git tags via `-ldflags`.
-
-![Digital Rain Screenshot](assets/digital-rain.png)
 
 ---
 
@@ -198,6 +168,8 @@ golangci-lint run ./...
 4. Open a pull request with a clear description of the change.
 
 ---
+
+![Digital Rain Screenshot](assets/digital-rain.png)
 
 ## Roadmap
 
