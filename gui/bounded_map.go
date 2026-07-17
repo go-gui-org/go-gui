@@ -79,6 +79,16 @@ func (m *BoundedMap[K, V]) Get(key K) (V, bool) {
 	return v, ok
 }
 
+// GetOr returns the value for key, or def if the key is absent.
+// Use at call sites that would otherwise ignore Get's ok boolean, so
+// the assumed default is explicit rather than an implicit zero value.
+func (m *BoundedMap[K, V]) GetOr(key K, def V) V {
+	if v, ok := m.data[key]; ok {
+		return v
+	}
+	return def
+}
+
 // Delete removes key from map.
 func (m *BoundedMap[K, V]) Delete(key K) {
 	if _, exists := m.data[key]; !exists {

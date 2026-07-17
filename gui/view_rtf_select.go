@@ -84,7 +84,8 @@ func rtfSelectOnClick(l *Layout, e *Event, w *Window) {
 		if p.Shape != nil && p.Shape.Scrollable {
 			scrollID = p.Shape.ID
 			sy := w.scrollY()
-			dragScrollY0, _ = sy.Get(scrollID)
+			// Default 0: unscrolled container before first scroll event.
+			dragScrollY0 = sy.GetOr(scrollID, 0)
 			sp := p.Shape
 			viewTop = sp.Y + sp.Padding.Top
 			viewH := sp.Height - sp.paddingHeight()
