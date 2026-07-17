@@ -42,21 +42,65 @@ type FontViewerState struct {
 
 // --- Constants ---
 
+// Widget IDs referenced from more than one place.
 const (
-	gridID       = "font-grid"
-	cardMaxW     = 380
-	gap          = 16
-	sidePad      = 24
-	scrollbarW   = 14
-	nameRowH     = 28
-	previewPad   = 24
-	previewLines = 3
-	lineFactor   = 1.4
-	headerH      = 72
-	toolbarH     = 104
-	overscanRows = 4
-	minFontSize  = float32(12)
-	maxFontSize  = float32(72)
+	gridID        = "font-grid"
+	sampleInputID = "sample-input"
+)
+
+// Initial configuration, shared with tests.
+const (
+	initialWinW     = 900
+	initialWinH     = 700
+	initialFontSize = 28
+	minFontSize     = float32(12)
+	maxFontSize     = float32(72)
+)
+
+// Grid geometry (px).
+const (
+	cardMaxW     = 380 // card width cap; cards shrink when columns squeeze
+	gap          = 16  // gutter between cards, both axes
+	sidePad      = 24  // page-level left/right padding
+	scrollbarW   = 14  // width reserved for the grid scrollbar
+	nameRowH     = 28  // family-name row height inside a card
+	previewPad   = 24  // card horizontal padding around the preview text
+	previewLines = 3   // sample lines a card fits without clipping
+	lineFactor   = 1.4 // engine line-height multiplier (see cardHeight)
+	headerH      = 72  // fixed header band height
+	toolbarH     = 104 // fixed toolbar band height (two rows)
+	overscanRows = 4   // rows emitted beyond the viewport for smooth scroll
+)
+
+// Toolbar layout (px).
+const (
+	toolbarLabelW  = 90  // min width of the "Sample Text"/"Filter Fonts" labels
+	filterInputW   = 200 // filter text input
+	sliderW        = 170 // font-size slider
+	sizeLabelW     = 45  // "NN px" readout
+	countLabelW    = 120 // "N / M fonts" readout
+	toolbarSpacing = 8   // gap between controls within a row
+	toolbarEdgePad = 8   // vertical padding on the toolbar's outer edges
+	toolbarSeamPad = 4   // vertical padding where the two rows meet
+)
+
+// Header / card / misc visuals.
+const (
+	headerTopPad     = 14 // header band top padding
+	spacingTight     = 4  // small gap inside header and cards
+	cardRadius       = 8  // card corner radius
+	cardVPad         = 8  // card top/bottom padding
+	emptyStateTopPad = 60 // offset of the empty-state message
+	copyFadeDuration = 1200 * time.Millisecond
+)
+
+// Card colors are fixed (not theme-derived): the preview must stay
+// near-black-on-light regardless of theme for font legibility.
+var (
+	colorCardBG      = gui.Color{R: 248, G: 248, B: 248, A: 255}
+	colorCardHover   = gui.Color{R: 200, G: 220, B: 255, A: 255}
+	colorPreviewText = gui.RGB(32, 32, 32)
+	colorCopiedBadge = gui.RGB(40, 140, 40) // green "Copied" confirmation
 )
 
 var pangrams = []string{
@@ -119,8 +163,8 @@ func spacerV(h float32) gui.View {
 
 func main() {
 	state := &FontViewerState{
-		FontSize: 28,
-		Sample:   pangrams[rand.IntN(len(pangrams))],
+		FontSize: initialFontSize,
+		Sample:   randomPangram(""),
 		ShapeAll: len(os.Args) > 1 && os.Args[1] == "--shape-all",
 	}
 
@@ -129,11 +173,11 @@ func main() {
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  state,
 		Title:  "go-gui font viewer",
-		Width:  900,
-		Height: 700,
+		Width:  initialWinW,
+		Height: initialWinH,
 		OnInit: func(w *gui.Window) {
 			w.UpdateView(mainView)
-			w.SetFocus("sample-input")
+			w.SetFocus(sampleInputID)
 		},
 	})
 
@@ -160,8 +204,8 @@ func mainView(w *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:     gui.FillFill,
 		Padding:    gui.NoPadding,
-		Spacing:    gui.SomeF(0),
-		SizeBorder: gui.Some(float32(0)),
+		Spacing:    gui.NoSpacing,
+		SizeBorder: gui.NoBorder,
 		Content:    []gui.View{header(), toolbar(w, len(matches)), fontGrid(w, matches)},
 	})
 }
@@ -173,66 +217,69 @@ func header() gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:     gui.FillFixed,
 		Height:     headerH,
-		Padding:    gui.Some(gui.Padding{Left: sidePad, Top: 14, Right: sidePad, Bottom: 0}),
-		Spacing:    gui.SomeF(4),
-		SizeBorder: gui.Some(float32(0)),
+		Padding:    gui.Some(gui.Padding{Left: sidePad, Top: headerTopPad, Right: sidePad, Bottom: 0}),
+		Spacing:    gui.SomeF(spacingTight),
+		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "go-gui font viewer", TextStyle: t.N1}),
-			gui.Text(gui.TextCfg{Text: "Browse and preview installed system fonts", TextStyle: t.B2}),
+			gui.Text(gui.TextCfg{Text: "Browse and preview installed system fonts", TextStyle: t.B3}),
 		},
 	})
 }
 
 // --- Toolbar ---
 
+// toolbarRow wraps one toolbar row in the shared shell: half the
+// toolbar band tall, page side padding, middle-aligned children.
+func toolbarRow(topPad, bottomPad float32, content []gui.View) gui.View {
+	return gui.Row(gui.ContainerCfg{
+		Sizing:     gui.FillFixed,
+		Height:     toolbarH / 2,
+		Padding:    gui.Some(gui.Padding{Left: sidePad, Right: sidePad, Top: topPad, Bottom: bottomPad}),
+		Spacing:    gui.SomeF(toolbarSpacing),
+		VAlign:     gui.VAlignMiddle,
+		SizeBorder: gui.NoBorder,
+		Content:    content,
+	})
+}
+
+// flexGap is a width-flexible spacer used to spread toolbar controls.
+func flexGap() gui.View {
+	return gui.Column(gui.ContainerCfg{Sizing: gui.FillFit})
+}
+
 func toolbar(w *gui.Window, matchCount int) gui.View {
 	s := gui.State[FontViewerState](w)
 	t := gui.CurrentTheme()
 
-	row1 := gui.Row(gui.ContainerCfg{
-		Sizing:     gui.FillFixed,
-		Height:     toolbarH / 2,
-		Padding:    gui.Some(gui.Padding{Left: sidePad, Right: sidePad, Top: 8, Bottom: 4}),
-		Spacing:    gui.SomeF(8),
-		VAlign:     gui.VAlignMiddle,
-		SizeBorder: gui.Some(float32(0)),
-		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Sample Text", TextStyle: t.B2}),
-			gui.Input(gui.InputCfg{
-				ID:        "sample-input",
-				Text:      s.Sample,
-				TextStyle: t.B2,
-				Sizing:    gui.FillFit,
-				OnTextChanged: func(_ *gui.Layout, text string, w *gui.Window) {
-					gui.State[FontViewerState](w).Sample = text
-				},
-			}),
-			gui.Button(gui.ButtonCfg{
-				Content: []gui.View{gui.Text(gui.TextCfg{
-					Text:      gui.IconSync,
-					TextStyle: gui.TextStyle{Family: gui.IconFontName, Size: t.Icon1.Size, Color: t.Icon1.Color},
-				})},
-				OnClick: shuffleSample,
-			}),
-		},
+	row1 := toolbarRow(toolbarEdgePad, toolbarSeamPad, []gui.View{
+		gui.Text(gui.TextCfg{Text: "Sample Text", TextStyle: t.B3, MinWidth: toolbarLabelW}),
+		gui.Input(gui.InputCfg{
+			ID:        sampleInputID,
+			Text:      s.Sample,
+			TextStyle: t.B3,
+			Sizing:    gui.FillFit,
+			OnTextChanged: func(_ *gui.Layout, text string, w *gui.Window) {
+				gui.State[FontViewerState](w).Sample = text
+			},
+		}),
+		gui.Button(gui.ButtonCfg{
+			Content: []gui.View{gui.Text(gui.TextCfg{
+				Text:      gui.IconSync,
+				TextStyle: gui.TextStyle{Family: gui.IconFontName, Size: t.Icon3.Size, Color: t.Icon1.Color},
+			})},
+			OnClick: shuffleSample,
+		}),
 	})
 
-	row2 := gui.Row(gui.ContainerCfg{
-		Sizing:     gui.FillFixed,
-		Height:     toolbarH / 2,
-		Padding:    gui.Some(gui.Padding{Left: sidePad, Right: sidePad, Top: 4, Bottom: 8}),
-		Spacing:    gui.SomeF(8),
-		VAlign:     gui.VAlignMiddle,
-		SizeBorder: gui.Some(float32(0)),
-		Content:    toolbarRow2(s, t, matchCount),
-	})
+	row2 := toolbarRow(toolbarSeamPad, toolbarEdgePad, toolbarRow2(s, t, matchCount))
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:     gui.FillFixed,
 		Height:     toolbarH,
 		Padding:    gui.NoPadding,
-		Spacing:    gui.SomeF(0),
-		SizeBorder: gui.Some(float32(0)),
+		Spacing:    gui.NoSpacing,
+		SizeBorder: gui.NoBorder,
 		Content:    []gui.View{row1, row2},
 	})
 }
@@ -240,12 +287,12 @@ func toolbar(w *gui.Window, matchCount int) gui.View {
 // toolbarRow2 builds the filter / size / count controls.
 func toolbarRow2(s *FontViewerState, t gui.Theme, matchCount int) []gui.View {
 	content := []gui.View{
-		gui.Text(gui.TextCfg{Text: "Filter Fonts", TextStyle: t.B2}),
+		gui.Text(gui.TextCfg{Text: "Filter Fonts", TextStyle: t.B3, MinWidth: toolbarLabelW}),
 		gui.Input(gui.InputCfg{
 			ID:        "filter-input",
 			Text:      s.Filter,
-			TextStyle: t.B2,
-			Width:     200,
+			TextStyle: t.B3,
+			Width:     filterInputW,
 			Sizing:    gui.FixedFit,
 			OnTextChanged: func(_ *gui.Layout, text string, w *gui.Window) {
 				gui.State[FontViewerState](w).Filter = text
@@ -255,7 +302,7 @@ func toolbarRow2(s *FontViewerState, t gui.Theme, matchCount int) []gui.View {
 	}
 	if s.Filter != "" {
 		content = append(content, gui.Button(gui.ButtonCfg{
-			Content: []gui.View{gui.Text(gui.TextCfg{Text: "×", TextStyle: t.B2})},
+			Content: []gui.View{gui.Text(gui.TextCfg{Text: "×", TextStyle: t.B3})},
 			OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
 				gui.State[FontViewerState](w).Filter = ""
 				w.ScrollVerticalTo(gridID, 0)
@@ -265,15 +312,15 @@ func toolbarRow2(s *FontViewerState, t gui.Theme, matchCount int) []gui.View {
 	}
 
 	return append(content,
-		gui.Column(gui.ContainerCfg{Sizing: gui.FillFit}), // flexible gap
-		gui.Text(gui.TextCfg{Text: "Size", TextStyle: t.B2}),
+		flexGap(),
+		gui.Text(gui.TextCfg{Text: "Size", TextStyle: t.B3}),
 		gui.Slider(gui.SliderCfg{
 			ID:     "size-slider",
 			Value:  s.FontSize,
 			Min:    minFontSize,
 			Max:    maxFontSize,
 			Step:   1,
-			Width:  170,
+			Width:  sliderW,
 			Sizing: gui.FixedFit,
 			OnChange: func(v float32, e *gui.Event, w *gui.Window) {
 				gui.State[FontViewerState](w).FontSize = v
@@ -283,28 +330,35 @@ func toolbarRow2(s *FontViewerState, t gui.Theme, matchCount int) []gui.View {
 		}),
 		gui.Text(gui.TextCfg{
 			Text:      fmt.Sprintf("%d px", int(s.FontSize)),
-			TextStyle: t.B2,
-			MinWidth:  45,
+			TextStyle: t.B3,
+			MinWidth:  sizeLabelW,
 		}),
+		flexGap(),
 		gui.Text(gui.TextCfg{
 			Text:      fmt.Sprintf("%d / %d fonts", matchCount, len(s.Families)),
-			TextStyle: t.B2,
-			MinWidth:  120,
+			TextStyle: t.B3,
+			MinWidth:  countLabelW,
 		}),
+		flexGap(),
 	)
 }
 
-// shuffleSample picks a new pangram distinct from the current one.
+// shuffleSample replaces the sample text with a fresh pangram.
 func shuffleSample(_ *gui.Layout, e *gui.Event, w *gui.Window) {
 	s := gui.State[FontViewerState](w)
-	for {
-		p := pangrams[rand.IntN(len(pangrams))]
-		if p != s.Sample || len(pangrams) == 1 {
-			s.Sample = p
-			break
-		}
-	}
+	s.Sample = randomPangram(s.Sample)
 	e.IsHandled = true
+}
+
+// randomPangram returns a random pangram other than exclude. On a
+// collision it steps to the next entry instead of re-rolling — the
+// slight bias is irrelevant here and it avoids an unbounded loop.
+func randomPangram(exclude string) string {
+	i := rand.IntN(len(pangrams))
+	if pangrams[i] == exclude {
+		i = (i + 1) % len(pangrams)
+	}
+	return pangrams[i]
 }
 
 // --- FontGrid (virtualized) ---
@@ -350,13 +404,15 @@ func fontGrid(w *gui.Window, matches []string) gui.View {
 	// FixedFixed with explicit Width AND Height — the same numbers feed
 	// the cols/range math, so neither axis can disagree with arrange.
 	return gui.Column(gui.ContainerCfg{
-		ID: gridID, Scrollable: true,
+		ID:         gridID,
+		Scrollable: true,
+		Focusable:  true,
 		Sizing:     gui.FixedFixed,
 		Width:      outerW,
 		Height:     listH,
 		Padding:    gui.Some(gui.Padding{Left: sidePad, Right: sidePad + scrollbarW}),
-		Spacing:    gui.SomeF(0), // vertical gap lives in rowH, not spacing
-		SizeBorder: gui.Some(float32(0)),
+		Spacing:    gui.NoSpacing, // vertical gap lives in rowH, not spacing
+		SizeBorder: gui.NoBorder,
 		Content:    children,
 	})
 }
@@ -371,7 +427,7 @@ func emptyState(noFonts bool) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
 		HAlign:  gui.HAlignCenter,
-		Padding: gui.Some(gui.Padding{Top: 60}),
+		Padding: gui.Some(gui.Padding{Top: emptyStateTopPad}),
 		Content: []gui.View{gui.Text(gui.TextCfg{Text: msg, TextStyle: gui.CurrentTheme().N3})},
 	})
 }
@@ -391,7 +447,7 @@ func gridRow(w *gui.Window, matches []string, rowIdx, cols int, cardW, cardH, ro
 		Height:     rowH,
 		Spacing:    gui.SomeF(gap), // horizontal gutter between cards
 		Padding:    gui.NoPadding,
-		SizeBorder: gui.Some(float32(0)),
+		SizeBorder: gui.NoBorder,
 		Content:    cards,
 	})
 }
@@ -402,9 +458,9 @@ func fontCard(w *gui.Window, name string, cardW, cardH float32) gui.View {
 	s := gui.State[FontViewerState](w)
 	t := gui.CurrentTheme()
 
-	bg := gui.Color{R: 248, G: 248, B: 248, A: 255}
+	bg := colorCardBG
 	if s.HoveredFam == name {
-		bg = gui.Color{R: 200, G: 220, B: 255, A: 255}
+		bg = colorCardHover
 	}
 
 	return gui.Column(gui.ContainerCfg{
@@ -413,9 +469,9 @@ func fontCard(w *gui.Window, name string, cardW, cardH float32) gui.View {
 		Height:  cardH,
 		Sizing:  gui.FixedFixed,
 		Color:   bg,
-		Radius:  gui.Some(float32(8)),
-		Padding: gui.Some(gui.Padding{Left: previewPad, Right: previewPad, Top: 8, Bottom: 8}),
-		Spacing: gui.SomeF(4),
+		Radius:  gui.SomeF(cardRadius),
+		Padding: gui.Some(gui.Padding{Left: previewPad, Right: previewPad, Top: cardVPad, Bottom: cardVPad}),
+		Spacing: gui.SomeF(spacingTight),
 		Content: []gui.View{
 			cardNameRow(s, t, name),
 			cardPreview(s.Sample, name, s.FontSize),
@@ -436,7 +492,7 @@ func cardNameRow(s *FontViewerState, t gui.Theme, name string) gui.View {
 			Opacity: gui.Some(s.CopyOpacity),
 			TextStyle: gui.TextStyle{
 				Family: t.N6.Family, Size: t.N6.Size,
-				Color: gui.RGB(40, 140, 40),
+				Color: colorCopiedBadge,
 			},
 		}))
 	case s.HoveredFam == name:
@@ -446,10 +502,10 @@ func cardNameRow(s *FontViewerState, t gui.Theme, name string) gui.View {
 		Sizing:     gui.FillFixed,
 		Height:     nameRowH,
 		Clip:       true,
-		Spacing:    gui.SomeF(4),
+		Spacing:    gui.SomeF(spacingTight),
 		VAlign:     gui.VAlignMiddle,
 		Padding:    gui.NoPadding,
-		SizeBorder: gui.Some(float32(0)),
+		SizeBorder: gui.NoBorder,
 		Content:    content,
 	})
 }
@@ -461,7 +517,7 @@ func cardPreview(sample, name string, fontSize float32) gui.View {
 		Sizing:     gui.FillFill,
 		Clip:       true,
 		Padding:    gui.NoPadding,
-		SizeBorder: gui.Some(float32(0)),
+		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text: sample,
@@ -469,7 +525,7 @@ func cardPreview(sample, name string, fontSize float32) gui.View {
 				TextStyle: gui.TextStyle{
 					Family: name,
 					Size:   fontSize,
-					Color:  gui.RGB(32, 32, 32),
+					Color:  colorPreviewText,
 				},
 			}),
 		},
@@ -485,14 +541,14 @@ func copyFamily(name string) func(*gui.Layout, *gui.Event, *gui.Window) {
 		w.SetClipboard(name)
 		w.AnimationAdd(&gui.TweenAnimation{
 			AnimID:   "copied-fade",
-			Duration: 1200 * time.Millisecond,
+			Duration: copyFadeDuration,
 			Easing:   gui.EaseOutCubic,
 			From:     1,
 			To:       0,
-			OnValue:  func(v float32, _ *gui.Window) { gui.State[FontViewerState](w).CopyOpacity = v },
-			OnDone:   func(_ *gui.Window) { gui.State[FontViewerState](w).CopiedFam = "" },
+			OnValue:  func(v float32, w *gui.Window) { gui.State[FontViewerState](w).CopyOpacity = v },
+			OnDone:   func(w *gui.Window) { gui.State[FontViewerState](w).CopiedFam = "" },
 		})
-		e.IsHandled = true
+		// let event bubble up to column to change focus
 	}
 }
 
