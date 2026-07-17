@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"time"
 )
@@ -37,7 +38,7 @@ func (p *ProcInfo) ThreadsText() string {
 
 // formatCPU renders a CPU percentage, with "--" for unreadable values.
 func formatCPU(v float64) string {
-	if v < 0 {
+	if v < 0 || math.IsNaN(v) {
 		return "--"
 	}
 	return fmt.Sprintf("%.1f", v)
@@ -45,7 +46,7 @@ func formatCPU(v float64) string {
 
 // formatCPUPercent is formatCPU with a trailing percent sign.
 func formatCPUPercent(v float64) string {
-	if v < 0 {
+	if v < 0 || math.IsNaN(v) {
 		return "--"
 	}
 	return fmt.Sprintf("%.1f%%", v)
