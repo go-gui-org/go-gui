@@ -22,6 +22,24 @@ type TextMeasurer interface {
 	LayoutText(text string, style TextStyle, wrapWidth float32) (glyph.Layout, error)
 }
 
+// FontLister is an optional capability on TextMeasurer backends.
+// Backends that wrap a *glyph.TextSystem opt in; others need no change.
+type FontLister interface {
+	ListFontFamilies() []string
+}
+
+// ListSystemFonts returns font family names from the active text
+// system's catalog, sorted case-insensitively. Returns nil before
+// backend init, on WASM stub backends, or on backends that do not
+// implement FontLister. Includes RegisterAppFont families once those
+// paths have been added to the text system.
+func ListSystemFonts(w *Window) []string {
+	if fl, ok := w.textMeasurer.(FontLister); ok {
+		return fl.ListFontFamilies()
+	}
+	return nil
+}
+
 // windowRender holds render-walk state reset each frame.
 type windowRender struct {
 	// Renderers — flat draw command list, reused via [:0].

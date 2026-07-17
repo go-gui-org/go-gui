@@ -15,8 +15,8 @@ github.com/ebitengine/purego v0.10.1 h1:dewVBCBT2GaMu1SrNTYxQhgQBethzfhiwvZiLGP/
 github.com/ebitengine/purego v0.10.1/go.mod h1:iIjxzd6CiRiOG0UyXP+V1+jWqUXVjPKLAI0mRfJZTmQ=
 github.com/go-gl/gl v0.0.0-20260331235117-4566fea9a276 h1:IO5P06Pcj9K04d+l4nrf3c2U56+dAotIFG6u4P1wAHI=
 github.com/go-gl/gl v0.0.0-20260331235117-4566fea9a276/go.mod h1:9YTyiznxEY1fVinfM7RvRcjRHbw2xLBJ3AAGIT0I4Nw=
-github.com/go-gui-org/go-glyph v1.16.2 h1:QLXLaKcQz1SlTlGNUsLoYYYV+Zw2Yab57bhBq06KJbA=
-github.com/go-gui-org/go-glyph v1.16.2/go.mod h1:uLoMxwozAaPIdKcen6eX8jmFMKSGj09GjtVPyfFZyZg=
+github.com/go-gui-org/go-glyph v1.17.0 h1:1IHKKshJ1oJkgTLjMeGtnNrP0a4MUxW5YqCl7685y5k=
+github.com/go-gui-org/go-glyph v1.17.0/go.mod h1:uLoMxwozAaPIdKcen6eX8jmFMKSGj09GjtVPyfFZyZg=
 github.com/go-pdf/fpdf v0.9.0 h1:PPvSaUuo1iMi9KkaAn90NuKi+P4gwMedWPHhj8YlJQw=
 github.com/go-pdf/fpdf v0.9.0/go.mod h1:oO8N111TkmKb9D7VvWGLvLJlaZUQVPM+6V42pp3iV4Y=
 github.com/go-text/typesetting v0.3.4 h1:YYurUOtEb9kGSOz4uE3k4OpBGsp1dDL8+fjCeaFamAU=

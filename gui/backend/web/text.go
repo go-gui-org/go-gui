@@ -72,3 +72,6 @@ func (tm *textMeasurer) LayoutRichText(
 ) (glyph.Layout, error) {
 	return tm.textSys.LayoutRichText(rt, cfg)
 }
+func (tm *textMeasurer) ListFontFamilies() []string {
+	return tm.textSys.ListFontFamilies()
+}
