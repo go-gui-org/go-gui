@@ -9,14 +9,62 @@
 **Cross-platform, hybrid immediate-mode GUI framework for Go — no virtual DOM,
 no diffing, just fast, composable UI.**
 
-https://go-gui.com
-
-![showcase](assets/showcase.png)
-
 _Showcase contains the framework documentation. Every widget demo has a button
 in the upper-right corner that displays documentation about the widget._
 
+```go
+package main
+
+import (
+    "fmt"
+
+    "github.com/go-gui-org/go-gui/gui"
+    "github.com/go-gui-org/go-gui/gui/backend"
+)
+
+type App struct{ Clicks int }
+
+func main() {
+    w := gui.NewWindow(gui.WindowCfg{
+        State:  &App{},
+        Title:  "Counter",
+        Width:  300,
+        Height: 150,
+        OnInit: func(w *gui.Window) { w.UpdateView(mainView) },
+    })
+
+    backend.Run(w)
+}
+
+func mainView(w *gui.Window) gui.View {
+    app := gui.State[App](w)
+
+    return gui.Column(gui.ContainerCfg{
+        Content: []gui.View{
+            gui.Text(gui.TextCfg{Text: fmt.Sprintf("%d Clicks", app.Clicks)}),
+            gui.Button(gui.ButtonCfg{
+                ID: "counter",
+                Content: []gui.View{
+                    gui.Text(gui.TextCfg{Text: "Click Me"}),
+                },
+                OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
+                    gui.State[App](w).Clicks++
+                    e.IsHandled = true
+                },
+            }),
+        },
+    })
+}
+```
+
+See [`examples/get_started/`](examples/get_started/) for the full runnable
+version and [`examples/web_demo/`](examples/web_demo/) for the browser build.
+
+https://go-gui.com
+
 📜 [Documentation](https://github.com/go-gui-org/go-gui/wiki)
+
+---
 
 ## Try It
 
@@ -26,6 +74,8 @@ in the upper-right corner that displays documentation about the widget._
 | macOS          | [Go-Gui-Showcase-\<version\>.dmg](https://github.com/go-gui-org/go-gui/releases)                |
 | Linux          | [go-gui-showcase-\<version\>-linux-amd64.tar.gz](https://github.com/go-gui-org/go-gui/releases) |
 | Windows        | [go-gui-showcase-\<version\>-windows-amd64.zip](https://github.com/go-gui-org/go-gui/releases)  |
+
+![showcase](assets/showcase.png)
 
 Sibling projects:
 
@@ -47,7 +97,17 @@ Sibling projects:
 - **go-glyph**\
   Text rendering engine on steroids. https://github.com/go-gui-org/go-glyph
 
----
+## Why
+
+GUI frameworks in Go target the browser and tie you to HTML/CSS and
+JavaScript. go-gui takes the opposite approach: write your UI in pure Go,
+render it with native GPU acceleration — no browser runtime, no JavaScript
+bridge, no DOM. Your data stays in Go structs; your UI stays in Go code.
+
+The second thesis: a GUI toolkit should be an **ecosystem of composable
+libraries**, not a monolith. go-glyph handles text. go-charts handles data.
+go-edit handles code. Each library is usable on its own or together — all
+sharing the same rendering pipeline and event system.
 
 ## Features
 
@@ -73,89 +133,19 @@ Sibling projects:
 
 ---
 
-## Quick Start
-
-```go
-package main
-
-import (
-    "fmt"
-
-    "github.com/go-gui-org/go-gui/gui"
-    "github.com/go-gui-org/go-gui/gui/backend"
-)
-
-type App struct{ Clicks int }
-
-func main() {
-    gui.SetTheme(gui.ThemeDark.WithBorders(true))
-
-    w := gui.NewWindow(gui.WindowCfg{
-        State:  &App{},
-        Title:  "Get Started",
-        Width:  300,
-        Height: 300,
-        OnInit: func(w *gui.Window) { w.UpdateView(mainView) },
-    })
-
-    backend.Run(w)
-}
-
-func mainView(w *gui.Window) gui.View {
-    app := gui.State[App](w)
-
-    // FillFill fills the window and tracks resize automatically.
-    return gui.Column(gui.ContainerCfg{
-        Sizing: gui.FillFill,
-        HAlign: gui.HAlignCenter,
-        VAlign: gui.VAlignMiddle,
-        Content: []gui.View{
-            gui.Text(gui.TextCfg{
-                Text:      "Hello GUI!",
-                TextStyle: gui.CurrentTheme().B1,
-            }),
-            gui.Button(gui.ButtonCfg{
-                ID: "gs_counter",
-                Content: []gui.View{
-                    gui.Text(gui.TextCfg{
-                        Text: fmt.Sprintf("%d Clicks", app.Clicks),
-                    }),
-                },
-                OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-                    gui.State[App](w).Clicks++
-                    e.IsHandled = true
-                },
-            }),
-        },
-    })
-}
-```
-
-See [`examples/get_started/`](examples/get_started/) for the full runnable
-version and [`examples/web_demo/`](examples/web_demo/) for the browser build.
-
----
-
 ## Installation
 
-Requires **Go 1.26+** and a C toolchain (CGo). The desktop backends are
-native: Metal on macOS, X11 + EGL on Linux, Win32 + WGL on
-Windows. Text shaping and rasterization are pure Go via go-glyph — no
-FreeType, HarfBuzz, Pango, CoreText, or DirectWrite libraries required. See
-the
-[Installation Guide](https://github.com/go-gui-org/go-gui/wiki/Installation)
-for platform-specific instructions.
+Requires **Go 1.26+** and a **C toolchain** (CGo). The desktop backends are
+native: Metal on macOS, X11 + EGL on Linux, Win32 + WGL on Windows. Text
+shaping and rasterization are pure Go via go-glyph — no FreeType, HarfBuzz,
+Pango, CoreText, or DirectWrite libraries required.
 
 ```bash
-# macOS:   xcode-select --install && brew install go   # Metal is a system framework
-# Ubuntu:  sudo apt-get install golang gcc pkg-config libgl1-mesa-dev libx11-dev
-# Fedora:  sudo dnf install golang gcc pkgconf-pkg-config mesa-libGL-devel libX11-devel
-# Arch:    sudo pacman -S go gcc pkgconf mesa libx11
-# Windows: mingw-w64 GCC required (e.g. MSYS2 MinGW x64) —
-#          pacman -S mingw-w64-x86_64-go mingw-w64-x86_64-gcc
-
 go get github.com/go-gui-org/go-gui
 ```
+
+See the [Installation Guide](https://github.com/go-gui-org/go-gui/wiki/Installation)
+for platform-specific instructions.
 
 ![todo example](assets/todo.png)
 
