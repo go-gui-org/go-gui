@@ -10,9 +10,9 @@ func TestMainViewNoPanic(t *testing.T) {
 	t.Parallel()
 	gui.SetTheme(gui.ThemeLight.WithPadding(false))
 	w := gui.NewWindow(gui.WindowCfg{
-		State:  &FontViewerState{FontSize: 28, Sample: "The quick brown fox"},
-		Width:  900,
-		Height: 700,
+		State:  &FontViewerState{FontSize: initialFontSize, Sample: "The quick brown fox"},
+		Width:  initialWinW,
+		Height: initialWinH,
 	})
 	_ = mainView(w).GenerateLayout(w)
 }
@@ -113,14 +113,30 @@ func TestVisibleRangeMath(t *testing.T) {
 	}
 }
 
+// TestRandomPangramExcludes verifies a shuffle never returns the
+// current sample (possible because len(pangrams) > 1).
+func TestRandomPangramExcludes(t *testing.T) {
+	t.Parallel()
+	if len(pangrams) < 2 {
+		t.Skip("needs at least two pangrams")
+	}
+	for _, exclude := range pangrams {
+		for range 50 {
+			if got := randomPangram(exclude); got == exclude {
+				t.Fatalf("randomPangram(%q) returned the excluded value", exclude)
+			}
+		}
+	}
+}
+
 func TestMainViewEmptyCatalog(t *testing.T) {
 	t.Parallel()
 	gui.SetTheme(gui.ThemeLight.WithBorders(true))
 	// Families is nil, Loaded is false → empty state shows "No system fonts".
 	w := gui.NewWindow(gui.WindowCfg{
-		State:  &FontViewerState{FontSize: 28},
-		Width:  900,
-		Height: 700,
+		State:  &FontViewerState{FontSize: initialFontSize},
+		Width:  initialWinW,
+		Height: initialWinH,
 	})
 	_ = mainView(w).GenerateLayout(w)
 }
