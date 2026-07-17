@@ -351,7 +351,13 @@ func layoutWidths(layout *Layout) {
 	padding := layout.Shape.paddingWidth()
 	if layout.Shape.Axis == AxisLeftToRight {
 		sp := layout.spacing()
-		if layout.Shape.Sizing.Width == SizingFixed {
+		// A Fixed axis with an explicit 0 size degrades to content
+		// sizing. A zero-size Fixed box renders (children self-draw)
+		// but its own bounds stay 0, collapsing the shapeClip — and
+		// therefore the hit-test and clip region — of every descendant
+		// (see issue #94). Content sizing keeps bounds enclosing the
+		// children. Childless boxes still resolve to 0, unchanged.
+		if layout.Shape.Sizing.Width == SizingFixed && layout.Shape.Width > 0 {
 			for i := range layout.Children {
 				layoutWidths(&layout.Children[i])
 			}
@@ -384,9 +390,13 @@ func layoutWidths(layout *Layout) {
 			}
 		}
 	} else if layout.Shape.Axis == AxisTopToBottom {
+		// Fixed cross-axis with a 0 size degrades to content sizing
+		// (see the AxisLeftToRight note above / issue #94). Captured
+		// before the loop mutates Width, so it stays stable per child.
+		fitWidth := layout.Shape.Sizing.Width != SizingFixed || layout.Shape.Width == 0
 		for i := range layout.Children {
 			layoutWidths(&layout.Children[i])
-			if layout.Shape.Sizing.Width != SizingFixed {
+			if fitWidth {
 				layout.Shape.Width = f32Max(layout.Shape.Width, layout.Children[i].Shape.Width+padding)
 				if !layout.Shape.Clip {
 					layout.Shape.MinWidth = f32Max(layout.Shape.MinWidth, layout.Children[i].Shape.MinWidth+padding)
@@ -407,7 +417,10 @@ func layoutHeights(layout *Layout) {
 	padding := layout.Shape.paddingHeight()
 	if layout.Shape.Axis == AxisTopToBottom {
 		sp := layout.spacing()
-		if layout.Shape.Sizing.Height == SizingFixed {
+		// Fixed with an explicit 0 height degrades to content sizing
+		// (see layoutWidths / issue #94): a zero-height Fixed box would
+		// otherwise collapse every descendant's clip/hit-test region.
+		if layout.Shape.Sizing.Height == SizingFixed && layout.Shape.Height > 0 {
 			for i := range layout.Children {
 				layoutHeights(&layout.Children[i])
 			}
@@ -435,9 +448,12 @@ func layoutHeights(layout *Layout) {
 			}
 		}
 	} else if layout.Shape.Axis == AxisLeftToRight {
+		// Fixed cross-axis with a 0 height degrades to content sizing
+		// (see issue #94). Captured before the loop mutates Height.
+		fitHeight := layout.Shape.Sizing.Height != SizingFixed || layout.Shape.Height == 0
 		for i := range layout.Children {
 			layoutHeights(&layout.Children[i])
-			if layout.Shape.Sizing.Height != SizingFixed {
+			if fitHeight {
 				layout.Shape.Height = f32Max(layout.Shape.Height, layout.Children[i].Shape.Height+padding)
 				layout.Shape.MinHeight = f32Max(layout.Shape.MinHeight, layout.Children[i].Shape.MinHeight+padding)
 			}

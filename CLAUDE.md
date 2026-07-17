@@ -20,7 +20,7 @@ Immediate-mode pipeline. No virtual DOM, no diffing:
 
 ```
 View fn → generateViewLayout() → Layout tree
-  → layoutArrange() (Fit/Fixed/Grow sizing)
+  → layoutArrange() (Fit/Fixed/Fill sizing)
   → renderLayout() (emits into w.renderers)
   → Backend (Metal on macOS; native GL on Linux/Windows)
 ```
@@ -63,9 +63,12 @@ app := gui.State[App](w)  // type-asserts; panics if wrong type
 
 ### Sizing
 
-`Sizing` = combined axis enum: `SizingFit`, `SizingFixed`, `SizingGrow`,
-`SizingFitFixed`, `SizingFixedFixed`, `SizingGrowGrow`, `SizingFixedGrow`,
-`SizingGrowFixed`. Aliases: `FitFit`, `FixedFixed`, `GrowGrow`, etc.
+`Sizing` = struct `{Width, Height SizingType}`. Per-axis `SizingType`:
+`SizingFit` (shrink to content), `SizingFill` (fill parent),
+`SizingFixed` (unchanged). Named combos are `Sizing` vars: `FitFit`,
+`FitFill`, `FitFixed`, `FixedFit`, `FixedFill`, `FixedFixed`, `FillFit`,
+`FillFill`, `FillFixed`. A `FillFill` root fills the window (min=max
+seed in `updateLayout`).
 
 ### Widgets
 

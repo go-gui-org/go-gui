@@ -195,6 +195,79 @@ func TestLayoutWidthsFixedSizingSkipsAccumulation(t *testing.T) {
 	}
 }
 
+// A Fixed width of 0 must degrade to content sizing so the box's bounds
+// enclose its children — otherwise the zero-width box collapses the
+// shapeClip (and hence hit-test and clip region) of every descendant.
+// Regression for issue #94.
+func TestLayoutWidthsFixedZeroDegradesToContent(t *testing.T) {
+	// Main axis (row width).
+	row := &Layout{
+		Shape: &Shape{Axis: AxisLeftToRight, Sizing: FixedFixed},
+		Children: []Layout{
+			{Shape: &Shape{Width: 50}},
+			{Shape: &Shape{Width: 50}},
+		},
+	}
+	layoutWidths(row)
+	if !f32AreClose(row.Shape.Width, 100) {
+		t.Errorf("row width: got %f, want 100 (content)", row.Shape.Width)
+	}
+
+	// Cross axis (column width).
+	col := &Layout{
+		Shape: &Shape{Axis: AxisTopToBottom, Sizing: FixedFixed},
+		Children: []Layout{
+			{Shape: &Shape{Width: 70}},
+		},
+	}
+	layoutWidths(col)
+	if !f32AreClose(col.Shape.Width, 70) {
+		t.Errorf("col width: got %f, want 70 (content)", col.Shape.Width)
+	}
+
+	// Childless Fixed-zero box stays 0 (leaf images/svg unaffected).
+	leaf := &Layout{Shape: &Shape{Axis: AxisLeftToRight, Sizing: FixedFixed}}
+	layoutWidths(leaf)
+	if !f32AreClose(leaf.Shape.Width, 0) {
+		t.Errorf("leaf width: got %f, want 0", leaf.Shape.Width)
+	}
+}
+
+// Mirror of the width case for the height axis. Regression for #94.
+func TestLayoutHeightsFixedZeroDegradesToContent(t *testing.T) {
+	// Main axis (column height).
+	col := &Layout{
+		Shape: &Shape{Axis: AxisTopToBottom, Sizing: FixedFixed},
+		Children: []Layout{
+			{Shape: &Shape{Height: 30}},
+			{Shape: &Shape{Height: 30}},
+		},
+	}
+	layoutHeights(col)
+	if !f32AreClose(col.Shape.Height, 60) {
+		t.Errorf("col height: got %f, want 60 (content)", col.Shape.Height)
+	}
+
+	// Cross axis (row height).
+	row := &Layout{
+		Shape: &Shape{Axis: AxisLeftToRight, Sizing: FixedFixed},
+		Children: []Layout{
+			{Shape: &Shape{Height: 45}},
+		},
+	}
+	layoutHeights(row)
+	if !f32AreClose(row.Shape.Height, 45) {
+		t.Errorf("row height: got %f, want 45 (content)", row.Shape.Height)
+	}
+
+	// Childless Fixed-zero box stays 0.
+	leaf := &Layout{Shape: &Shape{Axis: AxisTopToBottom, Sizing: FixedFixed}}
+	layoutHeights(leaf)
+	if !f32AreClose(leaf.Shape.Height, 0) {
+		t.Errorf("leaf height: got %f, want 0", leaf.Shape.Height)
+	}
+}
+
 func TestLayoutFillWidths_NilPool(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
