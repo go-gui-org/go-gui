@@ -6,7 +6,7 @@ require (
 	github.com/alecthomas/chroma/v2 v2.26.1
 	github.com/ebitengine/purego v0.10.1
 	github.com/go-gl/gl v0.0.0-20260331235117-4566fea9a276
-	github.com/go-gui-org/go-glyph v1.16.2
+	github.com/go-gui-org/go-glyph v1.17.0
 	github.com/go-pdf/fpdf v0.9.0
 	github.com/godbus/dbus/v5 v5.2.2
 	github.com/gopxl/beep/v2 v2.1.1
