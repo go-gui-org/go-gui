@@ -254,6 +254,10 @@ func (tm *textMeasurer) LayoutRichText(
 	return tm.textSys.LayoutRichText(rt, cfg)
 }
 
+func (tm *textMeasurer) ListFontFamilies() []string {
+	return tm.textSys.ListFontFamilies()
+}
+
 func guiStyleToGlyphConfig(s gui.TextStyle) glyph.TextConfig {
 	return glyphconv.GuiStyleToGlyphConfig(s)
 }

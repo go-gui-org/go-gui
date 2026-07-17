@@ -127,6 +127,30 @@ func listCoreVisibleRange(itemCount int, rowHeight, listHeight, scrollY float32)
 	return firstVisible, lastVisible
 }
 
+// ListVisibleRange computes the visible index range with explicit
+// overscan. Same arithmetic as listCoreVisibleRange but takes the
+// buffer rows as an argument so callers can tune for their row height
+// (the internal listCoreVirtualBufferRows of 2 is tuned for ~20-32 px
+// rows, not 150+ px grid cards). Returns (0, -1) for degenerate inputs.
+func ListVisibleRange(itemCount int, rowHeight, listHeight,
+	scrollY float32, overscan int) (int, int) {
+	if itemCount == 0 || rowHeight <= 0 || listHeight <= 0 {
+		return 0, -1
+	}
+	maxIdx := itemCount - 1
+	absScroll := scrollY
+	if absScroll < 0 {
+		absScroll = -absScroll
+	}
+	first := max(0, min(maxIdx, int(absScroll/rowHeight)))
+	visibleRows := int(listHeight/rowHeight) + 1
+	buf := max(0, overscan)
+	firstVisible := max(0, first-buf)
+	lastVisible := min(maxIdx, first+visibleRows+buf)
+	lastVisible = max(lastVisible, firstVisible)
+	return firstVisible, lastVisible
+}
+
 // listCoreRowHeightEstimate estimates row height from text
 // style + padding. No Window needed. Uses the same 1.4×
 // line-height factor as text shape layout.
