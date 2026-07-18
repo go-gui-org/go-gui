@@ -13,14 +13,16 @@ type BoundedMap[K comparable, V any] struct {
 
 // NewBoundedMap creates a BoundedMap with the given max size.
 func NewBoundedMap[K comparable, V any](maxSize int) *BoundedMap[K, V] {
-	dataCap := 0
-	orderCap := 0
-	if maxSize > 0 {
-		dataCap = maxSize
-		orderCap = maxSize
-	}
+	orderCap := max(maxSize, 0)
+	// data is deliberately not pre-sized to maxSize: occupancy is
+	// typically far below capacity (e.g. a handful of scroll containers
+	// against capScroll=200), and a map that stays within one Swiss-table
+	// group (<=8 entries) keeps the runtime's small-map lookup fast path
+	// (~4x faster Get on integer keys; measured in #77). Pre-sizing also
+	// allocates the full table up front per map. Maps that do fill pay
+	// only amortized rehash cost on the way up.
 	return &BoundedMap[K, V]{
-		data:    make(map[K]V, dataCap),
+		data:    make(map[K]V),
 		order:   make([]K, 0, orderCap),
 		maxSize: maxSize,
 	}
