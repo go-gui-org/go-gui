@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.39.0] - 2026-07-18
+
 ### Added
 
+- **`BoundedMap.GetOr`.** New method on `BoundedMap` that accepts a constructor
+  function, returning an existing value or publishing a new one without a
+  double lookup. Internal `BoundedMap.Get` callers with ignored-ok returns have
+  been migrated to `GetOr`, hardening the map against lost writes.
 - **Process monitor example.** New `examples/process_monitor` — a live task
   manager: filterable process list with flat/tree views, sortable columns, and
   per-process CPU/RAM history charts built from plain containers. Data is
@@ -18,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `Window.UpdateWindow`. Styled entirely from the standard theme tokens.
   Includes a headless `-once` terminal report. Functional port of the go-shirei
   example of the same name.
+
+### Changed
+
+- **Dependency bump.** Updated go-glyph to v1.17.2 (background cache warming
+  for CJK fallback coverage; no API change).
 
 ## [v0.38.1] - 2026-07-17
 
