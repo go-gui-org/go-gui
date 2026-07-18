@@ -162,7 +162,8 @@ func (d *inputDragState) computeRunePos(
 	scrollDelta := float32(0)
 	if d.scrollID != "" {
 		sy := w.scrollY()
-		sNow, _ := sy.Get(d.scrollID) // ok ignored: zero offset is correct initial scroll
+		// Default 0: absent entry means unscrolled initial position.
+		sNow := sy.GetOr(d.scrollID, 0)
 		scrollDelta = sNow - d.scrollY0
 	}
 	relX := mx - d.txtOffX
@@ -173,7 +174,8 @@ func (d *inputDragState) computeRunePos(
 
 func (d *inputDragState) updateSelection(rp int, w *Window) {
 	imap := StateMap[string, InputState](w, nsInput, capMany)
-	is, _ := imap.Get(d.focusID)
+	// Default InputState{}: zero value seeds initial drag-selection state.
+	is := imap.GetOr(d.focusID, InputState{})
 	if d.runes != nil {
 		wb, we := wordBoundsAt(d.runes, rp)
 		if rp < int(d.anchorPos) {
@@ -208,7 +210,8 @@ func (d *inputDragState) scrollCallback(
 		return
 	}
 	sy := w.scrollY()
-	cur, _ := sy.Get(d.scrollID)
+	// Default 0: unscrolled position when no offset recorded yet.
+	cur := sy.GetOr(d.scrollID, 0)
 	newScroll := f32Clamp(cur+delta, d.maxScrollNeg, 0)
 	if newScroll == cur {
 		return

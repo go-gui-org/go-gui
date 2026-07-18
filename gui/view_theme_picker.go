@@ -129,7 +129,8 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 				return
 			}
 			lbf := StateMap[string, int](w, nsListBoxFocus, capModerate)
-			currentIdx, _ := lbf.Get(lbID)
+			// Default 0: start at first item; bounds-checked below.
+			currentIdx := lbf.GetOr(lbID, 0)
 			action := listCoreNavigate(e.KeyCode, count)
 
 			nextIdx := -1

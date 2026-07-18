@@ -95,9 +95,11 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 	// Sync editable text with external date. Only overwrite
 	// user text when the external date actually changes.
 	sm := StateMap[string, string](w, nsInputDateText, capModerate)
-	editText, _ := sm.Get(cfgID)
+	// Default "": absent entry means no edit text cached yet.
+	editText := sm.GetOr(cfgID, "")
 	syncKey := cfgID + ".sync"
-	lastSync, _ := sm.Get(syncKey)
+	// Default "": absent entry means no prior sync occurred.
+	lastSync := sm.GetOr(syncKey, "")
 	if dateText != "" && dateText != lastSync {
 		sm.Set(cfgID, dateText)
 		sm.Set(syncKey, dateText)
@@ -293,7 +295,8 @@ func inputDatePlaceholder(cfg *InputDateCfg) string {
 
 func inputDateToggle(id string, w *Window) {
 	sm := StateMap[string, bool](w, nsInputDate, capModerate)
-	cur, _ := sm.Get(id)
+	// Default false: absent entry means picker is closed.
+	cur := sm.GetOr(id, false)
 	sm.Set(id, !cur)
 	w.UpdateWindow()
 }

@@ -288,7 +288,12 @@ func scrollbarMouseMove(orientation ScrollbarOrientation, scrollID string, layou
 func offsetMouseChangeX(sx *BoundedMap[string, float32], layout *Layout, mouseDX float32, scrollID string) float32 {
 	totalWidth := contentWidth(layout)
 	shapeWidth := layout.Shape.Width - layout.Shape.paddingWidth()
-	oldOffset, _ := sx.Get(scrollID) // ok ignored: zero offset is correct initial scroll
+	// Default 0: unscrolled position when no offset recorded yet.
+	oldOffset := sx.GetOr(scrollID, 0)
+	// Degenerate viewport: avoid division by zero / NaN offset.
+	if shapeWidth <= 0 {
+		return oldOffset
+	}
 	newOffset := mouseDX * (totalWidth / shapeWidth)
 	offset := oldOffset - newOffset
 	return f32Min(0, f32Max(offset, shapeWidth-totalWidth))
@@ -299,7 +304,12 @@ func offsetMouseChangeX(sx *BoundedMap[string, float32], layout *Layout, mouseDX
 func offsetMouseChangeY(sy *BoundedMap[string, float32], layout *Layout, mouseDY float32, scrollID string) float32 {
 	totalHeight := contentHeight(layout)
 	shapeHeight := layout.Shape.Height - layout.Shape.paddingHeight()
-	oldOffset, _ := sy.Get(scrollID) // ok ignored: zero offset is correct initial scroll
+	// Default 0: unscrolled position when no offset recorded yet.
+	oldOffset := sy.GetOr(scrollID, 0)
+	// Degenerate viewport: avoid division by zero / NaN offset.
+	if shapeHeight <= 0 {
+		return oldOffset
+	}
 	newOffset := mouseDY * (totalHeight / shapeHeight)
 	offset := oldOffset - newOffset
 	return f32Min(0, f32Max(offset, shapeHeight-totalHeight))

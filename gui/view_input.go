@@ -393,7 +393,8 @@ func inputOnClick(scrollID string) func(*Layout, *Event, *Window) {
 			imap := StateMap[string, InputState](
 				w, nsInput, capMany,
 			)
-			is, _ := imap.Get(ly.Shape.ID) // ok ignored: zero value seeds initial state
+			// Default InputState{}: zero value seeds initial state.
+			is := imap.GetOr(ly.Shape.ID, InputState{})
 			is.CursorPos = 0
 			is.SelectBeg = 0
 			is.SelectEnd = 0
@@ -422,9 +423,9 @@ func inputOnClick(scrollID string) func(*Layout, *Event, *Window) {
 		imap := StateMap[string, InputState](
 			w, nsInput, capMany,
 		)
-		// ok ignored: zero LastClickTime safely gates double-click
-		// (the > 0 check on line below prevents false match).
-		is, _ := imap.Get(ly.Shape.ID)
+		// Default InputState{}: zero LastClickTime safely gates
+		// double-click (the > 0 check below prevents false match).
+		is := imap.GetOr(ly.Shape.ID, InputState{})
 
 		// Double-click selects word.
 		now := time.Now().UnixMilli()
@@ -501,7 +502,8 @@ func inputAmendLayout(
 		// Blur detection: fire commit on focus loss.
 		focusMap := StateMap[string, bool](
 			w, nsInputFocus, capMany)
-		wasFocused, _ := focusMap.Get(layout.Shape.ID) // ok ignored: false means "wasn't focused"
+		// Default false: absent entry means not previously focused.
+		wasFocused := focusMap.GetOr(layout.Shape.ID, false)
 		focusMap.Set(layout.Shape.ID, focused)
 		if wasFocused && !focused {
 			text := inputTextFromLayout(layout)

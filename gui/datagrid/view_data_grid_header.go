@@ -343,7 +343,8 @@ func dataGridStartResize(gridID string, columns []GridColumnCfg, rows []GridRow,
 		w.SetFocus(focusID)
 	}
 	dgRS := gg.StateMap[string, dataGridResizeState](w, nsDgResize, capModerate)
-	runtime, _ := dgRS.Get(gridID)
+	// Default zero state: absent entry means no resize in progress.
+	runtime := dgRS.GetOr(gridID, dataGridResizeState{})
 
 	if runtime.LastClickColID == col.ID && runtime.LastClickFrame > 0 &&
 		e.FrameCount-runtime.LastClickFrame <= dataGridResizeDoubleClickFrames {

@@ -52,6 +52,17 @@ func TestDatePickerNavMonth(t *testing.T) {
 	}
 }
 
+func TestDatePickerNavMonthAbsentStateNoOp(t *testing.T) {
+	// Absent state (evicted or never seeded) must be a no-op:
+	// no garbage state written, no panic.
+	w := &Window{}
+	datePickerNavMonth("never-seeded", 1, w)
+	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
+	if sm.Contains("never-seeded") {
+		t.Error("nav on absent state must not create state")
+	}
+}
+
 func TestDatePickerDaysInMonth(t *testing.T) {
 	tests := []struct {
 		month, year, want int

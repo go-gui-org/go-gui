@@ -16,7 +16,8 @@ func treeCollectFlatRows(
 		hasRealChildren := len(node.Nodes) > 0
 		hasChildren := hasRealChildren || node.Lazy
 		lazyKey := treeLazyKey(treeID, nodeID)
-		isLoading, _ := lazyState.Get(lazyKey)
+		// Default false: absent entry means node is not loading.
+		isLoading := lazyState.GetOr(lazyKey, false)
 
 		if node.Lazy && hasRealChildren && isLoading {
 			lazyState.Delete(lazyKey)
@@ -81,7 +82,8 @@ func treeVisibleRange(
 	if w == nil {
 		return 0, totalRows - 1
 	}
-	scrollY, _ := w.scrollY().Get(scrollID)
+	// Default 0: unscrolled position when no offset recorded yet.
+	scrollY := w.scrollY().GetOr(scrollID, 0)
 	return listCoreVisibleRange(totalRows, rowHeight, treeHeight, scrollY)
 }
 

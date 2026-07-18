@@ -493,10 +493,12 @@ func New(w *gg.Window, cfg DataGridCfg) gg.View {
 	focusID := dataGridFocusID(&resolvedCfg)
 	scrollID := dataGridScrollID(&resolvedCfg)
 	dgHH := gg.StateMap[string, string](w, nsDgHeaderHover, capModerate)
-	hoveredColID, _ := dgHH.Get(resolvedCfg.ID)
+	// Default "": absent entry means no column is hovered.
+	hoveredColID := dgHH.GetOr(resolvedCfg.ID, "")
 	resizingColID := dataGridActiveResizeColID(resolvedCfg.ID, w)
 	dgCO := gg.StateMap[string, bool](w, nsDgChooserOpen, capModerate)
-	chooserOpen, _ := dgCO.Get(resolvedCfg.ID)
+	// Default false: absent entry means column chooser is closed.
+	chooserOpen := dgCO.GetOr(resolvedCfg.ID, false)
 
 	// Height/layout waterfall.
 	rowHeight := dataGridRowHeight(&resolvedCfg, w)
@@ -562,7 +564,8 @@ func New(w *gg.Window, cfg DataGridCfg) gg.View {
 	headerHeight := dataGridHeaderHeight(&resolvedCfg)
 	frozenTopViews, frozenTopDisplayRows := dataGridFrozenTopViews(dctx,
 		frozenTopIndices, rowDeleteEnabled)
-	scrollX, _ := w.ScrollX().Get(scrollID)
+	// Default 0: absent entry means no horizontal scroll offset.
+	scrollX := w.ScrollX().GetOr(scrollID, 0)
 
 	// Visible range for virtualization.
 	firstVisible, lastVisible := 0, len(presentation.Rows)-1

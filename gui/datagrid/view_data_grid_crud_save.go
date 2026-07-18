@@ -147,7 +147,8 @@ type dataGridCrudSaveContext struct {
 func dataGridCrudSave(ctx dataGridCrudSaveContext, e *gg.Event, w *gg.Window) {
 	gridID := ctx.gridID
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
-	state, _ := dgCrud.Get(gridID)
+	// Default zero state: absent entry means nothing to save.
+	state := dgCrud.GetOr(gridID, dataGridCrudState{})
 	if state.Saving || !dataGridCrudHasUnsaved(state) {
 		return
 	}
@@ -293,7 +294,8 @@ func dataGridCrudApplySaveResult(gridID string, result dataGridCrudMutationResul
 		return
 	}
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
-	state, _ := dgCrud.Get(gridID)
+	// Default zero state: absent entry means save was not in CRUD mode.
+	state := dgCrud.GetOr(gridID, dataGridCrudState{})
 	replaceIDs, createWarn := dataGridCrudReplaceCreatedRows(
 		state.WorkingRows, result.createRows, result.created)
 	if createWarn != "" {
@@ -309,7 +311,8 @@ func dataGridCrudApplySaveResult(gridID string, result dataGridCrudMutationResul
 
 func dataGridCrudFinishSave(gridID string, _ map[string]string, rowCount int, onRowsChange func([]GridRow, *gg.Event, *gg.Window), hasSource bool, focusID string, e *gg.Event, w *gg.Window) {
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
-	state, _ := dgCrud.Get(gridID)
+	// Default zero state: absent entry means no CRUD state to finalize.
+	state := dgCrud.GetOr(gridID, dataGridCrudState{})
 	state.CommittedRows = cloneRows(state.WorkingRows)
 	dataGridCrudClearPendingChanges(&state)
 	state.Saving = false
@@ -338,7 +341,8 @@ func dataGridCrudFinishSave(gridID string, _ map[string]string, rowCount int, on
 
 func dataGridCrudRestoreOnError(gridID, phase string, onCRUDError func(string, *gg.Event, *gg.Window), e *gg.Event, w *gg.Window, snapshotRows []GridRow, errMsg string) {
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
-	state, _ := dgCrud.Get(gridID)
+	// Default zero state: absent entry means nothing to restore on error.
+	state := dgCrud.GetOr(gridID, dataGridCrudState{})
 	state.CommittedRows = snapshotRows
 	state.WorkingRows = cloneRows(snapshotRows)
 	dataGridCrudClearPendingChanges(&state)

@@ -42,9 +42,9 @@ func GetSourceStats(w *gg.Window, gridID string) SourceStats {
 
 func dataGridSourceApplyLocalMutation(gridID string, rows []GridRow, rowCount int, w *gg.Window) {
 	dgSrc := gg.StateMap[string, dataGridSourceState](w, nsDgSource, capModerate)
-	// ok ignored: zero state → cancelActive returns immediately,
-	// then state is fully overwritten below.
-	state, _ := dgSrc.Get(gridID)
+	// Default zero state: absent entry means no prior mutation state;
+	// cancelActive no-ops, then state is fully overwritten below.
+	state := dgSrc.GetOr(gridID, dataGridSourceState{})
 	dataGridSourceCancelActive(&state)
 	rows = dataGridSourceRowsWithStableIDs(rows, state.PaginationKind, state)
 	state.RequestID++
@@ -97,8 +97,9 @@ func dataGridResolveSourceCfg(cfg DataGridCfg, w *gg.Window) (DataGridCfg, dataG
 
 	// Use cached capabilities when available.
 	dgSrc := gg.StateMap[string, dataGridSourceState](w, nsDgSource, capModerate)
-	// ok ignored: zero CapsCached (false) triggers fresh Capabilities() call.
-	existing, _ := dgSrc.Get(cfg.ID)
+	// Default zero state: absent entry means CapsCached is false,
+	// triggering fresh Capabilities() call.
+	existing := dgSrc.GetOr(cfg.ID, dataGridSourceState{})
 	var caps GridDataCapabilities
 	if existing.CapsCached {
 		caps = existing.CachedCaps
@@ -588,7 +589,8 @@ func dataGridSourceSubmitJump(onSelectionChange func(GridSelection, *gg.Event, *
 	}
 	total := *rowCount
 	dgJI := gg.StateMap[string, string](w, nsDgJump, capModerate)
-	jumpText, _ := dgJI.Get(gridID) // ok ignored: empty → parseJumpTarget returns (0, false)
+	// Default "": absent entry means no jump text typed yet.
+	jumpText := dgJI.GetOr(gridID, "")
 	targetIdx, ok := dataGridParseJumpTarget(jumpText, total)
 	if !ok {
 		return
