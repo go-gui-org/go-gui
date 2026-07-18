@@ -162,7 +162,8 @@ func dataGridTrackRowEditClick(gridID string, editEnabled bool, editorFocusBase 
 		return
 	}
 	dgES := gg.StateMap[string, dataGridEditState](w, nsDgEdit, capModerate)
-	state, _ := dgES.Get(gridID)
+	// Default zero state: absent entry means no prior row-click recorded.
+	state := dgES.GetOr(gridID, dataGridEditState{})
 
 	isDoubleClick := state.LastClickRowID == rowID && state.LastClickFrame > 0 &&
 		e.FrameCount-state.LastClickFrame <= dataGridEditDoubleClickFrames
@@ -245,14 +246,16 @@ func dataGridEditingRowID(gridID string, w *gg.Window) string {
 
 func dataGridSetEditingRow(gridID, rowID string, w *gg.Window) {
 	dgES := gg.StateMap[string, dataGridEditState](w, nsDgEdit, capModerate)
-	state, _ := dgES.Get(gridID)
+	// Default zero state: absent entry means no editing row was set yet.
+	state := dgES.GetOr(gridID, dataGridEditState{})
 	state.EditingRowID = rowID
 	dgES.Set(gridID, state)
 }
 
 func dataGridClearEditingRow(gridID string, w *gg.Window) {
 	dgES := gg.StateMap[string, dataGridEditState](w, nsDgEdit, capModerate)
-	state, _ := dgES.Get(gridID)
+	// Default zero state: absent entry means no editing row to clear.
+	state := dgES.GetOr(gridID, dataGridEditState{})
 	state.EditingRowID = ""
 	dgES.Set(gridID, state)
 }

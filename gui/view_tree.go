@@ -489,8 +489,8 @@ func treeExpandedSet(w *Window, treeID, nodeID string, expanded bool) {
 		return
 	}
 	sm := StateMap[string, map[string]bool](w, nsTreeExpanded, capModerate)
-	nodes, _ := sm.Get(treeID)
-	if nodes == nil {
+	nodes, ok := sm.Get(treeID)
+	if !ok {
 		nodes = make(map[string]bool)
 	}
 	if expanded {

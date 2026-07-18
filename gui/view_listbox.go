@@ -175,7 +175,8 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 
 	// Keyboard focus highlight.
 	lbf := StateMap[string, int](w, nsListBoxFocus, capModerate)
-	focusIdx, _ := lbf.Get(cfg.ID)
+	// Default 0: start at first item; bounds-checked below.
+	focusIdx := lbf.GetOr(cfg.ID, 0)
 	var focusedID string
 	if focusIdx >= 0 && focusIdx < len(itemIDs) {
 		focusedID = itemIDs[focusIdx]
@@ -228,7 +229,8 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 				}
 				lbf = StateMap[string, int](
 					w, nsListBoxFocus, capModerate)
-				curIdx, _ := lbf.Get(listBoxID)
+				// Default 0: bounds-checked before use; zero index handled.
+				curIdx := lbf.GetOr(listBoxID, 0)
 				if curIdx >= 0 && curIdx < len(itemIDs) &&
 					dragReorderKeyboardMove(e.KeyCode,
 						e.Modifiers, DragReorderVertical,
@@ -301,7 +303,8 @@ func listBoxVisibleRange(
 	}
 	rowH = listCoreRowHeightEstimate(cfg.TextStyle, listBoxItemPad)
 	if virtualize && listH > 0 && len(cfg.Data) > 0 {
-		scrollY, _ := w.scrollY().Get(cfg.ID)
+		// Default 0: absent entry means not scrolled.
+		scrollY := w.scrollY().GetOr(cfg.ID, 0)
 		first, last = listCoreVisibleRange(
 			len(cfg.Data), rowH, listH, scrollY)
 	} else {
@@ -626,7 +629,8 @@ func listBoxOnKeyDown(
 	e.IsHandled = true
 
 	lbf := StateMap[string, int](w, nsListBoxFocus, capModerate)
-	curIdx, _ := lbf.Get(listBoxID)
+	// Default 0: bounds-checked before use; zero index handled.
+	curIdx := lbf.GetOr(listBoxID, 0)
 
 	if action == listCoreSelectItem {
 		if curIdx >= 0 && curIdx < len(itemIDs) {

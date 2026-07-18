@@ -67,8 +67,8 @@ func dataGridSubmitLocalJump(ctx dataGridJumpContext, e *gg.Event, w *gg.Window)
 		return
 	}
 	dgJI := gg.StateMap[string, string](w, nsDgJump, capModerate)
-	// ok ignored: empty string → parseJumpTarget returns (0, false).
-	jumpText, _ := dgJI.Get(ctx.gridID)
+	// Default "": absent entry means no jump text typed yet.
+	jumpText := dgJI.GetOr(ctx.gridID, "")
 	targetIdx, ok := dataGridParseJumpTarget(jumpText, ctx.totalRows)
 	if !ok {
 		return
@@ -141,7 +141,8 @@ func dataGridScrollRowIntoViewEx(viewportH float32, rowIdx int, rowHeight, stati
 	if viewportH <= 0 || rowHeight <= 0 {
 		return
 	}
-	currentNeg, _ := w.ScrollY().Get(scrollID) // ok ignored: zero offset is correct initial scroll
+	// Default 0: absent entry means scroll is at origin.
+	currentNeg := w.ScrollY().GetOr(scrollID, 0)
 	current := -currentNeg
 	rowTop := staticTop + float32(rowIdx)*rowHeight
 	rowBottom := rowTop + rowHeight

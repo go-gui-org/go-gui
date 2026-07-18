@@ -211,6 +211,7 @@ func dataGridMakeColumnChooserOnClick(onHiddenColumnsChange func(map[string]bool
 
 func dataGridToggleColumnChooserOpen(gridID string, w *gg.Window) {
 	dgCO := gg.StateMap[string, bool](w, nsDgChooserOpen, capModerate)
-	isOpen, _ := dgCO.Get(gridID) // ok ignored: false means "not open", toggle correct
+	// Default false: absent entry means column chooser is closed.
+	isOpen := dgCO.GetOr(gridID, false)
 	dgCO.Set(gridID, !isOpen)
 }

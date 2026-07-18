@@ -27,7 +27,8 @@ func spellCheckTrigger(focusID string, text string, w *Window) {
 	}
 	sm := StateMap[string, spellCheckState](
 		w, nsSpellCheck, capMany)
-	cached, _ := sm.Get(focusID)
+	// Default zero state: absent entry means no cached spell result yet.
+	cached := sm.GetOr(focusID, spellCheckState{})
 	if cached.Text == text {
 		return
 	}

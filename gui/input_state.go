@@ -268,7 +268,8 @@ func inputCut(text string, focusID string, isPassword bool, w *Window) (string, 
 // inputUndo reverts to previous state. Returns restored text.
 func inputUndo(text string, focusID string, w *Window) string {
 	imap := StateMap[string, InputState](w, nsInput, capMany)
-	is, _ := imap.Get(focusID)
+	// Default InputState{}: zero value means no undo state exists.
+	is := imap.GetOr(focusID, InputState{})
 	if is.Undo == nil || is.Undo.IsEmpty() {
 		return text
 	}
@@ -288,7 +289,8 @@ func inputUndo(text string, focusID string, w *Window) string {
 // inputRedo reapplies a previously undone operation.
 func inputRedo(text string, focusID string, w *Window) string {
 	imap := StateMap[string, InputState](w, nsInput, capMany)
-	is, _ := imap.Get(focusID)
+	// Default InputState{}: zero value means no redo state exists.
+	is := imap.GetOr(focusID, InputState{})
 	if is.Redo == nil || is.Redo.IsEmpty() {
 		return text
 	}
@@ -309,7 +311,8 @@ func inputRedo(text string, focusID string, w *Window) string {
 func inputSelectAll(text string, focusID string, w *Window) {
 	runeCount := utf8RuneCount(text)
 	imap := StateMap[string, InputState](w, nsInput, capMany)
-	is, _ := imap.Get(focusID)
+	// Default InputState{}: zero value seeds initial select-all state.
+	is := imap.GetOr(focusID, InputState{})
 	is.SelectBeg = 0
 	is.SelectEnd = uint32(runeCount)
 	is.CursorPos = runeCount

@@ -78,8 +78,9 @@ func inputScrollCursorIntoView(
 	}
 	adjustCursorTrailing(&cp, gl.Lines, byteIdx, is.CursorTrailing)
 
+	// Default 0: unscrolled position when no offset recorded yet.
 	sy := w.scrollY()
-	scrollOffset, _ := sy.Get(id)
+	scrollOffset := sy.GetOr(id, 0)
 	viewportH := layout.Shape.Height - layout.Shape.paddingHeight()
 
 	cursorTop := cp.Y
@@ -139,8 +140,9 @@ func textScrollCursorIntoView(layout *Layout, w *Window) {
 	}
 	adjustCursorTrailing(&cp, gl.Lines, byteIdx, is.CursorTrailing)
 
+	// Default 0: unscrolled position when no offset recorded yet.
 	sy := w.scrollY()
-	scrollOffset, _ := sy.Get(scrollID)
+	scrollOffset := sy.GetOr(scrollID, 0)
 	sp := scrollParent.Shape
 	viewportH := sp.Height - sp.paddingHeight()
 	viewTop := sp.Y + sp.Padding.Top
@@ -194,7 +196,8 @@ func scrollHorizontal(layout *Layout, delta float32, w *Window) bool {
 	}
 	maxOffset := scrollMaxOffsetX(layout)
 	sx := w.scrollX()
-	old, _ := sx.Get(id)
+	// Default 0: unscrolled position when no offset recorded yet.
+	old := sx.GetOr(id, 0)
 	clamped := f32Clamp(
 		old+delta*guiTheme.ScrollMultiplier, maxOffset, 0)
 	if old == clamped {
@@ -218,7 +221,8 @@ func scrollVertical(layout *Layout, delta float32, w *Window) bool {
 	}
 	maxOffset := scrollMaxOffsetY(layout)
 	sy := w.scrollY()
-	old, _ := sy.Get(id)
+	// Default 0: unscrolled position when no offset recorded yet.
+	old := sy.GetOr(id, 0)
 	clamped := f32Clamp(
 		old+delta*guiTheme.ScrollMultiplier, maxOffset, 0)
 	if old == clamped {
@@ -242,8 +246,10 @@ func (w *Window) ScrollToView(id string) {
 		p = p.Parent
 		if p.Shape.Scrollable {
 			scrollID := p.Shape.ID
+			// Default 0: unscrolled position when no offset
+			// recorded yet.
 			sy := w.scrollY()
-			current, _ := sy.Get(scrollID)
+			current := sy.GetOr(scrollID, 0)
 			baseY := p.Shape.Y + p.Shape.Padding.Top
 			newScroll := baseY - target.Shape.Y + current
 			maxScrollNeg := scrollMaxOffsetY(p)
@@ -261,7 +267,8 @@ func (w *Window) ScrollToView(id string) {
 func (w *Window) ScrollHorizontalBy(id string, delta float32) {
 	scrollSmoothCancel(w, id, scrollAxisX)
 	sx := w.scrollX()
-	current, _ := sx.Get(id)
+	// Default 0: unscrolled position when no offset recorded yet.
+	current := sx.GetOr(id, 0)
 	newVal := current + delta
 	if ly, ok := findScrollLayout(w, id); ok {
 		maxOffset := scrollMaxOffsetX(ly)
@@ -317,7 +324,8 @@ func (w *Window) ScrollHorizontalPct(id string) float32 {
 		return 0
 	}
 	sx := w.scrollX()
-	current, _ := sx.Get(id)
+	// Default 0: unscrolled position when no offset recorded yet.
+	current := sx.GetOr(id, 0)
 	return f32Clamp(current/maxOffset, 0, 1)
 }
 
@@ -326,7 +334,8 @@ func (w *Window) ScrollHorizontalPct(id string) float32 {
 func (w *Window) ScrollVerticalBy(id string, delta float32) {
 	scrollSmoothCancel(w, id, scrollAxisY)
 	sy := w.scrollY()
-	current, _ := sy.Get(id)
+	// Default 0: unscrolled position when no offset recorded yet.
+	current := sy.GetOr(id, 0)
 	newVal := current + delta
 	if ly, ok := findScrollLayout(w, id); ok {
 		maxOffset := scrollMaxOffsetY(ly)
@@ -382,6 +391,7 @@ func (w *Window) ScrollVerticalPct(id string) float32 {
 		return 0
 	}
 	sy := w.scrollY()
-	current, _ := sy.Get(id)
+	// Default 0: unscrolled position when no offset recorded yet.
+	current := sy.GetOr(id, 0)
 	return f32Clamp(current/maxOffset, 0, 1)
 }

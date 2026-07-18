@@ -137,7 +137,8 @@ func markdownBlockOnClick(l *Layout, e *Event, w *Window) {
 	absRune := uint32(localRune) + shape.TC.MarkdownBlockStart
 
 	imap := StateMap[string, mdSelState](w, nsMdSel, capMany)
-	st, _ := imap.Get(mdID)
+	// Default mdSelState{}: zero value means no prior selection.
+	st := imap.GetOr(mdID, mdSelState{})
 
 	now := time.Now().UnixMilli()
 	doubleClick := st.LastClickTime > 0 &&
@@ -169,12 +170,16 @@ func markdownBlockOnClick(l *Layout, e *Event, w *Window) {
 	w.MouseLock(MouseLockCfg{
 		MouseMove: func(_ *Layout, e *Event, w *Window) {
 			bm := StateMap[string, []mdBlockInfo](w, nsMdBlocks, capMany)
-			blocks, _ := bm.Get(dragMdID)
+			// Default nil: absent entry means no block info
+			// recorded yet.
+			blocks := bm.GetOr(dragMdID, nil)
 			absPos := mdHitAbsRune(e.MouseX, e.MouseY,
 				blocks, dragGl, dragFlatText, dragBlockStart)
 
 			dim := StateMap[string, mdSelState](w, nsMdSel, capMany)
-			dst, _ := dim.Get(dragMdID)
+			// Default mdSelState{}: zero value means no prior
+			// selection during drag.
+			dst := dim.GetOr(dragMdID, mdSelState{})
 			if isDouble {
 				// Extend word-by-word.
 				if absPos < anchorBeg {
@@ -236,7 +241,8 @@ func markdownContainerOnKeyDown(l *Layout, e *Event, w *Window) {
 		return
 	}
 	bm := StateMap[string, []mdBlockInfo](w, nsMdBlocks, capMany)
-	blocks, _ := bm.Get(mdID)
+	// Default nil: absent entry means no blocks available.
+	blocks := bm.GetOr(mdID, nil)
 	if len(blocks) == 0 {
 		return
 	}
@@ -250,7 +256,9 @@ func markdownContainerOnKeyDown(l *Layout, e *Event, w *Window) {
 				totalRunes += b.RuneLen
 			}
 			imap := StateMap[string, mdSelState](w, nsMdSel, capMany)
-			st, _ := imap.Get(mdID)
+			// Default mdSelState{}: zero value means no prior
+			// selection for select-all.
+			st := imap.GetOr(mdID, mdSelState{})
 			st.SelBeg = 0
 			st.SelEnd = totalRunes
 			imap.Set(mdID, st)
@@ -260,7 +268,9 @@ func markdownContainerOnKeyDown(l *Layout, e *Event, w *Window) {
 	case KeyC:
 		if e.Modifiers.HasAny(ModCtrl, ModSuper) {
 			imap := StateMap[string, mdSelState](w, nsMdSel, capMany)
-			st, _ := imap.Get(mdID)
+			// Default mdSelState{}: zero value means no prior
+			// selection to copy.
+			st := imap.GetOr(mdID, mdSelState{})
 			if st.SelBeg != st.SelEnd {
 				beg, end := u32Sort(st.SelBeg, st.SelEnd)
 				w.SetClipboard(mdExtractText(blocks, beg, end))

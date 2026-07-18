@@ -49,7 +49,8 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 	imap := StateMap[string, InputState](
 		w, nsInput, capMany,
 	)
-	is, _ := imap.Get(focusID)
+	// Default InputState{}: zero value seeds initial selection/cursor state.
+	is := imap.GetOr(focusID, InputState{})
 
 	// Double-click detection.
 	now := time.Now().UnixMilli()
@@ -101,7 +102,8 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 		if p.Shape != nil && p.Shape.Scrollable {
 			scrollID = p.Shape.ID
 			sy := w.scrollY()
-			dragScrollY0, _ = sy.Get(scrollID)
+			// Default 0: unscrolled position when no offset recorded yet.
+			dragScrollY0 = sy.GetOr(scrollID, 0)
 			sp := p.Shape
 			viewTop = sp.Y + sp.Padding.Top
 			viewH := sp.Height - sp.paddingHeight()
@@ -119,7 +121,8 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 			scrollDelta := float32(0)
 			if scrollID != "" {
 				sy := w.scrollY()
-				sNow, _ := sy.Get(scrollID)
+				// Default 0: unscrolled position when no offset recorded yet.
+				sNow := sy.GetOr(scrollID, 0)
 				scrollDelta = sNow - dragScrollY0
 			}
 			rx := mx - dragShapeX
@@ -142,7 +145,8 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 		dim := StateMap[string, InputState](
 			w, nsInput, capMany,
 		)
-		dis, _ := dim.Get(dragFocusID)
+		// Default InputState{}: zero value seeds initial drag-edit state.
+		dis := dim.GetOr(dragFocusID, InputState{})
 		if doubleClick {
 			var wb, we int
 			if dragGLOK {
@@ -183,7 +187,8 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 			return
 		}
 		sy := w.scrollY()
-		cur, _ := sy.Get(scrollID)
+		// Default 0: unscrolled position when no offset recorded yet.
+		cur := sy.GetOr(scrollID, 0)
 		newScroll := f32Clamp(
 			cur+delta, maxScrollNeg, 0)
 		if newScroll == cur {
@@ -240,7 +245,8 @@ func textOnKeyDown(layout *Layout, e *Event, w *Window) {
 	imap := StateMap[string, InputState](
 		w, nsInput, capMany,
 	)
-	is, _ := imap.Get(id)
+	// Default InputState{}: zero value seeds initial keyboard-nav state.
+	is := imap.GetOr(id, InputState{})
 	savedOffset := is.CursorOffset
 	savedTrailing := is.CursorTrailing
 	is.CursorOffset = -1

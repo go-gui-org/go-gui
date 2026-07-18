@@ -108,9 +108,9 @@ func makeInputOnKeyDown(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
 		}
 		id := hcfg.FocusID
 		imap := StateMap[string, InputState](w, nsInput, capMany)
-		// ok ignored: zero CursorOffset/CursorTrailing seed initial state;
-		// both are immediately overwritten below.
-		is, _ := imap.Get(id)
+		// Default InputState{}: zero CursorOffset/CursorTrailing seed
+		// initial state; both are immediately overwritten below.
+		is := imap.GetOr(id, InputState{})
 		savedOffset := is.CursorOffset
 		savedTrailing := is.CursorTrailing
 		is.CursorOffset = -1

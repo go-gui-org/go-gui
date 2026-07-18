@@ -24,7 +24,10 @@ func datePickerCalendar(
 		AmendLayout: func(lo *Layout, w *Window) {
 			sm := StateMap[string, datePickerState](
 				w, nsDatePicker, capModerate)
-			s, _ := sm.Get(cfgID)
+			s, ok := sm.Get(cfgID)
+			if !ok {
+				return
+			}
 			if s.CalBodyHeight != lo.Shape.Height {
 				s.CalBodyHeight = lo.Shape.Height
 				sm.Set(cfgID, s)
@@ -153,7 +156,10 @@ func datePickerMonth(
 				})},
 				OnClick: func(_ *Layout, e *Event, w *Window) {
 					sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
-					s, _ := sm.Get(cfgID)
+					s, ok := sm.Get(cfgID)
+					if !ok {
+						return
+					}
 					s.FocusDay = dayVal
 					sm.Set(cfgID, s)
 
@@ -236,7 +242,10 @@ func datePickerAdjacentCell(
 			// After navigation, select the day in the new month.
 			// Retrieve updated state to get correct year/month.
 			sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
-			s, _ := sm.Get(cfgID)
+			s, ok := sm.Get(cfgID)
+			if !ok {
+				return
+			}
 			dates := datePickerUpdateSelections(
 				adjDay, s, cfg.Dates,
 				selectMultiple)
@@ -267,7 +276,10 @@ func datePickerYearMonthPicker(
 			}
 			sm := StateMap[string, datePickerState](
 				w, nsDatePicker, capModerate)
-			s, _ := sm.Get(cfgID)
+			s, ok := sm.Get(cfgID)
+			if !ok {
+				return
+			}
 			s.ViewMonth = int(t.Month())
 			s.ViewYear = t.Year()
 			sm.Set(cfgID, s)
@@ -318,7 +330,10 @@ func datePickerRollerKeyDown(
 // datePickerNavMonth shifts the view month by delta.
 func datePickerNavMonth(id string, delta int, w *Window) {
 	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
-	s, _ := sm.Get(id)
+	s, ok := sm.Get(id)
+	if !ok {
+		return
+	}
 	s.ViewMonth += delta
 	if s.ViewMonth > 12 {
 		s.ViewMonth = 1

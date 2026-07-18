@@ -126,7 +126,8 @@ func sidebarStartAnimation(
 	onValue := func(v float32, w *Window) {
 		sm := StateMap[string, SidebarRuntimeState](
 			w, nsSidebar, capFew)
-		rt, _ := sm.Get(sidebarID)
+		// Default zero: valid initial state for a new sidebar.
+		rt := sm.GetOr(sidebarID, SidebarRuntimeState{})
 		rt.AnimFrac = v
 		sm.Set(sidebarID, rt)
 	}

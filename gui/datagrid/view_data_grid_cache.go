@@ -529,7 +529,8 @@ func dataGridFinalContent(
 			totalRows = *cfg.RowCount
 		}
 		dgJump := gg.StateMap[string, string](dctx.w, nsDgJump, capModerate)
-		jumpText, _ := dgJump.Get(cfg.ID)
+		// Default "": absent entry means no jump text typed yet.
+		jumpText := dgJump.GetOr(cfg.ID, "")
 		content = append(content, dataGridPagerRow(cfg, dctx.focusID,
 			pageIndex, pageCount, pageStart, pageEnd, totalRows,
 			gridHeight, dctx.rowHeight, staticTop, dctx.scrollID,
@@ -537,7 +538,8 @@ func dataGridFinalContent(
 	}
 	if sourcePagerEnabled {
 		dgJump := gg.StateMap[string, string](dctx.w, nsDgJump, capModerate)
-		jumpText, _ := dgJump.Get(cfg.ID)
+		// Default "": absent entry means no jump text for source pager.
+		jumpText := dgJump.GetOr(cfg.ID, "")
 		content = append(content, dataGridSourcePagerRow(cfg,
 			dctx.focusID, sourceState, sourceCaps, jumpText))
 	}

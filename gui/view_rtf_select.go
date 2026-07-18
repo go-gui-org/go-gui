@@ -46,7 +46,8 @@ func rtfSelectOnClick(l *Layout, e *Event, w *Window) {
 
 	focusID := shape.ID
 	imap := StateMap[string, InputState](w, nsInput, capMany)
-	is, _ := imap.Get(focusID)
+	// Default InputState{}: zero value seeds initial selection/cursor state.
+	is := imap.GetOr(focusID, InputState{})
 
 	now := time.Now().UnixMilli()
 	doubleClick := is.LastClickTime > 0 &&
@@ -99,7 +100,8 @@ func rtfSelectOnClick(l *Layout, e *Event, w *Window) {
 		scrollDelta := float32(0)
 		if scrollID != "" {
 			sy := w.scrollY()
-			sNow, _ := sy.Get(scrollID)
+			// Default 0: unscrolled position when no offset recorded yet.
+			sNow := sy.GetOr(scrollID, 0)
 			scrollDelta = sNow - dragScrollY0
 		}
 		rx := mx - dragShapeX
@@ -110,7 +112,8 @@ func rtfSelectOnClick(l *Layout, e *Event, w *Window) {
 
 	updateDrag := func(rp int, w *Window) {
 		dim := StateMap[string, InputState](w, nsInput, capMany)
-		dis, _ := dim.Get(focusID)
+		// Default InputState{}: zero value seeds initial drag-edit state.
+		dis := dim.GetOr(focusID, InputState{})
 		if doubleClick {
 			bi := runeToByteIndex(flatText, rp)
 			bBeg, bEnd := gl.GetWordAtIndex(bi)
@@ -145,7 +148,8 @@ func rtfSelectOnClick(l *Layout, e *Event, w *Window) {
 			return
 		}
 		sy := w.scrollY()
-		cur, _ := sy.Get(scrollID)
+		// Default 0: unscrolled position when no offset recorded yet.
+		cur := sy.GetOr(scrollID, 0)
 		newScroll := f32Clamp(cur+delta, maxScrollNeg, 0)
 		if newScroll == cur {
 			return
@@ -195,7 +199,8 @@ func rtfSelectOnKeyDown(l *Layout, e *Event, w *Window) {
 	gl := *shape.TC.RtfLayout
 
 	imap := StateMap[string, InputState](w, nsInput, capMany)
-	is, _ := imap.Get(id)
+	// Default InputState{}: zero value seeds initial keyboard-nav state.
+	is := imap.GetOr(id, InputState{})
 	savedOffset := is.CursorOffset
 	savedTrailing := is.CursorTrailing
 	is.CursorOffset = -1

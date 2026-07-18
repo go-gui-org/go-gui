@@ -120,7 +120,8 @@ func layoutMouseLeave(layout *Layout, w *Window) {
 	}
 	sm := w.hoverInside()
 	inside := shape.PointInShape(w.viewState.mousePosX, w.viewState.mousePosY)
-	wasInside, _ := sm.Get(shape.ID)
+	// Default false: absent entry means cursor was not previously in shape.
+	wasInside := sm.GetOr(shape.ID, false)
 	if wasInside && !inside {
 		w.scratch.hoverEvent = Event{
 			MouseX:      w.viewState.mousePosX,

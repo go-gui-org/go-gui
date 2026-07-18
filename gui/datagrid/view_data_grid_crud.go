@@ -88,7 +88,8 @@ func dataGridRowsIDSignature(rows []GridRow) uint64 {
 // and the current crud state.
 func dataGridCrudResolveCfg(cfg DataGridCfg, w *gg.Window) (DataGridCfg, dataGridCrudState) {
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
-	state, _ := dgCrud.Get(cfg.ID)
+	// Default zero state: absent entry means no CRUD state yet.
+	state := dgCrud.GetOr(cfg.ID, dataGridCrudState{})
 
 	// Compute signature.
 	var signature uint64
@@ -251,7 +252,8 @@ func dataGridCrudDefaultCells(columns []GridColumnCfg) map[string]string {
 
 func dataGridCrudAddRow(gridID string, columns []GridColumnCfg, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), focusID string, scrollID string, pageSize, pageIndex int, onPageChange func(int, *gg.Event, *gg.Window), e *gg.Event, w *gg.Window) {
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
-	state, _ := dgCrud.Get(gridID)
+	// Default zero state: absent entry means no rows added yet.
+	state := dgCrud.GetOr(gridID, dataGridCrudState{})
 	state.NextDraftSeq++
 	draftID := fmt.Sprintf("__draft_%s_%d", gridID, state.NextDraftSeq)
 	row := GridRow{
@@ -318,7 +320,8 @@ func dataGridCrudDeleteRows(gridID string, selection GridSelection, onSelectionC
 		return
 	}
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
-	state, _ := dgCrud.Get(gridID)
+	// Default zero state: absent entry means nothing to delete.
+	state := dgCrud.GetOr(gridID, dataGridCrudState{})
 	kept := make([]GridRow, 0, len(state.WorkingRows))
 	for idx, row := range state.WorkingRows {
 		rowID := dataGridRowID(row, idx)
@@ -382,7 +385,8 @@ func dataGridCrudApplyCellEdit(gridID string, crudEnabled bool, onCellEdit func(
 	}
 	if crudEnabled {
 		dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
-		state, _ := dgCrud.Get(gridID)
+		// Default zero state: absent entry means no edit has been applied.
+		state := dgCrud.GetOr(gridID, dataGridCrudState{})
 		for idx, row := range state.WorkingRows {
 			if dataGridRowID(row, idx) != edit.RowID {
 				continue
@@ -410,7 +414,8 @@ func dataGridCrudApplyCellEdit(gridID string, crudEnabled bool, onCellEdit func(
 
 func dataGridCrudCancel(gridID string, focusID string, e *gg.Event, w *gg.Window) {
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
-	state, _ := dgCrud.Get(gridID)
+	// Default zero state: absent entry means no pending changes to cancel.
+	state := dgCrud.GetOr(gridID, dataGridCrudState{})
 	state.WorkingRows = cloneRows(state.CommittedRows)
 	dataGridCrudClearPendingChanges(&state)
 	state.SaveError = ""

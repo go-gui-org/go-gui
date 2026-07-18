@@ -178,7 +178,10 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
 			sm := StateMap[string, datePickerState](
 				w, nsDatePicker, capModerate)
-			s, _ := sm.Get(cfgID)
+			s, ok := sm.Get(cfgID)
+			if !ok {
+				return
+			}
 			if s.ShowYearMonthPicker {
 				datePickerRollerKeyDown(
 					sm, cfgID, s, e, w)
@@ -229,7 +232,10 @@ func datePickerControls(
 	focusID := cfg.ID
 	onToggle := func(_ *Layout, e *Event, w *Window) {
 		sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
-		s, _ := sm.Get(cfgID)
+		s, ok := sm.Get(cfgID)
+		if !ok {
+			return
+		}
 		s.ShowYearMonthPicker = !s.ShowYearMonthPicker
 		sm.Set(cfgID, s)
 		if focusID != "" {
@@ -297,7 +303,10 @@ func datePickerControls(
 // datePickerOnKeyDown handles arrow key navigation.
 func datePickerOnKeyDown(cfg *DatePickerCfg, e *Event, w *Window) {
 	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
-	s, _ := sm.Get(cfg.ID)
+	s, ok := sm.Get(cfg.ID)
+	if !ok {
+		return
+	}
 	days := datePickerDaysInMonth(s.ViewMonth, s.ViewYear)
 
 	update := func() {
@@ -311,7 +320,10 @@ func datePickerOnKeyDown(cfg *DatePickerCfg, e *Event, w *Window) {
 		s.FocusDay--
 		if s.FocusDay < 1 {
 			datePickerNavMonth(cfg.ID, -1, w)
-			s, _ = sm.Get(cfg.ID)
+			s, ok = sm.Get(cfg.ID)
+			if !ok {
+				return
+			}
 			s.FocusDay = datePickerDaysInMonth(s.ViewMonth, s.ViewYear)
 		}
 		update()
@@ -319,7 +331,10 @@ func datePickerOnKeyDown(cfg *DatePickerCfg, e *Event, w *Window) {
 		s.FocusDay++
 		if s.FocusDay > days {
 			datePickerNavMonth(cfg.ID, 1, w)
-			s, _ = sm.Get(cfg.ID)
+			s, ok = sm.Get(cfg.ID)
+			if !ok {
+				return
+			}
 			s.FocusDay = 1
 		}
 		update()
@@ -327,7 +342,10 @@ func datePickerOnKeyDown(cfg *DatePickerCfg, e *Event, w *Window) {
 		s.FocusDay -= 7
 		if s.FocusDay < 1 {
 			datePickerNavMonth(cfg.ID, -1, w)
-			s, _ = sm.Get(cfg.ID)
+			s, ok = sm.Get(cfg.ID)
+			if !ok {
+				return
+			}
 			prevDays := datePickerDaysInMonth(s.ViewMonth, s.ViewYear)
 			s.FocusDay += prevDays
 		}
@@ -336,7 +354,10 @@ func datePickerOnKeyDown(cfg *DatePickerCfg, e *Event, w *Window) {
 		s.FocusDay += 7
 		if s.FocusDay > days {
 			datePickerNavMonth(cfg.ID, 1, w)
-			s, _ = sm.Get(cfg.ID)
+			s, ok = sm.Get(cfg.ID)
+			if !ok {
+				return
+			}
 			s.FocusDay -= days
 		}
 		update()

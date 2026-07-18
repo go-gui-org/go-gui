@@ -214,7 +214,8 @@ func tableView(cfg TableCfg, w *Window) View {
 	first, last := dataStart, lastRowIdx
 	if virtualize {
 		rowHeight = tableEstimateRowHeight(&cfg, w)
-		scrollY, _ := w.scrollY().Get(scrollID)
+		// Default 0: unscrolled position when no offset recorded yet.
+		scrollY := w.scrollY().GetOr(scrollID, 0)
 		vFirst, vLast := listCoreVisibleRange(
 			dataCount, rowHeight, listHeight, scrollY)
 		first = vFirst + dataStart

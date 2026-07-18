@@ -185,7 +185,8 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		OnClick: func(_ *Layout, e *Event, w *Window) {
 			ss := StateMap[string, bool](
 				w, nsSelect, capModerate)
-			cur, _ := ss.Get(id) // ok ignored: false means "not selected", toggle correct
+			// Default false: absent entry means "not selected", toggle correct.
+			cur := ss.GetOr(id, false)
 			ss.Clear()
 			if !cur {
 				ss.Set(id, true)
@@ -267,7 +268,8 @@ func selectOptionView(cfg *SelectCfg, option string, index int, highlighted bool
 			layout.Shape.Color = colorSelect
 			sh := StateMap[string, int](
 				w, nsSelectHL, capModerate)
-			cur, _ := sh.Get(cfgID) // ok ignored: zero index is valid, compared immediately
+			// Default 0: absent entry gets zero index, checked immediately.
+			cur := sh.GetOr(cfgID, 0)
 			if cur != index {
 				sh.Set(cfgID, index)
 			}
@@ -345,7 +347,8 @@ func selectOnKeyDown(cfg *SelectCfg, scrollID string, e *Event, w *Window) {
 
 	ss := StateMap[string, bool](w, nsSelect, capModerate)
 	sh := StateMap[string, int](w, nsSelectHL, capModerate)
-	isOpen, _ := ss.Get(cfg.ID) // ok ignored: false means "not open"
+	// Default false: absent entry means dropdown not open.
+	isOpen := ss.GetOr(cfg.ID, false)
 
 	// Open on space/enter.
 	if (e.KeyCode == KeySpace || e.KeyCode == KeyEnter) && !isOpen {
@@ -367,7 +370,8 @@ func selectOnKeyDown(cfg *SelectCfg, scrollID string, e *Event, w *Window) {
 		return
 	}
 
-	currentIdx, _ := sh.Get(cfg.ID) // ok ignored: zero index is valid, bounds-checked below
+	// Default 0: first item highlighted; bounds-checked before use.
+	currentIdx := sh.GetOr(cfg.ID, 0)
 	action := listCoreNavigate(e.KeyCode, len(cfg.Options))
 
 	if action == listCoreSelectItem {

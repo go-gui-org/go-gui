@@ -148,13 +148,14 @@ func scrollSmoothBy(w *Window, layout *Layout, axis scrollAxis, delta float32) b
 		return false
 	}
 
+	// Default 0: unscrolled position when no offset recorded yet.
 	var maxOffset, displayed float32
 	if axis == scrollAxisY {
 		maxOffset = scrollMaxOffsetY(layout)
-		displayed, _ = w.scrollY().Get(id)
+		displayed = w.scrollY().GetOr(id, 0)
 	} else {
 		maxOffset = scrollMaxOffsetX(layout)
-		displayed, _ = w.scrollX().Get(id)
+		displayed = w.scrollX().GetOr(id, 0)
 	}
 	increment := delta * guiTheme.ScrollMultiplier
 

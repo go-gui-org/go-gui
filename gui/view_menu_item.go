@@ -147,7 +147,9 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 			w.setMouseCursor(CursorPointingHand)
 			sm := StateMap[string, string](
 				w, nsMenu, capModerate)
-			cur, _ := sm.Get(cfgFocusID)
+			// Default empty string: absent means no hover; compared
+			// with target itemID.
+			cur := sm.GetOr(cfgFocusID, "")
 			if cur != itemID {
 				sm.Set(cfgFocusID, itemID)
 			}

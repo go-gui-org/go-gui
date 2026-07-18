@@ -52,6 +52,35 @@ func TestOffsetMouseChangeY(t *testing.T) {
 	}
 }
 
+func TestOffsetMouseChangeZeroViewport(t *testing.T) {
+	// Degenerate zero-size viewport must not divide by zero: the
+	// prior offset is returned unchanged and no NaN is produced.
+	w := &Window{}
+	child := Layout{Shape: &Shape{shapeType: shapeRectangle, Width: 400, Height: 400}}
+	layout := &Layout{
+		Shape: &Shape{
+			shapeType:  shapeRectangle,
+			Scrollable: true,
+			ID:         "z",
+			Width:      0,
+			Height:     0,
+			Axis:       AxisLeftToRight,
+		},
+		Children: []Layout{child},
+	}
+	w.scrollX().Set("z", -7)
+	w.scrollY().Set("z", -9)
+
+	gotX := offsetMouseChangeX(w.scrollX(), layout, 10, "z")
+	if math.IsNaN(float64(gotX)) || gotX != -7 {
+		t.Errorf("x offset = %v, want -7", gotX)
+	}
+	gotY := offsetMouseChangeY(w.scrollY(), layout, 10, "z")
+	if math.IsNaN(float64(gotY)) || gotY != -9 {
+		t.Errorf("y offset = %v, want -9", gotY)
+	}
+}
+
 func TestOffsetFromMouseY(t *testing.T) {
 	w := &Window{}
 	child := Layout{Shape: &Shape{shapeType: shapeRectangle, Width: 50, Height: 400}}

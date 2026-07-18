@@ -472,7 +472,9 @@ func cpSVMouseAction(
 
 	sm := StateMap[string, colorPickerState](
 		w, nsColorPicker, capModerate)
-	hsv, _ := sm.Get(id)
+	// Default zero: HSV(0,0,0) is black; state seeded before callbacks
+	// fire so this default is never reached in practice.
+	hsv := sm.GetOr(id, colorPickerState{})
 	hsv.S = s
 	hsv.V = v
 	sm.Set(id, hsv)
@@ -495,7 +497,9 @@ func cpHueMouseAction(
 
 	sm := StateMap[string, colorPickerState](
 		w, nsColorPicker, capModerate)
-	hsv, _ := sm.Get(id)
+	// Default zero: HSV(0,0,0) is black; state seeded before callbacks
+	// fire so this default is never reached in practice.
+	hsv := sm.GetOr(id, colorPickerState{})
 	hsv.H = h
 	sm.Set(id, hsv)
 
@@ -585,7 +589,9 @@ func cpApplyHSV(
 	n = intClamp(n, 0, maxVal)
 	sm := StateMap[string, colorPickerState](
 		w, nsColorPicker, capModerate)
-	hsv, _ := sm.Get(cfgID)
+	// Default zero: HSV(0,0,0) is black; state seeded before callbacks
+	// fire so this default is never reached in practice.
+	hsv := sm.GetOr(cfgID, colorPickerState{})
 	switch idx {
 	case 0:
 		hsv.H = float32(n)
