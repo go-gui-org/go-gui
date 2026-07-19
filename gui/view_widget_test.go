@@ -383,12 +383,18 @@ func TestSwitchClickHoverChangesColor(t *testing.T) {
 
 func TestSwitchFocusBorder(t *testing.T) {
 	w := newTestWindow()
-	v := Switch(SwitchCfg{OnClick: noop, ID: "f5"})
+	v := Switch(SwitchCfg{OnClick: noop, ID: "f5", Label: "on"})
 	layout := generateViewLayout(v, w)
 	w.SetFocus("f5")
 	layout.Shape.events.AmendLayout(&layout, w)
-	if layout.Shape.ColorBorder != DefaultSwitchStyle.ColorBorderFocus {
-		t.Error("focused switch should have focus border color")
+	// Focus paints the pill only; the outer row (which spans the
+	// label) stays untouched.
+	if layout.Children[0].Shape.ColorBorder !=
+		DefaultSwitchStyle.ColorBorderFocus {
+		t.Error("focused pill should have focus border color")
+	}
+	if layout.Shape.ColorBorder == DefaultSwitchStyle.ColorBorderFocus {
+		t.Error("outer row should not be highlighted")
 	}
 }
 

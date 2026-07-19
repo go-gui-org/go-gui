@@ -82,3 +82,22 @@ func TestToggleLabelAddsChild(t *testing.T) {
 			len(layout.Children))
 	}
 }
+
+// The check box must be a fixed square; a Fit-sized box collapses to
+// the width of the check glyph and renders as a tall rectangle.
+func TestToggleBoxIsSquare(t *testing.T) {
+	w := &Window{}
+	layout := generateViewLayout(Toggle(ToggleCfg{
+		ID: "cb-sq", OnClick: noop, Size: Some[float32](24),
+	}), w)
+	if len(layout.Children) == 0 {
+		t.Fatal("expected children")
+	}
+	box := layout.Children[0].Shape
+	if box.Width != 24 || box.Height != 24 {
+		t.Errorf("box size: got %vx%v, want 24x24", box.Width, box.Height)
+	}
+	if box.Sizing != FixedFixed {
+		t.Errorf("box sizing: got %v, want FixedFixed", box.Sizing)
+	}
+}

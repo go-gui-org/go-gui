@@ -13,9 +13,11 @@ type ToggleCfg struct {
 	A11YLabel       string
 	A11YDescription string
 	Padding         Opt[Padding]
-	SizeBorder      Opt[float32]
-	Radius          Opt[float32]
-	MinWidth        float32
+	// Size overrides the square edge length of the check box.
+	Size       Opt[float32]
+	SizeBorder Opt[float32]
+	Radius     Opt[float32]
+	MinWidth   float32
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled    bool
@@ -38,6 +40,7 @@ func Toggle(cfg ToggleCfg) View {
 	d := &DefaultToggleStyle
 	sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)
 	radius := cfg.Radius.Get(d.Radius)
+	size := cfg.Size.Get(d.Size)
 
 	boxColor := cfg.Color
 	if cfg.Selected {
@@ -60,6 +63,9 @@ func Toggle(cfg ToggleCfg) View {
 	colorClick := cfg.ColorClick
 
 	content := make([]View, 0, 2)
+	// Fixed square box: without Fixed sizing the box fits the check
+	// glyph, which is narrower than the line height, so it renders as
+	// a tall rectangle. Padding stays for the inner text inset.
 	content = append(content, Row(ContainerCfg{
 		Color:       boxColor,
 		ColorBorder: cfg.ColorBorder,
@@ -68,6 +74,9 @@ func Toggle(cfg ToggleCfg) View {
 		Radius:      Some(radius),
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
+		Width:       size,
+		Height:      size,
+		Sizing:      FixedFixed,
 		HAlign:      HAlignCenter,
 		VAlign:      VAlignMiddle,
 		Content: []View{

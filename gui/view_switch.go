@@ -56,8 +56,9 @@ func Switch(cfg SwitchCfg) View {
 	}
 
 	content := make([]View, 0, 2)
+	// No ID here: the focusable outer row owns cfg.ID, and IDs must be
+	// unique per window.
 	content = append(content, Row(ContainerCfg{
-		ID:          cfg.ID,
 		Width:       width,
 		Height:      height,
 		Sizing:      FixedFit,
@@ -90,12 +91,15 @@ func Switch(cfg SwitchCfg) View {
 	}
 
 	return Row(ContainerCfg{
-		ID:              cfg.ID,
-		Focusable:       !cfg.FocusDisabled,
-		Disabled:        cfg.Disabled,
-		Invisible:       cfg.Invisible,
-		SizeBorder:      NoBorder,
-		Padding:         NoPadding,
+		ID:         cfg.ID,
+		Focusable:  !cfg.FocusDisabled,
+		Disabled:   cfg.Disabled,
+		Invisible:  cfg.Invisible,
+		SizeBorder: NoBorder,
+		Padding:    NoPadding,
+		// Centre the pill and its label on the row's cross axis so the
+		// label sits vertically middle-aligned with the switch.
+		VAlign:          VAlignMiddle,
 		A11YRole:        AccessRoleSwitchToggle,
 		A11YState:       a11yState,
 		A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Label),
@@ -123,9 +127,14 @@ func Switch(cfg SwitchCfg) View {
 				layout.Shape.events.OnClick == nil {
 				return
 			}
+			// Highlight only the pill (child 0), not the outer row —
+			// the outer row also spans the label.
+			if len(layout.Children) == 0 {
+				return
+			}
 			if w.IsFocus(layout.Shape.ID) {
-				layout.Shape.Color = colorFocus
-				layout.Shape.ColorBorder = colorBorderFocus
+				layout.Children[0].Shape.Color = colorFocus
+				layout.Children[0].Shape.ColorBorder = colorBorderFocus
 			}
 		},
 		Content: content,
