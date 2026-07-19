@@ -134,6 +134,7 @@ type scratchPools struct {
 	viewShapes   scratchObjPool[Shape]
 	buttonColors scratchObjPool[shapeButtonColors]
 	viewEvents   scratchObjPool[eventHandlers]
+	viewEffects  scratchObjPool[shapeEffects]
 
 	// Render-phase pools: reuse heap objects whose addresses are
 	// stored in RenderCmd pointer fields (avoids per-frame escapes).
@@ -181,6 +182,7 @@ func newScratchPools() scratchPools {
 		viewShapes:             scratchObjPool[Shape]{retainMax: 16384, shrinkTo: 1024},
 		buttonColors:           scratchObjPool[shapeButtonColors]{retainMax: 512, shrinkTo: 32},
 		viewEvents:             scratchObjPool[eventHandlers]{retainMax: 4096, shrinkTo: 256},
+		viewEffects:            scratchObjPool[shapeEffects]{retainMax: 4096, shrinkTo: 256},
 		renderTextStyles:       scratchObjPool[TextStyle]{retainMax: 4096, shrinkTo: 256},
 		renderGlyphLayouts:     scratchObjPool[glyph.Layout]{retainMax: 1024, shrinkTo: 64},
 		renderAffineTransforms: scratchObjPool[glyph.AffineTransform]{retainMax: 256, shrinkTo: 16},
@@ -205,6 +207,7 @@ func (p *scratchPools) resetViewPools() {
 	p.viewShapes.reset()
 	p.buttonColors.reset()
 	p.viewEvents.reset()
+	p.viewEffects.reset()
 	if cap(p.layoutChildrenArena) > layoutChildrenRetainMax {
 		p.layoutChildrenArena = make([]Layout, 0, layoutChildrenShrinkTo)
 	} else {

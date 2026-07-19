@@ -104,11 +104,10 @@ func (cv *colorPickerView) GenerateLayout(w *Window) Layout {
 			}
 		},
 	}
-	col := &containerView{
-		shape:   buildContainerShape(&ccfg),
+	return generateViewLayout(&containerView{
+		cfg:     ccfg,
 		content: content,
-	}
-	return generateViewLayout(col, w)
+	}, w)
 }
 
 // cpSVAndHueRow builds the SV area and hue slider row.

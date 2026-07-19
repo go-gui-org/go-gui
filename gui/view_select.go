@@ -199,11 +199,10 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		},
 	}
 	ccfg.ClickButton = MouseLeft
-	cv := &containerView{
-		shape:   buildContainerShape(&ccfg),
+	return generateViewLayout(&containerView{
+		cfg:     ccfg,
 		content: content,
-	}
-	return generateViewLayout(cv, w)
+	}, w)
 }
 
 // selectOptionView builds a single option row.

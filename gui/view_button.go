@@ -73,43 +73,6 @@ type ButtonCfg struct {
 	A11YRole AccessRole
 }
 
-// buttonView wraps a containerView with per-button hover/focus
-// colors, replacing per-frame closure allocations with pooled
-// shapeButtonColors and package-level handler functions.
-type buttonView struct {
-	cv               *containerView
-	userOnHover      func(*Layout, *Event, *Window)
-	userAmendLayout  func(*Layout, *Window)
-	colorHover       Color
-	colorClick       Color
-	colorFocus       Color
-	colorBorderFocus Color
-}
-
-func (bv *buttonView) Content() []View { return bv.cv.Content() }
-
-func (bv *buttonView) GenerateLayout(w *Window) Layout {
-	layout := bv.cv.GenerateLayout(w)
-	if layout.Shape.events != nil {
-		bc := shapeButtonColors{
-			ColorHover:       bv.colorHover,
-			ColorClick:       bv.colorClick,
-			ColorFocus:       bv.colorFocus,
-			ColorBorderFocus: bv.colorBorderFocus,
-			OnHover:          bv.userOnHover,
-			OnAmend:          bv.userAmendLayout,
-		}
-		if w != nil {
-			layout.Shape.bc = w.scratch.buttonColors.alloc(bc)
-		} else {
-			layout.Shape.bc = &bc
-		}
-		layout.Shape.events.AmendLayout = buttonAmendLayout
-		layout.Shape.events.OnHover = buttonOnHover
-	}
-	return layout
-}
-
 func buttonAmendLayout(layout *Layout, w *Window) {
 	if layout.Shape.Disabled ||
 		!layout.Shape.hasEvents() ||
@@ -203,15 +166,15 @@ func Button(cfg ButtonCfg) View {
 		Content:         cfg.Content,
 	}).(*containerView)
 
-	return &buttonView{
-		cv:               cv,
-		colorHover:       cfg.ColorHover,
-		colorClick:       cfg.ColorClick,
-		colorFocus:       cfg.ColorFocus,
-		colorBorderFocus: cfg.ColorBorderFocus,
-		userOnHover:      cfg.OnHover,
-		userAmendLayout:  cfg.AmendLayout,
-	}
+	cv.isButton = true
+	cv.colorHover = cfg.ColorHover
+	cv.colorClick = cfg.ColorClick
+	cv.colorFocus = cfg.ColorFocus
+	cv.colorBorderFocus = cfg.ColorBorderFocus
+	cv.userOnHover = cfg.OnHover
+	cv.userAmendLayout = cfg.AmendLayout
+
+	return cv
 }
 
 // commandButtonIDPrefix namespaces auto-filled CommandButton IDs.
