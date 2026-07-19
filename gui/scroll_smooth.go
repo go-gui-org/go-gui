@@ -137,19 +137,41 @@ func (s *scrollSmoothAnimation) findEntry(id string, axis scrollAxis) *scrollSmo
 // the displayed offset to the animation. Returns true if a repaint is
 // warranted. Main goroutine only.
 func scrollSmoothBy(w *Window, layout *Layout, axis scrollAxis, delta float32) bool {
+	displayed, maxOffset, ok := scrollSmoothParams(w, layout, axis)
+	if !ok {
+		return false
+	}
+	increment := delta * guiTheme.ScrollMultiplier
+	return scrollSmoothArm(w, layout.Shape.ID, axis, displayed, maxOffset, increment, true)
+}
+
+// scrollSmoothTo arms the smoother toward an absolute offset
+// (negative) for layout's scrollable, easing from the displayed
+// offset with the same exponential lerp as discrete-wheel scrolling.
+// Returns true if an ease was started. Main goroutine only.
+func scrollSmoothTo(w *Window, layout *Layout, axis scrollAxis, offset float32) bool {
+	displayed, maxOffset, ok := scrollSmoothParams(w, layout, axis)
+	if !ok {
+		return false
+	}
+	return scrollSmoothArm(w, layout.Shape.ID, axis, displayed, maxOffset, offset, false)
+}
+
+// scrollSmoothParams validates that layout can ease on axis and
+// returns the displayed offset and scroll bound. Main goroutine only.
+func scrollSmoothParams(w *Window, layout *Layout, axis scrollAxis) (displayed, maxOffset float32, ok bool) {
 	id := layout.Shape.ID
 	if !layout.Shape.Scrollable || id == "" {
-		return false
+		return 0, 0, false
 	}
 	if axis == scrollAxisY && layout.Shape.ScrollMode == ScrollHorizontalOnly {
-		return false
+		return 0, 0, false
 	}
 	if axis == scrollAxisX && layout.Shape.ScrollMode == ScrollVerticalOnly {
-		return false
+		return 0, 0, false
 	}
 
 	// Default 0: unscrolled position when no offset recorded yet.
-	var maxOffset, displayed float32
 	if axis == scrollAxisY {
 		maxOffset = scrollMaxOffsetY(layout)
 		displayed = w.scrollY().GetOr(id, 0)
@@ -157,8 +179,16 @@ func scrollSmoothBy(w *Window, layout *Layout, axis scrollAxis, delta float32) b
 		maxOffset = scrollMaxOffsetX(layout)
 		displayed = w.scrollX().GetOr(id, 0)
 	}
-	increment := delta * guiTheme.ScrollMultiplier
+	return displayed, maxOffset, true
+}
 
+// scrollSmoothArm updates the smoother entry for id+axis toward a new
+// target and (re)arms the animation. When relative, amount is added
+// to the current base (the in-flight target when active, else the
+// displayed offset); otherwise amount is an absolute offset. The
+// result clamps to [maxOffset, 0]. Returns false when the target is
+// non-finite or already in effect. Main goroutine only.
+func scrollSmoothArm(w *Window, id string, axis scrollAxis, displayed, maxOffset, amount float32, relative bool) bool {
 	w.animMu.Lock()
 	defer w.animMu.Unlock()
 	if w.scrollSmooth == nil {
@@ -171,7 +201,11 @@ func scrollSmoothBy(w *Window, layout *Layout, axis scrollAxis, delta float32) b
 	if e.active {
 		base = e.target
 	}
-	newTarget := f32Clamp(base+increment, maxOffset, 0)
+	target := amount
+	if relative {
+		target = base + amount
+	}
+	newTarget := f32Clamp(target, maxOffset, 0)
 	if !f32IsFinite(newTarget) {
 		// NaN delta, multiplier, or displayed offset would poison the
 		// ease into a never-settling animation. Reject the event.

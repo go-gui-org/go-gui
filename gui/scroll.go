@@ -294,6 +294,17 @@ func (w *Window) ScrollHorizontalTo(id string, offset float32) {
 	sx.Set(id, offset)
 }
 
+// ScrollHorizontalToSmooth eases the given scrollable to offset
+// (negative) using the same exponential smoothing as discrete
+// mouse-wheel scrolling. No-op if the scroll id is not found or the
+// target equals the current offset. Use ScrollHorizontalTo for an
+// instant jump.
+func (w *Window) ScrollHorizontalToSmooth(id string, offset float32) {
+	if ly, ok := findScrollLayout(w, id); ok {
+		scrollSmoothTo(w, ly, scrollAxisX, offset)
+	}
+}
+
 // ScrollHorizontalToPct scrolls to a horizontal percentage.
 // pct: 0.0 = left, 1.0 = right. Clamped to [0, 1].
 // No-op if the scroll id is not found or content fits viewport.
@@ -359,6 +370,17 @@ func (w *Window) ScrollVerticalTo(id string, offset float32) {
 		return
 	}
 	sy.Set(id, offset)
+}
+
+// ScrollVerticalToSmooth eases the given scrollable to offset
+// (negative) using the same exponential smoothing as discrete
+// mouse-wheel scrolling. No-op if the scroll id is not found or the
+// target equals the current offset. Use ScrollVerticalTo for an
+// instant jump.
+func (w *Window) ScrollVerticalToSmooth(id string, offset float32) {
+	if ly, ok := findScrollLayout(w, id); ok {
+		scrollSmoothTo(w, ly, scrollAxisY, offset)
+	}
 }
 
 // ScrollVerticalToPct scrolls to a vertical percentage.

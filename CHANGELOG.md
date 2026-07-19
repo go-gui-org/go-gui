@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Smooth programmatic scrolling.** New `Window.ScrollVerticalToSmooth` and
+  `Window.ScrollHorizontalToSmooth` ease a scrollable to an absolute offset
+  using the same exponential smoothing as discrete mouse-wheel scrolling.
+  No-op when the scroll id is not found or the target equals the current
+  offset; instant `ScrollVerticalTo`/`ScrollHorizontalTo` still cancel any
+  in-flight ease. The wheel smoother's arm logic is now shared
+  (`scrollSmoothParams`/`scrollSmoothArm`) between relative wheel deltas and
+  absolute targets.
+
 ## [v0.39.0] - 2026-07-18
 
 ### Added
