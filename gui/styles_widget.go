@@ -71,9 +71,13 @@ type SwitchStyle struct {
 
 // ToggleStyle defines toggle button visual properties.
 type ToggleStyle struct {
-	TextStyleNormal  TextStyle
-	TextStyleLabel   TextStyle
-	Padding          Padding
+	TextStyleNormal TextStyle
+	TextStyleLabel  TextStyle
+	Padding         Padding
+	// Size is the square edge length of the check box. Fixed on both
+	// axes so the box stays square instead of shrinking to the width
+	// of the check glyph.
+	Size             float32
 	SizeBorder       float32
 	Radius           float32
 	Color            Color
@@ -176,6 +180,7 @@ var (
 		ColorHover:       colorHoverDark,
 		ColorSelect:      colorInteriorDark,
 		Padding:          NewPadding(1, 1, 1, 2),
+		Size:             SizeTextMedium + 4,
 		SizeBorder:       SizeBorderDef,
 		Radius:           RadiusSmall,
 		TextStyleNormal:  DefaultTextStyle,

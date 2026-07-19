@@ -6,12 +6,17 @@ func TestSwitchIDPassthrough(t *testing.T) {
 	w := &Window{}
 	layout := generateViewLayout(
 		Switch(SwitchCfg{ID: "sw1", OnClick: noop}), w)
-	// ID is on the inner pill, not outer row.
+	// ID lives on the focusable outer row only; the inner pill must
+	// not duplicate it.
+	if layout.Shape.ID != "sw1" {
+		t.Errorf("outer ID: got %s", layout.Shape.ID)
+	}
 	if len(layout.Children) == 0 {
 		t.Fatal("expected children")
 	}
-	if layout.Children[0].Shape.ID != "sw1" {
-		t.Errorf("ID: got %s", layout.Children[0].Shape.ID)
+	if layout.Children[0].Shape.ID != "" {
+		t.Errorf("pill ID: got %s, want empty",
+			layout.Children[0].Shape.ID)
 	}
 }
 

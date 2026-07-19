@@ -133,6 +133,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			ColorHover:       cfg.ColorHover,
 			ColorSelect:      cfg.ColorInterior,
 			Padding:          NewPadding(1, 1, 1, 2),
+			Size:             ts.Size + 4,
 			SizeBorder:       cfg.SizeBorder,
 			Radius:           cfg.Radius,
 			TextStyleNormal:  ts,
