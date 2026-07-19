@@ -223,12 +223,15 @@ type DataGridCfg struct {
 	// precedence over Rows. If Columns is empty, column
 	// definitions are auto-generated from sorted keys of the
 	// first map entry (default width 150px).
-	RowsData            []map[string]string
-	Rows                []GridRow
-	FrozenTopRowIDs     []string
-	PageLimit           int
-	PageSize            int
-	PageIndex           int
+	RowsData        []map[string]string
+	Rows            []GridRow
+	FrozenTopRowIDs []string
+	PageLimit       int
+	PageSize        int
+	PageIndex       int
+	// QuickFilterDebounce delays the quick filter query commit.
+	// Defaults to 200ms on grids with a DataSource, 0 (immediate)
+	// otherwise; negative opts a sourced grid out of debouncing.
 	QuickFilterDebounce time.Duration
 	PaddingCell         gg.Opt[gg.Padding]
 	PaddingHeader       gg.Opt[gg.Padding]
@@ -291,7 +294,11 @@ func applyDataGridDefaults(cfg *DataGridCfg) {
 	if cfg.PageLimit == 0 {
 		cfg.PageLimit = dataGridDefaultPageLimit
 	}
-	if cfg.QuickFilterDebounce == 0 {
+	// Debounce only pays off when filtering triggers async fetches;
+	// on in-memory grids it just delays the query round-trip. A
+	// negative value opts a sourced grid out of debouncing (the
+	// handler treats <= 0 as immediate).
+	if cfg.QuickFilterDebounce == 0 && dataGridHasSource(cfg) {
 		cfg.QuickFilterDebounce = 200 * time.Millisecond
 	}
 	if !cfg.ColorBackground.IsSet() {

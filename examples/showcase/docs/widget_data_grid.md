@@ -96,7 +96,7 @@ datagrid.New(w, datagrid.DataGridCfg{
 | FrozenTopRowIDs        | []string           | Row IDs pinned to top                |
 | DetailExpandedRowIDs   | map[string]bool    | Expanded detail row IDs              |
 | QuickFilterPlaceholder | string             | Quick filter placeholder text        |
-| QuickFilterDebounce    | time.Duration      | Quick filter debounce delay          |
+| QuickFilterDebounce    | time.Duration      | Quick filter debounce delay (200ms with DataSource, 0 otherwise; negative = immediate) |
 | RowHeight              | float32            | Row height in pixels                 |
 | HeaderHeight           | float32            | Header height in pixels              |
 | IDFocus                | uint32             | Tab-order focus ID (> 0 to enable)   |

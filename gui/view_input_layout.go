@@ -27,6 +27,33 @@ func inputTextFromLayout(layout *Layout) string {
 	return txt.Shape.TC.Text
 }
 
+// inputSetTextInLayout writes mutated text back into the input's
+// inner text shape (Column → Row/Column → Text). Backends drain
+// every pending event against the same layout tree before the next
+// frame rebuild, so without this write-back the second key event in
+// a batch reads the pre-mutation text via inputTextFromLayout and
+// silently discards the earlier keystroke (dropped characters when
+// typing fast; backspaces that do not stick). The tree is rebuilt
+// from app state before the next render, so this echo only feeds
+// intra-batch event reads — it never reaches the screen.
+func inputSetTextInLayout(layout *Layout, text string) {
+	if len(layout.Children) == 0 {
+		return
+	}
+	row := &layout.Children[0]
+	if len(row.Children) == 0 {
+		return
+	}
+	txt := &row.Children[0]
+	if txt.Shape == nil || txt.Shape.TC == nil {
+		return
+	}
+	txt.Shape.TC.Text = text
+	// Clear the placeholder flag so a follow-up read returns the
+	// typed text rather than treating it as placeholder content.
+	txt.Shape.TC.TextIsPlaceholder = false
+}
+
 // inputGlyphLayoutFor navigates to the inner text shape of an
 // input layout and returns a glyph Layout for cursor navigation.
 func inputGlyphLayoutFor(layout *Layout, w *Window) (glyph.Layout, bool) {

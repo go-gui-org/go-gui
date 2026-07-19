@@ -510,7 +510,7 @@ func dataGridFinalContent(
 	if cfg.ShowQuickFilter {
 		qfHeight := dataGridQuickFilterHeight(cfg)
 		content = append(content, dataGridFrozenTopZone(cfg,
-			[]gg.View{dataGridQuickFilterRow(cfg)},
+			[]gg.View{dataGridQuickFilterRow(cfg, dctx.w)},
 			qfHeight, totalWidth, scrollX))
 	}
 	if boolDefault(cfg.ShowHeader, true) && cfg.FreezeHeader {

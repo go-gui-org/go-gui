@@ -3,17 +3,29 @@ package datagrid
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	gg "github.com/go-gui-org/go-gui/gui"
 )
 
 // --- Quick filter ---
 
-func dataGridQuickFilterRow(cfg *DataGridCfg) gg.View {
+func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 	h := dataGridQuickFilterHeight(cfg)
 	queryCallback := cfg.OnQueryChange
 	query := cfg.Query
+	gridID := cfg.ID
 	value := query.QuickFilter
+	// While a debounced commit is pending, the committed query lags
+	// what the user typed by the debounce delay. Render the pending
+	// draft instead, so keystrokes echo immediately and the next
+	// keystroke reads current text back out of the layout — without
+	// this, every keystroke rebuilds from the stale committed value
+	// and fast typing collapses to the last character.
+	draftMap := gg.StateMap[string, string](w, nsDgQuickDraft, capModerate)
+	if draft, ok := draftMap.Get(gridID); ok {
+		value = draft
+	}
 	inputID := cfg.ID + ":quick_filter"
 	inputFocusID := inputID
 	matchesText := dataGridQuickFilterMatchesText(cfg)
@@ -54,36 +66,8 @@ func dataGridQuickFilterRow(cfg *DataGridCfg) gg.View {
 				ColorBorder:      cfg.ColorBorder,
 				TextStyle:        cfg.TextStyleFilter,
 				PlaceholderStyle: placeholderStyle,
-				OnTextChanged: func(_ *gg.Layout, text string, w *gg.Window) {
-					if queryCallback == nil {
-						return
-					}
-					if debounce <= 0 {
-						next := GridQueryState{
-							Sorts:       append([]GridSort(nil), query.Sorts...),
-							Filters:     append([]GridFilter(nil), query.Filters...),
-							QuickFilter: text,
-						}
-						e := &gg.Event{}
-						queryCallback(next, e, w)
-						return
-					}
-					sorts := append([]GridSort(nil), query.Sorts...)
-					filters := append([]GridFilter(nil), query.Filters...)
-					w.AnimationAdd(&gg.Animate{
-						AnimID: inputID + ":debounce",
-						Delay:  debounce,
-						Callback: func(_ *gg.Animate, w *gg.Window) {
-							next := GridQueryState{
-								Sorts:       sorts,
-								Filters:     filters,
-								QuickFilter: text,
-							}
-							e := &gg.Event{}
-							queryCallback(next, e, w)
-						},
-					})
-				},
+				OnTextChanged: dataGridQuickFilterOnTextChanged(
+					gridID, inputID, query, queryCallback, debounce),
 			}),
 			gg.Text(gg.TextCfg{
 				Text:      matchesText,
@@ -96,6 +80,8 @@ func dataGridQuickFilterRow(cfg *DataGridCfg) gg.View {
 						return
 					}
 					w.AnimationRemove(inputID + ":debounce")
+					gg.StateMap[string, string](w, nsDgQuickDraft,
+						capModerate).Delete(gridID)
 					next := GridQueryState{
 						Sorts:       append([]GridSort(nil), query.Sorts...),
 						Filters:     append([]GridFilter(nil), query.Filters...),
@@ -109,6 +95,57 @@ func dataGridQuickFilterRow(cfg *DataGridCfg) gg.View {
 				}),
 		},
 	})
+}
+
+// dataGridQuickFilterOnTextChanged builds the quick filter input's
+// text-changed handler. With no debounce the query commits
+// immediately. With a debounce the commit is deferred, so the typed
+// text is parked in nsDgQuickDraft: dataGridQuickFilterRow renders
+// the draft while it is pending, which keeps the input echoing
+// keystrokes even though the committed query lags by the debounce
+// delay. Re-typing replaces both the draft and the pending
+// animation (same AnimID); the commit callback clears the draft to
+// hand display back to the controlled query value.
+func dataGridQuickFilterOnTextChanged(
+	gridID, inputID string,
+	query GridQueryState,
+	queryCallback func(GridQueryState, *gg.Event, *gg.Window),
+	debounce time.Duration,
+) func(*gg.Layout, string, *gg.Window) {
+	return func(_ *gg.Layout, text string, w *gg.Window) {
+		if queryCallback == nil {
+			return
+		}
+		if debounce <= 0 {
+			next := GridQueryState{
+				Sorts:       append([]GridSort(nil), query.Sorts...),
+				Filters:     append([]GridFilter(nil), query.Filters...),
+				QuickFilter: text,
+			}
+			e := &gg.Event{}
+			queryCallback(next, e, w)
+			return
+		}
+		sorts := append([]GridSort(nil), query.Sorts...)
+		filters := append([]GridFilter(nil), query.Filters...)
+		gg.StateMap[string, string](w, nsDgQuickDraft,
+			capModerate).Set(gridID, text)
+		w.AnimationAdd(&gg.Animate{
+			AnimID: inputID + ":debounce",
+			Delay:  debounce,
+			Callback: func(_ *gg.Animate, w *gg.Window) {
+				next := GridQueryState{
+					Sorts:       sorts,
+					Filters:     filters,
+					QuickFilter: text,
+				}
+				e := &gg.Event{}
+				queryCallback(next, e, w)
+				gg.StateMap[string, string](w, nsDgQuickDraft,
+					capModerate).Delete(gridID)
+			},
+		})
+	}
 }
 
 func dataGridQuickFilterMatchesText(cfg *DataGridCfg) string {

@@ -12,6 +12,7 @@ const (
 	nsDgCrud         = "gui.dg.crud"
 	nsDgJump         = "gui.dg.jump"
 	nsDgPendingJump  = "gui.dg.pending_jump"
+	nsDgQuickDraft   = "gui.dg.quick_draft"
 	nsDgSource       = "gui.dg.source"
 
 	capModerate = 50
