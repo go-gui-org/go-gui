@@ -180,6 +180,13 @@ func Input(cfg InputCfg) View {
 	if cfg.Mode == InputMultiline && cfg.Scrollable {
 		txtSizing = FillFit
 		innerSizing = FillFit
+	} else if cfg.Mode != InputMultiline {
+		// Single-line: the text shape must hug its font height so the
+		// inner row's VAlignMiddle can center it. Text renders from
+		// the top of its shape, so a Fill-height text pins the glyphs
+		// to the top of any input taller than the text (visible in
+		// data grid cells, which strip padding and fill the row).
+		txtSizing = FillFit
 	}
 
 	txtContent := []View{
@@ -331,6 +338,11 @@ type inputHandlerCfg struct {
 func (h *inputHandlerCfg) fireTextChanged(
 	layout *Layout, text string, w *Window,
 ) {
+	// Echo the mutation into the layout tree before notifying the
+	// app. Events are drained in batches against the same tree, so
+	// a later event in the batch must see this text, not the text
+	// the last frame rendered (see inputSetTextInLayout).
+	inputSetTextInLayout(layout, text)
 	if h.ReadOnly || h.OnTextChanged == nil {
 		return
 	}

@@ -264,6 +264,50 @@ func (c *inputTestCtx) state() InputState {
 	return getInputState(c.w, c.layout.Shape.ID)
 }
 
+// TestInputSingleLineTextCentersVertically renders a single-line
+// input taller than its font and asserts the inner text shape is
+// vertically centered, not pinned to the top. Data grid filter
+// cells (no padding, input fills the row) regressed on this: text
+// sized FillFill defeats the inner row's VAlignMiddle.
+func TestInputSingleLineTextCentersVertically(t *testing.T) {
+	w := &Window{}
+	w.windowWidth = 200
+	w.windowHeight = 40
+	w.textMeasurer = &stubTextMeasurer{charWidth: 10, fontHeight: 20}
+
+	layout := generateViewLayout(Input(InputCfg{
+		ID:      "f700",
+		Text:    "hi",
+		Width:   200,
+		Height:  40,
+		Sizing:  FixedFixed,
+		Padding: NoPadding,
+	}), w)
+	layoutPipeline(&layout, w)
+
+	if len(layout.Children) == 0 || len(layout.Children[0].Children) == 0 {
+		t.Fatal("input layout missing inner text child")
+	}
+	txt := layout.Children[0].Children[0].Shape
+	if txt.TC == nil {
+		t.Fatal("inner child is not a text shape")
+	}
+	// FillFit must hug the stub font height; a Fill text stretches
+	// to the content box (~38 after borders) and pins glyphs to the
+	// top even though its midpoint still matches the input's.
+	if abs32(txt.Height-20) > 1 {
+		t.Fatalf("text height = %.1f, want ~20 (font height)", txt.Height)
+	}
+	// Border (default) insets the content box symmetrically, so the
+	// text midpoint must still sit at the input midpoint.
+	wantMidY := layout.Shape.Y + 20
+	gotMidY := txt.Y + txt.Height/2
+	if abs32(gotMidY-wantMidY) > 1 {
+		t.Fatalf("text midY = %.1f, want ~%.1f (top=%.1f h=%.1f)",
+			gotMidY, wantMidY, txt.Y, txt.Height)
+	}
+}
+
 // --- OnChar tests ---
 
 func TestInputOnCharInsert(t *testing.T) {
@@ -279,6 +323,39 @@ func TestInputOnCharInsertAtMiddle(t *testing.T) {
 	ctx.fireChar('X')
 	if ctx.lastText != "aXb" {
 		t.Fatalf("got %q, want %q", ctx.lastText, "aXb")
+	}
+}
+
+// Batched-event regression tests: backends drain all pending events
+// against the same layout tree before the next frame rebuild. Each
+// mutation must be visible to the next event in the batch via the
+// layout write-back in fireTextChanged, or earlier keystrokes are
+// silently overwritten (dropped chars, backspaces that do not stick).
+
+func TestInputOnCharBatchedCompound(t *testing.T) {
+	ctx := newInputTest("ab", "f502", 2)
+	ctx.fireChar('c')
+	ctx.fireChar('d')
+	if ctx.lastText != "abcd" {
+		t.Fatalf("got %q, want %q", ctx.lastText, "abcd")
+	}
+}
+
+func TestInputOnCharBatchedFromPlaceholder(t *testing.T) {
+	ctx := newInputTest("", "f503", 0)
+	ctx.fireChar('a')
+	ctx.fireChar('b')
+	if ctx.lastText != "ab" {
+		t.Fatalf("got %q, want %q", ctx.lastText, "ab")
+	}
+}
+
+func TestInputKeyDownBatchedBackspace(t *testing.T) {
+	ctx := newInputTest("abcd", "f504", 4)
+	ctx.fireKeyDown(KeyBackspace, 0)
+	ctx.fireKeyDown(KeyBackspace, 0)
+	if ctx.lastText != "ab" {
+		t.Fatalf("got %q, want %q", ctx.lastText, "ab")
 	}
 }
 
