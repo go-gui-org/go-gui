@@ -339,3 +339,164 @@ func TestCommandApplyScrollSmoothNilSafe(t *testing.T) {
 	w := &Window{}
 	commandApplyScrollSmooth(w) // must not panic
 }
+
+func TestScrollVerticalToSmoothEasesToAbsoluteTarget(t *testing.T) {
+	guiTheme.ScrollMultiplier = 1
+	_, w := makeScrollLayout("14", 100, 100, 100, 300)
+	w.scrollY().Set("14", -100)
+
+	w.ScrollVerticalToSmooth("14", 0)
+
+	e := w.scrollSmooth.findEntry("14", scrollAxisY)
+	if e == nil || !e.active {
+		t.Fatal("expected an active entry")
+	}
+	if e.target != 0 {
+		t.Errorf("target = %v, want 0", e.target)
+	}
+	if e.current != -100 {
+		t.Errorf("current = %v, want -100 (displayed offset)", e.current)
+	}
+	// Absolute target must not accumulate on repeat calls.
+	w.ScrollVerticalToSmooth("14", 0)
+	if e.target != 0 {
+		t.Errorf("target after repeat call = %v, want 0", e.target)
+	}
+	driveScrollSmooth(w, 200)
+	if v, _ := w.scrollY().Get("14"); v != 0 {
+		t.Errorf("settled offset = %v, want 0", v)
+	}
+}
+
+func TestScrollVerticalToSmoothClampsAtBounds(t *testing.T) {
+	guiTheme.ScrollMultiplier = 1
+	_, w := makeScrollLayout("15", 100, 100, 100, 300) // maxOffset -200
+
+	w.ScrollVerticalToSmooth("15", -9999)
+	e := w.scrollSmooth.findEntry("15", scrollAxisY)
+	if e == nil || e.target != -200 {
+		t.Fatalf("target = %v, want -200 (clamped)", e.target)
+	}
+	driveScrollSmooth(w, 200)
+	if v, _ := w.scrollY().Get("15"); v != -200 {
+		t.Errorf("settled offset = %v, want -200", v)
+	}
+}
+
+func TestScrollVerticalToSmoothNoOpAtTarget(t *testing.T) {
+	guiTheme.ScrollMultiplier = 1
+	_, w := makeScrollLayout("16", 100, 100, 100, 300)
+
+	// Already at offset 0: nothing to ease, no entry armed.
+	w.ScrollVerticalToSmooth("16", 0)
+	if w.scrollSmooth != nil {
+		if e := w.scrollSmooth.findEntry("16", scrollAxisY); e != nil && e.active {
+			t.Error("expected no active entry when already at target")
+		}
+	}
+}
+
+func TestScrollVerticalToSmoothUnknownID(t *testing.T) {
+	guiTheme.ScrollMultiplier = 1
+	_, w := makeScrollLayout("17", 100, 100, 100, 300)
+
+	w.ScrollVerticalToSmooth("nope", -50) // must not panic or arm
+	if w.scrollSmooth != nil && w.scrollSmooth.findEntry("nope", scrollAxisY) != nil {
+		t.Error("unknown scroll id must not create an entry")
+	}
+}
+
+func TestScrollHorizontalToSmoothEases(t *testing.T) {
+	guiTheme.ScrollMultiplier = 1
+	w := &Window{}
+	child := Layout{Shape: &Shape{shapeType: shapeRectangle, Width: 400, Height: 50}}
+	layout := Layout{
+		Shape: &Shape{
+			shapeType:  shapeRectangle,
+			Scrollable: true,
+			ID:         "18",
+			Width:      100,
+			Height:     50,
+			Axis:       AxisLeftToRight,
+		},
+		Children: []Layout{child},
+	}
+	w.layout = Layout{
+		Shape:    &Shape{shapeType: shapeRectangle},
+		Children: []Layout{layout},
+	}
+
+	w.ScrollHorizontalToSmooth("18", -50)
+	driveScrollSmooth(w, 200)
+	if v, _ := w.scrollX().Get("18"); v != -50 {
+		t.Errorf("horizontal settled = %v, want -50", v)
+	}
+}
+
+func TestScrollVerticalToSmoothCanceledByInstantScroll(t *testing.T) {
+	guiTheme.ScrollMultiplier = 1
+	_, w := makeScrollLayout("19", 100, 100, 100, 300)
+	w.scrollY().Set("19", -100)
+
+	w.ScrollVerticalToSmooth("19", 0)
+	if e := w.scrollSmooth.findEntry("19", scrollAxisY); e == nil || !e.active {
+		t.Fatal("expected active entry before instant scroll")
+	}
+
+	w.ScrollVerticalTo("19", -30)
+	e := w.scrollSmooth.findEntry("19", scrollAxisY)
+	if e.active {
+		t.Error("instant scroll must cancel the in-flight ease")
+	}
+	if v, _ := w.scrollY().Get("19"); v != -30 {
+		t.Errorf("instant offset = %v, want -30", v)
+	}
+}
+
+func TestScrollHorizontalToSmoothCanceledByInstantScroll(t *testing.T) {
+	guiTheme.ScrollMultiplier = 1
+	w := &Window{}
+	child := Layout{Shape: &Shape{shapeType: shapeRectangle, Width: 400, Height: 50}}
+	layout := Layout{
+		Shape: &Shape{
+			shapeType:  shapeRectangle,
+			Scrollable: true,
+			ID:         "20",
+			Width:      100,
+			Height:     50,
+			Axis:       AxisLeftToRight,
+		},
+		Children: []Layout{child},
+	}
+	w.layout = Layout{
+		Shape:    &Shape{shapeType: shapeRectangle},
+		Children: []Layout{layout},
+	}
+	w.scrollX().Set("20", -100)
+
+	w.ScrollHorizontalToSmooth("20", 0)
+	if e := w.scrollSmooth.findEntry("20", scrollAxisX); e == nil || !e.active {
+		t.Fatal("expected active entry before instant scroll")
+	}
+
+	w.ScrollHorizontalTo("20", -30)
+	e := w.scrollSmooth.findEntry("20", scrollAxisX)
+	if e.active {
+		t.Error("instant scroll must cancel the in-flight ease")
+	}
+	if v, _ := w.scrollX().Get("20"); v != -30 {
+		t.Errorf("instant offset = %v, want -30", v)
+	}
+}
+
+func TestScrollVerticalToSmoothRejectsNaN(t *testing.T) {
+	guiTheme.ScrollMultiplier = 1
+	_, w := makeScrollLayout("21", 100, 100, 100, 300)
+
+	w.ScrollVerticalToSmooth("21", float32(math.NaN()))
+	if w.scrollSmooth != nil {
+		if e := w.scrollSmooth.findEntry("21", scrollAxisY); e != nil && e.active {
+			t.Error("NaN offset must not arm an entry")
+		}
+	}
+}
