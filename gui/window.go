@@ -464,6 +464,16 @@ func (w *Window) allocEventHandlers(src eventHandlers) *eventHandlers {
 	return w.scratch.viewEvents.alloc(src)
 }
 
+// allocEffects returns a pooled *shapeEffects initialized to src.
+// Pointer valid until the next view-phase pool reset.
+func (w *Window) allocEffects(src shapeEffects) *shapeEffects {
+	if w == nil {
+		cp := src
+		return &cp
+	}
+	return w.scratch.viewEffects.alloc(src)
+}
+
 // SetClipboardFn sets the function used to copy text to the clipboard.
 func (w *Window) SetClipboardFn(fn func(string)) {
 	w.clipboardSetFn = fn

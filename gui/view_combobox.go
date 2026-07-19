@@ -286,11 +286,10 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 		},
 	}
 	ccfg.ClickButton = MouseLeft
-	outerRow := &containerView{
-		shape:   buildContainerShape(&ccfg),
+	return generateViewLayout(&containerView{
+		cfg:     ccfg,
 		content: content,
-	}
-	return generateViewLayout(outerRow, w)
+	}, w)
 }
 
 func comboboxOpen(id string, focusID string, w *Window) {

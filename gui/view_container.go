@@ -145,6 +145,7 @@ type ContainerCfg struct {
 
 	// Internal — set by factory functions.
 	axis                 Axis
+	shapeType            shapeType // zero = shapeRectangle
 	scrollbarOrientation ScrollbarOrientation
 }
 
@@ -157,31 +158,51 @@ func applyContainerDefaults(cfg *ContainerCfg) (spacing, sizeBorder, radius floa
 }
 
 // containerView implements View for container-based layouts.
-// Shape is pre-built at factory time so the full ContainerCfg
-// (~400 B) never escapes to heap with the view.
-//
-// IMPORTANT: GenerateLayout shallow-copies the shape on every
-// call. The layout pipeline mutates Shape fields in place
-// (X += offset, Width += childWidth, etc.), so returning the
-// same pointer would let mutations accumulate when a view is
-// cached and reused across frames (combobox/command-palette
-// dropdown caches). The copy keeps the template pristine while
-// still avoiding the per-frame ContainerCfg→Shape build cost.
+// ContainerCfg is stored by value; the Shape is built per
+// GenerateLayout call using pooled allocs (allocShape,
+// allocEventHandlers, allocEffects). This eliminates the
+// factory-phase &Shape{} heap alloc at the cost of rebuilding
+// ~70 fields each frame. Cached views (combobox/command-palette
+// dropdowns) re-pay the build cost without heap allocs.
 type containerView struct {
-	shape       *Shape
-	title       string
-	content     []View
-	titleBG     Color
-	colorBorder Color
-	disabled    bool
+	cfg     ContainerCfg
+	content []View
+
+	// Button-specific fields — set only by Button (step 4 fold-in).
+	isButton         bool
+	userOnHover      func(*Layout, *Event, *Window)
+	userAmendLayout  func(*Layout, *Window)
+	colorHover       Color
+	colorClick       Color
+	colorFocus       Color
+	colorBorderFocus Color
 }
 
 func (cv *containerView) Content() []View { return cv.content }
 
 func (cv *containerView) GenerateLayout(w *Window) Layout {
-	layout := Layout{Shape: w.allocShape(*cv.shape)}
-	addGroupBoxTitle(cv.title, cv.titleBG, cv.colorBorder,
-		cv.disabled, w, &layout)
+	layout := Layout{
+		Shape: w.allocShape(buildContainerShape(&cv.cfg, w)),
+	}
+	if cv.isButton && layout.Shape.events != nil {
+		bc := shapeButtonColors{
+			ColorHover:       cv.colorHover,
+			ColorClick:       cv.colorClick,
+			ColorFocus:       cv.colorFocus,
+			ColorBorderFocus: cv.colorBorderFocus,
+			OnHover:          cv.userOnHover,
+			OnAmend:          cv.userAmendLayout,
+		}
+		if w != nil {
+			layout.Shape.bc = w.scratch.buttonColors.alloc(bc)
+		} else {
+			layout.Shape.bc = &bc
+		}
+		layout.Shape.events.AmendLayout = buttonAmendLayout
+		layout.Shape.events.OnHover = buttonOnHover
+	}
+	addGroupBoxTitle(cv.cfg.Title, cv.cfg.TitleBG, cv.cfg.ColorBorder,
+		cv.cfg.Disabled, w, &layout)
 	return layout
 }
 
@@ -254,32 +275,32 @@ func addGroupBoxTitle(title string, titleBG, colorBorder Color,
 	})
 }
 
-func makeContainerEffects(c *ContainerCfg) *shapeEffects {
+func makeContainerEffects(c *ContainerCfg) (shapeEffects, bool) {
 	if c.Shadow == nil && c.Gradient == nil &&
 		c.BorderGradient == nil && c.Shader == nil &&
 		c.ColorFilter == nil && c.BlurRadius == 0 {
-		return nil
+		return shapeEffects{}, false
 	}
-	return &shapeEffects{
+	return shapeEffects{
 		Shadow:         c.Shadow,
 		Gradient:       c.Gradient,
 		BorderGradient: c.BorderGradient,
 		Shader:         c.Shader,
 		ColorFilter:    c.ColorFilter,
 		BlurRadius:     c.BlurRadius,
-	}
+	}, true
 }
 
-func makeContainerEvents(c *ContainerCfg) *eventHandlers {
+func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 	if c.OnClick == nil && c.OnChar == nil &&
 		c.OnKeyDown == nil && c.OnKeyUp == nil &&
 		c.OnMouseMove == nil && c.OnMouseUp == nil &&
 		c.OnHover == nil && c.OnGesture == nil &&
 		c.OnFileDrop == nil && c.OnIMECommit == nil &&
 		c.OnScroll == nil && c.AmendLayout == nil {
-		return nil
+		return eventHandlers{}, false
 	}
-	return &eventHandlers{
+	return eventHandlers{
 		OnClick:      c.OnClick,
 		OnChar:       c.OnChar,
 		OnKeyDown:    c.OnKeyDown,
@@ -295,7 +316,7 @@ func makeContainerEvents(c *ContainerCfg) *eventHandlers {
 		ClickButton:  c.ClickButton,
 		ClickOnSpace: c.ClickOnSpace,
 		ClickOnEnter: c.ClickOnEnter,
-	}
+	}, true
 }
 
 func makeContainerA11Y(c *ContainerCfg) *AccessInfo {
@@ -316,12 +337,16 @@ func deriveContainerA11YRole(c *ContainerCfg) AccessRole {
 }
 
 // buildContainerShape constructs a Shape from a ContainerCfg.
-// Used by widgets that build containerView directly.
-func buildContainerShape(cfg *ContainerCfg) *Shape {
+// Uses pooled allocs for effects and events via w.
+func buildContainerShape(cfg *ContainerCfg, w *Window) Shape {
 	RequireScrollID("container", cfg.Scrollable, cfg.ID)
 	spacing, sizeBorder, radius, padding := applyContainerDefaults(cfg)
-	shape := &Shape{
-		shapeType:            shapeRectangle,
+	shapeType := cfg.shapeType
+	if shapeType == shapeNone {
+		shapeType = shapeRectangle
+	}
+	shape := Shape{
+		shapeType:            shapeType,
 		ID:                   cfg.ID,
 		Focusable:            cfg.Focusable,
 		Axis:                 cfg.axis,
@@ -345,7 +370,6 @@ func buildContainerShape(cfg *ContainerCfg) *Shape {
 		TextDir:              cfg.TextDir,
 		Radius:               radius,
 		Color:                cfg.Color,
-		fx:                   makeContainerEffects(cfg),
 		SizeBorder:           sizeBorder,
 		ColorBorder:          cfg.ColorBorder,
 		Disabled:             cfg.Disabled,
@@ -359,7 +383,6 @@ func buildContainerShape(cfg *ContainerCfg) *Shape {
 		Scrollable:           cfg.Scrollable,
 		OverDraw:             cfg.OverDraw,
 		ScrollMode:           cfg.ScrollMode,
-		events:               makeContainerEvents(cfg),
 		Hero:                 cfg.Hero,
 		Wrap:                 cfg.Wrap,
 		Overflow:             cfg.Overflow,
@@ -368,7 +391,13 @@ func buildContainerShape(cfg *ContainerCfg) *Shape {
 		A11YState:            cfg.A11YState,
 		A11Y:                 makeContainerA11Y(cfg),
 	}
-	applyFixedSizingConstraints(shape)
+	if fx, ok := makeContainerEffects(cfg); ok {
+		shape.fx = w.allocEffects(fx)
+	}
+	if ev, ok := makeContainerEvents(cfg); ok {
+		shape.events = w.allocEventHandlers(ev)
+	}
+	applyFixedSizingConstraints(&shape)
 	return shape
 }
 
@@ -396,12 +425,8 @@ func container(cfg ContainerCfg) View {
 	}
 
 	return &containerView{
-		shape:       buildContainerShape(&cfg),
-		content:     content,
-		title:       cfg.Title,
-		titleBG:     cfg.TitleBG,
-		colorBorder: cfg.ColorBorder,
-		disabled:    cfg.Disabled,
+		cfg:     cfg,
+		content: content,
 	}
 }
 
@@ -433,9 +458,8 @@ func Canvas(cfg ContainerCfg) View {
 // Circle creates a circular container.
 func Circle(cfg ContainerCfg) View {
 	cfg.axis = AxisTopToBottom
-	cv := container(cfg).(*containerView)
-	cv.shape.shapeType = shapeCircle
-	return cv
+	cfg.shapeType = shapeCircle
+	return container(cfg)
 }
 
 func appendScrollbar(content []View, override *ScrollbarCfg, orientation ScrollbarOrientation, id string) []View {
@@ -454,13 +478,18 @@ func appendScrollbar(content []View, override *ScrollbarCfg, orientation Scrollb
 	}))
 }
 
-func invisibleContainerView() *containerView {
-	cfg := ContainerCfg{
+// invisibleContainerView provides a singleton immutable
+// invisible placeholder. Since containerView is now
+// cfg-by-value (no mutable template shape), a single instance
+// is safe across the lifetime of the package.
+var invisibleContainerViewSingleton = &containerView{
+	cfg: ContainerCfg{
 		Disabled: true,
 		OverDraw: true,
 		Padding:  NoPadding,
-	}
-	return &containerView{
-		shape: buildContainerShape(&cfg),
-	}
+	},
+}
+
+func invisibleContainerView() *containerView {
+	return invisibleContainerViewSingleton
 }

@@ -746,8 +746,8 @@ func TestMakeContainerEventsOnFileDropAlone(t *testing.T) {
 			called = true
 		},
 	}
-	eh := makeContainerEvents(cfg)
-	if eh == nil {
+	eh, ok := makeContainerEvents(cfg)
+	if !ok {
 		t.Fatal("expected non-nil eventHandlers")
 	}
 	if eh.OnFileDrop == nil {
