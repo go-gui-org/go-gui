@@ -72,6 +72,11 @@ static int             _evIMELength;
 static int             _evIMEGeneration;   // incremented on each IME event
 static int             _evIMEConsumedGen;  // last generation consumed by poll
 static int             _quitRequested;     // set by quit:/appShouldTerminate: (main thread only)
+// Set by windowWillStartLiveResize:, consumed in metalPollEvent.
+// AppKit's resize tracking loop runs *inside* [NSApp sendEvent:], so
+// this flag tells us — after sendEvent returns — that the mouse-down
+// we already stored was swallowed to drive a window resize.
+static int             _liveResizeStarted;
 
 // ─── Window ID counter ─────────────────────────────────────────
 
@@ -298,6 +303,13 @@ static uint32_t _nextWindowID = 1;
 - (BOOL)canBecomeMainWindow { return YES; }
 
 // ─── NSWindowDelegate ──────────────────────────────────────────
+
+// A resize drag begun on the window border. The press that started it
+// belongs to AppKit, not to the app — see the _liveResizeStarted
+// consumer in metalPollEvent.
+- (void)windowWillStartLiveResize:(NSNotification *)notification {
+    _liveResizeStarted = 1;
+}
 
 - (void)windowDidResize:(NSNotification *)notification {
     // Report content-bounds size, not frame size. The frame
@@ -747,12 +759,28 @@ int metalPollEvent(int timeoutMs) {
     // Store event data for Go accessors.
     storeEvent(event, wid);
 
+    _liveResizeStarted = 0;
+
     // Forward to AppKit for window management and text input.
     // Key events: keyDown: → interpretKeyEvents: → insertText: fires
     // for printable characters, doCommandBySelector: (no-op) for
     // non-printable keys. Go receives EventChar or EventKeyDown.
     // Mouse/scroll: standard AppKit routing (resize, close, focus).
     [NSApp sendEvent:event];
+
+    // Drop a mouse-down that AppKit consumed to resize the window.
+    // The resize grab area overlaps the content view by a few points,
+    // so storeEvent (which runs before sendEvent, with no way to know
+    // where AppKit will route the press) hands Go a plain content-
+    // relative click. A widget filling the window then treats it as a
+    // real press — e.g. a text input starts a drag-selection and calls
+    // MouseLock. The matching mouse-up never arrives because AppKit's
+    // resize tracking loop, which runs to completion inside the
+    // sendEvent above, swallows it, so the drag stays locked forever.
+    if (_liveResizeStarted && _evType == METAL_EVENT_MOUSE_DOWN) {
+        _evType = METAL_EVENT_NONE;
+    }
+    _liveResizeStarted = 0;
 
     // If sendEvent triggered IME callbacks that overwrote _evType
     // to CHAR or IME_COMP, mark this generation as consumed so
