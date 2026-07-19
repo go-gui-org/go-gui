@@ -67,6 +67,16 @@ func (w *Window) Sidebar(cfg SidebarCfg) View {
 		pad = Some(Padding{})
 	}
 
+	// A Fixed-width box with Width 0 degrades to content sizing in
+	// layoutWidths (issue #94), so a fully closed sidebar that kept
+	// its children would snap back to content width the moment the
+	// close animation lands on exactly 0. Drop the content instead:
+	// childless Fixed-0 boxes still resolve to width 0.
+	content := cfg.Content
+	if animW <= 0 {
+		content = nil
+	}
+
 	return Column(ContainerCfg{
 		ID:              cfg.ID,
 		Sizing:          cfg.Sizing,
@@ -80,7 +90,7 @@ func (w *Window) Sidebar(cfg SidebarCfg) View {
 		A11YRole:        AccessRoleGroup,
 		A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.ID),
 		A11YDescription: cfg.A11YDescription,
-		Content:         cfg.Content,
+		Content:         content,
 	})
 }
 
