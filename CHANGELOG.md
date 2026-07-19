@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.40.0] - 2026-07-19
+
 ### Added
 
 - **Smooth programmatic scrolling.** New `Window.ScrollVerticalToSmooth` and
@@ -17,6 +19,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in-flight ease. The wheel smoother's arm logic is now shared
   (`scrollSmoothParams`/`scrollSmoothArm`) between relative wheel deltas and
   absolute targets.
+
+### Changed
+
+- **Deps:** go-glyph upgraded to v1.17.3 (perf/mem optimizations across the
+  shaping pipeline, lazy font parsing, raster scratch-buffer pooling, sampled
+  glyph-cache eviction).
+
+### Fixed
+
+- **Switch focus highlight.** Spacer no longer participates in focus ring
+  drawing.
+- **Toggle check-box sizing.** Off-by-one in hit-target calculation fixed.
+- **Metal mouse-down consumed by window resize drag.** Drag resize no longer
+  leaks mouse-down to the app's mouse handler.
+- **Input batched-event echo and vertical centering.** Batched updates no
+  longer echo raw text; single-line fields center vertically after font-size
+  changes.
+- **Data-grid quick-filter debounce.** Draft rendering during quick-filter is
+  properly debounced.
+- **Sidebar close layout:** Sidebar drops children when fully closed to
+  prevent a fixed-width-0 content-resize bug.
+- **BoundedMap small-map fast path.** Pre-sizing the BoundedMap data map is
+  removed to keep the fast path for small maps.
+- **buttonView folded into containerView,** and shapeEffects are pooled,
+  reducing per-button allocations.
 
 ## [v0.39.0] - 2026-07-18
 
