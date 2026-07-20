@@ -206,6 +206,10 @@ type Window struct {
 	// target offset. Guarded by animMu (see gui/scroll_smooth.go).
 	scrollSmooth *scrollSmoothAnimation
 
+	// scrollAnchors holds pending one-shot scroll-anchoring requests,
+	// consumed by the layout pipeline. See Window.ScrollAnchor.
+	scrollAnchors []scrollAnchor
+
 	windowToast
 
 	// Embedded concern groups.
