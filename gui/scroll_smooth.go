@@ -241,6 +241,25 @@ func scrollSmoothCancel(w *Window, id string, axis scrollAxis) {
 	}
 }
 
+// scrollSmoothShiftY moves any in-flight vertical ease for id by dy,
+// preserving its absolute target. Used by scroll anchoring when it
+// rewrites the displayed offset mid-ease, so the animation continues
+// from the corrected position instead of stomping the correction on
+// its next tick. Main goroutine only.
+func scrollSmoothShiftY(w *Window, id string, dy float32) {
+	w.animMu.Lock()
+	defer w.animMu.Unlock()
+	if w.scrollSmooth == nil {
+		return
+	}
+	if e := w.scrollSmooth.findEntry(id, scrollAxisY); e != nil && e.active {
+		e.current += dy
+		if !f32IsFinite(e.current) {
+			e.active = false
+		}
+	}
+}
+
 // scrollSmoothReset drops all eased-scroll state. Called when the view
 // tree is rebuilt (clearHotMaps), since scroll id keys may change.
 func (w *Window) scrollSmoothReset() {

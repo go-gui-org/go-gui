@@ -400,6 +400,14 @@ func (w *Window) ScrollVerticalToPct(id string, pct float32) {
 	scrollSmoothCancel(w, id, scrollAxisY)
 }
 
+// ScrollVerticalOffset returns the current vertical scroll offset of
+// the given scrollable: <= 0, where 0 is the top. Unknown ids read
+// as 0 (unscrolled).
+func (w *Window) ScrollVerticalOffset(id string) float32 {
+	// Default 0: unscrolled position when no offset recorded yet.
+	return w.scrollY().GetOr(id, 0)
+}
+
 // ScrollVerticalPct returns the current vertical scroll
 // position as a percentage (0.0 = top, 1.0 = bottom).
 // Returns 0 if not found or content fits viewport.
