@@ -160,3 +160,9 @@ func (n *nativePlatform) UpdateSystemTray(
 func (n *nativePlatform) RemoveSystemTray(id int) {
 	nativemenu.RemoveSystemTray(id)
 }
+
+// --- Sound ---
+
+func (n *nativePlatform) Beep() { nativehost.Beep() }
+
+func (n *nativePlatform) BeepAvailable() bool { return nativehost.BeepAvailable() }

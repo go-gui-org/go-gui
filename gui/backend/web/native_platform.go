@@ -443,3 +443,11 @@ func dotExtensions(exts []string) string {
 func jsObject() js.Value {
 	return js.Global().Get("Object").New()
 }
+
+// --- Sound ---
+
+// Beep is a no-op: this platform routes alerts through its own
+// notification framework rather than an app-triggered system sound.
+func (n *nativePlatform) Beep() {}
+
+func (n *nativePlatform) BeepAvailable() bool { return false }

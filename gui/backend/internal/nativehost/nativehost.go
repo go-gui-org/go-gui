@@ -15,6 +15,7 @@ import (
 	"github.com/go-gui-org/go-gui/gui/backend/filedialog"
 	"github.com/go-gui-org/go-gui/gui/backend/printdialog"
 	"github.com/go-gui-org/go-gui/gui/backend/spellcheck"
+	"github.com/go-gui-org/go-gui/gui/backend/sysbeep"
 )
 
 // maxURILen caps the raw URI length to prevent OOM from maliciously
@@ -242,3 +243,10 @@ func SpellLearn(word string) {
 	}
 	spellcheck.Learn(word)
 }
+
+// Beep plays the system alert sound. Thin forwarder to the sysbeep
+// sub-package; no-op where the platform has no such sound.
+func Beep() { sysbeep.Play() }
+
+// BeepAvailable reports whether Beep is audible on this platform.
+func BeepAvailable() bool { return sysbeep.Available() }

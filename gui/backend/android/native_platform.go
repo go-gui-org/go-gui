@@ -99,3 +99,11 @@ func (n *nativePlatform) CreateSystemTray(_ gui.SystemTrayCfg, _ func(string)) (
 }
 func (n *nativePlatform) UpdateSystemTray(_ int, _ gui.SystemTrayCfg) {}
 func (n *nativePlatform) RemoveSystemTray(_ int)                      {}
+
+// --- Sound ---
+
+// Beep is a no-op: this platform routes alerts through its own
+// notification framework rather than an app-triggered system sound.
+func (n *nativePlatform) Beep() {}
+
+func (n *nativePlatform) BeepAvailable() bool { return false }

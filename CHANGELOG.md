@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **System alert sound.** `Window.Beep` plays the platform's alert sound
+  (`NSBeep` on macOS, `MessageBeep` on Windows, the freedesktop `bell` event
+  via `canberra-gtk-play` on Linux), honoring the user's system-wide alert
+  sound choice, volume, and mute settings. `Window.BeepAvailable` reports
+  whether the platform can actually produce one, so callers can fall back to
+  a visual cue on mobile, wasm, and Linux without canberra installed. Backed
+  by the new `gui/backend/sysbeep` package and a `NativeSound` sub-interface
+  on `NativePlatform`. This is for incidental out-of-band alerts such as a
+  terminal BEL — it loads no assets and holds no output device open, unlike
+  `gui/audio`.
+
 ## [v0.41.1] - 2026-07-20
 
 ### Fixed

@@ -87,3 +87,9 @@ func (n *nativePlatform) SpellLearn(word string) {
 
 func (n *nativePlatform) SetNativeMenubar(_ gui.NativeMenubarCfg, _ func(string)) {}
 func (n *nativePlatform) ClearNativeMenubar()                                     {}
+
+// --- Sound ---
+
+func (n *nativePlatform) Beep() { nativehost.Beep() }
+
+func (n *nativePlatform) BeepAvailable() bool { return nativehost.BeepAvailable() }
