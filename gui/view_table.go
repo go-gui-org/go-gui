@@ -130,17 +130,9 @@ type tableColWidthCache struct {
 // are auto-sized when a Window is available during layout.
 func Table(cfg TableCfg) View {
 	RequireID("Table", cfg.ID)
-	return &deferredTableView{cfg: cfg}
-}
-
-type deferredTableView struct {
-	cfg TableCfg
-}
-
-func (d *deferredTableView) Content() []View { return nil }
-
-func (d *deferredTableView) GenerateLayout(w *Window) Layout {
-	return generateViewLayout(tableView(d.cfg, w), w)
+	return ViewFunc(func(w *Window) View {
+		return tableView(cfg, w)
+	})
 }
 
 // Table generates a table with text measurement, column width
