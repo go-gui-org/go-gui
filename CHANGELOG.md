@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.41.1] - 2026-07-20
+
+### Fixed
+
+- **Command-queue buffer race.** `flushCommands` recycled its buffer into the
+  scratch pool before finishing iteration; a concurrent `QueueCommand` from
+  the animation goroutine could reclaim that same array and append into it
+  mid-iteration, losing or duplicating queued commands. The buffer is now
+  handed back only after execution completes.
+- **Smooth scrolling could end fractionally short of its target.** A settled
+  ease retires one animation tick after computing its final value; a main
+  thread that missed that 16ms window dropped the snap-to-target. Entries now
+  carry a dirty flag so the final value survives until the next flush, and a
+  cancel clears it so direct offset writes are never overwritten by a stale
+  eased value.
+
 ## [v0.41.0] - 2026-07-20
 
 ### Added
