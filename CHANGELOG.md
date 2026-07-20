@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v0.42.0] - 2026-07-20
 
 ### Added
 
@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   on `NativePlatform`. This is for incidental out-of-band alerts such as a
   terminal BEL — it loads no assets and holds no output device open, unlike
   `gui/audio`.
+- **ViewFunc.** A function adapter for `gui.View` that defers construction
+  of window-dependent subtrees to layout time, keeping the content tree
+  free of a pre-created `*Window` reference.
 
 ## [v0.41.1] - 2026-07-20
 
