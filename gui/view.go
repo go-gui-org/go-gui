@@ -11,6 +11,27 @@ type View interface {
 	GenerateLayout(w *Window) Layout
 }
 
+// ViewFunc adapts a function to a View, deferring construction to
+// layout-generation time so the function can read window state. It is
+// useful inside Content slices when a subtree needs State(*Window)
+// but the enclosing function does not receive w.
+type ViewFunc func(*Window) View
+
+// Content satisfies the View interface. ViewFunc always
+// returns empty content; its GenerateLayout defers to the
+// wrapped function to build the subtree.
+func (f ViewFunc) Content() []View { return nil }
+
+// GenerateLayout calls the wrapped function and recursively
+// builds the full Layout tree from the returned View.
+func (f ViewFunc) GenerateLayout(w *Window) Layout {
+	v := f(w)
+	if v == nil {
+		return Layout{}
+	}
+	return generateViewLayout(v, w)
+}
+
 // ensureLayoutShape normalizes layout nodes so pipeline passes can
 // safely dereference Shape fields.
 func ensureLayoutShape(layout *Layout) {

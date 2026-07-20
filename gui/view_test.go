@@ -244,6 +244,121 @@ func TestGenerateViewLayoutNormalizesNilShape(t *testing.T) {
 	}
 }
 
+// --- ViewFunc tests ---
+
+func TestViewFuncContentReturnsNil(t *testing.T) {
+	f := ViewFunc(func(w *Window) View {
+		return &stubView{id: "inner"}
+	})
+	if content := f.Content(); content != nil {
+		t.Errorf("Content(): got %v, want nil", content)
+	}
+}
+
+func TestViewFuncGenerateLayout(t *testing.T) {
+	f := ViewFunc(func(w *Window) View {
+		return &stubView{id: "inner"}
+	})
+	layout := f.GenerateLayout(&Window{})
+	if layout.Shape.ID != "inner" {
+		t.Errorf("ID: got %q, want inner", layout.Shape.ID)
+	}
+}
+
+func TestViewFuncGenerateLayoutNested(t *testing.T) {
+	f := ViewFunc(func(w *Window) View {
+		return &stubView{
+			id: "parent",
+			children: []View{
+				&stubView{id: "child1"},
+				&stubView{id: "child2"},
+			},
+		}
+	})
+	layout := f.GenerateLayout(&Window{})
+	if layout.Shape.ID != "parent" {
+		t.Errorf("root ID: got %q", layout.Shape.ID)
+	}
+	if len(layout.Children) != 2 {
+		t.Fatalf("children: got %d, want 2", len(layout.Children))
+	}
+	if layout.Children[0].Shape.ID != "child1" {
+		t.Error("child1 ID mismatch")
+	}
+	if layout.Children[1].Shape.ID != "child2" {
+		t.Error("child2 ID mismatch")
+	}
+}
+
+func TestViewFuncNilReturn(t *testing.T) {
+	f := ViewFunc(func(w *Window) View {
+		return nil
+	})
+	layout := f.GenerateLayout(&Window{})
+	// Nil View returns a Layout with no Shape from GenerateLayout.
+	// generateViewLayout normalizes nil Shape to shapeNone.
+	if layout.Shape != nil && layout.Shape.shapeType != shapeNone {
+		t.Errorf("shape type: got %v, want shapeNone or nil", layout.Shape.shapeType)
+	}
+}
+
+func TestViewFuncInContentSlice(t *testing.T) {
+	v := Column(ContainerCfg{
+		ID: "root",
+		Content: []View{
+			ViewFunc(func(w *Window) View {
+				return &stubView{
+					id: "dynamic",
+					children: []View{
+						&stubView{id: "leaf"},
+					},
+				}
+			}),
+		},
+	})
+	layout := generateViewLayout(v, &Window{})
+	if len(layout.Children) != 1 {
+		t.Fatalf("root children: got %d, want 1", len(layout.Children))
+	}
+	dyn := &layout.Children[0]
+	if dyn.Shape.ID != "dynamic" {
+		t.Errorf("dynamic ID: got %q, want dynamic", dyn.Shape.ID)
+	}
+	if len(dyn.Children) != 1 {
+		t.Fatalf("dynamic children: got %d, want 1", len(dyn.Children))
+	}
+	if dyn.Children[0].Shape.ID != "leaf" {
+		t.Error("leaf ID mismatch")
+	}
+}
+
+func TestViewFuncNilInContentSlice(t *testing.T) {
+	v := Column(ContainerCfg{
+		ID: "root",
+		Content: []View{
+			ViewFunc(func(w *Window) View {
+				return nil
+			}),
+		},
+	})
+	layout := generateViewLayout(v, &Window{})
+	// Nil return produces empty Layout; should not appear as child
+	// because generateViewLayout skips nil in Content loop.
+	if layout.Shape.ID != "root" {
+		t.Errorf("root ID: got %q, want root", layout.Shape.ID)
+	}
+}
+
+func TestViewFuncWithNilWindow(t *testing.T) {
+	f := ViewFunc(func(w *Window) View {
+		return &stubView{id: "inner"}
+	})
+	layout := f.GenerateLayout(nil)
+	if layout.Shape.ID != "inner" {
+		t.Errorf("ID: got %q, want inner", layout.Shape.ID)
+	}
+}
+
 // --- Container factory tests ---
 
 func TestColumnSetsAxis(t *testing.T) {

@@ -55,65 +55,51 @@ func newDockLayoutCore(cfg *DockLayoutCfg) *dockLayoutCore {
 	}
 }
 
-// dockLayoutView is the View implementation for DockLayout.
-// Custom View struct gives GenerateLayout access to *Window,
-// needed to read dockDragState for ghost rendering.
-type dockLayoutView struct {
-	cfg DockLayoutCfg
-}
-
-func (dv *dockLayoutView) Content() []View { return nil }
-
-func (dv *dockLayoutView) GenerateLayout(w *Window) Layout {
-	cfg := &dv.cfg
-	core := newDockLayoutCore(cfg)
-	drag := dockDragGet(w, cfg.ID)
-
-	content := make([]View, 0, 3)
-	content = append(content, dockNodeView(core, cfg.Root, cfg, drag))
-	content = append(content, dockDragZoneOverlayView(cfg.ColorZonePreview))
-
-	if drag.active {
-		ghostLabel := dockFindPanelLabel(cfg.Panels, drag.panelID)
-		if len(ghostLabel) > 0 {
-			content = append(content, dockDragGhostView(drag, ghostLabel))
-		}
-	}
-
-	dockID := core.id
-	colorZone := core.colorZonePreview
-
-	cv := Canvas(ContainerCfg{
-		ID:       cfg.ID,
-		A11YRole: AccessRoleGroup,
-		Sizing:   cfg.Sizing,
-		Padding:  NoPadding,
-		Spacing:  SomeF(0),
-		Clip:     true,
-		AmendLayout: func(layout *Layout, w *Window) {
-			dockLayoutAmend(dockID, colorZone, layout, w)
-		},
-		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
-			if e.KeyCode == KeyEscape {
-				state := dockDragGet(w, dockID)
-				if state.active {
-					dockDragCancel(dockID, w)
-					e.IsHandled = true
-				}
-			}
-		},
-		Content: content,
-	})
-
-	return generateViewLayout(cv, w)
-}
-
 // DockLayout creates a docking layout component. Renders a tree
 // of splitters and tabbed panel groups. Supports drag-and-drop
 // panel rearrangement.
 func DockLayout(cfg DockLayoutCfg) View {
 	applyDockLayoutDefaults(&cfg)
-	return &dockLayoutView{cfg: cfg}
+	return ViewFunc(func(w *Window) View {
+		core := newDockLayoutCore(&cfg)
+		drag := dockDragGet(w, cfg.ID)
+
+		content := make([]View, 0, 3)
+		content = append(content, dockNodeView(core, cfg.Root, &cfg, drag))
+		content = append(content, dockDragZoneOverlayView(cfg.ColorZonePreview))
+
+		if drag.active {
+			ghostLabel := dockFindPanelLabel(cfg.Panels, drag.panelID)
+			if len(ghostLabel) > 0 {
+				content = append(content, dockDragGhostView(drag, ghostLabel))
+			}
+		}
+
+		dockID := core.id
+		colorZone := core.colorZonePreview
+
+		return Canvas(ContainerCfg{
+			ID:       cfg.ID,
+			A11YRole: AccessRoleGroup,
+			Sizing:   cfg.Sizing,
+			Padding:  NoPadding,
+			Spacing:  SomeF(0),
+			Clip:     true,
+			AmendLayout: func(layout *Layout, w *Window) {
+				dockLayoutAmend(dockID, colorZone, layout, w)
+			},
+			OnKeyDown: func(_ *Layout, e *Event, w *Window) {
+				if e.KeyCode == KeyEscape {
+					state := dockDragGet(w, dockID)
+					if state.active {
+						dockDragCancel(dockID, w)
+						e.IsHandled = true
+					}
+				}
+			},
+			Content: content,
+		})
+	})
 }
 
 func applyDockLayoutDefaults(cfg *DockLayoutCfg) {
