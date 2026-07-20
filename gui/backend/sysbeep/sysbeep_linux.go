@@ -29,6 +29,7 @@ func Play() {
 	if path == "" {
 		return
 	}
+	// #nosec G204 — path from exec.LookPath, args are fixed
 	cmd := exec.Command(path, "-i", "bell")
 	if err := cmd.Start(); err != nil {
 		return
