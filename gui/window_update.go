@@ -83,10 +83,13 @@ func (w *Window) flushCommands() {
 		w.commandsMu.Unlock()
 		return
 	}
-	// Swap to avoid holding lock during execution.
+	// Swap to avoid holding lock during execution. toRun's backing
+	// array must NOT be recycled into commandScratch yet: writers
+	// reclaim the scratch buffer (reclaimCommandScratch) and would
+	// append into the array while the loop below still reads it.
 	toRun := w.commands
 	w.commands = w.commandScratch[:0]
-	w.commandScratch = toRun[:0]
+	w.commandScratch = nil
 	w.commandsMu.Unlock()
 
 	for i := range toRun {
@@ -100,6 +103,14 @@ func (w *Window) flushCommands() {
 			cmd.animateFn(cmd.animate, w)
 		}
 	}
+
+	// Iteration done — toRun's backing is safe to hand out for
+	// reuse now (unless a nested flush already installed one).
+	w.commandsMu.Lock()
+	if w.commandScratch == nil {
+		w.commandScratch = toRun[:0]
+	}
+	w.commandsMu.Unlock()
 }
 
 // markLayoutRefresh requests a full layout rebuild next frame.
