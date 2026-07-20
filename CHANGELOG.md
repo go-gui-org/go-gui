@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.41.0] - 2026-07-20
+
+### Added
+
+- **One-shot scroll anchoring.** New `Window.ScrollAnchor(scrollID, anchorID)`
+  corrects the scroll offset on the next layout pass so the anchor view keeps
+  the viewport-relative position it has now — content inserted or removed
+  above the reader no longer causes a visual jump. The correction runs inside
+  the layout pipeline (new `layoutApplyScrollAnchors` pass after
+  `layoutPositions`), before the frame renders, so no intermediate position is
+  ever shown. Requests are one-shot, last-write-wins per scrollable, vertical
+  only, and bail to a plain jump when the anchor left the view, the content
+  fits the viewport, or the correction would leave the scrollable range.
+- **`Window.ScrollAnchorReveal`** anchors, then eases the scrollable to the
+  top with the same smoothing as `ScrollVerticalToSmooth`, so prepended
+  content glides into view. The ease arms inside the pipeline after the
+  correction lands (arming beforehand would no-op when the reader is already
+  at the top). An in-flight ease stays continuous across an anchoring
+  correction: its displayed position shifts with the content, its absolute
+  target is preserved.
+- **`Window.ScrollVerticalOffset(id)`** returns the current vertical scroll
+  offset (<= 0, 0 = top), complementing the existing percentage-based
+  `ScrollVerticalPct`.
+
 ## [v0.40.0] - 2026-07-19
 
 ### Added
