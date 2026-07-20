@@ -35,6 +35,7 @@ type scrollSmoothEntry struct {
 	current float32
 	active  bool
 	settled bool // reached target this tick; retire next tick
+	dirty   bool // current changed but not yet applied to the map
 }
 
 // scrollApply is a lock-free snapshot of an entry for the apply pass.
@@ -100,6 +101,7 @@ func (s *scrollSmoothAnimation) Update(_ *Window, _ float32, ac *AnimationComman
 		} else {
 			e.current += diff * scrollSmoothFactor
 		}
+		e.dirty = true
 		anyActive = true
 	}
 	if !anyActive {
@@ -238,6 +240,10 @@ func scrollSmoothCancel(w *Window, id string, axis scrollAxis) {
 	if e := w.scrollSmooth.findEntry(id, axis); e != nil {
 		e.active = false
 		e.settled = false
+		// Drop any unapplied eased value: the direct write that
+		// triggered this cancel must not be overwritten by a stale
+		// apply on the next flush.
+		e.dirty = false
 	}
 }
 
@@ -254,8 +260,10 @@ func scrollSmoothShiftY(w *Window, id string, dy float32) {
 	}
 	if e := w.scrollSmooth.findEntry(id, scrollAxisY); e != nil && e.active {
 		e.current += dy
+		e.dirty = true
 		if !f32IsFinite(e.current) {
 			e.active = false
+			e.dirty = false
 		}
 	}
 }
@@ -284,9 +292,14 @@ func commandApplyScrollSmooth(w *Window) {
 	ss.pending = ss.pending[:0]
 	for i := range ss.entries {
 		e := &ss.entries[i]
-		if !e.active {
+		// Keyed on dirty, not active: a settled entry retires on
+		// the tick after its final value is computed, and a slow
+		// flush must still apply that value instead of ending the
+		// ease fractionally short of its target.
+		if !e.dirty {
 			continue
 		}
+		e.dirty = false
 		ss.pending = append(ss.pending, scrollApply{
 			id: e.id, axis: e.axis, val: e.current,
 		})
