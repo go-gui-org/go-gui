@@ -55,3 +55,5 @@ func (NoopNativePlatform) CreateSystemTray(_ SystemTrayCfg, _ func(string)) (int
 }
 func (NoopNativePlatform) UpdateSystemTray(_ int, _ SystemTrayCfg) {}
 func (NoopNativePlatform) RemoveSystemTray(_ int)                  {}
+func (NoopNativePlatform) Beep()                                   {}
+func (NoopNativePlatform) BeepAvailable() bool                     { return false }

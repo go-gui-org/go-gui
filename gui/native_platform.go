@@ -64,6 +64,17 @@ type NativeSystemTray interface {
 	RemoveSystemTray(id int)
 }
 
+// NativeSound plays OS-level alert sounds.
+type NativeSound interface {
+	// Beep plays the user's configured system alert sound, honoring
+	// their system-wide alert volume and mute settings. No-op on
+	// platforms without such a sound. Non-blocking.
+	Beep()
+	// BeepAvailable reports whether Beep produces an audible sound on
+	// this platform, so callers can fall back to a visual cue.
+	BeepAvailable() bool
+}
+
 // NativePlatform composes all native OS sub-interfaces.
 // Set by the backend; nil in tests (operations no-op / return error).
 type NativePlatform interface {
@@ -76,6 +87,7 @@ type NativePlatform interface {
 	NativeSpellChecker
 	NativeMenubar
 	NativeSystemTray
+	NativeSound
 	OpenURI(uri string) error
 	TitlebarDark(dark bool)
 	SetWindowVibrancy(material VibrancyMaterial)
