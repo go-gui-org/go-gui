@@ -78,8 +78,10 @@ jobs:
             before="$(find "${corpus}" -type f 2>/dev/null | sort)"
 
             local out status
+            set +e
             out="$(go test -fuzz="^${target}$" -fuzztime="${FUZZTIME}" -run='^$' "./${pkg}" 2>&1)"
             status=$?
+            set -e
             echo "${out}"
             echo "::endgroup::"
 
