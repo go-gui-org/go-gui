@@ -185,57 +185,61 @@ func Button(cfg ButtonCfg) View {
 const commandButtonIDPrefix = "cmdbtn:"
 
 // CommandButton creates a button wired to a registered
-// command. Auto-fills label from Command.Label when Content
-// is nil. Auto-fills ID from cmdID. Auto-disables via
-// CanExecute. Wires OnClick to Command.Execute.
+// command. Construction is deferred to layout time via ViewFunc
+// so the caller does not need to pass *Window. Auto-fills label
+// from Command.Label when Content is nil. Auto-fills ID from
+// cmdID. Auto-disables via CanExecute. Wires OnClick to
+// Command.Execute.
 //
 // The auto-filled ID is commandButtonIDPrefix + cmdID. Set cfg.ID
 // explicitly when placing two buttons for the same command in one
 // window, otherwise both get the same focus ID.
-func CommandButton(w *Window, cmdID string, cfg ButtonCfg) View {
-	cmd, ok := w.CommandByID(cmdID)
-	if !ok {
-		return Text(TextCfg{
-			Text:      "unknown command: " + cmdID,
-			TextStyle: TextStyle{Color: Red},
-		})
-	}
-
-	// Focus traversal is keyed by ID (see isFocusedTarget), so
-	// Focusable: true is a silent no-op without one.
-	if cfg.ID == "" {
-		cfg.ID = commandButtonIDPrefix + cmdID
-	}
-
-	// Auto-fill content from command label.
-	if cfg.Content == nil && cmd.Label != "" {
-		label := cmd.Label
-		hint := cmd.Shortcut.String()
-		if hint != "" {
-			label += "  " + hint
+func CommandButton(cmdID string, cfg ButtonCfg) View {
+	return ViewFunc(func(w *Window) View {
+		cmd, ok := w.CommandByID(cmdID)
+		if !ok {
+			return Text(TextCfg{
+				Text:      "unknown command: " + cmdID,
+				TextStyle: TextStyle{Color: Red},
+			})
 		}
-		cfg.Content = []View{
-			Text(TextCfg{Text: label}),
-		}
-	}
 
-	// Wire OnClick to command execute.
-	if cfg.OnClick == nil {
-		cmdExec := cmd.Execute
-		cID := cmdID
-		cfg.OnClick = func(_ *Layout, e *Event, w *Window) {
-			if w.CommandCanExecute(cID) && cmdExec != nil {
-				cmdExec(e, w)
+		// Focus traversal is keyed by ID (see isFocusedTarget), so
+		// Focusable: true is a silent no-op without one.
+		if cfg.ID == "" {
+			cfg.ID = commandButtonIDPrefix + cmdID
+		}
+
+		// Auto-fill content from command label.
+		if cfg.Content == nil && cmd.Label != "" {
+			label := cmd.Label
+			hint := cmd.Shortcut.String()
+			if hint != "" {
+				label += "  " + hint
+			}
+			cfg.Content = []View{
+				Text(TextCfg{Text: label}),
 			}
 		}
-	}
 
-	// Auto-disable via CanExecute.
-	if cmd.CanExecute != nil && !cmd.CanExecute(w) {
-		cfg.Disabled = true
-	}
+		// Wire OnClick to command execute.
+		if cfg.OnClick == nil {
+			cmdExec := cmd.Execute
+			cID := cmdID
+			cfg.OnClick = func(_ *Layout, e *Event, w *Window) {
+				if w.CommandCanExecute(cID) && cmdExec != nil {
+					cmdExec(e, w)
+				}
+			}
+		}
 
-	return Button(cfg)
+		// Auto-disable via CanExecute.
+		if cmd.CanExecute != nil && !cmd.CanExecute(w) {
+			cfg.Disabled = true
+		}
+
+		return Button(cfg)
+	})
 }
 
 func applyButtonDefaults(cfg *ButtonCfg) {

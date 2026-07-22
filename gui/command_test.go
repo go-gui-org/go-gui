@@ -269,9 +269,17 @@ func TestKeyNameSpecial(t *testing.T) {
 
 func TestCommandButtonUnknownReturnsErrorView(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int)})
-	v := CommandButton(w, "nonexistent", ButtonCfg{})
+	v := CommandButton("nonexistent", ButtonCfg{})
 	if v == nil {
 		t.Fatal("should return error placeholder view")
+	}
+	// Verify the error text appears at layout time.
+	l := v.GenerateLayout(w)
+	if l.Shape == nil {
+		t.Fatal("error view should have a shape")
+	}
+	if l.Shape.TC == nil || l.Shape.TC.Text != "unknown command: nonexistent" {
+		t.Errorf("unexpected error text: %q", l.Shape.TC.Text)
 	}
 }
 
@@ -285,7 +293,7 @@ func TestCommandButtonDefaultsIDToCommandID(t *testing.T) {
 		Execute: func(_ *Event, _ *Window) {},
 	})
 
-	v := CommandButton(w, "edit.increment", ButtonCfg{})
+	v := CommandButton("edit.increment", ButtonCfg{})
 	l := v.GenerateLayout(w)
 	want := commandButtonIDPrefix + "edit.increment"
 	if got := l.Shape.ID; got != want {
@@ -312,7 +320,7 @@ func TestCommandButtonIDDoesNotCollideWithMenuItem(t *testing.T) {
 		Execute: func(_ *Event, _ *Window) {},
 	})
 
-	btn := CommandButton(w, "file.new", ButtonCfg{})
+	btn := CommandButton("file.new", ButtonCfg{})
 	btnID := btn.GenerateLayout(w).Shape.ID
 
 	// A menubar item for the same command renders a shape keyed by the
@@ -332,7 +340,7 @@ func TestCommandButtonExplicitIDWins(t *testing.T) {
 		Execute: func(_ *Event, _ *Window) {},
 	})
 
-	v := CommandButton(w, "edit.undo", ButtonCfg{ID: "custom"})
+	v := CommandButton("edit.undo", ButtonCfg{ID: "custom"})
 	l := v.GenerateLayout(w)
 	if got := l.Shape.ID; got != "custom" {
 		t.Errorf("ID = %q, want %q", got, "custom")
@@ -343,6 +351,182 @@ func TestUnregisterCommandNoOp(_ *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int)})
 	// Should not panic when unregistering a non-existent ID.
 	w.UnregisterCommand("does-not-exist")
+}
+
+func TestCommandButtonAutoLabel(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	w.RegisterCommand(Command{
+		ID:       "test.cmd",
+		Label:    "Test",
+		Shortcut: Shortcut{Key: KeyD, Modifiers: ModCtrl},
+		Execute:  func(_ *Event, _ *Window) {},
+	})
+
+	v := CommandButton("test.cmd", ButtonCfg{})
+	l := v.GenerateLayout(w)
+
+	// auto-label should produce a Text child with the command label.
+	if len(l.Children) == 0 || l.Children[0].Shape == nil ||
+		l.Children[0].Shape.TC == nil ||
+		l.Children[0].Shape.TC.Text == "" {
+		t.Fatal("auto-label should set text content in child")
+	}
+}
+
+func TestCommandButtonAutoDisable(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	w.RegisterCommand(Command{
+		ID:      "test.cmd",
+		Label:   "Test",
+		Execute: func(_ *Event, _ *Window) {},
+		CanExecute: func(_ *Window) bool {
+			return false
+		},
+	})
+
+	v := CommandButton("test.cmd", ButtonCfg{})
+	l := v.GenerateLayout(w)
+
+	if !l.Shape.Disabled {
+		t.Error("button should be disabled when CanExecute returns false")
+	}
+}
+
+func TestCommandButtonAutoDisableWhenCanExecuteTrue(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	w.RegisterCommand(Command{
+		ID:      "test.cmd",
+		Label:   "Test",
+		Execute: func(_ *Event, _ *Window) {},
+		CanExecute: func(_ *Window) bool {
+			return true
+		},
+	})
+
+	v := CommandButton("test.cmd", ButtonCfg{})
+	l := v.GenerateLayout(w)
+
+	if l.Shape.Disabled {
+		t.Error("button should not be disabled when CanExecute returns true")
+	}
+}
+
+func TestCommandButtonOnClickWiring(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	executed := false
+	w.RegisterCommand(Command{
+		ID:    "test.cmd",
+		Label: "Test",
+		Execute: func(_ *Event, _ *Window) {
+			executed = true
+		},
+	})
+
+	v := CommandButton("test.cmd", ButtonCfg{})
+	l := v.GenerateLayout(w)
+
+	if l.Shape.events.OnClick == nil {
+		t.Fatal("OnClick should be wired")
+	}
+
+	e := &Event{}
+	l.Shape.events.OnClick(&l, e, w)
+	if !executed {
+		t.Error("OnClick should execute the command")
+	}
+}
+
+func TestCommandButtonOnClickChecksCanExecute(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	executed := false
+	w.RegisterCommand(Command{
+		ID:    "test.cmd",
+		Label: "Test",
+		Execute: func(_ *Event, _ *Window) {
+			executed = true
+		},
+		CanExecute: func(_ *Window) bool {
+			return false
+		},
+	})
+
+	v := CommandButton("test.cmd", ButtonCfg{})
+	l := v.GenerateLayout(w)
+
+	e := &Event{}
+	l.Shape.events.OnClick(&l, e, w)
+	if executed {
+		t.Error("OnClick should not execute when CanExecute returns false")
+	}
+}
+
+func TestCommandButtonUserContentOverridesAutoLabel(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	w.RegisterCommand(Command{
+		ID:      "test.cmd",
+		Label:   "Auto",
+		Execute: func(_ *Event, _ *Window) {},
+	})
+
+	userContent := []View{Text(TextCfg{Text: "Custom"})}
+	v := CommandButton("test.cmd", ButtonCfg{Content: userContent})
+	l := v.GenerateLayout(w)
+
+	// User-provided Content should be preserved, not overwritten.
+	if len(l.Children) == 0 || l.Children[0].Shape == nil ||
+		l.Children[0].Shape.TC == nil ||
+		l.Children[0].Shape.TC.Text != "Custom" {
+		t.Errorf("user content should be preserved, got %q",
+			l.Children[0].Shape.TC.Text)
+	}
+}
+
+func TestCommandButtonUserOnClickOverridesAutoWiring(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	cmdExecuted := false
+	w.RegisterCommand(Command{
+		ID:    "test.cmd",
+		Label: "Test",
+		Execute: func(_ *Event, _ *Window) {
+			cmdExecuted = true
+		},
+	})
+
+	userExecuted := false
+	v := CommandButton("test.cmd", ButtonCfg{
+		OnClick: func(_ *Layout, _ *Event, _ *Window) {
+			userExecuted = true
+		},
+	})
+	l := v.GenerateLayout(w)
+
+	e := &Event{}
+	l.Shape.events.OnClick(&l, e, w)
+	if cmdExecuted {
+		t.Error("command should not execute when user provides OnClick")
+	}
+	if !userExecuted {
+		t.Error("user OnClick should be called")
+	}
+}
+
+func TestCommandButtonViewFuncType(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	w.RegisterCommand(Command{
+		ID:      "test.cmd",
+		Label:   "Test",
+		Execute: func(_ *Event, _ *Window) {},
+	})
+
+	v := CommandButton("test.cmd", ButtonCfg{})
+	if _, ok := v.(ViewFunc); !ok {
+		t.Error("CommandButton should return ViewFunc")
+	}
+
+	// Content() should return nil (ViewFunc never has eager content).
+	if c := v.Content(); c != nil {
+		t.Error("ViewFunc Content() should return nil")
+	}
 }
 
 func TestCommandDispatchNoMatch(t *testing.T) {

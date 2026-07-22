@@ -132,7 +132,7 @@ func mainView(w *gui.Window) gui.View {
 		Spacing: gui.SomeF(0),
 		Content: []gui.View{
 			menuBar(w),
-			body(w, app, theme),
+			body(app, theme),
 			statusBar(app, theme),
 			gui.CommandPalette(gui.CommandPaletteCfg{
 				ID:         "palette",
@@ -171,7 +171,7 @@ func menuBar(w *gui.Window) gui.View {
 	})
 }
 
-func body(w *gui.Window, app *App, theme gui.Theme) gui.View {
+func body(app *App, theme gui.Theme) gui.View {
 	savedText := "unsaved"
 	if app.Saved {
 		savedText = "saved"
@@ -202,11 +202,11 @@ func body(w *gui.Window, app *App, theme gui.Theme) gui.View {
 				SizeBorder: gui.NoBorder,
 				Padding:    gui.NoPadding,
 				Content: []gui.View{
-					gui.CommandButton(w, "edit.increment",
+					gui.CommandButton("edit.increment",
 						gui.ButtonCfg{}),
-					gui.CommandButton(w, "edit.decrement",
+					gui.CommandButton("edit.decrement",
 						gui.ButtonCfg{}),
-					gui.CommandButton(w, "edit.undo",
+					gui.CommandButton("edit.undo",
 						gui.ButtonCfg{}),
 				},
 			}),
@@ -216,9 +216,9 @@ func body(w *gui.Window, app *App, theme gui.Theme) gui.View {
 				SizeBorder: gui.NoBorder,
 				Padding:    gui.NoPadding,
 				Content: []gui.View{
-					gui.CommandButton(w, "file.new",
+					gui.CommandButton("file.new",
 						gui.ButtonCfg{}),
-					gui.CommandButton(w, "file.save",
+					gui.CommandButton("file.save",
 						gui.ButtonCfg{}),
 				},
 			}),

@@ -215,12 +215,12 @@ func demoCommandButton(w *gui.Window) gui.View {
 				Spacing: gui.SomeF(8),
 				Padding: gui.NoPadding,
 				Content: []gui.View{
-					gui.CommandButton(w, "sc.greet", gui.ButtonCfg{ID: "cb-greet"}),
-					gui.CommandButton(w, "sc.count", gui.ButtonCfg{ID: "cb-count"}),
+					gui.CommandButton("sc.greet", gui.ButtonCfg{ID: "cb-greet"}),
+					gui.CommandButton("sc.count", gui.ButtonCfg{ID: "cb-count"}),
 				},
 			}),
 			sectionLabel(t, "Auto-disabled via CanExecute"),
-			gui.CommandButton(w, "sc.disabled", gui.ButtonCfg{ID: "cb-disabled"}),
+			gui.CommandButton("sc.disabled", gui.ButtonCfg{ID: "cb-disabled"}),
 		},
 	})
 }
