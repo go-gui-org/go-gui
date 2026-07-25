@@ -1,17 +1,28 @@
-// Metal Shading Language source shared by the macOS backend
-// (gui/backend/metal) and the iOS backend (gui/backend/ios).
+// Package msl holds the Metal Shading Language source shared by the
+// macOS backend (gui/backend/metal) and the iOS backend
+// (gui/backend/ios).
 //
-// These two backends carried byte-identical 428-line copies of this
+// These backends carried byte-identical 428-line copies of this
 // shader until issue 126 — a Metal 3.2-only lambda that broke every
-// app on macOS Sonoma — had to be fixed in both of them. One copy now.
+// app on macOS Sonoma — had to be fixed in both of them.
 //
-// Included from exactly one .m per package, so the `static` storage
-// below yields a single definition per translation unit. Requires
-// Foundation (for NSString), which both includers import via
-// <Metal/Metal.h> before reaching this header.
-#pragma once
+// It lives in Go rather than a shared .h on purpose. The Go build
+// cache only tracks headers inside a package directory (see
+// `go list -f '{{.HFiles}}'`), so a shared header outside both
+// packages is invisible to it: editing the shader would silently
+// reuse a stale binary. A Go constant is tracked correctly, and the
+// backends pass it across the cgo boundary at context creation.
+//
+// Compatibility floor: this source must compile at MSL 3.0
+// (macOS 13 Ventura), which is pinned via MTLCompileOptions at both
+// call sites. Constructs from a newer Metal — lambdas being the one
+// that bit us — compile clean on a current Mac and fail at runtime on
+// every older one. TestBuiltinShadersCompile guards this.
+package msl
 
-static NSString *mslSource = @R"(
+// Source is the MSL for the built-in render pipelines. Kept as one
+// string so both backends provably compile the same shader.
+const Source = `
 #include <metal_stdlib>
 using namespace metal;
 
@@ -226,6 +237,24 @@ fragment float4 fs_blur(BlurOut in [[stage_in]]) {
     return float4(in.color.rgb, in.color.a * alpha);
 }
 
+// Unpack one packed gradient stop. Two floats carry RGBA plus the
+// stop position: val1 packs r/g/b as base-256 digits, val2 packs
+// alpha in the low digit and position * 10000 above it.
+//
+// Deliberately a plain function, not a lambda. Lambda expressions are
+// Metal 3.2+ (macOS 15 Sequoia); on Sonoma and earlier they fail to
+// compile, and because this library is built once at context init,
+// that broke *every* app — not just ones drawing gradients. Issue 126.
+static void unpack_stop(float val1, float val2,
+                        thread float4 &c, thread float &p) {
+    float r = fmod(val1, 256.0);
+    float g = fmod(floor(val1 / 256.0), 256.0);
+    float b = floor(val1 / 65536.0);
+    float a = fmod(val2, 256.0);
+    p = floor(val2 / 256.0) / 10000.0;
+    c = float4(r/255.0, g/255.0, b/255.0, a/255.0);
+}
+
 fragment float4 fs_gradient(GradientOut in [[stage_in]]) {
     float radius = floor(in.params / 4096.0) / 4.0;
 
@@ -258,27 +287,16 @@ fragment float4 fs_gradient(GradientOut in [[stage_in]]) {
     float4 stop_colors[6];
     float  stop_positions[6];
 
-    // Helper lambda-like macros via inline.
-    auto unpack = [](float val1, float val2,
-                     thread float4 &c, thread float &p) {
-        float r = fmod(val1, 256.0);
-        float g = fmod(floor(val1 / 256.0), 256.0);
-        float b = floor(val1 / 65536.0);
-        float a = fmod(val2, 256.0);
-        p = floor(val2 / 256.0) / 10000.0;
-        c = float4(r/255.0, g/255.0, b/255.0, a/255.0);
-    };
-
-    unpack(in.stop12.x, in.stop12.y,
-           stop_colors[0], stop_positions[0]);
-    unpack(in.stop12.z, in.stop12.w,
-           stop_colors[1], stop_positions[1]);
-    unpack(in.stop34.x, in.stop34.y,
-           stop_colors[2], stop_positions[2]);
-    unpack(in.stop34.z, in.stop34.w,
-           stop_colors[3], stop_positions[3]);
-    unpack(in.stop56.x, in.stop56.y,
-           stop_colors[4], stop_positions[4]);
+    unpack_stop(in.stop12.x, in.stop12.y,
+                stop_colors[0], stop_positions[0]);
+    unpack_stop(in.stop12.z, in.stop12.w,
+                stop_colors[1], stop_positions[1]);
+    unpack_stop(in.stop34.x, in.stop34.y,
+                stop_colors[2], stop_positions[2]);
+    unpack_stop(in.stop34.z, in.stop34.w,
+                stop_colors[3], stop_positions[3]);
+    unpack_stop(in.stop56.x, in.stop56.y,
+                stop_colors[4], stop_positions[4]);
     stop_colors[5]    = stop_colors[4];
     stop_positions[5] = stop_positions[4];
 
@@ -438,4 +456,4 @@ fragment float4 fs_stencil(VertexOut in [[stage_in]]) {
     if (alpha < 0.5) discard_fragment();
     return float4(1.0);
 }
-)";
+`

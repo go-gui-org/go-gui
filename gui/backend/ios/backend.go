@@ -5,10 +5,9 @@
 package ios
 
 /*
-// -I picks up the MSL shader source shared with the macOS backend
-// (gui/backend/internal/msl/shaders.h), included by metal_darwin.m.
-#cgo CFLAGS: -fobjc-arc -I${SRCDIR}/../internal/msl
+#cgo CFLAGS: -fobjc-arc
 #cgo LDFLAGS: -framework Metal -framework QuartzCore -framework Foundation -framework UIKit
+#include <stdlib.h>
 #include "metal_darwin.h"
 #include "ios_app.h"
 */
@@ -26,6 +25,7 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/imgpath"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/msl"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/tempfont"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
 	"github.com/go-gui-org/go-gui/gui/svg"
@@ -108,7 +108,11 @@ func SetWindow(w *gui.Window) { iosWindow = w }
 func initBackend(layerPtr unsafe.Pointer,
 	w, h int32, scale float32) {
 
-	rc := C.metalInit(layerPtr)
+	// Shader source is owned by Go so the build cache tracks edits to
+	// it; C copies it during the call. See gui/backend/internal/msl.
+	cMSL := C.CString(msl.Source)
+	rc := C.metalInit(layerPtr, cMSL)
+	C.free(unsafe.Pointer(cMSL))
 	if rc != 0 {
 		panic(fmt.Sprintf("ios: metalInit failed: %d", rc))
 	}

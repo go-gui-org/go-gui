@@ -21,7 +21,9 @@ enum {
 };
 
 // Lifecycle
-int  metalInit(void* metalLayer);
+// mslSrc is the MSL shader source, owned by Go
+// (gui/backend/internal/msl) and copied during this call.
+int  metalInit(void* metalLayer, const char* mslSrc);
 void metalDestroy(void);
 void metalResize(int w, int h);
 

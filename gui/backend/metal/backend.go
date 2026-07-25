@@ -6,9 +6,7 @@
 package metal
 
 /*
-// -I picks up the MSL shader source shared with the iOS backend
-// (gui/backend/internal/msl/shaders.h), included by metal_darwin.m.
-#cgo CFLAGS: -fobjc-arc -I${SRCDIR}/../internal/msl
+#cgo CFLAGS: -fobjc-arc
 #cgo LDFLAGS: -framework Metal -framework QuartzCore -framework AppKit -framework Foundation
 
 #include <stdlib.h>
@@ -30,6 +28,7 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/imgpath"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/msl"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/tempfont"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
 	"github.com/go-gui-org/go-gui/gui/svg"
@@ -504,7 +503,11 @@ func createWindowState(w *gui.Window) (*windowState, error) {
 		return nil, errors.New("metalWindowGetLayer failed")
 	}
 
-	ctx := C.metalCtxCreate(layer)
+	// Shader source is owned by Go so the build cache tracks edits to
+	// it; C copies it during the call. See gui/backend/internal/msl.
+	cMSL := C.CString(msl.Source)
+	ctx := C.metalCtxCreate(layer, cMSL)
+	C.free(unsafe.Pointer(cMSL))
 	if ctx == nil {
 		C.metalWindowDestroy(win)
 		return nil, errors.New("metalCtxCreate failed")

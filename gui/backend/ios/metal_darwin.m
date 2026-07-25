@@ -50,11 +50,27 @@ static id<MTLDepthStencilState> _stencilTest;
 static id<MTLDepthStencilState> _stencilDecr;
 static id<MTLDepthStencilState> _stencilOff;
 
-// ─── MSL Shader Source ────────────────────────────────────────
+// ─── MSL Shader Compile Options ───────────────────────────────
 
-// The MSL source is shared with the macOS backend — see
-// gui/backend/internal/msl/shaders.h. Do not inline a copy here.
-#include "shaders.h"
+// The MSL source itself is not here — it is shared with the macOS
+// backend and lives in Go, at gui/backend/internal/msl. It arrives as
+// a C string parameter.
+
+// mslCompileOptions pins the MSL language version. See the macOS
+// backend (gui/backend/metal/metal_darwin.m) for the full rationale:
+// without a pin, the accepted feature set tracks the build machine's
+// OS and newer constructs fail at runtime on older devices. Issue 126.
+//
+// 2.4, not the macOS backend's 3.0, because this target deploys to
+// iOS 15 (-miphoneos-version-min=15.0) and MTLLanguageVersion3_0 is
+// iOS 16+. Pinning above the deployment floor would reproduce issue
+// 126 on iOS 15 devices and warns at build time. Raise both together
+// only when the deployment target moves.
+static MTLCompileOptions *mslCompileOptions(void) {
+    MTLCompileOptions *opts = [[MTLCompileOptions alloc] init];
+    opts.languageVersion = MTLLanguageVersion2_4;
+    return opts;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────
 
@@ -290,7 +306,7 @@ static void beginMainEncoder(float r, float g, float b,
 
 // ─── Public API ───────────────────────────────────────────────
 
-int metalInit(void* layerPtr) {
+int metalInit(void* layerPtr, const char* mslSrc) {
     _layer = (__bridge CAMetalLayer*)layerPtr;
     _device = MTLCreateSystemDefaultDevice();
     if (!_device) {
@@ -307,11 +323,14 @@ int metalInit(void* layerPtr) {
 
     _queue = [_device newCommandQueue];
 
-    // Compile MSL library.
+    // Compile MSL library. Source comes from Go — see
+    // gui/backend/internal/msl.
     NSError *err = nil;
+    NSString *src = [NSString stringWithUTF8String:mslSrc];
     id<MTLLibrary> lib =
-        [_device newLibraryWithSource:mslSource
-                              options:nil error:&err];
+        [_device newLibraryWithSource:src
+                              options:mslCompileOptions()
+                                error:&err];
     if (!lib) {
         NSLog(@"metal: compile shaders: %@", err);
         return -2;
@@ -441,6 +460,9 @@ static int _nextCustomPipelineID = 0;
 int metalBuildCustomPipeline(const char* mslSrc) {
     NSString *src = [NSString stringWithUTF8String:mslSrc];
     NSError *err = nil;
+    // options:nil is deliberate here — unlike the built-in library,
+    // this compiles user-supplied MSL, so the OS floor it targets is
+    // the caller's decision, not ours. Do not apply the 3.0 pin.
     id<MTLLibrary> lib =
         [_device newLibraryWithSource:src
                               options:nil error:&err];

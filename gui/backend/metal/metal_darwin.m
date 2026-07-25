@@ -68,11 +68,29 @@ typedef struct MetalContext MetalContext;
 // Cast helper — MetalCtx is void* in the header for cgo.
 #define MC(p) ((MetalContext*)(p))
 
-// ─── MSL Shader Source ──────────────────────────────────────
+// ─── MSL Shader Compile Options ───────────────────────────────
 
-// The MSL source is shared with the iOS backend — see
-// gui/backend/internal/msl/shaders.h. Do not inline a copy here.
-#include "shaders.h"
+// The MSL source itself is not here — it is shared with the iOS
+// backend and lives in Go, at gui/backend/internal/msl. It arrives
+// as a C string parameter. See that package for why.
+
+// mslCompileOptions returns the options used to compile the built-in
+// shader library.
+//
+// Pinning languageVersion is the point. With options:nil the accepted
+// MSL feature set silently tracks whatever OS the build ran on, so a
+// construct needing a newer Metal compiles clean on a current Mac and
+// fails at runtime on every older one — precisely how issue 126
+// shipped. 3.0 == macOS 13 Ventura, matching Apple's own
+// security-update window.
+//
+// Raising this pin is a decision to drop macOS versions. If a shader
+// change trips it, fix the shader.
+static MTLCompileOptions *mslCompileOptions(void) {
+    MTLCompileOptions *opts = [[MTLCompileOptions alloc] init];
+    opts.languageVersion = MTLLanguageVersion3_0;
+    return opts;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────
 
@@ -314,7 +332,7 @@ static void beginMainEncoder(MetalContext* ctx, float r, float g,
 
 // ─── Public API ───────────────────────────────────────────────
 
-MetalCtx metalCtxCreate(void* layerPtr) {
+MetalCtx metalCtxCreate(void* layerPtr, const char* mslSrc) {
     MetalContext* ctx = calloc(1, sizeof(MetalContext));
     if (!ctx) return NULL;
 
@@ -338,11 +356,14 @@ MetalCtx metalCtxCreate(void* layerPtr) {
 
     ctx->queue = [ctx->device newCommandQueue];
 
-    // Compile MSL library.
+    // Compile MSL library. Source comes from Go — see
+    // gui/backend/internal/msl.
     NSError *err = nil;
+    NSString *src = [NSString stringWithUTF8String:mslSrc];
     id<MTLLibrary> lib =
-        [ctx->device newLibraryWithSource:mslSource
-                              options:nil error:&err];
+        [ctx->device newLibraryWithSource:src
+                              options:mslCompileOptions()
+                                error:&err];
     if (!lib) {
         NSLog(@"metal: compile shaders: %@", err);
         free(ctx);
@@ -480,6 +501,9 @@ int metalBuildCustomPipeline(MetalCtx ctx_,
     MetalContext* ctx = MC(ctx_);
     NSString *src = [NSString stringWithUTF8String:mslSrc];
     NSError *err = nil;
+    // options:nil is deliberate here — unlike the built-in library,
+    // this compiles user-supplied MSL, so the OS floor it targets is
+    // the caller's decision, not ours. Do not apply the 3.0 pin.
     id<MTLLibrary> lib =
         [ctx->device newLibraryWithSource:src
                               options:nil error:&err];
@@ -1146,5 +1170,37 @@ void metalEndStencilClip(MetalCtx ctx_,
         [ctx->enc setDepthStencilState:ctx->stencilTest];
         [ctx->enc setStencilReferenceValue:
             (uint32_t)(depth - 1)];
+    }
+}
+
+// ─── Shader Compile Probe (test hook) ─────────────────────────
+
+// metalCompileShadersProbe compiles the built-in MSL library on its
+// own, deliberately reusing mslCompileOptions() and the same Go
+// shader constant, so it cannot drift from what metalCtxCreate
+// actually does — a probe that
+// tests a private copy of the shader would be worthless.
+//
+// Regression guard for issue 126: a Metal 3.2-only construct (there,
+// a lambda) compiled fine on a current Mac but failed on every older
+// one. The real compile happens only when a window exists, which no
+// CI job does, so this is the only place that failure is caught.
+int metalCompileShadersProbe(const char* mslSrc) {
+    @autoreleasepool {
+        id<MTLDevice> dev = MTLCreateSystemDefaultDevice();
+        if (!dev) {
+            return 1;  // headless/virtualized runner — caller skips
+        }
+        NSError *err = nil;
+        NSString *src = [NSString stringWithUTF8String:mslSrc];
+        id<MTLLibrary> lib =
+            [dev newLibraryWithSource:src
+                              options:mslCompileOptions()
+                                error:&err];
+        if (!lib) {
+            NSLog(@"metal: shader probe: %@", err);
+            return -1;
+        }
+        return 0;
     }
 }

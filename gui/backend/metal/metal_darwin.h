@@ -25,7 +25,9 @@ enum {
 typedef void* MetalCtx;
 
 // Lifecycle
-MetalCtx metalCtxCreate(void* metalLayer);
+// mslSrc is the MSL shader source, owned by Go
+// (gui/backend/internal/msl) and copied during this call.
+MetalCtx metalCtxCreate(void* metalLayer, const char* mslSrc);
 void metalCtxDestroy(MetalCtx ctx);
 void metalResize(MetalCtx ctx, int w, int h);
 
@@ -78,5 +80,12 @@ void metalBeginStencilClip(MetalCtx ctx,
                            const float* verts, int depth);
 void metalEndStencilClip(MetalCtx ctx,
                          const float* verts, int depth);
+
+// Test hook: compile the built-in MSL library standalone, using the
+// same source and pinned options metalCtxCreate uses. Needs a Metal
+// device but no window, layer, or Cocoa main thread, so it is
+// reachable from an ordinary `go test`.
+//   0 = compiled, -1 = compile failed, 1 = no Metal device.
+int metalCompileShadersProbe(const char* mslSrc);
 
 #endif
