@@ -5,7 +5,9 @@
 package ios
 
 /*
-#cgo CFLAGS: -fobjc-arc
+// -I picks up the MSL shader source shared with the macOS backend
+// (gui/backend/internal/msl/shaders.h), included by metal_darwin.m.
+#cgo CFLAGS: -fobjc-arc -I${SRCDIR}/../internal/msl
 #cgo LDFLAGS: -framework Metal -framework QuartzCore -framework Foundation -framework UIKit
 #include "metal_darwin.h"
 #include "ios_app.h"
