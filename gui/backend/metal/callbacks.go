@@ -5,6 +5,8 @@ package metal
 /*
 #include <stdlib.h>
 #include "metal_window.h"
+// For metalCompileShadersProbe (test helper, defined in metal_darwin.m).
+#include "metal_darwin.h"
 
 // Test helpers — defined in metal_window.m.
 int metalTestActivationPolicyIsRegular(void);
@@ -30,6 +32,7 @@ import (
 	"unsafe"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/msl"
 )
 
 // windowRegistry maps window IDs to windowState pointers.
@@ -69,6 +72,16 @@ func testActivationPolicyRegular() bool {
 
 func testDelegateSet() bool {
 	return C.metalTestDelegateIsSet() != 0
+}
+
+// testCompileShaders compiles the built-in MSL library standalone at
+// the pinned language version. 0 = compiled, -1 = compile failed,
+// 1 = no Metal device. Lives here because cgo is not permitted in
+// _test.go files. See TestBuiltinShadersCompile.
+func testCompileShaders() int {
+	cMSL := C.CString(msl.Source)
+	defer C.free(unsafe.Pointer(cMSL))
+	return int(C.metalCompileShadersProbe(cMSL))
 }
 
 func testMenuExists() bool {
