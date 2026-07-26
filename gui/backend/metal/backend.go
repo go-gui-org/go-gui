@@ -213,6 +213,7 @@ func RunAppE(app *gui.App, initialWindows ...*gui.Window) error {
 	}
 
 	defer func() {
+		C.metalStopFramePump()
 		for _, ws := range states {
 			ws.destroy()
 		}
@@ -690,5 +691,9 @@ func (ws *windowState) useGlyphPipeline() {
 
 // Destroy releases all backend resources.
 func (b *Backend) Destroy() {
+	// App-global, so it belongs here rather than in windowState.destroy:
+	// leaving a live timer behind would keep pumping frames for windows
+	// that no longer exist (and, in tests, across packages' runs).
+	C.metalStopFramePump()
 	b.destroy()
 }

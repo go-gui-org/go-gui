@@ -574,6 +574,7 @@ __attribute__((weak)) void goMetalWindowShouldClose(unsigned int wid) {}
 __attribute__((weak)) void goMetalWindowFocusChanged(unsigned int wid,
                                                      int focused) {}
 __attribute__((weak)) void goMetalFileDrop(unsigned int wid, char *path) {}
+__attribute__((weak)) void goMetalPumpFrames(void) {}
 
 // ─── Event polling ─────────────────────────────────────────────
 
@@ -1135,6 +1136,50 @@ void metalAppFinishLaunch(void) {
     // Not guarded by the dispatch_once: every call must re-activate so
     // newly-created windows come to the foreground.
     metalForceActivate();
+
+    // Windows exist now, so frames are meaningful: arm the nested-runloop
+    // frame pump. Idempotent, so the repeat calls for later windows are
+    // harmless.
+    metalStartFramePump();
+}
+
+// ─── Frame pump (nested runloops) ──────────────────────────────
+//
+// Rationale lives in metal_window.h. The short version: the Go event loop
+// only pumps NSDefaultRunLoopMode, so a nested AppKit runloop (modal
+// dialog, menu tracking, live resize) starves every window of frames.
+// This timer is scheduled in NSRunLoopCommonModes, which includes
+// NSEventTrackingRunLoopMode and NSModalPanelRunLoopMode, so it keeps
+// firing exactly when the Go loop cannot.
+
+// Timer interval — 60 Hz. Frames are cheap when nothing is dirty:
+// Window.PumpFrame flushes commands and returns false without rendering
+// unless a refresh is actually pending.
+static const NSTimeInterval kFramePumpInterval = 1.0 / 60.0;
+
+static NSTimer *_framePumpTimer;
+
+void metalStartFramePump(void) {
+    if (_framePumpTimer) return;
+    _framePumpTimer = [NSTimer timerWithTimeInterval:kFramePumpInterval
+                                             repeats:YES
+                                               block:^(NSTimer *timer) {
+        // In the default mode the Go event loop is running and owns frame
+        // timing; pumping here too would double every frame. Only the
+        // nested modes — where that loop is blocked — need this timer.
+        NSString *mode = [[NSRunLoop currentRunLoop] currentMode];
+        if (!mode || [mode isEqualToString:NSDefaultRunLoopMode]) return;
+        goMetalPumpFrames();
+    }];
+    // Common modes, not the default mode: see above.
+    [[NSRunLoop mainRunLoop] addTimer:_framePumpTimer
+                              forMode:NSRunLoopCommonModes];
+}
+
+void metalStopFramePump(void) {
+    if (!_framePumpTimer) return;
+    [_framePumpTimer invalidate];
+    _framePumpTimer = nil;
 }
 
 // ─── Test helpers (called from Go tests via cgo) ─────────────────
@@ -1198,6 +1243,32 @@ void metalTestInjectKeyDown(unsigned short keyCode, unsigned int modifiers) {
     _evKeyCode = keyCode;
     _evModifiers = modifiers;
     _evKeyRepeat = 0;
+}
+
+// Run the main runloop for ms milliseconds in a nested mode, standing in
+// for what AppKit does inside [NSAlert runModal] or menu tracking. The
+// frame-pump timer must fire here (mode != NSDefaultRunLoopMode) and must
+// not fire in the default-mode variant. See TestFramePumpNestedMode.
+// runMode:beforeDate: returns as soon as it services one input source
+// (and immediately when the mode has none), so loop until the deadline.
+static void metalTestRunMode(NSString *mode, int ms) {
+    NSDate *until = [NSDate dateWithTimeIntervalSinceNow:ms / 1000.0];
+    while ([until timeIntervalSinceNow] > 0) {
+        [[NSRunLoop mainRunLoop] runMode:mode beforeDate:until];
+    }
+}
+
+void metalTestRunModalMode(int ms) {
+    metalTestRunMode(NSModalPanelRunLoopMode, ms);
+}
+
+void metalTestRunDefaultMode(int ms) {
+    metalTestRunMode(NSDefaultRunLoopMode, ms);
+}
+
+// Report whether the frame-pump timer is currently installed.
+int metalTestFramePumpActive(void) {
+    return (_framePumpTimer && [_framePumpTimer isValid]) ? 1 : 0;
 }
 
 // Inject a synthetic quit event so Go tests can verify mapMetalEvent

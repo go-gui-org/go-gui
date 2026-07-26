@@ -25,10 +25,14 @@ int metalTestMenuAboutExists(void);
 int metalTestWindowsMenuExists(void);
 int metalTestFocusedGUIWindowMatches(void *windowHandle);
 int metalTestApplicationDidBecomeActive(void);
+void metalTestRunModalMode(int ms);
+void metalTestRunDefaultMode(int ms);
+int metalTestFramePumpActive(void);
 */
 import "C"
 import (
 	"sync"
+	"sync/atomic"
 	"unsafe"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -62,6 +66,43 @@ func lookupWindow(id uint32) *windowState {
 	ws := windowRegistry[id]
 	windowRegistryMu.Unlock()
 	return ws
+}
+
+// pumpScratch is the reusable snapshot buffer for goMetalPumpFrames, so a
+// 60 Hz pump allocates nothing. Main-thread only, like the pump itself.
+var pumpScratch []*windowState
+
+// framePumpCount counts goMetalPumpFrames invocations that actually ran
+// (i.e. reached Go from a nested runloop). Tests read it to prove the
+// timer fires in nested modes and stays quiet in the default mode.
+var framePumpCount atomic.Uint64
+
+//export goMetalPumpFrames
+func goMetalPumpFrames() {
+	framePumpCount.Add(1)
+
+	// Snapshot under the lock: PumpFrame runs app code, which may open or
+	// close windows and so mutate the registry.
+	windowRegistryMu.Lock()
+	pumpScratch = pumpScratch[:0]
+	for _, ws := range windowRegistry {
+		pumpScratch = append(pumpScratch, ws)
+	}
+	windowRegistryMu.Unlock()
+
+	for _, ws := range pumpScratch {
+		w := ws.attachedWindow
+		if w == nil || ws.ctx == nil {
+			continue
+		}
+		// PumpFrame, not FrameFn: it declines the frame instead of
+		// deadlocking when the stack that entered the nested runloop
+		// already holds the window lock.
+		if w.PumpFrame() {
+			ws.renderFrame(w)
+		}
+	}
+	clear(pumpScratch) // drop references to destroyed windows
 }
 
 // ─── Test helpers ──────────────────────────────────────────────
@@ -154,6 +195,16 @@ func testFocusedGUIWindowMatches(handle C.GoGuiNSWindow) bool {
 func testApplicationDidBecomeActive() bool {
 	return C.metalTestApplicationDidBecomeActive() != 0
 }
+
+// testFramePumpActive reports whether the nested-runloop frame-pump
+// timer is currently installed.
+func testFramePumpActive() bool { return C.metalTestFramePumpActive() != 0 }
+
+// testRunModalMode spins the main runloop in NSModalPanelRunLoopMode —
+// what AppKit does inside runModal — so the pump timer can fire there.
+// testRunDefaultMode is the negative control.
+func testRunModalMode(ms int)   { C.metalTestRunModalMode(C.int(ms)) }
+func testRunDefaultMode(ms int) { C.metalTestRunDefaultMode(C.int(ms)) }
 
 // ─── C callbacks (weak in metal_window.m, strong here) ───────
 

@@ -134,4 +134,8 @@ func runMainThreadTests() {
 	if ws := lookupWindow(winID); ws != nil {
 		panic("metal.Destroy: window still in windowRegistry after destroy")
 	}
+
+	// 10. Frames must keep flowing while a nested AppKit runloop (modal
+	//     dialog, open menu, live resize) blocks the Go event loop.
+	runFramePumpMainThreadTests()
 }

@@ -173,6 +173,38 @@ func (w *Window) FrameFn() bool {
 	return rebuilt
 }
 
+// PumpFrame runs one frame from a *nested* platform runloop — a modal
+// dialog, menu tracking, live resize — where the backend's own event loop
+// is blocked and would otherwise deliver no frames at all. Same work as
+// FrameFn (flush queued commands, rebuild layout/renderers) and the same
+// return value: true when the backend should follow with renderFrame.
+//
+// Two guards make it safe to call from that re-entrant position:
+//
+//   - w.pumping rejects a pump nested inside another pump.
+//   - The TryLock probe rejects the frame when some caller further up the
+//     stack already owns w.mu — e.g. an event handler that opened the
+//     modal dialog from inside Update. Blocking there would deadlock the
+//     main thread, and skipping costs nothing: the next timer tick retries.
+//
+// Main-thread only, like FrameFn.
+func (w *Window) PumpFrame() bool {
+	if w.pumping {
+		return false
+	}
+	// Probe only — the lock is released immediately. On the main thread the
+	// sole possible holder is our own call stack, so a successful TryLock
+	// means FrameFn's own w.mu.Lock cannot deadlock.
+	if !w.mu.TryLock() {
+		return false
+	}
+	w.mu.Unlock()
+
+	w.pumping = true
+	defer func() { w.pumping = false }()
+	return w.FrameFn()
+}
+
 // Update performs a full layout rebuild and re-renders.
 func (w *Window) Update() {
 	w.mu.Lock()
