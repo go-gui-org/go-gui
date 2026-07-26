@@ -61,6 +61,10 @@ extern void goMetalWindowFocusChanged(unsigned int windowID,
 // Called when files are dropped on the window.
 extern void goMetalFileDrop(unsigned int windowID, char *path);
 
+// Called from the frame-pump timer while a nested AppKit runloop is
+// running (see metalStartFramePump). Go renders one frame per window.
+extern void goMetalPumpFrames(void);
+
 // ─── Event polling ─────────────────────────────────────────────
 
 // Poll for the next event with an optional timeout.
@@ -184,5 +188,27 @@ void metalAppFinishLaunch(void);
 
 // Set the dock icon from PNG data.
 void metalSetDockIcon(const void *data, int len);
+
+// ─── Frame pump (nested runloops) ──────────────────────────────
+//
+// The Go event loop pumps events and frames from NSDefaultRunLoopMode
+// only. Whenever AppKit runs a nested runloop on the main thread — a
+// modal dialog ([NSAlert/NSSavePanel runModal]), menu tracking, the
+// live-resize tracking loop — that loop is blocked inside sendEvent:
+// and no frames are produced: queued commands never flush and the
+// window stops repainting until the nested loop exits.
+//
+// metalStartFramePump installs a repeating timer in
+// NSRunLoopCommonModes that renders a frame per window while such a
+// nested loop runs. It does nothing in NSDefaultRunLoopMode, where the
+// Go loop owns frame timing.
+//
+// This cannot help when the main thread blocks with no runloop running
+// at all (e.g. a synchronous system API that puts up a TCC permission
+// prompt) — no timer fires in that state.
+void metalStartFramePump(void);
+
+// Stop and release the frame-pump timer. Idempotent.
+void metalStopFramePump(void);
 
 #endif // METAL_WINDOW_H

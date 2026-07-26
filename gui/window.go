@@ -256,6 +256,12 @@ type Window struct {
 	refreshLayout     bool
 	refreshRenderOnly bool
 
+	// pumping guards PumpFrame against re-entry: a nested platform
+	// runloop can fire its frame timer again while the previous pump
+	// is still inside FrameFn (a command callback that itself spins a
+	// runloop, for instance). Main-thread only — no atomic needed.
+	pumping bool
+
 	// Window focus state — backend sets false on unfocus event.
 	focused bool
 }
