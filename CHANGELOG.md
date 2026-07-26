@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.43.0] - 2026-07-26
+
+### Added
+
+- **`Window.PumpFrame`.** Drives a single frame — flush, rebuild, present —
+  from outside the normal event loop. This is what lets the Metal backend keep
+  rendering while a nested AppKit run loop (a modal sheet, a native menu
+  tracking session) owns the main thread.
+
+### Changed
+
+- **BREAKING: `CommandButton` no longer takes a `*Window`.** The signature is
+  now `CommandButton(cmdID string, cfg ButtonCfg) View`. Command lookup,
+  auto-label, auto-disable, and `OnClick` wiring are deferred to
+  `GenerateLayout` via `ViewFunc`, so the widget no longer needs a window at
+  construction time. Callers drop the first argument:
+  `gui.CommandButton(w, "save", cfg)` → `gui.CommandButton("save", cfg)`.
+- **Dependencies: `go-glyph` bumped to v1.18.0**, picking up
+  `TextSystem.Purge` / `GlyphAtlas.Reset` / `Renderer.PurgeGlyphCache` for
+  mid-session glyph and atlas memory reclamation.
+
+### Fixed
+
+- **Metal: frames no longer freeze under a nested AppKit run loop.** A modal
+  sheet or native menu tracking session blocked the event loop; frames are now
+  pumped for the duration.
+- **Metal: removed an MSL lambda that broke every app on macOS Sonoma.** The
+  shader failed to compile on Sonoma, taking down app startup.
+
 ## [v0.42.0] - 2026-07-20
 
 ### Added
