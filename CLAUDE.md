@@ -5,11 +5,6 @@ Guidance for Claude Code (claude.ai/code) in this repo.
 ## Commands
 
 ```
-go test ./...          # run all tests (headless, ~12s)
-go test ./gui/... -run TestFoo  # run single test
-go vet ./...           # static analysis
-golangci-lint run ./...      # full lint: govet, staticcheck, errcheck, gocyclo, cyclop, modernize, unused, revive, gocritic, perfsprint, gosmopolitan (+ gofmt/goimports formatters)
-go build ./...         # build all packages
 go run ./examples/get_started/  # run the example app
 ./scripts/large-files.sh     # report Go files >800 lines in gui/
 ```
@@ -27,26 +22,14 @@ View fn → generateViewLayout() → Layout tree
 
 ### Packages
 
-- `gui/` — core: widget factories, layout engine, theme, animation,
-  event dispatch, state mgmt (~200 non-test .go files at top level).
-  **Keep flat: only leaf subsystems (svg/, datagrid/, markdown/,
-  backend/, etc.) in subpackages.**
-- `gui/backend/metal/` — Metal backend (macOS)
-- `gui/backend/gl/` — OpenGL backend; `web/`, `android/`, `ios/` — other
-  platform backends
-- `gui/backend/filedialog/`, `printdialog/`, `nativemenu/` — native dialogs/menus
-- `gui/backend/atspi/`, `sni/`, `spellcheck/` — Linux a11y / tray / spelling
-- `gui/backend/internal/` — shared backend internals
+- **Keep flat: only leaf subsystems (svg/, datagrid/, markdown/,
+  backend/, etc.) in subpackages.** `gui/` itself holds the core:
+  widget factories, layout engine, theme, animation, event dispatch,
+  state mgmt.
 - (no test backend package; tests run with nil injected interfaces)
-- `examples/` — 53 example apps (get_started, showcase, calculator, todo,
-  snake, markdown, custom_shader, draw_canvas, etc.)
 
 ### Core Types
 
-- `Layout` — tree node. `*Shape`, `*Layout` parent, `[]Layout` children
-- `Shape` — central renderable. Position, size, color, type, events, text, effects
-- `RenderCmd` — single draw op (rect, text, circle, image, SVG, …)
-- `Window` — top-level container. Holds typed state slot, layout tree, animations
 - `View` — interface (`Content() []View`, `GenerateLayout(*Window) Layout`).
   Widget factories return `View`, not `*Layout`; `*Layout` does NOT
   implement it. In tests, reach a widget's shape via
@@ -54,21 +37,12 @@ View fn → generateViewLayout() → Layout tree
 
 ### State Management
 
-One typed slot per window. No globals, no closures:
-
-```go
-w := gui.NewWindow(gui.WindowCfg{State: &App{}})
-app := gui.State[App](w)  // type-asserts; panics if wrong type
-```
+One typed slot per window. No globals, no closures. `gui.State[T](w)`
+type-asserts and **panics** if the window holds a different type.
 
 ### Sizing
 
-`Sizing` = struct `{Width, Height SizingType}`. Per-axis `SizingType`:
-`SizingFit` (shrink to content), `SizingFill` (fill parent),
-`SizingFixed` (unchanged). Named combos are `Sizing` vars: `FitFit`,
-`FitFill`, `FitFixed`, `FixedFit`, `FixedFill`, `FixedFixed`, `FillFit`,
-`FillFill`, `FillFixed`. A `FillFill` root fills the window (min=max
-seed in `updateLayout`).
+A `FillFill` root fills the window (min=max seed in `updateLayout`).
 
 ### Widgets
 
@@ -118,40 +92,6 @@ Backend injects at startup. Nil in tests:
 - Event callbacks must set `e.IsHandled = true` when consumed to stop
   propagation
 
-## Debugging native backends
-
-### CGo boundary blindness
-
-The LLM cannot trace values across the C↔Go boundary. A variable set in
-ObjC (e.g. `_evType`) and read in Go (`C.metalEventType()`) is opaque —
-the model can read the code on both sides but cannot verify the value
-survives the crossing. When a bug sits on this boundary:
-
-- Add debug logging on **both** sides simultaneously in the first pass.
-  stderr in C (`fprintf(stderr, ...); fflush(stderr)`), stderr in Go
-  (`fmt.Fprintf(os.Stderr, ...)` or `log.Printf`).
-- If the log on one side never appears, the value was lost or the code
-  path was never reached. This cuts diagnosis from hours to minutes.
-
-### Platform knowledge asymmetry
-
-The LLM knows Cocoa APIs in isolation but not their interactions with
-AppKit internals (event masks, tracking areas, responder chain, run-loop
-modes). Standard desktop behaviors that "just work" in a normal Cocoa
-app require correct participation in these systems. When platform-native
-behavior is broken (cursors, menus, title bar, window management):
-
-- Ask for a **minimal native test program** (10-30 lines of ObjC) before
-  modifying any go-gui code. Compare against a known-working variant
-  (e.g. `[NSApp run]` vs custom event loop, plain NSView vs
-  CAMetalLayer, `NSEventMaskAny` vs explicit mask). The test programs
-  in `gui/backend/metal/test_*.m` (untracked, build with `clang
--fobjc-arc -framework AppKit -framework Metal -framework QuartzCore`)
-  were essential to isolating the event-mask and menu bugs.
-- Ask "what would a Cocoa developer check first?" — the answer is
-  usually event masks, tracking areas, or run-loop configuration, not
-  application-level cursor or menu logic.
-
 ## Coding Conventions
 
 - **No variable shadowing.** Never `:=` redeclare var from outer scope.
@@ -171,7 +111,7 @@ behavior is broken (cursors, menus, title bar, window management):
 - Native/CGo or focus/activation bugs: confirm root cause with
   instrumented logging (evidence) before editing. Reproduce before,
   verify symptom gone after. Never leave the app non-launching. See
-  "Debugging native backends" for the logging technique.
+  `gui/backend/CLAUDE.md` for the two-sided logging technique.
 - Verify factual / root-cause claims against the code before asserting
   them. Don't state "go-glyph has a pure-Go path", "X is a table-version
   difference", etc. as fact without checking.
@@ -186,15 +126,6 @@ behavior is broken (cursors, menus, title bar, window management):
 - Before reviewing or editing a branch, confirm it is rebased on the
   current base branch. If stale, update first — do not build work on a
   stale base.
-
-## Release / Multi-repo
-
-- Direct go-gui consumers (require a go-gui bump on release): **go-charts,
-  go-edit, go-kite, go-map, go-term**. Verified against each repo's
-  `go.mod` `require` (all `github.com/go-gui-org/*`). go-glyph is
-  _upstream_ — go-gui depends on it, not the reverse; never a bump target.
-- On release, re-verify the list from `go.mod` files; don't rely on
-  memory. New consumers get added without updating this note.
 
 ## context-mode
 
