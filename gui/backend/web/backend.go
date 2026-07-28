@@ -328,7 +328,7 @@ func loadIconFont(data []byte) {
 	b64 := base64.StdEncoding.EncodeToString(data)
 	src := "url(data:font/truetype;base64," + b64 + ")"
 
-	ff := js.Global().Get("FontFace").New("feathericon", src)
+	ff := js.Global().Get("FontFace").New(gui.IconFontName, src)
 	promise := ff.Call("load")
 	var thenFn, catchFn js.Func
 	thenFn = js.FuncOf(func(_ js.Value, _ []js.Value) any {

@@ -13,7 +13,6 @@ package gl
 import (
 	"log"
 	"os"
-	"path/filepath"
 	"sync"
 
 	"github.com/go-gl/gl/v3.3-core/gl"
@@ -145,11 +144,7 @@ func (b *Backend) initGLResources(w *gui.Window) error {
 			b.iconFontPath = tmp
 		}
 	}
-	for _, p := range gui.AppFontPaths {
-		if aerr := textSys.AddFontFile(p); aerr != nil {
-			log.Printf("gl: load app font %q: %v", filepath.Base(p), aerr)
-		}
-	}
+	gui.LoadAppFonts(textSys, "gl")
 
 	w.SetTextMeasurer(&textMeasurer{textSys: textSys})
 	w.SetSvgParser(svg.New())

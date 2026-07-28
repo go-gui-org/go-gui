@@ -1,7 +1,10 @@
 package gui
 
 import (
+	"bytes"
 	_ "embed"
+	"log"
+	"path/filepath"
 	"slices"
 )
 
@@ -41,6 +44,78 @@ func RegisterAppFont(path string) {
 		return
 	}
 	AppFontPaths = append(AppFontPaths, path)
+}
+
+// AppFontData lists in-memory application fonts (TTF/OTF) to register
+// with the text system at backend init time. Append via
+// RegisterAppFontBytes before calling backend.RunApp / backend.Run.
+//
+// Use this for fonts embedded in the executable with go:embed — the
+// text system persists the bytes to its own temp file, so the caller
+// does not have to manage one.
+//
+// Consumed by the GL and Metal backends, matching where AppFontPaths is
+// consumed. The iOS, Android and web backends ignore both lists; on web
+// use the browser FontFace API instead.
+//
+// To retarget the themed icon styles at a registered font, set that
+// font's family name in ThemeCfg.IconFontFamily.
+var AppFontData [][]byte
+
+// RegisterAppFontBytes appends data to AppFontData if not already
+// present. Empty data is ignored. Safe to call multiple times with the
+// same font.
+//
+// data is retained by reference, not copied — the caller must not
+// mutate it afterwards. go:embed data satisfies this by construction.
+func RegisterAppFontBytes(data []byte) {
+	if len(data) == 0 {
+		return
+	}
+	// slices.Contains needs a comparable element; []byte is not.
+	if slices.ContainsFunc(AppFontData, func(d []byte) bool {
+		return bytes.Equal(d, data)
+	}) {
+		return
+	}
+	AppFontData = append(AppFontData, data)
+}
+
+// FontRegistrar is the font-loading subset of glyph.TextSystem that
+// LoadAppFonts needs. Backends pass their *glyph.TextSystem; tests pass
+// a fake.
+type FontRegistrar interface {
+	AddFontFile(path string) error
+	AddFontBytes(data []byte) error
+}
+
+// LoadAppFonts registers every font in AppFontPaths and AppFontData
+// with ts, naming the calling backend ("gl", "metal") in log lines.
+// Call once per text system during backend init, after the bundled icon
+// font is loaded.
+//
+// A font that fails to load is logged and skipped: one unreadable font
+// must not stop the remaining ones — or the window itself — from coming
+// up. A nil ts is a no-op.
+func LoadAppFonts(ts FontRegistrar, backend string) {
+	if ts == nil {
+		return
+	}
+	for _, p := range AppFontPaths {
+		if err := ts.AddFontFile(p); err != nil {
+			log.Printf("%s: load app font %q: %v",
+				backend, filepath.Base(p), err)
+		}
+	}
+	// AddFontBytes owns the temp file it writes and removes it in Free,
+	// so there is nothing to track here. Byte slices have no name to
+	// report, so identify a failure by index and size.
+	for i, d := range AppFontData {
+		if err := ts.AddFontBytes(d); err != nil {
+			log.Printf("%s: load app font bytes #%d (%d bytes): %v",
+				backend, i, len(d), err)
+		}
+	}
 }
 
 // Icon constants — Feather icon font Unicode mappings.

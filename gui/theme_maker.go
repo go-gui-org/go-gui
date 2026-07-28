@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"cmp"
 	"time"
 
 	"github.com/go-gui-org/go-glyph"
@@ -14,6 +15,11 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		s.Size = size
 		return s
 	}
+
+	// Icon family for every theme-driven icon style. A ThemeCfg built
+	// from scratch (not via baseCfg) leaves this empty, so fall back to
+	// the bundled font rather than render icons in the default family.
+	iconFamily := cmp.Or(cfg.IconFontFamily, IconFontName)
 
 	borderFocus := cfg.ColorBorderFocus
 	if borderFocus.Eq(Color{}) {
@@ -182,7 +188,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			TextStyleIcon: TextStyle{
 				Color:  ts.Color,
 				Size:   cfg.SizeTextSmall,
-				Family: IconFontName,
+				Family: iconFamily,
 			},
 			Indent:  25,
 			Spacing: 0,
@@ -565,7 +571,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 
 	// Icon font shortcuts.
 	icon := ts
-	icon.Family = IconFontName
+	icon.Family = iconFamily
 	theme.Icon1 = makeStyle(icon, theme.SizeTextXLarge)
 	theme.Icon2 = makeStyle(icon, theme.SizeTextLarge)
 	theme.Icon3 = makeStyle(icon, theme.SizeTextMedium)
