@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`ThemeCfg.IconFontFamily`.** Sets the font family used by every
+  theme-driven icon style (`Theme.Icon1`…`Icon6` and
+  `TreeStyle.TextStyleIcon`), so an app that ships its own curated icon font
+  can retarget them all with one field. Mirrors the existing
+  `MonoFontFamily` handling: defaulted to `IconFontName` in `baseCfg()`, and
+  an empty value falls back to `IconFontName`. No behavior change for
+  existing apps — the bundled Feather font stays embedded, registered, and
+  the default.
+- **`gui.RegisterAppFontBytes([]byte)`.** Registers an in-memory font
+  (e.g. one loaded with `go:embed`) alongside the existing path-based
+  `RegisterAppFont`. The text system persists the bytes to its own temp file
+  and removes it on teardown, so callers no longer need to manage one.
+  Consumed by the GL and Metal backends, matching where `AppFontPaths` is
+  consumed today.
+- **`gui.LoadAppFonts(FontRegistrar, string)`.** Registers everything in
+  `AppFontPaths` and `AppFontData` with a text system, logging and skipping
+  fonts that fail to load so one bad font cannot stop the window from coming
+  up. Replaces the per-backend loops the GL and Metal backends each carried,
+  and takes the narrow `gui.FontRegistrar` interface
+  (`AddFontFile`/`AddFontBytes`) so backends yet to adopt it — iOS, Android —
+  can wire it up with one call.
+
 ## [v0.43.0] - 2026-07-26
 
 ### Added

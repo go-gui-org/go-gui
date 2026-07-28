@@ -131,6 +131,16 @@ type ThemeCfg struct {
 
 	MonoFontFamily string // font family for code/mono text
 
+	// IconFontFamily is the font family for the themed icon styles
+	// (Icon1..Icon6, TreeStyle.TextStyleIcon). Defaults to
+	// IconFontName; an app that ships its own icon font sets this to
+	// that font's family name. Empty falls back to IconFontName.
+	//
+	// Setting this only retargets the styles — the font itself must
+	// still be registered with RegisterAppFont or RegisterAppFontBytes
+	// before the backend starts, or icons render as tofu.
+	IconFontFamily string
+
 	Padding Padding
 
 	PaddingSmall  Padding

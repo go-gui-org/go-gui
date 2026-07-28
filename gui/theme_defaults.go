@@ -26,6 +26,7 @@ const (
 func baseCfg() ThemeCfg {
 	return ThemeCfg{
 		MonoFontFamily:   defaultMonoFontFamily,
+		IconFontFamily:   IconFontName,
 		Padding:          PaddingMedium,
 		PaddingSmall:     PaddingSmall,
 		PaddingMedium:    PaddingMedium,
