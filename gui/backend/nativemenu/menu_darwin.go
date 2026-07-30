@@ -233,10 +233,21 @@ func SetMenubar(
 		suppSys = 1
 	}
 
+	omitAbout := C.int(0)
+	if cfg.OmitAboutItem {
+		omitAbout = 1
+	}
+
+	inclWindow := C.int(0)
+	if cfg.IncludeWindowMenu {
+		inclWindow = 1
+	}
+
 	C.nativemenuSetMenubar(cAppName,
 		menusPtr, C.int(len(menuDescs)),
 		itemsPtr, C.int(len(allItems)),
-		inclEdit, suppSys, cAboutID)
+		inclEdit, suppSys, cAboutID,
+		omitAbout, inclWindow)
 }
 
 // ClearMenubar removes the native menubar.

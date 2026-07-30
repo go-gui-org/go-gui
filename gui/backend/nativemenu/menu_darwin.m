@@ -190,38 +190,43 @@ static NSMenuItem *standardEditMenu(void) {
 // ---------------------------------------------------------------------------
 
 static NSMenuItem *appMenu(const char *appName,
-    const char *aboutActionID) {
+    const char *aboutActionID, int omitAboutItem) {
     NSString *name = appName
         ? [NSString stringWithUTF8String:appName]
         : @"";
 
     NSMenu *menu = [[NSMenu alloc] initWithTitle:name];
 
-    NSString *aboutTitle =
-        [NSString stringWithFormat:@"About %@", name];
-    NSMenuItem *about;
-    if (aboutActionID != NULL && aboutActionID[0] != '\0') {
-        // Route through the user action callback so the app can show
-        // its own About dialog instead of the system About panel.
-        // Deliberate deviation from the AppKit-selector pattern used
-        // by Quit: About content is app-defined, not OS-defined.
-        MenuActionHandler *handler = sharedHandler();
-        about = [[NSMenuItem alloc]
-            initWithTitle:aboutTitle
-            action:@selector(menuItemClicked:)
-            keyEquivalent:@""];
-        about.target = handler;
-        about.representedObject =
-            [NSString stringWithUTF8String:aboutActionID];
-    } else {
-        about = [[NSMenuItem alloc]
-            initWithTitle:aboutTitle
-            action:@selector(orderFrontStandardAboutPanel:)
-            keyEquivalent:@""];
-    }
-    [menu addItem:about];
+    // omitAboutItem leaves the app menu with Quit only — for apps that
+    // place About under their own Help menu. The separator goes with it:
+    // a leading separator above Quit reads as a rendering bug.
+    if (!omitAboutItem) {
+        NSString *aboutTitle =
+            [NSString stringWithFormat:@"About %@", name];
+        NSMenuItem *about;
+        if (aboutActionID != NULL && aboutActionID[0] != '\0') {
+            // Route through the user action callback so the app can show
+            // its own About dialog instead of the system About panel.
+            // Deliberate deviation from the AppKit-selector pattern used
+            // by Quit: About content is app-defined, not OS-defined.
+            MenuActionHandler *handler = sharedHandler();
+            about = [[NSMenuItem alloc]
+                initWithTitle:aboutTitle
+                action:@selector(menuItemClicked:)
+                keyEquivalent:@""];
+            about.target = handler;
+            about.representedObject =
+                [NSString stringWithUTF8String:aboutActionID];
+        } else {
+            about = [[NSMenuItem alloc]
+                initWithTitle:aboutTitle
+                action:@selector(orderFrontStandardAboutPanel:)
+                keyEquivalent:@""];
+        }
+        [menu addItem:about];
 
-    [menu addItem:[NSMenuItem separatorItem]];
+        [menu addItem:[NSMenuItem separatorItem]];
+    }
 
     NSString *quitTitle =
         [NSString stringWithFormat:@"Quit %@", name];
@@ -235,6 +240,37 @@ static NSMenuItem *appMenu(const char *appName,
 
     NSMenuItem *item = [[NSMenuItem alloc]
         initWithTitle:name action:nil keyEquivalent:@""];
+    item.submenu = menu;
+    return item;
+}
+
+// ---------------------------------------------------------------------------
+// Standard Window menu (Close, Minimize, Zoom, Bring All to Front).
+// ---------------------------------------------------------------------------
+
+// windowMenu mirrors the menu the metal backend installs by default, so an
+// app that replaces the default menubar with SetNativeMenubar doesn't silently
+// lose Cmd+W / Cmd+M. Registered with NSApp via setWindowsMenu: by the caller
+// so AppKit appends the open-window list.
+static NSMenuItem *windowMenu(void) {
+    NSMenu *menu = [[NSMenu alloc] initWithTitle:@"Window"];
+
+    NSMenuItem *close = [menu addItemWithTitle:@"Close"
+        action:@selector(performClose:) keyEquivalent:@"w"];
+    close.keyEquivalentModifierMask = NSEventModifierFlagCommand;
+
+    NSMenuItem *min = [menu addItemWithTitle:@"Minimize"
+        action:@selector(performMiniaturize:) keyEquivalent:@"m"];
+    min.keyEquivalentModifierMask = NSEventModifierFlagCommand;
+
+    [menu addItemWithTitle:@"Zoom"
+        action:@selector(performZoom:) keyEquivalent:@""];
+    [menu addItem:[NSMenuItem separatorItem]];
+    [menu addItemWithTitle:@"Bring All to Front"
+        action:@selector(arrangeInFront:) keyEquivalent:@""];
+
+    NSMenuItem *item = [[NSMenuItem alloc]
+        initWithTitle:@"Window" action:nil keyEquivalent:@""];
     item.submenu = menu;
     return item;
 }
@@ -286,13 +322,15 @@ void nativemenuSetMenubar(const char *appName,
     NativeMenuItemC *allItems, int itemCount,
     int includeEditMenu,
     int suppressSystemEditItems,
-    const char *aboutActionID) {
+    const char *aboutActionID,
+    int omitAboutItem,
+    int includeWindowMenu) {
 
     @autoreleasepool {
         NSMenu *bar = [[NSMenu alloc] init];
 
         // App menu.
-        [bar addItem:appMenu(appName, aboutActionID)];
+        [bar addItem:appMenu(appName, aboutActionID, omitAboutItem)];
 
         // User-defined menus.
         MenuActionHandler *handler = sharedHandler();
@@ -319,6 +357,22 @@ void nativemenuSetMenubar(const char *appName,
             // Insert after File if present, or at index 1.
             NSInteger idx = bar.numberOfItems > 1 ? 2 : 1;
             [bar insertItem:standardEditMenu() atIndex:idx];
+        }
+
+        // Standard Window menu. macOS convention puts it second to last,
+        // immediately before Help — so insert before a user-supplied Help
+        // menu when there is one, else append.
+        if (includeWindowMenu) {
+            NSInteger idx = bar.numberOfItems;
+            for (NSInteger i = 0; i < bar.numberOfItems; i++) {
+                if ([[bar itemAtIndex:i].title isEqualToString:@"Help"]) {
+                    idx = i;
+                    break;
+                }
+            }
+            NSMenuItem *wm = windowMenu();
+            [bar insertItem:wm atIndex:idx];
+            [NSApp setWindowsMenu:wm.submenu];
         }
 
         [NSApp setMainMenu:bar];

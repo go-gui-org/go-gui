@@ -26,7 +26,9 @@ void nativemenuSetMenubar(const char *appName,
     NativeMenuItemC *allItems, int itemCount,
     int includeEditMenu,
     int suppressSystemEditItems,
-    const char *aboutActionID);
+    const char *aboutActionID,
+    int omitAboutItem,
+    int includeWindowMenu);
 
 // Remove the custom menubar (revert to default).
 void nativemenuClearMenubar(void);
