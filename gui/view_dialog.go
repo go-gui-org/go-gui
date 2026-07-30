@@ -310,6 +310,13 @@ func (w *Window) Dialog(cfg DialogCfg) {
 	cfg.visible = true
 	cfg.oldFocusID = w.viewState.focusID
 	w.dialogCfg = cfg
+	// The dialog overlay is built during a full layout pass, so the flag has
+	// to be set explicitly: a caller outside the event path (a native menu
+	// action, a QueueCommand from a worker) leaves the window otherwise idle,
+	// and the render-only frames a blinking cursor produces reuse the existing
+	// layout tree — the dialog would stay invisible until an unrelated event
+	// forced a rebuild.
+	w.markLayoutRefresh()
 	w.SetFocus(dialogFocusID(cfg))
 }
 
@@ -317,6 +324,9 @@ func (w *Window) Dialog(cfg DialogCfg) {
 func (w *Window) DialogDismiss() {
 	oldFocus := w.dialogCfg.oldFocusID
 	w.dialogCfg = DialogCfg{}
+	// Same reasoning as Dialog: without a rebuild the overlay stays on screen
+	// after a programmatic dismiss.
+	w.markLayoutRefresh()
 	w.SetFocus(oldFocus)
 }
 

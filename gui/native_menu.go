@@ -28,6 +28,15 @@ type NativeMenubarCfg struct {
 	Menus                   []NativeMenuCfg // File, Edit, View, etc.
 	IncludeEditMenu         bool            // auto-wire standard Edit menu
 	SuppressSystemEditItems bool            // remove OS-injected AutoFill/WritingTools/Dictation
+	// OmitAboutItem drops "About <AppName>" (and its separator) from the app
+	// menu, leaving Quit alone. For apps that put About under their own Help
+	// menu. Takes precedence over AboutActionID — no About item is created.
+	OmitAboutItem bool
+	// IncludeWindowMenu auto-wires the standard Window menu (Close, Minimize,
+	// Zoom, Bring All to Front) and registers it with the OS window list.
+	// Installing a menubar replaces the backend's default one, so without
+	// this the app loses Cmd+W / Cmd+M.
+	IncludeWindowMenu bool
 }
 
 // NativeMenuItemsFromMenuItems converts in-app MenuItemCfg

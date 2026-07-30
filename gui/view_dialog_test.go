@@ -381,6 +381,36 @@ func TestRetainDialogFocus_DefaultButtonYes(t *testing.T) {
 	}
 }
 
+func TestDialogMarksLayoutRefresh(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	w.refreshLayout = false
+	w.dialogCfg = DialogCfg{} // visible=false
+
+	w.Dialog(DialogCfg{DialogType: DialogMessage, Title: "Hi"})
+	if !w.refreshLayout {
+		t.Error("Dialog should mark layout refresh")
+	}
+}
+
+func TestDialogDismissMarksLayoutRefresh(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	w.Dialog(DialogCfg{DialogType: DialogMessage, Title: "Hi"})
+	w.refreshLayout = false
+
+	w.DialogDismiss()
+	if !w.refreshLayout {
+		t.Error("DialogDismiss should mark layout refresh")
+	}
+}
+
+func TestDialogDoubleDismissNoPanic(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	w.Dialog(DialogCfg{DialogType: DialogMessage, Title: "Hi"})
+	w.DialogDismiss()
+	// Second dismiss must not panic.
+	w.DialogDismiss()
+}
+
 func TestDialogConfirmView(t *testing.T) {
 	cfg := DialogCfg{
 		Title:      "Confirm?",
