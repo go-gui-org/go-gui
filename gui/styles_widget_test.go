@@ -7,7 +7,7 @@ import (
 )
 
 func TestDefaultInputStyleColors(t *testing.T) {
-	s := DefaultInputStyle
+	s := pristineInputStyle
 	if s.Color.Eq(Color{}) {
 		t.Error("input color should not be zero")
 	}
@@ -17,7 +17,7 @@ func TestDefaultInputStyleColors(t *testing.T) {
 }
 
 func TestDefaultScrollbarStyle(t *testing.T) {
-	s := DefaultScrollbarStyle
+	s := pristineScrollbarStyle
 	if s.Size != 7 {
 		t.Errorf("scrollbar size = %f", s.Size)
 	}
@@ -33,11 +33,11 @@ func TestDefaultWidgetStylesNonZero(t *testing.T) {
 		name   string
 		radius float32
 	}{
-		{"radio", DefaultRadioStyle.SizeBorder},
-		{"switch", DefaultSwitchStyle.SizeBorder},
-		{"toggle", DefaultToggleStyle.SizeBorder},
-		{"select", DefaultSelectStyle.SizeBorder},
-		{"listbox", DefaultListBoxStyle.SizeBorder},
+		{"radio", pristineRadioStyle.SizeBorder},
+		{"switch", pristineSwitchStyle.SizeBorder},
+		{"toggle", pristineToggleStyle.SizeBorder},
+		{"select", pristineSelectStyle.SizeBorder},
+		{"listbox", pristineListBoxStyle.SizeBorder},
 	}
 	for _, s := range styles {
 		if s.radius == 0 {
@@ -47,7 +47,7 @@ func TestDefaultWidgetStylesNonZero(t *testing.T) {
 }
 
 func TestDefaultDialogStyle(t *testing.T) {
-	s := DefaultDialogStyle
+	s := pristineDialogStyle
 	if s.Color.Eq(Color{}) {
 		t.Error("dialog color should not be zero")
 	}
@@ -60,7 +60,7 @@ func TestDefaultDialogStyle(t *testing.T) {
 }
 
 func TestDefaultToastStyle(t *testing.T) {
-	s := DefaultToastStyle
+	s := pristineToastStyle
 	if s.MaxVisible != 5 {
 		t.Errorf("max_visible = %d, want 5", s.MaxVisible)
 	}
@@ -73,7 +73,7 @@ func TestDefaultToastStyle(t *testing.T) {
 }
 
 func TestDefaultTooltipStyle(t *testing.T) {
-	s := DefaultTooltipStyle
+	s := pristineTooltipStyle
 	if s.Delay == 0 {
 		t.Error("delay should not be zero")
 	}
@@ -121,7 +121,7 @@ func TestEffectiveTextTransformDefault(t *testing.T) {
 }
 
 func TestDefaultTreeStyle(t *testing.T) {
-	s := DefaultTreeStyle
+	s := pristineTreeStyle
 	if !s.ColorHover.IsSet() {
 		t.Error("tree hover color should be set")
 	}

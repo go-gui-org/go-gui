@@ -366,3 +366,431 @@ func TestFormShouldValidate(t *testing.T) {
 		}
 	}
 }
+
+// --- Layout-walking variants -----------------------------------------
+//
+// Only the *ByID entry points were covered; these are the ones widgets
+// actually call from AmendLayout, where the form ID must be recovered
+// from the parent chain.
+
+// formLayoutFixture builds a form -> child parent chain and returns the
+// child, which is what a widget's AmendLayout would hold.
+func formLayoutFixture(formID string) *Layout {
+	parent := &Layout{Shape: &Shape{ID: formLayoutID(formID)}}
+	return &Layout{Shape: &Shape{ID: "input-1"}, Parent: parent}
+}
+
+func TestFormRegisterFieldViaLayout(t *testing.T) {
+	w := newTestWindow()
+	child := formLayoutFixture("layout-form")
+
+	FormRegisterField(w, child, FormFieldAdapterCfg{
+		FieldID: "email",
+		Value:   "a@b.c",
+	})
+
+	fs, ok := w.FormFieldState("layout-form", "email")
+	if !ok {
+		t.Fatal("field not registered against the ancestor form")
+	}
+	if fs.Value != "a@b.c" {
+		t.Errorf("value = %q, want %q", fs.Value, "a@b.c")
+	}
+}
+
+func TestFormRegisterFieldNoOps(t *testing.T) {
+	// Each of these must leave the form state untouched rather than
+	// panic — widgets call this unconditionally from AmendLayout.
+	cases := []struct {
+		name   string
+		layout *Layout
+		cfg    FormFieldAdapterCfg
+	}{
+		{"nil layout", nil, FormFieldAdapterCfg{FieldID: "f"}},
+		{"empty field id", formLayoutFixture("f1"), FormFieldAdapterCfg{}},
+		{
+			"no ancestor form",
+			&Layout{Shape: &Shape{ID: "loose-input"}},
+			FormFieldAdapterCfg{FieldID: "f"},
+		},
+	}
+	for _, tc := range cases {
+		w := newTestWindow()
+		FormRegisterField(w, tc.layout, tc.cfg)
+		if state := formRuntimeRead(w, "f1"); state != nil && len(state.fields) > 0 {
+			t.Errorf("%s: expected no field registration, got %d",
+				tc.name, len(state.fields))
+		}
+	}
+}
+
+func TestFormOnFieldEventViaLayout(t *testing.T) {
+	w := newTestWindow()
+	child := formLayoutFixture("evt-form")
+
+	required := func(f FormFieldSnapshot, _ FormSnapshot) []FormIssue {
+		if f.Value == "" {
+			return []FormIssue{{Msg: "required"}}
+		}
+		return nil
+	}
+	cfg := FormFieldAdapterCfg{
+		FieldID:        "name",
+		Value:          "",
+		SyncValidators: []FormSyncValidator{required},
+	}
+
+	FormRegisterField(w, child, cfg)
+	FormOnFieldEvent(w, child, cfg, FormTriggerBlur)
+
+	issues := w.FormFieldErrors("evt-form", "name")
+	if len(issues) != 1 || issues[0].Msg != "required" {
+		t.Fatalf("expected the sync validator to run, got %v", issues)
+	}
+
+	fs, _ := w.FormFieldState("evt-form", "name")
+	if !fs.Touched {
+		t.Error("blur should mark the field touched")
+	}
+}
+
+func TestFormOnFieldEventNoOps(t *testing.T) {
+	w := newTestWindow()
+	// Empty FieldID and a layout with no ancestor form both return
+	// before touching form state.
+	FormOnFieldEvent(w, formLayoutFixture("f1"), FormFieldAdapterCfg{},
+		FormTriggerBlur)
+	FormOnFieldEvent(w, &Layout{Shape: &Shape{ID: "loose"}},
+		FormFieldAdapterCfg{FieldID: "f"}, FormTriggerBlur)
+
+	if state := formRuntimeRead(w, "f1"); state != nil && len(state.fields) > 0 {
+		t.Errorf("expected no fields, got %d", len(state.fields))
+	}
+}
+
+// --- Submit / reset requests -----------------------------------------
+
+func TestFormRequestSubmitSetsFlag(t *testing.T) {
+	w := newTestWindow()
+	FormRequestSubmit(w, "req-form")
+
+	state := formRuntimeRead(w, "req-form")
+	if state == nil {
+		t.Fatal("expected form state to be created lazily")
+	}
+	if !state.submitReq {
+		t.Error("submitReq not set")
+	}
+}
+
+func TestFormRequestResetSetsFlag(t *testing.T) {
+	w := newTestWindow()
+	FormRequestReset(w, "req-form")
+
+	state := formRuntimeRead(w, "req-form")
+	if state == nil {
+		t.Fatal("expected form state to be created lazily")
+	}
+	if !state.resetReq {
+		t.Error("resetReq not set")
+	}
+}
+
+func TestFormRequestEmptyIDNoOp(t *testing.T) {
+	// An empty ID must not create a state entry under "".
+	w := newTestWindow()
+	FormRequestSubmit(w, "")
+	FormRequestReset(w, "")
+	if state := formRuntimeRead(w, ""); state != nil {
+		t.Error("empty form ID should not create form state")
+	}
+}
+
+// FormSubmit/FormReset are aliases; assert they hit the same flags so a
+// future divergence is caught.
+func TestFormSubmitResetMethodAliases(t *testing.T) {
+	w := newTestWindow()
+	w.FormSubmit("alias-form")
+	w.FormReset("alias-form")
+
+	state := formRuntimeRead(w, "alias-form")
+	if state == nil {
+		t.Fatal("expected form state")
+	}
+	if !state.submitReq {
+		t.Error("FormSubmit did not set submitReq")
+	}
+	if !state.resetReq {
+		t.Error("FormReset did not set resetReq")
+	}
+}
+
+// --- FormRequestSubmitForLayout --------------------------------------
+
+func TestFormRequestSubmitForLayoutSuccess(t *testing.T) {
+	w := newTestWindow()
+	child := formLayoutFixture("enter-form")
+	formApplyCfg(w, "enter-form", FormCfg{ID: "enter-form"}) // submitOnEnter defaults on
+
+	FormRequestSubmitForLayout(w, child)
+
+	state := formRuntimeRead(w, "enter-form")
+	if state == nil || !state.submitReq {
+		t.Fatal("Enter on a field should have requested submit")
+	}
+}
+
+func TestFormRequestSubmitForLayoutSuppressedWhenDisabled(t *testing.T) {
+	w := newTestWindow()
+	child := formLayoutFixture("no-enter-form")
+	formApplyCfg(w, "no-enter-form", FormCfg{
+		ID:              "no-enter-form",
+		NoSubmitOnEnter: true,
+	})
+
+	FormRequestSubmitForLayout(w, child)
+
+	state := formRuntimeRead(w, "no-enter-form")
+	if state == nil {
+		t.Fatal("expected existing form state")
+	}
+	if state.submitReq {
+		t.Error("NoSubmitOnEnter should suppress the submit request")
+	}
+}
+
+func TestFormRequestSubmitForLayoutEarlyReturns(t *testing.T) {
+	// nil layout, nil Shape and no-ancestor all bail before touching
+	// state. The un-applied-cfg case bails on formRuntimeRead == nil:
+	// a form that never rendered has no state, so Enter does nothing
+	// even though the layout chain resolves.
+	w := newTestWindow()
+	FormRequestSubmitForLayout(w, nil)
+	FormRequestSubmitForLayout(w, &Layout{})
+	FormRequestSubmitForLayout(w, &Layout{Shape: &Shape{ID: "loose"}})
+	FormRequestSubmitForLayout(w, formLayoutFixture("never-rendered"))
+
+	if state := formRuntimeRead(w, "never-rendered"); state != nil {
+		t.Error("expected no form state for a form that never applied its cfg")
+	}
+}
+
+// --- Summary / pending -------------------------------------------------
+
+func TestFormSummaryUnknownFormIsValid(t *testing.T) {
+	// An unknown form reads as valid so callers can gate a submit
+	// button before the form has rendered.
+	w := newTestWindow()
+	got := w.FormSummary("nope")
+	if !got.Valid {
+		t.Error("unknown form should read as valid")
+	}
+	if got.Pending || got.InvalidCount != 0 || got.PendingCount != 0 {
+		t.Errorf("unknown form summary = %+v, want zero counts", got)
+	}
+	if got.Issues != nil {
+		t.Errorf("Issues = %v, want nil", got.Issues)
+	}
+}
+
+func TestFormSummaryIssuesNilWhenClean(t *testing.T) {
+	// The Issues map is allocated lazily — a clean form must not pay
+	// for it.
+	w := newTestWindow()
+	FormRegisterFieldByID(w, "clean", FormFieldAdapterCfg{
+		FieldID: "a", Value: "ok",
+	})
+
+	got := w.FormSummary("clean")
+	if !got.Valid {
+		t.Error("form with no errors should be valid")
+	}
+	if got.Issues != nil {
+		t.Errorf("Issues = %v, want nil for a clean form", got.Issues)
+	}
+}
+
+func TestFormSummaryCountsInvalidFields(t *testing.T) {
+	w := newTestWindow()
+	formID := "sum-form"
+	required := func(f FormFieldSnapshot, _ FormSnapshot) []FormIssue {
+		if f.Value == "" {
+			return []FormIssue{{Msg: "required"}}
+		}
+		return nil
+	}
+	for _, id := range []string{"a", "b"} {
+		cfg := FormFieldAdapterCfg{
+			FieldID:        id,
+			Value:          "",
+			SyncValidators: []FormSyncValidator{required},
+		}
+		FormRegisterFieldByID(w, formID, cfg)
+		FormOnFieldEventByID(w, formID, cfg, FormTriggerBlur)
+	}
+
+	got := w.FormSummary(formID)
+	if got.Valid {
+		t.Error("form with two failing fields should be invalid")
+	}
+	if got.InvalidCount != 2 {
+		t.Errorf("InvalidCount = %d, want 2", got.InvalidCount)
+	}
+	if len(got.Issues) != 2 {
+		t.Errorf("Issues has %d entries, want 2", len(got.Issues))
+	}
+}
+
+func TestFormPendingStateUnknownForm(t *testing.T) {
+	w := newTestWindow()
+	got := w.FormPendingState("nope")
+	if got.FormID != "nope" {
+		t.Errorf("FormID = %q, want %q", got.FormID, "nope")
+	}
+	if got.FieldIDs != nil {
+		t.Errorf("FieldIDs = %v, want nil", got.FieldIDs)
+	}
+	if got.PendingCount != 0 {
+		t.Errorf("PendingCount = %d, want 0", got.PendingCount)
+	}
+}
+
+func TestFormPendingStateSortsFieldIDs(t *testing.T) {
+	// Map iteration is random; the ID list must come back sorted so
+	// callers can render a stable "validating…" list.
+	w := newTestWindow()
+	formID := "pending-form"
+	block := make(chan struct{})
+	t.Cleanup(func() { close(block) })
+
+	slowVal := func(
+		_ FormFieldSnapshot, _ FormSnapshot, _ *GridAbortSignal,
+	) []FormIssue {
+		<-block
+		return nil
+	}
+
+	for _, id := range []string{"zeta", "alpha", "mid"} {
+		cfg := FormFieldAdapterCfg{
+			FieldID:         id,
+			Value:           "v",
+			AsyncValidators: []FormAsyncValidator{slowVal},
+		}
+		FormRegisterFieldByID(w, formID, cfg)
+		FormOnFieldEventByID(w, formID, cfg, FormTriggerBlur)
+	}
+
+	got := w.FormPendingState(formID)
+	if got.PendingCount != 3 {
+		t.Fatalf("PendingCount = %d, want 3", got.PendingCount)
+	}
+	want := []string{"alpha", "mid", "zeta"}
+	for i, id := range want {
+		if got.FieldIDs[i] != id {
+			t.Errorf("FieldIDs[%d] = %q, want %q", i, got.FieldIDs[i], id)
+		}
+	}
+}
+
+// --- Stale async results ---------------------------------------------
+
+// Every revalidation bumps requestSeq. A result carrying an older
+// requestID belongs to an aborted run and must be dropped, or a slow
+// stale validator would clobber the current field state.
+func TestFormApplyAsyncResultDropsStaleRequest(t *testing.T) {
+	w := newTestWindow()
+	formID := "stale-form"
+
+	cfg := FormFieldAdapterCfg{
+		FieldID: "f",
+		Value:   "v",
+		AsyncValidators: []FormAsyncValidator{
+			func(_ FormFieldSnapshot, _ FormSnapshot, _ *GridAbortSignal) []FormIssue {
+				return nil
+			},
+		},
+	}
+	FormRegisterFieldByID(w, formID, cfg)
+	FormOnFieldEventByID(w, formID, cfg, FormTriggerBlur)
+
+	state := formRuntimeRead(w, formID)
+	field := state.fields["f"]
+	current := field.requestSeq
+
+	formApplyAsyncResult(w, formID, "f", current-1,
+		[]FormIssue{{Msg: "stale"}})
+
+	if len(field.asyncErrors) != 0 {
+		t.Errorf("stale result applied: asyncErrors = %v", field.asyncErrors)
+	}
+	if !field.pending {
+		t.Error("stale result cleared the pending flag")
+	}
+
+	// The in-flight result for the current request still lands.
+	formApplyAsyncResult(w, formID, "f", current,
+		[]FormIssue{{Msg: "fresh"}})
+	if len(field.asyncErrors) != 1 || field.asyncErrors[0].Msg != "fresh" {
+		t.Errorf("current result not applied: %v", field.asyncErrors)
+	}
+	if field.pending {
+		t.Error("current result should have cleared pending")
+	}
+}
+
+func TestFormApplyAsyncResultUnknownTargets(t *testing.T) {
+	// Unknown form and unknown field both return early rather than
+	// creating state — an async result can outlive its form.
+	w := newTestWindow()
+	formApplyAsyncResult(w, "ghost", "f", 1, []FormIssue{{Msg: "x"}})
+	if formRuntimeRead(w, "ghost") != nil {
+		t.Error("async result should not create form state")
+	}
+
+	FormRegisterFieldByID(w, "real", FormFieldAdapterCfg{FieldID: "a", Value: "v"})
+	formApplyAsyncResult(w, "real", "missing", 1, []FormIssue{{Msg: "x"}})
+	if _, ok := w.FormFieldState("real", "missing"); ok {
+		t.Error("async result should not create a field")
+	}
+}
+
+// FormFieldErrors returns the underlying syncErrors/asyncErrors slice
+// whenever one side is empty (formMergeErrors takes that shortcut), and
+// those slices are truncated with [:0] and re-appended in place on the
+// next validation. A retained result therefore aliases live state.
+// Callers must clone before holding across a frame; this test documents
+// the contract so it is not mistaken for a defensive copy.
+func TestFormFieldErrorsAliasesRuntimeSlice(t *testing.T) {
+	w := newTestWindow()
+	formID := "alias-errors"
+
+	msg := "first"
+	validator := func(_ FormFieldSnapshot, _ FormSnapshot) []FormIssue {
+		return []FormIssue{{Msg: msg}}
+	}
+	cfg := FormFieldAdapterCfg{
+		FieldID:        "f",
+		Value:          "v",
+		SyncValidators: []FormSyncValidator{validator},
+	}
+
+	FormRegisterFieldByID(w, formID, cfg)
+	FormOnFieldEventByID(w, formID, cfg, FormTriggerBlur)
+
+	retained := w.FormFieldErrors(formID, "f")
+	if len(retained) != 1 || retained[0].Msg != "first" {
+		t.Fatalf("setup: got %v, want one 'first' issue", retained)
+	}
+
+	// Revalidate with a different message. The runtime reuses the same
+	// backing array, so the retained slice observes the new value.
+	msg = "second"
+	FormOnFieldEventByID(w, formID, cfg, FormTriggerBlur)
+
+	if retained[0].Msg != "second" {
+		t.Errorf("retained[0].Msg = %q, want %q — formMergeErrors is "+
+			"documented to alias the runtime slice; if this now returns "+
+			"a copy, update the doc comment on FormFieldErrors",
+			retained[0].Msg, "second")
+	}
+}

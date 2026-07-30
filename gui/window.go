@@ -29,11 +29,14 @@ type FontLister interface {
 }
 
 // ListSystemFonts returns font family names from the active text
-// system's catalog, sorted case-insensitively. Returns nil before
-// backend init, on WASM stub backends, or on backends that do not
-// implement FontLister. Includes RegisterAppFont families once those
-// paths have been added to the text system.
+// system's catalog, sorted case-insensitively. Returns nil for a nil
+// window, before backend init, on WASM stub backends, or on backends
+// that do not implement FontLister. Includes RegisterAppFont families
+// once those paths have been added to the text system.
 func ListSystemFonts(w *Window) []string {
+	if w == nil {
+		return nil
+	}
 	if fl, ok := w.textMeasurer.(FontLister); ok {
 		return fl.ListFontFamilies()
 	}
