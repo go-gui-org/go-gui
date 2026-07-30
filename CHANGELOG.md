@@ -7,8 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.44.0] - 2026-07-30
+
 ### Added
 
+- **`NativeMenubarCfg.OmitAboutItem`.** Drops "About <AppName>" and its
+  separator from the app menu, leaving Quit alone, for apps that expose About
+  under their own Help menu. Takes precedence over `AboutActionID` — no About
+  item is created at all.
+- **`NativeMenubarCfg.IncludeWindowMenu`.** Auto-wires the standard Window
+  menu (Close, Minimize, Zoom, Bring All to Front) and registers it with the
+  OS window list. Installing a menubar replaces the backend's default one, so
+  without this an app silently loses Cmd+W / Cmd+M.
 - **`ThemeCfg.IconFontFamily`.** Sets the font family used by every
   theme-driven icon style (`Theme.Icon1`…`Icon6` and
   `TreeStyle.TextStyleIcon`), so an app that ships its own curated icon font
@@ -30,6 +40,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and takes the narrow `gui.FontRegistrar` interface
   (`AddFontFile`/`AddFontBytes`) so backends yet to adopt it — iOS, Android —
   can wire it up with one call.
+
+### Fixed
+
+- **Programmatic `Window.Dialog` / `DialogDismiss` now force a layout
+  rebuild.** The dialog overlay is built during a full layout pass, so a
+  caller outside the event path — a native menu action, a `QueueCommand` from
+  a worker — left the window otherwise idle and the render-only frames a
+  blinking cursor produces reused the existing layout tree. The dialog stayed
+  invisible (or, on dismiss, stayed on screen) until an unrelated event forced
+  a rebuild.
 
 ## [v0.43.0] - 2026-07-26
 
