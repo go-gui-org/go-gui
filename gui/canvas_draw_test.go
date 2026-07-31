@@ -706,3 +706,97 @@ func TestDrawContextImageForwardsToRecorder(t *testing.T) {
 			len(dc.images))
 	}
 }
+
+func TestDrawContextImageClipped(t *testing.T) {
+	dc := DrawContext{Width: 100, Height: 100}
+	dc.ImageClipped(0, 0, 50, 50, "test.png", Opt[float32]{}, Color{},
+		10, 20, 30, 40)
+	images := dc.Images()
+	if len(images) != 1 {
+		t.Fatalf("images = %d, want 1", len(images))
+	}
+	im := images[0]
+	if !im.Clipped {
+		t.Fatal("expected Clipped = true")
+	}
+	if im.ClipX != 10 || im.ClipY != 20 ||
+		im.ClipW != 30 || im.ClipH != 40 {
+		t.Errorf("clip rect = (%v,%v,%v,%v), want (10,20,30,40)",
+			im.ClipX, im.ClipY, im.ClipW, im.ClipH)
+	}
+	if im.Src != "test.png" {
+		t.Errorf("src = %q, want %q", im.Src, "test.png")
+	}
+	if im.Fetcher != nil {
+		t.Error("ImageClipped must not set Fetcher")
+	}
+}
+
+func TestDrawContextImageClippedRejectsBadClip(t *testing.T) {
+	nan := float32(math.NaN())
+	inf := float32(math.Inf(1))
+	tests := []struct {
+		name                       string
+		clipX, clipY, clipW, clipH float32
+	}{
+		{"zero clipW", 0, 0, 0, 10},
+		{"zero clipH", 0, 0, 10, 0},
+		{"neg clipW", 0, 0, -1, 10},
+		{"neg clipH", 0, 0, 10, -3},
+		{"nan clipX", nan, 0, 10, 10},
+		{"nan clipY", 0, nan, 10, 10},
+		{"nan clipW", 0, 0, nan, 10},
+		{"nan clipH", 0, 0, 10, nan},
+		{"+inf clipX", inf, 0, 10, 10},
+		{"+inf clipY", 0, inf, 10, 10},
+		{"+inf clipW", 0, 0, inf, 10},
+		{"-inf clipX", float32(math.Inf(-1)), 0, 10, 10},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			dc := DrawContext{Width: 100, Height: 100}
+			dc.ImageClipped(0, 0, 50, 50, "test.png",
+				Opt[float32]{}, Color{},
+				tc.clipX, tc.clipY, tc.clipW, tc.clipH)
+			if len(dc.images) != 0 {
+				t.Errorf("%s: images = %d, want 0 (rejected)",
+					tc.name, len(dc.images))
+			}
+		})
+	}
+}
+
+func TestDrawContextImageClippedForwardsUnclippedToRecorder(t *testing.T) {
+	dc := DrawContext{Width: 100, Height: 100}
+	rec := &imageRecorderStub{}
+	dc.SetRecorder(rec)
+	dc.ImageClipped(3, 4, 16, 32, "tile.png", SomeF(0.75), Blue,
+		5, 5, 10, 10)
+	if !rec.called {
+		t.Fatal("recorder.Image not invoked")
+	}
+	if rec.x != 3 || rec.y != 4 || rec.w != 16 || rec.h != 32 {
+		t.Errorf("rect = (%v,%v,%v,%v), want (3,4,16,32)",
+			rec.x, rec.y, rec.w, rec.h)
+	}
+	// Clip info is NOT forwarded — recorders see the unclipped image.
+	if len(dc.images) != 0 {
+		t.Errorf("images = %d, want 0 (recorder owns it)",
+			len(dc.images))
+	}
+}
+
+func TestDrawContextImageClippedRejectsDegenerateGeometry(t *testing.T) {
+	dc := DrawContext{Width: 100, Height: 100}
+	dc.ImageClipped(0, 0, 0, 50, "test.png", Opt[float32]{}, Color{},
+		10, 10, 20, 20)
+	if len(dc.images) != 0 {
+		t.Errorf("degenerate w: images = %d, want 0", len(dc.images))
+	}
+	dc2 := DrawContext{Width: 100, Height: 100}
+	dc2.ImageClipped(0, 0, 50, 0, "test.png", Opt[float32]{}, Color{},
+		10, 10, 20, 20)
+	if len(dc2.images) != 0 {
+		t.Errorf("degenerate h: images = %d, want 0", len(dc2.images))
+	}
+}

@@ -137,11 +137,19 @@ git/mkdir/rm/ls output. `ctx_fetch_and_index` instead of curl/wget/WebFetch.
 
 - **WebGPU Backend** (2026-06): Explored in branch `webgpu-backend` (deleted).
   12 WGSL shader pipelines, device init, render loop all working. Rejected
-  because WebGPU has no native text rendering — font measurement and glyph
-  rasterization require Canvas2D. A hybrid backend defeats the purpose; a
-  pure-Go TTF rasterizer would be needed in go-glyph first. The existing
-  Canvas2D backend already handles every render command correctly. GPU
-  acceleration doesn't address the actual bottleneck (heap allocations).
+  at the time because WebGPU has no native text rendering — font measurement
+  and glyph rasterization require Canvas2D. A hybrid backend defeats the
+  purpose; a pure-Go TTF rasterizer in go-glyph was the missing piece. The
+  existing Canvas2D backend already handles every render command correctly.
+  GPU acceleration doesn't address the actual bottleneck (heap allocations).
+
+  **Update (2026-07):** go-glyph now has a pure-Go text pipeline
+  (`bitmap_puregoft.go` — go-text/typesetting harfbuzz shaping +
+  golang.org/x/image/vector rasterization, no CGo). Combined with
+  [goffi](https://github.com/go-webgpu/goffi) (zero-CGo FFI for calling
+  wgpu-native), a CGo-free WebGPU desktop backend is now technically viable
+  — blocked only by the upfront engineering cost of a full backend rewrite,
+  not by any missing dependencies.
 
 ## Specs
 
