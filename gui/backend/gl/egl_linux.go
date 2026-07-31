@@ -89,10 +89,11 @@ func loadEGL() error {
 }
 
 // eglProc resolves an OpenGL function pointer for
-// gl.InitWithProcAddrFunc via eglGetProcAddress. EGL 1.5 (Mesa) returns
-// core desktop-GL entry points, not only extensions.
-func eglProc(name string) unsafe.Pointer {
-	return eglGetProcAddress(name)
+// glbind.InitWithProcAddrFunc via eglGetProcAddress. EGL 1.5 (Mesa) returns
+// core desktop-GL entry points, not only extensions. The result is a driver
+// code address, so uintptr — not unsafe.Pointer — is the correct spelling.
+func eglProc(name string) uintptr {
+	return uintptr(eglGetProcAddress(name))
 }
 
 // eglInitDisplay initializes EGL, binds the desktop-OpenGL API, and

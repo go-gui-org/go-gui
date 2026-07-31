@@ -5,7 +5,7 @@ package gl
 import (
 	"unsafe"
 
-	gogl "github.com/go-gl/gl/v3.3-core/gl"
+	gogl "github.com/go-gui-org/go-gui/gui/backend/internal/glbind"
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"

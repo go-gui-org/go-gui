@@ -5,10 +5,11 @@ package gl
 import (
 	"errors"
 	"fmt"
+	"runtime"
 	"strings"
 	"unsafe"
 
-	gogl "github.com/go-gl/gl/v3.3-core/gl"
+	gogl "github.com/go-gui-org/go-gui/gui/backend/internal/glbind"
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
@@ -125,9 +126,14 @@ func buildPipeline(vsSrc, fsSrc string) (pipeline, error) {
 
 func compileShader(src string, shaderType uint32) (uint32, error) {
 	shader := gogl.CreateShader(shaderType)
-	csrc, free := gogl.Strs(src + "\x00")
-	defer free()
-	gogl.ShaderSource(shader, 1, csrc, nil)
+	// glShaderSource wants a char** — an array of C strings. Build the one
+	// null-terminated source ourselves rather than pulling in a helper.
+	// nulSrc must outlive the call, hence the named local plus KeepAlive:
+	// glStr only borrows its backing array.
+	nulSrc := src + "\x00"
+	csrc := glStr(nulSrc)
+	gogl.ShaderSource(shader, 1, &csrc, nil)
+	runtime.KeepAlive(nulSrc)
 	gogl.CompileShader(shader)
 
 	var status int32

@@ -167,3 +167,21 @@ func wglProc(name string) uintptr {
 	}
 	return r
 }
+
+// glProc resolves an OpenGL entry point for glbind.InitWithProcAddrFunc.
+// A context must be current.
+//
+// It reproduces what go-gl's C loader did: wglGetProcAddress only returns
+// GL 1.2+ and extension entry points, while the GL 1.1 core subset
+// (glClear, glViewport, glTexImage2D, ...) is exported directly by
+// opengl32.dll and has to be looked up there instead.
+func glProc(name string) uintptr {
+	if p := wglProc(name); p != 0 {
+		return p
+	}
+	proc := opengl32.NewProc(name)
+	if err := proc.Find(); err != nil {
+		return 0
+	}
+	return proc.Addr()
+}

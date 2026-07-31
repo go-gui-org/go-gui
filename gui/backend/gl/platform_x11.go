@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-gl/gl/v3.3-core/gl"
+	gogl "github.com/go-gui-org/go-gui/gui/backend/internal/glbind"
 	"github.com/jezek/xgb"
 	"github.com/jezek/xgb/randr"
 	"github.com/jezek/xgb/xproto"
@@ -290,9 +290,9 @@ func New(w *gui.Window) (*Backend, error) {
 	b.plat.eglSurface = surface
 	b.plat.eglContext = context
 
-	if err := gl.InitWithProcAddrFunc(eglProc); err != nil {
+	if err := gogl.InitWithProcAddrFunc(eglProc); err != nil {
 		b.plat.destroy()
-		return nil, fmt.Errorf("gl: gl.Init: %w", err)
+		return nil, fmt.Errorf("gl: glbind init: %w", err)
 	}
 
 	wakeConn, err := xgb.NewConn()

@@ -33,9 +33,8 @@ func main() {
 // directPurpose maps direct-dependency modules to a short purpose string.
 var directPurpose = map[string]string{
 	"github.com/go-gui-org/go-glyph":  "Text shaping + glyph rasterization. Required by every backend.",
-	"github.com/go-gl/gl":             "OpenGL bindings for `gui/backend/gl`.",
 	"github.com/jezek/xgb":            "Pure-Go X11 windowing + events for the native Linux backend (`gui/backend/gl`).",
-	"github.com/ebitengine/purego":    "cgo-free dynamic loading of libEGL for the native Linux backend (`gui/backend/gl`).",
+	"github.com/ebitengine/purego":    "cgo-free dynamic loading of libEGL and the OpenGL entry points (`gui/backend/internal/glbind`) for the native Linux and Windows backends.",
 	"github.com/gopxl/beep/v2":        "Audio playback (sound effects, music, mixer, fade) for `gui/audio`.",
 	"github.com/tdewolff/parse/v2":    "CSS tokenizer for the SVG `<style>` / `style=\"\"` cascade pipeline.",
 	"github.com/alecthomas/chroma/v2": "Syntax highlighting in the markdown widget.",
