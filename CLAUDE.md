@@ -151,6 +151,17 @@ git/mkdir/rm/ls output. `ctx_fetch_and_index` instead of curl/wget/WebFetch.
   — blocked only by the upfront engineering cost of a full backend rewrite,
   not by any missing dependencies.
 
+  **Superseded (2026-07-31, issue #137):** viable but the wrong instrument.
+  `gui/backend/gl/` has no cgo at all — X11 via xgb, EGL via purego, Win32
+  via syscall. The sole CGo dependency on Linux/Windows is
+  `github.com/go-gl/gl` (55 functions, 47 constants), and its proc-address
+  loader is already pure Go. Swapping that one dispatch layer for purego
+  bindings gets CGo-free Linux+Windows for ~600 lines; wgpu is a superset
+  that also ships 10–40 MB of runtime shared libs, supplies none of
+  `NativePlatform` (10 sub-interfaces), and leaves macOS (the only real CGo
+  backend, 5.9k lines ObjC) untouched. Full assessment:
+  `docs/specs/cgo-free-backend-feasibility.md`.
+
 ## Specs
 
 - Specs should be written to docs/specs folder.
