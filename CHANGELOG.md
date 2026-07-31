@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`DrawContext.ImageClipped`.** Draws an image restricted to a
+  sub-rectangle: the texture still maps to the full destination rect, a
+  scissor decides what is visible. `DrawCanvasImageEntry` gained
+  `ClipX`/`ClipY`/`ClipW`/`ClipH` plus a `Clipped` flag to carry it, and the
+  emit path intersects that rect with the canvas clip (`RenderClip` replaces
+  the scissor rather than nesting) and restores the canvas clip afterwards.
+  Consumers that must paint a fragment of an image without cropping the source
+  file — a terminal emulator showing the visible cells of an image whose
+  remaining cells sit behind another pane — could not express that before.
+  Recorders (SVG/PDF export) receive the unclipped image, unchanged.
+
 ## [v0.44.0] - 2026-07-30
 
 ### Added

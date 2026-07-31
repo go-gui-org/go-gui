@@ -41,12 +41,20 @@ type DrawCanvasTriBatch struct {
 // entry observed for a given URL binds the fetcher for that URL's
 // in-flight download. Consumers wiring two fetchers to overlapping
 // URL namespaces must route via URL prefix themselves.
+// ClipX/ClipY/ClipW/ClipH restrict drawing to a sub-rectangle of the
+// canvas, in the same content-relative coordinates as X/Y/W/H. They
+// are honored only when Clipped is set (a zero rect would otherwise
+// be indistinguishable from "no clip"). Use it to show part of an
+// image without cropping the file: the texture still maps to the
+// full X/Y/W/H rect, the scissor decides what is visible.
 type DrawCanvasImageEntry struct {
-	Fetcher    ImageFetcher
-	Src        string
-	BgOpacity  Opt[float32]
-	X, Y, W, H float32
-	BgColor    Color
+	Fetcher                    ImageFetcher
+	Src                        string
+	BgOpacity                  Opt[float32]
+	X, Y, W, H                 float32
+	ClipX, ClipY, ClipW, ClipH float32
+	BgColor                    Color
+	Clipped                    bool
 }
 
 // DrawRecorder receives high-level draw commands before
@@ -728,6 +736,37 @@ func (dc *DrawContext) ImageWithFetcher(
 		Src: src, BgOpacity: bgOpacity, BgColor: bgColor,
 		Fetcher: fetcher,
 	})
+}
+
+// ImageClipped is Image restricted to a sub-rectangle: the image
+// still maps to the full x/y/w/h rect, but only the part inside
+// clipX/clipY/clipW/clipH is painted. The clip is intersected with
+// the canvas's own clip, and is in the same content-relative
+// coordinates as x/y.
+//
+// It exists for consumers that must show a fragment of an image
+// without cropping the source file — a terminal emulator painting
+// the visible tiles of an image whose remaining cells are scrolled
+// behind another pane, for instance. Recorders (SVG/PDF export) see
+// the unclipped image: they capture structure, not scissor state.
+func (dc *DrawContext) ImageClipped(
+	x, y, w, h float32, src string,
+	bgOpacity Opt[float32], bgColor Color,
+	clipX, clipY, clipW, clipH float32,
+) {
+	if clipW <= 0 || clipH <= 0 ||
+		!isFiniteF(clipX) || !isFiniteF(clipY) ||
+		!isFiniteF(clipW) || !isFiniteF(clipH) {
+		return
+	}
+	before := len(dc.images)
+	dc.ImageWithFetcher(x, y, w, h, src, bgOpacity, bgColor, nil)
+	if len(dc.images) == before {
+		return // rejected (bad geometry) or routed to a recorder
+	}
+	e := &dc.images[len(dc.images)-1]
+	e.ClipX, e.ClipY, e.ClipW, e.ClipH = clipX, clipY, clipW, clipH
+	e.Clipped = true
 }
 
 // isFiniteF reports whether v is a finite float32 (not NaN or Inf).

@@ -68,8 +68,10 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 	oy := shape.Y + shape.PaddingTop()
 
 	// Clip to content area.
+	effClip := clip
 	if shape.Clip {
-		emitClipCmd(drawClip{X: ox, Y: oy, Width: cw, Height: ch}, w)
+		effClip = drawClip{X: ox, Y: oy, Width: cw, Height: ch}
+		emitClipCmd(effClip, w)
 	}
 
 	// Images emit first so they act as the back layer. DrawContext
@@ -79,7 +81,7 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 	// markers / HUD chips / labels *over* tile images in the same
 	// DrawCanvas. Reverse ordering would be correct only if triangles/
 	// text were meant as backgrounds — which no in-tree consumer wants.
-	emitDrawCanvasImages(cached.Images, ox, oy, w)
+	emitDrawCanvasImages(cached.Images, ox, oy, effClip, w)
 
 	for _, batch := range cached.Batches {
 		emitRenderer(RenderCmd{
@@ -152,9 +154,21 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 // via ResolveImageSrc; an in-flight download returns "" and the
 // emit is skipped this frame. The window redraws when the
 // download completes.
+//
+// clip is the clip rect in effect for the canvas — the content box
+// when the shape clips, otherwise the parent's. An entry drawn via
+// ImageClipped narrows it to that entry's own rect (intersected,
+// since RenderClip *replaces* the scissor rather than nesting) and
+// restores clip afterwards, so a clipped entry cannot leak its
+// scissor onto the entries that follow.
 func emitDrawCanvasImages(
-	images []DrawCanvasImageEntry, ox, oy float32, w *Window,
+	images []DrawCanvasImageEntry, ox, oy float32, clip drawClip, w *Window,
 ) {
+	// narrowed tracks whether the scissor currently in the command stream is
+	// one entry's own clip rather than the canvas clip, so the restore is
+	// emitted exactly once — before the next unclipped entry, or after the
+	// loop — instead of once per clipped entry.
+	narrowed := false
 	for i := range images {
 		im := &images[i]
 		if !isFiniteF(im.X) || !isFiniteF(im.Y) ||
@@ -177,6 +191,20 @@ func emitDrawCanvasImages(
 				bg = bg.WithOpacity(op)
 			}
 		}
+		if im.Clipped {
+			sub, ok := intersectClips(clip, drawClip{
+				X: ox + im.ClipX, Y: oy + im.ClipY,
+				Width: im.ClipW, Height: im.ClipH,
+			})
+			if !ok {
+				continue // clipped away entirely
+			}
+			emitClipCmd(sub, w)
+			narrowed = true
+		} else if narrowed {
+			emitClipCmd(clip, w)
+			narrowed = false
+		}
 		emitRenderer(RenderCmd{
 			Kind:     RenderImage,
 			X:        ox + im.X,
@@ -187,4 +215,25 @@ func emitDrawCanvasImages(
 			Resource: resource,
 		}, w)
 	}
+	if narrowed {
+		emitClipCmd(clip, w)
+	}
+}
+
+// intersectClips returns the overlap of two clip rects. Reports false when
+// they do not overlap, or when either is degenerate.
+func intersectClips(a, b drawClip) (drawClip, bool) {
+	if !isFiniteF(b.X) || !isFiniteF(b.Y) ||
+		!isFiniteF(b.Width) || !isFiniteF(b.Height) ||
+		b.Width <= 0 || b.Height <= 0 {
+		return drawClip{}, false
+	}
+	x := f32Max(a.X, b.X)
+	y := f32Max(a.Y, b.Y)
+	right := f32Min(a.X+a.Width, b.X+b.Width)
+	bottom := f32Min(a.Y+a.Height, b.Y+b.Height)
+	if right <= x || bottom <= y {
+		return drawClip{}, false
+	}
+	return drawClip{X: x, Y: y, Width: right - x, Height: bottom - y}, true
 }
