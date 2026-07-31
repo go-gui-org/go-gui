@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Metal backend: AppKit calls could land on a non-main thread.** The Go
+  runtime starts the main goroutine on thread 0 but does not keep it there —
+  any blocking syscall or cgo call before the backend starts (config load,
+  font registration, reading a file named on the command line) can let the
+  scheduler resume `main` on another M. `backend.New` / `backend.RunApp` then
+  called `runtime.LockOSThread` on the *wrong* thread and the first AppKit
+  call aborted with `API misuse: setting the main menu on a non-main thread`.
+  The metal package now calls `runtime.LockOSThread` from `init`, which runs
+  while the main goroutine is still on thread 0. Importing the backend is
+  sufficient; embedders need no init boilerplate.
+- **Same main-thread pin applied to the `gl` (X11/Win32) and `ios` backends.**
+  Latent rather than fatal there, but the same migration applies: an OpenGL
+  context is current on one thread at a time, Win32 delivers a window's
+  messages only to the thread that created it, and UIKit has AppKit's
+  main-thread rule. All three now lock from `init` instead of relying on the
+  late `LockOSThread` in `New` / `RunAppE` / `Run`.
+
 ## [v0.45.0] - 2026-07-31
 
 ### Added
@@ -620,8 +641,6 @@ Documentation-only release. No code or behavior changes; no migration needed.
   a focus-claiming widget (one that re-asserts `SetIDFocus` every view
   rebuild) tries to steal it, so Tab/Esc/Enter keep working. Apps no longer
   need to guard their own `SetIDFocus` with `DialogIsVisible`. (#18)
-
-## [Unreleased]
 
 ## [v0.29.0] - 2026-06-28
 
