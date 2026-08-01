@@ -13,28 +13,53 @@ import (
 // selection owner cannot hang the UI thread.
 const clipReadTimeout = time.Second
 
-// setClipboard takes ownership of the X11 CLIPBOARD selection and caches
-// the text so incoming SelectionRequest events can be served.
-func setClipboard(p *platformState, s string) {
-	p.clipboardText = s
-	if p.atomClipboard == 0 {
+// selectionState returns pointers to the cached text and owner flag backing
+// sel, so the set/get/serve paths can treat CLIPBOARD and PRIMARY uniformly.
+// Reports false for any other selection (e.g. SECONDARY), which we neither
+// own nor serve.
+func (p *platformState) selectionState(sel xproto.Atom) (text *string, owns *bool, ok bool) {
+	// atomClipboard is 0 until the atoms are interned; without this an
+	// uninitialized platformState would match a zero selection atom as
+	// CLIPBOARD and claim ownership of nothing.
+	if sel == 0 {
+		return nil, nil, false
+	}
+	switch sel {
+	case p.atomClipboard:
+		return &p.clipboardText, &p.ownsClipboard, true
+	case xproto.AtomPrimary:
+		return &p.primaryText, &p.ownsPrimary, true
+	}
+	return nil, nil, false
+}
+
+// setSelection takes ownership of sel and caches the text so incoming
+// SelectionRequest events can be served. Selections we do not model are
+// ignored rather than claimed.
+func setSelection(p *platformState, sel xproto.Atom, s string) {
+	text, owns, ok := p.selectionState(sel)
+	if !ok {
 		return
 	}
-	p.ownsClipboard = true
-	xproto.SetSelectionOwner(p.conn, p.window, p.atomClipboard,
-		xproto.TimeCurrentTime)
+	*text = s
+	*owns = true
+	xproto.SetSelectionOwner(p.conn, p.window, sel, xproto.TimeCurrentTime)
 	p.conn.Sync() // flush so the server records ownership immediately
 }
 
-// getClipboard returns the current CLIPBOARD text. When this process owns
-// the selection the cached text is returned directly; otherwise the value
-// is requested from the current owner over a dedicated connection so the
+// getSelection returns the current text of sel. When this process owns the
+// selection the cached text is returned directly; otherwise the value is
+// requested from the current owner over a dedicated connection so the
 // round-trip does not reenter the main event loop.
-func getClipboard(p *platformState) string {
-	if p.ownsClipboard {
-		return p.clipboardText
+func getSelection(p *platformState, sel xproto.Atom) string {
+	text, owns, ok := p.selectionState(sel)
+	if !ok {
+		return ""
 	}
-	if p.atomClipboard == 0 || p.atomUTF8 == 0 || p.atomClipProp == 0 {
+	if *owns {
+		return *text
+	}
+	if p.atomUTF8 == 0 || p.atomClipProp == 0 {
 		return ""
 	}
 	if !p.ensureClipReadConn() {
@@ -42,7 +67,7 @@ func getClipboard(p *platformState) string {
 	}
 	conn, win := p.clipReadConn, p.clipReadWin
 
-	xproto.ConvertSelection(conn, win, p.atomClipboard, p.atomUTF8,
+	xproto.ConvertSelection(conn, win, sel, p.atomUTF8,
 		p.atomClipProp, xproto.TimeCurrentTime)
 	conn.Sync()
 
@@ -51,6 +76,21 @@ func getClipboard(p *platformState) string {
 	}
 	return readClipProperty(conn, win, p.atomClipProp)
 }
+
+// setClipboard publishes s as the CLIPBOARD selection (explicit copy).
+func setClipboard(p *platformState, s string) { setSelection(p, p.atomClipboard, s) }
+
+// getClipboard returns the current CLIPBOARD text.
+func getClipboard(p *platformState) string { return getSelection(p, p.atomClipboard) }
+
+// setPrimary publishes s as the PRIMARY selection — the select-to-copy buffer
+// pasted with the middle mouse button, independent of CLIPBOARD. PRIMARY is a
+// predefined atom, so unlike CLIPBOARD it needs no interning and works even
+// before setupAtoms has run.
+func setPrimary(p *platformState, s string) { setSelection(p, xproto.AtomPrimary, s) }
+
+// getPrimary returns the current PRIMARY selection text.
+func getPrimary(p *platformState) string { return getSelection(p, xproto.AtomPrimary) }
 
 // ensureClipReadConn lazily opens the dedicated read connection and its
 // requestor window. Returns false if either could not be created.
@@ -121,9 +161,18 @@ func readClipProperty(conn *xgb.Conn, win xproto.Window, prop xproto.Atom) strin
 	return string(out)
 }
 
-// serveSelectionRequest answers a SelectionRequest for the CLIPBOARD we
-// own, honoring the TARGETS and UTF8_STRING/STRING targets per ICCCM.
+// serveSelectionRequest answers a SelectionRequest for a selection we own,
+// honoring the TARGETS and UTF8_STRING/STRING targets per ICCCM. The value
+// served depends on which selection was asked for — CLIPBOARD and PRIMARY
+// hold different text — so a requestor pasting one never receives the other.
 func (p *platformState) serveSelectionRequest(e xproto.SelectionRequestEvent) {
+	text, _, ok := p.selectionState(e.Selection)
+	if !ok {
+		// A selection we never owned. Refuse rather than answering with
+		// whatever happens to be in the clipboard cache.
+		p.refuseSelectionRequest(e)
+		return
+	}
 	prop := e.Property
 	if prop == 0 { // obsolete client: fall back to the target atom
 		prop = e.Target
@@ -136,12 +185,25 @@ func (p *platformState) serveSelectionRequest(e xproto.SelectionRequestEvent) {
 		xproto.ChangeProperty(p.conn, xproto.PropModeReplace, e.Requestor,
 			prop, xproto.AtomAtom, 32, 2, data)
 	case p.atomUTF8, xproto.AtomString:
-		b := []byte(p.clipboardText)
+		b := []byte(*text)
 		xproto.ChangeProperty(p.conn, xproto.PropModeReplace, e.Requestor,
 			prop, e.Target, 8, uint32(len(b)), b)
 	default:
 		prop = 0 // refuse unsupported targets
 	}
+	p.sendSelectionNotify(e, prop)
+}
+
+// refuseSelectionRequest answers a request we cannot satisfy. ICCCM requires
+// a SelectionNotify either way; Property 0 signals refusal, and omitting it
+// would leave the requestor blocked until its own timeout expires.
+func (p *platformState) refuseSelectionRequest(e xproto.SelectionRequestEvent) {
+	p.sendSelectionNotify(e, 0)
+}
+
+// sendSelectionNotify replies to a SelectionRequest, naming the property the
+// value was written to (or 0 for refusal).
+func (p *platformState) sendSelectionNotify(e xproto.SelectionRequestEvent, prop xproto.Atom) {
 	notify := xproto.SelectionNotifyEvent{
 		Time:      e.Time,
 		Requestor: e.Requestor,

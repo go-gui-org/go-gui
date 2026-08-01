@@ -154,7 +154,12 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 		b.plat.serveSelectionRequest(e)
 
 	case xproto.SelectionClearEvent:
-		b.plat.ownsClipboard = false
+		// Only the selection actually taken from us is released. Clearing
+		// both would make a getClipboard after losing PRIMARY go out to the
+		// server for text we still own.
+		if _, owns, ok := b.plat.selectionState(e.Selection); ok {
+			*owns = false
+		}
 
 	case xproto.ExposeEvent:
 		// Damage is repainted by the next frame; nothing to do.

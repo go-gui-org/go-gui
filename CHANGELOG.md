@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **X11 PRIMARY selection.** `Window.SetPrimary`/`GetPrimary` (with the
+  matching `SetPrimaryFn`/`SetPrimaryGetFn` backend hooks) expose the
+  select-to-copy buffer that middle-click pastes on Unix — independent of
+  CLIPBOARD, so an app can hold two different values at once. The X11 backend
+  already owned selections for CLIPBOARD; PRIMARY reuses that machinery via a
+  shared `selectionState` mapping, and `SelectionClear` now releases only the
+  selection actually lost instead of both. Other backends leave the hooks nil,
+  so `GetPrimary` returns `""` and `SetPrimary` is a no-op on macOS, Windows,
+  web, and mobile.
+
 ## [v0.45.1] - 2026-07-31
 
 ### Fixed

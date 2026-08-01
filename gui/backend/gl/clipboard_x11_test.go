@@ -68,44 +68,30 @@ func newClipTestState(t *testing.T) (*platformState, func()) {
 	return p, cleanup
 }
 
-// TestClipboardGetFromXclip verifies getClipboard reads text set by an
-// external selection owner (xclip).
-func TestClipboardGetFromXclip(t *testing.T) {
-	requireXClip(t)
-	want := "gogui read αβγ 42"
-
-	cmd := exec.Command("xclip", "-selection", "clipboard", "-in")
-	cmd.Stdin = strings.NewReader(want)
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("xclip -in: %v", err)
-	}
-	time.Sleep(50 * time.Millisecond) // let xclip fork and take ownership
-
-	p, cleanup := newClipTestState(t)
-	defer cleanup()
-	if got := getClipboard(p); got != want {
-		t.Errorf("getClipboard() = %q, want %q", got, want)
-	}
+// selCases enumerates the two selections the backend owns, so every
+// round-trip test runs against both. xclipName is what `xclip -selection`
+// calls them.
+var selCases = []struct {
+	name      string
+	xclipName string
+	set       func(*platformState, string)
+	get       func(*platformState) string
+}{
+	{"clipboard", "clipboard", setClipboard, getClipboard},
+	{"primary", "primary", setPrimary, getPrimary},
 }
 
-// TestClipboardSetServesXclip verifies setClipboard takes ownership and
-// serveSelectionRequest answers an external requestor (xclip -out).
-func TestClipboardSetServesXclip(t *testing.T) {
-	requireXClip(t)
-	p, cleanup := newClipTestState(t)
-	defer cleanup()
-
-	want := "gogui write 12345"
-	setClipboard(p, want)
-
-	// Serve incoming SelectionRequest events while xclip pulls the value.
-	stop := make(chan struct{})
+// serveRequests answers SelectionRequest events in the background for as long
+// as the returned stop function has not been called. Standing in for the main
+// event loop, which these tests do not run.
+func serveRequests(p *platformState) (stop func()) {
+	stopCh := make(chan struct{})
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
 		for {
 			select {
-			case <-stop:
+			case <-stopCh:
 				return
 			default:
 			}
@@ -122,14 +108,141 @@ func TestClipboardSetServesXclip(t *testing.T) {
 			}
 		}
 	}()
-
-	out, err := exec.Command("xclip", "-selection", "clipboard", "-out").Output()
-	close(stop)
-	<-done
-	if err != nil {
-		t.Fatalf("xclip -out: %v", err)
+	return func() {
+		close(stopCh)
+		<-done
 	}
-	if got := string(out); got != want {
-		t.Errorf("xclip read %q, want %q", got, want)
+}
+
+// TestSelectionGetFromXclip verifies get{Clipboard,Primary} read text set by
+// an external selection owner (xclip).
+func TestSelectionGetFromXclip(t *testing.T) {
+	requireXClip(t)
+	for _, tc := range selCases {
+		t.Run(tc.name, func(t *testing.T) {
+			want := "gogui read αβγ 42 " + tc.name
+
+			cmd := exec.Command("xclip", "-selection", tc.xclipName, "-in")
+			cmd.Stdin = strings.NewReader(want)
+			if err := cmd.Run(); err != nil {
+				t.Fatalf("xclip -in: %v", err)
+			}
+			time.Sleep(50 * time.Millisecond) // let xclip fork and take ownership
+
+			p, cleanup := newClipTestState(t)
+			defer cleanup()
+			if got := tc.get(p); got != want {
+				t.Errorf("get() = %q, want %q", got, want)
+			}
+		})
+	}
+}
+
+// TestSelectionSetServesXclip verifies set{Clipboard,Primary} takes ownership
+// and serveSelectionRequest answers an external requestor (xclip -out).
+func TestSelectionSetServesXclip(t *testing.T) {
+	requireXClip(t)
+	for _, tc := range selCases {
+		t.Run(tc.name, func(t *testing.T) {
+			p, cleanup := newClipTestState(t)
+			defer cleanup()
+
+			want := "gogui write 12345 " + tc.name
+			tc.set(p, want)
+
+			stop := serveRequests(p)
+			out, err := exec.Command("xclip", "-selection", tc.xclipName, "-out").Output()
+			stop()
+			if err != nil {
+				t.Fatalf("xclip -out: %v", err)
+			}
+			if got := string(out); got != want {
+				t.Errorf("xclip read %q, want %q", got, want)
+			}
+		})
+	}
+}
+
+// TestSelectionsAreIndependent is the point of PRIMARY: holding both at once
+// must yield two different values, and serving a request for one must never
+// answer with the other's text.
+func TestSelectionsAreIndependent(t *testing.T) {
+	requireXClip(t)
+	p, cleanup := newClipTestState(t)
+	defer cleanup()
+
+	const clip = "value-on-clipboard"
+	const prim = "value-on-primary"
+	setClipboard(p, clip)
+	setPrimary(p, prim)
+
+	stop := serveRequests(p)
+	gotClip, errClip := exec.Command("xclip", "-selection", "clipboard", "-out").Output()
+	gotPrim, errPrim := exec.Command("xclip", "-selection", "primary", "-out").Output()
+	stop()
+	if errClip != nil || errPrim != nil {
+		t.Fatalf("xclip -out: %v / %v", errClip, errPrim)
+	}
+	if string(gotClip) != clip {
+		t.Errorf("clipboard = %q, want %q", gotClip, clip)
+	}
+	if string(gotPrim) != prim {
+		t.Errorf("primary = %q, want %q", gotPrim, prim)
+	}
+}
+
+// TestSelectionStateRouting covers the selection→cache mapping without an X
+// server, including the zero-atom guard that keeps an uninitialized
+// platformState from mistaking a nil selection for CLIPBOARD.
+func TestSelectionStateRouting(t *testing.T) {
+	p := &platformState{atomClipboard: 400}
+	p.clipboardText, p.primaryText = "clip", "prim"
+
+	tests := []struct {
+		name string
+		sel  xproto.Atom
+		want string // "" means the selection must be rejected
+	}{
+		{"clipboard", 400, "clip"},
+		{"primary", xproto.AtomPrimary, "prim"},
+		{"secondary rejected", xproto.AtomSecondary, ""},
+		{"zero rejected", 0, ""},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			text, owns, ok := p.selectionState(tc.sel)
+			if tc.want == "" {
+				if ok {
+					t.Fatalf("selectionState(%d) accepted an unowned selection", tc.sel)
+				}
+				return
+			}
+			if !ok {
+				t.Fatalf("selectionState(%d) rejected a known selection", tc.sel)
+			}
+			if *text != tc.want {
+				t.Errorf("text = %q, want %q", *text, tc.want)
+			}
+			// The owner flag must alias the right field: flipping it through
+			// the pointer is how SelectionClear releases one selection only.
+			*owns = true
+		})
+	}
+	if !p.ownsClipboard || !p.ownsPrimary {
+		t.Errorf("owner flags did not alias: clipboard=%v primary=%v",
+			p.ownsClipboard, p.ownsPrimary)
+	}
+}
+
+// TestSelectionStateZeroAtomGuard pins the uninitialized case: before the
+// atoms are interned, atomClipboard is 0 and a zero selection must not route
+// to the clipboard cache.
+func TestSelectionStateZeroAtomGuard(t *testing.T) {
+	p := &platformState{} // atoms not yet interned
+	if _, _, ok := p.selectionState(0); ok {
+		t.Error("zero selection routed to clipboard on an uninitialized state")
+	}
+	if _, _, ok := p.selectionState(xproto.AtomPrimary); !ok {
+		t.Error("PRIMARY is a predefined atom and must resolve before interning")
 	}
 }
