@@ -58,13 +58,19 @@ type platformState struct {
 	keymap     *xproto.GetKeyboardMappingReply
 	minKeycode xproto.Keycode
 
-	// Clipboard (X11 CLIPBOARD selection).
+	// Selections. X11 has two independent text buffers: CLIPBOARD (explicit
+	// copy/paste) and PRIMARY (filled by selecting text, pasted with the
+	// middle button). Both are served by the same ownership machinery, so
+	// each keeps its own cached text and owner flag while sharing the atoms
+	// and the read connection below.
 	atomClipboard xproto.Atom
 	atomUTF8      xproto.Atom
 	atomTargets   xproto.Atom
 	atomClipProp  xproto.Atom
 	clipboardText string
 	ownsClipboard bool
+	primaryText   string
+	ownsPrimary   bool
 	clipReadConn  *xgb.Conn     // dedicated connection for reads
 	clipReadWin   xproto.Window // requestor window on clipReadConn
 
@@ -309,6 +315,8 @@ func New(w *gui.Window) (*Backend, error) {
 	w.SetTitleFn(func(t string) { setWindowTitle(conn, win, t) })
 	w.SetClipboardFn(func(s string) { setClipboard(&b.plat, s) })
 	w.SetClipboardGetFn(func() string { return getClipboard(&b.plat) })
+	w.SetPrimaryFn(func(s string) { setPrimary(&b.plat, s) })
+	w.SetPrimaryGetFn(func() string { return getPrimary(&b.plat) })
 
 	return b, nil
 }

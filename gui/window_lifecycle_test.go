@@ -543,6 +543,30 @@ func TestGetClipboardNilSafe(t *testing.T) {
 	}
 }
 
+func TestSetPrimary(t *testing.T) {
+	w := &Window{}
+	var got string
+	w.SetPrimaryFn(func(s string) { got = s })
+	w.SetPrimary("hello")
+	if got != "hello" {
+		t.Errorf("primary = %q, want hello", got)
+	}
+}
+
+func TestSetPrimaryNilSafe(t *testing.T) {
+	w := &Window{}
+	// Should not panic when no fn set.
+	w.SetPrimary("ignored")
+}
+
+func TestGetPrimaryNilSafe(t *testing.T) {
+	w := &Window{}
+	got := w.GetPrimary()
+	if got != "" {
+		t.Errorf("GetPrimary = %q, want empty for nil fn", got)
+	}
+}
+
 func TestUpdateProducesRenderers(t *testing.T) {
 	w := NewWindow(WindowCfg{
 		State:  new(int),
