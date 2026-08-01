@@ -1067,15 +1067,15 @@ func TestCursorHelpers(t *testing.T) {
 		want MouseCursor
 	}{
 		{"Arrow", (*Window).SetMouseCursorArrow, CursorArrow},
-		{"IBeam", (*Window).setMouseCursorIBeam, CursorIBeam},
+		{"IBeam", (*Window).SetMouseCursorIBeam, CursorIBeam},
 		{"Crosshair", (*Window).SetMouseCursorCrosshair, CursorCrosshair},
 		{"PointingHand", (*Window).SetMouseCursorPointingHand, CursorPointingHand},
 		{"All", (*Window).SetMouseCursorAll, CursorResizeAll},
 		{"NS", (*Window).SetMouseCursorNS, CursorResizeNS},
 		{"EW", (*Window).SetMouseCursorEW, CursorResizeEW},
-		{"NESW", (*Window).setMouseCursorResizeNESW, CursorResizeNESW},
-		{"NWSE", (*Window).setMouseCursorResizeNWSE, CursorResizeNWSE},
-		{"NotAllowed", (*Window).setMouseCursorNotAllowed, CursorNotAllowed},
+		{"NESW", (*Window).SetMouseCursorResizeNESW, CursorResizeNESW},
+		{"NWSE", (*Window).SetMouseCursorResizeNWSE, CursorResizeNWSE},
+		{"NotAllowed", (*Window).SetMouseCursorNotAllowed, CursorNotAllowed},
 	}
 	for _, tt := range tests {
 		w := &Window{}
