@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.47.0] - 2026-08-01
+
+### Added
+
+- **Exported setters for the four remaining mouse cursors.**
+  `Window.SetMouseCursorIBeam`, `SetMouseCursorNotAllowed`,
+  `SetMouseCursorResizeNESW` and `SetMouseCursorResizeNWSE` join the six that
+  were already public. All ten `MouseCursor` values were implemented and loaded
+  by every backend (metal `NSCursor`, x11 `XC_xterm`/`XC_X_cursor`, win32
+  `IDC_IBEAM`, web `"text"`); these four had stayed unexported only because
+  go-gui's own widgets were the sole callers. An embedder driving the cursor
+  from an external protocol — a terminal widget honoring OSC 22, a canvas app
+  with its own hit regions — could not reach them and had to fall back to
+  Arrow. Additive; no behavior change.
+
 ## [v0.46.0] - 2026-08-01
 
 ### Added
