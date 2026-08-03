@@ -271,6 +271,25 @@ func TestFindByIDNilChildShape(t *testing.T) {
 	}
 }
 
+// An unbuilt child must be skipped, not abort the search: siblings
+// after it must still be reachable.
+func TestFindByIDSkipsNilChildContinuesSearch(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{ID: "root"},
+		Children: []Layout{
+			{}, // unbuilt subtree
+			{Shape: &Shape{ID: "after"}},
+		},
+	}
+	ly, ok := root.FindByID("after")
+	if !ok {
+		t.Fatal("should find sibling after unbuilt child")
+	}
+	if ly.Shape.ID != "after" {
+		t.Errorf("ID = %q, want after", ly.Shape.ID)
+	}
+}
+
 // ScrollToView is the caller that can reach FindByID before any layout
 // pass — a scroll request issued while the overlay owning the target is
 // still being built. It must be a no-op, not a panic.
