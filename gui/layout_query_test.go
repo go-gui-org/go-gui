@@ -290,6 +290,19 @@ func TestFindByIDSkipsNilChildContinuesSearch(t *testing.T) {
 	}
 }
 
+// An empty id cannot address a widget, so it must never match — not
+// even a shape whose ID is also empty. Mirrors the id != "" guards in
+// FindLayoutByScrollID and FindLayoutByFocusID.
+func TestFindByIDEmptyIDNeverMatches(t *testing.T) {
+	root := &Layout{
+		Shape:    &Shape{ID: ""},
+		Children: []Layout{{Shape: &Shape{ID: "child"}}},
+	}
+	if _, ok := root.FindByID(""); ok {
+		t.Error(`FindByID("") must not match an empty-ID shape`)
+	}
+}
+
 // ScrollToView is the caller that can reach FindByID before any layout
 // pass — a scroll request issued while the overlay owning the target is
 // still being built. It must be a no-op, not a panic.

@@ -72,11 +72,17 @@ func FindLayoutByScrollID(layout *Layout, id string) (*Layout, bool) {
 }
 
 // FindByID searches the layout tree for a layout with the given ID.
+// An empty id never matches — a widget without an ID cannot be
+// addressed — matching the id != "" guards in FindLayoutByScrollID and
+// FindLayoutByFocusID.
 // A nil Shape means the layout tree has not been built yet (no frame
 // has been laid out), so there is nothing to find. Guarding here rather
 // than in each caller matches findScrollLayout, which already treats a
 // nil root Shape as "not found".
 func (layout *Layout) FindByID(id string) (*Layout, bool) {
+	if id == "" {
+		return nil, false
+	}
 	if layout.Shape == nil {
 		return nil, false
 	}
