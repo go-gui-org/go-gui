@@ -90,13 +90,22 @@ func bindings() []binding {
 //
 // A missing symbol is reported as an error naming it, rather than deferred to
 // a nil-pointer panic at the first draw call.
+//
+// Registration is two-pass: every entry point is resolved before any is
+// bound, so a failure leaves the package fully unbound rather than
+// half-bound. Callers must treat any error as "do not proceed".
 func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
-	for _, b := range bindings() {
+	table := bindings()
+	procs := make([]uintptr, len(table))
+	for i, b := range table {
 		proc := getProcAddr(b.name)
 		if proc == 0 {
 			return fmt.Errorf("glbind: %s unavailable", b.name)
 		}
-		purego.RegisterFunc(b.fptr, proc)
+		procs[i] = proc
+	}
+	for i, b := range table {
+		purego.RegisterFunc(b.fptr, procs[i])
 	}
 	return nil
 }

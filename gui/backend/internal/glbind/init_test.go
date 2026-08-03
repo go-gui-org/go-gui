@@ -108,3 +108,64 @@ func TestInitReportsMissingSymbol(t *testing.T) {
 		t.Errorf("error %q does not name the missing symbol", err)
 	}
 }
+
+// TestInitFailureLeavesNothingBound covers the two-pass contract: when a
+// symbol is missing, resolution stops and nothing is registered, so a caller
+// that mishandles the error can never observe a half-bound package. In the
+// single-pass form, every entry point resolved before the failure would have
+// stayed bound.
+func TestInitFailureLeavesNothingBound(t *testing.T) {
+	err := InitWithProcAddrFunc(func(name string) uintptr {
+		if name == "glBindBuffer" {
+			return 0
+		}
+		return 1
+	})
+	if err == nil {
+		t.Fatal("InitWithProcAddrFunc = nil, want error")
+	}
+	if pfnActiveTexture != nil || pfnAttachShader != nil || pfnBindBuffer != nil {
+		t.Fatal("failed init left function pointers bound")
+	}
+}
+
+// TestTableCoversEveryPointer guards the completeness direction the other
+// tests cannot see: a pfn variable (and its wrapper) added without a
+// {&pfn, "gl..."} table entry would leave the wrapper permanently nil at
+// runtime, and the table-shape tests cannot catch it because they never look
+// at glbind.go. Re-parse both files and require every pfn name to appear
+// exactly twice: once as a declaration, once as a table entry. (A table
+// entry without a declaration cannot compile.)
+func TestTableCoversEveryPointer(t *testing.T) {
+	fset := token.NewFileSet()
+	counts := map[string]int{}
+	for _, f := range []string{"glbind.go", "init.go"} {
+		file, err := parser.ParseFile(fset, f, nil, 0)
+		if err != nil {
+			t.Fatalf("parse %s: %v", f, err)
+		}
+		ast.Inspect(file, func(n ast.Node) bool {
+			switch v := n.(type) {
+			case *ast.ValueSpec:
+				// pfnActiveTexture func(...) — the declaration side.
+				for _, name := range v.Names {
+					if strings.HasPrefix(name.Name, "pfn") {
+						counts[name.Name]++
+					}
+				}
+			case *ast.UnaryExpr:
+				// &pfnActiveTexture — the table-entry side.
+				ident, ok := v.X.(*ast.Ident)
+				if ok && v.Op == token.AND && strings.HasPrefix(ident.Name, "pfn") {
+					counts[ident.Name]++
+				}
+			}
+			return true
+		})
+	}
+	for name, n := range counts {
+		if n != 2 {
+			t.Errorf("%s appears %d times, want 2 (var decl + table entry)", name, n)
+		}
+	}
+}
