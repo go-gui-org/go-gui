@@ -231,3 +231,69 @@ func TestNextPreviousFocusableNilWindow(t *testing.T) {
 		t.Fatalf("prev nil window: got %v, want ID f30", prev)
 	}
 }
+
+func TestFindByIDFound(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{ID: "root"},
+		Children: []Layout{
+			{Shape: &Shape{ID: "child1"}},
+			{Shape: &Shape{ID: "child2"}},
+		},
+	}
+	ly, ok := root.FindByID("child2")
+	if !ok {
+		t.Fatal("should find child2")
+	}
+	if ly.Shape.ID != "child2" {
+		t.Errorf("ID = %q, want child2", ly.Shape.ID)
+	}
+}
+
+// A Layout with a nil Shape is what Window.layout holds before the
+// first frame is laid out. FindByID must report "not found" rather
+// than dereferencing it.
+func TestFindByIDNilShape(t *testing.T) {
+	root := &Layout{}
+	if _, ok := root.FindByID("anything"); ok {
+		t.Error("nil Shape should not match")
+	}
+}
+
+// Children can also be unbuilt while the parent is not; the recursive
+// step must survive that too.
+func TestFindByIDNilChildShape(t *testing.T) {
+	root := &Layout{
+		Shape:    &Shape{ID: "root"},
+		Children: []Layout{{}},
+	}
+	if _, ok := root.FindByID("missing"); ok {
+		t.Error("should not find missing id")
+	}
+}
+
+// An unbuilt child must be skipped, not abort the search: siblings
+// after it must still be reachable.
+func TestFindByIDSkipsNilChildContinuesSearch(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{ID: "root"},
+		Children: []Layout{
+			{}, // unbuilt subtree
+			{Shape: &Shape{ID: "after"}},
+		},
+	}
+	ly, ok := root.FindByID("after")
+	if !ok {
+		t.Fatal("should find sibling after unbuilt child")
+	}
+	if ly.Shape.ID != "after" {
+		t.Errorf("ID = %q, want after", ly.Shape.ID)
+	}
+}
+
+// ScrollToView is the caller that can reach FindByID before any layout
+// pass — a scroll request issued while the overlay owning the target is
+// still being built. It must be a no-op, not a panic.
+func TestScrollToViewBeforeLayout(t *testing.T) {
+	var w Window
+	w.ScrollToView("some-id")
+}
