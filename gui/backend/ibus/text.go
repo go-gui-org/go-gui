@@ -21,24 +21,30 @@ const (
 // not control, so every step is checked rather than asserted: a
 // malformed or unexpected shape returns false and the caller drops the
 // signal instead of panicking in the render path.
+//
+// Variant wrapping is unwrapped iteratively rather than recursively: a
+// hostile daemon can nest wrappers arbitrarily deep, and recursion
+// would grow the stack without bound.
 func decodeText(v any) (string, bool) {
-	switch t := v.(type) {
-	case dbus.Variant:
-		return decodeText(t.Value())
-	case string:
-		// Not a shape IBus sends, but harmless to accept.
-		return t, true
-	case []any:
-		if len(t) < textFields {
+	for {
+		switch t := v.(type) {
+		case dbus.Variant:
+			v = t.Value()
+		case string:
+			// Not a shape IBus sends, but harmless to accept.
+			return t, true
+		case []any:
+			if len(t) < textFields {
+				return "", false
+			}
+			if name, ok := t[textFieldName].(string); !ok || name != "IBusText" {
+				return "", false
+			}
+			s, ok := t[textFieldText].(string)
+			return s, ok
+		default:
 			return "", false
 		}
-		if name, ok := t[textFieldName].(string); !ok || name != "IBusText" {
-			return "", false
-		}
-		s, ok := t[textFieldText].(string)
-		return s, ok
-	default:
-		return "", false
 	}
 }
 

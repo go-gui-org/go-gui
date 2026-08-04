@@ -40,6 +40,12 @@ const (
 	// socket, so this is generous; exceeding it means something is
 	// wrong and the client latches off rather than hanging the UI.
 	callTimeout = 100 * time.Millisecond
+
+	// queueLimit bounds the queue when the event loop stalls. Preedit
+	// updates are transient state the engine resends on the next key,
+	// so they are the first thing dropped; a commit is never discarded
+	// while an old preedit can be evicted instead.
+	queueLimit = 256
 )
 
 // Kind classifies an event produced by the input method.
@@ -71,6 +77,7 @@ type Client struct {
 	wake func()
 
 	signals chan *dbus.Signal
+	wg      sync.WaitGroup // readSignals, joined by Close
 
 	mu      sync.Mutex
 	queue   []Event
@@ -120,6 +127,7 @@ func New(clientName string, wake func()) *Client {
 		dbus.WithMatchInterface(ifaceContext),
 	)
 	conn.Signal(c.signals)
+	c.wg.Add(1)
 	go c.readSignals()
 
 	c.call("SetCapabilities", uint32(capPreeditText|capFocus))
@@ -325,6 +333,11 @@ func (c *Client) SetCursorLocation(x, y, w, h int32) {
 }
 
 // Close destroys the input context and drops the connection.
+//
+// It waits for the signal goroutine to exit before returning: wake is
+// called from that goroutine, and the caller tears down the resources
+// it touches (the X wake connection) right after this returns, so no
+// wake may be in flight.
 func (c *Client) Close() {
 	if c == nil {
 		return
@@ -332,6 +345,7 @@ func (c *Client) Close() {
 	c.disabled.Store(true)
 	c.call("Destroy")
 	_ = c.conn.Close()
+	c.wg.Wait()
 }
 
 // call invokes a fire-and-forget input-context method, latching the
@@ -355,6 +369,7 @@ func (c *Client) call(method string, args ...any) {
 // exits when the connection closes, which godbus signals by closing the
 // channel; that also latches the client off.
 func (c *Client) readSignals() {
+	defer c.wg.Done()
 	for sig := range c.signals {
 		switch sig.Name {
 		case ifaceContext + ".UpdatePreeditText",
@@ -413,9 +428,36 @@ func (c *Client) setPreedit(text string, cursor int32) {
 	c.push(Event{Kind: KindPreedit, Text: text, Cursor: cursor})
 }
 
-// push queues an event and wakes the event loop.
+// push queues an event and wakes the event loop. A latched-off client
+// stops queueing, and a stalled loop must not grow the queue without
+// bound, so both are defended here rather than at the call sites.
 func (c *Client) push(e Event) {
 	c.mu.Lock()
+	if c.disabled.Load() {
+		c.mu.Unlock()
+		return
+	}
+	if len(c.queue) >= queueLimit {
+		// Full. Preedit is transient state, so an incoming preedit is
+		// dropped outright and a commit evicts the oldest preedit
+		// instead of being lost. If nothing is evictable the new event
+		// is dropped too: the queue must never grow past the bound.
+		if e.Kind == KindPreedit {
+			c.mu.Unlock()
+			return
+		}
+		for i := range c.queue {
+			if c.queue[i].Kind == KindPreedit {
+				copy(c.queue[i:], c.queue[i+1:])
+				c.queue = c.queue[:len(c.queue)-1]
+				break
+			}
+		}
+		if len(c.queue) >= queueLimit {
+			c.mu.Unlock()
+			return
+		}
+	}
 	c.queue = append(c.queue, e)
 	c.mu.Unlock()
 	if c.wake != nil {
