@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Re-focusing an already-focused widget destroyed the IME composition
+  (#156).** `SetFocus` was not idempotent: it cleared the preedit and
+  re-activated the platform input context even when the requested ID was
+  already the focused one. Consumers legitimately re-assert focus from
+  inside their `View` function, which runs on every layout rebuild — i.e.
+  after every keystroke — so a CJK composition was torn down between each
+  update. The preedit flashed and never accumulated, leaving CJK input
+  unusable end to end. `imeClear` and the `IMEStart`/`IMEStop` pair now run
+  only on a real focus change. Text-selection clearing and the cursor-blink
+  reset are unchanged, so callers that re-focus to reset a selection still
+  work.
 - **App fonts were ignored on iOS and Android (#132).** Both backends
   loaded the bundled icon font but never called `gui.LoadAppFonts`, so
   `RegisterAppFont` / `RegisterAppFontBytes` were a silent no-op there.
