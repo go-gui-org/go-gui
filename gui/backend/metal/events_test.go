@@ -279,6 +279,144 @@ func TestMapMetalEvent_PlainKeyDown_ReturnsKeyDown(t *testing.T) {
 	}
 }
 
+// ─── IME text-event queue ──────────────────────────────────────
+
+// A single sendEvent: can fire insertText: then setMarkedText:. With
+// the old single event slot the commit was overwritten and lost —
+// Japanese input produced zero characters (issue #149). Both events
+// must survive, in order.
+func TestIMEQueue_CommitThenComposition_BothDelivered(t *testing.T) {
+	testResetIMEQueue()
+	defer testResetIMEQueue()
+
+	testPushIMECommit("日本語")
+	testPushIMEComposition("ん", 1, 0)
+
+	if !testPollEvent() {
+		t.Fatal("first poll: got no event, want the commit")
+	}
+	evt, cont := mapMetalEvent()
+	if !cont {
+		t.Fatal("commit should continue the event loop")
+	}
+	if evt.Type != gui.EventChar {
+		t.Fatalf("first event: got %v, want EventChar", evt.Type)
+	}
+	if evt.IMEText != "日本語" {
+		t.Fatalf("commit text: got %q, want %q", evt.IMEText, "日本語")
+	}
+
+	if !testPollEvent() {
+		t.Fatal("second poll: got no event, want the composition")
+	}
+	evt, cont = mapMetalEvent()
+	if !cont {
+		t.Fatal("composition should continue the event loop")
+	}
+	if evt.Type != gui.EventIMEComposition {
+		t.Fatalf("second event: got %v, want EventIMEComposition", evt.Type)
+	}
+	if evt.IMEText != "ん" {
+		t.Fatalf("composition text: got %q, want %q", evt.IMEText, "ん")
+	}
+	if evt.IMEStart != 1 {
+		t.Fatalf("composition start: got %d, want 1", evt.IMEStart)
+	}
+}
+
+// A drained queue must not hand the same event back on the next poll.
+func TestIMEQueue_DrainedQueueDoesNotRedeliver(t *testing.T) {
+	testResetIMEQueue()
+	defer testResetIMEQueue()
+
+	testPushIMECommit("a")
+	if !testPopTextEvent() {
+		t.Fatal("pop: got nothing, want the queued commit")
+	}
+	if d := testIMEQueueDepth(); d != 0 {
+		t.Fatalf("queue depth after drain: got %d, want 0", d)
+	}
+	if testPopTextEvent() {
+		t.Fatal("pop on empty queue: got an event, want none")
+	}
+}
+
+// Empty marked text is the IME's composition-end signal. It must reach
+// Go as an empty composition so the preedit can be cleared.
+func TestIMEQueue_CompositionEnd_DeliversEmptyComposition(t *testing.T) {
+	testResetIMEQueue()
+	defer testResetIMEQueue()
+
+	testPushIMEComposition("", 0, 0)
+
+	if !testPollEvent() {
+		t.Fatal("poll: got no event, want the composition end")
+	}
+	evt, cont := mapMetalEvent()
+	if !cont {
+		t.Fatal("composition end should continue the event loop")
+	}
+	if evt.Type != gui.EventIMEComposition {
+		t.Fatalf("got %v, want EventIMEComposition", evt.Type)
+	}
+	if evt.IMEText != "" {
+		t.Fatalf("composition end text: got %q, want empty", evt.IMEText)
+	}
+}
+
+// A queued commit may be delivered a poll or more after the key event
+// that produced it, by which point the shared modifier global has moved
+// on. The entry must carry its own snapshot.
+func TestIMEQueue_ModifiersSurviveDeferredPop(t *testing.T) {
+	testResetIMEQueue()
+	defer testResetIMEQueue()
+
+	const modCmd = uint32(1 << 20) // NSEventModifierFlagCommand
+
+	// Key-down sets the modifier global; the commit is queued with it.
+	testInjectKeyDown(0x00, modCmd)
+	testPushIMECommit("a")
+
+	// A later event clobbers the global before the queue is drained.
+	testInjectKeyDown(0x00, 0)
+
+	if !testPopTextEvent() {
+		t.Fatal("pop: got nothing, want the queued commit")
+	}
+	evt, _ := mapMetalEvent()
+	if evt.Type != gui.EventChar {
+		t.Fatalf("got %v, want EventChar", evt.Type)
+	}
+	if !evt.Modifiers.Has(gui.ModSuper) {
+		t.Fatalf("modifiers: got %v, want ModSuper from push time",
+			evt.Modifiers)
+	}
+}
+
+// Overflow must stay bounded rather than grow or corrupt the ring.
+func TestIMEQueue_OverflowIsBounded(t *testing.T) {
+	testResetIMEQueue()
+	defer testResetIMEQueue()
+
+	const queueCap = 32 // TEXT_EVENT_CAP
+	for range queueCap + 4 {
+		testPushIMECommit("x")
+	}
+	if d := testIMEQueueDepth(); d != queueCap {
+		t.Fatalf("queue depth after overflow: got %d, want %d", d, queueCap)
+	}
+
+	// The newest entries are the ones kept.
+	for i := range queueCap {
+		if !testPopTextEvent() {
+			t.Fatalf("pop %d: got nothing, want an entry", i)
+		}
+	}
+	if d := testIMEQueueDepth(); d != 0 {
+		t.Fatalf("queue depth after full drain: got %d, want 0", d)
+	}
+}
+
 // ─── Cursor bounds guard ────────────────────────────────────────
 
 func TestCursorBoundsCheck(t *testing.T) {

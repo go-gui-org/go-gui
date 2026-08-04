@@ -301,6 +301,11 @@ type TouchPoint struct {
 }
 
 // Event holds input event data.
+//
+// CharCode carries only the FIRST rune of the typed text. An IME
+// commit routinely delivers several runes in one event (CJK), and the
+// full string lives only in IMEText — read IMEText whenever the text
+// may come from an input method.
 type Event struct {
 	IMEText           string
 	FilePath          string

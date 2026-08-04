@@ -5,6 +5,93 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Metal backend dropped IME commit events (#149).** Text-input callbacks
+  wrote a single global event slot, so when one `[NSApp sendEvent:]` fired
+  several `NSTextInputClient` callbacks — the normal CJK sequence of
+  `insertText:` (commit) immediately followed by `setMarkedText:` (residual
+  composition) — each overwrote the previous and only the last reached Go.
+  Committing Japanese produced zero characters; preedit rendering was
+  unaffected. Text events now go through a FIFO drained one per
+  `metalPollEvent`, so every callback is delivered, in order. The
+  `_evIMEGeneration`/`_evIMEConsumedGen` pair is gone — an empty queue
+  encodes the same signal.
+- **Japanese converted text could never be committed on macOS.** After the
+  IME converted a composition (Space, or picking from the candidate window),
+  Enter did nothing at all: no `insertText:`, no callback of any kind, and the
+  preedit stayed on screen forever. Two `NSTextInputClient` methods were
+  stubbed in ways the input method treats as "this client has no document":
+  `selectedRange` returned `{NSNotFound, 0}` — which IMK then used as the base
+  for its range arithmetic, producing garbage queries like
+  `{NSNotFound - 30, 30}` — and `attributedSubstringForProposedRange:`
+  returned `nil`, though a converted commit asks for the text it is replacing.
+  `selectedRange` now reports the selection the IME last set inside the
+  composition, and `attributedSubstringForProposedRange:` serves the
+  composition text (clamped, `nil` only when genuinely out of range).
+  `validAttributesForMarkedText` now advertises the standard marked-text
+  attributes instead of an empty list. Reproduced and fixed against a plain
+  AppKit program with no go-gui code in it, so this was protocol conformance,
+  not an event-loop problem. Unconverted kana commits were unaffected, which
+  is why plain `nihongo` + Enter always worked.
+- **Keys the input method owns no longer also reach the widget on macOS.**
+  While a composition is live the IME owns the keyboard — arrows move between
+  conversion clauses, Enter commits, Escape reverts — but the raw
+  `EventKeyDown` was delivered as well, so the field's caret (and the preedit
+  drawn at it) slid sideways under the arrow keys, and Enter could fire a
+  widget action mid-composition. `keyDown:` now marks a keystroke as claimed
+  when a composition was in progress or the key started one, and
+  `metalPollEvent` drops it; the visible effect arrives as the queued
+  composition or commit instead.
+- **Placeholder text no longer stays visible during IME composition.** The
+  preedit was inserted into the placeholder rather than replacing it, so the
+  hint was pushed out to the right of the composing text ("かんEnter a name").
+  A placeholder is a hint, not content, so a composition now replaces it
+  outright; a field with real text still gets the preedit inserted at the
+  cursor. Applies to every backend, not just macOS.
+- **Metal backend now reports the end of an IME composition.** An empty
+  `setMarkedText:` (composition cancelled) previously wrote no event at all,
+  leaving the preedit on screen. It is delivered as an `EventIMEComposition`
+  with empty `IMEText`, which `Window.imeUpdate` already treats as "clear".
+- **IME composition offsets are clamped to the preedit.** `IMEStart` and
+  `IMELength` cross a platform boundary — Cocoa's `NSRange`, the Android
+  bridge's `int64`, the browser's composition events — and fed slice
+  arithmetic in the render path unchecked. `NSNotFound` in particular
+  truncates to `-1` in the event's `int32`. `Window.imeUpdate` now clamps both
+  to the composition's rune range, so a confused or hostile input method can
+  mis-place an underline but cannot panic the renderer.
+- **Web backend: keys the input method owns no longer reach the widget.** The
+  browser fires `keydown` for arrows, Enter and Escape during a composition
+  (`key == "Process"`, `isComposing == true`); the handler mapped the physical
+  `code` and delivered an `EventKeyDown` anyway, so the caret slid out from
+  under the preedit and Enter could fire a widget action mid-composition. The
+  same class of bug as the macOS fix above. Composing keydowns are now
+  ignored.
+- **Web backend: a cancelled composition now reports its end.**
+  `compositionend` with empty data (Escape) returned without emitting
+  anything, relying on a preceding `compositionupdate` to clear the state — a
+  browser/IME-dependent assumption. It now emits an `EventIMEComposition` with
+  empty `IMEText` directly.
+
+### Changed
+
+- **macOS now emits `EventKeyDown` for printable keys**, followed by
+  `EventChar`, matching X11, win32 and web. The KeyDown was previously
+  swallowed by the same single-slot overwrite. Text input is unaffected
+  (insertion runs on the Char path only), but two consequences are worth
+  noting for macOS apps: a `Command` registered with a modifier-less
+  `Shortcut` (e.g. `Shortcut{Key: KeyA}`) now fires on plain typing, as it
+  already did on Linux/Windows; and `InputCfg.OnKeyDown` now fires for
+  printable keys. Space-activated `OnKeyDown` handlers (select, combobox,
+  listbox, tree, date picker, menu) become live on macOS — previously dead.
+
+### Documentation
+
+- `Event.CharCode` documents that it carries only the first rune of an IME
+  commit; the full string is in `IMEText`.
+
 ## [v0.47.0] - 2026-08-01
 
 ### Added

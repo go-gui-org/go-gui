@@ -28,6 +28,13 @@ int metalTestApplicationDidBecomeActive(void);
 void metalTestRunModalMode(int ms);
 void metalTestRunDefaultMode(int ms);
 int metalTestFramePumpActive(void);
+void metalTestPushIMECommit(const char *utf8);
+void metalTestPushIMEComposition(const char *utf8, int start, int len);
+int metalTestIMEQueueDepth(void);
+void metalTestResetIMEQueue(void);
+int metalTestPopTextEvent(void);
+int metalTestIMEClientConformance(void *windowHandle);
+int metalTestIMEKeySuppressedWhileComposing(void *windowHandle);
 */
 import "C"
 import (
@@ -137,6 +144,20 @@ func testWindowDelegateExists(handle C.GoGuiNSWindow) bool {
 	return C.metalTestWindowDelegateExists(unsafe.Pointer(handle)) != 0
 }
 
+// testIMEClientConformance checks the NSTextInputClient answers a
+// Japanese IME needs to commit converted text. Needs a real window, so
+// it runs from runMainThreadTests.
+func testIMEClientConformance(handle C.GoGuiNSWindow) bool {
+	return C.metalTestIMEClientConformance(unsafe.Pointer(handle)) != 0
+}
+
+// testIMEKeySuppressedWhileComposing checks that a key the input
+// method owns does not also reach the widget.
+func testIMEKeySuppressedWhileComposing(handle C.GoGuiNSWindow) bool {
+	return C.metalTestIMEKeySuppressedWhileComposing(
+		unsafe.Pointer(handle)) != 0
+}
+
 func testWindowID(handle C.GoGuiNSWindow) uint32 {
 	return uint32(C.metalWindowGetID(handle))
 }
@@ -159,6 +180,49 @@ func testInjectKeyDown(keyCode uint16, modifiers uint32) {
 // tested without a running event loop.
 func testInjectQuitEvent() {
 	C.metalTestInjectQuitEvent()
+}
+
+// testPushIMECommit queues a committed-text event exactly as
+// insertText: does, so tests can simulate several IME callbacks
+// landing inside one sendEvent:.
+func testPushIMECommit(text string) {
+	ctext := C.CString(text)
+	defer C.free(unsafe.Pointer(ctext))
+	C.metalTestPushIMECommit(ctext)
+}
+
+// testPushIMEComposition queues a preedit-update event as
+// setMarkedText: does. An empty text is the composition-end signal.
+func testPushIMEComposition(text string, start, length int) {
+	ctext := C.CString(text)
+	defer C.free(unsafe.Pointer(ctext))
+	C.metalTestPushIMEComposition(ctext, C.int(start), C.int(length))
+}
+
+// testIMEQueueDepth reports how many text events are still queued.
+func testIMEQueueDepth() int {
+	return int(C.metalTestIMEQueueDepth())
+}
+
+// testResetIMEQueue drops queued text events so one test cannot
+// leak state into the next.
+func testResetIMEQueue() {
+	C.metalTestResetIMEQueue()
+}
+
+// testPopTextEvent drains one queued text event into the C event
+// globals, bypassing metalPollEvent. Used where the queue may be
+// empty: metalPollEvent would then fall through to NSApp, which is
+// main-thread-only.
+func testPopTextEvent() bool {
+	return C.metalTestPopTextEvent() != 0
+}
+
+// testPollEvent runs the real metalPollEvent drain path. Only safe to
+// call with a non-empty text queue — the drain returns before any
+// NSApp access.
+func testPollEvent() bool {
+	return C.metalPollEvent(0) != 0
 }
 
 func testQuitActionSetsQuitEvent() bool {
