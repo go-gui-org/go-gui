@@ -137,9 +137,11 @@ sharing the same rendering pipeline and event system.
 
 ## Installation
 
-Requires **Go 1.26+** and a **C toolchain** (CGo). The desktop backends are
-native: Metal on macOS, X11 + EGL on Linux, Win32 + WGL on Windows. Text
-shaping and rasterization are pure Go via go-glyph.
+Requires **Go 1.26+**. A **C toolchain** (CGo) is needed only on **macOS** —
+the Metal backend is Objective-C. Linux and Windows build fully cgo-free
+(`CGO_ENABLED=0 go build ./...`). The desktop backends are native: Metal on
+macOS, X11 + EGL on Linux, Win32 + WGL on Windows. Text shaping and
+rasterization are pure Go via go-glyph.
 
 ```bash
 go get github.com/go-gui-org/go-gui
@@ -154,7 +156,7 @@ for platform-specific instructions.
 
 ## Contributing
 
-1. Install **Go 1.26+** and a C toolchain (see
+1. Install **Go 1.26+** (a C toolchain too if developing on macOS, see
    [Installation](#installation)).
 2. Clone the repo.
 3. Run tests and lint:
