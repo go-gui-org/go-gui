@@ -1103,6 +1103,37 @@ func TestInputReadOnlyBlocksIMEText(t *testing.T) {
 	}
 }
 
+// TestInputCharIMETextInsertsWholeCommit pins the contract every
+// backend now follows for IME commits: one EventChar carries the whole
+// committed string in IMEText, with CharCode holding only the first
+// rune. The handler must insert IMEText, not string(CharCode) — Android
+// relied on a per-rune event loop before this was enforced.
+func TestInputCharIMETextInsertsWholeCommit(t *testing.T) {
+	ctx := newInputTest("", "ime_commit", 0)
+	e := &Event{Type: EventChar, CharCode: 'か', IMEText: "かんじ"}
+	ctx.layout.Shape.events.OnChar(&ctx.layout, e, ctx.w)
+	if ctx.lastText != "かんじ" {
+		t.Fatalf("IME commit inserted %q, want %q",
+			ctx.lastText, "かんじ")
+	}
+	if !e.IsHandled {
+		t.Fatal("IME commit event not marked handled")
+	}
+}
+
+// TestInputCharEmptyIMETextFallsBackToCharCode covers the plain typing
+// path: backends that emit a bare key char leave IMEText empty, so the
+// handler must fall back to CharCode.
+func TestInputCharEmptyIMETextFallsBackToCharCode(t *testing.T) {
+	ctx := newInputTest("ab", "ime_fallback", 2)
+	e := &Event{Type: EventChar, CharCode: 'c'}
+	ctx.layout.Shape.events.OnChar(&ctx.layout, e, ctx.w)
+	if ctx.lastText != "abc" {
+		t.Fatalf("plain char insert produced %q, want %q",
+			ctx.lastText, "abc")
+	}
+}
+
 func TestInputReadOnlyBlocksDeleteKeys(t *testing.T) {
 	for _, key := range []struct {
 		name string
