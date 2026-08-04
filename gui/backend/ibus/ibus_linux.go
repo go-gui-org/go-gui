@@ -219,7 +219,9 @@ func socketAddress() string {
 }
 
 func readSocketFile(path string) string {
-	data, err := os.ReadFile(path) //nolint:gosec // path is derived from the user's own config dir
+	// #nosec G304 — path is the caller's own ibus config dir joined with
+	// a name that came from globbing that same dir; no external input.
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return ""
 	}
@@ -242,6 +244,7 @@ func readSocketFile(path string) string {
 
 func machineID() string {
 	for _, p := range []string{"/etc/machine-id", "/var/lib/dbus/machine-id"} {
+		// #nosec G304 — p iterates two compile-time constants.
 		if data, err := os.ReadFile(p); err == nil {
 			if id := strings.TrimSpace(string(data)); id != "" {
 				return id
