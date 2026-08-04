@@ -4,6 +4,8 @@ package gl
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"syscall"
 	"unsafe"
 
@@ -12,7 +14,7 @@ import (
 
 var (
 	gdi32    = windows.NewLazySystemDLL("gdi32.dll")
-	opengl32 = windows.NewLazySystemDLL("opengl32.dll")
+	opengl32 = initOpenGL32()
 
 	pChoosePixelFormat = gdi32.NewProc("ChoosePixelFormat")
 	pSetPixelFormat    = gdi32.NewProc("SetPixelFormat")
@@ -23,6 +25,21 @@ var (
 	pWglDeleteContext  = opengl32.NewProc("wglDeleteContext")
 	pWglGetProcAddress = opengl32.NewProc("wglGetProcAddress")
 )
+
+// initOpenGL32 loads opengl32.dll.  It first tries the executable's
+// directory (so that a Mesa software-rendering DLL placed alongside
+// the binary on headless CI runners is discovered), then falls back to
+// the restricted System32 search for security.
+func initOpenGL32() *windows.LazyDLL {
+	if exe, err := os.Executable(); err == nil {
+		local := filepath.Join(filepath.Dir(exe), "opengl32.dll")
+		dll := windows.NewLazyDLL(local)
+		if err := dll.Load(); err == nil {
+			return dll
+		}
+	}
+	return windows.NewLazySystemDLL("opengl32.dll")
+}
 
 type pixelFormatDescriptor struct {
 	nSize           uint16
