@@ -89,3 +89,64 @@ func TestDisabledClientStopsConsuming(t *testing.T) {
 	c.FocusIn()
 	c.SetCursorLocation(1, 2, 3, 4)
 }
+
+// A stalled event loop must not grow the queue without bound. Preedit
+// updates are transient — the engine resends them on the next key — so
+// they are dropped first, while a commit evicts the oldest preedit
+// rather than being lost.
+func TestPushQueueLimit(t *testing.T) {
+	c := &Client{}
+
+	for range queueLimit {
+		c.push(Event{Kind: KindPreedit, Text: "x"})
+	}
+	if n := len(c.Drain(nil)); n != queueLimit {
+		t.Fatalf("queue holds %d events, want %d", n, queueLimit)
+	}
+
+	// An incoming preedit at the limit is dropped outright.
+	for range queueLimit {
+		c.push(Event{Kind: KindPreedit, Text: "x"})
+	}
+	c.push(Event{Kind: KindPreedit, Text: "x"})
+	if n := len(c.Drain(nil)); n != queueLimit {
+		t.Fatalf("preedit not dropped at the limit: %d events queued", n)
+	}
+
+	// A commit at the limit evicts the oldest preedit instead.
+	for range queueLimit {
+		c.push(Event{Kind: KindPreedit, Text: "x"})
+	}
+	c.push(Event{Kind: KindCommit, Text: "keep"})
+	evs := c.Drain(nil)
+	if len(evs) != queueLimit || evs[queueLimit-1].Kind != KindCommit {
+		t.Fatalf("commit not kept: %d events, last = %+v", len(evs), evs[queueLimit-1])
+	}
+	if evs[0].Kind != KindPreedit {
+		t.Fatalf("oldest preedit not evicted, first = %+v", evs[0])
+	}
+
+	// With nothing evictable left the queue stays bounded.
+	for range queueLimit {
+		c.push(Event{Kind: KindCommit, Text: "x"})
+	}
+	c.push(Event{Kind: KindCommit, Text: "x"})
+	if n := len(c.Drain(nil)); n != queueLimit {
+		t.Fatalf("queue grew past the limit: %d", n)
+	}
+}
+
+// A latched-off client stops queueing: nothing may be pushed and no
+// wake may fire once Close has started.
+func TestPushDropsAfterClose(t *testing.T) {
+	var wakes atomic.Int32
+	c := &Client{wake: func() { wakes.Add(1) }}
+	c.disabled.Store(true)
+	c.push(Event{Kind: KindCommit, Text: "x"})
+	if n := len(c.Drain(nil)); n != 0 {
+		t.Fatalf("latched client queued %d events", n)
+	}
+	if wakes.Load() != 0 {
+		t.Fatalf("wake called %d times after latch", wakes.Load())
+	}
+}

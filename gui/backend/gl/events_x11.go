@@ -52,10 +52,7 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 	w := b.plat.w
 	switch e := ev.(type) {
 	case xproto.KeyPressEvent:
-		col := 0
-		if e.State&xproto.KeyButMaskShift != 0 {
-			col = 1
-		}
+		col := keysymColumn(e.State)
 		// A key the input method claims belongs entirely to it: while a
 		// composition is live the engine owns the arrows, Return and
 		// Backspace too, so neither the key event nor the character may
@@ -75,10 +72,12 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 	case xproto.KeyReleaseEvent:
 		// Releases are forwarded but never suppress the key-up: engines
 		// use them for modifier-only toggles (Shift to switch kana, say)
-		// and nothing else depends on the result.
+		// and nothing else depends on the result. The keysym uses the
+		// same shift column as the press so the engine sees matching
+		// press/release pairs.
 		if b.plat.ime != nil {
 			b.plat.ime.ProcessKeyRelease(
-				b.plat.keysym(e.Detail, 0),
+				b.plat.keysym(e.Detail, keysymColumn(e.State)),
 				uint32(e.Detail)-x11KeycodeOffset,
 				uint32(e.State),
 			)
@@ -241,6 +240,15 @@ func (b *Backend) emitChar(r rune, state uint16) {
 
 // x11KeycodeOffset converts an X11 keycode to the evdev code IBus wants.
 const x11KeycodeOffset = 8
+
+// keysymColumn returns the shift column for the given modifier state:
+// column 0 is the unshifted keysym, column 1 the shifted one.
+func keysymColumn(state uint16) int {
+	if state&xproto.KeyButMaskShift != 0 {
+		return 1
+	}
+	return 0
+}
 
 // imeProcessKey offers a key press to the input method and reports
 // whether it was consumed.
