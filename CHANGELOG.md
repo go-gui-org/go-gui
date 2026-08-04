@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.48.1] - 2026-08-04
+
+### Fixed
+
+- **Key repeat delivered no characters on macOS (#159).** macOS
+  press-and-hold is on by default. After the first `insertText:`, AppKit
+  hands the held key to the accent-palette machinery and stops calling
+  `insertText:` for the auto-repeat `keyDown:` events that follow, so every
+  repeat reached the toolkit as a bare `EventKeyDown` with no `EventChar`
+  behind it. Holding a letter typed one character, holding Backspace
+  deleted one character, and a terminal pane echoed nothing for the whole
+  hold. `metalAppInit` now registers `ApplePressAndHoldEnabled=NO` before
+  `sharedApplication`. Registered rather than written: the registration
+  domain sits at the bottom of the defaults search order, so nothing is
+  persisted to disk and `defaults write -g ApplePressAndHoldEnabled -bool
+  true` — which lives in NSGlobalDomain and outranks it — still restores
+  the accent palette for anyone who wants it over key repeat.
+
 ## [v0.48.0] - 2026-08-04
 
 ### Fixed
