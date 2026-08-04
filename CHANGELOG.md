@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.48.0] - 2026-08-04
+
 ### Fixed
 
 - **Re-focusing an already-focused widget destroyed the IME composition
@@ -95,6 +97,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **GL backend no longer needs cgo (#155).** The `github.com/go-gl/gl`
+  dependency is replaced by `gui/backend/internal/glbind`, which loads the GL
+  entry points through purego, so the Linux and Windows backends build with
+  `CGO_ENABLED=0`. Loading is all-or-nothing — the full binding table resolves
+  or init returns an error — so there is no partial, silently broken GL state.
+  Proc loading is per-platform (`egl_linux.go`, `wgl_windows.go`). No API
+  change for embedders; the macOS/Metal and web backends are untouched.
 - **macOS now emits `EventKeyDown` for printable keys**, followed by
   `EventChar`, matching X11, win32 and web. The KeyDown was previously
   swallowed by the same single-slot overwrite. Text input is unaffected
@@ -138,8 +147,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   selection actually lost instead of both. Other backends leave the hooks nil,
   so `GetPrimary` returns `""` and `SetPrimary` is a no-op on macOS, Windows,
   web, and mobile.
-
-## [Unreleased]
 
 ## [v0.45.1] - 2026-07-31
 
