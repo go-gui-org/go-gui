@@ -1197,6 +1197,26 @@ void metalAppInit(void) {
     if (activated) return;
     activated = YES;
 
+    // Restore key repeat.  macOS press-and-hold (on by default) hands a
+    // held key to the accent-palette machinery after the first
+    // insertText:, and stops calling insertText: for the auto-repeat
+    // keyDown: events that follow.  Every repeat then arrives as a bare
+    // EventKeyDown with no EventChar behind it, so holding a letter types
+    // one character, holding Backspace deletes one character, and a
+    // terminal pane echoes nothing while the key is down.
+    //
+    // Registered rather than written: the registration domain sits at the
+    // bottom of the defaults search order, so a user who genuinely wants
+    // the accent palette keeps the escape hatch
+    //
+    //     defaults write -g ApplePressAndHoldEnabled -bool true
+    //
+    // which lives in NSGlobalDomain and outranks this.  Must run before
+    // sharedApplication so AppKit reads it during its own setup.
+    [[NSUserDefaults standardUserDefaults] registerDefaults:@{
+        @"ApplePressAndHoldEnabled": @NO,
+    }];
+
     [GUIApplication sharedApplication];
     [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
 
@@ -1551,6 +1571,19 @@ void metalTestRunModalMode(int ms) {
 
 void metalTestRunDefaultMode(int ms) {
     metalTestRunMode(NSDefaultRunLoopMode, ms);
+}
+
+// Report ApplePressAndHoldEnabled as it stands in the registration
+// domain: 0 registered off, 1 registered on, -1 not registered at all.
+// Deliberately not the *effective* value — a developer who set
+// NSGlobalDomain themselves would otherwise fail this test for holding a
+// preference the fix intentionally leaves them.
+int metalTestPressAndHoldRegistered(void) {
+    NSDictionary *reg = [[NSUserDefaults standardUserDefaults]
+                             volatileDomainForName:NSRegistrationDomain];
+    id v = reg[@"ApplePressAndHoldEnabled"];
+    if (v == nil) return -1;
+    return [v boolValue] ? 1 : 0;
 }
 
 // Report whether the frame-pump timer is currently installed.

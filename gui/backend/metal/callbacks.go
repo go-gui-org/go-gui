@@ -28,6 +28,7 @@ int metalTestApplicationDidBecomeActive(void);
 void metalTestRunModalMode(int ms);
 void metalTestRunDefaultMode(int ms);
 int metalTestFramePumpActive(void);
+int metalTestPressAndHoldRegistered(void);
 void metalTestPushIMECommit(const char *utf8);
 void metalTestPushIMEComposition(const char *utf8, int start, int len);
 int metalTestIMEQueueDepth(void);
@@ -263,6 +264,14 @@ func testApplicationDidBecomeActive() bool {
 // testFramePumpActive reports whether the nested-runloop frame-pump
 // timer is currently installed.
 func testFramePumpActive() bool { return C.metalTestFramePumpActive() != 0 }
+
+// testPressAndHoldRegistered reports ApplePressAndHoldEnabled as
+// registered by metalAppInit: 0 off, 1 on, -1 never registered.
+// Press-and-hold suppresses the insertText: calls that back key repeat,
+// so the fix registers it off.
+func testPressAndHoldRegistered() int {
+	return int(C.metalTestPressAndHoldRegistered())
+}
 
 // testRunModalMode spins the main runloop in NSModalPanelRunLoopMode —
 // what AppKit does inside runModal — so the pump timer can fire there.

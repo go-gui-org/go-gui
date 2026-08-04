@@ -46,6 +46,15 @@ func runMainThreadTests() {
 		panic("metalAppInit: activation policy not Regular")
 	}
 
+	// 2b. Press-and-hold must be registered off. With it on (the macOS
+	//    default), AppKit stops calling insertText: for auto-repeat
+	//    keyDown: events, so a held key types exactly one character and
+	//    key repeat is dead everywhere in the toolkit.
+	if got := testPressAndHoldRegistered(); got != 0 {
+		panic("metalAppInit: ApplePressAndHoldEnabled not registered off " +
+			"(key repeat delivers no characters)")
+	}
+
 	// 3. Menu bar must be fully wired — delegate, main menu, and
 	//    Quit wired to delegate. Regression test for Cmd+Q silently
 	//    failing.
