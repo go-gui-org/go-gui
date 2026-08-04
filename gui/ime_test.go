@@ -109,6 +109,89 @@ func TestIMEClearedOnFocusChange(t *testing.T) {
 	}
 }
 
+// imeSpyPlatform counts IME activation calls so a test can assert that
+// re-focusing an already-focused widget does not cycle the platform
+// input context.
+type imeSpyPlatform struct {
+	NoopNativePlatform
+	starts int
+	stops  int
+}
+
+func (p *imeSpyPlatform) IMEStart() { p.starts++ }
+func (p *imeSpyPlatform) IMEStop()  { p.stops++ }
+
+// Regression for go-gui-org/go-gui#156. Consumers re-assert focus from
+// inside their View function, which runs on every layout rebuild — i.e.
+// after every keystroke. That must not clear a live composition, or the
+// preedit flashes away between each update and CJK input is unusable.
+func TestIMEPreservedOnRefocusSameID(t *testing.T) {
+	w := newTestWindow()
+	w.SetFocus("f1")
+	w.imeUpdate(&Event{
+		Type:      EventIMEComposition,
+		IMEText:   "にほん",
+		IMEStart:  3,
+		IMELength: 0,
+	})
+	w.SetFocus("f1")
+	if !w.IMEComposing() {
+		t.Fatal("composition dropped by refocusing the same id")
+	}
+	if got := w.IMECompText(); got != "にほん" {
+		t.Fatalf("comp text = %q, want %q", got, "にほん")
+	}
+	if got := w.IMECompCursor(); got != 3 {
+		t.Fatalf("comp cursor = %d, want 3", got)
+	}
+}
+
+// The other half of #156: re-focusing must not re-activate the platform
+// input context either, which on macOS re-ran makeFirstResponder:
+// mid-composition.
+func TestIMEStartNotRepeatedOnRefocusSameID(t *testing.T) {
+	w := newTestWindow()
+	spy := &imeSpyPlatform{}
+	w.SetNativePlatform(spy)
+
+	w.SetFocus("f1")
+	if spy.starts != 1 {
+		t.Fatalf("IMEStart calls after first focus = %d, want 1",
+			spy.starts)
+	}
+	for range 5 {
+		w.SetFocus("f1")
+	}
+	if spy.starts != 1 {
+		t.Fatalf("IMEStart calls after refocus = %d, want 1", spy.starts)
+	}
+	if spy.stops != 0 {
+		t.Fatalf("IMEStop calls after refocus = %d, want 0", spy.stops)
+	}
+
+	// A real focus change still cycles the input context.
+	w.SetFocus("f2")
+	if spy.stops != 1 || spy.starts != 2 {
+		t.Fatalf("after focus change: starts=%d stops=%d, want 2 and 1",
+			spy.starts, spy.stops)
+	}
+}
+
+// A genuine focus change must still drop the composition — the preedit
+// belongs to the widget that was being typed into.
+func TestIMEClearedOnFocusChangeToDifferentID(t *testing.T) {
+	w := newTestWindow()
+	w.SetFocus("f1")
+	w.imeUpdate(&Event{
+		Type:    EventIMEComposition,
+		IMEText: "字",
+	})
+	w.SetFocus("f2")
+	if w.IMEComposing() {
+		t.Fatal("expected composing=false after focus moved to f2")
+	}
+}
+
 func TestIMESetRectNoopWithoutPlatform(_ *testing.T) {
 	w := newTestWindow()
 	// Should not panic with nil nativePlatform.

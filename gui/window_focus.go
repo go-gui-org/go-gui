@@ -28,7 +28,16 @@ func (w *Window) ClearFocus() {
 func (w *Window) setFocusLocked(id string) {
 	prev := w.viewState.focusID
 	w.clearInputSelections()
-	w.imeClear()
+	// Re-focusing the widget that already has focus must leave an
+	// in-flight IME composition alone. Consumers legitimately re-assert
+	// focus from inside their View function, which runs on every layout
+	// rebuild — i.e. after every keystroke — so an unconditional clear
+	// here wiped the preedit between each composition update, and the
+	// IMEStart below re-activated the platform input context
+	// mid-composition. See go-gui-org/go-gui#156.
+	if id != prev {
+		w.imeClear()
+	}
 	w.viewState.focusID = id
 	if id != "" {
 		w.viewState.inputCursorOn.Store(true)
@@ -36,8 +45,11 @@ func (w *Window) setFocusLocked(id string) {
 			w.animationAddLocked(NewBlinkCursorAnimation())
 		}
 	}
-	if np := w.nativePlatform; np != nil {
-		if prev != "" && id != prev {
+	// Same reasoning: only a real focus *change* touches the platform
+	// IME. prev != "" alone suffices for the stop — the enclosing
+	// id != prev already rules out a no-op transition.
+	if np := w.nativePlatform; np != nil && id != prev {
+		if prev != "" {
 			np.IMEStop()
 		}
 		if id != "" {
