@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/go-gl/gl/v3.3-core/gl"
+	gogl "github.com/go-gui-org/go-gui/gui/backend/internal/glbind"
 	"golang.org/x/sys/windows"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -427,9 +427,9 @@ func New(w *gui.Window) (*Backend, error) {
 	}
 	b.plat.hglrc = hglrc
 
-	if err := gl.Init(); err != nil {
+	if err := gogl.InitWithProcAddrFunc(glProc); err != nil {
 		b.plat.destroy()
-		return nil, fmt.Errorf("gl: gl.Init: %w", err)
+		return nil, fmt.Errorf("gl: glbind init: %w", err)
 	}
 
 	b.dpiScale = float32(dpiForWindow(hwnd)) / 96.0

@@ -4,6 +4,8 @@ package gl
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"syscall"
 	"unsafe"
 
@@ -12,7 +14,7 @@ import (
 
 var (
 	gdi32    = windows.NewLazySystemDLL("gdi32.dll")
-	opengl32 = windows.NewLazySystemDLL("opengl32.dll")
+	opengl32 = initOpenGL32()
 
 	pChoosePixelFormat = gdi32.NewProc("ChoosePixelFormat")
 	pSetPixelFormat    = gdi32.NewProc("SetPixelFormat")
@@ -23,6 +25,21 @@ var (
 	pWglDeleteContext  = opengl32.NewProc("wglDeleteContext")
 	pWglGetProcAddress = opengl32.NewProc("wglGetProcAddress")
 )
+
+// initOpenGL32 loads opengl32.dll.  It first tries the executable's
+// directory (so that a Mesa software-rendering DLL placed alongside
+// the binary on headless CI runners is discovered), then falls back to
+// the restricted System32 search for security.
+func initOpenGL32() *windows.LazyDLL {
+	if exe, err := os.Executable(); err == nil {
+		local := filepath.Join(filepath.Dir(exe), "opengl32.dll")
+		dll := windows.NewLazyDLL(local)
+		if err := dll.Load(); err == nil {
+			return dll
+		}
+	}
+	return windows.NewLazySystemDLL("opengl32.dll")
+}
 
 type pixelFormatDescriptor struct {
 	nSize           uint16
@@ -166,4 +183,22 @@ func wglProc(name string) uintptr {
 		return 0
 	}
 	return r
+}
+
+// glProc resolves an OpenGL entry point for glbind.InitWithProcAddrFunc.
+// A context must be current.
+//
+// It reproduces what go-gl's C loader did: wglGetProcAddress only returns
+// GL 1.2+ and extension entry points, while the GL 1.1 core subset
+// (glClear, glViewport, glTexImage2D, ...) is exported directly by
+// opengl32.dll and has to be looked up there instead.
+func glProc(name string) uintptr {
+	if p := wglProc(name); p != 0 {
+		return p
+	}
+	proc := opengl32.NewProc(name)
+	if err := proc.Find(); err != nil {
+		return 0
+	}
+	return proc.Addr()
 }

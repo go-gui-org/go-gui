@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Install Ubuntu system dependencies required to build go-gui with CGO.
+# libegl1 is a runtime dependency, not a build one: gui/backend/gl dlopens
+# libEGL.so.1 by soname. No GL headers are needed since the backend dropped
+# github.com/go-gl/gl for the purego binding in gui/backend/internal/glbind.
 # Usage: ./scripts/install-ubuntu-deps.sh
 set -euo pipefail
 
@@ -11,7 +14,7 @@ sudo apt-get install -y \
   libpango1.0-dev \
   libfontconfig1-dev \
   libhunspell-dev \
-  libgl1-mesa-dev \
+  libegl1 \
   libx11-dev \
   libxext-dev \
   libxcursor-dev \

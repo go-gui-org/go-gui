@@ -15,8 +15,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/go-gui-org/go-glyph"
+	gogl "github.com/go-gui-org/go-gui/gui/backend/internal/glbind"
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
@@ -111,11 +111,11 @@ func (b *Backend) initCaches(cfg gui.WindowCfg) {
 // interfaces onto the window. b.physW, b.physH, and b.dpiScale must
 // be set before calling. The GL context must already be current.
 func (b *Backend) initGLResources(w *gui.Window) error {
-	gl.Enable(gl.BLEND)
-	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-	gl.Disable(gl.DEPTH_TEST)
-	gl.Disable(gl.CULL_FACE)
-	gl.Viewport(0, 0, b.physW, b.physH)
+	gogl.Enable(gogl.BLEND)
+	gogl.BlendFunc(gogl.SRC_ALPHA, gogl.ONE_MINUS_SRC_ALPHA)
+	gogl.Disable(gogl.DEPTH_TEST)
+	gogl.Disable(gogl.CULL_FACE)
+	gogl.Viewport(0, 0, b.physW, b.physH)
 
 	if err := b.initPipelines(); err != nil {
 		return err
@@ -158,19 +158,19 @@ func (b *Backend) destroyGLResources() {
 	b.textures.DestroyAll()
 	b.destroyPipelines()
 	if b.quadVAO != 0 {
-		gl.DeleteVertexArrays(1, &b.quadVAO)
+		gogl.DeleteVertexArrays(1, &b.quadVAO)
 	}
 	if b.quadVBO != 0 {
-		gl.DeleteBuffers(1, &b.quadVBO)
+		gogl.DeleteBuffers(1, &b.quadVBO)
 	}
 	if b.quadIBO != 0 {
-		gl.DeleteBuffers(1, &b.quadIBO)
+		gogl.DeleteBuffers(1, &b.quadIBO)
 	}
 	if b.svgVAO != 0 {
-		gl.DeleteVertexArrays(1, &b.svgVAO)
+		gogl.DeleteVertexArrays(1, &b.svgVAO)
 	}
 	if b.svgVBO != 0 {
-		gl.DeleteBuffers(1, &b.svgVBO)
+		gogl.DeleteBuffers(1, &b.svgVBO)
 	}
 	b.destroyFilterFBO()
 	if b.glyphBack != nil {
@@ -194,14 +194,14 @@ func (b *Backend) renderFrame(w *gui.Window) {
 		t := gui.CurrentTheme()
 		bg = t.ColorBackground
 	}
-	gl.ClearColor(
+	gogl.ClearColor(
 		float32(bg.R)/255.0,
 		float32(bg.G)/255.0,
 		float32(bg.B)/255.0,
 		float32(bg.A)/255.0,
 	)
-	gl.Disable(gl.SCISSOR_TEST)
-	gl.Clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT)
+	gogl.Disable(gogl.SCISSOR_TEST)
+	gogl.Clear(gogl.COLOR_BUFFER_BIT | gogl.STENCIL_BUFFER_BIT)
 
 	w.Lock()
 	w.BackingScale = b.dpiScale
@@ -217,7 +217,7 @@ func (b *Backend) renderFrame(w *gui.Window) {
 func (b *Backend) handleResize() {
 	b.physW, b.physH = b.plat.drawableSize()
 	b.dpiScale = b.plat.dpiScale()
-	gl.Viewport(0, 0, b.physW, b.physH)
+	gogl.Viewport(0, 0, b.physW, b.physH)
 	b.updateProjection()
 }
 

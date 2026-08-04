@@ -128,6 +128,19 @@ jobs:
       - name: Vet
         run: go vet ./...
 
+      # Guards the CGo-free desktop backend. gui/backend/... must keep
+      # cross-compiling with no C toolchain on the host; a new cgo import
+      # anywhere under it reds this step. Scoped to gui/backend/... rather
+      # than ./gui/... because gui/audio still needs cgo on Linux (oto ->
+      # ALSA).
+      - name: CGo-free backend cross-compile
+        run: |
+          for target in linux/amd64 linux/arm64 windows/amd64 windows/arm64; do
+            echo "==> $target"
+            CGO_ENABLED=0 GOOS=${target%/*} GOARCH=${target#*/} \
+              go build ./gui/backend/...
+          done
+
       - name: Lint
         uses: golangci/golangci-lint-action@v9
         with:
@@ -233,6 +246,10 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
+      # No C toolchain: the Windows build is CGO_ENABLED=0 end to end.
+      # msys2 remains only for (a) Mesa's software opengl32.dll, which the
+      # GPU-less runner needs at *runtime* for the smoke test, and (b) the
+      # bash shell those steps are written in.
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -240,7 +257,6 @@ jobs:
           release: false
           path-type: inherit
           install: >-
-            mingw-w64-x86_64-gcc
             mingw-w64-x86_64-mesa
 
       - uses: actions/checkout@v6
@@ -248,17 +264,17 @@ jobs:
       - uses: ./.github/actions/setup-go-glyph
 
       - name: Build
-        run: CGO_ENABLED=1 go build ./...
+        run: CGO_ENABLED=0 go build ./...
 
       - name: Vet
-        run: CGO_ENABLED=1 go vet ./...
+        run: CGO_ENABLED=0 go vet ./...
 
       - name: Test (headless)
-        run: CGO_ENABLED=1 go test ./gui/...
+        run: CGO_ENABLED=0 go test ./gui/...
 
       - name: Build showcase
         run: |
-          CGO_ENABLED=1 go build -tags audio \
+          CGO_ENABLED=0 go build -tags audio \
             -o build/showcase-windows.exe ./examples/showcase/
 
       - name: Smoke test showcase

@@ -35,6 +35,14 @@ linters:
   exclusions:
     generated: lax
     rules:
+      # glbind mirrors the C OpenGL API 1:1 so that call sites need no
+      # changes: SCREAMING_SNAKE enum names and one thin wrapper per entry
+      # point. Idiomatic Go naming and 100 per-symbol doc comments restating
+      # the GL reference pages would defeat that and hide the real content.
+      - path: gui/backend/internal/glbind/
+        text: "should have comment or be unexported"
+      - path: gui/backend/internal/glbind/
+        text: "ALL_CAPS|underscore"
       - path: _test\.go
         linters:
           - errcheck
