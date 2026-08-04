@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -639,10 +640,17 @@ func TestInitInvalidMixChannels(t *testing.T) {
 	if initialized {
 		Quit()
 	}
-	err := Init(Cfg{MixChannels: 0})
+	// 0 is the "use default" sentinel (like Frequency/ChunkSize); use an
+	// out-of-range non-zero value to exercise the validation bound.
+	err := Init(Cfg{MixChannels: 300})
 	if err == nil {
 		Quit()
-		t.Error("expected error for mix channels 0")
+		t.Fatal("expected error for mix channels 300")
+	}
+	// Assert on the message: without a sound server Init also fails at
+	// the output sink, which would pass this test for the wrong reason.
+	if !strings.Contains(err.Error(), "mix channels") {
+		t.Errorf("expected mix channels validation error, got %v", err)
 	}
 }
 

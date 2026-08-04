@@ -128,18 +128,23 @@ jobs:
       - name: Vet
         run: go vet ./...
 
-      # Guards the CGo-free desktop backend. gui/backend/... must keep
+      # Guards the CGo-free desktop build. The whole module must keep
       # cross-compiling with no C toolchain on the host; a new cgo import
-      # anywhere under it reds this step. Scoped to gui/backend/... rather
-      # than ./gui/... because gui/audio still needs cgo on Linux (oto ->
-      # ALSA).
-      - name: CGo-free backend cross-compile
+      # anywhere reds this step. gui/audio's default Linux output is the
+      # pure-Go PulseAudio sink; oto (ALSA) is opt-in via -tags otoaudio,
+      # so ./... stays cgo-free here.
+      - name: CGo-free cross-compile
         run: |
           for target in linux/amd64 linux/arm64 windows/amd64 windows/arm64; do
             echo "==> $target"
             CGO_ENABLED=0 GOOS=${target%/*} GOARCH=${target#*/} \
-              go build ./gui/backend/...
+              go build ./...
           done
+
+      # The opt-in oto/ALSA sink is excluded from every build above, so
+      # compile it explicitly or it bit-rots unnoticed.
+      - name: Build oto/ALSA audio sink (-tags otoaudio)
+        run: go build -tags otoaudio ./gui/audio/...
 
       - name: Lint
         uses: golangci/golangci-lint-action@v9
@@ -274,7 +279,7 @@ jobs:
 
       - name: Build showcase
         run: |
-          CGO_ENABLED=0 go build -tags audio \
+          CGO_ENABLED=0 go build \
             -o build/showcase-windows.exe ./examples/showcase/
 
       - name: Smoke test showcase

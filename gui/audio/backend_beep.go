@@ -15,7 +15,6 @@ import (
 	"github.com/gopxl/beep/v2"
 	"github.com/gopxl/beep/v2/flac"
 	"github.com/gopxl/beep/v2/mp3"
-	"github.com/gopxl/beep/v2/speaker"
 	"github.com/gopxl/beep/v2/vorbis"
 	"github.com/gopxl/beep/v2/wav"
 )
@@ -303,20 +302,13 @@ func (b *beepBackend) Init(cfg Cfg) error {
 	if b.initialized {
 		return nil
 	}
+	// Init (audio.go) already applied the defaults and range-validated
+	// every field, so no re-defaulting here.
 	sr := beep.SampleRate(cfg.Frequency)
-	if sr <= 0 {
-		sr = 44100
-	}
 	bufSize := cfg.ChunkSize
-	if bufSize <= 0 {
-		bufSize = 2048
-	}
 	nch := cfg.MixChannels
-	if nch <= 0 {
-		nch = 16
-	}
-	if err := speaker.Init(sr, bufSize); err != nil {
-		return fmt.Errorf("audio: init speaker: %w", err)
+	if err := outputInit(sr, bufSize); err != nil {
+		return fmt.Errorf("audio: init output: %w", err)
 	}
 	b.sampleRate = sr
 	b.bufferSize = bufSize
@@ -325,8 +317,8 @@ func (b *beepBackend) Init(cfg Cfg) error {
 	b.music.ctrl = &beep.Ctrl{}
 	b.channels = newChannelMixer(nch, &b.masterVolume)
 
-	speaker.Play(b.channels)
-	speaker.Play(&neverDrain{streamer: b.music.ctrl})
+	outputPlay(b.channels)
+	outputPlay(&neverDrain{streamer: b.music.ctrl})
 
 	b.initialized = true
 	return nil
@@ -336,9 +328,9 @@ func (b *beepBackend) Quit() {
 	if !b.initialized {
 		return
 	}
-	// Stop the speaker's playback goroutine before mutating the streamers
+	// Stop the output's playback goroutine before mutating the streamers
 	// it reads; otherwise halt/Streamer writes race the mixer callback.
-	speaker.Close()
+	outputClose()
 	b.channels.halt(-1)
 	b.music.ctrl.Streamer = nil
 	b.initialized = false

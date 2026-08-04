@@ -10,6 +10,7 @@ require (
 	github.com/godbus/dbus/v5 v5.2.2
 	github.com/gopxl/beep/v2 v2.1.1
 	github.com/jezek/xgb v1.3.1
+	github.com/jfreymuth/pulse v0.1.2
 	github.com/tdewolff/parse/v2 v2.8.13
 	github.com/yuin/goldmark v1.8.2
 	github.com/yuin/goldmark-emoji v1.0.6

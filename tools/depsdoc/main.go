@@ -35,7 +35,8 @@ var directPurpose = map[string]string{
 	"github.com/go-gui-org/go-glyph":  "Text shaping + glyph rasterization. Required by every backend.",
 	"github.com/jezek/xgb":            "Pure-Go X11 windowing + events for the native Linux backend (`gui/backend/gl`).",
 	"github.com/ebitengine/purego":    "cgo-free dynamic loading of libEGL and the OpenGL entry points (`gui/backend/internal/glbind`) for the native Linux and Windows backends.",
-	"github.com/gopxl/beep/v2":        "Audio playback (sound effects, music, mixer, fade) for `gui/audio`.",
+	"github.com/gopxl/beep/v2":        "Audio decode + mixing (sound effects, music, mixer, fade) for `gui/audio`.",
+	"github.com/jfreymuth/pulse":      "Pure-Go PulseAudio native-protocol client. Default Linux audio output sink (`gui/audio/output_pulse.go`), keeping `CGO_ENABLED=0` builds cgo-free. Needs a running PulseAudio/PipeWire server.",
 	"github.com/tdewolff/parse/v2":    "CSS tokenizer for the SVG `<style>` / `style=\"\"` cascade pipeline.",
 	"github.com/alecthomas/chroma/v2": "Syntax highlighting in the markdown widget.",
 	"github.com/yuin/goldmark":        "Markdown parser (markdown widget + showcase docs).",
@@ -51,7 +52,7 @@ var directPurpose = map[string]string{
 var indirectPulledBy = map[string]string{
 	"github.com/dlclark/regexp2":     "chroma",
 	"github.com/dlclark/regexp2/v2":  "chroma",
-	"github.com/ebitengine/oto/v3":   "gopxl/beep (audio output)",
+	"github.com/ebitengine/oto/v3":   "gopxl/beep (audio output). Used on Windows/macOS, and on Linux only under `-tags otoaudio` (ALSA, cgo).",
 	"github.com/go-text/typesetting": "go-glyph (pure-Go text shaping)",
 	"github.com/hajimehoshi/go-mp3":  "gopxl/beep (MP3 decode)",
 	"github.com/icza/bitio":          "mewkiz/flac (FLAC decode)",

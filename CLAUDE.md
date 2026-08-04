@@ -165,8 +165,15 @@ git/mkdir/rm/ls output. `ctx_fetch_and_index` instead of curl/wget/WebFetch.
   **Phase 1 done (2026-07-31):** go-gl replaced by
   `gui/backend/internal/glbind` (purego). `CGO_ENABLED=0` now builds the whole
   module for Windows, and `./gui/backend/...` for Linux. The remaining Linux
-  CGo dependency is `gui/audio` → `ebitengine/oto` (ALSA), not the backend.
+  CGo dependency was `gui/audio` → `ebitengine/oto` (ALSA), not the backend.
   macOS (Phase 2) is untouched.
+
+  **Audio de-cgo'd (2026-08-04, issue #141):** `gui/audio`'s output driver is
+  now a 3-function seam (`outputInit`/`outputPlay`/`outputClose`,
+  `output_oto.go` vs `output_pulse.go`). The default Linux sink is a pure-Go
+  PulseAudio client (`github.com/jfreymuth/pulse`), so `CGO_ENABLED=0 go build
+  ./...` is green on Linux; oto/ALSA is opt-in via `-tags otoaudio`.
+  Windows/macOS still use oto. beep decode/mix was already pure Go.
 
 ## Specs
 
