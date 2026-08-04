@@ -228,6 +228,7 @@ func initBackend(w, h int32, scale float32) {
 			b.iconFontPath = tmp
 		}
 	}
+	gui.LoadAppFonts(textSys, "android")
 
 	// Set injected interfaces on gui Window.
 	androidWindow.SetTextMeasurer(

@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **App fonts were ignored on iOS and Android (#132).** Both backends
+  loaded the bundled icon font but never called `gui.LoadAppFonts`, so
+  `RegisterAppFont` / `RegisterAppFontBytes` were a silent no-op there.
+  That also made `ThemeCfg.IconFontFamily` unusable on those platforms —
+  retargeting the themed icon styles at a font that never loaded rendered
+  tofu. Both now register the app-font lists right after the icon font, as
+  the GL and Metal backends already did.
 - **Metal backend dropped IME commit events (#149).** Text-input callbacks
   wrote a single global event slot, so when one `[NSApp sendEvent:]` fired
   several `NSTextInputClient` callbacks — the normal CJK sequence of
