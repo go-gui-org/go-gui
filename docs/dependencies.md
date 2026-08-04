@@ -15,8 +15,9 @@ Go toolchain pin: `go 1.26.0`.
 | `github.com/go-gui-org/go-glyph` | v1.18.0 | Text shaping + glyph rasterization. Required by every backend. |
 | `github.com/go-pdf/fpdf` | v0.9.0 | PDF generation for the print-dialog backend. |
 | `github.com/godbus/dbus/v5` | v5.2.2 | Linux native platform: notifications, portals. |
-| `github.com/gopxl/beep/v2` | v2.1.1 | Audio playback (sound effects, music, mixer, fade) for `gui/audio`. |
+| `github.com/gopxl/beep/v2` | v2.1.1 | Audio decode + mixing (sound effects, music, mixer, fade) for `gui/audio`. |
 | `github.com/jezek/xgb` | v1.3.1 | Pure-Go X11 windowing + events for the native Linux backend (`gui/backend/gl`). |
+| `github.com/jfreymuth/pulse` | v0.1.2 | Pure-Go PulseAudio native-protocol client. Default Linux audio output sink (`gui/audio/output_pulse.go`), keeping `CGO_ENABLED=0` builds cgo-free. Needs a running PulseAudio/PipeWire server. |
 | `github.com/tdewolff/parse/v2` | v2.8.13 | CSS tokenizer for the SVG `<style>` / `style=""` cascade pipeline. |
 | `github.com/yuin/goldmark` | v1.8.2 | Markdown parser (markdown widget + showcase docs). |
 | `github.com/yuin/goldmark-emoji` | v1.0.6 | Goldmark extension: `:emoji:` shortcodes. |
@@ -31,7 +32,7 @@ Pulled in transitively; listed for completeness.
 | Module | Version | Pulled in by |
 | ------ | ------- | ------------ |
 | `github.com/dlclark/regexp2/v2` | v2.2.2 | chroma |
-| `github.com/ebitengine/oto/v3` | v3.3.2 | gopxl/beep (audio output) |
+| `github.com/ebitengine/oto/v3` | v3.3.2 | gopxl/beep (audio output). Used on Windows/macOS, and on Linux only under `-tags otoaudio` (ALSA, cgo). |
 | `github.com/go-text/typesetting` | v0.3.4 | go-glyph (pure-Go text shaping) |
 | `github.com/hajimehoshi/go-mp3` | v0.3.4 | gopxl/beep (MP3 decode) |
 | `github.com/icza/bitio` | v1.1.0 | mewkiz/flac (FLAC decode) |

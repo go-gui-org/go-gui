@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Linux audio is now cgo-free by default (#141).** `gui/audio` decoded
+  and mixed with pure-Go `beep`, but its output sink went through
+  `oto`, whose Linux driver is cgo (ALSA). That left one package blocking
+  `CGO_ENABLED=0 GOOS=linux go build ./...` even after the go-gl removal
+  in #137. The output driver is now a small three-function seam
+  (`outputInit`/`outputPlay`/`outputClose`) with two implementations: the
+  default Linux build uses a pure-Go PulseAudio sink
+  (`github.com/jfreymuth/pulse`, native protocol over a socket), so the
+  whole module cross-compiles with no C toolchain. It requires a running
+  PulseAudio or PipeWire server — present on any desktop; when absent,
+  `audio.Init` returns an error and audio is disabled rather than
+  crashing. Building with `-tags otoaudio` selects the previous oto/ALSA
+  backend for direct-ALSA or maximum hardware compatibility. The public
+  `gui/audio` API is unchanged, and Windows/macOS still use oto. The
+  CGo-free CI cross-compile widened from `./gui/backend/...` to `./...`.
+
 ## [v0.48.1] - 2026-08-04
 
 ### Fixed

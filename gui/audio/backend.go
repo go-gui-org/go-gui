@@ -7,6 +7,13 @@
 // Sound effects play on numbered mixing channels (default 16) and
 // support overlapping playback.  Music is a single track — starting
 // a new track halts the previous one.
+//
+// Decoding and mixing are pure Go.  The output sink is pluggable: the
+// default Linux build uses a pure-Go PulseAudio client (so the module
+// builds under CGO_ENABLED=0) and needs a running PulseAudio/PipeWire
+// server — [Init] returns an error and audio is disabled when none is
+// present.  Windows and macOS use oto; build with -tags otoaudio to
+// select the oto/ALSA sink on Linux instead.
 package audio
 
 // Backend is the audio subsystem implementation.
