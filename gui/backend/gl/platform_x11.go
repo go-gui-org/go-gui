@@ -16,6 +16,7 @@ import (
 	"github.com/jezek/xgb/xproto"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/ibus"
 )
 
 // Selected X11 event mask for top-level windows.
@@ -87,6 +88,13 @@ type platformState struct {
 	physW, physH int32
 	scale        float32
 
+	// Input method. ime is nil when none is reachable, in which case
+	// key presses keep going straight through the keysym path. imeBuf
+	// is reused by drainIME to keep the handoff allocation-free.
+	ime     *ibus.Client
+	imeBuf  []ibus.Event
+	imeEvts []gui.Event
+
 	w   *gui.Window
 	evt gui.Event // reused per event to avoid per-event allocation
 }
@@ -139,6 +147,10 @@ func (p *platformState) wake() {
 }
 
 func (p *platformState) destroy() {
+	if p.ime != nil {
+		p.ime.Close()
+		p.ime = nil
+	}
 	if p.eglDpy != 0 {
 		eglMakeCurrent(p.eglDpy, 0, 0, 0)
 		if p.eglContext != 0 {
@@ -302,6 +314,10 @@ func New(w *gui.Window) (*Backend, error) {
 	}
 	b.plat.wakeConn = wakeConn
 
+	// Needs wakeConn and wakeAtom: the client calls wake from a D-Bus
+	// goroutine to bring the event loop round to drainIME.
+	b.plat.ime = ibus.New("go-gui", b.plat.wake)
+
 	b.dpiScale = scale
 	b.physW = physW
 	b.physH = physH
@@ -350,6 +366,7 @@ func (b *Backend) Run(w *gui.Window) {
 				}
 				b.handleXEvent(ev)
 			default:
+				b.drainIME()
 				return true
 			}
 		}
@@ -486,6 +503,9 @@ func RunAppE(app *gui.App, initialWindows ...*gui.Window) error {
 					log.Printf("gl: open window: %v", err)
 				}
 			default:
+				for _, b := range backends {
+					b.drainIME()
+				}
 				drained = true
 			}
 		}
