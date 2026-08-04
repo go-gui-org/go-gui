@@ -2,7 +2,11 @@
 
 package android
 
-import "github.com/go-gui-org/go-gui/gui"
+import (
+	"unicode/utf8"
+
+	"github.com/go-gui-org/go-gui/gui"
+)
 
 // imeComposition dispatches an IME preedit composition event.
 func imeComposition(text string, cursor, selLen int32) {
@@ -18,19 +22,25 @@ func imeComposition(text string, cursor, selLen int32) {
 	androidWindow.EventFn(&evt)
 }
 
-// imeCommit dispatches committed text as individual EventChar
-// events, one per rune.
+// imeCommit dispatches committed text as a single EventChar carrying
+// the whole string in IMEText, matching macOS and web. CharCode holds
+// only the first rune; consumers read IMEText for the full commit.
 func imeCommit(text string) {
-	if androidWindow == nil {
+	if androidWindow == nil || len(text) == 0 {
 		return
 	}
-	for _, r := range text {
-		evt := gui.Event{
-			Type:     gui.EventChar,
-			CharCode: uint32(r),
-		}
-		androidWindow.EventFn(&evt)
+	// Drop invalid UTF-8 coming across the JNI boundary rather than
+	// dispatching a RuneError char.
+	r, sz := utf8.DecodeRuneInString(text)
+	if r == utf8.RuneError && sz == 1 {
+		return
 	}
+	evt := gui.Event{
+		Type:     gui.EventChar,
+		CharCode: uint32(r),
+		IMEText:  text,
+	}
+	androidWindow.EventFn(&evt)
 }
 
 // touchEvent dispatches a raw touch event to the window's event
