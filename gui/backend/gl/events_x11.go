@@ -7,6 +7,7 @@ import (
 	"github.com/jezek/xgb/xproto"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/ibus"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/x11key"
 )
 
@@ -51,20 +52,37 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 	w := b.plat.w
 	switch e := ev.(type) {
 	case xproto.KeyPressEvent:
+		col := 0
+		if e.State&xproto.KeyButMaskShift != 0 {
+			col = 1
+		}
+		// A key the input method claims belongs entirely to it: while a
+		// composition is live the engine owns the arrows, Return and
+		// Backspace too, so neither the key event nor the character may
+		// also reach the widget.
+		if b.imeProcessKey(b.plat.keysym(e.Detail, col), e.Detail, e.State) {
+			return
+		}
 		b.emit(gui.Event{
 			Type:      gui.EventKeyDown,
 			KeyCode:   x11key.MapKeySym(b.plat.keysym(e.Detail, 0)),
 			Modifiers: x11key.MapModifiers(e.State),
 		})
-		col := 0
-		if e.State&xproto.KeyButMaskShift != 0 {
-			col = 1
-		}
 		if r := x11key.KeysymToRune(b.plat.keysym(e.Detail, col)); r >= 0x20 && r != 0x7f {
 			b.emitChar(r, e.State)
 		}
 
 	case xproto.KeyReleaseEvent:
+		// Releases are forwarded but never suppress the key-up: engines
+		// use them for modifier-only toggles (Shift to switch kana, say)
+		// and nothing else depends on the result.
+		if b.plat.ime != nil {
+			b.plat.ime.ProcessKeyRelease(
+				b.plat.keysym(e.Detail, 0),
+				uint32(e.Detail)-x11KeycodeOffset,
+				uint32(e.State),
+			)
+		}
 		b.emit(gui.Event{
 			Type:      gui.EventKeyUp,
 			KeyCode:   x11key.MapKeySym(b.plat.keysym(e.Detail, 0)),
@@ -118,6 +136,12 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 
 	case xproto.ConfigureNotifyEvent:
 		scaleChanged := b.maybeRescaleDPI()
+		if !b.plat.haveRandr {
+			// maybeRescaleDPI refreshes the cached root position only
+			// when RandR is present. Without it, invalidate here so the
+			// IME caret rect is recomputed against the new position.
+			b.plat.haveLastPos = false
+		}
 		nw, nh := int32(e.Width), int32(e.Height)
 		if !scaleChanged && nw == b.plat.physW && nh == b.plat.physH {
 			return
@@ -209,8 +233,137 @@ func (b *Backend) emitChar(r rune, state uint16) {
 	})
 }
 
-// --- IME (stub; KeyPress still yields EventChar for printable keys) ---
+// --- IME ---
+//
+// Input methods are reached over D-Bus (see gui/backend/ibus) rather
+// than through XIM. When no input method is running plat.ime is nil and
+// every call below is a no-op, leaving the keysym path above untouched.
 
-func (n *nativePlatform) IMEStart()                   {}
-func (n *nativePlatform) IMEStop()                    {}
-func (n *nativePlatform) IMESetRect(_, _, _, _ int32) {}
+// x11KeycodeOffset converts an X11 keycode to the evdev code IBus wants.
+const x11KeycodeOffset = 8
+
+// imeProcessKey offers a key press to the input method and reports
+// whether it was consumed.
+//
+// The queue is drained on both sides of the call so composition results
+// interleave with key events in the order the user produced them: a
+// commit queued by the previous keystroke must not land after this one.
+func (b *Backend) imeProcessKey(keyval uint32, code xproto.Keycode, state uint16) bool {
+	if b.plat.ime == nil {
+		return false
+	}
+	b.drainIME()
+	consumed := b.plat.ime.ProcessKey(
+		keyval, uint32(code)-x11KeycodeOffset, uint32(state),
+	)
+	b.drainIME()
+	return consumed
+}
+
+// drainIME turns queued input-method results into gui events. The queue
+// is filled from a D-Bus goroutine; this must only run on the main
+// thread, where EventFn is safe to call.
+func (b *Backend) drainIME() {
+	if b.plat.ime == nil {
+		return
+	}
+	b.plat.imeBuf = b.plat.ime.Drain(b.plat.imeBuf[:0])
+	b.plat.imeEvts = imeEvents(b.plat.imeBuf, b.plat.imeEvts[:0])
+	for i := range b.plat.imeEvts {
+		b.emit(b.plat.imeEvts[i])
+	}
+}
+
+// imeEvents converts input-method results to gui events, appending to
+// dst. Kept separate from dispatch so the mapping is testable without
+// an X connection or a running input method.
+func imeEvents(in []ibus.Event, dst []gui.Event) []gui.Event {
+	for i := range in {
+		ev := &in[i]
+		switch ev.Kind {
+		case ibus.KindPreedit:
+			dst = append(dst, gui.Event{
+				Type:      gui.EventIMEComposition,
+				IMEText:   ev.Text,
+				IMEStart:  ev.Cursor,
+				IMELength: ev.SelLen,
+			})
+
+		case ibus.KindCommit:
+			// Committed text is plain input: no modifiers apply, and a
+			// decoding failure upstream must not reach the widget.
+			for _, r := range ev.Text {
+				if r == 0xFFFD {
+					continue
+				}
+				dst = append(dst, gui.Event{
+					Type:     gui.EventChar,
+					CharCode: uint32(r),
+					IMEText:  string(r),
+				})
+			}
+
+		case ibus.KindForwardKey:
+			state := uint16(ev.State & 0xffff)
+			dst = append(dst, gui.Event{
+				Type:      gui.EventKeyDown,
+				KeyCode:   x11key.MapKeySym(ev.Keyval),
+				Modifiers: x11key.MapModifiers(state),
+			})
+			if r := x11key.KeysymToRune(ev.Keyval); r >= 0x20 && r != 0x7f {
+				dst = append(dst, gui.Event{
+					Type:      gui.EventChar,
+					CharCode:  uint32(r),
+					IMEText:   string(r),
+					Modifiers: x11key.MapModifiers(state),
+				})
+			}
+		}
+	}
+	return dst
+}
+
+// rootOrigin returns the window's origin in root coordinates, the frame
+// the caret rect must be reported in. maybeRescaleDPI keeps the cached
+// value fresh on every move, so this normally costs nothing.
+func (b *Backend) rootOrigin() (int16, int16) {
+	if !b.plat.haveLastPos {
+		t, err := xproto.TranslateCoordinates(
+			b.plat.conn, b.plat.window, b.plat.root, 0, 0,
+		).Reply()
+		if err == nil && t != nil {
+			b.plat.lastRootX, b.plat.lastRootY = t.DstX, t.DstY
+			b.plat.haveLastPos = true
+		}
+	}
+	return b.plat.lastRootX, b.plat.lastRootY
+}
+
+func (n *nativePlatform) IMEStart() { n.b.plat.ime.FocusIn() }
+
+// IMEStop drops the input method's focus. No composition event is
+// emitted here: the gui layer already clears its own state on a focus
+// change (Window.setFocusID), and re-entering EventFn from inside an
+// event handler would clobber the event being dispatched.
+func (n *nativePlatform) IMEStop() { n.b.plat.ime.FocusOut() }
+
+// IMESetRect reports the caret rect so the candidate window can anchor
+// to it. The gui layer works in logical points relative to the window;
+// IBus wants physical pixels relative to the root.
+func (n *nativePlatform) IMESetRect(x, y, w, h int32) {
+	b := n.b
+	if b.plat.ime == nil {
+		return
+	}
+	s := b.dpiScale
+	if s <= 0 {
+		s = 1
+	}
+	rx, ry := b.rootOrigin()
+	b.plat.ime.SetCursorLocation(
+		int32(rx)+int32(float32(x)*s),
+		int32(ry)+int32(float32(y)*s),
+		int32(float32(w)*s),
+		int32(float32(h)*s),
+	)
+}

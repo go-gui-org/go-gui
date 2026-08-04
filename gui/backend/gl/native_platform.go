@@ -8,7 +8,10 @@ import (
 )
 
 // nativePlatform implements gui.NativePlatform for the GL backend.
-type nativePlatform struct{}
+//
+// b is the owning backend: IME calls have to reach per-window platform
+// state. Everything else here is process-wide and ignores it.
+type nativePlatform struct{ b *Backend }
 
 // --- URI ---
 

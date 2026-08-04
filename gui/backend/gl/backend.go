@@ -148,7 +148,7 @@ func (b *Backend) initGLResources(w *gui.Window) error {
 
 	w.SetTextMeasurer(&textMeasurer{textSys: textSys})
 	w.SetSvgParser(svg.New())
-	w.SetNativePlatform(&nativePlatform{})
+	w.SetNativePlatform(&nativePlatform{b: b})
 	return nil
 }
 
