@@ -54,9 +54,9 @@ func RegisterAppFont(path string) {
 // text system persists the bytes to its own temp file, so the caller
 // does not have to manage one.
 //
-// Consumed by the GL and Metal backends, matching where AppFontPaths is
-// consumed. The iOS, Android and web backends ignore both lists; on web
-// use the browser FontFace API instead.
+// Consumed by the GL, Metal, iOS and Android backends, matching where
+// AppFontPaths is consumed. Only the web backend ignores both lists; on
+// web use the browser FontFace API instead.
 //
 // To retarget the themed icon styles at a registered font, set that
 // font's family name in ThemeCfg.IconFontFamily.
@@ -90,7 +90,8 @@ type FontRegistrar interface {
 }
 
 // LoadAppFonts registers every font in AppFontPaths and AppFontData
-// with ts, naming the calling backend ("gl", "metal") in log lines.
+// with ts, naming the calling backend ("gl", "metal", "ios", "android")
+// in log lines.
 // Call once per text system during backend init, after the bundled icon
 // font is loaded.
 //

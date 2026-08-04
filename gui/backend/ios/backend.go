@@ -160,6 +160,7 @@ func initBackend(layerPtr unsafe.Pointer,
 			b.iconFontPath = tmp
 		}
 	}
+	gui.LoadAppFonts(textSys, "ios")
 
 	// Set injected interfaces on gui Window.
 	iosWindow.SetTextMeasurer(&textMeasurer{textSys: textSys})
