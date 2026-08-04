@@ -69,14 +69,92 @@ static int             _evKeyRepeat;
 static char           *_evText;           // malloc'd, freed on next event
 static int             _evIMEStart;
 static int             _evIMELength;
-static int             _evIMEGeneration;   // incremented on each IME event
-static int             _evIMEConsumedGen;  // last generation consumed by poll
 static int             _quitRequested;     // set by quit:/appShouldTerminate: (main thread only)
 // Set by windowWillStartLiveResize:, consumed in metalPollEvent.
 // AppKit's resize tracking loop runs *inside* [NSApp sendEvent:], so
 // this flag tells us — after sendEvent returns — that the mouse-down
 // we already stored was swallowed to drive a window resize.
 static int             _liveResizeStarted;
+// Set by keyDown: when an input method owned the keystroke, consumed in
+// metalPollEvent. While a composition is live the IME owns the keyboard
+// — arrows move between conversion clauses, Enter commits, Escape
+// reverts — so the raw key must not also reach the widget, or the
+// field's own caret moves under the preedit.
+static int             _imeConsumedKey;
+
+// ─── Text-input event queue (IME) ──────────────────────────────
+//
+// A single [NSApp sendEvent:] can fire several NSTextInputClient
+// callbacks synchronously — for CJK, insertText: (the commit)
+// immediately followed by setMarkedText: (a residual composition).
+// The _ev* globals above are one slot, so the earlier callback used
+// to be overwritten and silently lost.  Queue the text events instead
+// and let metalPollEvent hand them to Go one per call.
+//
+// Main thread only: every writer is an AppKit callback and the only
+// reader is metalPollEvent, so no locking is needed.
+
+typedef struct {
+    int          type;       // METAL_EVENT_CHAR | METAL_EVENT_IME_COMP
+    unsigned int windowID;
+    char        *text;       // malloc'd, owned by the entry
+    int          imeStart;
+    int          imeLength;
+    unsigned int modifiers;  // snapshot: _evModifiers moves on before the pop
+} TextEvent;
+
+#define TEXT_EVENT_CAP 32
+
+static TextEvent _textQ[TEXT_EVENT_CAP];
+static int       _textQHead;   // index of the oldest entry
+static int       _textQCount;
+
+// Append a text event.  `utf8` may be NULL or empty (an empty
+// composition is how the IME reports "preedit ended").
+static void pushTextEvent(int type, const char *utf8, unsigned int wid,
+                          int start, int len) {
+    // Full queue: drop the oldest entry rather than the new one, so the
+    // most recent input state always survives.  Unreachable in practice —
+    // the queue drains on every poll and one sendEvent yields a handful.
+    if (_textQCount == TEXT_EVENT_CAP) {
+        TextEvent *oldest = &_textQ[_textQHead];
+        if (oldest->text) free(oldest->text);
+        _textQHead = (_textQHead + 1) % TEXT_EVENT_CAP;
+        _textQCount--;
+    }
+
+    TextEvent *e = &_textQ[(_textQHead + _textQCount) % TEXT_EVENT_CAP];
+    e->type      = type;
+    e->windowID  = wid;
+    e->text      = strdup(utf8 ? utf8 : "");
+    e->imeStart  = start;
+    e->imeLength = len;
+    e->modifiers = _evModifiers;
+    _textQCount++;
+}
+
+// Move the oldest queued text event into the _ev* globals so the Go
+// accessors see it.  Returns 1 if an event was delivered, 0 if empty.
+static int popTextEvent(void) {
+    if (_textQCount == 0) return 0;
+
+    TextEvent *e = &_textQ[_textQHead];
+    _textQHead = (_textQHead + 1) % TEXT_EVENT_CAP;
+    _textQCount--;
+
+    // Same ownership rule as storeEvent: the globals own _evText and
+    // free it before taking the next one.  Go copies via C.GoString
+    // immediately after the poll returns.
+    if (_evText) free(_evText);
+    _evText      = e->text;
+    e->text      = NULL;
+    _evType      = e->type;
+    _evWindowID  = e->windowID;
+    _evIMEStart  = e->imeStart;
+    _evIMELength = e->imeLength;
+    _evModifiers = e->modifiers;
+    return 1;
+}
 
 // ─── Window ID counter ─────────────────────────────────────────
 
@@ -91,6 +169,7 @@ static uint32_t _nextWindowID = 1;
 @property (nonatomic, assign) NSRect      imeCursorRect;
 @property (nonatomic, copy)   NSAttributedString *markedText;
 @property (nonatomic, assign) NSRange     markedRange;
+@property (nonatomic, assign) NSRange     selRange;
 @end
 
 @implementation MetalContentView
@@ -116,6 +195,7 @@ static uint32_t _nextWindowID = 1;
         _imeActive = NO;
         _imeCursorRect = NSZeroRect;
         _markedRange = NSMakeRange(NSNotFound, 0);
+        _selRange = NSMakeRange(0, 0);
 
         self.wantsLayer = YES;
         self.layer = metalLayer;
@@ -150,7 +230,14 @@ static uint32_t _nextWindowID = 1;
 // insertText: fires for printable characters. Non-printable
 // keys (arrows, etc.) return to Go as EventKeyDown.
 - (void)keyDown:(NSEvent *)event {
+    // A composition already in progress means the input method owns
+    // this key. So does a key that starts one: it produced a preedit,
+    // not a command.
+    BOOL wasComposing = (_markedText != nil);
     [self interpretKeyEvents:@[event]];
+    if (wasComposing || _markedText != nil) {
+        _imeConsumedKey = 1;
+    }
 }
 
 - (void)keyUp:(NSEvent *)event {
@@ -170,17 +257,16 @@ static uint32_t _nextWindowID = 1;
 // ─── NSTextInputClient (IME) ───────────────────────────────────
 
 - (void)insertText:(id)string replacementRange:(NSRange)replacementRange {
-    // Free previous event text.
-    if (_evText) { free(_evText); _evText = NULL; }
-
+    NSString *committed = nil;
     if ([string isKindOfClass:[NSAttributedString class]]) {
-        _evText = strdup([[(NSAttributedString *)string string] UTF8String]);
+        committed = [(NSAttributedString *)string string];
     } else if ([string isKindOfClass:[NSString class]]) {
-        _evText = strdup([(NSString *)string UTF8String]);
+        committed = (NSString *)string;
     }
-    _evType = METAL_EVENT_CHAR;
-    _evWindowID = _windowID;
-    _evIMEGeneration++; // new IME text to deliver
+
+    // Queued, not written straight to the globals: a CJK commit is
+    // routinely followed by setMarkedText: inside the same sendEvent:.
+    pushTextEvent(METAL_EVENT_CHAR, [committed UTF8String], _windowID, 0, 0);
 
     [self unmarkText];
 }
@@ -188,8 +274,6 @@ static uint32_t _nextWindowID = 1;
 - (void)setMarkedText:(id)string
         selectedRange:(NSRange)selectedRange
      replacementRange:(NSRange)replacementRange {
-    if (_evText) { free(_evText); _evText = NULL; }
-
     if ([string isKindOfClass:[NSAttributedString class]]) {
         _markedText = [(NSAttributedString *)string copy];
     } else if ([string isKindOfClass:[NSString class]]) {
@@ -197,22 +281,42 @@ static uint32_t _nextWindowID = 1;
     }
 
     if (_markedText && [_markedText length] > 0) {
-        _evText = strdup([[_markedText string] UTF8String]);
         _markedRange = NSMakeRange(0, [_markedText length]);
-        _evIMEStart = (int)selectedRange.location;
-        _evIMELength = (int)selectedRange.length;
-        _evType = METAL_EVENT_IME_COMP;
-        _evWindowID = _windowID;
-        _evIMEGeneration++; // new IME composition to deliver
+        // Selection inside the composition, read back via
+        // selectedRange while converting. Kept verbatim (length and
+        // all — conversion selects a whole clause), guarding only
+        // against a location the composition cannot hold.
+        _selRange = selectedRange;
+        if (_selRange.location == NSNotFound ||
+            _selRange.location > [_markedText length]) {
+            _selRange = NSMakeRange([_markedText length], 0);
+        }
+        // Subtraction, not a sum: unsigned range members wrap.
+        if (_selRange.length > [_markedText length] - _selRange.location) {
+            _selRange.length = [_markedText length] - _selRange.location;
+        }
+        // Report the clamped range, not the raw one: NSNotFound
+        // truncates to -1 in an int and would reach the renderer as a
+        // negative caret offset.
+        pushTextEvent(METAL_EVENT_IME_COMP, [[_markedText string] UTF8String],
+                      _windowID, (int)_selRange.location,
+                      (int)_selRange.length);
     } else {
         _markedText = nil;
         _markedRange = NSMakeRange(NSNotFound, 0);
+        _selRange = NSMakeRange(0, 0);
+        // Empty marked text means the IME ended the composition (cancel,
+        // or commit handled by insertText:).  Deliver it as an empty
+        // composition so Go can clear the preedit; unmarkText stays
+        // silent so a commit does not emit a second one.
+        pushTextEvent(METAL_EVENT_IME_COMP, "", _windowID, 0, 0);
     }
 }
 
 - (void)unmarkText {
     _markedText = nil;
     _markedRange = NSMakeRange(NSNotFound, 0);
+    _selRange = NSMakeRange(0, 0);
 }
 
 - (BOOL)hasMarkedText {
@@ -223,13 +327,41 @@ static uint32_t _nextWindowID = 1;
     return _markedRange;
 }
 
+// The input method does range arithmetic against this value and
+// abandons a commit when it is NSNotFound — a converted commit has to
+// replace text at the insertion point. go-gui keeps the document text
+// on the Go side, so the range is expressed against the composition
+// alone: marked text always starts at 0, and _selRange tracks the
+// caret the IME last reported inside it.
 - (NSRange)selectedRange {
-    return NSMakeRange(NSNotFound, 0);
+    return _selRange;
 }
 
+// Returning nil here makes the input method abandon a converted
+// commit — it asks for the text it is about to replace. go-gui keeps
+// the document on the Go side, so the composition itself stands in as
+// the document: marked text always starts at 0, which is the same
+// coordinate space markedRange and selectedRange report.
 - (NSAttributedString *)attributedSubstringForProposedRange:(NSRange)range
                                                 actualRange:(NSRangePointer)actualRange {
-    return nil;
+    NSString *doc = [_markedText string];
+    if (!doc) doc = @"";
+
+    NSRange r = range;
+    if (r.location == NSNotFound || r.location > [doc length]) {
+        if (actualRange) *actualRange = NSMakeRange(NSNotFound, 0);
+        return nil;
+    }
+    // Subtract rather than compare location + length: NSRange members
+    // are unsigned, and IMK does send lengths near NSUIntegerMax, which
+    // would wrap the sum and slip past a comparison into a crash inside
+    // substringWithRange:.
+    if (r.length > [doc length] - r.location) {
+        r.length = [doc length] - r.location;
+    }
+    if (actualRange) *actualRange = r;
+    return [[NSAttributedString alloc]
+        initWithString:[doc substringWithRange:r]];
 }
 
 - (NSRect)firstRectForCharacterRange:(NSRange)range
@@ -246,8 +378,13 @@ static uint32_t _nextWindowID = 1;
     return 0;
 }
 
+// The attributes a text client advertises for marked text. An empty
+// list tells the input method the client cannot render clause
+// segments, which degrades conversion behavior.
 - (NSArray<NSAttributedStringKey> *)validAttributesForMarkedText {
-    return @[];
+    return @[NSUnderlineStyleAttributeName,
+             NSUnderlineColorAttributeName,
+             NSMarkedClauseSegmentAttributeName];
 }
 
 @end
@@ -710,14 +847,11 @@ int metalPollEvent(int timeoutMs) {
         return 1;
     }
 
-    // Check for unconsumed IME events (char / composition) stored
-    // by NSTextInputClient callbacks during the previous sendEvent.
-    // Uses a generation counter so stale _evType values are not
-    // re-delivered across successive poll calls.
-    if (_evIMEConsumedGen < _evIMEGeneration) {
-        _evIMEConsumedGen = _evIMEGeneration;
-        return 1;
-    }
+    // Drain text-input events queued by NSTextInputClient callbacks
+    // during a previous sendEvent before touching the NSEvent queue.
+    // This is what keeps a multi-callback keystroke (CJK commit +
+    // residual composition) in order and intact.
+    if (popTextEvent()) return 1;
 
     // Non-blocking dequeue.
     event = [NSApp nextEventMatchingMask:ALL_EVENTS
@@ -740,13 +874,9 @@ int metalPollEvent(int timeoutMs) {
     }
 
     if (!event) {
-        // Check if IME left us an event during the blocking wait
-        // (e.g., from a concurrent dispatch). Same generation
-        // check as above.
-        if (_evIMEConsumedGen < _evIMEGeneration) {
-            _evIMEConsumedGen = _evIMEGeneration;
-            return 1;
-        }
+        // IME callbacks can fire during the blocking wait — the
+        // candidate window runs the runloop — so check the queue again.
+        if (popTextEvent()) return 1;
         return 0;
     }
 
@@ -761,6 +891,7 @@ int metalPollEvent(int timeoutMs) {
     storeEvent(event, wid);
 
     _liveResizeStarted = 0;
+    _imeConsumedKey = 0;
 
     // Forward to AppKit for window management and text input.
     // Key events: keyDown: → interpretKeyEvents: → insertText: fires
@@ -783,11 +914,21 @@ int metalPollEvent(int timeoutMs) {
     }
     _liveResizeStarted = 0;
 
-    // If sendEvent triggered IME callbacks that overwrote _evType
-    // to CHAR or IME_COMP, mark this generation as consumed so
-    // the next poll call doesn't re-deliver it.
-    if (_evType == METAL_EVENT_CHAR || _evType == METAL_EVENT_IME_COMP) {
-        _evIMEConsumedGen = _evIMEGeneration;
+    // Drop a key the input method claimed. Its visible effect arrives
+    // as the queued composition or commit instead.
+    if (_imeConsumedKey && _evType == METAL_EVENT_KEY_DOWN) {
+        _evType = METAL_EVENT_NONE;
+    }
+    _imeConsumedKey = 0;
+
+    // sendEvent may have queued text events (insertText:/setMarkedText:).
+    // Return the NSEvent-derived event now and let the drain at the top
+    // of the next poll deliver them, so a printable key yields KEY_DOWN
+    // followed by CHAR — the order X11, win32 and web already use. If
+    // the NSEvent produced nothing of its own, deliver a queued event
+    // straight away rather than handing Go an empty poll.
+    if (_evType == METAL_EVENT_NONE) {
+        popTextEvent();
     }
 
     return 1;
@@ -1186,7 +1327,7 @@ void metalStopFramePump(void) {
 //
 // These live in the production file, not a separate _test.m, on
 // purpose: they reach file-static state — the event globals (_evType,
-// _quitRequested, _evIMEGeneration…), metalCursorInContentBounds, and
+// _quitRequested…), the text-event queue, metalCursorInContentBounds, and
 // metalFocusedGUIWindow. C `static` is translation-unit-local, so a
 // split would force exposing those symbols via the header, widening
 // the production surface just to relocate test code. Keeping the
@@ -1243,6 +1384,152 @@ void metalTestInjectKeyDown(unsigned short keyCode, unsigned int modifiers) {
     _evKeyCode = keyCode;
     _evModifiers = modifiers;
     _evKeyRepeat = 0;
+}
+
+// Push onto the text-event queue exactly as insertText: /
+// setMarkedText: do, so Go tests can drive the IME path (and the
+// multi-event-per-sendEvent case behind issue #149) without a running
+// event loop or a real input method.
+void metalTestPushIMECommit(const char *utf8) {
+    pushTextEvent(METAL_EVENT_CHAR, utf8, 0, 0, 0);
+}
+
+void metalTestPushIMEComposition(const char *utf8, int start, int len) {
+    pushTextEvent(METAL_EVENT_IME_COMP, utf8, 0, start, len);
+}
+
+int metalTestIMEQueueDepth(void) { return _textQCount; }
+
+// Forward declaration: the conformance helpers below reset the queue
+// they dirty, and the definition sits after them.
+void metalTestResetIMEQueue(void);
+
+// Drive keyDown: with a composition in progress and report whether the
+// raw key was claimed by the input method. A key that reaches the
+// widget while composing moves the field's caret out from under the
+// preedit and can fire Enter/Escape actions the user never meant.
+int metalTestIMEKeySuppressedWhileComposing(void *windowHandle) {
+    if (!windowHandle) return 0;
+    GoGuiWindow *gw = (GoGuiWindow *)windowHandle;
+    if (!gw->nsWindow) return 0;
+    NSView *cv = gw->nsWindow.contentView;
+    if (![cv isKindOfClass:[MetalContentView class]]) return 0;
+    MetalContentView *view = (MetalContentView *)cv;
+
+    NSEvent *key = [NSEvent keyEventWithType:NSEventTypeKeyDown
+                                    location:NSZeroPoint
+                               modifierFlags:0
+                                   timestamp:0
+                                windowNumber:[gw->nsWindow windowNumber]
+                                     context:nil
+                                  characters:@""
+                 charactersIgnoringModifiers:@""
+                                   isARepeat:NO
+                                     keyCode:123]; // left arrow
+    if (!key) return 0;
+
+    // Composing: the key belongs to the input method.
+    [view setMarkedText:@"あい"
+          selectedRange:NSMakeRange(0, 2)
+       replacementRange:NSMakeRange(NSNotFound, 0)];
+    _imeConsumedKey = 0;
+    [view keyDown:key];
+    int suppressed = _imeConsumedKey;
+
+    // Not composing: the key is the widget's to handle.
+    [view unmarkText];
+    _imeConsumedKey = 0;
+    [view keyDown:key];
+    int deliveredWhenIdle = (_imeConsumedKey == 0);
+
+    _imeConsumedKey = 0;
+    metalTestResetIMEQueue();
+    return (suppressed && deliveredWhenIdle) ? 1 : 0;
+}
+
+// Verify the NSTextInputClient answers an input method needs to commit
+// converted text. Returning NSNotFound from selectedRange, or nil from
+// attributedSubstringForProposedRange:, makes the Japanese IME abandon
+// the commit after conversion — the composition stays marked forever
+// and nothing reaches the app. Reproduced in a plain AppKit program
+// with no go-gui code in it, so the contract is AppKit's, not go-gui's.
+// Empty validAttributesForMarkedText tells the IME the client cannot
+// render clause segments.
+int metalTestIMEClientConformance(void *windowHandle) {
+    if (!windowHandle) return 0;
+    GoGuiWindow *gw = (GoGuiWindow *)windowHandle;
+    if (!gw->nsWindow) return 0;
+    NSView *cv = gw->nsWindow.contentView;
+    if (![cv isKindOfClass:[MetalContentView class]]) return 0;
+    MetalContentView *view = (MetalContentView *)cv;
+
+    int ok = 1;
+
+    // Compose "あい" with the whole clause selected, as conversion does.
+    [view setMarkedText:@"あい"
+          selectedRange:NSMakeRange(0, 2)
+       replacementRange:NSMakeRange(NSNotFound, 0)];
+
+    NSRange sel = [view selectedRange];
+    if (sel.location == NSNotFound || sel.location + sel.length > 2) ok = 0;
+
+    NSRange actual = NSMakeRange(NSNotFound, 0);
+    NSAttributedString *sub =
+        [view attributedSubstringForProposedRange:NSMakeRange(0, 2)
+                                      actualRange:&actual];
+    if (!sub || ![[sub string] isEqualToString:@"あい"]) ok = 0;
+
+    // An out-of-range request must degrade to nil, not crash or lie.
+    NSAttributedString *bad =
+        [view attributedSubstringForProposedRange:NSMakeRange(99, 2)
+                                      actualRange:NULL];
+    if (bad != nil) ok = 0;
+
+    // A length near NSUIntegerMax must clamp, not wrap past the guard
+    // into substringWithRange: — IMK really does ask for these.
+    NSAttributedString *huge =
+        [view attributedSubstringForProposedRange:
+                  NSMakeRange(1, NSUIntegerMax)
+                                      actualRange:NULL];
+    if (!huge || ![[huge string] isEqualToString:@"い"]) ok = 0;
+
+    if ([[view validAttributesForMarkedText] count] == 0) ok = 0;
+
+    // The queued composition must carry the clamped selection, not the
+    // raw one: NSNotFound truncates to -1 in the int the event holds,
+    // and Go would draw the clause underline from a negative offset.
+    metalTestResetIMEQueue();
+    [view setMarkedText:@"あい"
+          selectedRange:NSMakeRange(NSNotFound, 0)
+       replacementRange:NSMakeRange(NSNotFound, 0)];
+    if (!popTextEvent()) {
+        ok = 0;
+    } else if (_evIMEStart != 2 || _evIMELength != 0) {
+        ok = 0;
+    }
+
+    [view unmarkText];
+    if ([view selectedRange].location == NSNotFound) ok = 0;
+
+    metalTestResetIMEQueue();
+    return ok;
+}
+
+// Drain one entry without going through metalPollEvent.  Used for the
+// empty-queue assertions: metalPollEvent would fall through to
+// [NSApp nextEventMatchingMask:…], which is main-thread-only and must
+// not be called from the ordinary (non-main-thread) test binary.
+int metalTestPopTextEvent(void) { return popTextEvent(); }
+
+// Drop every queued entry so one test cannot leak state into the next.
+void metalTestResetIMEQueue(void) {
+    while (_textQCount > 0) {
+        TextEvent *e = &_textQ[_textQHead];
+        if (e->text) { free(e->text); e->text = NULL; }
+        _textQHead = (_textQHead + 1) % TEXT_EVENT_CAP;
+        _textQCount--;
+    }
+    _evType = METAL_EVENT_NONE;
 }
 
 // Run the main runloop for ms milliseconds in a nested mode, standing in

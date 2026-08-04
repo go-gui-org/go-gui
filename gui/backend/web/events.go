@@ -120,6 +120,19 @@ func (b *Backend) registerEvents(w *gui.Window) {
 
 	reg(doc, "keydown", func(_ js.Value, args []js.Value) any {
 		e := args[0]
+
+		// While a composition is live the input method owns the
+		// keyboard — arrows move between clauses, Enter commits,
+		// Escape reverts — and the browser still fires keydown for
+		// those keys (key == "Process", isComposing == true). Let
+		// them through and the field's own caret moves out from
+		// under the preedit, or Enter submits mid-composition.
+		// Truthy, not Bool: Bool panics on a browser that predates
+		// the property and leaves it undefined.
+		if e.Get("isComposing").Truthy() {
+			return nil
+		}
+
 		code := e.Get("code").String()
 		key := e.Get("key").String()
 		mods := mapModifiers(e)
@@ -187,6 +200,11 @@ func (b *Backend) registerEvents(w *gui.Window) {
 			e := args[0]
 			text := e.Get("data").String()
 			if len(text) == 0 {
+				// Cancelled composition (Escape). Report the end
+				// so the preedit clears; without it the overlay
+				// can outlive the composition.
+				*evt = gui.Event{Type: gui.EventIMEComposition}
+				w.EventFn(evt)
 				return nil
 			}
 			// CharCode carries only the first rune; the full

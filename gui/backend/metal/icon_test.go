@@ -113,6 +113,22 @@ func runMainThreadTests() {
 		panic("metal.New: window not registered in windowRegistry")
 	}
 
+	// 7b. NSTextInputClient must answer what an input method needs to
+	//     commit converted text. selectedRange returning NSNotFound or
+	//     attributedSubstringForProposedRange: returning nil makes the
+	//     Japanese IME abandon the commit and strand the composition.
+	if !testIMEClientConformance(b.window) {
+		panic("NSTextInputClient: IME conformance check failed")
+	}
+
+	// 7c. A key the input method consumed must not also reach the
+	//     widget: arrows move between conversion clauses, and a raw
+	//     arrow would drag the field's caret out from under the
+	//     preedit.
+	if !testIMEKeySuppressedWhileComposing(b.window) {
+		panic("IME key suppression: raw key leaked while composing")
+	}
+
 	// 8. metalAppFinishLaunch must not crash — validates the C function
 	//    exists, links, and can be called from Go. Regression test
 	//    for the activation call added before the event loop.

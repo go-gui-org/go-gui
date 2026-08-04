@@ -63,7 +63,15 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 		is := StateReadOr(w, nsInput, shape.ID,
 			InputState{})
 		runes := []rune(text)
-		compInsertPos = min(is.CursorPos, len(runes))
+		if tc.TextIsPlaceholder {
+			// The placeholder is a hint, not content: a composition
+			// replaces it outright. Inserting into it would push the
+			// hint out to the right of the preedit.
+			runes = nil
+		}
+		// Clamped both ways: the slices below panic on a cursor
+		// outside the text, and the preedit is drawn every frame.
+		compInsertPos = min(max(is.CursorPos, 0), len(runes))
 		var sb strings.Builder
 		sb.Grow(len(text) + len(compText))
 		sb.WriteString(string(runes[:compInsertPos]))

@@ -9,15 +9,23 @@ type ime struct {
 }
 
 // imeUpdate sets composition state from an IME composition event.
+//
+// The offsets are clamped here rather than in each backend: they cross
+// a platform boundary (Cocoa's NSRange, the Android bridge's int64,
+// the browser's composition events), a hostile or merely confused
+// input method can report anything, and the values feed slice
+// arithmetic in the render path, which runs every frame.
 func (w *Window) imeUpdate(e *Event) {
 	if len(e.IMEText) == 0 {
 		w.imeClear()
 		return
 	}
+	n := utf8RuneCount(e.IMEText)
+	cursor := min(max(int(e.IMEStart), 0), n)
 	w.ime.composing = true
 	w.ime.compText = e.IMEText
-	w.ime.compCursor = int(e.IMEStart)
-	w.ime.compSelLen = int(e.IMELength)
+	w.ime.compCursor = cursor
+	w.ime.compSelLen = min(max(int(e.IMELength), 0), n-cursor)
 }
 
 // imeClear resets composition state (called on commit or focus
