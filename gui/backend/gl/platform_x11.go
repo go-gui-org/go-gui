@@ -95,6 +95,11 @@ type platformState struct {
 	imeBuf  []ibus.Event
 	imeEvts []gui.Event
 
+	// Dead-key / Multi_key composition for the raw keysym path (see
+	// compose_x11.go). Only consulted after the input method declines
+	// a key press.
+	compose compose
+
 	w   *gui.Window
 	evt gui.Event // reused per event to avoid per-event allocation
 }

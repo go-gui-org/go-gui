@@ -65,7 +65,9 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 			KeyCode:   x11key.MapKeySym(b.plat.keysym(e.Detail, 0)),
 			Modifiers: x11key.MapModifiers(e.State),
 		})
-		if r := x11key.KeysymToRune(b.plat.keysym(e.Detail, col)); r >= 0x20 && r != 0x7f {
+		// Dead keys and Multi_key compose here; the machine returns
+		// the rune to emit (or 0 when the key must produce nothing).
+		if r := b.plat.compose.feed(b.plat.keysym(e.Detail, col)); r != 0 {
 			b.emitChar(r, e.State)
 		}
 
@@ -170,6 +172,9 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 
 	case xproto.FocusOutEvent:
 		if focusRealChange(e.Mode, e.Detail) {
+			// An open dead-key / Multi_key sequence must not survive a
+			// focus change; X11 cancels in-flight composition there.
+			b.plat.compose.reset()
 			b.emit(gui.Event{Type: gui.EventUnfocused})
 		}
 
