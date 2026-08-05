@@ -79,9 +79,12 @@ type Client struct {
 	signals chan *dbus.Signal
 	wg      sync.WaitGroup // readSignals, joined by Close
 
-	mu      sync.Mutex
-	queue   []Event
-	preedit string // last preedit, replayed by ShowPreeditText
+	mu    sync.Mutex
+	queue []Event
+	// last preedit, replayed by ShowPreeditText
+	preedit       string
+	preeditCursor int32
+	preeditSelLen int32
 
 	// disabled latches on the first transport failure. Recovering a
 	// half-dead input method is not worth the complexity: dropping back
@@ -374,23 +377,38 @@ func (c *Client) readSignals() {
 		switch sig.Name {
 		case ifaceContext + ".UpdatePreeditText",
 			ifaceContext + ".UpdatePreeditTextWithMode":
-			text, cursor, visible, ok := decodePreedit(sig.Body)
+			debugDumpPreedit(sig.Body)
+			p, ok := decodePreedit(sig.Body)
 			if !ok {
 				continue
 			}
-			if !visible {
+			text := p.text
+			if !p.visible {
 				text = ""
 			}
-			c.setPreedit(text, int32(cursor)) //nolint:gosec // clamped in gui.imeUpdate
+			// The clause is read from the attributes rather than
+			// cursorPos: the cursor gives at best the clause start and
+			// never its length, and the range is what IBus actually
+			// specifies. Fall back to the cursor when no clause is
+			// marked, which is what plain unconverted typing sends.
+			cursor, selLen := p.cursor, uint32(0)
+			if p.selEnd > p.selStart {
+				cursor, selLen = p.selStart, p.selEnd-p.selStart
+			}
+			//nolint:gosec // clamped in gui.imeUpdate
+			c.setPreedit(text, int32(cursor), int32(selLen))
 
 		case ifaceContext + ".ShowPreeditText":
 			c.mu.Lock()
-			text := c.preedit
+			text, cursor, selLen := c.preedit, c.preeditCursor, c.preeditSelLen
 			c.mu.Unlock()
-			c.push(Event{Kind: KindPreedit, Text: text})
+			c.push(Event{
+				Kind: KindPreedit, Text: text,
+				Cursor: cursor, SelLen: selLen,
+			})
 
 		case ifaceContext + ".HidePreeditText":
-			c.setPreedit("", 0)
+			c.setPreedit("", 0, 0)
 
 		case ifaceContext + ".CommitText":
 			if len(sig.Body) == 0 {
@@ -402,7 +420,7 @@ func (c *Client) readSignals() {
 			}
 			// The preedit is consumed by the commit; clear it first so
 			// the caller never renders both.
-			c.setPreedit("", 0)
+			c.setPreedit("", 0, 0)
 			c.push(Event{Kind: KindCommit, Text: text})
 
 		case ifaceContext + ".ForwardKeyEvent":
@@ -420,12 +438,18 @@ func (c *Client) readSignals() {
 }
 
 // setPreedit caches the preedit for ShowPreeditText to replay and queues
-// it for the caller.
-func (c *Client) setPreedit(text string, cursor int32) {
+// it for the caller. The clause range is cached with the text: replaying
+// without it would drop the clause highlight on every show.
+func (c *Client) setPreedit(text string, cursor, selLen int32) {
 	c.mu.Lock()
 	c.preedit = text
+	c.preeditCursor = cursor
+	c.preeditSelLen = selLen
 	c.mu.Unlock()
-	c.push(Event{Kind: KindPreedit, Text: text, Cursor: cursor})
+	c.push(Event{
+		Kind: KindPreedit, Text: text,
+		Cursor: cursor, SelLen: selLen,
+	})
 }
 
 // push queues an event and wakes the event loop. A latched-off client
