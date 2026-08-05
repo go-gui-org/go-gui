@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Window icons on Linux and Windows.** The GL backend now publishes
+  `WindowCfg.IconPNG` (or the go-gui default) as `_NET_WM_ICON` on X11 and
+  as the big/small window icons via `WM_SETICON` on Windows, so the taskbar
+  and alt-tab show the app's icon instead of the window manager's default.
+  New `WindowCfg.WMClass` sets the X11 `WM_CLASS` property (both slots) for
+  window grouping and `.desktop`-file matching. The Windows tray icon path
+  moves into `gui/backend/internal/hicon`, shared with the GL backend.
+
 ## [v0.49.1] - 2026-08-05
 
 ### Changed

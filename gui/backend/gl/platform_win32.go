@@ -11,6 +11,7 @@ import (
 	"unsafe"
 
 	gogl "github.com/go-gui-org/go-gui/gui/backend/internal/glbind"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/hicon"
 	"golang.org/x/sys/windows"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -59,6 +60,7 @@ var (
 	pEmptyClipboard   = user32.NewProc("EmptyClipboard")
 	pGetClipboardData = user32.NewProc("GetClipboardData")
 	pSetClipboardData = user32.NewProc("SetClipboardData")
+	pSendMessageW     = user32.NewProc("SendMessageW")
 )
 
 const (
@@ -74,6 +76,10 @@ const (
 	swShow       = 5
 	pmRemove     = 0x0001
 	cwUseDefault = 0x80000000
+
+	wmSetIcon = 0x0080
+	iconBig   = 1 // ICON_BIG: alt-tab
+	iconSmall = 0 // ICON_SMALL: titlebar, taskbar
 
 	qsAllInput         = 0x04FF
 	mwmoInputAvailable = 0x0004
@@ -179,6 +185,7 @@ type platformState struct {
 	hwnd      uintptr
 	hdc       uintptr
 	hglrc     uintptr
+	hIcon     uintptr
 	cursors   [11]uintptr
 	curCursor uintptr
 	w         *gui.Window
@@ -247,6 +254,10 @@ func (p *platformState) destroy() {
 		pDestroyWindow.Call(p.hwnd)
 		p.hwnd = 0
 	}
+	if p.hIcon != 0 {
+		hicon.Destroy(p.hIcon)
+		p.hIcon = 0
+	}
 }
 
 // --- helpers ---
@@ -255,6 +266,28 @@ func clientSize(hwnd uintptr) (int32, int32) {
 	var r rectW
 	pGetClientRect.Call(hwnd, uintptr(unsafe.Pointer(&r)))
 	return r.right - r.left, r.bottom - r.top
+}
+
+// maxWindowIconDim caps the window icon size. 512x512 icons are
+// common (app artwork); anything beyond that is a mistake.
+const maxWindowIconDim = 1024
+
+// setWindowIcon installs cfg.IconPNG (or the go-gui default) as the
+// window's big and small icons via WM_SETICON. The HICON is owned by
+// p and released in destroy.
+func setWindowIcon(hwnd uintptr, cfg gui.WindowCfg, p *platformState) {
+	icon := cfg.IconPNG
+	if len(icon) == 0 {
+		icon = gui.DefaultIconPNG
+	}
+	h, err := hicon.FromPNG(icon, maxWindowIconDim)
+	if err != nil {
+		log.Printf("gl: window icon: %v", err)
+		return
+	}
+	pSendMessageW.Call(hwnd, wmSetIcon, iconBig, h)
+	pSendMessageW.Call(hwnd, wmSetIcon, iconSmall, h)
+	p.hIcon = h
 }
 
 func dpiForWindow(hwnd uintptr) uint32 {
@@ -412,6 +445,7 @@ func New(w *gui.Window) (*Backend, error) {
 	b := &Backend{}
 	b.plat.hwnd = hwnd
 	registerWindow(hwnd, b)
+	setWindowIcon(hwnd, cfg, &b.plat)
 
 	hdc, _, _ := pGetDC.Call(hwnd)
 	if hdc == 0 {

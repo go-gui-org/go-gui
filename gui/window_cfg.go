@@ -33,6 +33,11 @@ type WindowCfg struct {
 	// IconPNG is optional PNG-encoded icon data for the window.
 	// The backend sets this as the window icon when supported.
 	IconPNG []byte
+	// WMClass sets the X11 WM_CLASS property, used for both the
+	// instance and class slots. Window managers group windows and
+	// match .desktop files by it. Only the X11 backend reads it;
+	// empty omits the property.
+	WMClass string
 	Width   int
 	Height  int
 	// MaxImageBytes caps source image file size for decoded image
