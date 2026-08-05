@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.49.0] - 2026-08-05
+
+### Added
+
+- **X11 IME support via IBus over D-Bus (#150).** Linux windows can now
+  compose text with an input method: IBus connects over D-Bus, receives
+  pre-edit clauses, and delivers committed text to the focused widget.
+  Pre-edit display is hooked into the standard composition path, the
+  selected clause is highlighted from `IBusAttrList` (#163), and the
+  connection closes race-free with a bounded queue that matches the
+  release keysym column (#167).
+
 ### Changed
 
 - **Linux audio is now cgo-free by default (#141).** `gui/audio` decoded
@@ -24,6 +36,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   backend for direct-ALSA or maximum hardware compatibility. The public
   `gui/audio` API is unchanged, and Windows/macOS still use oto. The
   CGo-free CI cross-compile widened from `./gui/backend/...` to `./...`.
+- **Dependencies: go-glyph bumped to v1.18.1.**
+- **Test: GL backend smoke test skips when cgo is linked (#168).** The
+  smoke test needs the cgo-free dispatch path; when the binary is built
+  with cgo the load fails, so the test now skips instead of failing.
+- **Docs: C toolchain requirement scoped to macOS only.**
 
 ## [v0.48.1] - 2026-08-04
 
