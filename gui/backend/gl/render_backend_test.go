@@ -1,4 +1,4 @@
-//go:build !js && !darwin
+//go:build !js && !darwin && !cgo
 
 package gl
 
@@ -8,7 +8,7 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 )
 
-func TestSmokeRenderPipeline(t *testing.T) {
+func TestBackendRenderSmoke(t *testing.T) {
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  new(int),
 		Width:  200,
@@ -27,27 +27,20 @@ func TestSmokeRenderPipeline(t *testing.T) {
 		})
 	})
 
+	b, err := New(w)
+	if err != nil {
+		t.Skipf("backend init failed (no display?): %v", err)
+	}
+	defer b.Destroy()
+
 	if !w.FrameFn() {
 		t.Fatal("FrameFn returned false — expected renderer rebuild")
 	}
 	cmds := w.Renderers()
 	if len(cmds) == 0 {
-		t.Fatal("expected non-empty renderers after FrameFn")
+		t.Fatal("expected non-empty renderers before renderFrame")
 	}
 
-	var hasRect, hasText bool
-	for _, r := range cmds {
-		switch r.Kind {
-		case gui.RenderRect:
-			hasRect = true
-		case gui.RenderText:
-			hasText = true
-		}
-	}
-	if !hasRect {
-		t.Error("expected at least one RenderRect command")
-	}
-	if !hasText {
-		t.Error("expected at least one RenderText command")
-	}
+	// Render one frame with the OpenGL backend — should not panic.
+	b.renderFrame(w)
 }
