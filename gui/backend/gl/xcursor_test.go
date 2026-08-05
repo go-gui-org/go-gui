@@ -194,14 +194,11 @@ func buildXSettings(msbFirst bool, settings map[string]string) []byte {
 	}
 	for name, val := range settings {
 		if val == "color" {
-			buf = append(buf, 2) // color type, 8 bytes payload
-			put(1)
-			buf = append(buf, make([]byte, 4)...)
-			put(uint32(len(name)))
-			buf = append(buf, name...)
-			if n := len(buf) % 4; n != 0 {
-				buf = append(buf, make([]byte, 4-n)...)
-			}
+			// Color-typed setting: type byte, name, 8 bytes of
+			// CARD16 red/green/blue/alpha.
+			buf = append(buf, 2)
+			putStr(name)
+			buf = append(buf, make([]byte, 8)...)
 			continue
 		}
 		buf = append(buf, 1) // string type

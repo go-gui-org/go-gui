@@ -281,6 +281,8 @@ func iniValue(data []byte, section, key string) string {
 // (KDE and manual GTK configs set the cursor theme there).
 func settingsIniValue(configDir, key string) string {
 	for _, sub := range []string{"gtk-3.0", "gtk-4.0"} {
+		// #nosec G304 — path is a fixed subdir under the caller's own
+		// config dir; only the user's own settings file is read.
 		data, err := os.ReadFile(filepath.Join(configDir, sub, "settings.ini"))
 		if err != nil {
 			continue
@@ -358,6 +360,8 @@ func themeInheritsOf(dirs []string, theme string) []string {
 	for _, d := range dirs {
 		base := filepath.Join(d, theme)
 		for _, rel := range []string{"index.theme", filepath.Join("cursors", "index.theme")} {
+			// #nosec G304 — dirs are the standard theme paths plus the
+			// user's own env vars; only the user's own files are read.
 			data, err := os.ReadFile(filepath.Join(base, rel))
 			if err != nil {
 				continue
@@ -382,6 +386,9 @@ func loadCursorFile(path string, size int) (*xcursorImage, error) {
 	if info.Size() > xcursorMaxFileSize {
 		return nil, fmt.Errorf("xcursor: %s too large (%d bytes)", path, info.Size())
 	}
+	// #nosec G304 — path is a fixed name inside the theme dirs the
+	// user's own environment selects; the file is only read, never
+	// written or executed.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
