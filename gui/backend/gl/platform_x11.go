@@ -278,6 +278,10 @@ func New(w *gui.Window) (*Backend, error) {
 	b.plat.curCrtc = crtc
 
 	setWindowTitle(conn, win, title)
+	setWindowIcon(conn, win, cfg)
+	if cfg.WMClass != "" {
+		setWMClass(conn, win, cfg.WMClass)
+	}
 	b.plat.wmDelete = setupCloseProtocol(conn, win)
 	b.plat.wakeAtom = internAtom(conn, "_GOGUI_WAKE")
 	b.plat.atomClipboard = internAtom(conn, "CLIPBOARD")
