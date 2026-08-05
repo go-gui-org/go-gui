@@ -4,6 +4,7 @@ package gl
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"image/png"
 	"log"
@@ -642,9 +643,9 @@ func setWindowIcon(conn *xgb.Conn, win xproto.Window, cfg gui.WindowCfg) {
 // sampling.
 func scaleARGB(src []uint32, w, h, tw, th int) []uint32 {
 	dst := make([]uint32, tw*th)
-	for y := 0; y < th; y++ {
+	for y := range th {
 		sy := y * h / th
-		for x := 0; x < tw; x++ {
+		for x := range tw {
 			dst[y*tw+x] = src[sy*w+x*w/tw]
 		}
 	}
@@ -661,7 +662,7 @@ func decodeIconARGB(pngData []byte, maxDim int) (w, h int, argb []uint32, err er
 	bounds := img.Bounds()
 	w, h = bounds.Dx(), bounds.Dy()
 	if w <= 0 || h <= 0 {
-		return 0, 0, nil, fmt.Errorf("empty icon")
+		return 0, 0, nil, errors.New("empty icon")
 	}
 	if w > maxDim || h > maxDim {
 		return 0, 0, nil, fmt.Errorf(
