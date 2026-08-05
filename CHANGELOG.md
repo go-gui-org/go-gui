@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.49.1] - 2026-08-05
+
+### Changed
+
+- **Dependency: `go-glyph` v1.18.1 → v1.18.2.** Picks up the atlas fix where
+  glyph uploads now precede textured draws, eliminating the one-frame blank
+  lag on first glyph appearance.
+
 ## [v0.49.0] - 2026-08-05
 
 ### Added
