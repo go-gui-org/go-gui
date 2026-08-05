@@ -69,6 +69,25 @@ func TestIMEUpdateClampsOffsets(t *testing.T) {
 	}
 }
 
+// A clause that starts partway into the preedit must survive the clamp
+// intact: the offsets are an absolute range, not a caret plus a length.
+// The values are ibus-mozc's second clause of 今日はいい天気ですね.
+func TestIMEUpdateKeepsOffsetClause(t *testing.T) {
+	w := newTestWindow()
+	w.imeUpdate(&Event{
+		Type:      EventIMEComposition,
+		IMEText:   "今日はいい天気ですね",
+		IMEStart:  3,
+		IMELength: 7,
+	})
+	if got := w.IMECompCursor(); got != 3 {
+		t.Errorf("cursor: got %d, want 3", got)
+	}
+	if got := w.IMECompSelLen(); got != 7 {
+		t.Errorf("sel len: got %d, want 7", got)
+	}
+}
+
 func TestIMEUpdateEmptyTextClears(t *testing.T) {
 	w := newTestWindow()
 	w.imeUpdate(&Event{

@@ -306,6 +306,12 @@ type TouchPoint struct {
 // commit routinely delivers several runes in one event (CJK), and the
 // full string lives only in IMEText — read IMEText whenever the text
 // may come from an input method.
+//
+// IMEStart and IMELength delimit the selected clause within IMEText, in
+// characters. They are an absolute range, not a caret plus a length:
+// IMEStart is where the clause begins, which a backend must not assume
+// is the insertion point. IMELength == 0 means no clause is selected,
+// and IMEStart is then whatever the platform calls the cursor.
 type Event struct {
 	IMEText           string
 	FilePath          string

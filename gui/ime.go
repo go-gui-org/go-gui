@@ -47,8 +47,9 @@ func (w *Window) IMECompText() string {
 	return w.ime.compText
 }
 
-// IMECompCursor returns the cursor offset within the preedit
-// string (in characters).
+// IMECompCursor returns the start of the selected clause within the
+// preedit string (in characters), or the cursor offset when no clause
+// is selected. See Event.IMEStart.
 func (w *Window) IMECompCursor() int {
 	return w.ime.compCursor
 }
