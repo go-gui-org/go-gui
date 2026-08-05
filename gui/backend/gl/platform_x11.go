@@ -7,7 +7,6 @@ import (
 	"log"
 	"runtime"
 	"strconv"
-	"strings"
 	"time"
 
 	gogl "github.com/go-gui-org/go-gui/gui/backend/internal/glbind"
@@ -155,6 +154,13 @@ func (p *platformState) destroy() {
 	if p.ime != nil {
 		p.ime.Close()
 		p.ime = nil
+	}
+	if p.conn != nil {
+		for _, c := range p.cursors {
+			if c != 0 {
+				xproto.FreeCursor(p.conn, c)
+			}
+		}
 	}
 	if p.eglDpy != 0 {
 		eglMakeCurrent(p.eglDpy, 0, 0, 0)
@@ -631,8 +637,22 @@ func loadCursors(p *platformState) {
 	p.cursors[gui.CursorPointingHand] = load(xcHand2)
 	p.cursors[gui.CursorResizeEW] = load(xcSbHDoubleArrow)
 	p.cursors[gui.CursorResizeNS] = load(xcSbVDoubleArrow)
-	p.cursors[gui.CursorResizeNWSE] = load(xcBottomRightCorner)
-	p.cursors[gui.CursorResizeNESW] = load(xcBottomLeftCorner)
+	// The core cursor font has no rotated double-arrow glyph, so the
+	// diagonal resize shapes come from the desktop's Xcursor theme
+	// when one is available. Any failure (no theme, no RENDER, parse
+	// error) falls back to the corner glyphs — never a hard error.
+	// Theme and size are resolved once: each step reads X root-window
+	// properties.
+	theme := xcursorThemeName(p.conn, p.root)
+	size := xcursorThemeSize(p.conn, p.root)
+	p.cursors[gui.CursorResizeNWSE] = xcursorThemeCursor(p, theme, size, nwseCursorNames)
+	if p.cursors[gui.CursorResizeNWSE] == 0 {
+		p.cursors[gui.CursorResizeNWSE] = load(xcBottomRightCorner)
+	}
+	p.cursors[gui.CursorResizeNESW] = xcursorThemeCursor(p, theme, size, neswCursorNames)
+	if p.cursors[gui.CursorResizeNESW] == 0 {
+		p.cursors[gui.CursorResizeNESW] = load(xcBottomLeftCorner)
+	}
 	p.cursors[gui.CursorResizeAll] = load(xcFleur)
 	p.cursors[gui.CursorNotAllowed] = load(xcXCursor)
 }
@@ -640,24 +660,9 @@ func loadCursors(p *platformState) {
 // readDPIScale derives a UI scale from the Xft.dpi entry in the root
 // RESOURCE_MANAGER property, falling back to 1.0.
 func readDPIScale(conn *xgb.Conn, root xproto.Window) float32 {
-	atom := internAtom(conn, "RESOURCE_MANAGER")
-	if atom == 0 {
-		return 1
-	}
-	reply, err := xproto.GetProperty(conn, false, root, atom,
-		xproto.AtomString, 0, 1<<16).Reply()
-	if err != nil || reply == nil || len(reply.Value) == 0 {
-		return 1
-	}
-	for line := range strings.SplitSeq(string(reply.Value), "\n") {
-		key, val, ok := strings.Cut(line, ":")
-		if !ok || strings.TrimSpace(key) != "Xft.dpi" {
-			continue
-		}
-		dpi, perr := strconv.Atoi(strings.TrimSpace(val))
-		if perr == nil && dpi > 0 {
-			return float32(dpi) / 96.0
-		}
+	dpi, err := strconv.Atoi(readXResource(conn, root, "Xft.dpi"))
+	if err == nil && dpi > 0 {
+		return float32(dpi) / 96.0
 	}
 	return 1
 }
