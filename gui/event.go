@@ -328,27 +328,36 @@ type Event struct {
 	MouseY            float32
 	MouseDX           float32
 	MouseDY           float32
-	ScrollX           float32
-	ScrollY           float32
-	Modifiers         Modifier
-	CharCode          uint32
-	IMEStart          int32
-	IMELength         int32
-	GestureDX         float32 // pan/swipe delta from previous
-	GestureDY         float32
-	VelocityX         float32 // px/s at gesture end
-	VelocityY         float32
-	PinchScale        float32 // cumulative scale (1.0 = unchanged)
-	GestureRotation   float32 // cumulative radians
-	CentroidX         float32 // center of active touches
-	CentroidY         float32
-	KeyCode           KeyCode
-	MouseButton       MouseButton
-	Type              EventType
-	GestureType       GestureType
-	GesturePhase      GesturePhase
-	KeyRepeat         bool
-	IsHandled         bool
+	// ScrollX and ScrollY carry scroll distance in one of two units,
+	// selected by ScrollPrecise. For a discrete mouse wheel
+	// (ScrollPrecise false) the unit is LINES OF TEXT: every backend
+	// converts its native notch representation to the platform's
+	// lines-per-notch, so one notch reports ~3 on all of them. For a
+	// precise/trackpad delta (ScrollPrecise true) the unit is points of
+	// finger travel, pre-scaled by the backend. Consumers that care about
+	// the distinction — a terminal grid scrolling whole rows, say — must
+	// branch on ScrollPrecise rather than assuming one unit.
+	ScrollX         float32
+	ScrollY         float32
+	Modifiers       Modifier
+	CharCode        uint32
+	IMEStart        int32
+	IMELength       int32
+	GestureDX       float32 // pan/swipe delta from previous
+	GestureDY       float32
+	VelocityX       float32 // px/s at gesture end
+	VelocityY       float32
+	PinchScale      float32 // cumulative scale (1.0 = unchanged)
+	GestureRotation float32 // cumulative radians
+	CentroidX       float32 // center of active touches
+	CentroidY       float32
+	KeyCode         KeyCode
+	MouseButton     MouseButton
+	Type            EventType
+	GestureType     GestureType
+	GesturePhase    GesturePhase
+	KeyRepeat       bool
+	IsHandled       bool
 	// ScrollPrecise is true for high-res / trackpad scroll deltas
 	// (already carrying OS momentum). False for discrete mouse-wheel
 	// notches, which the gui side eases via scrollSmoothAnimation.

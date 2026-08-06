@@ -93,13 +93,13 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 	case xproto.ButtonPressEvent:
 		switch e.Detail {
 		case 4:
-			b.emitScroll(0, 1, e.EventX, e.EventY, e.State)
+			b.emitScroll(0, x11ScrollLines, e.EventX, e.EventY, e.State)
 		case 5:
-			b.emitScroll(0, -1, e.EventX, e.EventY, e.State)
+			b.emitScroll(0, -x11ScrollLines, e.EventX, e.EventY, e.State)
 		case 6:
-			b.emitScroll(1, 0, e.EventX, e.EventY, e.State)
+			b.emitScroll(x11ScrollLines, 0, e.EventX, e.EventY, e.State)
 		case 7:
-			b.emitScroll(-1, 0, e.EventX, e.EventY, e.State)
+			b.emitScroll(-x11ScrollLines, 0, e.EventX, e.EventY, e.State)
 		default:
 			x, y := b.logicalXY(int32(e.EventX), int32(e.EventY))
 			b.emit(gui.Event{
@@ -212,6 +212,14 @@ func focusRealChange(mode, detail byte) bool {
 	}
 	return true
 }
+
+// x11ScrollLines is the lines-per-notch reported for core X11 wheel
+// buttons 4–7. Unlike Windows (SPI_GETWHEELSCROLLLINES) and macOS
+// (AppKit acceleration), core X11 button events carry no magnitude and
+// the toolkit is expected to supply one — three lines is both the
+// Windows default and what GTK and Qt use, so it is what gui.Event's
+// line unit means here.
+const x11ScrollLines float32 = 3
 
 func (b *Backend) emitScroll(sx, sy float32, px, py int16, state uint16) {
 	x, y := b.logicalXY(int32(px), int32(py))

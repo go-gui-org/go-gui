@@ -39,6 +39,19 @@ const (
 	sizeMinimized = 1
 	wheelDelta    = 120
 	keyRepeatBit  = 0x40000000 // lParam bit 30: previous key state
+
+	// Wheel-speed settings. Windows exposes lines-per-notch (vertical) and
+	// chars-per-notch (horizontal) as user preferences; the defaults match
+	// a fresh Windows install.
+	spiGetWheelScrollLines = 0x0068
+	spiGetWheelScrollChars = 0x006C
+	defaultScrollLines     = 3
+	defaultScrollChars     = 3
+
+	// wheelPageScroll is the SPI_GETWHEELSCROLLLINES sentinel for "scroll
+	// one screen per notch" (WHEEL_PAGESCROLL == UINT_MAX).
+	wheelPageScroll = 0xFFFFFFFF
+	linesPerPage    = 25
 )
 
 func loWordS(v uintptr) int32 { return int32(int16(v & 0xFFFF)) }
@@ -97,9 +110,9 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		return b.mouseButton(gui.EventMouseUp, gui.MouseMiddle, lparam, false)
 
 	case wmMouseWheel:
-		return b.mouseWheel(0, float32(hiWordS(wparam))/wheelDelta, lparam)
+		return b.mouseWheel(0, notchesToLines(hiWordS(wparam)), lparam)
 	case wmMouseHWheel:
-		return b.mouseWheel(float32(hiWordS(wparam))/wheelDelta, 0, lparam)
+		return b.mouseWheel(notchesToChars(hiWordS(wparam)), 0, lparam)
 
 	case wmKeyDown, wmSysKeyDown:
 		b.emit(gui.Event{
@@ -185,6 +198,51 @@ func (b *Backend) mouseButton(t gui.EventType, btn gui.MouseButton,
 		Modifiers:   winkey.ModState(),
 	})
 	return 0, true
+}
+
+// notchesToLines converts a WM_MOUSEWHEEL delta into gui.Event's scroll
+// unit: lines of text. Windows reports wheel travel in 1/120ths of a
+// notch and leaves the lines-per-notch multiplier to the app, which must
+// read it from SPI_GETWHEELSCROLLLINES (Control Panel → Mouse → Wheel;
+// three by default). Skipping that step is what made one notch scroll a
+// single line-equivalent instead of the three the user asked for.
+func notchesToLines(delta int32) float32 {
+	lines := wheelScrollLines()
+	if lines == wheelPageScroll {
+		// The user selected "one screen at a time". No viewport height is
+		// available here, so approximate a page — consumers clamp to their
+		// own bounds anyway.
+		lines = linesPerPage
+	}
+	return float32(delta) / wheelDelta * float32(lines)
+}
+
+// notchesToChars is the horizontal counterpart, using the separate
+// SPI_GETWHEELSCROLLCHARS setting. It has no page-scroll sentinel.
+func notchesToChars(delta int32) float32 {
+	return float32(delta) / wheelDelta * float32(wheelScrollChars())
+}
+
+// wheelScrollLines reads SPI_GETWHEELSCROLLLINES, falling back to the
+// Windows default when the call fails.
+func wheelScrollLines() uint32 { return sysParamUint(spiGetWheelScrollLines, defaultScrollLines) }
+
+// wheelScrollChars reads SPI_GETWHEELSCROLLCHARS, falling back to the
+// Windows default when the call fails.
+func wheelScrollChars() uint32 { return sysParamUint(spiGetWheelScrollChars, defaultScrollChars) }
+
+// sysParamUint fetches a uint-valued SystemParametersInfo action. The
+// settings are re-read per event rather than cached: they change while
+// the app runs (Control Panel, or a WM_SETTINGCHANGE broadcast), and a
+// wheel message is far too rare for the syscall to matter.
+func sysParamUint(action uintptr, fallback uint32) uint32 {
+	var v uint32
+	r, _, _ := pSysParamsInfoW.Call(
+		action, 0, uintptr(unsafe.Pointer(&v)), 0)
+	if r == 0 || v == 0 {
+		return fallback
+	}
+	return v
 }
 
 func (b *Backend) mouseWheel(sx, sy float32, lparam uintptr) (uintptr, bool) {

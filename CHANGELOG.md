@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **`Event.ScrollX`/`ScrollY` now have a defined unit.** For a discrete mouse
+  wheel (`ScrollPrecise` false) they carry **lines of text**, and every
+  backend converts its native representation to the platform's lines-per-
+  notch — roughly three on all of them. Precise/trackpad deltas are unchanged
+  and still carry pre-scaled points of finger travel; consumers that care must
+  branch on `ScrollPrecise`. The field previously had no documented unit and
+  each backend picked its own: Metal pre-scaled a notch to 2.5 while Win32 and
+  X11 emitted a bare 1.0, so the same gesture scrolled 2.5x further on macOS
+  than on Windows or Linux. Embedders that scaled `ScrollY` by their own
+  constant (rather than by `Theme.ScrollMultiplier`) should re-check their
+  factor.
+
+### Fixed
+
+- **Mouse wheel ignored the Windows scroll-speed setting.** The Win32 backend
+  reported a bare notch count and never read `SPI_GETWHEELSCROLLLINES`
+  (Control Panel → Mouse → Wheel, three lines by default), so an embedder
+  scaling by its own per-unit constant scrolled a fraction of what the user
+  asked for. The setting is now honoured, including the "one screen at a time"
+  (`WHEEL_PAGESCROLL`) sentinel, and re-read per event so a change applies
+  without a restart. `WM_MOUSEHWHEEL` gained the matching
+  `SPI_GETWHEELSCROLLCHARS` handling.
+- **X11 wheel buttons carried no magnitude.** Buttons 4–7 now report three
+  lines per notch, matching GTK, Qt, and the Windows default.
+
 ## [v0.50.0] - 2026-08-05
 
 ### Added

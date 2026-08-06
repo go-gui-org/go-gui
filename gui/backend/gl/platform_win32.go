@@ -61,6 +61,7 @@ var (
 	pGetClipboardData = user32.NewProc("GetClipboardData")
 	pSetClipboardData = user32.NewProc("SetClipboardData")
 	pSendMessageW     = user32.NewProc("SendMessageW")
+	pSysParamsInfoW   = user32.NewProc("SystemParametersInfoW")
 )
 
 const (
