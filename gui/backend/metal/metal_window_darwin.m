@@ -21,11 +21,16 @@
 static const float kPreciseScrollScale = 0.075f;
 
 // Scale applied to AppKit line-based (discrete mouse wheel) scrolling
-// deltas. A notch reports ~1 line; combined with gui's ScrollMultiplier
-// (20) this lands one notch at ~50px, which the gui side then eases
-// into place (exponential smoothing). Was 10.0 (net ~200px/notch),
-// which felt far too fast and abrupt.
-static const float kWheelScrollScale = 2.5f;
+// deltas, converting them to gui.Event's line unit. AppKit reports ~1
+// line per notch (more once acceleration kicks in); the platform
+// convention every other backend also reports is three lines per notch,
+// so that is the factor. Combined with gui's ScrollMultiplier (20) this
+// lands one notch at ~60px, which the gui side then eases into place
+// (exponential smoothing). Was 2.5 (~50px/notch) back when the unit was
+// undefined and each backend picked its own — Win32 and X11 reported a
+// bare 1.0, so macOS scrolled 2.5x faster than either for the same
+// gesture. Was 10.0 before that (~200px/notch), which felt far too fast.
+static const float kWheelScrollScale = 3.0f;
 
 // Event mask covering all event types the app needs to receive.
 // MouseEntered/Exited are required by AppKit's internal tracking-

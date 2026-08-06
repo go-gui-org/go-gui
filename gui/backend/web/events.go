@@ -9,15 +9,19 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 )
 
-// Wheel delta normalization constants. Converts browser delta
-// values to approximate scroll "notches":
-//   - DOM_DELTA_PIXEL: ~53px per trackpad notch
-//   - DOM_DELTA_LINE: ~3 lines per discrete wheel notch
-//   - DOM_DELTA_PAGE: each page maps to ~10 notches
+// Wheel delta normalization constants. Converts browser delta values to
+// gui.Event's scroll unit, lines of text (see Event.ScrollY):
+//   - DOM_DELTA_PIXEL: ~17.7px per line, so a 53px trackpad notch stays
+//     the three lines every other backend reports
+//   - DOM_DELTA_LINE: already lines; passed through
+//   - DOM_DELTA_PAGE: a page is ~30 lines
+//
+// The ratios are unchanged from when this produced "notches" — only the
+// unit is scaled, so web scrolling feels exactly as it did.
 const (
-	wheelPixelDivisor   = 53
-	wheelLineDivisor    = 3
-	wheelPageMultiplier = 10
+	wheelPixelDivisor   = 17.7
+	wheelLineDivisor    = 1
+	wheelPageMultiplier = 30
 )
 
 // registerEvents attaches DOM event listeners to the canvas and

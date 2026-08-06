@@ -104,3 +104,41 @@ func TestLoHiWordSSignedExtraction(t *testing.T) {
 		t.Errorf("hiWordS = %d, want 800", got)
 	}
 }
+
+// TestNotchesToLines_HonoursSystemSetting pins the wheel-speed fix: a
+// WM_MOUSEWHEEL delta must be converted to gui.Event's line unit using
+// SPI_GETWHEELSCROLLLINES, not emitted as a bare notch count. Reporting
+// 1.0 per notch is what made the terminal grid crawl a quarter of a row
+// per notch on Windows while macOS moved 2.5x further for the same
+// gesture.
+func TestNotchesToLines_HonoursSystemSetting(t *testing.T) {
+	lines := wheelScrollLines()
+	if lines == wheelPageScroll {
+		t.Skip("system set to page-scroll; per-line math not exercised")
+	}
+	if lines == 0 {
+		t.Fatal("wheelScrollLines returned 0; fallback did not apply")
+	}
+	// One notch up.
+	if got, want := notchesToLines(wheelDelta), float32(lines); got != want {
+		t.Errorf("one notch = %v lines, want %v", got, want)
+	}
+	// Direction is preserved.
+	if got, want := notchesToLines(-wheelDelta), -float32(lines); got != want {
+		t.Errorf("one notch down = %v lines, want %v", got, want)
+	}
+	// A partial (high-resolution) notch scales proportionally rather than
+	// rounding away, so precision wheels stay smooth.
+	if got, want := notchesToLines(wheelDelta/2), float32(lines)/2; got != want {
+		t.Errorf("half notch = %v lines, want %v", got, want)
+	}
+}
+
+// TestSysParamUint_FallsBackOnBogusAction verifies the fallback path: an
+// unknown SystemParametersInfo action must yield the documented default
+// rather than zero, which would make the wheel completely dead.
+func TestSysParamUint_FallsBackOnBogusAction(t *testing.T) {
+	if got := sysParamUint(0xFFFF, defaultScrollLines); got != defaultScrollLines {
+		t.Errorf("fallback = %d, want %d", got, defaultScrollLines)
+	}
+}
