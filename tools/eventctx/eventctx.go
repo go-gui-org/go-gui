@@ -95,9 +95,14 @@ func ScanDecls(filename string, src []byte) (DeclPlan, map[string]bool, error) {
 	cands := DeclPlan{}
 	for _, d := range f.Decls {
 		fd, ok := d.(*ast.FuncDecl)
-		if !ok || fd.Body == nil || fd.Recv != nil {
+		if !ok || fd.Body == nil {
 			continue
 		}
+		// Methods count too: a callback is just as often a method value
+		// (x.internalClick) as a plain function. The plan is keyed by
+		// the bare name, so two same-named methods on different
+		// receivers convert together — which is what you want, since
+		// both had to match the callback signature to get here.
 		if sig := classify(fd.Type); sig != sigNone {
 			cands[fd.Name.Name] = sig
 		} else if classifyTwo(fd.Type) {
@@ -111,6 +116,12 @@ func ScanDecls(filename string, src []byte) (DeclPlan, map[string]bool, error) {
 	ast.Inspect(f, func(n ast.Node) bool {
 		if c, ok := n.(*ast.CallExpr); ok {
 			skip[c.Fun] = true
+			// For a method call the Fun is the selector, so the method
+			// name sits one level down and would otherwise read as a
+			// value use.
+			if sel, isSel := c.Fun.(*ast.SelectorExpr); isSel {
+				skip[sel.Sel] = true
+			}
 		}
 		if fd, ok := n.(*ast.FuncDecl); ok {
 			skip[fd.Name] = true
@@ -246,7 +257,7 @@ func (r *rewriter) run(f *ast.File) {
 func (r *rewriter) rewriteDecls(f *ast.File) {
 	for _, d := range f.Decls {
 		fd, ok := d.(*ast.FuncDecl)
-		if !ok || fd.Body == nil || fd.Recv != nil {
+		if !ok || fd.Body == nil {
 			continue
 		}
 		if _, want := r.plan[fd.Name.Name]; !want {
@@ -297,8 +308,15 @@ func (r *rewriter) rewriteCalls(f *ast.File) {
 		if !ok {
 			return true
 		}
-		id, ok := call.Fun.(*ast.Ident)
-		if !ok {
+		// Both a plain call f(...) and a method call x.f(...) fold; the
+		// planned name is the bare identifier in either case.
+		var id *ast.Ident
+		switch fun := call.Fun.(type) {
+		case *ast.Ident:
+			id = fun
+		case *ast.SelectorExpr:
+			id = fun.Sel
+		default:
 			return true
 		}
 		sig, want := r.plan[id.Name]
