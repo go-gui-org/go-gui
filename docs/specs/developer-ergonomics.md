@@ -643,6 +643,41 @@ from coordinates or targets the ID directly. Hit-testing is the more
 faithful simulation and would also catch overlay and z-order bugs;
 ID-targeting is simpler and sufficient for state-transition tests.
 
+#### 4.6.1 Corrections from the implementation (2026-08-07)
+
+Shipped in `gui/testing.go`. Three things §4.6 got wrong or left out.
+
+**The hit-testing/ID-targeting choice was a false dichotomy.** §9 Q2
+frames them as alternatives. They are orthogonal: the ID picks a
+coordinate, and dispatch then runs full hit-testing from the window
+root. `TestClick` does both. The parts of hit-testing worth having —
+z-order, clipping, disabled subtrees — come free, because the
+synthesized event goes through `Window.EventFn` rather than reaching
+into `Shape.events`. `TestClickAt(x, y)` is still a separate future
+name, but it buys only the ability to click a coordinate that no
+widget's ID names.
+
+**Overlay obstruction is not detectable, and §4.6 implied it was.** An
+overlay that covers the target consumes the click and marks the event
+handled, so `TestClick` returns nil. Dispatch does not record which
+shape it delivered to, so "the target handled it" and "something on
+top of the target handled it" are the same observation from outside.
+`ErrTestUnhandled` therefore catches only total non-delivery.
+Documented on the method and pinned by
+`TestTestClickBlockedByOverlay`. Closing the gap properly means having
+dispatch report its recipient — a change on the hottest event path,
+for a testing feature, and not worth it at this stage.
+
+**`TestScroll` must send a precise scroll, not a wheel notch.** Not a
+preference. The discrete-wheel path does not move the offset at all:
+`scrollSmoothBy` arms an exponential ease that lands over later frames
+driven by the animation goroutine, which no headless test runs — and
+`clearHotMaps` calls `scrollSmoothReset` on every view rebuild, so
+settling a frame would discard the in-flight ease regardless. Only
+`scrollVertical`/`scrollHorizontal`, the precise/trackpad path, write
+synchronously. Consequence for callers: a widget branching on
+`Event.ScrollPrecise` sees the trackpad branch under test.
+
 ### 4.7 Naming: `RTF` / `RtfCfg` casing split
 
 `RTF(cfg RtfCfg)` (`gui/view_rtf.go:212`) is the only factory whose
@@ -881,7 +916,9 @@ burying them in the same diff.
 | 1     | §4.9 tag `Container`, wire scroll guard  | n/a — see below |
 | 1     | §4.9 `checkScrollableID` analyzer rule   | done   |
 | 1     | §4.1 `OnMouseLeave` gate check           | done   |
-| 2–5   | —                                        | todo   |
+| 2     | §4.6 test API in package `gui`           | done   |
+| 2     | Q6 nested-scroll gate written as a test  | done   |
+| 3–5   | —                                        | todo   |
 
 Two corrections to §4.2 arising from the implementation.
 
@@ -1072,7 +1109,7 @@ can proceed. Q8 was resolved on 2026-08-07, before phase 1 shipped.
 | 3   | Nested focus             | unexported `Shape` helper            |
 | 4   | Focusable without ID     | proceed; mandatory `ID`              |
 | 5   | `ColorSet` zero value    | `Opt[Color]`                         |
-| 6   | Nested `OnMouseScroll`   | **gate** — test first, in phase 2    |
+| 6   | Nested `OnMouseScroll`   | gate written 2026-08-07; see below   |
 | 7   | Breaking release target  | v0.54.0 (revised; see §6)            |
 | 8   | `requiredid` for authors | **documented only** (2026-08-07)     |
 
@@ -1107,6 +1144,21 @@ Detail where the decision carries a constraint:
    can be injected but not asserted, and the gate cannot be discharged.
    This is also why §4.9 belongs in phase 1: scroll-state keying and
    scroll propagation should not both be in motion at once.
+
+   **Written 2026-08-07** as `gui/scroll_nested_test.go`. The current
+   contract holds: an inner scrollable pinned at its limit declines the
+   scroll, and traversal unwinds to the enclosing container in the same
+   gesture. Verified to fire by mutation — forcing `IsHandled = true`
+   on a scrollable under the cursor reds
+   `TestNestedScrollCascadesToParentAtLimit` with a message naming Q6.
+   Phase 4 now has something concrete to break, and breaking it is a
+   decision that has to be argued here rather than a silent behavior
+   change.
+
+   One incidental finding: the cascade is not assertable after the
+   fact. Once the outer container scrolls, the inner one is carried out
+   of view and has no clip to aim a follow-up scroll at, so the test
+   must assert across the single gesture where the handoff happens.
 7. **v0.54.0** for the §4.3/§4.4/§4.7 breaking phase; phases 2–3 as
    `v0.53.x`. Revised from the original "v0.53.0, one breaking
    release" — phase 1 turned out to be breaking and consumed that
