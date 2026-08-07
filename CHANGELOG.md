@@ -40,6 +40,28 @@ and this project adheres to
 
 ### Added
 
+- **Two preventive identity checks** (developer-ergonomics §4.9 and §4.1, phase
+  1). Both found **zero** live defects in this repo, which is the point of
+  landing them: the twelve a11y defects above all reached release because
+  nothing looked.
+
+  `tools/requiredid` gained `checkScrollableID`, reporting a literal that sets
+  `Scrollable: true` with no `ID`. Scroll offsets are keyed by `ID`, so every
+  ID-less scrollable in a window shares the key `""` and they scroll in lockstep
+  — visible only once a second one exists, which is how it survives review. It
+  mirrors `checkFocusableID` and keys on the field in the literal rather than a
+  tag: a scrollable container is the exception, and a `gui:"required"` tag on
+  `ContainerCfg.ID` would invert the default and flag the common case. The
+  runtime half, `RequireScrollID`, was already wired.
+
+  The `gui.Debug` gate gained an `OnMouseLeave`-without-`ID` check. This is a
+  fourth ID-keyed behaviour the spec did not enumerate: `layoutMouseLeave`
+  tracks the cursor through a map keyed by `ID` and, unlike the focus path, has
+  **no `Focusable` precondition**. A `FocusDisabled` control carrying an
+  `OnMouseLeave` is therefore still silently broken — the decorative opt-out
+  covers focus, not identity — and neither the focus check nor `requireFocusID`
+  catches it.
+
 - **`ergoaudit -fix` codemod** (developer-ergonomics §8, phase 1). Tools-only;
   no shipped library code changes. Mode `focus` can now rewrite the literals it
   reports, inserting a generated `ID` into each. Phase 1 tags nine `Cfg` types

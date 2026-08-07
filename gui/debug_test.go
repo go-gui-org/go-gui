@@ -229,3 +229,79 @@ func TestStatePanicNamesBothTypes(t *testing.T) {
 	}()
 	State[want](w)
 }
+
+// An OnMouseLeave is tracked through a map keyed by ID, and that guard
+// has no Focusable precondition — so this defect exists on shapes the
+// focus check passes over, and needs its own finding.
+func TestDebugAuditMouseLeaveWithoutID(t *testing.T) {
+	buf := captureDebug(t)
+	w := &Window{}
+	tree := debugTree(&Shape{
+		events: &eventHandlers{OnMouseLeave: func(EventCtx) {}},
+	})
+
+	w.debugAudit(&tree)
+
+	got := buf.String()
+	if !strings.Contains(got, "has an OnMouseLeave but no ID") {
+		t.Fatalf("want mouseleave-no-ID finding, got %q", got)
+	}
+	// The shape is not focusable, so the focus check must stay quiet:
+	// two findings for one shape would misdescribe the defect.
+	if strings.Contains(got, "focusable shape") {
+		t.Errorf("focus check fired on a non-focusable shape: %q", got)
+	}
+}
+
+// The decorative opt-out covers focus, not leave tracking. A
+// FocusDisabled control with an OnMouseLeave is still broken, and this
+// is the case neither the focus check nor the requireFocusID guard
+// catches.
+func TestDebugAuditMouseLeaveOnFocusDisabledShape(t *testing.T) {
+	buf := captureDebug(t)
+	w := &Window{}
+	// FocusDisabled has already been resolved into Focusable: false by
+	// the time a shape exists, which is why the focus check misses it.
+	tree := debugTree(&Shape{
+		Focusable: false,
+		events:    &eventHandlers{OnMouseLeave: func(EventCtx) {}},
+	})
+
+	w.debugAudit(&tree)
+
+	if got := buf.String(); !strings.Contains(got, "has an OnMouseLeave but no ID") {
+		t.Fatalf("want mouseleave-no-ID finding, got %q", got)
+	}
+}
+
+func TestDebugAuditMouseLeaveWithIDIsQuiet(t *testing.T) {
+	buf := captureDebug(t)
+	w := &Window{}
+	tree := debugTree(&Shape{
+		ID:     "panel",
+		events: &eventHandlers{OnMouseLeave: func(EventCtx) {}},
+	})
+
+	w.debugAudit(&tree)
+
+	if got := buf.String(); got != "" {
+		t.Errorf("want silence for an ID'd shape, got %q", got)
+	}
+}
+
+// Disabled shapes never reach the leave-tracking code, so reporting
+// them would be a false positive.
+func TestDebugAuditMouseLeaveDisabledIsQuiet(t *testing.T) {
+	buf := captureDebug(t)
+	w := &Window{}
+	tree := debugTree(&Shape{
+		Disabled: true,
+		events:   &eventHandlers{OnMouseLeave: func(EventCtx) {}},
+	})
+
+	w.debugAudit(&tree)
+
+	if got := buf.String(); got != "" {
+		t.Errorf("want silence for a disabled shape, got %q", got)
+	}
+}

@@ -6,9 +6,10 @@
 // for literals that set FocusDisabled: true, the opt-out for a
 // decorative control that never joins focus traversal.
 //
-// It also flags Cfg literals that set Focusable: true without an ID.
-// Focus traversal is keyed by ID, so such a widget is silently
-// unreachable by keyboard.
+// It also flags Cfg literals that set Focusable: true without an ID,
+// which focus traversal skips, leaving the widget silently unreachable
+// by keyboard; and literals that set Scrollable: true without an ID,
+// which share one scroll offset with every other ID-less scrollable.
 package requiredid
 
 import (
@@ -63,6 +64,7 @@ func run(pass *analysis.Pass) (any, error) {
 			}
 			checkRequired(pass, lit, named, st)
 			checkFocusableID(pass, lit, named, st)
+			checkScrollableID(pass, lit, named, st)
 			return true
 		})
 	}
@@ -113,6 +115,35 @@ func checkFocusableID(
 	pass.Reportf(lit.Pos(),
 		"%s sets Focusable: true without an ID; focus traversal is keyed "+
 			"by ID, so the widget is not keyboard-reachable",
+		named.Obj().Name())
+}
+
+// checkScrollableID reports literals that set Scrollable: true but
+// leave ID unset or empty. Scroll offsets are keyed by Shape.ID, so
+// every ID-less scrollable in a window shares the key "" and they
+// scroll in lockstep — visibly wrong, but only once a second one
+// exists, which is why it survives review.
+//
+// Mirrors checkFocusableID: keyed on the field in the literal rather
+// than a tag, because a scrollable container is the exception. Most
+// containers have no ID and need none, so a gui:"required" tag on
+// ContainerCfg.ID would invert the default and flag the common case.
+func checkScrollableID(
+	pass *analysis.Pass, lit *ast.CompositeLit,
+	named *types.Named, st *types.Struct,
+) {
+	if !hasTrueField(lit, "Scrollable") {
+		return
+	}
+	if !hasField(st, "ID") {
+		return
+	}
+	if hasNonEmptyField(lit, "ID") {
+		return
+	}
+	pass.Reportf(lit.Pos(),
+		"%s sets Scrollable: true without an ID; scroll offsets are keyed "+
+			"by ID, so it shares one offset with every other ID-less scrollable",
 		named.Obj().Name())
 }
 
