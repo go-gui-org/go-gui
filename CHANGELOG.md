@@ -6,7 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v0.53.0] - 2026-08-07
+
+Developer-ergonomics phase 1 (`docs/specs/developer-ergonomics.md`), shipped as
+PRs #189–#193.
+
+A missing widget `ID` used to be invisible: the widget rendered, it clicked, and
+it silently never joined the tab order. This release makes that a panic at
+construction, a build-time diagnostic, and a runtime gate — and fixes the twelve
+places the library itself got it wrong.
+
+**Upgrading:** the nine input factories listed under _Changed_ now panic on an
+empty `Cfg.ID`. Give each control a window-unique `ID`, or set
+`FocusDisabled: true` on a control that is genuinely decorative. Measured
+against the five sibling repos, this forces three edits in total (go-charts 1,
+go-map 2), all in example code.
 
 ### Fixed
 
