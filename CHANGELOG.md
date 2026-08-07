@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.51.1] - 2026-08-07
+
+### Changed
+
+- **go-glyph v1.18.2 → v1.19.0.** Brings cap-height-matched fallback glyphs
+  (fallback letters as tall as the primary's), upright-face preference on
+  weight ties, and scratch `CachedGlyph` slice reuse (no per-frame
+  allocation in the terminal steady-state path).
+
 ## [v0.51.0] - 2026-08-06
 
 ### Changed
