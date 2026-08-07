@@ -116,7 +116,7 @@ func runFocus(guiRoot string, repos []string, fix, dry bool, only, skip *regexp.
 		return fmt.Errorf("scanning %s: %w", guiRoot, err)
 	}
 
-	var unguarded, guarded, optIn, scrollUnguarded []string
+	var unguarded, guarded, optIn, scrollCovered []string
 	for name, c := range contracts {
 		switch {
 		case c.defaultOn && c.hasID && !c.idRequired:
@@ -128,21 +128,28 @@ func runFocus(guiRoot string, repos []string, fix, dry bool, only, skip *regexp.
 		}
 		// Scroll offsets are keyed by Shape.ID (gui/layout_position.go),
 		// so every ID-less scrollable shares the key "" and they scroll
-		// in lockstep. Report the same contract gap for Scrollable.
-		if c.scrollable && c.hasID && !c.idRequired {
-			scrollUnguarded = append(scrollUnguarded, name)
+		// in lockstep.
+		//
+		// A tag cannot express this contract: most containers have no
+		// ID and need none, so `gui:"required"` on ContainerCfg.ID
+		// would flag the common case. It is enforced instead by
+		// requiredid's checkScrollableID, which keys on Scrollable in
+		// the literal — so every Cfg here is covered whether or not its
+		// ID carries a tag, and the list is inventory, not a gap.
+		if c.scrollable && c.hasID {
+			scrollCovered = append(scrollCovered, name)
 		}
 	}
 	sort.Strings(unguarded)
 	sort.Strings(guarded)
 	sort.Strings(optIn)
-	sort.Strings(scrollUnguarded)
+	sort.Strings(scrollCovered)
 
 	fmt.Printf("focus contracts derived from %s/gui\n\n", guiRoot)
 	fmt.Printf("  opt-in (Focusable bool):            %d\n", len(optIn))
 	fmt.Printf("  default-on, ID required:            %d  %s\n", len(guarded), strings.Join(guarded, " "))
 	fmt.Printf("  default-on, ID NOT required:        %d  %s\n", len(unguarded), strings.Join(unguarded, " "))
-	fmt.Printf("  scrollable, ID NOT required:        %d  %s\n\n", len(scrollUnguarded), strings.Join(scrollUnguarded, " "))
+	fmt.Printf("  scrollable, ID enforced statically: %d  %s\n\n", len(scrollCovered), strings.Join(scrollCovered, " "))
 
 	if len(unguarded) == 0 {
 		fmt.Println("no unguarded Cfgs: nothing to audit")

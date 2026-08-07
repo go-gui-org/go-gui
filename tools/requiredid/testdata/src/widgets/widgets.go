@@ -43,18 +43,32 @@ type UnscopedCfg struct {
 	FocusDisabled bool
 }
 
+// ScrollCfg mirrors ContainerCfg: no tag on ID, because most
+// containers need none. The rule keys on Scrollable in the literal.
+type ScrollCfg struct {
+	ID         string
+	Scrollable bool
+}
+
+// ScrollNoIDCfg is scrollable with no ID field to set.
+type ScrollNoIDCfg struct {
+	Scrollable bool
+}
+
 type S struct{}
 
 func (S) Widget(_ WidgetCfg) {}
 
-func Widget(_ WidgetCfg)     {}
-func helper(_ WidgetCfg)     {}
-func useN(_ NoReqCfg)        {}
-func Focus(_ FocusCfg)       {}
-func NoID(_ NoIDCfg)         {}
-func Flip(_ FlipCfg)         {}
-func Scoped(_ ScopedCfg)     {}
-func Unscoped(_ UnscopedCfg) {}
+func Widget(_ WidgetCfg)         {}
+func helper(_ WidgetCfg)         {}
+func useN(_ NoReqCfg)            {}
+func Focus(_ FocusCfg)           {}
+func NoID(_ NoIDCfg)             {}
+func Flip(_ FlipCfg)             {}
+func Scoped(_ ScopedCfg)         {}
+func Unscoped(_ UnscopedCfg)     {}
+func Scroll(_ ScrollCfg)         {}
+func ScrollNoID(_ ScrollNoIDCfg) {}
 
 func good() {
 	Widget(WidgetCfg{ID: "ok", Name: "x"})
@@ -164,4 +178,35 @@ func flippedCfgSilent() {
 	Flip(FlipCfg{})
 	Flip(FlipCfg{ID: "ok"})
 	Flip(FlipCfg{FocusDisabled: true})
+}
+
+// --- Scrollable ---
+
+func scrollableNoID() {
+	Scroll(ScrollCfg{Scrollable: true}) // want `ScrollCfg sets Scrollable: true without an ID`
+}
+
+func scrollableEmptyID() {
+	Scroll(ScrollCfg{ID: "", Scrollable: true}) // want `ScrollCfg sets Scrollable: true without an ID`
+}
+
+func scrollableWithID() {
+	Scroll(ScrollCfg{ID: "ok", Scrollable: true})
+}
+
+// A non-scrollable container needs no ID: the common case, and the
+// reason this rule keys on the literal rather than a tag.
+func notScrollableNoID() {
+	Scroll(ScrollCfg{})
+}
+
+// Scrollable is not statically true; stay quiet.
+func scrollableComputedFlag() {
+	on := true
+	Scroll(ScrollCfg{Scrollable: on})
+}
+
+// No ID field to set: an unfixable diagnostic would be noise.
+func scrollableNoIDField() {
+	ScrollNoID(ScrollNoIDCfg{Scrollable: true})
 }

@@ -169,6 +169,9 @@ and no visual difference:
   is keyed by `ID`, so it never joins the tab order.
 - A scrollable widget with no `ID`. Every ID-less scrollable in a window shares
   the key `""`, so they scroll in lockstep.
+- An `OnMouseLeave` on a widget with no `ID`. Leave tracking is keyed by `ID`,
+  so the callback never fires. This one survives `FocusDisabled: true` — opting
+  out of focus does not opt out of needing an identity.
 
 `gui.Debug(true)` — or `GOGUI_DEBUG=1` in the environment — audits every frame
 for these and writes findings to stderr, once per finding per window:

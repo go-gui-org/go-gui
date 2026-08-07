@@ -14,9 +14,10 @@ import (
 // A family of defects in this library are silent by construction: a
 // focusable widget without an ID renders and clicks but never joins
 // the tab order, a scrollable widget without an ID shares the key ""
-// with every other ID-less scrollable in the window, and a duplicate
-// ID collapses two widgets onto one identity. None of these produce
-// an error, a panic, or a visual difference.
+// with every other ID-less scrollable in the window, an OnMouseLeave
+// on an ID-less shape never fires, and a duplicate ID collapses two
+// widgets onto one identity. None of these produce an error, a panic,
+// or a visual difference.
 //
 // The debug gate turns them into messages on stderr. It is off by
 // default and costs one atomic load per frame when off.
@@ -69,6 +70,7 @@ func envTruthy(name string) bool {
 //   - a focusable shape with no ID (never keyboard-reachable)
 //   - a scrollable shape with no ID (scroll offset shared with every
 //     other ID-less scrollable in the window)
+//   - a shape with an OnMouseLeave and no ID (the callback never fires)
 //
 // Findings go to stderr, once per finding per window. Turning the
 // gate off and on again clears that memory, so a re-enabled gate
@@ -98,6 +100,7 @@ const (
 	debugCheckDupID debugCheck = iota
 	debugCheckFocusNoID
 	debugCheckScrollNoID
+	debugCheckMouseLeaveNoID
 )
 
 // debugWarnKey is the warn-once key. For the ID-less checks the
@@ -172,7 +175,12 @@ func (w *Window) debugCheckShape(s *Shape, path []int, ids map[string]string) {
 	// keyed by ID. Render the path only when there is something to
 	// report.
 	focusBad := s.Focusable && !s.FocusSkip && !s.Disabled
-	if !focusBad && !s.Scrollable {
+	// OnMouseLeave is tracked through a map keyed by ID
+	// (layoutMouseLeave, layout_pipeline.go), and that guard has no
+	// Focusable precondition — so this fires on shapes the focus check
+	// deliberately passes over, including FocusDisabled controls.
+	leaveBad := !s.Disabled && s.events != nil && s.events.OnMouseLeave != nil
+	if !focusBad && !s.Scrollable && !leaveBad {
 		return
 	}
 	p := debugPath(path)
@@ -186,6 +194,11 @@ func (w *Window) debugCheckShape(s *Shape, path []int, ids map[string]string) {
 			"scrollable shape at %s has no ID; scroll offsets are keyed by "+
 				"ID, so it shares one offset with every other ID-less "+
 				"scrollable in this window", p)
+	}
+	if leaveBad {
+		w.debugWarn(debugCheckMouseLeaveNoID, p,
+			"shape at %s has an OnMouseLeave but no ID; leave tracking is "+
+				"keyed by ID, so the callback never fires", p)
 	}
 }
 

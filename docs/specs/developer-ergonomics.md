@@ -851,9 +851,9 @@ burying them in the same diff.
 | 1     | §4.2 tag 9 `Cfg`s + wire `RequireID`     | done   |
 | 1     | §8 run the codemod over the 111 literals | done   |
 | 1     | §8 README: running `requiredid` (Q8)     | done   |
-| 1     | §4.9 tag `Container`, wire scroll guard  | todo   |
-| 1     | §4.9 `checkScrollableID` analyzer rule   | todo   |
-| 1     | §4.1 `OnMouseLeave` gate check           | todo   |
+| 1     | §4.9 tag `Container`, wire scroll guard  | n/a — see below |
+| 1     | §4.9 `checkScrollableID` analyzer rule   | done   |
+| 1     | §4.1 `OnMouseLeave` gate check           | done   |
 | 2–5   | —                                        | todo   |
 
 Two corrections to §4.2 arising from the implementation.
@@ -876,6 +876,22 @@ control carrying an `OnMouseLeave` is therefore still silently broken,
 and neither `ergoaudit -mode focus` nor the §4.1 gate looks for it.
 Added to the table above as a §4.1 check rather than widening the
 runtime guard, since the opt-out is otherwise correct.
+
+**§4.9's tag is struck, not deferred.** Two of its three items do not
+apply as written. The runtime guard already exists —
+`RequireScrollID("container", cfg.Scrollable, cfg.ID)` has been wired
+in `buildContainerShape` all along; `ergoaudit` listed `ContainerCfg`
+as unguarded because it judges by tag, not by call site. And tagging
+`ContainerCfg.ID` would be wrong: most containers legitimately have no
+ID, so a `required` tag on a normally-absent field inverts the default
+and flags the common case. The rule is conditional on
+`Scrollable: true`, which is exactly how `checkFocusableID` already
+handles `Focusable: true` — keyed on the field in the literal, no tag.
+So §4.9 reduces to the analyzer rule, which is what shipped.
+
+`InputCfg` also dropped out of the scrollable gap on its own: phase 1
+made its `ID` unconditionally required, which subsumes the scroll case.
+`ContainerCfg` was the only remaining entry.
 
 **Codemod scope note.** The 111 figure included one false positive:
 `CommandButton(cmdID, ButtonCfg{})` fills the `ID` in itself, so the
