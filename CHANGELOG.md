@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.52.1] - 2026-08-07
+
+### Fixed
+
+- **`tools/eventctx` converts callbacks declared as methods.** The rewriter
+  skipped every `func` with a receiver, so a repo that wires its callbacks as
+  method values (`fv.internalClick`) got a converted call site and an
+  unconverted declaration — go-charts hit 109 unresolvable build errors. The
+  scanner now classifies methods alongside plain functions, the value-use scan
+  ignores the method name in a call's selector, and the call folder accepts a
+  selector callee. Tools-only: no shipped library code changed, so v0.52.0 and
+  v0.52.1 are identical for anyone who is not running the migration.
+
 ## [v0.52.0] - 2026-08-07
 
 ### Changed
