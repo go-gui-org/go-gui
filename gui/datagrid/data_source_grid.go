@@ -646,7 +646,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 	content := make([]gg.View, 0, 10)
 
 	// Prev button.
-	content = append(content, dataGridIndicatorButton("\u25C0", cfg.TextStyleHeader, cfg.ColorHeaderHover,
+	content = append(content, dataGridIndicatorButton(gridID+":src_prev", "\u25C0", cfg.TextStyleHeader, cfg.ColorHeaderHover,
 		state.Loading || !hasPrev, dataGridHeaderControlWidth+10, func(ctx gg.EventCtx) {
 			dataGridSourcePrevPage(gridID, kind, pageLimit, ctx.Window)
 			if focusID != "" {
@@ -661,7 +661,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 		TextStyle: cfg.TextStyleFilter,
 	}))
 	// Next button.
-	content = append(content, dataGridIndicatorButton("\u25B6", cfg.TextStyleHeader, cfg.ColorHeaderHover,
+	content = append(content, dataGridIndicatorButton(gridID+":src_next", "\u25B6", cfg.TextStyleHeader, cfg.ColorHeaderHover,
 		state.Loading || !hasNext, dataGridHeaderControlWidth+10, func(ctx gg.EventCtx) {
 			dataGridSourceNextPage(gridID, kind, pageLimit, ctx.Window)
 			if focusID != "" {
@@ -677,6 +677,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 	// Retry button on error.
 	if state.LoadError != "" {
 		content = append(content, gg.Button(gg.ButtonCfg{
+			ID:          gridID + ":src_retry",
 			Sizing:      gg.FitFill,
 			Padding:     gg.NoPadding,
 			SizeBorder:  gg.SomeF(0),

@@ -168,6 +168,7 @@ func toastItemView(toast *toastNotification, style ToastStyle) View {
 	if toast.cfg.ActionLabel != "" && toast.cfg.OnAction != nil {
 		onAction := toast.cfg.OnAction
 		buttons = append(buttons, Button(ButtonCfg{
+			ID:      toastBtnID(id, "action"),
 			Color:   ColorTransparent,
 			Content: []View{Text(TextCfg{Text: toast.cfg.ActionLabel, TextStyle: style.TextStyle})},
 			OnClick: func(ctx EventCtx) {
@@ -177,6 +178,7 @@ func toastItemView(toast *toastNotification, style ToastStyle) View {
 		}))
 	}
 	buttons = append(buttons, Button(ButtonCfg{
+		ID:         toastBtnID(id, "dismiss"),
 		Color:      ColorTransparent,
 		SizeBorder: NoBorder,
 		Content:    []View{Text(TextCfg{Text: "\u00d7", TextStyle: style.TextStyle})},
@@ -396,6 +398,13 @@ func toastA11YLabel(t *toastNotification) string {
 }
 
 // toastAnimID generates a unique animation ID for toast anims.
+// toastBtnID keys a toast's buttons by the toast's own numeric ID.
+// Several toasts can be on screen at once, so a fixed ID would
+// collapse their action buttons onto one focus and state identity.
+func toastBtnID(id uint64, part string) string {
+	return "toast_" + strconv.FormatUint(id, 10) + ":" + part
+}
+
 func toastAnimID(prefix string, id uint64) string {
 	return prefix + "_toast_" + strconv.FormatUint(id, 10)
 }
