@@ -209,25 +209,32 @@ func dataGridReorderControls(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 		Width:   dataGridHeaderControlsWidth(true, false, false),
 		Sizing:  gg.FixedFill,
 		Content: []gg.View{
-			dataGridOrderButton(leftArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover, reorderCB(-1)),
-			dataGridOrderButton(rightArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover, reorderCB(1)),
+			dataGridOrderButton(cfg.ID+":reorder_left:"+colID, leftArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover, reorderCB(-1)),
+			dataGridOrderButton(cfg.ID+":reorder_right:"+colID, rightArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover, reorderCB(1)),
 		},
 	})
 }
 
-func dataGridOrderButton(label string, baseStyle gg.TextStyle, hoverColor gg.Color, cb func(*gg.Event, *gg.Window)) gg.View {
-	return dataGridIndicatorButton(label, baseStyle, hoverColor, false, dataGridHeaderControlWidth,
+func dataGridOrderButton(id, label string, baseStyle gg.TextStyle, hoverColor gg.Color, cb func(*gg.Event, *gg.Window)) gg.View {
+	return dataGridIndicatorButton(id, label, baseStyle, hoverColor, false, dataGridHeaderControlWidth,
 		func(ctx gg.EventCtx) {
 			cb(ctx.Event, ctx.Window)
 		})
 }
 
-func dataGridIndicatorButton(label string, baseStyle gg.TextStyle, hoverColor gg.Color, disabled bool, width float32, onClick func(gg.EventCtx)) gg.View {
+// dataGridIndicatorButton builds one header/toolbar control.
+//
+// id is a parameter rather than derived from label because label is a
+// locale string (gg.ActiveLocale.StrAdd and friends). An ID that
+// tracked the label would change identity on a locale switch, moving
+// the button's focus and per-widget state with it.
+func dataGridIndicatorButton(id, label string, baseStyle gg.TextStyle, hoverColor gg.Color, disabled bool, width float32, onClick func(gg.EventCtx)) gg.View {
 	sizing := gg.FitFill
 	if width > 0 {
 		sizing = gg.FixedFill
 	}
 	return gg.Button(gg.ButtonCfg{
+		ID:          id,
 		Width:       width,
 		Sizing:      sizing,
 		Padding:     gg.NoPadding,
@@ -264,7 +271,7 @@ func dataGridPinControl(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 	colID := col.ID
 	colPin := col.Pin
 
-	return dataGridIndicatorButton(label, cfg.TextStyleHeader, cfg.ColorHeaderHover,
+	return dataGridIndicatorButton(cfg.ID+":pin:"+col.ID, label, cfg.TextStyleHeader, cfg.ColorHeaderHover,
 		false, dataGridHeaderControlWidth, func(ctx gg.EventCtx) {
 			if onColumnPinChange == nil {
 				return

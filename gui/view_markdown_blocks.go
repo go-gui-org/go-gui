@@ -164,6 +164,9 @@ func mdCopyButton(
 	}
 
 	return Button(ButtonCfg{
+		// animID already identifies this code block uniquely (it keys
+		// the check-mark animation), so it namespaces the button too.
+		ID:           animID + ":copy",
 		Float:        true,
 		FloatAnchor:  FloatTopRight,
 		FloatTieOff:  FloatTopRight,

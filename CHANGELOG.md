@@ -8,6 +8,36 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **Twelve first-party widgets shipped buttons no keyboard user could reach**
+  (developer-ergonomics §4.2, phase 1). Focus traversal is keyed by `ID`, so a
+  focusable widget without one renders, clicks, and silently never joins the tab
+  order. Each of these carried an `OnClick` and had no `ID`: the toast action
+  and dismiss buttons, the date picker's month toggle and prev/next arrows, the
+  date input's calendar button, the markdown code-block copy button, the
+  overflow panel's trigger, the time-travel freeze button, and the DataGrid's
+  header, CRUD, pager, filter-clear, column-chooser, and source-paging controls.
+
+  IDs are **namespaced by the owning widget's own ID** rather than fixed
+  strings, because these widgets can appear more than once in a window — two
+  toasts, two date pickers, two grids. A constant `ID` would have replaced an
+  unreachable button with a duplicate one, collapsing both onto a single tab
+  stop and a single state slot. New `toastBtnID` helper;
+  `dataGridIndicatorButton`, `dataGridOrderButton`, and `ttButton` take an `id`
+  parameter.
+
+  Those three take `id` as a parameter rather than deriving it from their
+  `label` because the labels are not stable identity: DataGrid's come from
+  `gg.ActiveLocale`, and the freeze button's alternates between "Pause" and
+  "Resume". An ID tracking the label would move the widget's focus and state on
+  a locale switch or a state change.
+
+  One case went the other way: the date picker's out-of-month calendar cell is
+  blank, disabled, and handler-less, so it now sets `FocusDisabled: true` rather
+  than being given an ID for empty space. That is the decorative case the
+  opt-out exists for.
+
 ### Added
 
 - **`ergoaudit -fix` codemod** (developer-ergonomics §8, phase 1). Tools-only;

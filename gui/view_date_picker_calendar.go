@@ -97,15 +97,20 @@ func datePickerMonth(
 					cells = append(cells, datePickerAdjacentCell(
 						cfg, state, d, daysInMonth, cellSize))
 				} else {
+					// Blank spacer for a day outside the month: no
+					// label, no handler, nothing to focus. This is the
+					// decorative case FocusDisabled exists for, so opt
+					// out rather than invent an ID for empty space.
 					cells = append(cells, Button(ButtonCfg{
-						Color:       ColorTransparent,
-						ColorBorder: ColorTransparent,
-						Disabled:    true,
-						MinWidth:    cellSize,
-						MaxWidth:    cellSize,
-						MaxHeight:   cellSize,
-						Padding:     Some(paddingThree),
-						Content:     []View{Text(TextCfg{Text: " "})},
+						FocusDisabled: true,
+						Color:         ColorTransparent,
+						ColorBorder:   ColorTransparent,
+						Disabled:      true,
+						MinWidth:      cellSize,
+						MaxWidth:      cellSize,
+						MaxHeight:     cellSize,
+						Padding:       Some(paddingThree),
+						Content:       []View{Text(TextCfg{Text: " "})},
 					}))
 				}
 				continue

@@ -244,10 +244,31 @@ func TestHeaderControlStateWithPadding(t *testing.T) {
 // --- dataGridOrderButton ---
 
 func TestOrderButtonReturnsView(t *testing.T) {
-	v := dataGridOrderButton("◀", gg.DefaultTextStyle, gg.RGBA(200, 200, 200, 255),
+	v := dataGridOrderButton("grid:reorder_left:col1", "◀",
+		gg.DefaultTextStyle, gg.RGBA(200, 200, 200, 255),
 		func(_ *gg.Event, _ *gg.Window) {})
 	if v == nil {
 		t.Fatal("order button should return a view")
+	}
+}
+
+// The header controls are keyed by grid and column, so two grids —
+// or two columns in one grid — never share a tab stop.
+func TestOrderButtonIDIsPerGridAndColumn(t *testing.T) {
+	style := gg.DefaultTextStyle
+	hover := gg.RGBA(200, 200, 200, 255)
+	cb := func(_ *gg.Event, _ *gg.Window) {}
+
+	a := dataGridOrderButton("gridA:reorder_left:col1", "◀", style, hover, cb)
+	b := dataGridOrderButton("gridB:reorder_left:col1", "◀", style, hover, cb)
+
+	idA := a.GenerateLayout(nil).Shape.ID
+	idB := b.GenerateLayout(nil).Shape.ID
+	if idA == "" || idB == "" {
+		t.Fatalf("header control has no ID: %q, %q", idA, idB)
+	}
+	if idA == idB {
+		t.Errorf("two grids share the header-control ID %q", idA)
 	}
 }
 

@@ -73,7 +73,7 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 				Mode:      gg.TextModeSingleLine,
 				TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
 			}),
-			dataGridIndicatorButton(gg.ActiveLocale.StrClear, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(gridID+":filter_clear", gg.ActiveLocale.StrClear, cfg.TextStyleFilter, cfg.ColorHeaderHover,
 				clearDisabled, 0, func(ctx gg.EventCtx) {
 					if queryCallback == nil {
 						return
@@ -181,7 +181,7 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.
 		Spacing: gg.SomeF(6),
 		VAlign:  gg.VAlignMiddle,
 		Content: []gg.View{
-			dataGridIndicatorButton(chooserLabel, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(gridID+":column_chooser", chooserLabel, cfg.TextStyleFilter, cfg.ColorHeaderHover,
 				false, 0, func(ctx gg.EventCtx) {
 					dataGridToggleColumnChooserOpen(gridID, ctx.Window)
 					if focusID != "" {

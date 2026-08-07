@@ -199,7 +199,7 @@ func (c *TimeTravelController) View(w *Window) View {
 				Sizing:   FillFixed,
 				OnChange: c.onSliderChange,
 			}),
-			ttButton(freezeLabel(c.App), c.ToggleFreeze),
+			ttButton(ttFreezeID, freezeLabel(c.App), c.ToggleFreeze),
 		},
 	})
 }
@@ -235,6 +235,7 @@ func (c *TimeTravelController) onSliderChange(v float32, _ EventCtx) {
 const (
 	ttSliderHeight = 20
 	ttSliderID     = "gui.time_travel.slider"
+	ttFreezeID     = "gui.time_travel.freeze"
 )
 
 // ttDebugFocusID is the focus ID for the debug window's root
@@ -270,8 +271,14 @@ func (c *TimeTravelController) handleKey(ctx EventCtx) {
 
 // ttButton builds a labelled scrubber button whose click
 // handler invokes the given zero-arg function.
-func ttButton(label string, fn func()) View {
+//
+// id is a parameter rather than derived from label because the
+// label is not stable: the freeze button reads "Pause" or
+// "Resume" depending on state, and an ID that changed with it
+// would move the widget's focus and state identity mid-session.
+func ttButton(id, label string, fn func()) View {
 	return Button(ButtonCfg{
+		ID:      id,
 		Content: []View{Text(TextCfg{Text: label})},
 		OnClick: func(ctx EventCtx) { fn() },
 	})

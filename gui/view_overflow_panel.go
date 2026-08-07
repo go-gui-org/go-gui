@@ -58,6 +58,9 @@ func OverflowPanel(w *Window, cfg OverflowPanelCfg) View {
 
 	id := cfg.ID
 	content = append(content, Button(ButtonCfg{
+		// Namespaced by the panel's ID: a toolbar can hold several
+		// overflow panels, each with its own trigger.
+		ID:       id + ":trigger",
 		Color:    ColorTransparent,
 		Padding:  cfg.Padding,
 		Disabled: cfg.Disabled,

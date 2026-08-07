@@ -45,7 +45,7 @@ several figures depend on dedupe and scope choices.
 | Focusable-by-default `Cfg`s           | 15    | `FocusDisabled` opt-out           |
 | — of those, `ID` **not** required     | 9     | unguarded; see §4.2               |
 | Literals of those 9, all repos        | 408   | `go/ast` walk; see §4.2, §10      |
-| — focusable but ID-less (broken)      | 126   | 12 in go-gui's own widgets        |
+| — focusable but ID-less (broken)      | 126   | 12 in go-gui's own widgets; fixed |
 | — using `FocusDisabled` opt-out       | **1** | decorative case is theoretical    |
 | Tests in `examples/*/main_test.go`    | 63    | 98 lines are no-panic assertions  |
 | `Cfg`s exposing `Scrollable bool`     | 7     | scroll state keyed by ID (§4.9)   |
@@ -717,9 +717,19 @@ Current coverage of the 7 `Cfg`s exposing `Scrollable bool`:
 `RequireFocusID` was — it has exactly one caller. So finish wiring it
 rather than deleting it. The analyzer has zero `Scrollable` references.
 
-One live defect found: `gui/view_select.go:145` builds the dropdown
-container with `Scrollable: true` and no ID. Open two `Select`s in one
-window, scroll one, and the other's offset follows.
+**Correction (2026-08-07, phase 1).** An earlier draft claimed one live
+defect here: "`gui/view_select.go:145` builds the dropdown container
+with `Scrollable: true` and no ID." That is **false**, and it was false
+at this spec's own base commit. The literal sets
+`ID: dropdownScrollID` (= `cfg.ID + ".dropdown"`) at line 130;
+`Scrollable: true` sits fifteen lines below it at line 145, and the
+original reading took the second line without the first.
+
+Re-checked every `Scrollable: true` literal in `gui/` — command
+palette, inspector, table, theme picker, select, datagrid body — and
+**all six already carry an ID**. There are zero live scroll defects.
+The rest of this section still stands as a guard: the contract is
+unenforced even though nothing currently violates it.
 
 Proposed, all additive except the tag:
 
@@ -729,10 +739,8 @@ Proposed, all additive except the tag:
   `checkFocusableID` — same shape, small diff.
 - Add the `Scrollable && ID == ""` check to the §4.1 debug gate, which
   catches internal shapes the analyzer never sees.
-- Fix `gui/view_select.go:145`.
-
-Phase 1, alongside the focus work: same mechanism, same audit, and the
-`Select` defect is live today.
+Phase 1, alongside the focus work: same mechanism, same audit. Note
+that this is now purely preventive — see the correction above.
 
 `ContainerCfg` is the only type that is both opt-in-focusable and
 scrollable (`Focusable` :97, `Scrollable` :102, `ID` :67). With §4.2's
@@ -838,8 +846,8 @@ burying them in the same diff.
 | 1     | §4.2 delete `RequireFocusID`             | done   |
 | 1     | §5.3 `State[T]` panic message            | done   |
 | 1     | §8 `ergoaudit -fix` codemod              | done   |
-| 1     | §4.2 fix 12 first-party a11y defects     | todo   |
-| 1     | §4.9 fix `view_select.go` scroll defect  | todo   |
+| 1     | §4.2 fix 12 first-party a11y defects     | done   |
+| 1     | §4.9 `Select` scroll defect              | n/a — did not exist |
 | 1     | §4.2 tag 9 `Cfg`s + wire `RequireID`     | todo   |
 | 1     | §4.9 tag `Container`/`Input`, wire scroll| todo   |
 | 1     | §4.9 `checkScrollableID` analyzer rule   | todo   |

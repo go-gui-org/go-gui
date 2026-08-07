@@ -119,6 +119,9 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 			Content: []View{
 				inputDateTextField(cfg, cfgID, isOpen, editText),
 				Button(ButtonCfg{
+					// Namespaced by the field's ID: a form can hold
+					// several date inputs.
+					ID:         cfgID + ":calendar",
 					Disabled:   cfg.Disabled || cfg.ReadOnly,
 					Padding:    NoPadding,
 					SizeBorder: NoBorder,
