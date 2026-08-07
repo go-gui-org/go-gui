@@ -2,6 +2,10 @@
 // literals of struct types whose fields are tagged `gui:"required"`
 // when the required field is absent or set to an empty string literal.
 //
+// The tag takes one option: `gui:"required,focus"` relaxes the rule
+// for literals that set FocusDisabled: true, the opt-out for a
+// decorative control that never joins focus traversal.
+//
 // It also flags Cfg literals that set Focusable: true without an ID.
 // Focus traversal is keyed by ID, so such a widget is silently
 // unreachable by keyboard.
@@ -71,12 +75,19 @@ func checkRequired(
 	pass *analysis.Pass, lit *ast.CompositeLit,
 	named *types.Named, st *types.Struct,
 ) {
-	for _, name := range requiredFields(st) {
-		if !hasNonEmptyField(lit, name) {
-			pass.Reportf(lit.Pos(),
-				"%s.%s is required (gui:\"required\") and must be non-empty",
-				named.Obj().Name(), name)
+	for _, f := range requiredFields(st) {
+		if hasNonEmptyField(lit, f.name) {
+			continue
 		}
+		// FocusDisabled: true is the documented opt-out for a
+		// decorative control. It satisfies a focus-scoped requirement,
+		// but not an unconditional one.
+		if f.focusOnly && hasTrueField(lit, "FocusDisabled") {
+			continue
+		}
+		pass.Reportf(lit.Pos(),
+			"%s.%s is required (gui:\"required\") and must be non-empty",
+			named.Obj().Name(), f.name)
 	}
 }
 
@@ -157,16 +168,33 @@ func ignoredLines(fset *token.FileSet, f *ast.File) map[int]bool {
 	return out
 }
 
-func requiredFields(st *types.Struct) []string {
-	var out []string
+// requiredField is one field tagged gui:"required", plus whether the
+// tag carried the "focus" option.
+type requiredField struct {
+	name string
+	// focusOnly marks `gui:"required,focus"`: the field is required
+	// only when the widget actually joins focus traversal. Widgets
+	// using the default-on convention opt a decorative instance out
+	// with FocusDisabled: true, and such an instance has no identity
+	// to name — demanding an ID for blank space would be noise.
+	focusOnly bool
+}
+
+func requiredFields(st *types.Struct) []requiredField {
+	var out []requiredField
 	for i := range st.NumFields() {
 		tag := reflect.StructTag(st.Tag(i)).Get("gui")
 		if tag == "" {
 			continue
 		}
-		if slices.Contains(strings.Split(tag, ","), "required") {
-			out = append(out, st.Field(i).Name())
+		opts := strings.Split(tag, ",")
+		if !slices.Contains(opts, "required") {
+			continue
 		}
+		out = append(out, requiredField{
+			name:      st.Field(i).Name(),
+			focusOnly: slices.Contains(opts, "focus"),
+		})
 	}
 	return out
 }

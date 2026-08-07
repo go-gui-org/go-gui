@@ -222,6 +222,7 @@ func landingContent(w *gui.Window, app *App, theme gui.Theme) []gui.View {
 			SizeBorder: gui.NoBorder,
 			Content: []gui.View{
 				gui.Switch(gui.SwitchCfg{
+					ID:        "minesweeper_landing_content",
 					Selected:  app.NoGuessMode,
 					Label:     "No-Guess",
 					TextStyle: ts(theme.M4, 14, colorDimText),
@@ -231,6 +232,7 @@ func landingContent(w *gui.Window, app *App, theme gui.Theme) []gui.View {
 					},
 				}),
 				gui.Switch(gui.SwitchCfg{
+					ID:        "minesweeper_landing_content_2",
 					Selected:  app.TrainingMode,
 					Label:     "Training",
 					TextStyle: ts(theme.M4, 14, colorDimText),
@@ -240,6 +242,7 @@ func landingContent(w *gui.Window, app *App, theme gui.Theme) []gui.View {
 					},
 				}),
 				gui.Switch(gui.SwitchCfg{
+					ID:        "minesweeper_landing_content_3",
 					Selected:  app.GardenTheme,
 					Label:     "Garden",
 					TextStyle: ts(theme.M4, 14, colorDimText),
@@ -903,6 +906,7 @@ func footerView(app *App, g *Game, theme gui.Theme) gui.View {
 
 func smallButton(label string, action func(*gui.Window)) gui.View {
 	return gui.Button(gui.ButtonCfg{
+		ID:          "minesweeper_small_button",
 		Color:       gui.RGB(45, 50, 58),
 		ColorHover:  gui.RGB(60, 66, 74),
 		ColorClick:  gui.RGB(35, 40, 48),

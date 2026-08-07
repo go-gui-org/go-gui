@@ -25,6 +25,7 @@ func TestRadioGeneratesLayout(t *testing.T) {
 func TestRadioSelectedState(t *testing.T) {
 	w := newTestWindow()
 	v := Radio(RadioCfg{
+		ID:       "widget_test_test_radio_selected_state",
 		OnClick:  noop,
 		Selected: true,
 	})
@@ -36,7 +37,7 @@ func TestRadioSelectedState(t *testing.T) {
 
 func TestRadioNoLabel(t *testing.T) {
 	w := newTestWindow()
-	v := Radio(RadioCfg{OnClick: noop})
+	v := Radio(RadioCfg{ID: "widget_test_test_radio_no_label", OnClick: noop})
 	layout := generateViewLayout(v, w)
 	// Only circle child.
 	if len(layout.Children) != 1 {
@@ -58,7 +59,7 @@ func TestRadioDisabledCircle(t *testing.T) {
 
 func TestRadioDisabledSuppressesHover(t *testing.T) {
 	w := newTestWindow()
-	v := Radio(RadioCfg{OnClick: noop, Disabled: true})
+	v := Radio(RadioCfg{ID: "widget_test_test_radio_disabled_suppresses_hover", OnClick: noop, Disabled: true})
 	layout := generateViewLayout(v, w)
 	if !layout.Shape.Disabled {
 		t.Fatal("outer row should be disabled")
@@ -73,7 +74,7 @@ func TestRadioDisabledSuppressesHover(t *testing.T) {
 
 func TestRadioHoverChangesBorder(t *testing.T) {
 	w := newTestWindow()
-	v := Radio(RadioCfg{OnClick: noop, Label: "X"})
+	v := Radio(RadioCfg{ID: "widget_test_test_radio_hover_changes_border", OnClick: noop, Label: "X"})
 	layout := generateViewLayout(v, w)
 	origBorder := layout.Children[0].Shape.ColorBorder
 	// MouseInvalid = no button pressed (MouseLeft = 0 is zero value).
@@ -86,7 +87,7 @@ func TestRadioHoverChangesBorder(t *testing.T) {
 
 func TestRadioClickHoverChangesBorder(t *testing.T) {
 	w := newTestWindow()
-	v := Radio(RadioCfg{OnClick: noop, Label: "X"})
+	v := Radio(RadioCfg{ID: "widget_test_test_radio_click_hover_changes_border", OnClick: noop, Label: "X"})
 	layout := generateViewLayout(v, w)
 	clickColor := DefaultRadioStyle.ColorClick
 	e := &Event{MouseButton: MouseLeft}
@@ -112,7 +113,7 @@ func TestRadioFocusBorder(t *testing.T) {
 
 func TestRadioUsesRadioStyleDefaults(t *testing.T) {
 	w := newTestWindow()
-	v := Radio(RadioCfg{OnClick: noop, Label: "Y"})
+	v := Radio(RadioCfg{ID: "widget_test_test_radio_uses_radio_style_defaults", OnClick: noop, Label: "Y"})
 	layout := generateViewLayout(v, w)
 	// Padding should come from DefaultRadioStyle, not NoPadding.
 	got := layout.Shape.Padding
@@ -126,6 +127,7 @@ func TestRadioCustomTextStyleMerged(t *testing.T) {
 	w := newTestWindow()
 	custom := TextStyle{Color: RGBA(255, 0, 0, 255)}
 	v := Radio(RadioCfg{
+		ID:        "widget_test_test_radio_custom_text_style_merged",
 		OnClick:   noop,
 		Label:     "Z",
 		TextStyle: custom,
@@ -165,7 +167,7 @@ func TestToggleGeneratesLayout(t *testing.T) {
 
 func TestCheckboxIsToggleAlias(t *testing.T) {
 	w := newTestWindow()
-	v := Toggle(ToggleCfg{OnClick: noop})
+	v := Toggle(ToggleCfg{ID: "widget_test_test_checkbox_is_toggle_alias", OnClick: noop})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleCheckbox {
 		t.Fatalf("got role %d, want Checkbox", layout.Shape.A11YRole)
@@ -174,7 +176,7 @@ func TestCheckboxIsToggleAlias(t *testing.T) {
 
 func TestToggleCheckedState(t *testing.T) {
 	w := newTestWindow()
-	v := Toggle(ToggleCfg{OnClick: noop, Selected: true})
+	v := Toggle(ToggleCfg{ID: "widget_test_test_toggle_checked_state", OnClick: noop, Selected: true})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YState != AccessStateChecked {
 		t.Fatalf("got state %d, want Checked", layout.Shape.A11YState)
@@ -183,7 +185,7 @@ func TestToggleCheckedState(t *testing.T) {
 
 func TestToggleDisabledSuppressesHover(t *testing.T) {
 	w := newTestWindow()
-	v := Toggle(ToggleCfg{OnClick: noop, Disabled: true})
+	v := Toggle(ToggleCfg{ID: "widget_test_test_toggle_disabled_suppresses_hover", OnClick: noop, Disabled: true})
 	layout := generateViewLayout(v, w)
 	if !layout.Shape.Disabled {
 		t.Fatal("outer row should be disabled")
@@ -198,7 +200,7 @@ func TestToggleDisabledSuppressesHover(t *testing.T) {
 
 func TestToggleNilOnClickSuppressesHover(t *testing.T) {
 	w := newTestWindow()
-	v := Toggle(ToggleCfg{})
+	v := Toggle(ToggleCfg{ID: "widget_test_test_toggle_nil_on_click_suppresses_hover"})
 	layout := generateViewLayout(v, w)
 	origColor := layout.Children[0].Shape.Color
 	e := &Event{MouseButton: MouseInvalid}
@@ -210,7 +212,7 @@ func TestToggleNilOnClickSuppressesHover(t *testing.T) {
 
 func TestToggleHoverChangesColor(t *testing.T) {
 	w := newTestWindow()
-	v := Toggle(ToggleCfg{OnClick: noop})
+	v := Toggle(ToggleCfg{ID: "widget_test_test_toggle_hover_changes_color", OnClick: noop})
 	layout := generateViewLayout(v, w)
 	origColor := layout.Children[0].Shape.Color
 	e := &Event{MouseButton: MouseInvalid}
@@ -222,7 +224,7 @@ func TestToggleHoverChangesColor(t *testing.T) {
 
 func TestToggleClickHoverChangesColor(t *testing.T) {
 	w := newTestWindow()
-	v := Toggle(ToggleCfg{OnClick: noop})
+	v := Toggle(ToggleCfg{ID: "widget_test_test_toggle_click_hover_changes_color", OnClick: noop})
 	layout := generateViewLayout(v, w)
 	clickColor := DefaultToggleStyle.ColorClick
 	e := &Event{MouseButton: MouseLeft}
@@ -248,7 +250,7 @@ func TestToggleFocusBorder(t *testing.T) {
 
 func TestToggleDefaultStyles(t *testing.T) {
 	w := newTestWindow()
-	v := Toggle(ToggleCfg{OnClick: noop})
+	v := Toggle(ToggleCfg{ID: "widget_test_test_toggle_default_styles", OnClick: noop})
 	layout := generateViewLayout(v, w)
 	d := &DefaultToggleStyle
 	box := layout.Children[0].Shape
@@ -262,7 +264,7 @@ func TestToggleDefaultStyles(t *testing.T) {
 
 func TestToggleOuterRowNoBorder(t *testing.T) {
 	w := newTestWindow()
-	v := Toggle(ToggleCfg{OnClick: noop})
+	v := Toggle(ToggleCfg{ID: "widget_test_test_toggle_outer_row_no_border", OnClick: noop})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.SizeBorder != 0 {
 		t.Errorf("outer row SizeBorder: got %v, want 0", layout.Shape.SizeBorder)
@@ -271,7 +273,7 @@ func TestToggleOuterRowNoBorder(t *testing.T) {
 
 func TestToggleInvisibleHidesWidget(t *testing.T) {
 	w := newTestWindow()
-	v := Toggle(ToggleCfg{OnClick: noop, Invisible: true})
+	v := Toggle(ToggleCfg{ID: "widget_test_test_toggle_invisible_hides_widget", OnClick: noop, Invisible: true})
 	layout := generateViewLayout(v, w)
 	if !layout.Shape.Disabled || !layout.Shape.OverDraw {
 		t.Error("invisible toggle should be disabled+overdraw")
@@ -280,7 +282,7 @@ func TestToggleInvisibleHidesWidget(t *testing.T) {
 
 func TestToggleUnselectedText(t *testing.T) {
 	w := newTestWindow()
-	v := Toggle(ToggleCfg{OnClick: noop, Selected: false})
+	v := Toggle(ToggleCfg{ID: "widget_test_test_toggle_unselected_text", OnClick: noop, Selected: false})
 	layout := generateViewLayout(v, w)
 	// Unselected with default TextUnselect=" " → transparent text color.
 	box := layout.Children[0]
@@ -312,7 +314,7 @@ func TestSwitchGeneratesLayout(t *testing.T) {
 
 func TestSwitchSelectedState(t *testing.T) {
 	w := newTestWindow()
-	v := Switch(SwitchCfg{OnClick: noop, Selected: true})
+	v := Switch(SwitchCfg{ID: "widget_test_test_switch_selected_state", OnClick: noop, Selected: true})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YState != AccessStateChecked {
 		t.Fatalf("got state %d, want Checked", layout.Shape.A11YState)
@@ -321,7 +323,7 @@ func TestSwitchSelectedState(t *testing.T) {
 
 func TestSwitchNoLabel(t *testing.T) {
 	w := newTestWindow()
-	v := Switch(SwitchCfg{OnClick: noop})
+	v := Switch(SwitchCfg{ID: "widget_test_test_switch_no_label", OnClick: noop})
 	layout := generateViewLayout(v, w)
 	// Only switch body child.
 	if len(layout.Children) != 1 {
@@ -331,7 +333,7 @@ func TestSwitchNoLabel(t *testing.T) {
 
 func TestSwitchDisabledSuppressesHover(t *testing.T) {
 	w := newTestWindow()
-	v := Switch(SwitchCfg{OnClick: noop, Disabled: true})
+	v := Switch(SwitchCfg{ID: "widget_test_test_switch_disabled_suppresses_hover", OnClick: noop, Disabled: true})
 	layout := generateViewLayout(v, w)
 	if !layout.Shape.Disabled {
 		t.Fatal("outer row should be disabled")
@@ -346,7 +348,7 @@ func TestSwitchDisabledSuppressesHover(t *testing.T) {
 
 func TestSwitchNilOnClickSuppressesHover(t *testing.T) {
 	w := newTestWindow()
-	v := Switch(SwitchCfg{})
+	v := Switch(SwitchCfg{ID: "widget_test_test_switch_nil_on_click_suppresses_hover"})
 	layout := generateViewLayout(v, w)
 	origColor := layout.Children[0].Shape.Color
 	e := &Event{MouseButton: MouseInvalid}
@@ -358,7 +360,7 @@ func TestSwitchNilOnClickSuppressesHover(t *testing.T) {
 
 func TestSwitchHoverChangesColor(t *testing.T) {
 	w := newTestWindow()
-	v := Switch(SwitchCfg{OnClick: noop})
+	v := Switch(SwitchCfg{ID: "widget_test_test_switch_hover_changes_color", OnClick: noop})
 	layout := generateViewLayout(v, w)
 	origColor := layout.Children[0].Shape.Color
 	e := &Event{MouseButton: MouseInvalid}
@@ -370,7 +372,7 @@ func TestSwitchHoverChangesColor(t *testing.T) {
 
 func TestSwitchClickHoverChangesColor(t *testing.T) {
 	w := newTestWindow()
-	v := Switch(SwitchCfg{OnClick: noop})
+	v := Switch(SwitchCfg{ID: "widget_test_test_switch_click_hover_changes_color", OnClick: noop})
 	layout := generateViewLayout(v, w)
 	clickColor := DefaultSwitchStyle.ColorClick
 	e := &Event{MouseButton: MouseLeft}
@@ -400,7 +402,7 @@ func TestSwitchFocusBorder(t *testing.T) {
 
 func TestSwitchInvisibleHidesWidget(t *testing.T) {
 	w := newTestWindow()
-	v := Switch(SwitchCfg{OnClick: noop, Invisible: true})
+	v := Switch(SwitchCfg{ID: "widget_test_test_switch_invisible_hides_widget", OnClick: noop, Invisible: true})
 	layout := generateViewLayout(v, w)
 	if !layout.Shape.Disabled || !layout.Shape.OverDraw {
 		t.Error("invisible switch should be disabled+overdraw")
@@ -409,7 +411,7 @@ func TestSwitchInvisibleHidesWidget(t *testing.T) {
 
 func TestSwitchDefaultStyles(t *testing.T) {
 	w := newTestWindow()
-	v := Switch(SwitchCfg{OnClick: noop})
+	v := Switch(SwitchCfg{ID: "widget_test_test_switch_default_styles", OnClick: noop})
 	layout := generateViewLayout(v, w)
 	d := &DefaultSwitchStyle
 	pill := layout.Children[0].Shape
@@ -425,14 +427,14 @@ func TestSwitchThumbColor(t *testing.T) {
 	w := newTestWindow()
 	d := &DefaultSwitchStyle
 
-	off := Switch(SwitchCfg{OnClick: noop})
+	off := Switch(SwitchCfg{ID: "widget_test_test_switch_thumb_color", OnClick: noop})
 	lo := generateViewLayout(off, w)
 	thumb := lo.Children[0].Children[0].Shape
 	if thumb.Color != d.ColorUnselect {
 		t.Errorf("unselected thumb: got %v, want %v", thumb.Color, d.ColorUnselect)
 	}
 
-	on := Switch(SwitchCfg{OnClick: noop, Selected: true})
+	on := Switch(SwitchCfg{ID: "widget_test_test_switch_thumb_color_2", OnClick: noop, Selected: true})
 	lo = generateViewLayout(on, w)
 	thumb = lo.Children[0].Children[0].Shape
 	if thumb.Color != d.ColorSelect {
@@ -442,7 +444,7 @@ func TestSwitchThumbColor(t *testing.T) {
 
 func TestSwitchOuterRowNoBorder(t *testing.T) {
 	w := newTestWindow()
-	v := Switch(SwitchCfg{OnClick: noop})
+	v := Switch(SwitchCfg{ID: "widget_test_test_switch_outer_row_no_border", OnClick: noop})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.SizeBorder != 0 {
 		t.Errorf("outer row SizeBorder: got %v, want 0", layout.Shape.SizeBorder)
@@ -773,37 +775,34 @@ func TestListBoxScrollWithSubheadings(t *testing.T) {
 // --- Focusable-by-default (Phase 2 flip) ---
 
 // Each in-scope control with an ID and no FocusDisabled exposes exactly
-// one focus candidate; FocusDisabled yields zero; and for optional-ID
-// controls, no ID yields zero (inert). Pins against duplicate tab stops.
+// one focus candidate, and FocusDisabled yields zero. Pins against
+// duplicate tab stops.
+//
+// There is no longer a no-ID column: every control here requires an ID
+// and panics without one. TestFocusWidgetsRequireID covers that.
 func TestPhase2WidgetsFocusableByDefault(t *testing.T) {
 	w := newTestWindow()
 	cases := []struct {
 		name     string
 		withID   View
 		disabled View
-		noID     View // nil when the widget requires an ID
 	}{
 		{
 			name:     "Toggle",
 			withID:   Toggle(ToggleCfg{ID: "fc-t", OnClick: noop}),
 			disabled: Toggle(ToggleCfg{ID: "fc-t", OnClick: noop, FocusDisabled: true}),
-			noID:     Toggle(ToggleCfg{OnClick: noop}),
 		},
 		{
 			name:     "Switch",
 			withID:   Switch(SwitchCfg{ID: "fc-s", OnClick: noop}),
 			disabled: Switch(SwitchCfg{ID: "fc-s", OnClick: noop, FocusDisabled: true}),
-			noID:     Switch(SwitchCfg{OnClick: noop}),
 		},
 		{
 			name:     "Select",
 			withID:   Select(SelectCfg{ID: "fc-sel", Options: []string{"a"}}),
 			disabled: Select(SelectCfg{ID: "fc-sel", Options: []string{"a"}, FocusDisabled: true}),
-			noID:     Select(SelectCfg{Options: []string{"a"}}),
 		},
 		{
-			// Slider's ID is required (RequireID panics without one),
-			// so the no-ID case does not apply.
 			name:     "Slider",
 			withID:   Slider(SliderCfg{ID: "fc-sl", Max: 10}),
 			disabled: Slider(SliderCfg{ID: "fc-sl", Max: 10, FocusDisabled: true}),
@@ -818,12 +817,79 @@ func TestPhase2WidgetsFocusableByDefault(t *testing.T) {
 		if got := countFocusCandidates(&layout); got != 0 {
 			t.Errorf("%s FocusDisabled: got %d focus candidates, want 0", tc.name, got)
 		}
-		if tc.noID == nil {
-			continue
-		}
-		layout = generateViewLayout(tc.noID, w)
-		if got := countFocusCandidates(&layout); got != 0 {
-			t.Errorf("%s without ID: got %d focus candidates, want 0 (inert)", tc.name, got)
-		}
 	}
+}
+
+// Every focusable-by-default factory rejects an empty ID, and accepts
+// one when the caller opts the control out of focus entirely. The two
+// halves are the runtime counterpart of the `gui:"required,focus"`
+// tag: required, except for a decorative control.
+//
+// The build funcs omit the ID on purpose, so each carries the
+// requiredid:ignore directive that suppresses the analyzer for one
+// literal — without it the pass would flag the very configs this test
+// exists to reject.
+func TestFocusWidgetsRequireID(t *testing.T) {
+	cases := []struct {
+		name     string
+		build    func()
+		optedOut func()
+	}{
+		{"Button",
+			func() { _ = Button(ButtonCfg{}) }, // requiredid:ignore
+			func() { _ = Button(ButtonCfg{FocusDisabled: true}) }},
+		{"Input",
+			func() { _ = Input(InputCfg{}) }, // requiredid:ignore
+			func() { _ = Input(InputCfg{FocusDisabled: true}) }},
+		{"InputDate",
+			func() { _ = InputDate(InputDateCfg{}) }, // requiredid:ignore
+			func() { _ = InputDate(InputDateCfg{FocusDisabled: true}) }},
+		{"NumericInput",
+			func() { _ = NumericInput(NumericInputCfg{}) }, // requiredid:ignore
+			func() { _ = NumericInput(NumericInputCfg{FocusDisabled: true}) }},
+		{"RadioButtonGroup",
+			func() { _ = RadioButtonGroupColumn(RadioButtonGroupCfg{}) },
+			func() {
+				_ = RadioButtonGroupColumn(RadioButtonGroupCfg{FocusDisabled: true})
+			}},
+		{"Radio",
+			func() { _ = Radio(RadioCfg{}) }, // requiredid:ignore
+			func() { _ = Radio(RadioCfg{FocusDisabled: true}) }},
+		{"Select",
+			func() { _ = Select(SelectCfg{Options: []string{"a"}}) }, // requiredid:ignore
+			func() {
+				_ = Select(SelectCfg{Options: []string{"a"}, FocusDisabled: true})
+			}},
+		{"Switch",
+			func() { _ = Switch(SwitchCfg{}) }, // requiredid:ignore
+			func() { _ = Switch(SwitchCfg{FocusDisabled: true}) }},
+		{"Toggle",
+			func() { _ = Toggle(ToggleCfg{}) }, // requiredid:ignore
+			func() { _ = Toggle(ToggleCfg{FocusDisabled: true}) }},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assertPanicsRequiringID(t, tc.name, tc.build)
+			// FocusDisabled: the control never joins the tab order, so
+			// it has no identity to name and must be accepted as is.
+			tc.optedOut()
+		})
+	}
+}
+
+// assertPanicsRequiringID runs build and fails unless it panics with
+// the RequireID message naming widget.
+func assertPanicsRequiringID(t *testing.T, widget string, build func()) {
+	t.Helper()
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatalf("%s without an ID must panic", widget)
+		}
+		want := "gui: " + widget + " requires a non-empty Cfg.ID"
+		if msg, ok := r.(string); !ok || msg != want {
+			t.Fatalf("panic = %v, want %q", r, want)
+		}
+	}()
+	build()
 }

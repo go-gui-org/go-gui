@@ -43,6 +43,7 @@ func TestInputDateLayoutZeroDate(t *testing.T) {
 
 func TestInputDateDefaultsPreserve(t *testing.T) {
 	cfg := InputDateCfg{
+		ID:           "input_date_test_test_input_date_defaults_preserve",
 		SizeBorder:   SomeF(1),
 		CellSpacing:  SomeF(3),
 		Radius:       SomeF(4),
@@ -63,7 +64,7 @@ func TestInputDateDefaultsPreserve(t *testing.T) {
 }
 
 func TestInputDateDefaultsPadding(t *testing.T) {
-	cfg := InputDateCfg{}
+	cfg := InputDateCfg{ID: "input_date_test_test_input_date_defaults_padding"}
 	applyInputDateDefaults(&cfg)
 	if !cfg.Padding.IsSet() {
 		t.Error("Padding should be set")
@@ -72,6 +73,7 @@ func TestInputDateDefaultsPadding(t *testing.T) {
 
 func TestInputDatePlaceholderStyle(t *testing.T) {
 	cfg := InputDateCfg{
+		ID: "input_date_test_test_input_date_placeholder_style",
 		TextStyle: TextStyle{
 			Color: RGBA(200, 200, 200, 255),
 			Size:  14,

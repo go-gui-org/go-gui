@@ -156,6 +156,7 @@ func mainView(w *gui.Window) gui.View {
 						},
 					}),
 					gui.RadioButtonGroupColumn(gui.RadioButtonGroupCfg{
+						ID:          "gradient_demo_main_view",
 						Value:       directionName(dir),
 						Options:     dirOptions,
 						SizeBorder:  gui.Some[float32](1),

@@ -664,6 +664,7 @@ func presetBtn(_ *gui.Window, label string, color gui.Color,
 	apply func(*App)) gui.View {
 	theme := gui.CurrentTheme()
 	return gui.Button(gui.ButtonCfg{
+		ID:          "particles_preset_btn",
 		Color:       color.WithOpacity(0.1),
 		ColorHover:  color.WithOpacity(0.25),
 		ColorClick:  color.WithOpacity(0.4),

@@ -4,7 +4,7 @@ package gui
 type SwitchCfg struct {
 	TextStyle TextStyle
 	OnClick   func(EventCtx)
-	ID        string
+	ID        string `gui:"required,focus"`
 	Label     string
 
 	A11YLabel       string
@@ -32,6 +32,7 @@ type SwitchCfg struct {
 // Switch creates a pill-shaped toggle switch.
 func Switch(cfg SwitchCfg) View {
 	applySwitchDefaults(&cfg)
+	requireFocusID("Switch", cfg.FocusDisabled, cfg.ID)
 
 	d := &DefaultSwitchStyle
 	width := cfg.Width.Get(d.SizeWidth)

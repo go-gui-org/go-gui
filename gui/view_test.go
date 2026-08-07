@@ -687,7 +687,7 @@ func TestButtonA11YRole(t *testing.T) {
 		t.Error("default role should be button")
 	}
 
-	v2 := Button(ButtonCfg{A11YRole: AccessRoleTab})
+	v2 := Button(ButtonCfg{ID: "test_button_a11_y_role", A11YRole: AccessRoleTab})
 	layout2 := v2.GenerateLayout(&Window{})
 	if layout2.Shape.A11YRole != AccessRoleTab {
 		t.Error("explicit role should override")

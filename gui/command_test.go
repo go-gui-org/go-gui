@@ -269,7 +269,7 @@ func TestKeyNameSpecial(t *testing.T) {
 
 func TestCommandButtonUnknownReturnsErrorView(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int)})
-	v := CommandButton("nonexistent", ButtonCfg{})
+	v := CommandButton("nonexistent", ButtonCfg{ID: "command_test_test_command_button_unknown_returns_error_view"})
 	if v == nil {
 		t.Fatal("should return error placeholder view")
 	}
@@ -293,6 +293,7 @@ func TestCommandButtonDefaultsIDToCommandID(t *testing.T) {
 		Execute: func(_ *Event, _ *Window) {},
 	})
 
+	// Deliberately no ID: the auto-fill is what this test exercises.
 	v := CommandButton("edit.increment", ButtonCfg{})
 	l := v.GenerateLayout(w)
 	want := commandButtonIDPrefix + "edit.increment"
@@ -320,7 +321,7 @@ func TestCommandButtonIDDoesNotCollideWithMenuItem(t *testing.T) {
 		Execute: func(_ *Event, _ *Window) {},
 	})
 
-	btn := CommandButton("file.new", ButtonCfg{})
+	btn := CommandButton("file.new", ButtonCfg{ID: "command_test_test_command_button_id_does_not_collide_with_menu_item"})
 	btnID := btn.GenerateLayout(w).Shape.ID
 
 	// A menubar item for the same command renders a shape keyed by the
@@ -362,7 +363,7 @@ func TestCommandButtonAutoLabel(t *testing.T) {
 		Execute:  func(_ *Event, _ *Window) {},
 	})
 
-	v := CommandButton("test.cmd", ButtonCfg{})
+	v := CommandButton("test.cmd", ButtonCfg{ID: "command_test_test_command_button_auto_label"})
 	l := v.GenerateLayout(w)
 
 	// auto-label should produce a Text child with the command label.
@@ -384,7 +385,7 @@ func TestCommandButtonAutoDisable(t *testing.T) {
 		},
 	})
 
-	v := CommandButton("test.cmd", ButtonCfg{})
+	v := CommandButton("test.cmd", ButtonCfg{ID: "command_test_test_command_button_auto_disable"})
 	l := v.GenerateLayout(w)
 
 	if !l.Shape.Disabled {
@@ -403,7 +404,7 @@ func TestCommandButtonAutoDisableWhenCanExecuteTrue(t *testing.T) {
 		},
 	})
 
-	v := CommandButton("test.cmd", ButtonCfg{})
+	v := CommandButton("test.cmd", ButtonCfg{ID: "command_test_test_command_button_auto_disable_when_can_execute_true"})
 	l := v.GenerateLayout(w)
 
 	if l.Shape.Disabled {
@@ -422,7 +423,7 @@ func TestCommandButtonOnClickWiring(t *testing.T) {
 		},
 	})
 
-	v := CommandButton("test.cmd", ButtonCfg{})
+	v := CommandButton("test.cmd", ButtonCfg{ID: "command_test_test_command_button_on_click_wiring"})
 	l := v.GenerateLayout(w)
 
 	if l.Shape.events.OnClick == nil {
@@ -450,7 +451,7 @@ func TestCommandButtonOnClickChecksCanExecute(t *testing.T) {
 		},
 	})
 
-	v := CommandButton("test.cmd", ButtonCfg{})
+	v := CommandButton("test.cmd", ButtonCfg{ID: "command_test_test_command_button_on_click_checks_can_execute"})
 	l := v.GenerateLayout(w)
 
 	e := &Event{}
@@ -469,7 +470,7 @@ func TestCommandButtonUserContentOverridesAutoLabel(t *testing.T) {
 	})
 
 	userContent := []View{Text(TextCfg{Text: "Custom"})}
-	v := CommandButton("test.cmd", ButtonCfg{Content: userContent})
+	v := CommandButton("test.cmd", ButtonCfg{ID: "command_test_test_command_button_user_content_overrides_auto_label", Content: userContent})
 	l := v.GenerateLayout(w)
 
 	// User-provided Content should be preserved, not overwritten.
@@ -494,6 +495,7 @@ func TestCommandButtonUserOnClickOverridesAutoWiring(t *testing.T) {
 
 	userExecuted := false
 	v := CommandButton("test.cmd", ButtonCfg{
+		ID: "command_test_test_command_button_user_on_click_overrides_auto_wiring",
 		OnClick: func(ctx EventCtx) {
 			userExecuted = true
 		},
@@ -518,7 +520,7 @@ func TestCommandButtonViewFuncType(t *testing.T) {
 		Execute: func(_ *Event, _ *Window) {},
 	})
 
-	v := CommandButton("test.cmd", ButtonCfg{})
+	v := CommandButton("test.cmd", ButtonCfg{ID: "command_test_test_command_button_view_func_type"})
 	if _, ok := v.(ViewFunc); !ok {
 		t.Error("CommandButton should return ViewFunc")
 	}

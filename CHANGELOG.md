@@ -64,6 +64,21 @@ and this project adheres to
   scroll offsets and dropdown state when a sibling is inserted. An ID generated
   into the source is an ordinary ID a human reads, reviews, and edits.
 
+- **`gui:"required,focus"` tag option** (developer-ergonomics §4.2, phase 1).
+  `tools/requiredid` now reads options off the `gui` tag: the `focus` option
+  scopes the requirement to controls that join focus traversal, so a literal
+  setting `FocusDisabled: true` satisfies it. A plain `gui:"required"` field is
+  unaffected and stays required regardless — its state is keyed by `ID` whether
+  or not the control takes focus.
+
+  `ergoaudit` parses the tag rather than matching the bare `gui:"required"`
+  string, which read any tag carrying options as absent. It also no longer
+  counts a literal handed to a _different_ factory as broken:
+  `CommandButton(cmdID, ButtonCfg{})` fills the `ID` in itself, so the empty
+  `ID` at that call site proves nothing. That was one false positive in the 111,
+  and neither `requiredid` (which matches on the factory name) nor the runtime
+  guard (which runs after the wrapper has filled the field) ever agreed with it.
+
 - **`gui.Debug(bool)` dev-mode diagnostics gate** (developer-ergonomics §4.1,
   phase 1). Generalizes the focus-only `GOGUI_FOCUS_DEBUG` check into one gate
   that audits each composed frame for identity defects the library otherwise
@@ -80,6 +95,24 @@ and this project adheres to
   `BenchmarkViewFrame` allocs (202 / 802 allocs/op unchanged) or ns/op.
 
 ### Changed
+
+- **Nine focusable-by-default widgets now require an `ID`**
+  (developer-ergonomics §4.2, phase 1). `Button`, `Input`, `InputDate`,
+  `NumericInput`, `RadioButtonGroup`, `Radio`, `Select`, `Switch`, and `Toggle`
+  panic when handed an empty `Cfg.ID`. **This is a breaking change**: a config
+  that used to render a control which quietly never took focus now fails on the
+  first frame instead. That is the point — the old behaviour had no signal at
+  all, so the defect survived to release twelve times in this repo alone.
+
+  The requirement is scoped, not absolute. A control marked
+  `FocusDisabled: true` never joins the tab order, so it has no identity to name
+  and is exempt — the decorative case, such as the date picker's blank
+  out-of-month cell. Both halves are expressed by a new tag option,
+  `gui:"required,focus"`, which `tools/requiredid` reads statically and the
+  unexported `requireFocusID` enforces at runtime.
+
+  111 literals across this repo's tests and examples were updated by
+  `make ergo-fix` rather than by hand.
 
 - **`State[T]` names both types when it panics.** A window holding the wrong
   state type still panics — that is a programmer error discoverable on the first

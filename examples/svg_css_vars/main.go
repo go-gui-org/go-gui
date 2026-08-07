@@ -71,6 +71,7 @@ func view(w *gui.Window) gui.View {
 	for i, th := range themes {
 		idx := i
 		themeButtons = append(themeButtons, gui.Button(gui.ButtonCfg{
+			ID:      "svg_css_vars_view",
 			Content: []gui.View{gui.Text(gui.TextCfg{Text: th.Name})},
 			Sizing:  gui.FitFit,
 			Padding: gui.Some(gui.PaddingTwoFive),
@@ -85,6 +86,7 @@ func view(w *gui.Window) gui.View {
 	for _, n := range []int{0, 2, 4, 6, 8} {
 		base := n
 		strokeButtons = append(strokeButtons, gui.Button(gui.ButtonCfg{
+			ID: "svg_css_vars_view_2",
 			Content: []gui.View{gui.Text(gui.TextCfg{
 				Text: fmt.Sprintf("base=%dpx", base),
 			})},

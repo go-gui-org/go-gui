@@ -23,6 +23,7 @@ func TestCheckboxAliasRole(t *testing.T) {
 func TestToggleSelectedTextContent(t *testing.T) {
 	w := &Window{}
 	layout := generateViewLayout(Toggle(ToggleCfg{
+		ID:           "toggle_test_test_toggle_selected_text_content",
 		OnClick:      noop,
 		Selected:     true,
 		TextSelect:   "YES",
@@ -48,6 +49,7 @@ func TestToggleSelectedTextContent(t *testing.T) {
 func TestToggleUnselectedTextContent(t *testing.T) {
 	w := &Window{}
 	layout := generateViewLayout(Toggle(ToggleCfg{
+		ID:           "toggle_test_test_toggle_unselected_text_content",
 		OnClick:      noop,
 		Selected:     false,
 		TextSelect:   "YES",
@@ -67,7 +69,7 @@ func TestToggleUnselectedTextContent(t *testing.T) {
 func TestToggleDisabledFlag(t *testing.T) {
 	w := &Window{}
 	layout := generateViewLayout(
-		Toggle(ToggleCfg{OnClick: noop, Disabled: true}), w)
+		Toggle(ToggleCfg{ID: "toggle_test_test_toggle_disabled_flag", OnClick: noop, Disabled: true}), w)
 	if !layout.Shape.Disabled {
 		t.Error("expected disabled")
 	}
@@ -76,7 +78,7 @@ func TestToggleDisabledFlag(t *testing.T) {
 func TestToggleLabelAddsChild(t *testing.T) {
 	w := &Window{}
 	layout := generateViewLayout(
-		Toggle(ToggleCfg{OnClick: noop, Label: "Accept"}), w)
+		Toggle(ToggleCfg{ID: "toggle_test_test_toggle_label_adds_child", OnClick: noop, Label: "Accept"}), w)
 	if len(layout.Children) < 2 {
 		t.Errorf("expected >= 2 children, got %d",
 			len(layout.Children))

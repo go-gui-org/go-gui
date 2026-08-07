@@ -43,7 +43,7 @@ func TestInputMultilineRole(t *testing.T) {
 func TestInputReadOnlyWithoutFocus(t *testing.T) {
 	w := newTestWindow()
 
-	ro := generateViewLayout(Input(InputCfg{Text: "readonly", ReadOnly: true}), w)
+	ro := generateViewLayout(Input(InputCfg{ID: "input_test_test_input_read_only_without_focus", Text: "readonly", ReadOnly: true}), w)
 	if ro.Shape.A11YState != AccessStateReadOnly {
 		t.Fatalf("ReadOnly: got state %d, want ReadOnly", ro.Shape.A11YState)
 	}
@@ -83,18 +83,12 @@ func TestInputFocusDisabledNoCandidates(t *testing.T) {
 	}
 }
 
-// No ID → inert: focusable by default but never a tab stop (focus
-// requires a non-empty ID). The field still renders.
-func TestInputNoIDInert(t *testing.T) {
-	w := newTestWindow()
-	layout := generateViewLayout(Input(InputCfg{Text: "x"}), w)
-	if got := countFocusCandidates(&layout); got != 0 {
-		t.Fatalf("got %d focus candidates, want 0", got)
-	}
-	if layout.Shape.shapeType == shapeNone {
-		t.Fatal("ID-less input must still render")
-	}
-}
+// The old TestInputNoIDInert lived here. Its contract is gone: an
+// Input without an ID used to render, accept clicks, and never join
+// the tab order, with nothing to say so. The silence was the defect,
+// so the factory now refuses the config outright. See
+// TestFocusWidgetsRequireID, which covers Input alongside the other
+// eight focusable-by-default factories.
 
 func TestInputPlaceholderWhenEmpty(t *testing.T) {
 	w := newTestWindow()
@@ -169,7 +163,7 @@ func TestInputPasswordMaskEmoji(t *testing.T) {
 }
 
 func TestInputDefaults(t *testing.T) {
-	cfg := InputCfg{}
+	cfg := InputCfg{ID: "input_test_test_input_defaults"}
 	applyInputDefaults(&cfg)
 	if !cfg.Color.IsSet() {
 		t.Fatal("Color not defaulted")

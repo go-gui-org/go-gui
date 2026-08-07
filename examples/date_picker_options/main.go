@@ -214,6 +214,7 @@ func optionsGroup(app *App) gui.View {
 		Content: []gui.View{
 			borderedGroup("Options", []gui.View{
 				gui.Toggle(gui.ToggleCfg{
+					ID:       "date_picker_options_options_group",
 					Label:    "Monday first day of week",
 					Selected: app.MondayFirst,
 					OnClick: func(ctx gui.EventCtx) {
@@ -222,6 +223,7 @@ func optionsGroup(app *App) gui.View {
 					},
 				}),
 				gui.Toggle(gui.ToggleCfg{
+					ID:       "date_picker_options_options_group_2",
 					Label:    "Show adjacent months",
 					Selected: app.ShowAdjacentMonths,
 					OnClick: func(ctx gui.EventCtx) {
@@ -230,6 +232,7 @@ func optionsGroup(app *App) gui.View {
 					},
 				}),
 				gui.Toggle(gui.ToggleCfg{
+					ID:       "date_picker_options_options_group_3",
 					Label:    "Hide today indicator",
 					Selected: app.HideTodayIndicator,
 					OnClick: func(ctx gui.EventCtx) {
@@ -238,6 +241,7 @@ func optionsGroup(app *App) gui.View {
 					},
 				}),
 				gui.Toggle(gui.ToggleCfg{
+					ID:       "date_picker_options_options_group_4",
 					Label:    "Multiple select",
 					Selected: app.SelectMultiple,
 					OnClick: func(ctx gui.EventCtx) {
@@ -264,6 +268,7 @@ func weekdaysGroup(app *App) gui.View {
 func weekdaysLenGroup(app *App) gui.View {
 	return borderedGroup("Weekdays", []gui.View{
 		gui.RadioButtonGroupColumn(gui.RadioButtonGroupCfg{
+			ID:      "date_picker_options_weekdays_len_group",
 			Sizing:  gui.FillFit,
 			Padding: gui.NoPadding,
 			Value:   app.WeekdaysLen,
@@ -410,6 +415,7 @@ func yearsDatesGroup(app *App, _ *gui.Window) gui.View {
 				Sizing:  gui.FillFit,
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
+						ID: "date_picker_options_reset",
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{Text: "Reset"}),
 						},
@@ -532,6 +538,7 @@ func clickAllowDate(ctx gui.EventCtx) {
 
 func toggleTheme(app *App) gui.View {
 	return gui.Toggle(gui.ToggleCfg{
+		ID:           "date_picker_options_toggle_theme",
 		TextSelect:   gui.IconMoon,
 		TextUnselect: gui.IconSunnyO,
 		TextStyle:    gui.CurrentTheme().Icon3,

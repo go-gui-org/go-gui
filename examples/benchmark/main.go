@@ -246,6 +246,7 @@ func makeWidget(typ string, i int) gui.View {
 	switch typ {
 	case typeButton:
 		return gui.Button(gui.ButtonCfg{
+			ID: "benchmark_make_widget",
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{Text: fmt.Sprintf("Btn %d", i)}),
 			},
@@ -256,6 +257,7 @@ func makeWidget(typ string, i int) gui.View {
 		})
 	case typeToggle:
 		return gui.Toggle(gui.ToggleCfg{
+			ID:       "benchmark_make_widget_2",
 			Label:    fmt.Sprintf("Opt %d", i),
 			Selected: i%2 == 0,
 		})
@@ -263,6 +265,7 @@ func makeWidget(typ string, i int) gui.View {
 		switch i % 4 {
 		case 0:
 			return gui.Button(gui.ButtonCfg{
+				ID: "benchmark_make_widget_3",
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{Text: fmt.Sprintf("Btn %d", i)}),
 				},
@@ -273,6 +276,7 @@ func makeWidget(typ string, i int) gui.View {
 			})
 		case 2:
 			return gui.Toggle(gui.ToggleCfg{
+				ID:       "benchmark_make_widget_4",
 				Label:    fmt.Sprintf("Opt %d", i),
 				Selected: i%2 == 0,
 			})

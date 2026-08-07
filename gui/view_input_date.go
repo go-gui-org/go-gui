@@ -11,7 +11,7 @@ type InputDateCfg struct {
 	PlaceholderStyle TextStyle
 	Date             time.Time
 	OnSelect         func([]time.Time, EventCtx)
-	ID               string
+	ID               string `gui:"required,focus"`
 	Placeholder      string
 
 	A11YLabel       string
@@ -66,6 +66,7 @@ func (idv *inputDateView) Content() []View { return nil }
 // InputDate creates a date input field with a dropdown calendar.
 func InputDate(cfg InputDateCfg) View {
 	applyInputDateDefaults(&cfg)
+	requireFocusID("InputDate", cfg.FocusDisabled, cfg.ID)
 	return &inputDateView{cfg: cfg}
 }
 

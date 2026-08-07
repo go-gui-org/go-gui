@@ -66,6 +66,7 @@ func mainView(w *gui.Window) gui.View {
 
 func toggleHSV(app *App) gui.View {
 	return gui.Switch(gui.SwitchCfg{
+		ID:       "color_picker_toggle_hsv",
 		Label:    "HSV",
 		Selected: app.ShowHSV,
 		OnClick: func(ctx gui.EventCtx) {
@@ -78,6 +79,7 @@ func toggleHSV(app *App) gui.View {
 func toggleTheme(app *App) gui.View {
 	t := gui.CurrentTheme()
 	return gui.Toggle(gui.ToggleCfg{
+		ID:           "color_picker_toggle_theme",
 		TextSelect:   gui.IconMoon,
 		TextUnselect: gui.IconSunnyO,
 		TextStyle:    t.Icon3,

@@ -334,6 +334,7 @@ func toggleTheme(app *App, theme gui.Theme) gui.View {
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Toggle(gui.ToggleCfg{
+				ID:           "dialogs_toggle_theme",
 				TextSelect:   gui.IconMoon,
 				TextUnselect: gui.IconSunnyO,
 				TextStyle:    theme.Icon3,

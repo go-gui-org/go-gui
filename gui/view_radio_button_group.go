@@ -28,7 +28,7 @@ type RadioButtonGroupCfg struct {
 	// Items takes precedence over Options.
 	Items      []string
 	Options    []RadioOption
-	ID         string
+	ID         string `gui:"required,focus"`
 	Padding    Opt[Padding]
 	Spacing    Opt[float32]
 	SizeBorder Opt[float32]
@@ -62,6 +62,7 @@ func RadioButtonGroupRow(cfg RadioButtonGroupCfg) View {
 
 func radioGroup(cfg RadioButtonGroupCfg, axis func(ContainerCfg) View) View {
 	applyRadioGroupDefaults(&cfg)
+	requireFocusID("RadioButtonGroup", cfg.FocusDisabled, cfg.ID)
 	if len(cfg.Items) > 0 {
 		n := min(len(cfg.Items), maxDataConvLen)
 		cfg.Options = make([]RadioOption, n)

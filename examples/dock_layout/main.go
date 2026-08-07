@@ -77,12 +77,14 @@ func toolbar() gui.View {
 		Spacing: gui.SomeF(8),
 		Content: []gui.View{
 			gui.Button(gui.ButtonCfg{
+				ID:      "dock_layout_reset_layout",
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: "Reset Layout"})},
 				OnClick: func(ctx gui.EventCtx) {
 					gui.State[App](ctx.Window).Root = initialLayout()
 				},
 			}),
 			gui.Button(gui.ButtonCfg{
+				ID:      "dock_layout_add_properties",
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: "Add Properties"})},
 				OnClick: func(ctx gui.EventCtx) {
 					app := gui.State[App](ctx.Window)

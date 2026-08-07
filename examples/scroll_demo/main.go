@@ -111,6 +111,7 @@ func pctRow(app *App) gui.View {
 func pctButton(idScroll string, pct int) gui.View {
 	pctF := float32(pct) / 100
 	return gui.Button(gui.ButtonCfg{
+		ID: "scroll_demo_pct_button",
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: fmt.Sprintf("%d%%", pct)}),
 		},

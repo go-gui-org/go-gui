@@ -23,7 +23,7 @@ func TestSwitchIDPassthrough(t *testing.T) {
 func TestSwitchUnselectedState(t *testing.T) {
 	w := &Window{}
 	layout := generateViewLayout(
-		Switch(SwitchCfg{Selected: false, OnClick: noop}), w)
+		Switch(SwitchCfg{ID: "switch_test_test_switch_unselected_state", Selected: false, OnClick: noop}), w)
 	if layout.Shape.A11YState != AccessStateNone {
 		t.Error("unselected switch should have None state")
 	}
@@ -33,6 +33,7 @@ func TestSwitchOnClickCallback(t *testing.T) {
 	fired := false
 	w := &Window{}
 	v := Switch(SwitchCfg{
+		ID: "switch_test_test_switch_on_click_callback",
 		OnClick: func(ctx EventCtx) {
 			fired = true
 		},
@@ -52,7 +53,7 @@ func TestSwitchOnClickCallback(t *testing.T) {
 func TestSwitchDisabledFlag(t *testing.T) {
 	w := &Window{}
 	layout := generateViewLayout(
-		Switch(SwitchCfg{Disabled: true, OnClick: noop}), w)
+		Switch(SwitchCfg{ID: "switch_test_test_switch_disabled_flag", Disabled: true, OnClick: noop}), w)
 	if !layout.Shape.Disabled {
 		t.Error("expected disabled")
 	}
@@ -61,7 +62,7 @@ func TestSwitchDisabledFlag(t *testing.T) {
 func TestSwitchLabelAddsChild(t *testing.T) {
 	w := &Window{}
 	layout := generateViewLayout(
-		Switch(SwitchCfg{Label: "Dark Mode", OnClick: noop}), w)
+		Switch(SwitchCfg{ID: "switch_test_test_switch_label_adds_child", Label: "Dark Mode", OnClick: noop}), w)
 	if len(layout.Children) < 2 {
 		t.Errorf("expected >= 2 children with label, got %d",
 			len(layout.Children))
