@@ -4,15 +4,15 @@ How to write and integrate custom fragment shaders into go-gui widgets.
 
 ## 1. Overview
 
-Custom shaders replace the default rectangle fill with a GPU fragment
-shader. Write the shader once in GLSL and Metal Shading Language
-(MSL), pass it to any `ContainerCfg` or `RectangleCfg`, and animate
-it by updating `Params` each frame.
+Custom shaders replace the default rectangle fill with a GPU fragment shader.
+Write the shader once in GLSL and Metal Shading Language (MSL), pass it to any
+`ContainerCfg` or `RectangleCfg`, and animate it by updating `Params` each
+frame.
 
-The vertex shader is pre-defined. The fragment shader receives
-interpolated UV coordinates, vertex color, and up to 16 custom float
-parameters. An SDF rounded-rect alpha mask is applied automatically
-so the shader respects the widget's `Radius`.
+The vertex shader is pre-defined. The fragment shader receives interpolated UV
+coordinates, vertex color, and up to 16 custom float parameters. An SDF
+rounded-rect alpha mask is applied automatically so the shader respects the
+widget's `Radius`.
 
 ### Backend support
 
@@ -39,18 +39,16 @@ type Shader struct {
 
 ### ShaderHash
 
-`ShaderHash(s *Shader) uint64` computes an FNV-1a cache key from the
-shader source. Uses `s.Metal` on macOS, `s.GLSL` otherwise. The
-backends use this to cache compiled shader programs — no recompilation
-on every frame.
+`ShaderHash(s *Shader) uint64` computes an FNV-1a cache key from the shader
+source. Uses `s.Metal` on macOS, `s.GLSL` otherwise. The backends use this to
+cache compiled shader programs — no recompilation on every frame.
 
 ### BuildGLSLFragment
 
-`BuildGLSLFragment(body string) string` wraps a user-supplied GLSL
-body with the standard preamble (version, uniforms, inputs, SDF
-rounded-rect alpha) and epilogue. The built-in shaders use this; for
-custom shaders set via `Shader.GLSL`, the backend wraps it internally
-with the same preamble.
+`BuildGLSLFragment(body string) string` wraps a user-supplied GLSL body with the
+standard preamble (version, uniforms, inputs, SDF rounded-rect alpha) and
+epilogue. The built-in shaders use this; for custom shaders set via
+`Shader.GLSL`, the backend wraps it internally with the same preamble.
 
 ## 3. Writing a fragment shader
 
@@ -68,11 +66,9 @@ The fragment shader receives these inputs from the vertex stage:
 
 ### GLSL body
 
-Keep GLSL syntax compatible with both desktop GL 3.30 and WebGL2
-GLSL ES 3.00:
+Keep GLSL syntax compatible with both desktop GL 3.30 and WebGL2 GLSL ES 3.00:
 
-- Declare `vec4 frag_color;` in your body. The preamble's `main()`
-  reads it.
+- Declare `vec4 frag_color;` in your body. The preamble's `main()` reads it.
 - Avoid desktop-only built-ins like `gl_FragCoord`. Use `uv` instead.
 - Use `vec2`/`vec3`/`vec4` (not `float2`/`float3`/`float4`).
 - Don't redeclare uniforms or inputs — the preamble provides them.
@@ -99,15 +95,15 @@ float4 frag_color = float4(tinted, in.color.a);
 
 ### SDF rounded-rect alpha
 
-The preamble computes an SDF-based rounded-rect alpha from `params`
-(packed radius) and multiplies it with `frag_color.a`:
+The preamble computes an SDF-based rounded-rect alpha from `params` (packed
+radius) and multiplies it with `frag_color.a`:
 
 ```glsl
 _frag_out = vec4(frag_color.rgb, frag_color.a * sdf_alpha);
 ```
 
-This means shaders automatically get anti-aliased rounded corners when
-the widget has a non-zero `Radius`.
+This means shaders automatically get anti-aliased rounded corners when the
+widget has a non-zero `Radius`.
 
 ## 4. Applying a shader
 
@@ -133,19 +129,18 @@ gui.Column(gui.ContainerCfg{
 })
 ```
 
-The shader replaces the container's background fill. Child content
-(text, nested widgets) renders on top as normal.
+The shader replaces the container's background fill. Child content (text, nested
+widgets) renders on top as normal.
 
 ### On ContainerCfg
 
-`ContainerCfg.Shader` replaces the background of any container
-(Column, Row, Stack, etc.). The shader fills the container's bounds
-including padding.
+`ContainerCfg.Shader` replaces the background of any container (Column, Row,
+Stack, etc.). The shader fills the container's bounds including padding.
 
 ### On RectangleCfg
 
-`RectangleCfg.Shader` replaces the fill of a basic rectangle. Use when
-you need a shader-only surface with no children.
+`RectangleCfg.Shader` replaces the fill of a basic rectangle. Use when you need
+a shader-only surface with no children.
 
 ```go
 gui.Rectangle(gui.RectangleCfg{
@@ -164,8 +159,8 @@ Update `Params` each frame for time-based effects. Two approaches:
 
 ### Animation callback (recommended)
 
-Use a repeating `Animate` to keep the frame loop hot, then compute the
-elapsed time in the view function:
+Use a repeating `Animate` to keep the frame loop hot, then compute the elapsed
+time in the view function:
 
 ```go
 type App struct {
@@ -204,14 +199,14 @@ func mainView(w *gui.Window) gui.View {
 }
 ```
 
-The repeating `Animate` with an empty callback is a pattern for "keep
-the frame loop running." Without it, the view only re-renders on
-events (mouse move, key press) and the animation stalls when idle.
+The repeating `Animate` with an empty callback is a pattern for "keep the frame
+loop running." Without it, the view only re-renders on events (mouse move, key
+press) and the animation stalls when idle.
 
 ### Mutable Params reference
 
-To update `Params` without recreating the `Shader` struct each frame,
-keep a reference:
+To update `Params` without recreating the `Shader` struct each frame, keep a
+reference:
 
 ```go
 type App struct {
@@ -225,14 +220,13 @@ app.ShaderParams[0] = elapsed
 // Shader.Params: app.ShaderParams
 ```
 
-The grid layout pipeline copies nothing from the Shader — the pointer
-is stable across frames as long as you mutate the backing slice in
-place.
+The grid layout pipeline copies nothing from the Shader — the pointer is stable
+across frames as long as you mutate the backing slice in place.
 
 ### Timing
 
-`time.Since()` in the view function is cheap (monotonic clock read).
-For smoother effects, pass frame count or delta time instead:
+`time.Since()` in the view function is cheap (monotonic clock read). For
+smoother effects, pass frame count or delta time instead:
 
 ```go
 app.Frame++
@@ -243,16 +237,14 @@ app.ShaderParams[0] = float32(app.Frame) / 60.0 // approximate seconds at 60fps
 
 ### Metal (macOS/iOS)
 
-- MSL source is compiled via CGo (`MTLCompileOptions`,
-  `newLibraryWithSource`).
+- MSL source is compiled via CGo (`MTLCompileOptions`, `newLibraryWithSource`).
 - Pipeline state objects cached by `ShaderHash`.
-- `Params` uploaded as a 4×4 float matrix to the vertex shader, which
-  passes them through to the fragment stage.
+- `Params` uploaded as a 4×4 float matrix to the vertex shader, which passes
+  them through to the fragment stage.
 
 ### OpenGL (Linux/Windows)
 
-- `BuildGLSLFragment(s.GLSL)` wraps the user body with the standard
-  preamble.
+- `BuildGLSLFragment(s.GLSL)` wraps the user body with the standard preamble.
 - Vertex shader: `shader.VsCustomGLSL`.
 - Compiled program cached up to `maxCustomPipelines = 32`.
 - `Params` uploaded as `glUniform4fv` for `p0`–`p3`.
@@ -260,23 +252,22 @@ app.ShaderParams[0] = float32(app.Frame) / 60.0 // approximate seconds at 60fps
 ### Web (WASM)
 
 - Creates an offscreen WebGL2 canvas.
-- GLSL body is wrapped with WebGL2 ES 3.00 preamble (`#version 300
-es`, `out vec4 _frag_out`).
-- Renders to offscreen canvas, then composites into the main Canvas2D
-  via `drawImage`.
-- Falls back to solid fill when WebGL2 is unavailable (older browsers,
-  strict CSP).
+- GLSL body is wrapped with WebGL2 ES 3.00 preamble (`#version 300 es`,
+  `out vec4 _frag_out`).
+- Renders to offscreen canvas, then composites into the main Canvas2D via
+  `drawImage`.
+- Falls back to solid fill when WebGL2 is unavailable (older browsers, strict
+  CSP).
 
 ### Desktop GL
 
-Custom shaders are fully supported on Linux and Windows via the native
-GL backend (OpenGL 3.3+).
+Custom shaders are fully supported on Linux and Windows via the native GL
+backend (OpenGL 3.3+).
 
 ## 7. Pre-built shaders
 
-The `gui/shader/` package provides GLSL and Metal source constants for
-every built-in shader. Useful as reference or as a base for custom
-shaders:
+The `gui/shader/` package provides GLSL and Metal source constants for every
+built-in shader. Useful as reference or as a base for custom shaders:
 
 | Constant                                 | Purpose                                    |
 | ---------------------------------------- | ------------------------------------------ |
@@ -294,23 +285,22 @@ All have corresponding Metal constants (`VsMetal`, `FsMetal`, etc. in
 
 ## 8. Reference example
 
-Full working example: `examples/custom_shader/main.go` — two animated
-shader squares (Rainbow and Plasma) with time-based `Params`, repeating
-animation tick, and both Metal + GLSL shader bodies.
+Full working example: `examples/custom_shader/main.go` — two animated shader
+squares (Rainbow and Plasma) with time-based `Params`, repeating animation tick,
+and both Metal + GLSL shader bodies.
 
 ## Checklist
 
-- [ ] Provide both `Metal` and `GLSL` shader bodies. The framework
-      picks the right one at runtime.
-- [ ] Keep GLSL syntax compatible with desktop GL 3.30 and WebGL2
-      GLSL ES 3.00. No `gl_FragCoord`, no desktop-only built-ins.
-- [ ] Declare `vec4 frag_color;` / `float4 frag_color;` in your
-      shader body — the preamble reads it to produce the final output.
-- [ ] `Params` length ≤ 16. The vertex shader packs 4 floats per
-      vector (p0–p3).
-- [ ] Set up a repeating `Animate` callback to keep the frame loop hot
-      for time-based effects.
-- [ ] Test on all target backends. The GL backend supports custom
-      shaders on desktop; provide a solid fill fallback on all backends.
-- [ ] Shader compilation failures are silent (logged to stderr). Test
-      with a known-good shader first.
+- [ ] Provide both `Metal` and `GLSL` shader bodies. The framework picks the
+      right one at runtime.
+- [ ] Keep GLSL syntax compatible with desktop GL 3.30 and WebGL2 GLSL ES 3.00.
+      No `gl_FragCoord`, no desktop-only built-ins.
+- [ ] Declare `vec4 frag_color;` / `float4 frag_color;` in your shader body —
+      the preamble reads it to produce the final output.
+- [ ] `Params` length ≤ 16. The vertex shader packs 4 floats per vector (p0–p3).
+- [ ] Set up a repeating `Animate` callback to keep the frame loop hot for
+      time-based effects.
+- [ ] Test on all target backends. The GL backend supports custom shaders on
+      desktop; provide a solid fill fallback on all backends.
+- [ ] Shader compilation failures are silent (logged to stderr). Test with a
+      known-good shader first.

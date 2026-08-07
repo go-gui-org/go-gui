@@ -1,5 +1,5 @@
-Grouped radio buttons in row or column layout with
-optional group-box border and title.
+Grouped radio buttons in row or column layout with optional group-box border and
+title.
 
 ## Usage
 
@@ -50,43 +50,43 @@ When `Items` is set, `Options` is ignored.
 
 ## Key Properties
 
-| Property  | Type            | Description                          |
-|-----------|-----------------|--------------------------------------|
-| Value     | string          | Currently selected value             |
-| Items     | []string        | Simple string list (alt. to Options) |
-| Options   | []RadioOption   | Available choices (Label + Value)    |
-| Title     | string          | Group-box label                      |
-| TitleBG   | Color           | Border-eraser background for title   |
-| IDFocus   | uint32          | Tab-order focus ID for first radio   |
-| MinWidth  | float32         | Minimum width                        |
-| MinHeight | float32         | Minimum height                       |
-| Sizing    | Sizing          | Combined axis sizing mode            |
+| Property  | Type          | Description                          |
+| --------- | ------------- | ------------------------------------ |
+| Value     | string        | Currently selected value             |
+| Items     | []string      | Simple string list (alt. to Options) |
+| Options   | []RadioOption | Available choices (Label + Value)    |
+| Title     | string        | Group-box label                      |
+| TitleBG   | Color         | Border-eraser background for title   |
+| IDFocus   | uint32        | Tab-order focus ID for first radio   |
+| MinWidth  | float32       | Minimum width                        |
+| MinHeight | float32       | Minimum height                       |
+| Sizing    | Sizing        | Combined axis sizing mode            |
 
 ## Appearance
 
-| Property    | Type         | Description                          |
-|-------------|--------------|--------------------------------------|
-| Padding     | Opt[Padding] | Inner padding                        |
-| Spacing     | Opt[float32] | Gap between radio buttons            |
-| SizeBorder  | Opt[float32] | Group border width                   |
-| ColorBorder | Color        | Group border color                   |
+| Property    | Type         | Description               |
+| ----------- | ------------ | ------------------------- |
+| Padding     | Opt[Padding] | Inner padding             |
+| Spacing     | Opt[float32] | Gap between radio buttons |
+| SizeBorder  | Opt[float32] | Group border width        |
+| ColorBorder | Color        | Group border color        |
 
 ## Factories
 
-| Function                      | Layout               |
-|-------------------------------|----------------------|
-| RadioButtonGroupColumn(cfg)   | Vertical (stacked)   |
-| RadioButtonGroupRow(cfg)      | Horizontal (inline)  |
+| Function                    | Layout              |
+| --------------------------- | ------------------- |
+| RadioButtonGroupColumn(cfg) | Vertical (stacked)  |
+| RadioButtonGroupRow(cfg)    | Horizontal (inline) |
 
 ## Events
 
-| Callback | Signature                | Fired when          |
-|----------|--------------------------|---------------------|
-| OnSelect | func(string, *Window)    | Selection changes   |
+| Callback | Signature             | Fired when        |
+| -------- | --------------------- | ----------------- |
+| OnSelect | func(string, *Window) | Selection changes |
 
 ## Accessibility
 
-| Property        | Type   | Description                          |
-|-----------------|--------|--------------------------------------|
-| A11YLabel       | string | Accessible label                     |
-| A11YDescription | string | Accessible description               |
+| Property        | Type   | Description            |
+| --------------- | ------ | ---------------------- |
+| A11YLabel       | string | Accessible label       |
+| A11YDescription | string | Accessible description |

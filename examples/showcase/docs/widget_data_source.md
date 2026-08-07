@@ -1,6 +1,6 @@
-Async data-source backed grid with CRUD operations, pagination,
-abort handling, and ORM integration. Implement the `DataGridDataSource`
-interface or use the built-in `InMemoryDataSource` / `GridOrmDataSource`.
+Async data-source backed grid with CRUD operations, pagination, abort handling,
+and ORM integration. Implement the `DataGridDataSource` interface or use the
+built-in `InMemoryDataSource` / `GridOrmDataSource`.
 
 ## Usage
 
@@ -54,40 +54,40 @@ type DataGridDataSource interface {
 
 ## GridDataCapabilities
 
-| Field                    | Type | Description                          |
-|--------------------------|------|--------------------------------------|
-| SupportsCursorPagination | bool | Supports cursor-based pagination     |
-| SupportsOffsetPagination | bool | Supports offset-based pagination     |
-| SupportsNumberedPages    | bool | Supports numbered page navigation    |
-| RowCountKnown            | bool | Total row count is available         |
-| SupportsCreate           | bool | Supports row creation                |
-| SupportsUpdate           | bool | Supports row updates                 |
-| SupportsDelete           | bool | Supports single row deletion         |
-| SupportsBatchDelete      | bool | Supports multi-row deletion          |
+| Field                    | Type | Description                       |
+| ------------------------ | ---- | --------------------------------- |
+| SupportsCursorPagination | bool | Supports cursor-based pagination  |
+| SupportsOffsetPagination | bool | Supports offset-based pagination  |
+| SupportsNumberedPages    | bool | Supports numbered page navigation |
+| RowCountKnown            | bool | Total row count is available      |
+| SupportsCreate           | bool | Supports row creation             |
+| SupportsUpdate           | bool | Supports row updates              |
+| SupportsDelete           | bool | Supports single row deletion      |
+| SupportsBatchDelete      | bool | Supports multi-row deletion       |
 
 ## InMemoryDataSource
 
-| Field          | Type      | Description                          |
-|----------------|-----------|--------------------------------------|
-| Rows           | []GridRow | In-memory row data                   |
-| DefaultLimit   | int       | Default page size (100)              |
-| LatencyMs      | int       | Simulated latency in ms              |
-| RowCountKnown  | bool      | Expose total row count               |
-| SupportsCursor | bool      | Enable cursor pagination             |
-| SupportsOffset | bool      | Enable offset pagination             |
+| Field          | Type      | Description              |
+| -------------- | --------- | ------------------------ |
+| Rows           | []GridRow | In-memory row data       |
+| DefaultLimit   | int       | Default page size (100)  |
+| LatencyMs      | int       | Simulated latency in ms  |
+| RowCountKnown  | bool      | Expose total row count   |
+| SupportsCursor | bool      | Enable cursor pagination |
+| SupportsOffset | bool      | Enable offset pagination |
 
 ## GridOrmDataSource
 
-| Field          | Type              | Description                          |
-|----------------|-------------------|--------------------------------------|
-| Columns        | []GridOrmColumnSpec | Column specs with DB mapping       |
-| FetchFn        | GridOrmFetchFn    | Fetch callback (required)            |
-| CreateFn       | GridOrmCreateFn   | Create row callback                  |
-| UpdateFn       | GridOrmUpdateFn   | Update row callback                  |
-| DeleteFn       | GridOrmDeleteFn   | Delete row callback                  |
-| DeleteManyFn   | GridOrmDeleteManyFn | Batch delete callback              |
-| DefaultLimit   | int               | Default page size                    |
-| SupportsOffset | bool              | Enable offset pagination             |
-| RowCountKnown  | bool              | Expose total row count               |
+| Field          | Type                | Description                  |
+| -------------- | ------------------- | ---------------------------- |
+| Columns        | []GridOrmColumnSpec | Column specs with DB mapping |
+| FetchFn        | GridOrmFetchFn      | Fetch callback (required)    |
+| CreateFn       | GridOrmCreateFn     | Create row callback          |
+| UpdateFn       | GridOrmUpdateFn     | Update row callback          |
+| DeleteFn       | GridOrmDeleteFn     | Delete row callback          |
+| DeleteManyFn   | GridOrmDeleteManyFn | Batch delete callback        |
+| DefaultLimit   | int                 | Default page size            |
+| SupportsOffset | bool                | Enable offset pagination     |
+| RowCountKnown  | bool                | Expose total row count       |
 
 Runtime stats available via `w.DataGridSourceStats(id)`.

@@ -6,7 +6,8 @@ description: Go language expertise for writing idiomatic, production-quality Go 
 
 ## Overview
 
-Skill guide idiomatic, efficient, production Go. Cover concurrency, error handling, testing, modules per Effective Go.
+Skill guide idiomatic, efficient, production Go. Cover concurrency, error
+handling, testing, modules per Effective Go.
 
 ## Key Concepts
 

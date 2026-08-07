@@ -1,6 +1,6 @@
-Form container with built-in runtime validation,
-submit/reset semantics, per-field state tracking (touched, dirty,
-pending), configurable validation triggers, and stale field cleanup.
+Form container with built-in runtime validation, submit/reset semantics,
+per-field state tracking (touched, dirty, pending), configurable validation
+triggers, and stale field cleanup.
 
 ## Basic Usage
 
@@ -17,11 +17,10 @@ gui.Form(gui.FormCfg{
 
 ## Field Registration
 
-Register fields each frame so the form runtime tracks them.
-Use **FormRegisterFieldByID** when the form ID is known at view
-construction time (the common case). Use **FormRegisterField**
-when you don't know the form ID — it walks the layout parent
-chain to locate the ancestor Form.
+Register fields each frame so the form runtime tracks them. Use
+**FormRegisterFieldByID** when the form ID is known at view construction time
+(the common case). Use **FormRegisterField** when you don't know the form ID —
+it walks the layout parent chain to locate the ancestor Form.
 
 ```go
 // Direct: form ID is known at view construction time.
@@ -47,9 +46,9 @@ func onEmailChange(l *gui.Layout, s string, w *gui.Window) {
 
 ### InitialValue
 
-Set `InitialValue` and `HasInitialValue` to seed the "dirty"
-tracking baseline — Form reset restores these values. If you
-omit them, the first-registered value becomes the initial value.
+Set `InitialValue` and `HasInitialValue` to seed the "dirty" tracking baseline —
+Form reset restores these values. If you omit them, the first-registered value
+becomes the initial value.
 
 ```go
 gui.FormRegisterFieldByID(w, "my-form", gui.FormFieldAdapterCfg{
@@ -92,9 +91,9 @@ func checkUnique(
 
 ## Cross-Field Validation
 
-When a validator needs values from other fields, use the
-`FormSnapshot` parameter. It carries `Values` (all field
-values) and `Fields` (per-field state including errors).
+When a validator needs values from other fields, use the `FormSnapshot`
+parameter. It carries `Values` (all field values) and `Fields` (per-field state
+including errors).
 
 ```go
 func passwordsMatch(
@@ -125,8 +124,8 @@ gui.FormRegisterFieldByID(w, "signup", gui.FormFieldAdapterCfg{
 
 ## Issue Codes and Kinds
 
-`FormIssue` carries a `Code` (machine-readable) and a `Kind`
-(error vs warning). Warnings do not block submit.
+`FormIssue` carries a `Code` (machine-readable) and a `Kind` (error vs warning).
+Warnings do not block submit.
 
 ```go
 func validateEmail(
@@ -160,8 +159,8 @@ func validateEmail(
 
 ## Allow Submit Despite Errors or Pending
 
-By default, `FormRequestSubmit` is blocked when any field has
-errors or an async validator is running. Override per-form:
+By default, `FormRequestSubmit` is blocked when any field has errors or an async
+validator is running. Override per-form:
 
 ```go
 gui.Form(gui.FormCfg{
@@ -183,15 +182,13 @@ gui.Form(gui.FormCfg{
 })
 ```
 
-Check `FormSubmitEvent.Errors` and `FormSubmitEvent.Pending`
-in your submit handler — they carry the issues that would
-normally block submission.
+Check `FormSubmitEvent.Errors` and `FormSubmitEvent.Pending` in your submit
+handler — they carry the issues that would normally block submission.
 
 ## Custom Slots
 
-`ErrorSlot`, `SummarySlot`, and `PendingSlot` replace the
-default inline rendering for per-field errors, summary text,
-and pending indicators.
+`ErrorSlot`, `SummarySlot`, and `PendingSlot` replace the default inline
+rendering for per-field errors, summary text, and pending indicators.
 
 ```go
 gui.Form(gui.FormCfg{
@@ -263,24 +260,24 @@ pending := w.FormPendingState("my-form")
 
 ## Key Properties
 
-| Property           | Type             | Description                        |
-|--------------------|------------------|------------------------------------|
-| ID                 | string           | Required form identifier           |
-| ValidateOn         | FormValidateOn   | When to trigger (default BlurSubmit)|
-| NoSubmitOnEnter    | bool             | Disable enter-key submit           |
-| AllowInvalidSubmit | bool             | Permit submit with errors          |
-| AllowPendingSubmit | bool             | Permit submit while async pending  |
-| OnSubmit           | func             | Called on successful submit         |
-| OnReset            | func             | Called after reset                  |
-| ErrorSlot          | func             | Custom per-field error view         |
-| SummarySlot        | func             | Custom summary view                 |
-| PendingSlot        | func             | Custom pending indicator view       |
+| Property           | Type           | Description                          |
+| ------------------ | -------------- | ------------------------------------ |
+| ID                 | string         | Required form identifier             |
+| ValidateOn         | FormValidateOn | When to trigger (default BlurSubmit) |
+| NoSubmitOnEnter    | bool           | Disable enter-key submit             |
+| AllowInvalidSubmit | bool           | Permit submit with errors            |
+| AllowPendingSubmit | bool           | Permit submit while async pending    |
+| OnSubmit           | func           | Called on successful submit          |
+| OnReset            | func           | Called after reset                   |
+| ErrorSlot          | func           | Custom per-field error view          |
+| SummarySlot        | func           | Custom summary view                  |
+| PendingSlot        | func           | Custom pending indicator view        |
 
 ## Validation Modes
 
-| Mode           | Change | Blur | Submit |
-|----------------|--------|------|--------|
-| OnChange       | yes    | yes  | yes    |
-| OnBlur         | no     | yes  | yes    |
-| OnBlurSubmit   | no     | yes  | yes    |
-| OnSubmit       | no     | no   | yes    |
+| Mode         | Change | Blur | Submit |
+| ------------ | ------ | ---- | ------ |
+| OnChange     | yes    | yes  | yes    |
+| OnBlur       | no     | yes  | yes    |
+| OnBlurSubmit | no     | yes  | yes    |
+| OnSubmit     | no     | no   | yes    |

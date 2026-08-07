@@ -1,6 +1,7 @@
 # Native Platform Matrix
 
-Feature support per backend and operating system. ✓ = functional, ✗ = stub/unavailable.
+Feature support per backend and operating system. ✓ = functional, ✗ =
+stub/unavailable.
 
 ## Consolidated Feature Matrix
 
@@ -23,7 +24,8 @@ Feature support per backend and operating system. ✓ = functional, ✗ = stub/u
 | Dark titlebar  |       ✗       |     ✗      |      ✗       |     ✗      |    ✗    |  ✗  |
 | Bookmarks      |       ✗       |     ✗      |      ✗       |     ✗      |    ✗    |  ✗  |
 
-¹ Web save uses File System Access API (`showSaveFilePicker`); falls back to suggested filename.  
+¹ Web save uses File System Access API (`showSaveFilePicker`); falls back to
+suggested filename.  
 ² Web folder uses `showDirectoryPicker`.  
 ³ (removed — Save/Discard/Cancel now implemented on Linux and Windows)  
 ⁴ Linux: PDF rendered to temp file, opened via `lpr` or `xdg-open`.  
@@ -35,10 +37,13 @@ Feature support per backend and operating system. ✓ = functional, ✗ = stub/u
 ¹⁰ Web: `Notification` API with permission request.  
 ¹¹ macOS: NSAccessibility protocol via C bridge (VoiceOver).  
 ¹² Linux: AT-SPI D-Bus via `atspi` bridge.  
-¹³ Web: DOM ARIA attributes on canvas-adjacent elements. Windows lacks both UIA and AT-SPI bridges.  
-¹⁴ macOS: `NSMenu`/`NSMenuItem` via C bridge. Native menubar is an AppKit-only concept.  
+¹³ Web: DOM ARIA attributes on canvas-adjacent elements. Windows lacks both UIA
+and AT-SPI bridges.  
+¹⁴ macOS: `NSMenu`/`NSMenuItem` via C bridge. Native menubar is an AppKit-only
+concept.  
 ¹⁵ macOS: `NSStatusBar` via C bridge.  
-¹⁶ Linux: StatusNotifierItem D-Bus (`sni` package). Windows: `Shell_NotifyIconW` (`sni` package).  
+¹⁶ Linux: StatusNotifierItem D-Bus (`sni` package). Windows: `Shell_NotifyIconW`
+(`sni` package).  
 ¹⁷ macOS: NSSpellChecker via C bridge.  
 ¹⁸ Linux requires `hunspell` build tag and `libhunspell-dev` at build time.  
 ¹⁹ iOS validates URI scheme but returns "not implemented".
@@ -54,7 +59,8 @@ Feature support per backend and operating system. ✓ = functional, ✗ = stub/u
 | Confirm (OK/Cancel) |       ✓       |     ✓      |      ✓       |     ✓      |    ✗    |  ✗  |
 | Save/Discard/Cancel |       ✓       |     ✓      |      ✓       |     ✗      |    ✗    |  ✗  |
 
-¹ Web save uses File System Access API (`showSaveFilePicker`); falls back to suggested filename.  
+¹ Web save uses File System Access API (`showSaveFilePicker`); falls back to
+suggested filename.  
 ² Web folder uses `showDirectoryPicker`.
 
 ## Printing
@@ -98,7 +104,8 @@ Windows lacks both UIA and AT-SPI bridges — a11y is not functional there.
 | Start/Stop  |       ✓       |     ✓      |      ✓       |     ✓      |    ✓    |  ✗  |
 | Cursor rect |       ✓       |     ✓      |      ✓       |     ✓      |    ✓    |  ✗  |
 
-macOS: native IME via AppKit. Linux/Windows: native IME via platform input APIs. Android: native Kotlin bridge. Web: hidden `<input>` element.
+macOS: native IME via AppKit. Linux/Windows: native IME via platform input APIs.
+Android: native Kotlin bridge. Web: hidden `<input>` element.
 
 ## Native Menubar
 
@@ -106,7 +113,8 @@ macOS: native IME via AppKit. Linux/Windows: native IME via platform input APIs.
 | ----------------- | :-----------: | :--------: | :----------: | :--------: | :-----: | :-: |
 | Set/Clear menubar |      ✓¹       |     ✗      |      ✗       |     ✗      |    ✗    |  ✗  |
 
-¹ macOS: `NSMenu`/`NSMenuItem` via C bridge. Native menubar is an AppKit-only concept.
+¹ macOS: `NSMenu`/`NSMenuItem` via C bridge. Native menubar is an AppKit-only
+concept.
 
 ## System Tray
 
@@ -115,7 +123,8 @@ macOS: native IME via AppKit. Linux/Windows: native IME via platform input APIs.
 | Create/Update/Remove |      ✓¹       |     ✓²     |      ✓²      |     ✗      |    ✗    |  ✗  |
 
 ¹ macOS: `NSStatusBar` via C bridge.  
-² Linux: StatusNotifierItem D-Bus (`sni` package). Windows: `Shell_NotifyIconW` (`sni` package).
+² Linux: StatusNotifierItem D-Bus (`sni` package). Windows: `Shell_NotifyIconW`
+(`sni` package).
 
 ## Spell Check
 
@@ -124,7 +133,8 @@ macOS: native IME via AppKit. Linux/Windows: native IME via platform input APIs.
 | Check/Suggest |       ✓       |      ✓      |      ✗       |     ✗²     |    ✗    |  ✗  |
 | Learn word    |       ✓       |      ✓      |      ✗       |     ✗      |    ✗    |  ✗  |
 
-¹ Linux requires `hunspell` build tag and `libhunspell-dev` at build time. Without the tag, falls to `spellcheck_other.go` stub.  
+¹ Linux requires `hunspell` build tag and `libhunspell-dev` at build time.
+Without the tag, falls to `spellcheck_other.go` stub.  
 ² Web: "no browser JS API exposes spell results" — upstream limitation.
 
 ## Security-Scoped Bookmarks
@@ -133,7 +143,9 @@ macOS: native IME via AppKit. Linux/Windows: native IME via platform input APIs.
 | ----------------- | :-----------: |
 | Load/Persist/Stop |       ✗       |
 
-Bookmark support (macOS security-scoped URLs for sandboxed file access) is unimplemented on all backends. The macOS C dialog layer parses `bookmarkData` from `NSOpenPanel`, but the Go side does not consume it.
+Bookmark support (macOS security-scoped URLs for sandboxed file access) is
+unimplemented on all backends. The macOS C dialog layer parses `bookmarkData`
+from `NSOpenPanel`, but the Go side does not consume it.
 
 ## Titlebar Dark
 
@@ -141,7 +153,8 @@ Bookmark support (macOS security-scoped URLs for sandboxed file access) is unimp
 | ------------- | :-----------: |
 | Dark titlebar |       ✗       |
 
-No-op on all backends. Requires platform-specific window manager calls (macOS `NSWindow.appearance`, Windows `DwmSetWindowAttribute`, Linux `GTK_CSD`).
+No-op on all backends. Requires platform-specific window manager calls (macOS
+`NSWindow.appearance`, Windows `DwmSetWindowAttribute`, Linux `GTK_CSD`).
 
 ## URI Opening
 

@@ -6,13 +6,13 @@
 go test ./... && go vet ./... && golangci-lint run ./...
 ```
 
-Tests exercise layout and widget logic without a display.
-On macOS, suppress harmless duplicate-library warnings with
+Tests exercise layout and widget logic without a display. On macOS, suppress
+harmless duplicate-library warnings with
 `export CGO_LDFLAGS="-Wl,-no_warn_duplicate_libraries"` (or use the repo's
 `.envrc` with [direnv](https://direnv.net/)).
 
-CI enforces 70% coverage, race detector, and benchmark regression gates.
-Run `go test ./...` locally before pushing.
+CI enforces 70% coverage, race detector, and benchmark regression gates. Run
+`go test ./...` locally before pushing.
 
 ### Local development with sibling repos
 
@@ -50,12 +50,13 @@ Code must pass `golangci-lint run ./...` and `gofmt`. No variable shadowing.
 
 `.claude/settings.json` auto-runs `golangci-lint run --fix` and
 `go test -count=1 -short` after `.go` edits. Customize in
-`~/.claude/settings.json`. See [docs](https://docs.anthropic.com/en/docs/claude-code/hooks).
+`~/.claude/settings.json`. See
+[docs](https://docs.anthropic.com/en/docs/claude-code/hooks).
 
 ## Adding Examples
 
-Example apps live in `examples/`. Each example should be a self-contained
-`main` package that demonstrates a specific feature or pattern.
+Example apps live in `examples/`. Each example should be a self-contained `main`
+package that demonstrates a specific feature or pattern.
 
 ## License
 
@@ -68,8 +69,8 @@ Contributions are accepted under the [MIT License](LICENSE).
 `gui/compat_mingw.go` provides a compatibility shim so **this error should not
 appear** when building with current go-gui. If you see it on an older revision:
 
-**Why:** Bundled static libraries compiled against older MinGW GCC may
-reference `__ms_vsscanf`, which was removed in MinGW-w64 GCC ≥15. The
+**Why:** Bundled static libraries compiled against older MinGW GCC may reference
+`__ms_vsscanf`, which was removed in MinGW-w64 GCC ≥15. The
 `gui/compat_mingw.go` file provides a compatibility shim.
 
 **Solutions (pick one):**
@@ -82,5 +83,5 @@ reference `__ms_vsscanf`, which was removed in MinGW-w64 GCC ≥15. The
    CGO_ENABLED=1 go build ./examples/showcase/
    ```
 
-3. **Use the release zip's pre-built binary.** Download from the latest
-   GitHub release.
+3. **Use the release zip's pre-built binary.** Download from the latest GitHub
+   release.

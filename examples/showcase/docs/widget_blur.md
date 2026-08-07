@@ -1,7 +1,7 @@
-Gaussian blur applied to a shape's fill. Set via the `BlurRadius`
-field on `ContainerCfg`, `ButtonCfg`, or `RectangleCfg`.
-Higher values produce softer, more diffused edges. The fill color must
-have `A > 0` for the blur to be visible.
+Gaussian blur applied to a shape's fill. Set via the `BlurRadius` field on
+`ContainerCfg`, `ButtonCfg`, or `RectangleCfg`. Higher values produce softer,
+more diffused edges. The fill color must have `A > 0` for the blur to be
+visible.
 
 ## Usage
 
@@ -47,7 +47,7 @@ gui.Column(gui.ContainerCfg{
 ## Widgets That Support BlurRadius
 
 | Widget       | Field      | Type    |
-|--------------|------------|---------|
+| ------------ | ---------- | ------- |
 | ContainerCfg | BlurRadius | float32 |
 | ButtonCfg    | BlurRadius | float32 |
 | RectangleCfg | BlurRadius | float32 |
@@ -56,7 +56,7 @@ gui.Column(gui.ContainerCfg{
 
 - `BlurRadius` is a plain `float32`, not `Opt[float32]`. Zero means no blur.
 - Combine with `Radius` (corner rounding) to create orb or pill glows.
-- Blur is rendered via a GPU shader pass; large radii have minimal
-  extra cost on Metal/OpenGL backends.
-- Distinct from `BoxShadow.BlurRadius` which blurs a drop shadow,
-  not the shape fill itself.
+- Blur is rendered via a GPU shader pass; large radii have minimal extra cost on
+  Metal/OpenGL backends.
+- Distinct from `BoxShadow.BlurRadius` which blurs a drop shadow, not the shape
+  fill itself.

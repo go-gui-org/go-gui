@@ -166,6 +166,6 @@ The most common allocation source in hot paths is slice growth. Pre-size with
 
 ### Scratch pool review
 
-`scratchPools` in `gui/scratch_pools.go` holds reusable per-frame buffers
-for frequently allocated types. When adding new hot-path allocations,
-consider pooling.
+`scratchPools` in `gui/scratch_pools.go` holds reusable per-frame buffers for
+frequently allocated types. When adding new hot-path allocations, consider
+pooling.

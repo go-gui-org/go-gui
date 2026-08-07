@@ -4,7 +4,8 @@ description: Simplify complex code by identifying refactoring opportunities
 
 # Code Simplification Workflow
 
-This workflow helps identify and implement simplifications in the go-gui codebase to improve maintainability and readability.
+This workflow helps identify and implement simplifications in the go-gui
+codebase to improve maintainability and readability.
 
 ## When to Use
 
@@ -50,6 +51,7 @@ Look for common patterns:
 Use these refactoring techniques:
 
 #### Extract Function
+
 ```go
 // Before
 func complexFunction(w *Window) {
@@ -58,7 +60,7 @@ func complexFunction(w *Window) {
     // ... 20+ lines of cleanup
 }
 
-// After  
+// After
 func complexFunction(w *Window) {
     setup(w)
     mainLogic(w)
@@ -67,6 +69,7 @@ func complexFunction(w *Window) {
 ```
 
 #### Simplify Conditionals
+
 ```go
 // Before
 if x != nil && x.Type == Button && x.Enabled && x.Visible {
@@ -80,6 +83,7 @@ if isButtonVisibleAndEnabled(x) {
 ```
 
 #### Extract Constants
+
 ```go
 // Before
 button.Height = 32
@@ -118,17 +122,19 @@ Update any affected documentation or examples.
 - **One change at a time**: Don't refactor multiple things simultaneously
 - **Preserve behavior**: Simplifications should not change observable behavior
 - **Add tests**: If simplifying untested code, add tests first
-- **Use descriptive names**: Extracted functions should clearly state their purpose
+- **Use descriptive names**: Extracted functions should clearly state their
+  purpose
 - **Keep functions small**: Aim for functions under 30-40 lines
 - **Reduce nesting**: Avoid deeply nested conditionals (>3 levels)
 
 ## Common Simplification Patterns in go-gui
 
 ### Widget Factory Simplification
+
 ```go
 // Complex factory with many parameters
-func ComplexButton(text string, onClick func(*Layout, *Event, *Window), 
-                  width, height float32, enabled bool, style ButtonStyle, 
+func ComplexButton(text string, onClick func(*Layout, *Event, *Window),
+                  width, height float32, enabled bool, style ButtonStyle,
                   icon string, tooltip string) *Layout {
     // ... complex logic
 }
@@ -140,6 +146,7 @@ func Button(cfg ButtonCfg) *Layout {
 ```
 
 ### Layout Simplification
+
 ```go
 // Before: nested container configs
 func buildUI() *Layout {

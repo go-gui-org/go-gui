@@ -16,7 +16,8 @@ cues from other go-gui examples and the colors come from `gui.ThemeDark` /
 - Live process list: PID, CPU%, RSS, MEM%, USER, STATE, THREADS, NAME.
 - Click a column header to sort; click again to reverse.
 - Select a row for a detail panel with ~60s rolling CPU and RAM charts.
-- Filter box matching name, command line, user, or PID (substring, case-insensitive).
+- Filter box matching name, command line, user, or PID (substring,
+  case-insensitive).
 - Flat list **or** parent/child tree (collapse a subtree with ▸/▾; an active
   filter keeps matched processes' ancestors visible).
 - Sample-interval selector: 0.5s / 1s / 2s / 5s.
@@ -49,8 +50,8 @@ process library. It shells out to the OS instead:
 - System memory totals come from `/proc/meminfo` (Linux) or `sysctl` + `vm_stat`
   (macOS); other platforms omit the memory bar.
 
-**CPU% caveat:** on Unix the value is `ps`'s `%cpu`, which is a *lifetime
-average*, not an instantaneous interval rate. It is a real, useful number and
+**CPU% caveat:** on Unix the value is `ps`'s `%cpu`, which is a _lifetime
+average_, not an instantaneous interval rate. It is a real, useful number and
 needs only one sample; a delta-based interval CPU% (two cumulative-CPU-time
 reads) would be the enhancement.
 
@@ -71,14 +72,14 @@ w.Unlock()
 
 `UpdateWindow` (not `UpdateView`) re-runs the registered view without clearing
 the state registry, so the filter input keeps focus and the list keeps its
-scroll position across refreshes. The backend's idle poll repaints within
-~100 ms, so no explicit wake is needed at these intervals.
+scroll position across refreshes. The backend's idle poll repaints within ~100
+ms, so no explicit wake is needed at these intervals.
 
 ### Stable processes + rolling history
 
 `ProcessStore` (`store.go`) keeps a stable `*Process` per identity so table rows
-and chart history survive across refreshes. Exited processes linger for 60 s
-(so their charts stay visible) and are then evicted — unless they are selected.
+and chart history survive across refreshes. Exited processes linger for 60 s (so
+their charts stay visible) and are then evicted — unless they are selected.
 
 ### Charts from plain containers
 

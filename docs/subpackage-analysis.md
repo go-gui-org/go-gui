@@ -5,14 +5,16 @@ package into subpackages (`gui/layout/`, `gui/animation/`, etc.).
 
 ## Current state
 
-- Root `gui/` package: ~200 non-test .go files at top level (~400 including tests)
-- 25 library packages under `gui/` (16 under `backend/`); 82 total in the
-  module including examples and tools
+- Root `gui/` package: ~200 non-test .go files at top level (~400 including
+  tests)
+- 25 library packages under `gui/` (16 under `backend/`); 82 total in the module
+  including examples and tools
 - Compile time: 0.28s — not a problem
 - File naming convention: `layout_*.go`, `render_*.go`, `view_*.go`,
   `animation_*.go` — provides grep-level discoverability
 - Existing subpackages: `datagrid`, `markdown`, `svg`, `svg/css`, `highlight`,
-  `audio`, `shader` — leaf subsystems that import `gui` but aren't imported by it
+  `audio`, `shader` — leaf subsystems that import `gui` but aren't imported by
+  it
 
 ## Why core subsystems can't move
 
@@ -25,8 +27,8 @@ Core types are mutually dependent. Examples:
 - Animation types (`animation_layout.go`, `animation_tween.go`) reference
   `Window`, `Layout`, `Sizing`
 - Layout engine (`layout_arrange.go`) references `Shape`, `Layout`
-- Render engine (`render_layout.go`) walks `Layout` trees and reads shape
-  state (e.g. `Opacity`) that animations mutate
+- Render engine (`render_layout.go`) walks `Layout` trees and reads shape state
+  (e.g. `Opacity`) that animations mutate
 
 Moving `Window` to `gui/window` and animation to `gui/animation` creates:
 
@@ -57,7 +59,8 @@ doesn't allow.
 
 Standalone leaf types with no internal dependencies:
 
-- `color` (`color.go`, `color_hsv.go`, `color_filter.go`) — only imports `fmt`/`math`
+- `color` (`color.go`, `color_hsv.go`, `color_filter.go`) — only imports
+  `fmt`/`math`
 - `opt` (`opt.go`) — standalone generic
 - `bounded` (`bounded_stack.go`, `bounded_map.go`) — standalone data structures
 

@@ -1,6 +1,6 @@
-Button wired to a registered command. Auto-fills label
-and shortcut hint from the command, auto-disables when CanExecute returns
-false, and routes clicks through the command registry.
+Button wired to a registered command. Auto-fills label and shortcut hint from
+the command, auto-disables when CanExecute returns false, and routes clicks
+through the command registry.
 
 ## Usage
 
@@ -36,26 +36,26 @@ gui.CommandButton(w, "edit.delete", gui.ButtonCfg{ID: "btn-del"})
 
 ## Behavior
 
-| Behavior          | Description                                        |
-|-------------------|----------------------------------------------------|
-| Auto-label        | Label + shortcut hint from Command if no Content   |
-| Auto-disable      | Disabled when CanExecute returns false              |
-| Click routing     | OnClick delegates to Command.Execute               |
-| Custom content    | Supply ButtonCfg.Content to override auto-label    |
-| Custom OnClick    | Supply ButtonCfg.OnClick to override command wiring |
+| Behavior       | Description                                         |
+| -------------- | --------------------------------------------------- |
+| Auto-label     | Label + shortcut hint from Command if no Content    |
+| Auto-disable   | Disabled when CanExecute returns false              |
+| Click routing  | OnClick delegates to Command.Execute                |
+| Custom content | Supply ButtonCfg.Content to override auto-label     |
+| Custom OnClick | Supply ButtonCfg.OnClick to override command wiring |
 
 ## Key Properties
 
 CommandButton accepts a standard ButtonCfg. The most relevant fields:
 
-| Property    | Type         | Description                                |
-|-------------|--------------|--------------------------------------------|
-| ID          | string       | Unique identifier (required)               |
-| Content     | []View       | Custom content (overrides auto-label)      |
-| OnClick     | func(...)    | Custom handler (overrides command wiring)  |
-| Disabled    | bool         | Force disable (also set by CanExecute)     |
-| IDFocus     | uint32       | Tab-order focus ID (> 0 to enable)         |
-| Sizing      | Sizing       | Combined axis sizing mode                  |
+| Property | Type      | Description                               |
+| -------- | --------- | ----------------------------------------- |
+| ID       | string    | Unique identifier (required)              |
+| Content  | []View    | Custom content (overrides auto-label)     |
+| OnClick  | func(...) | Custom handler (overrides command wiring) |
+| Disabled | bool      | Force disable (also set by CanExecute)    |
+| IDFocus  | uint32    | Tab-order focus ID (> 0 to enable)        |
+| Sizing   | Sizing    | Combined axis sizing mode                 |
 
 ## Appearance
 
@@ -64,9 +64,9 @@ SizeBorder, etc.). See Button docs for the full list.
 
 ## Accessibility
 
-| Property        | Type        | Description                            |
-|-----------------|-------------|----------------------------------------|
-| A11YRole        | AccessRole  | Accessible role override               |
-| A11YState       | AccessState | Accessible state override              |
-| A11YLabel       | string      | Accessible label                       |
-| A11YDescription | string      | Accessible description                 |
+| Property        | Type        | Description               |
+| --------------- | ----------- | ------------------------- |
+| A11YRole        | AccessRole  | Accessible role override  |
+| A11YState       | AccessState | Accessible state override |
+| A11YLabel       | string      | Accessible label          |
+| A11YDescription | string      | Accessible description    |

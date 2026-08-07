@@ -1,6 +1,6 @@
-Resizable two-pane split with a draggable divider handle.
-Supports horizontal and vertical orientation, keyboard navigation,
-pane collapse, and optional collapse buttons.
+Resizable two-pane split with a draggable divider handle. Supports horizontal
+and vertical orientation, keyboard navigation, pane collapse, and optional
+collapse buttons.
 
 ## Usage
 
@@ -40,65 +40,65 @@ gui.Splitter(gui.SplitterCfg{
 
 ## Key Properties
 
-| Property            | Type                | Description                          |
-|---------------------|---------------------|--------------------------------------|
-| ID                  | string              | Unique identifier                    |
-| IDFocus             | uint32              | Tab-order focus ID (> 0 to enable)   |
-| Orientation         | SplitterOrientation | Horizontal or vertical split         |
+| Property            | Type                | Description                             |
+| ------------------- | ------------------- | --------------------------------------- |
+| ID                  | string              | Unique identifier                       |
+| IDFocus             | uint32              | Tab-order focus ID (> 0 to enable)      |
+| Orientation         | SplitterOrientation | Horizontal or vertical split            |
 | Sizing              | Sizing              | Combined axis sizing (default FillFill) |
-| Ratio               | Opt[float32]        | Split position (0.0-1.0)            |
-| Collapsed           | SplitterCollapsed   | Which pane is collapsed              |
-| HandleSize          | Opt[float32]        | Drag handle thickness                |
-| DragStep            | Opt[float32]        | Keyboard step size                   |
-| DragStepLarge       | Opt[float32]        | Shift+arrow keyboard step            |
-| ShowCollapseButtons | bool                | Show collapse/expand buttons         |
-| Disabled            | bool                | Disable interaction                  |
-| Invisible           | bool                | Hide without removing from layout    |
+| Ratio               | Opt[float32]        | Split position (0.0-1.0)                |
+| Collapsed           | SplitterCollapsed   | Which pane is collapsed                 |
+| HandleSize          | Opt[float32]        | Drag handle thickness                   |
+| DragStep            | Opt[float32]        | Keyboard step size                      |
+| DragStepLarge       | Opt[float32]        | Shift+arrow keyboard step               |
+| ShowCollapseButtons | bool                | Show collapse/expand buttons            |
+| Disabled            | bool                | Disable interaction                     |
+| Invisible           | bool                | Hide without removing from layout       |
 
 ## SplitterPaneCfg (First / Second)
 
-| Property      | Type    | Description                          |
-|---------------|---------|--------------------------------------|
-| MinSize       | float32 | Minimum pane size                    |
-| MaxSize       | float32 | Maximum pane size                    |
-| Collapsible   | bool    | Allow pane collapse                  |
-| CollapsedSize | float32 | Size when collapsed                  |
-| Content       | []View  | Pane content                         |
+| Property      | Type    | Description         |
+| ------------- | ------- | ------------------- |
+| MinSize       | float32 | Minimum pane size   |
+| MaxSize       | float32 | Maximum pane size   |
+| Collapsible   | bool    | Allow pane collapse |
+| CollapsedSize | float32 | Size when collapsed |
+| Content       | []View  | Pane content        |
 
 ## Appearance
 
-| Property          | Type    | Description                          |
-|-------------------|---------|--------------------------------------|
-| ColorHandle       | Color   | Handle background                    |
-| ColorHandleHover  | Color   | Handle background on hover           |
-| ColorHandleActive | Color   | Handle background while dragging     |
-| ColorHandleBorder | Color   | Handle border color                  |
-| ColorGrip         | Color   | Grip indicator color                 |
-| ColorButton       | Color   | Collapse button background           |
-| ColorButtonHover  | Color   | Collapse button hover                |
-| ColorButtonActive | Color   | Collapse button active               |
-| ColorButtonIcon   | Color   | Collapse button icon color           |
-| SizeBorder        | Opt[float32] | Handle border width             |
-| Radius            | Opt[float32] | Handle corner radius            |
-| RadiusBorder      | Opt[float32] | Button/grip corner radius       |
+| Property          | Type         | Description                      |
+| ----------------- | ------------ | -------------------------------- |
+| ColorHandle       | Color        | Handle background                |
+| ColorHandleHover  | Color        | Handle background on hover       |
+| ColorHandleActive | Color        | Handle background while dragging |
+| ColorHandleBorder | Color        | Handle border color              |
+| ColorGrip         | Color        | Grip indicator color             |
+| ColorButton       | Color        | Collapse button background       |
+| ColorButtonHover  | Color        | Collapse button hover            |
+| ColorButtonActive | Color        | Collapse button active           |
+| ColorButtonIcon   | Color        | Collapse button icon color       |
+| SizeBorder        | Opt[float32] | Handle border width              |
+| Radius            | Opt[float32] | Handle corner radius             |
+| RadiusBorder      | Opt[float32] | Button/grip corner radius        |
 
 ## Events
 
-| Callback | Signature                                              | Fired when                   |
-|----------|--------------------------------------------------------|------------------------------|
-| OnChange | func(float32, SplitterCollapsed, *Event, *Window)      | Ratio or collapse changes    |
+| Callback | Signature                                         | Fired when                |
+| -------- | ------------------------------------------------- | ------------------------- |
+| OnChange | func(float32, SplitterCollapsed, *Event, *Window) | Ratio or collapse changes |
 
 ## Accessibility
 
-| Property        | Type   | Description                          |
-|-----------------|--------|--------------------------------------|
-| A11YLabel       | string | Accessible label                     |
-| A11YDescription | string | Accessible description               |
+| Property        | Type   | Description            |
+| --------------- | ------ | ---------------------- |
+| A11YLabel       | string | Accessible label       |
+| A11YDescription | string | Accessible description |
 
 ## Serialization
 
-SplitterState has JSON struct tags and text-marshaled enums,
-so standard `encoding/json` works directly.
+SplitterState has JSON struct tags and text-marshaled enums, so standard
+`encoding/json` works directly.
 
 ```go
 // Save

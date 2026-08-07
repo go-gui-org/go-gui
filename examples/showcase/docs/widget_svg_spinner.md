@@ -1,10 +1,9 @@
-One hundred six built-in animated SVG spinners drawn from
-the open-source svg-spinners collection plus extended SMIL- and
-CSS-driven assets. Each kind is embedded as raw SVG and rendered
-through the same pipeline as `gui.Svg`, so assets recolor via
-`fill=\"currentColor\"` and scale cleanly at any size. Identify a
-spinner by its `SvgSpinnerKind` constant; call `SvgSpinnerCount`
-or `SvgSpinnerName` to enumerate or label them.
+One hundred six built-in animated SVG spinners drawn from the open-source
+svg-spinners collection plus extended SMIL- and CSS-driven assets. Each kind is
+embedded as raw SVG and rendered through the same pipeline as `gui.Svg`, so
+assets recolor via `fill=\"currentColor\"` and scale cleanly at any size.
+Identify a spinner by its `SvgSpinnerKind` constant; call `SvgSpinnerCount` or
+`SvgSpinnerName` to enumerate or label them.
 
 ## Usage
 
@@ -36,9 +35,9 @@ gui.SvgSpinner(gui.SvgSpinnerCfg{
 })
 ```
 
-When both `Width` and `Height` are zero, the spinner
-defaults to 48x48. Setting only one axis leaves the other at zero so
-the containing layout or aspect ratio of the asset controls it.
+When both `Width` and `Height` are zero, the spinner defaults to 48x48. Setting
+only one axis leaves the other at zero so the containing layout or aspect ratio
+of the asset controls it.
 
 ## Enumerating Kinds
 
@@ -51,32 +50,32 @@ for i := range gui.SvgSpinnerCount() {
 
 ## Key Properties
 
-| Property  | Type           | Description                           |
-|-----------|----------------|---------------------------------------|
-| ID        | string         | Unique identifier (required)          |
-| Kind      | SvgSpinnerKind | One of 106 built-in spinners          |
-| Color     | Color          | Recolor monochrome assets             |
-| Width     | float32        | Explicit width (default 48 if both 0) |
-| Height    | float32        | Explicit height (default 48 if both 0)|
-| Sizing    | Sizing         | Combined axis sizing mode             |
-| Padding   | Opt[Padding]   | Outer padding                         |
-| MinWidth  | float32        | Minimum width                         |
-| MaxWidth  | float32        | Maximum width                         |
-| MinHeight | float32        | Minimum height                        |
-| MaxHeight | float32        | Maximum height                        |
-| OnClick   | func           | Click handler (optional)              |
+| Property  | Type           | Description                            |
+| --------- | -------------- | -------------------------------------- |
+| ID        | string         | Unique identifier (required)           |
+| Kind      | SvgSpinnerKind | One of 106 built-in spinners           |
+| Color     | Color          | Recolor monochrome assets              |
+| Width     | float32        | Explicit width (default 48 if both 0)  |
+| Height    | float32        | Explicit height (default 48 if both 0) |
+| Sizing    | Sizing         | Combined axis sizing mode              |
+| Padding   | Opt[Padding]   | Outer padding                          |
+| MinWidth  | float32        | Minimum width                          |
+| MaxWidth  | float32        | Maximum width                          |
+| MinHeight | float32        | Minimum height                         |
+| MaxHeight | float32        | Maximum height                         |
+| OnClick   | func           | Click handler (optional)               |
 
 ## Accessibility
 
 | Property        | Type   | Description                                      |
-|-----------------|--------|--------------------------------------------------|
+| --------------- | ------ | ------------------------------------------------ |
 | A11YLabel       | string | Short name announced by screen readers           |
 | A11YDescription | string | Longer description (e.g. "loading, please wait") |
 
 ## Helpers
 
 | Function          | Description                                   |
-|-------------------|-----------------------------------------------|
+| ----------------- | --------------------------------------------- |
 | SvgSpinnerCount() | Returns the number of built-in kinds (106)    |
 | SvgSpinnerName(k) | Returns the asset basename (e.g. "tail-spin") |
 
@@ -84,9 +83,9 @@ for i := range gui.SvgSpinnerCount() {
 
 SMIL features:
 
-- `<animate>`, `<animateTransform>` (rotate, translate, scale,
-  TRS sandwich), `<animateMotion>` with inline path or
-  `<mpath>` reference plus `rotate=\"auto\"`
+- `<animate>`, `<animateTransform>` (rotate, translate, scale, TRS sandwich),
+  `<animateMotion>` with inline path or `<mpath>` reference plus
+  `rotate=\"auto\"`
 - opacity, fill-opacity, stroke-opacity, per-role opacity
 - primitive attribute animation (cx/cy/r/x/y/width/height/rx/ry)
 - dash animations (stroke-dasharray, stroke-dashoffset)
@@ -100,15 +99,14 @@ CSS features:
 - selector cascade (id, class, type), presentation-attribute fallback
 - `@keyframes` with percentage stops, `animation` shorthand
 - `animation-iteration-count` (including `infinite`),
-  `animation-timing-function` (`steps()`, cubic-bezier),
-  delays, durations
+  `animation-timing-function` (`steps()`, cubic-bezier), delays, durations
 - multi-animation per element, `@media` query gating
 - `display:none` and mixed SMIL+CSS animation on the same shape
 
 ## Kinds: Rings & Circles
 
 | Constant                     | Asset                 |
-|------------------------------|-----------------------|
+| ---------------------------- | --------------------- |
 | SvgSpinner90Ring             | 90-ring               |
 | SvgSpinner90RingWithBg       | 90-ring-with-bg       |
 | SvgSpinner90RingWithGradient | 90-ring-with-gradient |
@@ -133,7 +131,7 @@ CSS features:
 ## Kinds: Dots
 
 | Constant                    | Asset                |
-|-----------------------------|----------------------|
+| --------------------------- | -------------------- |
 | SvgSpinner12DotsScaleRotate | 12-dots-scale-rotate |
 | SvgSpinner3DotsBounce       | 3-dots-bounce        |
 | SvgSpinner3DotsFade         | 3-dots-fade          |
@@ -153,7 +151,7 @@ CSS features:
 ## Kinds: Bars
 
 | Constant                  | Asset             |
-|---------------------------|-------------------|
+| ------------------------- | ----------------- |
 | SvgSpinnerBars            | bars              |
 | SvgSpinnerBarsFade        | bars-fade         |
 | SvgSpinnerBarsRotateFade  | bars-rotate-fade  |
@@ -164,23 +162,23 @@ CSS features:
 
 ## Kinds: Loaders
 
-| Constant            | Asset       |
-|---------------------|-------------|
-| SvgSpinnerLoader1   | loader1     |
-| SvgSpinnerLoader3   | loader3     |
-| SvgSpinnerLoader4   | loader4     |
-| SvgSpinnerLoader5   | loader5     |
-| SvgSpinnerLoader6   | loader6     |
-| SvgSpinnerLoader7   | loader7     |
-| SvgSpinnerLoader8   | loader8     |
-| SvgSpinnerLoader9   | loader9     |
-| SvgSpinnerLoader10  | loader10    |
-| SvgSpinnerLoaderWifi| loader-wifi |
+| Constant             | Asset       |
+| -------------------- | ----------- |
+| SvgSpinnerLoader1    | loader1     |
+| SvgSpinnerLoader3    | loader3     |
+| SvgSpinnerLoader4    | loader4     |
+| SvgSpinnerLoader5    | loader5     |
+| SvgSpinnerLoader6    | loader6     |
+| SvgSpinnerLoader7    | loader7     |
+| SvgSpinnerLoader8    | loader8     |
+| SvgSpinnerLoader9    | loader9     |
+| SvgSpinnerLoader10   | loader10    |
+| SvgSpinnerLoaderWifi | loader-wifi |
 
 ## Kinds: Blocks
 
 | Constant                 | Asset            |
-|--------------------------|------------------|
+| ------------------------ | ---------------- |
 | SvgSpinnerBlocksScale    | blocks-scale     |
 | SvgSpinnerBlocksShuffle2 | blocks-shuffle-2 |
 | SvgSpinnerBlocksShuffle3 | blocks-shuffle-3 |
@@ -191,7 +189,7 @@ CSS features:
 ## Kinds: Pulse
 
 | Constant                     | Asset                |
-|------------------------------|----------------------|
+| ---------------------------- | -------------------- |
 | SvgSpinnerGooeyBalls1        | gooey-balls-1        |
 | SvgSpinnerGooeyBalls2        | gooey-balls-2        |
 | SvgSpinnerHeartPulse         | heart-pulse          |
@@ -210,7 +208,7 @@ CSS features:
 ## Kinds: Cogs
 
 | Constant        | Asset |
-|-----------------|-------|
+| --------------- | ----- |
 | SvgSpinnerCog01 | cog01 |
 | SvgSpinnerCog02 | cog02 |
 | SvgSpinnerCog03 | cog03 |
@@ -239,7 +237,7 @@ CSS features:
 ## Kinds: Miscellaneous
 
 | Constant               | Asset         |
-|------------------------|---------------|
+| ---------------------- | ------------- |
 | SvgSpinnerAudio        | audio         |
 | SvgSpinnerBouncingBall | bouncing-ball |
 | SvgSpinnerCircleFade   | circle-fade   |
@@ -253,10 +251,10 @@ CSS features:
 
 ## Caveats
 
-- Assets relying on SMIL or CSS features outside the supported subset
-  may render as their static first frame.
-- `<set>` defaults to freeze semantics (SMIL default is remove);
-  authors who want remove must set `fill=\"remove\"` explicitly.
-- `SvgSpinnerCount` and enum values are generated from the embedded
-  asset directory, so numeric values shift when assets are added or
-  removed — always reference kinds by their named constant.
+- Assets relying on SMIL or CSS features outside the supported subset may render
+  as their static first frame.
+- `<set>` defaults to freeze semantics (SMIL default is remove); authors who
+  want remove must set `fill=\"remove\"` explicitly.
+- `SvgSpinnerCount` and enum values are generated from the embedded asset
+  directory, so numeric values shift when assets are added or removed — always
+  reference kinds by their named constant.

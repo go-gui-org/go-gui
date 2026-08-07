@@ -1,9 +1,8 @@
-Post-processing color matrix transforms on container content.
-Set `ColorFilter` on `ContainerCfg` to apply a 4×4 color
-matrix to the container's rendered content. The container is captured
-into an FBO, the matrix is applied via a GPU shader pass, and the
-result is composited back. Works independently of or combined with
-`BlurRadius`.
+Post-processing color matrix transforms on container content. Set `ColorFilter`
+on `ContainerCfg` to apply a 4×4 color matrix to the container's rendered
+content. The container is captured into an FBO, the matrix is applied via a GPU
+shader pass, and the result is composited back. Works independently of or
+combined with `BlurRadius`.
 
 ## Grayscale
 
@@ -51,8 +50,8 @@ gui.Column(gui.ContainerCfg{
 
 ## Contrast
 
-1 = identity, 0 = all gray, >1 = higher contrast. Bias is injected
-via the alpha column (correct for premultiplied-alpha FBO content).
+1 = identity, 0 = all gray, >1 = higher contrast. Bias is injected via the alpha
+column (correct for premultiplied-alpha FBO content).
 
 ```go
 gui.Column(gui.ContainerCfg{
@@ -74,8 +73,8 @@ gui.Column(gui.ContainerCfg{
 
 ## Invert
 
-Negates RGB channels. Uses the alpha column to inject bias
-(output.rgb = alpha − input.rgb).
+Negates RGB channels. Uses the alpha column to inject bias (output.rgb = alpha −
+input.rgb).
 
 ```go
 gui.Column(gui.ContainerCfg{
@@ -86,9 +85,9 @@ gui.Column(gui.ContainerCfg{
 
 ## Combined with Blur
 
-When both `BlurRadius` and `ColorFilter` are set, the FBO
-pipeline runs gaussian blur first, then the color matrix pass,
-then composites. The SDF blur (`RenderBlur`) is suppressed.
+When both `BlurRadius` and `ColorFilter` are set, the FBO pipeline runs gaussian
+blur first, then the color matrix pass, then composites. The SDF blur
+(`RenderBlur`) is suppressed.
 
 ```go
 gui.Column(gui.ContainerCfg{
@@ -101,22 +100,22 @@ gui.Column(gui.ContainerCfg{
 
 ## Constructors
 
-| Constructor                  | Description                              |
-|------------------------------|------------------------------------------|
-| ColorFilterIdentity()        | No-op (identity matrix)                  |
-| ColorFilterGrayscale()       | Luminance-weighted grayscale             |
-| ColorFilterSepia()           | Warm sepia tone                          |
-| ColorFilterSaturate(amount)  | 0=gray, 1=identity, >1=oversaturated     |
-| ColorFilterBrightness(amount)| Scale RGB channels                       |
-| ColorFilterContrast(amount)  | Scale around 0.5 midpoint                |
-| ColorFilterHueRotate(deg)    | Rotate hue in degrees                    |
-| ColorFilterInvert()          | Negate RGB, keep alpha                   |
+| Constructor                   | Description                          |
+| ----------------------------- | ------------------------------------ |
+| ColorFilterIdentity()         | No-op (identity matrix)              |
+| ColorFilterGrayscale()        | Luminance-weighted grayscale         |
+| ColorFilterSepia()            | Warm sepia tone                      |
+| ColorFilterSaturate(amount)   | 0=gray, 1=identity, >1=oversaturated |
+| ColorFilterBrightness(amount) | Scale RGB channels                   |
+| ColorFilterContrast(amount)   | Scale around 0.5 midpoint            |
+| ColorFilterHueRotate(deg)     | Rotate hue in degrees                |
+| ColorFilterInvert()           | Negate RGB, keep alpha               |
 
 ## Custom Matrix
 
-For effects not covered by the built-in constructors, set
-`Matrix` directly. Column-major `[16]float32`, applied as
-`clamp(M * pixel, 0, 1)` in the fragment shader.
+For effects not covered by the built-in constructors, set `Matrix` directly.
+Column-major `[16]float32`, applied as `clamp(M * pixel, 0, 1)` in the fragment
+shader.
 
 ```go
 gui.Column(gui.ContainerCfg{
@@ -134,10 +133,9 @@ gui.Column(gui.ContainerCfg{
 ## Notes
 
 - Containers only — not available on individual widgets.
-- No nesting. A single FBO pair is used; nested filter brackets
-  are guarded against at the render level.
+- No nesting. A single FBO pair is used; nested filter brackets are guarded
+  against at the render level.
 - Operates on premultiplied-alpha pixels from the FBO.
-- Contrast and invert inject bias via the alpha column of the
-  matrix, which is correct for premultiplied content.
-- Rendered via Metal and OpenGL backends.
-  ignores the color matrix.
+- Contrast and invert inject bias via the alpha column of the matrix, which is
+  correct for premultiplied content.
+- Rendered via Metal and OpenGL backends. ignores the color matrix.

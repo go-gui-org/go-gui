@@ -1,10 +1,14 @@
 ---
-description: any input (code, docs, papers, images) - knowledge graph - clustered communities - HTML + JSON + audit report
+description:
+  any input (code, docs, papers, images) - knowledge graph - clustered
+  communities - HTML + JSON + audit report
 ---
 
 # /graphify
 
-Turn any folder of files into a navigable knowledge graph with community detection, an honest audit trail, and three outputs: interactive HTML, GraphRAG-ready JSON, and a plain-language GRAPH_REPORT.md.
+Turn any folder of files into a navigable knowledge graph with community
+detection, an honest audit trail, and three outputs: interactive HTML,
+GraphRAG-ready JSON, and a plain-language GRAPH_REPORT.md.
 
 ## Usage
 
@@ -37,14 +41,22 @@ Turn any folder of files into a navigable knowledge graph with community detecti
 
 ## What graphify is for
 
-graphify is built around Andrej Karpathy's /raw folder workflow: drop anything into a folder - papers, tweets, screenshots, code, notes - and get a structured knowledge graph that shows you what you didn't know was connected.
+graphify is built around Andrej Karpathy's /raw folder workflow: drop anything
+into a folder - papers, tweets, screenshots, code, notes - and get a structured
+knowledge graph that shows you what you didn't know was connected.
 
 Three things it does that Claude alone cannot:
-1. **Persistent graph** - relationships are stored in `graphify-out/graph.json` and survive across sessions. Ask questions weeks later without re-reading everything.
-2. **Honest audit trail** - every edge is tagged EXTRACTED, INFERRED, or AMBIGUOUS. You know what was found vs invented.
-3. **Cross-document surprise** - community detection finds connections between concepts in different files that you would never think to ask about directly.
+
+1. **Persistent graph** - relationships are stored in `graphify-out/graph.json`
+   and survive across sessions. Ask questions weeks later without re-reading
+   everything.
+2. **Honest audit trail** - every edge is tagged EXTRACTED, INFERRED, or
+   AMBIGUOUS. You know what was found vs invented.
+3. **Cross-document surprise** - community detection finds connections between
+   concepts in different files that you would never think to ask about directly.
 
 Use it for:
+
 - A codebase you're new to (understand architecture before touching anything)
 - A reading list (papers + tweets + notes → one navigable graph)
 - A research corpus (citation graph + concept graph in one)
@@ -52,15 +64,19 @@ Use it for:
 
 ## What You Must Do When Invoked
 
-If no path was given, use `.` (current directory). Do not ask the user for a path.
+If no path was given, use `.` (current directory). Do not ask the user for a
+path.
 
-If path argument starts with `https://github.com/` or `http://github.com/`, treat it as a GitHub URL — run Step 0 before anything else, then continue with the resolved local path.
+If path argument starts with `https://github.com/` or `http://github.com/`,
+treat it as a GitHub URL — run Step 0 before anything else, then continue with
+the resolved local path.
 
 Follow these steps in order. Do not skip steps.
 
 ### Step 0 - Clone GitHub repo(s) (only if a GitHub URL was given)
 
 **Single repo:**
+
 ```bash
 # Clone the repo to a temporary location and use that as the target path
 TEMP_DIR=$(mktemp -d)
@@ -69,6 +85,7 @@ git clone <github-url> "$TEMP_DIR"
 ```
 
 **Multiple repos (cross-repo graph):**
+
 ```bash
 # Clone each repo to separate temp directories
 TEMP_DIR1=$(mktemp -d)
@@ -99,8 +116,10 @@ graphify <target-path> <options>
 ### Step 3 - Review outputs
 
 graphify generates three main outputs:
+
 1. **graphify-out/graph.html** - Interactive visualization
 2. **graphify-out/graph.json** - GraphRAG-ready JSON data
 3. **graphify-out/GRAPH_REPORT.md** - Plain-language analysis report
 
-Review these outputs and provide a summary of the key findings, communities detected, and any interesting connections discovered.
+Review these outputs and provide a summary of the key findings, communities
+detected, and any interesting connections discovered.

@@ -3,118 +3,117 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+and this project adheres to
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [v0.51.1] - 2026-08-07
 
 ### Changed
 
 - **go-glyph v1.18.2 → v1.19.0.** Brings cap-height-matched fallback glyphs
-  (fallback letters as tall as the primary's), upright-face preference on
-  weight ties, and scratch `CachedGlyph` slice reuse (no per-frame
-  allocation in the terminal steady-state path).
+  (fallback letters as tall as the primary's), upright-face preference on weight
+  ties, and scratch `CachedGlyph` slice reuse (no per-frame allocation in the
+  terminal steady-state path).
 
 ## [v0.51.0] - 2026-08-06
 
 ### Changed
 
 - **`Event.ScrollX`/`ScrollY` now have a defined unit.** For a discrete mouse
-  wheel (`ScrollPrecise` false) they carry **lines of text**, and every
-  backend converts its native representation to the platform's lines-per-
-  notch — roughly three on all of them. Precise/trackpad deltas are unchanged
-  and still carry pre-scaled points of finger travel; consumers that care must
-  branch on `ScrollPrecise`. The field previously had no documented unit and
-  each backend picked its own: Metal pre-scaled a notch to 2.5 while Win32 and
-  X11 emitted a bare 1.0, so the same gesture scrolled 2.5x further on macOS
-  than on Windows or Linux. Embedders that scaled `ScrollY` by their own
-  constant (rather than by `Theme.ScrollMultiplier`) should re-check their
-  factor.
+  wheel (`ScrollPrecise` false) they carry **lines of text**, and every backend
+  converts its native representation to the platform's lines-per- notch —
+  roughly three on all of them. Precise/trackpad deltas are unchanged and still
+  carry pre-scaled points of finger travel; consumers that care must branch on
+  `ScrollPrecise`. The field previously had no documented unit and each backend
+  picked its own: Metal pre-scaled a notch to 2.5 while Win32 and X11 emitted a
+  bare 1.0, so the same gesture scrolled 2.5x further on macOS than on Windows
+  or Linux. Embedders that scaled `ScrollY` by their own constant (rather than
+  by `Theme.ScrollMultiplier`) should re-check their factor.
 
 ### Fixed
 
 - **Mouse wheel ignored the Windows scroll-speed setting.** The Win32 backend
-  reported a bare notch count and never read `SPI_GETWHEELSCROLLLINES`
-  (Control Panel → Mouse → Wheel, three lines by default), so an embedder
-  scaling by its own per-unit constant scrolled a fraction of what the user
-  asked for. The setting is now honoured, including the "one screen at a time"
+  reported a bare notch count and never read `SPI_GETWHEELSCROLLLINES` (Control
+  Panel → Mouse → Wheel, three lines by default), so an embedder scaling by its
+  own per-unit constant scrolled a fraction of what the user asked for. The
+  setting is now honoured, including the "one screen at a time"
   (`WHEEL_PAGESCROLL`) sentinel, and re-read per event so a change applies
   without a restart. `WM_MOUSEHWHEEL` gained the matching
   `SPI_GETWHEELSCROLLCHARS` handling.
-- **X11 wheel buttons carried no magnitude.** Buttons 4–7 now report three
-  lines per notch, matching GTK, Qt, and the Windows default.
+- **X11 wheel buttons carried no magnitude.** Buttons 4–7 now report three lines
+  per notch, matching GTK, Qt, and the Windows default.
 
 ## [v0.50.0] - 2026-08-05
 
 ### Added
 
 - **Window icons on Linux and Windows.** The GL backend now publishes
-  `WindowCfg.IconPNG` (or the go-gui default) as `_NET_WM_ICON` on X11 and
-  as the big/small window icons via `WM_SETICON` on Windows, so the taskbar
-  and alt-tab show the app's icon instead of the window manager's default.
-  New `WindowCfg.WMClass` sets the X11 `WM_CLASS` property (both slots) for
-  window grouping and `.desktop`-file matching. The Windows tray icon path
-  moves into `gui/backend/internal/hicon`, shared with the GL backend.
+  `WindowCfg.IconPNG` (or the go-gui default) as `_NET_WM_ICON` on X11 and as
+  the big/small window icons via `WM_SETICON` on Windows, so the taskbar and
+  alt-tab show the app's icon instead of the window manager's default. New
+  `WindowCfg.WMClass` sets the X11 `WM_CLASS` property (both slots) for window
+  grouping and `.desktop`-file matching. The Windows tray icon path moves into
+  `gui/backend/internal/hicon`, shared with the GL backend.
 
 ## [v0.49.1] - 2026-08-05
 
 ### Changed
 
 - **Dependency: `go-glyph` v1.18.1 → v1.18.2.** Picks up the atlas fix where
-  glyph uploads now precede textured draws, eliminating the one-frame blank
-  lag on first glyph appearance.
+  glyph uploads now precede textured draws, eliminating the one-frame blank lag
+  on first glyph appearance.
 
 ## [v0.49.0] - 2026-08-05
 
 ### Added
 
-- **X11 IME support via IBus over D-Bus (#150).** Linux windows can now
-  compose text with an input method: IBus connects over D-Bus, receives
-  pre-edit clauses, and delivers committed text to the focused widget.
-  Pre-edit display is hooked into the standard composition path, the
-  selected clause is highlighted from `IBusAttrList` (#163), and the
-  connection closes race-free with a bounded queue that matches the
-  release keysym column (#167).
+- **X11 IME support via IBus over D-Bus (#150).** Linux windows can now compose
+  text with an input method: IBus connects over D-Bus, receives pre-edit
+  clauses, and delivers committed text to the focused widget. Pre-edit display
+  is hooked into the standard composition path, the selected clause is
+  highlighted from `IBusAttrList` (#163), and the connection closes race-free
+  with a bounded queue that matches the release keysym column (#167).
 
 ### Changed
 
-- **Linux audio is now cgo-free by default (#141).** `gui/audio` decoded
-  and mixed with pure-Go `beep`, but its output sink went through
-  `oto`, whose Linux driver is cgo (ALSA). That left one package blocking
-  `CGO_ENABLED=0 GOOS=linux go build ./...` even after the go-gl removal
-  in #137. The output driver is now a small three-function seam
+- **Linux audio is now cgo-free by default (#141).** `gui/audio` decoded and
+  mixed with pure-Go `beep`, but its output sink went through `oto`, whose Linux
+  driver is cgo (ALSA). That left one package blocking
+  `CGO_ENABLED=0 GOOS=linux go build ./...` even after the go-gl removal in
+  #137. The output driver is now a small three-function seam
   (`outputInit`/`outputPlay`/`outputClose`) with two implementations: the
   default Linux build uses a pure-Go PulseAudio sink
-  (`github.com/jfreymuth/pulse`, native protocol over a socket), so the
-  whole module cross-compiles with no C toolchain. It requires a running
-  PulseAudio or PipeWire server — present on any desktop; when absent,
-  `audio.Init` returns an error and audio is disabled rather than
-  crashing. Building with `-tags otoaudio` selects the previous oto/ALSA
-  backend for direct-ALSA or maximum hardware compatibility. The public
-  `gui/audio` API is unchanged, and Windows/macOS still use oto. The
-  CGo-free CI cross-compile widened from `./gui/backend/...` to `./...`.
+  (`github.com/jfreymuth/pulse`, native protocol over a socket), so the whole
+  module cross-compiles with no C toolchain. It requires a running PulseAudio or
+  PipeWire server — present on any desktop; when absent, `audio.Init` returns an
+  error and audio is disabled rather than crashing. Building with
+  `-tags otoaudio` selects the previous oto/ALSA backend for direct-ALSA or
+  maximum hardware compatibility. The public `gui/audio` API is unchanged, and
+  Windows/macOS still use oto. The CGo-free CI cross-compile widened from
+  `./gui/backend/...` to `./...`.
 - **Dependencies: go-glyph bumped to v1.18.1.**
-- **Test: GL backend smoke test skips when cgo is linked (#168).** The
-  smoke test needs the cgo-free dispatch path; when the binary is built
-  with cgo the load fails, so the test now skips instead of failing.
+- **Test: GL backend smoke test skips when cgo is linked (#168).** The smoke
+  test needs the cgo-free dispatch path; when the binary is built with cgo the
+  load fails, so the test now skips instead of failing.
 - **Docs: C toolchain requirement scoped to macOS only.**
 
 ## [v0.48.1] - 2026-08-04
 
 ### Fixed
 
-- **Key repeat delivered no characters on macOS (#159).** macOS
-  press-and-hold is on by default. After the first `insertText:`, AppKit
-  hands the held key to the accent-palette machinery and stops calling
-  `insertText:` for the auto-repeat `keyDown:` events that follow, so every
-  repeat reached the toolkit as a bare `EventKeyDown` with no `EventChar`
-  behind it. Holding a letter typed one character, holding Backspace
-  deleted one character, and a terminal pane echoed nothing for the whole
-  hold. `metalAppInit` now registers `ApplePressAndHoldEnabled=NO` before
-  `sharedApplication`. Registered rather than written: the registration
-  domain sits at the bottom of the defaults search order, so nothing is
-  persisted to disk and `defaults write -g ApplePressAndHoldEnabled -bool
-  true` — which lives in NSGlobalDomain and outranks it — still restores
-  the accent palette for anyone who wants it over key repeat.
+- **Key repeat delivered no characters on macOS (#159).** macOS press-and-hold
+  is on by default. After the first `insertText:`, AppKit hands the held key to
+  the accent-palette machinery and stops calling `insertText:` for the
+  auto-repeat `keyDown:` events that follow, so every repeat reached the toolkit
+  as a bare `EventKeyDown` with no `EventChar` behind it. Holding a letter typed
+  one character, holding Backspace deleted one character, and a terminal pane
+  echoed nothing for the whole hold. `metalAppInit` now registers
+  `ApplePressAndHoldEnabled=NO` before `sharedApplication`. Registered rather
+  than written: the registration domain sits at the bottom of the defaults
+  search order, so nothing is persisted to disk and
+  `defaults write -g ApplePressAndHoldEnabled -bool true` — which lives in
+  NSGlobalDomain and outranks it — still restores the accent palette for anyone
+  who wants it over key repeat.
 
 ## [v0.48.0] - 2026-08-04
 
@@ -122,87 +121,82 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Re-focusing an already-focused widget destroyed the IME composition
   (#156).** `SetFocus` was not idempotent: it cleared the preedit and
-  re-activated the platform input context even when the requested ID was
-  already the focused one. Consumers legitimately re-assert focus from
-  inside their `View` function, which runs on every layout rebuild — i.e.
-  after every keystroke — so a CJK composition was torn down between each
-  update. The preedit flashed and never accumulated, leaving CJK input
-  unusable end to end. `imeClear` and the `IMEStart`/`IMEStop` pair now run
-  only on a real focus change. Text-selection clearing and the cursor-blink
-  reset are unchanged, so callers that re-focus to reset a selection still
-  work.
-- **App fonts were ignored on iOS and Android (#132).** Both backends
-  loaded the bundled icon font but never called `gui.LoadAppFonts`, so
-  `RegisterAppFont` / `RegisterAppFontBytes` were a silent no-op there.
-  That also made `ThemeCfg.IconFontFamily` unusable on those platforms —
-  retargeting the themed icon styles at a font that never loaded rendered
-  tofu. Both now register the app-font lists right after the icon font, as
-  the GL and Metal backends already did.
-- **Metal backend dropped IME commit events (#149).** Text-input callbacks
-  wrote a single global event slot, so when one `[NSApp sendEvent:]` fired
-  several `NSTextInputClient` callbacks — the normal CJK sequence of
-  `insertText:` (commit) immediately followed by `setMarkedText:` (residual
-  composition) — each overwrote the previous and only the last reached Go.
-  Committing Japanese produced zero characters; preedit rendering was
-  unaffected. Text events now go through a FIFO drained one per
-  `metalPollEvent`, so every callback is delivered, in order. The
-  `_evIMEGeneration`/`_evIMEConsumedGen` pair is gone — an empty queue
-  encodes the same signal.
-- **Japanese converted text could never be committed on macOS.** After the
-  IME converted a composition (Space, or picking from the candidate window),
-  Enter did nothing at all: no `insertText:`, no callback of any kind, and the
-  preedit stayed on screen forever. Two `NSTextInputClient` methods were
-  stubbed in ways the input method treats as "this client has no document":
-  `selectedRange` returned `{NSNotFound, 0}` — which IMK then used as the base
-  for its range arithmetic, producing garbage queries like
-  `{NSNotFound - 30, 30}` — and `attributedSubstringForProposedRange:`
-  returned `nil`, though a converted commit asks for the text it is replacing.
-  `selectedRange` now reports the selection the IME last set inside the
-  composition, and `attributedSubstringForProposedRange:` serves the
-  composition text (clamped, `nil` only when genuinely out of range).
-  `validAttributesForMarkedText` now advertises the standard marked-text
-  attributes instead of an empty list. Reproduced and fixed against a plain
-  AppKit program with no go-gui code in it, so this was protocol conformance,
-  not an event-loop problem. Unconverted kana commits were unaffected, which
-  is why plain `nihongo` + Enter always worked.
-- **Keys the input method owns no longer also reach the widget on macOS.**
-  While a composition is live the IME owns the keyboard — arrows move between
-  conversion clauses, Enter commits, Escape reverts — but the raw
-  `EventKeyDown` was delivered as well, so the field's caret (and the preedit
-  drawn at it) slid sideways under the arrow keys, and Enter could fire a
-  widget action mid-composition. `keyDown:` now marks a keystroke as claimed
-  when a composition was in progress or the key started one, and
-  `metalPollEvent` drops it; the visible effect arrives as the queued
-  composition or commit instead.
+  re-activated the platform input context even when the requested ID was already
+  the focused one. Consumers legitimately re-assert focus from inside their
+  `View` function, which runs on every layout rebuild — i.e. after every
+  keystroke — so a CJK composition was torn down between each update. The
+  preedit flashed and never accumulated, leaving CJK input unusable end to end.
+  `imeClear` and the `IMEStart`/`IMEStop` pair now run only on a real focus
+  change. Text-selection clearing and the cursor-blink reset are unchanged, so
+  callers that re-focus to reset a selection still work.
+- **App fonts were ignored on iOS and Android (#132).** Both backends loaded the
+  bundled icon font but never called `gui.LoadAppFonts`, so `RegisterAppFont` /
+  `RegisterAppFontBytes` were a silent no-op there. That also made
+  `ThemeCfg.IconFontFamily` unusable on those platforms — retargeting the themed
+  icon styles at a font that never loaded rendered tofu. Both now register the
+  app-font lists right after the icon font, as the GL and Metal backends already
+  did.
+- **Metal backend dropped IME commit events (#149).** Text-input callbacks wrote
+  a single global event slot, so when one `[NSApp sendEvent:]` fired several
+  `NSTextInputClient` callbacks — the normal CJK sequence of `insertText:`
+  (commit) immediately followed by `setMarkedText:` (residual composition) —
+  each overwrote the previous and only the last reached Go. Committing Japanese
+  produced zero characters; preedit rendering was unaffected. Text events now go
+  through a FIFO drained one per `metalPollEvent`, so every callback is
+  delivered, in order. The `_evIMEGeneration`/`_evIMEConsumedGen` pair is gone —
+  an empty queue encodes the same signal.
+- **Japanese converted text could never be committed on macOS.** After the IME
+  converted a composition (Space, or picking from the candidate window), Enter
+  did nothing at all: no `insertText:`, no callback of any kind, and the preedit
+  stayed on screen forever. Two `NSTextInputClient` methods were stubbed in ways
+  the input method treats as "this client has no document": `selectedRange`
+  returned `{NSNotFound, 0}` — which IMK then used as the base for its range
+  arithmetic, producing garbage queries like `{NSNotFound - 30, 30}` — and
+  `attributedSubstringForProposedRange:` returned `nil`, though a converted
+  commit asks for the text it is replacing. `selectedRange` now reports the
+  selection the IME last set inside the composition, and
+  `attributedSubstringForProposedRange:` serves the composition text (clamped,
+  `nil` only when genuinely out of range). `validAttributesForMarkedText` now
+  advertises the standard marked-text attributes instead of an empty list.
+  Reproduced and fixed against a plain AppKit program with no go-gui code in it,
+  so this was protocol conformance, not an event-loop problem. Unconverted kana
+  commits were unaffected, which is why plain `nihongo` + Enter always worked.
+- **Keys the input method owns no longer also reach the widget on macOS.** While
+  a composition is live the IME owns the keyboard — arrows move between
+  conversion clauses, Enter commits, Escape reverts — but the raw `EventKeyDown`
+  was delivered as well, so the field's caret (and the preedit drawn at it) slid
+  sideways under the arrow keys, and Enter could fire a widget action
+  mid-composition. `keyDown:` now marks a keystroke as claimed when a
+  composition was in progress or the key started one, and `metalPollEvent` drops
+  it; the visible effect arrives as the queued composition or commit instead.
 - **Placeholder text no longer stays visible during IME composition.** The
   preedit was inserted into the placeholder rather than replacing it, so the
-  hint was pushed out to the right of the composing text ("かんEnter a name").
-  A placeholder is a hint, not content, so a composition now replaces it
-  outright; a field with real text still gets the preedit inserted at the
-  cursor. Applies to every backend, not just macOS.
+  hint was pushed out to the right of the composing text ("かんEnter a name"). A
+  placeholder is a hint, not content, so a composition now replaces it outright;
+  a field with real text still gets the preedit inserted at the cursor. Applies
+  to every backend, not just macOS.
 - **Metal backend now reports the end of an IME composition.** An empty
   `setMarkedText:` (composition cancelled) previously wrote no event at all,
   leaving the preedit on screen. It is delivered as an `EventIMEComposition`
   with empty `IMEText`, which `Window.imeUpdate` already treats as "clear".
 - **IME composition offsets are clamped to the preedit.** `IMEStart` and
   `IMELength` cross a platform boundary — Cocoa's `NSRange`, the Android
-  bridge's `int64`, the browser's composition events — and fed slice
-  arithmetic in the render path unchecked. `NSNotFound` in particular
-  truncates to `-1` in the event's `int32`. `Window.imeUpdate` now clamps both
-  to the composition's rune range, so a confused or hostile input method can
-  mis-place an underline but cannot panic the renderer.
+  bridge's `int64`, the browser's composition events — and fed slice arithmetic
+  in the render path unchecked. `NSNotFound` in particular truncates to `-1` in
+  the event's `int32`. `Window.imeUpdate` now clamps both to the composition's
+  rune range, so a confused or hostile input method can mis-place an underline
+  but cannot panic the renderer.
 - **Web backend: keys the input method owns no longer reach the widget.** The
   browser fires `keydown` for arrows, Enter and Escape during a composition
   (`key == "Process"`, `isComposing == true`); the handler mapped the physical
   `code` and delivered an `EventKeyDown` anyway, so the caret slid out from
   under the preedit and Enter could fire a widget action mid-composition. The
-  same class of bug as the macOS fix above. Composing keydowns are now
-  ignored.
-- **Web backend: a cancelled composition now reports its end.**
-  `compositionend` with empty data (Escape) returned without emitting
-  anything, relying on a preceding `compositionupdate` to clear the state — a
-  browser/IME-dependent assumption. It now emits an `EventIMEComposition` with
-  empty `IMEText` directly.
+  same class of bug as the macOS fix above. Composing keydowns are now ignored.
+- **Web backend: a cancelled composition now reports its end.** `compositionend`
+  with empty data (Escape) returned without emitting anything, relying on a
+  preceding `compositionupdate` to clear the state — a browser/IME-dependent
+  assumption. It now emits an `EventIMEComposition` with empty `IMEText`
+  directly.
 
 ### Changed
 
@@ -211,17 +205,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   entry points through purego, so the Linux and Windows backends build with
   `CGO_ENABLED=0`. Loading is all-or-nothing — the full binding table resolves
   or init returns an error — so there is no partial, silently broken GL state.
-  Proc loading is per-platform (`egl_linux.go`, `wgl_windows.go`). No API
-  change for embedders; the macOS/Metal and web backends are untouched.
+  Proc loading is per-platform (`egl_linux.go`, `wgl_windows.go`). No API change
+  for embedders; the macOS/Metal and web backends are untouched.
 - **macOS now emits `EventKeyDown` for printable keys**, followed by
-  `EventChar`, matching X11, win32 and web. The KeyDown was previously
-  swallowed by the same single-slot overwrite. Text input is unaffected
-  (insertion runs on the Char path only), but two consequences are worth
-  noting for macOS apps: a `Command` registered with a modifier-less
-  `Shortcut` (e.g. `Shortcut{Key: KeyA}`) now fires on plain typing, as it
-  already did on Linux/Windows; and `InputCfg.OnKeyDown` now fires for
-  printable keys. Space-activated `OnKeyDown` handlers (select, combobox,
-  listbox, tree, date picker, menu) become live on macOS — previously dead.
+  `EventChar`, matching X11, win32 and web. The KeyDown was previously swallowed
+  by the same single-slot overwrite. Text input is unaffected (insertion runs on
+  the Char path only), but two consequences are worth noting for macOS apps: a
+  `Command` registered with a modifier-less `Shortcut` (e.g.
+  `Shortcut{Key: KeyA}`) now fires on plain typing, as it already did on
+  Linux/Windows; and `InputCfg.OnKeyDown` now fires for printable keys.
+  Space-activated `OnKeyDown` handlers (select, combobox, listbox, tree, date
+  picker, menu) become live on macOS — previously dead.
 
 ### Documentation
 
@@ -240,58 +234,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `IDC_IBEAM`, web `"text"`); these four had stayed unexported only because
   go-gui's own widgets were the sole callers. An embedder driving the cursor
   from an external protocol — a terminal widget honoring OSC 22, a canvas app
-  with its own hit regions — could not reach them and had to fall back to
-  Arrow. Additive; no behavior change.
+  with its own hit regions — could not reach them and had to fall back to Arrow.
+  Additive; no behavior change.
 
 ## [v0.46.0] - 2026-08-01
 
 ### Added
 
-- **X11 PRIMARY selection.** `Window.SetPrimary`/`GetPrimary` (with the
-  matching `SetPrimaryFn`/`SetPrimaryGetFn` backend hooks) expose the
-  select-to-copy buffer that middle-click pastes on Unix — independent of
-  CLIPBOARD, so an app can hold two different values at once. The X11 backend
-  already owned selections for CLIPBOARD; PRIMARY reuses that machinery via a
-  shared `selectionState` mapping, and `SelectionClear` now releases only the
-  selection actually lost instead of both. Other backends leave the hooks nil,
-  so `GetPrimary` returns `""` and `SetPrimary` is a no-op on macOS, Windows,
-  web, and mobile.
+- **X11 PRIMARY selection.** `Window.SetPrimary`/`GetPrimary` (with the matching
+  `SetPrimaryFn`/`SetPrimaryGetFn` backend hooks) expose the select-to-copy
+  buffer that middle-click pastes on Unix — independent of CLIPBOARD, so an app
+  can hold two different values at once. The X11 backend already owned
+  selections for CLIPBOARD; PRIMARY reuses that machinery via a shared
+  `selectionState` mapping, and `SelectionClear` now releases only the selection
+  actually lost instead of both. Other backends leave the hooks nil, so
+  `GetPrimary` returns `""` and `SetPrimary` is a no-op on macOS, Windows, web,
+  and mobile.
 
 ## [v0.45.1] - 2026-07-31
 
 ### Fixed
 
 - **Metal backend: AppKit calls could land on a non-main thread.** The Go
-  runtime starts the main goroutine on thread 0 but does not keep it there —
-  any blocking syscall or cgo call before the backend starts (config load,
-  font registration, reading a file named on the command line) can let the
-  scheduler resume `main` on another M. `backend.New` / `backend.RunApp` then
-  called `runtime.LockOSThread` on the *wrong* thread and the first AppKit
-  call aborted with `API misuse: setting the main menu on a non-main thread`.
-  The metal package now calls `runtime.LockOSThread` from `init`, which runs
-  while the main goroutine is still on thread 0. Importing the backend is
-  sufficient; embedders need no init boilerplate.
+  runtime starts the main goroutine on thread 0 but does not keep it there — any
+  blocking syscall or cgo call before the backend starts (config load, font
+  registration, reading a file named on the command line) can let the scheduler
+  resume `main` on another M. `backend.New` / `backend.RunApp` then called
+  `runtime.LockOSThread` on the _wrong_ thread and the first AppKit call aborted
+  with `API misuse: setting the main menu on a non-main thread`. The metal
+  package now calls `runtime.LockOSThread` from `init`, which runs while the
+  main goroutine is still on thread 0. Importing the backend is sufficient;
+  embedders need no init boilerplate.
 - **Same main-thread pin applied to the `gl` (X11/Win32) and `ios` backends.**
   Latent rather than fatal there, but the same migration applies: an OpenGL
-  context is current on one thread at a time, Win32 delivers a window's
-  messages only to the thread that created it, and UIKit has AppKit's
-  main-thread rule. All three now lock from `init` instead of relying on the
-  late `LockOSThread` in `New` / `RunAppE` / `Run`.
+  context is current on one thread at a time, Win32 delivers a window's messages
+  only to the thread that created it, and UIKit has AppKit's main-thread rule.
+  All three now lock from `init` instead of relying on the late `LockOSThread`
+  in `New` / `RunAppE` / `Run`.
 
 ## [v0.45.0] - 2026-07-31
 
 ### Added
 
-- **`DrawContext.ImageClipped`.** Draws an image restricted to a
-  sub-rectangle: the texture still maps to the full destination rect, a
-  scissor decides what is visible. `DrawCanvasImageEntry` gained
-  `ClipX`/`ClipY`/`ClipW`/`ClipH` plus a `Clipped` flag to carry it, and the
-  emit path intersects that rect with the canvas clip (`RenderClip` replaces
-  the scissor rather than nesting) and restores the canvas clip afterwards.
-  Consumers that must paint a fragment of an image without cropping the source
-  file — a terminal emulator showing the visible cells of an image whose
-  remaining cells sit behind another pane — could not express that before.
-  Recorders (SVG/PDF export) receive the unclipped image, unchanged.
+- **`DrawContext.ImageClipped`.** Draws an image restricted to a sub-rectangle:
+  the texture still maps to the full destination rect, a scissor decides what is
+  visible. `DrawCanvasImageEntry` gained `ClipX`/`ClipY`/`ClipW`/`ClipH` plus a
+  `Clipped` flag to carry it, and the emit path intersects that rect with the
+  canvas clip (`RenderClip` replaces the scissor rather than nesting) and
+  restores the canvas clip afterwards. Consumers that must paint a fragment of
+  an image without cropping the source file — a terminal emulator showing the
+  visible cells of an image whose remaining cells sit behind another pane —
+  could not express that before. Recorders (SVG/PDF export) receive the
+  unclipped image, unchanged.
 
 ## [v0.44.0] - 2026-07-30
 
@@ -301,48 +295,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   separator from the app menu, leaving Quit alone, for apps that expose About
   under their own Help menu. Takes precedence over `AboutActionID` — no About
   item is created at all.
-- **`NativeMenubarCfg.IncludeWindowMenu`.** Auto-wires the standard Window
-  menu (Close, Minimize, Zoom, Bring All to Front) and registers it with the
-  OS window list. Installing a menubar replaces the backend's default one, so
+- **`NativeMenubarCfg.IncludeWindowMenu`.** Auto-wires the standard Window menu
+  (Close, Minimize, Zoom, Bring All to Front) and registers it with the OS
+  window list. Installing a menubar replaces the backend's default one, so
   without this an app silently loses Cmd+W / Cmd+M.
-- **`ThemeCfg.IconFontFamily`.** Sets the font family used by every
-  theme-driven icon style (`Theme.Icon1`…`Icon6` and
-  `TreeStyle.TextStyleIcon`), so an app that ships its own curated icon font
-  can retarget them all with one field. Mirrors the existing
-  `MonoFontFamily` handling: defaulted to `IconFontName` in `baseCfg()`, and
-  an empty value falls back to `IconFontName`. No behavior change for
-  existing apps — the bundled Feather font stays embedded, registered, and
-  the default.
-- **`gui.RegisterAppFontBytes([]byte)`.** Registers an in-memory font
-  (e.g. one loaded with `go:embed`) alongside the existing path-based
-  `RegisterAppFont`. The text system persists the bytes to its own temp file
-  and removes it on teardown, so callers no longer need to manage one.
-  Consumed by the GL and Metal backends, matching where `AppFontPaths` is
-  consumed today.
+- **`ThemeCfg.IconFontFamily`.** Sets the font family used by every theme-driven
+  icon style (`Theme.Icon1`…`Icon6` and `TreeStyle.TextStyleIcon`), so an app
+  that ships its own curated icon font can retarget them all with one field.
+  Mirrors the existing `MonoFontFamily` handling: defaulted to `IconFontName` in
+  `baseCfg()`, and an empty value falls back to `IconFontName`. No behavior
+  change for existing apps — the bundled Feather font stays embedded,
+  registered, and the default.
+- **`gui.RegisterAppFontBytes([]byte)`.** Registers an in-memory font (e.g. one
+  loaded with `go:embed`) alongside the existing path-based `RegisterAppFont`.
+  The text system persists the bytes to its own temp file and removes it on
+  teardown, so callers no longer need to manage one. Consumed by the GL and
+  Metal backends, matching where `AppFontPaths` is consumed today.
 - **`gui.LoadAppFonts(FontRegistrar, string)`.** Registers everything in
   `AppFontPaths` and `AppFontData` with a text system, logging and skipping
-  fonts that fail to load so one bad font cannot stop the window from coming
-  up. Replaces the per-backend loops the GL and Metal backends each carried,
-  and takes the narrow `gui.FontRegistrar` interface
-  (`AddFontFile`/`AddFontBytes`) so backends yet to adopt it — iOS, Android —
-  can wire it up with one call.
+  fonts that fail to load so one bad font cannot stop the window from coming up.
+  Replaces the per-backend loops the GL and Metal backends each carried, and
+  takes the narrow `gui.FontRegistrar` interface (`AddFontFile`/`AddFontBytes`)
+  so backends yet to adopt it — iOS, Android — can wire it up with one call.
 
 ### Fixed
 
-- **Programmatic `Window.Dialog` / `DialogDismiss` now force a layout
-  rebuild.** The dialog overlay is built during a full layout pass, so a
-  caller outside the event path — a native menu action, a `QueueCommand` from
-  a worker — left the window otherwise idle and the render-only frames a
-  blinking cursor produces reused the existing layout tree. The dialog stayed
-  invisible (or, on dismiss, stayed on screen) until an unrelated event forced
-  a rebuild.
+- **Programmatic `Window.Dialog` / `DialogDismiss` now force a layout rebuild.**
+  The dialog overlay is built during a full layout pass, so a caller outside the
+  event path — a native menu action, a `QueueCommand` from a worker — left the
+  window otherwise idle and the render-only frames a blinking cursor produces
+  reused the existing layout tree. The dialog stayed invisible (or, on dismiss,
+  stayed on screen) until an unrelated event forced a rebuild.
 
 ## [v0.43.0] - 2026-07-26
 
 ### Added
 
-- **`Window.PumpFrame`.** Drives a single frame — flush, rebuild, present —
-  from outside the normal event loop. This is what lets the Metal backend keep
+- **`Window.PumpFrame`.** Drives a single frame — flush, rebuild, present — from
+  outside the normal event loop. This is what lets the Metal backend keep
   rendering while a nested AppKit run loop (a modal sheet, a native menu
   tracking session) owns the main thread.
 
@@ -354,9 +344,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `GenerateLayout` via `ViewFunc`, so the widget no longer needs a window at
   construction time. Callers drop the first argument:
   `gui.CommandButton(w, "save", cfg)` → `gui.CommandButton("save", cfg)`.
-- **Dependencies: `go-glyph` bumped to v1.18.0**, picking up
-  `TextSystem.Purge` / `GlyphAtlas.Reset` / `Renderer.PurgeGlyphCache` for
-  mid-session glyph and atlas memory reclamation.
+- **Dependencies: `go-glyph` bumped to v1.18.0**, picking up `TextSystem.Purge`
+  / `GlyphAtlas.Reset` / `Renderer.PurgeGlyphCache` for mid-session glyph and
+  atlas memory reclamation.
 
 ### Fixed
 
@@ -371,34 +361,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **System alert sound.** `Window.Beep` plays the platform's alert sound
-  (`NSBeep` on macOS, `MessageBeep` on Windows, the freedesktop `bell` event
-  via `canberra-gtk-play` on Linux), honoring the user's system-wide alert
-  sound choice, volume, and mute settings. `Window.BeepAvailable` reports
-  whether the platform can actually produce one, so callers can fall back to
-  a visual cue on mobile, wasm, and Linux without canberra installed. Backed
-  by the new `gui/backend/sysbeep` package and a `NativeSound` sub-interface
-  on `NativePlatform`. This is for incidental out-of-band alerts such as a
-  terminal BEL — it loads no assets and holds no output device open, unlike
-  `gui/audio`.
-- **ViewFunc.** A function adapter for `gui.View` that defers construction
-  of window-dependent subtrees to layout time, keeping the content tree
-  free of a pre-created `*Window` reference.
+  (`NSBeep` on macOS, `MessageBeep` on Windows, the freedesktop `bell` event via
+  `canberra-gtk-play` on Linux), honoring the user's system-wide alert sound
+  choice, volume, and mute settings. `Window.BeepAvailable` reports whether the
+  platform can actually produce one, so callers can fall back to a visual cue on
+  mobile, wasm, and Linux without canberra installed. Backed by the new
+  `gui/backend/sysbeep` package and a `NativeSound` sub-interface on
+  `NativePlatform`. This is for incidental out-of-band alerts such as a terminal
+  BEL — it loads no assets and holds no output device open, unlike `gui/audio`.
+- **ViewFunc.** A function adapter for `gui.View` that defers construction of
+  window-dependent subtrees to layout time, keeping the content tree free of a
+  pre-created `*Window` reference.
 
 ## [v0.41.1] - 2026-07-20
 
 ### Fixed
 
 - **Command-queue buffer race.** `flushCommands` recycled its buffer into the
-  scratch pool before finishing iteration; a concurrent `QueueCommand` from
-  the animation goroutine could reclaim that same array and append into it
-  mid-iteration, losing or duplicating queued commands. The buffer is now
-  handed back only after execution completes.
+  scratch pool before finishing iteration; a concurrent `QueueCommand` from the
+  animation goroutine could reclaim that same array and append into it
+  mid-iteration, losing or duplicating queued commands. The buffer is now handed
+  back only after execution completes.
 - **Smooth scrolling could end fractionally short of its target.** A settled
-  ease retires one animation tick after computing its final value; a main
-  thread that missed that 16ms window dropped the snap-to-target. Entries now
-  carry a dirty flag so the final value survives until the next flush, and a
-  cancel clears it so direct offset writes are never overwritten by a stale
-  eased value.
+  ease retires one animation tick after computing its final value; a main thread
+  that missed that 16ms window dropped the snap-to-target. Entries now carry a
+  dirty flag so the final value survives until the next flush, and a cancel
+  clears it so direct offset writes are never overwritten by a stale eased
+  value.
 
 ## [v0.41.0] - 2026-07-20
 
@@ -406,20 +395,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **One-shot scroll anchoring.** New `Window.ScrollAnchor(scrollID, anchorID)`
   corrects the scroll offset on the next layout pass so the anchor view keeps
-  the viewport-relative position it has now — content inserted or removed
-  above the reader no longer causes a visual jump. The correction runs inside
-  the layout pipeline (new `layoutApplyScrollAnchors` pass after
-  `layoutPositions`), before the frame renders, so no intermediate position is
-  ever shown. Requests are one-shot, last-write-wins per scrollable, vertical
-  only, and bail to a plain jump when the anchor left the view, the content
-  fits the viewport, or the correction would leave the scrollable range.
-- **`Window.ScrollAnchorReveal`** anchors, then eases the scrollable to the
-  top with the same smoothing as `ScrollVerticalToSmooth`, so prepended
-  content glides into view. The ease arms inside the pipeline after the
-  correction lands (arming beforehand would no-op when the reader is already
-  at the top). An in-flight ease stays continuous across an anchoring
-  correction: its displayed position shifts with the content, its absolute
-  target is preserved.
+  the viewport-relative position it has now — content inserted or removed above
+  the reader no longer causes a visual jump. The correction runs inside the
+  layout pipeline (new `layoutApplyScrollAnchors` pass after `layoutPositions`),
+  before the frame renders, so no intermediate position is ever shown. Requests
+  are one-shot, last-write-wins per scrollable, vertical only, and bail to a
+  plain jump when the anchor left the view, the content fits the viewport, or
+  the correction would leave the scrollable range.
+- **`Window.ScrollAnchorReveal`** anchors, then eases the scrollable to the top
+  with the same smoothing as `ScrollVerticalToSmooth`, so prepended content
+  glides into view. The ease arms inside the pipeline after the correction lands
+  (arming beforehand would no-op when the reader is already at the top). An
+  in-flight ease stays continuous across an anchoring correction: its displayed
+  position shifts with the content, its absolute target is preserved.
 - **`Window.ScrollVerticalOffset(id)`** returns the current vertical scroll
   offset (<= 0, 0 = top), complementing the existing percentage-based
   `ScrollVerticalPct`.
@@ -430,10 +418,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Smooth programmatic scrolling.** New `Window.ScrollVerticalToSmooth` and
   `Window.ScrollHorizontalToSmooth` ease a scrollable to an absolute offset
-  using the same exponential smoothing as discrete mouse-wheel scrolling.
-  No-op when the scroll id is not found or the target equals the current
-  offset; instant `ScrollVerticalTo`/`ScrollHorizontalTo` still cancel any
-  in-flight ease. The wheel smoother's arm logic is now shared
+  using the same exponential smoothing as discrete mouse-wheel scrolling. No-op
+  when the scroll id is not found or the target equals the current offset;
+  instant `ScrollVerticalTo`/`ScrollHorizontalTo` still cancel any in-flight
+  ease. The wheel smoother's arm logic is now shared
   (`scrollSmoothParams`/`scrollSmoothArm`) between relative wheel deltas and
   absolute targets.
 
@@ -450,13 +438,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Toggle check-box sizing.** Off-by-one in hit-target calculation fixed.
 - **Metal mouse-down consumed by window resize drag.** Drag resize no longer
   leaks mouse-down to the app's mouse handler.
-- **Input batched-event echo and vertical centering.** Batched updates no
-  longer echo raw text; single-line fields center vertically after font-size
-  changes.
+- **Input batched-event echo and vertical centering.** Batched updates no longer
+  echo raw text; single-line fields center vertically after font-size changes.
 - **Data-grid quick-filter debounce.** Draft rendering during quick-filter is
   properly debounced.
-- **Sidebar close layout:** Sidebar drops children when fully closed to
-  prevent a fixed-width-0 content-resize bug.
+- **Sidebar close layout:** Sidebar drops children when fully closed to prevent
+  a fixed-width-0 content-resize bug.
 - **BoundedMap small-map fast path.** Pre-sizing the BoundedMap data map is
   removed to keep the fast path for small maps.
 - **buttonView folded into containerView,** and shapeEffects are pooled,
@@ -467,9 +454,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **`BoundedMap.GetOr`.** New method on `BoundedMap` that accepts a constructor
-  function, returning an existing value or publishing a new one without a
-  double lookup. Internal `BoundedMap.Get` callers with ignored-ok returns have
-  been migrated to `GetOr`, hardening the map against lost writes.
+  function, returning an existing value or publishing a new one without a double
+  lookup. Internal `BoundedMap.Get` callers with ignored-ok returns have been
+  migrated to `GetOr`, hardening the map against lost writes.
 - **Process monitor example.** New `examples/process_monitor` — a live task
   manager: filterable process list with flat/tree views, sortable columns, and
   per-process CPU/RAM history charts built from plain containers. Data is
@@ -482,8 +469,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Dependency bump.** Updated go-glyph to v1.17.2 (background cache warming
-  for CJK fallback coverage; no API change).
+- **Dependency bump.** Updated go-glyph to v1.17.2 (background cache warming for
+  CJK fallback coverage; no API change).
 
 ## [v0.38.1] - 2026-07-17
 
@@ -491,8 +478,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Dependency bump.** Updated go-glyph to v1.17.1 (struct field alignment,
   lower per-instance memory; no API change).
-- **`examples/fontviewer` cleanup.** Named magic numbers and removed code
-  smells in the font viewer example.
+- **`examples/fontviewer` cleanup.** Named magic numbers and removed code smells
+  in the font viewer example.
 
 ## [v0.38.0] - 2026-07-17
 
@@ -502,41 +489,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   browses installed system fonts in a virtualized card grid — name filter,
   editable sample text, 12–72 px size slider, click-to-copy. Backed by new
   public API: `gui.ListSystemFonts` with the optional `FontLister` backend
-  capability, and `gui.ListVisibleRange(itemCount, rowHeight, listHeight,
-  scrollY, overscan)` for grid/list virtualization. Requires go-glyph
-  v1.17.0.
+  capability, and
+  `gui.ListVisibleRange(itemCount, rowHeight, listHeight, scrollY, overscan)`
+  for grid/list virtualization. Requires go-glyph v1.17.0.
 
 ### Changed
 
-- **`Sizing: FillFill` root now fills the window.** A root layout has no
-  parent to fill against, so a `FillFill` root previously collapsed to
-  content size; filling the window required boilerplate `WindowSize()` plus
-  an explicit `Width`/`Height` and `FixedFixed`. Each Fill axis of the root
-  is now pinned to the window dimension, so the intuitive spelling works and
-  the examples/docs drop the boilerplate.
+- **`Sizing: FillFill` root now fills the window.** A root layout has no parent
+  to fill against, so a `FillFill` root previously collapsed to content size;
+  filling the window required boilerplate `WindowSize()` plus an explicit
+  `Width`/`Height` and `FixedFixed`. Each Fill axis of the root is now pinned to
+  the window dimension, so the intuitive spelling works and the examples/docs
+  drop the boilerplate.
 
 ### Fixed
 
 - **Fixed-size containers with a 0 dimension no longer break clipping and
-  hit-testing.** A container with `SizingFixed` and an explicit 0
-  width/height rendered (its children self-draw) but kept zero-area bounds,
-  collapsing the `shapeClip` — and therefore the clip region and the
-  pointer/hit-test region — of every descendant, so a child with `Clip:
-  true` vanished and interactive children went inert. Such a box now
-  degrades to content sizing on the zero axis. (#94)
+  hit-testing.** A container with `SizingFixed` and an explicit 0 width/height
+  rendered (its children self-draw) but kept zero-area bounds, collapsing the
+  `shapeClip` — and therefore the clip region and the pointer/hit-test region —
+  of every descendant, so a child with `Clip: true` vanished and interactive
+  children went inert. Such a box now degrades to content sizing on the zero
+  axis. (#94)
 
 ## [v0.37.0] - 2026-07-16
 
 ### Changed
 
 - **BREAKING: remaining interactive controls are focusable by default.**
-  `ButtonCfg`, `RadioCfg`, `RadioButtonGroupCfg`, `ComboboxCfg`,
-  `ListBoxCfg`, `TreeCfg`, `DatePickerCfg`, `ColorPickerCfg`,
-  `NumericInputCfg`, and `InputDateCfg` drop `Focusable bool` and gain
-  `FocusDisabled bool`: the zero value is now _focusable_, and
-  `FocusDisabled: true` is the explicit opt-out. This completes the
-  focusable-by-default flip started in v0.36.0 (which covered Input,
-  Select, Slider, Toggle, and Switch).
+  `ButtonCfg`, `RadioCfg`, `RadioButtonGroupCfg`, `ComboboxCfg`, `ListBoxCfg`,
+  `TreeCfg`, `DatePickerCfg`, `ColorPickerCfg`, `NumericInputCfg`, and
+  `InputDateCfg` drop `Focusable bool` and gain `FocusDisabled bool`: the zero
+  value is now _focusable_, and `FocusDisabled: true` is the explicit opt-out.
+  This completes the focusable-by-default flip started in v0.36.0 (which covered
+  Input, Select, Slider, Toggle, and Switch).
 
   Focus still requires a non-empty `ID` — an ID-less control is inert.
   `Disabled` still excludes from the tab order.
@@ -546,124 +532,119 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `Focusable: <expr>` → `FocusDisabled: !<expr>`.
   - `Focusable: false` → `FocusDisabled: true`.
 
-- **`InputDateCfg` outer Column gains focusability.** Previously the
-  outer container never set `Focusable`, so even with `Focusable: true`
-  the date field was unreachable by keyboard. The outer Column now maps
-  to `Focusable: !cfg.FocusDisabled`, matching the inner Input's focus
-  state.
+- **`InputDateCfg` outer Column gains focusability.** Previously the outer
+  container never set `Focusable`, so even with `Focusable: true` the date field
+  was unreachable by keyboard. The outer Column now maps to
+  `Focusable: !cfg.FocusDisabled`, matching the inner Input's focus state.
 
-- **`DatePickerCfg` and `ColorPickerCfg` drop redundant `cfg.Focusable`
-  gates** on focus-visual handlers. Focus visuals (border, color) now
-  always apply when focused; `Disabled` remains the guard.
+- **`DatePickerCfg` and `ColorPickerCfg` drop redundant `cfg.Focusable` gates**
+  on focus-visual handlers. Focus visuals (border, color) now always apply when
+  focused; `Disabled` remains the guard.
 
-- **`NumericInputCfg` and `InputDateCfg` propagate `FocusDisabled`
-  directly** to their inner `Input` instead of translating the inverse
-  (`!cfg.Focusable`). The opt-out intent passes through transparently.
+- **`NumericInputCfg` and `InputDateCfg` propagate `FocusDisabled` directly** to
+  their inner `Input` instead of translating the inverse (`!cfg.Focusable`). The
+  opt-out intent passes through transparently.
 
 ### Fixed
 
 - `InputDateCfg` callers: the outer Column was never focusable even with
-  `Focusable: true`. The inner `Input` was reachable but the container
-  wasn't — focus now flows consistently through the composite widget.
+  `Focusable: true`. The inner `Input` was reachable but the container wasn't —
+  focus now flows consistently through the composite widget.
 
 ## [v0.36.0] - 2026-07-16
 
 ### Added
 
-- **`InputCfg.ReadOnly`** — blocks text edits while the field stays
-  focusable and selectable. Navigation, selection, and copy keep
-  working; typing, IME text, paste, cut, undo/redo, delete, multiline
-  Enter, and `PostCommitNormalize` are all skipped. Single-line Enter
-  still fires `OnEnter`/`OnTextCommit`, with the text uncommitted and
-  unnormalized. The field is announced to assistive tech as
-  `AccessStateReadOnly`. Mirrors HTML's `readonly`, and is distinct from
-  `Disabled`, which removes the field from interaction entirely.
+- **`InputCfg.ReadOnly`** — blocks text edits while the field stays focusable
+  and selectable. Navigation, selection, and copy keep working; typing, IME
+  text, paste, cut, undo/redo, delete, multiline Enter, and
+  `PostCommitNormalize` are all skipped. Single-line Enter still fires
+  `OnEnter`/`OnTextCommit`, with the text uncommitted and unnormalized. The
+  field is announced to assistive tech as `AccessStateReadOnly`. Mirrors HTML's
+  `readonly`, and is distinct from `Disabled`, which removes the field from
+  interaction entirely.
 
-  This state was previously inexpressible: `AccessStateReadOnly` could
-  only be produced by setting `Focusable: false`, which also dropped the
-  field from the tab order — so an Input was either editable or
-  unreachable, with nothing in between. (With the focusable-by-default
-  flip below, `ReadOnly` is now the only trigger for the read-only
-  announcement.)
+  This state was previously inexpressible: `AccessStateReadOnly` could only be
+  produced by setting `Focusable: false`, which also dropped the field from the
+  tab order — so an Input was either editable or unreachable, with nothing in
+  between. (With the focusable-by-default flip below, `ReadOnly` is now the only
+  trigger for the read-only announcement.)
 
 - **`NumericInputCfg.ReadOnly` and `InputDateCfg.ReadOnly`** — extend
-  `InputCfg.ReadOnly` to the two composite wrappers. Both forward the
-  flag to their inner `Input` (blocking typing) and gate the secondary
-  mutation paths that bypass the text field: `NumericInput` disables and
-  gates its step buttons at the `numericInputApplyStep` choke point, and
-  `InputDate` keeps the calendar popup closed so its picker can never
-  emit a selection. Enter-commit on the read-only inner `Input` no longer
-  surfaces a value/date change. Both wrappers announce
-  `AccessStateReadOnly`. `NumericInputCfg` and `InputDateCfg` already had
-  `Disabled`; `ReadOnly` is the focusable-but-uneditable counterpart.
+  `InputCfg.ReadOnly` to the two composite wrappers. Both forward the flag to
+  their inner `Input` (blocking typing) and gate the secondary mutation paths
+  that bypass the text field: `NumericInput` disables and gates its step buttons
+  at the `numericInputApplyStep` choke point, and `InputDate` keeps the calendar
+  popup closed so its picker can never emit a selection. Enter-commit on the
+  read-only inner `Input` no longer surfaces a value/date change. Both wrappers
+  announce `AccessStateReadOnly`. `NumericInputCfg` and `InputDateCfg` already
+  had `Disabled`; `ReadOnly` is the focusable-but-uneditable counterpart.
 
 ### Fixed
 
-- **Read-only Input no longer renders IME preedit.** A composition
-  started on a read-only field displayed preedit text that could never
-  commit (`makeInputOnChar` swallows the commit), leaving a stray
-  artifact until focus change. Preedit rendering is now suppressed for
-  read-only fields; selection and cursor still render, since the field
-  stays `Focusable`. Editable fields are unaffected.
+- **Read-only Input no longer renders IME preedit.** A composition started on a
+  read-only field displayed preedit text that could never commit
+  (`makeInputOnChar` swallows the commit), leaving a stray artifact until focus
+  change. Preedit rendering is now suppressed for read-only fields; selection
+  and cursor still render, since the field stays `Focusable`. Editable fields
+  are unaffected.
 
-- **`CommandButton` now auto-fills `ID`** from the command ID, prefixed
-  with `cmdbtn:`. Focus traversal is keyed by `Shape.ID`, so a
-  `CommandButton` with `Focusable: true` but no explicit `ID` was
-  silently unreachable by keyboard. The prefix keeps the button's focus
-  ID distinct from the menu item driven by the same command, which
-  carries the raw command ID. Widgets that were dead tab stops now join
-  the tab order; pass an explicit `cfg.ID` for two buttons on one
+- **`CommandButton` now auto-fills `ID`** from the command ID, prefixed with
+  `cmdbtn:`. Focus traversal is keyed by `Shape.ID`, so a `CommandButton` with
+  `Focusable: true` but no explicit `ID` was silently unreachable by keyboard.
+  The prefix keeps the button's focus ID distinct from the menu item driven by
+  the same command, which carries the raw command ID. Widgets that were dead tab
+  stops now join the tab order; pass an explicit `cfg.ID` for two buttons on one
   command in the same window.
 - **36 examples** set `Focusable: true` without an `ID` and were not
-  keyboard-reachable, including `get_started`. All now carry stable IDs.
-  `snake` also dropped `controlsIDBase`/`startButtonID` numeric focus
-  IDs left over from the removed `IDFocus uint32` API.
+  keyboard-reachable, including `get_started`. All now carry stable IDs. `snake`
+  also dropped `controlsIDBase`/`startButtonID` numeric focus IDs left over from
+  the removed `IDFocus uint32` API.
 
 ### Changed
 
 - **BREAKING: input controls are focusable by default.** `InputCfg`,
-  `SelectCfg`, `SliderCfg`, `ToggleCfg`, and `SwitchCfg` drop
-  `Focusable bool` and gain `FocusDisabled bool`: the zero value is now
-  _focusable_, and `FocusDisabled: true` is the explicit opt-out. An
-  input the user can't tab to is a bug, not a design choice — and for
-  `Select`/`Slider`/`Toggle`/`Switch` this is an accessibility fix, not
-  just deboilerplating: ID-bearing call sites that never set `Focusable`
-  now join the Tab order (a slider should be keyboard-adjustable).
+  `SelectCfg`, `SliderCfg`, `ToggleCfg`, and `SwitchCfg` drop `Focusable bool`
+  and gain `FocusDisabled bool`: the zero value is now _focusable_, and
+  `FocusDisabled: true` is the explicit opt-out. An input the user can't tab to
+  is a bug, not a design choice — and for `Select`/`Slider`/`Toggle`/`Switch`
+  this is an accessibility fix, not just deboilerplating: ID-bearing call sites
+  that never set `Focusable` now join the Tab order (a slider should be
+  keyboard-adjustable).
 
-  Focus still requires a non-empty `ID` (`Focusable && ID != ""`). An
-  ID-less control is **inert**: it renders but never becomes a tab stop,
-  and no ID is ever fabricated. `Disabled` still excludes a control from
-  the tab order; `ReadOnly` still keeps it focusable.
+  Focus still requires a non-empty `ID` (`Focusable && ID != ""`). An ID-less
+  control is **inert**: it renders but never becomes a tab stop, and no ID is
+  ever fabricated. `Disabled` still excludes a control from the tab order;
+  `ReadOnly` still keeps it focusable.
 
   Migration (compile error on the removed field is the guide):
   - `Focusable: true` → delete the line (now the default).
   - `Focusable: <expr>` → `FocusDisabled: !<expr>`.
   - `Focusable: false` → `FocusDisabled: true`.
 
-  Out-of-scope widgets keep opt-in `Focusable bool`: Button, Container,
-  Text, and the composites/wrappers (`Combobox`, `DatePicker`,
-  `ListBox`, `RadioButtonGroup`, `NumericInput`, `InputDate`, `Radio`,
-  ColorPicker, ThemePicker, Tree) — the wrappers translate their
-  `Focusable` into the inner Input's `FocusDisabled`.
+  Out-of-scope widgets keep opt-in `Focusable bool`: Button, Container, Text,
+  and the composites/wrappers (`Combobox`, `DatePicker`, `ListBox`,
+  `RadioButtonGroup`, `NumericInput`, `InputDate`, `Radio`, ColorPicker,
+  ThemePicker, Tree) — the wrappers translate their `Focusable` into the inner
+  Input's `FocusDisabled`.
 
   The four focus flags, disambiguated:
 
-  | Flag                  | Meaning                                                 |
-  | --------------------- | ------------------------------------------------------- |
-  | `Shape.Focusable`     | widget participates in the focus system                 |
+  | Flag                  | Meaning                                                  |
+  | --------------------- | -------------------------------------------------------- |
+  | `Shape.Focusable`     | widget participates in the focus system                  |
   | `FocusSkip`           | focusable + click/selection, but excluded from Tab order |
-  | `FocusDisabled` (Cfg) | opt out of the default-on focus (in-scope Cfgs)         |
-  | `Disabled`            | non-interactive; also excluded from Tab order           |
+  | `FocusDisabled` (Cfg) | opt out of the default-on focus (in-scope Cfgs)          |
+  | `Disabled`            | non-interactive; also excluded from Tab order            |
 
-- **A non-focusable Input no longer announces `AccessStateReadOnly`.**
-  Before the flip, `Focusable: false` was the only way to express an
-  uneditable field, so it doubled as the read-only signal. Now that
-  non-focusable means an explicit `FocusDisabled` opt-out, only
-  `ReadOnly: true` announces read-only.
+- **A non-focusable Input no longer announces `AccessStateReadOnly`.** Before
+  the flip, `Focusable: false` was the only way to express an uneditable field,
+  so it doubled as the read-only signal. Now that non-focusable means an
+  explicit `FocusDisabled` opt-out, only `ReadOnly: true` announces read-only.
 
 - **`requiredid` analyzer** now also flags Cfg literals that set
-  `Focusable: true` without a non-empty `ID`, catching this class of
-  silent no-op at `go vet` time.
+  `Focusable: true` without a non-empty `ID`, catching this class of silent
+  no-op at `go vet` time.
 
 ## [v0.35.1] - 2026-07-15
 
@@ -671,99 +652,95 @@ Documentation-only release. No code or behavior changes; no migration needed.
 
 ### Changed
 
-- **`GenerateViewLayout` is no longer deprecated**. It is the supported
-  entry point for composite View widgets, which need to recurse a View
-  tree into a Layout tree. The deprecation pointed at
-  `View.GenerateLayout`, which builds a single node and does not recurse
-  into `Content()` — it was never an equivalent replacement, and no other
-  exported path existed. Callers that hand-rolled their own recursion to
-  avoid the warning should call `GenerateViewLayout` again; it applies
-  shape normalization, the child-count clamp, and frame-arena pre-sizing
-  that a hand-rolled copy misses. (#52)
+- **`GenerateViewLayout` is no longer deprecated**. It is the supported entry
+  point for composite View widgets, which need to recurse a View tree into a
+  Layout tree. The deprecation pointed at `View.GenerateLayout`, which builds a
+  single node and does not recurse into `Content()` — it was never an equivalent
+  replacement, and no other exported path existed. Callers that hand-rolled
+  their own recursion to avoid the warning should call `GenerateViewLayout`
+  again; it applies shape normalization, the child-count clamp, and frame-arena
+  pre-sizing that a hand-rolled copy misses. (#52)
 
 ### Fixed
 
 - **README**: removed SDL2-era install steps, corrected the text stack
-  description to the current pure-Go path, and refreshed the code samples
-  to the current API.
+  description to the current pure-Go path, and refreshed the code samples to the
+  current API.
 
 ## [v0.35.0] - 2026-07-15
 
 ### Changed
 
 - **BREAKING — Scroll API**: `Shape.IDScroll uint32` is replaced by
-  `Scrollable bool` plus string scroll identity (the widget's `ID`). A
-  container opts into the scroll system with `Scrollable: true` and a
-  non-empty `ID`; scroll offset is keyed by that `ID`. Migration:
-  `IDScroll: N` → `Scrollable: true` (with a non-empty `ID`). Scrollable
-  containers now panic at build if `ID` is empty (`RequireScrollID`).
-- **BREAKING — Lost scroll handle**: the caller-supplied `IDScroll uint32`
-  is removed from `ContainerCfg`, `ListBoxCfg`, `TreeCfg`, `TableCfg`,
-  `ComboboxCfg`, `CommandPaletteCfg`, `InputCfg` and `DataGridCfg`. The
-  scroll key is now *derived* from the widget's `ID`; pass that same
-  derived string to `Window.ScrollVerticalTo`/`ScrollHorizontalTo`/`…Pct`
-  etc. Derived keys:
+  `Scrollable bool` plus string scroll identity (the widget's `ID`). A container
+  opts into the scroll system with `Scrollable: true` and a non-empty `ID`;
+  scroll offset is keyed by that `ID`. Migration: `IDScroll: N` →
+  `Scrollable: true` (with a non-empty `ID`). Scrollable containers now panic at
+  build if `ID` is empty (`RequireScrollID`).
+- **BREAKING — Lost scroll handle**: the caller-supplied `IDScroll uint32` is
+  removed from `ContainerCfg`, `ListBoxCfg`, `TreeCfg`, `TableCfg`,
+  `ComboboxCfg`, `CommandPaletteCfg`, `InputCfg` and `DataGridCfg`. The scroll
+  key is now _derived_ from the widget's `ID`; pass that same derived string to
+  `Window.ScrollVerticalTo`/`ScrollHorizontalTo`/`…Pct` etc. Derived keys:
 
-  | Cfg | scroll key |
-  |-----|------------|
-  | `ContainerCfg`, `ListBoxCfg`, `TreeCfg`, `InputCfg` | `cfg.ID` |
-  | `TableCfg` | `cfg.ID`, or `cfg.ID + ":scroll"` when `FreezeHeader` |
-  | `ComboboxCfg` | `cfg.ID + ".dropdown"` |
-  | `CommandPaletteCfg` | `cfg.ID + ":scroll"` |
-  | `DataGridCfg` | `cfg.ID + ":scroll"` |
+  | Cfg                                                 | scroll key                                            |
+  | --------------------------------------------------- | ----------------------------------------------------- |
+  | `ContainerCfg`, `ListBoxCfg`, `TreeCfg`, `InputCfg` | `cfg.ID`                                              |
+  | `TableCfg`                                          | `cfg.ID`, or `cfg.ID + ":scroll"` when `FreezeHeader` |
+  | `ComboboxCfg`                                       | `cfg.ID + ".dropdown"`                                |
+  | `CommandPaletteCfg`                                 | `cfg.ID + ":scroll"`                                  |
+  | `DataGridCfg`                                       | `cfg.ID + ":scroll"`                                  |
 
-  `DataGridCfg.IDScroll` (an identity override) is deleted, not migrated;
-  the key always derives from `cfg.ID + ":scroll"`.
+  `DataGridCfg.IDScroll` (an identity override) is deleted, not migrated; the
+  key always derives from `cfg.ID + ":scroll"`.
+
 - **BREAKING — Window scroll offset maps**: `Window.ScrollX()` and
   `Window.ScrollY()` now return `*BoundedMap[string, float32]` (was
   `*BoundedMap[uint32, float32]`). All `Window.Scroll*` methods
-  (`ScrollHorizontalBy/To/ToPct/Pct`, `ScrollVerticalBy/To/ToPct/Pct`)
-  and `FindLayoutByScrollID` (renamed from `FindLayoutByIDScroll`) take a
-  `string` id.
-- **BREAKING — Scrollbar/command-palette cfgs**: `ScrollbarCfg.IDScroll
-  uint32` → `ScrollID string` (points at the target container's scroll
-  key). `CommandPaletteShow`/`CommandPaletteToggle` drop the `idScroll`
-  parameter; Show always resets the results scroll (keyed
-  `id + ":scroll"`) to the top.
-- **Scroll internals**: the scroll-offset maps are rekeyed uint32→string,
-  which sidesteps the `BoundedMap[uint32]` generic lookup penalty
-  ([#77](https://github.com/go-gui-org/go-gui/issues/77)); FnvSum32
-  scroll-hash derivation removed from Select, Combobox, DataGrid and the
-  theme picker. `Shape` shrinks 272 → 264 bytes (this change −8 with the
-  `IDScrollContainer` removal below).
+  (`ScrollHorizontalBy/To/ToPct/Pct`, `ScrollVerticalBy/To/ToPct/Pct`) and
+  `FindLayoutByScrollID` (renamed from `FindLayoutByIDScroll`) take a `string`
+  id.
+- **BREAKING — Scrollbar/command-palette cfgs**: `ScrollbarCfg.IDScroll uint32`
+  → `ScrollID string` (points at the target container's scroll key).
+  `CommandPaletteShow`/`CommandPaletteToggle` drop the `idScroll` parameter;
+  Show always resets the results scroll (keyed `id + ":scroll"`) to the top.
+- **Scroll internals**: the scroll-offset maps are rekeyed uint32→string, which
+  sidesteps the `BoundedMap[uint32]` generic lookup penalty
+  ([#77](https://github.com/go-gui-org/go-gui/issues/77)); FnvSum32 scroll-hash
+  derivation removed from Select, Combobox, DataGrid and the theme picker.
+  `Shape` shrinks 272 → 264 bytes (this change −8 with the `IDScrollContainer`
+  removal below).
 
 ### Removed
 
-- Dead `Shape.IDScrollContainer uint32` field and its per-frame
-  whole-tree `layoutScrollContainers` pass (zero readers).
+- Dead `Shape.IDScrollContainer uint32` field and its per-frame whole-tree
+  `layoutScrollContainers` pass (zero readers).
 
 ### Added
 
-- `BenchmarkViewFrame` gates `sizeof(Shape)` regressions by allocating
-  Shapes inside the hot loop (added to the `bench-gate` target).
+- `BenchmarkViewFrame` gates `sizeof(Shape)` regressions by allocating Shapes
+  inside the hot loop (added to the `bench-gate` target).
 
 ## [v0.34.0] - 2026-07-14
 
 ### Changed
 
 - **BREAKING — Focus API**: `Shape.IDFocus uint32` is replaced by
-  `Focusable bool` plus string focus identity (the widget's `ID`). Tab
-  order now follows layout-tree (DFS) order instead of ascending numeric
-  IDs. Window API: `SetFocus(id string)`, `FocusID() string`,
-  `IsFocus(id string)`, and `ClearFocus()` replace the uint32 variants.
-  Migration: `IDFocus: N` → `Focusable: true` (with a non-empty `ID`);
-  `SetIDFocus(0)` → `ClearFocus()`.
+  `Focusable bool` plus string focus identity (the widget's `ID`). Tab order now
+  follows layout-tree (DFS) order instead of ascending numeric IDs. Window API:
+  `SetFocus(id string)`, `FocusID() string`, `IsFocus(id string)`, and
+  `ClearFocus()` replace the uint32 variants. Migration: `IDFocus: N` →
+  `Focusable: true` (with a non-empty `ID`); `SetIDFocus(0)` → `ClearFocus()`.
 - **BREAKING — Widget cfgs**: `MenubarCfg`, `ContextMenuCfg`,
-  `CommandPaletteCfg`, and `DataGridCfg` lose `IDFocus`;
-  `DialogCfg.IDFocus` → `FocusID string`; `RadioButtonGroupCfg` gains
-  `ID`; menus and context menus now require an `ID`.
-  `CommandPaletteShow`/`CommandPaletteToggle` drop the `idFocus`
-  parameter (focus derives from the palette input's ID).
-- **Focus internals**: six per-window state namespaces rekeyed
-  uint32→string; FnvSum32 focus-hash derivation removed from menus and
-  datagrid (header/editor focus ids now derive from cell ID and column
-  index). Duplicate focusable IDs collapse to one tab stop with a
-  dev-mode warning (`GOGUI_FOCUS_DEBUG=1`). `IDScroll` is unchanged.
+  `CommandPaletteCfg`, and `DataGridCfg` lose `IDFocus`; `DialogCfg.IDFocus` →
+  `FocusID string`; `RadioButtonGroupCfg` gains `ID`; menus and context menus
+  now require an `ID`. `CommandPaletteShow`/`CommandPaletteToggle` drop the
+  `idFocus` parameter (focus derives from the palette input's ID).
+- **Focus internals**: six per-window state namespaces rekeyed uint32→string;
+  FnvSum32 focus-hash derivation removed from menus and datagrid (header/editor
+  focus ids now derive from cell ID and column index). Duplicate focusable IDs
+  collapse to one tab stop with a dev-mode warning (`GOGUI_FOCUS_DEBUG=1`).
+  `IDScroll` is unchanged.
 
 ## [v0.33.1] - 2026-07-14
 
@@ -772,20 +749,20 @@ Documentation-only release. No code or behavior changes; no migration needed.
 - **Dependencies**: go-glyph bumped to v1.16.2 — text symbols across many
   Unicode blocks (heavy asterisk U+2731 ✱, mahjong tiles, playing cards,
   alchemical and chess symbols, Supplemental Arrows-C, ~760 codepoints) no
-  longer render as the base font's `.notdef` tofu box, and default-text
-  emoji such as U+2733 ✳, ❄, ❤, ☀ now render as monochrome text glyphs
-  instead of being forced to color, matching Core Text and Ghostty. Also
-  propagates InlineObject metadata through rich-text layout and applies
-  script fallback in `LayoutRichText`.
+  longer render as the base font's `.notdef` tofu box, and default-text emoji
+  such as U+2733 ✳, ❄, ❤, ☀ now render as monochrome text glyphs instead of
+  being forced to color, matching Core Text and Ghostty. Also propagates
+  InlineObject metadata through rich-text layout and applies script fallback in
+  `LayoutRichText`.
 
 ## [v0.32.1] - 2026-07-12
 
 ### Fixed
 
-- **Dependencies**: go-glyph bumped to v1.16.1 — text symbols such as
-  U+23F5 ⏵ (the Misc Technical media triangles) no longer render as the
-  base font's `.notdef` tofu box; they now fall back to a real glyph
-  (STIX), matching Core Text.
+- **Dependencies**: go-glyph bumped to v1.16.1 — text symbols such as U+23F5 ⏵
+  (the Misc Technical media triangles) no longer render as the base font's
+  `.notdef` tofu box; they now fall back to a real glyph (STIX), matching Core
+  Text.
 
 ## [v0.32.0] - 2026-07-12
 
@@ -809,15 +786,15 @@ Documentation-only release. No code or behavior changes; no migration needed.
 
 ### Changed
 
-- **Dependencies**: go-glyph bumped to v1.15.0 — pure-Go text backends on
-  Linux, Android, macOS, and Windows (`go-text/typesetting` +
-  `x/image/vector`, `CGO_ENABLED=0`), replacing the cgo FreeType+HarfBuzz
-  stack. Pulls in `go-text/typesetting` and `golang.org/x/image` as indirect
-  deps; regenerates `docs/dependencies.md`. Drops the obsolete Android
-  native-deps build step from CI/release workflows.
-- **Markdown defaults**: paragraph `LineSpacing` reduced to 3 and
-  `BlockSpacing` raised to 12 so inter-block gaps stay larger than
-  intra-line gaps (fixes cramped spacing between wrapped list items).
+- **Dependencies**: go-glyph bumped to v1.15.0 — pure-Go text backends on Linux,
+  Android, macOS, and Windows (`go-text/typesetting` + `x/image/vector`,
+  `CGO_ENABLED=0`), replacing the cgo FreeType+HarfBuzz stack. Pulls in
+  `go-text/typesetting` and `golang.org/x/image` as indirect deps; regenerates
+  `docs/dependencies.md`. Drops the obsolete Android native-deps build step from
+  CI/release workflows.
+- **Markdown defaults**: paragraph `LineSpacing` reduced to 3 and `BlockSpacing`
+  raised to 12 so inter-block gaps stay larger than intra-line gaps (fixes
+  cramped spacing between wrapped list items).
 
 ### Fixed
 
@@ -843,9 +820,9 @@ Documentation-only release. No code or behavior changes; no migration needed.
 ### Changed
 
 - **Dependencies**: go-glyph bumped to v1.13.1 (Windows proportional-font
-  substitution now falls back to Consolas; internal draw/renderer dedup
-  between the FreeType and Darwin backends). Regenerates
-  `docs/dependencies.md` to match.
+  substitution now falls back to Consolas; internal draw/renderer dedup between
+  the FreeType and Darwin backends). Regenerates `docs/dependencies.md` to
+  match.
 
 ## [v0.30.0] - 2026-07-08
 
@@ -853,46 +830,45 @@ Documentation-only release. No code or behavior changes; no migration needed.
 
 - **Dependencies**: go-glyph bumped to v1.13.0 (FreeType+HarfBuzz replaces
   Pango/SDL2, native GLX+WGL backends, ASCII monospace shaping fast-path on
-  Darwin). The prior v2.0.0 tag was retracted — it lacks the `/v2` module
-  path suffix required by Go module conventions.
+  Darwin). The prior v2.0.0 tag was retracted — it lacks the `/v2` module path
+  suffix required by Go module conventions.
 
 ### Added
 
 - **Window vibrancy** (macOS): `Window.SetWindowVibrancy(VibrancyMaterial)`
-  places a translucent, blurred native `NSVisualEffectView` backdrop behind
-  the window content. Pair with a translucent `WindowCfg.BgColor` (alpha <
-  255) to reveal the backdrop; `VibrancyNone` restores an opaque window.
-  Implemented on the Metal backend (makes the window and its `CAMetalLayer`
-  non-opaque so content composites over the blur); no-op on SDL2, OpenGL,
-  web, iOS, and Android (Linux/Windows are out of scope, matching the
-  `TermGrid` issue). Built for go-term. See `examples/vibrancy`. (#31)
+  places a translucent, blurred native `NSVisualEffectView` backdrop behind the
+  window content. Pair with a translucent `WindowCfg.BgColor` (alpha < 255) to
+  reveal the backdrop; `VibrancyNone` restores an opaque window. Implemented on
+  the Metal backend (makes the window and its `CAMetalLayer` non-opaque so
+  content composites over the blur); no-op on SDL2, OpenGL, web, iOS, and
+  Android (Linux/Windows are out of scope, matching the `TermGrid` issue). Built
+  for go-term. See `examples/vibrancy`. (#31)
 - **`TermGrid` primitive**: a terminal character-grid widget
   (`TermGrid`/`TermGridCfg`) that draws a fixed-pitch cell buffer in a single
   `RenderTermGrid` command — no per-cell `Layout` node and no per-cell
   `RenderText`. Callers hand over a row-major `[]TermCell` with pre-resolved
   RGBA foreground/background, plus cursor and selection state; the backend
-  batches same-background runs into fills and pins glyphs to exact cell
-  columns via `DrawLayoutPlaced`. Honors the reverse and underline
-  attributes; bold/italic are reserved in `TermAttr` for a follow-up.
-  Rendered by the Metal and SDL2 backends (OpenGL out of scope). Built for
-  go-term and reusable across siblings. See `examples/termgrid`. (#30)
+  batches same-background runs into fills and pins glyphs to exact cell columns
+  via `DrawLayoutPlaced`. Honors the reverse and underline attributes;
+  bold/italic are reserved in `TermAttr` for a follow-up. Rendered by the Metal
+  and SDL2 backends (OpenGL out of scope). Built for go-term and reusable across
+  siblings. See `examples/termgrid`. (#30)
 
 ### Fixed
 
-- **GL backend**: narrow build tags from `!js` to `!js && !darwin` on the
-  real implementation files so they don't compile on macOS where
-  `platform_other.go` returns nil. Eliminates 50 unused-code lint warnings
-  on the default dev platform. macOS uses Metal, not GL.
+- **GL backend**: narrow build tags from `!js` to `!js && !darwin` on the real
+  implementation files so they don't compile on macOS where `platform_other.go`
+  returns nil. Eliminates 50 unused-code lint warnings on the default dev
+  platform. macOS uses Metal, not GL.
 - **Native dialogs**: track native (OS) modal visibility so `DialogIsVisible`
-  and the quit/close dedup see `NSAlert`-style dialogs too. Previously a
-  native confirm-before-quit could stack a duplicate dialog because the
-  second quit/close re-invoked `OnCloseRequest`. `DispatchCloseRequest` now
-  guards its hook path while a dialog is showing (the no-hook path still
-  closes). (#18)
-- **Modal dialogs**: retain keyboard focus inside an in-app modal dialog when
-  a focus-claiming widget (one that re-asserts `SetIDFocus` every view
-  rebuild) tries to steal it, so Tab/Esc/Enter keep working. Apps no longer
-  need to guard their own `SetIDFocus` with `DialogIsVisible`. (#18)
+  and the quit/close dedup see `NSAlert`-style dialogs too. Previously a native
+  confirm-before-quit could stack a duplicate dialog because the second
+  quit/close re-invoked `OnCloseRequest`. `DispatchCloseRequest` now guards its
+  hook path while a dialog is showing (the no-hook path still closes). (#18)
+- **Modal dialogs**: retain keyboard focus inside an in-app modal dialog when a
+  focus-claiming widget (one that re-asserts `SetIDFocus` every view rebuild)
+  tries to steal it, so Tab/Esc/Enter keep working. Apps no longer need to guard
+  their own `SetIDFocus` with `DialogIsVisible`. (#18)
 
 ## [v0.29.0] - 2026-06-28
 
@@ -908,22 +884,22 @@ Documentation-only release. No code or behavior changes; no migration needed.
 
 ### Fixed
 
-- **macOS Metal backend**: complete the Launch Services launch handshake so
-  a `.app` bundle launched from Finder is fully registered as a foreground
-  app — fixes absence from Cmd+Tab, gray titlebar buttons, and the
-  double-click-to-close behavior. Restore `activateIgnoringOtherApps:` for
-  the CLI-launch case so bare-exec windows come up active.
-- **macOS Metal backend**: fire `EventFocused` on
-  `applicationDidBecomeActive:` so keyboard and left-click input are
-  restored after a system dialog (e.g. TCC permissions) is dismissed, and
-  re-key the frontmost window when `keyWindow` is nil on app switch.
-- **DockLayout**: enlarge the tab close button (14×14 → 18×18) with a larger
-  × glyph, and add a spacer between the tab label and close button.
+- **macOS Metal backend**: complete the Launch Services launch handshake so a
+  `.app` bundle launched from Finder is fully registered as a foreground app —
+  fixes absence from Cmd+Tab, gray titlebar buttons, and the
+  double-click-to-close behavior. Restore `activateIgnoringOtherApps:` for the
+  CLI-launch case so bare-exec windows come up active.
+- **macOS Metal backend**: fire `EventFocused` on `applicationDidBecomeActive:`
+  so keyboard and left-click input are restored after a system dialog (e.g. TCC
+  permissions) is dismissed, and re-key the frontmost window when `keyWindow` is
+  nil on app switch.
+- **DockLayout**: enlarge the tab close button (14×14 → 18×18) with a larger ×
+  glyph, and add a spacer between the tab label and close button.
 
 ### Changed
 
-- **macOS Metal backend**: cache NSCursor selector C strings once at startup
-  to drop per-frame `C.CString` alloc/free from the cursor-update hot path.
+- **macOS Metal backend**: cache NSCursor selector C strings once at startup to
+  drop per-frame `C.CString` alloc/free from the cursor-update hot path.
 - **macOS Metal backend**: rename app-launch entry points to reflect their
   lifecycle stage (`metalAppInit` / `metalAppFinishLaunch`) and dedupe the
   wake-event construction and activation-focus paths.
@@ -941,23 +917,22 @@ Documentation-only release. No code or behavior changes; no migration needed.
 ### Added
 
 - **Native macOS backend**: new Metal-based backend with native window
-  management, event handling, cursor support, and menu integration via
-  AppKit. Replaces the SDL2 backend on macOS for proper platform
-  behavior.
-- **DockLayout**: `HideSingleTab` option hides the tab bar when only one
-  tab is present.
+  management, event handling, cursor support, and menu integration via AppKit.
+  Replaces the SDL2 backend on macOS for proper platform behavior.
+- **DockLayout**: `HideSingleTab` option hides the tab bar when only one tab is
+  present.
 
 ### Changed
 
-- **Performance**: content dimensions and sibling sums cached during
-  fill pass to avoid redundant recalculation during layout.
+- **Performance**: content dimensions and sibling sums cached during fill pass
+  to avoid redundant recalculation during layout.
 
 ### Fixed
 
 - **DockLayout**: close button rendered as × instead of an empty box.
 - **WASM backend**: hardened against iPadOS Safari crashes.
-- **SVG**: `arcToCubic` guarded against NaN/Inf radii and float32
-  overflow panic.
+- **SVG**: `arcToCubic` guarded against NaN/Inf radii and float32 overflow
+  panic.
 - **Website**: `status.html` included in deploy output.
 - **Windows CI**: MSYS2 pinned to stable release.
 
@@ -965,8 +940,8 @@ Documentation-only release. No code or behavior changes; no migration needed.
 
 ### Fixed
 
-- **Windows CI**: pin MSYS2 to stable release to fix `__ms_vsscanf`
-  undefined reference linker error with GCC 16.1.0.
+- **Windows CI**: pin MSYS2 to stable release to fix `__ms_vsscanf` undefined
+  reference linker error with GCC 16.1.0.
 
 ## [v0.27.0] - 2026-06-17
 
@@ -981,32 +956,32 @@ Documentation-only release. No code or behavior changes; no migration needed.
 - **CI hardening**: race detector enabled, caching and cache-key rotation,
   deduplication, 800-line file-size gate, deadcode detection, `go mod tidy`
   check, fuzz-crash detection, and security scans (gosec).
-- **Shared native-platform glue**: `App` native integration tests and
-  extracted platform abstraction for backend consistency.
+- **Shared native-platform glue**: `App` native integration tests and extracted
+  platform abstraction for backend consistency.
 
 ### Changed
 
 - **Performance**: eliminated hot-path heap allocations across layout
   calculation, gesture hit-testing, render command generation, and event
   dispatch. Two-pass allocation scrub.
-- **Lock splitting**: animation lock separated from layout lock; `w.mu`
-  scope narrowed to reduce contention.
-- **GPU backend consolidation**: shared `gpu` package for vertex types and
-  draw code reused across Metal, OpenGL, and SDL2 backends.
+- **Lock splitting**: animation lock separated from layout lock; `w.mu` scope
+  narrowed to reduce contention.
+- **GPU backend consolidation**: shared `gpu` package for vertex types and draw
+  code reused across Metal, OpenGL, and SDL2 backends.
 - **Large-file refactoring**: 14 files over 800 lines split into 32 focused
   files; datagrid dot-imports removed; markdown fetcher uses dependency
   injection.
-- **Dependencies**: go-glyph bumped to v1.10.0, golangci-lint to v2.12,
-  GitHub Actions to latest major versions.
+- **Dependencies**: go-glyph bumped to v1.10.0, golangci-lint to v2.12, GitHub
+  Actions to latest major versions.
 - **Test parallelization**: tests now run concurrently; per-package coverage
   floors enforced in CI.
 
 ### Fixed
 
-- **macOS**: `NSApp` activated before window creation, fixing focus issues
-  on launch.
-- **DataGrid**: scroll position read from correct state map; `UpdateView`
-  no longer clears `idFocus` on full rebuild.
+- **macOS**: `NSApp` activated before window creation, fixing focus issues on
+  launch.
+- **DataGrid**: scroll position read from correct state map; `UpdateView` no
+  longer clears `idFocus` on full rebuild.
 - **SVG**: `arcToCubic` guarded against coincident endpoints (NaN from
   `Inf*0/1`).
 - **GPU**: `gpu.Vertex` struct literals use keyed fields across all backends.
@@ -1014,10 +989,10 @@ Documentation-only release. No code or behavior changes; no migration needed.
   import.
 - **Build tags**: drift corrected across source files and CHANGELOG.
 - **Animation**: map data races fixed under concurrent access.
-- **Windows**: `__ms_vsscanf` compat shim for MinGW GCC 15+; static builds
-  and DLL alignment hardened; CI smoke test added.
-- **Security**: 242 gosec issues resolved; G204 false positives suppressed
-  on `exec.Command` calls; privacy audit and resource caps applied.
+- **Windows**: `__ms_vsscanf` compat shim for MinGW GCC 15+; static builds and
+  DLL alignment hardened; CI smoke test added.
+- **Security**: 242 gosec issues resolved; G204 false positives suppressed on
+  `exec.Command` calls; privacy audit and resource caps applied.
 - **CI**: various workflow fixes — golangci-lint install path, tidy-check
   ordering, generate-check path/scope, coverage subshell, fuzz timeout.
 
@@ -1030,8 +1005,7 @@ Documentation-only release. No code or behavior changes; no migration needed.
 - Async DataGrid and custom shader cookbooks added.
 - Platform matrix, form validation patterns, time-travel example test
   documented.
-- Godoc improved on core types; subpackage analysis and widget cookbook
-  added.
+- Godoc improved on core types; subpackage analysis and widget cookbook added.
 
 ## [v0.26.0] - 2026-06-12
 
@@ -1039,12 +1013,12 @@ Documentation-only release. No code or behavior changes; no migration needed.
 
 - **DataGrid moved to `gui/datagrid/`** — `DataGrid`, `DataGridCell`,
   `DataGridTheme`, and related symbols (~30) extracted from `gui/` into a
-  separate package. Import `github.com/go-gui-org/go-gui/gui/datagrid`
-  and use `datagrid.New()` instead of `gui.NewDataGrid()`.
+  separate package. Import `github.com/go-gui-org/go-gui/gui/datagrid` and use
+  `datagrid.New()` instead of `gui.NewDataGrid()`.
 - **SVG constant renames** — `StrokeCap` → `SvgStrokeCap`, `StrokeJoin` →
-  `SvgStrokeJoin`, plus typed constants for stroke cap/join, spread method,
-  and units. Callers using the old untyped string constants will need to
-  update to the new typed values.
+  `SvgStrokeJoin`, plus typed constants for stroke cap/join, spread method, and
+  units. Callers using the old untyped string constants will need to update to
+  the new typed values.
 - **Spinner renamed to MathSpinner** — `gui.NewSpinner()` →
   `gui.NewMathSpinner()`. Disambiguates from future loading-spinner widget.
 
@@ -1059,8 +1033,8 @@ Documentation-only release. No code or behavior changes; no migration needed.
 
 - SVG path parser refactored into `pathParser` struct with per-command methods
   for lower allocation and better readability.
-- Render validators and SVG element handlers extracted from large functions
-  into focused helpers.
+- Render validators and SVG element handlers extracted from large functions into
+  focused helpers.
 - `keyName` and `EventFn` complexity reduced via helper extraction.
 - Showcase temp-file handling hardened, lazy-load abort wired, allocations
   simplified.
@@ -1073,11 +1047,11 @@ Documentation-only release. No code or behavior changes; no migration needed.
   `-Wl,-no_warn_duplicate_libraries`.
 - Web backend keyboard modifiers guarded against `KeyboardEvent` lacking
   `.buttons`.
-- Web backend keydown/keyup registered on `document` instead of `canvas`,
-  fixing focus-edge-case missed keys.
+- Web backend keydown/keyup registered on `document` instead of `canvas`, fixing
+  focus-edge-case missed keys.
 - Showcase wasm build missing `cleanupEmbeddedAssets` stub.
-- Showcase audio made opt-in behind `audio` build tag, fixing
-  Windows FLAC DLL issue (#8).
+- Showcase audio made opt-in behind `audio` build tag, fixing Windows FLAC DLL
+  issue (#8).
 - CI showcase deploy race condition on GitHub Pages fixed.
 
 ## [v0.25.0] - 2026-06-08
@@ -1124,8 +1098,8 @@ Documentation-only release. No code or behavior changes; no migration needed.
   pipeline.
 - macOS release CI (`brew install sdl2 sdl2_mixer sdl2_ttf sdl2_image`,
   `-bundle-deps` for self-contained .app).
-- Linux release CI (added freetype6/harfbuzz/pango dev packages for go-glyph
-  CGo compilation).
+- Linux release CI (added freetype6/harfbuzz/pango dev packages for go-glyph CGo
+  compilation).
 - Windows release CI (switched from go-sdl2 static libs to MSYS2 SDL2 packages
   to resolve MinGW `__ms_vsscanf` linker incompatibility).
 
@@ -1150,22 +1124,21 @@ Documentation-only release. No code or behavior changes; no migration needed.
 
 - `ListBoxCfg.Items []string` — convenience field; each string becomes a
   `ListBoxOption` with `ID==Name==Value`.
-- `RadioButtonGroupCfg.Items []string` — convenience field; each string
-  becomes a `RadioOption` with `Label==Value`.
-- `TableCfg.RawData [][]string` — convenience field for CSV-style data.
-  First row is treated as the header.
+- `RadioButtonGroupCfg.Items []string` — convenience field; each string becomes
+  a `RadioOption` with `Label==Value`.
+- `TableCfg.RawData [][]string` — convenience field for CSV-style data. First
+  row is treated as the header.
 - `TreeCfg.ItemPaths []string` — convenience field for flat path strings
-  (`"a/b/c"`), auto-expanded into nested `TreeNodeCfg` nodes with
-  duplicate prefix merging.
-- `DataGridCfg.RowsData []map[string]string` — convenience field for
-  key-value row data. Map keys match column IDs. Columns are
-  auto-generated from sorted keys of the first entry when `Columns`
-  is empty.
+  (`"a/b/c"`), auto-expanded into nested `TreeNodeCfg` nodes with duplicate
+  prefix merging.
+- `DataGridCfg.RowsData []map[string]string` — convenience field for key-value
+  row data. Map keys match column IDs. Columns are auto-generated from sorted
+  keys of the first entry when `Columns` is empty.
 
 ### Changed
 
-- When both the stdlib convenience field and the typed struct field are
-  set, the stdlib field takes precedence.
+- When both the stdlib convenience field and the typed struct field are set, the
+  stdlib field takes precedence.
 
 ## [v0.22.0] - 2026-06-05
 
@@ -1175,22 +1148,21 @@ Documentation-only release. No code or behavior changes; no migration needed.
   eliminating the `libSDL2.so` / `SDL2.dll` runtime dependency.
 - Root `Makefile` with `build-linux`, `build-windows`, `build-macos`,
   `build-wasm`, `release`, and `clean` targets.
-- `gui.Version` and `gui.Commit` build-time variables injected via
-  `-ldflags`.
-- CI release workflow (`.github/workflows/release.yml`) triggered on `v*`
-  tags and `workflow_dispatch`, building all desktop platforms.
+- `gui.Version` and `gui.Commit` build-time variables injected via `-ldflags`.
+- CI release workflow (`.github/workflows/release.yml`) triggered on `v*` tags
+  and `workflow_dispatch`, building all desktop platforms.
 
 ## [v0.21.1] - 2026-05-30
 
 ### Fixed
 
-- Hunspell spellcheck is now opt-in via `-tags hunspell` build tag on
-  Linux, avoiding a hard runtime dependency on `libhunspell`.
+- Hunspell spellcheck is now opt-in via `-tags hunspell` build tag on Linux,
+  avoiding a hard runtime dependency on `libhunspell`.
 
 ### Changed
 
-- Remove local `replace` directive for `go-glyph` — the module now
-  consumes upstream `go-glyph` directly.
+- Remove local `replace` directive for `go-glyph` — the module now consumes
+  upstream `go-glyph` directly.
 - Add Dependabot config for `go-glyph` dependency updates.
 
 ## [v0.21.0] - 2026-05-28
@@ -1217,14 +1189,14 @@ Documentation-only release. No code or behavior changes; no migration needed.
 ### Fixed
 
 - `DrawContext.Scale` (device pixel ratio) is now correctly populated from the
-  backend's DPI scale and included in the `DrawCanvasCache` key, so a canvas
-  is re-tessellated when the display scale changes (e.g. window moved between
+  backend's DPI scale and included in the `DrawCanvasCache` key, so a canvas is
+  re-tessellated when the display scale changes (e.g. window moved between
   Retina and non-Retina monitors).
 - All backends (gl, metal, sdl2) now refresh `dpiScale` on window resize, so
   display migration no longer leaves a stale scale for the lifetime of the
   window.
-- Web backend now sets `w.BackingScale` each frame; previously `DrawContext.Scale`
-  was always 1 on web regardless of `devicePixelRatio`.
+- Web backend now sets `w.BackingScale` each frame; previously
+  `DrawContext.Scale` was always 1 on web regardless of `devicePixelRatio`.
 - Scale sanitization guard relaxed from `< 1` to `<= 0`, allowing valid sub-1
   device pixel ratios (e.g. browser zoomed below 100%) to pass through.
 
@@ -1232,14 +1204,14 @@ Documentation-only release. No code or behavior changes; no migration needed.
 
 ### Added
 
-- RTF widgets with `IDFocus` set now support interactive text selection:
-  click to place cursor, drag to extend selection (with scroll-aware
-  auto-scroll), double-click to select word, keyboard navigation
-  (arrow keys, Home/End, Ctrl/Cmd+A), and Ctrl/Cmd+C to copy.
+- RTF widgets with `IDFocus` set now support interactive text selection: click
+  to place cursor, drag to extend selection (with scroll-aware auto-scroll),
+  double-click to select word, keyboard navigation (arrow keys, Home/End,
+  Ctrl/Cmd+A), and Ctrl/Cmd+C to copy.
 - Markdown widgets with `IDFocus` set gain the same selection and copy
-  capability across all block types (paragraphs, headings, lists,
-  blockquotes, definition terms/values). Selection uses a unified
-  rune-offset model so Cmd+C copies the correct cross-block span.
+  capability across all block types (paragraphs, headings, lists, blockquotes,
+  definition terms/values). Selection uses a unified rune-offset model so Cmd+C
+  copies the correct cross-block span.
 
 ## [v0.19.1] - 2026-05-17
 
@@ -1250,8 +1222,8 @@ Documentation-only release. No code or behavior changes; no migration needed.
 
 ### Fixed
 
-- Context menu: focus is now restored on dismiss; a second right-click no
-  longer clobbers the saved focus state.
+- Context menu: focus is now restored on dismiss; a second right-click no longer
+  clobbers the saved focus state.
 
 ## [v0.19.0] - 2026-05-16
 
@@ -1265,9 +1237,9 @@ Documentation-only release. No code or behavior changes; no migration needed.
 
 - Metal backend: per-frame autorelease pool now spans the full frame
   (`metalBeginFrame` → `metalEndFrame`). Command buffers, render pass
-  descriptors, encoders, and one-off `MTLBuffer` allocations were
-  accumulating in the thread's ambient pool indefinitely (Go threads have
-  no runloop). Uses `objc_autoreleasePoolPush`/`Pop` (ARC-compatible).
+  descriptors, encoders, and one-off `MTLBuffer` allocations were accumulating
+  in the thread's ambient pool indefinitely (Go threads have no runloop). Uses
+  `objc_autoreleasePoolPush`/`Pop` (ARC-compatible).
 
 ## [v0.18.0] - 2026-05-09
 
@@ -1294,10 +1266,9 @@ Documentation-only release. No code or behavior changes; no migration needed.
 
 ### Added
 
-- `AppFontPaths` registry lets apps declare custom font search paths
-  before window creation. SDL2/Metal/GL backends load the registry
-  at backend init so glyph rasterization picks up app-bundled fonts
-  without ad-hoc backend hooks.
+- `AppFontPaths` registry lets apps declare custom font search paths before
+  window creation. SDL2/Metal/GL backends load the registry at backend init so
+  glyph rasterization picks up app-bundled fonts without ad-hoc backend hooks.
 
 ### Changed
 
@@ -1306,270 +1277,240 @@ Documentation-only release. No code or behavior changes; no migration needed.
 ### Fixed
 
 - Inline math (markdown RTF render) now uses the per-`InlineObject`
-  Height/Offset when available, preserving true aspect ratio for
-  tall constructs like fractions and integrals. Previously height
-  was clamped to line-height (ascent+descent), squashing oversize
-  glyphs. Legacy entries without `Object` keep the old line-height
-  fallback.
+  Height/Offset when available, preserving true aspect ratio for tall constructs
+  like fractions and integrals. Previously height was clamped to line-height
+  (ascent+descent), squashing oversize glyphs. Legacy entries without `Object`
+  keep the old line-height fallback.
 
 ## [v0.16.0] - 2026-04-28
 
 ### Added
 
-- `<use>` referencing `<symbol viewBox=...>` now honors
-  `preserveAspectRatio`. Default is `xMidYMid meet` (uniform scale +
-  center) per SVG 1.1; `preserveAspectRatio="none"` opts back into
-  legacy independent-axis stretch; `slice` uses uniform max-scale
-  and now mints a synthesized `clipPath` covering the `<use>` box
-  so overflow from max-scale is cropped per spec. Author
-  `clip-path=` on the `<use>` itself wins over the synth clip.
-  Earlier impl always stretched and never clipped slice overflow.
+- `<use>` referencing `<symbol viewBox=...>` now honors `preserveAspectRatio`.
+  Default is `xMidYMid meet` (uniform scale + center) per SVG 1.1;
+  `preserveAspectRatio="none"` opts back into legacy independent-axis stretch;
+  `slice` uses uniform max-scale and now mints a synthesized `clipPath` covering
+  the `<use>` box so overflow from max-scale is cropped per spec. Author
+  `clip-path=` on the `<use>` itself wins over the synth clip. Earlier impl
+  always stretched and never clipped slice overflow.
 - `clip-path` and `filter` now participate in the cascade: CSS rules
-  (`<style>.cls { clip-path: url(#cp) }`) and inline `style=""`
-  declarations set them, not only the bare presentation attribute.
-  `clip-path: none` / `filter: none` clear inherited values per
-  cascade origin precedence.
-- Distinct elements sharing one `filter="url(#X)"` now composite as
-  separate offscreen groups in document order. Previously they were
-  merged by FilterID and z-ordered against unfiltered siblings
-  incorrectly. Each occurrence carries a per-element `FilterGroupKey`
-  (parser counter assigned during cascade).
-- Nested `<svg>` elements now establish a child viewport. `x`, `y`,
-  `width`, `height` accept user-space units or percentages of the
-  parent viewport; an inner `viewBox` (with `preserveAspectRatio`
-  meet/slice/none) composes onto the cascaded transform from the
-  element's own `transform=` attr. Descendants inherit paint and
-  cascade through the wrapper. Previously the inner subtree was
-  dropped silently.
-- Nested `<svg>` viewports now synthesize a rectangle clip-path in
-  outer-parent coordinates so descendants outside the authored
-  viewport rect are masked at tessellation time (default
-  `overflow:hidden` for `<svg>`). Sibling viewports mint distinct
-  ids; doubly-nested viewports cascade the innermost clip onto
-  descendants. `<clipPath>`, `<linearGradient>`, and `<filter>` defs
-  inside a nested `<svg>` reach the global registry. Empty or
-  zero-area viewports skip emission. When the inner `<svg>` carries
-  an authored `clip-path` (presentation attr / CSS / inline style),
-  the synth viewport clip is suppressed so the asset's explicit
-  semantic survives — true intersection of viewport and author
+  (`<style>.cls { clip-path: url(#cp) }`) and inline `style=""` declarations set
+  them, not only the bare presentation attribute. `clip-path: none` /
+  `filter: none` clear inherited values per cascade origin precedence.
+- Distinct elements sharing one `filter="url(#X)"` now composite as separate
+  offscreen groups in document order. Previously they were merged by FilterID
+  and z-ordered against unfiltered siblings incorrectly. Each occurrence carries
+  a per-element `FilterGroupKey` (parser counter assigned during cascade).
+- Nested `<svg>` elements now establish a child viewport. `x`, `y`, `width`,
+  `height` accept user-space units or percentages of the parent viewport; an
+  inner `viewBox` (with `preserveAspectRatio` meet/slice/none) composes onto the
+  cascaded transform from the element's own `transform=` attr. Descendants
+  inherit paint and cascade through the wrapper. Previously the inner subtree
+  was dropped silently.
+- Nested `<svg>` viewports now synthesize a rectangle clip-path in outer-parent
+  coordinates so descendants outside the authored viewport rect are masked at
+  tessellation time (default `overflow:hidden` for `<svg>`). Sibling viewports
+  mint distinct ids; doubly-nested viewports cascade the innermost clip onto
+  descendants. `<clipPath>`, `<linearGradient>`, and `<filter>` defs inside a
+  nested `<svg>` reach the global registry. Empty or zero-area viewports skip
+  emission. When the inner `<svg>` carries an authored `clip-path` (presentation
+  attr / CSS / inline style), the synth viewport clip is suppressed so the
+  asset's explicit semantic survives — true intersection of viewport and author
   clip awaits a multi-clip renderer.
-- `gui.PreserveAlignFractions` exported (was `preserveAlignFractions`)
-  so `gui/svg` can resolve `preserveAspectRatio` align fractions
-  without duplicating the switch.
+- `gui.PreserveAlignFractions` exported (was `preserveAlignFractions`) so
+  `gui/svg` can resolve `preserveAspectRatio` align fractions without
+  duplicating the switch.
 
 ### Hardened
 
-- SMIL `from`/`to`/`by`/`values` reject malformed tokens (NaN, Inf,
-  garbage) instead of coercing to 0. Bogus 0 endpoints would
-  previously synthesize real animation timelines; now the timeline
-  drops. Color keyframe stops with invalid paint also drop the
-  whole color timeline.
-- `<use>` `symbolViewportScale` rejects degenerate viewBox
-  (`<= 0` width/height) and clamps combined translate (`tx+ax`,
-  `ty+ay`) via `boundedScale` so alignment offsets cannot push the
-  transform past `±maxCoordinate`.
-- Nested-`<svg>` viewport math sanitizes NaN, ±Inf, and oversized
-  inputs on `x`/`y`/`width`/`height`, `viewBox`, `parent.W`/`parent.H`,
-  and the resulting scale/translate so a poisoned attribute cannot
-  propagate non-finite values into the path transform. Percentages
-  parse via float64 so `1e30%` no longer truncates to ±Inf before
-  scaling.
+- SMIL `from`/`to`/`by`/`values` reject malformed tokens (NaN, Inf, garbage)
+  instead of coercing to 0. Bogus 0 endpoints would previously synthesize real
+  animation timelines; now the timeline drops. Color keyframe stops with invalid
+  paint also drop the whole color timeline.
+- `<use>` `symbolViewportScale` rejects degenerate viewBox (`<= 0` width/height)
+  and clamps combined translate (`tx+ax`, `ty+ay`) via `boundedScale` so
+  alignment offsets cannot push the transform past `±maxCoordinate`.
+- Nested-`<svg>` viewport math sanitizes NaN, ±Inf, and oversized inputs on
+  `x`/`y`/`width`/`height`, `viewBox`, `parent.W`/`parent.H`, and the resulting
+  scale/translate so a poisoned attribute cannot propagate non-finite values
+  into the path transform. Percentages parse via float64 so `1e30%` no longer
+  truncates to ±Inf before scaling.
 - `mixOptsHash` clamps `HoveredElementID` / `FocusedElementID` via
-  `clampElementID` (256-byte cap) before the FNV mix. Hostile callers
-  passing megabyte-sized pseudo-state IDs can no longer burn CPU in
-  the cache lookup hash phase; downstream `parseSvgWith` already
-  clamped, so cache key and parsed state stay in sync.
-- Inline-SVG cache `sourceKey` now hashes the source via SHA-256
-  instead of retaining the raw string. With the 4 MB parse cap and
-  512 cache slots, the prior format pinned up to 2 GB of source
-  retention from cache keys alone. Hashing is incremental (no
-  `[]byte(data)` copy) and produces a fixed 71-byte key.
-- `mintUseSliceClipID` (slice `<use>` clip emitter) rejects
-  non-finite or out-of-range `viewBox` numbers explicitly before
-  falling back to viewBox dims for missing `<use>` width/height; a
-  hostile `viewBox="0 0 NaN Inf"` can no longer survive `<= 0`
-  coercion and propagate into the clip rect.
-- Synthesized slice-clip ids (`__use_clip_N`) now skip any id
-  already present in the document index, so an authored
-  `id="__use_clip_1"` cannot silently shadow or be shadowed by the
-  synthesized rect. Synth ids remain monotonic so two synth ids
-  never collide with each other.
-- `clampCycle` rejects NaN explicitly (NaN compares false against
-  both `<= 0` and `> maxCycleSec`, so it would otherwise fall through
-  unchanged into downstream cycle/floor math). `parseTimeValue`
-  layers `finiteF32` so `dur="NaN"` / `dur="1e9999s"` cannot reach
-  cycle math even if `parseF32` ever loosens.
-- `parseKeySplinesIfSpline` switches to `parseFloatStrict` and
-  rejects control points outside `[0, 1]`. `parseF32` would coerce
-  `NaN`/`Inf` tokens to 0 and slip past the range check, silently
-  producing wrong easing on hostile authoring.
-- `parseAnimateDashArrayElement` defers `flat` allocation until
-  stride is known from the first frame, sizing it to
-  `len(frames) × stride` instead of `len(frames) × SvgAnimDashArrayCap`
-  (4× less waste for the common stride=2 case).
-- `Parser.animatedScratch` pool is now bounded by
-  `maxAnimatedScratchCap` (4096) on both ends. `putAnimatedScratch`
-  rejects oversized buffers so one pathological frame cannot pin a
-  giant backing array; `getAnimatedScratch` clamps `minCap` so a
-  hostile SVG with synthesized millions of animated paths cannot
-  force a giant `make` per frame.
-- `findAttr` reverses the five entity escapes emitted by
-  `buildOpenTag` (`&amp;`, `&lt;`, `&gt;`, `&quot;`, `&#39;`) before
-  returning attribute values. `encoding/xml` decodes attribute
-  entities once, so without this reversal a legitimate `&` in an
-  attribute round-tripped as the literal sequence `&amp;` and
-  reached downstream parsers (color, url, id, transform) as
-  garbage. Unknown entities pass through unchanged; allocation
-  occurs only when at least one `&` is present.
-- `decodeSvgTree` now accumulates per-node CharData into a parallel
-  stack of `strings.Builder` frames instead of `top.Text += s` /
-  `last.Tail += s`. A hostile `<text>` body fragmented into many
-  small chunks (e.g. by sprinkling numeric entity refs) was O(N²)
-  under the prior incremental concat; the builder rewrite is linear.
-  Tail accumulation flushes to `Children[idx].Tail` before the next
-  sibling append so a slice grow cannot strand pending tail data.
+  `clampElementID` (256-byte cap) before the FNV mix. Hostile callers passing
+  megabyte-sized pseudo-state IDs can no longer burn CPU in the cache lookup
+  hash phase; downstream `parseSvgWith` already clamped, so cache key and parsed
+  state stay in sync.
+- Inline-SVG cache `sourceKey` now hashes the source via SHA-256 instead of
+  retaining the raw string. With the 4 MB parse cap and 512 cache slots, the
+  prior format pinned up to 2 GB of source retention from cache keys alone.
+  Hashing is incremental (no `[]byte(data)` copy) and produces a fixed 71-byte
+  key.
+- `mintUseSliceClipID` (slice `<use>` clip emitter) rejects non-finite or
+  out-of-range `viewBox` numbers explicitly before falling back to viewBox dims
+  for missing `<use>` width/height; a hostile `viewBox="0 0 NaN Inf"` can no
+  longer survive `<= 0` coercion and propagate into the clip rect.
+- Synthesized slice-clip ids (`__use_clip_N`) now skip any id already present in
+  the document index, so an authored `id="__use_clip_1"` cannot silently shadow
+  or be shadowed by the synthesized rect. Synth ids remain monotonic so two
+  synth ids never collide with each other.
+- `clampCycle` rejects NaN explicitly (NaN compares false against both `<= 0`
+  and `> maxCycleSec`, so it would otherwise fall through unchanged into
+  downstream cycle/floor math). `parseTimeValue` layers `finiteF32` so
+  `dur="NaN"` / `dur="1e9999s"` cannot reach cycle math even if `parseF32` ever
+  loosens.
+- `parseKeySplinesIfSpline` switches to `parseFloatStrict` and rejects control
+  points outside `[0, 1]`. `parseF32` would coerce `NaN`/`Inf` tokens to 0 and
+  slip past the range check, silently producing wrong easing on hostile
+  authoring.
+- `parseAnimateDashArrayElement` defers `flat` allocation until stride is known
+  from the first frame, sizing it to `len(frames) × stride` instead of
+  `len(frames) × SvgAnimDashArrayCap` (4× less waste for the common stride=2
+  case).
+- `Parser.animatedScratch` pool is now bounded by `maxAnimatedScratchCap` (4096)
+  on both ends. `putAnimatedScratch` rejects oversized buffers so one
+  pathological frame cannot pin a giant backing array; `getAnimatedScratch`
+  clamps `minCap` so a hostile SVG with synthesized millions of animated paths
+  cannot force a giant `make` per frame.
+- `findAttr` reverses the five entity escapes emitted by `buildOpenTag`
+  (`&amp;`, `&lt;`, `&gt;`, `&quot;`, `&#39;`) before returning attribute
+  values. `encoding/xml` decodes attribute entities once, so without this
+  reversal a legitimate `&` in an attribute round-tripped as the literal
+  sequence `&amp;` and reached downstream parsers (color, url, id, transform) as
+  garbage. Unknown entities pass through unchanged; allocation occurs only when
+  at least one `&` is present.
+- `decodeSvgTree` now accumulates per-node CharData into a parallel stack of
+  `strings.Builder` frames instead of `top.Text += s` / `last.Tail += s`. A
+  hostile `<text>` body fragmented into many small chunks (e.g. by sprinkling
+  numeric entity refs) was O(N²) under the prior incremental concat; the builder
+  rewrite is linear. Tail accumulation flushes to `Children[idx].Tail` before
+  the next sibling append so a slice grow cannot strand pending tail data.
 
 ### Fixed
 
-- `<text>` now routes through the CSS cascade like shapes, so author
-  rules (`text { fill: ... }`), `:hover` / `:focus` matches, and
-  `display:none` apply. Previously `<text>` only saw inherited
-  computed style with no per-element rule matching.
+- `<text>` now routes through the CSS cascade like shapes, so author rules
+  (`text { fill: ... }`), `:hover` / `:focus` matches, and `display:none` apply.
+  Previously `<text>` only saw inherited computed style with no per-element rule
+  matching.
 - Invalid color syntax (e.g. `fill="#GGGGGG"`, `fill="rgb(abc,def,ghi)"`,
-  `stroke=""`) is now ignored by the cascade per CSS
-  "invalid → ignore", letting inherited paint survive instead of
-  clobbering with transparent black. `parseHexColor` rejects
-  non-hex digits; `parseRGBColor` rejects non-numeric channels.
-- CSS-wide control keywords (`inherit`, `unset`, `revert`,
-  `revert-layer`) on `fill` / `stroke` are no-ops so the cascade-
-  copied parent paint survives. `<text stroke="inherit">` with no
-  ancestor stroke now falls back to a visible default rather than
-  being silently dropped.
-- `<text>` now inherits `stroke` / `stroke-width` from the cascade,
-  and `stroke="inherit"` resolves against the cascade rather than
-  forcing black. `<text stroke="none">` clears any ancestor stroke.
-- `<tspan>` honors its own `stroke`, `stroke-width`, and `opacity`
-  attrs instead of silently copying parent values. `opacity="50%"`
-  on `<tspan>` now equals 0.5 (matches CSS keyframe parity below).
-- Mixed-content `<text>` runs preserve trailing and interleaved char
-  data. `<text>A <tspan>B</tspan> C</text>` now renders all three
-  runs; previously the trailing "C" was dropped because only
-  pre-first-child `Leading` text was captured. New `xmlNode.Tail`
-  field stashes post-child char data so `<use>`-cloned subtrees
-  carry it through too.
+  `stroke=""`) is now ignored by the cascade per CSS "invalid → ignore", letting
+  inherited paint survive instead of clobbering with transparent black.
+  `parseHexColor` rejects non-hex digits; `parseRGBColor` rejects non-numeric
+  channels.
+- CSS-wide control keywords (`inherit`, `unset`, `revert`, `revert-layer`) on
+  `fill` / `stroke` are no-ops so the cascade- copied parent paint survives.
+  `<text stroke="inherit">` with no ancestor stroke now falls back to a visible
+  default rather than being silently dropped.
+- `<text>` now inherits `stroke` / `stroke-width` from the cascade, and
+  `stroke="inherit"` resolves against the cascade rather than forcing black.
+  `<text stroke="none">` clears any ancestor stroke.
+- `<tspan>` honors its own `stroke`, `stroke-width`, and `opacity` attrs instead
+  of silently copying parent values. `opacity="50%"` on `<tspan>` now equals 0.5
+  (matches CSS keyframe parity below).
+- Mixed-content `<text>` runs preserve trailing and interleaved char data.
+  `<text>A <tspan>B</tspan> C</text>` now renders all three runs; previously the
+  trailing "C" was dropped because only pre-first-child `Leading` text was
+  captured. New `xmlNode.Tail` field stashes post-child char data so
+  `<use>`-cloned subtrees carry it through too.
 - CSS `@keyframes { opacity: 50% }` now compiles to 0.5 (was 1.0).
   `compileOpacityTimeline` switched from `parseFloatTrimmed` to
-  `parseOpacityNumber` so the static cascade and animated values
-  agree on percentage notation.
-- `Parser.InvalidateSvgSource` now correctly drops file-backed cache
-  entries and every option-variant (FlatnessTolerance,
-  HoveredElementID, FocusedElementID, PrefersReducedMotion). Prior
-  impl reconstructed hashes from the path string alone, which never
-  matched file entries (whose key mixes file contents) and only
-  covered two of the option permutations. Walks the entry table by a
-  stored `sourceKey` instead.
-- `<use>` cloned subtrees no longer leak duplicate descendant ids.
-  `stripID` is now recursive; previously only the clone root and (for
-  `<symbol>` targets) its top-level children had their ids removed,
-  so any nested id collided with the original and corrupted
-  `url(#id)` resolution, CSS `#id` matching, and animation targeting.
-- `<use width=W height=H>` of a `<symbol viewBox=...>` now scales the
-  symbol's viewport to fill the requested box via a composed
-  `translate · scale · translate(-vbX,-vbY)` transform. Width/height
-  were previously dropped, so callers could not size symbol reuses.
-- `clip-path` / `filter` declarations are now marked authored only
-  after the value resolves to a usable `url(#id)` reference or the
-  `none` keyword. Previously the cascade flipped the authored flag
-  on property name alone, so `clip-path: bogus` could suppress the
-  synthesized nested-`<svg>` viewport clip and `filter: bogus` could
-  allocate a fresh per-occurrence offscreen group buffer for a
-  declaration that contributed no actual filter.
-- Markdown inline math (`$...$`) now renders after the async
-  codecogs fetch completes. The cross-frame RTF layout cache key
-  did not include diagram cache state, so the layout shaped on the
-  first frame with the raw-LaTeX text fallback (cache=Loading) was
-  reused after the fetch transitioned to Ready — the InlineObject
-  placeholder was never emitted and `renderRtf` produced no
-  `RenderImage`. New `rtfMathStateKey` mixes per-math-run
-  State/Width/Height/DPI into the cache key so a Loading→Ready
-  transition forces re-shape. Display math (`$$...$$`) was
-  unaffected because it renders through the `Image` view, not RTF.
-  FNV-1a constants in `view_rtf.go` extracted to package consts
+  `parseOpacityNumber` so the static cascade and animated values agree on
+  percentage notation.
+- `Parser.InvalidateSvgSource` now correctly drops file-backed cache entries and
+  every option-variant (FlatnessTolerance, HoveredElementID, FocusedElementID,
+  PrefersReducedMotion). Prior impl reconstructed hashes from the path string
+  alone, which never matched file entries (whose key mixes file contents) and
+  only covered two of the option permutations. Walks the entry table by a stored
+  `sourceKey` instead.
+- `<use>` cloned subtrees no longer leak duplicate descendant ids. `stripID` is
+  now recursive; previously only the clone root and (for `<symbol>` targets) its
+  top-level children had their ids removed, so any nested id collided with the
+  original and corrupted `url(#id)` resolution, CSS `#id` matching, and
+  animation targeting.
+- `<use width=W height=H>` of a `<symbol viewBox=...>` now scales the symbol's
+  viewport to fill the requested box via a composed
+  `translate · scale · translate(-vbX,-vbY)` transform. Width/height were
+  previously dropped, so callers could not size symbol reuses.
+- `clip-path` / `filter` declarations are now marked authored only after the
+  value resolves to a usable `url(#id)` reference or the `none` keyword.
+  Previously the cascade flipped the authored flag on property name alone, so
+  `clip-path: bogus` could suppress the synthesized nested-`<svg>` viewport clip
+  and `filter: bogus` could allocate a fresh per-occurrence offscreen group
+  buffer for a declaration that contributed no actual filter.
+- Markdown inline math (`$...$`) now renders after the async codecogs fetch
+  completes. The cross-frame RTF layout cache key did not include diagram cache
+  state, so the layout shaped on the first frame with the raw-LaTeX text
+  fallback (cache=Loading) was reused after the fetch transitioned to Ready —
+  the InlineObject placeholder was never emitted and `renderRtf` produced no
+  `RenderImage`. New `rtfMathStateKey` mixes per-math-run State/Width/Height/DPI
+  into the cache key so a Loading→Ready transition forces re-shape. Display math
+  (`$$...$$`) was unaffected because it renders through the `Image` view, not
+  RTF. FNV-1a constants in `view_rtf.go` extracted to package consts
   (`fnvOffset64`, `fnvPrime64`, `fnvFieldSep`).
 
 ### Security
 
-- `<use x="…" y="…">` author values are parsed numerically instead of
-  spliced into the synthesized transform attribute, closing an
-  injection vector (`x="0)scale(99)"` previously emitted an extra
-  `scale` into the transform list). Also rejects percentage `x`/`y`
-  rather than treating "50%" as raw 50, and clamps `<use>`-vs-
-  -viewBox scale to ±maxCoordinate to prevent pathological tiny
-  viewBox dims from emitting absurd scale factors.
-- `stroke-width` on `<text>` and `<tspan>` clamps NaN and negative
-  values to 0 via new `sanitizeStrokeWidth`. Negative widths are
-  invalid per SVG spec; NaN propagation broke tessellation
-  (uint8/uint16 casts implementation-defined, Inf coords break
-  bbox math).
-- `writeAttrEscaped` (used to reconstruct each element's `OpenTag`
-  for substring-scanning helpers like `findAttr` /
-  `findStyleProperty`) now also escapes `'` (`&#39;`) and `>`
-  (`&gt;`). A hostile attribute value containing a single quote
-  could previously smuggle a fake attribute past the cascade
-  (`<rect note=" x='99' " x="1"/>` parsed as `x=99`). Both quote
-  styles plus `<`/`>`/`&` are now escaped so no value can terminate
-  the embedded attr or open a markup token.
-- `parseSvg(string)` and `parseSvgDimensions(string)` now enforce
-  the existing 4 MB `maxSvgFileSize` cap. The cap was previously
-  applied only to file-loaded content; callers passing arbitrarily
-  large in-memory strings (e.g. network-fetched SVGs) bypassed it,
-  letting unbounded `xml.CharData` accumulation and full-document
-  scans run on hostile input. `parseSvg` returns an error;
-  `parseSvgDimensions` truncates to the cap before probing.
-- `clipPath` triangulation is now cached per `ClipPathID` for the
-  duration of one `tessellatePaths` call. N paths sharing one
-  complex `clipPath` previously triggered N full re-tessellations
-  (`O(N · clipComplexity)` CPU DoS); the cache reduces this to one
-  tessellation per unique id. Cache is `nil` when the graphic
-  declares no `clipPath`s, so the common icon/spinner path takes
-  no extra allocation.
+- `<use x="…" y="…">` author values are parsed numerically instead of spliced
+  into the synthesized transform attribute, closing an injection vector
+  (`x="0)scale(99)"` previously emitted an extra `scale` into the transform
+  list). Also rejects percentage `x`/`y` rather than treating "50%" as raw 50,
+  and clamps `<use>`-vs- -viewBox scale to ±maxCoordinate to prevent
+  pathological tiny viewBox dims from emitting absurd scale factors.
+- `stroke-width` on `<text>` and `<tspan>` clamps NaN and negative values to 0
+  via new `sanitizeStrokeWidth`. Negative widths are invalid per SVG spec; NaN
+  propagation broke tessellation (uint8/uint16 casts implementation-defined, Inf
+  coords break bbox math).
+- `writeAttrEscaped` (used to reconstruct each element's `OpenTag` for
+  substring-scanning helpers like `findAttr` / `findStyleProperty`) now also
+  escapes `'` (`&#39;`) and `>` (`&gt;`). A hostile attribute value containing a
+  single quote could previously smuggle a fake attribute past the cascade
+  (`<rect note=" x='99' " x="1"/>` parsed as `x=99`). Both quote styles plus
+  `<`/`>`/`&` are now escaped so no value can terminate the embedded attr or
+  open a markup token.
+- `parseSvg(string)` and `parseSvgDimensions(string)` now enforce the existing 4
+  MB `maxSvgFileSize` cap. The cap was previously applied only to file-loaded
+  content; callers passing arbitrarily large in-memory strings (e.g.
+  network-fetched SVGs) bypassed it, letting unbounded `xml.CharData`
+  accumulation and full-document scans run on hostile input. `parseSvg` returns
+  an error; `parseSvgDimensions` truncates to the cap before probing.
+- `clipPath` triangulation is now cached per `ClipPathID` for the duration of
+  one `tessellatePaths` call. N paths sharing one complex `clipPath` previously
+  triggered N full re-tessellations (`O(N · clipComplexity)` CPU DoS); the cache
+  reduces this to one tessellation per unique id. Cache is `nil` when the
+  graphic declares no `clipPath`s, so the common icon/spinner path takes no
+  extra allocation.
 
 ## [v0.15.0] - 2026-04-27
 
 ### Added
 
-- `<use href="#id">` (and `xlink:href`) resolution. The referenced
-  subtree is cloned at parse time, wrapped in a synthesized `<g>`
-  carrying a `translate(x,y)` transform plus the `<use>`
-  presentation attrs (`fill`, `style`, `class`, ...). Cycles are
-  guarded by a visited-set + depth-8 cap; the clone has its `id`
-  stripped to avoid duplicate ids in the post-expansion tree.
-- `<symbol>` is now honored as a `<use>` target — the symbol's
-  children are inlined directly (the wrapper is dropped). Untargeted
-  `<symbol>` elements continue to render no output. Symbol-level
-  `viewBox` / `preserveAspectRatio` honoring is a future polish.
-- `spreadMethod` on `<linearGradient>` and `<radialGradient>`:
-  `pad` (default), `reflect` (triangle wave), `repeat` (sawtooth).
-  `gui.SvgGradientDef.SpreadMethod` is the new field; the previous
-  silent-pad behavior is the zero-value default so existing
-  fingerprints stay stable.
-- `gui.SvgCfg.FlatnessTolerance float32` — tessellation tolerance
-  floor in viewBox units. Default 0 keeps the historic 0.15 floor.
-  Plumbed via a new `SvgParseOpts.FlatnessTolerance` field and a
-  `Window.LoadSvgWithOpts` method; the cache key tracks tolerance
-  per quantized 1e-4 step.
-- `gui.SvgCfg.HoveredElementID` / `FocusedElementID string` — drive
-  CSS `:hover` / `:focus` matching for the SVG element with that id.
-  Plumbed through `SvgParseOpts` into the cascade `MatchState`;
-  cache invalidates per id transition.
+- `<use href="#id">` (and `xlink:href`) resolution. The referenced subtree is
+  cloned at parse time, wrapped in a synthesized `<g>` carrying a
+  `translate(x,y)` transform plus the `<use>` presentation attrs (`fill`,
+  `style`, `class`, ...). Cycles are guarded by a visited-set + depth-8 cap; the
+  clone has its `id` stripped to avoid duplicate ids in the post-expansion tree.
+- `<symbol>` is now honored as a `<use>` target — the symbol's children are
+  inlined directly (the wrapper is dropped). Untargeted `<symbol>` elements
+  continue to render no output. Symbol-level `viewBox` / `preserveAspectRatio`
+  honoring is a future polish.
+- `spreadMethod` on `<linearGradient>` and `<radialGradient>`: `pad` (default),
+  `reflect` (triangle wave), `repeat` (sawtooth).
+  `gui.SvgGradientDef.SpreadMethod` is the new field; the previous silent-pad
+  behavior is the zero-value default so existing fingerprints stay stable.
+- `gui.SvgCfg.FlatnessTolerance float32` — tessellation tolerance floor in
+  viewBox units. Default 0 keeps the historic 0.15 floor. Plumbed via a new
+  `SvgParseOpts.FlatnessTolerance` field and a `Window.LoadSvgWithOpts` method;
+  the cache key tracks tolerance per quantized 1e-4 step.
+- `gui.SvgCfg.HoveredElementID` / `FocusedElementID string` — drive CSS `:hover`
+  / `:focus` matching for the SVG element with that id. Plumbed through
+  `SvgParseOpts` into the cascade `MatchState`; cache invalidates per id
+  transition.
 - `examples/svg_use_symbol`, `examples/svg_gradient_spread`,
   `examples/svg_flatness`, `examples/svg_css_states`.
 
 ### Changed
 
-- `gui.SvgGradientDef` gains a `SpreadMethod SvgGradientSpread`
-  field. Keyed struct literals are unaffected; positional users in
-  sibling repos must update.
+- `gui.SvgGradientDef` gains a `SpreadMethod SvgGradientSpread` field. Keyed
+  struct literals are unaffected; positional users in sibling repos must update.
 - `gui.SvgParseOpts` gains `FlatnessTolerance float32`,
   `HoveredElementID string`, `FocusedElementID string`. Additive.
 - `gui/svg.ParseOptions` mirrors the same additions.
@@ -1579,66 +1520,63 @@ Documentation-only release. No code or behavior changes; no migration needed.
 
 ### Deferred to v0.16.0
 
-- Automatic mouse-driven hover detection on the `Svg` widget.
-  v0.15.0 ships the parser/cascade/cache plumbing so apps can
-  drive `HoveredElementID` themselves (e.g. by hit-testing
-  `TessellatedPath.ContainsPoint`); built-in pointer tracking with
-  internal hit-test on the widget will land in v0.16.0.
+- Automatic mouse-driven hover detection on the `Svg` widget. v0.15.0 ships the
+  parser/cascade/cache plumbing so apps can drive `HoveredElementID` themselves
+  (e.g. by hit-testing `TessellatedPath.ContainsPoint`); built-in pointer
+  tracking with internal hit-test on the widget will land in v0.16.0.
 - `<symbol>` `viewBox` / `preserveAspectRatio` honoring.
-- `spreadMethod`-aware stop-boundary subdivision (currently
-  pad-clamped, so reflect/repeat AA at wrap points is slightly
-  softer than at first/last stop).
+- `spreadMethod`-aware stop-boundary subdivision (currently pad-clamped, so
+  reflect/repeat AA at wrap points is slightly softer than at first/last stop).
 
 ## [v0.14.0] - 2026-04-26
 
 ### Added
 
-- CSS sibling combinators: adjacent (`+`) and general sibling (`~`).
-  Match engine (`gui/svg/css`) now takes a preceding-siblings slice
-  alongside ancestors when resolving complex selectors.
-- CSS attribute selectors: `[name]`, `[name=v]`, `[name~=v]`,
-  `[name|=v]`, `[name^=v]`, `[name$=v]`, `[name*=v]`. Names are
-  case-insensitive; values are case-sensitive (no `i`/`s` flag).
-  `ElementInfo.Attrs map[string]string` carries the per-element
-  attribute map; svg parser populates it from the raw open tag.
-- CSS `:hover`, `:focus`, `:not(inner)` selectors — parser + matcher
-  only. `Compound` gained `HoverPseudo`, `FocusPseudo`, `Not`
-  fields; `ElementInfo` gained a `MatchState{Hover, Focus bool}`
-  block. Build-time state can be set via `ElementInfo.State`;
-  runtime mouse-event auto-toggle is deferred to v0.15.0.
-- `:not()` is single-compound only — comma-list (`:not(.a, .b)`)
-  and nested `:not(:not(...))` are deferred.
-- `var(--name, fallback)` resolution. The fallback is itself
-  resolved recursively (so `var(--a, var(--b, red))` works);
-  recursion bounded at depth 32.
-- `calc()` arithmetic: `+ - * /`, parens, units `px` and unitless.
-  Mixed-unit operands and divide-by-zero invalidate the declaration
-  per spec. Nested `calc()` and `calc()` inside `var()` fallback
-  are resolved.
-- `examples/svg_css_selectors`, `examples/svg_css_vars` — visual
-  demos for the new selector and value-resolution machinery.
+- CSS sibling combinators: adjacent (`+`) and general sibling (`~`). Match
+  engine (`gui/svg/css`) now takes a preceding-siblings slice alongside
+  ancestors when resolving complex selectors.
+- CSS attribute selectors: `[name]`, `[name=v]`, `[name~=v]`, `[name|=v]`,
+  `[name^=v]`, `[name$=v]`, `[name*=v]`. Names are case-insensitive; values are
+  case-sensitive (no `i`/`s` flag). `ElementInfo.Attrs map[string]string`
+  carries the per-element attribute map; svg parser populates it from the raw
+  open tag.
+- CSS `:hover`, `:focus`, `:not(inner)` selectors — parser + matcher only.
+  `Compound` gained `HoverPseudo`, `FocusPseudo`, `Not` fields; `ElementInfo`
+  gained a `MatchState{Hover, Focus bool}` block. Build-time state can be set
+  via `ElementInfo.State`; runtime mouse-event auto-toggle is deferred to
+  v0.15.0.
+- `:not()` is single-compound only — comma-list (`:not(.a, .b)`) and nested
+  `:not(:not(...))` are deferred.
+- `var(--name, fallback)` resolution. The fallback is itself resolved
+  recursively (so `var(--a, var(--b, red))` works); recursion bounded at
+  depth 32.
+- `calc()` arithmetic: `+ - * /`, parens, units `px` and unitless. Mixed-unit
+  operands and divide-by-zero invalidate the declaration per spec. Nested
+  `calc()` and `calc()` inside `var()` fallback are resolved.
+- `examples/svg_css_selectors`, `examples/svg_css_vars` — visual demos for the
+  new selector and value-resolution machinery.
 
 ### Changed
 
 - `css.Match()` and `css.ComplexSelector.Matches()` gained a
   `siblings []ElementInfo` parameter. The sole external caller in
-  `gui/svg/style.go` is updated; sibling repos (go-glyph,
-  go-charts, go-edit, go-kite) do not call into `gui/svg/css`
-  directly. Internal test sites pass `nil` for the new param.
-- `Compound`, `ElementInfo`, `MatchedDecl` gained additive fields.
-  Keyed struct literals are unaffected.
-- `gui/svg.makeElementInfo()` signature gained an `attrs
-  map[string]string` parameter (the parsed open-tag attributes).
-- The CSS package status table in `docs/svg-support.md` flips
-  several rows from "No" to "Yes" (sibling combinators, attribute
-  selectors, `:not()`, `var()` fallback, `calc()`).
+  `gui/svg/style.go` is updated; sibling repos (go-glyph, go-charts, go-edit,
+  go-kite) do not call into `gui/svg/css` directly. Internal test sites pass
+  `nil` for the new param.
+- `Compound`, `ElementInfo`, `MatchedDecl` gained additive fields. Keyed struct
+  literals are unaffected.
+- `gui/svg.makeElementInfo()` signature gained an `attrs map[string]string`
+  parameter (the parsed open-tag attributes).
+- The CSS package status table in `docs/svg-support.md` flips several rows from
+  "No" to "Yes" (sibling combinators, attribute selectors, `:not()`, `var()`
+  fallback, `calc()`).
 
 ### Deferred to v0.15.0
 
-- `:hover` / `:focus` runtime mouse-event auto-toggle. The selector
-  is recognized today; v0.15.0 will wire the dispatcher (sits at
-  the `gui` ↔ `gui/svg` ↔ backend interface boundary, lands cleanly
-  alongside `<use>`/`<symbol>` dynamic-cascade work).
+- `:hover` / `:focus` runtime mouse-event auto-toggle. The selector is
+  recognized today; v0.15.0 will wire the dispatcher (sits at the `gui` ↔
+  `gui/svg` ↔ backend interface boundary, lands cleanly alongside
+  `<use>`/`<symbol>` dynamic-cascade work).
 - `examples/svg_css_states` — depends on the runtime auto-toggle.
 
 ## [v0.13.0] - unreleased
@@ -1646,249 +1584,230 @@ Documentation-only release. No code or behavior changes; no migration needed.
 ### Added
 
 - SVG accessibility metadata. `<title>`, `<desc>`, `aria-label`,
-  `aria-roledescription`, and `aria-hidden` on the root `<svg>` are
-  now parsed and exposed via `SvgParsed.A11y` (new `SvgA11y` nested
-  struct). Previously dropped silently.
+  `aria-roledescription`, and `aria-hidden` on the root `<svg>` are now parsed
+  and exposed via `SvgParsed.A11y` (new `SvgA11y` nested struct). Previously
+  dropped silently.
 - `<radialGradient>` is now parsed and rendered. Supports
-  `cx`/`cy`/`r`/`fx`/`fy` in `objectBoundingBox` (default) or
-  `userSpaceOnUse`. Stops use the same semantics as linear
-  gradients. Focal interpolation uses a simplified
-  distance-from-focal model; full SVG cone-focused projection is
+  `cx`/`cy`/`r`/`fx`/`fy` in `objectBoundingBox` (default) or `userSpaceOnUse`.
+  Stops use the same semantics as linear gradients. Focal interpolation uses a
+  simplified distance-from-focal model; full SVG cone-focused projection is
   noted as future polish in `docs/svg-support.md`.
-- `preserveAspectRatio` is now honored on the root `<svg>`. All 9
-  alignment values (`xMin`/`Mid`/`Max` × `YMin`/`Mid`/`Max`) plus
-  `meet`/`slice` are supported. The default (`xMidYMid meet`) is
-  unchanged from prior behavior, so existing SVGs render
-  identically. `none` (non-uniform stretch) currently falls back to
-  default — adding non-uniform render support is tracked as polish.
-- `(*TessellatedPath).ContainsPoint(px, py)` for hit-testing filled
-  SVG paths. `TessellatedPath` now carries a precomputed bbox
-  (`MinX`/`MinY`/`MaxX`/`MaxY`) for fast reject. Author base
-  transforms are inverted before the barycentric triangle test.
-  Stroke contributions are skipped — pass the fill `TessellatedPath`
-  for hit-testing.
+- `preserveAspectRatio` is now honored on the root `<svg>`. All 9 alignment
+  values (`xMin`/`Mid`/`Max` × `YMin`/`Mid`/`Max`) plus `meet`/`slice` are
+  supported. The default (`xMidYMid meet`) is unchanged from prior behavior, so
+  existing SVGs render identically. `none` (non-uniform stretch) currently falls
+  back to default — adding non-uniform render support is tracked as polish.
+- `(*TessellatedPath).ContainsPoint(px, py)` for hit-testing filled SVG paths.
+  `TessellatedPath` now carries a precomputed bbox (`MinX`/`MinY`/`MaxX`/`MaxY`)
+  for fast reject. Author base transforms are inverted before the barycentric
+  triangle test. Stroke contributions are skipped — pass the fill
+  `TessellatedPath` for hit-testing.
 - `examples/svg_a11y`, `examples/svg_radial`, `examples/svg_aspect`,
   `examples/svg_hittest` — visual demos for each new feature.
 
 ### Changed
 
-- `SvgParsed`, `TessellatedPath`, and `CachedSvg` gained additive
-  fields. Keyed struct literals are unaffected; positional literals
-  would need to be updated (none found in tree or sibling repos —
-  go-glyph, go-charts, go-edit, go-kite).
+- `SvgParsed`, `TessellatedPath`, and `CachedSvg` gained additive fields. Keyed
+  struct literals are unaffected; positional literals would need to be updated
+  (none found in tree or sibling repos — go-glyph, go-charts, go-edit, go-kite).
 
 ## [v0.12.7] - 2026-04-26
 
 ### Fixed
 
 - SVG fingerprint goldens (`TestPhase0SmilSpinnerFingerprint`,
-  `TestPhaseGCssSpinnerFingerprint`) failed on Linux/WASM CI because
-  amd64 ships an asm `math.Sin`/`math.Cos` while arm64 uses pure-Go
-  — ULP-level drift in trig output flipped digest bits versus the
-  darwin-generated goldens. `hashTessellated` / `hashAnimations` now
-  quantize finite floats to a 1e-3 grid before `Float32bits`, so the
-  fingerprints stay platform-stable while still catching real
-  geometry regressions. Goldens regenerated.
+  `TestPhaseGCssSpinnerFingerprint`) failed on Linux/WASM CI because amd64 ships
+  an asm `math.Sin`/`math.Cos` while arm64 uses pure-Go — ULP-level drift in
+  trig output flipped digest bits versus the darwin-generated goldens.
+  `hashTessellated` / `hashAnimations` now quantize finite floats to a 1e-3 grid
+  before `Float32bits`, so the fingerprints stay platform-stable while still
+  catching real geometry regressions. Goldens regenerated.
 
 ## [v0.12.6] - 2026-04-25
 
 ### Added
 
-- `SvgSpinner` widget for animated SVG loaders. Full SMIL pipeline:
-  `animate`, `animateTransform` (rotate/translate/scale), `animateMotion`,
-  per-shape animation keying, attribute overrides, spline easing,
-  syncbase `begin` timing, dash animations, TRS-sandwich transforms,
-  and per-role opacity. CSS pipeline added: cascade, `@keyframes`,
-  `@media`, animation shorthand. Ships with 39 spinner assets across
-  the SMIL and CSS sets. See `examples/showcase` for the live gallery.
-- `TessellateAnimated` plus parse benchmarks for the SVG path/anim
-  pipeline.
+- `SvgSpinner` widget for animated SVG loaders. Full SMIL pipeline: `animate`,
+  `animateTransform` (rotate/translate/scale), `animateMotion`, per-shape
+  animation keying, attribute overrides, spline easing, syncbase `begin` timing,
+  dash animations, TRS-sandwich transforms, and per-role opacity. CSS pipeline
+  added: cascade, `@keyframes`, `@media`, animation shorthand. Ships with 39
+  spinner assets across the SMIL and CSS sets. See `examples/showcase` for the
+  live gallery.
+- `TessellateAnimated` plus parse benchmarks for the SVG path/anim pipeline.
 - Standalone XML tree parser with per-path animation routing.
 
 ### Changed
 
-- SVG parser correctness and performance improvements: scanline
-  fill-rule, `Z`-then-`M` path parse fix, dead `GroupID` stripped from
-  `TessellatedPath`/`CachedSvgPath`, deduped float helpers, hardened
-  animation pipeline.
+- SVG parser correctness and performance improvements: scanline fill-rule,
+  `Z`-then-`M` path parse fix, dead `GroupID` stripped from
+  `TessellatedPath`/`CachedSvgPath`, deduped float helpers, hardened animation
+  pipeline.
 - Ear-clip tessellator capped at 2048 verts to keep CI under timeout.
-- README rewritten: accurate why-go-gui section, spinners video,
-  formatting fixes, immediate-mode framing toned down.
+- README rewritten: accurate why-go-gui section, spinners video, formatting
+  fixes, immediate-mode framing toned down.
 
 ## [v0.12.5] - 2026-04-18
 
 ### Changed
 
 - `Animation.Update` now takes `*AnimationCommands` instead of
-  `*[]queuedCommand`. `queuedCommand` was always unexported, which
-  made the `Animation` interface effectively impossible for third-
-  party packages to implement — they could not name the parameter
-  type. `AnimationCommands` wraps the deferred command queue behind
-  two public methods:
+  `*[]queuedCommand`. `queuedCommand` was always unexported, which made the
+  `Animation` interface effectively impossible for third- party packages to
+  implement — they could not name the parameter type. `AnimationCommands` wraps
+  the deferred command queue behind two public methods:
   - `AppendOnDone(fn func(*Window))` — queues a terminal callback.
-  - `AppendOnValue(fn func(float32, *Window), v float32)` — queues
-    a per-frame interpolated-value callback.
-  All existing first-party animations (`Animate`, `SpringAnimation`,
-  `TweenAnimation`, `KeyframeAnimation`, `LayoutTransition`,
-  `HeroTransition`, `BlinkCursorAnimation`) updated; callers of the
-  stable concrete factories (`NewSpringAnimation`, etc.) see no
-  change. Breaking only for downstream code that implemented
-  `Animation` directly — impossible to do before this release, so
-  no real-world migration.
+  - `AppendOnValue(fn func(float32, *Window), v float32)` — queues a per-frame
+    interpolated-value callback. All existing first-party animations (`Animate`,
+    `SpringAnimation`, `TweenAnimation`, `KeyframeAnimation`,
+    `LayoutTransition`, `HeroTransition`, `BlinkCursorAnimation`) updated;
+    callers of the stable concrete factories (`NewSpringAnimation`, etc.) see no
+    change. Breaking only for downstream code that implemented `Animation`
+    directly — impossible to do before this release, so no real-world migration.
 
 ## [v0.12.4] - 2026-04-18
 
 ### Added
 
 - Per-call image fetcher on `DrawContext`. New
-  `DrawContext.ImageWithFetcher(..., fetcher ImageFetcher)` and
-  matching `DrawCanvasImageEntry.Fetcher` field let each image draw
-  override `WindowCfg.ImageFetcher` for its own download. Typical
-  use: a map widget pairs each tile layer with its source-specific
-  User-Agent (OSM-policy UA for one layer, a WMS-provider UA for
-  another) without a shared composite fetcher. Existing
-  `DrawContext.Image` is unchanged and still routes through the
+  `DrawContext.ImageWithFetcher(..., fetcher ImageFetcher)` and matching
+  `DrawCanvasImageEntry.Fetcher` field let each image draw override
+  `WindowCfg.ImageFetcher` for its own download. Typical use: a map widget pairs
+  each tile layer with its source-specific User-Agent (OSM-policy UA for one
+  layer, a WMS-provider UA for another) without a shared composite fetcher.
+  Existing `DrawContext.Image` is unchanged and still routes through the
   window-level fetcher.
 - New exported `ImageFetcher` function type and
   `ResolveImageSrcWithFetcher(w, src, fetcher)` helper. Existing
-  `ResolveImageSrc(w, src)` is a thin wrapper that passes `nil`, so
-  no caller needs to migrate.
+  `ResolveImageSrc(w, src)` is a thin wrapper that passes `nil`, so no caller
+  needs to migrate.
 
 ### Notes
 
-- Scope cut: `ImageCfg` (the Image widget) keeps the single-fetcher
-  path. Per-widget fetcher override will land when a consumer
-  demands it; no speculative API.
-- Known limit: downloads are URL-keyed process-wide, so the first
-  entry observed for a URL binds the fetcher for that URL's in-
-  flight download. Consumers wiring two fetchers to overlapping URL
-  namespaces must route by URL prefix themselves.
+- Scope cut: `ImageCfg` (the Image widget) keeps the single-fetcher path.
+  Per-widget fetcher override will land when a consumer demands it; no
+  speculative API.
+- Known limit: downloads are URL-keyed process-wide, so the first entry observed
+  for a URL binds the fetcher for that URL's in- flight download. Consumers
+  wiring two fetchers to overlapping URL namespaces must route by URL prefix
+  themselves.
 
 ## [v0.12.3] - 2026-04-17
 
 ### Fixed
 
-- `renderDrawCanvas` now emits images before triangle batches and
-  text, so `DrawCanvas` consumers that compose tile backgrounds with
-  `DrawContext` overlays get the correct z-order. Previously images
-  painted on top of every batch/text in the same canvas — invisible
-  in unit tests that only inspect `Texts()`/`Batches()` but user-
-  visible once a tile-map demo ran in a window
+- `renderDrawCanvas` now emits images before triangle batches and text, so
+  `DrawCanvas` consumers that compose tile backgrounds with `DrawContext`
+  overlays get the correct z-order. Previously images painted on top of every
+  batch/text in the same canvas — invisible in unit tests that only inspect
+  `Texts()`/`Batches()` but user- visible once a tile-map demo ran in a window
 
 ### Changed
 
 - SDL2 / GL / Metal backends now forward high-resolution
-  `MouseWheelEvent.PreciseX` / `PreciseY` for smooth-scroll devices
-  (trackpad pixel-scroll, Magic Mouse, high-res wheels), falling
-  back to integer `X`/`Y` when the precise field is zero or the SDL
-  runtime predates 2.0.18. Enables sub-integer scroll deltas in
-  consumers that accumulate fractional `ScrollY`
+  `MouseWheelEvent.PreciseX` / `PreciseY` for smooth-scroll devices (trackpad
+  pixel-scroll, Magic Mouse, high-res wheels), falling back to integer `X`/`Y`
+  when the precise field is zero or the SDL runtime predates 2.0.18. Enables
+  sub-integer scroll deltas in consumers that accumulate fractional `ScrollY`
 
 ## [v0.12.2] - 2026-04-16
 
 ### Added
 
-- Image download pipeline now handles remote URLs for
-  `DrawContext.Image`. Shared `ResolveImageSrc(w, src)` resolves
-  http/https URLs to local cache paths, schedules background
-  downloads when uncached, and returns "" while in flight.
-  `gui.Image` and `emitDrawCanvasImages` both route through it so
+- Image download pipeline now handles remote URLs for `DrawContext.Image`.
+  Shared `ResolveImageSrc(w, src)` resolves http/https URLs to local cache
+  paths, schedules background downloads when uncached, and returns "" while in
+  flight. `gui.Image` and `emitDrawCanvasImages` both route through it so
   DrawCanvas tiles render after the first fetch
-- `WindowCfg.ImageFetcher` hook: apps can supply a custom HTTP
-  client to set User-Agent, auth headers, or route through a
-  shared pool. Default fetcher sends `User-Agent: go-gui/vX.Y.Z`
-  so providers (e.g. OSM) can identify traffic
-- `WindowCfg.MaxImageDownloads`: process-wide cap on concurrent
-  image downloads. Defaults to 6; first-window-wins for sizing
+- `WindowCfg.ImageFetcher` hook: apps can supply a custom HTTP client to set
+  User-Agent, auth headers, or route through a shared pool. Default fetcher
+  sends `User-Agent: go-gui/vX.Y.Z` so providers (e.g. OSM) can identify traffic
+- `WindowCfg.MaxImageDownloads`: process-wide cap on concurrent image downloads.
+  Defaults to 6; first-window-wins for sizing
 - Exported `Version` const tracks the module tag
 
 ### Fixed
 
-- HTTP status codes are now checked before the body is written to
-  disk. Non-200 responses (4xx/5xx) no longer poison the cache
-  with error-page payloads
+- HTTP status codes are now checked before the body is written to disk. Non-200
+  responses (4xx/5xx) no longer poison the cache with error-page payloads
 
 ### Changed
 
-- `downloadImage` dropped the HEAD pre-flight and validates
-  size/content-type on the GET response. Single round trip per
-  fetch
+- `downloadImage` dropped the HEAD pre-flight and validates size/content-type on
+  the GET response. Single round trip per fetch
 
 ### Performance
 
-- `ResolveImageSrc` caches the URL→path mapping per window so
-  already-resolved tiles skip the `MkdirAll` + `Stat` syscalls
-  each frame. Critical for DrawCanvas-based tile maps that render
-  dozens of images per frame at 60fps
+- `ResolveImageSrc` caches the URL→path mapping per window so already-resolved
+  tiles skip the `MkdirAll` + `Stat` syscalls each frame. Critical for
+  DrawCanvas-based tile maps that render dozens of images per frame at 60fps
 
 ## [v0.12.1] - 2026-04-16
 
 ### Added
 
-- DrawCanvas: `DrawContext.Image(x, y, w, h, src, bgOpacity, bgColor)`
-  draws images inside the canvas via the same deferred-emit pipeline
-  as text. `src` accepts the same forms as `ImageCfg.Src` (local path,
-  http/https URL, data URL)
-- DrawCanvas: `DrawCanvasCfg.IDFocus` and `OnKeyDown` enable keyboard
-  focus and key event handling. A11Y role flips to button when the
-  canvas is focusable
+- DrawCanvas: `DrawContext.Image(x, y, w, h, src, bgOpacity, bgColor)` draws
+  images inside the canvas via the same deferred-emit pipeline as text. `src`
+  accepts the same forms as `ImageCfg.Src` (local path, http/https URL, data
+  URL)
+- DrawCanvas: `DrawCanvasCfg.IDFocus` and `OnKeyDown` enable keyboard focus and
+  key event handling. A11Y role flips to button when the canvas is focusable
 
 ## [v0.12.0] - 2026-04-15
 
 ### Added
 
 - Time-travel debugging: opt-in via WindowCfg.DebugTimeTravel. User state
-  implements Snapshotter (Snapshot/Restore; optional Size). Framework
-  captures a snapshot after every dispatched event; scrubber window
-  auto-spawns alongside the app window with a slider, step buttons
-  (first/prev/next/last), cause label, counter, freeze toggle, and
-  keyboard shortcuts (arrows, home/end, space, esc)
-- Window.Now() virtual clock: returns pinned snapshot timestamp during
-  scrub, live time otherwise; use in view fns that render clock-driven
-  data so scrubbed frames match their snapshot
+  implements Snapshotter (Snapshot/Restore; optional Size). Framework captures a
+  snapshot after every dispatched event; scrubber window auto-spawns alongside
+  the app window with a slider, step buttons (first/prev/next/last), cause
+  label, counter, freeze toggle, and keyboard shortcuts (arrows, home/end,
+  space, esc)
+- Window.Now() virtual clock: returns pinned snapshot timestamp during scrub,
+  live time otherwise; use in view fns that render clock-driven data so scrubbed
+  frames match their snapshot
 - Window.EnableHistory(maxBytes), HistoryLen(), OpenDebugWindow(),
   Freeze/Resume/IsFrozen, PostRestore(idx) public API
 - RegisterNamespaceSnapshot(ns): widget authors opt additional StateMap
-  namespaces into scrub restore; scroll (nsScrollX/nsScrollY) and
-  widget-local focus (nsInputFocus, nsListBoxFocus, nsTreeFocus) are
-  pre-registered
-- BoundedMap.cloneAny/restoreAny: type-preserving snapshot through an
-  interface so whitelisted namespaces rewind without reflection
+  namespaces into scrub restore; scroll (nsScrollX/nsScrollY) and widget-local
+  focus (nsInputFocus, nsListBoxFocus, nsTreeFocus) are pre-registered
+- BoundedMap.cloneAny/restoreAny: type-preserving snapshot through an interface
+  so whitelisted namespaces rewind without reflection
 - examples/time_travel: counter demo wiring Snapshotter + DebugTimeTravel
 
 ### Hardening
 
 - Snapshotter.Size() capped at 1 GiB to prevent totalBytes overflow
 - Slider NaN/Inf rejected before int conversion in the scrubber
-- BoundedMap restore recovers from type-assertion panics so a single
-  out-of-sync namespace doesn't break the rest of the scrub
+- BoundedMap restore recovers from type-assertion panics so a single out-of-sync
+  namespace doesn't break the rest of the scrub
 - Parent-window title truncated before composing the scrubber title
 
 ### Notes
 
-- Read-only scrub only: rewinding state does not un-do past side effects
-  (HTTP requests, file writes, sounds)
-- Requires multi-window mode (App + App.OpenWindow). Single-window apps
-  log a notice and no-op
-- Zero-cost when disabled: nil-history check short-circuits the hot
-  path with no allocation
+- Read-only scrub only: rewinding state does not un-do past side effects (HTTP
+  requests, file writes, sounds)
+- Requires multi-window mode (App + App.OpenWindow). Single-window apps log a
+  notice and no-op
+- Zero-cost when disabled: nil-history check short-circuits the hot path with no
+  allocation
 
 ## [v0.11.0] - 2026-04-14
 
 ### Added
 
-- WindowCfg.OnCloseRequest hook: intercept OS window-close and app-quit
-  events for save/discard/cancel prompts. Callback owns calling
-  Window.Close() to proceed or doing nothing to cancel. Dispatch
-  extracted into DispatchCloseRequest / DispatchQuitRequest helpers
-  shared by sdl2/gl/metal backends.
+- WindowCfg.OnCloseRequest hook: intercept OS window-close and app-quit events
+  for save/discard/cancel prompts. Callback owns calling Window.Close() to
+  proceed or doing nothing to cancel. Dispatch extracted into
+  DispatchCloseRequest / DispatchQuitRequest helpers shared by sdl2/gl/metal
+  backends.
 
 ## [v0.10.0] - 2026-04-14
 
 ### Added
 
-- DockNode/SplitterState JSON serialization: struct tags, text-marshaled
-  enums (DockNodeKind, DockSplitDir, SplitterOrientation, SplitterCollapsed),
+- DockNode/SplitterState JSON serialization: struct tags, text-marshaled enums
+  (DockNodeKind, DockSplitDir, SplitterOrientation, SplitterCollapsed),
   DockNodeSanitize for post-unmarshal hardening
 - Showcase docs: new dock_layout component entry, splitter serialization section
 
@@ -1901,16 +1820,15 @@ Documentation-only release. No code or behavior changes; no migration needed.
 
 ### Fixed
 
-- Metal backend: native Cocoa file-drop bridge bypasses go-sdl2 crash
-  (SDL_free on Cocoa-allocated string); per-window callback map for
-  multi-window support
+- Metal backend: native Cocoa file-drop bridge bypasses go-sdl2 crash (SDL_free
+  on Cocoa-allocated string); per-window callback map for multi-window support
 
 ## [v0.9.8] - 2026-04-13
 
 ### Added
 
-- File-drop event support: OnFileDrop callback on Container, DrawCanvas,
-  and EventHandlers; SDL2 backend maps DropEvent to EventFileDropped
+- File-drop event support: OnFileDrop callback on Container, DrawCanvas, and
+  EventHandlers; SDL2 backend maps DropEvent to EventFileDropped
 
 ### Changed
 
@@ -1929,11 +1847,11 @@ Documentation-only release. No code or behavior changes; no migration needed.
 - Deduplicate helpers across gui/ (asciiLower, f64Clamp, FNV-1a hash,
   skipLayoutChild, shapeBounds, emitClipCmd, cpInputColumn,
   progressBarCenterLabel, finishDiagramFetch, baseCfg)
-- Replace `fmt.Sprintf` with `strconv` in hot paths (data grid, inspector,
-  a11y, data source)
+- Replace `fmt.Sprintf` with `strconv` in hot paths (data grid, inspector, a11y,
+  data source)
 - Eliminate per-frame heap allocations: gesture Event scratch pool, defer
-  removal in render/image opacity, rotateCoordsInverse float path,
-  stack-array cellContent, inspector cache map reuse
+  removal in render/image opacity, rotateCoordsInverse float path, stack-array
+  cellContent, inspector cache map reuse
 - Convert copy-paste spinner tests to table-driven
 - Remove redundant state and unnecessary comments
 - 42 files changed, −278 net lines
@@ -1942,18 +1860,18 @@ Documentation-only release. No code or behavior changes; no migration needed.
 
 ### Added
 
-- `Window.FrameCount() uint64` accessor for the monotonic frame
-  counter; lets widgets detect repeat callbacks within a render cycle
+- `Window.FrameCount() uint64` accessor for the monotonic frame counter; lets
+  widgets detect repeat callbacks within a render cycle
 
 ## [v0.9.4] - 2026-04-11
 
 ### Added
 
-- `Window.SetTitle(string)` + `Window.SetTitleFn(func(string))` — dynamic
-  OS window title updates. Wired in sdl2, metal, and gl backends via
+- `Window.SetTitle(string)` + `Window.SetTitleFn(func(string))` — dynamic OS
+  window title updates. Wired in sdl2, metal, and gl backends via
   `sdl.Window.SetTitle`
-- Input hardening on `SetTitle`: 4 KiB cap, UTF-8-safe truncation,
-  embedded-NUL stripping; no-alloc fast path for clean short inputs
+- Input hardening on `SetTitle`: 4 KiB cap, UTF-8-safe truncation, embedded-NUL
+  stripping; no-alloc fast path for clean short inputs
 
 ## [v0.9.3] - 2026-04-10
 
@@ -1970,15 +1888,15 @@ Documentation-only release. No code or behavior changes; no migration needed.
 ### Fixed
 
 - Solitaire example: replace double-click auto-move with right-click
-- CI: brew upgrade harfbuzz/pango text stack on macOS; checkout
-  go-glyph for test job and use local replace directive
+- CI: brew upgrade harfbuzz/pango text stack on macOS; checkout go-glyph for
+  test job and use local replace directive
 
 ## [v0.9.2] - 2026-04-09
 
 ### Added
 
-- `Window.TextMeasurer()` accessor for downstream widgets that need
-  direct access to the backend measurer
+- `Window.TextMeasurer()` accessor for downstream widgets that need direct
+  access to the backend measurer
 
 ### Fixed
 
@@ -1996,17 +1914,26 @@ Documentation-only release. No code or behavior changes; no migration needed.
 
 ### Added
 
-- `gui/highlight` subpackage: chroma-backed syntax highlighter with curated lexer set (go, python, js/ts, rust, c/cpp, java, ruby, shell, html, css, json, yaml, toml, sql, markdown, diff, dockerfile, make) and DoS caps (256KB source, 100k tokens)
-- `MarkdownStyle.CodeHighlighter` field: optional highlighter for fenced code blocks; nil preserves parser's built-in tokenizer
-- `MarkdownStyle.CodeTypeColor`, `CodeFunctionColor`, `CodeBuiltinColor` palette fields
-- Showcase: component docs, welcome, data grid features, markdown demo, and inspector overlay all use `highlight.Default()`
+- `gui/highlight` subpackage: chroma-backed syntax highlighter with curated
+  lexer set (go, python, js/ts, rust, c/cpp, java, ruby, shell, html, css, json,
+  yaml, toml, sql, markdown, diff, dockerfile, make) and DoS caps (256KB source,
+  100k tokens)
+- `MarkdownStyle.CodeHighlighter` field: optional highlighter for fenced code
+  blocks; nil preserves parser's built-in tokenizer
+- `MarkdownStyle.CodeTypeColor`, `CodeFunctionColor`, `CodeBuiltinColor` palette
+  fields
+- Showcase: component docs, welcome, data grid features, markdown demo, and
+  inspector overlay all use `highlight.Default()`
 
 ## [v0.8.0] - 2026-04-06
 
 ### Added
 
-- `Spinner` widget: animated mathematical curve loading indicator with 21 named `CurveType` constants (rose, lissajous, hypotrochoid, butterfly, cardioid, lemniscate, epitrochoid, heart wave, spiral, fourier and variants)
-- Spinner particle-trail rendering via `DrawCanvas` with faint ghost path outline
+- `Spinner` widget: animated mathematical curve loading indicator with 21 named
+  `CurveType` constants (rose, lissajous, hypotrochoid, butterfly, cardioid,
+  lemniscate, epitrochoid, heart wave, spiral, fourier and variants)
+- Spinner particle-trail rendering via `DrawCanvas` with faint ghost path
+  outline
 - Spinner optional slow rotation (`Rotate` field, 30s per revolution)
 - Spinner `Opt[float32]` params (ParamA/B/D) for custom curve tuning
 - DrawContext: `QuadBezier`, `CubicBezier` drawing primitives
@@ -2014,7 +1941,8 @@ Documentation-only release. No code or behavior changes; no migration needed.
 - `ClearNamespace` and `ClearDrawCanvasCache` for targeted cache flush
 - Mouse button state in motion events; `OnMouseMove` on `DrawCanvas`
 - `OnMouseLeave` event and `RequestRedraw()` for tooltip support
-- Showcase: Spinner demo with all 21 curves, varied colors, and rotation examples
+- Showcase: Spinner demo with all 21 curves, varied colors, and rotation
+  examples
 
 ### Fixed
 
@@ -2033,16 +1961,20 @@ Documentation-only release. No code or behavior changes; no migration needed.
 
 ### Breaking
 
-- `GridPaginationCursor`/`GridPaginationOffset` iota values shifted; new `GridPaginationNone` (0) added
-- `Color.Over` returns `ColorTransparent` (set=true) instead of zero `Color` when both inputs are fully transparent
-- `executeFocusCallback`/`executeMouseCallback` removed unused debug string parameter
+- `GridPaginationCursor`/`GridPaginationOffset` iota values shifted; new
+  `GridPaginationNone` (0) added
+- `Color.Over` returns `ColorTransparent` (set=true) instead of zero `Color`
+  when both inputs are fully transparent
+- `executeFocusCallback`/`executeMouseCallback` removed unused debug string
+  parameter
 
 ### Fixed
 
 - Race: synchronize `guiTheme` and `Default*Style` globals with `sync.RWMutex`
 - Race: `App.Broadcast` no longer holds lock during user callback (deadlock)
 - Race: metal a11y buffers protected with mutex
-- Race: SDL2 resize event watcher allocates per-callback instead of sharing pointer
+- Race: SDL2 resize event watcher allocates per-callback instead of sharing
+  pointer
 - Bug: layout overflow hides visible children when Float/OverDraw interleaved
 - Bug: Fill distribution subtracts OverDraw widths never added to parent
 - Bug: stencil depth decrement without matching increment at depth 255
@@ -2053,7 +1985,8 @@ Documentation-only release. No code or behavior changes; no migration needed.
 - Bug: data grid OnHover closure captures stale window pointer
 - Correctness: `renderImage`/`renderShape` use defer for shape color restore
 - Correctness: SVG render checks `rectIntersection` ok before drawing
-- Correctness: `render_validate` checks NaN/Inf/nil for gradient, shadow, blur, shader, rotate
+- Correctness: `render_validate` checks NaN/Inf/nil for gradient, shadow, blur,
+  shader, rotate
 - Correctness: `WithColors` borderFocus falls back to theme-level `ColorSelect`
 - Correctness: `WithColors` updates SkeletonStyle and InspectorStyle
 - Correctness: `AdjustFontSize` clamps each sub-size individually
@@ -2062,10 +1995,12 @@ Documentation-only release. No code or behavior changes; no migration needed.
 - Correctness: scroll handlers set `IsHandled` and use shape-relative coords
 - Correctness: gesture emits rotate `Began` before first `Changed`
 - Correctness: `InMemoryDataSource.Capabilities` acquires read lock
-- Correctness: `effectivePaginationKind` returns `GridPaginationNone` when unsupported
+- Correctness: `effectivePaginationKind` returns `GridPaginationNone` when
+  unsupported
 - Correctness: dock tree nil Root guard
 - Correctness: `bounded_map` eviction handles tombstone-only runs
-- Fix: variable shadowing in gesture, data_source, data_source_orm, locale_bundle, view_listbox
+- Fix: variable shadowing in gesture, data_source, data_source_orm,
+  locale_bundle, view_listbox
 - Fix: date-dependent nil panic in TestDatePickerSubElementClickFocus
 - Fix: wrap bench missing pool reset; raise CI alert threshold to 200%
 
@@ -2083,7 +2018,8 @@ Documentation-only release. No code or behavior changes; no migration needed.
 - `f32IsFinite` uses bit-pattern check instead of float64 round-trip
 - `ColorFilter` factories return pointers to package-level singletons
 - `Shortcut.String()` pre-allocates buffer
-- `contentWidth`/`contentHeight` skip Float and ShapeNone children, matching `spacing()`
+- `contentWidth`/`contentHeight` skip Float and ShapeNone children, matching
+  `spacing()`
 - Move test-only helpers from production files to `_test.go` files
 - `native_print` uses defer for lock/unlock
 - Document animation spring divergence threshold and zero-delay repeat behavior
@@ -2098,4 +2034,5 @@ Documentation-only release. No code or behavior changes; no migration needed.
 - DrawContext: `PolylineJoined` for polylines with miter joins at vertices
 - DrawContext: `Texts()`, `Batches()` accessors for testing canvas output
 - Render pipeline emits `RenderText` commands from `DrawCanvas`
-- Showcase: updated draw canvas demo with line chart (joined polyline, dashed grid, text labels) and bar chart (rounded bars, dashed reference line)
+- Showcase: updated draw canvas demo with line chart (joined polyline, dashed
+  grid, text labels) and bar chart (rounded bars, dashed reference line)

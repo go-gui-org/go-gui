@@ -1,12 +1,18 @@
 ---
-description: Anti-vibecoding learning framework. Generate detailed explanations of code written by AI with curated external resources for deeper learning. Use when the user wants to understand WHAT and WHY behind AI-generated code, not just accept it.
+description:
+  Anti-vibecoding learning framework. Generate detailed explanations of code
+  written by AI with curated external resources for deeper learning. Use when
+  the user wants to understand WHAT and WHY behind AI-generated code, not just
+  accept it.
 ---
 
 # AntiVibe - AI Code Learning Framework
 
 ## Purpose
 
-AntiVibe generates **learning-focused explanations** of AI-written code. Not generic summaries - actual educational content that helps developers understand:
+AntiVibe generates **learning-focused explanations** of AI-written code. Not
+generic summaries - actual educational content that helps developers understand:
+
 - **What** the code does (functionality)
 - **Why** it was written this way (design decisions)
 - **When** to use these patterns (context)
@@ -15,9 +21,12 @@ AntiVibe generates **learning-focused explanations** of AI-written code. Not gen
 ## When to Use
 
 Use AntiVibe when:
+
 1. **Manual invocation**: User types `/antivibe` or "deep dive"
-2. **Post-task learning**: After a feature/phase completes, user wants to learn from it
-3. **Proactive**: User says "explain what AI wrote", "learn from this code", or "understand what AI wrote"
+2. **Post-task learning**: After a feature/phase completes, user wants to learn
+   from it
+3. **Proactive**: User says "explain what AI wrote", "learn from this code", or
+   "understand what AI wrote"
 
 ## What AntiVibe Produces
 
@@ -31,6 +40,7 @@ deep-dive/
 ```
 
 Each file contains:
+
 - **Overview**: What this code does and why it exists
 - **Code Walkthrough**: File-by-file explanation with line-by-line notes
 - **Concepts Explained**: Design patterns, algorithms, CS concepts used
@@ -40,33 +50,42 @@ Each file contains:
 ## Workflow
 
 ### Step 1: Identify Code to Analyze
+
 - Check for explicit file list in user request
 - Or use git diff to find recently modified/created files
 - Or ask user which files/components they want to understand
 
 ### Step 2: Analyze Code Structure
+
 For each file:
+
 - Identify main purpose and responsibilities
 - Note key functions, classes, modules
 - Identify design patterns used (factory, singleton, observer, etc.)
 - Find any complex logic or algorithms
 
 ### Step 3: Explain Concepts
+
 For each concept/pattern found:
+
 - **What**: Plain-language explanation
 - **Why**: Why this approach was chosen over alternatives
 - **When**: When to use this pattern (with context)
 - **Alternatives**: Other approaches and trade-offs
 
 ### Step 4: Find External Resources
+
 Search for and include:
+
 - Official documentation for libraries/frameworks used
 - Quality tutorials or blog posts
 - Video resources (if available)
 - Related concepts for further learning
 
 ### Step 5: Generate Output
+
 Create markdown file in `deep-dive/` folder:
+
 - Name format: `[component]-[timestamp].md`
 - Follow the template in `templates/deep-dive.md`
 - Include code snippets where helpful
@@ -79,7 +98,8 @@ AntiVibe can be configured to auto-trigger via hooks:
 - **SubagentStop**: After a Task completes a feature
 - **Stop**: At session end
 
-To enable auto-trigger, configure hooks in your project (see `hooks/hooks.json`).
+To enable auto-trigger, configure hooks in your project (see
+`hooks/hooks.json`).
 
 ## Principles
 
@@ -93,6 +113,7 @@ To enable auto-trigger, configure hooks in your project (see `hooks/hooks.json`)
 ## Dependencies
 
 Optional scripts in `scripts/` folder:
+
 - `capture-phase.sh` - Detect implementation phase boundaries
 - `analyze-code.sh` - Parse code structure
 - `find-resources.sh` - Search for external resources
@@ -102,15 +123,17 @@ These are helpers - you can also do everything via direct code analysis.
 
 ## Examples
 
-**Input**: "Explain the auth system Claude wrote"
-**Output**: `deep-dive/auth-system-2026-01-15.md` containing:
+**Input**: "Explain the auth system Claude wrote" **Output**:
+`deep-dive/auth-system-2026-01-15.md` containing:
+
 - JWT structure explanation
 - Password hashing rationale
 - Session management concepts
 - Learning resources for auth patterns
 
-**Input**: "I want to understand this API layer"
-**Output**: `deep-dive/api-layer-2026-01-15.md` containing:
+**Input**: "I want to understand this API layer" **Output**:
+`deep-dive/api-layer-2026-01-15.md` containing:
+
 - REST design decisions
 - Middleware explanation
 - Error handling patterns

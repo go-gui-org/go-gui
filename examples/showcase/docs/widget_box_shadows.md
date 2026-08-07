@@ -1,6 +1,6 @@
-Drop shadows on containers, buttons, rectangles, and
-other elements. Set via the `Shadow` field (`*BoxShadow`) on any
-`ContainerCfg`, `RectangleCfg`, `ButtonCfg`, or `SidebarCfg`.
+Drop shadows on containers, buttons, rectangles, and other elements. Set via the
+`Shadow` field (`*BoxShadow`) on any `ContainerCfg`, `RectangleCfg`,
+`ButtonCfg`, or `SidebarCfg`.
 
 ## Usage
 
@@ -32,11 +32,11 @@ gui.Column(gui.ContainerCfg{
 
 ## BoxShadow Properties
 
-| Property     | Type    | Description                              |
-|--------------|---------|------------------------------------------|
-| OffsetX      | float32 | Horizontal shadow offset                 |
-| OffsetY      | float32 | Vertical shadow offset                   |
-| BlurRadius   | float32 | Shadow blur amount                       |
-| Color        | Color   | Shadow color (use RGBA for transparency) |
+| Property   | Type    | Description                              |
+| ---------- | ------- | ---------------------------------------- |
+| OffsetX    | float32 | Horizontal shadow offset                 |
+| OffsetY    | float32 | Vertical shadow offset                   |
+| BlurRadius | float32 | Shadow blur amount                       |
+| Color      | Color   | Shadow color (use RGBA for transparency) |
 
 Positive OffsetX shifts right, positive OffsetY shifts down.
