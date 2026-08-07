@@ -101,7 +101,7 @@ func TestNumericInputReadOnlyStepButtonsGated(t *testing.T) {
 		}
 		// Invoke directly, bypassing the dispatch-level Disabled gate,
 		// to exercise the choke point.
-		up.Shape.events.OnClick(up, &Event{}, w)
+		up.Shape.events.OnClick(EventCtx{up, &Event{}, w})
 		return committed
 	}
 

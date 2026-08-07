@@ -6,6 +6,46 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **BREAKING: event callbacks take a single `EventCtx`.** Every callback that
+  took `(*Layout, *Event, *Window)` now takes `func(EventCtx)`, where `EventCtx`
+  bundles `Layout`, `Event` and `Window`. Payload carriers keep their payload as
+  a leading argument: `func(*Layout, string, *Window)` becomes
+  `func(string, EventCtx)` and `func(T, *Event, *Window)` becomes
+  `func(T, EventCtx)`. `func(*Layout, *Window)` callbacks (`OnScroll`,
+  `AmendLayout`, `InputCfg.OnBlur`) become `func(EventCtx)` with a nil
+  `ctx.Event`. `func(*Window)` lifecycle callbacks, `OnDraw` and
+  `Window.OnEvent` are unchanged. `EventCtx` is passed by value — three pointers
+  in registers — so the zero-allocation layout, render and event phases stay at
+  zero allocations.
+- **BREAKING: consuming events are handled by default.** `OnClick`, `OnChar`,
+  `OnMouseUp`, `OnGesture` and `OnFileDrop` are marked handled by dispatch
+  before the callback runs; drop the trailing `e.IsHandled = true` and call
+  `ctx.Bubble()` on paths that mean "not mine". Every other callback is
+  unchanged and still calls `ctx.Consume()` to stop propagation — notably
+  `OnKeyDown` (which must leave Tab and accelerators alone), the
+  hover/move/leave notifications, and `OnMouseScroll` (whose cascade to the
+  enclosing scroll container depends on the event staying unhandled). One
+  visible consequence: `Window.OnEvent` no longer sees clicks, characters,
+  mouse-ups, file drops or gestures that a widget handled.
+- **`EventCtx` methods.** `Consume()` marks handled, `Bubble()` unmarks it,
+  `Handled()` reports the flag. All three are nil-`Event` safe, so they are
+  callable from `AmendLayout` and `OnScroll` without a guard. `Bubble()` opts
+  out of the current callback's auto-consume only; it does not un-handle an
+  event an earlier handler consumed.
+- **Migration guide:** `docs/migration-eventctx.md`. The rewrite tool that
+  produced this change ships as `tools/eventctx`.
+
+### Removed
+
+- **`spacebarToClick`, `enterToClick` and `leftClickOnly`.** The three
+  deprecated wrapper helpers had no production call sites; the `ClickOnSpace`,
+  `ClickOnEnter` and `ClickButton` dispatch fields superseded them and avoid the
+  per-frame closure allocation.
+
 ## [v0.51.1] - 2026-08-07
 
 ### Changed

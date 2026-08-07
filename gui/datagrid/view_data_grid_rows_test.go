@@ -448,7 +448,7 @@ func TestCellEditorFocusIDOutOfRange(t *testing.T) {
 
 func TestFirstEditableColumnIndex(t *testing.T) {
 	cfg := &DataGridCfg{
-		OnCellEdit: func(GridCellEdit, *gg.Event, *gg.Window) {},
+		OnCellEdit: func(_ GridCellEdit, ctx gg.EventCtx) {},
 		Columns: []GridColumnCfg{
 			{ID: "a", Editable: false},
 			{ID: "b", Editable: true},
@@ -478,7 +478,7 @@ func TestMakeEditorOnKeydownEscape(t *testing.T) {
 	dataGridSetEditingRow("g1", "r1", w)
 	fn := dataGridMakeEditorOnKeydown("g1", "g1")
 	e := &gg.Event{KeyCode: gg.KeyEscape}
-	fn(nil, e, w)
+	fn(gg.EventCtx{Layout: nil, Event: e, Window: w})
 	if !e.IsHandled {
 		t.Fatal("escape should be handled")
 	}
@@ -493,7 +493,7 @@ func TestMakeEditorOnKeydownNonEscape(t *testing.T) {
 	dataGridSetEditingRow("g1", "r1", w)
 	fn := dataGridMakeEditorOnKeydown("g1", "g1")
 	e := &gg.Event{KeyCode: gg.KeyEnter}
-	fn(nil, e, w)
+	fn(gg.EventCtx{Layout: nil, Event: e, Window: w})
 	if e.IsHandled {
 		t.Fatal("non-escape should not be handled")
 	}
@@ -508,7 +508,7 @@ func TestMakeEditorOnKeydownEscapeWithModifiers(t *testing.T) {
 	dataGridSetEditingRow("g1", "r1", w)
 	fn := dataGridMakeEditorOnKeydown("g1", "g1")
 	e := &gg.Event{KeyCode: gg.KeyEscape, Modifiers: gg.ModShift}
-	fn(nil, e, w)
+	fn(gg.EventCtx{Layout: nil, Event: e, Window: w})
 	if e.IsHandled {
 		t.Fatal("escape+shift should not be handled by editor")
 	}
@@ -653,7 +653,7 @@ func TestRowClickWithCallback(t *testing.T) {
 	sel := GridSelection{}
 	e := &gg.Event{FrameCount: 5}
 	dataGridRowClick(rows, sel, "g1", true, true,
-		func(s GridSelection, _ *gg.Event, _ *gg.Window) { selected = s },
+		func(s GridSelection, ctx gg.EventCtx) { selected = s },
 		false, "", 0, 0, "a", "g1",
 		[]GridColumnCfg{}, e, w)
 	if selected.ActiveRowID != "a" {

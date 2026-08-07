@@ -36,10 +36,9 @@ func demoThemeGen(w *gui.Window) gui.View {
 			Padding:  gui.SomeP(4, 10, 4, 10),
 			Radius:   gui.SomeF(12),
 			Content:  []gui.View{gui.Text(gui.TextCfg{Text: strategyLabel(sv), TextStyle: textStyle})},
-			OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-				gui.State[ShowcaseApp](w).ThemeGenStrategy = sv
-				applyGenTheme(w)
-				e.IsHandled = true
+			OnClick: func(ctx gui.EventCtx) {
+				gui.State[ShowcaseApp](ctx.Window).ThemeGenStrategy = sv
+				applyGenTheme(ctx.Window)
 			},
 		})
 	}
@@ -69,14 +68,14 @@ func demoThemeGen(w *gui.Window) gui.View {
 							gui.ColorPicker(gui.ColorPickerCfg{
 								ID:    "theme-gen-cp",
 								Color: pickerColor,
-								OnColorChange: func(c gui.Color, _ *gui.Event, w *gui.Window) {
-									app := gui.State[ShowcaseApp](w)
+								OnColorChange: func(c gui.Color, ctx gui.EventCtx) {
+									app := gui.State[ShowcaseApp](ctx.Window)
 									if app.ThemeGenPickText {
 										app.ThemeGenText = c
 									} else {
 										app.ThemeGenSeed = c
 									}
-									applyGenTheme(w)
+									applyGenTheme(ctx.Window)
 								},
 							}),
 							gui.Row(gui.ContainerCfg{
@@ -100,8 +99,8 @@ func demoThemeGen(w *gui.Window) gui.View {
 												Max:      gui.Some(30.0),
 												Width:    80,
 												Sizing:   gui.FixedFit,
-												OnTextChanged: func(_ *gui.Layout, text string, w *gui.Window) {
-													gui.State[ShowcaseApp](w).ThemeGenRadiusText = text
+												OnTextChanged: func(text string, ctx gui.EventCtx) {
+													gui.State[ShowcaseApp](ctx.Window).ThemeGenRadiusText = text
 												},
 												OnValueCommit: func(_ *gui.Layout, value gui.Opt[float64], text string, w *gui.Window) {
 													app := gui.State[ShowcaseApp](w)
@@ -130,8 +129,8 @@ func demoThemeGen(w *gui.Window) gui.View {
 												Max:      gui.Some(10.0),
 												Width:    80,
 												Sizing:   gui.FixedFit,
-												OnTextChanged: func(_ *gui.Layout, text string, w *gui.Window) {
-													gui.State[ShowcaseApp](w).ThemeGenBorderText = text
+												OnTextChanged: func(text string, ctx gui.EventCtx) {
+													gui.State[ShowcaseApp](ctx.Window).ThemeGenBorderText = text
 												},
 												OnValueCommit: func(_ *gui.Layout, value gui.Opt[float64], text string, w *gui.Window) {
 													app := gui.State[ShowcaseApp](w)
@@ -164,8 +163,8 @@ func demoThemeGen(w *gui.Window) gui.View {
 								ID:       "theme-gen-pick-text",
 								Label:    "Edit text color",
 								Selected: app.ThemeGenPickText,
-								OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-									gui.State[ShowcaseApp](w).ThemeGenPickText = !gui.State[ShowcaseApp](w).ThemeGenPickText
+								OnClick: func(ctx gui.EventCtx) {
+									gui.State[ShowcaseApp](ctx.Window).ThemeGenPickText = !gui.State[ShowcaseApp](ctx.Window).ThemeGenPickText
 								},
 							}),
 							gui.Row(gui.ContainerCfg{
@@ -177,20 +176,18 @@ func demoThemeGen(w *gui.Window) gui.View {
 										ID:      "btn-reset-dark",
 										Padding: gui.SomeP(6, 12, 6, 12),
 										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Reset Dark", TextStyle: t.N3})},
-										OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-											w.SetTheme(gui.ThemeDark.WithBorders(true))
-											syncThemeGenFromCfg(gui.State[ShowcaseApp](w), gui.ThemeDark.WithBorders(true).Cfg)
-											e.IsHandled = true
+										OnClick: func(ctx gui.EventCtx) {
+											ctx.Window.SetTheme(gui.ThemeDark.WithBorders(true))
+											syncThemeGenFromCfg(gui.State[ShowcaseApp](ctx.Window), gui.ThemeDark.WithBorders(true).Cfg)
 										},
 									}),
 									gui.Button(gui.ButtonCfg{
 										ID:      "btn-reset-light",
 										Padding: gui.SomeP(6, 12, 6, 12),
 										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Reset Light", TextStyle: t.N3})},
-										OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-											w.SetTheme(gui.ThemeLight.WithBorders(true))
-											syncThemeGenFromCfg(gui.State[ShowcaseApp](w), gui.ThemeLight.WithBorders(true).Cfg)
-											e.IsHandled = true
+										OnClick: func(ctx gui.EventCtx) {
+											ctx.Window.SetTheme(gui.ThemeLight.WithBorders(true))
+											syncThemeGenFromCfg(gui.State[ShowcaseApp](ctx.Window), gui.ThemeLight.WithBorders(true).Cfg)
 										},
 									}),
 								},
@@ -204,8 +201,8 @@ func demoThemeGen(w *gui.Window) gui.View {
 										ID:      "btn-theme-save",
 										Padding: gui.SomeP(6, 12, 6, 12),
 										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Save Theme", TextStyle: t.N3})},
-										OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-											w.NativeSaveDialog(gui.NativeSaveDialogCfg{
+										OnClick: func(ctx gui.EventCtx) {
+											ctx.Window.NativeSaveDialog(gui.NativeSaveDialogCfg{
 												Title:            "Save Theme",
 												DefaultName:      "theme.json",
 												DefaultExtension: "json",
@@ -235,15 +232,14 @@ func demoThemeGen(w *gui.Window) gui.View {
 													app.ThemeGenName = filepath.Base(path)
 												},
 											})
-											e.IsHandled = true
 										},
 									}),
 									gui.Button(gui.ButtonCfg{
 										ID:      "btn-theme-load",
 										Padding: gui.SomeP(6, 12, 6, 12),
 										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Load Theme", TextStyle: t.N3})},
-										OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-											w.NativeOpenDialog(gui.NativeOpenDialogCfg{
+										OnClick: func(ctx gui.EventCtx) {
+											ctx.Window.NativeOpenDialog(gui.NativeOpenDialogCfg{
 												Title: "Load Theme",
 												Filters: []gui.NativeFileFilter{
 													{Name: "JSON", Extensions: []string{"json"}},
@@ -264,7 +260,6 @@ func demoThemeGen(w *gui.Window) gui.View {
 													app.ThemeGenName = filepath.Base(path)
 												},
 											})
-											e.IsHandled = true
 										},
 									}),
 								},
@@ -281,9 +276,9 @@ func demoThemeGen(w *gui.Window) gui.View {
 								Max:      100,
 								Width:    140,
 								Sizing:   gui.FixedFit,
-								OnChange: func(v float32, _ *gui.Event, w *gui.Window) {
-									gui.State[ShowcaseApp](w).ThemeGenTint = v
-									applyGenTheme(w)
+								OnChange: func(v float32, ctx gui.EventCtx) {
+									gui.State[ShowcaseApp](ctx.Window).ThemeGenTint = v
+									applyGenTheme(ctx.Window)
 								},
 							}),
 						},

@@ -430,7 +430,7 @@ func TestCommandButtonOnClickWiring(t *testing.T) {
 	}
 
 	e := &Event{}
-	l.Shape.events.OnClick(&l, e, w)
+	l.Shape.events.OnClick(EventCtx{&l, e, w})
 	if !executed {
 		t.Error("OnClick should execute the command")
 	}
@@ -454,7 +454,7 @@ func TestCommandButtonOnClickChecksCanExecute(t *testing.T) {
 	l := v.GenerateLayout(w)
 
 	e := &Event{}
-	l.Shape.events.OnClick(&l, e, w)
+	l.Shape.events.OnClick(EventCtx{&l, e, w})
 	if executed {
 		t.Error("OnClick should not execute when CanExecute returns false")
 	}
@@ -494,14 +494,14 @@ func TestCommandButtonUserOnClickOverridesAutoWiring(t *testing.T) {
 
 	userExecuted := false
 	v := CommandButton("test.cmd", ButtonCfg{
-		OnClick: func(_ *Layout, _ *Event, _ *Window) {
+		OnClick: func(ctx EventCtx) {
 			userExecuted = true
 		},
 	})
 	l := v.GenerateLayout(w)
 
 	e := &Event{}
-	l.Shape.events.OnClick(&l, e, w)
+	l.Shape.events.OnClick(EventCtx{&l, e, w})
 	if cmdExecuted {
 		t.Error("command should not execute when user provides OnClick")
 	}

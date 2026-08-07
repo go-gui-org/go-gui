@@ -237,9 +237,9 @@ func (fv *formView) GenerateLayout(w *Window) Layout {
 		Radius:      cfg.Radius,
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
-		AmendLayout: func(_ *Layout, w *Window) {
-			formCleanupStale(w, formID)
-			formProcessRequests(w, formID, onSubmit, onReset)
+		AmendLayout: func(ctx EventCtx) {
+			formCleanupStale(ctx.Window, formID)
+			formProcessRequests(ctx.Window, formID, onSubmit, onReset)
 		},
 	})
 

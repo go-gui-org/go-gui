@@ -24,8 +24,7 @@ func buildFuzzEventLayoutTree(depth, childCount int, w *Window) Layout {
 		case 0:
 			// Shape with events but no focus.
 			shape.events = &eventHandlers{
-				OnClick: func(_ *Layout, e *Event, _ *Window) {
-					e.IsHandled = true
+				OnClick: func(ctx EventCtx) {
 				},
 			}
 		case 1:
@@ -43,17 +42,16 @@ func buildFuzzEventLayoutTree(depth, childCount int, w *Window) Layout {
 			shape.Focusable = true
 			shape.ID = "fb" + strconv.Itoa(i)
 			shape.events = &eventHandlers{
-				OnKeyDown: func(_ *Layout, e *Event, _ *Window) {
-					e.IsHandled = true
+				OnKeyDown: func(ctx EventCtx) {
+					ctx.Consume()
 				},
-				OnChar: func(_ *Layout, e *Event, _ *Window) {
-					e.IsHandled = true
+				OnChar: func(ctx EventCtx) {
 				},
 			}
 		case 4:
 			// Shape with hover events.
 			shape.events = &eventHandlers{
-				OnHover: func(_ *Layout, _ *Event, _ *Window) {},
+				OnHover: func(ctx EventCtx) {},
 			}
 		case 5:
 			// Plain container (no events).

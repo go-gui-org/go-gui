@@ -74,8 +74,8 @@ func messageButton() gui.View {
 		Content: []gui.View{gui.Text(gui.TextCfg{
 			Text: "DialogMessage",
 		})},
-		OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-			w.Dialog(gui.DialogCfg{
+		OnClick: func(ctx gui.EventCtx) {
+			ctx.Window.Dialog(gui.DialogCfg{
 				AlignButtons: gui.HAlignEnd,
 				DialogType:   gui.DialogMessage,
 				Title:        "Title Displays Here",
@@ -95,8 +95,8 @@ func confirmButton() gui.View {
 		Content: []gui.View{gui.Text(gui.TextCfg{
 			Text: "DialogConfirm",
 		})},
-		OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-			w.Dialog(gui.DialogCfg{
+		OnClick: func(ctx gui.EventCtx) {
+			ctx.Window.Dialog(gui.DialogCfg{
 				DialogType: gui.DialogConfirm,
 				Title:      "Destroy All Data?",
 				Body:       "Are you sure?",
@@ -118,8 +118,8 @@ func promptButton() gui.View {
 		Content: []gui.View{gui.Text(gui.TextCfg{
 			Text: "DialogPrompt",
 		})},
-		OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-			w.Dialog(gui.DialogCfg{
+		OnClick: func(ctx gui.EventCtx) {
+			ctx.Window.Dialog(gui.DialogCfg{
 				DialogType: gui.DialogPrompt,
 				Title:      "Monty Python Quiz",
 				Body:       "What is your quest?",
@@ -144,8 +144,8 @@ func customButton() gui.View {
 		Content: []gui.View{gui.Text(gui.TextCfg{
 			Text: "DialogCustom",
 		})},
-		OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-			w.Dialog(gui.DialogCfg{
+		OnClick: func(ctx gui.EventCtx) {
+			ctx.Window.Dialog(gui.DialogCfg{
 				DialogType: gui.DialogCustom,
 				CustomContent: []gui.View{
 					gui.Column(gui.ContainerCfg{
@@ -160,8 +160,8 @@ func customButton() gui.View {
 								Content: []gui.View{gui.Text(gui.TextCfg{
 									Text: "Close Me",
 								})},
-								OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-									w.DialogDismiss()
+								OnClick: func(ctx gui.EventCtx) {
+									ctx.Window.DialogDismiss()
 								},
 							}),
 						},
@@ -179,8 +179,8 @@ func nativeOpenButton() gui.View {
 		Content: []gui.View{gui.Text(gui.TextCfg{
 			Text: "NativeOpenDialog",
 		})},
-		OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-			w.NativeOpenDialog(gui.NativeOpenDialogCfg{
+		OnClick: func(ctx gui.EventCtx) {
+			ctx.Window.NativeOpenDialog(gui.NativeOpenDialogCfg{
 				Title:         "Open Files",
 				AllowMultiple: true,
 				Filters: []gui.NativeFileFilter{
@@ -206,8 +206,8 @@ func nativeSaveButton() gui.View {
 		Content: []gui.View{gui.Text(gui.TextCfg{
 			Text: "NativeSaveDialog",
 		})},
-		OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-			w.NativeSaveDialog(gui.NativeSaveDialogCfg{
+		OnClick: func(ctx gui.EventCtx) {
+			ctx.Window.NativeSaveDialog(gui.NativeSaveDialogCfg{
 				Title:            "Save As",
 				DefaultName:      "untitled",
 				DefaultExtension: "txt",
@@ -229,8 +229,8 @@ func nativeFolderButton() gui.View {
 		Content: []gui.View{gui.Text(gui.TextCfg{
 			Text: "NativeFolderDialog",
 		})},
-		OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-			w.NativeFolderDialog(gui.NativeFolderDialogCfg{
+		OnClick: func(ctx gui.EventCtx) {
+			ctx.Window.NativeFolderDialog(gui.NativeFolderDialogCfg{
 				Title: "Choose Folder",
 				OnDone: func(r gui.NativeDialogResult, w *gui.Window) {
 					showNativeResult("NativeFolderDialog", r, w)
@@ -247,8 +247,8 @@ func nativeMessageButton() gui.View {
 		Content: []gui.View{gui.Text(gui.TextCfg{
 			Text: "NativeMessageDialog",
 		})},
-		OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-			w.NativeMessageDialog(gui.NativeMessageDialogCfg{
+		OnClick: func(ctx gui.EventCtx) {
+			ctx.Window.NativeMessageDialog(gui.NativeMessageDialogCfg{
 				Title: "Native Message",
 				Body:  "This is a native OS message dialog.",
 				Level: gui.AlertInfo,
@@ -267,8 +267,8 @@ func nativeConfirmButton() gui.View {
 		Content: []gui.View{gui.Text(gui.TextCfg{
 			Text: "NativeConfirmDialog",
 		})},
-		OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-			w.NativeConfirmDialog(gui.NativeConfirmDialogCfg{
+		OnClick: func(ctx gui.EventCtx) {
+			ctx.Window.NativeConfirmDialog(gui.NativeConfirmDialogCfg{
 				Title: "Native Confirm",
 				Body:  "Do you want to proceed?",
 				Level: gui.AlertWarning,
@@ -339,13 +339,13 @@ func toggleTheme(app *App, theme gui.Theme) gui.View {
 				TextStyle:    theme.Icon3,
 				Padding:      gui.Some(gui.PaddingSmall),
 				Selected:     app.LightTheme,
-				OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-					a := gui.State[App](w)
+				OnClick: func(ctx gui.EventCtx) {
+					a := gui.State[App](ctx.Window)
 					a.LightTheme = !a.LightTheme
 					if a.LightTheme {
-						w.SetTheme(gui.ThemeLight.WithBorders(true))
+						ctx.Window.SetTheme(gui.ThemeLight.WithBorders(true))
 					} else {
-						w.SetTheme(gui.ThemeDark.WithBorders(true))
+						ctx.Window.SetTheme(gui.ThemeDark.WithBorders(true))
 					}
 				},
 			}),

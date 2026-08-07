@@ -59,7 +59,7 @@ type datePickerState struct {
 // DatePickerCfg configures a date picker calendar view.
 type DatePickerCfg struct {
 	TextStyle       TextStyle
-	OnSelect        func([]time.Time, *Event, *Window)
+	OnSelect        func([]time.Time, EventCtx)
 	ID              string `gui:"required"`
 	A11YLabel       string
 	A11YDescription string
@@ -164,29 +164,28 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
 		Content:     content,
-		AmendLayout: func(lo *Layout, w *Window) {
-			if w.IsFocus(cfg.ID) {
-				lo.Shape.ColorBorder = cfg.ColorBorderFocus
+		AmendLayout: func(ctx EventCtx) {
+			if ctx.Window.IsFocus(cfg.ID) {
+				ctx.Layout.Shape.ColorBorder = cfg.ColorBorderFocus
 			}
 		},
-		OnClick: func(_ *Layout, e *Event, w *Window) {
+		OnClick: func(ctx EventCtx) {
 			if !cfg.Disabled {
-				w.SetFocus(cfg.ID)
-				e.IsHandled = true
+				ctx.Window.SetFocus(cfg.ID)
 			}
 		},
-		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
+		OnKeyDown: func(ctx EventCtx) {
 			sm := StateMap[string, datePickerState](
-				w, nsDatePicker, capModerate)
+				ctx.Window, nsDatePicker, capModerate)
 			s, ok := sm.Get(cfgID)
 			if !ok {
 				return
 			}
 			if s.ShowYearMonthPicker {
 				datePickerRollerKeyDown(
-					sm, cfgID, s, e, w)
+					sm, cfgID, s, ctx.Event, ctx.Window)
 			} else {
-				datePickerOnKeyDown(cfg, e, w)
+				datePickerOnKeyDown(cfg, ctx.Event, ctx.Window)
 			}
 		},
 	})
@@ -230,8 +229,8 @@ func datePickerControls(
 	)
 
 	focusID := cfg.ID
-	onToggle := func(_ *Layout, e *Event, w *Window) {
-		sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
+	onToggle := func(ctx EventCtx) {
+		sm := StateMap[string, datePickerState](ctx.Window, nsDatePicker, capModerate)
 		s, ok := sm.Get(cfgID)
 		if !ok {
 			return
@@ -239,26 +238,26 @@ func datePickerControls(
 		s.ShowYearMonthPicker = !s.ShowYearMonthPicker
 		sm.Set(cfgID, s)
 		if focusID != "" {
-			w.SetFocus(focusID)
+			ctx.Window.SetFocus(focusID)
 		}
-		w.UpdateWindow()
-		e.IsHandled = true
+		ctx.Window.UpdateWindow()
+		ctx.Event.IsHandled = true
 	}
 
-	onPrev := func(_ *Layout, e *Event, w *Window) {
+	onPrev := func(ctx EventCtx) {
 		if focusID != "" {
-			w.SetFocus(focusID)
+			ctx.Window.SetFocus(focusID)
 		}
-		datePickerNavMonth(cfgID, -1, w)
-		e.IsHandled = true
+		datePickerNavMonth(cfgID, -1, ctx.Window)
+		ctx.Consume()
 	}
 
-	onNext := func(_ *Layout, e *Event, w *Window) {
+	onNext := func(ctx EventCtx) {
 		if focusID != "" {
-			w.SetFocus(focusID)
+			ctx.Window.SetFocus(focusID)
 		}
-		datePickerNavMonth(cfgID, 1, w)
-		e.IsHandled = true
+		datePickerNavMonth(cfgID, 1, ctx.Window)
+		ctx.Consume()
 	}
 
 	return Row(ContainerCfg{
@@ -372,7 +371,7 @@ func datePickerOnKeyDown(cfg *DatePickerCfg, e *Event, w *Window) {
 			s.FocusDay, s, cfg.Dates,
 			cfg.SelectMultiple)
 		if cfg.OnSelect != nil {
-			cfg.OnSelect(dates, e, w)
+			cfg.OnSelect(dates, EventCtx{nil, e, w})
 		}
 		e.IsHandled = true
 	}

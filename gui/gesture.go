@@ -517,7 +517,9 @@ func gestureHandler(layout *Layout, e *Event, w *Window) {
 	}
 	if layout.Shape.hasEvents() &&
 		layout.Shape.events.OnGesture != nil {
-		layout.Shape.events.OnGesture(layout, e, w)
+		// OnGesture is consume-class: pre-mark before the call.
+		e.IsHandled = true
+		layout.Shape.events.OnGesture(EventCtx{layout, e, w})
 		if e.IsHandled {
 			return
 		}

@@ -10,7 +10,7 @@ func TestSelectGeneratesClosedLayout(t *testing.T) {
 	v := Select(SelectCfg{
 		ID:       "s1",
 		Options:  []string{"A", "B", "C"},
-		OnSelect: func([]string, *Event, *Window) {},
+		OnSelect: func(_ []string, ctx EventCtx) {},
 	})
 	layout := v.GenerateLayout(w)
 	if layout.Shape == nil {
@@ -31,7 +31,7 @@ func TestSelectGeneratesDropdownWhenOpen(t *testing.T) {
 	v := Select(SelectCfg{
 		ID:       "s2",
 		Options:  []string{"A", "B", "C"},
-		OnSelect: func([]string, *Event, *Window) {},
+		OnSelect: func(_ []string, ctx EventCtx) {},
 	})
 	sv := v.(*selectView)
 	layout := sv.GenerateLayout(w)
@@ -53,7 +53,7 @@ func TestSelectArrowChangesWithState(t *testing.T) {
 	v := Select(SelectCfg{
 		ID:       "s3",
 		Options:  []string{"X"},
-		OnSelect: func([]string, *Event, *Window) {},
+		OnSelect: func(_ []string, ctx EventCtx) {},
 	})
 	sv := v.(*selectView)
 
@@ -80,7 +80,7 @@ func TestSelectOptionViewOnClickFires(t *testing.T) {
 	cfg := &SelectCfg{
 		ID:      "s4",
 		Options: []string{"A", "B"},
-		OnSelect: func(s []string, _ *Event, _ *Window) {
+		OnSelect: func(s []string, ctx EventCtx) {
 			fired = true
 			selected = s
 		},
@@ -94,7 +94,7 @@ func TestSelectOptionViewOnClickFires(t *testing.T) {
 	e := &Event{MouseButton: MouseLeft}
 	layout := cv.GenerateLayout(w)
 	if layout.Shape.events != nil && layout.Shape.events.OnClick != nil {
-		layout.Shape.events.OnClick(nil, e, w)
+		layout.Shape.events.OnClick(EventCtx{nil, e, w})
 	}
 	if !fired {
 		t.Error("OnSelect not fired")
@@ -125,7 +125,7 @@ func TestSelectKeyboardNavigation(t *testing.T) {
 	cfg := SelectCfg{
 		ID:       "s6",
 		Options:  []string{"A", "B", "C"},
-		OnSelect: func([]string, *Event, *Window) {},
+		OnSelect: func(_ []string, ctx EventCtx) {},
 	}
 	applySelectDefaults(&cfg)
 	idScroll := cfg.ID + ".dropdown"
@@ -172,7 +172,7 @@ func TestSelectKeyboardSelectItem(t *testing.T) {
 	cfg := SelectCfg{
 		ID:      "s7",
 		Options: []string{"A", "B"},
-		OnSelect: func(s []string, _ *Event, _ *Window) {
+		OnSelect: func(s []string, ctx EventCtx) {
 			selected = s
 		},
 	}
@@ -199,7 +199,7 @@ func TestSelectSkipsSubHeaders(t *testing.T) {
 	cfg := SelectCfg{
 		ID:       "s8",
 		Options:  []string{"A", "---Section", "B"},
-		OnSelect: func([]string, *Event, *Window) {},
+		OnSelect: func(_ []string, ctx EventCtx) {},
 	}
 	applySelectDefaults(&cfg)
 	idScroll := cfg.ID + ".dropdown"
@@ -227,7 +227,7 @@ func TestSelectHomeEndKeys(t *testing.T) {
 	cfg := SelectCfg{
 		ID:       "she",
 		Options:  []string{"A", "---S", "B", "C"},
-		OnSelect: func([]string, *Event, *Window) {},
+		OnSelect: func(_ []string, ctx EventCtx) {},
 	}
 	applySelectDefaults(&cfg)
 	idScroll := cfg.ID + ".dropdown"
@@ -266,7 +266,7 @@ func TestSelectClickOpenResetsHighlight(t *testing.T) {
 		ID:       "scr",
 		Options:  []string{"A", "B", "C"},
 		Selected: []string{"B"},
-		OnSelect: func([]string, *Event, *Window) {},
+		OnSelect: func(_ []string, ctx EventCtx) {},
 	}
 	applySelectDefaults(&cfg)
 	v := Select(cfg)
@@ -275,7 +275,7 @@ func TestSelectClickOpenResetsHighlight(t *testing.T) {
 
 	// Simulate click to open.
 	e := &Event{MouseButton: MouseLeft}
-	layout.Shape.events.OnClick(&layout, e, w)
+	layout.Shape.events.OnClick(EventCtx{&layout, e, w})
 
 	sh := StateMap[string, int](w, nsSelectHL, capModerate)
 	idx, _ := sh.Get("scr")
@@ -314,7 +314,7 @@ func TestSelectPlaceholderWhenEmpty(t *testing.T) {
 		ID:          "s9",
 		Placeholder: "Choose...",
 		Options:     []string{"A"},
-		OnSelect:    func([]string, *Event, *Window) {},
+		OnSelect:    func(_ []string, ctx EventCtx) {},
 	})
 	sv := v.(*selectView)
 	layout := sv.GenerateLayout(w)
@@ -335,7 +335,7 @@ func TestSelectMultipleJoinsSelected(t *testing.T) {
 		Selected:       []string{"A", "B"},
 		Options:        []string{"A", "B", "C"},
 		SelectMultiple: true,
-		OnSelect:       func([]string, *Event, *Window) {},
+		OnSelect:       func(_ []string, ctx EventCtx) {},
 	})
 	sv := v.(*selectView)
 	layout := sv.GenerateLayout(w)

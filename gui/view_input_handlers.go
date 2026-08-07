@@ -37,41 +37,42 @@ func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id 
 	return text, false
 }
 
-func makeInputOnChar(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
-	return func(layout *Layout, e *Event, w *Window) {
-		if hcfg.FocusID == "" || !w.IsFocus(hcfg.FocusID) {
+func makeInputOnChar(hcfg inputHandlerCfg) func(EventCtx) {
+	return func(ctx EventCtx) {
+		if hcfg.FocusID == "" || !ctx.Window.IsFocus(hcfg.FocusID) {
+			ctx.Bubble() // not our field: let the character travel on
 			return
 		}
 		// Swallow typed and IME-composed text; the field keeps focus so
 		// navigation, selection, and copy still work.
 		if hcfg.ReadOnly {
-			e.IsHandled = true
+			ctx.Consume()
 			return
 		}
-		ch := e.CharCode
+		ch := ctx.Event.CharCode
 		id := hcfg.FocusID
 
 		// Control characters are handled by OnKeyDown.
 		if ch < CharSpace {
-			e.IsHandled = true
+			ctx.Consume()
 			return
 		}
 
-		text := inputTextFromLayout(layout)
-		ins := e.IMEText
+		text := inputTextFromLayout(ctx.Layout)
+		ins := ctx.Event.IMEText
 		if len(ins) == 0 {
 			ins = string(rune(ch))
 		}
-		text, changed := inputTextChange(hcfg, layout, text, ins, id, w)
+		text, changed := inputTextChange(hcfg, ctx.Layout, text, ins, id, ctx.Window)
 
 		if changed {
-			resetBlinkCursorVisible(w)
-			hcfg.fireTextChanged(layout, text, w)
+			resetBlinkCursorVisible(ctx.Window)
+			hcfg.fireTextChanged(ctx.Layout, text, ctx.Window)
 			inputScrollCursorIntoView(
-				hcfg.ScrollID, text, layout, w,
+				hcfg.ScrollID, text, ctx.Layout, ctx.Window,
 			)
 		}
-		e.IsHandled = true
+		ctx.Consume()
 	}
 }
 
@@ -96,18 +97,18 @@ func inputKeyMutatesText(e *Event, mode InputMode) bool {
 	return false
 }
 
-func makeInputOnKeyDown(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
+func makeInputOnKeyDown(hcfg inputHandlerCfg) func(EventCtx) {
 	mask := hcfg.CompiledMask
-	return func(layout *Layout, e *Event, w *Window) {
-		if hcfg.FocusID == "" || !w.IsFocus(hcfg.FocusID) {
+	return func(ctx EventCtx) {
+		if hcfg.FocusID == "" || !ctx.Window.IsFocus(hcfg.FocusID) {
 			return
 		}
-		if hcfg.ReadOnly && inputKeyMutatesText(e, hcfg.Mode) {
-			e.IsHandled = true
+		if hcfg.ReadOnly && inputKeyMutatesText(ctx.Event, hcfg.Mode) {
+			ctx.Consume()
 			return
 		}
 		id := hcfg.FocusID
-		imap := StateMap[string, InputState](w, nsInput, capMany)
+		imap := StateMap[string, InputState](ctx.Window, nsInput, capMany)
 		// Default InputState{}: zero CursorOffset/CursorTrailing seed
 		// initial state; both are immediately overwritten below.
 		is := imap.GetOr(id, InputState{})
@@ -115,19 +116,19 @@ func makeInputOnKeyDown(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
 		savedTrailing := is.CursorTrailing
 		is.CursorOffset = -1
 		is.CursorTrailing = false
-		text := inputTextFromLayout(layout)
+		text := inputTextFromLayout(ctx.Layout)
 		runeLen := utf8RuneCount(text)
 		pos := is.CursorPos
 		pos = min(pos, runeLen)
-		isShift := e.Modifiers.Has(ModShift)
-		isWordMod := e.Modifiers.HasAny(ModCtrl, ModAlt, ModSuper)
+		isShift := ctx.Event.Modifiers.Has(ModShift)
+		isWordMod := ctx.Event.Modifiers.HasAny(ModCtrl, ModAlt, ModSuper)
 		handled := true
 		textChanged := false
 
 		// Use glyph layout for cursor navigation when available.
-		gl, glOK := inputGlyphLayoutWithText(text, layout, w)
+		gl, glOK := inputGlyphLayoutWithText(text, ctx.Layout, ctx.Window)
 
-		switch e.KeyCode {
+		switch ctx.Event.KeyCode {
 		case KeyLeft:
 			inputKeyLeft(imap, id, is, text, pos,
 				isShift, isWordMod, gl, glOK)
@@ -148,65 +149,65 @@ func makeInputOnKeyDown(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
 				isShift, savedOffset, false, hcfg.Mode, gl, glOK)
 		case KeyEnter:
 			text, textChanged = inputKeyEnter(
-				hcfg, layout, text, id, e, w)
+				hcfg, ctx.Layout, text, id, ctx.Event, ctx.Window)
 		case KeyEscape:
 			inputKeyEscape(imap, id, is)
 			handled = false
 		case KeyA:
-			if e.Modifiers.HasAny(ModCtrl, ModSuper) {
-				inputSelectAll(text, id, w)
+			if ctx.Event.Modifiers.HasAny(ModCtrl, ModSuper) {
+				inputSelectAll(text, id, ctx.Window)
 			} else {
 				handled = false
 			}
 		case KeyC:
 			handled = inputKeyCopy(
-				text, id, hcfg.IsPassword, e, w)
+				text, id, hcfg.IsPassword, ctx.Event, ctx.Window)
 		case KeyV:
-			if e.Modifiers.HasAny(ModCtrl, ModSuper) {
+			if ctx.Event.Modifiers.HasAny(ModCtrl, ModSuper) {
 				text, textChanged = inputKeyPaste(
-					text, w.GetClipboard(), id,
-					mask, hcfg, w)
+					text, ctx.Window.GetClipboard(), id,
+					mask, hcfg, ctx.Window)
 			} else {
 				handled = false
 			}
 		case KeyX:
 			text, textChanged, handled = inputKeyCut(
-				text, id, hcfg.IsPassword, e, w)
+				text, id, hcfg.IsPassword, ctx.Event, ctx.Window)
 		case KeyZ:
 			text, textChanged, handled = inputKeyUndoRedo(
-				text, id, e, w)
+				text, id, ctx.Event, ctx.Window)
 		case KeyBackspace:
 			text, textChanged = inputKeyBackspaceOrDelete(
-				text, id, false, mask, layout, w)
+				text, id, false, mask, ctx.Layout, ctx.Window)
 		case KeyDelete:
 			text, textChanged = inputKeyBackspaceOrDelete(
-				text, id, true, mask, layout, w)
+				text, id, true, mask, ctx.Layout, ctx.Window)
 		default:
 			handled = false
 		}
 
 		if handled {
-			resetBlinkCursorVisible(w)
+			resetBlinkCursorVisible(ctx.Window)
 			if textChanged {
-				hcfg.fireTextChanged(layout, text, w)
+				hcfg.fireTextChanged(ctx.Layout, text, ctx.Window)
 			}
 			inputScrollCursorIntoView(
-				hcfg.ScrollID, text, layout, w,
+				hcfg.ScrollID, text, ctx.Layout, ctx.Window,
 			)
-			e.IsHandled = true
+			ctx.Consume()
 		} else if hcfg.OnKeyDown != nil {
-			hcfg.OnKeyDown(layout, e, w)
+			hcfg.OnKeyDown(ctx)
 		}
 	}
 }
 
-func makeInputOnKeyUp(hcfg inputHandlerCfg) func(*Layout, *Event, *Window) {
-	return func(layout *Layout, e *Event, w *Window) {
-		if hcfg.FocusID == "" || !w.IsFocus(hcfg.FocusID) {
+func makeInputOnKeyUp(hcfg inputHandlerCfg) func(EventCtx) {
+	return func(ctx EventCtx) {
+		if hcfg.FocusID == "" || !ctx.Window.IsFocus(hcfg.FocusID) {
 			return
 		}
 		if hcfg.OnKeyUp != nil {
-			hcfg.OnKeyUp(layout, e, w)
+			hcfg.OnKeyUp(ctx)
 		}
 	}
 }

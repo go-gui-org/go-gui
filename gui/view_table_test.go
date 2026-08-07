@@ -220,7 +220,7 @@ func TestTableSelection(t *testing.T) {
 	// Click second row.
 	row := &layout.Children[1]
 	if row.Shape.hasEvents() && row.Shape.events.OnClick != nil {
-		row.Shape.events.OnClick(row, &Event{}, w)
+		row.Shape.events.OnClick(EventCtx{row, &Event{}, w})
 	}
 	if clickedRow != 1 {
 		t.Errorf("clicked row = %d, want 1", clickedRow)

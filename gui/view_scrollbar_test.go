@@ -242,7 +242,7 @@ func TestThumbOnClickLocksAndUnlocks(t *testing.T) {
 		ID:          "1",
 		ScrollID:    "1",
 	})
-	handler(nil, e, w)
+	handler(EventCtx{nil, e, w})
 	if !w.MouseIsLocked() {
 		t.Error("expected mouse locked after thumb click")
 	}
@@ -251,7 +251,7 @@ func TestThumbOnClickLocksAndUnlocks(t *testing.T) {
 	}
 
 	// Simulate mouse up.
-	w.viewState.mouseLock.MouseUp(nil, e, w)
+	w.viewState.mouseLock.MouseUp(EventCtx{nil, e, w})
 	if w.MouseIsLocked() {
 		t.Error("expected mouse unlocked after mouse up")
 	}
@@ -348,7 +348,7 @@ func TestGutterClickSetsOffsetAndLocks(t *testing.T) {
 		ID:          "8",
 		ScrollID:    "8",
 	})
-	handler(nil, e, w)
+	handler(EventCtx{nil, e, w})
 
 	sy := w.scrollY()
 	v, _ := sy.Get("8")

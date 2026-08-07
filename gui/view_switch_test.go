@@ -33,7 +33,7 @@ func TestSwitchOnClickCallback(t *testing.T) {
 	fired := false
 	w := &Window{}
 	v := Switch(SwitchCfg{
-		OnClick: func(_ *Layout, _ *Event, _ *Window) {
+		OnClick: func(ctx EventCtx) {
 			fired = true
 		},
 	})
@@ -43,7 +43,7 @@ func TestSwitchOnClickCallback(t *testing.T) {
 		t.Fatal("expected OnClick")
 	}
 	e := &Event{MouseButton: MouseLeft}
-	layout.Shape.events.OnClick(&layout, e, w)
+	layout.Shape.events.OnClick(EventCtx{&layout, e, w})
 	if !fired {
 		t.Error("OnClick did not fire")
 	}

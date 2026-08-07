@@ -203,7 +203,7 @@ func TestScrollSmoothFiresOnScroll(t *testing.T) {
 	w.layout.Children[0].Parent = &w.layout
 	fired := 0
 	layout.Shape.events = &eventHandlers{
-		OnScroll: func(_ *Layout, _ *Window) { fired++ },
+		OnScroll: func(ctx EventCtx) { fired++ },
 	}
 	scrollSmoothBy(w, layout, scrollAxisY, -50)
 	driveScrollSmooth(w, 200)

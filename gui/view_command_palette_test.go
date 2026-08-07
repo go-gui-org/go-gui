@@ -9,7 +9,7 @@ func TestCommandPaletteHidden(t *testing.T) {
 		Items: []CommandPaletteItem{
 			{ID: "save", Label: "Save"},
 		},
-		OnAction: func(_ string, _ *Event, _ *Window) {},
+		OnAction: func(_ string, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.shapeType == shapeDrawCanvas {
@@ -27,7 +27,7 @@ func TestCommandPaletteVisible(t *testing.T) {
 			{ID: "save", Label: "Save", Detail: "Ctrl+S"},
 			{ID: "open", Label: "Open", Detail: "Ctrl+O"},
 		},
-		OnAction: func(_ string, _ *Event, _ *Window) {},
+		OnAction: func(_ string, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, w)
 	if len(layout.Children) == 0 {
@@ -88,7 +88,7 @@ func TestPaletteOnKeyDownSelect(t *testing.T) {
 		{ID: "cmd2", Label: "Cmd2"},
 	}
 	paletteOnKeyDown("cp-sel",
-		func(id string, _ *Event, _ *Window) { selected = id },
+		func(id string, ctx EventCtx) { selected = id },
 		nil,
 		items, []string{"cmd1", "cmd2"}, e, w)
 	if selected != "cmd1" {
@@ -105,7 +105,7 @@ func TestPaletteOnKeyDownDisabledBlocked(t *testing.T) {
 		{ID: "cmd1", Label: "Cmd1", Disabled: true},
 	}
 	paletteOnKeyDown("cp-dis",
-		func(id string, _ *Event, _ *Window) { selected = id },
+		func(id string, ctx EventCtx) { selected = id },
 		nil,
 		items, []string{"cmd1"}, e, w)
 	if selected != "" {
@@ -168,7 +168,7 @@ func TestPaletteQueryFiltering(t *testing.T) {
 				{ID: "open", Label: "Open"},
 				{ID: "search", Label: "Search"},
 			},
-			OnAction: func(_ string, _ *Event, _ *Window) {},
+			OnAction: func(_ string, ctx EventCtx) {},
 		})
 		_ = generateViewLayout(v, w)
 	}
@@ -193,7 +193,7 @@ func TestCommandPaletteItemsCacheInvalidatesOnItemsChange(t *testing.T) {
 		Items: []CommandPaletteItem{
 			{ID: "a", Label: "A"},
 		},
-		OnAction: func(_ string, _ *Event, _ *Window) {},
+		OnAction: func(_ string, ctx EventCtx) {},
 	})
 	_ = generateViewLayout(v, w)
 
@@ -215,7 +215,7 @@ func TestCommandPaletteItemsCacheInvalidatesOnItemsChange(t *testing.T) {
 			{ID: "a", Label: "A"},
 			{ID: "b", Label: "B"},
 		},
-		OnAction: func(_ string, _ *Event, _ *Window) {},
+		OnAction: func(_ string, ctx EventCtx) {},
 	})
 	_ = generateViewLayout(v, w)
 	cache, _ = cm.Get(id)
@@ -235,7 +235,7 @@ func TestCommandPaletteCacheInvalidatesOnContentChange(t *testing.T) {
 			Items: []CommandPaletteItem{
 				{ID: "x", Label: label},
 			},
-			OnAction: func(_ string, _ *Event, _ *Window) {},
+			OnAction: func(_ string, ctx EventCtx) {},
 		})
 		_ = generateViewLayout(v, w)
 		cm := StateMapRead[string, *cmdPaletteItemsCache](
@@ -276,7 +276,7 @@ func TestPaletteBackdropDismiss(t *testing.T) {
 	v := CommandPalette(CommandPaletteCfg{
 		ID:       id,
 		Items:    []CommandPaletteItem{{ID: "a", Label: "A"}},
-		OnAction: func(_ string, _ *Event, _ *Window) {},
+		OnAction: func(_ string, ctx EventCtx) {},
 		OnDismiss: func(_ *Window) {
 			dismissed = true
 		},
@@ -287,8 +287,11 @@ func TestPaletteBackdropDismiss(t *testing.T) {
 	if layout.Shape.events == nil || layout.Shape.events.OnClick == nil {
 		t.Fatal("backdrop should have OnClick")
 	}
+	// Go through callRelative rather than calling OnClick directly:
+	// OnClick is consume-class, so the handled flag is set by dispatch,
+	// not by the callback body.
 	e := &Event{}
-	layout.Shape.events.OnClick(&layout, e, w)
+	callRelative(&layout, e, w, layout.Shape.events.OnClick, evConsume)
 	if !dismissed {
 		t.Error("backdrop click should trigger OnDismiss")
 	}
@@ -316,11 +319,11 @@ func TestPaletteOnEnterSelectsHighlighted(t *testing.T) {
 	}
 	ids := []string{"a", "b"}
 	onEnter := makePaletteOnEnter(id,
-		func(itemID string, _ *Event, _ *Window) { selected = itemID },
+		func(itemID string, ctx EventCtx) { selected = itemID },
 		nil, items, ids)
 
 	e := &Event{KeyCode: KeyEnter}
-	onEnter(nil, e, w)
+	onEnter(EventCtx{nil, e, w})
 	if selected != "b" {
 		t.Errorf("OnEnter selected = %q, want b", selected)
 	}
@@ -340,11 +343,11 @@ func TestPaletteOnEnterDisabledBlocked(t *testing.T) {
 	}
 	ids := []string{"a"}
 	onEnter := makePaletteOnEnter(id,
-		func(itemID string, _ *Event, _ *Window) { selected = itemID },
+		func(itemID string, ctx EventCtx) { selected = itemID },
 		nil, items, ids)
 
 	e := &Event{KeyCode: KeyEnter}
-	onEnter(nil, e, w)
+	onEnter(EventCtx{nil, e, w})
 	if selected != "" {
 		t.Errorf("disabled item should not select, got %q", selected)
 	}
@@ -364,7 +367,7 @@ func TestPaletteKeyboardDispatchIntegration(t *testing.T) {
 			{ID: "beta", Label: "Beta"},
 			{ID: "gamma", Label: "Gamma"},
 		},
-		OnAction: func(itemID string, _ *Event, _ *Window) {
+		OnAction: func(itemID string, ctx EventCtx) {
 			selected = itemID
 		},
 	})

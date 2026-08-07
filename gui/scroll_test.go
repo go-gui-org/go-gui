@@ -266,7 +266,7 @@ func TestScrollVerticalFiresOnScroll(t *testing.T) {
 	fired := false
 	layout, w := makeScrollLayout("7", 100, 100, 100, 300)
 	layout.Shape.events = &eventHandlers{
-		OnScroll: func(_ *Layout, _ *Window) { fired = true },
+		OnScroll: func(ctx EventCtx) { fired = true },
 	}
 	scrollVertical(layout, -10, w)
 	if !fired {
@@ -430,7 +430,7 @@ func TestScrollVerticalByAndToWithClampAndOnScroll(t *testing.T) {
 
 	fired := 0
 	layout.Shape.events = &eventHandlers{
-		OnScroll: func(_ *Layout, _ *Window) { fired++ },
+		OnScroll: func(ctx EventCtx) { fired++ },
 	}
 
 	w.ScrollVerticalBy("15", -50)
@@ -477,7 +477,7 @@ func TestScrollHorizontalByAndToWithClampAndOnScroll(t *testing.T) {
 
 	fired := 0
 	w.layout.Children[0].Shape.events = &eventHandlers{
-		OnScroll: func(_ *Layout, _ *Window) { fired++ },
+		OnScroll: func(ctx EventCtx) { fired++ },
 	}
 
 	w.ScrollHorizontalBy("16", -50)

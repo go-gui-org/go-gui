@@ -47,7 +47,7 @@ func BenchmarkComboboxGenerateLayout(b *testing.B) {
 	cfg := ComboboxCfg{
 		ID:         "bench-cb",
 		Options:    options,
-		OnSelect:   func(_ string, _ *Event, _ *Window) {},
+		OnSelect:   func(_ string, ctx EventCtx) {},
 		Scrollable: true,
 	}
 
@@ -98,7 +98,7 @@ func BenchmarkCommandPaletteGenerateLayout(b *testing.B) {
 	v := CommandPalette(CommandPaletteCfg{
 		ID:         id,
 		Items:      items,
-		OnAction:   func(_ string, _ *Event, _ *Window) {},
+		OnAction:   func(_ string, ctx EventCtx) {},
 		Scrollable: true,
 	})
 
@@ -127,7 +127,7 @@ func BenchmarkListBoxGenerateLayout(b *testing.B) {
 			ID:          "bench-lb",
 			Data:        data,
 			SelectedIDs: selected,
-			OnSelect:    func(_ []string, _ *Event, _ *Window) {},
+			OnSelect:    func(_ []string, ctx EventCtx) {},
 		})
 
 		b.ReportAllocs()
@@ -148,7 +148,7 @@ func BenchmarkListBoxGenerateLayout(b *testing.B) {
 			MaxHeight:   220,
 			Data:        data,
 			SelectedIDs: selected,
-			OnSelect:    func(_ []string, _ *Event, _ *Window) {},
+			OnSelect:    func(_ []string, ctx EventCtx) {},
 		})
 
 		b.ReportAllocs()

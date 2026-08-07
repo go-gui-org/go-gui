@@ -192,7 +192,7 @@ func dataGridSourceApplyPendingJumpSelection(cfg *DataGridCfg, state dataGridSou
 		SelectedRowIDs: map[string]bool{rowID: true},
 	}
 	e := &gg.Event{}
-	cfg.OnSelectionChange(next, e, w)
+	cfg.OnSelectionChange(next, gg.EventCtx{Layout: nil, Event: e, Window: w})
 	dataGridSetAnchor(cfg.ID, rowID, w)
 	dgSrc := gg.StateMap[string, dataGridSourceState](w, nsDgSource, capModerate)
 	nextState, ok := dgSrc.Get(cfg.ID)
@@ -567,7 +567,7 @@ func dataGridSourceRowPositionText(cfg *DataGridCfg, state dataGridSourceState, 
 	return "Row " + strconv.Itoa(current) + " of " + totalText
 }
 
-func dataGridSourceJumpEnabled(onSelectionChange func(GridSelection, *gg.Event, *gg.Window), rowCount *int, loading bool, loadError string, kind GridPaginationKind, pageLimit int) bool {
+func dataGridSourceJumpEnabled(onSelectionChange func(GridSelection, gg.EventCtx), rowCount *int, loading bool, loadError string, kind GridPaginationKind, pageLimit int) bool {
 	if onSelectionChange == nil || pageLimit <= 0 {
 		return false
 	}
@@ -580,7 +580,7 @@ func dataGridSourceJumpEnabled(onSelectionChange func(GridSelection, *gg.Event, 
 	return false
 }
 
-func dataGridSourceSubmitJump(onSelectionChange func(GridSelection, *gg.Event, *gg.Window), rowCount *int, loading bool, loadError string, kind GridPaginationKind, pageLimit int, gridID string, focusID string, e *gg.Event, w *gg.Window) {
+func dataGridSourceSubmitJump(onSelectionChange func(GridSelection, gg.EventCtx), rowCount *int, loading bool, loadError string, kind GridPaginationKind, pageLimit int, gridID string, focusID string, e *gg.Event, w *gg.Window) {
 	if !dataGridSourceJumpEnabled(onSelectionChange, rowCount, loading, loadError, kind, pageLimit) {
 		return
 	}
@@ -647,12 +647,12 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 
 	// Prev button.
 	content = append(content, dataGridIndicatorButton("\u25C0", cfg.TextStyleHeader, cfg.ColorHeaderHover,
-		state.Loading || !hasPrev, dataGridHeaderControlWidth+10, func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
-			dataGridSourcePrevPage(gridID, kind, pageLimit, w)
+		state.Loading || !hasPrev, dataGridHeaderControlWidth+10, func(ctx gg.EventCtx) {
+			dataGridSourcePrevPage(gridID, kind, pageLimit, ctx.Window)
 			if focusID != "" {
-				w.SetFocus(focusID)
+				ctx.Window.SetFocus(focusID)
 			}
-			e.IsHandled = true
+			ctx.Consume()
 		}))
 	// Status.
 	content = append(content, gg.Text(gg.TextCfg{
@@ -662,12 +662,12 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 	}))
 	// Next button.
 	content = append(content, dataGridIndicatorButton("\u25B6", cfg.TextStyleHeader, cfg.ColorHeaderHover,
-		state.Loading || !hasNext, dataGridHeaderControlWidth+10, func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
-			dataGridSourceNextPage(gridID, kind, pageLimit, w)
+		state.Loading || !hasNext, dataGridHeaderControlWidth+10, func(ctx gg.EventCtx) {
+			dataGridSourceNextPage(gridID, kind, pageLimit, ctx.Window)
 			if focusID != "" {
-				w.SetFocus(focusID)
+				ctx.Window.SetFocus(focusID)
 			}
-			e.IsHandled = true
+			ctx.Consume()
 		}))
 	// Spacer.
 	content = append(content, gg.Row(gg.ContainerCfg{
@@ -686,12 +686,11 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 			ColorFocus:  gg.ColorTransparent,
 			ColorClick:  cfg.ColorHeaderHover,
 			ColorBorder: gg.ColorTransparent,
-			OnClick: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
-				dataGridSourceRetry(gridID, w)
+			OnClick: func(ctx gg.EventCtx) {
+				dataGridSourceRetry(gridID, ctx.Window)
 				if focusID != "" {
-					w.SetFocus(focusID)
+					ctx.Window.SetFocus(focusID)
 				}
-				e.IsHandled = true
 			},
 			Content: []gg.View{
 				gg.Text(gg.TextCfg{
@@ -736,17 +735,17 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 			ColorHover:  cfg.ColorFilter,
 			ColorBorder: cfg.ColorBorder,
 			TextStyle:   cfg.TextStyleFilter,
-			OnTextChanged: func(_ *gg.Layout, text string, w *gg.Window) {
+			OnTextChanged: func(text string, ctx gg.EventCtx) {
 				digits := dataGridJumpDigits(text)
-				dgJI := gg.StateMap[string, string](w, nsDgJump, capModerate)
+				dgJI := gg.StateMap[string, string](ctx.Window, nsDgJump, capModerate)
 				dgJI.Set(gridID, digits)
 				e := &gg.Event{}
 				dataGridSourceSubmitJump(onSelectionChange, rowCount, loading,
-					loadError, kind, pageLimit, gridID, "", e, w)
+					loadError, kind, pageLimit, gridID, "", e, ctx.Window)
 			},
-			OnEnter: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
+			OnEnter: func(ctx gg.EventCtx) {
 				dataGridSourceSubmitJump(onSelectionChange, rowCount, loading,
-					loadError, kind, pageLimit, gridID, focusID, e, w)
+					loadError, kind, pageLimit, gridID, focusID, ctx.Event, ctx.Window)
 			},
 		}))
 	}

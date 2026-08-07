@@ -95,25 +95,27 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 						},
 					}),
 				},
-				OnClick: func(_ *Layout, e *Event, w *Window) {
+				OnClick: func(ctx EventCtx) {
 					if onToggle != nil {
-						onToggle(w)
-						e.IsHandled = true
+						onToggle(ctx.Window)
 					}
 				},
-				OnChar: func(_ *Layout, e *Event, w *Window) {
-					if e.CharCode == CharSpace && onToggle != nil {
-						onToggle(w)
-						e.IsHandled = true
+				OnChar: func(ctx EventCtx) {
+					// Only the spacebar activates the header; every
+					// other character has to keep travelling.
+					if ctx.Event.CharCode != CharSpace || onToggle == nil {
+						ctx.Bubble()
+						return
 					}
+					onToggle(ctx.Window)
 				},
-				OnHover: func(layout *Layout, e *Event, w *Window) {
-					w.SetMouseCursorPointingHand()
-					layout.Shape.Color = colorHover
-					if e.MouseButton == MouseLeft {
-						layout.Shape.Color = colorClick
+				OnHover: func(ctx EventCtx) {
+					ctx.Window.SetMouseCursorPointingHand()
+					ctx.Layout.Shape.Color = colorHover
+					if ctx.Event.MouseButton == MouseLeft {
+						ctx.Layout.Shape.Color = colorClick
 					}
-					e.IsHandled = true
+					ctx.Consume()
 				},
 			}),
 			Column(ContainerCfg{

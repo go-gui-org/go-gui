@@ -148,9 +148,9 @@ func composerView(w *gui.Window) gui.View {
 				Padding:          gui.SomeP(18, 20, 18, 20),
 				TextStyle:        gui.TextStyle{Color: colorText, Size: 18},
 				PlaceholderStyle: gui.TextStyle{Color: colorMuted, Size: 18},
-				OnTextChanged: func(_ *gui.Layout, text string, w *gui.Window) {
+				OnTextChanged: func(text string, ctx gui.EventCtx) {
 					// Keep the input fully controlled by app state.
-					gui.State[appState](w).Draft = text
+					gui.State[appState](ctx.Window).Draft = text
 				},
 				OnTextCommit: func(_ *gui.Layout, text string, _ gui.InputCommitReason, w *gui.Window) {
 					addTodo(w, text)
@@ -177,9 +177,8 @@ func composerView(w *gui.Window) gui.View {
 						},
 					}),
 				},
-				OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-					addTodo(w, gui.State[appState](w).Draft)
-					e.IsHandled = true
+				OnClick: func(ctx gui.EventCtx) {
+					addTodo(ctx.Window, gui.State[appState](ctx.Window).Draft)
 				},
 			}),
 		},
@@ -227,9 +226,8 @@ func completeButton(item todoItem) gui.View {
 		Sizing:  gui.FixedFixed,
 		Radius:  gui.SomeF(16),
 		Padding: gui.NoPadding,
-		OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-			toggleTodo(w, item.ID)
-			e.IsHandled = true
+		OnClick: func(ctx gui.EventCtx) {
+			toggleTodo(ctx.Window, item.ID)
 		},
 	}
 
@@ -287,9 +285,8 @@ func deleteButton(id int) gui.View {
 				},
 			}),
 		},
-		OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-			deleteTodo(w, id)
-			e.IsHandled = true
+		OnClick: func(ctx gui.EventCtx) {
+			deleteTodo(ctx.Window, id)
 		},
 	})
 }

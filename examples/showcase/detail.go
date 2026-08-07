@@ -140,9 +140,8 @@ func docButton(showDocs bool) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: gui.IconBook, TextStyle: gui.CurrentTheme().Icon4}),
 		},
-		OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-			gui.State[ShowcaseApp](w).ShowDocs = !gui.State[ShowcaseApp](w).ShowDocs
-			e.IsHandled = true
+		OnClick: func(ctx gui.EventCtx) {
+			gui.State[ShowcaseApp](ctx.Window).ShowDocs = !gui.State[ShowcaseApp](ctx.Window).ShowDocs
 		},
 	})
 }

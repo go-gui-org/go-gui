@@ -201,9 +201,9 @@ func datePicker(app *App, _ *gui.Window) gui.View {
 		AllowedMonths:        allowedMonths,
 		AllowedYears:         allowedYears,
 		AllowedDates:         allowedDates,
-		OnSelect: func(times []time.Time, e *gui.Event, w *gui.Window) {
-			gui.State[App](w).Dates = times
-			e.IsHandled = true
+		OnSelect: func(times []time.Time, ctx gui.EventCtx) {
+			gui.State[App](ctx.Window).Dates = times
+			ctx.Consume()
 		},
 	})
 }
@@ -216,33 +216,33 @@ func optionsGroup(app *App) gui.View {
 				gui.Toggle(gui.ToggleCfg{
 					Label:    "Monday first day of week",
 					Selected: app.MondayFirst,
-					OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-						gui.State[App](w).MondayFirst =
-							!gui.State[App](w).MondayFirst
+					OnClick: func(ctx gui.EventCtx) {
+						gui.State[App](ctx.Window).MondayFirst =
+							!gui.State[App](ctx.Window).MondayFirst
 					},
 				}),
 				gui.Toggle(gui.ToggleCfg{
 					Label:    "Show adjacent months",
 					Selected: app.ShowAdjacentMonths,
-					OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-						gui.State[App](w).ShowAdjacentMonths =
-							!gui.State[App](w).ShowAdjacentMonths
+					OnClick: func(ctx gui.EventCtx) {
+						gui.State[App](ctx.Window).ShowAdjacentMonths =
+							!gui.State[App](ctx.Window).ShowAdjacentMonths
 					},
 				}),
 				gui.Toggle(gui.ToggleCfg{
 					Label:    "Hide today indicator",
 					Selected: app.HideTodayIndicator,
-					OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-						gui.State[App](w).HideTodayIndicator =
-							!gui.State[App](w).HideTodayIndicator
+					OnClick: func(ctx gui.EventCtx) {
+						gui.State[App](ctx.Window).HideTodayIndicator =
+							!gui.State[App](ctx.Window).HideTodayIndicator
 					},
 				}),
 				gui.Toggle(gui.ToggleCfg{
 					Label:    "Multiple select",
 					Selected: app.SelectMultiple,
-					OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-						gui.State[App](w).SelectMultiple =
-							!gui.State[App](w).SelectMultiple
+					OnClick: func(ctx gui.EventCtx) {
+						gui.State[App](ctx.Window).SelectMultiple =
+							!gui.State[App](ctx.Window).SelectMultiple
 					},
 				}),
 			}),
@@ -308,9 +308,9 @@ func allowedWeekdaysGroup(app *App) gui.View {
 	return borderedGroup("Allowed weekdays", content)
 }
 
-func clickAllowWeekday(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	app := gui.State[App](w)
-	switch l.Shape.ID {
+func clickAllowWeekday(ctx gui.EventCtx) {
+	app := gui.State[App](ctx.Window)
+	switch ctx.Layout.Shape.ID {
 	case "mon":
 		app.AllowMonday = !app.AllowMonday
 	case "tue":
@@ -326,7 +326,7 @@ func clickAllowWeekday(l *gui.Layout, e *gui.Event, w *gui.Window) {
 	case "sun":
 		app.AllowSunday = !app.AllowSunday
 	}
-	e.IsHandled = true
+	ctx.Consume()
 }
 
 func monthsGroup(app *App) gui.View {
@@ -363,9 +363,9 @@ func monthsGroup(app *App) gui.View {
 	return borderedGroup("Allowed months", content)
 }
 
-func clickAllowMonth(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	app := gui.State[App](w)
-	switch l.Shape.ID {
+func clickAllowMonth(ctx gui.EventCtx) {
+	app := gui.State[App](ctx.Window)
+	switch ctx.Layout.Shape.ID {
 	case "jan":
 		app.AllowJanuary = !app.AllowJanuary
 	case "feb":
@@ -391,7 +391,7 @@ func clickAllowMonth(l *gui.Layout, e *gui.Event, w *gui.Window) {
 	case "dec":
 		app.AllowDecember = !app.AllowDecember
 	}
-	e.IsHandled = true
+	ctx.Consume()
 }
 
 func yearsDatesGroup(app *App, _ *gui.Window) gui.View {
@@ -413,9 +413,9 @@ func yearsDatesGroup(app *App, _ *gui.Window) gui.View {
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{Text: "Reset"}),
 						},
-						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-							w.DatePickerReset("example")
-							app := gui.State[App](w)
+						OnClick: func(ctx gui.EventCtx) {
+							ctx.Window.DatePickerReset("example")
+							app := gui.State[App](ctx.Window)
 							app.Dates = []time.Time{time.Now()}
 							app.WeekdaysLen = "one"
 							app.MondayFirst = false
@@ -447,7 +447,6 @@ func yearsDatesGroup(app *App, _ *gui.Window) gui.View {
 							app.AllowToday = false
 							app.AllowYesterday = false
 							app.AllowFirstOfMonth = false
-							e.IsHandled = true
 						},
 					}),
 					toggleTheme(app),
@@ -481,9 +480,9 @@ func allowedYearsGroup(app *App) gui.View {
 	})
 }
 
-func clickAllowYear(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	app := gui.State[App](w)
-	switch l.Shape.ID {
+func clickAllowYear(ctx gui.EventCtx) {
+	app := gui.State[App](ctx.Window)
+	switch ctx.Layout.Shape.ID {
 	case "year_now":
 		app.AllowYearNow = !app.AllowYearNow
 	case "year_last":
@@ -491,7 +490,7 @@ func clickAllowYear(l *gui.Layout, e *gui.Event, w *gui.Window) {
 	case "year_next":
 		app.AllowYearNext = !app.AllowYearNext
 	}
-	e.IsHandled = true
+	ctx.Consume()
 }
 
 func allowedDatesGroup(app *App) gui.View {
@@ -518,9 +517,9 @@ func allowedDatesGroup(app *App) gui.View {
 	})
 }
 
-func clickAllowDate(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	app := gui.State[App](w)
-	switch l.Shape.ID {
+func clickAllowDate(ctx gui.EventCtx) {
+	app := gui.State[App](ctx.Window)
+	switch ctx.Layout.Shape.ID {
 	case "tdy":
 		app.AllowToday = !app.AllowToday
 	case "ydy":
@@ -528,7 +527,7 @@ func clickAllowDate(l *gui.Layout, e *gui.Event, w *gui.Window) {
 	case "fdy":
 		app.AllowFirstOfMonth = !app.AllowFirstOfMonth
 	}
-	e.IsHandled = true
+	ctx.Consume()
 }
 
 func toggleTheme(app *App) gui.View {
@@ -538,13 +537,13 @@ func toggleTheme(app *App) gui.View {
 		TextStyle:    gui.CurrentTheme().Icon3,
 		Padding:      gui.Some(gui.PaddingSmall),
 		Selected:     app.LightTheme,
-		OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-			app := gui.State[App](w)
+		OnClick: func(ctx gui.EventCtx) {
+			app := gui.State[App](ctx.Window)
 			app.LightTheme = !app.LightTheme
 			if app.LightTheme {
-				w.SetTheme(gui.ThemeLight.WithBorders(true))
+				ctx.Window.SetTheme(gui.ThemeLight.WithBorders(true))
 			} else {
-				w.SetTheme(gui.ThemeDark.WithBorders(true))
+				ctx.Window.SetTheme(gui.ThemeDark.WithBorders(true))
 			}
 		},
 	})

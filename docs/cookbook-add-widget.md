@@ -20,8 +20,10 @@ Every widget has a `*Cfg` struct. Conventions:
   Container-like widgets add `Sizing Sizing`, `Float bool`,
   `FloatAnchor FloatAttach`, `FloatTieOff FloatAttach`, `Padding Opt[Padding]`,
   `Radius Opt[float32]`, `SizeBorder Opt[float32]`.
-- **Callbacks** — one func field per event. Sig:
-  `func(*Layout, *Event, *Window)`. Set `e.IsHandled = true` when consumed.
+- **Callbacks** — one func field per event. Sig: `func(EventCtx)`. Consume-class
+  events (`OnClick`, `OnChar`, `OnMouseUp`, `OnGesture`, `OnFileDrop`) arrive
+  already marked handled; call `ctx.Bubble()` on any path that means "not mine".
+  Notify-class events call `ctx.Consume()` to stop propagation.
 - **`gui:"required"` tag** — fields that must be non-empty get the tag. The
   `requiredid` vet analyzer enforces this at `go vet` time. Only use when the
   widget cannot function without the value (e.g. `FormCfg.ID`).
@@ -35,7 +37,7 @@ Minimal example:
 type ToggleCfg struct {
     TextStyle      TextStyle
     TextStyleLabel TextStyle
-    OnClick        func(*Layout, *Event, *Window)
+    OnClick        func(EventCtx)
     ID             string
     Label          string
     TextSelect     string
@@ -279,23 +281,17 @@ func demoToggle(_ *gui.Window) gui.View {
         Content: []gui.View{
             gui.Toggle(gui.ToggleCfg{
                 Label:    "Basic toggle",
-                OnClick:  func(_ *gui.Layout, e *gui.Event, _ *gui.Window) {
-                    e.IsHandled = true
-                },
+                OnClick:  func(ctx gui.EventCtx) {},
             }),
             gui.Toggle(gui.ToggleCfg{
                 Label:    "Pre-selected",
                 Selected: true,
-                OnClick:  func(_ *gui.Layout, e *gui.Event, _ *gui.Window) {
-                    e.IsHandled = true
-                },
+                OnClick:  func(ctx gui.EventCtx) {},
             }),
             gui.Toggle(gui.ToggleCfg{
                 Label:    "Disabled",
                 Disabled: true,
-                OnClick:  func(_ *gui.Layout, e *gui.Event, _ *gui.Window) {
-                    e.IsHandled = true
-                },
+                OnClick:  func(ctx gui.EventCtx) {},
             }),
         },
     })

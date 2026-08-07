@@ -86,7 +86,7 @@ func TestExpandPanelOnToggle(t *testing.T) {
 	}
 	e := &Event{}
 	w := &Window{}
-	header.Shape.events.OnClick(&header, e, w)
+	header.Shape.events.OnClick(EventCtx{&header, e, w})
 	if !called {
 		t.Error("OnToggle should be called")
 	}

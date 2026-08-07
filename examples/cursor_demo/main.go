@@ -67,12 +67,12 @@ func mainView(w *gui.Window) gui.View {
 			HAlign:     gui.HAlignCenter,
 			VAlign:     gui.VAlignMiddle,
 			Padding:    gui.NoPadding,
-			OnHover: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-				cell.set(w)
-				app := gui.State[App](w)
+			OnHover: func(ctx gui.EventCtx) {
+				cell.set(ctx.Window)
+				app := gui.State[App](ctx.Window)
 				if app.Hovered != cell.label {
 					app.Hovered = cell.label
-					w.UpdateWindow()
+					ctx.Window.UpdateWindow()
 				}
 			},
 			Content: []gui.View{
@@ -105,12 +105,12 @@ func mainView(w *gui.Window) gui.View {
 		Sizing:  gui.FixedFixed,
 		Padding: gui.SomeP(16, 16, 16, 16),
 		Spacing: gui.SomeF(12),
-		OnHover: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-			w.SetMouseCursorArrow()
-			app := gui.State[App](w)
+		OnHover: func(ctx gui.EventCtx) {
+			ctx.Window.SetMouseCursorArrow()
+			app := gui.State[App](ctx.Window)
 			if app.Hovered != "" {
 				app.Hovered = ""
-				w.UpdateWindow()
+				ctx.Window.UpdateWindow()
 			}
 		},
 		Content: []gui.View{

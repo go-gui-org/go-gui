@@ -101,9 +101,9 @@ func buildRadioOptions(cfg RadioButtonGroupCfg) []View {
 			Selected:      cfg.Value == opt.Value,
 			Disabled:      cfg.Disabled,
 			TextStyle:     cfg.TextStyle,
-			OnClick: func(_ *Layout, _ *Event, w *Window) {
+			OnClick: func(ctx EventCtx) {
 				if onSelect != nil {
-					onSelect(optValue, w)
+					onSelect(optValue, ctx.Window)
 				}
 			},
 		}))

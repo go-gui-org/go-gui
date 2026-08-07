@@ -15,7 +15,7 @@ package gui
 // origin; :is() / :where() selectors. Affected assets render
 // as the static initial frame.
 type SvgSpinnerCfg struct {
-	OnClick         func(*Layout, *Event, *Window)
+	OnClick         func(EventCtx)
 	ID              string
 	A11YLabel       string
 	A11YDescription string

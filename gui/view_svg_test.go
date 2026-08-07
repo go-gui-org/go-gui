@@ -139,7 +139,7 @@ func TestSvgWithOnClick(t *testing.T) {
 		SvgData: "<svg></svg>",
 		Width:   50,
 		Height:  50,
-		OnClick: func(_ *Layout, _ *Event, _ *Window) {
+		OnClick: func(ctx EventCtx) {
 			clicked = true
 		},
 	})
@@ -147,9 +147,9 @@ func TestSvgWithOnClick(t *testing.T) {
 	if layout.Shape.events == nil {
 		t.Fatal("expected events")
 	}
-	layout.Shape.events.OnClick(&layout, &Event{
+	layout.Shape.events.OnClick(EventCtx{&layout, &Event{
 		MouseButton: MouseLeft,
-	}, w)
+	}, w})
 	if !clicked {
 		t.Fatal("click not handled")
 	}

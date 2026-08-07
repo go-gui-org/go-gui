@@ -23,7 +23,7 @@ type BreadcrumbCfg struct {
 	TextStyleSelected  TextStyle
 	TextStyleDisabled  TextStyle
 	TextStyleSeparator TextStyle
-	OnSelect           func(string, *Event, *Window)
+	OnSelect           func(string, EventCtx)
 	ID                 string
 	Selected           string
 	Separator          string
@@ -175,8 +175,8 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 			clickColor = cfg.ColorCrumbSelected
 		}
 
-		var onClick func(*Layout, *Event, *Window)
-		var onHover func(*Layout, *Event, *Window)
+		var onClick func(EventCtx)
+		var onHover func(EventCtx)
 		if !isDisabled {
 			onClick = makeBcOnClick(cfg.OnSelect, item.ID, cfg.ID)
 			onHover = makeBcOnHover(hoverColor, clickColor)
@@ -235,41 +235,41 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 		Spacing:         Some(spacing),
 		Disabled:        cfg.Disabled,
 		Invisible:       cfg.Invisible,
-		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
+		OnKeyDown: func(ctx EventCtx) {
 			bcOnKeydown(cfg.Disabled, cfg.Items, cfg.Selected,
-				cfg.OnSelect, cfg.ID, e, w)
+				cfg.OnSelect, cfg.ID, ctx.Event, ctx.Window)
 		},
 		Content: outerContent,
 	})
 }
 
 func makeBcOnClick(
-	onSelect func(string, *Event, *Window),
+	onSelect func(string, EventCtx),
 	id string, focusID string,
-) func(*Layout, *Event, *Window) {
-	return func(_ *Layout, e *Event, w *Window) {
+) func(EventCtx) {
+	return func(ctx EventCtx) {
 		if onSelect != nil {
-			onSelect(id, e, w)
+			onSelect(id, EventCtx{nil, ctx.Event, ctx.Window})
 		}
 		if focusID != "" {
-			w.SetFocus(focusID)
+			ctx.Window.SetFocus(focusID)
 		}
-		e.IsHandled = true
+		ctx.Consume()
 	}
 }
 
 func makeBcOnHover(
 	hoverColor, clickColor Color,
-) func(*Layout, *Event, *Window) {
-	return func(layout *Layout, e *Event, w *Window) {
-		if layout.Shape.Disabled || !layout.Shape.hasEvents() ||
-			layout.Shape.events.OnClick == nil {
+) func(EventCtx) {
+	return func(ctx EventCtx) {
+		if ctx.Layout.Shape.Disabled || !ctx.Layout.Shape.hasEvents() ||
+			ctx.Layout.Shape.events.OnClick == nil {
 			return
 		}
-		w.SetMouseCursorPointingHand()
-		layout.Shape.Color = hoverColor
-		if e.MouseButton == MouseLeft {
-			layout.Shape.Color = clickColor
+		ctx.Window.SetMouseCursorPointingHand()
+		ctx.Layout.Shape.Color = hoverColor
+		if ctx.Event.MouseButton == MouseLeft {
+			ctx.Layout.Shape.Color = clickColor
 		}
 	}
 }
@@ -278,7 +278,7 @@ func bcOnKeydown(
 	disabled bool,
 	items []BreadcrumbItemCfg,
 	selected string,
-	onSelect func(string, *Event, *Window),
+	onSelect func(string, EventCtx),
 	focusID string,
 	e *Event,
 	w *Window,
@@ -336,7 +336,7 @@ func bcOnKeydown(
 	refire := e.KeyCode == KeyEnter || e.CharCode == CharSpace
 	if targetID != selected || refire {
 		if onSelect != nil {
-			onSelect(targetID, e, w)
+			onSelect(targetID, EventCtx{nil, e, w})
 		}
 	}
 	if focusID != "" {

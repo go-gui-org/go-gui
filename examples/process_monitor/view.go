@@ -259,8 +259,8 @@ func toolbarView(app *App) gui.View {
 				Width:       300,
 				Text:        app.Filter,
 				Placeholder: "name, command, user, or PID",
-				OnTextChanged: func(_ *gui.Layout, text string, w *gui.Window) {
-					gui.State[App](w).Filter = text
+				OnTextChanged: func(text string, ctx gui.EventCtx) {
+					gui.State[App](ctx.Window).Filter = text
 				},
 			}),
 			spacer(),
@@ -367,15 +367,14 @@ func headerCell(col column, idx int, app *App) gui.View {
 		Clip:    true,
 		Padding: gui.SomeP(0, 6, 0, 6),
 		Content: []gui.View{gui.Text(gui.TextCfg{Text: label, TextStyle: theme.B6, Clip: true})},
-		OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-			a := gui.State[App](w)
+		OnClick: func(ctx gui.EventCtx) {
+			a := gui.State[App](ctx.Window)
 			if a.Sort.Column == idx {
 				a.Sort.Desc = !a.Sort.Desc
 			} else {
 				a.Sort.Column = idx
 				a.Sort.Desc = col.desc
 			}
-			e.IsHandled = true
 		},
 	}
 	if col.width == 0 {
@@ -409,9 +408,8 @@ func processRow(p *Process, app *App, i int) gui.View {
 		Padding: gui.NoPadding,
 		VAlign:  gui.VAlignMiddle,
 		Content: cells,
-		OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-			gui.State[App](w).Selected = p
-			e.IsHandled = true
+		OnClick: func(ctx gui.EventCtx) {
+			gui.State[App](ctx.Window).Selected = p
 		},
 	})
 }
@@ -539,11 +537,10 @@ func nameCell(p *Process, app *App) gui.View {
 				Sizing:  gui.FixedFill,
 				VAlign:  gui.VAlignMiddle,
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: marker, TextStyle: theme.N5})},
-				OnClick: func(_ *gui.Layout, e *gui.Event, _ *gui.Window) {
+				OnClick: func(ctx gui.EventCtx) {
 					// p is a stable store pointer; toggling under event dispatch
 					// (which holds the window lock) is safe.
 					p.Collapsed = !p.Collapsed
-					e.IsHandled = true
 				},
 			}))
 		} else {

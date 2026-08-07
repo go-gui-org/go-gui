@@ -68,7 +68,7 @@ func buildButtonFrameView(buttons int) View {
 		content[i] = Button(ButtonCfg{
 			ID:      "btn-" + strconv.Itoa(i),
 			Sizing:  FitFill,
-			OnClick: func(_ *Layout, _ *Event, _ *Window) {},
+			OnClick: func(ctx EventCtx) {},
 			Content: []View{
 				Text(TextCfg{Text: "Button " + strconv.Itoa(i)}),
 			},

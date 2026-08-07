@@ -120,12 +120,12 @@ func navPanel(selected int) gui.View {
 			Color:   color,
 			Padding: gui.Some(gui.PaddingTwoFive),
 			Sizing:  gui.FillFit,
-			OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-				gui.State[SvgViewerApp](w).Selected = idx
+			OnClick: func(ctx gui.EventCtx) {
+				gui.State[SvgViewerApp](ctx.Window).Selected = idx
 			},
-			OnHover: func(layout *gui.Layout, _ *gui.Event, w *gui.Window) {
-				w.SetMouseCursorPointingHand()
-				layout.Shape.Color = gui.CurrentTheme().ColorHover
+			OnHover: func(ctx gui.EventCtx) {
+				ctx.Window.SetMouseCursorPointingHand()
+				ctx.Layout.Shape.Color = gui.CurrentTheme().ColorHover
 			},
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{Text: name}),

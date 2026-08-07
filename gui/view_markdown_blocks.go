@@ -143,7 +143,7 @@ func renderMdMermaid(
 // with a 2-second check-mark animation.
 func mdCopyButton(
 	animID string, w *Window,
-	onClick func(*Layout, *Event, *Window),
+	onClick func(EventCtx),
 ) View {
 	copied := w.hasAnimationLocked(animID)
 
@@ -184,15 +184,15 @@ func renderMdCode(
 ) View {
 	animID := "md_cp_" + strconv.Itoa(blockIdx)
 	copyBtn := mdCopyButton(animID, w,
-		func(_ *Layout, e *Event, w *Window) {
+		func(ctx EventCtx) {
 			plain := richTextPlain(block.Content)
-			w.SetClipboard(plain)
-			w.AnimationAdd(&Animate{
+			ctx.Window.SetClipboard(plain)
+			ctx.Window.AnimationAdd(&Animate{
 				AnimID:   animID,
 				Delay:    2 * time.Second,
 				Callback: func(*Animate, *Window) {},
 			})
-			e.IsHandled = true
+			ctx.Consume()
 		})
 
 	return Column(ContainerCfg{

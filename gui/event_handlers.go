@@ -35,18 +35,22 @@ func charHandler(layout *Layout, e *Event, w *Window) {
 		onChar = layout.Shape.events.OnChar
 		events = layout.Shape.events
 	}
-	if executeFocusCallback(layout, e, w, onChar) {
+	// OnChar is consume-class: pre-marked handled before the callback.
+	if executeFocusCallback(layout, e, w, onChar, evConsume) {
 		return
 	}
 	// Spacebar-to-click: when ClickOnSpace is set, fire OnClick
 	// on spacebar instead of requiring a separate OnChar wrapper.
+	// OnClick is consume-class, so pre-mark before the call rather
+	// than marking after — marking after would override a
+	// ctx.Bubble() the callback made.
 	if events != nil &&
 		events.ClickOnSpace &&
 		e.CharCode == CharSpace &&
 		events.OnClick != nil {
 		if isFocusedTarget(layout, w) {
-			events.OnClick(layout, e, w)
 			e.IsHandled = true
+			events.OnClick(EventCtx{layout, e, w})
 		}
 	}
 }
@@ -86,18 +90,23 @@ func keydownHandler(layout *Layout, e *Event, w *Window) {
 		onKeyDown = layout.Shape.events.OnKeyDown
 		events = layout.Shape.events
 	}
-	executeFocusCallback(layout, e, w, onKeyDown)
+	// OnKeyDown is notify-class: it receives every key, so auto-consume
+	// would silently kill tab traversal and accelerators in any widget
+	// that has a key handler.
+	executeFocusCallback(layout, e, w, onKeyDown, evNotify)
 	if e.IsHandled {
 		return
 	}
 	// Enter-to-click: when ClickOnEnter is set, fire OnClick on
 	// Enter key instead of requiring a separate OnKeyDown wrapper.
+	// OnClick is consume-class, so pre-mark here — the surrounding
+	// OnKeyDown dispatch does not.
 	if events != nil &&
 		events.ClickOnEnter &&
 		e.KeyCode == KeyEnter &&
 		events.OnClick != nil {
-		events.OnClick(layout, e, w)
 		e.IsHandled = true
+		events.OnClick(EventCtx{layout, e, w})
 		return
 	}
 	if layout.Shape.Scrollable {
@@ -134,7 +143,8 @@ func keyupHandler(layout *Layout, e *Event, w *Window) {
 	if layout.Shape.hasEvents() {
 		onKeyUp = layout.Shape.events.OnKeyUp
 	}
-	executeFocusCallback(layout, e, w, onKeyUp)
+	// OnKeyUp is notify-class, like OnKeyDown.
+	executeFocusCallback(layout, e, w, onKeyUp, evNotify)
 }
 
 // keyDownScrollHandler handles keyboard-based scrolling.
@@ -182,7 +192,7 @@ func mouseDownHandler(
 	// Check mouse lock (only at top level).
 	if !inHandler {
 		if w.viewState.mouseLock.MouseDown != nil {
-			w.viewState.mouseLock.MouseDown(layout, e, w)
+			w.viewState.mouseLock.MouseDown(EventCtx{layout, e, w})
 			return
 		}
 	}
@@ -216,7 +226,8 @@ func mouseDownHandler(
 				onClick = events.OnClick
 			}
 		}
-		executeMouseCallback(layout, e, w, onClick)
+		// OnClick is consume-class.
+		executeMouseCallback(layout, e, w, onClick, evConsume)
 	}
 }
 
@@ -224,7 +235,7 @@ func mouseDownHandler(
 // Traverses reverse (topmost first).
 func mouseMoveHandler(layout *Layout, e *Event, w *Window) {
 	if w.viewState.mouseLock.MouseMove != nil {
-		w.viewState.mouseLock.MouseMove(layout, e, w)
+		w.viewState.mouseLock.MouseMove(EventCtx{layout, e, w})
 		return
 	}
 	if !w.PointerOverApp(e) {
@@ -249,14 +260,16 @@ func mouseMoveHandler(layout *Layout, e *Event, w *Window) {
 	if layout.Shape.hasEvents() {
 		onMouseMove = layout.Shape.events.OnMouseMove
 	}
-	executeMouseCallback(layout, e, w, onMouseMove)
+	// OnMouseMove is notify-class: nested shapes legitimately all
+	// want move notifications.
+	executeMouseCallback(layout, e, w, onMouseMove, evNotify)
 }
 
 // mouseUpHandler handles mouse button release events.
 // Traverses reverse (topmost first).
 func mouseUpHandler(layout *Layout, e *Event, w *Window) {
 	if w.viewState.mouseLock.MouseUp != nil {
-		w.viewState.mouseLock.MouseUp(layout, e, w)
+		w.viewState.mouseLock.MouseUp(EventCtx{layout, e, w})
 		return
 	}
 	ox, oy := rotateMouseInverse(layout.Shape, e)
@@ -278,7 +291,8 @@ func mouseUpHandler(layout *Layout, e *Event, w *Window) {
 	if layout.Shape.hasEvents() {
 		onMouseUp = layout.Shape.events.OnMouseUp
 	}
-	executeMouseCallback(layout, e, w, onMouseUp)
+	// OnMouseUp is consume-class.
+	executeMouseCallback(layout, e, w, onMouseUp, evConsume)
 }
 
 func focusedScrollTarget(layout *Layout, w *Window) *Layout {
@@ -303,7 +317,9 @@ func focusedScrollTarget(layout *Layout, w *Window) *Layout {
 // and falls back to the scroll container under cursor.
 func mouseScrollHandler(layout *Layout, e *Event, w *Window) {
 	if ly := focusedScrollTarget(layout, w); ly != nil {
-		if callRelative(ly, e, w, ly.Shape.events.OnMouseScroll) {
+		// OnMouseScroll is notify-class: cascade-on-unhandled is the
+		// designed contract, so there is no pre-mark here.
+		if callRelative(ly, e, w, ly.Shape.events.OnMouseScroll, evNotify) {
 			return
 		}
 	}
@@ -330,7 +346,9 @@ func mouseScrollFallbackHandler(layout *Layout, e *Event, w *Window) {
 	if layout.Shape.hasEvents() &&
 		layout.Shape.events.OnMouseScroll != nil {
 		if layout.Shape.PointInShape(e.MouseX, e.MouseY) {
-			layout.Shape.events.OnMouseScroll(layout, e, w)
+			// Notify-class: no pre-mark, so an unhandled scroll falls
+			// through to the scroll container below.
+			layout.Shape.events.OnMouseScroll(EventCtx{layout, e, w})
 			if e.IsHandled {
 				return
 			}
@@ -381,5 +399,6 @@ func fileDropHandler(layout *Layout, e *Event, w *Window) {
 	if layout.Shape.hasEvents() {
 		onFileDrop = layout.Shape.events.OnFileDrop
 	}
-	executeMouseCallback(layout, e, w, onFileDrop)
+	// OnFileDrop is consume-class.
+	executeMouseCallback(layout, e, w, onFileDrop, evConsume)
 }

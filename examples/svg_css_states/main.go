@@ -68,9 +68,9 @@ func view(w *gui.Window) gui.View {
 		return gui.Button(gui.ButtonCfg{
 			Content: []gui.View{gui.Text(gui.TextCfg{Text: label})},
 			Sizing:  gui.FillFit,
-			OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-				toggle(gui.State[state](w))
-				w.RequestRedraw()
+			OnClick: func(ctx gui.EventCtx) {
+				toggle(gui.State[state](ctx.Window))
+				ctx.Window.RequestRedraw()
 			},
 		})
 	}

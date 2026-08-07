@@ -78,21 +78,19 @@ func toolbar() gui.View {
 		Content: []gui.View{
 			gui.Button(gui.ButtonCfg{
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: "Reset Layout"})},
-				OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-					gui.State[App](w).Root = initialLayout()
-					e.IsHandled = true
+				OnClick: func(ctx gui.EventCtx) {
+					gui.State[App](ctx.Window).Root = initialLayout()
 				},
 			}),
 			gui.Button(gui.ButtonCfg{
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: "Add Properties"})},
-				OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-					app := gui.State[App](w)
+				OnClick: func(ctx gui.EventCtx) {
+					app := gui.State[App](ctx.Window)
 					if _, ok := gui.DockTreeFindGroupByPanel(app.Root, "properties"); ok {
-						e.IsHandled = true
+						ctx.Consume()
 						return
 					}
 					app.Root = gui.DockTreeAddTab(app.Root, "left", "properties")
-					e.IsHandled = true
 				},
 			}),
 		},

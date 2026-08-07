@@ -35,7 +35,7 @@ type CommandPaletteItem struct {
 type CommandPaletteCfg struct {
 	TextStyle   TextStyle
 	DetailStyle TextStyle
-	OnAction    func(string, *Event, *Window)
+	OnAction    func(string, EventCtx)
 	OnDismiss   func(*Window)
 	ID          string `gui:"required"`
 	Placeholder string
@@ -142,7 +142,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 		ShowIcons:      true,
 		OnItemClick: func(itemID string, _ int, e *Event, w *Window) {
 			if onAction != nil {
-				onAction(itemID, e, w)
+				onAction(itemID, EventCtx{nil, e, w})
 			}
 			CommandPaletteDismiss(paletteID, w)
 			if onDismiss != nil {
@@ -177,12 +177,11 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 		VAlign:      VAlignTop,
 		HAlign:      HAlignCenter,
 		Padding:     NoPadding,
-		OnClick: func(_ *Layout, e *Event, w *Window) {
-			CommandPaletteDismiss(paletteID, w)
+		OnClick: func(ctx EventCtx) {
+			CommandPaletteDismiss(paletteID, ctx.Window)
 			if onDismiss != nil {
-				onDismiss(w)
+				onDismiss(ctx.Window)
 			}
-			e.IsHandled = true
 		},
 		Content: []View{
 			Column(ContainerCfg{
@@ -196,9 +195,8 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 				Padding:     NoPadding,
 				Spacing:     SomeF(0),
 				Sizing:      FixedFit,
-				OnClick: func(_ *Layout, e *Event, _ *Window) {
+				OnClick: func(ctx EventCtx) {
 					// Prevent backdrop click when clicking card.
-					e.IsHandled = true
 				},
 				Content: []View{
 					Row(ContainerCfg{
@@ -286,30 +284,30 @@ func cmdPaletteItemToCore(item CommandPaletteItem) listCoreItem {
 	}
 }
 
-func makePaletteOnEnter(paletteID string, onAction func(string, *Event, *Window), onDismiss func(*Window), filtered []listCoreItem, filteredIDs []string) func(*Layout, *Event, *Window) {
-	return func(_ *Layout, e *Event, w *Window) {
-		sh := StateMap[string, int](w, nsCmdPaletteHighlight, capModerate)
+func makePaletteOnEnter(paletteID string, onAction func(string, EventCtx), onDismiss func(*Window), filtered []listCoreItem, filteredIDs []string) func(EventCtx) {
+	return func(ctx EventCtx) {
+		sh := StateMap[string, int](ctx.Window, nsCmdPaletteHighlight, capModerate)
 		// Default 0: first item highlighted; bounds-checked before use.
 		cur := sh.GetOr(paletteID, 0)
 		itemCount := len(filteredIDs)
 		if cur >= 0 && cur < itemCount && onAction != nil &&
 			!filtered[cur].Disabled {
-			onAction(filteredIDs[cur], e, w)
-			CommandPaletteDismiss(paletteID, w)
+			onAction(filteredIDs[cur], EventCtx{nil, ctx.Event, ctx.Window})
+			CommandPaletteDismiss(paletteID, ctx.Window)
 			if onDismiss != nil {
-				onDismiss(w)
+				onDismiss(ctx.Window)
 			}
 		}
 	}
 }
 
-func makePaletteOnTextChanged(paletteID string) func(*Layout, string, *Window) {
-	return func(_ *Layout, newText string, w *Window) {
-		sq := StateMap[string, string](w, nsCmdPaletteQuery, capModerate)
+func makePaletteOnTextChanged(paletteID string) func(string, EventCtx) {
+	return func(newText string, ctx EventCtx) {
+		sq := StateMap[string, string](ctx.Window, nsCmdPaletteQuery, capModerate)
 		sq.Set(paletteID, newText)
-		sh := StateMap[string, int](w, nsCmdPaletteHighlight, capModerate)
+		sh := StateMap[string, int](ctx.Window, nsCmdPaletteHighlight, capModerate)
 		sh.Set(paletteID, 0)
-		w.UpdateWindow()
+		ctx.Window.UpdateWindow()
 	}
 }
 
@@ -343,13 +341,13 @@ func hashString64(h uint64, s string) uint64 {
 	return h
 }
 
-func makePaletteOnKeyDown(paletteID string, onAction func(string, *Event, *Window), onDismiss func(*Window), filtered []listCoreItem, filteredIDs []string) func(*Layout, *Event, *Window) {
-	return func(_ *Layout, e *Event, w *Window) {
-		paletteOnKeyDown(paletteID, onAction, onDismiss, filtered, filteredIDs, e, w)
+func makePaletteOnKeyDown(paletteID string, onAction func(string, EventCtx), onDismiss func(*Window), filtered []listCoreItem, filteredIDs []string) func(EventCtx) {
+	return func(ctx EventCtx) {
+		paletteOnKeyDown(paletteID, onAction, onDismiss, filtered, filteredIDs, ctx.Event, ctx.Window)
 	}
 }
 
-func paletteOnKeyDown(paletteID string, onAction func(string, *Event, *Window), onDismiss func(*Window), filtered []listCoreItem, filteredIDs []string, e *Event, w *Window) {
+func paletteOnKeyDown(paletteID string, onAction func(string, EventCtx), onDismiss func(*Window), filtered []listCoreItem, filteredIDs []string, e *Event, w *Window) {
 	if e.KeyCode == KeyEscape {
 		CommandPaletteDismiss(paletteID, w)
 		if onDismiss != nil {
@@ -368,7 +366,7 @@ func paletteOnKeyDown(paletteID string, onAction func(string, *Event, *Window), 
 	if action == listCoreSelectItem {
 		if cur >= 0 && cur < itemCount && onAction != nil &&
 			!filtered[cur].Disabled {
-			onAction(filteredIDs[cur], e, w)
+			onAction(filteredIDs[cur], EventCtx{nil, e, w})
 			CommandPaletteDismiss(paletteID, w)
 			if onDismiss != nil {
 				onDismiss(w)

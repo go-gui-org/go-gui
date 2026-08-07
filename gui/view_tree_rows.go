@@ -184,14 +184,14 @@ func treeRowView(
 		Sizing:  FillFit,
 		Spacing: NoSpacing,
 		Content: treeRowContentViews(row, iconWidth),
-		OnClick: func(_ *Layout, e *Event, w *Window) {
+		OnClick: func(ctx EventCtx) {
 			treeRowClick(
-				cfg.ID, row, rootFocusID, onSelect, onLazyLoad, e, w)
+				cfg.ID, row, rootFocusID, onSelect, onLazyLoad, ctx.Event, ctx.Window)
 		},
-		OnHover: func(layout *Layout, _ *Event, w *Window) {
-			w.SetMouseCursorPointingHand()
+		OnHover: func(ctx EventCtx) {
+			ctx.Window.SetMouseCursorPointingHand()
 			if !isFocused {
-				layout.Shape.Color = cfg.ColorHover
+				ctx.Layout.Shape.Color = cfg.ColorHover
 			}
 		},
 	})
@@ -243,7 +243,7 @@ func treeDragRowView(
 		Sizing:  FillFit,
 		Spacing: NoSpacing,
 		Content: treeRowContentViews(row, iconWidth),
-		OnClick: func(layout *Layout, e *Event, w *Window) {
+		OnClick: func(ctx EventCtx) {
 			dragReorderStart(dragReorderStartCfg{
 				DragKey:       treeID,
 				Index:         sibIdx,
@@ -254,16 +254,16 @@ func treeDragRowView(
 				ItemLayoutIDs: itemLayoutIDs,
 				MidsOffset:    midsOffset,
 				ScrollID:      scrollID,
-				Layout:        layout,
-				Event:         e,
-			}, w)
+				Layout:        ctx.Layout,
+				Event:         ctx.Event,
+			}, ctx.Window)
 			treeRowClick(
-				treeID, row, rootFocusID, onSelect, onLazyLoad, e, w)
+				treeID, row, rootFocusID, onSelect, onLazyLoad, ctx.Event, ctx.Window)
 		},
-		OnHover: func(layout *Layout, _ *Event, w *Window) {
-			w.SetMouseCursorPointingHand()
+		OnHover: func(ctx EventCtx) {
+			ctx.Window.SetMouseCursorPointingHand()
 			if !isFocused {
-				layout.Shape.Color = cfg.ColorHover
+				ctx.Layout.Shape.Color = cfg.ColorHover
 			}
 		},
 	})
@@ -333,7 +333,7 @@ func treeRowClick(
 	treeID string,
 	row treeFlatRow,
 	rootFocusID string,
-	onSelect func(string, *Event, *Window),
+	onSelect func(string, EventCtx),
 	onLazyLoad func(string, string, *Window),
 	e *Event,
 	w *Window,
@@ -353,7 +353,7 @@ func treeRowClick(
 		}
 	}
 	if onSelect != nil {
-		onSelect(row.ID, e, w)
+		onSelect(row.ID, EventCtx{nil, e, w})
 	}
 	e.IsHandled = true
 }
@@ -362,7 +362,7 @@ func treeOnKeyDown(
 	treeID string,
 	visibleIDs []string,
 	rowByID map[string]treeFlatRow,
-	onSelect func(string, *Event, *Window),
+	onSelect func(string, EventCtx),
 	onLazyLoad func(string, string, *Window),
 	scrollID string,
 	rowHeight float32,
@@ -443,7 +443,7 @@ func treeOnKeyDown(
 			return
 		}
 		if onSelect != nil {
-			onSelect(focusedID, e, w)
+			onSelect(focusedID, EventCtx{nil, e, w})
 		}
 		e.IsHandled = true
 	}

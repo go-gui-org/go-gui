@@ -3,7 +3,7 @@ package gui
 // SwitchCfg configures a pill-shaped toggle switch.
 type SwitchCfg struct {
 	TextStyle TextStyle
-	OnClick   func(*Layout, *Event, *Window)
+	OnClick   func(EventCtx)
 	ID        string
 	Label     string
 
@@ -107,34 +107,34 @@ func Switch(cfg SwitchCfg) View {
 		ClickOnSpace:    true,
 		OnClick:         cfg.OnClick,
 		ClickButton:     MouseLeft,
-		OnHover: func(layout *Layout, e *Event, w *Window) {
-			if layout.Shape.Disabled ||
-				!layout.Shape.hasEvents() ||
-				layout.Shape.events.OnClick == nil {
+		OnHover: func(ctx EventCtx) {
+			if ctx.Layout.Shape.Disabled ||
+				!ctx.Layout.Shape.hasEvents() ||
+				ctx.Layout.Shape.events.OnClick == nil {
 				return
 			}
-			w.setMouseCursor(CursorPointingHand)
-			if len(layout.Children) > 0 {
-				layout.Children[0].Shape.Color = colorHover
-				if e.MouseButton == MouseLeft {
-					layout.Children[0].Shape.Color = colorClick
+			ctx.Window.setMouseCursor(CursorPointingHand)
+			if len(ctx.Layout.Children) > 0 {
+				ctx.Layout.Children[0].Shape.Color = colorHover
+				if ctx.Event.MouseButton == MouseLeft {
+					ctx.Layout.Children[0].Shape.Color = colorClick
 				}
 			}
 		},
-		AmendLayout: func(layout *Layout, w *Window) {
-			if layout.Shape.Disabled ||
-				!layout.Shape.hasEvents() ||
-				layout.Shape.events.OnClick == nil {
+		AmendLayout: func(ctx EventCtx) {
+			if ctx.Layout.Shape.Disabled ||
+				!ctx.Layout.Shape.hasEvents() ||
+				ctx.Layout.Shape.events.OnClick == nil {
 				return
 			}
 			// Highlight only the pill (child 0), not the outer row —
 			// the outer row also spans the label.
-			if len(layout.Children) == 0 {
+			if len(ctx.Layout.Children) == 0 {
 				return
 			}
-			if w.IsFocus(layout.Shape.ID) {
-				layout.Children[0].Shape.Color = colorFocus
-				layout.Children[0].Shape.ColorBorder = colorBorderFocus
+			if ctx.Window.IsFocus(ctx.Layout.Shape.ID) {
+				ctx.Layout.Children[0].Shape.Color = colorFocus
+				ctx.Layout.Children[0].Shape.ColorBorder = colorBorderFocus
 			}
 		},
 		Content: content,

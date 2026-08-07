@@ -7,8 +7,8 @@ import (
 )
 
 type dataGridJumpContext struct {
-	onSelectionChange func(GridSelection, *gg.Event, *gg.Window)
-	onPageChange      func(int, *gg.Event, *gg.Window)
+	onSelectionChange func(GridSelection, gg.EventCtx)
+	onPageChange      func(int, gg.EventCtx)
 	dataToDisplay     map[int]int
 	gridID            string
 	rows              []GridRow
@@ -24,7 +24,7 @@ type dataGridJumpContext struct {
 
 // --- Jump ---
 
-func dataGridJumpEnabledLocal(rowsLen int, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), onPageChange func(int, *gg.Event, *gg.Window), pageSize, totalRows int) bool {
+func dataGridJumpEnabledLocal(rowsLen int, onSelectionChange func(GridSelection, gg.EventCtx), onPageChange func(int, gg.EventCtx), pageSize, totalRows int) bool {
 	if totalRows <= 0 || rowsLen == 0 {
 		return false
 	}
@@ -92,7 +92,7 @@ func dataGridJumpToLocalRow(ctx dataGridJumpContext, targetIdx int, e *gg.Event,
 			ActiveRowID:    targetRowID,
 			SelectedRowIDs: map[string]bool{targetRowID: true},
 		}
-		ctx.onSelectionChange(next, e, w)
+		ctx.onSelectionChange(next, gg.EventCtx{Layout: nil, Event: e, Window: w})
 		dataGridSetAnchor(ctx.gridID, targetRowID, w)
 	}
 	if ctx.pageSize > 0 {
@@ -103,7 +103,7 @@ func dataGridJumpToLocalRow(ctx dataGridJumpContext, targetIdx int, e *gg.Event,
 		if targetPage != ctx.pageIndex {
 			dgPJ := gg.StateMap[string, int](w, nsDgPendingJump, capModerate)
 			dgPJ.Set(ctx.gridID, targetIdx)
-			ctx.onPageChange(targetPage, e, w)
+			ctx.onPageChange(targetPage, gg.EventCtx{Layout: nil, Event: e, Window: w})
 			return
 		}
 	}

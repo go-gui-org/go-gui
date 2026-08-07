@@ -259,8 +259,8 @@ func toolbar(w *gui.Window, matchCount int) gui.View {
 			Text:      s.Sample,
 			TextStyle: t.B3,
 			Sizing:    gui.FillFit,
-			OnTextChanged: func(_ *gui.Layout, text string, w *gui.Window) {
-				gui.State[FontViewerState](w).Sample = text
+			OnTextChanged: func(text string, ctx gui.EventCtx) {
+				gui.State[FontViewerState](ctx.Window).Sample = text
 			},
 		}),
 		gui.Button(gui.ButtonCfg{
@@ -294,19 +294,18 @@ func toolbarRow2(s *FontViewerState, t gui.Theme, matchCount int) []gui.View {
 			TextStyle: t.B3,
 			Width:     filterInputW,
 			Sizing:    gui.FixedFit,
-			OnTextChanged: func(_ *gui.Layout, text string, w *gui.Window) {
-				gui.State[FontViewerState](w).Filter = text
-				w.ScrollVerticalTo(gridID, 0)
+			OnTextChanged: func(text string, ctx gui.EventCtx) {
+				gui.State[FontViewerState](ctx.Window).Filter = text
+				ctx.Window.ScrollVerticalTo(gridID, 0)
 			},
 		}),
 	}
 	if s.Filter != "" {
 		content = append(content, gui.Button(gui.ButtonCfg{
 			Content: []gui.View{gui.Text(gui.TextCfg{Text: "×", TextStyle: t.B3})},
-			OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-				gui.State[FontViewerState](w).Filter = ""
-				w.ScrollVerticalTo(gridID, 0)
-				e.IsHandled = true
+			OnClick: func(ctx gui.EventCtx) {
+				gui.State[FontViewerState](ctx.Window).Filter = ""
+				ctx.Window.ScrollVerticalTo(gridID, 0)
 			},
 		}))
 	}
@@ -322,10 +321,10 @@ func toolbarRow2(s *FontViewerState, t gui.Theme, matchCount int) []gui.View {
 			Step:   1,
 			Width:  sliderW,
 			Sizing: gui.FixedFit,
-			OnChange: func(v float32, e *gui.Event, w *gui.Window) {
-				gui.State[FontViewerState](w).FontSize = v
-				w.ScrollVerticalTo(gridID, 0) // rowH changed → reset offset
-				e.IsHandled = true
+			OnChange: func(v float32, ctx gui.EventCtx) {
+				gui.State[FontViewerState](ctx.Window).FontSize = v
+				ctx.Window.ScrollVerticalTo(gridID, 0) // rowH changed → reset offset
+				ctx.Event.IsHandled = true
 			},
 		}),
 		gui.Text(gui.TextCfg{
@@ -344,10 +343,10 @@ func toolbarRow2(s *FontViewerState, t gui.Theme, matchCount int) []gui.View {
 }
 
 // shuffleSample replaces the sample text with a fresh pangram.
-func shuffleSample(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-	s := gui.State[FontViewerState](w)
+func shuffleSample(ctx gui.EventCtx) {
+	s := gui.State[FontViewerState](ctx.Window)
 	s.Sample = randomPangram(s.Sample)
-	e.IsHandled = true
+	ctx.Consume()
 }
 
 // randomPangram returns a random pangram other than exclude. On a
@@ -533,13 +532,13 @@ func cardPreview(sample, name string, fontSize float32) gui.View {
 }
 
 // copyFamily copies the family name and starts the "Copied" fade.
-func copyFamily(name string) func(*gui.Layout, *gui.Event, *gui.Window) {
-	return func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-		s := gui.State[FontViewerState](w)
+func copyFamily(name string) func(gui.EventCtx) {
+	return func(ctx gui.EventCtx) {
+		s := gui.State[FontViewerState](ctx.Window)
 		s.CopiedFam = name
 		s.CopyOpacity = 1
-		w.SetClipboard(name)
-		w.AnimationAdd(&gui.TweenAnimation{
+		ctx.Window.SetClipboard(name)
+		ctx.Window.AnimationAdd(&gui.TweenAnimation{
 			AnimID:   "copied-fade",
 			Duration: copyFadeDuration,
 			Easing:   gui.EaseOutCubic,
@@ -553,10 +552,10 @@ func copyFamily(name string) func(*gui.Layout, *gui.Event, *gui.Window) {
 }
 
 // hoverFamily tracks the hovered card for the "Copy" affordance and bg.
-func hoverFamily(name string) func(*gui.Layout, *gui.Event, *gui.Window) {
-	return func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-		s := gui.State[FontViewerState](w)
-		switch e.Type {
+func hoverFamily(name string) func(gui.EventCtx) {
+	return func(ctx gui.EventCtx) {
+		s := gui.State[FontViewerState](ctx.Window)
+		switch ctx.Event.Type {
 		case gui.EventMouseEnter:
 			s.HoveredFam = name
 		case gui.EventMouseLeave:

@@ -67,12 +67,12 @@ func TestQuickFilterNoDebounceCommitsImmediately(t *testing.T) {
 	var committed []string
 	handler := dataGridQuickFilterOnTextChanged("g1", "g1:quick_filter",
 		GridQueryState{},
-		func(q GridQueryState, _ *gg.Event, _ *gg.Window) {
+		func(q GridQueryState, ctx gg.EventCtx) {
 			committed = append(committed, q.QuickFilter)
 		}, 0)
 
-	handler(nil, "a", w)
-	handler(nil, "ab", w)
+	handler("a", gg.EventCtx{Layout: nil, Event: nil, Window: w})
+	handler("ab", gg.EventCtx{Layout: nil, Event: nil, Window: w})
 
 	if len(committed) != 2 || committed[1] != "ab" {
 		t.Fatalf("committed = %v, want [a ab]", committed)
@@ -87,11 +87,11 @@ func TestQuickFilterDebounceParksDraft(t *testing.T) {
 	var committed []string
 	handler := dataGridQuickFilterOnTextChanged("g1", "g1:quick_filter",
 		GridQueryState{},
-		func(q GridQueryState, _ *gg.Event, _ *gg.Window) {
+		func(q GridQueryState, ctx gg.EventCtx) {
 			committed = append(committed, q.QuickFilter)
 		}, 200*time.Millisecond)
 
-	handler(nil, "a", w)
+	handler("a", gg.EventCtx{Layout: nil, Event: nil, Window: w})
 
 	if len(committed) != 0 {
 		t.Fatalf("committed = %v before debounce, want none", committed)
@@ -109,13 +109,13 @@ func TestQuickFilterDebounceRetypeReplacesDraft(t *testing.T) {
 	w := gg.NewWindow(gg.WindowCfg{})
 	handler := dataGridQuickFilterOnTextChanged("g1", "g1:quick_filter",
 		GridQueryState{},
-		func(GridQueryState, *gg.Event, *gg.Window) {},
+		func(_ GridQueryState, ctx gg.EventCtx) {},
 		200*time.Millisecond)
 
 	// Two keystrokes inside the debounce window: the draft must
 	// track the latest text so the rendered input echoes typing.
-	handler(nil, "a", w)
-	handler(nil, "ab", w)
+	handler("a", gg.EventCtx{Layout: nil, Event: nil, Window: w})
+	handler("ab", gg.EventCtx{Layout: nil, Event: nil, Window: w})
 
 	draft, ok := quickFilterDraft(w, "g1")
 	if !ok || draft != "ab" {
@@ -128,7 +128,7 @@ func TestQuickFilterRowRendersPendingDraft(t *testing.T) {
 	cfg := &DataGridCfg{
 		ID:            "g1",
 		Query:         GridQueryState{QuickFilter: "stale"},
-		OnQueryChange: func(GridQueryState, *gg.Event, *gg.Window) {},
+		OnQueryChange: func(_ GridQueryState, ctx gg.EventCtx) {},
 	}
 	applyDataGridDefaults(cfg)
 
@@ -149,7 +149,7 @@ func TestQuickFilterRowRendersCommittedWithoutDraft(t *testing.T) {
 	cfg := &DataGridCfg{
 		ID:            "g1",
 		Query:         GridQueryState{QuickFilter: "committed"},
-		OnQueryChange: func(GridQueryState, *gg.Event, *gg.Window) {},
+		OnQueryChange: func(_ GridQueryState, ctx gg.EventCtx) {},
 	}
 	applyDataGridDefaults(cfg)
 

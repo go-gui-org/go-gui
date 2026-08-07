@@ -91,10 +91,9 @@ func buttonFeatureRows(w *gui.Window) []gui.View {
 			MinWidth: buttonWidth,
 			MaxWidth: buttonWidth,
 			Content:  []gui.View{gui.Text(gui.TextCfg{Text: copyLabel})},
-			OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-				incrementButtonClicks(w)
-				gui.State[ShowcaseApp](w).ButtonCopyUntil = time.Now().Add(2 * time.Second)
-				e.IsHandled = true
+			OnClick: func(ctx gui.EventCtx) {
+				incrementButtonClicks(ctx.Window)
+				gui.State[ShowcaseApp](ctx.Window).ButtonCopyUntil = time.Now().Add(2 * time.Second)
 			},
 		})),
 	}
@@ -117,9 +116,9 @@ func incrementButtonClicks(w *gui.Window) {
 	gui.State[ShowcaseApp](w).ButtonClicks++
 }
 
-func showcaseButtonClick(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-	incrementButtonClicks(w)
-	e.IsHandled = true
+func showcaseButtonClick(ctx gui.EventCtx) {
+	incrementButtonClicks(ctx.Window)
+	ctx.Consume()
 }
 
 func demoProgressBar(_ *gui.Window) gui.View {
@@ -246,8 +245,8 @@ func demoThemePicker(w *gui.Window) gui.View {
 				ID:          "theme-picker-demo",
 				FloatAnchor: gui.FloatBottomLeft,
 				FloatTieOff: gui.FloatTopLeft,
-				OnSelect: func(name string, _ *gui.Event, w *gui.Window) {
-					gui.State[ShowcaseApp](w).ThemePickerResult = name
+				OnSelect: func(name string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).ThemePickerResult = name
 				},
 			}),
 			gui.Text(gui.TextCfg{
@@ -343,9 +342,8 @@ func demoToast(_ *gui.Window) gui.View {
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{Text: "Show Toast", TextStyle: t.N3}),
 				},
-				OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-					w.Toast(gui.ToastCfg{Title: "showcase", Body: "Hello from showcase!"})
-					e.IsHandled = true
+				OnClick: func(ctx gui.EventCtx) {
+					ctx.Window.Toast(gui.ToastCfg{Title: "showcase", Body: "Hello from showcase!"})
 				},
 			}),
 			gui.Button(gui.ButtonCfg{
@@ -354,9 +352,8 @@ func demoToast(_ *gui.Window) gui.View {
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{Text: "Dismiss All", TextStyle: t.N3}),
 				},
-				OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-					w.ToastDismissAll()
-					e.IsHandled = true
+				OnClick: func(ctx gui.EventCtx) {
+					ctx.Window.ToastDismissAll()
 				},
 			}),
 		},

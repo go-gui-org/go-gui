@@ -235,8 +235,8 @@ gui.Input(gui.InputCfg{
         gui.FormOnFieldEvent(w, l, emailCfg(s),
             gui.FormTriggerChange)
     },
-    OnBlur: func(l *gui.Layout, w *gui.Window) {
-        gui.FormOnFieldEvent(w, l, emailCfg(app.Email),
+    OnBlur: func(ctx gui.EventCtx) {
+        gui.FormOnFieldEvent(ctx.Window, ctx.Layout, emailCfg(app.Email),
             gui.FormTriggerBlur)
     },
 })

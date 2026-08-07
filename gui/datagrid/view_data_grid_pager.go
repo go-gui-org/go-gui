@@ -91,35 +91,35 @@ func dataGridPagerArrows() (string, string) {
 	return prev, next
 }
 
-func dataGridPagerPrevButton(cfg *DataGridCfg, onPageChange func(int, *gg.Event, *gg.Window), pageIndex int, focusID string, isFirst bool, prevArrow string) gg.View {
+func dataGridPagerPrevButton(cfg *DataGridCfg, onPageChange func(int, gg.EventCtx), pageIndex int, focusID string, isFirst bool, prevArrow string) gg.View {
 	return dataGridIndicatorButton(prevArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover,
 		onPageChange == nil || isFirst, dataGridHeaderControlWidth+10,
-		func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
+		func(ctx gg.EventCtx) {
 			if onPageChange == nil {
 				return
 			}
 			next := max(0, pageIndex-1)
-			onPageChange(next, e, w)
+			onPageChange(next, gg.EventCtx{Layout: nil, Event: ctx.Event, Window: ctx.Window})
 			if focusID != "" {
-				w.SetFocus(focusID)
+				ctx.Window.SetFocus(focusID)
 			}
-			e.IsHandled = true
+			ctx.Consume()
 		})
 }
 
-func dataGridPagerNextButton(cfg *DataGridCfg, onPageChange func(int, *gg.Event, *gg.Window), pageIndex, pageCount int, focusID string, isLast bool, nextArrow string) gg.View {
+func dataGridPagerNextButton(cfg *DataGridCfg, onPageChange func(int, gg.EventCtx), pageIndex, pageCount int, focusID string, isLast bool, nextArrow string) gg.View {
 	return dataGridIndicatorButton(nextArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover,
 		onPageChange == nil || isLast, dataGridHeaderControlWidth+10,
-		func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
+		func(ctx gg.EventCtx) {
 			if onPageChange == nil {
 				return
 			}
 			next := min(pageCount-1, pageIndex+1)
-			onPageChange(next, e, w)
+			onPageChange(next, gg.EventCtx{Layout: nil, Event: ctx.Event, Window: ctx.Window})
 			if focusID != "" {
-				w.SetFocus(focusID)
+				ctx.Window.SetFocus(focusID)
 			}
-			e.IsHandled = true
+			ctx.Consume()
 		})
 }
 
@@ -183,17 +183,17 @@ func dataGridPagerJumpInput(cfg *DataGridCfg, inputID string, focusID string, ju
 		ColorHover:  cfg.ColorFilter,
 		ColorBorder: cfg.ColorBorder,
 		TextStyle:   cfg.TextStyleFilter,
-		OnTextChanged: func(_ *gg.Layout, inputText string, w *gg.Window) {
+		OnTextChanged: func(inputText string, ctx gg.EventCtx) {
 			digits := dataGridJumpDigits(inputText)
-			dgJI := gg.StateMap[string, string](w, nsDgJump, capModerate)
+			dgJI := gg.StateMap[string, string](ctx.Window, nsDgJump, capModerate)
 			dgJI.Set(jumpCtx.gridID, digits)
 			e := &gg.Event{}
-			dataGridSubmitLocalJump(jumpCtx, e, w)
+			dataGridSubmitLocalJump(jumpCtx, e, ctx.Window)
 		},
-		OnEnter: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
+		OnEnter: func(ectx gg.EventCtx) {
 			ctx := jumpCtx
 			ctx.focusID = gridFocusID
-			dataGridSubmitLocalJump(ctx, e, w)
+			dataGridSubmitLocalJump(ctx, ectx.Event, ectx.Window)
 		},
 	})
 }

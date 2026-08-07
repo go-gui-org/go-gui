@@ -3,15 +3,15 @@ package gui
 // DrawCanvasCfg configures a draw canvas view.
 type DrawCanvasCfg struct {
 	OnDraw          func(*DrawContext)
-	OnClick         func(*Layout, *Event, *Window)
-	OnHover         func(*Layout, *Event, *Window)
-	OnMouseMove     func(*Layout, *Event, *Window)
-	OnMouseUp       func(*Layout, *Event, *Window)
-	OnMouseLeave    func(*Layout, *Event, *Window)
-	OnGesture       func(*Layout, *Event, *Window)
-	OnMouseScroll   func(*Layout, *Event, *Window)
-	OnFileDrop      func(*Layout, *Event, *Window)
-	OnKeyDown       func(*Layout, *Event, *Window)
+	OnClick         func(EventCtx)
+	OnHover         func(EventCtx)
+	OnMouseMove     func(EventCtx)
+	OnMouseUp       func(EventCtx)
+	OnMouseLeave    func(EventCtx)
+	OnGesture       func(EventCtx)
+	OnMouseScroll   func(EventCtx)
+	OnFileDrop      func(EventCtx)
+	OnKeyDown       func(EventCtx)
 	ID              string
 	A11YLabel       string
 	A11YDescription string

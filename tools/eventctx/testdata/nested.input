@@ -1,0 +1,30 @@
+package widgets
+
+// Nested closures: the inner func(*Window) shadows w, so the outer
+// rename must not reach inside it. The inner three-arg literal is
+// rewritten first, innermost-first.
+func attach(c *Container) {
+	c.OnClick = func(layout *Layout, e *Event, w *Window) {
+		if !hit(layout, e) {
+			return
+		}
+		w.Dialog(func(w *Window) {
+			w.Close()
+		})
+		inner := func(l2 *Layout, e2 *Event, w2 *Window) {
+			e2.IsHandled = true
+			log(l2, w2)
+		}
+		// Known limitation: call sites of a converted closure variable
+		// are not rewritten. The compiler flags them.
+		inner(layout, e, w)
+	}
+	c.OnMouseScroll = func(layout *Layout, e *Event, w *Window) {
+		if !layout.Shape.Scrollable {
+			return
+		}
+		scroll(w, e.ScrollY)
+		e.IsHandled = true
+	}
+	c.OnHover = func(_ *Layout, _ *Event, _ *Window) {}
+}

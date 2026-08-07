@@ -40,7 +40,7 @@ func TestExecuteFocusCallbackNil(t *testing.T) {
 	w.viewState.focusID = "f1"
 	l := &Layout{Shape: &Shape{ID: reservedDialogID}}
 	e := &Event{}
-	if executeFocusCallback(l, e, w, nil) {
+	if executeFocusCallback(l, e, w, nil, evNotify) {
 		t.Error("nil callback should return false")
 	}
 }
@@ -52,8 +52,8 @@ func TestExecuteMouseCallbackOutside(t *testing.T) {
 	}}
 	e := &Event{MouseX: 0, MouseY: 0}
 	called := false
-	cb := func(_ *Layout, _ *Event, _ *Window) { called = true }
-	if executeMouseCallback(l, e, w, cb) {
+	cb := func(ctx EventCtx) { called = true }
+	if executeMouseCallback(l, e, w, cb, evNotify) {
 		t.Error("outside mouse should return false")
 	}
 	if called {
@@ -71,12 +71,12 @@ func TestExecuteMouseCallbackInside(t *testing.T) {
 	l := &Layout{Shape: s}
 	e := &Event{MouseX: 30, MouseY: 40}
 	var relX, relY float32
-	cb := func(_ *Layout, ev *Event, _ *Window) {
-		relX = ev.MouseX
-		relY = ev.MouseY
-		ev.IsHandled = true
+	cb := func(ctx EventCtx) {
+		relX = ctx.Event.MouseX
+		relY = ctx.Event.MouseY
+		ctx.Consume()
 	}
-	if !executeMouseCallback(l, e, w, cb) {
+	if !executeMouseCallback(l, e, w, cb, evNotify) {
 		t.Error("inside mouse should return true")
 	}
 	if relX != 20 || relY != 20 {
@@ -93,10 +93,10 @@ func TestExecuteMouseCallbackRestoresEvent(t *testing.T) {
 	s.Y = 20
 	l := &Layout{Shape: s}
 	e := &Event{MouseX: 30, MouseY: 40}
-	cb := func(_ *Layout, ev *Event, _ *Window) {
-		ev.IsHandled = true
+	cb := func(ctx EventCtx) {
+		ctx.Consume()
 	}
-	executeMouseCallback(l, e, w, cb)
+	executeMouseCallback(l, e, w, cb, evNotify)
 	if e.MouseX != 30 || e.MouseY != 40 {
 		t.Errorf("event coords = (%f,%f), want (30,40)", e.MouseX, e.MouseY)
 	}

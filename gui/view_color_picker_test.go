@@ -158,7 +158,7 @@ func TestCpSVMouseAction(t *testing.T) {
 	sm.Set("sv-test", colorPickerState{H: 120, S: 0, V: 0})
 
 	var gotColor Color
-	onChange := func(c Color, _ *Event, _ *Window) { gotColor = c }
+	onChange := func(c Color, ctx EventCtx) { gotColor = c }
 
 	layout := &Layout{
 		Shape: &Shape{X: 0, Y: 0, Width: 100, Height: 100},
@@ -185,7 +185,7 @@ func TestCpSVMouseActionWithOffset(t *testing.T) {
 	sm.Set("sv-off", colorPickerState{H: 120, S: 0, V: 0})
 
 	var gotColor Color
-	onChange := func(c Color, _ *Event, _ *Window) { gotColor = c }
+	onChange := func(c Color, ctx EventCtx) { gotColor = c }
 
 	shape := &Shape{X: 100, Y: 200, Width: 100, Height: 100}
 	e := &Event{MouseX: 150, MouseY: 225}
@@ -220,7 +220,7 @@ func TestCpHueMouseAction(t *testing.T) {
 	sm.Set("hue-test", colorPickerState{H: 0, S: 1, V: 1})
 
 	var gotColor Color
-	onChange := func(c Color, _ *Event, _ *Window) { gotColor = c }
+	onChange := func(c Color, ctx EventCtx) { gotColor = c }
 
 	layout := &Layout{
 		Shape: &Shape{X: 0, Y: 0, Width: 30, Height: 360},
@@ -249,7 +249,7 @@ func TestCpHueMouseActionNilOnChange(_ *testing.T) {
 func TestCpSVMouseActionZeroSize(t *testing.T) {
 	w := &Window{}
 	called := false
-	onChange := func(_ Color, _ *Event, _ *Window) { called = true }
+	onChange := func(_ Color, ctx EventCtx) { called = true }
 	shape := &Shape{X: 0, Y: 0, Width: 0, Height: 0}
 	e := &Event{MouseX: 50, MouseY: 50}
 	cpSVMouseAction("zero", RGB(0, 0, 0), onChange, shape, e, w)
@@ -261,7 +261,7 @@ func TestCpSVMouseActionZeroSize(t *testing.T) {
 func TestCpHueMouseActionZeroHeight(t *testing.T) {
 	w := &Window{}
 	called := false
-	onChange := func(_ Color, _ *Event, _ *Window) { called = true }
+	onChange := func(_ Color, ctx EventCtx) { called = true }
 	shape := &Shape{X: 0, Y: 0, Width: 30, Height: 0}
 	e := &Event{MouseX: 15, MouseY: 50}
 	cpHueMouseAction("zero", RGB(255, 0, 0), onChange, shape, e, w)
@@ -273,7 +273,7 @@ func TestCpHueMouseActionZeroHeight(t *testing.T) {
 func TestCpApplyRGB(t *testing.T) {
 	w := &Window{}
 	var got Color
-	onChange := func(c Color, _ *Event, _ *Window) { got = c }
+	onChange := func(c Color, ctx EventCtx) { got = c }
 	cpApplyRGB("128", 0, RGB(0, 50, 100), "rgb-test", onChange, w)
 	if got.R != 128 || got.G != 50 || got.B != 100 {
 		t.Errorf("color = %v, want R=128 G=50 B=100", got)
@@ -289,7 +289,7 @@ func TestCpApplyRGB(t *testing.T) {
 func TestCpApplyRGBInvalid(t *testing.T) {
 	w := &Window{}
 	called := false
-	onChange := func(_ Color, _ *Event, _ *Window) { called = true }
+	onChange := func(_ Color, ctx EventCtx) { called = true }
 	cpApplyRGB("abc", 0, RGB(0, 0, 0), "inv", onChange, w)
 	if called {
 		t.Error("onChange should not be called for invalid input")
@@ -303,7 +303,7 @@ func TestCpApplyHSV(t *testing.T) {
 	sm.Set("hsv-test", colorPickerState{H: 0, S: 1, V: 1})
 
 	var got Color
-	onChange := func(c Color, _ *Event, _ *Window) { got = c }
+	onChange := func(c Color, ctx EventCtx) { got = c }
 	cpApplyHSV("180", 0, 360, "hsv-test", 255, onChange, w)
 	hsv, _ := sm.Get("hsv-test")
 	if hsv.H != 180 {
@@ -321,7 +321,7 @@ func TestCpApplyHSVClamp(t *testing.T) {
 	sm.Set("hsv-clamp", colorPickerState{H: 0, S: 1, V: 1})
 
 	var got Color
-	onChange := func(c Color, _ *Event, _ *Window) { got = c }
+	onChange := func(c Color, ctx EventCtx) { got = c }
 	cpApplyHSV("-10", 0, 360, "hsv-clamp", 255, onChange, w)
 	hsv, _ := sm.Get("hsv-clamp")
 	if hsv.H != 0 {
@@ -335,7 +335,7 @@ func TestCpApplyHSVClamp(t *testing.T) {
 func TestCpApplyHex(t *testing.T) {
 	w := &Window{}
 	var got Color
-	onChange := func(c Color, _ *Event, _ *Window) { got = c }
+	onChange := func(c Color, ctx EventCtx) { got = c }
 	cpApplyHex("#FF8000", "hex-test", onChange, w)
 	if got.R != 255 || got.G != 128 || got.B != 0 {
 		t.Errorf("color = %v, want R=255 G=128 B=0", got)
@@ -350,7 +350,7 @@ func TestCpApplyHex(t *testing.T) {
 func TestCpApplyHexInvalid(t *testing.T) {
 	w := &Window{}
 	called := false
-	onChange := func(_ Color, _ *Event, _ *Window) { called = true }
+	onChange := func(_ Color, ctx EventCtx) { called = true }
 	cpApplyHex("not-hex", "inv", onChange, w)
 	if called {
 		t.Error("onChange should not be called for invalid hex")

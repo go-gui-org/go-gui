@@ -26,8 +26,8 @@ func demoInput(w *gui.Window) gui.View {
 				ID:       "input-spell-check",
 				Label:    "Spell Check",
 				Selected: app.InputSpellCheck,
-				OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-					gui.State[ShowcaseApp](w).InputSpellCheck = !gui.State[ShowcaseApp](w).InputSpellCheck
+				OnClick: func(ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).InputSpellCheck = !gui.State[ShowcaseApp](ctx.Window).InputSpellCheck
 				},
 			}),
 			labeledRow(t, "Text", gui.Input(gui.InputCfg{
@@ -36,8 +36,8 @@ func demoInput(w *gui.Window) gui.View {
 				Text:        app.InputText,
 				Placeholder: "Enter text...",
 				SpellCheck:  app.InputSpellCheck,
-				OnTextChanged: func(_ *gui.Layout, s string, w *gui.Window) {
-					gui.State[ShowcaseApp](w).InputText = s
+				OnTextChanged: func(s string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).InputText = s
 				},
 			})),
 			labeledRow(t, "Password", gui.Input(gui.InputCfg{
@@ -46,8 +46,8 @@ func demoInput(w *gui.Window) gui.View {
 				Text:        app.InputPassword,
 				Placeholder: "Enter password...",
 				IsPassword:  true,
-				OnTextChanged: func(_ *gui.Layout, s string, w *gui.Window) {
-					gui.State[ShowcaseApp](w).InputPassword = s
+				OnTextChanged: func(s string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).InputPassword = s
 				},
 			})),
 			labeledRow(t, "Phone", gui.Input(gui.InputCfg{
@@ -56,8 +56,8 @@ func demoInput(w *gui.Window) gui.View {
 				Text:        app.InputPhone,
 				Placeholder: "(555) 000-0000",
 				MaskPreset:  gui.MaskPhoneUS,
-				OnTextChanged: func(_ *gui.Layout, s string, w *gui.Window) {
-					gui.State[ShowcaseApp](w).InputPhone = s
+				OnTextChanged: func(s string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).InputPhone = s
 				},
 			})),
 			labeledRow(t, "Expiry", gui.Input(gui.InputCfg{
@@ -66,8 +66,8 @@ func demoInput(w *gui.Window) gui.View {
 				Text:        app.InputExpiry,
 				Placeholder: "MM/YY",
 				MaskPreset:  gui.MaskExpiryMMYY,
-				OnTextChanged: func(_ *gui.Layout, s string, w *gui.Window) {
-					gui.State[ShowcaseApp](w).InputExpiry = s
+				OnTextChanged: func(s string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).InputExpiry = s
 				},
 			})),
 			labeledRow(t, "Multiline", gui.Input(gui.InputCfg{
@@ -78,8 +78,8 @@ func demoInput(w *gui.Window) gui.View {
 				Mode:        gui.InputMultiline,
 				Height:      90,
 				SpellCheck:  app.InputSpellCheck,
-				OnTextChanged: func(_ *gui.Layout, s string, w *gui.Window) {
-					gui.State[ShowcaseApp](w).InputMultiline = s
+				OnTextChanged: func(s string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).InputMultiline = s
 				},
 			})),
 		},
@@ -106,8 +106,8 @@ func demoNumericInput(w *gui.Window) gui.View {
 				Max:      gui.Some(10000.0),
 				Width:    220,
 				Sizing:   gui.FixedFit,
-				OnTextChanged: func(_ *gui.Layout, text string, w *gui.Window) {
-					gui.State[ShowcaseApp](w).NumericENText = text
+				OnTextChanged: func(text string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).NumericENText = text
 				},
 				OnValueCommit: func(_ *gui.Layout, value gui.Opt[float64], text string, w *gui.Window) {
 					app := gui.State[ShowcaseApp](w)
@@ -131,8 +131,8 @@ func demoNumericInput(w *gui.Window) gui.View {
 				Max:    gui.Some(10000.0),
 				Width:  220,
 				Sizing: gui.FixedFit,
-				OnTextChanged: func(_ *gui.Layout, text string, w *gui.Window) {
-					gui.State[ShowcaseApp](w).NumericDEText = text
+				OnTextChanged: func(text string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).NumericDEText = text
 				},
 				OnValueCommit: func(_ *gui.Layout, value gui.Opt[float64], text string, w *gui.Window) {
 					app := gui.State[ShowcaseApp](w)
@@ -153,8 +153,8 @@ func demoNumericInput(w *gui.Window) gui.View {
 				Max:      gui.Some(10000.0),
 				Width:    220,
 				Sizing:   gui.FixedFit,
-				OnTextChanged: func(_ *gui.Layout, text string, w *gui.Window) {
-					gui.State[ShowcaseApp](w).NumericCurrencyText = text
+				OnTextChanged: func(text string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).NumericCurrencyText = text
 				},
 				OnValueCommit: func(_ *gui.Layout, value gui.Opt[float64], text string, w *gui.Window) {
 					app := gui.State[ShowcaseApp](w)
@@ -175,8 +175,8 @@ func demoNumericInput(w *gui.Window) gui.View {
 				Max:      gui.Some(1.0),
 				Width:    220,
 				Sizing:   gui.FixedFit,
-				OnTextChanged: func(_ *gui.Layout, text string, w *gui.Window) {
-					gui.State[ShowcaseApp](w).NumericPercentText = text
+				OnTextChanged: func(text string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).NumericPercentText = text
 				},
 				OnValueCommit: func(_ *gui.Layout, value gui.Opt[float64], text string, w *gui.Window) {
 					app := gui.State[ShowcaseApp](w)
@@ -197,8 +197,8 @@ func demoNumericInput(w *gui.Window) gui.View {
 				},
 				Width:  220,
 				Sizing: gui.FixedFit,
-				OnTextChanged: func(_ *gui.Layout, text string, w *gui.Window) {
-					gui.State[ShowcaseApp](w).NumericPlainText = text
+				OnTextChanged: func(text string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).NumericPlainText = text
 				},
 				OnValueCommit: func(_ *gui.Layout, value gui.Opt[float64], text string, w *gui.Window) {
 					app := gui.State[ShowcaseApp](w)
@@ -223,16 +223,16 @@ func demoColorPicker(w *gui.Window) gui.View {
 				ID:       "color-picker-hsv",
 				Label:    "Show HSV",
 				Selected: app.ColorPickerHSV,
-				OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-					gui.State[ShowcaseApp](w).ColorPickerHSV = !gui.State[ShowcaseApp](w).ColorPickerHSV
+				OnClick: func(ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).ColorPickerHSV = !gui.State[ShowcaseApp](ctx.Window).ColorPickerHSV
 				},
 			}),
 			gui.ColorPicker(gui.ColorPickerCfg{
 				ID:      "color-picker",
 				Color:   c,
 				ShowHSV: app.ColorPickerHSV,
-				OnColorChange: func(color gui.Color, _ *gui.Event, w *gui.Window) {
-					gui.State[ShowcaseApp](w).ColorPickerColor = color
+				OnColorChange: func(color gui.Color, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).ColorPickerColor = color
 				},
 			}),
 			gui.Text(gui.TextCfg{
@@ -268,8 +268,8 @@ func demoDatePicker(w *gui.Window) gui.View {
 						ID:             "date-picker",
 						Dates:          app.DatePickerDates,
 						SelectMultiple: true,
-						OnSelect: func(dates []time.Time, _ *gui.Event, w *gui.Window) {
-							gui.State[ShowcaseApp](w).DatePickerDates = append([]time.Time(nil), dates...)
+						OnSelect: func(dates []time.Time, ctx gui.EventCtx) {
+							gui.State[ShowcaseApp](ctx.Window).DatePickerDates = append([]time.Time(nil), dates...)
 						},
 					}),
 				},
@@ -317,11 +317,11 @@ func demoInputDate(w *gui.Window) gui.View {
 				Date:        app.InputDate,
 				Placeholder: "Pick a date",
 				Sizing:      gui.FillFit,
-				OnSelect: func(dates []time.Time, _ *gui.Event, w *gui.Window) {
+				OnSelect: func(dates []time.Time, ctx gui.EventCtx) {
 					if len(dates) == 0 {
 						return
 					}
-					gui.State[ShowcaseApp](w).InputDate = dates[0]
+					gui.State[ShowcaseApp](ctx.Window).InputDate = dates[0]
 				},
 			}),
 			gui.Text(gui.TextCfg{
@@ -375,13 +375,13 @@ func demoForms(w *gui.Window) gui.View {
 				Sizing:      gui.FixedFit,
 				Text:        form.Username,
 				Placeholder: "username",
-				OnTextChanged: func(l *gui.Layout, s string, w *gui.Window) {
-					gui.State[ShowcaseApp](w).Form.Username = s
-					gui.FormOnFieldEvent(w, l, usernameAdapterCfg(s), gui.FormTriggerChange)
+				OnTextChanged: func(s string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).Form.Username = s
+					gui.FormOnFieldEvent(ctx.Window, ctx.Layout, usernameAdapterCfg(s), gui.FormTriggerChange)
 				},
-				OnBlur: func(l *gui.Layout, w *gui.Window) {
-					app := gui.State[ShowcaseApp](w)
-					gui.FormOnFieldEvent(w, l, usernameAdapterCfg(app.Form.Username), gui.FormTriggerBlur)
+				OnBlur: func(ctx gui.EventCtx) {
+					app := gui.State[ShowcaseApp](ctx.Window)
+					gui.FormOnFieldEvent(ctx.Window, ctx.Layout, usernameAdapterCfg(app.Form.Username), gui.FormTriggerBlur)
 				},
 			})),
 			showcaseFormFieldState(w, "username"),
@@ -393,13 +393,13 @@ func demoForms(w *gui.Window) gui.View {
 				Sizing:      gui.FixedFit,
 				Text:        form.Email,
 				Placeholder: "user@example.com",
-				OnTextChanged: func(l *gui.Layout, s string, w *gui.Window) {
-					gui.State[ShowcaseApp](w).Form.Email = s
-					gui.FormOnFieldEvent(w, l, emailAdapterCfg(s), gui.FormTriggerChange)
+				OnTextChanged: func(s string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).Form.Email = s
+					gui.FormOnFieldEvent(ctx.Window, ctx.Layout, emailAdapterCfg(s), gui.FormTriggerChange)
 				},
-				OnBlur: func(l *gui.Layout, w *gui.Window) {
-					app := gui.State[ShowcaseApp](w)
-					gui.FormOnFieldEvent(w, l, emailAdapterCfg(app.Form.Email), gui.FormTriggerBlur)
+				OnBlur: func(ctx gui.EventCtx) {
+					app := gui.State[ShowcaseApp](ctx.Window)
+					gui.FormOnFieldEvent(ctx.Window, ctx.Layout, emailAdapterCfg(app.Form.Email), gui.FormTriggerBlur)
 				},
 			})),
 			showcaseFormFieldState(w, "email"),
@@ -414,9 +414,9 @@ func demoForms(w *gui.Window) gui.View {
 				Max:      gui.Some(120.0),
 				Text:     form.AgeText,
 				Value:    form.AgeValue,
-				OnTextChanged: func(l *gui.Layout, text string, w *gui.Window) {
-					gui.State[ShowcaseApp](w).Form.AgeText = text
-					gui.FormOnFieldEvent(w, l, ageAdapterCfg(text), gui.FormTriggerChange)
+				OnTextChanged: func(text string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).Form.AgeText = text
+					gui.FormOnFieldEvent(ctx.Window, ctx.Layout, ageAdapterCfg(text), gui.FormTriggerChange)
 				},
 				OnValueCommit: func(l *gui.Layout, value gui.Opt[float64], text string, w *gui.Window) {
 					app := gui.State[ShowcaseApp](w)
@@ -437,18 +437,16 @@ func demoForms(w *gui.Window) gui.View {
 						ID:      "showcase-form-submit",
 						Padding: gui.SomeP(8, 16, 8, 16),
 						Content: []gui.View{gui.Text(gui.TextCfg{Text: gui.CurrentLocale().StrSubmit, TextStyle: gui.CurrentTheme().B3})},
-						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-							gui.FormRequestSubmit(w, showcaseFormID)
-							e.IsHandled = true
+						OnClick: func(ctx gui.EventCtx) {
+							gui.FormRequestSubmit(ctx.Window, showcaseFormID)
 						},
 					}),
 					gui.Button(gui.ButtonCfg{
 						ID:      "showcase-form-reset",
 						Padding: gui.SomeP(8, 16, 8, 16),
 						Content: []gui.View{gui.Text(gui.TextCfg{Text: gui.CurrentLocale().StrReset, TextStyle: gui.CurrentTheme().N3})},
-						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-							gui.FormRequestReset(w, showcaseFormID)
-							e.IsHandled = true
+						OnClick: func(ctx gui.EventCtx) {
+							gui.FormRequestReset(ctx.Window, showcaseFormID)
 						},
 					}),
 				},

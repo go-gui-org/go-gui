@@ -97,7 +97,7 @@ func TestMenubarAmendLayoutClearOnDefocus(t *testing.T) {
 
 	amend := makeMenuAmendLayout("mb")
 	layout := &Layout{Shape: &Shape{}}
-	amend(layout, w)
+	amend(EventCtx{layout, nil, w})
 
 	sel, ok := sm.Get("mb")
 	if ok && sel != "" {

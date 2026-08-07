@@ -8,8 +8,8 @@ gui.Button(gui.ButtonCfg{
     ID:      "submit",
     IDFocus: 100,
     Content: []gui.View{gui.Text(gui.TextCfg{Text: "Submit"})},
-    OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-        e.IsHandled = true
+    OnClick: func(ctx gui.EventCtx) {
+        ctx.Consume()
     },
 })
 ```
@@ -62,10 +62,10 @@ gui.Button(gui.ButtonCfg{
 
 ## Events
 
-| Callback | Signature                      | Fired when     |
-| -------- | ------------------------------ | -------------- |
-| OnClick  | func(*Layout, *Event, *Window) | Button clicked |
-| OnHover  | func(*Layout, *Event, *Window) | Mouse hover    |
+| Callback | Signature      | Fired when     |
+| -------- | -------------- | -------------- |
+| OnClick  | func(EventCtx) | Button clicked |
+| OnHover  | func(EventCtx) | Mouse hover    |
 
 ## Accessibility
 

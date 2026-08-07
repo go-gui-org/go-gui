@@ -214,14 +214,14 @@ func TestSourceRowMatchesQueryMultipleCells(t *testing.T) {
 // --- dataGridJumpEnabledLocal ---
 
 func TestJumpEnabledLocal(t *testing.T) {
-	sel := func(GridSelection, *gg.Event, *gg.Window) {}
-	page := func(int, *gg.Event, *gg.Window) {}
+	sel := func(_ GridSelection, ctx gg.EventCtx) {}
+	page := func(_ int, ctx gg.EventCtx) {}
 
 	tests := []struct {
 		name      string
 		rowsLen   int
-		onSel     func(GridSelection, *gg.Event, *gg.Window)
-		onPage    func(int, *gg.Event, *gg.Window)
+		onSel     func(GridSelection, gg.EventCtx)
+		onPage    func(int, gg.EventCtx)
 		pageSize  int
 		totalRows int
 		want      bool
@@ -449,7 +449,7 @@ func TestHandleRowNavigationKeysArrowDown(t *testing.T) {
 		colCount:      1,
 		frozenTopIDs:  map[string]bool{},
 		dataToDisplay: map[int]int{0: 0, 1: 1, 2: 2},
-		onSelectionChange: func(sel GridSelection, _ *gg.Event, _ *gg.Window) {
+		onSelectionChange: func(sel GridSelection, ctx gg.EventCtx) {
 			selected = sel
 		},
 	}
@@ -483,7 +483,7 @@ func TestHandleRowNavigationKeysArrowUp(t *testing.T) {
 		colCount:      1,
 		frozenTopIDs:  map[string]bool{},
 		dataToDisplay: map[int]int{0: 0, 1: 1, 2: 2},
-		onSelectionChange: func(sel GridSelection, _ *gg.Event, _ *gg.Window) {
+		onSelectionChange: func(sel GridSelection, ctx gg.EventCtx) {
 			selected = sel
 		},
 	}
@@ -512,7 +512,7 @@ func TestHandleRowNavigationKeysHome(t *testing.T) {
 		pageIndices:   []int{0, 1, 2},
 		frozenTopIDs:  map[string]bool{},
 		dataToDisplay: map[int]int{0: 0, 1: 1, 2: 2},
-		onSelectionChange: func(sel GridSelection, _ *gg.Event, _ *gg.Window) {
+		onSelectionChange: func(sel GridSelection, ctx gg.EventCtx) {
 			selected = sel
 		},
 	}
@@ -541,7 +541,7 @@ func TestHandleRowNavigationKeysEnd(t *testing.T) {
 		pageIndices:   []int{0, 1, 2},
 		frozenTopIDs:  map[string]bool{},
 		dataToDisplay: map[int]int{0: 0, 1: 1, 2: 2},
-		onSelectionChange: func(sel GridSelection, _ *gg.Event, _ *gg.Window) {
+		onSelectionChange: func(sel GridSelection, ctx gg.EventCtx) {
 			selected = sel
 		},
 	}
@@ -615,7 +615,7 @@ func TestOnKeydownSelectAll(t *testing.T) {
 		rows:        rows,
 		multiSelect: true,
 		pageIndices: []int{0, 1, 2},
-		onSelectionChange: func(sel GridSelection, _ *gg.Event, _ *gg.Window) {
+		onSelectionChange: func(sel GridSelection, ctx gg.EventCtx) {
 			selected = sel
 		},
 	}
@@ -674,7 +674,7 @@ func TestHandleEnterKeyWithActivate(t *testing.T) {
 			ActiveRowID:    "b",
 			SelectedRowIDs: map[string]bool{"b": true},
 		},
-		onRowActivate: func(row GridRow, _ *gg.Event, _ *gg.Window) {
+		onRowActivate: func(row GridRow, ctx gg.EventCtx) {
 			activated = row.ID
 		},
 	}
@@ -790,8 +790,8 @@ func TestJumpContextFromPager(t *testing.T) {
 	cfg := &DataGridCfg{
 		ID:                "g1",
 		Rows:              []GridRow{{ID: "a"}},
-		OnSelectionChange: func(GridSelection, *gg.Event, *gg.Window) {},
-		OnPageChange:      func(int, *gg.Event, *gg.Window) {},
+		OnSelectionChange: func(_ GridSelection, ctx gg.EventCtx) {},
+		OnPageChange:      func(_ int, ctx gg.EventCtx) {},
 		PageSize:          25,
 	}
 	pctx := dataGridPagerContext{
@@ -896,7 +896,7 @@ func TestHandlePageShortcutSinglePage(t *testing.T) {
 		rows:         []GridRow{{ID: "a"}},
 		pageSize:     25,
 		pageIndex:    0,
-		onPageChange: func(int, *gg.Event, *gg.Window) {},
+		onPageChange: func(_ int, ctx gg.EventCtx) {},
 	}
 	e := &gg.Event{KeyCode: gg.KeyPageDown, Modifiers: gg.ModCtrl}
 	handled := dataGridHandlePageShortcut(kc, e, w)
@@ -918,7 +918,7 @@ func TestHandlePageShortcutCtrlPageDown(t *testing.T) {
 		rows:      rows,
 		pageSize:  10,
 		pageIndex: 0,
-		onPageChange: func(p int, _ *gg.Event, _ *gg.Window) {
+		onPageChange: func(p int, ctx gg.EventCtx) {
 			nextPage = p
 		},
 	}
@@ -955,7 +955,7 @@ func TestMakeColumnChooserOnClick(t *testing.T) {
 	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	var changedHidden map[string]bool
-	cb := func(h map[string]bool, _ *gg.Event, _ *gg.Window) {
+	cb := func(h map[string]bool, ctx gg.EventCtx) {
 		changedHidden = h
 	}
 	hidden := map[string]bool{"col2": true}
@@ -964,7 +964,7 @@ func TestMakeColumnChooserOnClick(t *testing.T) {
 	}
 	fn := dataGridMakeColumnChooserOnClick(cb, hidden, columns, "col2", "")
 	e := &gg.Event{}
-	fn(nil, e, w)
+	fn(gg.EventCtx{Layout: nil, Event: e, Window: w})
 	if !e.IsHandled {
 		t.Fatal("should be handled")
 	}
@@ -980,7 +980,7 @@ func TestMakeColumnChooserOnClickNilCallback(t *testing.T) {
 	columns := []GridColumnCfg{{ID: "col1"}}
 	fn := dataGridMakeColumnChooserOnClick(nil, hidden, columns, "col1", "")
 	e := &gg.Event{}
-	fn(nil, e, w)
+	fn(gg.EventCtx{Layout: nil, Event: e, Window: w})
 	// Should not panic; event not marked handled when callback is nil.
 }
 
@@ -1013,7 +1013,7 @@ func TestSubmitLocalJumpValid(t *testing.T) {
 	ctx := dataGridJumpContext{
 		gridID: "g1",
 		rows:   rows,
-		onSelectionChange: func(sel GridSelection, _ *gg.Event, _ *gg.Window) {
+		onSelectionChange: func(sel GridSelection, ctx gg.EventCtx) {
 			selected = sel
 		},
 		onPageChange:  nil,
@@ -1065,7 +1065,7 @@ func TestJumpToLocalRow(t *testing.T) {
 	ctx := dataGridJumpContext{
 		gridID: "g1",
 		rows:   rows,
-		onSelectionChange: func(sel GridSelection, _ *gg.Event, _ *gg.Window) {
+		onSelectionChange: func(sel GridSelection, ctx gg.EventCtx) {
 			selected = sel
 		},
 		pageSize:      0,
@@ -1158,7 +1158,7 @@ func TestMakeOnCharCopy(t *testing.T) {
 	columns := []GridColumnCfg{{ID: "a"}, {ID: "b"}}
 	handler := dataGridMakeOnChar(cfg, columns)
 	e := &gg.Event{CharCode: 3, Modifiers: gg.ModCtrl}
-	handler(nil, e, w)
+	handler(gg.EventCtx{Layout: nil, Event: e, Window: w})
 	if !e.IsHandled {
 		t.Fatal("copy should be handled")
 	}
@@ -1173,7 +1173,7 @@ func TestMakeOnCharNoSelection(t *testing.T) {
 	}
 	handler := dataGridMakeOnChar(cfg, nil)
 	e := &gg.Event{CharCode: 3, Modifiers: gg.ModCtrl}
-	handler(nil, e, w)
+	handler(gg.EventCtx{Layout: nil, Event: e, Window: w})
 	if e.IsHandled {
 		t.Fatal("copy without selection should not be handled")
 	}
@@ -1188,7 +1188,7 @@ func TestMakeOnCharNotCopyKey(t *testing.T) {
 	}
 	handler := dataGridMakeOnChar(cfg, []GridColumnCfg{{ID: "a"}})
 	e := &gg.Event{CharCode: 1} // Ctrl+A, not copy
-	handler(nil, e, w)
+	handler(gg.EventCtx{Layout: nil, Event: e, Window: w})
 	if e.IsHandled {
 		t.Fatal("non-copy char should not be handled")
 	}
@@ -1262,7 +1262,7 @@ func TestPagerNextButton(t *testing.T) {
 
 func TestPagerPrevButtonOnClick(t *testing.T) {
 	var nextPage int
-	cb := func(p int, _ *gg.Event, _ *gg.Window) {
+	cb := func(p int, ctx gg.EventCtx) {
 		nextPage = p
 	}
 	cfg := &DataGridCfg{
@@ -1284,7 +1284,7 @@ func TestPagerPrevButtonOnClick(t *testing.T) {
 
 func TestPagerNextButtonOnClick(t *testing.T) {
 	var nextPage int
-	cb := func(p int, _ *gg.Event, _ *gg.Window) {
+	cb := func(p int, ctx gg.EventCtx) {
 		nextPage = p
 	}
 	cfg := &DataGridCfg{

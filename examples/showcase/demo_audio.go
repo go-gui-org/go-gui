@@ -47,10 +47,8 @@ func demoAudio(w *gui.Window) gui.View {
 								TextStyle: t.N3,
 							}),
 						},
-						OnClick: func(_ *gui.Layout, e *gui.Event,
-							w *gui.Window) {
-							playBeep(w)
-							e.IsHandled = true
+						OnClick: func(ctx gui.EventCtx) {
+							playBeep(ctx.Window)
 						},
 					}),
 					gui.Button(gui.ButtonCfg{
@@ -66,10 +64,8 @@ func demoAudio(w *gui.Window) gui.View {
 								TextStyle: t.N3,
 							}),
 						},
-						OnClick: func(_ *gui.Layout, e *gui.Event,
-							w *gui.Window) {
-							playHighTone(w)
-							e.IsHandled = true
+						OnClick: func(ctx gui.EventCtx) {
+							playHighTone(ctx.Window)
 						},
 					}),
 					gui.Button(gui.ButtonCfg{
@@ -85,10 +81,8 @@ func demoAudio(w *gui.Window) gui.View {
 								TextStyle: t.N3,
 							}),
 						},
-						OnClick: func(_ *gui.Layout, e *gui.Event,
-							w *gui.Window) {
-							fadeInBeep(w)
-							e.IsHandled = true
+						OnClick: func(ctx gui.EventCtx) {
+							fadeInBeep(ctx.Window)
 						},
 					}),
 				},
@@ -113,10 +107,8 @@ func demoAudio(w *gui.Window) gui.View {
 								TextStyle: t.N3,
 							}),
 						},
-						OnClick: func(_ *gui.Layout, e *gui.Event,
-							w *gui.Window) {
-							playOnChannel(w, 0)
-							e.IsHandled = true
+						OnClick: func(ctx gui.EventCtx) {
+							playOnChannel(ctx.Window, 0)
 						},
 					}),
 					gui.Button(gui.ButtonCfg{
@@ -132,10 +124,8 @@ func demoAudio(w *gui.Window) gui.View {
 								TextStyle: t.N3,
 							}),
 						},
-						OnClick: func(_ *gui.Layout, e *gui.Event,
-							w *gui.Window) {
-							playOnChannel(w, 1)
-							e.IsHandled = true
+						OnClick: func(ctx gui.EventCtx) {
+							playOnChannel(ctx.Window, 1)
 						},
 					}),
 					gui.Button(gui.ButtonCfg{
@@ -151,12 +141,10 @@ func demoAudio(w *gui.Window) gui.View {
 								TextStyle: t.N3,
 							}),
 						},
-						OnClick: func(_ *gui.Layout, e *gui.Event,
-							w *gui.Window) {
+						OnClick: func(ctx gui.EventCtx) {
 							audio.HaltChannel(0)
-							app := gui.State[ShowcaseApp](w)
+							app := gui.State[ShowcaseApp](ctx.Window)
 							app.AudioStatus = "Ch 0 halted"
-							e.IsHandled = true
 						},
 					}),
 				},
@@ -181,10 +169,8 @@ func demoAudio(w *gui.Window) gui.View {
 								TextStyle: t.N3,
 							}),
 						},
-						OnClick: func(_ *gui.Layout, e *gui.Event,
-							w *gui.Window) {
-							loadMusicDemo(w)
-							e.IsHandled = true
+						OnClick: func(ctx gui.EventCtx) {
+							loadMusicDemo(ctx.Window)
 						},
 					}),
 					gui.Button(gui.ButtonCfg{
@@ -200,10 +186,8 @@ func demoAudio(w *gui.Window) gui.View {
 								TextStyle: t.N3,
 							}),
 						},
-						OnClick: func(_ *gui.Layout, e *gui.Event,
-							w *gui.Window) {
-							playMusic(w)
-							e.IsHandled = true
+						OnClick: func(ctx gui.EventCtx) {
+							playMusic(ctx.Window)
 						},
 					}),
 					gui.Button(gui.ButtonCfg{
@@ -219,10 +203,8 @@ func demoAudio(w *gui.Window) gui.View {
 								TextStyle: t.N3,
 							}),
 						},
-						OnClick: func(_ *gui.Layout, e *gui.Event,
-							w *gui.Window) {
-							fadeOutMusic(w)
-							e.IsHandled = true
+						OnClick: func(ctx gui.EventCtx) {
+							fadeOutMusic(ctx.Window)
 						},
 					}),
 					gui.Button(gui.ButtonCfg{
@@ -238,10 +220,8 @@ func demoAudio(w *gui.Window) gui.View {
 								TextStyle: t.N3,
 							}),
 						},
-						OnClick: func(_ *gui.Layout, e *gui.Event,
-							w *gui.Window) {
-							stopMusic(w)
-							e.IsHandled = true
+						OnClick: func(ctx gui.EventCtx) {
+							stopMusic(ctx.Window)
 						},
 					}),
 				},
@@ -260,9 +240,8 @@ func demoAudio(w *gui.Window) gui.View {
 						Min:    0,
 						Max:    100,
 						Sizing: gui.FillFit,
-						OnChange: func(v float32, _ *gui.Event,
-							w *gui.Window) {
-							a := gui.State[ShowcaseApp](w)
+						OnChange: func(v float32, ctx gui.EventCtx) {
+							a := gui.State[ShowcaseApp](ctx.Window)
 							a.AudioVolume = float64(v) / 100
 							audio.SetMasterVolume(a.AudioVolume)
 						},

@@ -128,8 +128,8 @@ func ProgressBar(cfg ProgressBarCfg) View {
 		Padding:    NoPadding,
 		HAlign:     HAlignCenter,
 		VAlign:     VAlignMiddle,
-		AmendLayout: func(layout *Layout, w *Window) {
-			progressBarAmendLayout(layout, w,
+		AmendLayout: func(ctx EventCtx) {
+			progressBarAmendLayout(ctx.Layout, ctx.Window,
 				barPercent, textShow, vertical,
 				indefinite, id)
 		},

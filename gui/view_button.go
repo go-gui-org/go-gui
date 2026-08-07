@@ -12,15 +12,15 @@ type ButtonCfg struct {
 	// OnClick fires when the button is clicked or activated via
 	// keyboard (Space/Enter). Required for interactive buttons;
 	// omit for bubble-text labels.
-	OnClick func(*Layout, *Event, *Window)
+	OnClick func(EventCtx)
 
 	// OnHover fires when the mouse enters or leaves the button.
 	// The event's HoverEntered field indicates direction.
-	OnHover func(*Layout, *Event, *Window)
+	OnHover func(EventCtx)
 
 	// AmendLayout runs after sizing. Use to reposition child
 	// overlays or adjust layout post-arrange.
-	AmendLayout func(*Layout, *Window)
+	AmendLayout func(EventCtx)
 
 	ID              string
 	A11YLabel       string
@@ -73,36 +73,36 @@ type ButtonCfg struct {
 	A11YRole AccessRole
 }
 
-func buttonAmendLayout(layout *Layout, w *Window) {
-	if layout.Shape.Disabled ||
-		!layout.Shape.hasEvents() ||
-		layout.Shape.events.OnClick == nil {
+func buttonAmendLayout(ctx EventCtx) {
+	if ctx.Layout.Shape.Disabled ||
+		!ctx.Layout.Shape.hasEvents() ||
+		ctx.Layout.Shape.events.OnClick == nil {
 		return
 	}
-	if w.IsFocus(layout.Shape.ID) {
-		layout.Shape.Color = layout.Shape.bc.ColorFocus
-		layout.Shape.ColorBorder = layout.Shape.bc.ColorBorderFocus
+	if ctx.Window.IsFocus(ctx.Layout.Shape.ID) {
+		ctx.Layout.Shape.Color = ctx.Layout.Shape.bc.ColorFocus
+		ctx.Layout.Shape.ColorBorder = ctx.Layout.Shape.bc.ColorBorderFocus
 	}
-	if layout.Shape.bc.OnAmend != nil {
-		layout.Shape.bc.OnAmend(layout, w)
+	if ctx.Layout.Shape.bc.OnAmend != nil {
+		ctx.Layout.Shape.bc.OnAmend(EventCtx{ctx.Layout, nil, ctx.Window})
 	}
 }
 
-func buttonOnHover(layout *Layout, e *Event, w *Window) {
-	if layout.Shape.Disabled ||
-		!layout.Shape.hasEvents() ||
-		layout.Shape.events.OnClick == nil {
+func buttonOnHover(ctx EventCtx) {
+	if ctx.Layout.Shape.Disabled ||
+		!ctx.Layout.Shape.hasEvents() ||
+		ctx.Layout.Shape.events.OnClick == nil {
 		return
 	}
-	w.setMouseCursor(CursorPointingHand)
-	if !w.IsFocus(layout.Shape.ID) {
-		layout.Shape.Color = layout.Shape.bc.ColorHover
+	ctx.Window.setMouseCursor(CursorPointingHand)
+	if !ctx.Window.IsFocus(ctx.Layout.Shape.ID) {
+		ctx.Layout.Shape.Color = ctx.Layout.Shape.bc.ColorHover
 	}
-	if e.MouseButton == MouseLeft {
-		layout.Shape.Color = layout.Shape.bc.ColorClick
+	if ctx.Event.MouseButton == MouseLeft {
+		ctx.Layout.Shape.Color = ctx.Layout.Shape.bc.ColorClick
 	}
-	if layout.Shape.bc.OnHover != nil {
-		layout.Shape.bc.OnHover(layout, e, w)
+	if ctx.Layout.Shape.bc.OnHover != nil {
+		ctx.Layout.Shape.bc.OnHover(EventCtx{ctx.Layout, ctx.Event, ctx.Window})
 	}
 }
 
@@ -226,9 +226,9 @@ func CommandButton(cmdID string, cfg ButtonCfg) View {
 		if cfg.OnClick == nil {
 			cmdExec := cmd.Execute
 			cID := cmdID
-			cfg.OnClick = func(_ *Layout, e *Event, w *Window) {
-				if w.CommandCanExecute(cID) && cmdExec != nil {
-					cmdExec(e, w)
+			cfg.OnClick = func(ctx EventCtx) {
+				if ctx.Window.CommandCanExecute(cID) && cmdExec != nil {
+					cmdExec(ctx.Event, ctx.Window)
 				}
 			}
 		}

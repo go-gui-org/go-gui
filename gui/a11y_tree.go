@@ -244,27 +244,27 @@ func a11yActionCallback(w *Window, action, index int) {
 	case A11yActionPress:
 		if ev.OnClick != nil {
 			e := &Event{Type: EventMouseDown}
-			ev.OnClick(l, e, w)
+			ev.OnClick(EventCtx{l, e, w})
 		}
 	case A11yActionIncrement:
 		if ev.OnKeyDown != nil {
 			e := &Event{Type: EventKeyDown, KeyCode: KeyUp}
-			ev.OnKeyDown(l, e, w)
+			ev.OnKeyDown(EventCtx{l, e, w})
 		}
 	case A11yActionDecrement:
 		if ev.OnKeyDown != nil {
 			e := &Event{Type: EventKeyDown, KeyCode: KeyDown}
-			ev.OnKeyDown(l, e, w)
+			ev.OnKeyDown(EventCtx{l, e, w})
 		}
 	case A11yActionConfirm:
 		if ev.OnKeyDown != nil {
 			e := &Event{Type: EventKeyDown, KeyCode: KeyEnter}
-			ev.OnKeyDown(l, e, w)
+			ev.OnKeyDown(EventCtx{l, e, w})
 		}
 	case A11yActionCancel:
 		if ev.OnKeyDown != nil {
 			e := &Event{Type: EventKeyDown, KeyCode: KeyEscape}
-			ev.OnKeyDown(l, e, w)
+			ev.OnKeyDown(EventCtx{l, e, w})
 		}
 	}
 }

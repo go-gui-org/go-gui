@@ -490,7 +490,7 @@ func TestPageRowsMinOne(t *testing.T) {
 
 func TestEditingEnabled(t *testing.T) {
 	cfg := &DataGridCfg{
-		OnCellEdit: func(GridCellEdit, *gg.Event, *gg.Window) {},
+		OnCellEdit: func(_ GridCellEdit, ctx gg.EventCtx) {},
 		Columns: []GridColumnCfg{
 			{ID: "a", Editable: true},
 		},
@@ -511,7 +511,7 @@ func TestEditingDisabledNoCallback(t *testing.T) {
 
 func TestEditingDisabledNoEditableColumns(t *testing.T) {
 	cfg := &DataGridCfg{
-		OnCellEdit: func(GridCellEdit, *gg.Event, *gg.Window) {},
+		OnCellEdit: func(_ GridCellEdit, ctx gg.EventCtx) {},
 		Columns:    []GridColumnCfg{{ID: "a"}},
 	}
 	if dataGridEditingEnabled(cfg) {

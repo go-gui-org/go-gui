@@ -254,11 +254,10 @@ func modeButton(w *gui.Window, title string, mode DrawMode, color gui.Color) gui
 				TextStyle: ts(theme.B3, 18, color),
 			}),
 		},
-		OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-			app := gui.State[App](w)
+		OnClick: func(ctx gui.EventCtx) {
+			app := gui.State[App](ctx.Window)
 			app.Game = NewGame(mode, nil)
 			app.Screen = ScreenPlaying
-			e.IsHandled = true
 		},
 	})
 }
@@ -333,23 +332,23 @@ func gameView(w *gui.Window, ww, wh float32) gui.View {
 func stockView(game *Game) gui.View {
 	x := colX(0)
 	if len(game.Stock) > 0 {
-		return cardBackView(x, boardTopY, func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-			if e.MouseButton != gui.MouseLeft {
+		return cardBackView(x, boardTopY, func(ctx gui.EventCtx) {
+			if ctx.Event.MouseButton != gui.MouseLeft {
 				return
 			}
-			app := gui.State[App](w)
+			app := gui.State[App](ctx.Window)
 			app.Game.Draw()
-			e.IsHandled = true
+			ctx.Consume()
 		})
 	}
 	// Empty stock — click to recycle.
-	return emptySlot(x, boardTopY, func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-		if e.MouseButton != gui.MouseLeft {
+	return emptySlot(x, boardTopY, func(ctx gui.EventCtx) {
+		if ctx.Event.MouseButton != gui.MouseLeft {
 			return
 		}
-		app := gui.State[App](w)
+		app := gui.State[App](ctx.Window)
 		app.Game.Draw()
-		e.IsHandled = true
+		ctx.Event.IsHandled = true
 	})
 }
 
@@ -382,9 +381,9 @@ func wasteViews(app *App) []gui.View {
 	return views
 }
 
-func makeWasteClickHandler() func(*gui.Layout, *gui.Event, *gui.Window) {
-	return func(layout *gui.Layout, e *gui.Event, w *gui.Window) {
-		app := gui.State[App](w)
+func makeWasteClickHandler() func(gui.EventCtx) {
+	return func(ctx gui.EventCtx) {
+		app := gui.State[App](ctx.Window)
 		game := app.Game
 		tw := game.TopWaste()
 		if tw == nil {
@@ -392,18 +391,18 @@ func makeWasteClickHandler() func(*gui.Layout, *gui.Event, *gui.Window) {
 		}
 
 		// Right-click: auto-place to foundation or tableau.
-		if e.MouseButton == gui.MouseRight {
+		if ctx.Event.MouseButton == gui.MouseRight {
 			if game.AutoMoveToFoundation(SourceWaste, 0) ||
 				game.AutoMoveToTableau(SourceWaste) {
-				e.IsHandled = true
+				ctx.Event.IsHandled = true
 			}
 			return
 		}
 
 		// Start drag.
-		startDrag(app, layout, e, w, DragSource{Type: SourceWaste},
+		startDrag(app, ctx.Layout, ctx.Event, ctx.Window, DragSource{Type: SourceWaste},
 			[]Card{*tw})
-		e.IsHandled = true
+		ctx.Event.IsHandled = true
 	}
 }
 
@@ -484,16 +483,16 @@ func tableauViews(app *App, col int) []gui.View {
 	return views
 }
 
-func makeTableauClickHandler(col, cardIdx int) func(*gui.Layout, *gui.Event, *gui.Window) {
-	return func(layout *gui.Layout, e *gui.Event, w *gui.Window) {
-		app := gui.State[App](w)
+func makeTableauClickHandler(col, cardIdx int) func(gui.EventCtx) {
+	return func(ctx gui.EventCtx) {
+		app := gui.State[App](ctx.Window)
 		game := app.Game
 
 		// Right-click: auto-place top card to foundation.
-		if e.MouseButton == gui.MouseRight {
+		if ctx.Event.MouseButton == gui.MouseRight {
 			isTopCard := cardIdx == len(game.Tableau[col])-1
 			if isTopCard && game.AutoMoveToFoundation(SourceTableau, col) {
-				e.IsHandled = true
+				ctx.Consume()
 			}
 			return
 		}
@@ -503,18 +502,18 @@ func makeTableauClickHandler(col, cardIdx int) func(*gui.Layout, *gui.Event, *gu
 		cards := make([]Card, len(pile)-cardIdx)
 		copy(cards, pile[cardIdx:])
 
-		startDrag(app, layout, e, w, DragSource{
+		startDrag(app, ctx.Layout, ctx.Event, ctx.Window, DragSource{
 			Type:    SourceTableau,
 			ColIdx:  col,
 			CardIdx: cardIdx,
 		}, cards)
-		e.IsHandled = true
+		ctx.Event.IsHandled = true
 	}
 }
 
 // --- Card views ---
 
-func cardFaceUpView(c Card, x, y float32, onClick func(*gui.Layout, *gui.Event, *gui.Window)) gui.View {
+func cardFaceUpView(c Card, x, y float32, onClick func(gui.EventCtx)) gui.View {
 	theme := gui.CurrentTheme()
 	color := colorCardBlack
 	if c.Suit.IsRed() {
@@ -560,7 +559,7 @@ func cardFaceUpViewNoClick(c Card, x, y float32) gui.View {
 	return cardFaceUpView(c, x, y, nil)
 }
 
-func cardBackView(x, y float32, onClick func(*gui.Layout, *gui.Event, *gui.Window)) gui.View {
+func cardBackView(x, y float32, onClick func(gui.EventCtx)) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		X:           x,
 		Y:           y,
@@ -575,7 +574,7 @@ func cardBackView(x, y float32, onClick func(*gui.Layout, *gui.Event, *gui.Windo
 	})
 }
 
-func emptySlot(x, y float32, onClick func(*gui.Layout, *gui.Event, *gui.Window)) gui.View {
+func emptySlot(x, y float32, onClick func(gui.EventCtx)) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		X:           x,
 		Y:           y,
@@ -602,15 +601,15 @@ func startDrag(app *App, layout *gui.Layout, e *gui.Event, w *gui.Window, src Dr
 	app.DragOffsetY = e.MouseY
 
 	w.MouseLock(gui.MouseLockCfg{
-		MouseMove: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-			a := gui.State[App](w)
-			a.DragMouseX = e.MouseX
-			a.DragMouseY = e.MouseY
+		MouseMove: func(ctx gui.EventCtx) {
+			a := gui.State[App](ctx.Window)
+			a.DragMouseX = ctx.Event.MouseX
+			a.DragMouseY = ctx.Event.MouseY
 		},
-		MouseUp: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-			a := gui.State[App](w)
-			w.MouseUnlock()
-			dropCards(a, e.MouseX, e.MouseY)
+		MouseUp: func(ctx gui.EventCtx) {
+			a := gui.State[App](ctx.Window)
+			ctx.Window.MouseUnlock()
+			dropCards(a, ctx.Event.MouseX, ctx.Event.MouseY)
 			a.DragActive = false
 		},
 	})

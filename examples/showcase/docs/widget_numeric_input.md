@@ -71,7 +71,7 @@ gui.NumericInput(gui.NumericInputCfg{
 
 | Callback      | Signature                                    | Fired when                   |
 | ------------- | -------------------------------------------- | ---------------------------- |
-| OnTextChanged | func(*Layout, string, *Window)               | Text changes                 |
+| OnTextChanged | func(string, EventCtx)                       | Text changes                 |
 | OnValueCommit | func(*Layout, Opt[float64], string, *Window) | Value committed (blur/enter) |
 
 ## Accessibility

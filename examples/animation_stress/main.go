@@ -81,9 +81,8 @@ func mainView(w *gui.Window) gui.View {
 					}),
 					gui.Button(gui.ButtonCfg{
 						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Add 10 Items"})},
-						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-							addItems(w, 10)
-							e.IsHandled = true
+						OnClick: func(ctx gui.EventCtx) {
+							addItems(ctx.Window, 10)
 						},
 					}),
 				},

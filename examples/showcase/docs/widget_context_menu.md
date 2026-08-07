@@ -15,9 +15,8 @@ gui.ContextMenu(w, gui.ContextMenuCfg{
         gui.MenuSeparator(),
         {ID: "delete", Text: "Delete"},
     },
-    Action: func(id string, e *gui.Event, w *gui.Window) {
+    Action: func(id string, ctx gui.EventCtx) {
         // handle selected item
-        e.IsHandled = true
     },
     Content: []gui.View{
         gui.Text(gui.TextCfg{Text: "Right-click here"}),
@@ -41,9 +40,7 @@ gui.ContextMenu(w, gui.ContextMenuCfg{
             {ID: "italic", Text: "Italic"},
         }),
     },
-    Action: func(id string, e *gui.Event, w *gui.Window) {
-        e.IsHandled = true
-    },
+    Action: func(id string, ctx gui.EventCtx) {},
     Content: []gui.View{...},
 })
 ```
@@ -84,10 +81,10 @@ gui.ContextMenu(w, gui.ContextMenuCfg{
 
 ## Events
 
-| Callback   | Signature                      | Fired when            |
-| ---------- | ------------------------------ | --------------------- |
-| Action     | func(string, *Event, *Window)  | Menu item selected    |
-| OnAnyClick | func(*Layout, *Event, *Window) | Any click before menu |
+| Callback   | Signature                     | Fired when            |
+| ---------- | ----------------------------- | --------------------- |
+| Action     | func(string, *Event, *Window) | Menu item selected    |
+| OnAnyClick | func(EventCtx)                | Any click before menu |
 
 ## Menu Item Helpers
 

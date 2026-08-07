@@ -42,10 +42,10 @@ completion. A placeholder rectangle is shown while downloading.
 
 ## Events
 
-| Callback | Signature                      | Fired when         |
-| -------- | ------------------------------ | ------------------ |
-| OnClick  | func(*Layout, *Event, *Window) | Image clicked      |
-| OnHover  | func(*Layout, *Event, *Window) | Mouse enters image |
+| Callback | Signature      | Fired when         |
+| -------- | -------------- | ------------------ |
+| OnClick  | func(EventCtx) | Image clicked      |
+| OnHover  | func(EventCtx) | Mouse enters image |
 
 ## Accessibility
 

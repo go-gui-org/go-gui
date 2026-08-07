@@ -23,7 +23,7 @@ func TestButtonOnClickFires(t *testing.T) {
 	w := &Window{}
 	v := Button(ButtonCfg{
 		ID: "b2",
-		OnClick: func(_ *Layout, _ *Event, _ *Window) {
+		OnClick: func(ctx EventCtx) {
 			fired = true
 		},
 	})
@@ -33,7 +33,7 @@ func TestButtonOnClickFires(t *testing.T) {
 		t.Fatal("expected OnClick handler")
 	}
 	e := &Event{MouseButton: MouseLeft}
-	layout.Shape.events.OnClick(&layout, e, w)
+	layout.Shape.events.OnClick(EventCtx{&layout, e, w})
 	if !fired {
 		t.Error("OnClick did not fire")
 	}
@@ -87,8 +87,8 @@ func TestButtonAmendLayoutChains(t *testing.T) {
 	called := false
 	v := Button(ButtonCfg{
 		ID:      "b7",
-		OnClick: func(_ *Layout, _ *Event, _ *Window) {},
-		AmendLayout: func(_ *Layout, _ *Window) {
+		OnClick: func(ctx EventCtx) {},
+		AmendLayout: func(ctx EventCtx) {
 			called = true
 		},
 	})
@@ -97,7 +97,7 @@ func TestButtonAmendLayoutChains(t *testing.T) {
 		layout.Shape.events.AmendLayout == nil {
 		t.Fatal("expected AmendLayout handler")
 	}
-	layout.Shape.events.AmendLayout(&layout, w)
+	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, w})
 	if !called {
 		t.Error("AmendLayout did not fire")
 	}
@@ -109,8 +109,8 @@ func TestButtonAmendLayoutNotCalledWhenDisabled(t *testing.T) {
 	v := Button(ButtonCfg{
 		ID:       "b8",
 		Disabled: true,
-		OnClick:  func(_ *Layout, _ *Event, _ *Window) {},
-		AmendLayout: func(_ *Layout, _ *Window) {
+		OnClick:  func(ctx EventCtx) {},
+		AmendLayout: func(ctx EventCtx) {
 			called = true
 		},
 	})
@@ -119,7 +119,7 @@ func TestButtonAmendLayoutNotCalledWhenDisabled(t *testing.T) {
 		layout.Shape.events.AmendLayout == nil {
 		t.Fatal("expected AmendLayout handler")
 	}
-	layout.Shape.events.AmendLayout(&layout, w)
+	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, w})
 	if called {
 		t.Error("AmendLayout should not fire when disabled")
 	}
@@ -131,7 +131,7 @@ func TestButtonAmendLayoutSuppressedWhenNoOnClick(t *testing.T) {
 	w := &Window{}
 	v := Button(ButtonCfg{
 		ID:          "b9",
-		AmendLayout: func(_ *Layout, _ *Window) {},
+		AmendLayout: func(ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.events != nil {

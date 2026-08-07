@@ -11,7 +11,7 @@ func TestTabControlBasic(t *testing.T) {
 			{ID: "b", Label: "B"},
 			{ID: "c", Label: "C"},
 		},
-		OnSelect: func(_ string, _ *Event, _ *Window) {},
+		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	w := &Window{}
 	layout := generateViewLayout(v, w)
@@ -31,7 +31,7 @@ func TestTabsAlias(t *testing.T) {
 	v := TabControl(TabControlCfg{
 		ID:       "tabs",
 		Items:    []TabItemCfg{{ID: "a", Label: "A"}},
-		OnSelect: func(_ string, _ *Event, _ *Window) {},
+		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	w := &Window{}
 	layout := generateViewLayout(v, w)
@@ -78,7 +78,7 @@ func TestTabControlOnKeydown(t *testing.T) {
 	ids := []string{"a", "b", "c"}
 	disabled := []bool{false, false, false}
 	var selected string
-	onSelect := func(id string, _ *Event, _ *Window) {
+	onSelect := func(id string, ctx EventCtx) {
 		selected = id
 	}
 	w := &Window{}
@@ -110,7 +110,7 @@ func TestTabControlDisabled(t *testing.T) {
 	ids := []string{"a", "b", "c"}
 	disabled := []bool{false, false, false}
 	var selected string
-	onSelect := func(id string, _ *Event, _ *Window) {
+	onSelect := func(id string, ctx EventCtx) {
 		selected = id
 	}
 	w := &Window{}

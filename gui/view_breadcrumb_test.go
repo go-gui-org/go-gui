@@ -11,7 +11,7 @@ func TestBreadcrumbBasic(t *testing.T) {
 			{ID: "b", Label: "B"},
 			{ID: "c", Label: "C"},
 		},
-		OnSelect: func(_ string, _ *Event, _ *Window) {},
+		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	w := &Window{}
 	layout := generateViewLayout(v, w)
@@ -31,7 +31,7 @@ func TestBreadcrumbWithContent(t *testing.T) {
 			}},
 			{ID: "b", Label: "B"},
 		},
-		OnSelect: func(_ string, _ *Event, _ *Window) {},
+		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	w := &Window{}
 	layout := generateViewLayout(v, w)
@@ -125,7 +125,7 @@ func TestBcOnKeydown(t *testing.T) {
 		{ID: "c", Label: "C"},
 	}
 	var selected string
-	onSelect := func(id string, _ *Event, _ *Window) {
+	onSelect := func(id string, ctx EventCtx) {
 		selected = id
 	}
 	w := &Window{}

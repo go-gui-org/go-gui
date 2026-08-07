@@ -225,30 +225,27 @@ func landingContent(w *gui.Window, app *App, theme gui.Theme) []gui.View {
 					Selected:  app.NoGuessMode,
 					Label:     "No-Guess",
 					TextStyle: ts(theme.M4, 14, colorDimText),
-					OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-						gui.State[App](w).NoGuessMode =
-							!gui.State[App](w).NoGuessMode
-						e.IsHandled = true
+					OnClick: func(ctx gui.EventCtx) {
+						gui.State[App](ctx.Window).NoGuessMode =
+							!gui.State[App](ctx.Window).NoGuessMode
 					},
 				}),
 				gui.Switch(gui.SwitchCfg{
 					Selected:  app.TrainingMode,
 					Label:     "Training",
 					TextStyle: ts(theme.M4, 14, colorDimText),
-					OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-						gui.State[App](w).TrainingMode =
-							!gui.State[App](w).TrainingMode
-						e.IsHandled = true
+					OnClick: func(ctx gui.EventCtx) {
+						gui.State[App](ctx.Window).TrainingMode =
+							!gui.State[App](ctx.Window).TrainingMode
 					},
 				}),
 				gui.Switch(gui.SwitchCfg{
 					Selected:  app.GardenTheme,
 					Label:     "Garden",
 					TextStyle: ts(theme.M4, 14, colorDimText),
-					OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-						gui.State[App](w).GardenTheme =
-							!gui.State[App](w).GardenTheme
-						e.IsHandled = true
+					OnClick: func(ctx gui.EventCtx) {
+						gui.State[App](ctx.Window).GardenTheme =
+							!gui.State[App](ctx.Window).GardenTheme
 					},
 				}),
 			},
@@ -288,9 +285,8 @@ func diffButton(w *gui.Window, title, subtitle string, diff Difficulty, color gu
 				TextStyle: ts(theme.M4, 14, color),
 			}),
 		},
-		OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-			startNewGame(gui.State[App](w), diff)
-			e.IsHandled = true
+		OnClick: func(ctx gui.EventCtx) {
+			startNewGame(gui.State[App](ctx.Window), diff)
 		},
 	})
 }
@@ -565,9 +561,8 @@ func headerView(app *App, theme gui.Theme, boardW float32) gui.View {
 								TextStyle: ts(theme.Icon2, 24, smileyColor),
 							}),
 						},
-						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-							resetGame(gui.State[App](w))
-							e.IsHandled = true
+						OnClick: func(ctx gui.EventCtx) {
+							resetGame(gui.State[App](ctx.Window))
 						},
 					}),
 				},
@@ -797,14 +792,14 @@ func numContent(adj int, cellPx float32, theme gui.Theme) []gui.View {
 
 // --- Cell click handler ---
 
-func cellClickHandler(row, col int) func(*gui.Layout, *gui.Event, *gui.Window) {
-	return func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-		app := gui.State[App](w)
+func cellClickHandler(row, col int) func(gui.EventCtx) {
+	return func(ctx gui.EventCtx) {
+		app := gui.State[App](ctx.Window)
 		g := app.Game
 		if g.State != GamePlaying {
 			return
 		}
-		switch e.MouseButton {
+		switch ctx.Event.MouseButton {
 		case gui.MouseLeft:
 			if !app.TimerActive {
 				app.TimerStart = time.Now()
@@ -831,7 +826,7 @@ func cellClickHandler(row, col int) func(*gui.Layout, *gui.Event, *gui.Window) {
 			app.HintCell = nil
 			app.BadChecks = nil
 		}
-		e.IsHandled = true
+		ctx.Consume()
 	}
 }
 
@@ -921,9 +916,8 @@ func smallButton(label string, action func(*gui.Window)) gui.View {
 					gui.RGB(200, 205, 210)),
 			}),
 		},
-		OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-			action(w)
-			e.IsHandled = true
+		OnClick: func(ctx gui.EventCtx) {
+			action(ctx.Window)
 		},
 	})
 }

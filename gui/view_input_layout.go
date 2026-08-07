@@ -251,17 +251,17 @@ func (d *inputDragState) scrollCallback(
 // startInputDrag sets up MouseLock drag-to-select for an input.
 func startInputDrag(d *inputDragState, w *Window) {
 	w.MouseLock(MouseLockCfg{
-		MouseMove: func(_ *Layout, e *Event, w *Window) {
-			d.lastMouseX = e.MouseX
-			d.lastMouseY = e.MouseY
-			rp := d.computeRunePos(e.MouseX, e.MouseY, w)
-			d.updateSelection(rp, w)
+		MouseMove: func(ctx EventCtx) {
+			d.lastMouseX = ctx.Event.MouseX
+			d.lastMouseY = ctx.Event.MouseY
+			rp := d.computeRunePos(ctx.Event.MouseX, ctx.Event.MouseY, ctx.Window)
+			d.updateSelection(rp, ctx.Window)
 			if d.scrollID != "" {
-				outside := e.MouseY < d.viewTop ||
-					e.MouseY > d.viewBot
-				if outside && !w.HasAnimation(
+				outside := ctx.Event.MouseY < d.viewTop ||
+					ctx.Event.MouseY > d.viewBot
+				if outside && !ctx.Window.HasAnimation(
 					animIDDragScroll) {
-					w.AnimationAdd(&Animate{
+					ctx.Window.AnimationAdd(&Animate{
 						AnimID:   animIDDragScroll,
 						Delay:    32 * time.Millisecond,
 						Repeat:   true,
@@ -269,13 +269,13 @@ func startInputDrag(d *inputDragState, w *Window) {
 						Callback: d.scrollCallback,
 					})
 				} else if !outside {
-					w.AnimationRemove(animIDDragScroll)
+					ctx.Window.AnimationRemove(animIDDragScroll)
 				}
 			}
 		},
-		MouseUp: func(_ *Layout, _ *Event, w *Window) {
-			w.AnimationRemove(animIDDragScroll)
-			w.MouseUnlock()
+		MouseUp: func(ctx EventCtx) {
+			ctx.Window.AnimationRemove(animIDDragScroll)
+			ctx.Window.MouseUnlock()
 		},
 	})
 }

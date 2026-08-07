@@ -16,7 +16,7 @@ Create a new widget in the `gui/` package following established conventions.
 Every widget consists of:
 1. A `*Cfg` struct (zero-initializable, exported fields)
 2. A factory function returning `View`
-3. Event callbacks using `func(*Layout, *Event, *Window)` signature
+3. Event callbacks using `func(EventCtx)` signature
 
 ## Template
 
@@ -39,13 +39,14 @@ type <Name>Cfg struct {
     // Widget-specific fields...
 
     // Event callbacks
-    OnClick func(*Layout, *Event, *Window)
+    OnClick func(EventCtx)
 }
 
 // <Name> creates a <Name> widget.
 func <Name>(cfg <Name>Cfg) View {
     // Build layout tree
-    // Wire event handlers (set e.IsHandled = true when consumed)
+    // Wire event handlers (consume-class events are marked handled
+    // by dispatch; notify-class ones call ctx.Consume())
     // Return root View
 }
 ```
@@ -53,7 +54,9 @@ func <Name>(cfg <Name>Cfg) View {
 ## Rules
 - File name: `view_<lowercase_name>.go` in `gui/`
 - Cfg struct must be zero-initializable (sensible defaults)
-- Event callbacks: `func(*Layout, *Event, *Window)`, set `e.IsHandled = true`
+- Event callbacks: `func(EventCtx)`. `OnClick`/`OnChar`/`OnMouseUp`/
+  `OnGesture`/`OnFileDrop` are consumed by default — call `ctx.Bubble()`
+  to opt out. Everything else calls `ctx.Consume()` to stop propagation
 - Focus needs both `Focusable` (or default-on with no `FocusDisabled`)
   **and** a non-empty `ID`; the `requiredid` analyzer flags
   `Focusable: true` without an `ID`

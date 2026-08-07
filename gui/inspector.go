@@ -160,8 +160,7 @@ func inspectorFloatingPanel(w *Window) View {
 		ScrollbarCfgY: scrollbarCfg,
 		Padding:       SomeP(0, scrollbarPad, 0, 0),
 		Spacing:       SomeF(0),
-		OnClick: func(_ *Layout, e *Event, _ *Window) {
-			e.IsHandled = true
+		OnClick: func(ctx EventCtx) {
 		},
 		Content: []View{
 			inspectorHelpBar(),
@@ -204,7 +203,7 @@ func inspectorTreeView(w *Window) View {
 		Indent:   16,
 		Spacing:  1,
 		Nodes:    nodes,
-		OnSelect: func(id string, _ *Event, w *Window) { inspectorSelect(id, w) },
+		OnSelect: func(id string, ctx EventCtx) { inspectorSelect(id, ctx.Window) },
 	})
 }
 

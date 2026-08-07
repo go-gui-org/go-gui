@@ -21,15 +21,15 @@ func datePickerCalendar(
 		Padding:    NoPadding,
 		SizeBorder: NoBorder,
 		Content:    content,
-		AmendLayout: func(lo *Layout, w *Window) {
+		AmendLayout: func(ctx EventCtx) {
 			sm := StateMap[string, datePickerState](
-				w, nsDatePicker, capModerate)
+				ctx.Window, nsDatePicker, capModerate)
 			s, ok := sm.Get(cfgID)
 			if !ok {
 				return
 			}
-			if s.CalBodyHeight != lo.Shape.Height {
-				s.CalBodyHeight = lo.Shape.Height
+			if s.CalBodyHeight != ctx.Layout.Shape.Height {
+				s.CalBodyHeight = ctx.Layout.Shape.Height
 				sm.Set(cfgID, s)
 			}
 		},
@@ -154,26 +154,26 @@ func datePickerMonth(
 				Content: []View{Text(TextCfg{
 					Text: dayStr, TextStyle: ts,
 				})},
-				OnClick: func(_ *Layout, e *Event, w *Window) {
-					sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
+				OnClick: func(ctx EventCtx) {
+					sm := StateMap[string, datePickerState](ctx.Window, nsDatePicker, capModerate)
 					s, ok := sm.Get(cfgID)
 					if !ok {
+						ctx.Bubble() // no picker state: not ours
 						return
 					}
 					s.FocusDay = dayVal
 					sm.Set(cfgID, s)
 
 					if !cfg.FocusDisabled {
-						w.SetFocus(cfg.ID)
+						ctx.Window.SetFocus(cfg.ID)
 					}
 
 					dates := datePickerUpdateSelections(
 						dayVal, s, cfg.Dates,
 						selectMultiple)
 					if onSelect != nil {
-						onSelect(dates, e, w)
+						onSelect(dates, EventCtx{nil, ctx.Event, ctx.Window})
 					}
-					e.IsHandled = true
 				},
 			}))
 		}
@@ -234,25 +234,25 @@ func datePickerAdjacentCell(
 			Text:      strconv.Itoa(adjDay),
 			TextStyle: ts,
 		})},
-		OnClick: func(_ *Layout, e *Event, w *Window) {
+		OnClick: func(ctx EventCtx) {
 			if !cfg.FocusDisabled {
-				w.SetFocus(cfg.ID)
+				ctx.Window.SetFocus(cfg.ID)
 			}
-			datePickerNavMonth(cfgID, delta, w)
+			datePickerNavMonth(cfgID, delta, ctx.Window)
 			// After navigation, select the day in the new month.
 			// Retrieve updated state to get correct year/month.
-			sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
+			sm := StateMap[string, datePickerState](ctx.Window, nsDatePicker, capModerate)
 			s, ok := sm.Get(cfgID)
 			if !ok {
+				ctx.Bubble() // no picker state: not ours
 				return
 			}
 			dates := datePickerUpdateSelections(
 				adjDay, s, cfg.Dates,
 				selectMultiple)
 			if onSelect != nil {
-				onSelect(dates, e, w)
+				onSelect(dates, EventCtx{nil, ctx.Event, ctx.Window})
 			}
-			e.IsHandled = true
 		},
 	})
 }

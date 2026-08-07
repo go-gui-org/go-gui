@@ -279,9 +279,13 @@ type Window struct {
 // locked state (drag operations). When mouse is locked, these
 // callbacks intercept normal mouse event processing.
 type MouseLockCfg struct {
-	MouseDown func(*Layout, *Event, *Window)
-	MouseMove func(*Layout, *Event, *Window)
-	MouseUp   func(*Layout, *Event, *Window)
+	// No auto-consume: mouse lock already bypasses hit-testing and
+	// normal propagation, so handled-marking is moot here. Note the
+	// coordinates stay window-absolute, unlike the shape-relative
+	// coords everywhere else.
+	MouseDown func(EventCtx)
+	MouseMove func(EventCtx)
+	MouseUp   func(EventCtx)
 	CursorPos int
 }
 

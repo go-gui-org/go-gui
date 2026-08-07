@@ -70,13 +70,12 @@ func mainView(w *gui.Window) gui.View {
 							"Clicked %d times", app.Clicks),
 					}),
 				},
-				OnClick: func(_ *gui.Layout, e *gui.Event,
-					w *gui.Window) {
-					gui.State[MainState](w).Clicks++
+				OnClick: func(ctx gui.EventCtx) {
+					gui.State[MainState](ctx.Window).Clicks++
 					// Broadcast to inspector.
-					if a := w.App(); a != nil {
+					if a := ctx.Window.App(); a != nil {
 						a.Broadcast(func(other *gui.Window) {
-							if other == w {
+							if other == ctx.Window {
 								return
 							}
 							other.QueueCommand(
@@ -84,12 +83,11 @@ func mainView(w *gui.Window) gui.View {
 									s := gui.State[InspectorState](o)
 									s.Log += fmt.Sprintf(
 										"Click #%d\n",
-										gui.State[MainState](w).Clicks)
+										gui.State[MainState](ctx.Window).Clicks)
 									o.UpdateWindow()
 								})
 						})
 					}
-					e.IsHandled = true
 				},
 			}),
 			gui.Button(gui.ButtonCfg{
@@ -99,9 +97,8 @@ func mainView(w *gui.Window) gui.View {
 						Text: "Open New Window",
 					}),
 				},
-				OnClick: func(_ *gui.Layout, e *gui.Event,
-					w *gui.Window) {
-					if a := w.App(); a != nil {
+				OnClick: func(ctx gui.EventCtx) {
+					if a := ctx.Window.App(); a != nil {
 						a.OpenWindow(gui.WindowCfg{
 							State: &InspectorState{
 								Log: "New window opened.\n",
@@ -114,7 +111,6 @@ func mainView(w *gui.Window) gui.View {
 							},
 						})
 					}
-					e.IsHandled = true
 				},
 			}),
 		},

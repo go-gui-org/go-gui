@@ -55,21 +55,19 @@ func dockToolbar(_ *ShowcaseApp) gui.View {
 		Content: []gui.View{
 			gui.Button(gui.ButtonCfg{
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: "Reset"})},
-				OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-					gui.State[ShowcaseApp](w).DockRoot = dockInitialLayout()
-					e.IsHandled = true
+				OnClick: func(ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).DockRoot = dockInitialLayout()
 				},
 			}),
 			gui.Button(gui.ButtonCfg{
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: "Add Properties"})},
-				OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-					a := gui.State[ShowcaseApp](w)
+				OnClick: func(ctx gui.EventCtx) {
+					a := gui.State[ShowcaseApp](ctx.Window)
 					if _, ok := gui.DockTreeFindGroupByPanel(a.DockRoot, "properties"); ok {
-						e.IsHandled = true
+						ctx.Consume()
 						return
 					}
 					a.DockRoot = gui.DockTreeAddTab(a.DockRoot, "left", "properties")
-					e.IsHandled = true
 				},
 			}),
 		},

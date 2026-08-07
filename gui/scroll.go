@@ -14,7 +14,7 @@ func findScrollLayout(w *Window, id string) (*Layout, bool) {
 // fireOnScroll fires the OnScroll callback if set.
 func fireOnScroll(ly *Layout, w *Window) {
 	if ly.Shape.hasEvents() && ly.Shape.events.OnScroll != nil {
-		ly.Shape.events.OnScroll(ly, w)
+		ly.Shape.events.OnScroll(EventCtx{ly, nil, w})
 	}
 }
 

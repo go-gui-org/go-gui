@@ -177,21 +177,21 @@ func WithTooltip(w *Window, cfg WithTooltipCfg) View {
 // WithTooltip wrapper.
 func withTooltipAmend(
 	tipID string, delay time.Duration,
-) func(*Layout, *Window) {
+) func(EventCtx) {
 	popupID := tipID + "_popup"
-	return func(l *Layout, w *Window) {
-		ts := &w.viewState.tooltip
-		mx := w.viewState.mousePosX
-		my := w.viewState.mousePosY
-		inside := mx >= l.Shape.X && my >= l.Shape.Y &&
-			mx < l.Shape.X+l.Shape.Width &&
-			my < l.Shape.Y+l.Shape.Height
+	return func(ctx EventCtx) {
+		ts := &ctx.Window.viewState.tooltip
+		mx := ctx.Window.viewState.mousePosX
+		my := ctx.Window.viewState.mousePosY
+		inside := mx >= ctx.Layout.Shape.X && my >= ctx.Layout.Shape.Y &&
+			mx < ctx.Layout.Shape.X+ctx.Layout.Shape.Width &&
+			my < ctx.Layout.Shape.Y+ctx.Layout.Shape.Height
 
 		switch {
 		case inside && ts.hoverID == "":
 			ts.hoverID = tipID
 			ts.hoverStart = time.Now()
-			w.AnimationAdd(&Animate{
+			ctx.Window.AnimationAdd(&Animate{
 				AnimID: "___tooltip___",
 				Delay:  delay,
 				Callback: func(_ *Animate, w *Window) {

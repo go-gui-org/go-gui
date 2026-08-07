@@ -256,11 +256,11 @@ func Splitter(cfg SplitterCfg) View {
 		Clip:            true,
 		Disabled:        cfg.Disabled,
 		Invisible:       cfg.Invisible,
-		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
-			splitterOnKeydown(core, e, w)
+		OnKeyDown: func(ctx EventCtx) {
+			splitterOnKeydown(core, ctx.Event, ctx.Window)
 		},
-		AmendLayout: func(layout *Layout, w *Window) {
-			splitterAmendLayout(core, layout, w)
+		AmendLayout: func(ctx EventCtx) {
+			splitterAmendLayout(core, ctx.Layout, ctx.Window)
 		},
 		Content: []View{
 			splitterPane(cfg.ID+":pane:first", cfg.First.Content),

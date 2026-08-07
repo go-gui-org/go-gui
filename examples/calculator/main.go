@@ -374,9 +374,8 @@ func calcKey(_ *gui.Window, button calcButton) gui.View {
 				TextStyle: labelStyle,
 			}),
 		},
-		OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-			button.Action(gui.State[calculatorState](w))
-			e.IsHandled = true
+		OnClick: func(ctx gui.EventCtx) {
+			button.Action(gui.State[calculatorState](ctx.Window))
 		},
 	})
 }

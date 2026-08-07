@@ -351,7 +351,7 @@ func TestA11yActionCallbackPress(t *testing.T) {
 		Shape: &Shape{
 			A11YRole: AccessRoleButton,
 			events: &eventHandlers{
-				OnClick: func(_ *Layout, _ *Event, _ *Window) {
+				OnClick: func(ctx EventCtx) {
 					clicked = true
 				},
 			},
@@ -376,8 +376,8 @@ func TestA11yActionCallbackIncrement(t *testing.T) {
 		Shape: &Shape{
 			A11YRole: AccessRoleSlider,
 			events: &eventHandlers{
-				OnKeyDown: func(_ *Layout, e *Event, _ *Window) {
-					gotKey = e.KeyCode
+				OnKeyDown: func(ctx EventCtx) {
+					gotKey = ctx.Event.KeyCode
 				},
 			},
 		},
@@ -400,8 +400,8 @@ func TestA11yActionCallbackDecrement(t *testing.T) {
 		Shape: &Shape{
 			A11YRole: AccessRoleSlider,
 			events: &eventHandlers{
-				OnKeyDown: func(_ *Layout, e *Event, _ *Window) {
-					gotKey = e.KeyCode
+				OnKeyDown: func(ctx EventCtx) {
+					gotKey = ctx.Event.KeyCode
 				},
 			},
 		},
@@ -445,8 +445,8 @@ func TestA11yActionCallbackConfirmCancel(t *testing.T) {
 		Shape: &Shape{
 			A11YRole: AccessRoleButton,
 			events: &eventHandlers{
-				OnKeyDown: func(_ *Layout, e *Event, _ *Window) {
-					keys = append(keys, e.KeyCode)
+				OnKeyDown: func(ctx EventCtx) {
+					keys = append(keys, ctx.Event.KeyCode)
 				},
 			},
 		},

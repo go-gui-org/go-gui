@@ -44,9 +44,8 @@ func mainView(w *gui.Window) gui.View {
                 Content: []gui.View{
                     gui.Text(gui.TextCfg{Text: "Click Me"}),
                 },
-                OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-                    gui.State[App](w).Clicks++
-                    e.IsHandled = true
+                OnClick: func(ctx gui.EventCtx) {
+                    gui.State[App](ctx.Window).Clicks++
                 },
             }),
         },
@@ -62,6 +61,10 @@ version and [`examples/web_demo/`](examples/web_demo/) for the browser build.
 https://go-gui.com
 
 📜 [Documentation](https://github.com/go-gui-org/go-gui/wiki)
+
+> **Upgrading?** Event callbacks now take a single `gui.EventCtx`, and
+> click-like events are marked handled by dispatch. See
+> [docs/migration-eventctx.md](docs/migration-eventctx.md).
 
 ---
 

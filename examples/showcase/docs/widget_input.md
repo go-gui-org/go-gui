@@ -94,11 +94,11 @@ token definitions).
 
 | Callback            | Signature                                         | Fired when                       |
 | ------------------- | ------------------------------------------------- | -------------------------------- |
-| OnTextChanged       | func(*Layout, string, *Window)                    | Text changes                     |
+| OnTextChanged       | func(string, EventCtx)                            | Text changes                     |
 | OnTextCommit        | func(*Layout, string, InputCommitReason, *Window) | Enter pressed or focus lost      |
-| OnEnter             | func(*Layout, *Event, *Window)                    | Enter pressed (single-line)      |
-| OnKeyDown           | func(*Layout, *Event, *Window)                    | Unhandled key event              |
-| OnBlur              | func(*Layout, *Window)                            | Focus lost                       |
+| OnEnter             | func(EventCtx)                                    | Enter pressed (single-line)      |
+| OnKeyDown           | func(EventCtx)                                    | Unhandled key event              |
+| OnBlur              | func(EventCtx)                                    | Focus lost                       |
 | PreTextChange       | func(current, proposed string) (string, bool)     | Validate/transform before change |
 | PostCommitNormalize | func(text string, InputCommitReason) string       | Normalize text on commit         |
 

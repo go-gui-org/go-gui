@@ -148,10 +148,10 @@ func messageView(cfg DialogCfg) View {
 			Button(ButtonCfg{
 				ID:      cfg.FocusID,
 				Content: []View{Text(TextCfg{Text: "OK"})},
-				OnClick: func(_ *Layout, _ *Event, w *Window) {
-					w.DialogDismiss()
+				OnClick: func(ctx EventCtx) {
+					ctx.Window.DialogDismiss()
 					if onOkYes != nil {
-						onOkYes(w)
+						onOkYes(ctx.Window)
 					}
 				},
 			}),
@@ -173,20 +173,20 @@ func confirmView(cfg DialogCfg) View {
 			Button(ButtonCfg{
 				ID:      cfg.FocusID + "/1",
 				Content: []View{Text(TextCfg{Text: "Yes"})},
-				OnClick: func(_ *Layout, _ *Event, w *Window) {
-					w.DialogDismiss()
+				OnClick: func(ctx EventCtx) {
+					ctx.Window.DialogDismiss()
 					if onOkYes != nil {
-						onOkYes(w)
+						onOkYes(ctx.Window)
 					}
 				},
 			}),
 			Button(ButtonCfg{
 				ID:      cfg.FocusID,
 				Content: []View{Text(TextCfg{Text: "No"})},
-				OnClick: func(_ *Layout, _ *Event, w *Window) {
-					w.DialogDismiss()
+				OnClick: func(ctx EventCtx) {
+					ctx.Window.DialogDismiss()
 					if onCancelNo != nil {
-						onCancelNo(w)
+						onCancelNo(ctx.Window)
 					}
 				},
 			}),
@@ -205,8 +205,8 @@ func promptView(cfg DialogCfg) []View {
 		ID:     cfg.FocusID,
 		Text:   cfg.Reply,
 		Sizing: FillFit,
-		OnTextChanged: func(_ *Layout, text string, w *Window) {
-			w.dialogCfg.Reply = text
+		OnTextChanged: func(text string, ctx EventCtx) {
+			ctx.Window.dialogCfg.Reply = text
 		},
 	}))
 
@@ -221,21 +221,21 @@ func promptView(cfg DialogCfg) []View {
 				ID:       cfg.FocusID + "/1",
 				Disabled: len(cfg.Reply) == 0,
 				Content:  []View{Text(TextCfg{Text: "OK"})},
-				OnClick: func(_ *Layout, _ *Event, w *Window) {
-					reply := w.dialogCfg.Reply
-					w.DialogDismiss()
+				OnClick: func(ctx EventCtx) {
+					reply := ctx.Window.dialogCfg.Reply
+					ctx.Window.DialogDismiss()
 					if onReply != nil {
-						onReply(reply, w)
+						onReply(reply, ctx.Window)
 					}
 				},
 			}),
 			Button(ButtonCfg{
 				ID:      cfg.FocusID + "/2",
 				Content: []View{Text(TextCfg{Text: "Cancel"})},
-				OnClick: func(_ *Layout, _ *Event, w *Window) {
-					w.DialogDismiss()
+				OnClick: func(ctx EventCtx) {
+					ctx.Window.DialogDismiss()
 					if onCancelNo != nil {
-						onCancelNo(w)
+						onCancelNo(ctx.Window)
 					}
 				},
 			}),
@@ -246,22 +246,22 @@ func promptView(cfg DialogCfg) []View {
 }
 
 // dialogKeyDown handles Escape to dismiss dialog.
-func dialogKeyDown(cfg DialogCfg) func(*Layout, *Event, *Window) {
+func dialogKeyDown(cfg DialogCfg) func(EventCtx) {
 	onCancelNo := cfg.OnCancelNo
-	return func(_ *Layout, e *Event, w *Window) {
-		if e.KeyCode == KeyEscape {
-			w.DialogDismiss()
+	return func(ctx EventCtx) {
+		if ctx.Event.KeyCode == KeyEscape {
+			ctx.Window.DialogDismiss()
 			if onCancelNo != nil {
-				onCancelNo(w)
+				onCancelNo(ctx.Window)
 			}
-			e.IsHandled = true
+			ctx.Consume()
 			return
 		}
-		if e.KeyCode == KeyC &&
-			e.Modifiers.HasAny(ModCtrl, ModSuper) &&
+		if ctx.Event.KeyCode == KeyC &&
+			ctx.Event.Modifiers.HasAny(ModCtrl, ModSuper) &&
 			cfg.Body != "" {
-			w.SetClipboard(cfg.Body)
-			e.IsHandled = true
+			ctx.Window.SetClipboard(cfg.Body)
+			ctx.Consume()
 		}
 	}
 }

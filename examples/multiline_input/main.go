@@ -109,8 +109,8 @@ func mainView(w *gui.Window) gui.View {
 				Mode:       gui.InputMultiline,
 				Sizing:     gui.FillFill,
 				Text:       app.Text,
-				OnTextChanged: func(_ *gui.Layout, s string, w *gui.Window) {
-					gui.State[App](w).Text = s
+				OnTextChanged: func(s string, ctx gui.EventCtx) {
+					gui.State[App](ctx.Window).Text = s
 				},
 			}),
 		},

@@ -105,21 +105,21 @@ func scrollbarThumb(cfg ScrollbarCfg) View {
 	})
 }
 
-func makeScrollbarAmendLayout(cfg ScrollbarCfg) func(*Layout, *Window) {
-	return func(layout *Layout, w *Window) {
-		scrollbarAmendLayout(cfg, layout, w)
+func makeScrollbarAmendLayout(cfg ScrollbarCfg) func(EventCtx) {
+	return func(ctx EventCtx) {
+		scrollbarAmendLayout(cfg, ctx.Layout, ctx.Window)
 	}
 }
 
-func makeScrollbarOnHover(cfg ScrollbarCfg) func(*Layout, *Event, *Window) {
-	return func(layout *Layout, _ *Event, w *Window) {
-		if len(layout.Children) == 0 {
+func makeScrollbarOnHover(cfg ScrollbarCfg) func(EventCtx) {
+	return func(ctx EventCtx) {
+		if len(ctx.Layout.Children) == 0 {
 			return
 		}
-		if layout.Children[thumbIndex].Shape.Color != ColorTransparent ||
+		if ctx.Layout.Children[thumbIndex].Shape.Color != ColorTransparent ||
 			cfg.Overflow == ScrollbarOnHover {
-			layout.Children[thumbIndex].Shape.Color = cfg.ColorThumb
-			w.setMouseCursor(CursorArrow)
+			ctx.Layout.Children[thumbIndex].Shape.Color = cfg.ColorThumb
+			ctx.Window.setMouseCursor(CursorArrow)
 		}
 	}
 }
@@ -213,46 +213,46 @@ func scrollbarAmendLayout(cfg ScrollbarCfg, layout *Layout, w *Window) {
 
 // makeScrollbarOnMouseDown creates the thumb OnClick handler
 // that initiates a drag via MouseLock.
-func makeScrollbarOnMouseDown(cfg ScrollbarCfg) func(*Layout, *Event, *Window) {
+func makeScrollbarOnMouseDown(cfg ScrollbarCfg) func(EventCtx) {
 	orientation := cfg.Orientation
 	scrollID := cfg.ScrollID
-	return func(_ *Layout, e *Event, w *Window) {
-		w.MouseLock(MouseLockCfg{
-			MouseMove: func(layout *Layout, e *Event, w *Window) {
-				scrollbarMouseMove(orientation, scrollID, layout, e, w)
+	return func(ctx EventCtx) {
+		ctx.Window.MouseLock(MouseLockCfg{
+			MouseMove: func(ctx EventCtx) {
+				scrollbarMouseMove(orientation, scrollID, ctx.Layout, ctx.Event, ctx.Window)
 			},
-			MouseUp: func(_ *Layout, _ *Event, w *Window) {
-				w.MouseUnlock()
+			MouseUp: func(ctx EventCtx) {
+				ctx.Window.MouseUnlock()
 			},
 		})
-		e.IsHandled = true
+		ctx.Consume()
 	}
 }
 
 // makeScrollbarGutterClick creates the scrollbar container
 // OnClick that jumps to the click position then locks mouse
 // for continued dragging.
-func makeScrollbarGutterClick(cfg ScrollbarCfg) func(*Layout, *Event, *Window) {
+func makeScrollbarGutterClick(cfg ScrollbarCfg) func(EventCtx) {
 	orientation := cfg.Orientation
 	scrollID := cfg.ScrollID
-	return func(_ *Layout, e *Event, w *Window) {
-		if w.MouseIsLocked() {
+	return func(ctx EventCtx) {
+		if ctx.Window.MouseIsLocked() {
 			return
 		}
 		if orientation == ScrollbarHorizontal {
-			offsetFromMouseX(&w.layout, e.MouseX, scrollID, w)
+			offsetFromMouseX(&ctx.Window.layout, ctx.Event.MouseX, scrollID, ctx.Window)
 		} else {
-			offsetFromMouseY(&w.layout, e.MouseY, scrollID, w)
+			offsetFromMouseY(&ctx.Window.layout, ctx.Event.MouseY, scrollID, ctx.Window)
 		}
-		w.MouseLock(MouseLockCfg{
-			MouseMove: func(layout *Layout, e *Event, w *Window) {
-				scrollbarMouseMove(orientation, scrollID, layout, e, w)
+		ctx.Window.MouseLock(MouseLockCfg{
+			MouseMove: func(ctx EventCtx) {
+				scrollbarMouseMove(orientation, scrollID, ctx.Layout, ctx.Event, ctx.Window)
 			},
-			MouseUp: func(_ *Layout, _ *Event, w *Window) {
-				w.MouseUnlock()
+			MouseUp: func(ctx EventCtx) {
+				ctx.Window.MouseUnlock()
 			},
 		})
-		e.IsHandled = true
+		ctx.Consume()
 	}
 }
 

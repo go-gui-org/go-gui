@@ -90,9 +90,9 @@ first frame or are ignored.
 
 ## Events
 
-| Callback | Signature                      | Fired when  |
-| -------- | ------------------------------ | ----------- |
-| OnClick  | func(*Layout, *Event, *Window) | SVG clicked |
+| Callback | Signature      | Fired when  |
+| -------- | -------------- | ----------- |
+| OnClick  | func(EventCtx) | SVG clicked |
 
 ## Accessibility
 

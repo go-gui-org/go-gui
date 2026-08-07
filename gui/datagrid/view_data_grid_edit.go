@@ -38,7 +38,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 			Padding:    gg.NoPadding,
 			SizeBorder: gg.NoBorder,
 			Radius:     gg.SomeF(0),
-			OnSelect: func(selected []string, e *gg.Event, w *gg.Window) {
+			OnSelect: func(selected []string, ctx gg.EventCtx) {
 				nextValue := ""
 				if len(selected) > 0 {
 					nextValue = selected[0]
@@ -49,7 +49,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 						RowIdx: rowIdx,
 						ColID:  colID,
 						Value:  nextValue,
-					}, e, w)
+					}, ctx.Event, ctx.Window)
 				}
 			},
 		})
@@ -60,7 +60,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 			Date:    date,
 			Sizing:  gg.FillFill,
 			Padding: gg.NoPadding,
-			OnSelect: func(dates []time.Time, e *gg.Event, w *gg.Window) {
+			OnSelect: func(dates []time.Time, ctx gg.EventCtx) {
 				if len(dates) == 0 {
 					return
 				}
@@ -71,7 +71,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 						RowIdx: rowIdx,
 						ColID:  colID,
 						Value:  nextValue,
-					}, e, w)
+					}, ctx.Event, ctx.Window)
 				}
 			},
 		})
@@ -83,7 +83,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 			ID:       editorID,
 			Selected: checked,
 			Padding:  gg.NoPadding,
-			OnClick: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
+			OnClick: func(ctx gg.EventCtx) {
 				nextValue := editorFalseValue
 				if !checked {
 					nextValue = editorTrueValue
@@ -94,9 +94,8 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 						RowIdx: rowIdx,
 						ColID:  colID,
 						Value:  nextValue,
-					}, e, w)
+					}, ctx.Event, ctx.Window)
 				}
-				e.IsHandled = true
 			},
 		})
 	default: // GridCellEditorText
@@ -107,7 +106,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 			Padding:    gg.NoPadding,
 			SizeBorder: gg.NoBorder,
 			Radius:     gg.SomeF(0),
-			OnTextChanged: func(_ *gg.Layout, text string, w *gg.Window) {
+			OnTextChanged: func(text string, ctx gg.EventCtx) {
 				if rowID != "" && colID != "" {
 					e := &gg.Event{}
 					dataGridCrudApplyCellEdit(gridID, crudEnabled, onCellEdit, GridCellEdit{
@@ -115,15 +114,15 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 						RowIdx: rowIdx,
 						ColID:  colID,
 						Value:  text,
-					}, e, w)
+					}, e, ctx.Window)
 				}
 			},
-			OnEnter: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
-				dataGridClearEditingRow(gridID, w)
+			OnEnter: func(ctx gg.EventCtx) {
+				dataGridClearEditingRow(gridID, ctx.Window)
 				if gridFocusID != "" {
-					w.SetFocus(gridFocusID)
+					ctx.Window.SetFocus(gridFocusID)
 				}
-				e.IsHandled = true
+				ctx.Event.IsHandled = true
 			},
 		})
 	}
@@ -140,16 +139,16 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 	})
 }
 
-func dataGridMakeEditorOnKeydown(gridID string, gridFocusID string) func(*gg.Layout, *gg.Event, *gg.Window) {
-	return func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
-		if e.Modifiers != 0 || e.KeyCode != gg.KeyEscape {
+func dataGridMakeEditorOnKeydown(gridID string, gridFocusID string) func(gg.EventCtx) {
+	return func(ctx gg.EventCtx) {
+		if ctx.Event.Modifiers != 0 || ctx.Event.KeyCode != gg.KeyEscape {
 			return
 		}
-		dataGridClearEditingRow(gridID, w)
+		dataGridClearEditingRow(gridID, ctx.Window)
 		if gridFocusID != "" {
-			w.SetFocus(gridFocusID)
+			ctx.Window.SetFocus(gridFocusID)
 		}
-		e.IsHandled = true
+		ctx.Consume()
 	}
 }
 

@@ -70,22 +70,22 @@ func TestOnSliderChangeRejectsNaN(t *testing.T) {
 	w, _ := newFixtureApp(t, 3)
 	c := &TimeTravelController{App: w, Cursor: 1}
 
-	c.onSliderChange(float32(math.NaN()), nil, nil)
+	c.onSliderChange(float32(math.NaN()), EventCtx{nil, nil, nil})
 	w.flushCommands()
 	if c.Cursor != 1 {
 		t.Fatalf("NaN cursor = %d, want 1", c.Cursor)
 	}
-	c.onSliderChange(float32(math.Inf(1)), nil, nil)
+	c.onSliderChange(float32(math.Inf(1)), EventCtx{nil, nil, nil})
 	w.flushCommands()
 	if c.Cursor != 1 {
 		t.Fatalf("+Inf cursor = %d, want 1", c.Cursor)
 	}
-	c.onSliderChange(float32(math.Inf(-1)), nil, nil)
+	c.onSliderChange(float32(math.Inf(-1)), EventCtx{nil, nil, nil})
 	w.flushCommands()
 	if c.Cursor != 1 {
 		t.Fatalf("-Inf cursor = %d, want 1", c.Cursor)
 	}
-	c.onSliderChange(2.0, nil, nil)
+	c.onSliderChange(2.0, EventCtx{nil, nil, nil})
 	w.flushCommands()
 	if c.Cursor != 2 {
 		t.Fatalf("normal cursor = %d, want 2", c.Cursor)
@@ -95,7 +95,7 @@ func TestOnSliderChangeRejectsNaN(t *testing.T) {
 // TestOnSliderChangeNil tolerates a nil receiver.
 func TestOnSliderChangeNil(t *testing.T) {
 	var c *TimeTravelController
-	c.onSliderChange(1.0, nil, nil)
+	c.onSliderChange(1.0, EventCtx{nil, nil, nil})
 }
 
 // TestOnSliderChangeClampsOutOfRange clamps v < 0 to 0 and
@@ -105,7 +105,7 @@ func TestOnSliderChangeClampsOutOfRange(t *testing.T) {
 	w, _ := newFixtureApp(t, 4)
 	c := &TimeTravelController{App: w, Cursor: 2}
 
-	c.onSliderChange(-5, nil, nil)
+	c.onSliderChange(-5, EventCtx{nil, nil, nil})
 	w.flushCommands()
 	if c.sliderValue != 0 {
 		t.Fatalf("negative sliderValue = %v, want 0", c.sliderValue)
@@ -114,7 +114,7 @@ func TestOnSliderChangeClampsOutOfRange(t *testing.T) {
 		t.Fatalf("negative Cursor = %d, want 0", c.Cursor)
 	}
 
-	c.onSliderChange(99, nil, nil)
+	c.onSliderChange(99, EventCtx{nil, nil, nil})
 	w.flushCommands()
 	maxV := float32(3)
 	if c.sliderValue != maxV {
@@ -132,7 +132,7 @@ func TestOnSliderChangeEmptyRingNoOp(t *testing.T) {
 	w := &Window{state: &testState{}}
 	w.EnableHistory(0)
 	c := &TimeTravelController{App: w}
-	c.onSliderChange(5, nil, nil)
+	c.onSliderChange(5, EventCtx{nil, nil, nil})
 	if c.sliderValue != 0 {
 		t.Fatalf("sliderValue = %v, want 0", c.sliderValue)
 	}
@@ -148,7 +148,7 @@ func TestOnSliderChangeEmptyRingNoOp(t *testing.T) {
 func TestOnSliderChangeKeepsFractional(t *testing.T) {
 	w, _ := newFixtureApp(t, 5)
 	c := &TimeTravelController{App: w, Cursor: 0}
-	c.onSliderChange(2.7, nil, nil)
+	c.onSliderChange(2.7, EventCtx{nil, nil, nil})
 	w.flushCommands()
 	if c.Cursor != 2 {
 		t.Fatalf("Cursor = %d, want 2 (int of 2.7)", c.Cursor)

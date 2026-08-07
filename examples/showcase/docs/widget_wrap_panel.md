@@ -58,13 +58,13 @@ gui.Wrap(gui.ContainerCfg{
 
 ## Events
 
-| Callback    | Signature                      | Fired when            |
-| ----------- | ------------------------------ | --------------------- |
-| OnClick     | func(*Layout, *Event, *Window) | Left-click            |
-| OnHover     | func(*Layout, *Event, *Window) | Mouse hover           |
-| OnKeyDown   | func(*Layout, *Event, *Window) | Key pressed           |
-| OnMouseMove | func(*Layout, *Event, *Window) | Mouse movement        |
-| AmendLayout | func(*Layout, *Window)         | Post-layout amendment |
+| Callback    | Signature      | Fired when            |
+| ----------- | -------------- | --------------------- |
+| OnClick     | func(EventCtx) | Left-click            |
+| OnHover     | func(EventCtx) | Mouse hover           |
+| OnKeyDown   | func(EventCtx) | Key pressed           |
+| OnMouseMove | func(EventCtx) | Mouse movement        |
+| AmendLayout | func(EventCtx) | Post-layout amendment |
 
 ## Accessibility
 

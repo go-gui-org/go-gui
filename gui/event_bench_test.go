@@ -10,8 +10,8 @@ func BenchmarkEventFnMouseMove(b *testing.B) {
 			{Shape: &Shape{
 				shapeClip: drawClip{X: 0, Y: 0, Width: 200, Height: 200},
 				events: &eventHandlers{
-					OnMouseMove: func(_ *Layout, e *Event, _ *Window) {
-						e.IsHandled = true
+					OnMouseMove: func(ctx EventCtx) {
+						ctx.Consume()
 					},
 				},
 			}},
@@ -39,7 +39,7 @@ func BenchmarkEventFnMouseScrollFocused(b *testing.B) {
 			{Shape: &Shape{
 				Focusable: true, ID: "f77",
 				events: &eventHandlers{
-					OnMouseScroll: func(_ *Layout, _ *Event, _ *Window) {},
+					OnMouseScroll: func(ctx EventCtx) {},
 				},
 			}},
 			{Shape: &Shape{
@@ -77,8 +77,8 @@ func BenchmarkEventFnDeepNesting(b *testing.B) {
 	leaf := Layout{Shape: &Shape{
 		shapeClip: drawClip{X: 0, Y: 0, Width: 800, Height: 600},
 		events: &eventHandlers{
-			OnMouseMove: func(_ *Layout, e *Event, _ *Window) {
-				e.IsHandled = true
+			OnMouseMove: func(ctx EventCtx) {
+				ctx.Consume()
 			},
 		},
 	}}
@@ -115,9 +115,9 @@ func BenchmarkExecuteMouseCallback(b *testing.B) {
 		},
 	}
 	w := newEventTestWindow()
-	cb := func(_ *Layout, e *Event, _ *Window) {
-		if e.MouseX >= 0 && e.MouseY >= 0 {
-			e.IsHandled = true
+	cb := func(ctx EventCtx) {
+		if ctx.Event.MouseX >= 0 && ctx.Event.MouseY >= 0 {
+			ctx.Consume()
 		}
 	}
 
@@ -128,6 +128,6 @@ func BenchmarkExecuteMouseCallback(b *testing.B) {
 		e.IsHandled = false
 		e.MouseX = 25
 		e.MouseY = 25
-		executeMouseCallback(layout, e, w, cb)
+		executeMouseCallback(layout, e, w, cb, evNotify)
 	}
 }

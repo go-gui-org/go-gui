@@ -2,7 +2,7 @@ package gui
 
 // ThemePickerCfg configures a theme picker view.
 type ThemePickerCfg struct {
-	OnSelect        func(string, *Event, *Window)
+	OnSelect        func(string, EventCtx)
 	ID              string
 	A11YLabel       string
 	A11YDescription string
@@ -66,7 +66,7 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 					MaxHeight:   300,
 					Data:        data,
 					SelectedIDs: []string{currentName},
-					OnSelect: func(ids []string, e *Event, w *Window) {
+					OnSelect: func(ids []string, ctx EventCtx) {
 						if len(ids) == 0 {
 							return
 						}
@@ -75,11 +75,11 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 						if !ok {
 							return
 						}
-						w.SetTheme(t)
+						ctx.Window.SetTheme(t)
 						if onSel != nil {
-							onSel(name, e, w)
+							onSel(name, EventCtx{nil, ctx.Event, ctx.Window})
 						}
-						e.IsHandled = true
+						ctx.Event.IsHandled = true
 					},
 				}),
 			},
@@ -96,30 +96,29 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 		A11YLabel: a11yLabel(cfg.A11YLabel, "Theme Picker"),
 		Sizing:    cfg.Sizing,
 		Padding:   Some(PaddingSmall),
-		OnClick: func(_ *Layout, e *Event, w *Window) {
-			ss := StateMap[string, bool](w, nsSelect, capModerate)
+		OnClick: func(ctx EventCtx) {
+			ss := StateMap[string, bool](ctx.Window, nsSelect, capModerate)
 			ss.Clear()
 			opening := !isOpen
 			ss.Set(id, opening)
 			if opening {
-				themePickerSyncHighlight(lbID, w)
-			}
-			e.IsHandled = true
-		},
-		AmendLayout: func(layout *Layout, w *Window) {
-			if w.IsFocus(focusID) {
-				layout.Shape.Color = colorFocus
-				layout.Shape.ColorBorder = colorBorderFocus
+				themePickerSyncHighlight(lbID, ctx.Window)
 			}
 		},
-		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
-			wasOpen := StateReadOr(w, nsSelect, id, false)
+		AmendLayout: func(ctx EventCtx) {
+			if ctx.Window.IsFocus(focusID) {
+				ctx.Layout.Shape.Color = colorFocus
+				ctx.Layout.Shape.ColorBorder = colorBorderFocus
+			}
+		},
+		OnKeyDown: func(ctx EventCtx) {
+			wasOpen := StateReadOr(ctx.Window, nsSelect, id, false)
 			if !wasOpen {
-				if e.KeyCode == KeySpace || e.KeyCode == KeyEnter {
-					ss := StateMap[string, bool](w, nsSelect, capModerate)
+				if ctx.Event.KeyCode == KeySpace || ctx.Event.KeyCode == KeyEnter {
+					ss := StateMap[string, bool](ctx.Window, nsSelect, capModerate)
 					ss.Set(id, true)
-					themePickerSyncHighlight(lbID, w)
-					e.IsHandled = true
+					themePickerSyncHighlight(lbID, ctx.Window)
+					ctx.Consume()
 				}
 				return
 			}
@@ -128,35 +127,35 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 			if count == 0 {
 				return
 			}
-			lbf := StateMap[string, int](w, nsListBoxFocus, capModerate)
+			lbf := StateMap[string, int](ctx.Window, nsListBoxFocus, capModerate)
 			// Default 0: start at first item; bounds-checked below.
 			currentIdx := lbf.GetOr(lbID, 0)
-			action := listCoreNavigate(e.KeyCode, count)
+			action := listCoreNavigate(ctx.Event.KeyCode, count)
 
 			nextIdx := -1
 			switch action {
 			case listCoreDismiss:
-				ss := StateMap[string, bool](w, nsSelect, capModerate)
+				ss := StateMap[string, bool](ctx.Window, nsSelect, capModerate)
 				ss.Clear()
-				e.IsHandled = true
+				ctx.Consume()
 			case listCoreSelectItem:
-				e.IsHandled = true
+				ctx.Consume()
 				nextIdx = currentIdx
 			case listCoreMoveUp:
-				e.IsHandled = true
+				ctx.Consume()
 				nextIdx = currentIdx - 1
 				nextIdx = max(nextIdx, 0)
 			case listCoreMoveDown:
-				e.IsHandled = true
+				ctx.Consume()
 				nextIdx = currentIdx + 1
 				if nextIdx >= count {
 					nextIdx = count - 1
 				}
 			case listCoreFirst:
-				e.IsHandled = true
+				ctx.Consume()
 				nextIdx = 0
 			case listCoreLast:
-				e.IsHandled = true
+				ctx.Consume()
 				nextIdx = count - 1
 			}
 
@@ -167,9 +166,9 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 				if !ok {
 					return
 				}
-				w.SetTheme(t)
+				ctx.Window.SetTheme(t)
 				if onSel != nil {
-					onSel(name, e, w)
+					onSel(name, EventCtx{nil, ctx.Event, ctx.Window})
 				}
 			}
 		},

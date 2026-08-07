@@ -19,8 +19,8 @@ func demoBreadcrumb(w *gui.Window) gui.View {
 					gui.NewBreadcrumbItem("widgets", "Widgets", nil),
 				},
 				Selected: app.BCSelected,
-				OnSelect: func(id string, _ *gui.Event, w *gui.Window) {
-					gui.State[ShowcaseApp](w).BCSelected = id
+				OnSelect: func(id string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).BCSelected = id
 				},
 			}),
 			gui.Text(gui.TextCfg{
@@ -67,8 +67,8 @@ func demoTabControl(w *gui.Window) gui.View {
 			}),
 		},
 		Selected: app.TabSelected,
-		OnSelect: func(id string, _ *gui.Event, w *gui.Window) {
-			gui.State[ShowcaseApp](w).TabSelected = id
+		OnSelect: func(id string, ctx gui.EventCtx) {
+			gui.State[ShowcaseApp](ctx.Window).TabSelected = id
 		},
 	})
 }
@@ -183,8 +183,8 @@ func demoMenus(w *gui.Window) gui.View {
 							SizeBorder:       gui.Some[float32](0),
 							TextStyle:        gui.CurrentTheme().MenubarStyle.TextStyle,
 							PlaceholderStyle: gui.CurrentTheme().MenubarStyle.TextStyle,
-							OnTextChanged: func(_ *gui.Layout, s string, w *gui.Window) {
-								gui.State[ShowcaseApp](w).MenuSearchText = s
+							OnTextChanged: func(s string, ctx gui.EventCtx) {
+								gui.State[ShowcaseApp](ctx.Window).MenuSearchText = s
 							},
 						}),
 					},
@@ -193,8 +193,8 @@ func demoMenus(w *gui.Window) gui.View {
 				},
 			},
 		},
-		Action: func(id string, _ *gui.Event, w *gui.Window) {
-			w.Toast(gui.ToastCfg{Title: "Menu", Body: "Action: " + id})
+		Action: func(id string, ctx gui.EventCtx) {
+			ctx.Window.Toast(gui.ToastCfg{Title: "Menu", Body: "Action: " + id})
 		},
 	})
 }
@@ -216,9 +216,8 @@ func demoCommandPalette(w *gui.Window) gui.View {
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{Text: "Open Command Palette", TextStyle: t.N3}),
 				},
-				OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-					gui.CommandPaletteToggle(paletteID, w)
-					e.IsHandled = true
+				OnClick: func(ctx gui.EventCtx) {
+					gui.CommandPaletteToggle(paletteID, ctx.Window)
 				},
 			}),
 			gui.Text(gui.TextCfg{
@@ -235,8 +234,8 @@ func demoCommandPalette(w *gui.Window) gui.View {
 					{ID: "toggle-theme", Label: "Toggle Theme", Icon: gui.IconMoon, Group: "View"},
 					{ID: "search", Label: "Search", Icon: gui.IconSearch, Group: "Edit"},
 				},
-				OnAction: func(id string, _ *gui.Event, w *gui.Window) {
-					gui.State[ShowcaseApp](w).PaletteAction = id
+				OnAction: func(id string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).PaletteAction = id
 				},
 			}),
 		},

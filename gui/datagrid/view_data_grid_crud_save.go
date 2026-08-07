@@ -91,7 +91,7 @@ func dataGridCrudReplaceCreatedRows(rows []GridRow, createRows, created []GridRo
 	return replace, warn
 }
 
-func dataGridCrudRemapSelection(selection GridSelection, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), replaceIDs map[string]string, e *gg.Event, w *gg.Window) {
+func dataGridCrudRemapSelection(selection GridSelection, onSelectionChange func(GridSelection, gg.EventCtx), replaceIDs map[string]string, e *gg.Event, w *gg.Window) {
 	if onSelectionChange == nil || len(replaceIDs) == 0 {
 		return
 	}
@@ -118,7 +118,7 @@ func dataGridCrudRemapSelection(selection GridSelection, onSelectionChange func(
 		AnchorRowID:    anchor,
 		ActiveRowID:    active,
 		SelectedRowIDs: selected,
-	}, e, w)
+	}, gg.EventCtx{Layout: nil, Event: e, Window: w})
 }
 
 // dataGridCrudMutationResult holds the outcome of async
@@ -134,9 +134,9 @@ type dataGridCrudMutationResult struct {
 type dataGridCrudSaveContext struct {
 	selection         GridSelection
 	dataSource        DataGridDataSource
-	onCRUDError       func(string, *gg.Event, *gg.Window)
-	onRowsChange      func([]GridRow, *gg.Event, *gg.Window)
-	onSelectionChange func(GridSelection, *gg.Event, *gg.Window)
+	onCRUDError       func(string, gg.EventCtx)
+	onRowsChange      func([]GridRow, gg.EventCtx)
+	onSelectionChange func(GridSelection, gg.EventCtx)
 	query             GridQueryState
 	gridID            string
 	focusID           string
@@ -286,7 +286,7 @@ func dataGridCrudExecMutations(source DataGridDataSource, gridID string, query G
 	}
 }
 
-func dataGridCrudApplySaveResult(gridID string, result dataGridCrudMutationResult, snapshotRows []GridRow, onCRUDError func(string, *gg.Event, *gg.Window), onRowsChange func([]GridRow, *gg.Event, *gg.Window), selection GridSelection, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), focusID string, w *gg.Window) {
+func dataGridCrudApplySaveResult(gridID string, result dataGridCrudMutationResult, snapshotRows []GridRow, onCRUDError func(string, gg.EventCtx), onRowsChange func([]GridRow, gg.EventCtx), selection GridSelection, onSelectionChange func(GridSelection, gg.EventCtx), focusID string, w *gg.Window) {
 	e := &gg.Event{}
 	if result.errMsg != "" {
 		dataGridCrudRestoreOnError(gridID, result.errPhase, onCRUDError,
@@ -309,7 +309,7 @@ func dataGridCrudApplySaveResult(gridID string, result dataGridCrudMutationResul
 		onRowsChange, true, focusID, e, w)
 }
 
-func dataGridCrudFinishSave(gridID string, _ map[string]string, rowCount int, onRowsChange func([]GridRow, *gg.Event, *gg.Window), hasSource bool, focusID string, e *gg.Event, w *gg.Window) {
+func dataGridCrudFinishSave(gridID string, _ map[string]string, rowCount int, onRowsChange func([]GridRow, gg.EventCtx), hasSource bool, focusID string, e *gg.Event, w *gg.Window) {
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 	// Default zero state: absent entry means no CRUD state to finalize.
 	state := dgCrud.GetOr(gridID, dataGridCrudState{})
@@ -324,7 +324,7 @@ func dataGridCrudFinishSave(gridID string, _ map[string]string, rowCount int, on
 	dataGridClearEditingRow(gridID, w)
 	rowsCopy := cloneRows(state.WorkingRows)
 	if onRowsChange != nil {
-		onRowsChange(rowsCopy, e, w)
+		onRowsChange(rowsCopy, gg.EventCtx{Layout: nil, Event: e, Window: w})
 	}
 	if hasSource {
 		rc := -1
@@ -339,7 +339,7 @@ func dataGridCrudFinishSave(gridID string, _ map[string]string, rowCount int, on
 	}
 }
 
-func dataGridCrudRestoreOnError(gridID, phase string, onCRUDError func(string, *gg.Event, *gg.Window), e *gg.Event, w *gg.Window, snapshotRows []GridRow, errMsg string) {
+func dataGridCrudRestoreOnError(gridID, phase string, onCRUDError func(string, gg.EventCtx), e *gg.Event, w *gg.Window, snapshotRows []GridRow, errMsg string) {
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 	// Default zero state: absent entry means nothing to restore on error.
 	state := dgCrud.GetOr(gridID, dataGridCrudState{})
@@ -359,7 +359,7 @@ func dataGridCrudRestoreOnError(gridID, phase string, onCRUDError func(string, *
 	dataGridClearEditingRow(gridID, w)
 	dataGridSourceForceRefetch(gridID, w)
 	if onCRUDError != nil {
-		onCRUDError(errMsg, e, w)
+		onCRUDError(errMsg, gg.EventCtx{Layout: nil, Event: e, Window: w})
 	}
 }
 

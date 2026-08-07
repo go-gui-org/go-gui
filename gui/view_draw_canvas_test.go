@@ -204,7 +204,7 @@ func TestDrawCanvasFocusWiring(t *testing.T) {
 		Width:     50,
 		Height:    50,
 		Focusable: true,
-		OnKeyDown: func(_ *Layout, _ *Event, _ *Window) {
+		OnKeyDown: func(ctx EventCtx) {
 			called = true
 		},
 	})
@@ -220,7 +220,7 @@ func TestDrawCanvasFocusWiring(t *testing.T) {
 	if layout.Shape.events == nil || layout.Shape.events.OnKeyDown == nil {
 		t.Fatal("OnKeyDown not wired")
 	}
-	layout.Shape.events.OnKeyDown(&layout, &Event{}, w)
+	layout.Shape.events.OnKeyDown(EventCtx{&layout, &Event{}, w})
 	if !called {
 		t.Error("OnKeyDown did not fire")
 	}
@@ -249,9 +249,9 @@ func TestDrawCanvasFocusedReceivesKeydown(t *testing.T) {
 		Width:     50,
 		Height:    50,
 		Focusable: true,
-		OnKeyDown: func(_ *Layout, e *Event, _ *Window) {
-			gotKey = e.KeyCode
-			e.IsHandled = true
+		OnKeyDown: func(ctx EventCtx) {
+			gotKey = ctx.Event.KeyCode
+			ctx.Consume()
 		},
 	})
 	layout := generateViewLayout(v, w)

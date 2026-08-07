@@ -211,9 +211,8 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 										TextStyle: textStyle(theme.B3, 18, gui.White),
 									}),
 								},
-								OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-									startGame(w)
-									e.IsHandled = true
+								OnClick: func(ctx gui.EventCtx) {
+									startGame(ctx.Window)
 								},
 							}),
 						},
@@ -394,9 +393,8 @@ func controlButton(label, id string, action func(*Game)) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: label}),
 		},
-		OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-			action(gui.State[App](w).Game)
-			e.IsHandled = true
+		OnClick: func(ctx gui.EventCtx) {
+			action(gui.State[App](ctx.Window).Game)
 		},
 	})
 }

@@ -450,7 +450,7 @@ func TestCrudRemapSelection(t *testing.T) {
 		"__draft_2": "server_2",
 	}
 	var captured GridSelection
-	cb := func(s GridSelection, _ *gg.Event, _ *gg.Window) { captured = s }
+	cb := func(s GridSelection, ctx gg.EventCtx) { captured = s }
 	dataGridCrudRemapSelection(sel, cb, replaceIDs, &gg.Event{}, nil)
 
 	if captured.AnchorRowID != "server_1" {
@@ -474,7 +474,7 @@ func TestCrudRemapSelectionNilCallback(_ *testing.T) {
 
 func TestCrudRemapSelectionEmptyReplace(t *testing.T) {
 	called := false
-	cb := func(_ GridSelection, _ *gg.Event, _ *gg.Window) { called = true }
+	cb := func(_ GridSelection, ctx gg.EventCtx) { called = true }
 	dataGridCrudRemapSelection(GridSelection{}, cb, map[string]string{}, &gg.Event{}, nil)
 	if called {
 		t.Fatal("callback should not fire with empty replaceIDs")
@@ -593,7 +593,7 @@ func TestCrudApplyCellEditNoCrud(t *testing.T) {
 	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	var captured GridCellEdit
-	cb := func(edit GridCellEdit, _ *gg.Event, _ *gg.Window) {
+	cb := func(edit GridCellEdit, ctx gg.EventCtx) {
 		captured = edit
 	}
 	e := &gg.Event{}
@@ -669,7 +669,7 @@ func TestCrudDeleteRows(t *testing.T) {
 	})
 	var captured GridSelection
 	e := &gg.Event{}
-	dataGridCrudDeleteRows("g1", GridSelection{}, func(s GridSelection, _ *gg.Event, _ *gg.Window) {
+	dataGridCrudDeleteRows("g1", GridSelection{}, func(s GridSelection, ctx gg.EventCtx) {
 		captured = s
 	}, []string{"__draft_1", "r2"}, "", e, w)
 	state, _ := dgCrud.Get("g1")
@@ -713,9 +713,9 @@ func TestCrudAddRow(t *testing.T) {
 	columns := []GridColumnCfg{{ID: "name", DefaultValue: ""}, {ID: "age", DefaultValue: "0"}}
 	var captured GridSelection
 	e := &gg.Event{}
-	dataGridCrudAddRow("g1", columns, func(s GridSelection, _ *gg.Event, _ *gg.Window) {
+	dataGridCrudAddRow("g1", columns, func(s GridSelection, ctx gg.EventCtx) {
 		captured = s
-	}, "", "1", 0, 0, func(int, *gg.Event, *gg.Window) {}, e, w)
+	}, "", "1", 0, 0, func(_ int, ctx gg.EventCtx) {}, e, w)
 	if captured.ActiveRowID == "" {
 		t.Fatal("should have an active row")
 	}
@@ -802,7 +802,7 @@ func TestCrudRestoreOnError(t *testing.T) {
 		DirtyRowIDs:   map[string]bool{"r1": true},
 	})
 	var errMsg string
-	cb := func(msg string, _ *gg.Event, _ *gg.Window) {
+	cb := func(msg string, ctx gg.EventCtx) {
 		errMsg = msg
 	}
 	e := &gg.Event{}

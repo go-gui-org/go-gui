@@ -69,11 +69,10 @@ func dataGridDetailRowView(dctx dataGridCtx, rowData GridRow, rowIdx int) gg.Vie
 				Content:     []gg.View{detailView},
 			}),
 		},
-		OnClick: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
+		OnClick: func(ctx gg.EventCtx) {
 			if focusID != "" {
-				w.SetFocus(focusID)
+				ctx.Window.SetFocus(focusID)
 			}
-			e.IsHandled = true
 		},
 	})
 }
@@ -171,8 +170,8 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 			ColorFocus:  gg.ColorTransparent,
 			ColorClick:  cfg.ColorHeaderHover,
 			ColorBorder: cfg.ColorBorder,
-			OnClick: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
-				dataGridCrudDeleteRows(gridID, selection, onSelectionChange, []string{rowID}, focusID, e, w)
+			OnClick: func(ctx gg.EventCtx) {
+				dataGridCrudDeleteRows(gridID, selection, onSelectionChange, []string{rowID}, focusID, ctx.Event, ctx.Window)
 			},
 			Content: []gg.View{
 				gg.Text(gg.TextCfg{
@@ -202,18 +201,18 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 		SizeBorder:  gg.SomeF(0),
 		Padding:     gg.NoPadding,
 		Spacing:     gg.Some(-cfg.SizeBorder.Get(0)),
-		OnClick: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
+		OnClick: func(ctx gg.EventCtx) {
 			dataGridRowClick(rows, selection, gridID, multiSelect, rangeSelect,
 				onSelectionChange, editEnabled, editorFocusBase, colCount,
-				rowIdx, rowID, focusID, columns, e, w)
+				rowIdx, rowID, focusID, columns, ctx.Event, ctx.Window)
 		},
-		OnHover: func(layout *gg.Layout, _ *gg.Event, win *gg.Window) {
+		OnHover: func(ctx gg.EventCtx) {
 			if disabled {
 				return
 			}
-			win.SetMouseCursorPointingHand()
+			ctx.Window.SetMouseCursorPointingHand()
 			if !isSelected {
-				layout.Shape.Color = colorRowHover
+				ctx.Layout.Shape.Color = colorRowHover
 			}
 		},
 		Content: cells,
@@ -232,7 +231,7 @@ func dataGridResolveCellFormat(base gg.TextStyle, format GridCellFormat) (gg.Tex
 	return textStyle, bgColor
 }
 
-func dataGridRowClick(rows []GridRow, selection GridSelection, gridID string, multiSelect, rangeSelect bool, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), editEnabled bool, editorFocusBase string, colCount, rowIdx int, rowID string, focusID string, columns []GridColumnCfg, e *gg.Event, w *gg.Window) {
+func dataGridRowClick(rows []GridRow, selection GridSelection, gridID string, multiSelect, rangeSelect bool, onSelectionChange func(GridSelection, gg.EventCtx), editEnabled bool, editorFocusBase string, colCount, rowIdx int, rowID string, focusID string, columns []GridColumnCfg, e *gg.Event, w *gg.Window) {
 	if focusID != "" {
 		w.SetFocus(focusID)
 	}
@@ -241,7 +240,7 @@ func dataGridRowClick(rows []GridRow, selection GridSelection, gridID string, mu
 	}
 	if onSelectionChange != nil {
 		next := dataGridComputeRowSelection(rows, selection, gridID, multiSelect, rangeSelect, rowID, e, w)
-		onSelectionChange(next, e, w)
+		onSelectionChange(next, gg.EventCtx{Layout: nil, Event: e, Window: w})
 	}
 	dataGridTrackRowEditClick(gridID, editEnabled, editorFocusBase, colCount, columns, rowIdx, rowID, focusID, e, w)
 	e.IsHandled = true
@@ -391,16 +390,16 @@ func dataGridDetailToggleControl(cfg *DataGridCfg, rowID string, expanded, enabl
 		ColorFocus:  gg.ColorTransparent,
 		ColorClick:  cfg.ColorRowHover,
 		ColorBorder: gg.ColorTransparent,
-		OnClick: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
+		OnClick: func(ctx gg.EventCtx) {
 			if rowID == "" || onDetailExpandedChange == nil {
+				ctx.Bubble() // nothing to toggle: pass the click on
 				return
 			}
 			next := dataGridNextDetailExpandedMap(detailExpandedRowIDs, rowID)
-			onDetailExpandedChange(next, e, w)
+			onDetailExpandedChange(next, gg.EventCtx{Layout: nil, Event: ctx.Event, Window: ctx.Window})
 			if focusID != "" {
-				w.SetFocus(focusID)
+				ctx.Window.SetFocus(focusID)
 			}
-			e.IsHandled = true
 		},
 		Content: []gg.View{
 			gg.Text(gg.TextCfg{

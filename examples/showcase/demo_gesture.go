@@ -38,21 +38,19 @@ func demoGesture(w *gui.Window) gui.View {
 				Radius:  8,
 				Clip:    true,
 				OnDraw:  gestureOnDraw(app),
-				OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-					a := gui.State[ShowcaseApp](w)
+				OnClick: func(ctx gui.EventCtx) {
+					a := gui.State[ShowcaseApp](ctx.Window)
 					a.GesturePadMarkers = append(
 						a.GesturePadMarkers,
-						GestureMarker{X: e.MouseX, Y: e.MouseY},
+						GestureMarker{X: ctx.Event.MouseX, Y: ctx.Event.MouseY},
 					)
 					a.GesturePadLabel = fmt.Sprintf(
-						"Click at (%.0f, %.0f)", e.MouseX, e.MouseY)
+						"Click at (%.0f, %.0f)", ctx.Event.MouseX, ctx.Event.MouseY)
 					a.GesturePadVersion++
-					e.IsHandled = true
 				},
-				OnGesture: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-					a := gui.State[ShowcaseApp](w)
-					gestureOnGesture(a, e)
-					e.IsHandled = true
+				OnGesture: func(ctx gui.EventCtx) {
+					a := gui.State[ShowcaseApp](ctx.Window)
+					gestureOnGesture(a, ctx.Event)
 				},
 			}),
 			gui.Text(gui.TextCfg{

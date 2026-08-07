@@ -460,7 +460,7 @@ func TestHeaderCellWithControls(t *testing.T) {
 		PaddingHeader:       gg.SomeP(2, 4, 2, 4),
 		TextStyleHeader:     gg.DefaultTextStyle,
 		ColorHeaderHover:    gg.RGBA(220, 220, 220, 255),
-		OnColumnOrderChange: func([]string, *gg.Event, *gg.Window) {},
+		OnColumnOrderChange: func(_ []string, ctx gg.EventCtx) {},
 		OnColumnPinChange:   func(string, GridColumnPin, *gg.Event, *gg.Window) {},
 	}
 	col := GridColumnCfg{

@@ -190,9 +190,9 @@ func TestTreeRowClickTogglesAndSelects(t *testing.T) {
 		"tree",
 		row,
 		"tree-focus",
-		func(id string, _ *Event, w *Window) {
+		func(id string, ctx EventCtx) {
 			selectedID = id
-			selectSawExpanded = treeExpandedState(w, "tree")["remote"]
+			selectSawExpanded = treeExpandedState(ctx.Window, "tree")["remote"]
 		},
 		func(treeID, nodeID string, _ *Window) {
 			if treeID != "tree" || nodeID != "remote" {
@@ -287,7 +287,7 @@ func TestTreeOnKeyDownNavigation(t *testing.T) {
 		"tree",
 		visibleIDs,
 		rowByID,
-		func(id string, _ *Event, _ *Window) { selectedID = id },
+		func(id string, ctx EventCtx) { selectedID = id },
 		nil,
 		"", 0, 0,
 		eEnter,

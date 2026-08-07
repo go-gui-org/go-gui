@@ -114,11 +114,10 @@ func pctButton(idScroll string, pct int) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: fmt.Sprintf("%d%%", pct)}),
 		},
-		OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-			w.ScrollVerticalToPct(idScroll, pctF)
-			app := gui.State[App](w)
-			app.Pct = w.ScrollVerticalPct(idScroll)
-			e.IsHandled = true
+		OnClick: func(ctx gui.EventCtx) {
+			ctx.Window.ScrollVerticalToPct(idScroll, pctF)
+			app := gui.State[App](ctx.Window)
+			app.Pct = ctx.Window.ScrollVerticalPct(idScroll)
 		},
 	})
 }
@@ -153,15 +152,14 @@ func themeButton(app *App) gui.View {
 		TextStyle:    gui.CurrentTheme().Icon3,
 		Padding:      gui.Some(gui.PaddingSmall),
 		Selected:     app.Light,
-		OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-			app := gui.State[App](w)
+		OnClick: func(ctx gui.EventCtx) {
+			app := gui.State[App](ctx.Window)
 			app.Light = !app.Light
 			if app.Light {
-				w.SetTheme(gui.ThemeLight.WithBorders(true))
+				ctx.Window.SetTheme(gui.ThemeLight.WithBorders(true))
 			} else {
-				w.SetTheme(gui.ThemeDark.WithBorders(true))
+				ctx.Window.SetTheme(gui.ThemeDark.WithBorders(true))
 			}
-			e.IsHandled = true
 		},
 	})
 }

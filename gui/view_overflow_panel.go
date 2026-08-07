@@ -3,7 +3,7 @@ package gui
 // OverflowItem defines an item in an overflow panel.
 type OverflowItem struct {
 	View   View
-	Action func(*MenuItemCfg, *Event, *Window)
+	Action func(*MenuItemCfg, EventCtx)
 	ID     string
 	Text   string
 }
@@ -62,13 +62,12 @@ func OverflowPanel(w *Window, cfg OverflowPanelCfg) View {
 		Padding:  cfg.Padding,
 		Disabled: cfg.Disabled,
 		Content:  triggerContent,
-		OnClick: func(_ *Layout, e *Event, w *Window) {
+		OnClick: func(ctx EventCtx) {
 			ss := StateMap[string, bool](
-				w, nsSelect, capModerate)
+				ctx.Window, nsSelect, capModerate)
 			cur := StateReadOr(
-				w, nsSelect, id, false)
+				ctx.Window, nsSelect, id, false)
 			ss.Set(id, !cur)
-			e.IsHandled = true
 		},
 	}))
 
