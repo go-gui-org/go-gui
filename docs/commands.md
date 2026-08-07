@@ -1,9 +1,9 @@
 # Commands and Hotkeys
 
-The command system provides a centralized way to define actions with
-keyboard shortcuts, menu integration, command palette access, and
-automatic enable/disable logic. Commands are registered per-window and
-dispatched through the keyboard event pipeline.
+The command system provides a centralized way to define actions with keyboard
+shortcuts, menu integration, command palette access, and automatic
+enable/disable logic. Commands are registered per-window and dispatched through
+the keyboard event pipeline.
 
 ## Core Types
 
@@ -36,8 +36,8 @@ Bitmask flags for keyboard modifiers. Combine with `|`.
 | `ModSuper` | 8     |
 
 Pre-combined: `ModCtrlShift`, `ModCtrlAlt`, `ModCtrlAltShift`, `ModCtrlSuper`,
-`ModAltShift`, `ModAltSuper`, `ModSuperShift`. `Modifier.Has(mod)` tests a
-flag; `HasAny(mods...)` tests any of several.
+`ModAltShift`, `ModAltSuper`, `ModSuperShift`. `Modifier.Has(mod)` tests a flag;
+`HasAny(mods...)` tests any of several.
 
 ### Command
 
@@ -54,20 +54,18 @@ type Command struct {
 }
 ```
 
-**`Global` field** controls when the command fires in the keyboard
-dispatch pipeline:
+**`Global` field** controls when the command fires in the keyboard dispatch
+pipeline:
 
-- `Global: true` — fires _before_ focus dispatch. Use for app-wide
-  shortcuts (save, new, command palette toggle) that should work
-  regardless of which widget has focus.
-- `Global: false` (default) — fires _after_ focus dispatch, as a
-  fallback. Use for commands that should yield to focused widgets
-  (e.g., an undo command that should not fire while a text input
-  has focus and handles its own undo).
+- `Global: true` — fires _before_ focus dispatch. Use for app-wide shortcuts
+  (save, new, command palette toggle) that should work regardless of which
+  widget has focus.
+- `Global: false` (default) — fires _after_ focus dispatch, as a fallback. Use
+  for commands that should yield to focused widgets (e.g., an undo command that
+  should not fire while a text input has focus and handles its own undo).
 
-**`CanExecute`** — when non-nil, the command is skipped during dispatch
-if it returns false. Widgets bound to the command (buttons, menu items)
-auto-disable.
+**`CanExecute`** — when non-nil, the command is skipped during dispatch if it
+returns false. Widgets bound to the command (buttons, menu items) auto-disable.
 
 ## Registration
 
@@ -112,8 +110,8 @@ When a `KeyDown` event arrives, the window processes it in this order:
 4. Non-global command dispatch  (Global=false commands as fallback)
 ```
 
-At each stage, if a handler sets `e.IsHandled = true`, subsequent
-stages are skipped. This means:
+At each stage, if a handler sets `e.IsHandled = true`, subsequent stages are
+skipped. This means:
 
 - Global commands always take priority.
 - Focused widgets can intercept keys before non-global commands.
@@ -131,10 +129,10 @@ gui.CommandButton(w, "edit.undo", gui.ButtonCfg{})
 
 **Auto behaviors:**
 
-- **Label** — if `cfg.Content` is nil, fills from `Command.Label` +
-  shortcut hint (e.g., `"Undo  ⌘Z"`)
-- **OnClick** — wired to `Command.Execute` (re-checks `CanExecute`
-  at click time)
+- **Label** — if `cfg.Content` is nil, fills from `Command.Label` + shortcut
+  hint (e.g., `"Undo  ⌘Z"`)
+- **OnClick** — wired to `Command.Execute` (re-checks `CanExecute` at click
+  time)
 - **Disabled** — auto-disables when `CanExecute` returns false
 
 Panics if the command ID is not registered.
@@ -220,16 +218,16 @@ The palette derives its internal focus and scroll identities from `id`
 | Enter   | Execute highlighted command and dismiss |
 | Escape  | Dismiss palette                         |
 
-Typing in the input field filters items by fuzzy match. The highlight
-resets to the first item on each keystroke.
+Typing in the input field filters items by fuzzy match. The highlight resets to
+the first item on each keystroke.
 
-See `CommandPaletteCfg` and `CommandPaletteItem` in `gui/command*.go` for
-full field lists.
+See `CommandPaletteCfg` and `CommandPaletteItem` in `gui/command*.go` for full
+field lists.
 
 ## Complete Example
 
-See [`examples/command_demo/`](../examples/command_demo/) for a runnable example with
-global commands, `CanExecute` guards, `CommandButton`, menubar integration,
+See [`examples/command_demo/`](../examples/command_demo/) for a runnable example
+with global commands, `CanExecute` guards, `CommandButton`, menubar integration,
 and command palette.
 
 ## Key Code Reference

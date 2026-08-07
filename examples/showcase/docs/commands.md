@@ -1,9 +1,9 @@
 # Commands and Hotkeys
 
-The command system provides a centralized way to define actions with
-keyboard shortcuts, menu integration, command palette access, and
-automatic enable/disable logic. Commands are registered per-window and
-dispatched through the keyboard event pipeline.
+The command system provides a centralized way to define actions with keyboard
+shortcuts, menu integration, command palette access, and automatic
+enable/disable logic. Commands are registered per-window and dispatched through
+the keyboard event pipeline.
 
 ## Core Types
 
@@ -47,8 +47,8 @@ Pre-combined convenience constants:
 | `ModAltSuper`     | `ModAlt \| ModSuper`            |
 | `ModSuperShift`   | `ModSuper \| ModShift`          |
 
-`Modifier.Has(mod)` tests if a flag is set; `HasAny(mods...)` tests
-any of several.
+`Modifier.Has(mod)` tests if a flag is set; `HasAny(mods...)` tests any of
+several.
 
 ### Command
 
@@ -65,20 +65,18 @@ type Command struct {
 }
 ```
 
-**`Global` field** controls when the command fires in the keyboard
-dispatch pipeline:
+**`Global` field** controls when the command fires in the keyboard dispatch
+pipeline:
 
-- `Global: true` — fires _before_ focus dispatch. Use for app-wide
-  shortcuts (save, new, command palette toggle) that should work
-  regardless of which widget has focus.
-- `Global: false` (default) — fires _after_ focus dispatch, as a
-  fallback. Use for commands that should yield to focused widgets
-  (e.g., an undo command that should not fire while a text input
-  has focus and handles its own undo).
+- `Global: true` — fires _before_ focus dispatch. Use for app-wide shortcuts
+  (save, new, command palette toggle) that should work regardless of which
+  widget has focus.
+- `Global: false` (default) — fires _after_ focus dispatch, as a fallback. Use
+  for commands that should yield to focused widgets (e.g., an undo command that
+  should not fire while a text input has focus and handles its own undo).
 
-**`CanExecute`** — when non-nil, the command is skipped during dispatch
-if it returns false. Widgets bound to the command (buttons, menu items)
-auto-disable.
+**`CanExecute`** — when non-nil, the command is skipped during dispatch if it
+returns false. Widgets bound to the command (buttons, menu items) auto-disable.
 
 ## Registration
 
@@ -130,8 +128,8 @@ When a `KeyDown` event arrives, the window processes it in this order:
 4. Non-global command dispatch  (Global=false commands as fallback)
 ```
 
-At each stage, if a handler sets `e.IsHandled = true`, subsequent
-stages are skipped. This means:
+At each stage, if a handler sets `e.IsHandled = true`, subsequent stages are
+skipped. This means:
 
 - Global commands always take priority.
 - Focused widgets can intercept keys before non-global commands.
@@ -149,10 +147,10 @@ gui.CommandButton(w, "edit.undo", gui.ButtonCfg{IDFocus: 10})
 
 **Auto behaviors:**
 
-- **Label** — if `cfg.Content` is nil, fills from `Command.Label` +
-  shortcut hint (e.g., `"Undo  ⌘Z"`)
-- **OnClick** — wired to `Command.Execute` (re-checks `CanExecute`
-  at click time)
+- **Label** — if `cfg.Content` is nil, fills from `Command.Label` + shortcut
+  hint (e.g., `"Undo  ⌘Z"`)
+- **OnClick** — wired to `Command.Execute` (re-checks `CanExecute` at click
+  time)
 - **Disabled** — auto-disables when `CanExecute` returns false
 
 Panics if the command ID is not registered.
@@ -220,12 +218,12 @@ func paletteAction(id string, e *gui.Event, w *gui.Window) {
 
 ### Visibility Functions
 
-| Function                                         | Description          |
-| ------------------------------------------------ | -------------------- |
-| `CommandPaletteShow(id, w)`               | Show and focus input |
-| `CommandPaletteDismiss(id, w)`                   | Hide and reset query |
-| `CommandPaletteToggle(id, w)`             | Toggle visibility    |
-| `CommandPaletteIsVisible(id, w) bool`            | Check if showing     |
+| Function                              | Description          |
+| ------------------------------------- | -------------------- |
+| `CommandPaletteShow(id, w)`           | Show and focus input |
+| `CommandPaletteDismiss(id, w)`        | Hide and reset query |
+| `CommandPaletteToggle(id, w)`         | Toggle visibility    |
+| `CommandPaletteIsVisible(id, w) bool` | Check if showing     |
 
 ### Palette Keyboard Navigation
 
@@ -235,31 +233,31 @@ func paletteAction(id string, e *gui.Event, w *gui.Window) {
 | Enter   | Execute highlighted command and dismiss |
 | Escape  | Dismiss palette                         |
 
-Typing in the input field filters items by fuzzy match. The highlight
-resets to the first item on each keystroke.
+Typing in the input field filters items by fuzzy match. The highlight resets to
+the first item on each keystroke.
 
 ### CommandPaletteCfg Fields
 
-| Field            | Type                            | Description                   |
-| ---------------- | ------------------------------- | ----------------------------- |
-| `ID`             | `string`                        | Palette instance ID           |
-| `Items`          | `[]CommandPaletteItem`          | Items to display              |
-| `OnAction`       | `func(string, *Event, *Window)` | Called with selected item ID  |
-| `OnDismiss`      | `func(*Window)`                 | Called when palette closes    |
-| `Placeholder`    | `string`                        | Input placeholder text        |
-| `TextStyle`      | `TextStyle`                     | Item label style              |
-| `DetailStyle`    | `TextStyle`                     | Shortcut hint style           |
-| `Color`          | `Color`                         | Panel background              |
-| `ColorBorder`    | `Color`                         | Panel border                  |
-| `ColorHighlight` | `Color`                         | Highlight/hover color         |
-| `SizeBorder`     | `Opt[float32]`                  | Border thickness              |
-| `Radius`         | `Opt[float32]`                  | Corner radius                 |
-| `Width`          | `float32`                       | Panel width (default 500)     |
-| `MaxHeight`      | `float32`                       | Max list height (default 400) |
-| `BackdropColor`  | `Color`                         | Semi-transparent overlay      |
-| `IDFocus`        | `uint32`                        | Focus ID for the input        |
+| Field            | Type                            | Description                                       |
+| ---------------- | ------------------------------- | ------------------------------------------------- |
+| `ID`             | `string`                        | Palette instance ID                               |
+| `Items`          | `[]CommandPaletteItem`          | Items to display                                  |
+| `OnAction`       | `func(string, *Event, *Window)` | Called with selected item ID                      |
+| `OnDismiss`      | `func(*Window)`                 | Called when palette closes                        |
+| `Placeholder`    | `string`                        | Input placeholder text                            |
+| `TextStyle`      | `TextStyle`                     | Item label style                                  |
+| `DetailStyle`    | `TextStyle`                     | Shortcut hint style                               |
+| `Color`          | `Color`                         | Panel background                                  |
+| `ColorBorder`    | `Color`                         | Panel border                                      |
+| `ColorHighlight` | `Color`                         | Highlight/hover color                             |
+| `SizeBorder`     | `Opt[float32]`                  | Border thickness                                  |
+| `Radius`         | `Opt[float32]`                  | Corner radius                                     |
+| `Width`          | `float32`                       | Panel width (default 500)                         |
+| `MaxHeight`      | `float32`                       | Max list height (default 400)                     |
+| `BackdropColor`  | `Color`                         | Semi-transparent overlay                          |
+| `IDFocus`        | `uint32`                        | Focus ID for the input                            |
 | `Scrollable`     | `bool`                          | Opt results list into scroll (key `ID+":scroll"`) |
-| `FloatZIndex`    | `int`                           | Z-order (default 1000)        |
+| `FloatZIndex`    | `int`                           | Z-order (default 1000)                            |
 
 ### CommandPaletteItem
 
@@ -330,14 +328,14 @@ func registerCommands(w *gui.Window) {
 
 The `keyName()` function provides display names for all supported keys:
 
-| Category    | Keys                                                                                 |
-| ----------- | ------------------------------------------------------------------------------------ |
-| Letters     | `KeyA` – `KeyZ` → `"A"` – `"Z"`                                                      |
-| Numbers     | `Key0` – `Key9` → `"0"` – `"9"`                                                      |
-| Function    | `KeyF1` – `KeyF25` → `"F1"` – `"F25"`                                                |
-| Keypad      | `KeyKP0` – `KeyKP9` → `"KP0"` – `"KP9"`                                              |
-| Navigation  | `KeyUp`, `KeyDown`, `KeyLeft`, `KeyRight`                                            |
-| Page        | `KeyHome`, `KeyEnd`, `KeyPageUp`, `KeyPageDown`                                      |
-| Editing     | `KeyBackspace`, `KeyDelete`, `KeyInsert`, `KeyTab`                                   |
-| Special     | `KeySpace`, `KeyEnter`, `KeyEscape`                                                  |
+| Category    | Keys                                                                                                                                                             |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Letters     | `KeyA` – `KeyZ` → `"A"` – `"Z"`                                                                                                                                  |
+| Numbers     | `Key0` – `Key9` → `"0"` – `"9"`                                                                                                                                  |
+| Function    | `KeyF1` – `KeyF25` → `"F1"` – `"F25"`                                                                                                                            |
+| Keypad      | `KeyKP0` – `KeyKP9` → `"KP0"` – `"KP9"`                                                                                                                          |
+| Navigation  | `KeyUp`, `KeyDown`, `KeyLeft`, `KeyRight`                                                                                                                        |
+| Page        | `KeyHome`, `KeyEnd`, `KeyPageUp`, `KeyPageDown`                                                                                                                  |
+| Editing     | `KeyBackspace`, `KeyDelete`, `KeyInsert`, `KeyTab`                                                                                                               |
+| Special     | `KeySpace`, `KeyEnter`, `KeyEscape`                                                                                                                              |
 | Punctuation | `KeyMinus`, `KeyEqual`, `KeyComma`, `KeyPeriod`, `KeySlash`, `KeyBackslash`,`KeyLeftBracket`, `KeyRightBracket`, `KeyApostrophe`, `KeySemicolon`,`KeyGraveAccen` |

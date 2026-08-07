@@ -1,7 +1,7 @@
-256 icons from the Feather icon font. Each icon is a named
-constant (e.g. `gui.IconCheck`, `gui.IconFolder`, `gui.IconSearch`).
-Render with `gui.Text` using one of the six theme Icon styles.
-Icons are Unicode glyphs — no image files required.
+256 icons from the Feather icon font. Each icon is a named constant (e.g.
+`gui.IconCheck`, `gui.IconFolder`, `gui.IconSearch`). Render with `gui.Text`
+using one of the six theme Icon styles. Icons are Unicode glyphs — no image
+files required.
 
 ## Usage
 
@@ -29,7 +29,7 @@ gui.Button(gui.ButtonCfg{
 ## Icon Styles
 
 | Style   | Size   | Maps to        |
-|---------|--------|----------------|
+| ------- | ------ | -------------- |
 | t.Icon1 | XLarge | SizeTextXLarge |
 | t.Icon2 | Large  | SizeTextLarge  |
 | t.Icon3 | Medium | SizeTextMedium |
@@ -39,8 +39,8 @@ gui.Button(gui.ButtonCfg{
 
 ## Programmatic Access
 
-`gui.IconLookup` is a `map[string]string` mapping snake_case names to
-Unicode glyphs:
+`gui.IconLookup` is a `map[string]string` mapping snake_case names to Unicode
+glyphs:
 
 ```go
 for name, glyph := range gui.IconLookup {
@@ -50,13 +50,13 @@ for name, glyph := range gui.IconLookup {
 
 ## Common Icons
 
-| Constant        | Glyph | Usage                |
-|-----------------|-------|----------------------|
-| IconCheck       | check | Confirmation, success |
-| IconX           | x     | Close, dismiss       |
-| IconFolder      | folder | File browser         |
-| IconSearch      | search | Search fields        |
-| IconSave        | save  | Save actions         |
-| IconTrash       | trash | Delete actions       |
-| IconAlertCircle | alert | Warnings, errors     |
-| IconEdit        | edit  | Edit actions         |
+| Constant        | Glyph  | Usage                 |
+| --------------- | ------ | --------------------- |
+| IconCheck       | check  | Confirmation, success |
+| IconX           | x      | Close, dismiss        |
+| IconFolder      | folder | File browser          |
+| IconSearch      | search | Search fields         |
+| IconSave        | save   | Save actions          |
+| IconTrash       | trash  | Delete actions        |
+| IconAlertCircle | alert  | Warnings, errors      |
+| IconEdit        | edit   | Edit actions          |

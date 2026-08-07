@@ -1,6 +1,5 @@
-Calendar-style date selection with month/year navigation.
-Supports single and multi-select, weekday/month/year filtering,
-and locale-aware weekday headers.
+Calendar-style date selection with month/year navigation. Supports single and
+multi-select, weekday/month/year filtering, and locale-aware weekday headers.
 
 ## Usage
 
@@ -44,7 +43,7 @@ gui.DatePicker(gui.DatePickerCfg{
 ## Key Properties
 
 | Property             | Type                 | Description                        |
-|----------------------|----------------------|------------------------------------|
+| -------------------- | -------------------- | ---------------------------------- |
 | Dates                | []time.Time          | Currently selected date(s)         |
 | SelectMultiple       | bool                 | Allow multiple date selection      |
 | MondayFirstDayOfWeek | bool                 | Start week on Monday               |
@@ -57,48 +56,48 @@ gui.DatePicker(gui.DatePickerCfg{
 
 ## Filtering
 
-| Property        | Type                 | Description                        |
-|-----------------|----------------------|------------------------------------|
-| AllowedWeekdays | []DatePickerWeekdays | Restrict to specific days          |
-| AllowedMonths   | []DatePickerMonths   | Restrict to specific months        |
-| AllowedYears    | []int                | Restrict to specific years         |
-| AllowedDates    | []time.Time          | Restrict to specific dates         |
+| Property        | Type                 | Description                 |
+| --------------- | -------------------- | --------------------------- |
+| AllowedWeekdays | []DatePickerWeekdays | Restrict to specific days   |
+| AllowedMonths   | []DatePickerMonths   | Restrict to specific months |
+| AllowedYears    | []int                | Restrict to specific years  |
+| AllowedDates    | []time.Time          | Restrict to specific dates  |
 
 ## Appearance
 
-| Property         | Type         | Description                        |
-|------------------|--------------|------------------------------------|
-| Padding          | Opt[Padding] | Inner padding                      |
-| SizeBorder       | Opt[float32] | Border width                       |
-| CellSpacing      | Opt[float32] | Gap between day cells              |
-| Radius           | Opt[float32] | Corner radius                      |
-| RadiusBorder     | Opt[float32] | Outer border radius                |
-| Color            | Color        | Background color                   |
-| ColorHover       | Color        | Background on hover                |
-| ColorFocus       | Color        | Background when focused            |
-| ColorClick       | Color        | Background on click                |
-| ColorBorder      | Color        | Border color                       |
-| ColorBorderFocus | Color        | Border color when focused          |
-| ColorSelect      | Color        | Selected date highlight            |
-| TextStyle        | TextStyle    | Text styling                       |
+| Property         | Type         | Description               |
+| ---------------- | ------------ | ------------------------- |
+| Padding          | Opt[Padding] | Inner padding             |
+| SizeBorder       | Opt[float32] | Border width              |
+| CellSpacing      | Opt[float32] | Gap between day cells     |
+| Radius           | Opt[float32] | Corner radius             |
+| RadiusBorder     | Opt[float32] | Outer border radius       |
+| Color            | Color        | Background color          |
+| ColorHover       | Color        | Background on hover       |
+| ColorFocus       | Color        | Background when focused   |
+| ColorClick       | Color        | Background on click       |
+| ColorBorder      | Color        | Border color              |
+| ColorBorderFocus | Color        | Border color when focused |
+| ColorSelect      | Color        | Selected date highlight   |
+| TextStyle        | TextStyle    | Text styling              |
 
 ## Events
 
-| Callback | Signature                            | Fired when           |
-|----------|--------------------------------------|----------------------|
-| OnSelect | func([]time.Time, *Event, *Window)   | Date(s) selected     |
+| Callback | Signature                          | Fired when       |
+| -------- | ---------------------------------- | ---------------- |
+| OnSelect | func([]time.Time, *Event, *Window) | Date(s) selected |
 
 ## Accessibility
 
-| Property        | Type   | Description                        |
-|-----------------|--------|------------------------------------|
-| A11YLabel       | string | Accessible label                   |
-| A11YDescription | string | Accessible description             |
+| Property        | Type   | Description            |
+| --------------- | ------ | ---------------------- |
+| A11YLabel       | string | Accessible label       |
+| A11YDescription | string | Accessible description |
 
 ## Weekday Label Lengths
 
 | Constant           | Example |
-|--------------------|---------|
+| ------------------ | ------- |
 | WeekdayOneLetter   | S       |
 | WeekdayThreeLetter | Sun     |
 | WeekdayFull        | Sunday  |

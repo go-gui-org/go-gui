@@ -40,9 +40,9 @@ xcrun simctl launch "iPhone 17 Pro" com.example.IOSDemo
 
 **"Unable to load simulator devices" or CoreSimulator version mismatch**
 
-Your Xcode and macOS simulator runtime are out of sync. Update macOS
-(System Settings → Software Update) or install a matching simulator
-runtime in Xcode (Settings → Platforms).
+Your Xcode and macOS simulator runtime are out of sync. Update macOS (System
+Settings → Software Update) or install a matching simulator runtime in Xcode
+(Settings → Platforms).
 
 **"The app couldn't be installed"**
 
@@ -50,5 +50,5 @@ Make sure the simulator is booted before installing.
 
 **App launches to a black screen**
 
-The app uses Metal for rendering. Simulators on Apple Silicon support
-Metal; Intel Macs may have limited support.
+The app uses Metal for rendering. Simulators on Apple Silicon support Metal;
+Intel Macs may have limited support.

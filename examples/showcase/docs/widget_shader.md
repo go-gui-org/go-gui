@@ -1,7 +1,6 @@
-Apply custom fragment shaders (Metal + GLSL) to any container.
-Write only the color-computation body — the framework wraps it with
-struct definitions, SDF round-rect clipping, and pipeline caching
-via `BuildGLSLFragment`.
+Apply custom fragment shaders (Metal + GLSL) to any container. Write only the
+color-computation body — the framework wraps it with struct definitions, SDF
+round-rect clipping, and pipeline caching via `BuildGLSLFragment`.
 
 ## Static Shader
 
@@ -25,8 +24,8 @@ gui.Column(gui.ContainerCfg{
 
 ## Animated Shader
 
-Pass time or other values via Params. Each float maps to
-p0.x, p0.y, p0.z, p0.w, p1.x, ... (up to 16 floats).
+Pass time or other values via Params. Each float maps to p0.x, p0.y, p0.z, p0.w,
+p1.x, ... (up to 16 floats).
 
 ```go
 elapsed := float32(time.Since(startTime).Milliseconds()) / 1000.0
@@ -55,30 +54,30 @@ gui.Column(gui.ContainerCfg{
 
 ## Shader Properties
 
-| Property | Type      | Description                          |
-|----------|-----------|--------------------------------------|
-| Metal    | string    | MSL fragment body                    |
+| Property | Type      | Description                                             |
+| -------- | --------- | ------------------------------------------------------- |
+| Metal    | string    | MSL fragment body                                       |
 | GLSL     | string    | GLSL fragment body (desktop GL 3.3 / WebGL2-compatible) |
-| Params   | []float32 | Up to 16 custom floats               |
+| Params   | []float32 | Up to 16 custom floats                                  |
 
 ## Available Inputs
 
-| Metal        | GLSL         | Type        | Description            |
-|--------------|--------------|-------------|------------------------|
-| in.uv        | uv           | float2/vec2 | -1..1 centered coords  |
-| in.color     | color        | float4/vec4 | Vertex color           |
-| in.p0..in.p3 | p0..p3       | float4/vec4 | Custom params          |
-| in.position  | gl_FragCoord | float4/vec4 | Screen position        |
+| Metal        | GLSL         | Type        | Description           |
+| ------------ | ------------ | ----------- | --------------------- |
+| in.uv        | uv           | float2/vec2 | -1..1 centered coords |
+| in.color     | color        | float4/vec4 | Vertex color          |
+| in.p0..in.p3 | p0..p3       | float4/vec4 | Custom params         |
+| in.position  | gl_FragCoord | float4/vec4 | Screen position       |
 
 ## Output
 
-Declare a local `float4 frag_color` (Metal) or `vec4 frag_color`
-(GLSL). The framework applies SDF clipping automatically.
+Declare a local `float4 frag_color` (Metal) or `vec4 frag_color` (GLSL). The
+framework applies SDF clipping automatically.
 
 ## Notes
 
 - Must provide both Metal and GLSL bodies for cross-platform
-- Pipeline is compiled once per unique source and cached
-  (`ShaderHash` computes the cache key)
+- Pipeline is compiled once per unique source and cached (`ShaderHash` computes
+  the cache key)
 - Shader fill takes priority over Gradient and solid Color
 - Add a repeating animation to keep the frame loop hot

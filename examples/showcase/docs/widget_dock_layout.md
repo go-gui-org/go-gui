@@ -1,6 +1,6 @@
-IDE-style docking layout with splits, tabs, and drag-and-drop
-panel rearrangement. The layout is a user-owned binary tree of
-DockNode values: internal nodes are splits, leaves are panel groups.
+IDE-style docking layout with splits, tabs, and drag-and-drop panel
+rearrangement. The layout is a user-owned binary tree of DockNode values:
+internal nodes are splits, leaves are panel groups.
 
 ## Usage
 
@@ -38,7 +38,7 @@ root := gui.DockSplit("root", gui.DockSplitHorizontal, 0.2,
 ## DockLayoutCfg
 
 | Property          | Type                          | Description                            |
-|-------------------|-------------------------------|----------------------------------------|
+| ----------------- | ----------------------------- | -------------------------------------- |
 | ID                | string                        | Unique identifier                      |
 | Root              | *DockNode                     | Layout tree root                       |
 | Panels            | []DockPanelDef                | Panel definitions                      |
@@ -56,17 +56,17 @@ root := gui.DockSplit("root", gui.DockSplitHorizontal, 0.2,
 
 ## DockPanelDef
 
-| Property | Type   | Description                 |
-|----------|--------|-----------------------------|
-| ID       | string | Unique panel identifier     |
-| Label    | string | Tab label text              |
-| Content  | []View | Panel content views         |
-| Closable | bool   | Allow user to close panel   |
+| Property | Type   | Description               |
+| -------- | ------ | ------------------------- |
+| ID       | string | Unique panel identifier   |
+| Label    | string | Tab label text            |
+| Content  | []View | Panel content views       |
+| Closable | bool   | Allow user to close panel |
 
 ## Tree Operations
 
 | Function                  | Description                         |
-|---------------------------|-------------------------------------|
+| ------------------------- | ----------------------------------- |
 | DockTreeRemovePanel       | Remove panel; collapse empty splits |
 | DockTreeAddTab            | Add panel as tab in existing group  |
 | DockTreeSplitAt           | Split a group, insert panel at edge |
@@ -113,8 +113,8 @@ Example output:
 
 ## Events
 
-| Callback       | Signature                         | Fired when              |
-|----------------|-----------------------------------|-------------------------|
-| OnLayoutChange | func(*DockNode, *Window)          | Drag-drop rearrangement |
-| OnPanelSelect  | func(string, string, *Window)     | Tab selected            |
-| OnPanelClose   | func(string, *Window)             | Panel closed            |
+| Callback       | Signature                     | Fired when              |
+| -------------- | ----------------------------- | ----------------------- |
+| OnLayoutChange | func(*DockNode, *Window)      | Drag-drop rearrangement |
+| OnPanelSelect  | func(string, string, *Window) | Tab selected            |
+| OnPanelClose   | func(string, *Window)         | Panel closed            |

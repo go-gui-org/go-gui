@@ -1,6 +1,6 @@
-Right-click context menu that opens at the cursor position.
-Wraps any content view and intercepts right-click to show a floating
-menu. Supports submenus, separators, subtitles, and keyboard navigation.
+Right-click context menu that opens at the cursor position. Wraps any content
+view and intercepts right-click to show a floating menu. Supports submenus,
+separators, subtitles, and keyboard navigation.
 
 ## Usage
 
@@ -51,7 +51,7 @@ gui.ContextMenu(w, gui.ContextMenuCfg{
 ## Key Properties
 
 | Property    | Type            | Description                         |
-|-------------|-----------------|-------------------------------------|
+| ----------- | --------------- | ----------------------------------- |
 | ID          | string          | Unique identifier                   |
 | Items       | []MenuItemCfg   | Menu items to display               |
 | Content     | []View          | Child views wrapped by context menu |
@@ -66,44 +66,44 @@ gui.ContextMenu(w, gui.ContextMenuCfg{
 
 ## Appearance
 
-| Property          | Type         | Description                      |
-|-------------------|--------------|----------------------------------|
-| Color             | Color        | Menu background color            |
-| ColorBorder       | Color        | Menu border color                |
-| ColorSelect       | Color        | Highlighted item color           |
-| SizeBorder        | Opt[float32] | Border width                     |
-| Radius            | Opt[float32] | Menu corner radius               |
-| RadiusMenuItem    | Opt[float32] | Item corner radius               |
-| TextStyle         | TextStyle    | Menu item text styling           |
-| TextStyleSubtitle | TextStyle    | Subtitle text styling            |
-| PaddingMenuItem   | Opt[Padding] | Menu item padding                |
-| PaddingSubmenu    | Opt[Padding] | Submenu padding                  |
-| SpacingSubmenu    | Opt[float32] | Submenu item spacing             |
-| WidthSubmenuMin   | Opt[float32] | Minimum submenu width            |
-| WidthSubmenuMax   | Opt[float32] | Maximum submenu width            |
+| Property          | Type         | Description            |
+| ----------------- | ------------ | ---------------------- |
+| Color             | Color        | Menu background color  |
+| ColorBorder       | Color        | Menu border color      |
+| ColorSelect       | Color        | Highlighted item color |
+| SizeBorder        | Opt[float32] | Border width           |
+| Radius            | Opt[float32] | Menu corner radius     |
+| RadiusMenuItem    | Opt[float32] | Item corner radius     |
+| TextStyle         | TextStyle    | Menu item text styling |
+| TextStyleSubtitle | TextStyle    | Subtitle text styling  |
+| PaddingMenuItem   | Opt[Padding] | Menu item padding      |
+| PaddingSubmenu    | Opt[Padding] | Submenu padding        |
+| SpacingSubmenu    | Opt[float32] | Submenu item spacing   |
+| WidthSubmenuMin   | Opt[float32] | Minimum submenu width  |
+| WidthSubmenuMax   | Opt[float32] | Maximum submenu width  |
 
 ## Events
 
-| Callback   | Signature                          | Fired when                |
-|------------|------------------------------------|---------------------------|
-| Action     | func(string, *Event, *Window)      | Menu item selected        |
-| OnAnyClick | func(*Layout, *Event, *Window)     | Any click before menu     |
+| Callback   | Signature                      | Fired when            |
+| ---------- | ------------------------------ | --------------------- |
+| Action     | func(string, *Event, *Window)  | Menu item selected    |
+| OnAnyClick | func(*Layout, *Event, *Window) | Any click before menu |
 
 ## Menu Item Helpers
 
-| Helper                                  | Description                     |
-|-----------------------------------------|---------------------------------|
-| MenuItemText(id, text)                  | Standard menu item              |
-| MenuSeparator()                         | Horizontal divider              |
-| MenuSubtitle(text)                      | Non-interactive section heading |
-| MenuSubmenu(id, text, []MenuItemCfg)    | Nested submenu                  |
+| Helper                               | Description                     |
+| ------------------------------------ | ------------------------------- |
+| MenuItemText(id, text)               | Standard menu item              |
+| MenuSeparator()                      | Horizontal divider              |
+| MenuSubtitle(text)                   | Non-interactive section heading |
+| MenuSubmenu(id, text, []MenuItemCfg) | Nested submenu                  |
 
 ## Keyboard Navigation
 
-| Key         | Action                              |
-|-------------|-------------------------------------|
-| Escape      | Close menu                          |
-| Up / Down   | Move selection                      |
-| Enter/Space | Activate selected item              |
-| Right       | Open submenu                        |
-| Left        | Close submenu / return to parent    |
+| Key         | Action                           |
+| ----------- | -------------------------------- |
+| Escape      | Close menu                       |
+| Up / Down   | Move selection                   |
+| Enter/Space | Activate selected item           |
+| Right       | Open submenu                     |
+| Left        | Close submenu / return to parent |

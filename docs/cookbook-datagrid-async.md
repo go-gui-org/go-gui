@@ -1,7 +1,7 @@
 # Async data binding in DataGrid
 
-How to back a `DataGrid` with an asynchronous data source — paged
-server results, a database, or any custom backend.
+How to back a `DataGrid` with an asynchronous data source — paged server
+results, a database, or any custom backend.
 
 ## 1. Three-tier data binding
 
@@ -30,18 +30,17 @@ type DataGridDataSource interface {
 
 Three methods:
 
-- **`Capabilities()`** — declares what the source supports (pagination
-  style, whether row counts are known, which CRUD operations are
-  available). Called on the main goroutine before every fetch.
+- **`Capabilities()`** — declares what the source supports (pagination style,
+  whether row counts are known, which CRUD operations are available). Called on
+  the main goroutine before every fetch.
 
-- **`FetchData()`** — called from a background goroutine. Receives the
-  page request, query state (filters, sorts, quick-filter), and an
-  abort signal. Returns a page of rows.
+- **`FetchData()`** — called from a background goroutine. Receives the page
+  request, query state (filters, sorts, quick-filter), and an abort signal.
+  Returns a page of rows.
 
-- **`MutateData()`** — called from a background goroutine when the user
-  creates, updates, or deletes rows via the CRUD toolbar or inline
-  editing. Receives the mutation kind, affected rows, cell edits, and
-  an abort signal.
+- **`MutateData()`** — called from a background goroutine when the user creates,
+  updates, or deletes rows via the CRUD toolbar or inline editing. Receives the
+  mutation kind, affected rows, cell edits, and an abort signal.
 
 ### Supporting types
 
@@ -77,9 +76,9 @@ type GridDataResult struct {
 
 ## 3. Quick start: InMemoryDataSource
 
-For prototypes and small-to-medium datasets, `InMemoryDataSource`
-provides filtering, sorting, cursor/offset pagination, and full CRUD
-without writing a custom source.
+For prototypes and small-to-medium datasets, `InMemoryDataSource` provides
+filtering, sorting, cursor/offset pagination, and full CRUD without writing a
+custom source.
 
 ```go
 import (
@@ -130,14 +129,14 @@ func mainView(w *gui.Window) gui.View {
 ```
 
 `InMemoryDataSource` applies `Query.Filters`, `Query.Sorts`, and
-`Query.QuickFilter` automatically. Mutations (create, update, delete)
-modify the in-memory slice. Set `LatencyMs` > 0 to simulate async
-latency for development; set it to 0 in production.
+`Query.QuickFilter` automatically. Mutations (create, update, delete) modify the
+in-memory slice. Set `LatencyMs` > 0 to simulate async latency for development;
+set it to 0 in production.
 
 ## 4. Custom data source
 
-Implement `DataGridDataSource` directly when the data lives in a
-remote API, database, or any custom store.
+Implement `DataGridDataSource` directly when the data lives in a remote API,
+database, or any custom store.
 
 ```go
 type RESTDataSource struct {
@@ -197,23 +196,21 @@ func (s *RESTDataSource) MutateData(
 
 ### Key rules for FetchData
 
-- **Check `req.Signal.IsAborted()`** before expensive work and
-  periodically during long operations. The grid cancels stale requests
-  when the user pages quickly or changes filters.
-- **`req.Page` is a sealed interface.** Type-switch on
-  `GridCursorPageReq` (has `Cursor` and `Limit`) or
-  `GridOffsetPageReq` (has `StartIndex` and `EndIndex`). Fall back to
-  a default first page when neither matches.
-- **`RowCount` = -1** when the total is unknown. The grid shows "?" in
-  the status bar.
-- **Return a proper `NextCursor`** for cursor pagination so the "next
-  page" button works.
+- **Check `req.Signal.IsAborted()`** before expensive work and periodically
+  during long operations. The grid cancels stale requests when the user pages
+  quickly or changes filters.
+- **`req.Page` is a sealed interface.** Type-switch on `GridCursorPageReq` (has
+  `Cursor` and `Limit`) or `GridOffsetPageReq` (has `StartIndex` and
+  `EndIndex`). Fall back to a default first page when neither matches.
+- **`RowCount` = -1** when the total is unknown. The grid shows "?" in the
+  status bar.
+- **Return a proper `NextCursor`** for cursor pagination so the "next page"
+  button works.
 
 ## 5. GridOrmDataSource
 
-For SQL-backed grids, `GridOrmDataSource` wraps user-provided callback
-functions with column validation, query normalization, and abort
-handling.
+For SQL-backed grids, `GridOrmDataSource` wraps user-provided callback functions
+with column validation, query normalization, and abort handling.
 
 ```go
 src := &datagrid.GridOrmDataSource{
@@ -333,27 +330,27 @@ Two pagination modes, selected by `DataGridCfg.PaginationKind`:
 - `GridDataCapabilities.SupportsCursorPagination` must be `true`.
 - Each page returns a `NextCursor` and `PrevCursor` (opaque strings).
 - The grid sends `GridCursorPageReq{Cursor, Limit}`.
-- Best for large, append-only datasets. Cursors survive
-  insertions/deletions better than offsets.
+- Best for large, append-only datasets. Cursors survive insertions/deletions
+  better than offsets.
 
 ### Offset-based (`GridPaginationOffset`)
 
 - `GridDataCapabilities.SupportsOffsetPagination` must be `true`.
 - The grid sends `GridOffsetPageReq{StartIndex, EndIndex}`.
-- `SupportsNumberedPages` enables numbered page buttons (1, 2, 3, …)
-  in addition to prev/next arrows.
-- Simpler to implement but can miss or duplicate rows if data changes
-  between pages.
+- `SupportsNumberedPages` enables numbered page buttons (1, 2, 3, …) in addition
+  to prev/next arrows.
+- Simpler to implement but can miss or duplicate rows if data changes between
+  pages.
 
-The `PaginationKind` field on `DataGridCfg` determines the mode. The
-grid validates it against `Capabilities()` and falls back to what the
-source supports.
+The `PaginationKind` field on `DataGridCfg` determines the mode. The grid
+validates it against `Capabilities()` and falls back to what the source
+supports.
 
 ## 7. Abort signals and staleness
 
-The grid automatically cancels in-flight requests when the user
-changes pages, filters, or sorts before the previous request
-completes. Your data source must cooperate:
+The grid automatically cancels in-flight requests when the user changes pages,
+filters, or sorts before the previous request completes. Your data source must
+cooperate:
 
 ```go
 func (s *MySource) FetchData(
@@ -375,9 +372,9 @@ func (s *MySource) FetchData(
 }
 ```
 
-The grid also drops stale responses — if a newer request was issued
-while this one was in flight, the result is discarded even if the
-source didn't check the signal.
+The grid also drops stale responses — if a newer request was issued while this
+one was in flight, the result is discarded even if the source didn't check the
+signal.
 
 `GetSourceStats()` exposes cancellation and staleness counters:
 
@@ -391,9 +388,9 @@ fmt.Printf("requests=%d cancelled=%d stale=%d\n",
 
 ### Loading indicator
 
-`DataGridCfg.Loading` is set automatically by the grid when a source
-request is in flight. The grid renders a spinner in the status bar.
-You can also read it to disable other UI:
+`DataGridCfg.Loading` is set automatically by the grid when a source request is
+in flight. The grid renders a spinner in the status bar. You can also read it to
+disable other UI:
 
 ```go
 stats := datagrid.GetSourceStats(w, "my-grid")
@@ -404,9 +401,9 @@ if stats.Loading {
 
 ### Error display
 
-Return an `error` from `FetchData()` or `MutateData()`. The grid
-displays the error message in the status bar and keeps the last
-successful page visible. Read it back via `GetSourceStats()`:
+Return an `error` from `FetchData()` or `MutateData()`. The grid displays the
+error message in the status bar and keeps the last successful page visible. Read
+it back via `GetSourceStats()`:
 
 ```go
 stats := datagrid.GetSourceStats(w, "my-grid")
@@ -417,15 +414,14 @@ if stats.LoadError != "" {
 
 ### Row count
 
-When `RowCountKnown` is `true`, the grid shows "Page 3 of 42 (4,200
-rows)". When `false`, it shows "Page 3 (200 rows)" with a "?"
-placeholder for the total.
+When `RowCountKnown` is `true`, the grid shows "Page 3 of 42 (4,200 rows)". When
+`false`, it shows "Page 3 (200 rows)" with a "?" placeholder for the total.
 
 ## 9. Source rebuilds
 
-When toggling pagination mode or switching data sets, create a new
-source and assign it to `DataGridCfg.DataSource`. The grid detects the
-change and issues a fresh fetch:
+When toggling pagination mode or switching data sets, create a new source and
+assign it to `DataGridCfg.DataSource`. The grid detects the change and issues a
+fresh fetch:
 
 ```go
 app.Source = &datagrid.InMemoryDataSource{
@@ -439,9 +435,9 @@ The old source's in-flight requests are aborted automatically.
 
 ## 10. Reference example
 
-Full working example: `examples/data_grid_data_source/main.go` —
-50,000 rows, cursor/offset pagination toggle, simulated latency,
-editable columns, inline CRUD.
+Full working example: `examples/data_grid_data_source/main.go` — 50,000 rows,
+cursor/offset pagination toggle, simulated latency, editable columns, inline
+CRUD.
 
 ## Checklist
 
@@ -453,8 +449,8 @@ editable columns, inline CRUD.
 - [ ] `MutateData()` handles all three mutation kinds (`GridMutationCreate`,
       `GridMutationUpdate`, `GridMutationDelete`).
 - [ ] Mutation callbacks validate column IDs against the grid config.
-- [ ] Source rebuilds create a new `DataGridDataSource` instance — don't
-      mutate the old one.
+- [ ] Source rebuilds create a new `DataGridDataSource` instance — don't mutate
+      the old one.
 - [ ] `OnCRUDError` callback is wired for user-visible error feedback.
-- [ ] `GetSourceStats()` is called only from the main goroutine (it reads
-      from `StateMap` without a lock).
+- [ ] `GetSourceStats()` is called only from the main goroutine (it reads from
+      `StateMap` without a lock).

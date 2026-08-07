@@ -1,6 +1,6 @@
-Linear and radial gradients with configurable direction
-and color stops. Applied via the `Gradient` field on any container
-or rectangle. `BorderGradient` applies a gradient to the border.
+Linear and radial gradients with configurable direction and color stops. Applied
+via the `Gradient` field on any container or rectangle. `BorderGradient` applies
+a gradient to the border.
 
 ## Linear Gradient
 
@@ -62,25 +62,25 @@ gui.Column(gui.ContainerCfg{
 
 ## GradientDef Properties
 
-| Property  | Type              | Description                          |
-|-----------|-------------------|--------------------------------------|
+| Property  | Type              | Description                                |
+| --------- | ----------------- | ------------------------------------------ |
 | Type      | GradientType      | GradientLinear (default) or GradientRadial |
-| Direction | GradientDirection | Named direction constant              |
-| Angle     | float32           | Explicit angle in degrees            |
-| HasAngle  | bool              | True when Angle overrides Direction  |
-| Stops     | []GradientStop    | Color stops (Pos 0.0-1.0)           |
+| Direction | GradientDirection | Named direction constant                   |
+| Angle     | float32           | Explicit angle in degrees                  |
+| HasAngle  | bool              | True when Angle overrides Direction        |
+| Stops     | []GradientStop    | Color stops (Pos 0.0-1.0)                  |
 
 ## Gradient Types
 
-| Type           | Description              |
-|----------------|--------------------------|
+| Type           | Description               |
+| -------------- | ------------------------- |
 | GradientLinear | Linear gradient (default) |
-| GradientRadial | Radial gradient          |
+| GradientRadial | Radial gradient           |
 
 ## Directions
 
 | Constant              | Angle |
-|-----------------------|-------|
+| --------------------- | ----- |
 | GradientToTop         | 0°    |
 | GradientToTopRight    | 45°   |
 | GradientToRight       | 90°   |
@@ -92,7 +92,7 @@ gui.Column(gui.ContainerCfg{
 
 ## GradientStop
 
-| Field | Type    | Description                |
-|-------|---------|----------------------------|
-| Color | Color   | Stop color                 |
+| Field | Type    | Description                       |
+| ----- | ------- | --------------------------------- |
+| Color | Color   | Stop color                        |
 | Pos   | float32 | Position along gradient (0.0-1.0) |

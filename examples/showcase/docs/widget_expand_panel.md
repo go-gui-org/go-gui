@@ -1,5 +1,5 @@
-Collapsible section with a clickable header and expandable
-body. Header shows an arrow indicator that reflects the open state.
+Collapsible section with a clickable header and expandable body. Header shows an
+arrow indicator that reflects the open state.
 
 ## Usage
 
@@ -19,39 +19,39 @@ gui.ExpandPanel(gui.ExpandPanelCfg{
 
 ## Key Properties
 
-| Property  | Type         | Description                          |
-|-----------|--------------|--------------------------------------|
-| ID        | string       | Unique identifier                    |
-| Head      | View         | Header view (always visible)         |
-| Content   | View         | Collapsible body content             |
-| Open      | bool         | Expanded state                       |
-| Sizing    | Sizing       | Combined axis sizing mode            |
-| MinWidth  | float32      | Minimum width                        |
-| MaxWidth  | float32      | Maximum width                        |
-| MinHeight | float32      | Minimum height                       |
-| MaxHeight | float32      | Maximum height                       |
+| Property  | Type    | Description                  |
+| --------- | ------- | ---------------------------- |
+| ID        | string  | Unique identifier            |
+| Head      | View    | Header view (always visible) |
+| Content   | View    | Collapsible body content     |
+| Open      | bool    | Expanded state               |
+| Sizing    | Sizing  | Combined axis sizing mode    |
+| MinWidth  | float32 | Minimum width                |
+| MaxWidth  | float32 | Maximum width                |
+| MinHeight | float32 | Minimum height               |
+| MaxHeight | float32 | Maximum height               |
 
 ## Appearance
 
-| Property    | Type         | Description                          |
-|-------------|--------------|--------------------------------------|
-| Color       | Color        | Background color                     |
-| ColorHover  | Color        | Header background on hover           |
-| ColorClick  | Color        | Header background on click           |
-| ColorBorder | Color        | Border color                         |
-| Padding     | Opt[Padding] | Inner padding                        |
-| SizeBorder  | Opt[float32] | Border width                         |
-| Radius      | Opt[float32] | Corner radius                        |
+| Property    | Type         | Description                |
+| ----------- | ------------ | -------------------------- |
+| Color       | Color        | Background color           |
+| ColorHover  | Color        | Header background on hover |
+| ColorClick  | Color        | Header background on click |
+| ColorBorder | Color        | Border color               |
+| Padding     | Opt[Padding] | Inner padding              |
+| SizeBorder  | Opt[float32] | Border width               |
+| Radius      | Opt[float32] | Corner radius              |
 
 ## Events
 
-| Callback | Signature        | Fired when                           |
-|----------|------------------|--------------------------------------|
-| OnToggle | func(*Window)    | Header clicked or Space pressed      |
+| Callback | Signature     | Fired when                      |
+| -------- | ------------- | ------------------------------- |
+| OnToggle | func(*Window) | Header clicked or Space pressed |
 
 ## Accessibility
 
-| Property        | Type   | Description                          |
-|-----------------|--------|--------------------------------------|
-| A11YLabel       | string | Accessible label                     |
-| A11YDescription | string | Accessible description               |
+| Property        | Type   | Description            |
+| --------------- | ------ | ---------------------- |
+| A11YLabel       | string | Accessible label       |
+| A11YDescription | string | Accessible description |

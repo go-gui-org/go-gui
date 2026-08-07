@@ -1,5 +1,5 @@
-Draggable slider for selecting a value within a
-numeric range. Supports horizontal and vertical orientations.
+Draggable slider for selecting a value within a numeric range. Supports
+horizontal and vertical orientations.
 
 ## Example
 
@@ -29,48 +29,48 @@ gui.Slider(gui.SliderCfg{
 
 ## Key Properties
 
-| Property   | Type    | Description                          |
-|------------|---------|--------------------------------------|
-| Value      | float32 | Current value                        |
-| Min        | float32 | Range minimum (default 0)            |
-| Max        | float32 | Range maximum (default 100)          |
-| Step       | float32 | Step increment                       |
-| Vertical   | bool    | Vertical orientation                 |
-| RoundValue | bool    | Round to nearest integer             |
-| ThumbSize  | float32 | Thumb diameter                       |
-| Size       | float32 | Track thickness                      |
-| Width      | float32 | Fixed width                          |
-| Height     | float32 | Fixed height                         |
-| IDFocus    | uint32  | Tab-order focus ID (> 0 to enable)   |
-| Sizing     | Sizing  | Combined axis sizing mode            |
-| Disabled   | bool    | Disable interaction                  |
-| Invisible  | bool    | Hide without removing from layout    |
+| Property   | Type    | Description                        |
+| ---------- | ------- | ---------------------------------- |
+| Value      | float32 | Current value                      |
+| Min        | float32 | Range minimum (default 0)          |
+| Max        | float32 | Range maximum (default 100)        |
+| Step       | float32 | Step increment                     |
+| Vertical   | bool    | Vertical orientation               |
+| RoundValue | bool    | Round to nearest integer           |
+| ThumbSize  | float32 | Thumb diameter                     |
+| Size       | float32 | Track thickness                    |
+| Width      | float32 | Fixed width                        |
+| Height     | float32 | Fixed height                       |
+| IDFocus    | uint32  | Tab-order focus ID (> 0 to enable) |
+| Sizing     | Sizing  | Combined axis sizing mode          |
+| Disabled   | bool    | Disable interaction                |
+| Invisible  | bool    | Hide without removing from layout  |
 
 ## Appearance
 
-| Property     | Type         | Description                      |
-|--------------|--------------|----------------------------------|
-| Padding      | Opt[Padding] | Inner padding                    |
-| Radius       | Opt[float32] | Track corner radius              |
-| RadiusBorder | Opt[float32] | Border corner radius             |
-| SizeBorder   | Opt[float32] | Border width                     |
-| Color        | Color        | Track background color           |
-| ColorLeft    | Color        | Filled portion color             |
-| ColorThumb   | Color        | Thumb color                      |
-| ColorHover   | Color        | Thumb on hover                   |
-| ColorFocus   | Color        | Thumb when focused               |
-| ColorClick   | Color        | Thumb on click                   |
-| ColorBorder  | Color        | Border color                     |
+| Property     | Type         | Description            |
+| ------------ | ------------ | ---------------------- |
+| Padding      | Opt[Padding] | Inner padding          |
+| Radius       | Opt[float32] | Track corner radius    |
+| RadiusBorder | Opt[float32] | Border corner radius   |
+| SizeBorder   | Opt[float32] | Border width           |
+| Color        | Color        | Track background color |
+| ColorLeft    | Color        | Filled portion color   |
+| ColorThumb   | Color        | Thumb color            |
+| ColorHover   | Color        | Thumb on hover         |
+| ColorFocus   | Color        | Thumb when focused     |
+| ColorClick   | Color        | Thumb on click         |
+| ColorBorder  | Color        | Border color           |
 
 ## Events
 
-| Callback | Signature                          | Fired when       |
-|----------|------------------------------------|------------------|
-| OnChange | func(float32, *Event, *Window)     | Value changes    |
+| Callback | Signature                      | Fired when    |
+| -------- | ------------------------------ | ------------- |
+| OnChange | func(float32, *Event, *Window) | Value changes |
 
 ## Accessibility
 
-| Property        | Type   | Description                          |
-|-----------------|--------|--------------------------------------|
-| A11YLabel       | string | Accessible label                     |
-| A11YDescription | string | Accessible description               |
+| Property        | Type   | Description            |
+| --------------- | ------ | ---------------------- |
+| A11YLabel       | string | Accessible label       |
+| A11YDescription | string | Accessible description |

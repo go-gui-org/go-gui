@@ -1,6 +1,5 @@
-Non-blocking notifications with severity levels, auto-dismiss,
-and optional action buttons. Toasts animate in/out and pause dismissal
-on hover.
+Non-blocking notifications with severity levels, auto-dismiss, and optional
+action buttons. Toasts animate in/out and pause dismissal on hover.
 
 ## Usage
 
@@ -28,33 +27,33 @@ w.Toast(gui.ToastCfg{
 
 ## API
 
-| Method              | Description                      |
-|---------------------|----------------------------------|
-| w.Toast(cfg)        | Show toast, returns uint64 ID    |
-| w.ToastDismiss(id)  | Dismiss specific toast           |
-| w.ToastDismissAll() | Dismiss all toasts               |
+| Method              | Description                   |
+| ------------------- | ----------------------------- |
+| w.Toast(cfg)        | Show toast, returns uint64 ID |
+| w.ToastDismiss(id)  | Dismiss specific toast        |
+| w.ToastDismissAll() | Dismiss all toasts            |
 
 ## Key Properties
 
-| Property    | Type          | Description                          |
-|-------------|---------------|--------------------------------------|
-| Title       | string        | Toast heading                        |
-| Body        | string        | Toast message body                   |
-| Severity    | ToastSeverity | Visual style (color accent)          |
-| Duration    | time.Duration | Auto-dismiss delay (0 = 3s default)  |
-| ActionLabel | string        | Optional action button text          |
+| Property    | Type          | Description                         |
+| ----------- | ------------- | ----------------------------------- |
+| Title       | string        | Toast heading                       |
+| Body        | string        | Toast message body                  |
+| Severity    | ToastSeverity | Visual style (color accent)         |
+| Duration    | time.Duration | Auto-dismiss delay (0 = 3s default) |
+| ActionLabel | string        | Optional action button text         |
 
 ## Events
 
-| Callback | Signature      | Fired when                           |
-|----------|----------------|--------------------------------------|
-| OnAction | func(*Window)  | Action button clicked                |
+| Callback | Signature     | Fired when            |
+| -------- | ------------- | --------------------- |
+| OnAction | func(*Window) | Action button clicked |
 
 ## Severity
 
-| Constant     | Use case                             |
-|--------------|--------------------------------------|
-| ToastInfo    | Informational                        |
-| ToastSuccess | Positive outcome                     |
-| ToastWarning | Needs attention                      |
-| ToastError   | Critical failure                     |
+| Constant     | Use case         |
+| ------------ | ---------------- |
+| ToastInfo    | Informational    |
+| ToastSuccess | Positive outcome |
+| ToastWarning | Needs attention  |
+| ToastError   | Critical failure |

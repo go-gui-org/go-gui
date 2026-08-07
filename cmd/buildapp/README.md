@@ -1,8 +1,8 @@
 # buildapp
 
 Wraps a compiled go-gui binary into a macOS `.app` bundle so it can be
-double-clicked, dragged to `/Applications`, and shown in the Dock with a
-proper name and icon.
+double-clicked, dragged to `/Applications`, and shown in the Dock with a proper
+name and icon.
 
 ## Install
 
@@ -40,7 +40,8 @@ copies every non-system dylib (anything outside `/usr/lib`, `/System/Library`,
 `/Library/Apple`) into `Contents/Frameworks/`, then uses `install_name_tool` to:
 
 - rewrite each bundled dylib's own id to `@rpath/<basename>`
-- rewrite every reference in the executable and in bundled dylibs to `@rpath/<basename>`
+- rewrite every reference in the executable and in bundled dylibs to
+  `@rpath/<basename>`
 - add `@executable_path/../Frameworks` as an rpath on the executable
 
 Transitive dependencies are followed. Every modified Mach-O file is ad-hoc
@@ -55,9 +56,9 @@ find Foo.app -type f -perm +111 -exec otool -L {} \; | grep -E '/opt/homebrew|/u
 
 Empty output means no host paths leaked into the bundle.
 
-`.png` icons are converted to `.icns` via `sips` and `iconutil` (both
-ship with macOS). Intermediate iconset files live in the system temp
-directory and are removed on exit.
+`.png` icons are converted to `.icns` via `sips` and `iconutil` (both ship with
+macOS). Intermediate iconset files live in the system temp directory and are
+removed on exit.
 
 ## Example
 
@@ -81,7 +82,6 @@ GetStarted.app/
 
 - macOS only.
 - Existing `.app` at the destination is overwritten without prompting.
-- No code signing is performed. For Gatekeeper-friendly distribution,
-  run `codesign` and `notarytool` separately.
-- Shared libraries are not bundled; the target machine must
-  have them installed.
+- No code signing is performed. For Gatekeeper-friendly distribution, run
+  `codesign` and `notarytool` separately.
+- Shared libraries are not bundled; the target machine must have them installed.

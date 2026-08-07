@@ -1,6 +1,6 @@
-Text input with calendar popup for date entry. Combines a
-text field with an inline date picker dropdown. Displays the selected
-date formatted via the current locale.
+Text input with calendar popup for date entry. Combines a text field with an
+inline date picker dropdown. Displays the selected date formatted via the
+current locale.
 
 ## Usage
 
@@ -37,7 +37,7 @@ gui.InputDate(gui.InputDateCfg{
 ## Key Properties
 
 | Property             | Type                 | Description                        |
-|----------------------|----------------------|------------------------------------|
+| -------------------- | -------------------- | ---------------------------------- |
 | Date                 | time.Time            | Current date value                 |
 | Placeholder          | string               | Hint text shown when empty         |
 | SelectMultiple       | bool                 | Allow multiple date selection      |
@@ -56,42 +56,42 @@ gui.InputDate(gui.InputDateCfg{
 
 ## Filtering
 
-| Property        | Type                 | Description                        |
-|-----------------|----------------------|------------------------------------|
-| AllowedWeekdays | []DatePickerWeekdays | Restrict to specific days          |
-| AllowedMonths   | []DatePickerMonths   | Restrict to specific months        |
-| AllowedYears    | []int                | Restrict to specific years         |
-| AllowedDates    | []time.Time          | Restrict to specific dates         |
+| Property        | Type                 | Description                 |
+| --------------- | -------------------- | --------------------------- |
+| AllowedWeekdays | []DatePickerWeekdays | Restrict to specific days   |
+| AllowedMonths   | []DatePickerMonths   | Restrict to specific months |
+| AllowedYears    | []int                | Restrict to specific years  |
+| AllowedDates    | []time.Time          | Restrict to specific dates  |
 
 ## Appearance
 
-| Property         | Type         | Description                        |
-|------------------|--------------|------------------------------------|
-| Padding          | Opt[Padding] | Inner padding                      |
-| SizeBorder       | Opt[float32] | Border width                       |
-| CellSpacing      | Opt[float32] | Gap between calendar day cells     |
-| Radius           | Opt[float32] | Corner radius                      |
-| RadiusBorder     | Opt[float32] | Outer border radius                |
-| Color            | Color        | Background color                   |
-| ColorHover       | Color        | Background on hover                |
-| ColorFocus       | Color        | Background when focused            |
-| ColorClick       | Color        | Background on click                |
-| ColorBorder      | Color        | Border color                       |
-| ColorBorderFocus | Color        | Border color when focused          |
-| ColorSelect      | Color        | Selected date highlight            |
-| TextStyle        | TextStyle    | Text styling                       |
-| PlaceholderStyle | TextStyle    | Placeholder text styling           |
+| Property         | Type         | Description                    |
+| ---------------- | ------------ | ------------------------------ |
+| Padding          | Opt[Padding] | Inner padding                  |
+| SizeBorder       | Opt[float32] | Border width                   |
+| CellSpacing      | Opt[float32] | Gap between calendar day cells |
+| Radius           | Opt[float32] | Corner radius                  |
+| RadiusBorder     | Opt[float32] | Outer border radius            |
+| Color            | Color        | Background color               |
+| ColorHover       | Color        | Background on hover            |
+| ColorFocus       | Color        | Background when focused        |
+| ColorClick       | Color        | Background on click            |
+| ColorBorder      | Color        | Border color                   |
+| ColorBorderFocus | Color        | Border color when focused      |
+| ColorSelect      | Color        | Selected date highlight        |
+| TextStyle        | TextStyle    | Text styling                   |
+| PlaceholderStyle | TextStyle    | Placeholder text styling       |
 
 ## Events
 
-| Callback | Signature                            | Fired when           |
-|----------|--------------------------------------|----------------------|
-| OnSelect | func([]time.Time, *Event, *Window)   | Date(s) selected     |
-| OnEnter  | func(*Layout, *Event, *Window)       | Enter pressed        |
+| Callback | Signature                          | Fired when       |
+| -------- | ---------------------------------- | ---------------- |
+| OnSelect | func([]time.Time, *Event, *Window) | Date(s) selected |
+| OnEnter  | func(*Layout, *Event, *Window)     | Enter pressed    |
 
 ## Accessibility
 
-| Property        | Type   | Description                        |
-|-----------------|--------|------------------------------------|
-| A11YLabel       | string | Accessible label                   |
-| A11YDescription | string | Accessible description             |
+| Property        | Type   | Description            |
+| --------------- | ------ | ---------------------- |
+| A11YLabel       | string | Accessible label       |
+| A11YDescription | string | Accessible description |

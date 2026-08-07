@@ -101,10 +101,10 @@ Sibling projects:
 
 ## Why
 
-GUI frameworks in Go target the browser and tie you to HTML/CSS and
-JavaScript. go-gui takes the opposite approach: write your UI in pure Go,
-render it with native GPU acceleration — no browser runtime, no JavaScript
-bridge, no DOM. Your data stays in Go structs; your UI stays in Go code.
+GUI frameworks in Go target the browser and tie you to HTML/CSS and JavaScript.
+go-gui takes the opposite approach: write your UI in pure Go, render it with
+native GPU acceleration — no browser runtime, no JavaScript bridge, no DOM. Your
+data stays in Go structs; your UI stays in Go code.
 
 The second thesis: a GUI toolkit should be an **ecosystem of composable
 libraries**, not a monolith. go-glyph handles text. go-charts handles data.
@@ -137,8 +137,8 @@ sharing the same rendering pipeline and event system.
 
 ## Installation
 
-Requires **Go 1.26+**. A **C toolchain** (CGo) is needed only on **macOS** —
-the Metal backend is Objective-C. Linux and Windows build fully cgo-free
+Requires **Go 1.26+**. A **C toolchain** (CGo) is needed only on **macOS** — the
+Metal backend is Objective-C. Linux and Windows build fully cgo-free
 (`CGO_ENABLED=0 go build ./...`). The desktop backends are native: Metal on
 macOS, X11 + EGL on Linux, Win32 + WGL on Windows. Text shaping and
 rasterization are pure Go via go-glyph.
@@ -147,8 +147,9 @@ rasterization are pure Go via go-glyph.
 go get github.com/go-gui-org/go-gui
 ```
 
-See the [Installation Guide](https://github.com/go-gui-org/go-gui/wiki/Installation)
-for platform-specific instructions.
+See the
+[Installation Guide](https://github.com/go-gui-org/go-gui/wiki/Installation) for
+platform-specific instructions.
 
 ![todo example](assets/todo.png)
 
@@ -176,8 +177,8 @@ golangci-lint run ./...
 ## Roadmap
 
 Planning lives in [GitHub Issues](../../issues) and the go-gui-org project
-board, not a checked-in roadmap file. Browse open issues for current and
-planned work.
+board, not a checked-in roadmap file. Browse open issues for current and planned
+work.
 
 ## License
 

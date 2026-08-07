@@ -5,7 +5,8 @@ Demonstrates go-gui running on Android via OpenGL ES 3.0.
 ## Prerequisites
 
 - Go 1.23+
-- [gomobile](https://pkg.go.dev/golang.org/x/mobile/cmd/gomobile): `go install golang.org/x/mobile/cmd/gomobile@latest && gomobile init`
+- [gomobile](https://pkg.go.dev/golang.org/x/mobile/cmd/gomobile):
+  `go install golang.org/x/mobile/cmd/gomobile@latest && gomobile init`
 - Android SDK (compileSdk 35) + NDK
 - Android device or emulator (arm64, API 24+)
 
@@ -38,6 +39,8 @@ Kotlin host:
 ## Troubleshooting
 
 - **gomobile not found**: Ensure `$GOPATH/bin` is in `$PATH`
-- **NDK not found**: Set `ANDROID_NDK_HOME` or install via Android Studio SDK Manager
-- **Linker errors**: Verify NDK includes GLES3 headers (`$NDK/toolchains/llvm/prebuilt/*/sysroot/usr/include/GLES3/`)
+- **NDK not found**: Set `ANDROID_NDK_HOME` or install via Android Studio SDK
+  Manager
+- **Linker errors**: Verify NDK includes GLES3 headers
+  (`$NDK/toolchains/llvm/prebuilt/*/sysroot/usr/include/GLES3/`)
 - **Black screen**: Check logcat for `go-gui-gles` tag shader compilation errors

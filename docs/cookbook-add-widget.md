@@ -1,32 +1,30 @@
 # Adding a new widget
 
-Step-by-step guide for adding a widget to the `gui` package. Uses
-`Toggle` as the running example — a checkbox-style widget with focus,
-keyboard handling, accessibility, and theme defaults.
+Step-by-step guide for adding a widget to the `gui` package. Uses `Toggle` as
+the running example — a checkbox-style widget with focus, keyboard handling,
+accessibility, and theme defaults.
 
 ## 1. Create the Cfg struct
 
 Every widget has a `*Cfg` struct. Conventions:
 
-- **Zero-initializable** — all fields have usable zero values. Users
-  omit what they don't need: `ToggleCfg{Label: "Accept"}`
-- **Opt[T] for optional overrides** — `Opt[Padding]`, `Opt[float32]`
-  distinguish "not set" from an explicit zero. Use `cfg.Radius.Get(default)`
-  in the factory.
+- **Zero-initializable** — all fields have usable zero values. Users omit what
+  they don't need: `ToggleCfg{Label: "Accept"}`
+- **Opt[T] for optional overrides** — `Opt[Padding]`, `Opt[float32]` distinguish
+  "not set" from an explicit zero. Use `cfg.Radius.Get(default)` in the factory.
 - **Common fields** — every interactive widget includes: `ID string`,
-  `Disabled bool`, `Invisible bool`, and a focus field: either
-  `Focusable bool` (opt-in, e.g. Button) or `FocusDisabled bool`
-  (opt-out, for controls focusable by default, e.g. Input, Toggle,
-  Slider, Select). Focus always requires a non-empty `ID` — without
-  one the control never joins the tab order. Container-like
-  widgets add `Sizing Sizing`, `Float bool`, `FloatAnchor FloatAttach`,
-  `FloatTieOff FloatAttach`, `Padding Opt[Padding]`, `Radius Opt[float32]`,
-  `SizeBorder Opt[float32]`.
-- **Callbacks** — one func field per event. Sig: `func(*Layout, *Event, *Window)`.
-  Set `e.IsHandled = true` when consumed.
-- **`gui:"required"` tag** — fields that must be non-empty get the tag.
-  The `requiredid` vet analyzer enforces this at `go vet` time. Only use
-  when the widget cannot function without the value (e.g. `FormCfg.ID`).
+  `Disabled bool`, `Invisible bool`, and a focus field: either `Focusable bool`
+  (opt-in, e.g. Button) or `FocusDisabled bool` (opt-out, for controls focusable
+  by default, e.g. Input, Toggle, Slider, Select). Focus always requires a
+  non-empty `ID` — without one the control never joins the tab order.
+  Container-like widgets add `Sizing Sizing`, `Float bool`,
+  `FloatAnchor FloatAttach`, `FloatTieOff FloatAttach`, `Padding Opt[Padding]`,
+  `Radius Opt[float32]`, `SizeBorder Opt[float32]`.
+- **Callbacks** — one func field per event. Sig:
+  `func(*Layout, *Event, *Window)`. Set `e.IsHandled = true` when consumed.
+- **`gui:"required"` tag** — fields that must be non-empty get the tag. The
+  `requiredid` vet analyzer enforces this at `go vet` time. Only use when the
+  widget cannot function without the value (e.g. `FormCfg.ID`).
 
 Minimal example:
 
@@ -68,11 +66,11 @@ type ToggleCfg struct {
 
 Sig: `func WidgetName(cfg WidgetCfg) View`. The function:
 
-1. **Calls applyDefaults** — fills in theme colors, sizes, text styles
-   for any field the user didn't set
+1. **Calls applyDefaults** — fills in theme colors, sizes, text styles for any
+   field the user didn't set
 2. **Reads Opt[T] values** via `.Get(fallback)` to resolve "not set"
-3. **Builds a Layout tree** — returns a `ContainerCfg`-based layout
-   (usually `Row`, `Column`, or `Canvas`)
+3. **Builds a Layout tree** — returns a `ContainerCfg`-based layout (usually
+   `Row`, `Column`, or `Canvas`)
 4. **Sets a11y** — role, state, label on the root shape
 5. **Wires events** — OnClick, OnHover, OnChar, AmendLayout
 
@@ -155,8 +153,8 @@ func Toggle(cfg ToggleCfg) View {
 
 ### Key patterns
 
-**OnClick + keyboard activation** — use `ContainerCfg` fields to wire
-standard click semantics without per-frame closures:
+**OnClick + keyboard activation** — use `ContainerCfg` fields to wire standard
+click semantics without per-frame closures:
 
 ```go
 // Left-click only (not right/middle).
@@ -167,13 +165,13 @@ ClickButton: MouseLeft,
 ClickOnSpace: true,
 ```
 
-**Hover/focus feedback** — use `OnHover` for mouse hover, `AmendLayout`
-for keyboard focus. `AmendLayout` runs every frame after sizing — use it
-to update child colors based on `w.IsFocus(layout.Shape.ID)`.
+**Hover/focus feedback** — use `OnHover` for mouse hover, `AmendLayout` for
+keyboard focus. `AmendLayout` runs every frame after sizing — use it to update
+child colors based on `w.IsFocus(layout.Shape.ID)`.
 
 **a11yLabel helper** — `a11yLabel(userLabel, fallback)` returns the
-user-supplied label if non-empty, otherwise the fallback. Always set
-on interactive widgets.
+user-supplied label if non-empty, otherwise the fallback. Always set on
+interactive widgets.
 
 ## 3. Theme defaults
 
@@ -200,9 +198,9 @@ type toggleStyleDefaults struct {
 var DefaultToggleStyle = toggleStyleDefaults{...}
 ```
 
-And in the theme's `init()` or `buildTheme()` function, populate the
-light/dark variants. The factory's `applyDefaults` function fills in
-any field the user didn't set:
+And in the theme's `init()` or `buildTheme()` function, populate the light/dark
+variants. The factory's `applyDefaults` function fills in any field the user
+didn't set:
 
 ```go
 func applyToggleDefaults(cfg *ToggleCfg) {
@@ -222,24 +220,22 @@ func applyToggleDefaults(cfg *ToggleCfg) {
 }
 ```
 
-If your widget doesn't need custom theme entries, skip this step.
-Simple widgets can use `guiTheme` colors directly.
+If your widget doesn't need custom theme entries, skip this step. Simple widgets
+can use `guiTheme` colors directly.
 
 ## 4. Write tests
 
 Test file: `gui/view_toggle_test.go`. Test at minimum:
 
-1. **Layout structure** — assert the generated Layout has expected
-   shape, axis, children
-2. **Config passthrough** — ID, Disabled, Selected flags propagate
-   to the correct Shape
-3. **Property rendering** — text content, colors, sizing reflect the
-   config
-4. **Accessibility** — role, state, label are set correctly on the
-   root Shape
+1. **Layout structure** — assert the generated Layout has expected shape, axis,
+   children
+2. **Config passthrough** — ID, Disabled, Selected flags propagate to the
+   correct Shape
+3. **Property rendering** — text content, colors, sizing reflect the config
+4. **Accessibility** — role, state, label are set correctly on the root Shape
 
-Use `generateViewLayout(view, &Window{})` to build a Layout tree
-headlessly (no backend needed):
+Use `generateViewLayout(view, &Window{})` to build a Layout tree headlessly (no
+backend needed):
 
 ```go
 func TestToggleIDPassthrough(t *testing.T) {
@@ -267,8 +263,8 @@ func TestToggleSelectedTextContent(t *testing.T) {
 }
 ```
 
-For interactive widgets, also test event handling with a real Window
-and `RenderFrameZero` (see `view_input_test.go` for examples).
+For interactive widgets, also test event handling with a real Window and
+`RenderFrameZero` (see `view_input_test.go` for examples).
 
 ## 5. Add to showcase
 
@@ -335,8 +331,8 @@ go run ./examples/showcase/ # visual check
       `ClickOnEnter` where appropriate
 - [ ] Theme defaults in `theme_defaults.go` (or skip if not needed)
 - [ ] `apply<Name>Defaults` function for theme fallback
-- [ ] `gui/view_<name>_test.go` — layout structure, config passthrough,
-      a11y, property rendering tests
+- [ ] `gui/view_<name>_test.go` — layout structure, config passthrough, a11y,
+      property rendering tests
 - [ ] `examples/showcase/demo_<name>.go` — demo function
 - [ ] `examples/showcase/detail.go` — registered in `componentDemos`
 - [ ] `go test ./gui/...` passes

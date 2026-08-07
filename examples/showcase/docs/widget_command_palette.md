@@ -1,6 +1,6 @@
-Quick command search overlay with fuzzy filtering, keyboard
-navigation, and grouped items. Shows a centered floating card with a
-search input and scrollable results list.
+Quick command search overlay with fuzzy filtering, keyboard navigation, and
+grouped items. Shows a centered floating card with a search input and scrollable
+results list.
 
 ## Usage
 
@@ -21,53 +21,53 @@ gui.CommandPaletteToggle("cmd", w)
 
 ## API
 
-| Function                                     | Description              |
-|----------------------------------------------|--------------------------|
-| CommandPaletteShow(id, w)           | Show and focus palette   |
-| CommandPaletteDismiss(id, w)        | Hide palette             |
-| CommandPaletteToggle(id, w)         | Toggle visibility        |
-| CommandPaletteIsVisible(id, w) bool          | Check if visible         |
+| Function                            | Description            |
+| ----------------------------------- | ---------------------- |
+| CommandPaletteShow(id, w)           | Show and focus palette |
+| CommandPaletteDismiss(id, w)        | Hide palette           |
+| CommandPaletteToggle(id, w)         | Toggle visibility      |
+| CommandPaletteIsVisible(id, w) bool | Check if visible       |
 
 ## Key Properties
 
-| Property    | Type                 | Description                      |
-|-------------|----------------------|----------------------------------|
-| ID          | string               | Unique identifier                |
-| Items       | []CommandPaletteItem | Available commands               |
-| Placeholder | string               | Search input hint text           |
-| Width       | float32              | Palette width                    |
-| MaxHeight   | float32              | Maximum dropdown height          |
-| IDFocus     | uint32               | Focus ID for input               |
-| Scrollable  | bool                 | Opt into the scroll system (state keyed by ID)|
-| FloatZIndex | int                  | Z-index for float layering       |
+| Property    | Type                 | Description                                    |
+| ----------- | -------------------- | ---------------------------------------------- |
+| ID          | string               | Unique identifier                              |
+| Items       | []CommandPaletteItem | Available commands                             |
+| Placeholder | string               | Search input hint text                         |
+| Width       | float32              | Palette width                                  |
+| MaxHeight   | float32              | Maximum dropdown height                        |
+| IDFocus     | uint32               | Focus ID for input                             |
+| Scrollable  | bool                 | Opt into the scroll system (state keyed by ID) |
+| FloatZIndex | int                  | Z-index for float layering                     |
 
 ## Appearance
 
-| Property       | Type         | Description                      |
-|----------------|--------------|----------------------------------|
-| Color          | Color        | Card background color            |
-| ColorBorder    | Color        | Card border color                |
-| ColorHighlight | Color        | Highlighted item color           |
-| BackdropColor  | Color        | Semi-transparent backdrop        |
-| SizeBorder     | Opt[float32] | Border width                     |
-| Radius         | Opt[float32] | Corner radius                    |
-| TextStyle      | TextStyle    | Item label text styling          |
-| DetailStyle    | TextStyle    | Item detail text styling         |
+| Property       | Type         | Description               |
+| -------------- | ------------ | ------------------------- |
+| Color          | Color        | Card background color     |
+| ColorBorder    | Color        | Card border color         |
+| ColorHighlight | Color        | Highlighted item color    |
+| BackdropColor  | Color        | Semi-transparent backdrop |
+| SizeBorder     | Opt[float32] | Border width              |
+| Radius         | Opt[float32] | Corner radius             |
+| TextStyle      | TextStyle    | Item label text styling   |
+| DetailStyle    | TextStyle    | Item detail text styling  |
 
 ## CommandPaletteItem
 
-| Property | Type   | Description                          |
-|----------|--------|--------------------------------------|
-| ID       | string | Action identifier                    |
-| Label    | string | Display text                         |
-| Detail   | string | Secondary description                |
-| Icon     | string | Icon glyph                           |
-| Group    | string | Group heading                        |
-| Disabled | bool   | Disable this item                    |
+| Property | Type   | Description           |
+| -------- | ------ | --------------------- |
+| ID       | string | Action identifier     |
+| Label    | string | Display text          |
+| Detail   | string | Secondary description |
+| Icon     | string | Icon glyph            |
+| Group    | string | Group heading         |
+| Disabled | bool   | Disable this item     |
 
 ## Events
 
-| Callback  | Signature                        | Fired when                   |
-|-----------|----------------------------------|------------------------------|
-| OnAction  | func(string, *Event, *Window)    | Command selected             |
-| OnDismiss | func(*Window)                    | Palette dismissed            |
+| Callback  | Signature                     | Fired when        |
+| --------- | ----------------------------- | ----------------- |
+| OnAction  | func(string, *Event, *Window) | Command selected  |
+| OnDismiss | func(*Window)                 | Palette dismissed |

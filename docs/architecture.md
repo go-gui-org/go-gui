@@ -2,8 +2,8 @@
 
 ## High-Level Pipeline
 
-Immediate-mode GUI — no virtual DOM, no diffing. Each frame rebuilds the
-entire UI from the view function.
+Immediate-mode GUI — no virtual DOM, no diffing. Each frame rebuilds the entire
+UI from the view function.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -203,11 +203,10 @@ go-gui/
 
 ## Future Directions
 
-- **WebGPU**: Explored on the `webgpu-backend` branch (deleted) — 12
-  WGSL shader pipelines, device init, and render loop were working.
-  Rejected because WebGPU has no native text rendering path; a pure-Go
-  TTF rasterizer in go-glyph would be needed first.
-- **Native GL on desktop**: The native GL backend is the default
-  renderer on Linux and Windows. It provides direct platform windowing
-  (X11 on Linux, Win32 on Windows) with EGL/WGL contexts — no
-  intermediate library dependency.
+- **WebGPU**: Explored on the `webgpu-backend` branch (deleted) — 12 WGSL shader
+  pipelines, device init, and render loop were working. Rejected because WebGPU
+  has no native text rendering path; a pure-Go TTF rasterizer in go-glyph would
+  be needed first.
+- **Native GL on desktop**: The native GL backend is the default renderer on
+  Linux and Windows. It provides direct platform windowing (X11 on Linux, Win32
+  on Windows) with EGL/WGL contexts — no intermediate library dependency.

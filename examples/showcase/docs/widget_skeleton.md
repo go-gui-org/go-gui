@@ -1,6 +1,6 @@
-Shimmer placeholder for content that is still loading.
-Displays an animated gradient sweep over a solid base color,
-signaling that real content will appear once data arrives.
+Shimmer placeholder for content that is still loading. Displays an animated
+gradient sweep over a solid base color, signaling that real content will appear
+once data arrives.
 
 ## Usage
 
@@ -61,7 +61,7 @@ gui.Skeleton(gui.SkeletonCfg{
 ## Key Properties
 
 | Property  | Type            | Description                          |
-|-----------|-----------------|--------------------------------------|
+| --------- | --------------- | ------------------------------------ |
 | ID        | string          | Unique identifier (drives animation) |
 | Variant   | SkeletonVariant | Shape variant (rect or circle)       |
 | Sizing    | Sizing          | Combined axis sizing mode            |
@@ -76,22 +76,22 @@ gui.Skeleton(gui.SkeletonCfg{
 
 ## Appearance
 
-| Property       | Type         | Description                       |
-|----------------|--------------|-----------------------------------|
-| Color          | Color        | Base skeleton color               |
-| ColorHighlight | Color        | Shimmer highlight color           |
-| Radius         | Opt[float32] | Corner radius                     |
+| Property       | Type         | Description             |
+| -------------- | ------------ | ----------------------- |
+| Color          | Color        | Base skeleton color     |
+| ColorHighlight | Color        | Shimmer highlight color |
+| Radius         | Opt[float32] | Corner radius           |
 
 ## Variants
 
-| Variant        | Description                                |
-|----------------|--------------------------------------------|
-| SkeletonRect   | Rounded rectangle (default)                |
-| SkeletonCircle | Circle, sized by Width and Height          |
+| Variant        | Description                       |
+| -------------- | --------------------------------- |
+| SkeletonRect   | Rounded rectangle (default)       |
+| SkeletonCircle | Circle, sized by Width and Height |
 
 ## Accessibility
 
-| Property        | Type   | Description                            |
-|-----------------|--------|----------------------------------------|
-| A11YLabel       | string | Accessible label (default "Loading")   |
-| A11YDescription | string | Accessible description                 |
+| Property        | Type   | Description                          |
+| --------------- | ------ | ------------------------------------ |
+| A11YLabel       | string | Accessible label (default "Loading") |
+| A11YDescription | string | Accessible description               |
