@@ -277,6 +277,8 @@ func (w *Window) Update() {
 	}
 
 	w.layout = composeLayout(layers, w)
+	// Dev-mode identity checks. One atomic load when the gate is off.
+	w.debugAudit(&w.layout)
 	w.buildRenderers(w.Config.BgColor, w.windowRect())
 	if t {
 		t3 := time.Now()

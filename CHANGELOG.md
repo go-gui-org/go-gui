@@ -6,6 +6,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`gui.Debug(bool)` dev-mode diagnostics gate** (developer-ergonomics §4.1,
+  phase 1). Generalizes the focus-only `GOGUI_FOCUS_DEBUG` check into one gate
+  that audits each composed frame for identity defects the library otherwise
+  reports in no way at all: two shapes sharing an `ID`, a focusable shape with
+  no `ID` (renders and clicks, never joins the tab order), and a scrollable
+  shape with no `ID` (shares one scroll offset with every other ID-less
+  scrollable in the window). Findings go to stderr **once per finding per
+  window** — these run per frame, so an undeduplicated warning would emit at the
+  frame rate and be a reason to turn the gate back off. Cycling the gate off and
+  on clears that memory, so a re-enabled gate reports current state. Set at
+  startup by `GOGUI_DEBUG=1`; `GOGUI_FOCUS_DEBUG=1` still works. The flag is an
+  `atomic.Bool` because `Debug` makes it mutable at runtime and the checks read
+  it from the frame goroutine. Measured cost when off: no change in
+  `BenchmarkViewFrame` allocs (202 / 802 allocs/op unchanged) or ns/op.
+
+### Changed
+
+- **`State[T]` names both types when it panics.** A window holding the wrong
+  state type still panics — that is a programmer error discoverable on the first
+  frame, not a runtime condition worth threading through every view function —
+  but the message now reports the type held alongside the type requested instead
+  of Go's bare interface-conversion text.
+
+### Removed
+
+- **`RequireFocusID`** (developer-ergonomics §4.2). Dead exported guard: zero
+  call sites in go-gui, tests included, and zero across all five sibling repos,
+  despite fourteen files exposing a `Focusable bool` field. Retaining it implied
+  a check that never ran, which reads like coverage. Its static case belongs to
+  the `requiredid` analyzer, which reports at build time with the `Cfg` type
+  named; its dynamic case belongs to `RequireID` and the new debug gate. No
+  consumer action required.
+
 ## [v0.52.1] - 2026-08-07
 
 ### Fixed

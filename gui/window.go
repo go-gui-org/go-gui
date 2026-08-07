@@ -2,6 +2,7 @@ package gui
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -273,6 +274,10 @@ type Window struct {
 
 	// Window focus state — backend sets false on unfocus event.
 	focused bool
+
+	// debug is warn-once state for the dev-mode diagnostics in
+	// debug.go. Untouched unless Debug is on.
+	debug debugState
 }
 
 // MouseLockCfg stores callbacks for mouse event handling in a
@@ -316,8 +321,18 @@ type ViewState struct {
 }
 
 // State returns a typed pointer to the user-supplied state.
+//
+// Panics if the window holds a different state type. That is a
+// programmer error discoverable on the first frame, not a runtime
+// condition worth threading through every view function.
 func State[T any](w *Window) *T {
-	return w.state.(*T)
+	s, ok := w.state.(*T)
+	if !ok {
+		var want *T
+		panic(fmt.Sprintf(
+			"gui: State[%T] requested but window holds %T", want, w.state))
+	}
+	return s
 }
 
 // SetState sets the user state for the window.

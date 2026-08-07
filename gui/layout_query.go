@@ -1,23 +1,5 @@
 package gui
 
-import (
-	"fmt"
-	"os"
-)
-
-// focusDebug enables dev-mode focus diagnostics (duplicate focusable
-// IDs). Enable with GOGUI_FOCUS_DEBUG=1.
-var focusDebug = os.Getenv("GOGUI_FOCUS_DEBUG") == "1"
-
-// focusDupWarn reports a duplicate focusable ID in dev mode. Duplicate
-// IDs collapse to a single tab stop; the extra widget is skipped.
-func focusDupWarn(id string) {
-	if focusDebug {
-		fmt.Fprintf(os.Stderr,
-			"gui: duplicate focusable ID %q; collapsing to one tab stop\n", id)
-	}
-}
-
 // FindShape walks the layout depth-first until predicate is satisfied.
 func (layout *Layout) FindShape(predicate func(Layout) bool) (*Shape, bool) {
 	for i := range layout.Children {
@@ -105,9 +87,10 @@ type focusCandidate struct {
 func collectFocusCandidates(layout *Layout, candidates *[]focusCandidate, seen map[string]struct{}) {
 	s := layout.Shape
 	if s.Focusable && !s.FocusSkip && !s.Disabled && s.ID != "" {
-		if _, ok := seen[s.ID]; ok {
-			focusDupWarn(s.ID)
-		} else {
+		// A duplicate ID collapses to a single tab stop; the extra
+		// widget is skipped. Reported by the debug gate's duplicate-ID
+		// check (debug.go), which sees every ID, not only focusable ones.
+		if _, ok := seen[s.ID]; !ok {
 			seen[s.ID] = struct{}{}
 			*candidates = append(*candidates, focusCandidate{
 				id:    s.ID,
