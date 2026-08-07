@@ -10,6 +10,30 @@ and this project adheres to
 
 ### Added
 
+- **`ergoaudit -fix` codemod** (developer-ergonomics §8, phase 1). Tools-only;
+  no shipped library code changes. Mode `focus` can now rewrite the literals it
+  reports, inserting a generated `ID` into each. Phase 1 tags nine `Cfg` types
+  with `gui:"required"`, which turns 111 literals in this repo into build
+  failures at once — and hand-editing 111 literals is how a typo'd ID reaches
+  `main` looking like intent. `-fix-dry-run` reports the proposed IDs without
+  writing; `-fix-only` and `-fix-exclude` are regexps over repo-relative paths.
+  `make ergo-fix-dry` and `make ergo-fix` wrap the phase-1 invocation, scoped to
+  `_test.go` and `examples/` — go-gui's own widget defects get hand-chosen IDs,
+  because a shipped widget's `ID` is public identity, not scaffolding.
+
+  IDs come from a nested `TextCfg` label where there is one (`ButtonCfg`, the
+  dominant broken type, has no `Text` field — its label lives in `Content`),
+  otherwise the enclosing function, otherwise the `Cfg` type; each is made
+  unique within its file and checked against IDs already written by hand. The
+  rewrite is a byte splice applied in reverse offset order and then `gofmt`ed,
+  rather than a reprint of the whole AST, so the diff is the insertions and
+  nothing else. Single-line literals stay on one line.
+
+  This does not reopen §5.1. That section rejects IDs _computed at runtime from
+  tree position_, which have no source-level existence and silently reassign
+  scroll offsets and dropdown state when a sibling is inserted. An ID generated
+  into the source is an ordinary ID a human reads, reviews, and edits.
+
 - **`gui.Debug(bool)` dev-mode diagnostics gate** (developer-ergonomics §4.1,
   phase 1). Generalizes the focus-only `GOGUI_FOCUS_DEBUG` check into one gate
   that audits each composed frame for identity defects the library otherwise

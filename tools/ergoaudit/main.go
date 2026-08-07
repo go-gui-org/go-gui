@@ -9,6 +9,16 @@
 //
 // With no repo arguments both modes audit the current directory.
 //
+// Mode focus also rewrites. With -fix it inserts a generated ID into
+// every literal it classifies as broken; -fix-dry-run reports those
+// rewrites without performing them. -fix-only and -fix-exclude are
+// regexps over repo-relative paths, applied in that order. Phase 1 of
+// the spec runs it over this repo's tests and examples only, because
+// go-gui's own widgets get hand-chosen IDs — a shipped widget's ID is
+// public identity, not scaffolding:
+//
+//	go run ./tools/ergoaudit/ -mode focus -fix -fix-only '_test\.go$|^examples/' .
+//
 // Mode focus answers: which focusable-by-default widget Cfgs leave ID
 // unenforced, and how many call sites therefore render a control that
 // is not keyboard-reachable. The unguarded Cfg set is derived from the
@@ -34,6 +44,7 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -43,17 +54,33 @@ func main() {
 	mode := flag.String("mode", "focus", "audit to run: focus | callbacks")
 	guiRoot := flag.String("gui", ".", "path to the go-gui repo (source of truth for mode=focus)")
 	listShape = flag.String("list", "", "mode=callbacks: also list distinct signatures of this shape, or \"all\"")
+	fix := flag.Bool("fix", false, "mode=focus: rewrite broken literals in place, adding a generated ID")
+	fixDry := flag.Bool("fix-dry-run", false, "mode=focus: report what -fix would write, changing nothing")
+	fixOnly := flag.String("fix-only", "",
+		"mode=focus: regexp of repo-relative paths -fix may touch (default: all)")
+	fixSkip := flag.String("fix-exclude", "",
+		"mode=focus: regexp of repo-relative paths -fix must not touch")
 	flag.Parse()
+
+	only, err := compileFilter("-fix-only", *fixOnly)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "ergoaudit:", err)
+		os.Exit(1)
+	}
+	skip, err := compileFilter("-fix-exclude", *fixSkip)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "ergoaudit:", err)
+		os.Exit(1)
+	}
 
 	repos := flag.Args()
 	if len(repos) == 0 {
 		repos = []string{"."}
 	}
 
-	var err error
 	switch *mode {
 	case "focus":
-		err = runFocus(*guiRoot, repos)
+		err = runFocus(*guiRoot, repos, *fix || *fixDry, *fixDry, only, skip)
 	case "callbacks":
 		err = runCallbacks(*guiRoot, repos)
 	default:
@@ -63,6 +90,19 @@ func main() {
 		fmt.Fprintln(os.Stderr, "ergoaudit:", err)
 		os.Exit(1)
 	}
+}
+
+// compileFilter compiles an optional path filter, naming the flag in
+// the error so a bad regexp says which one it came from.
+func compileFilter(flagName, expr string) (*regexp.Regexp, error) {
+	if expr == "" {
+		return nil, nil
+	}
+	re, err := regexp.Compile(expr)
+	if err != nil {
+		return nil, fmt.Errorf("bad %s: %w", flagName, err)
+	}
+	return re, nil
 }
 
 // walkGo parses every non-vendored Go file under root and calls visit

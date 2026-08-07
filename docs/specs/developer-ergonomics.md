@@ -837,7 +837,7 @@ burying them in the same diff.
 | 1     | §4.1 `gui.Debug` gate                    | done   |
 | 1     | §4.2 delete `RequireFocusID`             | done   |
 | 1     | §5.3 `State[T]` panic message            | done   |
-| 1     | §8 `ergoaudit -fix` codemod              | todo   |
+| 1     | §8 `ergoaudit -fix` codemod              | done   |
 | 1     | §4.2 fix 12 first-party a11y defects     | todo   |
 | 1     | §4.9 fix `view_select.go` scroll defect  | todo   |
 | 1     | §4.2 tag 9 `Cfg`s + wire `RequireID`     | todo   |
