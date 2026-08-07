@@ -1,0 +1,36 @@
+package widgets
+
+// ButtonCfg exercises bare type expressions.
+type ButtonCfg struct {
+	OnClick       func(EventCtx)
+	OnKeyDown     func(EventCtx)
+	AmendLayout   func(EventCtx)
+	OnTextChanged func(string, EventCtx)
+	OnRowClick    func(GridRow, EventCtx)
+}
+
+func build() ButtonCfg {
+	return ButtonCfg{
+		// Consume-class: the terminal mark is redundant now.
+		OnClick: func(ctx EventCtx) {
+			doThing(ctx.Layout, ctx.Window)
+		},
+		// Notify-class: the mark becomes an explicit Consume.
+		OnKeyDown: func(ctx EventCtx) {
+			if ctx.Event.KeyCode == KeyEnter {
+				fire(ctx.Window)
+				ctx.Consume()
+			}
+		},
+		AmendLayout: func(ctx EventCtx) {
+			ctx.Layout.Shape.X = width(ctx.Window)
+		},
+		OnTextChanged: func(s string, ctx EventCtx) {
+			set(ctx.Layout, s, ctx.Window)
+		},
+		OnRowClick: func(row GridRow, ctx EventCtx) {
+			pick(row, ctx.Window)
+			ctx.Consume()
+		},
+	}
+}

@@ -208,8 +208,8 @@ func detailView(w *gui.Window) gui.View {
 func animButton(label string, action func(w *gui.Window)) gui.View {
 	return gui.Button(gui.ButtonCfg{
 		Content: []gui.View{gui.Text(gui.TextCfg{Text: label})},
-		OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-			action(w)
+		OnClick: func(ctx gui.EventCtx) {
+			action(ctx.Window)
 		},
 	})
 }

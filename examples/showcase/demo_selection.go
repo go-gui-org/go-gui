@@ -17,8 +17,8 @@ func demoToggle(w *gui.Window) gui.View {
 				ID:       "toggle-a",
 				Label:    "Toggle",
 				Selected: app.ToggleA,
-				OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-					a := gui.State[ShowcaseApp](w)
+				OnClick: func(ctx gui.EventCtx) {
+					a := gui.State[ShowcaseApp](ctx.Window)
 					a.ToggleA = !a.ToggleA
 				},
 			}),
@@ -26,8 +26,8 @@ func demoToggle(w *gui.Window) gui.View {
 				ID:       "checkbox-a",
 				Label:    "Checkbox",
 				Selected: app.CheckboxA,
-				OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-					a := gui.State[ShowcaseApp](w)
+				OnClick: func(ctx gui.EventCtx) {
+					a := gui.State[ShowcaseApp](ctx.Window)
 					a.CheckboxA = !a.CheckboxA
 				},
 			}),
@@ -47,8 +47,8 @@ func demoSwitch(w *gui.Window) gui.View {
 				ID:       "switch-a",
 				Label:    "Enable feature",
 				Selected: app.SwitchA,
-				OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-					a := gui.State[ShowcaseApp](w)
+				OnClick: func(ctx gui.EventCtx) {
+					a := gui.State[ShowcaseApp](ctx.Window)
 					a.SwitchA = !a.SwitchA
 				},
 			}),
@@ -70,8 +70,8 @@ func demoRadio(w *gui.Window) gui.View {
 			ID:       "radio-" + v,
 			Label:    opt.label,
 			Selected: app.RadioValue == v,
-			OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-				gui.State[ShowcaseApp](w).RadioValue = v
+			OnClick: func(ctx gui.EventCtx) {
+				gui.State[ShowcaseApp](ctx.Window).RadioValue = v
 			},
 		})
 	}
@@ -137,8 +137,8 @@ func demoSelect(w *gui.Window) gui.View {
 				Placeholder: "Pick a language",
 				Selected:    app.SelectValue,
 				Options:     []string{"Go", "Rust", "Zig", "C", "Python", "TypeScript"},
-				OnSelect: func(sel []string, _ *gui.Event, w *gui.Window) {
-					gui.State[ShowcaseApp](w).SelectValue = sel
+				OnSelect: func(sel []string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).SelectValue = sel
 				},
 			}),
 			sectionLabel(t, "Multi-Select"),
@@ -148,8 +148,8 @@ func demoSelect(w *gui.Window) gui.View {
 				Selected:       app.SelectValue,
 				SelectMultiple: true,
 				Options:        []string{"Go", "Rust", "Zig", "C", "Python", "TypeScript"},
-				OnSelect: func(sel []string, _ *gui.Event, w *gui.Window) {
-					gui.State[ShowcaseApp](w).SelectValue = sel
+				OnSelect: func(sel []string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).SelectValue = sel
 				},
 			}),
 		},
@@ -192,8 +192,8 @@ func demoListBox(w *gui.Window) gui.View {
 					gui.NewListBoxOption("elixir", "Elixir", "elixir"),
 					gui.NewListBoxOption("lua", "Lua", "lua"),
 				},
-				OnSelect: func(ids []string, _ *gui.Event, w *gui.Window) {
-					gui.State[ShowcaseApp](w).ListBoxSelected = ids
+				OnSelect: func(ids []string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).ListBoxSelected = ids
 				},
 			}),
 		},
@@ -219,8 +219,8 @@ func demoCombobox(w *gui.Window) gui.View {
 				Value:       app.ComboboxValue,
 				Options:     []string{"Go", "Rust", "Zig", "C", "C++", "Python", "TypeScript", "JavaScript", "Ruby", "Elixir"},
 				Sizing:      gui.FillFit,
-				OnSelect: func(v string, _ *gui.Event, w *gui.Window) {
-					gui.State[ShowcaseApp](w).ComboboxValue = v
+				OnSelect: func(v string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).ComboboxValue = v
 				},
 			}),
 		},
@@ -274,7 +274,7 @@ func demoDragReorder(w *gui.Window) gui.View {
 						dragSliceMove(&a.DragListItems, from, to)
 					}
 				},
-				OnSelect: func(_ []string, _ *gui.Event, _ *gui.Window) {},
+				OnSelect: func(_ []string, ctx gui.EventCtx) {},
 			}),
 
 			gui.Text(gui.TextCfg{Text: "Tab Control", TextStyle: t.B3}),
@@ -292,8 +292,8 @@ func demoDragReorder(w *gui.Window) gui.View {
 						dragSliceMove(&a.DragTabItems, from, to)
 					}
 				},
-				OnSelect: func(id string, _ *gui.Event, w *gui.Window) {
-					gui.State[ShowcaseApp](w).DragTabSel = id
+				OnSelect: func(id string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).DragTabSel = id
 				},
 			}),
 
@@ -381,8 +381,8 @@ func demoSlider(w *gui.Window) gui.View {
 				Min:    0,
 				Max:    100,
 				Sizing: gui.FillFit,
-				OnChange: func(v float32, _ *gui.Event, w *gui.Window) {
-					gui.State[ShowcaseApp](w).RangeValue = v
+				OnChange: func(v float32, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).RangeValue = v
 				},
 			}),
 		},

@@ -7,7 +7,7 @@ import (
 
 // SliderCfg configures a slider view.
 type SliderCfg struct {
-	OnChange func(float32, *Event, *Window)
+	OnChange func(float32, EventCtx)
 	ID       string `gui:"required"`
 
 	// Accessibility
@@ -157,47 +157,42 @@ func Slider(cfg SliderCfg) View {
 		HAlign:    HAlignCenter,
 		VAlign:    VAlignMiddle,
 		axis:      wrapperAxis,
-		OnClick: func(layout *Layout, e *Event, w *Window) {
-			ps := StateMap[string, bool](w, nsSliderPress, capModerate)
+		OnClick: func(ctx EventCtx) {
+			ps := StateMap[string, bool](ctx.Window, nsSliderPress, capModerate)
 			ps.Set(sliderID, true)
-			ev := *e
-			ev.MouseX = e.MouseX + layout.Shape.X
-			ev.MouseY = e.MouseY + layout.Shape.Y
-			sliderMouseMove(layout, &ev, w,
+			ev := *ctx.Event
+			ev.MouseX = ctx.Event.MouseX + ctx.Layout.Shape.X
+			ev.MouseY = ctx.Event.MouseY + ctx.Layout.Shape.Y
+			sliderMouseMove(ctx.Layout, &ev, ctx.Window,
 				sliderID, onChange, value,
 				minVal, maxVal, vertical, roundValue)
-			w.MouseLock(MouseLockCfg{
-				MouseMove: func(
-					layout *Layout, e *Event, w *Window,
-				) {
-					sliderMouseMove(layout, e, w,
+			ctx.Window.MouseLock(MouseLockCfg{
+				MouseMove: func(ctx EventCtx) {
+					sliderMouseMove(ctx.Layout, ctx.Event, ctx.Window,
 						sliderID, onChange, value,
 						minVal, maxVal, vertical, roundValue)
 				},
-				MouseUp: func(
-					_ *Layout, _ *Event, w *Window,
-				) {
-					ps := StateMap[string, bool](w, nsSliderPress, capModerate)
+				MouseUp: func(ctx EventCtx) {
+					ps := StateMap[string, bool](ctx.Window, nsSliderPress, capModerate)
 					ps.Set(sliderID, false)
-					w.MouseUnlock()
+					ctx.Window.MouseUnlock()
 				},
 			})
-			e.IsHandled = true
 		},
-		AmendLayout: func(layout *Layout, w *Window) {
-			sliderAmendLayoutSlide(layout, w,
+		AmendLayout: func(ctx EventCtx) {
+			sliderAmendLayoutSlide(ctx.Layout, ctx.Window,
 				onChange, value, minVal, maxVal, size, szBorder,
 				vertical, colorFocus, cfg.ColorLeft, disabled, focusID,
 				roundValue)
 		},
-		OnHover: func(layout *Layout, _ *Event, w *Window) {
-			w.SetMouseCursorPointingHand()
-			if len(layout.Children) > 0 {
-				layout.Children[0].Shape.ColorBorder = colorHover
+		OnHover: func(ctx EventCtx) {
+			ctx.Window.SetMouseCursorPointingHand()
+			if len(ctx.Layout.Children) > 0 {
+				ctx.Layout.Children[0].Shape.ColorBorder = colorHover
 			}
 		},
-		OnKeyDown: func(layout *Layout, e *Event, w *Window) {
-			sliderOnKeyDown(layout, e, w,
+		OnKeyDown: func(ctx EventCtx) {
+			sliderOnKeyDown(ctx.Layout, ctx.Event, ctx.Window,
 				onChange, value, minVal, maxVal, step, roundValue)
 		},
 		Content: []View{
@@ -225,11 +220,9 @@ func Slider(cfg SliderCfg) View {
 						ColorBorder: cfg.ColorBorder,
 						SizeBorder:  Some(sizeBorder),
 						Padding:     NoPadding,
-						AmendLayout: func(
-							layout *Layout, w *Window,
-						) {
+						AmendLayout: func(ctx EventCtx) {
 							sliderAmendLayoutThumb(
-								layout, w, value,
+								ctx.Layout, ctx.Window, value,
 								minVal, maxVal, thumbSize,
 								vertical)
 						},
@@ -242,7 +235,7 @@ func Slider(cfg SliderCfg) View {
 
 func sliderAmendLayoutSlide(
 	layout *Layout, w *Window,
-	onChange func(float32, *Event, *Window),
+	onChange func(float32, EventCtx),
 	value, minVal, maxVal, size, sizeBorder float32,
 	vertical bool, colorFocus, colorLeft Color,
 	disabled bool, focusID string, roundValue bool,
@@ -250,10 +243,8 @@ func sliderAmendLayoutSlide(
 	if layout.Shape.events == nil {
 		layout.Shape.events = &eventHandlers{}
 	}
-	layout.Shape.events.OnMouseScroll = func(
-		_ *Layout, e *Event, w *Window,
-	) {
-		sliderOnMouseScroll(e, w, onChange,
+	layout.Shape.events.OnMouseScroll = func(ctx EventCtx) {
+		sliderOnMouseScroll(ctx.Event, ctx.Window, onChange,
 			value, minVal, maxVal, roundValue)
 	}
 
@@ -328,7 +319,7 @@ func sliderAmendLayoutThumb(
 func sliderMouseMove(
 	layout *Layout, e *Event, w *Window,
 	sliderID string,
-	onChange func(float32, *Event, *Window),
+	onChange func(float32, EventCtx),
 	curValue, minVal, maxVal float32,
 	vertical, roundValue bool,
 ) {
@@ -352,7 +343,7 @@ func sliderMouseMove(
 			v = float32(math.Round(float64(v)))
 		}
 		if v != curValue {
-			onChange(v, e, w)
+			onChange(v, EventCtx{nil, e, w})
 		}
 	} else {
 		wd := shape.Width
@@ -363,14 +354,14 @@ func sliderMouseMove(
 			v = float32(math.Round(float64(v)))
 		}
 		if v != curValue {
-			onChange(v, e, w)
+			onChange(v, EventCtx{nil, e, w})
 		}
 	}
 }
 
 func sliderOnKeyDown(
 	_ *Layout, e *Event, w *Window,
-	onChange func(float32, *Event, *Window),
+	onChange func(float32, EventCtx),
 	curValue, minVal, maxVal, step float32, roundValue bool,
 ) {
 	if onChange == nil || e.Modifiers != ModNone {
@@ -394,13 +385,13 @@ func sliderOnKeyDown(
 		v = float32(math.Round(float64(v)))
 	}
 	if v != curValue {
-		onChange(v, e, w)
+		onChange(v, EventCtx{nil, e, w})
 	}
 }
 
 func sliderOnMouseScroll(
 	e *Event, w *Window,
-	onChange func(float32, *Event, *Window),
+	onChange func(float32, EventCtx),
 	curValue, minVal, maxVal float32, roundValue bool,
 ) {
 	e.IsHandled = true
@@ -412,6 +403,6 @@ func sliderOnMouseScroll(
 		v = float32(math.Round(float64(v)))
 	}
 	if v != curValue {
-		onChange(v, e, w)
+		onChange(v, EventCtx{nil, e, w})
 	}
 }

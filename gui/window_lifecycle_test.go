@@ -414,7 +414,7 @@ func TestMouseLockAndUnlock(t *testing.T) {
 		t.Error("should not be locked initially")
 	}
 	w.MouseLock(MouseLockCfg{
-		MouseMove: func(_ *Layout, _ *Event, _ *Window) {},
+		MouseMove: func(ctx EventCtx) {},
 	})
 	if !w.MouseIsLocked() {
 		t.Error("should be locked after MouseLock")

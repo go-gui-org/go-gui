@@ -193,20 +193,20 @@ type DataGridCfg struct {
 	ShowGroupCounts        *bool
 	HiddenColumnIDs        map[string]bool
 	DetailExpandedRowIDs   map[string]bool
-	OnQueryChange          func(GridQueryState, *gg.Event, *gg.Window)
-	OnSelectionChange      func(GridSelection, *gg.Event, *gg.Window)
-	OnColumnOrderChange    func([]string, *gg.Event, *gg.Window)
+	OnQueryChange          func(GridQueryState, gg.EventCtx)
+	OnSelectionChange      func(GridSelection, gg.EventCtx)
+	OnColumnOrderChange    func([]string, gg.EventCtx)
 	OnColumnPinChange      func(string, GridColumnPin, *gg.Event, *gg.Window)
-	OnHiddenColumnsChange  func(map[string]bool, *gg.Event, *gg.Window)
-	OnPageChange           func(int, *gg.Event, *gg.Window)
-	OnDetailExpandedChange func(map[string]bool, *gg.Event, *gg.Window)
-	OnCellEdit             func(GridCellEdit, *gg.Event, *gg.Window)
-	OnRowsChange           func([]GridRow, *gg.Event, *gg.Window)
-	OnCRUDError            func(string, *gg.Event, *gg.Window)
+	OnHiddenColumnsChange  func(map[string]bool, gg.EventCtx)
+	OnPageChange           func(int, gg.EventCtx)
+	OnDetailExpandedChange func(map[string]bool, gg.EventCtx)
+	OnCellEdit             func(GridCellEdit, gg.EventCtx)
+	OnRowsChange           func([]GridRow, gg.EventCtx)
+	OnCRUDError            func(string, gg.EventCtx)
 	OnCellFormat           func(GridRow, int, GridColumnCfg, string, *gg.Window) GridCellFormat
 	OnDetailRowView        func(GridRow, *gg.Window) gg.View
 	OnCopyRows             func([]GridRow, *gg.Event, *gg.Window) (string, bool)
-	OnRowActivate          func(GridRow, *gg.Event, *gg.Window)
+	OnRowActivate          func(GridRow, gg.EventCtx)
 	Query                  GridQueryState
 	ID                     string `gui:"required"`
 	Cursor                 string

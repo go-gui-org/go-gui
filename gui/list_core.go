@@ -28,7 +28,7 @@ type listCoreCfg struct {
 	DetailStyle     TextStyle
 	SubheadingStyle TextStyle
 	OnItemClick     func(string, int, *Event, *Window)
-	OnItemHover     func(int, *Event, *Window)
+	OnItemHover     func(int, EventCtx)
 	PaddingItem     Padding
 	ColorHighlight  Color
 	ColorHover      Color
@@ -397,20 +397,20 @@ func listCoreItemView(item listCoreItem, index int, isHighlighted, isSelected bo
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Content:    content,
-		OnClick: func(_ *Layout, e *Event, w *Window) {
+		OnClick: func(ctx EventCtx) {
 			if hasClick && !isDisabled {
-				onItemClick(itemID, index, e, w)
+				onItemClick(itemID, index, ctx.Event, ctx.Window)
 			}
 		},
-		OnHover: func(layout *Layout, e *Event, w *Window) {
+		OnHover: func(ctx EventCtx) {
 			if !isDisabled {
-				w.setMouseCursor(CursorPointingHand)
-				if layout.Shape.Color == ColorTransparent {
-					layout.Shape.Color = colorHover
+				ctx.Window.setMouseCursor(CursorPointingHand)
+				if ctx.Layout.Shape.Color == ColorTransparent {
+					ctx.Layout.Shape.Color = colorHover
 				}
 			}
 			if hasHover {
-				onItemHover(index, e, w)
+				onItemHover(index, EventCtx{nil, ctx.Event, ctx.Window})
 			}
 		},
 	})

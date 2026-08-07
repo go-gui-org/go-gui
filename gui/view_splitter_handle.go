@@ -50,12 +50,12 @@ func splitterHandleView(cfg *SplitterCfg, core *splitterCore) View {
 		Radius:      cfg.Radius,
 		HAlign:      HAlignCenter,
 		VAlign:      VAlignMiddle,
-		OnClick: func(_ *Layout, e *Event, w *Window) {
-			splitterOnHandleClick(core, e, w)
+		OnClick: func(ctx EventCtx) {
+			splitterOnHandleClick(core, ctx.Event, ctx.Window)
 		},
-		OnHover: func(layout *Layout, e *Event, w *Window) {
+		OnHover: func(ctx EventCtx) {
 			splitterOnHandleHover(orientation, colorHover,
-				colorActive, layout, e, w)
+				colorActive, ctx.Layout, ctx.Event, ctx.Window)
 		},
 		Content: content,
 	}
@@ -106,8 +106,8 @@ func splitterButton(cfg *SplitterCfg, core *splitterCore,
 		ColorClick: cfg.ColorButtonActive,
 		ColorFocus: cfg.ColorButtonHover,
 		Radius:     cfg.RadiusBorder,
-		OnClick: func(_ *Layout, e *Event, w *Window) {
-			splitterOnButtonClick(core, target, e, w)
+		OnClick: func(ctx EventCtx) {
+			splitterOnButtonClick(core, target, ctx.Event, ctx.Window)
 		},
 		Content: []View{
 			Text(TextCfg{
@@ -221,13 +221,13 @@ func splitterOnHandleClick(core *splitterCore, e *Event, w *Window) {
 
 	focusID := core.focusID
 	w.MouseLock(MouseLockCfg{
-		MouseMove: func(_ *Layout, e *Event, w *Window) {
-			splitterOnDragMove(core, e, w)
+		MouseMove: func(ctx EventCtx) {
+			splitterOnDragMove(core, ctx.Event, ctx.Window)
 		},
-		MouseUp: func(_ *Layout, _ *Event, w *Window) {
-			w.MouseUnlock()
+		MouseUp: func(ctx EventCtx) {
+			ctx.Window.MouseUnlock()
 			if focusID != "" {
-				w.SetFocus(focusID)
+				ctx.Window.SetFocus(focusID)
 			}
 		},
 	})

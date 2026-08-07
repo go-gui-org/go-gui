@@ -189,17 +189,17 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 		VAlign:      gg.VAlignMiddle,
 		Content: []gg.View{
 			dataGridIndicatorButton(gg.ActiveLocale.StrAdd, cfg.TextStyleFilter, cfg.ColorHeaderHover,
-				!canCreate || state.Saving, 0, func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
+				!canCreate || state.Saving, 0, func(ctx gg.EventCtx) {
 					dataGridCrudAddRow(gridID, columns, onSelectionChange, focusID,
-						scrollID, pageSize, pageIndex, onPageChange, e, w)
+						scrollID, pageSize, pageIndex, onPageChange, ctx.Event, ctx.Window)
 				}),
 			dataGridIndicatorButton(gg.ActiveLocale.StrDelete, cfg.TextStyleFilter, cfg.ColorHeaderHover,
-				!canDelete || selectedCount == 0 || state.Saving, 0, func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
+				!canDelete || selectedCount == 0 || state.Saving, 0, func(ctx gg.EventCtx) {
 					dataGridCrudDeleteSelected(gridID, selection, onSelectionChange,
-						focusID, e, w)
+						focusID, ctx.Event, ctx.Window)
 				}),
 			dataGridIndicatorButton(gg.ActiveLocale.StrSave, cfg.TextStyleFilter, cfg.ColorHeaderHover,
-				!hasUnsaved || state.Saving, 0, func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
+				!hasUnsaved || state.Saving, 0, func(ctx gg.EventCtx) {
 					dataGridCrudSave(dataGridCrudSaveContext{
 						gridID:            gridID,
 						dataSource:        dataSource,
@@ -211,11 +211,11 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 						hasSource:         hasSource,
 						caps:              caps,
 						focusID:           focusID,
-					}, e, w)
+					}, ctx.Event, ctx.Window)
 				}),
 			dataGridIndicatorButton(gg.ActiveLocale.StrCancel, cfg.TextStyleFilter, cfg.ColorHeaderHover,
-				(!hasUnsaved && state.SaveError == "") || state.Saving, 0, func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
-					dataGridCrudCancel(gridID, focusID, e, w)
+				(!hasUnsaved && state.SaveError == "") || state.Saving, 0, func(ctx gg.EventCtx) {
+					dataGridCrudCancel(gridID, focusID, ctx.Event, ctx.Window)
 				}),
 			gg.Row(gg.ContainerCfg{
 				Sizing:  gg.FillFill,
@@ -250,7 +250,7 @@ func dataGridCrudDefaultCells(columns []GridColumnCfg) map[string]string {
 	return cells
 }
 
-func dataGridCrudAddRow(gridID string, columns []GridColumnCfg, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), focusID string, scrollID string, pageSize, pageIndex int, onPageChange func(int, *gg.Event, *gg.Window), e *gg.Event, w *gg.Window) {
+func dataGridCrudAddRow(gridID string, columns []GridColumnCfg, onSelectionChange func(GridSelection, gg.EventCtx), focusID string, scrollID string, pageSize, pageIndex int, onPageChange func(int, gg.EventCtx), e *gg.Event, w *gg.Window) {
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 	// Default zero state: absent entry means no rows added yet.
 	state := dgCrud.GetOr(gridID, dataGridCrudState{})
@@ -278,12 +278,12 @@ func dataGridCrudAddRow(gridID string, columns []GridColumnCfg, onSelectionChang
 			ActiveRowID:    draftID,
 			SelectedRowIDs: map[string]bool{draftID: true},
 		}
-		onSelectionChange(next, e, w)
+		onSelectionChange(next, gg.EventCtx{Layout: nil, Event: e, Window: w})
 	}
 	if pageSize > 0 && pageIndex > 0 && onPageChange != nil {
 		dgPJ := gg.StateMap[string, int](w, nsDgPendingJump, capModerate)
 		dgPJ.Set(gridID, 0)
-		onPageChange(0, e, w)
+		onPageChange(0, gg.EventCtx{Layout: nil, Event: e, Window: w})
 	}
 	w.ScrollVerticalTo(scrollID, 0)
 	if focusID != "" {
@@ -292,7 +292,7 @@ func dataGridCrudAddRow(gridID string, columns []GridColumnCfg, onSelectionChang
 	e.IsHandled = true
 }
 
-func dataGridCrudDeleteSelected(gridID string, selection GridSelection, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), focusID string, e *gg.Event, w *gg.Window) {
+func dataGridCrudDeleteSelected(gridID string, selection GridSelection, onSelectionChange func(GridSelection, gg.EventCtx), focusID string, e *gg.Event, w *gg.Window) {
 	if len(selection.SelectedRowIDs) == 0 {
 		return
 	}
@@ -305,7 +305,7 @@ func dataGridCrudDeleteSelected(gridID string, selection GridSelection, onSelect
 	dataGridCrudDeleteRows(gridID, selection, onSelectionChange, ids, focusID, e, w)
 }
 
-func dataGridCrudDeleteRows(gridID string, selection GridSelection, onSelectionChange func(GridSelection, *gg.Event, *gg.Window), rowIDs []string, focusID string, e *gg.Event, w *gg.Window) {
+func dataGridCrudDeleteRows(gridID string, selection GridSelection, onSelectionChange func(GridSelection, gg.EventCtx), rowIDs []string, focusID string, e *gg.Event, w *gg.Window) {
 	if len(rowIDs) == 0 {
 		return
 	}
@@ -349,7 +349,7 @@ func dataGridCrudDeleteRows(gridID string, selection GridSelection, onSelectionC
 	}
 	if onSelectionChange != nil {
 		nextSel := dataGridSelectionRemoveIDs(selection, deleteIDs)
-		onSelectionChange(nextSel, e, w)
+		onSelectionChange(nextSel, gg.EventCtx{Layout: nil, Event: e, Window: w})
 	}
 	if focusID != "" {
 		w.SetFocus(focusID)
@@ -379,7 +379,7 @@ func dataGridSelectionRemoveIDs(selection GridSelection, removeIDs map[string]bo
 	}
 }
 
-func dataGridCrudApplyCellEdit(gridID string, crudEnabled bool, onCellEdit func(GridCellEdit, *gg.Event, *gg.Window), edit GridCellEdit, e *gg.Event, w *gg.Window) {
+func dataGridCrudApplyCellEdit(gridID string, crudEnabled bool, onCellEdit func(GridCellEdit, gg.EventCtx), edit GridCellEdit, e *gg.Event, w *gg.Window) {
 	if edit.RowID == "" || edit.ColID == "" {
 		return
 	}
@@ -408,7 +408,7 @@ func dataGridCrudApplyCellEdit(gridID string, crudEnabled bool, onCellEdit func(
 		dgCrud.Set(gridID, state)
 	}
 	if onCellEdit != nil {
-		onCellEdit(edit, e, w)
+		onCellEdit(edit, gg.EventCtx{Layout: nil, Event: e, Window: w})
 	}
 }
 

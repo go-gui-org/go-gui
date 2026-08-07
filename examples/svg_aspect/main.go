@@ -57,8 +57,8 @@ func view(w *gui.Window) gui.View {
 					Text: fmt.Sprintf("Mode: %s — click to toggle", mode),
 				}),
 			},
-			OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-				gui.State[App](w).Slice = !gui.State[App](w).Slice
+			OnClick: func(ctx gui.EventCtx) {
+				gui.State[App](ctx.Window).Slice = !gui.State[App](ctx.Window).Slice
 			},
 		}),
 	}

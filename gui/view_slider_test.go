@@ -10,7 +10,7 @@ func TestSliderDefaultLayout(t *testing.T) {
 	v := Slider(SliderCfg{
 		ID:       "rs",
 		Value:    50,
-		OnChange: func(float32, *Event, *Window) {},
+		OnChange: func(_ float32, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, &Window{})
 	// Wrapper container with 1 child (track)
@@ -32,7 +32,7 @@ func TestSliderA11Y(t *testing.T) {
 		Value:    30,
 		Min:      0,
 		Max:      100,
-		OnChange: func(float32, *Event, *Window) {},
+		OnChange: func(_ float32, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.A11YRole != AccessRoleSlider {
@@ -57,7 +57,7 @@ func TestSliderMinMaxValidation(t *testing.T) {
 		ID:       "rs",
 		Min:      50,
 		Max:      50, // invalid: min >= max
-		OnChange: func(float32, *Event, *Window) {},
+		OnChange: func(_ float32, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, &Window{})
 	// Should auto-adjust max to min+1
@@ -82,7 +82,7 @@ func TestSliderKeyDown(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var got float32
-			onChange := func(v float32, _ *Event, _ *Window) { got = v }
+			onChange := func(v float32, ctx EventCtx) { got = v }
 			e := &Event{KeyCode: tt.key}
 			sliderOnKeyDown(nil, e, &Window{},
 				onChange, 50, 0, 100, 1, false)
@@ -97,7 +97,7 @@ func TestSliderKeyDown(t *testing.T) {
 func TestSliderMouseScroll(t *testing.T) {
 	t.Parallel()
 	var got float32
-	onChange := func(v float32, _ *Event, _ *Window) { got = v }
+	onChange := func(v float32, ctx EventCtx) { got = v }
 	e := &Event{ScrollY: 5}
 	sliderOnMouseScroll(e, &Window{}, onChange,
 		50, 0, 100, false)
@@ -115,7 +115,7 @@ func TestSliderVertical(t *testing.T) {
 		ID:       "rs",
 		Value:    50,
 		Vertical: true,
-		OnChange: func(float32, *Event, *Window) {},
+		OnChange: func(_ float32, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.Axis != AxisTopToBottom {
@@ -126,7 +126,7 @@ func TestSliderVertical(t *testing.T) {
 func TestSliderRoundValue(t *testing.T) {
 	t.Parallel()
 	var got float32
-	onChange := func(v float32, _ *Event, _ *Window) { got = v }
+	onChange := func(v float32, ctx EventCtx) { got = v }
 	e := &Event{ScrollY: 0.7}
 	sliderOnMouseScroll(e, &Window{}, onChange,
 		50, 0, 100, true)
@@ -146,7 +146,7 @@ func TestSliderNonZeroMin(t *testing.T) {
 			Value:    60,
 			Min:      10,
 			Max:      110,
-			OnChange: func(float32, *Event, *Window) {},
+			OnChange: func(_ float32, ctx EventCtx) {},
 		})
 		layout := generateViewLayout(v, &Window{})
 		track := layout.Children[0]
@@ -162,7 +162,7 @@ func TestSliderNonZeroMin(t *testing.T) {
 	t.Run("mouse_value", func(t *testing.T) {
 		t.Parallel()
 		var got float32
-		onChange := func(v float32, _ *Event, _ *Window) { got = v }
+		onChange := func(v float32, ctx EventCtx) { got = v }
 		v := Slider(SliderCfg{
 			ID:       "rs-nz",
 			Value:    10,
@@ -190,7 +190,7 @@ func TestSliderNonZeroMin(t *testing.T) {
 
 func TestSliderKeyDownHandled(t *testing.T) {
 	t.Parallel()
-	onChange := func(float32, *Event, *Window) {}
+	onChange := func(_ float32, ctx EventCtx) {}
 	// Recognized key sets IsHandled
 	e := &Event{KeyCode: KeyRight}
 	sliderOnKeyDown(nil, e, &Window{},
@@ -210,7 +210,7 @@ func TestSliderKeyDownHandled(t *testing.T) {
 func TestSliderVerticalMouseDedup(t *testing.T) {
 	t.Parallel()
 	callCount := 0
-	onChange := func(float32, *Event, *Window) { callCount++ }
+	onChange := func(_ float32, ctx EventCtx) { callCount++ }
 	v := Slider(SliderCfg{
 		ID:       "rs-vd",
 		Value:    50,

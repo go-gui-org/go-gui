@@ -289,7 +289,7 @@ func TestDataGridSourceFormatRows(t *testing.T) {
 }
 
 func TestDataGridSourceJumpEnabled(t *testing.T) {
-	sel := func(GridSelection, *gg.Event, *gg.Window) {}
+	sel := func(_ GridSelection, ctx gg.EventCtx) {}
 	rc := 50
 
 	// Happy path: all conditions met.
@@ -693,7 +693,7 @@ func TestSourceApplyPendingJumpSelection(t *testing.T) {
 	cfg := &DataGridCfg{
 		ID:                "g1",
 		Rows:              rows,
-		OnSelectionChange: func(s GridSelection, _ *gg.Event, _ *gg.Window) {},
+		OnSelectionChange: func(s GridSelection, ctx gg.EventCtx) {},
 	}
 	// Should not panic.
 	dataGridSourceApplyPendingJumpSelection(cfg, state, w)

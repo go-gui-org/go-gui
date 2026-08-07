@@ -192,9 +192,9 @@ func demoSvgSpinner(w *gui.Window) gui.View {
 						ID:       "svg-spinner-category",
 						Selected: []string{category},
 						Options:  svgSpinnerCategories,
-						OnSelect: func(sel []string, _ *gui.Event, w *gui.Window) {
+						OnSelect: func(sel []string, ctx gui.EventCtx) {
 							if len(sel) > 0 {
-								gui.State[ShowcaseApp](w).SvgSpinnerCategory = sel[0]
+								gui.State[ShowcaseApp](ctx.Window).SvgSpinnerCategory = sel[0]
 							}
 						},
 					}),

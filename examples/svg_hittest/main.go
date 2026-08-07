@@ -73,9 +73,9 @@ func view(w *gui.Window) gui.View {
 					gui.Svg(gui.SvgCfg{
 						SvgData: sampleSvg, Sizing: gui.FixedFixed,
 						Width: svgSize, Height: svgSize,
-						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-							gui.State[App](w).Last = hitLabel(
-								cached, e.MouseX, e.MouseY)
+						OnClick: func(ctx gui.EventCtx) {
+							gui.State[App](ctx.Window).Last = hitLabel(
+								cached, ctx.Event.MouseX, ctx.Event.MouseY)
 						},
 					}),
 				},

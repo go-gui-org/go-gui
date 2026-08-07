@@ -63,8 +63,8 @@ func demoTable(w *gui.Window) gui.View {
 		header = append(header, gui.TableCellCfg{
 			Value:    label,
 			HeadCell: true,
-			OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-				app := gui.State[ShowcaseApp](w)
+			OnClick: func(ctx gui.EventCtx) {
+				app := gui.State[ShowcaseApp](ctx.Window)
 				switch app.TableSortBy {
 				case col:
 					app.TableSortBy = -col
@@ -73,7 +73,6 @@ func demoTable(w *gui.Window) gui.View {
 				default:
 					app.TableSortBy = col
 				}
-				e.IsHandled = true
 			},
 		})
 	}
@@ -123,8 +122,8 @@ func demoTable(w *gui.Window) gui.View {
 								ID:       "showcase_table_multiselect",
 								Label:    "Multi-select",
 								Selected: app.TableMultiSelect,
-								OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-									a := gui.State[ShowcaseApp](w)
+								OnClick: func(ctx gui.EventCtx) {
+									a := gui.State[ShowcaseApp](ctx.Window)
 									a.TableMultiSelect = !a.TableMultiSelect
 									a.TableSelected = nil
 								},
@@ -133,8 +132,8 @@ func demoTable(w *gui.Window) gui.View {
 								ID:       "showcase_table_freeze_header",
 								Label:    "Freeze header",
 								Selected: app.TableFreezeHeader,
-								OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-									gui.State[ShowcaseApp](w).TableFreezeHeader = !app.TableFreezeHeader
+								OnClick: func(ctx gui.EventCtx) {
+									gui.State[ShowcaseApp](ctx.Window).TableFreezeHeader = !app.TableFreezeHeader
 								},
 							}),
 						},
@@ -182,11 +181,11 @@ func demoDataGrid(w *gui.Window) gui.View {
 				ShowQuickFilter:   true,
 				ShowFilterRow:     true,
 				ShowColumnChooser: true,
-				OnQueryChange: func(query datagrid.GridQueryState, _ *gui.Event, w *gui.Window) {
-					gui.State[ShowcaseApp](w).DataGridQuery = query
+				OnQueryChange: func(query datagrid.GridQueryState, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).DataGridQuery = query
 				},
-				OnSelectionChange: func(selection datagrid.GridSelection, _ *gui.Event, w *gui.Window) {
-					gui.State[ShowcaseApp](w).DataGridSelection = selection
+				OnSelectionChange: func(selection datagrid.GridSelection, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).DataGridSelection = selection
 				},
 			}),
 			w.Markdown(gui.MarkdownCfg{
@@ -229,11 +228,11 @@ func demoDataSource(w *gui.Window) gui.View {
 				Query:           app.DataSourceQuery,
 				Selection:       app.DataSourceSelection,
 				MaxHeight:       260,
-				OnQueryChange: func(query datagrid.GridQueryState, _ *gui.Event, w *gui.Window) {
-					gui.State[ShowcaseApp](w).DataSourceQuery = query
+				OnQueryChange: func(query datagrid.GridQueryState, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).DataSourceQuery = query
 				},
-				OnSelectionChange: func(selection datagrid.GridSelection, _ *gui.Event, w *gui.Window) {
-					gui.State[ShowcaseApp](w).DataSourceSelection = selection
+				OnSelectionChange: func(selection datagrid.GridSelection, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).DataSourceSelection = selection
 				},
 			}),
 			gui.Text(gui.TextCfg{Text: "- DataGridDataSource interface for async backends"}),
@@ -491,8 +490,8 @@ func showcaseBigTreeNodes() []gui.TreeNodeCfg {
 	return nodes
 }
 
-func showcaseTreeOnSelect(id string, _ *gui.Event, w *gui.Window) {
-	gui.State[ShowcaseApp](w).TreeSelected = id
+func showcaseTreeOnSelect(id string, ctx gui.EventCtx) {
+	gui.State[ShowcaseApp](ctx.Window).TreeSelected = id
 }
 
 func showcaseTreeOnLazyLoad(_ string, nodeID string, w *gui.Window) {

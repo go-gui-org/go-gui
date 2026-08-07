@@ -8,44 +8,44 @@ import (
 
 // rtfSelectAmendLayout copies InputState selection into the shape's
 // TextSelBeg/TextSelEnd for rendering and calls rtfAmendTooltip.
-func rtfSelectAmendLayout(l *Layout, w *Window) {
-	rtfAmendTooltip(l, w)
-	if l.Shape.ID == "" || !l.Shape.Focusable || l.Shape.TC == nil {
+func rtfSelectAmendLayout(ctx EventCtx) {
+	rtfAmendTooltip(ctx)
+	if ctx.Layout.Shape.ID == "" || !ctx.Layout.Shape.Focusable || ctx.Layout.Shape.TC == nil {
 		return
 	}
-	is := StateReadOr(w, nsInput, l.Shape.ID, InputState{})
-	l.Shape.TC.TextSelBeg = is.SelectBeg
-	l.Shape.TC.TextSelEnd = is.SelectEnd
+	is := StateReadOr(ctx.Window, nsInput, ctx.Layout.Shape.ID, InputState{})
+	ctx.Layout.Shape.TC.TextSelBeg = is.SelectBeg
+	ctx.Layout.Shape.TC.TextSelEnd = is.SelectEnd
 }
 
 // rtfMarkdownAmendLayout calls rtfAmendTooltip and the markdown block
 // selection handler. The markdown block handler is defined in markdown_select.go.
-func rtfMarkdownAmendLayout(l *Layout, w *Window) {
-	rtfAmendTooltip(l, w)
-	markdownBlockAmendSel(l, w)
+func rtfMarkdownAmendLayout(ctx EventCtx) {
+	rtfAmendTooltip(ctx)
+	markdownBlockAmendSel(ctx.Layout, ctx.Window)
 }
 
 // rtfSelectOnClick handles clicks for an RTF widget with selection enabled.
 // Link navigation (rtfOnClick) runs first; selection state is always updated.
-func rtfSelectOnClick(l *Layout, e *Event, w *Window) {
-	rtfOnClick(l, e, w)
-	if e.MouseButton == MouseRight {
+func rtfSelectOnClick(ctx EventCtx) {
+	rtfOnClick(ctx)
+	if ctx.Event.MouseButton == MouseRight {
 		return
 	}
-	shape := l.Shape
+	shape := ctx.Layout.Shape
 	if shape.TC == nil || !shape.hasRtfLayout() || shape.ID == "" || !shape.Focusable {
 		return
 	}
-	w.SetFocus(shape.ID)
+	ctx.Window.SetFocus(shape.ID)
 
 	gl := shape.TC.RtfLayout
 	flatText := shape.TC.RtfFlatText
 
-	byteIdx := gl.GetClosestOffset(e.MouseX, e.MouseY)
+	byteIdx := gl.GetClosestOffset(ctx.Event.MouseX, ctx.Event.MouseY)
 	runePos := byteToRuneIndex(flatText, byteIdx)
 
 	focusID := shape.ID
-	imap := StateMap[string, InputState](w, nsInput, capMany)
+	imap := StateMap[string, InputState](ctx.Window, nsInput, capMany)
 	// Default InputState{}: zero value seeds initial selection/cursor state.
 	is := imap.GetOr(focusID, InputState{})
 
@@ -68,7 +68,7 @@ func rtfSelectOnClick(l *Layout, e *Event, w *Window) {
 	}
 	is.CursorOffset = -1
 	imap.Set(focusID, is)
-	e.IsHandled = true
+	ctx.Event.IsHandled = true
 
 	anchorPos := is.SelectBeg
 	anchorEnd := is.SelectEnd
@@ -81,10 +81,10 @@ func rtfSelectOnClick(l *Layout, e *Event, w *Window) {
 	viewTop := float32(0)
 	viewBot := float32(0)
 	maxScrollNeg := float32(0)
-	for p := l.Parent; p != nil; p = p.Parent {
+	for p := ctx.Layout.Parent; p != nil; p = p.Parent {
 		if p.Shape != nil && p.Shape.Scrollable {
 			scrollID = p.Shape.ID
-			sy := w.scrollY()
+			sy := ctx.Window.scrollY()
 			// Default 0: unscrolled container before first scroll event.
 			dragScrollY0 = sy.GetOr(scrollID, 0)
 			sp := p.Shape
@@ -159,16 +159,16 @@ func rtfSelectOnClick(l *Layout, e *Event, w *Window) {
 		updateDrag(rp, w)
 	}
 
-	w.MouseLock(MouseLockCfg{
-		MouseMove: func(_ *Layout, e *Event, w *Window) {
-			lastMouseX = e.MouseX
-			lastMouseY = e.MouseY
-			rp := computeRunePos(e.MouseX, e.MouseY, w)
-			updateDrag(rp, w)
+	ctx.Window.MouseLock(MouseLockCfg{
+		MouseMove: func(ctx EventCtx) {
+			lastMouseX = ctx.Event.MouseX
+			lastMouseY = ctx.Event.MouseY
+			rp := computeRunePos(ctx.Event.MouseX, ctx.Event.MouseY, ctx.Window)
+			updateDrag(rp, ctx.Window)
 			if scrollID != "" {
-				outside := e.MouseY < viewTop || e.MouseY > viewBot
-				if outside && !w.HasAnimation(animIDTextDragScroll) {
-					w.AnimationAdd(&Animate{
+				outside := ctx.Event.MouseY < viewTop || ctx.Event.MouseY > viewBot
+				if outside && !ctx.Window.HasAnimation(animIDTextDragScroll) {
+					ctx.Window.AnimationAdd(&Animate{
 						AnimID:   animIDTextDragScroll,
 						Delay:    32 * time.Millisecond,
 						Repeat:   true,
@@ -176,29 +176,29 @@ func rtfSelectOnClick(l *Layout, e *Event, w *Window) {
 						Callback: dragScrollCB,
 					})
 				} else if !outside {
-					w.AnimationRemove(animIDTextDragScroll)
+					ctx.Window.AnimationRemove(animIDTextDragScroll)
 				}
 			}
 		},
-		MouseUp: func(_ *Layout, _ *Event, w *Window) {
-			w.AnimationRemove(animIDTextDragScroll)
-			w.MouseUnlock()
+		MouseUp: func(ctx EventCtx) {
+			ctx.Window.AnimationRemove(animIDTextDragScroll)
+			ctx.Window.MouseUnlock()
 		},
 	})
 }
 
 // rtfSelectOnKeyDown handles keyboard navigation and copy for selectable RTF.
-func rtfSelectOnKeyDown(l *Layout, e *Event, w *Window) {
-	shape := l.Shape
+func rtfSelectOnKeyDown(ctx EventCtx) {
+	shape := ctx.Layout.Shape
 	if shape.TC == nil || shape.ID == "" || !shape.Focusable ||
-		!w.IsFocus(shape.ID) {
+		!ctx.Window.IsFocus(shape.ID) {
 		return
 	}
 	id := shape.ID
 	flatText := shape.TC.RtfFlatText
 	gl := *shape.TC.RtfLayout
 
-	imap := StateMap[string, InputState](w, nsInput, capMany)
+	imap := StateMap[string, InputState](ctx.Window, nsInput, capMany)
 	// Default InputState{}: zero value seeds initial keyboard-nav state.
 	is := imap.GetOr(id, InputState{})
 	savedOffset := is.CursorOffset
@@ -207,11 +207,11 @@ func rtfSelectOnKeyDown(l *Layout, e *Event, w *Window) {
 	is.CursorTrailing = false
 	runeLen := utf8RuneCount(flatText)
 	pos := min(is.CursorPos, runeLen)
-	isShift := e.Modifiers.Has(ModShift)
-	isWordMod := e.Modifiers.HasAny(ModCtrl, ModAlt, ModSuper)
+	isShift := ctx.Event.Modifiers.Has(ModShift)
+	isWordMod := ctx.Event.Modifiers.HasAny(ModCtrl, ModAlt, ModSuper)
 	handled := true
 
-	switch e.KeyCode {
+	switch ctx.Event.KeyCode {
 	case KeyLeft:
 		inputKeyLeft(imap, id, is, flatText, pos,
 			isShift, isWordMod, gl, true)
@@ -236,18 +236,18 @@ func rtfSelectOnKeyDown(l *Layout, e *Event, w *Window) {
 		inputKeyEscape(imap, id, is)
 		handled = false
 	case KeyA:
-		if e.Modifiers.HasAny(ModCtrl, ModSuper) {
-			inputSelectAll(flatText, id, w)
+		if ctx.Event.Modifiers.HasAny(ModCtrl, ModSuper) {
+			inputSelectAll(flatText, id, ctx.Window)
 		} else {
 			handled = false
 		}
 	case KeyC:
-		handled = inputKeyCopy(flatText, id, false, e, w)
+		handled = inputKeyCopy(flatText, id, false, ctx.Event, ctx.Window)
 	default:
 		handled = false
 	}
 
 	if handled {
-		e.IsHandled = true
+		ctx.Event.IsHandled = true
 	}
 }

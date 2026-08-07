@@ -253,7 +253,7 @@ func inputCommitEnter(
 			layout, commitText, CommitEnter, w)
 	}
 	if hcfg.OnEnter != nil {
-		hcfg.OnEnter(layout, e, w)
+		hcfg.OnEnter(EventCtx{layout, e, w})
 	}
 }
 

@@ -9,8 +9,8 @@ gui.Radio(gui.RadioCfg{
     IDFocus:  500,
     Label:    "Go",
     Selected: app.Lang == "go",
-    OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-        gui.State[App](w).Lang = "go"
+    OnClick: func(ctx gui.EventCtx) {
+        gui.State[App](ctx.Window).Lang = "go"
     },
 })
 ```
@@ -44,9 +44,9 @@ gui.Radio(gui.RadioCfg{
 
 ## Events
 
-| Callback | Signature                      | Fired when    |
-| -------- | ------------------------------ | ------------- |
-| OnClick  | func(*Layout, *Event, *Window) | Radio clicked |
+| Callback | Signature      | Fired when    |
+| -------- | -------------- | ------------- |
+| OnClick  | func(EventCtx) | Radio clicked |
 
 ## Accessibility
 

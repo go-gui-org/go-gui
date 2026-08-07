@@ -295,14 +295,14 @@ func (w *Window) Markdown(cfg MarkdownCfg) View {
 	docAnimID := "md_cp_doc"
 	source := cfg.Source
 	content = append(content, mdCopyButton(docAnimID, w,
-		func(_ *Layout, e *Event, w *Window) {
-			w.SetClipboard(source)
-			w.AnimationAdd(&Animate{
+		func(ctx EventCtx) {
+			ctx.Window.SetClipboard(source)
+			ctx.Window.AnimationAdd(&Animate{
 				AnimID:   docAnimID,
 				Delay:    2 * time.Second,
 				Callback: func(*Animate, *Window) {},
 			})
-			e.IsHandled = true
+			ctx.Consume()
 		}))
 
 	colCfg := ContainerCfg{

@@ -170,9 +170,9 @@ func toastItemView(toast *toastNotification, style ToastStyle) View {
 		buttons = append(buttons, Button(ButtonCfg{
 			Color:   ColorTransparent,
 			Content: []View{Text(TextCfg{Text: toast.cfg.ActionLabel, TextStyle: style.TextStyle})},
-			OnClick: func(_ *Layout, _ *Event, w *Window) {
-				onAction(w)
-				toastStartExit(w, id)
+			OnClick: func(ctx EventCtx) {
+				onAction(ctx.Window)
+				toastStartExit(ctx.Window, id)
 			},
 		}))
 	}
@@ -180,8 +180,8 @@ func toastItemView(toast *toastNotification, style ToastStyle) View {
 		Color:      ColorTransparent,
 		SizeBorder: NoBorder,
 		Content:    []View{Text(TextCfg{Text: "\u00d7", TextStyle: style.TextStyle})},
-		OnClick: func(_ *Layout, _ *Event, w *Window) {
-			toastStartExit(w, id)
+		OnClick: func(ctx EventCtx) {
+			toastStartExit(ctx.Window, id)
 		},
 	}))
 
@@ -200,16 +200,15 @@ func toastItemView(toast *toastNotification, style ToastStyle) View {
 		A11YRole:    AccessRoleGroup,
 		A11YState:   AccessStateLive,
 		A11YLabel:   toastA11YLabel(toast),
-		AmendLayout: func(layout *Layout, _ *Window) {
+		AmendLayout: func(ctx EventCtx) {
 			if frac < 1.0 {
-				layout.Shape.Height *= frac
+				ctx.Layout.Shape.Height *= frac
 			}
 		},
-		OnClick: func(_ *Layout, e *Event, _ *Window) {
-			e.IsHandled = true
+		OnClick: func(ctx EventCtx) {
 		},
-		OnHover: func(_ *Layout, _ *Event, w *Window) {
-			toastSetHovered(w, id, true)
+		OnHover: func(ctx EventCtx) {
+			toastSetHovered(ctx.Window, id, true)
 		},
 		Content: []View{
 			// Accent bar.

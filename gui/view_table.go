@@ -24,7 +24,7 @@ const (
 
 // TableRowCfg configures a table row.
 type TableRowCfg struct {
-	OnClick func(*Layout, *Event, *Window)
+	OnClick func(EventCtx)
 	ID      string
 	Cells   []TableCellCfg
 }
@@ -35,7 +35,7 @@ type TableCellCfg struct {
 	HAlign    *HorizontalAlign
 	TextStyle *TextStyle
 	RichText  *RichText
-	OnClick   func(*Layout, *Event, *Window)
+	OnClick   func(EventCtx)
 	ID        string
 	Value     string
 	HeadCell  bool
@@ -360,11 +360,11 @@ func tableBuildRow(
 
 		cellOnClick := cell.OnClick
 		ch := colorHover
-		var cellOnHover func(*Layout, *Event, *Window)
+		var cellOnHover func(EventCtx)
 		if cellOnClick != nil {
-			cellOnHover = func(layout *Layout, _ *Event, w *Window) {
-				w.SetMouseCursorPointingHand()
-				layout.Shape.Color = ch
+			cellOnHover = func(ctx EventCtx) {
+				ctx.Window.SetMouseCursorPointingHand()
+				ctx.Layout.Shape.Color = ch
 			}
 		}
 
@@ -401,9 +401,9 @@ func tableBuildRow(
 		Padding:    NoPadding,
 		SizeBorder: NoBorder,
 		Content:    cells,
-		OnClick: func(layout *Layout, e *Event, w *Window) {
+		OnClick: func(ctx EventCtx) {
 			if rowOnClick != nil {
-				rowOnClick(layout, e, w)
+				rowOnClick(ctx)
 			}
 			if onSelect != nil {
 				var newSel map[int]bool
@@ -417,14 +417,14 @@ func tableBuildRow(
 				} else {
 					newSel[ri] = true
 				}
-				onSelect(newSel, ri, e, w)
+				onSelect(newSel, ri, ctx.Event, ctx.Window)
 			}
 		},
-		OnHover: func(layout *Layout, _ *Event, w *Window) {
+		OnHover: func(ctx EventCtx) {
 			if onSelect != nil {
-				w.SetMouseCursorPointingHand()
+				ctx.Window.SetMouseCursorPointingHand()
 				if !isSelected {
-					layout.Shape.Color = colorHover
+					ctx.Layout.Shape.Color = colorHover
 				}
 			}
 		},

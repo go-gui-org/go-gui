@@ -74,7 +74,7 @@ func view(w *gui.Window) gui.View {
 			Content: []gui.View{gui.Text(gui.TextCfg{Text: th.Name})},
 			Sizing:  gui.FitFit,
 			Padding: gui.Some(gui.PaddingTwoFive),
-			OnClick: func(*gui.Layout, *gui.Event, *gui.Window) {
+			OnClick: func(ctx gui.EventCtx) {
 				app.ThemeIdx = idx
 				w.UpdateView(view)
 			},
@@ -90,7 +90,7 @@ func view(w *gui.Window) gui.View {
 			})},
 			Sizing:  gui.FitFit,
 			Padding: gui.Some(gui.PaddingTwoFive),
-			OnClick: func(*gui.Layout, *gui.Event, *gui.Window) {
+			OnClick: func(ctx gui.EventCtx) {
 				app.StrokeBase = base
 				w.UpdateView(view)
 			},

@@ -51,11 +51,11 @@ func mainView(w *gui.Window) gui.View {
 			gui.MenuSeparator(),
 			{ID: "delete", Text: "Delete"},
 		},
-		Action: func(id string, e *gui.Event, w *gui.Window) {
-			app := gui.State[App](w)
+		Action: func(id string, ctx gui.EventCtx) {
+			app := gui.State[App](ctx.Window)
 			// Mirror the last menu action in the main view.
 			app.Status = "Selected: " + id
-			e.IsHandled = true
+			ctx.Consume()
 		},
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{

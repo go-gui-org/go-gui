@@ -145,16 +145,15 @@ func toggleTheme(app *App) gui.View {
 				Selected:     app.LightTheme,
 				ColorSelect:  gui.RGBA(0, 0, 0, 0),
 				Padding:      gui.Some(gui.PaddingSmall),
-				OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-					a := gui.State[App](w)
+				OnClick: func(ctx gui.EventCtx) {
+					a := gui.State[App](ctx.Window)
 					// Swap themes first, then flip the toggle state to match.
 					if a.LightTheme {
-						w.SetTheme(gui.ThemeDark.WithPadding(false))
+						ctx.Window.SetTheme(gui.ThemeDark.WithPadding(false))
 					} else {
-						w.SetTheme(gui.ThemeLight.WithPadding(false))
+						ctx.Window.SetTheme(gui.ThemeLight.WithPadding(false))
 					}
 					a.LightTheme = !a.LightTheme
-					e.IsHandled = true
 				},
 			}),
 		},

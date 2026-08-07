@@ -9,7 +9,7 @@ func TestComboboxClosedLayout(t *testing.T) {
 		Value:       "Apple",
 		Options:     []string{"Apple", "Banana", "Cherry"},
 		Placeholder: "Pick fruit",
-		OnSelect:    func(_ string, _ *Event, _ *Window) {},
+		OnSelect:    func(_ string, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "cb1" {
@@ -29,7 +29,7 @@ func TestComboboxOpenLayout(t *testing.T) {
 	v := Combobox(ComboboxCfg{
 		ID:       "cb-open",
 		Options:  []string{"A", "B", "C"},
-		OnSelect: func(_ string, _ *Event, _ *Window) {},
+		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, w)
 	// Should have children (input, spacer, arrow, dropdown).
@@ -55,7 +55,7 @@ func TestComboboxOpenClose(t *testing.T) {
 func TestComboboxKeyDownOpenClose(t *testing.T) {
 	w := &Window{}
 	called := ""
-	onSel := func(id string, _ *Event, _ *Window) { called = id }
+	onSel := func(id string, ctx EventCtx) { called = id }
 
 	// Open via Enter.
 	e := &Event{KeyCode: KeyEnter}
@@ -78,7 +78,7 @@ func TestComboboxKeyNavScrolls(t *testing.T) {
 	rowH := float32(26)
 	listH := float32(187)
 	ids := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
-	onSel := func(_ string, _ *Event, _ *Window) {}
+	onSel := func(_ string, ctx EventCtx) {}
 
 	// Open the combobox.
 	comboboxOpen("cb-nav", "", w)
@@ -279,7 +279,7 @@ func TestComboboxScrollEndToEnd(t *testing.T) {
 	// Navigate down 8 times to trigger scroll.
 	for range 8 {
 		e := &Event{KeyCode: KeyDown}
-		comboboxOnKeyDown("cb-e2e", func(_ string, _ *Event, _ *Window) {},
+		comboboxOnKeyDown("cb-e2e", func(_ string, ctx EventCtx) {},
 			"", options, idScroll, 26, 187, e, w)
 	}
 
@@ -294,7 +294,7 @@ func TestComboboxScrollEndToEnd(t *testing.T) {
 		ID:         "cb-e2e",
 		Scrollable: true,
 		Options:    options,
-		OnSelect:   func(_ string, _ *Event, _ *Window) {},
+		OnSelect:   func(_ string, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, w)
 
@@ -355,7 +355,7 @@ func TestComboboxItemsCacheInvalidatesOnOptionsChange(t *testing.T) {
 	v := Combobox(ComboboxCfg{
 		ID:       id,
 		Options:  []string{"A"},
-		OnSelect: func(_ string, _ *Event, _ *Window) {},
+		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	_ = generateViewLayout(v, w)
 
@@ -374,7 +374,7 @@ func TestComboboxItemsCacheInvalidatesOnOptionsChange(t *testing.T) {
 	v = Combobox(ComboboxCfg{
 		ID:       id,
 		Options:  []string{"A", "B"},
-		OnSelect: func(_ string, _ *Event, _ *Window) {},
+		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	_ = generateViewLayout(v, w)
 	cache, _ = cm.Get(id)

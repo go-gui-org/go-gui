@@ -140,7 +140,7 @@ func TestInputClickPlaceholderResetsCursorToStart(t *testing.T) {
 		t.Fatal("missing click handler")
 	}
 	e := &Event{MouseX: inner.Shape.X, MouseY: inner.Shape.Y}
-	inner.Shape.events.OnClick(inner, e, w)
+	inner.Shape.events.OnClick(EventCtx{inner, e, w})
 	is := getInputState(w, "f14")
 	if is.CursorPos != 0 {
 		t.Fatalf("cursor=%d, want 0", is.CursorPos)
@@ -222,7 +222,7 @@ func newInputTest(text string, focusID string, cursorPos int) *inputTestCtx {
 	ctx.layout = generateViewLayout(Input(InputCfg{
 		Text: text,
 		ID:   focusID,
-		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
+		OnTextChanged: func(newText string, _ EventCtx) {
 			ctx.lastText = newText
 		},
 	}), ctx.w)
@@ -239,7 +239,7 @@ func newInputTestMultiline(text string, focusID string, cursorPos int) *inputTes
 		Text: text,
 		ID:   focusID,
 		Mode: InputMultiline,
-		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
+		OnTextChanged: func(newText string, _ EventCtx) {
 			ctx.lastText = newText
 		},
 	}), ctx.w)
@@ -249,14 +249,14 @@ func newInputTestMultiline(text string, focusID string, cursorPos int) *inputTes
 func (c *inputTestCtx) fireChar(charCode uint32) {
 	e := &Event{Type: EventChar, CharCode: charCode}
 	if c.layout.Shape.events != nil && c.layout.Shape.events.OnChar != nil {
-		c.layout.Shape.events.OnChar(&c.layout, e, c.w)
+		c.layout.Shape.events.OnChar(EventCtx{&c.layout, e, c.w})
 	}
 }
 
 func (c *inputTestCtx) fireKeyDown(key KeyCode, mod Modifier) {
 	e := &Event{Type: EventKeyDown, KeyCode: key, Modifiers: mod}
 	if c.layout.Shape.events != nil && c.layout.Shape.events.OnKeyDown != nil {
-		c.layout.Shape.events.OnKeyDown(&c.layout, e, c.w)
+		c.layout.Shape.events.OnKeyDown(EventCtx{&c.layout, e, c.w})
 	}
 }
 
@@ -399,7 +399,7 @@ func TestInputKeyDownEnterSingleLine(t *testing.T) {
 		},
 	}), w)
 	e := &Event{Type: EventKeyDown, KeyCode: KeyEnter}
-	layout.Shape.events.OnKeyDown(&layout, e, w)
+	layout.Shape.events.OnKeyDown(EventCtx{&layout, e, w})
 	if !committed {
 		t.Fatal("OnTextCommit not called")
 	}
@@ -415,7 +415,7 @@ func TestInputOnCharUndo(t *testing.T) {
 	ctx.layout = generateViewLayout(Input(InputCfg{
 		Text: ctx.lastText,
 		ID:   "f506",
-		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
+		OnTextChanged: func(newText string, _ EventCtx) {
 			ctx.lastText = newText
 		},
 	}), ctx.w)
@@ -432,7 +432,7 @@ func TestInputOnCharRedo(t *testing.T) {
 	ctx.layout = generateViewLayout(Input(InputCfg{
 		Text: ctx.lastText,
 		ID:   "f507",
-		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
+		OnTextChanged: func(newText string, _ EventCtx) {
 			ctx.lastText = newText
 		},
 	}), ctx.w)
@@ -440,7 +440,7 @@ func TestInputOnCharRedo(t *testing.T) {
 	ctx.layout = generateViewLayout(Input(InputCfg{
 		Text: ctx.lastText,
 		ID:   "f507",
-		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
+		OnTextChanged: func(newText string, _ EventCtx) {
 			ctx.lastText = newText
 		},
 	}), ctx.w)
@@ -478,7 +478,7 @@ func TestInputCopyPaste(t *testing.T) {
 	ctx.layout = generateViewLayout(Input(InputCfg{
 		Text: "hello",
 		ID:   "f509",
-		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
+		OnTextChanged: func(newText string, _ EventCtx) {
 			ctx.lastText = newText
 		},
 	}), ctx.w)
@@ -968,7 +968,7 @@ func TestMakeInputOnKeyUp_FocusCheck(t *testing.T) {
 	called := false
 	hcfg := inputHandlerCfg{
 		FocusID: "f123",
-		OnKeyUp: func(_ *Layout, e *Event, _ *Window) {
+		OnKeyUp: func(ctx EventCtx) {
 			called = true
 		},
 	}
@@ -979,7 +979,7 @@ func TestMakeInputOnKeyUp_FocusCheck(t *testing.T) {
 	e := &Event{KeyCode: KeyEnter}
 
 	// Test when not focused - should not call handler
-	handler(layout, e, w)
+	handler(EventCtx{layout, e, w})
 	if called {
 		t.Error("Handler should not be called when not focused")
 	}
@@ -987,7 +987,7 @@ func TestMakeInputOnKeyUp_FocusCheck(t *testing.T) {
 	// Test when focused - should call handler
 	w.SetFocus("f123")
 	called = false
-	handler(layout, e, w)
+	handler(EventCtx{layout, e, w})
 	if !called {
 		t.Error("Handler should be called when focused")
 	}
@@ -999,7 +999,7 @@ func TestMakeInputOnKeyUp_ZeroIDFocusNoCall(t *testing.T) {
 	called := false
 	hcfg := inputHandlerCfg{
 		FocusID: "", // Empty focus id should prevent calls
-		OnKeyUp: func(_ *Layout, e *Event, _ *Window) {
+		OnKeyUp: func(ctx EventCtx) {
 			called = true
 		},
 	}
@@ -1010,7 +1010,7 @@ func TestMakeInputOnKeyUp_ZeroIDFocusNoCall(t *testing.T) {
 	w.ClearFocus() // Even with focus set to 0
 	e := &Event{KeyCode: KeyEnter}
 
-	handler(layout, e, w)
+	handler(EventCtx{layout, e, w})
 	if called {
 		t.Error("Handler should not be called when IDFocus is 0")
 	}
@@ -1037,7 +1037,7 @@ func TestMakeInputOnKeyUp_NilHandler(t *testing.T) {
 		}
 	}()
 
-	handler(layout, e, w)
+	handler(EventCtx{layout, e, w})
 }
 
 // --- ReadOnly tests ---
@@ -1059,7 +1059,7 @@ func newInputTestReadOnly(
 		ID:       focusID,
 		ReadOnly: true,
 		Mode:     mode,
-		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
+		OnTextChanged: func(newText string, _ EventCtx) {
 			ctx.lastText = newText
 		},
 	}), ctx.w)
@@ -1097,7 +1097,7 @@ func TestInputReadOnlyBlocksTyping(t *testing.T) {
 func TestInputReadOnlyBlocksIMEText(t *testing.T) {
 	ctx := newInputTestReadOnly("hello", "ro_ime", 5, InputSingleLine)
 	e := &Event{Type: EventChar, CharCode: 'a', IMEText: "日本"}
-	ctx.layout.Shape.events.OnChar(&ctx.layout, e, ctx.w)
+	ctx.layout.Shape.events.OnChar(EventCtx{&ctx.layout, e, ctx.w})
 	if ctx.lastText != "hello" {
 		t.Fatalf("IME text mutated read-only field: got %q", ctx.lastText)
 	}
@@ -1111,7 +1111,7 @@ func TestInputReadOnlyBlocksIMEText(t *testing.T) {
 func TestInputCharIMETextInsertsWholeCommit(t *testing.T) {
 	ctx := newInputTest("", "ime_commit", 0)
 	e := &Event{Type: EventChar, CharCode: 'か', IMEText: "かんじ"}
-	ctx.layout.Shape.events.OnChar(&ctx.layout, e, ctx.w)
+	ctx.layout.Shape.events.OnChar(EventCtx{&ctx.layout, e, ctx.w})
 	if ctx.lastText != "かんじ" {
 		t.Fatalf("IME commit inserted %q, want %q",
 			ctx.lastText, "かんじ")
@@ -1127,7 +1127,7 @@ func TestInputCharIMETextInsertsWholeCommit(t *testing.T) {
 func TestInputCharEmptyIMETextFallsBackToCharCode(t *testing.T) {
 	ctx := newInputTest("ab", "ime_fallback", 2)
 	e := &Event{Type: EventChar, CharCode: 'c'}
-	ctx.layout.Shape.events.OnChar(&ctx.layout, e, ctx.w)
+	ctx.layout.Shape.events.OnChar(EventCtx{&ctx.layout, e, ctx.w})
 	if ctx.lastText != "abc" {
 		t.Fatalf("plain char insert produced %q, want %q",
 			ctx.lastText, "abc")
@@ -1186,7 +1186,7 @@ func TestInputReadOnlyBlocksUndo(t *testing.T) {
 
 	ctx.layout = generateViewLayout(Input(InputCfg{
 		Text: ctx.lastText, ID: "ro4", ReadOnly: true,
-		OnTextChanged: func(_ *Layout, newText string, _ *Window) {
+		OnTextChanged: func(newText string, _ EventCtx) {
 			ctx.lastText = newText
 		},
 	}), ctx.w)
@@ -1215,12 +1215,12 @@ func TestInputReadOnlySingleLineEnterStillCommits(t *testing.T) {
 	enterFired := false
 	layout := generateViewLayout(Input(InputCfg{
 		Text: "hello", ID: "ro6", ReadOnly: true,
-		OnEnter: func(_ *Layout, _ *Event, _ *Window) {
+		OnEnter: func(ctx EventCtx) {
 			enterFired = true
 		},
 	}), w)
 	e := &Event{Type: EventKeyDown, KeyCode: KeyEnter}
-	layout.Shape.events.OnKeyDown(&layout, e, w)
+	layout.Shape.events.OnKeyDown(EventCtx{&layout, e, w})
 	if !enterFired {
 		t.Error("single-line Enter should still commit when read-only")
 	}
@@ -1286,7 +1286,7 @@ func TestInputReadOnlyEnterDoesNotNormalize(t *testing.T) {
 		PostCommitNormalize: func(_ string, _ InputCommitReason) string {
 			return "NORMALIZED"
 		},
-		OnTextChanged: func(_ *Layout, nt string, _ *Window) {
+		OnTextChanged: func(nt string, ctx EventCtx) {
 			changed = nt
 		},
 		OnTextCommit: func(
@@ -1297,7 +1297,7 @@ func TestInputReadOnlyEnterDoesNotNormalize(t *testing.T) {
 	}), w)
 
 	e := &Event{Type: EventKeyDown, KeyCode: KeyEnter}
-	layout.Shape.events.OnKeyDown(&layout, e, w)
+	layout.Shape.events.OnKeyDown(EventCtx{&layout, e, w})
 
 	if changed != "" {
 		t.Errorf("OnTextChanged fired with %q on a read-only field", changed)
@@ -1318,7 +1318,7 @@ func TestInputReadOnlyBlurDoesNotNormalize(t *testing.T) {
 		PostCommitNormalize: func(_ string, _ InputCommitReason) string {
 			return "NORMALIZED"
 		},
-		OnTextChanged: func(_ *Layout, nt string, _ *Window) {
+		OnTextChanged: func(nt string, ctx EventCtx) {
 			changed = nt
 		},
 		OnTextCommit: func(
@@ -1331,12 +1331,12 @@ func TestInputReadOnlyBlurDoesNotNormalize(t *testing.T) {
 	// Frame 1: focused. AmendLayout records focus in nsInputFocus.
 	w.SetFocus("ro_norm_blur")
 	l1 := generateViewLayout(Input(cfg), w)
-	l1.Shape.events.AmendLayout(&l1, w)
+	l1.Shape.events.AmendLayout(EventCtx{&l1, nil, w})
 
 	// Frame 2: focus moved away -> blur commit path runs.
 	w.SetFocus("elsewhere")
 	l2 := generateViewLayout(Input(cfg), w)
-	l2.Shape.events.AmendLayout(&l2, w)
+	l2.Shape.events.AmendLayout(EventCtx{&l2, nil, w})
 
 	if changed != "" {
 		t.Errorf("OnTextChanged fired with %q on blur of a read-only field",
@@ -1358,13 +1358,13 @@ func TestInputEditableEnterStillNormalizes(t *testing.T) {
 		Text: "  hi  ", ID: "rw_norm_enter", PostCommitNormalize: func(_ string, _ InputCommitReason) string {
 			return "NORMALIZED"
 		},
-		OnTextChanged: func(_ *Layout, nt string, _ *Window) {
+		OnTextChanged: func(nt string, ctx EventCtx) {
 			changed = nt
 		},
 	}), w)
 
 	e := &Event{Type: EventKeyDown, KeyCode: KeyEnter}
-	layout.Shape.events.OnKeyDown(&layout, e, w)
+	layout.Shape.events.OnKeyDown(EventCtx{&layout, e, w})
 
 	if changed != "NORMALIZED" {
 		t.Errorf("editable field: OnTextChanged got %q, want NORMALIZED",

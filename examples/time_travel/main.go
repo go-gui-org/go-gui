@@ -87,23 +87,21 @@ func mainView(w *gui.Window) gui.View {
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{Text: "Increment"}),
 						},
-						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-							st := gui.State[appState](w)
+						OnClick: func(ctx gui.EventCtx) {
+							st := gui.State[appState](ctx.Window)
 							st.Count++
 							st.Log = append(st.Log,
 								fmt.Sprintf("inc → %d", st.Count))
-							e.IsHandled = true
 						},
 					}),
 					gui.Button(gui.ButtonCfg{
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{Text: "Reset"}),
 						},
-						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-							st := gui.State[appState](w)
+						OnClick: func(ctx gui.EventCtx) {
+							st := gui.State[appState](ctx.Window)
 							st.Count = 0
 							st.Log = append(st.Log, "reset")
-							e.IsHandled = true
 						},
 					}),
 				},

@@ -93,38 +93,35 @@ func (rv *datePickerRollerView) GenerateLayout(w *Window) Layout {
 		HAlign:      HAlignCenter,
 		VAlign:      VAlignMiddle,
 		axis:        AxisLeftToRight,
-		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
+		OnKeyDown: func(ctx EventCtx) {
 			rollerOnKeyDown(onChange, selectedDate,
-				minYear, maxYear, e, w, mode, wrapYear)
+				minYear, maxYear, ctx.Event, ctx.Window, mode, wrapYear)
 		},
-		OnClick: func(_ *Layout, e *Event, w *Window) {
+		OnClick: func(ctx EventCtx) {
 			if cfg.Focusable {
-				w.SetFocus(cfg.ID)
-				e.IsHandled = true
+				ctx.Window.SetFocus(cfg.ID)
 			}
 		},
-		AmendLayout: func(lo *Layout, w *Window) {
-			if cfg.Focusable && w.IsFocus(cfg.ID) {
-				lo.Shape.ColorBorder = cfg.ColorBorderFocus
+		AmendLayout: func(ctx EventCtx) {
+			if cfg.Focusable && ctx.Window.IsFocus(cfg.ID) {
+				ctx.Layout.Shape.ColorBorder = cfg.ColorBorderFocus
 			}
-			lo.Shape.events.OnMouseScroll = func(
-				_ *Layout, e *Event, w *Window,
-			) {
-				e.IsHandled = true
+			ctx.Layout.Shape.events.OnMouseScroll = func(ctx EventCtx) {
+				ctx.Event.IsHandled = true
 				if onChange == nil {
 					return
 				}
 				delta := 1
-				if e.ScrollY > 0 {
+				if ctx.Event.ScrollY > 0 {
 					delta = -1
 				}
-				for i, child := range lo.Children {
+				for i, child := range ctx.Layout.Children {
 					if i < len(drumNames) &&
 						child.Shape.PointInShape(
-							e.MouseX, e.MouseY) {
+							ctx.Event.MouseX, ctx.Event.MouseY) {
 						rollerDrumAdjust(drumNames[i],
 							delta, selectedDate,
-							minYear, maxYear, onChange, w, wrapYear)
+							minYear, maxYear, onChange, ctx.Window, wrapYear)
 						return
 					}
 				}
@@ -232,12 +229,10 @@ func rollerDrum(
 		itemClickable := offset != 0 && (v >= minVal && v <= maxVal || wrap)
 		if itemClickable {
 			clickDelta := offset
-			itemCfg.OnClick = func(
-				_ *Layout, _ *Event, w *Window,
-			) {
+			itemCfg.OnClick = func(ctx EventCtx) {
 				rollerDrumAdjust(name, clickDelta,
 					selectedDate, minYear, maxYear,
-					onChange, w, wrap)
+					onChange, ctx.Window, wrap)
 			}
 		}
 		items = append(items, Row(itemCfg))

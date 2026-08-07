@@ -21,17 +21,17 @@ type InputCfg struct {
 
 	// OnTextChanged fires after every text change. Use for
 	// live validation or state sync.
-	OnTextChanged func(*Layout, string, *Window)
+	OnTextChanged func(string, EventCtx)
 
 	// OnTextCommit fires when the user finalizes input: pressing
 	// Enter, losing focus (blur), or completing IME composition.
 	// The InputCommitReason indicates the trigger.
 	OnTextCommit func(*Layout, string, InputCommitReason, *Window)
 
-	OnEnter   func(*Layout, *Event, *Window)
-	OnKeyDown func(*Layout, *Event, *Window)
-	OnKeyUp   func(*Layout, *Event, *Window)
-	OnBlur    func(*Layout, *Window)
+	OnEnter   func(EventCtx)
+	OnKeyDown func(EventCtx)
+	OnKeyUp   func(EventCtx)
+	OnBlur    func(EventCtx)
 
 	// PreTextChange is called before text changes. Return
 	// (adjusted, true) to accept (adjusted may differ from
@@ -264,10 +264,10 @@ func Input(cfg InputCfg) View {
 		OnChar:          makeInputOnChar(hcfg),
 		OnKeyDown:       makeInputOnKeyDown(hcfg),
 		OnKeyUp:         makeInputOnKeyUp(hcfg),
-		OnHover: func(layout *Layout, _ *Event, w *Window) {
-			w.setMouseCursor(CursorIBeam)
-			if !w.IsFocus(focusID) {
-				layout.Shape.Color = colorHover
+		OnHover: func(ctx EventCtx) {
+			ctx.Window.setMouseCursor(CursorIBeam)
+			if !ctx.Window.IsFocus(focusID) {
+				ctx.Layout.Shape.Color = colorHover
 			}
 		},
 		AmendLayout: inputAmendLayout(hcfg, focusID,
@@ -311,11 +311,11 @@ func applyInputDefaults(cfg *InputCfg) {
 // OnKeyDown handler factories.
 type inputHandlerCfg struct {
 	CompiledMask        *CompiledInputMask
-	OnTextChanged       func(*Layout, string, *Window)
+	OnTextChanged       func(string, EventCtx)
 	OnTextCommit        func(*Layout, string, InputCommitReason, *Window)
-	OnEnter             func(*Layout, *Event, *Window)
-	OnKeyDown           func(*Layout, *Event, *Window)
-	OnKeyUp             func(*Layout, *Event, *Window)
+	OnEnter             func(EventCtx)
+	OnKeyDown           func(EventCtx)
+	OnKeyUp             func(EventCtx)
 	PreTextChange       func(current, proposed string) (string, bool)
 	PostCommitNormalize func(text string, reason InputCommitReason) string
 	Mask                string
@@ -346,7 +346,7 @@ func (h *inputHandlerCfg) fireTextChanged(
 	if h.ReadOnly || h.OnTextChanged == nil {
 		return
 	}
-	h.OnTextChanged(layout, text, w)
+	h.OnTextChanged(text, EventCtx{layout, nil, w})
 }
 
 // normalizeOnCommit applies PostCommitNormalize, which transforms the
@@ -389,21 +389,23 @@ func inputScrollIDFor(cfg *InputCfg) string {
 	return ""
 }
 
-func inputOnClick(scrollID string) func(*Layout, *Event, *Window) {
-	return func(layout *Layout, e *Event, w *Window) {
-		if len(layout.Children) < 1 {
+func inputOnClick(scrollID string) func(EventCtx) {
+	return func(ctx EventCtx) {
+		if len(ctx.Layout.Children) < 1 {
+			ctx.Bubble() // no inner text shape: not ours
 			return
 		}
-		ly := layout.Children[0]
+		ly := ctx.Layout.Children[0]
 		if ly.Shape.Focusable && ly.Shape.ID != "" {
-			w.SetFocus(ly.Shape.ID)
+			ctx.Window.SetFocus(ly.Shape.ID)
 		}
 		if ly.Shape.TC == nil {
+			ctx.Bubble() // no text config: not ours
 			return
 		}
 		if ly.Shape.TC.TextIsPlaceholder {
 			imap := StateMap[string, InputState](
-				w, nsInput, capMany,
+				ctx.Window, nsInput, capMany,
 			)
 			// Default InputState{}: zero value seeds initial state.
 			is := imap.GetOr(ly.Shape.ID, InputState{})
@@ -412,20 +414,21 @@ func inputOnClick(scrollID string) func(*Layout, *Event, *Window) {
 			is.SelectEnd = 0
 			is.CursorOffset = -1
 			imap.Set(ly.Shape.ID, is)
-			resetBlinkCursorVisible(w)
-			e.IsHandled = true
+			resetBlinkCursorVisible(ctx.Window)
+			ctx.Consume()
 			return
 		}
 		text := ly.Shape.TC.Text
 		style := textStyleOrDefault(ly.Shape)
 		gl, ok := inputGlyphLayout(
-			text, ly.Shape, style, w,
+			text, ly.Shape, style, ctx.Window,
 		)
 		if !ok {
+			ctx.Bubble() // no glyph layout: cannot place a cursor
 			return
 		}
-		relX := e.MouseX - (ly.Shape.X - layout.Shape.X)
-		relY := e.MouseY - (ly.Shape.Y - layout.Shape.Y)
+		relX := ctx.Event.MouseX - (ly.Shape.X - ctx.Layout.Shape.X)
+		relY := ctx.Event.MouseY - (ly.Shape.Y - ctx.Layout.Shape.Y)
 		byteIdx := gl.GetClosestOffset(relX, relY)
 		displayText := text
 		if ly.Shape.TC.TextIsPassword {
@@ -433,7 +436,7 @@ func inputOnClick(scrollID string) func(*Layout, *Event, *Window) {
 		}
 		runePos := byteToRuneIndex(displayText, byteIdx)
 		imap := StateMap[string, InputState](
-			w, nsInput, capMany,
+			ctx.Window, nsInput, capMany,
 		)
 		// Default InputState{}: zero LastClickTime safely gates
 		// double-click (the > 0 check below prevents false match).
@@ -459,13 +462,13 @@ func inputOnClick(scrollID string) func(*Layout, *Event, *Window) {
 		}
 		is.CursorOffset = -1
 		imap.Set(ly.Shape.ID, is)
-		resetBlinkCursorVisible(w)
-		if scrollID != "" && layout.Parent != nil {
+		resetBlinkCursorVisible(ctx.Window)
+		if scrollID != "" && ctx.Layout.Parent != nil {
 			inputScrollCursorIntoView(
-				scrollID, text, layout.Parent, w,
+				scrollID, text, ctx.Layout.Parent, ctx.Window,
 			)
 		}
-		e.IsHandled = true
+		ctx.Consume()
 
 		// Drag-to-select via MouseLock.
 		ds := &inputDragState{
@@ -473,79 +476,79 @@ func inputOnClick(scrollID string) func(*Layout, *Event, *Window) {
 			anchorEnd:   is.SelectEnd,
 			gl:          gl,
 			displayText: displayText,
-			txtOffX:     ly.Shape.X - layout.Shape.X,
-			txtOffY:     ly.Shape.Y - layout.Shape.Y,
+			txtOffX:     ly.Shape.X - ctx.Layout.Shape.X,
+			txtOffY:     ly.Shape.Y - ctx.Layout.Shape.Y,
 			focusID:     ly.Shape.ID,
 			scrollID:    scrollID,
 		}
 		if doubleClick {
 			ds.runes = runes
 		}
-		if scrollID != "" && layout.Parent != nil {
-			sy := w.scrollY()
+		if scrollID != "" && ctx.Layout.Parent != nil {
+			sy := ctx.Window.scrollY()
 			// Default 0: unscrolled input before first scroll event.
 			ds.scrollY0 = sy.GetOr(scrollID, 0)
-			p := layout.Parent.Shape
+			p := ctx.Layout.Parent.Shape
 			ds.viewTop = p.Y + p.Padding.Top
 			viewH := p.Height - p.paddingHeight()
 			ds.viewBot = ds.viewTop + viewH
 			ds.maxScrollNeg = f32Min(0,
-				viewH-layout.Shape.Height)
+				viewH-ctx.Layout.Shape.Height)
 		}
-		startInputDrag(ds, w)
+		startInputDrag(ds, ctx.Window)
 	}
 }
 
 func inputAmendLayout(
 	hcfg inputHandlerCfg, focusID string,
 	colorBorderFocus Color, spellChk bool,
-	onBlur func(*Layout, *Window),
-) func(*Layout, *Window) {
-	return func(layout *Layout, w *Window) {
-		if !layout.Shape.Focusable || layout.Shape.ID == "" {
+	onBlur func(EventCtx),
+) func(EventCtx) {
+	return func(ctx EventCtx) {
+		if !ctx.Layout.Shape.Focusable || ctx.Layout.Shape.ID == "" {
 			return
 		}
-		focused := !layout.Shape.Disabled &&
-			w.IsFocus(layout.Shape.ID)
+		focused := !ctx.Layout.Shape.Disabled &&
+			ctx.Window.IsFocus(ctx.Layout.Shape.ID)
 		if focused {
-			layout.Shape.ColorBorder = colorBorderFocus
+			ctx.Layout.Shape.ColorBorder = colorBorderFocus
 		}
 
 		// Blur detection: fire commit on focus loss.
 		focusMap := StateMap[string, bool](
-			w, nsInputFocus, capMany)
+			ctx.Window, nsInputFocus, capMany)
 		// Default false: absent entry means not previously focused.
-		wasFocused := focusMap.GetOr(layout.Shape.ID, false)
-		focusMap.Set(layout.Shape.ID, focused)
+		wasFocused := focusMap.GetOr(ctx.Layout.Shape.ID, false)
+		focusMap.Set(ctx.Layout.Shape.ID, focused)
 		if wasFocused && !focused {
-			text := inputTextFromLayout(layout)
+			text := inputTextFromLayout(ctx.Layout)
 			if normalized := hcfg.normalizeOnCommit(
 				text, CommitBlur,
 			); normalized != text {
 				text = normalized
-				hcfg.fireTextChanged(layout, text, w)
+				hcfg.fireTextChanged(ctx.Layout, text, ctx.Window)
 			}
 			if hcfg.OnTextCommit != nil {
 				hcfg.OnTextCommit(
-					layout, text, CommitBlur, w)
+					ctx.Layout, text, CommitBlur, ctx.Window)
 			}
 			if spellChk {
 				spellCheckClear(
-					layout.Shape.ID, w)
+					ctx.Layout.Shape.ID, ctx.Window)
 			}
 			if onBlur != nil {
-				onBlur(layout, w)
+				onBlur(ctx)
 			}
 		}
 
 		// Propagate selection to inner text shape.
-		if len(layout.Children) > 0 {
-			inner := &layout.Children[0]
+		if len(ctx.Layout.Children) > 0 {
+			inner := &ctx.Layout.Children[0]
 			if len(inner.Children) > 0 {
 				txt := &inner.Children[0]
 				if txt.Shape.TC != nil {
-					is := StateReadOr(w, nsInput,
-						layout.Shape.ID,
+					is := StateReadOr(ctx.Window, nsInput,
+						ctx.Layout.Shape.ID,
 						InputState{})
 					txt.Shape.TC.TextSelBeg = is.SelectBeg
 					txt.Shape.TC.TextSelEnd = is.SelectEnd
@@ -556,11 +559,11 @@ func inputAmendLayout(
 		// Spell check: trigger when enabled, clear when
 		// disabled.
 		if spellChk && focused {
-			text := inputTextFromLayout(layout)
+			text := inputTextFromLayout(ctx.Layout)
 			spellCheckTrigger(
-				layout.Shape.ID, text, w)
+				ctx.Layout.Shape.ID, text, ctx.Window)
 		} else if !spellChk {
-			spellCheckClear(layout.Shape.ID, w)
+			spellCheckClear(ctx.Layout.Shape.ID, ctx.Window)
 		}
 	}
 }

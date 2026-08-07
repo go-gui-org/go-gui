@@ -228,8 +228,8 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 				ColorBorder: colorNeonGreen,
 				SizeBorder:  gui.SomeF(2),
 				Padding:     gui.SomeP(14, 28, 14, 28),
-				OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-					a := gui.State[App](w)
+				OnClick: func(ctx gui.EventCtx) {
+					a := gui.State[App](ctx.Window)
 					a.Screen = ScreenPlaying
 				},
 				Content: []gui.View{
@@ -283,20 +283,20 @@ func playView(w *gui.Window, ww, wh float32) gui.View {
 					dc.Line(ex-8, ey, ex+8, ey, xh, 1)
 					dc.Line(ex, ey-8, ex, ey+8, xh, 1)
 				},
-				OnClick: func(l *gui.Layout, e *gui.Event, w *gui.Window) {
-					a := gui.State[App](w)
-					ox := l.Shape.X
-					oy := l.Shape.Y
-					a.EmitterX = e.MouseX
-					a.EmitterY = e.MouseY
-					w.MouseLock(gui.MouseLockCfg{
-						MouseMove: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-							a := gui.State[App](w)
-							a.EmitterX = e.MouseX - ox
-							a.EmitterY = e.MouseY - oy
+				OnClick: func(ctx gui.EventCtx) {
+					a := gui.State[App](ctx.Window)
+					ox := ctx.Layout.Shape.X
+					oy := ctx.Layout.Shape.Y
+					a.EmitterX = ctx.Event.MouseX
+					a.EmitterY = ctx.Event.MouseY
+					ctx.Window.MouseLock(gui.MouseLockCfg{
+						MouseMove: func(ctx gui.EventCtx) {
+							a := gui.State[App](ctx.Window)
+							a.EmitterX = ctx.Event.MouseX - ox
+							a.EmitterY = ctx.Event.MouseY - oy
 						},
-						MouseUp: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-							w.MouseUnlock()
+						MouseUp: func(ctx gui.EventCtx) {
+							ctx.Window.MouseUnlock()
 						},
 					})
 				},
@@ -337,8 +337,8 @@ func sidebarView(w *gui.Window, wh float32) gui.View {
 						Selected:    []string{emitterName(app.EmitterType)},
 						Options:     []string{"Point", "Ring", "Line"},
 						FloatZIndex: 10,
-						OnSelect: func(sel []string, _ *gui.Event, w *gui.Window) {
-							a := gui.State[App](w)
+						OnSelect: func(sel []string, ctx gui.EventCtx) {
+							a := gui.State[App](ctx.Window)
 							switch sel[0] {
 							case "Ring":
 								a.EmitterType = EmitterRing
@@ -350,12 +350,12 @@ func sidebarView(w *gui.Window, wh float32) gui.View {
 						},
 					}),
 					sliderRow("Rate", "spawn-rate", app.SpawnRate, 1, 30, 1,
-						func(v float32, _ *gui.Event, w *gui.Window) {
-							gui.State[App](w).SpawnRate = v
+						func(v float32, ctx gui.EventCtx) {
+							gui.State[App](ctx.Window).SpawnRate = v
 						}),
 					sliderRow("Spread", "spread", app.SpreadAngle, 0, math.Pi, 0.1,
-						func(v float32, _ *gui.Event, w *gui.Window) {
-							gui.State[App](w).SpreadAngle = v
+						func(v float32, ctx gui.EventCtx) {
+							gui.State[App](ctx.Window).SpreadAngle = v
 						}),
 				},
 			}),
@@ -369,16 +369,16 @@ func sidebarView(w *gui.Window, wh float32) gui.View {
 				ColorBorder: colorNeonCyan.WithOpacity(0.4),
 				Content: []gui.View{
 					sliderRow("Gravity", "gravity", app.GravityY, -300, 300, 5,
-						func(v float32, _ *gui.Event, w *gui.Window) {
-							gui.State[App](w).GravityY = v
+						func(v float32, ctx gui.EventCtx) {
+							gui.State[App](ctx.Window).GravityY = v
 						}),
 					sliderRow("Wind", "wind", app.WindX, -200, 200, 5,
-						func(v float32, _ *gui.Event, w *gui.Window) {
-							gui.State[App](w).WindX = v
+						func(v float32, ctx gui.EventCtx) {
+							gui.State[App](ctx.Window).WindX = v
 						}),
 					sliderRow("Friction", "friction", app.Friction, 0.80, 1.00, 0.005,
-						func(v float32, _ *gui.Event, w *gui.Window) {
-							gui.State[App](w).Friction = v
+						func(v float32, ctx gui.EventCtx) {
+							gui.State[App](ctx.Window).Friction = v
 						}),
 				},
 			}),
@@ -395,21 +395,21 @@ func sidebarView(w *gui.Window, wh float32) gui.View {
 					gui.ColorPicker(gui.ColorPickerCfg{
 						ID:    "base-color",
 						Color: app.BaseColor,
-						OnColorChange: func(c gui.Color, _ *gui.Event, w *gui.Window) {
-							gui.State[App](w).BaseColor = c
+						OnColorChange: func(c gui.Color, ctx gui.EventCtx) {
+							gui.State[App](ctx.Window).BaseColor = c
 						},
 					}),
 					sliderRow("Min Size", "size-min", app.SizeMin, 1, 10, 0.5,
-						func(v float32, _ *gui.Event, w *gui.Window) {
-							gui.State[App](w).SizeMin = v
+						func(v float32, ctx gui.EventCtx) {
+							gui.State[App](ctx.Window).SizeMin = v
 						}),
 					sliderRow("Max Size", "size-max", app.SizeMax, 1, 15, 0.5,
-						func(v float32, _ *gui.Event, w *gui.Window) {
-							gui.State[App](w).SizeMax = v
+						func(v float32, ctx gui.EventCtx) {
+							gui.State[App](ctx.Window).SizeMax = v
 						}),
 					sliderRow("Lifetime", "lifetime", app.Lifetime, 0.3, 8, 0.1,
-						func(v float32, _ *gui.Event, w *gui.Window) {
-							gui.State[App](w).Lifetime = v
+						func(v float32, ctx gui.EventCtx) {
+							gui.State[App](ctx.Window).Lifetime = v
 						}),
 				},
 			}),
@@ -632,7 +632,7 @@ func presetSparkler(app *App) {
 // --- Helpers ---
 
 func sliderRow(label, id string, val, min, max, step float32,
-	onChange func(float32, *gui.Event, *gui.Window)) gui.View {
+	onChange func(float32, gui.EventCtx)) gui.View {
 	theme := gui.CurrentTheme()
 	return gui.Row(gui.ContainerCfg{
 		Padding:    gui.NoPadding,
@@ -671,8 +671,8 @@ func presetBtn(_ *gui.Window, label string, color gui.Color,
 		SizeBorder:  gui.SomeF(1),
 		Padding:     gui.SomeP(6, 10, 6, 10),
 		Radius:      gui.SomeF(4),
-		OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-			a := gui.State[App](w)
+		OnClick: func(ctx gui.EventCtx) {
+			a := gui.State[App](ctx.Window)
 			apply(a)
 		},
 		Content: []gui.View{

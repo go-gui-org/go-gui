@@ -138,7 +138,7 @@ func TestSkeletonAnimationIsViewBound(t *testing.T) {
 	if layout.Shape.events == nil || layout.Shape.events.AmendLayout == nil {
 		t.Fatal("AmendLayout not set")
 	}
-	layout.Shape.events.AmendLayout(&layout, w)
+	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, w})
 	if w.animViewBound == nil {
 		t.Fatal("animViewBound nil after skeleton AmendLayout — animation not view-bound")
 	}
@@ -155,7 +155,7 @@ func TestSkeletonAmendLayoutSetsGradient(t *testing.T) {
 		layout.Shape.events.AmendLayout == nil {
 		t.Fatal("AmendLayout not set")
 	}
-	layout.Shape.events.AmendLayout(&layout, w)
+	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, w})
 	if layout.Shape.fx == nil {
 		t.Fatal("fx nil after AmendLayout")
 	}

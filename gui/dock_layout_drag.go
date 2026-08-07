@@ -100,11 +100,11 @@ func dockDragStart(
 	}
 	dockDragSet(w, dockID, state)
 	w.MouseLock(MouseLockCfg{
-		MouseMove: func(_ *Layout, e *Event, w *Window) {
-			dockDragOnMouseMove(dockID, root, e.MouseX, e.MouseY, w)
+		MouseMove: func(ctx EventCtx) {
+			dockDragOnMouseMove(dockID, root, ctx.Event.MouseX, ctx.Event.MouseY, ctx.Window)
 		},
-		MouseUp: func(_ *Layout, _ *Event, w *Window) {
-			dockDragOnMouseUp(dockID, root, onLayoutChange, w)
+		MouseUp: func(ctx EventCtx) {
+			dockDragOnMouseUp(dockID, root, onLayoutChange, ctx.Window)
 		},
 	})
 }

@@ -128,7 +128,7 @@ func TestImageWithEvents(t *testing.T) {
 		ID:    "img1",
 		Src:   path,
 		Width: 50, Height: 50,
-		OnClick: func(_ *Layout, _ *Event, _ *Window) {
+		OnClick: func(ctx EventCtx) {
 			clicked = true
 		},
 	})
@@ -137,9 +137,9 @@ func TestImageWithEvents(t *testing.T) {
 		t.Fatal("expected events")
 	}
 	// Simulate left click.
-	layout.Shape.events.OnClick(&layout, &Event{
+	layout.Shape.events.OnClick(EventCtx{&layout, &Event{
 		MouseButton: MouseLeft,
-	}, w)
+	}, w})
 	if !clicked {
 		t.Fatal("click handler not called")
 	}

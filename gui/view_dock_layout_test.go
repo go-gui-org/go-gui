@@ -514,7 +514,7 @@ func TestDockTabButtonWithSelect(t *testing.T) {
 	// Simulate click
 	e := &Event{}
 	if layout.Shape.events != nil && layout.Shape.events.OnClick != nil {
-		layout.Shape.events.OnClick(&layout, e, w)
+		layout.Shape.events.OnClick(EventCtx{&layout, e, w})
 	}
 	if !selectCalled {
 		t.Fatal("select not called")

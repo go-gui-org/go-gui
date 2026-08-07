@@ -87,7 +87,7 @@ dc.Image(0, 0, 64, 64,
 
 Setting `IDFocus > 0` opts the canvas into tab order. The paired `OnKeyDown`
 callback fires when the canvas is focused and a key is pressed. Set
-`e.IsHandled = true` to stop propagation. Bump `Version` to redraw after state
+`ctx.Consume()` to stop propagation. Bump `Version` to redraw after state
 changes.
 
 ```go
@@ -97,9 +97,9 @@ gui.DrawCanvas(gui.DrawCanvasCfg{
     Version: app.MyCanvasVersion,
     Width:   480, Height: 280,
     OnDraw: drawScene,
-    OnKeyDown: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-        a := gui.State[App](w)
-        switch e.KeyCode {
+    OnKeyDown: func(ctx gui.EventCtx) {
+        a := gui.State[App](ctx.Window)
+        switch ctx.Event.KeyCode {
         case gui.KeyLeft:
             a.MarkerX -= 10
         case gui.KeyRight:
@@ -108,7 +108,7 @@ gui.DrawCanvas(gui.DrawCanvasCfg{
             return
         }
         a.MyCanvasVersion++
-        e.IsHandled = true
+        ctx.Consume()
     },
 })
 ```
@@ -130,12 +130,12 @@ gui.DrawCanvas(gui.DrawCanvasCfg{
 
 ## Events
 
-| Callback      | Signature                      | Fired when                          |
-| ------------- | ------------------------------ | ----------------------------------- |
-| OnClick       | func(*Layout, *Event, *Window) | Canvas clicked                      |
-| OnHover       | func(*Layout, *Event, *Window) | Mouse enters canvas                 |
-| OnMouseScroll | func(*Layout, *Event, *Window) | Scroll wheel on canvas              |
-| OnKeyDown     | func(*Layout, *Event, *Window) | Key pressed while canvas is focused |
+| Callback      | Signature      | Fired when                          |
+| ------------- | -------------- | ----------------------------------- |
+| OnClick       | func(EventCtx) | Canvas clicked                      |
+| OnHover       | func(EventCtx) | Mouse enters canvas                 |
+| OnMouseScroll | func(EventCtx) | Scroll wheel on canvas              |
+| OnKeyDown     | func(EventCtx) | Key pressed while canvas is focused |
 
 ## Caching
 

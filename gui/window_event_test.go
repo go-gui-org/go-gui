@@ -19,9 +19,8 @@ func TestEventFnRoutesChar(t *testing.T) {
 			{Shape: &Shape{
 				Focusable: true, ID: "f1",
 				events: &eventHandlers{
-					OnChar: func(_ *Layout, e *Event, _ *Window) {
+					OnChar: func(ctx EventCtx) {
 						called = true
-						e.IsHandled = true
 					},
 				},
 			}},
@@ -114,7 +113,7 @@ func TestEventFnBlocksWhenUnfocused(t *testing.T) {
 			{Shape: &Shape{
 				Focusable: true, ID: "f1",
 				events: &eventHandlers{
-					OnChar: func(_ *Layout, _ *Event, _ *Window) {
+					OnChar: func(ctx EventCtx) {
 						called = true
 					},
 				},
@@ -190,18 +189,16 @@ func TestEventFnDialogModalRouting(t *testing.T) {
 			{Shape: &Shape{
 				Focusable: true, ID: "f1",
 				events: &eventHandlers{
-					OnChar: func(_ *Layout, e *Event, _ *Window) {
+					OnChar: func(ctx EventCtx) {
 						mainCalled = true
-						e.IsHandled = true
 					},
 				},
 			}},
 			{Shape: &Shape{
 				Focusable: true, ID: "f2",
 				events: &eventHandlers{
-					OnChar: func(_ *Layout, e *Event, _ *Window) {
+					OnChar: func(ctx EventCtx) {
 						dialogCalled = true
-						e.IsHandled = true
 					},
 				},
 			}},
@@ -283,9 +280,9 @@ func TestEventFnMouseScrollFocusedHandlerPrecedence(t *testing.T) {
 			{Shape: &Shape{
 				Focusable: true, ID: "f11",
 				events: &eventHandlers{
-					OnMouseScroll: func(_ *Layout, e *Event, _ *Window) {
+					OnMouseScroll: func(ctx EventCtx) {
 						focusedCalled = true
-						e.IsHandled = true
+						ctx.Consume()
 					},
 				},
 			}},
@@ -329,9 +326,9 @@ func TestEventFnRoutesKeyUp(t *testing.T) {
 			{Shape: &Shape{
 				Focusable: true, ID: "f1",
 				events: &eventHandlers{
-					OnKeyUp: func(_ *Layout, e *Event, _ *Window) {
+					OnKeyUp: func(ctx EventCtx) {
 						called = true
-						e.IsHandled = true
+						ctx.Consume()
 					},
 				},
 			}},
@@ -359,9 +356,9 @@ func TestKeyUpEventFlow_WindowToInput(t *testing.T) {
 	// Create an input widget with OnKeyUp handler
 	input := Input(InputCfg{
 		ID: "test-input",
-		OnKeyUp: func(_ *Layout, e *Event, _ *Window) {
+		OnKeyUp: func(ctx EventCtx) {
 			called = true
-			e.IsHandled = true
+			ctx.Consume()
 		},
 	})
 

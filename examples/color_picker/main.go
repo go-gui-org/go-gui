@@ -55,9 +55,9 @@ func mainView(w *gui.Window) gui.View {
 				ID:      "picker",
 				Color:   app.Color,
 				ShowHSV: app.ShowHSV,
-				OnColorChange: func(c gui.Color, _ *gui.Event, w *gui.Window) {
+				OnColorChange: func(c gui.Color, ctx gui.EventCtx) {
 					// Keep the picker controlled by the window state.
-					gui.State[App](w).Color = c
+					gui.State[App](ctx.Window).Color = c
 				},
 			}),
 		},
@@ -68,8 +68,8 @@ func toggleHSV(app *App) gui.View {
 	return gui.Switch(gui.SwitchCfg{
 		Label:    "HSV",
 		Selected: app.ShowHSV,
-		OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-			a := gui.State[App](w)
+		OnClick: func(ctx gui.EventCtx) {
+			a := gui.State[App](ctx.Window)
 			a.ShowHSV = !a.ShowHSV
 		},
 	})
@@ -83,14 +83,14 @@ func toggleTheme(app *App) gui.View {
 		TextStyle:    t.Icon3,
 		Padding:      gui.Some(t.PaddingSmall),
 		Selected:     app.LightTheme,
-		OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-			a := gui.State[App](w)
+		OnClick: func(ctx gui.EventCtx) {
+			a := gui.State[App](ctx.Window)
 			a.LightTheme = !a.LightTheme
 			// Switching the theme is enough; the next frame re-renders the picker.
 			if a.LightTheme {
-				w.SetTheme(gui.ThemeLight.WithBorders(true))
+				ctx.Window.SetTheme(gui.ThemeLight.WithBorders(true))
 			} else {
-				w.SetTheme(gui.ThemeDark.WithBorders(true))
+				ctx.Window.SetTheme(gui.ThemeDark.WithBorders(true))
 			}
 		},
 	})

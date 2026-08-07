@@ -128,8 +128,8 @@ When a `KeyDown` event arrives, the window processes it in this order:
 4. Non-global command dispatch  (Global=false commands as fallback)
 ```
 
-At each stage, if a handler sets `e.IsHandled = true`, subsequent stages are
-skipped. This means:
+At each stage, if a handler sets `ctx.Consume()`, subsequent stages are skipped.
+This means:
 
 - Global commands always take priority.
 - Focused widgets can intercept keys before non-global commands.

@@ -71,8 +71,8 @@ func Skeleton(cfg SkeletonCfg) View {
 		SizeBorder: NoBorder,
 		Sizing:     cfg.Sizing,
 		Padding:    NoPadding,
-		AmendLayout: func(layout *Layout, w *Window) {
-			skeletonAmendLayout(layout, w, id,
+		AmendLayout: func(ctx EventCtx) {
+			skeletonAmendLayout(ctx.Layout, ctx.Window, id,
 				colorBase, colorHL)
 		},
 	}

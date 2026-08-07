@@ -128,9 +128,9 @@ UI from the view function.
 │ OS event → Event struct              │  │ Animation interface:      │
 │  ├─ hit-test Layout tree          │  │  ├─ Tween (value lerp)       │
 │  ├─ bubble up to ancestors        │  │  ├─ Spring (physics-based)   │
-│  ├─ e.IsHandled stops propagation │  │  ├─ Keyframe (waypoints)     │
-│  └─ callbacks: func(*Layout,      │  │  ├─ Layout (FLIP-style)      │
-│       *Event, *Window)            │  │  ├─ Hero (cross-view)        │
+│  ├─ ctx.Consume() stops it,       │  │  ├─ Keyframe (waypoints)     │
+│  │   ctx.Bubble() resumes it      │  │  ├─ Layout (FLIP-style)      │
+│  └─ callbacks: func(EventCtx)     │  │  ├─ Hero (cross-view)        │
 │                                   │  │  └─ BlinkCursor              │
 │ Key dispatch also feeds Commands  │  │                              │
 │ (keyboard shortcuts / Shortcut)   │  │ Easing: bezier LUT cache     │

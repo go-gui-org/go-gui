@@ -46,7 +46,7 @@ func layoutAmend(layout *Layout, w *Window) {
 	}
 	if layout.Shape.hasEvents() &&
 		layout.Shape.events.AmendLayout != nil {
-		layout.Shape.events.AmendLayout(layout, w)
+		layout.Shape.events.AmendLayout(EventCtx{layout, nil, w})
 	}
 }
 
@@ -93,7 +93,7 @@ func layoutHover(layout *Layout, w *Window) bool {
 		Type:        EventMouseMove,
 		MouseButton: MouseInvalid,
 	}
-	shape.events.OnHover(layout, &w.scratch.hoverEvent, w)
+	shape.events.OnHover(EventCtx{layout, &w.scratch.hoverEvent, w})
 	return true
 }
 
@@ -130,7 +130,7 @@ func layoutMouseLeave(layout *Layout, w *Window) {
 			Type:        EventMouseMove,
 			MouseButton: MouseInvalid,
 		}
-		shape.events.OnMouseLeave(layout, &w.scratch.hoverEvent, w)
+		shape.events.OnMouseLeave(EventCtx{layout, &w.scratch.hoverEvent, w})
 	}
 	if inside {
 		sm.Set(shape.ID, true)

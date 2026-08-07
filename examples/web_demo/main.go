@@ -52,9 +52,8 @@ func mainView(w *gui.Window) gui.View {
 						Text: fmt.Sprintf("%d Clicks", app.Clicks),
 					}),
 				},
-				OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-					gui.State[App](w).Clicks++
-					e.IsHandled = true
+				OnClick: func(ctx gui.EventCtx) {
+					gui.State[App](ctx.Window).Clicks++
 				},
 			}),
 		},

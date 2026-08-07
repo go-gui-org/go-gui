@@ -80,9 +80,9 @@ type TermGridData struct {
 
 // TermGridCfg configures a TermGrid widget.
 type TermGridCfg struct {
-	OnKeyDown     func(*Layout, *Event, *Window)
-	OnClick       func(*Layout, *Event, *Window)
-	OnMouseScroll func(*Layout, *Event, *Window)
+	OnKeyDown     func(EventCtx)
+	OnClick       func(EventCtx)
+	OnMouseScroll func(EventCtx)
 
 	ID              string
 	A11YLabel       string

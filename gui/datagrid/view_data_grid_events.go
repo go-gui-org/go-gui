@@ -46,11 +46,10 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 		Padding:     gg.SomeP(0, cfg.PaddingCell.Get(gg.Padding{}).Right, 0, cfg.PaddingCell.Get(gg.Padding{}).Left),
 		Spacing:     gg.SomeF(6),
 		VAlign:      gg.VAlignMiddle,
-		OnClick: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
+		OnClick: func(ctx gg.EventCtx) {
 			if inputFocusID != "" {
-				w.SetFocus(inputFocusID)
+				ctx.Window.SetFocus(inputFocusID)
 			}
-			e.IsHandled = true
 		},
 		Content: []gg.View{
 			gg.Input(gg.InputCfg{
@@ -75,23 +74,23 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 				TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
 			}),
 			dataGridIndicatorButton(gg.ActiveLocale.StrClear, cfg.TextStyleFilter, cfg.ColorHeaderHover,
-				clearDisabled, 0, func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
+				clearDisabled, 0, func(ctx gg.EventCtx) {
 					if queryCallback == nil {
 						return
 					}
-					w.AnimationRemove(inputID + ":debounce")
-					gg.StateMap[string, string](w, nsDgQuickDraft,
+					ctx.Window.AnimationRemove(inputID + ":debounce")
+					gg.StateMap[string, string](ctx.Window, nsDgQuickDraft,
 						capModerate).Delete(gridID)
 					next := GridQueryState{
 						Sorts:       append([]GridSort(nil), query.Sorts...),
 						Filters:     append([]GridFilter(nil), query.Filters...),
 						QuickFilter: "",
 					}
-					queryCallback(next, e, w)
+					queryCallback(next, gg.EventCtx{Layout: nil, Event: ctx.Event, Window: ctx.Window})
 					if inputFocusID != "" {
-						w.SetFocus(inputFocusID)
+						ctx.Window.SetFocus(inputFocusID)
 					}
-					e.IsHandled = true
+					ctx.Consume()
 				}),
 		},
 	})
@@ -109,10 +108,10 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 func dataGridQuickFilterOnTextChanged(
 	gridID, inputID string,
 	query GridQueryState,
-	queryCallback func(GridQueryState, *gg.Event, *gg.Window),
+	queryCallback func(GridQueryState, gg.EventCtx),
 	debounce time.Duration,
-) func(*gg.Layout, string, *gg.Window) {
-	return func(_ *gg.Layout, text string, w *gg.Window) {
+) func(string, gg.EventCtx) {
+	return func(text string, ctx gg.EventCtx) {
 		if queryCallback == nil {
 			return
 		}
@@ -123,14 +122,14 @@ func dataGridQuickFilterOnTextChanged(
 				QuickFilter: text,
 			}
 			e := &gg.Event{}
-			queryCallback(next, e, w)
+			queryCallback(next, gg.EventCtx{Layout: nil, Event: e, Window: ctx.Window})
 			return
 		}
 		sorts := append([]GridSort(nil), query.Sorts...)
 		filters := append([]GridFilter(nil), query.Filters...)
-		gg.StateMap[string, string](w, nsDgQuickDraft,
+		gg.StateMap[string, string](ctx.Window, nsDgQuickDraft,
 			capModerate).Set(gridID, text)
-		w.AnimationAdd(&gg.Animate{
+		ctx.Window.AnimationAdd(&gg.Animate{
 			AnimID: inputID + ":debounce",
 			Delay:  debounce,
 			Callback: func(_ *gg.Animate, w *gg.Window) {
@@ -140,7 +139,7 @@ func dataGridQuickFilterOnTextChanged(
 					QuickFilter: text,
 				}
 				e := &gg.Event{}
-				queryCallback(next, e, w)
+				queryCallback(next, gg.EventCtx{Layout: nil, Event: e, Window: w})
 				gg.StateMap[string, string](w, nsDgQuickDraft,
 					capModerate).Delete(gridID)
 			},
@@ -183,12 +182,12 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.
 		VAlign:  gg.VAlignMiddle,
 		Content: []gg.View{
 			dataGridIndicatorButton(chooserLabel, cfg.TextStyleFilter, cfg.ColorHeaderHover,
-				false, 0, func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
-					dataGridToggleColumnChooserOpen(gridID, w)
+				false, 0, func(ctx gg.EventCtx) {
+					dataGridToggleColumnChooserOpen(gridID, ctx.Window)
 					if focusID != "" {
-						w.SetFocus(focusID)
+						ctx.Window.SetFocus(focusID)
 					}
-					e.IsHandled = true
+					ctx.Consume()
 				}),
 		},
 	}))
@@ -232,17 +231,18 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.
 	})
 }
 
-func dataGridMakeColumnChooserOnClick(onHiddenColumnsChange func(map[string]bool, *gg.Event, *gg.Window), hiddenColumnIDs map[string]bool, columns []GridColumnCfg, colID string, focusID string) func(*gg.Layout, *gg.Event, *gg.Window) {
-	return func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
+func dataGridMakeColumnChooserOnClick(onHiddenColumnsChange func(map[string]bool, gg.EventCtx), hiddenColumnIDs map[string]bool, columns []GridColumnCfg, colID string, focusID string) func(gg.EventCtx) {
+	return func(ctx gg.EventCtx) {
 		if onHiddenColumnsChange == nil {
+			ctx.Bubble() // no handler configured: pass the click on
 			return
 		}
 		nextHidden := dataGridNextHiddenColumns(hiddenColumnIDs, colID, columns)
-		onHiddenColumnsChange(nextHidden, e, w)
+		onHiddenColumnsChange(nextHidden, gg.EventCtx{Layout: nil, Event: ctx.Event, Window: ctx.Window})
 		if focusID != "" {
-			w.SetFocus(focusID)
+			ctx.Window.SetFocus(focusID)
 		}
-		e.IsHandled = true
+		ctx.Consume()
 	}
 }
 

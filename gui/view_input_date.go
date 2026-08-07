@@ -10,7 +10,7 @@ type InputDateCfg struct {
 	TextStyle        TextStyle
 	PlaceholderStyle TextStyle
 	Date             time.Time
-	OnSelect         func([]time.Time, *Event, *Window)
+	OnSelect         func([]time.Time, EventCtx)
 	ID               string
 	Placeholder      string
 
@@ -125,9 +125,8 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 					Content: []View{Text(TextCfg{
 						Text: "\U0001F4C5",
 					})},
-					OnClick: func(_ *Layout, e *Event, w *Window) {
-						inputDateToggle(cfgID, w)
-						e.IsHandled = true
+					OnClick: func(ctx EventCtx) {
+						inputDateToggle(cfgID, ctx.Window)
 					},
 				}),
 			},
@@ -142,9 +141,8 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 			Color:      ColorTransparent,
 			Padding:    NoPadding,
 			SizeBorder: NoBorder,
-			OnClick: func(_ *Layout, e *Event, w *Window) {
-				inputDateClose(cfgID, w)
-				e.IsHandled = true
+			OnClick: func(ctx EventCtx) {
+				inputDateClose(cfgID, ctx.Window)
 			},
 		}))
 		content = append(content, Column(ContainerCfg{
@@ -154,8 +152,7 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 			Padding:      NoPadding,
 			SizeBorder:   NoBorder,
 			FloatOffsetY: -cfg.SizeBorder.Get(0),
-			OnClick: func(_ *Layout, e *Event, _ *Window) {
-				e.IsHandled = true
+			OnClick: func(ctx EventCtx) {
 			},
 			Content: []View{
 				DatePicker(DatePickerCfg{
@@ -182,10 +179,10 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 					HideTodayIndicator:   cfg.HideTodayIndicator,
 					MondayFirstDayOfWeek: cfg.MondayFirstDayOfWeek,
 					ShowAdjacentMonths:   cfg.ShowAdjacentMonths,
-					OnSelect: func(dates []time.Time, e *Event, w *Window) {
-						inputDateClose(cfgID, w)
+					OnSelect: func(dates []time.Time, ctx EventCtx) {
+						inputDateClose(cfgID, ctx.Window)
 						if cfg.OnSelect != nil {
-							cfg.OnSelect(dates, e, w)
+							cfg.OnSelect(dates, EventCtx{nil, ctx.Event, ctx.Window})
 						}
 					},
 				}),
@@ -212,9 +209,9 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
 		Content:     content,
-		AmendLayout: func(layout *Layout, w *Window) {
-			if w.IsFocus(cfg.ID) {
-				layout.Shape.ColorBorder = cfg.ColorBorderFocus
+		AmendLayout: func(ctx EventCtx) {
+			if ctx.Window.IsFocus(cfg.ID) {
+				ctx.Layout.Shape.ColorBorder = cfg.ColorBorderFocus
 			}
 		},
 	})
@@ -250,8 +247,8 @@ func inputDateTextField(
 		Padding:          NoPadding,
 		Color:            ColorTransparent,
 		Disabled:         cfg.Disabled,
-		OnTextChanged: func(_ *Layout, s string, w *Window) {
-			sm := StateMap[string, string](w, nsInputDateText, capModerate)
+		OnTextChanged: func(s string, ctx EventCtx) {
+			sm := StateMap[string, string](ctx.Window, nsInputDateText, capModerate)
 			sm.Set(cfgID, s)
 		},
 		OnTextCommit: func(_ *Layout, text string, _ InputCommitReason, w *Window) {
@@ -262,7 +259,7 @@ func inputDateTextField(
 			}
 			if text == "" {
 				if cfg.OnSelect != nil {
-					cfg.OnSelect(nil, &Event{}, w)
+					cfg.OnSelect(nil, EventCtx{nil, &Event{}, w})
 				}
 				w.UpdateWindow()
 				return
@@ -273,14 +270,14 @@ func inputDateTextField(
 				return
 			}
 			if cfg.OnSelect != nil {
-				cfg.OnSelect([]time.Time{t}, &Event{}, w)
+				cfg.OnSelect([]time.Time{t}, EventCtx{nil, &Event{}, w})
 			}
 			w.UpdateWindow()
 		},
-		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
-			if isOpen && e.KeyCode == KeyEscape {
-				inputDateClose(cfgID, w)
-				e.IsHandled = true
+		OnKeyDown: func(ctx EventCtx) {
+			if isOpen && ctx.Event.KeyCode == KeyEscape {
+				inputDateClose(cfgID, ctx.Window)
+				ctx.Consume()
 			}
 		},
 	})

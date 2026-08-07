@@ -87,7 +87,7 @@ gui.InputDate(gui.InputDateCfg{
 | Callback | Signature                          | Fired when       |
 | -------- | ---------------------------------- | ---------------- |
 | OnSelect | func([]time.Time, *Event, *Window) | Date(s) selected |
-| OnEnter  | func(*Layout, *Event, *Window)     | Enter pressed    |
+| OnEnter  | func(EventCtx)                     | Enter pressed    |
 
 ## Accessibility
 

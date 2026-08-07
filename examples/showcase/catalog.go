@@ -59,12 +59,12 @@ func catalogPanel(w *gui.Window) gui.View {
 						Focusable:   true,
 						FloatAnchor: gui.FloatTopRight,
 						FloatTieOff: gui.FloatBottomRight,
-						OnSelect: func(name string, _ *gui.Event, w *gui.Window) {
+						OnSelect: func(name string, ctx gui.EventCtx) {
 							theme, ok := gui.ThemeGet(name)
 							if !ok {
 								return
 							}
-							syncThemeGenFromCfg(gui.State[ShowcaseApp](w), theme.Cfg)
+							syncThemeGenFromCfg(gui.State[ShowcaseApp](ctx.Window), theme.Cfg)
 						},
 					}),
 				},
@@ -79,8 +79,8 @@ func searchInput(app *ShowcaseApp) gui.View {
 		Sizing:      gui.FillFit,
 		Text:        app.NavQuery,
 		Placeholder: "Search controls...",
-		OnTextChanged: func(_ *gui.Layout, text string, w *gui.Window) {
-			gui.State[ShowcaseApp](w).NavQuery = text
+		OnTextChanged: func(text string, ctx gui.EventCtx) {
+			gui.State[ShowcaseApp](ctx.Window).NavQuery = text
 		},
 	})
 }
@@ -124,17 +124,16 @@ func groupPickerItem(label, key string, app *ShowcaseApp) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: label, TextStyle: t.N5}),
 		},
-		OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-			showcaseApp := gui.State[ShowcaseApp](w)
+		OnClick: func(ctx gui.EventCtx) {
+			showcaseApp := gui.State[ShowcaseApp](ctx.Window)
 			showcaseApp.SelectedGroup = key
 			showcaseApp.ShowDocs = false
 			showcaseApp.NavQuery = ""
 			entries := filteredEntries(showcaseApp)
 			showcaseApp.SelectedComponent = preferredComponentForGroup(entries)
-			w.ScrollVerticalTo(scrollCatalog, 0)
-			w.ScrollVerticalTo(scrollDetail, 0)
-			w.ScrollHorizontalTo(scrollDetail, 0)
-			e.IsHandled = true
+			ctx.Window.ScrollVerticalTo(scrollCatalog, 0)
+			ctx.Window.ScrollVerticalTo(scrollDetail, 0)
+			ctx.Window.ScrollHorizontalTo(scrollDetail, 0)
 		},
 	})
 }
@@ -203,13 +202,12 @@ func catalogRow(entry DemoEntry, app *ShowcaseApp) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: entry.Label, TextStyle: t.N4}),
 		},
-		OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-			showcaseApp := gui.State[ShowcaseApp](w)
+		OnClick: func(ctx gui.EventCtx) {
+			showcaseApp := gui.State[ShowcaseApp](ctx.Window)
 			showcaseApp.SelectedComponent = entry.ID
 			showcaseApp.ShowDocs = false
-			w.ScrollVerticalTo(scrollDetail, 0)
-			w.ScrollHorizontalTo(scrollDetail, 0)
-			e.IsHandled = true
+			ctx.Window.ScrollVerticalTo(scrollDetail, 0)
+			ctx.Window.ScrollHorizontalTo(scrollDetail, 0)
 		},
 	})
 }
@@ -228,13 +226,12 @@ func toggleLocale(app *ShowcaseApp) gui.View {
 				TextStyle: gui.CurrentTheme().B4,
 			}),
 		},
-		OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-			showcaseApp := gui.State[ShowcaseApp](w)
+		OnClick: func(ctx gui.EventCtx) {
+			showcaseApp := gui.State[ShowcaseApp](ctx.Window)
 			showcaseApp.LocaleIndex = (showcaseApp.LocaleIndex + 1) % localeCount()
 			if locale, ok := showcaseLocaleAt(showcaseApp.LocaleIndex); ok {
-				w.SetLocale(locale)
+				ctx.Window.SetLocale(locale)
 			}
-			e.IsHandled = true
 		},
 	})
 }

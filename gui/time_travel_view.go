@@ -211,7 +211,7 @@ func (c *TimeTravelController) View(w *Window) View {
 // clamps v against the valid cursor range so an out-of-bounds
 // value from a misbehaving slider backend can't render the
 // thumb past the track ends on the next frame.
-func (c *TimeTravelController) onSliderChange(v float32, _ *Event, _ *Window) {
+func (c *TimeTravelController) onSliderChange(v float32, _ EventCtx) {
 	if c == nil || !f32IsFinite(v) {
 		return
 	}
@@ -243,11 +243,11 @@ const ttDebugFocusID = "__tt_debug__"
 
 // handleKey maps scrubber keyboard shortcuts to controller
 // actions. Called from the root container's OnKeyDown.
-func (c *TimeTravelController) handleKey(_ *Layout, e *Event, _ *Window) {
-	if c == nil || e == nil {
+func (c *TimeTravelController) handleKey(ctx EventCtx) {
+	if c == nil || ctx.Event == nil {
 		return
 	}
-	switch e.KeyCode {
+	switch ctx.Event.KeyCode {
 	case KeyLeft:
 		c.StepBack()
 	case KeyRight:
@@ -263,7 +263,9 @@ func (c *TimeTravelController) handleKey(_ *Layout, e *Event, _ *Window) {
 	default:
 		return
 	}
-	e.IsHandled = true
+	// OnKeyDown is notify-class, so the shortcut must consume
+	// explicitly to keep the key from bubbling.
+	ctx.Consume()
 }
 
 // ttButton builds a labelled scrubber button whose click
@@ -271,7 +273,7 @@ func (c *TimeTravelController) handleKey(_ *Layout, e *Event, _ *Window) {
 func ttButton(label string, fn func()) View {
 	return Button(ButtonCfg{
 		Content: []View{Text(TextCfg{Text: label})},
-		OnClick: func(_ *Layout, _ *Event, _ *Window) { fn() },
+		OnClick: func(ctx EventCtx) { fn() },
 	})
 }
 

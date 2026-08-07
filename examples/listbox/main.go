@@ -74,9 +74,9 @@ func mainView(w *gui.Window) gui.View {
 				Sizing:      gui.FillFixed,
 				SelectedIDs: app.SelectedIDs,
 				Data:        app.Items,
-				OnSelect: func(ids []string, e *gui.Event, w *gui.Window) {
-					gui.State[App](w).SelectedIDs = ids
-					e.IsHandled = true
+				OnSelect: func(ids []string, ctx gui.EventCtx) {
+					gui.State[App](ctx.Window).SelectedIDs = ids
+					ctx.Consume()
 				},
 			}),
 		},

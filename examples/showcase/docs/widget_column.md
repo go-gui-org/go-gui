@@ -92,18 +92,18 @@ gui.Column(gui.ContainerCfg{
 
 ## Events
 
-| Callback    | Signature                      | Fired when              |
-| ----------- | ------------------------------ | ----------------------- |
-| OnClick     | func(*Layout, *Event, *Window) | Left-click              |
-| OnAnyClick  | func(*Layout, *Event, *Window) | Any mouse button click  |
-| OnChar      | func(*Layout, *Event, *Window) | Character input         |
-| OnKeyDown   | func(*Layout, *Event, *Window) | Key pressed             |
-| OnMouseMove | func(*Layout, *Event, *Window) | Mouse movement          |
-| OnMouseUp   | func(*Layout, *Event, *Window) | Mouse button released   |
-| OnHover     | func(*Layout, *Event, *Window) | Mouse hover             |
-| OnScroll    | func(*Layout, *Window)         | Scroll position changed |
-| OnIMECommit | func(*Layout, string, *Window) | IME text committed      |
-| AmendLayout | func(*Layout, *Window)         | Post-layout amendment   |
+| Callback    | Signature              | Fired when              |
+| ----------- | ---------------------- | ----------------------- |
+| OnClick     | func(EventCtx)         | Left-click              |
+| OnAnyClick  | func(EventCtx)         | Any mouse button click  |
+| OnChar      | func(EventCtx)         | Character input         |
+| OnKeyDown   | func(EventCtx)         | Key pressed             |
+| OnMouseMove | func(EventCtx)         | Mouse movement          |
+| OnMouseUp   | func(EventCtx)         | Mouse button released   |
+| OnHover     | func(EventCtx)         | Mouse hover             |
+| OnScroll    | func(EventCtx)         | Scroll position changed |
+| OnIMECommit | func(string, EventCtx) | IME text committed      |
+| AmendLayout | func(EventCtx)         | Post-layout amendment   |
 
 ## Accessibility
 

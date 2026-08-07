@@ -71,10 +71,10 @@ func mainView(w *gui.Window) gui.View {
 							Padding: gui.SomeP(8, 16, 8, 16),
 							Color:   gui.RGBA(80, 120, 200, 255),
 							Radius:  gui.SomeF(6),
-							OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-								s := gui.State[app](w)
+							OnClick: func(ctx gui.EventCtx) {
+								s := gui.State[app](ctx.Window)
 								s.clicks++
-								w.UpdateView(mainView)
+								ctx.Window.UpdateView(mainView)
 							},
 							Content: []gui.View{
 								gui.Text(gui.TextCfg{

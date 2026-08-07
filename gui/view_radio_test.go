@@ -25,7 +25,7 @@ func TestRadioOnClickCallback(t *testing.T) {
 	w := &Window{}
 	v := Radio(RadioCfg{
 		ID: "r3",
-		OnClick: func(_ *Layout, _ *Event, _ *Window) {
+		OnClick: func(ctx EventCtx) {
 			fired = true
 		},
 	})
@@ -35,7 +35,7 @@ func TestRadioOnClickCallback(t *testing.T) {
 		t.Fatal("expected OnClick")
 	}
 	e := &Event{MouseButton: MouseLeft}
-	layout.Shape.events.OnClick(&layout, e, w)
+	layout.Shape.events.OnClick(EventCtx{&layout, e, w})
 	if !fired {
 		t.Error("OnClick did not fire")
 	}

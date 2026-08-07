@@ -259,45 +259,45 @@ func rtfFindRunAtIndex(
 
 // --- Event handlers ---
 
-func rtfMouseMove(l *Layout, e *Event, w *Window) {
-	if !l.Shape.hasRtfLayout() {
+func rtfMouseMove(ctx EventCtx) {
+	if !ctx.Layout.Shape.hasRtfLayout() {
 		return
 	}
-	ts := &w.viewState.tooltip
-	layout := l.Shape.TC.RtfLayout
+	ts := &ctx.Window.viewState.tooltip
+	layout := ctx.Layout.Shape.TC.RtfLayout
 	for _, run := range layout.Items {
 		if run.IsObject {
 			continue
 		}
-		if rtfHitTest(run, e.MouseX, e.MouseY) {
-			found := rtfFindRunAtIndex(l, run.StartIndex)
+		if rtfHitTest(run, ctx.Event.MouseX, ctx.Event.MouseY) {
+			found := rtfFindRunAtIndex(ctx.Layout, run.StartIndex)
 			if found.Tooltip != "" {
 				tipID := found.Tooltip
 				if ts.hoverID == tipID {
-					e.IsHandled = true
+					ctx.Event.IsHandled = true
 					return
 				}
 				r := rtfRunRect(run)
 				ts.hoverID = tipID
 				ts.text = found.Tooltip
 				ts.bounds = drawClip{
-					X:      l.Shape.X + r.X,
-					Y:      l.Shape.Y + r.Y,
+					X:      ctx.Layout.Shape.X + r.X,
+					Y:      ctx.Layout.Shape.Y + r.Y,
 					Width:  r.Width,
 					Height: r.Height,
 				}
 				ts.floatOffsetX = r.X + r.Width/2
 				ts.floatOffsetY = r.Y - 3
 				ts.blockKey = rtfRunsKey(
-					l.Shape.TC.RtfRuns)
+					ctx.Layout.Shape.TC.RtfRuns)
 				ts.hoverStart = time.Now()
-				w.AnimationAdd(rtfTooltipAnimation(tipID))
-				e.IsHandled = true
+				ctx.Window.AnimationAdd(rtfTooltipAnimation(tipID))
+				ctx.Consume()
 				return
 			}
 			if found.Link != "" {
-				w.SetMouseCursorPointingHand()
-				e.IsHandled = true
+				ctx.Window.SetMouseCursorPointingHand()
+				ctx.Consume()
 				return
 			}
 		}
@@ -324,11 +324,11 @@ func rtfTooltipAnimation(tipID string) *Animate {
 // rtfAmendTooltip clears RTF tooltip state when the mouse
 // leaves the stored bounds, and dismisses the link context
 // menu when focus is lost.
-func rtfAmendTooltip(_ *Layout, w *Window) {
-	ts := &w.viewState.tooltip
+func rtfAmendTooltip(ctx EventCtx) {
+	ts := &ctx.Window.viewState.tooltip
 	if ts.text != "" {
-		mx := w.viewState.mousePosX
-		my := w.viewState.mousePosY
+		mx := ctx.Window.viewState.mousePosX
+		my := ctx.Window.viewState.mousePosY
 		b := ts.bounds
 		if mx < b.X || my < b.Y ||
 			mx >= b.X+b.Width || my >= b.Y+b.Height {
@@ -336,9 +336,9 @@ func rtfAmendTooltip(_ *Layout, w *Window) {
 		}
 	}
 	// Dismiss link context menu when focus moves away.
-	if !w.IsFocus(rtfLinkMenuFocusID) {
+	if !ctx.Window.IsFocus(rtfLinkMenuFocusID) {
 		sm := StateMapRead[string, rtfLinkMenuState](
-			w, nsRtfLinkMenu)
+			ctx.Window, nsRtfLinkMenu)
 		if sm != nil {
 			sm.Delete(nsRtfLinkMenu)
 		}
@@ -476,33 +476,33 @@ func rtfTooltipView(ts *tooltipState) View {
 	})
 }
 
-func rtfOnClick(l *Layout, e *Event, w *Window) {
-	if !l.Shape.hasRtfLayout() {
+func rtfOnClick(ctx EventCtx) {
+	if !ctx.Layout.Shape.hasRtfLayout() {
 		return
 	}
-	layout := l.Shape.TC.RtfLayout
+	layout := ctx.Layout.Shape.TC.RtfLayout
 	for _, run := range layout.Items {
 		if run.IsObject {
 			continue
 		}
-		if rtfHitTest(run, e.MouseX, e.MouseY) {
-			found := rtfFindRunAtIndex(l, run.StartIndex)
+		if rtfHitTest(run, ctx.Event.MouseX, ctx.Event.MouseY) {
+			found := rtfFindRunAtIndex(ctx.Layout, run.StartIndex)
 			if found.Link != "" && markdown.IsSafeURL(found.Link) {
-				if e.MouseButton == MouseRight {
-					showLinkContextMenu(w, found.Link,
-						e.MouseX,
-						e.MouseY,
-						rtfRunsKey(l.Shape.TC.RtfRuns))
-					e.IsHandled = true
+				if ctx.Event.MouseButton == MouseRight {
+					showLinkContextMenu(ctx.Window, found.Link,
+						ctx.Event.MouseX,
+						ctx.Event.MouseY,
+						rtfRunsKey(ctx.Layout.Shape.TC.RtfRuns))
+					ctx.Consume()
 					return
 				}
 				if len(found.Link) > 0 &&
 					found.Link[0] == '#' {
-					w.ScrollToView(found.Link[1:])
-				} else if w.nativePlatform != nil {
-					_ = w.nativePlatform.OpenURI(found.Link)
+					ctx.Window.ScrollToView(found.Link[1:])
+				} else if ctx.Window.nativePlatform != nil {
+					_ = ctx.Window.nativePlatform.OpenURI(found.Link)
 				}
-				e.IsHandled = true
+				ctx.Consume()
 			}
 			return
 		}
@@ -557,17 +557,17 @@ func rtfLinkMenuView(w *Window, st rtfLinkMenuState) View {
 			{ID: "open_link", Text: "Open Link"},
 			{ID: "copy_link", Text: "Copy Link"},
 		},
-		Action: func(id string, _ *Event, w *Window) {
+		Action: func(id string, ctx EventCtx) {
 			switch id {
 			case "open_link":
-				if w.nativePlatform != nil &&
+				if ctx.Window.nativePlatform != nil &&
 					markdown.IsSafeURL(link) {
-					_ = w.nativePlatform.OpenURI(link)
+					_ = ctx.Window.nativePlatform.OpenURI(link)
 				}
 			case "copy_link":
-				w.SetClipboard(link)
+				ctx.Window.SetClipboard(link)
 			}
-			rtfLinkMenuDismiss(w)
+			rtfLinkMenuDismiss(ctx.Window)
 		},
 		Float:         true,
 		FloatAutoFlip: true,

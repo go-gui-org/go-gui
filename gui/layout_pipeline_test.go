@@ -34,7 +34,7 @@ func TestLayoutAmendFiresChildrenFirst(t *testing.T) {
 	child := &Shape{
 		shapeType: shapeRectangle,
 		events: &eventHandlers{
-			AmendLayout: func(_ *Layout, _ *Window) {
+			AmendLayout: func(ctx EventCtx) {
 				order = append(order, "child")
 			},
 		},
@@ -43,7 +43,7 @@ func TestLayoutAmendFiresChildrenFirst(t *testing.T) {
 	parent := &Shape{
 		shapeType: shapeRectangle,
 		events: &eventHandlers{
-			AmendLayout: func(_ *Layout, _ *Window) {
+			AmendLayout: func(ctx EventCtx) {
 				order = append(order, "parent")
 			},
 		},
@@ -77,7 +77,7 @@ func TestLayoutHoverInsideShape(t *testing.T) {
 		shapeType: shapeRectangle,
 		shapeClip: drawClip{X: 0, Y: 0, Width: 50, Height: 50},
 		events: &eventHandlers{
-			OnHover: func(_ *Layout, _ *Event, _ *Window) {
+			OnHover: func(ctx EventCtx) {
 				hovered = true
 			},
 		},
@@ -104,7 +104,7 @@ func TestLayoutHoverOutsideShape(t *testing.T) {
 		shapeType: shapeRectangle,
 		shapeClip: drawClip{X: 0, Y: 0, Width: 50, Height: 50},
 		events: &eventHandlers{
-			OnHover: func(_ *Layout, _ *Event, _ *Window) {
+			OnHover: func(ctx EventCtx) {
 				hovered = true
 			},
 		},
@@ -123,7 +123,7 @@ func TestLayoutHoverOutsideShape(t *testing.T) {
 
 func TestLayoutHoverMouseLocked(t *testing.T) {
 	w := &Window{}
-	w.MouseLock(MouseLockCfg{MouseMove: func(*Layout, *Event, *Window) {}})
+	w.MouseLock(MouseLockCfg{MouseMove: func(ctx EventCtx) {}})
 	w.viewState.mousePosX = 15
 	w.viewState.mousePosY = 15
 
@@ -131,7 +131,7 @@ func TestLayoutHoverMouseLocked(t *testing.T) {
 		shapeType: shapeRectangle,
 		shapeClip: drawClip{X: 0, Y: 0, Width: 50, Height: 50},
 		events: &eventHandlers{
-			OnHover: func(_ *Layout, _ *Event, _ *Window) {},
+			OnHover: func(ctx EventCtx) {},
 		},
 		Opacity: 1,
 	}
@@ -153,7 +153,7 @@ func TestLayoutHoverBlockedByDialog(t *testing.T) {
 		shapeType: shapeRectangle,
 		shapeClip: drawClip{X: 0, Y: 0, Width: 50, Height: 50},
 		events: &eventHandlers{
-			OnHover: func(_ *Layout, _ *Event, _ *Window) {
+			OnHover: func(ctx EventCtx) {
 				hovered = true
 			},
 		},
@@ -519,7 +519,7 @@ func TestLayoutMouseLeaveEnterFiresNothing(t *testing.T) {
 	left := 0
 	shape := makeHoverShape("c1")
 	shape.events = &eventHandlers{
-		OnMouseLeave: func(_ *Layout, _ *Event, _ *Window) { left++ },
+		OnMouseLeave: func(ctx EventCtx) { left++ },
 	}
 	layout := Layout{Shape: shape}
 	layoutMouseLeave(&layout, w)
@@ -535,7 +535,7 @@ func TestLayoutMouseLeaveExitFiresOnMouseLeave(t *testing.T) {
 	left := 0
 	shape := makeHoverShape("c2")
 	shape.events = &eventHandlers{
-		OnMouseLeave: func(_ *Layout, _ *Event, _ *Window) { left++ },
+		OnMouseLeave: func(ctx EventCtx) { left++ },
 	}
 	layout := Layout{Shape: shape}
 
@@ -560,7 +560,7 @@ func TestLayoutMouseLeaveNoRepeatWhileOutside(t *testing.T) {
 	left := 0
 	shape := makeHoverShape("c3")
 	shape.events = &eventHandlers{
-		OnMouseLeave: func(_ *Layout, _ *Event, _ *Window) { left++ },
+		OnMouseLeave: func(ctx EventCtx) { left++ },
 	}
 	layout := Layout{Shape: shape}
 
@@ -587,8 +587,8 @@ func TestLayoutMouseLeaveReEnterResetsState(t *testing.T) {
 	entered, left := 0, 0
 	shape := makeHoverShape("c4")
 	shape.events = &eventHandlers{
-		OnHover:      func(_ *Layout, _ *Event, _ *Window) { entered++ },
-		OnMouseLeave: func(_ *Layout, _ *Event, _ *Window) { left++ },
+		OnHover:      func(ctx EventCtx) { entered++ },
+		OnMouseLeave: func(ctx EventCtx) { left++ },
 	}
 	layout := Layout{Shape: shape}
 

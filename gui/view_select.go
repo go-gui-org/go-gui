@@ -19,7 +19,7 @@ type SelectCfg struct {
 	TextStyle        TextStyle
 	SubheadingStyle  TextStyle
 	PlaceholderStyle TextStyle
-	OnSelect         func([]string, *Event, *Window)
+	OnSelect         func([]string, EventCtx)
 	ID               string
 	Placeholder      string
 
@@ -172,30 +172,29 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
 		axis:        AxisLeftToRight,
-		AmendLayout: func(layout *Layout, w *Window) {
-			if layout.Shape.Disabled {
+		AmendLayout: func(ctx EventCtx) {
+			if ctx.Layout.Shape.Disabled {
 				return
 			}
-			if w.IsFocus(layout.Shape.ID) {
-				layout.Shape.Color = colorFocus
-				layout.Shape.ColorBorder = colorBorderFocus
+			if ctx.Window.IsFocus(ctx.Layout.Shape.ID) {
+				ctx.Layout.Shape.Color = colorFocus
+				ctx.Layout.Shape.ColorBorder = colorBorderFocus
 			}
 		},
 		OnKeyDown: makeSelectOnKeyDown(&sv.cfg, dropdownScrollID),
-		OnClick: func(_ *Layout, e *Event, w *Window) {
+		OnClick: func(ctx EventCtx) {
 			ss := StateMap[string, bool](
-				w, nsSelect, capModerate)
+				ctx.Window, nsSelect, capModerate)
 			// Default false: absent entry means "not selected", toggle correct.
 			cur := ss.GetOr(id, false)
 			ss.Clear()
 			if !cur {
 				ss.Set(id, true)
 				sh := StateMap[string, int](
-					w, nsSelectHL, capModerate)
+					ctx.Window, nsSelectHL, capModerate)
 				sh.Set(id, selectInitialHighlight(
 					cfg.Selected, cfg.Options))
 			}
-			e.IsHandled = true
 		},
 	}
 	ccfg.ClickButton = MouseLeft
@@ -245,13 +244,13 @@ func selectOptionView(cfg *SelectCfg, option string, index int, highlighted bool
 				},
 			}),
 		},
-		OnClick: func(_ *Layout, e *Event, w *Window) {
-			e.IsHandled = true
+		OnClick: func(ctx EventCtx) {
+			ctx.Consume()
 			if onSelect == nil {
 				return
 			}
 			ss := StateMap[string, bool](
-				w, nsSelect, capModerate)
+				ctx.Window, nsSelect, capModerate)
 			var s []string
 			if selectMultiple {
 				s = listBoxNextSelectedIDs(
@@ -260,13 +259,13 @@ func selectOptionView(cfg *SelectCfg, option string, index int, highlighted bool
 				ss.Clear()
 				s = []string{option}
 			}
-			onSelect(s, e, w)
+			onSelect(s, EventCtx{nil, ctx.Event, ctx.Window})
 		},
-		OnHover: func(layout *Layout, _ *Event, w *Window) {
-			w.setMouseCursor(CursorPointingHand)
-			layout.Shape.Color = colorSelect
+		OnHover: func(ctx EventCtx) {
+			ctx.Window.setMouseCursor(CursorPointingHand)
+			ctx.Layout.Shape.Color = colorSelect
 			sh := StateMap[string, int](
-				w, nsSelectHL, capModerate)
+				ctx.Window, nsSelectHL, capModerate)
 			// Default 0: absent entry gets zero index, checked immediately.
 			cur := sh.GetOr(cfgID, 0)
 			if cur != index {
@@ -320,9 +319,9 @@ func selectSubHeaderView(cfg *SelectCfg, option string) View {
 	})
 }
 
-func makeSelectOnKeyDown(cfg *SelectCfg, scrollID string) func(*Layout, *Event, *Window) {
-	return func(_ *Layout, e *Event, w *Window) {
-		selectOnKeyDown(cfg, scrollID, e, w)
+func makeSelectOnKeyDown(cfg *SelectCfg, scrollID string) func(EventCtx) {
+	return func(ctx EventCtx) {
+		selectOnKeyDown(cfg, scrollID, ctx.Event, ctx.Window)
 	}
 }
 
@@ -386,7 +385,7 @@ func selectOnKeyDown(cfg *SelectCfg, scrollID string, e *Event, w *Window) {
 					s = []string{option}
 				}
 				if cfg.OnSelect != nil {
-					cfg.OnSelect(s, e, w)
+					cfg.OnSelect(s, EventCtx{nil, e, w})
 				}
 			}
 		}

@@ -378,25 +378,32 @@ const (
 
 // eventHandlers holds optional event callback fields.
 type eventHandlers struct {
-	OnChar        func(*Layout, *Event, *Window)
-	OnKeyDown     func(*Layout, *Event, *Window)
-	OnKeyUp       func(*Layout, *Event, *Window)
-	OnClick       func(*Layout, *Event, *Window)
-	OnMouseMove   func(*Layout, *Event, *Window)
-	OnMouseUp     func(*Layout, *Event, *Window)
-	OnMouseScroll func(*Layout, *Event, *Window)
-	OnScroll      func(*Layout, *Window)
-	AmendLayout   func(*Layout, *Window)
-	OnHover       func(*Layout, *Event, *Window)
-	OnMouseLeave  func(*Layout, *Event, *Window)
-	OnGesture     func(*Layout, *Event, *Window)
-	OnFileDrop    func(*Layout, *Event, *Window)
-	OnIMECommit   func(*Layout, string, *Window)
-	OnDraw        func(*DrawContext)
+	// Consume-class: dispatch marks the event handled before the
+	// callback runs. Opt out with ctx.Bubble().
+	OnChar     func(EventCtx)
+	OnClick    func(EventCtx)
+	OnMouseUp  func(EventCtx)
+	OnGesture  func(EventCtx)
+	OnFileDrop func(EventCtx)
 
-	// Click filters — set by widget factories to avoid per-frame
-	// closure allocations from leftClickOnly/spacebarToClick/
-	// enterToClick wrappers. See §6 of docs/specs/perf-optimizations.md.
+	// Notify-class: the callback must call ctx.Consume() to stop
+	// propagation.
+	OnKeyDown     func(EventCtx)
+	OnKeyUp       func(EventCtx)
+	OnMouseMove   func(EventCtx)
+	OnMouseScroll func(EventCtx)
+	OnHover       func(EventCtx)
+	OnMouseLeave  func(EventCtx)
+	OnIMECommit   func(string, EventCtx)
+
+	// No originating event — ctx.Event is nil in these.
+	OnScroll    func(EventCtx)
+	AmendLayout func(EventCtx)
+
+	OnDraw func(*DrawContext)
+
+	// Click filters — set by widget factories to avoid the per-frame
+	// closure allocation a wrapper callback would cost.
 	ClickButton  MouseButton // non-zero filters OnClick by mouse button
 	ClickOnSpace bool        // fire OnClick on spacebar via OnChar dispatch
 	ClickOnEnter bool        // fire OnClick on Enter key via OnKeyDown dispatch
@@ -406,8 +413,8 @@ type eventHandlers struct {
 // package-level button event handlers, avoiding per-frame
 // closure allocations.
 type shapeButtonColors struct {
-	OnHover          func(*Layout, *Event, *Window)
-	OnAmend          func(*Layout, *Window)
+	OnHover          func(EventCtx)
+	OnAmend          func(EventCtx)
 	ColorHover       Color
 	ColorClick       Color
 	ColorFocus       Color

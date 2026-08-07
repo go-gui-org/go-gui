@@ -24,7 +24,7 @@ type ListBoxOption struct {
 type ListBoxCfg struct {
 	TextStyle       TextStyle
 	SubheadingStyle TextStyle
-	OnSelect        func(ids []string, e *Event, w *Window)
+	OnSelect        func([]string, EventCtx)
 	OnReorder       func(movedID, beforeID string, w *Window)
 
 	ID string `gui:"required"`
@@ -120,10 +120,10 @@ func ListBox(cfg ListBoxCfg) View {
 		A11YLabel:  a11yLabel(cfg.A11YLabel, cfg.ID),
 		Focusable:  !cfg.FocusDisabled,
 		Scrollable: cfg.Scrollable,
-		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
+		OnKeyDown: func(ctx EventCtx) {
 			listBoxOnKeyDown(listBoxID, itemIDs,
 				isMultiple, onSelect, selectedIDs,
-				"", 0, 0, nil, e, w)
+				"", 0, 0, nil, ctx.Event, ctx.Window)
 		},
 		Width:       cfg.MaxWidth,
 		Height:      cfg.Height,
@@ -220,28 +220,28 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 		A11YLabel:  a11yLabel(cfg.A11YLabel, cfg.ID),
 		Focusable:  !cfg.FocusDisabled,
 		Scrollable: cfg.Scrollable,
-		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
+		OnKeyDown: func(ctx EventCtx) {
 			if canReorder {
 				if dragReorderEscape(
-					listBoxID, e.KeyCode, w) {
-					e.IsHandled = true
+					listBoxID, ctx.Event.KeyCode, ctx.Window) {
+					ctx.Consume()
 					return
 				}
 				lbf = StateMap[string, int](
-					w, nsListBoxFocus, capModerate)
+					ctx.Window, nsListBoxFocus, capModerate)
 				// Default 0: bounds-checked before use; zero index handled.
 				curIdx := lbf.GetOr(listBoxID, 0)
 				if curIdx >= 0 && curIdx < len(itemIDs) &&
-					dragReorderKeyboardMove(e.KeyCode,
-						e.Modifiers, DragReorderVertical,
-						curIdx, itemIDs, onReorder, w) {
-					e.IsHandled = true
+					dragReorderKeyboardMove(ctx.Event.KeyCode,
+						ctx.Event.Modifiers, DragReorderVertical,
+						curIdx, itemIDs, onReorder, ctx.Window) {
+					ctx.Consume()
 					return
 				}
 			}
 			listBoxOnKeyDown(listBoxID, itemIDs,
 				isMultiple, onSelect, selectedIDs,
-				scrollID, rowH, listH, itemDataIndices, e, w)
+				scrollID, rowH, listH, itemDataIndices, ctx.Event, ctx.Window)
 		},
 		Width:       cfg.MaxWidth,
 		Height:      cfg.Height,
@@ -472,18 +472,18 @@ func listBoxItemView(dat ListBoxOption, cfg ListBoxCfg, selectedSet map[string]s
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Content:    []View{content},
-		OnClick: func(_ *Layout, e *Event, w *Window) {
+		OnClick: func(ctx EventCtx) {
 			if hasOnSelect && !isSub {
 				ids := listBoxNextSelectedIDs(
 					selectedIDs, datID, isMultiple)
-				onSelect(ids, e, w)
+				onSelect(ids, EventCtx{nil, ctx.Event, ctx.Window})
 			}
 		},
-		OnHover: func(layout *Layout, _ *Event, w *Window) {
+		OnHover: func(ctx EventCtx) {
 			if hasOnSelect && !isSub {
-				w.setMouseCursor(CursorPointingHand)
-				if layout.Shape.Color == ColorTransparent {
-					layout.Shape.Color = colorHover
+				ctx.Window.setMouseCursor(CursorPointingHand)
+				if ctx.Layout.Shape.Color == ColorTransparent {
+					ctx.Layout.Shape.Color = colorHover
 				}
 			}
 		},
@@ -531,7 +531,7 @@ func listBoxReorderItemView(
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Content:    []View{content},
-		OnClick: func(layout *Layout, e *Event, w *Window) {
+		OnClick: func(ctx EventCtx) {
 			dragReorderStart(dragReorderStartCfg{
 				DragKey:       listBoxID,
 				Index:         dragIdx,
@@ -542,20 +542,19 @@ func listBoxReorderItemView(
 				ItemLayoutIDs: itemLayoutIDs,
 				MidsOffset:    midsOffset,
 				ScrollID:      scrollID,
-				Layout:        layout,
-				Event:         e,
-			}, w)
+				Layout:        ctx.Layout,
+				Event:         ctx.Event,
+			}, ctx.Window)
 			if hasOnSelect {
 				ids := listBoxNextSelectedIDs(
 					selectedIDs, datID, isMultiple)
-				onSelect(ids, e, w)
+				onSelect(ids, EventCtx{nil, ctx.Event, ctx.Window})
 			}
-			e.IsHandled = true
 		},
-		OnHover: func(layout *Layout, _ *Event, w *Window) {
-			w.setMouseCursor(CursorPointingHand)
-			if layout.Shape.Color == ColorTransparent {
-				layout.Shape.Color = colorHover
+		OnHover: func(ctx EventCtx) {
+			ctx.Window.setMouseCursor(CursorPointingHand)
+			if ctx.Layout.Shape.Color == ColorTransparent {
+				ctx.Layout.Shape.Color = colorHover
 			}
 		},
 	})
@@ -608,7 +607,7 @@ func listBoxOnKeyDown(
 	listBoxID string,
 	itemIDs []string,
 	isMultiple bool,
-	onSelect func([]string, *Event, *Window),
+	onSelect func([]string, EventCtx),
 	selectedIDs []string,
 	scrollID string, rowH, listH float32,
 	itemDataIndices []int,
@@ -637,7 +636,7 @@ func listBoxOnKeyDown(
 			datID := itemIDs[curIdx]
 			ids := listBoxNextSelectedIDs(
 				selectedIDs, datID, isMultiple)
-			onSelect(ids, e, w)
+			onSelect(ids, EventCtx{nil, e, w})
 		}
 		return
 	}

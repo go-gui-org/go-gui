@@ -105,13 +105,13 @@ func TestTermGridLayoutWiresEventHandlers(t *testing.T) {
 	v := TermGrid(TermGridCfg{
 		Cols: 4, Rows: 2, CellW: 8, CellH: 16,
 		Cells: termCells(4, 2),
-		OnKeyDown: func(_ *Layout, _ *Event, _ *Window) {
+		OnKeyDown: func(ctx EventCtx) {
 			keyDownFired = true
 		},
-		OnClick: func(_ *Layout, _ *Event, _ *Window) {
+		OnClick: func(ctx EventCtx) {
 			clickFired = true
 		},
-		OnMouseScroll: func(_ *Layout, _ *Event, _ *Window) {
+		OnMouseScroll: func(ctx EventCtx) {
 			scrollFired = true
 		},
 	})
@@ -129,9 +129,9 @@ func TestTermGridLayoutWiresEventHandlers(t *testing.T) {
 	if s.events.OnMouseScroll == nil {
 		t.Error("OnMouseScroll not wired")
 	}
-	s.events.OnKeyDown(nil, nil, nil)
-	s.events.OnClick(nil, nil, nil)
-	s.events.OnMouseScroll(nil, nil, nil)
+	s.events.OnKeyDown(EventCtx{nil, nil, nil})
+	s.events.OnClick(EventCtx{nil, nil, nil})
+	s.events.OnMouseScroll(EventCtx{nil, nil, nil})
 	if !keyDownFired {
 		t.Error("OnKeyDown callback did not fire")
 	}

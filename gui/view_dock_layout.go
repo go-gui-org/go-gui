@@ -85,15 +85,15 @@ func DockLayout(cfg DockLayoutCfg) View {
 			Padding:  NoPadding,
 			Spacing:  SomeF(0),
 			Clip:     true,
-			AmendLayout: func(layout *Layout, w *Window) {
-				dockLayoutAmend(dockID, colorZone, layout, w)
+			AmendLayout: func(ctx EventCtx) {
+				dockLayoutAmend(dockID, colorZone, ctx.Layout, ctx.Window)
 			},
-			OnKeyDown: func(_ *Layout, e *Event, w *Window) {
-				if e.KeyCode == KeyEscape {
-					state := dockDragGet(w, dockID)
+			OnKeyDown: func(ctx EventCtx) {
+				if ctx.Event.KeyCode == KeyEscape {
+					state := dockDragGet(ctx.Window, dockID)
 					if state.active {
-						dockDragCancel(dockID, w)
-						e.IsHandled = true
+						dockDragCancel(dockID, ctx.Window)
+						ctx.Event.IsHandled = true
 					}
 				}
 			},
@@ -327,8 +327,8 @@ func dockTabButton(
 			Color:      colorTab,
 			ColorHover: guiTheme.ColorHover,
 			Radius:     SomeF(2),
-			OnClick: func(_ *Layout, _ *Event, w *Window) {
-				onPanelClose(panelID, w)
+			OnClick: func(ctx EventCtx) {
+				onPanelClose(panelID, ctx.Window)
 			},
 			Content: []View{
 				Text(TextCfg{
@@ -348,13 +348,12 @@ func dockTabButton(
 		SizeBorder: NoBorder,
 		Color:      colorTab,
 		ColorHover: colorHover,
-		OnClick: func(layout *Layout, e *Event, w *Window) {
+		OnClick: func(ctx EventCtx) {
 			dockDragStart(dockID, panelID, groupID, root,
-				onLayoutChange, layout, e, w)
+				onLayoutChange, ctx.Layout, ctx.Event, ctx.Window)
 			if onPanelSelect != nil {
-				onPanelSelect(groupID, panelID, w)
+				onPanelSelect(groupID, panelID, ctx.Window)
 			}
-			e.IsHandled = true
 		},
 		Content: btnContent,
 	})

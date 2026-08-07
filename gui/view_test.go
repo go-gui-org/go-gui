@@ -45,9 +45,9 @@ func TestExecuteFocusCallbackNoFocus(t *testing.T) {
 	e := &Event{}
 	w := &Window{}
 	called := false
-	cb := func(_ *Layout, _ *Event, _ *Window) { called = true }
+	cb := func(ctx EventCtx) { called = true }
 
-	if executeFocusCallback(layout, e, w, cb) {
+	if executeFocusCallback(layout, e, w, cb, evNotify) {
 		t.Error("should not execute when not focusable")
 	}
 	if called {
@@ -61,9 +61,9 @@ func TestExecuteFocusCallbackNotFocused(t *testing.T) {
 	w := &Window{}
 	w.SetFocus("f2") // different focus
 	called := false
-	cb := func(_ *Layout, _ *Event, _ *Window) { called = true }
+	cb := func(ctx EventCtx) { called = true }
 
-	if executeFocusCallback(layout, e, w, cb) {
+	if executeFocusCallback(layout, e, w, cb, evNotify) {
 		t.Error("should not execute when not focused")
 	}
 	if called {
@@ -77,10 +77,10 @@ func TestExecuteFocusCallbackFocused(t *testing.T) {
 	w := &Window{}
 	w.SetFocus("f1")
 
-	cb := func(_ *Layout, e *Event, _ *Window) {
-		e.IsHandled = true
+	cb := func(ctx EventCtx) {
+		ctx.Consume()
 	}
-	if !executeFocusCallback(layout, e, w, cb) {
+	if !executeFocusCallback(layout, e, w, cb, evNotify) {
 		t.Error("should execute when focused")
 	}
 	if !e.IsHandled {
@@ -94,7 +94,7 @@ func TestExecuteFocusCallbackNilCallback(t *testing.T) {
 	w := &Window{}
 	w.SetFocus("f1")
 
-	if executeFocusCallback(layout, e, w, nil) {
+	if executeFocusCallback(layout, e, w, nil, evNotify) {
 		t.Error("nil callback should return false")
 	}
 }
@@ -106,9 +106,9 @@ func TestExecuteMouseCallbackOutsideBounds(t *testing.T) {
 	e := &Event{MouseX: 0, MouseY: 0} // outside
 	w := &Window{}
 	called := false
-	cb := func(_ *Layout, _ *Event, _ *Window) { called = true }
+	cb := func(ctx EventCtx) { called = true }
 
-	if executeMouseCallback(layout, e, w, cb) {
+	if executeMouseCallback(layout, e, w, cb, evNotify) {
 		t.Error("should not execute outside bounds")
 	}
 	if called {
@@ -123,10 +123,10 @@ func TestExecuteMouseCallbackInsideBounds(t *testing.T) {
 	e := &Event{MouseX: 25, MouseY: 25}
 	w := &Window{}
 
-	cb := func(_ *Layout, e *Event, _ *Window) {
-		e.IsHandled = true
+	cb := func(ctx EventCtx) {
+		ctx.Consume()
 	}
-	if !executeMouseCallback(layout, e, w, cb) {
+	if !executeMouseCallback(layout, e, w, cb, evNotify) {
 		t.Error("should execute inside bounds")
 	}
 	if !e.IsHandled {
@@ -433,7 +433,7 @@ func TestContainerLeftClickOnly(t *testing.T) {
 	called := false
 	v := Column(ContainerCfg{
 		ID: "lco",
-		OnClick: func(_ *Layout, _ *Event, _ *Window) {
+		OnClick: func(ctx EventCtx) {
 			called = true
 		},
 	})
@@ -446,7 +446,7 @@ func TestContainerLeftClickOnly(t *testing.T) {
 	}
 	// left click fires (via dispatch's ClickButton check)
 	e := &Event{MouseButton: MouseLeft}
-	layout.Shape.events.OnClick(nil, e, nil)
+	layout.Shape.events.OnClick(EventCtx{nil, e, nil})
 	if !called {
 		t.Error("left click should fire")
 	}
@@ -459,7 +459,7 @@ func TestContainerOnAnyClickBypassesLeftOnly(t *testing.T) {
 	called := false
 	v := Column(ContainerCfg{
 		ID: "any",
-		OnAnyClick: func(_ *Layout, _ *Event, _ *Window) {
+		OnAnyClick: func(ctx EventCtx) {
 			called = true
 		},
 	})
@@ -468,7 +468,7 @@ func TestContainerOnAnyClickBypassesLeftOnly(t *testing.T) {
 		t.Fatal("events should be set")
 	}
 	e := &Event{MouseButton: MouseRight}
-	layout.Shape.events.OnClick(nil, e, nil)
+	layout.Shape.events.OnClick(EventCtx{nil, e, nil})
 	if !called {
 		t.Error("OnAnyClick should fire on right click")
 	}
@@ -698,7 +698,7 @@ func TestButtonSpacebarActivation(t *testing.T) {
 	clicked := false
 	v := Button(ButtonCfg{
 		ID: "btn",
-		OnClick: func(_ *Layout, _ *Event, _ *Window) {
+		OnClick: func(ctx EventCtx) {
 			clicked = true
 		},
 	})
@@ -711,7 +711,7 @@ func TestButtonSpacebarActivation(t *testing.T) {
 	}
 	// The dispatch path (charHandler) checks ClickOnSpace and
 	// routes to OnClick. Direct call to OnClick simulates this.
-	layout.Shape.events.OnClick(nil, &Event{CharCode: CharSpace}, nil)
+	layout.Shape.events.OnClick(EventCtx{nil, &Event{CharCode: CharSpace}, nil})
 	if !clicked {
 		t.Error("spacebar should trigger click")
 	}
@@ -720,7 +720,7 @@ func TestButtonSpacebarActivation(t *testing.T) {
 func TestButtonAmendLayoutFocus(t *testing.T) {
 	v := Button(ButtonCfg{
 		ID:      "btn",
-		OnClick: func(_ *Layout, _ *Event, _ *Window) {},
+		OnClick: func(ctx EventCtx) {},
 		Color:   RGB(50, 50, 50),
 	})
 	layout := v.GenerateLayout(&Window{})
@@ -730,7 +730,7 @@ func TestButtonAmendLayoutFocus(t *testing.T) {
 
 	w := &Window{}
 	w.SetFocus("btn")
-	layout.Shape.events.AmendLayout(&layout, w)
+	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, w})
 
 	// Color should change to focus color
 	if layout.Shape.Color.Eq(RGB(50, 50, 50)) {
@@ -742,7 +742,7 @@ func TestButtonEnterActivation(t *testing.T) {
 	clicked := false
 	v := Button(ButtonCfg{
 		ID: "btn",
-		OnClick: func(_ *Layout, _ *Event, _ *Window) {
+		OnClick: func(ctx EventCtx) {
 			clicked = true
 		},
 	})
@@ -756,7 +756,7 @@ func TestButtonEnterActivation(t *testing.T) {
 	// The dispatch path (keydownHandler) checks ClickOnEnter and
 	// routes to OnClick. Direct call to OnClick simulates this.
 	e := &Event{KeyCode: KeyEnter}
-	layout.Shape.events.OnClick(nil, e, nil)
+	layout.Shape.events.OnClick(EventCtx{nil, e, nil})
 	if !clicked {
 		t.Error("enter should trigger click")
 	}
@@ -767,7 +767,7 @@ func TestButtonDisabledSuppressesOnClick(t *testing.T) {
 	v := Button(ButtonCfg{
 		ID:       "btn",
 		Disabled: true,
-		OnClick: func(_ *Layout, _ *Event, _ *Window) {
+		OnClick: func(ctx EventCtx) {
 			clicked = true
 		},
 	})
@@ -777,7 +777,7 @@ func TestButtonDisabledSuppressesOnClick(t *testing.T) {
 	// AmendLayout should not change color on disabled button.
 	origColor := layout.Shape.Color
 	w.SetFocus("f1")
-	layout.Shape.events.AmendLayout(&layout, w)
+	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, w})
 	if layout.Shape.Color != origColor {
 		t.Error("AmendLayout should not change color when disabled")
 	}
@@ -785,7 +785,7 @@ func TestButtonDisabledSuppressesOnClick(t *testing.T) {
 	// OnHover should not change cursor or color.
 	origColor = layout.Shape.Color
 	e := &Event{MouseButton: MouseLeft}
-	layout.Shape.events.OnHover(&layout, e, w)
+	layout.Shape.events.OnHover(EventCtx{&layout, e, w})
 	if layout.Shape.Color != origColor {
 		t.Error("OnHover should not change color when disabled")
 	}
@@ -850,7 +850,7 @@ func TestMouseIsLocked(t *testing.T) {
 		t.Error("should start unlocked")
 	}
 	w.MouseLock(MouseLockCfg{
-		MouseMove: func(*Layout, *Event, *Window) {},
+		MouseMove: func(ctx EventCtx) {},
 	})
 	if !w.MouseIsLocked() {
 		t.Error("should be locked")
@@ -860,9 +860,9 @@ func TestMouseIsLocked(t *testing.T) {
 func TestMouseLockUnlock(t *testing.T) {
 	w := &Window{}
 	w.MouseLock(MouseLockCfg{
-		MouseDown: func(*Layout, *Event, *Window) {},
-		MouseMove: func(*Layout, *Event, *Window) {},
-		MouseUp:   func(*Layout, *Event, *Window) {},
+		MouseDown: func(ctx EventCtx) {},
+		MouseMove: func(ctx EventCtx) {},
+		MouseUp:   func(ctx EventCtx) {},
 	})
 	if !w.MouseIsLocked() {
 		t.Error("should be locked after MouseLock")
@@ -877,7 +877,7 @@ func TestMouseIsLockedChecksCallbacks(t *testing.T) {
 	w := &Window{}
 
 	w.MouseLock(MouseLockCfg{
-		MouseDown: func(*Layout, *Event, *Window) {},
+		MouseDown: func(ctx EventCtx) {},
 	})
 	if !w.MouseIsLocked() {
 		t.Error("MouseDown alone should lock")
@@ -885,7 +885,7 @@ func TestMouseIsLockedChecksCallbacks(t *testing.T) {
 	w.MouseUnlock()
 
 	w.MouseLock(MouseLockCfg{
-		MouseMove: func(*Layout, *Event, *Window) {},
+		MouseMove: func(ctx EventCtx) {},
 	})
 	if !w.MouseIsLocked() {
 		t.Error("MouseMove alone should lock")
@@ -893,7 +893,7 @@ func TestMouseIsLockedChecksCallbacks(t *testing.T) {
 	w.MouseUnlock()
 
 	w.MouseLock(MouseLockCfg{
-		MouseUp: func(*Layout, *Event, *Window) {},
+		MouseUp: func(ctx EventCtx) {},
 	})
 	if !w.MouseIsLocked() {
 		t.Error("MouseUp alone should lock")

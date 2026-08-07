@@ -8,8 +8,8 @@ gui.Switch(gui.SwitchCfg{
     IDFocus:  400,
     Label:    "Enable feature",
     Selected: app.Enabled,
-    OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-        s := gui.State[App](w)
+    OnClick: func(ctx gui.EventCtx) {
+        s := gui.State[App](ctx.Window)
         s.Enabled = !s.Enabled
     },
 })
@@ -45,9 +45,9 @@ gui.Switch(gui.SwitchCfg{
 
 ## Events
 
-| Callback | Signature                      | Fired when     |
-| -------- | ------------------------------ | -------------- |
-| OnClick  | func(*Layout, *Event, *Window) | Switch toggled |
+| Callback | Signature      | Fired when     |
+| -------- | -------------- | -------------- |
+| OnClick  | func(EventCtx) | Switch toggled |
 
 ## Accessibility
 

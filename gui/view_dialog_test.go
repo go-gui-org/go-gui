@@ -152,7 +152,7 @@ func TestDialogKeyDownEscape(t *testing.T) {
 	}
 	handler := dialogKeyDown(cfg)
 	e := &Event{KeyCode: KeyEscape}
-	handler(nil, e, w)
+	handler(EventCtx{nil, e, w})
 
 	if !cancelled {
 		t.Error("expected OnCancelNo to fire")
@@ -170,7 +170,7 @@ func TestDialogKeyDownCtrlCCopiesBody(t *testing.T) {
 	cfg := DialogCfg{Body: "hello world"}
 	handler := dialogKeyDown(cfg)
 	e := &Event{KeyCode: KeyC, Modifiers: ModCtrl}
-	handler(nil, e, w)
+	handler(EventCtx{nil, e, w})
 
 	if clipped != "hello world" {
 		t.Fatalf("expected clipboard=%q got %q",
@@ -189,7 +189,7 @@ func TestDialogKeyDownSuperCCopiesBody(t *testing.T) {
 	cfg := DialogCfg{Body: "mac copy"}
 	handler := dialogKeyDown(cfg)
 	e := &Event{KeyCode: KeyC, Modifiers: ModSuper}
-	handler(nil, e, w)
+	handler(EventCtx{nil, e, w})
 
 	if clipped != "mac copy" {
 		t.Fatalf("expected clipboard=%q got %q",
@@ -204,7 +204,7 @@ func TestDialogKeyDownCtrlCNoOpWhenBodyEmpty(t *testing.T) {
 
 	handler := dialogKeyDown(DialogCfg{})
 	e := &Event{KeyCode: KeyC, Modifiers: ModCtrl}
-	handler(nil, e, w)
+	handler(EventCtx{nil, e, w})
 
 	if called {
 		t.Fatal("clipboard should not be set when body empty")

@@ -85,22 +85,20 @@ func mainView(w *gui.Window) gui.View {
 						ID:       "dgds_use_offset",
 						Label:    "Use offset pagination",
 						Selected: app.UseOffset,
-						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-							state := gui.State[App](w)
+						OnClick: func(ctx gui.EventCtx) {
+							state := gui.State[App](ctx.Window)
 							state.UseOffset = !state.UseOffset
 							rebuildSource(state)
-							e.IsHandled = true
 						},
 					}),
 					gui.Switch(gui.SwitchCfg{
 						ID:       "dgds_slow_mode",
 						Label:    "Simulate latency",
 						Selected: app.SimulateLatency,
-						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-							state := gui.State[App](w)
+						OnClick: func(ctx gui.EventCtx) {
+							state := gui.State[App](ctx.Window)
 							state.SimulateLatency = !state.SimulateLatency
 							rebuildSource(state)
-							e.IsHandled = true
 						},
 					}),
 				},
@@ -124,17 +122,17 @@ func mainView(w *gui.Window) gui.View {
 				PageLimit:       220,
 				Query:           app.Query,
 				Selection:       app.Selection,
-				OnQueryChange: func(query datagrid.GridQueryState, _ *gui.Event, w *gui.Window) {
-					gui.State[App](w).Query = query
+				OnQueryChange: func(query datagrid.GridQueryState, ctx gui.EventCtx) {
+					gui.State[App](ctx.Window).Query = query
 				},
-				OnSelectionChange: func(selection datagrid.GridSelection, _ *gui.Event, w *gui.Window) {
-					gui.State[App](w).Selection = selection
+				OnSelectionChange: func(selection datagrid.GridSelection, ctx gui.EventCtx) {
+					gui.State[App](ctx.Window).Selection = selection
 				},
-				OnCellEdit: func(edit datagrid.GridCellEdit, _ *gui.Event, w *gui.Window) {
-					gui.State[App](w).LastAction = fmt.Sprintf("Edited %s.%s", edit.RowID, edit.ColID)
+				OnCellEdit: func(edit datagrid.GridCellEdit, ctx gui.EventCtx) {
+					gui.State[App](ctx.Window).LastAction = fmt.Sprintf("Edited %s.%s", edit.RowID, edit.ColID)
 				},
-				OnCRUDError: func(msg string, _ *gui.Event, w *gui.Window) {
-					gui.State[App](w).LastAction = "CRUD error: " + msg
+				OnCRUDError: func(msg string, ctx gui.EventCtx) {
+					gui.State[App](ctx.Window).LastAction = "CRUD error: " + msg
 				},
 			}),
 		},

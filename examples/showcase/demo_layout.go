@@ -197,7 +197,7 @@ func demoOverflowPanel(w *gui.Window) gui.View {
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: label})},
 			}),
 			Text:   label,
-			Action: func(*gui.MenuItemCfg, *gui.Event, *gui.Window) {},
+			Action: func(_ *gui.MenuItemCfg, ctx gui.EventCtx) {},
 		}
 	}
 	return gui.OverflowPanel(w, gui.OverflowPanelCfg{
@@ -252,10 +252,9 @@ func demoSidebar(w *gui.Window) gui.View {
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{Text: "Toggle Sidebar", TextStyle: t.N3}),
 				},
-				OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-					a := gui.State[ShowcaseApp](w)
+				OnClick: func(ctx gui.EventCtx) {
+					a := gui.State[ShowcaseApp](ctx.Window)
 					a.SidebarOpen = !a.SidebarOpen
-					e.IsHandled = true
 				},
 			}),
 			gui.Row(gui.ContainerCfg{
@@ -544,13 +543,12 @@ func demoMultiWindow(w *gui.Window) gui.View {
 						TextStyle: t.N3,
 					}),
 				},
-				OnClick: func(_ *gui.Layout, e *gui.Event,
-					w *gui.Window) {
-					a := w.App()
+				OnClick: func(ctx gui.EventCtx) {
+					a := ctx.Window.App()
 					if a == nil {
 						return
 					}
-					parent := w
+					parent := ctx.Window
 					a.OpenWindow(gui.WindowCfg{
 						State:  &multiWindowChildState{},
 						Title:  "Showcase Child",
@@ -563,7 +561,6 @@ func demoMultiWindow(w *gui.Window) gui.View {
 							child.UpdateView(multiWindowChildView(parent))
 						},
 					})
-					e.IsHandled = true
 				},
 			}),
 			multiWindowStatus(t, childActive),
@@ -597,16 +594,14 @@ func multiWindowChildView(parent *gui.Window) func(*gui.Window) gui.View {
 							TextStyle: t.N3,
 						}),
 					},
-					OnClick: func(_ *gui.Layout, e *gui.Event,
-						w *gui.Window) {
-						cs := gui.State[multiWindowChildState](w)
+					OnClick: func(ctx gui.EventCtx) {
+						cs := gui.State[multiWindowChildState](ctx.Window)
 						cs.Message = "Sent!"
 						parent.QueueCommand(func(p *gui.Window) {
 							gui.State[ShowcaseApp](p).DialogResult =
 								"Hello from child window"
 							p.UpdateWindow()
 						})
-						e.IsHandled = true
 					},
 				}),
 				gui.Text(gui.TextCfg{
@@ -626,14 +621,12 @@ func multiWindowChildView(parent *gui.Window) func(*gui.Window) gui.View {
 							TextStyle: t.N3,
 						}),
 					},
-					OnClick: func(_ *gui.Layout, e *gui.Event,
-						w *gui.Window) {
-						w.Close()
+					OnClick: func(ctx gui.EventCtx) {
+						ctx.Window.Close()
 						parent.QueueCommand(func(p *gui.Window) {
 							gui.State[ShowcaseApp](p).MultiWindowChildID = 0
 							p.UpdateWindow()
 						})
-						e.IsHandled = true
 					},
 				}),
 			},
@@ -672,20 +665,19 @@ func demoPrinting(w *gui.Window) gui.View {
 							gui.Text(gui.TextCfg{Text: gui.IconExport, TextStyle: t.N3}),
 							gui.Text(gui.TextCfg{Text: "Export PDF", TextStyle: t.N3}),
 						},
-						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-							a := gui.State[ShowcaseApp](w)
+						OnClick: func(ctx gui.EventCtx) {
+							a := gui.State[ShowcaseApp](ctx.Window)
 							outPath := filepath.Join(os.TempDir(), "showcase_export.pdf")
 							job := gui.NewPrintJob()
 							job.OutputPath = outPath
 							job.Title = "showcase Export"
-							r := w.ExportPrintJob(job)
+							r := ctx.Window.ExportPrintJob(job)
 							if r.ErrorMessage != "" {
 								a.PrintingStatus = "Error: " + r.ErrorMessage
 							} else {
 								a.PrintingLastPath = r.Path
 								a.PrintingStatus = "Exported: " + r.Path
 							}
-							e.IsHandled = true
 						},
 					}),
 					gui.Button(gui.ButtonCfg{
@@ -695,17 +687,16 @@ func demoPrinting(w *gui.Window) gui.View {
 							gui.Text(gui.TextCfg{Text: gui.IconPrint, TextStyle: t.N3}),
 							gui.Text(gui.TextCfg{Text: "Print", TextStyle: t.N3}),
 						},
-						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-							a := gui.State[ShowcaseApp](w)
+						OnClick: func(ctx gui.EventCtx) {
+							a := gui.State[ShowcaseApp](ctx.Window)
 							job := gui.NewPrintJob()
 							job.Title = "showcase Print"
-							r := w.RunPrintJob(job)
+							r := ctx.Window.RunPrintJob(job)
 							if r.ErrorMessage != "" {
 								a.PrintingStatus = "Error: " + r.ErrorMessage
 							} else {
 								a.PrintingStatus = "Print sent"
 							}
-							e.IsHandled = true
 						},
 					}),
 				},

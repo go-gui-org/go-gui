@@ -14,21 +14,21 @@ const (
 // textOnClick handles click events for text selection.
 // Single-click places cursor, double-click selects word,
 // drag-to-select via MouseLock.
-func textOnClick(layout *Layout, e *Event, w *Window) {
-	shape := layout.Shape
+func textOnClick(ctx EventCtx) {
+	shape := ctx.Layout.Shape
 	if shape.TC == nil || shape.ID == "" || !shape.Focusable {
 		return
 	}
-	w.SetFocus(shape.ID)
+	ctx.Window.SetFocus(shape.ID)
 
 	text := shape.TC.Text
 	style := textStyleOrDefault(shape)
-	gl, glOK := inputGlyphLayout(text, shape, style, w)
+	gl, glOK := inputGlyphLayout(text, shape, style, ctx.Window)
 
 	// e.MouseX/Y are already relative to shape via
 	// eventRelativeTo in executeMouseCallback.
-	relX := e.MouseX
-	relY := e.MouseY
+	relX := ctx.Event.MouseX
+	relY := ctx.Event.MouseY
 
 	var runePos int
 	if glOK {
@@ -47,7 +47,7 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 
 	focusID := shape.ID
 	imap := StateMap[string, InputState](
-		w, nsInput, capMany,
+		ctx.Window, nsInput, capMany,
 	)
 	// Default InputState{}: zero value seeds initial selection/cursor state.
 	is := imap.GetOr(focusID, InputState{})
@@ -79,8 +79,8 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 	}
 	is.CursorOffset = -1
 	imap.Set(focusID, is)
-	resetBlinkCursorVisible(w)
-	e.IsHandled = true
+	resetBlinkCursorVisible(ctx.Window)
+	ctx.Event.IsHandled = true
 
 	// Drag-to-select via MouseLock.
 	anchorPos := is.SelectBeg
@@ -98,10 +98,10 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 	viewTop := float32(0)
 	viewBot := float32(0)
 	maxScrollNeg := float32(0)
-	for p := layout.Parent; p != nil; p = p.Parent {
+	for p := ctx.Layout.Parent; p != nil; p = p.Parent {
 		if p.Shape != nil && p.Shape.Scrollable {
 			scrollID = p.Shape.ID
-			sy := w.scrollY()
+			sy := ctx.Window.scrollY()
 			// Default 0: unscrolled position when no offset recorded yet.
 			dragScrollY0 = sy.GetOr(scrollID, 0)
 			sp := p.Shape
@@ -200,19 +200,19 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 		updateDragSelection(rp, w)
 	}
 
-	w.MouseLock(MouseLockCfg{
-		MouseMove: func(_ *Layout, e *Event, w *Window) {
-			lastMouseX = e.MouseX
-			lastMouseY = e.MouseY
+	ctx.Window.MouseLock(MouseLockCfg{
+		MouseMove: func(ctx EventCtx) {
+			lastMouseX = ctx.Event.MouseX
+			lastMouseY = ctx.Event.MouseY
 			rp := computeRunePos(
-				e.MouseX, e.MouseY, w)
-			updateDragSelection(rp, w)
+				ctx.Event.MouseX, ctx.Event.MouseY, ctx.Window)
+			updateDragSelection(rp, ctx.Window)
 			if scrollID != "" {
-				outside := e.MouseY < viewTop ||
-					e.MouseY > viewBot
-				if outside && !w.HasAnimation(
+				outside := ctx.Event.MouseY < viewTop ||
+					ctx.Event.MouseY > viewBot
+				if outside && !ctx.Window.HasAnimation(
 					animIDTextDragScroll) {
-					w.AnimationAdd(&Animate{
+					ctx.Window.AnimationAdd(&Animate{
 						AnimID:   animIDTextDragScroll,
 						Delay:    32 * time.Millisecond,
 						Repeat:   true,
@@ -220,30 +220,30 @@ func textOnClick(layout *Layout, e *Event, w *Window) {
 						Callback: dragScrollCB,
 					})
 				} else if !outside {
-					w.AnimationRemove(
+					ctx.Window.AnimationRemove(
 						animIDTextDragScroll)
 				}
 			}
 		},
-		MouseUp: func(_ *Layout, _ *Event, w *Window) {
-			w.AnimationRemove(animIDTextDragScroll)
-			w.MouseUnlock()
+		MouseUp: func(ctx EventCtx) {
+			ctx.Window.AnimationRemove(animIDTextDragScroll)
+			ctx.Window.MouseUnlock()
 		},
 	})
 }
 
 // textOnKeyDown is a read-only key handler for text navigation
 // and copy. No editing keys (paste, cut, delete).
-func textOnKeyDown(layout *Layout, e *Event, w *Window) {
-	shape := layout.Shape
+func textOnKeyDown(ctx EventCtx) {
+	shape := ctx.Layout.Shape
 	if shape.TC == nil || shape.ID == "" || !shape.Focusable ||
-		!w.IsFocus(shape.ID) {
+		!ctx.Window.IsFocus(shape.ID) {
 		return
 	}
 	id := shape.ID
 	text := shape.TC.Text
 	imap := StateMap[string, InputState](
-		w, nsInput, capMany,
+		ctx.Window, nsInput, capMany,
 	)
 	// Default InputState{}: zero value seeds initial keyboard-nav state.
 	is := imap.GetOr(id, InputState{})
@@ -254,17 +254,17 @@ func textOnKeyDown(layout *Layout, e *Event, w *Window) {
 	runeLen := utf8RuneCount(text)
 	pos := is.CursorPos
 	pos = min(pos, runeLen)
-	isShift := e.Modifiers.Has(ModShift)
-	isWordMod := e.Modifiers.HasAny(
+	isShift := ctx.Event.Modifiers.Has(ModShift)
+	isWordMod := ctx.Event.Modifiers.HasAny(
 		ModCtrl, ModAlt, ModSuper,
 	)
 	handled := true
 
 	gl, glOK := inputGlyphLayout(
-		text, shape, textStyleOrDefault(shape), w,
+		text, shape, textStyleOrDefault(shape), ctx.Window,
 	)
 
-	switch e.KeyCode {
+	switch ctx.Event.KeyCode {
 	case KeyLeft:
 		inputKeyLeft(imap, id, is, text, pos,
 			isShift, isWordMod, gl, glOK)
@@ -289,22 +289,22 @@ func textOnKeyDown(layout *Layout, e *Event, w *Window) {
 		inputKeyEscape(imap, id, is)
 		handled = false
 	case KeyA:
-		if e.Modifiers.HasAny(ModCtrl, ModSuper) {
-			inputSelectAll(text, id, w)
+		if ctx.Event.Modifiers.HasAny(ModCtrl, ModSuper) {
+			inputSelectAll(text, id, ctx.Window)
 		} else {
 			handled = false
 		}
 	case KeyC:
 		handled = inputKeyCopy(
-			text, id, shape.TC.TextIsPassword, e, w)
+			text, id, shape.TC.TextIsPassword, ctx.Event, ctx.Window)
 	default:
 		handled = false
 	}
 
 	if handled {
-		resetBlinkCursorVisible(w)
-		textScrollCursorIntoView(layout, w)
-		e.IsHandled = true
+		resetBlinkCursorVisible(ctx.Window)
+		textScrollCursorIntoView(ctx.Layout, ctx.Window)
+		ctx.Consume()
 	}
 }
 
@@ -350,13 +350,13 @@ func textKeyVertical(
 // textAmendLayout copies InputState selection to the shape's
 // TextSelBeg/TextSelEnd for rendering. Unlike input's nested
 // structure, text is a flat shape — no child traversal needed.
-func textAmendLayout(layout *Layout, w *Window) {
-	if layout.Shape.ID == "" || !layout.Shape.Focusable || layout.Shape.TC == nil {
+func textAmendLayout(ctx EventCtx) {
+	if ctx.Layout.Shape.ID == "" || !ctx.Layout.Shape.Focusable || ctx.Layout.Shape.TC == nil {
 		return
 	}
 	is := StateReadOr(
-		w, nsInput, layout.Shape.ID, InputState{},
+		ctx.Window, nsInput, ctx.Layout.Shape.ID, InputState{},
 	)
-	layout.Shape.TC.TextSelBeg = is.SelectBeg
-	layout.Shape.TC.TextSelEnd = is.SelectEnd
+	ctx.Layout.Shape.TC.TextSelBeg = is.SelectBeg
+	ctx.Layout.Shape.TC.TextSelEnd = is.SelectEnd
 }

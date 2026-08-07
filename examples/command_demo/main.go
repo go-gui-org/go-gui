@@ -240,9 +240,9 @@ func statusBar(app *App, theme gui.Theme) gui.View {
 	})
 }
 
-func paletteAction(id string, e *gui.Event, w *gui.Window) {
-	cmd, ok := w.CommandByID(id)
+func paletteAction(id string, ctx gui.EventCtx) {
+	cmd, ok := ctx.Window.CommandByID(id)
 	if ok && cmd.Execute != nil {
-		cmd.Execute(e, w)
+		cmd.Execute(ctx.Event, ctx.Window)
 	}
 }

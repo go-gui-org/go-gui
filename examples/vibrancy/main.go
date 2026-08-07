@@ -52,15 +52,14 @@ func mainView(w *gui.Window) gui.View {
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{Text: "Cycle material"}),
 				},
-				OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-					app := gui.State[App](w)
+				OnClick: func(ctx gui.EventCtx) {
+					app := gui.State[App](ctx.Window)
 					// Cycle through the materials, wrapping back to Sidebar.
 					app.Material++
 					if app.Material > gui.VibrancyUnderWindow {
 						app.Material = gui.VibrancySidebar
 					}
-					w.SetWindowVibrancy(app.Material)
-					e.IsHandled = true
+					ctx.Window.SetWindowVibrancy(app.Material)
 				},
 			}),
 		},

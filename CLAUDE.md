@@ -45,7 +45,7 @@ A `FillFill` root fills the window (min=max seed in `updateLayout`).
 ### Widgets
 
 All widgets take `*Cfg` struct (zero-initializable). Event callbacks share sig
-`func(*Layout, *Event, *Window)`.
+`func(EventCtx)`.
 
 Focus requires **both** `Focusable: true` **and** a non-empty `ID`
 (`isFocusedTarget`, `gui/event_traversal.go`); tab order additionally needs
@@ -86,8 +86,12 @@ Backend injects at startup. Nil in tests:
   coords. Moving parent in `AmendLayout` does NOT move children. Use float
   system (`FloatAnchor`/`FloatTieOff`/`FloatOffset`) to position elements with
   children.
-- Event callbacks must set `e.IsHandled = true` when consumed to stop
-  propagation
+- Events split into two classes. **Consume-class** (`OnClick`, `OnChar`,
+  `OnMouseUp`, `OnGesture`, `OnFileDrop`) are marked handled by dispatch before
+  the callback runs; call `ctx.Bubble()` to opt a path out. **Notify-class**
+  (everything else, incl. `OnKeyDown`, `OnHover`, `OnMouseScroll`) must call
+  `ctx.Consume()` to stop propagation. `ctx.Event` is nil in `AmendLayout` and
+  `OnScroll`; all three `EventCtx` methods are nil-safe
 
 ## Coding Conventions
 

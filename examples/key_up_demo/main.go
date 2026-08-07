@@ -54,17 +54,17 @@ func mainView(w *gui.Window) gui.View {
 			gui.Input(gui.InputCfg{
 				ID:   "kud_input",
 				Text: "Type here to test key up events...",
-				OnKeyDown: func(layout *gui.Layout, e *gui.Event, w *gui.Window) {
-					app := gui.State[App](w)
+				OnKeyDown: func(ctx gui.EventCtx) {
+					app := gui.State[App](ctx.Window)
 					app.keyDownCount++
-					app.lastKeyDown = e.KeyCode
-					w.UpdateWindow()
+					app.lastKeyDown = ctx.Event.KeyCode
+					ctx.Window.UpdateWindow()
 				},
-				OnKeyUp: func(layout *gui.Layout, e *gui.Event, w *gui.Window) {
-					app := gui.State[App](w)
+				OnKeyUp: func(ctx gui.EventCtx) {
+					app := gui.State[App](ctx.Window)
 					app.keyUpCount++
-					app.lastKeyUp = e.KeyCode
-					w.UpdateWindow()
+					app.lastKeyUp = ctx.Event.KeyCode
+					ctx.Window.UpdateWindow()
 				},
 			}),
 		},

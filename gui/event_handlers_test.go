@@ -25,9 +25,8 @@ func TestCharHandler(t *testing.T) {
 		t.Parallel()
 		called := false
 		root := focusedChild("f1", &eventHandlers{
-			OnChar: func(_ *Layout, e *Event, _ *Window) {
+			OnChar: func(ctx EventCtx) {
 				called = true
-				e.IsHandled = true
 			},
 		})
 		w := &Window{}
@@ -51,9 +50,8 @@ func TestCharHandler(t *testing.T) {
 					Focusable: true, ID: "f1",
 					Disabled: true,
 					events: &eventHandlers{
-						OnChar: func(_ *Layout, e *Event, _ *Window) {
+						OnChar: func(ctx EventCtx) {
 							called = true
-							e.IsHandled = true
 						},
 					},
 				}},
@@ -73,9 +71,9 @@ func TestKeydownHandlerDelivers(t *testing.T) {
 	t.Parallel()
 	called := false
 	root := focusedChild("f1", &eventHandlers{
-		OnKeyDown: func(_ *Layout, e *Event, _ *Window) {
+		OnKeyDown: func(ctx EventCtx) {
 			called = true
-			e.IsHandled = true
+			ctx.Consume()
 		},
 	})
 	w := &Window{}
@@ -91,9 +89,9 @@ func TestKeyupHandlerDelivers(t *testing.T) {
 	t.Parallel()
 	called := false
 	root := focusedChild("f1", &eventHandlers{
-		OnKeyUp: func(_ *Layout, e *Event, _ *Window) {
+		OnKeyUp: func(ctx EventCtx) {
 			called = true
-			e.IsHandled = true
+			ctx.Consume()
 		},
 	})
 	w := &Window{}
@@ -222,9 +220,8 @@ func TestMouseDownHandler(t *testing.T) {
 					shapeClip: drawClip{X: 0, Y: 0,
 						Width: 100, Height: 100},
 					events: &eventHandlers{
-						OnClick: func(_ *Layout, e *Event, _ *Window) {
+						OnClick: func(ctx EventCtx) {
 							clicked = true
-							e.IsHandled = true
 						},
 					},
 				}},
@@ -261,9 +258,9 @@ func TestMouseDownHandler(t *testing.T) {
 		lockCalled := false
 		w := &Window{windowWidth: 800, windowHeight: 600}
 		w.MouseLock(MouseLockCfg{
-			MouseDown: func(_ *Layout, e *Event, _ *Window) {
+			MouseDown: func(ctx EventCtx) {
 				lockCalled = true
-				e.IsHandled = true
+				ctx.Consume()
 			},
 		})
 		root := &Layout{Shape: &Shape{}}
@@ -282,9 +279,8 @@ func TestMouseDownHandler(t *testing.T) {
 				shapeClip: drawClip{X: x, Y: 0,
 					Width: 100, Height: 100},
 				events: &eventHandlers{
-					OnClick: func(l *Layout, e *Event, _ *Window) {
-						hitID = l.Shape.ID
-						e.IsHandled = true
+					OnClick: func(ctx EventCtx) {
+						hitID = ctx.Layout.Shape.ID
 					},
 				},
 			}}
@@ -312,7 +308,7 @@ func TestMouseLockHandlers(t *testing.T) {
 		lockCalled := false
 		w := &Window{windowWidth: 800, windowHeight: 600}
 		w.MouseLock(MouseLockCfg{
-			MouseMove: func(_ *Layout, _ *Event, _ *Window) {
+			MouseMove: func(ctx EventCtx) {
 				lockCalled = true
 			},
 		})
@@ -328,7 +324,7 @@ func TestMouseLockHandlers(t *testing.T) {
 		lockCalled := false
 		w := &Window{windowWidth: 800, windowHeight: 600}
 		w.MouseLock(MouseLockCfg{
-			MouseUp: func(_ *Layout, _ *Event, _ *Window) {
+			MouseUp: func(ctx EventCtx) {
 				lockCalled = true
 			},
 		})
@@ -349,9 +345,9 @@ func TestMouseMoveHandlerSkipsOutOfWindow(t *testing.T) {
 			shapeClip: drawClip{X: 0, Y: 0,
 				Width: 100, Height: 100},
 			events: &eventHandlers{
-				OnMouseMove: func(_ *Layout, e *Event, _ *Window) {
+				OnMouseMove: func(ctx EventCtx) {
 					called = true
-					e.IsHandled = true
+					ctx.Consume()
 				},
 			},
 		},
@@ -424,9 +420,9 @@ func TestMouseScrollHandlerFocusedOnMouseScroll(t *testing.T) {
 			{Shape: &Shape{
 				Focusable: true, ID: "f5",
 				events: &eventHandlers{
-					OnMouseScroll: func(_ *Layout, e *Event, _ *Window) {
+					OnMouseScroll: func(ctx EventCtx) {
 						called = true
-						e.IsHandled = true
+						ctx.Consume()
 					},
 				},
 			}},
@@ -452,7 +448,7 @@ func TestMouseScrollUnhandledCascadesToScrollContainer(t *testing.T) {
 			{Shape: &Shape{
 				Focusable: true, ID: "f7",
 				events: &eventHandlers{
-					OnMouseScroll: func(_ *Layout, _ *Event, _ *Window) {
+					OnMouseScroll: func(ctx EventCtx) {
 						focusCalled = true
 						// deliberately not setting e.IsHandled
 					},
@@ -507,9 +503,9 @@ func TestMouseScrollFallbackRespectsIsHandled(t *testing.T) {
 					X: 0, Y: 0, Width: 200, Height: 100,
 				},
 				events: &eventHandlers{
-					OnMouseScroll: func(_ *Layout, e *Event, _ *Window) {
+					OnMouseScroll: func(ctx EventCtx) {
 						handlerCalled = true
-						e.IsHandled = true
+						ctx.Consume()
 					},
 				},
 			}},
@@ -550,7 +546,7 @@ func TestMouseScrollFallbackUnhandledReachesContainer(t *testing.T) {
 					X: 0, Y: 0, Width: 200, Height: 100,
 				},
 				events: &eventHandlers{
-					OnMouseScroll: func(_ *Layout, _ *Event, _ *Window) {
+					OnMouseScroll: func(ctx EventCtx) {
 						// deliberately not setting e.IsHandled
 					},
 				},
@@ -581,9 +577,8 @@ func TestFileDropHandler(t *testing.T) {
 				shapeClip: drawClip{X: 0, Y: 0,
 					Width: 100, Height: 100},
 				events: &eventHandlers{
-					OnFileDrop: func(l *Layout, e *Event, _ *Window) {
-						hitID = l.Shape.ID
-						e.IsHandled = true
+					OnFileDrop: func(ctx EventCtx) {
+						hitID = ctx.Layout.Shape.ID
 					},
 				},
 			}}
@@ -614,7 +609,7 @@ func TestFileDropHandler(t *testing.T) {
 				shapeClip: drawClip{X: 0, Y: 0,
 					Width: 200, Height: 200},
 				events: &eventHandlers{
-					OnFileDrop: func(_ *Layout, _ *Event, _ *Window) {
+					OnFileDrop: func(ctx EventCtx) {
 						parentCalled = true
 					},
 				},
@@ -624,8 +619,7 @@ func TestFileDropHandler(t *testing.T) {
 					shapeClip: drawClip{X: 0, Y: 0,
 						Width: 100, Height: 100},
 					events: &eventHandlers{
-						OnFileDrop: func(_ *Layout, e *Event, _ *Window) {
-							e.IsHandled = true
+						OnFileDrop: func(ctx EventCtx) {
 						},
 					},
 				}},
@@ -682,9 +676,8 @@ func TestFileDropHandler(t *testing.T) {
 					shapeClip: drawClip{X: 0, Y: 0,
 						Width: 100, Height: 100},
 					events: &eventHandlers{
-						OnFileDrop: func(_ *Layout, e *Event, _ *Window) {
+						OnFileDrop: func(ctx EventCtx) {
 							called = true
-							e.IsHandled = true
 						},
 					},
 				}},
@@ -721,8 +714,7 @@ func TestFileDropHandler(t *testing.T) {
 					shapeClip: drawClip{X: 10, Y: 20,
 						Width: 100, Height: 100},
 					events: &eventHandlers{
-						OnFileDrop: func(_ *Layout, e *Event, _ *Window) {
-							e.IsHandled = true
+						OnFileDrop: func(ctx EventCtx) {
 						},
 					},
 				}},
@@ -742,7 +734,7 @@ func TestMakeContainerEventsOnFileDropAlone(t *testing.T) {
 	t.Parallel()
 	called := false
 	cfg := &ContainerCfg{
-		OnFileDrop: func(_ *Layout, _ *Event, _ *Window) {
+		OnFileDrop: func(ctx EventCtx) {
 			called = true
 		},
 	}
@@ -753,7 +745,7 @@ func TestMakeContainerEventsOnFileDropAlone(t *testing.T) {
 	if eh.OnFileDrop == nil {
 		t.Fatal("OnFileDrop not wired")
 	}
-	eh.OnFileDrop(nil, nil, nil)
+	eh.OnFileDrop(EventCtx{nil, nil, nil})
 	if !called {
 		t.Error("OnFileDrop callback not invoked")
 	}
@@ -766,7 +758,7 @@ func TestDrawCanvasOnFileDropWired(t *testing.T) {
 	v := DrawCanvas(DrawCanvasCfg{
 		ID:    "dc-drop",
 		Width: 100, Height: 100,
-		OnFileDrop: func(_ *Layout, _ *Event, _ *Window) {
+		OnFileDrop: func(ctx EventCtx) {
 			called = true
 		},
 	})
@@ -777,7 +769,7 @@ func TestDrawCanvasOnFileDropWired(t *testing.T) {
 	if layout.Shape.events.OnFileDrop == nil {
 		t.Fatal("OnFileDrop not wired on DrawCanvas")
 	}
-	layout.Shape.events.OnFileDrop(nil, nil, nil)
+	layout.Shape.events.OnFileDrop(EventCtx{nil, nil, nil})
 	if !called {
 		t.Error("OnFileDrop callback not invoked")
 	}
@@ -790,9 +782,8 @@ func TestCharHandler_ClickOnSpace(t *testing.T) {
 		clicked := false
 		root := focusedChild("f1", &eventHandlers{
 			ClickOnSpace: true,
-			OnClick: func(_ *Layout, e *Event, _ *Window) {
+			OnClick: func(ctx EventCtx) {
 				clicked = true
-				e.IsHandled = true
 			},
 		})
 		w := &Window{}
@@ -811,9 +802,8 @@ func TestCharHandler_ClickOnSpace(t *testing.T) {
 		clicked := false
 		root := focusedChild("f1", &eventHandlers{
 			ClickOnSpace: true,
-			OnClick: func(_ *Layout, e *Event, _ *Window) {
+			OnClick: func(ctx EventCtx) {
 				clicked = true
-				e.IsHandled = true
 			},
 		})
 		w := &Window{}
@@ -829,9 +819,8 @@ func TestCharHandler_ClickOnSpace(t *testing.T) {
 		clicked := false
 		root := focusedChild("f1", &eventHandlers{
 			ClickOnSpace: true,
-			OnClick: func(_ *Layout, e *Event, _ *Window) {
+			OnClick: func(ctx EventCtx) {
 				clicked = true
-				e.IsHandled = true
 			},
 		})
 		w := &Window{}
@@ -866,9 +855,8 @@ func TestKeydownHandler_ClickOnEnter(t *testing.T) {
 		clicked := false
 		root := focusedChild("f1", &eventHandlers{
 			ClickOnEnter: true,
-			OnClick: func(_ *Layout, e *Event, _ *Window) {
+			OnClick: func(ctx EventCtx) {
 				clicked = true
-				e.IsHandled = true
 			},
 		})
 		w := &Window{}
@@ -887,9 +875,8 @@ func TestKeydownHandler_ClickOnEnter(t *testing.T) {
 		clicked := false
 		root := focusedChild("f1", &eventHandlers{
 			ClickOnEnter: true,
-			OnClick: func(_ *Layout, e *Event, _ *Window) {
+			OnClick: func(ctx EventCtx) {
 				clicked = true
-				e.IsHandled = true
 			},
 		})
 		w := &Window{}
@@ -905,9 +892,8 @@ func TestKeydownHandler_ClickOnEnter(t *testing.T) {
 		clicked := false
 		root := focusedChild("f1", &eventHandlers{
 			ClickOnEnter: true,
-			OnClick: func(_ *Layout, e *Event, _ *Window) {
+			OnClick: func(ctx EventCtx) {
 				clicked = true
-				e.IsHandled = true
 			},
 		})
 		w := &Window{}
@@ -975,9 +961,8 @@ func TestMouseDownHandler_ClickButtonFilter(t *testing.T) {
 					shapeClip: drawClip{X: 0, Y: 0,
 						Width: 100, Height: 100},
 					events: &eventHandlers{
-						OnClick: func(_ *Layout, e *Event, _ *Window) {
+						OnClick: func(ctx EventCtx) {
 							clicked = true
-							e.IsHandled = true
 						},
 						ClickButton: MouseRight,
 					},
@@ -1002,9 +987,8 @@ func TestMouseDownHandler_ClickButtonFilter(t *testing.T) {
 					shapeClip: drawClip{X: 0, Y: 0,
 						Width: 100, Height: 100},
 					events: &eventHandlers{
-						OnClick: func(_ *Layout, e *Event, _ *Window) {
+						OnClick: func(ctx EventCtx) {
 							clicked = true
-							e.IsHandled = true
 						},
 						ClickButton: MouseRight,
 					},
@@ -1029,9 +1013,8 @@ func TestMouseDownHandler_ClickButtonFilter(t *testing.T) {
 					shapeClip: drawClip{X: 0, Y: 0,
 						Width: 100, Height: 100},
 					events: &eventHandlers{
-						OnClick: func(_ *Layout, e *Event, _ *Window) {
+						OnClick: func(ctx EventCtx) {
 							clicked = true
-							e.IsHandled = true
 						},
 						ClickButton: 0,
 					},

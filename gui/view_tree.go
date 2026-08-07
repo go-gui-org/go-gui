@@ -9,7 +9,7 @@ const treeLoadingSuffix = ".__loading__"
 
 // TreeCfg configures a tree view.
 type TreeCfg struct {
-	OnSelect   func(string, *Event, *Window)
+	OnSelect   func(string, EventCtx)
 	OnLazyLoad func(string, string, *Window)
 
 	OnReorder func(movedID, beforeID string, w *Window)
@@ -241,25 +241,25 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 		A11Y:       makeA11YInfo(a11yLabel(cfg.A11YLabel, cfg.ID), cfg.A11YDescription),
 		Focusable:  !cfg.FocusDisabled,
 		Scrollable: cfg.Scrollable,
-		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
+		OnKeyDown: func(ctx EventCtx) {
 			if canReorder {
-				if dragReorderEscape(cfg.ID, e.KeyCode, w) {
-					e.IsHandled = true
+				if dragReorderEscape(cfg.ID, ctx.Event.KeyCode, ctx.Window) {
+					ctx.Consume()
 					return
 				}
-				if e.Modifiers.Has(ModAlt) {
+				if ctx.Event.Modifiers.Has(ModAlt) {
 					fid := StateReadOr(
-						w, nsTreeFocus, cfg.ID, "")
+						ctx.Window, nsTreeFocus, cfg.ID, "")
 					if fid != "" {
 						fp := parentOf[fid]
 						sibs := siblingsByParent[fp]
 						si := treeSiblingIndex(sibs, fid)
 						if si >= 0 &&
 							dragReorderKeyboardMove(
-								e.KeyCode, e.Modifiers,
+								ctx.Event.KeyCode, ctx.Event.Modifiers,
 								DragReorderVertical,
-								si, sibs, onReorder, w) {
-							e.IsHandled = true
+								si, sibs, onReorder, ctx.Window) {
+							ctx.Consume()
 							return
 						}
 					}
@@ -267,7 +267,7 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 			}
 			treeOnKeyDown(cfg.ID, visibleIDs, rowByID,
 				cfg.OnSelect, cfg.OnLazyLoad,
-				scrollID, rowHeight, listHeight, e, w)
+				scrollID, rowHeight, listHeight, ctx.Event, ctx.Window)
 		},
 		Sizing:      cfg.Sizing,
 		Width:       cfg.Width,

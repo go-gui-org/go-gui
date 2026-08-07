@@ -310,13 +310,13 @@ func dragReorderMakeLock(
 	onReorder func(string, string, *Window),
 ) MouseLockCfg {
 	return MouseLockCfg{
-		MouseMove: func(_ *Layout, e *Event, w *Window) {
+		MouseMove: func(ctx EventCtx) {
 			dragReorderOnMouseMove(
-				dragKey, axis, e.MouseX, e.MouseY, w)
+				dragKey, axis, ctx.Event.MouseX, ctx.Event.MouseY, ctx.Window)
 		},
-		MouseUp: func(_ *Layout, _ *Event, w *Window) {
+		MouseUp: func(ctx EventCtx) {
 			dragReorderOnMouseUp(
-				dragKey, itemIDs, onReorder, w)
+				dragKey, itemIDs, onReorder, ctx.Window)
 		},
 	}
 }

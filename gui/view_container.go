@@ -20,13 +20,13 @@ type ContainerCfg struct {
 	A11Y *AccessInfo
 
 	// Event handlers
-	OnClick     func(*Layout, *Event, *Window)
-	OnAnyClick  func(*Layout, *Event, *Window)
-	OnChar      func(*Layout, *Event, *Window)
-	OnKeyDown   func(*Layout, *Event, *Window)
-	OnKeyUp     func(*Layout, *Event, *Window)
-	OnMouseMove func(*Layout, *Event, *Window)
-	OnMouseUp   func(*Layout, *Event, *Window)
+	OnClick     func(EventCtx)
+	OnAnyClick  func(EventCtx)
+	OnChar      func(EventCtx)
+	OnKeyDown   func(EventCtx)
+	OnKeyUp     func(EventCtx)
+	OnMouseMove func(EventCtx)
+	OnMouseUp   func(EventCtx)
 
 	// ClickButton filters OnClick by mouse button (0 = any).
 	// Set to MouseLeft for left-click-only widgets; avoids the
@@ -45,17 +45,17 @@ type ContainerCfg struct {
 
 	// OnScroll fires when the container receives scroll events.
 	// Requires Scrollable and a scrollable Overflow/ScrollMode.
-	OnScroll func(*Layout, *Window)
+	OnScroll func(EventCtx)
 
 	// AmendLayout runs after sizing to reposition overlays
 	// (color picker circles, splitter handles) or manage hover
 	// indicators. Coordinates are absolute.
-	AmendLayout func(*Layout, *Window)
+	AmendLayout func(EventCtx)
 
-	OnHover     func(*Layout, *Event, *Window)
-	OnGesture   func(*Layout, *Event, *Window)
-	OnFileDrop  func(*Layout, *Event, *Window)
-	OnIMECommit func(*Layout, string, *Window)
+	OnHover     func(EventCtx)
+	OnGesture   func(EventCtx)
+	OnFileDrop  func(EventCtx)
+	OnIMECommit func(string, EventCtx)
 
 	// ScrollbarCfgX/Y override scrollbar appearance for this
 	// container. nil uses theme defaults. Only active when
@@ -170,8 +170,8 @@ type containerView struct {
 
 	// Button-specific fields — set only by Button (step 4 fold-in).
 	isButton         bool
-	userOnHover      func(*Layout, *Event, *Window)
-	userAmendLayout  func(*Layout, *Window)
+	userOnHover      func(EventCtx)
+	userAmendLayout  func(EventCtx)
 	colorHover       Color
 	colorClick       Color
 	colorFocus       Color

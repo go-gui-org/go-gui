@@ -8,21 +8,23 @@ import (
 
 // --- Copy ---
 
-func dataGridMakeOnChar(cfg *DataGridCfg, columns []GridColumnCfg) func(*gg.Layout, *gg.Event, *gg.Window) {
+func dataGridMakeOnChar(cfg *DataGridCfg, columns []GridColumnCfg) func(gg.EventCtx) {
 	rows := cfg.Rows
 	selection := cfg.Selection
 	onCopyRows := cfg.OnCopyRows
-	return func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
-		if !dataGridCharIsCopy(e) {
+	return func(ctx gg.EventCtx) {
+		if !dataGridCharIsCopy(ctx.Event) {
+			ctx.Bubble() // only the copy chord is ours
 			return
 		}
 		selectedRows := dataGridSelectedRows(rows, selection)
 		if len(selectedRows) == 0 {
+			ctx.Bubble() // nothing selected: nothing to copy
 			return
 		}
 		var payload string
 		if onCopyRows != nil {
-			text, ok := onCopyRows(selectedRows, e, w)
+			text, ok := onCopyRows(selectedRows, ctx.Event, ctx.Window)
 			if ok {
 				payload = text
 			} else {
@@ -32,10 +34,11 @@ func dataGridMakeOnChar(cfg *DataGridCfg, columns []GridColumnCfg) func(*gg.Layo
 			payload = gridRowsToTSV(columns, selectedRows)
 		}
 		if payload == "" {
+			ctx.Bubble() // produced nothing: leave the chord to others
 			return
 		}
-		w.SetClipboard(payload)
-		e.IsHandled = true
+		ctx.Window.SetClipboard(payload)
+		ctx.Event.IsHandled = true
 	}
 }
 
@@ -50,12 +53,12 @@ func dataGridIsSelectAllShortcut(e *gg.Event) bool {
 
 // --- Mouse move tracker ---
 
-func dataGridMakeOnMouseMove(gridID string) func(*gg.Layout, *gg.Event, *gg.Window) {
-	return func(layout *gg.Layout, e *gg.Event, w *gg.Window) {
-		mouseX := layout.Shape.X + e.MouseX
-		mouseY := layout.Shape.Y + e.MouseY
-		colID := dataGridHeaderColUnderCursor(layout, gridID, mouseX, mouseY)
-		dgHH := gg.StateMap[string, string](w, nsDgHeaderHover, capModerate)
+func dataGridMakeOnMouseMove(gridID string) func(gg.EventCtx) {
+	return func(ctx gg.EventCtx) {
+		mouseX := ctx.Layout.Shape.X + ctx.Event.MouseX
+		mouseY := ctx.Layout.Shape.Y + ctx.Event.MouseY
+		colID := dataGridHeaderColUnderCursor(ctx.Layout, gridID, mouseX, mouseY)
+		dgHH := gg.StateMap[string, string](ctx.Window, nsDgHeaderHover, capModerate)
 		if colID == "" {
 			dgHH.Delete(gridID)
 			return
@@ -70,9 +73,9 @@ func dataGridMakeOnMouseMove(gridID string) func(*gg.Layout, *gg.Event, *gg.Wind
 
 type dataGridKeydownContext struct {
 	selection         GridSelection
-	onSelectionChange func(GridSelection, *gg.Event, *gg.Window)
-	onRowActivate     func(GridRow, *gg.Event, *gg.Window)
-	onPageChange      func(int, *gg.Event, *gg.Window)
+	onSelectionChange func(GridSelection, gg.EventCtx)
+	onRowActivate     func(GridRow, gg.EventCtx)
+	onPageChange      func(int, gg.EventCtx)
 	frozenTopIDs      map[string]bool
 	dataToDisplay     map[int]int
 	gridID            string
@@ -95,7 +98,7 @@ type dataGridKeydownContext struct {
 	crudEnabled       bool
 }
 
-func dataGridMakeOnKeydown(cfg *DataGridCfg, columns []GridColumnCfg, rowHeight, staticTop float32, scrollID string, pageIndices []int, frozenTopIDs map[string]bool, dataToDisplay map[int]int) func(*gg.Layout, *gg.Event, *gg.Window) {
+func dataGridMakeOnKeydown(cfg *DataGridCfg, columns []GridColumnCfg, rowHeight, staticTop float32, scrollID string, pageIndices []int, frozenTopIDs map[string]bool, dataToDisplay map[int]int) func(gg.EventCtx) {
 	keyCtx := dataGridKeydownContext{
 		gridID:            cfg.ID,
 		rows:              cfg.Rows,
@@ -122,8 +125,8 @@ func dataGridMakeOnKeydown(cfg *DataGridCfg, columns []GridColumnCfg, rowHeight,
 		frozenTopIDs:      frozenTopIDs,
 		dataToDisplay:     dataToDisplay,
 	}
-	return func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
-		dataGridOnKeydown(keyCtx, e, w)
+	return func(ctx gg.EventCtx) {
+		dataGridOnKeydown(keyCtx, ctx.Event, ctx.Window)
 	}
 }
 
@@ -223,7 +226,7 @@ func dataGridHandlePageShortcut(kc dataGridKeydownContext, e *gg.Event, w *gg.Wi
 		return false
 	}
 	if nextPageIdx != pageIdx {
-		kc.onPageChange(nextPageIdx, e, w)
+		kc.onPageChange(nextPageIdx, gg.EventCtx{Layout: nil, Event: e, Window: w})
 	}
 	e.IsHandled = true
 	return true
@@ -247,7 +250,7 @@ func dataGridHandleSelectAllShortcut(kc dataGridKeydownContext, e *gg.Event, w *
 	}
 	dataGridSetAnchor(kc.gridID, nextSelection.AnchorRowID, w)
 	if kc.onSelectionChange != nil {
-		kc.onSelectionChange(nextSelection, e, w)
+		kc.onSelectionChange(nextSelection, gg.EventCtx{Layout: nil, Event: e, Window: w})
 	}
 	e.IsHandled = true
 	return true
@@ -268,7 +271,7 @@ func dataGridHandleEnterKey(kc dataGridKeydownContext, e *gg.Event, w *gg.Window
 	}
 	rowIdx := dataGridActiveRowIndex(kc.rows, kc.selection)
 	if rowIdx >= 0 && rowIdx < len(kc.rows) {
-		kc.onRowActivate(kc.rows[rowIdx], e, w)
+		kc.onRowActivate(kc.rows[rowIdx], gg.EventCtx{Layout: nil, Event: e, Window: w})
 		e.IsHandled = true
 	}
 	return true
@@ -307,7 +310,7 @@ func dataGridHandleRowNavigationKeys(kc dataGridKeydownContext, visibleIndices [
 	targetIdx := visibleIndices[targetPos]
 	targetRowID := dataGridRowID(kc.rows[targetIdx], targetIdx)
 	nextSelection := dataGridSelectionForTargetRow(kc, targetRowID, isShift, w)
-	kc.onSelectionChange(nextSelection, e, w)
+	kc.onSelectionChange(nextSelection, gg.EventCtx{Layout: nil, Event: e, Window: w})
 	if kc.frozenTopIDs[targetRowID] {
 		e.IsHandled = true
 		return

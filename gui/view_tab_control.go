@@ -21,7 +21,7 @@ type TabControlCfg struct {
 	TextStyle         TextStyle
 	TextStyleSelected TextStyle
 	TextStyleDisabled TextStyle
-	OnSelect          func(string, *Event, *Window)
+	OnSelect          func(string, EventCtx)
 	OnReorder         func(movedID, beforeID string, w *Window)
 
 	ID       string
@@ -148,17 +148,17 @@ func TabControl(cfg TabControlCfg) View {
 }
 
 func makeTabOnClick(
-	onSelect func(string, *Event, *Window),
+	onSelect func(string, EventCtx),
 	id string, focusID string,
-) func(*Layout, *Event, *Window) {
-	return func(_ *Layout, e *Event, w *Window) {
+) func(EventCtx) {
+	return func(ctx EventCtx) {
 		if onSelect != nil {
-			onSelect(id, e, w)
+			onSelect(id, EventCtx{nil, ctx.Event, ctx.Window})
 		}
 		if focusID != "" {
-			w.SetFocus(focusID)
+			ctx.Window.SetFocus(focusID)
 		}
-		e.IsHandled = true
+		ctx.Event.IsHandled = true
 	}
 }
 
@@ -169,10 +169,10 @@ func makeTabDragClick(
 	tabIDs []string,
 	onReorder func(string, string, *Window),
 	tabLayoutIDs []string,
-	onSelect func(string, *Event, *Window),
+	onSelect func(string, EventCtx),
 	focusID string,
-) func(*Layout, *Event, *Window) {
-	return func(layout *Layout, e *Event, w *Window) {
+) func(EventCtx) {
+	return func(ctx EventCtx) {
 		dragReorderStart(dragReorderStartCfg{
 			DragKey:       controlID,
 			Index:         dragIdx,
@@ -181,16 +181,16 @@ func makeTabDragClick(
 			ItemIDs:       tabIDs,
 			OnReorder:     onReorder,
 			ItemLayoutIDs: tabLayoutIDs,
-			Layout:        layout,
-			Event:         e,
-		}, w)
+			Layout:        ctx.Layout,
+			Event:         ctx.Event,
+		}, ctx.Window)
 		if onSelect != nil {
-			onSelect(itemID, e, w)
+			onSelect(itemID, EventCtx{nil, ctx.Event, ctx.Window})
 		}
 		if focusID != "" {
-			w.SetFocus(focusID)
+			ctx.Window.SetFocus(focusID)
 		}
-		e.IsHandled = true
+		ctx.Consume()
 	}
 }
 
@@ -296,7 +296,7 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 			a11yState = AccessStateSelected
 		}
 
-		var onClick func(*Layout, *Event, *Window)
+		var onClick func(EventCtx)
 		if cfg.Reorderable && !isDisabled {
 			onClick = makeTabDragClick(cfg.ID, tabDragIdx[i],
 				item.ID, tabIDs, onReorder, tabLayoutIDs,
@@ -378,20 +378,20 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 		Spacing:         SomeF(spacing),
 		Disabled:        cfg.Disabled,
 		Invisible:       cfg.Invisible,
-		OnKeyDown: func(_ *Layout, e *Event, w *Window) {
+		OnKeyDown: func(ctx EventCtx) {
 			if reorderable {
 				if dragReorderEscape(
-					controlID, e.KeyCode, w) {
-					e.IsHandled = true
+					controlID, ctx.Event.KeyCode, ctx.Window) {
+					ctx.Event.IsHandled = true
 					return
 				}
 				for idx, id := range tabIDs {
 					if id == selected {
 						if dragReorderKeyboardMove(
-							e.KeyCode, e.Modifiers,
+							ctx.Event.KeyCode, ctx.Event.Modifiers,
 							DragReorderHorizontal,
-							idx, tabIDs, onReorder, w) {
-							e.IsHandled = true
+							idx, tabIDs, onReorder, ctx.Window) {
+							ctx.Consume()
 							return
 						}
 						break
@@ -400,7 +400,7 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 			}
 			tabControlOnKeydown(disabled, tabNavIDs,
 				tabNavDisabled, selected, onSelect,
-				focusID, e, w)
+				focusID, ctx.Event, ctx.Window)
 		},
 		Content: []View{
 			Row(ContainerCfg{
@@ -431,7 +431,7 @@ func tabControlOnKeydown(
 	tabNavIDs []string,
 	tabNavDisabled []bool,
 	selected string,
-	onSelect func(string, *Event, *Window),
+	onSelect func(string, EventCtx),
 	focusID string,
 	e *Event,
 	w *Window,
@@ -489,7 +489,7 @@ func tabControlOnKeydown(
 	refire := e.KeyCode == KeyEnter || e.CharCode == CharSpace
 	if targetID != selected || refire {
 		if onSelect != nil {
-			onSelect(targetID, e, w)
+			onSelect(targetID, EventCtx{nil, e, w})
 		}
 	}
 	if focusID != "" {

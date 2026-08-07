@@ -55,8 +55,8 @@ func menu(w *gui.Window) gui.View {
 		Float:       true,
 		FloatAnchor: gui.FloatTopCenter,
 		FloatTieOff: gui.FloatTopCenter,
-		Action: func(id string, _ *gui.Event, w *gui.Window) {
-			gui.State[MenuApp](w).SelectedID = id
+		Action: func(id string, ctx gui.EventCtx) {
+			gui.State[MenuApp](ctx.Window).SelectedID = id
 		},
 		Items: []gui.MenuItemCfg{
 			{
@@ -163,8 +163,8 @@ func menu(w *gui.Window) gui.View {
 							SizeBorder:       gui.Some[float32](0),
 							TextStyle:        gui.CurrentTheme().MenubarStyle.TextStyle,
 							PlaceholderStyle: gui.CurrentTheme().MenubarStyle.TextStyle,
-							OnTextChanged: func(_ *gui.Layout, s string, w *gui.Window) {
-								gui.State[MenuApp](w).SearchText = s
+							OnTextChanged: func(s string, ctx gui.EventCtx) {
+								gui.State[MenuApp](ctx.Window).SearchText = s
 							},
 						}),
 					},
@@ -213,8 +213,8 @@ func body(w *gui.Window) gui.View {
 						Text: fmt.Sprintf("%d Clicks", app.Clicks),
 					}),
 				},
-				OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-					gui.State[MenuApp](w).Clicks++
+				OnClick: func(ctx gui.EventCtx) {
+					gui.State[MenuApp](ctx.Window).Clicks++
 				},
 			}),
 			gui.Text(gui.TextCfg{Text: ""}),

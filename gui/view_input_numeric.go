@@ -7,7 +7,7 @@ type NumericInputCfg struct {
 	PlaceholderStyle TextStyle
 
 	// Callbacks
-	OnTextChanged func(*Layout, string, *Window)
+	OnTextChanged func(string, EventCtx)
 	OnValueCommit func(*Layout, Opt[float64], string, *Window)
 
 	ID          string
@@ -117,24 +117,24 @@ func NumericInput(cfg NumericInputCfg) View {
 		Disabled:    cfg.Disabled,
 		VAlign:      VAlignMiddle,
 		Spacing:     SomeF(0),
-		OnClick: func(_ *Layout, _ *Event, w *Window) {
+		OnClick: func(ctx EventCtx) {
 			if focusID != "" {
-				w.SetFocus(focusID)
+				ctx.Window.SetFocus(focusID)
 			}
 		},
-		OnHover: func(layout *Layout, _ *Event, w *Window) {
-			if w.IsFocus(focusID) {
-				w.setMouseCursor(CursorIBeam)
+		OnHover: func(ctx EventCtx) {
+			if ctx.Window.IsFocus(focusID) {
+				ctx.Window.setMouseCursor(CursorIBeam)
 			} else {
-				layout.Shape.Color = colorHover
+				ctx.Layout.Shape.Color = colorHover
 			}
 		},
-		AmendLayout: func(layout *Layout, w *Window) {
-			if layout.Shape.Disabled {
+		AmendLayout: func(ctx EventCtx) {
+			if ctx.Layout.Shape.Disabled {
 				return
 			}
-			if focusID != "" && w.IsFocus(focusID) {
-				layout.Shape.ColorBorder = colorBorderFocus
+			if focusID != "" && ctx.Window.IsFocus(focusID) {
+				ctx.Layout.Shape.ColorBorder = colorBorderFocus
 			}
 		},
 		Content: content,
@@ -270,10 +270,10 @@ func numericInputStepButtons(cfg NumericInputCfg, locale NumericLocaleCfg, stepC
 				ColorBorder: ColorTransparent,
 				SizeBorder:  SomeF(0),
 				Radius:      SomeF(0),
-				OnClick: func(layout *Layout, e *Event, w *Window) {
+				OnClick: func(ctx EventCtx) {
 					numericInputApplyStep(
-						layout, cfg, locale, stepCfg,
-						1.0, e, w)
+						ctx.Layout, cfg, locale, stepCfg,
+						1.0, ctx.Event, ctx.Window)
 				},
 				Content: []View{
 					Text(TextCfg{
@@ -294,10 +294,10 @@ func numericInputStepButtons(cfg NumericInputCfg, locale NumericLocaleCfg, stepC
 				ColorBorder: ColorTransparent,
 				SizeBorder:  SomeF(0),
 				Radius:      SomeF(0),
-				OnClick: func(layout *Layout, e *Event, w *Window) {
+				OnClick: func(ctx EventCtx) {
 					numericInputApplyStep(
-						layout, cfg, locale, stepCfg,
-						-1.0, e, w)
+						ctx.Layout, cfg, locale, stepCfg,
+						-1.0, ctx.Event, ctx.Window)
 				},
 				Content: []View{
 					Text(TextCfg{

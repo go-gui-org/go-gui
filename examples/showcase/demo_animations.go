@@ -62,8 +62,8 @@ func animTweenDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 						ID:      "btn-tween-go",
 						Padding: gui.SomeP(6, 16, 6, 16),
 						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Animate", TextStyle: t.N3})},
-						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-							app := gui.State[ShowcaseApp](w)
+						OnClick: func(ctx gui.EventCtx) {
+							app := gui.State[ShowcaseApp](ctx.Window)
 							target := float32(300)
 							if app.AnimTweenX > 100 {
 								target = 0
@@ -72,8 +72,7 @@ func animTweenDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 								func(v float32, w *gui.Window) {
 									gui.State[ShowcaseApp](w).AnimTweenX = v
 								})
-							w.AnimationAdd(a)
-							e.IsHandled = true
+							ctx.Window.AnimationAdd(a)
 						},
 					}),
 				},
@@ -120,8 +119,8 @@ func animSpringDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 						ID:      "btn-spring-go",
 						Padding: gui.SomeP(6, 16, 6, 16),
 						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Spring", TextStyle: t.N3})},
-						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-							app := gui.State[ShowcaseApp](w)
+						OnClick: func(ctx gui.EventCtx) {
+							app := gui.State[ShowcaseApp](ctx.Window)
 							target := float32(300)
 							if app.AnimSpringX > 100 {
 								target = 0
@@ -131,8 +130,7 @@ func animSpringDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 									gui.State[ShowcaseApp](w).AnimSpringX = v
 								})
 							a.SpringTo(app.AnimSpringX, target)
-							w.AnimationAdd(a)
-							e.IsHandled = true
+							ctx.Window.AnimationAdd(a)
 						},
 					}),
 				},
@@ -179,7 +177,7 @@ func animKeyframeDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 						ID:      "btn-keyframe-go",
 						Padding: gui.SomeP(6, 16, 6, 16),
 						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Keyframes", TextStyle: t.N3})},
-						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
+						OnClick: func(ctx gui.EventCtx) {
 							a := gui.NewKeyframeAnimation("showcase-keyframe",
 								[]gui.Keyframe{
 									{At: 0, Value: 0, Easing: gui.EaseLinear},
@@ -191,8 +189,7 @@ func animKeyframeDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 								func(v float32, w *gui.Window) {
 									gui.State[ShowcaseApp](w).AnimKeyframeX = v
 								})
-							w.AnimationAdd(a)
-							e.IsHandled = true
+							ctx.Window.AnimationAdd(a)
 						},
 					}),
 				},

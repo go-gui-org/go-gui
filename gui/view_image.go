@@ -9,9 +9,9 @@ import (
 
 // ImageCfg configures an image view.
 type ImageCfg struct {
-	OnClick     func(*Layout, *Event, *Window)
+	OnClick     func(EventCtx)
 	ClickButton MouseButton // left-click filter; avoids leftClickOnly closure
-	OnHover     func(*Layout, *Event, *Window)
+	OnHover     func(EventCtx)
 	ID          string
 	Src         string
 

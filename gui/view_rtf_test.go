@@ -152,7 +152,7 @@ func makeRtfTooltipLayout() (*Layout, *Window) {
 func TestRtfMouseMoveSetTooltipState(t *testing.T) {
 	l, w := makeRtfTooltipLayout()
 	e := &Event{MouseX: 20, MouseY: 5}
-	rtfMouseMove(l, e, w)
+	rtfMouseMove(EventCtx{l, e, w})
 
 	ts := &w.viewState.tooltip
 	if ts.hoverID != "tip text" {
@@ -211,7 +211,7 @@ func TestRtfMouseMoveClearsOnNonTooltipRun(t *testing.T) {
 		},
 	}
 	e := &Event{MouseX: 20, MouseY: 5}
-	rtfMouseMove(l, e, w)
+	rtfMouseMove(EventCtx{l, e, w})
 
 	ts := &w.viewState.tooltip
 	if ts.text != "" {
@@ -254,7 +254,7 @@ func TestRtfMouseMoveUnderlineWithoutLinkDoesNotSetPointingHand(t *testing.T) {
 	}
 	e := &Event{MouseX: 20, MouseY: 5}
 
-	rtfMouseMove(l, e, w)
+	rtfMouseMove(EventCtx{l, e, w})
 
 	if got := w.MouseCursorState(); got == CursorPointingHand {
 		t.Fatalf("cursor = %v, want non-link cursor", got)
@@ -300,7 +300,7 @@ func TestRtfMouseMoveLinkSetsPointingHand(t *testing.T) {
 	}
 	e := &Event{MouseX: 20, MouseY: 5}
 
-	rtfMouseMove(l, e, w)
+	rtfMouseMove(EventCtx{l, e, w})
 
 	if got := w.MouseCursorState(); got != CursorPointingHand {
 		t.Fatalf("cursor = %v, want %v", got, CursorPointingHand)
@@ -397,7 +397,7 @@ func TestRtfAmendTooltipClearsOutsideBounds(t *testing.T) {
 	w.viewState.mousePosY = 300
 
 	l := &Layout{Shape: &Shape{}}
-	rtfAmendTooltip(l, w)
+	rtfAmendTooltip(EventCtx{l, nil, w})
 
 	ts := &w.viewState.tooltip
 	if ts.text != "" {
@@ -418,7 +418,7 @@ func TestRtfAmendTooltipNopWhenNoText(t *testing.T) {
 	w.viewState.mousePosY = 300
 
 	l := &Layout{Shape: &Shape{}}
-	rtfAmendTooltip(l, w)
+	rtfAmendTooltip(EventCtx{l, nil, w})
 
 	// WithTooltip state should be preserved.
 	ts := &w.viewState.tooltip
@@ -723,7 +723,7 @@ func TestRtfOnClickRightClickShowsMenu(t *testing.T) {
 		MouseY:      5,
 		MouseButton: MouseRight,
 	}
-	rtfOnClick(l, e, w)
+	rtfOnClick(EventCtx{l, e, w})
 
 	if !e.IsHandled {
 		t.Fatal("expected IsHandled=true")
@@ -746,7 +746,7 @@ func TestRtfAmendTooltipDismissesMenuOnFocusLoss(t *testing.T) {
 	w.ClearFocus()
 
 	l := &Layout{Shape: &Shape{}}
-	rtfAmendTooltip(l, w)
+	rtfAmendTooltip(EventCtx{l, nil, w})
 
 	st := StateReadOr(
 		w, nsRtfLinkMenu, nsRtfLinkMenu, rtfLinkMenuState{})
@@ -855,7 +855,7 @@ func TestRtfOnClickIgnoresUnsafeLink(t *testing.T) {
 		},
 	}
 	e := &Event{MouseX: 20, MouseY: 5}
-	rtfOnClick(l, e, w)
+	rtfOnClick(EventCtx{l, e, w})
 	if e.IsHandled {
 		t.Fatal("unsafe link should not be handled")
 	}

@@ -28,7 +28,7 @@ func TestInspectorBuildTreeNodes(t *testing.T) {
 					Text: "hello world",
 				},
 				events: &eventHandlers{
-					OnClick: func(*Layout, *Event, *Window) {},
+					OnClick: func(ctx EventCtx) {},
 				},
 			},
 			Children: []Layout{{

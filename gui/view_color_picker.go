@@ -16,7 +16,7 @@ type colorPickerState struct {
 // ColorPickerCfg configures a color picker view.
 type ColorPickerCfg struct {
 	Style         ColorPickerStyle
-	OnColorChange func(Color, *Event, *Window)
+	OnColorChange func(Color, EventCtx)
 	ID            string `gui:"required"`
 
 	A11YLabel       string
@@ -98,9 +98,9 @@ func (cv *colorPickerView) GenerateLayout(w *Window) Layout {
 		Width:       cfg.Width,
 		Height:      cfg.Height,
 		axis:        AxisTopToBottom,
-		AmendLayout: func(layout *Layout, w *Window) {
-			if w.IsFocus(cfg.ID) {
-				layout.Shape.ColorBorder = style.ColorBorderFocus
+		AmendLayout: func(ctx EventCtx) {
+			if ctx.Window.IsFocus(cfg.ID) {
+				ctx.Layout.Shape.ColorBorder = style.ColorBorderFocus
 			}
 		},
 	}
@@ -170,45 +170,34 @@ func cpSVArea(
 						ColorBorder: White,
 						SizeBorder:  SomeF(2),
 						Padding:     NoPadding,
-						AmendLayout: func(
-							layout *Layout, _ *Window,
-						) {
-							cpAmendSVIndicator(layout, hsv,
+						AmendLayout: func(ctx EventCtx) {
+							cpAmendSVIndicator(ctx.Layout, hsv,
 								size, indicatorSize)
 						},
 					}),
 				},
-				OnClick: func(
-					layout *Layout, e *Event, w *Window,
-				) {
+				OnClick: func(ctx EventCtx) {
 					// Convert local mouse coords to absolute.
-					ev := *e
-					ev.MouseX += layout.Shape.X
-					ev.MouseY += layout.Shape.Y
+					ev := *ctx.Event
+					ev.MouseX += ctx.Layout.Shape.X
+					ev.MouseY += ctx.Layout.Shape.Y
 					cpSVMouseAction(cfgID, cfgColor,
-						onChange, layout.Shape, &ev, w)
-					w.MouseLock(MouseLockCfg{
-						MouseMove: func(
-							layout *Layout, e *Event,
-							w *Window,
-						) {
-							sv, ok := layout.FindByID(
+						onChange, ctx.Layout.Shape, &ev, ctx.Window)
+					ctx.Window.MouseLock(MouseLockCfg{
+						MouseMove: func(ctx EventCtx) {
+							sv, ok := ctx.Layout.FindByID(
 								cfgID + ".sv")
 							if !ok {
 								return
 							}
 							cpSVMouseAction(cfgID, cfgColor,
-								onChange, sv.Shape, e, w)
+								onChange, sv.Shape, ctx.Event, ctx.Window)
 						},
-						MouseUp: func(
-							_ *Layout, _ *Event,
-							w *Window,
-						) {
-							w.MouseUnlock()
-							w.SetMouseCursorArrow()
+						MouseUp: func(ctx EventCtx) {
+							ctx.Window.MouseUnlock()
+							ctx.Window.SetMouseCursorArrow()
 						},
 					})
-					e.IsHandled = true
 				},
 			}),
 		},
@@ -250,42 +239,33 @@ func cpHueSlider(
 				ColorBorder: White,
 				SizeBorder:  SomeF(2),
 				Padding:     NoPadding,
-				AmendLayout: func(
-					layout *Layout, _ *Window,
-				) {
-					cpAmendHueIndicator(layout, hsv,
+				AmendLayout: func(ctx EventCtx) {
+					cpAmendHueIndicator(ctx.Layout, hsv,
 						sliderHeight, indicatorSize)
 				},
 			}),
 		},
-		OnClick: func(
-			layout *Layout, e *Event, w *Window,
-		) {
+		OnClick: func(ctx EventCtx) {
 			// Convert local mouse coords to absolute.
-			ev := *e
-			ev.MouseX += layout.Shape.X
-			ev.MouseY += layout.Shape.Y
+			ev := *ctx.Event
+			ev.MouseX += ctx.Layout.Shape.X
+			ev.MouseY += ctx.Layout.Shape.Y
 			cpHueMouseAction(cfgID, cfgColor, onChange,
-				layout.Shape, &ev, w)
-			w.MouseLock(MouseLockCfg{
-				MouseMove: func(
-					layout *Layout, e *Event, w *Window,
-				) {
-					hue, ok := layout.FindByID(
+				ctx.Layout.Shape, &ev, ctx.Window)
+			ctx.Window.MouseLock(MouseLockCfg{
+				MouseMove: func(ctx EventCtx) {
+					hue, ok := ctx.Layout.FindByID(
 						cfgID + ".hue")
 					if !ok {
 						return
 					}
 					cpHueMouseAction(cfgID, cfgColor,
-						onChange, hue.Shape, e, w)
+						onChange, hue.Shape, ctx.Event, ctx.Window)
 				},
-				MouseUp: func(
-					_ *Layout, _ *Event, w *Window,
-				) {
-					w.MouseUnlock()
+				MouseUp: func(ctx EventCtx) {
+					ctx.Window.MouseUnlock()
 				},
 			})
-			e.IsHandled = true
 		},
 	})
 }
@@ -308,11 +288,11 @@ func cpAlphaSlider(cfg *ColorPickerCfg) View {
 		ThumbSize:    thumbSize,
 		Height:       thumbSize,
 		RadiusBorder: SomeF(trackSize / 2),
-		OnChange: func(v float32, e *Event, w *Window) {
+		OnChange: func(v float32, ctx EventCtx) {
 			if onChange != nil {
 				nc := c
 				nc.A = uint8(f32Clamp(v, 0, 255))
-				onChange(nc, e, w)
+				onChange(nc, EventCtx{nil, ctx.Event, ctx.Window})
 			}
 		},
 		RoundValue: true,
@@ -341,8 +321,8 @@ func cpPreviewRow(cfg *ColorPickerCfg) View {
 				Text:      c.ToHexString(),
 				TextStyle: cfg.Style.TextStyle,
 				Width:     100,
-				OnTextChanged: func(_ *Layout, text string, w *Window) {
-					cpApplyHex(text, cfgID, onChange, w)
+				OnTextChanged: func(text string, ctx EventCtx) {
+					cpApplyHex(text, cfgID, onChange, ctx.Window)
 				},
 				OnTextCommit: func(
 					_ *Layout, text string,
@@ -442,8 +422,8 @@ func cpInputColumn(
 				Text:      strconv.Itoa(val),
 				TextStyle: cfg.Style.TextStyle,
 				Width:     50,
-				OnTextChanged: func(_ *Layout, text string, w *Window) {
-					applyFn(text, w)
+				OnTextChanged: func(text string, ctx EventCtx) {
+					applyFn(text, ctx.Window)
 				},
 				OnTextCommit: func(
 					_ *Layout, text string,
@@ -459,7 +439,7 @@ func cpInputColumn(
 // cpSVMouseAction handles mouse interaction in the SV area.
 func cpSVMouseAction(
 	id string, color Color,
-	onChange func(Color, *Event, *Window),
+	onChange func(Color, EventCtx),
 	shape *Shape, e *Event, w *Window,
 ) {
 	if onChange == nil ||
@@ -479,13 +459,13 @@ func cpSVMouseAction(
 	sm.Set(id, hsv)
 
 	nc := ColorFromHSVA(hsv.H, s, v, color.A)
-	onChange(nc, e, w)
+	onChange(nc, EventCtx{nil, e, w})
 }
 
 // cpHueMouseAction handles mouse interaction on the hue slider.
 func cpHueMouseAction(
 	id string, color Color,
-	onChange func(Color, *Event, *Window),
+	onChange func(Color, EventCtx),
 	shape *Shape, e *Event, w *Window,
 ) {
 	if onChange == nil || shape.Height <= 0 {
@@ -503,7 +483,7 @@ func cpHueMouseAction(
 	sm.Set(id, hsv)
 
 	nc := ColorFromHSVA(h, hsv.S, hsv.V, color.A)
-	onChange(nc, e, w)
+	onChange(nc, EventCtx{nil, e, w})
 }
 
 // cpAmendSVIndicator positions the SV indicator circle.
@@ -551,7 +531,7 @@ func applyColorPickerDefaults(cfg *ColorPickerCfg) {
 // cpApplyRGB applies an RGB channel change from text input.
 func cpApplyRGB(
 	text string, idx int, c Color, cfgID string,
-	onChange func(Color, *Event, *Window), w *Window,
+	onChange func(Color, EventCtx), w *Window,
 ) {
 	parsed, err := strconv.ParseUint(text, 10, 8)
 	if err != nil || onChange == nil {
@@ -573,12 +553,12 @@ func cpApplyRGB(
 	sm := StateMap[string, colorPickerState](
 		w, nsColorPicker, capModerate)
 	sm.Set(cfgID, colorPickerState{H: h, S: s, V: vv})
-	onChange(nc, nil, w)
+	onChange(nc, EventCtx{nil, nil, w})
 }
 
 func cpApplyHSV(
 	text string, idx, maxVal int, cfgID string,
-	alpha uint8, onChange func(Color, *Event, *Window),
+	alpha uint8, onChange func(Color, EventCtx),
 	w *Window,
 ) {
 	n, err := strconv.Atoi(text)
@@ -601,12 +581,12 @@ func cpApplyHSV(
 	}
 	sm.Set(cfgID, hsv)
 	nc := ColorFromHSVA(hsv.H, hsv.S, hsv.V, alpha)
-	onChange(nc, nil, w)
+	onChange(nc, EventCtx{nil, nil, w})
 }
 
 func cpApplyHex(
 	text, cfgID string,
-	onChange func(Color, *Event, *Window), w *Window,
+	onChange func(Color, EventCtx), w *Window,
 ) {
 	nc, ok := ColorFromHexString(text)
 	if !ok || onChange == nil {
@@ -616,7 +596,7 @@ func cpApplyHex(
 	sm := StateMap[string, colorPickerState](
 		w, nsColorPicker, capModerate)
 	sm.Set(cfgID, colorPickerState{H: h, S: s, V: v})
-	onChange(nc, nil, w)
+	onChange(nc, EventCtx{nil, nil, w})
 }
 
 // cpParseUint8 parses a string as a uint8 (0–255).

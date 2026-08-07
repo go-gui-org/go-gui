@@ -7,7 +7,7 @@ import "slices"
 type MenubarCfg struct {
 	TextStyle         TextStyle
 	TextStyleSubtitle TextStyle
-	Action            func(string, *Event, *Window)
+	Action            func(string, EventCtx)
 	ID                string
 	Items             []MenuItemCfg
 	FloatZIndex       int
@@ -120,8 +120,8 @@ func applyMenubarDefaults(cfg *MenubarCfg) {
 		cfg.SpacingSubmenu = Some(d.SpacingSubmenu)
 	}
 	if cfg.Action == nil {
-		cfg.Action = func(_ string, e *Event, _ *Window) {
-			e.IsHandled = true
+		cfg.Action = func(_ string, ctx EventCtx) {
+			ctx.Consume()
 		}
 	}
 }
@@ -137,9 +137,9 @@ type MenuIDNode struct {
 	Down  string
 }
 
-func makeMenubarOnKeyDown(cfg MenubarCfg) func(*Layout, *Event, *Window) {
-	return func(_ *Layout, e *Event, w *Window) {
-		menuOnKeyDown(cfg, menuMapper, e, w)
+func makeMenubarOnKeyDown(cfg MenubarCfg) func(EventCtx) {
+	return func(ctx EventCtx) {
+		menuOnKeyDown(cfg, menuMapper, ctx.Event, ctx.Window)
 	}
 }
 

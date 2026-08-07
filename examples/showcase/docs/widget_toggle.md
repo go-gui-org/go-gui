@@ -9,8 +9,8 @@ gui.Toggle(gui.ToggleCfg{
     IDFocus:  300,
     Label:    "Accept terms",
     Selected: app.Accepted,
-    OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-        s := gui.State[App](w)
+    OnClick: func(ctx gui.EventCtx) {
+        s := gui.State[App](ctx.Window)
         s.Accepted = !s.Accepted
     },
 })
@@ -59,9 +59,9 @@ gui.Toggle(gui.ToggleCfg{
 
 ## Events
 
-| Callback | Signature                      | Fired when     |
-| -------- | ------------------------------ | -------------- |
-| OnClick  | func(*Layout, *Event, *Window) | Toggle clicked |
+| Callback | Signature      | Fired when     |
+| -------- | -------------- | -------------- |
+| OnClick  | func(EventCtx) | Toggle clicked |
 
 ## Accessibility
 

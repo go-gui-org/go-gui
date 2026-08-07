@@ -16,7 +16,7 @@ const svgAnimStaleNs = 2 * int64(time.Second)
 
 // SvgCfg configures an SVG view component.
 type SvgCfg struct {
-	OnClick func(*Layout, *Event, *Window)
+	OnClick func(EventCtx)
 
 	ID       string
 	FileName string // SVG file path

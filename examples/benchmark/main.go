@@ -174,10 +174,10 @@ func benchView(w *gui.Window) gui.View {
 						ID:       "bench-count",
 						Selected: []string{selectedCount},
 						Options:  countOptions,
-						OnSelect: func(sel []string, _ *gui.Event, w *gui.Window) {
+						OnSelect: func(sel []string, ctx gui.EventCtx) {
 							if len(sel) > 0 {
 								if n, err := strconv.Atoi(sel[0]); err == nil {
-									app := gui.State[App](w)
+									app := gui.State[App](ctx.Window)
 									app.WidgetCount = n
 									app.ResetAvgs()
 								}
@@ -192,9 +192,9 @@ func benchView(w *gui.Window) gui.View {
 						ID:       "bench-type",
 						Selected: []string{app.WidgetType},
 						Options:  typeOptions,
-						OnSelect: func(sel []string, _ *gui.Event, w *gui.Window) {
+						OnSelect: func(sel []string, ctx gui.EventCtx) {
 							if len(sel) > 0 {
-								app := gui.State[App](w)
+								app := gui.State[App](ctx.Window)
 								app.WidgetType = sel[0]
 								app.ResetAvgs()
 							}
@@ -205,16 +205,15 @@ func benchView(w *gui.Window) gui.View {
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{Text: btnLabel}),
 						},
-						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-							app := gui.State[App](w)
+						OnClick: func(ctx gui.EventCtx) {
+							app := gui.State[App](ctx.Window)
 							app.Running = !app.Running
 							if app.Running {
-								startAnimation(w)
+								startAnimation(ctx.Window)
 							} else {
-								w.AnimationRemove(animID)
+								ctx.Window.AnimationRemove(animID)
 								app.ResetAvgs()
 							}
-							e.IsHandled = true
 						},
 					}),
 				},

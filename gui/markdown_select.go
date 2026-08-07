@@ -69,15 +69,15 @@ func markdownBlockAmendSel(l *Layout, w *Window) {
 // markdownContainerAmendLayout is the AmendLayout hook on the markdown Column.
 // It walks all RTF descendants belonging to this markdown widget, rebuilds the
 // block-position list in the StateMap, and triggers per-block selection update.
-func markdownContainerAmendLayout(l *Layout, w *Window) {
-	mdID := l.Shape.ID
+func markdownContainerAmendLayout(ctx EventCtx) {
+	mdID := ctx.Layout.Shape.ID
 	if mdID == "" {
 		return
 	}
 
 	// Collect all RTF blocks in this markdown by walking descendants.
 	var blocks []mdBlockInfo
-	mdWalkBlocks(l, mdID, &blocks)
+	mdWalkBlocks(ctx.Layout, mdID, &blocks)
 
 	// Sort by Y position (should already be ordered, but make it robust).
 	sort.Slice(blocks, func(i, j int) bool {
@@ -85,7 +85,7 @@ func markdownContainerAmendLayout(l *Layout, w *Window) {
 	})
 
 	// Persist for drag callbacks.
-	bm := StateMap[string, []mdBlockInfo](w, nsMdBlocks, capMany)
+	bm := StateMap[string, []mdBlockInfo](ctx.Window, nsMdBlocks, capMany)
 	bm.Set(mdID, blocks)
 }
 
@@ -113,13 +113,13 @@ func mdWalkBlocks(l *Layout, mdID string, out *[]mdBlockInfo) {
 
 // markdownBlockOnClick is the OnClick handler for RTF blocks inside a
 // markdown widget with cross-block selection enabled.
-func markdownBlockOnClick(l *Layout, e *Event, w *Window) {
-	rtfOnClick(l, e, w)
-	if e.MouseButton == MouseRight {
+func markdownBlockOnClick(ctx EventCtx) {
+	rtfOnClick(ctx)
+	if ctx.Event.MouseButton == MouseRight {
 		return
 	}
 
-	shape := l.Shape
+	shape := ctx.Layout.Shape
 	if shape.TC == nil || !shape.hasRtfLayout() {
 		return
 	}
@@ -127,16 +127,16 @@ func markdownBlockOnClick(l *Layout, e *Event, w *Window) {
 	if mdID == "" {
 		return
 	}
-	w.SetFocus(mdID)
+	ctx.Window.SetFocus(mdID)
 
 	// Compute abs rune position within the markdown flat text.
 	gl := shape.TC.RtfLayout
 	flatText := shape.TC.RtfFlatText
-	byteIdx := gl.GetClosestOffset(e.MouseX, e.MouseY)
+	byteIdx := gl.GetClosestOffset(ctx.Event.MouseX, ctx.Event.MouseY)
 	localRune := byteToRuneIndex(flatText, byteIdx)
 	absRune := uint32(localRune) + shape.TC.MarkdownBlockStart
 
-	imap := StateMap[string, mdSelState](w, nsMdSel, capMany)
+	imap := StateMap[string, mdSelState](ctx.Window, nsMdSel, capMany)
 	// Default mdSelState{}: zero value means no prior selection.
 	st := imap.GetOr(mdID, mdSelState{})
 
@@ -156,7 +156,7 @@ func markdownBlockOnClick(l *Layout, e *Event, w *Window) {
 		st.SelEnd = absRune
 	}
 	imap.Set(mdID, st)
-	e.IsHandled = true
+	ctx.Event.IsHandled = true
 
 	// Capture drag state. Copy layout value so it's safe across frames.
 	anchorBeg := st.SelBeg
@@ -167,16 +167,16 @@ func markdownBlockOnClick(l *Layout, e *Event, w *Window) {
 	dragFlatText := flatText
 	dragBlockStart := shape.TC.MarkdownBlockStart
 
-	w.MouseLock(MouseLockCfg{
-		MouseMove: func(_ *Layout, e *Event, w *Window) {
-			bm := StateMap[string, []mdBlockInfo](w, nsMdBlocks, capMany)
+	ctx.Window.MouseLock(MouseLockCfg{
+		MouseMove: func(ctx EventCtx) {
+			bm := StateMap[string, []mdBlockInfo](ctx.Window, nsMdBlocks, capMany)
 			// Default nil: absent entry means no block info
 			// recorded yet.
 			blocks := bm.GetOr(dragMdID, nil)
-			absPos := mdHitAbsRune(e.MouseX, e.MouseY,
+			absPos := mdHitAbsRune(ctx.Event.MouseX, ctx.Event.MouseY,
 				blocks, dragGl, dragFlatText, dragBlockStart)
 
-			dim := StateMap[string, mdSelState](w, nsMdSel, capMany)
+			dim := StateMap[string, mdSelState](ctx.Window, nsMdSel, capMany)
 			// Default mdSelState{}: zero value means no prior
 			// selection during drag.
 			dst := dim.GetOr(dragMdID, mdSelState{})
@@ -195,8 +195,8 @@ func markdownBlockOnClick(l *Layout, e *Event, w *Window) {
 			}
 			dim.Set(dragMdID, dst)
 		},
-		MouseUp: func(_ *Layout, _ *Event, w *Window) {
-			w.MouseUnlock()
+		MouseUp: func(ctx EventCtx) {
+			ctx.Window.MouseUnlock()
 		},
 	})
 }
@@ -235,12 +235,12 @@ func mdHitAbsRune(
 
 // markdownContainerOnKeyDown handles keyboard events for the markdown container.
 // Supports Ctrl+A (select all) and Ctrl+C (copy).
-func markdownContainerOnKeyDown(l *Layout, e *Event, w *Window) {
-	mdID := l.Shape.ID
-	if mdID == "" || !w.IsFocus(mdID) {
+func markdownContainerOnKeyDown(ctx EventCtx) {
+	mdID := ctx.Layout.Shape.ID
+	if mdID == "" || !ctx.Window.IsFocus(mdID) {
 		return
 	}
-	bm := StateMap[string, []mdBlockInfo](w, nsMdBlocks, capMany)
+	bm := StateMap[string, []mdBlockInfo](ctx.Window, nsMdBlocks, capMany)
 	// Default nil: absent entry means no blocks available.
 	blocks := bm.GetOr(mdID, nil)
 	if len(blocks) == 0 {
@@ -248,14 +248,14 @@ func markdownContainerOnKeyDown(l *Layout, e *Event, w *Window) {
 	}
 
 	handled := true
-	switch e.KeyCode {
+	switch ctx.Event.KeyCode {
 	case KeyA:
-		if e.Modifiers.HasAny(ModCtrl, ModSuper) {
+		if ctx.Event.Modifiers.HasAny(ModCtrl, ModSuper) {
 			totalRunes := uint32(0)
 			for _, b := range blocks {
 				totalRunes += b.RuneLen
 			}
-			imap := StateMap[string, mdSelState](w, nsMdSel, capMany)
+			imap := StateMap[string, mdSelState](ctx.Window, nsMdSel, capMany)
 			// Default mdSelState{}: zero value means no prior
 			// selection for select-all.
 			st := imap.GetOr(mdID, mdSelState{})
@@ -266,14 +266,14 @@ func markdownContainerOnKeyDown(l *Layout, e *Event, w *Window) {
 			handled = false
 		}
 	case KeyC:
-		if e.Modifiers.HasAny(ModCtrl, ModSuper) {
-			imap := StateMap[string, mdSelState](w, nsMdSel, capMany)
+		if ctx.Event.Modifiers.HasAny(ModCtrl, ModSuper) {
+			imap := StateMap[string, mdSelState](ctx.Window, nsMdSel, capMany)
 			// Default mdSelState{}: zero value means no prior
 			// selection to copy.
 			st := imap.GetOr(mdID, mdSelState{})
 			if st.SelBeg != st.SelEnd {
 				beg, end := u32Sort(st.SelBeg, st.SelEnd)
-				w.SetClipboard(mdExtractText(blocks, beg, end))
+				ctx.Window.SetClipboard(mdExtractText(blocks, beg, end))
 			}
 		} else {
 			handled = false
@@ -283,7 +283,7 @@ func markdownContainerOnKeyDown(l *Layout, e *Event, w *Window) {
 	}
 
 	if handled {
-		e.IsHandled = true
+		ctx.Event.IsHandled = true
 	}
 }
 

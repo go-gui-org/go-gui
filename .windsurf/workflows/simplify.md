@@ -133,7 +133,7 @@ Update any affected documentation or examples.
 
 ```go
 // Complex factory with many parameters
-func ComplexButton(text string, onClick func(*Layout, *Event, *Window),
+func ComplexButton(text string, onClick func(EventCtx),
                   width, height float32, enabled bool, style ButtonStyle,
                   icon string, tooltip string) *Layout {
     // ... complex logic

@@ -182,7 +182,7 @@ func TestControllerHandleKey(t *testing.T) {
 
 	fire := func(k KeyCode) *Event {
 		e := &Event{Type: EventKeyDown, KeyCode: k}
-		c.handleKey(nil, e, nil)
+		c.handleKey(EventCtx{nil, e, nil})
 		w.flushCommands()
 		return e
 	}
@@ -220,7 +220,7 @@ func TestControllerHandleKey(t *testing.T) {
 
 	// Unmapped keys pass through unhandled.
 	e = &Event{Type: EventKeyDown, KeyCode: KeyF12}
-	c.handleKey(nil, e, nil)
+	c.handleKey(EventCtx{nil, e, nil})
 	if e.IsHandled {
 		t.Fatal("unmapped key should not be marked handled")
 	}

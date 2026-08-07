@@ -170,9 +170,8 @@ func landingView(w *gui.Window) gui.View {
 								TextStyle: textStyle(theme.B2, 24, gui.White),
 							}),
 						},
-						OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-							startGame(w)
-							e.IsHandled = true
+						OnClick: func(ctx gui.EventCtx) {
+							startGame(ctx.Window)
 						},
 					}),
 
@@ -407,9 +406,8 @@ func gameOverlay(msg string) gui.View {
 						TextStyle: textStyle(theme.B2, 18, gui.White),
 					}),
 				},
-				OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-					gui.State[App](w).Game.Reset()
-					e.IsHandled = true
+				OnClick: func(ctx gui.EventCtx) {
+					gui.State[App](ctx.Window).Game.Reset()
 				},
 			}),
 		},

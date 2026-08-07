@@ -788,10 +788,10 @@ func demoDrawCanvasInteractive(app *ShowcaseApp) gui.View {
 			dc.Text(6, dc.Height-14,
 				"arrow keys move marker", hint)
 		},
-		OnKeyDown: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-			app := gui.State[ShowcaseApp](w)
+		OnKeyDown: func(ctx gui.EventCtx) {
+			app := gui.State[ShowcaseApp](ctx.Window)
 			dx, dy := float32(0), float32(0)
-			switch e.KeyCode {
+			switch ctx.Event.KeyCode {
 			case gui.KeyLeft:
 				dx = -step
 			case gui.KeyRight:
@@ -814,7 +814,7 @@ func demoDrawCanvasInteractive(app *ShowcaseApp) gui.View {
 			app.DrawCanvasMarkerY = min(canvasH-40-markerR,
 				max(minY, cy+dy))
 			app.DrawCanvasVersion++
-			e.IsHandled = true
+			ctx.Consume()
 		},
 	})
 }

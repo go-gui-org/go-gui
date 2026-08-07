@@ -50,9 +50,9 @@ func Menu(w *Window, cfg MenubarCfg) View {
 
 // makeMenuOnKeyDown returns the keyboard handler for a
 // standalone vertical menu.
-func makeMenuOnKeyDown(cfg MenubarCfg) func(*Layout, *Event, *Window) {
-	return func(_ *Layout, e *Event, w *Window) {
-		menuOnKeyDown(cfg, menuMapperVertical, e, w)
+func makeMenuOnKeyDown(cfg MenubarCfg) func(EventCtx) {
+	return func(ctx EventCtx) {
+		menuOnKeyDown(cfg, menuMapperVertical, ctx.Event, ctx.Window)
 	}
 }
 
@@ -83,10 +83,10 @@ func menuOnKeyDown(cfg MenubarCfg,
 			return
 		}
 		if item.Action != nil {
-			item.Action(&item, e, w)
+			item.Action(&item, EventCtx{nil, e, w})
 		}
 		if cfg.Action != nil {
-			cfg.Action(sel, e, w)
+			cfg.Action(sel, EventCtx{nil, e, w})
 		}
 		if len(item.Submenu) == 0 {
 			w.ClearFocus()
@@ -179,11 +179,9 @@ func menuBuild(cfg MenubarCfg, level int, items []MenuItemCfg, w *Window) []View
 				if configured.Action == nil {
 					cmdExec := cmd.Execute
 					cID := configured.CommandID
-					configured.Action = func(
-						_ *MenuItemCfg, e *Event, w *Window,
-					) {
-						if w.CommandCanExecute(cID) && cmdExec != nil {
-							cmdExec(e, w)
+					configured.Action = func(_ *MenuItemCfg, ctx EventCtx) {
+						if ctx.Window.CommandCanExecute(cID) && cmdExec != nil {
+							cmdExec(ctx.Event, ctx.Window)
 						}
 					}
 				}
@@ -231,11 +229,11 @@ func menuBuild(cfg MenubarCfg, level int, items []MenuItemCfg, w *Window) []View
 
 // makeMenuAmendLayout clears menu selection when the widget
 // loses focus.
-func makeMenuAmendLayout(focusID string) func(*Layout, *Window) {
-	return func(_ *Layout, w *Window) {
-		if !w.IsFocus(focusID) {
+func makeMenuAmendLayout(focusID string) func(EventCtx) {
+	return func(ctx EventCtx) {
+		if !ctx.Window.IsFocus(focusID) {
 			// StateMapRead returns nil if map not yet created.
-			sm := StateMapRead[string, string](w, nsMenu)
+			sm := StateMapRead[string, string](ctx.Window, nsMenu)
 			if sm != nil {
 				sm.Delete(focusID)
 			}

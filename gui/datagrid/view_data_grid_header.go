@@ -102,26 +102,26 @@ func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount in
 		ColorBorder: cfg.ColorBorder,
 		SizeBorder:  cfg.SizeBorder,
 		Spacing:     gg.SomeF(0),
-		OnClick: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
-			e.IsHandled = true
+		OnClick: func(ctx gg.EventCtx) {
+			ctx.Consume()
 			if colSortable && onQueryChange != nil {
-				shiftSort := multiSort && e.Modifiers.Has(gg.ModShift)
+				shiftSort := multiSort && ctx.Event.Modifiers.Has(gg.ModShift)
 				next := dataGridToggleSort(query, colID, multiSort, shiftSort)
-				onQueryChange(next, e, w)
+				onQueryChange(next, gg.EventCtx{Layout: nil, Event: ctx.Event, Window: ctx.Window})
 			}
 			if headerFocusID != "" {
-				w.SetFocus(headerFocusID)
+				ctx.Window.SetFocus(headerFocusID)
 			} else if focusID != "" {
-				w.SetFocus(focusID)
+				ctx.Window.SetFocus(focusID)
 			}
 		},
-		OnHover: func(layout *gg.Layout, _ *gg.Event, w *gg.Window) {
+		OnHover: func(ctx gg.EventCtx) {
 			if cfg.Disabled {
 				return
 			}
 			if colSortable {
-				w.SetMouseCursorPointingHand()
-				layout.Shape.Color = colorHeaderHover
+				ctx.Window.SetMouseCursorPointingHand()
+				ctx.Layout.Shape.Color = colorHeaderHover
 			}
 		},
 		Focusable: true,
@@ -147,22 +147,23 @@ func dataGridResizeHandle(cfg *DataGridCfg, col GridColumnCfg, focusID string) g
 		Sizing:  gg.FixedFill,
 		Padding: gg.NoPadding,
 		Color:   colorResizeHandle,
-		OnClick: func(layout *gg.Layout, e *gg.Event, w *gg.Window) {
+		OnClick: func(ctx gg.EventCtx) {
 			if disabled {
+				ctx.Bubble() // a disabled handle must not eat the click
 				return
 			}
-			startX := layout.Shape.X + e.MouseX
-			dataGridStartResize(gridID, columns, rows, textStyleHeader, textStyle, paddingCell, col, focusID, startX, e, w)
+			startX := ctx.Layout.Shape.X + ctx.Event.MouseX
+			dataGridStartResize(gridID, columns, rows, textStyleHeader, textStyle, paddingCell, col, focusID, startX, ctx.Event, ctx.Window)
 		},
-		OnHover: func(layout *gg.Layout, e *gg.Event, w *gg.Window) {
+		OnHover: func(ctx gg.EventCtx) {
 			if disabled {
 				return
 			}
-			w.SetMouseCursorEW()
-			if e.MouseButton == gg.MouseLeft {
-				layout.Shape.Color = colorResizeActive
+			ctx.Window.SetMouseCursorEW()
+			if ctx.Event.MouseButton == gg.MouseLeft {
+				ctx.Layout.Shape.Color = colorResizeActive
 			} else {
-				layout.Shape.Color = colorResizeHandle
+				ctx.Layout.Shape.Color = colorResizeHandle
 			}
 		},
 		Content: []gg.View{
@@ -197,7 +198,7 @@ func dataGridReorderControls(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 				e.IsHandled = true
 				return
 			}
-			onColumnOrderChange(nextOrder, e, w)
+			onColumnOrderChange(nextOrder, gg.EventCtx{Layout: nil, Event: e, Window: w})
 			e.IsHandled = true
 		}
 	}
@@ -216,12 +217,12 @@ func dataGridReorderControls(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 
 func dataGridOrderButton(label string, baseStyle gg.TextStyle, hoverColor gg.Color, cb func(*gg.Event, *gg.Window)) gg.View {
 	return dataGridIndicatorButton(label, baseStyle, hoverColor, false, dataGridHeaderControlWidth,
-		func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
-			cb(e, w)
+		func(ctx gg.EventCtx) {
+			cb(ctx.Event, ctx.Window)
 		})
 }
 
-func dataGridIndicatorButton(label string, baseStyle gg.TextStyle, hoverColor gg.Color, disabled bool, width float32, onClick func(*gg.Layout, *gg.Event, *gg.Window)) gg.View {
+func dataGridIndicatorButton(label string, baseStyle gg.TextStyle, hoverColor gg.Color, disabled bool, width float32, onClick func(gg.EventCtx)) gg.View {
 	sizing := gg.FitFill
 	if width > 0 {
 		sizing = gg.FixedFill
@@ -264,13 +265,13 @@ func dataGridPinControl(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 	colPin := col.Pin
 
 	return dataGridIndicatorButton(label, cfg.TextStyleHeader, cfg.ColorHeaderHover,
-		false, dataGridHeaderControlWidth, func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
+		false, dataGridHeaderControlWidth, func(ctx gg.EventCtx) {
 			if onColumnPinChange == nil {
 				return
 			}
 			nextPin := dataGridColumnNextPin(colPin)
-			onColumnPinChange(colID, nextPin, e, w)
-			e.IsHandled = true
+			onColumnPinChange(colID, nextPin, ctx.Event, ctx.Window)
+			ctx.Consume()
 		})
 }
 
@@ -325,13 +326,13 @@ func dataGridFilterCell(cfg *DataGridCfg, col GridColumnCfg, width float32) gg.V
 				ColorHover:  cfg.ColorFilter,
 				ColorBorder: cfg.ColorBorder,
 				TextStyle:   cfg.TextStyleFilter,
-				OnTextChanged: func(_ *gg.Layout, text string, w *gg.Window) {
+				OnTextChanged: func(text string, ctx gg.EventCtx) {
 					if onQueryChange == nil {
 						return
 					}
 					next := dataGridQuerySetFilter(query, colID, text)
 					e := &gg.Event{}
-					onQueryChange(next, e, w)
+					onQueryChange(next, gg.EventCtx{Layout: nil, Event: e, Window: ctx.Window})
 				},
 			}),
 		},
@@ -367,14 +368,14 @@ func dataGridStartResize(gridID string, columns []GridColumnCfg, rows []GridRow,
 	dgRS.Set(gridID, runtime)
 
 	w.MouseLock(gg.MouseLockCfg{
-		MouseMove: func(_ *gg.Layout, e *gg.Event, w *gg.Window) {
-			dataGridResizeDrag(gridID, col, e, w)
+		MouseMove: func(ctx gg.EventCtx) {
+			dataGridResizeDrag(gridID, col, ctx.Event, ctx.Window)
 		},
-		MouseUp: func(_ *gg.Layout, _ *gg.Event, w *gg.Window) {
-			dataGridEndResize(gridID, w)
-			w.MouseUnlock()
+		MouseUp: func(ctx gg.EventCtx) {
+			dataGridEndResize(gridID, ctx.Window)
+			ctx.Window.MouseUnlock()
 			if focusID != "" {
-				w.SetFocus(focusID)
+				ctx.Window.SetFocus(focusID)
 			}
 		},
 	})

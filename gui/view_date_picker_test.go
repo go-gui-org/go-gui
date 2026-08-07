@@ -238,7 +238,7 @@ func TestDatePickerSubElementClickFocus(t *testing.T) {
 	}
 	e := &Event{}
 	w.ClearFocus()
-	toggleBtn.Shape.events.OnClick(toggleBtn, e, w)
+	toggleBtn.Shape.events.OnClick(EventCtx{toggleBtn, e, w})
 	if w.FocusID() != "dp-sub-click" {
 		t.Errorf("toggle button click got focus %q, want dp-sub-click", w.FocusID())
 	}
@@ -255,7 +255,7 @@ func TestDatePickerSubElementClickFocus(t *testing.T) {
 		t.Fatal("day cell OnClick missing")
 	}
 	w.ClearFocus()
-	firstDay.Shape.events.OnClick(firstDay, e, w)
+	firstDay.Shape.events.OnClick(EventCtx{firstDay, e, w})
 	if w.FocusID() != "dp-sub-click" {
 		t.Errorf("day cell click got focus %q, want dp-sub-click", w.FocusID())
 	}
@@ -308,7 +308,7 @@ func TestDatePickerClickFocus(t *testing.T) {
 		t.Fatal("OnClick handler missing")
 	}
 	e := &Event{}
-	layout.Shape.events.OnClick(&layout, e, w)
+	layout.Shape.events.OnClick(EventCtx{&layout, e, w})
 
 	if w.FocusID() != "dp-click" {
 		t.Errorf("got focus %q, want dp-click", w.FocusID())
@@ -321,7 +321,7 @@ func TestDatePickerClickAdjacentMonth(t *testing.T) {
 	cfg := DatePickerCfg{
 		ID:    "dp-adj",
 		Dates: []time.Time{time.Date(2025, 3, 1, 0, 0, 0, 0, time.Local)}, // March 1st
-		OnSelect: func(dates []time.Time, _ *Event, _ *Window) {
+		OnSelect: func(dates []time.Time, ctx EventCtx) {
 			selected = dates
 		},
 		MondayFirstDayOfWeek: false, // Sunday is day 0. March 1, 2025 is Saturday (6).

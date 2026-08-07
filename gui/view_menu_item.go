@@ -12,7 +12,7 @@ const (
 type MenuItemCfg struct {
 	textStyle  TextStyle
 	CustomView View
-	Action     func(*MenuItemCfg, *Event, *Window)
+	Action     func(*MenuItemCfg, EventCtx)
 
 	// Public configuration.
 	ID        string
@@ -135,18 +135,18 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 	itemID := itemCfg.ID
 	cfgFocusID := menubarCfg.ID
 
-	var onHover func(*Layout, *Event, *Window)
+	var onHover func(EventCtx)
 	if !itemCfg.disabled {
-		onHover = func(_ *Layout, _ *Event, w *Window) {
-			if !w.IsFocus(cfgFocusID) {
+		onHover = func(ctx EventCtx) {
+			if !ctx.Window.IsFocus(cfgFocusID) {
 				return
 			}
-			if w.viewState.menuKeyNav {
+			if ctx.Window.viewState.menuKeyNav {
 				return
 			}
-			w.setMouseCursor(CursorPointingHand)
+			ctx.Window.setMouseCursor(CursorPointingHand)
 			sm := StateMap[string, string](
-				w, nsMenu, capModerate)
+				ctx.Window, nsMenu, capModerate)
 			// Default empty string: absent means no hover; compared
 			// with target itemID.
 			cur := sm.GetOr(cfgFocusID, "")
@@ -176,36 +176,36 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 }
 
 // menuItemClick returns the OnClick handler for a menu item.
-func menuItemClick(cfg MenubarCfg, itemCfg MenuItemCfg) func(*Layout, *Event, *Window) {
-	return func(_ *Layout, e *Event, w *Window) {
-		w.SetFocus(cfg.ID)
+func menuItemClick(cfg MenubarCfg, itemCfg MenuItemCfg) func(EventCtx) {
+	return func(ctx EventCtx) {
+		ctx.Window.SetFocus(cfg.ID)
 
 		if !isSelectableMenuID(itemCfg.ID) {
 			return
 		}
 
 		sm := StateMap[string, string](
-			w, nsMenu, capModerate)
+			ctx.Window, nsMenu, capModerate)
 		sm.Set(cfg.ID, itemCfg.ID)
 
 		if itemCfg.Action != nil {
-			itemCfg.Action(&itemCfg, e, w)
+			itemCfg.Action(&itemCfg, EventCtx{nil, ctx.Event, ctx.Window})
 		}
-		focusBeforeAction := w.FocusID()
+		focusBeforeAction := ctx.Window.FocusID()
 		if cfg.Action != nil {
-			cfg.Action(itemCfg.ID, e, w)
+			cfg.Action(itemCfg.ID, EventCtx{nil, ctx.Event, ctx.Window})
 		}
 
 		// Close menu if leaf item (no submenu). Only reset focus to
 		// zero if neither action callback changed it — an action that
 		// restores a previous focus should win.
 		if len(itemCfg.Submenu) == 0 {
-			if w.FocusID() == focusBeforeAction {
-				w.ClearFocus()
+			if ctx.Window.FocusID() == focusBeforeAction {
+				ctx.Window.ClearFocus()
 			}
 			sm.Delete(cfg.ID)
 		}
 
-		e.IsHandled = true
+		ctx.Consume()
 	}
 }
