@@ -1,10 +1,11 @@
 # Developer ergonomics: assessment and improvement plan
 
 Status: accepted after three independent reviews; ready to implement.
-One breaking phase (§4.3, §4.4, §4.7) targeting v0.53.0; 18
-sibling call sites affected (§7). §4.2 is entirely non-breaking and
-lands in phase 1. Phases 1–3 ship as v0.52.x. §9 Q1–Q8 all
-resolved; Q6 remains a phase-2 gate on phase 4.
+Two breaking phases: phase 1 (§4.2) shipped as v0.53.0, and §4.3/§4.4/
+§4.7 target v0.54.0 with 18 sibling call sites affected (§7). Phases
+2–3 ship as v0.53.x. §9 Q1–Q8 all resolved; Q6 remains a phase-2 gate
+on phase 4. The original single-breaking-release plan and why it was
+wrong: see the correction in §6.
 Base: `main` @ `80715d1`. Phase progress: §6.1.
 
 ## Context
@@ -422,7 +423,10 @@ originally written only *warns* about these defects; there is no reason
 to wait to fix them.
 
 With the opt-in collapse cut, **§4.2 is entirely phase 1** and contains
-no breaking change at all. Nothing here waits for v0.53.0.
+no breaking change at all. Nothing here waits for the §4.3 release.
+
+(Both claims were wrong: §4.2 wires `RequireID` into nine factories,
+which is a runtime break. See the correction in §6.)
 
 ### 4.3 One combined breaking release: events + callbacks
 
@@ -639,6 +643,41 @@ from coordinates or targets the ID directly. Hit-testing is the more
 faithful simulation and would also catch overlay and z-order bugs;
 ID-targeting is simpler and sufficient for state-transition tests.
 
+#### 4.6.1 Corrections from the implementation (2026-08-07)
+
+Shipped in `gui/testing.go`. Three things §4.6 got wrong or left out.
+
+**The hit-testing/ID-targeting choice was a false dichotomy.** §9 Q2
+frames them as alternatives. They are orthogonal: the ID picks a
+coordinate, and dispatch then runs full hit-testing from the window
+root. `TestClick` does both. The parts of hit-testing worth having —
+z-order, clipping, disabled subtrees — come free, because the
+synthesized event goes through `Window.EventFn` rather than reaching
+into `Shape.events`. `TestClickAt(x, y)` is still a separate future
+name, but it buys only the ability to click a coordinate that no
+widget's ID names.
+
+**Overlay obstruction is not detectable, and §4.6 implied it was.** An
+overlay that covers the target consumes the click and marks the event
+handled, so `TestClick` returns nil. Dispatch does not record which
+shape it delivered to, so "the target handled it" and "something on
+top of the target handled it" are the same observation from outside.
+`ErrTestUnhandled` therefore catches only total non-delivery.
+Documented on the method and pinned by
+`TestTestClickBlockedByOverlay`. Closing the gap properly means having
+dispatch report its recipient — a change on the hottest event path,
+for a testing feature, and not worth it at this stage.
+
+**`TestScroll` must send a precise scroll, not a wheel notch.** Not a
+preference. The discrete-wheel path does not move the offset at all:
+`scrollSmoothBy` arms an exponential ease that lands over later frames
+driven by the animation goroutine, which no headless test runs — and
+`clearHotMaps` calls `scrollSmoothReset` on every view rebuild, so
+settling a frame would discard the in-flight ease regardless. Only
+`scrollVertical`/`scrollHorizontal`, the precise/trackpad path, write
+synchronously. Consequence for callers: a widget branching on
+`Event.ScrollPrecise` sees the trackpad branch under test.
+
 ### 4.7 Naming: `RTF` / `RtfCfg` casing split
 
 `RTF(cfg RtfCfg)` (`gui/view_rtf.go:212`) is the only factory whose
@@ -800,12 +839,33 @@ report the type held and the type requested (§4.1).
 |       | removal (§4.4)                    |          |                     |
 | 5     | §4.8 example audit                | no       | 45 files            |
 
-**Versions.** Phases 1–3 are additive and ship as `v0.52.x` point
-releases — siblings pick them up on a routine bump with no action.
-Phase 4 is the single breaking release, **v0.53.0**. Phase 5 touches
-only `examples/`, so it rides whatever release follows. Stated
-explicitly because release-consumer decisions hang off which bumps
-siblings see, and the header names only v0.53.0.
+**Versions — superseded, see the correction below.** The original plan:
+phases 1–3 are additive and ship as `v0.52.x` point releases, phase 4
+is the single breaking release **v0.53.0**, and phase 5 rides whatever
+follows.
+
+**Correction (2026-08-07).** Phase 1 shipped as **v0.53.0** and it is
+breaking. Two errors above:
+
+1. **Phase 1 is not non-breaking.** The footnote below reasons only
+   about the `gui:"required"` tag being inert in a repo that does not
+   invoke the analyzer. That much is true and was verified. But §4.2
+   also wires `RequireID` into the same nine factories, and a panic in
+   `Button` is breaking whether or not anyone runs the tool. Measured
+   rather than argued: go-charts and go-map each had example code that
+   panics at runtime on a routine bump — 3 sites, exactly the count
+   §7 predicted, reached by a mechanism §6 said could not reach them.
+2. **v0.53.0 is consumed.** Phase 4 needs **v0.54.0**.
+
+Revised: phase 1 = v0.53.0 (breaking, shipped). Phases 2–3 additive as
+`v0.53.x`. Phase 4 = v0.54.0, the second breaking release. Phase 5
+rides whatever follows.
+
+The two breaking releases are not a regression against "one breaking
+release": phase 1's break is a runtime panic on a config that was
+already broken, and phase 4's is a compile-time signature change.
+Bundling them would have delayed the a11y fix behind the event
+refactor.
 
 §4.6 moves ahead of the cosmetic work deliberately: a color-set
 refactor (§4.4) and an event-model change (§4.3) both alter behavior
@@ -813,7 +873,9 @@ that apps currently cannot assert on. Landing the test API first means
 the later phases ship with regression coverage instead of hoping the
 examples still look right.
 
-\* Phase 1 is non-breaking **for consumers**. It removes one exported
+\* **Wrong — see the correction above.** Retained because the reasoning
+about the analyzer is sound and worth keeping; the conclusion it feeds
+is not. Phase 1 is non-breaking **for consumers**. It removes one exported
 symbol with zero call sites anywhere (pre-1.0, no compatibility promise
 below v1), and adding `gui:"required"` to the 9 `Cfg`s breaks only
 go-gui's own callers — 111 of them, all in this repo's tests and
@@ -854,7 +916,9 @@ burying them in the same diff.
 | 1     | §4.9 tag `Container`, wire scroll guard  | n/a — see below |
 | 1     | §4.9 `checkScrollableID` analyzer rule   | done   |
 | 1     | §4.1 `OnMouseLeave` gate check           | done   |
-| 2–5   | —                                        | todo   |
+| 2     | §4.6 test API in package `gui`           | done   |
+| 2     | Q6 nested-scroll gate written as a test  | done   |
+| 3–5   | —                                        | todo   |
 
 Two corrections to §4.2 arising from the implementation.
 
@@ -1045,8 +1109,8 @@ can proceed. Q8 was resolved on 2026-08-07, before phase 1 shipped.
 | 3   | Nested focus             | unexported `Shape` helper            |
 | 4   | Focusable without ID     | proceed; mandatory `ID`              |
 | 5   | `ColorSet` zero value    | `Opt[Color]`                         |
-| 6   | Nested `OnMouseScroll`   | **gate** — test first, in phase 2    |
-| 7   | Breaking release target  | v0.53.0                              |
+| 6   | Nested `OnMouseScroll`   | gate written 2026-08-07; see below   |
+| 7   | Breaking release target  | v0.54.0 (revised; see §6)            |
 | 8   | `requiredid` for authors | **documented only** (2026-08-07)     |
 
 Detail where the decision carries a constraint:
@@ -1080,8 +1144,26 @@ Detail where the decision carries a constraint:
    can be injected but not asserted, and the gate cannot be discharged.
    This is also why §4.9 belongs in phase 1: scroll-state keying and
    scroll propagation should not both be in motion at once.
-7. **v0.53.0** for the breaking phase; phases 1–3 as `v0.52.x`. All 29
-   sibling edits land in one release; see §6.
+
+   **Written 2026-08-07** as `gui/scroll_nested_test.go`. The current
+   contract holds: an inner scrollable pinned at its limit declines the
+   scroll, and traversal unwinds to the enclosing container in the same
+   gesture. Verified to fire by mutation — forcing `IsHandled = true`
+   on a scrollable under the cursor reds
+   `TestNestedScrollCascadesToParentAtLimit` with a message naming Q6.
+   Phase 4 now has something concrete to break, and breaking it is a
+   decision that has to be argued here rather than a silent behavior
+   change.
+
+   One incidental finding: the cascade is not assertable after the
+   fact. Once the outer container scrolls, the inner one is carried out
+   of view and has no clip to aim a follow-up scroll at, so the test
+   must assert across the single gesture where the handoff happens.
+7. **v0.54.0** for the §4.3/§4.4/§4.7 breaking phase; phases 2–3 as
+   `v0.53.x`. Revised from the original "v0.53.0, one breaking
+   release" — phase 1 turned out to be breaking and consumed that
+   version. The 18 remaining sibling edits still land in one release;
+   see §6.
 8. **`requiredid` for app authors — resolved 2026-08-07: documented
    only.** It stays a `tools/` binary that authors may invoke. The
    README carries the one-line invocation and the `go vet -vettool=`

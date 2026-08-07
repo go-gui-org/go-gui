@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Developer-ergonomics phase 2 (`docs/specs/developer-ergonomics.md` §4.6): an
+app-testing API. Additive.
+
+### Added
+
+- **App-testing API in package `gui`.** `NewTestWindow` builds a backendless
+  window; `TestRender`, `TestClick`, `TestFocus`, `TestKey`, `TestType`,
+  `TestTab`, `TestScroll` and `TestScrollOffset` drive it by widget `ID`. Each
+  synthesizes a real `Event` and pushes it through `Window.EventFn`, then
+  settles a frame — so a test observes hit-testing, focus traversal and scroll
+  clamping, not just the callback. Failures are returned as errors
+  (`ErrTestNoSuchID`, `ErrTestDisabled`, `ErrTestNotFocusable`,
+  `ErrTestNoHandler`, `ErrTestNotVisible`, `ErrTestUnhandled`), because in a
+  test they are assertion failures, not programmer errors. See
+  [Testing your app](README.md#testing-your-app).
+
+  It lives in `gui` rather than a `guitest` subpackage because driving a click
+  requires `Shape.events`, and a sibling package could only reach it by
+  exporting that field permanently.
+
+- **Nested-scroll regression gate** (`gui/scroll_nested_test.go`). Pins the
+  current contract: an inner scrollable pinned at its limit declines the scroll
+  so it cascades to the enclosing container. This is the one place the planned
+  one-event-class collapse changes behavior with no compile error, and it was
+  untestable before `TestScroll`/`TestScrollOffset` existed.
+
 ## [v0.53.0] - 2026-08-07
 
 Developer-ergonomics phase 1 (`docs/specs/developer-ergonomics.md`), shipped as
