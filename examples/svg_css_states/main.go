@@ -66,6 +66,7 @@ func view(w *gui.Window) gui.View {
 	})
 	btn := func(label string, toggle func(*state)) gui.View {
 		return gui.Button(gui.ButtonCfg{
+			ID:      "svg_css_states_view",
 			Content: []gui.View{gui.Text(gui.TextCfg{Text: label})},
 			Sizing:  gui.FillFit,
 			OnClick: func(ctx gui.EventCtx) {

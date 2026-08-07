@@ -100,6 +100,7 @@ func demoTable(w *gui.Window) gui.View {
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					gui.RadioButtonGroupRow(gui.RadioButtonGroupCfg{
+						ID:      "demo_data_demo_table",
 						Title:   "Border style",
 						TitleBG: gui.CurrentTheme().ColorBackground,
 						Value:   app.TableBorderStyle,

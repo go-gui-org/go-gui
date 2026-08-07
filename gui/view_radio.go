@@ -4,7 +4,7 @@ package gui
 type RadioCfg struct {
 	TextStyle TextStyle
 	OnClick   func(EventCtx)
-	ID        string
+	ID        string `gui:"required,focus"`
 	Label     string
 
 	A11YLabel       string
@@ -31,6 +31,7 @@ type RadioCfg struct {
 // Radio creates a radio button view.
 func Radio(cfg RadioCfg) View {
 	applyRadioDefaults(&cfg)
+	requireFocusID("Radio", cfg.FocusDisabled, cfg.ID)
 
 	dr := &DefaultRadioStyle
 	size := cfg.Size.Get(dr.Size)

@@ -29,16 +29,32 @@ type FlipCfg struct {
 	FocusDisabled bool
 }
 
+// ScopedCfg mirrors the nine focusable-by-default Cfgs after phase 1:
+// ID is required, but only for a control that joins focus traversal.
+type ScopedCfg struct {
+	ID            string `gui:"required,focus"`
+	FocusDisabled bool
+}
+
+// UnscopedCfg carries the plain tag alongside a FocusDisabled field,
+// pinning that the opt-out applies only to the `focus` option.
+type UnscopedCfg struct {
+	ID            string `gui:"required"`
+	FocusDisabled bool
+}
+
 type S struct{}
 
 func (S) Widget(_ WidgetCfg) {}
 
-func Widget(_ WidgetCfg) {}
-func helper(_ WidgetCfg) {}
-func useN(_ NoReqCfg)    {}
-func Focus(_ FocusCfg)   {}
-func NoID(_ NoIDCfg)     {}
-func Flip(_ FlipCfg)     {}
+func Widget(_ WidgetCfg)     {}
+func helper(_ WidgetCfg)     {}
+func useN(_ NoReqCfg)        {}
+func Focus(_ FocusCfg)       {}
+func NoID(_ NoIDCfg)         {}
+func Flip(_ FlipCfg)         {}
+func Scoped(_ ScopedCfg)     {}
+func Unscoped(_ UnscopedCfg) {}
 
 func good() {
 	Widget(WidgetCfg{ID: "ok", Name: "x"})
@@ -103,6 +119,33 @@ func focusableComputedFlag() {
 
 func notFocusableNoID() {
 	Focus(FocusCfg{})
+}
+
+// --- gui:"required,focus" ---
+
+func scopedMissingID() {
+	Scoped(ScopedCfg{}) // want `ScopedCfg.ID is required`
+}
+
+func scopedEmptyID() {
+	Scoped(ScopedCfg{ID: ""}) // want `ScopedCfg.ID is required`
+}
+
+func scopedWithID() {
+	Scoped(ScopedCfg{ID: "ok"})
+}
+
+// FocusDisabled satisfies the focus-scoped requirement: the control
+// never joins the tab order, so it has no identity to name.
+func scopedOptedOut() {
+	Scoped(ScopedCfg{FocusDisabled: true})
+}
+
+// The opt-out is scoped to the `focus` option. A plain gui:"required"
+// field stays required even when the literal sets FocusDisabled: its
+// state is keyed by ID whether or not the control takes focus.
+func unscopedNotExemptedByFocusDisabled() {
+	Unscoped(UnscopedCfg{FocusDisabled: true}) // want `UnscopedCfg.ID is required`
 }
 
 // No ID field exists to set, so the diagnostic would be unfixable.

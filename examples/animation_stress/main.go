@@ -80,6 +80,7 @@ func mainView(w *gui.Window) gui.View {
 						TextStyle: gui.CurrentTheme().B1,
 					}),
 					gui.Button(gui.ButtonCfg{
+						ID:      "animation_stress_add_10_items",
 						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Add 10 Items"})},
 						OnClick: func(ctx gui.EventCtx) {
 							addItems(ctx.Window, 10)

@@ -128,6 +128,21 @@ func RequireID(widget, id string) {
 	}
 }
 
+// requireFocusID panics when a widget that will join focus traversal
+// has no ID. It is the runtime half of the `gui:"required,focus"` tag
+// read by tools/requiredid, and honours the same opt-out: a control
+// marked FocusDisabled never reaches the tab order, so it has no
+// identity to name and is exempt.
+//
+// Widgets using the opposite convention (an opt-in Focusable field)
+// are not covered here; requiredid's checkFocusableID reports those
+// statically.
+func requireFocusID(widget string, focusDisabled bool, id string) {
+	if !focusDisabled {
+		RequireID(widget, id)
+	}
+}
+
 // RequireScrollID panics if a Scrollable widget has an empty ID.
 // Scroll identity and offset state are keyed by Cfg.ID, so a
 // scrollable widget must supply one.

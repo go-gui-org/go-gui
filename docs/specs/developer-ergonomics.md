@@ -848,11 +848,40 @@ burying them in the same diff.
 | 1     | §8 `ergoaudit -fix` codemod              | done   |
 | 1     | §4.2 fix 12 first-party a11y defects     | done   |
 | 1     | §4.9 `Select` scroll defect              | n/a — did not exist |
-| 1     | §4.2 tag 9 `Cfg`s + wire `RequireID`     | todo   |
-| 1     | §4.9 tag `Container`/`Input`, wire scroll| todo   |
+| 1     | §4.2 tag 9 `Cfg`s + wire `RequireID`     | done   |
+| 1     | §8 run the codemod over the 111 literals | done   |
+| 1     | §8 README: running `requiredid` (Q8)     | done   |
+| 1     | §4.9 tag `Container`, wire scroll guard  | todo   |
 | 1     | §4.9 `checkScrollableID` analyzer rule   | todo   |
-| 1     | §8 README: running `requiredid` (Q8)     | todo   |
+| 1     | §4.1 `OnMouseLeave` gate check           | todo   |
 | 2–5   | —                                        | todo   |
+
+Two corrections to §4.2 arising from the implementation.
+
+**The guard is scoped, not unconditional.** §4.2 says to wire
+`RequireID` into the nine factories. Wiring it unconditionally panics
+on legitimate code: `FocusDisabled: true` is the documented opt-out for
+a decorative control, and there is a live one — the date picker's blank
+out-of-month cell — plus test cases that exercise the opt-out. The tag
+gained an option, `gui:"required,focus"`, and the runtime guard an
+unexported `requireFocusID` that honours the same exemption. This is
+the predicate the deleted `RequireFocusID` encoded, inverted for the
+default-on convention; keeping it at the call site rather than behind
+an export makes the condition visible where it applies.
+
+**`ID` is not only a focus key.** §4.2 frames a missing `ID` as a focus
+defect, but `layout_pipeline.go` also skips `OnMouseLeave` dispatch on
+an empty `ID`, with no `Focusable` precondition. A `FocusDisabled`
+control carrying an `OnMouseLeave` is therefore still silently broken,
+and neither `ergoaudit -mode focus` nor the §4.1 gate looks for it.
+Added to the table above as a §4.1 check rather than widening the
+runtime guard, since the opt-out is otherwise correct.
+
+**Codemod scope note.** The 111 figure included one false positive:
+`CommandButton(cmdID, ButtonCfg{})` fills the `ID` in itself, so the
+empty `ID` at that call site is fine. `ergoaudit` no longer counts a
+literal passed to a factory other than its own, matching what
+`requiredid` and the runtime guard already did.
 
 ## 7. Sibling impact
 

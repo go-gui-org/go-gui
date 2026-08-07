@@ -93,6 +93,7 @@ func demoRadioGroup(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Column layout", TextStyle: t.B3}),
 			gui.RadioButtonGroupColumn(gui.RadioButtonGroupCfg{
+				ID:    "demo_selection_demo_radio_group",
 				Value: app.RadioValue,
 				Options: []gui.RadioOption{
 					gui.NewRadioOption("Go", "go"),
@@ -105,6 +106,7 @@ func demoRadioGroup(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{Text: "Row layout", TextStyle: t.B3}),
 			gui.RadioButtonGroupRow(gui.RadioButtonGroupCfg{
+				ID:    "demo_selection_demo_radio_group_2",
 				Value: app.RadioValue,
 				Options: []gui.RadioOption{
 					gui.NewRadioOption("Go", "go"),

@@ -46,7 +46,7 @@ type InputCfg struct {
 	// normalizing case, or formatting.
 	PostCommitNormalize func(text string, reason InputCommitReason) string
 
-	ID          string
+	ID          string `gui:"required,focus"`
 	Text        string
 	Placeholder string
 
@@ -131,6 +131,7 @@ func a11yReadOnlyState(readOnly bool) AccessState {
 // Input creates a text input field view.
 func Input(cfg InputCfg) View {
 	applyInputDefaults(&cfg)
+	requireFocusID("Input", cfg.FocusDisabled, cfg.ID)
 
 	d := &DefaultInputStyle
 	sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)

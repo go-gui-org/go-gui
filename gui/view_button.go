@@ -22,7 +22,7 @@ type ButtonCfg struct {
 	// overlays or adjust layout post-arrange.
 	AmendLayout func(EventCtx)
 
-	ID              string
+	ID              string `gui:"required,focus"`
 	A11YLabel       string
 	A11YDescription string
 	Content         []View
@@ -116,6 +116,7 @@ func Button(cfg ButtonCfg) View {
 	}
 
 	applyButtonDefaults(&cfg)
+	requireFocusID("Button", cfg.FocusDisabled, cfg.ID)
 
 	d := &DefaultButtonStyle
 	sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)

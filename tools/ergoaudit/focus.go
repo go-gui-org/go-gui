@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/token"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"slices"
 	"sort"
@@ -78,7 +79,7 @@ func readCfgFocus(name string, st *ast.StructType) (cfgFocus, bool) {
 				c.scrollable = true
 			case "ID":
 				c.hasID = true
-				if fld.Tag != nil && strings.Contains(fld.Tag.Value, `gui:"required"`) {
+				if fld.Tag != nil && tagRequires(fld.Tag.Value) {
 					c.idRequired = true
 				}
 			}
@@ -88,6 +89,22 @@ func readCfgFocus(name string, st *ast.StructType) (cfgFocus, bool) {
 		return c, false
 	}
 	return c, true
+}
+
+// tagRequires reports whether a struct tag literal marks the field
+// required. The tag takes options — `gui:"required,focus"` scopes the
+// rule to widgets that join focus traversal — so this parses the value
+// rather than matching the bare `gui:"required"` string, which would
+// read every tagged-with-options field as unguarded.
+//
+// raw includes the surrounding backquotes, as it comes from the AST.
+func tagRequires(raw string) bool {
+	tag, err := strconv.Unquote(raw)
+	if err != nil {
+		return false
+	}
+	opts := reflect.StructTag(tag).Get("gui")
+	return slices.Contains(strings.Split(opts, ","), "required")
 }
 
 // runFocus derives the unguarded Cfg set, then counts its call sites.
@@ -149,6 +166,7 @@ func auditFocusLiterals(unguarded []string, repos []string) error {
 
 		err := walkGo(repo, func(path string, fset *token.FileSet, f *ast.File) {
 			isTest := strings.HasSuffix(path, "_test.go")
+			parents := focusParentCalls(f)
 			ast.Inspect(f, func(n ast.Node) bool {
 				lit, ok := n.(*ast.CompositeLit)
 				if !ok || lit.Type == nil {
@@ -172,6 +190,9 @@ func auditFocusLiterals(unguarded []string, repos []string) error {
 					per[name].optedOut++
 					grand[name].optedOut++
 				default:
+					if wrapperArg(lit, name, parents) {
+						return true
+					}
 					per[name].broken++
 					grand[name].broken++
 					pos := fset.Position(lit.Pos())
@@ -208,6 +229,57 @@ func classifyFocusLiteral(lit *ast.CompositeLit) string {
 		return "optedOut"
 	}
 	return "broken"
+}
+
+// wrapperArg reports whether the literal is handed to a factory other
+// than its own — CommandButton(cmdID, ButtonCfg{}), say. Such a
+// wrapper may fill the ID in itself, as CommandButton does, so an
+// empty ID at the call site says nothing about reachability. Counting
+// it as broken produces a false positive that neither the requiredid
+// analyzer (which matches on the factory name) nor the runtime guard
+// (which runs after the wrapper has filled the field) agrees with.
+//
+// A literal that is not a call argument at all — assigned to a
+// variable, say — stays countable: the broken count is documented as
+// a floor, and this only removes the cases actively known to be fine.
+func wrapperArg(lit *ast.CompositeLit, cfgName string, parents map[*ast.CompositeLit]*ast.CallExpr) bool {
+	call, ok := parents[lit]
+	if !ok {
+		return false
+	}
+	own := strings.TrimSuffix(cfgName, "Cfg")
+	if own == cfgName {
+		return false
+	}
+	var name string
+	switch fn := call.Fun.(type) {
+	case *ast.Ident:
+		name = fn.Name
+	case *ast.SelectorExpr:
+		name = fn.Sel.Name
+	default:
+		return false
+	}
+	return name != own
+}
+
+// focusParentCalls maps each composite literal used directly as a call
+// argument to the enclosing call.
+func focusParentCalls(f *ast.File) map[*ast.CompositeLit]*ast.CallExpr {
+	out := map[*ast.CompositeLit]*ast.CallExpr{}
+	ast.Inspect(f, func(n ast.Node) bool {
+		call, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		for _, a := range call.Args {
+			if lit, isLit := a.(*ast.CompositeLit); isLit {
+				out[lit] = call
+			}
+		}
+		return true
+	})
+	return out
 }
 
 func printFocusRepo(name string, per map[string]*focusStat, broken []string) {

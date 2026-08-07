@@ -20,7 +20,7 @@ type SelectCfg struct {
 	SubheadingStyle  TextStyle
 	PlaceholderStyle TextStyle
 	OnSelect         func([]string, EventCtx)
-	ID               string
+	ID               string `gui:"required,focus"`
 	Placeholder      string
 
 	A11YLabel       string
@@ -56,6 +56,7 @@ type selectView struct {
 // Select creates a select (dropdown) view.
 func Select(cfg SelectCfg) View {
 	applySelectDefaults(&cfg)
+	requireFocusID("Select", cfg.FocusDisabled, cfg.ID)
 	return &selectView{cfg: cfg}
 }
 

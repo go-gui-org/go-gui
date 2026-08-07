@@ -10,7 +10,7 @@ type NumericInputCfg struct {
 	OnTextChanged func(string, EventCtx)
 	OnValueCommit func(*Layout, Opt[float64], string, *Window)
 
-	ID          string
+	ID          string `gui:"required,focus"`
 	Text        string
 	Placeholder string
 
@@ -73,6 +73,7 @@ var DefaultNumericInputStyle = struct {
 // NumericInput creates a locale-aware numeric input.
 func NumericInput(cfg NumericInputCfg) View {
 	applyNumericInputDefaults(&cfg)
+	requireFocusID("NumericInput", cfg.FocusDisabled, cfg.ID)
 
 	dn := &DefaultNumericInputStyle
 	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)

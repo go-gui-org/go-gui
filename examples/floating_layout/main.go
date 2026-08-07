@@ -100,6 +100,7 @@ func mainView(w *gui.Window) gui.View {
 						TextStyle: theme.B2,
 					}),
 					gui.Button(gui.ButtonCfg{
+						ID: "floating_layout_ok",
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{Text: "OK"}),
 						},

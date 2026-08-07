@@ -264,6 +264,7 @@ func toolbar(w *gui.Window, matchCount int) gui.View {
 			},
 		}),
 		gui.Button(gui.ButtonCfg{
+			ID: "fontviewer_toolbar",
 			Content: []gui.View{gui.Text(gui.TextCfg{
 				Text:      gui.IconSync,
 				TextStyle: gui.TextStyle{Family: gui.IconFontName, Size: t.Icon3.Size, Color: t.Icon1.Color},
@@ -302,6 +303,7 @@ func toolbarRow2(s *FontViewerState, t gui.Theme, matchCount int) []gui.View {
 	}
 	if s.Filter != "" {
 		content = append(content, gui.Button(gui.ButtonCfg{
+			ID:      "fontviewer_toolbar_row2",
 			Content: []gui.View{gui.Text(gui.TextCfg{Text: "×", TextStyle: t.B3})},
 			OnClick: func(ctx gui.EventCtx) {
 				gui.State[FontViewerState](ctx.Window).Filter = ""

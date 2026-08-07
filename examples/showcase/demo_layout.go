@@ -193,6 +193,7 @@ func demoOverflowPanel(w *gui.Window) gui.View {
 		items[i] = gui.OverflowItem{
 			ID: label,
 			View: gui.Button(gui.ButtonCfg{
+				ID:      "demo_layout_demo_overflow_panel",
 				Color:   colors[i],
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: label})},
 			}),

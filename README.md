@@ -195,6 +195,31 @@ between releases, so nothing breaks if you never run it. Without it, a widget
 that needs an `ID` and has none panics on its first render rather than failing
 your build.
 
+### Widgets that require an `ID`
+
+Every input control panics when constructed without a non-empty `Cfg.ID`:
+`Button`, `Input`, `InputDate`, `NumericInput`, `RadioButtonGroup`, `Radio`,
+`Select`, `Switch`, `Toggle`, plus the stateful widgets that already did
+(`ColorPicker`, `Combobox`, `DatePicker`, `ListBox`, `Slider`, `Tree`, `Table`,
+`Form`, `Menu`, `Menubar`, `ContextMenu`, `CommandPalette`, `ProgressBar`,
+`DataGrid`).
+
+The `ID` is what focus traversal, per-widget input state, scroll offsets, and
+`OnMouseLeave` dispatch are all keyed by, so a control without one is not merely
+anonymous — it is unreachable by keyboard and shares state with every other
+ID-less control. IDs must be unique within a window.
+
+A decorative control that should never take focus opts out instead of inventing
+an ID:
+
+```go
+gui.Button(gui.ButtonCfg{FocusDisabled: true, Disabled: true})
+```
+
+`FocusDisabled: true` satisfies the requirement for the widgets above. It does
+not exempt a widget whose `ID` is tagged `gui:"required"` without the `focus`
+option — those key state by `ID` regardless of focus.
+
 ---
 
 ## Contributing

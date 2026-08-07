@@ -54,12 +54,14 @@ func dockToolbar(_ *ShowcaseApp) gui.View {
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			gui.Button(gui.ButtonCfg{
+				ID:      "demo_dock_layout_reset",
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: "Reset"})},
 				OnClick: func(ctx gui.EventCtx) {
 					gui.State[ShowcaseApp](ctx.Window).DockRoot = dockInitialLayout()
 				},
 			}),
 			gui.Button(gui.ButtonCfg{
+				ID:      "demo_dock_layout_add_properties",
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: "Add Properties"})},
 				OnClick: func(ctx gui.EventCtx) {
 					a := gui.State[ShowcaseApp](ctx.Window)

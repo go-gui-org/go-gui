@@ -170,3 +170,90 @@ func TestRenderExprNormalises(t *testing.T) {
 		t.Errorf("renderExpr lost type text: %q", rendered[0])
 	}
 }
+
+// TestTagRequires pins tag parsing. The `focus` option scopes the rule
+// but does not weaken it, so both spellings read as required — the
+// point of parsing rather than matching the bare `gui:"required"`
+// string, which reads a tag with options as absent.
+func TestTagRequires(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		raw  string
+		want bool
+	}{
+		{"`gui:\"required\"`", true},
+		{"`gui:\"required,focus\"`", true},
+		{"`gui:\"focus,required\"`", true},
+		{"`gui:\"focus\"`", false},
+		{"`json:\"id\"`", false},
+		{"`gui:\"requiredish\"`", false},
+		{"``", false},
+		{"not a quoted literal", false},
+	}
+	for _, c := range cases {
+		if got := tagRequires(c.raw); got != c.want {
+			t.Errorf("tagRequires(%s) = %v, want %v", c.raw, got, c.want)
+		}
+	}
+}
+
+// TestWrapperArg pins the false-positive filter: a literal handed to a
+// wrapper factory may have its ID filled in by that wrapper, so an
+// empty ID at the call site proves nothing.
+func TestWrapperArg(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		src  string
+		name string
+		want bool
+	}{
+		// Passed to its own factory: judgeable, not a wrapper.
+		{`Button(ButtonCfg{})`, "ButtonCfg", false},
+		{`gui.Button(ButtonCfg{})`, "ButtonCfg", false},
+		// CommandButton fills the ID itself.
+		{`CommandButton("cmd", ButtonCfg{})`, "ButtonCfg", true},
+		{`pkg.CommandButton("cmd", ButtonCfg{})`, "ButtonCfg", true},
+		// Not a call argument at all: still judgeable (the count is a
+		// documented floor, and this only drops the known-fine cases).
+		{`[]View{ButtonCfg{}}`, "ButtonCfg", false},
+		// A type name that is not a Cfg has no factory to compare to.
+		{`Widget(Button{})`, "Button", false},
+	}
+	for _, c := range cases {
+		expr, err := parser.ParseExpr(c.src)
+		if err != nil {
+			t.Fatalf("parse %s: %v", c.src, err)
+		}
+		lit := findLit(t, expr, c.name)
+		parents := map[*ast.CompositeLit]*ast.CallExpr{}
+		if call, ok := expr.(*ast.CallExpr); ok {
+			for _, a := range call.Args {
+				if l, isLit := a.(*ast.CompositeLit); isLit {
+					parents[l] = call
+				}
+			}
+		}
+		if got := wrapperArg(lit, c.name, parents); got != c.want {
+			t.Errorf("wrapperArg(%s) = %v, want %v", c.src, got, c.want)
+		}
+	}
+}
+
+// findLit returns the first composite literal in expr whose type name
+// matches want.
+func findLit(t *testing.T, expr ast.Expr, want string) *ast.CompositeLit {
+	t.Helper()
+	var out *ast.CompositeLit
+	ast.Inspect(expr, func(n ast.Node) bool {
+		lit, ok := n.(*ast.CompositeLit)
+		if !ok || out != nil || structName(lit) != want {
+			return true
+		}
+		out = lit
+		return false
+	})
+	if out == nil {
+		t.Fatalf("no %s literal found", want)
+	}
+	return out
+}

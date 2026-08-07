@@ -7,6 +7,7 @@ import (
 
 func TestRadioButtonGroupColumnBasic(t *testing.T) {
 	v := RadioButtonGroupColumn(RadioButtonGroupCfg{
+		ID:    "radio_button_group_test_test_radio_button_group_column_basic",
 		Value: "b",
 		Options: []RadioOption{
 			{Label: "A", Value: "a"},
@@ -23,6 +24,7 @@ func TestRadioButtonGroupColumnBasic(t *testing.T) {
 
 func TestRadioButtonGroupRowBasic(t *testing.T) {
 	v := RadioButtonGroupRow(RadioButtonGroupCfg{
+		ID:    "radio_button_group_test_test_radio_button_group_row_basic",
 		Value: "x",
 		Options: []RadioOption{
 			{Label: "X", Value: "x"},
@@ -68,6 +70,7 @@ func TestRadioButtonGroupFocusIDs(t *testing.T) {
 
 func TestRadioButtonGroupEmpty(t *testing.T) {
 	v := RadioButtonGroupColumn(RadioButtonGroupCfg{
+		ID:       "radio_button_group_test_test_radio_button_group_empty",
 		OnSelect: func(_ string, _ *Window) {},
 	})
 	if len(v.Content()) != 0 {
@@ -78,6 +81,7 @@ func TestRadioButtonGroupEmpty(t *testing.T) {
 func TestRadioButtonGroupOnSelect(t *testing.T) {
 	var selected string
 	v := RadioButtonGroupColumn(RadioButtonGroupCfg{
+		ID:    "radio_button_group_test_test_radio_button_group_on_select",
 		Value: "a",
 		Options: []RadioOption{
 			{Label: "A", Value: "a"},
@@ -102,6 +106,7 @@ func TestRadioButtonGroupOnSelect(t *testing.T) {
 func TestRadioButtonGroupDisabledPropagation(t *testing.T) {
 	w := newTestWindow()
 	v := RadioButtonGroupColumn(RadioButtonGroupCfg{
+		ID:       "radio_button_group_test_test_radio_button_group_disabled_propagation",
 		Value:    "a",
 		Disabled: true,
 		Options: []RadioOption{
@@ -125,6 +130,7 @@ func TestRadioButtonGroupDisabledPropagation(t *testing.T) {
 
 func TestRadioButtonGroupItems(t *testing.T) {
 	v := RadioButtonGroupColumn(RadioButtonGroupCfg{
+		ID:       "radio_button_group_test_test_radio_button_group_items",
 		Value:    "rust",
 		Items:    []string{"go", "rust", "zig"},
 		OnSelect: func(_ string, _ *Window) {},
@@ -138,6 +144,7 @@ func TestRadioButtonGroupItems(t *testing.T) {
 func TestRadioButtonGroupItemsPrecedence(t *testing.T) {
 	// Items should take precedence over Options.
 	v := RadioButtonGroupColumn(RadioButtonGroupCfg{
+		ID:    "radio_button_group_test_test_radio_button_group_items_precedence",
 		Value: "b",
 		Items: []string{"a", "b"},
 		Options: []RadioOption{
@@ -154,6 +161,7 @@ func TestRadioButtonGroupItemsPrecedence(t *testing.T) {
 func TestRadioButtonGroupItemsOnSelect(t *testing.T) {
 	var selected string
 	v := RadioButtonGroupColumn(RadioButtonGroupCfg{
+		ID:    "radio_button_group_test_test_radio_button_group_items_on_select",
 		Value: "a",
 		Items: []string{"a", "b"},
 		OnSelect: func(val string, _ *Window) {
@@ -173,6 +181,7 @@ func TestRadioButtonGroupItemsOnSelect(t *testing.T) {
 
 func TestRadioButtonGroupRowItems(t *testing.T) {
 	v := RadioButtonGroupRow(RadioButtonGroupCfg{
+		ID:       "radio_button_group_test_test_radio_button_group_row_items",
 		Value:    "go",
 		Items:    []string{"go", "rust", "zig"},
 		OnSelect: func(_ string, _ *Window) {},

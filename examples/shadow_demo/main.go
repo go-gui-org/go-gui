@@ -139,6 +139,7 @@ func toggleTheme(app *App) gui.View {
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
 			gui.Toggle(gui.ToggleCfg{
+				ID:           "shadow_demo_toggle_theme",
 				TextSelect:   gui.IconMoon,
 				TextUnselect: gui.IconSunnyO,
 				TextStyle:    gui.CurrentTheme().Icon3,

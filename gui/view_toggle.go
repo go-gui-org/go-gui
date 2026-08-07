@@ -5,7 +5,7 @@ type ToggleCfg struct {
 	TextStyle      TextStyle
 	TextStyleLabel TextStyle
 	OnClick        func(EventCtx)
-	ID             string
+	ID             string `gui:"required,focus"`
 	Label          string
 	TextSelect     string
 	TextUnselect   string
@@ -36,6 +36,7 @@ type ToggleCfg struct {
 // Toggle creates a toggle/checkbox view.
 func Toggle(cfg ToggleCfg) View {
 	applyToggleDefaults(&cfg)
+	requireFocusID("Toggle", cfg.FocusDisabled, cfg.ID)
 
 	d := &DefaultToggleStyle
 	sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)

@@ -84,6 +84,7 @@ func mainView(w *gui.Window) gui.View {
 				Spacing: gui.SomeF(8),
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
+						ID: "time_travel_increment",
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{Text: "Increment"}),
 						},
@@ -95,6 +96,7 @@ func mainView(w *gui.Window) gui.View {
 						},
 					}),
 					gui.Button(gui.ButtonCfg{
+						ID: "time_travel_reset",
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{Text: "Reset"}),
 						},
