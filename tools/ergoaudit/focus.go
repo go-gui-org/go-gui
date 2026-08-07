@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/token"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"sort"
 	"strconv"
@@ -90,7 +91,9 @@ func readCfgFocus(name string, st *ast.StructType) (cfgFocus, bool) {
 }
 
 // runFocus derives the unguarded Cfg set, then counts its call sites.
-func runFocus(guiRoot string, repos []string) error {
+// With fix set, it then rewrites the broken ones to carry a generated
+// ID; dry reports those rewrites without performing them.
+func runFocus(guiRoot string, repos []string, fix, dry bool, only, skip *regexp.Regexp) error {
 	contracts, err := scanCfgFocus(guiRoot)
 	if err != nil {
 		return fmt.Errorf("scanning %s: %w", guiRoot, err)
@@ -128,7 +131,13 @@ func runFocus(guiRoot string, repos []string) error {
 		fmt.Println("no unguarded Cfgs: nothing to audit")
 		return nil
 	}
-	return auditFocusLiterals(unguarded, repos)
+	if err := auditFocusLiterals(unguarded, repos); err != nil {
+		return err
+	}
+	if !fix {
+		return nil
+	}
+	return runFixFocus(unguarded, repos, dry, only, skip)
 }
 
 // auditFocusLiterals counts literals of the unguarded Cfgs per repo.

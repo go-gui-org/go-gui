@@ -6,7 +6,7 @@ LDFLAGS  = -X github.com/go-gui-org/go-gui/gui.Version=$(VERSION) \
 CC_WINDOWS ?= x86_64-w64-mingw32-gcc
 LINT_VERSION = v2.12.2
 
-.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test test-race vet lint check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergo-audit
+.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test test-race vet lint check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergo-audit ergo-fix ergo-fix-dry
 
 build-linux:
 	CGO_ENABLED=1 \
@@ -193,3 +193,16 @@ workflow-audit:
 ergo-audit:
 	go run ./tools/ergoaudit/ -mode focus -gui . .
 	go run ./tools/ergoaudit/ -mode callbacks -gui . .
+
+# Insert a generated ID into every broken literal in this repo's tests
+# and examples. Scoped away from gui/ deliberately: go-gui's own widget
+# defects get hand-chosen IDs, because a shipped widget's ID is public
+# identity rather than scaffolding. Run ergo-fix-dry first and read the
+# proposed IDs before letting it write.
+ergo-fix-dry:
+	go run ./tools/ergoaudit/ -mode focus -gui . \
+	  -fix-dry-run -fix-only '_test\.go$$|^examples/' .
+
+ergo-fix:
+	go run ./tools/ergoaudit/ -mode focus -gui . \
+	  -fix -fix-only '_test\.go$$|^examples/' .
