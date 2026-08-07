@@ -20,6 +20,8 @@ import (
 	"github.com/go-gui-org/go-gui/tools/eventctx"
 )
 
+// #nosec G304 — paths come from compiler diagnostics for the tree the
+// developer asked to rewrite
 func main() {
 	in, err := io.ReadAll(os.Stdin)
 	if err != nil {
@@ -44,13 +46,23 @@ func main() {
 			fmt.Fprintf(os.Stderr, "eventctxfold: %s: gofmt failed: %v\n", file, ferr)
 			formatted = out
 		}
-		if err := os.WriteFile(file, formatted, 0o644); err != nil {
+		if err := writeBack(file, formatted); err != nil {
 			fatal(err)
 		}
 		total += len(sp)
 	}
 	fmt.Fprintf(os.Stderr, "eventctxfold: folded %d calls in %d files\n",
 		total, len(specs))
+}
+
+// writeBack rewrites a file in place, keeping the mode it already had
+// rather than imposing one.
+func writeBack(path string, content []byte) error {
+	mode := os.FileMode(0o600)
+	if fi, err := os.Stat(path); err == nil {
+		mode = fi.Mode().Perm()
+	}
+	return os.WriteFile(path, content, mode)
 }
 
 func fatal(err error) {

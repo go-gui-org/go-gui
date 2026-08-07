@@ -86,6 +86,16 @@ func main() {
 		changed, len(findings))
 }
 
+// writeBack rewrites a file in place, keeping the mode it already had
+// rather than imposing one.
+func writeBack(path string, content []byte) error {
+	mode := os.FileMode(0o600)
+	if fi, err := os.Stat(path); err == nil {
+		mode = fi.Mode().Perm()
+	}
+	return os.WriteFile(path, content, mode)
+}
+
 func skipDir(name string) bool {
 	return name == "testdata" || name == ".git" || name == "vendor"
 }
@@ -118,6 +128,8 @@ func collect(roots []string) ([]string, error) {
 
 // buildPlan unions the candidate declarations and the value-uses across
 // every file, then keeps only the candidates that are used as values.
+//
+// #nosec G304 — paths come from the developer-supplied CLI arguments
 func buildPlan(files []string) (eventctx.DeclPlan, error) {
 	cands := eventctx.DeclPlan{}
 	used := map[string]bool{}
@@ -144,6 +156,7 @@ func buildPlan(files []string) (eventctx.DeclPlan, error) {
 	return plan, nil
 }
 
+// #nosec G304 — path comes from the developer-supplied CLI arguments
 func processFile(
 	path string, write bool, plan eventctx.DeclPlan,
 ) (int, []eventctx.Finding, error) {
@@ -171,7 +184,7 @@ func processFile(
 		_, _ = os.Stdout.Write(formatted)
 		return 1, res.Findings, nil
 	}
-	if err := os.WriteFile(path, formatted, 0o644); err != nil {
+	if err := writeBack(path, formatted); err != nil {
 		return 0, nil, err
 	}
 	return 1, res.Findings, nil
