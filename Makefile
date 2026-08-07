@@ -6,7 +6,7 @@ LDFLAGS  = -X github.com/go-gui-org/go-gui/gui.Version=$(VERSION) \
 CC_WINDOWS ?= x86_64-w64-mingw32-gcc
 LINT_VERSION = v2.12.2
 
-.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test test-race vet lint check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check
+.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test test-race vet lint check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergo-audit
 
 build-linux:
 	CGO_ENABLED=1 \
@@ -187,3 +187,9 @@ cov-report:
 workflow-audit:
 	@grep -n 'uses:.*@v[0-9]' .github/workflows/*.yml | grep -v setup-go || true
 	@echo "Lines above use version tags instead of SHAs."
+
+# Report the API-surface measurements behind
+# docs/specs/developer-ergonomics.md.
+ergo-audit:
+	go run ./tools/ergoaudit/ -mode focus -gui . .
+	go run ./tools/ergoaudit/ -mode callbacks -gui . .
