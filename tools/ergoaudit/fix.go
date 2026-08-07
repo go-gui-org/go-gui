@@ -113,6 +113,9 @@ func goFiles(root string) ([]string, error) {
 // fixFile rewrites one file, returning how many IDs it added. A file
 // that does not parse is skipped rather than failed: a repo may hold
 // sources for another GOOS that do not build here.
+//
+// #nosec G304 — path comes from walking the developer-supplied repo
+// arguments; this is a local codemod, not a service reading user input
 func fixFile(repo, path string, unguarded []string, dry bool) (int, error) {
 	src, err := os.ReadFile(path)
 	if err != nil {
