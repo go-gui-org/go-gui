@@ -158,6 +158,45 @@ platform-specific instructions.
 
 ---
 
+## Debugging
+
+A few widget mistakes are silent by construction, because they produce no error
+and no visual difference:
+
+- Two widgets sharing an `ID`. `ID` is the identity key for focus, scroll
+  offsets, and per-widget state, so the two collapse onto one identity.
+- A focusable widget with no `ID`. It renders and it clicks, but focus traversal
+  is keyed by `ID`, so it never joins the tab order.
+- A scrollable widget with no `ID`. Every ID-less scrollable in a window shares
+  the key `""`, so they scroll in lockstep.
+
+`gui.Debug(true)` — or `GOGUI_DEBUG=1` in the environment — audits every frame
+for these and writes findings to stderr, once per finding per window:
+
+```go
+gui.Debug(true)
+// gui: focusable shape at 0/2/1 has no ID; focus traversal is keyed by
+// ID, so it renders and clicks but never joins the tab order
+```
+
+Leave it off in production: the checks walk the whole layout tree each frame and
+allocate while doing it.
+
+For the mistakes that are visible in the source, `requiredid` reports them at
+build time instead, naming the `Cfg` type:
+
+```fish
+go run github.com/go-gui-org/go-gui/tools/requiredid/cmd/requiredid ./...
+```
+
+`go vet -vettool=` and a golangci-lint custom plugin work equally well. The tool
+is offered, not required — it is an internal tool whose rules may tighten
+between releases, so nothing breaks if you never run it. Without it, a widget
+that needs an `ID` and has none panics on its first render rather than failing
+your build.
+
+---
+
 ## Contributing
 
 1. Install **Go 1.26+** (a C toolchain too if developing on macOS, see

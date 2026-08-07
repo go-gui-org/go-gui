@@ -3,10 +3,9 @@
 Status: accepted after three independent reviews; ready to implement.
 One breaking phase (§4.3, §4.4, §4.7) targeting v0.53.0; 18
 sibling call sites affected (§7). §4.2 is entirely non-breaking and
-lands in phase 1. Phases 1–3 ship as v0.52.x. §9 Q1–Q7
-resolved; Q6 is a phase-2 gate on phase 4, and Q8 — whether `requiredid`
-becomes supported surface — is open and due before phase 1.
-Base: `main` @ `80715d1`
+lands in phase 1. Phases 1–3 ship as v0.52.x. §9 Q1–Q8 all
+resolved; Q6 remains a phase-2 gate on phase 4.
+Base: `main` @ `80715d1`. Phase progress: §6.1.
 
 ## Context
 
@@ -827,6 +826,26 @@ choice.
 Phase 4 must be a single release. Three breaking event refactors in
 consecutive versions is worse for consumers than one larger one.
 
+### 6.1 Progress
+
+Phase 1 ships as a series of PRs rather than one, so the 111 mechanical
+`ID` insertions land isolated from the hand-written changes instead of
+burying them in the same diff.
+
+| Phase | Item                                     | Status |
+| ----- | ---------------------------------------- | ------ |
+| 1     | §4.1 `gui.Debug` gate                    | done   |
+| 1     | §4.2 delete `RequireFocusID`             | done   |
+| 1     | §5.3 `State[T]` panic message            | done   |
+| 1     | §8 `ergoaudit -fix` codemod              | todo   |
+| 1     | §4.2 fix 12 first-party a11y defects     | todo   |
+| 1     | §4.9 fix `view_select.go` scroll defect  | todo   |
+| 1     | §4.2 tag 9 `Cfg`s + wire `RequireID`     | todo   |
+| 1     | §4.9 tag `Container`/`Input`, wire scroll| todo   |
+| 1     | §4.9 `checkScrollableID` analyzer rule   | todo   |
+| 1     | §8 README: running `requiredid` (Q8)     | todo   |
+| 2–5   | —                                        | todo   |
+
 ## 7. Sibling impact
 
 All five siblings pin `go-gui v0.52.0`; `main` is v0.52.1, so these
@@ -964,7 +983,7 @@ numbers track the code — and the per-file scan that once misreported
 Two independent reviews agreed with every recommendation below, so Q1–Q7
 are decisions rather than questions. Q6 remains a **phase gate**: agreed
 in approach, but it must be discharged by work in phase 2 before phase 4
-can proceed. Q8 is the one item genuinely unresolved.
+can proceed. Q8 was resolved on 2026-08-07, before phase 1 shipped.
 
 | #   | Topic                    | Decision                             |
 | --- | ------------------------ | ------------------------------------ |
@@ -975,7 +994,7 @@ can proceed. Q8 is the one item genuinely unresolved.
 | 5   | `ColorSet` zero value    | `Opt[Color]`                         |
 | 6   | Nested `OnMouseScroll`   | **gate** — test first, in phase 2    |
 | 7   | Breaking release target  | v0.53.0                              |
-| 8   | `requiredid` for authors | **open** — documented vs. supported  |
+| 8   | `requiredid` for authors | **documented only** (2026-08-07)     |
 
 Detail where the decision carries a constraint:
 
@@ -1010,11 +1029,18 @@ Detail where the decision carries a constraint:
    scroll propagation should not both be in motion at once.
 7. **v0.53.0** for the breaking phase; phases 1–3 as `v0.52.x`. All 29
    sibling edits land in one release; see §6.
-8. **`requiredid` for app authors — open.** Phase 1 makes
-   `gui:"required"` load-bearing, but it is enforcement only where the
-   analyzer runs, and today that is this repo alone (§4.2). Documenting
-   the one-line invocation (§8) is agreed and cheap. What is not
-   decided is whether the analyzer becomes **supported** surface:
+8. **`requiredid` for app authors — resolved 2026-08-07: documented
+   only.** It stays a `tools/` binary that authors may invoke. The
+   README carries the one-line invocation and the `go vet -vettool=`
+   and golangci-lint alternatives, plus one sentence on what an author
+   gets without it: a `RequireID` panic on first render rather than a
+   build failure. The analyzer's rules stay free to tighten, because
+   nothing promises they will not. The consequence accepted with this
+   choice is that most consumers sit on the `RequireID`-panic path by
+   default, and §4.2's static-enforcement claim remains true for this
+   repo alone.
+
+   The alternatives, recorded because the trade is not obvious:
 
    - **Documented only.** It stays a `tools/` binary that authors may
      invoke. Its rules can tighten freely, because nothing promises
@@ -1027,10 +1053,12 @@ Detail where the decision carries a constraint:
      then breaks somebody's build on a patch bump, which is exactly
      the failure mode `deps-doc` and the alloc gates exist to avoid.
 
-   Not resolved here because it is a support-commitment question, not a
-   technical one, and it does not block any phase: the documentation
-   deliverable is the same either way. Decide before phase 1 ships,
-   since that is the release the tag starts mattering in.
+   Chosen "documented only" because the support commitment buys
+   little that the `RequireID` panic does not already buy loudly, and
+   costs the freedom to tighten a rule without reding somebody's build
+   on a patch bump — the failure mode `deps-doc` and the alloc gates
+   exist to avoid. Revisit if a sibling adopts the analyzer and asks
+   for a stability promise.
 
 ## 10. Counting rules
 
