@@ -127,6 +127,8 @@ func restartTick(w *gui.Window) {
 }
 
 func mainView(w *gui.Window) gui.View {
+	// Allowlisted viewport use: the rain grid's column and row counts are
+	// the viewport divided by the character cell, not a layout result.
 	ww, wh := w.WindowSize()
 	app := gui.State[App](w)
 

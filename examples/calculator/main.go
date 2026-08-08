@@ -186,6 +186,9 @@ func keyDigit(key gui.KeyCode) string {
 }
 
 func mainView(w *gui.Window) gui.View {
+	// Allowlisted viewport use: the root is a Canvas, which does not
+	// arrange its content, so the centring Column inside it cannot Fill
+	// and has to be told the window size.
 	ww, wh := w.WindowSize()
 
 	return gui.Canvas(gui.ContainerCfg{

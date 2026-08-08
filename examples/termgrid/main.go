@@ -37,13 +37,10 @@ func main() {
 }
 
 func view(w *gui.Window) gui.View {
-	ww, wh := w.WindowSize()
 	app := gui.State[App](w)
 
 	return gui.Column(gui.ContainerCfg{
-		Width:  float32(ww),
-		Height: float32(wh),
-		Sizing: gui.FixedFixed,
+		Sizing: gui.FillFill,
 		HAlign: gui.HAlignCenter,
 		VAlign: gui.VAlignMiddle,
 		Color:  gui.RGB(16, 16, 20),

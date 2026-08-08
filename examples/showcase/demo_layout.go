@@ -572,13 +572,10 @@ func demoMultiWindow(w *gui.Window) gui.View {
 func multiWindowChildView(parent *gui.Window) func(*gui.Window) gui.View {
 	return func(w *gui.Window) gui.View {
 		t := gui.CurrentTheme()
-		ww, wh := w.WindowSize()
 		cs := gui.State[multiWindowChildState](w)
 
 		return gui.Column(gui.ContainerCfg{
-			Width:   float32(ww),
-			Height:  float32(wh),
-			Sizing:  gui.FixedFixed,
+			Sizing:  gui.FillFill,
 			Padding: gui.Some(gui.PadAll(12)),
 			Spacing: gui.SomeF(8),
 			Content: []gui.View{

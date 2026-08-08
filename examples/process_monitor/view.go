@@ -135,13 +135,10 @@ func lessRSS(a, b *Process) bool {
 // refresh via Window.UpdateWindow.
 func rootView(w *gui.Window) gui.View {
 	app := gui.State[App](w)
-	ww, wh := w.WindowSize()
 	theme := gui.CurrentTheme()
 
 	return gui.Column(gui.ContainerCfg{
-		Width:   float32(ww),
-		Height:  float32(wh),
-		Sizing:  gui.FixedFixed,
+		Sizing:  gui.FillFill,
 		Color:   theme.ColorBackground,
 		Padding: gui.NoPadding,
 		Content: []gui.View{

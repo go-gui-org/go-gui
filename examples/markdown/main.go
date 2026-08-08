@@ -38,16 +38,13 @@ func main() {
 }
 
 func mainView(w *gui.Window) gui.View {
-	ww, wh := w.WindowSize()
 	theme := gui.CurrentTheme()
 
 	style := gui.DefaultMarkdownStyle()
 	style.CodeBlockBG = gui.RGB(40, 44, 52)
 
 	return gui.Column(gui.ContainerCfg{
-		Width:      float32(ww),
-		Height:     float32(wh),
-		Sizing:     gui.FixedFixed,
+		Sizing:     gui.FillFill,
 		Padding:    gui.Some(theme.PaddingLarge),
 		Focusable:  true,
 		ID:         "markdown-scroll",

@@ -123,6 +123,8 @@ func startGame(w *gui.Window) {
 
 func landingView(w *gui.Window) gui.View {
 	app := gui.State[App](w)
+	// Allowlisted viewport use: the landing backdrop tiles are placed at
+	// computed pixel coordinates. gameView below needs no such numbers.
 	ww, wh := w.WindowSize()
 	theme := gui.CurrentTheme()
 
@@ -216,13 +218,10 @@ func landingBackdrop(ww, wh float32, frame int) gui.View {
 
 func gameView(w *gui.Window) gui.View {
 	app := gui.State[App](w)
-	ww, wh := w.WindowSize()
 	theme := gui.CurrentTheme()
 
 	return gui.Column(gui.ContainerCfg{
-		Width:   float32(ww),
-		Height:  float32(wh),
-		Sizing:  gui.FixedFixed,
+		Sizing:  gui.FillFill,
 		HAlign:  gui.HAlignCenter,
 		Padding: gui.SomeP(40, 0, 0, 0),
 		Spacing: gui.Some[float32](20),

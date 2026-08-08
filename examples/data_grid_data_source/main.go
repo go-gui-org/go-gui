@@ -42,7 +42,6 @@ func main() {
 }
 
 func mainView(w *gui.Window) gui.View {
-	ww, wh := w.WindowSize()
 	app := gui.State[App](w)
 	stats := datagrid.GetSourceStats(w, "source-grid")
 	theme := gui.CurrentTheme()
@@ -66,9 +65,7 @@ func mainView(w *gui.Window) gui.View {
 	}
 
 	return gui.Column(gui.ContainerCfg{
-		Width:   float32(ww),
-		Height:  float32(wh),
-		Sizing:  gui.FixedFixed,
+		Sizing:  gui.FillFill,
 		Padding: gui.Some(theme.PaddingSmall),
 		Spacing: gui.Some(theme.SpacingSmall),
 		Content: []gui.View{

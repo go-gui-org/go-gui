@@ -50,7 +50,6 @@ func main() {
 }
 
 func mainView(w *gui.Window) gui.View {
-	ww, wh := w.WindowSize()
 	app := gui.State[App](w)
 	theme := gui.CurrentTheme()
 
@@ -100,9 +99,7 @@ func mainView(w *gui.Window) gui.View {
 	// mouse (hover dispatch stops at the first handled shape), giving
 	// clean leave semantics for the cursor reset.
 	return gui.Column(gui.ContainerCfg{
-		Width:   float32(ww),
-		Height:  float32(wh),
-		Sizing:  gui.FixedFixed,
+		Sizing:  gui.FillFill,
 		Padding: gui.SomeP(16, 16, 16, 16),
 		Spacing: gui.SomeF(12),
 		OnHover: func(ctx gui.EventCtx) {

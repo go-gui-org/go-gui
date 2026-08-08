@@ -58,7 +58,6 @@ func main() {
 
 func mainView(w *gui.Window) gui.View {
 	state := gui.State[State](w)
-	ww, wh := w.WindowSize()
 
 	content := make([]gui.View, len(state.Items))
 	for i, item := range state.Items {
@@ -66,9 +65,7 @@ func mainView(w *gui.Window) gui.View {
 	}
 
 	return gui.Column(gui.ContainerCfg{
-		Width:  float32(ww),
-		Height: float32(wh),
-		Sizing: gui.FixedFixed,
+		Sizing: gui.FillFill,
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
 				Spacing:    gui.SomeF(20),
@@ -148,6 +145,8 @@ func renderItem(item animatedItem) gui.View {
 
 func addItems(w *gui.Window, count int) {
 	state := gui.State[State](w)
+	// Allowlisted viewport use: spawn coordinates are chosen in pixel
+	// space, so there is no layout box to Fill against.
 	ww, wh := w.WindowSize()
 
 	safeW := float32(ww)
@@ -208,6 +207,8 @@ func startWander(w *gui.Window, id string) {
 	currentY := state.Items[idx].y
 	size := state.Items[idx].size
 
+	// Allowlisted viewport use: the retarget destination is a random
+	// pixel coordinate, same reason as addItems above.
 	ww, wh := w.WindowSize()
 	safeW := float32(ww)
 	if safeW <= 0 {

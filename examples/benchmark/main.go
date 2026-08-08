@@ -134,7 +134,6 @@ func startAnimation(w *gui.Window) {
 }
 
 func benchView(w *gui.Window) gui.View {
-	ww, wh := w.WindowSize()
 	app := gui.State[App](w)
 	theme := gui.CurrentTheme()
 	countOptions := []string{"10", "100", "1000", "5000"}
@@ -155,9 +154,7 @@ func benchView(w *gui.Window) gui.View {
 	}
 
 	return gui.Column(gui.ContainerCfg{
-		Width:   float32(ww),
-		Height:  float32(wh),
-		Sizing:  gui.FixedFixed,
+		Sizing:  gui.FillFill,
 		Padding: gui.SomeP(8, 8, 8, 8),
 		Content: []gui.View{
 			// Controls row.

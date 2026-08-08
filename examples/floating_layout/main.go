@@ -44,13 +44,10 @@ func main() {
 }
 
 func mainView(w *gui.Window) gui.View {
-	ww, wh := w.WindowSize()
 	theme := gui.CurrentTheme()
 
 	return gui.Column(gui.ContainerCfg{
-		Width:  float32(ww),
-		Height: float32(wh),
-		Sizing: gui.FixedFixed,
+		Sizing: gui.FillFill,
 		Content: []gui.View{
 			// Faux menu bar
 			gui.Row(gui.ContainerCfg{

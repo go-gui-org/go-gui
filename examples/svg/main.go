@@ -90,13 +90,10 @@ func main() {
 }
 
 func mainView(w *gui.Window) gui.View {
-	ww, wh := w.WindowSize()
 	app := gui.State[SvgViewerApp](w)
 
 	return gui.Row(gui.ContainerCfg{
-		Width:  float32(ww),
-		Height: float32(wh),
-		Sizing: gui.FixedFixed,
+		Sizing: gui.FillFill,
 		Content: []gui.View{
 			navPanel(app.Selected),
 			contentPanel(app.Selected),

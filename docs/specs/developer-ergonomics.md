@@ -1059,6 +1059,71 @@ Also convert two or three example tests from no-panic assertions to
 real state-transition assertions once §4.6 lands, so the testing
 pattern is demonstrated rather than described.
 
+#### 4.8.1 Audit result (2026-08-08)
+
+**45 files / 50 call sites → 8 files / 9 call sites.** 37 files
+converted; 8 allowlisted, each with a one-line reason at the call site
+so the remaining calls read as deliberate.
+
+Most of the conversion was one shape repeated 34 times: fetch the
+window size, set it as the root's `Width`/`Height`, and mark the root
+`FixedFixed`. That is `Sizing: gui.FillFill` and nothing else. Six
+cases carried real arithmetic:
+
+| Example         | Was                              | Now                        |
+| --------------- | -------------------------------- | -------------------------- |
+| `todo`          | `cardView(ww-24, wh-24, w)`      | card is `FillFill` inside the page's 12px padding |
+| `listbox`       | `Height: float32(wh) - 70`       | list `FillFill` takes the column remainder |
+| `minesweeper`   | `ww, wh` threaded into both screens | both screens `FillFill`, params dropped |
+| `2048`          | window size in both screens      | `gameView` `FillFill`; landing still needs it |
+| `snake`         | window size in both screens      | play screen `FillFill`; landing still needs it |
+| `animation_stress` | window size in three places   | root `FillFill`; two spawn helpers still need it |
+
+**The allowlist, with the reason each one is real:**
+
+| Example            | Why the viewport is genuinely needed                  |
+| ------------------ | ----------------------------------------------------- |
+| `calculator`       | root is a `Canvas`, which does not arrange, so its centring child cannot Fill |
+| `digital_rain`     | grid columns/rows are the viewport divided by the character cell |
+| `fontviewer`       | virtualization: `ListVisibleRange` needs the viewport height before arrange |
+| `particles`        | particle field is simulated in pixel space            |
+| `solitaire`        | cards, status bar and win overlay at absolute positions |
+| `2048` (landing)   | backdrop tiles at computed pixel coordinates          |
+| `snake` (landing)  | same, plus a backdrop sized `ww-64` × `wh-88`         |
+| `animation_stress` | random spawn and retarget coordinates                 |
+
+**`calculator` is the one that failed.** It was converted, measured, and
+reverted: with the inner column set to `FillFill`, a probe read the
+child as **0×0** against an 800×600 root. `Canvas` "does not arrange or
+layout its content" (`gui/view_container.go:454`), so a Fill child of a
+Canvas has nothing to fill against. The revert is the finding, and the
+comment at the call site now records it.
+
+Verification is by probe, not by absence of panic. Renders at 800×600
+confirmed the converted view roots fill exactly 800×600 (`markdown`,
+`context_menu`, `dock_layout`, `scroll_demo` — covering a scrollable
+root and a non-`ContainerCfg` root), that `todo`'s card resolves to
+773×573 inside the page's 12px padding and 1.5px border, and that
+`listbox`'s list still gets a real height (534.6) from Fill rather than
+from `wh - 70`.
+
+**Test conversion.** Three examples moved from `TestMainViewNoPanic` to
+state assertions: `key_up_demo` (one `TestKey` moves both the down and
+up counters, which a no-panic render cannot distinguish), `todo`
+(`TestType` + `TestClick` grows the list, clears the draft; a second
+test deletes by generated per-item ID), and `dialogs` (clicking
+`dlg_message` puts the dialog overlay in the tree).
+
+`scroll_demo` was attempted and abandoned: `TestScroll` returns
+`ErrTestUnhandled` because with a nil `TextMeasurer` the content does
+not overflow, so there is nothing to scroll. Scroll assertions need a
+container whose overflow does not depend on measured text.
+
+**Found, not fixed:** `examples/scroll_demo/main.go:111` gives all five
+percentage buttons the same ID, `"scroll_demo_pct_button"`. IDs must be
+unique per window; this is a §4.2-class defect, out of scope for a
+sizing audit, and it makes those buttons untargetable by ID from a test.
+
 ### 4.9 Close the `Scrollable`/ID hole alongside focus
 
 Same defect class as §4.2, found by the same audit. Scroll offsets are
@@ -1256,7 +1321,7 @@ burying them in the same diff.
 | 4     | §4.4 `ColorSet` on six `Cfg`s, flat state fields deleted | done |
 | 4     | §4.3 callback signature conversion       | done   |
 | 4     | §4.3b event-model collapse               | measured — see §4.3.3 |
-| 5     | §4.8 example audit                       | todo   |
+| 5     | §4.8 example audit                       | done — see §4.8.1 |
 
 Two corrections to §4.2 arising from the implementation.
 

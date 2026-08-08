@@ -47,13 +47,10 @@ func main() {
 }
 
 func mainView(w *gui.Window) gui.View {
-	ww, wh := w.WindowSize()
 	app := gui.State[MainState](w)
 
 	return gui.Column(gui.ContainerCfg{
-		Width:   float32(ww),
-		Height:  float32(wh),
-		Sizing:  gui.FixedFixed,
+		Sizing:  gui.FillFill,
 		HAlign:  gui.HAlignCenter,
 		VAlign:  gui.VAlignMiddle,
 		Spacing: gui.SomeF(8),
@@ -118,13 +115,10 @@ func mainView(w *gui.Window) gui.View {
 }
 
 func inspectorView(w *gui.Window) gui.View {
-	ww, wh := w.WindowSize()
 	state := gui.State[InspectorState](w)
 
 	return gui.Column(gui.ContainerCfg{
-		Width:   float32(ww),
-		Height:  float32(wh),
-		Sizing:  gui.FixedFixed,
+		Sizing:  gui.FillFill,
 		Padding: gui.Some(gui.PadAll(8)),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{

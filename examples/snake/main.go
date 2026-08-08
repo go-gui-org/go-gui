@@ -107,9 +107,11 @@ func startGame(w *gui.Window) {
 }
 
 func mainView(w *gui.Window) gui.View {
-	ww, wh := w.WindowSize()
 	app := gui.State[App](w)
 	if !app.Started {
+		// The landing screen paints a pixel-space backdrop, so it still
+		// takes the viewport explicitly. The play screen below does not.
+		ww, wh := w.WindowSize()
 		return landingView(w, float32(ww), float32(wh))
 	}
 	g := app.Game
@@ -126,9 +128,7 @@ func mainView(w *gui.Window) gui.View {
 	}
 
 	return gui.Column(gui.ContainerCfg{
-		Width:   float32(ww),
-		Height:  float32(wh),
-		Sizing:  gui.FixedFixed,
+		Sizing:  gui.FillFill,
 		HAlign:  gui.HAlignCenter,
 		VAlign:  gui.VAlignMiddle,
 		Spacing: gui.Some[float32](10),

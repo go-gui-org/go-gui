@@ -371,6 +371,9 @@ func fontGrid(w *gui.Window, matches []string) gui.View {
 		return emptyState(len(s.Families) == 0)
 	}
 
+	// Allowlisted viewport use: virtualization needs real numbers —
+	// ListVisibleRange takes the viewport height and the column count
+	// comes from the width, both before any arrange pass has run.
 	winW, winH := w.WindowSize()
 	cardH := cardHeight(s.FontSize)
 	rowH := cardH + gap
