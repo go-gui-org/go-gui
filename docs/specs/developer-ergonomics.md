@@ -471,6 +471,108 @@ auto-handled class. Cost is real — 23 `Bubble()`/`Consume()` sites in
 `examples/` alone plus all sibling call sites — which is precisely why
 it bundles with the signature work rather than shipping separately.
 
+#### 4.3.1 Pre-implementation verification (2026-08-08)
+
+Phase 4 is the first breaking phase, so every concrete claim in §4.3 and
+§4.7 was re-checked against the tree before any code was written. What
+follows is the result, not a plan.
+
+**Verified exactly, no change needed:** the 12 out-of-scope lifecycle
+signatures including all four `OnDone` variants; `OnCellFormat`
+returning `GridCellFormat` and `OnDetailRowView` returning `gg.View`,
+both confined to `gui/datagrid/`; zero sibling references to either;
+`RTF(cfg RtfCfg)` at `gui/view_rtf.go:212`; zero sibling references to
+`RtfCfg` or `gui.RTF`; `OnEvent` declared twice as
+`func(*Event, *Window)`; and the 8 `Color*` sibling sites, all in
+go-charts. The `27` distinct `func(T..., *Window)` signatures reproduce
+from `ergoaudit`.
+
+**Three event-driven callbacks appear in neither list.** §4.3 partitions
+27 signatures into 14 out-of-scope and 13 to convert. Scanning
+`gui/datagrid/` as well — it uses `*gg.Window`, which the §4.3 sweep
+did not match — surfaces three more:
+
+- `OnItemClick func(string, int, *Event, *Window)` — 2 call sites.
+- `OnColumnPinChange func(string, GridColumnPin, *gg.Event, *gg.Window)`
+- `OnCopyRows func([]GridRow, *gg.Event, *gg.Window) (string, bool)`
+
+The first two carry a raw `*Event` and convert cleanly. **`OnCopyRows`
+does not fit the target at all**: it returns `(string, bool)`, and both
+target shapes — `func(EventCtx)` and `func(T, EventCtx)` — return
+nothing. §4.3 found two value-returning callbacks and disposed of them
+by renaming out of the `On*` space, but that remedy does not apply
+here: `OnCopyRows` is genuinely event-driven, so it needs either a
+third target shape or an explicit exemption. This is the one gap that
+changes the design rather than the count.
+
+**`OnReorder` has one signature, not two.** "Both `OnReorder` variants"
+describes four declaration sites of an identical type. Conversely
+`OnChange` and `OnSelect` each have two genuinely distinct signatures
+that the list counts once apiece.
+
+**The `Bubble()`/`Consume()` figure is wrong, and understates the real
+cost by an order of magnitude.** `examples/` contains 19 `Consume()`
+calls and **zero** `Bubble()` calls, not 23 combined. All 26 non-test
+`Bubble()` sites are inside go-gui itself (`gui/` 15, `gui/datagrid/`
+6, `tools/eventctx` 5), plus 7 in siblings (go-edit 5, go-term 2).
+
+But counting `Bubble()`/`Consume()` measures the wrong thing. Under the
+collapse, `Consume()` keeps working unchanged; what changes is every
+**consume-class callback that relies on auto-handling** — those stop
+being handled by default and begin propagating to ancestors.
+`examples/` has **138** such sites (137 `OnClick`, 1 `OnGesture`). Most
+sit on widgets with no clickable ancestor and will be unaffected, but
+which ones those are is not determinable without checking nesting at
+each. That is the §7.2 silent class, at 138 sites rather than 23.
+
+**No sibling pays for the signature conversion.** Zero sibling call
+sites touch the 13-item convert set. After the tool fixes below, the
+five repos hold **25** `*Window`-tailed literals in go-gui-declared
+fields, and every one is `OnInit` (13), `OnDone` (9) or `OnValue`
+(3) — all in the out-of-scope 12.
+
+| Repo      | go-gui fields          | Declared by the sibling |
+| --------- | ---------------------- | ----------------------- |
+| go-charts | 9 (OnDone/OnInit/OnValue) | 0                    |
+| go-edit   | 8 (OnDone/OnInit)      | 3 (`OnFileDrop`)        |
+| go-kite   | 1 (OnInit)             | 0                       |
+| go-term   | 1 (OnInit)             | 0                       |
+| go-map    | 6 (OnInit)             | 29 (`InfoWindowAction`) |
+
+Reaching those numbers required fixing three bugs in `ergoaudit
+-mode callbacks`, each of which had produced a claim in this spec:
+
+1. **Call sites were not attributed to a declaring package.** Any
+   `OnX: func(..., *Window)` literal counted, so go-map's own
+   `mapview.InfoWindowAction.OnClick` and go-edit's own `OnFileDrop`
+   were reported as go-gui migration work. The tool now resolves the
+   literal's type through the file's imports and reports the two
+   groups separately. Nested literals that elide their type
+   (`[]T{{...}}`, exactly go-map's shape) inherit the element type.
+2. **Distinct signatures were deduplicated on printed source**, so
+   `func(movedID, beforeID string, w *Window)` and
+   `func(string, string, *Window)` counted as two. That is the origin
+   of "both `OnReorder` variants". Dedup is now by type, ignoring
+   parameter names.
+3. **Classification ignored results**, so the value-returning
+   callbacks were bucketed by their parameters — `OnCellFormat` and
+   `OnDetailRowView` as ordinary `*Window`-tailed, `OnCopyRows` as
+   ordinary `*Event`-leaking. The audit therefore could not surface
+   the one category that fits no target shape. There is now a
+   `returns a value` bucket, and it holds exactly those three.
+
+Corrected declaration figures for `./gui`: **69** distinct signatures
+(was 70), `func(T..., *Window)` **24** (was 27), `leaks raw *Event`
+**5** (was 6), `returns a value` **3** (new). The §4.3 partition
+should be restated against these.
+
+So the sibling cost of phase 4 is **not** "every change costs five
+repos a bump". It is: 8 `Color*` sites in go-charts, 7 `Bubble()`
+deletions in go-edit and go-term, and whatever silent exposure the
+model collapse creates in their consume-class handlers — which their
+71 combined `Consume()` sites suggest is the part worth measuring
+properly before starting.
+
 ### 4.4 Color-set collapse — highest per-app line savings
 
 `examples/todo/main.go:139-166` sets six `Color*` fields on one button
@@ -1125,6 +1227,13 @@ or `make ergo-audit` for the go-gui-only run. Mode `focus` **derives**
 the unguarded `Cfg` set from the source instead of hardcoding it, so the
 numbers track the code — and the per-file scan that once misreported
 `ListBoxCfg` cannot recur.
+
+**Sibling figures published before 2026-08-08 are not reliable.** Mode
+`callbacks` counted any `OnX: func(..., *Window)` literal regardless of
+which module declared the field, so sibling numbers included the
+siblings' own callbacks. It now splits the two; only the "go-gui
+fields" figure is a migration cost. See §4.3.1 for that fix and two
+others in the same mode.
 
 ## 8. Doc deliverables
 
