@@ -6,13 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v0.54.0] - 2026-08-08
 
-Developer-ergonomics phases 2 and 3 (`docs/specs/developer-ergonomics.md`
-§4.4–§4.6): an app-testing API and the `ColorSet` collapse. Additive.
+Developer-ergonomics phases 2–5 (`docs/specs/developer-ergonomics.md`), shipped
+as PRs #195–#202. This completes the spec: every phase is now on `main`.
 
-Phase 4 (§4.3, §4.7) has begun and **is breaking**; it will ship as v0.54.0.
-Breaking items are listed under "Changed" below as they land.
+**This release is breaking**, in three ways, all mechanical:
+
+1. **17 event callbacks take an `EventCtx`** instead of a trailing `*Window`,
+   and four no longer leak a raw `*Event`.
+2. **`RtfCfg` is now `RTFCfg`**, along with the `Rtf*` fields on `Shape.TC`.
+3. **The five flat state-color fields are deleted from six `Cfg`s** and replaced
+   by one `Colors ColorSet`.
+
+**Upgrading:** each item under _Changed_ carries its own before/after. The
+`EventCtx` conversion has a tool — `docs/migration-eventctx.md` documents the
+`-fields` mode that drove it. The color change is the one to read carefully:
+`Color` still means "resting fill only" and does **not** pin hover, click and
+focus; `Flat(c)` is how you ask for a widget that does not react.
+
+Everything else — the app-testing API, `ColorSet` itself, the event-collapse
+check and the example audit — is additive.
 
 ### Changed
 
