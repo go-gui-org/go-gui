@@ -196,15 +196,12 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 								TextStyle: textStyle(theme.M4, 14, gui.RGB(178, 191, 222)),
 							}),
 							gui.Button(gui.ButtonCfg{
-								ID:          startButtonID,
-								MinWidth:    230,
-								Color:       gui.RGB(255, 110, 61),
-								ColorHover:  gui.RGB(255, 135, 90),
-								ColorFocus:  gui.RGB(255, 135, 90),
-								ColorClick:  gui.RGB(230, 90, 42),
-								ColorBorder: gui.RGB(255, 211, 92),
-								SizeBorder:  gui.Some[float32](2),
-								Padding:     gui.SomeP(12, 18, 12, 18),
+								ID:         startButtonID,
+								MinWidth:   230,
+								Color:      gui.RGB(255, 110, 61),
+								Colors:     gui.ColorSet{Hover: gui.RGB(255, 135, 90), Click: gui.RGB(230, 90, 42), Focus: gui.RGB(255, 135, 90), Border: gui.RGB(255, 211, 92)},
+								SizeBorder: gui.Some[float32](2),
+								Padding:    gui.SomeP(12, 18, 12, 18),
 								Content: []gui.View{
 									gui.Text(gui.TextCfg{
 										Text:      gui.IconGamepad + "  PRESS TO BEGIN",

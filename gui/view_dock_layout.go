@@ -325,7 +325,7 @@ func dockTabButton(
 			Padding:    NoPadding,
 			SizeBorder: NoBorder,
 			Color:      colorTab,
-			ColorHover: guiTheme.ColorHover,
+			Colors:     ColorSet{Hover: guiTheme.ColorHover},
 			Radius:     SomeF(2),
 			OnClick: func(ctx EventCtx) {
 				onPanelClose(panelID, ctx.Window)
@@ -347,7 +347,7 @@ func dockTabButton(
 		Radius:     NoRadius,
 		SizeBorder: NoBorder,
 		Color:      colorTab,
-		ColorHover: colorHover,
+		Colors:     ColorSet{Hover: colorHover},
 		OnClick: func(ctx EventCtx) {
 			dockDragStart(dockID, panelID, groupID, root,
 				onLayoutChange, ctx.Layout, ctx.Event, ctx.Window)

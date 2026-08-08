@@ -270,14 +270,12 @@ func diffButton(w *gui.Window, title, subtitle string, diff Difficulty, color gu
 	return gui.Button(gui.ButtonCfg{
 		// title is a distinct literal at every call site, so it yields a
 		// unique, frame-stable focus ID without widening the signature.
-		ID:          "mine_diff_" + title,
-		MinWidth:    130,
-		Color:       color.WithOpacity(0.15),
-		ColorHover:  color.WithOpacity(0.3),
-		ColorClick:  color.WithOpacity(0.5),
-		ColorBorder: color,
-		SizeBorder:  gui.SomeF(2),
-		Padding:     gui.SomeP(12, 18, 12, 18),
+		ID:         "mine_diff_" + title,
+		MinWidth:   130,
+		Color:      color.WithOpacity(0.15),
+		Colors:     gui.ColorSet{Hover: color.WithOpacity(0.3), Click: color.WithOpacity(0.5), Border: color},
+		SizeBorder: gui.SomeF(2),
+		Padding:    gui.SomeP(12, 18, 12, 18),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      title,
@@ -550,14 +548,12 @@ func headerView(app *App, theme gui.Theme, boardW float32) gui.View {
 				HAlign: gui.HAlignCenter, VAlign: gui.VAlignMiddle,
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
-						ID:          "mine_reset",
-						Color:       gui.RGB(40, 44, 52),
-						ColorHover:  gui.RGB(55, 60, 68),
-						ColorClick:  gui.RGB(30, 34, 40),
-						ColorBorder: gui.RGB(100, 105, 110),
-						SizeBorder:  gui.SomeF(2),
-						Padding:     gui.SomeP(4, 4, 4, 4),
-						Radius:      gui.SomeF(6),
+						ID:         "mine_reset",
+						Color:      gui.RGB(40, 44, 52),
+						Colors:     gui.ColorSet{Hover: gui.RGB(55, 60, 68), Click: gui.RGB(30, 34, 40), Border: gui.RGB(100, 105, 110)},
+						SizeBorder: gui.SomeF(2),
+						Padding:    gui.SomeP(4, 4, 4, 4),
+						Radius:     gui.SomeF(6),
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      smileyIcon,
@@ -906,13 +902,11 @@ func footerView(app *App, g *Game, theme gui.Theme) gui.View {
 
 func smallButton(label string, action func(*gui.Window)) gui.View {
 	return gui.Button(gui.ButtonCfg{
-		ID:          "minesweeper_small_button",
-		Color:       gui.RGB(45, 50, 58),
-		ColorHover:  gui.RGB(60, 66, 74),
-		ColorClick:  gui.RGB(35, 40, 48),
-		ColorBorder: gui.RGB(90, 95, 100),
-		SizeBorder:  gui.SomeF(1),
-		Padding:     gui.SomeP(6, 12, 6, 12),
+		ID:         "minesweeper_small_button",
+		Color:      gui.RGB(45, 50, 58),
+		Colors:     gui.ColorSet{Hover: gui.RGB(60, 66, 74), Click: gui.RGB(35, 40, 48), Border: gui.RGB(90, 95, 100)},
+		SizeBorder: gui.SomeF(1),
+		Padding:    gui.SomeP(6, 12, 6, 12),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text: label,

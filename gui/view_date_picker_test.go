@@ -265,8 +265,8 @@ func TestDatePickerFocusIndicator(t *testing.T) {
 	w := &Window{}
 	focusedColor := RGBA(255, 0, 0, 255)
 	cfg := DatePickerCfg{
-		ID:               "dp-focus",
-		ColorBorderFocus: focusedColor,
+		ID:     "dp-focus",
+		Colors: ColorSet{BorderFocus: focusedColor},
 	}
 	applyDatePickerDefaults(&cfg)
 

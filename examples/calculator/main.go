@@ -355,19 +355,15 @@ func calcKey(_ *gui.Window, button calcButton) gui.View {
 	}
 
 	return gui.Button(gui.ButtonCfg{
-		ID:               "calc-" + strings.NewReplacer("/", "div", "*", "mul", "+", "add", "-", "sub", ".", "dot", "%", "pct", "=", "eq").Replace(button.Label),
-		Color:            button.Background,
-		ColorHover:       lighten(button.Background, 12),
-		ColorClick:       lighten(button.Background, 24),
-		ColorFocus:       lighten(button.Background, 12),
-		ColorBorder:      lighten(button.Background, 18),
-		ColorBorderFocus: lighten(button.Background, 28),
-		SizeBorder:       gui.SomeF(2),
-		Width:            buttonSize,
-		Height:           buttonSize,
-		Sizing:           gui.FixedFixed,
-		Radius:           gui.Some(buttonSize / 2),
-		Padding:          gui.NoPadding,
+		ID:         "calc-" + strings.NewReplacer("/", "div", "*", "mul", "+", "add", "-", "sub", ".", "dot", "%", "pct", "=", "eq").Replace(button.Label),
+		Color:      button.Background,
+		Colors:     gui.ColorSet{Hover: lighten(button.Background, 12), Click: lighten(button.Background, 24), Focus: lighten(button.Background, 12), Border: lighten(button.Background, 18), BorderFocus: lighten(button.Background, 28)},
+		SizeBorder: gui.SomeF(2),
+		Width:      buttonSize,
+		Height:     buttonSize,
+		Sizing:     gui.FixedFixed,
+		Radius:     gui.Some(buttonSize / 2),
+		Padding:    gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      button.Label,

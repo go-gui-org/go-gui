@@ -75,13 +75,11 @@ type DatePickerCfg struct {
 	RadiusBorder    Opt[float32]
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
-	FocusDisabled        bool
-	Color                Color
-	ColorHover           Color
-	ColorFocus           Color
-	ColorClick           Color
-	ColorBorder          Color
-	ColorBorderFocus     Color
+	FocusDisabled bool
+	Color         Color
+	// Colors sets the per-state colors. Color above is the
+	// shorthand for Colors.Base and wins over it.
+	Colors               ColorSet
 	ColorSelect          Color
 	WeekdaysLen          DatePickerWeekdayLen
 	Disabled             bool
@@ -153,8 +151,8 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 		Focusable:   !cfg.FocusDisabled,
 		A11YRole:    AccessRoleGrid,
 		A11YLabel:   a11yLabel(cfg.A11YLabel, "Date Picker"),
-		Color:       cfg.Color,
-		ColorBorder: cfg.ColorBorder,
+		Color:       cfg.Colors.Base,
+		ColorBorder: cfg.Colors.Border,
 		SizeBorder:  cfg.SizeBorder,
 		Radius:      Some(radiusBorder),
 		Padding:     cfg.Padding,
@@ -166,7 +164,7 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 		Content:     content,
 		AmendLayout: func(ctx EventCtx) {
 			if ctx.Window.IsFocus(cfg.ID) {
-				ctx.Layout.Shape.ColorBorder = cfg.ColorBorderFocus
+				ctx.Layout.Shape.ColorBorder = cfg.Colors.BorderFocus
 			}
 		},
 		OnClick: func(ctx EventCtx) {
@@ -269,32 +267,32 @@ func datePickerControls(
 			Button(ButtonCfg{
 				// Namespaced by the picker's ID so two date pickers in
 				// one window keep separate focus and state identities.
-				ID:          cfgID + ":month",
-				Color:       ColorTransparent,
-				ColorBorder: ColorTransparent,
-				OnClick:     onToggle,
+				ID:      cfgID + ":month",
+				Color:   ColorTransparent,
+				Colors:  ColorSet{Border: ColorTransparent},
+				OnClick: onToggle,
 				Content: []View{Text(TextCfg{
 					Text: monthLabel, TextStyle: cfg.TextStyle,
 				})},
 			}),
 			Rectangle(RectangleCfg{Sizing: FillFit}),
 			Button(ButtonCfg{
-				ID:          cfgID + ":prev",
-				Disabled:    state.ShowYearMonthPicker,
-				Color:       ColorTransparent,
-				ColorBorder: ColorTransparent,
-				OnClick:     onPrev,
+				ID:       cfgID + ":prev",
+				Disabled: state.ShowYearMonthPicker,
+				Color:    ColorTransparent,
+				Colors:   ColorSet{Border: ColorTransparent},
+				OnClick:  onPrev,
 				Content: []View{Text(TextCfg{
 					Text:      IconArrowLeft,
 					TextStyle: CurrentTheme().Icon3,
 				})},
 			}),
 			Button(ButtonCfg{
-				ID:          cfgID + ":next",
-				Disabled:    state.ShowYearMonthPicker,
-				Color:       ColorTransparent,
-				ColorBorder: ColorTransparent,
-				OnClick:     onNext,
+				ID:       cfgID + ":next",
+				Disabled: state.ShowYearMonthPicker,
+				Color:    ColorTransparent,
+				Colors:   ColorSet{Border: ColorTransparent},
+				OnClick:  onNext,
 				Content: []View{Text(TextCfg{
 					Text:      IconArrowRight,
 					TextStyle: CurrentTheme().Icon3,
@@ -424,24 +422,10 @@ func datePickerCellSize(cfg *DatePickerCfg) float32 {
 
 func applyDatePickerDefaults(cfg *DatePickerCfg) {
 	d := &DefaultDatePickerStyle
-	if !cfg.Color.IsSet() {
-		cfg.Color = d.Color
-	}
-	if !cfg.ColorHover.IsSet() {
-		cfg.ColorHover = d.ColorHover
-	}
-	if !cfg.ColorFocus.IsSet() {
-		cfg.ColorFocus = d.ColorFocus
-	}
-	if !cfg.ColorClick.IsSet() {
-		cfg.ColorClick = d.ColorClick
-	}
-	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = d.ColorBorder
-	}
-	if !cfg.ColorBorderFocus.IsSet() {
-		cfg.ColorBorderFocus = d.ColorBorderFocus
-	}
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
+		d.Color, d.ColorHover, d.ColorClick,
+		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
+	))
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
 	}

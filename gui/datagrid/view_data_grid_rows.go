@@ -159,17 +159,14 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 
 	if showDeleteAction {
 		cells = append(cells, gg.Button(gg.ButtonCfg{
-			ID:          cfg.ID + ":row-delete:" + rowID,
-			Width:       dataGridHeaderControlWidth + 10,
-			Sizing:      gg.FixedFill,
-			Padding:     gg.NoPadding,
-			SizeBorder:  gg.SomeF(0),
-			Radius:      gg.SomeF(0),
-			Color:       gg.ColorTransparent,
-			ColorHover:  cfg.ColorHeaderHover,
-			ColorFocus:  gg.ColorTransparent,
-			ColorClick:  cfg.ColorHeaderHover,
-			ColorBorder: cfg.ColorBorder,
+			ID:         cfg.ID + ":row-delete:" + rowID,
+			Width:      dataGridHeaderControlWidth + 10,
+			Sizing:     gg.FixedFill,
+			Padding:    gg.NoPadding,
+			SizeBorder: gg.SomeF(0),
+			Radius:     gg.SomeF(0),
+			Color:      gg.ColorTransparent,
+			Colors:     gg.ColorSet{Hover: cfg.ColorHeaderHover, Click: cfg.ColorHeaderHover, Focus: gg.ColorTransparent, Border: cfg.ColorBorder},
 			OnClick: func(ctx gg.EventCtx) {
 				dataGridCrudDeleteRows(gridID, selection, onSelectionChange, []string{rowID}, focusID, ctx.Event, ctx.Window)
 			},
@@ -379,17 +376,14 @@ func dataGridDetailToggleControl(cfg *DataGridCfg, rowID string, expanded, enabl
 	onDetailExpandedChange := cfg.OnDetailExpandedChange
 	detailExpandedRowIDs := cfg.DetailExpandedRowIDs
 	return gg.Button(gg.ButtonCfg{
-		ID:          cfg.ID + ":detail_toggle:" + rowID,
-		Width:       dataGridHeaderControlWidth,
-		Sizing:      gg.FixedFill,
-		Padding:     gg.NoPadding,
-		SizeBorder:  gg.SomeF(0),
-		Radius:      gg.SomeF(0),
-		Color:       gg.ColorTransparent,
-		ColorHover:  cfg.ColorRowHover,
-		ColorFocus:  gg.ColorTransparent,
-		ColorClick:  cfg.ColorRowHover,
-		ColorBorder: gg.ColorTransparent,
+		ID:         cfg.ID + ":detail_toggle:" + rowID,
+		Width:      dataGridHeaderControlWidth,
+		Sizing:     gg.FixedFill,
+		Padding:    gg.NoPadding,
+		SizeBorder: gg.SomeF(0),
+		Radius:     gg.SomeF(0),
+		Color:      gg.ColorTransparent,
+		Colors:     gg.ColorSet{Hover: cfg.ColorRowHover, Click: cfg.ColorRowHover, Focus: gg.ColorTransparent, Border: gg.ColorTransparent},
 		OnClick: func(ctx gg.EventCtx) {
 			if rowID == "" || onDetailExpandedChange == nil {
 				ctx.Bubble() // nothing to toggle: pass the click on

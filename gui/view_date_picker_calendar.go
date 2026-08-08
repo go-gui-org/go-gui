@@ -104,7 +104,7 @@ func datePickerMonth(
 					cells = append(cells, Button(ButtonCfg{
 						FocusDisabled: true,
 						Color:         ColorTransparent,
-						ColorBorder:   ColorTransparent,
+						Colors:        ColorSet{Border: ColorTransparent},
 						Disabled:      true,
 						MinWidth:      cellSize,
 						MaxWidth:      cellSize,
@@ -123,7 +123,7 @@ func datePickerMonth(
 			dayStr := strconv.Itoa(d)
 
 			cellColor := ColorTransparent
-			colorHover := cfg.ColorHover
+			colorHover := cfg.Colors.Hover
 			if selected {
 				cellColor = cfg.ColorSelect
 				colorHover = cfg.ColorSelect
@@ -133,7 +133,7 @@ func datePickerMonth(
 				borderColor = cfg.TextStyle.Color
 			}
 			if isFocused && w.IsFocus(cfg.ID) {
-				borderColor = cfg.ColorBorderFocus
+				borderColor = cfg.Colors.BorderFocus
 			}
 
 			ts := cfg.TextStyle
@@ -144,18 +144,16 @@ func datePickerMonth(
 			dayVal := d
 			cfgID := cfg.ID
 			cells = append(cells, Button(ButtonCfg{
-				ID:          cfg.ID + ".day." + strconv.Itoa(d),
-				MinWidth:    cellSize,
-				MaxWidth:    cellSize,
-				MaxHeight:   cellSize,
-				Color:       cellColor,
-				ColorBorder: borderColor,
-				ColorClick:  cfg.ColorSelect,
-				ColorHover:  colorHover,
-				SizeBorder:  SomeF(2),
-				Radius:      Some(radius),
-				Padding:     Some(paddingThree),
-				Disabled:    disabled,
+				ID:         cfg.ID + ".day." + strconv.Itoa(d),
+				MinWidth:   cellSize,
+				MaxWidth:   cellSize,
+				MaxHeight:  cellSize,
+				Color:      cellColor,
+				Colors:     ColorSet{Hover: colorHover, Click: cfg.ColorSelect, Border: borderColor},
+				SizeBorder: SomeF(2),
+				Radius:     Some(radius),
+				Padding:    Some(paddingThree),
+				Disabled:   disabled,
 				Content: []View{Text(TextCfg{
 					Text: dayStr, TextStyle: ts,
 				})},
@@ -228,13 +226,13 @@ func datePickerAdjacentCell(
 	}
 
 	return Button(ButtonCfg{
-		ID:          cfg.ID + ".day." + idSuffix + "." + strconv.Itoa(adjDay),
-		Color:       ColorTransparent,
-		ColorBorder: ColorTransparent,
-		MinWidth:    cellSize,
-		MaxWidth:    cellSize,
-		MaxHeight:   cellSize,
-		Padding:     Some(paddingThree),
+		ID:        cfg.ID + ".day." + idSuffix + "." + strconv.Itoa(adjDay),
+		Color:     ColorTransparent,
+		Colors:    ColorSet{Border: ColorTransparent},
+		MinWidth:  cellSize,
+		MaxWidth:  cellSize,
+		MaxHeight: cellSize,
+		Padding:   Some(paddingThree),
 		Content: []View{Text(TextCfg{
 			Text:      strconv.Itoa(adjDay),
 			TextStyle: ts,

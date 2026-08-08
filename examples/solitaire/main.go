@@ -240,14 +240,12 @@ func modeButton(w *gui.Window, title string, mode DrawMode, color gui.Color) gui
 	return gui.Button(gui.ButtonCfg{
 		// title is a distinct literal at every call site, so it yields a
 		// unique, frame-stable focus ID without widening the signature.
-		ID:          "sol_mode_" + title,
-		MinWidth:    140,
-		Color:       color.WithOpacity(0.12),
-		ColorHover:  color.WithOpacity(0.3),
-		ColorClick:  color.WithOpacity(0.5),
-		ColorBorder: color,
-		SizeBorder:  gui.SomeF(2),
-		Padding:     gui.SomeP(14, 22, 14, 22),
+		ID:         "sol_mode_" + title,
+		MinWidth:   140,
+		Color:      color.WithOpacity(0.12),
+		Colors:     gui.ColorSet{Hover: color.WithOpacity(0.3), Click: color.WithOpacity(0.5), Border: color},
+		SizeBorder: gui.SomeF(2),
+		Padding:    gui.SomeP(14, 22, 14, 22),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      title,

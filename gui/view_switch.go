@@ -15,18 +15,16 @@ type SwitchCfg struct {
 	Height          Opt[float32]
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
-	FocusDisabled    bool
-	Color            Color
-	ColorFocus       Color
-	ColorHover       Color
-	ColorClick       Color
-	ColorBorder      Color
-	ColorBorderFocus Color
-	ColorSelect      Color
-	ColorUnselect    Color
-	Disabled         bool
-	Invisible        bool
-	Selected         bool
+	FocusDisabled bool
+	Color         Color
+	// Colors sets the per-state colors. Color above is the
+	// shorthand for Colors.Base and wins over it.
+	Colors        ColorSet
+	ColorSelect   Color
+	ColorUnselect Color
+	Disabled      bool
+	Invisible     bool
+	Selected      bool
 }
 
 // Switch creates a pill-shaped toggle switch.
@@ -46,10 +44,10 @@ func Switch(cfg SwitchCfg) View {
 	}
 	circleSize := height - cfg.Padding.Get(Padding{}).Height() - (sizeBorder * 2)
 
-	colorFocus := cfg.ColorFocus
-	colorBorderFocus := cfg.ColorBorderFocus
-	colorHover := cfg.ColorHover
-	colorClick := cfg.ColorClick
+	colorFocus := cfg.Colors.Focus
+	colorBorderFocus := cfg.Colors.BorderFocus
+	colorHover := cfg.Colors.Hover
+	colorClick := cfg.Colors.Click
 
 	hAlign := HAlignStart
 	if cfg.Selected {
@@ -63,8 +61,8 @@ func Switch(cfg SwitchCfg) View {
 		Width:       width,
 		Height:      height,
 		Sizing:      FixedFit,
-		Color:       cfg.Color,
-		ColorBorder: cfg.ColorBorder,
+		Color:       cfg.Colors.Base,
+		ColorBorder: cfg.Colors.Border,
 		SizeBorder:  Some(sizeBorder),
 		Radius:      Some(radius),
 		Disabled:    cfg.Disabled,
@@ -144,24 +142,10 @@ func Switch(cfg SwitchCfg) View {
 
 func applySwitchDefaults(cfg *SwitchCfg) {
 	d := &DefaultSwitchStyle
-	if !cfg.Color.IsSet() {
-		cfg.Color = d.Color
-	}
-	if !cfg.ColorFocus.IsSet() {
-		cfg.ColorFocus = d.ColorFocus
-	}
-	if !cfg.ColorHover.IsSet() {
-		cfg.ColorHover = d.ColorHover
-	}
-	if !cfg.ColorClick.IsSet() {
-		cfg.ColorClick = d.ColorClick
-	}
-	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = d.ColorBorder
-	}
-	if !cfg.ColorBorderFocus.IsSet() {
-		cfg.ColorBorderFocus = d.ColorBorderFocus
-	}
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
+		d.Color, d.ColorHover, d.ColorClick,
+		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
+	))
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
 	}

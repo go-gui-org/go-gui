@@ -48,28 +48,15 @@ type ButtonCfg struct {
 	A11YState AccessState
 	Color     Color
 
-	// Colors sets the per-state colors as one value. Use it instead of
-	// assigning the flat Color* fields below individually; Flat(c)
-	// covers the common "keep one appearance" case in a single line.
+	// Colors sets the per-state colors. Flat(c) covers the common
+	// "keep one appearance" case in a single line.
 	//
-	// Precedence: any flat Color* field the caller assigned wins over
-	// the corresponding field here. See ColorSet.applyTo for why the
-	// newer API is the one that yields.
+	// Color above is the shorthand for Colors.Base and wins over it
+	// when both are set.
 	Colors ColorSet
 
-	// ColorHover is the background color on mouse hover.
-	ColorHover Color
-
-	// ColorFocus is the background color when keyboard-focused.
-	ColorFocus Color
-
-	// ColorClick is the background color during mouse press.
-	ColorClick Color
-
-	ColorBorder      Color
-	ColorBorderFocus Color
-	HAlign           Opt[HorizontalAlign]
-	VAlign           Opt[VerticalAlign]
+	HAlign Opt[HorizontalAlign]
+	VAlign Opt[VerticalAlign]
 
 	Sizing      Sizing
 	Float       bool
@@ -147,8 +134,8 @@ func Button(cfg ButtonCfg) View {
 		A11YState:       cfg.A11YState,
 		A11YLabel:       cfg.A11YLabel,
 		A11YDescription: cfg.A11YDescription,
-		Color:           cfg.Color,
-		ColorBorder:     cfg.ColorBorder,
+		Color:           cfg.Colors.Base,
+		ColorBorder:     cfg.Colors.Border,
 		SizeBorder:      Some(sizeBorder),
 		BlurRadius:      cfg.BlurRadius,
 		Shadow:          cfg.Shadow,
@@ -177,10 +164,10 @@ func Button(cfg ButtonCfg) View {
 	}).(*containerView)
 
 	cv.isButton = true
-	cv.colorHover = cfg.ColorHover
-	cv.colorClick = cfg.ColorClick
-	cv.colorFocus = cfg.ColorFocus
-	cv.colorBorderFocus = cfg.ColorBorderFocus
+	cv.colorHover = cfg.Colors.Hover
+	cv.colorClick = cfg.Colors.Click
+	cv.colorFocus = cfg.Colors.Focus
+	cv.colorBorderFocus = cfg.Colors.BorderFocus
 	cv.userOnHover = cfg.OnHover
 	cv.userAmendLayout = cfg.AmendLayout
 
@@ -253,35 +240,11 @@ func CommandButton(cmdID string, cfg ButtonCfg) View {
 }
 
 func applyButtonDefaults(cfg *ButtonCfg) {
-	// ColorSet resolves first so the theme fallbacks below see it as
-	// already-specified. Flat fields the caller set are left alone by
-	// applyTo, which is the documented precedence.
-	if cfg.Colors.IsSet() {
-		cfg.Colors.applyTo(
-			&cfg.Color, &cfg.ColorHover, &cfg.ColorClick,
-			&cfg.ColorFocus, &cfg.ColorBorder, &cfg.ColorBorderFocus,
-		)
-	}
-
 	d := &DefaultButtonStyle
-	if !cfg.Color.IsSet() {
-		cfg.Color = d.Color
-	}
-	if !cfg.ColorHover.IsSet() {
-		cfg.ColorHover = d.ColorHover
-	}
-	if !cfg.ColorFocus.IsSet() {
-		cfg.ColorFocus = d.ColorFocus
-	}
-	if !cfg.ColorClick.IsSet() {
-		cfg.ColorClick = d.ColorClick
-	}
-	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = d.ColorBorder
-	}
-	if !cfg.ColorBorderFocus.IsSet() {
-		cfg.ColorBorderFocus = d.ColorBorderFocus
-	}
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
+		d.Color, d.ColorHover, d.ColorClick,
+		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
+	))
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = Some(d.Padding)
 	}

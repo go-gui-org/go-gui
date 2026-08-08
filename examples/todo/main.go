@@ -229,12 +229,8 @@ func completeButton(item todoItem) gui.View {
 	}
 
 	if item.Completed {
-		cfg.Color = colorAccent
-		cfg.ColorHover = colorAccent
-		cfg.ColorClick = colorAccent
-		cfg.ColorFocus = colorAccent
-		cfg.ColorBorder = colorAccent
-		cfg.ColorBorderFocus = colorAccent
+		// Completed items keep one appearance in every state.
+		cfg.Colors = gui.Flat(colorAccent)
 		cfg.Content = []gui.View{
 			gui.Text(gui.TextCfg{
 				Text: "✓",
@@ -248,12 +244,12 @@ func completeButton(item todoItem) gui.View {
 		return gui.Button(cfg)
 	}
 
-	cfg.Color = colorCardBG
-	cfg.ColorHover = colorCardBG
-	cfg.ColorClick = colorCardBG
-	cfg.ColorFocus = colorCardBG
-	cfg.ColorBorder = colorBorder
-	cfg.ColorBorderFocus = colorAccent
+	// Fill stays constant; only the border reacts to focus.
+	cfg.Colors = gui.ColorSet{
+		Base:        colorCardBG,
+		Border:      colorBorder,
+		BorderFocus: colorAccent,
+	}
 	cfg.SizeBorder = gui.SomeF(2)
 	cfg.Content = []gui.View{gui.Text(gui.TextCfg{Text: ""})}
 	return gui.Button(cfg)
@@ -261,18 +257,14 @@ func completeButton(item todoItem) gui.View {
 
 func deleteButton(id int) gui.View {
 	return gui.Button(gui.ButtonCfg{
-		ID:               fmt.Sprintf("todo-delete-%d", id),
-		Width:            28,
-		Height:           28,
-		Sizing:           gui.FixedFixed,
-		Color:            gui.ColorTransparent,
-		ColorHover:       colorDeleteHover,
-		ColorClick:       colorDeleteHover,
-		ColorFocus:       colorDeleteHover,
-		ColorBorder:      gui.ColorTransparent,
-		ColorBorderFocus: gui.ColorTransparent,
-		Radius:           gui.SomeF(14),
-		Padding:          gui.NoPadding,
+		ID:      fmt.Sprintf("todo-delete-%d", id),
+		Width:   28,
+		Height:  28,
+		Sizing:  gui.FixedFixed,
+		Color:   gui.ColorTransparent,
+		Colors:  gui.ColorSet{Hover: colorDeleteHover, Click: colorDeleteHover, Focus: colorDeleteHover, Border: gui.ColorTransparent, BorderFocus: gui.ColorTransparent},
+		Radius:  gui.SomeF(14),
+		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text: "×",
