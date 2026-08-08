@@ -14,18 +14,16 @@ type RadioCfg struct {
 	SizeBorder      Opt[float32]
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
-	FocusDisabled    bool
-	Color            Color
-	ColorHover       Color
-	ColorFocus       Color
-	ColorClick       Color
-	ColorBorder      Color
-	ColorBorderFocus Color
-	ColorSelect      Color
-	ColorUnselect    Color
-	Disabled         bool
-	Selected         bool
-	Invisible        bool
+	FocusDisabled bool
+	Color         Color
+	// Colors sets the per-state colors. Color above is the
+	// shorthand for Colors.Base and wins over it.
+	Colors        ColorSet
+	ColorSelect   Color
+	ColorUnselect Color
+	Disabled      bool
+	Selected      bool
+	Invisible     bool
 }
 
 // Radio creates a radio button view.
@@ -37,9 +35,9 @@ func Radio(cfg RadioCfg) View {
 	size := cfg.Size.Get(dr.Size)
 	sizeBorder := cfg.SizeBorder.Get(dr.SizeBorder)
 
-	colorBorderFocus := cfg.ColorBorderFocus
-	colorHover := cfg.ColorHover
-	colorClick := cfg.ColorClick
+	colorBorderFocus := cfg.Colors.BorderFocus
+	colorHover := cfg.Colors.Hover
+	colorClick := cfg.Colors.Click
 	circleColor := cfg.ColorUnselect
 	if cfg.Selected {
 		circleColor = cfg.ColorSelect
@@ -50,7 +48,7 @@ func Radio(cfg RadioCfg) View {
 		Width:       size,
 		Height:      size,
 		Color:       circleColor,
-		ColorBorder: cfg.ColorBorder,
+		ColorBorder: cfg.Colors.Border,
 		SizeBorder:  Some(sizeBorder),
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
@@ -121,24 +119,10 @@ func Radio(cfg RadioCfg) View {
 
 func applyRadioDefaults(cfg *RadioCfg) {
 	d := &DefaultRadioStyle
-	if !cfg.Color.IsSet() {
-		cfg.Color = d.Color
-	}
-	if !cfg.ColorHover.IsSet() {
-		cfg.ColorHover = d.ColorHover
-	}
-	if !cfg.ColorFocus.IsSet() {
-		cfg.ColorFocus = d.ColorFocus
-	}
-	if !cfg.ColorClick.IsSet() {
-		cfg.ColorClick = d.ColorClick
-	}
-	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = d.ColorBorder
-	}
-	if !cfg.ColorBorderFocus.IsSet() {
-		cfg.ColorBorderFocus = d.ColorBorderFocus
-	}
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
+		d.Color, d.ColorHover, d.ColorClick,
+		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
+	))
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
 	}

@@ -673,6 +673,34 @@ phase 4 removes the flat fields.
 The `examples/todo` button is now `Colors: gui.Flat(colorAccent)`, one
 line replacing six, which is the saving §4.4 predicted.
 
+#### 4.4.2 Deletion scope, resolved in phase 4 (2026-08-08)
+
+**Deleting only `ButtonCfg`'s five fields would have made the API
+bimodal.** Six `Cfg`s carry the identical five state-color fields:
+`ButtonCfg`, `SwitchCfg`, `ToggleCfg`, `RadioCfg`, `InputDateCfg`,
+`DatePickerCfg`. Removing them from `ButtonCfg` alone — which is what
+§4.4 scheduled — leaves `Switch` and `Toggle` styled the old way beside
+a `Button` that uses `Colors`, inside one widget family. That is worse
+than the uniform verbosity it replaces.
+
+Resolved by extending `ColorSet` to all six and deleting the five
+fields on all six. The 24 `Cfg`s holding a partial set (four fields
+down to one) keep theirs; "carries the full five" is the line, and it
+is exactly where `ColorSet` fits without inventing fields a widget does
+not have.
+
+**The shorthand must not back the interactive states.** `Base` backs
+`Hover`, `Click` and `Focus`, so folding the surviving `Color` field
+into `Base` *before* that fallback pins all three — and a widget that
+sets only its background silently stops reacting to the pointer and to
+focus. `Color` is applied after `resolve` instead, leaving the states
+to the theme exactly as before `ColorSet` existed.
+
+This was caught by `TestButtonAmendLayoutFocus` going red, not by
+review, and it is the kind of change that ships unnoticed: no compile
+error, no visual difference until someone tabs to the control. Pinned
+by `TestButtonColorShorthandLeavesStatesThemed`.
+
 ### 4.5 `Opt[T]` consistency pass and value shorthands
 
 110 `Opt[T]` fields coexist with plain-value fields under no documented
@@ -1097,7 +1125,11 @@ burying them in the same diff.
 | 3     | §4.5 `Opt` rule documented in `CLAUDE.md` | done  |
 | 3     | §4.5 audit of the existing `Opt` fields  | done   |
 | 3     | §4.5 `PadAll` / `PadXY` shorthands       | n/a — already exist |
-| 4–5   | —                                        | todo   |
+| 4     | §4.7 `RTFCfg` + datagrid builder renames | done   |
+| 4     | §4.4 `ColorSet` on six `Cfg`s, flat state fields deleted | done |
+| 4     | §4.3 callback signature conversion       | todo   |
+| 4     | §4.3b event-model collapse               | deferred — see §4.3.1 |
+| 5     | §4.8 example audit                       | todo   |
 
 Two corrections to §4.2 arising from the implementation.
 

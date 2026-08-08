@@ -20,17 +20,15 @@ type ToggleCfg struct {
 	MinWidth   float32
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
-	FocusDisabled    bool
-	Color            Color
-	ColorFocus       Color
-	ColorHover       Color
-	ColorClick       Color
-	ColorBorder      Color
-	ColorBorderFocus Color
-	ColorSelect      Color
-	Disabled         bool
-	Invisible        bool
-	Selected         bool
+	FocusDisabled bool
+	Color         Color
+	// Colors sets the per-state colors. Color above is the
+	// shorthand for Colors.Base and wins over it.
+	Colors      ColorSet
+	ColorSelect Color
+	Disabled    bool
+	Invisible   bool
+	Selected    bool
 }
 
 // Toggle creates a toggle/checkbox view.
@@ -43,7 +41,7 @@ func Toggle(cfg ToggleCfg) View {
 	radius := cfg.Radius.Get(d.Radius)
 	size := cfg.Size.Get(d.Size)
 
-	boxColor := cfg.Color
+	boxColor := cfg.Colors.Base
 	if cfg.Selected {
 		boxColor = cfg.ColorSelect
 	}
@@ -58,10 +56,10 @@ func Toggle(cfg ToggleCfg) View {
 		}
 	}
 
-	colorFocus := cfg.ColorFocus
-	colorBorderFocus := cfg.ColorBorderFocus
-	colorHover := cfg.ColorHover
-	colorClick := cfg.ColorClick
+	colorFocus := cfg.Colors.Focus
+	colorBorderFocus := cfg.Colors.BorderFocus
+	colorHover := cfg.Colors.Hover
+	colorClick := cfg.Colors.Click
 
 	content := make([]View, 0, 2)
 	// Fixed square box: without Fixed sizing the box fits the check
@@ -69,7 +67,7 @@ func Toggle(cfg ToggleCfg) View {
 	// a tall rectangle. Padding stays for the inner text inset.
 	content = append(content, Row(ContainerCfg{
 		Color:       boxColor,
-		ColorBorder: cfg.ColorBorder,
+		ColorBorder: cfg.Colors.Border,
 		SizeBorder:  Some(sizeBorder),
 		Padding:     cfg.Padding,
 		Radius:      Some(radius),
@@ -146,29 +144,15 @@ func Toggle(cfg ToggleCfg) View {
 
 func applyToggleDefaults(cfg *ToggleCfg) {
 	d := &DefaultToggleStyle
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
+		d.Color, d.ColorHover, d.ColorClick,
+		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
+	))
 	if cfg.TextSelect == "" {
 		cfg.TextSelect = "✓"
 	}
 	if cfg.TextUnselect == "" {
 		cfg.TextUnselect = " "
-	}
-	if !cfg.Color.IsSet() {
-		cfg.Color = d.Color
-	}
-	if !cfg.ColorFocus.IsSet() {
-		cfg.ColorFocus = d.ColorFocus
-	}
-	if !cfg.ColorHover.IsSet() {
-		cfg.ColorHover = d.ColorHover
-	}
-	if !cfg.ColorClick.IsSet() {
-		cfg.ColorClick = d.ColorClick
-	}
-	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = d.ColorBorder
-	}
-	if !cfg.ColorBorderFocus.IsSet() {
-		cfg.ColorBorderFocus = d.ColorBorderFocus
 	}
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect

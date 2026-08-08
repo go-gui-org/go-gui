@@ -234,19 +234,16 @@ func dataGridIndicatorButton(id, label string, baseStyle gg.TextStyle, hoverColo
 		sizing = gg.FixedFill
 	}
 	return gg.Button(gg.ButtonCfg{
-		ID:          id,
-		Width:       width,
-		Sizing:      sizing,
-		Padding:     gg.NoPadding,
-		SizeBorder:  gg.SomeF(0),
-		Radius:      gg.SomeF(0),
-		Color:       gg.ColorTransparent,
-		ColorHover:  hoverColor,
-		ColorFocus:  gg.ColorTransparent,
-		ColorClick:  hoverColor,
-		ColorBorder: gg.ColorTransparent,
-		Disabled:    disabled,
-		OnClick:     onClick,
+		ID:         id,
+		Width:      width,
+		Sizing:     sizing,
+		Padding:    gg.NoPadding,
+		SizeBorder: gg.SomeF(0),
+		Radius:     gg.SomeF(0),
+		Color:      gg.ColorTransparent,
+		Colors:     gg.ColorSet{Hover: hoverColor, Click: hoverColor, Focus: gg.ColorTransparent, Border: gg.ColorTransparent},
+		Disabled:   disabled,
+		OnClick:    onClick,
 		Content: []gg.View{
 			gg.Text(gg.TextCfg{
 				Text:      label,

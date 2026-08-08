@@ -28,17 +28,15 @@ type InputDateCfg struct {
 	RadiusBorder    Opt[float32]
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
-	FocusDisabled        bool
-	Width                float32
-	Height               float32
-	MinWidth             float32
-	MaxWidth             float32
-	Color                Color
-	ColorHover           Color
-	ColorFocus           Color
-	ColorClick           Color
-	ColorBorder          Color
-	ColorBorderFocus     Color
+	FocusDisabled bool
+	Width         float32
+	Height        float32
+	MinWidth      float32
+	MaxWidth      float32
+	Color         Color
+	// Colors sets the per-state colors. Color above is the
+	// shorthand for Colors.Base and wins over it.
+	Colors               ColorSet
 	ColorSelect          Color
 	Sizing               Sizing
 	WeekdaysLen          DatePickerWeekdayLen
@@ -168,12 +166,8 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 					AllowedDates:         cfg.AllowedDates,
 					WeekdaysLen:          cfg.WeekdaysLen,
 					TextStyle:            cfg.TextStyle,
-					Color:                cfg.Color,
-					ColorHover:           cfg.ColorHover,
-					ColorFocus:           cfg.ColorFocus,
-					ColorClick:           cfg.ColorClick,
-					ColorBorder:          cfg.ColorBorder,
-					ColorBorderFocus:     cfg.ColorBorderFocus,
+					Color:                cfg.Colors.Base,
+					Colors:               ColorSet{Hover: cfg.Colors.Hover, Click: cfg.Colors.Click, Focus: cfg.Colors.Focus, Border: cfg.Colors.Border, BorderFocus: cfg.Colors.BorderFocus},
 					ColorSelect:          cfg.ColorSelect,
 					SizeBorder:           cfg.SizeBorder,
 					CellSpacing:          cfg.CellSpacing,
@@ -200,8 +194,8 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 		A11YRole:    AccessRoleDateField,
 		A11YState:   a11yReadOnlyState(cfg.ReadOnly),
 		A11YLabel:   a11yLabel(cfg.A11YLabel, "Date Input"),
-		Color:       cfg.Color,
-		ColorBorder: cfg.ColorBorder,
+		Color:       cfg.Colors.Base,
+		ColorBorder: cfg.Colors.Border,
 		SizeBorder:  cfg.SizeBorder,
 		Radius:      cfg.RadiusBorder,
 		Padding:     cfg.Padding,
@@ -215,7 +209,7 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 		Content:     content,
 		AmendLayout: func(ctx EventCtx) {
 			if ctx.Window.IsFocus(cfg.ID) {
-				ctx.Layout.Shape.ColorBorder = cfg.ColorBorderFocus
+				ctx.Layout.Shape.ColorBorder = cfg.Colors.BorderFocus
 			}
 		},
 	})
@@ -310,24 +304,10 @@ func inputDateClose(id string, w *Window) {
 
 func applyInputDateDefaults(cfg *InputDateCfg) {
 	d := &DefaultDatePickerStyle
-	if !cfg.Color.IsSet() {
-		cfg.Color = d.Color
-	}
-	if !cfg.ColorHover.IsSet() {
-		cfg.ColorHover = d.ColorHover
-	}
-	if !cfg.ColorFocus.IsSet() {
-		cfg.ColorFocus = d.ColorFocus
-	}
-	if !cfg.ColorClick.IsSet() {
-		cfg.ColorClick = d.ColorClick
-	}
-	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = d.ColorBorder
-	}
-	if !cfg.ColorBorderFocus.IsSet() {
-		cfg.ColorBorderFocus = d.ColorBorderFocus
-	}
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
+		d.Color, d.ColorHover, d.ColorClick,
+		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
+	))
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
 	}

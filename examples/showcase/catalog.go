@@ -116,11 +116,11 @@ func groupPickerItem(label, key string, app *ShowcaseApp) gui.View {
 	}
 
 	return gui.Button(gui.ButtonCfg{
-		ID:          "grp-" + key,
-		Color:       color,
-		ColorBorder: color,
-		Radius:      gui.SomeF(3),
-		Padding:     gui.SomeP(3, 6, 3, 6),
+		ID:      "grp-" + key,
+		Color:   color,
+		Colors:  gui.ColorSet{Border: color},
+		Radius:  gui.SomeF(3),
+		Padding: gui.SomeP(3, 6, 3, 6),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: label, TextStyle: t.N5}),
 		},
@@ -188,17 +188,13 @@ func catalogRow(entry DemoEntry, app *ShowcaseApp) gui.View {
 	}
 
 	return gui.Button(gui.ButtonCfg{
-		ID:               "cat-" + entry.ID,
-		Sizing:           gui.FillFit,
-		Color:            color,
-		ColorHover:       t.MenubarStyle.ColorSelect,
-		ColorClick:       t.ColorActive,
-		ColorFocus:       color,
-		ColorBorder:      gui.ColorTransparent,
-		ColorBorderFocus: gui.ColorTransparent,
-		Radius:           gui.SomeF(4),
-		Padding:          gui.SomeP(3, 6, 3, 6),
-		HAlign:           gui.Some(gui.HAlignLeft),
+		ID:      "cat-" + entry.ID,
+		Sizing:  gui.FillFit,
+		Color:   color,
+		Colors:  gui.ColorSet{Hover: t.MenubarStyle.ColorSelect, Click: t.ColorActive, Focus: color, Border: gui.ColorTransparent, BorderFocus: gui.ColorTransparent},
+		Radius:  gui.SomeF(4),
+		Padding: gui.SomeP(3, 6, 3, 6),
+		HAlign:  gui.Some(gui.HAlignLeft),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: entry.Label, TextStyle: t.N4}),
 		},
@@ -215,11 +211,10 @@ func catalogRow(entry DemoEntry, app *ShowcaseApp) gui.View {
 func toggleLocale(app *ShowcaseApp) gui.View {
 	label := localeLabel(app.LocaleIndex)
 	return gui.Button(gui.ButtonCfg{
-		ID:               "showcase-locale",
-		Color:            gui.ColorTransparent,
-		ColorBorder:      gui.ColorTransparent,
-		ColorBorderFocus: gui.CurrentTheme().ColorActive,
-		Padding:          gui.SomeP(6, 8, 6, 8),
+		ID:      "showcase-locale",
+		Color:   gui.ColorTransparent,
+		Colors:  gui.ColorSet{Border: gui.ColorTransparent, BorderFocus: gui.CurrentTheme().ColorActive},
+		Padding: gui.SomeP(6, 8, 6, 8),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      label,

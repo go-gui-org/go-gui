@@ -83,6 +83,57 @@ func (cs ColorSet) resolve() ColorSet {
 	return cs
 }
 
+// themeColorSet packs a theme style's six flat colors into a ColorSet
+// so it can be handed to resolved. Theme styles keep their flat fields:
+// they are internal defaults, not caller-facing API, and each one holds
+// a different mix of extra colors that no shared struct would fit.
+func themeColorSet(base, hover, click, focus, border, borderFocus Color) ColorSet {
+	return ColorSet{
+		Base:        base,
+		Hover:       hover,
+		Click:       click,
+		Focus:       focus,
+		Border:      border,
+		BorderFocus: borderFocus,
+	}
+}
+
+// resolved returns a fully-populated set: the caller's own fallbacks
+// first, then the theme for anything still unspecified.
+//
+// shorthand is the widget's flat Color field, which survives as the
+// spelling for the single-color case. It takes precedence over
+// Colors.Base for the same migration reason applyTo encodes — code
+// that set Color keeps its appearance when a ColorSet arrives.
+//
+// This is the seam every widget's apply*Defaults calls, replacing the
+// six near-identical `if !cfg.ColorX.IsSet()` blocks each of them
+// carried.
+func (cs ColorSet) resolved(shorthand Color, theme ColorSet) ColorSet {
+	// The shorthand is applied AFTER resolve, and the ordering is the
+	// whole point. Base backs the interactive states, so folding Color
+	// in beforehand would make `Color: c` silently pin hover, click and
+	// focus to c as well — a widget that sets only its background would
+	// stop reacting to the pointer and to focus. That is a behavior
+	// change, not a refactor, and Flat(c) is how a caller asks for it
+	// deliberately.
+	//
+	// Applied after, `Color: c` sets the resting color and leaves the
+	// states to the theme, which is exactly what it did before ColorSet
+	// existed.
+	cs = cs.resolve()
+	if shorthand.IsSet() {
+		cs.Base = shorthand
+	}
+	setIfUnset(&cs.Base, theme.Base)
+	setIfUnset(&cs.Hover, theme.Hover)
+	setIfUnset(&cs.Click, theme.Click)
+	setIfUnset(&cs.Focus, theme.Focus)
+	setIfUnset(&cs.Border, theme.Border)
+	setIfUnset(&cs.BorderFocus, theme.BorderFocus)
+	return cs
+}
+
 // applyTo fills each of the six flat Color* destinations from the set,
 // but only where the destination is still unset.
 //

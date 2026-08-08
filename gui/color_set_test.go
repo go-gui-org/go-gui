@@ -85,15 +85,15 @@ func TestColorSetApplyToToleratesNilDestinations(t *testing.T) {
 	Flat(Blue).applyTo(nil, nil, nil, nil, nil, nil)
 }
 
-// End to end through the widget: the six-line "don't react" literal
-// collapses to one field and produces the same flat colors.
-func TestButtonColorSetReachesFlatFields(t *testing.T) {
+// End to end through the widget: Flat resolves to one color in every
+// state, which is what the deleted six-field literal used to spell out.
+func TestButtonColorSetResolvesEveryState(t *testing.T) {
 	cfg := ButtonCfg{ID: "b", Colors: Flat(Blue)}
 	applyButtonDefaults(&cfg)
-	if cfg.Color != Blue || cfg.ColorHover != Blue ||
-		cfg.ColorClick != Blue || cfg.ColorFocus != Blue ||
-		cfg.ColorBorder != Blue || cfg.ColorBorderFocus != Blue {
-		t.Fatalf("Flat(Blue) did not reach every flat field: %+v", cfg)
+	c := cfg.Colors
+	if c.Base != Blue || c.Hover != Blue || c.Click != Blue ||
+		c.Focus != Blue || c.Border != Blue || c.BorderFocus != Blue {
+		t.Fatalf("Flat(Blue) did not reach every state: %+v", c)
 	}
 }
 
@@ -101,24 +101,74 @@ func TestButtonColorSetReachesFlatFields(t *testing.T) {
 func TestButtonColorSetLeavesThemeDefaultsForUnsetFields(t *testing.T) {
 	cfg := ButtonCfg{ID: "b", Colors: ColorSet{Base: Blue}}
 	applyButtonDefaults(&cfg)
-	if cfg.Color != Blue {
-		t.Fatalf("Color = %v, want Blue", cfg.Color)
+	if cfg.Colors.Base != Blue {
+		t.Fatalf("Base = %v, want Blue", cfg.Colors.Base)
 	}
-	if cfg.ColorBorder != DefaultButtonStyle.ColorBorder {
-		t.Fatalf("ColorBorder = %v, want the theme default %v",
-			cfg.ColorBorder, DefaultButtonStyle.ColorBorder)
+	if cfg.Colors.Border != DefaultButtonStyle.ColorBorder {
+		t.Fatalf("Border = %v, want the theme default %v",
+			cfg.Colors.Border, DefaultButtonStyle.ColorBorder)
 	}
 }
 
-// Existing code that sets only flat fields must be unaffected by the
-// new field's existence.
-func TestButtonWithoutColorSetIsUnchanged(t *testing.T) {
-	withSet := ButtonCfg{ID: "b", ColorHover: Red}
-	applyButtonDefaults(&withSet)
-	if withSet.ColorHover != Red {
-		t.Fatalf("ColorHover = %v, want Red", withSet.ColorHover)
+// Color survives as the single-color shorthand and outranks Colors.Base.
+func TestButtonColorShorthandWinsOverBase(t *testing.T) {
+	cfg := ButtonCfg{ID: "b", Color: Red, Colors: ColorSet{Base: Blue}}
+	applyButtonDefaults(&cfg)
+	if cfg.Colors.Base != Red {
+		t.Fatalf("Base = %v, want Red — Color must win", cfg.Colors.Base)
 	}
-	if withSet.Color != DefaultButtonStyle.Color {
-		t.Fatalf("Color = %v, want theme default", withSet.Color)
+}
+
+// The shorthand must NOT back the interactive states. Setting only a
+// background color has never disabled hover and focus feedback, and
+// ColorSet must not make it start doing so — Flat(c) is the opt-in for
+// a widget that should not react. Regression: an earlier ordering
+// folded Color into Base before the state fallback and silently pinned
+// all three states, which reds TestButtonAmendLayoutFocus.
+func TestButtonColorShorthandLeavesStatesThemed(t *testing.T) {
+	cfg := ButtonCfg{ID: "b", Color: RGB(50, 50, 50)}
+	applyButtonDefaults(&cfg)
+	if cfg.Colors.Base != RGB(50, 50, 50) {
+		t.Fatalf("Base = %v, want the assigned color", cfg.Colors.Base)
+	}
+	if cfg.Colors.Focus != DefaultButtonStyle.ColorFocus {
+		t.Fatalf("Focus = %v, want the theme default %v — Color must "+
+			"not pin the interactive states",
+			cfg.Colors.Focus, DefaultButtonStyle.ColorFocus)
+	}
+	if cfg.Colors.Focus == cfg.Colors.Base {
+		t.Fatal("focus color equals base; focus would be invisible")
+	}
+}
+
+// A Cfg that touches no color at all is entirely theme-driven.
+func TestButtonWithoutAnyColorUsesTheme(t *testing.T) {
+	cfg := ButtonCfg{ID: "b"}
+	applyButtonDefaults(&cfg)
+	if cfg.Colors.Base != DefaultButtonStyle.Color {
+		t.Fatalf("Base = %v, want theme default", cfg.Colors.Base)
+	}
+	if cfg.Colors.Hover != DefaultButtonStyle.ColorHover {
+		t.Fatalf("Hover = %v, want theme default", cfg.Colors.Hover)
+	}
+}
+
+// The same resolution must hold for every widget that adopted ColorSet,
+// not just Button — that was the point of widening the scope.
+func TestColorSetAdoptedByAllSixWidgets(t *testing.T) {
+	sw := SwitchCfg{ID: "s", Colors: Flat(Blue)}
+	applySwitchDefaults(&sw)
+	tg := ToggleCfg{ID: "t", Colors: Flat(Blue)}
+	applyToggleDefaults(&tg)
+	rd := RadioCfg{ID: "r", Colors: Flat(Blue)}
+	applyRadioDefaults(&rd)
+	for name, got := range map[string]ColorSet{
+		"Switch": sw.Colors,
+		"Toggle": tg.Colors,
+		"Radio":  rd.Colors,
+	} {
+		if got.Hover != Blue || got.BorderFocus != Blue {
+			t.Errorf("%s: Flat(Blue) did not resolve: %+v", name, got)
+		}
 	}
 }

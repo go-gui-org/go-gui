@@ -157,13 +157,12 @@ func landingView(w *gui.Window) gui.View {
 					}),
 
 					gui.Button(gui.ButtonCfg{
-						ID:          "g2048_start",
-						MinWidth:    200,
-						Color:       gui.RGB(237, 194, 46),
-						ColorHover:  gui.RGB(245, 210, 80),
-						Padding:     gui.SomeP(16, 32, 16, 32),
-						SizeBorder:  gui.Some[float32](2),
-						ColorBorder: gui.White,
+						ID:         "g2048_start",
+						MinWidth:   200,
+						Color:      gui.RGB(237, 194, 46),
+						Colors:     gui.ColorSet{Hover: gui.RGB(245, 210, 80), Border: gui.White},
+						Padding:    gui.SomeP(16, 32, 16, 32),
+						SizeBorder: gui.Some[float32](2),
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      "NEW GAME",

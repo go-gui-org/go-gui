@@ -677,16 +677,13 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 	// Retry button on error.
 	if state.LoadError != "" {
 		content = append(content, gg.Button(gg.ButtonCfg{
-			ID:          gridID + ":src_retry",
-			Sizing:      gg.FitFill,
-			Padding:     gg.NoPadding,
-			SizeBorder:  gg.SomeF(0),
-			Radius:      gg.SomeF(0),
-			Color:       gg.ColorTransparent,
-			ColorHover:  cfg.ColorHeaderHover,
-			ColorFocus:  gg.ColorTransparent,
-			ColorClick:  cfg.ColorHeaderHover,
-			ColorBorder: gg.ColorTransparent,
+			ID:         gridID + ":src_retry",
+			Sizing:     gg.FitFill,
+			Padding:    gg.NoPadding,
+			SizeBorder: gg.SomeF(0),
+			Radius:     gg.SomeF(0),
+			Color:      gg.ColorTransparent,
+			Colors:     gg.ColorSet{Hover: cfg.ColorHeaderHover, Click: cfg.ColorHeaderHover, Focus: gg.ColorTransparent, Border: gg.ColorTransparent},
 			OnClick: func(ctx gg.EventCtx) {
 				dataGridSourceRetry(gridID, ctx.Window)
 				if focusID != "" {

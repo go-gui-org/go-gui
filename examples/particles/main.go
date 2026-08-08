@@ -220,14 +220,12 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 				Color:  colorNeonCyan.WithOpacity(0.3),
 			}),
 			gui.Button(gui.ButtonCfg{
-				ID:          "particles_start",
-				MinWidth:    180,
-				Color:       colorNeonGreen.WithOpacity(0.12),
-				ColorHover:  colorNeonGreen.WithOpacity(0.3),
-				ColorClick:  colorNeonGreen.WithOpacity(0.5),
-				ColorBorder: colorNeonGreen,
-				SizeBorder:  gui.SomeF(2),
-				Padding:     gui.SomeP(14, 28, 14, 28),
+				ID:         "particles_start",
+				MinWidth:   180,
+				Color:      colorNeonGreen.WithOpacity(0.12),
+				Colors:     gui.ColorSet{Hover: colorNeonGreen.WithOpacity(0.3), Click: colorNeonGreen.WithOpacity(0.5), Border: colorNeonGreen},
+				SizeBorder: gui.SomeF(2),
+				Padding:    gui.SomeP(14, 28, 14, 28),
 				OnClick: func(ctx gui.EventCtx) {
 					a := gui.State[App](ctx.Window)
 					a.Screen = ScreenPlaying
@@ -664,14 +662,12 @@ func presetBtn(_ *gui.Window, label string, color gui.Color,
 	apply func(*App)) gui.View {
 	theme := gui.CurrentTheme()
 	return gui.Button(gui.ButtonCfg{
-		ID:          "particles_preset_btn",
-		Color:       color.WithOpacity(0.1),
-		ColorHover:  color.WithOpacity(0.25),
-		ColorClick:  color.WithOpacity(0.4),
-		ColorBorder: color.WithOpacity(0.6),
-		SizeBorder:  gui.SomeF(1),
-		Padding:     gui.SomeP(6, 10, 6, 10),
-		Radius:      gui.SomeF(4),
+		ID:         "particles_preset_btn",
+		Color:      color.WithOpacity(0.1),
+		Colors:     gui.ColorSet{Hover: color.WithOpacity(0.25), Click: color.WithOpacity(0.4), Border: color.WithOpacity(0.6)},
+		SizeBorder: gui.SomeF(1),
+		Padding:    gui.SomeP(6, 10, 6, 10),
+		Radius:     gui.SomeF(4),
 		OnClick: func(ctx gui.EventCtx) {
 			a := gui.State[App](ctx.Window)
 			apply(a)
