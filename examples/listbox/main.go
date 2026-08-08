@@ -42,7 +42,6 @@ func main() {
 }
 
 func mainView(w *gui.Window) gui.View {
-	ww, wh := w.WindowSize()
 	app := gui.State[App](w)
 	theme := gui.CurrentTheme()
 
@@ -52,10 +51,8 @@ func mainView(w *gui.Window) gui.View {
 	}
 
 	return gui.Column(gui.ContainerCfg{
-		Width:   float32(ww),
-		Height:  float32(wh),
 		HAlign:  gui.HAlignCenter,
-		Sizing:  gui.FixedFixed,
+		Sizing:  gui.FillFill,
 		Spacing: gui.Some(theme.SpacingSmall),
 		Padding: gui.SomeP(8, 8, 8, 8),
 		Content: []gui.View{
@@ -68,10 +65,11 @@ func mainView(w *gui.Window) gui.View {
 				TextStyle: theme.N5,
 			}),
 			gui.ListBox(gui.ListBoxCfg{
-				ID:          "virtual-listbox-10k",
-				Scrollable:  true,
-				Height:      float32(wh) - 70,
-				Sizing:      gui.FillFixed,
+				ID:         "virtual-listbox-10k",
+				Scrollable: true,
+				// Fill takes whatever the two labels above leave, so no
+				// "window height minus 70" guess to keep in sync.
+				Sizing:      gui.FillFill,
 				SelectedIDs: app.SelectedIDs,
 				Data:        app.Items,
 				OnSelect: func(ids []string, ctx gui.EventCtx) {

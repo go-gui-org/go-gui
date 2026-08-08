@@ -36,7 +36,6 @@ func main() {
 }
 
 func mainView(w *gui.Window) gui.View {
-	ww, wh := w.WindowSize()
 	t := gui.CurrentTheme()
 
 	// Compose the document from styled runs so each feature is easy to spot.
@@ -73,9 +72,7 @@ func mainView(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		ID:         "rtf-scroll",
-		Width:      float32(ww),
-		Height:     float32(wh),
-		Sizing:     gui.FixedFixed,
+		Sizing:     gui.FillFill,
 		Scrollable: true,
 		Padding:    gui.SomeP(10, 10, 10, 10),
 		Content: []gui.View{

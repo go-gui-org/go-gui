@@ -146,11 +146,10 @@ func startNewGame(app *App, diff Difficulty) {
 
 func mainView(w *gui.Window) gui.View {
 	app := gui.State[App](w)
-	ww, wh := w.WindowSize()
 	if app.Screen == ScreenPlaying {
-		return gameView(w, float32(ww), float32(wh))
+		return gameView(w)
 	}
-	return landingView(w, float32(ww), float32(wh))
+	return landingView(w)
 }
 
 // --- Color palette ---
@@ -181,13 +180,11 @@ var numberColors = [9]gui.Color{
 
 // --- Landing page ---
 
-func landingView(w *gui.Window, ww, wh float32) gui.View {
+func landingView(w *gui.Window) gui.View {
 	app := gui.State[App](w)
 	theme := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
-		Width:   ww,
-		Height:  wh,
-		Sizing:  gui.FixedFixed,
+		Sizing:  gui.FillFill,
 		Color:   colorBG,
 		HAlign:  gui.HAlignCenter,
 		VAlign:  gui.VAlignMiddle,
@@ -488,7 +485,7 @@ func cellPxSize(d Difficulty) float32 {
 	}
 }
 
-func gameView(w *gui.Window, ww, wh float32) gui.View {
+func gameView(w *gui.Window) gui.View {
 	app := gui.State[App](w)
 	g := app.Game
 	theme := gui.CurrentTheme()
@@ -507,7 +504,7 @@ func gameView(w *gui.Window, ww, wh float32) gui.View {
 	}
 
 	return gui.Column(gui.ContainerCfg{
-		Width: ww, Height: wh, Sizing: gui.FixedFixed,
+		Sizing: gui.FillFill,
 		HAlign: gui.HAlignCenter, VAlign: gui.VAlignMiddle,
 		Spacing: gui.SomeF(8), SizeBorder: gui.NoBorder,
 		Padding: gui.SomeP(12, 16, 12, 16),

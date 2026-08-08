@@ -118,7 +118,6 @@ var (
 )
 
 func mainView(w *gui.Window) gui.View {
-	ww, wh := w.WindowSize()
 	app := gui.State[App](w)
 	dir := app.Direction
 
@@ -135,9 +134,7 @@ func mainView(w *gui.Window) gui.View {
 
 	return gui.Row(gui.ContainerCfg{
 		ID:         "gradient-scroll",
-		Width:      float32(ww),
-		Height:     float32(wh),
-		Sizing:     gui.FixedFixed,
+		Sizing:     gui.FillFill,
 		Scrollable: true,
 		ScrollbarCfgY: &gui.ScrollbarCfg{
 			Overflow: gui.ScrollbarAuto,

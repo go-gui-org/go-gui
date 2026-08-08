@@ -32,13 +32,10 @@ func main() {
 }
 
 func mainView(w *gui.Window) gui.View {
-	ww, wh := w.WindowSize()
 
 	return gui.Column(gui.ContainerCfg{
-		Width:   float32(ww),
-		Height:  float32(wh),
 		Padding: gui.NoPadding,
-		Sizing:  gui.FixedFixed,
+		Sizing:  gui.FillFill,
 		Spacing: gui.Some[float32](0),
 		Content: []gui.View{
 			menu(w),

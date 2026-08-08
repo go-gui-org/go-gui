@@ -105,6 +105,8 @@ func handleEvent(e *gui.Event, w *gui.Window) {
 
 func mainView(w *gui.Window) gui.View {
 	app := gui.State[App](w)
+	// Allowlisted viewport use: both screens place cards, the status bar
+	// and the win overlay at absolute pixel positions.
 	ww, wh := w.WindowSize()
 	if app.Screen == ScreenPlaying {
 		return gameView(w, float32(ww), float32(wh))

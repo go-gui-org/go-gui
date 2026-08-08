@@ -57,11 +57,8 @@ func main() {
 }
 
 func mainView(w *gui.Window) gui.View {
-	ww, wh := w.WindowSize()
 	return gui.Row(gui.ContainerCfg{
-		Width:   float32(ww),
-		Height:  float32(wh),
-		Sizing:  gui.FixedFixed,
+		Sizing:  gui.FillFill,
 		Padding: gui.NoPadding,
 		Spacing: gui.NoSpacing,
 		Content: []gui.View{catalogPanel(w), detailPanel(w)},

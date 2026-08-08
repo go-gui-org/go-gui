@@ -106,6 +106,23 @@ Breaking items are listed under "Changed" below as they land.
 
 ### Added
 
+- **Examples now teach `FillFill` instead of manual viewport math** (spec §4.8).
+  `WindowSize()` in `examples/` drops from 45 files / 50 call sites to 8 files /
+  9 call sites. The dominant pattern — fetch the window size, set it as the
+  root's `Width`/`Height`, mark the root `FixedFixed` — is now just
+  `Sizing: gui.FillFill`. `todo`'s hand-computed `cardView(ww-24, wh-24)` and
+  `listbox`'s `Height: wh - 70` are gone; `minesweeper` no longer threads the
+  viewport through both screens.
+
+  The 8 remaining calls are allowlisted and each carries a one-line reason at
+  the call site: canvas, particle, game and virtualized-list demos that compute
+  positions in pixel space. `calculator` is one of them for a reason worth
+  knowing — its root is a `Canvas`, which does not arrange its content, so a
+  `FillFill` child of it measures 0×0.
+
+  Three example tests moved from "did not panic" to real state assertions using
+  the phase-2 testing API: `key_up_demo`, `todo` and `dialogs`.
+
 - **An event-collapse check under `gui.Debug(true)`**, plus
   `(*Window).TestEventCollapse` to sweep a window with it armed. It reports
   consume-class callbacks that rely on automatic handling while an ancestor

@@ -64,7 +64,6 @@ func main() {
 }
 
 func mainView(w *gui.Window) gui.View {
-	ww, wh := w.WindowSize()
 	rows := make([]gui.View, 0, len(showcase)/cellsPerRow+1)
 	for i := 0; i < len(showcase); i += cellsPerRow {
 		cells := make([]gui.View, 0, cellsPerRow)
@@ -78,9 +77,7 @@ func mainView(w *gui.Window) gui.View {
 		}))
 	}
 	return gui.Column(gui.ContainerCfg{
-		Width:   float32(ww),
-		Height:  float32(wh),
-		Sizing:  gui.FixedFixed,
+		Sizing:  gui.FillFill,
 		HAlign:  gui.HAlignCenter,
 		Padding: gui.Some(gui.PaddingSmall),
 		Content: rows,

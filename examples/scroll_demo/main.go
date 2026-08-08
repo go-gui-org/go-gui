@@ -33,13 +33,10 @@ func main() {
 }
 
 func mainView(w *gui.Window) gui.View {
-	ww, wh := w.WindowSize()
 	app := gui.State[App](w)
 
 	return gui.Column(gui.ContainerCfg{
-		Width:  float32(ww),
-		Height: float32(wh),
-		Sizing: gui.FixedFixed,
+		Sizing: gui.FillFill,
 		Content: []gui.View{
 			topRow(app),
 			gui.Rectangle(gui.RectangleCfg{Height: 0.5, Sizing: gui.FillFixed}),

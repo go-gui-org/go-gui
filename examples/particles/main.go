@@ -171,6 +171,8 @@ func handleEvent(e *gui.Event, w *gui.Window) {
 
 func mainView(w *gui.Window) gui.View {
 	app := gui.State[App](w)
+	// Allowlisted viewport use: the particle field is simulated in pixel
+	// space and the play screen splits it against a fixed sidebar.
 	ww, wh := w.WindowSize()
 	if app.Screen == ScreenPlaying {
 		return playView(w, float32(ww), float32(wh))

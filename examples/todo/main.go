@@ -72,25 +72,21 @@ func main() {
 }
 
 func mainView(w *gui.Window) gui.View {
-	ww, wh := w.WindowSize()
-
 	return gui.Column(gui.ContainerCfg{
-		Width:   float32(ww),
-		Height:  float32(wh),
-		Sizing:  gui.FixedFixed,
+		Sizing:  gui.FillFill,
 		Color:   colorPageBG,
 		Padding: gui.SomeP(12, 12, 12, 12),
 		Content: []gui.View{
-			cardView(float32(ww)-24, float32(wh)-24, w),
+			cardView(w),
 		},
 	})
 }
 
-func cardView(width, height float32, w *gui.Window) gui.View {
+// The card fills what the page's 12px padding leaves, so it no longer
+// needs the window size threaded in as "minus 24".
+func cardView(w *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
-		Width:       width,
-		Height:      height,
-		Sizing:      gui.FixedFixed,
+		Sizing:      gui.FillFill,
 		Color:       colorCardBG,
 		Radius:      gui.SomeF(18),
 		Padding:     gui.SomeP(34, 34, 34, 34),

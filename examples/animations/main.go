@@ -51,12 +51,9 @@ func main() {
 
 func mainView(w *gui.Window) gui.View {
 	s := gui.State[State](w)
-	ww, wh := w.WindowSize()
 
 	return gui.Column(gui.ContainerCfg{
-		Width:   float32(ww),
-		Height:  float32(wh),
-		Sizing:  gui.FixedFixed,
+		Sizing:  gui.FillFill,
 		Spacing: gui.Some[float32](20),
 		Padding: gui.SomeP(20, 20, 20, 20),
 		Content: []gui.View{
@@ -148,13 +145,10 @@ func mainView(w *gui.Window) gui.View {
 }
 
 func detailView(w *gui.Window) gui.View {
-	ww, wh := w.WindowSize()
 	theme := gui.CurrentTheme()
 
 	return gui.Column(gui.ContainerCfg{
-		Width:   float32(ww),
-		Height:  float32(wh),
-		Sizing:  gui.FixedFixed,
+		Sizing:  gui.FillFill,
 		Spacing: gui.Some[float32](20),
 		Padding: gui.SomeP(20, 20, 20, 20),
 		Content: []gui.View{
