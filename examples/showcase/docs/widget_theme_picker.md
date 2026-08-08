@@ -9,7 +9,7 @@ gui.ThemePicker(gui.ThemePickerCfg{
     ID:          "my-theme-picker",
     FloatAnchor: gui.FloatBottomLeft,
     FloatTieOff: gui.FloatTopLeft,
-    OnSelect: func(name string, _ *gui.Event, w *gui.Window) {
+    OnSelect: func(name string, ctx gui.EventCtx) {
         fmt.Println("switched to", name)
     },
 })
@@ -30,16 +30,15 @@ gui.ThemePicker(gui.ThemePickerCfg{
 
 ## Key Properties
 
-| Property     | Type                          | Description                         |
-| ------------ | ----------------------------- | ----------------------------------- |
-| ID           | string                        | Unique identifier (required)        |
-| IDFocus      | uint32                        | Tab-order focus ID (> 0 to enable)  |
-| Sizing       | Sizing                        | Combined axis sizing mode           |
-| OnSelect     | func(string, *Event, *Window) | Called with theme name on selection |
-| FloatAnchor  | FloatAttach                   | Dropdown anchor point on parent     |
-| FloatTieOff  | FloatAttach                   | Dropdown tie-off point on dropdown  |
-| FloatOffsetX | float32                       | Horizontal offset from anchor       |
-| FloatOffsetY | float32                       | Vertical offset from anchor         |
+| Property     | Type                   | Description                         |
+| ------------ | ---------------------- | ----------------------------------- |
+| ID           | string                 | Unique identifier (required)        |
+| Sizing       | Sizing                 | Combined axis sizing mode           |
+| OnSelect     | func(string, EventCtx) | Called with theme name on selection |
+| FloatAnchor  | FloatAttach            | Dropdown anchor point on parent     |
+| FloatTieOff  | FloatAttach            | Dropdown tie-off point on dropdown  |
+| FloatOffsetX | float32                | Horizontal offset from anchor       |
+| FloatOffsetY | float32                | Vertical offset from anchor         |
 
 ## Accessibility
 

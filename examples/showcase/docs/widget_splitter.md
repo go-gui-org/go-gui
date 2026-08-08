@@ -7,14 +7,13 @@ collapse buttons.
 ```go
 gui.Splitter(gui.SplitterCfg{
     ID:          "split",
-    IDFocus:     100,
     Ratio:       gui.SomeF(0.3),
     Orientation: gui.SplitterHorizontal,
     First:  gui.SplitterPaneCfg{Content: []gui.View{left}},
     Second: gui.SplitterPaneCfg{Content: []gui.View{right}},
     OnChange: func(ratio float32, c gui.SplitterCollapsed,
-        e *gui.Event, w *gui.Window) {
-        s := gui.State[App](w)
+        ctx gui.EventCtx) {
+        s := gui.State[App](ctx.Window)
         s.Ratio = ratio
         s.Collapsed = c
     },
@@ -43,7 +42,6 @@ gui.Splitter(gui.SplitterCfg{
 | Property            | Type                | Description                             |
 | ------------------- | ------------------- | --------------------------------------- |
 | ID                  | string              | Unique identifier                       |
-| IDFocus             | uint32              | Tab-order focus ID (> 0 to enable)      |
 | Orientation         | SplitterOrientation | Horizontal or vertical split            |
 | Sizing              | Sizing              | Combined axis sizing (default FillFill) |
 | Ratio               | Opt[float32]        | Split position (0.0-1.0)                |
@@ -84,9 +82,9 @@ gui.Splitter(gui.SplitterCfg{
 
 ## Events
 
-| Callback | Signature                                         | Fired when                |
-| -------- | ------------------------------------------------- | ------------------------- |
-| OnChange | func(float32, SplitterCollapsed, *Event, *Window) | Ratio or collapse changes |
+| Callback | Signature                                  | Fired when                |
+| -------- | ------------------------------------------ | ------------------------- |
+| OnChange | func(float32, SplitterCollapsed, EventCtx) | Ratio or collapse changes |
 
 ## Accessibility
 

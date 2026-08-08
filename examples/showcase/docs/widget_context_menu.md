@@ -52,7 +52,6 @@ gui.ContextMenu(w, gui.ContextMenuCfg{
 | ID          | string          | Unique identifier                   |
 | Items       | []MenuItemCfg   | Menu items to display               |
 | Content     | []View          | Child views wrapped by context menu |
-| IDFocus     | uint32          | Focus ID (auto-generated if 0)      |
 | FloatZIndex | int             | Z-index for float layering          |
 | Sizing      | Sizing          | Container sizing mode               |
 | Width       | float32         | Container width                     |
@@ -81,10 +80,10 @@ gui.ContextMenu(w, gui.ContextMenuCfg{
 
 ## Events
 
-| Callback   | Signature                     | Fired when            |
-| ---------- | ----------------------------- | --------------------- |
-| Action     | func(string, *Event, *Window) | Menu item selected    |
-| OnAnyClick | func(EventCtx)                | Any click before menu |
+| Callback   | Signature              | Fired when            |
+| ---------- | ---------------------- | --------------------- |
+| Action     | func(string, EventCtx) | Menu item selected    |
+| OnAnyClick | func(EventCtx)         | Any click before menu |
 
 ## Menu Item Helpers
 

@@ -1,7 +1,7 @@
 Procedural 2D drawing canvas with cached tessellation. Draw shapes, lines, text,
 images, and arcs via the `OnDraw` callback. Output is tessellated into triangles
 and cached by `Version` — only re-drawn when the version changes. Optional
-`IDFocus` + `OnKeyDown` make the canvas keyboard-focusable.
+`Focusable` + `OnKeyDown` make the canvas keyboard-focusable.
 
 ## Usage
 
@@ -85,15 +85,15 @@ dc.Image(0, 0, 64, 64,
 
 ## Keyboard Focus
 
-Setting `IDFocus > 0` opts the canvas into tab order. The paired `OnKeyDown`
-callback fires when the canvas is focused and a key is pressed. Set
-`ctx.Consume()` to stop propagation. Bump `Version` to redraw after state
-changes.
+Setting `Focusable: true` opts the canvas into tab order (with a non-empty
+`ID`). The paired `OnKeyDown` callback fires when the canvas is focused and a
+key is pressed. Set `ctx.Consume()` to stop propagation. Bump `Version` to
+redraw after state changes.
 
 ```go
 gui.DrawCanvas(gui.DrawCanvasCfg{
     ID:      "my-canvas",
-    IDFocus: focusMyCanvas,
+    Focusable: true,
     Version: app.MyCanvasVersion,
     Width:   480, Height: 280,
     OnDraw: drawScene,
@@ -115,18 +115,18 @@ gui.DrawCanvas(gui.DrawCanvasCfg{
 
 ## Key Properties
 
-| Property | Type               | Description                           |
-| -------- | ------------------ | ------------------------------------- |
-| ID       | string             | Cache key (required)                  |
-| Version  | uint64             | Bump to invalidate cache              |
-| Width    | float32            | Canvas width                          |
-| Height   | float32            | Canvas height                         |
-| Color    | Color              | Background fill                       |
-| Radius   | float32            | Corner radius                         |
-| Padding  | Opt[Padding]       | Inner padding (shrinks draw area)     |
-| Clip     | bool               | Clip drawing to bounds                |
-| IDFocus  | uint32             | Focus / tab order (0 = not focusable) |
-| OnDraw   | func(*DrawContext) | Drawing callback                      |
+| Property  | Type               | Description                                         |
+| --------- | ------------------ | --------------------------------------------------- |
+| ID        | string             | Cache key (required)                                |
+| Version   | uint64             | Bump to invalidate cache                            |
+| Width     | float32            | Canvas width                                        |
+| Height    | float32            | Canvas height                                       |
+| Color     | Color              | Background fill                                     |
+| Radius    | float32            | Corner radius                                       |
+| Padding   | Opt[Padding]       | Inner padding (shrinks draw area)                   |
+| Clip      | bool               | Clip drawing to bounds                              |
+| Focusable | bool               | Keyboard focus and tab order (needs a non-empty ID) |
+| OnDraw    | func(*DrawContext) | Drawing callback                                    |
 
 ## Events
 
@@ -151,6 +151,6 @@ widget ID.
 | A11YLabel       | string | Accessible label       |
 | A11YDescription | string | Accessible description |
 
-Setting `IDFocus > 0` advertises the canvas as an interactive element (button
-role) to assistive tech; non-focusable canvases advertise as images. Provide a
-meaningful `A11YLabel` on interactive canvases.
+A focusable canvas advertises as an interactive element (button role) to
+assistive tech; non-focusable canvases advertise as images. Provide a meaningful
+`A11YLabel` on interactive canvases.

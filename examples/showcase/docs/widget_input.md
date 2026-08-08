@@ -6,12 +6,11 @@ focus, masked input, and accessibility support.
 ```go
 gui.Input(gui.InputCfg{
     ID:          "name",
-    IDFocus:     100,
     Sizing:      gui.FillFit,
     Text:        app.Name,
     Placeholder: "Enter name...",
-    OnTextChanged: func(_ *gui.Layout, s string, w *gui.Window) {
-        gui.State[App](w).Name = s
+    OnTextChanged: func(s string, ctx gui.EventCtx) {
+        gui.State[App](ctx.Window).Name = s
     },
 })
 ```
@@ -21,11 +20,10 @@ gui.Input(gui.InputCfg{
 ```go
 gui.Input(gui.InputCfg{
     ID:         "pw",
-    IDFocus:    101,
     IsPassword: true,
     Text:       app.Password,
-    OnTextChanged: func(_ *gui.Layout, s string, w *gui.Window) {
-        gui.State[App](w).Password = s
+    OnTextChanged: func(s string, ctx gui.EventCtx) {
+        gui.State[App](ctx.Window).Password = s
     },
 })
 ```
@@ -35,12 +33,11 @@ gui.Input(gui.InputCfg{
 ```go
 gui.Input(gui.InputCfg{
     ID:     "notes",
-    IDFocus: 102,
     Mode:   gui.InputMultiline,
     Height: 90,
     Text:   app.Notes,
-    OnTextChanged: func(_ *gui.Layout, s string, w *gui.Window) {
-        gui.State[App](w).Notes = s
+    OnTextChanged: func(s string, ctx gui.EventCtx) {
+        gui.State[App](ctx.Window).Notes = s
     },
 })
 ```
@@ -74,7 +71,6 @@ token definitions).
 | Height      | float32         | Height (useful for multiline)      |
 | MinWidth    | float32         | Minimum width                      |
 | MaxWidth    | float32         | Maximum width                      |
-| IDFocus     | uint32          | Tab-order focus ID (> 0 to enable) |
 
 ## Appearance
 
@@ -92,15 +88,15 @@ token definitions).
 
 ## Events
 
-| Callback            | Signature                                         | Fired when                       |
-| ------------------- | ------------------------------------------------- | -------------------------------- |
-| OnTextChanged       | func(string, EventCtx)                            | Text changes                     |
-| OnTextCommit        | func(*Layout, string, InputCommitReason, *Window) | Enter pressed or focus lost      |
-| OnEnter             | func(EventCtx)                                    | Enter pressed (single-line)      |
-| OnKeyDown           | func(EventCtx)                                    | Unhandled key event              |
-| OnBlur              | func(EventCtx)                                    | Focus lost                       |
-| PreTextChange       | func(current, proposed string) (string, bool)     | Validate/transform before change |
-| PostCommitNormalize | func(text string, InputCommitReason) string       | Normalize text on commit         |
+| Callback            | Signature                                     | Fired when                       |
+| ------------------- | --------------------------------------------- | -------------------------------- |
+| OnTextChanged       | func(string, EventCtx)                        | Text changes                     |
+| OnTextCommit        | func(string, InputCommitReason, EventCtx)     | Enter pressed or focus lost      |
+| OnEnter             | func(EventCtx)                                | Enter pressed (single-line)      |
+| OnKeyDown           | func(EventCtx)                                | Unhandled key event              |
+| OnBlur              | func(EventCtx)                                | Focus lost                       |
+| PreTextChange       | func(current, proposed string) (string, bool) | Validate/transform before change |
+| PostCommitNormalize | func(text string, InputCommitReason) string   | Normalize text on commit         |
 
 ## Accessibility
 

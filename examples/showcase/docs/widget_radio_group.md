@@ -6,14 +6,13 @@ title.
 ```go
 gui.RadioButtonGroupColumn(gui.RadioButtonGroupCfg{
     Value:   app.Lang,
-    IDFocus: 510,
     Title:   "Language",
     Options: []gui.RadioOption{
         gui.NewRadioOption("Go", "go"),
         gui.NewRadioOption("Rust", "rust"),
     },
-    OnSelect: func(v string, w *gui.Window) {
-        gui.State[App](w).Lang = v
+    OnSelect: func(v string, ctx gui.EventCtx) {
+        gui.State[App](ctx.Window).Lang = v
     },
 })
 ```
@@ -57,7 +56,6 @@ When `Items` is set, `Options` is ignored.
 | Options   | []RadioOption | Available choices (Label + Value)    |
 | Title     | string        | Group-box label                      |
 | TitleBG   | Color         | Border-eraser background for title   |
-| IDFocus   | uint32        | Tab-order focus ID for first radio   |
 | MinWidth  | float32       | Minimum width                        |
 | MinHeight | float32       | Minimum height                       |
 | Sizing    | Sizing        | Combined axis sizing mode            |

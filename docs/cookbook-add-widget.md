@@ -38,29 +38,30 @@ type ToggleCfg struct {
     TextStyle      TextStyle
     TextStyleLabel TextStyle
     OnClick        func(EventCtx)
-    ID             string
+    ID             string `gui:"required,focus"`
     Label          string
     TextSelect     string
     TextUnselect   string
 
-    A11YLabel        string
-    A11YDescription  string
-    Padding          Opt[Padding]
-    SizeBorder       Opt[float32]
-    Radius           Opt[float32]
-    MinWidth        float32
-    // FocusDisabled opts out of the default-on focus.
-    FocusDisabled    bool
-    Color            Color
-    ColorFocus       Color
-    ColorHover       Color
-    ColorClick       Color
-    ColorBorder      Color
-    ColorBorderFocus Color
-    ColorSelect      Color
-    Disabled         bool
-    Invisible        bool
-    Selected         bool
+    A11YLabel       string
+    A11YDescription string
+    Padding         Opt[Padding]
+    // Size overrides the square edge length of the check box.
+    Size       Opt[float32]
+    SizeBorder Opt[float32]
+    Radius     Opt[float32]
+    MinWidth   float32
+    // FocusDisabled opts out of the default-on focus. Focus also
+    // requires a non-empty ID; without one the control is inert.
+    FocusDisabled bool
+    Color         Color
+    // Colors sets the per-state colors. Color above is the
+    // shorthand for Colors.Base and wins over it.
+    Colors      ColorSet
+    ColorSelect Color
+    Disabled    bool
+    Invisible   bool
+    Selected    bool
 }
 ```
 
@@ -79,12 +80,13 @@ Sig: `func WidgetName(cfg WidgetCfg) View`. The function:
 ```go
 func Toggle(cfg ToggleCfg) View {
     applyToggleDefaults(&cfg)
+    requireFocusID("Toggle", cfg.FocusDisabled, cfg.ID)
 
     d := &DefaultToggleStyle
     sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)
     radius := cfg.Radius.Get(d.Radius)
 
-    boxColor := cfg.Color
+    boxColor := cfg.Colors.Base
     if cfg.Selected {
         boxColor = cfg.ColorSelect
     }
@@ -102,7 +104,7 @@ func Toggle(cfg ToggleCfg) View {
     content := make([]View, 0, 2)
     content = append(content, Row(ContainerCfg{
         Color:       boxColor,
-        ColorBorder: cfg.ColorBorder,
+        ColorBorder: cfg.Colors.Border,
         SizeBorder:  Some(sizeBorder),
         Padding:     cfg.Padding,
         Radius:      Some(radius),
@@ -125,10 +127,10 @@ func Toggle(cfg ToggleCfg) View {
         a11yState = AccessStateChecked
     }
 
-    colorFocus := cfg.ColorFocus
-    colorBorderFocus := cfg.ColorBorderFocus
-    colorHover := cfg.ColorHover
-    colorClick := cfg.ColorClick
+    colorFocus := cfg.Colors.Focus
+    colorBorderFocus := cfg.Colors.BorderFocus
+    colorHover := cfg.Colors.Hover
+    colorClick := cfg.Colors.Click
 
     return Row(ContainerCfg{
         ID:              cfg.ID,
@@ -177,12 +179,12 @@ interactive widgets.
 
 ## 3. Theme defaults
 
-Most widgets have a default style struct in `theme_defaults.go`:
+Most widgets have a default style struct in `styles_widget.go`:
 
 ```go
-// In theme_defaults.go
+// In styles_widget.go
 
-type toggleStyleDefaults struct {
+type ToggleStyle struct {
     Color            Color
     ColorFocus       Color
     ColorHover       Color
@@ -191,24 +193,30 @@ type toggleStyleDefaults struct {
     ColorBorderFocus Color
     ColorSelect      Color
     Padding          Padding
+    Size             float32
     SizeBorder       float32
     Radius           float32
     TextStyleNormal  TextStyle
     TextStyleLabel   TextStyle
 }
 
-var DefaultToggleStyle = toggleStyleDefaults{...}
+var DefaultToggleStyle = ToggleStyle{...}
 ```
 
 And in the theme's `init()` or `buildTheme()` function, populate the light/dark
 variants. The factory's `applyDefaults` function fills in any field the user
-didn't set:
+didn't set — the per-state colors resolve through `ColorSet`, with the flat
+`Color` field as the `Base` shorthand:
 
 ```go
 func applyToggleDefaults(cfg *ToggleCfg) {
     d := &DefaultToggleStyle
-    if !cfg.Color.IsSet() {
-        cfg.Color = d.Color
+    cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
+        d.Color, d.ColorHover, d.ColorClick,
+        d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
+    ))
+    if cfg.TextSelect == "" {
+        cfg.TextSelect = "✓"
     }
     if !cfg.Padding.IsSet() {
         cfg.Padding = Some(d.Padding)
@@ -265,8 +273,9 @@ func TestToggleSelectedTextContent(t *testing.T) {
 }
 ```
 
-For interactive widgets, also test event handling with a real Window and
-`RenderFrameZero` (see `view_input_test.go` for examples).
+For interactive widgets, also test event handling with `NewTestWindow` and the
+`Test*` methods — `TestRender`, `TestClick`, `TestKey`. They push real events
+through the same dispatch the backend uses, with no run loop.
 
 ## 5. Add to showcase
 
@@ -325,7 +334,7 @@ go run ./examples/showcase/ # visual check
 - [ ] a11y role, state, label set on the root shape
 - [ ] Keyboard/click semantics via `ClickOnSpace` / `ClickButton` /
       `ClickOnEnter` where appropriate
-- [ ] Theme defaults in `theme_defaults.go` (or skip if not needed)
+- [ ] Theme defaults in `styles_widget.go` (or skip if not needed)
 - [ ] `apply<Name>Defaults` function for theme fallback
 - [ ] `gui/view_<name>_test.go` — layout structure, config passthrough, a11y,
       property rendering tests

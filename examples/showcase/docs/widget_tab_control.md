@@ -7,14 +7,13 @@ drag-reorder.
 ```go
 gui.TabControl(gui.TabControlCfg{
     ID:       "tabs",
-    IDFocus:  100,
     Selected: app.Tab,
     Items: []gui.TabItemCfg{
         {ID: "t1", Label: "General",  Content: []gui.View{general}},
         {ID: "t2", Label: "Advanced", Content: []gui.View{advanced}},
     },
-    OnSelect: func(id string, _ *gui.Event, w *gui.Window) {
-        gui.State[App](w).Tab = id
+    OnSelect: func(id string, ctx gui.EventCtx) {
+        gui.State[App](ctx.Window).Tab = id
     },
 })
 ```
@@ -28,7 +27,7 @@ gui.TabControl(gui.TabControlCfg{
     Items:       items,
     Selected:    app.Tab,
     OnSelect:    onSelect,
-    OnReorder: func(movedID, beforeID string, w *gui.Window) {
+    OnReorder: func(movedID, beforeID string, ctx gui.EventCtx) {
         // reorder items in app state
     },
 })
@@ -50,7 +49,6 @@ gui.TabControl(gui.TabControlCfg{
 | ID            | string       | Unique identifier                       |
 | Items         | []TabItemCfg | Tab definitions                         |
 | Selected      | string       | Active tab ID                           |
-| IDFocus       | uint32       | Tab-order focus ID (> 0 to enable)      |
 | Sizing        | Sizing       | Combined axis sizing (default FillFill) |
 | Reorderable   | bool         | Enable drag-reorder of tabs             |
 | Disabled      | bool         | Disable interaction                     |
@@ -94,10 +92,10 @@ gui.TabControl(gui.TabControlCfg{
 
 ## Events
 
-| Callback  | Signature                               | Fired when            |
-| --------- | --------------------------------------- | --------------------- |
-| OnSelect  | func(string, *Event, *Window)           | Tab selection changes |
-| OnReorder | func(movedID, beforeID string, *Window) | Tab reordered         |
+| Callback  | Signature                                | Fired when            |
+| --------- | ---------------------------------------- | --------------------- |
+| OnSelect  | func(string, EventCtx)                   | Tab selection changes |
+| OnReorder | func(movedID, beforeID string, EventCtx) | Tab reordered         |
 
 ## Accessibility
 

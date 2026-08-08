@@ -9,11 +9,10 @@ zero-configuration path.
 ```go
 gui.Select(gui.SelectCfg{
     ID:       "lang",
-    IDFocus:  600,
     Selected: app.Selected,
     Options:  []string{"Go", "Rust", "Zig"},
-    OnSelect: func(sel []string, _ *gui.Event, w *gui.Window) {
-        gui.State[App](w).Selected = sel
+    OnSelect: func(sel []string, ctx gui.EventCtx) {
+        gui.State[App](ctx.Window).Selected = sel
     },
 })
 ```
@@ -26,8 +25,8 @@ gui.Select(gui.SelectCfg{
     Placeholder:    "Choose tags...",
     SelectMultiple: true,
     Options:        []string{"alpha", "beta", "stable"},
-    OnSelect: func(sel []string, _ *gui.Event, w *gui.Window) {
-        gui.State[App](w).Tags = sel
+    OnSelect: func(sel []string, ctx gui.EventCtx) {
+        gui.State[App](ctx.Window).Tags = sel
     },
 })
 ```
@@ -41,7 +40,6 @@ gui.Select(gui.SelectCfg{
 | Placeholder    | string   | Hint text when empty                |
 | SelectMultiple | bool     | Allow multi-select                  |
 | NoWrap         | bool     | Clip text in multi-select mode      |
-| IDFocus        | uint32   | Tab-order focus ID (> 0 to enable)  |
 | MinWidth       | float32  | Minimum width                       |
 | MaxWidth       | float32  | Maximum width                       |
 | FloatZIndex    | int      | Z-order for dropdown overlay        |
@@ -67,9 +65,9 @@ gui.Select(gui.SelectCfg{
 
 ## Events
 
-| Callback | Signature                       | Fired when        |
-| -------- | ------------------------------- | ----------------- |
-| OnSelect | func([]string, *Event, *Window) | Selection changes |
+| Callback | Signature                | Fired when        |
+| -------- | ------------------------ | ----------------- |
+| OnSelect | func([]string, EventCtx) | Selection changes |
 
 ## Accessibility
 

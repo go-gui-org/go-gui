@@ -54,7 +54,6 @@ CommandButton accepts a standard ButtonCfg. The most relevant fields:
 | Content  | []View    | Custom content (overrides auto-label)     |
 | OnClick  | func(...) | Custom handler (overrides command wiring) |
 | Disabled | bool      | Force disable (also set by CanExecute)    |
-| IDFocus  | uint32    | Tab-order focus ID (> 0 to enable)        |
 | Sizing   | Sizing    | Combined axis sizing mode                 |
 
 ## Appearance

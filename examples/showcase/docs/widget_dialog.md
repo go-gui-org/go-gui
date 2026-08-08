@@ -58,7 +58,7 @@ w.Dialog(gui.DialogCfg{
 | ID            | string          | Unique identifier              |
 | DialogType    | DialogType      | Button configuration           |
 | CustomContent | []View          | Custom views (DialogCustom)    |
-| IDFocus       | uint32          | Initial focus target           |
+| FocusID       | string          | Initial focus target           |
 | AlignButtons  | HorizontalAlign | Button alignment               |
 | Width         | float32         | Dialog width                   |
 | Height        | float32         | Dialog height                  |

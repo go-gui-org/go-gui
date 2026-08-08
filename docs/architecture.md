@@ -125,9 +125,9 @@ UI from the view function.
 ┌───────────────────────────────────┐  ┌──────────────────────────────┐
 │ EVENT DISPATCH                    │  │ ANIMATION                    │
 │                                   │  │                              │
-│ OS event → Event struct              │  │ Animation interface:      │
+│ OS event → Event struct           │  │  │ Animation interface:      │
 │  ├─ hit-test Layout tree          │  │  ├─ Tween (value lerp)       │
-│  ├─ bubble up to ancestors        │  │  ├─ Spring (physics-based)   │
+│  ├─ travel up to ancestors        │  │  ├─ Spring (physics-based)   │
 │  ├─ ctx.Consume() stops it;       │  │  ├─ Keyframe (waypoints)     │
 │  │   silence lets it travel       │  │  ├─ Layout (FLIP-style)      │
 │  └─ callbacks: func(EventCtx)     │  │  ├─ Hero (cross-view)        │
@@ -139,10 +139,10 @@ UI from the view function.
 ┌───────────────────────────────────┐  ┌──────────────────────────────┐
 │ STATE MANAGEMENT                  │  │ THEME SYSTEM                 │
 │                                   │  │                              │
-│ Per-window typed slot:            │  │ Widget Cfg structs use       │
-│   gui.State[App](w)               │  │ Opt[float32] for all numeric │
-│                                   │  │ fields. Zero = use theme     │
-│ Per-widget internal state:        │  │ default; Some(v) = override. │
+│ Per-window typed slot:            │  │ Use Opt[T] where zero is a   │
+│   gui.State[App](w)               │  │ a real user choice. Plain    │
+│                                   │  │ fields elsewhere. Unset      │
+│ Per-widget internal state:        │  │ falls through to theme.      │
 │   StateMap[K,V](w, namespace,     │  │                              │
 │     capacity)                     │  │ DefaultContainerStyle sets   │
 │                                   │  │ baseline (SizeBorder=1.5)    │
@@ -192,7 +192,7 @@ go-gui/
 │       ├── sni/                  ← StatusNotifierItem / system tray
 │       ├── spellcheck/           ← Spell checking
 │       └── internal/             ← Shared backend internals
-└── examples/                     ← 53 example apps
+└── examples/                     ← 59 example apps
     ├── get_started/
     ├── showcase/
     ├── calculator/
@@ -204,9 +204,11 @@ go-gui/
 ## Future Directions
 
 - **WebGPU**: Explored on the `webgpu-backend` branch (deleted) — 12 WGSL shader
-  pipelines, device init, and render loop were working. Rejected because WebGPU
-  has no native text rendering path; a pure-Go TTF rasterizer in go-glyph would
-  be needed first.
+  pipelines, device init, and render loop were working. Superseded: the native
+  GL backend already runs cgo-free on Linux and Windows (X11 via xgb, EGL via
+  purego). WebGPU would add 10–40 MB of runtime shared libraries and still leave
+  macOS — the only real CGo backend — untouched. Full assessment:
+  `docs/specs/cgo-free-backend-feasibility.md`.
 - **Native GL on desktop**: The native GL backend is the default renderer on
   Linux and Windows. It provides direct platform windowing (X11 on Linux, Win32
   on Windows) with EGL/WGL contexts — no intermediate library dependency.

@@ -7,15 +7,14 @@ per-crumb content.
 ```go
 gui.Breadcrumb(gui.BreadcrumbCfg{
     ID:      "nav",
-    IDFocus: 100,
     Items: []gui.BreadcrumbItemCfg{
         {ID: "home",     Label: "Home"},
         {ID: "settings", Label: "Settings"},
         {ID: "display",  Label: "Display"},
     },
     Selected: app.Page,
-    OnSelect: func(id string, _ *gui.Event, w *gui.Window) {
-        gui.State[App](w).Page = id
+    OnSelect: func(id string, ctx gui.EventCtx) {
+        gui.State[App](ctx.Window).Page = id
     },
 })
 ```
@@ -50,7 +49,6 @@ gui.Breadcrumb(gui.BreadcrumbCfg{
 | Items     | []BreadcrumbItemCfg | Path segments         |
 | Selected  | string              | Active segment ID     |
 | Separator | string              | Separator character   |
-| IDFocus   | uint32              | Tab-order focus ID    |
 | Sizing    | Sizing              | Combined axis sizing  |
 | Disabled  | bool                | Disable interaction   |
 | Invisible | bool                | Hide without removing |
@@ -87,9 +85,9 @@ gui.Breadcrumb(gui.BreadcrumbCfg{
 
 ## Events
 
-| Callback | Signature                     | Fired when      |
-| -------- | ----------------------------- | --------------- |
-| OnSelect | func(string, *Event, *Window) | Segment clicked |
+| Callback | Signature              | Fired when      |
+| -------- | ---------------------- | --------------- |
+| OnSelect | func(string, EventCtx) | Segment clicked |
 
 ## Accessibility
 

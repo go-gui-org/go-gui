@@ -55,18 +55,18 @@ gui.RichRun("underlined", gui.TextStyle{
 
 ## Key Properties
 
-| Property      | Type       | Description                         |
-| ------------- | ---------- | ----------------------------------- |
-| RichText      | RichText   | Runs of styled text                 |
-| MinWidth      | float32    | Minimum block width                 |
-| Mode          | TextMode   | Text wrapping mode                  |
-| HangingIndent | float32    | Negative indent for wrapped lines   |
-| Clip          | bool       | Clip text to bounds                 |
-| BaseTextStyle | *TextStyle | Fallback style for runs             |
-| IDFocus       | uint32     | Tab-order focus ID (enables select) |
-| Disabled      | bool       | Disable interaction                 |
-| Invisible     | bool       | Hide without removing from layout   |
-| FocusSkip     | bool       | Skip in tab-order navigation        |
+| Property      | Type       | Description                                             |
+| ------------- | ---------- | ------------------------------------------------------- |
+| RichText      | RichText   | Runs of styled text                                     |
+| MinWidth      | float32    | Minimum block width                                     |
+| Mode          | TextMode   | Text wrapping mode                                      |
+| HangingIndent | float32    | Negative indent for wrapped lines                       |
+| Clip          | bool       | Clip text to bounds                                     |
+| BaseTextStyle | *TextStyle | Fallback style for runs                                 |
+| Focusable     | bool       | Enables focus and text selection (needs a non-empty ID) |
+| Disabled      | bool       | Disable interaction                                     |
+| Invisible     | bool       | Hide without removing from layout                       |
+| FocusSkip     | bool       | Skip in tab-order navigation                            |
 
 ## Accessibility
 

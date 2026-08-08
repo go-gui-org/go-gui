@@ -230,9 +230,9 @@ In input callbacks, trigger validation via FormOnFieldEvent:
 
 ```go
 gui.Input(gui.InputCfg{
-    OnTextChanged: func(l *gui.Layout, s string, w *gui.Window) {
-        gui.State[App](w).Email = s
-        gui.FormOnFieldEvent(w, l, emailCfg(s),
+    OnTextChanged: func(s string, ctx gui.EventCtx) {
+        gui.State[App](ctx.Window).Email = s
+        gui.FormOnFieldEvent(ctx.Window, ctx.Layout, emailCfg(s),
             gui.FormTriggerChange)
     },
     OnBlur: func(ctx gui.EventCtx) {

@@ -19,7 +19,7 @@ w.Toast(gui.ToastCfg{
     Body:        "1 file moved to trash.",
     Severity:    gui.ToastWarning,
     ActionLabel: "Undo",
-    OnAction: func(w *gui.Window) {
+    OnAction: func(ctx gui.EventCtx) {
         // undo delete
     },
 })
@@ -45,9 +45,9 @@ w.Toast(gui.ToastCfg{
 
 ## Events
 
-| Callback | Signature     | Fired when            |
-| -------- | ------------- | --------------------- |
-| OnAction | func(*Window) | Action button clicked |
+| Callback | Signature      | Fired when            |
+| -------- | -------------- | --------------------- |
+| OnAction | func(EventCtx) | Action button clicked |
 
 ## Severity
 

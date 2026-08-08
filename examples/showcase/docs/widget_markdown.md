@@ -37,19 +37,19 @@ w.Markdown(gui.MarkdownCfg{
 
 ## Key Properties
 
-| Property            | Type          | Description                         |
-| ------------------- | ------------- | ----------------------------------- |
-| Source              | string        | Markdown source string              |
-| Style               | MarkdownStyle | Typography and color configuration  |
-| Mode                | Opt[TextMode] | Text wrapping mode                  |
-| IDFocus             | uint32        | Tab-order focus ID (enables select) |
-| MinWidth            | float32       | Minimum view width                  |
-| MermaidWidth        | int           | Max mermaid diagram width (0 = 600) |
-| DisableExternalAPIs | bool          | Disable CodeCogs/Kroki APIs         |
-| Disabled            | bool          | Disable interaction                 |
-| Invisible           | bool          | Hide without removing from layout   |
-| Clip                | bool          | Clip content to bounds              |
-| FocusSkip           | bool          | Skip in tab-order navigation        |
+| Property            | Type          | Description                                             |
+| ------------------- | ------------- | ------------------------------------------------------- |
+| Source              | string        | Markdown source string                                  |
+| Style               | MarkdownStyle | Typography and color configuration                      |
+| Mode                | Opt[TextMode] | Text wrapping mode                                      |
+| Focusable           | bool          | Enables focus and text selection (needs a non-empty ID) |
+| MinWidth            | float32       | Minimum view width                                      |
+| MermaidWidth        | int           | Max mermaid diagram width (0 = 600)                     |
+| DisableExternalAPIs | bool          | Disable CodeCogs/Kroki APIs                             |
+| Disabled            | bool          | Disable interaction                                     |
+| Invisible           | bool          | Hide without removing from layout                       |
+| Clip                | bool          | Clip content to bounds                                  |
+| FocusSkip           | bool          | Skip in tab-order navigation                            |
 
 ## Appearance
 

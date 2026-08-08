@@ -5,12 +5,11 @@ navigation, and drag-reorder support.
 
 ```go
 gui.Tree(gui.TreeCfg{
-    ID:        "project-tree",
-    IDFocus:    2001,
+    ID:         "project-tree",
     Scrollable: true,
     MaxHeight: 240,
-    OnSelect: func(nodeID string, _ *gui.Event, w *gui.Window) {
-        gui.State[AppState](w).SelectedNode = nodeID
+    OnSelect: func(nodeID string, ctx gui.EventCtx) {
+        gui.State[AppState](ctx.Window).SelectedNode = nodeID
     },
     Nodes: []gui.TreeNodeCfg{
         {
@@ -64,7 +63,7 @@ auto-expand into nested nodes:
 gui.Tree(gui.TreeCfg{
     ID:        "simple-tree",
     ItemPaths: []string{"src/main.go", "src/lib.go", "docs/readme.md"},
-    OnSelect: func(nodeID string, _ *gui.Event, w *gui.Window) { ... },
+    OnSelect: func(nodeID string, ctx gui.EventCtx) { ... },
 })
 ```
 
@@ -78,7 +77,6 @@ When `ItemPaths` is set, `Nodes` is ignored.
 | Nodes       | []TreeNodeCfg | Root-level tree nodes                          |
 | Indent      | float32       | Indent per nesting level                       |
 | Spacing     | float32       | Vertical spacing between rows                  |
-| IDFocus     | uint32        | Tab-order focus ID (> 0 to enable)             |
 | Scrollable  | bool          | Opt into the scroll system (state keyed by ID) |
 | Reorderable | bool          | Enable drag-reorder of siblings                |
 | Disabled    | bool          | Disable interaction                            |
@@ -117,11 +115,11 @@ When `ItemPaths` is set, `Nodes` is ignored.
 
 ## Events
 
-| Callback   | Signature                                 | Fired when          |
-| ---------- | ----------------------------------------- | ------------------- |
-| OnSelect   | func(string, *Event, *Window)             | Node selected       |
-| OnLazyLoad | func(string, string, *Window)             | Lazy node expanded  |
-| OnReorder  | func(movedID, beforeID string, w *Window) | Node drag-reordered |
+| Callback   | Signature                                | Fired when          |
+| ---------- | ---------------------------------------- | ------------------- |
+| OnSelect   | func(string, EventCtx)                   | Node selected       |
+| OnLazyLoad | func(string, string, *Window)            | Lazy node expanded  |
+| OnReorder  | func(movedID, beforeID string, EventCtx) | Node drag-reordered |
 
 ## Accessibility
 
