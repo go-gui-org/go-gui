@@ -158,8 +158,14 @@ func TestTestClickBlockedByOverlay(t *testing.T) {
 					Sizing:   FixedFixed,
 					Width:    400,
 					Height:   400,
-					OnClick:  func(_ EventCtx) { overFired = true },
-					Color:    Hex(0x000000),
+					OnClick: func(ctx EventCtx) {
+						overFired = true
+						// An overlay absorbs what lands on it. Under
+						// the one-rule model that is a Consume, not a
+						// side effect of being consume-class.
+						ctx.Consume()
+					},
+					Color: Hex(0x000000),
 				}),
 			},
 		})

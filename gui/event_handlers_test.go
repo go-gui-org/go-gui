@@ -27,6 +27,7 @@ func TestCharHandler(t *testing.T) {
 		root := focusedChild("f1", &eventHandlers{
 			OnChar: func(ctx EventCtx) {
 				called = true
+				ctx.Consume()
 			},
 		})
 		w := &Window{}
@@ -281,6 +282,7 @@ func TestMouseDownHandler(t *testing.T) {
 				events: &eventHandlers{
 					OnClick: func(ctx EventCtx) {
 						hitID = ctx.Layout.Shape.ID
+						ctx.Consume()
 					},
 				},
 			}}
@@ -579,6 +581,7 @@ func TestFileDropHandler(t *testing.T) {
 				events: &eventHandlers{
 					OnFileDrop: func(ctx EventCtx) {
 						hitID = ctx.Layout.Shape.ID
+						ctx.Consume()
 					},
 				},
 			}}
@@ -620,6 +623,7 @@ func TestFileDropHandler(t *testing.T) {
 						Width: 100, Height: 100},
 					events: &eventHandlers{
 						OnFileDrop: func(ctx EventCtx) {
+							ctx.Consume()
 						},
 					},
 				}},

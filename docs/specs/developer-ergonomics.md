@@ -695,10 +695,73 @@ behind a tab, a dialog, or a collapsed panel is invisible until the app
 is driven into that state. The 18 are what the default view of each
 example exposes.
 
-**This does not decide §4.3b.** It replaces the argument's missing
+**This did not decide §4.3b** — §4.3.4 does. It replaced the missing
 number: the silent class is 18 known sites concentrated in ~6 go-gui
 widget files, each fixable ahead of the collapse and verifiable by
-re-running the sweep. Whether to collapse is still a separate call.
+re-running the sweep.
+
+#### 4.3.4 The collapse, as shipped (v0.55.0)
+
+Done. Nothing is pre-marked; every callback consumes explicitly;
+`ctx.Bubble()` is gone. Landed as three PRs, because the measurement was
+wrong twice before it was right.
+
+**The 18 were one anti-idiom.** 14 sites across 12 files wrote
+`ctx.Event.IsHandled = true` instead of calling `ctx.Consume()`.
+Runtime-identical, but `Consume()` also set `explicitConsume`, the flag
+separating "the callback asked" from "dispatch pre-marked" — so every
+one of those sites looked like a decision and was a reliance. Swapping
+all 14 cleared 13 of the 18. The remaining five needed real judgement:
+the dock close button (4, inside its own tab button) and the theme
+picker root (1, hosted as a menu-item `CustomView`).
+
+**The check was measuring the smaller half.** §4.3.3 asked only whether
+an ancestor had a live callback for the same event. But
+`mouseDownHandler` takes focus on the way past any focusable shape under
+the cursor and marks the event handled doing so, **before any callback
+runs** (`gui/event_handlers.go:216`). So an unconsumed click on a
+non-focusable child inside a focusable ancestor does not merely fail to
+stop — it moves focus. No `OnClick` is involved anywhere, which is why
+the original check could not see it. Widening `ancestorHandler` to count
+focus-stealing ancestors, and sweeping all 37 constructible examples
+rather than the 8, found 7 more: the colour picker's hue strip and SV
+area, a slider track press, the scrollbar gutter's mouse-locked early
+return, and two in `gui/datagrid`.
+
+**The static population was 214** — every consume-class callback calling
+neither `Consume()` nor `Bubble()`, 81 in `gui/` and 133 in `examples/`.
+That number is not a defect count and was never the work: under the new
+model an app callback with nothing above it is *correct* not consuming.
+The examples needed no changes at all.
+
+**What the collapse actually broke** was five handlers, and the test
+suite caught two of them:
+
+| Site | Why it broke |
+| ---- | ------------ |
+| `view_command_palette.go` backdrop | dismissal must not reach what the palette floats over |
+| `view_command_palette.go` card | **empty body**, whose only job was to stop the backdrop dismissing under a click into the card |
+| `view_toast.go` | **empty body** — a toast absorbs the clicks it covers |
+| `inspector.go` | **empty body** — clicks must not reach through and mutate what is under study |
+| `view_input_date.go` popup | **empty body** — a click in the popup is not the field's |
+
+Four of five were empty handlers. That is the migration hazard worth
+publishing: an empty consume-class callback used to be a working
+click-blocker, and now blocks nothing.
+
+**The debug check survives, inverted.** `debugCollapse` measured
+reliance on a pre-mark that no longer exists; `debugUnconsumed` reports
+a handler that acted without consuming while an ancestor also receives
+the event, and `TestEventCollapse` is now `TestUnconsumedEvents`. It has
+one honest false positive: deliberate pass-through — a handler that
+inspects an event, decides it is not its own and declines — is now the
+ordinary way to say no, and is indistinguishable from forgetting. The
+sweep is a list to read, not a list to drive to zero.
+
+Sweep across all 37 examples after the collapse: **one finding**, and it
+is that false positive — `inputOnClick`'s "no glyph layout, cannot place
+a cursor" path, reachable only with a nil `TextMeasurer`, i.e. only in
+tests.
 
 ### 4.4 Color-set collapse — highest per-app line savings
 
@@ -1320,7 +1383,7 @@ burying them in the same diff.
 | 4     | §4.7 `RTFCfg` + datagrid builder renames | done   |
 | 4     | §4.4 `ColorSet` on six `Cfg`s, flat state fields deleted | done |
 | 4     | §4.3 callback signature conversion       | done   |
-| 4     | §4.3b event-model collapse               | measured — see §4.3.3 |
+| 4     | §4.3b event-model collapse               | done — see §4.3.4 |
 | 5     | §4.8 example audit                       | done — see §4.8.1 |
 
 Two corrections to §4.2 arising from the implementation.
@@ -1437,6 +1500,13 @@ meaning silently.
 This is the strongest argument for landing §4.6's test API first
 (phase 2): event-propagation regressions are precisely what an app-level
 test can catch and a compiler cannot.
+
+**Resolved (v0.55.0, §4.3.4).** The argument held, and the test API paid
+for itself: of the five go-gui handlers the collapse actually broke, the
+suite caught two on the first run. The silent class turned out to be
+smaller and more specific than "any handler that omitted `Consume()`" —
+it is the **empty** handler, whose only function was to trigger the
+pre-mark. Four of the five were empty bodies.
 
 ### 7.3 Reproducing these counts
 

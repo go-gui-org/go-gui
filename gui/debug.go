@@ -107,9 +107,9 @@ const (
 	debugCheckFocusNoID
 	debugCheckScrollNoID
 	debugCheckMouseLeaveNoID
-	// debugCheckEventCollapse is the only check that runs from dispatch
+	// debugCheckUnconsumed is the only check that runs from dispatch
 	// rather than from the per-frame layout audit; see debug_event.go.
-	debugCheckEventCollapse
+	debugCheckUnconsumed
 )
 
 // debugWarnKey is the warn-once key. For the ID-less checks the
@@ -125,7 +125,7 @@ type debugWarnKey struct {
 type debugState struct {
 	warned map[debugWarnKey]struct{}
 	// collect, when non-nil, receives findings instead of debugOut. Set
-	// only by TestEventCollapse, which needs the findings as data
+	// only by TestUnconsumedEvents, which needs the findings as data
 	// rather than as text on stderr.
 	collect *[]string
 	gen     uint64

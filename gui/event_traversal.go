@@ -21,9 +21,8 @@ func isFocusedTarget(layout *Layout, w *Window) bool {
 }
 
 // executeFocusCallback delivers a keyboard event to the focused
-// target. class states whether the event is consume- or notify-class;
-// the helper serves both (OnChar is consume, OnKeyDown/OnKeyUp are
-// notify), so the caller must say which.
+// target. class names the event for the debug check; it no longer
+// selects a dispatch rule, because there is only one.
 func executeFocusCallback(
 	layout *Layout, e *Event, w *Window,
 	callback ShapeCallback, class evClass,
@@ -34,13 +33,9 @@ func executeFocusCallback(
 	if callback == nil {
 		return false
 	}
-	if class.consumes() {
-		e.explicitConsume = false
-		e.IsHandled = true
-	}
 	callback(EventCtx{layout, e, w})
 	if class.named() {
-		debugCollapse(class, layout, e, w, e.explicitConsume)
+		debugUnconsumed(class, layout, e, w)
 	}
 	return e.IsHandled
 }
@@ -49,10 +44,9 @@ func executeFocusCallback(
 // calls the callback, restores coordinates, and propagates
 // IsHandled. Assumes layout.Shape and callback are non-nil.
 //
-// class states whether the event is consume- or notify-class. The
-// consume pre-mark must land AFTER saved := *e: marking before the
-// save would copy IsHandled = true into saved, and the restore below
-// would then silently undo any ctx.Bubble() the callback performed.
+// class names the event for the debug check and no longer selects a
+// dispatch rule. The pre-mark that used to land here — and the
+// save/restore ordering it forced — is gone with spec §4.3b.
 func callRelative(
 	layout *Layout, e *Event, w *Window,
 	callback ShapeCallback, class evClass,
@@ -60,29 +54,17 @@ func callRelative(
 	saved := *e
 	e.MouseX = saved.MouseX - layout.Shape.X
 	e.MouseY = saved.MouseY - layout.Shape.Y
-	if class.consumes() {
-		e.explicitConsume = false
-		e.IsHandled = true // pre-mark AFTER the save
-	}
 	callback(EventCtx{layout, e, w})
-	handled := e.IsHandled // a ctx.Bubble() in the callback shows up here
-	// The callback's own Consume() decision, read before the restore
-	// puts the outer frame's value back. Guarded so the notify-class
-	// path — nearly every event — pays a predictable branch and no
-	// load; this is the mouse-scroll hot path.
-	var explicit bool
-	if class.named() {
-		explicit = e.explicitConsume
-	}
+	handled := e.IsHandled
 	*e = saved
 	if handled {
 		e.IsHandled = true
 	}
-	// The collapse check runs on the restored event: its ancestor test
+	// The debug check runs on the restored event: its ancestor test
 	// needs the coordinates in the enclosing shape's space, not the
 	// shape-relative ones the callback saw.
 	if class.named() {
-		debugCollapse(class, layout, e, w, explicit)
+		debugUnconsumed(class, layout, e, w)
 	}
 	return handled
 }

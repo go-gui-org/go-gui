@@ -65,85 +65,88 @@ Also unchanged: `OnDraw func(*DrawContext)`,
 `NativeMenuCfg.OnAction func(string)`, and
 `Window.OnEvent func(*Event, *Window)` — a raw escape hatch by design.
 
-## The consume / notify split
+## One rule (v0.55.0)
 
-**Consume-class** events are marked handled _before_ the callback runs:
+**Nothing is marked handled for you.** A callback that acts on an event calls
+`ctx.Consume()`. A callback that does not, lets the event travel on. That is the
+whole model, and it applies to every callback.
 
-> `OnClick`, `OnChar`, `OnMouseUp`, `OnGesture`, `OnFileDrop`
+v0.52.0 through v0.54.0 split callbacks into two classes: `OnClick`, `OnChar`,
+`OnMouseUp`, `OnGesture` and `OnFileDrop` were "consume-class" and dispatch
+marked their events handled before the callback ran, while everything else was
+"notify-class" and had to consume explicitly. Which class you had written was
+invisible in the signature. v0.55.0 deletes the split.
 
-Delete the trailing `e.IsHandled = true` from these — it is now the default.
-Where the old body returned early meaning "not mine, pass it on", call
-`ctx.Bubble()`:
+**What to change.** Add `ctx.Consume()` to any of those five that means to
+absorb the event:
 
 ```go
 OnChar: func(ctx gui.EventCtx) {
     if ctx.Event.CharCode != gui.CharSpace {
-        ctx.Bubble() // every other character keeps travelling
-        return
+        return // every other character keeps travelling
     }
     toggle(ctx.Window)
+    ctx.Consume()
 },
 ```
 
-**Notify-class** events are unchanged in behaviour: nothing is pre-marked, and
-the callback calls `ctx.Consume()` to stop propagation.
+**The case to search for is the empty handler.** An `OnClick` with an empty body
+used to be a working click-blocker — the pre-mark did the absorbing. It now
+absorbs nothing. Overlays, backdrops, popups and cards that stopped clicks
+reaching what they cover all need a real `ctx.Consume()`.
 
-> `OnKeyDown`, `OnKeyUp`, `OnHover`, `OnMouseMove`, `OnMouseLeave`,
-> `OnMouseScroll`, `OnScroll`, `AmendLayout`, `OnIMECommit`
+Nothing changes for `OnKeyDown`, `OnKeyUp`, `OnHover`, `OnMouseMove`,
+`OnMouseLeave`, `OnMouseScroll`, `OnScroll`, `AmendLayout` and `OnIMECommit` —
+they always worked this way. The behaviours that made them the model are why:
 
-The carve-outs are deliberate:
-
-- `OnKeyDown` receives every key. Auto-consuming would kill tab traversal and
+- `OnKeyDown` receives every key. Consuming unasked would kill tab traversal and
   accelerators in any widget with a key handler.
 - Hover, move and leave are notifications. Nested shapes legitimately all want
-  them, so auto-consuming would break every hover-highlight-on-container.
+  them, so consuming unasked would break every hover-highlight-on-container.
 - `OnMouseScroll` cascades to the enclosing scroll container **only if the
   handler leaves the event unhandled**. Scroll chaining is to scrolling what
   bubbling is to keys.
 
-`MouseLockCfg`'s `MouseDown`/`MouseMove`/`MouseUp` take the new signature but
-get no auto-consume: mouse lock already bypasses hit-testing and propagation.
-Their coordinates stay window-absolute, unlike the shape-relative coordinates
-everywhere else.
+`MouseLockCfg`'s `MouseDown`/`MouseMove`/`MouseUp` are unaffected: mouse lock
+already bypasses hit-testing and propagation. Their coordinates stay
+window-absolute, unlike the shape-relative coordinates everywhere else.
 
-## Checking your app against a future one-rule model
+## Finding the handlers you missed
 
-The consume/notify split is settled for v0.54.0, but collapsing it into a single
-rule — nothing pre-marked, every callback consumes explicitly — is still on the
-table. If that happens, a consume-class callback that relies on the pre-mark
-today would start letting the event through to an ancestor, with no compile
-error to warn you.
+The compile-time half of the v0.55.0 change is loud: `ctx.Bubble()` is gone, so
+every call site stops building, and deleting the call is the fix. The other half
+is silent — a handler that should consume and does not simply lets the event
+carry on, and the symptom is a click that fires twice or a popup that dismisses
+itself.
 
 `gui.Debug(true)` reports those sites as they are dispatched, and
-`TestEventCollapse` sweeps a whole window for them:
+`TestUnconsumedEvents` sweeps a whole window for them:
 
 ```go
 w := gui.NewTestWindow(gui.WindowCfg{State: &App{}})
 w.TestRender(mainView)
-for _, f := range w.TestEventCollapse() {
+for _, f := range w.TestUnconsumedEvents() {
     t.Log(f)
 }
 ```
 
-Each finding names an inner callback and the ancestor that would also have
-received the event. The fix is to add `ctx.Consume()` to the inner handler,
-which pins today's behaviour and is correct under either model.
+Each finding names a handler that did not consume and the ancestor that will
+therefore also run — either because it has its own handler for the event, or
+because it is focusable and will take focus on the way past.
 
-The sweep fires every consume-class callback in the window, so give it a window
-built for the purpose. It also sees only the frame in front of it — a hazard
+**Read the findings; do not just drive them to zero.** A handler that inspects
+an event, decides it is not its own and passes it on is now the ordinary way to
+decline, and it looks exactly like one that forgot.
+
+The sweep fires every hit-tested callback in the window, so give it a window
+built for the purpose. It also sees only the frame in front of it — a site
 behind a tab or a dialog needs the app driven into that state first.
-
-## What `Bubble()` does and does not do
-
-`ctx.Bubble()` opts out of **this callback's** auto-consume. It does not
-un-handle an event that an earlier handler already consumed, because the
-coordinate save/restore in dispatch re-applies the incoming flag.
 
 ## Nil `ctx.Event`
 
 `AmendLayout` and `OnScroll` have no originating event, so `ctx.Event` is nil
-there. All three methods are nil-safe — `Consume()` and `Bubble()` do nothing,
-`Handled()` reports false — so no guard is needed.
+there. Both methods are nil-safe — `Consume()` does nothing, `Handled()` reports
+false — so no guard is needed.
 
 ## `Window.OnEvent` sees less
 
@@ -216,7 +219,7 @@ keeping its results.
 
 Pass 1 writes a report of every return path in a consume-class callback that is
 not dominated by a handled assignment. Each entry is a human decision — insert
-`ctx.Bubble()`, or confirm consume-by-default is right. The tool cannot infer
+`ctx.Consume()`, or confirm passing the event on is right. The tool cannot infer
 which, because the old encoding wrote nothing in both cases.
 
 Do not batch-approve it. The recurring shapes worth care are `OnChar` filtering

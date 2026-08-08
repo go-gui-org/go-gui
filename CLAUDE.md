@@ -112,12 +112,17 @@ Backend injects at startup. Nil in tests:
   coords. Moving parent in `AmendLayout` does NOT move children. Use float
   system (`FloatAnchor`/`FloatTieOff`/`FloatOffset`) to position elements with
   children.
-- Events split into two classes. **Consume-class** (`OnClick`, `OnChar`,
-  `OnMouseUp`, `OnGesture`, `OnFileDrop`) are marked handled by dispatch before
-  the callback runs; call `ctx.Bubble()` to opt a path out. **Notify-class**
-  (everything else, incl. `OnKeyDown`, `OnHover`, `OnMouseScroll`) must call
-  `ctx.Consume()` to stop propagation. `ctx.Event` is nil in `AmendLayout` and
-  `OnScroll`; all three `EventCtx` methods are nil-safe
+- **One event rule (since v0.55.0): nothing is marked handled for you. A
+  callback that acts on an event calls `ctx.Consume()`; one that does not, lets
+  the event travel on.** This holds for every callback — `OnClick` and `OnChar`
+  no differently from `OnKeyDown` and `OnHover`. There is no `ctx.Bubble()`:
+  declining is what silence already means. Before v0.55.0 the five hit-tested
+  callbacks were "consume-class" and dispatch pre-marked their events, so an
+  empty `OnClick` was a working click-blocker; such a handler now blocks nothing
+  unless it consumes. `ctx.Event` is nil in `AmendLayout` and `OnScroll`; both
+  `EventCtx` methods are nil-safe. `gui.Debug(true)` reports handlers that act
+  without consuming while an ancestor also handles;
+  `(*Window).TestUnconsumedEvents` sweeps a whole window for them
 
 ## Coding Conventions
 

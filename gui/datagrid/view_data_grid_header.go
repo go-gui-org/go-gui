@@ -149,11 +149,14 @@ func dataGridResizeHandle(cfg *DataGridCfg, col GridColumnCfg, focusID string) g
 		Color:   colorResizeHandle,
 		OnClick: func(ctx gg.EventCtx) {
 			if disabled {
-				ctx.Bubble() // a disabled handle must not eat the click
+				// A disabled handle must not eat the click
 				return
 			}
 			startX := ctx.Layout.Shape.X + ctx.Event.MouseX
 			dataGridStartResize(gridID, columns, rows, textStyleHeader, textStyle, paddingCell, col, focusID, startX, ctx.Event, ctx.Window)
+			// Starting a resize is the click; the header cell it sits
+			// on must not also sort.
+			ctx.Consume()
 		},
 		OnHover: func(ctx gg.EventCtx) {
 			if disabled {

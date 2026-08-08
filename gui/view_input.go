@@ -393,7 +393,7 @@ func inputScrollIDFor(cfg *InputCfg) string {
 func inputOnClick(scrollID string) func(EventCtx) {
 	return func(ctx EventCtx) {
 		if len(ctx.Layout.Children) < 1 {
-			ctx.Bubble() // no inner text shape: not ours
+			// No inner text shape: not ours
 			return
 		}
 		ly := ctx.Layout.Children[0]
@@ -401,7 +401,7 @@ func inputOnClick(scrollID string) func(EventCtx) {
 			ctx.Window.SetFocus(ly.Shape.ID)
 		}
 		if ly.Shape.TC == nil {
-			ctx.Bubble() // no text config: not ours
+			// No text config: not ours
 			return
 		}
 		if ly.Shape.TC.TextIsPlaceholder {
@@ -425,7 +425,7 @@ func inputOnClick(scrollID string) func(EventCtx) {
 			text, ly.Shape, style, ctx.Window,
 		)
 		if !ok {
-			ctx.Bubble() // no glyph layout: cannot place a cursor
+			// No glyph layout: cannot place a cursor
 			return
 		}
 		relX := ctx.Event.MouseX - (ly.Shape.X - ctx.Layout.Shape.X)

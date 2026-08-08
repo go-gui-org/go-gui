@@ -14,12 +14,12 @@ func dataGridMakeOnChar(cfg *DataGridCfg, columns []GridColumnCfg) func(gg.Event
 	onCopyRows := cfg.OnCopyRows
 	return func(ctx gg.EventCtx) {
 		if !dataGridCharIsCopy(ctx.Event) {
-			ctx.Bubble() // only the copy chord is ours
+			// Only the copy chord is ours
 			return
 		}
 		selectedRows := dataGridSelectedRows(rows, selection)
 		if len(selectedRows) == 0 {
-			ctx.Bubble() // nothing selected: nothing to copy
+			// Nothing selected: nothing to copy
 			return
 		}
 		var payload string
@@ -34,7 +34,7 @@ func dataGridMakeOnChar(cfg *DataGridCfg, columns []GridColumnCfg) func(gg.Event
 			payload = gridRowsToTSV(columns, selectedRows)
 		}
 		if payload == "" {
-			ctx.Bubble() // produced nothing: leave the chord to others
+			// Produced nothing: leave the chord to others
 			return
 		}
 		ctx.Window.SetClipboard(payload)

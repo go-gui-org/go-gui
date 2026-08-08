@@ -6,6 +6,56 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **BREAKING: one event rule. Nothing is marked handled for you.** A callback
+  that acts on an event calls `ctx.Consume()`; a callback that does not, lets
+  the event travel on. This is now true of every callback, closing §4.3b of
+  `docs/specs/developer-ergonomics.md` — the last open item in that spec.
+
+  Until now `OnClick`, `OnChar`, `OnMouseUp`, `OnGesture` and `OnFileDrop` were
+  "consume-class": dispatch marked their events handled _before_ the callback
+  ran, and the callback opted out with `ctx.Bubble()`. Everything else consumed
+  explicitly. Which of the two you had written was invisible in the signature.
+
+  ```go
+  // Before — the pre-mark absorbed the click
+  OnClick: func(ctx gui.EventCtx) {
+      dismiss(ctx.Window)
+  },
+
+  // After
+  OnClick: func(ctx gui.EventCtx) {
+      dismiss(ctx.Window)
+      ctx.Consume()
+  },
+  ```
+
+- **BREAKING: `EventCtx.Bubble()` is deleted.** Declining is what saying nothing
+  already means. Every call site is a compile error; deleting the call is the
+  fix.
+
+- **BREAKING: `(*Window).TestEventCollapse` is now `TestUnconsumedEvents`.** It
+  measured the cost of a collapse that has since happened. It now reports
+  handlers that act without consuming while an ancestor would also receive the
+  event, and `gui.Debug(true)` reports the same as they dispatch.
+
+**Upgrading.** The compile-time half is loud — `Bubble()` disappears. The other
+half is silent, so search for **empty** consume-class handlers: an `OnClick`
+with an empty body used to be a working click-blocker, and now blocks nothing.
+Overlays, backdrops, popups and cards that stop clicks reaching what they cover
+all need a real `ctx.Consume()`. Four of the five handlers this change broke
+inside go-gui were exactly that. `docs/migration-eventctx.md` has the full
+guide; `TestUnconsumedEvents` sweeps a window for the rest.
+
+Also in this release, as precursors: 14 sites across 12 files that wrote
+`ctx.Event.IsHandled = true` now call `ctx.Consume()`, the unconsumed-event
+check counts focus-stealing ancestors (a focusable ancestor takes focus on an
+unconsumed click, with no `OnClick` involved anywhere), and
+`examples/scroll_demo` no longer gives five buttons the same ID.
+
 ## [v0.54.0] - 2026-08-08
 
 Developer-ergonomics phases 2–5 (`docs/specs/developer-ergonomics.md`), shipped

@@ -15,10 +15,9 @@
 //     the last statement of the function or of a terminal branch. That
 //     is the safe subset.
 //  4. Everything else in a consume-class callback is reported, not
-//     guessed at. A consume-class callback that returns early without
-//     setting handled was relying on bubble-by-default and may now need
-//     an explicit ctx.Bubble(); the old encoding cannot distinguish
-//     "not mine, pass it on" from "done, nothing to do".
+//     guessed at: the old encoding cannot distinguish "not mine, pass
+//     it on" from "done, nothing to do", and since v0.55.0 the two
+//     spellings differ — the second needs a ctx.Consume().
 //
 // The rewrite is textual: edits are computed from AST positions and
 // spliced into the original source, so everything the rewrite does not
@@ -81,8 +80,8 @@ func (o *Options) owns(name string) bool {
 
 // Finding is one entry in the rule-4 report: a return path in a
 // consume-class callback that is not dominated by a handled assignment,
-// and so is a human decision between ctx.Bubble() and accepting the new
-// consume-by-default.
+// and so is a human decision between adding ctx.Consume() and accepting
+// that the event travels on.
 type Finding struct {
 	Pos  token.Position
 	Kind string // "early-return" or "falls-off-end"
@@ -889,7 +888,11 @@ func (r *rewriter) rewriteHandled(li *litInfo) {
 			return
 		}
 		if !val {
-			r.replace(s.Pos(), s.End(), li.cn+".Bubble()")
+			// e.IsHandled = false said "let this travel on". Since
+			// v0.55.0 that is what a callback does by saying nothing,
+			// and there is no Bubble() to translate it into, so the
+			// statement goes.
+			r.deleteStmt(list, i)
 			return
 		}
 		// Rule 3: in a consume-class callback the pre-mark already
@@ -1081,7 +1084,7 @@ func (r *rewriter) walkRename(n ast.Node, repl map[string]string) {
 
 // reportRule4 lists the return paths of a consume-class callback that
 // are not dominated by a handled assignment. Each entry is a human
-// decision: insert ctx.Bubble(), or confirm consume-by-default.
+// decision: add ctx.Consume(), or confirm passing the event on is right.
 func (r *rewriter) reportRule4(li *litInfo) {
 	ev := li.names[1]
 	sawHandled := false

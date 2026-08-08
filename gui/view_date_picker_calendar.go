@@ -161,7 +161,7 @@ func datePickerMonth(
 					sm := StateMap[string, datePickerState](ctx.Window, nsDatePicker, capModerate)
 					s, ok := sm.Get(cfgID)
 					if !ok {
-						ctx.Bubble() // no picker state: not ours
+						// No picker state: not ours
 						return
 					}
 					s.FocusDay = dayVal
@@ -177,6 +177,10 @@ func datePickerMonth(
 					if onSelect != nil {
 						onSelect(dates, EventCtx{nil, ctx.Event, ctx.Window})
 					}
+					// Picking a day is the click. The calendar sits
+					// inside the picker and, when popped over a field,
+					// inside that field too.
+					ctx.Consume()
 				},
 			}))
 		}
@@ -247,7 +251,7 @@ func datePickerAdjacentCell(
 			sm := StateMap[string, datePickerState](ctx.Window, nsDatePicker, capModerate)
 			s, ok := sm.Get(cfgID)
 			if !ok {
-				ctx.Bubble() // no picker state: not ours
+				// No picker state: not ours
 				return
 			}
 			dates := datePickerUpdateSelections(
@@ -256,6 +260,9 @@ func datePickerAdjacentCell(
 			if onSelect != nil {
 				onSelect(dates, EventCtx{nil, ctx.Event, ctx.Window})
 			}
+			// As for an in-month day: navigating and selecting is the
+			// whole click.
+			ctx.Consume()
 		},
 	})
 }

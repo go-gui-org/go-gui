@@ -2,45 +2,43 @@ package gui
 
 import "strconv"
 
-// Event-model collapse check.
+// Unconsumed-event check.
 //
-// §4.3b of docs/specs/developer-ergonomics.md proposes deleting the
-// consume/notify split: one rule, nothing is pre-marked, every callback
-// consumes explicitly. The compile-time half of that change is loud —
-// ctx.Bubble() disappears and its call sites stop building. The other
-// half is silent, and it is the reason the collapse is still deferred:
-// a consume-class callback that relied on the pre-mark and never called
-// ctx.Consume() would, under the collapse, leave the event unhandled
-// and let it reach an ancestor's handler. No compile error, no panic,
-// just a click that now fires twice.
+// §4.3b of docs/specs/developer-ergonomics.md deleted the
+// consume/notify split in v0.55.0: one rule, nothing is pre-marked,
+// every callback consumes explicitly. The compile-time half of that
+// change was loud — ctx.Bubble() disappeared and its call sites stopped
+// building. This check covers the other half, which is silent: a
+// callback that acts on an event and forgets to consume it lets that
+// event carry on to an ancestor. No compile error, no panic, just a
+// click that fires twice.
 //
-// Counting call sites cannot measure this. §4.3.1 counted 138
-// consume-class sites in examples/ alone and concluded that most sit on
-// widgets with no clickable ancestor — but which ones those are is a
-// property of the layout tree at dispatch time, not of the source.
+// Reading the source cannot answer it. Whether an unconsumed event
+// reaches a second handler is a property of the layout tree at dispatch
+// time, so the check is evaluated where the answer is knowable: right
+// after a callback returns, ask whether the event is still unhandled
+// and whether an ancestor would receive it. Both true is a double
+// dispatch.
 //
-// So the check is a counterfactual, evaluated where the answer is
-// actually knowable: right after a consume-class callback returns, ask
-// (a) did it rely on the pre-mark, and (b) is there an ancestor that
-// would have received this same event. Both true is a site that changes
-// behaviour under the collapse. Everything else is safe to convert.
+// The one false positive to know about is deliberate pass-through — a
+// handler that inspects an event, decides it is not its own, and leaves
+// it alone. That is now the ordinary way to decline, and it is
+// indistinguishable from forgetting. Findings are a list to read, not
+// a list of bugs.
 //
 // Turn it on with gui.Debug(true) or GOGUI_DEBUG=1, exercise the app,
 // and read the findings off stderr. Each is reported once per window.
 
-// debugCollapse reports one dispatch as a collapse hazard when the
-// callback relied on the consume-class pre-mark and an ancestor would
-// also have received the event.
+// debugUnconsumed reports one dispatch where a callback acted on an
+// event, did not consume it, and an ancestor will therefore also
+// receive it.
 //
 // Called from callRelative, executeFocusCallback and the gesture
-// dispatch after every named consume-class callback. explicit is the
-// callback's own ctx.Consume() decision, passed in because callRelative
-// restores the event before calling and would otherwise have handed
-// back the enclosing frame's value.
+// dispatch after every named callback.
 //
 // No-op unless [Debug] is on, which is one atomic load.
-func debugCollapse(
-	class evClass, layout *Layout, e *Event, w *Window, explicit bool,
+func debugUnconsumed(
+	class evClass, layout *Layout, e *Event, w *Window,
 ) {
 	// Dispatch already guards on named(); repeated here so the function
 	// is safe to call directly and cannot be the reason an unnamed
@@ -51,10 +49,8 @@ func debugCollapse(
 	if !debugEnabled.Load() || w == nil || e == nil {
 		return
 	}
-	// Bubbling already means the callback opted out, and an explicit
-	// Consume() already means it would keep working verbatim. Only the
-	// silent middle — still handled, never asked for — is at risk.
-	if !e.IsHandled || explicit {
+	// A consumed event is going nowhere, so there is nothing to report.
+	if e.IsHandled {
 		return
 	}
 	anc := class.ancestorHandler(layout, e, w)
@@ -63,11 +59,10 @@ func debugCollapse(
 	}
 	self := debugShapeName(layout)
 	other := debugShapeName(anc)
-	w.debugWarn(debugCheckEventCollapse, class.name()+":"+self+">"+other,
-		"%s on %s relies on automatic handling and %s above it %s; "+
-			"under the one-rule event model (spec §4.3b) the event would "+
-			"reach both. Add ctx.Consume() to the %s handler to make the "+
-			"current behaviour explicit",
+	w.debugWarn(debugCheckUnconsumed, class.name()+":"+self+">"+other,
+		"%s on %s did not consume the event and %s above it %s, so both "+
+			"will run. Call ctx.Consume() in the %s handler if it means "+
+			"to act on the event; ignore this if it means to pass it on",
 		class.name(), self, other, class.ancestorReason(anc, e, w), self)
 }
 
@@ -128,7 +123,7 @@ func (s *Shape) stealsFocusOn(e *Event) bool {
 }
 
 // wouldReach reports whether this ancestor's own dispatch condition
-// holds for the event. Each consume-class event has a different one.
+// holds for the event. Each named event has a different one.
 func (c evClass) wouldReach(anc *Layout, e *Event, w *Window) bool {
 	s := anc.Shape
 	ev := s.events
@@ -177,28 +172,33 @@ func (c evClass) name() string {
 	return "event"
 }
 
-// TestEventCollapse sweeps the window for sites that would change
-// behaviour under the one-rule event model of spec §4.3b, and returns
-// one finding per site.
+// TestUnconsumedEvents sweeps the window for handlers that act on an
+// event without consuming it while an ancestor would also receive it,
+// and returns one finding per site.
 //
-// It renders a frame, then for every shape carrying a consume-class
-// callback it synthesizes that event at the shape's centre and runs it
-// through real dispatch with the collapse check armed. A finding means
-// the callback relied on automatic handling while an ancestor would
-// also have received the event.
+// It renders a frame, then for every shape carrying one of the five
+// hit-tested callbacks it synthesizes that event at the shape's centre
+// and runs it through real dispatch with the check armed.
 //
 // **This fires the app's callbacks.** Sweeping a window presses every
 // button in it, in tree order, and whatever state that mutates stays
 // mutated. Call it on a window built for the purpose, not on one an
 // assertion still depends on.
 //
-// Empty result means the window is collapse-safe as rendered. It does
-// not mean the app is: a hazard behind a tab, a dialog, or a scrolled
-// region is only visible once that state is on screen, so drive the app
-// into each interesting state and sweep again.
+// Read the findings, do not simply drive them to zero: a handler that
+// inspects an event, decides it is not its own and passes it on is
+// indistinguishable from one that forgot, and both are reported.
+//
+// An empty result covers the window as rendered, not the app: a site
+// behind a tab, a dialog or a scrolled region is only visible once that
+// state is on screen, so drive the app into each interesting state and
+// sweep again.
 //
 // The debug gate is turned on for the duration and restored after.
-func (w *Window) TestEventCollapse() []string {
+//
+// Named TestUnconsumedEvents before v0.55.0, when it measured the cost of
+// a collapse that has since happened.
+func (w *Window) TestUnconsumedEvents() []string {
 	root := w.TestRender(nil)
 	if root == nil {
 		return nil
@@ -216,18 +216,18 @@ func (w *Window) TestEventCollapse() []string {
 		w.debug.collect = nil
 		w.debug.warned = prevWarned
 	}()
-	w.sweepCollapse(root)
+	w.sweepUnconsumed(root)
 	return found
 }
 
-// sweepCollapse walks the tree depth-first, dispatching one synthetic
+// sweepUnconsumed walks the tree depth-first, dispatching one synthetic
 // event per consume-class callback it finds.
 //
 // Dispatch starts from the root every time rather than from the shape,
 // because hit-testing, focus and the topmost-first traversal are the
 // parts that decide who actually receives the event — starting halfway
 // down would skip exactly the logic the check reasons about.
-func (w *Window) sweepCollapse(root *Layout) {
+func (w *Window) sweepUnconsumed(root *Layout) {
 	var walk func(l *Layout)
 	walk = func(l *Layout) {
 		if s := l.Shape; s != nil && s.hasEvents() && !s.Disabled {

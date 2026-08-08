@@ -207,7 +207,12 @@ func toastItemView(toast *toastNotification, style ToastStyle) View {
 				ctx.Layout.Shape.Height *= frac
 			}
 		},
+		// A toast floats over the app, so it has to absorb the clicks
+		// that land on it rather than let them through to whatever it
+		// happens to be covering. The empty body did that back when
+		// dispatch marked consume-class events handled for you.
 		OnClick: func(ctx EventCtx) {
+			ctx.Consume()
 		},
 		OnHover: func(ctx EventCtx) {
 			toastSetHovered(ctx.Window, id, true)

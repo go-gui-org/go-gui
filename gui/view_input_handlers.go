@@ -40,7 +40,7 @@ func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id 
 func makeInputOnChar(hcfg inputHandlerCfg) func(EventCtx) {
 	return func(ctx EventCtx) {
 		if hcfg.FocusID == "" || !ctx.Window.IsFocus(hcfg.FocusID) {
-			ctx.Bubble() // not our field: let the character travel on
+			// Not our field: let the character travel on
 			return
 		}
 		// Swallow typed and IME-composed text; the field keeps focus so

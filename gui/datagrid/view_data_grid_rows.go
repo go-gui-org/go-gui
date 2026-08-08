@@ -386,7 +386,7 @@ func dataGridDetailToggleControl(cfg *DataGridCfg, rowID string, expanded, enabl
 		Colors:     gg.ColorSet{Hover: cfg.ColorRowHover, Click: cfg.ColorRowHover, Focus: gg.ColorTransparent, Border: gg.ColorTransparent},
 		OnClick: func(ctx gg.EventCtx) {
 			if rowID == "" || onDetailExpandedChange == nil {
-				ctx.Bubble() // nothing to toggle: pass the click on
+				// Nothing to toggle: pass the click on
 				return
 			}
 			next := dataGridNextDetailExpandedMap(detailExpandedRowIDs, rowID)
@@ -394,6 +394,9 @@ func dataGridDetailToggleControl(cfg *DataGridCfg, rowID string, expanded, enabl
 			if focusID != "" {
 				ctx.Window.SetFocus(focusID)
 			}
+			// Expanding the detail is the click; the row beneath must
+			// not also select.
+			ctx.Consume()
 		},
 		Content: []gg.View{
 			gg.Text(gg.TextCfg{

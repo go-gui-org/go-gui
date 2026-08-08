@@ -320,12 +320,12 @@ func makeComboboxOnChar(cfgID string) func(EventCtx) {
 		// Default false: absent entry means "not open".
 		isOpen := ss.GetOr(cfgID, false)
 		if !isOpen {
-			ctx.Bubble() // closed: typing is not ours to swallow
+			// Closed: typing is not ours to swallow
 			return
 		}
 		ch := rune(ctx.Event.CharCode)
 		if ch < CharSpace {
-			ctx.Bubble() // control characters belong to OnKeyDown
+			// Control characters belong to OnKeyDown
 			return
 		}
 		sq := StateMap[string, string](ctx.Window, nsComboboxQuery, capModerate)

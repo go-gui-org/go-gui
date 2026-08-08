@@ -238,7 +238,7 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.
 func dataGridMakeColumnChooserOnClick(onHiddenColumnsChange func(map[string]bool, gg.EventCtx), hiddenColumnIDs map[string]bool, columns []GridColumnCfg, colID string, focusID string) func(gg.EventCtx) {
 	return func(ctx gg.EventCtx) {
 		if onHiddenColumnsChange == nil {
-			ctx.Bubble() // no handler configured: pass the click on
+			// No handler configured: pass the click on
 			return
 		}
 		nextHidden := dataGridNextHiddenColumns(hiddenColumnIDs, colID, columns)
