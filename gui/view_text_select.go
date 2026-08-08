@@ -80,7 +80,7 @@ func textOnClick(ctx EventCtx) {
 	is.CursorOffset = -1
 	imap.Set(focusID, is)
 	resetBlinkCursorVisible(ctx.Window)
-	ctx.Event.IsHandled = true
+	ctx.Consume()
 
 	// Drag-to-select via MouseLock.
 	anchorPos := is.SelectBeg

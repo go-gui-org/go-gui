@@ -107,7 +107,7 @@ func (rv *datePickerRollerView) GenerateLayout(w *Window) Layout {
 				ctx.Layout.Shape.ColorBorder = cfg.ColorBorderFocus
 			}
 			ctx.Layout.Shape.events.OnMouseScroll = func(ctx EventCtx) {
-				ctx.Event.IsHandled = true
+				ctx.Consume()
 				if onChange == nil {
 					return
 				}

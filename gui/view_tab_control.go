@@ -158,7 +158,7 @@ func makeTabOnClick(
 		if focusID != "" {
 			ctx.Window.SetFocus(focusID)
 		}
-		ctx.Event.IsHandled = true
+		ctx.Consume()
 	}
 }
 
@@ -378,7 +378,7 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 			if reorderable {
 				if dragReorderEscape(
 					controlID, ctx.Event.KeyCode, ctx.Window) {
-					ctx.Event.IsHandled = true
+					ctx.Consume()
 					return
 				}
 				for idx, id := range tabIDs {

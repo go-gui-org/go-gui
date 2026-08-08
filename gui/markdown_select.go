@@ -156,7 +156,7 @@ func markdownBlockOnClick(ctx EventCtx) {
 		st.SelEnd = absRune
 	}
 	imap.Set(mdID, st)
-	ctx.Event.IsHandled = true
+	ctx.Consume()
 
 	// Capture drag state. Copy layout value so it's safe across frames.
 	anchorBeg := st.SelBeg
@@ -283,7 +283,7 @@ func markdownContainerOnKeyDown(ctx EventCtx) {
 	}
 
 	if handled {
-		ctx.Event.IsHandled = true
+		ctx.Consume()
 	}
 }
 

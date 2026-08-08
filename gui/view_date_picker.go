@@ -239,7 +239,7 @@ func datePickerControls(
 			ctx.Window.SetFocus(focusID)
 		}
 		ctx.Window.UpdateWindow()
-		ctx.Event.IsHandled = true
+		ctx.Consume()
 	}
 
 	onPrev := func(ctx EventCtx) {

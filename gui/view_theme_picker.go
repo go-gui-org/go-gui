@@ -79,7 +79,7 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 						if onSel != nil {
 							onSel(name, EventCtx{nil, ctx.Event, ctx.Window})
 						}
-						ctx.Event.IsHandled = true
+						ctx.Consume()
 					},
 				}),
 			},
@@ -104,6 +104,12 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 			if opening {
 				themePickerSyncHighlight(lbID, ctx.Window)
 			}
+			// Toggling the popup is the whole click. Consume it so an
+			// enclosing clickable (a menu item hosting the picker as a
+			// CustomView, in menu_demo) does not also act on it — today
+			// the consume-class pre-mark stops that implicitly, and
+			// spec §4.3b would remove the pre-mark.
+			ctx.Consume()
 		},
 		AmendLayout: func(ctx EventCtx) {
 			if ctx.Window.IsFocus(focusID) {

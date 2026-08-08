@@ -122,7 +122,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 				if gridFocusID != "" {
 					ctx.Window.SetFocus(gridFocusID)
 				}
-				ctx.Event.IsHandled = true
+				ctx.Consume()
 			},
 		})
 	}

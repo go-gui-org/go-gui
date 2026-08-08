@@ -274,7 +274,7 @@ func rtfMouseMove(ctx EventCtx) {
 			if found.Tooltip != "" {
 				tipID := found.Tooltip
 				if ts.hoverID == tipID {
-					ctx.Event.IsHandled = true
+					ctx.Consume()
 					return
 				}
 				r := rtfRunRect(run)
