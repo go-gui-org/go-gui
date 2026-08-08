@@ -203,8 +203,8 @@ type DataGridCfg struct {
 	OnCellEdit             func(GridCellEdit, gg.EventCtx)
 	OnRowsChange           func([]GridRow, gg.EventCtx)
 	OnCRUDError            func(string, gg.EventCtx)
-	OnCellFormat           func(GridRow, int, GridColumnCfg, string, *gg.Window) GridCellFormat
-	OnDetailRowView        func(GridRow, *gg.Window) gg.View
+	CellFormat             func(GridRow, int, GridColumnCfg, string, *gg.Window) GridCellFormat
+	DetailRowView          func(GridRow, *gg.Window) gg.View
 	OnCopyRows             func([]GridRow, *gg.Event, *gg.Window) (string, bool)
 	OnRowActivate          func(GridRow, gg.EventCtx)
 	Query                  GridQueryState

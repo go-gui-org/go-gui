@@ -11,6 +11,38 @@ and this project adheres to
 Developer-ergonomics phases 2 and 3 (`docs/specs/developer-ergonomics.md`
 §4.4–§4.6): an app-testing API and the `ColorSet` collapse. Additive.
 
+Phase 4 (§4.3, §4.7) has begun and **is breaking**; it will ship as v0.54.0.
+Breaking items are listed under "Changed" below as they land.
+
+### Changed
+
+- **BREAKING: `RtfCfg` is now `RTFCfg`**, and the exported `Rtf*` fields on
+  `Shape.TC` are now `RTF*` — `RTFRuns`, `RTFLayout`, `RTFFlatText`,
+  `RTFBaseStyle`, `RTFLineSpacing`. `RTF(cfg RtfCfg)` was the only factory whose
+  name disagreed with its `Cfg` in casing. The `Shape` fields are renamed
+  alongside it because leaving them as `Rtf*` next to a new `RTFCfg` would trade
+  one inconsistency for another inside the same widget. Unexported identifiers
+  (`renderRtf`, `hasRtfLayout`) are unchanged.
+
+  The casing split was not only cosmetic. `requiredid` derives a factory name by
+  trimming `Cfg`, so `RtfCfg` implied a factory called `Rtf`, never matched the
+  real `RTF`, and every `gui.RTF(gui.RtfCfg{…})` literal was skipped as
+  possibly-wrapped. The rename re-enabled the check and surfaced four focusable
+  RTF blocks in the showcase with no `ID` — keyboard-unreachable since they were
+  written. All four now have one.
+
+### Fixed
+
+- **Four focusable RTF blocks in `examples/showcase` had no `ID`**, so they
+  rendered and clicked but never joined the tab order. Found by `requiredid`
+  once the `RTFCfg` rename let it see them.
+
+- **BREAKING: `DataGridCfg.OnCellFormat` and `OnDetailRowView` are now
+  `CellFormat` and `DetailRowView`.** Neither is an event callback — both are
+  view builders that return a value (`GridCellFormat` and `gg.View`), so the
+  `On*` prefix misdescribed them. No reference to either name exists in any
+  sibling repo, so the rename costs nothing outside this module.
+
 ### Added
 
 - **`ColorSet` and `Flat`** (`gui/color_set.go`), on `ButtonCfg` as the `Colors`

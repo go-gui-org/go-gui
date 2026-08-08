@@ -121,7 +121,7 @@ type Shape struct {
 
 	// FocusSkip excludes a Focusable widget from Tab traversal while
 	// keeping it click-focusable and able to hold selection state
-	// (used by Text/Rtf/Markdown selection).
+	// (used by Text/RTF/Markdown selection).
 	FocusSkip bool
 
 	// Scrollable makes the widget respond to scroll events (mouse
@@ -329,15 +329,15 @@ type ShapeTextConfig struct {
 	textLayoutStyle    TextStyle
 	TextStyle          *TextStyle
 	TextLayout         *glyph.Layout
-	RtfRuns            *RichText
-	RtfLayout          *glyph.Layout
+	RTFRuns            *RichText
+	RTFLayout          *glyph.Layout
 	rtfGlyphRT         *glyph.RichText // cached conversion
 	Text               string
-	RtfFlatText        string // concatenation of all run texts; rune↔byte conversion for selection
+	RTFFlatText        string // concatenation of all run texts; rune↔byte conversion for selection
 	textLayoutText     string
 	rtfMathHashes      []int64 // cache keys per inline math object
-	RtfBaseStyle       glyph.TextStyle
-	RtfLineSpacing     float32 // gui LineSpacing; glyph.TextStyle drops it, so carried separately for BlockStyle
+	RTFBaseStyle       glyph.TextStyle
+	RTFLineSpacing     float32 // gui LineSpacing; glyph.TextStyle drops it, so carried separately for BlockStyle
 	TextSelBeg         uint32
 	TextSelEnd         uint32
 	TextTabSize        uint32
@@ -362,7 +362,7 @@ type ShapeTextConfig struct {
 
 // hasRtfLayout returns true if the shape has an RTF layout.
 func (s *Shape) hasRtfLayout() bool {
-	return s.TC != nil && s.TC.RtfLayout != nil
+	return s.TC != nil && s.TC.RTFLayout != nil
 }
 
 // TextMode controls how a text view renders text.

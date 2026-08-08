@@ -100,8 +100,8 @@ func mdWalkBlocks(l *Layout, mdID string, out *[]mdBlockInfo) {
 			H:         l.Shape.Height,
 			StartRune: tc.MarkdownBlockStart,
 			RuneLen:   tc.MarkdownRuneLen,
-			Layout:    *tc.RtfLayout, // shallow copy — safe for Items slice from cache
-			FlatText:  tc.RtfFlatText,
+			Layout:    *tc.RTFLayout, // shallow copy — safe for Items slice from cache
+			FlatText:  tc.RTFFlatText,
 			ShapeX:    l.Shape.X,
 			ShapeY:    l.Shape.Y,
 		})
@@ -130,8 +130,8 @@ func markdownBlockOnClick(ctx EventCtx) {
 	ctx.Window.SetFocus(mdID)
 
 	// Compute abs rune position within the markdown flat text.
-	gl := shape.TC.RtfLayout
-	flatText := shape.TC.RtfFlatText
+	gl := shape.TC.RTFLayout
+	flatText := shape.TC.RTFFlatText
 	byteIdx := gl.GetClosestOffset(ctx.Event.MouseX, ctx.Event.MouseY)
 	localRune := byteToRuneIndex(flatText, byteIdx)
 	absRune := uint32(localRune) + shape.TC.MarkdownBlockStart

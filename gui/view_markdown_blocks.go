@@ -81,7 +81,7 @@ func renderMdMermaid(
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Content: []View{
-			RTF(RtfCfg{
+			RTF(RTFCfg{
 				RichText: block.Content,
 				Mode:     TextModeSingleLine,
 			}),
@@ -206,7 +206,7 @@ func renderMdCode(
 		Sizing:     FillFit,
 		Clip:       true,
 		Content: []View{
-			RTF(RtfCfg{
+			RTF(RTFCfg{
 				RichText: block.Content,
 				Mode:     TextModeSingleLine,
 			}),
@@ -291,7 +291,7 @@ func mdRenderHR(cfg MarkdownCfg) View {
 	})
 }
 
-func applyMdCtx(cfg *RtfCfg, ctx *mdBlockCtx) {
+func applyMdCtx(cfg *RTFCfg, ctx *mdBlockCtx) {
 	if ctx != nil {
 		cfg.markdownID = ctx.ID
 		cfg.markdownBlockStart = ctx.Start
@@ -304,7 +304,7 @@ func mdRenderBlockquote(
 ) View {
 	leftMargin := float32(
 		block.BlockquoteDepth-1) * cfg.Style.NestIndent
-	rtfCfg := RtfCfg{
+	rtfCfg := RTFCfg{
 		RichText:      block.Content,
 		Mode:          mode,
 		BaseTextStyle: &block.BaseStyle,
@@ -352,7 +352,7 @@ func mdRenderHeading(
 			Height: 3,
 		}))
 	}
-	rtfCfg := RtfCfg{
+	rtfCfg := RTFCfg{
 		ID:            block.AnchorSlug,
 		RichText:      block.Content,
 		Mode:          mode,
@@ -381,7 +381,7 @@ func mdRenderHeading(
 }
 
 func mdRenderDefTerm(block MarkdownBlock, mode TextMode, ctx *mdBlockCtx) View {
-	rtfCfg := RtfCfg{
+	rtfCfg := RTFCfg{
 		RichText:      block.Content,
 		Mode:          mode,
 		BaseTextStyle: &block.BaseStyle,
@@ -393,7 +393,7 @@ func mdRenderDefTerm(block MarkdownBlock, mode TextMode, ctx *mdBlockCtx) View {
 func mdRenderDefValue(
 	block MarkdownBlock, cfg MarkdownCfg, mode TextMode, ctx *mdBlockCtx,
 ) View {
-	rtfCfg := RtfCfg{
+	rtfCfg := RTFCfg{
 		RichText:      block.Content,
 		Mode:          mode,
 		BaseTextStyle: &block.BaseStyle,
@@ -436,7 +436,7 @@ func mdRenderListItem(
 		})
 	}
 
-	rtfCfg := RtfCfg{
+	rtfCfg := RTFCfg{
 		RichText:      block.Content,
 		Mode:          mode,
 		BaseTextStyle: &block.BaseStyle,
@@ -504,7 +504,7 @@ func mdRenderParagraph(
 	block MarkdownBlock, cfg MarkdownCfg, mode TextMode,
 	ctx *mdBlockCtx,
 ) View {
-	rtfCfg := RtfCfg{
+	rtfCfg := RTFCfg{
 		ID:            cfg.ID,
 		Clip:          cfg.Clip,
 		FocusSkip:     cfg.FocusSkip,

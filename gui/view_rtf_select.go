@@ -38,8 +38,8 @@ func rtfSelectOnClick(ctx EventCtx) {
 	}
 	ctx.Window.SetFocus(shape.ID)
 
-	gl := shape.TC.RtfLayout
-	flatText := shape.TC.RtfFlatText
+	gl := shape.TC.RTFLayout
+	flatText := shape.TC.RTFFlatText
 
 	byteIdx := gl.GetClosestOffset(ctx.Event.MouseX, ctx.Event.MouseY)
 	runePos := byteToRuneIndex(flatText, byteIdx)
@@ -195,8 +195,8 @@ func rtfSelectOnKeyDown(ctx EventCtx) {
 		return
 	}
 	id := shape.ID
-	flatText := shape.TC.RtfFlatText
-	gl := *shape.TC.RtfLayout
+	flatText := shape.TC.RTFFlatText
+	gl := *shape.TC.RTFLayout
 
 	imap := StateMap[string, InputState](ctx.Window, nsInput, capMany)
 	// Default InputState{}: zero value seeds initial keyboard-nav state.

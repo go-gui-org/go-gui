@@ -345,7 +345,7 @@ func tableBuildRow(
 		var cellContent []View
 		if cell.RichText != nil {
 			cellContent = []View{
-				RTF(RtfCfg{RichText: *cell.RichText}),
+				RTF(RTFCfg{RichText: *cell.RichText}),
 			}
 		} else if cell.Content != nil {
 			cellContent = []View{cell.Content}

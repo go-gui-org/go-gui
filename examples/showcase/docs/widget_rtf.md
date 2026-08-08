@@ -5,7 +5,7 @@ text block. Build a paragraph from `RichTextRun` slices rendered by `gui.RTF`.
 
 ```go
 t := gui.CurrentTheme()
-gui.RTF(gui.RtfCfg{
+gui.RTF(gui.RTFCfg{
     RichText: gui.RichText{
         Runs: []gui.RichTextRun{
             gui.RichRun("Normal, ", t.N3),
@@ -19,7 +19,7 @@ gui.RTF(gui.RtfCfg{
 ## With Links and Abbreviations
 
 ```go
-gui.RTF(gui.RtfCfg{
+gui.RTF(gui.RTFCfg{
     RichText: gui.RichText{
         Runs: []gui.RichTextRun{
             gui.RichRun("Visit ", t.N3),

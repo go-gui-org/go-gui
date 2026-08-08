@@ -440,12 +440,12 @@ func renderRtf(shape *Shape, clip drawClip, w *Window) {
 		Kind:      RenderRTF,
 		X:         baseX,
 		Y:         baseY,
-		LayoutPtr: shape.TC.RtfLayout,
+		LayoutPtr: shape.TC.RTFLayout,
 	}, w)
 
-	if shape.TC.RtfFlatText != "" {
-		renderInputSelection(shape, shape.TC.RtfFlatText,
-			baseX, baseY, *shape.TC.RtfLayout, true, w)
+	if shape.TC.RTFFlatText != "" {
+		renderInputSelection(shape, shape.TC.RTFFlatText,
+			baseX, baseY, *shape.TC.RTFLayout, true, w)
 	}
 
 	// Emit RenderImage for inline math objects.
@@ -459,8 +459,8 @@ func renderRtf(shape *Shape, clip drawClip, w *Window) {
 		return
 	}
 	objIdx := 0
-	for i := range shape.TC.RtfLayout.Items {
-		item := &shape.TC.RtfLayout.Items[i]
+	for i := range shape.TC.RTFLayout.Items {
+		item := &shape.TC.RTFLayout.Items[i]
 		if !item.IsObject {
 			continue
 		}

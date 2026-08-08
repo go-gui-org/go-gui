@@ -38,7 +38,7 @@ func dataGridGroupHeaderRowView(cfg *DataGridCfg, entry dataGridDisplayRow, rowH
 
 func dataGridDetailRowView(dctx dataGridCtx, rowData GridRow, rowIdx int) gg.View {
 	cfg := dctx.cfg
-	if cfg.OnDetailRowView == nil {
+	if cfg.DetailRowView == nil {
 		return gg.Rectangle(gg.RectangleCfg{
 			Height: dctx.rowHeight,
 			Sizing: gg.FillFixed,
@@ -46,7 +46,7 @@ func dataGridDetailRowView(dctx dataGridCtx, rowData GridRow, rowIdx int) gg.Vie
 		})
 	}
 	rowID := dataGridRowID(rowData, rowIdx)
-	detailView := cfg.OnDetailRowView(rowData, dctx.w)
+	detailView := cfg.DetailRowView(rowData, dctx.w)
 	pc := cfg.PaddingCell.Get(gg.Padding{})
 	focusID := dctx.focusID
 	return gg.Row(gg.ContainerCfg{
@@ -95,7 +95,7 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 	editEnabled := dataGridEditingEnabled(cfg)
 	editorFocusBase := dataGridCellEditorFocusBaseID(cfg, len(columns))
 	colCount := len(columns)
-	detailEnabled := cfg.OnDetailRowView != nil
+	detailEnabled := cfg.DetailRowView != nil
 	detailToggleEnabled := cfg.OnDetailExpandedChange != nil
 	detailExpanded := dataGridDetailRowExpanded(cfg, rowID)
 	isEditingRow := dctx.editingRowID == rowID && editEnabled
@@ -109,8 +109,8 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 		}
 		textStyle := baseTextStyle
 		cellColor := gg.ColorTransparent
-		if cfg.OnCellFormat != nil {
-			cellFormat := cfg.OnCellFormat(rowData, rowIdx, col, value, w)
+		if cfg.CellFormat != nil {
+			cellFormat := cfg.CellFormat(rowData, rowIdx, col, value, w)
 			textStyle, cellColor = dataGridResolveCellFormat(baseTextStyle, cellFormat)
 		}
 		isEditingCell := isEditingRow && col.Editable
@@ -486,7 +486,7 @@ func dataGridFrozenTopViews(dctx dataGridCtx, frozenTopIndices []int, showDelete
 		rowID := dataGridRowID(rowData, rowIdx)
 		views = append(views, dataGridRowView(dctx, rowData, rowIdx, showDeleteAction))
 		displayRows++
-		if cfg.OnDetailRowView != nil && dataGridDetailRowExpanded(cfg, rowID) {
+		if cfg.DetailRowView != nil && dataGridDetailRowExpanded(cfg, rowID) {
 			views = append(views, dataGridDetailRowView(dctx, rowData, rowIdx))
 			displayRows++
 		}
