@@ -24,6 +24,19 @@ Breaking items are listed under "Changed" below as they land.
   one inconsistency for another inside the same widget. Unexported identifiers
   (`renderRtf`, `hasRtfLayout`) are unchanged.
 
+  The casing split was not only cosmetic. `requiredid` derives a factory name by
+  trimming `Cfg`, so `RtfCfg` implied a factory called `Rtf`, never matched the
+  real `RTF`, and every `gui.RTF(gui.RtfCfg{…})` literal was skipped as
+  possibly-wrapped. The rename re-enabled the check and surfaced four focusable
+  RTF blocks in the showcase with no `ID` — keyboard-unreachable since they were
+  written. All four now have one.
+
+### Fixed
+
+- **Four focusable RTF blocks in `examples/showcase` had no `ID`**, so they
+  rendered and clicked but never joined the tab order. Found by `requiredid`
+  once the `RTFCfg` rename let it see them.
+
 - **BREAKING: `DataGridCfg.OnCellFormat` and `OnDetailRowView` are now
   `CellFormat` and `DetailRowView`.** Neither is an event callback — both are
   view builders that return a value (`GridCellFormat` and `gg.View`), so the
