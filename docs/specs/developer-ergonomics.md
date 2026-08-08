@@ -535,6 +535,42 @@ danger) may remove more lines than `ColorSet` alone, and the two
 compose — `ColorSet` is the mechanism, presets are the vocabulary. Ship
 `ColorSet` first; presets are a separate additive proposal.
 
+#### 4.4.1 Corrections from the implementation (2026-08-07)
+
+**Q5 is reversed: `ColorSet` uses plain `Color`, not `Opt[Color]`.** Q5's
+premise — "`Color` has no reserved zero, so a plain field cannot
+distinguish 'unset, inherit from `Base`' from 'deliberately
+transparent'" — is false against the code. `Color` carries its own
+unexported `set` flag (`gui/color.go:11`), `Color{}` is unset, and
+`ColorTransparent = Color{0, 0, 0, 0, true}` (`gui/color.go:40`) is an
+explicitly-set transparent color. The distinction `Opt` was proposed to
+add already exists, and every widget in the repo already branches on
+`Color.IsSet()`.
+
+Wrapping would have given the field two independent notions of unset,
+where `Some(Color{})` reads as "set to unset" — the same
+two-conventions defect §3.1 objects to in `InputCfg`. Pinned by
+`TestColorSetTransparentIsNotUnset`.
+
+**`Base` does not back the border fields.** §4.4 says "unset states
+fall back to `Base`". Applied literally to `Border` that produces a
+border the same color as the fill, which reads as *no* border — not a
+plausible meaning for omitting the field. `Base` backs `Hover`,
+`Click` and `Focus`; `Border` and `BorderFocus` fall through to the
+theme, and `BorderFocus` falls back to `Border` first. `Flat(c)` still
+pins all six, which is what makes it the "visually inert" case rather
+than merely "uniform fill".
+
+**Scoped to `ButtonCfg` in phase 3.** §4.4's phase-4 deletion list
+names only `gui/view_button.go:52-61`, so that is the one `Cfg` that
+gains `Colors`. `InputCfg` is the obvious next adopter — the same
+`examples/todo` view sets four of its color fields — but widening the
+additive change beyond what the measurement covered buys nothing before
+phase 4 removes the flat fields.
+
+The `examples/todo` button is now `Colors: gui.Flat(colorAccent)`, one
+line replacing six, which is the saving §4.4 predicted.
+
 ### 4.5 `Opt[T]` consistency pass and value shorthands
 
 110 `Opt[T]` fields coexist with plain-value fields under no documented
@@ -564,6 +600,43 @@ the current wrappers do — these are unaffected by the decision above:
 gui.PadAll(12)  // == gui.SomeP(12, 12, 12, 12)
 gui.PadXY(8, 4)
 ```
+
+#### 4.5.1 Corrections from the implementation (2026-08-07)
+
+**The shorthands already exist, with different return types.**
+`PadAll(p) Padding` and `PadTBLR(tb, lr) Padding` are at
+`gui/padding.go:56` and `:61`. Redefining `PadAll` to return
+`Opt[Padding]` is a breaking change to an exported function used at
+nine internal sites plus the siblings, and `PadXY(x, y)` inverts
+`PadTBLR`'s argument order — a silent swap for anyone who reaches for
+the familiar name. `Some(PadAll(12))` already says it with no new API,
+so nothing was added. Dropped from phase 3 rather than deferred.
+
+**The field count is 165, not 110.** `grep` for `Opt[` field
+declarations in non-test files under `gui/` returns 165. The figure is
+worth restating because §4.5 uses it to size the work, and the audit
+below shows the work is smaller than either number implies.
+
+**Audit result: the large majority already satisfy the rule.** Grouped
+by field family, with counts:
+
+| Family                                            | Count | Verdict |
+| ------------------------------------------------- | ----- | ------- |
+| `Padding*`, `*Padding`, `CellSpacing`             | ~45   | keep — zero padding is a real choice, `NoPadding` exists |
+| `SizeBorder`, `Size*Border`                       | ~30   | keep — the worked example; zero means "no border" |
+| `Radius*`                                         | ~35   | keep — zero means square corners, theme default is not zero |
+| `Spacing*`                                        | ~11   | keep — `NoSpacing` exists |
+| `Opacity`, `BgOpacity`, `ParamA/B/D`              | 6     | keep — zero is meaningful |
+| `HAlign`, `VAlign`, `Anchor`, `TieOff`, `Mode`    | 7     | keep — enum zero is a real member (`HAlignLeft == 0`) |
+| `Value`, `Min`, `Max`, `Ratio`, `DragStep*`       | 6     | keep — zero is a legitimate slider value |
+| `Size` (text), `Width*`, `Height`, `Min/MaxWidth` | ~11   | **plain in phase 4** — zero is not a meaningful size |
+| `OffsetX/Y`, `HandleSize`, `DotSize`              | 4     | borderline; zero is expressible but equals the default anyway |
+
+So §4.5's phase-4 work is roughly **11 fields, not 165**. That is a
+materially smaller change than the section implies, and it is the
+reason the rule is worth documenting even though almost nothing has to
+move: the value is in deciding new fields correctly, not in the
+cleanup.
 
 ### 4.6 App-testing API — largest additive gap
 
@@ -918,7 +991,11 @@ burying them in the same diff.
 | 1     | §4.1 `OnMouseLeave` gate check           | done   |
 | 2     | §4.6 test API in package `gui`           | done   |
 | 2     | Q6 nested-scroll gate written as a test  | done   |
-| 3–5   | —                                        | todo   |
+| 3     | §4.4 `ColorSet` + `Flat`, on `ButtonCfg` | done   |
+| 3     | §4.5 `Opt` rule documented in `CLAUDE.md` | done  |
+| 3     | §4.5 audit of the existing `Opt` fields  | done   |
+| 3     | §4.5 `PadAll` / `PadXY` shorthands       | n/a — already exist |
+| 4–5   | —                                        | todo   |
 
 Two corrections to §4.2 arising from the implementation.
 
@@ -1108,7 +1185,7 @@ can proceed. Q8 was resolved on 2026-08-07, before phase 1 shipped.
 | 2   | Click model              | ID-targeting v1; `TestClickAt` later |
 | 3   | Nested focus             | unexported `Shape` helper            |
 | 4   | Focusable without ID     | proceed; mandatory `ID`              |
-| 5   | `ColorSet` zero value    | `Opt[Color]`                         |
+| 5   | `ColorSet` zero value    | plain `Color` (reversed; see §4.4.1) |
 | 6   | Nested `OnMouseScroll`   | gate written 2026-08-07; see below   |
 | 7   | Breaking release target  | v0.54.0 (revised; see §6)            |
 | 8   | `requiredid` for authors | **documented only** (2026-08-07)     |
@@ -1127,13 +1204,15 @@ Detail where the decision carries a constraint:
    that mark an internal child focusable get an internal path to
    propagate an ID derived from the parent's, so `Cfg.ID` stays the
    only public spelling.
-5. **`Opt[Color]` for `ColorSet`.** `Color` has no reserved zero, so a
-   plain field cannot distinguish "unset, inherit from `Base`" from
-   "deliberately transparent" — and fallback is the entire point of the
-   type. Keep literals short with `Flat(c)` for the all-states case and
-   a `Some`-style constructor for individual fields; if
-   `ColorSet{Base: gui.Some(c)}` proves noisy in practice, add a
-   `gui.Col(...)` shorthand rather than dropping `Opt`.
+5. **~~`Opt[Color]` for `ColorSet`.~~ Reversed 2026-08-07 during
+   implementation — see §4.4.1.** The original reasoning was: "`Color`
+   has no reserved zero, so a plain field cannot distinguish 'unset,
+   inherit from `Base`' from 'deliberately transparent' — and fallback
+   is the entire point of the type." That premise is false against the
+   code. `Color` has carried its own `set` flag all along, so the
+   distinction exists without a wrapper and adding one would give the
+   field two competing notions of unset. Shipped as plain `Color`;
+   `Flat(c)` survives unchanged as the all-states shorthand.
 6. **Nested scroll is the one real risk.** Under the one-rule collapse a
    nested scrollable that today relies on notify-class propagation to
    hand an unconsumed scroll to its parent changes behavior with **no
