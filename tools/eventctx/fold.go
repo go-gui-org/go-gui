@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"slices"
 	"strings"
 )
 
@@ -35,6 +36,14 @@ func guiAlias(f *ast.File) string {
 type FoldSpec struct {
 	Line, Col int
 	Have      string
+
+	// WrapWindow selects the other diagnostic shape. When a callback
+	// gains no parameters overall — func(T, *Window) becoming
+	// func(T, EventCtx) — the argument count still matches, so the
+	// compiler reports a type mismatch on the trailing *Window rather
+	// than a surplus argument, and Have is unavailable. Only that one
+	// argument needs wrapping; every other argument stays put.
+	WrapWindow bool
 }
 
 // FoldCalls applies the given fold specs to one file.
@@ -71,6 +80,10 @@ func FoldCalls(filename string, src []byte, specs []FoldSpec) ([]byte, error) {
 		if !ok {
 			return nil, fmt.Errorf("%s:%d:%d: no call found", filename, sp.Line, sp.Col)
 		}
+		if sp.WrapWindow {
+			r.wrapWindowArg(call, off)
+			continue
+		}
 		text, err := foldArgs(r, call, sp.Have)
 		if err != nil {
 			return nil, fmt.Errorf("%s:%d:%d: %w", filename, sp.Line, sp.Col, err)
@@ -81,6 +94,32 @@ func FoldCalls(filename string, src []byte, specs []FoldSpec) ([]byte, error) {
 		return src, nil
 	}
 	return r.apply(), nil
+}
+
+// wrapWindowArg replaces the single *Window argument at off with an
+// EventCtx. Inside an already-converted callback the window is spelled
+// ctx.Window, and the whole context is both available and strictly more
+// informative, so pass ctx through rather than discarding the layout
+// and event it carries.
+func (r *rewriter) wrapWindowArg(call *ast.CallExpr, off int) {
+	for _, a := range call.Args {
+		if r.offset(a.Pos()) != off {
+			continue
+		}
+		text := r.srcOf(a)
+		if text == "ctx.Window" {
+			r.replace(a.Pos(), a.End(), "ctx")
+			return
+		}
+		ctxName := "EventCtx"
+		if r.guiAlias != "" {
+			r.replace(a.Pos(), a.End(),
+				r.guiAlias+".EventCtx{Window: "+text+"}")
+			return
+		}
+		r.replace(a.Pos(), a.End(), ctxName+"{nil, nil, "+text+"}")
+		return
+	}
 }
 
 // foldArgs builds the replacement argument list. The shape of Have says
@@ -105,7 +144,12 @@ func foldArgs(r *rewriter, call *ast.CallExpr, have string) (string, error) {
 	// matched by type name, then any remaining untyped nil is filled
 	// right to left: event first, then layout. An untyped nil carries
 	// no type in the diagnostic, so position is the only signal.
-	layout, event, payload := "nil", "nil", ""
+	// layout stays empty while no argument maps to it, which
+	// distinguishes "the old signature had no *Layout at all" from "the
+	// caller deliberately passed nil for one". Only the former may be
+	// widened to the enclosing ctx below.
+	layout, event := "", "nil"
+	var payloads []string // built back to front, reversed below
 	window := src(len(parts) - 1)
 	for i := len(parts) - 2; i >= 0; i-- {
 		p := parts[i]
@@ -121,11 +165,27 @@ func foldArgs(r *rewriter, call *ast.CallExpr, have string) (string, error) {
 				layout = src(i)
 			}
 		default:
-			if payload != "" {
-				return "", fmt.Errorf("two payload arguments in %q", have)
-			}
-			payload = src(i)
+			// Any number of payload arguments is legitimate:
+			// OnTextCommit carries a string and an
+			// InputCommitReason. They keep their relative order.
+			payloads = append(payloads, src(i))
 		}
+	}
+	slices.Reverse(payloads)
+	payload := strings.Join(payloads, ", ")
+
+	// Inside an already-converted callback the whole context is in
+	// scope. Where the old signature carried no *Layout, synthesising
+	// EventCtx{nil, ctx.Event, ctx.Window} would manufacture an absence
+	// — there is a layout, the callback is dispatched from it — so pass
+	// ctx through and let the callback see it. A layout the caller
+	// explicitly passed as nil is left alone; that was a decision.
+	layoutAbsent := layout == ""
+	if layoutAbsent {
+		layout = "nil"
+	}
+	if layoutAbsent && event == "ctx.Event" && window == "ctx.Window" {
+		return join(payload, "ctx"), nil
 	}
 
 	out := ctxName + "{" + layout + ", " + event + ", " + window + "}"
@@ -143,6 +203,14 @@ func foldArgs(r *rewriter, call *ast.CallExpr, have string) (string, error) {
 		out = payload + ", " + out
 	}
 	return out, nil
+}
+
+// join prefixes the payload arguments, if any, to the context argument.
+func join(payload, ctx string) string {
+	if payload == "" {
+		return ctx
+	}
+	return payload + ", " + ctx
 }
 
 // splitParams splits a compiler-reported parameter list on commas at
@@ -176,7 +244,11 @@ func ParseBuildErrors(out string) map[string][]FoldSpec {
 	specs := map[string][]FoldSpec{}
 	lines := strings.Split(out, "\n")
 	for i, ln := range lines {
-		if !strings.Contains(ln, "too many arguments in call to") {
+		surplus := strings.Contains(ln, "too many arguments in call to")
+		// The second shape: same argument count, wrong type on the
+		// trailing *Window. The column points at that argument.
+		mismatch := strings.Contains(ln, "EventCtx value in argument to")
+		if !surplus && !mismatch {
 			continue
 		}
 		head := strings.SplitN(ln, ":", 4)
@@ -186,6 +258,11 @@ func ParseBuildErrors(out string) map[string][]FoldSpec {
 		file := head[0]
 		var line, col int
 		if _, err := fmt.Sscanf(head[1]+" "+head[2], "%d %d", &line, &col); err != nil {
+			continue
+		}
+		if mismatch {
+			specs[file] = append(specs[file],
+				FoldSpec{Line: line, Col: col, WrapWindow: true})
 			continue
 		}
 		have := ""

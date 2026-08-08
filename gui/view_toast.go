@@ -19,7 +19,7 @@ const (
 
 // ToastCfg configures a toast notification.
 type ToastCfg struct {
-	OnAction    func(*Window)
+	OnAction    func(EventCtx)
 	Title       string
 	Body        string
 	ActionLabel string
@@ -172,7 +172,7 @@ func toastItemView(toast *toastNotification, style ToastStyle) View {
 			Color:   ColorTransparent,
 			Content: []View{Text(TextCfg{Text: toast.cfg.ActionLabel, TextStyle: style.TextStyle})},
 			OnClick: func(ctx EventCtx) {
-				onAction(ctx.Window)
+				onAction(ctx)
 				toastStartExit(ctx.Window, id)
 			},
 		}))

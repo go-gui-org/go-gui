@@ -30,15 +30,15 @@ func demoDockLayout(w *gui.Window) gui.View {
 				ID:     "showcase-dock",
 				Root:   app.DockRoot,
 				Panels: dockPanels(),
-				OnLayoutChange: func(root *gui.DockNode, w *gui.Window) {
-					gui.State[ShowcaseApp](w).DockRoot = root
+				OnLayoutChange: func(root *gui.DockNode, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).DockRoot = root
 				},
-				OnPanelSelect: func(groupID, panelID string, w *gui.Window) {
-					a := gui.State[ShowcaseApp](w)
+				OnPanelSelect: func(groupID string, panelID string, ctx gui.EventCtx) {
+					a := gui.State[ShowcaseApp](ctx.Window)
 					a.DockRoot = gui.DockTreeSelectPanel(a.DockRoot, groupID, panelID)
 				},
-				OnPanelClose: func(panelID string, w *gui.Window) {
-					a := gui.State[ShowcaseApp](w)
+				OnPanelClose: func(panelID string, ctx gui.EventCtx) {
+					a := gui.State[ShowcaseApp](ctx.Window)
 					a.DockRoot = gui.DockTreeRemovePanel(a.DockRoot, panelID)
 				},
 			}),

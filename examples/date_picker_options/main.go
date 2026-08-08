@@ -277,8 +277,8 @@ func weekdaysLenGroup(app *App) gui.View {
 				gui.NewRadioOption("Three letter", "three"),
 				gui.NewRadioOption("Full", "full"),
 			},
-			OnSelect: func(value string, w *gui.Window) {
-				gui.State[App](w).WeekdaysLen = value
+			OnSelect: func(value string, ctx gui.EventCtx) {
+				gui.State[App](ctx.Window).WeekdaysLen = value
 			},
 		}),
 	})

@@ -173,7 +173,7 @@ func TestDragReorderStartSetsLayoutValidity(t *testing.T) {
 		Parent: parent,
 	}
 	e := &Event{MouseX: 1, MouseY: 1}
-	noop := func(string, string, *Window) {}
+	noop := func(string, string, EventCtx) {}
 
 	dragKeyOK := "drag_layout_ok"
 	dragReorderStart(dragReorderStartCfg{
@@ -208,7 +208,7 @@ func TestDragReorderKeyboardMoveRequiresAlt(t *testing.T) {
 	handled := dragReorderKeyboardMove(
 		KeyDown, ModNone, DragReorderVertical, 1,
 		[]string{"a", "b", "c"},
-		func(string, string, *Window) { called = true }, w)
+		func(string, string, EventCtx) { called = true }, w)
 	if handled || called {
 		t.Error("should not handle without Alt modifier")
 	}
@@ -222,7 +222,7 @@ func TestDragReorderKeyboardMovePayloadAndBoundary(t *testing.T) {
 	handled := dragReorderKeyboardMove(
 		KeyRight, ModAlt, DragReorderHorizontal, 1,
 		[]string{"a", "b", "c", "d"},
-		func(m, b string, _ *Window) {
+		func(m, b string, _ EventCtx) {
 			called = true
 			moved = m
 			before = b
@@ -239,7 +239,7 @@ func TestDragReorderKeyboardMovePayloadAndBoundary(t *testing.T) {
 	handled = dragReorderKeyboardMove(
 		KeyLeft, ModAlt, DragReorderHorizontal, 0,
 		[]string{"a", "b", "c"},
-		func(string, string, *Window) { boundaryCalled = true }, w)
+		func(string, string, EventCtx) { boundaryCalled = true }, w)
 	if handled || boundaryCalled {
 		t.Error("Alt+Left at 0 should be a no-op")
 	}
@@ -336,7 +336,7 @@ func TestDragReorderCancelsOnMidDragMutation(t *testing.T) {
 	dragReorderStart(dragReorderStartCfg{
 		DragKey: dragKey, Index: 0, ItemID: "a",
 		Axis: DragReorderVertical, ItemIDs: []string{"a", "b", "c"},
-		OnReorder:     func(string, string, *Window) { called = true },
+		OnReorder:     func(_ string, _ string, ctx EventCtx) { called = true },
 		ItemLayoutIDs: []string{"a", "b", "c"},
 		Layout:        item, Event: e,
 	}, w)
@@ -345,7 +345,7 @@ func TestDragReorderCancelsOnMidDragMutation(t *testing.T) {
 	// Simulate list mutation before mouse-up.
 	dragReorderIDsMetaSet(w, dragKey, []string{"a", "c"})
 	dragReorderOnMouseUp(dragKey, []string{"a", "c"},
-		func(string, string, *Window) { called = true }, w)
+		func(string, string, EventCtx) { called = true }, w)
 	if called {
 		t.Error("callback should not fire on mutation")
 	}

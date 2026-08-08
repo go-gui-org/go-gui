@@ -20,7 +20,7 @@ const (
 type DatePickerRollerCfg struct {
 	TextStyle        TextStyle
 	SelectedDate     time.Time
-	OnChange         func(time.Time, *Window)
+	OnChange         func(time.Time, EventCtx)
 	ID               string
 	A11YLabel        string
 	A11YDescription  string
@@ -248,7 +248,7 @@ func rollerDrum(
 func rollerDrumAdjust(
 	name string, delta int, sel time.Time,
 	minYear, maxYear int,
-	onChange func(time.Time, *Window), w *Window,
+	onChange func(time.Time, EventCtx), w *Window,
 	wrapYear bool,
 ) {
 	switch name {
@@ -263,7 +263,7 @@ func rollerDrumAdjust(
 
 // rollerOnKeyDown handles keyboard navigation for the roller.
 func rollerOnKeyDown(
-	onChange func(time.Time, *Window),
+	onChange func(time.Time, EventCtx),
 	sel time.Time, minYear, maxYear int,
 	e *Event, w *Window,
 	mode DatePickerRollerDisplayMode,
@@ -311,7 +311,7 @@ func rollerOnKeyDown(
 func rollerAdjustDay(
 	delta int, sel time.Time,
 	minYear, maxYear int,
-	onChange func(time.Time, *Window), w *Window,
+	onChange func(time.Time, EventCtx), w *Window,
 ) {
 	if onChange == nil {
 		return
@@ -320,13 +320,13 @@ func rollerAdjustDay(
 	if newDate.Year() < minYear || newDate.Year() > maxYear {
 		return
 	}
-	onChange(newDate, w)
+	onChange(newDate, EventCtx{nil, nil, w})
 }
 
 func rollerAdjustMonth(
 	delta int, sel time.Time,
 	minYear, maxYear int,
-	onChange func(time.Time, *Window), w *Window,
+	onChange func(time.Time, EventCtx), w *Window,
 ) {
 	if onChange == nil {
 		return
@@ -353,13 +353,13 @@ func rollerAdjustMonth(
 	newDate := time.Date(ny, time.Month(nm), nd,
 		sel.Hour(), sel.Minute(), sel.Second(), sel.Nanosecond(),
 		sel.Location())
-	onChange(newDate, w)
+	onChange(newDate, EventCtx{nil, nil, w})
 }
 
 func rollerAdjustYear(
 	delta int, sel time.Time,
 	minYear, maxYear int,
-	onChange func(time.Time, *Window), w *Window,
+	onChange func(time.Time, EventCtx), w *Window,
 	wrap bool,
 ) {
 	if onChange == nil {
@@ -376,7 +376,7 @@ func rollerAdjustYear(
 	newDate := time.Date(newYear, sel.Month(), day,
 		sel.Hour(), sel.Minute(), sel.Second(), sel.Nanosecond(),
 		sel.Location())
-	onChange(newDate, w)
+	onChange(newDate, EventCtx{nil, nil, w})
 }
 
 func rollerDayFormat(v int) string {

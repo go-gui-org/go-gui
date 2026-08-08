@@ -385,7 +385,7 @@ func TestInputKeyDownEnterSingleLine(t *testing.T) {
 	layout := generateViewLayout(Input(InputCfg{
 		Text: "hi",
 		ID:   "f600",
-		OnTextCommit: func(_ *Layout, _ string, reason InputCommitReason, _ *Window) {
+		OnTextCommit: func(_ string, reason InputCommitReason, ctx EventCtx) {
 			committed = true
 			if reason != CommitEnter {
 				t.Fatalf("got reason %d, want CommitEnter", reason)
@@ -1283,9 +1283,7 @@ func TestInputReadOnlyEnterDoesNotNormalize(t *testing.T) {
 		OnTextChanged: func(nt string, ctx EventCtx) {
 			changed = nt
 		},
-		OnTextCommit: func(
-			_ *Layout, ct string, _ InputCommitReason, _ *Window,
-		) {
+		OnTextCommit: func(ct string, _ InputCommitReason, ctx EventCtx) {
 			committed = ct
 		},
 	}), w)
@@ -1315,9 +1313,7 @@ func TestInputReadOnlyBlurDoesNotNormalize(t *testing.T) {
 		OnTextChanged: func(nt string, ctx EventCtx) {
 			changed = nt
 		},
-		OnTextCommit: func(
-			_ *Layout, ct string, _ InputCommitReason, _ *Window,
-		) {
+		OnTextCommit: func(ct string, _ InputCommitReason, ctx EventCtx) {
 			committed = ct
 		},
 	}

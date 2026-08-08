@@ -100,8 +100,8 @@ func demoRadioGroup(w *gui.Window) gui.View {
 					gui.NewRadioOption("Rust", "rust"),
 					gui.NewRadioOption("Zig", "zig"),
 				},
-				OnSelect: func(v string, w *gui.Window) {
-					gui.State[ShowcaseApp](w).RadioValue = v
+				OnSelect: func(v string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).RadioValue = v
 				},
 			}),
 			gui.Text(gui.TextCfg{Text: "Row layout", TextStyle: t.B3}),
@@ -113,8 +113,8 @@ func demoRadioGroup(w *gui.Window) gui.View {
 					gui.NewRadioOption("Rust", "rust"),
 					gui.NewRadioOption("Zig", "zig"),
 				},
-				OnSelect: func(v string, w *gui.Window) {
-					gui.State[ShowcaseApp](w).RadioValue = v
+				OnSelect: func(v string, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).RadioValue = v
 				},
 			}),
 		},
@@ -268,8 +268,8 @@ func demoDragReorder(w *gui.Window) gui.View {
 				Scrollable:  true,
 				Data:        app.DragListItems,
 				Reorderable: true,
-				OnReorder: func(movedID, beforeID string, w *gui.Window) {
-					a := gui.State[ShowcaseApp](w)
+				OnReorder: func(movedID string, beforeID string, ctx gui.EventCtx) {
+					a := gui.State[ShowcaseApp](ctx.Window)
 					from, to := gui.ReorderIndices(
 						dragListIDs(a.DragListItems), movedID, beforeID)
 					if from >= 0 {
@@ -286,8 +286,8 @@ func demoDragReorder(w *gui.Window) gui.View {
 				Selected:    app.DragTabSel,
 				Sizing:      gui.FillFit,
 				Reorderable: true,
-				OnReorder: func(movedID, beforeID string, w *gui.Window) {
-					a := gui.State[ShowcaseApp](w)
+				OnReorder: func(movedID string, beforeID string, ctx gui.EventCtx) {
+					a := gui.State[ShowcaseApp](ctx.Window)
 					from, to := gui.ReorderIndices(
 						dragTabIDs(a.DragTabItems), movedID, beforeID)
 					if from >= 0 {
@@ -307,8 +307,8 @@ func demoDragReorder(w *gui.Window) gui.View {
 				MaxHeight:   250,
 				Scrollable:  true,
 				Reorderable: true,
-				OnReorder: func(movedID, beforeID string, w *gui.Window) {
-					a := gui.State[ShowcaseApp](w)
+				OnReorder: func(movedID string, beforeID string, ctx gui.EventCtx) {
+					a := gui.State[ShowcaseApp](ctx.Window)
 					dragTreeReorder(a, movedID, beforeID)
 				},
 			}),

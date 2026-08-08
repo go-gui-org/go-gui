@@ -45,6 +45,40 @@ var consumeFields = []string{
 	"OnChar", "OnClick", "OnMouseUp", "OnGesture", "OnFileDrop",
 }
 
+// Options tunes what the rewrite is willing to touch. A nil *Options
+// selects the original, deliberately narrow behaviour used for the
+// v0.52 conversion: only the four fixed three-argument shapes convert,
+// and a callback of that shape converts wherever it is found.
+type Options struct {
+	// Fields is an include list of callback field names ("OnSelect").
+	// Setting it switches the rewrite to general mode: ANY parameter
+	// list ending in *Window folds — payload parameters keep their
+	// position and results are left alone, so a callback that returns
+	// a value converts too — but only where the owning struct field or
+	// assignment target is named here.
+	//
+	// The name filter is what makes the wider matcher safe. Without
+	// it, every internal helper that happens to take a trailing
+	// *Window would be rewritten as though it were a callback.
+	//
+	// Matching ignores the leading case, so the parameter spelling
+	// onSelect matches the field OnSelect. Widget internals routinely
+	// pass a callback onward under the lowercased name.
+	Fields map[string]bool
+}
+
+// general reports whether the name-filtered wide matcher is in effect.
+func (o *Options) general() bool { return o != nil && o.Fields != nil }
+
+// owns reports whether name is one of the included callback fields.
+func (o *Options) owns(name string) bool {
+	if !o.general() || name == "" {
+		return false
+	}
+	return o.Fields[name] ||
+		o.Fields[strings.ToUpper(name[:1])+name[1:]]
+}
+
 // Finding is one entry in the rule-4 report: a return path in a
 // consume-class callback that is not dominated by a handled assignment,
 // and so is a human decision between ctx.Bubble() and accepting the new
@@ -78,7 +112,7 @@ type edit struct {
 // its call sites, so the two are planned together across the whole
 // package before any file is rewritten. A nil plan leaves declarations
 // and calls alone.
-type DeclPlan map[string]sigKind
+type DeclPlan map[string]sigShape
 
 // ScanDecls finds the named functions in one file that must convert:
 // those whose signature matches a callback shape and whose name is used
@@ -87,6 +121,20 @@ type DeclPlan map[string]sigKind
 // directly is internal dispatch plumbing and keeps its three-argument
 // form.
 func ScanDecls(filename string, src []byte) (DeclPlan, map[string]bool, error) {
+	return ScanDeclsWith(filename, src, nil)
+}
+
+// ScanDeclsWith is ScanDecls under explicit options.
+//
+// In general mode the second return value is not "used as a value"
+// but the narrower "used as the value of an included callback field".
+// That is deliberate: the wide matcher accepts almost every helper
+// taking a trailing *Window, so intersecting against a bare value-use
+// set (which buildPlan does) would convert half the package. Only a
+// function actually wired to one of the named fields may convert.
+func ScanDeclsWith(
+	filename string, src []byte, opts *Options,
+) (DeclPlan, map[string]bool, error) {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, filename, src, parser.SkipObjectResolution)
 	if err != nil {
@@ -103,11 +151,12 @@ func ScanDecls(filename string, src []byte) (DeclPlan, map[string]bool, error) {
 		// the bare name, so two same-named methods on different
 		// receivers convert together — which is what you want, since
 		// both had to match the callback signature to get here.
-		if sig := classify(fd.Type); sig != sigNone {
-			cands[fd.Name.Name] = sig
-		} else if classifyTwo(fd.Type) {
-			cands[fd.Name.Name] = sigLW
+		if sh, matched := classify(fd.Type, opts); matched {
+			cands[fd.Name.Name] = sh
 		}
+	}
+	if opts.general() {
+		return cands, assignedToFields(f, opts), nil
 	}
 	// Names used as values: every ident occurrence that is not the
 	// callee of a call and not the declaration's own name.
@@ -134,9 +183,49 @@ func ScanDecls(filename string, src []byte) (DeclPlan, map[string]bool, error) {
 	return cands, used, nil
 }
 
+// assignedToFields collects the bare function names wired to one of the
+// included callback fields, either as a struct-literal value
+// (OnSelect: handleSelect) or by assignment (cfg.OnSelect = handleSelect).
+func assignedToFields(f *ast.File, opts *Options) map[string]bool {
+	used := map[string]bool{}
+	note := func(e ast.Expr) {
+		switch v := e.(type) {
+		case *ast.Ident:
+			used[v.Name] = true
+		case *ast.SelectorExpr: // a method value, x.handleSelect
+			used[v.Sel.Name] = true
+		}
+	}
+	ast.Inspect(f, func(n ast.Node) bool {
+		switch t := n.(type) {
+		case *ast.KeyValueExpr:
+			if id, ok := t.Key.(*ast.Ident); ok && opts.owns(id.Name) {
+				note(t.Value)
+			}
+		case *ast.AssignStmt:
+			for i, lhs := range t.Lhs {
+				sel, ok := lhs.(*ast.SelectorExpr)
+				if !ok || !opts.owns(sel.Sel.Name) || i >= len(t.Rhs) {
+					continue
+				}
+				note(t.Rhs[i])
+			}
+		}
+		return true
+	})
+	return used
+}
+
 // Rewrite parses and rewrites a single file. filename is used only for
 // positions in diagnostics. plan may be nil.
 func Rewrite(filename string, src []byte, plan DeclPlan) (Result, error) {
+	return RewriteWith(filename, src, plan, nil)
+}
+
+// RewriteWith is Rewrite under explicit options.
+func RewriteWith(
+	filename string, src []byte, plan DeclPlan, opts *Options,
+) (Result, error) {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, filename, src, parser.ParseComments)
 	if err != nil {
@@ -144,7 +233,7 @@ func Rewrite(filename string, src []byte, plan DeclPlan) (Result, error) {
 	}
 	r := &rewriter{
 		fset: fset, src: src, base: fset.File(f.Pos()).Base(), plan: plan,
-		guiAlias: guiAlias(f),
+		guiAlias: guiAlias(f), opts: opts,
 	}
 	r.run(f)
 	if len(r.edits) == 0 {
@@ -166,6 +255,7 @@ type rewriter struct {
 	plan       DeclPlan
 	declRanges []declRange
 	guiAlias   string // how this file spells the gui package, if at all
+	opts       *Options
 }
 
 // declRange is the body of a converted named declaration, with the
@@ -224,18 +314,45 @@ func (r *rewriter) run(f *ast.File) {
 	})
 	// Pass 1: bare type expressions (struct fields, parameters, results,
 	// var declarations). These carry no body.
-	ast.Inspect(f, func(n ast.Node) bool {
-		ft, ok := n.(*ast.FuncType)
-		if !ok || owned[ft] {
+	if r.opts.general() {
+		// General mode is name-driven, so pass 1 walks *ast.Field
+		// rather than every FuncType: a field node carries the name
+		// the filter needs, and it covers both a struct member
+		// (OnSelect func(...)) and a parameter that passes the
+		// callback onward (onSelect func(...)). A FuncType with no
+		// name attached cannot be attributed and is left alone.
+		ast.Inspect(f, func(n ast.Node) bool {
+			fld, ok := n.(*ast.Field)
+			if !ok {
+				return true
+			}
+			ft, isFn := fld.Type.(*ast.FuncType)
+			if !isFn || owned[ft] {
+				return true
+			}
+			for _, nm := range fld.Names {
+				if !r.opts.owns(nm.Name) {
+					continue
+				}
+				if sh, matched := classify(ft, r.opts); matched {
+					r.rewriteParams(ft, sh, false, "")
+				}
+				break
+			}
 			return true
-		}
-		if sig := classify(ft); sig != sigNone {
-			r.rewriteParams(ft, sig, false, "")
-		} else if classifyTwo(ft) {
-			r.replace(ft.Params.Pos(), ft.Params.End(), "("+ctxType(ft)+")")
-		}
-		return true
-	})
+		})
+	} else {
+		ast.Inspect(f, func(n ast.Node) bool {
+			ft, ok := n.(*ast.FuncType)
+			if !ok || owned[ft] {
+				return true
+			}
+			if sh, matched := classify(ft, r.opts); matched {
+				r.rewriteParams(ft, sh, false, "")
+			}
+			return true
+		})
+	}
 	// Pass 3 (declaration mode) rewrites call sites from the original
 	// source text, which pass 2 also edits, so the two modes run as
 	// separate invocations: closures first, then declarations.
@@ -246,7 +363,7 @@ func (r *rewriter) run(f *ast.File) {
 	}
 	// Pass 2: bodies. Collect innermost-first, then rewrite.
 	var lits []*litInfo
-	collectLits(f, nil, "", &lits)
+	collectLits(f, nil, "", &lits, r.opts)
 	for _, li := range lits {
 		r.rewriteBody(li)
 	}
@@ -263,7 +380,7 @@ func (r *rewriter) rewriteDecls(f *ast.File) {
 		if _, want := r.plan[fd.Name.Name]; !want {
 			continue
 		}
-		li := makeLit(fd.Type, fd.Body, fd.Name.Name)
+		li := makeLit(fd.Type, fd.Body, fd.Name.Name, r.opts, true)
 		if li == nil {
 			continue
 		}
@@ -319,44 +436,23 @@ func (r *rewriter) rewriteCalls(f *ast.File) {
 		default:
 			return true
 		}
-		sig, want := r.plan[id.Name]
-		if !want || call.Ellipsis.IsValid() {
+		sh, want := r.plan[id.Name]
+		if !want || call.Ellipsis.IsValid() || len(call.Args) != sh.n {
 			return true
 		}
-		var layout, event, window, payload string
 		src := func(i int) string {
+			if i < 0 {
+				return "nil"
+			}
 			return r.renameArg(call.Args[i].Pos(), r.srcOf(call.Args[i]))
 		}
-		switch sig {
-		case sigLEW:
-			if len(call.Args) != 3 {
-				return true
-			}
-			layout, event, window = src(0),
-				src(1), src(2)
-		case sigLW:
-			if len(call.Args) != 2 {
-				return true
-			}
-			layout, event, window = src(0), "nil",
-				src(1)
-		case sigLPW:
-			if len(call.Args) != 3 {
-				return true
-			}
-			layout, event, window = src(0), "nil",
-				src(2)
-			payload = src(1)
-		case sigPEW:
-			if len(call.Args) != 3 {
-				return true
-			}
-			layout, event, window = "nil", src(1),
-				src(2)
-			payload = src(0)
-		default:
-			return true
+		layout, event, window := src(sh.layout), src(sh.event),
+			src(sh.window)
+		var payloads []string
+		for _, i := range sh.payload {
+			payloads = append(payloads, src(i))
 		}
+		payload := strings.Join(payloads, ", ")
 		ctxArg := "EventCtx{" + layout + ", " + event + ", " + window + "}"
 		if r.guiAlias != "" {
 			// Keyed form: go vet rejects unkeyed literals of a type
@@ -376,15 +472,19 @@ func (r *rewriter) rewriteCalls(f *ast.File) {
 	})
 }
 
-type sigKind int
-
-const (
-	sigNone sigKind = iota
-	sigLEW          // (*Layout, *Event, *Window)
-	sigLW           // (*Layout, *Window)
-	sigLPW          // (*Layout, payload, *Window)
-	sigPEW          // (payload, *Event, *Window) — payload is not *Layout
-)
+// sigShape records where the EventCtx components sit in a parameter
+// list, as indices into flatParams. -1 means the role is absent, and
+// the corresponding EventCtx field folds to a nil.
+//
+// This subsumes the four fixed shapes the tool originally handled:
+// (*Layout, *Event, *Window) is {0, 1, 2, nil}, (*Layout, *Window) is
+// {0, -1, 1, nil}, (*Layout, T, *Window) is {0, -1, 2, [1]}, and
+// (T, *Event, *Window) is {-1, 1, 2, [0]}.
+type sigShape struct {
+	layout, event, window int
+	payload               []int // kept parameters, in source order
+	n                     int   // total parameter count
+}
 
 // isPtrTo reports whether expr is *Name or *pkg.Name.
 func isPtrTo(expr ast.Expr, name string) bool {
@@ -430,32 +530,75 @@ func flatParams(ft *ast.FuncType) []param {
 	return ps
 }
 
-// classify matches a function type against the four convertible shapes.
-func classify(ft *ast.FuncType) sigKind {
-	ps := flatParams(ft)
-	if len(ps) != 3 || ft.Results != nil {
-		return sigNone
+// classify matches a function type against the convertible shapes,
+// under whichever matcher the options select.
+func classify(ft *ast.FuncType, opts *Options) (sigShape, bool) {
+	if opts.general() {
+		return classifyGeneral(ft)
 	}
-	l, m, w := ps[0].typ, ps[1].typ, ps[2].typ
-	if !isPtrTo(w, "Window") {
-		return sigNone
-	}
-	switch {
-	case isPtrTo(l, "Layout") && isPtrTo(m, "Event"):
-		return sigLEW
-	case isPtrTo(l, "Layout"):
-		return sigLPW
-	case isPtrTo(m, "Event"):
-		return sigPEW
-	}
-	return sigNone
+	return classifyStrict(ft)
 }
 
-// classifyTwo matches func(*Layout, *Window).
-func classifyTwo(ft *ast.FuncType) bool {
+// classifyGeneral matches any parameter list ending in *Window. A
+// leading *Layout and the first *Event fold into the EventCtx; every
+// other parameter is payload and keeps its position.
+//
+// Results are deliberately not examined. OnCopyRows returns
+// (string, bool) and still converts — the agreed invariant is that
+// EventCtx replaces the *Window and *Event parameters and says nothing
+// about what a callback returns.
+func classifyGeneral(ft *ast.FuncType) (sigShape, bool) {
 	ps := flatParams(ft)
-	return len(ps) == 2 && ft.Results == nil &&
-		isPtrTo(ps[0].typ, "Layout") && isPtrTo(ps[1].typ, "Window")
+	sh := sigShape{layout: -1, event: -1, window: -1, n: len(ps)}
+	if len(ps) == 0 || !isPtrTo(ps[len(ps)-1].typ, "Window") {
+		return sh, false
+	}
+	sh.window = len(ps) - 1
+	for i := range ps[:len(ps)-1] {
+		switch {
+		case i == 0 && isPtrTo(ps[i].typ, "Layout"):
+			sh.layout = i
+		case sh.event < 0 && isPtrTo(ps[i].typ, "Event"):
+			sh.event = i
+		default:
+			sh.payload = append(sh.payload, i)
+		}
+	}
+	return sh, true
+}
+
+// classifyStrict is the original matcher: exactly the four
+// three-argument shapes plus func(*Layout, *Window), and never a
+// function that returns a value.
+func classifyStrict(ft *ast.FuncType) (sigShape, bool) {
+	ps := flatParams(ft)
+	sh := sigShape{layout: -1, event: -1, window: -1, n: len(ps)}
+	if len(ps) == 0 || ft.Results != nil ||
+		!isPtrTo(ps[len(ps)-1].typ, "Window") {
+		return sh, false
+	}
+	switch len(ps) {
+	case 2:
+		if !isPtrTo(ps[0].typ, "Layout") {
+			return sh, false
+		}
+		sh.layout, sh.window = 0, 1
+		return sh, true
+	case 3:
+		sh.window = 2
+		switch {
+		case isPtrTo(ps[0].typ, "Layout") && isPtrTo(ps[1].typ, "Event"):
+			sh.layout, sh.event = 0, 1
+		case isPtrTo(ps[0].typ, "Layout"):
+			sh.layout, sh.payload = 0, []int{1}
+		case isPtrTo(ps[1].typ, "Event"):
+			sh.event, sh.payload = 1, []int{0}
+		default:
+			return sh, false
+		}
+		return sh, true
+	}
+	return sh, false
 }
 
 // ctxType returns the EventCtx type expression spelled the same way the
@@ -483,7 +626,7 @@ func (r *rewriter) srcOf(n ast.Node) string {
 // EventCtx parameter gets the name "ctx"; bare type expressions leave it
 // unnamed.
 func (r *rewriter) rewriteParams(
-	ft *ast.FuncType, sig sigKind, named bool, cn string,
+	ft *ast.FuncType, sh sigShape, named bool, cn string,
 ) {
 	ps := flatParams(ft)
 	ct := ctxType(ft)
@@ -491,20 +634,15 @@ func (r *rewriter) rewriteParams(
 	if named {
 		ctxParam = cn + " " + ct
 	}
-	var text string
-	switch sig {
-	case sigLEW, sigLW:
-		text = "(" + ctxParam + ")"
-	case sigLPW:
-		// Payload is the middle parameter; the *Layout is folded away.
-		text = "(" + r.payload(ps[1], named) + ", " + ctxParam + ")"
-	case sigPEW:
-		// Payload is the leading parameter; the *Event is folded away.
-		text = "(" + r.payload(ps[0], named) + ", " + ctxParam + ")"
-	default:
-		return
+	// Payloads keep their order and their names; the EventCtx always
+	// lands last, which is the target shape func(T…, EventCtx).
+	var parts []string
+	for _, i := range sh.payload {
+		parts = append(parts, r.payload(ps[i], named))
 	}
-	r.replace(ft.Params.Pos(), ft.Params.End(), text)
+	parts = append(parts, ctxParam)
+	r.replace(ft.Params.Pos(), ft.Params.End(),
+		"("+strings.Join(parts, ", ")+")")
 }
 
 func (r *rewriter) payload(p param, named bool) string {
@@ -524,8 +662,7 @@ func (r *rewriter) payload(p param, named bool) string {
 type litInfo struct {
 	ft    *ast.FuncType
 	body  *ast.BlockStmt
-	sig   sigKind
-	two   bool // matched func(*Layout, *Window)
+	sh    sigShape
 	names [3]string
 	owner string // enclosing field or func name, for the report
 	cls   bool   // true when consume-class
@@ -535,47 +672,65 @@ type litInfo struct {
 // collectLits gathers convertible function literals and declarations
 // innermost-first. owner is the nearest enclosing struct field key or
 // assignment target, which is how the class is determined.
-func collectLits(n ast.Node, _ ast.Node, owner string, out *[]*litInfo) {
+func collectLits(
+	n ast.Node, _ ast.Node, owner string, out *[]*litInfo, opts *Options,
+) {
 	switch t := n.(type) {
 	case *ast.KeyValueExpr:
 		key := ""
 		if id, ok := t.Key.(*ast.Ident); ok {
 			key = id.Name
 		}
-		collectLits(t.Value, t, key, out)
+		collectLits(t.Value, t, key, out, opts)
 		return
 	case *ast.AssignStmt:
 		for i, rhs := range t.Rhs {
 			key := owner
 			if i < len(t.Lhs) {
-				if sel, ok := t.Lhs[i].(*ast.SelectorExpr); ok {
-					key = sel.Sel.Name
+				switch lhs := t.Lhs[i].(type) {
+				case *ast.SelectorExpr:
+					key = lhs.Sel.Name
+				case *ast.Ident:
+					// A local holding a callback — onChange := func(…) —
+					// names the field just as well as cfg.OnChange does,
+					// and widget internals and tests are full of them.
+					key = lhs.Name
 				}
 			}
-			collectLits(rhs, t, key, out)
+			collectLits(rhs, t, key, out, opts)
 		}
 		for _, lhs := range t.Lhs {
-			collectLits(lhs, t, owner, out)
+			collectLits(lhs, t, owner, out, opts)
 		}
 		return
 	case *ast.FuncDecl:
 		// Body only — the declaration's own signature is left for a
 		// human, since its call sites move with it.
 		for _, c := range childNodes(t) {
-			collectLits(c, t, t.Name.Name, out)
+			collectLits(c, t, t.Name.Name, out, opts)
 		}
 		return
 	case *ast.FuncLit:
-		for _, c := range childNodes(t) {
-			collectLits(c, t, owner, out)
+		// Nested closures are not the callback. In strict mode the
+		// inherited owner only tinted the consume-class report, so
+		// passing it down was harmless; in general mode the owner is
+		// the gate, and inheriting it converts every *Window-tailed
+		// closure written inside a callback body — a QueueCommand
+		// argument, say. Clear it there.
+		inner := owner
+		if opts.general() {
+			inner = ""
 		}
-		if li := makeLit(t.Type, t.Body, owner); li != nil {
+		for _, c := range childNodes(t) {
+			collectLits(c, t, inner, out, opts)
+		}
+		if li := makeLit(t.Type, t.Body, owner, opts, false); li != nil {
 			*out = append(*out, li)
 		}
 		return
 	}
 	for _, c := range childNodes(n) {
-		collectLits(c, n, owner, out)
+		collectLits(c, n, owner, out, opts)
 	}
 }
 
@@ -599,34 +754,40 @@ func childNodes(n ast.Node) []ast.Node {
 	return kids
 }
 
-func makeLit(ft *ast.FuncType, body *ast.BlockStmt, owner string) *litInfo {
+// force skips the name filter. A named declaration reaches makeLit
+// only because the plan already established that it is wired to an
+// included callback field; re-testing its own name (handleSelect, not
+// OnSelect) would reject every one of them.
+func makeLit(
+	ft *ast.FuncType, body *ast.BlockStmt, owner string, opts *Options,
+	force bool,
+) *litInfo {
 	if body == nil {
 		return nil
 	}
-	sig := classify(ft)
-	two := false
-	if sig == sigNone {
-		if !classifyTwo(ft) {
-			return nil
-		}
-		two = true
+	// In general mode the name filter is the whole safety margin: the
+	// matcher accepts anything ending in *Window, so an unattributed
+	// closure must not convert.
+	if opts.general() && !force && !opts.owns(owner) {
+		return nil
+	}
+	sh, ok := classify(ft, opts)
+	if !ok {
+		return nil
 	}
 	ps := flatParams(ft)
 	li := &litInfo{
-		ft: ft, body: body, sig: sig, two: two, owner: owner,
+		ft: ft, body: body, sh: sh, owner: owner,
 		cls: isConsumeOwner(owner),
 		cn:  contextName(body, ps),
 	}
-	switch {
-	case two:
-		li.names = [3]string{ps[0].name, "", ps[1].name}
-	case sig == sigLEW:
-		li.names = [3]string{ps[0].name, ps[1].name, ps[2].name}
-	case sig == sigLPW:
-		li.names = [3]string{ps[0].name, "", ps[2].name}
-	case sig == sigPEW:
-		li.names = [3]string{"", ps[1].name, ps[2].name}
+	at := func(i int) string {
+		if i < 0 {
+			return ""
+		}
+		return ps[i].name
 	}
+	li.names = [3]string{at(sh.layout), at(sh.event), at(sh.window)}
 	return li
 }
 
@@ -670,12 +831,7 @@ func contextName(body *ast.BlockStmt, ps []param) string {
 }
 
 func (r *rewriter) rewriteBody(li *litInfo) {
-	if li.two {
-		ct := ctxType(li.ft)
-		r.replace(li.ft.Params.Pos(), li.ft.Params.End(), "("+li.cn+" "+ct+")")
-	} else {
-		r.rewriteParams(li.ft, li.sig, true, li.cn)
-	}
+	r.rewriteParams(li.ft, li.sh, true, li.cn)
 	r.rewriteHandled(li)
 	r.renameIdents(li)
 	if li.cls {

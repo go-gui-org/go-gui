@@ -152,8 +152,8 @@ func composerView(w *gui.Window) gui.View {
 					// Keep the input fully controlled by app state.
 					gui.State[appState](ctx.Window).Draft = text
 				},
-				OnTextCommit: func(_ *gui.Layout, text string, _ gui.InputCommitReason, w *gui.Window) {
-					addTodo(w, text)
+				OnTextCommit: func(text string, _ gui.InputCommitReason, ctx gui.EventCtx) {
+					addTodo(ctx.Window, text)
 				},
 			}),
 			gui.Button(gui.ButtonCfg{

@@ -16,7 +16,7 @@ func TestSplitterBasic(t *testing.T) {
 		Second: SplitterPaneCfg{
 			Content: []View{Text(TextCfg{Text: "right"})},
 		},
-		OnChange: func(_ float32, _ SplitterCollapsed, _ *Event, _ *Window) {},
+		OnChange: func(_ float32, _ SplitterCollapsed, ctx EventCtx) {},
 	})
 	w := &Window{}
 	layout := generateViewLayout(v, w)
@@ -29,7 +29,7 @@ func TestSplitterBasic(t *testing.T) {
 func TestSplitAlias(t *testing.T) {
 	v := Splitter(SplitterCfg{
 		ID:       "sp",
-		OnChange: func(_ float32, _ SplitterCollapsed, _ *Event, _ *Window) {},
+		OnChange: func(_ float32, _ SplitterCollapsed, ctx EventCtx) {},
 		First:    SplitterPaneCfg{},
 		Second:   SplitterPaneCfg{},
 	})

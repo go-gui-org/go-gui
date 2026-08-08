@@ -176,8 +176,8 @@ func formCleanupStale(w *Window, formID string) {
 func formProcessRequests(
 	w *Window,
 	formID string,
-	onSubmit func(FormSubmitEvent, *Window),
-	onReset func(FormResetEvent, *Window),
+	onSubmit func(FormSubmitEvent, EventCtx),
+	onReset func(FormResetEvent, EventCtx),
 ) {
 	state := formRuntime(w, formID)
 	stateChanged := false
@@ -208,7 +208,7 @@ func formProcessRequests(
 			onReset(FormResetEvent{
 				FormID: formID,
 				Values: values,
-			}, w)
+			}, EventCtx{nil, nil, w})
 		}
 	}
 
@@ -252,7 +252,7 @@ func formProcessRequests(
 			Valid:   summary.Valid,
 			Pending: summary.Pending,
 			State:   summary,
-		}, w)
+		}, EventCtx{nil, nil, w})
 	}
 	if stateChanged {
 		w.UpdateWindow()

@@ -16,9 +16,9 @@ type DockPanelDef struct {
 // DockLayoutCfg configures a dock layout component.
 type DockLayoutCfg struct {
 	Root              *DockNode
-	OnLayoutChange    func(*DockNode, *Window)
-	OnPanelSelect     func(string, string, *Window) // (groupID, panelID)
-	OnPanelClose      func(string, *Window)
+	OnLayoutChange    func(*DockNode, EventCtx)
+	OnPanelSelect     func(string, string, EventCtx) // (groupID, panelID)
+	OnPanelClose      func(string, EventCtx)
 	ID                string
 	Panels            []DockPanelDef
 	ColorZonePreview  Color
@@ -37,9 +37,9 @@ type DockLayoutCfg struct {
 // full DockLayoutCfg (which holds []DockPanelDef with []View).
 type dockLayoutCore struct {
 	root             *DockNode
-	onLayoutChange   func(*DockNode, *Window)
-	onPanelSelect    func(string, string, *Window)
-	onPanelClose     func(string, *Window)
+	onLayoutChange   func(*DockNode, EventCtx)
+	onPanelSelect    func(string, string, EventCtx)
+	onPanelClose     func(string, EventCtx)
 	id               string
 	colorZonePreview Color
 }
@@ -188,10 +188,10 @@ func dockSplitView(
 		Orientation: orientation,
 		Ratio:       SomeF(node.Ratio),
 		Sizing:      FillFill,
-		OnChange: func(ratio float32, _ SplitterCollapsed, _ *Event, w *Window) {
+		OnChange: func(ratio float32, _ SplitterCollapsed, ctx EventCtx) {
 			newRoot := dockTreeUpdateRatio(root, splitID, ratio)
 			if onLayoutChange != nil {
-				onLayoutChange(newRoot, w)
+				onLayoutChange(newRoot, ctx)
 			}
 		},
 		First:  SplitterPaneCfg{Content: firstContent},
@@ -328,7 +328,7 @@ func dockTabButton(
 			Colors:     ColorSet{Hover: guiTheme.ColorHover},
 			Radius:     SomeF(2),
 			OnClick: func(ctx EventCtx) {
-				onPanelClose(panelID, ctx.Window)
+				onPanelClose(panelID, ctx)
 			},
 			Content: []View{
 				Text(TextCfg{
@@ -352,7 +352,7 @@ func dockTabButton(
 			dockDragStart(dockID, panelID, groupID, root,
 				onLayoutChange, ctx.Layout, ctx.Event, ctx.Window)
 			if onPanelSelect != nil {
-				onPanelSelect(groupID, panelID, ctx.Window)
+				onPanelSelect(groupID, panelID, ctx)
 			}
 		},
 		Content: btnContent,

@@ -24,7 +24,7 @@ func dataGridMakeOnChar(cfg *DataGridCfg, columns []GridColumnCfg) func(gg.Event
 		}
 		var payload string
 		if onCopyRows != nil {
-			text, ok := onCopyRows(selectedRows, ctx.Event, ctx.Window)
+			text, ok := onCopyRows(selectedRows, ctx)
 			if ok {
 				payload = text
 			} else {

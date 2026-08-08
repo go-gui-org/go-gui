@@ -73,7 +73,7 @@ func TestExpandPanelOnToggle(t *testing.T) {
 	cfg := ExpandPanelCfg{
 		Head:    Text(TextCfg{Text: "H"}),
 		Content: Text(TextCfg{Text: "C"}),
-		OnToggle: func(_ *Window) {
+		OnToggle: func(ctx EventCtx) {
 			called = true
 		},
 	}

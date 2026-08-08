@@ -274,7 +274,7 @@ func dataGridPinControl(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 				return
 			}
 			nextPin := dataGridColumnNextPin(colPin)
-			onColumnPinChange(colID, nextPin, ctx.Event, ctx.Window)
+			onColumnPinChange(colID, nextPin, ctx)
 			ctx.Consume()
 		})
 }

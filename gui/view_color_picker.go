@@ -324,11 +324,8 @@ func cpPreviewRow(cfg *ColorPickerCfg) View {
 				OnTextChanged: func(text string, ctx EventCtx) {
 					cpApplyHex(text, cfgID, onChange, ctx.Window)
 				},
-				OnTextCommit: func(
-					_ *Layout, text string,
-					_ InputCommitReason, w *Window,
-				) {
-					cpApplyHex(text, cfgID, onChange, w)
+				OnTextCommit: func(text string, _ InputCommitReason, ctx EventCtx) {
+					cpApplyHex(text, cfgID, onChange, ctx.Window)
 				},
 			}),
 		},
@@ -425,11 +422,8 @@ func cpInputColumn(
 				OnTextChanged: func(text string, ctx EventCtx) {
 					applyFn(text, ctx.Window)
 				},
-				OnTextCommit: func(
-					_ *Layout, text string,
-					_ InputCommitReason, w *Window,
-				) {
-					applyFn(text, w)
+				OnTextCommit: func(text string, _ InputCommitReason, ctx EventCtx) {
+					applyFn(text, ctx.Window)
 				},
 			}),
 		},

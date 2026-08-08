@@ -14,7 +14,7 @@ func TestRadioButtonGroupColumnBasic(t *testing.T) {
 			{Label: "B", Value: "b"},
 			{Label: "C", Value: "c"},
 		},
-		OnSelect: func(_ string, _ *Window) {},
+		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	kids := v.Content()
 	if len(kids) != 3 {
@@ -30,7 +30,7 @@ func TestRadioButtonGroupRowBasic(t *testing.T) {
 			{Label: "X", Value: "x"},
 			{Label: "Y", Value: "y"},
 		},
-		OnSelect: func(_ string, _ *Window) {},
+		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	kids := v.Content()
 	if len(kids) != 2 {
@@ -47,7 +47,7 @@ func TestRadioButtonGroupFocusIDs(t *testing.T) {
 			{Label: "B", Value: "b"},
 			{Label: "C", Value: "c"},
 		},
-		OnSelect: func(_ string, _ *Window) {},
+		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	w := newTestWindow()
 	kids := v.Content()
@@ -71,7 +71,7 @@ func TestRadioButtonGroupFocusIDs(t *testing.T) {
 func TestRadioButtonGroupEmpty(t *testing.T) {
 	v := RadioButtonGroupColumn(RadioButtonGroupCfg{
 		ID:       "radio_button_group_test_test_radio_button_group_empty",
-		OnSelect: func(_ string, _ *Window) {},
+		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	if len(v.Content()) != 0 {
 		t.Error("empty options should produce no children")
@@ -87,7 +87,7 @@ func TestRadioButtonGroupOnSelect(t *testing.T) {
 			{Label: "A", Value: "a"},
 			{Label: "B", Value: "b"},
 		},
-		OnSelect: func(val string, _ *Window) {
+		OnSelect: func(val string, ctx EventCtx) {
 			selected = val
 		},
 	})
@@ -113,7 +113,7 @@ func TestRadioButtonGroupDisabledPropagation(t *testing.T) {
 			{Label: "A", Value: "a"},
 			{Label: "B", Value: "b"},
 		},
-		OnSelect: func(_ string, _ *Window) {},
+		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	kids := v.Content()
 	for i, child := range kids {
@@ -133,7 +133,7 @@ func TestRadioButtonGroupItems(t *testing.T) {
 		ID:       "radio_button_group_test_test_radio_button_group_items",
 		Value:    "rust",
 		Items:    []string{"go", "rust", "zig"},
-		OnSelect: func(_ string, _ *Window) {},
+		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	kids := v.Content()
 	if len(kids) != 3 {
@@ -150,7 +150,7 @@ func TestRadioButtonGroupItemsPrecedence(t *testing.T) {
 		Options: []RadioOption{
 			{Label: "Ignored", Value: "ignored"},
 		},
-		OnSelect: func(_ string, _ *Window) {},
+		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	kids := v.Content()
 	if len(kids) != 2 {
@@ -164,7 +164,7 @@ func TestRadioButtonGroupItemsOnSelect(t *testing.T) {
 		ID:    "radio_button_group_test_test_radio_button_group_items_on_select",
 		Value: "a",
 		Items: []string{"a", "b"},
-		OnSelect: func(val string, _ *Window) {
+		OnSelect: func(val string, ctx EventCtx) {
 			selected = val
 		},
 	})
@@ -184,7 +184,7 @@ func TestRadioButtonGroupRowItems(t *testing.T) {
 		ID:       "radio_button_group_test_test_radio_button_group_row_items",
 		Value:    "go",
 		Items:    []string{"go", "rust", "zig"},
-		OnSelect: func(_ string, _ *Window) {},
+		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	kids := v.Content()
 	if len(kids) != 3 {

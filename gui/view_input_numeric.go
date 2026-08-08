@@ -8,7 +8,7 @@ type NumericInputCfg struct {
 
 	// Callbacks
 	OnTextChanged func(string, EventCtx)
-	OnValueCommit func(*Layout, Opt[float64], string, *Window)
+	OnValueCommit func(Opt[float64], string, EventCtx)
 
 	ID          string `gui:"required,focus"`
 	Text        string
@@ -213,7 +213,7 @@ func numericInputField(cfg NumericInputCfg, locale NumericLocaleCfg, _ NumericSt
 				cfg.Decimals, locale, modeCfg)
 			return committed
 		},
-		OnTextCommit: func(layout *Layout, text string, _ InputCommitReason, w *Window) {
+		OnTextCommit: func(text string, _ InputCommitReason, ctx EventCtx) {
 			// A read-only inner Input still fires OnTextCommit on Enter
 			// (with text unchanged); do not surface it as a value commit.
 			if cfg.ReadOnly {
@@ -223,7 +223,7 @@ func numericInputField(cfg NumericInputCfg, locale NumericLocaleCfg, _ NumericSt
 				text, cfg.Value, cfg.Min, cfg.Max,
 				cfg.Decimals, locale, modeCfg)
 			if cfg.OnValueCommit != nil {
-				cfg.OnValueCommit(layout, value, committed, w)
+				cfg.OnValueCommit(value, committed, ctx)
 			}
 		},
 	})
@@ -326,7 +326,7 @@ func numericInputApplyStep(
 		cfg.Decimals, stepCfg, locale, dir,
 		e.Modifiers, modeCfg)
 	if cfg.OnValueCommit != nil {
-		cfg.OnValueCommit(layout, value, committed, w)
+		cfg.OnValueCommit(value, committed, EventCtx{layout, nil, w})
 	}
 }
 

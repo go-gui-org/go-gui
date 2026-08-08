@@ -573,6 +573,66 @@ model collapse creates in their consume-class handlers — which their
 71 combined `Consume()` sites suggest is the part worth measuring
 properly before starting.
 
+#### 4.3.2 Conversion as implemented (2026-08-08)
+
+17 distinct signatures converted, against the 13 §4.3 listed: the three
+`gui/datagrid/` callbacks §4.3.1 surfaced, plus `OnChange` and
+`OnSelect` each contributing a second distinct signature the original
+count folded into one. The 13 that stayed are exactly the 12 lifecycle
+signatures plus `OnEvent`.
+
+**`OnCopyRows` took the invariant, not an exemption.** The rule adopted
+is that `EventCtx` replaces the `*Layout`, `*Event` and `*Window`
+parameters and says nothing about results, so it is now
+`func([]GridRow, EventCtx) (string, bool)`. No third target shape and
+no carve-out — the two target shapes in §4.3 were simply stated too
+narrowly, since "returns nothing" was never load-bearing.
+
+Verified by re-running `ergoaudit -mode callbacks`:
+`func(T..., *Window)` 24 → **12**, `leaks raw *Event` 5 → **1**
+(`OnEvent` alone), `func(EventCtx)` 16 → **18**,
+`func(T..., EventCtx)` 19 → **32**.
+
+**The codemod needed a name filter to be safe at all.** The v0.52 tool
+matched by signature, which works only because nothing else in the
+codebase looks like `func(*Layout, *Event, *Window)`. A trailing
+`*Window` is not distinctive — it describes most internal plumbing — so
+the widened matcher is gated on an explicit list of field names
+(`-fields`), matched ignoring the leading case so the internal spelling
+`onSelect` matches the field `OnSelect`.
+
+Three defects surfaced only by running it against the tree, each a case
+where the name filter was consulted in the wrong place:
+
+1. **Nested closures inherited the owner name**, converting every
+   `w.QueueCommand(func(w *gui.Window) {…})` written inside a converted
+   callback. Harmless in the old signature-driven mode, where the owner
+   only tinted the consume-class report; fatal once the owner is the
+   gate.
+2. **Named declarations were filtered by their own name.** A function
+   reaches the declaration pass only because the plan established it is
+   wired to an included field, but the filter then tested
+   `onShowcaseSplitterMainChange` against the field list and rejected
+   it.
+3. **Assignment targets were read only from selectors**, so
+   `onChange := func(…)` — the spelling widget internals and tests
+   actually use — was invisible.
+
+All three are pinned by tests in `tools/eventctx/general_test.go`.
+
+**Dispatch now passes the real context through.** Where a widget
+invokes one of these callbacks from inside an already-converted
+callback, the fold emits `ctx` rather than
+`EventCtx{nil, ctx.Event, ctx.Window}` — 29 sites. The old signature
+carried no `*Layout`, so this hands callers strictly more than before;
+synthesizing a nil layout when one is in scope would manufacture an
+absence. Where no layout genuinely exists (six internal helpers that
+only ever had a `*Window`), `EventCtx{nil, nil, w}` is emitted and is
+faithful.
+
+Cost: 45 files, zero rule-4 review items, and **zero sibling sites** —
+confirming §4.3.1's finding that no sibling pays for this conversion.
+
 ### 4.4 Color-set collapse — highest per-app line savings
 
 `examples/todo/main.go:139-166` sets six `Color*` fields on one button
@@ -1127,7 +1187,7 @@ burying them in the same diff.
 | 3     | §4.5 `PadAll` / `PadXY` shorthands       | n/a — already exist |
 | 4     | §4.7 `RTFCfg` + datagrid builder renames | done   |
 | 4     | §4.4 `ColorSet` on six `Cfg`s, flat state fields deleted | done |
-| 4     | §4.3 callback signature conversion       | todo   |
+| 4     | §4.3 callback signature conversion       | done   |
 | 4     | §4.3b event-model collapse               | deferred — see §4.3.1 |
 | 5     | §4.8 example audit                       | todo   |
 

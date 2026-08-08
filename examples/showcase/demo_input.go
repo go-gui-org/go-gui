@@ -109,8 +109,8 @@ func demoNumericInput(w *gui.Window) gui.View {
 				OnTextChanged: func(text string, ctx gui.EventCtx) {
 					gui.State[ShowcaseApp](ctx.Window).NumericENText = text
 				},
-				OnValueCommit: func(_ *gui.Layout, value gui.Opt[float64], text string, w *gui.Window) {
-					app := gui.State[ShowcaseApp](w)
+				OnValueCommit: func(value gui.Opt[float64], text string, ctx gui.EventCtx) {
+					app := gui.State[ShowcaseApp](ctx.Window)
 					app.NumericENValue = value
 					app.NumericENText = text
 				},
@@ -134,8 +134,8 @@ func demoNumericInput(w *gui.Window) gui.View {
 				OnTextChanged: func(text string, ctx gui.EventCtx) {
 					gui.State[ShowcaseApp](ctx.Window).NumericDEText = text
 				},
-				OnValueCommit: func(_ *gui.Layout, value gui.Opt[float64], text string, w *gui.Window) {
-					app := gui.State[ShowcaseApp](w)
+				OnValueCommit: func(value gui.Opt[float64], text string, ctx gui.EventCtx) {
+					app := gui.State[ShowcaseApp](ctx.Window)
 					app.NumericDEValue = value
 					app.NumericDEText = text
 				},
@@ -156,8 +156,8 @@ func demoNumericInput(w *gui.Window) gui.View {
 				OnTextChanged: func(text string, ctx gui.EventCtx) {
 					gui.State[ShowcaseApp](ctx.Window).NumericCurrencyText = text
 				},
-				OnValueCommit: func(_ *gui.Layout, value gui.Opt[float64], text string, w *gui.Window) {
-					app := gui.State[ShowcaseApp](w)
+				OnValueCommit: func(value gui.Opt[float64], text string, ctx gui.EventCtx) {
+					app := gui.State[ShowcaseApp](ctx.Window)
 					app.NumericCurrencyValue = value
 					app.NumericCurrencyText = text
 				},
@@ -178,8 +178,8 @@ func demoNumericInput(w *gui.Window) gui.View {
 				OnTextChanged: func(text string, ctx gui.EventCtx) {
 					gui.State[ShowcaseApp](ctx.Window).NumericPercentText = text
 				},
-				OnValueCommit: func(_ *gui.Layout, value gui.Opt[float64], text string, w *gui.Window) {
-					app := gui.State[ShowcaseApp](w)
+				OnValueCommit: func(value gui.Opt[float64], text string, ctx gui.EventCtx) {
+					app := gui.State[ShowcaseApp](ctx.Window)
 					app.NumericPercentValue = value
 					app.NumericPercentText = text
 				},
@@ -200,8 +200,8 @@ func demoNumericInput(w *gui.Window) gui.View {
 				OnTextChanged: func(text string, ctx gui.EventCtx) {
 					gui.State[ShowcaseApp](ctx.Window).NumericPlainText = text
 				},
-				OnValueCommit: func(_ *gui.Layout, value gui.Opt[float64], text string, w *gui.Window) {
-					app := gui.State[ShowcaseApp](w)
+				OnValueCommit: func(value gui.Opt[float64], text string, ctx gui.EventCtx) {
+					app := gui.State[ShowcaseApp](ctx.Window)
 					app.NumericPlainValue = value
 					app.NumericPlainText = text
 				},
@@ -293,8 +293,8 @@ func demoDatePickerRoller(w *gui.Window) gui.View {
 				ID:           "date-roller",
 				Focusable:    true,
 				SelectedDate: app.RollerDate,
-				OnChange: func(date time.Time, w *gui.Window) {
-					gui.State[ShowcaseApp](w).RollerDate = date
+				OnChange: func(date time.Time, ctx gui.EventCtx) {
+					gui.State[ShowcaseApp](ctx.Window).RollerDate = date
 				},
 			}),
 			gui.Text(gui.TextCfg{
@@ -353,15 +353,15 @@ func demoForms(w *gui.Window) gui.View {
 		Sizing:  gui.FillFit,
 		Spacing: gui.SomeF(12),
 		Padding: gui.NoPadding,
-		OnSubmit: func(e gui.FormSubmitEvent, w *gui.Window) {
-			app := gui.State[ShowcaseApp](w)
+		OnSubmit: func(e gui.FormSubmitEvent, ctx gui.EventCtx) {
+			app := gui.State[ShowcaseApp](ctx.Window)
 			app.Form.SubmitMessage = fmt.Sprintf(
 				"Submitted username=%s, email=%s",
 				strings.TrimSpace(e.Values["username"]),
 				strings.TrimSpace(e.Values["email"]))
 		},
-		OnReset: func(e gui.FormResetEvent, w *gui.Window) {
-			app := gui.State[ShowcaseApp](w)
+		OnReset: func(e gui.FormResetEvent, ctx gui.EventCtx) {
+			app := gui.State[ShowcaseApp](ctx.Window)
 			app.Form.Username = e.Values["username"]
 			app.Form.Email = e.Values["email"]
 			app.Form.AgeText = e.Values["age"]
@@ -418,11 +418,11 @@ func demoForms(w *gui.Window) gui.View {
 					gui.State[ShowcaseApp](ctx.Window).Form.AgeText = text
 					gui.FormOnFieldEvent(ctx.Window, ctx.Layout, ageAdapterCfg(text), gui.FormTriggerChange)
 				},
-				OnValueCommit: func(l *gui.Layout, value gui.Opt[float64], text string, w *gui.Window) {
-					app := gui.State[ShowcaseApp](w)
+				OnValueCommit: func(value gui.Opt[float64], text string, ctx gui.EventCtx) {
+					app := gui.State[ShowcaseApp](ctx.Window)
 					app.Form.AgeValue = value
 					app.Form.AgeText = text
-					gui.FormOnFieldEvent(w, l, ageAdapterCfg(text), gui.FormTriggerBlur)
+					gui.FormOnFieldEvent(ctx.Window, ctx.Layout, ageAdapterCfg(text), gui.FormTriggerBlur)
 				},
 			})),
 			showcaseFormFieldState(w, "age"),
