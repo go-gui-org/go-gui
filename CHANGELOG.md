@@ -31,6 +31,35 @@ Breaking items are listed under "Changed" below as they land.
   RTF blocks in the showcase with no `ID` — keyboard-unreachable since they were
   written. All four now have one.
 
+- **BREAKING: the five flat state-color fields are deleted from the six `Cfg`s
+  that carried the full set** — `ButtonCfg`, `SwitchCfg`, `ToggleCfg`,
+  `RadioCfg`, `InputDateCfg`, `DatePickerCfg`. `ColorHover`, `ColorFocus`,
+  `ColorClick`, `ColorBorder` and `ColorBorderFocus` are replaced by
+  `Colors ColorSet` on each. `Color` stays as the shorthand for `Colors.Base`.
+
+  Migration is mechanical:
+
+  ```go
+  // before
+  gui.ButtonCfg{Color: c, ColorHover: c, ColorClick: c,
+      ColorFocus: c, ColorBorder: c, ColorBorderFocus: c}
+  // after
+  gui.ButtonCfg{Colors: gui.Flat(c)}
+
+  // before
+  gui.ButtonCfg{Color: bg, ColorBorder: b, ColorBorderFocus: a}
+  // after
+  gui.ButtonCfg{Colors: gui.ColorSet{Base: bg, Border: b, BorderFocus: a}}
+  ```
+
+  The 24 `Cfg`s holding a partial set (four fields down to one) keep the fields
+  they had. "Carries the full five" is the line, because that is where
+  `ColorSet` fits exactly.
+
+  **`Color` does not pin the interactive states.** It sets the resting color and
+  leaves hover, click and focus to the theme, exactly as before. `Flat(c)` is
+  the deliberate opt-in for a widget that should not react.
+
 ### Fixed
 
 - **Four focusable RTF blocks in `examples/showcase` had no `ID`**, so they
@@ -45,14 +74,15 @@ Breaking items are listed under "Changed" below as they land.
 
 ### Added
 
-- **`ColorSet` and `Flat`** (`gui/color_set.go`), on `ButtonCfg` as the `Colors`
-  field. Groups `Base`, `Hover`, `Click`, `Focus`, `Border` and `BorderFocus`
-  into one value; `Flat(c)` pins all six for a widget that should not react to
-  the pointer. `Base` backs the three interactive states, `BorderFocus` falls
-  back to `Border`, and anything still unset falls through to the theme. An
-  assigned flat `Color*` field takes precedence over the set, so existing code
-  keeps its appearance. `examples/todo`'s accent button drops from six color
-  lines to one. See [Styling widgets](README.md#styling-widgets).
+- **`ColorSet` and `Flat`** (`gui/color_set.go`), as the `Colors` field. Landed
+  on `ButtonCfg` in phase 3 and widened to six widgets in phase 4 (see
+  "Changed"). Groups `Base`, `Hover`, `Click`, `Focus`, `Border` and
+  `BorderFocus` into one value; `Flat(c)` pins all six for a widget that should
+  not react to the pointer. `Base` backs the three interactive states,
+  `BorderFocus` falls back to `Border`, and anything still unset falls through
+  to the theme. An assigned flat `Color*` field takes precedence over the set,
+  so existing code keeps its appearance. `examples/todo`'s accent button drops
+  from six color lines to one. See [Styling widgets](README.md#styling-widgets).
 
   Fields are plain `Color`, reversing the spec's Q5: `Color` already carries its
   own set flag, so `Opt[Color]` would have added a second, competing notion of
