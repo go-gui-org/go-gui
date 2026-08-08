@@ -98,16 +98,17 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 				OnClick: func(ctx EventCtx) {
 					if onToggle != nil {
 						onToggle(ctx)
+						ctx.Consume()
 					}
 				},
 				OnChar: func(ctx EventCtx) {
 					// Only the spacebar activates the header; every
 					// other character has to keep travelling.
 					if ctx.Event.CharCode != CharSpace || onToggle == nil {
-						ctx.Bubble()
 						return
 					}
 					onToggle(ctx)
+					ctx.Consume()
 				},
 				OnHover: func(ctx EventCtx) {
 					ctx.Window.SetMouseCursorPointingHand()

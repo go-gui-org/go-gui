@@ -7,7 +7,7 @@
 //
 // Without -w the rewritten source is printed to stdout and nothing is
 // modified. The rule-4 report (return paths in consume-class callbacks
-// that may now need an explicit ctx.Bubble()) goes to stderr, or to the
+// that may now need an explicit ctx.Consume()) goes to stderr, or to the
 // file named by -report.
 package main
 

@@ -86,9 +86,10 @@ func f(c *Cfg) {
 	}
 }
 
-// TestBubble checks that an explicit unhandled assignment becomes
-// ctx.Bubble() regardless of class.
-func TestBubble(t *testing.T) {
+// TestUnhandledAssignDropped checks that an explicit unhandled
+// assignment is deleted: under the one-rule model of v0.55.0 letting
+// the event travel on is what a callback does by saying nothing.
+func TestUnhandledAssignDropped(t *testing.T) {
 	src := []byte(`package p
 
 var f = func(l *Layout, e *Event, w *Window) {
@@ -99,8 +100,9 @@ var f = func(l *Layout, e *Event, w *Window) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(res.Src), "ctx.Bubble()") {
-		t.Errorf("want ctx.Bubble(), got:\n%s", res.Src)
+	if strings.Contains(string(res.Src), "IsHandled") ||
+		strings.Contains(string(res.Src), "Bubble") {
+		t.Errorf("want the assignment gone, got:\n%s", res.Src)
 	}
 }
 

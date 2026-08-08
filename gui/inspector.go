@@ -160,7 +160,10 @@ func inspectorFloatingPanel(w *Window) View {
 		ScrollbarCfgY: scrollbarCfg,
 		Padding:       SomeP(0, scrollbarPad, 0, 0),
 		Spacing:       SomeF(0),
+		// The inspector panel overlays the app being inspected; clicks
+		// on it must not reach through and mutate what is under study.
 		OnClick: func(ctx EventCtx) {
+			ctx.Consume()
 		},
 		Content: []View{
 			inspectorHelpBar(),

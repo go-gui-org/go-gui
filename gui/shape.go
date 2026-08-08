@@ -378,16 +378,16 @@ const (
 
 // eventHandlers holds optional event callback fields.
 type eventHandlers struct {
-	// Consume-class: dispatch marks the event handled before the
-	// callback runs. Opt out with ctx.Bubble().
+	// One rule for all of these: the callback must call ctx.Consume()
+	// to stop propagation. Until v0.55.0 the five below were
+	// "consume-class" and dispatch marked their events handled before
+	// the callback ran; that split is gone.
 	OnChar     func(EventCtx)
 	OnClick    func(EventCtx)
 	OnMouseUp  func(EventCtx)
 	OnGesture  func(EventCtx)
 	OnFileDrop func(EventCtx)
 
-	// Notify-class: the callback must call ctx.Consume() to stop
-	// propagation.
 	OnKeyDown     func(EventCtx)
 	OnKeyUp       func(EventCtx)
 	OnMouseMove   func(EventCtx)

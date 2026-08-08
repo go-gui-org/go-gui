@@ -32,8 +32,8 @@ func clickCollapse(t *testing.T, root *Layout) string {
 	return buf.String()
 }
 
-// The hazard itself: the inner handler never says Consume, so today the
-// pre-mark stops the event, and under §4.3b it would not.
+// The finding itself: the inner handler never says Consume, so the
+// click carries on to the ancestor and both run.
 func TestCollapseWarnsWhenAncestorAlsoHandles(t *testing.T) {
 	root := collapseTree(
 		&eventHandlers{OnClick: func(EventCtx) {}},
@@ -46,32 +46,19 @@ func TestCollapseWarnsWhenAncestorAlsoHandles(t *testing.T) {
 	}
 }
 
-// An explicit Consume() is what the collapse asks for, so such a site
-// is already correct and must stay quiet.
+// A consumed event is going nowhere, so there is nothing to report.
 func TestCollapseSilentOnExplicitConsume(t *testing.T) {
 	root := collapseTree(
 		&eventHandlers{OnClick: func(EventCtx) {}},
 		&eventHandlers{OnClick: func(ctx EventCtx) { ctx.Consume() }},
 	)
 	if got := clickCollapse(t, root); got != "" {
-		t.Errorf("explicit Consume() is collapse-safe, got %q", got)
+		t.Errorf("a consumed event reaches no ancestor, got %q", got)
 	}
 }
 
-// Bubble() means the event already reaches the ancestor today, so the
-// collapse changes nothing for this site.
-func TestCollapseSilentOnBubble(t *testing.T) {
-	root := collapseTree(
-		&eventHandlers{OnClick: func(EventCtx) {}},
-		&eventHandlers{OnClick: func(ctx EventCtx) { ctx.Bubble() }},
-	)
-	if got := clickCollapse(t, root); got != "" {
-		t.Errorf("Bubble() already propagates, got %q", got)
-	}
-}
-
-// The common case §4.3.1 could not count: a handler with no handling
-// ancestor. Most of the 138 example sites are expected to land here.
+// The common case: a handler with no handling ancestor. Not consuming
+// is unremarkable when nothing is above you.
 func TestCollapseSilentWithoutAncestorHandler(t *testing.T) {
 	root := collapseTree(nil, &eventHandlers{OnClick: func(EventCtx) {}})
 	if got := clickCollapse(t, root); got != "" {
@@ -187,10 +174,9 @@ func TestCollapseIgnoresNotifyClass(t *testing.T) {
 	}
 }
 
-// The unnamed generic evConsume carries no ancestor rule, so callers
-// that have not been given a specific kind stay silent rather than
-// guessing.
-func TestCollapseSkipsUnnamedConsumeClass(t *testing.T) {
+// The unnamed evNotify carries no ancestor rule, so callers that have
+// not been given a specific kind stay silent rather than guessing.
+func TestCollapseSkipsUnnamedClass(t *testing.T) {
 	root := collapseTree(
 		&eventHandlers{OnClick: func(EventCtx) {}},
 		&eventHandlers{OnClick: func(EventCtx) {}},
@@ -198,8 +184,8 @@ func TestCollapseSkipsUnnamedConsumeClass(t *testing.T) {
 	inner := &root.Children[0].Children[0]
 	buf := captureDebug(t)
 	callRelative(inner, &Event{MouseX: 5, MouseY: 5}, &Window{},
-		inner.Shape.events.OnClick, evConsume)
+		inner.Shape.events.OnClick, evNotify)
 	if got := buf.String(); got != "" {
-		t.Errorf("evConsume names no event, got %q", got)
+		t.Errorf("evNotify names no event, got %q", got)
 	}
 }

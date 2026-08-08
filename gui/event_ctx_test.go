@@ -33,18 +33,20 @@ func clickableShape(eh *eventHandlers) *Layout {
 func TestEventCtxNilEventMethods(t *testing.T) {
 	t.Parallel()
 	ctx := EventCtx{Layout: &Layout{}, Window: &Window{}}
-	// All three must be callable from AmendLayout/OnScroll, which carry
-	// no originating event.
+	// Both must be callable from AmendLayout/OnScroll, which carry no
+	// originating event.
 	ctx.Consume()
-	ctx.Bubble()
 	if ctx.Handled() {
 		t.Error("Handled() must be false with a nil Event")
 	}
 }
 
-// --- Consume class ---
+// --- The one rule ---
 
-func TestConsumeClassHandledByDefault(t *testing.T) {
+// OnClick was consume-class until v0.55.0, marked handled before the
+// callback ran. It is now exactly like every other callback: silence
+// means the event travels on.
+func TestClickNotHandledUnlessConsumed(t *testing.T) {
 	t.Parallel()
 	called := false
 	root := clickableShape(&eventHandlers{
@@ -55,40 +57,37 @@ func TestConsumeClassHandledByDefault(t *testing.T) {
 	if !called {
 		t.Fatal("OnClick not called")
 	}
-	if !e.IsHandled {
-		t.Error("consume-class callback should not have to mark handled")
+	if e.IsHandled {
+		t.Error("no callback is marked handled on its behalf any more")
 	}
 }
 
-func TestConsumeClassBubbleOptsOut(t *testing.T) {
+func TestClickConsumeStops(t *testing.T) {
 	t.Parallel()
 	root := clickableShape(&eventHandlers{
-		OnClick: func(ctx EventCtx) { ctx.Bubble() },
+		OnClick: func(ctx EventCtx) { ctx.Consume() },
 	})
 	e := &Event{MouseX: 5, MouseY: 5}
 	mouseDownHandler(root, false, e, &Window{})
-	if e.IsHandled {
-		t.Error("ctx.Bubble() should restore propagation")
+	if !e.IsHandled {
+		t.Error("ctx.Consume() should stop propagation")
 	}
 }
 
-// TestBubbleDoesNotUnhandleEarlierConsumer pins the documented limit of
-// Bubble: it opts out of this callback's auto-consume only, because
-// callRelative re-applies the incoming handled flag.
-func TestBubbleDoesNotUnhandleEarlierConsumer(t *testing.T) {
+// TestCallRelativeKeepsEarlierConsume pins the save/restore contract:
+// a callback that declines to consume must not un-handle an event some
+// earlier handler already consumed.
+func TestCallRelativeKeepsEarlierConsume(t *testing.T) {
 	t.Parallel()
 	layout := &Layout{Shape: &Shape{
 		shapeClip: drawClip{X: 0, Y: 0, Width: 100, Height: 100},
 	}}
 	e := &Event{MouseX: 5, MouseY: 5, IsHandled: true}
-	callRelative(layout, e, &Window{},
-		func(ctx EventCtx) { ctx.Bubble() }, evConsume)
+	callRelative(layout, e, &Window{}, func(EventCtx) {}, evClick)
 	if !e.IsHandled {
-		t.Error("Bubble must not un-handle an event a prior handler consumed")
+		t.Error("declining to consume must not un-handle a prior consume")
 	}
 }
-
-// --- Notify class ---
 
 func TestNotifyClassStillBubbles(t *testing.T) {
 	t.Parallel()
@@ -172,9 +171,11 @@ func TestFocusedMouseScrollDoesNotAutoConsume(t *testing.T) {
 	}
 }
 
-func TestOnCharAutoConsumesButKeyUpDoesNot(t *testing.T) {
+func TestOnCharAndKeyUpBothNeedConsume(t *testing.T) {
 	t.Parallel()
-	// Both go through executeFocusCallback; only OnChar is consume.
+	// Both go through executeFocusCallback, and since v0.55.0 neither
+	// is treated differently: OnChar was the last keyboard callback
+	// that consumed without being asked.
 	charRoot := focusedChild("f1", &eventHandlers{
 		OnChar: func(EventCtx) {},
 	})
@@ -182,8 +183,8 @@ func TestOnCharAutoConsumesButKeyUpDoesNot(t *testing.T) {
 	w.SetFocus("f1")
 	ce := &Event{CharCode: 'a'}
 	charHandler(charRoot, ce, w)
-	if !ce.IsHandled {
-		t.Error("OnChar should auto-consume")
+	if ce.IsHandled {
+		t.Error("OnChar must not auto-consume")
 	}
 
 	upRoot := focusedChild("f1", &eventHandlers{
@@ -286,7 +287,7 @@ func TestOnEventSkippedForConsumedClick(t *testing.T) {
 		return n
 	}
 	if got := sniff(clickableShape(&eventHandlers{
-		OnClick: func(EventCtx) {},
+		OnClick: func(ctx EventCtx) { ctx.Consume() },
 	})); got != 0 {
 		t.Errorf("consumed click reached OnEvent %d times, want 0", got)
 	}
@@ -321,9 +322,8 @@ func TestReentrantDispatchKeepsOuterCtxUsable(t *testing.T) {
 		callRelative(inner, ctx.Event, w, func(EventCtx) {}, evNotify)
 		samePtr = ctx.Event == e
 		sameCoords = ctx.Event.MouseX == x && ctx.Event.MouseY == y
-		ctx.Bubble()
 		ctx.Consume()
-	}, evConsume)
+	}, evClick)
 
 	if !samePtr {
 		t.Error("outer ctx.Event pointer changed across nested dispatch")

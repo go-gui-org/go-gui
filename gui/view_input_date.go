@@ -154,7 +154,10 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 			Padding:      NoPadding,
 			SizeBorder:   NoBorder,
 			FloatOffsetY: -cfg.SizeBorder.Get(0),
+			// The popup floats over the form; a click inside it is the
+			// popup's, not that of the field it is covering.
 			OnClick: func(ctx EventCtx) {
+				ctx.Consume()
 			},
 			Content: []View{
 				DatePicker(DatePickerCfg{

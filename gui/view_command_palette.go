@@ -182,6 +182,9 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 			if onDismiss != nil {
 				onDismiss(ctx.Window)
 			}
+			// A click on the backdrop is the dismissal, not something
+			// for whatever the palette is floating over.
+			ctx.Consume()
 		},
 		Content: []View{
 			Column(ContainerCfg{
@@ -196,7 +199,13 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 				Spacing:     SomeF(0),
 				Sizing:      FixedFit,
 				OnClick: func(ctx EventCtx) {
-					// Prevent backdrop click when clicking card.
+					// Absorb the click so it never reaches the
+					// backdrop, which would dismiss the palette the
+					// user is clicking into. An empty body used to be
+					// enough, back when dispatch marked consume-class
+					// events handled on the callback's behalf; now the
+					// consume has to be said.
+					ctx.Consume()
 				},
 				Content: []View{
 					Row(ContainerCfg{

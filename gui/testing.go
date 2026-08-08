@@ -57,7 +57,7 @@ var (
 	// ErrTestUnhandled means the event was dispatched and reached the
 	// end of traversal with nothing claiming it. The widget is present
 	// and hittable, but something above it in z-order absorbed the
-	// event, or the handler called ctx.Bubble() all the way out.
+	// event, or no handler along the way called ctx.Consume().
 	ErrTestUnhandled = errors.New("gui: event was not handled by any widget")
 )
 

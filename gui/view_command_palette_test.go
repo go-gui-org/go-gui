@@ -291,7 +291,7 @@ func TestPaletteBackdropDismiss(t *testing.T) {
 	// OnClick is consume-class, so the handled flag is set by dispatch,
 	// not by the callback body.
 	e := &Event{}
-	callRelative(&layout, e, w, layout.Shape.events.OnClick, evConsume)
+	callRelative(&layout, e, w, layout.Shape.events.OnClick, evClick)
 	if !dismissed {
 		t.Error("backdrop click should trigger OnDismiss")
 	}
