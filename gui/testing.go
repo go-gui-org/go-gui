@@ -59,6 +59,15 @@ var (
 	// and hittable, but something above it in z-order absorbed the
 	// event, or no handler along the way called ctx.Consume().
 	ErrTestUnhandled = errors.New("gui: event was not handled by any widget")
+
+	// ErrTestNoScrollRoom means the widget is Scrollable but its
+	// content fits inside it on the requested axis, so there is
+	// nowhere to scroll. Separated from ErrTestUnhandled because the
+	// two call for opposite fixes: this one says the fixture is wrong
+	// (give the container more content, or less height), whereas
+	// ErrTestUnhandled from a scroll says the container is real but
+	// already pinned at its limit.
+	ErrTestNoScrollRoom = errors.New("gui: scroll container has no room to scroll")
 )
 
 // TabDirection selects forward or backward traversal for TestTab.
@@ -346,10 +355,11 @@ func (w *Window) TestTab(dir TabDirection) (focusedID string, err error) {
 // behavior, faithfully reproduced; clear focus first if the test means
 // to isolate the container.
 //
-// Returns ErrTestNoHandler when the widget is neither Scrollable nor has
-// an OnMouseScroll, and ErrTestUnhandled when the event reached no one —
-// including the case where it fell through to a scrollable already
-// pinned at its limit.
+// Returns ErrTestNoHandler when the widget is neither Scrollable nor
+// has an OnMouseScroll, ErrTestNoScrollRoom when it is a scroll
+// container whose content already fits, and ErrTestUnhandled when the
+// event reached no one — including the case where it fell through to a
+// scrollable already pinned at its limit.
 func (w *Window) TestScroll(id string, dx, dy float32) error {
 	ly, err := w.testTarget(id)
 	if err != nil {
@@ -372,9 +382,45 @@ func (w *Window) TestScroll(id string, dx, dy float32) error {
 	w.EventFn(&e)
 	w.settle()
 	if !e.IsHandled {
+		// Re-resolve: settle() rebuilt the tree, so the ly captured
+		// above is stale (see TestRender's doc comment).
+		if cur, rerr := w.testTarget(id); rerr == nil {
+			if err = testScrollRoomErr(cur, id, dx, dy); err != nil {
+				return err
+			}
+		}
 		return fmt.Errorf("%w: scroll on %q", ErrTestUnhandled, id)
 	}
 	return nil
+}
+
+// testScrollRoomErr reports ErrTestNoScrollRoom when ly is a scroll
+// container whose content fits on every axis the caller asked to
+// scroll. Returns nil when there is room, leaving the caller to report
+// the generic ErrTestUnhandled.
+//
+// Room is measured the same way layoutAdjustScrollOffsets clamps —
+// viewport minus content — so this cannot disagree with the clamp that
+// actually swallowed the scroll.
+func testScrollRoomErr(ly *Layout, id string, dx, dy float32) error {
+	if !ly.Shape.Scrollable {
+		return nil
+	}
+	roomX := contentWidth(ly) - (ly.Shape.Width - ly.Shape.paddingWidth())
+	roomY := contentHeight(ly) - (ly.Shape.Height - ly.Shape.paddingHeight())
+	if dx != 0 && roomX > 0 {
+		return nil
+	}
+	if dy != 0 && roomY > 0 {
+		return nil
+	}
+	return fmt.Errorf(
+		"%w: %q content is %.0fx%.0f inside a %.0fx%.0f viewport",
+		ErrTestNoScrollRoom, id,
+		contentWidth(ly), contentHeight(ly),
+		ly.Shape.Width-ly.Shape.paddingWidth(),
+		ly.Shape.Height-ly.Shape.paddingHeight(),
+	)
 }
 
 // TestScrollOffset reads a scroll container's current offset.

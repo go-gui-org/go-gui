@@ -2,6 +2,7 @@ package gui
 
 import (
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -425,6 +426,63 @@ func TestTestScrollClampsAtEnd(t *testing.T) {
 	if up <= end {
 		t.Fatalf("offset y = %v after scrolling up from %v, want greater",
 			up, end)
+	}
+}
+
+// A scroll container whose content fits reports that specifically,
+// rather than the generic ErrTestUnhandled a clamped-at-the-limit
+// container gets. The two mean opposite things to whoever is reading
+// the failure: this one says the fixture never had anything to scroll.
+func TestTestScrollNoRoom(t *testing.T) {
+	w := NewTestWindow(WindowCfg{State: &counterState{}})
+	w.TestRender(func(_ *Window) View {
+		return Column(ContainerCfg{
+			ID:         "roomy",
+			Scrollable: true,
+			Sizing:     FixedFixed,
+			Width:      200,
+			Height:     400,
+			Content: []View{
+				Column(ContainerCfg{Sizing: FillFixed, Height: 20}),
+			},
+		})
+	})
+	err := w.TestScroll("roomy", 0, -3)
+	if !errors.Is(err, ErrTestNoScrollRoom) {
+		t.Fatalf("TestScroll on a fitting container = %v, want ErrTestNoScrollRoom",
+			err)
+	}
+}
+
+// The gap this closes: wrapped text used to keep its single-line
+// estimate headlessly, so a scroll container around a wall of text
+// never overflowed and TestScroll failed for a reason that had nothing
+// to do with the widget. This is the shape scroll_demo has, which §4.8
+// tried and abandoned.
+func TestTestScrollOverWrappedText(t *testing.T) {
+	long := strings.Repeat("word ", 300)
+	w := NewTestWindow(WindowCfg{State: &counterState{}})
+	w.TestRender(func(_ *Window) View {
+		return Column(ContainerCfg{
+			ID:         "panel",
+			Scrollable: true,
+			Sizing:     FixedFixed,
+			Width:      200,
+			Height:     100,
+			Content: []View{
+				Text(TextCfg{Text: long, Mode: TextModeWrap}),
+			},
+		})
+	})
+	if err := w.TestScroll("panel", 0, -3); err != nil {
+		t.Fatalf("TestScroll over wrapped text = %v, want nil", err)
+	}
+	_, y, err := w.TestScrollOffset("panel")
+	if err != nil {
+		t.Fatalf("TestScrollOffset = %v, want nil", err)
+	}
+	if y >= 0 {
+		t.Fatalf("offset y = %v after scrolling down, want < 0", y)
 	}
 }
 

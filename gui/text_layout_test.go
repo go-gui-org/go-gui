@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/go-gui-org/go-glyph"
@@ -106,5 +107,53 @@ func TestPlainTextLayoutResolvedNilWindow(t *testing.T) {
 	_, ok := plainTextLayoutResolved("test", s, TextStyle{}, nil)
 	if ok {
 		t.Error("nil window should return false")
+	}
+}
+
+// plainTextHeightNoMeasurer is what keeps headless wrapped text from
+// reporting one line tall. Asserted as a line count rather than a pixel
+// height: the per-rune width is an approximation and may be retuned,
+// but "more text in the same width is more lines" must hold.
+func TestPlainTextHeightNoMeasurer(t *testing.T) {
+	style := TextStyle{Size: 10}
+	lineH := fallbackLineHeight(style)
+
+	measure := func(text string, mode TextMode, width float32) float32 {
+		tc := &ShapeTextConfig{Text: text, TextMode: mode}
+		s := &Shape{Width: width, TC: tc}
+		return plainTextHeightNoMeasurer(s, tc, style, nil)
+	}
+
+	// Single line, no wrapping: exactly one line however wide it is.
+	if got := measure("hello", TextModeSingleLine, 10); got != lineH {
+		t.Errorf("single line height = %v, want %v", got, lineH)
+	}
+	// Hard newlines count even without wrapping.
+	if got := measure("a\nb\nc", TextModeMultiline, 500); got != 3*lineH {
+		t.Errorf("three hard lines = %v, want %v", got, 3*lineH)
+	}
+	// Wrapping: 100 runes at ~6px each in a 60px box is ~10 lines.
+	wrapped := measure(strings.Repeat("x", 100), TextModeWrap, 60)
+	if wrapped <= lineH {
+		t.Errorf("wrapped height = %v, want more than one line (%v)",
+			wrapped, lineH)
+	}
+	// Twice the text in the same width is about twice as tall.
+	twice := measure(strings.Repeat("x", 200), TextModeWrap, 60)
+	if twice <= wrapped {
+		t.Errorf("200 runes = %v, want more than 100 runes = %v",
+			twice, wrapped)
+	}
+	// An unresolved width cannot wrap; fall back to the hard lines.
+	if got := measure(strings.Repeat("x", 100), TextModeWrap, 0); got != lineH {
+		t.Errorf("zero width = %v, want one line %v", got, lineH)
+	}
+	// LineSpacing widens every line.
+	spaced := TextStyle{Size: 10, LineSpacing: 6}
+	tc := &ShapeTextConfig{Text: "a\nb", TextMode: TextModeMultiline}
+	s := &Shape{Width: 500, TC: tc}
+	want := 2 * (fallbackLineHeight(spaced) + 6)
+	if got := plainTextHeightNoMeasurer(s, tc, spaced, nil); got != want {
+		t.Errorf("line spacing height = %v, want %v", got, want)
 	}
 }

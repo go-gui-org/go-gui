@@ -1182,10 +1182,58 @@ test deletes by generated per-item ID), and `dialogs` (clicking
 not overflow, so there is nothing to scroll. Scroll assertions need a
 container whose overflow does not depend on measured text.
 
+**Resolved (v0.55.1, §4.8.2).** Both blockers are fixed and
+`scroll_demo` now carries the two state assertions it was meant to
+have.
+
 **Found, not fixed:** `examples/scroll_demo/main.go:111` gives all five
 percentage buttons the same ID, `"scroll_demo_pct_button"`. IDs must be
 unique per window; this is a §4.2-class defect, out of scope for a
 sizing audit, and it makes those buttons untargetable by ID from a test.
+
+#### 4.8.2 The headless-overflow gap, as closed
+
+The diagnosis in the paragraph above was right about the symptom and
+wrong about the mechanism. Text is _not_ zero-sized without a
+`TextMeasurer`: `Window.TextWidth` falls back to `0.6em` per rune and
+`view_text.go` seeds a `1.4em` height, so a single-line label has a
+plausible size headlessly. What is missing is the second pass.
+`layoutPlainText` recomputes height after sizing — that is where a
+wrapped paragraph learns it is 40 lines tall — and it returned
+immediately when `w.textMeasurer == nil`. Wrapped text therefore kept
+its **one-line seed** no matter how much text it held. Measured on a
+1000-rune paragraph in a 200×100 container: content height 22.4 against
+a 77px viewport, so no overflow, so no scroll.
+
+Two changes:
+
+**`plainTextHeightNoMeasurer` (`gui/text_layout.go`)** estimates the
+wrapped height from the same per-rune approximation the width fallback
+already uses: hard lines split on `\n`, each divided by the resolved
+width, times a shared `fallbackLineHeight`. The same paragraph now
+measures 1232px and the container overflows. It is an estimate of an
+estimate — right for "does this overflow", wrong for any pixel
+assertion, which is already `NewTestWindow`'s documented contract. It
+walks the string with `strings.IndexByte` rather than `strings.Split`,
+because this runs once per text shape inside the layout walk and a
+`Split` would heap-allocate on every one.
+
+**`ErrTestNoScrollRoom` (`gui/testing.go`)** is the diagnostic half.
+Even with the estimate, a fixture whose content genuinely fits still
+failed with a bare `ErrTestUnhandled`, which reads as "some widget
+swallowed your event". The two conditions call for opposite fixes — one
+says the fixture has nothing to scroll, the other says the container is
+real but already pinned at its limit — so they are now separate errors,
+and the message carries the content and viewport sizes that decided it.
+Room is measured exactly as `layoutAdjustScrollOffsets` clamps, so the
+error cannot disagree with the clamp that swallowed the scroll.
+
+Verified in both directions: the wrapped-text scroll test fails with
+`ErrTestUnhandled` before the estimate and passes after, and the
+existing `TestTestScrollClampsAtEnd` still gets `ErrTestUnhandled` at
+the limit rather than the new error. Full suite green, no benchmark
+movement — `plainTextNeedsGlyphLayout` gates the new path behind
+non-single-line text, which the hot-path benchmarks do not use.
 
 ### 4.9 Close the `Scrollable`/ID hole alongside focus
 
@@ -1385,6 +1433,7 @@ burying them in the same diff.
 | 4     | §4.3 callback signature conversion       | done   |
 | 4     | §4.3b event-model collapse               | done — see §4.3.4 |
 | 5     | §4.8 example audit                       | done — see §4.8.1 |
+| 5     | §4.8 headless-overflow gap               | done — see §4.8.2 |
 
 Two corrections to §4.2 arising from the implementation.
 

@@ -294,10 +294,21 @@ func layoutPlainText(
 	style TextStyle,
 	w *Window,
 ) {
-	if w.textMeasurer == nil || tc.TextStyle == nil {
+	if len(tc.Text) == 0 {
 		return
 	}
-	if len(tc.Text) == 0 {
+	if w.textMeasurer == nil {
+		// Headless: approximate rather than leave the single-line
+		// estimate standing. Only the height, and only when it grows —
+		// the estimate already covers the one-line case, and shrinking
+		// it here would fight sizing over a number this path cannot
+		// know accurately.
+		if h := plainTextHeightNoMeasurer(shape, tc, style, w); h > shape.Height {
+			shape.Height = h
+		}
+		return
+	}
+	if tc.TextStyle == nil {
 		return
 	}
 	l, ok := plainTextLayoutResolved(tc.Text, shape, style, w)
