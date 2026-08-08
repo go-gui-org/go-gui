@@ -108,7 +108,10 @@ func pctRow(app *App) gui.View {
 func pctButton(idScroll string, pct int) gui.View {
 	pctF := float32(pct) / 100
 	return gui.Button(gui.ButtonCfg{
-		ID: "scroll_demo_pct_button",
+		// IDs are unique per window: all five buttons shared one ID, so
+		// focus and per-widget state collided and no single button could
+		// be targeted by ID from a test. Suffix with the percentage.
+		ID: fmt.Sprintf("scroll_demo_pct_button_%d", pct),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: fmt.Sprintf("%d%%", pct)}),
 		},

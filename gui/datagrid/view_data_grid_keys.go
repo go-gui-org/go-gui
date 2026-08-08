@@ -38,7 +38,7 @@ func dataGridMakeOnChar(cfg *DataGridCfg, columns []GridColumnCfg) func(gg.Event
 			return
 		}
 		ctx.Window.SetClipboard(payload)
-		ctx.Event.IsHandled = true
+		ctx.Consume()
 	}
 }
 

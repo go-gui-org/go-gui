@@ -68,7 +68,7 @@ func rtfSelectOnClick(ctx EventCtx) {
 	}
 	is.CursorOffset = -1
 	imap.Set(focusID, is)
-	ctx.Event.IsHandled = true
+	ctx.Consume()
 
 	anchorPos := is.SelectBeg
 	anchorEnd := is.SelectEnd
@@ -248,6 +248,6 @@ func rtfSelectOnKeyDown(ctx EventCtx) {
 	}
 
 	if handled {
-		ctx.Event.IsHandled = true
+		ctx.Consume()
 	}
 }

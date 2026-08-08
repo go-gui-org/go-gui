@@ -93,7 +93,7 @@ func DockLayout(cfg DockLayoutCfg) View {
 					state := dockDragGet(ctx.Window, dockID)
 					if state.active {
 						dockDragCancel(dockID, ctx.Window)
-						ctx.Event.IsHandled = true
+						ctx.Consume()
 					}
 				}
 			},
@@ -329,6 +329,11 @@ func dockTabButton(
 			Radius:     SomeF(2),
 			OnClick: func(ctx EventCtx) {
 				onPanelClose(panelID, ctx)
+				// The close button sits inside its own tab button, which
+				// selects the panel on click. Closing must not also
+				// select. The pre-mark stops that today; consume so it
+				// still holds if spec §4.3b removes the pre-mark.
+				ctx.Consume()
 			},
 			Content: []View{
 				Text(TextCfg{
