@@ -222,7 +222,7 @@ func buildMarkdownTableData(
 			Value:    richTextPlain(h),
 			HeadCell: true,
 			RichText: &rt,
-			Content: RTF(RtfCfg{
+			Content: RTF(RTFCfg{
 				RichText: h,
 				Mode:     TextModeSingleLine,
 			}),
@@ -243,7 +243,7 @@ func buildMarkdownTableData(
 			cells = append(cells, TableCellCfg{
 				Value:    richTextPlain(cell),
 				RichText: &rt,
-				Content: RTF(RtfCfg{
+				Content: RTF(RTFCfg{
 					RichText: cell,
 					Mode:     TextModeSingleLine,
 				}),

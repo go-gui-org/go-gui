@@ -193,12 +193,12 @@ type rtfLayoutEntry struct {
 }
 
 func layoutWrapRTF(shape *Shape, tc *ShapeTextConfig, w *Window) {
-	if tc.RtfRuns == nil {
+	if tc.RTFRuns == nil {
 		return
 	}
 	if tc.wrapCacheValid &&
 		f32AreClose(tc.wrapCacheWidth, shape.Width) &&
-		tc.RtfLayout != nil {
+		tc.RTFLayout != nil {
 		shape.Height = tc.wrapCacheHeight
 		return
 	}
@@ -208,12 +208,12 @@ func layoutWrapRTF(shape *Shape, tc *ShapeTextConfig, w *Window) {
 	// cache state mixed in so layout invalidates when an inline
 	// math fetch transitions Loading→Ready (different glyph
 	// runs: raw LaTeX text vs InlineObject placeholder).
-	contentKey := rtfRunsKey(tc.RtfRuns)
-	styleKey := rtfStyleKey(tc.RtfBaseStyle)
-	mathKey := rtfMathStateKey(tc.RtfRuns, w.viewState.diagramCache)
+	contentKey := rtfRunsKey(tc.RTFRuns)
+	styleKey := rtfStyleKey(tc.RTFBaseStyle)
+	mathKey := rtfMathStateKey(tc.RTFRuns, w.viewState.diagramCache)
 	cacheKey := contentKey ^ styleKey ^ mathKey ^
 		uint64(math.Float32bits(shape.Width)) ^
-		(uint64(math.Float32bits(tc.RtfLineSpacing)) << 1)
+		(uint64(math.Float32bits(tc.RTFLineSpacing)) << 1)
 	vs := &w.viewState
 
 	// Invalidate on theme change.
@@ -226,13 +226,13 @@ func layoutWrapRTF(shape *Shape, tc *ShapeTextConfig, w *Window) {
 	// Check cross-frame cache.
 	if vs.rtfLayoutCache != nil {
 		if entry, ok := vs.rtfLayoutCache.Get(cacheKey); ok {
-			tc.RtfLayout = &entry.Layout
+			tc.RTFLayout = &entry.Layout
 			shape.Height = entry.Layout.Height
 			tc.wrapCacheWidth = shape.Width
 			tc.wrapCacheHeight = entry.Layout.Height
 			tc.wrapCacheValid = true
-			if tc.RtfFlatText == "" {
-				tc.RtfFlatText = rtfFlatTextFromRuns(tc.RtfRuns)
+			if tc.RTFFlatText == "" {
+				tc.RTFFlatText = rtfFlatTextFromRuns(tc.RTFRuns)
 			}
 			return
 		}
@@ -249,17 +249,17 @@ func layoutWrapRTF(shape *Shape, tc *ShapeTextConfig, w *Window) {
 		vgRT = *tc.rtfGlyphRT
 	} else {
 		var mh []int64
-		vgRT, mh = tc.RtfRuns.toGlyphRichTextWithMath(
+		vgRT, mh = tc.RTFRuns.toGlyphRichTextWithMath(
 			w.viewState.diagramCache)
 		tc.rtfMathHashes = mh
 	}
 	cfg := glyph.TextConfig{
-		Style: tc.RtfBaseStyle,
+		Style: tc.RTFBaseStyle,
 		Block: glyph.BlockStyle{
 			Wrap:        glyph.WrapWord,
 			Width:       shape.Width,
 			Indent:      -tc.HangingIndent,
-			LineSpacing: tc.RtfLineSpacing,
+			LineSpacing: tc.RTFLineSpacing,
 		},
 	}
 	l, err := tm.LayoutRichText(vgRT, cfg)
@@ -267,13 +267,13 @@ func layoutWrapRTF(shape *Shape, tc *ShapeTextConfig, w *Window) {
 		return
 	}
 	rtfSuppressInlineObjectGlyphs(&l)
-	tc.RtfLayout = &l
+	tc.RTFLayout = &l
 	shape.Height = l.Height
 	tc.wrapCacheWidth = shape.Width
 	tc.wrapCacheHeight = l.Height
 	tc.wrapCacheValid = true
-	if tc.RtfFlatText == "" {
-		tc.RtfFlatText = rtfFlatTextFromRuns(tc.RtfRuns)
+	if tc.RTFFlatText == "" {
+		tc.RTFFlatText = rtfFlatTextFromRuns(tc.RTFRuns)
 	}
 
 	// Store in cross-frame cache.

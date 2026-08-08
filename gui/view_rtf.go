@@ -14,8 +14,8 @@ import (
 	"github.com/go-gui-org/go-gui/gui/markdown"
 )
 
-// RtfCfg configures a Rich Text View.
-type RtfCfg struct {
+// RTFCfg configures a Rich Text View.
+type RTFCfg struct {
 	BaseTextStyle *TextStyle
 
 	ID              string
@@ -68,7 +68,7 @@ func rtfRuneCountFromRuns(rt *RichText) int {
 }
 
 type rtfView struct {
-	RtfCfg
+	RTFCfg
 	sizing Sizing
 }
 
@@ -176,11 +176,11 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 		TC: &ShapeTextConfig{
 			TextMode:           v.Mode,
 			HangingIndent:      v.HangingIndent,
-			RtfBaseStyle:       baseStyle,
-			RtfLineSpacing:     lineSpacing,
-			RtfLayout:          &layout,
-			RtfRuns:            &v.RichText,
-			RtfFlatText:        flatText,
+			RTFBaseStyle:       baseStyle,
+			RTFLineSpacing:     lineSpacing,
+			RTFLayout:          &layout,
+			RTFRuns:            &v.RichText,
+			RTFFlatText:        flatText,
 			MarkdownID:         v.markdownID,
 			MarkdownBlockStart: v.markdownBlockStart,
 			MarkdownRuneLen:    uint32(utf8RuneCount(flatText)),
@@ -189,7 +189,7 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 		},
 	})
 	l := Layout{Shape: shape}
-	blockKey := rtfRunsKey(shape.TC.RtfRuns)
+	blockKey := rtfRunsKey(shape.TC.RTFRuns)
 	if ts := &w.viewState.tooltip; ts.id != "" &&
 		ts.text != "" && ts.blockKey != 0 &&
 		blockKey == ts.blockKey {
@@ -209,7 +209,7 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 }
 
 // RTF creates a rich text view.
-func RTF(cfg RtfCfg) View {
+func RTF(cfg RTFCfg) View {
 	if cfg.Invisible {
 		return invisibleContainerView()
 	}
@@ -218,7 +218,7 @@ func RTF(cfg RtfCfg) View {
 		cfg.Mode == TextModeWrapKeepSpaces {
 		sizing = FillFit
 	}
-	return &rtfView{RtfCfg: cfg, sizing: sizing}
+	return &rtfView{RTFCfg: cfg, sizing: sizing}
 }
 
 // --- Hit testing ---
@@ -242,11 +242,11 @@ func rtfFindRunAtIndex(
 	l *Layout, startIndex int,
 ) RichTextRun {
 	if l.Shape == nil || l.Shape.TC == nil ||
-		l.Shape.TC.RtfRuns == nil {
+		l.Shape.TC.RTFRuns == nil {
 		return RichTextRun{}
 	}
 	idx := 0
-	for _, r := range l.Shape.TC.RtfRuns.Runs {
+	for _, r := range l.Shape.TC.RTFRuns.Runs {
 		runLen := len(r.Text)
 		if startIndex >= idx &&
 			startIndex < idx+runLen {
@@ -264,7 +264,7 @@ func rtfMouseMove(ctx EventCtx) {
 		return
 	}
 	ts := &ctx.Window.viewState.tooltip
-	layout := ctx.Layout.Shape.TC.RtfLayout
+	layout := ctx.Layout.Shape.TC.RTFLayout
 	for _, run := range layout.Items {
 		if run.IsObject {
 			continue
@@ -289,7 +289,7 @@ func rtfMouseMove(ctx EventCtx) {
 				ts.floatOffsetX = r.X + r.Width/2
 				ts.floatOffsetY = r.Y - 3
 				ts.blockKey = rtfRunsKey(
-					ctx.Layout.Shape.TC.RtfRuns)
+					ctx.Layout.Shape.TC.RTFRuns)
 				ts.hoverStart = time.Now()
 				ctx.Window.AnimationAdd(rtfTooltipAnimation(tipID))
 				ctx.Consume()
@@ -480,7 +480,7 @@ func rtfOnClick(ctx EventCtx) {
 	if !ctx.Layout.Shape.hasRtfLayout() {
 		return
 	}
-	layout := ctx.Layout.Shape.TC.RtfLayout
+	layout := ctx.Layout.Shape.TC.RTFLayout
 	for _, run := range layout.Items {
 		if run.IsObject {
 			continue
@@ -492,7 +492,7 @@ func rtfOnClick(ctx EventCtx) {
 					showLinkContextMenu(ctx.Window, found.Link,
 						ctx.Event.MouseX,
 						ctx.Event.MouseY,
-						rtfRunsKey(ctx.Layout.Shape.TC.RtfRuns))
+						rtfRunsKey(ctx.Layout.Shape.TC.RTFRuns))
 					ctx.Consume()
 					return
 				}

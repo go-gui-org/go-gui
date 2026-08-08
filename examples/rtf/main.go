@@ -1,4 +1,4 @@
-// Rtf demonstrates rich text runs, links, abbreviations, and
+// RTF demonstrates rich text runs, links, abbreviations, and
 // wrapping inside the RTF widget.
 package main
 
@@ -79,7 +79,7 @@ func mainView(w *gui.Window) gui.View {
 		Scrollable: true,
 		Padding:    gui.SomeP(10, 10, 10, 10),
 		Content: []gui.View{
-			gui.RTF(gui.RtfCfg{
+			gui.RTF(gui.RTFCfg{
 				RichText:      rt,
 				Mode:          gui.TextModeWrap,
 				BaseTextStyle: &t.N3,

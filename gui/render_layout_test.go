@@ -569,7 +569,7 @@ func TestRenderInputSelectionFallbackEmitsRect(t *testing.T) {
 	}
 }
 
-// --- renderRtf: RtfFlatText selection highlight ---
+// --- renderRtf: RTFFlatText selection highlight ---
 
 // makeCharLayout builds a glyph.Layout with CharRects for each byte of text
 // (ASCII assumed: one byte per char). Each char is 10px wide, 20px tall.
@@ -609,8 +609,8 @@ func TestRenderRtf_SelectionHighlight_Emitted(t *testing.T) {
 		Width:     float32(len(text)) * 10, Height: 20,
 		Opacity: 1.0,
 		TC: &ShapeTextConfig{
-			RtfLayout:   &gl,
-			RtfFlatText: text,
+			RTFLayout:   &gl,
+			RTFFlatText: text,
 			TextSelBeg:  2,
 			TextSelEnd:  7,
 			TextStyle:   &style,
@@ -626,7 +626,7 @@ func TestRenderRtf_SelectionHighlight_Emitted(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Error("expected selection highlight rect when RtfFlatText is set and selection is non-empty")
+		t.Error("expected selection highlight rect when RTFFlatText is set and selection is non-empty")
 	}
 }
 
@@ -640,8 +640,8 @@ func TestRenderRtf_EmptyRtfFlatText_NoSelectionHighlight(t *testing.T) {
 		Width:     float32(len(text)) * 10, Height: 20,
 		Opacity: 1.0,
 		TC: &ShapeTextConfig{
-			RtfLayout:   &gl,
-			RtfFlatText: "", // empty → renderInputSelection not called
+			RTFLayout:   &gl,
+			RTFFlatText: "", // empty → renderInputSelection not called
 			TextSelBeg:  2,
 			TextSelEnd:  7,
 			TextStyle:   &style,
@@ -652,7 +652,7 @@ func TestRenderRtf_EmptyRtfFlatText_NoSelectionHighlight(t *testing.T) {
 
 	for _, r := range w.renderers {
 		if r.Kind == RenderRect && r.Fill {
-			t.Error("should not emit selection highlight when RtfFlatText is empty")
+			t.Error("should not emit selection highlight when RTFFlatText is empty")
 			return
 		}
 	}

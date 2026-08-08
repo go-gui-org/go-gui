@@ -164,8 +164,8 @@ datagrid.New(w, datagrid.DataGridCfg{
 | OnCellEdit             | func(GridCellEdit, *Event, *Window)                               | Inline cell edit committed |
 | OnRowsChange           | func([]GridRow, *Event, *Window)                                  | Row data changes           |
 | OnCellClick            | func(string, *Event, *Window)                                     | Cell clicked               |
-| OnCellFormat           | func(GridRow, int, GridColumnCfg, string, *Window) GridCellFormat | Custom cell formatting     |
-| OnDetailRowView        | func(GridRow, *Window) View                                       | Render detail row content  |
+| CellFormat             | func(GridRow, int, GridColumnCfg, string, *Window) GridCellFormat | Custom cell formatting     |
+| DetailRowView          | func(GridRow, *Window) View                                       | Render detail row content  |
 | OnCopyRows             | func([]GridRow, *Event, *Window) (string, bool)                   | Copy selected rows         |
 | OnRowActivate          | func(GridRow, *Event, *Window)                                    | Row double-click/enter     |
 

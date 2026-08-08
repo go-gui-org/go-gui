@@ -45,7 +45,7 @@ func TestDebugAuditFocusableWithoutID(t *testing.T) {
 }
 
 // A focusable shape excluded from tab traversal is not a defect:
-// FocusSkip is how Text/Rtf keep click-focus without a tab stop.
+// FocusSkip is how Text/RTF keep click-focus without a tab stop.
 func TestDebugAuditFocusSkipAndDisabledAreQuiet(t *testing.T) {
 	buf := captureDebug(t)
 	w := &Window{}

@@ -319,7 +319,7 @@ func demoRtf(_ *gui.Window) gui.View {
 
 			// Mixed inline styles in a single paragraph
 			sectionLabel(t, "Mixed Inline Styles"),
-			gui.RTF(gui.RtfCfg{
+			gui.RTF(gui.RTFCfg{
 				Focusable: true,
 				Mode:      gui.TextModeWrap,
 				RichText: gui.RichText{
@@ -344,7 +344,7 @@ func demoRtf(_ *gui.Window) gui.View {
 
 			// Underline and strikethrough
 			sectionLabel(t, "Decorations"),
-			gui.RTF(gui.RtfCfg{
+			gui.RTF(gui.RTFCfg{
 				Focusable: true,
 				Mode:      gui.TextModeWrap,
 				RichText: gui.RichText{
@@ -367,7 +367,7 @@ func demoRtf(_ *gui.Window) gui.View {
 
 			// Clickable link
 			sectionLabel(t, "Links & Abbreviations"),
-			gui.RTF(gui.RtfCfg{
+			gui.RTF(gui.RTFCfg{
 				Focusable: true,
 				Mode:      gui.TextModeWrap,
 				RichText: gui.RichText{
@@ -389,7 +389,7 @@ func demoRtf(_ *gui.Window) gui.View {
 
 			// Multi-line with breaks
 			sectionLabel(t, "Line Breaks"),
-			gui.RTF(gui.RtfCfg{
+			gui.RTF(gui.RTFCfg{
 				Focusable: true,
 				Mode:      gui.TextModeWrap,
 				RichText: gui.RichText{

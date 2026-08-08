@@ -317,7 +317,7 @@ func TestDataGridBuildPresentationDetail(t *testing.T) {
 			{ID: "r1", Cells: map[string]string{"a": "2"}},
 		},
 		DetailExpandedRowIDs: map[string]bool{"r0": true},
-		OnDetailRowView: func(GridRow, *gg.Window) gg.View {
+		DetailRowView: func(GridRow, *gg.Window) gg.View {
 			return nil
 		},
 	}

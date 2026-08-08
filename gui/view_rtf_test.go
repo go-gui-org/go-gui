@@ -57,7 +57,7 @@ func (m *rtfCaptureMeasurer) LayoutRichText(
 
 // TestLayoutWrapRTFLineSpacing verifies the gui base-style LineSpacing
 // reaches glyph's BlockStyle — it lives on BlockStyle, not TextStyle,
-// so ToGlyphStyle drops it and it must be carried via RtfLineSpacing.
+// so ToGlyphStyle drops it and it must be carried via RTFLineSpacing.
 func TestLayoutWrapRTFLineSpacing(t *testing.T) {
 	m := &rtfCaptureMeasurer{
 		rtfStubTextMeasurer: rtfStubTextMeasurer{
@@ -72,9 +72,9 @@ func TestLayoutWrapRTFLineSpacing(t *testing.T) {
 		Width:     100,
 		TC: &ShapeTextConfig{
 			TextMode:       TextModeWrap,
-			RtfBaseStyle:   glyph.TextStyle{Size: 12},
-			RtfLineSpacing: 3,
-			RtfRuns:        &rt,
+			RTFBaseStyle:   glyph.TextStyle{Size: 12},
+			RTFLineSpacing: 3,
+			RTFRuns:        &rt,
 		},
 	}
 
@@ -141,8 +141,8 @@ func makeRtfTooltipLayout() (*Layout, *Window) {
 			Width:     100,
 			Height:    20,
 			TC: &ShapeTextConfig{
-				RtfLayout: &glyphLayout,
-				RtfRuns:   &rt,
+				RTFLayout: &glyphLayout,
+				RTFRuns:   &rt,
 			},
 		},
 	}
@@ -205,8 +205,8 @@ func TestRtfMouseMoveClearsOnNonTooltipRun(t *testing.T) {
 			Width:     100,
 			Height:    20,
 			TC: &ShapeTextConfig{
-				RtfLayout: &glyphLayout,
-				RtfRuns:   &rt,
+				RTFLayout: &glyphLayout,
+				RTFRuns:   &rt,
 			},
 		},
 	}
@@ -247,8 +247,8 @@ func TestRtfMouseMoveUnderlineWithoutLinkDoesNotSetPointingHand(t *testing.T) {
 			Width:     100,
 			Height:    20,
 			TC: &ShapeTextConfig{
-				RtfLayout: &glyphLayout,
-				RtfRuns:   &rt,
+				RTFLayout: &glyphLayout,
+				RTFRuns:   &rt,
 			},
 		},
 	}
@@ -293,8 +293,8 @@ func TestRtfMouseMoveLinkSetsPointingHand(t *testing.T) {
 			Width:     100,
 			Height:    20,
 			TC: &ShapeTextConfig{
-				RtfLayout: &glyphLayout,
-				RtfRuns:   &rt,
+				RTFLayout: &glyphLayout,
+				RTFRuns:   &rt,
 			},
 		},
 	}
@@ -324,7 +324,7 @@ func TestRtfGenerateLayoutSuppressesInlineObjectGlyphs(t *testing.T) {
 		},
 	}}
 
-	layout := generateViewLayout(RTF(RtfCfg{
+	layout := generateViewLayout(RTF(RTFCfg{
 		RichText: RichText{
 			Runs: []RichTextRun{{
 				MathID:    "math_1",
@@ -334,7 +334,7 @@ func TestRtfGenerateLayoutSuppressesInlineObjectGlyphs(t *testing.T) {
 		},
 	}), w)
 
-	items := layout.Shape.TC.RtfLayout.Items
+	items := layout.Shape.TC.RTFLayout.Items
 	if got := items[0].GlyphCount; got != 0 {
 		t.Fatalf("object GlyphCount = %d, want 0", got)
 	}
@@ -369,17 +369,17 @@ func TestLayoutWrapRTFSuppressesInlineObjectGlyphs(t *testing.T) {
 		Width:     100,
 		TC: &ShapeTextConfig{
 			TextMode:     TextModeWrap,
-			RtfBaseStyle: baseStyle,
-			RtfRuns:      &rt,
+			RTFBaseStyle: baseStyle,
+			RTFRuns:      &rt,
 		},
 	}
 
 	layoutWrapRTF(shape, shape.TC, w)
 
-	if shape.TC.RtfLayout == nil {
+	if shape.TC.RTFLayout == nil {
 		t.Fatal("expected wrapped RTF layout")
 	}
-	if got := shape.TC.RtfLayout.Items[0].GlyphCount; got != 0 {
+	if got := shape.TC.RTFLayout.Items[0].GlyphCount; got != 0 {
 		t.Fatalf("wrapped object GlyphCount = %d, want 0", got)
 	}
 }
@@ -613,8 +613,8 @@ func TestLayoutWrapRTF_MathReadyInvalidatesLoadingLayout(t *testing.T) {
 			Width:     200,
 			TC: &ShapeTextConfig{
 				TextMode:     TextModeWrap,
-				RtfBaseStyle: baseStyle,
-				RtfRuns:      &rt,
+				RTFBaseStyle: baseStyle,
+				RTFRuns:      &rt,
 			},
 		}
 	}
@@ -713,8 +713,8 @@ func TestRtfOnClickRightClickShowsMenu(t *testing.T) {
 			X:         100, Y: 200,
 			Width: 100, Height: 20,
 			TC: &ShapeTextConfig{
-				RtfLayout: &glyphLayout,
-				RtfRuns:   &rt,
+				RTFLayout: &glyphLayout,
+				RTFRuns:   &rt,
 			},
 		},
 	}
@@ -769,7 +769,7 @@ func TestRtfGenerateLayoutAddsTooltipChild(t *testing.T) {
 		floatOffsetY: -3,
 	}
 	v := &rtfView{
-		RtfCfg: RtfCfg{RichText: rt},
+		RTFCfg: RTFCfg{RichText: rt},
 		sizing: FitFit,
 	}
 	layout := v.GenerateLayout(w)
@@ -789,7 +789,7 @@ func TestRtfGenerateLayoutEmptyRichText(t *testing.T) {
 			layout: glyph.Layout{},
 		},
 	}}
-	layout := generateViewLayout(RTF(RtfCfg{
+	layout := generateViewLayout(RTF(RTFCfg{
 		RichText: RichText{},
 	}), w)
 	if layout.Shape == nil {
@@ -811,7 +811,7 @@ func (m *rtfErrorMeasurer) LayoutRichText(
 
 func TestRtfGenerateLayoutHandlesError(t *testing.T) {
 	w := &Window{windowBackend: windowBackend{textMeasurer: &rtfErrorMeasurer{}}}
-	layout := generateViewLayout(RTF(RtfCfg{
+	layout := generateViewLayout(RTF(RTFCfg{
 		RichText: RichText{
 			Runs: []RichTextRun{{Text: "hello"}},
 		},
@@ -849,8 +849,8 @@ func TestRtfOnClickIgnoresUnsafeLink(t *testing.T) {
 			shapeType: shapeRTF,
 			Width:     100, Height: 20,
 			TC: &ShapeTextConfig{
-				RtfLayout: &glyphLayout,
-				RtfRuns:   &rt,
+				RTFLayout: &glyphLayout,
+				RTFRuns:   &rt,
 			},
 		},
 	}

@@ -59,7 +59,7 @@ func dataGridCachedPresentation(cfg *DataGridCfg, columns []GridColumnCfg, rowIn
 
 func dataGridPresentationSignature(cfg *DataGridCfg, _ []GridColumnCfg, visibleIndices []int, groupCols []string, valueCols []string, groupTitles map[string]string) uint64 {
 	h := gg.Fnv64Offset
-	if len(groupCols) == 0 && len(cfg.Aggregates) == 0 && cfg.OnDetailRowView == nil {
+	if len(groupCols) == 0 && len(cfg.Aggregates) == 0 && cfg.DetailRowView == nil {
 		h = gg.Fnv64Str(h, cfg.ID)
 		h = gg.Fnv64Byte(h, 0x1e)
 		for _, idx := range visibleIndices {
@@ -95,7 +95,7 @@ func dataGridPresentationSignature(cfg *DataGridCfg, _ []GridColumnCfg, visibleI
 		h = gg.Fnv64Str(h, agg.Label)
 		h = gg.Fnv64Byte(h, 0x1f)
 	}
-	detailEnabled := cfg.OnDetailRowView != nil
+	detailEnabled := cfg.DetailRowView != nil
 	if detailEnabled {
 		h = gg.Fnv64Byte(h, '1')
 	} else {
@@ -169,7 +169,7 @@ func dataGridPresentationRowsWithGroupRanges(cfg *DataGridCfg, _ []GridColumnCfg
 				Kind:       dataGridDisplayRowData,
 				DataRowIdx: rowIdx,
 			})
-			if cfg.OnDetailRowView != nil && dataGridDetailRowExpanded(cfg, dataGridRowID(row, rowIdx)) {
+			if cfg.DetailRowView != nil && dataGridDetailRowExpanded(cfg, dataGridRowID(row, rowIdx)) {
 				rows = append(rows, dataGridDisplayRow{
 					Kind:       dataGridDisplayRowDetail,
 					DataRowIdx: rowIdx,
@@ -224,7 +224,7 @@ func dataGridPresentationRowsWithGroupRanges(cfg *DataGridCfg, _ []GridColumnCfg
 			Kind:       dataGridDisplayRowData,
 			DataRowIdx: rowIdx,
 		})
-		if cfg.OnDetailRowView != nil && dataGridDetailRowExpanded(cfg, dataGridRowID(row, rowIdx)) {
+		if cfg.DetailRowView != nil && dataGridDetailRowExpanded(cfg, dataGridRowID(row, rowIdx)) {
 			rows = append(rows, dataGridDisplayRow{
 				Kind:       dataGridDisplayRowDetail,
 				DataRowIdx: rowIdx,
