@@ -126,10 +126,17 @@ func TestClassifyCallback(t *testing.T) {
 		{"func(string, EventCtx)", shapePayload},
 		{"func(*Window)", shapeWindow},
 		{"func(float32, *Window)", shapeWindow},
-		{"func(GridRow, *gg.Window) gg.View", shapeWindow},
 		{"func(*Event, *Window)", shapeRawEvent},
 		{"func(string, GridColumnPin, *gg.Event, *gg.Window)", shapeRawEvent},
 		{"func(*DrawContext)", shapeOther},
+		// Value-returning callbacks fit neither target shape, so they
+		// are their own bucket regardless of what they take. Bucketing
+		// these by their parameters is what hid OnCopyRows from the
+		// §4.3 partition.
+		{"func(GridRow, *gg.Window) gg.View", shapeValueReturn},
+		{"func(GridRow, int, GridColumnCfg, string, *gg.Window) GridCellFormat",
+			shapeValueReturn},
+		{"func([]GridRow, *gg.Event, *gg.Window) (string, bool)", shapeValueReturn},
 	}
 	fset := token.NewFileSet()
 	for _, c := range cases {
@@ -256,4 +263,75 @@ func findLit(t *testing.T, expr ast.Expr, want string) *ast.CompositeLit {
 		t.Fatalf("no %s literal found", want)
 	}
 	return out
+}
+
+// TestRenderFuncTypeIgnoresParamNames pins the dedupe fix. Naming a
+// parameter is a documentation choice; it must not split one signature
+// into two. This is the bug behind the spec's "both OnReorder
+// variants" — four declarations of one type, three of them named.
+func TestRenderFuncTypeIgnoresParamNames(t *testing.T) {
+	t.Parallel()
+	fset := token.NewFileSet()
+	var rendered []string
+	for _, src := range []string{
+		"func(movedID, beforeID string, w *Window)",
+		"func(string, string, *Window)",
+	} {
+		expr, err := parser.ParseExpr(src)
+		if err != nil {
+			t.Fatalf("parse %s: %v", src, err)
+		}
+		ft, ok := expr.(*ast.FuncType)
+		if !ok {
+			t.Fatalf("%s is not a func type", src)
+		}
+		rendered = append(rendered, renderFuncType(fset, ft))
+	}
+	if rendered[0] != rendered[1] {
+		t.Fatalf("named and unnamed forms render differently:\n  %s\n  %s",
+			rendered[0], rendered[1])
+	}
+}
+
+// A multi-value result must survive the render, so OnCopyRows stays
+// distinguishable from a callback returning one value.
+func TestRenderFuncTypeKeepsResults(t *testing.T) {
+	t.Parallel()
+	fset := token.NewFileSet()
+	expr, err := parser.ParseExpr("func([]GridRow, *gg.Event, *gg.Window) (string, bool)")
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	got := renderFuncType(fset, expr.(*ast.FuncType))
+	want := "func([]GridRow, *gg.Event, *gg.Window) (string, bool)"
+	if got != want {
+		t.Fatalf("renderFuncType = %q, want %q", got, want)
+	}
+}
+
+// TestImportAliases covers both the derived name and an explicit alias,
+// since package attribution depends on resolving the qualifier.
+func TestImportAliases(t *testing.T) {
+	t.Parallel()
+	src := `package p
+import (
+	"github.com/go-gui-org/go-gui/gui"
+	gg "github.com/go-gui-org/go-gui/gui"
+	"example.com/other/mapview"
+)`
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, "x.go", src, 0)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	got := importAliases(f)
+	for name, want := range map[string]string{
+		"gui":     "github.com/go-gui-org/go-gui/gui",
+		"gg":      "github.com/go-gui-org/go-gui/gui",
+		"mapview": "example.com/other/mapview",
+	} {
+		if got[name] != want {
+			t.Errorf("importAliases[%q] = %q, want %q", name, got[name], want)
+		}
+	}
 }
