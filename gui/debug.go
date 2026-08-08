@@ -72,6 +72,12 @@ func envTruthy(name string) bool {
 //     other ID-less scrollable in the window)
 //   - a shape with an OnMouseLeave and no ID (the callback never fires)
 //
+// It also reports, from dispatch rather than from the frame audit, any
+// consume-class callback that relies on automatic handling while an
+// ancestor would also have received the event — the sites that would
+// silently start firing twice under the one-rule event model. See
+// debug_event.go.
+//
 // Findings go to stderr, once per finding per window. Turning the
 // gate off and on again clears that memory, so a re-enabled gate
 // reports the state of the frame in front of it.
@@ -101,6 +107,9 @@ const (
 	debugCheckFocusNoID
 	debugCheckScrollNoID
 	debugCheckMouseLeaveNoID
+	// debugCheckEventCollapse is the only check that runs from dispatch
+	// rather than from the per-frame layout audit; see debug_event.go.
+	debugCheckEventCollapse
 )
 
 // debugWarnKey is the warn-once key. For the ID-less checks the
@@ -115,7 +124,11 @@ type debugWarnKey struct {
 // debugState is a window's warn-once memory. Zero value is ready.
 type debugState struct {
 	warned map[debugWarnKey]struct{}
-	gen    uint64
+	// collect, when non-nil, receives findings instead of debugOut. Set
+	// only by TestEventCollapse, which needs the findings as data
+	// rather than as text on stderr.
+	collect *[]string
+	gen     uint64
 }
 
 // debugAudit runs the dev-mode checks over one frame's composed
@@ -213,6 +226,11 @@ func (w *Window) debugWarn(check debugCheck, subject, format string, args ...any
 		w.debug.warned = make(map[debugWarnKey]struct{})
 	}
 	w.debug.warned[key] = struct{}{}
+	if w.debug.collect != nil {
+		*w.debug.collect = append(*w.debug.collect,
+			fmt.Sprintf(format, args...))
+		return
+	}
 	// Diagnostics are best-effort; a failed write to stderr is not
 	// something a GUI frame can act on.
 	_, _ = fmt.Fprintf(debugOut, "gui: "+format+"\n", args...)

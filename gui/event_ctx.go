@@ -27,6 +27,10 @@ type EventCtx struct {
 func (c EventCtx) Consume() {
 	if c.Event != nil {
 		c.Event.IsHandled = true
+		// Record that consumption was asked for, not merely inherited
+		// from the consume-class pre-mark. One unconditional store,
+		// cheaper than gating it on the debug atomic.
+		c.Event.explicitConsume = true
 	}
 }
 
@@ -56,18 +60,49 @@ func (c EventCtx) Handled() bool {
 // events are not, and the callback must call ctx.Consume() to stop
 // propagation.
 //
+// Consume-class values additionally name *which* event is being
+// dispatched. The class alone is enough to dispatch, but the
+// event-collapse debug check (debug_event.go) has to ask "would an
+// ancestor also have received this?", and that question is
+// per-callback: it means OnClick on a containing shape for evClick and
+// the focused target's OnChar for evChar. Carrying the name in the
+// existing parameter keeps the two facts from drifting apart.
+//
 // The classification is internal: it is encoded at the dispatch sites
 // and is neither exposed nor configurable.
-type evClass bool
+type evClass uint8
 
 const (
 	// evNotify leaves IsHandled alone; the callback opts in with
 	// ctx.Consume(). Used for OnKeyDown, OnKeyUp, OnHover, OnMouseMove,
 	// OnMouseLeave, OnMouseScroll, OnScroll, AmendLayout, OnIMECommit.
-	evNotify evClass = false
+	evNotify evClass = iota
 
 	// evConsume pre-marks IsHandled before the callback runs; the
-	// callback opts out with ctx.Bubble(). Used for OnClick, OnChar,
-	// OnMouseUp, OnGesture, OnFileDrop.
-	evConsume evClass = true
+	// callback opts out with ctx.Bubble(). Consume-class without naming
+	// an event: dispatches identically to the named values below but
+	// carries no ancestor rule, so the collapse check skips it.
+	evConsume
+
+	// The named consume-class events. Each pre-marks IsHandled exactly
+	// as evConsume does.
+	evClick
+	evChar
+	evMouseUp
+	evFileDrop
+	evGesture
 )
+
+// consumes reports whether this class pre-marks IsHandled before the
+// callback runs.
+func (c evClass) consumes() bool { return c != evNotify }
+
+// named reports whether this class identifies a specific event, which
+// is the precondition for the collapse check. Ordered so the test is
+// one comparison: the named values are the ones above evConsume.
+//
+// Dispatch guards the debugCollapse call with this rather than letting
+// the check reject the class itself, so notify-class dispatch — the
+// overwhelming majority of events — does not pay for a function call
+// it will always return from immediately.
+func (c evClass) named() bool { return c > evConsume }

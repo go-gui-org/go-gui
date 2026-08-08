@@ -106,6 +106,33 @@ get no auto-consume: mouse lock already bypasses hit-testing and propagation.
 Their coordinates stay window-absolute, unlike the shape-relative coordinates
 everywhere else.
 
+## Checking your app against a future one-rule model
+
+The consume/notify split is settled for v0.54.0, but collapsing it into a single
+rule — nothing pre-marked, every callback consumes explicitly — is still on the
+table. If that happens, a consume-class callback that relies on the pre-mark
+today would start letting the event through to an ancestor, with no compile
+error to warn you.
+
+`gui.Debug(true)` reports those sites as they are dispatched, and
+`TestEventCollapse` sweeps a whole window for them:
+
+```go
+w := gui.NewTestWindow(gui.WindowCfg{State: &App{}})
+w.TestRender(mainView)
+for _, f := range w.TestEventCollapse() {
+    t.Log(f)
+}
+```
+
+Each finding names an inner callback and the ancestor that would also have
+received the event. The fix is to add `ctx.Consume()` to the inner handler,
+which pins today's behaviour and is correct under either model.
+
+The sweep fires every consume-class callback in the window, so give it a window
+built for the purpose. It also sees only the frame in front of it — a hazard
+behind a tab or a dialog needs the app driven into that state first.
+
 ## What `Bubble()` does and does not do
 
 `ctx.Bubble()` opts out of **this callback's** auto-consume. It does not
