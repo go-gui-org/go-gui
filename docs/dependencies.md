@@ -70,21 +70,16 @@ make deps-doc
 ## Local go-glyph Workflow
 
 Day-to-day text work often runs against a sibling checkout at
-`~/Documents/github/go-glyph`. Wire it in via a `replace` directive:
+`~/Documents/github/go-glyph`. Wire it in with a `go.work` file at the repo
+root (not committed, see CONTRIBUTING.md):
 
 ```bash
-go mod edit -replace github.com/go-gui-org/go-glyph=../go-glyph
+go work init .
+go work use ../go-glyph
 ```
 
-Drop the replace before tagging:
-
-```bash
-go mod edit -dropreplace github.com/go-gui-org/go-glyph
-go mod tidy
-```
-
-`go.mod` on `main` must not carry a local replace — CI fetches the
-tagged module.
+The local build compiles the working copy directly, so no `replace` directive
+is needed. `go.mod` carries none, so CI fetches the tagged module.
 
 ## Verification
 

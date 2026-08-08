@@ -142,7 +142,7 @@ This means:
 Creates a button automatically wired to a registered command.
 
 ```go
-gui.CommandButton(w, "edit.undo", gui.ButtonCfg{IDFocus: 10})
+gui.CommandButton(w, "edit.undo", gui.ButtonCfg{})
 ```
 
 **Auto behaviors:**
@@ -238,26 +238,25 @@ the first item on each keystroke.
 
 ### CommandPaletteCfg Fields
 
-| Field            | Type                            | Description                                       |
-| ---------------- | ------------------------------- | ------------------------------------------------- |
-| `ID`             | `string`                        | Palette instance ID                               |
-| `Items`          | `[]CommandPaletteItem`          | Items to display                                  |
-| `OnAction`       | `func(string, *Event, *Window)` | Called with selected item ID                      |
-| `OnDismiss`      | `func(*Window)`                 | Called when palette closes                        |
-| `Placeholder`    | `string`                        | Input placeholder text                            |
-| `TextStyle`      | `TextStyle`                     | Item label style                                  |
-| `DetailStyle`    | `TextStyle`                     | Shortcut hint style                               |
-| `Color`          | `Color`                         | Panel background                                  |
-| `ColorBorder`    | `Color`                         | Panel border                                      |
-| `ColorHighlight` | `Color`                         | Highlight/hover color                             |
-| `SizeBorder`     | `Opt[float32]`                  | Border thickness                                  |
-| `Radius`         | `Opt[float32]`                  | Corner radius                                     |
-| `Width`          | `float32`                       | Panel width (default 500)                         |
-| `MaxHeight`      | `float32`                       | Max list height (default 400)                     |
-| `BackdropColor`  | `Color`                         | Semi-transparent overlay                          |
-| `IDFocus`        | `uint32`                        | Focus ID for the input                            |
-| `Scrollable`     | `bool`                          | Opt results list into scroll (key `ID+":scroll"`) |
-| `FloatZIndex`    | `int`                           | Z-order (default 1000)                            |
+| Field            | Type                     | Description                                       |
+| ---------------- | ------------------------ | ------------------------------------------------- |
+| `ID`             | `string`                 | Palette instance ID                               |
+| `Items`          | `[]CommandPaletteItem`   | Items to display                                  |
+| `OnAction`       | `func(string, EventCtx)` | Called with selected item ID                      |
+| `OnDismiss`      | `func(*Window)`          | Called when palette closes                        |
+| `Placeholder`    | `string`                 | Input placeholder text                            |
+| `TextStyle`      | `TextStyle`              | Item label style                                  |
+| `DetailStyle`    | `TextStyle`              | Shortcut hint style                               |
+| `Color`          | `Color`                  | Panel background                                  |
+| `ColorBorder`    | `Color`                  | Panel border                                      |
+| `ColorHighlight` | `Color`                  | Highlight/hover color                             |
+| `SizeBorder`     | `Opt[float32]`           | Border thickness                                  |
+| `Radius`         | `Opt[float32]`           | Corner radius                                     |
+| `Width`          | `float32`                | Panel width (default 500)                         |
+| `MaxHeight`      | `float32`                | Max list height (default 400)                     |
+| `BackdropColor`  | `Color`                  | Semi-transparent overlay                          |
+| `Scrollable`     | `bool`                   | Opt results list into scroll (key `ID+":scroll"`) |
+| `FloatZIndex`    | `int`                    | Z-order (default 1000)                            |
 
 ### CommandPaletteItem
 

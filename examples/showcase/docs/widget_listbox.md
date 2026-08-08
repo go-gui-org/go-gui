@@ -6,7 +6,6 @@ drag-reorder support.
 ```go
 gui.ListBox(gui.ListBoxCfg{
     ID:          "lb",
-    IDFocus:     700,
     Multiple:    true,
     Height:      200,
     SelectedIDs: app.Selected,
@@ -15,8 +14,8 @@ gui.ListBox(gui.ListBoxCfg{
         gui.NewListBoxOption("go", "Go", "go"),
         gui.NewListBoxOption("rs", "Rust", "rust"),
     },
-    OnSelect: func(ids []string, _ *gui.Event, w *gui.Window) {
-        gui.State[App](w).Selected = ids
+    OnSelect: func(ids []string, ctx gui.EventCtx) {
+        gui.State[App](ctx.Window).Selected = ids
     },
 })
 ```
@@ -28,8 +27,8 @@ gui.ListBox(gui.ListBoxCfg{
     ID:          "reorder",
     Reorderable: true,
     Data:        items,
-    OnReorder: func(movedID, beforeID string, w *gui.Window) {
-        reorderItems(movedID, beforeID, w)
+    OnReorder: func(movedID, beforeID string, ctx gui.EventCtx) {
+        reorderItems(movedID, beforeID, ctx.Window)
     },
 })
 ```
@@ -57,8 +56,8 @@ Use `Items []string` instead of `Data` for simple lists:
 gui.ListBox(gui.ListBoxCfg{
     ID:    "simple",
     Items: []string{"Go", "Rust", "Zig"},
-    OnSelect: func(ids []string, _ *gui.Event, w *gui.Window) {
-        gui.State[App](w).Selected = ids
+    OnSelect: func(ids []string, ctx gui.EventCtx) {
+        gui.State[App](ctx.Window).Selected = ids
     },
 })
 ```
@@ -79,7 +78,6 @@ When `Items` is set, `Data` is ignored.
 | MinHeight   | float32         | Minimum height                                 |
 | MaxHeight   | float32         | Maximum height                                 |
 | Scrollable  | bool            | Opt into the scroll system (state keyed by ID) |
-| IDFocus     | uint32          | Tab-order focus ID (> 0 to enable)             |
 | Reorderable | bool            | Enable drag-reorder                            |
 | Sizing      | Sizing          | Combined axis sizing mode                      |
 | Disabled    | bool            | Disable interaction                            |
@@ -101,10 +99,10 @@ When `Items` is set, `Data` is ignored.
 
 ## Events
 
-| Callback  | Signature                               | Fired when        |
-| --------- | --------------------------------------- | ----------------- |
-| OnSelect  | func([]string, *Event, *Window)         | Selection changes |
-| OnReorder | func(movedID, beforeID string, *Window) | Item reordered    |
+| Callback  | Signature                                | Fired when        |
+| --------- | ---------------------------------------- | ----------------- |
+| OnSelect  | func([]string, EventCtx)                 | Selection changes |
+| OnReorder | func(movedID, beforeID string, EventCtx) | Item reordered    |
 
 ## Accessibility
 

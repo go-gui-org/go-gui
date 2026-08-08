@@ -6,7 +6,6 @@ RadioButtonGroup, but can be used standalone.
 ```go
 gui.Radio(gui.RadioCfg{
     ID:       "opt-go",
-    IDFocus:  500,
     Label:    "Go",
     Selected: app.Lang == "go",
     OnClick: func(ctx gui.EventCtx) {
@@ -22,25 +21,20 @@ gui.Radio(gui.RadioCfg{
 | Label     | string       | Label text beside the radio circle |
 | Selected  | bool         | Selection state                    |
 | Size      | Opt[float32] | Circle diameter                    |
-| IDFocus   | uint32       | Tab-order focus ID (> 0 to enable) |
 | Disabled  | bool         | Disable interaction                |
 | Invisible | bool         | Hide without removing from layout  |
 
 ## Appearance
 
-| Property         | Type         | Description                |
-| ---------------- | ------------ | -------------------------- |
-| Padding          | Opt[Padding] | Inner padding              |
-| SizeBorder       | Opt[float32] | Border width               |
-| Color            | Color        | Circle background          |
-| ColorHover       | Color        | Circle on hover            |
-| ColorFocus       | Color        | Circle when focused        |
-| ColorClick       | Color        | Circle on click            |
-| ColorBorder      | Color        | Border color               |
-| ColorBorderFocus | Color        | Border color when focused  |
-| ColorSelect      | Color        | Fill color when selected   |
-| ColorUnselect    | Color        | Fill color when unselected |
-| TextStyle        | TextStyle    | Label text styling         |
+| Property      | Type         | Description                                                      |
+| ------------- | ------------ | ---------------------------------------------------------------- |
+| Padding       | Opt[Padding] | Inner padding                                                    |
+| SizeBorder    | Opt[float32] | Border width                                                     |
+| Color         | Color        | Circle color (shorthand for `Colors.Base`)                       |
+| Colors        | ColorSet     | Per-state colors: Base, Hover, Click, Focus, Border, BorderFocus |
+| ColorSelect   | Color        | Fill color when selected                                         |
+| ColorUnselect | Color        | Fill color when unselected                                       |
+| TextStyle     | TextStyle    | Label text styling                                               |
 
 ## Events
 

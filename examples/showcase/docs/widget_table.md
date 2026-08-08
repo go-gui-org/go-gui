@@ -117,9 +117,9 @@ When `RawData` is set, `Data` is ignored.
 
 ## Events
 
-| Callback | Signature                                | Fired when            |
-| -------- | ---------------------------------------- | --------------------- |
-| OnSelect | func(map[int]bool, int, *Event, *Window) | Row selection changes |
+| Callback | Signature                         | Fired when            |
+| -------- | --------------------------------- | --------------------- |
+| OnSelect | func(map[int]bool, int, EventCtx) | Row selection changes |
 
 ## Accessibility
 

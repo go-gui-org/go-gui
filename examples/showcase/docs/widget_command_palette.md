@@ -6,11 +6,10 @@ results list.
 
 ```go
 gui.CommandPalette(gui.CommandPaletteCfg{
-    ID:       "cmd",
-    IDFocus:  focusPalette,
+    ID:         "cmd",
     Scrollable: true,
-    Items:    items,
-    OnAction: func(id string, _ *gui.Event, w *gui.Window) {
+    Items:      items,
+    OnAction: func(id string, ctx gui.EventCtx) {
         // handle action
     },
 })
@@ -37,7 +36,6 @@ gui.CommandPaletteToggle("cmd", w)
 | Placeholder | string               | Search input hint text                         |
 | Width       | float32              | Palette width                                  |
 | MaxHeight   | float32              | Maximum dropdown height                        |
-| IDFocus     | uint32               | Focus ID for input                             |
 | Scrollable  | bool                 | Opt into the scroll system (state keyed by ID) |
 | FloatZIndex | int                  | Z-index for float layering                     |
 
@@ -67,7 +65,7 @@ gui.CommandPaletteToggle("cmd", w)
 
 ## Events
 
-| Callback  | Signature                     | Fired when        |
-| --------- | ----------------------------- | ----------------- |
-| OnAction  | func(string, *Event, *Window) | Command selected  |
-| OnDismiss | func(*Window)                 | Palette dismissed |
+| Callback  | Signature              | Fired when        |
+| --------- | ---------------------- | ----------------- |
+| OnAction  | func(string, EventCtx) | Command selected  |
+| OnDismiss | func(*Window)          | Palette dismissed |

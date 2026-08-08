@@ -8,8 +8,8 @@ reaches zero.
 gui.ColorPicker(gui.ColorPickerCfg{
     ID:    "cp",
     Color: app.Color,
-    OnColorChange: func(c gui.Color, _ *gui.Event, w *gui.Window) {
-        gui.State[App](w).Color = c
+    OnColorChange: func(c gui.Color, ctx gui.EventCtx) {
+        gui.State[App](ctx.Window).Color = c
     },
 })
 ```
@@ -21,22 +21,21 @@ gui.ColorPicker(gui.ColorPickerCfg{
     ID:      "cp-hsv",
     Color:   app.Color,
     ShowHSV: true,
-    OnColorChange: func(c gui.Color, _ *gui.Event, w *gui.Window) {
-        gui.State[App](w).Color = c
+    OnColorChange: func(c gui.Color, ctx gui.EventCtx) {
+        gui.State[App](ctx.Window).Color = c
     },
 })
 ```
 
 ## Key Properties
 
-| Property | Type    | Description                        |
-| -------- | ------- | ---------------------------------- |
-| Color    | Color   | Current color value                |
-| ShowHSV  | bool    | Show H/S/V channel inputs          |
-| IDFocus  | uint32  | Tab-order focus ID (> 0 to enable) |
-| Sizing   | Sizing  | Combined axis sizing mode          |
-| Width    | float32 | Fixed width                        |
-| Height   | float32 | Fixed height                       |
+| Property | Type    | Description               |
+| -------- | ------- | ------------------------- |
+| Color    | Color   | Current color value       |
+| ShowHSV  | bool    | Show H/S/V channel inputs |
+| Sizing   | Sizing  | Combined axis sizing mode |
+| Width    | float32 | Fixed width               |
+| Height   | float32 | Fixed height              |
 
 ## Appearance
 
@@ -49,10 +48,8 @@ ColorPickerStyle fields:
 | Field            | Type    | Description                     |
 | ---------------- | ------- | ------------------------------- |
 | Color            | Color   | Background color                |
-| ColorHover       | Color   | Background on hover             |
 | ColorBorder      | Color   | Border color                    |
 | ColorBorderFocus | Color   | Border color when focused       |
-| Padding          | Padding | Inner padding                   |
 | SizeBorder       | float32 | Border width                    |
 | Radius           | float32 | Corner radius                   |
 | SVSize           | float32 | Saturation/value area size (px) |
@@ -61,9 +58,9 @@ ColorPickerStyle fields:
 
 ## Events
 
-| Callback      | Signature                    | Fired when    |
-| ------------- | ---------------------------- | ------------- |
-| OnColorChange | func(Color, *Event, *Window) | Color changed |
+| Callback      | Signature             | Fired when    |
+| ------------- | --------------------- | ------------- |
+| OnColorChange | func(Color, EventCtx) | Color changed |
 
 ## Accessibility
 

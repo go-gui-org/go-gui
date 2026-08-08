@@ -8,11 +8,10 @@ Combobox already accepts `[]string` directly via the `Options` field.
 ```go
 gui.Combobox(gui.ComboboxCfg{
     ID:      "cb",
-    IDFocus: 800,
     Value:   app.Value,
     Options: []string{"Go", "Rust", "Zig"},
-    OnSelect: func(v string, _ *gui.Event, w *gui.Window) {
-        gui.State[App](w).Value = v
+    OnSelect: func(v string, ctx gui.EventCtx) {
+        gui.State[App](ctx.Window).Value = v
     },
 })
 ```
@@ -24,8 +23,8 @@ gui.Combobox(gui.ComboboxCfg{
     ID:          "search",
     Placeholder: "Search languages...",
     Options:     languages,
-    OnSelect: func(v string, _ *gui.Event, w *gui.Window) {
-        gui.State[App](w).Lang = v
+    OnSelect: func(v string, ctx gui.EventCtx) {
+        gui.State[App](ctx.Window).Lang = v
     },
 })
 ```
@@ -53,7 +52,6 @@ gui.Combobox(gui.ComboboxCfg{
 | Placeholder       | string   | Hint text shown when empty                     |
 | Options           | []string | Searchable options                             |
 | MaxDropdownHeight | float32  | Max dropdown pixel height                      |
-| IDFocus           | uint32   | Tab-order focus ID (> 0 to enable)             |
 | Scrollable        | bool     | Opt into the scroll system (state keyed by ID) |
 | MinWidth          | float32  | Minimum width                                  |
 | MaxWidth          | float32  | Maximum width                                  |
@@ -79,9 +77,9 @@ gui.Combobox(gui.ComboboxCfg{
 
 ## Events
 
-| Callback | Signature                     | Fired when      |
-| -------- | ----------------------------- | --------------- |
-| OnSelect | func(string, *Event, *Window) | Option selected |
+| Callback | Signature              | Fired when      |
+| -------- | ---------------------- | --------------- |
+| OnSelect | func(string, EventCtx) | Option selected |
 
 ## Accessibility
 

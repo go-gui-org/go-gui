@@ -7,7 +7,6 @@ via a trigger button that opens a dropdown Menu.
 ```go
 gui.OverflowPanel(w, gui.OverflowPanelCfg{
     ID:      "toolbar",
-    IDFocus: 100,
     Items: []gui.OverflowItem{
         {ID: "cut",   View: cutBtn,   Text: "Cut"},
         {ID: "copy",  View: copyBtn,  Text: "Copy"},
@@ -30,26 +29,25 @@ gui.OverflowPanel(w, gui.OverflowPanelCfg{
 
 ## OverflowItem
 
-| Property | Type                                | Description                |
-| -------- | ----------------------------------- | -------------------------- |
-| ID       | string                              | Item identifier            |
-| View     | View                                | Visible toolbar view       |
-| Text     | string                              | Label in overflow dropdown |
-| Action   | func(*MenuItemCfg, *Event, *Window) | Overflow item action       |
+| Property | Type                         | Description                |
+| -------- | ---------------------------- | -------------------------- |
+| ID       | string                       | Item identifier            |
+| View     | View                         | Visible toolbar view       |
+| Text     | string                       | Label in overflow dropdown |
+| Action   | func(*MenuItemCfg, EventCtx) | Overflow item action       |
 
 ## Key Properties
 
-| Property     | Type           | Description                        |
-| ------------ | -------------- | ---------------------------------- |
-| ID           | string         | Unique identifier                  |
-| Items        | []OverflowItem | Ordered toolbar items              |
-| Trigger      | []View         | Custom overflow button content     |
-| Padding      | Opt[Padding]   | Inner padding                      |
-| Spacing      | float32        | Gap between items                  |
-| IDFocus      | uint32         | Tab-order focus ID (> 0 to enable) |
-| Disabled     | bool           | Disable interaction                |
-| FloatAnchor  | FloatAttach    | Dropdown anchor point              |
-| FloatTieOff  | FloatAttach    | Dropdown tie-off point             |
-| FloatOffsetX | float32        | Dropdown horizontal offset         |
-| FloatOffsetY | float32        | Dropdown vertical offset           |
-| FloatZIndex  | int            | Dropdown z-order                   |
+| Property     | Type           | Description                    |
+| ------------ | -------------- | ------------------------------ |
+| ID           | string         | Unique identifier              |
+| Items        | []OverflowItem | Ordered toolbar items          |
+| Trigger      | []View         | Custom overflow button content |
+| Padding      | Opt[Padding]   | Inner padding                  |
+| Spacing      | float32        | Gap between items              |
+| Disabled     | bool           | Disable interaction            |
+| FloatAnchor  | FloatAttach    | Dropdown anchor point          |
+| FloatTieOff  | FloatAttach    | Dropdown tie-off point         |
+| FloatOffsetX | float32        | Dropdown horizontal offset     |
+| FloatOffsetY | float32        | Dropdown vertical offset       |
+| FloatZIndex  | int            | Dropdown z-order               |

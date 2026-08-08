@@ -8,7 +8,6 @@ standalone).
 ```go
 gui.Menubar(w, gui.MenubarCfg{
     ID:      "mb",
-    IDFocus: 100,
     Items: []gui.MenuItemCfg{
         gui.MenuSubmenu("file", "File", []gui.MenuItemCfg{
             gui.MenuItemText("new", "New"),
@@ -17,7 +16,7 @@ gui.Menubar(w, gui.MenubarCfg{
             gui.MenuItemText("quit", "Quit"),
         }),
     },
-    Action: func(id string, _ *gui.Event, w *gui.Window) {
+    Action: func(id string, ctx gui.EventCtx) {
         // handle menu action
     },
 })
@@ -40,15 +39,15 @@ gui.Menu(w, gui.MenubarCfg{
 
 ## MenuItemCfg
 
-| Property   | Type                                | Description                |
-| ---------- | ----------------------------------- | -------------------------- |
-| ID         | string                              | Action identifier          |
-| Text       | string                              | Display label              |
-| Submenu    | []MenuItemCfg                       | Nested submenu items       |
-| CustomView | View                                | Custom rendered content    |
-| Separator  | bool                                | Render as separator line   |
-| Padding    | Opt[Padding]                        | Item padding override      |
-| Action     | func(*MenuItemCfg, *Event, *Window) | Item-level action callback |
+| Property   | Type                         | Description                |
+| ---------- | ---------------------------- | -------------------------- |
+| ID         | string                       | Action identifier          |
+| Text       | string                       | Display label              |
+| Submenu    | []MenuItemCfg                | Nested submenu items       |
+| CustomView | View                         | Custom rendered content    |
+| Separator  | bool                         | Render as separator line   |
+| Padding    | Opt[Padding]                 | Item padding override      |
+| Action     | func(*MenuItemCfg, EventCtx) | Item-level action callback |
 
 Helper constructors: MenuItemText, MenuSeparator, MenuSubtitle, MenuSubmenu.
 
@@ -57,7 +56,6 @@ Helper constructors: MenuItemText, MenuSeparator, MenuSubtitle, MenuSubmenu.
 | Property  | Type          | Description           |
 | --------- | ------------- | --------------------- |
 | ID        | string        | Unique identifier     |
-| IDFocus   | uint32        | Tab-order focus ID    |
 | Items     | []MenuItemCfg | Top-level menu items  |
 | Sizing    | Sizing        | Combined axis sizing  |
 | Disabled  | bool          | Disable interaction   |
@@ -100,7 +98,7 @@ Helper constructors: MenuItemText, MenuSeparator, MenuSubtitle, MenuSubmenu.
 
 ## Events
 
-| Callback                | Signature                           | Fired when             |
-| ----------------------- | ----------------------------------- | ---------------------- |
-| Action (on MenubarCfg)  | func(string, *Event, *Window)       | Any item selected      |
-| Action (on MenuItemCfg) | func(*MenuItemCfg, *Event, *Window) | Specific item selected |
+| Callback                | Signature                    | Fired when             |
+| ----------------------- | ---------------------------- | ---------------------- |
+| Action (on MenubarCfg)  | func(string, EventCtx)       | Any item selected      |
+| Action (on MenuItemCfg) | func(*MenuItemCfg, EventCtx) | Specific item selected |

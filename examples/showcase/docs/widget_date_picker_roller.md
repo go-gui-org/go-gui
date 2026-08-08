@@ -50,7 +50,6 @@ gui.DatePickerRoller(gui.DatePickerRollerCfg{
 | LongMonths   | bool                        | "January" vs "Jan"                  |
 | MinYear      | int                         | Earliest year (default 1900)        |
 | MaxYear      | int                         | Latest year (default 2100)          |
-| IDFocus      | uint32                      | Tab-order focus ID (> 0 to enable)  |
 | MinWidth     | float32                     | Minimum width                       |
 | MaxWidth     | float32                     | Maximum width                       |
 

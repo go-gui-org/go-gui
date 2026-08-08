@@ -11,8 +11,8 @@ gui.ExpandPanel(gui.ExpandPanelCfg{
     Content: gui.Column(gui.ContainerCfg{
         Content: []gui.View{child1, child2},
     }),
-    OnToggle: func(w *gui.Window) {
-        gui.State[App](w).Open = !gui.State[App](w).Open
+    OnToggle: func(ctx gui.EventCtx) {
+        gui.State[App](ctx.Window).Open = !gui.State[App](ctx.Window).Open
     },
 })
 ```
@@ -45,9 +45,9 @@ gui.ExpandPanel(gui.ExpandPanelCfg{
 
 ## Events
 
-| Callback | Signature     | Fired when                      |
-| -------- | ------------- | ------------------------------- |
-| OnToggle | func(*Window) | Header clicked or Space pressed |
+| Callback | Signature      | Fired when                      |
+| -------- | -------------- | ------------------------------- |
+| OnToggle | func(EventCtx) | Header clicked or Space pressed |
 
 ## Accessibility
 

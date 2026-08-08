@@ -53,7 +53,6 @@ gui.Row(gui.ContainerCfg{
 | HAlign     | HorizontalAlign | Horizontal content alignment                   |
 | VAlign     | VerticalAlign   | Vertical content alignment                     |
 | TextDir    | TextDirection   | Text/layout direction (LTR/RTL)                |
-| IDFocus    | uint32          | Tab-order focus ID (> 0 to enable)             |
 | Scrollable | bool            | Opt into the scroll system (state keyed by ID) |
 | ScrollMode | ScrollMode      | Scroll axis mode                               |
 | Clip       | bool            | Clip children to bounds                        |

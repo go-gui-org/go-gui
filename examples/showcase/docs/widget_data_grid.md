@@ -98,7 +98,6 @@ datagrid.New(w, datagrid.DataGridCfg{
 | QuickFilterDebounce    | time.Duration       | Quick filter debounce delay (200ms with DataSource, 0 otherwise; negative = immediate) |
 | RowHeight              | float32             | Row height in pixels                                                                   |
 | HeaderHeight           | float32             | Header height in pixels                                                                |
-| IDFocus                | uint32              | Tab-order focus ID (> 0 to enable)                                                     |
 | Scrollable             | bool                | Opt into the scroll system (state keyed by ID)                                         |
 | Disabled               | bool                | Disable interaction                                                                    |
 | Invisible              | bool                | Hide without removing from layout                                                      |
@@ -154,20 +153,19 @@ datagrid.New(w, datagrid.DataGridCfg{
 
 | Callback               | Signature                                                         | Fired when                 |
 | ---------------------- | ----------------------------------------------------------------- | -------------------------- |
-| OnQueryChange          | func(GridQueryState, *Event, *Window)                             | Sort/filter/search changes |
-| OnSelectionChange      | func(GridSelection, *Event, *Window)                              | Row selection changes      |
-| OnColumnOrderChange    | func([]string, *Event, *Window)                                   | Column reorder             |
-| OnColumnPinChange      | func(string, GridColumnPin, *Event, *Window)                      | Column pin changes         |
-| OnHiddenColumnsChange  | func(map[string]bool, *Event, *Window)                            | Column visibility changes  |
-| OnPageChange           | func(int, *Event, *Window)                                        | Page navigation            |
-| OnDetailExpandedChange | func(map[string]bool, *Event, *Window)                            | Detail row expand/collapse |
-| OnCellEdit             | func(GridCellEdit, *Event, *Window)                               | Inline cell edit committed |
-| OnRowsChange           | func([]GridRow, *Event, *Window)                                  | Row data changes           |
-| OnCellClick            | func(string, *Event, *Window)                                     | Cell clicked               |
+| OnQueryChange          | func(GridQueryState, EventCtx)                                    | Sort/filter/search changes |
+| OnSelectionChange      | func(GridSelection, EventCtx)                                     | Row selection changes      |
+| OnColumnOrderChange    | func([]string, EventCtx)                                          | Column reorder             |
+| OnColumnPinChange      | func(string, GridColumnPin, EventCtx)                             | Column pin changes         |
+| OnHiddenColumnsChange  | func(map[string]bool, EventCtx)                                   | Column visibility changes  |
+| OnPageChange           | func(int, EventCtx)                                               | Page navigation            |
+| OnDetailExpandedChange | func(map[string]bool, EventCtx)                                   | Detail row expand/collapse |
+| OnCellEdit             | func(GridCellEdit, EventCtx)                                      | Inline cell edit committed |
+| OnRowsChange           | func([]GridRow, EventCtx)                                         | Row data changes           |
 | CellFormat             | func(GridRow, int, GridColumnCfg, string, *Window) GridCellFormat | Custom cell formatting     |
 | DetailRowView          | func(GridRow, *Window) View                                       | Render detail row content  |
-| OnCopyRows             | func([]GridRow, *Event, *Window) (string, bool)                   | Copy selected rows         |
-| OnRowActivate          | func(GridRow, *Event, *Window)                                    | Row double-click/enter     |
+| OnCopyRows             | func([]GridRow, EventCtx) (string, bool)                          | Copy selected rows         |
+| OnRowActivate          | func(GridRow, EventCtx)                                           | Row double-click/enter     |
 
 ## Accessibility
 
