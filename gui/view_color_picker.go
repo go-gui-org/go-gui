@@ -198,6 +198,10 @@ func cpSVArea(
 							ctx.Window.SetMouseCursorArrow()
 						},
 					})
+					// Same as the hue strip: nested in the focusable
+					// picker root, so consume to keep the focus where
+					// it is once spec §4.3b removes the pre-mark.
+					ctx.Consume()
 				},
 			}),
 		},
@@ -266,6 +270,10 @@ func cpHueSlider(
 					ctx.Window.MouseUnlock()
 				},
 			})
+			// The hue strip is inside the focusable picker root, which
+			// would take focus off this click once spec §4.3b removes
+			// the consume-class pre-mark.
+			ctx.Consume()
 		},
 	})
 }

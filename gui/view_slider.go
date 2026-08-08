@@ -178,6 +178,12 @@ func Slider(cfg SliderCfg) View {
 					ctx.Window.MouseUnlock()
 				},
 			})
+			// A press on the track sets the value and starts a drag.
+			// Consume it: a slider nested in a focusable container (the
+			// color picker's alpha slider inside "picker") would
+			// otherwise hand that container the focus once spec §4.3b
+			// removes the pre-mark.
+			ctx.Consume()
 		},
 		AmendLayout: func(ctx EventCtx) {
 			sliderAmendLayoutSlide(ctx.Layout, ctx.Window,

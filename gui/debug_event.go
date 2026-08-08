@@ -64,11 +64,11 @@ func debugCollapse(
 	self := debugShapeName(layout)
 	other := debugShapeName(anc)
 	w.debugWarn(debugCheckEventCollapse, class.name()+":"+self+">"+other,
-		"%s on %s relies on automatic handling and %s above it also "+
-			"handles %s; under the one-rule event model (spec §4.3b) the "+
-			"event would reach both. Add ctx.Consume() to the %s handler "+
-			"to make the current behaviour explicit",
-		class.name(), self, other, class.name(), self)
+		"%s on %s relies on automatic handling and %s above it %s; "+
+			"under the one-rule event model (spec §4.3b) the event would "+
+			"reach both. Add ctx.Consume() to the %s handler to make the "+
+			"current behaviour explicit",
+		class.name(), self, other, class.ancestorReason(anc, e, w), self)
 }
 
 // ancestorHandler returns the nearest ancestor of layout that would
@@ -85,7 +85,19 @@ func (c evClass) ancestorHandler(layout *Layout, e *Event, w *Window) *Layout {
 		s := anc.Shape
 		// Dispatch skips disabled subtrees (isChildEnabled), so a
 		// disabled ancestor is not a second handler.
-		if s == nil || s.Disabled || !s.hasEvents() {
+		if s == nil || s.Disabled {
+			continue
+		}
+		// A focusable ancestor is a second handler even with no
+		// callback at all: mouseDownHandler takes focus on the way past
+		// (and marks the event handled doing so), so an unconsumed click
+		// on a non-focusable child would move focus to the ancestor —
+		// a behaviour change with no OnClick anywhere in sight. Checked
+		// before hasEvents(), which such an ancestor need not have.
+		if c == evClick && s.stealsFocusOn(e) {
+			return anc
+		}
+		if !s.hasEvents() {
 			continue
 		}
 		if c.wouldReach(anc, e, w) {
@@ -93,6 +105,26 @@ func (c evClass) ancestorHandler(layout *Layout, e *Event, w *Window) *Layout {
 		}
 	}
 	return nil
+}
+
+// ancestorReason describes, for the finding text, what the ancestor
+// would do with the event. Distinguishing the two matters: "also
+// handles OnClick" sends the reader looking for a callback that, in the
+// focus case, does not exist.
+func (c evClass) ancestorReason(anc *Layout, e *Event, w *Window) string {
+	s := anc.Shape
+	if s.hasEvents() && c.wouldReach(anc, e, w) {
+		return "also handles " + c.name()
+	}
+	return "would take focus on " + c.name()
+}
+
+// stealsFocusOn reports whether mouseDownHandler would take focus for
+// this shape, which is the branch at gui/event_handlers.go:216. Right
+// clicks are excluded there and so are excluded here.
+func (s *Shape) stealsFocusOn(e *Event) bool {
+	return s.Focusable && s.ID != "" && e.MouseButton != MouseRight &&
+		s.PointInShape(e.MouseX, e.MouseY)
 }
 
 // wouldReach reports whether this ancestor's own dispatch condition
