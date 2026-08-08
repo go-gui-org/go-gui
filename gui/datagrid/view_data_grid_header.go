@@ -243,7 +243,15 @@ func dataGridIndicatorButton(id, label string, baseStyle gg.TextStyle, hoverColo
 		Color:      gg.ColorTransparent,
 		Colors:     gg.ColorSet{Hover: hoverColor, Click: hoverColor, Focus: gg.ColorTransparent, Border: gg.ColorTransparent},
 		Disabled:   disabled,
-		OnClick:    onClick,
+		// Wrapped rather than passed through: every toolbar control
+		// sits inside the focusable grid, which takes focus on any
+		// click that reaches it. The consume-class pre-mark stops that
+		// today; consuming here keeps it stopped if spec §4.3b removes
+		// the pre-mark, and does it once for all eight controls.
+		OnClick: func(ctx gg.EventCtx) {
+			onClick(ctx)
+			ctx.Consume()
+		},
 		Content: []gg.View{
 			gg.Text(gg.TextCfg{
 				Text:      label,

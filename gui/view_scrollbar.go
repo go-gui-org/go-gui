@@ -237,6 +237,11 @@ func makeScrollbarGutterClick(cfg ScrollbarCfg) func(EventCtx) {
 	scrollID := cfg.ScrollID
 	return func(ctx EventCtx) {
 		if ctx.Window.MouseIsLocked() {
+			// A drag already owns the pointer, so this click is not the
+			// gutter's to act on — but it is still not the enclosing
+			// scroll container's either. Consume so the early return
+			// keeps swallowing it once the pre-mark is gone.
+			ctx.Consume()
 			return
 		}
 		if orientation == ScrollbarHorizontal {

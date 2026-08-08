@@ -50,6 +50,10 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 			if inputFocusID != "" {
 				ctx.Window.SetFocus(inputFocusID)
 			}
+			// The row exists to hand focus to its input. Consume, or
+			// the enclosing focusable grid would take that focus
+			// straight back once spec §4.3b removes the pre-mark.
+			ctx.Consume()
 		},
 		Content: []gg.View{
 			gg.Input(gg.InputCfg{
