@@ -97,7 +97,7 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 	if w.textMeasurer != nil {
 		layout.Shape.Height = w.textMeasurer.FontHeight(*ts)
 	} else {
-		layout.Shape.Height = ts.Size * 1.4
+		layout.Shape.Height = fallbackLineHeight(*ts)
 	}
 	if c.Mode == TextModeSingleLine ||
 		layout.Shape.Sizing.Width == SizingFixed {

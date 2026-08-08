@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`ErrTestNoScrollRoom`.** `TestScroll` on a scroll container whose content
+  already fits now says so, instead of returning the generic `ErrTestUnhandled`.
+  The two conditions call for opposite fixes — one means the fixture never had
+  anything to scroll, the other means the container is real but already pinned
+  at its limit — and the message carries the content and viewport sizes that
+  decided it.
+
+### Fixed
+
+- **Wrapped text has a plausible height in headless tests.** Text is not
+  zero-sized without a `TextMeasurer` — the width falls back to `0.6em` per rune
+  — but the post-sizing pass that turns a paragraph into N lines bailed out, so
+  wrapped text kept its one-line seed however much text it held. A scroll
+  container around a wall of text therefore never overflowed, and `TestScroll`
+  failed for a reason that had nothing to do with the widget under test. Heights
+  are now estimated from the same per-rune approximation. Still an estimate:
+  assert on structure and overflow, not on pixels.
+
+- `examples/scroll_demo` now asserts that its panel scrolls and that the
+  percentage buttons move it, the conversion §4.8 of
+  `docs/specs/developer-ergonomics.md` attempted and abandoned.
+
 ## [v0.55.0] - 2026-08-08
 
 ### Changed
