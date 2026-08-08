@@ -54,15 +54,15 @@ func mainView(w *gui.Window) gui.View {
 				ID:     "dock",
 				Root:   app.Root,
 				Panels: panels(),
-				OnLayoutChange: func(root *gui.DockNode, w *gui.Window) {
-					gui.State[App](w).Root = root
+				OnLayoutChange: func(root *gui.DockNode, ctx gui.EventCtx) {
+					gui.State[App](ctx.Window).Root = root
 				},
-				OnPanelSelect: func(groupID, panelID string, w *gui.Window) {
-					app := gui.State[App](w)
+				OnPanelSelect: func(groupID string, panelID string, ctx gui.EventCtx) {
+					app := gui.State[App](ctx.Window)
 					app.Root = gui.DockTreeSelectPanel(app.Root, groupID, panelID)
 				},
-				OnPanelClose: func(panelID string, w *gui.Window) {
-					app := gui.State[App](w)
+				OnPanelClose: func(panelID string, ctx gui.EventCtx) {
+					app := gui.State[App](ctx.Window)
 					app.Root = gui.DockTreeRemovePanel(app.Root, panelID)
 				},
 			}),

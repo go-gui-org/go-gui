@@ -102,12 +102,12 @@ func demoThemeGen(w *gui.Window) gui.View {
 												OnTextChanged: func(text string, ctx gui.EventCtx) {
 													gui.State[ShowcaseApp](ctx.Window).ThemeGenRadiusText = text
 												},
-												OnValueCommit: func(_ *gui.Layout, value gui.Opt[float64], text string, w *gui.Window) {
-													app := gui.State[ShowcaseApp](w)
+												OnValueCommit: func(value gui.Opt[float64], text string, ctx gui.EventCtx) {
+													app := gui.State[ShowcaseApp](ctx.Window)
 													app.ThemeGenRadiusText = text
 													if v, ok := value.Value(); ok {
 														app.ThemeGenRadius = float32(v)
-														applyGenTheme(w)
+														applyGenTheme(ctx.Window)
 													}
 												},
 											}),
@@ -132,12 +132,12 @@ func demoThemeGen(w *gui.Window) gui.View {
 												OnTextChanged: func(text string, ctx gui.EventCtx) {
 													gui.State[ShowcaseApp](ctx.Window).ThemeGenBorderText = text
 												},
-												OnValueCommit: func(_ *gui.Layout, value gui.Opt[float64], text string, w *gui.Window) {
-													app := gui.State[ShowcaseApp](w)
+												OnValueCommit: func(value gui.Opt[float64], text string, ctx gui.EventCtx) {
+													app := gui.State[ShowcaseApp](ctx.Window)
 													app.ThemeGenBorderText = text
 													if v, ok := value.Value(); ok {
 														app.ThemeGenBorder = float32(v)
-														applyGenTheme(w)
+														applyGenTheme(ctx.Window)
 													}
 												},
 											}),

@@ -34,18 +34,36 @@ type EventCtx struct {
 Payload-carrying callbacks keep the payload as a leading argument — a `GridRow`
 is data, not context:
 
-| Before                              | After                    |
-| ----------------------------------- | ------------------------ |
-| `func(*Layout, *Event, *Window)`    | `func(EventCtx)`         |
-| `func(*Layout, *Window)`            | `func(EventCtx)`         |
-| `func(*Layout, string, *Window)`    | `func(string, EventCtx)` |
-| `func(T, *Event, *Window)`          | `func(T, EventCtx)`      |
-| `func(*Window)` / `func(T,*Window)` | unchanged                |
+| Before                               | After                         |
+| ------------------------------------ | ----------------------------- |
+| `func(*Layout, *Event, *Window)`     | `func(EventCtx)`              |
+| `func(*Layout, *Window)`             | `func(EventCtx)`              |
+| `func(*Layout, string, *Window)`     | `func(string, EventCtx)`      |
+| `func(T, *Event, *Window)`           | `func(T, EventCtx)`           |
+| `func(*Window)`                      | `func(EventCtx)`              |
+| `func(T, U, *Window)`                | `func(T, U, EventCtx)`        |
+| `func(T, *Event, *Window) (R, bool)` | `func(T, EventCtx) (R, bool)` |
 
-Lifecycle callbacks with neither a layout nor an event (animation
-`OnDone`/`OnValue`, native dialog and notification `OnDone`,
-`NativeMenuCfg.OnAction`) are unchanged, as is `OnDraw func(*DrawContext)` and
-`Window.OnEvent func(*Event, *Window)`.
+The rule is uniform: `EventCtx` replaces the `*Layout`, `*Event` and `*Window`
+parameters and lands last. Everything else keeps its position — payloads in
+their original order, and results untouched, which is why `GridCfg.OnCopyRows`
+is now `func([]GridRow, EventCtx) (string, bool)`.
+
+The last three rows arrived in v0.54.0; the rest shipped in v0.52.0.
+
+### What did not convert
+
+Callbacks that fire from a timer tick, a dialog completion, or a lifecycle
+transition keep their `*Window`. **There is no event** at those points, so an
+`EventCtx` would only promise a permanently-nil `ctx.Event`:
+
+> `OnInit`, `OnCloseRequest`, `OnOkYes`, `OnCancelNo`, `OnDismiss`, `OnReply`,
+> `OnLazyLoad`, `OnValue`, and the four `OnDone` variants (animation, native
+> alert, native dialog, native notification)
+
+Also unchanged: `OnDraw func(*DrawContext)`,
+`NativeMenuCfg.OnAction func(string)`, and
+`Window.OnEvent func(*Event, *Window)` — a raw escape hatch by design.
 
 ## The consume / notify split
 
@@ -142,6 +160,30 @@ for pkg in (go list ./...)
     go test -c -gcflags=-e -o /dev/null $pkg
 end 2>&1 | go run ./tools/eventctx/cmd/eventctxfold
 ```
+
+### Converting a named set of callbacks
+
+The three passes above match by signature alone, which is safe only for the
+shapes that carry a `*Layout` or an `*Event` — nothing else in the codebase
+looks like those. The v0.54.0 round widened the target to any signature ending
+in `*Window`, and that shape is indistinguishable from ordinary internal
+plumbing, so the wide matcher is gated on an explicit list of field names:
+
+```fish
+set -l fields OnSelect,OnTextCommit,OnValueCommit,OnLayoutChange
+go run ./tools/eventctx/cmd/eventctx -w -fields=$fields ./path
+go run ./tools/eventctx/cmd/eventctx -w -decls -fields=$fields ./path
+```
+
+Under `-fields` a callback converts only where its owning struct field,
+assignment target, or parameter is one of the named ones — matched ignoring the
+leading case, so the internal spelling `onSelect` matches the field `OnSelect`.
+A closure nested _inside_ a converted callback does not inherit the name: a
+`w.QueueCommand(func(w *gui.Window) {…})` argument stays as it is.
+
+`-fields` also drops the "returns nothing" restriction, which is how
+`OnCopyRows func([]GridRow, *Event, *Window) (string, bool)` converts while
+keeping its results.
 
 ### The review list
 

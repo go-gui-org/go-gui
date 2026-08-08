@@ -98,7 +98,7 @@ func TestDockLayoutGeneratesLayout(t *testing.T) {
 				Text(TextCfg{Text: "hello"}),
 			}},
 		},
-		OnLayoutChange: func(_ *DockNode, _ *Window) {},
+		OnLayoutChange: func(_ *DockNode, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape == nil {
@@ -122,7 +122,7 @@ func TestDockLayoutWithSplit(t *testing.T) {
 			{ID: "p1", Label: "Left"},
 			{ID: "p2", Label: "Right"},
 		},
-		OnLayoutChange: func(_ *DockNode, _ *Window) {},
+		OnLayoutChange: func(_ *DockNode, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.ID != "dock1" {
@@ -147,7 +147,7 @@ func TestDockGroupViewTabButtons(t *testing.T) {
 			{ID: "b", Label: "Beta"},
 			{ID: "c", Label: "Gamma"},
 		},
-		OnLayoutChange: func(_ *DockNode, _ *Window) {},
+		OnLayoutChange: func(_ *DockNode, ctx EventCtx) {},
 	}
 	applyDockLayoutDefaults(cfg)
 	core := newDockLayoutCore(cfg)
@@ -170,8 +170,8 @@ func TestDockGroupViewWithClosable(t *testing.T) {
 		Panels: []DockPanelDef{
 			{ID: "a", Label: "Alpha", Closable: true},
 		},
-		OnLayoutChange: func(_ *DockNode, _ *Window) {},
-		OnPanelClose:   func(pid string, _ *Window) { closeCalled = pid },
+		OnLayoutChange: func(_ *DockNode, ctx EventCtx) {},
+		OnPanelClose:   func(pid string, ctx EventCtx) { closeCalled = pid },
 	}
 	applyDockLayoutDefaults(cfg)
 	core := newDockLayoutCore(cfg)
@@ -197,7 +197,7 @@ func TestDockGroupViewDraggedTabHidden(t *testing.T) {
 			{ID: "a", Label: "Alpha"},
 			{ID: "b", Label: "Beta"},
 		},
-		OnLayoutChange: func(_ *DockNode, _ *Window) {},
+		OnLayoutChange: func(_ *DockNode, ctx EventCtx) {},
 	}
 	applyDockLayoutDefaults(cfg)
 	core := newDockLayoutCore(cfg)
@@ -261,7 +261,7 @@ func TestDockGroupViewHideSingleTab(t *testing.T) {
 				Root:           group,
 				Panels:         panelDefsFor(tt.panelIDs...),
 				HideSingleTab:  tt.hideSingle,
-				OnLayoutChange: func(_ *DockNode, _ *Window) {},
+				OnLayoutChange: func(_ *DockNode, ctx EventCtx) {},
 			}
 			applyDockLayoutDefaults(cfg)
 
@@ -304,7 +304,7 @@ func TestDockSplitViewOrientation(t *testing.T) {
 			{ID: "p1", Label: "P1"},
 			{ID: "p2", Label: "P2"},
 		},
-		OnLayoutChange: func(_ *DockNode, _ *Window) {},
+		OnLayoutChange: func(_ *DockNode, ctx EventCtx) {},
 	}
 	applyDockLayoutDefaults(cfg)
 	core := newDockLayoutCore(cfg)
@@ -331,7 +331,7 @@ func TestDockNodeViewRoutesSplit(t *testing.T) {
 			{ID: "p1", Label: "P1"},
 			{ID: "p2", Label: "P2"},
 		},
-		OnLayoutChange: func(_ *DockNode, _ *Window) {},
+		OnLayoutChange: func(_ *DockNode, ctx EventCtx) {},
 	}
 	applyDockLayoutDefaults(cfg)
 	core := newDockLayoutCore(cfg)
@@ -353,7 +353,7 @@ func TestDockNodeViewRoutesGroup(t *testing.T) {
 		Panels: []DockPanelDef{
 			{ID: "p1", Label: "P1"},
 		},
-		OnLayoutChange: func(_ *DockNode, _ *Window) {},
+		OnLayoutChange: func(_ *DockNode, ctx EventCtx) {},
 	}
 	applyDockLayoutDefaults(cfg)
 	core := newDockLayoutCore(cfg)
@@ -372,7 +372,7 @@ func TestNewDockLayoutCore(t *testing.T) {
 	cfg := &DockLayoutCfg{
 		ID:               "d1",
 		Root:             DockPanelGroup("g", nil, ""),
-		OnLayoutChange:   func(_ *DockNode, _ *Window) { called = true },
+		OnLayoutChange:   func(_ *DockNode, ctx EventCtx) { called = true },
 		ColorZonePreview: Color{1, 2, 3, 4, true},
 	}
 	core := newDockLayoutCore(cfg)
@@ -385,7 +385,7 @@ func TestNewDockLayoutCore(t *testing.T) {
 	if core.colorZonePreview != (Color{1, 2, 3, 4, true}) {
 		t.Fatal("wrong color")
 	}
-	core.onLayoutChange(nil, nil)
+	core.onLayoutChange(nil, EventCtx{nil, nil, nil})
 	if !called {
 		t.Fatal("callback not wired")
 	}
@@ -418,12 +418,12 @@ func TestDockSplitOnChangeCallback(t *testing.T) {
 			{ID: "p1", Label: "P1"},
 			{ID: "p2", Label: "P2"},
 		},
-		OnLayoutChange: func(r *DockNode, _ *Window) { newRoot = r },
+		OnLayoutChange: func(r *DockNode, ctx EventCtx) { newRoot = r },
 	}
 
 	// Simulate ratio update via dockTreeUpdateRatio
 	updated := dockTreeUpdateRatio(cfg.Root, "s1", 0.7)
-	cfg.OnLayoutChange(updated, nil)
+	cfg.OnLayoutChange(updated, EventCtx{nil, nil, nil})
 
 	if newRoot == nil {
 		t.Fatal("callback not called")
@@ -457,7 +457,7 @@ func TestDockLayoutFullTreeIntegration(t *testing.T) {
 		ID:             "dock1",
 		Root:           root,
 		Panels:         panels,
-		OnLayoutChange: func(_ *DockNode, _ *Window) {},
+		OnLayoutChange: func(_ *DockNode, ctx EventCtx) {},
 	})
 
 	layout := generateViewLayout(v, w)
@@ -492,8 +492,8 @@ func TestDockTabButtonWithSelect(t *testing.T) {
 			{ID: "a", Label: "Alpha"},
 			{ID: "b", Label: "Beta"},
 		},
-		OnLayoutChange: func(_ *DockNode, _ *Window) {},
-		OnPanelSelect: func(gid, pid string, _ *Window) {
+		OnLayoutChange: func(_ *DockNode, ctx EventCtx) {},
+		OnPanelSelect: func(gid string, pid string, ctx EventCtx) {
 			selectCalled = true
 			if gid != "g1" || pid != "a" {
 				t.Fatalf("wrong select args: %s, %s", gid, pid)
@@ -530,8 +530,8 @@ func TestDockTabButtonCloseButtonHasTextColor(t *testing.T) {
 		Panels: []DockPanelDef{
 			{ID: "a", Label: "Alpha", Closable: true},
 		},
-		OnLayoutChange: func(_ *DockNode, _ *Window) {},
-		OnPanelClose:   func(_ string, _ *Window) {},
+		OnLayoutChange: func(_ *DockNode, ctx EventCtx) {},
+		OnPanelClose:   func(_ string, ctx EventCtx) {},
 	}
 	applyDockLayoutDefaults(cfg)
 	core := newDockLayoutCore(cfg)
@@ -567,7 +567,7 @@ func TestDockGroupViewFallbackContent(t *testing.T) {
 			{ID: "a", Label: "Alpha"},
 			{ID: "b", Label: "Beta"},
 		},
-		OnLayoutChange: func(_ *DockNode, _ *Window) {},
+		OnLayoutChange: func(_ *DockNode, ctx EventCtx) {},
 	}
 	applyDockLayoutDefaults(cfg)
 	core := newDockLayoutCore(cfg)

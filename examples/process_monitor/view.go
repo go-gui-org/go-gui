@@ -281,8 +281,8 @@ func viewModeRadio(app *App) gui.View {
 		ID:    "pm-view",
 		Items: []string{"Flat", "Tree"},
 		Value: value,
-		OnSelect: func(v string, w *gui.Window) {
-			gui.State[App](w).TreeMode = v == "Tree"
+		OnSelect: func(v string, ctx gui.EventCtx) {
+			gui.State[App](ctx.Window).TreeMode = v == "Tree"
 		},
 	})
 }
@@ -292,8 +292,8 @@ func intervalRadio(app *App) gui.View {
 		ID:    "pm-interval",
 		Items: intervalLabels,
 		Value: intervalLabel(app.Interval),
-		OnSelect: func(v string, w *gui.Window) {
-			gui.State[App](w).Interval = intervalFromLabel(v)
+		OnSelect: func(v string, ctx gui.EventCtx) {
+			gui.State[App](ctx.Window).Interval = intervalFromLabel(v)
 		},
 	})
 }

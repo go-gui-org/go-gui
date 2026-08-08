@@ -17,7 +17,7 @@ func NewRadioOption(label, value string) RadioOption {
 type RadioButtonGroupCfg struct {
 	TextStyle TextStyle
 
-	OnSelect func(string, *Window)
+	OnSelect func(string, EventCtx)
 	Value    string
 	Title    string
 
@@ -104,7 +104,7 @@ func buildRadioOptions(cfg RadioButtonGroupCfg) []View {
 			TextStyle:     cfg.TextStyle,
 			OnClick: func(ctx EventCtx) {
 				if onSelect != nil {
-					onSelect(optValue, ctx.Window)
+					onSelect(optValue, ctx)
 				}
 			},
 		}))

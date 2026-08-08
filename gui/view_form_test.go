@@ -167,7 +167,7 @@ func TestFormSubmitBlock(t *testing.T) {
 	})
 
 	var submitted bool
-	onSubmit := func(_ FormSubmitEvent, _ *Window) {
+	onSubmit := func(_ FormSubmitEvent, ctx EventCtx) {
 		submitted = true
 	}
 
@@ -211,7 +211,7 @@ func TestFormReset(t *testing.T) {
 	formApplyCfg(w, formID, FormCfg{ID: formID})
 
 	var resetEvent FormResetEvent
-	onReset := func(e FormResetEvent, _ *Window) {
+	onReset := func(e FormResetEvent, ctx EventCtx) {
 		resetEvent = e
 	}
 

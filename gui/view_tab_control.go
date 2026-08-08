@@ -22,7 +22,7 @@ type TabControlCfg struct {
 	TextStyleSelected TextStyle
 	TextStyleDisabled TextStyle
 	OnSelect          func(string, EventCtx)
-	OnReorder         func(movedID, beforeID string, w *Window)
+	OnReorder         func(string, string, EventCtx)
 
 	ID       string
 	Selected string
@@ -167,7 +167,7 @@ func makeTabDragClick(
 	dragIdx int,
 	itemID string,
 	tabIDs []string,
-	onReorder func(string, string, *Window),
+	onReorder func(string, string, EventCtx),
 	tabLayoutIDs []string,
 	onSelect func(string, EventCtx),
 	focusID string,

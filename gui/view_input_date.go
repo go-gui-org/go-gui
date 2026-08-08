@@ -249,7 +249,7 @@ func inputDateTextField(
 			sm := StateMap[string, string](ctx.Window, nsInputDateText, capModerate)
 			sm.Set(cfgID, s)
 		},
-		OnTextCommit: func(_ *Layout, text string, _ InputCommitReason, w *Window) {
+		OnTextCommit: func(text string, _ InputCommitReason, ctx EventCtx) {
 			// A read-only inner Input still fires OnTextCommit on Enter
 			// (text unchanged); do not surface it as a date selection.
 			if cfg.ReadOnly {
@@ -257,9 +257,9 @@ func inputDateTextField(
 			}
 			if text == "" {
 				if cfg.OnSelect != nil {
-					cfg.OnSelect(nil, EventCtx{nil, &Event{}, w})
+					cfg.OnSelect(nil, EventCtx{nil, &Event{}, ctx.Window})
 				}
-				w.UpdateWindow()
+				ctx.Window.UpdateWindow()
 				return
 			}
 			t, err := localeParseDate(text,
@@ -268,9 +268,9 @@ func inputDateTextField(
 				return
 			}
 			if cfg.OnSelect != nil {
-				cfg.OnSelect([]time.Time{t}, EventCtx{nil, &Event{}, w})
+				cfg.OnSelect([]time.Time{t}, EventCtx{nil, &Event{}, ctx.Window})
 			}
-			w.UpdateWindow()
+			ctx.Window.UpdateWindow()
 		},
 		OnKeyDown: func(ctx EventCtx) {
 			if isOpen && ctx.Event.KeyCode == KeyEscape {

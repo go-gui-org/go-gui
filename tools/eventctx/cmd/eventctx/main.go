@@ -27,6 +27,10 @@ import (
 func main() {
 	write := flag.Bool("w", false, "write result to source file")
 	report := flag.String("report", "", "write rule-4 report to this file")
+	fields := flag.String("fields", "",
+		"comma-separated callback field names to convert. Setting it "+
+			"switches on the general matcher: any signature ending in "+
+			"*Window folds, but only under these field names.")
 	decls := flag.Bool("decls", false,
 		"declaration mode: convert named callback functions and their "+
 			"call sites instead of closures. Run after the closure pass.")
@@ -36,6 +40,8 @@ func main() {
 			"usage: eventctx [-w] [-decls] [-report file] path...")
 		os.Exit(2)
 	}
+
+	opts := parseFields(*fields)
 
 	files, err := collect(flag.Args())
 	if err != nil {
@@ -48,7 +54,7 @@ func main() {
 	// as a value rather than only calling it.
 	var plan eventctx.DeclPlan
 	if *decls {
-		plan, err = buildPlan(files)
+		plan, err = buildPlan(files, opts)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "eventctx:", err)
 			os.Exit(1)
@@ -60,7 +66,7 @@ func main() {
 	var findings []eventctx.Finding
 	changed := 0
 	for _, p := range files {
-		n, fs2, err := processFile(p, *write, plan)
+		n, fs2, err := processFile(p, *write, plan, opts)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "eventctx:", err)
 			os.Exit(1)
@@ -130,7 +136,9 @@ func collect(roots []string) ([]string, error) {
 // every file, then keeps only the candidates that are used as values.
 //
 // #nosec G304 — paths come from the developer-supplied CLI arguments
-func buildPlan(files []string) (eventctx.DeclPlan, error) {
+func buildPlan(
+	files []string, opts *eventctx.Options,
+) (eventctx.DeclPlan, error) {
 	cands := eventctx.DeclPlan{}
 	used := map[string]bool{}
 	for _, p := range files {
@@ -138,7 +146,7 @@ func buildPlan(files []string) (eventctx.DeclPlan, error) {
 		if err != nil {
 			return nil, err
 		}
-		c, u, err := eventctx.ScanDecls(p, src)
+		c, u, err := eventctx.ScanDeclsWith(p, src, opts)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", p, err)
 		}
@@ -159,6 +167,7 @@ func buildPlan(files []string) (eventctx.DeclPlan, error) {
 // #nosec G304 — path comes from the developer-supplied CLI arguments
 func processFile(
 	path string, write bool, plan eventctx.DeclPlan,
+	opts *eventctx.Options,
 ) (int, []eventctx.Finding, error) {
 	src, err := os.ReadFile(path)
 	if err != nil {
@@ -167,7 +176,7 @@ func processFile(
 	if !eventctx.NeedsRewrite(src) {
 		return 0, nil, nil
 	}
-	res, err := eventctx.Rewrite(path, src, plan)
+	res, err := eventctx.RewriteWith(path, src, plan, opts)
 	if err != nil {
 		return 0, nil, fmt.Errorf("%s: %w", path, err)
 	}
@@ -188,4 +197,19 @@ func processFile(
 		return 0, nil, err
 	}
 	return 1, res.Findings, nil
+}
+
+// parseFields turns the -fields flag into Options. An empty flag leaves
+// the original narrow matcher in place.
+func parseFields(list string) *eventctx.Options {
+	if strings.TrimSpace(list) == "" {
+		return nil
+	}
+	set := map[string]bool{}
+	for f := range strings.SplitSeq(list, ",") {
+		if f = strings.TrimSpace(f); f != "" {
+			set[f] = true
+		}
+	}
+	return &eventctx.Options{Fields: set}
 }

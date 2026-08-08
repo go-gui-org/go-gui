@@ -41,8 +41,8 @@ func demoTable(w *gui.Window) gui.View {
 	cfg.MultiSelect = app.TableMultiSelect
 	cfg.FreezeHeader = app.TableFreezeHeader
 	cfg.Selected = app.TableSelected
-	cfg.OnSelect = func(sel map[int]bool, _ int, _ *gui.Event, w *gui.Window) {
-		gui.State[ShowcaseApp](w).TableSelected = sel
+	cfg.OnSelect = func(sel map[int]bool, _ int, ctx gui.EventCtx) {
+		gui.State[ShowcaseApp](ctx.Window).TableSelected = sel
 	}
 
 	if cfg.BorderStyle == gui.TableBorderNone {
@@ -110,8 +110,8 @@ func demoTable(w *gui.Window) gui.View {
 							gui.NewRadioOption("Header only", "header_only"),
 							gui.NewRadioOption("None", "none"),
 						},
-						OnSelect: func(value string, w *gui.Window) {
-							gui.State[ShowcaseApp](w).TableBorderStyle = value
+						OnSelect: func(value string, ctx gui.EventCtx) {
+							gui.State[ShowcaseApp](ctx.Window).TableBorderStyle = value
 						},
 					}),
 					gui.Column(gui.ContainerCfg{

@@ -25,7 +25,7 @@ type ListBoxCfg struct {
 	TextStyle       TextStyle
 	SubheadingStyle TextStyle
 	OnSelect        func([]string, EventCtx)
-	OnReorder       func(movedID, beforeID string, w *Window)
+	OnReorder       func(string, string, EventCtx)
 
 	ID string `gui:"required"`
 

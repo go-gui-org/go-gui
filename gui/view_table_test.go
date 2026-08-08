@@ -210,7 +210,7 @@ func TestTableSelection(t *testing.T) {
 			TR([]TableCellCfg{TD("a")}),
 			TR([]TableCellCfg{TD("b")}),
 		},
-		OnSelect: func(sel map[int]bool, row int, _ *Event, _ *Window) {
+		OnSelect: func(sel map[int]bool, row int, ctx EventCtx) {
 			selectedRows = sel
 			clickedRow = row
 		},

@@ -161,8 +161,8 @@ func mainView(w *gui.Window) gui.View {
 						Options:     dirOptions,
 						SizeBorder:  gui.Some[float32](1),
 						ColorBorder: gui.DarkGray,
-						OnSelect: func(value string, w *gui.Window) {
-							gui.State[App](w).Direction =
+						OnSelect: func(value string, ctx gui.EventCtx) {
+							gui.State[App](ctx.Window).Direction =
 								parseDirection(value)
 						},
 					}),

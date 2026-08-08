@@ -142,8 +142,8 @@ const formLayoutIDPrefix = "form:"
 type FormCfg struct {
 
 	// Callbacks.
-	OnSubmit    func(FormSubmitEvent, *Window)
-	OnReset     func(FormResetEvent, *Window)
+	OnSubmit    func(FormSubmitEvent, EventCtx)
+	OnReset     func(FormResetEvent, EventCtx)
 	ErrorSlot   func(string, []FormIssue) View
 	SummarySlot func(FormSummaryState) View
 	PendingSlot func(FormPendingState) View

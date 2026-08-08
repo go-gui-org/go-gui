@@ -71,7 +71,7 @@ func dockDragClear(w *Window, dockID string) {
 func dockDragStart(
 	dockID, panelID, sourceGroup string,
 	root *DockNode,
-	onLayoutChange func(*DockNode, *Window),
+	onLayoutChange func(*DockNode, EventCtx),
 	layout *Layout, e *Event, w *Window,
 ) {
 	// Ghost base offset: tab position relative to dock container.
@@ -143,7 +143,7 @@ func dockDragOnMouseMove(
 // dockDragOnMouseUp handles the drop or cancel.
 func dockDragOnMouseUp(
 	dockID string, root *DockNode,
-	onLayoutChange func(*DockNode, *Window), w *Window,
+	onLayoutChange func(*DockNode, EventCtx), w *Window,
 ) {
 	state := dockDragGet(w, dockID)
 	w.MouseUnlock()
@@ -152,7 +152,7 @@ func dockDragOnMouseUp(
 		newRoot := DockTreeMovePanel(
 			root, state.panelID, state.hoverGroupID,
 			state.hoverZone)
-		onLayoutChange(newRoot, w)
+		onLayoutChange(newRoot, EventCtx{nil, nil, w})
 	}
 
 	dockDragClear(w, dockID)

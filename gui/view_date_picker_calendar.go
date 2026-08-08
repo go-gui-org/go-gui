@@ -273,12 +273,12 @@ func datePickerYearMonthPicker(
 		Color:        ColorTransparent,
 		ColorBorder:  ColorTransparent,
 		SizeBorder:   NoBorder,
-		OnChange: func(t time.Time, w *Window) {
+		OnChange: func(t time.Time, ctx EventCtx) {
 			if !cfg.FocusDisabled {
-				w.SetFocus(cfg.ID)
+				ctx.Window.SetFocus(cfg.ID)
 			}
 			sm := StateMap[string, datePickerState](
-				w, nsDatePicker, capModerate)
+				ctx.Window, nsDatePicker, capModerate)
 			s, ok := sm.Get(cfgID)
 			if !ok {
 				return
@@ -286,7 +286,7 @@ func datePickerYearMonthPicker(
 			s.ViewMonth = int(t.Month())
 			s.ViewYear = t.Year()
 			sm.Set(cfgID, s)
-			w.UpdateWindow()
+			ctx.Window.UpdateWindow()
 		},
 	})
 }

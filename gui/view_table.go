@@ -48,7 +48,7 @@ type TableCfg struct {
 	ColorRowAlt      *Color
 	AlignHead        *HorizontalAlign
 	Selected         map[int]bool
-	OnSelect         func(map[int]bool, int, *Event, *Window)
+	OnSelect         func(map[int]bool, int, EventCtx)
 	ID               string `gui:"required"`
 	A11YLabel        string
 	A11YDescription  string
@@ -315,7 +315,7 @@ func tableBuildRow(
 	cfg *TableCfg, rowIdx int, columnWidths []float32,
 	cellBorder float32, selected map[int]bool,
 	multiSelect bool, colorHover Color,
-	onSelect func(map[int]bool, int, *Event, *Window),
+	onSelect func(map[int]bool, int, EventCtx),
 ) View {
 	r := cfg.Data[rowIdx]
 	cells := make([]View, 0, len(r.Cells))
@@ -417,7 +417,7 @@ func tableBuildRow(
 				} else {
 					newSel[ri] = true
 				}
-				onSelect(newSel, ri, ctx.Event, ctx.Window)
+				onSelect(newSel, ri, ctx)
 			}
 		},
 		OnHover: func(ctx EventCtx) {
@@ -437,7 +437,7 @@ func tableFreezeLayout(
 	cfg *TableCfg, columnWidths []float32, cellBorder float32,
 	rowSpacing float32, selected map[int]bool,
 	multiSelect bool, colorHover Color,
-	onSelect func(map[int]bool, int, *Event, *Window),
+	onSelect func(map[int]bool, int, EventCtx),
 	bodyRows []View,
 	scrollID string,
 ) View {

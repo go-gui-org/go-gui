@@ -58,10 +58,10 @@ func TestToastButtonsGetPerToastIDs(t *testing.T) {
 	w := &Window{}
 	w.toasts = []toastNotification{
 		{id: 1, animFrac: 1, cfg: ToastCfg{
-			Title: "A", ActionLabel: "Undo", OnAction: func(*Window) {},
+			Title: "A", ActionLabel: "Undo", OnAction: func(ctx EventCtx) {},
 		}},
 		{id: 2, animFrac: 1, cfg: ToastCfg{
-			Title: "B", ActionLabel: "Undo", OnAction: func(*Window) {},
+			Title: "B", ActionLabel: "Undo", OnAction: func(ctx EventCtx) {},
 		}},
 	}
 

@@ -139,11 +139,11 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 		ColorHover:     cfg.ColorHover,
 		ColorSelected:  cfg.ColorHighlight,
 		PaddingItem:    cfg.Padding.Get(Padding{}),
-		OnItemClick: func(itemID string, _ int, e *Event, w *Window) {
+		OnItemClick: func(itemID string, _ int, ctx EventCtx) {
 			if onSelect != nil {
-				onSelect(itemID, EventCtx{nil, e, w})
+				onSelect(itemID, EventCtx{nil, ctx.Event, ctx.Window})
 			}
-			comboboxClose(cfgID, w)
+			comboboxClose(cfgID, ctx.Window)
 		},
 	}
 

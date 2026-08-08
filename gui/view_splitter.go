@@ -122,7 +122,7 @@ type splitterPaneCore struct {
 
 // SplitterCfg configures a splitter component.
 type SplitterCfg struct {
-	OnChange func(float32, SplitterCollapsed, *Event, *Window)
+	OnChange func(float32, SplitterCollapsed, EventCtx)
 	ID       string
 
 	A11YLabel           string
@@ -156,7 +156,7 @@ type SplitterCfg struct {
 
 // splitterCore holds callback-relevant fields.
 type splitterCore struct {
-	onChange      func(float32, SplitterCollapsed, *Event, *Window)
+	onChange      func(float32, SplitterCollapsed, EventCtx)
 	id            string
 	first         splitterPaneCore
 	second        splitterPaneCore
@@ -609,7 +609,7 @@ func splitterEmitChange(
 		Collapsed: collapsed,
 	})
 	if core.onChange != nil {
-		core.onChange(state.Ratio, state.Collapsed, e, w)
+		core.onChange(state.Ratio, state.Collapsed, EventCtx{nil, e, w})
 	}
 	splitterFocus(core, w)
 	e.IsHandled = true

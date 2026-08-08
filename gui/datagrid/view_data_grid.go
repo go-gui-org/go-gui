@@ -196,7 +196,7 @@ type DataGridCfg struct {
 	OnQueryChange          func(GridQueryState, gg.EventCtx)
 	OnSelectionChange      func(GridSelection, gg.EventCtx)
 	OnColumnOrderChange    func([]string, gg.EventCtx)
-	OnColumnPinChange      func(string, GridColumnPin, *gg.Event, *gg.Window)
+	OnColumnPinChange      func(string, GridColumnPin, gg.EventCtx)
 	OnHiddenColumnsChange  func(map[string]bool, gg.EventCtx)
 	OnPageChange           func(int, gg.EventCtx)
 	OnDetailExpandedChange func(map[string]bool, gg.EventCtx)
@@ -205,7 +205,7 @@ type DataGridCfg struct {
 	OnCRUDError            func(string, gg.EventCtx)
 	CellFormat             func(GridRow, int, GridColumnCfg, string, *gg.Window) GridCellFormat
 	DetailRowView          func(GridRow, *gg.Window) gg.View
-	OnCopyRows             func([]GridRow, *gg.Event, *gg.Window) (string, bool)
+	OnCopyRows             func([]GridRow, gg.EventCtx) (string, bool)
 	OnRowActivate          func(GridRow, gg.EventCtx)
 	Query                  GridQueryState
 	ID                     string `gui:"required"`

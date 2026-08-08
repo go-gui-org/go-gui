@@ -16,6 +16,38 @@ Breaking items are listed under "Changed" below as they land.
 
 ### Changed
 
+- **BREAKING: 17 event callbacks now take an `EventCtx`** instead of a trailing
+  `*Window`, and the four that leaked a raw `*Event` no longer do. The affected
+  fields are `OnAction`, `OnChange`, `OnColumnPinChange`, `OnCopyRows`,
+  `OnItemClick`, `OnLayoutChange`, `OnPanelClose`, `OnPanelSelect`, `OnReorder`,
+  `OnReset`, `OnSelect`, `OnSubmit`, `OnTextCommit`, `OnToggle` and
+  `OnValueCommit`.
+
+  The rule is uniform: `EventCtx` replaces the `*Layout`, `*Event` and `*Window`
+  parameters and lands last, while payloads keep their order and results are
+  untouched. So `TableCfg.OnSelect func(map[int]bool, int, *Event, *Window)`
+  becomes `func(map[int]bool, int, EventCtx)`, and `GridCfg.OnCopyRows` becomes
+  `func([]GridRow, EventCtx) (string, bool)` — returning a value was never a
+  reason to keep the old shape.
+
+  This finishes what the v0.52.0 `EventCtx` refactor started. Of the 30 distinct
+  signatures still carrying a `*Window` or a raw `*Event`, 17 converted; the
+  remaining 13 are deliberate. Twelve fire from a timer tick, a dialog
+  completion or a lifecycle transition (`OnInit`, `OnCloseRequest`, `OnOkYes`,
+  `OnCancelNo`, `OnDismiss`, `OnReply`, `OnLazyLoad`, `OnValue`, four `OnDone`
+  variants) — **there is no event** at those points, and handing them an
+  `EventCtx` would promise a permanently-nil `ctx.Event`. The thirteenth,
+  `Window.OnEvent`, is a raw escape hatch by design.
+
+  Where a widget dispatches one of these from inside an already-converted
+  callback, the full context is now passed through rather than a synthesized
+  one, so `OnPanelClose` and friends receive the layout they fire from —
+  strictly more than the old `*Window` carried.
+
+  Migration: `docs/migration-eventctx.md`, including the new `-fields` mode that
+  drove this round. No sibling repo is affected — none of the five uses any of
+  the 17.
+
 - **BREAKING: `RtfCfg` is now `RTFCfg`**, and the exported `Rtf*` fields on
   `Shape.TC` are now `RTF*` — `RTFRuns`, `RTFLayout`, `RTFFlatText`,
   `RTFBaseStyle`, `RTFLineSpacing`. `RTF(cfg RtfCfg)` was the only factory whose

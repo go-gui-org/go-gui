@@ -26,7 +26,7 @@ type InputCfg struct {
 	// OnTextCommit fires when the user finalizes input: pressing
 	// Enter, losing focus (blur), or completing IME composition.
 	// The InputCommitReason indicates the trigger.
-	OnTextCommit func(*Layout, string, InputCommitReason, *Window)
+	OnTextCommit func(string, InputCommitReason, EventCtx)
 
 	OnEnter   func(EventCtx)
 	OnKeyDown func(EventCtx)
@@ -313,7 +313,7 @@ func applyInputDefaults(cfg *InputCfg) {
 type inputHandlerCfg struct {
 	CompiledMask        *CompiledInputMask
 	OnTextChanged       func(string, EventCtx)
-	OnTextCommit        func(*Layout, string, InputCommitReason, *Window)
+	OnTextCommit        func(string, InputCommitReason, EventCtx)
 	OnEnter             func(EventCtx)
 	OnKeyDown           func(EventCtx)
 	OnKeyUp             func(EventCtx)
@@ -530,8 +530,7 @@ func inputAmendLayout(
 				hcfg.fireTextChanged(ctx.Layout, text, ctx.Window)
 			}
 			if hcfg.OnTextCommit != nil {
-				hcfg.OnTextCommit(
-					ctx.Layout, text, CommitBlur, ctx.Window)
+				hcfg.OnTextCommit(text, CommitBlur, ctx)
 			}
 			if spellChk {
 				spellCheckClear(

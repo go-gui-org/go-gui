@@ -201,11 +201,11 @@ func TestToastOnActionCallback(t *testing.T) {
 		{id: 1, cfg: ToastCfg{
 			Title:       "T",
 			ActionLabel: "Undo",
-			OnAction:    func(_ *Window) { fired = true },
+			OnAction:    func(ctx EventCtx) { fired = true },
 		}, animFrac: 1, phase: toastVisible},
 	}
 	// Simulate action callback.
-	w.toasts[0].cfg.OnAction(w)
+	w.toasts[0].cfg.OnAction(EventCtx{nil, nil, w})
 	if !fired {
 		t.Error("expected OnAction callback to fire")
 	}

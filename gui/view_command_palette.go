@@ -140,13 +140,13 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 		PaddingItem:    PaddingTwoFive,
 		ShowDetails:    true,
 		ShowIcons:      true,
-		OnItemClick: func(itemID string, _ int, e *Event, w *Window) {
+		OnItemClick: func(itemID string, _ int, ctx EventCtx) {
 			if onAction != nil {
-				onAction(itemID, EventCtx{nil, e, w})
+				onAction(itemID, EventCtx{nil, ctx.Event, ctx.Window})
 			}
-			CommandPaletteDismiss(paletteID, w)
+			CommandPaletteDismiss(paletteID, ctx.Window)
 			if onDismiss != nil {
-				onDismiss(w)
+				onDismiss(ctx.Window)
 			}
 		},
 	}

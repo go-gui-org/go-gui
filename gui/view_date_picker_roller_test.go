@@ -114,7 +114,7 @@ func TestRollerMonthFormatOutOfRange(t *testing.T) {
 func TestRollerAdjustDay(t *testing.T) {
 	sel := time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local)
 	var got time.Time
-	onChange := func(d time.Time, _ *Window) { got = d }
+	onChange := func(d time.Time, ctx EventCtx) { got = d }
 	w := &Window{}
 
 	rollerAdjustDay(1, sel, 1900, 2100, onChange, w)
@@ -137,7 +137,7 @@ func TestRollerAdjustDayNilOnChange(_ *testing.T) {
 func TestRollerAdjustMonth(t *testing.T) {
 	sel := time.Date(2025, 1, 15, 0, 0, 0, 0, time.Local)
 	var got time.Time
-	onChange := func(d time.Time, _ *Window) { got = d }
+	onChange := func(d time.Time, ctx EventCtx) { got = d }
 	w := &Window{}
 
 	rollerAdjustMonth(1, sel, 1900, 2100, onChange, w)
@@ -154,7 +154,7 @@ func TestRollerAdjustMonth(t *testing.T) {
 func TestRollerAdjustYear(t *testing.T) {
 	sel := time.Date(2024, 2, 29, 0, 0, 0, 0, time.Local) // leap day
 	var got time.Time
-	onChange := func(d time.Time, _ *Window) { got = d }
+	onChange := func(d time.Time, ctx EventCtx) { got = d }
 	w := &Window{}
 
 	rollerAdjustYear(1, sel, 1900, 2100, onChange, w, false)
@@ -167,7 +167,7 @@ func TestRollerAdjustYear(t *testing.T) {
 func TestRollerAdjustYearBounds(t *testing.T) {
 	sel := time.Date(2100, 6, 1, 0, 0, 0, 0, time.Local)
 	called := false
-	onChange := func(_ time.Time, _ *Window) { called = true }
+	onChange := func(_ time.Time, ctx EventCtx) { called = true }
 	w := &Window{}
 
 	rollerAdjustYear(1, sel, 1900, 2100, onChange, w, false)
@@ -194,7 +194,7 @@ func TestRollerDefaultsMinMaxSwap(t *testing.T) {
 
 func TestRollerAdjustYearWrap(t *testing.T) {
 	var got time.Time
-	onChange := func(d time.Time, _ *Window) { got = d }
+	onChange := func(d time.Time, ctx EventCtx) { got = d }
 	w := &Window{}
 
 	// Wrap forward past max.
@@ -216,7 +216,7 @@ func TestRollerAdjustMonthDayClamping(t *testing.T) {
 	// Jan 31 + 1 month → Feb 28 (non-leap).
 	sel := time.Date(2025, 1, 31, 0, 0, 0, 0, time.Local)
 	var got time.Time
-	onChange := func(d time.Time, _ *Window) { got = d }
+	onChange := func(d time.Time, ctx EventCtx) { got = d }
 	w := &Window{}
 
 	rollerAdjustMonth(1, sel, 1900, 2100, onChange, w)
@@ -234,7 +234,7 @@ func TestRollerAdjustMonthDayClamping(t *testing.T) {
 
 func TestRollerOnKeyDown(t *testing.T) {
 	var got time.Time
-	onChange := func(d time.Time, _ *Window) { got = d }
+	onChange := func(d time.Time, ctx EventCtx) { got = d }
 	w := &Window{}
 	sel := time.Date(2025, 6, 15, 0, 0, 0, 0, time.Local)
 

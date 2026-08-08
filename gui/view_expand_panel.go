@@ -5,7 +5,7 @@ package gui
 type ExpandPanelCfg struct {
 	Head     View
 	Content  View
-	OnToggle func(*Window)
+	OnToggle func(EventCtx)
 	ID       string
 
 	// Accessibility
@@ -97,7 +97,7 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 				},
 				OnClick: func(ctx EventCtx) {
 					if onToggle != nil {
-						onToggle(ctx.Window)
+						onToggle(ctx)
 					}
 				},
 				OnChar: func(ctx EventCtx) {
@@ -107,7 +107,7 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 						ctx.Bubble()
 						return
 					}
-					onToggle(ctx.Window)
+					onToggle(ctx)
 				},
 				OnHover: func(ctx EventCtx) {
 					ctx.Window.SetMouseCursorPointingHand()

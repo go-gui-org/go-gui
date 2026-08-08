@@ -12,7 +12,7 @@ type TreeCfg struct {
 	OnSelect   func(string, EventCtx)
 	OnLazyLoad func(string, string, *Window)
 
-	OnReorder func(movedID, beforeID string, w *Window)
+	OnReorder func(string, string, EventCtx)
 
 	ID string `gui:"required"`
 

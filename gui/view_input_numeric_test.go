@@ -84,7 +84,7 @@ func TestNumericInputReadOnlyStepButtonsGated(t *testing.T) {
 			ReadOnly: readOnly,
 			Text:     "5",
 			StepCfg:  NumericStepCfg{ShowButtons: true, Step: 1},
-			OnValueCommit: func(_ *Layout, _ Opt[float64], _ string, _ *Window) {
+			OnValueCommit: func(_ Opt[float64], _ string, ctx EventCtx) {
 				committed = true
 			},
 		})

@@ -198,7 +198,7 @@ func dragReorderIDsChanged(state dragReorderState, meta dragReorderIDsMeta) bool
 
 // dragReorderStartCfg groups parameters for dragReorderStart.
 type dragReorderStartCfg struct {
-	OnReorder     func(string, string, *Window)
+	OnReorder     func(string, string, EventCtx)
 	Layout        *Layout
 	Event         *Event
 	DragKey       string
@@ -307,7 +307,7 @@ func dragReorderMakeLock(
 	dragKey string,
 	axis DragReorderAxis,
 	itemIDs []string,
-	onReorder func(string, string, *Window),
+	onReorder func(string, string, EventCtx),
 ) MouseLockCfg {
 	return MouseLockCfg{
 		MouseMove: func(ctx EventCtx) {
@@ -465,7 +465,7 @@ func dragReorderOnMouseMove(
 func dragReorderOnMouseUp(
 	dragKey string,
 	itemIDs []string,
-	onReorder func(string, string, *Window),
+	onReorder func(string, string, EventCtx),
 	w *Window,
 ) {
 	state := dragReorderGet(w, dragKey)
@@ -495,7 +495,7 @@ func dragReorderOnMouseUp(
 				beforeID = itemIDs[gap]
 			}
 			w.AnimateLayout(LayoutTransitionCfg{})
-			onReorder(movedID, beforeID, w)
+			onReorder(movedID, beforeID, EventCtx{nil, nil, w})
 		}
 	}
 	w.UpdateWindow()
@@ -575,7 +575,7 @@ func dragReorderKeyboardMove(
 	axis DragReorderAxis,
 	currentIndex int,
 	itemIDs []string,
-	onReorder func(string, string, *Window),
+	onReorder func(string, string, EventCtx),
 	w *Window,
 ) bool {
 	itemCount := len(itemIDs)
@@ -622,7 +622,7 @@ func dragReorderKeyboardMove(
 		beforeID = itemIDs[newIndex]
 	}
 	w.AnimateLayout(LayoutTransitionCfg{})
-	onReorder(movedID, beforeID, w)
+	onReorder(movedID, beforeID, EventCtx{nil, nil, w})
 	return true
 }
 

@@ -230,8 +230,8 @@ func demoExpandPanel(w *gui.Window) gui.View {
 						}),
 					},
 				}),
-				OnToggle: func(w *gui.Window) {
-					a := gui.State[ShowcaseApp](w)
+				OnToggle: func(ctx gui.EventCtx) {
+					a := gui.State[ShowcaseApp](ctx.Window)
 					a.ExpandOpen = !a.ExpandOpen
 				},
 			}),
@@ -427,16 +427,16 @@ func showcaseSplitterPane(title, note string, accent gui.Color) gui.View {
 	})
 }
 
-func onShowcaseSplitterMainChange(ratio float32, collapsed gui.SplitterCollapsed, _ *gui.Event, w *gui.Window) {
-	app := gui.State[ShowcaseApp](w)
+func onShowcaseSplitterMainChange(ratio float32, collapsed gui.SplitterCollapsed, ctx gui.EventCtx) {
+	app := gui.State[ShowcaseApp](ctx.Window)
 	app.SplitterMainState = gui.SplitterStateNormalize(gui.SplitterState{
 		Ratio:     ratio,
 		Collapsed: collapsed,
 	})
 }
 
-func onShowcaseSplitterDetailChange(ratio float32, collapsed gui.SplitterCollapsed, _ *gui.Event, w *gui.Window) {
-	app := gui.State[ShowcaseApp](w)
+func onShowcaseSplitterDetailChange(ratio float32, collapsed gui.SplitterCollapsed, ctx gui.EventCtx) {
+	app := gui.State[ShowcaseApp](ctx.Window)
 	app.SplitterDetailState = gui.SplitterStateNormalize(gui.SplitterState{
 		Ratio:     ratio,
 		Collapsed: collapsed,
