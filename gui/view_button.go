@@ -48,6 +48,15 @@ type ButtonCfg struct {
 	A11YState AccessState
 	Color     Color
 
+	// Colors sets the per-state colors as one value. Use it instead of
+	// assigning the flat Color* fields below individually; Flat(c)
+	// covers the common "keep one appearance" case in a single line.
+	//
+	// Precedence: any flat Color* field the caller assigned wins over
+	// the corresponding field here. See ColorSet.applyTo for why the
+	// newer API is the one that yields.
+	Colors ColorSet
+
 	// ColorHover is the background color on mouse hover.
 	ColorHover Color
 
@@ -244,6 +253,16 @@ func CommandButton(cmdID string, cfg ButtonCfg) View {
 }
 
 func applyButtonDefaults(cfg *ButtonCfg) {
+	// ColorSet resolves first so the theme fallbacks below see it as
+	// already-specified. Flat fields the caller set are left alone by
+	// applyTo, which is the documented precedence.
+	if cfg.Colors.IsSet() {
+		cfg.Colors.applyTo(
+			&cfg.Color, &cfg.ColorHover, &cfg.ColorClick,
+			&cfg.ColorFocus, &cfg.ColorBorder, &cfg.ColorBorderFocus,
+		)
+	}
+
 	d := &DefaultButtonStyle
 	if !cfg.Color.IsSet() {
 		cfg.Color = d.Color

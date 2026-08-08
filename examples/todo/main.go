@@ -157,16 +157,13 @@ func composerView(w *gui.Window) gui.View {
 				},
 			}),
 			gui.Button(gui.ButtonCfg{
-				ID:               "add-todo",
-				Color:            colorAccent,
-				ColorHover:       colorAccent,
-				ColorClick:       colorAccent,
-				ColorFocus:       colorAccent,
-				ColorBorder:      colorAccent,
-				ColorBorderFocus: colorAccent,
-				Radius:           gui.SomeF(20),
-				Padding:          gui.SomeP(18, 28, 18, 28),
-				MinWidth:         140,
+				ID: "add-todo",
+				// The button keeps one appearance through hover,
+				// press and focus; Flat says that in a line.
+				Colors:   gui.Flat(colorAccent),
+				Radius:   gui.SomeF(20),
+				Padding:  gui.SomeP(18, 28, 18, 28),
+				MinWidth: 140,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text: "ADD",

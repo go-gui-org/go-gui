@@ -55,6 +55,32 @@ The `requiredid` analyzer flags this. IDs must be unique per window: menu items
 are keyed by raw command ID, so `CommandButton` namespaces its auto-filled ID
 with `cmdbtn:`.
 
+#### `Opt[T]` vs plain fields
+
+**Rule: `Opt[T]` when the zero value is a legitimate user choice that must be
+distinguishable from "unset". A plain field everywhere else.**
+
+`SizeBorder` is the worked example: a border width of `0` is something a caller
+means, so a plain `float32` cannot tell "no border" from "not specified" and
+silently applies the theme default. The same holds for `Padding`, `Radius`,
+`Spacing`, `Opacity`, and enum fields whose zero is a real member
+(`HAlignLeft == 0`). Where zero is not meaningful — most widths, heights,
+counts, and indices — `Opt` costs a wrapper call and buys nothing.
+
+Decide this when authoring the field, not by copying whichever neighbor was
+nearest.
+
+#### Colors on `Cfg` structs
+
+Use plain `Color`, never `Opt[Color]`. `Color` carries its own `set` flag
+(`gui/color.go`), so `Color{}` is unset and `ColorTransparent` is an explicit
+fully-transparent choice — the distinction `Opt` would add already exists, and
+wrapping gives the field two independent notions of unset.
+
+`ColorSet` (`gui/color_set.go`) groups the per-state colors; `Flat(c)` is the
+"keep one appearance" case. **Precedence: an assigned flat `Color*` field wins
+over the `ColorSet`**, so existing code keeps its appearance when a set arrives.
+
 ### External Dependencies
 
 - `glyph` — text shaping/rendering lib. Consumed as versioned module; a

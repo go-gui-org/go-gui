@@ -8,10 +8,23 @@ and this project adheres to
 
 ## [Unreleased]
 
-Developer-ergonomics phase 2 (`docs/specs/developer-ergonomics.md` §4.6): an
-app-testing API. Additive.
+Developer-ergonomics phases 2 and 3 (`docs/specs/developer-ergonomics.md`
+§4.4–§4.6): an app-testing API and the `ColorSet` collapse. Additive.
 
 ### Added
+
+- **`ColorSet` and `Flat`** (`gui/color_set.go`), on `ButtonCfg` as the `Colors`
+  field. Groups `Base`, `Hover`, `Click`, `Focus`, `Border` and `BorderFocus`
+  into one value; `Flat(c)` pins all six for a widget that should not react to
+  the pointer. `Base` backs the three interactive states, `BorderFocus` falls
+  back to `Border`, and anything still unset falls through to the theme. An
+  assigned flat `Color*` field takes precedence over the set, so existing code
+  keeps its appearance. `examples/todo`'s accent button drops from six color
+  lines to one. See [Styling widgets](README.md#styling-widgets).
+
+  Fields are plain `Color`, reversing the spec's Q5: `Color` already carries its
+  own set flag, so `Opt[Color]` would have added a second, competing notion of
+  unset.
 
 - **App-testing API in package `gui`.** `NewTestWindow` builds a backendless
   window; `TestRender`, `TestClick`, `TestFocus`, `TestKey`, `TestType`,
