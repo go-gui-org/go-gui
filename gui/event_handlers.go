@@ -36,7 +36,7 @@ func charHandler(layout *Layout, e *Event, w *Window) {
 		events = layout.Shape.events
 	}
 	// OnChar is consume-class: pre-marked handled before the callback.
-	if executeFocusCallback(layout, e, w, onChar, evConsume) {
+	if executeFocusCallback(layout, e, w, onChar, evChar) {
 		return
 	}
 	// Spacebar-to-click: when ClickOnSpace is set, fire OnClick
@@ -227,7 +227,7 @@ func mouseDownHandler(
 			}
 		}
 		// OnClick is consume-class.
-		executeMouseCallback(layout, e, w, onClick, evConsume)
+		executeMouseCallback(layout, e, w, onClick, evClick)
 	}
 }
 
@@ -292,7 +292,7 @@ func mouseUpHandler(layout *Layout, e *Event, w *Window) {
 		onMouseUp = layout.Shape.events.OnMouseUp
 	}
 	// OnMouseUp is consume-class.
-	executeMouseCallback(layout, e, w, onMouseUp, evConsume)
+	executeMouseCallback(layout, e, w, onMouseUp, evMouseUp)
 }
 
 func focusedScrollTarget(layout *Layout, w *Window) *Layout {
@@ -400,5 +400,5 @@ func fileDropHandler(layout *Layout, e *Event, w *Window) {
 		onFileDrop = layout.Shape.events.OnFileDrop
 	}
 	// OnFileDrop is consume-class.
-	executeMouseCallback(layout, e, w, onFileDrop, evConsume)
+	executeMouseCallback(layout, e, w, onFileDrop, evFileDrop)
 }

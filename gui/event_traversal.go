@@ -34,10 +34,14 @@ func executeFocusCallback(
 	if callback == nil {
 		return false
 	}
-	if class == evConsume {
+	if class.consumes() {
+		e.explicitConsume = false
 		e.IsHandled = true
 	}
 	callback(EventCtx{layout, e, w})
+	if class.named() {
+		debugCollapse(class, layout, e, w, e.explicitConsume)
+	}
 	return e.IsHandled
 }
 
@@ -56,14 +60,29 @@ func callRelative(
 	saved := *e
 	e.MouseX = saved.MouseX - layout.Shape.X
 	e.MouseY = saved.MouseY - layout.Shape.Y
-	if class == evConsume {
+	if class.consumes() {
+		e.explicitConsume = false
 		e.IsHandled = true // pre-mark AFTER the save
 	}
 	callback(EventCtx{layout, e, w})
 	handled := e.IsHandled // a ctx.Bubble() in the callback shows up here
+	// The callback's own Consume() decision, read before the restore
+	// puts the outer frame's value back. Guarded so the notify-class
+	// path — nearly every event — pays a predictable branch and no
+	// load; this is the mouse-scroll hot path.
+	var explicit bool
+	if class.named() {
+		explicit = e.explicitConsume
+	}
 	*e = saved
 	if handled {
 		e.IsHandled = true
+	}
+	// The collapse check runs on the restored event: its ancestor test
+	// needs the coordinates in the enclosing shape's space, not the
+	// shape-relative ones the callback saw.
+	if class.named() {
+		debugCollapse(class, layout, e, w, explicit)
 	}
 	return handled
 }

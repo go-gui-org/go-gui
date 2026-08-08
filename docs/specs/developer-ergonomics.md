@@ -633,6 +633,73 @@ faithful.
 Cost: 45 files, zero rule-4 review items, and **zero sibling sites** —
 confirming §4.3.1's finding that no sibling pays for this conversion.
 
+#### 4.3.3 Measuring the §4.3b collapse (2026-08-08)
+
+§7.2 says the collapse's risk is silent, and §4.3.1 put the exposure at
+138 consume-class sites in `examples/` — while noting that "most sit on
+widgets with no clickable ancestor, but which ones those are is not
+determinable" from the source. That is the whole difficulty: the
+question is about the layout tree at dispatch time, so no amount of
+grepping answers it.
+
+**So it is now answered at dispatch time.** `gui.Debug(true)` gained a
+check (`gui/debug_event.go`) that runs after every consume-class
+callback and reports the site when both halves of the hazard hold: the
+callback relied on the pre-mark (it neither called `ctx.Consume()` nor
+`ctx.Bubble()`), **and** an ancestor would also have received the event.
+Ancestor is decided by replaying that event's real dispatch condition —
+`PointInShape` plus the `ClickButton` filter for `OnClick`, the centroid
+for `OnGesture`, focus for `OnChar` — so the answer is the one dispatch
+would actually give.
+
+`(*Window).TestEventCollapse` sweeps a rendered window with the check
+armed: it fires one synthetic event per consume-class callback in the
+tree and returns the findings. It presses every button in the window,
+so it belongs on a throwaway window.
+
+**Measured exposure: 18 sites, not 138.** Sweeping 37 of the 59
+examples (the rest build their state inside `main()`, so a generated
+sweep cannot construct them):
+
+| Example               | Findings |
+| --------------------- | -------- |
+| `color_picker`        | 8        |
+| `dock_layout`         | 4        |
+| `date_picker_options` | 1        |
+| `key_up_demo`         | 1        |
+| `menu_demo`           | 1        |
+| `multiline_input`     | 1        |
+| `showcase`            | 1        |
+| `todo`                | 1        |
+
+**The important part is not the count but the owner.** Read the pairs:
+`"dock_close:editor"` inside `"dock_tab:top:editor"`, `"picker.rgb.0"`
+inside the color picker's row, a text input inside its clickable
+container. Both sides of nearly every pair are go-gui's own widget
+internals — `view_color_picker.go`, `dock_layout.go`, `view_input.go` —
+not application code. The collapse's silent cost is therefore mostly
+go-gui's to pay, in a handful of files, and mechanically: add
+`ctx.Consume()` to the inner handler and its behaviour is pinned before
+the model changes at all.
+
+**Siblings: zero findings.** go-charts (`basic_bar`, `basic_line`) and
+go-map (`basic`, `full-map`, `partial-map`, `reference-map`) sweep
+clean against this branch. Not sweepable without building their real
+state: go-charts `showcase` (still uses the `Color*` fields deleted in
+§4.4, so it does not compile against the branch — that is the pending
+go-charts bump, not a check failure), go-edit `npad`, go-term
+`falcon`/`minimal`, go-map `gallery-map`/`stacked-map`.
+
+**A sweep is a lower bound.** It sees one rendered frame, so a hazard
+behind a tab, a dialog, or a collapsed panel is invisible until the app
+is driven into that state. The 18 are what the default view of each
+example exposes.
+
+**This does not decide §4.3b.** It replaces the argument's missing
+number: the silent class is 18 known sites concentrated in ~6 go-gui
+widget files, each fixable ahead of the collapse and verifiable by
+re-running the sweep. Whether to collapse is still a separate call.
+
 ### 4.4 Color-set collapse — highest per-app line savings
 
 `examples/todo/main.go:139-166` sets six `Color*` fields on one button
@@ -1188,7 +1255,7 @@ burying them in the same diff.
 | 4     | §4.7 `RTFCfg` + datagrid builder renames | done   |
 | 4     | §4.4 `ColorSet` on six `Cfg`s, flat state fields deleted | done |
 | 4     | §4.3 callback signature conversion       | done   |
-| 4     | §4.3b event-model collapse               | deferred — see §4.3.1 |
+| 4     | §4.3b event-model collapse               | measured — see §4.3.3 |
 | 5     | §4.8 example audit                       | todo   |
 
 Two corrections to §4.2 arising from the implementation.

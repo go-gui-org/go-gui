@@ -362,6 +362,15 @@ type Event struct {
 	// (already carrying OS momentum). False for discrete mouse-wheel
 	// notches, which the gui side eases via scrollSmoothAnimation.
 	ScrollPrecise bool
+	// explicitConsume records that a callback called ctx.Consume()
+	// rather than leaving IsHandled at whatever dispatch set. Only the
+	// event-collapse debug check reads it (debug_event.go): under the
+	// current model a consume-class callback is pre-marked handled, so
+	// IsHandled alone cannot tell "the callback meant to consume" from
+	// "the callback relied on the pre-mark". Dispatch clears it before
+	// each consume-class callback and the callRelative save/restore
+	// unwinds it, so nested dispatch cannot leak a stale value.
+	explicitConsume bool
 }
 
 // eventRelativeTo returns a copy of the event with mouse

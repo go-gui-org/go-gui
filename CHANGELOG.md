@@ -106,6 +106,27 @@ Breaking items are listed under "Changed" below as they land.
 
 ### Added
 
+- **An event-collapse check under `gui.Debug(true)`**, plus
+  `(*Window).TestEventCollapse` to sweep a window with it armed. It reports
+  consume-class callbacks that rely on automatic handling while an ancestor
+  would also have received the event — the sites that would silently start
+  firing twice if the consume/notify split were ever collapsed into one rule
+  (spec §4.3b).
+
+  This class of risk cannot be counted from source, because "would an ancestor
+  have received it" is a property of the layout tree at dispatch time. The check
+  therefore runs after each consume-class callback and replays that event's real
+  dispatch condition — hit test plus `ClickButton` filter for `OnClick`, the
+  centroid for `OnGesture`, focus for `OnChar` — against each ancestor.
+
+  Sweeping 37 examples finds **18** such sites, against the 138 consume-class
+  sites a source count had suggested, and nearly every one is a go-gui widget
+  nested in another go-gui widget rather than application code. go-charts and
+  go-map sweep clean. Findings and method: spec §4.3.3.
+
+  Diagnostics only; nothing about dispatch changes. Off by default, and the
+  event benchmarks stay at zero allocations.
+
 - **`ColorSet` and `Flat`** (`gui/color_set.go`), as the `Colors` field. Landed
   on `ButtonCfg` in phase 3 and widened to six widgets in phase 4 (see
   "Changed"). Groups `Base`, `Hover`, `Click`, `Focus`, `Border` and
