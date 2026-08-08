@@ -161,6 +161,31 @@ static int popTextEvent(void) {
     return 1;
 }
 
+// Convert a UTF-16 code-unit offset (NSRange space) into a count of
+// code points — the "characters" Event.IMEStart/IMELength promise and
+// the Go renderer consumes. Identical for BMP text; a surrogate pair
+// (emoji, CJK Ext-B) counts once. A character counts once its start
+// precedes `unit`, so a boundary between the halves of a pair (only a
+// confused IME reports one) rounds to the pair's end — never a split.
+static NSUInteger utf16UnitsToCodePoints(NSString *s, NSUInteger unit) {
+    NSUInteger len = [s length];
+    if (unit > len) unit = len;
+    NSUInteger cps = 0;
+    NSUInteger i = 0;
+    while (i < unit) {
+        unichar c = [s characterAtIndex:i];
+        if (i + 1 < len &&
+            CFStringIsSurrogateHighCharacter(c) &&
+            CFStringIsSurrogateLowCharacter([s characterAtIndex:i + 1])) {
+            i += 2;
+        } else {
+            i += 1;
+        }
+        cps++;
+    }
+    return cps;
+}
+
 // ─── Window ID counter ─────────────────────────────────────────
 
 static uint32_t _nextWindowID = 1;
@@ -303,9 +328,18 @@ static uint32_t _nextWindowID = 1;
         // Report the clamped range, not the raw one: NSNotFound
         // truncates to -1 in an int and would reach the renderer as a
         // negative caret offset.
-        pushTextEvent(METAL_EVENT_IME_COMP, [[_markedText string] UTF8String],
-                      _windowID, (int)_selRange.location,
-                      (int)_selRange.length);
+        //
+        // _selRange stays in UTF-16 units (selectedRange: reports it
+        // back to the IME, which does its own arithmetic in that
+        // space); the event converts to code points. Without the
+        // conversion, a surrogate pair before the clause pushes the
+        // preedit underline one character too far right (issue #169).
+        NSString *compText = [_markedText string];
+        NSUInteger loc = utf16UnitsToCodePoints(compText, _selRange.location);
+        NSUInteger end = utf16UnitsToCodePoints(
+            compText, _selRange.location + _selRange.length);
+        pushTextEvent(METAL_EVENT_IME_COMP, [compText UTF8String],
+                      _windowID, (int)loc, (int)(end - loc));
     } else {
         _markedText = nil;
         _markedRange = NSMakeRange(NSNotFound, 0);
@@ -1526,6 +1560,58 @@ int metalTestIMEClientConformance(void *windowHandle) {
     metalTestResetIMEQueue();
     [view setMarkedText:@"あい"
           selectedRange:NSMakeRange(NSNotFound, 0)
+       replacementRange:NSMakeRange(NSNotFound, 0)];
+    if (!popTextEvent()) {
+        ok = 0;
+    } else if (_evIMEStart != 2 || _evIMELength != 0) {
+        ok = 0;
+    }
+
+    // Surrogate pairs: the IME reports selectedRange in UTF-16 units,
+    // but the event promises code points. A pair before the clause
+    // must not shift the underline (issue #169).
+    metalTestResetIMEQueue();
+    [view setMarkedText:@"あ😀"
+          selectedRange:NSMakeRange(1, 2)
+       replacementRange:NSMakeRange(NSNotFound, 0)];
+    if (!popTextEvent()) {
+        ok = 0;
+    } else if (_evIMEStart != 1 || _evIMELength != 1) {
+        ok = 0;
+    }
+
+    // The clamp runs in UTF-16 space and must convert after it: a
+    // NSNotFound on a pair-bearing composition clamps to (3, 0) units,
+    // which is 2 code points.
+    metalTestResetIMEQueue();
+    [view setMarkedText:@"あ😀"
+          selectedRange:NSMakeRange(NSNotFound, 0)
+       replacementRange:NSMakeRange(NSNotFound, 0)];
+    if (!popTextEvent()) {
+        ok = 0;
+    } else if (_evIMEStart != 2 || _evIMELength != 0) {
+        ok = 0;
+    }
+
+    // A composition that is entirely a surrogate pair: units (0, 2)
+    // is the single code point 𠮟.
+    metalTestResetIMEQueue();
+    [view setMarkedText:@"𠮟"
+          selectedRange:NSMakeRange(0, 2)
+       replacementRange:NSMakeRange(NSNotFound, 0)];
+    if (!popTextEvent()) {
+        ok = 0;
+    } else if (_evIMEStart != 0 || _evIMELength != 1) {
+        ok = 0;
+    }
+
+    // A boundary between the halves of a pair (a confused IME) must
+    // not split the rune. A character counts once its start precedes
+    // the boundary, so units (2, 0) in "あ😀" rounds the caret to the
+    // pair's end: 2 code points.
+    metalTestResetIMEQueue();
+    [view setMarkedText:@"あ😀"
+          selectedRange:NSMakeRange(2, 0)
        replacementRange:NSMakeRange(NSNotFound, 0)];
     if (!popTextEvent()) {
         ok = 0;
