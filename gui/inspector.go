@@ -240,15 +240,15 @@ func inspectorSelect(path string, w *Window) {
 	if expanded == nil {
 		expanded = make(map[string]bool)
 	}
-	expanded[path] = true
-	parts := strings.Split(path, ".")
-	if len(parts) > 0 {
-		prefix := parts[0]
+	// Mark every ancestor prefix expanded so the tree widget
+	// flattens the path down to the selected node. Paths are
+	// colon-composed (ScopeIDN), so split on IDSep.
+	parts := strings.Split(path, IDSep)
+	prefix := parts[0]
+	expanded[prefix] = true
+	for i := 1; i < len(parts); i++ {
+		prefix = ScopeID(prefix, parts[i])
 		expanded[prefix] = true
-		for i := 1; i < len(parts); i++ {
-			prefix += "." + parts[i]
-			expanded[prefix] = true
-		}
 	}
 	StateMap[string, map[string]bool](w, nsTreeExpanded, capModerate).
 		Set(inspectorTreeID, expanded)
@@ -560,7 +560,7 @@ func inspectorFindByPath(layout *Layout, path string) (*Layout, bool) {
 		return nil, false
 	}
 	node := layout
-	for part := range strings.SplitSeq(path, ".") {
+	for part := range strings.SplitSeq(path, IDSep) {
 		idx, err := strconv.Atoi(part)
 		if err != nil || idx < 0 || idx >= len(node.Children) {
 			return nil, false

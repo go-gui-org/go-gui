@@ -102,16 +102,16 @@ func TestInspectorSelectExpandsAncestorsAndFocusesTree(t *testing.T) {
 	requireInspector(t)
 	w := newTestWindow()
 
-	inspectorSelect("0.2.1", w)
+	inspectorSelect("0:2:1", w)
 
-	if got := inspectorSelectedPath(w); got != "0.2.1" {
-		t.Fatalf("selected path = %q, want %q", got, "0.2.1")
+	if got := inspectorSelectedPath(w); got != "0:2:1" {
+		t.Fatalf("selected path = %q, want %q", got, "0:2:1")
 	}
-	if got := StateReadOr(w, nsTreeFocus, inspectorTreeID, ""); got != "0.2.1" {
-		t.Fatalf("tree focus = %q, want %q", got, "0.2.1")
+	if got := StateReadOr(w, nsTreeFocus, inspectorTreeID, ""); got != "0:2:1" {
+		t.Fatalf("tree focus = %q, want %q", got, "0:2:1")
 	}
 	expanded := treeExpandedState(w, inspectorTreeID)
-	for _, id := range []string{"0", "0.2", "0.2.1"} {
+	for _, id := range []string{"0", "0:2", "0:2:1"} {
 		if !expanded[id] {
 			t.Fatalf("expanded[%q] = false, want true", id)
 		}
@@ -150,6 +150,109 @@ func TestInspectorInjectWireframe(t *testing.T) {
 	}
 	if w.renderers[1].W != 94 || w.renderers[1].H != 46 {
 		t.Fatalf("inner rect size = (%.0f, %.0f), want (94, 46)", w.renderers[1].W, w.renderers[1].H)
+	}
+}
+
+func TestInspectorInjectWireframeDeepPath(t *testing.T) {
+	requireInspector(t)
+	w := newTestWindow()
+	w.layout = Layout{
+		Shape: &Shape{},
+		Children: []Layout{{
+			Shape: &Shape{
+				X:      10,
+				Y:      20,
+				Width:  200,
+				Height: 100,
+			},
+			Children: []Layout{
+				{
+					Shape: &Shape{
+						X:      30,
+						Y:      40,
+						Width:  60,
+						Height: 50,
+					},
+				},
+				{
+					Shape: &Shape{
+						X:      100,
+						Y:      40,
+						Width:  80,
+						Height: 60,
+					},
+					Children: []Layout{{
+						Shape: &Shape{
+							X:       120,
+							Y:       60,
+							Width:   40,
+							Height:  30,
+							Padding: NewPadding(1, 2, 3, 4),
+						},
+					}},
+				},
+			},
+		}},
+	}
+	StateMap[string, string](w, nsInspector, capInspector).
+		Set("selected", "0:1:0")
+
+	inspectorInjectWireframe(w)
+
+	if len(w.renderers) != 2 {
+		t.Fatalf("len(renderers) = %d, want 2", len(w.renderers))
+	}
+	if w.renderers[0].Kind != RenderStrokeRect {
+		t.Fatalf("renderers[0].Kind = %v, want RenderStrokeRect", w.renderers[0].Kind)
+	}
+	if w.renderers[0].X != 120 || w.renderers[0].Y != 60 ||
+		w.renderers[0].W != 40 || w.renderers[0].H != 30 {
+		t.Fatalf("wireframe rect = (%.0f,%.0f,%.0f,%.0f), want (120,60,40,30)",
+			w.renderers[0].X, w.renderers[0].Y,
+			w.renderers[0].W, w.renderers[0].H)
+	}
+	if w.renderers[1].X != 124 || w.renderers[1].Y != 61 ||
+		w.renderers[1].W != 34 || w.renderers[1].H != 26 {
+		t.Fatalf("padding rect = (%.0f,%.0f,%.0f,%.0f), want (124,61,34,26)",
+			w.renderers[1].X, w.renderers[1].Y,
+			w.renderers[1].W, w.renderers[1].H)
+	}
+}
+
+func TestInspectorFindByPathErrors(t *testing.T) {
+	requireInspector(t)
+	root := Layout{
+		Shape: &Shape{},
+		Children: []Layout{{
+			Shape:    &Shape{},
+			Children: []Layout{{Shape: &Shape{}}, {Shape: &Shape{}}},
+		}},
+	}
+
+	cases := []struct {
+		path string
+	}{
+		{"0:2"},   // out of range
+		{"0:x"},   // non-numeric segment
+		{"0:-1"},  // negative index
+		{"1:0"},   // out of range at first level
+		{"0:0:0"}, // too deep
+	}
+	for _, tc := range cases {
+		if node, ok := inspectorFindByPath(&root, tc.path); ok || node != nil {
+			t.Fatalf("inspectorFindByPath(%q) = (%v, %v), want (nil, false)", tc.path, node, ok)
+		}
+	}
+	if node, ok := inspectorFindByPath(nil, "0"); ok || node != nil {
+		t.Fatalf("inspectorFindByPath(nil) = (%v, %v), want (nil, false)", node, ok)
+	}
+	if node, ok := inspectorFindByPath(&root, ""); ok || node != nil {
+		t.Fatalf("inspectorFindByPath(\"\") = (%v, %v), want (nil, false)", node, ok)
+	}
+
+	node, ok := inspectorFindByPath(&root, "0:1")
+	if !ok || node == nil {
+		t.Fatalf("inspectorFindByPath(\"0:1\") = (nil, %v), want (node, true)", ok)
 	}
 }
 
