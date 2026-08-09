@@ -1,7 +1,6 @@
 # Debugging
 
-A few widget mistakes are silent by construction, because they produce no error
-and no visual difference:
+A few widget mistakes are silent by construction because they produce no error.
 
 - Two widgets sharing an `ID`. `ID` is the identity key for focus, scroll
   offsets, and per-widget state, so the two collapse onto one identity.

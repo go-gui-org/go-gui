@@ -65,6 +65,10 @@ https://go-gui.com
 Guides: [Debugging](docs/debugging.md) · [Styling](docs/styling.md) ·
 [Testing](docs/testing.md)
 
+> **Debugging?** Set `GOGUI_DEBUG=1` (or `gui.Debug(true)`) to audit every
+> frame for duplicate widget IDs and focusable widgets without IDs. See
+> [docs/debugging.md](docs/debugging.md).
+>
 > **Upgrading?** Event callbacks now take a single `gui.EventCtx`, and nothing
 > is marked handled for you. A callback that acts on an event calls
 > `ctx.Consume()`. A callback that does not lets the event travel on. See
