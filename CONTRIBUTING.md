@@ -4,7 +4,20 @@
 
 ```bash
 go test ./... && go vet ./... && golangci-lint run ./...
+go run ./tools/requiredid/cmd/requiredid ./...
 ```
+
+`go vet` does not run the `requiredid` analyzer — it is a standalone
+framework-owned analyzer. CI runs it on every push, and `make vet` includes it.
+Adopter projects can invoke it the same way, standalone, without the Makefile:
+
+```bash
+go run github.com/go-gui-org/go-gui/tools/requiredid/cmd/requiredid ./...
+```
+
+It flags focusable/scrollable widgets created without an `ID` (a silent no-op
+that never joins the tab order). Escalate with a `//requiredid:ignore` comment
+on the offending line if an ID is genuinely not needed.
 
 Tests exercise layout and widget logic without a display. On macOS, suppress
 harmless duplicate-library warnings with
