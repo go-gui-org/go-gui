@@ -28,13 +28,14 @@ import (
 // through Shape.focusOwner rather than repeating its ID, which keeps
 // "one ID, one widget" true and keeps this check meaningful.
 
-// debugEnabled gates every check in this file. It is an atomic.Bool
-// rather than a plain bool because [Debug] makes it mutable at
-// runtime, and the checks read it from the frame goroutine while an
-// application may flip it from another. atomic.Bool.Load compiles to
-// a plain load on amd64 and arm64, so the mutability is the reason,
-// not the lookup cost.
-var debugEnabled atomic.Bool
+// debugMask gates every check in this file, one bit per
+// [DebugCategory]. It is an atomic.Uint32 rather than a plain value
+// because [Debug] and [DebugCategories] make it mutable at runtime,
+// and the checks read it from the frame goroutine while an
+// application may flip it from another. Load compiles to a plain
+// load on amd64 and arm64, so the mutability is the reason, not the
+// lookup cost.
+var debugMask atomic.Uint32
 
 // debugGen increments on every false -> true transition of the gate.
 // Per-window warn-once state carries the generation it was built
@@ -47,12 +48,36 @@ var debugGen atomic.Uint64
 // capture it; never reassigned at runtime.
 var debugOut io.Writer = os.Stderr
 
+// DebugCategory names one class of dev-mode finding. Categories gate
+// the checks independently; see [DebugCategories].
+type DebugCategory uint32
+
+const (
+	// DebugDuplicates reports two shapes sharing one ID.
+	DebugDuplicates DebugCategory = 1 << iota
+	// DebugMissingIDs reports a focusable, scrollable, or
+	// OnMouseLeave-bearing shape with no ID, whose behaviour silently
+	// does not work.
+	DebugMissingIDs
+	// DebugUnconsumed reports a callback that acted on an event without
+	// consuming it while an ancestor also received it.
+	DebugUnconsumed
+	// DebugListBoxNoHeight reports a scrollable listbox that resolved to
+	// height 0, which disables virtualization so every row builds each
+	// frame.
+	DebugListBoxNoHeight
+
+	// DebugAll is every category, the set [Debug] turns on.
+	DebugAll = DebugDuplicates | DebugMissingIDs | DebugUnconsumed |
+		DebugListBoxNoHeight
+)
+
 func init() {
 	// GOGUI_DEBUG is the general gate. GOGUI_FOCUS_DEBUG is the
 	// original focus-only spelling, still honoured so existing
-	// workflows keep working.
+	// workflows keep working. Either enables every category.
 	if envTruthy("GOGUI_DEBUG") || envTruthy("GOGUI_FOCUS_DEBUG") {
-		debugEnabled.Store(true)
+		debugMask.Store(uint32(DebugAll))
 		debugGen.Store(1)
 	}
 }
@@ -68,15 +93,16 @@ func envTruthy(name string) bool {
 	return err == nil && b
 }
 
-// Debug turns dev-mode diagnostics on or off. When on, each frame is
-// checked for widgets whose identity is broken in a way that produces
-// no error otherwise:
+// Debug turns dev-mode diagnostics on or off. When on, every category
+// of finding is checked:
 //
 //   - two shapes sharing one ID
 //   - a focusable shape with no ID (never keyboard-reachable)
 //   - a scrollable shape with no ID (scroll offset shared with every
 //     other ID-less scrollable in the window)
 //   - a shape with an OnMouseLeave and no ID (the callback never fires)
+//   - a scrollable listbox that resolved to height 0 (virtualization
+//     off, every row builds each frame)
 //
 // It also reports, from dispatch rather than from the frame audit, any
 // consume-class callback that relies on automatic handling while an
@@ -84,8 +110,11 @@ func envTruthy(name string) bool {
 // silently start firing twice under the one-rule event model. See
 // debug_event.go.
 //
-// Findings go to stderr, once per finding per window. Turning the
-// gate off and on again clears that memory, so a re-enabled gate
+// [DebugCategories] enables these classes independently; Debug is the
+// same API with both extremes (all on, all off).
+//
+// Findings go to stderr, once per finding per window. Turning a
+// category off and on again clears that memory, so a re-enabled gate
 // reports the state of the frame in front of it.
 //
 // The gate is also set at startup by GOGUI_DEBUG=1.
@@ -93,15 +122,41 @@ func envTruthy(name string) bool {
 // Not for production: the checks walk the whole layout tree every
 // frame and allocate while doing it.
 func Debug(on bool) {
-	if on && debugEnabled.CompareAndSwap(false, true) {
-		debugGen.Add(1)
-		return
+	if on {
+		DebugCategories(DebugAll)
+	} else {
+		DebugCategories(0)
 	}
-	debugEnabled.Store(on)
 }
 
-// DebugEnabled reports whether dev-mode diagnostics are on.
-func DebugEnabled() bool { return debugEnabled.Load() }
+// DebugCategories sets which classes of dev-mode finding are reported.
+// Each category gates its checks independently, so an app that
+// deliberately lets events bubble can keep the identity audits without
+// the unconsumed-event noise.
+//
+// A zero mask is everything off; [DebugAll] is everything on. Turning a
+// category on after it was off clears that category's warn-once memory,
+// so a re-enabled category reports the frame in front of it.
+func DebugCategories(mask DebugCategory) {
+	for {
+		cur := debugMask.Load()
+		next := uint32(mask)
+		if next == cur {
+			return
+		}
+		if debugMask.CompareAndSwap(cur, next) {
+			// An off -> on transition moves the generation, discarding
+			// warn-once memory built under a narrower gate.
+			if cur == 0 && next != 0 {
+				debugGen.Add(1)
+			}
+			return
+		}
+	}
+}
+
+// DebugEnabled reports whether any dev-mode category is on.
+func DebugEnabled() bool { return debugMask.Load() != 0 }
 
 // debugCheck identifies one class of finding. Warn-once state is
 // keyed by (check, subject), so a window reports each distinct defect
@@ -120,6 +175,23 @@ const (
 	// rather than from the layout audit; see listBoxVisibleRange.
 	debugCheckListBoxNoHeight
 )
+
+// checkCategory maps an internal check to the public category that
+// gates it. debugWarn consults this so every finding site stays behind
+// the mask even when reached outside the gated entry points.
+func checkCategory(check debugCheck) DebugCategory {
+	switch check {
+	case debugCheckDupID:
+		return DebugDuplicates
+	case debugCheckFocusNoID, debugCheckScrollNoID, debugCheckMouseLeaveNoID:
+		return DebugMissingIDs
+	case debugCheckUnconsumed:
+		return DebugUnconsumed
+	case debugCheckListBoxNoHeight:
+		return DebugListBoxNoHeight
+	}
+	return 0
+}
 
 // debugWarnKey is the warn-once key. For the ID-less checks the
 // subject is the shape's path in the layout tree ("0/3/1"), because
@@ -141,19 +213,18 @@ type debugState struct {
 }
 
 // debugAudit runs the dev-mode checks over one frame's composed
-// layout tree. No-op unless [Debug] is on.
+// layout tree. No-op unless an audit category is on.
+//
+// The tree walk is skipped unless a category that audits the frame —
+// duplicates or missing IDs — is on; the unconsumed check runs from
+// dispatch and the listbox check from the view phase, so they gate
+// themselves.
 //
 // Called from updateLayoutLocked after composeLayout, so it sees the
 // same tree the renderer does, including floating and overlay layers.
 func (w *Window) debugAudit(root *Layout) {
-	if !debugEnabled.Load() {
+	if DebugCategory(debugMask.Load())&(DebugDuplicates|DebugMissingIDs) == 0 {
 		return
-	}
-	// Discard warn-once memory built under an older generation of the
-	// gate, so Debug(false) then Debug(true) re-reports.
-	if gen := debugGen.Load(); w.debug.gen != gen {
-		w.debug.gen = gen
-		w.debug.warned = nil
 	}
 	// ids maps an ID to the path of the shape that claimed it first,
 	// so a duplicate can name both sites. Frame-scoped, unlike
@@ -245,7 +316,7 @@ func (w *Window) TestDuplicateIDs() []string {
 		return nil
 	}
 	var found []string
-	prevOn := debugEnabled.Load()
+	prevOn := DebugEnabled()
 	// A fresh warn-once map: a sweep should report the window in front
 	// of it, not skip what an earlier sweep or a stray frame reported.
 	prevWarned := w.debug.warned
@@ -263,7 +334,23 @@ func (w *Window) TestDuplicateIDs() []string {
 
 // debugWarn prints a finding to stderr the first time this window
 // sees it. subject is the warn-once discriminator within check.
+//
+// The mask gates here, at the sink, so a finding is never reported (and
+// never remembered) while its category is off — turning the category on
+// later reports fresh. The generation discard also happens here, not in
+// the audit walk, because dispatch-side checks (unconsumed) warn with no
+// walk in between.
 func (w *Window) debugWarn(check debugCheck, subject, format string, args ...any) {
+	if DebugCategory(debugMask.Load())&checkCategory(check) == 0 {
+		return
+	}
+	// Discard warn-once memory built under an older generation of the
+	// gate, so Debug(false) then Debug(true) — or re-enabling a single
+	// category — re-reports.
+	if gen := debugGen.Load(); w.debug.gen != gen {
+		w.debug.gen = gen
+		w.debug.warned = nil
+	}
 	key := debugWarnKey{check: check, subject: subject}
 	if _, seen := w.debug.warned[key]; seen {
 		return

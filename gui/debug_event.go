@@ -28,6 +28,7 @@ import "strconv"
 //
 // Turn it on with gui.Debug(true) or GOGUI_DEBUG=1, exercise the app,
 // and read the findings off stderr. Each is reported once per window.
+// [DebugCategories] can enable this check without the frame audits.
 
 // debugUnconsumed reports one dispatch where a callback acted on an
 // event, did not consume it, and an ancestor will therefore also
@@ -36,7 +37,7 @@ import "strconv"
 // Called from callRelative, executeFocusCallback and the gesture
 // dispatch after every named callback.
 //
-// No-op unless [Debug] is on, which is one atomic load.
+// No-op unless the unconsumed category is on, which is one atomic load.
 func debugUnconsumed(
 	class evClass, layout *Layout, e *Event, w *Window,
 ) {
@@ -46,7 +47,8 @@ func debugUnconsumed(
 	if !class.named() {
 		return
 	}
-	if !debugEnabled.Load() || w == nil || e == nil {
+	if DebugCategory(debugMask.Load())&DebugUnconsumed == 0 || w == nil ||
+		e == nil {
 		return
 	}
 	// A consumed event is going nowhere, so there is nothing to report.
@@ -204,7 +206,7 @@ func (w *Window) TestUnconsumedEvents() []string {
 		return nil
 	}
 	var found []string
-	prevOn := debugEnabled.Load()
+	prevOn := DebugEnabled()
 	// A fresh warn-once map: a sweep should report the window in front
 	// of it, not skip what an earlier sweep or a stray frame reported.
 	prevWarned := w.debug.warned
