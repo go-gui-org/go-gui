@@ -517,6 +517,8 @@ func markKeep(pf *pkgFiles, t *export) error {
 	if declPos == 0 {
 		return nil
 	}
+	// #nosec G304 G306 — path is a repo-relative file this tool itself
+	// derived from go list; contents are Go source, not user input.
 	src, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -531,6 +533,7 @@ func markKeep(pf *pkgFiles, t *export) error {
 	out = append(out, src[:lineStart]...)
 	out = append(out, marker...)
 	out = append(out, src[lineStart:]...)
+	// #nosec G306 — standard 0644 for rewritten Go source
 	return os.WriteFile(path, out, 0o644)
 }
 
@@ -559,6 +562,8 @@ func hasMethodSite(sites []declSite) bool {
 
 // lowercaseAt lowercases the rune at each byte offset (descending order).
 func lowercaseAt(path string, offsets []int) error {
+	// #nosec G304 G306 — path is a repo-relative file this tool itself
+	// derived from go list; contents are Go source, not user input.
 	src, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -570,6 +575,7 @@ func lowercaseAt(path string, offsets []int) error {
 		}
 		src[off] += 'a' - 'A'
 	}
+	// #nosec G306 — standard 0644 for rewritten Go source
 	return os.WriteFile(path, src, 0o644)
 }
 
