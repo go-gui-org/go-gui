@@ -1,3 +1,4 @@
+// This example demonstrates preserveAspectRatio meet and slice alignment on SVG renders.
 // Svg_aspect renders the same SVG with each preserveAspectRatio
 // alignment in a wide rectangular tile so the slack distribution
 // is visible. Toggles between "meet" (default, fits) and "slice"

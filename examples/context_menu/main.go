@@ -1,3 +1,4 @@
+// This example demonstrates right-click context menus and their action handling.
 // The context menu example demonstrates right-click menus and
 // action handling.
 package main

@@ -1,3 +1,4 @@
+// This example demonstrates a 2048 tile-merging game with keyboard input and animations.
 package main
 
 import (

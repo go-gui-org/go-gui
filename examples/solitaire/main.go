@@ -1,3 +1,4 @@
+// This example demonstrates Klondike solitaire with drag-and-drop card movement, scoring, and right-click auto-complete.
 // Solitaire example — Klondike solitaire with a 1980s arcade
 // landing page, drag-and-drop card movement, scoring, and
 // right-click auto-complete.

@@ -1,3 +1,4 @@
+// This example demonstrates a complete Minesweeper game with no-guess mode, hints, and training mode.
 // Minesweeper example — a complete game with no-guess mode, CSP
 // solver, hints, board check, training mode, and garden theme.
 package main

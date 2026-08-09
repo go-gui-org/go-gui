@@ -1,3 +1,4 @@
+// This example demonstrates a large data grid backed by a paged in-memory data source.
 // The data grid data source example shows a large grid backed by
 // a paged in-memory data source.
 package main

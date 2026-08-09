@@ -1,3 +1,4 @@
+// This example demonstrates :hover and :focus pseudo-class matching on SVG elements.
 // Svg_css_states demonstrates :hover and :focus pseudo-class
 // matching driven by HoveredElementID / FocusedElementID on SvgCfg.
 //

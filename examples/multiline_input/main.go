@@ -1,3 +1,4 @@
+// This example demonstrates multiline input: cursor movement, selection, clipboard, and scrolling.
 // The multiline input example is a playground for cursor movement,
 // selection, clipboard, and scrolling behavior.
 package main

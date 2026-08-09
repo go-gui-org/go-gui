@@ -1,3 +1,4 @@
+// This example demonstrates a selection of the built-in SvgSpinner kinds.
 // Svg_spinners showcases a curated subset of built-in
 // SvgSpinner kinds. The full catalog of 100+ assets is
 // available via the SvgSpinnerKind enum; the gallery renders

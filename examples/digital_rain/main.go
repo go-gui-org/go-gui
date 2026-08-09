@@ -1,3 +1,4 @@
+// This example demonstrates the falling-character effect from "The Matrix".
 // Digital_rain recreates the falling-character effect from "The Matrix".
 package main
 

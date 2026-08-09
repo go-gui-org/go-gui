@@ -1,3 +1,4 @@
+// This example demonstrates many concurrent tween animations with random positions, sizes, colors, shapes, and easing functions.
 // Animation stress test: many concurrent tween animations with random
 // positions, sizes, colors, shapes, and easing functions.
 package main

@@ -1,3 +1,4 @@
+// This example demonstrates CSS selector additions: adjacent, general-sibling, and attribute selectors, plus :not().
 // Svg_css_selectors demonstrates v0.14.0 CSS selector additions:
 // adjacent (`+`), general-sibling (`~`), and attribute selectors,
 // plus :not(). Each tile renders the same path collection styled by

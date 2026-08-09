@@ -1,3 +1,4 @@
+// This example demonstrates a menu bar, registered commands, global and non-global hotkeys, CanExecute auto-disable, and CommandPalette integration.
 // Command demo shows a menu bar with shortcut hints and
 // buttons wired to registered commands. Demonstrates global
 // vs non-global hotkeys, CanExecute auto-disable, and

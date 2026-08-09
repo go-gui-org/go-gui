@@ -1,3 +1,4 @@
+// This example demonstrates custom dialogs and native file dialogs.
 // Dialogs demonstrates custom dialogs and native file dialogs.
 package main
 

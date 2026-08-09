@@ -1,3 +1,4 @@
+// This example demonstrates an interactive particle simulation with configurable physics and visual presets.
 // Particle system toy — interactive particle simulation with
 // configurable physics, emitter types, and visual presets.
 // Click/drag on the canvas to move the emitter.

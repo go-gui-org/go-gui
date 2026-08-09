@@ -1,3 +1,4 @@
+// This example demonstrates a browsable catalog of system fonts in a virtualized grid.
 // Font Viewer — browsable system-font catalog.
 //
 // Virtualized card grid with filter, sample text, size slider,

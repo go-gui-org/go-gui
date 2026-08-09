@@ -1,3 +1,4 @@
+// This example demonstrates the TermGrid primitive: a fixed-pitch character grid drawn from a cell buffer.
 // Termgrid demonstrates the TermGrid primitive: a fixed-pitch
 // character grid drawn straight from a cell buffer in one render
 // command (no per-cell Layout nodes). It shows per-cell foreground /

@@ -1,3 +1,4 @@
+// This example demonstrates multi-window support: two windows with independent state and cross-window messaging (advanced: multi-window).
 // Multi_window demonstrates multi-window support: two windows
 // with independent state, cross-window communication, and
 // runtime window creation.

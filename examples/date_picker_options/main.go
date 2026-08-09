@@ -1,3 +1,4 @@
+// This example demonstrates DatePicker configuration with toggleable options, weekday, month, and year filters, and theme switching.
 // Date Picker Options example demonstrates DatePicker configuration
 // with toggleable options, weekday/month/year filters, and theme switching.
 package main

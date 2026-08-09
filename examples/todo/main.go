@@ -1,3 +1,4 @@
+// This example demonstrates a small stateful app with a text input, action buttons, and a list.
 // The todo example shows a small stateful GUI app with a text input,
 // action buttons, and a list rendered from window state.
 package main

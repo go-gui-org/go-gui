@@ -1,3 +1,4 @@
+// This example demonstrates a tray icon with a menu and re-show and quit actions (advanced: system tray).
 // System tray demonstrates a tray icon with menu. Closing the
 // window keeps the app alive via ExitOnTrayRemoved. The tray
 // menu can re-show the window or quit.

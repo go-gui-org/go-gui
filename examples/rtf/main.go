@@ -1,3 +1,4 @@
+// This example demonstrates rich text runs, links, abbreviations, and wrapping in the RTF widget.
 // RTF demonstrates rich text runs, links, abbreviations, and
 // wrapping inside the RTF widget.
 package main

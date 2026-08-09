@@ -1,3 +1,4 @@
+// This example demonstrates a menu bar, nested items, and simple stateful actions.
 // The menu demo shows a menu bar, nested items, and simple stateful
 // actions.
 package main

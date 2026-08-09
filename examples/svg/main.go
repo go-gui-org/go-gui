@@ -1,3 +1,4 @@
+// This example demonstrates a split-view browser for several embedded SVG assets.
 // Svg lets you browse several embedded SVG assets in a simple
 // split-view viewer.
 package main

@@ -1,3 +1,4 @@
+// This example demonstrates the DrawCanvas widget with a line chart.
 // Draw_canvas demonstrates the DrawCanvas widget with a line chart.
 package main
 

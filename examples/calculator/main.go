@@ -1,3 +1,4 @@
+// This example demonstrates a calculator app.
 // Package main implements a calculator example app.
 package main
 

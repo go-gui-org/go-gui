@@ -1,3 +1,4 @@
+// This example demonstrates key-down and key-up event handling.
 package main
 
 import (
