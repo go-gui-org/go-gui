@@ -41,6 +41,12 @@ type TextCfg struct {
 	// IME preedit on a read-only field that stays Focusable.
 	// Unexported: not a meaningful knob for standalone Text callers.
 	readOnly bool
+
+	// focusOwner is set by input widgets (view_input.go) to the ID of
+	// the container that owns the focus and per-widget state this text
+	// renders from. See Shape.focusOwner. Unexported: a standalone
+	// Text owns its identity through ID.
+	focusOwner string
 }
 
 // textView implements View for text rendering.
@@ -75,10 +81,11 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 
 	layout := Layout{
 		Shape: w.allocShape(Shape{
-			shapeType: shapeText,
-			ID:        c.ID,
-			Focusable: c.Focusable,
-			A11YRole:  AccessRoleStaticText,
+			shapeType:  shapeText,
+			ID:         c.ID,
+			focusOwner: c.focusOwner,
+			Focusable:  c.Focusable,
+			A11YRole:   AccessRoleStaticText,
 			A11Y: makeA11YInfo(
 				a11yLabel(c.A11YLabel, c.Text), c.A11YDescription,
 			),

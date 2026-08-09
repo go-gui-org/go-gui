@@ -55,6 +55,13 @@ The `requiredid` analyzer flags this. IDs must be unique per window: menu items
 are keyed by raw command ID, so `CommandButton` namespaces its auto-filled ID
 with `cmdbtn:`.
 
+Uniqueness is strict, including within one widget: a composite widget's inner
+shape that needs the owning widget's focus or spell-check state sets
+`Shape.focusOwner` (a reference) instead of repeating its `ID` (an identity) —
+see `Input`'s text shape and `Shape.focusKey()`. `(*Window).TestDuplicateIDs`
+asserts a rendered window is clean; `docs/specs/widget-id-scoping.md` covers the
+open scoping question.
+
 #### `Opt[T]` vs plain fields
 
 **Rule: `Opt[T]` when the zero value is a legitimate user choice that must be

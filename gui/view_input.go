@@ -192,9 +192,12 @@ func Input(cfg InputCfg) View {
 
 	txtContent := []View{
 		Text(TextCfg{
-			ID:                cfg.ID,
-			Focusable:         !cfg.FocusDisabled,
-			FocusSkip:         true,
+			// No ID: the outer container below is the sole claimant of
+			// cfg.ID and the sole focus target. This shape only needs
+			// to read that widget's focus and spell-check state, which
+			// is what focusOwner expresses — claiming the ID too would
+			// put the same identity on two shapes.
+			focusOwner:        cfg.ID,
 			Sizing:            txtSizing,
 			Text:              txt,
 			TextStyle:         txtStyle,
@@ -228,7 +231,7 @@ func Input(cfg InputCfg) View {
 		Padding: NoPadding,
 		Sizing:  innerSizing,
 		VAlign:  vAlign,
-		OnClick: inputOnClick(scrollID),
+		OnClick: inputOnClick(cfg.ID, scrollID, !cfg.FocusDisabled),
 		Content: txtContent,
 	}
 	var inner View
@@ -390,15 +393,21 @@ func inputScrollIDFor(cfg *InputCfg) string {
 	return ""
 }
 
-func inputOnClick(scrollID string) func(EventCtx) {
+// inputOnClick handles a click on the inner row that wraps the text
+// shape. focusID is the owning container's ID — the key for focus and
+// for the nsInput state — and canFocus is false for a FocusDisabled
+// input, which still tracks a cursor but never takes focus. Both are
+// passed in rather than read off the text shape, which carries no ID
+// of its own (see Shape.focusOwner).
+func inputOnClick(focusID, scrollID string, canFocus bool) func(EventCtx) {
 	return func(ctx EventCtx) {
 		if len(ctx.Layout.Children) < 1 {
 			// No inner text shape: not ours
 			return
 		}
 		ly := ctx.Layout.Children[0]
-		if ly.Shape.Focusable && ly.Shape.ID != "" {
-			ctx.Window.SetFocus(ly.Shape.ID)
+		if canFocus && focusID != "" {
+			ctx.Window.SetFocus(focusID)
 		}
 		if ly.Shape.TC == nil {
 			// No text config: not ours
@@ -409,12 +418,12 @@ func inputOnClick(scrollID string) func(EventCtx) {
 				ctx.Window, nsInput, capMany,
 			)
 			// Default InputState{}: zero value seeds initial state.
-			is := imap.GetOr(ly.Shape.ID, InputState{})
+			is := imap.GetOr(focusID, InputState{})
 			is.CursorPos = 0
 			is.SelectBeg = 0
 			is.SelectEnd = 0
 			is.CursorOffset = -1
-			imap.Set(ly.Shape.ID, is)
+			imap.Set(focusID, is)
 			resetBlinkCursorVisible(ctx.Window)
 			ctx.Consume()
 			return
@@ -441,7 +450,7 @@ func inputOnClick(scrollID string) func(EventCtx) {
 		)
 		// Default InputState{}: zero LastClickTime safely gates
 		// double-click (the > 0 check below prevents false match).
-		is := imap.GetOr(ly.Shape.ID, InputState{})
+		is := imap.GetOr(focusID, InputState{})
 
 		// Double-click selects word.
 		now := time.Now().UnixMilli()
@@ -462,7 +471,7 @@ func inputOnClick(scrollID string) func(EventCtx) {
 			is.SelectEnd = uint32(runePos)
 		}
 		is.CursorOffset = -1
-		imap.Set(ly.Shape.ID, is)
+		imap.Set(focusID, is)
 		resetBlinkCursorVisible(ctx.Window)
 		if scrollID != "" && ctx.Layout.Parent != nil {
 			inputScrollCursorIntoView(
@@ -479,7 +488,7 @@ func inputOnClick(scrollID string) func(EventCtx) {
 			displayText: displayText,
 			txtOffX:     ly.Shape.X - ctx.Layout.Shape.X,
 			txtOffY:     ly.Shape.Y - ctx.Layout.Shape.Y,
-			focusID:     ly.Shape.ID,
+			focusID:     focusID,
 			scrollID:    scrollID,
 		}
 		if doubleClick {

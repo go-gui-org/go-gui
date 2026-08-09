@@ -305,3 +305,89 @@ func TestDebugAuditMouseLeaveDisabledIsQuiet(t *testing.T) {
 		t.Errorf("want silence for a disabled shape, got %q", got)
 	}
 }
+
+// Two Inputs and a multi-paragraph Markdown are the two widgets that
+// used to report duplicates against themselves: Input repeated its ID
+// on its inner text shape, and every markdown paragraph claimed the
+// widget's ID. Both now reference their owner instead of claiming its
+// identity, so a window built only from them is silent.
+func TestTestDuplicateIDsCompositeWidgetsAreQuiet(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	w.UpdateView(func(w *Window) View {
+		return Column(ContainerCfg{
+			Sizing: FillFill,
+			Content: []View{
+				Input(InputCfg{ID: "one", Text: "hello"}),
+				Input(InputCfg{ID: "two", Mode: InputMultiline}),
+				w.Markdown(MarkdownCfg{
+					ID:     "doc",
+					Source: "First paragraph.\n\nSecond paragraph.\n\nThird.",
+				}),
+			},
+		})
+	})
+
+	if got := w.TestDuplicateIDs(); len(got) != 0 {
+		t.Fatalf("want no findings, got %q", got)
+	}
+}
+
+// A genuine collision — a widget nested inside another with the same
+// ID — must still be reported. This is the case the "descendants may
+// reuse an ancestor's ID" shortcut would have hidden.
+func TestTestDuplicateIDsReportsNestedCollision(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	w.UpdateView(func(_ *Window) View {
+		return Column(ContainerCfg{
+			Sizing: FillFill,
+			Content: []View{
+				Button(ButtonCfg{
+					ID: "dup",
+					Content: []View{
+						ProgressBar(ProgressBarCfg{ID: "dup", Percent: 50}),
+					},
+				}),
+			},
+		})
+	})
+
+	got := w.TestDuplicateIDs()
+	if len(got) != 1 || !strings.Contains(got[0], `duplicate ID "dup"`) {
+		t.Fatalf("want one duplicate-ID finding for the nested bar, got %q", got)
+	}
+}
+
+// The sweep borrows process-global state — the debug gate — and a
+// window's warn-once memory. Both must come back exactly as they were,
+// or a test that calls it silently changes what every later frame in
+// the process reports.
+func TestTestDuplicateIDsRestoresDebugState(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	w.UpdateView(func(_ *Window) View {
+		return Column(ContainerCfg{
+			Sizing:  FillFill,
+			Content: []View{Button(ButtonCfg{ID: "ok"})},
+		})
+	})
+
+	// A finding already remembered by this window: the sweep must not
+	// inherit it, and must not drop it either.
+	sentinel := debugWarnKey{check: debugCheckDupID, subject: "sentinel"}
+	w.debug.warned = map[debugWarnKey]struct{}{sentinel: {}}
+	prevOn := debugEnabled.Load()
+
+	if got := w.TestDuplicateIDs(); len(got) != 0 {
+		t.Fatalf("want no findings, got %q", got)
+	}
+
+	if debugEnabled.Load() != prevOn {
+		t.Errorf("debug gate left at %v, want %v",
+			debugEnabled.Load(), prevOn)
+	}
+	if _, ok := w.debug.warned[sentinel]; !ok {
+		t.Error("warn-once memory not restored")
+	}
+	if w.debug.collect != nil {
+		t.Error("collect sink not cleared")
+	}
+}

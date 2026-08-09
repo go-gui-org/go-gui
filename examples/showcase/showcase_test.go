@@ -408,3 +408,33 @@ func TestDetailPanel_BumpsAbortCounterWhenNavigatingAwayFromTree(t *testing.T) {
 			len(app.TreeLazyNodes))
 	}
 }
+
+// Every demo page must be free of identity defects: no two shapes
+// sharing an ID, and no ID-less shape claiming focus, scroll, or
+// OnMouseLeave. These collapse two widgets onto one tab stop and one
+// state slot without producing any error at runtime, so the check has
+// to be an assertion rather than something noticed on stderr.
+//
+// The sweep sees the window as rendered, which is why it walks every
+// entry: a widget behind an unselected catalog item is not in the tree.
+func TestDemoPagesHaveNoIDDefects(t *testing.T) {
+	w := gui.NewTestWindow(gui.WindowCfg{State: newShowcaseApp()})
+	w.UpdateView(mainView)
+	app := gui.State[ShowcaseApp](w)
+
+	for _, entry := range demoEntries {
+		app.SelectedGroup = entry.Group
+		app.SelectedComponent = entry.ID
+		app.ShowDocs = false
+		if found := w.TestDuplicateIDs(); len(found) > 0 {
+			t.Errorf("demo %q: %v", entry.ID, found)
+		}
+
+		// The docs view of a page is a separate tree.
+		app.ShowDocs = true
+		if found := w.TestDuplicateIDs(); len(found) > 0 {
+			t.Errorf("demo %q docs: %v", entry.ID, found)
+		}
+		app.ShowDocs = false
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/go-gui-org/go-gui/gui"
 )
@@ -193,7 +194,9 @@ func demoOverflowPanel(w *gui.Window) gui.View {
 		items[i] = gui.OverflowItem{
 			ID: label,
 			View: gui.Button(gui.ButtonCfg{
-				ID:      "demo_layout_demo_overflow_panel",
+				// Per item: a constant ID here would give all eight
+				// buttons one tab stop and one state slot.
+				ID:      "demo_layout_demo_overflow_panel_" + strconv.Itoa(i),
 				Color:   colors[i],
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: label})},
 			}),

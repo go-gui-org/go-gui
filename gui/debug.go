@@ -21,6 +21,12 @@ import (
 //
 // The debug gate turns them into messages on stderr. It is off by
 // default and costs one atomic load per frame when off.
+//
+// The duplicate check is strict: no shape may claim an ID another
+// shape already claimed, ancestor or not. A composite widget whose
+// inner shape needs the owning widget's focus or state references it
+// through Shape.focusOwner rather than repeating its ID, which keeps
+// "one ID, one widget" true and keeps this check meaningful.
 
 // debugEnabled gates every check in this file. It is an atomic.Bool
 // rather than a plain bool because [Debug] makes it mutable at
@@ -213,6 +219,43 @@ func (w *Window) debugCheckShape(s *Shape, path []int, ids map[string]string) {
 			"shape at %s has an OnMouseLeave but no ID; leave tracking is "+
 				"keyed by ID, so the callback never fires", p)
 	}
+}
+
+// TestDuplicateIDs renders the window and returns every identity
+// finding in the frame as data: duplicate IDs, and the ID-less shapes
+// whose focus, scroll, or OnMouseLeave behaviour silently does not
+// work. An empty result means the frame's identities are sound.
+//
+// This is the assertable form of what GOGUI_DEBUG=1 prints to stderr.
+// Unlike [Window.TestUnconsumedEvents] it dispatches nothing and fires
+// no callbacks, so it is safe to call on a window an assertion still
+// depends on.
+//
+// An empty result covers the window as rendered, not the app: a widget
+// behind a tab or a dialog is only in the tree once that state is on
+// screen, so drive the app into each interesting state and check again.
+//
+// The debug gate is turned on for the duration and restored after.
+func (w *Window) TestDuplicateIDs() []string {
+	root := w.TestRender(nil)
+	if root == nil {
+		return nil
+	}
+	var found []string
+	prevOn := debugEnabled.Load()
+	// A fresh warn-once map: a sweep should report the window in front
+	// of it, not skip what an earlier sweep or a stray frame reported.
+	prevWarned := w.debug.warned
+	w.debug.warned = nil
+	w.debug.collect = &found
+	Debug(true)
+	defer func() {
+		Debug(prevOn)
+		w.debug.collect = nil
+		w.debug.warned = prevWarned
+	}()
+	w.debugAudit(root)
+	return found
 }
 
 // debugWarn prints a finding to stderr the first time this window

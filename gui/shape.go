@@ -29,6 +29,15 @@ type Shape struct {
 	// interactive widgets.
 	ID string
 
+	// focusOwner is the ID of the widget this shape renders for. A
+	// composite widget sets it on an inner shape that must consult the
+	// owner's focus and spell-check state — Input's text shape draws
+	// the caret, selection, IME preedit and squiggles for the outer
+	// container — without claiming the owner's identity. ID is an
+	// identity and must be unique per window; focusOwner is a
+	// reference and deliberately is not.
+	focusOwner string
+
 	// Resource is an image file path, SVG source string, or data URI.
 	// Interpreted by the rendering backend.
 	Resource string
@@ -491,6 +500,25 @@ type AccessInfo struct {
 // hasEvents returns true if eventHandlers is allocated.
 func (s *Shape) hasEvents() bool {
 	return s.events != nil
+}
+
+// focusKey returns the ID whose focus and per-widget state this shape
+// renders from: focusOwner when the shape belongs to a composite
+// widget, otherwise its own ID. Empty for a shape that participates in
+// neither, which is the signal to render no caret or selection.
+func (s *Shape) focusKey() string {
+	if s.focusOwner != "" {
+		return s.focusOwner
+	}
+	return s.ID
+}
+
+// rendersFocusState reports whether this shape draws caret, selection
+// or spell-check state for some widget: for itself when Focusable, or
+// for the owner named by focusOwner. False for ordinary text, which
+// must render none of it even when it carries an ID.
+func (s *Shape) rendersFocusState() bool {
+	return s.Focusable || s.focusOwner != ""
 }
 
 // PointInShape determines if the given point is within shapeClip.
