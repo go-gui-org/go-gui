@@ -174,6 +174,10 @@ Backend injects at startup. Nil in tests:
 - Rebuild AND run the relevant tests before claiming a fix works. Never report
   success on an unverified change. State failures plainly with the output; if a
   step was skipped, say so.
+- After touching the exported surface of `gui/`, run `make export-audit`
+  (tools/exportaudit): every export must be referenced from outside gui/ or
+  carry a `// exportaudit:keep` marker. The consumer scan is authoritative; the
+  in-repo run is advisory.
 - Native/CGo or focus/activation bugs: confirm root cause with instrumented
   logging (evidence) before editing. Reproduce before, verify symptom gone
   after. Never leave the app non-launching. See `gui/backend/CLAUDE.md` for the

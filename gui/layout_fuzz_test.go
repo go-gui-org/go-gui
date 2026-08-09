@@ -6,7 +6,7 @@ func buildFuzzLayoutTree(depth, childCount int, width, height float32) Layout {
 	root := Layout{
 		Shape: &Shape{
 			shapeType: shapeRectangle,
-			Axis:      AxisTopToBottom,
+			Axis:      axisTopToBottom,
 			Sizing:    FillFill,
 			Width:     width,
 			Height:    height,
@@ -16,9 +16,9 @@ func buildFuzzLayoutTree(depth, childCount int, width, height float32) Layout {
 		root.Children = make([]Layout, childCount)
 		childH := height / f32Max(float32(childCount), 1)
 		for i := range childCount {
-			axis := AxisTopToBottom
+			axis := axisTopToBottom
 			if i%2 == 0 {
-				axis = AxisLeftToRight
+				axis = axisLeftToRight
 			}
 			root.Children[i] = Layout{
 				Shape: &Shape{

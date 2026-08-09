@@ -20,7 +20,7 @@ type RadioCfg struct {
 	// shorthand for Colors.Base and wins over it.
 	Colors        ColorSet
 	ColorSelect   Color
-	ColorUnselect Color
+	colorUnselect Color
 	Disabled      bool
 	Selected      bool
 	Invisible     bool
@@ -31,14 +31,14 @@ func Radio(cfg RadioCfg) View {
 	applyRadioDefaults(&cfg)
 	requireFocusID("Radio", cfg.FocusDisabled, cfg.ID)
 
-	dr := &DefaultRadioStyle
+	dr := &defaultRadioStyle
 	size := cfg.Size.Get(dr.Size)
 	sizeBorder := cfg.SizeBorder.Get(dr.SizeBorder)
 
 	colorBorderFocus := cfg.Colors.BorderFocus
 	colorHover := cfg.Colors.Hover
 	colorClick := cfg.Colors.Click
-	circleColor := cfg.ColorUnselect
+	circleColor := cfg.colorUnselect
 	if cfg.Selected {
 		circleColor = cfg.ColorSelect
 	}
@@ -83,8 +83,8 @@ func Radio(cfg RadioCfg) View {
 		A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Label),
 		A11YDescription: cfg.A11YDescription,
 		OnClick:         cfg.OnClick,
-		ClickButton:     MouseLeft,
-		ClickOnSpace:    true,
+		clickButton:     MouseLeft,
+		clickOnSpace:    true,
 		AmendLayout: func(ctx EventCtx) {
 			if ctx.Layout.Shape.Disabled ||
 				!ctx.Layout.Shape.hasEvents() ||
@@ -118,23 +118,23 @@ func Radio(cfg RadioCfg) View {
 }
 
 func applyRadioDefaults(cfg *RadioCfg) {
-	d := &DefaultRadioStyle
+	d := &defaultRadioStyle
 	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
-		d.Color, d.ColorHover, d.ColorClick,
+		d.Color, d.ColorHover, d.colorClick,
 		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
 	))
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
 	}
-	if !cfg.ColorUnselect.IsSet() {
-		cfg.ColorUnselect = d.ColorUnselect
+	if !cfg.colorUnselect.IsSet() {
+		cfg.colorUnselect = d.colorUnselect
 	}
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = Some(d.Padding)
 	}
 	if cfg.TextStyle == (TextStyle{}) {
-		cfg.TextStyle = d.TextStyleNormal
+		cfg.TextStyle = d.textStyleNormal
 	} else {
-		cfg.TextStyle = mergeTextStyle(cfg.TextStyle, d.TextStyleNormal)
+		cfg.TextStyle = mergeTextStyle(cfg.TextStyle, d.textStyleNormal)
 	}
 }

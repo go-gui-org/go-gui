@@ -3,7 +3,7 @@ package gui
 // ToggleCfg configures a toggle/checkbox button.
 type ToggleCfg struct {
 	TextStyle      TextStyle
-	TextStyleLabel TextStyle
+	textStyleLabel TextStyle
 	OnClick        func(EventCtx)
 	ID             string `gui:"required,focus"`
 	Label          string
@@ -36,7 +36,7 @@ func Toggle(cfg ToggleCfg) View {
 	applyToggleDefaults(&cfg)
 	requireFocusID("Toggle", cfg.FocusDisabled, cfg.ID)
 
-	d := &DefaultToggleStyle
+	d := &defaultToggleStyle
 	sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)
 	radius := cfg.Radius.Get(d.Radius)
 	size := cfg.Size.Get(d.Size)
@@ -85,7 +85,7 @@ func Toggle(cfg ToggleCfg) View {
 
 	if len(cfg.Label) > 0 {
 		content = append(content,
-			Text(TextCfg{Text: cfg.Label, TextStyle: cfg.TextStyleLabel}))
+			Text(TextCfg{Text: cfg.Label, TextStyle: cfg.textStyleLabel}))
 	}
 
 	a11yState := AccessStateNone
@@ -105,9 +105,9 @@ func Toggle(cfg ToggleCfg) View {
 		A11YState:       a11yState,
 		A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Label),
 		A11YDescription: cfg.A11YDescription,
-		ClickOnSpace:    true,
+		clickOnSpace:    true,
 		OnClick:         cfg.OnClick,
-		ClickButton:     MouseLeft,
+		clickButton:     MouseLeft,
 		MinWidth:        cfg.MinWidth,
 		OnHover: func(ctx EventCtx) {
 			if ctx.Layout.Shape.Disabled ||
@@ -143,9 +143,9 @@ func Toggle(cfg ToggleCfg) View {
 }
 
 func applyToggleDefaults(cfg *ToggleCfg) {
-	d := &DefaultToggleStyle
+	d := &defaultToggleStyle
 	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
-		d.Color, d.ColorHover, d.ColorClick,
+		d.Color, d.ColorHover, d.colorClick,
 		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
 	))
 	if cfg.TextSelect == "" {
@@ -162,13 +162,13 @@ func applyToggleDefaults(cfg *ToggleCfg) {
 		cfg.Padding = Some(d.Padding)
 	}
 	if cfg.TextStyle == (TextStyle{}) {
-		cfg.TextStyle = d.TextStyleNormal
+		cfg.TextStyle = d.textStyleNormal
 	} else {
-		cfg.TextStyle = mergeTextStyle(cfg.TextStyle, d.TextStyleNormal)
+		cfg.TextStyle = mergeTextStyle(cfg.TextStyle, d.textStyleNormal)
 	}
-	if cfg.TextStyleLabel == (TextStyle{}) {
-		cfg.TextStyleLabel = d.TextStyleLabel
+	if cfg.textStyleLabel == (TextStyle{}) {
+		cfg.textStyleLabel = d.textStyleLabel
 	} else {
-		cfg.TextStyleLabel = mergeTextStyle(cfg.TextStyleLabel, d.TextStyleLabel)
+		cfg.textStyleLabel = mergeTextStyle(cfg.textStyleLabel, d.textStyleLabel)
 	}
 }

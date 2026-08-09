@@ -1,42 +1,42 @@
 package datagrid
 
 // GridSortDir specifies ascending or descending sort order.
-type GridSortDir uint8
+type gridSortDir uint8
 
 // GridSortDir constants.
 const (
-	GridSortAsc GridSortDir = iota
+	gridSortAsc gridSortDir = iota
 	GridSortDesc
 )
 
 // GridPaginationKind selects cursor- or offset-based paging.
-type GridPaginationKind uint8
+type gridPaginationKind uint8
 
 // GridPaginationKind constants.
 const (
-	GridPaginationNone GridPaginationKind = iota
+	gridPaginationNone gridPaginationKind = iota
 	GridPaginationCursor
 	GridPaginationOffset
 )
 
 // GridMutationKind identifies a create, update, or delete.
-type GridMutationKind uint8
+type gridMutationKind uint8
 
 // GridMutationKind constants.
 const (
-	GridMutationCreate GridMutationKind = iota
-	GridMutationUpdate
-	GridMutationDelete
+	gridMutationCreate gridMutationKind = iota
+	gridMutationUpdate
+	gridMutationDelete
 )
 
 // GridSort describes a single sort criterion.
 type GridSort struct {
 	ColID string
-	Dir   GridSortDir
+	Dir   gridSortDir
 }
 
 // GridFilter describes a single column filter.
-type GridFilter struct {
+type gridFilter struct {
 	ColID string
 	Op    string // "contains", "equals", "starts_with", "ends_with"
 	Value string
@@ -47,14 +47,14 @@ type GridFilter struct {
 type GridQueryState struct {
 	QuickFilter string
 	Sorts       []GridSort
-	Filters     []GridFilter
+	Filters     []gridFilter
 }
 
 // GridSelection tracks the selected rows in a data grid.
 type GridSelection struct {
 	SelectedRowIDs map[string]bool
-	AnchorRowID    string
-	ActiveRowID    string
+	anchorRowID    string
+	activeRowID    string
 }
 
 // GridRow represents a single data row with an ID and
@@ -69,56 +69,57 @@ type GridCellEdit struct {
 	RowID  string
 	ColID  string
 	Value  string
-	RowIdx int
+	rowIdx int
 }
 
 // GridCursorPageReq requests a cursor-based page.
-type GridCursorPageReq struct {
+type gridCursorPageReq struct {
 	Cursor string
-	Limit  int
+	limit  int
 }
 
-func (GridCursorPageReq) gridPageRequest() {}
+func (gridCursorPageReq) gridPageRequest() {}
 
 // GridOffsetPageReq requests an offset-based page.
-type GridOffsetPageReq struct {
+type gridOffsetPageReq struct {
 	StartIndex int
-	EndIndex   int
+	endIndex   int
 }
 
-func (GridOffsetPageReq) gridPageRequest() {}
+func (gridOffsetPageReq) gridPageRequest() {}
 
 // GridPageRequest is satisfied by GridCursorPageReq or
 // GridOffsetPageReq. External code can type-switch but cannot
 // implement their own pagination types.
+// exportaudit:keep — collides with the gridPageRequest marker method
 type GridPageRequest interface {
 	gridPageRequest()
 }
 
 // GridAggregateOp specifies the aggregation operation.
-type GridAggregateOp uint8
+type gridAggregateOp uint8
 
 // GridAggregateOp values.
 const (
-	GridAggregateCount GridAggregateOp = iota
-	GridAggregateSum
-	GridAggregateAvg
-	GridAggregateMin
-	GridAggregateMax
+	gridAggregateCount gridAggregateOp = iota
+	gridAggregateSum
+	gridAggregateAvg
+	gridAggregateMin
+	gridAggregateMax
 )
 
 // String returns the SQL-like name for the aggregate operation.
-func (op GridAggregateOp) String() string {
+func (op gridAggregateOp) String() string {
 	switch op {
-	case GridAggregateCount:
+	case gridAggregateCount:
 		return "count"
-	case GridAggregateSum:
+	case gridAggregateSum:
 		return "sum"
-	case GridAggregateAvg:
+	case gridAggregateAvg:
 		return "avg"
-	case GridAggregateMin:
+	case gridAggregateMin:
 		return "min"
-	case GridAggregateMax:
+	case gridAggregateMax:
 		return "max"
 	default:
 		return "unknown"

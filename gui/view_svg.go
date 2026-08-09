@@ -19,7 +19,7 @@ type SvgCfg struct {
 	OnClick func(EventCtx)
 
 	ID       string
-	FileName string // SVG file path
+	fileName string // SVG file path
 	SvgData  string // OR inline SVG string
 
 	// HoveredElementID / FocusedElementID drive CSS :hover / :focus
@@ -45,7 +45,7 @@ type SvgCfg struct {
 
 	Color     Color // override fill (for monochrome icons)
 	Sizing    Sizing
-	NoAnimate bool // disable SMIL animation (default: animated)
+	noAnimate bool // disable SMIL animation (default: animated)
 }
 
 // svgView implements View for SVG rendering.
@@ -62,7 +62,7 @@ func (sv *svgView) Content() []View { return nil }
 
 func (sv *svgView) GenerateLayout(w *Window) Layout {
 	c := &sv.cfg
-	svgSrc := c.FileName
+	svgSrc := c.fileName
 	if svgSrc == "" {
 		svgSrc = c.SvgData
 	}
@@ -71,7 +71,7 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 	height := c.Height
 
 	if width <= 0 || height <= 0 {
-		natW, natH, err := w.GetSvgDimensions(svgSrc)
+		natW, natH, err := w.getSvgDimensions(svgSrc)
 		if err != nil {
 			log.Printf("svg: %v", err)
 			return svgErrorLayout(svgSrc, w)
@@ -107,8 +107,8 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 	}
 
 	// Register animation loop for animated SVGs.
-	if cached.HasAnimations && !c.NoAnimate {
-		animHash := cached.AnimHash
+	if cached.hasAnimations && !c.noAnimate {
+		animHash := cached.animHash
 		animSeen := StateMap[string, int64](
 			w, nsSvgAnimSeen, capImageCache)
 		animSeen.Set(animHash, time.Now().UnixNano())
@@ -118,7 +118,7 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 				AnimID:  animID,
 				Delay:   animationCycle,
 				Repeat:  true,
-				Refresh: AnimationRefreshRenderOnly,
+				Refresh: animationRefreshRenderOnly,
 				Callback: func(an *Animate, w *Window) {
 					seenMap := StateMap[string, int64](
 						w, nsSvgAnimSeen, capImageCache)
@@ -141,7 +141,7 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 	if c.OnClick != nil {
 		events = w.allocEventHandlers(eventHandlers{
 			OnClick:     c.OnClick,
-			ClickButton: MouseLeft,
+			clickButton: MouseLeft,
 		})
 	}
 	layout := Layout{
@@ -149,7 +149,7 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 			shapeType: shapeSVG,
 			ID:        c.ID,
 			A11YRole:  AccessRoleImage,
-			A11Y: makeA11YInfo(
+			a11Y: makeA11YInfo(
 				a11yLabel(c.A11YLabel, c.ID),
 				c.A11YDescription,
 			),
@@ -161,7 +161,7 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 			Sizing:   c.Sizing,
 			Padding:  c.Padding.Get(Padding{}),
 			events:   events,
-			SvgOpts:  svgOpts,
+			svgOpts:  svgOpts,
 		}),
 	}
 	applyFixedSizingConstraints(layout.Shape)
@@ -176,7 +176,7 @@ func svgErrorLayout(src string, w *Window) Layout {
 		name = filepath.Base(src)
 	}
 	ts := guiTheme.TextStyleDef
-	ts.Color = Magenta
+	ts.Color = magenta
 	tv := Text(TextCfg{
 		Text:      fmt.Sprintf("[missing: %s]", name),
 		TextStyle: ts,

@@ -247,7 +247,7 @@ func TestGenerateViewLayoutNormalizesNilShape(t *testing.T) {
 // --- ViewFunc tests ---
 
 func TestViewFuncContentReturnsNil(t *testing.T) {
-	f := ViewFunc(func(w *Window) View {
+	f := viewFunc(func(w *Window) View {
 		return &stubView{id: "inner"}
 	})
 	if content := f.Content(); content != nil {
@@ -256,7 +256,7 @@ func TestViewFuncContentReturnsNil(t *testing.T) {
 }
 
 func TestViewFuncGenerateLayout(t *testing.T) {
-	f := ViewFunc(func(w *Window) View {
+	f := viewFunc(func(w *Window) View {
 		return &stubView{id: "inner"}
 	})
 	layout := f.GenerateLayout(&Window{})
@@ -266,7 +266,7 @@ func TestViewFuncGenerateLayout(t *testing.T) {
 }
 
 func TestViewFuncGenerateLayoutNested(t *testing.T) {
-	f := ViewFunc(func(w *Window) View {
+	f := viewFunc(func(w *Window) View {
 		return &stubView{
 			id: "parent",
 			children: []View{
@@ -291,7 +291,7 @@ func TestViewFuncGenerateLayoutNested(t *testing.T) {
 }
 
 func TestViewFuncNilReturn(t *testing.T) {
-	f := ViewFunc(func(w *Window) View {
+	f := viewFunc(func(w *Window) View {
 		return nil
 	})
 	layout := f.GenerateLayout(&Window{})
@@ -306,7 +306,7 @@ func TestViewFuncInContentSlice(t *testing.T) {
 	v := Column(ContainerCfg{
 		ID: "root",
 		Content: []View{
-			ViewFunc(func(w *Window) View {
+			viewFunc(func(w *Window) View {
 				return &stubView{
 					id: "dynamic",
 					children: []View{
@@ -336,7 +336,7 @@ func TestViewFuncNilInContentSlice(t *testing.T) {
 	v := Column(ContainerCfg{
 		ID: "root",
 		Content: []View{
-			ViewFunc(func(w *Window) View {
+			viewFunc(func(w *Window) View {
 				return nil
 			}),
 		},
@@ -350,7 +350,7 @@ func TestViewFuncNilInContentSlice(t *testing.T) {
 }
 
 func TestViewFuncWithNilWindow(t *testing.T) {
-	f := ViewFunc(func(w *Window) View {
+	f := viewFunc(func(w *Window) View {
 		return &stubView{id: "inner"}
 	})
 	layout := f.GenerateLayout(nil)
@@ -364,7 +364,7 @@ func TestViewFuncWithNilWindow(t *testing.T) {
 func TestColumnSetsAxis(t *testing.T) {
 	v := Column(ContainerCfg{ID: "col"})
 	layout := v.GenerateLayout(&Window{})
-	if layout.Shape.Axis != AxisTopToBottom {
+	if layout.Shape.Axis != axisTopToBottom {
 		t.Error("Column should set AxisTopToBottom")
 	}
 	if layout.Shape.ID != "col" {
@@ -375,7 +375,7 @@ func TestColumnSetsAxis(t *testing.T) {
 func TestRowSetsAxis(t *testing.T) {
 	v := Row(ContainerCfg{ID: "row"})
 	layout := v.GenerateLayout(&Window{})
-	if layout.Shape.Axis != AxisLeftToRight {
+	if layout.Shape.Axis != axisLeftToRight {
 		t.Error("Row should set AxisLeftToRight")
 	}
 }
@@ -383,7 +383,7 @@ func TestRowSetsAxis(t *testing.T) {
 func TestWrapSetsFlags(t *testing.T) {
 	v := Wrap(ContainerCfg{ID: "wrap"})
 	layout := v.GenerateLayout(&Window{})
-	if layout.Shape.Axis != AxisLeftToRight {
+	if layout.Shape.Axis != axisLeftToRight {
 		t.Error("Wrap should set AxisLeftToRight")
 	}
 	if !layout.Shape.Wrap {
@@ -394,7 +394,7 @@ func TestWrapSetsFlags(t *testing.T) {
 func TestCanvasNoAxis(t *testing.T) {
 	v := Canvas(ContainerCfg{ID: "canvas"})
 	layout := v.GenerateLayout(&Window{})
-	if layout.Shape.Axis != AxisNone {
+	if layout.Shape.Axis != axisNone {
 		t.Error("Canvas should have AxisNone")
 	}
 }
@@ -405,7 +405,7 @@ func TestCircleSetsShapeType(t *testing.T) {
 	if layout.Shape.shapeType != shapeCircle {
 		t.Error("Circle should set shapeCircle")
 	}
-	if layout.Shape.Axis != AxisTopToBottom {
+	if layout.Shape.Axis != axisTopToBottom {
 		t.Error("Circle should set AxisTopToBottom")
 	}
 }
@@ -441,7 +441,7 @@ func TestContainerLeftClickOnly(t *testing.T) {
 	if layout.Shape.events == nil {
 		t.Fatal("events should be set")
 	}
-	if layout.Shape.events.ClickButton != MouseLeft {
+	if layout.Shape.events.clickButton != MouseLeft {
 		t.Fatal("ClickButton should be MouseLeft")
 	}
 	// left click fires (via dispatch's ClickButton check)
@@ -524,13 +524,13 @@ func TestContainerA11YInfo(t *testing.T) {
 		A11YDescription: "desc",
 	})
 	layout := v.GenerateLayout(&Window{})
-	if layout.Shape.A11Y == nil {
+	if layout.Shape.a11Y == nil {
 		t.Fatal("A11Y should be set")
 	}
-	if layout.Shape.A11Y.Label != "test" {
+	if layout.Shape.a11Y.Label != "test" {
 		t.Error("label mismatch")
 	}
-	if layout.Shape.A11Y.Description != "desc" {
+	if layout.Shape.a11Y.Description != "desc" {
 		t.Error("description mismatch")
 	}
 }
@@ -592,10 +592,10 @@ func TestTextViewWrapSizing(t *testing.T) {
 		Mode: TextModeWrap,
 	})
 	layout := v.GenerateLayout(&Window{})
-	if layout.Shape.Sizing.Width != SizingFill {
+	if layout.Shape.Sizing.Width != sizingFill {
 		t.Error("wrap mode should use FillFit width")
 	}
-	if layout.Shape.Sizing.Height != SizingFit {
+	if layout.Shape.Sizing.Height != sizingFit {
 		t.Error("wrap mode should use FillFit height")
 	}
 }
@@ -606,9 +606,9 @@ func TestTextViewDefaultStyle(t *testing.T) {
 	if layout.Shape.TC.TextStyle == nil {
 		t.Fatal("TextStyle should be set")
 	}
-	if layout.Shape.TC.TextStyle.Size != SizeTextMedium {
+	if layout.Shape.TC.TextStyle.Size != sizeTextMedium {
 		t.Errorf("size: got %f, want %f",
-			layout.Shape.TC.TextStyle.Size, SizeTextMedium)
+			layout.Shape.TC.TextStyle.Size, sizeTextMedium)
 	}
 }
 
@@ -618,22 +618,22 @@ func TestTextViewA11Y(t *testing.T) {
 	if layout.Shape.A11YRole != AccessRoleStaticText {
 		t.Error("text should have StaticText role")
 	}
-	if layout.Shape.A11Y == nil {
+	if layout.Shape.a11Y == nil {
 		t.Fatal("A11Y should be set")
 	}
 	// a11yLabel falls back to text
-	if layout.Shape.A11Y.Label != "label test" {
-		t.Errorf("label: got %q", layout.Shape.A11Y.Label)
+	if layout.Shape.a11Y.Label != "label test" {
+		t.Errorf("label: got %q", layout.Shape.a11Y.Label)
 	}
 }
 
 func TestTextMultilineSizing(t *testing.T) {
 	v := Text(TextCfg{Text: "line1\nline2", Mode: TextModeMultiline})
 	layout := v.GenerateLayout(&Window{})
-	if layout.Shape.Sizing.Width != SizingFit {
+	if layout.Shape.Sizing.Width != sizingFit {
 		t.Error("multiline should use FitFit width")
 	}
-	if layout.Shape.Sizing.Height != SizingFit {
+	if layout.Shape.Sizing.Height != sizingFit {
 		t.Error("multiline should use FitFit height")
 	}
 }
@@ -672,7 +672,7 @@ func TestButtonCreatesRow(t *testing.T) {
 		},
 	})
 	layout := generateViewLayout(v, &Window{})
-	if layout.Shape.Axis != AxisLeftToRight {
+	if layout.Shape.Axis != axisLeftToRight {
 		t.Error("button should be a row")
 	}
 	if layout.Shape.ID != "btn1" {
@@ -706,12 +706,12 @@ func TestButtonSpacebarActivation(t *testing.T) {
 	if layout.Shape.events == nil {
 		t.Fatal("events should be set")
 	}
-	if !layout.Shape.events.ClickOnSpace {
+	if !layout.Shape.events.clickOnSpace {
 		t.Fatal("ClickOnSpace should be set for spacebar activation")
 	}
 	// The dispatch path (charHandler) checks ClickOnSpace and
 	// routes to OnClick. Direct call to OnClick simulates this.
-	layout.Shape.events.OnClick(EventCtx{nil, &Event{CharCode: CharSpace}, nil})
+	layout.Shape.events.OnClick(EventCtx{nil, &Event{CharCode: charSpace}, nil})
 	if !clicked {
 		t.Error("spacebar should trigger click")
 	}
@@ -733,7 +733,7 @@ func TestButtonAmendLayoutFocus(t *testing.T) {
 	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, w})
 
 	// Color should change to focus color
-	if layout.Shape.Color.Eq(RGB(50, 50, 50)) {
+	if layout.Shape.Color.eq(RGB(50, 50, 50)) {
 		t.Error("color should change on focus")
 	}
 }
@@ -750,7 +750,7 @@ func TestButtonEnterActivation(t *testing.T) {
 	if layout.Shape.events == nil {
 		t.Fatal("events should be set")
 	}
-	if !layout.Shape.events.ClickOnEnter {
+	if !layout.Shape.events.clickOnEnter {
 		t.Fatal("ClickOnEnter should be set for enter activation")
 	}
 	// The dispatch path (keydownHandler) checks ClickOnEnter and
@@ -829,7 +829,7 @@ func TestRectangleInvisible(t *testing.T) {
 func TestRectangleNoPadding(t *testing.T) {
 	v := Rectangle(RectangleCfg{Width: 10, Height: 10})
 	layout := v.GenerateLayout(&Window{})
-	if !layout.Shape.Padding.IsNone() {
+	if !layout.Shape.Padding.isNone() {
 		t.Error("rectangle should have no padding")
 	}
 }
@@ -846,13 +846,13 @@ func TestSetMouseCursor(t *testing.T) {
 
 func TestMouseIsLocked(t *testing.T) {
 	w := &Window{}
-	if w.MouseIsLocked() {
+	if w.mouseIsLocked() {
 		t.Error("should start unlocked")
 	}
 	w.MouseLock(MouseLockCfg{
 		MouseMove: func(ctx EventCtx) {},
 	})
-	if !w.MouseIsLocked() {
+	if !w.mouseIsLocked() {
 		t.Error("should be locked")
 	}
 }
@@ -860,15 +860,15 @@ func TestMouseIsLocked(t *testing.T) {
 func TestMouseLockUnlock(t *testing.T) {
 	w := &Window{}
 	w.MouseLock(MouseLockCfg{
-		MouseDown: func(ctx EventCtx) {},
+		mouseDown: func(ctx EventCtx) {},
 		MouseMove: func(ctx EventCtx) {},
 		MouseUp:   func(ctx EventCtx) {},
 	})
-	if !w.MouseIsLocked() {
+	if !w.mouseIsLocked() {
 		t.Error("should be locked after MouseLock")
 	}
 	w.MouseUnlock()
-	if w.MouseIsLocked() {
+	if w.mouseIsLocked() {
 		t.Error("should be unlocked after MouseUnlock")
 	}
 }
@@ -877,9 +877,9 @@ func TestMouseIsLockedChecksCallbacks(t *testing.T) {
 	w := &Window{}
 
 	w.MouseLock(MouseLockCfg{
-		MouseDown: func(ctx EventCtx) {},
+		mouseDown: func(ctx EventCtx) {},
 	})
-	if !w.MouseIsLocked() {
+	if !w.mouseIsLocked() {
 		t.Error("MouseDown alone should lock")
 	}
 	w.MouseUnlock()
@@ -887,7 +887,7 @@ func TestMouseIsLockedChecksCallbacks(t *testing.T) {
 	w.MouseLock(MouseLockCfg{
 		MouseMove: func(ctx EventCtx) {},
 	})
-	if !w.MouseIsLocked() {
+	if !w.mouseIsLocked() {
 		t.Error("MouseMove alone should lock")
 	}
 	w.MouseUnlock()
@@ -895,7 +895,7 @@ func TestMouseIsLockedChecksCallbacks(t *testing.T) {
 	w.MouseLock(MouseLockCfg{
 		MouseUp: func(ctx EventCtx) {},
 	})
-	if !w.MouseIsLocked() {
+	if !w.mouseIsLocked() {
 		t.Error("MouseUp alone should lock")
 	}
 }
@@ -977,7 +977,7 @@ func TestPointerOverApp(t *testing.T) {
 	}
 	for _, tc := range tests {
 		e := &Event{MouseX: tc.mx, MouseY: tc.my}
-		if got := w.PointerOverApp(e); got != tc.want {
+		if got := w.pointerOverApp(e); got != tc.want {
 			t.Errorf("%s: got %v, want %v", tc.name, got, tc.want)
 		}
 	}
@@ -985,34 +985,34 @@ func TestPointerOverApp(t *testing.T) {
 
 func TestClearInputSelections(t *testing.T) {
 	w := &Window{}
-	imap := StateMap[string, InputState](w, nsInput, capMany)
-	imap.Set("a", InputState{CursorPos: 5, SelectBeg: 2, SelectEnd: 8})
-	imap.Set("b", InputState{CursorPos: 3, SelectBeg: 0, SelectEnd: 4})
+	imap := StateMap[string, inputState](w, nsInput, capMany)
+	imap.Set("a", inputState{CursorPos: 5, selectBeg: 2, selectEnd: 8})
+	imap.Set("b", inputState{CursorPos: 3, selectBeg: 0, selectEnd: 4})
 
 	w.clearInputSelections()
 
 	v1, _ := imap.Get("a")
-	if v1.SelectBeg != 0 || v1.SelectEnd != 0 {
+	if v1.selectBeg != 0 || v1.selectEnd != 0 {
 		t.Error("selection 1 not cleared")
 	}
 	if v1.CursorPos != 5 {
 		t.Error("cursor pos should be preserved")
 	}
 	v2, _ := imap.Get("b")
-	if v2.SelectBeg != 0 || v2.SelectEnd != 0 {
+	if v2.selectBeg != 0 || v2.selectEnd != 0 {
 		t.Error("selection 2 not cleared")
 	}
 }
 
 func TestSetIDFocusClearsSelections(t *testing.T) {
 	w := &Window{}
-	imap := StateMap[string, InputState](w, nsInput, capMany)
-	imap.Set("f1", InputState{SelectBeg: 1, SelectEnd: 5})
+	imap := StateMap[string, inputState](w, nsInput, capMany)
+	imap.Set("f1", inputState{selectBeg: 1, selectEnd: 5})
 
 	w.SetFocus("f2")
 
 	v, _ := imap.Get("f1")
-	if v.SelectBeg != 0 || v.SelectEnd != 0 {
+	if v.selectBeg != 0 || v.selectEnd != 0 {
 		t.Error("SetIDFocus should clear selections")
 	}
 	if w.FocusID() != "f2" {
@@ -1056,7 +1056,7 @@ func TestColumnWithTextAndButton(t *testing.T) {
 	}
 	// child 1 is a button (row)
 	btn := layout.Children[1]
-	if btn.Shape.Axis != AxisLeftToRight {
+	if btn.Shape.Axis != axisLeftToRight {
 		t.Error("button should be a row")
 	}
 	if btn.Shape.ID != "b1" {

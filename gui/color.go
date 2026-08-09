@@ -20,23 +20,22 @@ var (
 	Green            = Color{0, 255, 0, 255, true}
 	Blue             = Color{0, 0, 255, 255, true}
 	Yellow           = Color{255, 255, 0, 255, true}
-	Magenta          = Color{255, 0, 255, 255, true}
-	Cyan             = Color{0, 255, 255, 255, true}
+	magenta          = Color{255, 0, 255, 255, true}
 	Orange           = Color{255, 165, 0, 255, true}
 	Purple           = Color{128, 0, 128, 255, true}
-	Indigo           = Color{75, 0, 130, 255, true}
-	Pink             = Color{255, 192, 203, 255, true}
-	Violet           = Color{238, 130, 238, 255, true}
-	DarkBlue         = Color{0, 0, 139, 255, true}
+	indigo           = Color{75, 0, 130, 255, true}
+	pink             = Color{255, 192, 203, 255, true}
+	violet           = Color{238, 130, 238, 255, true}
+	darkBlue         = Color{0, 0, 139, 255, true}
 	DarkGray         = Color{169, 169, 169, 255, true}
-	DarkGreen        = Color{0, 100, 0, 255, true}
-	DarkRed          = Color{139, 0, 0, 255, true}
+	darkGreen        = Color{0, 100, 0, 255, true}
+	darkRed          = Color{139, 0, 0, 255, true}
 	LightBlue        = Color{173, 216, 230, 255, true}
-	LightGray        = Color{211, 211, 211, 255, true}
-	LightGreen       = Color{144, 238, 144, 255, true}
-	LightRed         = Color{255, 204, 203, 255, true}
+	lightGray        = Color{211, 211, 211, 255, true}
+	lightGreen       = Color{144, 238, 144, 255, true}
+	lightRed         = Color{255, 204, 203, 255, true}
 	CornflowerBlue   = Color{100, 149, 237, 255, true}
-	RoyalBlue        = Color{65, 105, 225, 255, true}
+	royalBlue        = Color{65, 105, 225, 255, true}
 	ColorTransparent = Color{0, 0, 0, 0, true}
 )
 
@@ -122,7 +121,7 @@ func (c Color) Over(b Color) Color {
 }
 
 // Eq checks if two colors are equal in every channel.
-func (c Color) Eq(c2 Color) bool {
+func (c Color) eq(c2 Color) bool {
 	return c.R == c2.R && c.G == c2.G && c.B == c2.B && c.A == c2.A
 }
 
@@ -137,17 +136,17 @@ func (c Color) RGBA8() int {
 }
 
 // BGRA8 converts to an int in BGRA8 order.
-func (c Color) BGRA8() int {
+func (c Color) bGRA8() int {
 	return int(uint32(c.B)<<24 | uint32(c.G)<<16 | uint32(c.R)<<8 | uint32(c.A))
 }
 
 // ABGR8 converts to an int in ABGR8 order.
-func (c Color) ABGR8() int {
+func (c Color) aBGR8() int {
 	return int(uint32(c.A)<<24 | uint32(c.B)<<16 | uint32(c.G)<<8 | uint32(c.R))
 }
 
 // ToCSSString returns CSS-compatible "rgba(r,g,b,a)".
-func (c Color) ToCSSString() string {
+func (c Color) toCSSString() string {
 	return fmt.Sprintf("rgba(%d,%d,%d,%d)", c.R, c.G, c.B, c.A)
 }
 
@@ -160,27 +159,27 @@ var stringColors = map[string]Color{
 	"purple":          Purple,
 	"black":           Black,
 	"gray":            Gray,
-	"indigo":          Indigo,
-	"pink":            Pink,
-	"violet":          Violet,
+	"indigo":          indigo,
+	"pink":            pink,
+	"violet":          violet,
 	"white":           White,
 	"cornflower_blue": CornflowerBlue,
-	"royal_blue":      RoyalBlue,
-	"dark_blue":       DarkBlue,
+	"royal_blue":      royalBlue,
+	"dark_blue":       darkBlue,
 	"dark_gray":       DarkGray,
-	"dark_green":      DarkGreen,
-	"dark_red":        DarkRed,
+	"dark_green":      darkGreen,
+	"dark_red":        darkRed,
 	"light_blue":      LightBlue,
-	"light_gray":      LightGray,
-	"light_green":     LightGreen,
-	"light_red":       LightRed,
+	"light_gray":      lightGray,
+	"light_green":     lightGreen,
+	"light_red":       lightRed,
 }
 
 // ColorFromString returns a Color for the given name or "#RRGGBB" hex
 // string. Returns Black if not found.
 func ColorFromString(s string) Color {
 	if len(s) > 0 && s[0] == '#' {
-		c, ok := ColorFromHexString(s)
+		c, ok := colorFromHexString(s)
 		if ok {
 			return c
 		}

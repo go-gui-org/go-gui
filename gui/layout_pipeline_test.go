@@ -339,7 +339,7 @@ func TestLayoutWrapPlainText(t *testing.T) {
 	shape := &Shape{
 		shapeType: shapeText,
 		Width:     100, // fits ~10 chars per line
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			Text:      "hello world this wraps",
 			TextStyle: &style,
 			TextMode:  TextModeWrap,
@@ -365,7 +365,7 @@ func TestFixedColumnCentering(t *testing.T) {
 	col := Layout{
 		Shape: &Shape{
 			shapeType: shapeRectangle,
-			Axis:      AxisTopToBottom,
+			Axis:      axisTopToBottom,
 			Width:     300,
 			Height:    300,
 			Sizing:    FixedFixed,
@@ -411,7 +411,7 @@ func TestFixedColumnCentering(t *testing.T) {
 	col2 := Layout{
 		Shape: &Shape{
 			shapeType: shapeRectangle,
-			Axis:      AxisTopToBottom,
+			Axis:      axisTopToBottom,
 			Width:     500,
 			Height:    500,
 			Sizing:    FixedFixed,
@@ -466,7 +466,7 @@ func TestTooltipColumnMaxWidthConstrainsText(t *testing.T) {
 		Height:    20,
 		Sizing:    FillFit,
 		Opacity:   1,
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			Text:      longText,
 			TextStyle: &style,
 			TextMode:  TextModeWrap,
@@ -475,7 +475,7 @@ func TestTooltipColumnMaxWidthConstrainsText(t *testing.T) {
 	col := Layout{
 		Shape: &Shape{
 			shapeType: shapeRectangle,
-			Axis:      AxisTopToBottom,
+			Axis:      axisTopToBottom,
 			MaxWidth:  300,
 			Opacity:   1,
 		},
@@ -639,17 +639,17 @@ func TestLayoutWrapRTF_RtfFlatText_SetOnCacheMiss(t *testing.T) {
 	shape := &Shape{
 		shapeType: shapeRTF,
 		Width:     200,
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			TextMode:     TextModeWrap,
-			RTFRuns:      &rt,
-			RTFBaseStyle: glyph.TextStyle{Size: 12},
+			rTFRuns:      &rt,
+			rTFBaseStyle: glyph.TextStyle{Size: 12},
 		},
 	}
 	layoutWrapRTF(shape, shape.TC, w)
 
 	want := "hello world"
-	if shape.TC.RTFFlatText != want {
-		t.Errorf("RTFFlatText = %q, want %q", shape.TC.RTFFlatText, want)
+	if shape.TC.rTFFlatText != want {
+		t.Errorf("RTFFlatText = %q, want %q", shape.TC.rTFFlatText, want)
 	}
 }
 
@@ -663,23 +663,23 @@ func TestLayoutWrapRTF_RtfFlatText_NotOverwrittenOnCacheHit(t *testing.T) {
 	shape := &Shape{
 		shapeType: shapeRTF,
 		Width:     200,
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			TextMode:     TextModeWrap,
-			RTFRuns:      &rt,
-			RTFBaseStyle: glyph.TextStyle{Size: 12},
+			rTFRuns:      &rt,
+			rTFBaseStyle: glyph.TextStyle{Size: 12},
 		},
 	}
 	// First call: cache miss, RTFFlatText gets populated.
 	layoutWrapRTF(shape, shape.TC, w)
-	if shape.TC.RTFFlatText == "" {
+	if shape.TC.rTFFlatText == "" {
 		t.Fatal("RTFFlatText should be set after first call")
 	}
 	// Overwrite to verify the cache-hit path respects the if-empty guard.
-	shape.TC.RTFFlatText = "already-set"
+	shape.TC.rTFFlatText = "already-set"
 	// Second call: cache hit (same shape.Width), should not overwrite.
 	layoutWrapRTF(shape, shape.TC, w)
-	if shape.TC.RTFFlatText != "already-set" {
+	if shape.TC.rTFFlatText != "already-set" {
 		t.Errorf("RTFFlatText overwritten on cache hit, got %q",
-			shape.TC.RTFFlatText)
+			shape.TC.rTFFlatText)
 	}
 }

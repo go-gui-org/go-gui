@@ -6,7 +6,7 @@ import "fmt"
 // OverflowPanel and context menus). Supports keyboard
 // navigation: Up/Down to move, Enter/Space to select,
 // Escape to close, Right/Left for submenus.
-func Menu(w *Window, cfg MenubarCfg) View {
+func menu(w *Window, cfg MenubarCfg) View {
 	applyMenubarDefaults(&cfg)
 	RequireID("Menu", cfg.ID)
 	checkForDuplicateMenuIDs(cfg.Items)
@@ -33,13 +33,13 @@ func Menu(w *Window, cfg MenubarCfg) View {
 		Color:         cfg.Color,
 		ColorBorder:   cfg.ColorBorder,
 		SizeBorder:    cfg.SizeBorder,
-		Radius:        cfg.RadiusBorder,
-		MinWidth:      cfg.WidthSubmenuMin.Get(DefaultMenubarStyle.WidthSubmenuMin),
-		MaxWidth:      cfg.WidthSubmenuMax.Get(DefaultMenubarStyle.WidthSubmenuMax),
-		Spacing:       Some(cfg.SpacingSubmenu.Get(DefaultMenubarStyle.SpacingSubmenu)),
-		Padding:       cfg.PaddingSubmenu,
+		Radius:        cfg.radiusBorder,
+		MinWidth:      cfg.widthSubmenuMin.Get(defaultMenubarStyle.widthSubmenuMin),
+		MaxWidth:      cfg.widthSubmenuMax.Get(defaultMenubarStyle.widthSubmenuMax),
+		Spacing:       Some(cfg.spacingSubmenu.Get(defaultMenubarStyle.spacingSubmenu)),
+		Padding:       cfg.paddingSubmenu,
 		Float:         cfg.Float,
-		FloatAutoFlip: cfg.FloatAutoFlip,
+		floatAutoFlip: cfg.floatAutoFlip,
 		FloatAnchor:   cfg.FloatAnchor,
 		FloatTieOff:   cfg.FloatTieOff,
 		FloatOffsetX:  cfg.FloatOffsetX,
@@ -63,7 +63,7 @@ func makeMenuOnKeyDown(cfg MenubarCfg) func(EventCtx) {
 // standalone menus and menubars. The mapper function builds
 // the directional navigation graph for arrow-key movement.
 func menuOnKeyDown(cfg MenubarCfg,
-	mapper func([]MenuItemCfg) MenuIDMap,
+	mapper func([]MenuItemCfg) menuIDMap,
 	e *Event, w *Window) {
 
 	sm := StateMap[string, string](w, nsMenu, capModerate)
@@ -116,9 +116,9 @@ func menuOnKeyDown(cfg MenubarCfg,
 		case KeyRight:
 			target = node.Right
 		case KeyUp:
-			target = node.Up
+			target = node.up
 		case KeyDown:
-			target = node.Down
+			target = node.down
 		}
 		if target != "" && target != sel {
 			sm.Set(cfg.ID, target)
@@ -146,16 +146,16 @@ func menuBuild(cfg MenubarCfg, level int, items []MenuItemCfg, w *Window) []View
 			if item.CustomView != nil {
 				pad = NoPadding
 			} else if item.ID == menuSubtitleID {
-				pad = cfg.PaddingSubtitle
+				pad = cfg.paddingSubtitle
 			} else {
-				pad = cfg.PaddingMenuItem
+				pad = cfg.paddingMenuItem
 			}
 		}
 
 		// Determine text style.
 		ts := cfg.TextStyle
 		if item.ID == menuSubtitleID {
-			ts = cfg.TextStyleSubtitle
+			ts = cfg.textStyleSubtitle
 		}
 
 		// Build the configured item.
@@ -164,8 +164,8 @@ func menuBuild(cfg MenubarCfg, level int, items []MenuItemCfg, w *Window) []View
 		configured.Padding = pad
 		configured.selected = (selectedID == item.ID)
 		configured.sizing = sizing
-		configured.radius = cfg.RadiusMenuItem.Get(DefaultMenubarStyle.RadiusMenuItem)
-		configured.spacing = cfg.SpacingSubmenu.Get(DefaultMenubarStyle.SpacingSubmenu)
+		configured.radius = cfg.radiusMenuItem.Get(defaultMenubarStyle.radiusMenuItem)
+		configured.spacing = cfg.spacingSubmenu.Get(defaultMenubarStyle.spacingSubmenu)
 		configured.level = level
 		configured.textStyle = ts
 
@@ -183,7 +183,7 @@ func menuBuild(cfg MenubarCfg, level int, items []MenuItemCfg, w *Window) []View
 					cmdExec := cmd.Execute
 					cID := configured.CommandID
 					configured.Action = func(_ *MenuItemCfg, ctx EventCtx) {
-						if ctx.Window.CommandCanExecute(cID) && cmdExec != nil {
+						if ctx.Window.commandCanExecute(cID) && cmdExec != nil {
 							cmdExec(ctx.Event, ctx.Window)
 						}
 					}
@@ -211,13 +211,13 @@ func menuBuild(cfg MenubarCfg, level int, items []MenuItemCfg, w *Window) []View
 				Color:         cfg.Color,
 				ColorBorder:   cfg.ColorBorder,
 				SizeBorder:    cfg.SizeBorder,
-				Radius:        cfg.RadiusSubmenu,
-				MinWidth:      cfg.WidthSubmenuMin.Get(DefaultMenubarStyle.WidthSubmenuMin),
-				MaxWidth:      cfg.WidthSubmenuMax.Get(DefaultMenubarStyle.WidthSubmenuMax),
-				Spacing:       Some(cfg.SpacingSubmenu.Get(DefaultMenubarStyle.SpacingSubmenu)),
-				Padding:       cfg.PaddingSubmenu,
+				Radius:        cfg.radiusSubmenu,
+				MinWidth:      cfg.widthSubmenuMin.Get(defaultMenubarStyle.widthSubmenuMin),
+				MaxWidth:      cfg.widthSubmenuMax.Get(defaultMenubarStyle.widthSubmenuMax),
+				Spacing:       Some(cfg.spacingSubmenu.Get(defaultMenubarStyle.spacingSubmenu)),
+				Padding:       cfg.paddingSubmenu,
 				Float:         true,
-				FloatAutoFlip: true,
+				floatAutoFlip: true,
 				FloatAnchor:   anchor,
 				FloatTieOff:   tieOff,
 				Content:       subViews,

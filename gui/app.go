@@ -7,13 +7,11 @@ import (
 )
 
 // ExitMode controls when the application exits.
-type ExitMode int
+type exitMode int
 
 const (
-	// ExitOnLastClose exits when the last window is closed.
-	ExitOnLastClose ExitMode = iota
 	// ExitOnMainClose exits when the main (first) window is closed.
-	ExitOnMainClose
+	ExitOnMainClose exitMode = iota
 	// ExitOnTrayRemoved keeps the app alive while a system tray
 	// icon exists, even if all windows are closed.
 	ExitOnTrayRemoved
@@ -25,7 +23,7 @@ type App struct {
 	pending  chan WindowCfg
 	trays    map[int]*SystemTrayHandle
 	order    []uint32
-	ExitMode ExitMode
+	ExitMode exitMode
 	mu       sync.Mutex
 	mainID   uint32
 }
@@ -59,7 +57,7 @@ func (a *App) Register(id uint32, w *Window) {
 		// window. OpenDebugWindow→App.OpenWindow is a
 		// non-blocking channel send on a.pending, which is
 		// independent of a.mu, so it's safe to call here.
-		w.OpenDebugWindow()
+		w.openDebugWindow()
 	}
 }
 
@@ -102,6 +100,7 @@ func (a *App) Window(id uint32) *Window {
 }
 
 // Windows returns all registered windows in creation order.
+// exportaudit:keep — collides with the windows map field
 func (a *App) Windows() []*Window {
 	a.mu.Lock()
 	defer a.mu.Unlock()

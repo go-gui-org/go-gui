@@ -13,6 +13,7 @@ const heroTransitionID = "__hero_transition__"
 
 // HeroTransition animates elements between views. Only one
 // HeroTransition can be active at a time (fixed internal ID).
+// exportaudit:keep — reachable from an exported signature
 type HeroTransition struct {
 	outgoing map[string]posSnapshot
 	incoming map[string]posSnapshot
@@ -92,10 +93,10 @@ func applyHeroRecursive(layout *Layout, progress float32, outgoing, incoming map
 
 		if out, hasOut := outgoing[id]; hasOut {
 			if _, hasIn := incoming[id]; hasIn {
-				layout.Shape.X = Lerp(out.x, layout.Shape.X, morphProgress)
-				layout.Shape.Y = Lerp(out.y, layout.Shape.Y, morphProgress)
-				layout.Shape.Width = Lerp(out.width, layout.Shape.Width, morphProgress)
-				layout.Shape.Height = Lerp(out.height, layout.Shape.Height, morphProgress)
+				layout.Shape.X = lerp(out.x, layout.Shape.X, morphProgress)
+				layout.Shape.Y = lerp(out.y, layout.Shape.Y, morphProgress)
+				layout.Shape.Width = lerp(out.width, layout.Shape.Width, morphProgress)
+				layout.Shape.Height = lerp(out.height, layout.Shape.Height, morphProgress)
 			}
 		} else {
 			propagateOpacity(layout, fadeProgress)

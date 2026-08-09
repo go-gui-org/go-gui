@@ -20,7 +20,7 @@ func Fnv64Byte(h uint64, b byte) uint64 {
 }
 
 // FnvSum32 returns the 32-bit FNV-1a hash of a string.
-func FnvSum32(s string) uint32 {
+func fnvSum32(s string) uint32 {
 	const offset uint32 = 2166136261
 	const prime uint32 = 16777619
 	h := offset

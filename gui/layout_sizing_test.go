@@ -5,7 +5,7 @@ import "testing"
 func TestLayoutWidthsEmptyContainer(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis:    AxisLeftToRight,
+			Axis:    axisLeftToRight,
 			Padding: Padding{Left: 5, Right: 5},
 		},
 	}
@@ -18,7 +18,7 @@ func TestLayoutWidthsEmptyContainer(t *testing.T) {
 func TestLayoutHeightsEmptyContainer(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis:    AxisTopToBottom,
+			Axis:    axisTopToBottom,
 			Padding: Padding{Top: 3, Bottom: 7},
 		},
 	}
@@ -30,7 +30,7 @@ func TestLayoutHeightsEmptyContainer(t *testing.T) {
 
 func TestLayoutWidthsSingleChild(t *testing.T) {
 	root := &Layout{
-		Shape: &Shape{Axis: AxisLeftToRight},
+		Shape: &Shape{Axis: axisLeftToRight},
 		Children: []Layout{
 			{Shape: &Shape{Width: 40}},
 		},
@@ -43,7 +43,7 @@ func TestLayoutWidthsSingleChild(t *testing.T) {
 
 func TestLayoutHeightsSingleChild(t *testing.T) {
 	root := &Layout{
-		Shape: &Shape{Axis: AxisTopToBottom},
+		Shape: &Shape{Axis: axisTopToBottom},
 		Children: []Layout{
 			{Shape: &Shape{Height: 25}},
 		},
@@ -57,7 +57,7 @@ func TestLayoutHeightsSingleChild(t *testing.T) {
 func TestLayoutWidthsMaxWidthClamp(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis:     AxisLeftToRight,
+			Axis:     axisLeftToRight,
 			MaxWidth: 60,
 		},
 		Children: []Layout{
@@ -74,7 +74,7 @@ func TestLayoutWidthsMaxWidthClamp(t *testing.T) {
 func TestLayoutHeightsMaxHeightClamp(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis:      AxisTopToBottom,
+			Axis:      axisTopToBottom,
 			MaxHeight: 40,
 		},
 		Children: []Layout{
@@ -91,7 +91,7 @@ func TestLayoutHeightsMaxHeightClamp(t *testing.T) {
 func TestLayoutFillWidthsAllGrow(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis:      AxisLeftToRight,
+			Axis:      axisLeftToRight,
 			shapeType: shapeRectangle,
 			Sizing:    FixedFixed,
 			Width:     90,
@@ -119,7 +119,7 @@ func TestLayoutFillWidthsAllGrow(t *testing.T) {
 func TestLayoutFillHeightsAllGrow(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis:      AxisTopToBottom,
+			Axis:      axisTopToBottom,
 			shapeType: shapeRectangle,
 			Sizing:    FixedFixed,
 			Width:     50,
@@ -145,7 +145,7 @@ func TestLayoutFillHeightsAllGrow(t *testing.T) {
 func TestLayoutWidthsMinWidthFloor(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis:     AxisLeftToRight,
+			Axis:     axisLeftToRight,
 			MinWidth: 100,
 		},
 		Children: []Layout{
@@ -162,7 +162,7 @@ func TestLayoutWidthsMinWidthFloor(t *testing.T) {
 func TestLayoutHeightsMinHeightFloor(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis:      AxisTopToBottom,
+			Axis:      axisTopToBottom,
 			MinHeight: 80,
 		},
 		Children: []Layout{
@@ -179,7 +179,7 @@ func TestLayoutHeightsMinHeightFloor(t *testing.T) {
 func TestLayoutWidthsFixedSizingSkipsAccumulation(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis:   AxisLeftToRight,
+			Axis:   axisLeftToRight,
 			Sizing: FixedFixed,
 			Width:  200,
 		},
@@ -202,7 +202,7 @@ func TestLayoutWidthsFixedSizingSkipsAccumulation(t *testing.T) {
 func TestLayoutWidthsFixedZeroDegradesToContent(t *testing.T) {
 	// Main axis (row width).
 	row := &Layout{
-		Shape: &Shape{Axis: AxisLeftToRight, Sizing: FixedFixed},
+		Shape: &Shape{Axis: axisLeftToRight, Sizing: FixedFixed},
 		Children: []Layout{
 			{Shape: &Shape{Width: 50}},
 			{Shape: &Shape{Width: 50}},
@@ -215,7 +215,7 @@ func TestLayoutWidthsFixedZeroDegradesToContent(t *testing.T) {
 
 	// Cross axis (column width).
 	col := &Layout{
-		Shape: &Shape{Axis: AxisTopToBottom, Sizing: FixedFixed},
+		Shape: &Shape{Axis: axisTopToBottom, Sizing: FixedFixed},
 		Children: []Layout{
 			{Shape: &Shape{Width: 70}},
 		},
@@ -226,7 +226,7 @@ func TestLayoutWidthsFixedZeroDegradesToContent(t *testing.T) {
 	}
 
 	// Childless Fixed-zero box stays 0 (leaf images/svg unaffected).
-	leaf := &Layout{Shape: &Shape{Axis: AxisLeftToRight, Sizing: FixedFixed}}
+	leaf := &Layout{Shape: &Shape{Axis: axisLeftToRight, Sizing: FixedFixed}}
 	layoutWidths(leaf)
 	if !f32AreClose(leaf.Shape.Width, 0) {
 		t.Errorf("leaf width: got %f, want 0", leaf.Shape.Width)
@@ -237,7 +237,7 @@ func TestLayoutWidthsFixedZeroDegradesToContent(t *testing.T) {
 func TestLayoutHeightsFixedZeroDegradesToContent(t *testing.T) {
 	// Main axis (column height).
 	col := &Layout{
-		Shape: &Shape{Axis: AxisTopToBottom, Sizing: FixedFixed},
+		Shape: &Shape{Axis: axisTopToBottom, Sizing: FixedFixed},
 		Children: []Layout{
 			{Shape: &Shape{Height: 30}},
 			{Shape: &Shape{Height: 30}},
@@ -250,7 +250,7 @@ func TestLayoutHeightsFixedZeroDegradesToContent(t *testing.T) {
 
 	// Cross axis (row height).
 	row := &Layout{
-		Shape: &Shape{Axis: AxisLeftToRight, Sizing: FixedFixed},
+		Shape: &Shape{Axis: axisLeftToRight, Sizing: FixedFixed},
 		Children: []Layout{
 			{Shape: &Shape{Height: 45}},
 		},
@@ -261,7 +261,7 @@ func TestLayoutHeightsFixedZeroDegradesToContent(t *testing.T) {
 	}
 
 	// Childless Fixed-zero box stays 0.
-	leaf := &Layout{Shape: &Shape{Axis: AxisTopToBottom, Sizing: FixedFixed}}
+	leaf := &Layout{Shape: &Shape{Axis: axisTopToBottom, Sizing: FixedFixed}}
 	layoutHeights(leaf)
 	if !f32AreClose(leaf.Shape.Height, 0) {
 		t.Errorf("leaf height: got %f, want 0", leaf.Shape.Height)
@@ -274,7 +274,7 @@ func TestLayoutFillWidths_NilPool(t *testing.T) {
 			Sizing: FixedFixed,
 			Width:  200,
 			Height: 100,
-			Axis:   AxisLeftToRight,
+			Axis:   axisLeftToRight,
 		},
 		Children: []Layout{
 			{Shape: &Shape{
@@ -309,7 +309,7 @@ func TestLayoutFillHeights_NilPool(t *testing.T) {
 			Sizing: FixedFixed,
 			Width:  200,
 			Height: 200,
-			Axis:   AxisTopToBottom,
+			Axis:   axisTopToBottom,
 		},
 		Children: []Layout{
 			{Shape: &Shape{
@@ -342,7 +342,7 @@ func TestLayoutFillWidths_CachesContentDimensions(t *testing.T) {
 			Sizing: FixedFixed,
 			Width:  200,
 			Height: 100,
-			Axis:   AxisLeftToRight,
+			Axis:   axisLeftToRight,
 		},
 		Children: []Layout{
 			{Shape: &Shape{
@@ -391,7 +391,7 @@ func TestLayoutFillHeights_CachesContentDimensions(t *testing.T) {
 			Sizing: FixedFixed,
 			Width:  200,
 			Height: 200,
-			Axis:   AxisTopToBottom,
+			Axis:   axisTopToBottom,
 		},
 		Children: []Layout{
 			{Shape: &Shape{
@@ -439,14 +439,14 @@ func TestLayoutFillCrossAxis_SiblingSumCache(t *testing.T) {
 			Sizing:    FixedFixed,
 			Width:     300,
 			Height:    100,
-			Axis:      AxisLeftToRight,
+			Axis:      axisLeftToRight,
 			shapeType: shapeRectangle,
 		},
 		Children: []Layout{
 			{Shape: &Shape{
 				shapeType:  shapeRectangle,
 				Sizing:     FillFill,
-				Axis:       AxisTopToBottom,
+				Axis:       axisTopToBottom,
 				Scrollable: true,
 				ID:         "1",
 				Width:      0, Height: 20,
@@ -454,7 +454,7 @@ func TestLayoutFillCrossAxis_SiblingSumCache(t *testing.T) {
 			{Shape: &Shape{
 				shapeType:  shapeRectangle,
 				Sizing:     FillFill,
-				Axis:       AxisTopToBottom,
+				Axis:       axisTopToBottom,
 				Scrollable: true,
 				ID:         "2",
 				Width:      0, Height: 20,
@@ -462,7 +462,7 @@ func TestLayoutFillCrossAxis_SiblingSumCache(t *testing.T) {
 			{Shape: &Shape{
 				shapeType: shapeRectangle,
 				Sizing:    FixedFixed,
-				Axis:      AxisTopToBottom,
+				Axis:      axisTopToBottom,
 				Width:     50, Height: 20,
 			}},
 		},

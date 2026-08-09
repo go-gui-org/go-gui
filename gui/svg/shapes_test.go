@@ -60,7 +60,7 @@ func TestShapesParseRectElementRounded(t *testing.T) {
 	// Rounded rect includes CubicTo segments from arcs
 	hasCubic := false
 	for _, seg := range vp.Segments {
-		if seg.Cmd == CmdCubicTo {
+		if seg.Cmd == cmdCubicTo {
 			hasCubic = true
 			break
 		}
@@ -117,7 +117,7 @@ func TestShapesParsePolygonElementClosed(t *testing.T) {
 		t.Fatalf("expected ok=true")
 	}
 	// polygon with close: MoveTo + 2×LineTo + Close = 4
-	if vp.Segments[len(vp.Segments)-1].Cmd != CmdClose {
+	if vp.Segments[len(vp.Segments)-1].Cmd != cmdClose {
 		t.Fatalf("polygon should end with Close")
 	}
 }
@@ -127,7 +127,7 @@ func TestShapesParsePolygonElementPolyline(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected ok=true")
 	}
-	if vp.Segments[len(vp.Segments)-1].Cmd == CmdClose {
+	if vp.Segments[len(vp.Segments)-1].Cmd == cmdClose {
 		t.Fatalf("polyline should not end with Close")
 	}
 }
@@ -149,7 +149,7 @@ func TestShapesParseLineElement(t *testing.T) {
 	if len(vp.Segments) != 2 {
 		t.Fatalf("expected 2 segments (MoveTo+LineTo), got %d", len(vp.Segments))
 	}
-	if vp.Segments[0].Cmd != CmdMoveTo || vp.Segments[1].Cmd != CmdLineTo {
+	if vp.Segments[0].Cmd != cmdMoveTo || vp.Segments[1].Cmd != cmdLineTo {
 		t.Fatalf("expected MoveTo+LineTo, got %d+%d",
 			vp.Segments[0].Cmd, vp.Segments[1].Cmd)
 	}
@@ -169,7 +169,7 @@ func TestShapesEllipseToPath(t *testing.T) {
 	vp := ellipseToPath(50, 50, 30, 20, `<ellipse>`, "", s)
 	hasCubic := false
 	for _, seg := range vp.Segments {
-		if seg.Cmd == CmdCubicTo {
+		if seg.Cmd == cmdCubicTo {
 			hasCubic = true
 			break
 		}

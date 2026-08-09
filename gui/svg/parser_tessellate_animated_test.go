@@ -8,15 +8,15 @@ import (
 
 // makeAnimatedSquarePath builds a closed-rect VectorPath suitable for
 // tessellation: opaque fill, identity transform, monotonic Animated.
-func makeAnimatedSquarePath(id uint32) VectorPath {
-	return VectorPath{
+func makeAnimatedSquarePath(id uint32) vectorPath {
+	return vectorPath{
 		PathID: id,
-		Segments: []PathSegment{
-			{Cmd: CmdMoveTo, Points: []float32{0, 0}},
-			{Cmd: CmdLineTo, Points: []float32{10, 0}},
-			{Cmd: CmdLineTo, Points: []float32{10, 10}},
-			{Cmd: CmdLineTo, Points: []float32{0, 10}},
-			{Cmd: CmdClose},
+		Segments: []pathSegment{
+			{Cmd: cmdMoveTo, Points: []float32{0, 0}},
+			{Cmd: cmdLineTo, Points: []float32{10, 0}},
+			{Cmd: cmdLineTo, Points: []float32{10, 10}},
+			{Cmd: cmdLineTo, Points: []float32{0, 10}},
+			{Cmd: cmdClose},
 		},
 		Transform: identityTransform,
 		FillColor: gui.SvgColor{R: 255, A: 255},
@@ -30,10 +30,10 @@ func makeAnimatedSquarePath(id uint32) VectorPath {
 func TestTessellateAnimated_FilteredGroupAnimatedPathIncluded(t *testing.T) {
 	p := New()
 	const fgPathID uint32 = 42
-	vg := &VectorGraphic{
+	vg := &vectorGraphic{
 		Width: 100, Height: 100,
 		FilteredGroups: []svgFilteredGroup{
-			{Paths: []VectorPath{makeAnimatedSquarePath(fgPathID)}},
+			{Paths: []vectorPath{makeAnimatedSquarePath(fgPathID)}},
 		},
 	}
 	parsed := p.buildParsed(99, "", vg, 1)
@@ -61,11 +61,11 @@ func TestTessellateAnimated_FilteredGroupAnimatedPathIncluded(t *testing.T) {
 // surface in the result.
 func TestTessellateAnimated_MainAndFilteredGroupBothIncluded(t *testing.T) {
 	p := New()
-	vg := &VectorGraphic{
+	vg := &vectorGraphic{
 		Width: 100, Height: 100,
-		Paths: []VectorPath{makeAnimatedSquarePath(1)},
+		Paths: []vectorPath{makeAnimatedSquarePath(1)},
 		FilteredGroups: []svgFilteredGroup{
-			{Paths: []VectorPath{makeAnimatedSquarePath(2)}},
+			{Paths: []vectorPath{makeAnimatedSquarePath(2)}},
 		},
 	}
 	parsed := p.buildParsed(101, "", vg, 1)
@@ -95,11 +95,11 @@ func TestTessellateAnimated_FilteredGroupClipPathedSkipped(t *testing.T) {
 	p := New()
 	const id uint32 = 7
 	clipped := makeAnimatedSquarePath(id)
-	clipped.ClipPathID = "anyClip"
-	vg := &VectorGraphic{
+	clipped.clipPathID = "anyClip"
+	vg := &vectorGraphic{
 		Width: 100, Height: 100,
 		FilteredGroups: []svgFilteredGroup{
-			{Paths: []VectorPath{clipped}},
+			{Paths: []vectorPath{clipped}},
 		},
 	}
 	parsed := p.buildParsed(102, "", vg, 1)

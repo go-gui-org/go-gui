@@ -9,17 +9,17 @@ import (
 // curvyPath returns a VectorGraphic whose single path is a deeply
 // curving cubic Bezier — a high-tolerance floor flattens it with
 // fewer vertices than the default 0.15 floor.
-func curvyPath() *VectorGraphic {
-	return &VectorGraphic{
-		Paths: []VectorPath{
+func curvyPath() *vectorGraphic {
+	return &vectorGraphic{
+		Paths: []vectorPath{
 			{
 				FillColor: gui.SvgColor{R: 255, A: 255},
 				Opacity:   1,
-				Segments: []PathSegment{
-					{Cmd: CmdMoveTo, Points: []float32{0, 0}},
-					{Cmd: CmdCubicTo, Points: []float32{
+				Segments: []pathSegment{
+					{Cmd: cmdMoveTo, Points: []float32{0, 0}},
+					{Cmd: cmdCubicTo, Points: []float32{
 						50, 200, 100, -200, 200, 0}},
-					{Cmd: CmdClose},
+					{Cmd: cmdClose},
 				},
 			},
 		},

@@ -133,7 +133,7 @@ func (w *Window) animationLoop() {
 			return
 		}
 
-		refreshKind := AnimationRefreshNone
+		refreshKind := animationRefreshNone
 		deferred = deferred[:0]
 		stoppedIDs = stoppedIDs[:0]
 
@@ -170,7 +170,7 @@ func (w *Window) animationLoop() {
 		}
 
 		switch refreshKind {
-		case AnimationRefreshRenderOnly:
+		case animationRefreshRenderOnly:
 			deferred = append(deferred, queuedCommand{
 				kind:     queuedCommandWindowFn,
 				windowFn: commandMarkRenderOnlyRefresh,

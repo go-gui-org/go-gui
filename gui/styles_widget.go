@@ -1,8 +1,9 @@
 package gui
 
 // InputStyle defines input field visual properties.
+// exportaudit:keep — reachable from an exported signature
 type InputStyle struct {
-	TextStyleNormal  TextStyle
+	textStyleNormal  TextStyle
 	PlaceholderStyle TextStyle
 	Shadow           *BoxShadow
 	Padding          Padding
@@ -11,68 +12,72 @@ type InputStyle struct {
 	Color            Color
 	ColorHover       Color
 	ColorFocus       Color
-	ColorClick       Color
+	colorClick       Color
 	ColorBorder      Color
 	ColorBorderFocus Color
-	ColorSpellError  Color
+	colorSpellError  Color
 }
 
 // ScrollbarStyle defines scrollbar visual properties.
+// exportaudit:keep — reachable from an exported signature
 type ScrollbarStyle struct {
 	Size            float32
-	MinThumbSize    float32
-	ColorThumb      Color
+	minThumbSize    float32
+	colorThumb      Color
 	ColorBackground Color
 	Radius          float32
-	RadiusThumb     float32
+	radiusThumb     float32
 	GapEdge         float32
 	GapEnd          float32
 }
 
 // RadioStyle defines radio button visual properties.
+// exportaudit:keep — reachable from an exported signature
 type RadioStyle struct {
-	TextStyleNormal  TextStyle
+	textStyleNormal  TextStyle
 	Padding          Padding
 	Size             float32
 	SizeBorder       float32
 	Color            Color
 	ColorHover       Color
 	ColorFocus       Color
-	ColorClick       Color
+	colorClick       Color
 	ColorBorder      Color
 	ColorBorderFocus Color
 	ColorSelect      Color
-	ColorUnselect    Color
+	colorUnselect    Color
 }
 
 // RadioGroupStyle defines radio button group visual properties.
-type RadioGroupStyle struct {
+type radioGroupStyle struct {
 	SizeBorder float32
 }
 
 // SwitchStyle defines switch toggle visual properties.
+// exportaudit:keep — reachable from an exported signature
 type SwitchStyle struct {
-	TextStyleNormal  TextStyle
+	textStyleNormal  TextStyle
 	Shadow           *BoxShadow
 	Padding          Padding
-	SizeWidth        float32
-	SizeHeight       float32
+	sizeWidth        float32
+	sizeHeight       float32
 	SizeBorder       float32
 	Radius           float32
 	Color            Color
-	ColorClick       Color
+	colorClick       Color
 	ColorFocus       Color
 	ColorHover       Color
 	ColorBorder      Color
 	ColorBorderFocus Color
 	ColorSelect      Color
-	ColorUnselect    Color
+	colorUnselect    Color
 }
 
 // ToggleStyle defines toggle button visual properties.
+// exportaudit:keep — reachable from an exported signature
 type ToggleStyle struct {
-	TextStyleNormal TextStyle
-	TextStyleLabel  TextStyle
+	textStyleNormal TextStyle
+	textStyleLabel  TextStyle
 	Padding         Padding
 	// Size is the square edge length of the check box. Fixed on both
 	// axes so the box stays square instead of shrinking to the width
@@ -83,16 +88,17 @@ type ToggleStyle struct {
 	Color            Color
 	ColorBorder      Color
 	ColorBorderFocus Color
-	ColorClick       Color
+	colorClick       Color
 	ColorFocus       Color
 	ColorHover       Color
 	ColorSelect      Color
 }
 
 // SelectStyle defines select dropdown visual properties.
+// exportaudit:keep — reachable from an exported signature
 type SelectStyle struct {
-	TextStyleNormal  TextStyle
-	SubheadingStyle  TextStyle
+	textStyleNormal  TextStyle
+	subheadingStyle  TextStyle
 	PlaceholderStyle TextStyle
 	Padding          Padding
 	MinWidth         float32
@@ -102,7 +108,7 @@ type SelectStyle struct {
 	Color            Color
 	ColorHover       Color
 	ColorFocus       Color
-	ColorClick       Color
+	colorClick       Color
 	ColorBorder      Color
 	ColorBorderFocus Color
 	ColorSelect      Color
@@ -110,101 +116,101 @@ type SelectStyle struct {
 
 // Default widget styles (dark theme).
 var (
-	DefaultInputStyle = InputStyle{
+	defaultInputStyle = InputStyle{
 		Color:            colorInteriorDark,
 		ColorHover:       colorHoverDark,
 		ColorFocus:       colorActiveDark,
-		ColorClick:       colorActiveDark,
+		colorClick:       colorActiveDark,
 		ColorBorder:      colorBorderDark,
 		ColorBorderFocus: colorSelectDark,
-		ColorSpellError:  RGBA(255, 80, 80, 220),
+		colorSpellError:  RGBA(255, 80, 80, 220),
 		Padding:          PaddingSmall,
-		SizeBorder:       SizeBorderDef,
-		Radius:           RadiusMedium,
-		TextStyleNormal:  DefaultTextStyle,
+		SizeBorder:       sizeBorderDef,
+		Radius:           radiusMedium,
+		textStyleNormal:  DefaultTextStyle,
 		PlaceholderStyle: TextStyle{
 			Color: RGBA(colorTextDark.R, colorTextDark.G, colorTextDark.B, 100),
-			Size:  SizeTextMedium,
+			Size:  sizeTextMedium,
 		},
 	}
 
 	DefaultScrollbarStyle = ScrollbarStyle{
 		Size:            7,
-		MinThumbSize:    20,
-		ColorThumb:      colorActiveDark,
+		minThumbSize:    20,
+		colorThumb:      colorActiveDark,
 		ColorBackground: ColorTransparent,
-		Radius:          RadiusSmall,
-		RadiusThumb:     RadiusSmall,
+		Radius:          radiusSmall,
+		radiusThumb:     radiusSmall,
 		GapEdge:         3,
 		GapEnd:          2,
 	}
 
-	DefaultRadioStyle = RadioStyle{
-		Size:             SizeTextMedium,
+	defaultRadioStyle = RadioStyle{
+		Size:             sizeTextMedium,
 		Color:            colorPanelDark,
 		ColorHover:       colorHoverDark,
 		ColorFocus:       colorSelectDark,
-		ColorClick:       colorActiveDark,
+		colorClick:       colorActiveDark,
 		ColorBorder:      colorBorderDark,
 		ColorBorderFocus: colorSelectDark,
 		ColorSelect:      colorSelectDark,
-		ColorUnselect:    colorActiveDark,
+		colorUnselect:    colorActiveDark,
 		Padding:          PadAll(4),
 		SizeBorder:       2.0,
-		TextStyleNormal:  DefaultTextStyle,
+		textStyleNormal:  DefaultTextStyle,
 	}
 
-	DefaultSwitchStyle = SwitchStyle{
-		SizeWidth:        36,
-		SizeHeight:       22,
+	defaultSwitchStyle = SwitchStyle{
+		sizeWidth:        36,
+		sizeHeight:       22,
 		Color:            colorPanelDark,
-		ColorClick:       colorInteriorDark,
+		colorClick:       colorInteriorDark,
 		ColorFocus:       colorFocusDark,
 		ColorHover:       colorHoverDark,
 		ColorBorder:      colorBorderDark,
 		ColorBorderFocus: colorSelectDark,
 		ColorSelect:      colorSelectDark,
-		ColorUnselect:    colorActiveDark,
+		colorUnselect:    colorActiveDark,
 		Padding:          paddingThree,
-		SizeBorder:       SizeBorderDef,
-		Radius:           RadiusLarge * 2,
-		TextStyleNormal:  DefaultTextStyle,
+		SizeBorder:       sizeBorderDef,
+		Radius:           radiusLarge * 2,
+		textStyleNormal:  DefaultTextStyle,
 	}
 
-	DefaultToggleStyle = ToggleStyle{
+	defaultToggleStyle = ToggleStyle{
 		Color:            colorPanelDark,
 		ColorBorder:      colorBorderDark,
 		ColorBorderFocus: colorSelectDark,
-		ColorClick:       colorInteriorDark,
+		colorClick:       colorInteriorDark,
 		ColorFocus:       colorActiveDark,
 		ColorHover:       colorHoverDark,
 		ColorSelect:      colorInteriorDark,
 		Padding:          NewPadding(1, 1, 1, 2),
-		Size:             SizeTextMedium + 4,
-		SizeBorder:       SizeBorderDef,
-		Radius:           RadiusSmall,
-		TextStyleNormal:  DefaultTextStyle,
-		TextStyleLabel:   DefaultTextStyle,
+		Size:             sizeTextMedium + 4,
+		SizeBorder:       sizeBorderDef,
+		Radius:           radiusSmall,
+		textStyleNormal:  DefaultTextStyle,
+		textStyleLabel:   DefaultTextStyle,
 	}
 
-	DefaultSelectStyle = SelectStyle{
+	defaultSelectStyle = SelectStyle{
 		MinWidth:         75,
 		MaxWidth:         200,
 		Color:            colorInteriorDark,
 		ColorHover:       colorHoverDark,
 		ColorFocus:       colorFocusDark,
-		ColorClick:       colorActiveDark,
+		colorClick:       colorActiveDark,
 		ColorBorder:      colorBorderDark,
 		ColorBorderFocus: colorSelectDark,
 		ColorSelect:      colorSelectDark,
 		Padding:          PaddingSmall,
-		SizeBorder:       SizeBorderDef,
-		Radius:           RadiusMedium,
-		TextStyleNormal:  DefaultTextStyle,
-		SubheadingStyle:  DefaultTextStyle,
+		SizeBorder:       sizeBorderDef,
+		Radius:           radiusMedium,
+		textStyleNormal:  DefaultTextStyle,
+		subheadingStyle:  DefaultTextStyle,
 		PlaceholderStyle: TextStyle{
 			Color: RGBA(colorTextDark.R, colorTextDark.G, colorTextDark.B, 100),
-			Size:  SizeTextMedium,
+			Size:  sizeTextMedium,
 		},
 	}
 )

@@ -8,13 +8,13 @@ func findScrollLayout(w *Window, id string) (*Layout, bool) {
 	if w.layout.Shape == nil {
 		return nil, false
 	}
-	return FindLayoutByScrollID(&w.layout, id)
+	return findLayoutByScrollID(&w.layout, id)
 }
 
 // fireOnScroll fires the OnScroll callback if set.
 func fireOnScroll(ly *Layout, w *Window) {
-	if ly.Shape.hasEvents() && ly.Shape.events.OnScroll != nil {
-		ly.Shape.events.OnScroll(EventCtx{ly, nil, w})
+	if ly.Shape.hasEvents() && ly.Shape.events.onScroll != nil {
+		ly.Shape.events.onScroll(EventCtx{ly, nil, w})
 	}
 }
 
@@ -66,7 +66,7 @@ func inputScrollCursorIntoView(
 	}
 
 	is := StateReadOr(w, nsInput,
-		layout.Shape.idKey(), InputState{})
+		layout.Shape.idKey(), inputState{})
 	runeLen := utf8RuneCount(text)
 	pos := is.CursorPos
 	pos = min(pos, runeLen)
@@ -76,7 +76,7 @@ func inputScrollCursorIntoView(
 	if !ok {
 		return
 	}
-	adjustCursorTrailing(&cp, gl.Lines, byteIdx, is.CursorTrailing)
+	adjustCursorTrailing(&cp, gl.Lines, byteIdx, is.cursorTrailing)
 
 	// Default 0: unscrolled position when no offset recorded yet.
 	sy := w.scrollY()
@@ -128,7 +128,7 @@ func textScrollCursorIntoView(layout *Layout, w *Window) {
 	}
 
 	is := StateReadOr(
-		w, nsInput, shape.idKey(), InputState{})
+		w, nsInput, shape.idKey(), inputState{})
 	runeLen := utf8RuneCount(text)
 	pos := is.CursorPos
 	pos = min(pos, runeLen)
@@ -138,7 +138,7 @@ func textScrollCursorIntoView(layout *Layout, w *Window) {
 	if !ok {
 		return
 	}
-	adjustCursorTrailing(&cp, gl.Lines, byteIdx, is.CursorTrailing)
+	adjustCursorTrailing(&cp, gl.Lines, byteIdx, is.cursorTrailing)
 
 	// Default 0: unscrolled position when no offset recorded yet.
 	sy := w.scrollY()
@@ -199,7 +199,7 @@ func scrollHorizontal(layout *Layout, delta float32, w *Window) bool {
 	// Default 0: unscrolled position when no offset recorded yet.
 	old := sx.GetOr(id, 0)
 	clamped := f32Clamp(
-		old+delta*guiTheme.ScrollMultiplier, maxOffset, 0)
+		old+delta*guiTheme.scrollMultiplier, maxOffset, 0)
 	if old == clamped {
 		return false
 	}
@@ -224,7 +224,7 @@ func scrollVertical(layout *Layout, delta float32, w *Window) bool {
 	// Default 0: unscrolled position when no offset recorded yet.
 	old := sy.GetOr(id, 0)
 	clamped := f32Clamp(
-		old+delta*guiTheme.ScrollMultiplier, maxOffset, 0)
+		old+delta*guiTheme.scrollMultiplier, maxOffset, 0)
 	if old == clamped {
 		return false
 	}
@@ -236,7 +236,7 @@ func scrollVertical(layout *Layout, delta float32, w *Window) bool {
 
 // ScrollToView scrolls the parent scroll container to make
 // the view with the given id visible.
-func (w *Window) ScrollToView(id string) {
+func (w *Window) scrollToView(id string) {
 	target, ok := w.layout.FindByID(id)
 	if !ok {
 		return
@@ -264,7 +264,7 @@ func (w *Window) ScrollToView(id string) {
 
 // ScrollHorizontalBy scrolls the given scrollable by delta. id is
 // the scrollable's scroll key (see the Scrollable doc on each Cfg).
-func (w *Window) ScrollHorizontalBy(id string, delta float32) {
+func (w *Window) scrollHorizontalBy(id string, delta float32) {
 	scrollSmoothCancel(w, id, scrollAxisX)
 	sx := w.scrollX()
 	// Default 0: unscrolled position when no offset recorded yet.
@@ -299,7 +299,7 @@ func (w *Window) ScrollHorizontalTo(id string, offset float32) {
 // mouse-wheel scrolling. No-op if the scroll id is not found or the
 // target equals the current offset. Use ScrollHorizontalTo for an
 // instant jump.
-func (w *Window) ScrollHorizontalToSmooth(id string, offset float32) {
+func (w *Window) scrollHorizontalToSmooth(id string, offset float32) {
 	if ly, ok := findScrollLayout(w, id); ok {
 		scrollSmoothTo(w, ly, scrollAxisX, offset)
 	}
@@ -308,8 +308,8 @@ func (w *Window) ScrollHorizontalToSmooth(id string, offset float32) {
 // ScrollHorizontalToPct scrolls to a horizontal percentage.
 // pct: 0.0 = left, 1.0 = right. Clamped to [0, 1].
 // No-op if the scroll id is not found or content fits viewport.
-func (w *Window) ScrollHorizontalToPct(id string, pct float32) {
-	ly, ok := FindLayoutByScrollID(&w.layout, id)
+func (w *Window) scrollHorizontalToPct(id string, pct float32) {
+	ly, ok := findLayoutByScrollID(&w.layout, id)
 	if !ok {
 		return
 	}
@@ -325,8 +325,8 @@ func (w *Window) ScrollHorizontalToPct(id string, pct float32) {
 // ScrollHorizontalPct returns the current horizontal scroll
 // position as a percentage (0.0 = left, 1.0 = right).
 // Returns 0 if not found or content fits viewport.
-func (w *Window) ScrollHorizontalPct(id string) float32 {
-	ly, ok := FindLayoutByScrollID(&w.layout, id)
+func (w *Window) scrollHorizontalPct(id string) float32 {
+	ly, ok := findLayoutByScrollID(&w.layout, id)
 	if !ok {
 		return 0
 	}
@@ -342,7 +342,7 @@ func (w *Window) ScrollHorizontalPct(id string) float32 {
 
 // ScrollVerticalBy scrolls the given scrollable by delta. id is
 // the scrollable's scroll key (see the Scrollable doc on each Cfg).
-func (w *Window) ScrollVerticalBy(id string, delta float32) {
+func (w *Window) scrollVerticalBy(id string, delta float32) {
 	scrollSmoothCancel(w, id, scrollAxisY)
 	sy := w.scrollY()
 	// Default 0: unscrolled position when no offset recorded yet.
@@ -377,7 +377,7 @@ func (w *Window) ScrollVerticalTo(id string, offset float32) {
 // mouse-wheel scrolling. No-op if the scroll id is not found or the
 // target equals the current offset. Use ScrollVerticalTo for an
 // instant jump.
-func (w *Window) ScrollVerticalToSmooth(id string, offset float32) {
+func (w *Window) scrollVerticalToSmooth(id string, offset float32) {
 	if ly, ok := findScrollLayout(w, id); ok {
 		scrollSmoothTo(w, ly, scrollAxisY, offset)
 	}
@@ -387,7 +387,7 @@ func (w *Window) ScrollVerticalToSmooth(id string, offset float32) {
 // pct: 0.0 = top, 1.0 = bottom. Clamped to [0, 1].
 // No-op if the scroll id is not found or content fits viewport.
 func (w *Window) ScrollVerticalToPct(id string, pct float32) {
-	ly, ok := FindLayoutByScrollID(&w.layout, id)
+	ly, ok := findLayoutByScrollID(&w.layout, id)
 	if !ok {
 		return
 	}
@@ -412,7 +412,7 @@ func (w *Window) ScrollVerticalOffset(id string) float32 {
 // position as a percentage (0.0 = top, 1.0 = bottom).
 // Returns 0 if not found or content fits viewport.
 func (w *Window) ScrollVerticalPct(id string) float32 {
-	ly, ok := FindLayoutByScrollID(&w.layout, id)
+	ly, ok := findLayoutByScrollID(&w.layout, id)
 	if !ok {
 		return 0
 	}

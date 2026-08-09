@@ -102,7 +102,7 @@ func getDownloadSem(w *Window) chan struct{} {
 	imageDownloadSemMu.Lock()
 	defer imageDownloadSemMu.Unlock()
 	if imageDownloadSem == nil {
-		n := w.Config.MaxImageDownloads
+		n := w.Config.maxImageDownloads
 		if n <= 0 {
 			n = defaultMaxImageDownloads
 		}
@@ -156,8 +156,8 @@ func defaultImageFetcher(
 //
 // Remote fetches use WindowCfg.ImageFetcher; use
 // ResolveImageSrcWithFetcher to override per call.
-func ResolveImageSrc(w *Window, src string) string {
-	return ResolveImageSrcWithFetcher(w, src, nil)
+func resolveImageSrc(w *Window, src string) string {
+	return resolveImageSrcWithFetcher(w, src, nil)
 }
 
 // ResolveImageSrcWithFetcher is ResolveImageSrc with a per-call
@@ -165,7 +165,7 @@ func ResolveImageSrc(w *Window, src string) string {
 // matching ResolveImageSrc exactly. The fetcher is consulted only on
 // a cold download; cache hits and already-in-flight URLs ignore it
 // (see DrawCanvasImageEntry.Fetcher on the URL-keyed dedup limit).
-func ResolveImageSrcWithFetcher(
+func resolveImageSrcWithFetcher(
 	w *Window, src string, fetcher ImageFetcher,
 ) string {
 	if src == "" {

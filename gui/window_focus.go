@@ -42,7 +42,7 @@ func (w *Window) setFocusLocked(id string) {
 	if id != "" {
 		w.viewState.inputCursorOn.Store(true)
 		if !w.hasAnimationLocked(blinkCursorAnimationID) {
-			w.animationAddLocked(NewBlinkCursorAnimation())
+			w.animationAddLocked(newBlinkCursorAnimation())
 		}
 	}
 	// Same reasoning: only a real focus *change* touches the platform

@@ -154,7 +154,7 @@ func TestEmitDrawCanvasImagesClipped(t *testing.T) {
 	}
 	emitDrawCanvasImages(entries, 5, 5, testFullClip, w)
 
-	var kinds []RenderKind
+	var kinds []renderKind
 	var clips []RenderCmd
 	for _, r := range w.renderers {
 		kinds = append(kinds, r.Kind)
@@ -162,7 +162,7 @@ func TestEmitDrawCanvasImagesClipped(t *testing.T) {
 			clips = append(clips, r)
 		}
 	}
-	want := []RenderKind{RenderClip, RenderImage, RenderClip, RenderImage}
+	want := []renderKind{RenderClip, RenderImage, RenderClip, RenderImage}
 	if len(kinds) != len(want) {
 		t.Fatalf("cmd kinds = %v, want %v", kinds, want)
 	}
@@ -259,12 +259,12 @@ func TestEmitDrawCanvasImagesConsecutiveClipped(t *testing.T) {
 	}
 	emitDrawCanvasImages(entries, 0, 0, testFullClip, w)
 
-	var kinds []RenderKind
+	var kinds []renderKind
 	for _, r := range w.renderers {
 		kinds = append(kinds, r.Kind)
 	}
 	// Two clipped entries, each with its own clip: [Clip, Image, Clip, Image, Clip(restore)]
-	want := []RenderKind{RenderClip, RenderImage, RenderClip, RenderImage, RenderClip}
+	want := []renderKind{RenderClip, RenderImage, RenderClip, RenderImage, RenderClip}
 	if len(kinds) != len(want) {
 		t.Fatalf("cmd kinds = %v, want %v", kinds, want)
 	}

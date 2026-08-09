@@ -12,7 +12,7 @@ import (
 // Snapshot result. Optional Size reports an approximate byte
 // cost for the byte-capped ring buffer; unimplemented types
 // use snapshotDefaultSize.
-type Snapshotter interface {
+type snapshotter interface {
 	Snapshot() any
 	Restore(any)
 }
@@ -71,7 +71,7 @@ var snapshotableNamespaces = struct {
 // index). Caches (SVG, tessellation) should stay live — do
 // not register them. Safe to call from any goroutine; typical
 // use is once at package init.
-func RegisterNamespaceSnapshot(ns string) {
+func registerNamespaceSnapshot(ns string) {
 	if ns == "" {
 		return
 	}
@@ -306,7 +306,7 @@ func (w *Window) captureSnapshot(e *Event) {
 	if !shouldSnapshot(e.Type) {
 		return
 	}
-	s, ok := w.state.(Snapshotter)
+	s, ok := w.state.(snapshotter)
 	if !ok {
 		return
 	}
@@ -359,7 +359,7 @@ func eventCause(e *Event) string {
 // Requires the window's user state to implement Snapshotter;
 // otherwise no snapshots are ever pushed (but calling the
 // method is still safe).
-func (w *Window) EnableHistory(maxBytes int) {
+func (w *Window) enableHistory(maxBytes int) {
 	if w == nil {
 		return
 	}
@@ -391,7 +391,7 @@ func (w *Window) HistoryLen() int {
 // history enabled; otherwise it logs and returns. Non-blocking:
 // the actual window is created on the next App event loop tick.
 // Safe to call from any goroutine.
-func (w *Window) OpenDebugWindow() {
+func (w *Window) openDebugWindow() {
 	if w == nil {
 		return
 	}
@@ -401,9 +401,9 @@ func (w *Window) OpenDebugWindow() {
 		return
 	}
 	if w.history == nil {
-		w.EnableHistory(0)
+		w.enableHistory(0)
 	}
-	ctrl := &TimeTravelController{App: w}
+	ctrl := &timeTravelController{App: w}
 	if n := w.history.len(); n > 0 {
 		ctrl.Cursor = n - 1
 	}
@@ -431,7 +431,7 @@ func (w *Window) OpenDebugWindow() {
 		// and no scrubber to resume from.
 		OnCloseRequest: func(dw *Window) {
 			if ctrl.App != nil {
-				ctrl.App.Resume()
+				ctrl.App.resume()
 			}
 			dw.Close()
 		},
@@ -442,7 +442,7 @@ func (w *Window) OpenDebugWindow() {
 // debug window. Reads the TimeTravelController from its state
 // slot and delegates to ctrl.View.
 func debugWindowView(dw *Window) View {
-	return State[TimeTravelController](dw).View(dw)
+	return State[timeTravelController](dw).View(dw)
 }
 
 // Freeze enters time-travel scrub mode. Subsequent user input
@@ -460,7 +460,7 @@ func (w *Window) Freeze() {
 // Resume exits time-travel scrub mode. Clears the virtual
 // clock pin so w.Now() returns live time again. Idempotent.
 // Safe to call from any goroutine.
-func (w *Window) Resume() {
+func (w *Window) resume() {
 	if w == nil {
 		return
 	}
@@ -471,7 +471,7 @@ func (w *Window) Resume() {
 
 // IsFrozen reports whether the window is currently in a
 // read-only time-travel scrub.
-func (w *Window) IsFrozen() bool {
+func (w *Window) isFrozen() bool {
 	if w == nil {
 		return false
 	}
@@ -484,7 +484,7 @@ func (w *Window) IsFrozen() bool {
 // queue so it runs on the main thread under w.mu, avoiding
 // torn reads against a concurrent view fn. No-op when history
 // is disabled. Safe to call from any goroutine.
-func (w *Window) PostRestore(idx int) {
+func (w *Window) postRestore(idx int) {
 	if w == nil || w.history == nil {
 		return
 	}
@@ -505,7 +505,7 @@ func (w *Window) restoreLocked(idx int) {
 	if !ok {
 		return
 	}
-	s, ok := w.state.(Snapshotter)
+	s, ok := w.state.(snapshotter)
 	if !ok {
 		return
 	}

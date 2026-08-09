@@ -216,7 +216,7 @@ func TestRendererValidStencilEnd(t *testing.T) {
 }
 
 func TestRendererValidUnknown(t *testing.T) {
-	r := RenderCmd{Kind: RenderKind(255)}
+	r := RenderCmd{Kind: renderKind(255)}
 	if !rendererValidForDraw(r) {
 		t.Error("unknown kind should pass (default case returns true)")
 	}

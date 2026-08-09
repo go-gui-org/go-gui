@@ -121,7 +121,7 @@ func LocaleRowsFmt(start, end, total int) string {
 // LocalePageFmt formats "Page current/total".
 func LocalePageFmt(page, total int) string {
 	return fmt.Sprintf("%s %d/%d",
-		ActiveLocale.StrPage, page, total)
+		ActiveLocale.strPage, page, total)
 }
 
 // LocaleMatchesFmt formats "Matches count/total".
@@ -132,7 +132,7 @@ func LocaleMatchesFmt(count int, total string) string {
 
 // LocaleT looks up a translation key in the current locale.
 // Returns the key itself when not found.
-func LocaleT(key string) string {
+func localeT(key string) string {
 	if v, ok := ActiveLocale.Translations[key]; ok {
 		return v
 	}

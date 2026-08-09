@@ -137,33 +137,33 @@ func (w *mdWalker) walkInlineExt(
 		return w.collectRunsInto(dst, node, ns)
 	case east.KindTaskCheckBox:
 		return dst
-	case NodeKindMathInline:
+	case nodeKindMathInline:
 		mi := node.(*nodeMathInline)
 		// A math cache key, not a widget ID.
 		id := fmt.Sprintf("math_%x", MathHash(mi.Latex)) // ergoaudit:not-an-id
 		return append(dst, Run{
 			MathID: id, MathLatex: mi.Latex, Format: state.format,
 		})
-	case NodeKindMathDisplay:
+	case nodeKindMathDisplay:
 		md := node.(*nodeMathDisplay)
 		// A math cache key, not a widget ID.
 		id := fmt.Sprintf("math_%x", MathHash(md.Latex)) // ergoaudit:not-an-id
 		return append(dst, Run{
 			MathID: id, MathLatex: md.Latex, Format: state.format,
 		})
-	case NodeKindHighlight:
+	case nodeKindHighlight:
 		ns := state
 		ns.highlight = true
 		return w.collectRunsInto(dst, node, ns)
-	case NodeKindUnderline:
+	case nodeKindUnderline:
 		ns := state
 		ns.underline = true
 		return w.collectRunsInto(dst, node, ns)
-	case NodeKindSuperscript:
+	case nodeKindSuperscript:
 		ns := state
 		ns.superscript = true
 		return w.collectRunsInto(dst, node, ns)
-	case NodeKindSubscript:
+	case nodeKindSubscript:
 		ns := state
 		ns.subscript = true
 		return w.collectRunsInto(dst, node, ns)
@@ -223,7 +223,7 @@ func mergeFormat(parent, child Format) Format {
 		return FormatCode
 	}
 	switch parent {
-	case FormatPlain:
+	case formatPlain:
 		return child
 	case FormatBold:
 		if child == FormatItalic ||

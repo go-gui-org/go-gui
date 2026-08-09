@@ -36,7 +36,7 @@ func TestEventCtxNilEventMethods(t *testing.T) {
 	// Both must be callable from AmendLayout/OnScroll, which carry no
 	// originating event.
 	ctx.Consume()
-	if ctx.Handled() {
+	if ctx.handled() {
 		t.Error("Handled() must be false with a nil Event")
 	}
 }
@@ -203,12 +203,12 @@ func TestClickOnSpaceActivatesOnceAndConsumes(t *testing.T) {
 	t.Parallel()
 	n := 0
 	root := focusedChild("f1", &eventHandlers{
-		ClickOnSpace: true,
+		clickOnSpace: true,
 		OnClick:      func(EventCtx) { n++ },
 	})
 	w := &Window{}
 	w.SetFocus("f1")
-	e := &Event{CharCode: CharSpace}
+	e := &Event{CharCode: charSpace}
 	charHandler(root, e, w)
 	if n != 1 {
 		t.Errorf("OnClick fired %d times, want 1", n)
@@ -222,7 +222,7 @@ func TestClickOnEnterActivatesOnceAndConsumes(t *testing.T) {
 	t.Parallel()
 	n := 0
 	root := focusedChild("f1", &eventHandlers{
-		ClickOnEnter: true,
+		clickOnEnter: true,
 		OnClick:      func(EventCtx) { n++ },
 	})
 	w := &Window{}

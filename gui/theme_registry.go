@@ -12,7 +12,7 @@ var (
 
 // ThemeRegister adds a theme to the global registry by name.
 // Overwrites any existing entry with the same name.
-func ThemeRegister(t Theme) {
+func themeRegister(t Theme) {
 	themeRegistryMu.Lock()
 	themeRegistry[t.Name] = t
 	themeRegistryMu.Unlock()
@@ -28,7 +28,7 @@ func ThemeGet(name string) (Theme, bool) {
 
 // ThemeRegisteredNames returns sorted names of all registered
 // themes.
-func ThemeRegisteredNames() []string {
+func themeRegisteredNames() []string {
 	themeRegistryMu.RLock()
 	names := make([]string, 0, len(themeRegistry))
 	for k := range themeRegistry {

@@ -154,7 +154,7 @@ func (w *mdWalker) walkParagraph(node ast.Node) {
 	}
 	// Standalone display math → math block.
 	if node.ChildCount() == 1 &&
-		node.FirstChild().Kind() == NodeKindMathDisplay {
+		node.FirstChild().Kind() == nodeKindMathDisplay {
 		dm := node.FirstChild().(*nodeMathDisplay)
 		w.blocks = append(w.blocks, Block{
 			IsMath:    true,
@@ -172,7 +172,7 @@ func (w *mdWalker) walkParagraph(node ast.Node) {
 func (w *mdWalker) walkHeading(h *ast.Heading) {
 	runs := w.collectRuns(h, inlineState{})
 	runs = trimTrailingBreaks(runs)
-	slug := HeadingSlug(RunsToText(runs))
+	slug := headingSlug(runsToText(runs))
 	w.blocks = append(w.blocks, Block{
 		HeaderLevel: h.Level,
 		AnchorSlug:  slug,
@@ -200,7 +200,7 @@ func (w *mdWalker) walkCodeBlock(cb *ast.CodeBlock) {
 }
 
 func (w *mdWalker) emitCodeBlock(code, langHint string) {
-	lang := LangFromHint(langHint)
+	lang := langFromHint(langHint)
 	tokens := tokenizeCode(code, lang,
 		maxCodeBlockHighlightBytes)
 	var runs []Run
@@ -409,7 +409,7 @@ func convertAlign(a east.Alignment) Align {
 	case east.AlignCenter:
 		return AlignCenter
 	default:
-		return AlignStart
+		return alignStart
 	}
 }
 

@@ -4,10 +4,10 @@ import "testing"
 
 func TestLayoutParents(t *testing.T) {
 	p := &Layout{
-		Shape: &Shape{UID: 1},
+		Shape: &Shape{uID: 1},
 		Children: []Layout{
-			{Shape: &Shape{UID: 2}},
-			{Shape: &Shape{UID: 3}},
+			{Shape: &Shape{uID: 2}},
+			{Shape: &Shape{uID: 3}},
 		},
 	}
 
@@ -27,7 +27,7 @@ func TestLayoutParents(t *testing.T) {
 func TestLayoutSpacingSkipsHiddenFloatingAndOverDraw(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis:    AxisLeftToRight,
+			Axis:    axisLeftToRight,
 			Spacing: 8,
 		},
 		Children: []Layout{
@@ -48,7 +48,7 @@ func TestLayoutSpacingSkipsHiddenFloatingAndOverDraw(t *testing.T) {
 func TestContentWidthLTRSkipsHiddenFloatingAndOverDraw(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis:    AxisLeftToRight,
+			Axis:    axisLeftToRight,
 			Spacing: 8,
 		},
 		Children: []Layout{
@@ -70,7 +70,7 @@ func TestContentWidthLTRSkipsHiddenFloatingAndOverDraw(t *testing.T) {
 func TestContentHeightTTBSkipsHiddenFloatingAndOverDraw(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis:    AxisTopToBottom,
+			Axis:    axisTopToBottom,
 			Spacing: 6,
 		},
 		Children: []Layout{
@@ -92,7 +92,7 @@ func TestContentHeightTTBSkipsHiddenFloatingAndOverDraw(t *testing.T) {
 func TestLayoutWidthsLTR(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis:    AxisLeftToRight,
+			Axis:    axisLeftToRight,
 			Padding: Padding{Left: 10, Right: 10},
 			Spacing: 5,
 		},
@@ -146,7 +146,7 @@ func TestLayoutWidthsLTR(t *testing.T) {
 func TestLayoutWidthsTTB(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis:    AxisTopToBottom,
+			Axis:    axisTopToBottom,
 			Padding: Padding{Left: 5, Right: 5},
 		},
 		Children: []Layout{
@@ -169,7 +169,7 @@ func TestLayoutWidthsTTB(t *testing.T) {
 func TestLayoutFillWidthsLTRGrow(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis:      AxisLeftToRight,
+			Axis:      axisLeftToRight,
 			shapeType: shapeRectangle,
 			Sizing:    FixedFixed,
 			Width:     100,
@@ -200,7 +200,7 @@ func TestLayoutFillWidthsLTRGrow(t *testing.T) {
 func TestLayoutFillHeightsTTBGrow(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis:    AxisTopToBottom,
+			Axis:    axisTopToBottom,
 			Sizing:  FixedFixed,
 			Width:   100,
 			Height:  100,
@@ -232,7 +232,7 @@ func TestLayoutPositionsCenter(t *testing.T) {
 		Shape: &Shape{
 			X: 0, Y: 0,
 			Width: 100, Height: 100,
-			Axis:    AxisLeftToRight,
+			Axis:    axisLeftToRight,
 			HAlign:  HAlignCenter,
 			VAlign:  VAlignMiddle,
 			Padding: Padding{Left: 10, Right: 10, Top: 10, Bottom: 10},
@@ -309,7 +309,7 @@ func TestLayoutSetShapeClips(t *testing.T) {
 
 func TestLayoutRemoveFloatingLayoutsDistinctPlaceholders(t *testing.T) {
 	root := &Layout{
-		Shape: &Shape{Axis: AxisLeftToRight},
+		Shape: &Shape{Axis: axisLeftToRight},
 		Children: []Layout{
 			{Shape: &Shape{shapeType: shapeRectangle, Float: true}},
 			{Shape: &Shape{shapeType: shapeRectangle, Float: true}},
@@ -335,7 +335,7 @@ func TestLayoutFillWidthsRootScrollFillNoParent(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			shapeType:  shapeRectangle,
-			Axis:       AxisTopToBottom,
+			Axis:       axisTopToBottom,
 			Scrollable: true,
 			ID:         "1",
 			Sizing:     FillFill,
@@ -353,7 +353,7 @@ func TestLayoutFillHeightsRootScrollFillNoParent(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			shapeType:  shapeRectangle,
-			Axis:       AxisLeftToRight,
+			Axis:       axisLeftToRight,
 			Scrollable: true,
 			ID:         "1",
 			Sizing:     FillFill,
@@ -371,7 +371,7 @@ func TestLayoutFillWidthsScrollChildNoRoundoffBias(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			shapeType: shapeRectangle,
-			Axis:      AxisLeftToRight,
+			Axis:      axisLeftToRight,
 			Sizing:    FixedFixed,
 			Width:     100,
 			Height:    50,
@@ -379,8 +379,8 @@ func TestLayoutFillWidthsScrollChildNoRoundoffBias(t *testing.T) {
 			Spacing:   8,
 		},
 		Children: []Layout{
-			{Shape: &Shape{shapeType: shapeRectangle, Axis: AxisNone, Sizing: FixedFill, Width: 30, Height: 20}},
-			{Shape: &Shape{shapeType: shapeRectangle, Axis: AxisTopToBottom, Sizing: FillFill, Scrollable: true, ID: "11", Width: 0, Height: 20}},
+			{Shape: &Shape{shapeType: shapeRectangle, Axis: axisNone, Sizing: FixedFill, Width: 30, Height: 20}},
+			{Shape: &Shape{shapeType: shapeRectangle, Axis: axisTopToBottom, Sizing: FillFill, Scrollable: true, ID: "11", Width: 0, Height: 20}},
 		},
 	}
 	layoutParents(root, nil)
@@ -394,7 +394,7 @@ func TestLayoutFillHeightsScrollChildNoRoundoffBias(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			shapeType: shapeRectangle,
-			Axis:      AxisTopToBottom,
+			Axis:      axisTopToBottom,
 			Sizing:    FixedFixed,
 			Width:     50,
 			Height:    100,
@@ -402,8 +402,8 @@ func TestLayoutFillHeightsScrollChildNoRoundoffBias(t *testing.T) {
 			Spacing:   8,
 		},
 		Children: []Layout{
-			{Shape: &Shape{shapeType: shapeRectangle, Axis: AxisNone, Sizing: FillFixed, Width: 20, Height: 30}},
-			{Shape: &Shape{shapeType: shapeRectangle, Axis: AxisLeftToRight, Sizing: FillFill, Scrollable: true, ID: "12", Width: 20, Height: 0}},
+			{Shape: &Shape{shapeType: shapeRectangle, Axis: axisNone, Sizing: FillFixed, Width: 20, Height: 30}},
+			{Shape: &Shape{shapeType: shapeRectangle, Axis: axisLeftToRight, Sizing: FillFill, Scrollable: true, ID: "12", Width: 20, Height: 0}},
 		},
 	}
 	layoutParents(root, nil)
@@ -419,7 +419,7 @@ func TestLayoutPositionsRTLRow(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			X: 0, Y: 0, Width: 200, Height: 50,
-			Axis:    AxisLeftToRight,
+			Axis:    axisLeftToRight,
 			TextDir: TextDirRTL,
 			Padding: Padding{Left: 10, Right: 10},
 			Spacing: 5,
@@ -446,7 +446,7 @@ func TestLayoutPositionsRTLStartAlign(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			X: 0, Y: 0, Width: 200, Height: 100,
-			Axis:    AxisTopToBottom,
+			Axis:    axisTopToBottom,
 			TextDir: TextDirRTL,
 			HAlign:  HAlignStart,
 		},
@@ -472,7 +472,7 @@ func TestLayoutPositionsRTLOverrideLTR(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			X: 0, Y: 0, Width: 200, Height: 50,
-			Axis:    AxisLeftToRight,
+			Axis:    axisLeftToRight,
 			TextDir: TextDirLTR, // explicit override
 			Padding: Padding{Left: 10, Right: 10},
 			Spacing: 5,
@@ -499,7 +499,7 @@ func TestLayoutPositionsRTLPaddingSwap(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			X: 0, Y: 0, Width: 200, Height: 50,
-			Axis:    AxisLeftToRight,
+			Axis:    axisLeftToRight,
 			TextDir: TextDirRTL,
 			Padding: Padding{Left: 20, Right: 5},
 		},
@@ -521,7 +521,7 @@ func TestLayoutPositionsRTLColumnPadding(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			X: 0, Y: 0, Width: 200, Height: 100,
-			Axis:    AxisTopToBottom,
+			Axis:    axisTopToBottom,
 			HAlign:  HAlignLeft,
 			TextDir: TextDirRTL,
 			Padding: Padding{Left: 20, Right: 5},
@@ -572,7 +572,7 @@ func TestLayoutPositionsRTLColumnSymmetric(t *testing.T) {
 	rtlRoot := &Layout{
 		Shape: &Shape{
 			X: 0, Y: 0, Width: 200, Height: 100,
-			Axis: AxisTopToBottom, HAlign: HAlignCenter, TextDir: TextDirRTL,
+			Axis: axisTopToBottom, HAlign: HAlignCenter, TextDir: TextDirRTL,
 			Padding: Padding{Left: 10, Right: 10},
 		},
 		Children: []Layout{
@@ -583,7 +583,7 @@ func TestLayoutPositionsRTLColumnSymmetric(t *testing.T) {
 	ltrRoot := &Layout{
 		Shape: &Shape{
 			X: 0, Y: 0, Width: 200, Height: 100,
-			Axis: AxisTopToBottom, HAlign: HAlignCenter, TextDir: TextDirLTR,
+			Axis: axisTopToBottom, HAlign: HAlignCenter, TextDir: TextDirLTR,
 			Padding: Padding{Left: 10, Right: 10},
 		},
 		Children: []Layout{

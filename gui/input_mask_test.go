@@ -3,30 +3,30 @@ package gui
 import "testing"
 
 func TestInputMaskPresets(t *testing.T) {
-	assertEqual(t, len(InputMaskFromPreset(MaskNone)), 0)
-	if InputMaskFromPreset(MaskPhoneUS) != "(999) 999-9999" {
+	assertEqual(t, len(inputMaskFromPreset(maskNone)), 0)
+	if inputMaskFromPreset(MaskPhoneUS) != "(999) 999-9999" {
 		t.Fatal("phone_us preset mismatch")
 	}
-	if InputMaskFromPreset(MaskCreditCard16) != "9999 9999 9999 9999" {
+	if inputMaskFromPreset(maskCreditCard16) != "9999 9999 9999 9999" {
 		t.Fatal("credit_card_16 preset mismatch")
 	}
-	if InputMaskFromPreset(MaskCreditCardAmex) != "9999 999999 99999" {
+	if inputMaskFromPreset(maskCreditCardAmex) != "9999 999999 99999" {
 		t.Fatal("credit_card_amex preset mismatch")
 	}
-	if InputMaskFromPreset(MaskExpiryMMYY) != "99/99" {
+	if inputMaskFromPreset(MaskExpiryMMYY) != "99/99" {
 		t.Fatal("expiry_mm_yy preset mismatch")
 	}
-	if InputMaskFromPreset(MaskCVC) != "999" {
+	if inputMaskFromPreset(maskCVC) != "999" {
 		t.Fatal("cvc preset mismatch")
 	}
 }
 
 func TestInputMaskSanitizePastePhone(t *testing.T) {
-	compiled, err := CompileInputMask(InputMaskFromPreset(MaskPhoneUS), nil)
+	compiled, err := compileInputMask(inputMaskFromPreset(MaskPhoneUS), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	res := InputMaskInsert("", 0, 0, 0, "abc555-123-4567xyz", &compiled)
+	res := inputMaskInsert("", 0, 0, 0, "abc555-123-4567xyz", &compiled)
 	if !res.Changed {
 		t.Fatal("expected changed")
 	}
@@ -39,11 +39,11 @@ func TestInputMaskSanitizePastePhone(t *testing.T) {
 }
 
 func TestInputMaskRejectInvalidChar(t *testing.T) {
-	compiled, err := CompileInputMask("99", nil)
+	compiled, err := compileInputMask("99", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	res := InputMaskInsert("", 0, 0, 0, "a", &compiled)
+	res := inputMaskInsert("", 0, 0, 0, "a", &compiled)
 	if res.Changed {
 		t.Fatal("expected no change")
 	}
@@ -54,21 +54,21 @@ func TestInputMaskRejectInvalidChar(t *testing.T) {
 }
 
 func TestInputMaskDeleteSkipsLiterals(t *testing.T) {
-	compiled, err := CompileInputMask(InputMaskFromPreset(MaskPhoneUS), nil)
+	compiled, err := compileInputMask(inputMaskFromPreset(MaskPhoneUS), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	text := ""
 	cursor := 0
 	for _, ch := range "5551234" {
-		res := InputMaskInsert(text, cursor, 0, 0, string(ch), &compiled)
+		res := inputMaskInsert(text, cursor, 0, 0, string(ch), &compiled)
 		text = res.Text
 		cursor = res.CursorPos
 	}
 	if text != "(555) 123-4" {
 		t.Fatalf("got %q, want %q", text, "(555) 123-4")
 	}
-	del := InputMaskDelete(text, 4, 0, 0, &compiled)
+	del := inputMaskDelete(text, 4, 0, 0, &compiled)
 	if !del.Changed {
 		t.Fatal("expected changed")
 	}
@@ -78,15 +78,15 @@ func TestInputMaskDeleteSkipsLiterals(t *testing.T) {
 }
 
 func TestInputMaskBackspaceRemovesEditableSlot(t *testing.T) {
-	compiled, err := CompileInputMask(InputMaskFromPreset(MaskPhoneUS), nil)
+	compiled, err := compileInputMask(inputMaskFromPreset(MaskPhoneUS), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	start := InputMaskInsert("", 0, 0, 0, "5551234", &compiled)
+	start := inputMaskInsert("", 0, 0, 0, "5551234", &compiled)
 	if start.Text != "(555) 123-4" {
 		t.Fatalf("got %q, want %q", start.Text, "(555) 123-4")
 	}
-	back := InputMaskBackspace(start.Text, start.CursorPos, 0, 0, &compiled)
+	back := inputMaskBackspace(start.Text, start.CursorPos, 0, 0, &compiled)
 	if !back.Changed {
 		t.Fatal("expected changed")
 	}
@@ -106,13 +106,13 @@ func TestInputMaskCustomTokenTransform(t *testing.T) {
 		return r
 	}
 	custom := []MaskTokenDef{
-		{Symbol: 'A', Matcher: isUpperLetter, Transform: toUpper},
+		{Symbol: 'A', matcher: isUpperLetter, Transform: toUpper},
 	}
-	compiled, err := CompileInputMask("AA-99", custom)
+	compiled, err := compileInputMask("AA-99", custom)
 	if err != nil {
 		t.Fatal(err)
 	}
-	res := InputMaskInsert("", 0, 0, 0, "ab12", &compiled)
+	res := inputMaskInsert("", 0, 0, 0, "ab12", &compiled)
 	if !res.Changed {
 		t.Fatal("expected changed")
 	}

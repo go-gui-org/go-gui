@@ -6,7 +6,7 @@ import (
 )
 
 func TestLocaleRegistryInit(t *testing.T) {
-	names := LocaleRegisteredNames()
+	names := localeRegisteredNames()
 	want := []string{
 		"ar-SA", "de-DE", "en-US", "es-ES", "fr-FR",
 		"he-IL", "ja-JP", "ko-KR", "pt-BR", "zh-CN",
@@ -39,23 +39,23 @@ func TestLocaleGetUnknown(t *testing.T) {
 func TestLocaleRegisterOverwrite(t *testing.T) {
 	custom := localeDefaults()
 	custom.ID = "test-overwrite"
-	custom.StrOK = "first"
+	custom.strOK = "first"
 	LocaleRegister(custom)
 
-	custom.StrOK = "second"
+	custom.strOK = "second"
 	LocaleRegister(custom)
 
 	l, ok := LocaleGet("test-overwrite")
 	if !ok {
 		t.Fatal("not found")
 	}
-	if l.StrOK != "second" {
-		t.Fatalf("StrOK = %q, want second", l.StrOK)
+	if l.strOK != "second" {
+		t.Fatalf("StrOK = %q, want second", l.strOK)
 	}
 }
 
 func TestLocaleRegisteredNamesSorted(t *testing.T) {
-	names := LocaleRegisteredNames()
+	names := localeRegisteredNames()
 	for i := 1; i < len(names); i++ {
 		if names[i] < names[i-1] {
 			t.Fatalf("not sorted: %v", names)
@@ -66,19 +66,19 @@ func TestLocaleRegisteredNamesSorted(t *testing.T) {
 func TestLocalePresetFields(t *testing.T) {
 	tests := []struct {
 		id      string
-		dir     TextDirection
+		dir     textDirection
 		decSep  rune
 		curCode string
 	}{
 		{"en-US", TextDirLTR, '.', "USD"},
-		{"de-DE", TextDirAuto, ',', "EUR"},
+		{"de-DE", textDirAuto, ',', "EUR"},
 		{"ar-SA", TextDirRTL, '.', "SAR"},
-		{"fr-FR", TextDirAuto, ',', "EUR"},
-		{"es-ES", TextDirAuto, ',', "EUR"},
-		{"pt-BR", TextDirAuto, ',', "BRL"},
-		{"ja-JP", TextDirAuto, '.', "JPY"},
-		{"zh-CN", TextDirAuto, '.', "CNY"},
-		{"ko-KR", TextDirAuto, '.', "KRW"},
+		{"fr-FR", textDirAuto, ',', "EUR"},
+		{"es-ES", textDirAuto, ',', "EUR"},
+		{"pt-BR", textDirAuto, ',', "BRL"},
+		{"ja-JP", textDirAuto, '.', "JPY"},
+		{"zh-CN", textDirAuto, '.', "CNY"},
+		{"ko-KR", textDirAuto, '.', "KRW"},
 		{"he-IL", TextDirRTL, '.', "ILS"},
 	}
 	for _, tt := range tests {
@@ -99,7 +99,7 @@ func TestLocalePresetFields(t *testing.T) {
 			t.Errorf("%s: Currency.Code = %s, want %s",
 				tt.id, l.Currency.Code, tt.curCode)
 		}
-		if l.StrOK == "" {
+		if l.strOK == "" {
 			t.Errorf("%s: StrOK empty", tt.id)
 		}
 		if l.StrCancel == "" {

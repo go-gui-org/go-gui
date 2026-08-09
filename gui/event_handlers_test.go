@@ -146,7 +146,7 @@ func TestKeydownHandlerFallbackScroll(t *testing.T) {
 					Scrollable: true,
 					Width:      100,
 					Height:     100,
-					Axis:       AxisTopToBottom,
+					Axis:       axisTopToBottom,
 				},
 				Children: []Layout{
 					{Shape: &Shape{
@@ -158,7 +158,7 @@ func TestKeydownHandlerFallbackScroll(t *testing.T) {
 	}
 	w := &Window{}
 	w.SetFocus("f1")
-	guiTheme.ScrollDeltaLine = 20
+	guiTheme.scrollDeltaLine = 20
 	e := &Event{KeyCode: KeyDown, Modifiers: ModNone}
 	keydownHandler(root, e, w)
 	if !e.IsHandled {
@@ -167,15 +167,15 @@ func TestKeydownHandlerFallbackScroll(t *testing.T) {
 }
 
 func TestKeyDownScrollHandlerArrows(t *testing.T) {
-	guiTheme.ScrollDeltaLine = 20
-	guiTheme.ScrollDeltaPage = 100
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollDeltaLine = 20
+	guiTheme.scrollDeltaPage = 100
+	guiTheme.scrollMultiplier = 1
 
 	layout := &Layout{
 		Shape: &Shape{
 			Scrollable: true,
 			ID:         "1", Width: 100, Height: 100,
-			Axis: AxisTopToBottom,
+			Axis: axisTopToBottom,
 		},
 		Children: []Layout{
 			{Shape: &Shape{shapeType: shapeRectangle,
@@ -259,7 +259,7 @@ func TestMouseDownHandler(t *testing.T) {
 		lockCalled := false
 		w := &Window{windowWidth: 800, windowHeight: 600}
 		w.MouseLock(MouseLockCfg{
-			MouseDown: func(ctx EventCtx) {
+			mouseDown: func(ctx EventCtx) {
 				lockCalled = true
 				ctx.Consume()
 			},
@@ -363,7 +363,7 @@ func TestMouseMoveHandlerSkipsOutOfWindow(t *testing.T) {
 }
 
 func TestMouseScrollHandlerVertical(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	root := &Layout{Shape: &Shape{
 		Scrollable: true,
 		ID:         "1",
@@ -388,7 +388,7 @@ func TestMouseScrollHandlerVertical(t *testing.T) {
 }
 
 func TestMouseScrollHandlerHorizontalShift(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	root := &Layout{Shape: &Shape{
 		Scrollable: true,
 		ID:         "1",
@@ -396,7 +396,7 @@ func TestMouseScrollHandlerHorizontalShift(t *testing.T) {
 		Height:     100,
 		shapeClip: drawClip{X: 0, Y: 0,
 			Width: 50, Height: 100},
-		Axis: AxisLeftToRight,
+		Axis: axisLeftToRight,
 	}, Children: []Layout{
 		{Shape: &Shape{shapeType: shapeRectangle, Width: 200}},
 	}}
@@ -440,7 +440,7 @@ func TestMouseScrollHandlerFocusedOnMouseScroll(t *testing.T) {
 }
 
 func TestMouseScrollUnhandledCascadesToScrollContainer(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	// Focused handler does NOT set IsHandled — scroll should
 	// cascade to the scroll container fallback.
 	focusCalled := false
@@ -529,7 +529,7 @@ func TestMouseScrollFallbackRespectsIsHandled(t *testing.T) {
 }
 
 func TestMouseScrollFallbackUnhandledReachesContainer(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	// Layout callback does NOT set IsHandled — scroll should
 	// fall through to the parent scroll container.
 	root := &Layout{
@@ -785,14 +785,14 @@ func TestCharHandler_ClickOnSpace(t *testing.T) {
 		t.Parallel()
 		clicked := false
 		root := focusedChild("f1", &eventHandlers{
-			ClickOnSpace: true,
+			clickOnSpace: true,
 			OnClick: func(ctx EventCtx) {
 				clicked = true
 			},
 		})
 		w := &Window{}
 		w.SetFocus("f1")
-		e := &Event{CharCode: CharSpace}
+		e := &Event{CharCode: charSpace}
 		charHandler(root, e, w)
 		if !clicked {
 			t.Error("ClickOnSpace should fire OnClick via charHandler")
@@ -805,7 +805,7 @@ func TestCharHandler_ClickOnSpace(t *testing.T) {
 		t.Parallel()
 		clicked := false
 		root := focusedChild("f1", &eventHandlers{
-			ClickOnSpace: true,
+			clickOnSpace: true,
 			OnClick: func(ctx EventCtx) {
 				clicked = true
 			},
@@ -822,14 +822,14 @@ func TestCharHandler_ClickOnSpace(t *testing.T) {
 		t.Parallel()
 		clicked := false
 		root := focusedChild("f1", &eventHandlers{
-			ClickOnSpace: true,
+			clickOnSpace: true,
 			OnClick: func(ctx EventCtx) {
 				clicked = true
 			},
 		})
 		w := &Window{}
 		// No SetIDFocus — widget is not focused.
-		e := &Event{CharCode: CharSpace}
+		e := &Event{CharCode: charSpace}
 		charHandler(root, e, w)
 		if clicked {
 			t.Error("unfocused widget should not fire ClickOnSpace")
@@ -838,12 +838,12 @@ func TestCharHandler_ClickOnSpace(t *testing.T) {
 	t.Run("nil_onclick_no_panic", func(t *testing.T) {
 		t.Parallel()
 		root := focusedChild("f1", &eventHandlers{
-			ClickOnSpace: true,
+			clickOnSpace: true,
 			OnClick:      nil,
 		})
 		w := &Window{}
 		w.SetFocus("f1")
-		e := &Event{CharCode: CharSpace}
+		e := &Event{CharCode: charSpace}
 		// Must not panic.
 		charHandler(root, e, w)
 		if e.IsHandled {
@@ -858,7 +858,7 @@ func TestKeydownHandler_ClickOnEnter(t *testing.T) {
 		t.Parallel()
 		clicked := false
 		root := focusedChild("f1", &eventHandlers{
-			ClickOnEnter: true,
+			clickOnEnter: true,
 			OnClick: func(ctx EventCtx) {
 				clicked = true
 			},
@@ -878,7 +878,7 @@ func TestKeydownHandler_ClickOnEnter(t *testing.T) {
 		t.Parallel()
 		clicked := false
 		root := focusedChild("f1", &eventHandlers{
-			ClickOnEnter: true,
+			clickOnEnter: true,
 			OnClick: func(ctx EventCtx) {
 				clicked = true
 			},
@@ -895,7 +895,7 @@ func TestKeydownHandler_ClickOnEnter(t *testing.T) {
 		t.Parallel()
 		clicked := false
 		root := focusedChild("f1", &eventHandlers{
-			ClickOnEnter: true,
+			clickOnEnter: true,
 			OnClick: func(ctx EventCtx) {
 				clicked = true
 			},
@@ -911,7 +911,7 @@ func TestKeydownHandler_ClickOnEnter(t *testing.T) {
 	t.Run("nil_onclick_no_panic", func(t *testing.T) {
 		t.Parallel()
 		root := focusedChild("f1", &eventHandlers{
-			ClickOnEnter: true,
+			clickOnEnter: true,
 			OnClick:      nil,
 		})
 		w := &Window{}
@@ -968,7 +968,7 @@ func TestMouseDownHandler_ClickButtonFilter(t *testing.T) {
 						OnClick: func(ctx EventCtx) {
 							clicked = true
 						},
-						ClickButton: MouseRight,
+						clickButton: MouseRight,
 					},
 				}},
 			},
@@ -994,7 +994,7 @@ func TestMouseDownHandler_ClickButtonFilter(t *testing.T) {
 						OnClick: func(ctx EventCtx) {
 							clicked = true
 						},
-						ClickButton: MouseRight,
+						clickButton: MouseRight,
 					},
 				}},
 			},
@@ -1020,7 +1020,7 @@ func TestMouseDownHandler_ClickButtonFilter(t *testing.T) {
 						OnClick: func(ctx EventCtx) {
 							clicked = true
 						},
-						ClickButton: 0,
+						clickButton: 0,
 					},
 				}},
 			},

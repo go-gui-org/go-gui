@@ -8,7 +8,7 @@ import (
 // mockAppPlatform extends NoopNativePlatform to track App-level
 // menubar and system-tray interactions for integration tests.
 type mockAppPlatform struct {
-	NoopNativePlatform
+	noopNativePlatform
 	menubarCfg NativeMenubarCfg
 	menubarCB  func(string)
 	menubarSet bool
@@ -351,7 +351,7 @@ func TestAppRemoveSystemTrayNilPlatform(t *testing.T) {
 func TestAppNativeRoutingNoop(t *testing.T) {
 	app := NewApp()
 	w := NewWindow(WindowCfg{State: new(struct{})})
-	w.SetNativePlatform(&NoopNativePlatform{})
+	w.SetNativePlatform(&noopNativePlatform{})
 	app.Register(1, w)
 
 	// All App native methods should work safely with NoopNativePlatform.

@@ -55,7 +55,7 @@ func TestLoadSvg_AnimatedPathInFilteredGroupTriggersAnimation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSvg: %v", err)
 	}
-	if !cached.HasAnimatedPaths {
+	if !cached.hasAnimatedPaths {
 		t.Fatal("HasAnimatedPaths=false; expected true when only filtered " +
 			"group carries an Animated path")
 	}
@@ -73,7 +73,7 @@ func TestLoadSvg_NoAnimatedPathsLeavesFlagFalse(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSvg: %v", err)
 	}
-	if cached.HasAnimatedPaths {
+	if cached.hasAnimatedPaths {
 		t.Fatal("HasAnimatedPaths=true on a non-animated graphic")
 	}
 }

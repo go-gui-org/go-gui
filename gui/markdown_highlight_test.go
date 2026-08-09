@@ -14,7 +14,7 @@ func TestMarkdownChromaHighlighter(t *testing.T) {
 	src := "```go\npackage main\n\nfunc main() {}\n```\n"
 	blocks := markdownToBlocks(src, style)
 
-	var code *MarkdownBlock
+	var code *markdownBlock
 	for i := range blocks {
 		if blocks[i].IsCode {
 			code = &blocks[i]
@@ -31,12 +31,12 @@ func TestMarkdownChromaHighlighter(t *testing.T) {
 	var keywordColored, funcColored bool
 	for _, r := range code.Content.Runs {
 		if r.Text == "package" || r.Text == "func" {
-			if r.Style.Color == style.CodeKeywordColor {
+			if r.Style.Color == style.codeKeywordColor {
 				keywordColored = true
 			}
 		}
 		if r.Text == "main" &&
-			r.Style.Color == style.CodeFunctionColor {
+			r.Style.Color == style.codeFunctionColor {
 			funcColored = true
 		}
 	}
@@ -61,7 +61,7 @@ func TestMarkdownHighlighter_EmptyResultKeepsParserRuns(t *testing.T) {
 	style.CodeHighlighter = stubHighlighter{toks: nil}
 	src := "```go\npackage main\n```\n"
 	blocks := markdownToBlocks(src, style)
-	var code *MarkdownBlock
+	var code *markdownBlock
 	for i := range blocks {
 		if blocks[i].IsCode {
 			code = &blocks[i]
@@ -81,7 +81,7 @@ func TestMarkdownHighlighter_UnknownLang(t *testing.T) {
 	style.CodeHighlighter = highlight.Default()
 	src := "```fortran\nprogram hello\nend\n```\n"
 	blocks := markdownToBlocks(src, style)
-	var code *MarkdownBlock
+	var code *markdownBlock
 	for i := range blocks {
 		if blocks[i].IsCode {
 			code = &blocks[i]
@@ -106,7 +106,7 @@ func TestMarkdownHighlighterNilUnchanged(t *testing.T) {
 	style := DefaultMarkdownStyle()
 	src := "```go\npackage main\n```\n"
 	blocks := markdownToBlocks(src, style)
-	var code *MarkdownBlock
+	var code *markdownBlock
 	for i := range blocks {
 		if blocks[i].IsCode {
 			code = &blocks[i]

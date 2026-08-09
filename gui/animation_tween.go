@@ -57,8 +57,8 @@ func updateTween(tw *TweenAnimation, ac *AnimationCommands) bool {
 	}
 	progress, done := durationProgress(tw.start, tw.Duration)
 	if done {
-		ac.AppendOnValue(tw.OnValue, tw.To)
-		ac.AppendOnDone(tw.OnDone)
+		ac.appendOnValue(tw.OnValue, tw.To)
+		ac.appendOnDone(tw.OnDone)
 		tw.stopped = true
 		return true
 	}
@@ -67,6 +67,6 @@ func updateTween(tw *TweenAnimation, ac *AnimationCommands) bool {
 		easing = EaseLinear
 	}
 	eased := easing(progress)
-	ac.AppendOnValue(tw.OnValue, Lerp(tw.From, tw.To, eased))
+	ac.appendOnValue(tw.OnValue, lerp(tw.From, tw.To, eased))
 	return true
 }

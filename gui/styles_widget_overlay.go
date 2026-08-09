@@ -7,9 +7,10 @@ import (
 )
 
 // ListBoxStyle defines list box visual properties.
+// exportaudit:keep — reachable from an exported signature
 type ListBoxStyle struct {
-	TextStyleNormal TextStyle
-	SubheadingStyle TextStyle
+	textStyleNormal TextStyle
+	subheadingStyle TextStyle
 	Padding         Padding
 	SizeBorder      float32
 	Radius          float32
@@ -20,13 +21,14 @@ type ListBoxStyle struct {
 }
 
 // TreeStyle defines tree view visual properties.
+// exportaudit:keep — reachable from an exported signature
 type TreeStyle struct {
 	TextStyle     TextStyle
-	TextStyleIcon TextStyle
+	textStyleIcon TextStyle
 	Padding       Padding
 	SizeBorder    float32
 	Radius        float32
-	Indent        float32
+	indent        float32
 	Spacing       float32
 	Color         Color
 	ColorHover    Color
@@ -35,14 +37,15 @@ type TreeStyle struct {
 }
 
 // DialogStyle defines dialog visual properties.
+// exportaudit:keep — reachable from an exported signature
 type DialogStyle struct {
-	TitleTextStyle   TextStyle
+	titleTextStyle   TextStyle
 	TextStyle        TextStyle
 	Shadow           *BoxShadow
 	Padding          Padding
 	SizeBorder       float32
 	Radius           float32
-	RadiusBorder     float32 // Reserved.
+	radiusBorder     float32 // Reserved.
 	BlurRadius       float32
 	MinWidth         float32
 	MaxWidth         float32
@@ -53,39 +56,41 @@ type DialogStyle struct {
 }
 
 // ToastAnchor specifies toast notification position.
-type ToastAnchor uint8
+type toastAnchor uint8
 
 // ToastAnchor constants.
 const (
-	ToastTopLeft ToastAnchor = iota
-	ToastTopRight
-	ToastBottomLeft
-	ToastBottomRight
+	toastTopLeft toastAnchor = iota
+	toastTopRight
+	toastBottomLeft
+	toastBottomRight
 )
 
 // ToastStyle defines toast notification visual properties.
+// exportaudit:keep — reachable from an exported signature
 type ToastStyle struct {
 	TextStyle    TextStyle
 	TitleStyle   TextStyle
 	Shadow       *BoxShadow
-	MaxVisible   int
+	maxVisible   int
 	Padding      Padding
 	Width        float32
-	Margin       float32
+	margin       float32
 	Spacing      float32
-	AccentWidth  float32
+	accentWidth  float32
 	Radius       float32
 	SizeBorder   float32
 	Color        Color
 	ColorBorder  Color
-	ColorInfo    Color
+	colorInfo    Color
 	ColorSuccess Color
 	ColorWarning Color
 	ColorError   Color
-	Anchor       ToastAnchor
+	Anchor       toastAnchor
 }
 
 // TooltipStyle defines tooltip visual properties.
+// exportaudit:keep — reachable from an exported signature
 type TooltipStyle struct {
 	TextStyle   TextStyle
 	Shadow      *BoxShadow
@@ -98,58 +103,60 @@ type TooltipStyle struct {
 }
 
 // BadgeStyle defines badge visual properties.
+// exportaudit:keep — reachable from an exported signature
 type BadgeStyle struct {
 	TextStyle    TextStyle
 	Padding      Padding
-	DotSize      float32
+	dotSize      float32
 	Color        Color
-	ColorInfo    Color
+	colorInfo    Color
 	ColorSuccess Color
 	ColorWarning Color
 	ColorError   Color
 }
 
 // ExpandPanelStyle defines expand panel visual properties.
+// exportaudit:keep — reachable from an exported signature
 type ExpandPanelStyle struct {
 	Color        Color
 	ColorHover   Color
-	ColorClick   Color
+	colorClick   Color
 	ColorBorder  Color
 	Padding      Padding
 	SizeBorder   float32
 	Radius       float32
-	RadiusBorder float32
+	radiusBorder float32
 }
 
 // Default widget styles (dark theme).
 var (
-	DefaultListBoxStyle = ListBoxStyle{
+	defaultListBoxStyle = ListBoxStyle{
 		Color:           colorInteriorDark,
 		ColorHover:      colorHoverDark,
 		ColorBorder:     colorBorderDark,
 		ColorSelect:     colorSelectDark,
-		Padding:         PaddingButton,
-		SizeBorder:      SizeBorderDef,
-		Radius:          RadiusMedium,
-		TextStyleNormal: DefaultTextStyle,
-		SubheadingStyle: DefaultTextStyle,
+		Padding:         paddingButton,
+		SizeBorder:      sizeBorderDef,
+		Radius:          radiusMedium,
+		textStyleNormal: DefaultTextStyle,
+		subheadingStyle: DefaultTextStyle,
 	}
 
-	DefaultTreeStyle = TreeStyle{
+	defaultTreeStyle = TreeStyle{
 		Color:       ColorTransparent,
 		ColorHover:  colorHoverDark,
 		ColorFocus:  colorFocusDark,
 		ColorBorder: ColorTransparent,
 		Padding:     PaddingNone,
-		SizeBorder:  SizeBorderDef,
-		Radius:      RadiusMedium,
+		SizeBorder:  sizeBorderDef,
+		Radius:      radiusMedium,
 		TextStyle:   DefaultTextStyle,
-		TextStyleIcon: TextStyle{
+		textStyleIcon: TextStyle{
 			Color:  colorTextDark,
-			Size:   SizeTextSmall,
+			Size:   sizeTextSmall,
 			Family: IconFontName,
 		},
-		Indent:  25,
+		indent:  25,
 		Spacing: 0,
 	}
 
@@ -158,69 +165,69 @@ var (
 		ColorBorder:      colorBorderDark,
 		ColorBorderFocus: colorSelectDark,
 		Padding:          PaddingLarge,
-		SizeBorder:       SizeBorderDef,
-		Radius:           RadiusMedium,
-		RadiusBorder:     RadiusMedium,
+		SizeBorder:       sizeBorderDef,
+		Radius:           radiusMedium,
+		radiusBorder:     radiusMedium,
 		AlignButtons:     HAlignCenter,
-		TitleTextStyle: TextStyle{
+		titleTextStyle: TextStyle{
 			Color: colorTextDark,
-			Size:  SizeTextLarge,
+			Size:  sizeTextLarge,
 		},
 		TextStyle: DefaultTextStyle,
 	}
 
-	DefaultToastStyle = ToastStyle{
-		MaxVisible:   5,
-		Anchor:       ToastBottomRight,
+	defaultToastStyle = ToastStyle{
+		maxVisible:   5,
+		Anchor:       toastBottomRight,
 		Width:        260,
-		Margin:       16,
+		margin:       16,
 		Spacing:      8,
-		AccentWidth:  4,
-		Padding:      PaddingMedium,
-		Radius:       RadiusMedium,
-		SizeBorder:   SizeBorderDef,
+		accentWidth:  4,
+		Padding:      paddingMedium,
+		Radius:       radiusMedium,
+		SizeBorder:   sizeBorderDef,
 		Color:        colorPanelDark,
 		ColorBorder:  colorBorderDark,
-		ColorInfo:    colorSelectDark,
+		colorInfo:    colorSelectDark,
 		ColorSuccess: RGBA(46, 160, 67, 255),
 		ColorWarning: RGBA(210, 153, 34, 255),
 		ColorError:   RGBA(218, 54, 51, 255),
 		TextStyle:    DefaultTextStyle,
 		TitleStyle: TextStyle{
 			Color:    colorTextDark,
-			Size:     SizeTextMedium,
+			Size:     sizeTextMedium,
 			Typeface: glyph.TypefaceBold,
 		},
 	}
 
-	DefaultTooltipStyle = TooltipStyle{
+	defaultTooltipStyle = TooltipStyle{
 		Delay:       500 * time.Millisecond,
 		Color:       colorInteriorDark,
 		ColorBorder: colorBorderDark,
 		Padding:     PaddingSmall,
-		SizeBorder:  SizeBorderDef,
-		Radius:      RadiusSmall,
+		SizeBorder:  sizeBorderDef,
+		Radius:      radiusSmall,
 		TextStyle:   DefaultTextStyle,
 	}
 
-	DefaultBadgeStyle = BadgeStyle{
+	defaultBadgeStyle = BadgeStyle{
 		Color:        colorSelectDark,
-		ColorInfo:    colorSelectDark,
+		colorInfo:    colorSelectDark,
 		ColorSuccess: RGBA(46, 160, 67, 255),
 		ColorWarning: RGBA(210, 153, 34, 255),
 		ColorError:   RGBA(218, 54, 51, 255),
 		Padding:      NewPadding(2, 6, 2, 6),
-		DotSize:      8,
+		dotSize:      8,
 	}
 
-	DefaultExpandPanelStyle = ExpandPanelStyle{
+	defaultExpandPanelStyle = ExpandPanelStyle{
 		Color:        colorPanelDark,
 		ColorHover:   colorHoverDark,
-		ColorClick:   colorActiveDark,
+		colorClick:   colorActiveDark,
 		ColorBorder:  colorBorderDark,
-		Padding:      PaddingMedium,
-		SizeBorder:   SizeBorderDef,
-		Radius:       RadiusMedium,
-		RadiusBorder: RadiusMedium,
+		Padding:      paddingMedium,
+		SizeBorder:   sizeBorderDef,
+		Radius:       radiusMedium,
+		radiusBorder: radiusMedium,
 	}
 )

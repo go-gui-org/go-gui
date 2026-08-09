@@ -71,7 +71,7 @@ func TestColorFromHSVRoundTrip(t *testing.T) {
 }
 
 func TestColorFromHSVAAlpha(t *testing.T) {
-	c := ColorFromHSVA(0, 1, 1, 128)
+	c := colorFromHSVA(0, 1, 1, 128)
 	if c.A != 128 {
 		t.Errorf("A = %d, want 128", c.A)
 	}
@@ -87,7 +87,7 @@ func TestHueColorPrimaries(t *testing.T) {
 		{240, Color{0, 0, 255, 255, true}},
 	}
 	for _, tt := range tests {
-		got := HueColor(tt.hue)
+		got := hueColor(tt.hue)
 		if absDiff(got.R, tt.want.R) > 1 || absDiff(got.G, tt.want.G) > 1 || absDiff(got.B, tt.want.B) > 1 {
 			t.Errorf("HueColor(%f) = %v, want %v", tt.hue, got, tt.want)
 		}
@@ -96,14 +96,14 @@ func TestHueColorPrimaries(t *testing.T) {
 
 func TestToHexStringOpaque(t *testing.T) {
 	c := Color{255, 0, 128, 255, true}
-	if got := c.ToHexString(); got != "#FF0080" {
+	if got := c.toHexString(); got != "#FF0080" {
 		t.Errorf("got %q, want #FF0080", got)
 	}
 }
 
 func TestToHexStringAlpha(t *testing.T) {
 	c := Color{255, 0, 128, 200, true}
-	if got := c.ToHexString(); got != "#FF0080C8" {
+	if got := c.toHexString(); got != "#FF0080C8" {
 		t.Errorf("got %q, want #FF0080C8", got)
 	}
 }
@@ -119,7 +119,7 @@ func TestColorFromHexStringValid(t *testing.T) {
 		{"#AABBCCDD", Color{170, 187, 204, 221, true}},
 	}
 	for _, tt := range tests {
-		got, ok := ColorFromHexString(tt.input)
+		got, ok := colorFromHexString(tt.input)
 		if !ok {
 			t.Errorf("ColorFromHexString(%q) returned false", tt.input)
 			continue
@@ -133,7 +133,7 @@ func TestColorFromHexStringValid(t *testing.T) {
 func TestColorFromHexStringInvalid(t *testing.T) {
 	invalids := []string{"", "#GG0000", "#12345", "nope"}
 	for _, s := range invalids {
-		if _, ok := ColorFromHexString(s); ok {
+		if _, ok := colorFromHexString(s); ok {
 			t.Errorf("ColorFromHexString(%q) should return false", s)
 		}
 	}
@@ -146,7 +146,7 @@ func TestHexRoundTrip(t *testing.T) {
 		{10, 20, 30, 40, true},
 	}
 	for _, c := range colors {
-		got, ok := ColorFromHexString(c.ToHexString())
+		got, ok := colorFromHexString(c.toHexString())
 		if !ok {
 			t.Errorf("round-trip failed for %v", c)
 			continue

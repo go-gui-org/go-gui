@@ -63,12 +63,12 @@ func dataGridHeight(cfg *DataGridCfg) float32 {
 }
 
 func dataGridPagerEnabled(cfg *DataGridCfg, pageCount int) bool {
-	return cfg.PageSize > 0 && pageCount > 1
+	return cfg.pageSize > 0 && pageCount > 1
 }
 
 func dataGridPagerHeight(cfg *DataGridCfg) float32 {
-	if cfg.RowHeight > 0 {
-		return cfg.RowHeight
+	if cfg.rowHeight > 0 {
+		return cfg.rowHeight
 	}
 	return dataGridHeaderHeight(cfg)
 }
@@ -85,7 +85,7 @@ func dataGridHeaderHeight(cfg *DataGridCfg) float32 {
 	if cfg.HeaderHeight > 0 {
 		return cfg.HeaderHeight
 	}
-	return cfg.RowHeight
+	return cfg.rowHeight
 }
 
 func dataGridFilterHeight(cfg *DataGridCfg) float32 {
@@ -97,8 +97,8 @@ func dataGridQuickFilterHeight(cfg *DataGridCfg) float32 {
 }
 
 func dataGridRowHeight(cfg *DataGridCfg, _ *gg.Window) float32 {
-	if cfg.RowHeight > 0 {
-		return cfg.RowHeight
+	if cfg.rowHeight > 0 {
+		return cfg.rowHeight
 	}
 	return cfg.TextStyle.Size + cfg.PaddingCell.Get(gg.Padding{}).Height() + cfg.SizeBorder.Get(0)
 }
@@ -141,7 +141,7 @@ func dataGridVisibleRangeForScroll(scrollY, viewportHeight, rowHeight float32, r
 }
 
 func dataGridDetailRowExpanded(cfg *DataGridCfg, rowID string) bool {
-	return rowID != "" && cfg.DetailExpandedRowIDs[rowID]
+	return rowID != "" && cfg.detailExpandedRowIDs[rowID]
 }
 
 func dataGridHasSource(cfg *DataGridCfg) bool {
@@ -149,7 +149,7 @@ func dataGridHasSource(cfg *DataGridCfg) bool {
 }
 
 func dataGridColumnChooserHeight(cfg *DataGridCfg, isOpen bool) float32 {
-	base := cfg.RowHeight
+	base := cfg.rowHeight
 	if base <= 0 {
 		base = dataGridHeaderHeight(cfg)
 	}
@@ -221,7 +221,7 @@ func dataGridActiveRowIndexStrict(rows []GridRow, selection GridSelection) int {
 	if len(rows) == 0 {
 		return -1
 	}
-	hasActive := selection.ActiveRowID != ""
+	hasActive := selection.activeRowID != ""
 	hasSelected := len(selection.SelectedRowIDs) > 0
 	if !hasActive && !hasSelected {
 		return -1
@@ -229,7 +229,7 @@ func dataGridActiveRowIndexStrict(rows []GridRow, selection GridSelection) int {
 	firstSelected := -1
 	for idx, row := range rows {
 		id := dataGridRowID(row, idx)
-		if hasActive && id == selection.ActiveRowID {
+		if hasActive && id == selection.activeRowID {
 			return idx
 		}
 		if firstSelected < 0 && hasSelected && selection.SelectedRowIDs[id] {

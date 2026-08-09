@@ -39,12 +39,12 @@ func (c Color) ToHSV() (h, s, v float32) {
 // ColorFromHSV creates a Color from HSV values.
 // h: 0–360, s: 0–1, v: 0–1. Alpha defaults to 255.
 func ColorFromHSV(h, s, v float32) Color {
-	return ColorFromHSVA(h, s, v, 255)
+	return colorFromHSVA(h, s, v, 255)
 }
 
 // ColorFromHSVA creates a Color from HSVA values.
 // h: 0–360, s: 0–1, v: 0–1, a: 0–255.
-func ColorFromHSVA(h, s, v float32, a uint8) Color {
+func colorFromHSVA(h, s, v float32, a uint8) Color {
 	h = f32Mod(h, 360)
 	if h < 0 {
 		h += 360
@@ -80,12 +80,12 @@ func ColorFromHSVA(h, s, v float32, a uint8) Color {
 }
 
 // HueColor returns the pure color for a given hue (s=1, v=1).
-func HueColor(h float32) Color {
+func hueColor(h float32) Color {
 	return ColorFromHSV(h, 1.0, 1.0)
 }
 
 // ToHexString returns "#RRGGBB" or "#RRGGBBAA" when alpha != 255.
-func (c Color) ToHexString() string {
+func (c Color) toHexString() string {
 	if c.A == 255 {
 		return fmt.Sprintf("#%02X%02X%02X", c.R, c.G, c.B)
 	}
@@ -94,7 +94,7 @@ func (c Color) ToHexString() string {
 
 // ColorFromHexString parses "#RRGGBB" or "#RRGGBBAA".
 // Returns (Color, false) on invalid input.
-func ColorFromHexString(s string) (Color, bool) {
+func colorFromHexString(s string) (Color, bool) {
 	raw := s
 	if len(raw) > 0 && raw[0] == '#' {
 		raw = raw[1:]

@@ -8,8 +8,8 @@ func TestFileAccessStoreBookmark(t *testing.T) {
 	if g.ID == 0 {
 		t.Error("expected non-zero grant ID")
 	}
-	if w.FileAccessGrantCount() != 1 {
-		t.Errorf("grant count: got %d, want 1", w.FileAccessGrantCount())
+	if w.fileAccessGrantCount() != 1 {
+		t.Errorf("grant count: got %d, want 1", w.fileAccessGrantCount())
 	}
 }
 
@@ -20,35 +20,35 @@ func TestFileAccessStoreMultiple(t *testing.T) {
 	if g1.ID == g2.ID {
 		t.Error("expected unique grant IDs")
 	}
-	if w.FileAccessGrantCount() != 2 {
-		t.Errorf("grant count: got %d, want 2", w.FileAccessGrantCount())
+	if w.fileAccessGrantCount() != 2 {
+		t.Errorf("grant count: got %d, want 2", w.fileAccessGrantCount())
 	}
 }
 
 func TestFileAccessReleaseGrant(t *testing.T) {
 	w := &Window{}
 	g := w.storeBookmark("/file", nil)
-	w.ReleaseFileAccess(g)
-	if w.FileAccessGrantCount() != 0 {
-		t.Errorf("grant count: got %d, want 0", w.FileAccessGrantCount())
+	w.releaseFileAccess(g)
+	if w.fileAccessGrantCount() != 0 {
+		t.Errorf("grant count: got %d, want 0", w.fileAccessGrantCount())
 	}
 }
 
 func TestFileAccessReleaseZeroGrant(t *testing.T) {
 	w := &Window{}
 	w.storeBookmark("/file", nil)
-	w.ReleaseFileAccess(Grant{ID: 0}) // no-op
-	if w.FileAccessGrantCount() != 1 {
-		t.Errorf("grant count: got %d, want 1", w.FileAccessGrantCount())
+	w.releaseFileAccess(Grant{ID: 0}) // no-op
+	if w.fileAccessGrantCount() != 1 {
+		t.Errorf("grant count: got %d, want 1", w.fileAccessGrantCount())
 	}
 }
 
 func TestFileAccessReleaseUnknownGrant(t *testing.T) {
 	w := &Window{}
 	w.storeBookmark("/file", nil)
-	w.ReleaseFileAccess(Grant{ID: 999}) // unknown
-	if w.FileAccessGrantCount() != 1 {
-		t.Errorf("grant count: got %d, want 1", w.FileAccessGrantCount())
+	w.releaseFileAccess(Grant{ID: 999}) // unknown
+	if w.fileAccessGrantCount() != 1 {
+		t.Errorf("grant count: got %d, want 1", w.fileAccessGrantCount())
 	}
 }
 
@@ -57,16 +57,16 @@ func TestFileAccessReleaseAll(t *testing.T) {
 	w.storeBookmark("/a", nil)
 	w.storeBookmark("/b", nil)
 	w.storeBookmark("/c", nil)
-	w.ReleaseAllFileAccess()
-	if w.FileAccessGrantCount() != 0 {
-		t.Errorf("grant count: got %d, want 0", w.FileAccessGrantCount())
+	w.releaseAllFileAccess()
+	if w.fileAccessGrantCount() != 0 {
+		t.Errorf("grant count: got %d, want 0", w.fileAccessGrantCount())
 	}
 }
 
 func TestFileAccessReleaseAllEmpty(t *testing.T) {
 	w := &Window{}
-	w.ReleaseAllFileAccess() // should not panic
-	if w.FileAccessGrantCount() != 0 {
+	w.releaseAllFileAccess() // should not panic
+	if w.fileAccessGrantCount() != 0 {
 		t.Errorf("expected 0")
 	}
 }
@@ -74,12 +74,12 @@ func TestFileAccessReleaseAllEmpty(t *testing.T) {
 func TestFileAccessRestoreNoAppID(t *testing.T) {
 	_ = t
 	w := &Window{}
-	w.RestoreFileAccess() // no-op, no panic
+	w.restoreFileAccess() // no-op, no panic
 }
 
 func TestFileAccessSetAppID(t *testing.T) {
 	w := &Window{}
-	w.SetFileAccessAppID("com.example.app")
+	w.setFileAccessAppID("com.example.app")
 	w.fileAccess.mu.Lock()
 	appID := w.fileAccess.appID
 	w.fileAccess.mu.Unlock()

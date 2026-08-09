@@ -107,19 +107,19 @@ func TestMenuMapper(t *testing.T) {
 	}
 
 	// Root down enters submenu.
-	if m["file"].Down != "new" {
+	if m["file"].down != "new" {
 		t.Errorf("file.Down = %q, want new",
-			m["file"].Down)
+			m["file"].down)
 	}
 
 	// Submenu vertical nav.
-	if m["new"].Down != "open" {
+	if m["new"].down != "open" {
 		t.Errorf("new.Down = %q, want open",
-			m["new"].Down)
+			m["new"].down)
 	}
-	if m["open"].Up != "new" {
+	if m["open"].up != "new" {
 		t.Errorf("open.Up = %q, want new",
-			m["open"].Up)
+			m["open"].up)
 	}
 
 	// Submenu left goes to parent.

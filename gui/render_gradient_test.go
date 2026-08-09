@@ -73,7 +73,7 @@ func TestGradientDirectionKeywords(t *testing.T) {
 
 func TestGradientDirectionAngleOverride(t *testing.T) {
 	const eps = 1e-5
-	g := &GradientDef{HasAngle: true, Angle: 90, Direction: GradientToTop}
+	g := &GradientDef{hasAngle: true, angle: 90, Direction: GradientToTop}
 	dx, dy := GradientDir(g, 100, 100)
 	if math.Abs(float64(dx-1)) > eps || math.Abs(float64(dy)) > eps {
 		t.Errorf("angle override: got (%v,%v), want (1,0)", dx, dy)

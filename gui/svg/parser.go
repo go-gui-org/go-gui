@@ -22,6 +22,7 @@ import (
 var svgTrace = os.Getenv("GOGUI_SVG_TRACE") == "1"
 
 // Parser implements gui.SvgParser.
+// exportaudit:keep — reachable from an exported signature
 type Parser struct {
 	animatedScratch sync.Pool
 	byHash          map[uint64]parserCacheEntry
@@ -40,7 +41,7 @@ const maxAnimatedScratchCap = 4096
 
 type parserCacheEntry struct {
 	parsed *gui.SvgParsed
-	vg     *VectorGraphic
+	vg     *vectorGraphic
 	// sourceKey identifies the user-visible source independent of
 	// parse options: "inline:<data>" for inline SVGs or
 	// "file:<absPath>" for file-backed sources. InvalidateSvgSource
@@ -140,8 +141,8 @@ func fileSourceKey(path string) string {
 	return "file:" + abs
 }
 
-func optsToSvg(o gui.SvgParseOpts) ParseOptions {
-	return ParseOptions{
+func optsToSvg(o gui.SvgParseOpts) parseOptions {
+	return parseOptions{
 		PrefersReducedMotion: o.PrefersReducedMotion,
 		FlatnessTolerance:    o.FlatnessTolerance,
 		HoveredElementID:     o.HoveredElementID,
@@ -266,11 +267,11 @@ func (p *Parser) TessellateAnimated(
 // pathed entry in src into dst, applying any matching attribute
 // override. Inlined (rather than a closure) so the hot path does not
 // allocate a closure capturing the override map per call.
-func collectAnimatedPaths(dst []VectorPath, src []VectorPath,
-	overrides map[uint32]gui.SvgAnimAttrOverride) []VectorPath {
+func collectAnimatedPaths(dst []vectorPath, src []vectorPath,
+	overrides map[uint32]gui.SvgAnimAttrOverride) []vectorPath {
 	for i := range src {
 		s := &src[i]
-		if !s.Animated || s.ClipPathID != "" {
+		if !s.Animated || s.clipPathID != "" {
 			continue
 		}
 		clone := *s
@@ -282,7 +283,7 @@ func collectAnimatedPaths(dst []VectorPath, src []VectorPath,
 	return dst
 }
 
-func (p *Parser) getAnimatedScratch(minCap int) []VectorPath {
+func (p *Parser) getAnimatedScratch(minCap int) []vectorPath {
 	// Bound seed cap so hostile minCap cannot force a giant make().
 	// append grows past the cap naturally when real usage exceeds it.
 	if minCap < 0 {
@@ -292,25 +293,25 @@ func (p *Parser) getAnimatedScratch(minCap int) []VectorPath {
 		minCap = maxAnimatedScratchCap
 	}
 	if v := p.animatedScratch.Get(); v != nil {
-		if buf, ok := v.(*[]VectorPath); ok && cap(*buf) >= minCap {
+		if buf, ok := v.(*[]vectorPath); ok && cap(*buf) >= minCap {
 			return (*buf)[:0]
 		}
 	}
-	return make([]VectorPath, 0, minCap)
+	return make([]vectorPath, 0, minCap)
 }
 
-func (p *Parser) putAnimatedScratch(buf []VectorPath) {
+func (p *Parser) putAnimatedScratch(buf []vectorPath) {
 	if cap(buf) == 0 || cap(buf) > maxAnimatedScratchCap {
 		return
 	}
 	for i := range buf {
-		buf[i] = VectorPath{}
+		buf[i] = vectorPath{}
 	}
 	buf = buf[:0]
 	p.animatedScratch.Put(&buf)
 }
 
-func traceOverride(p *VectorPath, ov gui.SvgAnimAttrOverride) {
+func traceOverride(p *vectorPath, ov gui.SvgAnimAttrOverride) {
 	check := func(name string, bit gui.SvgAnimAttrMask, v float32) {
 		if ov.Mask&bit == 0 {
 			return
@@ -334,8 +335,8 @@ func traceOverride(p *VectorPath, ov gui.SvgAnimAttrOverride) {
 
 // traceAnimatedTriangles logs animated paths whose bbox escapes 2x
 // viewBox — diagnostic for spurious full-cell fills.
-func traceAnimatedTriangles(vg *VectorGraphic,
-	paths []gui.TessellatedPath, animated []VectorPath,
+func traceAnimatedTriangles(vg *vectorGraphic,
+	paths []gui.TessellatedPath, animated []vectorPath,
 	overrides map[uint32]gui.SvgAnimAttrOverride,
 ) {
 	xLim := vg.Width * 2
@@ -394,7 +395,7 @@ func traceAnimatedTriangles(vg *VectorGraphic,
 // to CX/CY/R/...; dash overrides apply regardless of kind since
 // stroke-dasharray/offset work on any path. AdditiveMask bits add
 // the override to the parsed base value; non-additive bits replace.
-func applyOverridesToPath(p *VectorPath, ov gui.SvgAnimAttrOverride) {
+func applyOverridesToPath(p *vectorPath, ov gui.SvgAnimAttrOverride) {
 	if svgTrace {
 		traceOverride(p, ov)
 	}
@@ -402,7 +403,7 @@ func applyOverridesToPath(p *VectorPath, ov gui.SvgAnimAttrOverride) {
 		n := min(int(ov.StrokeDashArrayLen), gui.SvgAnimDashArrayCap)
 		// Fresh alloc required: clone shares backing with cached
 		// src; in-place mutation would corrupt the cache.
-		p.StrokeDasharray = slices.Clone(ov.StrokeDashArray[:n])
+		p.strokeDasharray = slices.Clone(ov.StrokeDashArray[:n])
 	}
 	if ov.Mask&gui.SvgAnimMaskStrokeDashOffset != 0 {
 		if ov.AdditiveMask&gui.SvgAnimMaskStrokeDashOffset != 0 {
@@ -480,7 +481,7 @@ func nonNegF32(v float32) float32 {
 
 // ReleaseParsed drops parser-side references for a parsed SVG once
 // callers are done tessellating it.
-func (p *Parser) ReleaseParsed(parsed *gui.SvgParsed) {
+func (p *Parser) releaseParsed(parsed *gui.SvgParsed) {
 	if parsed == nil {
 		return
 	}
@@ -556,7 +557,7 @@ func (p *Parser) ClearSvgParserCache() {
 	p.order = nil
 }
 
-func (p *Parser) buildParsed(hash uint64, sourceKey string, vg *VectorGraphic, scale float32) *gui.SvgParsed {
+func (p *Parser) buildParsed(hash uint64, sourceKey string, vg *vectorGraphic, scale float32) *gui.SvgParsed {
 	resolveAnimationTargets(vg)
 	tpaths := vg.getTriangles(scale)
 	result := &gui.SvgParsed{
@@ -675,13 +676,13 @@ const maxGroupParentDepth = 64
 // match yields one PathID; a group-id match yields every descendant
 // primitive's PathID, enabling per-path animation routing without
 // sibling-collision collapses.
-func resolveAnimationTargets(vg *VectorGraphic) {
+func resolveAnimationTargets(vg *vectorGraphic) {
 	if len(vg.Animations) == 0 {
 		return
 	}
-	byGroup := make(map[string][]uint32, len(vg.GroupParent)+8)
+	byGroup := make(map[string][]uint32, len(vg.groupParent)+8)
 	visited := make(map[string]struct{}, 8)
-	collect := func(paths []VectorPath) {
+	collect := func(paths []vectorPath) {
 		for i := range paths {
 			p := &paths[i]
 			if p.GroupID == "" || p.PathID == 0 {
@@ -695,7 +696,7 @@ func resolveAnimationTargets(vg *VectorGraphic) {
 				}
 				visited[gid] = struct{}{}
 				byGroup[gid] = append(byGroup[gid], p.PathID)
-				parent, ok := vg.GroupParent[gid]
+				parent, ok := vg.groupParent[gid]
 				if !ok || parent == gid {
 					break
 				}
@@ -716,7 +717,7 @@ func resolveAnimationTargets(vg *VectorGraphic) {
 	}
 }
 
-func tessellateFilteredGroups(vg *VectorGraphic, scale float32) []gui.SvgParsedFilteredGroup {
+func tessellateFilteredGroups(vg *vectorGraphic, scale float32) []gui.SvgParsedFilteredGroup {
 	if len(vg.FilteredGroups) == 0 {
 		return nil
 	}

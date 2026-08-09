@@ -40,8 +40,8 @@ func findAllByName(root *xmlNode, name string, out *[]*xmlNode) {
 	}
 }
 
-func parseDefsClipPaths(root *xmlNode) map[string][]VectorPath {
-	clipPaths := make(map[string][]VectorPath)
+func parseDefsClipPaths(root *xmlNode) map[string][]vectorPath {
+	clipPaths := make(map[string][]vectorPath)
 	var nodes []*xmlNode
 	findAllByName(root, "clipPath", &nodes)
 	for _, cp := range nodes {

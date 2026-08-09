@@ -87,8 +87,8 @@ func TestColorByteOrder(t *testing.T) {
 		want int
 	}{
 		{"RGBA8", c.RGBA8(), 0xAABBCCDD},
-		{"BGRA8", c.BGRA8(), 0xCCBBAADD},
-		{"ABGR8", c.ABGR8(), 0xDDCCBBAA},
+		{"BGRA8", c.bGRA8(), 0xCCBBAADD},
+		{"ABGR8", c.aBGR8(), 0xDDCCBBAA},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -131,7 +131,7 @@ func TestColorFromString(t *testing.T) {
 	t.Run("named", func(t *testing.T) {
 		t.Parallel()
 		c := ColorFromString("red")
-		if !c.Eq(Red) {
+		if !c.eq(Red) {
 			t.Errorf("ColorFromString(red) = %v, want %v", c, Red)
 		}
 	})
@@ -162,7 +162,7 @@ func TestEqIgnoresSet(t *testing.T) {
 	t.Parallel()
 	a := Color{R: 255, A: 255, set: true}
 	b := Color{R: 255, A: 255}
-	if !a.Eq(b) {
+	if !a.eq(b) {
 		t.Fatal("Eq should compare only RGBA channels")
 	}
 }
@@ -180,7 +180,7 @@ func TestColorToCSSString(t *testing.T) {
 	t.Parallel()
 	c := RGBA(10, 20, 30, 128)
 	want := "rgba(10,20,30,128)"
-	if got := c.ToCSSString(); got != want {
+	if got := c.toCSSString(); got != want {
 		t.Errorf("ToCSSString() = %q, want %q", got, want)
 	}
 }

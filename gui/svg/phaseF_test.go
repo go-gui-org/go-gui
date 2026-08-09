@@ -190,12 +190,12 @@ func TestPhaseF_Media_EndToEnd_ReducedAnimationStripped(t *testing.T) {
 		<rect class="r" x="10" y="20" width="40" height="60"/>
 	</svg>`
 
-	full, _ := parseSvgWith(src, ParseOptions{})
+	full, _ := parseSvgWith(src, parseOptions{})
 	if len(full.Animations) == 0 {
 		t.Fatalf("no animation when reduced-motion off")
 	}
 
-	reduced, _ := parseSvgWith(src, ParseOptions{PrefersReducedMotion: true})
+	reduced, _ := parseSvgWith(src, parseOptions{PrefersReducedMotion: true})
 	if len(reduced.Animations) != 0 {
 		t.Errorf("animation count under reduced-motion: %d (want 0)",
 			len(reduced.Animations))

@@ -16,7 +16,7 @@ type SliderCfg struct {
 	Padding         Opt[Padding]
 	SizeBorder      Opt[float32]
 	Radius          Opt[float32]
-	RadiusBorder    Opt[float32]
+	radiusBorder    Opt[float32]
 	Value           float32
 	Min             float32
 	Max             float32
@@ -30,14 +30,14 @@ type SliderCfg struct {
 	FocusDisabled bool
 	Color         Color
 	ColorBorder   Color
-	ColorThumb    Color
+	colorThumb    Color
 	ColorFocus    Color
 	ColorHover    Color
-	ColorLeft     Color
-	ColorClick    Color
+	colorLeft     Color
+	colorClick    Color
 	Sizing        Sizing
-	RoundValue    bool
-	Vertical      bool
+	roundValue    bool
+	vertical      bool
 	Disabled      bool
 	Invisible     bool
 }
@@ -46,35 +46,35 @@ type SliderCfg struct {
 func Slider(cfg SliderCfg) View {
 	RequireID("Slider", cfg.ID)
 	if !cfg.Color.IsSet() {
-		cfg.Color = guiTheme.SliderStyle.Color
+		cfg.Color = guiTheme.sliderStyle.Color
 	}
 	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = guiTheme.SliderStyle.ColorBorder
+		cfg.ColorBorder = guiTheme.sliderStyle.ColorBorder
 	}
-	if !cfg.ColorThumb.IsSet() {
-		cfg.ColorThumb = guiTheme.SliderStyle.ColorThumb
+	if !cfg.colorThumb.IsSet() {
+		cfg.colorThumb = guiTheme.sliderStyle.colorThumb
 	}
 	if !cfg.ColorFocus.IsSet() {
-		cfg.ColorFocus = guiTheme.SliderStyle.ColorFocus
+		cfg.ColorFocus = guiTheme.sliderStyle.ColorFocus
 	}
 	if !cfg.ColorHover.IsSet() {
-		cfg.ColorHover = guiTheme.SliderStyle.ColorHover
+		cfg.ColorHover = guiTheme.sliderStyle.ColorHover
 	}
-	if !cfg.ColorLeft.IsSet() {
-		cfg.ColorLeft = guiTheme.SliderStyle.ColorLeft
+	if !cfg.colorLeft.IsSet() {
+		cfg.colorLeft = guiTheme.sliderStyle.colorLeft
 	}
-	if !cfg.ColorClick.IsSet() {
-		cfg.ColorClick = guiTheme.SliderStyle.ColorClick
+	if !cfg.colorClick.IsSet() {
+		cfg.colorClick = guiTheme.sliderStyle.colorClick
 	}
-	sizeBorder := cfg.SizeBorder.Get(guiTheme.SliderStyle.SizeBorder)
+	sizeBorder := cfg.SizeBorder.Get(guiTheme.sliderStyle.SizeBorder)
 	if cfg.Size == 0 {
-		cfg.Size = guiTheme.SliderStyle.Size
+		cfg.Size = guiTheme.sliderStyle.Size
 	}
 	if cfg.ThumbSize == 0 {
-		cfg.ThumbSize = guiTheme.SliderStyle.ThumbSize
+		cfg.ThumbSize = guiTheme.sliderStyle.ThumbSize
 	}
-	radius := cfg.Radius.Get(guiTheme.SliderStyle.Radius)
-	radiusBorder := cfg.RadiusBorder.Get(radius)
+	radius := cfg.Radius.Get(guiTheme.sliderStyle.Radius)
+	radiusBorder := cfg.radiusBorder.Get(radius)
 	if cfg.Max == 0 && cfg.Min == 0 {
 		cfg.Max = 100
 	}
@@ -93,7 +93,7 @@ func Slider(cfg SliderCfg) View {
 	trackWidth := float32(0)
 	trackHeight := cfg.Size
 
-	if cfg.Vertical {
+	if cfg.vertical {
 		wrapperWidth = f32Max(cfg.Size, cfg.ThumbSize)
 		wrapperHeight = cfg.Size
 		trackWidth = cfg.Size
@@ -112,8 +112,8 @@ func Slider(cfg SliderCfg) View {
 	minVal := cfg.Min
 	maxVal := cfg.Max
 	step := cfg.Step
-	vertical := cfg.Vertical
-	roundValue := cfg.RoundValue
+	vertical := cfg.vertical
+	roundValue := cfg.roundValue
 	size := cfg.Size
 	szBorder := sizeBorder
 	thumbSize := cfg.ThumbSize
@@ -122,25 +122,25 @@ func Slider(cfg SliderCfg) View {
 	disabled := cfg.Disabled
 
 	trackSizing := FillFixed
-	if cfg.Vertical {
-		trackSizing = Sizing{SizingFixed, SizingFill}
+	if cfg.vertical {
+		trackSizing = Sizing{sizingFixed, sizingFill}
 	}
 
-	trackAxis := AxisLeftToRight
-	if cfg.Vertical {
-		trackAxis = AxisTopToBottom
+	trackAxis := axisLeftToRight
+	if cfg.vertical {
+		trackAxis = axisTopToBottom
 	}
 
-	wrapperAxis := AxisLeftToRight
-	if cfg.Vertical {
-		wrapperAxis = AxisTopToBottom
+	wrapperAxis := axisLeftToRight
+	if cfg.vertical {
+		wrapperAxis = axisTopToBottom
 	}
 
 	return container(ContainerCfg{
 		ID:        cfg.ID,
 		Focusable: !cfg.FocusDisabled,
 		A11YRole:  AccessRoleSlider,
-		A11Y: &AccessInfo{
+		a11Y: &accessInfo{
 			Label:       a11yLabel(cfg.A11YLabel, cfg.ID),
 			Description: cfg.A11YDescription,
 			ValueNum:    cfg.Value,
@@ -192,7 +192,7 @@ func Slider(cfg SliderCfg) View {
 		AmendLayout: func(ctx EventCtx) {
 			sliderAmendLayoutSlide(ctx.Layout, ctx.Window,
 				onChange, value, minVal, maxVal, size, szBorder,
-				vertical, colorFocus, cfg.ColorLeft, disabled,
+				vertical, colorFocus, cfg.colorLeft, disabled,
 				ctx.Layout.Shape.idKey(), roundValue)
 		},
 		OnHover: func(ctx EventCtx) {
@@ -219,14 +219,14 @@ func Slider(cfg SliderCfg) View {
 				Content: []View{
 					Rectangle(RectangleCfg{
 						Sizing:      FillFill,
-						Color:       cfg.ColorLeft,
-						ColorBorder: cfg.ColorLeft,
+						Color:       cfg.colorLeft,
+						ColorBorder: cfg.colorLeft,
 					}),
 					Circle(ContainerCfg{
 						Sizing:      FixedFixed,
 						Width:       cfg.ThumbSize,
 						Height:      cfg.ThumbSize,
-						Color:       cfg.ColorThumb,
+						Color:       cfg.colorThumb,
 						ColorBorder: cfg.ColorBorder,
 						SizeBorder:  Some(sizeBorder),
 						Padding:     NoPadding,

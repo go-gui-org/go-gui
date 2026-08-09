@@ -5,9 +5,9 @@ package gui
 // parser MdBlocks into GUI-ready MarkdownBlocks.
 
 // MarkdownBlock is a parsed, styled block of markdown.
-type MarkdownBlock struct {
-	BaseStyle TextStyle
-	TableData *ParsedTable
+type markdownBlock struct {
+	baseStyle TextStyle
+	TableData *parsedTable
 	// ListPrefix is the visible list marker ("1. ", "• ") for ordinary
 	// list items. Task-list items (IsTaskItem) leave this empty and
 	// carry their checked state in TaskChecked instead.
@@ -37,7 +37,7 @@ type MarkdownBlock struct {
 }
 
 // ParsedTable is a parsed, styled markdown table.
-type ParsedTable struct {
+type parsedTable struct {
 	Headers    []RichText
 	Alignments []HorizontalAlign
 	Rows       [][]RichText

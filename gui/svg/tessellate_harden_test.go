@@ -13,7 +13,7 @@ import (
 // collisions are impossible, so TRS-decomposable always defers.
 func TestSeedFromTransform_IdentityDefersShearBakes(t *testing.T) {
 	// Identity: no base, no bake.
-	id := &VectorPath{Transform: identityTransform}
+	id := &vectorPath{Transform: identityTransform}
 	seed, bake := seedFromTransform(id)
 	if seed.HasBaseXform || bake {
 		t.Fatalf("identity: want no base/no bake, got %+v bake=%v",
@@ -21,7 +21,7 @@ func TestSeedFromTransform_IdentityDefersShearBakes(t *testing.T) {
 	}
 
 	// Pure translate (10,20) — TRS-decomposable.
-	tr := &VectorPath{Transform: [6]float32{1, 0, 0, 1, 10, 20}}
+	tr := &vectorPath{Transform: [6]float32{1, 0, 0, 1, 10, 20}}
 	seed, bake = seedFromTransform(tr)
 	if bake || !seed.HasBaseXform {
 		t.Fatalf("translate: want deferred base, got bake=%v seed=%+v",
@@ -32,7 +32,7 @@ func TestSeedFromTransform_IdentityDefersShearBakes(t *testing.T) {
 	}
 
 	// Shear matrix is not TRS-decomposable — forces bake.
-	sh := &VectorPath{Transform: [6]float32{1, 0.5, 0, 1, 0, 0}}
+	sh := &vectorPath{Transform: [6]float32{1, 0.5, 0, 1, 0, 0}}
 	seed, bake = seedFromTransform(sh)
 	if !bake || seed.HasBaseXform {
 		t.Fatalf("shear: want bake, got bake=%v seed=%+v", bake, seed)
@@ -42,12 +42,12 @@ func TestSeedFromTransform_IdentityDefersShearBakes(t *testing.T) {
 // Sibling paths with divergent TRS transforms now each defer
 // independently — per-PathID animation state ensures no collision.
 func TestSeedFromTransform_SiblingsDeferIndependently(t *testing.T) {
-	a := &VectorPath{
+	a := &vectorPath{
 		PathID:    1,
 		GroupID:   "g1",
 		Transform: [6]float32{1, 0, 0, 1, 5, 0},
 	}
-	b := &VectorPath{
+	b := &vectorPath{
 		PathID:    2,
 		GroupID:   "g1",
 		Transform: [6]float32{1, 0, 0, 1, 0, 7},
@@ -122,10 +122,10 @@ func TestTessellatePaths_ViewBoxOriginPreservesCoords(t *testing.T) {
 // A hostile viewBox with NaN origin must skip the shift so vertices
 // retain their authored coords instead of becoming NaN.
 func TestTessellatePaths_NaNViewBoxLeavesVerticesFinite(t *testing.T) {
-	vg := &VectorGraphic{
+	vg := &vectorGraphic{
 		Width: 32, Height: 32,
 		ViewBoxX: float32(math.NaN()), ViewBoxY: 0,
-		Paths: []VectorPath{{
+		Paths: []vectorPath{{
 			Transform: identityTransform,
 			FillColor: gui.SvgColor{A: 255},
 			Primitive: gui.SvgPrimitive{

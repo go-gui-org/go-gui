@@ -23,10 +23,10 @@ func ComputeTextPathPlacements(
 	placementsBuf *[]glyph.GlyphPlacement,
 	styleToCfg func(TextStyle) glyph.TextConfig,
 ) (layout glyph.Layout, placements []glyph.GlyphPlacement, err error) {
-	if textSys == nil || r.TextPath == nil || r.TextStylePtr == nil {
+	if textSys == nil || r.textPath == nil || r.TextStylePtr == nil {
 		return glyph.Layout{}, nil, nil
 	}
-	tp := r.TextPath
+	tp := r.textPath
 	cfg := styleToCfg(*r.TextStylePtr)
 	layout, err = textSys.LayoutTextCached(r.Text, cfg)
 	if err != nil {
@@ -51,8 +51,8 @@ func ComputeTextPathPlacements(
 	}
 
 	advScale := float32(1)
-	if tp.Method == SvgTextPathMethodStretch && totalAdvance > 0 {
-		remaining := tp.TotalLen - offset
+	if tp.method == svgTextPathMethodStretch && totalAdvance > 0 {
+		remaining := tp.totalLen - offset
 		if remaining > 0 {
 			advScale = remaining / totalAdvance
 		}
@@ -83,7 +83,7 @@ func ComputeTextPathPlacements(
 		}
 		advance := p.Advance * advScale
 		centerDist := offset + cumAdv + advance/2
-		px, py, angle := SamplePathAt(
+		px, py, angle := samplePathAt(
 			tp.Polyline, tp.Table, centerDist)
 
 		halfAdv := advance / 2
@@ -103,6 +103,7 @@ func ComputeTextPathPlacements(
 
 // GradientBorderRect is one edge rect with its sampled color for a
 // gradient border. Shared across all backends.
+// exportaudit:keep — reachable from an exported signature
 type GradientBorderRect struct {
 	X, Y, W, H float32
 	Color      Color

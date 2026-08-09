@@ -15,7 +15,7 @@ import (
 // decomposition correctly handles real outer+hole pairs, peer
 // subpaths with mixed windings (e.g. radial pinwheels), and
 // independent same-winding regions (e.g. circles.svg).
-func tessellatePolylines(polylines [][]float32, rule FillRule) []float32 {
+func tessellatePolylines(polylines [][]float32, rule fillRule) []float32 {
 	if len(polylines) == 0 {
 		return nil
 	}
@@ -33,7 +33,7 @@ func tessellatePolylines(polylines [][]float32, rule FillRule) []float32 {
 	// the fast path covers the common case. Evenodd on a self-
 	// intersecting single contour (e.g. figure-8) needs the winding
 	// decomposition, so route it to scanline.
-	if len(contours) == 1 && rule == FillRuleNonzero {
+	if len(contours) == 1 && rule == fillRuleNonzero {
 		return earClip(contours[0])
 	}
 	return scanlineTessellate(contours, rule)
@@ -214,7 +214,7 @@ func xAtY(e scanEdge, y float32) float32 {
 // in the y set), so active edges keep a stable left-to-right
 // order; winding is accumulated as edges are crossed and a
 // trapezoid is emitted wherever the rule reports "filled".
-func scanlineTessellate(contours [][]float32, rule FillRule) []float32 {
+func scanlineTessellate(contours [][]float32, rule fillRule) []float32 {
 	edges := buildScanEdges(contours)
 	if len(edges) == 0 {
 		return nil
@@ -259,7 +259,7 @@ func scanlineTessellate(contours [][]float32, rule FillRule) []float32 {
 			winding += int32(eg.sign)
 			inside := false
 			switch rule {
-			case FillRuleEvenOdd:
+			case fillRuleEvenOdd:
 				inside = winding&1 != 0
 			default:
 				inside = winding != 0

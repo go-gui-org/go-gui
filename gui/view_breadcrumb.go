@@ -20,9 +20,9 @@ func NewBreadcrumbItem(id, label string, content []View) BreadcrumbItemCfg {
 // updated through OnSelect.
 type BreadcrumbCfg struct {
 	TextStyle          TextStyle
-	TextStyleSelected  TextStyle
-	TextStyleDisabled  TextStyle
-	TextStyleSeparator TextStyle
+	textStyleSelected  TextStyle
+	textStyleDisabled  TextStyle
+	textStyleSeparator TextStyle
 	OnSelect           func(string, EventCtx)
 	ID                 string
 	Selected           string
@@ -32,34 +32,34 @@ type BreadcrumbCfg struct {
 	A11YDescription    string
 	Items              []BreadcrumbItemCfg
 	Padding            Opt[Padding]
-	PaddingTrail       Opt[Padding]
-	PaddingCrumb       Opt[Padding]
-	PaddingContent     Opt[Padding]
+	paddingTrail       Opt[Padding]
+	paddingCrumb       Opt[Padding]
+	paddingContent     Opt[Padding]
 	Radius             Opt[float32]
-	RadiusCrumb        Opt[float32]
-	RadiusContent      Opt[float32]
+	radiusCrumb        Opt[float32]
+	radiusContent      Opt[float32]
 	Spacing            Opt[float32]
-	SpacingTrail       Opt[float32]
+	spacingTrail       Opt[float32]
 	SizeBorder         Opt[float32]
-	SizeContentBorder  Opt[float32]
+	sizeContentBorder  Opt[float32]
 	Focusable          bool
 	Color              Color
 	ColorBorder        Color
-	ColorTrail         Color
-	ColorCrumb         Color
-	ColorCrumbHover    Color
-	ColorCrumbClick    Color
-	ColorCrumbSelected Color
-	ColorCrumbDisabled Color
-	ColorContent       Color
-	ColorContentBorder Color
+	colorTrail         Color
+	colorCrumb         Color
+	colorCrumbHover    Color
+	colorCrumbClick    Color
+	colorCrumbSelected Color
+	colorCrumbDisabled Color
+	colorContent       Color
+	colorContentBorder Color
 	Sizing             Sizing
 	Disabled           bool
 	Invisible          bool
 }
 
 func applyBreadcrumbDefaults(cfg *BreadcrumbCfg) {
-	s := &DefaultBreadcrumbStyle
+	s := &defaultBreadcrumbStyle
 	if cfg.Separator == "" {
 		cfg.Separator = s.Separator
 	}
@@ -72,53 +72,53 @@ func applyBreadcrumbDefaults(cfg *BreadcrumbCfg) {
 	if !cfg.ColorBorder.IsSet() {
 		cfg.ColorBorder = s.ColorBorder
 	}
-	if !cfg.ColorTrail.IsSet() {
-		cfg.ColorTrail = s.ColorTrail
+	if !cfg.colorTrail.IsSet() {
+		cfg.colorTrail = s.colorTrail
 	}
-	if !cfg.ColorCrumb.IsSet() {
-		cfg.ColorCrumb = s.ColorCrumb
+	if !cfg.colorCrumb.IsSet() {
+		cfg.colorCrumb = s.colorCrumb
 	}
-	if !cfg.ColorCrumbHover.IsSet() {
-		cfg.ColorCrumbHover = s.ColorCrumbHover
+	if !cfg.colorCrumbHover.IsSet() {
+		cfg.colorCrumbHover = s.colorCrumbHover
 	}
-	if !cfg.ColorCrumbClick.IsSet() {
-		cfg.ColorCrumbClick = s.ColorCrumbClick
+	if !cfg.colorCrumbClick.IsSet() {
+		cfg.colorCrumbClick = s.colorCrumbClick
 	}
-	if !cfg.ColorCrumbSelected.IsSet() {
-		cfg.ColorCrumbSelected = s.ColorCrumbSelected
+	if !cfg.colorCrumbSelected.IsSet() {
+		cfg.colorCrumbSelected = s.colorCrumbSelected
 	}
-	if !cfg.ColorCrumbDisabled.IsSet() {
-		cfg.ColorCrumbDisabled = s.ColorCrumbDisabled
+	if !cfg.colorCrumbDisabled.IsSet() {
+		cfg.colorCrumbDisabled = s.colorCrumbDisabled
 	}
-	if !cfg.ColorContent.IsSet() {
-		cfg.ColorContent = s.ColorContent
+	if !cfg.colorContent.IsSet() {
+		cfg.colorContent = s.colorContent
 	}
-	if !cfg.ColorContentBorder.IsSet() {
-		cfg.ColorContentBorder = s.ColorContentBorder
+	if !cfg.colorContentBorder.IsSet() {
+		cfg.colorContentBorder = s.colorContentBorder
 	}
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = Some(s.Padding)
 	}
-	if !cfg.PaddingTrail.IsSet() {
-		cfg.PaddingTrail = Some(s.PaddingTrail)
+	if !cfg.paddingTrail.IsSet() {
+		cfg.paddingTrail = Some(s.paddingTrail)
 	}
-	if !cfg.PaddingCrumb.IsSet() {
-		cfg.PaddingCrumb = Some(s.PaddingCrumb)
+	if !cfg.paddingCrumb.IsSet() {
+		cfg.paddingCrumb = Some(s.paddingCrumb)
 	}
-	if !cfg.PaddingContent.IsSet() {
-		cfg.PaddingContent = Some(s.PaddingContent)
+	if !cfg.paddingContent.IsSet() {
+		cfg.paddingContent = Some(s.paddingContent)
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = s.TextStyle
 	}
-	if cfg.TextStyleSelected == (TextStyle{}) {
-		cfg.TextStyleSelected = s.TextStyleSelected
+	if cfg.textStyleSelected == (TextStyle{}) {
+		cfg.textStyleSelected = s.textStyleSelected
 	}
-	if cfg.TextStyleDisabled == (TextStyle{}) {
-		cfg.TextStyleDisabled = s.TextStyleDisabled
+	if cfg.textStyleDisabled == (TextStyle{}) {
+		cfg.textStyleDisabled = s.textStyleDisabled
 	}
-	if cfg.TextStyleSeparator == (TextStyle{}) {
-		cfg.TextStyleSeparator = s.TextStyleSeparator
+	if cfg.textStyleSeparator == (TextStyle{}) {
+		cfg.textStyleSeparator = s.textStyleSeparator
 	}
 }
 
@@ -126,14 +126,14 @@ func applyBreadcrumbDefaults(cfg *BreadcrumbCfg) {
 func Breadcrumb(cfg BreadcrumbCfg) View {
 	applyBreadcrumbDefaults(&cfg)
 
-	s := &DefaultBreadcrumbStyle
+	s := &defaultBreadcrumbStyle
 	radius := cfg.Radius.Get(s.Radius)
-	radiusCrumb := cfg.RadiusCrumb.Get(s.RadiusCrumb)
-	radiusContent := cfg.RadiusContent.Get(s.RadiusContent)
+	radiusCrumb := cfg.radiusCrumb.Get(s.radiusCrumb)
+	radiusContent := cfg.radiusContent.Get(s.radiusContent)
 	spacing := cfg.Spacing.Get(s.Spacing)
-	spacingTrail := cfg.SpacingTrail.Get(s.SpacingTrail)
+	spacingTrail := cfg.spacingTrail.Get(s.spacingTrail)
 	sizeBorder := cfg.SizeBorder.Get(s.SizeBorder)
-	sizeContentBorder := cfg.SizeContentBorder.Get(s.SizeContentBorder)
+	sizeContentBorder := cfg.sizeContentBorder.Get(s.sizeContentBorder)
 
 	selectedIdx := bcSelectedIndex(cfg.Items, cfg.Selected)
 
@@ -144,7 +144,7 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 		if i > 0 {
 			trailItems = append(trailItems, Text(TextCfg{
 				Text:      cfg.Separator,
-				TextStyle: cfg.TextStyleSeparator,
+				TextStyle: cfg.textStyleSeparator,
 			}))
 		}
 
@@ -153,26 +153,26 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 
 		ts := cfg.TextStyle
 		if isDisabled {
-			ts = cfg.TextStyleDisabled
+			ts = cfg.textStyleDisabled
 		} else if isSelected {
-			ts = cfg.TextStyleSelected
+			ts = cfg.textStyleSelected
 		}
 
-		crumbColor := cfg.ColorCrumb
+		crumbColor := cfg.colorCrumb
 		if isDisabled {
-			crumbColor = cfg.ColorCrumbDisabled
+			crumbColor = cfg.colorCrumbDisabled
 		} else if isSelected {
-			crumbColor = cfg.ColorCrumbSelected
+			crumbColor = cfg.colorCrumbSelected
 		}
 
-		hoverColor := cfg.ColorCrumbHover
-		clickColor := cfg.ColorCrumbClick
+		hoverColor := cfg.colorCrumbHover
+		clickColor := cfg.colorCrumbClick
 		if isDisabled {
-			hoverColor = cfg.ColorCrumbDisabled
-			clickColor = cfg.ColorCrumbDisabled
+			hoverColor = cfg.colorCrumbDisabled
+			clickColor = cfg.colorCrumbDisabled
 		} else if isSelected {
-			hoverColor = cfg.ColorCrumbSelected
-			clickColor = cfg.ColorCrumbSelected
+			hoverColor = cfg.colorCrumbSelected
+			clickColor = cfg.colorCrumbSelected
 		}
 
 		var onClick func(EventCtx)
@@ -189,7 +189,7 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 		trailItems = append(trailItems, Row(ContainerCfg{
 			ID:      bcCrumbID(cfg.ID, item.ID),
 			Color:   crumbColor,
-			Padding: cfg.PaddingCrumb,
+			Padding: cfg.paddingCrumb,
 			Radius:  Some(radiusCrumb),
 			Spacing: Some(spacingTrail),
 			OnClick: onClick,
@@ -200,8 +200,8 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 
 	outerContent := make([]View, 0, 2)
 	outerContent = append(outerContent, Row(ContainerCfg{
-		Color:   cfg.ColorTrail,
-		Padding: cfg.PaddingTrail,
+		Color:   cfg.colorTrail,
+		Padding: cfg.paddingTrail,
 		Spacing: Some(spacingTrail),
 		Sizing:  FillFit,
 		VAlign:  VAlignMiddle,
@@ -210,11 +210,11 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 
 	if hasContent && selectedIdx >= 0 && selectedIdx < len(cfg.Items) {
 		outerContent = append(outerContent, Column(ContainerCfg{
-			Color:       cfg.ColorContent,
-			ColorBorder: cfg.ColorContentBorder,
+			Color:       cfg.colorContent,
+			ColorBorder: cfg.colorContentBorder,
 			SizeBorder:  Some(sizeContentBorder),
 			Radius:      Some(radiusContent),
-			Padding:     cfg.PaddingContent,
+			Padding:     cfg.paddingContent,
 			Sizing:      FillFill,
 			Content:     cfg.Items[selectedIdx].Content,
 		}))
@@ -314,7 +314,7 @@ func bcOnKeydown(
 			targetIdx = bcFirstEnabledIndex(items)
 		}
 	default:
-		if e.CharCode == CharSpace {
+		if e.CharCode == charSpace {
 			if selectedIdx >= 0 {
 				targetIdx = selectedIdx
 			} else {
@@ -333,7 +333,7 @@ func bcOnKeydown(
 		return
 	}
 
-	refire := e.KeyCode == KeyEnter || e.CharCode == CharSpace
+	refire := e.KeyCode == KeyEnter || e.CharCode == charSpace
 	if targetID != selected || refire {
 		if onSelect != nil {
 			onSelect(targetID, EventCtx{nil, e, w})

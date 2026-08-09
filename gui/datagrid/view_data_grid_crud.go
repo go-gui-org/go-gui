@@ -22,13 +22,13 @@ func dataGridCrudHasUnsaved(state dataGridCrudState) bool {
 }
 
 func dataGridCrudRowDeleteEnabled(cfg *DataGridCfg, hasSource bool, caps GridDataCapabilities) bool {
-	if !dataGridCrudEnabled(cfg) || !boolDefault(cfg.AllowDelete, true) {
+	if !dataGridCrudEnabled(cfg) || !boolDefault(cfg.allowDelete, true) {
 		return false
 	}
 	if !hasSource {
 		return true
 	}
-	return caps.SupportsDelete
+	return caps.supportsDelete
 }
 
 // dataGridRowsSignature computes an FNV-1a hash of all row
@@ -128,21 +128,21 @@ func dataGridCrudResolveCfg(cfg DataGridCfg, w *gg.Window) (DataGridCfg, dataGri
 	}
 	dgCrud.Set(cfg.ID, state)
 
-	loadError := cfg.LoadError
+	loadError := cfg.loadError
 	if state.SaveError != "" {
 		loadError = state.SaveError
 	}
 	out := cfg
 	out.Rows = cloneRows(state.WorkingRows)
-	out.LoadError = loadError
+	out.loadError = loadError
 	out.Loading = cfg.Loading || state.Saving
 	return out, state
 }
 
 func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps GridDataCapabilities, hasSource bool, focusID string) gg.View {
 	hasUnsaved := dataGridCrudHasUnsaved(state)
-	canCreate := boolDefault(cfg.AllowCreate, true) && (!hasSource || caps.SupportsCreate)
-	canDelete := boolDefault(cfg.AllowDelete, true) && (!hasSource || caps.SupportsDelete)
+	canCreate := boolDefault(cfg.allowCreate, true) && (!hasSource || caps.supportsCreate)
+	canDelete := boolDefault(cfg.allowDelete, true) && (!hasSource || caps.supportsDelete)
 	selectedCount := len(cfg.Selection.SelectedRowIDs)
 	gridID := cfg.ID
 	columns := cfg.Columns
@@ -151,10 +151,10 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 	dataSource := cfg.DataSource
 	query := cfg.Query
 	onCRUDError := cfg.OnCRUDError
-	onRowsChange := cfg.OnRowsChange
-	onPageChange := cfg.OnPageChange
-	pageSize := cfg.PageSize
-	pageIndex := cfg.PageIndex
+	onRowsChange := cfg.onRowsChange
+	onPageChange := cfg.onPageChange
+	pageSize := cfg.pageSize
+	pageIndex := cfg.pageIndex
 	scrollID := dataGridScrollID(cfg)
 
 	dirtyCount := len(state.DirtyRowIDs)
@@ -275,8 +275,8 @@ func dataGridCrudAddRow(gridID string, columns []GridColumnCfg, onSelectionChang
 	dataGridSetEditingRow(gridID, draftID, w)
 	if onSelectionChange != nil {
 		next := GridSelection{
-			AnchorRowID:    draftID,
-			ActiveRowID:    draftID,
+			anchorRowID:    draftID,
+			activeRowID:    draftID,
 			SelectedRowIDs: map[string]bool{draftID: true},
 		}
 		onSelectionChange(next, gg.EventCtx{Layout: nil, Event: e, Window: w})
@@ -365,8 +365,8 @@ func dataGridSelectionRemoveIDs(selection GridSelection, removeIDs map[string]bo
 			selected[rowID] = true
 		}
 	}
-	active := selection.ActiveRowID
-	anchor := selection.AnchorRowID
+	active := selection.activeRowID
+	anchor := selection.anchorRowID
 	if removeIDs[active] {
 		active = ""
 	}
@@ -374,8 +374,8 @@ func dataGridSelectionRemoveIDs(selection GridSelection, removeIDs map[string]bo
 		anchor = ""
 	}
 	return GridSelection{
-		AnchorRowID:    anchor,
-		ActiveRowID:    active,
+		anchorRowID:    anchor,
+		activeRowID:    active,
 		SelectedRowIDs: selected,
 	}
 }

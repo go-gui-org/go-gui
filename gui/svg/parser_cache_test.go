@@ -20,7 +20,7 @@ func TestParserReleaseParsedRemovesEntry(t *testing.T) {
 	if !ok {
 		t.Fatal("expected parser cache entry after parse")
 	}
-	p.ReleaseParsed(parsed)
+	p.releaseParsed(parsed)
 	p.mu.Lock()
 	_, ok = p.byParsed[parsed]
 	p.mu.Unlock()

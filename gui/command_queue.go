@@ -41,7 +41,7 @@ func newAnimationCommands(deferred *[]queuedCommand) AnimationCommands {
 // AppendOnDone queues fn to run after the current frame's Update
 // pass. Nil fn is a no-op so callers can pass a pointer to an
 // optional callback field unconditionally.
-func (ac *AnimationCommands) AppendOnDone(fn func(*Window)) {
+func (ac *AnimationCommands) appendOnDone(fn func(*Window)) {
 	if fn == nil || ac == nil || ac.inner == nil {
 		return
 	}
@@ -52,7 +52,7 @@ func (ac *AnimationCommands) AppendOnDone(fn func(*Window)) {
 
 // AppendOnValue queues fn with the supplied value. Typical use: a
 // per-frame interpolation callback from a tween / spring animation.
-func (ac *AnimationCommands) AppendOnValue(fn func(float32, *Window), v float32) {
+func (ac *AnimationCommands) appendOnValue(fn func(float32, *Window), v float32) {
 	if fn == nil || ac == nil || ac.inner == nil {
 		return
 	}

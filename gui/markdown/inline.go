@@ -130,7 +130,7 @@ func isSafeImagePath(path string) bool {
 
 // HeadingSlug converts heading text to a URL-safe slug.
 // Lowercase alphanumeric + dashes, no trailing dashes.
-func HeadingSlug(text string) string {
+func headingSlug(text string) string {
 	var buf []byte
 	prevDash := false
 	for _, r := range text {

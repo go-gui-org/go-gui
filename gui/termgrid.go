@@ -20,8 +20,8 @@ type TermAttr uint8
 
 // TermAttr flags.
 const (
-	TermBold TermAttr = 1 << iota
-	TermItalic
+	termBold TermAttr = 1 << iota
+	termItalic
 	TermUnderline
 	TermReverse
 )
@@ -38,11 +38,11 @@ type TermCell struct {
 }
 
 // TermCursorStyle selects how the cursor is drawn.
-type TermCursorStyle uint8
+type termCursorStyle uint8
 
 // TermCursorStyle values.
 const (
-	TermCursorBlock TermCursorStyle = iota
+	TermCursorBlock termCursorStyle = iota
 	TermCursorBar
 	TermCursorUnderline
 )
@@ -52,7 +52,7 @@ type TermCursor struct {
 	Col     int
 	Row     int
 	Color   Color
-	Style   TermCursorStyle
+	Style   termCursorStyle
 	Visible bool
 }
 
@@ -138,7 +138,7 @@ func (tv *termGridView) GenerateLayout(w *Window) Layout {
 		events = w.allocEventHandlers(eventHandlers{
 			OnKeyDown:     c.OnKeyDown,
 			OnClick:       c.OnClick,
-			ClickButton:   MouseLeft,
+			clickButton:   MouseLeft,
 			OnMouseScroll: c.OnMouseScroll,
 		})
 	}
@@ -169,7 +169,7 @@ func (tv *termGridView) GenerateLayout(w *Window) Layout {
 			shapeType: shapeTermGrid,
 			ID:        c.ID,
 			A11YRole:  a11yRole,
-			A11Y:      makeA11YInfo(c.A11YLabel, c.A11YDescription),
+			a11Y:      makeA11YInfo(c.A11YLabel, c.A11YDescription),
 			Width:     width,
 			Height:    height,
 			Sizing:    c.Sizing,

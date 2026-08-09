@@ -5,7 +5,7 @@ import (
 )
 
 func inputKeyLeft(
-	imap *BoundedMap[string, InputState], id string, is InputState,
+	imap *BoundedMap[string, inputState], id string, is inputState,
 	text string, pos int, isShift, isWordMod bool,
 	gl glyph.Layout, glOK bool,
 ) {
@@ -20,8 +20,8 @@ func inputKeyLeft(
 		}
 		updateCursorAndSelection(imap, id, is,
 			newPos, isShift)
-	} else if !isShift && is.SelectBeg != is.SelectEnd {
-		beg, _ := u32Sort(is.SelectBeg, is.SelectEnd)
+	} else if !isShift && is.selectBeg != is.selectEnd {
+		beg, _ := u32Sort(is.selectBeg, is.selectEnd)
 		updateCursorAndSelection(imap, id, is,
 			int(beg), false)
 	} else {
@@ -40,7 +40,7 @@ func inputKeyLeft(
 }
 
 func inputKeyRight(
-	imap *BoundedMap[string, InputState], id string, is InputState,
+	imap *BoundedMap[string, inputState], id string, is inputState,
 	text string, pos, runeLen int, isShift, isWordMod bool,
 	gl glyph.Layout, glOK bool,
 ) {
@@ -55,8 +55,8 @@ func inputKeyRight(
 		}
 		updateCursorAndSelection(imap, id, is,
 			newPos, isShift)
-	} else if !isShift && is.SelectBeg != is.SelectEnd {
-		_, end := u32Sort(is.SelectBeg, is.SelectEnd)
+	} else if !isShift && is.selectBeg != is.selectEnd {
+		_, end := u32Sort(is.selectBeg, is.selectEnd)
 		updateCursorAndSelection(imap, id, is,
 			int(end), false)
 	} else {
@@ -75,7 +75,7 @@ func inputKeyRight(
 }
 
 func inputKeyHome(
-	imap *BoundedMap[string, InputState], id string, is InputState,
+	imap *BoundedMap[string, inputState], id string, is inputState,
 	text string, pos int, isShift, savedTrailing bool,
 	gl glyph.Layout, glOK bool,
 ) {
@@ -111,7 +111,7 @@ func inputKeyHome(
 }
 
 func inputKeyEnd(
-	imap *BoundedMap[string, InputState], id string, is InputState,
+	imap *BoundedMap[string, inputState], id string, is inputState,
 	text string, pos int, isShift, savedTrailing bool,
 	gl glyph.Layout, glOK bool,
 ) {
@@ -145,7 +145,7 @@ func inputKeyEnd(
 			newPos = cursorEnd(text)
 		}
 	}
-	is.CursorTrailing = trailing
+	is.cursorTrailing = trailing
 	updateCursorAndSelection(imap, id, is,
 		newPos, isShift)
 }
@@ -154,9 +154,9 @@ func inputKeyEnd(
 // for multiline inputs. Returns false when the key is unhandled
 // (single-line mode).
 func inputKeyVertical(
-	imap *BoundedMap[string, InputState], id string, is InputState,
+	imap *BoundedMap[string, inputState], id string, is inputState,
 	text string, pos int, isShift bool,
-	savedOffset float32, up bool, mode InputMode,
+	savedOffset float32, up bool, mode inputMode,
 	gl glyph.Layout, glOK bool,
 ) bool {
 	if mode != InputMultiline {
@@ -171,7 +171,7 @@ func inputKeyVertical(
 				preferredX = cp.X
 			}
 		}
-		is.CursorOffset = preferredX
+		is.cursorOffset = preferredX
 		if up {
 			newPos = byteToRuneIndex(text,
 				gl.MoveCursorUp(byteIdx, preferredX))
@@ -204,15 +204,15 @@ func inputKeyPaste(
 	}
 	if mask != nil {
 		cis := inputStateOrDefault(id, w)
-		res := InputMaskInsert(text,
+		res := inputMaskInsert(text,
 			cis.CursorPos,
-			cis.SelectBeg,
-			cis.SelectEnd, clip, mask)
+			cis.selectBeg,
+			cis.selectEnd, clip, mask)
 		if res.Changed {
 			undo := inputPushUndo(cis, text)
-			StateMap[string, InputState](
+			StateMap[string, inputState](
 				w, nsInput, capMany,
-			).Set(id, InputState{
+			).Set(id, inputState{
 				CursorPos: res.CursorPos,
 				Undo:      undo,
 			})
@@ -220,9 +220,9 @@ func inputKeyPaste(
 		}
 		return text, false
 	}
-	if hcfg.PreTextChange != nil {
+	if hcfg.preTextChange != nil {
 		proposed := inputProposedText(text, clip, id, w)
-		adjusted, ok := hcfg.PreTextChange(text, proposed)
+		adjusted, ok := hcfg.preTextChange(text, proposed)
 		if !ok {
 			return text, false
 		}
@@ -243,13 +243,13 @@ func inputCommitEnter(
 ) {
 	commitText := text
 	if normalized := hcfg.normalizeOnCommit(
-		text, CommitEnter,
+		text, commitEnter,
 	); normalized != text {
 		commitText = normalized
 		hcfg.fireTextChanged(layout, commitText, w)
 	}
 	if hcfg.OnTextCommit != nil {
-		hcfg.OnTextCommit(commitText, CommitEnter, EventCtx{layout, nil, w})
+		hcfg.OnTextCommit(commitText, commitEnter, EventCtx{layout, nil, w})
 	}
 	if hcfg.OnEnter != nil {
 		hcfg.OnEnter(EventCtx{layout, e, w})
@@ -267,19 +267,19 @@ func inputHandleDelete(
 		is := inputStateOrDefault(id, w)
 		var res MaskEditResult
 		if forward {
-			res = InputMaskDelete(text, is.CursorPos,
-				is.SelectBeg, is.SelectEnd, mask)
+			res = inputMaskDelete(text, is.CursorPos,
+				is.selectBeg, is.selectEnd, mask)
 		} else {
-			res = InputMaskBackspace(text, is.CursorPos,
-				is.SelectBeg, is.SelectEnd, mask)
+			res = inputMaskBackspace(text, is.CursorPos,
+				is.selectBeg, is.selectEnd, mask)
 		}
 		if !res.Changed {
 			return text, false
 		}
 		undo := inputPushUndo(is, text)
-		StateMap[string, InputState](
+		StateMap[string, inputState](
 			w, nsInput, capMany,
-		).Set(id, InputState{
+		).Set(id, inputState{
 			CursorPos: res.CursorPos, Undo: undo,
 		})
 		return res.Text, true

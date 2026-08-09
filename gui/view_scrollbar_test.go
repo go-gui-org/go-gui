@@ -16,7 +16,7 @@ func TestOffsetMouseChangeX(t *testing.T) {
 			ID:         "1",
 			Width:      100,
 			Height:     50,
-			Axis:       AxisLeftToRight,
+			Axis:       axisLeftToRight,
 		},
 		Children: []Layout{child},
 	}
@@ -39,7 +39,7 @@ func TestOffsetMouseChangeY(t *testing.T) {
 			ID:         "2",
 			Width:      50,
 			Height:     100,
-			Axis:       AxisTopToBottom,
+			Axis:       axisTopToBottom,
 		},
 		Children: []Layout{child},
 	}
@@ -64,7 +64,7 @@ func TestOffsetMouseChangeZeroViewport(t *testing.T) {
 			ID:         "z",
 			Width:      0,
 			Height:     0,
-			Axis:       AxisLeftToRight,
+			Axis:       axisLeftToRight,
 		},
 		Children: []Layout{child},
 	}
@@ -91,7 +91,7 @@ func TestOffsetFromMouseY(t *testing.T) {
 			ID:         "3",
 			Width:      50,
 			Height:     100,
-			Axis:       AxisTopToBottom,
+			Axis:       axisTopToBottom,
 		},
 		Children: []Layout{child},
 	}
@@ -119,7 +119,7 @@ func TestOffsetFromMouseX(t *testing.T) {
 			ID:         "4",
 			Width:      100,
 			Height:     50,
-			Axis:       AxisLeftToRight,
+			Axis:       axisLeftToRight,
 		},
 		Children: []Layout{child},
 	}
@@ -148,7 +148,7 @@ func TestOffsetFromMouseYSnap(t *testing.T) {
 			ID:         "5",
 			Width:      50,
 			Height:     100,
-			Axis:       AxisTopToBottom,
+			Axis:       axisTopToBottom,
 		},
 		Children: []Layout{child},
 	}
@@ -185,7 +185,7 @@ func TestScrollbarMouseMoveVertical(t *testing.T) {
 			Width:      50,
 			Height:     100,
 			Y:          10,
-			Axis:       AxisTopToBottom,
+			Axis:       axisTopToBottom,
 		},
 		Children: []Layout{child},
 	}
@@ -195,7 +195,7 @@ func TestScrollbarMouseMoveVertical(t *testing.T) {
 	}
 
 	e := &Event{MouseY: 50, MouseDY: 5}
-	scrollbarMouseMove(ScrollbarVertical, "6", &root, e, w)
+	scrollbarMouseMove(scrollbarVertical, "6", &root, e, w)
 	sy := w.scrollY()
 	v, _ := sy.Get("6")
 	// ratio=400/100=4, newOffset=5*4=20, offset=0-20=-20
@@ -215,7 +215,7 @@ func TestScrollbarMouseMoveHorizontal(t *testing.T) {
 			Width:      100,
 			Height:     50,
 			X:          0,
-			Axis:       AxisLeftToRight,
+			Axis:       axisLeftToRight,
 		},
 		Children: []Layout{child},
 	}
@@ -225,7 +225,7 @@ func TestScrollbarMouseMoveHorizontal(t *testing.T) {
 	}
 
 	e := &Event{MouseX: 50, MouseDX: 10}
-	scrollbarMouseMove(ScrollbarHorizontal, "7", &root, e, w)
+	scrollbarMouseMove(scrollbarHorizontal, "7", &root, e, w)
 	sx := w.scrollX()
 	v, _ := sx.Get("7")
 	// ratio=300/100=3, newOffset=10*3=30, offset=0-30=-30
@@ -238,12 +238,12 @@ func TestThumbOnClickLocksAndUnlocks(t *testing.T) {
 	w := &Window{}
 	e := &Event{}
 	handler := makeScrollbarOnMouseDown(ScrollbarCfg{
-		Orientation: ScrollbarVertical,
+		Orientation: scrollbarVertical,
 		ID:          "1",
-		ScrollID:    "1",
+		scrollID:    "1",
 	})
 	handler(EventCtx{nil, e, w})
-	if !w.MouseIsLocked() {
+	if !w.mouseIsLocked() {
 		t.Error("expected mouse locked after thumb click")
 	}
 	if !e.IsHandled {
@@ -252,7 +252,7 @@ func TestThumbOnClickLocksAndUnlocks(t *testing.T) {
 
 	// Simulate mouse up.
 	w.viewState.mouseLock.MouseUp(EventCtx{nil, e, w})
-	if w.MouseIsLocked() {
+	if w.mouseIsLocked() {
 		t.Error("expected mouse unlocked after mouse up")
 	}
 }
@@ -270,7 +270,7 @@ func TestOffsetFromMouseXWithNonZeroOrigin(t *testing.T) {
 			Width:      100,
 			Height:     50,
 			X:          50,
-			Axis:       AxisLeftToRight,
+			Axis:       axisLeftToRight,
 		},
 		Children: []Layout{child},
 	}
@@ -303,7 +303,7 @@ func TestOffsetFromMouseYWithNonZeroOrigin(t *testing.T) {
 			Width:      50,
 			Height:     100,
 			Y:          200,
-			Axis:       AxisTopToBottom,
+			Axis:       axisTopToBottom,
 		},
 		Children: []Layout{child},
 	}
@@ -333,7 +333,7 @@ func TestGutterClickSetsOffsetAndLocks(t *testing.T) {
 			ID:         "8",
 			Width:      50,
 			Height:     100,
-			Axis:       AxisTopToBottom,
+			Axis:       axisTopToBottom,
 		},
 		Children: []Layout{child},
 	}
@@ -344,9 +344,9 @@ func TestGutterClickSetsOffsetAndLocks(t *testing.T) {
 
 	e := &Event{MouseY: 50}
 	handler := makeScrollbarGutterClick(ScrollbarCfg{
-		Orientation: ScrollbarVertical,
+		Orientation: scrollbarVertical,
 		ID:          "8",
-		ScrollID:    "8",
+		scrollID:    "8",
 	})
 	handler(EventCtx{nil, e, w})
 
@@ -356,7 +356,7 @@ func TestGutterClickSetsOffsetAndLocks(t *testing.T) {
 	if math.Abs(float64(v+150)) > 0.01 {
 		t.Errorf("expected -150, got %v", v)
 	}
-	if !w.MouseIsLocked() {
+	if !w.mouseIsLocked() {
 		t.Error("expected mouse locked after gutter click")
 	}
 	if !e.IsHandled {

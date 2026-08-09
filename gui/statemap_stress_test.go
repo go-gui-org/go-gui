@@ -102,7 +102,7 @@ func TestStateMapMultipleNamespaces(t *testing.T) {
 	}
 
 	// Clear one namespace (removes from registry only).
-	w.viewState.registry.ClearNamespace("stress.test.ns1")
+	w.viewState.registry.clearNamespace("stress.test.ns1")
 
 	// After ClearNamespace, StateMapRead returns nil for that ns.
 	got := StateMapRead[string, int](w, "stress.test.ns1")
@@ -172,7 +172,7 @@ func TestStateMapRangeAndKeys(t *testing.T) {
 
 	// RangeKeys.
 	count = 0
-	sm.RangeKeys(func(k int) bool {
+	sm.rangeKeys(func(k int) bool {
 		count++
 		return true
 	})

@@ -26,13 +26,13 @@ type ListBoxOption struct {
 	ID           string
 	Name         string
 	Value        string
-	IsSubheading bool
+	isSubheading bool
 }
 
 // ListBoxCfg configures a list box view.
 type ListBoxCfg struct {
 	TextStyle       TextStyle
-	SubheadingStyle TextStyle
+	subheadingStyle TextStyle
 	OnSelect        func([]string, EventCtx)
 	OnReorder       func(string, string, EventCtx)
 
@@ -90,7 +90,7 @@ func NewListBoxOption(id, name, value string) ListBoxOption {
 
 // NewListBoxSubheading constructs a subheading row.
 func NewListBoxSubheading(id, title string) ListBoxOption {
-	return ListBoxOption{ID: id, Name: title, IsSubheading: true}
+	return ListBoxOption{ID: id, Name: title, isSubheading: true}
 }
 
 // ListBox creates a list box view.
@@ -112,7 +112,7 @@ func ListBox(cfg ListBoxCfg) View {
 		return &listBoxView{cfg: cfg}
 	}
 
-	dn := &DefaultListBoxStyle
+	dn := &defaultListBoxStyle
 	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
 	radius := cfg.Radius.Get(dn.Radius)
 
@@ -128,7 +128,7 @@ func ListBox(cfg ListBoxCfg) View {
 	selectedIDs := cfg.SelectedIDs
 	itemIDs := make([]string, 0, len(cfg.Data))
 	for i := range cfg.Data {
-		if !cfg.Data[i].IsSubheading {
+		if !cfg.Data[i].isSubheading {
 			itemIDs = append(itemIDs, cfg.Data[i].ID)
 		}
 	}
@@ -179,7 +179,7 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 	// One resolved identity for every key below; see (*Window).EffID.
 	cfg.ID = w.EffID(cfg.ID)
 
-	dn := &DefaultListBoxStyle
+	dn := &defaultListBoxStyle
 	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
 	radius := cfg.Radius.Get(dn.Radius)
 
@@ -230,7 +230,7 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 
 	if dragging && drag.currentIndex >= len(itemIDs) {
 		list = append(list,
-			dragReorderGapView(drag, DragReorderVertical))
+			dragReorderGapView(drag, dragReorderVertical))
 	}
 	if dragging && ghostContent != nil {
 		list = append(list,
@@ -257,7 +257,7 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 				curIdx := lbf.GetOr(listBoxID, 0)
 				if curIdx >= 0 && curIdx < len(itemIDs) &&
 					dragReorderKeyboardMove(ctx.Event.KeyCode,
-						ctx.Event.Modifiers, DragReorderVertical,
+						ctx.Event.Modifiers, dragReorderVertical,
 						curIdx, itemIDs, onReorder, ctx.Window) {
 					ctx.Consume()
 					return
@@ -301,7 +301,7 @@ func listBoxEnsureCache(cfg *ListBoxCfg, w *Window) *listBoxCache {
 		itemIDs := make([]string, 0, len(cfg.Data))
 		indices := make([]int, 0, len(cfg.Data))
 		for i := range cfg.Data {
-			if !cfg.Data[i].IsSubheading {
+			if !cfg.Data[i].isSubheading {
 				itemIDs = append(itemIDs, cfg.Data[i].ID)
 				indices = append(indices, i)
 			}
@@ -340,7 +340,7 @@ func listBoxVisibleRange(
 	} else {
 		virtualize = false
 		if cfg.Scrollable && cache.hSeen &&
-			len(cfg.Data) > 0 && DebugEnabled() {
+			len(cfg.Data) > 0 && debugEnabled() {
 			// The layout has run at least once and still gave the
 			// list no height, so every row builds each frame.
 			w.debugWarn(debugCheckListBoxNoHeight, cfg.ID,
@@ -384,7 +384,7 @@ func listBoxDragIndexByRow(
 	dragIdxByRow := make([]int, len(cfg.Data))
 	di := 0
 	for i := range cfg.Data {
-		if !cfg.Data[i].IsSubheading {
+		if !cfg.Data[i].isSubheading {
 			dragIdxByRow[i] = di
 			di++
 		} else {
@@ -406,13 +406,13 @@ func listBoxItemLayoutIDs(
 	midsOffset := 0
 	for idx := range first {
 		if idx < len(cfg.Data) &&
-			!cfg.Data[idx].IsSubheading {
+			!cfg.Data[idx].isSubheading {
 			midsOffset++
 		}
 	}
 	for idx := first; idx <= last; idx++ {
 		if idx >= 0 && idx < len(cfg.Data) &&
-			!cfg.Data[idx].IsSubheading {
+			!cfg.Data[idx].isSubheading {
 			itemLayoutIDs = append(itemLayoutIDs,
 				listBoxItemID(cfg.ID, cfg.Data[idx].ID))
 		}
@@ -466,7 +466,7 @@ func listBoxBuildItems(
 
 		if dragging && isDraggable && di == drag.currentIndex {
 			list = append(list,
-				dragReorderGapView(drag, DragReorderVertical))
+				dragReorderGapView(drag, dragReorderVertical))
 		}
 
 		if dragging && isDraggable && di == drag.sourceIndex {
@@ -502,13 +502,13 @@ func listBoxBuildItems(
 
 func listBoxItemView(dat ListBoxOption, cfg ListBoxCfg, selectedSet map[string]struct{}, focusedID string) View {
 	color := ColorTransparent
-	if dat.ID == focusedID && !dat.IsSubheading {
+	if dat.ID == focusedID && !dat.isSubheading {
 		color = cfg.ColorHover
 	}
 	if listCoreContainsSelected(selectedSet, cfg.SelectedIDs, dat.ID) {
 		color = cfg.ColorSelect
 	}
-	isSub := dat.IsSubheading
+	isSub := dat.isSubheading
 	content := listBoxItemContent(dat, cfg)
 
 	datID := dat.ID
@@ -596,12 +596,12 @@ func listBoxReorderItemView(
 				DragKey:       listBoxID,
 				Index:         dragIdx,
 				ItemID:        datID,
-				Axis:          DragReorderVertical,
+				Axis:          dragReorderVertical,
 				ItemIDs:       itemIDs,
 				OnReorder:     onReorder,
 				ItemLayoutIDs: itemLayoutIDs,
 				MidsOffset:    midsOffset,
-				ScrollID:      scrollID,
+				scrollID:      scrollID,
 				Layout:        ctx.Layout,
 				Event:         ctx.Event,
 			}, ctx.Window)
@@ -628,7 +628,7 @@ func listBoxItemID(listID, optionID string) string {
 }
 
 func listBoxItemContent(dat ListBoxOption, cfg ListBoxCfg) View {
-	if dat.IsSubheading {
+	if dat.isSubheading {
 		return Column(ContainerCfg{
 			Spacing: SomeF(1),
 			Padding: NoPadding,
@@ -636,7 +636,7 @@ func listBoxItemContent(dat ListBoxOption, cfg ListBoxCfg) View {
 			Content: []View{
 				Text(TextCfg{
 					Text:      dat.Name,
-					TextStyle: cfg.SubheadingStyle,
+					TextStyle: cfg.subheadingStyle,
 				}),
 				Row(ContainerCfg{
 					Padding: NoPadding,
@@ -646,7 +646,7 @@ func listBoxItemContent(dat ListBoxOption, cfg ListBoxCfg) View {
 							Width:  1,
 							Height: 1,
 							Sizing: FillFit,
-							Color:  cfg.SubheadingStyle.Color,
+							Color:  cfg.subheadingStyle.Color,
 						}),
 					},
 				}),
@@ -721,7 +721,7 @@ func listBoxOnKeyDown(
 }
 
 func applyListBoxDefaults(cfg *ListBoxCfg) {
-	d := &DefaultListBoxStyle
+	d := &defaultListBoxStyle
 	if !cfg.Color.IsSet() {
 		cfg.Color = d.Color
 	}
@@ -739,10 +739,10 @@ func applyListBoxDefaults(cfg *ListBoxCfg) {
 	}
 
 	if cfg.TextStyle == (TextStyle{}) {
-		cfg.TextStyle = d.TextStyleNormal
+		cfg.TextStyle = d.textStyleNormal
 	}
-	if cfg.SubheadingStyle == (TextStyle{}) {
-		cfg.SubheadingStyle = d.SubheadingStyle
+	if cfg.subheadingStyle == (TextStyle{}) {
+		cfg.subheadingStyle = d.subheadingStyle
 	}
 }
 
@@ -762,7 +762,7 @@ func listBoxDataHash(items []ListBoxOption) uint64 {
 		h ^= 0xff
 		h *= prime
 
-		if it.IsSubheading {
+		if it.isSubheading {
 			h ^= 1
 		}
 		h *= prime

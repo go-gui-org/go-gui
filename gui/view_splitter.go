@@ -5,11 +5,11 @@ import "fmt"
 const splitterDefaultRatio = float32(0.5)
 
 // SplitterOrientation controls how panes are arranged.
-type SplitterOrientation uint8
+type splitterOrientation uint8
 
 // SplitterOrientation values.
 const (
-	SplitterHorizontal SplitterOrientation = iota
+	SplitterHorizontal splitterOrientation = iota
 	SplitterVertical
 )
 
@@ -18,16 +18,16 @@ var splitterOrientationText = [2][]byte{
 	SplitterVertical:   []byte("vertical"),
 }
 
-// MarshalText implements encoding.TextMarshaler.
-func (o SplitterOrientation) MarshalText() ([]byte, error) {
+// MarshalText implements encoding.TextMarshaler. // exportaudit:keep — stdlib interface method
+func (o splitterOrientation) MarshalText() ([]byte, error) {
 	if int(o) < len(splitterOrientationText) {
 		return splitterOrientationText[o], nil
 	}
 	return nil, fmt.Errorf("unknown SplitterOrientation %d", o)
 }
 
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (o *SplitterOrientation) UnmarshalText(text []byte) error {
+// UnmarshalText implements encoding.TextUnmarshaler. // exportaudit:keep — stdlib interface method
+func (o *splitterOrientation) UnmarshalText(text []byte) error {
 	switch string(text) {
 	case "horizontal":
 		*o = SplitterHorizontal
@@ -44,18 +44,18 @@ type SplitterCollapsed uint8
 
 // SplitterCollapsed values.
 const (
-	SplitterCollapseNone SplitterCollapsed = iota
+	splitterCollapseNone SplitterCollapsed = iota
 	SplitterCollapseFirst
 	SplitterCollapseSecond
 )
 
 var splitterCollapsedText = [3][]byte{
-	SplitterCollapseNone:   []byte("none"),
+	splitterCollapseNone:   []byte("none"),
 	SplitterCollapseFirst:  []byte("first"),
 	SplitterCollapseSecond: []byte("second"),
 }
 
-// MarshalText implements encoding.TextMarshaler.
+// MarshalText implements encoding.TextMarshaler. // exportaudit:keep — stdlib interface method
 func (c SplitterCollapsed) MarshalText() ([]byte, error) {
 	if int(c) < len(splitterCollapsedText) {
 		return splitterCollapsedText[c], nil
@@ -63,11 +63,11 @@ func (c SplitterCollapsed) MarshalText() ([]byte, error) {
 	return nil, fmt.Errorf("unknown SplitterCollapsed %d", c)
 }
 
-// UnmarshalText implements encoding.TextUnmarshaler.
+// UnmarshalText implements encoding.TextUnmarshaler. // exportaudit:keep — stdlib interface method
 func (c *SplitterCollapsed) UnmarshalText(text []byte) error {
 	switch string(text) {
 	case "none":
-		*c = SplitterCollapseNone
+		*c = splitterCollapseNone
 	case "first":
 		*c = SplitterCollapseFirst
 	case "second":
@@ -94,7 +94,7 @@ func SplitterStateNormalize(state SplitterState) SplitterState {
 	}
 	c := state.Collapsed
 	if c > SplitterCollapseSecond {
-		c = SplitterCollapseNone
+		c = splitterCollapseNone
 	}
 	return SplitterState{
 		Ratio:     splitterNormalizeRatio(r),
@@ -107,8 +107,8 @@ type SplitterPaneCfg struct {
 	Content       []View
 	MinSize       float32
 	MaxSize       float32
-	CollapsedSize float32
-	Collapsible   bool
+	collapsedSize float32
+	collapsible   bool
 }
 
 // splitterPaneCore holds pane fields needed by callbacks
@@ -131,23 +131,23 @@ type SplitterCfg struct {
 	Second              SplitterPaneCfg
 	Ratio               Opt[float32]
 	HandleSize          Opt[float32]
-	DragStep            Opt[float32]
-	DragStepLarge       Opt[float32]
+	dragStep            Opt[float32]
+	dragStepLarge       Opt[float32]
 	SizeBorder          Opt[float32]
 	Radius              Opt[float32]
-	RadiusBorder        Opt[float32]
+	radiusBorder        Opt[float32]
 	Focusable           bool
-	ColorHandle         Color
-	ColorHandleHover    Color
-	ColorHandleActive   Color
-	ColorHandleBorder   Color
-	ColorGrip           Color
-	ColorButton         Color
-	ColorButtonHover    Color
-	ColorButtonActive   Color
-	ColorButtonIcon     Color
+	colorHandle         Color
+	colorHandleHover    Color
+	colorHandleActive   Color
+	colorHandleBorder   Color
+	colorGrip           Color
+	colorButton         Color
+	colorButtonHover    Color
+	colorButtonActive   Color
+	colorButtonIcon     Color
 	Sizing              Sizing
-	Orientation         SplitterOrientation
+	Orientation         splitterOrientation
 	Collapsed           SplitterCollapsed
 	ShowCollapseButtons bool
 	Disabled            bool
@@ -165,7 +165,7 @@ type splitterCore struct {
 	handleSize    float32
 	dragStep      float32
 	dragStepLarge float32
-	orientation   SplitterOrientation
+	orientation   splitterOrientation
 	collapsed     SplitterCollapsed
 	disabled      bool
 }
@@ -179,7 +179,7 @@ type splitterComputed struct {
 }
 
 func newSplitterCore(cfg *SplitterCfg) *splitterCore {
-	s := &DefaultSplitterStyle
+	s := &defaultSplitterStyle
 	return &splitterCore{
 		id:          cfg.ID,
 		focusID:     cfg.ID,
@@ -190,53 +190,53 @@ func newSplitterCore(cfg *SplitterCfg) *splitterCore {
 		first: splitterPaneCore{
 			minSize:       cfg.First.MinSize,
 			maxSize:       cfg.First.MaxSize,
-			collapsible:   cfg.First.Collapsible,
-			collapsedSize: cfg.First.CollapsedSize,
+			collapsible:   cfg.First.collapsible,
+			collapsedSize: cfg.First.collapsedSize,
 		},
 		second: splitterPaneCore{
 			minSize:       cfg.Second.MinSize,
 			maxSize:       cfg.Second.MaxSize,
-			collapsible:   cfg.Second.Collapsible,
-			collapsedSize: cfg.Second.CollapsedSize,
+			collapsible:   cfg.Second.collapsible,
+			collapsedSize: cfg.Second.collapsedSize,
 		},
 		handleSize:    cfg.HandleSize.Get(s.HandleSize),
-		dragStep:      cfg.DragStep.Get(s.DragStep),
-		dragStepLarge: cfg.DragStepLarge.Get(s.DragStepLarge),
+		dragStep:      cfg.dragStep.Get(s.dragStep),
+		dragStepLarge: cfg.dragStepLarge.Get(s.dragStepLarge),
 		disabled:      cfg.Disabled,
 	}
 }
 
 func applySplitterDefaults(cfg *SplitterCfg) {
-	s := &DefaultSplitterStyle
+	s := &defaultSplitterStyle
 	if cfg.Sizing == (Sizing{}) {
 		cfg.Sizing = FillFill
 	}
-	if !cfg.ColorHandle.IsSet() {
-		cfg.ColorHandle = s.ColorHandle
+	if !cfg.colorHandle.IsSet() {
+		cfg.colorHandle = s.colorHandle
 	}
-	if !cfg.ColorHandleHover.IsSet() {
-		cfg.ColorHandleHover = s.ColorHandleHover
+	if !cfg.colorHandleHover.IsSet() {
+		cfg.colorHandleHover = s.colorHandleHover
 	}
-	if !cfg.ColorHandleActive.IsSet() {
-		cfg.ColorHandleActive = s.ColorHandleActive
+	if !cfg.colorHandleActive.IsSet() {
+		cfg.colorHandleActive = s.colorHandleActive
 	}
-	if !cfg.ColorHandleBorder.IsSet() {
-		cfg.ColorHandleBorder = s.ColorHandleBorder
+	if !cfg.colorHandleBorder.IsSet() {
+		cfg.colorHandleBorder = s.colorHandleBorder
 	}
-	if !cfg.ColorGrip.IsSet() {
-		cfg.ColorGrip = s.ColorGrip
+	if !cfg.colorGrip.IsSet() {
+		cfg.colorGrip = s.colorGrip
 	}
-	if !cfg.ColorButton.IsSet() {
-		cfg.ColorButton = s.ColorButton
+	if !cfg.colorButton.IsSet() {
+		cfg.colorButton = s.colorButton
 	}
-	if !cfg.ColorButtonHover.IsSet() {
-		cfg.ColorButtonHover = s.ColorButtonHover
+	if !cfg.colorButtonHover.IsSet() {
+		cfg.colorButtonHover = s.colorButtonHover
 	}
-	if !cfg.ColorButtonActive.IsSet() {
-		cfg.ColorButtonActive = s.ColorButtonActive
+	if !cfg.colorButtonActive.IsSet() {
+		cfg.colorButtonActive = s.colorButtonActive
 	}
-	if !cfg.ColorButtonIcon.IsSet() {
-		cfg.ColorButtonIcon = s.ColorButtonIcon
+	if !cfg.colorButtonIcon.IsSet() {
+		cfg.colorButtonIcon = s.colorButtonIcon
 	}
 }
 
@@ -305,7 +305,7 @@ func splitterOnDragMove(core *splitterCore, e *Event, w *Window) {
 	}
 	ratio := splitterClampRatio(core, available, cursorMain/available)
 	splitterSetCursor(core.orientation, w)
-	splitterEmitChange(core, ratio, SplitterCollapseNone, e, w)
+	splitterEmitChange(core, ratio, splitterCollapseNone, e, w)
 }
 
 // --- AmendLayout ---
@@ -356,7 +356,7 @@ func splitterLayoutChild(
 	x, y, width, height float32,
 	w *Window,
 ) {
-	splitterResetPositions(child, true, AxisNone, 0, 0)
+	splitterResetPositions(child, true, axisNone, 0, 0)
 	child.Shape.Sizing = FixedFixed
 	child.Shape.Width = f32Max(0, width)
 	child.Shape.Height = f32Max(0, height)
@@ -384,7 +384,7 @@ func splitterResetPositions(layout *Layout, isRoot bool,
 	if isRoot {
 		layout.Shape.X = 0
 		layout.Shape.Y = 0
-	} else if parentAxis == AxisNone {
+	} else if parentAxis == axisNone {
 		layout.Shape.X = oldX - parentOldX
 		layout.Shape.Y = oldY - parentOldY
 	} else {
@@ -452,7 +452,7 @@ func splitterCollapsedSecond(core *splitterCore, available float32) (float32, fl
 	return f32Max(0, available-second), f32Max(0, second)
 }
 
-func splitterMainSize(layout *Layout, orientation SplitterOrientation) float32 {
+func splitterMainSize(layout *Layout, orientation splitterOrientation) float32 {
 	if orientation == SplitterHorizontal {
 		return layout.Shape.Width
 	}
@@ -461,7 +461,7 @@ func splitterMainSize(layout *Layout, orientation SplitterOrientation) float32 {
 
 func splitterHandleSizeFromLayout(
 	layout *Layout,
-	orientation SplitterOrientation,
+	orientation splitterOrientation,
 	fallback float32,
 ) float32 {
 	if len(layout.Children) > 1 {
@@ -537,7 +537,7 @@ func splitterCurrentRatio(core *splitterCore, w *Window) float32 {
 
 func splitterToggleTarget(core *splitterCore, current SplitterCollapsed) SplitterCollapsed {
 	active := splitterEffectiveCollapsed(core, current)
-	if active != SplitterCollapseNone {
+	if active != splitterCollapseNone {
 		return active
 	}
 	if core.first.collapsible {
@@ -546,10 +546,10 @@ func splitterToggleTarget(core *splitterCore, current SplitterCollapsed) Splitte
 	if core.second.collapsible {
 		return SplitterCollapseSecond
 	}
-	return SplitterCollapseNone
+	return splitterCollapseNone
 }
 
-func splitterArrowStep(core *splitterCore, orient SplitterOrientation,
+func splitterArrowStep(core *splitterCore, orient splitterOrientation,
 	sign float32, mod Modifier, available, ratio float32,
 ) (float32, bool) {
 	if core.orientation != orient {
@@ -570,11 +570,11 @@ func splitterToggleCollapse(core *splitterCore,
 	current SplitterCollapsed,
 ) (SplitterCollapsed, bool) {
 	target := splitterToggleTarget(core, current)
-	if target == SplitterCollapseNone {
+	if target == splitterCollapseNone {
 		return current, false
 	}
 	if current == target {
-		return SplitterCollapseNone, true
+		return splitterCollapseNone, true
 	}
 	return target, true
 }
@@ -596,14 +596,14 @@ func splitterEffectiveCollapsed(core *splitterCore, collapsed SplitterCollapsed)
 		if core.first.collapsible {
 			return SplitterCollapseFirst
 		}
-		return SplitterCollapseNone
+		return splitterCollapseNone
 	case SplitterCollapseSecond:
 		if core.second.collapsible {
 			return SplitterCollapseSecond
 		}
-		return SplitterCollapseNone
+		return splitterCollapseNone
 	default:
-		return SplitterCollapseNone
+		return splitterCollapseNone
 	}
 }
 
@@ -629,7 +629,7 @@ func splitterFocus(core *splitterCore, w *Window) {
 	}
 }
 
-func splitterSetCursor(orientation SplitterOrientation, w *Window) {
+func splitterSetCursor(orientation splitterOrientation, w *Window) {
 	if orientation == SplitterHorizontal {
 		w.SetMouseCursorEW()
 	} else {

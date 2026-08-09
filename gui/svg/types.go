@@ -35,48 +35,49 @@ const (
 )
 
 // PathCmd identifies a path segment type.
-type PathCmd uint8
+type pathCmd uint8
 
 // PathCmd constants.
 const (
-	CmdMoveTo PathCmd = iota
-	CmdLineTo
-	CmdQuadTo
-	CmdCubicTo
-	CmdClose
+	cmdMoveTo pathCmd = iota
+	cmdLineTo
+	cmdQuadTo
+	cmdCubicTo
+	cmdClose
 )
 
 // FillRule selects how overlapping subpaths are filled. Matches
 // the SVG fill-rule presentation attribute.
-type FillRule uint8
+type fillRule uint8
 
 // FillRule constants. Zero value is nonzero (SVG default).
 const (
-	FillRuleNonzero FillRule = iota
-	FillRuleEvenOdd
+	fillRuleNonzero fillRule = iota
+	fillRuleEvenOdd
 )
 
 // PathSegment is one segment of an SVG path.
-type PathSegment struct {
-	Cmd    PathCmd
+type pathSegment struct {
+	Cmd    pathCmd
 	Points []float32 // moveTo/lineTo: [x,y]; quad: [cx,cy,x,y]; cubic: [6]
 }
 
 // VectorPath represents a single filled/stroked path.
-type VectorPath struct {
-	ClipPathID       string
+type vectorPath struct {
+	clipPathID       string
 	FillGradientID   string
-	StrokeGradientID string
-	FilterID         string
-	GroupID          string
-	Segments         []PathSegment
-	StrokeDasharray  []float32
+	strokeGradientID string
+	// exportaudit:keep — collides with gui.SvgText.FilterID
+	FilterID        string
+	GroupID         string
+	Segments        []pathSegment
+	strokeDasharray []float32
 	// Computed snapshots the resolved cascade context (transform,
 	// fill, stroke, opacity, font, …) at parse time. Phase A only
 	// records the result; later CSS phases will use it as the hot-
 	// path style accessor. Embedding a value (not a pointer) keeps
 	// the per-frame access allocation-free.
-	Computed  ComputedStyle
+	computed  computedStyle
 	Primitive gui.SvgPrimitive
 	Transform [6]float32 // affine [a,b,c,d,e,f]
 	// Bbox is the geometric bounding box in author (viewBox) units,
@@ -85,7 +86,7 @@ type VectorPath struct {
 	// time. Untransformed — caller composes path.Transform when an
 	// origin in transformed space is needed. Zero value means
 	// "unknown" (group/use without resolved children).
-	Bbox bbox
+	bbox bbox
 	// PathID is a monotonic per-SvgParsed identifier assigned at parse
 	// time. Every VectorPath carries a unique ID; derived tessellated
 	// paths (fill, stroke, clip masks) inherit it so animation state
@@ -101,13 +102,14 @@ type VectorPath struct {
 	// Distinct elements with filter="url(#X)" get distinct keys so the
 	// renderer can composite their offscreen buffers separately and in
 	// document order, while FilterID remains the actual filter def id.
+	// exportaudit:keep — collides with gui.SvgText.FilterGroupKey
 	FilterGroupKey uint32
 	FillColor      gui.SvgColor
 	StrokeColor    gui.SvgColor
-	StrokeCap      gui.SvgStrokeCap
-	StrokeJoin     gui.SvgStrokeJoin
+	strokeCap      gui.SvgStrokeCap
+	strokeJoin     gui.SvgStrokeJoin
 	Animated       bool
-	FillRule       FillRule
+	fillRule       fillRule
 }
 
 // bbox is an axis-aligned bounding rectangle in author coordinates.
@@ -127,16 +129,16 @@ func (b bbox) Height() float32 { return b.MaxY - b.MinY }
 // same filter.
 type svgFilteredGroup struct {
 	FilterID  string
-	Paths     []VectorPath
+	Paths     []vectorPath
 	Texts     []gui.SvgText
 	TextPaths []gui.SvgTextPath
 	GroupKey  uint32
 }
 
 // VectorGraphic holds the full parsed SVG before tessellation.
-type VectorGraphic struct {
+type vectorGraphic struct {
 	DefsPaths map[string]string
-	ClipPaths map[string][]VectorPath
+	clipPaths map[string][]vectorPath
 	Gradients map[string]gui.SvgGradientDef
 	Filters   map[string]gui.SvgFilter
 	// GroupParent maps a synth group ID (e.g. "__anim_3") to its
@@ -144,11 +146,11 @@ type VectorGraphic struct {
 	// Used by resolveAnimationTargets to propagate group-level
 	// animations onto descendant paths whose own GroupID is a
 	// nested synth ID.
-	GroupParent map[string]string
+	groupParent map[string]string
 	// A11y carries root-level accessibility metadata; mirrored into
 	// gui.SvgParsed by buildParsed.
 	A11y               gui.SvgA11y
-	Paths              []VectorPath
+	Paths              []vectorPath
 	Texts              []gui.SvgText
 	TextPaths          []gui.SvgTextPath
 	FilteredGroups     []svgFilteredGroup
@@ -190,19 +192,19 @@ var (
 // float32, enums); font-related fields are still kept as raw
 // strings — text shaping consumes them as-is and has no need to
 // see them resolved at this layer.
-type ComputedStyle struct {
+type computedStyle struct {
 
 	// Vars holds custom properties (--name → value) inherited from
 	// ancestors plus any defined on this element. Lazy: shares the
 	// parent's map when the element introduces no new vars. Resolved
 	// at value-substitution time; undefined references drop the
 	// declaration per the design doc.
-	Vars map[string]string
+	vars map[string]string
 
-	FillGradient   string
-	StrokeGradient string
+	fillGradient   string
+	strokeGradient string
 
-	ClipPathID string
+	clipPathID string
 	FilterID   string
 	GroupID    string
 
@@ -211,8 +213,8 @@ type ComputedStyle struct {
 	FontFamily string
 	FontSize   string
 	FontWeight string
-	FontStyle  string
-	TextAnchor string
+	fontStyle  string
+	textAnchor string
 
 	// TransformOrigin holds the raw `transform-origin` declaration
 	// (e.g. "center", "50% 50%", "10px 20px"). Resolution to numeric
@@ -221,15 +223,15 @@ type ComputedStyle struct {
 	// Inherited from parent so `<g style="transform-origin:...">` flows
 	// to descendants — matches author intent even though spec calls it
 	// non-inherited.
-	TransformOrigin string
+	transformOrigin string
 
-	StrokeDasharray []float32
+	strokeDasharray []float32
 
 	// Animation collects CSS animation-* properties that landed on
 	// this element. CSS animations are not inherited; the cascade
 	// walk clears this at the start of each element so children only
 	// see their own animation-* writes.
-	Animation cssAnimSpec
+	animation cssAnimSpec
 
 	Transform [6]float32
 
@@ -261,19 +263,19 @@ type ComputedStyle struct {
 	// set in this element or an ancestor". *Gradient holds a
 	// gradient ID when the source was url(#id).
 	Fill                gui.SvgColor
-	Stroke              gui.SvgColor
-	FillSet             bool
-	StrokeSet           bool
-	StrokeCap           gui.SvgStrokeCap
-	StrokeJoin          gui.SvgStrokeJoin
-	StrokeDashOffsetSet bool
+	stroke              gui.SvgColor
+	fillSet             bool
+	strokeSet           bool
+	strokeCap           gui.SvgStrokeCap
+	strokeJoin          gui.SvgStrokeJoin
+	strokeDashOffsetSet bool
 
 	// Skip* tells the opacity baker that an inline animation will
 	// supply the corresponding alpha at render time, so a static
 	// fill-opacity="0" must not bake the fill alpha to zero.
-	SkipOpacity       bool
-	SkipFillOpacity   bool
-	SkipStrokeOpacity bool
+	skipOpacity       bool
+	skipFillOpacity   bool
+	skipStrokeOpacity bool
 
 	// AuthoredClipPath = true when this element declared clip-path
 	// itself (presentation attr / CSS rule / inline style), as opposed
@@ -281,44 +283,44 @@ type ComputedStyle struct {
 	// same id as parent" from "inherited unchanged" — the synth-clip
 	// path in xml.go uses it to skip the viewport clip on author-clipped
 	// nested <svg>s without false negatives.
-	AuthoredClipPath bool
+	authoredClipPath bool
 
 	// FillRule resolved from element/ancestors. Zero == nonzero
 	// (SVG default).
-	FillRule FillRule
+	fillRule fillRule
 
 	// Display: zero == DisplayInline (rendered). DisplayNone removes
 	// the element and descendants from the box tree (Phase F T2).
 	// Not inherited — reset each element so child elements aren't
 	// hidden by a parent's "display: none" leaking via inheritance.
-	Display DisplayMode
+	Display displayMode
 
 	// Visibility inherits per spec. VisibilityHidden keeps layout but
 	// suppresses paint; descendants can re-show via "visibility:
 	// visible" on themselves. (Phase F T2.)
-	Visibility VisibilityMode
+	visibility visibilityMode
 }
 
 // DisplayMode encodes the subset of CSS `display` values the SVG
 // cascade recognizes. The zero value is DisplayInline so a
 // zero-valued ComputedStyle defaults to "rendered".
-type DisplayMode uint8
+type displayMode uint8
 
 // DisplayMode values.
 const (
-	DisplayInline DisplayMode = iota
-	DisplayNone
+	displayInline displayMode = iota
+	displayNone
 )
 
 // VisibilityMode encodes the subset of CSS `visibility` values the
 // SVG cascade recognizes. Zero value is VisibilityVisible so a
 // zero-valued ComputedStyle defaults to "painted".
-type VisibilityMode uint8
+type visibilityMode uint8
 
 // VisibilityMode values.
 const (
-	VisibilityVisible VisibilityMode = iota
-	VisibilityHidden
+	visibilityVisible visibilityMode = iota
+	visibilityHidden
 )
 
 // cssAnimSpec mirrors the CSS animation-* shorthand for one
@@ -367,12 +369,12 @@ const (
 // defaultComputedStyle returns the root style with sensible
 // "unset" sentinels — opacity multipliers at 1.0, paint flags
 // cleared, stroke-width = -1, caps/joins at the inherit sentinel.
-func defaultComputedStyle(transform [6]float32) ComputedStyle {
-	return ComputedStyle{
+func defaultComputedStyle(transform [6]float32) computedStyle {
+	return computedStyle{
 		Transform:     transform,
 		StrokeWidth:   -1,
-		StrokeCap:     strokeCapInherit,
-		StrokeJoin:    strokeJoinInherit,
+		strokeCap:     strokeCapInherit,
+		strokeJoin:    strokeJoinInherit,
 		Opacity:       1.0,
 		FillOpacity:   1.0,
 		StrokeOpacity: 1.0,
@@ -397,7 +399,7 @@ type parseState struct {
 	groupParent map[string]string
 	// vg is nil during defs-subtree parses (parseDefsClipPaths
 	// constructs empty-literal parseStates); synth code must nil-guard.
-	vg *VectorGraphic
+	vg *vectorGraphic
 	// hoveredID / focusedID feed CSS :hover / :focus pseudo-class
 	// matching during the cascade. Empty disables the corresponding
 	// state.
@@ -434,14 +436,14 @@ type parseState struct {
 
 // elementStyle holds common style properties extracted from an SVG element.
 type elementStyle struct {
-	StrokeGradientID string
-	StrokeDasharray  []float32
+	strokeGradientID string
+	strokeDasharray  []float32
 	Transform        [6]float32
 	StrokeWidth      float32
 	Opacity          float32
 	FillOpacity      float32
 	StrokeOpacity    float32
 	StrokeColor      gui.SvgColor
-	StrokeCap        gui.SvgStrokeCap
-	StrokeJoin       gui.SvgStrokeJoin
+	strokeCap        gui.SvgStrokeCap
+	strokeJoin       gui.SvgStrokeJoin
 }

@@ -84,7 +84,7 @@ func TestTestClickInvokesOnClick(t *testing.T) {
 func TestTestClickUnknownID(t *testing.T) {
 	w := newCounterWindow(t)
 	err := w.TestClick("nope")
-	if !errors.Is(err, ErrTestNoSuchID) {
+	if !errors.Is(err, errTestNoSuchID) {
 		t.Fatalf("TestClick(nope) = %v, want ErrTestNoSuchID", err)
 	}
 }
@@ -100,7 +100,7 @@ func TestTestClickDisabled(t *testing.T) {
 		})
 	})
 	err := w.TestClick("off")
-	if !errors.Is(err, ErrTestDisabled) {
+	if !errors.Is(err, errTestDisabled) {
 		t.Fatalf("TestClick(off) = %v, want ErrTestDisabled", err)
 	}
 }
@@ -119,7 +119,7 @@ func TestTestClickNoHandler(t *testing.T) {
 		})
 	})
 	err := w.TestClick("plain")
-	if !errors.Is(err, ErrTestNoHandler) {
+	if !errors.Is(err, errTestNoHandler) {
 		t.Fatalf("TestClick(plain) = %v, want ErrTestNoHandler", err)
 	}
 }
@@ -194,7 +194,7 @@ func TestTestClickFocusesFocusableWidget(t *testing.T) {
 
 func TestTestFocusMovesFocus(t *testing.T) {
 	w := newCounterWindow(t)
-	if err := w.TestFocus("name"); err != nil {
+	if err := w.testFocus("name"); err != nil {
 		t.Fatalf("TestFocus(name) = %v, want nil", err)
 	}
 	if got := w.FocusID(); got != "name" {
@@ -256,8 +256,8 @@ func TestTestFocusNotFocusable(t *testing.T) {
 			Content: []View{Text(TextCfg{Text: "x"})},
 		})
 	})
-	err := w.TestFocus("plain")
-	if !errors.Is(err, ErrTestNotFocusable) {
+	err := w.testFocus("plain")
+	if !errors.Is(err, errTestNotFocusable) {
 		t.Fatalf("TestFocus(plain) = %v, want ErrTestNotFocusable", err)
 	}
 }
@@ -288,21 +288,21 @@ func TestTestTabTraversesInOrder(t *testing.T) {
 	w := newCounterWindow(t)
 	// Nothing focused yet, so the first Tab lands on the first
 	// candidate in DFS order.
-	got, err := w.TestTab(TabForward)
+	got, err := w.testTab(tabForward)
 	if err != nil {
 		t.Fatalf("TestTab = %v, want nil", err)
 	}
 	if got != "inc" {
 		t.Fatalf("first Tab focused %q, want %q", got, "inc")
 	}
-	if got, _ = w.TestTab(TabForward); got != "dec" {
+	if got, _ = w.testTab(tabForward); got != "dec" {
 		t.Fatalf("second Tab focused %q, want %q", got, "dec")
 	}
-	if got, _ = w.TestTab(TabForward); got != "name" {
+	if got, _ = w.testTab(tabForward); got != "name" {
 		t.Fatalf("third Tab focused %q, want %q", got, "name")
 	}
 	// Shift-Tab walks back.
-	if got, _ = w.TestTab(TabBackward); got != "dec" {
+	if got, _ = w.testTab(tabBackward); got != "dec" {
 		t.Fatalf("Shift-Tab focused %q, want %q", got, "dec")
 	}
 }
@@ -330,7 +330,7 @@ func TestTestTabSkipsIDlessFocusable(t *testing.T) {
 			},
 		})
 	})
-	if got, _ := w.TestTab(TabForward); got != "real" {
+	if got, _ := w.testTab(tabForward); got != "real" {
 		t.Fatalf("Tab focused %q, want %q — ID-less focusable joined tab order",
 			got, "real")
 	}
@@ -404,7 +404,7 @@ func TestTestScrollClampsAtEnd(t *testing.T) {
 	// Already pinned: more scrolling must be a no-op, and the handler
 	// must stop claiming the event so it can cascade to an ancestor.
 	err = w.TestScroll("list", 0, -30)
-	if !errors.Is(err, ErrTestUnhandled) {
+	if !errors.Is(err, errTestUnhandled) {
 		t.Fatalf("TestScroll past the end = %v, want ErrTestUnhandled", err)
 	}
 	_, after, err := w.TestScrollOffset("list")
@@ -448,7 +448,7 @@ func TestTestScrollNoRoom(t *testing.T) {
 		})
 	})
 	err := w.TestScroll("roomy", 0, -3)
-	if !errors.Is(err, ErrTestNoScrollRoom) {
+	if !errors.Is(err, errTestNoScrollRoom) {
 		t.Fatalf("TestScroll on a fitting container = %v, want ErrTestNoScrollRoom",
 			err)
 	}
@@ -489,7 +489,7 @@ func TestTestScrollOverWrappedText(t *testing.T) {
 func TestTestScrollOffsetNotScrollable(t *testing.T) {
 	w := newCounterWindow(t)
 	_, _, err := w.TestScrollOffset("inc")
-	if !errors.Is(err, ErrTestNoHandler) {
+	if !errors.Is(err, errTestNoHandler) {
 		t.Fatalf("TestScrollOffset(inc) = %v, want ErrTestNoHandler", err)
 	}
 }
@@ -497,7 +497,7 @@ func TestTestScrollOffsetNotScrollable(t *testing.T) {
 func TestTestScrollNotScrollable(t *testing.T) {
 	w := newCounterWindow(t)
 	err := w.TestScroll("inc", 0, -3)
-	if !errors.Is(err, ErrTestNoHandler) {
+	if !errors.Is(err, errTestNoHandler) {
 		t.Fatalf("TestScroll(inc) = %v, want ErrTestNoHandler", err)
 	}
 }

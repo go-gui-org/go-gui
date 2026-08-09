@@ -21,7 +21,7 @@ type SwitchCfg struct {
 	// shorthand for Colors.Base and wins over it.
 	Colors        ColorSet
 	ColorSelect   Color
-	ColorUnselect Color
+	colorUnselect Color
 	Disabled      bool
 	Invisible     bool
 	Selected      bool
@@ -32,13 +32,13 @@ func Switch(cfg SwitchCfg) View {
 	applySwitchDefaults(&cfg)
 	requireFocusID("Switch", cfg.FocusDisabled, cfg.ID)
 
-	d := &DefaultSwitchStyle
-	width := cfg.Width.Get(d.SizeWidth)
-	height := cfg.Height.Get(d.SizeHeight)
+	d := &defaultSwitchStyle
+	width := cfg.Width.Get(d.sizeWidth)
+	height := cfg.Height.Get(d.sizeHeight)
 	radius := height / 2
 	sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)
 
-	thumbColor := cfg.ColorUnselect
+	thumbColor := cfg.colorUnselect
 	if cfg.Selected {
 		thumbColor = cfg.ColorSelect
 	}
@@ -103,9 +103,9 @@ func Switch(cfg SwitchCfg) View {
 		A11YState:       a11yState,
 		A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Label),
 		A11YDescription: cfg.A11YDescription,
-		ClickOnSpace:    true,
+		clickOnSpace:    true,
 		OnClick:         cfg.OnClick,
-		ClickButton:     MouseLeft,
+		clickButton:     MouseLeft,
 		OnHover: func(ctx EventCtx) {
 			if ctx.Layout.Shape.Disabled ||
 				!ctx.Layout.Shape.hasEvents() ||
@@ -141,22 +141,22 @@ func Switch(cfg SwitchCfg) View {
 }
 
 func applySwitchDefaults(cfg *SwitchCfg) {
-	d := &DefaultSwitchStyle
+	d := &defaultSwitchStyle
 	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
-		d.Color, d.ColorHover, d.ColorClick,
+		d.Color, d.ColorHover, d.colorClick,
 		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
 	))
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
 	}
-	if !cfg.ColorUnselect.IsSet() {
-		cfg.ColorUnselect = d.ColorUnselect
+	if !cfg.colorUnselect.IsSet() {
+		cfg.colorUnselect = d.colorUnselect
 	}
 
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = Some(d.Padding)
 	}
 	if cfg.TextStyle == (TextStyle{}) {
-		cfg.TextStyle = d.TextStyleNormal
+		cfg.TextStyle = d.textStyleNormal
 	}
 }

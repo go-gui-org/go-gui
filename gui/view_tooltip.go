@@ -33,6 +33,7 @@ func (ts *tooltipState) clearText() {
 }
 
 // TooltipCfg configures a tooltip popup.
+// exportaudit:keep — reachable from an exported signature
 type TooltipCfg struct {
 	TextStyle   TextStyle
 	ID          string
@@ -46,20 +47,21 @@ type TooltipCfg struct {
 	OffsetY     Opt[float32]
 	Color       Color
 	ColorBorder Color
-	Anchor      Opt[FloatAttach]
-	TieOff      Opt[FloatAttach]
+	Anchor      Opt[floatAttach]
+	tieOff      Opt[floatAttach]
 }
 
 // Tooltip creates a floating tooltip view.
+// exportaudit:keep — collides with the tooltipState var
 func Tooltip(cfg TooltipCfg) View {
 	applyTooltipDefaults(&cfg)
-	d := &DefaultTooltipStyle
+	d := &defaultTooltipStyle
 	return Column(ContainerCfg{
 		ID:            cfg.ID,
 		Float:         true,
-		FloatAutoFlip: true,
+		floatAutoFlip: true,
 		FloatAnchor:   cfg.Anchor.Get(FloatBottomCenter),
-		FloatTieOff:   cfg.TieOff.Get(FloatTopCenter),
+		FloatTieOff:   cfg.tieOff.Get(FloatTopCenter),
 		FloatOffsetX:  cfg.OffsetX.Get(-3),
 		FloatOffsetY:  cfg.OffsetY.Get(-3),
 		FloatZIndex:   cfg.FloatZIndex,
@@ -76,10 +78,10 @@ func Tooltip(cfg TooltipCfg) View {
 // AnimationTooltip returns an Animate that checks mouse position
 // after a delay and activates the tooltip if the mouse is still
 // inside the trigger bounds.
-func AnimationTooltip(cfg TooltipCfg) *Animate {
+func animationTooltip(cfg TooltipCfg) *Animate {
 	delay := cfg.Delay
 	if delay == 0 {
-		delay = DefaultTooltipStyle.Delay
+		delay = defaultTooltipStyle.Delay
 	}
 	id := cfg.ID
 	return &Animate{
@@ -101,7 +103,7 @@ func AnimationTooltip(cfg TooltipCfg) *Animate {
 }
 
 func applyTooltipDefaults(cfg *TooltipCfg) {
-	d := &DefaultTooltipStyle
+	d := &defaultTooltipStyle
 	if !cfg.Color.IsSet() {
 		cfg.Color = d.Color
 	}
@@ -125,8 +127,8 @@ type WithTooltipCfg struct {
 	Text    string
 	Content []View
 	Delay   time.Duration
-	Anchor  Opt[FloatAttach]
-	TieOff  Opt[FloatAttach]
+	Anchor  Opt[floatAttach]
+	tieOff  Opt[floatAttach]
 }
 
 // WithTooltip wraps content and shows a tooltip on hover after
@@ -144,11 +146,11 @@ func WithTooltip(w *Window, cfg WithTooltipCfg) View {
 
 	delay := cfg.Delay
 	if delay == 0 {
-		delay = DefaultTooltipStyle.Delay
+		delay = defaultTooltipStyle.Delay
 	}
 
 	anchor := cfg.Anchor.Get(FloatBottomCenter)
-	tieOff := cfg.TieOff.Get(FloatTopCenter)
+	tieOff := cfg.tieOff.Get(FloatTopCenter)
 
 	content := make([]View, 0, len(cfg.Content)+1)
 	content = append(content, cfg.Content...)
@@ -158,11 +160,11 @@ func WithTooltip(w *Window, cfg WithTooltipCfg) View {
 		content = append(content, Tooltip(TooltipCfg{
 			ID:     ts.popupID,
 			Anchor: Some(anchor),
-			TieOff: Some(tieOff),
+			tieOff: Some(tieOff),
 			Content: []View{
 				Text(TextCfg{
 					Text:      cfg.Text,
-					TextStyle: DefaultTooltipStyle.TextStyle,
+					TextStyle: defaultTooltipStyle.TextStyle,
 					Mode:      TextModeWrap,
 				}),
 			},

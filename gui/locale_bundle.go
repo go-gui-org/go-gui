@@ -13,41 +13,77 @@ import (
 
 type numberBundle struct {
 	DecimalSep string `json:"decimal_sep"`
-	GroupSep   string `json:"group_sep"`
-	MinusSign  string `json:"minus_sign"`
-	PlusSign   string `json:"plus_sign"`
-	GroupSizes []int  `json:"group_sizes"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	GroupSep string `json:"group_sep"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	// exportaudit:keep — json-tagged or same-named member
+	// exportaudit:keep — json-tagged or same-named member
+	// exportaudit:keep — json-tagged or same-named member
+	MinusSign string `json:"minus_sign"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	// exportaudit:keep — json-tagged or same-named member
+	PlusSign string `json:"plus_sign"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	// exportaudit:keep — json-tagged or same-named member
+	GroupSizes []int `json:"group_sizes"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
 }
 
 type dateBundle struct {
-	FirstDayOfWeek *int   `json:"first_day_of_week"`
-	Use24H         *bool  `json:"use_24h"`
-	ShortDate      string `json:"short_date"`
-	LongDate       string `json:"long_date"`
-	MonthYear      string `json:"month_year"`
+	FirstDayOfWeek *int `json:"first_day_of_week"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	Use24H *bool `json:"use_24h"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	ShortDate string `json:"short_date"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	LongDate string `json:"long_date"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	MonthYear string `json:"month_year"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
 }
 
 type currencyBundle struct {
-	Spacing  *bool  `json:"spacing"`
-	Decimals *int   `json:"decimals"`
-	Symbol   string `json:"symbol"`
-	Code     string `json:"code"`
+	Spacing *bool `json:"spacing"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	Decimals *int `json:"decimals"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	Symbol string `json:"symbol"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	// exportaudit:keep — json-tagged or same-named member
+	Code string `json:"code"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
 	Position string `json:"position"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
 }
 
 type localeBundle struct {
-	Number        *numberBundle     `json:"number"`
-	Date          *dateBundle       `json:"date"`
-	Currency      *currencyBundle   `json:"currency"`
-	Strings       map[string]string `json:"strings"`
-	Translations  map[string]string `json:"translations"`
-	ID            string            `json:"id"`
-	TextDir       string            `json:"text_dir"`
-	WeekdaysShort []string          `json:"weekdays_short"`
-	WeekdaysMed   []string          `json:"weekdays_med"`
-	WeekdaysFull  []string          `json:"weekdays_full"`
-	MonthsShort   []string          `json:"months_short"`
-	MonthsFull    []string          `json:"months_full"`
+	Number *numberBundle `json:"number"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	Date *dateBundle `json:"date"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	// exportaudit:keep — json-tagged or same-named member
+	// exportaudit:keep — json-tagged or same-named member
+	// exportaudit:keep — json-tagged or same-named member
+	Currency *currencyBundle `json:"currency"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	Strings map[string]string `json:"strings"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	Translations map[string]string `json:"translations"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	ID string `json:"id"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	TextDir string `json:"text_dir"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	WeekdaysShort []string `json:"weekdays_short"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	WeekdaysMed []string `json:"weekdays_med"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	WeekdaysFull []string `json:"weekdays_full"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	MonthsShort []string `json:"months_short"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
+	MonthsFull []string `json:"months_full"`
+	// exportaudit:keep — json-serialized field (stdlib reflection)
 }
 
 // LocaleParse decodes a JSON string into a Locale struct.
@@ -63,6 +99,7 @@ func LocaleParse(content string) (Locale, error) {
 // LocaleLoad reads a JSON bundle file and returns a Locale.
 //
 // #nosec G304 — path from filepath.Glob constrained to *.json
+// exportaudit:keep — documented public API (showcase docs)
 func LocaleLoad(path string) (Locale, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -76,7 +113,7 @@ func LocaleLoad(path string) (Locale, error) {
 }
 
 func (b *localeBundle) toLocale() Locale {
-	d := LocaleEnUS
+	d := localeEnUS
 	return Locale{
 		ID:       strOr(b.ID, d.ID),
 		TextDir:  parseTextDir(b.TextDir),
@@ -84,23 +121,23 @@ func (b *localeBundle) toLocale() Locale {
 		Date:     b.toDateFormat(d.Date),
 		Currency: b.toCurrencyFormat(d.Currency),
 
-		StrOK:     bundleStr(b.Strings, "ok", d.StrOK),
-		StrYes:    bundleStr(b.Strings, "yes", d.StrYes),
-		StrNo:     bundleStr(b.Strings, "no", d.StrNo),
+		strOK:     bundleStr(b.Strings, "ok", d.strOK),
+		strYes:    bundleStr(b.Strings, "yes", d.strYes),
+		strNo:     bundleStr(b.Strings, "no", d.strNo),
 		StrCancel: bundleStr(b.Strings, "cancel", d.StrCancel),
 
 		StrSave:   bundleStr(b.Strings, "save", d.StrSave),
 		StrDelete: bundleStr(b.Strings, "delete", d.StrDelete),
 		StrAdd:    bundleStr(b.Strings, "add", d.StrAdd),
 		StrClear:  bundleStr(b.Strings, "clear", d.StrClear),
-		StrSearch: bundleStr(b.Strings, "search", d.StrSearch),
+		strSearch: bundleStr(b.Strings, "search", d.strSearch),
 		StrFilter: bundleStr(b.Strings, "filter", d.StrFilter),
 		StrJump:   bundleStr(b.Strings, "jump", d.StrJump),
 		StrReset:  bundleStr(b.Strings, "reset", d.StrReset),
 		StrSubmit: bundleStr(b.Strings, "submit", d.StrSubmit),
 
 		StrLoading:        bundleStr(b.Strings, "loading", d.StrLoading),
-		StrLoadingDiagram: bundleStr(b.Strings, "loading_diagram", d.StrLoadingDiagram),
+		strLoadingDiagram: bundleStr(b.Strings, "loading_diagram", d.strLoadingDiagram),
 		StrSaving:         bundleStr(b.Strings, "saving", d.StrSaving),
 		StrSaveFailed:     bundleStr(b.Strings, "save_failed", d.StrSaveFailed),
 		StrSourceChanged:  bundleStr(b.Strings, "source_changed", d.StrSourceChanged),
@@ -108,29 +145,29 @@ func (b *localeBundle) toLocale() Locale {
 		StrError:          bundleStr(b.Strings, "error", d.StrError),
 		StrClean:          bundleStr(b.Strings, "clean", d.StrClean),
 
-		StrOpenLink:   bundleStr(b.Strings, "open_link", d.StrOpenLink),
-		StrGoToTarget: bundleStr(b.Strings, "go_to_target", d.StrGoToTarget),
-		StrCopyLink:   bundleStr(b.Strings, "copy_link", d.StrCopyLink),
-		StrCopied:     bundleStr(b.Strings, "copied", d.StrCopied),
+		strOpenLink:   bundleStr(b.Strings, "open_link", d.strOpenLink),
+		strGoToTarget: bundleStr(b.Strings, "go_to_target", d.strGoToTarget),
+		strCopyLink:   bundleStr(b.Strings, "copy_link", d.strCopyLink),
+		strCopied:     bundleStr(b.Strings, "copied", d.strCopied),
 
-		StrHorizontalScrollbar: bundleStr(b.Strings, "horizontal_scrollbar", d.StrHorizontalScrollbar),
-		StrVerticalScrollbar:   bundleStr(b.Strings, "vertical_scrollbar", d.StrVerticalScrollbar),
+		strHorizontalScrollbar: bundleStr(b.Strings, "horizontal_scrollbar", d.strHorizontalScrollbar),
+		strVerticalScrollbar:   bundleStr(b.Strings, "vertical_scrollbar", d.strVerticalScrollbar),
 
 		StrColumns:  bundleStr(b.Strings, "columns", d.StrColumns),
 		StrSelected: bundleStr(b.Strings, "selected", d.StrSelected),
 		StrDraft:    bundleStr(b.Strings, "draft", d.StrDraft),
 		StrDirty:    bundleStr(b.Strings, "dirty", d.StrDirty),
 		StrMatches:  bundleStr(b.Strings, "matches", d.StrMatches),
-		StrPage:     bundleStr(b.Strings, "page", d.StrPage),
+		strPage:     bundleStr(b.Strings, "page", d.strPage),
 		StrRows:     bundleStr(b.Strings, "rows", d.StrRows),
 
-		StrRed:   bundleStr(b.Strings, "red", d.StrRed),
-		StrGreen: bundleStr(b.Strings, "green", d.StrGreen),
-		StrBlue:  bundleStr(b.Strings, "blue", d.StrBlue),
-		StrAlpha: bundleStr(b.Strings, "alpha", d.StrAlpha),
-		StrHue:   bundleStr(b.Strings, "hue", d.StrHue),
-		StrSat:   bundleStr(b.Strings, "sat", d.StrSat),
-		StrValue: bundleStr(b.Strings, "value", d.StrValue),
+		strRed:   bundleStr(b.Strings, "red", d.strRed),
+		strGreen: bundleStr(b.Strings, "green", d.strGreen),
+		strBlue:  bundleStr(b.Strings, "blue", d.strBlue),
+		strAlpha: bundleStr(b.Strings, "alpha", d.strAlpha),
+		strHue:   bundleStr(b.Strings, "hue", d.strHue),
+		strSat:   bundleStr(b.Strings, "sat", d.strSat),
+		strValue: bundleStr(b.Strings, "value", d.strValue),
 
 		WeekdaysShort: toFixed7(b.WeekdaysShort, d.WeekdaysShort),
 		WeekdaysMed:   toFixed7(b.WeekdaysMed, d.WeekdaysMed),
@@ -142,12 +179,12 @@ func (b *localeBundle) toLocale() Locale {
 	}
 }
 
-func (b *localeBundle) toNumberFormat(d NumberFormat) NumberFormat {
+func (b *localeBundle) toNumberFormat(d numberFormat) numberFormat {
 	nb := b.Number
 	if nb == nil {
 		return d
 	}
-	return NumberFormat{
+	return numberFormat{
 		DecimalSep: firstRune(nb.DecimalSep, d.DecimalSep),
 		GroupSep:   firstRune(nb.GroupSep, d.GroupSep),
 		GroupSizes: nonEmptyInts(nb.GroupSizes, d.GroupSizes),
@@ -156,7 +193,7 @@ func (b *localeBundle) toNumberFormat(d NumberFormat) NumberFormat {
 	}
 }
 
-func (b *localeBundle) toDateFormat(d DateFormat) DateFormat {
+func (b *localeBundle) toDateFormat(d dateFormat) dateFormat {
 	db := b.Date
 	if db == nil {
 		return d
@@ -180,7 +217,7 @@ func (b *localeBundle) toDateFormat(d DateFormat) DateFormat {
 	return out
 }
 
-func (b *localeBundle) toCurrencyFormat(d CurrencyFormat) CurrencyFormat {
+func (b *localeBundle) toCurrencyFormat(d currencyFormat) currencyFormat {
 	cb := b.Currency
 	if cb == nil {
 		return d
@@ -241,23 +278,23 @@ func toFixed12(src []string, fallback [12]string) [12]string {
 	return out
 }
 
-func parseTextDir(s string) TextDirection {
+func parseTextDir(s string) textDirection {
 	switch strings.ToLower(s) {
 	case "ltr":
 		return TextDirLTR
 	case "rtl":
 		return TextDirRTL
 	default:
-		return TextDirAuto
+		return textDirAuto
 	}
 }
 
-func parseAffixPosition(s string, fallback NumericAffixPosition) NumericAffixPosition {
+func parseAffixPosition(s string, fallback numericAffixPosition) numericAffixPosition {
 	switch strings.ToLower(s) {
 	case "prefix":
-		return AffixPrefix
+		return affixPrefix
 	case "suffix":
-		return AffixSuffix
+		return affixSuffix
 	default:
 		return fallback
 	}

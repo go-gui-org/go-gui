@@ -17,7 +17,7 @@ type ContainerCfg struct {
 	BorderGradient *GradientDef
 	Shader         *Shader
 
-	A11Y *AccessInfo
+	a11Y *accessInfo
 
 	// Event handlers
 	OnClick     func(EventCtx)
@@ -31,21 +31,21 @@ type ContainerCfg struct {
 	// ClickButton filters OnClick by mouse button (0 = any).
 	// Set to MouseLeft for left-click-only widgets; avoids the
 	// per-frame closure allocation from leftClickOnly.
-	ClickButton MouseButton
+	clickButton MouseButton
 
 	// ClickOnSpace fires OnClick on spacebar via the char dispatch
 	// path. Avoids the per-frame closure allocation from
 	// spacebarToClick.
-	ClickOnSpace bool
+	clickOnSpace bool
 
 	// ClickOnEnter fires OnClick on Enter key via the key-down
 	// dispatch path. Avoids the per-frame closure allocation from
 	// enterToClick.
-	ClickOnEnter bool
+	clickOnEnter bool
 
 	// OnScroll fires when the container receives scroll events.
 	// Requires Scrollable and a scrollable Overflow/ScrollMode.
-	OnScroll func(EventCtx)
+	onScroll func(EventCtx)
 
 	// AmendLayout runs after sizing to reposition overlays
 	// (color picker circles, splitter handles) or manage hover
@@ -55,7 +55,7 @@ type ContainerCfg struct {
 	OnHover     func(EventCtx)
 	OnGesture   func(EventCtx)
 	OnFileDrop  func(EventCtx)
-	OnIMECommit func(string, EventCtx)
+	onIMECommit func(string, EventCtx)
 
 	// ScrollbarCfgX/Y override scrollbar appearance for this
 	// container. nil uses theme defaults. Only active when
@@ -120,14 +120,14 @@ type ContainerCfg struct {
 	// Sizing
 	Sizing   Sizing
 	HAlign   HorizontalAlign
-	VAlign   VerticalAlign
-	TextDir  TextDirection
+	VAlign   verticalAlign
+	TextDir  textDirection
 	Wrap     bool
 	Overflow bool
 
-	ScrollMode   ScrollMode
+	ScrollMode   scrollMode
 	Clip         bool
-	ClipContents bool
+	clipContents bool
 	FocusSkip    bool
 	Disabled     bool
 	Invisible    bool
@@ -136,9 +136,9 @@ type ContainerCfg struct {
 
 	// Floating
 	Float         bool
-	FloatAutoFlip bool
-	FloatAnchor   FloatAttach
-	FloatTieOff   FloatAttach
+	floatAutoFlip bool
+	FloatAnchor   floatAttach
+	FloatTieOff   floatAttach
 
 	// Accessibility
 	A11YRole AccessRole
@@ -150,7 +150,7 @@ type ContainerCfg struct {
 }
 
 func applyContainerDefaults(cfg *ContainerCfg) (spacing, sizeBorder, radius float32, padding Padding) {
-	d := &DefaultContainerStyle
+	d := &defaultContainerStyle
 	return cfg.Spacing.Get(d.Spacing),
 		cfg.SizeBorder.Get(d.SizeBorder),
 		cfg.Radius.Get(d.Radius),
@@ -187,7 +187,7 @@ func (cv *containerView) GenerateLayout(w *Window) Layout {
 	if cv.isButton && layout.Shape.events != nil {
 		bc := shapeButtonColors{
 			ColorHover:       cv.colorHover,
-			ColorClick:       cv.colorClick,
+			colorClick:       cv.colorClick,
 			ColorFocus:       cv.colorFocus,
 			ColorBorderFocus: cv.colorBorderFocus,
 			OnHover:          cv.userOnHover,
@@ -265,7 +265,7 @@ func addGroupBoxTitle(title string, titleBG, colorBorder Color,
 		Color:     textColor,
 		Opacity:   1.0,
 		Float:     true,
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			Text:      title,
 			TextStyle: &ts,
 		},
@@ -296,8 +296,8 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		c.OnKeyDown == nil && c.OnKeyUp == nil &&
 		c.OnMouseMove == nil && c.OnMouseUp == nil &&
 		c.OnHover == nil && c.OnGesture == nil &&
-		c.OnFileDrop == nil && c.OnIMECommit == nil &&
-		c.OnScroll == nil && c.AmendLayout == nil {
+		c.OnFileDrop == nil && c.onIMECommit == nil &&
+		c.onScroll == nil && c.AmendLayout == nil {
 		return eventHandlers{}, false
 	}
 	return eventHandlers{
@@ -310,18 +310,18 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		OnHover:      c.OnHover,
 		OnGesture:    c.OnGesture,
 		OnFileDrop:   c.OnFileDrop,
-		OnIMECommit:  c.OnIMECommit,
-		OnScroll:     c.OnScroll,
+		onIMECommit:  c.onIMECommit,
+		onScroll:     c.onScroll,
 		AmendLayout:  c.AmendLayout,
-		ClickButton:  c.ClickButton,
-		ClickOnSpace: c.ClickOnSpace,
-		ClickOnEnter: c.ClickOnEnter,
+		clickButton:  c.clickButton,
+		clickOnSpace: c.clickOnSpace,
+		clickOnEnter: c.clickOnEnter,
 	}, true
 }
 
-func makeContainerA11Y(c *ContainerCfg) *AccessInfo {
-	if c.A11Y != nil {
-		return c.A11Y
+func makeContainerA11Y(c *ContainerCfg) *accessInfo {
+	if c.a11Y != nil {
+		return c.a11Y
 	}
 	return makeA11YInfo(c.A11YLabel, c.A11YDescription)
 }
@@ -339,7 +339,7 @@ func deriveContainerA11YRole(c *ContainerCfg) AccessRole {
 // buildContainerShape constructs a Shape from a ContainerCfg.
 // Uses pooled allocs for effects and events via w.
 func buildContainerShape(cfg *ContainerCfg, w *Window) Shape {
-	RequireScrollID("container", cfg.Scrollable, cfg.ID)
+	requireScrollID("container", cfg.Scrollable, cfg.ID)
 	spacing, sizeBorder, radius, padding := applyContainerDefaults(cfg)
 	shapeType := cfg.shapeType
 	if shapeType == shapeNone {
@@ -350,7 +350,7 @@ func buildContainerShape(cfg *ContainerCfg, w *Window) Shape {
 		ID:                   cfg.ID,
 		Focusable:            cfg.Focusable,
 		Axis:                 cfg.axis,
-		ScrollbarOrientation: cfg.scrollbarOrientation,
+		scrollbarOrientation: cfg.scrollbarOrientation,
 		X:                    cfg.X,
 		Y:                    cfg.Y,
 		Width:                cfg.Width,
@@ -360,7 +360,7 @@ func buildContainerShape(cfg *ContainerCfg, w *Window) Shape {
 		MinHeight:            cfg.MinHeight,
 		MaxHeight:            cfg.MaxHeight,
 		Clip:                 cfg.Clip,
-		ClipContents:         cfg.ClipContents,
+		clipContents:         cfg.clipContents,
 		FocusSkip:            cfg.FocusSkip,
 		Spacing:              spacing,
 		Sizing:               cfg.Sizing,
@@ -374,7 +374,7 @@ func buildContainerShape(cfg *ContainerCfg, w *Window) Shape {
 		ColorBorder:          cfg.ColorBorder,
 		Disabled:             cfg.Disabled,
 		Float:                cfg.Float,
-		FloatAutoFlip:        cfg.FloatAutoFlip,
+		floatAutoFlip:        cfg.floatAutoFlip,
 		FloatAnchor:          cfg.FloatAnchor,
 		FloatTieOff:          cfg.FloatTieOff,
 		FloatOffsetX:         cfg.FloatOffsetX,
@@ -389,7 +389,7 @@ func buildContainerShape(cfg *ContainerCfg, w *Window) Shape {
 		Opacity:              cfg.Opacity.Get(1.0),
 		A11YRole:             deriveContainerA11YRole(cfg),
 		A11YState:            cfg.A11YState,
-		A11Y:                 makeContainerA11Y(cfg),
+		a11Y:                 makeContainerA11Y(cfg),
 	}
 	if fx, ok := makeContainerEffects(cfg); ok {
 		shape.fx = w.allocEffects(fx)
@@ -411,7 +411,7 @@ func container(cfg ContainerCfg) View {
 	if cfg.OnAnyClick != nil {
 		cfg.OnClick = cfg.OnAnyClick
 	} else {
-		cfg.ClickButton = MouseLeft
+		cfg.clickButton = MouseLeft
 	}
 
 	content := cfg.Content
@@ -419,9 +419,9 @@ func container(cfg ContainerCfg) View {
 		content = make([]View, 0, len(cfg.Content)+2)
 		content = append(content, cfg.Content...)
 		content = appendScrollbar(content, cfg.ScrollbarCfgX,
-			ScrollbarHorizontal, cfg.ID)
+			scrollbarHorizontal, cfg.ID)
 		content = appendScrollbar(content, cfg.ScrollbarCfgY,
-			ScrollbarVertical, cfg.ID)
+			scrollbarVertical, cfg.ID)
 	}
 
 	return &containerView{
@@ -432,20 +432,20 @@ func container(cfg ContainerCfg) View {
 
 // Column arranges content top to bottom.
 func Column(cfg ContainerCfg) View {
-	cfg.axis = AxisTopToBottom
+	cfg.axis = axisTopToBottom
 	return container(cfg)
 }
 
 // Row arranges content left to right.
 func Row(cfg ContainerCfg) View {
-	cfg.axis = AxisLeftToRight
+	cfg.axis = axisLeftToRight
 	return container(cfg)
 }
 
 // Wrap arranges content left to right, flowing to the next
 // line when container width is exceeded.
 func Wrap(cfg ContainerCfg) View {
-	cfg.axis = AxisLeftToRight
+	cfg.axis = axisLeftToRight
 	cfg.Wrap = true
 	return container(cfg)
 }
@@ -457,7 +457,7 @@ func Canvas(cfg ContainerCfg) View {
 
 // Circle creates a circular container.
 func Circle(cfg ContainerCfg) View {
-	cfg.axis = AxisTopToBottom
+	cfg.axis = axisTopToBottom
 	cfg.shapeType = shapeCircle
 	return container(cfg)
 }
@@ -469,12 +469,12 @@ func appendScrollbar(content []View, override *ScrollbarCfg, orientation Scrollb
 		}
 		merged := *override
 		merged.Orientation = orientation
-		merged.ScrollID = id
-		return append(content, Scrollbar(merged))
+		merged.scrollID = id
+		return append(content, scrollbar(merged))
 	}
-	return append(content, Scrollbar(ScrollbarCfg{
+	return append(content, scrollbar(ScrollbarCfg{
 		Orientation: orientation,
-		ScrollID:    id,
+		scrollID:    id,
 	}))
 }
 

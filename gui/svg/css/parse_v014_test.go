@@ -9,7 +9,7 @@ import (
 // attribute selectors, :hover / :focus / :not().
 
 func TestMatch_AdjacentSibling(t *testing.T) {
-	rules := ParseStylesheet(`rect + circle { fill: red }`, ParseOptions{})
+	rules := parseStylesheet(`rect + circle { fill: red }`, ParseOptions{})
 	if len(rules) != 1 {
 		t.Fatalf("rules: %d", len(rules))
 	}
@@ -28,7 +28,7 @@ func TestMatch_AdjacentSibling(t *testing.T) {
 }
 
 func TestMatch_GeneralSibling(t *testing.T) {
-	rules := ParseStylesheet(`rect ~ circle { fill: red }`, ParseOptions{})
+	rules := parseStylesheet(`rect ~ circle { fill: red }`, ParseOptions{})
 	if len(rules) != 1 {
 		t.Fatalf("rules: %d", len(rules))
 	}
@@ -45,7 +45,7 @@ func TestMatch_GeneralSibling(t *testing.T) {
 }
 
 func TestMatch_AttrExists(t *testing.T) {
-	rules := ParseStylesheet(`[data-x] { fill: red }`, ParseOptions{})
+	rules := parseStylesheet(`[data-x] { fill: red }`, ParseOptions{})
 	got := Match(rules, ElementInfo{
 		Attrs: map[string]string{"data-x": "anything"},
 	}, nil, nil)
@@ -60,7 +60,7 @@ func TestMatch_AttrExists(t *testing.T) {
 }
 
 func TestMatch_AttrEqual(t *testing.T) {
-	rules := ParseStylesheet(`[data-state=active] { fill: red }`, ParseOptions{})
+	rules := parseStylesheet(`[data-state=active] { fill: red }`, ParseOptions{})
 	got := Match(rules, ElementInfo{
 		Attrs: map[string]string{"data-state": "active"},
 	}, nil, nil)
@@ -93,7 +93,7 @@ func TestMatch_AttrOps(t *testing.T) {
 		{`[c*=mid]`, "c", "no", false},
 	}
 	for _, tc := range cases {
-		rules := ParseStylesheet(tc.sel+` { fill: red }`, ParseOptions{})
+		rules := parseStylesheet(tc.sel+` { fill: red }`, ParseOptions{})
 		if len(rules) != 1 {
 			t.Fatalf("%s: parse failed", tc.sel)
 		}
@@ -108,7 +108,7 @@ func TestMatch_AttrOps(t *testing.T) {
 }
 
 func TestMatch_AttrQuotedValue(t *testing.T) {
-	rules := ParseStylesheet(`[d="hello world"] { fill: red }`, ParseOptions{})
+	rules := parseStylesheet(`[d="hello world"] { fill: red }`, ParseOptions{})
 	got := Match(rules, ElementInfo{
 		Attrs: map[string]string{"d": "hello world"},
 	}, nil, nil)
@@ -118,11 +118,11 @@ func TestMatch_AttrQuotedValue(t *testing.T) {
 }
 
 func TestMatch_HoverFocus(t *testing.T) {
-	rules := ParseStylesheet(
+	rules := parseStylesheet(
 		`circle:hover { fill: red } rect:focus { fill: blue }`,
 		ParseOptions{})
 	circHover := Match(rules,
-		ElementInfo{Tag: "circle", State: MatchState{Hover: true}},
+		ElementInfo{Tag: "circle", State: matchState{Hover: true}},
 		nil, nil)
 	if len(circHover) != 1 || circHover[0].Value != "red" {
 		t.Errorf(":hover match: %+v", circHover)
@@ -132,7 +132,7 @@ func TestMatch_HoverFocus(t *testing.T) {
 		t.Errorf(":hover matched without state: %+v", circNoHover)
 	}
 	rectFocus := Match(rules,
-		ElementInfo{Tag: "rect", State: MatchState{Focus: true}},
+		ElementInfo{Tag: "rect", State: matchState{Focus: true}},
 		nil, nil)
 	if len(rectFocus) != 1 || rectFocus[0].Value != "blue" {
 		t.Errorf(":focus match: %+v", rectFocus)
@@ -140,7 +140,7 @@ func TestMatch_HoverFocus(t *testing.T) {
 }
 
 func TestMatch_Not(t *testing.T) {
-	rules := ParseStylesheet(`circle:not(.hidden) { fill: red }`,
+	rules := parseStylesheet(`circle:not(.hidden) { fill: red }`,
 		ParseOptions{})
 	got := Match(rules, ElementInfo{Tag: "circle"}, nil, nil)
 	if len(got) != 1 {
@@ -158,21 +158,21 @@ func TestMatch_Not(t *testing.T) {
 func TestMatch_NotSpecificity(t *testing.T) {
 	// :not(.a) contributes a class-tier specificity bump just like
 	// .a would.
-	rules := ParseStylesheet(`:not(.a) { fill: red }`, ParseOptions{})
+	rules := parseStylesheet(`:not(.a) { fill: red }`, ParseOptions{})
 	if len(rules) != 1 {
 		t.Fatalf("rules: %d", len(rules))
 	}
-	if got := rules[0].Selectors[0].Spec; got != ([3]uint16{0, 1, 0}) {
+	if got := rules[0].selectors[0].spec; got != ([3]uint16{0, 1, 0}) {
 		t.Errorf(":not specificity: %v", got)
 	}
 }
 
 func TestParse_AttrSpecificity(t *testing.T) {
-	rules := ParseStylesheet(`[a=b] { fill: red }`, ParseOptions{})
+	rules := parseStylesheet(`[a=b] { fill: red }`, ParseOptions{})
 	if len(rules) != 1 {
 		t.Fatalf("rules: %d", len(rules))
 	}
-	if got := rules[0].Selectors[0].Spec; got != ([3]uint16{0, 1, 0}) {
+	if got := rules[0].selectors[0].spec; got != ([3]uint16{0, 1, 0}) {
 		t.Errorf("attr specificity: %v", got)
 	}
 }
@@ -180,7 +180,7 @@ func TestParse_AttrSpecificity(t *testing.T) {
 func TestMatch_AttrSelectorOnNilAttrs(t *testing.T) {
 	// Selector requires an attribute; element has nil Attrs map.
 	// matchAttr lookup fails on nil → compound rejects.
-	rules := ParseStylesheet(`[data-x] { fill: red }`, ParseOptions{})
+	rules := parseStylesheet(`[data-x] { fill: red }`, ParseOptions{})
 	got := Match(rules, ElementInfo{Tag: "rect"}, nil, nil)
 	if len(got) != 0 {
 		t.Errorf("nil Attrs should not match attr selector: %+v", got)
@@ -188,7 +188,7 @@ func TestMatch_AttrSelectorOnNilAttrs(t *testing.T) {
 }
 
 func TestMatch_MultipleAttrConstraints(t *testing.T) {
-	rules := ParseStylesheet(
+	rules := parseStylesheet(
 		`[data-a=1][data-b=2] { fill: red }`, ParseOptions{})
 	if len(rules) != 1 {
 		t.Fatalf("compound attr parse: %d rules", len(rules))
@@ -216,7 +216,7 @@ func TestParse_AttrSelMalformedDropped(t *testing.T) {
 		`[name=] { fill: red }`,
 	}
 	for _, src := range cases {
-		rules := ParseStylesheet(src, ParseOptions{})
+		rules := parseStylesheet(src, ParseOptions{})
 		if len(rules) != 0 {
 			t.Errorf("%q should be dropped: got %d rules", src, len(rules))
 		}
@@ -226,14 +226,14 @@ func TestParse_AttrSelMalformedDropped(t *testing.T) {
 func TestMatches_EmptyPartsReturnsFalse(t *testing.T) {
 	// Defensive guard: a hand-built ComplexSelector with no parts must
 	// not match anything.
-	cs := ComplexSelector{}
+	cs := complexSelector{}
 	if cs.Matches(ElementInfo{Tag: "rect"}, nil, nil) {
 		t.Error("empty Parts should not match")
 	}
 }
 
 func TestMatch_NotCombinedWithAdjacentSibling(t *testing.T) {
-	rules := ParseStylesheet(
+	rules := parseStylesheet(
 		`rect + circle:not(.skip) { fill: red }`, ParseOptions{})
 	if len(rules) != 1 {
 		t.Fatalf("parse: %d", len(rules))
@@ -254,11 +254,11 @@ func TestMatch_NotCombinedWithAdjacentSibling(t *testing.T) {
 }
 
 func TestMatch_HoverWithSiblingCombinator(t *testing.T) {
-	rules := ParseStylesheet(
+	rules := parseStylesheet(
 		`rect + circle:hover { fill: red }`, ParseOptions{})
 	got := Match(rules, ElementInfo{
 		Tag:   "circle",
-		State: MatchState{Hover: true},
+		State: matchState{Hover: true},
 	}, nil, []ElementInfo{{Tag: "rect"}})
 	if len(got) != 1 {
 		t.Errorf("rect + circle:hover w/ hover: %+v", got)
@@ -277,32 +277,32 @@ func TestParse_NotDepthCap(t *testing.T) {
 	// bound. We build maxNotDepth+2 levels of nesting.
 	src := strings.Repeat(":not(", maxNotDepth+2) + ".x" +
 		strings.Repeat(")", maxNotDepth+2) + " { fill: red }"
-	rules := ParseStylesheet(src, ParseOptions{})
+	rules := parseStylesheet(src, ParseOptions{})
 	if len(rules) != 0 {
 		t.Errorf("over-deep :not() should be dropped, got %d rules",
 			len(rules))
 	}
 	// Sanity: a small number of nestings still parses.
-	ok := ParseStylesheet(":not(:not(.a)) { fill: red }", ParseOptions{})
+	ok := parseStylesheet(":not(:not(.a)) { fill: red }", ParseOptions{})
 	if len(ok) != 1 {
 		t.Errorf("shallow nested :not() should parse: %d", len(ok))
 	}
 }
 
 func TestParse_SiblingCombinatorRoundtrip(t *testing.T) {
-	rules := ParseStylesheet(
+	rules := parseStylesheet(
 		`a + b ~ c { fill: red }`, ParseOptions{})
 	if len(rules) != 1 {
 		t.Fatalf("rules: %d", len(rules))
 	}
-	parts := rules[0].Selectors[0].Parts
+	parts := rules[0].selectors[0].parts
 	if len(parts) != 3 {
 		t.Fatalf("parts: %d", len(parts))
 	}
-	if parts[1].Combinator != CombAdjacent {
-		t.Errorf("expected adjacent combinator, got %d", parts[1].Combinator)
+	if parts[1].combinator != combAdjacent {
+		t.Errorf("expected adjacent combinator, got %d", parts[1].combinator)
 	}
-	if parts[2].Combinator != CombGeneralSibling {
-		t.Errorf("expected general sibling, got %d", parts[2].Combinator)
+	if parts[2].combinator != combGeneralSibling {
+		t.Errorf("expected general sibling, got %d", parts[2].combinator)
 	}
 }

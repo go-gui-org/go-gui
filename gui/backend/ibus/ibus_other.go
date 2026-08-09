@@ -3,11 +3,11 @@
 package ibus
 
 // Kind classifies an event produced by the input method.
-type Kind int
+type kind int
 
 const (
 	// KindPreedit carries an updated (possibly empty) preedit string.
-	KindPreedit Kind = iota
+	KindPreedit kind = iota
 	// KindCommit carries text the input method has committed.
 	KindCommit
 	// KindForwardKey carries a key the engine declined after all.
@@ -19,7 +19,7 @@ type Event struct {
 	Text                   string
 	Cursor, SelLen         int32
 	Keyval, Keycode, State uint32
-	Kind                   Kind
+	Kind                   kind
 }
 
 // Client is an IBus input context. IBus is Linux-only, so this build

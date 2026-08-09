@@ -25,8 +25,8 @@ func TestLocaleDefaults(t *testing.T) {
 	if l.Currency.Decimals != 2 {
 		t.Fatalf("Decimals = %d, want 2", l.Currency.Decimals)
 	}
-	if l.StrOK != "OK" {
-		t.Fatalf("StrOK = %q, want OK", l.StrOK)
+	if l.strOK != "OK" {
+		t.Fatalf("StrOK = %q, want OK", l.strOK)
 	}
 	if l.WeekdaysFull[0] != "Sunday" {
 		t.Fatalf("WeekdaysFull[0] = %q, want Sunday", l.WeekdaysFull[0])
@@ -37,8 +37,8 @@ func TestLocaleDefaults(t *testing.T) {
 }
 
 func TestLocaleToNumericLocale(t *testing.T) {
-	l := LocaleDeDE
-	nc := l.ToNumericLocale()
+	l := localeDeDE
+	nc := l.toNumericLocale()
 	if nc.DecimalSep != ',' {
 		t.Fatalf("DecimalSep = %c, want ','", nc.DecimalSep)
 	}
@@ -51,8 +51,8 @@ func TestEffectiveTextDir(t *testing.T) {
 	old := ActiveLocale
 	defer func() { ActiveLocale = old }()
 
-	ActiveLocale = LocaleArSA
-	s := &Shape{TextDir: TextDirAuto}
+	ActiveLocale = localeArSA
+	s := &Shape{TextDir: textDirAuto}
 	if effectiveTextDir(s) != TextDirRTL {
 		t.Fatal("auto should fall back to RTL locale")
 	}
@@ -66,7 +66,7 @@ func TestSetLocaleAndGet(t *testing.T) {
 	old := ActiveLocale
 	defer func() { ActiveLocale = old }()
 
-	SetLocale(LocaleDeDE)
+	setLocale(localeDeDE)
 	cur := CurrentLocale()
 	if cur.ID != "de-DE" {
 		t.Fatalf("CurrentLocale().ID = %q, want de-DE", cur.ID)
@@ -74,23 +74,23 @@ func TestSetLocaleAndGet(t *testing.T) {
 }
 
 func TestLocalePresets(t *testing.T) {
-	if LocaleEnUS.ID != "en-US" {
-		t.Fatalf("LocaleEnUS.ID = %q", LocaleEnUS.ID)
+	if localeEnUS.ID != "en-US" {
+		t.Fatalf("LocaleEnUS.ID = %q", localeEnUS.ID)
 	}
-	if LocaleDeDE.ID != "de-DE" {
-		t.Fatalf("LocaleDeDE.ID = %q", LocaleDeDE.ID)
+	if localeDeDE.ID != "de-DE" {
+		t.Fatalf("LocaleDeDE.ID = %q", localeDeDE.ID)
 	}
-	if LocaleArSA.ID != "ar-SA" {
-		t.Fatalf("LocaleArSA.ID = %q", LocaleArSA.ID)
+	if localeArSA.ID != "ar-SA" {
+		t.Fatalf("LocaleArSA.ID = %q", localeArSA.ID)
 	}
-	if LocaleArSA.TextDir != TextDirRTL {
+	if localeArSA.TextDir != TextDirRTL {
 		t.Fatal("ar-SA should be RTL")
 	}
-	if LocaleDeDE.Currency.Symbol != "\u20AC" {
-		t.Fatalf("de-DE symbol = %q, want \u20AC", LocaleDeDE.Currency.Symbol)
+	if localeDeDE.Currency.Symbol != "\u20AC" {
+		t.Fatalf("de-DE symbol = %q, want \u20AC", localeDeDE.Currency.Symbol)
 	}
-	if LocaleDeDE.Date.FirstDayOfWeek != 1 {
+	if localeDeDE.Date.FirstDayOfWeek != 1 {
 		t.Fatalf("de-DE FirstDayOfWeek = %d, want 1",
-			LocaleDeDE.Date.FirstDayOfWeek)
+			localeDeDE.Date.FirstDayOfWeek)
 	}
 }

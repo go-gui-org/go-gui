@@ -62,9 +62,9 @@ func (cv *colorPickerView) GenerateLayout(w *Window) Layout {
 		sm.Set(cfg.ID, hsv)
 	}
 
-	svSize := style.SVSize
-	sliderH := style.SliderHeight
-	indicatorSize := style.IndicatorSize
+	svSize := style.sVSize
+	sliderH := style.sliderHeight
+	indicatorSize := style.indicatorSize
 
 	content := make([]View, 0, 5)
 
@@ -99,7 +99,7 @@ func (cv *colorPickerView) GenerateLayout(w *Window) Layout {
 		Sizing:      cfg.Sizing,
 		Width:       cfg.Width,
 		Height:      cfg.Height,
-		axis:        AxisTopToBottom,
+		axis:        axisTopToBottom,
 		AmendLayout: func(ctx EventCtx) {
 			if ctx.Window.IsFocus(cfg.ID) {
 				ctx.Layout.Shape.ColorBorder = style.ColorBorderFocus
@@ -133,7 +133,7 @@ func cpSVArea(
 	cfg *ColorPickerCfg, hsv colorPickerState,
 	size, indicatorSize float32,
 ) View {
-	pureHue := HueColor(hsv.H)
+	pureHue := hueColor(hsv.H)
 	cfgID := cfg.ID
 	cfgColor := cfg.Color
 	onChange := cfg.OnColorChange
@@ -142,7 +142,7 @@ func cpSVArea(
 		ID:     ScopeID(cfg.ID, "sv"),
 		Width:  size,
 		Height: size,
-		axis:   AxisTopToBottom,
+		axis:   axisTopToBottom,
 		Gradient: &GradientDef{
 			Direction: GradientToRight,
 			Stops: []GradientStop{
@@ -241,7 +241,7 @@ func cpHueSlider(
 			Circle(ContainerCfg{
 				Width:       indicatorSize,
 				Height:      indicatorSize,
-				Color:       HueColor(hsv.H),
+				Color:       hueColor(hsv.H),
 				ColorBorder: White,
 				SizeBorder:  SomeF(2),
 				Padding:     NoPadding,
@@ -284,7 +284,7 @@ func cpHueSlider(
 func cpAlphaSlider(cfg *ColorPickerCfg) View {
 	onChange := cfg.OnColorChange
 	c := cfg.Color
-	thumbSize := cfg.Style.IndicatorSize
+	thumbSize := cfg.Style.indicatorSize
 	trackSize := float32(6)
 	return Slider(SliderCfg{
 		ID:           ScopeID(cfg.ID, "alpha"),
@@ -297,7 +297,7 @@ func cpAlphaSlider(cfg *ColorPickerCfg) View {
 		SizeBorder:   SomeF(1),
 		ThumbSize:    thumbSize,
 		Height:       thumbSize,
-		RadiusBorder: SomeF(trackSize / 2),
+		radiusBorder: SomeF(trackSize / 2),
 		OnChange: func(v float32, ctx EventCtx) {
 			if onChange != nil {
 				nc := c
@@ -305,7 +305,7 @@ func cpAlphaSlider(cfg *ColorPickerCfg) View {
 				onChange(nc, EventCtx{nil, ctx.Event, ctx.Window})
 			}
 		},
-		RoundValue: true,
+		roundValue: true,
 	})
 }
 
@@ -328,7 +328,7 @@ func cpPreviewRow(cfg *ColorPickerCfg) View {
 			}),
 			Input(InputCfg{
 				ID:        ScopeID(cfgID, "hex"),
-				Text:      c.ToHexString(),
+				Text:      c.toHexString(),
 				TextStyle: cfg.Style.TextStyle,
 				Width:     100,
 				OnTextChanged: func(text string, ctx EventCtx) {
@@ -350,10 +350,10 @@ func cpRGBAInputs(cfg *ColorPickerCfg) View {
 		Padding: NoPadding,
 		Spacing: Some(SpacingSmall),
 		Content: []View{
-			cpChannelInput(cfg, l.StrRed, c.R, 0),
-			cpChannelInput(cfg, l.StrGreen, c.G, 1),
-			cpChannelInput(cfg, l.StrBlue, c.B, 2),
-			cpChannelInput(cfg, l.StrAlpha, c.A, 3),
+			cpChannelInput(cfg, l.strRed, c.R, 0),
+			cpChannelInput(cfg, l.strGreen, c.G, 1),
+			cpChannelInput(cfg, l.strBlue, c.B, 2),
+			cpChannelInput(cfg, l.strAlpha, c.A, 3),
 		},
 	})
 }
@@ -367,11 +367,11 @@ func cpHSVInputs(
 		Padding: NoPadding,
 		Spacing: Some(SpacingSmall),
 		Content: []View{
-			cpHSVChannelInput(cfg, l.StrHue,
+			cpHSVChannelInput(cfg, l.strHue,
 				int(hsv.H+0.5), 360, 0),
-			cpHSVChannelInput(cfg, l.StrSat,
+			cpHSVChannelInput(cfg, l.strSat,
 				int(hsv.S*100+0.5), 100, 1),
-			cpHSVChannelInput(cfg, l.StrValue,
+			cpHSVChannelInput(cfg, l.strValue,
 				int(hsv.V*100+0.5), 100, 2),
 		},
 	})
@@ -462,7 +462,7 @@ func cpSVMouseAction(
 	hsv.V = v
 	sm.Set(id, hsv)
 
-	nc := ColorFromHSVA(hsv.H, s, v, color.A)
+	nc := colorFromHSVA(hsv.H, s, v, color.A)
 	onChange(nc, EventCtx{nil, e, w})
 }
 
@@ -486,7 +486,7 @@ func cpHueMouseAction(
 	hsv.H = h
 	sm.Set(id, hsv)
 
-	nc := ColorFromHSVA(h, hsv.S, hsv.V, color.A)
+	nc := colorFromHSVA(h, hsv.S, hsv.V, color.A)
 	onChange(nc, EventCtx{nil, e, w})
 }
 
@@ -523,7 +523,7 @@ func cpAmendHueIndicator(
 }
 
 func applyColorPickerDefaults(cfg *ColorPickerCfg) {
-	d := &DefaultColorPickerStyle
+	d := &defaultColorPickerStyle
 	if cfg.Style == (ColorPickerStyle{}) {
 		cfg.Style = *d
 	}
@@ -584,7 +584,7 @@ func cpApplyHSV(
 		hsv.V = float32(n) / 100
 	}
 	sm.Set(cfgID, hsv)
-	nc := ColorFromHSVA(hsv.H, hsv.S, hsv.V, alpha)
+	nc := colorFromHSVA(hsv.H, hsv.S, hsv.V, alpha)
 	onChange(nc, EventCtx{nil, nil, w})
 }
 
@@ -592,7 +592,7 @@ func cpApplyHex(
 	text, cfgID string,
 	onChange func(Color, EventCtx), w *Window,
 ) {
-	nc, ok := ColorFromHexString(text)
+	nc, ok := colorFromHexString(text)
 	if !ok || onChange == nil {
 		return
 	}

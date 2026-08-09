@@ -12,7 +12,7 @@ import (
 func TestPhase5aTranslateValuesParsed(t *testing.T) {
 	elem := `<animateTransform type="translate" dur="1s" ` +
 		`values="12 12;0 0"/>`
-	a, ok := parseAnimateTransformElement(elem, ComputedStyle{GroupID: "g"})
+	a, ok := parseAnimateTransformElement(elem, computedStyle{GroupID: "g"})
 	if !ok {
 		t.Fatal("parse failed")
 	}
@@ -34,7 +34,7 @@ func TestPhase5aTranslateValuesParsed(t *testing.T) {
 // interleaved [0,0,1,1].
 func TestPhase5aScaleUniformNormalized(t *testing.T) {
 	elem := `<animateTransform type="scale" dur="1s" values="0;1"/>`
-	a, ok := parseAnimateTransformElement(elem, ComputedStyle{GroupID: "g"})
+	a, ok := parseAnimateTransformElement(elem, computedStyle{GroupID: "g"})
 	if !ok {
 		t.Fatal("parse failed")
 	}
@@ -58,7 +58,7 @@ func TestPhase5aScaleUniformNormalized(t *testing.T) {
 func TestPhase5aScaleNonUniform(t *testing.T) {
 	elem := `<animateTransform type="scale" dur="1s" ` +
 		`values="0.5 1;1 1"/>`
-	a, ok := parseAnimateTransformElement(elem, ComputedStyle{GroupID: "g"})
+	a, ok := parseAnimateTransformElement(elem, computedStyle{GroupID: "g"})
 	if !ok {
 		t.Fatal("parse failed")
 	}
@@ -75,7 +75,7 @@ func TestPhase5aScaleNonUniform(t *testing.T) {
 func TestPhase5aTranslateFromTo(t *testing.T) {
 	elem := `<animateTransform type="translate" dur="1s" ` +
 		`from="10 20" to="0 0"/>`
-	a, ok := parseAnimateTransformElement(elem, ComputedStyle{GroupID: "g"})
+	a, ok := parseAnimateTransformElement(elem, computedStyle{GroupID: "g"})
 	if !ok {
 		t.Fatal("parse failed")
 	}
@@ -96,7 +96,7 @@ func TestPhase5aSplineAppliesToTranslate(t *testing.T) {
 	elem := `<animateTransform type="translate" calcMode="spline" ` +
 		`dur="1.2s" values="12 12;0 0" ` +
 		`keySplines=".52,.6,.25,.99"/>`
-	a, ok := parseAnimateTransformElement(elem, ComputedStyle{GroupID: "g"})
+	a, ok := parseAnimateTransformElement(elem, computedStyle{GroupID: "g"})
 	if !ok {
 		t.Fatal("parse failed")
 	}

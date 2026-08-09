@@ -26,7 +26,7 @@ func TestFormValidateInheritPanics(t *testing.T) {
 			t.Fatal("expected panic for unresolved FormValidateInherit")
 		}
 	}()
-	formShouldValidate(FormValidateInherit, FormTriggerBlur)
+	formShouldValidate(formValidateInherit, FormTriggerBlur)
 }
 
 func TestFormGeneratesLayout(t *testing.T) {
@@ -59,7 +59,7 @@ func TestFormFindAncestorID(t *testing.T) {
 		Shape:  &Shape{ID: "input-2"},
 		Parent: &child,
 	}
-	got := FormFindAncestorID(&grandchild)
+	got := formFindAncestorID(&grandchild)
 	if got != "my-form" {
 		t.Fatalf("expected my-form, got %q", got)
 	}
@@ -67,7 +67,7 @@ func TestFormFindAncestorID(t *testing.T) {
 
 func TestFormFindAncestorIDNotFound(t *testing.T) {
 	layout := Layout{Shape: &Shape{ID: "no-form"}}
-	got := FormFindAncestorID(&layout)
+	got := formFindAncestorID(&layout)
 	if got != "" {
 		t.Fatalf("expected empty, got %q", got)
 	}
@@ -123,7 +123,7 @@ func TestFormSyncValidation(t *testing.T) {
 	})
 
 	// Trigger blur validation.
-	FormOnFieldEventByID(w, formID, FormFieldAdapterCfg{
+	formOnFieldEventByID(w, formID, FormFieldAdapterCfg{
 		FieldID:        "name",
 		Value:          "",
 		SyncValidators: []FormSyncValidator{required},
@@ -135,7 +135,7 @@ func TestFormSyncValidation(t *testing.T) {
 	}
 
 	// Fix the value.
-	FormOnFieldEventByID(w, formID, FormFieldAdapterCfg{
+	formOnFieldEventByID(w, formID, FormFieldAdapterCfg{
 		FieldID:        "name",
 		Value:          "Alice",
 		SyncValidators: []FormSyncValidator{required},
@@ -204,8 +204,8 @@ func TestFormReset(t *testing.T) {
 	FormRegisterFieldByID(w, formID, FormFieldAdapterCfg{
 		FieldID:         "email",
 		Value:           "changed@test.com",
-		InitialValue:    "init@test.com",
-		HasInitialValue: true,
+		initialValue:    "init@test.com",
+		hasInitialValue: true,
 	})
 
 	formApplyCfg(w, formID, FormCfg{ID: formID})
@@ -219,9 +219,9 @@ func TestFormReset(t *testing.T) {
 	state.resetReq = true
 	formProcessRequests(w, formID, nil, onReset)
 
-	if resetEvent.FormID != formID {
+	if resetEvent.formID != formID {
 		t.Fatalf("expected form ID %q, got %q",
-			formID, resetEvent.FormID)
+			formID, resetEvent.formID)
 	}
 	if resetEvent.Values["email"] != "init@test.com" {
 		t.Fatalf("expected reset to initial value, got %q",
@@ -261,7 +261,7 @@ func TestFormAsyncValidation(t *testing.T) {
 		AsyncValidators: []FormAsyncValidator{asyncVal},
 	})
 
-	FormOnFieldEventByID(w, formID, FormFieldAdapterCfg{
+	formOnFieldEventByID(w, formID, FormFieldAdapterCfg{
 		FieldID:         "field",
 		Value:           "bad",
 		AsyncValidators: []FormAsyncValidator{asyncVal},
@@ -322,7 +322,7 @@ func TestFormAbortOnRevalidation(t *testing.T) {
 	}
 
 	FormRegisterFieldByID(w, formID, cfg)
-	FormOnFieldEventByID(w, formID, cfg, FormTriggerBlur)
+	formOnFieldEventByID(w, formID, cfg, FormTriggerBlur)
 
 	// Capture the abort controller.
 	state := formRuntime(w, formID)
@@ -334,7 +334,7 @@ func TestFormAbortOnRevalidation(t *testing.T) {
 
 	// Re-trigger; previous should be aborted.
 	cfg.Value = "b"
-	FormOnFieldEventByID(w, formID, cfg, FormTriggerBlur)
+	formOnFieldEventByID(w, formID, cfg, FormTriggerBlur)
 
 	if !firstAbort.Signal.IsAborted() {
 		t.Fatal("first async should be aborted")
@@ -343,20 +343,20 @@ func TestFormAbortOnRevalidation(t *testing.T) {
 
 func TestFormShouldValidate(t *testing.T) {
 	tests := []struct {
-		mode    FormValidateOn
+		mode    formValidateOn
 		trigger FormValidationTrigger
 		want    bool
 	}{
-		{FormValidateOnChange, FormTriggerChange, true},
-		{FormValidateOnChange, FormTriggerBlur, true},
-		{FormValidateOnBlur, FormTriggerChange, false},
-		{FormValidateOnBlur, FormTriggerBlur, true},
-		{FormValidateOnBlur, FormTriggerSubmit, true},
-		{FormValidateOnSubmit, FormTriggerChange, false},
-		{FormValidateOnSubmit, FormTriggerBlur, false},
-		{FormValidateOnSubmit, FormTriggerSubmit, true},
-		{FormValidateOnBlurSubmit, FormTriggerChange, false},
-		{FormValidateOnBlurSubmit, FormTriggerBlur, true},
+		{formValidateOnChange, FormTriggerChange, true},
+		{formValidateOnChange, FormTriggerBlur, true},
+		{formValidateOnBlur, FormTriggerChange, false},
+		{formValidateOnBlur, FormTriggerBlur, true},
+		{formValidateOnBlur, formTriggerSubmit, true},
+		{formValidateOnSubmit, FormTriggerChange, false},
+		{formValidateOnSubmit, FormTriggerBlur, false},
+		{formValidateOnSubmit, formTriggerSubmit, true},
+		{formValidateOnBlurSubmit, FormTriggerChange, false},
+		{formValidateOnBlurSubmit, FormTriggerBlur, true},
 	}
 	for _, tt := range tests {
 		got := formShouldValidate(tt.mode, tt.trigger)
@@ -384,7 +384,7 @@ func TestFormRegisterFieldViaLayout(t *testing.T) {
 	w := newTestWindow()
 	child := formLayoutFixture("layout-form")
 
-	FormRegisterField(w, child, FormFieldAdapterCfg{
+	formRegisterField(w, child, FormFieldAdapterCfg{
 		FieldID: "email",
 		Value:   "a@b.c",
 	})
@@ -416,7 +416,7 @@ func TestFormRegisterFieldNoOps(t *testing.T) {
 	}
 	for _, tc := range cases {
 		w := newTestWindow()
-		FormRegisterField(w, tc.layout, tc.cfg)
+		formRegisterField(w, tc.layout, tc.cfg)
 		if state := formRuntimeRead(w, "f1"); state != nil && len(state.fields) > 0 {
 			t.Errorf("%s: expected no field registration, got %d",
 				tc.name, len(state.fields))
@@ -440,7 +440,7 @@ func TestFormOnFieldEventViaLayout(t *testing.T) {
 		SyncValidators: []FormSyncValidator{required},
 	}
 
-	FormRegisterField(w, child, cfg)
+	formRegisterField(w, child, cfg)
 	FormOnFieldEvent(w, child, cfg, FormTriggerBlur)
 
 	issues := w.FormFieldErrors("evt-form", "name")
@@ -510,8 +510,8 @@ func TestFormRequestEmptyIDNoOp(t *testing.T) {
 // future divergence is caught.
 func TestFormSubmitResetMethodAliases(t *testing.T) {
 	w := newTestWindow()
-	w.FormSubmit("alias-form")
-	w.FormReset("alias-form")
+	w.formSubmit("alias-form")
+	w.formReset("alias-form")
 
 	state := formRuntimeRead(w, "alias-form")
 	if state == nil {
@@ -532,7 +532,7 @@ func TestFormRequestSubmitForLayoutSuccess(t *testing.T) {
 	child := formLayoutFixture("enter-form")
 	formApplyCfg(w, "enter-form", FormCfg{ID: "enter-form"}) // submitOnEnter defaults on
 
-	FormRequestSubmitForLayout(w, child)
+	formRequestSubmitForLayout(w, child)
 
 	state := formRuntimeRead(w, "enter-form")
 	if state == nil || !state.submitReq {
@@ -545,10 +545,10 @@ func TestFormRequestSubmitForLayoutSuppressedWhenDisabled(t *testing.T) {
 	child := formLayoutFixture("no-enter-form")
 	formApplyCfg(w, "no-enter-form", FormCfg{
 		ID:              "no-enter-form",
-		NoSubmitOnEnter: true,
+		noSubmitOnEnter: true,
 	})
 
-	FormRequestSubmitForLayout(w, child)
+	formRequestSubmitForLayout(w, child)
 
 	state := formRuntimeRead(w, "no-enter-form")
 	if state == nil {
@@ -565,10 +565,10 @@ func TestFormRequestSubmitForLayoutEarlyReturns(t *testing.T) {
 	// a form that never rendered has no state, so Enter does nothing
 	// even though the layout chain resolves.
 	w := newTestWindow()
-	FormRequestSubmitForLayout(w, nil)
-	FormRequestSubmitForLayout(w, &Layout{})
-	FormRequestSubmitForLayout(w, &Layout{Shape: &Shape{ID: "loose"}})
-	FormRequestSubmitForLayout(w, formLayoutFixture("never-rendered"))
+	formRequestSubmitForLayout(w, nil)
+	formRequestSubmitForLayout(w, &Layout{})
+	formRequestSubmitForLayout(w, &Layout{Shape: &Shape{ID: "loose"}})
+	formRequestSubmitForLayout(w, formLayoutFixture("never-rendered"))
 
 	if state := formRuntimeRead(w, "never-rendered"); state != nil {
 		t.Error("expected no form state for a form that never applied its cfg")
@@ -588,8 +588,8 @@ func TestFormSummaryUnknownFormIsValid(t *testing.T) {
 	if got.Pending || got.InvalidCount != 0 || got.PendingCount != 0 {
 		t.Errorf("unknown form summary = %+v, want zero counts", got)
 	}
-	if got.Issues != nil {
-		t.Errorf("Issues = %v, want nil", got.Issues)
+	if got.issues != nil {
+		t.Errorf("Issues = %v, want nil", got.issues)
 	}
 }
 
@@ -605,8 +605,8 @@ func TestFormSummaryIssuesNilWhenClean(t *testing.T) {
 	if !got.Valid {
 		t.Error("form with no errors should be valid")
 	}
-	if got.Issues != nil {
-		t.Errorf("Issues = %v, want nil for a clean form", got.Issues)
+	if got.issues != nil {
+		t.Errorf("Issues = %v, want nil for a clean form", got.issues)
 	}
 }
 
@@ -626,7 +626,7 @@ func TestFormSummaryCountsInvalidFields(t *testing.T) {
 			SyncValidators: []FormSyncValidator{required},
 		}
 		FormRegisterFieldByID(w, formID, cfg)
-		FormOnFieldEventByID(w, formID, cfg, FormTriggerBlur)
+		formOnFieldEventByID(w, formID, cfg, FormTriggerBlur)
 	}
 
 	got := w.FormSummary(formID)
@@ -636,16 +636,16 @@ func TestFormSummaryCountsInvalidFields(t *testing.T) {
 	if got.InvalidCount != 2 {
 		t.Errorf("InvalidCount = %d, want 2", got.InvalidCount)
 	}
-	if len(got.Issues) != 2 {
-		t.Errorf("Issues has %d entries, want 2", len(got.Issues))
+	if len(got.issues) != 2 {
+		t.Errorf("Issues has %d entries, want 2", len(got.issues))
 	}
 }
 
 func TestFormPendingStateUnknownForm(t *testing.T) {
 	w := newTestWindow()
 	got := w.FormPendingState("nope")
-	if got.FormID != "nope" {
-		t.Errorf("FormID = %q, want %q", got.FormID, "nope")
+	if got.formID != "nope" {
+		t.Errorf("FormID = %q, want %q", got.formID, "nope")
 	}
 	if got.FieldIDs != nil {
 		t.Errorf("FieldIDs = %v, want nil", got.FieldIDs)
@@ -677,7 +677,7 @@ func TestFormPendingStateSortsFieldIDs(t *testing.T) {
 			AsyncValidators: []FormAsyncValidator{slowVal},
 		}
 		FormRegisterFieldByID(w, formID, cfg)
-		FormOnFieldEventByID(w, formID, cfg, FormTriggerBlur)
+		formOnFieldEventByID(w, formID, cfg, FormTriggerBlur)
 	}
 
 	got := w.FormPendingState(formID)
@@ -711,7 +711,7 @@ func TestFormApplyAsyncResultDropsStaleRequest(t *testing.T) {
 		},
 	}
 	FormRegisterFieldByID(w, formID, cfg)
-	FormOnFieldEventByID(w, formID, cfg, FormTriggerBlur)
+	formOnFieldEventByID(w, formID, cfg, FormTriggerBlur)
 
 	state := formRuntimeRead(w, formID)
 	field := state.fields["f"]
@@ -775,7 +775,7 @@ func TestFormFieldErrorsAliasesRuntimeSlice(t *testing.T) {
 	}
 
 	FormRegisterFieldByID(w, formID, cfg)
-	FormOnFieldEventByID(w, formID, cfg, FormTriggerBlur)
+	formOnFieldEventByID(w, formID, cfg, FormTriggerBlur)
 
 	retained := w.FormFieldErrors(formID, "f")
 	if len(retained) != 1 || retained[0].Msg != "first" {
@@ -785,7 +785,7 @@ func TestFormFieldErrorsAliasesRuntimeSlice(t *testing.T) {
 	// Revalidate with a different message. The runtime reuses the same
 	// backing array, so the retained slice observes the new value.
 	msg = "second"
-	FormOnFieldEventByID(w, formID, cfg, FormTriggerBlur)
+	formOnFieldEventByID(w, formID, cfg, FormTriggerBlur)
 
 	if retained[0].Msg != "second" {
 		t.Errorf("retained[0].Msg = %q, want %q — formMergeErrors is "+

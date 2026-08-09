@@ -18,11 +18,11 @@ func cols(ids ...string) []GridColumnCfg {
 
 func colsWithPin(specs ...struct {
 	id  string
-	pin GridColumnPin
+	pin gridColumnPin
 }) []GridColumnCfg {
 	out := make([]GridColumnCfg, len(specs))
 	for i, s := range specs {
-		out[i] = GridColumnCfg{ID: s.id, Title: s.id, Pin: s.pin}
+		out[i] = GridColumnCfg{ID: s.id, Title: s.id, pin: s.pin}
 	}
 	return out
 }
@@ -100,20 +100,20 @@ func TestEffectiveColumnsPinPartitioning(t *testing.T) {
 	c := colsWithPin(
 		struct {
 			id  string
-			pin GridColumnPin
-		}{"r1", GridColumnPinRight},
+			pin gridColumnPin
+		}{"r1", gridColumnPinRight},
 		struct {
 			id  string
-			pin GridColumnPin
-		}{"c1", GridColumnPinNone},
+			pin gridColumnPin
+		}{"c1", gridColumnPinNone},
 		struct {
 			id  string
-			pin GridColumnPin
-		}{"l1", GridColumnPinLeft},
+			pin gridColumnPin
+		}{"l1", gridColumnPinLeft},
 		struct {
 			id  string
-			pin GridColumnPin
-		}{"c2", GridColumnPinNone},
+			pin gridColumnPin
+		}{"c2", gridColumnPinNone},
 	)
 	got := colIDs(dataGridEffectiveColumns(c, nil, nil))
 	want := []string{"l1", "c1", "c2", "r1"}
@@ -220,12 +220,12 @@ func TestColumnOrderMoveZeroDelta(t *testing.T) {
 
 func TestPartitionPinsLeftCenterRight(t *testing.T) {
 	input := []GridColumnCfg{
-		{ID: "c1", Pin: GridColumnPinNone},
-		{ID: "r1", Pin: GridColumnPinRight},
-		{ID: "l1", Pin: GridColumnPinLeft},
-		{ID: "l2", Pin: GridColumnPinLeft},
-		{ID: "c2", Pin: GridColumnPinNone},
-		{ID: "r2", Pin: GridColumnPinRight},
+		{ID: "c1", pin: gridColumnPinNone},
+		{ID: "r1", pin: gridColumnPinRight},
+		{ID: "l1", pin: gridColumnPinLeft},
+		{ID: "l2", pin: gridColumnPinLeft},
+		{ID: "c2", pin: gridColumnPinNone},
+		{ID: "r2", pin: gridColumnPinRight},
 	}
 	got := colIDs(dataGridPartitionPins(input))
 	want := []string{"l1", "l2", "c1", "c2", "r1", "r2"}
@@ -245,12 +245,12 @@ func TestPartitionPinsEmpty(t *testing.T) {
 
 func TestColumnNextPinCycle(t *testing.T) {
 	tests := []struct {
-		in   GridColumnPin
-		want GridColumnPin
+		in   gridColumnPin
+		want gridColumnPin
 	}{
-		{GridColumnPinNone, GridColumnPinLeft},
-		{GridColumnPinLeft, GridColumnPinRight},
-		{GridColumnPinRight, GridColumnPinNone},
+		{gridColumnPinNone, gridColumnPinLeft},
+		{gridColumnPinLeft, gridColumnPinRight},
+		{gridColumnPinRight, gridColumnPinNone},
 	}
 	for _, tt := range tests {
 		got := dataGridColumnNextPin(tt.in)
@@ -267,7 +267,7 @@ func TestToggleSortSingleAscDescNone(t *testing.T) {
 
 	// First toggle: asc
 	q = dataGridToggleSort(q, "name", false, false)
-	if len(q.Sorts) != 1 || q.Sorts[0].Dir != GridSortAsc {
+	if len(q.Sorts) != 1 || q.Sorts[0].Dir != gridSortAsc {
 		t.Fatalf("expected asc, got %+v", q.Sorts)
 	}
 
@@ -336,7 +336,7 @@ func TestQuerySetFilterAdd(t *testing.T) {
 
 func TestQuerySetFilterUpdate(t *testing.T) {
 	q := GridQueryState{
-		Filters: []GridFilter{
+		Filters: []gridFilter{
 			{ColID: "name", Op: "equals", Value: "old"},
 		},
 	}
@@ -355,7 +355,7 @@ func TestQuerySetFilterUpdate(t *testing.T) {
 
 func TestQuerySetFilterRemoveEmpty(t *testing.T) {
 	q := GridQueryState{
-		Filters: []GridFilter{
+		Filters: []gridFilter{
 			{ColID: "name", Op: "contains", Value: "alice"},
 		},
 	}
@@ -501,7 +501,7 @@ func TestNextHiddenColumnsDoesNotMutateInput(t *testing.T) {
 
 func TestQueryFilterValueFound(t *testing.T) {
 	q := GridQueryState{
-		Filters: []GridFilter{
+		Filters: []gridFilter{
 			{ColID: "name", Op: "contains", Value: "alice"},
 		},
 	}

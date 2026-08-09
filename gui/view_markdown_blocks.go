@@ -11,12 +11,12 @@ import (
 
 // renderMdMath renders a display math block.
 func renderMdMath(
-	block MarkdownBlock, cfg MarkdownCfg, w *Window,
+	block markdownBlock, cfg MarkdownCfg, w *Window,
 ) View {
 	codeFallback := Column(ContainerCfg{
 		Color:      cfg.Style.CodeBlockBG,
-		Padding:    cfg.Style.CodeBlockPadding,
-		Radius:     Some(cfg.Style.CodeBlockRadius),
+		Padding:    cfg.Style.codeBlockPadding,
+		Radius:     Some(cfg.Style.codeBlockRadius),
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Content: []View{
@@ -27,7 +27,7 @@ func renderMdMath(
 		},
 	})
 
-	if cfg.DisableExternalAPIs || !markdownExternalAPIsEnabled {
+	if cfg.disableExternalAPIs || !markdownExternalAPIsEnabled {
 		return codeFallback
 	}
 
@@ -37,15 +37,15 @@ func renderMdMath(
 	cache := ensureDiagramCache(w)
 	if entry, ok := cache.Get(diagramHash); ok {
 		switch entry.State {
-		case DiagramLoading:
+		case diagramLoading:
 			return codeFallback
-		case DiagramReady:
+		case diagramReady:
 			return Image(ImageCfg{
-				Src:    entry.PNGPath,
+				Src:    entry.pNGPath,
 				Width:  entry.Width,
 				Height: entry.Height,
 			})
-		case DiagramError:
+		case diagramError:
 			return markdownDiagramErrorView(
 				entry.Error, cfg.Style.Code,
 			)
@@ -58,25 +58,25 @@ func renderMdMath(
 		reqID := nextDiagramRequestID(w)
 		w.viewState.diagramCache.Set(diagramHash,
 			DiagramCacheEntry{
-				State:     DiagramLoading,
+				State:     diagramLoading,
 				RequestID: reqID,
 			})
 		fetchMathAsync(w, block.MathLatex, diagramHash,
-			reqID, cfg.Style.MathDPIDisplay,
-			cfg.Style.Text.Color, cfg.MathFetcher)
+			reqID, cfg.Style.mathDPIDisplay,
+			cfg.Style.Text.Color, cfg.mathFetcher)
 	}
 	return codeFallback
 }
 
 // renderMdMermaid renders a mermaid diagram block.
 func renderMdMermaid(
-	block MarkdownBlock, cfg MarkdownCfg, w *Window,
+	block markdownBlock, cfg MarkdownCfg, w *Window,
 ) View {
 	source := richTextPlain(block.Content)
 	codeFallback := Column(ContainerCfg{
 		Color:      cfg.Style.CodeBlockBG,
-		Padding:    cfg.Style.CodeBlockPadding,
-		Radius:     Some(cfg.Style.CodeBlockRadius),
+		Padding:    cfg.Style.codeBlockPadding,
+		Radius:     Some(cfg.Style.codeBlockRadius),
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Content: []View{
@@ -87,7 +87,7 @@ func renderMdMermaid(
 		},
 	})
 
-	if cfg.DisableExternalAPIs || !markdownExternalAPIsEnabled {
+	if cfg.disableExternalAPIs || !markdownExternalAPIsEnabled {
 		return codeFallback
 	}
 
@@ -96,14 +96,14 @@ func renderMdMermaid(
 	cache := ensureDiagramCache(w)
 	if entry, ok := cache.Get(diagramHash); ok {
 		switch entry.State {
-		case DiagramLoading:
+		case diagramLoading:
 			return Text(TextCfg{
 				Text:      "Loading diagram...",
 				TextStyle: cfg.Style.Text,
 			})
-		case DiagramReady:
+		case diagramReady:
 			imgW, imgH := entry.Width, entry.Height
-			mw := float32(cfg.MermaidWidth)
+			mw := float32(cfg.mermaidWidth)
 			if mw <= 0 {
 				mw = 600
 			}
@@ -112,12 +112,12 @@ func renderMdMermaid(
 				imgW = mw
 			}
 			return Image(ImageCfg{
-				Src:     entry.PNGPath,
+				Src:     entry.pNGPath,
 				Width:   imgW,
 				Height:  imgH,
 				BgColor: White,
 			})
-		case DiagramError:
+		case diagramError:
 			return markdownDiagramErrorView(
 				entry.Error, cfg.Style.Code,
 			)
@@ -129,11 +129,11 @@ func renderMdMermaid(
 		reqID := nextDiagramRequestID(w)
 		cache.Set(diagramHash,
 			DiagramCacheEntry{
-				State:     DiagramLoading,
+				State:     diagramLoading,
 				RequestID: reqID,
 			})
 		fetchMermaidAsync(w, source, diagramHash, reqID,
-			cfg.MermaidFetcher)
+			cfg.mermaidFetcher)
 	}
 	return codeFallback
 }
@@ -146,7 +146,7 @@ func mdCopyButton(
 ) View {
 	copied := w.hasAnimationLocked(animID)
 
-	iconStyle := guiTheme.Icon5
+	iconStyle := guiTheme.icon5
 	iconStyle.Color = Gray
 
 	var btnContent []View
@@ -154,11 +154,11 @@ func mdCopyButton(
 		checkStyle := iconStyle
 		checkStyle.Color = Color{80, 200, 80, 255, true}
 		btnContent = []View{
-			Text(TextCfg{Text: IconCheck, TextStyle: checkStyle}),
+			Text(TextCfg{Text: iconCheck, TextStyle: checkStyle}),
 		}
 	} else {
 		btnContent = []View{
-			Text(TextCfg{Text: IconFile, TextStyle: iconStyle}),
+			Text(TextCfg{Text: iconFile, TextStyle: iconStyle}),
 		}
 	}
 
@@ -182,7 +182,7 @@ func mdCopyButton(
 
 // renderMdCode renders a fenced code block with a copy-to-clipboard button.
 func renderMdCode(
-	block MarkdownBlock, cfg MarkdownCfg, w *Window, blockIdx int,
+	block markdownBlock, cfg MarkdownCfg, w *Window, blockIdx int,
 ) View {
 	// Scoped to the document: the block index alone repeats across
 	// Markdown views, so two documents in one window would give their
@@ -202,8 +202,8 @@ func renderMdCode(
 
 	return Column(ContainerCfg{
 		Color:      cfg.Style.CodeBlockBG,
-		Padding:    cfg.Style.CodeBlockPadding,
-		Radius:     Some(cfg.Style.CodeBlockRadius),
+		Padding:    cfg.Style.codeBlockPadding,
+		Radius:     Some(cfg.Style.codeBlockRadius),
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Clip:       true,
@@ -224,13 +224,13 @@ func mdFlushListItems(
 		Sizing:     FillFit,
 		Padding:    NoPadding,
 		SizeBorder: NoBorder,
-		Spacing:    Some(cfg.Style.BlockSpacing / 2),
+		Spacing:    Some(cfg.Style.blockSpacing / 2),
 		Content:    listItems,
 	})
 }
 
 func mdRenderMathBlock(
-	block MarkdownBlock, cfg MarkdownCfg, w *Window,
+	block markdownBlock, cfg MarkdownCfg, w *Window,
 ) View {
 	return Column(ContainerCfg{
 		Sizing:     FillFit,
@@ -243,7 +243,7 @@ func mdRenderMathBlock(
 }
 
 func mdRenderCodeBlock(
-	block MarkdownBlock, cfg MarkdownCfg, w *Window, idx int,
+	block markdownBlock, cfg MarkdownCfg, w *Window, idx int,
 ) View {
 	if block.CodeLanguage == "mermaid" {
 		return Column(ContainerCfg{
@@ -259,7 +259,7 @@ func mdRenderCodeBlock(
 }
 
 func mdRenderTable(
-	block MarkdownBlock, cfg MarkdownCfg, w *Window, idx int,
+	block markdownBlock, cfg MarkdownCfg, w *Window, idx int,
 ) View {
 	if block.TableData == nil {
 		return nil
@@ -272,13 +272,13 @@ func mdRenderTable(
 			w.Table(TableCfg{
 				ID:               ScopeIDN(cfg.ID, "table", idx),
 				BorderStyle:      cfg.Style.TableBorderStyle,
-				ColorBorder:      cfg.Style.TableBorderColor,
-				SizeBorder:       cfg.Style.TableBorderSize,
-				TextStyleHead:    cfg.Style.TableHeadStyle,
-				TextStyle:        cfg.Style.TableCellStyle,
-				CellPadding:      cfg.Style.TableCellPadding,
-				ColorRowAlt:      cfg.Style.TableRowAlt,
-				ColumnAlignments: block.TableData.Alignments,
+				ColorBorder:      cfg.Style.tableBorderColor,
+				SizeBorder:       cfg.Style.tableBorderSize,
+				TextStyleHead:    cfg.Style.tableHeadStyle,
+				TextStyle:        cfg.Style.tableCellStyle,
+				cellPadding:      cfg.Style.tableCellPadding,
+				ColorRowAlt:      cfg.Style.tableRowAlt,
+				columnAlignments: block.TableData.Alignments,
 				Data:             buildMarkdownTableData(*block.TableData, cfg.Style),
 			}),
 		},
@@ -289,7 +289,7 @@ func mdRenderHR(cfg MarkdownCfg) View {
 	return Rectangle(RectangleCfg{
 		Sizing: FillFixed,
 		Height: 1,
-		Color:  cfg.Style.HRColor,
+		Color:  cfg.Style.hRColor,
 	})
 }
 
@@ -301,15 +301,15 @@ func applyMdCtx(cfg *RTFCfg, ctx *mdBlockCtx) {
 }
 
 func mdRenderBlockquote(
-	block MarkdownBlock, cfg MarkdownCfg, mode TextMode,
+	block markdownBlock, cfg MarkdownCfg, mode textMode,
 	ctx *mdBlockCtx,
 ) View {
 	leftMargin := float32(
-		block.BlockquoteDepth-1) * cfg.Style.NestIndent
+		block.BlockquoteDepth-1) * cfg.Style.nestIndent
 	rtfCfg := RTFCfg{
 		RichText:      block.Content,
 		Mode:          mode,
-		BaseTextStyle: &block.BaseStyle,
+		BaseTextStyle: &block.baseStyle,
 	}
 	applyMdCtx(&rtfCfg, ctx)
 	return Row(ContainerCfg{
@@ -320,10 +320,10 @@ func mdRenderBlockquote(
 			Rectangle(RectangleCfg{
 				Sizing: FixedFill,
 				Width:  3,
-				Color:  cfg.Style.BlockquoteBorder,
+				Color:  cfg.Style.blockquoteBorder,
 			}),
 			Column(ContainerCfg{
-				Color:      cfg.Style.BlockquoteBG,
+				Color:      cfg.Style.blockquoteBG,
 				Sizing:     FillFit,
 				Padding:    NoPadding,
 				SizeBorder: NoBorder,
@@ -333,7 +333,7 @@ func mdRenderBlockquote(
 	})
 }
 
-func mdRenderImage(block MarkdownBlock) View {
+func mdRenderImage(block markdownBlock) View {
 	return Image(ImageCfg{
 		Src:    block.ImageSrc,
 		Width:  block.ImageWidth,
@@ -344,7 +344,7 @@ func mdRenderImage(block MarkdownBlock) View {
 // mdRenderHeading returns 1 or 2 views: an optional H1 spacer
 // plus the heading container.
 func mdRenderHeading(
-	block MarkdownBlock, cfg MarkdownCfg, mode TextMode,
+	block markdownBlock, cfg MarkdownCfg, mode textMode,
 	ctx *mdBlockCtx,
 ) []View {
 	var views []View
@@ -363,17 +363,17 @@ func mdRenderHeading(
 		ID:            ScopeID(cfg.ID, "h", block.AnchorSlug),
 		RichText:      block.Content,
 		Mode:          mode,
-		BaseTextStyle: &block.BaseStyle,
+		BaseTextStyle: &block.baseStyle,
 	}
 	applyMdCtx(&rtfCfg, ctx)
 	headingContent := []View{RTF(rtfCfg)}
-	if (block.HeaderLevel == 1 && cfg.Style.H1Separator) ||
-		(block.HeaderLevel == 2 && cfg.Style.H2Separator) {
+	if (block.HeaderLevel == 1 && cfg.Style.h1Separator) ||
+		(block.HeaderLevel == 2 && cfg.Style.h2Separator) {
 		headingContent = append(headingContent,
 			Rectangle(RectangleCfg{
 				Sizing: FillFixed,
 				Height: 1,
-				Color:  cfg.Style.HRColor,
+				Color:  cfg.Style.hRColor,
 			}))
 	}
 	views = append(views, Column(ContainerCfg{
@@ -381,44 +381,44 @@ func mdRenderHeading(
 		Padding:    NoPadding,
 		SizeBorder: NoBorder,
 		A11YRole:   AccessRoleHeading,
-		A11Y:       &AccessInfo{},
+		a11Y:       &accessInfo{},
 		Content:    headingContent,
 	}))
 	return views
 }
 
-func mdRenderDefTerm(block MarkdownBlock, mode TextMode, ctx *mdBlockCtx) View {
+func mdRenderDefTerm(block markdownBlock, mode textMode, ctx *mdBlockCtx) View {
 	rtfCfg := RTFCfg{
 		RichText:      block.Content,
 		Mode:          mode,
-		BaseTextStyle: &block.BaseStyle,
+		BaseTextStyle: &block.baseStyle,
 	}
 	applyMdCtx(&rtfCfg, ctx)
 	return RTF(rtfCfg)
 }
 
 func mdRenderDefValue(
-	block MarkdownBlock, cfg MarkdownCfg, mode TextMode, ctx *mdBlockCtx,
+	block markdownBlock, cfg MarkdownCfg, mode textMode, ctx *mdBlockCtx,
 ) View {
 	rtfCfg := RTFCfg{
 		RichText:      block.Content,
 		Mode:          mode,
-		BaseTextStyle: &block.BaseStyle,
+		BaseTextStyle: &block.baseStyle,
 	}
 	applyMdCtx(&rtfCfg, ctx)
 	return Row(ContainerCfg{
 		Sizing:  FillFit,
-		Padding: SomeP(0, 0, 0, cfg.Style.NestIndent),
+		Padding: SomeP(0, 0, 0, cfg.Style.nestIndent),
 		Content: []View{RTF(rtfCfg)},
 	})
 }
 
 func mdRenderListItem(
-	block MarkdownBlock, cfg MarkdownCfg, mode TextMode,
+	block markdownBlock, cfg MarkdownCfg, mode textMode,
 	ctx *mdBlockCtx,
 ) View {
 	indentW := float32(block.ListIndent) *
-		cfg.Style.NestIndent
+		cfg.Style.nestIndent
 
 	var prefixW float32
 	var prefixView View
@@ -431,7 +431,7 @@ func mdRenderListItem(
 		}
 	} else {
 		prefixW = float32(len(block.ListPrefix)) *
-			cfg.Style.PrefixCharWidth
+			cfg.Style.prefixCharWidth
 		if block.ListPrefix == "• " {
 			prefixW /= 2
 		} else if block.ListIndent > 0 {
@@ -446,7 +446,7 @@ func mdRenderListItem(
 	rtfCfg := RTFCfg{
 		RichText:      block.Content,
 		Mode:          mode,
-		BaseTextStyle: &block.BaseStyle,
+		BaseTextStyle: &block.baseStyle,
 	}
 	applyMdCtx(&rtfCfg, ctx)
 	return Row(ContainerCfg{
@@ -480,12 +480,12 @@ func mdTaskCheckbox(checked bool, boxSize float32, cfg MarkdownCfg) View {
 	boxColor := ColorTransparent
 	var content []View
 	if checked {
-		boxColor = cfg.Style.LinkColor
-		checkStyle := guiTheme.Icon5
+		boxColor = cfg.Style.linkColor
+		checkStyle := guiTheme.icon5
 		checkStyle.Size = boxSize * 1.1
 		checkStyle.Color = White
 		content = []View{
-			Text(TextCfg{Text: IconCheck, TextStyle: checkStyle}),
+			Text(TextCfg{Text: iconCheck, TextStyle: checkStyle}),
 		}
 	}
 
@@ -497,7 +497,7 @@ func mdTaskCheckbox(checked bool, boxSize float32, cfg MarkdownCfg) View {
 		// No dedicated checkbox-border style field exists yet; HRColor
 		// is reused as the neutral, low-emphasis border color other
 		// MarkdownStyle divider/border colors already use.
-		ColorBorder: cfg.Style.HRColor,
+		ColorBorder: cfg.Style.hRColor,
 		SizeBorder:  Some(float32(1)),
 		Radius:      Some(float32(2)),
 		Padding:     NoPadding,
@@ -508,7 +508,7 @@ func mdTaskCheckbox(checked bool, boxSize float32, cfg MarkdownCfg) View {
 }
 
 func mdRenderParagraph(
-	block MarkdownBlock, cfg MarkdownCfg, mode TextMode,
+	block markdownBlock, cfg MarkdownCfg, mode textMode,
 	ctx *mdBlockCtx,
 ) View {
 	rtfCfg := RTFCfg{
@@ -518,7 +518,7 @@ func mdRenderParagraph(
 		MinWidth:      cfg.MinWidth,
 		Mode:          mode,
 		RichText:      block.Content,
-		BaseTextStyle: &block.BaseStyle,
+		BaseTextStyle: &block.baseStyle,
 	}
 	// No ID and no Focusable: a paragraph is one block of a document,
 	// not the widget. The document's container claims cfg.ID and is

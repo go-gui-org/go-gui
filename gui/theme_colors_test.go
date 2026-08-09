@@ -4,7 +4,7 @@ import "testing"
 
 func TestWithColorsNilPreservesDefaults(t *testing.T) {
 	theme := ThemeDark
-	updated := theme.WithColors(ColorOverrides{})
+	updated := theme.withColors(ColorOverrides{})
 	if updated.ColorBackground != theme.ColorBackground {
 		t.Error("nil override should preserve background")
 	}
@@ -16,7 +16,7 @@ func TestWithColorsNilPreservesDefaults(t *testing.T) {
 func TestWithColorsOverridesBackground(t *testing.T) {
 	theme := ThemeDark
 	newBg := Red
-	updated := theme.WithColors(ColorOverrides{
+	updated := theme.withColors(ColorOverrides{
 		ColorBackground: &newBg,
 	})
 	if updated.ColorBackground != Red {
@@ -27,7 +27,7 @@ func TestWithColorsOverridesBackground(t *testing.T) {
 func TestWithColorsOverridesPropagates(t *testing.T) {
 	theme := ThemeDark
 	newInterior := Blue
-	updated := theme.WithColors(ColorOverrides{
+	updated := theme.withColors(ColorOverrides{
 		ColorInterior: &newInterior,
 	})
 	if updated.ButtonStyle.Color != Blue {
@@ -36,7 +36,7 @@ func TestWithColorsOverridesPropagates(t *testing.T) {
 	if updated.InputStyle.Color != Blue {
 		t.Error("interior override should propagate to input color")
 	}
-	if updated.DataGridStyle.ColorBackground != Blue {
+	if updated.dataGridStyle.ColorBackground != Blue {
 		t.Error("interior override should propagate to data grid background")
 	}
 }
@@ -44,7 +44,7 @@ func TestWithColorsOverridesPropagates(t *testing.T) {
 func TestWithColorsOverridesBorder(t *testing.T) {
 	theme := ThemeDark
 	newBorder := Green
-	updated := theme.WithColors(ColorOverrides{
+	updated := theme.withColors(ColorOverrides{
 		ColorBorder: &newBorder,
 	})
 	if updated.ColorBorder != Green {
@@ -53,7 +53,7 @@ func TestWithColorsOverridesBorder(t *testing.T) {
 	if updated.ButtonStyle.ColorBorder != Green {
 		t.Error("border should propagate to button")
 	}
-	if updated.RectangleStyle.ColorBorder != Green {
+	if updated.rectangleStyle.ColorBorder != Green {
 		t.Error("border should propagate to rectangle")
 	}
 }
@@ -61,13 +61,13 @@ func TestWithColorsOverridesBorder(t *testing.T) {
 func TestWithColorsSelectPropagates(t *testing.T) {
 	theme := ThemeDark
 	newSel := RGBA(255, 0, 255, 255)
-	updated := theme.WithColors(ColorOverrides{
+	updated := theme.withColors(ColorOverrides{
 		ColorSelect: &newSel,
 	})
 	if updated.ColorSelect != newSel {
 		t.Error("select should be overridden on theme")
 	}
-	if updated.RadioStyle.ColorFocus != newSel {
+	if updated.radioStyle.ColorFocus != newSel {
 		t.Error("select should propagate to radio focus")
 	}
 }

@@ -28,29 +28,31 @@ const (
 var diagramHTTPClient = &http.Client{Timeout: diagramFetchTimeout}
 
 // DiagramState represents the loading state of a diagram.
-type DiagramState uint8
+type diagramState uint8
 
 // DiagramState constants.
 const (
-	DiagramLoading DiagramState = iota
-	DiagramReady
-	DiagramError
+	diagramLoading diagramState = iota
+	diagramReady
+	diagramError
 )
 
 // DiagramCacheEntry stores cached diagram data.
+// exportaudit:keep — reachable from an exported signature
 type DiagramCacheEntry struct {
-	PNGPath   string // temp file path
+	pNGPath   string // temp file path
 	Error     string
 	RequestID uint64
 	Width     float32
 	Height    float32
-	DPI       float32 // DPI used for rendering
-	State     DiagramState
+	dPI       float32 // DPI used for rendering
+	State     diagramState
 }
 
 // BoundedDiagramCache is a FIFO cache for diagram entries.
 // Custom cache (not BoundedMap) — needs png_path cleanup
 // on evict/overwrite.
+// exportaudit:keep — reachable from an exported signature
 type BoundedDiagramCache struct {
 	data         map[int64]DiagramCacheEntry
 	order        []int64
@@ -60,7 +62,7 @@ type BoundedDiagramCache struct {
 
 // NewBoundedDiagramCache creates a diagram cache with the
 // given capacity.
-func NewBoundedDiagramCache(maxSize int) *BoundedDiagramCache {
+func newBoundedDiagramCache(maxSize int) *BoundedDiagramCache {
 	if maxSize < 1 {
 		maxSize = 50
 	}
@@ -88,22 +90,22 @@ func (c *BoundedDiagramCache) Set(
 	}
 	existing, exists := c.data[key]
 	if exists {
-		if existing.State == DiagramLoading {
+		if existing.State == diagramLoading {
 			c.loadingCount--
 		}
-		if existing.PNGPath != "" &&
-			existing.PNGPath != value.PNGPath {
-			removeDiagramPNG(existing.PNGPath)
+		if existing.pNGPath != "" &&
+			existing.pNGPath != value.pNGPath {
+			removeDiagramPNG(existing.pNGPath)
 		}
 	} else {
 		if len(c.data) >= c.maxSize && len(c.order) > 0 {
 			oldest := c.order[0]
 			if oe, ok := c.data[oldest]; ok {
-				if oe.State == DiagramLoading {
+				if oe.State == diagramLoading {
 					c.loadingCount--
 				}
-				if oe.PNGPath != "" {
-					removeDiagramPNG(oe.PNGPath)
+				if oe.pNGPath != "" {
+					removeDiagramPNG(oe.pNGPath)
 				}
 			}
 			delete(c.data, oldest)
@@ -114,13 +116,14 @@ func (c *BoundedDiagramCache) Set(
 		}
 		c.order = append(c.order, key)
 	}
-	if value.State == DiagramLoading {
+	if value.State == diagramLoading {
 		c.loadingCount++
 	}
 	c.data[key] = value
 }
 
 // LoadingCount returns entries in loading state.
+// exportaudit:keep — collides with the loadingCount cache field
 func (c *BoundedDiagramCache) LoadingCount() int {
 	return c.loadingCount
 }
@@ -133,8 +136,8 @@ func (c *BoundedDiagramCache) Len() int {
 // Clear removes all entries and deletes temp files.
 func (c *BoundedDiagramCache) Clear() {
 	for _, e := range c.data {
-		if e.PNGPath != "" {
-			removeDiagramPNG(e.PNGPath)
+		if e.pNGPath != "" {
+			removeDiagramPNG(e.pNGPath)
 		}
 	}
 	clear(c.data)
@@ -154,7 +157,7 @@ func diagramCacheShouldApplyResult(
 	if !ok {
 		return false
 	}
-	return e.State == DiagramLoading &&
+	return e.State == diagramLoading &&
 		e.RequestID == requestID
 }
 
@@ -191,11 +194,11 @@ func finishDiagramFetch(
 		}
 		w.viewState.diagramCache.Set(hash,
 			DiagramCacheEntry{
-				State:     DiagramReady,
-				PNGPath:   ref,
+				State:     diagramReady,
+				pNGPath:   ref,
 				Width:     imgW,
 				Height:    imgH,
-				DPI:       dpi,
+				dPI:       dpi,
 				RequestID: requestID,
 			})
 		w.UpdateWindow()
@@ -210,7 +213,7 @@ func finishDiagramFetch(
 // third-party API (kroki.io) for rendering.
 func fetchMermaidAsync(
 	w *Window, source string, hash int64,
-	requestID uint64, fetcher MermaidFetcher,
+	requestID uint64, fetcher mermaidFetcher,
 ) {
 	actualFetcher := fetcher
 	if actualFetcher == nil {

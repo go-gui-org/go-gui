@@ -10,8 +10,8 @@ type ThemePickerCfg struct {
 	FloatOffsetX    float32
 	FloatOffsetY    float32
 	Sizing          Sizing
-	FloatAnchor     FloatAttach
-	FloatTieOff     FloatAttach
+	FloatAnchor     floatAttach
+	FloatTieOff     floatAttach
 }
 
 // ThemePicker creates a palette icon that opens a dropdown of
@@ -44,12 +44,12 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 
 	// Paint palette icon.
 	content = append(content, Text(TextCfg{
-		Text:      IconPalette,
+		Text:      iconPalette,
 		TextStyle: guiTheme.Icon3,
 	}))
 
 	if isOpen {
-		names := ThemeRegisteredNames()
+		names := themeRegisteredNames()
 		data := make([]ListBoxOption, len(names))
 		for i, name := range names {
 			data[i] = NewListBoxOption(name, name, name)
@@ -57,7 +57,7 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 		content = append(content, Column(ContainerCfg{
 			ID:            ScopeID(id, "dropdown"),
 			Float:         true,
-			FloatAutoFlip: true,
+			floatAutoFlip: true,
 			FloatAnchor:   cfg.FloatAnchor,
 			FloatTieOff:   cfg.FloatTieOff,
 			FloatOffsetX:  cfg.FloatOffsetX,
@@ -91,8 +91,8 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 		}))
 	}
 
-	colorFocus := guiTheme.ToggleStyle.ColorFocus
-	colorBorderFocus := guiTheme.ToggleStyle.ColorBorderFocus
+	colorFocus := guiTheme.toggleStyle.ColorFocus
+	colorBorderFocus := guiTheme.toggleStyle.ColorBorderFocus
 
 	return generateViewLayout(Row(ContainerCfg{
 		ID:        cfg.ID,
@@ -133,7 +133,7 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 				}
 				return
 			}
-			names := ThemeRegisteredNames()
+			names := themeRegisteredNames()
 			count := len(names)
 			if count == 0 {
 				return
@@ -190,7 +190,7 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 // themePickerSyncHighlight sets listbox focus index to match the current
 // theme name.
 func themePickerSyncHighlight(lbID string, w *Window) {
-	names := ThemeRegisteredNames()
+	names := themeRegisteredNames()
 	current := guiTheme.Name
 	idx := 0
 	for i, n := range names {

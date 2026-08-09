@@ -15,7 +15,7 @@ var validImageExtensions = []string{
 
 // ValidateImageExtension checks that the file has a supported
 // image extension.
-func ValidateImageExtension(fileName string) error {
+func validateImageExtension(fileName string) error {
 	ext := strings.ToLower(filepath.Ext(fileName))
 	if slices.Contains(validImageExtensions, ext) {
 		return nil
@@ -27,11 +27,11 @@ func ValidateImageExtension(fileName string) error {
 // valid extension. Rejects paths with ".." path components.
 // After filepath.Clean, ".." only survives as a leading component
 // (e.g. "../foo"), so a prefix check suffices.
-func ValidateImagePath(fileName string) error {
+func validateImagePath(fileName string) error {
 	clean := filepath.Clean(fileName)
 	if clean == ".." ||
 		strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
 		return errors.New("invalid image path: contains parent reference")
 	}
-	return ValidateImageExtension(clean)
+	return validateImageExtension(clean)
 }

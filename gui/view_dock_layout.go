@@ -21,15 +21,15 @@ type DockLayoutCfg struct {
 	OnPanelClose      func(string, EventCtx)
 	ID                string
 	Panels            []DockPanelDef
-	ColorZonePreview  Color
-	ColorTab          Color
-	ColorTabActive    Color
-	ColorTabHover     Color
-	ColorTabBar       Color
-	ColorTabSeparator Color
-	ColorContent      Color
+	colorZonePreview  Color
+	colorTab          Color
+	colorTabActive    Color
+	colorTabHover     Color
+	colorTabBar       Color
+	colorTabSeparator Color
+	colorContent      Color
 	Sizing            Sizing
-	HideSingleTab     bool
+	hideSingleTab     bool
 }
 
 // dockLayoutCore holds callback-relevant fields without content
@@ -51,7 +51,7 @@ func newDockLayoutCore(cfg *DockLayoutCfg) *dockLayoutCore {
 		onLayoutChange:   cfg.OnLayoutChange,
 		onPanelSelect:    cfg.OnPanelSelect,
 		onPanelClose:     cfg.OnPanelClose,
-		colorZonePreview: cfg.ColorZonePreview,
+		colorZonePreview: cfg.colorZonePreview,
 	}
 }
 
@@ -60,7 +60,7 @@ func newDockLayoutCore(cfg *DockLayoutCfg) *dockLayoutCore {
 // panel rearrangement.
 func DockLayout(cfg DockLayoutCfg) View {
 	applyDockLayoutDefaults(&cfg)
-	return ViewFunc(func(w *Window) View {
+	return viewFunc(func(w *Window) View {
 		// One resolved identity for every key below; see (*Window).EffID.
 		// cfg is captured by this per-frame closure, so re-resolving it
 		// each frame is fine: the join is idempotent.
@@ -70,7 +70,7 @@ func DockLayout(cfg DockLayoutCfg) View {
 
 		content := make([]View, 0, 3)
 		content = append(content, dockNodeView(core, cfg.Root, &cfg, drag))
-		content = append(content, dockDragZoneOverlayView(cfg.ColorZonePreview))
+		content = append(content, dockDragZoneOverlayView(cfg.colorZonePreview))
 
 		if drag.active {
 			ghostLabel := dockFindPanelLabel(cfg.Panels, drag.panelID)
@@ -110,26 +110,26 @@ func applyDockLayoutDefaults(cfg *DockLayoutCfg) {
 	if cfg.Sizing == (Sizing{}) {
 		cfg.Sizing = FillFill
 	}
-	if !cfg.ColorZonePreview.IsSet() {
-		cfg.ColorZonePreview = Color{70, 130, 220, 80, true}
+	if !cfg.colorZonePreview.IsSet() {
+		cfg.colorZonePreview = Color{70, 130, 220, 80, true}
 	}
-	if !cfg.ColorTab.IsSet() {
-		cfg.ColorTab = guiTheme.ColorPanel
+	if !cfg.colorTab.IsSet() {
+		cfg.colorTab = guiTheme.ColorPanel
 	}
-	if !cfg.ColorTabActive.IsSet() {
-		cfg.ColorTabActive = guiTheme.ColorPanel
+	if !cfg.colorTabActive.IsSet() {
+		cfg.colorTabActive = guiTheme.ColorPanel
 	}
-	if !cfg.ColorTabHover.IsSet() {
-		cfg.ColorTabHover = guiTheme.ColorHover
+	if !cfg.colorTabHover.IsSet() {
+		cfg.colorTabHover = guiTheme.ColorHover
 	}
-	if !cfg.ColorTabBar.IsSet() {
-		cfg.ColorTabBar = guiTheme.ColorPanel
+	if !cfg.colorTabBar.IsSet() {
+		cfg.colorTabBar = guiTheme.ColorPanel
 	}
-	if !cfg.ColorTabSeparator.IsSet() {
-		cfg.ColorTabSeparator = guiTheme.ColorBorder
+	if !cfg.colorTabSeparator.IsSet() {
+		cfg.colorTabSeparator = guiTheme.ColorBorder
 	}
-	if !cfg.ColorContent.IsSet() {
-		cfg.ColorContent = guiTheme.ColorBackground
+	if !cfg.colorContent.IsSet() {
+		cfg.colorContent = guiTheme.ColorBackground
 	}
 }
 
@@ -159,7 +159,7 @@ func dockNodeView(
 	if node == nil {
 		return nil
 	}
-	if node.Kind == DockNodeSplit {
+	if node.Kind == dockNodeSplit {
 		return dockSplitView(core, node, cfg, drag)
 	}
 	return dockGroupView(core, node, cfg, drag)
@@ -214,7 +214,7 @@ func dockGroupView(
 	tabButtons := make([]View, 0, len(group.PanelIDs))
 	var activeContent []View
 
-	colorSep := cfg.ColorTabSeparator
+	colorSep := cfg.colorTabSeparator
 	for _, panelID := range group.PanelIDs {
 		panelDef, ok := dockFindPanelDef(cfg.Panels, panelID)
 		if !ok {
@@ -262,13 +262,13 @@ func dockGroupView(
 
 	// Tab header row — hidden when HideSingleTab is set and the
 	// group has only one panel.
-	if !cfg.HideSingleTab || len(group.PanelIDs) > 1 {
+	if !cfg.hideSingleTab || len(group.PanelIDs) > 1 {
 		groupContent = append(groupContent, Row(ContainerCfg{
 			Sizing:     FillFit,
 			Padding:    SomeP(2, 4, 0, 4),
 			Spacing:    NoSpacing,
 			SizeBorder: NoBorder,
-			Color:      cfg.ColorTabBar,
+			Color:      cfg.colorTabBar,
 			Content:    tabButtons,
 		}))
 	}
@@ -280,7 +280,7 @@ func dockGroupView(
 		Spacing:    NoSpacing,
 		SizeBorder: NoBorder,
 		Clip:       true,
-		Color:      cfg.ColorContent,
+		Color:      cfg.colorContent,
 		Content:    activeContent,
 	}))
 
@@ -309,11 +309,11 @@ func dockTabButton(
 	onPanelSelect := core.onPanelSelect
 	onPanelClose := core.onPanelClose
 
-	colorTab := cfg.ColorTab
+	colorTab := cfg.colorTab
 	if isSelected {
-		colorTab = cfg.ColorTabActive
+		colorTab = cfg.colorTabActive
 	}
-	colorHover := cfg.ColorTabHover
+	colorHover := cfg.colorTabHover
 
 	btnContent := make([]View, 0, 3)
 	btnContent = append(btnContent, Text(TextCfg{Text: panel.Label}))
@@ -342,7 +342,7 @@ func dockTabButton(
 			Content: []View{
 				Text(TextCfg{
 					Text:      "×", // ×
-					TextStyle: mergeTextStyle(TextStyle{Size: SizeTextSmall}, DefaultTextStyle),
+					TextStyle: mergeTextStyle(TextStyle{Size: sizeTextSmall}, DefaultTextStyle),
 				}),
 			},
 		}))

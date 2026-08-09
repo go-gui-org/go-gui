@@ -26,33 +26,33 @@ import (
 // the declared literals before any test runs. Assert against the
 // snapshot, never the live global.
 var (
-	pristineProgressBarStyle    = DefaultProgressBarStyle
-	pristineSliderStyle         = DefaultSliderStyle
-	pristineTabControlStyle     = DefaultTabControlStyle
-	pristineBreadcrumbStyle     = DefaultBreadcrumbStyle
-	pristineSplitterStyle       = DefaultSplitterStyle
-	pristineTableStyle          = DefaultTableStyle
-	pristineComboboxStyle       = DefaultComboboxStyle
-	pristineCommandPaletteStyle = DefaultCommandPaletteStyle
-	pristineDatePickerStyle     = DefaultDatePickerStyle
-	pristineColorPickerStyle    = DefaultColorPickerStyle
-	pristineSkeletonStyle       = DefaultSkeletonStyle
-	pristineMenubarStyle        = DefaultMenubarStyle
-	pristineBadgeStyle          = DefaultBadgeStyle
-	pristineExpandPanelStyle    = DefaultExpandPanelStyle
+	pristineProgressBarStyle    = defaultProgressBarStyle
+	pristineSliderStyle         = defaultSliderStyle
+	pristineTabControlStyle     = defaultTabControlStyle
+	pristineBreadcrumbStyle     = defaultBreadcrumbStyle
+	pristineSplitterStyle       = defaultSplitterStyle
+	pristineTableStyle          = defaultTableStyle
+	pristineComboboxStyle       = defaultComboboxStyle
+	pristineCommandPaletteStyle = defaultCommandPaletteStyle
+	pristineDatePickerStyle     = defaultDatePickerStyle
+	pristineColorPickerStyle    = defaultColorPickerStyle
+	pristineSkeletonStyle       = defaultSkeletonStyle
+	pristineMenubarStyle        = defaultMenubarStyle
+	pristineBadgeStyle          = defaultBadgeStyle
+	pristineExpandPanelStyle    = defaultExpandPanelStyle
 	pristineDialogStyle         = DefaultDialogStyle
-	pristineToastStyle          = DefaultToastStyle
-	pristineTreeStyle           = DefaultTreeStyle
+	pristineToastStyle          = defaultToastStyle
+	pristineTreeStyle           = defaultTreeStyle
 	pristineDataGridStyle       = DefaultDataGridStyle
 	pristineTextStyle           = DefaultTextStyle
-	pristineListBoxStyle        = DefaultListBoxStyle
-	pristineRadioStyle          = DefaultRadioStyle
-	pristineSwitchStyle         = DefaultSwitchStyle
-	pristineToggleStyle         = DefaultToggleStyle
-	pristineSelectStyle         = DefaultSelectStyle
-	pristineInputStyle          = DefaultInputStyle
+	pristineListBoxStyle        = defaultListBoxStyle
+	pristineRadioStyle          = defaultRadioStyle
+	pristineSwitchStyle         = defaultSwitchStyle
+	pristineToggleStyle         = defaultToggleStyle
+	pristineSelectStyle         = defaultSelectStyle
+	pristineInputStyle          = defaultInputStyle
 	pristineScrollbarStyle      = DefaultScrollbarStyle
-	pristineTooltipStyle        = DefaultTooltipStyle
+	pristineTooltipStyle        = defaultTooltipStyle
 )
 
 // --- styles_widget_control.go ----------------------------------------
@@ -67,14 +67,14 @@ func TestDefaultProgressBarStyle(t *testing.T) {
 	if s.SizeBorder != 0 {
 		t.Errorf("size_border = %v, want 0 (progress bar is borderless)", s.SizeBorder)
 	}
-	if s.Radius != RadiusSmall {
-		t.Errorf("radius = %v, want RadiusSmall %v", s.Radius, RadiusSmall)
+	if s.Radius != radiusSmall {
+		t.Errorf("radius = %v, want RadiusSmall %v", s.Radius, radiusSmall)
 	}
 	if !s.TextShow {
 		t.Error("text_show should default true")
 	}
-	if !s.TextBackground.Eq(ColorTransparent) {
-		t.Errorf("text_background = %v, want transparent", s.TextBackground)
+	if !s.textBackground.eq(ColorTransparent) {
+		t.Errorf("text_background = %v, want transparent", s.textBackground)
 	}
 }
 
@@ -84,7 +84,7 @@ func TestDefaultSliderStyle(t *testing.T) {
 	// constants — and ThemeMaker computes Radius as cfg.SizeSlider/2.
 	if s.SizeBorder != 1 {
 		t.Errorf("size_border = %v, want literal 1 (not SizeBorderDef %v)",
-			s.SizeBorder, SizeBorderDef)
+			s.SizeBorder, sizeBorderDef)
 	}
 	if s.Radius != 3 {
 		t.Errorf("radius = %v, want literal 3", s.Radius)
@@ -99,20 +99,20 @@ func TestDefaultSliderStyle(t *testing.T) {
 
 func TestDefaultTabControlStyle(t *testing.T) {
 	s := pristineTabControlStyle
-	if s.SizeBorder != SizeBorderDef || s.SizeTabBorder != SizeBorderDef {
+	if s.SizeBorder != sizeBorderDef || s.sizeTabBorder != sizeBorderDef {
 		t.Errorf("borders = %v/%v, want SizeBorderDef %v",
-			s.SizeBorder, s.SizeTabBorder, SizeBorderDef)
+			s.SizeBorder, s.sizeTabBorder, sizeBorderDef)
 	}
-	if s.Radius != RadiusMedium || s.RadiusTab != RadiusSmall {
+	if s.Radius != radiusMedium || s.radiusTab != radiusSmall {
 		t.Errorf("radius/radius_tab = %v/%v, want %v/%v",
-			s.Radius, s.RadiusTab, RadiusMedium, RadiusSmall)
+			s.Radius, s.radiusTab, radiusMedium, radiusSmall)
 	}
-	if s.SpacingHeader != 2 {
-		t.Errorf("spacing_header = %v, want 2", s.SpacingHeader)
+	if s.spacingHeader != 2 {
+		t.Errorf("spacing_header = %v, want 2", s.spacingHeader)
 	}
 	// Disabled text is the normal text color at alpha 130.
-	if s.TextStyleDisabled.Color.A != 130 {
-		t.Errorf("disabled alpha = %d, want 130", s.TextStyleDisabled.Color.A)
+	if s.textStyleDisabled.Color.A != 130 {
+		t.Errorf("disabled alpha = %d, want 130", s.textStyleDisabled.Color.A)
 	}
 }
 
@@ -122,14 +122,14 @@ func TestDefaultBreadcrumbStyle(t *testing.T) {
 		t.Errorf("separator = %q, want %q", s.Separator, "/")
 	}
 	// Disabled crumbs sit at alpha 130, separators at the lighter 160.
-	if s.TextStyleDisabled.Color.A != 130 {
-		t.Errorf("disabled alpha = %d, want 130", s.TextStyleDisabled.Color.A)
+	if s.textStyleDisabled.Color.A != 130 {
+		t.Errorf("disabled alpha = %d, want 130", s.textStyleDisabled.Color.A)
 	}
-	if s.TextStyleSeparator.Color.A != 160 {
-		t.Errorf("separator alpha = %d, want 160", s.TextStyleSeparator.Color.A)
+	if s.textStyleSeparator.Color.A != 160 {
+		t.Errorf("separator alpha = %d, want 160", s.textStyleSeparator.Color.A)
 	}
-	if s.SizeContentBorder != SizeBorderDef {
-		t.Errorf("content border = %v, want %v", s.SizeContentBorder, SizeBorderDef)
+	if s.sizeContentBorder != sizeBorderDef {
+		t.Errorf("content border = %v, want %v", s.sizeContentBorder, sizeBorderDef)
 	}
 }
 
@@ -139,24 +139,24 @@ func TestDefaultSplitterStyle(t *testing.T) {
 		t.Errorf("handle_size = %v, want 9", s.HandleSize)
 	}
 	// Keyboard drag increments: 2% normal, 10% with a modifier.
-	if s.DragStep != 0.02 {
-		t.Errorf("drag_step = %v, want 0.02", s.DragStep)
+	if s.dragStep != 0.02 {
+		t.Errorf("drag_step = %v, want 0.02", s.dragStep)
 	}
-	if s.DragStepLarge != 0.10 {
-		t.Errorf("drag_step_large = %v, want 0.10", s.DragStepLarge)
+	if s.dragStepLarge != 0.10 {
+		t.Errorf("drag_step_large = %v, want 0.10", s.dragStepLarge)
 	}
 }
 
 func TestDefaultTableStyle(t *testing.T) {
 	s := pristineTableStyle
-	if s.ColumnWidthDefault != 50 {
-		t.Errorf("column_width_default = %v, want 50", s.ColumnWidthDefault)
+	if s.columnWidthDefault != 50 {
+		t.Errorf("column_width_default = %v, want 50", s.columnWidthDefault)
 	}
-	if s.ColumnWidthMin != 20 {
-		t.Errorf("column_width_min = %v, want 20", s.ColumnWidthMin)
+	if s.columnWidthMin != 20 {
+		t.Errorf("column_width_min = %v, want 20", s.columnWidthMin)
 	}
-	if s.AlignHead != HAlignCenter {
-		t.Errorf("align_head = %v, want center", s.AlignHead)
+	if s.alignHead != HAlignCenter {
+		t.Errorf("align_head = %v, want center", s.alignHead)
 	}
 	// Header is bold at the normal text size. ThemeMaker instead
 	// overwrites TextStyleHead with theme.B3 after the struct literal.
@@ -172,14 +172,14 @@ func TestDefaultComboboxStyle(t *testing.T) {
 	s := pristineComboboxStyle
 	// Fixed RadiusMedium here; ThemeMaker uses cfg.Radius, so a
 	// square-cornered theme still gets a rounded unthemed combobox.
-	if s.Radius != RadiusMedium {
-		t.Errorf("radius = %v, want RadiusMedium %v", s.Radius, RadiusMedium)
+	if s.Radius != radiusMedium {
+		t.Errorf("radius = %v, want RadiusMedium %v", s.Radius, radiusMedium)
 	}
 	if s.MinWidth != 75 || s.MaxWidth != 200 {
 		t.Errorf("width bounds = %v/%v, want 75/200", s.MinWidth, s.MaxWidth)
 	}
-	if s.MaxDropdownHeight != 200 {
-		t.Errorf("max_dropdown_height = %v, want 200", s.MaxDropdownHeight)
+	if s.maxDropdownHeight != 200 {
+		t.Errorf("max_dropdown_height = %v, want 200", s.maxDropdownHeight)
 	}
 	// Placeholder alpha 100 matches ThemeMaker's placeholderColor.
 	if s.PlaceholderStyle.Color.A != 100 {
@@ -194,38 +194,38 @@ func TestDefaultCommandPaletteStyle(t *testing.T) {
 	}
 	// Fixed grey; ThemeMaker derives the detail color from the theme
 	// text color at alpha 140 instead.
-	if !s.DetailStyle.Color.Eq(RGBA(128, 128, 128, 200)) {
-		t.Errorf("detail color = %v, want RGBA(128,128,128,200)", s.DetailStyle.Color)
+	if !s.detailStyle.Color.eq(RGBA(128, 128, 128, 200)) {
+		t.Errorf("detail color = %v, want RGBA(128,128,128,200)", s.detailStyle.Color)
 	}
-	if !s.BackdropColor.Eq(RGBA(0, 0, 0, 120)) {
-		t.Errorf("backdrop = %v, want RGBA(0,0,0,120)", s.BackdropColor)
+	if !s.backdropColor.eq(RGBA(0, 0, 0, 120)) {
+		t.Errorf("backdrop = %v, want RGBA(0,0,0,120)", s.backdropColor)
 	}
 }
 
 func TestDefaultDatePickerStyle(t *testing.T) {
 	s := pristineDatePickerStyle
-	if s.CellSpacing != 2 {
-		t.Errorf("cell_spacing = %v, want 2", s.CellSpacing)
+	if s.cellSpacing != 2 {
+		t.Errorf("cell_spacing = %v, want 2", s.cellSpacing)
 	}
-	if s.SizeBorder != SizeBorderDef {
-		t.Errorf("size_border = %v, want %v", s.SizeBorder, SizeBorderDef)
+	if s.SizeBorder != sizeBorderDef {
+		t.Errorf("size_border = %v, want %v", s.SizeBorder, sizeBorderDef)
 	}
-	if s.Radius != RadiusMedium || s.RadiusBorder != RadiusMedium {
+	if s.Radius != radiusMedium || s.radiusBorder != radiusMedium {
 		t.Errorf("radius/radius_border = %v/%v, want both %v",
-			s.Radius, s.RadiusBorder, RadiusMedium)
+			s.Radius, s.radiusBorder, radiusMedium)
 	}
 }
 
 func TestDefaultColorPickerStyle(t *testing.T) {
 	s := pristineColorPickerStyle
-	if s.SVSize != 200 {
-		t.Errorf("sv_size = %v, want 200", s.SVSize)
+	if s.sVSize != 200 {
+		t.Errorf("sv_size = %v, want 200", s.sVSize)
 	}
-	if s.SliderHeight != 24 {
-		t.Errorf("slider_height = %v, want 24", s.SliderHeight)
+	if s.sliderHeight != 24 {
+		t.Errorf("slider_height = %v, want 24", s.sliderHeight)
 	}
-	if s.IndicatorSize != 16 {
-		t.Errorf("indicator_size = %v, want 16", s.IndicatorSize)
+	if s.indicatorSize != 16 {
+		t.Errorf("indicator_size = %v, want 16", s.indicatorSize)
 	}
 }
 
@@ -235,7 +235,7 @@ func TestDefaultColorPickerStyle(t *testing.T) {
 func TestDefaultSkeletonStyleHighlightResolved(t *testing.T) {
 	s := pristineSkeletonStyle
 	want := RGBA(94, 94, 94, 255) // 74+20 per channel, alpha unchanged
-	if !s.ColorHighlight.Eq(want) {
+	if !s.ColorHighlight.eq(want) {
 		t.Errorf("color_highlight = %v, want %v", s.ColorHighlight, want)
 	}
 	// The highlight must be lighter than the base or the shimmer is invisible.
@@ -243,27 +243,27 @@ func TestDefaultSkeletonStyleHighlightResolved(t *testing.T) {
 		t.Errorf("highlight R %d not lighter than base R %d",
 			s.ColorHighlight.R, s.Color.R)
 	}
-	if s.Radius != RadiusSmall {
-		t.Errorf("radius = %v, want RadiusSmall %v", s.Radius, RadiusSmall)
+	if s.Radius != radiusSmall {
+		t.Errorf("radius = %v, want RadiusSmall %v", s.Radius, radiusSmall)
 	}
 }
 
 func TestDefaultMenubarStyle(t *testing.T) {
 	s := pristineMenubarStyle
-	if s.WidthSubmenuMin != 50 || s.WidthSubmenuMax != 200 {
+	if s.widthSubmenuMin != 50 || s.widthSubmenuMax != 200 {
 		t.Errorf("submenu width = %v/%v, want 50/200",
-			s.WidthSubmenuMin, s.WidthSubmenuMax)
+			s.widthSubmenuMin, s.widthSubmenuMax)
 	}
 	if s.Spacing != SpacingMedium {
 		t.Errorf("spacing = %v, want SpacingMedium %v", s.Spacing, SpacingMedium)
 	}
 	// Submenu items are flush by default; ThemeMaker uses 1 instead.
-	if s.SpacingSubmenu != 0 {
-		t.Errorf("spacing_submenu = %v, want 0", s.SpacingSubmenu)
+	if s.spacingSubmenu != 0 {
+		t.Errorf("spacing_submenu = %v, want 0", s.spacingSubmenu)
 	}
-	if s.Radius != RadiusSmall || s.RadiusBorder != RadiusMedium {
+	if s.Radius != radiusSmall || s.radiusBorder != radiusMedium {
 		t.Errorf("radius/radius_border = %v/%v, want %v/%v",
-			s.Radius, s.RadiusBorder, RadiusSmall, RadiusMedium)
+			s.Radius, s.radiusBorder, radiusSmall, radiusMedium)
 	}
 }
 
@@ -278,20 +278,20 @@ func TestDefaultBadgeStyle(t *testing.T) {
 	if s.TextStyle != (TextStyle{}) {
 		t.Errorf("text_style = %+v, want zero value", s.TextStyle)
 	}
-	if s.DotSize != 8 {
-		t.Errorf("dot_size = %v, want 8", s.DotSize)
+	if s.dotSize != 8 {
+		t.Errorf("dot_size = %v, want 8", s.dotSize)
 	}
 	// Semantic colors are hard-coded rather than theme-derived, and
 	// match the toast palette exactly.
-	if !s.ColorSuccess.Eq(pristineToastStyle.ColorSuccess) {
+	if !s.ColorSuccess.eq(pristineToastStyle.ColorSuccess) {
 		t.Errorf("badge success %v != toast success %v",
 			s.ColorSuccess, pristineToastStyle.ColorSuccess)
 	}
-	if !s.ColorWarning.Eq(pristineToastStyle.ColorWarning) {
+	if !s.ColorWarning.eq(pristineToastStyle.ColorWarning) {
 		t.Errorf("badge warning %v != toast warning %v",
 			s.ColorWarning, pristineToastStyle.ColorWarning)
 	}
-	if !s.ColorError.Eq(pristineToastStyle.ColorError) {
+	if !s.ColorError.eq(pristineToastStyle.ColorError) {
 		t.Errorf("badge error %v != toast error %v",
 			s.ColorError, pristineToastStyle.ColorError)
 	}
@@ -299,17 +299,17 @@ func TestDefaultBadgeStyle(t *testing.T) {
 
 func TestDefaultExpandPanelStyle(t *testing.T) {
 	s := pristineExpandPanelStyle
-	if s.SizeBorder != SizeBorderDef {
-		t.Errorf("size_border = %v, want %v", s.SizeBorder, SizeBorderDef)
+	if s.SizeBorder != sizeBorderDef {
+		t.Errorf("size_border = %v, want %v", s.SizeBorder, sizeBorderDef)
 	}
-	if s.Radius != RadiusMedium || s.RadiusBorder != RadiusMedium {
+	if s.Radius != radiusMedium || s.radiusBorder != radiusMedium {
 		t.Errorf("radius/radius_border = %v/%v, want both %v",
-			s.Radius, s.RadiusBorder, RadiusMedium)
+			s.Radius, s.radiusBorder, radiusMedium)
 	}
-	if s.Color.Eq(Color{}) {
+	if s.Color.eq(Color{}) {
 		t.Error("color should not be the zero Color")
 	}
-	if s.ColorHover.Eq(s.ColorClick) {
+	if s.ColorHover.eq(s.colorClick) {
 		t.Error("hover and click colors should differ")
 	}
 }
@@ -318,14 +318,14 @@ func TestDefaultExpandPanelStyle(t *testing.T) {
 // its ordering is load-bearing for anything persisting the value.
 func TestToastAnchorConstants(t *testing.T) {
 	anchors := []struct {
-		got  ToastAnchor
-		want ToastAnchor
+		got  toastAnchor
+		want toastAnchor
 		name string
 	}{
-		{ToastTopLeft, 0, "ToastTopLeft"},
-		{ToastTopRight, 1, "ToastTopRight"},
-		{ToastBottomLeft, 2, "ToastBottomLeft"},
-		{ToastBottomRight, 3, "ToastBottomRight"},
+		{toastTopLeft, 0, "ToastTopLeft"},
+		{toastTopRight, 1, "ToastTopRight"},
+		{toastBottomLeft, 2, "ToastBottomLeft"},
+		{toastBottomRight, 3, "ToastBottomRight"},
 	}
 	for _, a := range anchors {
 		if a.got != a.want {
@@ -346,15 +346,15 @@ func TestDefaultDialogStyleWidthBoundsUnset(t *testing.T) {
 
 func TestDefaultTreeStyleIndentAndSpacing(t *testing.T) {
 	s := pristineTreeStyle
-	if s.Indent != 25 {
-		t.Errorf("indent = %v, want 25", s.Indent)
+	if s.indent != 25 {
+		t.Errorf("indent = %v, want 25", s.indent)
 	}
 	if s.Spacing != 0 {
 		t.Errorf("spacing = %v, want 0", s.Spacing)
 	}
 	// Tree chevrons come from the bundled icon font, not the text font.
-	if s.TextStyleIcon.Family != IconFontName {
-		t.Errorf("icon family = %q, want %q", s.TextStyleIcon.Family, IconFontName)
+	if s.textStyleIcon.Family != IconFontName {
+		t.Errorf("icon family = %q, want %q", s.textStyleIcon.Family, IconFontName)
 	}
 }
 
@@ -393,8 +393,8 @@ func TestToGlyphStyleDropsGoGuiOnlyFields(t *testing.T) {
 	decorated.AffineTransform = &affine
 	decorated.Gradient = &glyph.GradientConfig{}
 
-	if base.ToGlyphStyle() != decorated.ToGlyphStyle() {
+	if base.toGlyphStyle() != decorated.toGlyphStyle() {
 		t.Errorf("go-gui-only fields changed the glyph style:\n plain = %+v\n decorated = %+v",
-			base.ToGlyphStyle(), decorated.ToGlyphStyle())
+			base.toGlyphStyle(), decorated.toGlyphStyle())
 	}
 }

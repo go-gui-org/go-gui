@@ -9,7 +9,7 @@ import (
 // --- dataGridAggregateLabel ---
 
 func TestAggregateLabelExplicit(t *testing.T) {
-	agg := GridAggregateCfg{Label: "Total Sales", Op: GridAggregateSum, ColID: "amount"}
+	agg := gridAggregateCfg{Label: "Total Sales", Op: gridAggregateSum, ColID: "amount"}
 	got := dataGridAggregateLabel(agg)
 	if got != "Total Sales" {
 		t.Errorf("got %q, want 'Total Sales'", got)
@@ -17,7 +17,7 @@ func TestAggregateLabelExplicit(t *testing.T) {
 }
 
 func TestAggregateLabelCount(t *testing.T) {
-	agg := GridAggregateCfg{Op: GridAggregateCount}
+	agg := gridAggregateCfg{Op: gridAggregateCount}
 	got := dataGridAggregateLabel(agg)
 	if got != "count" {
 		t.Errorf("got %q, want 'count'", got)
@@ -25,7 +25,7 @@ func TestAggregateLabelCount(t *testing.T) {
 }
 
 func TestAggregateLabelOpWithColID(t *testing.T) {
-	agg := GridAggregateCfg{Op: GridAggregateSum, ColID: "amount"}
+	agg := gridAggregateCfg{Op: gridAggregateSum, ColID: "amount"}
 	got := dataGridAggregateLabel(agg)
 	if got != "sum amount" {
 		t.Errorf("got %q, want 'sum amount'", got)
@@ -33,7 +33,7 @@ func TestAggregateLabelOpWithColID(t *testing.T) {
 }
 
 func TestAggregateLabelOpOnly(t *testing.T) {
-	agg := GridAggregateCfg{Op: GridAggregateMin}
+	agg := gridAggregateCfg{Op: gridAggregateMin}
 	got := dataGridAggregateLabel(agg)
 	if got != "" || len(got) > 0 {
 		// Op.String() with empty ColID — should just be the op name.
@@ -56,7 +56,7 @@ func TestGroupAggregateTextEmpty(t *testing.T) {
 func TestGroupAggregateTextCount(t *testing.T) {
 	cfg := &DataGridCfg{
 		Rows:       []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}},
-		Aggregates: []GridAggregateCfg{{Op: GridAggregateCount, Label: "Rows"}},
+		aggregates: []gridAggregateCfg{{Op: gridAggregateCount, Label: "Rows"}},
 	}
 	got := dataGridGroupAggregateText(cfg, 0, 2)
 	if got != "Rows: 3" {
@@ -67,7 +67,7 @@ func TestGroupAggregateTextCount(t *testing.T) {
 func TestGroupAggregateTextInvalidRange(t *testing.T) {
 	cfg := &DataGridCfg{
 		Rows:       []GridRow{{ID: "a"}, {ID: "b"}},
-		Aggregates: []GridAggregateCfg{{Op: GridAggregateCount, Label: "N"}},
+		aggregates: []gridAggregateCfg{{Op: gridAggregateCount, Label: "N"}},
 	}
 	// startIdx > endIdx
 	got := dataGridGroupAggregateText(cfg, 1, 0)
@@ -161,7 +161,7 @@ func TestAggregateValueCount(t *testing.T) {
 	rows := []GridRow{
 		{ID: "a"}, {ID: "b"}, {ID: "c"}, {ID: "d"},
 	}
-	agg := GridAggregateCfg{Op: GridAggregateCount}
+	agg := gridAggregateCfg{Op: gridAggregateCount}
 	got, ok := dataGridAggregateValue(rows, 1, 3, agg)
 	if !ok {
 		t.Fatal("count should succeed")
@@ -177,7 +177,7 @@ func TestAggregateValueSum(t *testing.T) {
 		{Cells: map[string]string{"val": "20"}},
 		{Cells: map[string]string{"val": "30"}},
 	}
-	agg := GridAggregateCfg{Op: GridAggregateSum, ColID: "val"}
+	agg := gridAggregateCfg{Op: gridAggregateSum, ColID: "val"}
 	got, ok := dataGridAggregateValue(rows, 0, 2, agg)
 	if !ok {
 		t.Fatal("sum should succeed")
@@ -192,7 +192,7 @@ func TestAggregateValueAvg(t *testing.T) {
 		{Cells: map[string]string{"val": "10"}},
 		{Cells: map[string]string{"val": "20"}},
 	}
-	agg := GridAggregateCfg{Op: GridAggregateAvg, ColID: "val"}
+	agg := gridAggregateCfg{Op: gridAggregateAvg, ColID: "val"}
 	got, ok := dataGridAggregateValue(rows, 0, 1, agg)
 	if !ok {
 		t.Fatal("avg should succeed")
@@ -208,7 +208,7 @@ func TestAggregateValueMin(t *testing.T) {
 		{Cells: map[string]string{"val": "10"}},
 		{Cells: map[string]string{"val": "3"}},
 	}
-	agg := GridAggregateCfg{Op: GridAggregateMin, ColID: "val"}
+	agg := gridAggregateCfg{Op: gridAggregateMin, ColID: "val"}
 	got, ok := dataGridAggregateValue(rows, 0, 2, agg)
 	if !ok {
 		t.Fatal("min should succeed")
@@ -224,7 +224,7 @@ func TestAggregateValueMax(t *testing.T) {
 		{Cells: map[string]string{"val": "10"}},
 		{Cells: map[string]string{"val": "3"}},
 	}
-	agg := GridAggregateCfg{Op: GridAggregateMax, ColID: "val"}
+	agg := gridAggregateCfg{Op: gridAggregateMax, ColID: "val"}
 	got, ok := dataGridAggregateValue(rows, 0, 2, agg)
 	if !ok {
 		t.Fatal("max should succeed")
@@ -236,7 +236,7 @@ func TestAggregateValueMax(t *testing.T) {
 
 func TestAggregateValueNoColID(t *testing.T) {
 	rows := []GridRow{{ID: "a"}}
-	agg := GridAggregateCfg{Op: GridAggregateSum}
+	agg := gridAggregateCfg{Op: gridAggregateSum}
 	_, ok := dataGridAggregateValue(rows, 0, 0, agg)
 	if ok {
 		t.Fatal("should return false with empty colID and non-count op")
@@ -248,7 +248,7 @@ func TestAggregateValueAllNonNumeric(t *testing.T) {
 		{Cells: map[string]string{"val": "abc"}},
 		{Cells: map[string]string{"val": "xyz"}},
 	}
-	agg := GridAggregateCfg{Op: GridAggregateSum, ColID: "val"}
+	agg := gridAggregateCfg{Op: gridAggregateSum, ColID: "val"}
 	_, ok := dataGridAggregateValue(rows, 0, 1, agg)
 	if ok {
 		t.Fatal("should return false when no numeric values")
@@ -357,10 +357,10 @@ func TestGroupRangesEmpty(t *testing.T) {
 
 func TestPresentationValueCols(t *testing.T) {
 	groupCols := []string{"name"}
-	aggs := []GridAggregateCfg{
-		{Op: GridAggregateSum, ColID: "amount"},
-		{Op: GridAggregateCount},
-		{Op: GridAggregateAvg, ColID: "price"},
+	aggs := []gridAggregateCfg{
+		{Op: gridAggregateSum, ColID: "amount"},
+		{Op: gridAggregateCount},
+		{Op: gridAggregateAvg, ColID: "price"},
 	}
 	got := dataGridPresentationValueCols(groupCols, aggs)
 	// Should include "name", "amount", "price" sorted.
@@ -371,8 +371,8 @@ func TestPresentationValueCols(t *testing.T) {
 
 func TestPresentationValueColsDedup(t *testing.T) {
 	groupCols := []string{"name"}
-	aggs := []GridAggregateCfg{
-		{Op: GridAggregateSum, ColID: "name"}, // same as group col
+	aggs := []gridAggregateCfg{
+		{Op: gridAggregateSum, ColID: "name"}, // same as group col
 	}
 	got := dataGridPresentationValueCols(groupCols, aggs)
 	if len(got) != 1 {

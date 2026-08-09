@@ -32,22 +32,22 @@ func TestDurationProgressMidway(t *testing.T) {
 }
 
 func TestMaxRefreshKindUpgrade(t *testing.T) {
-	got := maxAnimationRefreshKind(AnimationRefreshNone, AnimationRefreshLayout)
+	got := maxAnimationRefreshKind(animationRefreshNone, AnimationRefreshLayout)
 	if got != AnimationRefreshLayout {
 		t.Errorf("got %d, want %d", got, AnimationRefreshLayout)
 	}
 }
 
 func TestMaxRefreshKindDowngrade(t *testing.T) {
-	got := maxAnimationRefreshKind(AnimationRefreshLayout, AnimationRefreshNone)
+	got := maxAnimationRefreshKind(AnimationRefreshLayout, animationRefreshNone)
 	if got != AnimationRefreshLayout {
 		t.Errorf("got %d, want %d", got, AnimationRefreshLayout)
 	}
 }
 
 func TestMaxRefreshKindEqual(t *testing.T) {
-	got := maxAnimationRefreshKind(AnimationRefreshRenderOnly, AnimationRefreshRenderOnly)
-	if got != AnimationRefreshRenderOnly {
-		t.Errorf("got %d, want %d", got, AnimationRefreshRenderOnly)
+	got := maxAnimationRefreshKind(animationRefreshRenderOnly, animationRefreshRenderOnly)
+	if got != animationRefreshRenderOnly {
+		t.Errorf("got %d, want %d", got, animationRefreshRenderOnly)
 	}
 }

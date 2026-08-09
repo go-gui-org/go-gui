@@ -5,7 +5,7 @@ import "testing"
 func TestWrapBasic(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis: AxisLeftToRight, Wrap: true, Width: 80, Spacing: 5,
+			Axis: axisLeftToRight, Wrap: true, Width: 80, Spacing: 5,
 		},
 		Children: []Layout{
 			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
@@ -16,7 +16,7 @@ func TestWrapBasic(t *testing.T) {
 
 	layoutWrapContainers(root, &Window{})
 
-	if root.Shape.Axis != AxisTopToBottom {
+	if root.Shape.Axis != axisTopToBottom {
 		t.Error("axis should flip to TTB")
 	}
 	if len(root.Children) != 2 {
@@ -28,7 +28,7 @@ func TestWrapBasic(t *testing.T) {
 	if len(root.Children[1].Children) != 1 {
 		t.Errorf("row 1 children: got %d, want 1", len(root.Children[1].Children))
 	}
-	if root.Children[0].Shape.Axis != AxisLeftToRight {
+	if root.Children[0].Shape.Axis != axisLeftToRight {
 		t.Error("row 0 axis should be LTR")
 	}
 	if root.Children[0].Shape.Spacing != 5 {
@@ -39,7 +39,7 @@ func TestWrapBasic(t *testing.T) {
 func TestWrapSingleRow(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis: AxisLeftToRight, Wrap: true, Width: 200, Spacing: 5,
+			Axis: axisLeftToRight, Wrap: true, Width: 200, Spacing: 5,
 		},
 		Children: []Layout{
 			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
@@ -50,7 +50,7 @@ func TestWrapSingleRow(t *testing.T) {
 
 	layoutWrapContainers(root, &Window{})
 
-	if root.Shape.Axis != AxisLeftToRight {
+	if root.Shape.Axis != axisLeftToRight {
 		t.Error("axis should stay LTR")
 	}
 	if len(root.Children) != 3 {
@@ -61,7 +61,7 @@ func TestWrapSingleRow(t *testing.T) {
 func TestWrapHeights(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis: AxisLeftToRight, Wrap: true, Width: 80, Spacing: 10,
+			Axis: axisLeftToRight, Wrap: true, Width: 80, Spacing: 10,
 		},
 		Children: []Layout{
 			{Shape: &Shape{Width: 30, Height: 20, shapeType: shapeRectangle}},
@@ -90,7 +90,7 @@ func TestWrapHeights(t *testing.T) {
 func TestWrapPositions(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis: AxisLeftToRight, Wrap: true,
+			Axis: axisLeftToRight, Wrap: true,
 			Width: 80, Height: 100, Sizing: FixedFixed, Spacing: 5,
 		},
 		Children: []Layout{
@@ -123,7 +123,7 @@ func TestWrapPositions(t *testing.T) {
 func TestWrapNonFlow(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis: AxisLeftToRight, Wrap: true, Width: 80, Spacing: 5,
+			Axis: axisLeftToRight, Wrap: true, Width: 80, Spacing: 5,
 		},
 		Children: []Layout{
 			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
@@ -149,13 +149,13 @@ func TestWrapNonFlow(t *testing.T) {
 func TestWrapFillInColumn(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis: AxisTopToBottom, Width: 400, Height: 300,
+			Axis: axisTopToBottom, Width: 400, Height: 300,
 			Sizing: FixedFixed, shapeType: shapeRectangle,
 		},
 		Children: []Layout{
 			{
 				Shape: &Shape{
-					Axis: AxisLeftToRight, Wrap: true,
+					Axis: axisLeftToRight, Wrap: true,
 					Sizing: FillFit, Spacing: 5, shapeType: shapeRectangle,
 				},
 				Children: []Layout{
@@ -180,7 +180,7 @@ func TestWrapFillInColumn(t *testing.T) {
 
 	layoutWrapContainers(root, &Window{})
 
-	if root.Children[0].Shape.Axis != AxisTopToBottom {
+	if root.Children[0].Shape.Axis != axisTopToBottom {
 		t.Error("wrap axis should flip to TTB")
 	}
 	if len(root.Children[0].Children) < 2 {
@@ -191,7 +191,7 @@ func TestWrapFillInColumn(t *testing.T) {
 func TestWrapLeadingSkippedChildren(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis: AxisLeftToRight, Wrap: true, Width: 80, Spacing: 5,
+			Axis: axisLeftToRight, Wrap: true, Width: 80, Spacing: 5,
 		},
 		Children: []Layout{
 			{Shape: &Shape{Width: 10, shapeType: shapeRectangle, Float: true}},
@@ -220,7 +220,7 @@ func TestWrapLeadingSkippedChildren(t *testing.T) {
 func TestWrapTrailingNonFlowAtRowBoundary(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis: AxisLeftToRight, Wrap: true, Width: 65, Spacing: 5,
+			Axis: axisLeftToRight, Wrap: true, Width: 65, Spacing: 5,
 		},
 		Children: []Layout{
 			{Shape: &Shape{Width: 30, shapeType: shapeRectangle}},
@@ -247,7 +247,7 @@ func TestWrapTrailingNonFlowAtRowBoundary(t *testing.T) {
 func TestWrapPadding(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis: AxisLeftToRight, Wrap: true, Width: 100, Spacing: 5,
+			Axis: axisLeftToRight, Wrap: true, Width: 100, Spacing: 5,
 			Padding: NewPadding(0, 10, 0, 10),
 		},
 		Children: []Layout{

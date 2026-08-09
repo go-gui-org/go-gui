@@ -134,7 +134,7 @@ func TestPathTokenizeEmpty(t *testing.T) {
 
 func TestPathParsePathDMoveTo(t *testing.T) {
 	segs := parsePathD("M 10 20")
-	if len(segs) != 1 || segs[0].Cmd != CmdMoveTo {
+	if len(segs) != 1 || segs[0].Cmd != cmdMoveTo {
 		t.Fatalf("expected 1 MoveTo, got %v", segs)
 	}
 	if segs[0].Points[0] != 10 || segs[0].Points[1] != 20 {
@@ -144,7 +144,7 @@ func TestPathParsePathDMoveTo(t *testing.T) {
 
 func TestPathParsePathDLineTo(t *testing.T) {
 	segs := parsePathD("M 0 0 L 10 20")
-	if len(segs) != 2 || segs[1].Cmd != CmdLineTo {
+	if len(segs) != 2 || segs[1].Cmd != cmdLineTo {
 		t.Fatalf("expected MoveTo+LineTo, got %v", segs)
 	}
 }
@@ -162,7 +162,7 @@ func TestPathParsePathDRelative(t *testing.T) {
 
 func TestPathParsePathDHorizontal(t *testing.T) {
 	segs := parsePathD("M 0 5 H 10")
-	if len(segs) != 2 || segs[1].Cmd != CmdLineTo {
+	if len(segs) != 2 || segs[1].Cmd != cmdLineTo {
 		t.Fatalf("expected LineTo for H, got %v", segs)
 	}
 	if segs[1].Points[0] != 10 || segs[1].Points[1] != 5 {
@@ -182,14 +182,14 @@ func TestPathParsePathDVertical(t *testing.T) {
 
 func TestPathParsePathDClose(t *testing.T) {
 	segs := parsePathD("M 0 0 L 10 0 L 10 10 Z")
-	if segs[len(segs)-1].Cmd != CmdClose {
+	if segs[len(segs)-1].Cmd != cmdClose {
 		t.Fatalf("last segment should be Close")
 	}
 }
 
 func TestPathParsePathDCubic(t *testing.T) {
 	segs := parsePathD("M 0 0 C 10 0 10 10 0 10")
-	if len(segs) != 2 || segs[1].Cmd != CmdCubicTo {
+	if len(segs) != 2 || segs[1].Cmd != cmdCubicTo {
 		t.Fatalf("expected CubicTo, got %v", segs)
 	}
 	if len(segs[1].Points) != 6 {
@@ -199,7 +199,7 @@ func TestPathParsePathDCubic(t *testing.T) {
 
 func TestPathParsePathDQuad(t *testing.T) {
 	segs := parsePathD("M 0 0 Q 5 10 10 0")
-	if len(segs) != 2 || segs[1].Cmd != CmdQuadTo {
+	if len(segs) != 2 || segs[1].Cmd != cmdQuadTo {
 		t.Fatalf("expected QuadTo, got %v", segs)
 	}
 	if len(segs[1].Points) != 4 {
@@ -225,9 +225,9 @@ func TestPathParsePathDZFollowedByMKeepsSubpaths(t *testing.T) {
 	closes := 0
 	for _, s := range segs {
 		switch s.Cmd {
-		case CmdMoveTo:
+		case cmdMoveTo:
 			moves++
-		case CmdClose:
+		case cmdClose:
 			closes++
 		}
 	}
@@ -273,7 +273,7 @@ func TestPathVectorAngleZeroLength(t *testing.T) {
 
 func TestPathArcToCubicZeroRadius(t *testing.T) {
 	segs := arcToCubic(0, 0, 0, 0, 0, false, true, 10, 0)
-	if len(segs) != 1 || segs[0].Cmd != CmdLineTo {
+	if len(segs) != 1 || segs[0].Cmd != cmdLineTo {
 		t.Fatalf("zero radius should produce LineTo, got %v", segs)
 	}
 }
@@ -284,7 +284,7 @@ func TestPathArcToCubicQuarterCircle(t *testing.T) {
 		t.Fatalf("expected at least 1 segment, got %d", len(segs))
 	}
 	for _, seg := range segs {
-		if seg.Cmd != CmdCubicTo {
+		if seg.Cmd != cmdCubicTo {
 			t.Fatalf("expected CubicTo segments, got cmd=%d", seg.Cmd)
 		}
 	}
@@ -347,7 +347,7 @@ func TestPathArcToCubicNonFinite(t *testing.T) {
 				t.Fatal("expected fallback segment, got empty")
 			}
 			for _, s := range segs {
-				if s.Cmd != CmdLineTo && s.Cmd != CmdCubicTo {
+				if s.Cmd != cmdLineTo && s.Cmd != cmdCubicTo {
 					t.Fatalf("expected LineTo or CubicTo, got cmd=%d", s.Cmd)
 				}
 				for _, v := range s.Points {
@@ -372,7 +372,7 @@ func TestPathArcToCubicFuzzRegression(t *testing.T) {
 	if len(segs) == 0 {
 		t.Fatal("expected fallback segment")
 	}
-	if segs[0].Cmd != CmdLineTo {
+	if segs[0].Cmd != cmdLineTo {
 		t.Fatalf("expected LineTo fallback, got cmd=%d", segs[0].Cmd)
 	}
 }

@@ -23,7 +23,7 @@ func TestSvgGenerateLayoutErrorFallback(t *testing.T) {
 	w := &Window{}
 	v := Svg(SvgCfg{
 		ID:       "svg1",
-		FileName: "/nonexistent.svg",
+		fileName: "/nonexistent.svg",
 		Width:    100,
 		Height:   100,
 	})

@@ -89,7 +89,7 @@ func contentWidth(layout *Layout) float32 {
 // fallback when no cached value exists.
 func computeContentWidth(layout *Layout) float32 {
 	var width float32
-	if layout.Shape.Axis == AxisLeftToRight {
+	if layout.Shape.Axis == axisLeftToRight {
 		width += layout.spacing()
 		for i := range layout.Children {
 			c := &layout.Children[i]
@@ -124,7 +124,7 @@ func contentHeight(layout *Layout) float32 {
 // fallback when no cached value exists.
 func computeContentHeight(layout *Layout) float32 {
 	var height float32
-	if layout.Shape.Axis == AxisTopToBottom {
+	if layout.Shape.Axis == axisTopToBottom {
 		height += layout.spacing()
 		for i := range layout.Children {
 			c := &layout.Children[i]

@@ -12,7 +12,7 @@ import (
 // Safe to construct without history or with a nil app window —
 // methods are no-ops in those cases so the UI renders gracefully
 // before state exists.
-type TimeTravelController struct {
+type timeTravelController struct {
 	// App is the window being debugged. Nil is allowed; methods
 	// become no-ops.
 	App *Window
@@ -30,7 +30,7 @@ type TimeTravelController struct {
 // hist returns the app window's history ring, or nil if the
 // controller, app, or history is unset. Single nil-guard used
 // by every motion method.
-func (c *TimeTravelController) hist() *snapshotRing {
+func (c *timeTravelController) hist() *snapshotRing {
 	if c == nil || c.App == nil {
 		return nil
 	}
@@ -38,7 +38,7 @@ func (c *TimeTravelController) hist() *snapshotRing {
 }
 
 // Len returns the current history length.
-func (c *TimeTravelController) Len() int {
+func (c *timeTravelController) Len() int {
 	r := c.hist()
 	if r == nil {
 		return 0
@@ -47,7 +47,7 @@ func (c *TimeTravelController) Len() int {
 }
 
 // Bytes returns the current history byte usage.
-func (c *TimeTravelController) Bytes() int {
+func (c *timeTravelController) Bytes() int {
 	r := c.hist()
 	if r == nil {
 		return 0
@@ -56,7 +56,7 @@ func (c *TimeTravelController) Bytes() int {
 }
 
 // Cause returns the cause label of the entry at the cursor.
-func (c *TimeTravelController) Cause() string {
+func (c *timeTravelController) cause() string {
 	r := c.hist()
 	if r == nil {
 		return ""
@@ -70,7 +70,7 @@ func (c *TimeTravelController) Cause() string {
 
 // Jump moves the cursor to idx, clamped to [0, len-1]. Auto-
 // freezes the app window and posts a restore request.
-func (c *TimeTravelController) Jump(idx int) {
+func (c *timeTravelController) jump(idx int) {
 	r := c.hist()
 	if r == nil {
 		return
@@ -88,47 +88,47 @@ func (c *TimeTravelController) Jump(idx int) {
 	c.Cursor = idx
 	c.sliderValue = float32(idx)
 	c.App.Freeze()
-	c.App.PostRestore(idx)
+	c.App.postRestore(idx)
 }
 
 // StepBack moves one entry toward the past. Clamps at 0.
-func (c *TimeTravelController) StepBack() {
+func (c *timeTravelController) stepBack() {
 	if c == nil {
 		return
 	}
-	c.Jump(c.Cursor - 1)
+	c.jump(c.Cursor - 1)
 }
 
 // StepForward moves one entry toward the present. Clamps at len-1.
-func (c *TimeTravelController) StepForward() {
+func (c *timeTravelController) stepForward() {
 	if c == nil {
 		return
 	}
-	c.Jump(c.Cursor + 1)
+	c.jump(c.Cursor + 1)
 }
 
 // First jumps to the oldest entry.
-func (c *TimeTravelController) First() {
-	c.Jump(0)
+func (c *timeTravelController) First() {
+	c.jump(0)
 }
 
 // Last jumps to the newest entry.
-func (c *TimeTravelController) Last() {
+func (c *timeTravelController) Last() {
 	r := c.hist()
 	if r == nil {
 		return
 	}
-	c.Jump(r.len() - 1)
+	c.jump(r.len() - 1)
 }
 
 // ResumeLive releases the app window's freeze and snaps the
 // cursor to the newest entry. The app resumes accepting input
 // and w.Now() returns live time.
-func (c *TimeTravelController) ResumeLive() {
+func (c *timeTravelController) resumeLive() {
 	if c == nil || c.App == nil {
 		return
 	}
-	c.App.Resume()
+	c.App.resume()
 	if r := c.hist(); r != nil {
 		if n := r.len(); n > 0 {
 			c.Cursor = n - 1
@@ -138,12 +138,12 @@ func (c *TimeTravelController) ResumeLive() {
 
 // ToggleFreeze flips the frozen state. Intended for a freeze
 // button or Space-key shortcut.
-func (c *TimeTravelController) ToggleFreeze() {
+func (c *timeTravelController) toggleFreeze() {
 	if c == nil || c.App == nil {
 		return
 	}
-	if c.App.IsFrozen() {
-		c.ResumeLive()
+	if c.App.isFrozen() {
+		c.resumeLive()
 	} else {
 		c.App.Freeze()
 	}
@@ -154,7 +154,7 @@ func (c *TimeTravelController) ToggleFreeze() {
 // (the window the view renders into) for sizing. Typically
 // called from a view generator installed on a dedicated debug
 // window; host must not be nil.
-func (c *TimeTravelController) View(w *Window) View {
+func (c *timeTravelController) View(w *Window) View {
 	if w == nil {
 		return Column(ContainerCfg{})
 	}
@@ -165,7 +165,7 @@ func (c *TimeTravelController) View(w *Window) View {
 		displayIdx = 0
 	}
 	counter := fmt.Sprintf("%d / %d  (%d KiB)", displayIdx, n, bytes>>10)
-	cause := c.Cause()
+	cause := c.cause()
 	if cause == "" {
 		cause = "(empty)"
 	}
@@ -199,7 +199,7 @@ func (c *TimeTravelController) View(w *Window) View {
 				Sizing:   FillFixed,
 				OnChange: c.onSliderChange,
 			}),
-			ttButton(ttFreezeID, freezeLabel(c.App), c.ToggleFreeze),
+			ttButton(ttFreezeID, freezeLabel(c.App), c.toggleFreeze),
 		},
 	})
 }
@@ -211,7 +211,7 @@ func (c *TimeTravelController) View(w *Window) View {
 // clamps v against the valid cursor range so an out-of-bounds
 // value from a misbehaving slider backend can't render the
 // thumb past the track ends on the next frame.
-func (c *TimeTravelController) onSliderChange(v float32, _ EventCtx) {
+func (c *timeTravelController) onSliderChange(v float32, _ EventCtx) {
 	if c == nil || !f32IsFinite(v) {
 		return
 	}
@@ -224,7 +224,7 @@ func (c *TimeTravelController) onSliderChange(v float32, _ EventCtx) {
 	// sub-pixel drag still updates sliderValue so the thumb
 	// tracks the mouse.
 	if idx := int(v); idx != c.Cursor {
-		c.Jump(idx)
+		c.jump(idx)
 	}
 	c.sliderValue = v
 }
@@ -244,23 +244,23 @@ const ttDebugFocusID = "__tt_debug__"
 
 // handleKey maps scrubber keyboard shortcuts to controller
 // actions. Called from the root container's OnKeyDown.
-func (c *TimeTravelController) handleKey(ctx EventCtx) {
+func (c *timeTravelController) handleKey(ctx EventCtx) {
 	if c == nil || ctx.Event == nil {
 		return
 	}
 	switch ctx.Event.KeyCode {
 	case KeyLeft:
-		c.StepBack()
+		c.stepBack()
 	case KeyRight:
-		c.StepForward()
+		c.stepForward()
 	case KeyHome:
 		c.First()
 	case KeyEnd:
 		c.Last()
 	case KeySpace:
-		c.ToggleFreeze()
+		c.toggleFreeze()
 	case KeyEscape:
-		c.ResumeLive()
+		c.resumeLive()
 	default:
 		return
 	}
@@ -288,7 +288,7 @@ func ttButton(id, label string, fn func()) View {
 // "Resume" when frozen (click → unfreeze + snap to newest),
 // "Pause" when live (click → freeze at current moment).
 func freezeLabel(w *Window) string {
-	if w != nil && w.IsFrozen() {
+	if w != nil && w.isFrozen() {
 		return "Resume"
 	}
 	return "Pause"

@@ -20,77 +20,79 @@ const (
 )
 
 // GridOrmColumnSpec describes a column for ORM-backed queries.
-type GridOrmColumnSpec struct {
+type gridOrmColumnSpec struct {
 	ID              string
-	DBField         string
-	AllowedOps      []string
+	dBField         string
+	allowedOps      []string
 	normalizedOps   []string // populated by validation
 	QuickFilter     bool
 	Filterable      bool
 	Sortable        bool
-	CaseInsensitive bool
+	caseInsensitive bool
 }
 
 // GridOrmQuerySpec is the validated query sent to ORM callbacks.
+// exportaudit:keep — reachable from an exported signature
 type GridOrmQuerySpec struct {
 	QuickFilter string
 	Cursor      string
 	Sorts       []GridSort
-	Filters     []GridFilter
-	Limit       int
+	Filters     []gridFilter
+	limit       int
 	Offset      int
 }
 
 // GridOrmPage is the result from an ORM fetch callback.
-type GridOrmPage struct {
-	NextCursor string
-	PrevCursor string
+type gridOrmPage struct {
+	nextCursor string
+	prevCursor string
 	Rows       []GridRow
 	RowCount   int // -1 when unknown
-	HasMore    bool
+	hasMore    bool
 }
 
 // GridOrmFetchFn is a callback that fetches a page of ORM data.
-type GridOrmFetchFn func(spec GridOrmQuerySpec, signal *gg.GridAbortSignal) (GridOrmPage, error)
+type gridOrmFetchFn func(spec GridOrmQuerySpec, signal *gg.GridAbortSignal) (gridOrmPage, error)
 
 // GridOrmCreateFn is a callback that creates rows.
-type GridOrmCreateFn func(rows []GridRow, signal *gg.GridAbortSignal) ([]GridRow, error)
+type gridOrmCreateFn func(rows []GridRow, signal *gg.GridAbortSignal) ([]GridRow, error)
 
 // GridOrmUpdateFn is a callback that updates rows.
-type GridOrmUpdateFn func(rows []GridRow, edits []GridCellEdit, signal *gg.GridAbortSignal) ([]GridRow, error)
+type gridOrmUpdateFn func(rows []GridRow, edits []GridCellEdit, signal *gg.GridAbortSignal) ([]GridRow, error)
 
 // GridOrmDeleteFn is a callback that deletes a single row.
-type GridOrmDeleteFn func(rowID string, signal *gg.GridAbortSignal) (string, error)
+type gridOrmDeleteFn func(rowID string, signal *gg.GridAbortSignal) (string, error)
 
 // GridOrmDeleteManyFn is a callback that deletes multiple rows.
-type GridOrmDeleteManyFn func(rowIDs []string, signal *gg.GridAbortSignal) ([]string, error)
+type gridOrmDeleteManyFn func(rowIDs []string, signal *gg.GridAbortSignal) ([]string, error)
 
 // GridOrmDataSource wraps user-provided ORM callbacks with
 // column validation, query normalization, and abort handling.
+// exportaudit:keep — reachable from an exported signature
 type GridOrmDataSource struct {
-	columnMap      map[string]GridOrmColumnSpec
-	FetchFn        GridOrmFetchFn
-	CreateFn       GridOrmCreateFn
-	UpdateFn       GridOrmUpdateFn
-	DeleteFn       GridOrmDeleteFn
-	DeleteManyFn   GridOrmDeleteManyFn
-	Columns        []GridOrmColumnSpec
+	columnMap      map[string]gridOrmColumnSpec
+	fetchFn        gridOrmFetchFn
+	createFn       gridOrmCreateFn
+	updateFn       gridOrmUpdateFn
+	deleteFn       gridOrmDeleteFn
+	deleteManyFn   gridOrmDeleteManyFn
+	Columns        []gridOrmColumnSpec
 	DefaultLimit   int
-	SupportsOffset bool
-	RowCountKnown  bool
+	supportsOffset bool
+	rowCountKnown  bool
 }
 
 // NewGridOrmDataSource validates columns and builds the
 // cached column map.
-func NewGridOrmDataSource(src GridOrmDataSource) (*GridOrmDataSource, error) {
-	if src.FetchFn == nil {
+func newGridOrmDataSource(src GridOrmDataSource) (*GridOrmDataSource, error) {
+	if src.fetchFn == nil {
 		return nil, errors.New("grid orm: fetch_fn is required")
 	}
 	colMap, err := gridOrmValidateColumnMap(src.Columns)
 	if err != nil {
 		return nil, err
 	}
-	validated := make([]GridOrmColumnSpec, len(src.Columns))
+	validated := make([]gridOrmColumnSpec, len(src.Columns))
 	for i, col := range src.Columns {
 		validated[i] = colMap[strings.TrimSpace(col.ID)]
 	}
@@ -100,7 +102,7 @@ func NewGridOrmDataSource(src GridOrmDataSource) (*GridOrmDataSource, error) {
 	return &out, nil
 }
 
-func (s *GridOrmDataSource) resolvedColumnMap() (map[string]GridOrmColumnSpec, error) {
+func (s *GridOrmDataSource) resolvedColumnMap() (map[string]gridOrmColumnSpec, error) {
 	if len(s.columnMap) > 0 {
 		return s.columnMap, nil
 	}
@@ -108,20 +110,22 @@ func (s *GridOrmDataSource) resolvedColumnMap() (map[string]GridOrmColumnSpec, e
 }
 
 // Capabilities returns the data capabilities of the ORM source.
+// exportaudit:keep — exported DataSource interface method
 func (s *GridOrmDataSource) Capabilities() GridDataCapabilities {
 	return GridDataCapabilities{
-		SupportsCursorPagination: true,
-		SupportsOffsetPagination: s.SupportsOffset,
-		SupportsNumberedPages:    s.SupportsOffset,
-		RowCountKnown:            s.RowCountKnown,
-		SupportsCreate:           s.CreateFn != nil,
-		SupportsUpdate:           s.UpdateFn != nil,
-		SupportsDelete:           s.DeleteFn != nil || s.DeleteManyFn != nil,
-		SupportsBatchDelete:      s.DeleteManyFn != nil,
+		supportsCursorPagination: true,
+		supportsOffsetPagination: s.supportsOffset,
+		supportsNumberedPages:    s.supportsOffset,
+		rowCountKnown:            s.rowCountKnown,
+		supportsCreate:           s.createFn != nil,
+		supportsUpdate:           s.updateFn != nil,
+		supportsDelete:           s.deleteFn != nil || s.deleteManyFn != nil,
+		supportsBatchDelete:      s.deleteManyFn != nil,
 	}
 }
 
 // FetchData retrieves a page of grid data from the ORM source.
+// exportaudit:keep — exported DataSource interface method
 func (s *GridOrmDataSource) FetchData(
 	req GridDataRequest,
 ) (GridDataResult, error) {
@@ -137,12 +141,12 @@ func (s *GridOrmDataSource) FetchData(
 		return GridDataResult{}, err
 	}
 	limit, offset, cursor := gridOrmResolvePage(
-		req.Page, s.DefaultLimit)
-	page, err := s.FetchFn(GridOrmQuerySpec{
+		req.page, s.DefaultLimit)
+	page, err := s.fetchFn(GridOrmQuerySpec{
 		QuickFilter: query.QuickFilter,
 		Sorts:       query.Sorts,
 		Filters:     query.Filters,
-		Limit:       limit,
+		limit:       limit,
 		Offset:      offset,
 		Cursor:      cursor,
 	}, req.Signal)
@@ -152,10 +156,10 @@ func (s *GridOrmDataSource) FetchData(
 	if err := gridAbortCheck(req.Signal); err != nil {
 		return GridDataResult{}, err
 	}
-	nextCursor := page.NextCursor
-	prevCursor := page.PrevCursor
-	if _, ok := req.Page.(GridCursorPageReq); ok {
-		if nextCursor == "" && page.HasMore {
+	nextCursor := page.nextCursor
+	prevCursor := page.prevCursor
+	if _, ok := req.page.(gridCursorPageReq); ok {
+		if nextCursor == "" && page.hasMore {
 			nextCursor = dataGridSourceCursorFromIndex(
 				offset + len(page.Rows))
 		}
@@ -165,15 +169,16 @@ func (s *GridOrmDataSource) FetchData(
 	}
 	return GridDataResult{
 		Rows:          page.Rows,
-		NextCursor:    nextCursor,
-		PrevCursor:    prevCursor,
+		nextCursor:    nextCursor,
+		prevCursor:    prevCursor,
 		RowCount:      page.RowCount,
-		HasMore:       page.HasMore,
+		hasMore:       page.hasMore,
 		ReceivedCount: len(page.Rows),
 	}, nil
 }
 
 // MutateData applies create/update/delete mutations via the ORM.
+// exportaudit:keep — exported DataSource interface method
 func (s *GridOrmDataSource) MutateData(
 	req GridMutationRequest,
 ) (GridMutationResult, error) {
@@ -185,8 +190,8 @@ func (s *GridOrmDataSource) MutateData(
 		return GridMutationResult{}, err
 	}
 	switch req.Kind {
-	case GridMutationCreate:
-		if s.CreateFn == nil {
+	case gridMutationCreate:
+		if s.createFn == nil {
 			return GridMutationResult{},
 				errors.New("grid orm: create not supported")
 		}
@@ -196,29 +201,29 @@ func (s *GridOrmDataSource) MutateData(
 		}
 		rowsCopy := make([]GridRow, len(req.Rows))
 		copy(rowsCopy, req.Rows)
-		created, err := s.CreateFn(rowsCopy, req.Signal)
+		created, err := s.createFn(rowsCopy, req.Signal)
 		if err != nil {
 			return GridMutationResult{}, err
 		}
 		if err := gridAbortCheck(req.Signal); err != nil {
 			return GridMutationResult{}, err
 		}
-		return GridMutationResult{Created: created}, nil
+		return GridMutationResult{created: created}, nil
 
-	case GridMutationUpdate:
-		if s.UpdateFn == nil {
+	case gridMutationUpdate:
+		if s.updateFn == nil {
 			return GridMutationResult{},
 				errors.New("grid orm: update not supported")
 		}
 		if err := gridOrmValidateMutationColumns(
-			req.Rows, req.Edits, colMap); err != nil {
+			req.Rows, req.edits, colMap); err != nil {
 			return GridMutationResult{}, err
 		}
 		rowsCopy := make([]GridRow, len(req.Rows))
 		copy(rowsCopy, req.Rows)
-		editsCopy := make([]GridCellEdit, len(req.Edits))
-		copy(editsCopy, req.Edits)
-		updated, err := s.UpdateFn(
+		editsCopy := make([]GridCellEdit, len(req.edits))
+		copy(editsCopy, req.edits)
+		updated, err := s.updateFn(
 			rowsCopy, editsCopy, req.Signal)
 		if err != nil {
 			return GridMutationResult{}, err
@@ -226,10 +231,10 @@ func (s *GridOrmDataSource) MutateData(
 		if err := gridAbortCheck(req.Signal); err != nil {
 			return GridMutationResult{}, err
 		}
-		return GridMutationResult{Updated: updated}, nil
+		return GridMutationResult{updated: updated}, nil
 
-	case GridMutationDelete:
-		idSet := gridDeduplicateRowIDs(req.Rows, req.RowIDs)
+	case gridMutationDelete:
+		idSet := gridDeduplicateRowIDs(req.Rows, req.rowIDs)
 		ids := make([]string, 0, len(idSet))
 		for k := range idSet {
 			ids = append(ids, k)
@@ -239,16 +244,16 @@ func (s *GridOrmDataSource) MutateData(
 			return GridMutationResult{}, nil
 		}
 		var deletedIDs []string
-		if s.DeleteManyFn != nil {
-			deletedIDs, err = s.DeleteManyFn(ids, req.Signal)
+		if s.deleteManyFn != nil {
+			deletedIDs, err = s.deleteManyFn(ids, req.Signal)
 			if err != nil {
 				return GridMutationResult{}, err
 			}
-		} else if s.DeleteFn != nil {
+		} else if s.deleteFn != nil {
 			out := make([]string, 0, len(ids))
 			var deleted string
 			for _, rowID := range ids {
-				deleted, err = s.DeleteFn(rowID, req.Signal)
+				deleted, err = s.deleteFn(rowID, req.Signal)
 				if err != nil {
 					return GridMutationResult{}, err
 				}
@@ -267,7 +272,7 @@ func (s *GridOrmDataSource) MutateData(
 		if err := gridAbortCheck(req.Signal); err != nil {
 			return GridMutationResult{}, err
 		}
-		return GridMutationResult{DeletedIDs: deletedIDs}, nil
+		return GridMutationResult{deletedIDs: deletedIDs}, nil
 	}
 	return GridMutationResult{},
 		errors.New("grid orm: unknown mutation kind")
@@ -275,7 +280,7 @@ func (s *GridOrmDataSource) MutateData(
 
 // gridOrmValidateQuery validates a query against columns.
 func gridOrmValidateQuery(
-	query GridQueryState, columns []GridOrmColumnSpec,
+	query GridQueryState, columns []gridOrmColumnSpec,
 ) (GridQueryState, error) {
 	colMap, err := gridOrmValidateColumnMap(columns)
 	if err != nil {
@@ -286,7 +291,7 @@ func gridOrmValidateQuery(
 
 func gridOrmValidateQueryWithMap(
 	query GridQueryState,
-	colMap map[string]GridOrmColumnSpec,
+	colMap map[string]gridOrmColumnSpec,
 ) (GridQueryState, error) {
 	if len(query.QuickFilter) > gridOrmMaxFilterValueLen {
 		return GridQueryState{}, fmt.Errorf(
@@ -308,7 +313,7 @@ func gridOrmValidateQueryWithMap(
 			ColID: s.ColID, Dir: s.Dir,
 		})
 	}
-	var filters []GridFilter
+	var filters []gridFilter
 	for _, f := range query.Filters {
 		if len(f.Value) > gridOrmMaxFilterValueLen {
 			return GridQueryState{}, fmt.Errorf(
@@ -335,7 +340,7 @@ func gridOrmValidateQueryWithMap(
 		if isDup {
 			continue
 		}
-		filters = append(filters, GridFilter{
+		filters = append(filters, gridFilter{
 			ColID: f.ColID, Op: op, Value: f.Value,
 		})
 	}
@@ -352,16 +357,16 @@ func gridOrmResolvePage(
 	defLimit := max(1, min(dataGridSourceMaxPageLimit,
 		nonZero(configuredLimit, 100)))
 	switch p := page.(type) {
-	case GridCursorPageReq:
+	case gridCursorPageReq:
 		limit = max(1, min(dataGridSourceMaxPageLimit,
-			nonZero(p.Limit, defLimit)))
+			nonZero(p.limit, defLimit)))
 		offset = max(0,
 			dataGridSourceCursorToIndex(p.Cursor))
 		cursor = p.Cursor
-	case GridOffsetPageReq:
+	case gridOffsetPageReq:
 		offset = max(0, p.StartIndex)
 		limit = max(1, min(dataGridSourceMaxPageLimit,
-			nonZero(p.EndIndex-p.StartIndex, defLimit)))
+			nonZero(p.endIndex-p.StartIndex, defLimit)))
 	default:
 		limit = defLimit
 	}
@@ -369,16 +374,16 @@ func gridOrmResolvePage(
 }
 
 func gridOrmValidateColumnMap(
-	columns []GridOrmColumnSpec,
-) (map[string]GridOrmColumnSpec, error) {
-	out := make(map[string]GridOrmColumnSpec, len(columns))
+	columns []gridOrmColumnSpec,
+) (map[string]gridOrmColumnSpec, error) {
+	out := make(map[string]gridOrmColumnSpec, len(columns))
 	for _, col := range columns {
 		id := strings.TrimSpace(col.ID)
 		if id == "" {
 			return nil, errors.New(
 				"grid orm: column id is required")
 		}
-		dbField := strings.TrimSpace(col.DBField)
+		dbField := strings.TrimSpace(col.dBField)
 		if dbField == "" {
 			return nil, fmt.Errorf(
 				"grid orm: column %q requires db_field", id)
@@ -392,13 +397,13 @@ func gridOrmValidateColumnMap(
 			return nil, fmt.Errorf(
 				"grid orm: duplicate column id: %s", id)
 		}
-		normOps := make([]string, len(col.AllowedOps))
-		for i, rawOp := range col.AllowedOps {
+		normOps := make([]string, len(col.allowedOps))
+		for i, rawOp := range col.allowedOps {
 			normOps[i] = gridOrmNormalizeFilterOp(rawOp)
 		}
 		validated := col
 		validated.ID = id
-		validated.DBField = dbField
+		validated.dBField = dbField
 		validated.normalizedOps = normOps
 		out[id] = validated
 	}
@@ -414,7 +419,7 @@ func gridOrmNormalizeFilterOp(op string) string {
 }
 
 func gridOrmColumnAllowsFilterOp(
-	col GridOrmColumnSpec, op string,
+	col gridOrmColumnSpec, op string,
 ) bool {
 	if op == "" {
 		return false
@@ -427,7 +432,7 @@ func gridOrmColumnAllowsFilterOp(
 
 func gridOrmValidateMutationColumns(
 	rows []GridRow, edits []GridCellEdit,
-	colMap map[string]GridOrmColumnSpec,
+	colMap map[string]gridOrmColumnSpec,
 ) error {
 	if len(colMap) == 0 {
 		return nil
@@ -459,17 +464,18 @@ func gridOrmValidateMutationColumns(
 }
 
 // GridOrmSQLBuilder holds SQL fragments built from a query spec.
+// exportaudit:keep — reachable from an exported signature
 type GridOrmSQLBuilder struct {
-	WhereSQL  string
-	OrderSQL  string
-	LimitSQL  string
-	OffsetSQL string
+	whereSQL  string
+	orderSQL  string
+	limitSQL  string
+	offsetSQL string
 	Params    []string
 }
 
 // BuildSQL validates the query spec against the source's
 // columns and builds SQL fragments.
-func (s *GridOrmDataSource) BuildSQL(
+func (s *GridOrmDataSource) buildSQL(
 	spec GridOrmQuerySpec,
 ) (GridOrmSQLBuilder, error) {
 	colMap, err := s.resolvedColumnMap()
@@ -484,7 +490,7 @@ func (s *GridOrmDataSource) BuildSQL(
 // are included.
 func gridOrmBuildSQL(
 	spec GridOrmQuerySpec,
-	colMap map[string]GridOrmColumnSpec,
+	colMap map[string]gridOrmColumnSpec,
 ) (GridOrmSQLBuilder, error) {
 	query, err := gridOrmValidateQueryWithMap(GridQueryState{
 		QuickFilter: spec.QuickFilter,
@@ -507,21 +513,21 @@ func gridOrmBuildSQL(
 			continue
 		}
 		clause := gridOrmBuildFilterClause(
-			col.DBField, f.Op, f.Value,
-			col.CaseInsensitive, &params)
+			col.dBField, f.Op, f.Value,
+			col.caseInsensitive, &params)
 		whereParts = append(whereParts, clause)
 	}
 	order := gridOrmBuildOrder(query.Sorts, colMap)
-	limit := max(1, min(dataGridSourceMaxPageLimit, nonZero(spec.Limit, 100)))
+	limit := max(1, min(dataGridSourceMaxPageLimit, nonZero(spec.limit, 100)))
 	offset := max(0, spec.Offset)
 	params = append(params,
 		strconv.Itoa(limit),
 		strconv.Itoa(offset))
 	return GridOrmSQLBuilder{
-		WhereSQL:  strings.Join(whereParts, " and "),
-		OrderSQL:  order,
-		LimitSQL:  "limit ?",
-		OffsetSQL: "offset ?",
+		whereSQL:  strings.Join(whereParts, " and "),
+		orderSQL:  order,
+		limitSQL:  "limit ?",
+		offsetSQL: "offset ?",
 		Params:    params,
 	}, nil
 }
@@ -540,7 +546,7 @@ func gridOrmEscapeLike(s string) string {
 
 func gridOrmBuildQuickFilter(
 	needle string,
-	columns map[string]GridOrmColumnSpec,
+	columns map[string]gridOrmColumnSpec,
 	params *[]string,
 ) string {
 	trimmed := strings.TrimSpace(needle)
@@ -561,15 +567,15 @@ func gridOrmBuildQuickFilter(
 		if !col.QuickFilter {
 			continue
 		}
-		if col.CaseInsensitive {
+		if col.caseInsensitive {
 			orParts = append(orParts,
 				fmt.Sprintf("lower(%s) like ? escape '\\'",
-					col.DBField))
+					col.dBField))
 			*params = append(*params,
 				"%"+escapedLower+"%")
 		} else {
 			orParts = append(orParts,
-				col.DBField+" like ? escape '\\'")
+				col.dBField+" like ? escape '\\'")
 			*params = append(*params,
 				"%"+escapedTrimmed+"%")
 		}
@@ -613,12 +619,12 @@ func gridOrmBuildFilterClause(
 
 func gridOrmBuildOrder(
 	sorts []GridSort,
-	colMap map[string]GridOrmColumnSpec,
+	colMap map[string]gridOrmColumnSpec,
 ) string {
 	var parts []string
 	for _, s := range sorts {
 		col, ok := colMap[s.ColID]
-		if !ok || !col.Sortable || !gridOrmValidDBField(col.DBField) {
+		if !ok || !col.Sortable || !gridOrmValidDBField(col.dBField) {
 			continue
 		}
 		dir := "asc"
@@ -626,7 +632,7 @@ func gridOrmBuildOrder(
 			dir = "desc"
 		}
 		parts = append(parts,
-			col.DBField+" "+dir)
+			col.dBField+" "+dir)
 	}
 	return strings.Join(parts, ", ")
 }

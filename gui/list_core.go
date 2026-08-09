@@ -19,14 +19,14 @@ type listCoreItem struct {
 	Icon         string
 	Group        string
 	Disabled     bool
-	IsSubheading bool
+	isSubheading bool
 }
 
 // listCoreCfg configures listCoreViews rendering.
 type listCoreCfg struct {
 	TextStyle       TextStyle
-	DetailStyle     TextStyle
-	SubheadingStyle TextStyle
+	detailStyle     TextStyle
+	subheadingStyle TextStyle
 	OnItemClick     func(string, int, EventCtx)
 	OnItemHover     func(int, EventCtx)
 	PaddingItem     Padding
@@ -203,7 +203,7 @@ func listCoreFilter(items []listCoreItem, query string) []int {
 	}
 	scored := make([]listCoreScored, 0, len(items))
 	for i, item := range items {
-		if item.IsSubheading {
+		if item.isSubheading {
 			continue
 		}
 		s := listCoreFuzzyScore(item.Label, query)
@@ -238,7 +238,7 @@ func listCorePrepareInto(
 		scored := scoredDst[:0]
 		for i := range items {
 			item := items[i]
-			if item.IsSubheading {
+			if item.isSubheading {
 				continue
 			}
 			s := listCoreFuzzyScore(item.Label, query)
@@ -268,7 +268,7 @@ func listCorePrepareInto(
 
 	ids := idsDst[:0]
 	for i := range filtered {
-		if !filtered[i].IsSubheading {
+		if !filtered[i].isSubheading {
 			ids = append(ids, filtered[i].ID)
 		}
 	}
@@ -350,7 +350,7 @@ func listCoreItemView(item listCoreItem, index int, isHighlighted, isSelected bo
 		bg = cfg.ColorSelected
 	}
 
-	if item.IsSubheading {
+	if item.isSubheading {
 		return listCoreSubheadingView(item, cfg)
 	}
 
@@ -377,7 +377,7 @@ func listCoreItemView(item listCoreItem, index int, isHighlighted, isSelected bo
 			}),
 			Text(TextCfg{
 				Text:      item.Detail,
-				TextStyle: cfg.DetailStyle,
+				TextStyle: cfg.detailStyle,
 				Mode:      TextModeSingleLine,
 			}),
 		)
@@ -425,7 +425,7 @@ func listCoreSubheadingView(item listCoreItem, cfg listCoreCfg) View {
 		Content: []View{
 			Text(TextCfg{
 				Text:      item.Label,
-				TextStyle: cfg.SubheadingStyle,
+				TextStyle: cfg.subheadingStyle,
 			}),
 			Row(ContainerCfg{
 				Padding: NoPadding,
@@ -435,7 +435,7 @@ func listCoreSubheadingView(item listCoreItem, cfg listCoreCfg) View {
 						Width:  1,
 						Height: 1,
 						Sizing: FillFit,
-						Color:  cfg.SubheadingStyle.Color,
+						Color:  cfg.subheadingStyle.Color,
 					}),
 				},
 			}),

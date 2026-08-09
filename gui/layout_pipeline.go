@@ -61,7 +61,7 @@ func layoutAmend(layout *Layout, w *Window) {
 // SAFETY: mutates w.viewState.mousePosX/Y to compensate for child
 // rotation. Called from layoutArrange, which runs under w.mu.
 func layoutHover(layout *Layout, w *Window) bool {
-	if w.MouseIsLocked() {
+	if w.mouseIsLocked() {
 		return false
 	}
 	// Apply inverse rotation for children of rotated containers.
@@ -106,7 +106,7 @@ func layoutHover(layout *Layout, w *Window) bool {
 // shape whose hover state transitioned inside→outside this frame. shape.ID
 // must be non-empty; shapes with an empty ID are silently skipped.
 func layoutMouseLeave(layout *Layout, w *Window) {
-	if w.MouseIsLocked() {
+	if w.mouseIsLocked() {
 		return
 	}
 	savedX, savedY := w.viewState.mousePosX, w.viewState.mousePosY
@@ -198,13 +198,13 @@ type rtfLayoutEntry struct {
 	Layout glyph.Layout
 }
 
-func layoutWrapRTF(shape *Shape, tc *ShapeTextConfig, w *Window) {
-	if tc.RTFRuns == nil {
+func layoutWrapRTF(shape *Shape, tc *shapeTextConfig, w *Window) {
+	if tc.rTFRuns == nil {
 		return
 	}
 	if tc.wrapCacheValid &&
 		f32AreClose(tc.wrapCacheWidth, shape.Width) &&
-		tc.RTFLayout != nil {
+		tc.rTFLayout != nil {
 		shape.Height = tc.wrapCacheHeight
 		return
 	}
@@ -214,12 +214,12 @@ func layoutWrapRTF(shape *Shape, tc *ShapeTextConfig, w *Window) {
 	// cache state mixed in so layout invalidates when an inline
 	// math fetch transitions Loading→Ready (different glyph
 	// runs: raw LaTeX text vs InlineObject placeholder).
-	contentKey := rtfRunsKey(tc.RTFRuns)
-	styleKey := rtfStyleKey(tc.RTFBaseStyle)
-	mathKey := rtfMathStateKey(tc.RTFRuns, w.viewState.diagramCache)
+	contentKey := rtfRunsKey(tc.rTFRuns)
+	styleKey := rtfStyleKey(tc.rTFBaseStyle)
+	mathKey := rtfMathStateKey(tc.rTFRuns, w.viewState.diagramCache)
 	cacheKey := contentKey ^ styleKey ^ mathKey ^
 		uint64(math.Float32bits(shape.Width)) ^
-		(uint64(math.Float32bits(tc.RTFLineSpacing)) << 1)
+		(uint64(math.Float32bits(tc.rTFLineSpacing)) << 1)
 	vs := &w.viewState
 
 	// Invalidate on theme change.
@@ -232,13 +232,13 @@ func layoutWrapRTF(shape *Shape, tc *ShapeTextConfig, w *Window) {
 	// Check cross-frame cache.
 	if vs.rtfLayoutCache != nil {
 		if entry, ok := vs.rtfLayoutCache.Get(cacheKey); ok {
-			tc.RTFLayout = &entry.Layout
+			tc.rTFLayout = &entry.Layout
 			shape.Height = entry.Layout.Height
 			tc.wrapCacheWidth = shape.Width
 			tc.wrapCacheHeight = entry.Layout.Height
 			tc.wrapCacheValid = true
-			if tc.RTFFlatText == "" {
-				tc.RTFFlatText = rtfFlatTextFromRuns(tc.RTFRuns)
+			if tc.rTFFlatText == "" {
+				tc.rTFFlatText = rtfFlatTextFromRuns(tc.rTFRuns)
 			}
 			return
 		}
@@ -255,17 +255,17 @@ func layoutWrapRTF(shape *Shape, tc *ShapeTextConfig, w *Window) {
 		vgRT = *tc.rtfGlyphRT
 	} else {
 		var mh []int64
-		vgRT, mh = tc.RTFRuns.toGlyphRichTextWithMath(
+		vgRT, mh = tc.rTFRuns.toGlyphRichTextWithMath(
 			w.viewState.diagramCache)
 		tc.rtfMathHashes = mh
 	}
 	cfg := glyph.TextConfig{
-		Style: tc.RTFBaseStyle,
+		Style: tc.rTFBaseStyle,
 		Block: glyph.BlockStyle{
 			Wrap:        glyph.WrapWord,
 			Width:       shape.Width,
-			Indent:      -tc.HangingIndent,
-			LineSpacing: tc.RTFLineSpacing,
+			Indent:      -tc.hangingIndent,
+			LineSpacing: tc.rTFLineSpacing,
 		},
 	}
 	l, err := tm.LayoutRichText(vgRT, cfg)
@@ -273,13 +273,13 @@ func layoutWrapRTF(shape *Shape, tc *ShapeTextConfig, w *Window) {
 		return
 	}
 	rtfSuppressInlineObjectGlyphs(&l)
-	tc.RTFLayout = &l
+	tc.rTFLayout = &l
 	shape.Height = l.Height
 	tc.wrapCacheWidth = shape.Width
 	tc.wrapCacheHeight = l.Height
 	tc.wrapCacheValid = true
-	if tc.RTFFlatText == "" {
-		tc.RTFFlatText = rtfFlatTextFromRuns(tc.RTFRuns)
+	if tc.rTFFlatText == "" {
+		tc.rTFFlatText = rtfFlatTextFromRuns(tc.rTFRuns)
 	}
 
 	// Store in cross-frame cache.
@@ -296,7 +296,7 @@ func layoutWrapRTF(shape *Shape, tc *ShapeTextConfig, w *Window) {
 // Mirrors the initial estimate in view_text.go:GenerateLayout.
 func layoutPlainText(
 	shape *Shape,
-	tc *ShapeTextConfig,
+	tc *shapeTextConfig,
 	style TextStyle,
 	w *Window,
 ) {
@@ -323,7 +323,7 @@ func layoutPlainText(
 	}
 	shape.Height = l.Height
 	if tc.TextMode == TextModeMultiline &&
-		shape.Sizing.Width != SizingFixed && l.Width > 0 {
+		shape.Sizing.Width != sizingFixed && l.Width > 0 {
 		shape.Width = l.Width
 	}
 }

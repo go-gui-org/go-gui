@@ -44,8 +44,8 @@ func GradientDir(g *GradientDef, w, h float32) (dx, dy float32) {
 	if g == nil {
 		return 0, -1 // default: top
 	}
-	if g.HasAngle {
-		return angleToDirection(g.Angle)
+	if g.hasAngle {
+		return angleToDirection(g.angle)
 	}
 	var cssDeg float32
 	switch g.Direction {

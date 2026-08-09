@@ -49,13 +49,13 @@ func dataGridBuildPagerRow(pctx dataGridPagerContext) gg.View {
 
 func dataGridPagerContent(pctx dataGridPagerContext) []gg.View {
 	cfg := pctx.cfg
-	onPageChange := cfg.OnPageChange
+	onPageChange := cfg.onPageChange
 	isFirst := pctx.pageIndex <= 0
 	isLast := pctx.pageIndex >= pctx.pageCount-1
 	pageText := gg.LocalePageFmt(pctx.pageIndex+1, pctx.pageCount)
 	rowsText := dataGridPagerRowsText(pctx.pageStart, pctx.pageEnd, pctx.totalRows)
 	jumpCtx := dataGridJumpContextFromPager(pctx)
-	jumpEnabled := dataGridJumpEnabledLocal(len(cfg.Rows), cfg.OnSelectionChange, cfg.OnPageChange, cfg.PageSize, pctx.totalRows)
+	jumpEnabled := dataGridJumpEnabledLocal(len(cfg.Rows), cfg.OnSelectionChange, cfg.onPageChange, cfg.pageSize, pctx.totalRows)
 	jumpInputID := gg.ScopeID(cfg.ID, "jump")
 	jumpFocusID := jumpInputID
 	prevArrow, nextArrow := dataGridPagerArrows()
@@ -155,8 +155,8 @@ func dataGridJumpContextFromPager(pctx dataGridPagerContext) dataGridJumpContext
 	return dataGridJumpContext{
 		rows:              cfg.Rows,
 		onSelectionChange: cfg.OnSelectionChange,
-		onPageChange:      cfg.OnPageChange,
-		pageSize:          cfg.PageSize,
+		onPageChange:      cfg.onPageChange,
+		pageSize:          cfg.pageSize,
 		totalRows:         pctx.totalRows,
 		pageIndex:         pctx.pageIndex,
 		viewportH:         pctx.viewportH,

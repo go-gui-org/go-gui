@@ -17,25 +17,26 @@ var (
 
 // Radius constants.
 const (
-	RadiusNone   float32 = 0
-	RadiusSmall  float32 = 3.5
-	RadiusMedium float32 = 5.5
-	RadiusLarge  float32 = 7.5
+	radiusNone   float32 = 0
+	radiusSmall  float32 = 3.5
+	radiusMedium float32 = 5.5
+	radiusLarge  float32 = 7.5
 )
 
 // Text size constants.
 const (
-	SizeTextMedium float32 = 16
-	SizeTextTiny   float32 = SizeTextMedium - 6
-	SizeTextXSmall float32 = SizeTextMedium - 4
-	SizeTextSmall  float32 = SizeTextMedium - 2
-	SizeTextLarge  float32 = SizeTextMedium + 4
-	SizeTextXLarge float32 = SizeTextMedium + 8
-	SizeBorderDef  float32 = 1.5
+	sizeTextMedium float32 = 16
+	sizeTextTiny   float32 = sizeTextMedium - 6
+	sizeTextXSmall float32 = sizeTextMedium - 4
+	sizeTextSmall  float32 = sizeTextMedium - 2
+	sizeTextLarge  float32 = sizeTextMedium + 4
+	sizeTextXLarge float32 = sizeTextMedium + 8
+	sizeBorderDef  float32 = 1.5
 )
 
 // Spacing constants.
 const (
+	// exportaudit:keep — const name collides with the spacingSmall helper
 	SpacingSmall  float32 = 5
 	SpacingMedium float32 = 10
 	SpacingLarge  float32 = 15
@@ -77,7 +78,7 @@ func mergeTextStyle(s, fallback TextStyle) TextStyle {
 }
 
 // ToGlyphStyle converts a gui TextStyle to a glyph.TextStyle.
-func (ts TextStyle) ToGlyphStyle() glyph.TextStyle {
+func (ts TextStyle) toGlyphStyle() glyph.TextStyle {
 	return glyph.TextStyle{
 		FontName:      ts.Family,
 		Color:         glyph.Color{R: ts.Color.R, G: ts.Color.G, B: ts.Color.B, A: ts.Color.A},
@@ -95,7 +96,7 @@ func (ts TextStyle) ToGlyphStyle() glyph.TextStyle {
 }
 
 // HasTextTransform reports whether the style applies a non-identity transform.
-func (ts TextStyle) HasTextTransform() bool {
+func (ts TextStyle) hasTextTransform() bool {
 	if ts.AffineTransform != nil {
 		return !affineTransformIsIdentity(*ts.AffineTransform)
 	}
@@ -104,7 +105,7 @@ func (ts TextStyle) HasTextTransform() bool {
 
 // EffectiveTextTransform returns the explicit affine transform when present,
 // otherwise a rotation-derived transform, otherwise the identity transform.
-func (ts TextStyle) EffectiveTextTransform() glyph.AffineTransform {
+func (ts TextStyle) effectiveTextTransform() glyph.AffineTransform {
 	if ts.AffineTransform != nil {
 		return *ts.AffineTransform
 	}
@@ -121,7 +122,7 @@ func affineTransformIsIdentity(t glyph.AffineTransform) bool {
 }
 
 // ButtonStyle defines button visual properties.
-type ButtonStyle struct {
+type buttonStyle struct {
 	Shadow           *BoxShadow
 	Gradient         *GradientDef
 	Padding          Padding
@@ -131,13 +132,13 @@ type ButtonStyle struct {
 	Color            Color
 	ColorHover       Color
 	ColorFocus       Color
-	ColorClick       Color
+	colorClick       Color
 	ColorBorder      Color
 	ColorBorderFocus Color
 }
 
 // ContainerStyle defines container visual properties.
-type ContainerStyle struct {
+type containerStyle struct {
 	Shadow         *BoxShadow
 	Gradient       *GradientDef
 	BorderGradient *GradientDef
@@ -151,6 +152,7 @@ type ContainerStyle struct {
 }
 
 // RectangleStyle defines rectangle visual properties.
+// exportaudit:keep — reachable from an exported signature
 type RectangleStyle struct {
 	Shadow         *BoxShadow
 	Gradient       *GradientDef
@@ -167,53 +169,48 @@ var (
 	DefaultTextStyle = TextStyle{
 		Family: defaultFontFamily,
 		Color:  colorTextDark,
-		Size:   SizeTextMedium,
+		Size:   sizeTextMedium,
 	}
 
-	DefaultButtonStyle = ButtonStyle{
+	defaultButtonStyle = buttonStyle{
 		Color:            colorInteriorDark,
 		ColorHover:       colorHoverDark,
 		ColorFocus:       colorActiveDark,
-		ColorClick:       colorActiveDark,
+		colorClick:       colorActiveDark,
 		ColorBorder:      colorBorderDark,
 		ColorBorderFocus: colorSelectDark,
-		Padding:          PaddingButton,
-		SizeBorder:       SizeBorderDef,
-		Radius:           RadiusMedium,
+		Padding:          paddingButton,
+		SizeBorder:       sizeBorderDef,
+		Radius:           radiusMedium,
 	}
 
-	DefaultContainerStyle = ContainerStyle{
+	defaultContainerStyle = containerStyle{
 		Color:       ColorTransparent,
 		ColorBorder: ColorTransparent,
-		Padding:     PaddingMedium,
-		Radius:      RadiusMedium,
+		Padding:     paddingMedium,
+		Radius:      radiusMedium,
 		Spacing:     SpacingMedium,
-		SizeBorder:  SizeBorderDef,
-	}
-
-	DefaultRectangleStyle = RectangleStyle{
-		Color:       ColorTransparent,
-		ColorBorder: colorBorderDark,
-		Radius:      RadiusMedium,
-		SizeBorder:  SizeBorderDef,
+		SizeBorder:  sizeBorderDef,
 	}
 
 	DefaultDataGridStyle DataGridStyle
 )
 
 // DataGridStyle defines data grid visual properties.
+// exportaudit:keep — reachable from an exported signature
 type DataGridStyle struct {
-	TextStyle         TextStyle
-	TextStyleHeader   TextStyle
-	TextStyleFilter   TextStyle
-	PaddingCell       Padding
-	PaddingHeader     Padding
-	PaddingFilter     Padding
-	SizeBorder        float32
-	Radius            float32
-	ColorBackground   Color
-	ColorHeader       Color
-	ColorHeaderHover  Color
+	TextStyle        TextStyle
+	TextStyleHeader  TextStyle
+	TextStyleFilter  TextStyle
+	PaddingCell      Padding
+	PaddingHeader    Padding
+	PaddingFilter    Padding
+	SizeBorder       float32
+	Radius           float32
+	ColorBackground  Color
+	ColorHeader      Color
+	ColorHeaderHover Color
+	// exportaudit:keep — reachable from an exported signature
 	ColorFilter       Color
 	ColorQuickFilter  Color
 	ColorRowHover     Color
@@ -225,19 +222,20 @@ type DataGridStyle struct {
 }
 
 // InspectorStyle defines the look and feel of the GUI inspector.
+// exportaudit:keep — reachable from an exported signature
 type InspectorStyle struct {
 	ColorPanel     Color
-	ColorTextHelp  Color
-	ColorTextProp  Color
-	ColorWireframe Color
-	ColorPadding   Color
+	colorTextHelp  Color
+	colorTextProp  Color
+	colorWireframe Color
+	colorPadding   Color
 }
 
 // DefaultInspectorStyle provides the default inspector color palette.
-var DefaultInspectorStyle = InspectorStyle{
+var defaultInspectorStyle = InspectorStyle{
 	ColorPanel:     RGBA(64, 64, 64, 245),
-	ColorTextHelp:  RGBA(225, 225, 225, 130),
-	ColorTextProp:  RGBA(220, 160, 60, 255),
-	ColorWireframe: RGBA(0, 255, 255, 200),
-	ColorPadding:   RGBA(0, 200, 0, 150),
+	colorTextHelp:  RGBA(225, 225, 225, 130),
+	colorTextProp:  RGBA(220, 160, 60, 255),
+	colorWireframe: RGBA(0, 255, 255, 200),
+	colorPadding:   RGBA(0, 200, 0, 150),
 }

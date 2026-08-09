@@ -18,7 +18,7 @@ import (
 // has no animation-name, no matching @keyframes, or every property
 // timeline lacked enough keyframes.
 func compileCSSAnimations(spec cssAnimSpec, pathID uint32,
-	transformOrigin string, b bbox, computed ComputedStyle,
+	transformOrigin string, b bbox, computed computedStyle,
 	state *parseState) int {
 	if spec.Name == "" || spec.DurationSec <= 0 {
 		return 0
@@ -50,7 +50,7 @@ func compileCSSAnimations(spec cssAnimSpec, pathID uint32,
 // endpoints (CSS spec: implicit 0% / 100% stops inherit the
 // element's static value). "" means no usable static — caller
 // declines to pad that side.
-func staticValueFor(prop string, c ComputedStyle) string {
+func staticValueFor(prop string, c computedStyle) string {
 	switch prop {
 	case "stroke-dashoffset":
 		return strconv.FormatFloat(float64(c.StrokeDashOffset), 'f', -1, 32)
@@ -61,12 +61,12 @@ func staticValueFor(prop string, c ComputedStyle) string {
 	case "stroke-opacity":
 		return strconv.FormatFloat(float64(c.StrokeOpacity), 'f', -1, 32)
 	case "fill":
-		if c.FillSet {
+		if c.fillSet {
 			return svgColorToString(c.Fill)
 		}
 	case "stroke":
-		if c.StrokeSet {
-			return svgColorToString(c.Stroke)
+		if c.strokeSet {
+			return svgColorToString(c.stroke)
 		}
 	}
 	return ""
@@ -85,7 +85,7 @@ func svgColorToString(c gui.SvgColor) string {
 // 1 when emitted.
 func compileScalarTimeline(def *css.KeyframesDef, prop string,
 	kind gui.SvgAnimKind, spec cssAnimSpec, pathID uint32,
-	computed ComputedStyle, state *parseState) int {
+	computed computedStyle, state *parseState) int {
 	offsets, raw := gatherStopValuesPadded(def, prop, computed)
 	if offsets == nil {
 		return 0
@@ -191,7 +191,7 @@ func transformIdentityFor(fns []cssTxFunc) string {
 // Without this, partial keyframes (e.g. only `to { ... }`) compile
 // to nothing.
 func gatherStopValuesPadded(def *css.KeyframesDef, prop string,
-	computed ComputedStyle) ([]float32, []string) {
+	computed computedStyle) ([]float32, []string) {
 	var (
 		offsets []float32
 		values  []string
@@ -236,7 +236,7 @@ func lookupDecl(decls []css.Decl, name string) (string, bool) {
 // fill or stroke channel. Returns 1 when emitted.
 func compileColorTimeline(def *css.KeyframesDef, prop string,
 	target gui.SvgAnimTarget, spec cssAnimSpec, pathID uint32,
-	computed ComputedStyle, state *parseState) int {
+	computed computedStyle, state *parseState) int {
 	offsets, raw := gatherStopValuesPadded(def, prop, computed)
 	if offsets == nil {
 		return 0
@@ -267,7 +267,7 @@ func compileColorTimeline(def *css.KeyframesDef, prop string,
 // sub-channel. Returns 1 when emitted.
 func compileOpacityTimeline(def *css.KeyframesDef, prop string,
 	target gui.SvgAnimTarget, spec cssAnimSpec, pathID uint32,
-	computed ComputedStyle, state *parseState) int {
+	computed computedStyle, state *parseState) int {
 	offsets, raw := gatherStopValuesPadded(def, prop, computed)
 	if offsets == nil {
 		return 0

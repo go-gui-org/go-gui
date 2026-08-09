@@ -10,7 +10,7 @@ func TestFloatAutoFlipVertical(t *testing.T) {
 	parent := Layout{
 		Shape: &Shape{X: 100, Y: 550, Width: 100, Height: 30},
 		Children: []Layout{{Shape: &Shape{
-			Float: true, FloatAutoFlip: true,
+			Float: true, floatAutoFlip: true,
 			Width: 80, Height: 100,
 			FloatAnchor: FloatBottomCenter,
 			FloatTieOff: FloatTopCenter,
@@ -33,10 +33,10 @@ func TestFloatAutoFlipHorizontal(t *testing.T) {
 	parent := Layout{
 		Shape: &Shape{X: 750, Y: 200, Width: 40, Height: 30},
 		Children: []Layout{{Shape: &Shape{
-			Float: true, FloatAutoFlip: true,
+			Float: true, floatAutoFlip: true,
 			Width: 100, Height: 50,
 			FloatAnchor: FloatMiddleRight,
-			FloatTieOff: FloatMiddleLeft,
+			FloatTieOff: floatMiddleLeft,
 		}}},
 	}
 	parent.Children[0].Parent = &parent
@@ -56,7 +56,7 @@ func TestFloatAutoFlipNoChange(t *testing.T) {
 	parent := Layout{
 		Shape: &Shape{X: 350, Y: 250, Width: 100, Height: 30},
 		Children: []Layout{{Shape: &Shape{
-			Float: true, FloatAutoFlip: true,
+			Float: true, floatAutoFlip: true,
 			Width: 80, Height: 40,
 			FloatAnchor: FloatBottomCenter,
 			FloatTieOff: FloatTopCenter,
@@ -136,7 +136,7 @@ func TestFloatAutoFlipClamp(t *testing.T) {
 	parent := Layout{
 		Shape: &Shape{X: 50, Y: 100, Width: 40, Height: 30},
 		Children: []Layout{{Shape: &Shape{
-			Float: true, FloatAutoFlip: true,
+			Float: true, floatAutoFlip: true,
 			Width: 80, Height: 200,
 			FloatAnchor: FloatBottomCenter,
 			FloatTieOff: FloatTopCenter,

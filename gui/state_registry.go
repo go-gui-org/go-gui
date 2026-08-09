@@ -10,7 +10,7 @@ package gui
 // flushCommands on the main goroutine, before FrameFn acquires
 // w.mu). The animation loop goroutine only enqueues OnValue
 // callbacks; it never calls StateMap directly.
-type StateRegistry struct {
+type stateRegistry struct {
 	maps map[string]any
 }
 
@@ -147,25 +147,25 @@ func requireFocusID(widget string, focusDisabled bool, id string) {
 // RequireScrollID panics if a Scrollable widget has an empty ID.
 // Scroll identity and offset state are keyed by Cfg.ID, so a
 // scrollable widget must supply one.
-func RequireScrollID(widget string, scrollable bool, id string) {
+func requireScrollID(widget string, scrollable bool, id string) {
 	if scrollable && id == "" {
 		panic("gui: " + widget + " with Scrollable:true requires a non-empty Cfg.ID")
 	}
 }
 
 // Clear drops all registry references.
-func (r *StateRegistry) Clear() {
+func (r *stateRegistry) Clear() {
 	clear(r.maps)
 }
 
 // ClearNamespace drops all entries in a single namespace.
-func (r *StateRegistry) ClearNamespace(ns string) {
+func (r *stateRegistry) clearNamespace(ns string) {
 	delete(r.maps, ns)
 }
 
 // entryCount returns the number of entries in the BoundedMap
 // for the given namespace, or 0 if not found.
-func (r *StateRegistry) entryCount(ns string) int {
+func (r *stateRegistry) entryCount(ns string) int {
 	type lenner interface{ Len() int }
 	if l, ok := r.maps[ns].(lenner); ok {
 		return l.Len()

@@ -21,7 +21,7 @@ func TestRenderSvgNoParser(t *testing.T) {
 
 	hasRect := false
 	for _, r := range w.renderers {
-		if r.Kind == RenderRect && r.Color == Magenta {
+		if r.Kind == RenderRect && r.Color == magenta {
 			hasRect = true
 		}
 	}
@@ -81,7 +81,7 @@ func TestRenderSvgWithParser(t *testing.T) {
 
 func TestEmitSvgPathRendererTint(t *testing.T) {
 	w := &Window{}
-	path := CachedSvgPath{
+	path := cachedSvgPath{
 		Triangles: []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
 		Color:     Color{0, 0, 0, 255, true},
 	}
@@ -101,7 +101,7 @@ func TestEmitSvgPathRendererTint(t *testing.T) {
 
 func TestEmitSvgPathRendererVertexColors(t *testing.T) {
 	w := &Window{}
-	path := CachedSvgPath{
+	path := cachedSvgPath{
 		Triangles: []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
 		Color:     Color{0, 0, 0, 255, true},
 		VertexColors: []Color{
@@ -124,7 +124,7 @@ func TestEmitSvgPathRendererVertexColors(t *testing.T) {
 
 func TestEmitSvgPathRendererAnimatedVertexAlphaNoCopy(t *testing.T) {
 	w := &Window{}
-	path := CachedSvgPath{
+	path := cachedSvgPath{
 		Triangles: []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
 		Color:     Color{0, 0, 0, 255, true},
 		VertexColors: []Color{
@@ -156,7 +156,7 @@ func TestEmitSvgPathRendererAnimatedVertexAlphaNoCopy(t *testing.T) {
 
 func TestEmitCachedSvgTextDraw(t *testing.T) {
 	w := &Window{}
-	draw := CachedSvgTextDraw{
+	draw := cachedSvgTextDraw{
 		Text: "hello",
 		TextStyle: TextStyle{
 			Family: "sans",
@@ -193,7 +193,7 @@ func TestEmitCachedSvgTextDraw(t *testing.T) {
 
 func TestEmitCachedSvgTextDrawWithStyle(t *testing.T) {
 	w := &Window{}
-	draw := CachedSvgTextDraw{
+	draw := cachedSvgTextDraw{
 		Text: "styled",
 		TextStyle: TextStyle{
 			Family:        "serif",
@@ -228,17 +228,17 @@ func TestEmitCachedSvgTextDrawWithStyle(t *testing.T) {
 
 func TestEmitCachedSvgTextPathDraw(t *testing.T) {
 	w := &Window{}
-	draw := CachedSvgTextPathDraw{
+	draw := cachedSvgTextPathDraw{
 		Text: "path text",
 		TextStyle: TextStyle{
 			Family: "sans",
 			Size:   12,
 			Color:  Color{10, 20, 30, 255, true},
 		},
-		Path: TextPathData{
+		Path: textPathData{
 			Polyline: []float32{0, 0, 10, 0},
 			Table:    []float32{0, 10},
-			TotalLen: 10,
+			totalLen: 10,
 		},
 	}
 	emitCachedSvgTextPathDraw(&draw, 7, 9, w)
@@ -250,14 +250,14 @@ func TestEmitCachedSvgTextPathDraw(t *testing.T) {
 	if r.Kind != RenderTextPath {
 		t.Fatalf("expected RenderTextPath, got %d", r.Kind)
 	}
-	if r.TextStylePtr == nil || r.TextPath == nil {
+	if r.TextStylePtr == nil || r.textPath == nil {
 		t.Fatal("expected text path pointers")
 	}
 	if r.TextStylePtr.Family != "sans" {
 		t.Fatalf("unexpected family: %q", r.TextStylePtr.Family)
 	}
-	if r.TextPath.TotalLen != 10 {
-		t.Fatalf("unexpected total len: %f", r.TextPath.TotalLen)
+	if r.textPath.totalLen != 10 {
+		t.Fatalf("unexpected total len: %f", r.textPath.totalLen)
 	}
 }
 
@@ -307,7 +307,7 @@ func TestEmitErrorPlaceholder(t *testing.T) {
 	if w.renderers[0].Kind != RenderRect {
 		t.Fatal("expected RenderRect")
 	}
-	if w.renderers[0].Color != Magenta {
+	if w.renderers[0].Color != magenta {
 		t.Fatal("expected Magenta fill")
 	}
 	if w.renderers[1].Kind != RenderStrokeRect {
@@ -773,7 +773,7 @@ func TestComputeSvgAnimations_SandwichLastActivationWins(t *testing.T) {
 // this; verify NaN opacity → alpha 0.
 func TestEmitSvgPathRenderer_OpacityNaNClampedToZero(t *testing.T) {
 	w := &Window{}
-	path := CachedSvgPath{
+	path := cachedSvgPath{
 		Triangles: []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
 		Color:     Color{10, 20, 30, 200, true},
 		PathID:    1,
@@ -801,7 +801,7 @@ func TestEmitSvgPathRenderer_OpacityNaNClampedToZero(t *testing.T) {
 // FillOpacity vs StrokeOpacity based on path.IsStroke.
 func TestSvgRender_FillOpacityAnimDoesNotDimStroke(t *testing.T) {
 	w := &Window{}
-	strokePath := CachedSvgPath{
+	strokePath := cachedSvgPath{
 		Triangles: []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
 		Color:     Color{0, 0, 0, 255, true},
 		PathID:    1,
@@ -1141,7 +1141,7 @@ func TestEmitSvgPathRenderer_NonUniformStretchNeutralisesScale(t *testing.T) {
 	// Non-uniform stretch (SvgAlignNone): Scale must be 1 so the
 	// backend applies only ScaleX/ScaleY from HasXform.
 	w := &Window{}
-	path := CachedSvgPath{
+	path := cachedSvgPath{
 		Triangles: []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
 		Color:     Color{255, 255, 255, 255, true},
 	}
@@ -1170,7 +1170,7 @@ func TestEmitSvgPathRenderer_NonUniformCompoundsWithBaseXform(t *testing.T) {
 	// Non-uniform stretch composes multiplicatively with the
 	// path's base transform scales.
 	w := &Window{}
-	path := CachedSvgPath{
+	path := cachedSvgPath{
 		Triangles:    []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
 		Color:        Color{255, 255, 255, 255, true},
 		HasBaseXform: true,
@@ -1203,7 +1203,7 @@ func TestEmitSvgPathRenderer_NonUniformNoOpWhenUniform(t *testing.T) {
 	// nsScaleX=0, nsScaleY=0 → nonUniform=false. Uniform path
 	// should behave as before (Scale unchanged, no spurious xform).
 	w := &Window{}
-	path := CachedSvgPath{
+	path := cachedSvgPath{
 		Triangles: []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
 		Color:     Color{255, 255, 255, 255, true},
 	}
@@ -1225,7 +1225,7 @@ func TestEmitSvgPathRenderer_NonUniformSkipsWhenScaleEquals(t *testing.T) {
 	// nsScaleX=3, nsScaleY=3, uniform=3 → effectively uniform.
 	// nonUniform should be false.
 	w := &Window{}
-	path := CachedSvgPath{
+	path := cachedSvgPath{
 		Triangles: []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
 		Color:     Color{255, 255, 255, 255, true},
 	}

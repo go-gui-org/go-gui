@@ -6,32 +6,32 @@ import (
 	gg "github.com/go-gui-org/go-gui/gui"
 )
 
-func testColumns() []GridOrmColumnSpec {
-	return []GridOrmColumnSpec{
-		{ID: "name", DBField: "name", QuickFilter: true,
+func testColumns() []gridOrmColumnSpec {
+	return []gridOrmColumnSpec{
+		{ID: "name", dBField: "name", QuickFilter: true,
 			Filterable: true, Sortable: true,
-			CaseInsensitive: true},
-		{ID: "email", DBField: "email", QuickFilter: true,
+			caseInsensitive: true},
+		{ID: "email", dBField: "email", QuickFilter: true,
 			Filterable: true, Sortable: true,
-			CaseInsensitive: true},
-		{ID: "status", DBField: "status", QuickFilter: false,
+			caseInsensitive: true},
+		{ID: "status", dBField: "status", QuickFilter: false,
 			Filterable: true, Sortable: true,
-			CaseInsensitive: false,
-			AllowedOps:      []string{"equals"}},
+			caseInsensitive: false,
+			allowedOps:      []string{"equals"}},
 	}
 }
 
 func testOrmSource(t *testing.T) *GridOrmDataSource {
 	t.Helper()
-	src, err := NewGridOrmDataSource(GridOrmDataSource{
+	src, err := newGridOrmDataSource(GridOrmDataSource{
 		Columns:      testColumns(),
 		DefaultLimit: 50,
-		FetchFn: func(
+		fetchFn: func(
 			_ GridOrmQuerySpec,
-			_ *gg.GridAbortSignal) (GridOrmPage, error) {
-			return GridOrmPage{
+			_ *gg.GridAbortSignal) (gridOrmPage, error) {
+			return gridOrmPage{
 				Rows:    []GridRow{{ID: "1"}},
-				HasMore: false,
+				hasMore: false,
 			}, nil
 		},
 	})
@@ -42,12 +42,12 @@ func testOrmSource(t *testing.T) *GridOrmDataSource {
 }
 
 func TestNewGridOrmDataSourceValidation(t *testing.T) {
-	_, err := NewGridOrmDataSource(GridOrmDataSource{
-		Columns: []GridOrmColumnSpec{
-			{ID: "", DBField: "x"},
+	_, err := newGridOrmDataSource(GridOrmDataSource{
+		Columns: []gridOrmColumnSpec{
+			{ID: "", dBField: "x"},
 		},
-		FetchFn: func(GridOrmQuerySpec, *gg.GridAbortSignal) (GridOrmPage, error) {
-			return GridOrmPage{}, nil
+		fetchFn: func(GridOrmQuerySpec, *gg.GridAbortSignal) (gridOrmPage, error) {
+			return gridOrmPage{}, nil
 		},
 	})
 	if err == nil {
@@ -56,13 +56,13 @@ func TestNewGridOrmDataSourceValidation(t *testing.T) {
 }
 
 func TestNewGridOrmDataSourceDuplicateColumn(t *testing.T) {
-	_, err := NewGridOrmDataSource(GridOrmDataSource{
-		Columns: []GridOrmColumnSpec{
-			{ID: "x", DBField: "x", Filterable: true, Sortable: true},
-			{ID: "x", DBField: "y", Filterable: true, Sortable: true},
+	_, err := newGridOrmDataSource(GridOrmDataSource{
+		Columns: []gridOrmColumnSpec{
+			{ID: "x", dBField: "x", Filterable: true, Sortable: true},
+			{ID: "x", dBField: "y", Filterable: true, Sortable: true},
 		},
-		FetchFn: func(GridOrmQuerySpec, *gg.GridAbortSignal) (GridOrmPage, error) {
-			return GridOrmPage{}, nil
+		fetchFn: func(GridOrmQuerySpec, *gg.GridAbortSignal) (gridOrmPage, error) {
+			return gridOrmPage{}, nil
 		},
 	})
 	if err == nil {
@@ -71,12 +71,12 @@ func TestNewGridOrmDataSourceDuplicateColumn(t *testing.T) {
 }
 
 func TestNewGridOrmDataSourceInvalidDBField(t *testing.T) {
-	_, err := NewGridOrmDataSource(GridOrmDataSource{
-		Columns: []GridOrmColumnSpec{
-			{ID: "x", DBField: "1bad"},
+	_, err := newGridOrmDataSource(GridOrmDataSource{
+		Columns: []gridOrmColumnSpec{
+			{ID: "x", dBField: "1bad"},
 		},
-		FetchFn: func(GridOrmQuerySpec, *gg.GridAbortSignal) (GridOrmPage, error) {
-			return GridOrmPage{}, nil
+		fetchFn: func(GridOrmQuerySpec, *gg.GridAbortSignal) (gridOrmPage, error) {
+			return gridOrmPage{}, nil
 		},
 	})
 	if err == nil {
@@ -85,7 +85,7 @@ func TestNewGridOrmDataSourceInvalidDBField(t *testing.T) {
 }
 
 func TestNewGridOrmDataSourceNoFetchFn(t *testing.T) {
-	_, err := NewGridOrmDataSource(GridOrmDataSource{
+	_, err := newGridOrmDataSource(GridOrmDataSource{
 		Columns: testColumns(),
 	})
 	if err == nil {
@@ -96,10 +96,10 @@ func TestNewGridOrmDataSourceNoFetchFn(t *testing.T) {
 func TestGridOrmCapabilities(t *testing.T) {
 	src := testOrmSource(t)
 	caps := src.Capabilities()
-	if !caps.SupportsCursorPagination {
+	if !caps.supportsCursorPagination {
 		t.Fatal("cursor should be supported")
 	}
-	if caps.SupportsCreate {
+	if caps.supportsCreate {
 		t.Fatal("create should not be supported")
 	}
 }
@@ -107,7 +107,7 @@ func TestGridOrmCapabilities(t *testing.T) {
 func TestGridOrmFetchData(t *testing.T) {
 	src := testOrmSource(t)
 	res, err := src.FetchData(GridDataRequest{
-		Page: GridCursorPageReq{Limit: 10},
+		page: gridCursorPageReq{limit: 10},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -120,10 +120,10 @@ func TestGridOrmFetchData(t *testing.T) {
 func TestGridOrmValidateQuery(t *testing.T) {
 	q, err := gridOrmValidateQuery(GridQueryState{
 		Sorts: []GridSort{
-			{ColID: "name", Dir: GridSortAsc},
+			{ColID: "name", Dir: gridSortAsc},
 			{ColID: "unknown"},
 		},
-		Filters: []GridFilter{
+		Filters: []gridFilter{
 			{ColID: "name", Op: "contains", Value: "test"},
 			{ColID: "status", Op: "equals", Value: "a"},
 			{ColID: "status", Op: "contains", Value: "b"},
@@ -157,24 +157,24 @@ func TestGridOrmValidateQueryQuickFilterTooLong(t *testing.T) {
 
 func TestGridOrmBuildSQL(t *testing.T) {
 	src := testOrmSource(t)
-	b, err := src.BuildSQL(GridOrmQuerySpec{
+	b, err := src.buildSQL(GridOrmQuerySpec{
 		QuickFilter: "test",
 		Sorts: []GridSort{
 			{ColID: "name", Dir: GridSortDesc},
 		},
-		Filters: []GridFilter{
+		Filters: []gridFilter{
 			{ColID: "status", Op: "equals", Value: "active"},
 		},
-		Limit:  25,
+		limit:  25,
 		Offset: 0,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if b.WhereSQL == "" {
+	if b.whereSQL == "" {
 		t.Fatal("WhereSQL should not be empty")
 	}
-	if b.OrderSQL == "" {
+	if b.orderSQL == "" {
 		t.Fatal("OrderSQL should not be empty")
 	}
 	if len(b.Params) == 0 {
@@ -231,7 +231,7 @@ func TestGridOrmValidDBField(t *testing.T) {
 func TestGridOrmMutateMissingFn(t *testing.T) {
 	src := testOrmSource(t)
 	_, err := src.MutateData(GridMutationRequest{
-		Kind: GridMutationCreate,
+		Kind: gridMutationCreate,
 		Rows: []GridRow{{ID: "x"}},
 	})
 	if err == nil {
@@ -240,12 +240,12 @@ func TestGridOrmMutateMissingFn(t *testing.T) {
 }
 
 func TestGridOrmMutateUnknownColumn(t *testing.T) {
-	src, err := NewGridOrmDataSource(GridOrmDataSource{
+	src, err := newGridOrmDataSource(GridOrmDataSource{
 		Columns: testColumns(),
-		FetchFn: func(GridOrmQuerySpec, *gg.GridAbortSignal) (GridOrmPage, error) {
-			return GridOrmPage{}, nil
+		fetchFn: func(GridOrmQuerySpec, *gg.GridAbortSignal) (gridOrmPage, error) {
+			return gridOrmPage{}, nil
 		},
-		CreateFn: func(rows []GridRow, _ *gg.GridAbortSignal) ([]GridRow, error) {
+		createFn: func(rows []GridRow, _ *gg.GridAbortSignal) ([]GridRow, error) {
 			return rows, nil
 		},
 	})
@@ -253,7 +253,7 @@ func TestGridOrmMutateUnknownColumn(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = src.MutateData(GridMutationRequest{
-		Kind: GridMutationCreate,
+		Kind: gridMutationCreate,
 		Rows: []GridRow{
 			{ID: "x", Cells: map[string]string{"bogus": "v"}},
 		},
@@ -264,12 +264,12 @@ func TestGridOrmMutateUnknownColumn(t *testing.T) {
 }
 
 func TestGridOrmDeleteMany(t *testing.T) {
-	src, err := NewGridOrmDataSource(GridOrmDataSource{
+	src, err := newGridOrmDataSource(GridOrmDataSource{
 		Columns: testColumns(),
-		FetchFn: func(GridOrmQuerySpec, *gg.GridAbortSignal) (GridOrmPage, error) {
-			return GridOrmPage{}, nil
+		fetchFn: func(GridOrmQuerySpec, *gg.GridAbortSignal) (gridOrmPage, error) {
+			return gridOrmPage{}, nil
 		},
-		DeleteManyFn: func(ids []string, _ *gg.GridAbortSignal) ([]string, error) {
+		deleteManyFn: func(ids []string, _ *gg.GridAbortSignal) ([]string, error) {
 			return ids, nil
 		},
 	})
@@ -277,24 +277,24 @@ func TestGridOrmDeleteMany(t *testing.T) {
 		t.Fatal(err)
 	}
 	res, err := src.MutateData(GridMutationRequest{
-		Kind:   GridMutationDelete,
-		RowIDs: []string{"a", "b"},
+		Kind:   gridMutationDelete,
+		rowIDs: []string{"a", "b"},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(res.DeletedIDs) != 2 {
-		t.Fatalf("deleted = %d, want 2", len(res.DeletedIDs))
+	if len(res.deletedIDs) != 2 {
+		t.Fatalf("deleted = %d, want 2", len(res.deletedIDs))
 	}
 }
 
 func TestGridOrmDeleteSingle(t *testing.T) {
-	src, err := NewGridOrmDataSource(GridOrmDataSource{
+	src, err := newGridOrmDataSource(GridOrmDataSource{
 		Columns: testColumns(),
-		FetchFn: func(GridOrmQuerySpec, *gg.GridAbortSignal) (GridOrmPage, error) {
-			return GridOrmPage{}, nil
+		fetchFn: func(GridOrmQuerySpec, *gg.GridAbortSignal) (gridOrmPage, error) {
+			return gridOrmPage{}, nil
 		},
-		DeleteFn: func(id string, _ *gg.GridAbortSignal) (string, error) {
+		deleteFn: func(id string, _ *gg.GridAbortSignal) (string, error) {
 			return id, nil
 		},
 	})
@@ -302,20 +302,20 @@ func TestGridOrmDeleteSingle(t *testing.T) {
 		t.Fatal(err)
 	}
 	res, err := src.MutateData(GridMutationRequest{
-		Kind:   GridMutationDelete,
-		RowIDs: []string{"a"},
+		Kind:   gridMutationDelete,
+		rowIDs: []string{"a"},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(res.DeletedIDs) != 1 {
-		t.Fatalf("deleted = %d, want 1", len(res.DeletedIDs))
+	if len(res.deletedIDs) != 1 {
+		t.Fatalf("deleted = %d, want 1", len(res.deletedIDs))
 	}
 }
 
 func TestGridOrmFilterDedup(t *testing.T) {
 	q, err := gridOrmValidateQuery(GridQueryState{
-		Filters: []GridFilter{
+		Filters: []gridFilter{
 			{ColID: "name", Op: "contains", Value: "x"},
 			{ColID: "name", Op: "contains", Value: "x"},
 		},
@@ -329,35 +329,35 @@ func TestGridOrmFilterDedup(t *testing.T) {
 }
 
 func TestGridOrmBuildSQLQuickFilterDeterministicOrder(t *testing.T) {
-	colMap := map[string]GridOrmColumnSpec{
+	colMap := map[string]gridOrmColumnSpec{
 		"z_col": {
 			ID:              "z_col",
-			DBField:         "z_field",
+			dBField:         "z_field",
 			QuickFilter:     true,
 			Filterable:      true,
 			Sortable:        true,
-			CaseInsensitive: false,
+			caseInsensitive: false,
 		},
 		"a_col": {
 			ID:              "a_col",
-			DBField:         "a_field",
+			dBField:         "a_field",
 			QuickFilter:     true,
 			Filterable:      true,
 			Sortable:        true,
-			CaseInsensitive: false,
+			caseInsensitive: false,
 		},
 	}
 	out, err := gridOrmBuildSQL(GridOrmQuerySpec{
 		QuickFilter: "x",
-		Limit:       10,
+		limit:       10,
 		Offset:      0,
 	}, colMap)
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := "(a_field like ? escape '\\' or z_field like ? escape '\\')"
-	if out.WhereSQL != want {
-		t.Fatalf("WhereSQL = %q, want %q", out.WhereSQL, want)
+	if out.whereSQL != want {
+		t.Fatalf("WhereSQL = %q, want %q", out.whereSQL, want)
 	}
 	if len(out.Params) < 2 || out.Params[0] != "%x%" || out.Params[1] != "%x%" {
 		t.Fatalf("unexpected quick-filter param ordering: %#v", out.Params)
@@ -366,12 +366,12 @@ func TestGridOrmBuildSQLQuickFilterDeterministicOrder(t *testing.T) {
 
 func TestGridOrmDeleteManyDeterministicIDs(t *testing.T) {
 	var gotIDs []string
-	src, err := NewGridOrmDataSource(GridOrmDataSource{
+	src, err := newGridOrmDataSource(GridOrmDataSource{
 		Columns: testColumns(),
-		FetchFn: func(GridOrmQuerySpec, *gg.GridAbortSignal) (GridOrmPage, error) {
-			return GridOrmPage{}, nil
+		fetchFn: func(GridOrmQuerySpec, *gg.GridAbortSignal) (gridOrmPage, error) {
+			return gridOrmPage{}, nil
 		},
-		DeleteManyFn: func(ids []string, _ *gg.GridAbortSignal) ([]string, error) {
+		deleteManyFn: func(ids []string, _ *gg.GridAbortSignal) ([]string, error) {
 			gotIDs = append([]string(nil), ids...)
 			return ids, nil
 		},
@@ -380,8 +380,8 @@ func TestGridOrmDeleteManyDeterministicIDs(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = src.MutateData(GridMutationRequest{
-		Kind:   GridMutationDelete,
-		RowIDs: []string{"c", "a", "b", "a"},
+		Kind:   gridMutationDelete,
+		rowIDs: []string{"c", "a", "b", "a"},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -393,9 +393,9 @@ func TestGridOrmDeleteManyDeterministicIDs(t *testing.T) {
 
 func TestGridOrmBuildSQLClampsLimitOffset(t *testing.T) {
 	src := testOrmSource(t)
-	out, err := src.BuildSQL(GridOrmQuerySpec{
+	out, err := src.buildSQL(GridOrmQuerySpec{
 		QuickFilter: "x",
-		Limit:       -5,
+		limit:       -5,
 		Offset:      -10,
 	})
 	if err != nil {

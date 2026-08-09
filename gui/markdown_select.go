@@ -47,23 +47,23 @@ type mdBlockCtx struct {
 // block is covered by the markdown selection and writes TextSelBeg/TextSelEnd.
 func markdownBlockAmendSel(l *Layout, w *Window) {
 	tc := l.Shape.TC
-	if tc == nil || tc.MarkdownID == "" {
+	if tc == nil || tc.markdownID == "" {
 		return
 	}
-	mdID := tc.MarkdownID
+	mdID := tc.markdownID
 	st := StateReadOr(w, nsMdSel, mdID, mdSelState{})
 	beg, end := u32Sort(st.SelBeg, st.SelEnd)
-	blockStart := tc.MarkdownBlockStart
-	blockEnd := blockStart + tc.MarkdownRuneLen
+	blockStart := tc.markdownBlockStart
+	blockEnd := blockStart + tc.markdownRuneLen
 	if end <= blockStart || beg >= blockEnd {
-		tc.TextSelBeg = 0
-		tc.TextSelEnd = 0
+		tc.textSelBeg = 0
+		tc.textSelEnd = 0
 		return
 	}
 	localBeg := max(beg, blockStart) - blockStart
 	localEnd := min(end, blockEnd) - blockStart
-	tc.TextSelBeg = localBeg
-	tc.TextSelEnd = localEnd
+	tc.textSelBeg = localBeg
+	tc.textSelEnd = localEnd
 }
 
 // markdownContainerAmendLayout is the AmendLayout hook on the markdown Column.
@@ -93,15 +93,15 @@ func markdownContainerAmendLayout(ctx EventCtx) {
 // belonging to the given markdown widget.
 func mdWalkBlocks(l *Layout, mdID string, out *[]mdBlockInfo) {
 	if l.Shape != nil && l.Shape.TC != nil &&
-		l.Shape.TC.MarkdownID == mdID &&
+		l.Shape.TC.markdownID == mdID &&
 		l.Shape.hasRtfLayout() {
 		tc := l.Shape.TC
 		*out = append(*out, mdBlockInfo{
 			H:         l.Shape.Height,
-			StartRune: tc.MarkdownBlockStart,
-			RuneLen:   tc.MarkdownRuneLen,
-			Layout:    *tc.RTFLayout, // shallow copy — safe for Items slice from cache
-			FlatText:  tc.RTFFlatText,
+			StartRune: tc.markdownBlockStart,
+			RuneLen:   tc.markdownRuneLen,
+			Layout:    *tc.rTFLayout, // shallow copy — safe for Items slice from cache
+			FlatText:  tc.rTFFlatText,
 			ShapeX:    l.Shape.X,
 			ShapeY:    l.Shape.Y,
 		})
@@ -123,18 +123,18 @@ func markdownBlockOnClick(ctx EventCtx) {
 	if shape.TC == nil || !shape.hasRtfLayout() {
 		return
 	}
-	mdID := shape.TC.MarkdownID
+	mdID := shape.TC.markdownID
 	if mdID == "" {
 		return
 	}
 	ctx.Window.SetFocus(mdID)
 
 	// Compute abs rune position within the markdown flat text.
-	gl := shape.TC.RTFLayout
-	flatText := shape.TC.RTFFlatText
+	gl := shape.TC.rTFLayout
+	flatText := shape.TC.rTFFlatText
 	byteIdx := gl.GetClosestOffset(ctx.Event.MouseX, ctx.Event.MouseY)
 	localRune := byteToRuneIndex(flatText, byteIdx)
-	absRune := uint32(localRune) + shape.TC.MarkdownBlockStart
+	absRune := uint32(localRune) + shape.TC.markdownBlockStart
 
 	imap := StateMap[string, mdSelState](ctx.Window, nsMdSel, capMany)
 	// Default mdSelState{}: zero value means no prior selection.
@@ -147,8 +147,8 @@ func markdownBlockOnClick(ctx EventCtx) {
 
 	if doubleClick {
 		bBeg, bEnd := gl.GetWordAtIndex(byteIdx)
-		wb := uint32(byteToRuneIndex(flatText, bBeg)) + shape.TC.MarkdownBlockStart
-		we := uint32(byteToRuneIndex(flatText, bEnd)) + shape.TC.MarkdownBlockStart
+		wb := uint32(byteToRuneIndex(flatText, bBeg)) + shape.TC.markdownBlockStart
+		we := uint32(byteToRuneIndex(flatText, bEnd)) + shape.TC.markdownBlockStart
 		st.SelBeg = wb
 		st.SelEnd = we
 	} else {
@@ -165,7 +165,7 @@ func markdownBlockOnClick(ctx EventCtx) {
 	isDouble := doubleClick
 	dragGl := *gl
 	dragFlatText := flatText
-	dragBlockStart := shape.TC.MarkdownBlockStart
+	dragBlockStart := shape.TC.markdownBlockStart
 
 	ctx.Window.MouseLock(MouseLockCfg{
 		MouseMove: func(ctx EventCtx) {

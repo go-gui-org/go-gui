@@ -4,32 +4,32 @@ const inputMaxInsertRunes = 65_536
 
 // InputState manages cursor, selection, and undo/redo for
 // an input field. Stored in StateRegistry keyed by ID.
-type InputState struct {
-	Undo           *BoundedStack[InputMemento]
-	Redo           *BoundedStack[InputMemento]
+type inputState struct {
+	Undo           *BoundedStack[inputMemento]
+	Redo           *BoundedStack[inputMemento]
 	CursorPos      int
 	LastClickTime  int64
-	SelectBeg      uint32
-	SelectEnd      uint32
-	CursorOffset   float32
-	CursorTrailing bool // prefer end-of-previous-line at wrap boundaries
+	selectBeg      uint32
+	selectEnd      uint32
+	cursorOffset   float32
+	cursorTrailing bool // prefer end-of-previous-line at wrap boundaries
 }
 
 // InputMemento stores a snapshot for undo/redo.
-type InputMemento struct {
+type inputMemento struct {
 	Text         string
 	CursorPos    int
-	SelectBeg    uint32
-	SelectEnd    uint32
-	CursorOffset float32
+	selectBeg    uint32
+	selectEnd    uint32
+	cursorOffset float32
 }
 
 // InputMode selects single-line or multiline behavior.
-type InputMode uint8
+type inputMode uint8
 
 // InputMode constants.
 const (
-	InputSingleLine InputMode = iota
+	inputSingleLine inputMode = iota
 	InputMultiline
 )
 
@@ -38,45 +38,45 @@ type InputCommitReason uint8
 
 // InputCommitReason constants.
 const (
-	CommitEnter InputCommitReason = iota
-	CommitBlur
+	commitEnter InputCommitReason = iota
+	commitBlur
 )
 
 const undoMaxSize = 50
 
-func inputStateOrDefault(focusID string, w *Window) InputState {
-	m := StateMap[string, InputState](w, nsInput, capMany)
+func inputStateOrDefault(focusID string, w *Window) inputState {
+	m := StateMap[string, inputState](w, nsInput, capMany)
 	if v, ok := m.Get(focusID); ok {
 		return v
 	}
-	return InputState{}
+	return inputState{}
 }
 
-func inputMementoFromState(text string, is InputState) InputMemento {
-	return InputMemento{
+func inputMementoFromState(text string, is inputState) inputMemento {
+	return inputMemento{
 		Text:         text,
 		CursorPos:    is.CursorPos,
-		SelectBeg:    is.SelectBeg,
-		SelectEnd:    is.SelectEnd,
-		CursorOffset: is.CursorOffset,
+		selectBeg:    is.selectBeg,
+		selectEnd:    is.selectEnd,
+		cursorOffset: is.cursorOffset,
 	}
 }
 
-func inputPushUndo(is InputState, text string) *BoundedStack[InputMemento] {
+func inputPushUndo(is inputState, text string) *BoundedStack[inputMemento] {
 	stack := is.Undo
 	if stack == nil {
-		stack = NewBoundedStack[InputMemento](undoMaxSize)
+		stack = newBoundedStack[inputMemento](undoMaxSize)
 	}
 	stack.Push(inputMementoFromState(text, is))
 	return stack
 }
 
-func inputStateFromMemento(m InputMemento, undo, redo *BoundedStack[InputMemento]) InputState {
-	return InputState{
+func inputStateFromMemento(m inputMemento, undo, redo *BoundedStack[inputMemento]) inputState {
+	return inputState{
 		CursorPos:    m.CursorPos,
-		SelectBeg:    m.SelectBeg,
-		SelectEnd:    m.SelectEnd,
-		CursorOffset: m.CursorOffset,
+		selectBeg:    m.selectBeg,
+		selectEnd:    m.selectEnd,
+		cursorOffset: m.cursorOffset,
 		Undo:         undo,
 		Redo:         redo,
 	}
@@ -98,8 +98,8 @@ func inputProposedText(text, insertText string, focusID string, w *Window) strin
 	if cursorPos < 0 {
 		return text + string(insertRunes)
 	}
-	if is.SelectBeg != is.SelectEnd {
-		beg, end := u32Sort(is.SelectBeg, is.SelectEnd)
+	if is.selectBeg != is.selectEnd {
+		beg, end := u32Sort(is.selectBeg, is.selectEnd)
 		if int(beg) >= len(runes) || int(end) > len(runes) {
 			return text
 		}
@@ -133,8 +133,8 @@ func inputInsert(text string, insertText string, focusID string, w *Window) stri
 	if cursorPos < 0 {
 		runes = append([]rune(text), insertRunes...)
 		cursorPos = len(runes)
-	} else if is.SelectBeg != is.SelectEnd {
-		beg, end := u32Sort(is.SelectBeg, is.SelectEnd)
+	} else if is.selectBeg != is.selectEnd {
+		beg, end := u32Sort(is.selectBeg, is.selectEnd)
 		if int(beg) >= len(runes) || int(end) > len(runes) {
 			return text
 		}
@@ -155,10 +155,10 @@ func inputInsert(text string, insertText string, focusID string, w *Window) stri
 
 	nextText := string(runes)
 	undo := inputPushUndo(is, text)
-	imap := StateMap[string, InputState](w, nsInput, capMany)
-	imap.Set(focusID, InputState{
+	imap := StateMap[string, inputState](w, nsInput, capMany)
+	imap.Set(focusID, inputState{
 		CursorPos:    cursorPos,
-		CursorOffset: -1,
+		cursorOffset: -1,
 		Undo:         undo,
 	})
 	return nextText
@@ -170,10 +170,10 @@ func inputInsert(text string, insertText string, focusID string, w *Window) stri
 func inputSetTextAndCursorAtEnd(oldText, newText string, focusID string, w *Window) {
 	is := inputStateOrDefault(focusID, w)
 	undo := inputPushUndo(is, oldText)
-	imap := StateMap[string, InputState](w, nsInput, capMany)
-	imap.Set(focusID, InputState{
+	imap := StateMap[string, inputState](w, nsInput, capMany)
+	imap.Set(focusID, inputState{
 		CursorPos:    utf8RuneCount(newText),
-		CursorOffset: -1,
+		cursorOffset: -1,
 		Undo:         undo,
 	})
 }
@@ -188,8 +188,8 @@ func inputDelete(text string, focusID string, forwardDelete bool, w *Window) (st
 		cursorPos = len(runes)
 	}
 
-	if is.SelectBeg != is.SelectEnd {
-		beg, end := u32Sort(is.SelectBeg, is.SelectEnd)
+	if is.selectBeg != is.selectEnd {
+		beg, end := u32Sort(is.selectBeg, is.selectEnd)
 		if int(beg) >= len(runes) || int(end) > len(runes) {
 			return text, false
 		}
@@ -223,10 +223,10 @@ func inputDelete(text string, focusID string, forwardDelete bool, w *Window) (st
 
 	nextText := string(runes)
 	undo := inputPushUndo(is, text)
-	imap := StateMap[string, InputState](w, nsInput, capMany)
-	imap.Set(focusID, InputState{
+	imap := StateMap[string, inputState](w, nsInput, capMany)
+	imap.Set(focusID, inputState{
 		CursorPos:    cursorPos,
-		CursorOffset: -1,
+		cursorOffset: -1,
 		Undo:         undo,
 	})
 	return nextText, true
@@ -238,11 +238,11 @@ func inputCopy(text string, focusID string, isPassword bool, w *Window) (string,
 	if isPassword {
 		return "", false
 	}
-	is := StateReadOr(w, nsInput, focusID, InputState{})
-	if is.SelectBeg == is.SelectEnd {
+	is := StateReadOr(w, nsInput, focusID, inputState{})
+	if is.selectBeg == is.selectEnd {
 		return "", false
 	}
-	beg, end := u32Sort(is.SelectBeg, is.SelectEnd)
+	beg, end := u32Sort(is.selectBeg, is.selectEnd)
 	runeCount := utf8RuneCount(text)
 	if int(beg) > runeCount || int(end) > runeCount || beg >= end {
 		return "", false
@@ -267,10 +267,10 @@ func inputCut(text string, focusID string, isPassword bool, w *Window) (string, 
 
 // inputUndo reverts to previous state. Returns restored text.
 func inputUndo(text string, focusID string, w *Window) string {
-	imap := StateMap[string, InputState](w, nsInput, capMany)
+	imap := StateMap[string, inputState](w, nsInput, capMany)
 	// Default InputState{}: zero value means no undo state exists.
-	is := imap.GetOr(focusID, InputState{})
-	if is.Undo == nil || is.Undo.IsEmpty() {
+	is := imap.GetOr(focusID, inputState{})
+	if is.Undo == nil || is.Undo.isEmpty() {
 		return text
 	}
 	memento, ok := is.Undo.Pop()
@@ -279,7 +279,7 @@ func inputUndo(text string, focusID string, w *Window) string {
 	}
 	redo := is.Redo
 	if redo == nil {
-		redo = NewBoundedStack[InputMemento](undoMaxSize)
+		redo = newBoundedStack[inputMemento](undoMaxSize)
 	}
 	redo.Push(inputMementoFromState(text, is))
 	imap.Set(focusID, inputStateFromMemento(memento, is.Undo, redo))
@@ -288,10 +288,10 @@ func inputUndo(text string, focusID string, w *Window) string {
 
 // inputRedo reapplies a previously undone operation.
 func inputRedo(text string, focusID string, w *Window) string {
-	imap := StateMap[string, InputState](w, nsInput, capMany)
+	imap := StateMap[string, inputState](w, nsInput, capMany)
 	// Default InputState{}: zero value means no redo state exists.
-	is := imap.GetOr(focusID, InputState{})
-	if is.Redo == nil || is.Redo.IsEmpty() {
+	is := imap.GetOr(focusID, inputState{})
+	if is.Redo == nil || is.Redo.isEmpty() {
 		return text
 	}
 	memento, ok := is.Redo.Pop()
@@ -300,7 +300,7 @@ func inputRedo(text string, focusID string, w *Window) string {
 	}
 	undo := is.Undo
 	if undo == nil {
-		undo = NewBoundedStack[InputMemento](undoMaxSize)
+		undo = newBoundedStack[inputMemento](undoMaxSize)
 	}
 	undo.Push(inputMementoFromState(text, is))
 	imap.Set(focusID, inputStateFromMemento(memento, undo, is.Redo))
@@ -310,11 +310,11 @@ func inputRedo(text string, focusID string, w *Window) string {
 // inputSelectAll selects all text.
 func inputSelectAll(text string, focusID string, w *Window) {
 	runeCount := utf8RuneCount(text)
-	imap := StateMap[string, InputState](w, nsInput, capMany)
+	imap := StateMap[string, inputState](w, nsInput, capMany)
 	// Default InputState{}: zero value seeds initial select-all state.
-	is := imap.GetOr(focusID, InputState{})
-	is.SelectBeg = 0
-	is.SelectEnd = uint32(runeCount)
+	is := imap.GetOr(focusID, inputState{})
+	is.selectBeg = 0
+	is.selectEnd = uint32(runeCount)
 	is.CursorPos = runeCount
 	imap.Set(focusID, is)
 }
@@ -322,28 +322,28 @@ func inputSelectAll(text string, focusID string, w *Window) {
 // updateCursorAndSelection moves cursor to newPos, extending
 // or resetting selection based on shift modifier.
 func updateCursorAndSelection(
-	imap *BoundedMap[string, InputState],
+	imap *BoundedMap[string, inputState],
 	focusID string,
-	is InputState,
+	is inputState,
 	newPos int,
 	isShift bool,
 ) {
 	if isShift {
-		if is.SelectBeg == is.SelectEnd {
+		if is.selectBeg == is.selectEnd {
 			// Start new selection from current cursor.
-			is.SelectBeg = uint32(is.CursorPos)
-			is.SelectEnd = uint32(newPos)
+			is.selectBeg = uint32(is.CursorPos)
+			is.selectEnd = uint32(newPos)
 		} else {
 			// Extend: move the end that matches current cursor.
-			if uint32(is.CursorPos) == is.SelectEnd {
-				is.SelectEnd = uint32(newPos)
+			if uint32(is.CursorPos) == is.selectEnd {
+				is.selectEnd = uint32(newPos)
 			} else {
-				is.SelectBeg = uint32(newPos)
+				is.selectBeg = uint32(newPos)
 			}
 		}
 	} else {
-		is.SelectBeg = 0
-		is.SelectEnd = 0
+		is.selectBeg = 0
+		is.selectEnd = 0
 	}
 	is.CursorPos = newPos
 	imap.Set(focusID, is)

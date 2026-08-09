@@ -70,9 +70,9 @@ type DatePickerCfg struct {
 	AllowedDates    []time.Time
 	Padding         Opt[Padding]
 	SizeBorder      Opt[float32]
-	CellSpacing     Opt[float32]
+	cellSpacing     Opt[float32]
 	Radius          Opt[float32]
-	RadiusBorder    Opt[float32]
+	radiusBorder    Opt[float32]
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled bool
@@ -108,9 +108,9 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 
 	// One resolved identity for every key below; see (*Window).EffID.
 	cfg.ID = w.EffID(cfg.ID)
-	dn := &DefaultDatePickerStyle
-	cellSpacing := cfg.CellSpacing.Get(dn.CellSpacing)
-	radiusBorder := cfg.RadiusBorder.Get(dn.RadiusBorder)
+	dn := &defaultDatePickerStyle
+	cellSpacing := cfg.cellSpacing.Get(dn.cellSpacing)
+	radiusBorder := cfg.radiusBorder.Get(dn.radiusBorder)
 
 	// Get/init state.
 	state := datePickerGetState(w, cfg)
@@ -286,7 +286,7 @@ func datePickerControls(
 				Colors:   ColorSet{Border: ColorTransparent},
 				OnClick:  onPrev,
 				Content: []View{Text(TextCfg{
-					Text:      IconArrowLeft,
+					Text:      iconArrowLeft,
 					TextStyle: CurrentTheme().Icon3,
 				})},
 			}),
@@ -297,7 +297,7 @@ func datePickerControls(
 				Colors:   ColorSet{Border: ColorTransparent},
 				OnClick:  onNext,
 				Content: []View{Text(TextCfg{
-					Text:      IconArrowRight,
+					Text:      iconArrowRight,
 					TextStyle: CurrentTheme().Icon3,
 				})},
 			}),
@@ -424,9 +424,9 @@ func datePickerCellSize(cfg *DatePickerCfg) float32 {
 }
 
 func applyDatePickerDefaults(cfg *DatePickerCfg) {
-	d := &DefaultDatePickerStyle
+	d := &defaultDatePickerStyle
 	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
-		d.Color, d.ColorHover, d.ColorClick,
+		d.Color, d.ColorHover, d.colorClick,
 		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
 	))
 	if !cfg.ColorSelect.IsSet() {
@@ -438,8 +438,8 @@ func applyDatePickerDefaults(cfg *DatePickerCfg) {
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.TextStyle
 	}
-	if !cfg.CellSpacing.IsSet() {
-		cfg.CellSpacing = Some(d.CellSpacing)
+	if !cfg.cellSpacing.IsSet() {
+		cfg.cellSpacing = Some(d.cellSpacing)
 	}
 	if !cfg.Radius.IsSet() {
 		cfg.Radius = Some(d.Radius)

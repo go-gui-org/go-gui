@@ -27,14 +27,14 @@ var mdSubscriptFeatures = &glyph.FontFeatures{
 // markdownToBlocks parses source and returns styled blocks.
 func markdownToBlocks(
 	source string, style MarkdownStyle,
-) []MarkdownBlock {
-	blocks := markdown.Parse(source, style.HardLineBreaks)
+) []markdownBlock {
+	blocks := markdown.Parse(source, style.hardLineBreaks)
 	return styleMdBlocks(blocks, style)
 }
 
 // MarkdownToRichText parses markdown and returns a single
 // RichText (exported for tests).
-func MarkdownToRichText(
+func markdownToRichText(
 	source string, style MarkdownStyle,
 ) RichText {
 	blocks := markdownToBlocks(source, style)
@@ -57,8 +57,8 @@ func MarkdownToRichText(
 
 func styleMdBlocks(
 	blocks []markdown.Block, style MarkdownStyle,
-) []MarkdownBlock {
-	result := make([]MarkdownBlock, 0, len(blocks))
+) []markdownBlock {
+	result := make([]markdownBlock, 0, len(blocks))
 	for _, b := range blocks {
 		result = append(result, styleMdBlock(b, style))
 	}
@@ -67,7 +67,7 @@ func styleMdBlocks(
 
 func styleMdBlock(
 	block markdown.Block, style MarkdownStyle,
-) MarkdownBlock {
+) markdownBlock {
 	var baseStyle TextStyle
 	switch {
 	case block.HeaderLevel > 0:
@@ -78,7 +78,7 @@ func styleMdBlock(
 		baseStyle = style.Text
 	}
 
-	mb := MarkdownBlock{
+	mb := markdownBlock{
 		HeaderLevel:     block.HeaderLevel,
 		IsCode:          block.IsCode,
 		IsHR:            block.IsHR,
@@ -101,13 +101,13 @@ func styleMdBlock(
 		CodeLanguage:    block.CodeLanguage,
 		MathLatex:       block.MathLatex,
 		AnchorSlug:      block.AnchorSlug,
-		BaseStyle:       baseStyle,
+		baseStyle:       baseStyle,
 		Content:         styleMdRuns(block.Runs, baseStyle, style),
 	}
 
 	// Code blocks use a smaller font than inline code.
 	if block.IsCode {
-		sz := style.CodeBlockText.Size
+		sz := style.codeBlockText.Size
 		for i := range mb.Content.Runs {
 			mb.Content.Runs[i].Style.Size = sz
 		}
@@ -136,17 +136,17 @@ func mdHeaderStyle(
 ) TextStyle {
 	switch level {
 	case 1:
-		return style.H1
+		return style.h1
 	case 2:
 		return style.H2
 	case 3:
-		return style.H3
+		return style.h3
 	case 4:
-		return style.H4
+		return style.h4
 	case 5:
-		return style.H5
+		return style.h5
 	default:
-		return style.H6
+		return style.h6
 	}
 }
 
@@ -176,7 +176,7 @@ func styleMdRun(
 		s.Strikethrough = true
 	}
 	if run.Highlight {
-		s.BgColor = style.HighlightBG
+		s.BgColor = style.highlightBG
 	}
 	if run.Superscript {
 		s.Size *= 1.2
@@ -190,7 +190,7 @@ func styleMdRun(
 		s.Underline = true
 	}
 	if run.Link != "" {
-		s.Color = style.LinkColor
+		s.Color = style.linkColor
 		s.Underline = true
 	}
 
@@ -231,7 +231,7 @@ func mdFormatToStyle(
 		s.BgColor = base.BgColor
 		return s
 	case markdown.FormatBoldItalic:
-		s := style.BoldItalic
+		s := style.boldItalic
 		s.Size = base.Size
 		s.BgColor = base.BgColor
 		return s
@@ -268,7 +268,7 @@ func highlightCodeBlock(
 		return nil
 	}
 	base := existing[0].Style
-	base.Color = style.CodeOperatorColor
+	base.Color = style.codeOperatorColor
 	out := make([]RichTextRun, len(toks))
 	for i, tk := range toks {
 		s := base
@@ -281,23 +281,23 @@ func highlightCodeBlock(
 func colorForKind(k highlight.Kind, style *MarkdownStyle) Color {
 	switch k {
 	case highlight.KindKeyword:
-		return style.CodeKeywordColor
+		return style.codeKeywordColor
 	case highlight.KindString:
-		return style.CodeStringColor
+		return style.codeStringColor
 	case highlight.KindNumber:
-		return style.CodeNumberColor
+		return style.codeNumberColor
 	case highlight.KindComment:
-		return style.CodeCommentColor
+		return style.codeCommentColor
 	case highlight.KindOperator, highlight.KindPunctuation:
-		return style.CodeOperatorColor
+		return style.codeOperatorColor
 	case highlight.KindType:
-		return style.CodeTypeColor
+		return style.codeTypeColor
 	case highlight.KindFunction:
-		return style.CodeFunctionColor
+		return style.codeFunctionColor
 	case highlight.KindBuiltin:
-		return style.CodeBuiltinColor
+		return style.codeBuiltinColor
 	}
-	return style.CodeOperatorColor
+	return style.codeOperatorColor
 }
 
 func mdCodeTokenStyle(
@@ -306,26 +306,26 @@ func mdCodeTokenStyle(
 	s := style.Code
 	switch kind {
 	case markdown.TokenKeyword:
-		s.Color = style.CodeKeywordColor
+		s.Color = style.codeKeywordColor
 	case markdown.TokenString:
-		s.Color = style.CodeStringColor
+		s.Color = style.codeStringColor
 	case markdown.TokenNumber:
-		s.Color = style.CodeNumberColor
+		s.Color = style.codeNumberColor
 	case markdown.TokenComment:
-		s.Color = style.CodeCommentColor
+		s.Color = style.codeCommentColor
 	case markdown.TokenOperator:
-		s.Color = style.CodeOperatorColor
+		s.Color = style.codeOperatorColor
 	}
 	return s
 }
 
 func styleMdTable(
 	table markdown.Table, style MarkdownStyle,
-) ParsedTable {
+) parsedTable {
 	headers := make([]RichText, 0, len(table.Headers))
 	for _, h := range table.Headers {
 		headers = append(headers,
-			styleMdRuns(h, style.TableHeadStyle, style))
+			styleMdRuns(h, style.tableHeadStyle, style))
 	}
 
 	rows := make([][]RichText, 0, len(table.Rows))
@@ -333,13 +333,13 @@ func styleMdTable(
 		sr := make([]RichText, table.ColCount)
 		for j, cell := range row {
 			if j < table.ColCount {
-				sr[j] = styleMdRuns(cell, style.TableCellStyle, style)
+				sr[j] = styleMdRuns(cell, style.tableCellStyle, style)
 			}
 		}
 		rows = append(rows, sr)
 	}
 
-	return ParsedTable{
+	return parsedTable{
 		Headers:    headers,
 		Alignments: mdAlignsToHAligns(table.Alignments),
 		Rows:       rows,

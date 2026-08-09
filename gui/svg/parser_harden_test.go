@@ -167,7 +167,7 @@ func TestOverrideScalar_NaNFallsBackToBase(t *testing.T) {
 // in replace mode cannot erase the mapping.
 func TestBuildParsed_PropagatesViewBoxOrigin(t *testing.T) {
 	p := New()
-	vg := &VectorGraphic{
+	vg := &vectorGraphic{
 		Width: 32, Height: 32,
 		ViewBoxX: 10, ViewBoxY: 20,
 		Animations: []gui.SvgAnimation{

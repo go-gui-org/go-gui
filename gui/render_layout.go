@@ -12,7 +12,7 @@ func renderLayout(layout *Layout, bgColor Color, clip drawClip, w *Window) {
 			Kind:        RenderFilterBegin,
 			BlurRadius:  fx.BlurRadius,
 			Layers:      1,
-			ColorMatrix: &fx.ColorFilter.Matrix,
+			ColorMatrix: &fx.ColorFilter.matrix,
 		}, w)
 	}
 
@@ -21,11 +21,11 @@ func renderLayout(layout *Layout, bgColor Color, clip drawClip, w *Window) {
 	shapeClip := clip
 	if layout.Shape.OverDraw {
 		shapeClip = layout.Shape.shapeClip
-		if layout.Shape.ScrollbarOrientation == ScrollbarVertical {
+		if layout.Shape.scrollbarOrientation == scrollbarVertical {
 			shapeClip.Y = clip.Y
 			shapeClip.Height = clip.Height
 		}
-		if layout.Shape.ScrollbarOrientation == ScrollbarHorizontal {
+		if layout.Shape.scrollbarOrientation == scrollbarHorizontal {
 			shapeClip.X = clip.X
 			shapeClip.Width = clip.Width
 		}
@@ -50,7 +50,7 @@ func renderLayout(layout *Layout, bgColor Color, clip drawClip, w *Window) {
 
 	// Emit stencil clip bracket before children.
 	didIncrement := false
-	if layout.Shape.ClipContents {
+	if layout.Shape.clipContents {
 		if w.stencilDepth < 255 {
 			w.stencilDepth++
 			didIncrement = true
@@ -102,7 +102,7 @@ func renderLayout(layout *Layout, bgColor Color, clip drawClip, w *Window) {
 
 	w.clipRadius = savedClipRadius
 
-	if layout.Shape.ClipContents {
+	if layout.Shape.clipContents {
 		// Restore scissor if we pushed one.
 		if !layout.Shape.Clip && !layout.Shape.OverDraw {
 			emitClipCmd(clip, w)

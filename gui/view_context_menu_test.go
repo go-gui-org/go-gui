@@ -170,7 +170,7 @@ func TestContextMenuDefaults(t *testing.T) {
 	cfg := ContextMenuCfg{ID: "cm9"}
 	applyContextMenuDefaults(&cfg)
 
-	d := &DefaultMenubarStyle
+	d := &defaultMenubarStyle
 	if cfg.Color != d.Color {
 		t.Error("Color not defaulted")
 	}
@@ -183,10 +183,10 @@ func TestContextMenuDefaults(t *testing.T) {
 	if cfg.TextStyle != d.TextStyle {
 		t.Error("TextStyle not defaulted")
 	}
-	if cfg.PaddingMenuItem != Some(d.PaddingMenuItem) {
+	if cfg.paddingMenuItem != Some(d.paddingMenuItem) {
 		t.Error("PaddingMenuItem not defaulted")
 	}
-	if cfg.PaddingSubmenu != Some(d.PaddingSubmenu) {
+	if cfg.paddingSubmenu != Some(d.paddingSubmenu) {
 		t.Error("PaddingSubmenu not defaulted")
 	}
 }

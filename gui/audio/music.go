@@ -48,16 +48,16 @@ func HaltMusic() { backend.HaltMusic() }
 func FadeOutMusic(ms int) { backend.FadeOutMusic(ms) }
 
 // PauseMusic pauses music playback.
-func PauseMusic() { backend.PauseMusic() }
+func pauseMusic() { backend.PauseMusic() }
 
 // ResumeMusic resumes paused music.
-func ResumeMusic() { backend.ResumeMusic() }
+func resumeMusic() { backend.ResumeMusic() }
 
 // IsMusicPlaying reports whether music is currently playing.
-func IsMusicPlaying() bool { return backend.IsMusicPlaying() }
+func isMusicPlaying() bool { return backend.IsMusicPlaying() }
 
 // IsMusicPaused reports whether music is currently paused.
-func IsMusicPaused() bool { return backend.IsMusicPaused() }
+func isMusicPaused() bool { return backend.IsMusicPaused() }
 
 // RewindMusic rewinds to the beginning.
-func RewindMusic() { backend.RewindMusic() }
+func rewindMusic() { backend.RewindMusic() }

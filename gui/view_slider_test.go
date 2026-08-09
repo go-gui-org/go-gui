@@ -38,7 +38,7 @@ func TestSliderA11Y(t *testing.T) {
 	if layout.Shape.A11YRole != AccessRoleSlider {
 		t.Errorf("role = %d, want Slider", layout.Shape.A11YRole)
 	}
-	a := layout.Shape.A11Y
+	a := layout.Shape.a11Y
 	if a == nil {
 		t.Fatal("a11y should be set")
 	}
@@ -61,9 +61,9 @@ func TestSliderMinMaxValidation(t *testing.T) {
 	})
 	layout := generateViewLayout(v, &Window{})
 	// Should auto-adjust max to min+1
-	if layout.Shape.A11Y.ValueMax != 51 {
+	if layout.Shape.a11Y.ValueMax != 51 {
 		t.Errorf("adjusted max = %f, want 51",
-			layout.Shape.A11Y.ValueMax)
+			layout.Shape.a11Y.ValueMax)
 	}
 }
 
@@ -114,11 +114,11 @@ func TestSliderVertical(t *testing.T) {
 	v := Slider(SliderCfg{
 		ID:       "rs",
 		Value:    50,
-		Vertical: true,
+		vertical: true,
 		OnChange: func(_ float32, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, &Window{})
-	if layout.Shape.Axis != AxisTopToBottom {
+	if layout.Shape.Axis != axisTopToBottom {
 		t.Error("vertical slider should use top-to-bottom axis")
 	}
 }
@@ -214,7 +214,7 @@ func TestSliderVerticalMouseDedup(t *testing.T) {
 	v := Slider(SliderCfg{
 		ID:       "rs-vd",
 		Value:    50,
-		Vertical: true,
+		vertical: true,
 		OnChange: onChange,
 	})
 	w := &Window{}

@@ -9,7 +9,7 @@ func TestProgressBarDefaultLayout(t *testing.T) {
 	})
 	layout := generateViewLayout(v, &Window{})
 	// Row with fill bar child + text label child
-	if layout.Shape.Axis != AxisLeftToRight {
+	if layout.Shape.Axis != axisLeftToRight {
 		t.Error("default should be horizontal (row)")
 	}
 	if len(layout.Children) < 1 {
@@ -21,10 +21,10 @@ func TestProgressBarVertical(t *testing.T) {
 	v := ProgressBar(ProgressBarCfg{
 		ID:       "pb-test",
 		Percent:  0.5,
-		Vertical: true,
+		vertical: true,
 	})
 	layout := generateViewLayout(v, &Window{})
-	if layout.Shape.Axis != AxisTopToBottom {
+	if layout.Shape.Axis != axisTopToBottom {
 		t.Error("vertical bar should use column axis")
 	}
 }
@@ -64,10 +64,10 @@ func TestProgressBarA11YRole(t *testing.T) {
 	if layout.Shape.A11YRole != AccessRoleProgressBar {
 		t.Errorf("role = %d, want ProgressBar", layout.Shape.A11YRole)
 	}
-	if layout.Shape.A11Y == nil {
+	if layout.Shape.a11Y == nil {
 		t.Fatal("a11y should be set")
 	}
-	if layout.Shape.A11Y.ValueMax != 1 {
+	if layout.Shape.a11Y.ValueMax != 1 {
 		t.Error("value_max should be 1")
 	}
 }
@@ -92,12 +92,12 @@ func TestProgressBarA11YLabel(t *testing.T) {
 		A11YLabel: "upload",
 	})
 	layout := generateViewLayout(v, &Window{})
-	if layout.Shape.A11Y == nil {
+	if layout.Shape.a11Y == nil {
 		t.Fatal("a11y nil")
 	}
-	if layout.Shape.A11Y.Label != "upload" {
+	if layout.Shape.a11Y.Label != "upload" {
 		t.Errorf("label = %q, want %q",
-			layout.Shape.A11Y.Label, "upload")
+			layout.Shape.a11Y.Label, "upload")
 	}
 }
 
@@ -108,12 +108,12 @@ func TestProgressBarA11YDescription(t *testing.T) {
 		A11YDescription: "uploading file",
 	})
 	layout := generateViewLayout(v, &Window{})
-	if layout.Shape.A11Y == nil {
+	if layout.Shape.a11Y == nil {
 		t.Fatal("a11y nil")
 	}
-	if layout.Shape.A11Y.Description != "uploading file" {
+	if layout.Shape.a11Y.Description != "uploading file" {
 		t.Errorf("desc = %q, want %q",
-			layout.Shape.A11Y.Description, "uploading file")
+			layout.Shape.a11Y.Description, "uploading file")
 	}
 }
 
@@ -161,7 +161,7 @@ func TestProgressBarVerticalTextShow(t *testing.T) {
 	v := ProgressBar(ProgressBarCfg{
 		ID:       "pb-test",
 		Percent:  0.5,
-		Vertical: true,
+		vertical: true,
 		TextShow: true,
 	})
 	layout := generateViewLayout(v, &Window{})
@@ -186,7 +186,7 @@ func TestProgressBarThemeTextStyle(t *testing.T) {
 		t.Fatal("text label has no children")
 	}
 	got := *lbl.Children[0].Shape.TC.TextStyle
-	want := guiTheme.ProgressBarStyle.TextStyle
+	want := guiTheme.progressBarStyle.TextStyle
 	if got != want {
 		t.Errorf("textStyle = %v, want %v", got, want)
 	}
@@ -210,7 +210,7 @@ func TestProgressBarTextBackgroundColor(t *testing.T) {
 		ID:             "pb-test",
 		Percent:        0.5,
 		TextShow:       true,
-		TextBackground: bg,
+		textBackground: bg,
 	})
 	layout := generateViewLayout(v, &Window{})
 	if len(layout.Children) < 2 {

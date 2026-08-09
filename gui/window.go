@@ -25,7 +25,7 @@ type TextMeasurer interface {
 
 // FontLister is an optional capability on TextMeasurer backends.
 // Backends that wrap a *glyph.TextSystem opt in; others need no change.
-type FontLister interface {
+type fontLister interface {
 	ListFontFamilies() []string
 }
 
@@ -38,7 +38,7 @@ func ListSystemFonts(w *Window) []string {
 	if w == nil {
 		return nil
 	}
-	if fl, ok := w.textMeasurer.(FontLister); ok {
+	if fl, ok := w.textMeasurer.(fontLister); ok {
 		return fl.ListFontFamilies()
 	}
 	return nil
@@ -298,19 +298,20 @@ type MouseLockCfg struct {
 	// normal propagation, so handled-marking is moot here. Note the
 	// coordinates stay window-absolute, unlike the shape-relative
 	// coords everywhere else.
-	MouseDown func(EventCtx)
+	mouseDown func(EventCtx)
 	MouseMove func(EventCtx)
 	MouseUp   func(EventCtx)
 	CursorPos int
 }
 
 // ViewState holds per-window UI state.
+// exportaudit:keep — collides with the window's viewState state field
 type ViewState struct {
 	gesture gestureState
 
 	mouseLock     MouseLockCfg
-	registry      StateRegistry
-	markdownCache *BoundedMap[int64, []MarkdownBlock]
+	registry      stateRegistry
+	markdownCache *BoundedMap[int64, []markdownBlock]
 	diagramCache  *BoundedDiagramCache
 
 	// RTF layout cache — avoids re-shaping unchanged content.
@@ -384,7 +385,7 @@ func (w *Window) clearViewStateLocked() {
 func (w *Window) ClearDrawCanvasCache() {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	w.viewState.registry.ClearNamespace(nsDrawCanvas)
+	w.viewState.registry.clearNamespace(nsDrawCanvas)
 }
 
 // Lock locks the window's mutex.
@@ -413,7 +414,7 @@ func (w *Window) windowRect() drawClip {
 
 // PointerOverApp returns true if the mouse pointer is within
 // the application window bounds.
-func (w *Window) PointerOverApp(e *Event) bool {
+func (w *Window) pointerOverApp(e *Event) bool {
 	return e.MouseX >= 0 && e.MouseY >= 0 &&
 		e.MouseX <= float32(w.windowWidth) &&
 		e.MouseY <= float32(w.windowHeight)
@@ -422,13 +423,13 @@ func (w *Window) PointerOverApp(e *Event) bool {
 // clearInputSelections zeros SelectBeg/SelectEnd for all
 // input states.
 func (w *Window) clearInputSelections() {
-	imap := StateMapRead[string, InputState](w, nsInput)
+	imap := StateMapRead[string, inputState](w, nsInput)
 	if imap == nil {
 		return
 	}
-	imap.Range(func(key string, v InputState) bool {
-		v.SelectBeg = 0
-		v.SelectEnd = 0
+	imap.Range(func(key string, v inputState) bool {
+		v.selectBeg = 0
+		v.selectEnd = 0
 		imap.Set(key, v)
 		return true
 	})
@@ -440,9 +441,9 @@ func (w *Window) inputCursorOn() bool {
 }
 
 // MouseIsLocked returns true if the mouse is locked (drag).
-func (w *Window) MouseIsLocked() bool {
+func (w *Window) mouseIsLocked() bool {
 	ml := &w.viewState.mouseLock
-	return ml.MouseDown != nil ||
+	return ml.mouseDown != nil ||
 		ml.MouseMove != nil || ml.MouseUp != nil
 }
 
@@ -488,7 +489,7 @@ func (w *Window) SetWakeMainFn(fn func()) {
 // as text layout generation.
 func (w *Window) TextWidth(text string, style TextStyle) float32 {
 	if style.Size == 0 {
-		style.Size = SizeTextMedium
+		style.Size = sizeTextMedium
 	}
 	if w == nil || w.textMeasurer == nil {
 		return float32(utf8RuneCount(text)) * style.Size * 0.6

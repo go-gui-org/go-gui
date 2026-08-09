@@ -3,11 +3,11 @@ package gui
 import "strconv"
 
 // BadgeVariant selects the badge color preset.
-type BadgeVariant uint8
+type badgeVariant uint8
 
 // BadgeVariant values.
 const (
-	BadgeDefault BadgeVariant = iota
+	badgeDefault badgeVariant = iota
 	BadgeInfo
 	BadgeSuccess
 	BadgeWarning
@@ -24,10 +24,10 @@ type BadgeCfg struct {
 	A11YDescription string
 	Max             int // 0 = no cap; shows "max+" when exceeded
 	Padding         Opt[Padding]
-	DotSize         Opt[float32]
+	dotSize         Opt[float32]
 
 	Color   Color
-	Variant BadgeVariant
+	Variant badgeVariant
 	Dot     bool
 }
 
@@ -35,22 +35,22 @@ type BadgeCfg struct {
 // circle; labeled mode renders text inside a rounded row.
 func Badge(cfg BadgeCfg) View {
 	if !cfg.Color.IsSet() {
-		cfg.Color = guiTheme.BadgeStyle.Color
+		cfg.Color = guiTheme.badgeStyle.Color
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(guiTheme.BadgeStyle.Padding)
+		cfg.Padding = Some(guiTheme.badgeStyle.Padding)
 	}
-	style := guiTheme.BadgeStyle
+	style := guiTheme.badgeStyle
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = style.TextStyle
 	}
 	pad := cfg.Padding.Get(style.Padding)
 	radius := (cfg.TextStyle.Size + pad.Top + pad.Bottom) / 2
-	dotSize := cfg.DotSize.Get(style.DotSize)
+	dotSize := cfg.dotSize.Get(style.dotSize)
 	bg := cfg.Color
 	switch cfg.Variant {
 	case BadgeInfo:
-		bg = style.ColorInfo
+		bg = style.colorInfo
 	case BadgeSuccess:
 		bg = style.ColorSuccess
 	case BadgeWarning:

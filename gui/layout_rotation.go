@@ -26,14 +26,14 @@ func layoutRotationSwap(layout *Layout) {
 func reaccumulateAncestors(layout *Layout) {
 	for layout != nil {
 		changed := false
-		if layout.Shape.Sizing.Width == SizingFit {
+		if layout.Shape.Sizing.Width == sizingFit {
 			old := layout.Shape.Width
 			layout.Shape.Width = recomputeFitWidth(layout)
 			if layout.Shape.Width != old {
 				changed = true
 			}
 		}
-		if layout.Shape.Sizing.Height == SizingFit {
+		if layout.Shape.Sizing.Height == sizingFit {
 			old := layout.Shape.Height
 			layout.Shape.Height = recomputeFitHeight(layout)
 			if layout.Shape.Height != old {
@@ -53,7 +53,7 @@ func recomputeFitWidth(layout *Layout) float32 {
 	padding := layout.Shape.paddingWidth()
 	var w float32
 	switch layout.Shape.Axis {
-	case AxisLeftToRight:
+	case axisLeftToRight:
 		sp := layout.spacing()
 		for i := range layout.Children {
 			if layout.Children[i].Shape.OverDraw {
@@ -62,7 +62,7 @@ func recomputeFitWidth(layout *Layout) float32 {
 			w += layout.Children[i].Shape.Width
 		}
 		w += padding + sp
-	case AxisTopToBottom:
+	case axisTopToBottom:
 		for i := range layout.Children {
 			w = f32Max(w, layout.Children[i].Shape.Width+padding)
 		}
@@ -86,7 +86,7 @@ func recomputeFitHeight(layout *Layout) float32 {
 	padding := layout.Shape.paddingHeight()
 	var h float32
 	switch layout.Shape.Axis {
-	case AxisTopToBottom:
+	case axisTopToBottom:
 		sp := layout.spacing()
 		for i := range layout.Children {
 			if layout.Children[i].Shape.OverDraw {
@@ -95,7 +95,7 @@ func recomputeFitHeight(layout *Layout) float32 {
 			h += layout.Children[i].Shape.Height
 		}
 		h += padding + sp
-	case AxisLeftToRight:
+	case axisLeftToRight:
 		for i := range layout.Children {
 			h = f32Max(h, layout.Children[i].Shape.Height+padding)
 		}

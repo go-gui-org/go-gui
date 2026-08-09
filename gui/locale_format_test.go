@@ -16,19 +16,19 @@ func TestLocaleFormatDate(t *testing.T) {
 		format string
 		want   string
 	}{
-		{"short", LocaleEnUS,
+		{"short", localeEnUS,
 			time.Date(2025, 3, 15, 0, 0, 0, 0, time.UTC),
 			"M/D/YYYY", "3/15/2025"},
-		{"long_month", LocaleEnUS,
+		{"long_month", localeEnUS,
 			time.Date(2025, 3, 15, 0, 0, 0, 0, time.UTC),
 			"MMMM D, YYYY", "March 15, 2025"},
-		{"short_month", LocaleEnUS,
+		{"short_month", localeEnUS,
 			time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC),
 			"MMM YYYY", "Dec 2025"},
-		{"german", LocaleDeDE,
+		{"german", localeDeDE,
 			time.Date(2025, 3, 5, 0, 0, 0, 0, time.UTC),
 			"D. MMMM YYYY", "5. M\u00E4rz 2025"},
-		{"datetime", LocaleEnUS,
+		{"datetime", localeEnUS,
 			time.Date(2025, 1, 2, 14, 5, 9, 0, time.UTC),
 			"YYYY-MM-DD HH:mm:ss", "2025-01-02 14:05:09"},
 	}
@@ -46,7 +46,7 @@ func TestLocaleFormatDate(t *testing.T) {
 func TestLocaleFmt(t *testing.T) {
 	saved := ActiveLocale
 	t.Cleanup(func() { ActiveLocale = saved })
-	ActiveLocale = LocaleEnUS
+	ActiveLocale = localeEnUS
 
 	t.Run("rows", func(t *testing.T) {
 		got := LocaleRowsFmt(1, 50, 200)
@@ -127,10 +127,10 @@ func TestLocaleT(t *testing.T) {
 			"greeting": "hello",
 		},
 	}
-	if got := LocaleT("greeting"); got != "hello" {
+	if got := localeT("greeting"); got != "hello" {
 		t.Fatalf("got %q, want hello", got)
 	}
-	if got := LocaleT("missing"); got != "missing" {
+	if got := localeT("missing"); got != "missing" {
 		t.Fatalf("got %q, want missing", got)
 	}
 }

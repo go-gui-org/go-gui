@@ -17,6 +17,7 @@
 package audio
 
 // Backend is the audio subsystem implementation.
+// exportaudit:keep — collides with the backend singleton var
 type Backend interface {
 	Init(cfg Cfg) error
 	Quit()

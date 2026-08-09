@@ -97,13 +97,13 @@ func TestFocusUsesEffectiveID(t *testing.T) {
 		})
 	})
 
-	if err := w.TestFocus("settings:name"); err != nil {
+	if err := w.testFocus("settings:name"); err != nil {
 		t.Fatalf("TestFocus(settings:name) = %v, want nil", err)
 	}
 	if got := w.FocusID(); got != "settings:name" {
 		t.Fatalf("FocusID() = %q, want %q", got, "settings:name")
 	}
-	next, err := w.TestTab(TabForward)
+	next, err := w.testTab(tabForward)
 	if err != nil {
 		t.Fatalf("TestTab = %v, want nil", err)
 	}
@@ -152,7 +152,7 @@ func TestFocusOwnerResolvesToOwnerEffID(t *testing.T) {
 		})
 	})
 
-	txt, ok := root.FindShape(func(l Layout) bool {
+	txt, ok := root.findShape(func(l Layout) bool {
 		return l.Shape != nil && l.Shape.focusOwner != ""
 	})
 	if !ok {
@@ -257,7 +257,7 @@ func TestGenerationScopeMatchesResolvePass(t *testing.T) {
 						Column(ContainerCfg{
 							ID: "inner",
 							Content: []View{
-								ViewFunc(func(w *Window) View {
+								viewFunc(func(w *Window) View {
 									generated = w.EffID("leaf")
 									return Column(ContainerCfg{ID: "leaf"})
 								}),
@@ -297,7 +297,7 @@ func TestGenerationScopeRestoredForSiblings(t *testing.T) {
 					ID:      "first",
 					Content: []View{Column(ContainerCfg{ID: "child"})},
 				}),
-				ViewFunc(func(w *Window) View {
+				viewFunc(func(w *Window) View {
 					sibling = w.EffID("after")
 					return Column(ContainerCfg{ID: "after"})
 				}),

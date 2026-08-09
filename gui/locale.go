@@ -6,17 +6,22 @@ import (
 )
 
 // NumberFormat defines locale-specific number formatting.
-type NumberFormat struct {
+type numberFormat struct {
+	// exportaudit:keep — json-tagged or same-named member
 	GroupSizes []int // default [3]
-	DecimalSep rune  // default '.'
-	GroupSep   rune  // default ','
-	MinusSign  rune  // default '-'
-	PlusSign   rune  // default '+'
+	// exportaudit:keep — shares a name with a json-tagged bundle field
+	DecimalSep rune // default '.'
+	GroupSep   rune // default ','
+	// exportaudit:keep — shares a name with a json-tagged bundle field
+	MinusSign rune // default '-'
+	// exportaudit:keep — shares a name with a json-tagged bundle field
+	PlusSign rune // default '+'
+	// exportaudit:keep — shares a name with a json-tagged bundle field
 }
 
 // numberFormatDefaults returns en-US number format defaults.
-func numberFormatDefaults() NumberFormat {
-	return NumberFormat{
+func numberFormatDefaults() numberFormat {
+	return numberFormat{
 		DecimalSep: '.',
 		GroupSep:   ',',
 		GroupSizes: []int{3},
@@ -26,17 +31,19 @@ func numberFormatDefaults() NumberFormat {
 }
 
 // DateFormat defines locale-specific date formatting.
-type DateFormat struct {
-	ShortDate      string // "M/D/YYYY"
-	LongDate       string // "MMMM D, YYYY"
-	MonthYear      string // "MMMM YYYY"
-	FirstDayOfWeek uint8  // 0=Sunday, 1=Monday
-	Use24H         bool
+type dateFormat struct {
+	ShortDate string // "M/D/YYYY"
+	LongDate  string // "MMMM D, YYYY"
+	MonthYear string // "MMMM YYYY"
+	// exportaudit:keep — shares a name with a json-tagged bundle field
+	FirstDayOfWeek uint8 // 0=Sunday, 1=Monday
+	// exportaudit:keep — shares a name with a json-tagged bundle field
+	Use24H bool
 }
 
 // dateFormatDefaults returns en-US date format defaults.
-func dateFormatDefaults() DateFormat {
-	return DateFormat{
+func dateFormatDefaults() dateFormat {
+	return dateFormat{
 		ShortDate: "M/D/YYYY",
 		LongDate:  "MMMM D, YYYY",
 		MonthYear: "MMMM YYYY",
@@ -44,20 +51,22 @@ func dateFormatDefaults() DateFormat {
 }
 
 // CurrencyFormat defines locale-specific currency formatting.
-type CurrencyFormat struct {
-	Symbol   string               // "$"
-	Code     string               // "USD"
-	Position NumericAffixPosition // AffixPrefix
+type currencyFormat struct {
+	Symbol string // "$"
+	// exportaudit:keep — shares a name with a json-tagged bundle field
+	Code string // "USD"
+	// exportaudit:keep — shares a name with a json-tagged bundle field
+	Position numericAffixPosition // AffixPrefix
 	Spacing  bool
 	Decimals int // 2
 }
 
 // currencyFormatDefaults returns en-US currency defaults.
-func currencyFormatDefaults() CurrencyFormat {
-	return CurrencyFormat{
+func currencyFormatDefaults() currencyFormat {
+	return currencyFormat{
 		Symbol:   "$",
 		Code:     "USD",
-		Position: AffixPrefix,
+		Position: affixPrefix,
 		Decimals: 2,
 	}
 }
@@ -67,23 +76,29 @@ func currencyFormatDefaults() CurrencyFormat {
 type Locale struct {
 
 	// App-level translation keys
+	// exportaudit:keep — shares a name with a json-tagged bundle field
 	Translations map[string]string
 
 	// Month names (0=Jan..11=Dec)
+	// exportaudit:keep — shares a name with a json-tagged bundle field
 	MonthsShort [12]string
-	MonthsFull  [12]string
+	// exportaudit:keep — shares a name with a json-tagged bundle field
+	MonthsFull [12]string
 
 	// Weekday names (0=Sun..6=Sat)
+	// exportaudit:keep — shares a name with a json-tagged bundle field
 	WeekdaysShort [7]string
-	WeekdaysMed   [7]string
-	WeekdaysFull  [7]string
+	// exportaudit:keep — shares a name with a json-tagged bundle field
+	WeekdaysMed [7]string
+	// exportaudit:keep — shares a name with a json-tagged bundle field
+	WeekdaysFull [7]string
 
 	ID string // "en-US"
 
 	// Dialog
-	StrOK     string
-	StrYes    string
-	StrNo     string
+	strOK     string
+	strYes    string
+	strNo     string
 	StrCancel string
 
 	// CRUD / common actions
@@ -91,7 +106,7 @@ type Locale struct {
 	StrDelete string
 	StrAdd    string
 	StrClear  string
-	StrSearch string
+	strSearch string
 	StrFilter string
 	StrJump   string
 	StrReset  string
@@ -99,7 +114,7 @@ type Locale struct {
 
 	// Status
 	StrLoading        string
-	StrLoadingDiagram string
+	strLoadingDiagram string
 	StrSaving         string
 	StrSaveFailed     string
 	StrSourceChanged  string
@@ -108,23 +123,23 @@ type Locale struct {
 	StrClean          string
 
 	// Link context menu
-	StrOpenLink   string
-	StrGoToTarget string
-	StrCopyLink   string
-	StrCopied     string
+	strOpenLink   string
+	strGoToTarget string
+	strCopyLink   string
+	strCopied     string
 
 	// Scrollbar
-	StrHorizontalScrollbar string
-	StrVerticalScrollbar   string
+	strHorizontalScrollbar string
+	strVerticalScrollbar   string
 
 	// Color picker
-	StrRed   string
-	StrGreen string
-	StrBlue  string
-	StrAlpha string
-	StrHue   string
-	StrSat   string
-	StrValue string
+	strRed   string
+	strGreen string
+	strBlue  string
+	strAlpha string
+	strHue   string
+	strSat   string
+	strValue string
 
 	// Data grid
 	StrColumns  string
@@ -132,14 +147,16 @@ type Locale struct {
 	StrDraft    string
 	StrDirty    string
 	StrMatches  string
-	StrPage     string
+	strPage     string
 	StrRows     string
 
-	Date     DateFormat
-	Currency CurrencyFormat
+	Date dateFormat
+	// // exportaudit:keep — shares a name with a json-tagged bundle field
+	Currency currencyFormat
 
-	Number  NumberFormat
-	TextDir TextDirection // TextDirLTR
+	// exportaudit:keep — json-tagged or same-named member
+	Number  numberFormat
+	TextDir textDirection // TextDirLTR
 
 }
 
@@ -153,23 +170,23 @@ func localeDefaults() Locale {
 		Date:     dateFormatDefaults(),
 		Currency: currencyFormatDefaults(),
 
-		StrOK:     "OK",
-		StrYes:    "Yes",
-		StrNo:     "No",
+		strOK:     "OK",
+		strYes:    "Yes",
+		strNo:     "No",
 		StrCancel: "Cancel",
 
 		StrSave:   "Save",
 		StrDelete: "Delete",
 		StrAdd:    "Add",
 		StrClear:  "Clear",
-		StrSearch: "Search",
+		strSearch: "Search",
 		StrFilter: "Filter",
 		StrJump:   "Jump",
 		StrReset:  "Reset",
 		StrSubmit: "Submit",
 
 		StrLoading:        "Loading...",
-		StrLoadingDiagram: "Loading diagram...",
+		strLoadingDiagram: "Loading diagram...",
 		StrSaving:         "Saving...",
 		StrSaveFailed:     "Save failed",
 		StrSourceChanged:  "Source changed",
@@ -177,28 +194,28 @@ func localeDefaults() Locale {
 		StrError:          "Error",
 		StrClean:          "Clean",
 
-		StrOpenLink:   "Open Link",
-		StrGoToTarget: "Go to Target",
-		StrCopyLink:   "Copy Link",
-		StrCopied:     "Copied \u2713",
+		strOpenLink:   "Open Link",
+		strGoToTarget: "Go to Target",
+		strCopyLink:   "Copy Link",
+		strCopied:     "Copied \u2713",
 
-		StrHorizontalScrollbar: "Horizontal scrollbar",
-		StrVerticalScrollbar:   "Vertical scrollbar",
+		strHorizontalScrollbar: "Horizontal scrollbar",
+		strVerticalScrollbar:   "Vertical scrollbar",
 
-		StrRed:   "Red",
-		StrGreen: "Green",
-		StrBlue:  "Blue",
-		StrAlpha: "Alpha",
-		StrHue:   "Hue",
-		StrSat:   "Sat",
-		StrValue: "Value",
+		strRed:   "Red",
+		strGreen: "Green",
+		strBlue:  "Blue",
+		strAlpha: "Alpha",
+		strHue:   "Hue",
+		strSat:   "Sat",
+		strValue: "Value",
 
 		StrColumns:  "Columns",
 		StrSelected: "Selected",
 		StrDraft:    "Draft",
 		StrDirty:    "Dirty",
 		StrMatches:  "Matches",
-		StrPage:     "Page",
+		strPage:     "Page",
 		StrRows:     "Rows",
 
 		WeekdaysShort: [7]string{"S", "M", "T", "W", "T", "F", "S"},
@@ -221,7 +238,7 @@ func localeDefaults() Locale {
 
 // ToNumericLocale converts locale number settings to
 // NumericLocaleCfg for numeric input formatting.
-func (l Locale) ToNumericLocale() NumericLocaleCfg {
+func (l Locale) toNumericLocale() NumericLocaleCfg {
 	return NumericLocaleCfg{
 		DecimalSep: l.Number.DecimalSep,
 		GroupSep:   l.Number.GroupSep,
@@ -236,15 +253,15 @@ var ActiveLocale = localeDefaults()
 
 // effectiveTextDir resolves the text direction for a shape,
 // falling back to the global locale when set to Auto.
-func effectiveTextDir(shape *Shape) TextDirection {
-	if shape.TextDir != TextDirAuto {
+func effectiveTextDir(shape *Shape) textDirection {
+	if shape.TextDir != textDirAuto {
 		return shape.TextDir
 	}
 	return ActiveLocale.TextDir
 }
 
 // SetLocale sets the active global locale.
-func SetLocale(l Locale) {
+func setLocale(l Locale) {
 	ActiveLocale = l
 }
 
@@ -255,12 +272,13 @@ func CurrentLocale() Locale {
 
 // SetLocale sets the global locale and refreshes the window.
 func (w *Window) SetLocale(l Locale) {
-	SetLocale(l)
+	setLocale(l)
 	w.UpdateWindow()
 }
 
 // SetLocaleID sets the global locale by registry ID and
 // refreshes the window.
+// exportaudit:keep — public seam for locale switching
 func (w *Window) SetLocaleID(id string) error {
 	l, ok := LocaleGet(id)
 	if !ok {
@@ -274,19 +292,19 @@ func (w *Window) SetLocaleID(id string) error {
 // locale to the best matching registered locale. Call before
 // NewWindow. Falls back to language-prefix match if exact ID
 // is not registered.
-func LocaleAutoDetect() {
-	id := LocaleDetect()
+func localeAutoDetect() {
+	id := localeDetect()
 	if l, ok := LocaleGet(id); ok {
-		SetLocale(l)
+		setLocale(l)
 		return
 	}
 	// Try language-only prefix: "de-AT" → match "de-DE".
 	if i := strings.IndexByte(id, '-'); i > 0 {
 		prefix := id[:i]
-		for _, name := range LocaleRegisteredNames() {
+		for _, name := range localeRegisteredNames() {
 			if strings.HasPrefix(name, prefix+"-") {
 				if l, ok := LocaleGet(name); ok {
-					SetLocale(l)
+					setLocale(l)
 					return
 				}
 			}

@@ -13,7 +13,7 @@ import (
 // recursion. Returns the new token index (the loop's i++ moves past
 // it) and ok=false on unsupported pseudo-classes.
 func parsePseudoClass(
-	toks []tdcss.Token, i int, c *Compound, depth int,
+	toks []tdcss.Token, i int, c *compound, depth int,
 ) (int, bool) {
 	if i+1 >= len(toks) {
 		return i, false
@@ -24,15 +24,15 @@ func parsePseudoClass(
 		switch strings.ToLower(string(nx.Data)) {
 		case "root":
 			c.Root = true
-			c.Spec[1]++
+			c.spec[1]++
 			return i + 1, true
 		case "hover":
-			c.HoverPseudo = true
-			c.Spec[1]++
+			c.hoverPseudo = true
+			c.spec[1]++
 			return i + 1, true
 		case "focus":
-			c.FocusPseudo = true
-			c.Spec[1]++
+			c.focusPseudo = true
+			c.spec[1]++
 			return i + 1, true
 		}
 		return i, false
@@ -49,11 +49,11 @@ func parsePseudoClass(
 			if !ok {
 				return i, false
 			}
-			c.NthChild = &f
-			c.Spec[1]++
+			c.nthChild = &f
+			c.spec[1]++
 			return end, true
 		case "not":
-			if c.Not != nil {
+			if c.not != nil {
 				return i, false
 			}
 			inner, ok := parseCompoundAt(
@@ -62,13 +62,13 @@ func parsePseudoClass(
 			if !ok {
 				return i, false
 			}
-			c.Not = &inner
+			c.not = &inner
 			// :not(x) adds the specificity of its argument (CSS
 			// Selectors L4). Computed with Specificity.Add (rather
 			// than the c.Spec[1]++ pattern used by other pseudos)
 			// because the inner compound carries its own composite
 			// specificity, not a single-tier bump.
-			c.Spec = c.Spec.Add(inner.Spec)
+			c.spec = c.spec.Add(inner.spec)
 			return end, true
 		}
 		return i, false
@@ -78,16 +78,16 @@ func parsePseudoClass(
 
 // parseNthFormula parses :nth-child argument syntax: odd/even, a
 // constant, or an+b in the variants documented inline.
-func parseNthFormula(s string) (NthFormula, bool) {
+func parseNthFormula(s string) (nthFormula, bool) {
 	s = strings.ToLower(strings.TrimSpace(s))
 	if s == "" {
-		return NthFormula{}, false
+		return nthFormula{}, false
 	}
 	switch s {
 	case "odd":
-		return NthFormula{A: 2, B: 1}, true
+		return nthFormula{A: 2, B: 1}, true
 	case "even":
-		return NthFormula{A: 2, B: 0}, true
+		return nthFormula{A: 2, B: 0}, true
 	}
 	// Strip internal whitespace so "2n + 1" reads as "2n+1".
 	var b strings.Builder
@@ -102,9 +102,9 @@ func parseNthFormula(s string) (NthFormula, bool) {
 	if !hasN {
 		v, err := strconv.Atoi(s)
 		if err != nil {
-			return NthFormula{}, false
+			return nthFormula{}, false
 		}
-		return NthFormula{A: 0, B: v}, true
+		return nthFormula{A: 0, B: v}, true
 	}
 	var a int
 	switch aPart {
@@ -115,7 +115,7 @@ func parseNthFormula(s string) (NthFormula, bool) {
 	default:
 		v, err := strconv.Atoi(aPart)
 		if err != nil {
-			return NthFormula{}, false
+			return nthFormula{}, false
 		}
 		a = v
 	}
@@ -123,9 +123,9 @@ func parseNthFormula(s string) (NthFormula, bool) {
 	if bPart != "" {
 		v, err := strconv.Atoi(bPart)
 		if err != nil {
-			return NthFormula{}, false
+			return nthFormula{}, false
 		}
 		bVal = v
 	}
-	return NthFormula{A: a, B: bVal}, true
+	return nthFormula{A: a, B: bVal}, true
 }

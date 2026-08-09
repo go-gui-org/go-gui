@@ -36,13 +36,13 @@ func TestColorPickerDefaults(t *testing.T) {
 	if !cfg.Color.IsSet() {
 		t.Error("Color should default to Red")
 	}
-	if cfg.Style.SVSize == 0 {
+	if cfg.Style.sVSize == 0 {
 		t.Error("SVSize should be set")
 	}
-	if cfg.Style.SliderHeight == 0 {
+	if cfg.Style.sliderHeight == 0 {
 		t.Error("SliderHeight should be set")
 	}
-	if cfg.Style.IndicatorSize == 0 {
+	if cfg.Style.indicatorSize == 0 {
 		t.Error("IndicatorSize should be set")
 	}
 }
@@ -371,7 +371,7 @@ func TestHSVRoundTrip(t *testing.T) {
 	}
 	for _, c := range colors {
 		h, s, v := c.ToHSV()
-		got := ColorFromHSVA(h, s, v, c.A)
+		got := colorFromHSVA(h, s, v, c.A)
 		if got.R != c.R || got.G != c.G || got.B != c.B {
 			t.Errorf("round-trip %v: HSV(%f,%f,%f) → %v",
 				c, h, s, v, got)

@@ -25,7 +25,7 @@ const (
 // rules. Rules whose selector list ends up empty (every group was
 // rejected) are dropped, as are rules with no declarations. Use
 // ParseFull when @keyframes definitions are also needed.
-func ParseStylesheet(src string, opts ParseOptions) []Rule {
+func parseStylesheet(src string, opts ParseOptions) []Rule {
 	return ParseFull(src, opts).Rules
 }
 
@@ -159,7 +159,7 @@ func (c *parseCtx) onBeginRuleset(vals []tdcss.Token) {
 	if len(sels) > maxSelectorsRule {
 		sels = sels[:maxSelectorsRule]
 	}
-	c.current = Rule{Selectors: sels, Source: c.nextOrder}
+	c.current = Rule{selectors: sels, Source: c.nextOrder}
 	c.nextOrder++
 	c.inRule = true
 }
@@ -203,7 +203,7 @@ func (c *parseCtx) onEndRuleset() {
 		return
 	}
 	if c.inRule && len(c.current.Decls) > 0 &&
-		len(c.current.Selectors) > 0 &&
+		len(c.current.selectors) > 0 &&
 		len(c.out.Rules) < maxRules {
 		c.out.Rules = append(c.out.Rules, c.current)
 	}

@@ -439,7 +439,7 @@ func TestHandleRowNavigationKeysArrowDown(t *testing.T) {
 		rows:    rows,
 		columns: []GridColumnCfg{{ID: "col1"}},
 		selection: GridSelection{
-			ActiveRowID:    "a",
+			activeRowID:    "a",
 			SelectedRowIDs: map[string]bool{"a": true},
 		},
 		multiSelect:   true,
@@ -458,8 +458,8 @@ func TestHandleRowNavigationKeysArrowDown(t *testing.T) {
 	if !e.IsHandled {
 		t.Fatal("event should be handled")
 	}
-	if selected.ActiveRowID != "b" {
-		t.Errorf("active row: got %q, want %q", selected.ActiveRowID, "b")
+	if selected.activeRowID != "b" {
+		t.Errorf("active row: got %q, want %q", selected.activeRowID, "b")
 	}
 }
 
@@ -473,7 +473,7 @@ func TestHandleRowNavigationKeysArrowUp(t *testing.T) {
 		rows:    rows,
 		columns: []GridColumnCfg{{ID: "col1"}},
 		selection: GridSelection{
-			ActiveRowID:    "b",
+			activeRowID:    "b",
 			SelectedRowIDs: map[string]bool{"b": true},
 		},
 		multiSelect:   true,
@@ -489,8 +489,8 @@ func TestHandleRowNavigationKeysArrowUp(t *testing.T) {
 	}
 	e := &gg.Event{KeyCode: gg.KeyUp}
 	dataGridHandleRowNavigationKeys(kc, []int{0, 1, 2}, e, w)
-	if selected.ActiveRowID != "a" {
-		t.Errorf("active row: got %q, want %q", selected.ActiveRowID, "a")
+	if selected.activeRowID != "a" {
+		t.Errorf("active row: got %q, want %q", selected.activeRowID, "a")
 	}
 }
 
@@ -503,7 +503,7 @@ func TestHandleRowNavigationKeysHome(t *testing.T) {
 		gridID: "g1",
 		rows:   rows,
 		selection: GridSelection{
-			ActiveRowID:    "c",
+			activeRowID:    "c",
 			SelectedRowIDs: map[string]bool{"c": true},
 		},
 		multiSelect:   true,
@@ -518,8 +518,8 @@ func TestHandleRowNavigationKeysHome(t *testing.T) {
 	}
 	e := &gg.Event{KeyCode: gg.KeyHome}
 	dataGridHandleRowNavigationKeys(kc, []int{0, 1, 2}, e, w)
-	if selected.ActiveRowID != "a" {
-		t.Errorf("home: got %q, want %q", selected.ActiveRowID, "a")
+	if selected.activeRowID != "a" {
+		t.Errorf("home: got %q, want %q", selected.activeRowID, "a")
 	}
 }
 
@@ -532,7 +532,7 @@ func TestHandleRowNavigationKeysEnd(t *testing.T) {
 		gridID: "g1",
 		rows:   rows,
 		selection: GridSelection{
-			ActiveRowID:    "a",
+			activeRowID:    "a",
 			SelectedRowIDs: map[string]bool{"a": true},
 		},
 		multiSelect:   true,
@@ -547,8 +547,8 @@ func TestHandleRowNavigationKeysEnd(t *testing.T) {
 	}
 	e := &gg.Event{KeyCode: gg.KeyEnd}
 	dataGridHandleRowNavigationKeys(kc, []int{0, 1, 2}, e, w)
-	if selected.ActiveRowID != "c" {
-		t.Errorf("end: got %q, want %q", selected.ActiveRowID, "c")
+	if selected.activeRowID != "c" {
+		t.Errorf("end: got %q, want %q", selected.activeRowID, "c")
 	}
 }
 
@@ -559,7 +559,7 @@ func TestHandleRowNavigationKeysNoCallback(t *testing.T) {
 	kc := dataGridKeydownContext{
 		gridID:            "g1",
 		rows:              rows,
-		selection:         GridSelection{ActiveRowID: "a"},
+		selection:         GridSelection{activeRowID: "a"},
 		pageRows:          10,
 		pageIndices:       []int{0, 1},
 		frozenTopIDs:      map[string]bool{},
@@ -671,7 +671,7 @@ func TestHandleEnterKeyWithActivate(t *testing.T) {
 		gridID: "g1",
 		rows:   []GridRow{{ID: "a"}, {ID: "b"}},
 		selection: GridSelection{
-			ActiveRowID:    "b",
+			activeRowID:    "b",
 			SelectedRowIDs: map[string]bool{"b": true},
 		},
 		onRowActivate: func(row GridRow, ctx gg.EventCtx) {
@@ -791,8 +791,8 @@ func TestJumpContextFromPager(t *testing.T) {
 		ID:                "g1",
 		Rows:              []GridRow{{ID: "a"}},
 		OnSelectionChange: func(_ GridSelection, ctx gg.EventCtx) {},
-		OnPageChange:      func(_ int, ctx gg.EventCtx) {},
-		PageSize:          25,
+		onPageChange:      func(_ int, ctx gg.EventCtx) {},
+		pageSize:          25,
 	}
 	pctx := dataGridPagerContext{
 		cfg:           cfg,
@@ -829,8 +829,8 @@ func TestSelectionForTargetRowPlain(t *testing.T) {
 		rangeSelect: true,
 	}
 	got := dataGridSelectionForTargetRow(kc, "b", false, w)
-	if got.ActiveRowID != "b" {
-		t.Errorf("active: got %q, want b", got.ActiveRowID)
+	if got.activeRowID != "b" {
+		t.Errorf("active: got %q, want b", got.activeRowID)
 	}
 	if len(got.SelectedRowIDs) != 1 || !got.SelectedRowIDs["b"] {
 		t.Errorf("selected: got %v, want only b", got.SelectedRowIDs)
@@ -845,19 +845,19 @@ func TestSelectionForTargetRowShiftRange(t *testing.T) {
 		gridID: "g1",
 		rows:   rows,
 		selection: GridSelection{
-			AnchorRowID:    "a",
-			ActiveRowID:    "a",
+			anchorRowID:    "a",
+			activeRowID:    "a",
 			SelectedRowIDs: map[string]bool{"a": true},
 		},
 		multiSelect: true,
 		rangeSelect: true,
 	}
 	got := dataGridSelectionForTargetRow(kc, "c", true, w)
-	if got.AnchorRowID != "a" {
-		t.Errorf("anchor: got %q, want a", got.AnchorRowID)
+	if got.anchorRowID != "a" {
+		t.Errorf("anchor: got %q, want a", got.anchorRowID)
 	}
-	if got.ActiveRowID != "c" {
-		t.Errorf("active: got %q, want c", got.ActiveRowID)
+	if got.activeRowID != "c" {
+		t.Errorf("active: got %q, want c", got.activeRowID)
 	}
 	if !got.SelectedRowIDs["a"] || !got.SelectedRowIDs["b"] ||
 		!got.SelectedRowIDs["c"] {
@@ -1035,8 +1035,8 @@ func TestSubmitLocalJumpValid(t *testing.T) {
 	if !e.IsHandled {
 		t.Fatal("should be handled")
 	}
-	if selected.ActiveRowID != "b" {
-		t.Errorf("active: got %q, want b", selected.ActiveRowID)
+	if selected.activeRowID != "b" {
+		t.Errorf("active: got %q, want b", selected.activeRowID)
 	}
 }
 
@@ -1076,8 +1076,8 @@ func TestJumpToLocalRow(t *testing.T) {
 	}
 	e := &gg.Event{}
 	dataGridJumpToLocalRow(ctx, 1, e, w)
-	if selected.ActiveRowID != "b" {
-		t.Errorf("active: got %q, want b", selected.ActiveRowID)
+	if selected.activeRowID != "b" {
+		t.Errorf("active: got %q, want b", selected.activeRowID)
 	}
 }
 
@@ -1226,7 +1226,7 @@ func TestMakeOnKeydownReturnsCallback(t *testing.T) {
 		ID:       "g1",
 		Rows:     []GridRow{{ID: "a"}},
 		Columns:  []GridColumnCfg{{ID: "col1"}},
-		PageSize: 0,
+		pageSize: 0,
 	}
 	fn := dataGridMakeOnKeydown(cfg, cfg.Columns, 25, 0, "1", nil, nil, nil)
 	if fn == nil {

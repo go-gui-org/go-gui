@@ -3,31 +3,31 @@ package gui
 import "testing"
 
 func TestSizingConstants(t *testing.T) {
-	if FitFit.Width != SizingFit || FitFit.Height != SizingFit {
+	if FitFit.Width != sizingFit || FitFit.Height != sizingFit {
 		t.Error("FitFit")
 	}
-	if FixedFixed.Width != SizingFixed || FixedFixed.Height != SizingFixed {
+	if FixedFixed.Width != sizingFixed || FixedFixed.Height != sizingFixed {
 		t.Error("FixedFixed")
 	}
-	if FillFill.Width != SizingFill || FillFill.Height != SizingFill {
+	if FillFill.Width != sizingFill || FillFill.Height != sizingFill {
 		t.Error("FillFill")
 	}
-	if FitFill.Width != SizingFit || FitFill.Height != SizingFill {
+	if FitFill.Width != sizingFit || FitFill.Height != sizingFill {
 		t.Error("FitFill")
 	}
-	if FillFit.Width != SizingFill || FillFit.Height != SizingFit {
+	if FillFit.Width != sizingFill || FillFit.Height != sizingFit {
 		t.Error("FillFit")
 	}
-	if FixedFill.Width != SizingFixed || FixedFill.Height != SizingFill {
+	if FixedFill.Width != sizingFixed || FixedFill.Height != sizingFill {
 		t.Error("FixedFill")
 	}
-	if FillFixed.Width != SizingFill || FillFixed.Height != SizingFixed {
+	if FillFixed.Width != sizingFill || FillFixed.Height != sizingFixed {
 		t.Error("FillFixed")
 	}
-	if FitFixed.Width != SizingFit || FitFixed.Height != SizingFixed {
+	if FitFixed.Width != sizingFit || FitFixed.Height != sizingFixed {
 		t.Error("FitFixed")
 	}
-	if FixedFit.Width != SizingFixed || FixedFit.Height != SizingFit {
+	if FixedFit.Width != sizingFixed || FixedFit.Height != sizingFit {
 		t.Error("FixedFit")
 	}
 }

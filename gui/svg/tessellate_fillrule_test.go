@@ -14,13 +14,13 @@ func TestTessellate_EvenOddTwoOverlappingSquares(t *testing.T) {
 	a := []float32{0, 0, 10, 0, 10, 10, 0, 10}
 	b := []float32{5, 5, 15, 5, 15, 15, 5, 15}
 
-	triE := tessellatePolylines([][]float32{a, b}, FillRuleEvenOdd)
+	triE := tessellatePolylines([][]float32{a, b}, fillRuleEvenOdd)
 	gotE := triangleAreaSum(triE)
 	if f32Abs(gotE-150.0) > 1.0 {
 		t.Fatalf("evenodd: expected ~150, got %f", gotE)
 	}
 
-	triN := tessellatePolylines([][]float32{a, b}, FillRuleNonzero)
+	triN := tessellatePolylines([][]float32{a, b}, fillRuleNonzero)
 	gotN := triangleAreaSum(triN)
 	// Under nonzero both squares contribute +1, overlap winding=2;
 	// filled everywhere. Total = 2×100 − 25 (overlap counted once).
@@ -36,7 +36,7 @@ func TestTessellate_NonzeroCarvesConcentricOppositeWinding(t *testing.T) {
 	outer := []float32{0, 0, 10, 0, 10, 10, 0, 10} // CCW, area 100
 	inner := []float32{3, 3, 3, 7, 7, 7, 7, 3}     // CW, area 16
 
-	tris := tessellatePolylines([][]float32{outer, inner}, FillRuleNonzero)
+	tris := tessellatePolylines([][]float32{outer, inner}, fillRuleNonzero)
 	got := triangleAreaSum(tris)
 	if f32Abs(got-84.0) > 1.0 {
 		t.Fatalf("expected carved area ~84, got %f", got)
@@ -71,9 +71,9 @@ func TestTessellate_WindToyEightBlades(t *testing.T) {
 	if len(vg.Paths) != 1 {
 		t.Fatalf("expected 1 path, got %d", len(vg.Paths))
 	}
-	if vg.Paths[0].FillRule != FillRuleNonzero {
+	if vg.Paths[0].fillRule != fillRuleNonzero {
 		t.Fatalf("expected default FillRuleNonzero, got %d",
-			vg.Paths[0].FillRule)
+			vg.Paths[0].fillRule)
 	}
 	polylines := flattenPath(&vg.Paths[0], 0.5)
 	if len(polylines) != 8 {
@@ -121,9 +121,9 @@ func TestTessellate_FillRuleInheritedFromGroup(t *testing.T) {
 	if len(vg.Paths) != 1 {
 		t.Fatalf("expected 1 path, got %d", len(vg.Paths))
 	}
-	if vg.Paths[0].FillRule != FillRuleEvenOdd {
+	if vg.Paths[0].fillRule != fillRuleEvenOdd {
 		t.Fatalf("expected FillRuleEvenOdd from group, got %d",
-			vg.Paths[0].FillRule)
+			vg.Paths[0].fillRule)
 	}
 }
 
@@ -140,9 +140,9 @@ func TestTessellate_FillRulePathOverridesGroup(t *testing.T) {
 	if len(vg.Paths) != 1 {
 		t.Fatalf("expected 1 path, got %d", len(vg.Paths))
 	}
-	if vg.Paths[0].FillRule != FillRuleNonzero {
+	if vg.Paths[0].fillRule != fillRuleNonzero {
 		t.Fatalf("expected FillRuleNonzero from path attr, got %d",
-			vg.Paths[0].FillRule)
+			vg.Paths[0].fillRule)
 	}
 }
 
@@ -151,22 +151,22 @@ func TestTessellate_FillRulePathOverridesGroup(t *testing.T) {
 // unrecognised string (including "EvenOdd") is treated as the
 // default nonzero.
 func TestResolveFillRule_Defaults(t *testing.T) {
-	if r := resolveFillRule(`<path/>`, ComputedStyle{}); r != FillRuleNonzero {
+	if r := resolveFillRule(`<path/>`, computedStyle{}); r != fillRuleNonzero {
 		t.Fatalf("no attr should resolve to nonzero, got %d", r)
 	}
-	if r := resolveFillRule(`<path fill-rule="evenodd"/>`, ComputedStyle{}); r != FillRuleEvenOdd {
+	if r := resolveFillRule(`<path fill-rule="evenodd"/>`, computedStyle{}); r != fillRuleEvenOdd {
 		t.Fatalf("explicit evenodd, got %d", r)
 	}
-	if r := resolveFillRule(`<path/>`, ComputedStyle{FillRule: FillRuleEvenOdd}); r != FillRuleEvenOdd {
+	if r := resolveFillRule(`<path/>`, computedStyle{fillRule: fillRuleEvenOdd}); r != fillRuleEvenOdd {
 		t.Fatalf("inherited evenodd, got %d", r)
 	}
 	// Case-sensitive per SVG spec; unknown tokens fall back to
 	// nonzero rather than panicking or defaulting to evenodd.
-	if r := resolveFillRule(`<path fill-rule="EvenOdd"/>`, ComputedStyle{}); r != FillRuleNonzero {
+	if r := resolveFillRule(`<path fill-rule="EvenOdd"/>`, computedStyle{}); r != fillRuleNonzero {
 		t.Fatalf("non-canonical case should fall back to nonzero, got %d", r)
 	}
 	// Leading/trailing whitespace is tolerated.
-	if r := resolveFillRule(`<path fill-rule="  evenodd  "/>`, ComputedStyle{}); r != FillRuleEvenOdd {
+	if r := resolveFillRule(`<path fill-rule="  evenodd  "/>`, computedStyle{}); r != fillRuleEvenOdd {
 		t.Fatalf("whitespace-padded evenodd, got %d", r)
 	}
 }
@@ -199,9 +199,9 @@ func TestTessellate_FillRuleInheritedByAllShapes(t *testing.T) {
 			if len(vg.Paths) != 1 {
 				t.Fatalf("expected 1 path, got %d", len(vg.Paths))
 			}
-			if vg.Paths[0].FillRule != FillRuleEvenOdd {
+			if vg.Paths[0].fillRule != fillRuleEvenOdd {
 				t.Fatalf("%s: expected FillRuleEvenOdd from group, got %d",
-					c.name, vg.Paths[0].FillRule)
+					c.name, vg.Paths[0].fillRule)
 			}
 		})
 	}

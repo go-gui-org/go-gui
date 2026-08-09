@@ -3,28 +3,30 @@ package gui
 import "github.com/go-gui-org/go-glyph"
 
 // ProgressBarStyle defines progress bar visual properties.
+// exportaudit:keep — reachable from an exported signature
 type ProgressBarStyle struct {
 	TextStyle      TextStyle
 	Padding        Padding
-	TextPadding    Padding
+	textPadding    Padding
 	Size           float32
 	SizeBorder     float32
 	Radius         float32
 	Color          Color
-	ColorBar       Color
+	colorBar       Color
 	ColorBorder    Color
-	TextBackground Color
+	textBackground Color
 	TextShow       bool
 }
 
 // SliderStyle defines slider visual properties.
+// exportaudit:keep — reachable from an exported signature
 type SliderStyle struct {
 	Size             float32
 	ThumbSize        float32
 	Color            Color
-	ColorClick       Color
-	ColorThumb       Color
-	ColorLeft        Color
+	colorClick       Color
+	colorThumb       Color
+	colorLeft        Color
 	ColorFocus       Color
 	ColorHover       Color
 	ColorBorder      Color
@@ -35,104 +37,109 @@ type SliderStyle struct {
 }
 
 // TabControlStyle defines tab control visual properties.
+// exportaudit:keep — reachable from an exported signature
 type TabControlStyle struct {
 	TextStyle           TextStyle
-	TextStyleSelected   TextStyle
-	TextStyleDisabled   TextStyle
+	textStyleSelected   TextStyle
+	textStyleDisabled   TextStyle
 	Padding             Padding
 	PaddingHeader       Padding
-	PaddingContent      Padding
-	PaddingTab          Padding
+	paddingContent      Padding
+	paddingTab          Padding
 	SizeBorder          float32
-	SizeHeaderBorder    float32
-	SizeContentBorder   float32
-	SizeTabBorder       float32
+	sizeHeaderBorder    float32
+	sizeContentBorder   float32
+	sizeTabBorder       float32
 	Radius              float32
-	RadiusHeader        float32
-	RadiusContent       float32
-	RadiusTab           float32
+	radiusHeader        float32
+	radiusContent       float32
+	radiusTab           float32
 	Spacing             float32
-	SpacingHeader       float32
+	spacingHeader       float32
 	Color               Color
 	ColorBorder         Color
 	ColorHeader         Color
-	ColorHeaderBorder   Color
-	ColorContent        Color
-	ColorContentBorder  Color
-	ColorTab            Color
-	ColorTabHover       Color
-	ColorTabFocus       Color
-	ColorTabClick       Color
-	ColorTabSelected    Color
-	ColorTabDisabled    Color
-	ColorTabBorder      Color
-	ColorTabBorderFocus Color
+	colorHeaderBorder   Color
+	colorContent        Color
+	colorContentBorder  Color
+	colorTab            Color
+	colorTabHover       Color
+	colorTabFocus       Color
+	colorTabClick       Color
+	colorTabSelected    Color
+	colorTabDisabled    Color
+	colorTabBorder      Color
+	colorTabBorderFocus Color
 }
 
 // BreadcrumbStyle defines breadcrumb visual properties.
+// exportaudit:keep — reachable from an exported signature
 type BreadcrumbStyle struct {
 	TextStyle          TextStyle
-	TextStyleSelected  TextStyle
-	TextStyleDisabled  TextStyle
-	TextStyleSeparator TextStyle
+	textStyleSelected  TextStyle
+	textStyleDisabled  TextStyle
+	textStyleSeparator TextStyle
 	Separator          string
 	Padding            Padding
-	PaddingTrail       Padding
-	PaddingCrumb       Padding
-	PaddingContent     Padding
+	paddingTrail       Padding
+	paddingCrumb       Padding
+	paddingContent     Padding
 	Radius             float32
-	RadiusCrumb        float32
-	RadiusContent      float32
+	radiusCrumb        float32
+	radiusContent      float32
 	Spacing            float32
-	SpacingTrail       float32
+	spacingTrail       float32
 	SizeBorder         float32
-	SizeContentBorder  float32
+	sizeContentBorder  float32
 	Color              Color
 	ColorBorder        Color
-	ColorTrail         Color
-	ColorCrumb         Color
-	ColorCrumbHover    Color
-	ColorCrumbClick    Color
-	ColorCrumbSelected Color
-	ColorCrumbDisabled Color
-	ColorContent       Color
-	ColorContentBorder Color
+	colorTrail         Color
+	colorCrumb         Color
+	colorCrumbHover    Color
+	colorCrumbClick    Color
+	colorCrumbSelected Color
+	colorCrumbDisabled Color
+	colorContent       Color
+	colorContentBorder Color
 }
 
 // SplitterStyle defines splitter visual properties.
+// exportaudit:keep — reachable from an exported signature
 type SplitterStyle struct {
 	HandleSize        float32
-	DragStep          float32
-	DragStepLarge     float32
-	ColorHandle       Color
-	ColorHandleHover  Color
-	ColorHandleActive Color
-	ColorHandleBorder Color
-	ColorGrip         Color
-	ColorButton       Color
-	ColorButtonHover  Color
-	ColorButtonActive Color
-	ColorButtonIcon   Color
+	dragStep          float32
+	dragStepLarge     float32
+	colorHandle       Color
+	colorHandleHover  Color
+	colorHandleActive Color
+	colorHandleBorder Color
+	colorGrip         Color
+	colorButton       Color
+	colorButtonHover  Color
+	colorButtonActive Color
+	colorButtonIcon   Color
 	SizeBorder        float32
 	Radius            float32
-	RadiusBorder      float32
+	radiusBorder      float32
 }
 
 // TableStyle defines table visual properties.
+// exportaudit:keep — reachable from an exported signature
 type TableStyle struct {
 	TextStyle          TextStyle
 	TextStyleHead      TextStyle
-	CellPadding        Padding
-	ColumnWidthDefault float32
-	ColumnWidthMin     float32
+	cellPadding        Padding
+	columnWidthDefault float32
+	columnWidthMin     float32
 	SizeBorder         float32
 	ColorBorder        Color
 	ColorSelect        Color
 	ColorHover         Color
-	AlignHead          HorizontalAlign
+	alignHead          HorizontalAlign
 }
 
 // ComboboxStyle defines combobox visual properties.
+// exportaudit:keep — reachable from an exported signature
 type ComboboxStyle struct {
 	TextStyle         TextStyle
 	PlaceholderStyle  TextStyle
@@ -141,7 +148,7 @@ type ComboboxStyle struct {
 	Radius            float32
 	MinWidth          float32
 	MaxWidth          float32
-	MaxDropdownHeight float32
+	maxDropdownHeight float32
 	Color             Color
 	ColorHover        Color
 	ColorFocus        Color
@@ -151,9 +158,10 @@ type ComboboxStyle struct {
 }
 
 // CommandPaletteStyle defines command palette visual properties.
+// exportaudit:keep — reachable from an exported signature
 type CommandPaletteStyle struct {
 	TextStyle      TextStyle
-	DetailStyle    TextStyle
+	detailStyle    TextStyle
 	SizeBorder     float32
 	Radius         float32
 	Width          float32
@@ -161,26 +169,27 @@ type CommandPaletteStyle struct {
 	Color          Color
 	ColorBorder    Color
 	ColorHighlight Color
-	BackdropColor  Color
+	backdropColor  Color
 }
 
 // MenubarStyle defines menubar visual properties.
+// exportaudit:keep — reachable from an exported signature
 type MenubarStyle struct {
 	TextStyle         TextStyle
-	TextStyleSubtitle TextStyle
+	textStyleSubtitle TextStyle
 	Padding           Padding
-	PaddingMenuItem   Padding
-	PaddingSubmenu    Padding
-	PaddingSubtitle   Padding
-	WidthSubmenuMin   float32
-	WidthSubmenuMax   float32
+	paddingMenuItem   Padding
+	paddingSubmenu    Padding
+	paddingSubtitle   Padding
+	widthSubmenuMin   float32
+	widthSubmenuMax   float32
 	SizeBorder        float32
 	Radius            float32
-	RadiusBorder      float32
-	RadiusSubmenu     float32
-	RadiusMenuItem    float32
+	radiusBorder      float32
+	radiusSubmenu     float32
+	radiusMenuItem    float32
 	Spacing           float32
-	SpacingSubmenu    float32
+	spacingSubmenu    float32
 	Color             Color
 	ColorHover        Color
 	ColorFocus        Color
@@ -190,18 +199,19 @@ type MenubarStyle struct {
 }
 
 // DatePickerStyle defines date picker visual properties.
+// exportaudit:keep — reachable from an exported signature
 type DatePickerStyle struct {
 	TextStyle            TextStyle
 	Shadow               *BoxShadow
 	Padding              Padding
-	CellSpacing          float32
+	cellSpacing          float32
 	SizeBorder           float32
 	Radius               float32
-	RadiusBorder         float32
+	radiusBorder         float32
 	Color                Color
 	ColorHover           Color
 	ColorFocus           Color
-	ColorClick           Color
+	colorClick           Color
 	ColorBorder          Color
 	ColorBorderFocus     Color
 	ColorSelect          Color
@@ -212,19 +222,21 @@ type DatePickerStyle struct {
 }
 
 // ColorPickerStyle defines color picker visual properties.
+// exportaudit:keep — reachable from an exported signature
 type ColorPickerStyle struct {
 	TextStyle        TextStyle
 	SizeBorder       float32
 	Radius           float32
-	SVSize           float32
-	SliderHeight     float32
-	IndicatorSize    float32
+	sVSize           float32
+	sliderHeight     float32
+	indicatorSize    float32
 	Color            Color
 	ColorBorder      Color
 	ColorBorderFocus Color
 }
 
 // SkeletonStyle defines skeleton loader visual properties.
+// exportaudit:keep — reachable from an exported signature
 type SkeletonStyle struct {
 	Color          Color
 	ColorHighlight Color
@@ -233,27 +245,27 @@ type SkeletonStyle struct {
 
 // Default widget styles (dark theme).
 var (
-	DefaultProgressBarStyle = ProgressBarStyle{
+	defaultProgressBarStyle = ProgressBarStyle{
 		Size:           20,
 		Color:          colorInteriorDark,
-		ColorBar:       colorSelectDark,
+		colorBar:       colorSelectDark,
 		ColorBorder:    colorBorderDark,
-		TextBackground: ColorTransparent,
+		textBackground: ColorTransparent,
 		Padding:        PaddingNone,
-		TextPadding:    NewPadding(1, 4, 1, 4),
+		textPadding:    NewPadding(1, 4, 1, 4),
 		SizeBorder:     0,
-		Radius:         RadiusSmall,
+		Radius:         radiusSmall,
 		TextShow:       true,
 		TextStyle:      DefaultTextStyle,
 	}
 
-	DefaultSliderStyle = SliderStyle{
+	defaultSliderStyle = SliderStyle{
 		Size:             6,
 		ThumbSize:        16,
 		Color:            colorInteriorDark,
-		ColorClick:       colorActiveDark,
-		ColorThumb:       colorPanelDark,
-		ColorLeft:        colorSelectDark,
+		colorClick:       colorActiveDark,
+		colorThumb:       colorPanelDark,
+		colorLeft:        colorSelectDark,
 		ColorFocus:       colorSelectDark,
 		ColorHover:       colorHoverDark,
 		ColorBorder:      colorBorderDark,
@@ -263,115 +275,115 @@ var (
 		Radius:           3,
 	}
 
-	DefaultTabControlStyle = TabControlStyle{
+	defaultTabControlStyle = TabControlStyle{
 		Color:               colorPanelDark,
 		ColorBorder:         colorBorderDark,
 		ColorHeader:         ColorTransparent,
-		ColorHeaderBorder:   ColorTransparent,
-		ColorContent:        colorPanelDark,
-		ColorContentBorder:  colorBorderDark,
-		ColorTab:            colorInteriorDark,
-		ColorTabHover:       colorHoverDark,
-		ColorTabFocus:       colorFocusDark,
-		ColorTabClick:       colorActiveDark,
-		ColorTabSelected:    colorSelectDark,
-		ColorTabDisabled:    colorPanelDark,
-		ColorTabBorder:      colorBorderDark,
-		ColorTabBorderFocus: colorSelectDark,
+		colorHeaderBorder:   ColorTransparent,
+		colorContent:        colorPanelDark,
+		colorContentBorder:  colorBorderDark,
+		colorTab:            colorInteriorDark,
+		colorTabHover:       colorHoverDark,
+		colorTabFocus:       colorFocusDark,
+		colorTabClick:       colorActiveDark,
+		colorTabSelected:    colorSelectDark,
+		colorTabDisabled:    colorPanelDark,
+		colorTabBorder:      colorBorderDark,
+		colorTabBorderFocus: colorSelectDark,
 		Padding:             PaddingNone,
 		PaddingHeader:       PaddingNone,
-		PaddingContent:      PaddingMedium,
-		PaddingTab:          PaddingSmall,
-		SizeBorder:          SizeBorderDef,
-		SizeTabBorder:       SizeBorderDef,
-		Radius:              RadiusMedium,
-		RadiusHeader:        RadiusSmall,
-		RadiusContent:       RadiusMedium,
-		RadiusTab:           RadiusSmall,
-		SpacingHeader:       2,
+		paddingContent:      paddingMedium,
+		paddingTab:          PaddingSmall,
+		SizeBorder:          sizeBorderDef,
+		sizeTabBorder:       sizeBorderDef,
+		Radius:              radiusMedium,
+		radiusHeader:        radiusSmall,
+		radiusContent:       radiusMedium,
+		radiusTab:           radiusSmall,
+		spacingHeader:       2,
 		TextStyle:           DefaultTextStyle,
-		TextStyleSelected: TextStyle{
+		textStyleSelected: TextStyle{
 			Color: colorTextDark,
-			Size:  SizeTextMedium,
+			Size:  sizeTextMedium,
 		},
-		TextStyleDisabled: TextStyle{
+		textStyleDisabled: TextStyle{
 			Color: RGBA(colorTextDark.R, colorTextDark.G, colorTextDark.B, 130),
-			Size:  SizeTextMedium,
+			Size:  sizeTextMedium,
 		},
 	}
 
-	DefaultBreadcrumbStyle = BreadcrumbStyle{
+	defaultBreadcrumbStyle = BreadcrumbStyle{
 		Separator:          "/",
 		Color:              ColorTransparent,
 		ColorBorder:        ColorTransparent,
-		ColorTrail:         ColorTransparent,
-		ColorCrumb:         ColorTransparent,
-		ColorCrumbHover:    colorHoverDark,
-		ColorCrumbClick:    colorActiveDark,
-		ColorCrumbSelected: ColorTransparent,
-		ColorCrumbDisabled: ColorTransparent,
-		ColorContent:       colorPanelDark,
-		ColorContentBorder: colorBorderDark,
+		colorTrail:         ColorTransparent,
+		colorCrumb:         ColorTransparent,
+		colorCrumbHover:    colorHoverDark,
+		colorCrumbClick:    colorActiveDark,
+		colorCrumbSelected: ColorTransparent,
+		colorCrumbDisabled: ColorTransparent,
+		colorContent:       colorPanelDark,
+		colorContentBorder: colorBorderDark,
 		Padding:            PaddingNone,
-		PaddingTrail:       PaddingSmall,
-		PaddingCrumb:       NewPadding(2, 4, 2, 4),
-		PaddingContent:     PaddingMedium,
-		Radius:             RadiusMedium,
-		RadiusCrumb:        RadiusSmall,
-		RadiusContent:      RadiusMedium,
+		paddingTrail:       PaddingSmall,
+		paddingCrumb:       NewPadding(2, 4, 2, 4),
+		paddingContent:     paddingMedium,
+		Radius:             radiusMedium,
+		radiusCrumb:        radiusSmall,
+		radiusContent:      radiusMedium,
 		Spacing:            SpacingSmall,
-		SpacingTrail:       SpacingSmall,
-		SizeContentBorder:  SizeBorderDef,
+		spacingTrail:       SpacingSmall,
+		sizeContentBorder:  sizeBorderDef,
 		TextStyle:          DefaultTextStyle,
-		TextStyleSelected: TextStyle{
+		textStyleSelected: TextStyle{
 			Color: colorTextDark,
-			Size:  SizeTextMedium,
+			Size:  sizeTextMedium,
 		},
-		TextStyleDisabled: TextStyle{
+		textStyleDisabled: TextStyle{
 			Color: RGBA(colorTextDark.R, colorTextDark.G, colorTextDark.B, 130),
-			Size:  SizeTextMedium,
+			Size:  sizeTextMedium,
 		},
-		TextStyleSeparator: TextStyle{
+		textStyleSeparator: TextStyle{
 			Color: RGBA(colorTextDark.R, colorTextDark.G, colorTextDark.B, 160),
-			Size:  SizeTextMedium,
+			Size:  sizeTextMedium,
 		},
 	}
 
-	DefaultSplitterStyle = SplitterStyle{
+	defaultSplitterStyle = SplitterStyle{
 		HandleSize:        9,
-		DragStep:          0.02,
-		DragStepLarge:     0.10,
-		ColorHandle:       colorInteriorDark,
-		ColorHandleHover:  colorHoverDark,
-		ColorHandleActive: colorActiveDark,
-		ColorHandleBorder: colorBorderDark,
-		ColorGrip:         colorSelectDark,
-		ColorButton:       colorInteriorDark,
-		ColorButtonHover:  colorHoverDark,
-		ColorButtonActive: colorActiveDark,
-		ColorButtonIcon:   colorTextDark,
-		SizeBorder:        SizeBorderDef,
-		Radius:            RadiusSmall,
-		RadiusBorder:      RadiusSmall,
+		dragStep:          0.02,
+		dragStepLarge:     0.10,
+		colorHandle:       colorInteriorDark,
+		colorHandleHover:  colorHoverDark,
+		colorHandleActive: colorActiveDark,
+		colorHandleBorder: colorBorderDark,
+		colorGrip:         colorSelectDark,
+		colorButton:       colorInteriorDark,
+		colorButtonHover:  colorHoverDark,
+		colorButtonActive: colorActiveDark,
+		colorButtonIcon:   colorTextDark,
+		SizeBorder:        sizeBorderDef,
+		Radius:            radiusSmall,
+		radiusBorder:      radiusSmall,
 	}
 
-	DefaultTableStyle = TableStyle{
+	defaultTableStyle = TableStyle{
 		ColorBorder: colorBorderDark,
 		ColorSelect: colorSelectDark,
 		ColorHover:  colorHoverDark,
-		CellPadding: PaddingTwoFive,
+		cellPadding: PaddingTwoFive,
 		TextStyle:   DefaultTextStyle,
 		TextStyleHead: TextStyle{
 			Color:    DefaultTextStyle.Color,
 			Size:     DefaultTextStyle.Size,
 			Typeface: glyph.TypefaceBold,
 		},
-		AlignHead:          HAlignCenter,
-		ColumnWidthDefault: 50,
-		ColumnWidthMin:     20,
+		alignHead:          HAlignCenter,
+		columnWidthDefault: 50,
+		columnWidthMin:     20,
 	}
 
-	DefaultComboboxStyle = ComboboxStyle{
+	defaultComboboxStyle = ComboboxStyle{
 		Color:             colorInteriorDark,
 		ColorHover:        colorHoverDark,
 		ColorFocus:        colorInteriorDark,
@@ -379,71 +391,71 @@ var (
 		ColorBorderFocus:  colorSelectDark,
 		ColorHighlight:    colorSelectDark,
 		Padding:           PaddingSmall,
-		SizeBorder:        SizeBorderDef,
-		Radius:            RadiusMedium,
+		SizeBorder:        sizeBorderDef,
+		Radius:            radiusMedium,
 		MinWidth:          75,
 		MaxWidth:          200,
-		MaxDropdownHeight: 200,
+		maxDropdownHeight: 200,
 		TextStyle:         DefaultTextStyle,
 		PlaceholderStyle: TextStyle{
 			Color: RGBA(colorTextDark.R, colorTextDark.G, colorTextDark.B, 100),
-			Size:  SizeTextMedium,
+			Size:  sizeTextMedium,
 		},
 	}
 
-	DefaultCommandPaletteStyle = CommandPaletteStyle{
+	defaultCommandPaletteStyle = CommandPaletteStyle{
 		Color:          colorPanelDark,
 		ColorBorder:    colorBorderDark,
 		ColorHighlight: colorSelectDark,
-		SizeBorder:     SizeBorderDef,
-		Radius:         RadiusMedium,
+		SizeBorder:     sizeBorderDef,
+		Radius:         radiusMedium,
 		Width:          500,
 		MaxHeight:      400,
 		TextStyle:      DefaultTextStyle,
-		DetailStyle: TextStyle{
+		detailStyle: TextStyle{
 			Color: RGBA(128, 128, 128, 200),
-			Size:  SizeTextMedium,
+			Size:  sizeTextMedium,
 		},
-		BackdropColor: RGBA(0, 0, 0, 120),
+		backdropColor: RGBA(0, 0, 0, 120),
 	}
 
-	DefaultDatePickerStyle = DatePickerStyle{
-		CellSpacing:      2,
+	defaultDatePickerStyle = DatePickerStyle{
+		cellSpacing:      2,
 		Color:            colorInteriorDark,
 		ColorHover:       colorHoverDark,
 		ColorFocus:       colorFocusDark,
-		ColorClick:       colorActiveDark,
+		colorClick:       colorActiveDark,
 		ColorBorder:      colorBorderDark,
 		ColorBorderFocus: colorSelectDark,
 		ColorSelect:      colorSelectDark,
 		Padding:          PaddingSmall,
-		SizeBorder:       SizeBorderDef,
-		Radius:           RadiusMedium,
-		RadiusBorder:     RadiusMedium,
+		SizeBorder:       sizeBorderDef,
+		Radius:           radiusMedium,
+		radiusBorder:     radiusMedium,
 		TextStyle:        DefaultTextStyle,
 	}
 
-	DefaultColorPickerStyle = ColorPickerStyle{
+	defaultColorPickerStyle = ColorPickerStyle{
 		Color:            colorInteriorDark,
 		ColorBorder:      colorBorderDark,
 		ColorBorderFocus: colorSelectDark,
-		SizeBorder:       SizeBorderDef,
-		Radius:           RadiusMedium,
-		SVSize:           200,
-		SliderHeight:     24,
-		IndicatorSize:    16,
+		SizeBorder:       sizeBorderDef,
+		Radius:           radiusMedium,
+		sVSize:           200,
+		sliderHeight:     24,
+		indicatorSize:    16,
 		TextStyle:        DefaultTextStyle,
 	}
 
-	DefaultSkeletonStyle = SkeletonStyle{
+	defaultSkeletonStyle = SkeletonStyle{
 		Color:          colorInteriorDark,
 		ColorHighlight: colorInteriorDark.Add(RGBA(20, 20, 20, 0)),
-		Radius:         RadiusSmall,
+		Radius:         radiusSmall,
 	}
 
-	DefaultMenubarStyle = MenubarStyle{
-		WidthSubmenuMin:  50,
-		WidthSubmenuMax:  200,
+	defaultMenubarStyle = MenubarStyle{
+		widthSubmenuMin:  50,
+		widthSubmenuMax:  200,
 		Color:            colorInteriorDark,
 		ColorHover:       colorHoverDark,
 		ColorFocus:       colorFocusDark,
@@ -451,20 +463,20 @@ var (
 		ColorBorderFocus: colorSelectDark,
 		ColorSelect:      colorSelectDark,
 		Padding:          PaddingSmall,
-		PaddingMenuItem:  PaddingTwoFive,
-		PaddingSubmenu:   PaddingSmall,
-		PaddingSubtitle:  NewPadding(0, PadSmall, 0, PadSmall),
-		SizeBorder:       SizeBorderDef,
-		Radius:           RadiusSmall,
-		RadiusBorder:     RadiusMedium,
-		RadiusSubmenu:    RadiusSmall,
-		RadiusMenuItem:   RadiusSmall,
+		paddingMenuItem:  PaddingTwoFive,
+		paddingSubmenu:   PaddingSmall,
+		paddingSubtitle:  NewPadding(0, PadSmall, 0, PadSmall),
+		SizeBorder:       sizeBorderDef,
+		Radius:           radiusSmall,
+		radiusBorder:     radiusMedium,
+		radiusSubmenu:    radiusSmall,
+		radiusMenuItem:   radiusSmall,
 		Spacing:          SpacingMedium,
-		SpacingSubmenu:   0,
+		spacingSubmenu:   0,
 		TextStyle:        DefaultTextStyle,
-		TextStyleSubtitle: TextStyle{
+		textStyleSubtitle: TextStyle{
 			Color: colorTextDark,
-			Size:  SizeTextSmall,
+			Size:  sizeTextSmall,
 		},
 	}
 )

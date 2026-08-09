@@ -300,7 +300,7 @@ func TestEventFnMouseScrollFocusedHandlerPrecedence(t *testing.T) {
 		},
 	}
 	w.SetFocus("f11")
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	e := &Event{
 		Type:      EventMouseScroll,
 		MouseX:    25,

@@ -16,7 +16,7 @@ func TestInspectorBuildTreeNodes(t *testing.T) {
 		Children: []Layout{{
 			Shape: &Shape{
 				shapeType: shapeRectangle,
-				Axis:      AxisTopToBottom,
+				Axis:      axisTopToBottom,
 				Width:     200,
 				Height:    100,
 				ID:        "root",
@@ -24,7 +24,7 @@ func TestInspectorBuildTreeNodes(t *testing.T) {
 				Spacing:   8,
 				Color:     Red,
 				Opacity:   0.5,
-				TC: &ShapeTextConfig{
+				TC: &shapeTextConfig{
 					Text: "hello world",
 				},
 				events: &eventHandlers{
@@ -296,7 +296,7 @@ func TestUpdateCachesInspectorTreeFromPreviousLayout(t *testing.T) {
 		Children: []Layout{{
 			Shape: &Shape{
 				shapeType: shapeRectangle,
-				Axis:      AxisTopToBottom,
+				Axis:      axisTopToBottom,
 				Width:     50,
 				Height:    20,
 				ID:        "old",

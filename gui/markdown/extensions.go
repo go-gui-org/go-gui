@@ -14,75 +14,75 @@ import (
 // --- AST node types ---
 
 // NodeKindMathInline is an inline math span ($...$).
-var NodeKindMathInline = ast.NewNodeKind("MathInline")
+var nodeKindMathInline = ast.NewNodeKind("MathInline")
 
 type nodeMathInline struct {
 	Latex string
 	ast.BaseInline
 }
 
-func (*nodeMathInline) Kind() ast.NodeKind { return NodeKindMathInline }
+func (*nodeMathInline) Kind() ast.NodeKind { return nodeKindMathInline }
 func (n *nodeMathInline) Dump(src []byte, level int) {
 	ast.DumpHelper(n, src, level, nil, nil)
 }
 
 // NodeKindMathDisplay is a display math span ($$...$$).
-var NodeKindMathDisplay = ast.NewNodeKind("MathDisplay")
+var nodeKindMathDisplay = ast.NewNodeKind("MathDisplay")
 
 type nodeMathDisplay struct {
 	Latex string
 	ast.BaseInline
 }
 
-func (*nodeMathDisplay) Kind() ast.NodeKind { return NodeKindMathDisplay }
+func (*nodeMathDisplay) Kind() ast.NodeKind { return nodeKindMathDisplay }
 func (n *nodeMathDisplay) Dump(src []byte, level int) {
 	ast.DumpHelper(n, src, level, nil, nil)
 }
 
 // NodeKindHighlight is a highlighted span (==text==).
-var NodeKindHighlight = ast.NewNodeKind("Highlight")
+var nodeKindHighlight = ast.NewNodeKind("Highlight")
 
 type nodeHighlight struct {
 	ast.BaseInline
 }
 
-func (*nodeHighlight) Kind() ast.NodeKind { return NodeKindHighlight }
+func (*nodeHighlight) Kind() ast.NodeKind { return nodeKindHighlight }
 func (n *nodeHighlight) Dump(src []byte, level int) {
 	ast.DumpHelper(n, src, level, nil, nil)
 }
 
 // NodeKindUnderline is an underlined span (++text++).
-var NodeKindUnderline = ast.NewNodeKind("Underline")
+var nodeKindUnderline = ast.NewNodeKind("Underline")
 
 type nodeUnderline struct {
 	ast.BaseInline
 }
 
-func (*nodeUnderline) Kind() ast.NodeKind { return NodeKindUnderline }
+func (*nodeUnderline) Kind() ast.NodeKind { return nodeKindUnderline }
 func (n *nodeUnderline) Dump(src []byte, level int) {
 	ast.DumpHelper(n, src, level, nil, nil)
 }
 
 // NodeKindSuperscript is a superscript span (^text^).
-var NodeKindSuperscript = ast.NewNodeKind("Superscript")
+var nodeKindSuperscript = ast.NewNodeKind("Superscript")
 
 type nodeSuperscript struct {
 	ast.BaseInline
 }
 
-func (*nodeSuperscript) Kind() ast.NodeKind { return NodeKindSuperscript }
+func (*nodeSuperscript) Kind() ast.NodeKind { return nodeKindSuperscript }
 func (n *nodeSuperscript) Dump(src []byte, level int) {
 	ast.DumpHelper(n, src, level, nil, nil)
 }
 
 // NodeKindSubscript is a subscript span (~text~).
-var NodeKindSubscript = ast.NewNodeKind("Subscript")
+var nodeKindSubscript = ast.NewNodeKind("Subscript")
 
 type nodeSubscript struct {
 	ast.BaseInline
 }
 
-func (*nodeSubscript) Kind() ast.NodeKind { return NodeKindSubscript }
+func (*nodeSubscript) Kind() ast.NodeKind { return nodeKindSubscript }
 func (n *nodeSubscript) Dump(src []byte, level int) {
 	ast.DumpHelper(n, src, level, nil, nil)
 }

@@ -309,7 +309,7 @@ func TestParseSvg_RootFillInheritedByShapes(t *testing.T) {
 // dashoffset parser, anything else → primitive-attribute parser.
 func TestParseAnimateForDispatch_OpacityKind(t *testing.T) {
 	elem := `<animate attributeName="opacity" dur="1s" values="0;1"/>`
-	a, ok := parseAnimateForDispatch(elem, ComputedStyle{GroupID: "g"})
+	a, ok := parseAnimateForDispatch(elem, computedStyle{GroupID: "g"})
 	if !ok || a.Kind != gui.SvgAnimOpacity {
 		t.Fatalf("kind=%v ok=%v", a.Kind, ok)
 	}
@@ -318,7 +318,7 @@ func TestParseAnimateForDispatch_OpacityKind(t *testing.T) {
 func TestParseAnimateForDispatch_DashArrayKind(t *testing.T) {
 	elem := `<animate attributeName="stroke-dasharray" dur="1s" ` +
 		`values="0 5;5 5"/>`
-	a, ok := parseAnimateForDispatch(elem, ComputedStyle{GroupID: "g"})
+	a, ok := parseAnimateForDispatch(elem, computedStyle{GroupID: "g"})
 	if !ok || a.Kind != gui.SvgAnimDashArray {
 		t.Fatalf("kind=%v ok=%v", a.Kind, ok)
 	}
@@ -327,7 +327,7 @@ func TestParseAnimateForDispatch_DashArrayKind(t *testing.T) {
 func TestParseAnimateForDispatch_DashOffsetKind(t *testing.T) {
 	elem := `<animate attributeName="stroke-dashoffset" dur="1s" ` +
 		`values="0;-10"/>`
-	a, ok := parseAnimateForDispatch(elem, ComputedStyle{GroupID: "g"})
+	a, ok := parseAnimateForDispatch(elem, computedStyle{GroupID: "g"})
 	if !ok || a.Kind != gui.SvgAnimDashOffset {
 		t.Fatalf("kind=%v ok=%v", a.Kind, ok)
 	}
@@ -335,7 +335,7 @@ func TestParseAnimateForDispatch_DashOffsetKind(t *testing.T) {
 
 func TestParseAnimateForDispatch_PrimitiveAttrFallback(t *testing.T) {
 	elem := `<animate attributeName="r" dur="1s" values="0;5"/>`
-	a, ok := parseAnimateForDispatch(elem, ComputedStyle{GroupID: "g"})
+	a, ok := parseAnimateForDispatch(elem, computedStyle{GroupID: "g"})
 	if !ok || a.Kind != gui.SvgAnimAttr {
 		t.Fatalf("kind=%v ok=%v", a.Kind, ok)
 	}
@@ -344,7 +344,7 @@ func TestParseAnimateForDispatch_PrimitiveAttrFallback(t *testing.T) {
 func TestParseAnimateForDispatch_MissingAttrNameRejects(t *testing.T) {
 	elem := `<animate dur="1s" values="0;1"/>`
 	if _, ok := parseAnimateForDispatch(elem,
-		ComputedStyle{GroupID: "g"}); ok {
+		computedStyle{GroupID: "g"}); ok {
 		t.Fatal("missing attributeName must reject")
 	}
 }

@@ -10,8 +10,8 @@ func TestBBoxFromSegments_EmptyReturnsUnset(t *testing.T) {
 }
 
 func TestBBoxFromSegments_SingleMoveTo(t *testing.T) {
-	b := bboxFromSegments([]PathSegment{
-		{Cmd: CmdMoveTo, Points: []float32{3, 4}},
+	b := bboxFromSegments([]pathSegment{
+		{Cmd: cmdMoveTo, Points: []float32{3, 4}},
 	})
 	if !b.Set || b.MinX != 3 || b.MinY != 4 || b.MaxX != 3 || b.MaxY != 4 {
 		t.Errorf("got %+v want zero-extent at (3,4)", b)
@@ -20,12 +20,12 @@ func TestBBoxFromSegments_SingleMoveTo(t *testing.T) {
 
 func TestBBoxFromSegments_MalformedPointsIgnored(t *testing.T) {
 	// Truncated point lists must not panic and must not extend bbox.
-	b := bboxFromSegments([]PathSegment{
-		{Cmd: CmdMoveTo, Points: []float32{0, 0}},
-		{Cmd: CmdLineTo, Points: []float32{1}},           // truncated
-		{Cmd: CmdQuadTo, Points: []float32{1, 2, 3}},     // truncated
-		{Cmd: CmdCubicTo, Points: []float32{1, 2, 3, 4}}, // truncated
-		{Cmd: CmdClose, Points: nil},
+	b := bboxFromSegments([]pathSegment{
+		{Cmd: cmdMoveTo, Points: []float32{0, 0}},
+		{Cmd: cmdLineTo, Points: []float32{1}},           // truncated
+		{Cmd: cmdQuadTo, Points: []float32{1, 2, 3}},     // truncated
+		{Cmd: cmdCubicTo, Points: []float32{1, 2, 3, 4}}, // truncated
+		{Cmd: cmdClose, Points: nil},
 	})
 	if !b.Set || b.MaxX != 0 || b.MaxY != 0 {
 		t.Errorf("got %+v want bbox unchanged from origin", b)
@@ -34,9 +34,9 @@ func TestBBoxFromSegments_MalformedPointsIgnored(t *testing.T) {
 
 func TestBBoxFromSegments_QuadIncludesControlPoint(t *testing.T) {
 	// Control (10,20) lies outside the line; bbox must enclose it.
-	b := bboxFromSegments([]PathSegment{
-		{Cmd: CmdMoveTo, Points: []float32{0, 0}},
-		{Cmd: CmdQuadTo, Points: []float32{10, 20, 5, 0}},
+	b := bboxFromSegments([]pathSegment{
+		{Cmd: cmdMoveTo, Points: []float32{0, 0}},
+		{Cmd: cmdQuadTo, Points: []float32{10, 20, 5, 0}},
 	})
 	if b.MaxX != 10 || b.MaxY != 20 {
 		t.Errorf("got %+v want max (10,20)", b)
@@ -44,9 +44,9 @@ func TestBBoxFromSegments_QuadIncludesControlPoint(t *testing.T) {
 }
 
 func TestBBoxFromSegments_NegativeCoords(t *testing.T) {
-	b := bboxFromSegments([]PathSegment{
-		{Cmd: CmdMoveTo, Points: []float32{-5, -7}},
-		{Cmd: CmdLineTo, Points: []float32{2, 3}},
+	b := bboxFromSegments([]pathSegment{
+		{Cmd: cmdMoveTo, Points: []float32{-5, -7}},
+		{Cmd: cmdLineTo, Points: []float32{2, 3}},
 	})
 	if b.MinX != -5 || b.MinY != -7 || b.MaxX != 2 || b.MaxY != 3 {
 		t.Errorf("got %+v want negative-bounded box", b)
@@ -99,24 +99,24 @@ func TestUnionPathBboxes_EmptySliceUnset(t *testing.T) {
 	if got := unionPathBboxes(nil); got.Set {
 		t.Errorf("nil slice got %+v want unset", got)
 	}
-	if got := unionPathBboxes([]VectorPath{}); got.Set {
+	if got := unionPathBboxes([]vectorPath{}); got.Set {
 		t.Errorf("empty slice got %+v want unset", got)
 	}
 }
 
 func TestUnionPathBboxes_AllUnsetYieldsUnset(t *testing.T) {
-	paths := []VectorPath{{}, {}, {}}
+	paths := []vectorPath{{}, {}, {}}
 	if got := unionPathBboxes(paths); got.Set {
 		t.Errorf("all unset got %+v want unset", got)
 	}
 }
 
 func TestUnionPathBboxes_SkipsUnsetMembers(t *testing.T) {
-	paths := []VectorPath{
+	paths := []vectorPath{
 		{},
-		{Bbox: bbox{MinX: 1, MinY: 2, MaxX: 3, MaxY: 4, Set: true}},
+		{bbox: bbox{MinX: 1, MinY: 2, MaxX: 3, MaxY: 4, Set: true}},
 		{},
-		{Bbox: bbox{MinX: -1, MinY: 0, MaxX: 5, MaxY: 6, Set: true}},
+		{bbox: bbox{MinX: -1, MinY: 0, MaxX: 5, MaxY: 6, Set: true}},
 	}
 	got := unionPathBboxes(paths)
 	want := bbox{MinX: -1, MinY: 0, MaxX: 5, MaxY: 6, Set: true}

@@ -124,6 +124,7 @@ func (w *Window) joinLeaf(scope, leaf string) string {
 //
 // Outside layout generation the scope is empty, so EffID returns the
 // leaf unchanged.
+// exportaudit:keep — public seam for widget code (see CLAUDE.md)
 func (w *Window) EffID(leaf string) string {
 	if w == nil {
 		return leaf

@@ -21,7 +21,7 @@ func makeScrollLayout(idScroll string, width, height float32, contentW, contentH
 			ID:         idScroll,
 			Width:      width,
 			Height:     height,
-			Axis:       AxisTopToBottom,
+			Axis:       axisTopToBottom,
 		},
 		Children: []Layout{child},
 	}
@@ -34,7 +34,7 @@ func makeScrollLayout(idScroll string, width, height float32, contentW, contentH
 
 func TestScrollVerticalClampsWithinBounds(t *testing.T) {
 	layout, w := makeScrollLayout("1", 100, 100, 100, 300)
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 
 	ok := scrollVertical(layout, -50, w)
 	if !ok {
@@ -55,7 +55,7 @@ func TestScrollVerticalClampsWithinBounds(t *testing.T) {
 
 func TestScrollHorizontalClampsWithinBounds(t *testing.T) {
 	w := &Window{}
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	child := Layout{
 		Shape: &Shape{shapeType: shapeRectangle, Width: 400, Height: 50},
 	}
@@ -66,7 +66,7 @@ func TestScrollHorizontalClampsWithinBounds(t *testing.T) {
 			ID:         "2",
 			Width:      100,
 			Height:     50,
-			Axis:       AxisLeftToRight,
+			Axis:       axisLeftToRight,
 		},
 		Children: []Layout{child},
 	}
@@ -135,7 +135,7 @@ func TestScrollToView(t *testing.T) {
 			Y:          10,
 			Height:     100,
 			Padding:    Padding{Top: 5},
-			Axis:       AxisTopToBottom,
+			Axis:       axisTopToBottom,
 		},
 		Children: []Layout{target, filler},
 	}
@@ -147,7 +147,7 @@ func TestScrollToView(t *testing.T) {
 	}
 	w.layout.Children[0].Parent = &w.layout
 
-	w.ScrollToView("target")
+	w.scrollToView("target")
 	sy := w.scrollY()
 	v, ok := sy.Get("5")
 	if !ok {
@@ -162,7 +162,7 @@ func TestScrollToViewNotFound(t *testing.T) {
 	t.Parallel()
 	w := &Window{}
 	w.layout = Layout{Shape: &Shape{shapeType: shapeRectangle}}
-	w.ScrollToView("nonexistent") // should not panic
+	w.scrollToView("nonexistent") // should not panic
 }
 
 func TestScrollByAndTo(t *testing.T) {
@@ -170,7 +170,7 @@ func TestScrollByAndTo(t *testing.T) {
 	t.Run("horizontal", func(t *testing.T) {
 		t.Parallel()
 		w := &Window{}
-		w.ScrollHorizontalBy("10", -30)
+		w.scrollHorizontalBy("10", -30)
 		sx := w.scrollX()
 		v, _ := sx.Get("10")
 		if v != -30 {
@@ -185,7 +185,7 @@ func TestScrollByAndTo(t *testing.T) {
 	t.Run("vertical", func(t *testing.T) {
 		t.Parallel()
 		w := &Window{}
-		w.ScrollVerticalBy("10", -20)
+		w.scrollVerticalBy("10", -20)
 		sy := w.scrollY()
 		v, _ := sy.Get("10")
 		if v != -20 {
@@ -226,7 +226,7 @@ func TestScrollToPctAndPct(t *testing.T) {
 				ID:         "4",
 				Width:      100,
 				Height:     50,
-				Axis:       AxisLeftToRight,
+				Axis:       axisLeftToRight,
 			},
 			Children: []Layout{child},
 		}
@@ -235,13 +235,13 @@ func TestScrollToPctAndPct(t *testing.T) {
 			Children: []Layout{layout},
 		}
 
-		w.ScrollHorizontalToPct("4", 1.0)
+		w.scrollHorizontalToPct("4", 1.0)
 		sx := w.scrollX()
 		v, _ := sx.Get("4")
 		if v != -300 {
 			t.Errorf("expected -300, got %v", v)
 		}
-		pct := w.ScrollHorizontalPct("4")
+		pct := w.scrollHorizontalPct("4")
 		if math.Abs(float64(pct-1.0)) > 0.01 {
 			t.Errorf("expected ~1.0, got %v", pct)
 		}
@@ -255,18 +255,18 @@ func TestScrollPctNoScrollNeeded(t *testing.T) {
 	if pct != 0 {
 		t.Errorf("expected 0, got %v", pct)
 	}
-	pct = w.ScrollHorizontalPct("6")
+	pct = w.scrollHorizontalPct("6")
 	if pct != 0 {
 		t.Errorf("expected 0, got %v", pct)
 	}
 }
 
 func TestScrollVerticalFiresOnScroll(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	fired := false
 	layout, w := makeScrollLayout("7", 100, 100, 100, 300)
 	layout.Shape.events = &eventHandlers{
-		OnScroll: func(ctx EventCtx) { fired = true },
+		onScroll: func(ctx EventCtx) { fired = true },
 	}
 	scrollVertical(layout, -10, w)
 	if !fired {
@@ -275,7 +275,7 @@ func TestScrollVerticalFiresOnScroll(t *testing.T) {
 }
 
 func TestScrollReturnsFalseAtBoundary(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	t.Run("vertical", func(t *testing.T) {
 		layout, w := makeScrollLayout("10", 100, 100, 100, 300)
 		scrollVertical(layout, -500, w)
@@ -309,7 +309,7 @@ func TestScrollReturnsFalseAtBoundary(t *testing.T) {
 				ID:         "11",
 				Width:      100,
 				Height:     50,
-				Axis:       AxisLeftToRight,
+				Axis:       axisLeftToRight,
 			},
 			Children: []Layout{child},
 		}
@@ -340,7 +340,7 @@ func TestScrollReturnsFalseAtBoundary(t *testing.T) {
 }
 
 func TestScrollMode(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	t.Run("vertical_only_blocks_horizontal", func(t *testing.T) {
 		w := &Window{}
 		child := Layout{
@@ -354,7 +354,7 @@ func TestScrollMode(t *testing.T) {
 				ID:         "12",
 				Width:      100,
 				Height:     50,
-				Axis:       AxisLeftToRight,
+				Axis:       axisLeftToRight,
 				ScrollMode: ScrollVerticalOnly,
 			},
 			Children: []Layout{child},
@@ -401,7 +401,7 @@ func TestScrollToViewClampsOffset(t *testing.T) {
 			Y:          10,
 			Height:     100,
 			Padding:    Padding{Top: 5},
-			Axis:       AxisTopToBottom,
+			Axis:       axisTopToBottom,
 		},
 		Children: []Layout{target, child},
 	}
@@ -413,7 +413,7 @@ func TestScrollToViewClampsOffset(t *testing.T) {
 	}
 	w.layout.Children[0].Parent = &w.layout
 
-	w.ScrollToView("above")
+	w.scrollToView("above")
 	sy := w.scrollY()
 	v, ok := sy.Get("14")
 	if !ok {
@@ -430,10 +430,10 @@ func TestScrollVerticalByAndToWithClampAndOnScroll(t *testing.T) {
 
 	fired := 0
 	layout.Shape.events = &eventHandlers{
-		OnScroll: func(ctx EventCtx) { fired++ },
+		onScroll: func(ctx EventCtx) { fired++ },
 	}
 
-	w.ScrollVerticalBy("15", -50)
+	w.scrollVerticalBy("15", -50)
 	sy := w.scrollY()
 	v, _ := sy.Get("15")
 	if v != -50 {
@@ -465,7 +465,7 @@ func TestScrollHorizontalByAndToWithClampAndOnScroll(t *testing.T) {
 			ID:         "16",
 			Width:      100,
 			Height:     50,
-			Axis:       AxisLeftToRight,
+			Axis:       axisLeftToRight,
 		},
 		Children: []Layout{child},
 	}
@@ -477,10 +477,10 @@ func TestScrollHorizontalByAndToWithClampAndOnScroll(t *testing.T) {
 
 	fired := 0
 	w.layout.Children[0].Shape.events = &eventHandlers{
-		OnScroll: func(ctx EventCtx) { fired++ },
+		onScroll: func(ctx EventCtx) { fired++ },
 	}
 
-	w.ScrollHorizontalBy("16", -50)
+	w.scrollHorizontalBy("16", -50)
 	sx := w.scrollX()
 	v, _ := sx.Get("16")
 	if v != -50 {

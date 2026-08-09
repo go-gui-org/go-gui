@@ -8,55 +8,58 @@ import (
 )
 
 // NumericInputMode determines how numeric values are displayed.
-type NumericInputMode uint8
+type numericInputMode uint8
 
 // NumericInputMode values.
 const (
-	NumericNumber NumericInputMode = iota
+	numericNumber numericInputMode = iota
 	NumericCurrency
 	NumericPercent
 )
 
 // NumericAffixPosition determines prefix/suffix placement.
-type NumericAffixPosition uint8
+type numericAffixPosition uint8
 
 // NumericAffixPosition values.
 const (
-	AffixPrefix NumericAffixPosition = iota
-	AffixSuffix
+	affixPrefix numericAffixPosition = iota
+	affixSuffix
 )
 
 // NumericLocaleCfg defines symbols for parse/format.
 type NumericLocaleCfg struct {
+	// exportaudit:keep — json-tagged or same-named member
 	GroupSizes []int
 	DecimalSep rune
 	GroupSep   rune
-	MinusSign  rune
-	PlusSign   rune
+	// // exportaudit:keep — shares a name with a json-tagged bundle field
+	MinusSign rune
+	// exportaudit:keep — json-tagged or same-named member
+	PlusSign rune
 }
 
 // NumericStepCfg configures stepping interactions.
 type NumericStepCfg struct {
 	Step            float64
-	ShiftMultiplier float64
-	AltMultiplier   float64
-	MouseWheel      bool
-	Keyboard        bool
+	shiftMultiplier float64
+	altMultiplier   float64
+	mouseWheel      bool
+	keyboard        bool
 	ShowButtons     bool
 }
 
 // NumericCurrencyModeCfg defines currency symbol placement.
-type NumericCurrencyModeCfg struct {
+type numericCurrencyModeCfg struct {
 	Symbol        string
-	Position      NumericAffixPosition
-	SymbolSpacing bool
+	Position      numericAffixPosition
+	symbolSpacing bool
 }
 
 // NumericPercentModeCfg defines percent symbol placement.
-type NumericPercentModeCfg struct {
+type numericPercentModeCfg struct {
 	Symbol        string
-	Position      NumericAffixPosition
-	SymbolSpacing bool
+	Position      numericAffixPosition
+	symbolSpacing bool
 }
 
 // numericModeCfg is an internal config for mode-aware
@@ -64,8 +67,8 @@ type NumericPercentModeCfg struct {
 type numericModeCfg struct {
 	affix             string
 	displayMultiplier float64
-	mode              NumericInputMode
-	affixPosition     NumericAffixPosition
+	mode              numericInputMode
+	affixPosition     numericAffixPosition
 	affixSpacing      bool
 }
 
@@ -126,20 +129,20 @@ func numericStepCfgNormalize(cfg NumericStepCfg) NumericStepCfg {
 	if step <= 0 {
 		step = 1.0
 	}
-	shift := cfg.ShiftMultiplier
+	shift := cfg.shiftMultiplier
 	if shift <= 0 {
 		shift = 10.0
 	}
-	alt := cfg.AltMultiplier
+	alt := cfg.altMultiplier
 	if alt <= 0 {
 		alt = 0.1
 	}
 	return NumericStepCfg{
 		Step:            step,
-		ShiftMultiplier: shift,
-		AltMultiplier:   alt,
-		MouseWheel:      cfg.MouseWheel,
-		Keyboard:        cfg.Keyboard,
+		shiftMultiplier: shift,
+		altMultiplier:   alt,
+		mouseWheel:      cfg.mouseWheel,
+		keyboard:        cfg.keyboard,
 		ShowButtons:     cfg.ShowButtons,
 	}
 }
@@ -390,11 +393,11 @@ func numericStripAffix(raw string, loc NumericLocaleCfg, mc numericModeCfg) (str
 	}
 	if len(mc.affix) > 0 {
 		switch mc.affixPosition {
-		case AffixPrefix:
+		case affixPrefix:
 			if strings.HasPrefix(text, mc.affix) {
 				text = strings.TrimLeft(text[len(mc.affix):], " \t")
 			}
-		case AffixSuffix:
+		case affixSuffix:
 			right := strings.TrimRight(text, " \t")
 			if strings.HasSuffix(right, mc.affix) {
 				right = strings.TrimRight(right[:len(right)-len(mc.affix)], " \t")
@@ -429,9 +432,9 @@ func numericApplyAffix(formatted string, loc NumericLocaleCfg, mc numericModeCfg
 		space = " "
 	}
 	switch mc.affixPosition {
-	case AffixPrefix:
+	case affixPrefix:
 		return sign + mc.affix + space + number
-	case AffixSuffix:
+	case affixSuffix:
 		return sign + number + space + mc.affix
 	}
 	return formatted
@@ -473,7 +476,7 @@ func numericModeIsTransientInput(raw string, decimals int, loc NumericLocaleCfg,
 	}
 	if len(mc.affix) > 0 {
 		switch mc.affixPosition {
-		case AffixPrefix:
+		case affixPrefix:
 			if text == mc.affix {
 				return true
 			}
@@ -483,7 +486,7 @@ func numericModeIsTransientInput(raw string, decimals int, loc NumericLocaleCfg,
 					return true
 				}
 			}
-		case AffixSuffix:
+		case affixSuffix:
 			if text == mc.affix {
 				return true
 			}
@@ -531,10 +534,10 @@ func numericModeFormatValue(value float64, decimals int, loc NumericLocaleCfg, m
 func numericStepDelta(cfg NumericStepCfg, modifiers Modifier) float64 {
 	step := cfg.Step
 	if modifiers.Has(ModShift) {
-		step *= cfg.ShiftMultiplier
+		step *= cfg.shiftMultiplier
 	}
 	if modifiers.Has(ModAlt) {
-		step *= cfg.AltMultiplier
+		step *= cfg.altMultiplier
 	}
 	if step < 0 {
 		return -step

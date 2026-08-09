@@ -50,22 +50,24 @@ var debugOut io.Writer = os.Stderr
 
 // DebugCategory names one class of dev-mode finding. Categories gate
 // the checks independently; see [DebugCategories].
+// exportaudit:keep — reachable from an exported signature
 type DebugCategory uint32
 
 const (
 	// DebugDuplicates reports two shapes sharing one ID.
-	DebugDuplicates DebugCategory = 1 << iota
+	debugDuplicates DebugCategory = 1 << iota
 	// DebugMissingIDs reports a focusable, scrollable, or
 	// OnMouseLeave-bearing shape with no ID, whose behaviour silently
 	// does not work.
-	DebugMissingIDs
+	debugMissingIDs
 	// DebugUnconsumed reports a callback that acted on an event without
 	// consuming it while an ancestor also received it.
+	// exportaudit:keep — const name collides with the debugUnconsumed helper
 	DebugUnconsumed
 	// DebugListBoxNoHeight reports a scrollable listbox that resolved to
 	// height 0, which disables virtualization so every row builds each
 	// frame.
-	DebugListBoxNoHeight
+	debugListBoxNoHeight
 
 	// DebugUnscopedIDs reports a focusable or scrollable shape whose ID
 	// resolves to itself — no ID-bearing ancestor above it — so its
@@ -77,13 +79,13 @@ const (
 	// on. Ask for it explicitly with
 	// [DebugCategories](DebugUnscopedIDs) when auditing a screen for
 	// reusability.
-	DebugUnscopedIDs
+	debugUnscopedIDs
 
 	// DebugAll is every category [Debug] turns on. DebugUnscopedIDs is
 	// deliberately absent: it reports a design property, not a bug, and
 	// would fire on most widgets in a small app.
-	DebugAll = DebugDuplicates | DebugMissingIDs | DebugUnconsumed |
-		DebugListBoxNoHeight
+	debugAll = debugDuplicates | debugMissingIDs | DebugUnconsumed |
+		debugListBoxNoHeight
 )
 
 func init() {
@@ -91,7 +93,7 @@ func init() {
 	// original focus-only spelling, still honoured so existing
 	// workflows keep working. Either enables every category.
 	if envTruthy("GOGUI_DEBUG") || envTruthy("GOGUI_FOCUS_DEBUG") {
-		debugMask.Store(uint32(DebugAll))
+		debugMask.Store(uint32(debugAll))
 		debugGen.Store(1)
 	}
 }
@@ -135,11 +137,12 @@ func envTruthy(name string) bool {
 //
 // Not for production: the checks walk the whole layout tree every
 // frame and allocate while doing it.
+// exportaudit:keep — collides with the internal debugMask state var
 func Debug(on bool) {
 	if on {
-		DebugCategories(DebugAll)
+		debugCategories(debugAll)
 	} else {
-		DebugCategories(0)
+		debugCategories(0)
 	}
 }
 
@@ -151,7 +154,7 @@ func Debug(on bool) {
 // A zero mask is everything off; [DebugAll] is everything on. Turning a
 // category on after it was off clears that category's warn-once memory,
 // so a re-enabled category reports the frame in front of it.
-func DebugCategories(mask DebugCategory) {
+func debugCategories(mask DebugCategory) {
 	for {
 		cur := debugMask.Load()
 		next := uint32(mask)
@@ -170,7 +173,7 @@ func DebugCategories(mask DebugCategory) {
 }
 
 // DebugEnabled reports whether any dev-mode category is on.
-func DebugEnabled() bool { return debugMask.Load() != 0 }
+func debugEnabled() bool { return debugMask.Load() != 0 }
 
 // debugCheck identifies one class of finding. Warn-once state is
 // keyed by (check, subject), so a window reports each distinct defect
@@ -199,15 +202,15 @@ const (
 func checkCategory(check debugCheck) DebugCategory {
 	switch check {
 	case debugCheckDupID:
-		return DebugDuplicates
+		return debugDuplicates
 	case debugCheckFocusNoID, debugCheckScrollNoID, debugCheckMouseLeaveNoID:
-		return DebugMissingIDs
+		return debugMissingIDs
 	case debugCheckUnconsumed:
 		return DebugUnconsumed
 	case debugCheckListBoxNoHeight:
-		return DebugListBoxNoHeight
+		return debugListBoxNoHeight
 	case debugCheckUnscopedID:
-		return DebugUnscopedIDs
+		return debugUnscopedIDs
 	}
 	return 0
 }
@@ -242,8 +245,8 @@ type debugState struct {
 // Called from updateLayoutLocked after composeLayout, so it sees the
 // same tree the renderer does, including floating and overlay layers.
 func (w *Window) debugAudit(root *Layout) {
-	const walkCategories = DebugDuplicates | DebugMissingIDs |
-		DebugUnscopedIDs
+	const walkCategories = debugDuplicates | debugMissingIDs |
+		debugUnscopedIDs
 	if DebugCategory(debugMask.Load())&walkCategories == 0 {
 		return
 	}
@@ -354,7 +357,7 @@ func (w *Window) TestDuplicateIDs() []string {
 		return nil
 	}
 	var found []string
-	prevOn := DebugEnabled()
+	prevOn := debugEnabled()
 	// A fresh warn-once map: a sweep should report the window in front
 	// of it, not skip what an earlier sweep or a stray frame reported.
 	prevWarned := w.debug.warned

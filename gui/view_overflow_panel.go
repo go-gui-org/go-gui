@@ -20,8 +20,8 @@ type OverflowPanelCfg struct {
 	Focusable    bool
 	FloatOffsetX float32
 	FloatOffsetY float32
-	FloatAnchor  FloatAttach
-	FloatTieOff  FloatAttach
+	FloatAnchor  floatAttach
+	FloatTieOff  floatAttach
 	Disabled     bool
 }
 
@@ -92,7 +92,7 @@ func OverflowPanel(w *Window, cfg OverflowPanelCfg) View {
 			})
 		}
 
-		content = append(content, Menu(w, MenubarCfg{
+		content = append(content, menu(w, MenubarCfg{
 			ID:           ScopeID(id, "menu"),
 			Items:        menuItems,
 			Float:        true,
@@ -119,7 +119,7 @@ func OverflowPanel(w *Window, cfg OverflowPanelCfg) View {
 
 func applyOverflowDefaults(cfg *OverflowPanelCfg) {
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(DefaultButtonStyle.Padding)
+		cfg.Padding = Some(defaultButtonStyle.Padding)
 	}
 	if cfg.FloatAnchor == 0 {
 		cfg.FloatAnchor = FloatBottomRight

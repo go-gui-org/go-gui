@@ -12,8 +12,8 @@ func (w *Window) ExportPrintJob(job PrintJob) PrintExportResult {
 		return printExportErrorResult(job.OutputPath, printErrorInvalidCfg, err.Error())
 	}
 
-	sourceW := job.SourceWidth
-	sourceH := job.SourceHeight
+	sourceW := job.sourceWidth
+	sourceH := job.sourceHeight
 
 	renderersCopy, err := func() ([]RenderCmd, error) {
 		w.Lock()
@@ -74,18 +74,18 @@ func (w *Window) RunPrintJob(job PrintJob) PrintRunResult {
 	pdfPath, err := printJobResolvePDFPath(w, job)
 	if err != nil {
 		code := printErrorInternal
-		if job.Source.Kind == PrintSourcePDFPath {
+		if job.Source.Kind == printSourcePDFPath {
 			code = printErrorIO
 		}
 		return printRunErrorResult(code, err.Error())
 	}
 	// Clean up temp PDF after dialog returns.
-	if job.Source.Kind == PrintSourceCurrentView {
+	if job.Source.Kind == printSourceCurrentView {
 		defer func() { _ = os.Remove(pdfPath) }()
 	}
 
-	pw, ph := PrintPageSize(job.Paper, job.Orientation)
-	ranges := NormalizePrintPageRanges(job.PageRanges)
+	pw, ph := printPageSize(job.paper, job.Orientation)
+	ranges := normalizePrintPageRanges(job.PageRanges)
 
 	result := w.nativePlatform.ShowPrintDialog(NativePrintParams{
 		Title:        job.Title,
@@ -93,14 +93,14 @@ func (w *Window) RunPrintJob(job PrintJob) PrintRunResult {
 		PDFPath:      pdfPath,
 		PaperWidth:   pw,
 		PaperHeight:  ph,
-		MarginTop:    job.Margins.Top,
-		MarginRight:  job.Margins.Right,
-		MarginBottom: job.Margins.Bottom,
-		MarginLeft:   job.Margins.Left,
+		MarginTop:    job.margins.Top,
+		MarginRight:  job.margins.Right,
+		MarginBottom: job.margins.Bottom,
+		MarginLeft:   job.margins.Left,
 		Orientation:  printOrientationToInt(job.Orientation),
 		Copies:       job.Copies,
 		PageRanges:   printPageRangesToString(ranges),
-		DuplexMode:   int(job.Duplex),
+		DuplexMode:   int(job.duplex),
 		ColorMode:    int(job.ColorMode),
 		ScaleMode:    int(job.ScaleMode),
 	})
@@ -112,7 +112,7 @@ func (w *Window) RunPrintJob(job PrintJob) PrintRunResult {
 // For pdf_path source, validates the provided path.
 func printJobResolvePDFPath(w *Window, job PrintJob) (string, error) {
 	switch job.Source.Kind {
-	case PrintSourceCurrentView:
+	case printSourceCurrentView:
 		tmp, err := os.CreateTemp("", "go-gui-print-*.pdf")
 		if err != nil {
 			return "", &printError{"failed to create temp file: " + err.Error()}
@@ -121,12 +121,12 @@ func printJobResolvePDFPath(w *Window, job PrintJob) (string, error) {
 		exportJob := job
 		exportJob.OutputPath = tmp.Name()
 		result := w.ExportPrintJob(exportJob)
-		if !result.IsOk() {
+		if !result.isOk() {
 			_ = os.Remove(tmp.Name())
 			return "", &printError{result.ErrorMessage}
 		}
 		return tmp.Name(), nil
-	case PrintSourcePDFPath:
+	case printSourcePDFPath:
 		path := strings.TrimSpace(job.Source.PDFPath)
 		if path == "" {
 			return "", &printError{"pdf_path is required"}

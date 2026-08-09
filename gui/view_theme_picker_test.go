@@ -18,8 +18,8 @@ func TestThemePickerOpen(t *testing.T) {
 		delete(themeRegistry, "light-test")
 		themeRegistryMu.Unlock()
 	}()
-	ThemeRegister(Theme{Name: "dark-test"})
-	ThemeRegister(Theme{Name: "light-test"})
+	themeRegister(Theme{Name: "dark-test"})
+	themeRegister(Theme{Name: "light-test"})
 
 	w := &Window{}
 	ss := StateMap[string, bool](w, nsSelect, capModerate)
@@ -42,8 +42,8 @@ func TestThemePickerSyncHighlight(t *testing.T) {
 		delete(themeRegistry, "beta")
 		themeRegistryMu.Unlock()
 	}()
-	ThemeRegister(Theme{Name: "alpha"})
-	ThemeRegister(Theme{Name: "beta"})
+	themeRegister(Theme{Name: "alpha"})
+	themeRegister(Theme{Name: "beta"})
 	guiTheme.Name = "beta"
 
 	w := &Window{}

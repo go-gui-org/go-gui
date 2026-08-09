@@ -23,7 +23,7 @@ func TestCaptureLayoutSnapshots(t *testing.T) {
 }
 
 func TestLayoutTransitionUpdate(t *testing.T) {
-	lt := &LayoutTransition{
+	lt := &layoutTransition{
 		transitionBase: transitionBase{
 			duration: 200 * time.Millisecond,
 			easing:   EaseOutCubic,
@@ -46,7 +46,7 @@ func TestApplyTransitionRecursive(t *testing.T) {
 	layout := Layout{
 		Shape: &Shape{ID: "box", X: 100, Y: 100, Width: 200, Height: 200},
 	}
-	lt := &LayoutTransition{
+	lt := &layoutTransition{
 		transitionBase: transitionBase{progress: 0.5},
 		snapshots: map[string]posSnapshot{
 			"box": {x: 0, y: 0, width: 100, height: 100},
@@ -60,21 +60,21 @@ func TestApplyTransitionRecursive(t *testing.T) {
 }
 
 func TestLayoutTransitionID(t *testing.T) {
-	lt := &LayoutTransition{}
+	lt := &layoutTransition{}
 	if lt.ID() != layoutTransitionID {
 		t.Errorf("ID = %q, want %q", lt.ID(), layoutTransitionID)
 	}
 }
 
 func TestLayoutTransitionRefreshKind(t *testing.T) {
-	lt := &LayoutTransition{}
+	lt := &layoutTransition{}
 	if lt.RefreshKind() != AnimationRefreshLayout {
 		t.Errorf("RefreshKind = %d, want %d", lt.RefreshKind(), AnimationRefreshLayout)
 	}
 }
 
 func TestLayoutTransitionUpdateInterface(t *testing.T) {
-	lt := &LayoutTransition{
+	lt := &layoutTransition{
 		transitionBase: transitionBase{
 			duration: 200 * time.Millisecond,
 			easing:   EaseOutCubic,
@@ -95,7 +95,7 @@ func TestLayoutTransitionUpdateInterface(t *testing.T) {
 
 func TestLayoutTransitionOnDone(t *testing.T) {
 	done := false
-	lt := &LayoutTransition{
+	lt := &layoutTransition{
 		transitionBase: transitionBase{
 			duration: 200 * time.Millisecond,
 			easing:   EaseOutCubic,

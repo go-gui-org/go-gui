@@ -21,7 +21,7 @@ type ExpandPanelCfg struct {
 
 	Color       Color
 	ColorHover  Color
-	ColorClick  Color
+	colorClick  Color
 	ColorBorder Color
 	Sizing      Sizing
 	Open        bool
@@ -30,26 +30,26 @@ type ExpandPanelCfg struct {
 // ExpandPanel creates an expandable panel view.
 func ExpandPanel(cfg ExpandPanelCfg) View {
 	if !cfg.Color.IsSet() {
-		cfg.Color = guiTheme.ExpandPanelStyle.Color
+		cfg.Color = guiTheme.expandPanelStyle.Color
 	}
 	if !cfg.ColorHover.IsSet() {
-		cfg.ColorHover = guiTheme.ExpandPanelStyle.ColorHover
+		cfg.ColorHover = guiTheme.expandPanelStyle.ColorHover
 	}
-	if !cfg.ColorClick.IsSet() {
-		cfg.ColorClick = guiTheme.ExpandPanelStyle.ColorClick
+	if !cfg.colorClick.IsSet() {
+		cfg.colorClick = guiTheme.expandPanelStyle.colorClick
 	}
 	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = guiTheme.ExpandPanelStyle.ColorBorder
+		cfg.ColorBorder = guiTheme.expandPanelStyle.ColorBorder
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(guiTheme.ExpandPanelStyle.Padding)
+		cfg.Padding = Some(guiTheme.expandPanelStyle.Padding)
 	}
-	sizeBorder := cfg.SizeBorder.Get(guiTheme.ExpandPanelStyle.SizeBorder)
-	radius := cfg.Radius.Get(guiTheme.ExpandPanelStyle.Radius)
+	sizeBorder := cfg.SizeBorder.Get(guiTheme.expandPanelStyle.SizeBorder)
+	radius := cfg.Radius.Get(guiTheme.expandPanelStyle.Radius)
 
 	onToggle := cfg.OnToggle
 	colorHover := cfg.ColorHover
-	colorClick := cfg.ColorClick
+	colorClick := cfg.colorClick
 
 	a11yState := AccessState(0)
 	if cfg.Open {
@@ -104,7 +104,7 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 				OnChar: func(ctx EventCtx) {
 					// Only the spacebar activates the header; every
 					// other character has to keep travelling.
-					if ctx.Event.CharCode != CharSpace || onToggle == nil {
+					if ctx.Event.CharCode != charSpace || onToggle == nil {
 						return
 					}
 					onToggle(ctx)

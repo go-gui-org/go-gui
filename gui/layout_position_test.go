@@ -6,7 +6,7 @@ func TestLayoutPositionsStartAlign(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			X: 0, Y: 0, Width: 200, Height: 100,
-			Axis:   AxisLeftToRight,
+			Axis:   axisLeftToRight,
 			HAlign: HAlignLeft,
 			VAlign: VAlignTop,
 		},
@@ -33,7 +33,7 @@ func TestLayoutPositionsEndAlign(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			X: 0, Y: 0, Width: 200, Height: 100,
-			Axis:   AxisLeftToRight,
+			Axis:   axisLeftToRight,
 			HAlign: HAlignRight,
 			VAlign: VAlignBottom,
 		},
@@ -60,7 +60,7 @@ func TestLayoutPositionsMultipleChildrenLTR(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			X: 0, Y: 0, Width: 200, Height: 50,
-			Axis:    AxisLeftToRight,
+			Axis:    axisLeftToRight,
 			Spacing: 10,
 		},
 		Children: []Layout{
@@ -84,7 +84,7 @@ func TestLayoutPositionsTTBColumn(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			X: 0, Y: 0, Width: 100, Height: 200,
-			Axis:    AxisTopToBottom,
+			Axis:    axisTopToBottom,
 			Spacing: 5,
 		},
 		Children: []Layout{
@@ -146,7 +146,7 @@ func TestLayoutPositionsRTLEndAlign(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			X: 0, Y: 0, Width: 200, Height: 50,
-			Axis:    AxisLeftToRight,
+			Axis:    axisLeftToRight,
 			HAlign:  HAlignEnd,
 			TextDir: TextDirRTL,
 		},
@@ -169,7 +169,7 @@ func TestLayoutPositionsEndAlignLTR(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			X: 0, Y: 0, Width: 200, Height: 50,
-			Axis:    AxisLeftToRight,
+			Axis:    axisLeftToRight,
 			HAlign:  HAlignEnd,
 			TextDir: TextDirLTR,
 		},

@@ -44,7 +44,7 @@ type NativeFileFilter struct {
 type NativeOpenDialogCfg struct {
 	OnDone        func(NativeDialogResult, *Window)
 	Title         string
-	StartDir      string
+	startDir      string
 	Filters       []NativeFileFilter
 	AllowMultiple bool
 }
@@ -53,7 +53,7 @@ type NativeOpenDialogCfg struct {
 type NativeSaveDialogCfg struct {
 	OnDone           func(NativeDialogResult, *Window)
 	Title            string
-	StartDir         string
+	startDir         string
 	DefaultName      string
 	DefaultExtension string
 	Filters          []NativeFileFilter
@@ -64,7 +64,7 @@ type NativeSaveDialogCfg struct {
 type NativeFolderDialogCfg struct {
 	OnDone   func(NativeDialogResult, *Window)
 	Title    string
-	StartDir string
+	startDir string
 }
 
 // NativeAlertLevel controls the severity icon of a message/confirm dialog.
@@ -177,7 +177,7 @@ func nativeOpenDialogImpl(w *Window, cfg NativeOpenDialogCfg) {
 		return
 	}
 	defer markNativeDialogVisible(w)()
-	pr := w.nativePlatform.ShowOpenDialog(cfg.Title, cfg.StartDir, extensions, cfg.AllowMultiple)
+	pr := w.nativePlatform.ShowOpenDialog(cfg.Title, cfg.startDir, extensions, cfg.AllowMultiple)
 	dispatchDialogDone(w, cfg.OnDone, nativeResultFromPlatform(pr, w))
 }
 
@@ -197,7 +197,7 @@ func nativeSaveDialogImpl(w *Window, cfg NativeSaveDialogCfg) {
 		return
 	}
 	defer markNativeDialogVisible(w)()
-	pr := w.nativePlatform.ShowSaveDialog(cfg.Title, cfg.StartDir, cfg.DefaultName, defaultExt, extensions, cfg.ConfirmOverwrite)
+	pr := w.nativePlatform.ShowSaveDialog(cfg.Title, cfg.startDir, cfg.DefaultName, defaultExt, extensions, cfg.ConfirmOverwrite)
 	dispatchDialogDone(w, cfg.OnDone, nativeResultFromPlatform(pr, w))
 }
 
@@ -207,7 +207,7 @@ func nativeFolderDialogImpl(w *Window, cfg NativeFolderDialogCfg) {
 		return
 	}
 	defer markNativeDialogVisible(w)()
-	pr := w.nativePlatform.ShowFolderDialog(cfg.Title, cfg.StartDir)
+	pr := w.nativePlatform.ShowFolderDialog(cfg.Title, cfg.startDir)
 	dispatchDialogDone(w, cfg.OnDone, nativeResultFromPlatform(pr, w))
 }
 

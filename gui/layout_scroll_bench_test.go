@@ -9,7 +9,7 @@ func benchScrollLayout(scrollRegions, childrenPer int) Layout {
 	root := Layout{
 		Shape: &Shape{
 			shapeType: shapeRectangle,
-			Axis:      AxisTopToBottom,
+			Axis:      axisTopToBottom,
 			Sizing:    FillFill,
 			Width:     1200,
 			Height:    900,
@@ -20,7 +20,7 @@ func benchScrollLayout(scrollRegions, childrenPer int) Layout {
 		container := Layout{
 			Shape: &Shape{
 				shapeType:  shapeRectangle,
-				Axis:       AxisTopToBottom,
+				Axis:       axisTopToBottom,
 				Scrollable: true,
 				ID:         "test-scroll-" + strconv.Itoa(i+1),
 				Width:      1200,
@@ -59,7 +59,7 @@ func benchOverflowLayout(totalChildren int) Layout {
 	root := Layout{
 		Shape: &Shape{
 			shapeType: shapeRectangle,
-			Axis:      AxisLeftToRight,
+			Axis:      axisLeftToRight,
 			Overflow:  true,
 			Width:     600,
 			Height:    40,

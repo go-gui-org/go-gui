@@ -238,7 +238,7 @@ func TestLoadSvgNoParser(t *testing.T) {
 
 func TestGetSvgDimensionsNoParser(t *testing.T) {
 	w := &Window{}
-	_, _, err := w.GetSvgDimensions("<svg></svg>")
+	_, _, err := w.getSvgDimensions("<svg></svg>")
 	if err == nil {
 		t.Fatal("expected error with no parser")
 	}
@@ -250,7 +250,7 @@ func TestLoadSvgRespectsAllowedRoots(t *testing.T) {
 	if err := os.WriteFile(inside, []byte("<svg viewBox=\"0 0 10 10\"></svg>"), 0o644); err != nil {
 		t.Fatalf("write file: %v", err)
 	}
-	w := NewWindow(WindowCfg{AllowedSvgRoots: []string{root}})
+	w := NewWindow(WindowCfg{allowedSvgRoots: []string{root}})
 	w.SetSvgParser(&mockSvgParser{width: 10, height: 10})
 	if _, err := w.LoadSvg(inside, 10, 10); err != nil {
 		t.Fatalf("expected in-root load to pass: %v", err)
@@ -268,13 +268,13 @@ func TestLoadSvgRespectsAllowedRoots(t *testing.T) {
 func TestClearSvgCacheNoOp(_ *testing.T) {
 	w := &Window{}
 	// Should not panic.
-	w.ClearSvgCache()
+	w.clearSvgCache()
 }
 
 func TestRemoveSvgFromCacheNoOp(_ *testing.T) {
 	w := &Window{}
 	// Should not panic.
-	w.RemoveSvgFromCache("nonexistent.svg")
+	w.removeSvgFromCache("nonexistent.svg")
 }
 
 func TestCachedSvgTextDrawsEmpty(t *testing.T) {
@@ -470,7 +470,7 @@ func TestLoadSvgScaleSliceUsesMax(t *testing.T) {
 
 // buildBaseByPath: no animations → returns nil; nothing to seed.
 func TestBuildBaseByPath_NilWhenNoAnims(t *testing.T) {
-	paths := []CachedSvgPath{{PathID: 1, HasBaseXform: true,
+	paths := []cachedSvgPath{{PathID: 1, HasBaseXform: true,
 		BaseTransX: 5}}
 	if got := buildBaseByPath(paths, nil, nil); got != nil {
 		t.Fatalf("want nil; got %+v", got)
@@ -480,7 +480,7 @@ func TestBuildBaseByPath_NilWhenNoAnims(t *testing.T) {
 // Animations exist but all TargetPathIDs empty → no targets → nil.
 func TestBuildBaseByPath_NilWhenNoTargetPaths(t *testing.T) {
 	anims := []SvgAnimation{{Kind: SvgAnimRotate}}
-	paths := []CachedSvgPath{{PathID: 1, HasBaseXform: true}}
+	paths := []cachedSvgPath{{PathID: 1, HasBaseXform: true}}
 	if got := buildBaseByPath(paths, nil, anims); got != nil {
 		t.Fatalf("want nil; got %+v", got)
 	}
@@ -491,7 +491,7 @@ func TestBuildBaseByPath_NilWhenNoTargetPaths(t *testing.T) {
 func TestBuildBaseByPath_SkipsPathsWithoutBase(t *testing.T) {
 	anims := []SvgAnimation{{Kind: SvgAnimRotate, GroupID: "g",
 		TargetPathIDs: []uint32{1}}}
-	paths := []CachedSvgPath{{PathID: 1, HasBaseXform: false,
+	paths := []cachedSvgPath{{PathID: 1, HasBaseXform: false,
 		BaseTransX: 99}}
 	if got := buildBaseByPath(paths, nil, anims); got != nil {
 		t.Fatalf("want nil; got %+v", got)
@@ -502,7 +502,7 @@ func TestBuildBaseByPath_SkipsPathsWithoutBase(t *testing.T) {
 func TestBuildBaseByPath_FiltersByAnimatedPathID(t *testing.T) {
 	anims := []SvgAnimation{{Kind: SvgAnimRotate, GroupID: "g1",
 		TargetPathIDs: []uint32{1}}}
-	paths := []CachedSvgPath{
+	paths := []cachedSvgPath{
 		{PathID: 1, HasBaseXform: true, BaseTransX: 1},
 		{PathID: 2, HasBaseXform: true, BaseTransX: 2},
 	}
@@ -523,7 +523,7 @@ func TestBuildBaseByPath_FiltersByAnimatedPathID(t *testing.T) {
 func TestBuildBaseByPath_DedupesFirstWriteWins(t *testing.T) {
 	anims := []SvgAnimation{{Kind: SvgAnimRotate, GroupID: "g",
 		TargetPathIDs: []uint32{1}}}
-	paths := []CachedSvgPath{
+	paths := []cachedSvgPath{
 		{PathID: 1, HasBaseXform: true, BaseTransX: 10},
 		{PathID: 1, HasBaseXform: true, BaseTransX: 99},
 	}
@@ -537,9 +537,9 @@ func TestBuildBaseByPath_DedupesFirstWriteWins(t *testing.T) {
 func TestBuildBaseByPath_ScansFilteredGroups(t *testing.T) {
 	anims := []SvgAnimation{{Kind: SvgAnimRotate, GroupID: "g",
 		TargetPathIDs: []uint32{1}}}
-	groups := []CachedFilteredGroup{
+	groups := []cachedFilteredGroup{
 		{
-			RenderPaths: []CachedSvgPath{{
+			renderPaths: []cachedSvgPath{{
 				PathID:       1,
 				HasBaseXform: true,
 				BaseScaleX:   3,
@@ -557,7 +557,7 @@ func TestBuildBaseByPath_ScansFilteredGroups(t *testing.T) {
 func TestBuildBaseByPath_PropagatesAllFields(t *testing.T) {
 	anims := []SvgAnimation{{Kind: SvgAnimRotate, GroupID: "g",
 		TargetPathIDs: []uint32{1}}}
-	paths := []CachedSvgPath{{
+	paths := []cachedSvgPath{{
 		PathID: 1, HasBaseXform: true,
 		BaseTransX: 1, BaseTransY: 2,
 		BaseScaleX: 3, BaseScaleY: 4,

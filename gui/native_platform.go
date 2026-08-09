@@ -2,7 +2,7 @@ package gui
 
 // NativeDialogs provides native file and message dialogs.
 // Blocking — call from command queue.
-type NativeDialogs interface {
+type nativeDialogs interface {
 	ShowOpenDialog(title, startDir string, extensions []string, allowMultiple bool) PlatformDialogResult
 	ShowSaveDialog(title, startDir, defaultName, defaultExt string, extensions []string, confirmOverwrite bool) PlatformDialogResult
 	ShowFolderDialog(title, startDir string) PlatformDialogResult
@@ -12,25 +12,25 @@ type NativeDialogs interface {
 }
 
 // NativeNotifier sends OS-level notifications.
-type NativeNotifier interface {
+type nativeNotifier interface {
 	SendNotification(title, body string) NativeNotificationResult
 }
 
 // NativePrinter shows the native print dialog.
 // Blocking — call from command queue.
-type NativePrinter interface {
+type nativePrinter interface {
 	ShowPrintDialog(cfg NativePrintParams) PrintRunResult
 }
 
 // NativeBookmarks manages security-scoped file bookmarks.
-type NativeBookmarks interface {
+type nativeBookmarks interface {
 	BookmarkLoadAll(appID string) []BookmarkEntry
 	BookmarkPersist(appID, path string, data []byte)
 	BookmarkStopAccess(data []byte)
 }
 
 // NativeAccessibility bridges the OS accessibility tree.
-type NativeAccessibility interface {
+type nativeAccessibility interface {
 	A11yInit(actionCallback func(action, index int))
 	A11ySync(nodes []A11yNode, count, focusedIdx int)
 	A11yDestroy()
@@ -38,34 +38,34 @@ type NativeAccessibility interface {
 }
 
 // NativeIME controls the input method editor lifecycle.
-type NativeIME interface {
+type nativeIME interface {
 	IMEStart()
 	IMEStop()
 	IMESetRect(x, y, w, h int32)
 }
 
 // NativeSpellChecker provides OS-level spell checking.
-type NativeSpellChecker interface {
+type nativeSpellChecker interface {
 	SpellCheck(text string) []SpellRange
 	SpellSuggest(text string, startByte, lenBytes int) []string
 	SpellLearn(word string)
 }
 
 // NativeMenubar manages the native OS menubar.
-type NativeMenubar interface {
+type nativeMenubar interface {
 	SetNativeMenubar(cfg NativeMenubarCfg, actionCb func(string))
 	ClearNativeMenubar()
 }
 
 // NativeSystemTray manages system tray icons and menus.
-type NativeSystemTray interface {
+type nativeSystemTray interface {
 	CreateSystemTray(cfg SystemTrayCfg, actionCb func(string)) (int, error)
 	UpdateSystemTray(id int, cfg SystemTrayCfg)
 	RemoveSystemTray(id int)
 }
 
 // NativeSound plays OS-level alert sounds.
-type NativeSound interface {
+type nativeSound interface {
 	// Beep plays the user's configured system alert sound, honoring
 	// their system-wide alert volume and mute settings. No-op on
 	// platforms without such a sound. Non-blocking.
@@ -77,17 +77,18 @@ type NativeSound interface {
 
 // NativePlatform composes all native OS sub-interfaces.
 // Set by the backend; nil in tests (operations no-op / return error).
+// exportaudit:keep — collides with the window's nativePlatform state field
 type NativePlatform interface {
-	NativeDialogs
-	NativeNotifier
-	NativePrinter
-	NativeBookmarks
-	NativeAccessibility
-	NativeIME
-	NativeSpellChecker
-	NativeMenubar
-	NativeSystemTray
-	NativeSound
+	nativeDialogs
+	nativeNotifier
+	nativePrinter
+	nativeBookmarks
+	nativeAccessibility
+	nativeIME
+	nativeSpellChecker
+	nativeMenubar
+	nativeSystemTray
+	nativeSound
 	OpenURI(uri string) error
 	TitlebarDark(dark bool)
 	SetWindowVibrancy(material VibrancyMaterial)

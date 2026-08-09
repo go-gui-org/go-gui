@@ -33,7 +33,7 @@ func scrollLayout() *Layout {
 				Scrollable: true,
 				ID:         "1",
 				Width:      400, Height: 200,
-				Axis: AxisTopToBottom,
+				Axis: axisTopToBottom,
 				shapeClip: drawClip{
 					X: 0, Y: 0, Width: 400, Height: 200,
 				},
@@ -184,7 +184,7 @@ func TestGestureLongPress(t *testing.T) {
 
 func TestGesturePan(t *testing.T) {
 	t.Parallel()
-	var phases []GesturePhase
+	var phases []gesturePhase
 	root := gestureLayout(&eventHandlers{
 		OnGesture: func(ctx EventCtx) {
 			if ctx.Event.GestureType == GesturePan {
@@ -214,10 +214,10 @@ func TestGesturePan(t *testing.T) {
 	if len(phases) < 2 {
 		t.Fatalf("expected at least 2 pan phases, got %d", len(phases))
 	}
-	if phases[0] != GesturePhaseBegan {
+	if phases[0] != gesturePhaseBegan {
 		t.Errorf("first phase: expected Began, got %d", phases[0])
 	}
-	if phases[len(phases)-1] != GesturePhaseEnded {
+	if phases[len(phases)-1] != gesturePhaseEnded {
 		t.Errorf("last phase: expected Ended, got %d",
 			phases[len(phases)-1])
 	}
@@ -262,7 +262,7 @@ func TestGestureSwipe(t *testing.T) {
 func TestGesturePinch(t *testing.T) {
 	t.Parallel()
 	var gotScale float32
-	var gotPhase GesturePhase
+	var gotPhase gesturePhase
 	root := gestureLayout(&eventHandlers{
 		OnGesture: func(ctx EventCtx) {
 			if ctx.Event.GestureType == GesturePinch {
@@ -327,7 +327,7 @@ func TestGestureRotate(t *testing.T) {
 
 func TestGestureRotateEnd(t *testing.T) {
 	t.Parallel()
-	var gotPhase GesturePhase
+	var gotPhase gesturePhase
 	var gotRotation float32
 	root := gestureLayout(&eventHandlers{
 		OnGesture: func(ctx EventCtx) {
@@ -356,7 +356,7 @@ func TestGestureRotateEnd(t *testing.T) {
 	w.handleTouch(root, twoTouchEvent(EventTouchesEnded,
 		1, 157, 175, 2, 243, 225))
 
-	if gotPhase != GesturePhaseEnded {
+	if gotPhase != gesturePhaseEnded {
 		t.Errorf("expected Ended phase, got %d", gotPhase)
 	}
 	if gotRotation == 0 {
@@ -369,7 +369,7 @@ func TestGestureRotateEnd(t *testing.T) {
 func TestRotateToSingleTouchTransition(t *testing.T) {
 	t.Parallel()
 	var lastType GestureType
-	var lastPhase GesturePhase
+	var lastPhase gesturePhase
 	root := gestureLayout(&eventHandlers{
 		OnGesture: func(ctx EventCtx) {
 			lastType = ctx.Event.GestureType
@@ -404,7 +404,7 @@ func TestRotateToSingleTouchTransition(t *testing.T) {
 	w.handleTouch(root, endEvt)
 
 	// Should have emitted Rotate/Ended then Pan/Began.
-	if lastType != GesturePan || lastPhase != GesturePhaseBegan {
+	if lastType != GesturePan || lastPhase != gesturePhaseBegan {
 		t.Errorf("expected Pan/Began after lift, got %d/%d",
 			lastType, lastPhase)
 	}
@@ -442,7 +442,7 @@ func TestPanFallbackScroll(t *testing.T) {
 	w.animations = make(map[string]Animation)
 	gs := &w.viewState.gesture
 	gs.nowFn = fixedClock(0)
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 
 	w.handleTouch(root, touchEvent(EventTouchesBegan, 1, 100, 100))
 	// Pan downward — first move crosses threshold (Began).
@@ -463,12 +463,12 @@ func TestPanFallbackScroll(t *testing.T) {
 
 func TestTouchCancelled(t *testing.T) {
 	t.Parallel()
-	var gotPhase GesturePhase
+	var gotPhase gesturePhase
 	var gotCancelled bool
 	root := gestureLayout(&eventHandlers{
 		OnGesture: func(ctx EventCtx) {
 			gotPhase = ctx.Event.GesturePhase
-			if ctx.Event.GesturePhase == GesturePhaseCancelled {
+			if ctx.Event.GesturePhase == gesturePhaseCancelled {
 				gotCancelled = true
 			}
 		},
@@ -497,7 +497,7 @@ func TestTouchCancelled(t *testing.T) {
 func TestPinchToSingleTouchTransition(t *testing.T) {
 	t.Parallel()
 	var lastType GestureType
-	var lastPhase GesturePhase
+	var lastPhase gesturePhase
 	root := gestureLayout(&eventHandlers{
 		OnGesture: func(ctx EventCtx) {
 			lastType = ctx.Event.GestureType
@@ -531,7 +531,7 @@ func TestPinchToSingleTouchTransition(t *testing.T) {
 	w.handleTouch(root, endEvt)
 
 	// Should have transitioned to pan.
-	if lastType != GesturePan || lastPhase != GesturePhaseBegan {
+	if lastType != GesturePan || lastPhase != gesturePhaseBegan {
 		t.Errorf("expected Pan/Began after lift, got %d/%d",
 			lastType, lastPhase)
 	}

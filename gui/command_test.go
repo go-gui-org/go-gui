@@ -110,10 +110,10 @@ func TestCommandCanExecute(t *testing.T) {
 		ID:         "c",
 		CanExecute: func(_ *Window) bool { return false },
 	})
-	if w.CommandCanExecute("c") {
+	if w.commandCanExecute("c") {
 		t.Error("should be disabled")
 	}
-	if w.CommandCanExecute("nonexistent") {
+	if w.commandCanExecute("nonexistent") {
 		t.Error("nonexistent should return false")
 	}
 }
@@ -121,7 +121,7 @@ func TestCommandCanExecute(t *testing.T) {
 func TestCommandCanExecuteNil(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int)})
 	w.RegisterCommand(Command{ID: "d"})
-	if !w.CommandCanExecute("d") {
+	if !w.commandCanExecute("d") {
 		t.Error("nil CanExecute = always enabled")
 	}
 }
@@ -521,7 +521,7 @@ func TestCommandButtonViewFuncType(t *testing.T) {
 	})
 
 	v := CommandButton("test.cmd", ButtonCfg{ID: "command_test_test_command_button_view_func_type"})
-	if _, ok := v.(ViewFunc); !ok {
+	if _, ok := v.(viewFunc); !ok {
 		t.Error("CommandButton should return ViewFunc")
 	}
 

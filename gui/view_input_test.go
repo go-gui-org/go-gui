@@ -117,10 +117,10 @@ func TestInputPlaceholderWhenEmpty(t *testing.T) {
 func TestInputClickPlaceholderResetsCursorToStart(t *testing.T) {
 	w := newTestWindow()
 	w.SetFocus("f14")
-	setInputState(w, "f14", InputState{
+	setInputState(w, "f14", inputState{
 		CursorPos: 7,
-		SelectBeg: 2,
-		SelectEnd: 5,
+		selectBeg: 2,
+		selectEnd: 5,
 	})
 	layout := generateViewLayout(Input(InputCfg{
 		Placeholder: "Type here",
@@ -139,8 +139,8 @@ func TestInputClickPlaceholderResetsCursorToStart(t *testing.T) {
 	if is.CursorPos != 0 {
 		t.Fatalf("cursor=%d, want 0", is.CursorPos)
 	}
-	if is.SelectBeg != 0 || is.SelectEnd != 0 {
-		t.Fatalf("selection=%d-%d, want 0-0", is.SelectBeg, is.SelectEnd)
+	if is.selectBeg != 0 || is.selectEnd != 0 {
+		t.Fatalf("selection=%d-%d, want 0-0", is.selectBeg, is.selectEnd)
 	}
 	if !e.IsHandled {
 		t.Fatal("click should be handled")
@@ -189,11 +189,11 @@ func TestInputA11YLabelFallback(t *testing.T) {
 		ID:          "f13",
 	})
 	layout := generateViewLayout(v, w)
-	if layout.Shape.A11Y == nil {
+	if layout.Shape.a11Y == nil {
 		t.Fatal("A11Y nil")
 	}
-	if layout.Shape.A11Y.Label != "Search..." {
-		t.Fatalf("got %q, want Search...", layout.Shape.A11Y.Label)
+	if layout.Shape.a11Y.Label != "Search..." {
+		t.Fatalf("got %q, want Search...", layout.Shape.a11Y.Label)
 	}
 }
 
@@ -212,7 +212,7 @@ func newInputTest(text string, focusID string, cursorPos int) *inputTestCtx {
 	ctx.w = newTestWindow()
 	ctx.lastText = text
 	ctx.w.SetFocus(focusID)
-	setInputState(ctx.w, focusID, InputState{CursorPos: cursorPos})
+	setInputState(ctx.w, focusID, inputState{CursorPos: cursorPos})
 	ctx.layout = generateViewLayout(Input(InputCfg{
 		Text: text,
 		ID:   focusID,
@@ -228,7 +228,7 @@ func newInputTestMultiline(text string, focusID string, cursorPos int) *inputTes
 	ctx.w = newTestWindow()
 	ctx.lastText = text
 	ctx.w.SetFocus(focusID)
-	setInputState(ctx.w, focusID, InputState{CursorPos: cursorPos})
+	setInputState(ctx.w, focusID, inputState{CursorPos: cursorPos})
 	ctx.layout = generateViewLayout(Input(InputCfg{
 		Text: text,
 		ID:   focusID,
@@ -254,7 +254,7 @@ func (c *inputTestCtx) fireKeyDown(key KeyCode, mod Modifier) {
 	}
 }
 
-func (c *inputTestCtx) state() InputState {
+func (c *inputTestCtx) state() inputState {
 	return getInputState(c.w, c.layout.Shape.ID)
 }
 
@@ -381,13 +381,13 @@ func TestInputKeyDownEnterSingleLine(t *testing.T) {
 	committed := false
 	w := newTestWindow()
 	w.SetFocus("f600")
-	setInputState(w, "f600", InputState{CursorPos: 2})
+	setInputState(w, "f600", inputState{CursorPos: 2})
 	layout := generateViewLayout(Input(InputCfg{
 		Text: "hi",
 		ID:   "f600",
 		OnTextCommit: func(_ string, reason InputCommitReason, ctx EventCtx) {
 			committed = true
-			if reason != CommitEnter {
+			if reason != commitEnter {
 				t.Fatalf("got reason %d, want CommitEnter", reason)
 			}
 		},
@@ -448,9 +448,9 @@ func TestInputSelectAll(t *testing.T) {
 	ctx := newInputTest("abc", "f508", 1)
 	ctx.fireKeyDown(KeyA, ModCtrl)
 	is := ctx.state()
-	if is.SelectBeg != 0 || is.SelectEnd != 3 {
+	if is.selectBeg != 0 || is.selectEnd != 3 {
 		t.Fatalf("select all: got %d-%d, want 0-3",
-			is.SelectBeg, is.SelectEnd)
+			is.selectBeg, is.selectEnd)
 	}
 }
 
@@ -460,15 +460,15 @@ func TestInputCopyPaste(t *testing.T) {
 	ctx.w.SetClipboardFn(func(s string) { clipboard = s })
 	ctx.w.SetClipboardGetFn(func() string { return clipboard })
 	// Select all, copy.
-	setInputState(ctx.w, "f509", InputState{
-		CursorPos: 5, SelectBeg: 0, SelectEnd: 5,
+	setInputState(ctx.w, "f509", inputState{
+		CursorPos: 5, selectBeg: 0, selectEnd: 5,
 	})
 	ctx.fireKeyDown(KeyC, ModCtrl)
 	if clipboard != "hello" {
 		t.Fatalf("copy: clipboard=%q, want hello", clipboard)
 	}
 	// Move cursor to end, paste.
-	setInputState(ctx.w, "f509", InputState{CursorPos: 5})
+	setInputState(ctx.w, "f509", inputState{CursorPos: 5})
 	ctx.layout = generateViewLayout(Input(InputCfg{
 		Text: "hello",
 		ID:   "f509",
@@ -486,8 +486,8 @@ func TestInputCut(t *testing.T) {
 	var clipboard string
 	ctx := newInputTest("abcd", "f510", 2)
 	ctx.w.SetClipboardFn(func(s string) { clipboard = s })
-	setInputState(ctx.w, "f510", InputState{
-		CursorPos: 2, SelectBeg: 1, SelectEnd: 3,
+	setInputState(ctx.w, "f510", inputState{
+		CursorPos: 2, selectBeg: 1, selectEnd: 3,
 	})
 	ctx.fireKeyDown(KeyX, ModCtrl)
 	if clipboard != "bc" {
@@ -525,8 +525,8 @@ func TestInputOnKeyDownShiftLeft(t *testing.T) {
 	if is.CursorPos != 1 {
 		t.Fatalf("cursor=%d, want 1", is.CursorPos)
 	}
-	if is.SelectBeg != 2 || is.SelectEnd != 1 {
-		t.Fatalf("sel=%d-%d, want 2-1", is.SelectBeg, is.SelectEnd)
+	if is.selectBeg != 2 || is.selectEnd != 1 {
+		t.Fatalf("sel=%d-%d, want 2-1", is.selectBeg, is.selectEnd)
 	}
 }
 
@@ -550,13 +550,13 @@ func TestInputOnKeyDownEnd(t *testing.T) {
 
 func TestInputOnKeyDownEscape(t *testing.T) {
 	ctx := newInputTest("abc", "f605", 2)
-	setInputState(ctx.w, "f605", InputState{
-		CursorPos: 2, SelectBeg: 0, SelectEnd: 3,
+	setInputState(ctx.w, "f605", inputState{
+		CursorPos: 2, selectBeg: 0, selectEnd: 3,
 	})
 	ctx.fireKeyDown(KeyEscape, ModNone)
 	is := ctx.state()
-	if is.SelectBeg != 0 || is.SelectEnd != 0 {
-		t.Fatalf("sel=%d-%d, want 0-0", is.SelectBeg, is.SelectEnd)
+	if is.selectBeg != 0 || is.selectEnd != 0 {
+		t.Fatalf("sel=%d-%d, want 0-0", is.selectBeg, is.selectEnd)
 	}
 }
 
@@ -597,8 +597,8 @@ func TestInputOnKeyDownUpDown(t *testing.T) {
 
 func TestInputOnKeyDownLeftCollapsesSelection(t *testing.T) {
 	ctx := newInputTest("abcdef", "f609", 3)
-	setInputState(ctx.w, "f609", InputState{
-		CursorPos: 3, SelectBeg: 1, SelectEnd: 4,
+	setInputState(ctx.w, "f609", inputState{
+		CursorPos: 3, selectBeg: 1, selectEnd: 4,
 	})
 	ctx.fireKeyDown(KeyLeft, ModNone)
 	is := ctx.state()
@@ -606,8 +606,8 @@ func TestInputOnKeyDownLeftCollapsesSelection(t *testing.T) {
 	if is.CursorPos != 1 {
 		t.Fatalf("cursor=%d, want 1", is.CursorPos)
 	}
-	if is.SelectBeg != 0 || is.SelectEnd != 0 {
-		t.Fatalf("sel not cleared: %d-%d", is.SelectBeg, is.SelectEnd)
+	if is.selectBeg != 0 || is.selectEnd != 0 {
+		t.Fatalf("sel not cleared: %d-%d", is.selectBeg, is.selectEnd)
 	}
 }
 
@@ -679,14 +679,14 @@ func TestInputCursorRenderedWhenFocused(t *testing.T) {
 	w := newTestWindow()
 	w.viewState.inputCursorOn.Store(true)
 	w.SetFocus("f700")
-	setInputState(w, "f700", InputState{CursorPos: 2})
+	setInputState(w, "f700", inputState{CursorPos: 2})
 	style := DefaultTextStyle
 	shape := &Shape{
 		Focusable: true, ID: "f700",
 		shapeType: shapeText,
 		Width:     200,
 		Height:    20,
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			Text:      "hello",
 			TextStyle: &style,
 		},
@@ -711,7 +711,7 @@ func TestInputCursorNotRenderedWhenUnfocused(t *testing.T) {
 	shape := &Shape{
 		Focusable: true, ID: "f700",
 		shapeType: shapeText,
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			Text:      "hello",
 			TextStyle: &style,
 		},
@@ -731,7 +731,7 @@ func TestInputCursorNotRenderedWhenBlinkOff(t *testing.T) {
 	shape := &Shape{
 		Focusable: true, ID: "f701",
 		shapeType: shapeText,
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			Text:      "hello",
 			TextStyle: &style,
 		},
@@ -751,14 +751,14 @@ func TestInputCursorRenderedViaFocusOwner(t *testing.T) {
 	w := newTestWindow()
 	w.viewState.inputCursorOn.Store(true)
 	w.SetFocus("f703")
-	setInputState(w, "f703", InputState{CursorPos: 2})
+	setInputState(w, "f703", inputState{CursorPos: 2})
 	style := DefaultTextStyle
 	shape := &Shape{
 		focusOwner: "f703",
 		shapeType:  shapeText,
 		Width:      200,
 		Height:     20,
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			Text:      "hello",
 			TextStyle: &style,
 		},
@@ -787,7 +787,7 @@ func TestInputCursorNotRenderedWhenFocusOwnerUnfocused(t *testing.T) {
 	shape := &Shape{
 		focusOwner: "f704",
 		shapeType:  shapeText,
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			Text:      "hello",
 			TextStyle: &style,
 		},
@@ -805,12 +805,12 @@ func TestInputCursorNotRenderedForPlainText(t *testing.T) {
 	w := newTestWindow()
 	w.viewState.inputCursorOn.Store(true)
 	w.SetFocus("f705")
-	setInputState(w, "f705", InputState{CursorPos: 2})
+	setInputState(w, "f705", inputState{CursorPos: 2})
 	style := DefaultTextStyle
 	shape := &Shape{
 		ID:        "f705",
 		shapeType: shapeText,
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			Text:      "hello",
 			TextStyle: &style,
 		},
@@ -826,17 +826,17 @@ func TestInputCursorUsesColumnZeroForPlaceholder(t *testing.T) {
 	w := newTestWindow()
 	w.viewState.inputCursorOn.Store(true)
 	w.SetFocus("f702")
-	setInputState(w, "f702", InputState{CursorPos: 8})
+	setInputState(w, "f702", inputState{CursorPos: 8})
 	style := DefaultTextStyle
 	shape := &Shape{
 		Focusable: true, ID: "f702",
 		shapeType: shapeText,
 		Width:     200,
 		Height:    20,
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			Text:              "Add your task",
 			TextStyle:         &style,
-			TextIsPlaceholder: true,
+			textIsPlaceholder: true,
 		},
 	}
 	w.renderers = w.renderers[:0]
@@ -861,11 +861,11 @@ func TestInputSelectionRendered(t *testing.T) {
 		shapeType: shapeText,
 		Width:     200,
 		Height:    20,
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			Text:       "hello",
 			TextStyle:  &style,
-			TextSelBeg: 1,
-			TextSelEnd: 4,
+			textSelBeg: 1,
+			textSelEnd: 4,
 		},
 	}
 	w.renderers = w.renderers[:0]
@@ -886,11 +886,11 @@ func TestInputSelectionNotRenderedWhenNoSelection(t *testing.T) {
 	style := DefaultTextStyle
 	shape := &Shape{
 		shapeType: shapeText,
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			Text:       "hello",
 			TextStyle:  &style,
-			TextSelBeg: 0,
-			TextSelEnd: 0,
+			textSelBeg: 0,
+			textSelEnd: 0,
 		},
 	}
 	w.renderers = w.renderers[:0]
@@ -908,12 +908,12 @@ func TestInputSelectionMultiline(t *testing.T) {
 		shapeType: shapeText,
 		Width:     200,
 		Height:    60,
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			Text:       text,
 			TextStyle:  &style,
 			TextMode:   TextModeWrapKeepSpaces,
-			TextSelBeg: 2,
-			TextSelEnd: uint32(utf8.RuneCountInString("abc\nde")),
+			textSelBeg: 2,
+			textSelEnd: uint32(utf8.RuneCountInString("abc\nde")),
 		},
 	}
 	w.renderers = w.renderers[:0]
@@ -984,18 +984,18 @@ func TestInputOnKeyDownShiftHomeCycleSelection(t *testing.T) {
 	if is.CursorPos != 4 {
 		t.Fatalf("Shift+Home 1: cursor=%d, want 4", is.CursorPos)
 	}
-	if is.SelectBeg != 5 || is.SelectEnd != 4 {
+	if is.selectBeg != 5 || is.selectEnd != 4 {
 		t.Fatalf("Shift+Home 1: sel=%d-%d, want 5-4",
-			is.SelectBeg, is.SelectEnd)
+			is.selectBeg, is.selectEnd)
 	}
 	ctx.fireKeyDown(KeyHome, ModShift)
 	is = ctx.state()
 	if is.CursorPos != 0 {
 		t.Fatalf("Shift+Home 2: cursor=%d, want 0", is.CursorPos)
 	}
-	if is.SelectBeg != 5 || is.SelectEnd != 0 {
+	if is.selectBeg != 5 || is.selectEnd != 0 {
 		t.Fatalf("Shift+Home 2: sel=%d-%d, want 5-0",
-			is.SelectBeg, is.SelectEnd)
+			is.selectBeg, is.selectEnd)
 	}
 }
 
@@ -1006,18 +1006,18 @@ func TestInputOnKeyDownShiftEndCycleSelection(t *testing.T) {
 	if is.CursorPos != 7 {
 		t.Fatalf("Shift+End 1: cursor=%d, want 7", is.CursorPos)
 	}
-	if is.SelectBeg != 5 || is.SelectEnd != 7 {
+	if is.selectBeg != 5 || is.selectEnd != 7 {
 		t.Fatalf("Shift+End 1: sel=%d-%d, want 5-7",
-			is.SelectBeg, is.SelectEnd)
+			is.selectBeg, is.selectEnd)
 	}
 	ctx.fireKeyDown(KeyEnd, ModShift)
 	is = ctx.state()
 	if is.CursorPos != 11 {
 		t.Fatalf("Shift+End 2: cursor=%d, want 11", is.CursorPos)
 	}
-	if is.SelectBeg != 5 || is.SelectEnd != 11 {
+	if is.selectBeg != 5 || is.selectEnd != 11 {
 		t.Fatalf("Shift+End 2: sel=%d-%d, want 5-11",
-			is.SelectBeg, is.SelectEnd)
+			is.selectBeg, is.selectEnd)
 	}
 }
 
@@ -1120,13 +1120,13 @@ func TestMakeInputOnKeyUp_NilHandler(t *testing.T) {
 // ReadOnly is a field that keeps focus and selection while refusing
 // edits.
 func newInputTestReadOnly(
-	text string, focusID string, cursorPos int, mode InputMode,
+	text string, focusID string, cursorPos int, mode inputMode,
 ) *inputTestCtx {
 	ctx := &inputTestCtx{}
 	ctx.w = newTestWindow()
 	ctx.lastText = text
 	ctx.w.SetFocus(focusID)
-	setInputState(ctx.w, focusID, InputState{CursorPos: cursorPos})
+	setInputState(ctx.w, focusID, inputState{CursorPos: cursorPos})
 	ctx.layout = generateViewLayout(Input(InputCfg{
 		Text:     text,
 		ID:       focusID,
@@ -1160,7 +1160,7 @@ func TestInputReadOnlyIsFocusableAndAnnouncedReadOnly(t *testing.T) {
 }
 
 func TestInputReadOnlyBlocksTyping(t *testing.T) {
-	ctx := newInputTestReadOnly("hello", "ro1", 5, InputSingleLine)
+	ctx := newInputTestReadOnly("hello", "ro1", 5, inputSingleLine)
 	ctx.fireChar('!')
 	if ctx.lastText != "hello" {
 		t.Fatalf("typing mutated read-only field: got %q", ctx.lastText)
@@ -1168,7 +1168,7 @@ func TestInputReadOnlyBlocksTyping(t *testing.T) {
 }
 
 func TestInputReadOnlyBlocksIMEText(t *testing.T) {
-	ctx := newInputTestReadOnly("hello", "ro_ime", 5, InputSingleLine)
+	ctx := newInputTestReadOnly("hello", "ro_ime", 5, inputSingleLine)
 	e := &Event{Type: EventChar, CharCode: 'a', IMEText: "日本"}
 	ctx.layout.Shape.events.OnChar(EventCtx{&ctx.layout, e, ctx.w})
 	if ctx.lastText != "hello" {
@@ -1213,7 +1213,7 @@ func TestInputReadOnlyBlocksDeleteKeys(t *testing.T) {
 		code KeyCode
 	}{{"backspace", KeyBackspace}, {"delete", KeyDelete}} {
 		ctx := newInputTestReadOnly("hello", "ro_"+key.name, 3,
-			InputSingleLine)
+			inputSingleLine)
 		ctx.fireKeyDown(key.code, 0)
 		if ctx.lastText != "hello" {
 			t.Errorf("%s mutated read-only field: got %q",
@@ -1223,7 +1223,7 @@ func TestInputReadOnlyBlocksDeleteKeys(t *testing.T) {
 }
 
 func TestInputReadOnlyBlocksPaste(t *testing.T) {
-	ctx := newInputTestReadOnly("hello", "ro2", 5, InputSingleLine)
+	ctx := newInputTestReadOnly("hello", "ro2", 5, inputSingleLine)
 	ctx.w.SetClipboardGetFn(func() string { return "XX" })
 	ctx.fireKeyDown(KeyV, ModCtrl)
 	if ctx.lastText != "hello" {
@@ -1233,10 +1233,10 @@ func TestInputReadOnlyBlocksPaste(t *testing.T) {
 
 func TestInputReadOnlyBlocksCut(t *testing.T) {
 	var clipboard string
-	ctx := newInputTestReadOnly("abcd", "ro3", 2, InputSingleLine)
+	ctx := newInputTestReadOnly("abcd", "ro3", 2, inputSingleLine)
 	ctx.w.SetClipboardFn(func(s string) { clipboard = s })
-	setInputState(ctx.w, "ro3", InputState{
-		CursorPos: 2, SelectBeg: 1, SelectEnd: 3,
+	setInputState(ctx.w, "ro3", inputState{
+		CursorPos: 2, selectBeg: 1, selectEnd: 3,
 	})
 	ctx.fireKeyDown(KeyX, ModCtrl)
 	if ctx.lastText != "abcd" {
@@ -1302,7 +1302,7 @@ func TestInputReadOnlySingleLineEnterStillCommits(t *testing.T) {
 // Navigation, selection, and copy are the whole reason ReadOnly is not
 // just Focusable: false — they must keep working.
 func TestInputReadOnlyAllowsNavigation(t *testing.T) {
-	ctx := newInputTestReadOnly("hello", "ro7", 0, InputSingleLine)
+	ctx := newInputTestReadOnly("hello", "ro7", 0, inputSingleLine)
 	ctx.fireKeyDown(KeyRight, 0)
 	if got := ctx.state().CursorPos; got != 1 {
 		t.Fatalf("CursorPos = %d, want 1: arrows must work read-only", got)
@@ -1310,21 +1310,21 @@ func TestInputReadOnlyAllowsNavigation(t *testing.T) {
 }
 
 func TestInputReadOnlyAllowsSelectAll(t *testing.T) {
-	ctx := newInputTestReadOnly("abc", "ro8", 1, InputSingleLine)
+	ctx := newInputTestReadOnly("abc", "ro8", 1, inputSingleLine)
 	ctx.fireKeyDown(KeyA, ModCtrl)
 	is := ctx.state()
-	if is.SelectBeg != 0 || is.SelectEnd != 3 {
+	if is.selectBeg != 0 || is.selectEnd != 3 {
 		t.Fatalf("select all: got %d-%d, want 0-3",
-			is.SelectBeg, is.SelectEnd)
+			is.selectBeg, is.selectEnd)
 	}
 }
 
 func TestInputReadOnlyAllowsCopy(t *testing.T) {
 	var clipboard string
-	ctx := newInputTestReadOnly("hello", "ro9", 5, InputSingleLine)
+	ctx := newInputTestReadOnly("hello", "ro9", 5, inputSingleLine)
 	ctx.w.SetClipboardFn(func(s string) { clipboard = s })
-	setInputState(ctx.w, "ro9", InputState{
-		CursorPos: 5, SelectBeg: 0, SelectEnd: 5,
+	setInputState(ctx.w, "ro9", inputState{
+		CursorPos: 5, selectBeg: 0, selectEnd: 5,
 	})
 	ctx.fireKeyDown(KeyC, ModCtrl)
 	if clipboard != "hello" {
@@ -1356,7 +1356,7 @@ func TestInputReadOnlyEnterDoesNotNormalize(t *testing.T) {
 	committed := ""
 	layout := generateViewLayout(Input(InputCfg{
 		Text: "  hi  ", ID: "ro_norm_enter", ReadOnly: true,
-		PostCommitNormalize: func(_ string, _ InputCommitReason) string {
+		postCommitNormalize: func(_ string, _ InputCommitReason) string {
 			return "NORMALIZED"
 		},
 		OnTextChanged: func(nt string, ctx EventCtx) {
@@ -1386,7 +1386,7 @@ func TestInputReadOnlyBlurDoesNotNormalize(t *testing.T) {
 	committed := ""
 	cfg := InputCfg{
 		Text: "  hi  ", ID: "ro_norm_blur", ReadOnly: true,
-		PostCommitNormalize: func(_ string, _ InputCommitReason) string {
+		postCommitNormalize: func(_ string, _ InputCommitReason) string {
 			return "NORMALIZED"
 		},
 		OnTextChanged: func(nt string, ctx EventCtx) {
@@ -1424,7 +1424,7 @@ func TestInputEditableEnterStillNormalizes(t *testing.T) {
 	w.SetFocus("rw_norm_enter")
 	changed := ""
 	layout := generateViewLayout(Input(InputCfg{
-		Text: "  hi  ", ID: "rw_norm_enter", PostCommitNormalize: func(_ string, _ InputCommitReason) string {
+		Text: "  hi  ", ID: "rw_norm_enter", postCommitNormalize: func(_ string, _ InputCommitReason) string {
 			return "NORMALIZED"
 		},
 		OnTextChanged: func(nt string, ctx EventCtx) {

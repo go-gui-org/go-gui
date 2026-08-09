@@ -46,7 +46,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 				if rowID != "" && colID != "" {
 					dataGridCrudApplyCellEdit(gridID, crudEnabled, onCellEdit, GridCellEdit{
 						RowID:  rowID,
-						RowIdx: rowIdx,
+						rowIdx: rowIdx,
 						ColID:  colID,
 						Value:  nextValue,
 					}, ctx.Event, ctx.Window)
@@ -68,7 +68,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 				if rowID != "" && colID != "" {
 					dataGridCrudApplyCellEdit(gridID, crudEnabled, onCellEdit, GridCellEdit{
 						RowID:  rowID,
-						RowIdx: rowIdx,
+						rowIdx: rowIdx,
 						ColID:  colID,
 						Value:  nextValue,
 					}, ctx.Event, ctx.Window)
@@ -77,8 +77,8 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 		})
 	case GridCellEditorCheckbox:
 		checked := dataGridEditorBoolValue(value)
-		editorTrueValue := col.EditorTrueValue
-		editorFalseValue := col.EditorFalseValue
+		editorTrueValue := col.editorTrueValue
+		editorFalseValue := col.editorFalseValue
 		editor = gg.Toggle(gg.ToggleCfg{
 			ID:       editorID,
 			Selected: checked,
@@ -91,7 +91,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 				if rowID != "" && colID != "" {
 					dataGridCrudApplyCellEdit(gridID, crudEnabled, onCellEdit, GridCellEdit{
 						RowID:  rowID,
-						RowIdx: rowIdx,
+						rowIdx: rowIdx,
 						ColID:  colID,
 						Value:  nextValue,
 					}, ctx.Event, ctx.Window)
@@ -111,7 +111,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 					e := &gg.Event{}
 					dataGridCrudApplyCellEdit(gridID, crudEnabled, onCellEdit, GridCellEdit{
 						RowID:  rowID,
-						RowIdx: rowIdx,
+						rowIdx: rowIdx,
 						ColID:  colID,
 						Value:  text,
 					}, e, ctx.Window)

@@ -56,10 +56,10 @@ func TestApplyDockLayoutDefaults(t *testing.T) {
 	if cfg.Sizing != FillFill {
 		t.Fatal("sizing default")
 	}
-	if !cfg.ColorZonePreview.IsSet() {
+	if !cfg.colorZonePreview.IsSet() {
 		t.Fatal("zone preview color should be set")
 	}
-	if !cfg.ColorTab.IsSet() {
+	if !cfg.colorTab.IsSet() {
 		t.Fatal("tab color should be set")
 	}
 }
@@ -68,19 +68,19 @@ func TestApplyDockLayoutDefaultsPreservesExplicit(t *testing.T) {
 	c := Color{255, 0, 0, 255, true}
 	cfg := DockLayoutCfg{
 		Sizing:            FixedFixed,
-		ColorZonePreview:  c,
-		ColorTab:          c,
-		ColorTabActive:    c,
-		ColorTabHover:     c,
-		ColorTabBar:       c,
-		ColorTabSeparator: c,
-		ColorContent:      c,
+		colorZonePreview:  c,
+		colorTab:          c,
+		colorTabActive:    c,
+		colorTabHover:     c,
+		colorTabBar:       c,
+		colorTabSeparator: c,
+		colorContent:      c,
 	}
 	applyDockLayoutDefaults(&cfg)
 	if cfg.Sizing != FixedFixed {
 		t.Fatal("should preserve explicit sizing")
 	}
-	if cfg.ColorZonePreview != c {
+	if cfg.colorZonePreview != c {
 		t.Fatal("should preserve explicit color")
 	}
 }
@@ -260,7 +260,7 @@ func TestDockGroupViewHideSingleTab(t *testing.T) {
 				ID:             "dock1",
 				Root:           group,
 				Panels:         panelDefsFor(tt.panelIDs...),
-				HideSingleTab:  tt.hideSingle,
+				hideSingleTab:  tt.hideSingle,
 				OnLayoutChange: func(_ *DockNode, ctx EventCtx) {},
 			}
 			applyDockLayoutDefaults(cfg)
@@ -373,7 +373,7 @@ func TestNewDockLayoutCore(t *testing.T) {
 		ID:               "d1",
 		Root:             DockPanelGroup("g", nil, ""),
 		OnLayoutChange:   func(_ *DockNode, ctx EventCtx) { called = true },
-		ColorZonePreview: Color{1, 2, 3, 4, true},
+		colorZonePreview: Color{1, 2, 3, 4, true},
 	}
 	core := newDockLayoutCore(cfg)
 	if core.id != "d1" {
@@ -467,7 +467,7 @@ func TestDockLayoutFullTreeIntegration(t *testing.T) {
 
 	// All panels should be reachable
 	allIDs := []string{"explorer", "search", "editor1", "editor2", "terminal", "output"}
-	nodes := DockTreeCollectPanelNodes(root)
+	nodes := dockTreeCollectPanelNodes(root)
 	var foundIDs []string
 	for _, n := range nodes {
 		foundIDs = append(foundIDs, n.PanelIDs...)

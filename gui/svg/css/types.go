@@ -6,12 +6,12 @@ package css
 
 // Origin tags a declaration's source layer in the cascade. Values
 // run lowest precedence to highest.
-type Origin uint8
+type origin uint8
 
 // Origin constants.
 const (
-	OriginPresAttr Origin = iota
-	OriginRule
+	OriginPresAttr origin = iota
+	originRule
 	OriginInline
 
 	// numOrigins is the count of origin tiers; cascadeLayer uses it
@@ -23,11 +23,12 @@ const (
 // ID selectors, b counts class+pseudo selectors, and c counts type
 // selectors. Inline style adds an extra "d" tier handled at the
 // cascade layer via Origin.
+// exportaudit:keep — reachable from an exported signature
 type Specificity [3]uint16
 
 // Less reports whether s sorts before other under the cascade
 // comparison: lower specificity loses.
-func (s Specificity) Less(o Specificity) bool {
+func (s Specificity) less(o Specificity) bool {
 	for i := range 3 {
 		if s[i] != o[i] {
 			return s[i] < o[i]
@@ -44,14 +45,14 @@ func (s Specificity) Add(o Specificity) Specificity {
 
 // NthFormula encodes :nth-child(an+b) for evaluation against a
 // 1-based child index.
-type NthFormula struct {
+type nthFormula struct {
 	A, B int
 }
 
 // Matches reports whether the formula matches a 1-based child index.
 // A==0 selects exact index B; otherwise (idx - B) must be a
 // non-negative multiple of A (with sign of A factored in).
-func (f NthFormula) Matches(idx int) bool {
+func (f nthFormula) Matches(idx int) bool {
 	if f.A == 0 {
 		return idx == f.B
 	}
@@ -63,48 +64,48 @@ func (f NthFormula) Matches(idx int) bool {
 }
 
 // AttrOp identifies the operator in an attribute selector.
-type AttrOp uint8
+type attrOp uint8
 
 // AttrOp constants. Values mirror the CSS Selectors L4 operator set.
 const (
-	AttrOpExists    AttrOp = iota // [name]
-	AttrOpEqual                   // [name=value]
-	AttrOpInclude                 // [name~=value] (whitespace-separated word)
-	AttrOpDashMatch               // [name|=value] (value or value-prefixed)
-	AttrOpPrefix                  // [name^=value]
-	AttrOpSuffix                  // [name$=value]
-	AttrOpSubstring               // [name*=value]
+	attrOpExists    attrOp = iota // [name]
+	attrOpEqual                   // [name=value]
+	attrOpInclude                 // [name~=value] (whitespace-separated word)
+	attrOpDashMatch               // [name|=value] (value or value-prefixed)
+	attrOpPrefix                  // [name^=value]
+	attrOpSuffix                  // [name$=value]
+	attrOpSubstring               // [name*=value]
 )
 
 // AttrSel is one [name op value] attribute constraint on a compound
 // selector. Name is lowercased. Op == AttrOpExists ignores Value.
-type AttrSel struct {
+type attrSel struct {
 	Name  string
 	Value string
-	Op    AttrOp
+	Op    attrOp
 }
 
 // Compound is a compound selector: an optional tag, an optional id,
 // zero or more classes, attribute constraints, and pseudo-class
 // constraints. Tag == "" matches any element when no other constraints
 // are present; "*" is the explicit universal form.
-type Compound struct {
-	NthChild *NthFormula
+type compound struct {
+	nthChild *nthFormula
 	// Not is an inner compound for :not(inner). Single-compound scope:
 	// :not(.a, .b) and nested :not(:not(...)) are not supported.
-	Not         *Compound
+	not         *compound
 	Tag         string
 	ID          string
 	Classes     []string
-	Attrs       []AttrSel
-	Spec        Specificity
+	Attrs       []attrSel
+	spec        Specificity
 	Root        bool
-	HoverPseudo bool
-	FocusPseudo bool
+	hoverPseudo bool
+	focusPseudo bool
 }
 
 // Combinator joins two compound selectors in a complex selector.
-type Combinator byte
+type combinator byte
 
 // Combinator constants. CombStart marks the leftmost compound in a
 // complex selector (no left-hand neighbor). The single-byte values
@@ -112,27 +113,27 @@ type Combinator byte
 // CSS source-form delim characters so combinatorFromDelim can map
 // directly.
 const (
-	CombStart          Combinator = 0
-	CombDescendant     Combinator = ' '
-	CombChild          Combinator = '>'
-	CombAdjacent       Combinator = '+'
-	CombGeneralSibling Combinator = '~'
+	combStart          combinator = 0
+	combDescendant     combinator = ' '
+	combChild          combinator = '>'
+	combAdjacent       combinator = '+'
+	combGeneralSibling combinator = '~'
 )
 
 // SelectorPart is one compound in a complex selector together with
 // the combinator that joins it to the previous part.
-type SelectorPart struct {
-	Compound   Compound
-	Combinator Combinator
+type selectorPart struct {
+	compound   compound
+	combinator combinator
 }
 
 // ComplexSelector is a chain of compound selectors joined by
 // combinators. Parts[len-1] is the rightmost compound (the one that
 // must match the candidate element); preceding parts must satisfy
 // the combinator chain against ancestors.
-type ComplexSelector struct {
-	Parts []SelectorPart
-	Spec  Specificity
+type complexSelector struct {
+	parts []selectorPart
+	spec  Specificity
 }
 
 // Decl is one CSS declaration. Name is lowercased; Value is the raw
@@ -150,7 +151,7 @@ type Decl struct {
 // declaration block. Source is the rule's index in source order;
 // the cascade uses it as a tiebreaker after specificity.
 type Rule struct {
-	Selectors []ComplexSelector
+	selectors []complexSelector
 	Decls     []Decl
 	Source    int
 }
@@ -174,6 +175,7 @@ type KeyframesDef struct {
 // Stylesheet is the complete parsed CSS source: top-level rules
 // plus any @keyframes definitions. Lookup helpers index by name
 // (case-insensitive on the @keyframes side).
+// exportaudit:keep — reachable from an exported signature
 type Stylesheet struct {
 	Rules     []Rule
 	Keyframes []KeyframesDef
@@ -192,7 +194,7 @@ type ParseOptions struct {
 // Hover and Focus mirror the user-agent's element-state bits and are
 // toggled by the renderer's mouse / focus dispatcher. Zero value =
 // neutral (no element hovered or focused).
-type MatchState struct {
+type matchState struct {
 	Hover bool
 	Focus bool
 }
@@ -208,6 +210,6 @@ type ElementInfo struct {
 	ID      string
 	Classes []string
 	Index   int
-	State   MatchState
+	State   matchState
 	IsRoot  bool
 }

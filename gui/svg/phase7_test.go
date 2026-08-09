@@ -12,7 +12,7 @@ import (
 func TestPhase7ParseDashArrayBasic(t *testing.T) {
 	elem := `<animate attributeName="stroke-dasharray" dur="1.5s" ` +
 		`values="0 150;42 150;42 150;42 150"/>`
-	a, ok := parseAnimateDashArrayElement(elem, ComputedStyle{GroupID: "g"})
+	a, ok := parseAnimateDashArrayElement(elem, computedStyle{GroupID: "g"})
 	if !ok {
 		t.Fatal("parse failed")
 	}
@@ -39,7 +39,7 @@ func TestPhase7ParseDashArrayRejectsUnequalFrames(t *testing.T) {
 	elem := `<animate attributeName="stroke-dasharray" dur="1s" ` +
 		`values="0 150;42"/>`
 	if _, ok := parseAnimateDashArrayElement(elem,
-		ComputedStyle{GroupID: "g"}); ok {
+		computedStyle{GroupID: "g"}); ok {
 		t.Fatal("expected reject")
 	}
 }
@@ -51,7 +51,7 @@ func TestPhase7ParseDashArrayRejectsOverCap(t *testing.T) {
 	elem := `<animate attributeName="stroke-dasharray" dur="1s" ` +
 		`values="` + many + `;` + many + `"/>`
 	if _, ok := parseAnimateDashArrayElement(elem,
-		ComputedStyle{GroupID: "g"}); ok {
+		computedStyle{GroupID: "g"}); ok {
 		t.Fatal("expected reject for over-cap frame")
 	}
 }
@@ -62,7 +62,7 @@ func TestPhase7ParseDashOffsetScalar(t *testing.T) {
 	elem := `<animate attributeName="stroke-dashoffset" dur="1.5s" ` +
 		`values="0;-16;-59;-59"/>`
 	a, ok := parseAnimateDashOffsetElement(elem,
-		ComputedStyle{GroupID: "g"})
+		computedStyle{GroupID: "g"})
 	if !ok {
 		t.Fatal("parse failed")
 	}

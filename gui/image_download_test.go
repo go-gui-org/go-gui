@@ -70,7 +70,7 @@ func removeCachedFor(url string) {
 
 func TestResolveImageSrcEmpty(t *testing.T) {
 	w := &Window{}
-	if got := ResolveImageSrc(w, ""); got != "" {
+	if got := resolveImageSrc(w, ""); got != "" {
 		t.Fatalf("empty src: got %q, want %q", got, "")
 	}
 }
@@ -78,7 +78,7 @@ func TestResolveImageSrcEmpty(t *testing.T) {
 func TestResolveImageSrcDataURL(t *testing.T) {
 	w := &Window{}
 	src := "data:image/png;base64,AAAA"
-	if got := ResolveImageSrc(w, src); got != src {
+	if got := resolveImageSrc(w, src); got != src {
 		t.Fatalf("data URL: got %q, want %q", got, src)
 	}
 }
@@ -87,7 +87,7 @@ func TestResolveImageSrcURLTooLong(t *testing.T) {
 	w := &Window{}
 	huge := "https://example.test/" + strings.Repeat("a",
 		maxImageURLLen+1) + ".png"
-	if got := ResolveImageSrc(w, huge); got != "" {
+	if got := resolveImageSrc(w, huge); got != "" {
 		t.Fatalf("oversized URL: got %q, want \"\"", got)
 	}
 	// No download should have been scheduled.
@@ -100,7 +100,7 @@ func TestResolveImageSrcURLTooLong(t *testing.T) {
 func TestResolveImageSrcLocalPath(t *testing.T) {
 	w := &Window{}
 	src := "/some/local/path.png"
-	if got := ResolveImageSrc(w, src); got != src {
+	if got := resolveImageSrc(w, src); got != src {
 		t.Fatalf("local path: got %q, want %q", got, src)
 	}
 }
@@ -120,7 +120,7 @@ func TestResolveImageSrcResolvedCacheHit(t *testing.T) {
 		w, nsImageResolved, capScroll)
 	resolved.Set(url, sentinel)
 
-	if got := ResolveImageSrc(w, url); got != sentinel {
+	if got := resolveImageSrc(w, url); got != sentinel {
 		t.Fatalf("got %q, want %q", got, sentinel)
 	}
 	// No download should have been scheduled.
@@ -148,7 +148,7 @@ func TestResolveImageSrcHTTPCached(t *testing.T) {
 	}
 
 	w := &Window{}
-	got := ResolveImageSrc(w, url)
+	got := resolveImageSrc(w, url)
 	if got != cached {
 		t.Fatalf("cached: got %q, want %q", got, cached)
 	}
@@ -176,7 +176,7 @@ func TestResolveImageSrcHTTPNotCached(t *testing.T) {
 		},
 	}
 
-	got := ResolveImageSrc(w, url)
+	got := resolveImageSrc(w, url)
 	if got != "" {
 		t.Fatalf("not cached: got %q, want \"\"", got)
 	}
@@ -427,7 +427,7 @@ func TestGetDownloadSemClampsOversizeConfig(t *testing.T) {
 	resetDownloadSem()
 	t.Cleanup(resetDownloadSem)
 	w := &Window{Config: WindowCfg{
-		MaxImageDownloads: 10000,
+		maxImageDownloads: 10000,
 	}}
 	sem := getDownloadSem(w)
 	if got := cap(sem); got != maxConcurrentImageDownloads {
@@ -510,7 +510,7 @@ func TestDownloadImageSemaphoreCap(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	dir := t.TempDir()
-	w := &Window{Config: WindowCfg{MaxImageDownloads: maxCap}}
+	w := &Window{Config: WindowCfg{maxImageDownloads: maxCap}}
 	w.ctx = t.Context()
 
 	var wg sync.WaitGroup

@@ -73,10 +73,10 @@ func dataGridColumnOrderAndMap(columns []GridColumnCfg, columnOrder []string) ([
 func dataGridPartitionPins(columns []GridColumnCfg) []GridColumnCfg {
 	var left, center, right []GridColumnCfg
 	for _, col := range columns {
-		switch col.Pin {
-		case GridColumnPinLeft:
+		switch col.pin {
+		case gridColumnPinLeft:
 			left = append(left, col)
-		case GridColumnPinRight:
+		case gridColumnPinRight:
 			right = append(right, col)
 		default:
 			center = append(center, col)
@@ -89,14 +89,14 @@ func dataGridPartitionPins(columns []GridColumnCfg) []GridColumnCfg {
 	return merged
 }
 
-func dataGridColumnNextPin(pin GridColumnPin) GridColumnPin {
+func dataGridColumnNextPin(pin gridColumnPin) gridColumnPin {
 	switch pin {
-	case GridColumnPinNone:
-		return GridColumnPinLeft
-	case GridColumnPinLeft:
-		return GridColumnPinRight
+	case gridColumnPinNone:
+		return gridColumnPinLeft
+	case gridColumnPinLeft:
+		return gridColumnPinRight
 	default:
-		return GridColumnPinNone
+		return gridColumnPinNone
 	}
 }
 
@@ -164,17 +164,17 @@ func dataGridNextHiddenColumns(hidden map[string]bool, colID string, columns []G
 func dataGridToggleSort(query GridQueryState, colID string, multiSort, appendSort bool) GridQueryState {
 	next := GridQueryState{
 		Sorts:       make([]GridSort, len(query.Sorts)),
-		Filters:     make([]GridFilter, len(query.Filters)),
+		Filters:     make([]gridFilter, len(query.Filters)),
 		QuickFilter: query.QuickFilter,
 	}
 	copy(next.Sorts, query.Sorts)
 	copy(next.Filters, query.Filters)
 
 	idx := dataGridSortIndex(next.Sorts, colID)
-	newDir := GridSortAsc
+	newDir := gridSortAsc
 	remove := false
 	if idx >= 0 {
-		if next.Sorts[idx].Dir == GridSortAsc {
+		if next.Sorts[idx].Dir == gridSortAsc {
 			newDir = GridSortDesc
 		} else {
 			remove = true
@@ -188,7 +188,7 @@ func dataGridToggleSort(query GridQueryState, colID string, multiSort, appendSor
 				next.Sorts[idx] = GridSort{ColID: colID, Dir: newDir}
 			}
 		} else {
-			next.Sorts = append(next.Sorts, GridSort{ColID: colID, Dir: GridSortAsc})
+			next.Sorts = append(next.Sorts, GridSort{ColID: colID, Dir: gridSortAsc})
 		}
 		return next
 	}
@@ -199,7 +199,7 @@ func dataGridToggleSort(query GridQueryState, colID string, multiSort, appendSor
 			next.Sorts = []GridSort{{ColID: colID, Dir: newDir}}
 		}
 	} else {
-		next.Sorts = []GridSort{{ColID: colID, Dir: GridSortAsc}}
+		next.Sorts = []GridSort{{ColID: colID, Dir: gridSortAsc}}
 	}
 	return next
 }
@@ -216,7 +216,7 @@ func dataGridSortIndex(sorts []GridSort, colID string) int {
 func dataGridQuerySetFilter(query GridQueryState, colID, value string) GridQueryState {
 	next := GridQueryState{
 		Sorts:       make([]GridSort, len(query.Sorts)),
-		Filters:     make([]GridFilter, len(query.Filters)),
+		Filters:     make([]gridFilter, len(query.Filters)),
 		QuickFilter: query.QuickFilter,
 	}
 	copy(next.Sorts, query.Sorts)
@@ -231,13 +231,13 @@ func dataGridQuerySetFilter(query GridQueryState, colID, value string) GridQuery
 		return next
 	}
 	if idx >= 0 {
-		next.Filters[idx] = GridFilter{
+		next.Filters[idx] = gridFilter{
 			ColID: colID,
 			Op:    next.Filters[idx].Op,
 			Value: value,
 		}
 	} else {
-		next.Filters = append(next.Filters, GridFilter{
+		next.Filters = append(next.Filters, gridFilter{
 			ColID: colID,
 			Op:    "contains",
 			Value: value,
@@ -246,7 +246,7 @@ func dataGridQuerySetFilter(query GridQueryState, colID, value string) GridQuery
 	return next
 }
 
-func dataGridQueryFilterIndex(filters []GridFilter, colID string) int {
+func dataGridQueryFilterIndex(filters []gridFilter, colID string) int {
 	for idx, f := range filters {
 		if f.ColID == colID {
 			return idx

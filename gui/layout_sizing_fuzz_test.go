@@ -276,8 +276,8 @@ func FuzzLayoutSizingWithMix(f *testing.F) {
 			l.Children = make([]Layout, n)
 			for i := range n {
 				sizing := Sizing{
-					Width:  SizingType(i % 3),
-					Height: SizingType((i + 1) % 3),
+					Width:  sizingType(i % 3),
+					Height: sizingType((i + 1) % 3),
 				}
 				child := Layout{
 					Shape: w.allocShape(Shape{

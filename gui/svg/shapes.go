@@ -3,104 +3,104 @@ package svg
 import "github.com/go-gui-org/go-gui/gui"
 
 // parsePathWithStyle parses a <path> element with inherited style.
-func parsePathWithStyle(elem string, inherited ComputedStyle) (VectorPath, bool) {
+func parsePathWithStyle(elem string, inherited computedStyle) (vectorPath, bool) {
 	path, ok := parsePathElement(elem)
 	if !ok {
-		return VectorPath{}, false
+		return vectorPath{}, false
 	}
-	path.FillRule = resolveFillRule(elem, inherited)
+	path.fillRule = resolveFillRule(elem, inherited)
 	applyComputedStyle(&path, inherited)
 	return path, true
 }
 
-func parseRectWithStyle(elem string, inherited ComputedStyle) (VectorPath, bool) {
+func parseRectWithStyle(elem string, inherited computedStyle) (vectorPath, bool) {
 	path, ok := parseRectElement(elem)
 	if !ok {
-		return VectorPath{}, false
+		return vectorPath{}, false
 	}
-	path.FillRule = resolveFillRule(elem, inherited)
+	path.fillRule = resolveFillRule(elem, inherited)
 	applyComputedStyle(&path, inherited)
 	return path, true
 }
 
-func parseCircleWithStyle(elem string, inherited ComputedStyle) (VectorPath, bool) {
+func parseCircleWithStyle(elem string, inherited computedStyle) (vectorPath, bool) {
 	path, ok := parseCircleElement(elem)
 	if !ok {
-		return VectorPath{}, false
+		return vectorPath{}, false
 	}
-	path.FillRule = resolveFillRule(elem, inherited)
+	path.fillRule = resolveFillRule(elem, inherited)
 	applyComputedStyle(&path, inherited)
 	return path, true
 }
 
-func parseEllipseWithStyle(elem string, inherited ComputedStyle) (VectorPath, bool) {
+func parseEllipseWithStyle(elem string, inherited computedStyle) (vectorPath, bool) {
 	path, ok := parseEllipseElement(elem)
 	if !ok {
-		return VectorPath{}, false
+		return vectorPath{}, false
 	}
-	path.FillRule = resolveFillRule(elem, inherited)
+	path.fillRule = resolveFillRule(elem, inherited)
 	applyComputedStyle(&path, inherited)
 	return path, true
 }
 
-func parsePolygonWithStyle(elem string, inherited ComputedStyle, closed bool) (VectorPath, bool) {
+func parsePolygonWithStyle(elem string, inherited computedStyle, closed bool) (vectorPath, bool) {
 	path, ok := parsePolygonElement(elem, closed)
 	if !ok {
-		return VectorPath{}, false
+		return vectorPath{}, false
 	}
-	path.FillRule = resolveFillRule(elem, inherited)
+	path.fillRule = resolveFillRule(elem, inherited)
 	applyComputedStyle(&path, inherited)
 	return path, true
 }
 
-func parseLineWithStyle(elem string, inherited ComputedStyle) (VectorPath, bool) {
+func parseLineWithStyle(elem string, inherited computedStyle) (vectorPath, bool) {
 	path, ok := parseLineElement(elem)
 	if !ok {
-		return VectorPath{}, false
+		return vectorPath{}, false
 	}
-	path.FillRule = resolveFillRule(elem, inherited)
+	path.fillRule = resolveFillRule(elem, inherited)
 	applyComputedStyle(&path, inherited)
 	return path, true
 }
 
 // parsePathElement parses a <path> element.
-func parsePathElement(elem string) (VectorPath, bool) {
+func parsePathElement(elem string) (vectorPath, bool) {
 	d, ok := findAttr(elem, "d")
 	if !ok {
-		return VectorPath{}, false
+		return vectorPath{}, false
 	}
 	fill, _ := findAttrOrStyle(elem, "fill")
 	s := parseElementStyle(elem)
 	fillColor, _ := parseSvgColor(fill)
 
-	path := VectorPath{
+	path := vectorPath{
 		FillColor:        fillColor,
 		Transform:        s.Transform,
 		StrokeColor:      s.StrokeColor,
 		StrokeWidth:      s.StrokeWidth,
-		StrokeCap:        s.StrokeCap,
-		StrokeJoin:       s.StrokeJoin,
+		strokeCap:        s.strokeCap,
+		strokeJoin:       s.strokeJoin,
 		Opacity:          s.Opacity,
 		FillOpacity:      s.FillOpacity,
 		StrokeOpacity:    s.StrokeOpacity,
-		StrokeGradientID: s.StrokeGradientID,
-		StrokeDasharray:  s.StrokeDasharray,
+		strokeGradientID: s.strokeGradientID,
+		strokeDasharray:  s.strokeDasharray,
 	}
 	if gid, found := parseFillURL(fill); found {
 		path.FillGradientID = gid
 	}
 	path.Segments = parsePathD(d)
 	if len(path.Segments) == 0 {
-		return VectorPath{}, false
+		return vectorPath{}, false
 	}
-	path.Bbox = bboxFromSegments(path.Segments)
+	path.bbox = bboxFromSegments(path.Segments)
 	return path, true
 }
 
 // segmentsForRect returns path segments for a <rect> primitive with
 // the given attributes. Shared between parse time and animated
 // re-tessellation.
-func segmentsForRect(x, y, rw, rh, rx, ry float32) []PathSegment {
+func segmentsForRect(x, y, rw, rh, rx, ry float32) []pathSegment {
 	if rx == 0 && ry > 0 {
 		rx = ry
 	}
@@ -108,12 +108,12 @@ func segmentsForRect(x, y, rw, rh, rx, ry float32) []PathSegment {
 		ry = rx
 	}
 	if rx == 0 && ry == 0 {
-		return []PathSegment{
-			{CmdMoveTo, []float32{x, y}},
-			{CmdLineTo, []float32{x + rw, y}},
-			{CmdLineTo, []float32{x + rw, y + rh}},
-			{CmdLineTo, []float32{x, y + rh}},
-			{CmdClose, nil},
+		return []pathSegment{
+			{cmdMoveTo, []float32{x, y}},
+			{cmdLineTo, []float32{x + rw, y}},
+			{cmdLineTo, []float32{x + rw, y + rh}},
+			{cmdLineTo, []float32{x, y + rh}},
+			{cmdClose, nil},
 		}
 	}
 	if rx > rw/2 {
@@ -122,52 +122,52 @@ func segmentsForRect(x, y, rw, rh, rx, ry float32) []PathSegment {
 	if ry > rh/2 {
 		ry = rh / 2
 	}
-	segments := make([]PathSegment, 0, 16)
-	segments = append(segments, PathSegment{CmdMoveTo, []float32{x + rx, y}})
-	segments = append(segments, PathSegment{CmdLineTo, []float32{x + rw - rx, y}})
+	segments := make([]pathSegment, 0, 16)
+	segments = append(segments, pathSegment{cmdMoveTo, []float32{x + rx, y}})
+	segments = append(segments, pathSegment{cmdLineTo, []float32{x + rw - rx, y}})
 	segments = append(segments, arcToCubic(x+rw-rx, y, rx, ry, 0, false, true, x+rw, y+ry)...)
-	segments = append(segments, PathSegment{CmdLineTo, []float32{x + rw, y + rh - ry}})
+	segments = append(segments, pathSegment{cmdLineTo, []float32{x + rw, y + rh - ry}})
 	segments = append(segments, arcToCubic(x+rw, y+rh-ry, rx, ry, 0, false, true, x+rw-rx, y+rh)...)
-	segments = append(segments, PathSegment{CmdLineTo, []float32{x + rx, y + rh}})
+	segments = append(segments, pathSegment{cmdLineTo, []float32{x + rx, y + rh}})
 	segments = append(segments, arcToCubic(x+rx, y+rh, rx, ry, 0, false, true, x, y+rh-ry)...)
-	segments = append(segments, PathSegment{CmdLineTo, []float32{x, y + ry}})
+	segments = append(segments, pathSegment{cmdLineTo, []float32{x, y + ry}})
 	segments = append(segments, arcToCubic(x, y+ry, rx, ry, 0, false, true, x+rx, y)...)
-	segments = append(segments, PathSegment{CmdClose, nil})
+	segments = append(segments, pathSegment{cmdClose, nil})
 	return segments
 }
 
 // segmentsForEllipse returns path segments for a <circle> or
 // <ellipse> primitive. A circle passes r for both rx and ry.
-func segmentsForEllipse(cx, cy, rx, ry float32) []PathSegment {
+func segmentsForEllipse(cx, cy, rx, ry float32) []pathSegment {
 	const k = float32(0.5522847498)
 	kx := rx * k
 	ky := ry * k
-	return []PathSegment{
-		{CmdMoveTo, []float32{cx, cy - ry}},
-		{CmdCubicTo, []float32{cx + kx, cy - ry, cx + rx, cy - ky, cx + rx, cy}},
-		{CmdCubicTo, []float32{cx + rx, cy + ky, cx + kx, cy + ry, cx, cy + ry}},
-		{CmdCubicTo, []float32{cx - kx, cy + ry, cx - rx, cy + ky, cx - rx, cy}},
-		{CmdCubicTo, []float32{cx - rx, cy - ky, cx - kx, cy - ry, cx, cy - ry}},
-		{CmdClose, nil},
+	return []pathSegment{
+		{cmdMoveTo, []float32{cx, cy - ry}},
+		{cmdCubicTo, []float32{cx + kx, cy - ry, cx + rx, cy - ky, cx + rx, cy}},
+		{cmdCubicTo, []float32{cx + rx, cy + ky, cx + kx, cy + ry, cx, cy + ry}},
+		{cmdCubicTo, []float32{cx - kx, cy + ry, cx - rx, cy + ky, cx - rx, cy}},
+		{cmdCubicTo, []float32{cx - rx, cy - ky, cx - kx, cy - ry, cx, cy - ry}},
+		{cmdClose, nil},
 	}
 }
 
 // segmentsForLine returns path segments for a <line> primitive.
-func segmentsForLine(x1, y1, x2, y2 float32) []PathSegment {
-	return []PathSegment{
-		{CmdMoveTo, []float32{x1, y1}},
-		{CmdLineTo, []float32{x2, y2}},
+func segmentsForLine(x1, y1, x2, y2 float32) []pathSegment {
+	return []pathSegment{
+		{cmdMoveTo, []float32{x1, y1}},
+		{cmdLineTo, []float32{x2, y2}},
 	}
 }
 
 // parseRectElement converts <rect> to path.
-func parseRectElement(elem string) (VectorPath, bool) {
+func parseRectElement(elem string) (vectorPath, bool) {
 	x := attrFloat(elem, "x", 0)
 	y := attrFloat(elem, "y", 0)
 	w, wok := findAttr(elem, "width")
 	h, hok := findAttr(elem, "height")
 	if !wok || !hok {
-		return VectorPath{}, false
+		return vectorPath{}, false
 	}
 	rw := parseF32(w)
 	rh := parseF32(h)
@@ -180,19 +180,19 @@ func parseRectElement(elem string) (VectorPath, bool) {
 
 	segments := segmentsForRect(x, y, rw, rh, rx, ry)
 
-	vp := VectorPath{
+	vp := vectorPath{
 		Segments:         segments,
 		FillColor:        fillColor,
 		Transform:        s.Transform,
 		StrokeColor:      s.StrokeColor,
 		StrokeWidth:      s.StrokeWidth,
-		StrokeCap:        s.StrokeCap,
-		StrokeJoin:       s.StrokeJoin,
+		strokeCap:        s.strokeCap,
+		strokeJoin:       s.strokeJoin,
 		Opacity:          s.Opacity,
 		FillOpacity:      s.FillOpacity,
 		StrokeOpacity:    s.StrokeOpacity,
-		StrokeGradientID: s.StrokeGradientID,
-		StrokeDasharray:  s.StrokeDasharray,
+		strokeGradientID: s.strokeGradientID,
+		strokeDasharray:  s.strokeDasharray,
 		Primitive: gui.SvgPrimitive{
 			Kind: gui.SvgPrimRect,
 			X:    x,
@@ -202,7 +202,7 @@ func parseRectElement(elem string) (VectorPath, bool) {
 			RX:   rx,
 			RY:   ry,
 		},
-		Bbox: bboxFromRect(x, y, rw, rh),
+		bbox: bboxFromRect(x, y, rw, rh),
 	}
 	if gid, found := parseFillURL(fill); found {
 		vp.FillGradientID = gid
@@ -211,12 +211,12 @@ func parseRectElement(elem string) (VectorPath, bool) {
 }
 
 // parseCircleElement converts <circle> to path.
-func parseCircleElement(elem string) (VectorPath, bool) {
+func parseCircleElement(elem string) (vectorPath, bool) {
 	cx := attrFloat(elem, "cx", 0)
 	cy := attrFloat(elem, "cy", 0)
 	_, rok := findAttr(elem, "r")
 	if !rok {
-		return VectorPath{}, false
+		return vectorPath{}, false
 	}
 	r := attrFloat(elem, "r", 0)
 	fill, _ := findAttrOrStyle(elem, "fill")
@@ -228,16 +228,16 @@ func parseCircleElement(elem string) (VectorPath, bool) {
 		CY:   cy,
 		R:    r,
 	}
-	vp.Bbox = bboxFromEllipse(cx, cy, r, r)
+	vp.bbox = bboxFromEllipse(cx, cy, r, r)
 	return vp, true
 }
 
 // parseEllipseElement converts <ellipse> to path.
-func parseEllipseElement(elem string) (VectorPath, bool) {
+func parseEllipseElement(elem string) (vectorPath, bool) {
 	_, rxok := findAttr(elem, "rx")
 	_, ryok := findAttr(elem, "ry")
 	if !rxok || !ryok {
-		return VectorPath{}, false
+		return vectorPath{}, false
 	}
 	cx := attrFloat(elem, "cx", 0)
 	cy := attrFloat(elem, "cy", 0)
@@ -253,25 +253,25 @@ func parseEllipseElement(elem string) (VectorPath, bool) {
 		RX:   rx,
 		RY:   ry,
 	}
-	vp.Bbox = bboxFromEllipse(cx, cy, rx, ry)
+	vp.bbox = bboxFromEllipse(cx, cy, rx, ry)
 	return vp, true
 }
 
-func ellipseToPath(cx, cy, rx, ry float32, _, fill string, s elementStyle) VectorPath {
+func ellipseToPath(cx, cy, rx, ry float32, _, fill string, s elementStyle) vectorPath {
 	fillColor, _ := parseSvgColor(fill)
-	vp := VectorPath{
+	vp := vectorPath{
 		Segments:         segmentsForEllipse(cx, cy, rx, ry),
 		FillColor:        fillColor,
 		Transform:        s.Transform,
 		StrokeColor:      s.StrokeColor,
 		StrokeWidth:      s.StrokeWidth,
-		StrokeCap:        s.StrokeCap,
-		StrokeJoin:       s.StrokeJoin,
+		strokeCap:        s.strokeCap,
+		strokeJoin:       s.strokeJoin,
 		Opacity:          s.Opacity,
 		FillOpacity:      s.FillOpacity,
 		StrokeOpacity:    s.StrokeOpacity,
-		StrokeGradientID: s.StrokeGradientID,
-		StrokeDasharray:  s.StrokeDasharray,
+		strokeGradientID: s.strokeGradientID,
+		strokeDasharray:  s.strokeDasharray,
 	}
 	if gid, found := parseFillURL(fill); found {
 		vp.FillGradientID = gid
@@ -280,44 +280,44 @@ func ellipseToPath(cx, cy, rx, ry float32, _, fill string, s elementStyle) Vecto
 }
 
 // parsePolygonElement converts <polygon> or <polyline> to path.
-func parsePolygonElement(elem string, closed bool) (VectorPath, bool) {
+func parsePolygonElement(elem string, closed bool) (vectorPath, bool) {
 	pointsStr, ok := findAttr(elem, "points")
 	if !ok {
-		return VectorPath{}, false
+		return vectorPath{}, false
 	}
 	fill, _ := findAttrOrStyle(elem, "fill")
 	s := parseElementStyle(elem)
 
 	numbers := parseNumberList(pointsStr)
 	if len(numbers) < 4 || len(numbers)%2 != 0 {
-		return VectorPath{}, false
+		return vectorPath{}, false
 	}
 
-	segments := make([]PathSegment, 0, len(numbers)/2+2)
-	segments = append(segments, PathSegment{CmdMoveTo, []float32{numbers[0], numbers[1]}})
+	segments := make([]pathSegment, 0, len(numbers)/2+2)
+	segments = append(segments, pathSegment{cmdMoveTo, []float32{numbers[0], numbers[1]}})
 	for i := 2; i < len(numbers)-1; i += 2 {
-		segments = append(segments, PathSegment{CmdLineTo, []float32{numbers[i], numbers[i+1]}})
+		segments = append(segments, pathSegment{cmdLineTo, []float32{numbers[i], numbers[i+1]}})
 	}
 	if closed {
-		segments = append(segments, PathSegment{CmdClose, nil})
+		segments = append(segments, pathSegment{cmdClose, nil})
 	}
 	fillColor, _ := parseSvgColor(fill)
 
-	vp := VectorPath{
+	vp := vectorPath{
 		Segments:         segments,
 		FillColor:        fillColor,
 		Transform:        s.Transform,
 		StrokeColor:      s.StrokeColor,
 		StrokeWidth:      s.StrokeWidth,
-		StrokeCap:        s.StrokeCap,
-		StrokeJoin:       s.StrokeJoin,
+		strokeCap:        s.strokeCap,
+		strokeJoin:       s.strokeJoin,
 		Opacity:          s.Opacity,
 		FillOpacity:      s.FillOpacity,
 		StrokeOpacity:    s.StrokeOpacity,
-		StrokeGradientID: s.StrokeGradientID,
-		StrokeDasharray:  s.StrokeDasharray,
+		strokeGradientID: s.strokeGradientID,
+		strokeDasharray:  s.strokeDasharray,
 	}
-	vp.Bbox = bboxFromSegments(segments)
+	vp.bbox = bboxFromSegments(segments)
 	if gid, found := parseFillURL(fill); found {
 		vp.FillGradientID = gid
 	}
@@ -325,30 +325,30 @@ func parsePolygonElement(elem string, closed bool) (VectorPath, bool) {
 }
 
 // parseLineElement converts <line> to path.
-func parseLineElement(elem string) (VectorPath, bool) {
+func parseLineElement(elem string) (vectorPath, bool) {
 	x1 := attrFloat(elem, "x1", 0)
 	y1 := attrFloat(elem, "y1", 0)
 	x2 := attrFloat(elem, "x2", 0)
 	y2 := attrFloat(elem, "y2", 0)
 
 	if x1 == x2 && y1 == y2 {
-		return VectorPath{}, false
+		return vectorPath{}, false
 	}
 
 	s := parseElementStyle(elem)
-	return VectorPath{
+	return vectorPath{
 		Segments:         segmentsForLine(x1, y1, x2, y2),
 		FillColor:        colorTransparent,
 		Transform:        s.Transform,
 		StrokeColor:      s.StrokeColor,
 		StrokeWidth:      s.StrokeWidth,
-		StrokeCap:        s.StrokeCap,
-		StrokeJoin:       s.StrokeJoin,
+		strokeCap:        s.strokeCap,
+		strokeJoin:       s.strokeJoin,
 		Opacity:          s.Opacity,
 		FillOpacity:      s.FillOpacity,
 		StrokeOpacity:    s.StrokeOpacity,
-		StrokeGradientID: s.StrokeGradientID,
-		StrokeDasharray:  s.StrokeDasharray,
+		strokeGradientID: s.strokeGradientID,
+		strokeDasharray:  s.strokeDasharray,
 		Primitive: gui.SvgPrimitive{
 			Kind: gui.SvgPrimLine,
 			X:    x1,
@@ -356,7 +356,7 @@ func parseLineElement(elem string) (VectorPath, bool) {
 			X2:   x2,
 			Y2:   y2,
 		},
-		Bbox: bboxFromLine(x1, y1, x2, y2),
+		bbox: bboxFromLine(x1, y1, x2, y2),
 	}, true
 }
 

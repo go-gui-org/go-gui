@@ -10,8 +10,8 @@ import (
 func TestEffectivePaginationKindCursorPreferred(t *testing.T) {
 	// Cursor preferred + both supported → cursor.
 	caps := GridDataCapabilities{
-		SupportsCursorPagination: true,
-		SupportsOffsetPagination: true,
+		supportsCursorPagination: true,
+		supportsOffsetPagination: true,
 	}
 	got := dataGridSourceEffectivePaginationKind(GridPaginationCursor, caps)
 	if got != GridPaginationCursor {
@@ -22,7 +22,7 @@ func TestEffectivePaginationKindCursorPreferred(t *testing.T) {
 func TestEffectivePaginationKindCursorFallbackToOffset(t *testing.T) {
 	// Cursor preferred but only offset supported → offset.
 	caps := GridDataCapabilities{
-		SupportsOffsetPagination: true,
+		supportsOffsetPagination: true,
 	}
 	got := dataGridSourceEffectivePaginationKind(GridPaginationCursor, caps)
 	if got != GridPaginationOffset {
@@ -34,7 +34,7 @@ func TestEffectivePaginationKindCursorNeitherSupported(t *testing.T) {
 	// Cursor preferred, nothing supported → none.
 	caps := GridDataCapabilities{}
 	got := dataGridSourceEffectivePaginationKind(GridPaginationCursor, caps)
-	if got != GridPaginationNone {
+	if got != gridPaginationNone {
 		t.Fatalf("got %d, want GridPaginationNone", got)
 	}
 }
@@ -42,8 +42,8 @@ func TestEffectivePaginationKindCursorNeitherSupported(t *testing.T) {
 func TestEffectivePaginationKindOffsetPreferred(t *testing.T) {
 	// Offset preferred + both supported → offset.
 	caps := GridDataCapabilities{
-		SupportsCursorPagination: true,
-		SupportsOffsetPagination: true,
+		supportsCursorPagination: true,
+		supportsOffsetPagination: true,
 	}
 	got := dataGridSourceEffectivePaginationKind(GridPaginationOffset, caps)
 	if got != GridPaginationOffset {
@@ -54,7 +54,7 @@ func TestEffectivePaginationKindOffsetPreferred(t *testing.T) {
 func TestEffectivePaginationKindOffsetFallbackToCursor(t *testing.T) {
 	// Offset preferred but only cursor supported → cursor.
 	caps := GridDataCapabilities{
-		SupportsCursorPagination: true,
+		supportsCursorPagination: true,
 	}
 	got := dataGridSourceEffectivePaginationKind(GridPaginationOffset, caps)
 	if got != GridPaginationCursor {
@@ -69,7 +69,7 @@ func TestDataGridPageLimit(t *testing.T) {
 		t.Fatalf("got %d, want 50", got)
 	}
 	// PageLimit zero, PageSize set → use PageSize.
-	cfg = &DataGridCfg{PageSize: 25}
+	cfg = &DataGridCfg{pageSize: 25}
 	if got := dataGridPageLimit(cfg); got != 25 {
 		t.Fatalf("got %d, want 25", got)
 	}
@@ -147,12 +147,12 @@ func TestDataGridSourceRowsWithStableIDsCursorOpaque(t *testing.T) {
 
 func TestDataGridSourceCanPrevCursor(t *testing.T) {
 	// Has prev cursor → true.
-	state := dataGridSourceState{PrevCursor: "i:0"}
+	state := dataGridSourceState{prevCursor: "i:0"}
 	if !dataGridSourceCanPrev(GridPaginationCursor, state, 10) {
 		t.Fatal("expected true with PrevCursor set")
 	}
 	// Empty prev cursor → false.
-	state.PrevCursor = ""
+	state.prevCursor = ""
 	if dataGridSourceCanPrev(GridPaginationCursor, state, 10) {
 		t.Fatal("expected false with empty PrevCursor")
 	}
@@ -175,11 +175,11 @@ func TestDataGridSourceCanPrevOffset(t *testing.T) {
 }
 
 func TestDataGridSourceCanNextCursor(t *testing.T) {
-	state := dataGridSourceState{NextCursor: "i:50"}
+	state := dataGridSourceState{nextCursor: "i:50"}
 	if !dataGridSourceCanNext(GridPaginationCursor, state, 10) {
 		t.Fatal("expected true with NextCursor set")
 	}
-	state.NextCursor = ""
+	state.nextCursor = ""
 	if dataGridSourceCanNext(GridPaginationCursor, state, 10) {
 		t.Fatal("expected false with empty NextCursor")
 	}
@@ -203,7 +203,7 @@ func TestDataGridSourceCanNextOffset(t *testing.T) {
 		t.Fatal("expected false at end of data")
 	}
 	// Unknown row count but HasMore.
-	state = dataGridSourceState{HasMore: true, ReceivedCount: 10}
+	state = dataGridSourceState{hasMore: true, ReceivedCount: 10}
 	if !dataGridSourceCanNext(GridPaginationOffset, state, 10) {
 		t.Fatal("expected true with HasMore")
 	}
@@ -333,7 +333,7 @@ func TestDataGridSourceRowPositionText(t *testing.T) {
 		Rows: []GridRow{
 			{ID: "r0"}, {ID: "r1"}, {ID: "r2"},
 		},
-		Selection: GridSelection{ActiveRowID: "r1"},
+		Selection: GridSelection{activeRowID: "r1"},
 	}
 	state := dataGridSourceState{
 		OffsetStart: 20,
@@ -447,7 +447,7 @@ func TestSourcePrevPage(t *testing.T) {
 	defer w.Close()
 	dgSource := gg.StateMap[string, dataGridSourceState](w, nsDgSource, 4)
 	dgSource.Set("g1", dataGridSourceState{
-		PrevCursor:     "prev-cursor",
+		prevCursor:     "prev-cursor",
 		PaginationKind: GridPaginationCursor,
 	})
 	dataGridSourcePrevPage("g1", GridPaginationCursor, 50, w)
@@ -463,7 +463,7 @@ func TestSourceNextPage(t *testing.T) {
 	defer w.Close()
 	dgSource := gg.StateMap[string, dataGridSourceState](w, nsDgSource, 4)
 	dgSource.Set("g1", dataGridSourceState{
-		NextCursor:     "next-cursor",
+		nextCursor:     "next-cursor",
 		PaginationKind: GridPaginationCursor,
 	})
 	dataGridSourceNextPage("g1", GridPaginationCursor, 50, w)
@@ -627,7 +627,7 @@ func TestGridScrollShiftsVisibleRows(t *testing.T) {
 	v := New(w, DataGridCfg{
 		ID:        gridID,
 		MaxHeight: maxHeight,
-		RowHeight: rowHeight,
+		rowHeight: rowHeight,
 		Columns:   []GridColumnCfg{{ID: "a", Title: "A"}},
 		Rows:      rows,
 	})
@@ -667,7 +667,7 @@ func TestGridScrollTopShowsFirstRows(t *testing.T) {
 	v := New(w, DataGridCfg{
 		ID:        gridID,
 		MaxHeight: 200,
-		RowHeight: 30,
+		rowHeight: 30,
 		Columns:   []GridColumnCfg{{ID: "a", Title: "A"}},
 		Rows:      rows,
 	})

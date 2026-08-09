@@ -10,13 +10,13 @@ var splitterButtonSuffix = [3]string{
 func splitterHandleView(cfg *SplitterCfg, core *splitterCore) View {
 	content := make([]View, 0, 3)
 	if cfg.ShowCollapseButtons &&
-		(cfg.First.Collapsible || cfg.Second.Collapsible) {
-		if cfg.First.Collapsible {
+		(cfg.First.collapsible || cfg.Second.collapsible) {
+		if cfg.First.collapsible {
 			content = append(content,
 				splitterButton(cfg, core, SplitterCollapseFirst))
 		}
 		content = append(content, splitterGrip(cfg))
-		if cfg.Second.Collapsible {
+		if cfg.Second.collapsible {
 			content = append(content,
 				splitterButton(cfg, core, SplitterCollapseSecond))
 		}
@@ -25,10 +25,10 @@ func splitterHandleView(cfg *SplitterCfg, core *splitterCore) View {
 	}
 
 	orientation := cfg.Orientation
-	colorHover := cfg.ColorHandleHover
-	colorActive := cfg.ColorHandleActive
+	colorHover := cfg.colorHandleHover
+	colorActive := cfg.colorHandleActive
 
-	s := &DefaultSplitterStyle
+	s := &defaultSplitterStyle
 	handleSize := cfg.HandleSize.Get(s.HandleSize)
 	var handleWidth, handleHeight float32
 	if orientation == SplitterHorizontal {
@@ -44,8 +44,8 @@ func splitterHandleView(cfg *SplitterCfg, core *splitterCore) View {
 		Height:      handleHeight,
 		Padding:     NoPadding,
 		Spacing:     SomeF(1),
-		Color:       cfg.ColorHandle,
-		ColorBorder: cfg.ColorHandleBorder,
+		Color:       cfg.colorHandle,
+		ColorBorder: cfg.colorHandleBorder,
 		SizeBorder:  cfg.SizeBorder,
 		Radius:      cfg.Radius,
 		HAlign:      HAlignCenter,
@@ -67,7 +67,7 @@ func splitterHandleView(cfg *SplitterCfg, core *splitterCore) View {
 }
 
 func splitterGrip(cfg *SplitterCfg) View {
-	s := &DefaultSplitterStyle
+	s := &defaultSplitterStyle
 	handleSize := cfg.HandleSize.Get(s.HandleSize)
 	isHoriz := cfg.Orientation == SplitterHorizontal
 	var w, h float32
@@ -81,18 +81,18 @@ func splitterGrip(cfg *SplitterCfg) View {
 	return Rectangle(RectangleCfg{
 		Width:  w,
 		Height: h,
-		Color:  cfg.ColorGrip,
-		Radius: cfg.RadiusBorder.Get(s.RadiusBorder),
+		Color:  cfg.colorGrip,
+		Radius: cfg.radiusBorder.Get(s.radiusBorder),
 		Sizing: FixedFixed,
 	})
 }
 
 func splitterButton(cfg *SplitterCfg, core *splitterCore,
 	target SplitterCollapsed) View {
-	s := &DefaultSplitterStyle
+	s := &defaultSplitterStyle
 	size := f32Max(4, cfg.HandleSize.Get(s.HandleSize)-2)
 	ts := TextStyle{
-		Color: cfg.ColorButtonIcon,
+		Color: cfg.colorButtonIcon,
 		Size:  size,
 	}
 	return Button(ButtonCfg{
@@ -101,9 +101,9 @@ func splitterButton(cfg *SplitterCfg, core *splitterCore,
 		Height:  size,
 		Sizing:  FixedFixed,
 		Padding: NoPadding,
-		Color:   cfg.ColorButton,
-		Colors:  ColorSet{Hover: cfg.ColorButtonHover, Click: cfg.ColorButtonActive, Focus: cfg.ColorButtonHover},
-		Radius:  cfg.RadiusBorder,
+		Color:   cfg.colorButton,
+		Colors:  ColorSet{Hover: cfg.colorButtonHover, Click: cfg.colorButtonActive, Focus: cfg.colorButtonHover},
+		Radius:  cfg.radiusBorder,
 		OnClick: func(ctx EventCtx) {
 			splitterOnButtonClick(core, target, ctx.Event, ctx.Window)
 		},
@@ -192,7 +192,7 @@ func splitterOnKeydown(core *splitterCore, e *Event, w *Window) {
 				core, nextCollapsed)
 		}
 	default:
-		if e.CharCode == CharSpace && isNone {
+		if e.CharCode == charSpace && isNone {
 			nextCollapsed, handled = splitterToggleCollapse(
 				core, nextCollapsed)
 		}
@@ -201,7 +201,7 @@ func splitterOnKeydown(core *splitterCore, e *Event, w *Window) {
 	if handled {
 		switch e.KeyCode {
 		case KeyLeft, KeyRight, KeyUp, KeyDown:
-			nextCollapsed = SplitterCollapseNone
+			nextCollapsed = splitterCollapseNone
 		}
 	}
 
@@ -233,7 +233,7 @@ func splitterOnHandleClick(core *splitterCore, e *Event, w *Window) {
 }
 
 func splitterOnHandleHover(
-	orientation SplitterOrientation,
+	orientation splitterOrientation,
 	colorHover, colorActive Color,
 	layout *Layout, e *Event, w *Window,
 ) {
@@ -254,14 +254,14 @@ func splitterOnButtonClick(
 		return
 	}
 	validTarget := splitterEffectiveCollapsed(core, target)
-	if validTarget == SplitterCollapseNone {
+	if validTarget == splitterCollapseNone {
 		return
 	}
 	ratio := splitterCurrentRatio(core, w)
 	current := splitterEffectiveCollapsed(core, core.collapsed)
 	next := validTarget
 	if current == validTarget {
-		next = SplitterCollapseNone
+		next = splitterCollapseNone
 	}
 	splitterEmitChange(core, ratio, next, e, w)
 }

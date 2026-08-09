@@ -4,6 +4,7 @@ import "sync"
 
 // Grant identifies a security-scoped bookmark. Release via
 // Window.ReleaseFileAccess when access is no longer needed.
+// exportaudit:keep — reachable from an exported signature
 type Grant struct {
 	ID uint64 // 0 = no grant (no-op on release)
 }
@@ -30,7 +31,7 @@ type fileAccessState struct {
 
 // SetFileAccessAppID sets the app identifier used for
 // bookmark persistence. Call before RestoreFileAccess.
-func (w *Window) SetFileAccessAppID(appID string) {
+func (w *Window) setFileAccessAppID(appID string) {
 	w.fileAccess.mu.Lock()
 	w.fileAccess.appID = appID
 	w.fileAccess.mu.Unlock()
@@ -38,7 +39,7 @@ func (w *Window) SetFileAccessAppID(appID string) {
 
 // RestoreFileAccess loads and activates persisted
 // security-scoped bookmarks. Call in OnInit.
-func (w *Window) RestoreFileAccess() {
+func (w *Window) restoreFileAccess() {
 	w.fileAccess.mu.Lock()
 	appID := w.fileAccess.appID
 	w.fileAccess.mu.Unlock()
@@ -55,7 +56,7 @@ func (w *Window) RestoreFileAccess() {
 }
 
 // ReleaseFileAccess releases a single bookmark grant.
-func (w *Window) ReleaseFileAccess(g Grant) {
+func (w *Window) releaseFileAccess(g Grant) {
 	if g.ID == 0 {
 		return
 	}
@@ -76,7 +77,7 @@ func (w *Window) ReleaseFileAccess(g Grant) {
 
 // ReleaseAllFileAccess releases every active grant.
 // Called automatically during window cleanup.
-func (w *Window) ReleaseAllFileAccess() {
+func (w *Window) releaseAllFileAccess() {
 	w.fileAccess.mu.Lock()
 	grants := make([]bookmarkGrant, 0, len(w.fileAccess.grants))
 	for _, bm := range w.fileAccess.grants {
@@ -118,7 +119,7 @@ func (w *Window) storeBookmark(path string, data []byte) Grant {
 
 // FileAccessGrantCount returns the number of active grants.
 // Intended for testing.
-func (w *Window) FileAccessGrantCount() int {
+func (w *Window) fileAccessGrantCount() int {
 	w.fileAccess.mu.Lock()
 	n := len(w.fileAccess.grants)
 	w.fileAccess.mu.Unlock()

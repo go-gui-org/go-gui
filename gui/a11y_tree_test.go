@@ -44,7 +44,7 @@ func TestA11yCollectSingleButton(t *testing.T) {
 	layout := Layout{
 		Shape: &Shape{
 			A11YRole: AccessRoleButton,
-			A11Y:     &AccessInfo{Label: "OK"},
+			a11Y:     &accessInfo{Label: "OK"},
 			X:        10, Y: 20, Width: 100, Height: 30,
 		},
 	}
@@ -73,7 +73,7 @@ func TestA11yCollectLabelFromText(t *testing.T) {
 	layout := Layout{
 		Shape: &Shape{
 			A11YRole: AccessRoleButton,
-			TC:       &ShapeTextConfig{Text: "Submit"},
+			TC:       &shapeTextConfig{Text: "Submit"},
 		},
 	}
 	var nodes []A11yNode
@@ -91,8 +91,8 @@ func TestA11yCollectA11YLabelOverridesText(t *testing.T) {
 	layout := Layout{
 		Shape: &Shape{
 			A11YRole: AccessRoleButton,
-			A11Y:     &AccessInfo{Label: "Close dialog"},
-			TC:       &ShapeTextConfig{Text: "X"},
+			a11Y:     &accessInfo{Label: "Close dialog"},
+			TC:       &shapeTextConfig{Text: "X"},
 		},
 	}
 	var nodes []A11yNode
@@ -107,8 +107,8 @@ func TestA11yCollectWithChildren(t *testing.T) {
 	layout := Layout{
 		Shape: &Shape{A11YRole: AccessRoleGroup},
 		Children: []Layout{
-			{Shape: &Shape{A11YRole: AccessRoleButton, A11Y: &AccessInfo{Label: "A"}}},
-			{Shape: &Shape{A11YRole: AccessRoleButton, A11Y: &AccessInfo{Label: "B"}}},
+			{Shape: &Shape{A11YRole: AccessRoleButton, a11Y: &accessInfo{Label: "A"}}},
+			{Shape: &Shape{A11YRole: AccessRoleButton, a11Y: &accessInfo{Label: "B"}}},
 		},
 	}
 	var nodes []A11yNode
@@ -133,7 +133,7 @@ func TestA11yCollectNoneRolePassesChildren(t *testing.T) {
 	layout := Layout{
 		Shape: &Shape{A11YRole: AccessRoleNone},
 		Children: []Layout{
-			{Shape: &Shape{A11YRole: AccessRoleButton, A11Y: &AccessInfo{Label: "Child"}}},
+			{Shape: &Shape{A11YRole: AccessRoleButton, a11Y: &accessInfo{Label: "Child"}}},
 		},
 	}
 	var nodes []A11yNode
@@ -184,7 +184,7 @@ func TestA11yCollectLiveRegion(t *testing.T) {
 		Shape: &Shape{
 			A11YRole:  AccessRoleStaticText,
 			A11YState: AccessStateLive,
-			A11Y:      &AccessInfo{Label: "status", ValueNum: 42},
+			a11Y:      &accessInfo{Label: "status", ValueNum: 42},
 		},
 	}
 	var nodes []A11yNode
@@ -202,7 +202,7 @@ func TestA11yCollectValueFields(t *testing.T) {
 	layout := Layout{
 		Shape: &Shape{
 			A11YRole: AccessRoleSlider,
-			A11Y: &AccessInfo{
+			a11Y: &accessInfo{
 				Label:    "Volume",
 				ValueNum: 75,
 				ValueMin: 0,
@@ -232,7 +232,7 @@ func TestA11yCollectValueFieldsNilA11Y(t *testing.T) {
 	layout := Layout{
 		Shape: &Shape{
 			A11YRole: AccessRoleButton,
-			TC:       &ShapeTextConfig{Text: "OK"},
+			TC:       &shapeTextConfig{Text: "OK"},
 		},
 	}
 	var nodes []A11yNode
@@ -250,13 +250,13 @@ func TestA11yCollectValueFieldsNilA11Y(t *testing.T) {
 
 func TestA11yValueText(t *testing.T) {
 	tests := []struct {
-		info *AccessInfo
+		info *accessInfo
 		want string
 	}{
-		{&AccessInfo{}, ""},
-		{&AccessInfo{ValueNum: 42}, "42"},
-		{&AccessInfo{ValueNum: 0.5, ValueMin: 0, ValueMax: 1}, "0.5"},
-		{&AccessInfo{ValueNum: 0, ValueMin: 0, ValueMax: 0}, ""},
+		{&accessInfo{}, ""},
+		{&accessInfo{ValueNum: 42}, "42"},
+		{&accessInfo{ValueNum: 0.5, ValueMin: 0, ValueMax: 1}, "0.5"},
+		{&accessInfo{ValueNum: 0, ValueMin: 0, ValueMax: 0}, ""},
 	}
 	for _, tt := range tests {
 		got := a11yValueText(tt.info)
@@ -267,7 +267,7 @@ func TestA11yValueText(t *testing.T) {
 }
 
 func TestShapeA11yLabel(t *testing.T) {
-	s := &Shape{TC: &ShapeTextConfig{Text: "Hello"}}
+	s := &Shape{TC: &shapeTextConfig{Text: "Hello"}}
 	if got := shapeA11yLabel(s); got != "Hello" {
 		t.Errorf("got %q", got)
 	}
@@ -285,7 +285,7 @@ func TestA11yDeepNesting(t *testing.T) {
 			{
 				Shape: &Shape{A11YRole: AccessRoleGroup},
 				Children: []Layout{
-					{Shape: &Shape{A11YRole: AccessRoleButton, A11Y: &AccessInfo{Label: "Deep"}}},
+					{Shape: &Shape{A11YRole: AccessRoleButton, a11Y: &accessInfo{Label: "Deep"}}},
 				},
 			},
 		},
@@ -476,11 +476,11 @@ func TestA11yFindLayoutWithChildren(t *testing.T) {
 		Children: []Layout{
 			{Shape: &Shape{
 				A11YRole: AccessRoleButton,
-				A11Y:     &AccessInfo{Label: "A"},
+				a11Y:     &accessInfo{Label: "A"},
 			}},
 			{Shape: &Shape{
 				A11YRole: AccessRoleButton,
-				A11Y:     &AccessInfo{Label: "B"},
+				a11Y:     &accessInfo{Label: "B"},
 			}},
 		},
 	}
@@ -490,11 +490,11 @@ func TestA11yFindLayoutWithChildren(t *testing.T) {
 		t.Error("index 0 should be group")
 	}
 	if l := a11yFindLayout(&layout, 1); l == nil ||
-		l.Shape.A11Y.Label != "A" {
+		l.Shape.a11Y.Label != "A" {
 		t.Error("index 1 should be A")
 	}
 	if l := a11yFindLayout(&layout, 2); l == nil ||
-		l.Shape.A11Y.Label != "B" {
+		l.Shape.a11Y.Label != "B" {
 		t.Error("index 2 should be B")
 	}
 	if l := a11yFindLayout(&layout, 99); l != nil {
@@ -509,12 +509,12 @@ func TestA11yFindLayoutSkipsNoneRole(t *testing.T) {
 		Children: []Layout{
 			{Shape: &Shape{
 				A11YRole: AccessRoleButton,
-				A11Y:     &AccessInfo{Label: "Inner"},
+				a11Y:     &accessInfo{Label: "Inner"},
 			}},
 		},
 	}
 	if l := a11yFindLayout(&layout, 0); l == nil ||
-		l.Shape.A11Y.Label != "Inner" {
+		l.Shape.a11Y.Label != "Inner" {
 		t.Error("index 0 should skip None and find Inner")
 	}
 }
@@ -524,8 +524,8 @@ func TestWindowCleanup(t *testing.T) {
 	w.storeBookmark("/a", nil)
 	w.storeBookmark("/b", nil)
 	w.WindowCleanup()
-	if w.FileAccessGrantCount() != 0 {
-		t.Errorf("grants not released: %d", w.FileAccessGrantCount())
+	if w.fileAccessGrantCount() != 0 {
+		t.Errorf("grants not released: %d", w.fileAccessGrantCount())
 	}
 }
 
@@ -534,7 +534,7 @@ func TestWindowCleanup(t *testing.T) {
 // mockA11yPlatform records A11ySync and A11yAnnounce calls for
 // testing the syncA11y integration path.
 type mockA11yPlatform struct {
-	NoopNativePlatform
+	noopNativePlatform
 	synced   []A11yNode
 	syncCnt  int
 	focusIdx int
@@ -613,12 +613,12 @@ func TestSyncA11yBuildsAndSyncsTree(t *testing.T) {
 		Children: []Layout{
 			{Shape: &Shape{
 				A11YRole: AccessRoleButton,
-				A11Y:     &AccessInfo{Label: "OK"},
+				a11Y:     &accessInfo{Label: "OK"},
 				X:        10, Y: 20, Width: 80, Height: 30,
 			}},
 			{Shape: &Shape{
 				A11YRole: AccessRoleButton,
-				A11Y:     &AccessInfo{Label: "Cancel"},
+				a11Y:     &accessInfo{Label: "Cancel"},
 				X:        100, Y: 20, Width: 80, Height: 30,
 			}},
 		},
@@ -712,7 +712,7 @@ func TestSyncA11yLiveRegionAnnounce(t *testing.T) {
 		Shape: &Shape{
 			A11YRole:  AccessRoleStaticText,
 			A11YState: AccessStateLive,
-			A11Y:      &AccessInfo{Label: "status", ValueNum: 100},
+			a11Y:      &accessInfo{Label: "status", ValueNum: 100},
 		},
 	}
 	w.a11y.lastSync = time.Time{}
@@ -720,7 +720,7 @@ func TestSyncA11yLiveRegionAnnounce(t *testing.T) {
 	w.syncA11y()
 
 	// Change the live region value.
-	w.layout.Shape.A11Y.ValueNum = 200
+	w.layout.Shape.a11Y.ValueNum = 200
 	w.a11y.lastSync = time.Time{}
 	w.syncA11y()
 
@@ -741,7 +741,7 @@ func TestSyncA11yLiveRegionNoChange(t *testing.T) {
 		Shape: &Shape{
 			A11YRole:  AccessRoleStaticText,
 			A11YState: AccessStateLive,
-			A11Y:      &AccessInfo{Label: "status", ValueNum: 50},
+			a11Y:      &accessInfo{Label: "status", ValueNum: 50},
 		},
 	}
 	w.a11y.lastSync = time.Time{}

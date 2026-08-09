@@ -107,7 +107,7 @@ func TestSelectOptionViewOnClickFires(t *testing.T) {
 func TestSelectSubHeaderView(t *testing.T) {
 	cfg := &SelectCfg{
 		ID: "s5",
-		SubheadingStyle: TextStyle{
+		subheadingStyle: TextStyle{
 			Color: RGB(180, 180, 180),
 			Size:  14,
 		},
@@ -287,23 +287,23 @@ func TestSelectClickOpenResetsHighlight(t *testing.T) {
 func TestSelectDefaultMinMaxWidth(t *testing.T) {
 	cfg := SelectCfg{ID: "sdm"}
 	applySelectDefaults(&cfg)
-	if cfg.MinWidth != DefaultSelectStyle.MinWidth {
+	if cfg.MinWidth != defaultSelectStyle.MinWidth {
 		t.Errorf("expected MinWidth %v, got %v",
-			DefaultSelectStyle.MinWidth, cfg.MinWidth)
+			defaultSelectStyle.MinWidth, cfg.MinWidth)
 	}
-	if cfg.MaxWidth != DefaultSelectStyle.MaxWidth {
+	if cfg.MaxWidth != defaultSelectStyle.MaxWidth {
 		t.Errorf("expected MaxWidth %v, got %v",
-			DefaultSelectStyle.MaxWidth, cfg.MaxWidth)
+			defaultSelectStyle.MaxWidth, cfg.MaxWidth)
 	}
 }
 
 func TestFnvSum32Consistency(t *testing.T) {
-	a := FnvSum32("test")
-	b := FnvSum32("test")
+	a := fnvSum32("test")
+	b := fnvSum32("test")
 	if a != b {
 		t.Error("FnvSum32 not consistent")
 	}
-	if FnvSum32("a") == FnvSum32("b") {
+	if fnvSum32("a") == fnvSum32("b") {
 		t.Error("expected different hashes")
 	}
 }

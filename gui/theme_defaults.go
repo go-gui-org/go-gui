@@ -25,36 +25,36 @@ const (
 // common to all preset themes.
 func baseCfg() ThemeCfg {
 	return ThemeCfg{
-		MonoFontFamily:   defaultMonoFontFamily,
-		IconFontFamily:   IconFontName,
-		Padding:          PaddingMedium,
+		monoFontFamily:   defaultMonoFontFamily,
+		iconFontFamily:   IconFontName,
+		Padding:          paddingMedium,
 		PaddingSmall:     PaddingSmall,
-		PaddingMedium:    PaddingMedium,
+		PaddingMedium:    paddingMedium,
 		PaddingLarge:     PaddingLarge,
-		Radius:           RadiusMedium,
-		RadiusSmall:      RadiusSmall,
-		RadiusMedium:     RadiusMedium,
-		RadiusLarge:      RadiusLarge,
+		Radius:           radiusMedium,
+		RadiusSmall:      radiusSmall,
+		RadiusMedium:     radiusMedium,
+		RadiusLarge:      radiusLarge,
 		SpacingSmall:     SpacingSmall,
 		SpacingMedium:    SpacingMedium,
 		SpacingLarge:     SpacingLarge,
-		SizeTextTiny:     SizeTextTiny,
-		SizeTextXSmall:   SizeTextXSmall,
-		SizeTextSmall:    SizeTextSmall,
-		SizeTextMedium:   SizeTextMedium,
-		SizeTextLarge:    SizeTextLarge,
-		SizeTextXLarge:   SizeTextXLarge,
-		ScrollMultiplier: scrollMultiplier,
-		ScrollDeltaLine:  scrollDeltaLine,
-		ScrollDeltaPage:  scrollDeltaPage,
-		SizeSwitchWidth:  36,
-		SizeSwitchHeight: 22,
-		SizeRadio:        16,
-		SizeScrollbar:    7,
-		SizeScrollbarMin: 20,
-		SizeProgressBar:  20,
-		SizeSlider:       6,
-		SizeSliderThumb:  16,
+		SizeTextTiny:     sizeTextTiny,
+		sizeTextXSmall:   sizeTextXSmall,
+		sizeTextSmall:    sizeTextSmall,
+		sizeTextMedium:   sizeTextMedium,
+		sizeTextLarge:    sizeTextLarge,
+		sizeTextXLarge:   sizeTextXLarge,
+		scrollMultiplier: scrollMultiplier,
+		scrollDeltaLine:  scrollDeltaLine,
+		scrollDeltaPage:  scrollDeltaPage,
+		sizeSwitchWidth:  36,
+		sizeSwitchHeight: 22,
+		sizeRadio:        16,
+		sizeScrollbar:    7,
+		sizeScrollbarMin: 20,
+		sizeProgressBar:  20,
+		sizeSlider:       6,
+		sizeSliderThumb:  16,
 	}
 }
 
@@ -95,7 +95,7 @@ func baseBlueCfg() ThemeCfg {
 	cfg.TextStyleDef = TextStyle{
 		Family: defaultFontFamily,
 		Color:  ColorFromString("#E1E1E1"),
-		Size:   SizeTextMedium,
+		Size:   sizeTextMedium,
 	}
 	return cfg
 }
@@ -104,7 +104,7 @@ func baseBlueCfg() ThemeCfg {
 var (
 	ThemeDark  Theme
 	ThemeLight Theme
-	ThemeBlue  Theme
+	themeBlue  Theme
 )
 
 // Unexported preset configs and derived themes — kept for
@@ -137,13 +137,13 @@ func init() {
 	themeDarkNoPaddingCfg.Name = "dark-no-padding"
 	themeDarkNoPaddingCfg.Padding = PaddingNone
 	themeDarkNoPaddingCfg.SizeBorder = 0
-	themeDarkNoPaddingCfg.Radius = RadiusNone
+	themeDarkNoPaddingCfg.Radius = radiusNone
 	themeDarkNoPadding = ThemeMaker(themeDarkNoPaddingCfg)
 
 	// Dark bordered.
 	themeDarkBorderedCfg = baseDarkCfg()
 	themeDarkBorderedCfg.Name = "dark-bordered"
-	themeDarkBorderedCfg.SizeBorder = SizeBorderDef
+	themeDarkBorderedCfg.SizeBorder = sizeBorderDef
 	themeDarkBordered = ThemeMaker(themeDarkBorderedCfg)
 
 	// Light.
@@ -162,7 +162,7 @@ func init() {
 	themeLightCfg.TextStyleDef = TextStyle{
 		Family: defaultFontFamily,
 		Color:  colorTextLight,
-		Size:   SizeTextMedium,
+		Size:   sizeTextMedium,
 	}
 	ThemeLight = ThemeMaker(themeLightCfg)
 
@@ -171,34 +171,34 @@ func init() {
 	themeLightNoPaddingCfg.Name = "light-no-padding"
 	themeLightNoPaddingCfg.Padding = PaddingNone
 	themeLightNoPaddingCfg.SizeBorder = 0
-	themeLightNoPaddingCfg.Radius = RadiusNone
+	themeLightNoPaddingCfg.Radius = radiusNone
 	themeLightNoPadding = ThemeMaker(themeLightNoPaddingCfg)
 
 	// Light bordered.
 	themeLightBorderedCfg = themeLightCfg
 	themeLightBorderedCfg.Name = "light-bordered"
-	themeLightBorderedCfg.SizeBorder = SizeBorderDef
+	themeLightBorderedCfg.SizeBorder = sizeBorderDef
 	themeLightBordered = ThemeMaker(themeLightBorderedCfg)
 
 	// Blue.
 	themeBlueCfg = baseBlueCfg()
-	ThemeBlue = ThemeMaker(themeBlueCfg)
+	themeBlue = ThemeMaker(themeBlueCfg)
 
 	// Blue bordered.
 	themeBlueBorderedCfg = baseBlueCfg()
 	themeBlueBorderedCfg.Name = "blue-dark-bordered"
-	themeBlueBorderedCfg.SizeBorder = SizeBorderDef
+	themeBlueBorderedCfg.SizeBorder = sizeBorderDef
 	themeBlueBordered = ThemeMaker(themeBlueBorderedCfg)
 
 	// Register all preset themes.
-	ThemeRegister(ThemeDark)
-	ThemeRegister(themeDarkNoPadding)
-	ThemeRegister(themeDarkBordered)
-	ThemeRegister(ThemeLight)
-	ThemeRegister(themeLightNoPadding)
-	ThemeRegister(themeLightBordered)
-	ThemeRegister(ThemeBlue)
-	ThemeRegister(themeBlueBordered)
+	themeRegister(ThemeDark)
+	themeRegister(themeDarkNoPadding)
+	themeRegister(themeDarkBordered)
+	themeRegister(ThemeLight)
+	themeRegister(themeLightNoPadding)
+	themeRegister(themeLightBordered)
+	themeRegister(themeBlue)
+	themeRegister(themeBlueBordered)
 
 	// Set default active theme to dark.
 	guiTheme = ThemeDark

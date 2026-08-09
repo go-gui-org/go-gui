@@ -205,15 +205,15 @@ func TestFreezeResume(t *testing.T) {
 	w := &Window{state: &testState{}, focused: true}
 	w.history = newSnapshotRing(1 << 20)
 	w.Freeze()
-	if !w.IsFrozen() {
+	if !w.isFrozen() {
 		t.Fatal("expected frozen")
 	}
 	w.EventFn(&Event{Type: EventMouseDown, MouseButton: MouseLeft})
 	if got := w.history.len(); got != 0 {
 		t.Fatalf("frozen len = %d, want 0", got)
 	}
-	w.Resume()
-	if w.IsFrozen() {
+	w.resume()
+	if w.isFrozen() {
 		t.Fatal("expected unfrozen")
 	}
 	w.EventFn(&Event{Type: EventMouseDown, MouseButton: MouseLeft})
@@ -227,7 +227,7 @@ func TestFreezeResume(t *testing.T) {
 func TestFreezeDisabledNoOp(t *testing.T) {
 	w := &Window{state: &testState{}, focused: true}
 	w.Freeze()
-	if w.IsFrozen() {
+	if w.isFrozen() {
 		t.Fatal("Freeze should be no-op without history")
 	}
 }
@@ -247,7 +247,7 @@ func TestPostRestoreRoundTrip(t *testing.T) {
 	s.text = "mutated"
 
 	w.Freeze()
-	w.PostRestore(0)
+	w.postRestore(0)
 	w.flushCommands()
 
 	if s.counter != 1 || s.text != "a" {
@@ -257,7 +257,7 @@ func TestPostRestoreRoundTrip(t *testing.T) {
 		t.Fatalf("virtualNow = %v, want %v", got, pinned)
 	}
 
-	w.Resume()
+	w.resume()
 	if w.virtualNow.Load() != nil {
 		t.Fatal("Resume should clear virtualNow")
 	}
@@ -268,7 +268,7 @@ func TestPostRestoreOutOfRange(t *testing.T) {
 	s := &testState{counter: 7}
 	w := &Window{state: s}
 	w.history = newSnapshotRing(1 << 20)
-	w.PostRestore(42)
+	w.postRestore(42)
 	w.flushCommands()
 	if s.counter != 7 {
 		t.Fatalf("counter mutated on bad idx: %d", s.counter)
@@ -279,7 +279,7 @@ func TestPostRestoreOutOfRange(t *testing.T) {
 // when history is nil — and does not queue a command.
 func TestPostRestoreDisabledNoOp(t *testing.T) {
 	w := &Window{state: &testState{}}
-	w.PostRestore(0)
+	w.postRestore(0)
 	if len(w.commands) != 0 {
 		t.Fatalf("queued %d commands with disabled history", len(w.commands))
 	}
@@ -294,7 +294,7 @@ func TestNamespaceSnapshotRoundTrip(t *testing.T) {
 		delete(snapshotableNamespaces.set, ns)
 		snapshotableNamespaces.mu.Unlock()
 	})
-	RegisterNamespaceSnapshot(ns)
+	registerNamespaceSnapshot(ns)
 
 	w := &Window{state: &testState{}, focused: true}
 	w.history = newSnapshotRing(1 << 20)
@@ -308,7 +308,7 @@ func TestNamespaceSnapshotRoundTrip(t *testing.T) {
 		t.Fatalf("pre-restore Get = %d, want 999", got)
 	}
 
-	w.PostRestore(0)
+	w.postRestore(0)
 	w.flushCommands()
 
 	if got, _ := sm.Get("scroll"); got != 42 {
@@ -328,7 +328,7 @@ func TestNamespaceNotWhitelisted(t *testing.T) {
 	w.EventFn(&Event{Type: EventMouseDown, MouseButton: MouseLeft})
 
 	sm.Set("k", 2)
-	w.PostRestore(0)
+	w.postRestore(0)
 	w.flushCommands()
 
 	if got, _ := sm.Get("k"); got != 2 {
@@ -338,7 +338,7 @@ func TestNamespaceNotWhitelisted(t *testing.T) {
 
 // TestRegisterNamespaceSnapshotEmpty silently ignores empty.
 func TestRegisterNamespaceSnapshotEmpty(t *testing.T) {
-	RegisterNamespaceSnapshot("")
+	registerNamespaceSnapshot("")
 	if isNamespaceSnapshotable("") {
 		t.Fatal("empty namespace should not be whitelisted")
 	}

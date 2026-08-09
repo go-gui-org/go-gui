@@ -44,7 +44,7 @@ func TestSanitizeLatex(t *testing.T) {
 
 func TestMarkdownToRichText(t *testing.T) {
 	style := DefaultMarkdownStyle()
-	rt := MarkdownToRichText("**bold** and *italic*", style)
+	rt := markdownToRichText("**bold** and *italic*", style)
 	if len(rt.Runs) == 0 {
 		t.Fatal("expected runs")
 	}
@@ -93,7 +93,7 @@ func TestMarkdownStyledLinkColor(t *testing.T) {
 	for _, b := range blocks {
 		for _, r := range b.Content.Runs {
 			if r.Link == "https://example.com" {
-				if r.Style.Color != style.LinkColor {
+				if r.Style.Color != style.linkColor {
 					t.Error("link should use LinkColor")
 				}
 				if !r.Style.Underline {
@@ -110,7 +110,7 @@ func TestMarkdownStyledHighlightBG(t *testing.T) {
 	for _, b := range blocks {
 		for _, r := range b.Content.Runs {
 			if strings.TrimSpace(r.Text) == "marked" {
-				if r.Style.BgColor != style.HighlightBG {
+				if r.Style.BgColor != style.highlightBG {
 					t.Error("highlight should use HighlightBG")
 				}
 			}
@@ -161,7 +161,7 @@ func TestMarkdownTableHeaderHonorsColumnAlignment(t *testing.T) {
 	blocks := markdownToBlocks(
 		"| L | C | R |\n|:--|:-:|--:|\n| a | b | c |", style)
 
-	var td *ParsedTable
+	var td *parsedTable
 	for i := range blocks {
 		if blocks[i].IsTable && blocks[i].TableData != nil {
 			td = blocks[i].TableData
@@ -273,7 +273,7 @@ func TestMarkdownTaskListRendersCheckbox(t *testing.T) {
 	style := DefaultMarkdownStyle()
 
 	checkedBox := list.Children[0].Children[0].Children[0]
-	if got, want := checkedBox.Shape.Color, style.LinkColor; got != want {
+	if got, want := checkedBox.Shape.Color, style.linkColor; got != want {
 		t.Errorf("checked box Color = %v, want %v (LinkColor)", got, want)
 	}
 	if len(checkedBox.Children) != 1 {
@@ -339,7 +339,7 @@ func TestRenderMdMathErrorsWrap(t *testing.T) {
 	})
 
 	style := DefaultMarkdownStyle()
-	block := MarkdownBlock{
+	block := markdownBlock{
 		IsMath:    true,
 		MathLatex: `\badcommand{this error should wrap}`,
 	}
@@ -350,9 +350,9 @@ func TestRenderMdMathErrorsWrap(t *testing.T) {
 	errText := strings.Repeat("codecogs api error ", 8)
 
 	w := &Window{}
-	w.viewState.diagramCache = NewBoundedDiagramCache(50)
+	w.viewState.diagramCache = newBoundedDiagramCache(50)
 	w.viewState.diagramCache.Set(hash, DiagramCacheEntry{
-		State: DiagramError,
+		State: diagramError,
 		Error: errText,
 	})
 
@@ -369,7 +369,7 @@ func TestRenderMdMathErrorsWrap(t *testing.T) {
 	}
 }
 
-func firstMarkdownTextMode(layout Layout) (TextMode, bool) {
+func firstMarkdownTextMode(layout Layout) (textMode, bool) {
 	if layout.Shape != nil && layout.Shape.TC != nil {
 		return layout.Shape.TC.TextMode, true
 	}
@@ -381,7 +381,7 @@ func firstMarkdownTextMode(layout Layout) (TextMode, bool) {
 	return 0, false
 }
 
-func findTextModeByText(layout Layout, text string) (TextMode, bool) {
+func findTextModeByText(layout Layout, text string) (textMode, bool) {
 	if layout.Shape != nil && layout.Shape.TC != nil &&
 		layout.Shape.TC.Text == text {
 		return layout.Shape.TC.TextMode, true

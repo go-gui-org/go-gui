@@ -132,7 +132,7 @@ func TestIMEClearedOnFocusChange(t *testing.T) {
 // re-focusing an already-focused widget does not cycle the platform
 // input context.
 type imeSpyPlatform struct {
-	NoopNativePlatform
+	noopNativePlatform
 	starts int
 	stops  int
 }
@@ -229,8 +229,8 @@ func renderIMEPreedit(t *testing.T, text string, cursor int,
 	const id = "ime-field"
 	w := makeWindowWithScratch()
 	w.viewState.focusID = id
-	StateMap[string, InputState](w, nsInput, capMany).Set(
-		id, InputState{CursorPos: cursor})
+	StateMap[string, inputState](w, nsInput, capMany).Set(
+		id, inputState{CursorPos: cursor})
 	w.imeUpdate(&Event{Type: EventIMEComposition, IMEText: "かん"})
 
 	style := DefaultTextStyle
@@ -239,10 +239,10 @@ func renderIMEPreedit(t *testing.T, text string, cursor int,
 		Focusable: true, ID: id,
 		Width: 200, Height: 20,
 		Opacity: 1.0,
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			Text:              text,
 			TextStyle:         &style,
-			TextIsPlaceholder: placeholder,
+			textIsPlaceholder: placeholder,
 		},
 	}, makeClip(0, 0, 400, 400), w)
 

@@ -10,8 +10,8 @@ import (
 func datePickerCalendar(
 	cfg *DatePickerCfg, state datePickerState, w *Window,
 ) View {
-	dn := &DefaultDatePickerStyle
-	cellSpacing := cfg.CellSpacing.Get(dn.CellSpacing)
+	dn := &defaultDatePickerStyle
+	cellSpacing := cfg.cellSpacing.Get(dn.cellSpacing)
 	content := make([]View, 0, 7)
 	content = append(content, datePickerWeekdays(cfg))
 	content = append(content, datePickerMonth(cfg, state, w)...)
@@ -38,8 +38,8 @@ func datePickerCalendar(
 
 // datePickerWeekdays builds the weekday header row (e.g., "Mon", "Tue").
 func datePickerWeekdays(cfg *DatePickerCfg) View {
-	dn := &DefaultDatePickerStyle
-	cellSpacing := cfg.CellSpacing.Get(dn.CellSpacing)
+	dn := &defaultDatePickerStyle
+	cellSpacing := cfg.cellSpacing.Get(dn.cellSpacing)
 	cellSize := datePickerCellSize(cfg)
 	wdTS := cfg.TextStyle
 	wdTS.Color = RGBA(wdTS.Color.R, wdTS.Color.G, wdTS.Color.B, 160)
@@ -69,9 +69,9 @@ func datePickerMonth(
 	cfg *DatePickerCfg, state datePickerState, w *Window,
 ) []View {
 
-	dn := &DefaultDatePickerStyle
+	dn := &defaultDatePickerStyle
 	radius := cfg.Radius.Get(dn.Radius)
-	cellSpacing := cfg.CellSpacing.Get(dn.CellSpacing)
+	cellSpacing := cfg.cellSpacing.Get(dn.cellSpacing)
 	cellSize := datePickerCellSize(cfg)
 	viewTime := datePickerViewTime(state)
 	year, month := viewTime.Year(), viewTime.Month()
@@ -275,8 +275,8 @@ func datePickerYearMonthPicker(
 	return DatePickerRoller(DatePickerRollerCfg{
 		ID:           ScopeID(cfg.ID, "roller"),
 		SelectedDate: datePickerViewTime(state),
-		DisplayMode:  RollerMonthYear,
-		VisibleItems: 5,
+		displayMode:  rollerMonthYear,
+		visibleItems: 5,
 		Color:        ColorTransparent,
 		ColorBorder:  ColorTransparent,
 		SizeBorder:   NoBorder,

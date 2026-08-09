@@ -135,7 +135,7 @@ func TestListBoxSubheadingCount(t *testing.T) {
 	layout := generateViewLayout(ListBox(ListBoxCfg{
 		ID: "lb5",
 		Data: []ListBoxOption{
-			{ID: "h1", Name: "Section", IsSubheading: true},
+			{ID: "h1", Name: "Section", isSubheading: true},
 			{ID: "a", Name: "Alpha"},
 		},
 	}), w)
@@ -193,11 +193,11 @@ func TestListBoxFillVirtualizesNextFrame(t *testing.T) {
 		t.Fatalf("frame 2 children = %d, want spacer+rows+spacer",
 			len(second.Children))
 	}
-	if !second.Children[0].Shape.Color.Eq(ColorTransparent) {
+	if !second.Children[0].Shape.Color.eq(ColorTransparent) {
 		t.Error("leading virtualization spacer missing")
 	}
 	if !second.Children[len(second.Children)-1].Shape.Color.
-		Eq(ColorTransparent) {
+		eq(ColorTransparent) {
 		t.Error("trailing virtualization spacer missing")
 	}
 }
@@ -325,14 +325,14 @@ func TestListBoxCacheRefreshIgnoresNameValue(t *testing.T) {
 	}
 
 	// IsSubheading mutation: refresh.
-	cfg.Data[0].IsSubheading = true
+	cfg.Data[0].isSubheading = true
 	listBoxEnsureCache(&cfg, w)
 	if len(cache.itemIDs) != 4 {
 		t.Fatalf("IsSubheading mutation not refreshed: %v", cache.itemIDs)
 	}
 
 	// ID mutation: refresh with the new IDs.
-	cfg.Data[0].IsSubheading = false
+	cfg.Data[0].isSubheading = false
 	cfg.Data[0].ID = "renamed-id"
 	listBoxEnsureCache(&cfg, w)
 	if len(cache.itemIDs) != 5 || cache.itemIDs[0] != "renamed-id" {
@@ -341,7 +341,7 @@ func TestListBoxCacheRefreshIgnoresNameValue(t *testing.T) {
 }
 
 func TestListBoxNoHeightWarning(t *testing.T) {
-	prevOn := DebugEnabled()
+	prevOn := debugEnabled()
 	Debug(true)
 	defer Debug(prevOn)
 
@@ -382,7 +382,7 @@ func TestListBoxNoHeightWarning(t *testing.T) {
 // silent at the site, and the category alone must fire.
 func TestListBoxNoHeightGatedByCategory(t *testing.T) {
 	prevMask := DebugCategory(debugMask.Load())
-	defer DebugCategories(prevMask)
+	defer debugCategories(prevMask)
 	w := newTestWindow()
 	cfg := ListBoxCfg{
 		ID:         "lb-cat",
@@ -391,7 +391,7 @@ func TestListBoxNoHeightGatedByCategory(t *testing.T) {
 	}
 	v := ListBox(cfg)
 
-	DebugCategories(DebugMissingIDs)
+	debugCategories(debugMissingIDs)
 	var found []string
 	w.debug.collect = &found
 	layout := generateViewLayout(v, w)
@@ -402,7 +402,7 @@ func TestListBoxNoHeightGatedByCategory(t *testing.T) {
 		t.Fatalf("missing-ID mask must not warn, got %v", found)
 	}
 
-	DebugCategories(DebugListBoxNoHeight)
+	debugCategories(debugListBoxNoHeight)
 	generateViewLayout(v, w)
 	if len(found) != 1 {
 		t.Fatalf("listbox category must warn, got %d findings: %v", len(found), found)

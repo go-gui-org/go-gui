@@ -137,7 +137,7 @@ func handleTouchBegan(
 		gs.velocityX = 0
 		gs.velocityY = 0
 		gs.recognized = false
-		gs.gestureType = GestureNone
+		gs.gestureType = gestureNone
 
 		// Arm long-press timer.
 		armLongPress(gs, layout, w)
@@ -192,7 +192,7 @@ func handleTouchMoved(
 				gs.prevTime = gs.now()
 				gs.prevX = gs.startX
 				gs.prevY = gs.startY
-				emitGesture(gs, GesturePan, GesturePhaseBegan,
+				emitGesture(gs, GesturePan, gesturePhaseBegan,
 					t.x, t.y, layout, w)
 				return
 			} else {
@@ -241,7 +241,7 @@ func handleTouchMoved(
 			phase := GesturePhaseChanged
 			if gs.gestureType != GesturePinch {
 				gs.gestureType = GesturePinch
-				phase = GesturePhaseBegan
+				phase = gesturePhaseBegan
 				gs.scale = span / gs.initialSpan
 			}
 			w.scratch.gestureEvent = gestureEvent(gs, GesturePinch, phase, cx, cy)
@@ -260,11 +260,11 @@ func handleTouchMoved(
 				gs.gestureType != GesturePinch {
 				gs.gestureType = GestureRotate
 				gs.rotateBegan = true
-				phase = GesturePhaseBegan
+				phase = gesturePhaseBegan
 			} else if !gs.rotateBegan {
 				gs.rotateBegan = true
 				w.scratch.gestureEvent = gestureEvent(
-					gs, GestureRotate, GesturePhaseBegan, cx, cy)
+					gs, GestureRotate, gesturePhaseBegan, cx, cy)
 				w.scratch.gestureEvent.GestureRotation = gs.rotation
 				gestureHandler(layout, &w.scratch.gestureEvent, w)
 			}
@@ -301,24 +301,24 @@ func handleTouchEnded(
 			if vel > gestureSwipeVelocity {
 				emitGestureSwipe(gs, layout, w)
 			} else {
-				emitGesture(gs, GesturePan, GesturePhaseEnded,
+				emitGesture(gs, GesturePan, gesturePhaseEnded,
 					gs.prevX, gs.prevY, layout, w)
 			}
 		} else if gs.recognized &&
 			gs.gestureType == GesturePinch {
 			w.scratch.gestureEvent = gestureEvent(gs, GesturePinch,
-				GesturePhaseEnded, cx, cy)
+				gesturePhaseEnded, cx, cy)
 			w.scratch.gestureEvent.PinchScale = gs.scale
 			gestureHandler(layout, &w.scratch.gestureEvent, w)
 		} else if gs.recognized &&
 			gs.gestureType == GestureRotate {
 			w.scratch.gestureEvent = gestureEvent(gs, GestureRotate,
-				GesturePhaseEnded, cx, cy)
+				gesturePhaseEnded, cx, cy)
 			w.scratch.gestureEvent.GestureRotation = gs.rotation
 			gestureHandler(layout, &w.scratch.gestureEvent, w)
 		} else if gs.recognized &&
 			gs.gestureType == GestureLongPress {
-			emitGesture(gs, GestureLongPress, GesturePhaseEnded,
+			emitGesture(gs, GestureLongPress, gesturePhaseEnded,
 				gs.startX, gs.startY, layout, w)
 		} else if !gs.recognized {
 			// Possible tap.
@@ -333,12 +333,12 @@ func handleTouchEnded(
 					dx*dx+dy*dy <
 						gestureDoubleTapRadius*gestureDoubleTapRadius {
 					emitGesture(gs, GestureDoubleTap,
-						GesturePhaseEnded,
+						gesturePhaseEnded,
 						gs.startX, gs.startY, layout, w)
 					gs.lastTapTime = 0
 				} else {
 					emitGesture(gs, GestureTap,
-						GesturePhaseEnded,
+						gesturePhaseEnded,
 						gs.startX, gs.startY, layout, w)
 					gs.lastTapTime = now
 					gs.lastTapX = gs.startX
@@ -362,12 +362,12 @@ func handleTouchEnded(
 		tcx, tcy := touchCentroid(gs)
 		if gs.gestureType == GesturePinch {
 			w.scratch.gestureEvent = gestureEvent(gs, GesturePinch,
-				GesturePhaseEnded, tcx, tcy)
+				gesturePhaseEnded, tcx, tcy)
 			w.scratch.gestureEvent.PinchScale = gs.scale
 			gestureHandler(layout, &w.scratch.gestureEvent, w)
 		} else {
 			w.scratch.gestureEvent = gestureEvent(gs, GestureRotate,
-				GesturePhaseEnded, tcx, tcy)
+				gesturePhaseEnded, tcx, tcy)
 			w.scratch.gestureEvent.GestureRotation = gs.rotation
 			gestureHandler(layout, &w.scratch.gestureEvent, w)
 		}
@@ -381,7 +381,7 @@ func handleTouchEnded(
 		gs.velocityX = 0
 		gs.velocityY = 0
 		gs.singleTouchID = t.id
-		emitGesture(gs, GesturePan, GesturePhaseBegan,
+		emitGesture(gs, GesturePan, gesturePhaseBegan,
 			t.x, t.y, layout, w)
 	}
 }
@@ -390,9 +390,9 @@ func handleTouchCancelled(
 	gs *gestureState, layout *Layout, e *Event, w *Window,
 ) {
 	cancelLongPress(w)
-	if gs.recognized && gs.gestureType != GestureNone {
+	if gs.recognized && gs.gestureType != gestureNone {
 		cx, cy := touchCentroid(gs)
-		emitGesture(gs, gs.gestureType, GesturePhaseCancelled,
+		emitGesture(gs, gs.gestureType, gesturePhaseCancelled,
 			cx, cy, layout, w)
 	}
 	if gs.mouseEmitted {
@@ -435,7 +435,7 @@ func gestureLongPressFired(_ *Animate, w *Window) {
 	if w.dialogCfg.visible && len(w.layout.Children) > 0 {
 		ly = &w.layout.Children[len(w.layout.Children)-1]
 	}
-	emitGesture(gst, GestureLongPress, GesturePhaseBegan,
+	emitGesture(gst, GestureLongPress, gesturePhaseBegan,
 		gst.longPressSX, gst.longPressSY, ly, w)
 }
 
@@ -446,23 +446,23 @@ func cancelLongPress(w *Window) {
 // --- Gesture event construction and dispatch ---
 
 func gestureEvent(
-	gs *gestureState, gt GestureType, phase GesturePhase,
+	gs *gestureState, gt GestureType, phase gesturePhase,
 	cx, cy float32,
 ) Event {
 	return Event{
-		Type:           EventGesture,
+		Type:           eventGesture,
 		GestureType:    gt,
 		GesturePhase:   phase,
 		CentroidX:      cx,
 		CentroidY:      cy,
-		GestureTouches: gs.numTouches,
+		gestureTouches: gs.numTouches,
 		VelocityX:      gs.velocityX,
 		VelocityY:      gs.velocityY,
 	}
 }
 
 func emitGesture(
-	gs *gestureState, gt GestureType, phase GesturePhase,
+	gs *gestureState, gt GestureType, phase gesturePhase,
 	cx, cy float32, layout *Layout, w *Window,
 ) {
 	w.scratch.gestureEvent = gestureEvent(gs, gt, phase, cx, cy)
@@ -470,7 +470,7 @@ func emitGesture(
 }
 
 func emitGestureWithDelta(
-	gs *gestureState, gt GestureType, phase GesturePhase,
+	gs *gestureState, gt GestureType, phase gesturePhase,
 	cx, cy, dx, dy float32, layout *Layout, w *Window,
 ) {
 	w.scratch.gestureEvent = gestureEvent(gs, gt, phase, cx, cy)
@@ -483,7 +483,7 @@ func emitGestureSwipe(
 	gs *gestureState, layout *Layout, w *Window,
 ) {
 	w.scratch.gestureEvent = gestureEvent(gs, GestureSwipe,
-		GesturePhaseEnded, gs.prevX, gs.prevY)
+		gesturePhaseEnded, gs.prevX, gs.prevY)
 	w.scratch.gestureEvent.VelocityX = gs.velocityX
 	w.scratch.gestureEvent.VelocityY = gs.velocityY
 	gestureHandler(layout, &w.scratch.gestureEvent, w)

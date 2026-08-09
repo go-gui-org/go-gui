@@ -2,22 +2,22 @@ package gui
 
 // Character constants used in event handling.
 const (
-	CharBSP    = 0x08 // backspace
-	CharDel    = 0x7F // delete
-	CharSpace  = 0x20
-	CharEscape = 0x1B
-	CharLF     = 0x0A
-	CharCR     = 0x0D
-	CharCmdA   = 0x61
-	CharCmdC   = 0x63
-	CharCmdV   = 0x76
-	CharCmdX   = 0x78
-	CharCmdZ   = 0x7A
-	CharCtrlA  = 0x01
-	CharCtrlC  = 0x03
-	CharCtrlV  = 0x16
-	CharCtrlX  = 0x18
-	CharCtrlZ  = 0x1A
+	charBSP    = 0x08 // backspace
+	charDel    = 0x7F // delete
+	charSpace  = 0x20
+	charEscape = 0x1B
+	charLF     = 0x0A
+	charCR     = 0x0D
+	charCmdA   = 0x61
+	charCmdC   = 0x63
+	charCmdV   = 0x76
+	charCmdX   = 0x78
+	charCmdZ   = 0x7A
+	charCtrlA  = 0x01
+	charCtrlC  = 0x03
+	charCtrlV  = 0x16
+	charCtrlX  = 0x18
+	charCtrlZ  = 0x1A
 )
 
 const reservedDialogID = "___dialog_reserved_do_not_use___"
@@ -42,17 +42,17 @@ const (
 	EventTouchesEnded
 	EventTouchesCancelled
 	EventResized
-	EventIconified
-	EventRestored
+	eventIconified
+	eventRestored
 	EventFocused
 	EventUnfocused
-	EventSuspended
-	EventResumed
-	EventQuitRequested
+	eventSuspended
+	eventResumed
+	eventQuitRequested
 	EventClipboardPasted
 	EventFileDropped
 	EventIMEComposition
-	EventGesture     // gesture recognized from touch input
+	eventGesture     // gesture recognized from touch input
 	EventScrollBegan // trackpad finger touch (zero-delta phase begin)
 )
 
@@ -102,9 +102,9 @@ const (
 	ModCtrlShift    Modifier = ModCtrl | ModShift
 	ModCtrlAlt      Modifier = ModCtrl | ModAlt
 	ModCtrlAltShift Modifier = ModCtrl | ModAlt | ModShift
-	ModCtrlSuper    Modifier = ModCtrl | ModSuper
+	modCtrlSuper    Modifier = ModCtrl | ModSuper
 	ModAltShift     Modifier = ModAlt | ModShift
-	ModAltSuper     Modifier = ModAlt | ModSuper
+	modAltSuper     Modifier = ModAlt | ModSuper
 	ModSuperShift   Modifier = ModSuper | ModShift
 )
 
@@ -195,10 +195,10 @@ const (
 	KeyHome         KeyCode = 268
 	KeyEnd          KeyCode = 269
 	KeyCapsLock     KeyCode = 280
-	KeyScrollLock   KeyCode = 281
+	keyScrollLock   KeyCode = 281
 	KeyNumLock      KeyCode = 282
-	KeyPrintScreen  KeyCode = 283
-	KeyPause        KeyCode = 284
+	keyPrintScreen  KeyCode = 283
+	keyPause        KeyCode = 284
 	KeyF1           KeyCode = 290
 	KeyF2           KeyCode = 291
 	KeyF3           KeyCode = 292
@@ -219,10 +219,10 @@ const (
 	KeyF18          KeyCode = 307
 	KeyF19          KeyCode = 308
 	KeyF20          KeyCode = 309
-	KeyF21          KeyCode = 310
-	KeyF22          KeyCode = 311
-	KeyF23          KeyCode = 312
-	KeyF24          KeyCode = 313
+	keyF21          KeyCode = 310
+	keyF22          KeyCode = 311
+	keyF23          KeyCode = 312
+	keyF24          KeyCode = 313
 	KeyF25          KeyCode = 314
 	KeyKP0          KeyCode = 320
 	KeyKP1          KeyCode = 321
@@ -253,11 +253,12 @@ const (
 )
 
 // GestureType identifies a recognized gesture from touch input.
+// exportaudit:keep — collides with the gestureState's gestureType field
 type GestureType uint8
 
 // GestureType values.
 const (
-	GestureNone      GestureType = iota
+	gestureNone      GestureType = iota
 	GestureTap                   // single finger tap
 	GestureDoubleTap             // two taps in quick succession
 	GestureLongPress             // finger held without movement
@@ -268,27 +269,27 @@ const (
 )
 
 // GesturePhase tracks the lifecycle of a continuous gesture.
-type GesturePhase uint8
+type gesturePhase uint8
 
 // GesturePhase values.
 const (
-	GesturePhaseBegan     GesturePhase = iota // first recognition
+	gesturePhaseBegan     gesturePhase = iota // first recognition
 	GesturePhaseChanged                       // ongoing update
-	GesturePhaseEnded                         // final event
-	GesturePhaseCancelled                     // cancelled
+	gesturePhaseEnded                         // final event
+	gesturePhaseCancelled                     // cancelled
 )
 
 // TouchToolType identifies the input device type for touch events.
-type TouchToolType uint8
+type touchToolType uint8
 
 // TouchToolType values.
 const (
-	TouchToolUnknown TouchToolType = iota
+	touchToolUnknown touchToolType = iota
 	TouchToolFinger
-	TouchToolStylus
-	TouchToolMouse
-	TouchToolEraser
-	TouchToolPalm
+	touchToolStylus
+	touchToolMouse
+	touchToolEraser
+	touchToolPalm
 )
 
 // TouchPoint holds data for a single touch event point.
@@ -296,7 +297,7 @@ type TouchPoint struct {
 	Identifier uint64
 	PosX       float32
 	PosY       float32
-	ToolType   TouchToolType
+	ToolType   touchToolType
 	Changed    bool
 }
 
@@ -313,21 +314,19 @@ type TouchPoint struct {
 // is the insertion point. IMELength == 0 means no clause is selected,
 // and IMEStart is then whatever the platform calls the cursor.
 type Event struct {
-	IMEText           string
-	FilePath          string
-	Touches           [8]TouchPoint
-	FrameCount        uint64
-	NumTouches        int
-	WindowWidth       int
-	WindowHeight      int
-	FramebufferWidth  int
-	FramebufferHeight int
-	GestureTouches    int // touch count for this gesture
-	WindowID          uint32
-	MouseX            float32
-	MouseY            float32
-	MouseDX           float32
-	MouseDY           float32
+	IMEText        string
+	FilePath       string
+	Touches        [8]TouchPoint
+	FrameCount     uint64
+	NumTouches     int
+	WindowWidth    int
+	WindowHeight   int
+	gestureTouches int // touch count for this gesture
+	WindowID       uint32
+	MouseX         float32
+	MouseY         float32
+	MouseDX        float32
+	MouseDY        float32
 	// ScrollX and ScrollY carry scroll distance in one of two units,
 	// selected by ScrollPrecise. For a discrete mouse wheel
 	// (ScrollPrecise false) the unit is LINES OF TEXT: every backend
@@ -355,7 +354,7 @@ type Event struct {
 	MouseButton     MouseButton
 	Type            EventType
 	GestureType     GestureType
-	GesturePhase    GesturePhase
+	GesturePhase    gesturePhase
 	KeyRepeat       bool
 	IsHandled       bool
 	// ScrollPrecise is true for high-res / trackpad scroll deltas

@@ -185,7 +185,7 @@ func (w *Window) CommandByID(id string) (Command, bool) {
 
 // CommandCanExecute checks if a command's CanExecute
 // returns true (nil CanExecute = always true).
-func (w *Window) CommandCanExecute(id string) bool {
+func (w *Window) commandCanExecute(id string) bool {
 	cmd, ok := w.CommandByID(id)
 	if !ok {
 		return false

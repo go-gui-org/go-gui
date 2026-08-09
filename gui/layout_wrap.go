@@ -11,7 +11,7 @@ func layoutWrapContainers(layout *Layout, w *Window) {
 		layoutWrapContainers(&layout.Children[i], w)
 	}
 
-	if !layout.Shape.Wrap || layout.Shape.Axis != AxisLeftToRight || len(layout.Children) == 0 {
+	if !layout.Shape.Wrap || layout.Shape.Axis != axisLeftToRight || len(layout.Children) == 0 {
 		return
 	}
 
@@ -63,7 +63,7 @@ func layoutWrapContainers(layout *Layout, w *Window) {
 		return
 	}
 
-	layout.Shape.Axis = AxisTopToBottom
+	layout.Shape.Axis = axisTopToBottom
 
 	newChildren := make([]Layout, 0, len(rows))
 	for i := range rows {
@@ -71,7 +71,7 @@ func layoutWrapContainers(layout *Layout, w *Window) {
 		rowChildren := layout.Children[row.start:row.end:row.end]
 		rowShape := Shape{
 			shapeType: shapeRectangle,
-			Axis:      AxisLeftToRight,
+			Axis:      axisLeftToRight,
 			Sizing:    FixedFit,
 			Width:     available,
 			Spacing:   spacing,
