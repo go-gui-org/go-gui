@@ -62,8 +62,9 @@ https://go-gui.com
 
 [Documentation](https://github.com/go-gui-org/go-gui/wiki)
 
-Guides: [Debugging](docs/debugging.md) · [Styling](docs/styling.md) ·
-[Testing](docs/testing.md)
+Guides: [Debugging](https://github.com/go-gui-org/go-gui/wiki/Debugging) ·
+[Theming](https://github.com/go-gui-org/go-gui/wiki/Theming) ·
+[Testing](https://github.com/go-gui-org/go-gui/wiki/Testing)
 
 ---
 
@@ -185,8 +186,8 @@ work.
 ## Debugging
 
 Set `GOGUI_DEBUG=1` (or `gui.Debug(true)`) to audit every frame for duplicate
-widget IDs and focusable widgets without IDs. See
-[docs/debugging.md](docs/debugging.md).
+widget IDs and focusable widgets without IDs. See the
+[Debugging](https://github.com/go-gui-org/go-gui/wiki/Debugging) wiki page.
 
 ## License
 
