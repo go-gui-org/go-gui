@@ -1,3 +1,4 @@
+// This example demonstrates radial gradient parsing and rendering.
 // Svg_radial demonstrates radialGradient parsing and rendering. A
 // 2x3 grid renders the same shape filled with: linear gradient,
 // centered radial, off-center radial, large-R radial,

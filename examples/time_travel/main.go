@@ -1,3 +1,4 @@
+// This example demonstrates time-travel debugging: a counter app with a state scrubber window (advanced: time travel).
 // The time_travel example demonstrates time-travel debugging.
 // A small counter app opts into DebugTimeTravel; the framework
 // auto-spawns a scrubber window with a slider, step buttons,

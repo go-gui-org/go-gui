@@ -1,3 +1,4 @@
+// This example demonstrates scroll containers, programmatic scroll control, and theme toggling.
 // The scroll demo shows scroll containers, programmatic scroll
 // control, and theme toggling.
 package main

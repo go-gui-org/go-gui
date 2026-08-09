@@ -1,3 +1,4 @@
+// This example demonstrates a snake game built on go-gui state, input events, and animations.
 // The snake example is a small game built on go-gui state,
 // input events, and animations.
 package main

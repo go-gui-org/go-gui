@@ -1,3 +1,4 @@
+// This example demonstrates anchored overlays positioned over their parent content (advanced: floating layout).
 // The floating layout example shows how anchored overlays can be
 // positioned relative to their parent content.
 package main

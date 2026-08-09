@@ -1,3 +1,4 @@
+// This example demonstrates <use> and <symbol> resolution with per-instance fill overrides.
 // Svg_use_symbol demonstrates <use href="#id"> and <symbol>
 // resolution. A single <symbol> is referenced multiple times via
 // <use> with translate offsets and per-instance fill overrides; the

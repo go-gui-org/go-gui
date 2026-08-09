@@ -1,3 +1,4 @@
+// This example demonstrates a virtualized list with a large option set and simple selection state.
 // The listbox example demonstrates a virtualized list with a large
 // option set and simple selection state.
 package main

@@ -1,3 +1,4 @@
+// This example demonstrates the RotatedBox widget with quarter-turn rotations, interactive content, and nesting.
 // The rotated_box example demonstrates the RotatedBox widget
 // with quarter-turn rotations, interactive content, and nesting.
 package main

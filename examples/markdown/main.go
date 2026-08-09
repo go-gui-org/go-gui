@@ -1,3 +1,4 @@
+// This example demonstrates an embedded markdown document in the markdown view.
 // Markdown renders an embedded markdown document with the built-in
 // markdown view.
 package main

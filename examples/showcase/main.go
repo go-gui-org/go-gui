@@ -1,3 +1,4 @@
+// This example demonstrates the full go-gui widget gallery with a dev-mode inspector (advanced: inspector).
 // Package main implements a faithful showcase port for the Go-Gui framework.
 package main
 

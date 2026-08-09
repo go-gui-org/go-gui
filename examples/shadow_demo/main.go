@@ -1,3 +1,4 @@
+// This example demonstrates shadow and glow configurations with theme toggling.
 // Shadow_demo compares shadow and glow configurations while
 // letting the user toggle themes.
 package main

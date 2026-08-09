@@ -1,3 +1,4 @@
+// This example demonstrates SVG accessibility metadata parsing (title, description, aria attributes).
 // Svg_a11y demonstrates SVG accessibility metadata parsing — the
 // <title>, <desc>, aria-label, aria-roledescription, and
 // aria-hidden values surface on SvgParsed.A11y after LoadSvg.

@@ -1,3 +1,4 @@
+// This example demonstrates tween, spring, keyframe, layout, and hero transitions in one window.
 // The animations example showcases tween, spring, keyframe, layout,
 // and hero transitions in one window.
 package main

@@ -1,3 +1,4 @@
+// This example demonstrates the DockLayout widget: IDE-style panels with splits, tabs, drag-and-drop rearrangement, and closable panels.
 // Dock_layout demonstrates the DockLayout widget: IDE-style
 // docking panels with splits, tabs, drag-and-drop rearrangement,
 // and closable panels.

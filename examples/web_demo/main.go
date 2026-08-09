@@ -1,3 +1,4 @@
+// This example demonstrates a go-gui app that runs in the browser via wasm (advanced: webassembly).
 // Web_demo is a go-gui app that runs in the browser via wasm.
 // Same source code pattern as get_started — proves cross-platform
 // compilation with no wasm-specific code.

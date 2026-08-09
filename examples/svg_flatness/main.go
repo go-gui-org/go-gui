@@ -1,3 +1,4 @@
+// This example demonstrates the FlatnessTolerance knob on SVG tessellation.
 // Svg_flatness visualizes the FlatnessTolerance knob on SvgCfg. A
 // curve-heavy logo is rendered at five increasing tolerance values:
 // higher tolerance = coarser polyline approximation = fewer

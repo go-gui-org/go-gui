@@ -1,3 +1,4 @@
+// This example demonstrates frame costs while rendering large widget batches.
 // Benchmark measures frame costs while rendering large batches of
 // widgets.
 package main

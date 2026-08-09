@@ -1,3 +1,4 @@
+// This example demonstrates a live process monitor with sortable columns and CPU and RAM history charts.
 package main
 
 import (

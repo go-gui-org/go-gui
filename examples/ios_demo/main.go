@@ -1,5 +1,6 @@
 //go:build ios
 
+// This example demonstrates go-gui on iOS (advanced: iOS).
 // Command ios_demo is an iOS demo app for go-gui.
 // Compiled as a c-archive and linked into a native Xcode project.
 package main

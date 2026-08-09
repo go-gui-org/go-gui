@@ -1,3 +1,4 @@
+// This example demonstrates a translucent, blurred native window backdrop on macOS.
 // Vibrancy demonstrates a translucent, blurred native window backdrop on
 // macOS via w.SetWindowVibrancy. The window BgColor is translucent (alpha <
 // 255) so the NSVisualEffectView behind the content shows through. On other

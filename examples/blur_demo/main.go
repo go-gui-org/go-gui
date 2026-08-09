@@ -1,3 +1,4 @@
+// This example demonstrates blur radius on shapes to create glows and soft-edged shapes.
 // The blur demo shows how blur radius can create glows and
 // soft-edged shapes.
 package main

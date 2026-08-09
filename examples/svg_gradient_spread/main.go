@@ -1,3 +1,4 @@
+// This example demonstrates spreadMethod pad, reflect, and repeat on linear and radial gradients.
 // Svg_gradient_spread demonstrates spreadMethod="pad|reflect|repeat"
 // on linear and radial gradients. The same gradient is rendered with
 // each spread mode in a 2x3 grid so the falloff differences are

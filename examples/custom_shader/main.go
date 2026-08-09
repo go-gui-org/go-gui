@@ -1,3 +1,4 @@
+// This example demonstrates animated fragment shaders inside ordinary containers (advanced: custom shaders).
 // Custom_shader renders animated fragment shaders inside ordinary
 // go-gui containers.
 package main

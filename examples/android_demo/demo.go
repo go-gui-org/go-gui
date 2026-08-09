@@ -1,5 +1,6 @@
 //go:build android
 
+// This example demonstrates go-gui on Android via OpenGL ES 3.0 (advanced: Android).
 // Package androidapp is an Android demo app for go-gui.
 // Built with gomobile bind to generate an AAR for Kotlin host.
 package androidapp

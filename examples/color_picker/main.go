@@ -1,3 +1,4 @@
+// This example demonstrates color editing with runtime theme switching.
 // The color picker example combines color editing with runtime
 // theme switching.
 package main

@@ -1,3 +1,4 @@
+// This example demonstrates hit testing: reporting which authored path the cursor sits inside on click.
 // Svg_hittest demonstrates TessellatedPath.ContainsPoint by
 // reporting which authored path the cursor sits inside on click.
 // SvgCfg.OnClick gives shape-relative MouseX/MouseY in display

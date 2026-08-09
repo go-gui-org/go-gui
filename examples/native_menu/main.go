@@ -1,3 +1,4 @@
+// This example demonstrates a native macOS menubar with an auto-wired Edit menu (advanced: native menus).
 // Native menu demonstrates a native macOS menubar with
 // auto-wired Edit menu, command integration, and status
 // feedback.

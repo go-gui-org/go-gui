@@ -1,3 +1,4 @@
+// This example demonstrates every mouse cursor shape the backends support.
 // Cursor demo shows every mouse cursor shape the backends support.
 // Hover a cell to change the cursor; hover empty space to reset it.
 // On Linux the two diagonal resize shapes come from the desktop's

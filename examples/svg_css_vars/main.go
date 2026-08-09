@@ -1,3 +1,4 @@
+// This example demonstrates CSS custom properties: var() with fallback and calc() arithmetic.
 // Svg_css_vars demonstrates v0.14.0 CSS custom-property additions:
 // `var(--name, fallback)` resolution and `calc()` arithmetic. The
 // theme switcher rebuilds the SVG source with a different `--primary`
