@@ -930,6 +930,33 @@ func TestA11YLabelFallback(t *testing.T) {
 	}
 }
 
+// The fallback is frequently a widget's ID, and an ID may be a scoped
+// path once the widget resolves its identity. A screen reader must hear
+// a name, not a path.
+func TestA11YLabelFallbackStripsIDScope(t *testing.T) {
+	tests := []struct {
+		name  string
+		label string
+		text  string
+		want  string
+	}{
+		{"scoped id announces the leaf", "", "settings:name", "name"},
+		{"deep path announces the leaf", "", "app:settings:name", "name"},
+		{"unscoped id is unchanged", "", "name", "name"},
+		{"explicit label keeps its colon", "Time: now", "id", "Time: now"},
+		{"trailing separator keeps the whole string", "", "name:", "name:"},
+		{"empty stays empty", "", "", ""},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := a11yLabel(tc.label, tc.text); got != tc.want {
+				t.Fatalf("a11yLabel(%q, %q) = %q, want %q",
+					tc.label, tc.text, got, tc.want)
+			}
+		})
+	}
+}
+
 // --- PointerOverApp tests ---
 
 func TestPointerOverApp(t *testing.T) {

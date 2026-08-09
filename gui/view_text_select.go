@@ -19,7 +19,7 @@ func textOnClick(ctx EventCtx) {
 	if shape.TC == nil || shape.ID == "" || !shape.Focusable {
 		return
 	}
-	ctx.Window.SetFocus(shape.ID)
+	ctx.Window.SetFocus(shape.idKey())
 
 	text := shape.TC.Text
 	style := textStyleOrDefault(shape)
@@ -45,7 +45,7 @@ func textOnClick(ctx EventCtx) {
 		runePos = intClamp(runePos, 0, runeLen)
 	}
 
-	focusID := shape.ID
+	focusID := shape.idKey()
 	imap := StateMap[string, InputState](
 		ctx.Window, nsInput, capMany,
 	)
@@ -100,7 +100,7 @@ func textOnClick(ctx EventCtx) {
 	maxScrollNeg := float32(0)
 	for p := ctx.Layout.Parent; p != nil; p = p.Parent {
 		if p.Shape != nil && p.Shape.Scrollable {
-			scrollID = p.Shape.ID
+			scrollID = p.Shape.idKey()
 			sy := ctx.Window.scrollY()
 			// Default 0: unscrolled position when no offset recorded yet.
 			dragScrollY0 = sy.GetOr(scrollID, 0)
@@ -237,10 +237,10 @@ func textOnClick(ctx EventCtx) {
 func textOnKeyDown(ctx EventCtx) {
 	shape := ctx.Layout.Shape
 	if shape.TC == nil || shape.ID == "" || !shape.Focusable ||
-		!ctx.Window.IsFocus(shape.ID) {
+		!ctx.Window.IsFocus(shape.idKey()) {
 		return
 	}
-	id := shape.ID
+	id := shape.idKey()
 	text := shape.TC.Text
 	imap := StateMap[string, InputState](
 		ctx.Window, nsInput, capMany,
@@ -355,7 +355,7 @@ func textAmendLayout(ctx EventCtx) {
 		return
 	}
 	is := StateReadOr(
-		ctx.Window, nsInput, ctx.Layout.Shape.ID, InputState{},
+		ctx.Window, nsInput, ctx.Layout.Shape.idKey(), InputState{},
 	)
 	ctx.Layout.Shape.TC.TextSelBeg = is.SelectBeg
 	ctx.Layout.Shape.TC.TextSelEnd = is.SelectEnd

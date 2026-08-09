@@ -314,6 +314,14 @@ func splitterAmendLayout(core *splitterCore, layout *Layout, w *Window) {
 	if len(layout.Children) < 3 {
 		return
 	}
+	// Splitter builds its tree with no Window in hand, so the core holds
+	// leaf IDs. Amend runs on the splitter's own shape, every frame,
+	// before any handler that looks the splitter up (FindByID) or moves
+	// focus to it — so this is where the leaves become identities.
+	core.id = layout.Shape.idKey()
+	if core.focusID != "" {
+		core.focusID = core.id
+	}
 
 	mainSz := splitterMainSize(layout, core.orientation)
 	computed := splitterCompute(core, mainSz)

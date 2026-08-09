@@ -67,7 +67,21 @@ const (
 	// frame.
 	DebugListBoxNoHeight
 
-	// DebugAll is every category, the set [Debug] turns on.
+	// DebugUnscopedIDs reports a focusable or scrollable shape whose ID
+	// resolves to itself — no ID-bearing ancestor above it — so its
+	// identity competes in the window-global namespace and cannot be
+	// reused elsewhere in the window.
+	//
+	// Advisory, not a defect: a top-level widget legitimately has no
+	// scope, which is why this is the one category [Debug] does not turn
+	// on. Ask for it explicitly with
+	// [DebugCategories](DebugUnscopedIDs) when auditing a screen for
+	// reusability.
+	DebugUnscopedIDs
+
+	// DebugAll is every category [Debug] turns on. DebugUnscopedIDs is
+	// deliberately absent: it reports a design property, not a bug, and
+	// would fire on most widgets in a small app.
 	DebugAll = DebugDuplicates | DebugMissingIDs | DebugUnconsumed |
 		DebugListBoxNoHeight
 )
@@ -174,6 +188,9 @@ const (
 	// debugCheckListBoxNoHeight fires from the listbox view phase
 	// rather than from the layout audit; see listBoxVisibleRange.
 	debugCheckListBoxNoHeight
+	// debugCheckUnscopedID reports an identity that has no ID-bearing
+	// ancestor, so it is still a window-global name.
+	debugCheckUnscopedID
 )
 
 // checkCategory maps an internal check to the public category that
@@ -189,6 +206,8 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugUnconsumed
 	case debugCheckListBoxNoHeight:
 		return DebugListBoxNoHeight
+	case debugCheckUnscopedID:
+		return DebugUnscopedIDs
 	}
 	return 0
 }
@@ -223,7 +242,9 @@ type debugState struct {
 // Called from updateLayoutLocked after composeLayout, so it sees the
 // same tree the renderer does, including floating and overlay layers.
 func (w *Window) debugAudit(root *Layout) {
-	if DebugCategory(debugMask.Load())&(DebugDuplicates|DebugMissingIDs) == 0 {
+	const walkCategories = DebugDuplicates | DebugMissingIDs |
+		DebugUnscopedIDs
+	if DebugCategory(debugMask.Load())&walkCategories == 0 {
 		return
 	}
 	// ids maps an ID to the path of the shape that claimed it first,
@@ -253,14 +274,31 @@ func (w *Window) debugWalk(layout *Layout, path *[]int, ids map[string]string) {
 // each ID this frame.
 func (w *Window) debugCheckShape(s *Shape, path []int, ids map[string]string) {
 	if s.ID != "" {
-		if first, dup := ids[s.ID]; dup {
-			w.debugWarn(debugCheckDupID, s.ID,
+		// Uniqueness is on the *effective* ID: the same leaf under two
+		// different ID-bearing ancestors is two identities and is not a
+		// duplicate. The message names the effective path, since that is
+		// the string the stores and the public APIs use.
+		key := s.idKey()
+		if first, dup := ids[key]; dup {
+			w.debugWarn(debugCheckDupID, key,
 				"duplicate ID %q at %s, first claimed at %s; ID is the "+
 					"identity key for focus, scroll, and per-widget state, so "+
 					"the two collapse to one tab stop and one state slot",
-				s.ID, debugPath(path), first)
+				key, debugPath(path), first)
 		} else {
-			ids[s.ID] = debugPath(path)
+			ids[key] = debugPath(path)
+		}
+		// An identity that resolves to itself has no ID-bearing ancestor
+		// to scope it, so the leaf is still a window-global name and the
+		// widget cannot be dropped into a second panel as it stands.
+		// Only state-keyed shapes are worth reporting: an ID on a plain
+		// container is documentation, not a key.
+		if key == s.ID && (s.Focusable || s.Scrollable) {
+			w.debugWarn(debugCheckUnscopedID, key,
+				"ID %q at %s has no ID-bearing ancestor, so it is a "+
+					"window-global name; give an ancestor an ID to scope "+
+					"it and the leaf becomes reusable elsewhere",
+				key, debugPath(path))
 		}
 		return
 	}

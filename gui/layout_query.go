@@ -27,8 +27,12 @@ func (layout *Layout) FindLayout(predicate func(Layout) bool) (*Layout, bool) {
 }
 
 // FindLayoutByFocusID recursively searches for a layout with matching focus ID.
+//
+// id is an effective ID (see gui/id_resolve.go): the full path a widget
+// resolves to under its ID-bearing ancestors, which is what the focus
+// store holds.
 func FindLayoutByFocusID(layout *Layout, id string) (*Layout, bool) {
-	if id != "" && layout.Shape.Focusable && layout.Shape.ID == id {
+	if id != "" && layout.Shape.Focusable && layout.Shape.idKey() == id {
 		return layout, true
 	}
 	for i := range layout.Children {
@@ -40,9 +44,10 @@ func FindLayoutByFocusID(layout *Layout, id string) (*Layout, bool) {
 }
 
 // FindLayoutByScrollID recursively searches for a Scrollable layout
-// with matching scroll ID. An empty id never matches.
+// with matching scroll ID. An empty id never matches. id is an
+// effective ID, as in [FindLayoutByFocusID].
 func FindLayoutByScrollID(layout *Layout, id string) (*Layout, bool) {
-	if id != "" && layout.Shape.Scrollable && layout.Shape.ID == id {
+	if id != "" && layout.Shape.Scrollable && layout.Shape.idKey() == id {
 		return layout, true
 	}
 	for i := range layout.Children {
@@ -57,6 +62,10 @@ func FindLayoutByScrollID(layout *Layout, id string) (*Layout, bool) {
 // An empty id never matches — a widget without an ID cannot be
 // addressed — matching the id != "" guards in FindLayoutByScrollID and
 // FindLayoutByFocusID.
+//
+// id is the widget's effective ID: a leaf under an ID-bearing ancestor
+// is addressed by its full path ("settings:name"), not by the leaf its
+// Cfg was written with. See gui/id_resolve.go.
 // A nil Shape means the layout tree has not been built yet (no frame
 // has been laid out), so there is nothing to find. Guarding here rather
 // than in each caller matches findScrollLayout, which already treats a
@@ -68,7 +77,7 @@ func (layout *Layout) FindByID(id string) (*Layout, bool) {
 	if layout.Shape == nil {
 		return nil, false
 	}
-	if layout.Shape.ID == id {
+	if layout.Shape.idKey() == id {
 		return layout, true
 	}
 	for i := range layout.Children {
@@ -87,13 +96,17 @@ type focusCandidate struct {
 func collectFocusCandidates(layout *Layout, candidates *[]focusCandidate, seen map[string]struct{}) {
 	s := layout.Shape
 	if s.Focusable && !s.FocusSkip && !s.Disabled && s.ID != "" {
+		// Candidates carry the effective ID: it is what the focus store
+		// holds, so it is what focusFindNext/Previous compare against.
+		//
 		// A duplicate ID collapses to a single tab stop; the extra
 		// widget is skipped. Reported by the debug gate's duplicate-ID
 		// check (debug.go), which sees every ID, not only focusable ones.
-		if _, ok := seen[s.ID]; !ok {
-			seen[s.ID] = struct{}{}
+		key := s.idKey()
+		if _, ok := seen[key]; !ok {
+			seen[key] = struct{}{}
 			*candidates = append(*candidates, focusCandidate{
-				id:    s.ID,
+				id:    key,
 				shape: s,
 			})
 		}

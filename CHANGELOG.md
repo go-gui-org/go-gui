@@ -8,7 +8,60 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- **Widget IDs are per-scope, not window-global (breaking).** `Shape.ID` is now
+  a **leaf**; the identity every store and lookup keys on is the **effective
+  ID** — the leaf joined to the IDs of its ID-bearing ancestors. Two panels may
+  each hold `Input{ID: "name"}`; they resolve to `settings:name` and
+  `profile:name` and keep separate focus, scroll, hover and per-widget state.
+  Only explicit ancestor IDs join — never tree position, never a child index —
+  so identity survives a reorder and changes only when an app changes an
+  ancestor's ID. A leaf that already contains `:` is **absolute** and is left
+  alone, which is why existing `ScopeID` composites keep working.
+
+  **Semantic break:** `SetFocus`, `ScrollVerticalTo`, `FindByID`, `IsFocus`, and
+  the `Test*` helpers take the effective ID. A call that passes a bare leaf
+  stops matching as soon as an ancestor of that widget carries an ID — pass the
+  full path (`"settings:name"`). Signatures are unchanged, so the compiler will
+  not find these; `(*Window).TestDuplicateIDs` and `GOGUI_DEBUG=1` report the
+  identities a frame actually has. `gui/datagrid` is unchanged: its children are
+  absolute multi-part IDs by design (a header cell's column is recovered by
+  reverse-parsing its ID), so two grids sharing a `cfg.ID` still collide. See
+  `docs/specs/widget-id-per-scope-uniqueness.md`.
+
+  Identity resolution is allocation-neutral: the joins are memoized per window,
+  so `BenchmarkViewFrame` holds its previous allocs/op. `Shape` itself grew by
+  one string (280 → 296 bytes), which crosses a size class and costs 32 bytes
+  per shape.
+
+- **Framework-internal identities are absolute.** The inspector tree
+  (`gui:inspector:tree`), the RTF link menu (`gui:rtf:link_menu`) and the
+  dialog's focus ID are written from event handlers, outside layout generation,
+  so they cannot be resolved against the tree they are mounted in. They now
+  carry `:` and are therefore their own identity wherever they are mounted.
+  Without this the inspector's wireframe followed a pick while its tree never
+  selected the row, and dialog focus landed on nothing.
+
+- **Accessibility labels announce a name, not a path.** Where a widget falls
+  back to its ID for `A11YLabel`, only the last segment is announced —
+  `settings:name` is read as "name". An explicit `A11YLabel` is untouched,
+  including one containing a colon.
+
 ### Added
+
+- **`(*Window).EffID` and `EventCtx.EffID`.** Resolve a leaf ID to the identity
+  the framework's stores use. `w.EffID(cfg.ID)` is for a widget that reads its
+  own state _during_ `GenerateLayout` — a combobox's open flag decides the
+  subtree it returns, so it cannot wait for the resolve pass. `ctx.EffID(leaf)`
+  is for a factory that builds its tree eagerly, with no `Window` in hand
+  (`Input`), and resolves against the shape the event is on.
+
+- **`gui.DebugUnscopedIDs`.** Opt-in dev-mode category reporting a focusable or
+  scrollable widget with no ID-bearing ancestor — its leaf is still a
+  window-global name, so it cannot be reused elsewhere in the window.
+  Deliberately outside `DebugAll`: it reports a design property, not a defect.
+  Enable with `gui.DebugCategories(gui.DebugUnscopedIDs)`.
 
 - **`gui.ScopeID` and `gui.ScopeIDN`.** The one way to compose an inner widget's
   ID. An ID is now a `:`-joined path (`grid:header:name:resize`); the owner may

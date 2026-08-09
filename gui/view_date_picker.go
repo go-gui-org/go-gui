@@ -105,6 +105,9 @@ func (dv *datePickerView) Content() []View { return nil }
 
 func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 	cfg := &dv.cfg
+
+	// One resolved identity for every key below; see (*Window).EffID.
+	cfg.ID = w.EffID(cfg.ID)
 	dn := &DefaultDatePickerStyle
 	cellSpacing := cfg.CellSpacing.Get(dn.CellSpacing)
 	radiusBorder := cfg.RadiusBorder.Get(dn.RadiusBorder)

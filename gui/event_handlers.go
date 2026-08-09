@@ -215,7 +215,7 @@ func mouseDownHandler(
 	if layout.Shape.PointInShape(e.MouseX, e.MouseY) {
 		if layout.Shape.Focusable && layout.Shape.ID != "" &&
 			e.MouseButton != MouseRight {
-			w.SetFocus(layout.Shape.ID)
+			w.SetFocus(layout.Shape.idKey())
 			e.IsHandled = true
 		}
 		var onClick ShapeCallback

@@ -84,7 +84,6 @@ func ProgressBar(cfg ProgressBarCfg) View {
 	textShow := cfg.TextShow
 	vertical := cfg.Vertical
 	indefinite := cfg.Indefinite
-	id := cfg.ID
 
 	size := guiTheme.ProgressBarStyle.Size
 
@@ -129,9 +128,12 @@ func ProgressBar(cfg ProgressBarCfg) View {
 		HAlign:     HAlignCenter,
 		VAlign:     VAlignMiddle,
 		AmendLayout: func(ctx EventCtx) {
+			// Keyed by the effective ID: the indefinite animation and
+			// its progress slot belong to this bar, not to every bar
+			// that happens to share the leaf.
 			progressBarAmendLayout(ctx.Layout, ctx.Window,
 				barPercent, textShow, vertical,
-				indefinite, id)
+				indefinite, ctx.Layout.Shape.idKey())
 		},
 		Content: content,
 	}

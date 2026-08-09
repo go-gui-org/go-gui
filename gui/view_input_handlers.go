@@ -39,7 +39,11 @@ func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id 
 
 func makeInputOnChar(hcfg inputHandlerCfg) func(EventCtx) {
 	return func(ctx EventCtx) {
-		if hcfg.FocusID == "" || !ctx.Window.IsFocus(hcfg.FocusID) {
+		// The captured IDs are leaves (Input builds its tree with no
+		// Window in hand); ctx.EffID turns them into the identities the
+		// focus and state stores hold.
+		id := ctx.EffID(hcfg.FocusID)
+		if id == "" || !ctx.Window.IsFocus(id) {
 			// Not our field: let the character travel on
 			return
 		}
@@ -50,7 +54,6 @@ func makeInputOnChar(hcfg inputHandlerCfg) func(EventCtx) {
 			return
 		}
 		ch := ctx.Event.CharCode
-		id := hcfg.FocusID
 
 		// Control characters are handled by OnKeyDown.
 		if ch < CharSpace {
@@ -69,7 +72,7 @@ func makeInputOnChar(hcfg inputHandlerCfg) func(EventCtx) {
 			resetBlinkCursorVisible(ctx.Window)
 			hcfg.fireTextChanged(ctx.Layout, text, ctx.Window)
 			inputScrollCursorIntoView(
-				hcfg.ScrollID, text, ctx.Layout, ctx.Window,
+				ctx.EffID(hcfg.ScrollID), text, ctx.Layout, ctx.Window,
 			)
 		}
 		ctx.Consume()
@@ -100,14 +103,14 @@ func inputKeyMutatesText(e *Event, mode InputMode) bool {
 func makeInputOnKeyDown(hcfg inputHandlerCfg) func(EventCtx) {
 	mask := hcfg.CompiledMask
 	return func(ctx EventCtx) {
-		if hcfg.FocusID == "" || !ctx.Window.IsFocus(hcfg.FocusID) {
+		id := ctx.EffID(hcfg.FocusID)
+		if id == "" || !ctx.Window.IsFocus(id) {
 			return
 		}
 		if hcfg.ReadOnly && inputKeyMutatesText(ctx.Event, hcfg.Mode) {
 			ctx.Consume()
 			return
 		}
-		id := hcfg.FocusID
 		imap := StateMap[string, InputState](ctx.Window, nsInput, capMany)
 		// Default InputState{}: zero CursorOffset/CursorTrailing seed
 		// initial state; both are immediately overwritten below.
@@ -192,7 +195,7 @@ func makeInputOnKeyDown(hcfg inputHandlerCfg) func(EventCtx) {
 				hcfg.fireTextChanged(ctx.Layout, text, ctx.Window)
 			}
 			inputScrollCursorIntoView(
-				hcfg.ScrollID, text, ctx.Layout, ctx.Window,
+				ctx.EffID(hcfg.ScrollID), text, ctx.Layout, ctx.Window,
 			)
 			ctx.Consume()
 		} else if hcfg.OnKeyDown != nil {
@@ -203,7 +206,8 @@ func makeInputOnKeyDown(hcfg inputHandlerCfg) func(EventCtx) {
 
 func makeInputOnKeyUp(hcfg inputHandlerCfg) func(EventCtx) {
 	return func(ctx EventCtx) {
-		if hcfg.FocusID == "" || !ctx.Window.IsFocus(hcfg.FocusID) {
+		id := ctx.EffID(hcfg.FocusID)
+		if id == "" || !ctx.Window.IsFocus(id) {
 			return
 		}
 		if hcfg.OnKeyUp != nil {

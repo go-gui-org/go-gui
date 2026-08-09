@@ -144,7 +144,7 @@ func scrollSmoothBy(w *Window, layout *Layout, axis scrollAxis, delta float32) b
 		return false
 	}
 	increment := delta * guiTheme.ScrollMultiplier
-	return scrollSmoothArm(w, layout.Shape.ID, axis, displayed, maxOffset, increment, true)
+	return scrollSmoothArm(w, layout.Shape.idKey(), axis, displayed, maxOffset, increment, true)
 }
 
 // scrollSmoothTo arms the smoother toward an absolute offset
@@ -156,13 +156,13 @@ func scrollSmoothTo(w *Window, layout *Layout, axis scrollAxis, offset float32) 
 	if !ok {
 		return false
 	}
-	return scrollSmoothArm(w, layout.Shape.ID, axis, displayed, maxOffset, offset, false)
+	return scrollSmoothArm(w, layout.Shape.idKey(), axis, displayed, maxOffset, offset, false)
 }
 
 // scrollSmoothParams validates that layout can ease on axis and
 // returns the displayed offset and scroll bound. Main goroutine only.
 func scrollSmoothParams(w *Window, layout *Layout, axis scrollAxis) (displayed, maxOffset float32, ok bool) {
-	id := layout.Shape.ID
+	id := layout.Shape.idKey()
 	if !layout.Shape.Scrollable || id == "" {
 		return 0, 0, false
 	}

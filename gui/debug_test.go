@@ -252,14 +252,21 @@ func TestCheckCategoryMapping(t *testing.T) {
 		{debugCheckMouseLeaveNoID, DebugMissingIDs},
 		{debugCheckUnconsumed, DebugUnconsumed},
 		{debugCheckListBoxNoHeight, DebugListBoxNoHeight},
+		{debugCheckUnscopedID, DebugUnscopedIDs},
 	}
 	for _, tc := range tests {
 		if got := checkCategory(tc.check); got != tc.want {
 			t.Errorf("checkCategory(%d) = %v, want %v", tc.check, got, tc.want)
 		}
 	}
+	// DebugAll covers every category Debug(true) turns on.
+	// DebugUnscopedIDs is opt-in and deliberately outside it: it reports
+	// a design property, not a defect.
 	if DebugAll != DebugDuplicates|DebugMissingIDs|DebugUnconsumed|DebugListBoxNoHeight {
-		t.Fatal("DebugAll must cover every category")
+		t.Fatal("DebugAll must cover every category Debug(true) enables")
+	}
+	if DebugAll&DebugUnscopedIDs != 0 {
+		t.Fatal("DebugUnscopedIDs must stay opt-in, outside DebugAll")
 	}
 }
 
@@ -427,10 +434,10 @@ func TestTestDuplicateIDsCompositeWidgetsAreQuiet(t *testing.T) {
 	}
 }
 
-// A genuine collision — a widget nested inside another with the same
-// ID — must still be reported. This is the case the "descendants may
-// reuse an ancestor's ID" shortcut would have hidden.
-func TestTestDuplicateIDsReportsNestedCollision(t *testing.T) {
+// A leaf repeated inside an ID-bearing ancestor is no longer a
+// collision: the framework scopes it, so the inner bar is "dup:dup",
+// a different identity from the button's "dup".
+func TestTestDuplicateIDsScopesNestedLeaf(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
 	w.UpdateView(func(_ *Window) View {
 		return Column(ContainerCfg{
@@ -446,9 +453,58 @@ func TestTestDuplicateIDsReportsNestedCollision(t *testing.T) {
 		})
 	})
 
+	if got := w.TestDuplicateIDs(); len(got) != 0 {
+		t.Fatalf("want no findings — the nested leaf scopes to "+
+			"\"dup:dup\" — got %q", got)
+	}
+}
+
+// Two leaves under one ID-less parent share a scope, so they still
+// collide. Scoping joins explicit ancestor IDs and nothing else.
+func TestTestDuplicateIDsReportsSameScopeCollision(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	w.UpdateView(func(_ *Window) View {
+		return Column(ContainerCfg{
+			Sizing: FillFill,
+			Content: []View{
+				ProgressBar(ProgressBarCfg{ID: "dup", Percent: 50}),
+				ProgressBar(ProgressBarCfg{ID: "dup", Percent: 60}),
+			},
+		})
+	})
+
 	got := w.TestDuplicateIDs()
 	if len(got) != 1 || !strings.Contains(got[0], `duplicate ID "dup"`) {
-		t.Fatalf("want one duplicate-ID finding for the nested bar, got %q", got)
+		t.Fatalf("want one duplicate-ID finding for the sibling bars, "+
+			"got %q", got)
+	}
+}
+
+// A joined identity and an absolute one can spell the same string.
+// There is no escaping, so this stays a duplicate — reported loudly
+// rather than silently sharing a slot.
+func TestTestDuplicateIDsReportsJoinedVsAbsolute(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	w.UpdateView(func(_ *Window) View {
+		return Column(ContainerCfg{
+			Sizing: FillFill,
+			Content: []View{
+				Button(ButtonCfg{
+					ID: "a",
+					Content: []View{
+						// Joins to "a:b".
+						ProgressBar(ProgressBarCfg{ID: "b", Percent: 50}),
+					},
+				}),
+				// Absolute: already "a:b", no further join.
+				ProgressBar(ProgressBarCfg{ID: "a:b", Percent: 60}),
+			},
+		})
+	})
+
+	got := w.TestDuplicateIDs()
+	if len(got) != 1 || !strings.Contains(got[0], `duplicate ID "a:b"`) {
+		t.Fatalf("want one duplicate-ID finding for \"a:b\", got %q", got)
 	}
 }
 
@@ -483,5 +539,53 @@ func TestTestDuplicateIDsRestoresDebugState(t *testing.T) {
 	}
 	if w.debug.collect != nil {
 		t.Error("collect sink not cleared")
+	}
+}
+
+// DebugUnscopedIDs is the reusability advisory: a state-keyed widget
+// with no ID-bearing ancestor still owns a window-global name.
+func TestDebugUnscopedIDsReportsGlobalLeaf(t *testing.T) {
+	buf := captureDebug(t)
+	DebugCategories(DebugUnscopedIDs)
+	w := &Window{}
+	tree := debugTree(&Shape{ID: "save", Focusable: true})
+	resolveShapeIDs(&tree, w)
+
+	w.debugAudit(&tree)
+	if got := buf.String(); !strings.Contains(got, `ID "save"`) ||
+		!strings.Contains(got, "no ID-bearing ancestor") {
+		t.Fatalf("want the unscoped-ID finding, got %q", got)
+	}
+
+	// Scoped: the same widget under a panel resolves to "panel:save"
+	// and is no longer competing globally.
+	scoped := Layout{Shape: &Shape{}}
+	scoped.Children = append(scoped.Children, Layout{
+		Shape: &Shape{ID: "panel"},
+		Children: []Layout{
+			{Shape: &Shape{ID: "save", Focusable: true}},
+		},
+	})
+	resolveShapeIDs(&scoped, w)
+	buf.Reset()
+	w.debug.warned = nil
+	w.debugAudit(&scoped)
+	if got := buf.String(); got != "" {
+		t.Fatalf("want no finding for a scoped ID, got %q", got)
+	}
+}
+
+// The advisory is opt-in: Debug(true) must not turn it on, or every
+// small app would report most of its widgets.
+func TestDebugAllExcludesUnscopedIDs(t *testing.T) {
+	buf := captureDebug(t)
+	Debug(true)
+	w := &Window{}
+	tree := debugTree(&Shape{ID: "save", Focusable: true})
+	resolveShapeIDs(&tree, w)
+
+	w.debugAudit(&tree)
+	if got := buf.String(); strings.Contains(got, "no ID-bearing ancestor") {
+		t.Fatalf("Debug(true) reported the advisory: %q", got)
 	}
 }

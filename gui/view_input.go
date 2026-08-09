@@ -270,7 +270,9 @@ func Input(cfg InputCfg) View {
 		OnKeyUp:         makeInputOnKeyUp(hcfg),
 		OnHover: func(ctx EventCtx) {
 			ctx.Window.setMouseCursor(CursorIBeam)
-			if !ctx.Window.IsFocus(focusID) {
+			// This handler sits on the container that claims cfg.ID, so
+			// its resolved identity is the focus key.
+			if !ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
 				ctx.Layout.Shape.Color = colorHover
 			}
 		},
@@ -399,12 +401,18 @@ func inputScrollIDFor(cfg *InputCfg) string {
 // input, which still tracks a cursor but never takes focus. Both are
 // passed in rather than read off the text shape, which carries no ID
 // of its own (see Shape.focusOwner).
-func inputOnClick(focusID, scrollID string, canFocus bool) func(EventCtx) {
+func inputOnClick(leafID, leafScrollID string, canFocus bool) func(EventCtx) {
 	return func(ctx EventCtx) {
 		if len(ctx.Layout.Children) < 1 {
 			// No inner text shape: not ours
 			return
 		}
+		// Input builds its tree eagerly, with no Window in hand, so the
+		// captured IDs are leaves. Resolve them here: the owning
+		// container is this shape's parent, and by dispatch time every
+		// shape carries its effective identity.
+		focusID := ctx.EffID(leafID)
+		scrollID := ctx.EffID(leafScrollID)
 		ly := ctx.Layout.Children[0]
 		if canFocus && focusID != "" {
 			ctx.Window.SetFocus(focusID)
@@ -518,8 +526,12 @@ func inputAmendLayout(
 		if !ctx.Layout.Shape.Focusable || ctx.Layout.Shape.ID == "" {
 			return
 		}
+		// This callback runs on the container that claims cfg.ID, so its
+		// own resolved identity is the key for focus, blur tracking,
+		// selection and spell-check state.
+		key := ctx.Layout.Shape.idKey()
 		focused := !ctx.Layout.Shape.Disabled &&
-			ctx.Window.IsFocus(ctx.Layout.Shape.ID)
+			ctx.Window.IsFocus(key)
 		if focused {
 			ctx.Layout.Shape.ColorBorder = colorBorderFocus
 		}
@@ -528,8 +540,8 @@ func inputAmendLayout(
 		focusMap := StateMap[string, bool](
 			ctx.Window, nsInputFocus, capMany)
 		// Default false: absent entry means not previously focused.
-		wasFocused := focusMap.GetOr(ctx.Layout.Shape.ID, false)
-		focusMap.Set(ctx.Layout.Shape.ID, focused)
+		wasFocused := focusMap.GetOr(key, false)
+		focusMap.Set(key, focused)
 		if wasFocused && !focused {
 			text := inputTextFromLayout(ctx.Layout)
 			if normalized := hcfg.normalizeOnCommit(
@@ -542,8 +554,7 @@ func inputAmendLayout(
 				hcfg.OnTextCommit(text, CommitBlur, ctx)
 			}
 			if spellChk {
-				spellCheckClear(
-					ctx.Layout.Shape.ID, ctx.Window)
+				spellCheckClear(key, ctx.Window)
 			}
 			if onBlur != nil {
 				onBlur(ctx)
@@ -557,8 +568,7 @@ func inputAmendLayout(
 				txt := &inner.Children[0]
 				if txt.Shape.TC != nil {
 					is := StateReadOr(ctx.Window, nsInput,
-						ctx.Layout.Shape.ID,
-						InputState{})
+						key, InputState{})
 					txt.Shape.TC.TextSelBeg = is.SelectBeg
 					txt.Shape.TC.TextSelEnd = is.SelectEnd
 				}
@@ -569,10 +579,9 @@ func inputAmendLayout(
 		// disabled.
 		if spellChk && focused {
 			text := inputTextFromLayout(ctx.Layout)
-			spellCheckTrigger(
-				ctx.Layout.Shape.ID, text, ctx.Window)
+			spellCheckTrigger(key, text, ctx.Window)
 		} else if !spellChk {
-			spellCheckClear(ctx.Layout.Shape.ID, ctx.Window)
+			spellCheckClear(key, ctx.Window)
 		}
 	}
 }

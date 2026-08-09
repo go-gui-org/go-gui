@@ -164,6 +164,9 @@ func (tv *treeView) Content() []View { return nil }
 func (tv *treeView) GenerateLayout(w *Window) Layout {
 	cfg := &tv.cfg
 
+	// One resolved identity for every key below; see (*Window).EffID.
+	cfg.ID = w.EffID(cfg.ID)
+
 	expanded := treeExpandedState(w, cfg.ID)
 	lazyState := StateMap[string, bool](w, nsTreeLazy, capMany)
 

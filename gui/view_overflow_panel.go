@@ -30,12 +30,15 @@ type OverflowPanelCfg struct {
 func OverflowPanel(w *Window, cfg OverflowPanelCfg) View {
 	applyOverflowDefaults(&cfg)
 
-	visibleCount, ok := w.overflow().Get(cfg.ID)
+	// The overflow count and the menu-open flag are keyed by the panel's
+	// effective ID — the same key layoutOverflow writes from the shape.
+	id := w.EffID(cfg.ID)
+	visibleCount, ok := w.overflow().Get(id)
 	if !ok {
 		visibleCount = len(cfg.Items)
 	}
 	isOpen := StateReadOr(
-		w, nsSelect, cfg.ID, false)
+		w, nsSelect, id, false)
 
 	content := make([]View, 0, len(cfg.Items)+2)
 
@@ -56,7 +59,6 @@ func OverflowPanel(w *Window, cfg OverflowPanelCfg) View {
 		}
 	}
 
-	id := cfg.ID
 	content = append(content, Button(ButtonCfg{
 		// Namespaced by the panel's ID: a toolbar can hold several
 		// overflow panels, each with its own trigger.
@@ -91,7 +93,7 @@ func OverflowPanel(w *Window, cfg OverflowPanelCfg) View {
 		}
 
 		content = append(content, Menu(w, MenubarCfg{
-			ID:           ScopeID(cfg.ID, "menu"),
+			ID:           ScopeID(id, "menu"),
 			Items:        menuItems,
 			Float:        true,
 			FloatAnchor:  cfg.FloatAnchor,

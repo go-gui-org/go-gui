@@ -120,7 +120,6 @@ func Slider(cfg SliderCfg) View {
 	colorFocus := cfg.ColorFocus
 	colorHover := cfg.ColorHover
 	disabled := cfg.Disabled
-	focusID := cfg.ID
 
 	trackSizing := FillFixed
 	if cfg.Vertical {
@@ -158,8 +157,13 @@ func Slider(cfg SliderCfg) View {
 		VAlign:    VAlignMiddle,
 		axis:      wrapperAxis,
 		OnClick: func(ctx EventCtx) {
+			// Press state is keyed by the wrapper's effective ID — the
+			// same key sliderAmendLayoutSlide reads off the shape. The
+			// captured sliderID is only a leaf: Slider builds its tree
+			// with no Window in hand.
+			pressID := ctx.Layout.Shape.idKey()
 			ps := StateMap[string, bool](ctx.Window, nsSliderPress, capModerate)
-			ps.Set(sliderID, true)
+			ps.Set(pressID, true)
 			ev := *ctx.Event
 			ev.MouseX = ctx.Event.MouseX + ctx.Layout.Shape.X
 			ev.MouseY = ctx.Event.MouseY + ctx.Layout.Shape.Y
@@ -174,7 +178,7 @@ func Slider(cfg SliderCfg) View {
 				},
 				MouseUp: func(ctx EventCtx) {
 					ps := StateMap[string, bool](ctx.Window, nsSliderPress, capModerate)
-					ps.Set(sliderID, false)
+					ps.Set(pressID, false)
 					ctx.Window.MouseUnlock()
 				},
 			})
@@ -188,8 +192,8 @@ func Slider(cfg SliderCfg) View {
 		AmendLayout: func(ctx EventCtx) {
 			sliderAmendLayoutSlide(ctx.Layout, ctx.Window,
 				onChange, value, minVal, maxVal, size, szBorder,
-				vertical, colorFocus, cfg.ColorLeft, disabled, focusID,
-				roundValue)
+				vertical, colorFocus, cfg.ColorLeft, disabled,
+				ctx.Layout.Shape.idKey(), roundValue)
 		},
 		OnHover: func(ctx EventCtx) {
 			ctx.Window.SetMouseCursorPointingHand()
@@ -285,7 +289,7 @@ func sliderAmendLayoutSlide(
 	if w != nil {
 		ps := StateMapRead[string, bool](w, nsSliderPress)
 		if ps != nil {
-			if pressed, ok := ps.Get(layout.Shape.ID); ok && pressed {
+			if pressed, ok := ps.Get(layout.Shape.idKey()); ok && pressed {
 				thumb.Shape.Color = colorLeft
 				return
 			}

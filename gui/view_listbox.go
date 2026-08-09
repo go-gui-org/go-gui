@@ -176,6 +176,9 @@ func (lv *listBoxView) Content() []View { return nil }
 func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 	cfg := &lv.cfg
 
+	// One resolved identity for every key below; see (*Window).EffID.
+	cfg.ID = w.EffID(cfg.ID)
+
 	dn := &DefaultListBoxStyle
 	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
 	radius := cfg.Radius.Get(dn.Radius)

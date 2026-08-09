@@ -47,6 +47,9 @@ func (cv *colorPickerView) Content() []View { return nil }
 
 func (cv *colorPickerView) GenerateLayout(w *Window) Layout {
 	cfg := &cv.cfg
+
+	// One resolved identity for every key below; see (*Window).EffID.
+	cfg.ID = w.EffID(cfg.ID)
 	style := cfg.Style
 
 	// Get or init HSV state.

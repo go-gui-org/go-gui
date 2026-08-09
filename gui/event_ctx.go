@@ -38,6 +38,42 @@ func (c EventCtx) Handled() bool {
 	return c.Event != nil && c.Event.IsHandled
 }
 
+// EffID resolves a leaf ID a handler closed over to the effective ID
+// the framework's stores are keyed by (see gui/id_resolve.go).
+//
+// A widget factory that builds its tree eagerly — Input, for one — has
+// no Window when it captures cfg.ID, so it cannot call
+// [Window.EffID] at generation time. Its handlers resolve here instead:
+// the leaf names this shape or one of its ancestors, and by the time an
+// event is dispatched every shape carries its resolved identity.
+//
+// An absolute leaf (one containing IDSep) and a leaf naming nothing in
+// the ancestor chain both resolve exactly as the resolve pass would
+// resolve them in this position.
+func (c EventCtx) EffID(leaf string) string {
+	if leaf == "" || c.Layout == nil {
+		return leaf
+	}
+	// The leaf usually names this shape or the composite's outer
+	// container, so the walk stops within a step or two.
+	scope := ""
+	for p := c.Layout; p != nil; p = p.Parent {
+		s := p.Shape
+		if s == nil || s.ID == "" {
+			continue
+		}
+		if s.ID == leaf {
+			return s.idKey()
+		}
+		if scope == "" {
+			// Nearest ID-bearing ancestor: the scope a leaf in this
+			// position would join to, kept for the fallback below.
+			scope = s.idKey()
+		}
+	}
+	return c.Window.joinLeaf(scope, leaf)
+}
+
 // evClass names which event is being dispatched.
 //
 // It no longer carries a dispatch rule. Until v0.55.0 there were two

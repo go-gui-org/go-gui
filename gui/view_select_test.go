@@ -87,7 +87,7 @@ func TestSelectOptionViewOnClickFires(t *testing.T) {
 		TextStyle: DefaultTextStyle,
 	}
 	applySelectDefaults(cfg)
-	v := selectOptionView(cfg, "B", 1, false)
+	v := selectOptionView(cfg, cfg.ID, "B", 1, false)
 	cv := v.(*containerView)
 
 	w := &Window{}
@@ -132,7 +132,7 @@ func TestSelectKeyboardNavigation(t *testing.T) {
 
 	// Open via space.
 	e := &Event{KeyCode: KeySpace}
-	selectOnKeyDown(&cfg, idScroll, e, w)
+	selectOnKeyDown(&cfg, cfg.ID, idScroll, e, w)
 	if !e.IsHandled {
 		t.Error("expected space open to be handled")
 	}
@@ -144,7 +144,7 @@ func TestSelectKeyboardNavigation(t *testing.T) {
 
 	// Navigate down.
 	e = &Event{KeyCode: KeyDown}
-	selectOnKeyDown(&cfg, idScroll, e, w)
+	selectOnKeyDown(&cfg, cfg.ID, idScroll, e, w)
 	if !e.IsHandled {
 		t.Error("expected down navigation to be handled")
 	}
@@ -156,7 +156,7 @@ func TestSelectKeyboardNavigation(t *testing.T) {
 
 	// Close via escape.
 	e = &Event{KeyCode: KeyEscape}
-	selectOnKeyDown(&cfg, idScroll, e, w)
+	selectOnKeyDown(&cfg, cfg.ID, idScroll, e, w)
 	if !e.IsHandled {
 		t.Error("expected escape close to be handled")
 	}
@@ -181,11 +181,11 @@ func TestSelectKeyboardSelectItem(t *testing.T) {
 
 	// Open.
 	e := &Event{KeyCode: KeySpace}
-	selectOnKeyDown(&cfg, idScroll, e, w)
+	selectOnKeyDown(&cfg, cfg.ID, idScroll, e, w)
 
 	// Select current (A at index 0).
 	e = &Event{KeyCode: KeyEnter}
-	selectOnKeyDown(&cfg, idScroll, e, w)
+	selectOnKeyDown(&cfg, cfg.ID, idScroll, e, w)
 	if !e.IsHandled {
 		t.Error("expected enter select to be handled")
 	}
@@ -206,11 +206,11 @@ func TestSelectSkipsSubHeaders(t *testing.T) {
 
 	// Open.
 	e := &Event{KeyCode: KeySpace}
-	selectOnKeyDown(&cfg, idScroll, e, w)
+	selectOnKeyDown(&cfg, cfg.ID, idScroll, e, w)
 
 	// Navigate down past subheader.
 	e = &Event{KeyCode: KeyDown}
-	selectOnKeyDown(&cfg, idScroll, e, w)
+	selectOnKeyDown(&cfg, cfg.ID, idScroll, e, w)
 	if !e.IsHandled {
 		t.Error("expected navigation to be handled")
 	}
@@ -234,11 +234,11 @@ func TestSelectHomeEndKeys(t *testing.T) {
 
 	// Open.
 	e := &Event{KeyCode: KeySpace}
-	selectOnKeyDown(&cfg, idScroll, e, w)
+	selectOnKeyDown(&cfg, cfg.ID, idScroll, e, w)
 
 	// End → last selectable (C at index 3).
 	e = &Event{KeyCode: KeyEnd}
-	selectOnKeyDown(&cfg, idScroll, e, w)
+	selectOnKeyDown(&cfg, cfg.ID, idScroll, e, w)
 	if !e.IsHandled {
 		t.Error("expected End to be handled")
 	}
@@ -250,7 +250,7 @@ func TestSelectHomeEndKeys(t *testing.T) {
 
 	// Home → first selectable (A at index 0).
 	e = &Event{KeyCode: KeyHome}
-	selectOnKeyDown(&cfg, idScroll, e, w)
+	selectOnKeyDown(&cfg, cfg.ID, idScroll, e, w)
 	if !e.IsHandled {
 		t.Error("expected Home to be handled")
 	}

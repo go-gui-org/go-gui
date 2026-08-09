@@ -518,7 +518,12 @@ type rtfLinkMenuState struct {
 	Open     bool
 }
 
-const rtfLinkMenuFocusID = "rtf_link_menu"
+// Absolute: the popup is generated as a child of the RTF block, so a
+// plain leaf would resolve under that block's identity — while
+// showLinkContextMenu and the dismiss check, which run from event
+// handlers, would keep using the bare constant and never match. See
+// gui/id_resolve.go.
+const rtfLinkMenuFocusID = "gui:rtf:link_menu"
 
 // showLinkContextMenu opens a context menu for an RTF link.
 func showLinkContextMenu(

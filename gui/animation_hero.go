@@ -82,7 +82,11 @@ func propagateOpacity(layout *Layout, opacity float32) {
 
 func applyHeroRecursive(layout *Layout, progress float32, outgoing, incoming map[string]posSnapshot) {
 	if layout.Shape.Hero && layout.Shape.ID != "" {
-		id := layout.Shape.ID
+		// Hero matching is identity-keyed: the same leaf under two
+		// different ID-bearing ancestors is two widgets and does not
+		// morph across a transition. A shared hero needs the same
+		// effective path on both sides.
+		id := layout.Shape.idKey()
 		morphProgress := f32Min(1, progress*2)
 		fadeProgress := f32Max(0, (progress-0.5)*2)
 

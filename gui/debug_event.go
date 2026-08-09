@@ -265,7 +265,10 @@ func (w *Window) sweepShape(root, l *Layout) {
 	// window focused on whatever it happened to visit last.
 	if ev.OnChar != nil && s.ID != "" {
 		prev := w.FocusID()
-		w.SetFocus(s.ID)
+		// idKey, not ID: focus is keyed by resolved identity, and
+		// focusing a bare leaf under a scoped ancestor would deliver the
+		// probe nowhere and silently under-report.
+		w.SetFocus(s.idKey())
 		charHandler(root, &Event{CharCode: 'x'}, w)
 		w.SetFocus(prev)
 	}

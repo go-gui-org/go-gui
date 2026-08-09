@@ -113,6 +113,7 @@ func (w *Window) scrollYRead() *BoundedMap[string, float32] {
 // clearHotMaps nils out the cached BoundedMap pointers so they are
 // recreated on next access. Call alongside registry.Clear().
 func (w *Window) clearHotMaps() {
+	w.idJoinCache = nil
 	w.hoverInsideMap = nil
 	w.scrollXMap = nil
 	w.scrollYMap = nil
@@ -244,4 +245,8 @@ const (
 	capMany       = 100
 	capScroll     = 200
 	capImageCache = 500
+	// capIDJoin bounds the ID-join memo. Sized well above the number of
+	// distinct identities a normal screen holds so the common frame is
+	// all hits; a bigger frame simply recomputes what does not fit.
+	capIDJoin = 512
 )

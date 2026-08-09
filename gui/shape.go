@@ -2,6 +2,7 @@ package gui
 
 import (
 	"math/rand/v2"
+	"strings"
 
 	"github.com/go-gui-org/go-glyph"
 )
@@ -27,7 +28,19 @@ type Shape struct {
 	// ID is a user-assigned string identifier. Used for event routing,
 	// form field lookup, and debugging. Optional but recommended for
 	// interactive widgets.
+	//
+	// ID is the *leaf* name. The window-unique identity is effID, which
+	// resolveShapeIDs derives by joining the IDs of ID-bearing ancestors
+	// (see id_resolve.go). Read idKey() — never ID — when using a shape
+	// as a key into focus, scroll, hover or per-widget state.
 	ID string
+
+	// effID is the resolved, window-unique identity: the leaf joined to
+	// the enclosing scope. Stamped by resolveShapeIDs, which runs from
+	// layoutArrange before any pass reads an identity, so it is empty
+	// only on a tree that has not been arranged — idKey() falls back to
+	// ID there.
+	effID string
 
 	// focusOwner is the ID of the widget this shape renders for. A
 	// composite widget sets it on an inner shape that must consult the
@@ -36,6 +49,16 @@ type Shape struct {
 	// container — without claiming the owner's identity. ID is an
 	// identity and must be unique per window; focusOwner is a
 	// reference and deliberately is not.
+	//
+	// The widget writes the owner's *leaf*; resolveShapeIDs rewrites it
+	// in place to the owner's effID, because that is the key the focus
+	// and input-state stores hold. In place rather than in a second
+	// field: adding effID already moved Shape from the 288-byte size
+	// class to the 320-byte one, and a second string would leave only 8
+	// bytes of headroom before the next jump. It is safe on two counts —
+	// the view phase rebuilds every shape each frame, and resolving an
+	// already-effective value is a no-op (it contains IDSep, so it is
+	// absolute).
 	focusOwner string
 
 	// Resource is an image file path, SVG source string, or data URI.
@@ -502,15 +525,30 @@ func (s *Shape) hasEvents() bool {
 	return s.events != nil
 }
 
+// idKey returns the identity this shape is keyed by in every ID-keyed
+// store and match: the resolved effID, falling back to the leaf ID on a
+// tree resolveShapeIDs has not walked yet (a hand-built Layout in a
+// test). Under an empty scope the two are equal, so the fallback only
+// ever matters before the pipeline runs.
+func (s *Shape) idKey() string {
+	if s.effID != "" {
+		return s.effID
+	}
+	return s.ID
+}
+
 // focusKey returns the ID whose focus and per-widget state this shape
 // renders from: focusOwner when the shape belongs to a composite
 // widget, otherwise its own ID. Empty for a shape that participates in
 // neither, which is the signal to render no caret or selection.
+//
+// Both arms return an *effective* ID, because that is what the focus,
+// input-state and spell-check stores hold.
 func (s *Shape) focusKey() string {
 	if s.focusOwner != "" {
 		return s.focusOwner
 	}
-	return s.ID
+	return s.idKey()
 }
 
 // rendersFocusState reports whether this shape draws caret, selection
@@ -560,9 +598,21 @@ func makeA11YInfo(label, desc string) *AccessInfo {
 }
 
 // a11yLabel returns label if set, otherwise falls back to text.
+//
+// The fallback is often a widget's ID, and an ID may be a scoped path
+// ("settings:name") once its widget resolves its identity. A screen
+// reader must announce a name, not a path, so only the last segment
+// survives the fallback. An explicit A11YLabel is returned untouched —
+// a colon an author wrote is part of the label.
 func a11yLabel(label, text string) string {
 	if label != "" {
 		return label
+	}
+	// A trailing separator leaves nothing to announce, so the whole
+	// string is better than silence.
+	if i := strings.LastIndex(text, IDSep); i >= 0 &&
+		i+len(IDSep) < len(text) {
+		return text[i+len(IDSep):]
 	}
 	return text
 }

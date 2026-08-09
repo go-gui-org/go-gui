@@ -107,7 +107,7 @@ func scrollbarThumb(cfg ScrollbarCfg) View {
 
 func makeScrollbarAmendLayout(cfg ScrollbarCfg) func(EventCtx) {
 	return func(ctx EventCtx) {
-		scrollbarAmendLayout(cfg, ctx.Layout, ctx.Window)
+		scrollbarAmendLayout(cfg, ctx, ctx.Layout, ctx.Window)
 	}
 }
 
@@ -124,10 +124,18 @@ func makeScrollbarOnHover(cfg ScrollbarCfg) func(EventCtx) {
 	}
 }
 
-func scrollbarAmendLayout(cfg ScrollbarCfg, layout *Layout, w *Window) {
+func scrollbarAmendLayout(
+	cfg ScrollbarCfg, ctx EventCtx, layout *Layout, w *Window,
+) {
 	if layout.Parent == nil || len(layout.Children) == 0 {
 		return
 	}
+	// ScrollID names the scrollable this bar drives, and it arrives as
+	// the leaf its container was written with. The scroll maps are keyed
+	// by effective ID, so resolve it against this shape's ancestors —
+	// the scrollable is one of them. cfg is already a copy, so this
+	// costs nothing beyond the lookup.
+	cfg.ScrollID = ctx.EffID(cfg.ScrollID)
 	parent := layout.Parent
 
 	if cfg.Orientation == ScrollbarHorizontal {
@@ -215,8 +223,9 @@ func scrollbarAmendLayout(cfg ScrollbarCfg, layout *Layout, w *Window) {
 // that initiates a drag via MouseLock.
 func makeScrollbarOnMouseDown(cfg ScrollbarCfg) func(EventCtx) {
 	orientation := cfg.Orientation
-	scrollID := cfg.ScrollID
+	leafScrollID := cfg.ScrollID
 	return func(ctx EventCtx) {
+		scrollID := ctx.EffID(leafScrollID)
 		ctx.Window.MouseLock(MouseLockCfg{
 			MouseMove: func(ctx EventCtx) {
 				scrollbarMouseMove(orientation, scrollID, ctx.Layout, ctx.Event, ctx.Window)
@@ -234,8 +243,9 @@ func makeScrollbarOnMouseDown(cfg ScrollbarCfg) func(EventCtx) {
 // for continued dragging.
 func makeScrollbarGutterClick(cfg ScrollbarCfg) func(EventCtx) {
 	orientation := cfg.Orientation
-	scrollID := cfg.ScrollID
+	leafScrollID := cfg.ScrollID
 	return func(ctx EventCtx) {
+		scrollID := ctx.EffID(leafScrollID)
 		if ctx.Window.MouseIsLocked() {
 			// A drag already owns the pointer, so this click is not the
 			// gutter's to act on — but it is still not the enclosing

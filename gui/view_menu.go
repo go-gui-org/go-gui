@@ -11,6 +11,9 @@ func Menu(w *Window, cfg MenubarCfg) View {
 	RequireID("Menu", cfg.ID)
 	checkForDuplicateMenuIDs(cfg.Items)
 
+	// One resolved identity for every key below; see (*Window).EffID.
+	cfg.ID = w.EffID(cfg.ID)
+
 	// Auto-select first item on focus.
 	if w.IsFocus(cfg.ID) {
 		sel := StateReadOr(

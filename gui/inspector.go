@@ -8,9 +8,17 @@ import (
 )
 
 const (
-	capInspector            = 8
-	inspectorScrollPanel    = "gui:inspector:panel"
-	inspectorTreeID         = "__inspector_tree__"
+	capInspector         = 8
+	inspectorScrollPanel = "gui:inspector:panel"
+	// Absolute, and it has to be. The tree is a child of the ID-bearing
+	// panel above, so a plain leaf would resolve to
+	// "gui:inspector:panel:<leaf>" — while inspectorSelect and the
+	// expansion helpers, which run from event handlers rather than from
+	// generation, would keep writing the bare constant. The wireframe
+	// would still follow the pick (it keys on nsInspector) and the tree
+	// would never show the row. Containing IDSep makes this the identity
+	// the Tree widget stores under, so both halves agree.
+	inspectorTreeID         = "gui:inspector:tree"
 	inspectorPanelMinWidth  = float32(300)
 	inspectorResizeStep     = float32(50)
 	inspectorMargin         = float32(10)
@@ -482,8 +490,11 @@ func inspectorSnapshotProps(layout *Layout) inspectorNodeProps {
 	}
 
 	props := inspectorNodeProps{
-		TypeName:    inspectorTypeName(shape),
-		ID:          shape.ID,
+		TypeName: inspectorTypeName(shape),
+		// The effective ID, not the leaf: it is the string SetFocus,
+		// FindByID and the test helpers take, so it is the one worth
+		// copying out of the inspector.
+		ID:          shape.idKey(),
 		X:           shape.X,
 		Y:           shape.Y,
 		Width:       shape.Width,
@@ -516,8 +527,8 @@ func inspectorNodeLabel(shape *Shape) string {
 	label := inspectorTypeName(shape) + " " +
 		strconv.Itoa(int(shape.Width)) + "x" +
 		strconv.Itoa(int(shape.Height))
-	if shape.ID != "" {
-		label += " #" + shape.ID
+	if id := shape.idKey(); id != "" {
+		label += " #" + id
 	}
 	return label
 }

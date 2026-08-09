@@ -133,7 +133,7 @@ func Toggle(cfg ToggleCfg) View {
 			if len(ctx.Layout.Children) == 0 {
 				return
 			}
-			if ctx.Window.IsFocus(ctx.Layout.Shape.ID) {
+			if ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
 				ctx.Layout.Children[0].Shape.Color = colorFocus
 				ctx.Layout.Children[0].Shape.ColorBorder = colorBorderFocus
 			}

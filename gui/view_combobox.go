@@ -78,16 +78,21 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 	dn := &DefaultComboboxStyle
 	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
 	radius := cfg.Radius.Get(dn.Radius)
-	isOpen := StateReadOr(w, nsCombobox, cfg.ID, false)
-	query := StateReadOr(w, nsComboboxQuery, cfg.ID, "")
-	highlighted := StateReadOr(w, nsComboboxHighlight, cfg.ID, 0)
+	// Per-widget state is keyed by the widget's *effective* ID, so two
+	// comboboxes written with the same leaf under different ID-bearing
+	// panels keep separate open/query/highlight state. Handlers close
+	// over the resolved key; it stays valid while those ancestors do.
+	id := w.EffID(cfg.ID)
+	isOpen := StateReadOr(w, nsCombobox, id, false)
+	query := StateReadOr(w, nsComboboxQuery, id, "")
+	highlighted := StateReadOr(w, nsComboboxHighlight, id, 0)
 
 	cacheMap := StateMap[string, *comboboxItemsCache](
 		w, nsComboboxItems, capModerate)
-	cache, ok := cacheMap.Get(cfg.ID)
+	cache, ok := cacheMap.Get(id)
 	if !ok || cache == nil {
 		cache = &comboboxItemsCache{}
-		cacheMap.Set(cfg.ID, cache)
+		cacheMap.Set(id, cache)
 	}
 
 	// Convert options to core items only when options changed.
@@ -123,7 +128,11 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 	pad := cfg.Padding.Get(Padding{})
 	listH := cfg.MaxDropdownHeight - 2*sizeBorder - pad.Top - pad.Bottom
 	var scrollY float32
-	dropdownScrollID := ScopeID(cfg.ID, "dropdown")
+	// The dropdown is a child of the container that claims cfg.ID, so
+	// its shape carries the plain leaf below and the framework joins it.
+	// The key here is that same join, spelled out because this read
+	// happens during generation.
+	dropdownScrollID := ScopeID(id, "dropdown")
 	if cfg.Scrollable {
 		// Default 0: unscrolled dropdown before first scroll event.
 		scrollY = w.scrollY().GetOr(dropdownScrollID, 0)
@@ -132,7 +141,6 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 
 	// Build dropdown content.
 	onSelect := cfg.OnSelect
-	cfgID := cfg.ID
 	coreCfg := listCoreCfg{
 		TextStyle:      cfg.TextStyle,
 		ColorHighlight: cfg.ColorHighlight,
@@ -143,7 +151,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 			if onSelect != nil {
 				onSelect(itemID, EventCtx{nil, ctx.Event, ctx.Window})
 			}
-			comboboxClose(cfgID, ctx.Window)
+			comboboxClose(id, ctx.Window)
 		},
 	}
 
@@ -211,7 +219,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 			cache.viewKey = viewKey
 		}
 		content = append(content, Column(ContainerCfg{
-			ID:           dropdownScrollID,
+			ID:           "dropdown",
 			SizeBorder:   Some(sizeBorder),
 			Radius:       Some(radius),
 			ColorBorder:  cfg.ColorBorder,
@@ -248,7 +256,6 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 
 	colorFocus := cfg.ColorFocus
 	colorBorderFocus := cfg.ColorBorderFocus
-	focusID := cfg.ID
 
 	ccfg := ContainerCfg{
 		ID:          cfg.ID,
@@ -269,18 +276,19 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 			if ctx.Layout.Shape.Disabled {
 				return
 			}
-			if ctx.Window.IsFocus(ctx.Layout.Shape.ID) {
+			if ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
 				ctx.Layout.Shape.Color = colorFocus
 				ctx.Layout.Shape.ColorBorder = colorBorderFocus
 			}
 		},
-		OnKeyDown: makeComboboxOnKeyDown(cfg.ID, onSelect, focusID, filteredIDs, dropdownScrollID, rowH, listH),
-		OnChar:    makeComboboxOnChar(cfg.ID),
+		OnKeyDown: makeComboboxOnKeyDown(id, onSelect, id, filteredIDs,
+			dropdownScrollID, rowH, listH),
+		OnChar: makeComboboxOnChar(id),
 		OnClick: func(ctx EventCtx) {
 			if isOpen {
-				comboboxClose(cfgID, ctx.Window)
+				comboboxClose(id, ctx.Window)
 			} else {
-				comboboxOpen(cfgID, focusID, ctx.Window)
+				comboboxOpen(id, id, ctx.Window)
 			}
 		},
 	}

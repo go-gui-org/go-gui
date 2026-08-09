@@ -212,6 +212,16 @@ type Window struct {
 	scrollYMap     *BoundedMap[string, float32]
 	overflowMap    *BoundedMap[string, int]
 
+	// idJoinCache memoizes (scope, leaf) -> joined identity, so the one
+	// allocation a join costs is paid once per distinct identity rather
+	// than once per widget per frame. See (*Window).joinLeaf.
+	idJoinCache *BoundedMap[idJoinKey, string]
+
+	// idScopeStack is the ancestor stack resolveShapeIDs walks with,
+	// kept here so its backing array is reused frame to frame rather
+	// than allocated per pipeline root. See gui/id_resolve.go.
+	idScopeStack []idFrame
+
 	// scrollSmooth eases discrete mouse-wheel scrolling toward a
 	// target offset. Guarded by animMu (see gui/scroll_smooth.go).
 	scrollSmooth *scrollSmoothAnimation
@@ -308,10 +318,15 @@ type ViewState struct {
 	tooltip        tooltipState
 
 	// Markdown caches (lazy-init: nil until first use).
-	markdownTheme            string
-	rtfLayoutTheme           string
-	diagramRequestSeq        uint64
-	focusID                  string
+	markdownTheme     string
+	rtfLayoutTheme    string
+	diagramRequestSeq uint64
+	focusID           string
+
+	// idScope is the effective ID of the innermost ID-bearing shape
+	// currently being generated. Maintained by generateViewLayout and
+	// read by (*Window).EffID; empty outside the view phase.
+	idScope                  string
 	mousePosX                float32
 	mousePosY                float32
 	mouseCursor              MouseCursor

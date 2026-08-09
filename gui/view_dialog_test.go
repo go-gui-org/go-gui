@@ -85,9 +85,12 @@ func TestDialogCfgDefaults(t *testing.T) {
 	if !cfg.Color.IsSet() {
 		t.Error("expected non-zero Color")
 	}
-	if cfg.FocusID != dialogBaseFocusID {
-		t.Errorf("expected FocusID=%q, got %q",
-			dialogBaseFocusID, cfg.FocusID)
+	// Scoped under the dialog container, which is where the control
+	// carrying it actually sits — a bare leaf would resolve under that
+	// container while SetFocus kept passing the leaf.
+	wantFocus := ScopeID(reservedDialogID, dialogBaseFocusID)
+	if cfg.FocusID != wantFocus {
+		t.Errorf("expected FocusID=%q, got %q", wantFocus, cfg.FocusID)
 	}
 	if cfg.MinWidth.IsSet() {
 		t.Error("expected MinWidth unset (resolved from style)")
@@ -129,9 +132,8 @@ func TestDialogShowDismissLifecycle(t *testing.T) {
 	if !w.DialogIsVisible() {
 		t.Error("expected dialog visible after Dialog()")
 	}
-	if w.FocusID() != dialogBaseFocusID {
-		t.Errorf("expected focus=%q, got %q",
-			dialogBaseFocusID, w.FocusID())
+	if want := ScopeID(reservedDialogID, dialogBaseFocusID); w.FocusID() != want {
+		t.Errorf("expected focus=%q, got %q", want, w.FocusID())
 	}
 
 	w.DialogDismiss()
@@ -425,5 +427,49 @@ func TestDialogConfirmView(t *testing.T) {
 	layout := generateViewLayout(v, w)
 	if len(layout.Children) == 0 {
 		t.Error("expected children for confirm dialog")
+	}
+}
+
+// The dialog's controls sit under a container carrying
+// reservedDialogID, while SetFocus and retainDialogFocus run outside
+// layout generation and pass dialogFocusID directly. If those two
+// disagree the dialog renders but keyboard focus lands nowhere: Enter
+// does not trigger the default button and a prompt swallows typing.
+// Every dialog shape must therefore be addressable by the ID the focus
+// path uses.
+func TestDialogFocusTargetIsAddressable(t *testing.T) {
+	tests := []struct {
+		name string
+		cfg  DialogCfg
+	}{
+		{"message", DialogCfg{Title: "t", Body: "m"}},
+		{"confirm", DialogCfg{
+			Title: "t", Body: "m", DialogType: DialogConfirm}},
+		{"confirm defaulting to yes", DialogCfg{
+			Title:      "t",
+			DialogType: DialogConfirm,
+			// The Yes button is the ScopeIDN-composed sibling, so this
+			// covers the composed arm of dialogFocusID too.
+			DefaultButton: DialogButtonYes,
+		}},
+		{"prompt", DialogCfg{Title: "t", DialogType: DialogPrompt}},
+		{"caller-supplied focus id", DialogCfg{
+			Title: "t", Body: "m", FocusID: "mine"}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			w := NewTestWindow(WindowCfg{})
+			w.Dialog(tc.cfg)
+			root := w.TestRender(func(_ *Window) View {
+				return Column(ContainerCfg{Sizing: FillFill})
+			})
+			want := dialogFocusID(w.dialogCfg)
+			if _, ok := root.FindByID(want); !ok {
+				t.Fatalf("no shape with the focus ID %q", want)
+			}
+			if got := w.FocusID(); got != want {
+				t.Fatalf("FocusID() = %q, want %q", got, want)
+			}
+		})
 	}
 }

@@ -26,9 +26,10 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 
 	// Skip cache when ID is empty to avoid collisions between
 	// multiple ID-less DrawCanvas widgets.
-	if shape.ID != "" {
+	key := shape.idKey()
+	if key != "" {
 		var ok bool
-		cached, ok = sm.Get(shape.ID)
+		cached, ok = sm.Get(key)
 		if ok && cached.Version == shape.Version &&
 			cached.TessWidth == cw && cached.TessHeight == ch &&
 			cached.Scale == scale {
@@ -53,8 +54,8 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 			Texts:      dc.texts,
 			Images:     dc.images,
 		}
-		if shape.ID != "" {
-			sm.Set(shape.ID, cached)
+		if key != "" {
+			sm.Set(key, cached)
 		}
 	}
 

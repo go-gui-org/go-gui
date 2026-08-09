@@ -136,6 +136,11 @@ func WithTooltip(w *Window, cfg WithTooltipCfg) View {
 	if tipID == "" {
 		tipID = cfg.Text
 	}
+	// Scope the tooltip's identity like any other widget key, so the
+	// same label used in two ID-bearing panels tracks hover separately.
+	// Both the state writes and the popup's shape ID derive from this
+	// one string, so they cannot disagree.
+	tipID = w.EffID(tipID)
 
 	delay := cfg.Delay
 	if delay == 0 {

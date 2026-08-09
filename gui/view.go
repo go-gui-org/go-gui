@@ -79,6 +79,17 @@ func generateViewLayout(view View, w *Window) Layout {
 		copy(grown, layout.Children)
 		layout.Children = grown
 	}
+	// Children generate under this node's scope, so a widget that reads
+	// its own state during GenerateLayout (w.EffID) keys on the same
+	// identity resolveShapeIDs will later stamp on its shape. Saved and
+	// restored rather than recomputed on the way out: the recursion is
+	// the only writer, and a sibling must not inherit a child's scope.
+	scoped := w != nil && len(children) > 0
+	saved := ""
+	if scoped {
+		saved = w.viewState.idScope
+		w.viewState.idScope = childScopeID(w, saved, layout.Shape)
+	}
 	for _, child := range children {
 		if child == nil {
 			continue
@@ -87,6 +98,9 @@ func generateViewLayout(view View, w *Window) Layout {
 			layout.Children,
 			generateViewLayout(child, w),
 		)
+	}
+	if scoped {
+		w.viewState.idScope = saved
 	}
 	return layout
 }
