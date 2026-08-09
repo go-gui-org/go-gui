@@ -215,8 +215,13 @@ ergo-fix:
 # the external test package — or carry a // exportaudit:keep marker.
 # The consumer scan is authoritative: without the sibling repos an export
 # used only there would misclassify, so the in-repo run is advisory.
+# Only the "siblings missing" case is suppressed; a real gate failure
+# (offenders found with siblings present) must exit non-zero.
 export-audit:
 	go run ./tools/exportaudit/ -mode gate -gui . .
-	go run ./tools/exportaudit/ -mode gate -gui . \
-	  ../go-charts ../go-edit ../go-kite ../go-term ../go-map || \
-	  (echo "exportaudit: sibling repos not found at ../go-*; run from a checkout with siblings present" >&2; true)
+	@if [ -d ../go-charts ] && [ -d ../go-edit ] && [ -d ../go-kite ] && [ -d ../go-term ] && [ -d ../go-map ]; then \
+	  go run ./tools/exportaudit/ -mode gate -gui . \
+	    ../go-charts ../go-edit ../go-kite ../go-term ../go-map; \
+	else \
+	  echo "exportaudit: sibling repos not found at ../go-*; run from a checkout with siblings present" >&2; \
+	fi

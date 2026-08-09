@@ -23,6 +23,16 @@ and this project adheres to
   advisory. 449 files changed; consumers at v0.56.0 are unaffected unless they
   referenced internal-only names.
 
+### Added
+
+- **`make export-audit` now actually fails the build when the gate trips.**
+  The authoritative consumer scan previously ran under `|| true`, so a real
+  gate failure (offenders found with siblings present) exited zero. It now
+  only tolerates missing sibling repos; CI shallow-clones the five consumers
+  into `../` and runs the authoritative scan, so the freeze is enforced on
+  every PR. See `docs/specs/exportaudit-surface-policy.md` for the accepted
+  `internal`-class policy.
+
 ## [v0.56.0] - 2026-08-09
 
 ### Changed
