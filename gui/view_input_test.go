@@ -743,6 +743,85 @@ func TestInputCursorNotRenderedWhenBlinkOff(t *testing.T) {
 	}
 }
 
+// Input's inner text shape carries neither ID nor Focusable — it names
+// the owning container through focusOwner (see Shape.focusKey). The
+// caret, and the cursor position it is drawn at, must resolve through
+// that reference.
+func TestInputCursorRenderedViaFocusOwner(t *testing.T) {
+	w := newTestWindow()
+	w.viewState.inputCursorOn.Store(true)
+	w.SetFocus("f703")
+	setInputState(w, "f703", InputState{CursorPos: 2})
+	style := DefaultTextStyle
+	shape := &Shape{
+		focusOwner: "f703",
+		shapeType:  shapeText,
+		Width:      200,
+		Height:     20,
+		TC: &ShapeTextConfig{
+			Text:      "hello",
+			TextStyle: &style,
+		},
+	}
+	w.renderers = w.renderers[:0]
+	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	found := false
+	for _, r := range w.renderers {
+		if r.Kind == RenderRect && r.Fill && r.W < 2 {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("cursor RenderRect not emitted for focusOwner shape")
+	}
+}
+
+// The owner reference is what decides, not the mere presence of a
+// text shape: a shape whose owner is not the focused widget renders
+// nothing.
+func TestInputCursorNotRenderedWhenFocusOwnerUnfocused(t *testing.T) {
+	w := newTestWindow()
+	w.viewState.inputCursorOn.Store(true)
+	w.SetFocus("other")
+	style := DefaultTextStyle
+	shape := &Shape{
+		focusOwner: "f704",
+		shapeType:  shapeText,
+		TC: &ShapeTextConfig{
+			Text:      "hello",
+			TextStyle: &style,
+		},
+	}
+	w.renderers = w.renderers[:0]
+	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	if len(w.renderers) != 0 {
+		t.Fatal("cursor should not render for an unfocused owner")
+	}
+}
+
+// Ordinary text renders no caret however the window is focused: it is
+// neither Focusable nor owned, so it has no focus state to draw.
+func TestInputCursorNotRenderedForPlainText(t *testing.T) {
+	w := newTestWindow()
+	w.viewState.inputCursorOn.Store(true)
+	w.SetFocus("f705")
+	setInputState(w, "f705", InputState{CursorPos: 2})
+	style := DefaultTextStyle
+	shape := &Shape{
+		ID:        "f705",
+		shapeType: shapeText,
+		TC: &ShapeTextConfig{
+			Text:      "hello",
+			TextStyle: &style,
+		},
+	}
+	w.renderers = w.renderers[:0]
+	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	if len(w.renderers) != 0 {
+		t.Fatal("cursor should not render for non-focusable text")
+	}
+}
+
 func TestInputCursorUsesColumnZeroForPlaceholder(t *testing.T) {
 	w := newTestWindow()
 	w.viewState.inputCursorOn.Store(true)

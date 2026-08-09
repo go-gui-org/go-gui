@@ -9,6 +9,18 @@ import (
 // Text rendering functions. Extracted from render_layout.go to keep
 // both files under 800 lines.
 
+// textShapeFocused reports whether the widget this text shape renders
+// for currently holds focus. A standalone Text answers for itself via
+// Focusable+ID; an input's inner text shape answers for the container
+// named by focusOwner, which owns both the focus and the state.
+func textShapeFocused(shape *Shape, w *Window) bool {
+	if !shape.rendersFocusState() {
+		return false
+	}
+	key := shape.focusKey()
+	return key != "" && w.IsFocus(key)
+}
+
 // renderText emits a RenderText command for a text shape.
 //
 //nolint:gocyclo // text rendering options
@@ -18,9 +30,9 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 		return
 	}
 	if len(tc.Text) == 0 &&
-		(!shape.Focusable || !w.IsFocus(shape.ID) || !w.IMEComposing()) {
+		(!textShapeFocused(shape, w) || !w.IMEComposing()) {
 		// Empty text — still render cursor if focused.
-		if shape.Focusable && w.IsFocus(shape.ID) {
+		if textShapeFocused(shape, w) {
 			baseX := shape.X + shape.PaddingLeft()
 			baseY := shape.Y + shape.PaddingTop()
 			renderInputCursor(shape, "", baseX, baseY,
@@ -51,8 +63,8 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	// A read-only field stays Focusable (to keep selection and
 	// cursor) but can never commit a composition, so its preedit
 	// must not render — makeInputOnChar would swallow the commit.
-	imeComposing := shape.Focusable && !tc.TextReadOnly &&
-		w.IsFocus(shape.ID) && w.IMEComposing()
+	imeComposing := !tc.TextReadOnly &&
+		textShapeFocused(shape, w) && w.IMEComposing()
 	compText := ""
 	compRuneLen := 0
 	compInsertPos := 0
@@ -60,7 +72,7 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 		compText = w.IMECompText()
 		compRunes := []rune(compText)
 		compRuneLen = len(compRunes)
-		is := StateReadOr(w, nsInput, shape.ID,
+		is := StateReadOr(w, nsInput, shape.focusKey(),
 			InputState{})
 		runes := []rune(text)
 		if tc.TextIsPlaceholder {
@@ -105,9 +117,9 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	var preLayout glyph.Layout
 	hasPreLayout := false
 	needLayout := tc.TextSelBeg != tc.TextSelEnd ||
-		(shape.Focusable && w.IsFocus(shape.ID) && w.inputCursorOn()) ||
+		(textShapeFocused(shape, w) && w.inputCursorOn()) ||
 		imeComposing ||
-		spellCheckHasRanges(shape.ID, w)
+		spellCheckHasRanges(shape.focusKey(), w)
 	renderWithLayout := plainTextNeedsGlyphLayout(shape, tc, renderStyle)
 	if needLayout || renderWithLayout {
 		preLayout, hasPreLayout = inputGlyphLayoutResolved(text, shape, renderStyle, w, true)
@@ -189,7 +201,7 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 // layout engine for precise character-boundary positioning.
 func renderInputCursor(shape *Shape, text string, baseX, baseY float32,
 	preLayout glyph.Layout, hasPreLayout bool, w *Window) {
-	if !shape.Focusable || !w.IsFocus(shape.ID) {
+	if !textShapeFocused(shape, w) {
 		return
 	}
 	if !w.inputCursorOn() {
@@ -198,7 +210,7 @@ func renderInputCursor(shape *Shape, text string, baseX, baseY float32,
 	if shape.TC != nil && shape.TC.TextIsPlaceholder {
 		text = ""
 	}
-	is := StateReadOr(w, nsInput, shape.ID, InputState{})
+	is := StateReadOr(w, nsInput, shape.focusKey(), InputState{})
 	runeLen := utf8RuneCount(text)
 	pos := min(is.CursorPos, runeLen)
 

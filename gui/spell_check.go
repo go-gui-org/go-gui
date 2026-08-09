@@ -100,14 +100,17 @@ func renderSpellCheckUnderlines(
 	gl glyph.Layout,
 	w *Window,
 ) {
-	if shape.ID == "" || !shape.Focusable {
+	// Keyed by the owning widget: an input's inner text shape carries
+	// focusOwner rather than the container's ID (see Shape.focusKey).
+	focusID := shape.focusKey()
+	if focusID == "" || !shape.rendersFocusState() {
 		return
 	}
 	sm := StateMapRead[string, spellCheckState](w, nsSpellCheck)
 	if sm == nil {
 		return
 	}
-	state, ok := sm.Get(shape.ID)
+	state, ok := sm.Get(focusID)
 	if !ok || len(state.Ranges) == 0 {
 		return
 	}

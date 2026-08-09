@@ -73,6 +73,5 @@ deep-dive/
 
 
 .direnv/
-docs/specs/
 .tokensave/
 .codegraph/

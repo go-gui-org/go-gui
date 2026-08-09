@@ -76,7 +76,9 @@ func buttonFeatureRows(w *gui.Window) []gui.View {
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{Text: strconv.Itoa(app.ButtonClicks), MinWidth: 25}),
 				gui.ProgressBar(gui.ProgressBarCfg{
-					ID:      "showcase-button-progress",
+					// Distinct from the enclosing button's ID: the two
+					// are separate widgets and must not share identity.
+					ID:      "showcase-button-progress-bar",
 					Percent: progress,
 					Width:   75,
 					Height:  gui.CurrentTheme().TextStyleDef.Size,

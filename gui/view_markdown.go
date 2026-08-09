@@ -306,6 +306,10 @@ func (w *Window) Markdown(cfg MarkdownCfg) View {
 		}))
 
 	colCfg := ContainerCfg{
+		// The container is the widget: sole claimant of cfg.ID, focus
+		// target for document selection, and what FindByID resolves to.
+		// Blocks reference it through TC.MarkdownID instead.
+		ID:          cfg.ID,
 		A11YRole:    AccessRoleGroup,
 		Color:       cfg.Color,
 		ColorBorder: cfg.ColorBorder,

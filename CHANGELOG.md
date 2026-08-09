@@ -10,6 +10,14 @@ and this project adheres to
 
 ### Added
 
+- **`(*Window).TestDuplicateIDs`.** The assertable form of what `GOGUI_DEBUG=1`
+  prints: renders the window and returns every identity defect in the frame —
+  duplicate IDs, and ID-less shapes whose focus, scroll, or `OnMouseLeave`
+  silently does nothing. Unlike `TestUnconsumedEvents` it dispatches nothing and
+  fires no callbacks, so it is safe on a window an assertion still depends on.
+  It sees the window as rendered, so drive the app into each state and check
+  again.
+
 - **`ErrTestNoScrollRoom`.** `TestScroll` on a scroll container whose content
   already fits now says so, instead of returning the generic `ErrTestUnhandled`.
   The two conditions call for opposite fixes — one means the fixture never had
@@ -18,6 +26,25 @@ and this project adheres to
   decided it.
 
 ### Fixed
+
+- **Composite widgets no longer duplicate their own ID.** `Input` put `cfg.ID`
+  on both its outer container and its inner text shape, and every `Markdown`
+  paragraph claimed the markdown widget's ID — so a `GOGUI_DEBUG=1` run of a
+  normal application drowned in duplicate-ID reports it could do nothing about,
+  and the check could not be trusted to mean anything. An inner shape that needs
+  the owning widget's focus and spell-check state now references it instead of
+  claiming its identity, and a markdown document's container owns the ID while
+  its blocks are tied to it through the existing markdown selection key.
+  `FindByID` on a markdown ID now resolves to the container rather than to the
+  first paragraph. `ID` is once again an identity that is unique per window.
+  Rationale and the remaining ergonomics question:
+  `docs/specs/widget-id-scoping.md`.
+
+- **`Markdown` document selection works.** Giving the markdown container the
+  widget's ID also fixed a latent defect: the container carried no ID at all,
+  and both its selection hook and its key handler bail out on an empty one — so
+  drag-selection across blocks, `Ctrl+A` and `Ctrl+C` were dead on every
+  `Focusable` markdown document.
 
 - **Wrapped text has a plausible height in headless tests.** Text is not
   zero-sized without a `TextMeasurer` — the width falls back to `0.6em` per rune

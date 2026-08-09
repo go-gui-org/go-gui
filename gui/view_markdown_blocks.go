@@ -505,7 +505,6 @@ func mdRenderParagraph(
 	ctx *mdBlockCtx,
 ) View {
 	rtfCfg := RTFCfg{
-		ID:            cfg.ID,
 		Clip:          cfg.Clip,
 		FocusSkip:     cfg.FocusSkip,
 		Disabled:      cfg.Disabled,
@@ -514,9 +513,12 @@ func mdRenderParagraph(
 		RichText:      block.Content,
 		BaseTextStyle: &block.BaseStyle,
 	}
+	// No ID and no Focusable: a paragraph is one block of a document,
+	// not the widget. The document's container claims cfg.ID and is
+	// the focus target; the blocks are tied to it through
+	// TC.MarkdownID (applyMdCtx), which is what selection keys on.
+	// Giving every block cfg.ID collapsed N paragraphs onto one
+	// identity.
 	applyMdCtx(&rtfCfg, ctx)
-	if ctx == nil {
-		rtfCfg.Focusable = cfg.Focusable
-	}
 	return RTF(rtfCfg)
 }
