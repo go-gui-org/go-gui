@@ -200,7 +200,7 @@ func TestToastOnActionCallback(t *testing.T) {
 	w.toasts = []toastNotification{
 		{id: 1, cfg: ToastCfg{
 			Title:       "T",
-			ActionLabel: "Undo",
+			actionLabel: "Undo",
 			OnAction:    func(ctx EventCtx) { fired = true },
 		}, animFrac: 1, phase: toastVisible},
 	}
@@ -213,19 +213,19 @@ func TestToastOnActionCallback(t *testing.T) {
 
 func TestToastAnchorPositioning(t *testing.T) {
 	cases := []struct {
-		anchor ToastAnchor
+		anchor toastAnchor
 		name   string
 	}{
-		{ToastTopLeft, "TopLeft"},
-		{ToastTopRight, "TopRight"},
-		{ToastBottomLeft, "BottomLeft"},
-		{ToastBottomRight, "BottomRight"},
+		{toastTopLeft, "TopLeft"},
+		{toastTopRight, "TopRight"},
+		{toastBottomLeft, "BottomLeft"},
+		{toastBottomRight, "BottomRight"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			saved := DefaultToastStyle.Anchor
-			DefaultToastStyle.Anchor = tc.anchor
-			defer func() { DefaultToastStyle.Anchor = saved }()
+			saved := defaultToastStyle.Anchor
+			defaultToastStyle.Anchor = tc.anchor
+			defer func() { defaultToastStyle.Anchor = saved }()
 
 			w := &Window{}
 			w.toasts = []toastNotification{
@@ -241,14 +241,14 @@ func TestToastAnchorPositioning(t *testing.T) {
 }
 
 func TestToastItemViewSeverityColors(t *testing.T) {
-	style := DefaultToastStyle
-	severities := []ToastSeverity{
-		ToastInfo, ToastSuccess, ToastWarning, ToastError,
+	style := defaultToastStyle
+	severities := []toastSeverity{
+		toastInfo, toastSuccess, toastWarning, toastError,
 	}
 	for _, sev := range severities {
 		toast := &toastNotification{
 			id:       1,
-			cfg:      ToastCfg{Title: "T", Severity: sev},
+			cfg:      ToastCfg{Title: "T", severity: sev},
 			animFrac: 1,
 		}
 		v := toastItemView(toast, style)

@@ -7,8 +7,8 @@ import (
 )
 
 // cachedSvgPaths converts TessellatedPath slices to CachedSvgPath.
-func cachedSvgPaths(paths []TessellatedPath) []CachedSvgPath {
-	out := make([]CachedSvgPath, len(paths))
+func cachedSvgPaths(paths []TessellatedPath) []cachedSvgPath {
+	out := make([]cachedSvgPath, len(paths))
 	for i := range paths {
 		p := &paths[i]
 		var vcols []Color
@@ -18,7 +18,7 @@ func cachedSvgPaths(paths []TessellatedPath) []CachedSvgPath {
 				vcols[j] = svgToColor(p.VertexColors[j])
 			}
 		}
-		out[i] = CachedSvgPath{
+		out[i] = cachedSvgPath{
 			Triangles:    p.Triangles,
 			Color:        svgToColor(p.Color),
 			VertexColors: vcols,
@@ -76,8 +76,8 @@ func buildSvgTextStyle(
 
 // cachedSvgTextDraws converts SvgText elements to CachedSvgTextDraw.
 func cachedSvgTextDraws(texts []SvgText, scale float32,
-	gradients map[string]SvgGradientDef, w *Window) []CachedSvgTextDraw {
-	draws := make([]CachedSvgTextDraw, 0, len(texts))
+	gradients map[string]SvgGradientDef, w *Window) []cachedSvgTextDraw {
+	draws := make([]cachedSvgTextDraw, 0, len(texts))
 	for _, t := range texts {
 		if len(t.Text) == 0 {
 			continue
@@ -119,7 +119,7 @@ func cachedSvgTextDraws(texts []SvgText, scale float32,
 		case SvgTextAnchorEnd:
 			x -= tw
 		}
-		draws = append(draws, CachedSvgTextDraw{
+		draws = append(draws, cachedSvgTextDraw{
 			Text:      t.Text,
 			TextStyle: ts,
 			X:         x,
@@ -134,11 +134,11 @@ func cachedSvgTextDraws(texts []SvgText, scale float32,
 func cachedSvgTextPathDraws(textPaths []SvgTextPath,
 	defsPathData map[string]cachedDefsPathData,
 	scale float32,
-) []CachedSvgTextPathDraw {
+) []cachedSvgTextPathDraw {
 	if len(textPaths) == 0 {
 		return nil
 	}
-	out := make([]CachedSvgTextPathDraw, 0, len(textPaths))
+	out := make([]cachedSvgTextPathDraw, 0, len(textPaths))
 	for i := range textPaths {
 		tp := textPaths[i]
 		if tp.Text == "" {
@@ -156,16 +156,16 @@ func cachedSvgTextPathDraws(textPaths []SvgTextPath,
 		if tp.IsPercent {
 			offset = (tp.StartOffset / 100) * cached.totalLen
 		}
-		out = append(out, CachedSvgTextPathDraw{
+		out = append(out, cachedSvgTextPathDraw{
 			Text:      tp.Text,
 			TextStyle: ts,
-			Path: TextPathData{
+			Path: textPathData{
 				Polyline: cached.polyline,
 				Table:    cached.table,
-				TotalLen: cached.totalLen,
+				totalLen: cached.totalLen,
 				Offset:   offset,
 				Anchor:   tp.Anchor,
-				Method:   tp.Method,
+				method:   tp.method,
 			},
 		})
 	}
@@ -348,8 +348,8 @@ func clampSvgCacheID(s string) string {
 // per-frame svgAnimState with these lets SMIL additive / replace
 // compose over the author's base (see CachedSvg.BaseByPath).
 func buildBaseByPath(
-	paths []CachedSvgPath,
-	filteredGroups []CachedFilteredGroup,
+	paths []cachedSvgPath,
+	filteredGroups []cachedFilteredGroup,
 	anims []SvgAnimation,
 ) map[uint32]svgBaseXform {
 	if len(anims) == 0 {
@@ -365,7 +365,7 @@ func buildBaseByPath(
 		return nil
 	}
 	out := make(map[uint32]svgBaseXform)
-	collect := func(ps []CachedSvgPath) {
+	collect := func(ps []cachedSvgPath) {
 		for i := range ps {
 			p := &ps[i]
 			if !p.HasBaseXform || p.PathID == 0 {
@@ -390,7 +390,7 @@ func buildBaseByPath(
 	}
 	collect(paths)
 	for i := range filteredGroups {
-		collect(filteredGroups[i].RenderPaths)
+		collect(filteredGroups[i].renderPaths)
 	}
 	if len(out) == 0 {
 		return nil

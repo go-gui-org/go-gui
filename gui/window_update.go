@@ -3,6 +3,7 @@ package gui
 import "time"
 
 // FrameTimings holds per-frame pipeline stage durations.
+// exportaudit:keep — collides with the window's frameTimings state field
 type FrameTimings struct {
 	ViewGen       time.Duration
 	LayoutArrange time.Duration
@@ -24,7 +25,7 @@ func (w *Window) QueueCommand(cb func(*Window)) {
 }
 
 // QueueValueCommand queues a value callback for execution on the main thread.
-func (w *Window) QueueValueCommand(cb func(float32, *Window), value float32) {
+func (w *Window) queueValueCommand(cb func(float32, *Window), value float32) {
 	if cb == nil {
 		return
 	}
@@ -37,7 +38,7 @@ func (w *Window) QueueValueCommand(cb func(float32, *Window), value float32) {
 }
 
 // QueueAnimateCommand queues an Animate callback for execution on the main thread.
-func (w *Window) QueueAnimateCommand(cb func(*Animate, *Window), a *Animate) {
+func (w *Window) queueAnimateCommand(cb func(*Animate, *Window), a *Animate) {
 	if cb == nil {
 		return
 	}
@@ -258,11 +259,11 @@ func (w *Window) Update() {
 	// accumulates on the main axis, and the subsequent fill pass still
 	// distributes the remaining space to any Fill children.
 	ensureLayoutShape(&rootLayout)
-	if rootLayout.Shape.Sizing.Width == SizingFill {
+	if rootLayout.Shape.Sizing.Width == sizingFill {
 		rootLayout.Shape.MinWidth = float32(w.windowWidth)
 		rootLayout.Shape.MaxWidth = float32(w.windowWidth)
 	}
-	if rootLayout.Shape.Sizing.Height == SizingFill {
+	if rootLayout.Shape.Sizing.Height == sizingFill {
 		rootLayout.Shape.MinHeight = float32(w.windowHeight)
 		rootLayout.Shape.MaxHeight = float32(w.windowHeight)
 	}

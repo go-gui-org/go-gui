@@ -9,7 +9,7 @@ import (
 // Phase B end-to-end: <style> blocks + tag/id/class selectors feed
 // the cascade and resolve into VectorPath paint properties.
 
-func parseSvgT(t *testing.T, src string) *VectorGraphic {
+func parseSvgT(t *testing.T, src string) *vectorGraphic {
 	t.Helper()
 	vg, err := parseSvg(src)
 	if err != nil {

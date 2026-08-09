@@ -807,7 +807,7 @@ func TestTextHoverPseudoStateApplies(t *testing.T) {
 	svg := `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">` +
 		`<style>text:hover{fill:blue}</style>` +
 		`<text id="t1" fill="red">X</text></svg>`
-	vg, err := parseSvgWith(svg, ParseOptions{HoveredElementID: "t1"})
+	vg, err := parseSvgWith(svg, parseOptions{HoveredElementID: "t1"})
 	if err != nil {
 		t.Fatal(err)
 	}

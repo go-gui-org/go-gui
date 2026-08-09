@@ -21,7 +21,7 @@ func inputTextFromLayout(layout *Layout) string {
 	if txt.Shape.TC == nil {
 		return ""
 	}
-	if txt.Shape.TC.TextIsPlaceholder {
+	if txt.Shape.TC.textIsPlaceholder {
 		return ""
 	}
 	return txt.Shape.TC.Text
@@ -51,7 +51,7 @@ func inputSetTextInLayout(layout *Layout, text string) {
 	txt.Shape.TC.Text = text
 	// Clear the placeholder flag so a follow-up read returns the
 	// typed text rather than treating it as placeholder content.
-	txt.Shape.TC.TextIsPlaceholder = false
+	txt.Shape.TC.textIsPlaceholder = false
 }
 
 // inputGlyphLayoutFor navigates to the inner text shape of an
@@ -121,7 +121,7 @@ func inputDeleteGrapheme(
 		return newText, newText != text
 	}
 	is := inputStateOrDefault(focusID, w)
-	if is.SelectBeg != is.SelectEnd {
+	if is.selectBeg != is.selectEnd {
 		newText, _ := inputDelete(text, focusID, forward, w)
 		return newText, newText != text
 	}
@@ -138,10 +138,10 @@ func inputDeleteGrapheme(
 	}
 	newPos := byteToRuneIndex(res.NewText, res.CursorPos)
 	undo := inputPushUndo(is, text)
-	imap := StateMap[string, InputState](w, nsInput, capMany)
-	imap.Set(focusID, InputState{
+	imap := StateMap[string, inputState](w, nsInput, capMany)
+	imap.Set(focusID, inputState{
 		CursorPos:    newPos,
-		CursorOffset: -1,
+		cursorOffset: -1,
 		Undo:         undo,
 	})
 	return res.NewText, true
@@ -200,26 +200,26 @@ func (d *inputDragState) computeRunePos(
 }
 
 func (d *inputDragState) updateSelection(rp int, w *Window) {
-	imap := StateMap[string, InputState](w, nsInput, capMany)
+	imap := StateMap[string, inputState](w, nsInput, capMany)
 	// Default InputState{}: zero value seeds initial drag-selection state.
-	is := imap.GetOr(d.focusID, InputState{})
+	is := imap.GetOr(d.focusID, inputState{})
 	if d.runes != nil {
 		wb, we := wordBoundsAt(d.runes, rp)
 		if rp < int(d.anchorPos) {
-			is.SelectBeg = d.anchorEnd
-			is.SelectEnd = uint32(wb)
+			is.selectBeg = d.anchorEnd
+			is.selectEnd = uint32(wb)
 			is.CursorPos = wb
 		} else {
-			is.SelectBeg = d.anchorPos
-			is.SelectEnd = uint32(we)
+			is.selectBeg = d.anchorPos
+			is.selectEnd = uint32(we)
 			is.CursorPos = we
 		}
 	} else {
 		is.CursorPos = rp
-		is.SelectBeg = d.anchorPos
-		is.SelectEnd = uint32(rp)
+		is.selectBeg = d.anchorPos
+		is.selectEnd = uint32(rp)
 	}
-	is.CursorOffset = -1
+	is.cursorOffset = -1
 	imap.Set(d.focusID, is)
 	resetBlinkCursorVisible(w)
 }

@@ -152,15 +152,15 @@ func a11yCollect(
 	value := ""
 	description := ""
 	var valueNum, valueMin, valueMax float32
-	if s.A11Y != nil {
-		if s.A11Y.Label != "" {
-			label = s.A11Y.Label
+	if s.a11Y != nil {
+		if s.a11Y.Label != "" {
+			label = s.a11Y.Label
 		}
-		description = s.A11Y.Description
-		value = a11yValueText(s.A11Y)
-		valueNum = s.A11Y.ValueNum
-		valueMin = s.A11Y.ValueMin
-		valueMax = s.A11Y.ValueMax
+		description = s.a11Y.Description
+		value = a11yValueText(s.a11Y)
+		valueNum = s.a11Y.ValueNum
+		valueMin = s.a11Y.ValueMin
+		valueMax = s.a11Y.ValueMax
 	}
 	if label == "" {
 		label = shapeA11yLabel(s)
@@ -213,7 +213,7 @@ func a11yCollect(
 }
 
 // a11yValueText formats AccessInfo numeric values as text.
-func a11yValueText(info *AccessInfo) string {
+func a11yValueText(info *accessInfo) string {
 	if info.ValueNum == 0 && info.ValueMin == 0 && info.ValueMax == 0 {
 		return ""
 	}
@@ -310,7 +310,7 @@ func (w *Window) WindowCleanup() {
 			w.cancelCtx()
 		}
 		w.stopAnimationLoop()
-		w.ReleaseAllFileAccess()
+		w.releaseAllFileAccess()
 		if w.nativePlatform != nil {
 			w.nativePlatform.A11yDestroy()
 		}

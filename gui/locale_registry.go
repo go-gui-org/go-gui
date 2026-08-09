@@ -13,16 +13,16 @@ var (
 )
 
 func init() {
-	LocaleRegister(LocaleEnUS)
-	LocaleRegister(LocaleDeDE)
-	LocaleRegister(LocaleArSA)
-	LocaleRegister(LocaleFrFR)
-	LocaleRegister(LocaleEsES)
-	LocaleRegister(LocalePtBR)
-	LocaleRegister(LocaleJaJP)
-	LocaleRegister(LocaleZhCN)
-	LocaleRegister(LocaleKoKR)
-	LocaleRegister(LocaleHeIL)
+	LocaleRegister(localeEnUS)
+	LocaleRegister(localeDeDE)
+	LocaleRegister(localeArSA)
+	LocaleRegister(localeFrFR)
+	LocaleRegister(localeEsES)
+	LocaleRegister(localePtBR)
+	LocaleRegister(localeJaJP)
+	LocaleRegister(localeZhCN)
+	LocaleRegister(localeKoKR)
+	LocaleRegister(localeHeIL)
 }
 
 // LocaleRegister adds a locale to the global registry by ID.
@@ -43,7 +43,7 @@ func LocaleGet(id string) (Locale, bool) {
 
 // LocaleRegisteredNames returns sorted IDs of all registered
 // locales.
-func LocaleRegisteredNames() []string {
+func localeRegisteredNames() []string {
 	localeRegistryMu.RLock()
 	names := make([]string, 0, len(localeRegistry))
 	for k := range localeRegistry {
@@ -56,6 +56,7 @@ func LocaleRegisteredNames() []string {
 
 // LocaleLoadDir loads all *.json files from a directory and
 // registers each as a locale.
+// exportaudit:keep — documented public API (showcase docs)
 func LocaleLoadDir(dir string) error {
 	files, err := filepath.Glob(filepath.Join(dir, "*.json"))
 	if err != nil {

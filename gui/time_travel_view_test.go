@@ -22,7 +22,7 @@ func newFixtureApp(t *testing.T, n int) (*Window, *testState) {
 // TestControllerLenBytes reports ring state.
 func TestControllerLenBytes(t *testing.T) {
 	w, _ := newFixtureApp(t, 3)
-	c := &TimeTravelController{App: w}
+	c := &timeTravelController{App: w}
 	if got := c.Len(); got != 3 {
 		t.Fatalf("Len = %d, want 3", got)
 	}
@@ -34,8 +34,8 @@ func TestControllerLenBytes(t *testing.T) {
 // TestControllerJumpClamps clamps negative and overflow idx.
 func TestControllerJumpClamps(t *testing.T) {
 	w, s := newFixtureApp(t, 3)
-	c := &TimeTravelController{App: w}
-	c.Jump(-5)
+	c := &timeTravelController{App: w}
+	c.jump(-5)
 	w.flushCommands()
 	if c.Cursor != 0 {
 		t.Fatalf("Cursor = %d, want 0 (clamped low)", c.Cursor)
@@ -43,7 +43,7 @@ func TestControllerJumpClamps(t *testing.T) {
 	if s.counter != 1 {
 		t.Fatalf("state counter = %d, want 1", s.counter)
 	}
-	c.Jump(999)
+	c.jump(999)
 	w.flushCommands()
 	if c.Cursor != 2 {
 		t.Fatalf("Cursor = %d, want 2 (clamped high)", c.Cursor)
@@ -56,9 +56,9 @@ func TestControllerJumpClamps(t *testing.T) {
 // TestControllerJumpFreezesApp confirms a jump auto-freezes.
 func TestControllerJumpFreezesApp(t *testing.T) {
 	w, _ := newFixtureApp(t, 2)
-	c := &TimeTravelController{App: w}
-	c.Jump(0)
-	if !w.IsFrozen() {
+	c := &timeTravelController{App: w}
+	c.jump(0)
+	if !w.isFrozen() {
 		t.Fatal("expected app window frozen after Jump")
 	}
 }
@@ -66,13 +66,13 @@ func TestControllerJumpFreezesApp(t *testing.T) {
 // TestControllerStepBackForward walks the cursor.
 func TestControllerStepBackForward(t *testing.T) {
 	w, s := newFixtureApp(t, 3)
-	c := &TimeTravelController{App: w, Cursor: 2}
-	c.StepBack()
+	c := &timeTravelController{App: w, Cursor: 2}
+	c.stepBack()
 	w.flushCommands()
 	if c.Cursor != 1 || s.counter != 2 {
 		t.Fatalf("after StepBack: cursor=%d counter=%d", c.Cursor, s.counter)
 	}
-	c.StepForward()
+	c.stepForward()
 	w.flushCommands()
 	if c.Cursor != 2 || s.counter != 3 {
 		t.Fatalf("after StepForward: cursor=%d counter=%d", c.Cursor, s.counter)
@@ -82,7 +82,7 @@ func TestControllerStepBackForward(t *testing.T) {
 // TestControllerFirstLast jumps to ends.
 func TestControllerFirstLast(t *testing.T) {
 	w, s := newFixtureApp(t, 4)
-	c := &TimeTravelController{App: w, Cursor: 2}
+	c := &timeTravelController{App: w, Cursor: 2}
 	c.First()
 	w.flushCommands()
 	if c.Cursor != 0 || s.counter != 1 {
@@ -98,10 +98,10 @@ func TestControllerFirstLast(t *testing.T) {
 // TestControllerResumeLive unfreezes and snaps cursor to newest.
 func TestControllerResumeLive(t *testing.T) {
 	w, _ := newFixtureApp(t, 3)
-	c := &TimeTravelController{App: w}
-	c.Jump(0)
-	c.ResumeLive()
-	if w.IsFrozen() {
+	c := &timeTravelController{App: w}
+	c.jump(0)
+	c.resumeLive()
+	if w.isFrozen() {
 		t.Fatal("still frozen after ResumeLive")
 	}
 	if c.Cursor != 2 {
@@ -115,13 +115,13 @@ func TestControllerResumeLive(t *testing.T) {
 // TestControllerToggleFreeze flips freeze on and off.
 func TestControllerToggleFreeze(t *testing.T) {
 	w, _ := newFixtureApp(t, 2)
-	c := &TimeTravelController{App: w, Cursor: 1}
-	c.ToggleFreeze()
-	if !w.IsFrozen() {
+	c := &timeTravelController{App: w, Cursor: 1}
+	c.toggleFreeze()
+	if !w.isFrozen() {
 		t.Fatal("ToggleFreeze should freeze")
 	}
-	c.ToggleFreeze()
-	if w.IsFrozen() {
+	c.toggleFreeze()
+	if w.isFrozen() {
 		t.Fatal("second ToggleFreeze should unfreeze")
 	}
 }
@@ -130,34 +130,34 @@ func TestControllerToggleFreeze(t *testing.T) {
 func TestControllerEmptyRing(t *testing.T) {
 	w := &Window{state: &testState{}}
 	w.history = newSnapshotRing(1 << 20)
-	c := &TimeTravelController{App: w}
-	c.Jump(0)
+	c := &timeTravelController{App: w}
+	c.jump(0)
 	c.First()
 	c.Last()
 	if c.Cursor != 0 {
 		t.Fatalf("Cursor = %d, want 0 (untouched)", c.Cursor)
 	}
-	if w.IsFrozen() {
+	if w.isFrozen() {
 		t.Fatal("empty ring should not auto-freeze")
 	}
 }
 
 // TestControllerNilSafe tolerates nil receivers and nil app.
 func TestControllerNilSafe(t *testing.T) {
-	var c *TimeTravelController
-	c.Jump(0)
-	c.StepBack()
-	c.StepForward()
+	var c *timeTravelController
+	c.jump(0)
+	c.stepBack()
+	c.stepForward()
 	c.First()
 	c.Last()
-	c.ResumeLive()
-	c.ToggleFreeze()
+	c.resumeLive()
+	c.toggleFreeze()
 	if got := c.Len(); got != 0 {
 		t.Fatalf("nil Len = %d", got)
 	}
 
-	c2 := &TimeTravelController{}
-	c2.Jump(0)
+	c2 := &timeTravelController{}
+	c2.jump(0)
 	if c2.Cursor != 0 {
 		t.Fatalf("nil-App Cursor = %d", c2.Cursor)
 	}
@@ -168,8 +168,8 @@ func TestControllerCauseLabel(t *testing.T) {
 	w := &Window{state: &testState{}}
 	w.history = newSnapshotRing(1 << 20)
 	w.history.push((&testState{}).Snapshot(), time.Now(), "mouse-down")
-	c := &TimeTravelController{App: w, Cursor: 0}
-	if got := c.Cause(); got != "mouse-down" {
+	c := &timeTravelController{App: w, Cursor: 0}
+	if got := c.cause(); got != "mouse-down" {
 		t.Fatalf("Cause = %q, want mouse-down", got)
 	}
 }
@@ -178,7 +178,7 @@ func TestControllerCauseLabel(t *testing.T) {
 // the expected controller actions.
 func TestControllerHandleKey(t *testing.T) {
 	w, s := newFixtureApp(t, 4)
-	c := &TimeTravelController{App: w, Cursor: 2}
+	c := &timeTravelController{App: w, Cursor: 2}
 
 	fire := func(k KeyCode) *Event {
 		e := &Event{Type: EventKeyDown, KeyCode: k}
@@ -206,15 +206,15 @@ func TestControllerHandleKey(t *testing.T) {
 	}
 	// Prior jumps auto-froze; KeyEscape resumes.
 	fire(KeyEscape)
-	if w.IsFrozen() {
+	if w.isFrozen() {
 		t.Fatal("KeyEscape should resume")
 	}
 	fire(KeySpace)
-	if !w.IsFrozen() {
+	if !w.isFrozen() {
 		t.Fatal("KeySpace from live should freeze")
 	}
 	fire(KeySpace)
-	if w.IsFrozen() {
+	if w.isFrozen() {
 		t.Fatal("second KeySpace should resume")
 	}
 
@@ -230,11 +230,11 @@ func TestControllerHandleKey(t *testing.T) {
 // and is idempotent for subsequent calls.
 func TestEnableHistory(t *testing.T) {
 	w := &Window{state: &testState{}}
-	w.EnableHistory(0)
+	w.enableHistory(0)
 	if w.history == nil || w.history.maxBytes != defaultHistoryBytes {
 		t.Fatalf("default cap not applied: %+v", w.history)
 	}
-	w.EnableHistory(2048)
+	w.enableHistory(2048)
 	if w.history.maxBytes != 2048 {
 		t.Fatalf("cap update: %d, want 2048", w.history.maxBytes)
 	}
@@ -250,7 +250,7 @@ func TestHistoryLen(t *testing.T) {
 	if got := w.HistoryLen(); got != 0 {
 		t.Fatalf("disabled HistoryLen = %d", got)
 	}
-	w.EnableHistory(0)
+	w.enableHistory(0)
 	w.history.push((&testState{}).Snapshot(), time.Now(), "e")
 	if got := w.HistoryLen(); got != 1 {
 		t.Fatalf("HistoryLen = %d, want 1", got)
@@ -260,8 +260,8 @@ func TestHistoryLen(t *testing.T) {
 // TestOpenDebugWindowNoApp is a no-op without an App.
 func TestOpenDebugWindowNoApp(t *testing.T) {
 	w := &Window{state: &testState{}}
-	w.EnableHistory(0)
-	w.OpenDebugWindow() // must not panic
+	w.enableHistory(0)
+	w.openDebugWindow() // must not panic
 }
 
 // TestOpenDebugWindowQueuesCfg verifies a WindowCfg is queued
@@ -273,17 +273,17 @@ func TestOpenDebugWindowQueuesCfg(t *testing.T) {
 	w.app = app
 	w.platformID = 1
 	w.Config.Title = "MyApp"
-	w.EnableHistory(0)
+	w.enableHistory(0)
 	w.history.push(s.Snapshot(), time.Now(), "init")
 
-	w.OpenDebugWindow()
+	w.openDebugWindow()
 
 	select {
 	case cfg := <-app.PendingOpen():
 		if cfg.Title != "Time Travel — MyApp" {
 			t.Fatalf("title = %q", cfg.Title)
 		}
-		ctrl, ok := cfg.State.(*TimeTravelController)
+		ctrl, ok := cfg.State.(*timeTravelController)
 		if !ok {
 			t.Fatalf("State type = %T", cfg.State)
 		}
@@ -307,7 +307,7 @@ func TestDebugTimeTravelCfgEnablesHistory(t *testing.T) {
 	w := NewWindow(WindowCfg{
 		State:           &testState{},
 		DebugTimeTravel: true,
-		HistoryBytes:    4096,
+		historyBytes:    4096,
 	})
 	if w.history == nil {
 		t.Fatal("history not enabled")
@@ -350,7 +350,7 @@ func TestAppRegisterSpawnsDebugWindow(t *testing.T) {
 
 	select {
 	case cfg := <-app.PendingOpen():
-		if _, ok := cfg.State.(*TimeTravelController); !ok {
+		if _, ok := cfg.State.(*timeTravelController); !ok {
 			t.Fatalf("queued cfg State = %T, want *TimeTravelController",
 				cfg.State)
 		}
@@ -376,7 +376,7 @@ func TestAppRegisterNoSpawnWhenDisabled(t *testing.T) {
 // TestControllerView returns a non-nil view for empty and
 // populated rings.
 func TestControllerView(t *testing.T) {
-	c := &TimeTravelController{}
+	c := &timeTravelController{}
 	host := &Window{}
 	if c.View(host) == nil {
 		t.Fatal("empty View nil")

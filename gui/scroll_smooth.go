@@ -108,7 +108,7 @@ func (s *scrollSmoothAnimation) Update(_ *Window, _ float32, ac *AnimationComman
 		s.stopped = true
 		return false
 	}
-	ac.AppendOnDone(commandApplyScrollSmooth)
+	ac.appendOnDone(commandApplyScrollSmooth)
 	return true
 }
 
@@ -143,7 +143,7 @@ func scrollSmoothBy(w *Window, layout *Layout, axis scrollAxis, delta float32) b
 	if !ok {
 		return false
 	}
-	increment := delta * guiTheme.ScrollMultiplier
+	increment := delta * guiTheme.scrollMultiplier
 	return scrollSmoothArm(w, layout.Shape.idKey(), axis, displayed, maxOffset, increment, true)
 }
 

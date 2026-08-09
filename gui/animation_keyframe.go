@@ -11,6 +11,7 @@ type Keyframe struct {
 
 // KeyframeAnimation interpolates through multiple waypoints
 // with per-segment easing.
+// exportaudit:keep — reachable from an exported signature
 type KeyframeAnimation struct {
 	start     time.Time
 	OnValue   func(float32, *Window)
@@ -62,17 +63,17 @@ func updateKeyframe(kf *KeyframeAnimation, ac *AnimationCommands) bool {
 	progress, done := durationProgress(kf.start, kf.Duration)
 	if done {
 		if len(kf.Keyframes) > 0 {
-			ac.AppendOnValue(kf.OnValue, kf.Keyframes[len(kf.Keyframes)-1].Value)
+			ac.appendOnValue(kf.OnValue, kf.Keyframes[len(kf.Keyframes)-1].Value)
 		}
 		if kf.Repeat {
 			kf.start = kf.start.Add(kf.Duration)
 			return true
 		}
-		ac.AppendOnDone(kf.OnDone)
+		ac.appendOnDone(kf.OnDone)
 		kf.stopped = true
 		return true
 	}
-	ac.AppendOnValue(kf.OnValue, interpolateKeyframes(kf.Keyframes, progress))
+	ac.appendOnValue(kf.OnValue, interpolateKeyframes(kf.Keyframes, progress))
 	return true
 }
 
@@ -107,5 +108,5 @@ func interpolateKeyframes(keyframes []Keyframe, progress float32) float32 {
 	if easing == nil {
 		easing = EaseLinear
 	}
-	return Lerp(prev.Value, curr.Value, easing(local))
+	return lerp(prev.Value, curr.Value, easing(local))
 }

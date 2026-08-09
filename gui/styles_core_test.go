@@ -57,7 +57,7 @@ func TestToGlyphStyleMapping(t *testing.T) {
 		StrokeWidth:   2,
 		StrokeColor:   RGBA(90, 100, 110, 120),
 	}
-	gs := ts.ToGlyphStyle()
+	gs := ts.toGlyphStyle()
 	if gs.FontName != "mono" {
 		t.Errorf("FontName: got %q", gs.FontName)
 	}
@@ -100,14 +100,14 @@ func TestAffineIdentityCheck(t *testing.T) {
 
 func TestHasTextTransformNone(t *testing.T) {
 	ts := TextStyle{}
-	if ts.HasTextTransform() {
+	if ts.hasTextTransform() {
 		t.Error("zero TextStyle should have no transform")
 	}
 }
 
 func TestHasTextTransformRotation(t *testing.T) {
 	ts := TextStyle{RotationRadians: 0.5}
-	if !ts.HasTextTransform() {
+	if !ts.hasTextTransform() {
 		t.Error("non-zero rotation should count as transform")
 	}
 }
@@ -115,14 +115,14 @@ func TestHasTextTransformRotation(t *testing.T) {
 func TestHasTextTransformAffine(t *testing.T) {
 	tr := glyph.AffineRotation(1.0)
 	ts := TextStyle{AffineTransform: &tr}
-	if !ts.HasTextTransform() {
+	if !ts.hasTextTransform() {
 		t.Error("explicit affine should count as transform")
 	}
 }
 
 func TestEffectiveTextTransformIdentity(t *testing.T) {
 	ts := TextStyle{}
-	tr := ts.EffectiveTextTransform()
+	tr := ts.effectiveTextTransform()
 	if !affineTransformIsIdentity(tr) {
 		t.Error("zero TextStyle should give identity transform")
 	}
@@ -130,7 +130,7 @@ func TestEffectiveTextTransformIdentity(t *testing.T) {
 
 func TestEffectiveTransformFromRotation(t *testing.T) {
 	ts := TextStyle{RotationRadians: 1.0}
-	tr := ts.EffectiveTextTransform()
+	tr := ts.effectiveTextTransform()
 	if affineTransformIsIdentity(tr) {
 		t.Error("rotation should give non-identity transform")
 	}
@@ -139,7 +139,7 @@ func TestEffectiveTransformFromRotation(t *testing.T) {
 func TestEffectiveTransformExplicitAffine(t *testing.T) {
 	explicit := glyph.AffineTransform{XX: 2, YY: 2}
 	ts := TextStyle{AffineTransform: &explicit, RotationRadians: 1.0}
-	tr := ts.EffectiveTextTransform()
+	tr := ts.effectiveTextTransform()
 	if tr.XX != 2 {
 		t.Error("explicit affine should take precedence over rotation")
 	}

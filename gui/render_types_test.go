@@ -3,7 +3,7 @@ package gui
 import "testing"
 
 // renderCmdKindName returns a debug name for the given RenderKind.
-func renderCmdKindName(k RenderKind) string {
+func renderCmdKindName(k renderKind) string {
 	switch k {
 	case RenderNone:
 		return "RenderNone"
@@ -66,7 +66,7 @@ func renderCmdKindName(k RenderKind) string {
 
 func TestRenderCmdKindNameExhaustive(t *testing.T) {
 	tests := []struct {
-		kind RenderKind
+		kind renderKind
 		want string
 	}{
 		{RenderNone, "RenderNone"},
@@ -96,7 +96,7 @@ func TestRenderCmdKindNameExhaustive(t *testing.T) {
 		{RenderStencilBegin, "RenderStencilBegin"},
 		{RenderStencilEnd, "RenderStencilEnd"},
 		{RenderTermGrid, "RenderTermGrid"},
-		{RenderKind(255), "Unknown"},
+		{renderKind(255), "Unknown"},
 	}
 	for _, tt := range tests {
 		got := renderCmdKindName(tt.kind)

@@ -70,11 +70,11 @@ func TestLayoutWrapRTFLineSpacing(t *testing.T) {
 	shape := &Shape{
 		shapeType: shapeRTF,
 		Width:     100,
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			TextMode:       TextModeWrap,
-			RTFBaseStyle:   glyph.TextStyle{Size: 12},
-			RTFLineSpacing: 3,
-			RTFRuns:        &rt,
+			rTFBaseStyle:   glyph.TextStyle{Size: 12},
+			rTFLineSpacing: 3,
+			rTFRuns:        &rt,
 		},
 	}
 
@@ -140,9 +140,9 @@ func makeRtfTooltipLayout() (*Layout, *Window) {
 			Y:         200,
 			Width:     100,
 			Height:    20,
-			TC: &ShapeTextConfig{
-				RTFLayout: &glyphLayout,
-				RTFRuns:   &rt,
+			TC: &shapeTextConfig{
+				rTFLayout: &glyphLayout,
+				rTFRuns:   &rt,
 			},
 		},
 	}
@@ -204,9 +204,9 @@ func TestRtfMouseMoveClearsOnNonTooltipRun(t *testing.T) {
 			Y:         0,
 			Width:     100,
 			Height:    20,
-			TC: &ShapeTextConfig{
-				RTFLayout: &glyphLayout,
-				RTFRuns:   &rt,
+			TC: &shapeTextConfig{
+				rTFLayout: &glyphLayout,
+				rTFRuns:   &rt,
 			},
 		},
 	}
@@ -246,9 +246,9 @@ func TestRtfMouseMoveUnderlineWithoutLinkDoesNotSetPointingHand(t *testing.T) {
 			shapeType: shapeRTF,
 			Width:     100,
 			Height:    20,
-			TC: &ShapeTextConfig{
-				RTFLayout: &glyphLayout,
-				RTFRuns:   &rt,
+			TC: &shapeTextConfig{
+				rTFLayout: &glyphLayout,
+				rTFRuns:   &rt,
 			},
 		},
 	}
@@ -292,9 +292,9 @@ func TestRtfMouseMoveLinkSetsPointingHand(t *testing.T) {
 			shapeType: shapeRTF,
 			Width:     100,
 			Height:    20,
-			TC: &ShapeTextConfig{
-				RTFLayout: &glyphLayout,
-				RTFRuns:   &rt,
+			TC: &shapeTextConfig{
+				rTFLayout: &glyphLayout,
+				rTFRuns:   &rt,
 			},
 		},
 	}
@@ -334,7 +334,7 @@ func TestRtfGenerateLayoutSuppressesInlineObjectGlyphs(t *testing.T) {
 		},
 	}), w)
 
-	items := layout.Shape.TC.RTFLayout.Items
+	items := layout.Shape.TC.rTFLayout.Items
 	if got := items[0].GlyphCount; got != 0 {
 		t.Fatalf("object GlyphCount = %d, want 0", got)
 	}
@@ -367,19 +367,19 @@ func TestLayoutWrapRTFSuppressesInlineObjectGlyphs(t *testing.T) {
 	shape := &Shape{
 		shapeType: shapeRTF,
 		Width:     100,
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			TextMode:     TextModeWrap,
-			RTFBaseStyle: baseStyle,
-			RTFRuns:      &rt,
+			rTFBaseStyle: baseStyle,
+			rTFRuns:      &rt,
 		},
 	}
 
 	layoutWrapRTF(shape, shape.TC, w)
 
-	if shape.TC.RTFLayout == nil {
+	if shape.TC.rTFLayout == nil {
 		t.Fatal("expected wrapped RTF layout")
 	}
-	if got := shape.TC.RTFLayout.Items[0].GlyphCount; got != 0 {
+	if got := shape.TC.rTFLayout.Items[0].GlyphCount; got != 0 {
 		t.Fatalf("wrapped object GlyphCount = %d, want 0", got)
 	}
 }
@@ -483,14 +483,14 @@ func TestRtfMathStateKey_NilInputs_ReturnFnvOffset(t *testing.T) {
 	if got := rtfMathStateKey(&rt, nil); got != want {
 		t.Fatalf("nil cache: got %d, want %d", got, want)
 	}
-	cache := NewBoundedDiagramCache(4)
+	cache := newBoundedDiagramCache(4)
 	if got := rtfMathStateKey(nil, cache); got != want {
 		t.Fatalf("nil rt: got %d, want %d", got, want)
 	}
 }
 
 func TestRtfMathStateKey_NoMathRuns_StableKey(t *testing.T) {
-	cache := NewBoundedDiagramCache(4)
+	cache := newBoundedDiagramCache(4)
 	rt := RichText{Runs: []RichTextRun{
 		{Text: "alpha"}, {Text: "beta"},
 	}}
@@ -502,17 +502,17 @@ func TestRtfMathStateKey_NoMathRuns_StableKey(t *testing.T) {
 }
 
 func TestRtfMathStateKey_LoadingVsReady_KeyDiffers(t *testing.T) {
-	cache := NewBoundedDiagramCache(4)
+	cache := newBoundedDiagramCache(4)
 	rt := RichText{Runs: []RichTextRun{
 		{MathID: "math_1", MathLatex: "a+b"},
 	}}
 	hash := diagramCacheHash("math_1")
 
-	cache.Set(hash, DiagramCacheEntry{State: DiagramLoading})
+	cache.Set(hash, DiagramCacheEntry{State: diagramLoading})
 	loadingKey := rtfMathStateKey(&rt, cache)
 
 	cache.Set(hash, DiagramCacheEntry{
-		State: DiagramReady, Width: 80, Height: 24, DPI: 200,
+		State: diagramReady, Width: 80, Height: 24, dPI: 200,
 	})
 	readyKey := rtfMathStateKey(&rt, cache)
 
@@ -522,31 +522,31 @@ func TestRtfMathStateKey_LoadingVsReady_KeyDiffers(t *testing.T) {
 }
 
 func TestRtfMathStateKey_DifferentDimensions_KeyDiffers(t *testing.T) {
-	cache := NewBoundedDiagramCache(4)
+	cache := newBoundedDiagramCache(4)
 	rt := RichText{Runs: []RichTextRun{{MathID: "m"}}}
 	hash := diagramCacheHash("m")
 
 	cache.Set(hash, DiagramCacheEntry{
-		State: DiagramReady, Width: 80, Height: 24, DPI: 200,
+		State: diagramReady, Width: 80, Height: 24, dPI: 200,
 	})
 	k1 := rtfMathStateKey(&rt, cache)
 
 	cache.Set(hash, DiagramCacheEntry{
-		State: DiagramReady, Width: 90, Height: 24, DPI: 200,
+		State: diagramReady, Width: 90, Height: 24, dPI: 200,
 	})
 	if k2 := rtfMathStateKey(&rt, cache); k1 == k2 {
 		t.Fatal("Width change must change key")
 	}
 
 	cache.Set(hash, DiagramCacheEntry{
-		State: DiagramReady, Width: 80, Height: 30, DPI: 200,
+		State: diagramReady, Width: 80, Height: 30, dPI: 200,
 	})
 	if k3 := rtfMathStateKey(&rt, cache); k1 == k3 {
 		t.Fatal("Height change must change key")
 	}
 
 	cache.Set(hash, DiagramCacheEntry{
-		State: DiagramReady, Width: 80, Height: 24, DPI: 150,
+		State: diagramReady, Width: 80, Height: 24, dPI: 150,
 	})
 	if k4 := rtfMathStateKey(&rt, cache); k1 == k4 {
 		t.Fatal("DPI change must change key")
@@ -554,12 +554,12 @@ func TestRtfMathStateKey_DifferentDimensions_KeyDiffers(t *testing.T) {
 }
 
 func TestRtfMathStateKey_CacheMissVsHit_KeyDiffers(t *testing.T) {
-	cache := NewBoundedDiagramCache(4)
+	cache := newBoundedDiagramCache(4)
 	rt := RichText{Runs: []RichTextRun{{MathID: "m"}}}
 	missKey := rtfMathStateKey(&rt, cache)
 
 	cache.Set(diagramCacheHash("m"), DiagramCacheEntry{
-		State: DiagramReady, Width: 10, Height: 10, DPI: 100,
+		State: diagramReady, Width: 10, Height: 10, dPI: 100,
 	})
 	hitKey := rtfMathStateKey(&rt, cache)
 
@@ -569,12 +569,12 @@ func TestRtfMathStateKey_CacheMissVsHit_KeyDiffers(t *testing.T) {
 }
 
 func TestRtfMathStateKey_NaNDimensions_NoPanic(t *testing.T) {
-	cache := NewBoundedDiagramCache(4)
+	cache := newBoundedDiagramCache(4)
 	rt := RichText{Runs: []RichTextRun{{MathID: "m"}}}
 	nan := float32(math.NaN())
 	inf := float32(math.Inf(1))
 	cache.Set(diagramCacheHash("m"), DiagramCacheEntry{
-		State: DiagramReady, Width: nan, Height: inf, DPI: nan,
+		State: diagramReady, Width: nan, Height: inf, dPI: nan,
 	})
 	// Must not panic; key is well-defined.
 	_ = rtfMathStateKey(&rt, cache)
@@ -595,11 +595,11 @@ func TestLayoutWrapRTF_MathReadyInvalidatesLoadingLayout(t *testing.T) {
 			},
 		},
 	}}
-	cache := NewBoundedDiagramCache(4)
+	cache := newBoundedDiagramCache(4)
 	w.viewState.diagramCache = cache
 	mathID := "math_1"
 	hash := diagramCacheHash(mathID)
-	cache.Set(hash, DiagramCacheEntry{State: DiagramLoading})
+	cache.Set(hash, DiagramCacheEntry{State: diagramLoading})
 
 	rt := RichText{Runs: []RichTextRun{{
 		MathID:    mathID,
@@ -611,10 +611,10 @@ func TestLayoutWrapRTF_MathReadyInvalidatesLoadingLayout(t *testing.T) {
 		return &Shape{
 			shapeType: shapeRTF,
 			Width:     200,
-			TC: &ShapeTextConfig{
+			TC: &shapeTextConfig{
 				TextMode:     TextModeWrap,
-				RTFBaseStyle: baseStyle,
-				RTFRuns:      &rt,
+				rTFBaseStyle: baseStyle,
+				rTFRuns:      &rt,
 			},
 		}
 	}
@@ -626,10 +626,10 @@ func TestLayoutWrapRTF_MathReadyInvalidatesLoadingLayout(t *testing.T) {
 	}
 
 	cache.Set(hash, DiagramCacheEntry{
-		State:  DiagramReady,
+		State:  diagramReady,
 		Width:  80,
 		Height: 24,
-		DPI:    200,
+		dPI:    200,
 	})
 
 	s2 := mkShape()
@@ -712,9 +712,9 @@ func TestRtfOnClickRightClickShowsMenu(t *testing.T) {
 			shapeType: shapeRTF,
 			X:         100, Y: 200,
 			Width: 100, Height: 20,
-			TC: &ShapeTextConfig{
-				RTFLayout: &glyphLayout,
-				RTFRuns:   &rt,
+			TC: &shapeTextConfig{
+				rTFLayout: &glyphLayout,
+				rTFRuns:   &rt,
 			},
 		},
 	}
@@ -848,9 +848,9 @@ func TestRtfOnClickIgnoresUnsafeLink(t *testing.T) {
 		Shape: &Shape{
 			shapeType: shapeRTF,
 			Width:     100, Height: 20,
-			TC: &ShapeTextConfig{
-				RTFLayout: &glyphLayout,
-				RTFRuns:   &rt,
+			TC: &shapeTextConfig{
+				rTFLayout: &glyphLayout,
+				rTFRuns:   &rt,
 			},
 		},
 	}

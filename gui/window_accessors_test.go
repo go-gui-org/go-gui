@@ -163,8 +163,8 @@ func TestClearDrawCanvasCacheEmptyRegistry(t *testing.T) {
 func TestClearDrawCanvasCacheDropsEntries(t *testing.T) {
 	w := newTestWindow()
 
-	sm := StateMap[string, DrawCanvasCache](w, nsDrawCanvas, capModerate)
-	sm.Set("canvas-1", DrawCanvasCache{Version: 7})
+	sm := StateMap[string, drawCanvasCache](w, nsDrawCanvas, capModerate)
+	sm.Set("canvas-1", drawCanvasCache{Version: 7})
 	if _, ok := sm.Get("canvas-1"); !ok {
 		t.Fatal("seeded cache entry not readable")
 	}
@@ -172,7 +172,7 @@ func TestClearDrawCanvasCacheDropsEntries(t *testing.T) {
 	w.ClearDrawCanvasCache()
 
 	// ClearNamespace drops the whole map, so the namespace reads back nil.
-	if got := StateMapRead[string, DrawCanvasCache](w, nsDrawCanvas); got != nil {
+	if got := StateMapRead[string, drawCanvasCache](w, nsDrawCanvas); got != nil {
 		t.Fatal("expected nsDrawCanvas namespace to be cleared")
 	}
 }

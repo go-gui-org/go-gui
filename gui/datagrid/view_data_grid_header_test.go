@@ -18,7 +18,7 @@ func TestHeaderIndicatorNoSort(t *testing.T) {
 
 func TestHeaderIndicatorSingleAsc(t *testing.T) {
 	q := GridQueryState{
-		Sorts: []GridSort{{ColID: "col1", Dir: GridSortAsc}},
+		Sorts: []GridSort{{ColID: "col1", Dir: gridSortAsc}},
 	}
 	got := dataGridHeaderIndicator(q, "col1")
 	if got != "\u25B2" {
@@ -39,7 +39,7 @@ func TestHeaderIndicatorSingleDesc(t *testing.T) {
 func TestHeaderIndicatorMultiSort(t *testing.T) {
 	q := GridQueryState{
 		Sorts: []GridSort{
-			{ColID: "a", Dir: GridSortAsc},
+			{ColID: "a", Dir: gridSortAsc},
 			{ColID: "b", Dir: GridSortDesc},
 		},
 	}
@@ -56,7 +56,7 @@ func TestHeaderIndicatorMultiSort(t *testing.T) {
 
 func TestHeaderIndicatorColumnNotSorted(t *testing.T) {
 	q := GridQueryState{
-		Sorts: []GridSort{{ColID: "a", Dir: GridSortAsc}},
+		Sorts: []GridSort{{ColID: "a", Dir: gridSortAsc}},
 	}
 	got := dataGridHeaderIndicator(q, "x")
 	if got != "" {
@@ -279,7 +279,7 @@ func TestPinControl(t *testing.T) {
 		TextStyleHeader:  gg.DefaultTextStyle,
 		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
 	}
-	col := GridColumnCfg{ID: "c1", Pin: GridColumnPinNone}
+	col := GridColumnCfg{ID: "c1", pin: gridColumnPinNone}
 	v := dataGridPinControl(cfg, col)
 	if v == nil {
 		t.Fatal("pin control should return a view")
@@ -291,7 +291,7 @@ func TestPinControlLeft(t *testing.T) {
 		TextStyleHeader:  gg.DefaultTextStyle,
 		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
 	}
-	col := GridColumnCfg{ID: "c1", Pin: GridColumnPinLeft}
+	col := GridColumnCfg{ID: "c1", pin: gridColumnPinLeft}
 	v := dataGridPinControl(cfg, col)
 	if v == nil {
 		t.Fatal("left-pinned control should return a view")
@@ -303,7 +303,7 @@ func TestPinControlRight(t *testing.T) {
 		TextStyleHeader:  gg.DefaultTextStyle,
 		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
 	}
-	col := GridColumnCfg{ID: "c1", Pin: GridColumnPinRight}
+	col := GridColumnCfg{ID: "c1", pin: gridColumnPinRight}
 	v := dataGridPinControl(cfg, col)
 	if v == nil {
 		t.Fatal("right-pinned control should return a view")
@@ -383,7 +383,7 @@ func TestReorderControls(t *testing.T) {
 		TextStyleHeader:  gg.DefaultTextStyle,
 		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
 		Columns:          []GridColumnCfg{{ID: "c1"}},
-		ColumnOrder:      []string{"c1"},
+		columnOrder:      []string{"c1"},
 	}
 	col := GridColumnCfg{ID: "c1", Reorderable: true}
 	v := dataGridReorderControls(cfg, col)
@@ -481,12 +481,12 @@ func TestHeaderCellWithControls(t *testing.T) {
 		PaddingHeader:       gg.SomeP(2, 4, 2, 4),
 		TextStyleHeader:     gg.DefaultTextStyle,
 		ColorHeaderHover:    gg.RGBA(220, 220, 220, 255),
-		OnColumnOrderChange: func(_ []string, ctx gg.EventCtx) {},
-		OnColumnPinChange:   func(_ string, _ GridColumnPin, ctx gg.EventCtx) {},
+		onColumnOrderChange: func(_ []string, ctx gg.EventCtx) {},
+		onColumnPinChange:   func(_ string, _ gridColumnPin, ctx gg.EventCtx) {},
 	}
 	col := GridColumnCfg{
 		ID: "c1", Title: "Column 1",
-		Reorderable: true, Resizable: true, Pin: GridColumnPinNone,
+		Reorderable: true, resizable: true, pin: gridColumnPinNone,
 	}
 	v := dataGridHeaderCell(cfg, col, 0, 2, 300, "", true)
 	if v == nil {

@@ -30,7 +30,7 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 	inputFocusID := inputID
 	matchesText := dataGridQuickFilterMatchesText(cfg)
 	clearDisabled := value == "" || queryCallback == nil
-	debounce := cfg.QuickFilterDebounce
+	debounce := cfg.quickFilterDebounce
 
 	dimColor := cfg.TextStyleFilter.Color
 	dimColor.A = 140
@@ -59,7 +59,7 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 			gg.Input(gg.InputCfg{
 				ID:               inputID,
 				Text:             value,
-				Placeholder:      cfg.QuickFilterPlaceholder,
+				Placeholder:      cfg.quickFilterPlaceholder,
 				Sizing:           gg.FillFill,
 				Padding:          gg.NoPadding,
 				SizeBorder:       gg.SomeF(0),
@@ -87,7 +87,7 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 						capModerate).Delete(gridID)
 					next := GridQueryState{
 						Sorts:       append([]GridSort(nil), query.Sorts...),
-						Filters:     append([]GridFilter(nil), query.Filters...),
+						Filters:     append([]gridFilter(nil), query.Filters...),
 						QuickFilter: "",
 					}
 					queryCallback(next, gg.EventCtx{Layout: nil, Event: ctx.Event, Window: ctx.Window})
@@ -122,7 +122,7 @@ func dataGridQuickFilterOnTextChanged(
 		if debounce <= 0 {
 			next := GridQueryState{
 				Sorts:       append([]GridSort(nil), query.Sorts...),
-				Filters:     append([]GridFilter(nil), query.Filters...),
+				Filters:     append([]gridFilter(nil), query.Filters...),
 				QuickFilter: text,
 			}
 			e := &gg.Event{}
@@ -130,7 +130,7 @@ func dataGridQuickFilterOnTextChanged(
 			return
 		}
 		sorts := append([]GridSort(nil), query.Sorts...)
-		filters := append([]GridFilter(nil), query.Filters...)
+		filters := append([]gridFilter(nil), query.Filters...)
 		gg.StateMap[string, string](ctx.Window, nsDgQuickDraft,
 			capModerate).Set(gridID, text)
 		ctx.Window.AnimationAdd(&gg.Animate{
@@ -164,13 +164,13 @@ func dataGridQuickFilterMatchesText(cfg *DataGridCfg) string {
 // --- Column chooser ---
 
 func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.View {
-	onHiddenColumnsChange := cfg.OnHiddenColumnsChange
+	onHiddenColumnsChange := cfg.onHiddenColumnsChange
 	hasVisibilityCallback := onHiddenColumnsChange != nil
 	chooserLabel := gg.ActiveLocale.StrColumns + " ▶" // ▶
 	if isOpen {
 		chooserLabel = gg.ActiveLocale.StrColumns + " ▼" // ▼
 	}
-	rowH := cfg.RowHeight
+	rowH := cfg.rowHeight
 	if rowH <= 0 {
 		rowH = dataGridHeaderHeight(cfg)
 	}
@@ -201,7 +201,7 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.
 			if col.ID == "" {
 				continue
 			}
-			hidden := cfg.HiddenColumnIDs[col.ID]
+			hidden := cfg.hiddenColumnIDs[col.ID]
 			colID := col.ID
 			options = append(options, gg.Toggle(gg.ToggleCfg{
 				ID:       gg.ScopeID(gridID, "col-chooser", col.ID),
@@ -209,7 +209,7 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.
 				Selected: !hidden,
 				Disabled: !hasVisibilityCallback,
 				OnClick: dataGridMakeColumnChooserOnClick(onHiddenColumnsChange,
-					cfg.HiddenColumnIDs, columns, colID, focusID),
+					cfg.hiddenColumnIDs, columns, colID, focusID),
 			}))
 		}
 		content = append(content, gg.Row(gg.ContainerCfg{

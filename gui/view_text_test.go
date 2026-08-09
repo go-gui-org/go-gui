@@ -51,7 +51,7 @@ func TestTextPasswordMode(t *testing.T) {
 	if layout.Shape.TC == nil {
 		t.Fatal("expected TC")
 	}
-	if !layout.Shape.TC.TextIsPassword {
+	if !layout.Shape.TC.textIsPassword {
 		t.Error("expected password mode")
 	}
 }

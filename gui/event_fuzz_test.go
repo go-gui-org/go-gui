@@ -108,7 +108,7 @@ func FuzzEventDispatch(f *testing.F) {
 		w.layout = eventLayout
 
 		// Set focus to a random child if one exists with IDFocus.
-		if got, ok := FindLayoutByFocusID(&w.layout, "fa0"); ok {
+		if got, ok := findLayoutByFocusID(&w.layout, "fa0"); ok {
 			w.SetFocus(got.Shape.ID)
 		}
 

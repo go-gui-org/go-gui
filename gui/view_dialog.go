@@ -1,11 +1,11 @@
 package gui
 
 // DialogType identifies the kind of dialog.
-type DialogType uint8
+type dialogType uint8
 
 // DialogType constants.
 const (
-	DialogMessage DialogType = iota
+	DialogMessage dialogType = iota
 	DialogConfirm
 	DialogPrompt
 	DialogCustom
@@ -14,19 +14,19 @@ const (
 // DialogButton identifies which button of a confirm dialog receives
 // initial keyboard focus. The zero value (DialogButtonNo) keeps the safe
 // default for destructive actions.
-type DialogButton uint8
+type dialogButton uint8
 
 // DialogButton constants.
 const (
-	DialogButtonNo DialogButton = iota
-	DialogButtonYes
+	dialogButtonNo dialogButton = iota
+	dialogButtonYes
 )
 
 const dialogBaseFocusID = "__gui_dialog__"
 
 // DialogCfg configures a modal dialog.
 type DialogCfg struct {
-	TitleTextStyle TextStyle
+	titleTextStyle TextStyle
 	TextStyle      TextStyle
 
 	OnOkYes    func(*Window)
@@ -57,14 +57,14 @@ type DialogCfg struct {
 	oldFocusID   string
 	Color        Color
 	ColorBorder  Color
-	DialogType   DialogType
+	DialogType   dialogType
 	AlignButtons HorizontalAlign
 
 	// DefaultButton selects which confirm-dialog button gets initial
 	// keyboard focus (so Enter/Space activate it). Defaults to
 	// DialogButtonNo, preserving the safe default for destructive
 	// actions. Ignored for non-confirm dialog types.
-	DefaultButton DialogButton
+	defaultButton dialogButton
 
 	// unexported
 	visible bool
@@ -85,7 +85,7 @@ func dialogViewGenerator(cfg DialogCfg) View {
 	if cfg.Title != "" {
 		content = append(content, Text(TextCfg{
 			Text:      cfg.Title,
-			TextStyle: cfg.TitleTextStyle,
+			TextStyle: cfg.titleTextStyle,
 		}))
 	}
 
@@ -277,8 +277,8 @@ func applyDialogDefaults(cfg *DialogCfg) {
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = Some(d.Padding)
 	}
-	if cfg.TitleTextStyle == (TextStyle{}) {
-		cfg.TitleTextStyle = d.TitleTextStyle
+	if cfg.titleTextStyle == (TextStyle{}) {
+		cfg.titleTextStyle = d.titleTextStyle
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.TextStyle
@@ -307,7 +307,7 @@ func applyDialogDefaults(cfg *DialogCfg) {
 // DialogButtonYes, this is the "Yes" button (scoped ":1"); otherwise
 // the base focus ID (the "No"/"OK"/input element).
 func dialogFocusID(cfg DialogCfg) string {
-	if cfg.DialogType == DialogConfirm && cfg.DefaultButton == DialogButtonYes {
+	if cfg.DialogType == DialogConfirm && cfg.defaultButton == dialogButtonYes {
 		return ScopeIDN(cfg.FocusID, "", 1)
 	}
 	return cfg.FocusID
@@ -366,7 +366,7 @@ func (w *Window) retainDialogFocus(dialog *Layout) {
 	// empty focus means nothing is focused: FindLayoutByFocusID would match
 	// the dialog root (it is not focusable), so treat it as escaped.
 	if id := w.viewState.focusID; id != "" {
-		if _, ok := FindLayoutByFocusID(dialog, id); ok {
+		if _, ok := findLayoutByFocusID(dialog, id); ok {
 			return
 		}
 	}

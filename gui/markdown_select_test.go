@@ -16,11 +16,11 @@ func TestMarkdownBlockAmendSel_NilTC_NoOp(t *testing.T) {
 
 func TestMarkdownBlockAmendSel_ZeroMarkdownID_NoOp(t *testing.T) {
 	w := &Window{}
-	tc := &ShapeTextConfig{MarkdownID: "", TextSelBeg: 99, TextSelEnd: 99}
+	tc := &shapeTextConfig{markdownID: "", textSelBeg: 99, textSelEnd: 99}
 	l := &Layout{Shape: &Shape{TC: tc}}
 	markdownBlockAmendSel(l, w)
 	// No state written; values unchanged.
-	if tc.TextSelBeg != 99 {
+	if tc.textSelBeg != 99 {
 		t.Error("unexpected mutation when MarkdownID is empty")
 	}
 }
@@ -30,16 +30,16 @@ func TestMarkdownBlockAmendSel_SelectionBeforeBlock_ZeroOut(t *testing.T) {
 	mdID := "md1"
 	StateMap[string, mdSelState](w, nsMdSel, capMany).Set(mdID,
 		mdSelState{SelBeg: 0, SelEnd: 5})
-	tc := &ShapeTextConfig{
-		MarkdownID:         mdID,
-		MarkdownBlockStart: 10,
-		MarkdownRuneLen:    5,
-		TextSelBeg:         99,
-		TextSelEnd:         99,
+	tc := &shapeTextConfig{
+		markdownID:         mdID,
+		markdownBlockStart: 10,
+		markdownRuneLen:    5,
+		textSelBeg:         99,
+		textSelEnd:         99,
 	}
 	markdownBlockAmendSel(&Layout{Shape: &Shape{TC: tc}}, w)
-	if tc.TextSelBeg != 0 || tc.TextSelEnd != 0 {
-		t.Errorf("got %d/%d, want 0/0", tc.TextSelBeg, tc.TextSelEnd)
+	if tc.textSelBeg != 0 || tc.textSelEnd != 0 {
+		t.Errorf("got %d/%d, want 0/0", tc.textSelBeg, tc.textSelEnd)
 	}
 }
 
@@ -48,16 +48,16 @@ func TestMarkdownBlockAmendSel_SelectionAfterBlock_ZeroOut(t *testing.T) {
 	mdID := "md2"
 	StateMap[string, mdSelState](w, nsMdSel, capMany).Set(mdID,
 		mdSelState{SelBeg: 20, SelEnd: 30})
-	tc := &ShapeTextConfig{
-		MarkdownID:         mdID,
-		MarkdownBlockStart: 0,
-		MarkdownRuneLen:    5, // blockEnd = 5; beg(20) >= 5 → no overlap
-		TextSelBeg:         99,
-		TextSelEnd:         99,
+	tc := &shapeTextConfig{
+		markdownID:         mdID,
+		markdownBlockStart: 0,
+		markdownRuneLen:    5, // blockEnd = 5; beg(20) >= 5 → no overlap
+		textSelBeg:         99,
+		textSelEnd:         99,
 	}
 	markdownBlockAmendSel(&Layout{Shape: &Shape{TC: tc}}, w)
-	if tc.TextSelBeg != 0 || tc.TextSelEnd != 0 {
-		t.Errorf("got %d/%d, want 0/0", tc.TextSelBeg, tc.TextSelEnd)
+	if tc.textSelBeg != 0 || tc.textSelEnd != 0 {
+		t.Errorf("got %d/%d, want 0/0", tc.textSelBeg, tc.textSelEnd)
 	}
 }
 
@@ -67,16 +67,16 @@ func TestMarkdownBlockAmendSel_SelectionAtExactBlockBoundary_ZeroOut(t *testing.
 	// end == blockStart: guard is end <= blockStart, so no overlap.
 	StateMap[string, mdSelState](w, nsMdSel, capMany).Set(mdID,
 		mdSelState{SelBeg: 0, SelEnd: 10})
-	tc := &ShapeTextConfig{
-		MarkdownID:         mdID,
-		MarkdownBlockStart: 10,
-		MarkdownRuneLen:    5,
-		TextSelBeg:         99,
-		TextSelEnd:         99,
+	tc := &shapeTextConfig{
+		markdownID:         mdID,
+		markdownBlockStart: 10,
+		markdownRuneLen:    5,
+		textSelBeg:         99,
+		textSelEnd:         99,
 	}
 	markdownBlockAmendSel(&Layout{Shape: &Shape{TC: tc}}, w)
-	if tc.TextSelBeg != 0 || tc.TextSelEnd != 0 {
-		t.Errorf("got %d/%d, want 0/0", tc.TextSelBeg, tc.TextSelEnd)
+	if tc.textSelBeg != 0 || tc.textSelEnd != 0 {
+		t.Errorf("got %d/%d, want 0/0", tc.textSelBeg, tc.textSelEnd)
 	}
 }
 
@@ -85,15 +85,15 @@ func TestMarkdownBlockAmendSel_SelectionSpansEntireBlock(t *testing.T) {
 	mdID := "md4"
 	StateMap[string, mdSelState](w, nsMdSel, capMany).Set(mdID,
 		mdSelState{SelBeg: 0, SelEnd: 20})
-	tc := &ShapeTextConfig{
-		MarkdownID:         mdID,
-		MarkdownBlockStart: 5,
-		MarkdownRuneLen:    8, // block covers [5, 13)
+	tc := &shapeTextConfig{
+		markdownID:         mdID,
+		markdownBlockStart: 5,
+		markdownRuneLen:    8, // block covers [5, 13)
 	}
 	markdownBlockAmendSel(&Layout{Shape: &Shape{TC: tc}}, w)
 	// localBeg = max(0,5)-5 = 0, localEnd = min(20,13)-5 = 8
-	if tc.TextSelBeg != 0 || tc.TextSelEnd != 8 {
-		t.Errorf("got %d/%d, want 0/8", tc.TextSelBeg, tc.TextSelEnd)
+	if tc.textSelBeg != 0 || tc.textSelEnd != 8 {
+		t.Errorf("got %d/%d, want 0/8", tc.textSelBeg, tc.textSelEnd)
 	}
 }
 
@@ -103,15 +103,15 @@ func TestMarkdownBlockAmendSel_PartialOverlapStart(t *testing.T) {
 	// Selection starts before block, ends inside block.
 	StateMap[string, mdSelState](w, nsMdSel, capMany).Set(mdID,
 		mdSelState{SelBeg: 5, SelEnd: 12})
-	tc := &ShapeTextConfig{
-		MarkdownID:         mdID,
-		MarkdownBlockStart: 10, // block covers [10, 20)
-		MarkdownRuneLen:    10,
+	tc := &shapeTextConfig{
+		markdownID:         mdID,
+		markdownBlockStart: 10, // block covers [10, 20)
+		markdownRuneLen:    10,
 	}
 	markdownBlockAmendSel(&Layout{Shape: &Shape{TC: tc}}, w)
 	// localBeg = max(5,10)-10 = 0, localEnd = min(12,20)-10 = 2
-	if tc.TextSelBeg != 0 || tc.TextSelEnd != 2 {
-		t.Errorf("got %d/%d, want 0/2", tc.TextSelBeg, tc.TextSelEnd)
+	if tc.textSelBeg != 0 || tc.textSelEnd != 2 {
+		t.Errorf("got %d/%d, want 0/2", tc.textSelBeg, tc.textSelEnd)
 	}
 }
 
@@ -121,15 +121,15 @@ func TestMarkdownBlockAmendSel_PartialOverlapEnd(t *testing.T) {
 	// Selection starts inside block, ends after block.
 	StateMap[string, mdSelState](w, nsMdSel, capMany).Set(mdID,
 		mdSelState{SelBeg: 13, SelEnd: 25})
-	tc := &ShapeTextConfig{
-		MarkdownID:         mdID,
-		MarkdownBlockStart: 10, // block covers [10, 20)
-		MarkdownRuneLen:    10,
+	tc := &shapeTextConfig{
+		markdownID:         mdID,
+		markdownBlockStart: 10, // block covers [10, 20)
+		markdownRuneLen:    10,
 	}
 	markdownBlockAmendSel(&Layout{Shape: &Shape{TC: tc}}, w)
 	// localBeg = max(13,10)-10 = 3, localEnd = min(25,20)-10 = 10
-	if tc.TextSelBeg != 3 || tc.TextSelEnd != 10 {
-		t.Errorf("got %d/%d, want 3/10", tc.TextSelBeg, tc.TextSelEnd)
+	if tc.textSelBeg != 3 || tc.textSelEnd != 10 {
+		t.Errorf("got %d/%d, want 3/10", tc.textSelBeg, tc.textSelEnd)
 	}
 }
 
@@ -139,15 +139,15 @@ func TestMarkdownBlockAmendSel_InvertedSelection_SortsCorrectly(t *testing.T) {
 	// SelEnd < SelBeg (drag rightward from end to start); u32Sort normalizes.
 	StateMap[string, mdSelState](w, nsMdSel, capMany).Set(mdID,
 		mdSelState{SelBeg: 15, SelEnd: 5})
-	tc := &ShapeTextConfig{
-		MarkdownID:         mdID,
-		MarkdownBlockStart: 0,
-		MarkdownRuneLen:    20,
+	tc := &shapeTextConfig{
+		markdownID:         mdID,
+		markdownBlockStart: 0,
+		markdownRuneLen:    20,
 	}
 	markdownBlockAmendSel(&Layout{Shape: &Shape{TC: tc}}, w)
 	// After u32Sort: beg=5, end=15. localBeg=5, localEnd=15.
-	if tc.TextSelBeg != 5 || tc.TextSelEnd != 15 {
-		t.Errorf("got %d/%d, want 5/15", tc.TextSelBeg, tc.TextSelEnd)
+	if tc.textSelBeg != 5 || tc.textSelEnd != 15 {
+		t.Errorf("got %d/%d, want 5/15", tc.textSelBeg, tc.textSelEnd)
 	}
 }
 

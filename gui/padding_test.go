@@ -17,7 +17,7 @@ func TestPadAll(t *testing.T) {
 }
 
 func TestPadTBLR(t *testing.T) {
-	p := PadTBLR(3, 7)
+	p := padTBLR(3, 7)
 	if p.Top != 3 || p.Bottom != 3 || p.Left != 7 || p.Right != 7 {
 		t.Errorf("got %+v", p)
 	}
@@ -34,22 +34,22 @@ func TestPaddingWidthHeight(t *testing.T) {
 }
 
 func TestPaddingIsNone(t *testing.T) {
-	if !PaddingNone.IsNone() {
+	if !PaddingNone.isNone() {
 		t.Error("PaddingNone should be none")
 	}
-	if PadAll(1).IsNone() {
+	if PadAll(1).isNone() {
 		t.Error("PadAll(1) should not be none")
 	}
 }
 
 func TestPredefinedPaddings(t *testing.T) {
-	if PaddingXSmall != PadAll(PadXSmall) {
+	if paddingXSmall != PadAll(PadXSmall) {
 		t.Error("PaddingXSmall")
 	}
 	if PaddingSmall != PadAll(PadSmall) {
 		t.Error("PaddingSmall")
 	}
-	if PaddingMedium != PadAll(PadMedium) {
+	if paddingMedium != PadAll(PadMedium) {
 		t.Error("PaddingMedium")
 	}
 	if PaddingLarge != PadAll(PadLarge) {

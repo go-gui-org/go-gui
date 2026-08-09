@@ -5,7 +5,7 @@ import "testing"
 func TestLayoutWidthsWithBorder(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis:       AxisLeftToRight,
+			Axis:       axisLeftToRight,
 			SizeBorder: 5,
 			Padding:    Padding{Left: 10, Right: 10},
 		},
@@ -28,7 +28,7 @@ func TestLayoutWidthsWithBorder(t *testing.T) {
 func TestLayoutHeightsWithBorder(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
-			Axis:       AxisTopToBottom,
+			Axis:       axisTopToBottom,
 			SizeBorder: 5,
 			Padding:    Padding{Top: 10, Bottom: 10},
 		},
@@ -51,7 +51,7 @@ func TestLayoutPositionWithBorder(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			X: 0, Y: 0, Width: 100, Height: 100,
-			Axis:       AxisLeftToRight,
+			Axis:       axisLeftToRight,
 			SizeBorder: 5,
 			Padding:    Padding{Left: 10, Right: 10, Top: 10, Bottom: 10},
 		},

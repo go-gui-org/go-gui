@@ -40,7 +40,7 @@ func parseRotateFromToBy(elem string) ([]float32, float32, float32, bool, bool) 
 // parseAnimateTranslateElement parses <animateTransform
 // type="translate"> with values="tx ty;tx ty;..." or from/to.
 func parseAnimateTranslateElement(
-	elem string, inherited ComputedStyle,
+	elem string, inherited computedStyle,
 ) (gui.SvgAnimation, bool) {
 	return parsePairedAnimateTransform(
 		elem, inherited, gui.SvgAnimTranslate)
@@ -50,7 +50,7 @@ func parseAnimateTranslateElement(
 // with values="s;s;..." (uniform) or "sx sy;sx sy;..." (non-
 // uniform). Uniform entries are normalized to equal sx,sy.
 func parseAnimateScaleElement(
-	elem string, inherited ComputedStyle,
+	elem string, inherited computedStyle,
 ) (gui.SvgAnimation, bool) {
 	return parsePairedAnimateTransform(
 		elem, inherited, gui.SvgAnimScale)
@@ -69,7 +69,7 @@ func parseAnimateScaleElement(
 // SVG-space points used as the pivot, so the ancestor transform
 // must be folded in during parse.
 func parsePairedAnimateTransform(
-	elem string, inherited ComputedStyle, kind gui.SvgAnimKind,
+	elem string, inherited computedStyle, kind gui.SvgAnimKind,
 ) (gui.SvgAnimation, bool) {
 	dur := parseDuration(elem)
 	if dur <= 0 {
@@ -458,7 +458,7 @@ func parseKeyTimes(elem string, nKeys int) []float32 {
 // (IsSet overrides the dur reject) but sandwich ordering and the
 // cycle re-fire let subsequent activations replace it cleanly.
 func parseSetElement(
-	elem string, inherited ComputedStyle,
+	elem string, inherited computedStyle,
 ) (gui.SvgAnimation, bool) {
 	attr, ok := findAttr(elem, "attributeName")
 	if !ok {

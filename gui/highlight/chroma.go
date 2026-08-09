@@ -11,6 +11,7 @@ type chromaHighlighter struct{}
 
 // New returns a Highlighter backed by chroma. The returned value is
 // stateless and safe for concurrent use across windows.
+// exportaudit:keep — lowercase new shadows the Go builtin
 func New() Highlighter { return chromaHighlighter{} }
 
 var defaultHL = sync.OnceValue(New)
@@ -34,15 +35,15 @@ func (chromaHighlighter) Tokenize(lang, src string) []Token {
 		return nil
 	}
 	if len(src) > maxTokenizeBytes {
-		return []Token{{Kind: KindPlain, Text: src}}
+		return []Token{{Kind: kindPlain, Text: src}}
 	}
 	lx := lookupLexer(lang)
 	if lx == nil {
-		return []Token{{Kind: KindPlain, Text: src}}
+		return []Token{{Kind: kindPlain, Text: src}}
 	}
 	it, err := lx.Tokenise(nil, src)
 	if err != nil || it == nil {
-		return []Token{{Kind: KindPlain, Text: src}}
+		return []Token{{Kind: kindPlain, Text: src}}
 	}
 	// Pull via the iterator function to avoid Tokens()'s
 	// intermediate slice allocation.
@@ -60,7 +61,7 @@ func (chromaHighlighter) Tokenize(lang, src string) []Token {
 		}
 	}
 	if len(out) == 0 {
-		return []Token{{Kind: KindPlain, Text: src}}
+		return []Token{{Kind: kindPlain, Text: src}}
 	}
 	return out
 }
@@ -97,5 +98,5 @@ func mapKind(t chroma.TokenType) Kind {
 	case t.InCategory(chroma.Punctuation):
 		return KindPunctuation
 	}
-	return KindPlain
+	return kindPlain
 }

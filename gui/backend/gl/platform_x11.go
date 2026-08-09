@@ -210,6 +210,7 @@ func (p *platformState) pumpEvents(ch chan<- xgb.Event) {
 
 // New creates an OpenGL 3.3 backend backed by a native X11 window and an
 // EGL context. Pure Go via xgb + purego — no cgo.
+// exportaudit:keep — lowercase new shadows the Go builtin
 func New(w *gui.Window) (*Backend, error) {
 	runtime.LockOSThread()
 
@@ -415,14 +416,14 @@ func (b *Backend) Run(w *gui.Window) {
 // Run initializes the backend, runs the event loop, and cleans up on
 // exit. Panics on error; call RunE for the error-returning variant.
 func Run(w *gui.Window) {
-	if err := RunE(w); err != nil {
+	if err := runE(w); err != nil {
 		panic(fmt.Sprintf("gl: %v", err))
 	}
 }
 
 // RunE initializes the backend, runs the event loop, and cleans up on
 // exit. Returns an error instead of panicking.
-func RunE(w *gui.Window) error {
+func runE(w *gui.Window) error {
 	b, err := New(w)
 	if err != nil {
 		return fmt.Errorf("gl: %w", err)
@@ -435,7 +436,7 @@ func RunE(w *gui.Window) error {
 // RunApp starts a multi-window event loop. Panics on error; call
 // RunAppE for the error-returning variant.
 func RunApp(app *gui.App, initialWindows ...*gui.Window) {
-	if err := RunAppE(app, initialWindows...); err != nil {
+	if err := runAppE(app, initialWindows...); err != nil {
 		panic(fmt.Sprintf("gl: %v", err))
 	}
 }
@@ -453,7 +454,7 @@ type taggedEvent struct {
 // window closes.
 //
 //nolint:gocyclo // backend event loop
-func RunAppE(app *gui.App, initialWindows ...*gui.Window) error {
+func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 	runtime.LockOSThread()
 
 	backends := make(map[uint32]*Backend) // window XID → backend

@@ -41,7 +41,7 @@ func TestTooltipCfgDefaults(t *testing.T) {
 }
 
 func TestAnimationTooltipReturnsAnimate(t *testing.T) {
-	a := AnimationTooltip(TooltipCfg{
+	a := animationTooltip(TooltipCfg{
 		ID:    "tip1",
 		Delay: 100 * time.Millisecond,
 	})
@@ -63,7 +63,7 @@ func TestAnimationTooltipCallback(t *testing.T) {
 	w.viewState.mousePosX = 20
 	w.viewState.mousePosY = 20
 
-	a := AnimationTooltip(TooltipCfg{
+	a := animationTooltip(TooltipCfg{
 		ID:    "tip1",
 		Delay: 100 * time.Millisecond,
 	})
@@ -88,7 +88,7 @@ func TestAnimationTooltipCallbackOutside(t *testing.T) {
 	w.viewState.mousePosX = 100
 	w.viewState.mousePosY = 100
 
-	a := AnimationTooltip(TooltipCfg{
+	a := animationTooltip(TooltipCfg{
 		ID:    "tip1",
 		Delay: 100 * time.Millisecond,
 	})
@@ -108,7 +108,7 @@ func TestAnimationTooltipStaleHover(t *testing.T) {
 	w.viewState.mousePosX = 20
 	w.viewState.mousePosY = 20
 
-	a := AnimationTooltip(TooltipCfg{
+	a := animationTooltip(TooltipCfg{
 		ID:    "tip1",
 		Delay: 100 * time.Millisecond,
 	})

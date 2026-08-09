@@ -72,7 +72,7 @@ func BenchmarkBoundedMapRangeKeysUnderChurn(b *testing.B) {
 	b.ResetTimer()
 	for b.Loop() {
 		count := 0
-		m.RangeKeys(func(int) bool {
+		m.rangeKeys(func(int) bool {
 			count++
 			return true
 		})

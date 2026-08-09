@@ -10,7 +10,7 @@ import (
 // opacity (or fill-opacity / stroke-opacity, which scale the same
 // rendered alpha channel). Returns the animation and true if valid.
 func parseAnimateElement(
-	elem string, inherited ComputedStyle,
+	elem string, inherited computedStyle,
 ) (gui.SvgAnimation, bool) {
 	attr, ok := findAttr(elem, "attributeName")
 	if !ok {
@@ -112,7 +112,7 @@ func parseAccumulateSum(elem string) bool {
 // href resolves from state.defsPaths. Returns a flattened polyline
 // + cumulative arc lengths baked into the SvgAnimation.
 func parseAnimateMotionElement(
-	n *xmlNode, inherited ComputedStyle, state *parseState,
+	n *xmlNode, inherited computedStyle, state *parseState,
 ) (gui.SvgAnimation, bool) {
 	if inherited.GroupID == "" {
 		return gui.SvgAnimation{}, false
@@ -183,7 +183,7 @@ func parseRestart(elem string) gui.SvgAnimRestart {
 // targeting an animatable primitive attribute (cx, cy, r, x, y,
 // width, height, rx, ry).
 func parseAnimateAttributeElement(
-	elem string, inherited ComputedStyle,
+	elem string, inherited computedStyle,
 ) (gui.SvgAnimation, bool) {
 	attr, ok := findAttr(elem, "attributeName")
 	if !ok {
@@ -222,7 +222,7 @@ func parseAnimateAttributeElement(
 // parseAnimateDashOffsetElement parses an <animate> element
 // targeting stroke-dashoffset. Scalar values per keyframe.
 func parseAnimateDashOffsetElement(
-	elem string, inherited ComputedStyle,
+	elem string, inherited computedStyle,
 ) (gui.SvgAnimation, bool) {
 	dur := parseDuration(elem)
 	if dur <= 0 {
@@ -254,7 +254,7 @@ func parseAnimateDashOffsetElement(
 // list of floats; all keyframes must have the same count (1..cap).
 // Mismatched lengths or cap overflow reject the animation.
 func parseAnimateDashArrayElement(
-	elem string, inherited ComputedStyle,
+	elem string, inherited computedStyle,
 ) (gui.SvgAnimation, bool) {
 	dur := parseDuration(elem)
 	if dur <= 0 {
@@ -334,7 +334,7 @@ func parseDashFrameFloats(s string) []float32 {
 // base transform is a scale(0) placeholder that the animation
 // fully overrides.
 func parseAnimateTransformElement(
-	elem string, inherited ComputedStyle,
+	elem string, inherited computedStyle,
 ) (gui.SvgAnimation, bool) {
 	typ, ok := findAttr(elem, "type")
 	if !ok {

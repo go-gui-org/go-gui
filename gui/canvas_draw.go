@@ -4,13 +4,13 @@ import "math"
 
 // DrawCanvasCache holds retained tessellation output keyed by
 // widget id + version + scale. Cache hit skips OnDraw entirely.
-type DrawCanvasCache struct {
+type drawCanvasCache struct {
 	Batches    []DrawCanvasTriBatch
 	Texts      []DrawCanvasTextEntry
 	Images     []DrawCanvasImageEntry
 	Version    uint64
-	TessWidth  float32
-	TessHeight float32
+	tessWidth  float32
+	tessHeight float32
 	Scale      float32
 }
 
@@ -47,10 +47,11 @@ type DrawCanvasTriBatch struct {
 // be indistinguishable from "no clip"). Use it to show part of an
 // image without cropping the file: the texture still maps to the
 // full X/Y/W/H rect, the scissor decides what is visible.
+// exportaudit:keep — reachable from an exported signature
 type DrawCanvasImageEntry struct {
-	Fetcher                    ImageFetcher
+	fetcher                    ImageFetcher
 	Src                        string
-	BgOpacity                  Opt[float32]
+	bgOpacity                  Opt[float32]
 	X, Y, W, H                 float32
 	ClipX, ClipY, ClipW, ClipH float32
 	BgColor                    Color
@@ -60,6 +61,7 @@ type DrawCanvasImageEntry struct {
 // DrawRecorder receives high-level draw commands before
 // tessellation. Attach via DrawContext.SetRecorder to capture
 // structured primitives (e.g. for SVG export).
+// exportaudit:keep — reachable from an exported signature
 type DrawRecorder interface {
 	Line(x0, y0, x1, y1 float32, color Color, width float32)
 	Polyline(points []float32, color Color, width float32)
@@ -733,8 +735,8 @@ func (dc *DrawContext) ImageWithFetcher(
 	}
 	dc.images = append(dc.images, DrawCanvasImageEntry{
 		X: x, Y: y, W: w, H: h,
-		Src: src, BgOpacity: bgOpacity, BgColor: bgColor,
-		Fetcher: fetcher,
+		Src: src, bgOpacity: bgOpacity, BgColor: bgColor,
+		fetcher: fetcher,
 	})
 }
 

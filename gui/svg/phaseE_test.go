@@ -26,7 +26,7 @@ func TestPhaseE_BBox_Rect(t *testing.T) {
 	if len(vg.Paths) != 1 {
 		t.Fatalf("paths: %d", len(vg.Paths))
 	}
-	b := vg.Paths[0].Bbox
+	b := vg.Paths[0].bbox
 	if !b.Set {
 		t.Fatal("bbox unset")
 	}
@@ -40,7 +40,7 @@ func TestPhaseE_BBox_Circle(t *testing.T) {
 		<circle cx="50" cy="50" r="20"/>
 	</svg>`
 	vg, _ := parseSvg(src)
-	b := vg.Paths[0].Bbox
+	b := vg.Paths[0].bbox
 	if b.MinX != 30 || b.MinY != 30 || b.MaxX != 70 || b.MaxY != 70 {
 		t.Errorf("circle bbox: %+v", b)
 	}
@@ -51,7 +51,7 @@ func TestPhaseE_BBox_Ellipse(t *testing.T) {
 		<ellipse cx="50" cy="40" rx="20" ry="10"/>
 	</svg>`
 	vg, _ := parseSvg(src)
-	b := vg.Paths[0].Bbox
+	b := vg.Paths[0].bbox
 	if b.MinX != 30 || b.MinY != 30 || b.MaxX != 70 || b.MaxY != 50 {
 		t.Errorf("ellipse bbox: %+v", b)
 	}
@@ -62,7 +62,7 @@ func TestPhaseE_BBox_Line(t *testing.T) {
 		<line x1="10" y1="80" x2="90" y2="20" stroke="black"/>
 	</svg>`
 	vg, _ := parseSvg(src)
-	b := vg.Paths[0].Bbox
+	b := vg.Paths[0].bbox
 	if b.MinX != 10 || b.MinY != 20 || b.MaxX != 90 || b.MaxY != 80 {
 		t.Errorf("line bbox: %+v", b)
 	}
@@ -73,7 +73,7 @@ func TestPhaseE_BBox_Polygon(t *testing.T) {
 		<polygon points="10,10 90,20 50,80"/>
 	</svg>`
 	vg, _ := parseSvg(src)
-	b := vg.Paths[0].Bbox
+	b := vg.Paths[0].bbox
 	if b.MinX != 10 || b.MinY != 10 || b.MaxX != 90 || b.MaxY != 80 {
 		t.Errorf("polygon bbox: %+v", b)
 	}
@@ -84,7 +84,7 @@ func TestPhaseE_BBox_Path(t *testing.T) {
 		<path d="M 5 10 L 95 10 L 50 90 Z"/>
 	</svg>`
 	vg, _ := parseSvg(src)
-	b := vg.Paths[0].Bbox
+	b := vg.Paths[0].bbox
 	if b.MinX != 5 || b.MinY != 10 || b.MaxX != 95 || b.MaxY != 90 {
 		t.Errorf("path bbox: %+v", b)
 	}
@@ -96,7 +96,7 @@ func TestPhaseE_BBox_PathCubic_ControlPoly(t *testing.T) {
 		<path d="M 0 50 C 0 0, 100 0, 100 50"/>
 	</svg>`
 	vg, _ := parseSvg(src)
-	b := vg.Paths[0].Bbox
+	b := vg.Paths[0].bbox
 	if b.MinX != 0 || b.MaxX != 100 {
 		t.Errorf("cubic X bounds: %+v", b)
 	}

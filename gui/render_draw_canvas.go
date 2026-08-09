@@ -10,7 +10,7 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 	// Background, border, effects.
 	renderContainer(shape, ColorTransparent, clip, w)
 
-	sm := StateMap[string, DrawCanvasCache](w, nsDrawCanvas, capModerate)
+	sm := StateMap[string, drawCanvasCache](w, nsDrawCanvas, capModerate)
 
 	// Content dimensions account for padding.
 	cw := shape.Width - shape.paddingWidth()
@@ -21,7 +21,7 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 		scale = 1
 	}
 
-	var cached DrawCanvasCache
+	var cached drawCanvasCache
 	needsDraw := true
 
 	// Skip cache when ID is empty to avoid collisions between
@@ -31,7 +31,7 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 		var ok bool
 		cached, ok = sm.Get(key)
 		if ok && cached.Version == shape.Version &&
-			cached.TessWidth == cw && cached.TessHeight == ch &&
+			cached.tessWidth == cw && cached.tessHeight == ch &&
 			cached.Scale == scale {
 			needsDraw = false
 		}
@@ -45,10 +45,10 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 			textMeasure: w.textMeasurer,
 		}
 		shape.events.OnDraw(&dc)
-		cached = DrawCanvasCache{
+		cached = drawCanvasCache{
 			Version:    shape.Version,
-			TessWidth:  cw,
-			TessHeight: ch,
+			tessWidth:  cw,
+			tessHeight: ch,
 			Scale:      scale,
 			Batches:    dc.batches,
 			Texts:      dc.texts,
@@ -177,14 +177,14 @@ func emitDrawCanvasImages(
 			im.W <= 0 || im.H <= 0 || im.Src == "" {
 			continue
 		}
-		resource := ResolveImageSrcWithFetcher(w, im.Src, im.Fetcher)
+		resource := resolveImageSrcWithFetcher(w, im.Src, im.fetcher)
 		if resource == "" {
 			continue
 		}
 		bg := ColorTransparent
 		if im.BgColor.IsSet() {
 			bg = im.BgColor
-			op := im.BgOpacity.Get(1.0)
+			op := im.bgOpacity.Get(1.0)
 			if !isFiniteF(op) {
 				op = 1.0
 			}

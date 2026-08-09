@@ -152,17 +152,17 @@ func TestTessellateEarClipClosedDuplicate(t *testing.T) {
 }
 
 func TestTessellateTessellatePolylinesEmpty(t *testing.T) {
-	if tris := tessellatePolylines(nil, FillRuleNonzero); tris != nil {
+	if tris := tessellatePolylines(nil, fillRuleNonzero); tris != nil {
 		t.Fatalf("nil polylines should return nil")
 	}
-	if tris := tessellatePolylines([][]float32{}, FillRuleNonzero); tris != nil {
+	if tris := tessellatePolylines([][]float32{}, fillRuleNonzero); tris != nil {
 		t.Fatalf("empty polylines should return nil")
 	}
 }
 
 func TestTessellateTessellatePolylinesSingle(t *testing.T) {
 	poly := []float32{0, 0, 1, 0, 0, 1}
-	tris := tessellatePolylines([][]float32{poly}, FillRuleNonzero)
+	tris := tessellatePolylines([][]float32{poly}, fillRuleNonzero)
 	if len(tris) != 6 {
 		t.Fatalf("expected 6 floats, got %d", len(tris))
 	}
@@ -175,7 +175,7 @@ func TestTessellateTessellatePolylinesWithHole(t *testing.T) {
 	// Under the default SVG nonzero fill-rule this is a real hole;
 	// total filled area should be outer - hole = 84.
 	hole := []float32{3, 3, 3, 7, 7, 7, 7, 3}
-	tris := tessellatePolylines([][]float32{outer, hole}, FillRuleNonzero)
+	tris := tessellatePolylines([][]float32{outer, hole}, fillRuleNonzero)
 	if len(tris) == 0 {
 		t.Fatal("expected triangles from polygon with hole")
 	}
@@ -190,7 +190,7 @@ func TestTessellateTessellatePolylinesSameWindingSeparateRegions(t *testing.T) {
 	// nonzero they're independent filled regions, not outer + hole.
 	a := []float32{0, 0, 10, 0, 10, 10, 0, 10}
 	b := []float32{20, 20, 30, 20, 30, 30, 20, 30}
-	tris := tessellatePolylines([][]float32{a, b}, FillRuleNonzero)
+	tris := tessellatePolylines([][]float32{a, b}, fillRuleNonzero)
 	if len(tris) == 0 {
 		t.Fatal("expected triangles from two same-winding contours")
 	}
@@ -206,25 +206,25 @@ func TestTessellateTessellatePolylinesSameWindingSeparateRegions(t *testing.T) {
 // side vertex scaling produced width*scale² on screen; the fix
 // relies on stroke triangles being identical across scale values.
 func TestTessellatePathsStrokeWidthViewBoxUnits(t *testing.T) {
-	mkPath := func() VectorPath {
-		return VectorPath{
+	mkPath := func() vectorPath {
+		return vectorPath{
 			Transform: identityTransform,
-			Segments: []PathSegment{
-				{Cmd: CmdMoveTo, Points: []float32{0, 0}},
-				{Cmd: CmdLineTo, Points: []float32{10, 0}},
+			Segments: []pathSegment{
+				{Cmd: cmdMoveTo, Points: []float32{0, 0}},
+				{Cmd: cmdLineTo, Points: []float32{10, 0}},
 			},
 			StrokeColor: gui.SvgColor{R: 0, G: 0, B: 0, A: 255},
 			StrokeWidth: 4,
-			StrokeCap:   gui.SvgButtCap,
-			StrokeJoin:  gui.SvgMiterJoin,
+			strokeCap:   gui.SvgButtCap,
+			strokeJoin:  gui.SvgMiterJoin,
 			Opacity:     1,
 		}
 	}
-	vg := &VectorGraphic{}
+	vg := &vectorGraphic{}
 	a := mkPath()
 	b := mkPath()
-	lo := vg.tessellatePaths([]VectorPath{a}, 1)
-	hi := vg.tessellatePaths([]VectorPath{b}, 100)
+	lo := vg.tessellatePaths([]vectorPath{a}, 1)
+	hi := vg.tessellatePaths([]vectorPath{b}, 100)
 	if len(lo) != 1 || len(hi) != 1 {
 		t.Fatalf("expected one stroke path each, got lo=%d hi=%d",
 			len(lo), len(hi))
@@ -243,7 +243,7 @@ func TestTessellatePathsStrokeWidthViewBoxUnits(t *testing.T) {
 func TestTessellateTessellatePolylinesShortContour(t *testing.T) {
 	// Contour with < 3 vertices should be skipped
 	short := []float32{0, 0, 1, 1}
-	tris := tessellatePolylines([][]float32{short}, FillRuleNonzero)
+	tris := tessellatePolylines([][]float32{short}, fillRuleNonzero)
 	if tris != nil {
 		t.Fatalf("short contour should return nil, got %d floats", len(tris))
 	}
@@ -258,7 +258,7 @@ func TestTessellatePolylines_UnattachedHolePromoted(t *testing.T) {
 	outer := []float32{0, 0, 10, 0, 10, 10, 0, 10}
 	// Opposite-winding square located far outside outer.
 	stray := []float32{100, 100, 100, 104, 104, 104, 104, 100}
-	tris := tessellatePolylines([][]float32{outer, stray}, FillRuleNonzero)
+	tris := tessellatePolylines([][]float32{outer, stray}, fillRuleNonzero)
 	if len(tris) == 0 {
 		t.Fatal("expected triangulation")
 	}
@@ -277,7 +277,7 @@ func TestTessellatePolylines_UnattachedHolePromoted(t *testing.T) {
 func TestTessellatePolylines_PeerOverlapNonzeroCarved(t *testing.T) {
 	ccw := []float32{0, 0, 10, 0, 10, 10, 0, 10}
 	cw := []float32{5, 5, 5, 15, 15, 15, 15, 5}
-	tris := tessellatePolylines([][]float32{ccw, cw}, FillRuleNonzero)
+	tris := tessellatePolylines([][]float32{ccw, cw}, fillRuleNonzero)
 	if len(tris) == 0 {
 		t.Fatal("expected triangulation")
 	}
@@ -288,12 +288,12 @@ func TestTessellatePolylines_PeerOverlapNonzeroCarved(t *testing.T) {
 }
 
 func TestTessellateFlattenPathLineTo(t *testing.T) {
-	path := &VectorPath{
+	path := &vectorPath{
 		Transform: identityTransform,
-		Segments: []PathSegment{
-			{Cmd: CmdMoveTo, Points: []float32{0, 0}},
-			{Cmd: CmdLineTo, Points: []float32{10, 0}},
-			{Cmd: CmdLineTo, Points: []float32{10, 10}},
+		Segments: []pathSegment{
+			{Cmd: cmdMoveTo, Points: []float32{0, 0}},
+			{Cmd: cmdLineTo, Points: []float32{10, 0}},
+			{Cmd: cmdLineTo, Points: []float32{10, 10}},
 		},
 	}
 	polys := flattenPath(path, 0.5)
@@ -307,11 +307,11 @@ func TestTessellateFlattenPathLineTo(t *testing.T) {
 }
 
 func TestTessellateFlattenPathQuadTo(t *testing.T) {
-	path := &VectorPath{
+	path := &vectorPath{
 		Transform: identityTransform,
-		Segments: []PathSegment{
-			{Cmd: CmdMoveTo, Points: []float32{0, 0}},
-			{Cmd: CmdQuadTo, Points: []float32{5, 10, 10, 0}},
+		Segments: []pathSegment{
+			{Cmd: cmdMoveTo, Points: []float32{0, 0}},
+			{Cmd: cmdQuadTo, Points: []float32{5, 10, 10, 0}},
 		},
 	}
 	polys := flattenPath(path, 0.5)
@@ -332,11 +332,11 @@ func TestTessellateFlattenPathQuadTo(t *testing.T) {
 }
 
 func TestTessellateFlattenPathCubicTo(t *testing.T) {
-	path := &VectorPath{
+	path := &vectorPath{
 		Transform: identityTransform,
-		Segments: []PathSegment{
-			{Cmd: CmdMoveTo, Points: []float32{0, 0}},
-			{Cmd: CmdCubicTo, Points: []float32{3, 10, 7, 10, 10, 0}},
+		Segments: []pathSegment{
+			{Cmd: cmdMoveTo, Points: []float32{0, 0}},
+			{Cmd: cmdCubicTo, Points: []float32{3, 10, 7, 10, 10, 0}},
 		},
 	}
 	polys := flattenPath(path, 0.5)
@@ -355,13 +355,13 @@ func TestTessellateFlattenPathCubicTo(t *testing.T) {
 }
 
 func TestTessellateFlattenPathClose(t *testing.T) {
-	path := &VectorPath{
+	path := &vectorPath{
 		Transform: identityTransform,
-		Segments: []PathSegment{
-			{Cmd: CmdMoveTo, Points: []float32{0, 0}},
-			{Cmd: CmdLineTo, Points: []float32{10, 0}},
-			{Cmd: CmdLineTo, Points: []float32{10, 10}},
-			{Cmd: CmdClose},
+		Segments: []pathSegment{
+			{Cmd: cmdMoveTo, Points: []float32{0, 0}},
+			{Cmd: cmdLineTo, Points: []float32{10, 0}},
+			{Cmd: cmdLineTo, Points: []float32{10, 10}},
+			{Cmd: cmdClose},
 		},
 	}
 	polys := flattenPath(path, 0.5)
@@ -380,11 +380,11 @@ func TestTessellateFlattenPathClose(t *testing.T) {
 
 func TestTessellateFlattenPathTransform(t *testing.T) {
 	// Scale 2x: [2,0,0,2,0,0]
-	path := &VectorPath{
+	path := &vectorPath{
 		Transform: [6]float32{2, 0, 0, 2, 0, 0},
-		Segments: []PathSegment{
-			{Cmd: CmdMoveTo, Points: []float32{5, 5}},
-			{Cmd: CmdLineTo, Points: []float32{10, 10}},
+		Segments: []pathSegment{
+			{Cmd: cmdMoveTo, Points: []float32{5, 5}},
+			{Cmd: cmdLineTo, Points: []float32{10, 10}},
 		},
 	}
 	polys := flattenPath(path, 0.5)
@@ -401,15 +401,15 @@ func TestTessellateFlattenPathTransform(t *testing.T) {
 }
 
 func TestTessellateFlattenPathMultipleSubpaths(t *testing.T) {
-	path := &VectorPath{
+	path := &vectorPath{
 		Transform: identityTransform,
-		Segments: []PathSegment{
-			{Cmd: CmdMoveTo, Points: []float32{0, 0}},
-			{Cmd: CmdLineTo, Points: []float32{1, 0}},
-			{Cmd: CmdLineTo, Points: []float32{1, 1}},
-			{Cmd: CmdMoveTo, Points: []float32{5, 5}},
-			{Cmd: CmdLineTo, Points: []float32{6, 5}},
-			{Cmd: CmdLineTo, Points: []float32{6, 6}},
+		Segments: []pathSegment{
+			{Cmd: cmdMoveTo, Points: []float32{0, 0}},
+			{Cmd: cmdLineTo, Points: []float32{1, 0}},
+			{Cmd: cmdLineTo, Points: []float32{1, 1}},
+			{Cmd: cmdMoveTo, Points: []float32{5, 5}},
+			{Cmd: cmdLineTo, Points: []float32{6, 5}},
+			{Cmd: cmdLineTo, Points: []float32{6, 6}},
 		},
 	}
 	polys := flattenPath(path, 0.5)
@@ -586,17 +586,17 @@ func TestDashPhase_InfOffsetDegrades(t *testing.T) {
 // vertices bake the matrix and HasBaseXform stays false.
 func TestTessellate_ShearBakesIntoVerticesNoBase(t *testing.T) {
 	// skewX(45): a=1,b=0,c=1,d=1,e=0,f=0. Not pure TRS.
-	vg := &VectorGraphic{
-		Paths: []VectorPath{
+	vg := &vectorGraphic{
+		Paths: []vectorPath{
 			{
 				Transform: [6]float32{1, 0, 1, 1, 0, 0},
 				FillColor: gui.SvgColor{R: 255, A: 255},
 				Opacity:   1,
-				Segments: []PathSegment{
-					{Cmd: CmdMoveTo, Points: []float32{0, 0}},
-					{Cmd: CmdLineTo, Points: []float32{10, 0}},
-					{Cmd: CmdLineTo, Points: []float32{10, 10}},
-					{Cmd: CmdClose},
+				Segments: []pathSegment{
+					{Cmd: cmdMoveTo, Points: []float32{0, 0}},
+					{Cmd: cmdLineTo, Points: []float32{10, 0}},
+					{Cmd: cmdLineTo, Points: []float32{10, 10}},
+					{Cmd: cmdClose},
 				},
 			},
 		},
@@ -623,7 +623,7 @@ func TestTessellate_ShearBakesIntoVerticesNoBase(t *testing.T) {
 // appendDegeneratePlaceholders: stroke-only animated primitive emits
 // a stroke placeholder, no fill placeholder.
 func TestAppendDegenerate_StrokeOnly(t *testing.T) {
-	p := &VectorPath{
+	p := &vectorPath{
 		Animated:    true,
 		Primitive:   gui.SvgPrimitive{Kind: gui.SvgPrimCircle},
 		StrokeColor: gui.SvgColor{R: 255, A: 255},
@@ -646,7 +646,7 @@ func TestAppendDegenerate_StrokeOnly(t *testing.T) {
 // appendDegeneratePlaceholders: no paint at all → still emits one
 // fill placeholder so the animation system sees the path.
 func TestAppendDegenerate_NoPaintForcesFillPlaceholder(t *testing.T) {
-	p := &VectorPath{
+	p := &vectorPath{
 		Animated:  true,
 		Primitive: gui.SvgPrimitive{Kind: gui.SvgPrimCircle},
 		GroupID:   "g",
@@ -664,7 +664,7 @@ func TestAppendDegenerate_NoPaintForcesFillPlaceholder(t *testing.T) {
 // appendDegeneratePlaceholders: fill + stroke both set → two
 // placeholders, fill first then stroke.
 func TestAppendDegenerate_FillAndStroke(t *testing.T) {
-	p := &VectorPath{
+	p := &vectorPath{
 		Animated:    true,
 		Primitive:   gui.SvgPrimitive{Kind: gui.SvgPrimCircle},
 		FillColor:   gui.SvgColor{R: 255, A: 255},
@@ -831,17 +831,17 @@ func TestTessellateResolveGradientPartial(t *testing.T) {
 // --- Tier 4: Integration ---
 
 func TestTessellateTessellatePathsFilled(t *testing.T) {
-	vg := &VectorGraphic{
-		Paths: []VectorPath{
+	vg := &vectorGraphic{
+		Paths: []vectorPath{
 			{
 				Transform: identityTransform,
 				FillColor: gui.SvgColor{R: 255, A: 255},
 				Opacity:   1,
-				Segments: []PathSegment{
-					{Cmd: CmdMoveTo, Points: []float32{0, 0}},
-					{Cmd: CmdLineTo, Points: []float32{10, 0}},
-					{Cmd: CmdLineTo, Points: []float32{10, 10}},
-					{Cmd: CmdClose},
+				Segments: []pathSegment{
+					{Cmd: cmdMoveTo, Points: []float32{0, 0}},
+					{Cmd: cmdLineTo, Points: []float32{10, 0}},
+					{Cmd: cmdLineTo, Points: []float32{10, 10}},
+					{Cmd: cmdClose},
 				},
 			},
 		},
@@ -860,16 +860,16 @@ func TestTessellateTessellatePathsFilled(t *testing.T) {
 }
 
 func TestTessellateTessellatePathsStroked(t *testing.T) {
-	vg := &VectorGraphic{
-		Paths: []VectorPath{
+	vg := &vectorGraphic{
+		Paths: []vectorPath{
 			{
 				Transform:   identityTransform,
 				StrokeColor: gui.SvgColor{G: 255, A: 255},
 				StrokeWidth: 2,
 				Opacity:     1,
-				Segments: []PathSegment{
-					{Cmd: CmdMoveTo, Points: []float32{0, 0}},
-					{Cmd: CmdLineTo, Points: []float32{10, 0}},
+				Segments: []pathSegment{
+					{Cmd: cmdMoveTo, Points: []float32{0, 0}},
+					{Cmd: cmdLineTo, Points: []float32{10, 0}},
 				},
 			},
 		},
@@ -887,31 +887,31 @@ func TestTessellateTessellatePathsStroked(t *testing.T) {
 }
 
 func TestTessellateTessellatePathsClipped(t *testing.T) {
-	vg := &VectorGraphic{
-		ClipPaths: map[string][]VectorPath{
+	vg := &vectorGraphic{
+		clipPaths: map[string][]vectorPath{
 			"clip1": {
 				{
 					Transform: identityTransform,
-					Segments: []PathSegment{
-						{Cmd: CmdMoveTo, Points: []float32{0, 0}},
-						{Cmd: CmdLineTo, Points: []float32{20, 0}},
-						{Cmd: CmdLineTo, Points: []float32{20, 20}},
-						{Cmd: CmdClose},
+					Segments: []pathSegment{
+						{Cmd: cmdMoveTo, Points: []float32{0, 0}},
+						{Cmd: cmdLineTo, Points: []float32{20, 0}},
+						{Cmd: cmdLineTo, Points: []float32{20, 20}},
+						{Cmd: cmdClose},
 					},
 				},
 			},
 		},
-		Paths: []VectorPath{
+		Paths: []vectorPath{
 			{
 				Transform:  identityTransform,
 				FillColor:  gui.SvgColor{R: 128, A: 255},
-				ClipPathID: "clip1",
+				clipPathID: "clip1",
 				Opacity:    1,
-				Segments: []PathSegment{
-					{Cmd: CmdMoveTo, Points: []float32{0, 0}},
-					{Cmd: CmdLineTo, Points: []float32{10, 0}},
-					{Cmd: CmdLineTo, Points: []float32{10, 10}},
-					{Cmd: CmdClose},
+				Segments: []pathSegment{
+					{Cmd: cmdMoveTo, Points: []float32{0, 0}},
+					{Cmd: cmdLineTo, Points: []float32{10, 0}},
+					{Cmd: cmdLineTo, Points: []float32{10, 10}},
+					{Cmd: cmdClose},
 				},
 			},
 		},
@@ -934,7 +934,7 @@ func TestTessellateTessellatePathsClipped(t *testing.T) {
 }
 
 func TestTessellateTessellatePathsGradientFill(t *testing.T) {
-	vg := &VectorGraphic{
+	vg := &vectorGraphic{
 		Gradients: map[string]gui.SvgGradientDef{
 			"grad1": {
 				X1: 0, Y1: 0, X2: 1, Y2: 0,
@@ -945,18 +945,18 @@ func TestTessellateTessellatePathsGradientFill(t *testing.T) {
 				},
 			},
 		},
-		Paths: []VectorPath{
+		Paths: []vectorPath{
 			{
 				Transform:      identityTransform,
 				FillColor:      gui.SvgColor{A: 255},
 				FillGradientID: "grad1",
 				Opacity:        1,
 				FillOpacity:    1,
-				Segments: []PathSegment{
-					{Cmd: CmdMoveTo, Points: []float32{0, 0}},
-					{Cmd: CmdLineTo, Points: []float32{10, 0}},
-					{Cmd: CmdLineTo, Points: []float32{10, 10}},
-					{Cmd: CmdClose},
+				Segments: []pathSegment{
+					{Cmd: cmdMoveTo, Points: []float32{0, 0}},
+					{Cmd: cmdLineTo, Points: []float32{10, 0}},
+					{Cmd: cmdLineTo, Points: []float32{10, 10}},
+					{Cmd: cmdClose},
 				},
 			},
 		},
@@ -971,7 +971,7 @@ func TestTessellateTessellatePathsGradientFill(t *testing.T) {
 }
 
 func TestTessellateTessellatePathsEmpty(t *testing.T) {
-	vg := &VectorGraphic{}
+	vg := &vectorGraphic{}
 	result := vg.tessellatePaths(nil, 1.0)
 	if len(result) != 0 {
 		t.Fatalf("empty paths: expected 0, got %d", len(result))

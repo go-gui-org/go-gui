@@ -5,7 +5,7 @@ package shader
 
 // Metal shader sources.
 const (
-	VsMetal = `
+	vsMetal = `
 #include <metal_stdlib>
 using namespace metal;
 
@@ -38,7 +38,7 @@ vertex VertexOut vs_main(VertexIn in [[stage_in]], constant Uniforms &uniforms [
 }
 `
 
-	FsMetal = `
+	fsMetal = `
 #include <metal_stdlib>
 using namespace metal;
 
@@ -88,7 +88,7 @@ fragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[textur
 }
 `
 
-	VsShadowMetal = `
+	vsShadowMetal = `
 #include <metal_stdlib>
 using namespace metal;
 
@@ -123,9 +123,9 @@ vertex VertexOut vs_main(VertexIn in [[stage_in]], constant Uniforms &uniforms [
 }
 `
 
-	FsShadowMetal = "\n#include <metal_stdlib>\nusing namespace metal;\n\nstruct VertexOut {\n    float4 position [[position]];\n    float2 uv;\n    float4 color;\n    float params;\n    float2 offset;\n};\n\nfragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]]) {\n    float radius = floor(in.params / 4096.0) / 4.0;\n    float blur = fmod(in.params, 4096.0) / 4.0;\n\n    float2 width_inv = float2(fwidth(in.uv.x), fwidth(in.uv.y));\n    float2 half_size = 1.0 / (width_inv + 1e-6);\n    float2 pos = in.uv * half_size;\n\n    // SDF for rounded box\n    // q: Distance vector from the \"corner center\"\n    float2 q = abs(pos) - half_size + float2(radius + 1.5 * blur);\n    float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;\n\n    // Casting box SDF (clipped shadow region):\n    // The casting box is offset by `in.offset` relative to the shadow.\n    // This computation masks out the shadow that lies BENEATH the object casting it.\n    float2 q_c = abs(pos + in.offset) - half_size + float2(radius + 1.5 * blur);\n    float d_c = length(max(q_c, 0.0)) + min(max(q_c.x, q_c.y), 0.0) - radius;\n\n    // Shadow logic:\n    // Clip inner shadow (d < 0) regarding casting box to prevent bleeding.\n    float alpha_falloff = 1.0 - smoothstep(0.0, max(1.0, blur), d);\n    float alpha_clip = smoothstep(-1.0, 0.0, d_c); // Hard fade at casting edge\n\n    float alpha = alpha_falloff * alpha_clip;\n\n    float4 frag_color = float4(in.color.rgb, in.color.a * alpha);\n\n    if (frag_color.a < 0.0) {\n        frag_color += tex.sample(smp, in.uv);\n    }\n    return frag_color;\n}\n"
+	fsShadowMetal = "\n#include <metal_stdlib>\nusing namespace metal;\n\nstruct VertexOut {\n    float4 position [[position]];\n    float2 uv;\n    float4 color;\n    float params;\n    float2 offset;\n};\n\nfragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]]) {\n    float radius = floor(in.params / 4096.0) / 4.0;\n    float blur = fmod(in.params, 4096.0) / 4.0;\n\n    float2 width_inv = float2(fwidth(in.uv.x), fwidth(in.uv.y));\n    float2 half_size = 1.0 / (width_inv + 1e-6);\n    float2 pos = in.uv * half_size;\n\n    // SDF for rounded box\n    // q: Distance vector from the \"corner center\"\n    float2 q = abs(pos) - half_size + float2(radius + 1.5 * blur);\n    float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;\n\n    // Casting box SDF (clipped shadow region):\n    // The casting box is offset by `in.offset` relative to the shadow.\n    // This computation masks out the shadow that lies BENEATH the object casting it.\n    float2 q_c = abs(pos + in.offset) - half_size + float2(radius + 1.5 * blur);\n    float d_c = length(max(q_c, 0.0)) + min(max(q_c.x, q_c.y), 0.0) - radius;\n\n    // Shadow logic:\n    // Clip inner shadow (d < 0) regarding casting box to prevent bleeding.\n    float alpha_falloff = 1.0 - smoothstep(0.0, max(1.0, blur), d);\n    float alpha_clip = smoothstep(-1.0, 0.0, d_c); // Hard fade at casting edge\n\n    float alpha = alpha_falloff * alpha_clip;\n\n    float4 frag_color = float4(in.color.rgb, in.color.a * alpha);\n\n    if (frag_color.a < 0.0) {\n        frag_color += tex.sample(smp, in.uv);\n    }\n    return frag_color;\n}\n"
 
-	VsBlurMetal = `
+	vsBlurMetal = `
 #include <metal_stdlib>
 using namespace metal;
 
@@ -158,7 +158,7 @@ vertex VertexOut vs_main(VertexIn in [[stage_in]], constant Uniforms &uniforms [
 }
 `
 
-	FsBlurMetal = `
+	fsBlurMetal = `
 #include <metal_stdlib>
 using namespace metal;
 
@@ -192,7 +192,7 @@ fragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[textur
 }
 `
 
-	VsGradientMetal = `
+	vsGradientMetal = `
 #include <metal_stdlib>
 using namespace metal;
 
@@ -234,7 +234,7 @@ vertex VertexOut vs_main(VertexIn in [[stage_in]], constant Uniforms &uniforms [
 }
 `
 
-	FsGradientMetal = `
+	fsGradientMetal = `
 #include <metal_stdlib>
 using namespace metal;
 
@@ -352,227 +352,6 @@ fragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[textur
         frag_color += tex.sample(smp, in.uv);
     }
     return frag_color;
-}
-`
-
-	VsCustomMetal = `
-#include <metal_stdlib>
-using namespace metal;
-
-struct VertexIn {
-    float3 position [[attribute(0)]];
-    float2 texcoord0 [[attribute(1)]];
-    float4 color0 [[attribute(2)]];
-};
-
-struct VertexOut {
-    float4 position [[position]];
-    float2 uv;
-    float4 color;
-    float params;
-    float4 p0;
-    float4 p1;
-    float4 p2;
-    float4 p3;
-};
-
-struct Uniforms {
-    float4x4 mvp;
-    float4x4 tm;
-};
-
-
-vertex VertexOut vs_main(VertexIn in [[stage_in]], constant Uniforms &uniforms [[buffer(0)]]) {
-    VertexOut out;
-    out.position = uniforms.mvp * float4(in.position.xy, 0.0, 1.0);
-    out.uv = in.texcoord0;
-    out.color = in.color0;
-    out.params = in.position.z;
-    out.p0 = uniforms.tm[0];
-    out.p1 = uniforms.tm[1];
-    out.p2 = uniforms.tm[2];
-    out.p3 = uniforms.tm[3];
-    return out;
-}
-`
-
-	VsFilterBlurMetal = `
-#include <metal_stdlib>
-using namespace metal;
-
-struct VertexIn {
-    float3 position [[attribute(0)]];
-    float2 texcoord0 [[attribute(1)]];
-    float4 color0 [[attribute(2)]];
-};
-
-struct VertexOut {
-    float4 position [[position]];
-    float2 uv;
-    float4 color;
-    float std_dev;
-};
-
-struct Uniforms {
-    float4x4 mvp;
-    float4x4 tm;
-};
-
-vertex VertexOut vs_main(VertexIn in [[stage_in]], constant Uniforms &uniforms [[buffer(0)]]) {
-    VertexOut out;
-    out.position = uniforms.mvp * float4(in.position.xy, 0.0, 1.0);
-    out.uv = in.texcoord0;
-    out.color = in.color0;
-    out.std_dev = uniforms.tm[0][0];
-    return out;
-}
-`
-
-	FsFilterBlurHMetal = `
-#include <metal_stdlib>
-using namespace metal;
-
-struct VertexOut {
-    float4 position [[position]];
-    float2 uv;
-    float4 color;
-    float std_dev;
-};
-
-fragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]]) {
-    // Normalized Gaussian weights for sigma=1, 13 taps
-    const float w[7] = { 0.19947, 0.17603, 0.12098, 0.06476, 0.02700, 0.00877, 0.00222 };
-    float step = in.std_dev / float(tex.get_width());
-
-    float4 c = tex.sample(smp, in.uv) * w[0];
-    for (int i = 1; i < 7; i++) {
-        float off = float(i) * step;
-        c += tex.sample(smp, in.uv + float2(off, 0.0)) * w[i];
-        c += tex.sample(smp, in.uv - float2(off, 0.0)) * w[i];
-    }
-    return c;
-}
-`
-
-	FsFilterBlurVMetal = `
-#include <metal_stdlib>
-using namespace metal;
-
-struct VertexOut {
-    float4 position [[position]];
-    float2 uv;
-    float4 color;
-    float std_dev;
-};
-
-fragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]]) {
-    const float w[7] = { 0.19947, 0.17603, 0.12098, 0.06476, 0.02700, 0.00877, 0.00222 };
-    float step = in.std_dev / float(tex.get_height());
-
-    float4 c = tex.sample(smp, in.uv) * w[0];
-    for (int i = 1; i < 7; i++) {
-        float off = float(i) * step;
-        c += tex.sample(smp, in.uv + float2(0.0, off)) * w[i];
-        c += tex.sample(smp, in.uv - float2(0.0, off)) * w[i];
-    }
-    return c;
-}
-`
-
-	FsFilterColorMetal = `
-#include <metal_stdlib>
-using namespace metal;
-
-struct VertexOut {
-    float4 position [[position]];
-    float2 uv;
-    float4 color;
-    float std_dev;
-};
-
-fragment float4 fs_main(VertexOut in [[stage_in]]) {
-    return in.color;
-}
-`
-
-	FsImageClipMetal = `
-#include <metal_stdlib>
-using namespace metal;
-
-struct VertexOut {
-    float4 position [[position]];
-    float2 uv;
-    float4 color;
-    float params;
-};
-
-fragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]]) {
-    float radius = floor(in.params / 4096.0) / 4.0;
-
-    // SDF rounded rect — identical to rounded_rect shader
-    // (UVs are -1..1 from draw_quad)
-    float2 width_inv = float2(fwidth(in.uv.x), fwidth(in.uv.y));
-    float2 half_size = 1.0 / (width_inv + 1e-6);
-    float2 pos = in.uv * half_size;
-
-    float2 q = abs(pos) - half_size + float2(radius);
-    float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
-
-    float grad_len = length(float2(dfdx(d), dfdy(d)));
-    d = d / max(grad_len, 0.001);
-    float alpha = 1.0 - smoothstep(-0.59, 0.59, d);
-
-    // Remap -1..1 to 0..1 for texture sampling
-    float2 tex_uv = in.uv * 0.5 + 0.5;
-    float4 tex_color = tex.sample(smp, tex_uv);
-    return float4(tex_color.rgb, tex_color.a * alpha);
-}
-`
-
-	FsStencilMetal = `
-#include <metal_stdlib>
-using namespace metal;
-
-struct VertexOut {
-    float4 position [[position]];
-    float2 uv;
-    float4 color;
-    float params;
-};
-
-fragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]]) {
-    float radius = floor(in.params / 4096.0) / 4.0;
-
-    float2 width_inv = float2(fwidth(in.uv.x), fwidth(in.uv.y));
-    float2 half_size = 1.0 / (width_inv + 1e-6);
-    float2 pos = in.uv * half_size;
-
-    float2 q = abs(pos) - half_size + float2(radius);
-    float2 max_q = max(q, float2(0.0));
-    float d = length(max_q) + min(max(q.x, q.y), 0.0) - radius;
-
-    float grad_len = length(float2(dfdx(d), dfdy(d)));
-    d = d / max(grad_len, 0.001);
-    float alpha = 1.0 - smoothstep(-0.59, 0.59, d);
-
-    if (alpha < 0.5) discard_fragment();
-    return float4(1.0);
-}
-`
-
-	FsFilterTextureMetal = `
-#include <metal_stdlib>
-using namespace metal;
-
-struct VertexOut {
-    float4 position [[position]];
-    float2 uv;
-    float4 color;
-    float std_dev;
-};
-
-fragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]]) {
-    return tex.sample(smp, in.uv) * in.color;
 }
 `
 )

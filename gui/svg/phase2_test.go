@@ -160,7 +160,7 @@ func TestPhase2ReuseBufferIsReused(t *testing.T) {
 // without AdditiveMask, and sums base+delta when AdditiveMask is
 // also set.
 func TestApplyOverridesToPath_NonAdditiveReplaces(t *testing.T) {
-	p := &VectorPath{
+	p := &vectorPath{
 		Primitive: gui.SvgPrimitive{
 			Kind: gui.SvgPrimCircle, CX: 12, CY: 12, R: 5,
 		},
@@ -176,7 +176,7 @@ func TestApplyOverridesToPath_NonAdditiveReplaces(t *testing.T) {
 }
 
 func TestApplyOverridesToPath_AdditiveAddsDelta(t *testing.T) {
-	p := &VectorPath{
+	p := &vectorPath{
 		Primitive: gui.SvgPrimitive{
 			Kind: gui.SvgPrimCircle, CX: 12, CY: 12, R: 5,
 		},
@@ -195,7 +195,7 @@ func TestApplyOverridesToPath_AdditiveAddsDelta(t *testing.T) {
 // Unset mask bits leave the parsed base untouched regardless of the
 // field value or AdditiveMask bit.
 func TestApplyOverridesToPath_UnsetMaskKeepsBase(t *testing.T) {
-	p := &VectorPath{
+	p := &vectorPath{
 		Primitive: gui.SvgPrimitive{
 			Kind: gui.SvgPrimCircle, CX: 12, CY: 12, R: 5,
 		},

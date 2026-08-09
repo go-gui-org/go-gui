@@ -9,14 +9,14 @@ import (
 
 func TestStaticValueFor_StrokeDashOffset(t *testing.T) {
 	got := staticValueFor("stroke-dashoffset",
-		ComputedStyle{StrokeDashOffset: 12.5})
+		computedStyle{StrokeDashOffset: 12.5})
 	if got != "12.5" {
 		t.Errorf("got %q want 12.5", got)
 	}
 }
 
 func TestStaticValueFor_OpacityArms(t *testing.T) {
-	c := ComputedStyle{Opacity: 0.5, FillOpacity: 0.25, StrokeOpacity: 1}
+	c := computedStyle{Opacity: 0.5, FillOpacity: 0.25, StrokeOpacity: 1}
 	cases := map[string]string{
 		"opacity":        "0.5",
 		"fill-opacity":   "0.25",
@@ -30,17 +30,17 @@ func TestStaticValueFor_OpacityArms(t *testing.T) {
 }
 
 func TestStaticValueFor_FillUnsetReturnsEmpty(t *testing.T) {
-	if got := staticValueFor("fill", ComputedStyle{}); got != "" {
+	if got := staticValueFor("fill", computedStyle{}); got != "" {
 		t.Errorf("fill unset: got %q", got)
 	}
-	if got := staticValueFor("stroke", ComputedStyle{}); got != "" {
+	if got := staticValueFor("stroke", computedStyle{}); got != "" {
 		t.Errorf("stroke unset: got %q", got)
 	}
 }
 
 func TestStaticValueFor_FillSetReturnsRGBA(t *testing.T) {
-	c := ComputedStyle{
-		FillSet: true,
+	c := computedStyle{
+		fillSet: true,
 		Fill:    gui.SvgColor{R: 10, G: 20, B: 30, A: 255},
 	}
 	got := staticValueFor("fill", c)
@@ -50,9 +50,9 @@ func TestStaticValueFor_FillSetReturnsRGBA(t *testing.T) {
 }
 
 func TestStaticValueFor_StrokeSetReturnsRGBA(t *testing.T) {
-	c := ComputedStyle{
-		StrokeSet: true,
-		Stroke:    gui.SvgColor{R: 0, G: 128, B: 255, A: 128},
+	c := computedStyle{
+		strokeSet: true,
+		stroke:    gui.SvgColor{R: 0, G: 128, B: 255, A: 128},
 	}
 	got := staticValueFor("stroke", c)
 	if !strings.HasPrefix(got, "rgba(0,128,255,") {
@@ -61,7 +61,7 @@ func TestStaticValueFor_StrokeSetReturnsRGBA(t *testing.T) {
 }
 
 func TestStaticValueFor_UnknownProp(t *testing.T) {
-	if got := staticValueFor("font-size", ComputedStyle{}); got != "" {
+	if got := staticValueFor("font-size", computedStyle{}); got != "" {
 		t.Errorf("unknown: got %q", got)
 	}
 }

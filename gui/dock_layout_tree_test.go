@@ -28,7 +28,7 @@ func TestDockSplitConstructor(t *testing.T) {
 	a := DockPanelGroup("a", []string{"p1"}, "p1")
 	b := DockPanelGroup("b", []string{"p2"}, "p2")
 	s := DockSplit("s", DockSplitHorizontal, 0.4, a, b)
-	if s.Kind != DockNodeSplit {
+	if s.Kind != dockNodeSplit {
 		t.Fatal("expected split")
 	}
 	if s.Dir != DockSplitHorizontal {
@@ -44,7 +44,7 @@ func TestDockSplitConstructor(t *testing.T) {
 
 func TestDockPanelGroupConstructor(t *testing.T) {
 	g := DockPanelGroup("g", []string{"x", "y"}, "y")
-	if g.Kind != DockNodePanelGroup {
+	if g.Kind != dockNodePanelGroup {
 		t.Fatal("expected panel_group")
 	}
 	if g.ID != "g" {
@@ -62,7 +62,7 @@ func TestDockPanelGroupConstructor(t *testing.T) {
 
 func TestCollectPanelNodes(t *testing.T) {
 	root := makeTestTree()
-	nodes := DockTreeCollectPanelNodes(root)
+	nodes := dockTreeCollectPanelNodes(root)
 	if len(nodes) != 3 {
 		t.Fatalf("got %d nodes, want 3", len(nodes))
 	}
@@ -75,7 +75,7 @@ func TestCollectPanelNodes(t *testing.T) {
 
 func TestCollectPanelNodesSingle(t *testing.T) {
 	g := DockPanelGroup("only", []string{"p"}, "p")
-	nodes := DockTreeCollectPanelNodes(g)
+	nodes := dockTreeCollectPanelNodes(g)
 	if len(nodes) != 1 || nodes[0].ID != "only" {
 		t.Fatal("expected single node")
 	}
@@ -111,7 +111,7 @@ func TestFindGroupByPanelFirst(t *testing.T) {
 
 func TestFindGroupByID(t *testing.T) {
 	root := makeTestTree()
-	g, ok := DockTreeFindGroupByID(root, "g2")
+	g, ok := dockTreeFindGroupByID(root, "g2")
 	if !ok {
 		t.Fatal("not found")
 	}
@@ -122,7 +122,7 @@ func TestFindGroupByID(t *testing.T) {
 
 func TestFindGroupByIDNotFound(t *testing.T) {
 	root := makeTestTree()
-	_, ok := DockTreeFindGroupByID(root, "missing")
+	_, ok := dockTreeFindGroupByID(root, "missing")
 	if ok {
 		t.Fatal("should not find")
 	}
@@ -133,7 +133,7 @@ func TestFindGroupByIDNotFound(t *testing.T) {
 func TestRemovePanelFromMulti(t *testing.T) {
 	root := makeTestTree()
 	newRoot := DockTreeRemovePanel(root, "B")
-	g, ok := DockTreeFindGroupByID(newRoot, "g1")
+	g, ok := dockTreeFindGroupByID(newRoot, "g1")
 	if !ok {
 		t.Fatal("g1 missing")
 	}
@@ -146,12 +146,12 @@ func TestRemovePanelCollapsesEmptyGroup(t *testing.T) {
 	root := makeTestTree()
 	newRoot := DockTreeRemovePanel(root, "C")
 	// g2 had only C, parent split s2 should collapse to g3
-	_, ok := DockTreeFindGroupByID(newRoot, "g2")
+	_, ok := dockTreeFindGroupByID(newRoot, "g2")
 	if ok {
 		t.Fatal("g2 should be gone")
 	}
 	// g3 should still exist
-	g3, ok := DockTreeFindGroupByID(newRoot, "g3")
+	g3, ok := dockTreeFindGroupByID(newRoot, "g3")
 	if !ok {
 		t.Fatal("g3 missing")
 	}
@@ -164,7 +164,7 @@ func TestRemovePanelUpdatesSelected(t *testing.T) {
 	root := makeTestTree()
 	// Select A, then remove A — should select B
 	newRoot := DockTreeRemovePanel(root, "A")
-	g, ok := DockTreeFindGroupByID(newRoot, "g1")
+	g, ok := dockTreeFindGroupByID(newRoot, "g1")
 	if !ok {
 		t.Fatal("g1 missing")
 	}
@@ -182,7 +182,7 @@ func TestRemovePanelNotFound(t *testing.T) {
 }
 
 func TestRemovePanelNilChildren(t *testing.T) {
-	nd := &DockNode{Kind: DockNodeSplit, ID: "s", First: nil, Second: nil}
+	nd := &DockNode{Kind: dockNodeSplit, ID: "s", First: nil, Second: nil}
 	result := DockTreeRemovePanel(nd, "x")
 	if result != nd {
 		t.Fatal("should return same node")
@@ -194,7 +194,7 @@ func TestRemovePanelNilChildren(t *testing.T) {
 func TestAddTab(t *testing.T) {
 	root := makeTestTree()
 	newRoot := DockTreeAddTab(root, "g2", "F")
-	g, ok := DockTreeFindGroupByID(newRoot, "g2")
+	g, ok := dockTreeFindGroupByID(newRoot, "g2")
 	if !ok {
 		t.Fatal("g2 missing")
 	}
@@ -218,7 +218,7 @@ func TestAddTabWrongGroup(t *testing.T) {
 
 func TestSplitAtLeft(t *testing.T) {
 	root := makeTestTree()
-	newRoot := DockTreeSplitAt(root, "g2", "F", DockDropLeft)
+	newRoot := dockTreeSplitAt(root, "g2", "F", dockDropLeft)
 	// g2 should now be inside a split
 	_, ok := DockTreeFindGroupByPanel(newRoot, "F")
 	if !ok {
@@ -232,7 +232,7 @@ func TestSplitAtLeft(t *testing.T) {
 
 func TestSplitAtBottom(t *testing.T) {
 	root := makeTestTree()
-	newRoot := DockTreeSplitAt(root, "g1", "F", DockDropBottom)
+	newRoot := dockTreeSplitAt(root, "g1", "F", dockDropBottom)
 	fGroup, ok := DockTreeFindGroupByPanel(newRoot, "F")
 	if !ok {
 		t.Fatal("F not found")
@@ -244,7 +244,7 @@ func TestSplitAtBottom(t *testing.T) {
 
 func TestSplitAtWrongGroup(t *testing.T) {
 	root := makeTestTree()
-	newRoot := DockTreeSplitAt(root, "missing", "F", DockDropLeft)
+	newRoot := dockTreeSplitAt(root, "missing", "F", dockDropLeft)
 	if newRoot != root {
 		t.Fatal("should return same root")
 	}
@@ -254,8 +254,8 @@ func TestSplitAtWrongGroup(t *testing.T) {
 
 func TestWrapRootLeft(t *testing.T) {
 	root := makeTestTree()
-	newRoot := DockTreeWrapRoot(root, "F", DockDropWindowLeft)
-	if newRoot.Kind != DockNodeSplit {
+	newRoot := dockTreeWrapRoot(root, "F", dockDropWindowLeft)
+	if newRoot.Kind != dockNodeSplit {
 		t.Fatal("expected split")
 	}
 	if newRoot.Dir != DockSplitHorizontal {
@@ -265,7 +265,7 @@ func TestWrapRootLeft(t *testing.T) {
 		t.Fatalf("ratio = %f, want 0.2", newRoot.Ratio)
 	}
 	// First should be new group with F
-	if newRoot.First.Kind != DockNodePanelGroup {
+	if newRoot.First.Kind != dockNodePanelGroup {
 		t.Fatal("first should be panel group")
 	}
 	if newRoot.First.PanelIDs[0] != "F" {
@@ -275,8 +275,8 @@ func TestWrapRootLeft(t *testing.T) {
 
 func TestWrapRootBottom(t *testing.T) {
 	root := makeTestTree()
-	newRoot := DockTreeWrapRoot(root, "F", DockDropWindowBottom)
-	if newRoot.Kind != DockNodeSplit {
+	newRoot := dockTreeWrapRoot(root, "F", dockDropWindowBottom)
+	if newRoot.Kind != dockNodeSplit {
 		t.Fatal("expected split")
 	}
 	if newRoot.Dir != DockSplitVertical {
@@ -294,8 +294,8 @@ func TestWrapRootBottom(t *testing.T) {
 
 func TestMovePanelCenter(t *testing.T) {
 	root := makeTestTree()
-	newRoot := DockTreeMovePanel(root, "A", "g2", DockDropCenter)
-	g2, ok := DockTreeFindGroupByID(newRoot, "g2")
+	newRoot := dockTreeMovePanel(root, "A", "g2", dockDropCenter)
+	g2, ok := dockTreeFindGroupByID(newRoot, "g2")
 	if !ok {
 		t.Fatal("g2 missing")
 	}
@@ -306,7 +306,7 @@ func TestMovePanelCenter(t *testing.T) {
 
 func TestMovePanelEdge(t *testing.T) {
 	root := makeTestTree()
-	newRoot := DockTreeMovePanel(root, "A", "g2", DockDropRight)
+	newRoot := dockTreeMovePanel(root, "A", "g2", dockDropRight)
 	_, ok := DockTreeFindGroupByPanel(newRoot, "A")
 	if !ok {
 		t.Fatal("A missing")
@@ -315,7 +315,7 @@ func TestMovePanelEdge(t *testing.T) {
 
 func TestMovePanelWindowEdge(t *testing.T) {
 	root := makeTestTree()
-	newRoot := DockTreeMovePanel(root, "D", "", DockDropWindowTop)
+	newRoot := dockTreeMovePanel(root, "D", "", dockDropWindowTop)
 	dg, ok := DockTreeFindGroupByPanel(newRoot, "D")
 	if !ok {
 		t.Fatal("D missing")
@@ -330,7 +330,7 @@ func TestMovePanelWindowEdge(t *testing.T) {
 func TestSelectPanel(t *testing.T) {
 	root := makeTestTree()
 	newRoot := DockTreeSelectPanel(root, "g1", "B")
-	g, ok := DockTreeFindGroupByID(newRoot, "g1")
+	g, ok := dockTreeFindGroupByID(newRoot, "g1")
 	if !ok {
 		t.Fatal("g1 missing")
 	}
@@ -358,7 +358,7 @@ func TestSelectPanelWrongGroup(t *testing.T) {
 // --- dockZoneToSplitDir ---
 
 func TestZoneToSplitDirHorizontal(t *testing.T) {
-	for _, z := range []DockDropZone{DockDropLeft, DockDropRight, DockDropWindowLeft, DockDropWindowRight} {
+	for _, z := range []DockDropZone{dockDropLeft, dockDropRight, dockDropWindowLeft, dockDropWindowRight} {
 		if dockZoneToSplitDir(z) != DockSplitHorizontal {
 			t.Fatalf("zone %d should map to horizontal", z)
 		}
@@ -366,7 +366,7 @@ func TestZoneToSplitDirHorizontal(t *testing.T) {
 }
 
 func TestZoneToSplitDirVertical(t *testing.T) {
-	for _, z := range []DockDropZone{DockDropTop, DockDropBottom, DockDropWindowTop, DockDropWindowBottom, DockDropCenter} {
+	for _, z := range []DockDropZone{dockDropTop, dockDropBottom, dockDropWindowTop, dockDropWindowBottom, dockDropCenter} {
 		if dockZoneToSplitDir(z) != DockSplitVertical {
 			t.Fatalf("zone %d should map to vertical", z)
 		}
@@ -431,7 +431,7 @@ func TestRemoveAllPanelsCollapses(t *testing.T) {
 
 	newRoot := DockTreeRemovePanel(root, "A")
 	// Should collapse to just g2
-	if newRoot.Kind != DockNodePanelGroup {
+	if newRoot.Kind != dockNodePanelGroup {
 		t.Fatal("should collapse to panel group")
 	}
 	if newRoot.ID != "g2" {
@@ -446,13 +446,13 @@ func TestSplitAtDirections(t *testing.T) {
 		zone DockDropZone
 		dir  DockSplitDir
 	}{
-		{DockDropLeft, DockSplitHorizontal},
-		{DockDropRight, DockSplitHorizontal},
-		{DockDropTop, DockSplitVertical},
-		{DockDropBottom, DockSplitVertical},
+		{dockDropLeft, DockSplitHorizontal},
+		{dockDropRight, DockSplitHorizontal},
+		{dockDropTop, DockSplitVertical},
+		{dockDropBottom, DockSplitVertical},
 	} {
-		result := DockTreeSplitAt(g, "g", "F", tc.zone)
-		if result.Kind != DockNodeSplit {
+		result := dockTreeSplitAt(g, "g", "F", tc.zone)
+		if result.Kind != dockNodeSplit {
 			t.Fatalf("zone %d: expected split", tc.zone)
 		}
 		if result.Dir != tc.dir {
@@ -463,10 +463,10 @@ func TestSplitAtDirections(t *testing.T) {
 
 func TestMovePanelPreservesOtherPanels(t *testing.T) {
 	root := makeTestTree()
-	newRoot := DockTreeMovePanel(root, "B", "g3", DockDropCenter)
+	newRoot := dockTreeMovePanel(root, "B", "g3", dockDropCenter)
 
 	// A should still be in g1
-	g1, ok := DockTreeFindGroupByID(newRoot, "g1")
+	g1, ok := dockTreeFindGroupByID(newRoot, "g1")
 	if !ok {
 		t.Fatal("g1 missing")
 	}
@@ -475,7 +475,7 @@ func TestMovePanelPreservesOtherPanels(t *testing.T) {
 	}
 
 	// B should be in g3
-	g3, ok := DockTreeFindGroupByID(newRoot, "g3")
+	g3, ok := dockTreeFindGroupByID(newRoot, "g3")
 	if !ok {
 		t.Fatal("g3 missing")
 	}
@@ -528,11 +528,11 @@ func TestDockSplitDirMarshalTextUnknown(t *testing.T) {
 
 func TestDockNodeKindMarshalText(t *testing.T) {
 	tests := []struct {
-		kind DockNodeKind
+		kind dockNodeKind
 		want string
 	}{
-		{DockNodeSplit, "split"},
-		{DockNodePanelGroup, "panelGroup"},
+		{dockNodeSplit, "split"},
+		{dockNodePanelGroup, "panelGroup"},
 	}
 	for _, tt := range tests {
 		b, err := tt.kind.MarshalText()
@@ -542,7 +542,7 @@ func TestDockNodeKindMarshalText(t *testing.T) {
 		if string(b) != tt.want {
 			t.Errorf("MarshalText(%d) = %q, want %q", tt.kind, b, tt.want)
 		}
-		var got DockNodeKind
+		var got dockNodeKind
 		if err := got.UnmarshalText(b); err != nil {
 			t.Fatalf("UnmarshalText(%q): %v", b, err)
 		}
@@ -553,14 +553,14 @@ func TestDockNodeKindMarshalText(t *testing.T) {
 }
 
 func TestDockNodeKindUnmarshalTextUnknown(t *testing.T) {
-	var k DockNodeKind
+	var k dockNodeKind
 	if err := k.UnmarshalText([]byte("leaf")); err == nil {
 		t.Error("expected error for unknown value")
 	}
 }
 
 func TestDockNodeKindMarshalTextUnknown(t *testing.T) {
-	_, err := DockNodeKind(99).MarshalText()
+	_, err := dockNodeKind(99).MarshalText()
 	if err == nil {
 		t.Error("expected error for unknown value")
 	}
@@ -578,7 +578,7 @@ func TestDockNodeJSONRoundTrip(t *testing.T) {
 	if err := json.Unmarshal(data, &got); err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}
-	if got.Kind != DockNodeSplit || got.ID != "s1" {
+	if got.Kind != dockNodeSplit || got.ID != "s1" {
 		t.Fatalf("root: kind=%v id=%q", got.Kind, got.ID)
 	}
 	if got.Dir != DockSplitHorizontal {
@@ -587,13 +587,13 @@ func TestDockNodeJSONRoundTrip(t *testing.T) {
 	if got.Ratio != 0.3 {
 		t.Errorf("root ratio = %f, want 0.3", got.Ratio)
 	}
-	if got.First == nil || got.First.Kind != DockNodePanelGroup {
+	if got.First == nil || got.First.Kind != dockNodePanelGroup {
 		t.Fatal("first child should be panel group")
 	}
 	if !slices.Equal(got.First.PanelIDs, []string{"A", "B"}) {
 		t.Errorf("first panelIDs = %v", got.First.PanelIDs)
 	}
-	if got.Second == nil || got.Second.Kind != DockNodeSplit {
+	if got.Second == nil || got.Second.Kind != dockNodeSplit {
 		t.Fatal("second child should be split")
 	}
 }
@@ -628,19 +628,19 @@ func TestDockNodeJSONPanelGroupOmitsEmptySplitFields(t *testing.T) {
 // --- DockNodeSanitize ---
 
 func TestDockNodeSanitizeNil(t *testing.T) {
-	DockNodeSanitize(nil) // must not panic
+	dockNodeSanitize(nil) // must not panic
 }
 
 func TestDockNodeSanitizeClampsRatio(t *testing.T) {
 	node := DockSplit("s", DockSplitHorizontal, 1.5,
 		DockPanelGroup("a", nil, ""), DockPanelGroup("b", nil, ""))
-	DockNodeSanitize(node)
+	dockNodeSanitize(node)
 	if node.Ratio != 1 {
 		t.Errorf("ratio = %f, want 1", node.Ratio)
 	}
 
 	node.Ratio = -0.5
-	DockNodeSanitize(node)
+	dockNodeSanitize(node)
 	if node.Ratio != 0 {
 		t.Errorf("ratio = %f, want 0", node.Ratio)
 	}
@@ -650,7 +650,7 @@ func TestDockNodeSanitizeNaN(t *testing.T) {
 	node := DockSplit("s", DockSplitHorizontal,
 		float32(math.NaN()),
 		DockPanelGroup("a", nil, ""), DockPanelGroup("b", nil, ""))
-	DockNodeSanitize(node)
+	dockNodeSanitize(node)
 	if node.Ratio != 0.5 {
 		t.Errorf("NaN ratio = %f, want 0.5", node.Ratio)
 	}
@@ -660,13 +660,13 @@ func TestDockNodeSanitizeInf(t *testing.T) {
 	node := DockSplit("s", DockSplitHorizontal,
 		float32(math.Inf(1)),
 		DockPanelGroup("a", nil, ""), DockPanelGroup("b", nil, ""))
-	DockNodeSanitize(node)
+	dockNodeSanitize(node)
 	if node.Ratio != 0.5 {
 		t.Errorf("+Inf ratio = %f, want 0.5", node.Ratio)
 	}
 
 	node.Ratio = float32(math.Inf(-1))
-	DockNodeSanitize(node)
+	dockNodeSanitize(node)
 	if node.Ratio != 0.5 {
 		t.Errorf("-Inf ratio = %f, want 0.5", node.Ratio)
 	}
@@ -680,13 +680,13 @@ func TestDockNodeSanitizeDeepTree(t *testing.T) {
 		node = DockSplit("s"+string(rune('0'+i)),
 			DockSplitHorizontal, 0.5, node, leaf)
 	}
-	DockNodeSanitize(node)
+	dockNodeSanitize(node)
 	// Walk down First pointers. Sanitizer nils children at
 	// depth == dockNodeMaxDepth, so splits exist at depths
 	// 0..maxDepth (maxDepth+1 nodes).
 	cur := node
 	depth := 0
-	for cur != nil && cur.Kind == DockNodeSplit {
+	for cur != nil && cur.Kind == dockNodeSplit {
 		depth++
 		cur = cur.First
 	}
@@ -698,7 +698,7 @@ func TestDockNodeSanitizeDeepTree(t *testing.T) {
 
 func TestDockNodeSanitizePanelGroupUntouched(t *testing.T) {
 	node := DockPanelGroup("g", []string{"a", "b"}, "a")
-	DockNodeSanitize(node)
+	dockNodeSanitize(node)
 	if !slices.Equal(node.PanelIDs, []string{"a", "b"}) {
 		t.Errorf("panelIDs modified: %v", node.PanelIDs)
 	}

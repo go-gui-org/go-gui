@@ -11,8 +11,8 @@ import (
 // pseudo-classes or syntactically malformed compounds are dropped.
 // `:is(a, b)` groups expand into one selector per argument before
 // parsing.
-func parseSelectorList(toks []tdcss.Token) []ComplexSelector {
-	var out []ComplexSelector
+func parseSelectorList(toks []tdcss.Token) []complexSelector {
+	var out []complexSelector
 	for _, g := range splitByComma(toks) {
 		for _, expanded := range expandIs(g, 0) {
 			cs, ok := parseComplexSelector(expanded)
@@ -126,12 +126,12 @@ func trimWS(toks []tdcss.Token) []tdcss.Token {
 // parseComplexSelector walks a selector group, splitting it into
 // compound chunks separated by descendant, child, adjacent (`+`), or
 // general-sibling (`~`) combinators.
-func parseComplexSelector(toks []tdcss.Token) (ComplexSelector, bool) {
+func parseComplexSelector(toks []tdcss.Token) (complexSelector, bool) {
 	if len(toks) == 0 {
-		return ComplexSelector{}, false
+		return complexSelector{}, false
 	}
-	var parts []SelectorPart
-	nextComb := CombStart
+	var parts []selectorPart
+	nextComb := combStart
 	i := 0
 	for i < len(toks) {
 		// Collect tokens for this compound until we hit whitespace,
@@ -150,7 +150,7 @@ func parseComplexSelector(toks []tdcss.Token) (ComplexSelector, bool) {
 			if t.TokenType == tdcss.FunctionToken {
 				j := skipFunctionArgs(toks, i+1)
 				if j < 0 {
-					return ComplexSelector{}, false
+					return complexSelector{}, false
 				}
 				i = j + 1
 				continue
@@ -160,7 +160,7 @@ func parseComplexSelector(toks []tdcss.Token) (ComplexSelector, bool) {
 			if t.TokenType == tdcss.LeftBracketToken {
 				j := skipBrackets(toks, i+1)
 				if j < 0 {
-					return ComplexSelector{}, false
+					return complexSelector{}, false
 				}
 				i = j + 1
 				continue
@@ -169,15 +169,15 @@ func parseComplexSelector(toks []tdcss.Token) (ComplexSelector, bool) {
 		}
 		chunk := toks[start:i]
 		if len(chunk) == 0 {
-			return ComplexSelector{}, false
+			return complexSelector{}, false
 		}
 		c, ok := parseCompound(chunk)
 		if !ok {
-			return ComplexSelector{}, false
+			return complexSelector{}, false
 		}
-		parts = append(parts, SelectorPart{
-			Combinator: nextComb,
-			Compound:   c,
+		parts = append(parts, selectorPart{
+			combinator: nextComb,
+			compound:   c,
 		})
 		// Skip whitespace, then accept an optional explicit combinator
 		// delim. Whitespace alone is the descendant combinator.
@@ -196,35 +196,35 @@ func parseComplexSelector(toks []tdcss.Token) (ComplexSelector, bool) {
 				i++
 			}
 		} else if sawWS {
-			nextComb = CombDescendant
+			nextComb = combDescendant
 		} else {
 			// No whitespace, no combinator, yet more tokens — malformed.
-			return ComplexSelector{}, false
+			return complexSelector{}, false
 		}
 	}
 	if len(parts) == 0 {
-		return ComplexSelector{}, false
+		return complexSelector{}, false
 	}
 	var spec Specificity
 	for _, p := range parts {
-		spec = spec.Add(p.Compound.Spec)
+		spec = spec.Add(p.compound.spec)
 	}
-	return ComplexSelector{Parts: parts, Spec: spec}, true
+	return complexSelector{parts: parts, spec: spec}, true
 }
 
 // combinatorFromDelim recognizes the single-char combinator delim
 // tokens. Returns the combinator and true on match.
-func combinatorFromDelim(t tdcss.Token) (Combinator, bool) {
+func combinatorFromDelim(t tdcss.Token) (combinator, bool) {
 	if t.TokenType != tdcss.DelimToken || len(t.Data) != 1 {
 		return 0, false
 	}
 	switch t.Data[0] {
 	case '>':
-		return CombChild, true
+		return combChild, true
 	case '+':
-		return CombAdjacent, true
+		return combAdjacent, true
 	case '~':
-		return CombGeneralSibling, true
+		return combGeneralSibling, true
 	}
 	return 0, false
 }
@@ -277,28 +277,28 @@ const maxNotDepth = 8
 // callers use parseCompound; the `:not(inner)` handler recurses via
 // parseCompoundAt with an incremented depth so nested negation cannot
 // blow the stack.
-func parseCompound(toks []tdcss.Token) (Compound, bool) {
+func parseCompound(toks []tdcss.Token) (compound, bool) {
 	return parseCompoundAt(toks, 0)
 }
 
-func parseCompoundAt(toks []tdcss.Token, depth int) (Compound, bool) {
+func parseCompoundAt(toks []tdcss.Token, depth int) (compound, bool) {
 	if len(toks) == 0 {
-		return Compound{}, false
+		return compound{}, false
 	}
 	if depth > maxNotDepth {
-		return Compound{}, false
+		return compound{}, false
 	}
-	var c Compound
+	var c compound
 	tagSeen := false
 	for i := 0; i < len(toks); i++ {
 		adv, ok := parseCompoundToken(toks, i, &c, &tagSeen, depth)
 		if !ok {
-			return Compound{}, false
+			return compound{}, false
 		}
 		i = adv
 	}
 	if !compoundIsNonEmpty(&c, tagSeen) {
-		return Compound{}, false
+		return compound{}, false
 	}
 	return c, true
 }
@@ -307,7 +307,7 @@ func parseCompoundAt(toks []tdcss.Token, depth int) (Compound, bool) {
 // returns the advanced index (the loop's i++ moves past it) and
 // ok=false on rejection.
 func parseCompoundToken(
-	toks []tdcss.Token, i int, c *Compound, tagSeen *bool, depth int,
+	toks []tdcss.Token, i int, c *compound, tagSeen *bool, depth int,
 ) (int, bool) {
 	t := toks[i]
 	switch t.TokenType {
@@ -316,7 +316,7 @@ func parseCompoundToken(
 			return i, false
 		}
 		c.Tag = string(t.Data)
-		c.Spec[2]++
+		c.spec[2]++
 		*tagSeen = true
 		return i, true
 	case tdcss.HashToken:
@@ -331,7 +331,7 @@ func parseCompoundToken(
 	return i, false
 }
 
-func parseCompoundHash(t tdcss.Token, i int, c *Compound) (int, bool) {
+func parseCompoundHash(t tdcss.Token, i int, c *compound) (int, bool) {
 	data := t.Data
 	if len(data) > 0 && data[0] == '#' {
 		data = data[1:]
@@ -340,12 +340,12 @@ func parseCompoundHash(t tdcss.Token, i int, c *Compound) (int, bool) {
 		return i, false
 	}
 	c.ID = string(data)
-	c.Spec[0]++
+	c.spec[0]++
 	return i, true
 }
 
 func parseCompoundDelim(
-	toks []tdcss.Token, i int, c *Compound, tagSeen *bool,
+	toks []tdcss.Token, i int, c *compound, tagSeen *bool,
 ) (int, bool) {
 	t := toks[i]
 	if len(t.Data) != 1 {
@@ -358,7 +358,7 @@ func parseCompoundDelim(
 			return i, false
 		}
 		c.Classes = append(c.Classes, string(toks[i+1].Data))
-		c.Spec[1]++
+		c.spec[1]++
 		return i + 1, true
 	case '*':
 		if *tagSeen {
@@ -372,7 +372,7 @@ func parseCompoundDelim(
 }
 
 func parseCompoundAttr(
-	toks []tdcss.Token, i int, c *Compound,
+	toks []tdcss.Token, i int, c *compound,
 ) (int, bool) {
 	end := skipBrackets(toks, i+1)
 	if end < 0 {
@@ -383,23 +383,23 @@ func parseCompoundAttr(
 		return i, false
 	}
 	c.Attrs = append(c.Attrs, a)
-	c.Spec[1]++
+	c.spec[1]++
 	return end, true
 }
 
 // compoundEmpty reports whether c carries no constraint other than a
 // possibly-pending tag selector. Used by IdentToken handling: an
 // element-name selector must come first in the compound.
-func compoundEmpty(c *Compound) bool {
+func compoundEmpty(c *compound) bool {
 	return c.ID == "" && len(c.Classes) == 0 && len(c.Attrs) == 0 &&
-		c.NthChild == nil && !c.Root && !c.HoverPseudo &&
-		!c.FocusPseudo && c.Not == nil
+		c.nthChild == nil && !c.Root && !c.hoverPseudo &&
+		!c.focusPseudo && c.not == nil
 }
 
 // compoundIsNonEmpty reports whether c carries at least one selector
 // constraint. A compound chunk that produced no constraints is
 // rejected by parseCompound.
-func compoundIsNonEmpty(c *Compound, tagSeen bool) bool {
+func compoundIsNonEmpty(c *compound, tagSeen bool) bool {
 	return tagSeen || !compoundEmpty(c)
 }
 
@@ -410,53 +410,53 @@ func compoundIsNonEmpty(c *Compound, tagSeen bool) bool {
 // NumberToken, or StringToken (quoted). Empty value is rejected for
 // operators that require a non-empty needle. Case-sensitive matching
 // (no `i` / `s` flag).
-func parseAttrSel(toks []tdcss.Token) (AttrSel, bool) {
+func parseAttrSel(toks []tdcss.Token) (attrSel, bool) {
 	toks = trimWS(toks)
 	if len(toks) == 0 || toks[0].TokenType != tdcss.IdentToken {
-		return AttrSel{}, false
+		return attrSel{}, false
 	}
 	name := strings.ToLower(string(toks[0].Data))
 	rest := trimWS(toks[1:])
 	if len(rest) == 0 {
-		return AttrSel{Name: name, Op: AttrOpExists}, true
+		return attrSel{Name: name, Op: attrOpExists}, true
 	}
 	op, opLen, ok := parseAttrOp(rest)
 	if !ok {
-		return AttrSel{}, false
+		return attrSel{}, false
 	}
 	rest = trimWS(rest[opLen:])
 	if len(rest) != 1 {
-		return AttrSel{}, false
+		return attrSel{}, false
 	}
 	val, ok := attrValueText(rest[0])
 	if !ok {
-		return AttrSel{}, false
+		return attrSel{}, false
 	}
-	return AttrSel{Name: name, Op: op, Value: val}, true
+	return attrSel{Name: name, Op: op, Value: val}, true
 }
 
 // parseAttrOp recognizes the operator tokens that follow the attribute
 // name in `[name op value]`. Returns the op, the number of tokens
 // consumed, and ok.
-func parseAttrOp(toks []tdcss.Token) (AttrOp, int, bool) {
+func parseAttrOp(toks []tdcss.Token) (attrOp, int, bool) {
 	if len(toks) == 0 {
 		return 0, 0, false
 	}
 	t := toks[0]
 	switch t.TokenType {
 	case tdcss.IncludeMatchToken:
-		return AttrOpInclude, 1, true
+		return attrOpInclude, 1, true
 	case tdcss.DashMatchToken:
-		return AttrOpDashMatch, 1, true
+		return attrOpDashMatch, 1, true
 	case tdcss.PrefixMatchToken:
-		return AttrOpPrefix, 1, true
+		return attrOpPrefix, 1, true
 	case tdcss.SuffixMatchToken:
-		return AttrOpSuffix, 1, true
+		return attrOpSuffix, 1, true
 	case tdcss.SubstringMatchToken:
-		return AttrOpSubstring, 1, true
+		return attrOpSubstring, 1, true
 	case tdcss.DelimToken:
 		if len(t.Data) == 1 && t.Data[0] == '=' {
-			return AttrOpEqual, 1, true
+			return attrOpEqual, 1, true
 		}
 	}
 	return 0, 0, false

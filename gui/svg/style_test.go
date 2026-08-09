@@ -678,7 +678,7 @@ func TestBakePathOpacity_SkipFlagsForceUnity(t *testing.T) {
 	// and cause tessellate to drop the geometry. SkipFillOpacity
 	// forces the multiplier to 1 so an inline animation can supply
 	// the value at render time.
-	path := &VectorPath{
+	path := &vectorPath{
 		FillColor:     gui.SvgColor{R: 10, G: 20, B: 30, A: 255},
 		StrokeColor:   gui.SvgColor{R: 40, G: 50, B: 60, A: 255},
 		Opacity:       1,
@@ -686,8 +686,8 @@ func TestBakePathOpacity_SkipFlagsForceUnity(t *testing.T) {
 		StrokeOpacity: 0,
 	}
 	inh := defaultComputedStyle(identityTransform)
-	inh.SkipFillOpacity = true
-	inh.SkipStrokeOpacity = true
+	inh.skipFillOpacity = true
+	inh.skipStrokeOpacity = true
 	bakePathOpacity(path, inh)
 	if path.FillColor.A != 255 {
 		t.Fatalf("SkipFillOpacity should preserve alpha, got %d",
@@ -700,13 +700,13 @@ func TestBakePathOpacity_SkipFlagsForceUnity(t *testing.T) {
 
 	// SkipOpacity forces combined to 1 even if path.Opacity=0.
 	// FillOpacity=1 triggers use of inherited (which is 1).
-	path = &VectorPath{
+	path = &vectorPath{
 		FillColor:   gui.SvgColor{R: 0, G: 0, B: 0, A: 255},
 		Opacity:     0,
 		FillOpacity: 1,
 	}
 	inh = defaultComputedStyle(identityTransform)
-	inh.SkipOpacity = true
+	inh.skipOpacity = true
 	bakePathOpacity(path, inh)
 	if path.FillColor.A != 255 {
 		t.Fatalf("SkipOpacity should preserve alpha, got %d",
@@ -719,7 +719,7 @@ func TestBakePathOpacity_SentinelAlphaPromoted(t *testing.T) {
 	// nontrivial inherited opacity, naive multiplication would
 	// collapse to 0 and drop the path. bakePathOpacity must lift
 	// sentinel A to 255 before baking so small opacities survive.
-	path := &VectorPath{
+	path := &vectorPath{
 		FillColor:     colorCurrent,
 		StrokeColor:   colorInherit,
 		Opacity:       0.5,
@@ -775,7 +775,7 @@ func TestBakePathOpacity_NaNInputClampsSafely(t *testing.T) {
 	// Hostile NaN opacity must not reach applyOpacity's uint8 cast.
 	// Phase C: opacity is now sourced from the cascade-resolved
 	// inh.Opacity (path.Opacity is mirror-only); inject NaN there.
-	path := &VectorPath{
+	path := &vectorPath{
 		FillColor: gui.SvgColor{R: 10, G: 20, B: 30, A: 200},
 	}
 	inh := defaultComputedStyle(identityTransform)

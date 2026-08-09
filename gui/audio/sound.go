@@ -17,7 +17,7 @@ type Sound struct {
 // LoadSound loads a sound effect from a file path.
 // Supports WAV, OGG, FLAC, MP3 and other formats depending on file
 // extension.
-func LoadSound(path string) (*Sound, error) {
+func loadSound(path string) (*Sound, error) {
 	return backend.LoadSound(path)
 }
 
@@ -45,7 +45,7 @@ func (s *Sound) FadeIn(channel, loops, ms int) (int, error) {
 }
 
 // SetVolume sets this sound's volume.  v is clamped to [0, 1].
-func (s *Sound) SetVolume(v float64) {
+func (s *Sound) setVolume(v float64) {
 	backend.SoundSetVolume(s, v)
 }
 
@@ -68,13 +68,14 @@ func HaltChannel(channel int) { backend.HaltChannel(channel) }
 
 // FadeOutChannel fades out the given channel over ms milliseconds,
 // then halts it.
-func FadeOutChannel(channel, ms int) { backend.FadeOutChannel(channel, ms) }
+func fadeOutChannel(channel, ms int) { backend.FadeOutChannel(channel, ms) }
 
 // PauseChannel pauses the given channel (-1 = all).
-func PauseChannel(channel int) { backend.PauseChannel(channel) }
+func pauseChannel(channel int) { backend.PauseChannel(channel) }
 
 // ResumeChannel resumes the given channel (-1 = all).
-func ResumeChannel(channel int) { backend.ResumeChannel(channel) }
+func resumeChannel(channel int) { backend.ResumeChannel(channel) }
 
 // IsPlaying reports whether the given channel is currently playing.
+// exportaudit:keep — collides with channelMixer.isPlaying
 func IsPlaying(channel int) bool { return backend.IsPlaying(channel) }

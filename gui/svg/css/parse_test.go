@@ -6,18 +6,18 @@ import (
 	"time"
 )
 
-func firstCompound(cs ComplexSelector) Compound {
-	return cs.Parts[len(cs.Parts)-1].Compound
+func firstCompound(cs complexSelector) compound {
+	return cs.parts[len(cs.parts)-1].compound
 }
 
 func TestParseStylesheet_Simple(t *testing.T) {
-	rules := ParseStylesheet(`rect { fill: red; stroke: #00ff00 }`, ParseOptions{})
+	rules := parseStylesheet(`rect { fill: red; stroke: #00ff00 }`, ParseOptions{})
 	if len(rules) != 1 {
 		t.Fatalf("rules: %d, want 1", len(rules))
 	}
 	r := rules[0]
-	if len(r.Selectors) != 1 || firstCompound(r.Selectors[0]).Tag != "rect" {
-		t.Fatalf("selector: %+v", r.Selectors)
+	if len(r.selectors) != 1 || firstCompound(r.selectors[0]).Tag != "rect" {
+		t.Fatalf("selector: %+v", r.selectors)
 	}
 	if len(r.Decls) != 2 {
 		t.Fatalf("decls: %d, want 2", len(r.Decls))
@@ -31,11 +31,11 @@ func TestParseStylesheet_Simple(t *testing.T) {
 }
 
 func TestParseStylesheet_Compound(t *testing.T) {
-	rules := ParseStylesheet(`circle.dot#a, .b { fill: blue }`, ParseOptions{})
+	rules := parseStylesheet(`circle.dot#a, .b { fill: blue }`, ParseOptions{})
 	if len(rules) != 1 {
 		t.Fatalf("rules: %d", len(rules))
 	}
-	sels := rules[0].Selectors
+	sels := rules[0].selectors
 	if len(sels) != 2 {
 		t.Fatalf("selectors: %d", len(sels))
 	}
@@ -44,20 +44,20 @@ func TestParseStylesheet_Compound(t *testing.T) {
 		!reflect.DeepEqual(c0.Classes, []string{"dot"}) {
 		t.Errorf("compound: %+v", c0)
 	}
-	if sels[0].Spec != ([3]uint16{1, 1, 1}) {
-		t.Errorf("specificity: %v", sels[0].Spec)
+	if sels[0].spec != ([3]uint16{1, 1, 1}) {
+		t.Errorf("specificity: %v", sels[0].spec)
 	}
 	c1 := firstCompound(sels[1])
 	if c1.Tag != "" || !reflect.DeepEqual(c1.Classes, []string{"b"}) {
 		t.Errorf("class-only: %+v", c1)
 	}
-	if sels[1].Spec != ([3]uint16{0, 1, 0}) {
-		t.Errorf("class-only spec: %v", sels[1].Spec)
+	if sels[1].spec != ([3]uint16{0, 1, 0}) {
+		t.Errorf("class-only spec: %v", sels[1].spec)
 	}
 }
 
 func TestParseStylesheet_Important(t *testing.T) {
-	rules := ParseStylesheet(`.x { fill: red !important; stroke: blue }`, ParseOptions{})
+	rules := parseStylesheet(`.x { fill: red !important; stroke: blue }`, ParseOptions{})
 	if len(rules) != 1 {
 		t.Fatalf("rules: %d", len(rules))
 	}
@@ -74,53 +74,53 @@ func TestParseStylesheet_Important(t *testing.T) {
 }
 
 func TestParseStylesheet_Combinators(t *testing.T) {
-	rules := ParseStylesheet(`g circle { fill: red } a > .b { stroke: blue }`, ParseOptions{})
+	rules := parseStylesheet(`g circle { fill: red } a > .b { stroke: blue }`, ParseOptions{})
 	if len(rules) != 2 {
 		t.Fatalf("rules: %d", len(rules))
 	}
-	desc := rules[0].Selectors[0]
-	if len(desc.Parts) != 2 ||
-		desc.Parts[1].Combinator != CombDescendant ||
-		desc.Parts[0].Compound.Tag != "g" ||
-		desc.Parts[1].Compound.Tag != "circle" {
-		t.Errorf("descendant: %+v", desc.Parts)
+	desc := rules[0].selectors[0]
+	if len(desc.parts) != 2 ||
+		desc.parts[1].combinator != combDescendant ||
+		desc.parts[0].compound.Tag != "g" ||
+		desc.parts[1].compound.Tag != "circle" {
+		t.Errorf("descendant: %+v", desc.parts)
 	}
-	child := rules[1].Selectors[0]
-	if len(child.Parts) != 2 ||
-		child.Parts[1].Combinator != CombChild ||
-		child.Parts[0].Compound.Tag != "a" ||
-		child.Parts[1].Compound.Classes[0] != "b" {
-		t.Errorf("child: %+v", child.Parts)
+	child := rules[1].selectors[0]
+	if len(child.parts) != 2 ||
+		child.parts[1].combinator != combChild ||
+		child.parts[0].compound.Tag != "a" ||
+		child.parts[1].compound.Classes[0] != "b" {
+		t.Errorf("child: %+v", child.parts)
 	}
 }
 
 func TestParseStylesheet_Universal(t *testing.T) {
-	rules := ParseStylesheet(`* { opacity: 0.5 }`, ParseOptions{})
-	if len(rules) != 1 || firstCompound(rules[0].Selectors[0]).Tag != "*" {
+	rules := parseStylesheet(`* { opacity: 0.5 }`, ParseOptions{})
+	if len(rules) != 1 || firstCompound(rules[0].selectors[0]).Tag != "*" {
 		t.Fatalf("universal: %+v", rules)
 	}
-	if rules[0].Selectors[0].Spec != ([3]uint16{0, 0, 0}) {
-		t.Errorf("universal spec: %v", rules[0].Selectors[0].Spec)
+	if rules[0].selectors[0].spec != ([3]uint16{0, 0, 0}) {
+		t.Errorf("universal spec: %v", rules[0].selectors[0].spec)
 	}
 }
 
 func TestParseStylesheet_RootAndNthChild(t *testing.T) {
-	rules := ParseStylesheet(`:root { fill: red }
+	rules := parseStylesheet(`:root { fill: red }
 		rect:nth-child(2n+1) { fill: blue }`, ParseOptions{})
 	if len(rules) != 2 {
 		t.Fatalf("rules: %d", len(rules))
 	}
-	if !firstCompound(rules[0].Selectors[0]).Root {
-		t.Errorf(":root not parsed: %+v", rules[0].Selectors[0])
+	if !firstCompound(rules[0].selectors[0]).Root {
+		t.Errorf(":root not parsed: %+v", rules[0].selectors[0])
 	}
-	c := firstCompound(rules[1].Selectors[0])
-	if c.NthChild == nil || c.NthChild.A != 2 || c.NthChild.B != 1 {
+	c := firstCompound(rules[1].selectors[0])
+	if c.nthChild == nil || c.nthChild.A != 2 || c.nthChild.B != 1 {
 		t.Errorf("nth-child not parsed: %+v", c)
 	}
 }
 
 func TestMatch_BasicAndSpecificity(t *testing.T) {
-	rules := ParseStylesheet(`
+	rules := parseStylesheet(`
 		rect { fill: red }
 		.cls { fill: blue }
 		#id { fill: green }
@@ -141,7 +141,7 @@ func TestMatch_BasicAndSpecificity(t *testing.T) {
 }
 
 func TestMatch_ImportantBeatsSpecificity(t *testing.T) {
-	rules := ParseStylesheet(`
+	rules := parseStylesheet(`
 		#id { fill: green }
 		.cls { fill: blue !important }
 	`, ParseOptions{})
@@ -156,7 +156,7 @@ func TestMatch_ImportantBeatsSpecificity(t *testing.T) {
 }
 
 func TestMatch_SourceOrderTiebreak(t *testing.T) {
-	rules := ParseStylesheet(`.a { fill: red } .a { fill: blue }`, ParseOptions{})
+	rules := parseStylesheet(`.a { fill: red } .a { fill: blue }`, ParseOptions{})
 	got := Match(rules, ElementInfo{Classes: []string{"a"}}, nil, nil)
 	SortCascade(got)
 	if got[len(got)-1].Value != "blue" {
@@ -165,7 +165,7 @@ func TestMatch_SourceOrderTiebreak(t *testing.T) {
 }
 
 func TestMatch_DescendantCombinator(t *testing.T) {
-	rules := ParseStylesheet(`g circle { fill: red }`, ParseOptions{})
+	rules := parseStylesheet(`g circle { fill: red }`, ParseOptions{})
 	ancestors := []ElementInfo{
 		{Tag: "svg"},
 		{Tag: "g"},
@@ -182,7 +182,7 @@ func TestMatch_DescendantCombinator(t *testing.T) {
 }
 
 func TestMatch_ChildCombinator(t *testing.T) {
-	rules := ParseStylesheet(`g > circle { fill: red }`, ParseOptions{})
+	rules := parseStylesheet(`g > circle { fill: red }`, ParseOptions{})
 	got := Match(rules, ElementInfo{Tag: "circle"},
 		[]ElementInfo{{Tag: "svg"}, {Tag: "g"}}, nil)
 	if len(got) != 1 {
@@ -197,7 +197,7 @@ func TestMatch_ChildCombinator(t *testing.T) {
 }
 
 func TestMatch_NthChild(t *testing.T) {
-	rules := ParseStylesheet(`rect:nth-child(odd) { fill: red }`, ParseOptions{})
+	rules := parseStylesheet(`rect:nth-child(odd) { fill: red }`, ParseOptions{})
 	got := Match(rules, ElementInfo{Tag: "rect", Index: 1}, nil, nil)
 	if len(got) != 1 {
 		t.Errorf("nth-child(odd) idx=1: %+v", got)
@@ -209,7 +209,7 @@ func TestMatch_NthChild(t *testing.T) {
 }
 
 func TestMatch_Root(t *testing.T) {
-	rules := ParseStylesheet(`:root { fill: red }`, ParseOptions{})
+	rules := parseStylesheet(`:root { fill: red }`, ParseOptions{})
 	got := Match(rules, ElementInfo{Tag: "svg", IsRoot: true}, nil, nil)
 	if len(got) != 1 {
 		t.Errorf(":root match: %+v", got)
@@ -221,7 +221,7 @@ func TestMatch_Root(t *testing.T) {
 }
 
 func TestParseDeclaration_CustomProp(t *testing.T) {
-	rules := ParseStylesheet(`:root { --brand: blue; fill: var(--brand) }`, ParseOptions{})
+	rules := parseStylesheet(`:root { --brand: blue; fill: var(--brand) }`, ParseOptions{})
 	if len(rules) != 1 {
 		t.Fatalf("rules: %d", len(rules))
 	}
@@ -238,12 +238,12 @@ func TestParseDeclaration_CustomProp(t *testing.T) {
 }
 
 func TestParseStylesheet_IsPseudoExpand(t *testing.T) {
-	rules := ParseStylesheet(
+	rules := parseStylesheet(
 		`:is(#a, #b) { fill: red }`, ParseOptions{})
 	if len(rules) != 1 {
 		t.Fatalf("rules: %d", len(rules))
 	}
-	sels := rules[0].Selectors
+	sels := rules[0].selectors
 	if len(sels) != 2 {
 		t.Fatalf("selectors: %d, want 2", len(sels))
 	}
@@ -256,12 +256,12 @@ func TestParseStylesheet_IsPseudoExpand(t *testing.T) {
 }
 
 func TestParseStylesheet_IsPseudoCompound(t *testing.T) {
-	rules := ParseStylesheet(
+	rules := parseStylesheet(
 		`circle:is(.front, .back) { stroke: blue }`, ParseOptions{})
 	if len(rules) != 1 {
 		t.Fatalf("rules: %d", len(rules))
 	}
-	sels := rules[0].Selectors
+	sels := rules[0].selectors
 	if len(sels) != 2 {
 		t.Fatalf("selectors: %d, want 2", len(sels))
 	}
@@ -276,7 +276,7 @@ func TestParseStylesheet_IsPseudoCompound(t *testing.T) {
 }
 
 func TestParseStylesheet_VendorPrefixProp(t *testing.T) {
-	rules := ParseStylesheet(
+	rules := parseStylesheet(
 		`.x { -webkit-animation: spin 1s; -moz-fill: red }`, ParseOptions{})
 	if len(rules) != 1 {
 		t.Fatalf("rules: %d", len(rules))
@@ -308,7 +308,7 @@ func TestParseStylesheet_VendorPrefixKeyframes(t *testing.T) {
 func TestParseStylesheet_LineCommentStripped(t *testing.T) {
 	src := `.x { fill: red; // trailing comment
 		stroke: blue }`
-	rules := ParseStylesheet(src, ParseOptions{})
+	rules := parseStylesheet(src, ParseOptions{})
 	if len(rules) != 1 {
 		t.Fatalf("rules: %d", len(rules))
 	}
@@ -322,7 +322,7 @@ func TestParseStylesheet_LineCommentStripped(t *testing.T) {
 
 func TestParseStylesheet_LineCommentPreservesURL(t *testing.T) {
 	src := `.x { background: url(http://example.com/x.png) }`
-	rules := ParseStylesheet(src, ParseOptions{})
+	rules := parseStylesheet(src, ParseOptions{})
 	if len(rules) != 1 || len(rules[0].Decls) != 1 {
 		t.Fatalf("rules: %+v", rules)
 	}
@@ -336,10 +336,10 @@ func TestParseStylesheet_LineCommentPreservesURL(t *testing.T) {
 // rule's good declarations should still reach the cascade.
 func TestParseStylesheet_RecoversFromGarbageBetweenRules(t *testing.T) {
 	src := `.a { fill: red } : { } .b { fill: blue }`
-	rules := ParseStylesheet(src, ParseOptions{})
+	rules := parseStylesheet(src, ParseOptions{})
 	var sawA, sawB bool
 	for _, r := range rules {
-		for _, sel := range r.Selectors {
+		for _, sel := range r.selectors {
 			tag := firstCompound(sel).Classes
 			for _, cls := range tag {
 				if cls == "a" {

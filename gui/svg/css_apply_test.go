@@ -7,7 +7,7 @@ import (
 )
 
 func TestApplyCSSProp_OpacityPercent(t *testing.T) {
-	out := ComputedStyle{}
+	out := computedStyle{}
 	applyCSSProp("opacity", "50%", &out)
 	if out.Opacity != 0.5 {
 		t.Errorf("opacity 50%%: got %v want 0.5", out.Opacity)
@@ -15,7 +15,7 @@ func TestApplyCSSProp_OpacityPercent(t *testing.T) {
 }
 
 func TestApplyCSSProp_FillOpacityPercent(t *testing.T) {
-	out := ComputedStyle{}
+	out := computedStyle{}
 	applyCSSProp("fill-opacity", "25%", &out)
 	if out.FillOpacity != 0.25 {
 		t.Errorf("fill-opacity 25%%: got %v", out.FillOpacity)
@@ -23,7 +23,7 @@ func TestApplyCSSProp_FillOpacityPercent(t *testing.T) {
 }
 
 func TestApplyCSSProp_StrokeOpacityPercent(t *testing.T) {
-	out := ComputedStyle{}
+	out := computedStyle{}
 	applyCSSProp("stroke-opacity", "100%", &out)
 	if out.StrokeOpacity != 1 {
 		t.Errorf("stroke-opacity 100%%: got %v", out.StrokeOpacity)
@@ -31,7 +31,7 @@ func TestApplyCSSProp_StrokeOpacityPercent(t *testing.T) {
 }
 
 func TestApplyCSSProp_OpacityUnitlessUnchanged(t *testing.T) {
-	out := ComputedStyle{}
+	out := computedStyle{}
 	applyCSSProp("opacity", "0.4", &out)
 	if out.Opacity != 0.4 {
 		t.Errorf("opacity 0.4: got %v", out.Opacity)
@@ -39,7 +39,7 @@ func TestApplyCSSProp_OpacityUnitlessUnchanged(t *testing.T) {
 }
 
 func TestApplyCSSProp_OpacityPercentClamped(t *testing.T) {
-	out := ComputedStyle{}
+	out := computedStyle{}
 	applyCSSProp("opacity", "150%", &out)
 	if out.Opacity != 1 {
 		t.Errorf("150%% should clamp to 1: got %v", out.Opacity)
@@ -54,7 +54,7 @@ func TestApplyCSSProp_OpacityPercentClamped(t *testing.T) {
 // to 0. Without the clamp, the uint8 alpha cast at bake time is
 // implementation-defined for NaN.
 func TestApplyCSSProp_OpacityMalformedPercent(t *testing.T) {
-	out := ComputedStyle{Opacity: 0.7}
+	out := computedStyle{Opacity: 0.7}
 	applyCSSProp("opacity", "abc%", &out)
 	if out.Opacity != 0 {
 		t.Errorf("abc%%: got %v want 0 (clamped NaN)", out.Opacity)
@@ -69,42 +69,42 @@ func TestApplyCSSProp_OpacityMalformedPercent(t *testing.T) {
 // declarations are dropped per CSS "invalid → ignore".
 func TestApplyCSSProp_FillUnknownSyntaxPreservesInherited(t *testing.T) {
 	prior := gui.SvgColor{R: 10, G: 20, B: 30, A: 255}
-	out := ComputedStyle{Fill: prior, FillSet: true}
+	out := computedStyle{Fill: prior, fillSet: true}
 	applyCSSProp("fill", "hsl(0, 100%, 50%)", &out)
-	if !out.FillSet || out.Fill != prior {
-		t.Errorf("hsl() should be ignored, fill=%+v set=%v", out.Fill, out.FillSet)
+	if !out.fillSet || out.Fill != prior {
+		t.Errorf("hsl() should be ignored, fill=%+v set=%v", out.Fill, out.fillSet)
 	}
 	applyCSSProp("fill", "rgb(100% 0 0 / 50%)", &out)
-	if !out.FillSet || out.Fill != prior {
+	if !out.fillSet || out.Fill != prior {
 		t.Errorf("modern rgb() should be ignored, fill=%+v set=%v",
-			out.Fill, out.FillSet)
+			out.Fill, out.fillSet)
 	}
 	applyCSSProp("fill", "notacolor", &out)
-	if !out.FillSet || out.Fill != prior {
+	if !out.fillSet || out.Fill != prior {
 		t.Errorf("garbage should be ignored, fill=%+v set=%v",
-			out.Fill, out.FillSet)
+			out.Fill, out.fillSet)
 	}
 }
 
 func TestApplyCSSProp_StrokeUnknownSyntaxPreservesInherited(t *testing.T) {
 	prior := gui.SvgColor{R: 200, G: 100, B: 50, A: 255}
-	out := ComputedStyle{Stroke: prior, StrokeSet: true}
+	out := computedStyle{stroke: prior, strokeSet: true}
 	applyCSSProp("stroke", "hsl(120 50% 50%)", &out)
-	if !out.StrokeSet || out.Stroke != prior {
+	if !out.strokeSet || out.stroke != prior {
 		t.Errorf("hsl() stroke should be ignored, got %+v set=%v",
-			out.Stroke, out.StrokeSet)
+			out.stroke, out.strokeSet)
 	}
 }
 
 // Case-insensitive keyword matching: "RED" and "Red" should resolve
 // to red, not be treated as unknown.
 func TestApplyCSSProp_FillKeywordCaseInsensitive(t *testing.T) {
-	out := ComputedStyle{}
+	out := computedStyle{}
 	applyCSSProp("fill", "RED", &out)
 	want := gui.SvgColor{R: 255, A: 255}
-	if !out.FillSet || out.Fill != want {
+	if !out.fillSet || out.Fill != want {
 		t.Errorf("'RED' should map to red, got %+v set=%v",
-			out.Fill, out.FillSet)
+			out.Fill, out.fillSet)
 	}
 }
 
@@ -113,16 +113,16 @@ func TestApplyCSSProp_FillKeywordCaseInsensitive(t *testing.T) {
 // path was uncovered: a refactor that swallowed the sentinel would
 // silently break themed icons.
 func TestApplyCSSProp_FillCurrentColorSetsCurrentSentinel(t *testing.T) {
-	out := ComputedStyle{}
+	out := computedStyle{}
 	applyCSSProp("fill", "currentColor", &out)
-	if !out.FillSet {
+	if !out.fillSet {
 		t.Fatal("FillSet must be true after currentColor")
 	}
 	if out.Fill != colorCurrent {
 		t.Errorf("Fill = %+v, want colorCurrent sentinel", out.Fill)
 	}
 	// Case-insensitive variant.
-	out = ComputedStyle{}
+	out = computedStyle{}
 	applyCSSProp("fill", "CURRENTCOLOR", &out)
 	if out.Fill != colorCurrent {
 		t.Errorf("Fill (uppercase) = %+v, want colorCurrent sentinel",
@@ -144,7 +144,7 @@ func TestApplyCSSProp_StrokeWidthSanitized(t *testing.T) {
 		{"+Inf", 0},
 	}
 	for _, tc := range cases {
-		out := ComputedStyle{}
+		out := computedStyle{}
 		applyCSSProp("stroke-width", tc.in, &out)
 		if out.StrokeWidth != tc.want {
 			t.Errorf("stroke-width=%q: got %f want %f",

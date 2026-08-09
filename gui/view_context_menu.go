@@ -10,7 +10,7 @@ type contextMenuState struct {
 // ContextMenuCfg configures a ContextMenu widget.
 type ContextMenuCfg struct {
 	TextStyle         TextStyle
-	TextStyleSubtitle TextStyle
+	textStyleSubtitle TextStyle
 	Action            func(string, EventCtx)
 
 	// User click handler — fires before context menu logic.
@@ -25,14 +25,14 @@ type ContextMenuCfg struct {
 
 	Padding Opt[Padding]
 
-	PaddingMenuItem Opt[Padding]
-	PaddingSubmenu  Opt[Padding]
+	paddingMenuItem Opt[Padding]
+	paddingSubmenu  Opt[Padding]
 	SizeBorder      Opt[float32]
 	Radius          Opt[float32]
-	RadiusMenuItem  Opt[float32]
-	SpacingSubmenu  Opt[float32]
-	WidthSubmenuMin Opt[float32]
-	WidthSubmenuMax Opt[float32]
+	radiusMenuItem  Opt[float32]
+	spacingSubmenu  Opt[float32]
+	widthSubmenuMin Opt[float32]
+	widthSubmenuMax Opt[float32]
 
 	Width  float32
 	Height float32
@@ -45,7 +45,7 @@ type ContextMenuCfg struct {
 	// Container passthrough (outer wrapper).
 	Sizing Sizing
 	HAlign HorizontalAlign
-	VAlign VerticalAlign
+	VAlign verticalAlign
 }
 
 // ContextMenu creates a container that opens a floating menu
@@ -146,7 +146,7 @@ func contextMenuPopup(w *Window, cfg ContextMenuCfg, mx, my float32) View {
 		}
 	}
 
-	return Menu(w, MenubarCfg{
+	return menu(w, MenubarCfg{
 		ID:                ScopeID(cfg.ID, "popup"),
 		Items:             cfg.Items,
 		Action:            action,
@@ -154,17 +154,17 @@ func contextMenuPopup(w *Window, cfg ContextMenuCfg, mx, my float32) View {
 		ColorBorder:       cfg.ColorBorder,
 		ColorSelect:       cfg.ColorSelect,
 		SizeBorder:        cfg.SizeBorder,
-		RadiusBorder:      cfg.Radius,
-		RadiusMenuItem:    cfg.RadiusMenuItem,
+		radiusBorder:      cfg.Radius,
+		radiusMenuItem:    cfg.radiusMenuItem,
 		TextStyle:         cfg.TextStyle,
-		TextStyleSubtitle: cfg.TextStyleSubtitle,
-		PaddingMenuItem:   cfg.PaddingMenuItem,
-		PaddingSubmenu:    cfg.PaddingSubmenu,
-		SpacingSubmenu:    cfg.SpacingSubmenu,
-		WidthSubmenuMin:   cfg.WidthSubmenuMin,
-		WidthSubmenuMax:   cfg.WidthSubmenuMax,
+		textStyleSubtitle: cfg.textStyleSubtitle,
+		paddingMenuItem:   cfg.paddingMenuItem,
+		paddingSubmenu:    cfg.paddingSubmenu,
+		spacingSubmenu:    cfg.spacingSubmenu,
+		widthSubmenuMin:   cfg.widthSubmenuMin,
+		widthSubmenuMax:   cfg.widthSubmenuMax,
 		Float:             true,
-		FloatAutoFlip:     true,
+		floatAutoFlip:     true,
 		FloatAnchor:       FloatTopLeft,
 		FloatTieOff:       FloatTopLeft,
 		FloatOffsetX:      mx,
@@ -176,7 +176,7 @@ func contextMenuPopup(w *Window, cfg ContextMenuCfg, mx, my float32) View {
 // applyContextMenuDefaults fills zero-value styling fields
 // from DefaultMenubarStyle.
 func applyContextMenuDefaults(cfg *ContextMenuCfg) {
-	d := &DefaultMenubarStyle
+	d := &defaultMenubarStyle
 	if !cfg.Color.IsSet() {
 		cfg.Color = d.Color
 	}
@@ -192,13 +192,13 @@ func applyContextMenuDefaults(cfg *ContextMenuCfg) {
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.TextStyle
 	}
-	if cfg.TextStyleSubtitle == (TextStyle{}) {
-		cfg.TextStyleSubtitle = d.TextStyleSubtitle
+	if cfg.textStyleSubtitle == (TextStyle{}) {
+		cfg.textStyleSubtitle = d.textStyleSubtitle
 	}
-	if !cfg.PaddingMenuItem.IsSet() {
-		cfg.PaddingMenuItem = Some(d.PaddingMenuItem)
+	if !cfg.paddingMenuItem.IsSet() {
+		cfg.paddingMenuItem = Some(d.paddingMenuItem)
 	}
-	if !cfg.PaddingSubmenu.IsSet() {
-		cfg.PaddingSubmenu = Some(d.PaddingSubmenu)
+	if !cfg.paddingSubmenu.IsSet() {
+		cfg.paddingSubmenu = Some(d.paddingSubmenu)
 	}
 }

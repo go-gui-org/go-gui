@@ -24,30 +24,30 @@ func bboxFromLine(x1, y1, x2, y2 float32) bbox {
 // list. Curves use control-point hulls (over-estimate); the design
 // doc accepts this looseness for v1 — tighten later if visual diffs
 // appear.
-func bboxFromSegments(segs []PathSegment) bbox {
+func bboxFromSegments(segs []pathSegment) bbox {
 	var b bbox
 	var cx, cy float32
 	for _, s := range segs {
 		switch s.Cmd {
-		case CmdMoveTo, CmdLineTo:
+		case cmdMoveTo, cmdLineTo:
 			if len(s.Points) >= 2 {
 				cx, cy = s.Points[0], s.Points[1]
 				b = extendBBox(b, cx, cy)
 			}
-		case CmdQuadTo:
+		case cmdQuadTo:
 			if len(s.Points) >= 4 {
 				b = extendBBox(b, s.Points[0], s.Points[1])
 				cx, cy = s.Points[2], s.Points[3]
 				b = extendBBox(b, cx, cy)
 			}
-		case CmdCubicTo:
+		case cmdCubicTo:
 			if len(s.Points) >= 6 {
 				b = extendBBox(b, s.Points[0], s.Points[1])
 				b = extendBBox(b, s.Points[2], s.Points[3])
 				cx, cy = s.Points[4], s.Points[5]
 				b = extendBBox(b, cx, cy)
 			}
-		case CmdClose:
+		case cmdClose:
 			// no point.
 		}
 	}
@@ -56,10 +56,10 @@ func bboxFromSegments(segs []PathSegment) bbox {
 
 // unionPathBboxes returns the union bbox over a slice of VectorPaths.
 // Paths whose bbox is unset are skipped.
-func unionPathBboxes(paths []VectorPath) bbox {
+func unionPathBboxes(paths []vectorPath) bbox {
 	var b bbox
 	for i := range paths {
-		b = unionBbox(b, paths[i].Bbox)
+		b = unionBbox(b, paths[i].bbox)
 	}
 	return b
 }

@@ -9,7 +9,7 @@ func benchmarkArrangeLayout() Layout {
 	root := Layout{
 		Shape: &Shape{
 			shapeType: shapeRectangle,
-			Axis:      AxisTopToBottom,
+			Axis:      axisTopToBottom,
 			Sizing:    FillFill,
 			Width:     1200,
 			Height:    900,
@@ -21,7 +21,7 @@ func benchmarkArrangeLayout() Layout {
 		ch := Layout{
 			Shape: &Shape{
 				shapeType: shapeRectangle,
-				Axis:      AxisLeftToRight,
+				Axis:      axisLeftToRight,
 				Sizing:    FixedFit,
 				Width:     200,
 				Height:    40,
@@ -67,7 +67,7 @@ func benchmarkWrapLayout() Layout {
 	root := Layout{
 		Shape: &Shape{
 			shapeType: shapeRectangle,
-			Axis:      AxisLeftToRight,
+			Axis:      axisLeftToRight,
 			Wrap:      true,
 			Width:     600,
 			Spacing:   6,
@@ -118,7 +118,7 @@ func BenchmarkFocusTraversal(b *testing.B) {
 	root := benchmarkFocusLayout()
 	b.ReportAllocs()
 	for b.Loop() {
-		if s, ok := root.NextFocusable(w); ok {
+		if s, ok := root.nextFocusable(w); ok {
 			w.SetFocus(s.ID)
 		}
 	}

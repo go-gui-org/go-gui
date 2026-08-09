@@ -3,11 +3,11 @@ package gui
 import "time"
 
 // SkeletonVariant selects the skeleton shape.
-type SkeletonVariant uint8
+type skeletonVariant uint8
 
 // SkeletonVariant constants.
 const (
-	SkeletonRect SkeletonVariant = iota
+	skeletonRect skeletonVariant = iota
 	SkeletonCircle
 )
 
@@ -26,7 +26,7 @@ type SkeletonCfg struct {
 	Color           Color
 	ColorHighlight  Color
 	Sizing          Sizing
-	Variant         SkeletonVariant
+	Variant         skeletonVariant
 	Disabled        bool
 	Invisible       bool
 }
@@ -34,12 +34,12 @@ type SkeletonCfg struct {
 // Skeleton creates a skeleton shimmer placeholder view.
 func Skeleton(cfg SkeletonCfg) View {
 	if !cfg.Color.IsSet() {
-		cfg.Color = guiTheme.SkeletonStyle.Color
+		cfg.Color = guiTheme.skeletonStyle.Color
 	}
 	if !cfg.ColorHighlight.IsSet() {
-		cfg.ColorHighlight = guiTheme.SkeletonStyle.ColorHighlight
+		cfg.ColorHighlight = guiTheme.skeletonStyle.ColorHighlight
 	}
-	radius := cfg.Radius.Get(guiTheme.SkeletonStyle.Radius)
+	radius := cfg.Radius.Get(guiTheme.skeletonStyle.Radius)
 
 	label := cfg.A11YLabel
 	if label == "" {
@@ -53,7 +53,7 @@ func Skeleton(cfg SkeletonCfg) View {
 		ID:        cfg.ID,
 		A11YRole:  AccessRoleProgressBar,
 		A11YState: AccessStateBusy | AccessStateLive,
-		A11Y: &AccessInfo{
+		a11Y: &accessInfo{
 			Label:       label,
 			Description: cfg.A11YDescription,
 		},
@@ -100,7 +100,7 @@ func skeletonAmendLayout(
 			Duration: 1500 * time.Millisecond,
 			Keyframes: []Keyframe{
 				{At: 0, Value: 0},
-				{At: 1, Value: 1, Easing: EaseInOutCSS},
+				{At: 1, Value: 1, Easing: easeInOutCSS},
 			},
 			OnValue: func(v float32, w *Window) {
 				pm := StateMap[string, float32](

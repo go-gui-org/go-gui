@@ -5,7 +5,7 @@ import "testing"
 func TestSkeletonDefaultLayout(t *testing.T) {
 	v := Skeleton(SkeletonCfg{ID: "s1"})
 	layout := generateViewLayout(v, &Window{})
-	if layout.Shape.Axis != AxisLeftToRight {
+	if layout.Shape.Axis != axisLeftToRight {
 		t.Error("default should be horizontal (row)")
 	}
 }
@@ -47,31 +47,31 @@ func TestSkeletonA11YLabel(t *testing.T) {
 		A11YLabel: "avatar",
 	})
 	layout := generateViewLayout(v, &Window{})
-	if layout.Shape.A11Y == nil {
+	if layout.Shape.a11Y == nil {
 		t.Fatal("a11y nil")
 	}
-	if layout.Shape.A11Y.Label != "avatar" {
+	if layout.Shape.a11Y.Label != "avatar" {
 		t.Errorf("label = %q, want %q",
-			layout.Shape.A11Y.Label, "avatar")
+			layout.Shape.a11Y.Label, "avatar")
 	}
 }
 
 func TestSkeletonA11YLabelDefault(t *testing.T) {
 	v := Skeleton(SkeletonCfg{ID: "s6"})
 	layout := generateViewLayout(v, &Window{})
-	if layout.Shape.A11Y == nil {
+	if layout.Shape.a11Y == nil {
 		t.Fatal("a11y nil")
 	}
-	if layout.Shape.A11Y.Label != "Loading" {
+	if layout.Shape.a11Y.Label != "Loading" {
 		t.Errorf("label = %q, want %q",
-			layout.Shape.A11Y.Label, "Loading")
+			layout.Shape.a11Y.Label, "Loading")
 	}
 }
 
 func TestSkeletonThemeColor(t *testing.T) {
 	v := Skeleton(SkeletonCfg{ID: "s7"})
 	layout := generateViewLayout(v, &Window{})
-	want := guiTheme.SkeletonStyle.Color
+	want := guiTheme.skeletonStyle.Color
 	if layout.Shape.Color != want {
 		t.Errorf("color = %v, want %v",
 			layout.Shape.Color, want)

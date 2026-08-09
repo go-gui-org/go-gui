@@ -41,7 +41,7 @@ type ComboboxCfg struct {
 	Radius            Opt[float32]
 	MinWidth          float32
 	MaxWidth          float32
-	MaxDropdownHeight float32
+	maxDropdownHeight float32
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled bool
@@ -75,7 +75,7 @@ func (cv *comboboxView) Content() []View { return nil }
 
 func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 	cfg := &cv.cfg
-	dn := &DefaultComboboxStyle
+	dn := &defaultComboboxStyle
 	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
 	radius := cfg.Radius.Get(dn.Radius)
 	// Per-widget state is keyed by the widget's *effective* ID, so two
@@ -126,7 +126,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 	// Virtualization.
 	rowH := listCoreRowHeightEstimate(cfg.TextStyle, cfg.Padding.Get(Padding{}))
 	pad := cfg.Padding.Get(Padding{})
-	listH := cfg.MaxDropdownHeight - 2*sizeBorder - pad.Top - pad.Bottom
+	listH := cfg.maxDropdownHeight - 2*sizeBorder - pad.Top - pad.Bottom
 	var scrollY float32
 	// The dropdown is a child of the container that claims cfg.ID, so
 	// its shape carries the plain leaf below and the framework joins it.
@@ -225,7 +225,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 			ColorBorder:  cfg.ColorBorder,
 			Color:        cfg.Color,
 			MinHeight:    50,
-			MaxHeight:    cfg.MaxDropdownHeight,
+			MaxHeight:    cfg.maxDropdownHeight,
 			Float:        true,
 			FloatAnchor:  FloatBottomLeft,
 			FloatTieOff:  FloatTopLeft,
@@ -271,7 +271,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 		MinWidth:    cfg.MinWidth,
 		MaxWidth:    cfg.MaxWidth,
 		Disabled:    cfg.Disabled,
-		axis:        AxisLeftToRight,
+		axis:        axisLeftToRight,
 		AmendLayout: func(ctx EventCtx) {
 			if ctx.Layout.Shape.Disabled {
 				return
@@ -292,7 +292,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 			}
 		},
 	}
-	ccfg.ClickButton = MouseLeft
+	ccfg.clickButton = MouseLeft
 	return generateViewLayout(&containerView{
 		cfg:     ccfg,
 		content: content,
@@ -332,7 +332,7 @@ func makeComboboxOnChar(cfgID string) func(EventCtx) {
 			return
 		}
 		ch := rune(ctx.Event.CharCode)
-		if ch < CharSpace {
+		if ch < charSpace {
 			// Control characters belong to OnKeyDown
 			return
 		}
@@ -432,7 +432,7 @@ func scrollEnsureVisible(
 }
 
 func applyComboboxDefaults(cfg *ComboboxCfg) {
-	d := &DefaultComboboxStyle
+	d := &defaultComboboxStyle
 	if !cfg.Color.IsSet() {
 		cfg.Color = d.Color
 	}
@@ -466,8 +466,8 @@ func applyComboboxDefaults(cfg *ComboboxCfg) {
 	if cfg.PlaceholderStyle == (TextStyle{}) {
 		cfg.PlaceholderStyle = d.PlaceholderStyle
 	}
-	if cfg.MaxDropdownHeight == 0 {
-		cfg.MaxDropdownHeight = d.MaxDropdownHeight
+	if cfg.maxDropdownHeight == 0 {
+		cfg.maxDropdownHeight = d.maxDropdownHeight
 	}
 }
 

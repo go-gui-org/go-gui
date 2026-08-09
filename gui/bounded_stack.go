@@ -2,6 +2,7 @@ package gui
 
 // BoundedStack is a stack with maximum size. When full, oldest
 // entries are dropped (FIFO eviction).
+// exportaudit:keep — reachable from an exported signature
 type BoundedStack[T any] struct {
 	buf     []T
 	head    int
@@ -10,7 +11,7 @@ type BoundedStack[T any] struct {
 }
 
 // NewBoundedStack creates a BoundedStack with the given max size.
-func NewBoundedStack[T any](maxSize int) *BoundedStack[T] {
+func newBoundedStack[T any](maxSize int) *BoundedStack[T] {
 	s := &BoundedStack[T]{maxSize: maxSize}
 	if maxSize > 0 {
 		s.buf = make([]T, maxSize)
@@ -57,7 +58,7 @@ func (s *BoundedStack[T]) Len() int {
 }
 
 // IsEmpty returns true if stack has no elements.
-func (s *BoundedStack[T]) IsEmpty() bool {
+func (s *BoundedStack[T]) isEmpty() bool {
 	return s.size == 0
 }
 

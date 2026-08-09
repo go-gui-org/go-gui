@@ -20,30 +20,30 @@ func TestThemeMaker(t *testing.T) {
 		ColorSelect:      RGB(65, 105, 225),
 		TextStyleDef:     TextStyle{Color: RGB(225, 225, 225), Size: 16},
 		PaddingSmall:     PaddingSmall,
-		PaddingMedium:    PaddingMedium,
+		PaddingMedium:    paddingMedium,
 		PaddingLarge:     PaddingLarge,
-		Padding:          PaddingMedium,
-		Radius:           RadiusMedium,
-		RadiusSmall:      RadiusSmall,
-		RadiusMedium:     RadiusMedium,
-		RadiusLarge:      RadiusLarge,
+		Padding:          paddingMedium,
+		Radius:           radiusMedium,
+		RadiusSmall:      radiusSmall,
+		RadiusMedium:     radiusMedium,
+		RadiusLarge:      radiusLarge,
 		SpacingSmall:     SpacingSmall,
 		SpacingMedium:    SpacingMedium,
 		SpacingLarge:     SpacingLarge,
-		SizeTextTiny:     SizeTextTiny,
-		SizeTextXSmall:   SizeTextXSmall,
-		SizeTextSmall:    SizeTextSmall,
-		SizeTextMedium:   SizeTextMedium,
-		SizeTextLarge:    SizeTextLarge,
-		SizeTextXLarge:   SizeTextXLarge,
-		SizeScrollbar:    7,
-		SizeScrollbarMin: 20,
-		SizeRadio:        16,
-		SizeSwitchWidth:  36,
-		SizeSwitchHeight: 22,
-		ScrollMultiplier: 20,
-		ScrollDeltaLine:  1,
-		ScrollDeltaPage:  10,
+		SizeTextTiny:     sizeTextTiny,
+		sizeTextXSmall:   sizeTextXSmall,
+		sizeTextSmall:    sizeTextSmall,
+		sizeTextMedium:   sizeTextMedium,
+		sizeTextLarge:    sizeTextLarge,
+		sizeTextXLarge:   sizeTextXLarge,
+		sizeScrollbar:    7,
+		sizeScrollbarMin: 20,
+		sizeRadio:        16,
+		sizeSwitchWidth:  36,
+		sizeSwitchHeight: 22,
+		scrollMultiplier: 20,
+		scrollDeltaLine:  1,
+		scrollDeltaPage:  10,
 	}
 	theme := ThemeMaker(cfg)
 	if theme.Name != "test" {
@@ -52,7 +52,7 @@ func TestThemeMaker(t *testing.T) {
 	if theme.ButtonStyle.Color != cfg.ColorInterior {
 		t.Error("button color mismatch")
 	}
-	if theme.N1.Size != SizeTextXLarge {
+	if theme.N1.Size != sizeTextXLarge {
 		t.Errorf("N1.Size = %f", theme.N1.Size)
 	}
 }
@@ -62,14 +62,14 @@ func TestSetTheme(t *testing.T) {
 	t.Cleanup(func() { SetTheme(saved) })
 
 	theme := Theme{
-		ButtonStyle: ButtonStyle{Color: Red},
-		TreeStyle:   TreeStyle{ColorHover: Blue},
+		ButtonStyle: buttonStyle{Color: Red},
+		treeStyle:   TreeStyle{ColorHover: Blue},
 	}
 	SetTheme(theme)
-	if DefaultButtonStyle.Color != Red {
+	if defaultButtonStyle.Color != Red {
 		t.Error("SetTheme should update DefaultButtonStyle")
 	}
-	if DefaultTreeStyle.ColorHover != Blue {
+	if defaultTreeStyle.ColorHover != Blue {
 		t.Error("SetTheme should update DefaultTreeStyle")
 	}
 }
@@ -78,13 +78,13 @@ func TestWithColors(t *testing.T) {
 	t.Parallel()
 	theme := Theme{
 		ColorHover: RGB(1, 1, 1),
-		ButtonStyle: ButtonStyle{
+		ButtonStyle: buttonStyle{
 			ColorHover:       RGB(1, 1, 1),
 			ColorBorderFocus: RGB(2, 2, 2),
 		},
 	}
 	newHover := RGB(200, 200, 200)
-	updated := theme.WithColors(ColorOverrides{
+	updated := theme.withColors(ColorOverrides{
 		ColorHover: &newHover,
 	})
 	if updated.ColorHover != newHover {
@@ -100,30 +100,30 @@ func TestAdjustFontSize(t *testing.T) {
 	cfg := ThemeCfg{
 		TextStyleDef:     TextStyle{Color: RGB(225, 225, 225), Size: 16},
 		SizeTextTiny:     10,
-		SizeTextXSmall:   12,
-		SizeTextSmall:    14,
-		SizeTextMedium:   16,
-		SizeTextLarge:    20,
-		SizeTextXLarge:   24,
-		Radius:           RadiusMedium,
-		RadiusSmall:      RadiusSmall,
-		RadiusMedium:     RadiusMedium,
-		RadiusLarge:      RadiusLarge,
+		sizeTextXSmall:   12,
+		sizeTextSmall:    14,
+		sizeTextMedium:   16,
+		sizeTextLarge:    20,
+		sizeTextXLarge:   24,
+		Radius:           radiusMedium,
+		RadiusSmall:      radiusSmall,
+		RadiusMedium:     radiusMedium,
+		RadiusLarge:      radiusLarge,
 		SpacingMedium:    SpacingMedium,
-		PaddingMedium:    PaddingMedium,
-		SizeScrollbar:    7,
-		SizeScrollbarMin: 20,
-		SizeRadio:        16,
-		SizeSwitchWidth:  36,
-		SizeSwitchHeight: 22,
+		PaddingMedium:    paddingMedium,
+		sizeScrollbar:    7,
+		sizeScrollbarMin: 20,
+		sizeRadio:        16,
+		sizeSwitchWidth:  36,
+		sizeSwitchHeight: 22,
 	}
 	theme := ThemeMaker(cfg)
 	bigger, err := theme.AdjustFontSize(2, 8, 32)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if bigger.SizeTextMedium != 18 {
-		t.Errorf("medium = %f, want 18", bigger.SizeTextMedium)
+	if bigger.sizeTextMedium != 18 {
+		t.Errorf("medium = %f, want 18", bigger.sizeTextMedium)
 	}
 	_, err = theme.AdjustFontSize(100, 1, 32)
 	if err == nil {
@@ -138,8 +138,8 @@ func TestAdjustFontSize(t *testing.T) {
 func TestWithButtonStyle(t *testing.T) {
 	t.Parallel()
 	theme := Theme{}
-	s := ButtonStyle{Color: Blue}
-	updated := theme.WithButtonStyle(s)
+	s := buttonStyle{Color: Blue}
+	updated := theme.withButtonStyle(s)
 	if updated.ButtonStyle.Color != Blue {
 		t.Error("WithButtonStyle not applied")
 	}
@@ -149,11 +149,11 @@ func TestThemeMakerBadgeStyle(t *testing.T) {
 	t.Parallel()
 	cfg := baseDarkCfg()
 	theme := ThemeMaker(cfg)
-	if theme.BadgeStyle.ColorInfo != cfg.ColorSelect {
+	if theme.badgeStyle.colorInfo != cfg.ColorSelect {
 		t.Error("badge info color should match select")
 	}
-	if theme.BadgeStyle.DotSize != 8 {
-		t.Errorf("dot size = %f, want 8", theme.BadgeStyle.DotSize)
+	if theme.badgeStyle.dotSize != 8 {
+		t.Errorf("dot size = %f, want 8", theme.badgeStyle.dotSize)
 	}
 }
 
@@ -161,11 +161,11 @@ func TestThemeMakerProgressBarStyle(t *testing.T) {
 	t.Parallel()
 	cfg := baseDarkCfg()
 	theme := ThemeMaker(cfg)
-	if theme.ProgressBarStyle.Size != cfg.SizeProgressBar {
+	if theme.progressBarStyle.Size != cfg.sizeProgressBar {
 		t.Errorf("size = %f, want %f",
-			theme.ProgressBarStyle.Size, cfg.SizeProgressBar)
+			theme.progressBarStyle.Size, cfg.sizeProgressBar)
 	}
-	if theme.ProgressBarStyle.ColorBar != cfg.ColorSelect {
+	if theme.progressBarStyle.colorBar != cfg.ColorSelect {
 		t.Error("bar color should match select")
 	}
 }
@@ -174,10 +174,10 @@ func TestWithColorsBadge(t *testing.T) {
 	t.Parallel()
 	theme := ThemeMaker(baseDarkCfg())
 	sel := RGB(100, 200, 50)
-	updated := theme.WithColors(ColorOverrides{
+	updated := theme.withColors(ColorOverrides{
 		ColorSelect: &sel,
 	})
-	if updated.BadgeStyle.ColorInfo != sel {
+	if updated.badgeStyle.colorInfo != sel {
 		t.Error("badge info not propagated from select")
 	}
 }
@@ -223,10 +223,10 @@ func TestWithColorsSlider(t *testing.T) {
 	t.Parallel()
 	theme := ThemeMaker(baseDarkCfg())
 	hover := RGB(99, 99, 99)
-	updated := theme.WithColors(ColorOverrides{
+	updated := theme.withColors(ColorOverrides{
 		ColorHover: &hover,
 	})
-	if updated.SliderStyle.ColorHover != hover {
+	if updated.sliderStyle.ColorHover != hover {
 		t.Error("slider hover not propagated")
 	}
 }
@@ -235,12 +235,12 @@ func TestThemeMakerTreeStyle(t *testing.T) {
 	t.Parallel()
 	cfg := baseDarkCfg()
 	theme := ThemeMaker(cfg)
-	if theme.TreeStyle.ColorHover != cfg.ColorHover {
+	if theme.treeStyle.ColorHover != cfg.ColorHover {
 		t.Errorf("TreeStyle.ColorHover = %v, want %v",
-			theme.TreeStyle.ColorHover, cfg.ColorHover)
+			theme.treeStyle.ColorHover, cfg.ColorHover)
 	}
-	if theme.TreeStyle.Indent != 25 {
+	if theme.treeStyle.indent != 25 {
 		t.Errorf("TreeStyle.Indent = %f, want 25",
-			theme.TreeStyle.Indent)
+			theme.treeStyle.indent)
 	}
 }

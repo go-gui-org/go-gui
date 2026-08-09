@@ -12,23 +12,23 @@ var (
 // Go views are populated (Button, Container, Rectangle, Text,
 // Input, Scrollbar, Radio, Switch, Toggle, Select, ListBox, Tree).
 type Theme struct {
-	BreadcrumbStyle  BreadcrumbStyle
-	TabControlStyle  TabControlStyle
-	DataGridStyle    DataGridStyle
-	SelectStyle      SelectStyle
+	breadcrumbStyle  BreadcrumbStyle
+	tabControlStyle  TabControlStyle
+	dataGridStyle    DataGridStyle
+	selectStyle      SelectStyle
 	MenubarStyle     MenubarStyle
-	ToastStyle       ToastStyle
+	toastStyle       ToastStyle
 	InputStyle       InputStyle
-	DialogStyle      DialogStyle
-	ComboboxStyle    ComboboxStyle
-	ToggleStyle      ToggleStyle
-	ListBoxStyle     ListBoxStyle
-	SwitchStyle      SwitchStyle
-	DatePickerStyle  DatePickerStyle
-	ProgressBarStyle ProgressBarStyle
-	RadioStyle       RadioStyle
-	TooltipStyle     TooltipStyle
-	ColorPickerStyle ColorPickerStyle
+	dialogStyle      DialogStyle
+	comboboxStyle    ComboboxStyle
+	toggleStyle      ToggleStyle
+	listBoxStyle     ListBoxStyle
+	switchStyle      SwitchStyle
+	datePickerStyle  DatePickerStyle
+	progressBarStyle ProgressBarStyle
+	radioStyle       RadioStyle
+	tooltipStyle     TooltipStyle
+	colorPickerStyle ColorPickerStyle
 	TextStyleDef     TextStyle
 
 	// Text size shortcuts (N = normal, B = bold,
@@ -45,18 +45,18 @@ type Theme struct {
 	B4    TextStyle
 	B5    TextStyle
 	B6    TextStyle
-	I1    TextStyle
-	I2    TextStyle
+	i1    TextStyle
+	i2    TextStyle
 	I3    TextStyle
-	I4    TextStyle
-	I5    TextStyle
-	I6    TextStyle
-	BI1   TextStyle
-	BI2   TextStyle
+	i4    TextStyle
+	i5    TextStyle
+	i6    TextStyle
+	bI1   TextStyle
+	bI2   TextStyle
 	BI3   TextStyle
-	BI4   TextStyle
-	BI5   TextStyle
-	BI6   TextStyle
+	bI4   TextStyle
+	bI5   TextStyle
+	bI6   TextStyle
 	M1    TextStyle
 	M2    TextStyle
 	M3    TextStyle
@@ -67,24 +67,24 @@ type Theme struct {
 	Icon2 TextStyle
 	Icon3 TextStyle
 	Icon4 TextStyle
-	Icon5 TextStyle
-	Icon6 TextStyle
+	icon5 TextStyle
+	icon6 TextStyle
 
 	// Per-widget styles.
-	ButtonStyle         ButtonStyle
-	ContainerStyle      ContainerStyle
-	RectangleStyle      RectangleStyle
-	TreeStyle           TreeStyle
-	CommandPaletteStyle CommandPaletteStyle
-	BadgeStyle          BadgeStyle
+	ButtonStyle         buttonStyle
+	ContainerStyle      containerStyle
+	rectangleStyle      RectangleStyle
+	treeStyle           TreeStyle
+	commandPaletteStyle CommandPaletteStyle
+	badgeStyle          BadgeStyle
 	Name                string
-	TableStyle          TableStyle
+	tableStyle          TableStyle
 	Cfg                 ThemeCfg
-	SliderStyle         SliderStyle
-	SplitterStyle       SplitterStyle
-	ExpandPanelStyle    ExpandPanelStyle
+	sliderStyle         SliderStyle
+	splitterStyle       SplitterStyle
+	expandPanelStyle    ExpandPanelStyle
 	ScrollbarStyle      ScrollbarStyle
-	SkeletonStyle       SkeletonStyle
+	skeletonStyle       SkeletonStyle
 
 	// Layout constants.
 	PaddingSmall  Padding
@@ -101,16 +101,16 @@ type Theme struct {
 	SpacingLarge  float32
 
 	SizeTextTiny   float32
-	SizeTextXSmall float32
-	SizeTextSmall  float32
-	SizeTextMedium float32
-	SizeTextLarge  float32
-	SizeTextXLarge float32
+	sizeTextXSmall float32
+	sizeTextSmall  float32
+	sizeTextMedium float32
+	sizeTextLarge  float32
+	sizeTextXLarge float32
 
-	ScrollMultiplier float32
-	ScrollDeltaLine  float32
-	ScrollDeltaPage  float32
-	InspectorStyle   InspectorStyle
+	scrollMultiplier float32
+	scrollDeltaLine  float32
+	scrollDeltaPage  float32
+	inspectorStyle   InspectorStyle
 
 	ColorBackground Color
 	ColorPanel      Color
@@ -129,7 +129,7 @@ type ThemeCfg struct {
 
 	Name string
 
-	MonoFontFamily string // font family for code/mono text
+	monoFontFamily string // font family for code/mono text
 
 	// IconFontFamily is the font family for the themed icon styles
 	// (Icon1..Icon6, TreeStyle.TextStyleIcon). Defaults to
@@ -139,7 +139,7 @@ type ThemeCfg struct {
 	// Setting this only retargets the styles — the font itself must
 	// still be registered with RegisterAppFont or RegisterAppFontBytes
 	// before the backend starts, or icons render as tofu.
-	IconFontFamily string
+	iconFontFamily string
 
 	Padding Padding
 
@@ -159,24 +159,24 @@ type ThemeCfg struct {
 	SpacingLarge  float32
 
 	SizeTextTiny   float32
-	SizeTextXSmall float32
-	SizeTextSmall  float32
-	SizeTextMedium float32
-	SizeTextLarge  float32
-	SizeTextXLarge float32
+	sizeTextXSmall float32
+	sizeTextSmall  float32
+	sizeTextMedium float32
+	sizeTextLarge  float32
+	sizeTextXLarge float32
 
-	ScrollMultiplier float32
-	ScrollDeltaLine  float32
-	ScrollDeltaPage  float32
+	scrollMultiplier float32
+	scrollDeltaLine  float32
+	scrollDeltaPage  float32
 
-	SizeSwitchWidth  float32
-	SizeSwitchHeight float32
-	SizeRadio        float32
-	SizeScrollbar    float32
-	SizeScrollbarMin float32
-	SizeProgressBar  float32
-	SizeSlider       float32
-	SizeSliderThumb  float32
+	sizeSwitchWidth  float32
+	sizeSwitchHeight float32
+	sizeRadio        float32
+	sizeScrollbar    float32
+	sizeScrollbarMin float32
+	sizeProgressBar  float32
+	sizeSlider       float32
+	sizeSliderThumb  float32
 	ColorBackground  Color
 	ColorPanel       Color
 	ColorInterior    Color
@@ -190,8 +190,8 @@ type ThemeCfg struct {
 	ColorWarning     Color
 	ColorError       Color
 	TitlebarDark     bool
-	Fill             bool
-	FillBorder       bool
+	// exportaudit:keep — documented public API (showcase docs)
+	FillBorder bool
 }
 
 // WithPadding returns a new Theme with padding, radius, and border
@@ -206,10 +206,10 @@ func (t Theme) WithPadding(padding bool) Theme {
 		cfg.PaddingMedium = PaddingNone
 		cfg.PaddingLarge = PaddingNone
 		cfg.SizeBorder = 0
-		cfg.Radius = RadiusNone
-		cfg.RadiusSmall = RadiusNone
-		cfg.RadiusMedium = RadiusNone
-		cfg.RadiusLarge = RadiusNone
+		cfg.Radius = radiusNone
+		cfg.RadiusSmall = radiusNone
+		cfg.RadiusMedium = radiusNone
+		cfg.RadiusLarge = radiusNone
 	}
 	return ThemeMaker(cfg)
 }
@@ -219,7 +219,7 @@ func (t Theme) WithPadding(padding bool) Theme {
 func (t Theme) WithBorders(borders bool) Theme {
 	cfg := t.Cfg
 	if borders {
-		cfg.SizeBorder = SizeBorderDef
+		cfg.SizeBorder = sizeBorderDef
 	} else {
 		cfg.SizeBorder = 0
 	}
@@ -239,34 +239,33 @@ func SetTheme(t Theme) {
 	defer guiThemeMu.Unlock()
 	guiTheme = t
 	DefaultTextStyle = t.TextStyleDef
-	DefaultButtonStyle = t.ButtonStyle
-	DefaultContainerStyle = t.ContainerStyle
-	DefaultRectangleStyle = t.RectangleStyle
-	DefaultInputStyle = t.InputStyle
+	defaultButtonStyle = t.ButtonStyle
+	defaultContainerStyle = t.ContainerStyle
+	defaultInputStyle = t.InputStyle
 	DefaultScrollbarStyle = t.ScrollbarStyle
-	DefaultRadioStyle = t.RadioStyle
-	DefaultSwitchStyle = t.SwitchStyle
-	DefaultToggleStyle = t.ToggleStyle
-	DefaultSelectStyle = t.SelectStyle
-	DefaultListBoxStyle = t.ListBoxStyle
-	DefaultTreeStyle = t.TreeStyle
-	DefaultDialogStyle = t.DialogStyle
-	DefaultToastStyle = t.ToastStyle
-	DefaultTooltipStyle = t.TooltipStyle
-	DefaultBadgeStyle = t.BadgeStyle
-	DefaultExpandPanelStyle = t.ExpandPanelStyle
-	DefaultProgressBarStyle = t.ProgressBarStyle
-	DefaultSliderStyle = t.SliderStyle
-	DefaultTabControlStyle = t.TabControlStyle
-	DefaultBreadcrumbStyle = t.BreadcrumbStyle
-	DefaultSplitterStyle = t.SplitterStyle
-	DefaultTableStyle = t.TableStyle
-	DefaultComboboxStyle = t.ComboboxStyle
-	DefaultCommandPaletteStyle = t.CommandPaletteStyle
-	DefaultMenubarStyle = t.MenubarStyle
-	DefaultDatePickerStyle = t.DatePickerStyle
-	DefaultColorPickerStyle = t.ColorPickerStyle
-	DefaultDataGridStyle = t.DataGridStyle
-	DefaultSkeletonStyle = t.SkeletonStyle
-	DefaultInspectorStyle = t.InspectorStyle
+	defaultRadioStyle = t.radioStyle
+	defaultSwitchStyle = t.switchStyle
+	defaultToggleStyle = t.toggleStyle
+	defaultSelectStyle = t.selectStyle
+	defaultListBoxStyle = t.listBoxStyle
+	defaultTreeStyle = t.treeStyle
+	DefaultDialogStyle = t.dialogStyle
+	defaultToastStyle = t.toastStyle
+	defaultTooltipStyle = t.tooltipStyle
+	defaultBadgeStyle = t.badgeStyle
+	defaultExpandPanelStyle = t.expandPanelStyle
+	defaultProgressBarStyle = t.progressBarStyle
+	defaultSliderStyle = t.sliderStyle
+	defaultTabControlStyle = t.tabControlStyle
+	defaultBreadcrumbStyle = t.breadcrumbStyle
+	defaultSplitterStyle = t.splitterStyle
+	defaultTableStyle = t.tableStyle
+	defaultComboboxStyle = t.comboboxStyle
+	defaultCommandPaletteStyle = t.commandPaletteStyle
+	defaultMenubarStyle = t.MenubarStyle
+	defaultDatePickerStyle = t.datePickerStyle
+	defaultColorPickerStyle = t.colorPickerStyle
+	DefaultDataGridStyle = t.dataGridStyle
+	defaultSkeletonStyle = t.skeletonStyle
+	defaultInspectorStyle = t.inspectorStyle
 }

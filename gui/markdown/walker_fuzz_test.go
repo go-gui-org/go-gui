@@ -45,7 +45,7 @@ func FuzzHeadingSlug(f *testing.F) {
 	f.Add("123 Test Heading!")
 	f.Add("\t\n spaces  ")
 	f.Fuzz(func(t *testing.T, text string) {
-		slug := HeadingSlug(text)
+		slug := headingSlug(text)
 		for _, r := range slug {
 			if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' {
 				t.Errorf("invalid char %q in slug %q", string(r), slug)

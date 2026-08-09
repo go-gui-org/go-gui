@@ -7,7 +7,7 @@ import (
 
 // mockSpellPlatform is a minimal NativePlatform stub for spell check
 // tests. SpellCheck returns a range for the whole input text.
-type mockSpellPlatform struct{ NoopNativePlatform }
+type mockSpellPlatform struct{ noopNativePlatform }
 
 func (m *mockSpellPlatform) SpellCheck(text string) []SpellRange {
 	if len(text) == 0 {

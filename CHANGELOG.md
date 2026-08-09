@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Exported API surface reduced (~1,400 symbols) as the v1.0 freeze
+  (breaking).** `tools/exportaudit` classifies every export in `gui/` by who
+  references it — sibling repos (consumers), examples, tests, other gui
+  packages, or nothing — and its sweep mode unexported everything referenced
+  only inside its own package, its tests, or nowhere at all. Internal helpers,
+  dead constants, and swept types are now lowercase. `make export-audit` gates
+  the surface: any export whose references stay inside `gui/` fails unless
+  marked `// exportaudit:keep`, and the marker explains why (json reflection,
+  stdlib interface conformance, same-name collisions, signature reachability).
+  Cross-package plumbing (gui/backend ↔ gui) is deferred and reported as
+  advisory. 449 files changed; consumers at v0.56.0 are unaffected unless they
+  referenced internal-only names.
+
 ## [v0.56.0] - 2026-08-09
 
 ### Changed

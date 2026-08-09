@@ -6,16 +6,16 @@ import (
 )
 
 func TestLerpBoundaries(t *testing.T) {
-	if Lerp(10, 20, 0) != 10 {
+	if lerp(10, 20, 0) != 10 {
 		t.Error("Lerp(10,20,0) should be 10")
 	}
-	if Lerp(10, 20, 1) != 20 {
+	if lerp(10, 20, 1) != 20 {
 		t.Error("Lerp(10,20,1) should be 20")
 	}
 }
 
 func TestLerpMidpoint(t *testing.T) {
-	got := Lerp(0, 100, 0.5)
+	got := lerp(0, 100, 0.5)
 	if got != 50 {
 		t.Errorf("Lerp(0,100,0.5) = %f, want 50", got)
 	}
@@ -27,12 +27,12 @@ func TestEasingEndpoints(t *testing.T) {
 		fn   EasingFn
 	}{
 		{"Linear", EaseLinear},
-		{"InQuad", EaseInQuad},
+		{"InQuad", easeInQuad},
 		{"OutQuad", EaseOutQuad},
 		{"InOutQuad", EaseInOutQuad},
-		{"InCubic", EaseInCubic},
+		{"InCubic", easeInCubic},
 		{"OutCubic", EaseOutCubic},
-		{"InOutCubic", EaseInOutCubic},
+		{"InOutCubic", easeInOutCubic},
 		{"OutBounce", EaseOutBounce},
 	}
 	for _, tt := range fns {
@@ -48,20 +48,20 @@ func TestEasingEndpoints(t *testing.T) {
 }
 
 func TestEaseInBackEndpoints(t *testing.T) {
-	if EaseInBack(0) != 0 {
+	if easeInBack(0) != 0 {
 		t.Error("EaseInBack(0) != 0")
 	}
-	if math.Abs(float64(EaseInBack(1))-1) > 0.001 {
-		t.Errorf("EaseInBack(1) = %f", EaseInBack(1))
+	if math.Abs(float64(easeInBack(1))-1) > 0.001 {
+		t.Errorf("EaseInBack(1) = %f", easeInBack(1))
 	}
 }
 
 func TestEaseOutBackEndpoints(t *testing.T) {
-	if math.Abs(float64(EaseOutBack(0))-0) > 0.001 {
-		t.Errorf("EaseOutBack(0) = %f", EaseOutBack(0))
+	if math.Abs(float64(easeOutBack(0))-0) > 0.001 {
+		t.Errorf("EaseOutBack(0) = %f", easeOutBack(0))
 	}
-	if math.Abs(float64(EaseOutBack(1))-1) > 0.001 {
-		t.Errorf("EaseOutBack(1) = %f", EaseOutBack(1))
+	if math.Abs(float64(easeOutBack(1))-1) > 0.001 {
+		t.Errorf("EaseOutBack(1) = %f", easeOutBack(1))
 	}
 }
 
@@ -93,10 +93,10 @@ func TestEaseCSSEndpoints(t *testing.T) {
 		name string
 		fn   EasingFn
 	}{
-		{"CSS", EaseCSS},
-		{"InCSS", EaseInCSS},
-		{"OutCSS", EaseOutCSS},
-		{"InOutCSS", EaseInOutCSS},
+		{"CSS", easeCSS},
+		{"InCSS", easeInCSS},
+		{"OutCSS", easeOutCSS},
+		{"InOutCSS", easeInOutCSS},
 	}
 	for _, tt := range fns {
 		if tt.fn(0) != 0 {
@@ -109,7 +109,7 @@ func TestEaseCSSEndpoints(t *testing.T) {
 }
 
 func TestCubicBezierFactory(t *testing.T) {
-	fn := CubicBezier(0.25, 0.1, 0.25, 1.0)
+	fn := cubicBezier(0.25, 0.1, 0.25, 1.0)
 	v := fn(0.5)
 	if v <= 0 || v >= 1 {
 		t.Errorf("CubicBezier(0.5) = %f", v)
@@ -134,7 +134,7 @@ func TestBezierLUTClamping(t *testing.T) {
 }
 
 func TestEaseInOutCubicSymmetry(t *testing.T) {
-	v := EaseInOutCubic(0.5)
+	v := easeInOutCubic(0.5)
 	if math.Abs(float64(v)-0.5) > 0.01 {
 		t.Errorf("EaseInOutCubic(0.5) = %f, want ~0.5", v)
 	}

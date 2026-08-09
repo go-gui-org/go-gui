@@ -5,11 +5,11 @@ import "github.com/go-gui-org/go-glyph"
 // RenderKind identifies the type of drawing command stored in a
 // RenderCmd. The renderer pipeline emits a flat []RenderCmd slice;
 // the dispatch loop switches on Kind to draw each command.
-type RenderKind uint8
+type renderKind uint8
 
 // RenderKind values.
 const (
-	RenderNone RenderKind = iota
+	RenderNone renderKind = iota
 	RenderClip
 	RenderRect
 	RenderStrokeRect
@@ -50,7 +50,7 @@ type RenderCmd struct {
 	Gradient        *GradientDef
 	TextStylePtr    *TextStyle            // full text style (typeface, etc.)
 	TextGradient    *glyph.GradientConfig // text gradient for glyph-layout draws
-	TextPath        *TextPathData         // SVG textPath placement data
+	textPath        *textPathData         // SVG textPath placement data
 	TermGrid        *TermGridData         // terminal grid buffer (RenderTermGrid)
 	LayoutPtr       *glyph.Layout         // pre-shaped glyph layout
 	LayoutTransform *glyph.AffineTransform
@@ -65,7 +65,7 @@ type RenderCmd struct {
 	VertexColors []Color
 	ClipGroup    int // Svg clip group id
 	Layers       int // FilterComposite
-	GroupIdx     int // FilterBegin
+	groupIdx     int // FilterBegin
 
 	// Position/size — used by most kinds.
 	X, Y float32
@@ -102,7 +102,7 @@ type RenderCmd struct {
 
 	// Visual properties.
 	Color Color
-	Kind  RenderKind
+	Kind  renderKind
 
 	StencilDepth uint8 // StencilBegin/End
 
@@ -115,13 +115,13 @@ type RenderCmd struct {
 }
 
 // TextPathData holds pre-computed path data for RenderTextPath.
-type TextPathData struct {
+type textPathData struct {
 	Polyline []float32 // flattened path [x0,y0, x1,y1, ...]
 	Table    []float32 // cumulative arc-length table
-	TotalLen float32
+	totalLen float32
 	Offset   float32           // resolved start offset (screen coords)
 	Anchor   SvgTextAnchor     // text-anchor alignment
-	Method   SvgTextPathMethod // glyph placement method
+	method   svgTextPathMethod // glyph placement method
 }
 
 // filterBracketRange describes a matched DrawFilterBegin..DrawFilterEnd

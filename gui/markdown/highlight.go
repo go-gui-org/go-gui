@@ -49,30 +49,30 @@ func normalizeLanguageHint(language string) string {
 }
 
 // LangFromHint maps a language hint string to a CodeLanguage.
-func LangFromHint(language string) CodeLanguage {
+func langFromHint(language string) CodeLanguage {
 	switch normalizeLanguageHint(language) {
 	case "v":
-		return LangV
+		return langV
 	case "js":
-		return LangJavaScript
+		return langJavaScript
 	case "ts":
-		return LangTypeScript
+		return langTypeScript
 	case "py":
-		return LangPython
+		return langPython
 	case "json":
-		return LangJSON
+		return langJSON
 	case "go":
-		return LangGo
+		return langGo
 	case "rust":
-		return LangRust
+		return langRust
 	case "c":
-		return LangC
+		return langC
 	case "shell":
-		return LangShell
+		return langShell
 	case "html":
-		return LangHTML
+		return langHTML
 	default:
-		return LangGeneric
+		return langGeneric
 	}
 }
 
@@ -82,11 +82,11 @@ func LangFromHint(language string) CodeLanguage {
 //nolint:gocyclo // language token-type switch
 func tokenizeCode(
 	code string, lang CodeLanguage, maxBytes int,
-) []CodeToken {
+) []codeToken {
 	if len(code) == 0 || len(code) > maxBytes {
 		return nil
 	}
-	tokens := make([]CodeToken, 0, 128)
+	tokens := make([]codeToken, 0, 128)
 	pos := 0
 	for pos < len(code) {
 		if len(tokens) >= maxHighlightTokensPerBlock {
@@ -122,7 +122,7 @@ func tokenizeCode(
 			pos = end
 
 		case hasBlockCommentStart(code, pos, lang):
-			if lang == LangHTML {
+			if lang == langHTML {
 				end := pos + 4
 				for end+2 < len(code) {
 					if end-pos >= maxHighlightStringScanBytes ||
@@ -239,7 +239,7 @@ func tokenizeCode(
 }
 
 func appendTailToken(
-	tokens *[]CodeToken, code string, pos int,
+	tokens *[]codeToken, code string, pos int,
 ) {
 	if pos < len(code) {
 		appendToken(tokens, TokenPlain, pos, len(code))
@@ -247,7 +247,7 @@ func appendTailToken(
 }
 
 func appendToken(
-	tokens *[]CodeToken,
+	tokens *[]codeToken,
 	kind CodeTokenKind, start, end int,
 ) {
 	if start == end {
@@ -259,7 +259,7 @@ func appendToken(
 		(*tokens)[n-1].End = end
 		return
 	}
-	*tokens = append(*tokens, CodeToken{
+	*tokens = append(*tokens, codeToken{
 		Kind: kind, Start: start, End: end,
 	})
 }
@@ -269,12 +269,12 @@ func isIdentifierStart(ch byte, lang CodeLanguage) bool {
 		(ch >= 'A' && ch <= 'Z') || ch == '_' {
 		return true
 	}
-	if (lang == LangJavaScript ||
-		lang == LangTypeScript ||
-		lang == LangGeneric) && ch == '$' {
+	if (lang == langJavaScript ||
+		lang == langTypeScript ||
+		lang == langGeneric) && ch == '$' {
 		return true
 	}
-	return lang == LangHTML && ch == '-'
+	return lang == langHTML && ch == '-'
 }
 
 func isIdentifierContinue(ch byte, lang CodeLanguage) bool {
@@ -284,7 +284,7 @@ func isIdentifierContinue(ch byte, lang CodeLanguage) bool {
 	if ch >= '0' && ch <= '9' {
 		return true
 	}
-	return lang == LangHTML && ch == '-'
+	return lang == langHTML && ch == '-'
 }
 
 func scanIdentifier(
@@ -350,19 +350,19 @@ func scanNumber(code string, pos int) (int, bool) {
 
 func isStringDelim(ch byte, lang CodeLanguage) bool {
 	switch lang {
-	case LangJSON:
+	case langJSON:
 		return ch == '"'
-	case LangPython:
+	case langPython:
 		return ch == '"' || ch == '\''
-	case LangJavaScript, LangTypeScript:
+	case langJavaScript, langTypeScript:
 		return ch == '"' || ch == '\'' || ch == '`'
-	case LangGo:
+	case langGo:
 		return ch == '"' || ch == '\'' || ch == '`'
-	case LangRust, LangC:
+	case langRust, langC:
 		return ch == '"' || ch == '\''
-	case LangShell:
+	case langShell:
 		return ch == '"' || ch == '\''
-	case LangHTML:
+	case langHTML:
 		return ch == '"' || ch == '\''
 	default:
 		return ch == '"' || ch == '\'' || ch == '`'
@@ -374,7 +374,7 @@ func scanString(
 ) (int, bool) {
 	quote := code[pos]
 	// Python triple-quote.
-	if lang == LangPython && pos+2 < len(code) &&
+	if lang == langPython && pos+2 < len(code) &&
 		code[pos+1] == quote && code[pos+2] == quote {
 		end := pos + 3
 		for end+2 < len(code) {
@@ -421,14 +421,14 @@ func hasLineCommentStart(
 	if pos+1 < len(code) && code[pos] == '/' &&
 		code[pos+1] == '/' {
 		switch lang {
-		case LangGeneric, LangV, LangJavaScript,
-			LangTypeScript, LangGo, LangRust, LangC:
+		case langGeneric, langV, langJavaScript,
+			langTypeScript, langGo, langRust, langC:
 			return true
 		}
 	}
 	if code[pos] == '#' {
 		switch lang {
-		case LangGeneric, LangPython, LangShell:
+		case langGeneric, langPython, langShell:
 			return true
 		}
 	}
@@ -441,8 +441,8 @@ func lineCommentPrefixLen(
 	if pos+1 < len(code) && code[pos] == '/' &&
 		code[pos+1] == '/' {
 		switch lang {
-		case LangGeneric, LangV, LangJavaScript,
-			LangTypeScript, LangGo, LangRust, LangC:
+		case langGeneric, langV, langJavaScript,
+			langTypeScript, langGo, langRust, langC:
 			return 2
 		}
 	}
@@ -455,22 +455,22 @@ func hasBlockCommentStart(
 	if pos+1 < len(code) && code[pos] == '/' &&
 		code[pos+1] == '*' {
 		switch lang {
-		case LangGeneric, LangV, LangJavaScript,
-			LangTypeScript, LangGo, LangRust, LangC:
+		case langGeneric, langV, langJavaScript,
+			langTypeScript, langGo, langRust, langC:
 			return true
 		}
 	}
 	if pos+3 < len(code) && code[pos] == '<' &&
 		code[pos+1] == '!' && code[pos+2] == '-' &&
-		code[pos+3] == '-' && lang == LangHTML {
+		code[pos+3] == '-' && lang == langHTML {
 		return true
 	}
 	return false
 }
 
 func blockCommentsNested(lang CodeLanguage) bool {
-	return lang == LangV || lang == LangRust ||
-		lang == LangGeneric
+	return lang == langV || lang == langRust ||
+		lang == langGeneric
 }
 
 // Keyword sets per language.
@@ -614,25 +614,25 @@ func toSet(words []string) map[string]bool {
 
 func isKeyword(ident string, lang CodeLanguage) bool {
 	switch lang {
-	case LangV:
+	case langV:
 		return kwV[ident]
-	case LangJavaScript:
+	case langJavaScript:
 		return kwJS[ident]
-	case LangTypeScript:
+	case langTypeScript:
 		return kwTS[ident]
-	case LangPython:
+	case langPython:
 		return kwPy[ident]
-	case LangGo:
+	case langGo:
 		return kwGo[ident]
-	case LangRust:
+	case langRust:
 		return kwRust[ident]
-	case LangC:
+	case langC:
 		return kwC[ident]
-	case LangShell:
+	case langShell:
 		return kwShell[ident]
-	case LangHTML:
+	case langHTML:
 		return kwHTML[ident]
-	case LangJSON:
+	case langJSON:
 		return kwJSON[ident]
 	}
 	return false

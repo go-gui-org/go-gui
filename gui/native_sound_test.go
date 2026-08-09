@@ -4,7 +4,7 @@ import "testing"
 
 // beepSpy records Beep calls and reports a configurable availability.
 type beepSpy struct {
-	NoopNativePlatform
+	noopNativePlatform
 	calls     int
 	available bool
 }
@@ -24,7 +24,7 @@ func TestWindowBeepNoNativePlatform(t *testing.T) {
 
 func TestWindowBeepNoopPlatform(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(struct{})})
-	w.SetNativePlatform(&NoopNativePlatform{})
+	w.SetNativePlatform(&noopNativePlatform{})
 	w.Beep()
 	if w.BeepAvailable() {
 		t.Error("BeepAvailable = true for NoopNativePlatform")

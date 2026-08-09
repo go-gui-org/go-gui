@@ -103,12 +103,12 @@ const (
 )
 
 // DragReorderAxis selects the primary drag axis.
-type DragReorderAxis uint8
+type dragReorderAxis uint8
 
 // Axis values for DragReorderAxis.
 const (
-	DragReorderVertical DragReorderAxis = iota
-	DragReorderHorizontal
+	dragReorderVertical dragReorderAxis = iota
+	dragReorderHorizontal
 )
 
 // dragReorderState tracks an in-progress drag-reorder operation.
@@ -207,8 +207,8 @@ type dragReorderStartCfg struct {
 	ItemLayoutIDs []string
 	Index         int
 	MidsOffset    int
-	ScrollID      string
-	Axis          DragReorderAxis
+	scrollID      string
+	Axis          dragReorderAxis
 }
 
 // dragReorderStart initiates a drag-reorder from an OnClick
@@ -223,7 +223,7 @@ func dragReorderStart(cfg dragReorderStartCfg, w *Window) {
 	onReorder := cfg.OnReorder
 	itemLayoutIDs := cfg.ItemLayoutIDs
 	midsOffset := cfg.MidsOffset
-	scrollID := cfg.ScrollID
+	scrollID := cfg.scrollID
 	layout := cfg.Layout
 	e := cfg.Event
 	var parentX, parentY float32
@@ -235,11 +235,11 @@ func dragReorderStart(cfg dragReorderStartCfg, w *Window) {
 	var containerStart, containerEnd float32
 	if scrollID != "" && layout.Parent != nil {
 		switch axis {
-		case DragReorderVertical:
+		case dragReorderVertical:
 			containerStart = layout.Parent.Shape.Y
 			containerEnd = layout.Parent.Shape.Y +
 				layout.Parent.Shape.Height
-		case DragReorderHorizontal:
+		case dragReorderHorizontal:
 			containerStart = layout.Parent.Shape.X
 			containerEnd = layout.Parent.Shape.X +
 				layout.Parent.Shape.Width
@@ -305,7 +305,7 @@ func dragReorderStart(cfg dragReorderStartCfg, w *Window) {
 // the full drag lifecycle.
 func dragReorderMakeLock(
 	dragKey string,
-	axis DragReorderAxis,
+	axis dragReorderAxis,
 	itemIDs []string,
 	onReorder func(string, string, EventCtx),
 ) MouseLockCfg {
@@ -327,7 +327,7 @@ func dragReorderMakeLock(
 //nolint:gocyclo // drag state machine
 func dragReorderOnMouseMove(
 	dragKey string,
-	axis DragReorderAxis,
+	axis dragReorderAxis,
 	mouseX, mouseY float32,
 	w *Window,
 ) {
@@ -352,9 +352,9 @@ func dragReorderOnMouseMove(
 		dy := mouseY - state.startMouseY
 		var dist float32
 		switch axis {
-		case DragReorderVertical:
+		case dragReorderVertical:
 			dist = f32Abs(dy)
-		case DragReorderHorizontal:
+		case dragReorderHorizontal:
 			dist = f32Abs(dx)
 		}
 		if dist < dragReorderThreshold {
@@ -369,9 +369,9 @@ func dragReorderOnMouseMove(
 	// Determine drop target from cursor vs item geometry.
 	var mouseMain float32
 	switch axis {
-	case DragReorderVertical:
+	case dragReorderVertical:
 		mouseMain = mouseY
-	case DragReorderHorizontal:
+	case dragReorderHorizontal:
 		mouseMain = mouseX
 	}
 	mouseOrig := mouseMain
@@ -381,16 +381,16 @@ func dragReorderOnMouseMove(
 		// Default 0: unscrolled position when no offset recorded yet.
 		var scrollVal float32
 		switch axis {
-		case DragReorderVertical:
+		case dragReorderVertical:
 			scrollVal = w.scrollY().GetOr(state.scrollID, 0)
-		case DragReorderHorizontal:
+		case dragReorderHorizontal:
 			scrollVal = w.scrollX().GetOr(state.scrollID, 0)
 		}
 		var startScroll float32
 		switch axis {
-		case DragReorderVertical:
+		case dragReorderVertical:
 			startScroll = state.startScrollY
-		case DragReorderHorizontal:
+		case dragReorderHorizontal:
 			startScroll = state.startScrollX
 		}
 		scrolledSinceStart = scrollVal != startScroll
@@ -408,10 +408,10 @@ func dragReorderOnMouseMove(
 	if newIndex < 0 {
 		var itemStart, itemSize float32
 		switch axis {
-		case DragReorderVertical:
+		case dragReorderVertical:
 			itemStart = state.itemY
 			itemSize = state.itemHeight
-		case DragReorderHorizontal:
+		case dragReorderHorizontal:
 			itemStart = state.itemX
 			itemSize = state.itemWidth
 		}
@@ -527,7 +527,7 @@ func dragReorderCancel(dragKey string, w *Window) {
 func dragReorderAutoScroll(
 	mouseMain, containerStart, containerEnd float32,
 	scrollID string,
-	axis DragReorderAxis,
+	axis dragReorderAxis,
 	w *Window,
 ) bool {
 	if scrollID == "" {
@@ -541,10 +541,10 @@ func dragReorderAutoScroll(
 		delta := dragReorderScrollSpeed * ratio
 		if delta != 0 {
 			switch axis {
-			case DragReorderVertical:
-				w.ScrollVerticalBy(scrollID, delta)
-			case DragReorderHorizontal:
-				w.ScrollHorizontalBy(scrollID, delta)
+			case dragReorderVertical:
+				w.scrollVerticalBy(scrollID, delta)
+			case dragReorderHorizontal:
+				w.scrollHorizontalBy(scrollID, delta)
 			}
 			return true
 		}
@@ -553,10 +553,10 @@ func dragReorderAutoScroll(
 		delta := -dragReorderScrollSpeed * ratio
 		if delta != 0 {
 			switch axis {
-			case DragReorderVertical:
-				w.ScrollVerticalBy(scrollID, delta)
-			case DragReorderHorizontal:
-				w.ScrollHorizontalBy(scrollID, delta)
+			case dragReorderVertical:
+				w.scrollVerticalBy(scrollID, delta)
+			case dragReorderHorizontal:
+				w.scrollHorizontalBy(scrollID, delta)
 			}
 			return true
 		}
@@ -572,7 +572,7 @@ func dragReorderAutoScroll(
 func dragReorderKeyboardMove(
 	keyCode KeyCode,
 	modifiers Modifier,
-	axis DragReorderAxis,
+	axis dragReorderAxis,
 	currentIndex int,
 	itemIDs []string,
 	onReorder func(string, string, EventCtx),
@@ -588,7 +588,7 @@ func dragReorderKeyboardMove(
 
 	newIndex := -1
 	switch axis {
-	case DragReorderVertical:
+	case dragReorderVertical:
 		switch keyCode {
 		case KeyUp:
 			if currentIndex > 0 {
@@ -599,7 +599,7 @@ func dragReorderKeyboardMove(
 				newIndex = min(currentIndex+2, itemCount)
 			}
 		}
-	case DragReorderHorizontal:
+	case dragReorderHorizontal:
 		switch keyCode {
 		case KeyLeft:
 			if currentIndex > 0 {

@@ -100,10 +100,10 @@ type MathSpinnerCfg struct {
 	StrokeWidth float32
 	Speed       float32
 	Size        float32
-	ParamA      Opt[float32]
-	ParamB      Opt[float32]
-	ParamD      Opt[float32]
-	TrailLength float32
+	paramA      Opt[float32]
+	paramB      Opt[float32]
+	paramD      Opt[float32]
+	trailLength float32
 	Particles   int
 	Rotate      bool
 	Sizing      Sizing
@@ -129,8 +129,8 @@ func MathSpinner(cfg MathSpinnerCfg, w *Window) View {
 	if cfg.Size <= 0 {
 		cfg.Size = 48
 	}
-	if cfg.TrailLength <= 0 {
-		cfg.TrailLength = 0.35
+	if cfg.trailLength <= 0 {
+		cfg.trailLength = 0.35
 	}
 	if cfg.Particles <= 0 {
 		cfg.Particles = 60
@@ -141,8 +141,8 @@ func MathSpinner(cfg MathSpinnerCfg, w *Window) View {
 	if cfg.Particles > 500 {
 		cfg.Particles = 500
 	}
-	if cfg.TrailLength > 1 {
-		cfg.TrailLength = 1
+	if cfg.trailLength > 1 {
+		cfg.trailLength = 1
 	}
 
 	// Clamp CurveType to valid range.
@@ -153,9 +153,9 @@ func MathSpinner(cfg MathSpinnerCfg, w *Window) View {
 
 	// Apply baked-in param defaults when user hasn't set them.
 	defs := mathSpinnerCurveDefaults[ct]
-	paramA := cfg.ParamA.Get(defs.a)
-	paramB := cfg.ParamB.Get(defs.b)
-	paramD := cfg.ParamD.Get(defs.d)
+	paramA := cfg.paramA.Get(defs.a)
+	paramB := cfg.paramB.Get(defs.b)
+	paramD := cfg.paramD.Get(defs.d)
 
 	width := cfg.Width
 	height := cfg.Height
@@ -213,7 +213,7 @@ func MathSpinner(cfg MathSpinnerCfg, w *Window) View {
 
 	family := defs.family
 	particles := cfg.Particles
-	trailSpan := cfg.TrailLength
+	trailSpan := cfg.trailLength
 	strokeWidth := cfg.StrokeWidth
 	color := cfg.Color
 

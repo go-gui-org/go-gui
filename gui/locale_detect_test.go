@@ -31,7 +31,7 @@ func TestLocaleAutoDetect(t *testing.T) {
 	// Exact match: de-DE is registered.
 	ActiveLocale = localeDefaults()
 	if l, ok := LocaleGet("de-DE"); ok {
-		SetLocale(l)
+		setLocale(l)
 		if ActiveLocale.ID != "de-DE" {
 			t.Errorf("SetLocale de-DE: got %s", ActiveLocale.ID)
 		}
@@ -41,5 +41,5 @@ func TestLocaleAutoDetect(t *testing.T) {
 
 	// Reset and verify LocaleAutoDetect doesn't panic.
 	ActiveLocale = localeDefaults()
-	LocaleAutoDetect()
+	localeAutoDetect()
 }

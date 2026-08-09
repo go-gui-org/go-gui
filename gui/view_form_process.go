@@ -5,30 +5,30 @@ import (
 )
 
 func formShouldValidate(
-	mode FormValidateOn, trigger FormValidationTrigger,
+	mode formValidateOn, trigger FormValidationTrigger,
 ) bool {
 	switch mode {
-	case FormValidateInherit:
+	case formValidateInherit:
 		// Should not reach here — formResolveValidateOn resolves
 		// Inherit before validation.
 		panic("gui: formShouldValidate called with unresolved " +
 			"FormValidateInherit")
-	case FormValidateOnChange:
+	case formValidateOnChange:
 		return true
-	case FormValidateOnBlur, FormValidateOnBlurSubmit:
+	case formValidateOnBlur, formValidateOnBlurSubmit:
 		return trigger == FormTriggerBlur ||
-			trigger == FormTriggerSubmit
-	case FormValidateOnSubmit:
-		return trigger == FormTriggerSubmit
+			trigger == formTriggerSubmit
+	case formValidateOnSubmit:
+		return trigger == formTriggerSubmit
 	default:
 		return false
 	}
 }
 
 func formResolveValidateOn(
-	override, fallback FormValidateOn,
-) FormValidateOn {
-	if override == FormValidateInherit {
+	override, fallback formValidateOn,
+) formValidateOn {
+	if override == formValidateInherit {
 		return fallback
 	}
 	return override
@@ -52,7 +52,7 @@ func formToPublicFieldState(
 ) FormFieldState {
 	return FormFieldState{
 		Value:        field.value,
-		InitialValue: field.initialValue,
+		initialValue: field.initialValue,
 		Touched:      field.touched,
 		Dirty:        field.dirty,
 		Pending:      field.pending,
@@ -70,7 +70,7 @@ func formSnapshotFromState(
 		fields[fid] = formToPublicFieldState(field)
 	}
 	return FormSnapshot{
-		FormID: formID,
+		formID: formID,
 		Values: values,
 		Fields: fields,
 	}
@@ -80,7 +80,7 @@ func formFieldSnapshot(
 	formID, fieldID string, field *formFieldRuntime,
 ) FormFieldSnapshot {
 	return FormFieldSnapshot{
-		FormID:  formID,
+		formID:  formID,
 		FieldID: fieldID,
 		Value:   field.value,
 		Touched: field.touched,
@@ -111,7 +111,7 @@ func formComputeSummary(
 		Pending:      pendingCount > 0,
 		InvalidCount: invalidCount,
 		PendingCount: pendingCount,
-		Issues:       issues,
+		issues:       issues,
 	}
 }
 
@@ -129,7 +129,7 @@ func formComputePending(
 	}
 	slices.Sort(ids)
 	return FormPendingState{
-		FormID:       formID,
+		formID:       formID,
 		FieldIDs:     ids,
 		PendingCount: len(ids),
 	}
@@ -137,14 +137,14 @@ func formComputePending(
 
 func formApplyCfg(w *Window, formID string, cfg FormCfg) {
 	state := formRuntime(w, formID)
-	vo := cfg.ValidateOn
-	if vo == FormValidateInherit {
-		vo = FormValidateOnBlurSubmit
+	vo := cfg.validateOn
+	if vo == formValidateInherit {
+		vo = formValidateOnBlurSubmit
 	}
 	state.validateOn = vo
-	state.submitOnEnter = !cfg.NoSubmitOnEnter
-	state.blockInvalid = !cfg.AllowInvalidSubmit
-	state.blockPending = !cfg.AllowPendingSubmit
+	state.submitOnEnter = !cfg.noSubmitOnEnter
+	state.blockInvalid = !cfg.allowInvalidSubmit
+	state.blockPending = !cfg.allowPendingSubmit
 	state.disabled = cfg.Disabled
 }
 
@@ -206,7 +206,7 @@ func formProcessRequests(
 		stateChanged = true
 		if onReset != nil {
 			onReset(FormResetEvent{
-				FormID: formID,
+				formID: formID,
 				Values: values,
 			}, EventCtx{nil, nil, w})
 		}
@@ -234,12 +234,12 @@ func formProcessRequests(
 		formOnFieldEventForForm(w, formID, FormFieldAdapterCfg{
 			FieldID:            fieldID,
 			Value:              field.value,
-			InitialValue:       field.initialValue,
-			HasInitialValue:    true,
+			initialValue:       field.initialValue,
+			hasInitialValue:    true,
 			SyncValidators:     field.syncVals,
 			AsyncValidators:    field.asyncVals,
-			ValidateOnOverride: field.validateOn,
-		}, FormTriggerSubmit)
+			validateOnOverride: field.validateOn,
+		}, formTriggerSubmit)
 	}
 
 	summary := formComputeSummary(state)
@@ -247,7 +247,7 @@ func formProcessRequests(
 	blockedPending := state.blockPending && summary.Pending
 	if !blockedInvalid && !blockedPending && onSubmit != nil {
 		onSubmit(FormSubmitEvent{
-			FormID:  formID,
+			formID:  formID,
 			Values:  formSnapshotFromState(formID, state).Values,
 			Valid:   summary.Valid,
 			Pending: summary.Pending,
@@ -263,7 +263,7 @@ func formProcessRequests(
 
 // FormFindAncestorID walks the parent chain to find an ancestor
 // form layout and returns its form ID.
-func FormFindAncestorID(layout *Layout) string {
+func formFindAncestorID(layout *Layout) string {
 	if layout == nil {
 		return ""
 	}
@@ -276,19 +276,19 @@ func FormFindAncestorID(layout *Layout) string {
 	if layout.Parent == nil {
 		return ""
 	}
-	return FormFindAncestorID(layout.Parent)
+	return formFindAncestorID(layout.Parent)
 }
 
 // FormRegisterField registers a field with the ancestor form
 // found by walking layout's parent chain. Use in AmendLayout
 // or event handlers where parents are set.
-func FormRegisterField(
+func formRegisterField(
 	w *Window, layout *Layout, cfg FormFieldAdapterCfg,
 ) {
 	if cfg.FieldID == "" {
 		return
 	}
-	formID := FormFindAncestorID(layout)
+	formID := formFindAncestorID(layout)
 	if formID == "" {
 		return
 	}
@@ -303,8 +303,8 @@ func formEnsureField(
 	field, exists := state.fields[cfg.FieldID]
 	if !exists {
 		field = &formFieldRuntime{}
-		if cfg.HasInitialValue {
-			field.initialValue = cfg.InitialValue
+		if cfg.hasInitialValue {
+			field.initialValue = cfg.initialValue
 		} else {
 			field.initialValue = cfg.Value
 		}
@@ -315,7 +315,7 @@ func formEnsureField(
 	field.syncVals = cfg.SyncValidators
 	field.asyncVals = cfg.AsyncValidators
 	field.validateOn = formResolveValidateOn(
-		cfg.ValidateOnOverride, state.validateOn)
+		cfg.validateOnOverride, state.validateOn)
 	field.seenGen = state.layoutGen
 	return field
 }
@@ -343,7 +343,7 @@ func FormOnFieldEvent(
 	if cfg.FieldID == "" {
 		return
 	}
-	formID := FormFindAncestorID(layout)
+	formID := formFindAncestorID(layout)
 	if formID == "" {
 		return
 	}
@@ -352,7 +352,7 @@ func FormOnFieldEvent(
 
 // FormOnFieldEventByID triggers validation for a field with a
 // known form ID.
-func FormOnFieldEventByID(
+func formOnFieldEventByID(
 	w *Window, formID string,
 	cfg FormFieldAdapterCfg, trigger FormValidationTrigger,
 ) {
@@ -370,7 +370,7 @@ func formOnFieldEventForForm(
 ) {
 	state := formRuntime(w, formID)
 	field := formEnsureField(state, cfg)
-	if trigger == FormTriggerBlur || trigger == FormTriggerSubmit {
+	if trigger == FormTriggerBlur || trigger == formTriggerSubmit {
 		field.touched = true
 	}
 
@@ -480,11 +480,11 @@ func FormRequestReset(w *Window, formID string) {
 
 // FormRequestSubmitForLayout finds the ancestor form and
 // requests submit if SubmitOnEnter is enabled.
-func FormRequestSubmitForLayout(w *Window, layout *Layout) {
+func formRequestSubmitForLayout(w *Window, layout *Layout) {
 	if layout == nil || layout.Shape == nil {
 		return
 	}
-	formID := FormFindAncestorID(layout)
+	formID := formFindAncestorID(layout)
 	if formID == "" {
 		return
 	}
@@ -506,12 +506,14 @@ func (w *Window) FormSummary(formID string) FormSummaryState {
 
 // FormPendingState returns which fields have pending async
 // validation.
+// exportaudit:keep — reachable from an exported signature
+// exportaudit:keep — reachable from an exported signature
 func (w *Window) FormPendingState(
 	formID string,
 ) FormPendingState {
 	state := formRuntimeRead(w, formID)
 	if state == nil {
-		return FormPendingState{FormID: formID}
+		return FormPendingState{formID: formID}
 	}
 	return formComputePending(formID, state)
 }
@@ -543,11 +545,11 @@ func (w *Window) FormFieldErrors(
 }
 
 // FormSubmit requests form submit and triggers a window update.
-func (w *Window) FormSubmit(formID string) {
+func (w *Window) formSubmit(formID string) {
 	FormRequestSubmit(w, formID)
 }
 
 // FormReset requests form reset and triggers a window update.
-func (w *Window) FormReset(formID string) {
+func (w *Window) formReset(formID string) {
 	FormRequestReset(w, formID)
 }

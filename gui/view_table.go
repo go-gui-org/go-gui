@@ -46,22 +46,22 @@ type TableCfg struct {
 	TextStyle        TextStyle
 	TextStyleHead    TextStyle
 	ColorRowAlt      *Color
-	AlignHead        *HorizontalAlign
+	alignHead        *HorizontalAlign
 	Selected         map[int]bool
 	OnSelect         func(map[int]bool, int, EventCtx)
 	ID               string `gui:"required"`
 	A11YLabel        string
 	A11YDescription  string
-	ColumnAlignments []HorizontalAlign
+	columnAlignments []HorizontalAlign
 	// RawData is a convenience field for CSV-style data. First row
 	// is treated as the header. When set, RawData takes precedence
 	// over Data.
-	RawData [][]string
+	rawData [][]string
 	Data    []TableRowCfg
 
-	CellPadding        Opt[Padding]
-	ColumnWidthDefault float32
-	ColumnWidthMin     float32
+	cellPadding        Opt[Padding]
+	columnWidthDefault float32
+	columnWidthMin     float32
 	SizeBorder         float32
 	SizeBorderHeader   float32
 
@@ -89,7 +89,7 @@ type TableCfg struct {
 }
 
 func applyTableDefaults(cfg *TableCfg) {
-	s := &DefaultTableStyle
+	s := &defaultTableStyle
 	if !cfg.ColorBorder.IsSet() {
 		cfg.ColorBorder = s.ColorBorder
 	}
@@ -99,8 +99,8 @@ func applyTableDefaults(cfg *TableCfg) {
 	if !cfg.ColorHover.IsSet() {
 		cfg.ColorHover = s.ColorHover
 	}
-	if !cfg.CellPadding.IsSet() {
-		cfg.CellPadding = Some(s.CellPadding)
+	if !cfg.cellPadding.IsSet() {
+		cfg.cellPadding = Some(s.cellPadding)
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = s.TextStyle
@@ -108,14 +108,14 @@ func applyTableDefaults(cfg *TableCfg) {
 	if cfg.TextStyleHead == (TextStyle{}) {
 		cfg.TextStyleHead = s.TextStyleHead
 	}
-	if cfg.AlignHead == nil {
-		cfg.AlignHead = &s.AlignHead
+	if cfg.alignHead == nil {
+		cfg.alignHead = &s.alignHead
 	}
-	if cfg.ColumnWidthDefault == 0 {
-		cfg.ColumnWidthDefault = s.ColumnWidthDefault
+	if cfg.columnWidthDefault == 0 {
+		cfg.columnWidthDefault = s.columnWidthDefault
 	}
-	if cfg.ColumnWidthMin == 0 {
-		cfg.ColumnWidthMin = s.ColumnWidthMin
+	if cfg.columnWidthMin == 0 {
+		cfg.columnWidthMin = s.columnWidthMin
 	}
 }
 
@@ -130,7 +130,7 @@ type tableColWidthCache struct {
 // are auto-sized when a Window is available during layout.
 func Table(cfg TableCfg) View {
 	RequireID("Table", cfg.ID)
-	return ViewFunc(func(w *Window) View {
+	return viewFunc(func(w *Window) View {
 		return tableView(cfg, w)
 	})
 }
@@ -152,9 +152,9 @@ func tableScrollID(cfg *TableCfg, freeze bool) string {
 }
 
 func tableView(cfg TableCfg, w *Window) View {
-	if len(cfg.RawData) > 0 {
-		n := min(len(cfg.RawData), maxDataConvLen)
-		cfg.Data = TableCfgFromData(cfg.RawData[:n]).Data
+	if len(cfg.rawData) > 0 {
+		n := min(len(cfg.rawData), maxDataConvLen)
+		cfg.Data = TableCfgFromData(cfg.rawData[:n]).Data
 	}
 	applyTableDefaults(&cfg)
 
@@ -340,9 +340,9 @@ func tableBuildRow(
 		if cell.HAlign != nil {
 			hAlign = *cell.HAlign
 		} else if cell.HeadCell {
-			hAlign = *cfg.AlignHead
-		} else if colIdx < len(cfg.ColumnAlignments) {
-			hAlign = cfg.ColumnAlignments[colIdx]
+			hAlign = *cfg.alignHead
+		} else if colIdx < len(cfg.columnAlignments) {
+			hAlign = cfg.columnAlignments[colIdx]
 		}
 
 		var cellContent []View
@@ -376,7 +376,7 @@ func tableBuildRow(
 			Color:       ColorTransparent,
 			ColorBorder: cfg.ColorBorder,
 			SizeBorder:  Some(cellBorder),
-			Padding:     cfg.CellPadding,
+			Padding:     cfg.cellPadding,
 			Radius:      SomeF(0),
 			HAlign:      hAlign,
 			Sizing:      FixedFill,
@@ -528,8 +528,8 @@ func tableColumnWidths(cfg *TableCfg, w *Window) []float32 {
 
 	if w == nil || w.textMeasurer == nil {
 		widths := make([]float32, numCols)
-		cw := cfg.ColumnWidthDefault +
-			cfg.CellPadding.Get(Padding{}).Width()
+		cw := cfg.columnWidthDefault +
+			cfg.cellPadding.Get(Padding{}).Width()
 		for i := range widths {
 			widths[i] = cw
 		}
@@ -573,7 +573,7 @@ func tableMeasureWidths(
 		}
 	}
 	widths := make([]float32, numCols)
-	pad := cfg.CellPadding.Get(Padding{}).Width()
+	pad := cfg.cellPadding.Get(Padding{}).Width()
 
 	for _, r := range cfg.Data {
 		for ci, cell := range r.Cells {
@@ -597,8 +597,8 @@ func tableMeasureWidths(
 	}
 
 	for i := range widths {
-		if widths[i] < cfg.ColumnWidthMin {
-			widths[i] = cfg.ColumnWidthMin
+		if widths[i] < cfg.columnWidthMin {
+			widths[i] = cfg.columnWidthMin
 		}
 	}
 	return widths
@@ -650,12 +650,12 @@ func tableEstimateRowHeight(cfg *TableCfg, w *Window) float32 {
 	if w != nil && w.textMeasurer != nil {
 		height = w.textMeasurer.FontHeight(style)
 	}
-	return height + cfg.CellPadding.Get(Padding{}).Height()
+	return height + cfg.cellPadding.Get(Padding{}).Height()
 }
 
 // ClearTableCache removes cached column widths for the given
 // table ID.
-func (w *Window) ClearTableCache(id string) {
+func (w *Window) clearTableCache(id string) {
 	cache := StateMapRead[string, tableColWidthCache](
 		w, nsTableColWidths)
 	if cache != nil {
@@ -664,7 +664,7 @@ func (w *Window) ClearTableCache(id string) {
 }
 
 // ClearAllTableCaches removes all cached table column widths.
-func (w *Window) ClearAllTableCaches() {
+func (w *Window) clearAllTableCaches() {
 	cache := StateMapRead[string, tableColWidthCache](
 		w, nsTableColWidths)
 	if cache != nil {
@@ -678,14 +678,14 @@ func TR(cols []TableCellCfg) TableRowCfg {
 }
 
 // TH creates a header cell with bold text.
-func TH(value string) TableCellCfg {
+func tH(value string) TableCellCfg {
 	ts := DefaultTextStyle
 	ts.Typeface = glyph.TypefaceBold
 	return TableCellCfg{Value: value, HeadCell: true, TextStyle: &ts}
 }
 
 // TD creates a data cell.
-func TD(value string) TableCellCfg {
+func tD(value string) TableCellCfg {
 	return TableCellCfg{Value: value}
 }
 
@@ -697,9 +697,9 @@ func TableCfgFromData(data [][]string) TableCfg {
 		cells := make([]TableCellCfg, 0, len(r))
 		for _, cell := range r {
 			if i == 0 {
-				cells = append(cells, TH(cell))
+				cells = append(cells, tH(cell))
 			} else {
-				cells = append(cells, TD(cell))
+				cells = append(cells, tD(cell))
 			}
 		}
 		rows = append(rows, TableRowCfg{Cells: cells})
@@ -709,7 +709,7 @@ func TableCfgFromData(data [][]string) TableCfg {
 
 // TableCfgFromCSV parses CSV data into a TableCfg. First row
 // is treated as a header row.
-func TableCfgFromCSV(data string) (TableCfg, error) {
+func tableCfgFromCSV(data string) (TableCfg, error) {
 	reader := csv.NewReader(strings.NewReader(data))
 	records, err := reader.ReadAll()
 	if err != nil {
@@ -720,17 +720,17 @@ func TableCfgFromCSV(data string) (TableCfg, error) {
 
 // TableFromCSV parses CSV data and returns a table view.
 // On parse error, returns an error table.
-func (w *Window) TableFromCSV(data string) View {
-	cfg, err := TableCfgFromCSV(data)
+func (w *Window) tableFromCSV(data string) View {
+	cfg, err := tableCfgFromCSV(data)
 	if err != nil {
-		return w.Table(TableCfgError(err.Error()))
+		return w.Table(tableCfgError(err.Error()))
 	}
 	return w.Table(cfg)
 }
 
 // TableCfgError creates a TableCfg with an error message.
-func TableCfgError(message string) TableCfg {
-	return TableCfg{Data: []TableRowCfg{TR([]TableCellCfg{TD(message)})}}
+func tableCfgError(message string) TableCfg {
+	return TableCfg{Data: []TableRowCfg{TR([]TableCellCfg{tD(message)})}}
 }
 
 func copySelected(m map[int]bool) map[int]bool {

@@ -56,21 +56,21 @@ func dataGridColumnsFromMap(row map[string]string) []GridColumnCfg {
 }
 
 // GridColumnPin specifies column pinning position.
-type GridColumnPin uint8
+type gridColumnPin uint8
 
 // GridColumnPin values.
 const (
-	GridColumnPinNone GridColumnPin = iota
-	GridColumnPinLeft
-	GridColumnPinRight
+	gridColumnPinNone gridColumnPin = iota
+	gridColumnPinLeft
+	gridColumnPinRight
 )
 
 // GridCellEditorKind specifies the type of inline cell editor.
-type GridCellEditorKind uint8
+type gridCellEditorKind uint8
 
 // GridCellEditorKind values.
 const (
-	GridCellEditorText GridCellEditorKind = iota
+	gridCellEditorText gridCellEditorKind = iota
 	GridCellEditorSelect
 	GridCellEditorDate
 	GridCellEditorCheckbox
@@ -90,20 +90,20 @@ type GridColumnCfg struct {
 	TextStyle        *gg.TextStyle
 	ID               string
 	Title            string
-	EditorTrueValue  string
-	EditorFalseValue string
+	editorTrueValue  string
+	editorFalseValue string
 	DefaultValue     string
 	EditorOptions    []string
 	Width            gg.Opt[float32]
 	MinWidth         gg.Opt[float32]
 	MaxWidth         gg.Opt[float32]
-	Resizable        bool
+	resizable        bool
 	Reorderable      bool
 	Sortable         bool
 	Filterable       bool
 	Editable         bool
-	Editor           GridCellEditorKind
-	Pin              GridColumnPin
+	Editor           gridCellEditorKind
+	pin              gridColumnPin
 	Align            gg.HorizontalAlign
 }
 
@@ -119,19 +119,19 @@ func gridColumnCfgDefaults(c *GridColumnCfg) {
 	if !c.MaxWidth.IsSet() {
 		c.MaxWidth = gg.SomeF(600)
 	}
-	if c.EditorTrueValue == "" {
-		c.EditorTrueValue = "true"
+	if c.editorTrueValue == "" {
+		c.editorTrueValue = "true"
 	}
-	if c.EditorFalseValue == "" {
-		c.EditorFalseValue = "false"
+	if c.editorFalseValue == "" {
+		c.editorFalseValue = "false"
 	}
 }
 
 // GridAggregateCfg configures an aggregate operation.
-type GridAggregateCfg struct {
+type gridAggregateCfg struct {
 	ColID string
 	Label string
-	Op    GridAggregateOp
+	Op    gridAggregateOp
 }
 
 // gridCsvData holds parsed CSV data.
@@ -147,11 +147,11 @@ type gridExportCfg struct {
 }
 
 // GridCellFormat describes conditional cell formatting.
-type GridCellFormat struct {
-	HasBGColor   bool
-	BGColor      gg.Color
-	HasTextColor bool
-	TextColor    gg.Color
+type gridCellFormat struct {
+	hasBGColor   bool
+	bGColor      gg.Color
+	hasTextColor bool
+	textColor    gg.Color
 }
 
 // dataGridDisplayRow is a flat display entry (data, group
@@ -184,61 +184,61 @@ type DataGridCfg struct {
 	Selection              GridSelection
 	DataSource             DataGridDataSource
 	RowCount               *int
-	AllowCreate            *bool
-	AllowDelete            *bool
-	MultiSort              *bool
+	allowCreate            *bool
+	allowDelete            *bool
+	multiSort              *bool
 	MultiSelect            *bool
-	RangeSelect            *bool
-	ShowHeader             *bool
-	ShowGroupCounts        *bool
-	HiddenColumnIDs        map[string]bool
-	DetailExpandedRowIDs   map[string]bool
+	rangeSelect            *bool
+	showHeader             *bool
+	showGroupCounts        *bool
+	hiddenColumnIDs        map[string]bool
+	detailExpandedRowIDs   map[string]bool
 	OnQueryChange          func(GridQueryState, gg.EventCtx)
 	OnSelectionChange      func(GridSelection, gg.EventCtx)
-	OnColumnOrderChange    func([]string, gg.EventCtx)
-	OnColumnPinChange      func(string, GridColumnPin, gg.EventCtx)
-	OnHiddenColumnsChange  func(map[string]bool, gg.EventCtx)
-	OnPageChange           func(int, gg.EventCtx)
-	OnDetailExpandedChange func(map[string]bool, gg.EventCtx)
+	onColumnOrderChange    func([]string, gg.EventCtx)
+	onColumnPinChange      func(string, gridColumnPin, gg.EventCtx)
+	onHiddenColumnsChange  func(map[string]bool, gg.EventCtx)
+	onPageChange           func(int, gg.EventCtx)
+	onDetailExpandedChange func(map[string]bool, gg.EventCtx)
 	OnCellEdit             func(GridCellEdit, gg.EventCtx)
-	OnRowsChange           func([]GridRow, gg.EventCtx)
+	onRowsChange           func([]GridRow, gg.EventCtx)
 	OnCRUDError            func(string, gg.EventCtx)
-	CellFormat             func(GridRow, int, GridColumnCfg, string, *gg.Window) GridCellFormat
-	DetailRowView          func(GridRow, *gg.Window) gg.View
-	OnCopyRows             func([]GridRow, gg.EventCtx) (string, bool)
-	OnRowActivate          func(GridRow, gg.EventCtx)
+	cellFormat             func(GridRow, int, GridColumnCfg, string, *gg.Window) gridCellFormat
+	detailRowView          func(GridRow, *gg.Window) gg.View
+	onCopyRows             func([]GridRow, gg.EventCtx) (string, bool)
+	onRowActivate          func(GridRow, gg.EventCtx)
 	Query                  GridQueryState
 	ID                     string `gui:"required"`
 	Cursor                 string
-	LoadError              string
-	QuickFilterPlaceholder string
+	loadError              string
+	quickFilterPlaceholder string
 	A11YLabel              string
 	A11YDescription        string
 	Columns                []GridColumnCfg
-	ColumnOrder            []string
-	GroupBy                []string
-	Aggregates             []GridAggregateCfg
+	columnOrder            []string
+	groupBy                []string
+	aggregates             []gridAggregateCfg
 	// RowsData is a convenience field for key-value row data.
 	// Map keys must match Column IDs. When set, RowsData takes
 	// precedence over Rows. If Columns is empty, column
 	// definitions are auto-generated from sorted keys of the
 	// first map entry (default width 150px).
-	RowsData        []map[string]string
+	rowsData        []map[string]string
 	Rows            []GridRow
-	FrozenTopRowIDs []string
+	frozenTopRowIDs []string
 	PageLimit       int
-	PageSize        int
-	PageIndex       int
+	pageSize        int
+	pageIndex       int
 	// QuickFilterDebounce delays the quick filter query commit.
 	// Defaults to 200ms on grids with a DataSource, 0 (immediate)
 	// otherwise; negative opts a sourced grid out of debouncing.
-	QuickFilterDebounce time.Duration
+	quickFilterDebounce time.Duration
 	PaddingCell         gg.Opt[gg.Padding]
 	PaddingHeader       gg.Opt[gg.Padding]
 	PaddingFilter       gg.Opt[gg.Padding]
 	Radius              gg.Opt[float32]
 	SizeBorder          gg.Opt[float32]
-	RowHeight           float32
+	rowHeight           float32
 	HeaderHeight        float32
 	Width               float32
 	Height              float32
@@ -258,7 +258,7 @@ type DataGridCfg struct {
 	ColorResizeHandle   gg.Color
 	ColorResizeActive   gg.Color
 	Sizing              gg.Opt[gg.Sizing]
-	PaginationKind      GridPaginationKind
+	PaginationKind      gridPaginationKind
 	Loading             bool
 	ShowCRUDToolbar     bool
 	FreezeHeader        bool
@@ -285,8 +285,8 @@ func applyDataGridDefaults(cfg *DataGridCfg) {
 	if !cfg.Sizing.IsSet() {
 		cfg.Sizing = gg.Some(gg.FillFill)
 	}
-	if cfg.RowHeight == 0 {
-		cfg.RowHeight = dataGridDefaultRowHeight
+	if cfg.rowHeight == 0 {
+		cfg.rowHeight = dataGridDefaultRowHeight
 	}
 	if cfg.HeaderHeight == 0 {
 		cfg.HeaderHeight = dataGridDefaultHeaderHeight
@@ -298,8 +298,8 @@ func applyDataGridDefaults(cfg *DataGridCfg) {
 	// on in-memory grids it just delays the query round-trip. A
 	// negative value opts a sourced grid out of debouncing (the
 	// handler treats <= 0 as immediate).
-	if cfg.QuickFilterDebounce == 0 && dataGridHasSource(cfg) {
-		cfg.QuickFilterDebounce = 200 * time.Millisecond
+	if cfg.quickFilterDebounce == 0 && dataGridHasSource(cfg) {
+		cfg.quickFilterDebounce = 200 * time.Millisecond
 	}
 	if !cfg.ColorBackground.IsSet() {
 		cfg.ColorBackground = s.ColorBackground
@@ -387,7 +387,7 @@ type dataGridPresentationCache struct {
 }
 
 type dataGridRangeState struct {
-	AnchorRowID string
+	anchorRowID string
 }
 
 type dataGridEditState struct {
@@ -417,11 +417,11 @@ type dataGridCrudState struct {
 type dataGridSourceState struct {
 	RowCount       *int
 	ActiveAbort    *gg.GridAbortController
-	LoadError      string
+	loadError      string
 	RequestKey     string
 	CurrentCursor  string
-	NextCursor     string
-	PrevCursor     string
+	nextCursor     string
+	prevCursor     string
 	ConfigCursor   string
 	Rows           []GridRow
 	RequestID      uint64
@@ -436,8 +436,8 @@ type dataGridSourceState struct {
 	CachedCaps     GridDataCapabilities
 	Loading        bool
 	HasLoaded      bool
-	HasMore        bool
-	PaginationKind GridPaginationKind
+	hasMore        bool
+	PaginationKind gridPaginationKind
 	CapsCached     bool
 	RowsDirty      bool
 }
@@ -460,17 +460,17 @@ type dataGridCtx struct {
 func New(w *gg.Window, cfg DataGridCfg) gg.View {
 	gg.RequireID("DataGrid", cfg.ID)
 	applyDataGridDefaults(&cfg)
-	if len(cfg.RowsData) > 0 && cfg.DataSource == nil {
-		n := min(len(cfg.RowsData), maxDataConvLen)
+	if len(cfg.rowsData) > 0 && cfg.DataSource == nil {
+		n := min(len(cfg.rowsData), maxDataConvLen)
 		// Auto-generate columns from sorted keys of first row
 		// when Columns is empty.
-		if len(cfg.Columns) == 0 && len(cfg.RowsData[0]) > 0 {
-			cfg.Columns = dataGridColumnsFromMap(cfg.RowsData[0])
+		if len(cfg.Columns) == 0 && len(cfg.rowsData[0]) > 0 {
+			cfg.Columns = dataGridColumnsFromMap(cfg.rowsData[0])
 		}
 		cfg.Rows = make([]GridRow, n)
 		for i := range n {
 			cfg.Rows[i] = GridRow{ID: strconv.Itoa(i),
-				Cells: cfg.RowsData[i]}
+				Cells: cfg.rowsData[i]}
 		}
 	}
 
@@ -509,10 +509,10 @@ func New(w *gg.Window, cfg DataGridCfg) gg.View {
 
 	// Height/layout waterfall.
 	rowHeight := dataGridRowHeight(&resolvedCfg, w)
-	headerInScrollBody := boolDefault(resolvedCfg.ShowHeader, true) && !resolvedCfg.FreezeHeader
+	headerInScrollBody := boolDefault(resolvedCfg.showHeader, true) && !resolvedCfg.FreezeHeader
 	staticTop := dataGridStaticTopHeight(&resolvedCfg, rowHeight, chooserOpen, headerInScrollBody)
 	pageStart, pageEnd, pageIndex, pageCount := dataGridPageBounds(len(resolvedCfg.Rows),
-		resolvedCfg.PageSize, resolvedCfg.PageIndex)
+		resolvedCfg.pageSize, resolvedCfg.pageIndex)
 	pageIndices := dataGridPageRowIndices(pageStart, pageEnd)
 	frozenTopIndices, bodyPageIndices := dataGridSplitFrozenTopIndices(&resolvedCfg, pageIndices)
 	frozenTopIDs := dataGridFrozenTopIDSet(&resolvedCfg)
@@ -537,8 +537,8 @@ func New(w *gg.Window, cfg DataGridCfg) gg.View {
 	}
 
 	// Build columns and presentation.
-	columns := dataGridEffectiveColumns(resolvedCfg.Columns, resolvedCfg.ColumnOrder,
-		resolvedCfg.HiddenColumnIDs)
+	columns := dataGridEffectiveColumns(resolvedCfg.Columns, resolvedCfg.columnOrder,
+		resolvedCfg.hiddenColumnIDs)
 	presentation := dataGridCachedPresentation(&resolvedCfg, columns, bodyPageIndices, w)
 	if !hasSource {
 		dataGridApplyPendingLocalJumpScroll(&resolvedCfg, gridHeight, rowHeight,

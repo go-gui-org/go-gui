@@ -101,7 +101,7 @@ func TestSidebarRuntimeStateInit(t *testing.T) {
 		Width:   100,
 		Content: []View{Text(TextCfg{Text: "x"})},
 	})
-	sm := StateMap[string, SidebarRuntimeState](
+	sm := StateMap[string, sidebarRuntimeState](
 		w, nsSidebar, capFew)
 	rt, ok := sm.Get("sb")
 	if !ok {
@@ -110,8 +110,8 @@ func TestSidebarRuntimeStateInit(t *testing.T) {
 	if !rt.Initialized {
 		t.Error("should be initialized")
 	}
-	if rt.AnimFrac != 1 {
-		t.Errorf("animFrac = %f, want 1 (open)", rt.AnimFrac)
+	if rt.animFrac != 1 {
+		t.Errorf("animFrac = %f, want 1 (open)", rt.animFrac)
 	}
 }
 
@@ -131,8 +131,8 @@ func TestSidebarToggleToClosedPreservesState(t *testing.T) {
 	}
 
 	// Simulate animation completing to closed: manually set state.
-	sm := StateMap[string, SidebarRuntimeState](w, nsSidebar, capFew)
-	sm.Set("sb", SidebarRuntimeState{AnimFrac: 0, PrevOpen: false, Initialized: true})
+	sm := StateMap[string, sidebarRuntimeState](w, nsSidebar, capFew)
+	sm.Set("sb", sidebarRuntimeState{animFrac: 0, prevOpen: false, Initialized: true})
 
 	// Next frame: sidebar should stay closed.
 	v2 := w.Sidebar(SidebarCfg{
@@ -148,11 +148,11 @@ func TestSidebarToggleToClosedPreservesState(t *testing.T) {
 
 	// Verify state is still consistent.
 	rt, _ := sm.Get("sb")
-	if rt.AnimFrac != 0 {
-		t.Errorf("AnimFrac = %f, want 0", rt.AnimFrac)
+	if rt.animFrac != 0 {
+		t.Errorf("AnimFrac = %f, want 0", rt.animFrac)
 	}
-	if rt.PrevOpen != false {
-		t.Errorf("PrevOpen = %v, want false", rt.PrevOpen)
+	if rt.prevOpen != false {
+		t.Errorf("PrevOpen = %v, want false", rt.prevOpen)
 	}
 }
 
@@ -182,16 +182,16 @@ func TestSidebarReinitAfterClearWithOpenFalse(t *testing.T) {
 		t.Errorf("re-init closed width = %f, want 0", layout.Shape.Width)
 	}
 
-	sm := StateMap[string, SidebarRuntimeState](w, nsSidebar, capFew)
+	sm := StateMap[string, sidebarRuntimeState](w, nsSidebar, capFew)
 	rt, ok := sm.Get("sb")
 	if !ok {
 		t.Fatal("state should exist after re-init")
 	}
-	if rt.AnimFrac != 0 {
-		t.Errorf("AnimFrac = %f, want 0", rt.AnimFrac)
+	if rt.animFrac != 0 {
+		t.Errorf("AnimFrac = %f, want 0", rt.animFrac)
 	}
-	if rt.PrevOpen != false {
-		t.Errorf("PrevOpen = %v, want false", rt.PrevOpen)
+	if rt.prevOpen != false {
+		t.Errorf("PrevOpen = %v, want false", rt.prevOpen)
 	}
 }
 
@@ -221,13 +221,13 @@ func TestSidebarReinitAfterClearWithOpenTrue(t *testing.T) {
 		t.Errorf("re-init open width = %f, want 200", layout.Shape.Width)
 	}
 
-	sm := StateMap[string, SidebarRuntimeState](w, nsSidebar, capFew)
+	sm := StateMap[string, sidebarRuntimeState](w, nsSidebar, capFew)
 	rt, ok := sm.Get("sb")
 	if !ok {
 		t.Fatal("state should exist after re-init")
 	}
-	if rt.AnimFrac != 1 {
-		t.Errorf("AnimFrac = %f, want 1", rt.AnimFrac)
+	if rt.animFrac != 1 {
+		t.Errorf("AnimFrac = %f, want 1", rt.animFrac)
 	}
 }
 
@@ -244,8 +244,8 @@ func TestSidebarNoDoubleAnimation(t *testing.T) {
 	_ = generateViewLayout(v, w)
 
 	// Simulate closing animation halfway done.
-	sm := StateMap[string, SidebarRuntimeState](w, nsSidebar, capFew)
-	sm.Set("sb", SidebarRuntimeState{AnimFrac: 0.5, PrevOpen: true, Initialized: true})
+	sm := StateMap[string, sidebarRuntimeState](w, nsSidebar, capFew)
+	sm.Set("sb", sidebarRuntimeState{animFrac: 0.5, prevOpen: true, Initialized: true})
 
 	// Now toggle closed — should start animation 0.5→0.
 	v2 := w.Sidebar(SidebarCfg{
@@ -262,8 +262,8 @@ func TestSidebarNoDoubleAnimation(t *testing.T) {
 
 	// PrevOpen should now be false.
 	rt, _ := sm.Get("sb")
-	if rt.PrevOpen != false {
-		t.Errorf("PrevOpen = %v, want false", rt.PrevOpen)
+	if rt.prevOpen != false {
+		t.Errorf("PrevOpen = %v, want false", rt.prevOpen)
 	}
 
 	// Same-frame second call (simulating double layout): should NOT restart animation.
@@ -278,7 +278,7 @@ func TestSidebarNoDoubleAnimation(t *testing.T) {
 		t.Errorf("second call width = %f, want 100", layout3.Shape.Width)
 	}
 	rt2, _ := sm.Get("sb")
-	if rt2.PrevOpen != false {
-		t.Errorf("PrevOpen after second call = %v, want false", rt2.PrevOpen)
+	if rt2.prevOpen != false {
+		t.Errorf("PrevOpen after second call = %v, want false", rt2.prevOpen)
 	}
 }

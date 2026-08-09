@@ -89,7 +89,7 @@ func TestRadioClickHoverChangesBorder(t *testing.T) {
 	w := newTestWindow()
 	v := Radio(RadioCfg{ID: "widget_test_test_radio_click_hover_changes_border", OnClick: noop, Label: "X"})
 	layout := generateViewLayout(v, w)
-	clickColor := DefaultRadioStyle.ColorClick
+	clickColor := defaultRadioStyle.colorClick
 	e := &Event{MouseButton: MouseLeft}
 	layout.Shape.events.OnHover(EventCtx{&layout, e, w})
 	got := layout.Children[0].Shape.ColorBorder
@@ -104,10 +104,10 @@ func TestRadioFocusBorder(t *testing.T) {
 	v := Radio(RadioCfg{OnClick: noop, ID: "f5"})
 	layout := generateViewLayout(v, w)
 	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, w})
-	if layout.Children[0].Shape.ColorBorder != DefaultRadioStyle.ColorBorderFocus {
+	if layout.Children[0].Shape.ColorBorder != defaultRadioStyle.ColorBorderFocus {
 		t.Errorf("focus border = %v, want %v",
 			layout.Children[0].Shape.ColorBorder,
-			DefaultRadioStyle.ColorBorderFocus)
+			defaultRadioStyle.ColorBorderFocus)
 	}
 }
 
@@ -117,7 +117,7 @@ func TestRadioUsesRadioStyleDefaults(t *testing.T) {
 	layout := generateViewLayout(v, w)
 	// Padding should come from DefaultRadioStyle, not NoPadding.
 	got := layout.Shape.Padding
-	want := DefaultRadioStyle.Padding
+	want := defaultRadioStyle.Padding
 	if got != want {
 		t.Errorf("padding = %v, want %v", got, want)
 	}
@@ -226,7 +226,7 @@ func TestToggleClickHoverChangesColor(t *testing.T) {
 	w := newTestWindow()
 	v := Toggle(ToggleCfg{ID: "widget_test_test_toggle_click_hover_changes_color", OnClick: noop})
 	layout := generateViewLayout(v, w)
-	clickColor := DefaultToggleStyle.ColorClick
+	clickColor := defaultToggleStyle.colorClick
 	e := &Event{MouseButton: MouseLeft}
 	layout.Shape.events.OnHover(EventCtx{&layout, e, w})
 	got := layout.Children[0].Shape.Color
@@ -241,10 +241,10 @@ func TestToggleFocusBorder(t *testing.T) {
 	v := Toggle(ToggleCfg{OnClick: noop, ID: "f5"})
 	layout := generateViewLayout(v, w)
 	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, w})
-	if layout.Children[0].Shape.ColorBorder != DefaultToggleStyle.ColorBorderFocus {
+	if layout.Children[0].Shape.ColorBorder != defaultToggleStyle.ColorBorderFocus {
 		t.Errorf("focus border = %v, want %v",
 			layout.Children[0].Shape.ColorBorder,
-			DefaultToggleStyle.ColorBorderFocus)
+			defaultToggleStyle.ColorBorderFocus)
 	}
 }
 
@@ -252,7 +252,7 @@ func TestToggleDefaultStyles(t *testing.T) {
 	w := newTestWindow()
 	v := Toggle(ToggleCfg{ID: "widget_test_test_toggle_default_styles", OnClick: noop})
 	layout := generateViewLayout(v, w)
-	d := &DefaultToggleStyle
+	d := &defaultToggleStyle
 	box := layout.Children[0].Shape
 	if box.Color != d.Color {
 		t.Errorf("box color: got %v, want %v", box.Color, d.Color)
@@ -374,7 +374,7 @@ func TestSwitchClickHoverChangesColor(t *testing.T) {
 	w := newTestWindow()
 	v := Switch(SwitchCfg{ID: "widget_test_test_switch_click_hover_changes_color", OnClick: noop})
 	layout := generateViewLayout(v, w)
-	clickColor := DefaultSwitchStyle.ColorClick
+	clickColor := defaultSwitchStyle.colorClick
 	e := &Event{MouseButton: MouseLeft}
 	layout.Shape.events.OnHover(EventCtx{&layout, e, w})
 	got := layout.Children[0].Shape.Color
@@ -392,10 +392,10 @@ func TestSwitchFocusBorder(t *testing.T) {
 	// Focus paints the pill only; the outer row (which spans the
 	// label) stays untouched.
 	if layout.Children[0].Shape.ColorBorder !=
-		DefaultSwitchStyle.ColorBorderFocus {
+		defaultSwitchStyle.ColorBorderFocus {
 		t.Error("focused pill should have focus border color")
 	}
-	if layout.Shape.ColorBorder == DefaultSwitchStyle.ColorBorderFocus {
+	if layout.Shape.ColorBorder == defaultSwitchStyle.ColorBorderFocus {
 		t.Error("outer row should not be highlighted")
 	}
 }
@@ -413,7 +413,7 @@ func TestSwitchDefaultStyles(t *testing.T) {
 	w := newTestWindow()
 	v := Switch(SwitchCfg{ID: "widget_test_test_switch_default_styles", OnClick: noop})
 	layout := generateViewLayout(v, w)
-	d := &DefaultSwitchStyle
+	d := &defaultSwitchStyle
 	pill := layout.Children[0].Shape
 	if pill.Color != d.Color {
 		t.Errorf("pill color: got %v, want %v", pill.Color, d.Color)
@@ -425,13 +425,13 @@ func TestSwitchDefaultStyles(t *testing.T) {
 
 func TestSwitchThumbColor(t *testing.T) {
 	w := newTestWindow()
-	d := &DefaultSwitchStyle
+	d := &defaultSwitchStyle
 
 	off := Switch(SwitchCfg{ID: "widget_test_test_switch_thumb_color", OnClick: noop})
 	lo := generateViewLayout(off, w)
 	thumb := lo.Children[0].Children[0].Shape
-	if thumb.Color != d.ColorUnselect {
-		t.Errorf("unselected thumb: got %v, want %v", thumb.Color, d.ColorUnselect)
+	if thumb.Color != d.colorUnselect {
+		t.Errorf("unselected thumb: got %v, want %v", thumb.Color, d.colorUnselect)
 	}
 
 	on := Switch(SwitchCfg{ID: "widget_test_test_switch_thumb_color_2", OnClick: noop, Selected: true})
@@ -529,7 +529,7 @@ func TestNumericInputNoButtons(t *testing.T) {
 	})
 	layout := generateViewLayout(v, w)
 	// Should be a Column (Input view), not Row with step buttons.
-	if layout.Shape.Axis != AxisTopToBottom {
+	if layout.Shape.Axis != axisTopToBottom {
 		t.Fatalf("expected column axis, got %d", layout.Shape.Axis)
 	}
 }

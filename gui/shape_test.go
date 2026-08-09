@@ -3,11 +3,11 @@ package gui
 import "testing"
 
 func TestNewShapeDefaults(t *testing.T) {
-	s := NewShape()
+	s := newShape()
 	if s == nil {
 		t.Fatal("nil shape")
 	}
-	if s.UID == 0 {
+	if s.uID == 0 {
 		t.Error("UID should be nonzero")
 	}
 	if !f32AreClose(s.Opacity, 1.0) {
@@ -16,9 +16,9 @@ func TestNewShapeDefaults(t *testing.T) {
 }
 
 func TestNewShapeUIDsUnique(t *testing.T) {
-	a := NewShape()
-	b := NewShape()
-	if a.UID == b.UID {
+	a := newShape()
+	b := newShape()
+	if a.uID == b.uID {
 		t.Error("UIDs should be unique")
 	}
 }

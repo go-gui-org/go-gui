@@ -1,187 +1,188 @@
 package gui
 
 // WithButtonStyle returns a Theme with the given style.
-func (t Theme) WithButtonStyle(s ButtonStyle) Theme {
+func (t Theme) withButtonStyle(s buttonStyle) Theme {
 	t.ButtonStyle = s
 	return t
 }
 
 // WithContainerStyle returns a Theme with the given style.
-func (t Theme) WithContainerStyle(s ContainerStyle) Theme {
+func (t Theme) withContainerStyle(s containerStyle) Theme {
 	t.ContainerStyle = s
 	return t
 }
 
 // WithRectangleStyle returns a Theme with the given style.
-func (t Theme) WithRectangleStyle(s RectangleStyle) Theme {
-	t.RectangleStyle = s
+func (t Theme) withRectangleStyle(s RectangleStyle) Theme {
+	t.rectangleStyle = s
 	return t
 }
 
 // WithTextStyle returns a Theme with the given style.
-func (t Theme) WithTextStyle(s TextStyle) Theme {
+func (t Theme) withTextStyle(s TextStyle) Theme {
 	t.TextStyleDef = s
 	return t
 }
 
 // WithInputStyle returns a Theme with the given style.
-func (t Theme) WithInputStyle(s InputStyle) Theme {
+func (t Theme) withInputStyle(s InputStyle) Theme {
 	t.InputStyle = s
 	return t
 }
 
 // WithScrollbarStyle returns a Theme with the given style.
-func (t Theme) WithScrollbarStyle(s ScrollbarStyle) Theme {
+func (t Theme) withScrollbarStyle(s ScrollbarStyle) Theme {
 	t.ScrollbarStyle = s
 	return t
 }
 
 // WithRadioStyle returns a Theme with the given style.
-func (t Theme) WithRadioStyle(s RadioStyle) Theme {
-	t.RadioStyle = s
+func (t Theme) withRadioStyle(s RadioStyle) Theme {
+	t.radioStyle = s
 	return t
 }
 
 // WithSwitchStyle returns a Theme with the given style.
-func (t Theme) WithSwitchStyle(s SwitchStyle) Theme {
-	t.SwitchStyle = s
+func (t Theme) withSwitchStyle(s SwitchStyle) Theme {
+	t.switchStyle = s
 	return t
 }
 
 // WithToggleStyle returns a Theme with the given style.
-func (t Theme) WithToggleStyle(s ToggleStyle) Theme {
-	t.ToggleStyle = s
+func (t Theme) withToggleStyle(s ToggleStyle) Theme {
+	t.toggleStyle = s
 	return t
 }
 
 // WithSelectStyle returns a Theme with the given style.
-func (t Theme) WithSelectStyle(s SelectStyle) Theme {
-	t.SelectStyle = s
+func (t Theme) withSelectStyle(s SelectStyle) Theme {
+	t.selectStyle = s
 	return t
 }
 
 // WithListBoxStyle returns a Theme with the given style.
-func (t Theme) WithListBoxStyle(s ListBoxStyle) Theme {
-	t.ListBoxStyle = s
+func (t Theme) withListBoxStyle(s ListBoxStyle) Theme {
+	t.listBoxStyle = s
 	return t
 }
 
 // WithTreeStyle returns a Theme with the given style.
-func (t Theme) WithTreeStyle(s TreeStyle) Theme {
-	t.TreeStyle = s
+func (t Theme) withTreeStyle(s TreeStyle) Theme {
+	t.treeStyle = s
 	return t
 }
 
 // WithDialogStyle returns a Theme with the given style.
-func (t Theme) WithDialogStyle(s DialogStyle) Theme {
-	t.DialogStyle = s
+func (t Theme) withDialogStyle(s DialogStyle) Theme {
+	t.dialogStyle = s
 	return t
 }
 
 // WithToastStyle returns a Theme with the given style.
-func (t Theme) WithToastStyle(s ToastStyle) Theme {
-	t.ToastStyle = s
+func (t Theme) withToastStyle(s ToastStyle) Theme {
+	t.toastStyle = s
 	return t
 }
 
 // WithTooltipStyle returns a Theme with the given style.
-func (t Theme) WithTooltipStyle(s TooltipStyle) Theme {
-	t.TooltipStyle = s
+func (t Theme) withTooltipStyle(s TooltipStyle) Theme {
+	t.tooltipStyle = s
 	return t
 }
 
 // WithBadgeStyle returns a Theme with the given style.
-func (t Theme) WithBadgeStyle(s BadgeStyle) Theme {
-	t.BadgeStyle = s
+func (t Theme) withBadgeStyle(s BadgeStyle) Theme {
+	t.badgeStyle = s
 	return t
 }
 
 // WithExpandPanelStyle returns a Theme with the given style.
-func (t Theme) WithExpandPanelStyle(s ExpandPanelStyle) Theme {
-	t.ExpandPanelStyle = s
+func (t Theme) withExpandPanelStyle(s ExpandPanelStyle) Theme {
+	t.expandPanelStyle = s
 	return t
 }
 
 // WithProgressBarStyle returns a Theme with the given style.
-func (t Theme) WithProgressBarStyle(s ProgressBarStyle) Theme {
-	t.ProgressBarStyle = s
+func (t Theme) withProgressBarStyle(s ProgressBarStyle) Theme {
+	t.progressBarStyle = s
 	return t
 }
 
 // WithSliderStyle returns a Theme with the given style.
-func (t Theme) WithSliderStyle(s SliderStyle) Theme {
-	t.SliderStyle = s
+func (t Theme) withSliderStyle(s SliderStyle) Theme {
+	t.sliderStyle = s
 	return t
 }
 
 // WithTabControlStyle returns a Theme with the given style.
-func (t Theme) WithTabControlStyle(s TabControlStyle) Theme {
-	t.TabControlStyle = s
+func (t Theme) withTabControlStyle(s TabControlStyle) Theme {
+	t.tabControlStyle = s
 	return t
 }
 
 // WithBreadcrumbStyle returns a Theme with the given style.
-func (t Theme) WithBreadcrumbStyle(s BreadcrumbStyle) Theme {
-	t.BreadcrumbStyle = s
+func (t Theme) withBreadcrumbStyle(s BreadcrumbStyle) Theme {
+	t.breadcrumbStyle = s
 	return t
 }
 
 // WithSplitterStyle returns a Theme with the given style.
-func (t Theme) WithSplitterStyle(s SplitterStyle) Theme {
-	t.SplitterStyle = s
+func (t Theme) withSplitterStyle(s SplitterStyle) Theme {
+	t.splitterStyle = s
 	return t
 }
 
 // WithTableStyle returns a Theme with the given style.
-func (t Theme) WithTableStyle(s TableStyle) Theme {
-	t.TableStyle = s
+func (t Theme) withTableStyle(s TableStyle) Theme {
+	t.tableStyle = s
 	return t
 }
 
 // WithComboboxStyle returns a Theme with the given style.
-func (t Theme) WithComboboxStyle(s ComboboxStyle) Theme {
-	t.ComboboxStyle = s
+func (t Theme) withComboboxStyle(s ComboboxStyle) Theme {
+	t.comboboxStyle = s
 	return t
 }
 
 // WithCommandPaletteStyle returns a Theme with the given style.
-func (t Theme) WithCommandPaletteStyle(s CommandPaletteStyle) Theme {
-	t.CommandPaletteStyle = s
+func (t Theme) withCommandPaletteStyle(s CommandPaletteStyle) Theme {
+	t.commandPaletteStyle = s
 	return t
 }
 
 // WithMenubarStyle returns a Theme with the given style.
-func (t Theme) WithMenubarStyle(s MenubarStyle) Theme {
+func (t Theme) withMenubarStyle(s MenubarStyle) Theme {
 	t.MenubarStyle = s
 	return t
 }
 
 // WithDatePickerStyle returns a Theme with the given style.
-func (t Theme) WithDatePickerStyle(s DatePickerStyle) Theme {
-	t.DatePickerStyle = s
+func (t Theme) withDatePickerStyle(s DatePickerStyle) Theme {
+	t.datePickerStyle = s
 	return t
 }
 
 // WithColorPickerStyle returns a Theme with the given style.
-func (t Theme) WithColorPickerStyle(s ColorPickerStyle) Theme {
-	t.ColorPickerStyle = s
+func (t Theme) withColorPickerStyle(s ColorPickerStyle) Theme {
+	t.colorPickerStyle = s
 	return t
 }
 
 // WithSkeletonStyle returns a Theme with the given style.
-func (t Theme) WithSkeletonStyle(s SkeletonStyle) Theme {
-	t.SkeletonStyle = s
+func (t Theme) withSkeletonStyle(s SkeletonStyle) Theme {
+	t.skeletonStyle = s
 	return t
 }
 
 // WithDataGridStyle returns a Theme with the given style.
-func (t Theme) WithDataGridStyle(s DataGridStyle) Theme {
-	t.DataGridStyle = s
+func (t Theme) withDataGridStyle(s DataGridStyle) Theme {
+	t.dataGridStyle = s
 	return t
 }
 
 // WithInspectorStyle returns a Theme with the given style.
+// exportaudit:keep — public theme API used by sibling repos
 func (t Theme) WithInspectorStyle(s InspectorStyle) Theme {
-	t.InspectorStyle = s
+	t.inspectorStyle = s
 	return t
 }

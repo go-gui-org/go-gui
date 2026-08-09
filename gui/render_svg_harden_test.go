@@ -12,7 +12,7 @@ import (
 // translate offset. Rotating about origin would mis-position the path.
 func TestEmitSvgPathRenderer_BaseTRSRoutesRotPivotToTranslate(t *testing.T) {
 	w := &Window{}
-	path := CachedSvgPath{
+	path := cachedSvgPath{
 		Triangles:    []float32{0, 0, 1, 0, 0, 1},
 		Color:        Color{0, 0, 0, 255, true},
 		BaseTransX:   10,
@@ -48,7 +48,7 @@ func TestEmitSvgPathRenderer_BaseTRSRoutesRotPivotToTranslate(t *testing.T) {
 // translate when the anim state already specified one.
 func TestEmitSvgPathRenderer_AnimStateRotCenterOverridesBase(t *testing.T) {
 	w := &Window{}
-	path := CachedSvgPath{
+	path := cachedSvgPath{
 		Triangles:    []float32{0, 0, 1, 0, 0, 1},
 		Color:        Color{0, 0, 0, 255, true},
 		PathID:       1,
@@ -181,7 +181,7 @@ func TestEmitSvgPathRenderer_NonUniformCompoundsWithAnimXform(t *testing.T) {
 			Inited:   true,
 		},
 	}
-	path := CachedSvgPath{
+	path := cachedSvgPath{
 		PathID:       1,
 		Triangles:    []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
 		Color:        Color{255, 255, 255, 255, true},

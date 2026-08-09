@@ -6,7 +6,7 @@ func TestAnimationCommands_AppendOnDone(t *testing.T) {
 	var cmds []queuedCommand
 	ac := newAnimationCommands(&cmds)
 	called := false
-	ac.AppendOnDone(func(_ *Window) { called = true })
+	ac.appendOnDone(func(_ *Window) { called = true })
 
 	if len(cmds) != 1 {
 		t.Fatalf("len = %d, want 1", len(cmds))
@@ -23,7 +23,7 @@ func TestAnimationCommands_AppendOnDone(t *testing.T) {
 func TestAnimationCommands_AppendOnDoneNilSkips(t *testing.T) {
 	var cmds []queuedCommand
 	ac := newAnimationCommands(&cmds)
-	ac.AppendOnDone(nil)
+	ac.appendOnDone(nil)
 
 	if len(cmds) != 0 {
 		t.Errorf("len = %d, want 0 for nil fn", len(cmds))
@@ -34,7 +34,7 @@ func TestAnimationCommands_AppendOnValue(t *testing.T) {
 	var cmds []queuedCommand
 	ac := newAnimationCommands(&cmds)
 	var gotVal float32
-	ac.AppendOnValue(func(v float32, _ *Window) { gotVal = v }, 42.5)
+	ac.appendOnValue(func(v float32, _ *Window) { gotVal = v }, 42.5)
 
 	if len(cmds) != 1 {
 		t.Fatalf("len = %d, want 1", len(cmds))
@@ -56,12 +56,12 @@ func TestAnimationCommands_AppendOnValue(t *testing.T) {
 // directly) should not panic when enqueuing.
 func TestAnimationCommands_NilSafe(t *testing.T) {
 	var nilAC *AnimationCommands
-	nilAC.AppendOnDone(func(*Window) {})
-	nilAC.AppendOnValue(func(float32, *Window) {}, 1)
+	nilAC.appendOnDone(func(*Window) {})
+	nilAC.appendOnValue(func(float32, *Window) {}, 1)
 
 	emptyAC := AnimationCommands{}
-	emptyAC.AppendOnDone(func(*Window) {})
-	emptyAC.AppendOnValue(func(float32, *Window) {}, 1)
+	emptyAC.appendOnDone(func(*Window) {})
+	emptyAC.appendOnValue(func(float32, *Window) {}, 1)
 }
 
 func TestCommandMarkLayoutRefreshSetsFlag(t *testing.T) {

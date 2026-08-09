@@ -17,8 +17,8 @@ type NumericInputCfg struct {
 	// Accessibility
 	A11YLabel       string
 	A11YDescription string
-	CurrencyCfg     NumericCurrencyModeCfg
-	PercentCfg      NumericPercentModeCfg
+	currencyCfg     numericCurrencyModeCfg
+	percentCfg      numericPercentModeCfg
 	Locale          NumericLocaleCfg
 	StepCfg         NumericStepCfg
 	Value           Opt[float64]
@@ -48,7 +48,7 @@ type NumericInputCfg struct {
 
 	// Sizing
 	Sizing Sizing
-	Mode   NumericInputMode
+	Mode   numericInputMode
 
 	// ReadOnly blocks value edits while the field stays focusable and
 	// selectable, mirroring InputCfg.ReadOnly. Typing is blocked on the
@@ -62,12 +62,12 @@ type NumericInputCfg struct {
 }
 
 // DefaultNumericInputStyle holds defaults for NumericInputCfg Opt fields.
-var DefaultNumericInputStyle = struct {
+var defaultNumericInputStyle = struct {
 	SizeBorder float32
 	Radius     float32
 }{
-	SizeBorder: SizeBorderDef,
-	Radius:     RadiusMedium,
+	SizeBorder: sizeBorderDef,
+	Radius:     radiusMedium,
 }
 
 // NumericInput creates a locale-aware numeric input.
@@ -75,7 +75,7 @@ func NumericInput(cfg NumericInputCfg) View {
 	applyNumericInputDefaults(&cfg)
 	requireFocusID("NumericInput", cfg.FocusDisabled, cfg.ID)
 
-	dn := &DefaultNumericInputStyle
+	dn := &defaultNumericInputStyle
 	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
 	radius := cfg.Radius.Get(dn.Radius)
 	locale := numericLocaleNormalize(cfg.Locale)
@@ -203,11 +203,11 @@ func numericInputField(cfg NumericInputCfg, locale NumericLocaleCfg, _ NumericSt
 		Disabled:         cfg.Disabled,
 		Invisible:        cfg.Invisible,
 		OnTextChanged:    cfg.OnTextChanged,
-		PreTextChange: func(current, proposed string) (string, bool) {
+		preTextChange: func(current, proposed string) (string, bool) {
 			return numericInputPreCommitTransformMode(
 				current, proposed, cfg.Decimals, locale, modeCfg)
 		},
-		PostCommitNormalize: func(text string, _ InputCommitReason) string {
+		postCommitNormalize: func(text string, _ InputCommitReason) string {
 			_, committed := numericInputCommitResultMode(
 				text, cfg.Value, cfg.Min, cfg.Max,
 				cfg.Decimals, locale, modeCfg)
@@ -335,29 +335,29 @@ func numericModeCfgFromInput(cfg NumericInputCfg) numericModeCfg {
 	case NumericCurrency:
 		return numericModeCfg{
 			mode:              NumericCurrency,
-			affix:             cfg.CurrencyCfg.Symbol,
-			affixPosition:     cfg.CurrencyCfg.Position,
-			affixSpacing:      cfg.CurrencyCfg.SymbolSpacing,
+			affix:             cfg.currencyCfg.Symbol,
+			affixPosition:     cfg.currencyCfg.Position,
+			affixSpacing:      cfg.currencyCfg.symbolSpacing,
 			displayMultiplier: 1.0,
 		}
 	case NumericPercent:
 		return numericModeCfg{
 			mode:              NumericPercent,
-			affix:             cfg.PercentCfg.Symbol,
-			affixPosition:     cfg.PercentCfg.Position,
-			affixSpacing:      cfg.PercentCfg.SymbolSpacing,
+			affix:             cfg.percentCfg.Symbol,
+			affixPosition:     cfg.percentCfg.Position,
+			affixSpacing:      cfg.percentCfg.symbolSpacing,
 			displayMultiplier: 100.0,
 		}
 	default:
 		return numericModeCfg{
-			mode:              NumericNumber,
+			mode:              numericNumber,
 			displayMultiplier: 1.0,
 		}
 	}
 }
 
 func applyNumericInputDefaults(cfg *NumericInputCfg) {
-	d := &DefaultInputStyle
+	d := &defaultInputStyle
 	if !cfg.Color.IsSet() {
 		cfg.Color = d.Color
 	}
@@ -377,18 +377,18 @@ func applyNumericInputDefaults(cfg *NumericInputCfg) {
 		cfg.TextStyle = DefaultTextStyle
 	}
 	if cfg.PlaceholderStyle == (TextStyle{}) {
-		cfg.PlaceholderStyle = DefaultInputStyle.PlaceholderStyle
+		cfg.PlaceholderStyle = defaultInputStyle.PlaceholderStyle
 	}
-	if cfg.CurrencyCfg == (NumericCurrencyModeCfg{}) {
-		cfg.CurrencyCfg = NumericCurrencyModeCfg{
+	if cfg.currencyCfg == (numericCurrencyModeCfg{}) {
+		cfg.currencyCfg = numericCurrencyModeCfg{
 			Symbol:   "$",
-			Position: AffixPrefix,
+			Position: affixPrefix,
 		}
 	}
-	if cfg.PercentCfg == (NumericPercentModeCfg{}) {
-		cfg.PercentCfg = NumericPercentModeCfg{
+	if cfg.percentCfg == (numericPercentModeCfg{}) {
+		cfg.percentCfg = numericPercentModeCfg{
 			Symbol:   "%",
-			Position: AffixSuffix,
+			Position: affixSuffix,
 		}
 	}
 }

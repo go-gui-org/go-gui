@@ -53,7 +53,7 @@ func clampElementID(s string) string {
 // FlatnessTolerance overrides the tessellation tolerance floor when
 // > 0. HoveredElementID / FocusedElementID feed :hover / :focus
 // pseudo-class matching during the cascade.
-type ParseOptions struct {
+type parseOptions struct {
 	HoveredElementID     string
 	FocusedElementID     string
 	FlatnessTolerance    float32
@@ -61,13 +61,13 @@ type ParseOptions struct {
 }
 
 // parseSvg parses an SVG string and returns a VectorGraphic.
-func parseSvg(content string) (*VectorGraphic, error) {
-	return parseSvgWith(content, ParseOptions{})
+func parseSvg(content string) (*vectorGraphic, error) {
+	return parseSvgWith(content, parseOptions{})
 }
 
 // parseSvgWith is the options-aware variant of parseSvg. opts is
 // snapshotted into the cascade (e.g. for @media reduced-motion).
-func parseSvgWith(content string, opts ParseOptions) (*VectorGraphic, error) {
+func parseSvgWith(content string, opts parseOptions) (*vectorGraphic, error) {
 	if len(content) > maxSvgFileSize {
 		return nil, fmt.Errorf("svg: content too large: %d bytes", len(content))
 	}
@@ -77,7 +77,7 @@ func parseSvgWith(content string, opts ParseOptions) (*VectorGraphic, error) {
 	}
 	expandUseElements(root)
 
-	vg := &VectorGraphic{
+	vg := &vectorGraphic{
 		Width:  defaultIconSize,
 		Height: defaultIconSize,
 	}
@@ -111,7 +111,7 @@ func parseSvgWith(content string, opts ParseOptions) (*VectorGraphic, error) {
 		root.AttrMap["preserveAspectRatio"])
 
 	// Pre-pass: extract <defs>.
-	vg.ClipPaths = parseDefsClipPaths(root)
+	vg.clipPaths = parseDefsClipPaths(root)
 	vg.Gradients = parseDefsGradients(root)
 	vg.Filters = parseDefsFilters(root)
 	vg.DefsPaths = parseDefsPaths(root)
@@ -218,7 +218,7 @@ func parseSvgWith(content string, opts ParseOptions) (*VectorGraphic, error) {
 	}
 
 	vg.Animations = state.animations
-	vg.GroupParent = state.groupParent
+	vg.groupParent = state.groupParent
 	resolveBegins(vg.Animations, state.animBeginSpecs, state.animIDIndex)
 	return vg, nil
 }
@@ -226,7 +226,7 @@ func parseSvgWith(content string, opts ParseOptions) (*VectorGraphic, error) {
 const maxSvgFileSize = 4 << 20 // 4 MB
 
 // parseSvgFile loads and parses an SVG file.
-func parseSvgFile(path string) (*VectorGraphic, error) {
+func parseSvgFile(path string) (*vectorGraphic, error) {
 	data, err := loadSvgFile(path)
 	if err != nil {
 		return nil, err

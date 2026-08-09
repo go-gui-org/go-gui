@@ -11,12 +11,12 @@ import (
 // an animation bound to an outer group fans out to a leaf path whose
 // own GroupID is a nested synth ID, via the GroupParent chain.
 func TestResolveAnimationTargets_NestedGroupAnimReachesLeaf(t *testing.T) {
-	vg := &VectorGraphic{
-		Paths: []VectorPath{
+	vg := &vectorGraphic{
+		Paths: []vectorPath{
 			{PathID: 1, GroupID: "inner"},
 			{PathID: 2, GroupID: "inner"},
 		},
-		GroupParent: map[string]string{
+		groupParent: map[string]string{
 			"inner": "mid",
 			"mid":   "outer",
 		},
@@ -42,11 +42,11 @@ func TestResolveAnimationTargets_NestedGroupAnimReachesLeaf(t *testing.T) {
 // visited-set + depth-cap guards prevent infinite walks if the
 // GroupParent map contains a cycle.
 func TestResolveAnimationTargets_GroupParentCycleDoesNotHang(t *testing.T) {
-	vg := &VectorGraphic{
-		Paths: []VectorPath{
+	vg := &vectorGraphic{
+		Paths: []vectorPath{
 			{PathID: 7, GroupID: "a"},
 		},
-		GroupParent: map[string]string{
+		groupParent: map[string]string{
 			"a": "b",
 			"b": "c",
 			"c": "a",
@@ -67,11 +67,11 @@ func TestResolveAnimationTargets_GroupParentCycleDoesNotHang(t *testing.T) {
 // TestResolveAnimationTargets_SelfParentBreaks confirms a self-parent
 // edge breaks immediately without duplication.
 func TestResolveAnimationTargets_SelfParentBreaks(t *testing.T) {
-	vg := &VectorGraphic{
-		Paths: []VectorPath{
+	vg := &vectorGraphic{
+		Paths: []vectorPath{
 			{PathID: 5, GroupID: "loop"},
 		},
-		GroupParent: map[string]string{"loop": "loop"},
+		groupParent: map[string]string{"loop": "loop"},
 		Animations:  []gui.SvgAnimation{{GroupID: "loop"}},
 	}
 	resolveAnimationTargets(vg)
@@ -84,8 +84,8 @@ func TestResolveAnimationTargets_SelfParentBreaks(t *testing.T) {
 // TestResolveAnimationTargets_NilGroupParent ensures animations still
 // bind to their direct GroupID when GroupParent is nil.
 func TestResolveAnimationTargets_NilGroupParent(t *testing.T) {
-	vg := &VectorGraphic{
-		Paths: []VectorPath{
+	vg := &vectorGraphic{
+		Paths: []vectorPath{
 			{PathID: 11, GroupID: "g1"},
 		},
 		Animations: []gui.SvgAnimation{{GroupID: "g1"}},
@@ -101,16 +101,16 @@ func TestResolveAnimationTargets_NilGroupParent(t *testing.T) {
 // that paths inside FilteredGroups also contribute via the ancestor
 // walk.
 func TestResolveAnimationTargets_FilteredGroupPathParticipates(t *testing.T) {
-	vg := &VectorGraphic{
-		Paths: []VectorPath{
+	vg := &vectorGraphic{
+		Paths: []vectorPath{
 			{PathID: 1, GroupID: "leaf"},
 		},
 		FilteredGroups: []svgFilteredGroup{
-			{Paths: []VectorPath{
+			{Paths: []vectorPath{
 				{PathID: 2, GroupID: "leaf"},
 			}},
 		},
-		GroupParent: map[string]string{"leaf": "outer"},
+		groupParent: map[string]string{"leaf": "outer"},
 		Animations:  []gui.SvgAnimation{{GroupID: "outer"}},
 	}
 	resolveAnimationTargets(vg)
@@ -134,11 +134,11 @@ func TestResolveAnimationTargets_DepthCapStops(t *testing.T) {
 		parent[prev] = cur
 		prev = cur
 	}
-	vg := &VectorGraphic{
-		Paths: []VectorPath{
+	vg := &vectorGraphic{
+		Paths: []vectorPath{
 			{PathID: 9, GroupID: "g0"},
 		},
-		GroupParent: parent,
+		groupParent: parent,
 		Animations: []gui.SvgAnimation{
 			{GroupID: "g0"},         // depth 0  — should bind
 			{GroupID: chainKey(63)}, // depth 63 — should bind
@@ -162,11 +162,11 @@ func TestResolveAnimationTargets_DepthCapStops(t *testing.T) {
 // visited set prevents one path being appended multiple times to the
 // same group bucket when a cycle exists.
 func TestResolveAnimationTargets_NoDuplicationUnderCycle(t *testing.T) {
-	vg := &VectorGraphic{
-		Paths: []VectorPath{
+	vg := &vectorGraphic{
+		Paths: []vectorPath{
 			{PathID: 4, GroupID: "x"},
 		},
-		GroupParent: map[string]string{
+		groupParent: map[string]string{
 			"x": "y",
 			"y": "x",
 		},

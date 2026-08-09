@@ -91,7 +91,7 @@ func buildEffectsFrameView(containers int) View {
 			ID:     "fx-" + strconv.Itoa(i),
 			Sizing: FitFit,
 			Shadow: shadow,
-			Color:  LightGray,
+			Color:  lightGray,
 			Content: []View{
 				Text(TextCfg{Text: "Effect " + strconv.Itoa(i)}),
 			},

@@ -104,9 +104,9 @@ func TestButtonColorSetLeavesThemeDefaultsForUnsetFields(t *testing.T) {
 	if cfg.Colors.Base != Blue {
 		t.Fatalf("Base = %v, want Blue", cfg.Colors.Base)
 	}
-	if cfg.Colors.Border != DefaultButtonStyle.ColorBorder {
+	if cfg.Colors.Border != defaultButtonStyle.ColorBorder {
 		t.Fatalf("Border = %v, want the theme default %v",
-			cfg.Colors.Border, DefaultButtonStyle.ColorBorder)
+			cfg.Colors.Border, defaultButtonStyle.ColorBorder)
 	}
 }
 
@@ -131,10 +131,10 @@ func TestButtonColorShorthandLeavesStatesThemed(t *testing.T) {
 	if cfg.Colors.Base != RGB(50, 50, 50) {
 		t.Fatalf("Base = %v, want the assigned color", cfg.Colors.Base)
 	}
-	if cfg.Colors.Focus != DefaultButtonStyle.ColorFocus {
+	if cfg.Colors.Focus != defaultButtonStyle.ColorFocus {
 		t.Fatalf("Focus = %v, want the theme default %v — Color must "+
 			"not pin the interactive states",
-			cfg.Colors.Focus, DefaultButtonStyle.ColorFocus)
+			cfg.Colors.Focus, defaultButtonStyle.ColorFocus)
 	}
 	if cfg.Colors.Focus == cfg.Colors.Base {
 		t.Fatal("focus color equals base; focus would be invisible")
@@ -145,10 +145,10 @@ func TestButtonColorShorthandLeavesStatesThemed(t *testing.T) {
 func TestButtonWithoutAnyColorUsesTheme(t *testing.T) {
 	cfg := ButtonCfg{ID: "b"}
 	applyButtonDefaults(&cfg)
-	if cfg.Colors.Base != DefaultButtonStyle.Color {
+	if cfg.Colors.Base != defaultButtonStyle.Color {
 		t.Fatalf("Base = %v, want theme default", cfg.Colors.Base)
 	}
-	if cfg.Colors.Hover != DefaultButtonStyle.ColorHover {
+	if cfg.Colors.Hover != defaultButtonStyle.ColorHover {
 		t.Fatalf("Hover = %v, want theme default", cfg.Colors.Hover)
 	}
 }

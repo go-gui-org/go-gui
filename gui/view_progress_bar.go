@@ -15,7 +15,7 @@ type ProgressBarCfg struct {
 	// Accessibility
 	A11YLabel       string
 	A11YDescription string
-	TextPadding     Opt[Padding]
+	textPadding     Opt[Padding]
 	Radius          Opt[float32]
 	Percent         float32 // 0.0 to 1.0
 	Width           float32
@@ -26,42 +26,42 @@ type ProgressBarCfg struct {
 	MaxHeight       float32
 
 	Color          Color
-	ColorBar       Color
-	TextBackground Color
+	colorBar       Color
+	textBackground Color
 	Sizing         Sizing
 	TextShow       bool
 	Disabled       bool
 	Invisible      bool
 	Indefinite     bool
-	Vertical       bool
+	vertical       bool
 }
 
 // ProgressBar creates a progress bar view.
 func ProgressBar(cfg ProgressBarCfg) View {
 	RequireID("ProgressBar", cfg.ID)
 	if cfg.TextStyle == (TextStyle{}) {
-		cfg.TextStyle = guiTheme.ProgressBarStyle.TextStyle
+		cfg.TextStyle = guiTheme.progressBarStyle.TextStyle
 	}
 	if !cfg.Color.IsSet() {
-		cfg.Color = guiTheme.ProgressBarStyle.Color
+		cfg.Color = guiTheme.progressBarStyle.Color
 	}
-	if !cfg.ColorBar.IsSet() {
-		cfg.ColorBar = guiTheme.ProgressBarStyle.ColorBar
+	if !cfg.colorBar.IsSet() {
+		cfg.colorBar = guiTheme.progressBarStyle.colorBar
 	}
-	if !cfg.TextBackground.IsSet() {
-		cfg.TextBackground = guiTheme.ProgressBarStyle.TextBackground
+	if !cfg.textBackground.IsSet() {
+		cfg.textBackground = guiTheme.progressBarStyle.textBackground
 	}
-	if !cfg.TextPadding.IsSet() {
-		cfg.TextPadding = Some(guiTheme.ProgressBarStyle.TextPadding)
+	if !cfg.textPadding.IsSet() {
+		cfg.textPadding = Some(guiTheme.progressBarStyle.textPadding)
 	}
-	radius := cfg.Radius.Get(guiTheme.ProgressBarStyle.Radius)
+	radius := cfg.Radius.Get(guiTheme.progressBarStyle.Radius)
 
 	content := make([]View, 0, 2)
 	content = append(content, Row(ContainerCfg{
 		Padding:    NoPadding,
 		SizeBorder: NoBorder,
 		Radius:     SomeF(radius),
-		Color:      cfg.ColorBar,
+		Color:      cfg.colorBar,
 	}))
 
 	if cfg.TextShow && !cfg.Indefinite {
@@ -69,8 +69,8 @@ func ProgressBar(cfg ProgressBarCfg) View {
 		pct = math.Round(pct * 100)
 		content = append(content, Row(ContainerCfg{
 			SizeBorder: NoBorder,
-			Color:      cfg.TextBackground,
-			Padding:    cfg.TextPadding,
+			Color:      cfg.textBackground,
+			Padding:    cfg.textPadding,
 			Content: []View{
 				Text(TextCfg{
 					Text:      fmt.Sprintf("%.0f%%", pct),
@@ -82,10 +82,10 @@ func ProgressBar(cfg ProgressBarCfg) View {
 
 	barPercent := cfg.Percent
 	textShow := cfg.TextShow
-	vertical := cfg.Vertical
+	vertical := cfg.vertical
 	indefinite := cfg.Indefinite
 
-	size := guiTheme.ProgressBarStyle.Size
+	size := guiTheme.progressBarStyle.Size
 
 	a11yState := AccessStateLive
 	if cfg.Indefinite {
@@ -105,7 +105,7 @@ func ProgressBar(cfg ProgressBarCfg) View {
 		ID:        cfg.ID,
 		A11YRole:  AccessRoleProgressBar,
 		A11YState: a11yState,
-		A11Y: &AccessInfo{
+		a11Y: &accessInfo{
 			Label:       a11yLabel(cfg.A11YLabel, cfg.Text),
 			Description: cfg.A11YDescription,
 			ValueNum:    cfg.Percent,
@@ -138,7 +138,7 @@ func ProgressBar(cfg ProgressBarCfg) View {
 		Content: content,
 	}
 
-	if cfg.Vertical {
+	if cfg.vertical {
 		return Column(ccfg)
 	}
 	return Row(ccfg)
@@ -170,8 +170,8 @@ func progressBarAmendLayout(
 				Duration: 1500 * time.Millisecond,
 				Keyframes: []Keyframe{
 					{At: 0, Value: 0},
-					{At: 0.5, Value: 1, Easing: EaseInOutCSS},
-					{At: 1, Value: 0, Easing: EaseInOutCSS},
+					{At: 0.5, Value: 1, Easing: easeInOutCSS},
+					{At: 1, Value: 0, Easing: easeInOutCSS},
 				},
 				OnValue: func(v float32, w *Window) {
 					pm := StateMap[string, float32](

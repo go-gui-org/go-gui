@@ -8,7 +8,7 @@ import (
 // mockNotificationPlatform stubs NativePlatform with a configurable
 // SendNotification result.
 type mockNotificationPlatform struct {
-	NoopNativePlatform
+	noopNativePlatform
 	result NativeNotificationResult
 }
 

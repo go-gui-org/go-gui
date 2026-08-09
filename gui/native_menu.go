@@ -42,7 +42,7 @@ type NativeMenubarCfg struct {
 // NativeMenuItemsFromMenuItems converts in-app MenuItemCfg
 // to NativeMenuItemCfg. Fields not present in the native type
 // (CustomView, Action, styling) are dropped.
-func NativeMenuItemsFromMenuItems(
+func nativeMenuItemsFromMenuItems(
 	items []MenuItemCfg,
 ) []NativeMenuItemCfg {
 	out := make([]NativeMenuItemCfg, len(items))
@@ -55,7 +55,7 @@ func NativeMenuItemsFromMenuItems(
 			Disabled:  item.disabled,
 		}
 		if len(item.Submenu) > 0 {
-			out[i].Submenu = NativeMenuItemsFromMenuItems(
+			out[i].Submenu = nativeMenuItemsFromMenuItems(
 				item.Submenu)
 		}
 	}

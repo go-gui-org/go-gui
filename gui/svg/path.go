@@ -9,7 +9,7 @@ import (
 type pathParser struct {
 	tokens   []string
 	i        int
-	segments []PathSegment
+	segments []pathSegment
 
 	curX, curY           float32
 	startX, startY       float32
@@ -18,15 +18,15 @@ type pathParser struct {
 }
 
 // parsePathD parses the SVG path d attribute into segments.
-func parsePathD(d string) []PathSegment {
+func parsePathD(d string) []pathSegment {
 	p := pathParser{
 		tokens:   tokenizePath(d),
-		segments: make([]PathSegment, 0, 32),
+		segments: make([]pathSegment, 0, 32),
 	}
 	return p.parse()
 }
 
-func (p *pathParser) parse() []PathSegment {
+func (p *pathParser) parse() []pathSegment {
 	for p.i < len(p.tokens) && len(p.segments) < maxPathSegments {
 		token := p.tokens[p.i]
 		if len(token) == 0 {
@@ -107,12 +107,12 @@ func (p *pathParser) parseMoveTo(cmd byte) byte {
 			p.curY = y
 		}
 		if first {
-			p.segments = append(p.segments, PathSegment{CmdMoveTo, []float32{p.curX, p.curY}})
+			p.segments = append(p.segments, pathSegment{cmdMoveTo, []float32{p.curX, p.curY}})
 			p.startX = p.curX
 			p.startY = p.curY
 			first = false
 		} else {
-			p.segments = append(p.segments, PathSegment{CmdLineTo, []float32{p.curX, p.curY}})
+			p.segments = append(p.segments, pathSegment{cmdLineTo, []float32{p.curX, p.curY}})
 		}
 	}
 	if first {
@@ -137,7 +137,7 @@ func (p *pathParser) parseLineTo(cmd byte) byte {
 			p.curX = x
 			p.curY = y
 		}
-		p.segments = append(p.segments, PathSegment{CmdLineTo, []float32{p.curX, p.curY}})
+		p.segments = append(p.segments, pathSegment{cmdLineTo, []float32{p.curX, p.curY}})
 	}
 	return cmd
 }
@@ -152,7 +152,7 @@ func (p *pathParser) parseHLineTo(cmd byte) byte {
 		} else {
 			p.curX = x
 		}
-		p.segments = append(p.segments, PathSegment{CmdLineTo, []float32{p.curX, p.curY}})
+		p.segments = append(p.segments, pathSegment{cmdLineTo, []float32{p.curX, p.curY}})
 	}
 	return cmd
 }
@@ -167,7 +167,7 @@ func (p *pathParser) parseVLineTo(cmd byte) byte {
 		} else {
 			p.curY = y
 		}
-		p.segments = append(p.segments, PathSegment{CmdLineTo, []float32{p.curX, p.curY}})
+		p.segments = append(p.segments, pathSegment{cmdLineTo, []float32{p.curX, p.curY}})
 	}
 	return cmd
 }
@@ -183,7 +183,7 @@ func (p *pathParser) parseCubicTo(cmd byte) byte {
 		y := parseF32(p.tokens[p.i+5])
 		p.i += 6
 		if relative {
-			p.segments = append(p.segments, PathSegment{CmdCubicTo, []float32{
+			p.segments = append(p.segments, pathSegment{cmdCubicTo, []float32{
 				p.curX + c1x, p.curY + c1y,
 				p.curX + c2x, p.curY + c2y,
 				p.curX + x, p.curY + y,
@@ -193,7 +193,7 @@ func (p *pathParser) parseCubicTo(cmd byte) byte {
 			p.curX += x
 			p.curY += y
 		} else {
-			p.segments = append(p.segments, PathSegment{CmdCubicTo, []float32{
+			p.segments = append(p.segments, pathSegment{cmdCubicTo, []float32{
 				c1x, c1y, c2x, c2y, x, y,
 			}})
 			p.lastCtrlX = c2x
@@ -222,7 +222,7 @@ func (p *pathParser) parseSmoothCubic(cmd byte) byte {
 		y := parseF32(p.tokens[p.i+3])
 		p.i += 4
 		if relative {
-			p.segments = append(p.segments, PathSegment{CmdCubicTo, []float32{
+			p.segments = append(p.segments, pathSegment{cmdCubicTo, []float32{
 				c1x, c1y,
 				p.curX + c2x, p.curY + c2y,
 				p.curX + x, p.curY + y,
@@ -232,7 +232,7 @@ func (p *pathParser) parseSmoothCubic(cmd byte) byte {
 			p.curX += x
 			p.curY += y
 		} else {
-			p.segments = append(p.segments, PathSegment{CmdCubicTo, []float32{
+			p.segments = append(p.segments, pathSegment{cmdCubicTo, []float32{
 				c1x, c1y, c2x, c2y, x, y,
 			}})
 			p.lastCtrlX = c2x
@@ -254,7 +254,7 @@ func (p *pathParser) parseQuadTo(cmd byte) byte {
 		y := parseF32(p.tokens[p.i+3])
 		p.i += 4
 		if relative {
-			p.segments = append(p.segments, PathSegment{CmdQuadTo, []float32{
+			p.segments = append(p.segments, pathSegment{cmdQuadTo, []float32{
 				p.curX + cx, p.curY + cy,
 				p.curX + x, p.curY + y,
 			}})
@@ -263,7 +263,7 @@ func (p *pathParser) parseQuadTo(cmd byte) byte {
 			p.curX += x
 			p.curY += y
 		} else {
-			p.segments = append(p.segments, PathSegment{CmdQuadTo, []float32{
+			p.segments = append(p.segments, pathSegment{cmdQuadTo, []float32{
 				cx, cy, x, y,
 			}})
 			p.lastCtrlX = cx
@@ -290,7 +290,7 @@ func (p *pathParser) parseSmoothQuad(cmd byte) byte {
 		y := parseF32(p.tokens[p.i+1])
 		p.i += 2
 		if relative {
-			p.segments = append(p.segments, PathSegment{CmdQuadTo, []float32{
+			p.segments = append(p.segments, pathSegment{cmdQuadTo, []float32{
 				cx, cy, p.curX + x, p.curY + y,
 			}})
 			p.lastCtrlX = cx
@@ -298,7 +298,7 @@ func (p *pathParser) parseSmoothQuad(cmd byte) byte {
 			p.curX += x
 			p.curY += y
 		} else {
-			p.segments = append(p.segments, PathSegment{CmdQuadTo, []float32{
+			p.segments = append(p.segments, pathSegment{cmdQuadTo, []float32{
 				cx, cy, x, y,
 			}})
 			p.lastCtrlX = cx
@@ -331,7 +331,7 @@ func (p *pathParser) parseArcTo(cmd byte) byte {
 
 		if rx <= 0 || ry <= 0 || math.IsNaN(float64(rx)) || math.IsInf(float64(rx), 0) ||
 			math.IsNaN(float64(ry)) || math.IsInf(float64(ry), 0) {
-			p.segments = append(p.segments, PathSegment{CmdLineTo, []float32{ex, ey}})
+			p.segments = append(p.segments, pathSegment{cmdLineTo, []float32{ex, ey}})
 		} else {
 			arcSegs := arcToCubic(p.curX, p.curY, rx, ry, phi, largeArc, sweep, ex, ey)
 			p.segments = append(p.segments, arcSegs...)
@@ -343,17 +343,17 @@ func (p *pathParser) parseArcTo(cmd byte) byte {
 }
 
 func (p *pathParser) parseClose(cmd byte) byte {
-	p.segments = append(p.segments, PathSegment{CmdClose, nil})
+	p.segments = append(p.segments, pathSegment{cmdClose, nil})
 	p.curX = p.startX
 	p.curY = p.startY
 	return cmd
 }
 
 // arcToCubic converts an SVG arc to cubic bezier curves.
-func arcToCubic(x1, y1, rx, ry, phi float32, largeArc, sweep bool, x2, y2 float32) []PathSegment {
+func arcToCubic(x1, y1, rx, ry, phi float32, largeArc, sweep bool, x2, y2 float32) []pathSegment {
 	if rx == 0 || ry == 0 || math.IsNaN(float64(rx)) || math.IsInf(float64(rx), 0) ||
 		math.IsNaN(float64(ry)) || math.IsInf(float64(ry), 0) {
-		return []PathSegment{{CmdLineTo, []float32{x2, y2}}}
+		return []pathSegment{{cmdLineTo, []float32{x2, y2}}}
 	}
 	// SVG spec: "If the endpoints (x1, y1) and (x2, y2) are identical,
 	// then this is equivalent to omitting the elliptical arc segment
@@ -413,11 +413,11 @@ func arcToCubic(x1, y1, rx, ry, phi float32, largeArc, sweep bool, x2, y2 float3
 	nSegs := int(math.Ceil(math.Abs(float64(dtheta)) / (math.Pi / 2)))
 	if nSegs < 1 || nSegs > 4096 {
 		// Degenerate or NaN-produced nSegs; fall back to line segment.
-		return []PathSegment{{CmdLineTo, []float32{x2, y2}}}
+		return []pathSegment{{cmdLineTo, []float32{x2, y2}}}
 	}
 	dTheta := dtheta / float32(nSegs)
 
-	segments := make([]PathSegment, 0, nSegs)
+	segments := make([]pathSegment, 0, nSegs)
 	theta := theta1
 	for range nSegs {
 		seg := arcSegmentToCubic(cx, cy, rxAbs, ryAbs, float32(phiRad), theta, dTheta)
@@ -444,7 +444,7 @@ func vectorAngle(ux, uy, vx, vy float32) float32 {
 	return angle
 }
 
-func arcSegmentToCubic(cx, cy, rx, ry, phi, theta, dtheta float32) PathSegment {
+func arcSegmentToCubic(cx, cy, rx, ry, phi, theta, dtheta float32) pathSegment {
 	t := float32(math.Tan(float64(dtheta/4))) * 4 / 3
 
 	cosTheta := float32(math.Cos(float64(theta)))
@@ -472,7 +472,7 @@ func arcSegmentToCubic(cx, cy, rx, ry, phi, theta, dtheta float32) PathSegment {
 	ex := cosPhi*x2 - sinPhi*y2 + cx
 	ey := sinPhi*x2 + cosPhi*y2 + cy
 
-	return PathSegment{CmdCubicTo, []float32{p1x, p1y, p2x, p2y, ex, ey}}
+	return pathSegment{cmdCubicTo, []float32{p1x, p1y, p2x, p2y, ex, ey}}
 }
 
 // tokenizePath splits path d string into tokens.

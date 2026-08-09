@@ -10,7 +10,7 @@ import (
 // ImageCfg configures an image view.
 type ImageCfg struct {
 	OnClick     func(EventCtx)
-	ClickButton MouseButton // left-click filter; avoids leftClickOnly closure
+	clickButton MouseButton // left-click filter; avoids leftClickOnly closure
 	OnHover     func(EventCtx)
 	ID          string
 	Src         string
@@ -42,7 +42,7 @@ func Image(cfg ImageCfg) View {
 	if cfg.Invisible {
 		return invisibleContainerView()
 	}
-	cfg.ClickButton = MouseLeft
+	cfg.clickButton = MouseLeft
 	return &imageView{cfg: cfg}
 }
 
@@ -52,13 +52,13 @@ func (iv *imageView) GenerateLayout(w *Window) Layout {
 	c := &iv.cfg
 	imagePath := c.Src
 	if isHTTPURL(c.Src) {
-		imagePath = ResolveImageSrc(w, c.Src)
+		imagePath = resolveImageSrc(w, c.Src)
 		if imagePath == "" {
 			return downloadingPlaceholder(c)
 		}
 		if strings.HasSuffix(imagePath, ".svg") {
 			sv := &svgView{cfg: SvgCfg{
-				FileName: imagePath,
+				fileName: imagePath,
 				Width:    c.Width,
 				Height:   c.Height,
 			}}
@@ -69,7 +69,7 @@ func (iv *imageView) GenerateLayout(w *Window) Layout {
 	// Data URLs are passed directly to the backend renderer
 	// (used by WASM for embedded image assets).
 	if !isDataURL(c.Src) {
-		if err := ValidateImagePath(imagePath); err != nil {
+		if err := validateImagePath(imagePath); err != nil {
 			log.Printf("image: %v", err)
 			return errorTextLayout(c.Src, w)
 		}
@@ -92,7 +92,7 @@ func (iv *imageView) GenerateLayout(w *Window) Layout {
 	if c.OnClick != nil || c.OnHover != nil {
 		events = w.allocEventHandlers(eventHandlers{
 			OnClick:     c.OnClick,
-			ClickButton: c.ClickButton,
+			clickButton: c.clickButton,
 			OnHover:     c.OnHover,
 		})
 	}
@@ -101,7 +101,7 @@ func (iv *imageView) GenerateLayout(w *Window) Layout {
 			shapeType: shapeImage,
 			ID:        c.ID,
 			A11YRole:  AccessRoleImage,
-			A11Y: makeA11YInfo(
+			a11Y: makeA11YInfo(
 				a11yLabel(c.A11YLabel, c.ID),
 				c.A11YDescription,
 			),
@@ -149,7 +149,7 @@ func downloadingPlaceholder(c *ImageCfg) Layout {
 // errorTextLayout returns a magenta "[missing: src]" text layout.
 func errorTextLayout(src string, w *Window) Layout {
 	ts := guiTheme.TextStyleDef
-	ts.Color = Magenta
+	ts.Color = magenta
 	tv := Text(TextCfg{
 		Text:      fmt.Sprintf("[missing: %s]", src),
 		TextStyle: ts,

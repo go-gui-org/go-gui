@@ -17,7 +17,7 @@ func isSelectSubheader(option string) bool {
 // SelectCfg configures a select (dropdown) view.
 type SelectCfg struct {
 	TextStyle        TextStyle
-	SubheadingStyle  TextStyle
+	subheadingStyle  TextStyle
 	PlaceholderStyle TextStyle
 	OnSelect         func([]string, EventCtx)
 	ID               string `gui:"required,focus"`
@@ -43,7 +43,7 @@ type SelectCfg struct {
 	ColorSelect      Color
 	Sizing           Sizing
 	SelectMultiple   bool
-	NoWrap           bool
+	noWrap           bool
 	Disabled         bool
 	Invisible        bool
 }
@@ -64,7 +64,7 @@ func (sv *selectView) Content() []View { return nil }
 
 func (sv *selectView) GenerateLayout(w *Window) Layout {
 	cfg := &sv.cfg
-	dn := &DefaultSelectStyle
+	dn := &defaultSelectStyle
 	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
 	radius := cfg.Radius.Get(dn.Radius)
 	// Open/highlight state is keyed by the widget's effective ID, so two
@@ -77,7 +77,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 	dropdownScrollID := ScopeID(id, "dropdown")
 
 	empty := len(cfg.Selected) == 0 || len(cfg.Selected[0]) == 0
-	clip := cfg.SelectMultiple && cfg.NoWrap
+	clip := cfg.SelectMultiple && cfg.noWrap
 
 	txt := cfg.Placeholder
 	if !empty {
@@ -88,7 +88,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		txtStyle = cfg.TextStyle
 	}
 	wrapMode := TextModeSingleLine
-	if cfg.SelectMultiple && !cfg.NoWrap {
+	if cfg.SelectMultiple && !cfg.noWrap {
 		wrapMode = TextModeWrap
 	}
 
@@ -144,7 +144,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 			MinWidth:      cfg.MinWidth,
 			MaxWidth:      cfg.MaxWidth,
 			Float:         true,
-			FloatAutoFlip: true,
+			floatAutoFlip: true,
 			FloatAnchor:   FloatBottomLeft,
 			FloatTieOff:   FloatTopLeft,
 			FloatOffsetY:  -sizeBorder,
@@ -177,7 +177,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		MaxWidth:    cfg.MaxWidth,
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
-		axis:        AxisLeftToRight,
+		axis:        axisLeftToRight,
 		AmendLayout: func(ctx EventCtx) {
 			if ctx.Layout.Shape.Disabled {
 				return
@@ -203,7 +203,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 			}
 		},
 	}
-	ccfg.ClickButton = MouseLeft
+	ccfg.clickButton = MouseLeft
 	return generateViewLayout(&containerView{
 		cfg:     ccfg,
 		content: content,
@@ -234,7 +234,7 @@ func selectOptionView(
 		Sizing:  FillFit,
 		Content: []View{
 			Row(ContainerCfg{
-				Padding: Some(PadTBLR(2, 0)),
+				Padding: Some(padTBLR(2, 0)),
 				Content: []View{
 					Text(TextCfg{
 						Text: "✓",
@@ -300,24 +300,24 @@ func selectSubHeaderView(cfg *SelectCfg, option string) View {
 						Text: "✓",
 						TextStyle: TextStyle{
 							Color: ColorTransparent,
-							Size:  cfg.SubheadingStyle.Size,
+							Size:  cfg.subheadingStyle.Size,
 						},
 					}),
 					Text(TextCfg{
 						Text:      label,
-						TextStyle: cfg.SubheadingStyle,
+						TextStyle: cfg.subheadingStyle,
 					}),
 				},
 			}),
 			Row(ContainerCfg{
-				Padding: Some(PadTBLR(0, PadMedium)),
+				Padding: Some(padTBLR(0, PadMedium)),
 				Sizing:  FillFit,
 				Content: []View{
 					Rectangle(RectangleCfg{
 						Width:  1,
 						Height: 1,
 						Sizing: FillFit,
-						Color:  cfg.SubheadingStyle.Color,
+						Color:  cfg.subheadingStyle.Color,
 					}),
 				},
 			}),
@@ -448,12 +448,12 @@ func selectNextSelectable(options []string, start, dir int) int {
 func selectScrollTo(cfg *SelectCfg, scrollID string, idx int, w *Window) {
 	rowH := cfg.TextStyle.Size + 4
 	listH := selectDropdownMaxH - 2*cfg.SizeBorder.Get(
-		DefaultSelectStyle.SizeBorder)
+		defaultSelectStyle.SizeBorder)
 	scrollEnsureVisible(scrollID, idx, rowH, listH, w)
 }
 
 func applySelectDefaults(cfg *SelectCfg) {
-	d := &DefaultSelectStyle
+	d := &defaultSelectStyle
 	if !cfg.Color.IsSet() {
 		cfg.Color = d.Color
 	}
@@ -480,10 +480,10 @@ func applySelectDefaults(cfg *SelectCfg) {
 	}
 
 	if cfg.TextStyle == (TextStyle{}) {
-		cfg.TextStyle = d.TextStyleNormal
+		cfg.TextStyle = d.textStyleNormal
 	}
-	if cfg.SubheadingStyle == (TextStyle{}) {
-		cfg.SubheadingStyle = d.SubheadingStyle
+	if cfg.subheadingStyle == (TextStyle{}) {
+		cfg.subheadingStyle = d.subheadingStyle
 	}
 	if cfg.PlaceholderStyle == (TextStyle{}) {
 		cfg.PlaceholderStyle = d.PlaceholderStyle

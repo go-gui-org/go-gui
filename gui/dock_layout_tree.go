@@ -10,6 +10,7 @@ import (
 // panel groups (one or more panels shown as tabs).
 
 // DockSplitDir controls how two panes are arranged in a split.
+// exportaudit:keep — reachable from an exported signature
 type DockSplitDir uint8
 
 // DockSplitDir constants.
@@ -23,7 +24,7 @@ var dockSplitDirText = [2][]byte{
 	DockSplitVertical:   []byte("vertical"),
 }
 
-// MarshalText implements encoding.TextMarshaler.
+// MarshalText implements encoding.TextMarshaler. // exportaudit:keep — stdlib interface method
 func (d DockSplitDir) MarshalText() ([]byte, error) {
 	if int(d) < len(dockSplitDirText) {
 		return dockSplitDirText[d], nil
@@ -31,7 +32,7 @@ func (d DockSplitDir) MarshalText() ([]byte, error) {
 	return nil, fmt.Errorf("unknown DockSplitDir %d", d)
 }
 
-// UnmarshalText implements encoding.TextUnmarshaler.
+// UnmarshalText implements encoding.TextUnmarshaler. // exportaudit:keep — stdlib interface method
 func (d *DockSplitDir) UnmarshalText(text []byte) error {
 	switch string(text) {
 	case "horizontal":
@@ -45,34 +46,34 @@ func (d *DockSplitDir) UnmarshalText(text []byte) error {
 }
 
 // DockNodeKind distinguishes split nodes from leaf panel groups.
-type DockNodeKind uint8
+type dockNodeKind uint8
 
 // DockNodeKind constants.
 const (
-	DockNodeSplit DockNodeKind = iota
-	DockNodePanelGroup
+	dockNodeSplit dockNodeKind = iota
+	dockNodePanelGroup
 )
 
 var dockNodeKindText = [2][]byte{
-	DockNodeSplit:      []byte("split"),
-	DockNodePanelGroup: []byte("panelGroup"),
+	dockNodeSplit:      []byte("split"),
+	dockNodePanelGroup: []byte("panelGroup"),
 }
 
-// MarshalText implements encoding.TextMarshaler.
-func (k DockNodeKind) MarshalText() ([]byte, error) {
+// MarshalText implements encoding.TextMarshaler. // exportaudit:keep — stdlib interface method
+func (k dockNodeKind) MarshalText() ([]byte, error) {
 	if int(k) < len(dockNodeKindText) {
 		return dockNodeKindText[k], nil
 	}
 	return nil, fmt.Errorf("unknown DockNodeKind %d", k)
 }
 
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (k *DockNodeKind) UnmarshalText(text []byte) error {
+// UnmarshalText implements encoding.TextUnmarshaler. // exportaudit:keep — stdlib interface method
+func (k *dockNodeKind) UnmarshalText(text []byte) error {
 	switch string(text) {
 	case "split":
-		*k = DockNodeSplit
+		*k = dockNodeSplit
 	case "panelGroup":
-		*k = DockNodePanelGroup
+		*k = dockNodePanelGroup
 	default:
 		return fmt.Errorf("unknown DockNodeKind %q", text)
 	}
@@ -87,9 +88,10 @@ type DockNode struct {
 	ID         string    `json:"id"`
 	SelectedID string    `json:"selectedID,omitempty"`
 	// Panel group fields (used when Kind == DockNodePanelGroup).
+	// exportaudit:keep — json-tagged or same-named member
 	PanelIDs []string     `json:"panelIDs,omitempty"`
 	Ratio    float32      `json:"ratio"`
-	Kind     DockNodeKind `json:"kind"`
+	Kind     dockNodeKind `json:"kind"`
 	// Split fields (used when Kind == DockNodeSplit).
 	Dir DockSplitDir `json:"dir"`
 }
@@ -97,7 +99,7 @@ type DockNode struct {
 // DockSplit creates a split node.
 func DockSplit(id string, dir DockSplitDir, ratio float32, first, second *DockNode) *DockNode {
 	return &DockNode{
-		Kind:   DockNodeSplit,
+		Kind:   dockNodeSplit,
 		ID:     id,
 		Dir:    dir,
 		Ratio:  ratio,
@@ -109,7 +111,7 @@ func DockSplit(id string, dir DockSplitDir, ratio float32, first, second *DockNo
 // DockPanelGroup creates a panel group node.
 func DockPanelGroup(id string, panelIDs []string, selectedID string) *DockNode {
 	return &DockNode{
-		Kind:       DockNodePanelGroup,
+		Kind:       dockNodePanelGroup,
 		ID:         id,
 		PanelIDs:   panelIDs,
 		SelectedID: selectedID,
@@ -122,7 +124,7 @@ const dockNodeMaxDepth = 32
 // DockNodeSanitize clamps ratio to [0,1], replaces NaN/Inf with
 // 0.5, and truncates trees deeper than dockNodeMaxDepth. Call
 // after json.Unmarshal to harden against malformed input.
-func DockNodeSanitize(node *DockNode) {
+func dockNodeSanitize(node *DockNode) {
 	dockNodeSanitizeRec(node, 0)
 }
 
@@ -130,7 +132,7 @@ func dockNodeSanitizeRec(node *DockNode, depth int) {
 	if node == nil {
 		return
 	}
-	if node.Kind == DockNodeSplit {
+	if node.Kind == dockNodeSplit {
 		if !f32IsFinite(node.Ratio) {
 			node.Ratio = 0.5
 		}
@@ -147,14 +149,14 @@ func dockNodeSanitizeRec(node *DockNode, depth int) {
 
 // DockTreeCollectPanelNodes returns all panel group nodes in the
 // tree. Used for zone detection during drag.
-func DockTreeCollectPanelNodes(node *DockNode) []*DockNode {
+func dockTreeCollectPanelNodes(node *DockNode) []*DockNode {
 	var result []*DockNode
 	dockTreeCollectPanelNodesRec(node, &result)
 	return result
 }
 
 func dockTreeCollectPanelNodesRec(node *DockNode, result *[]*DockNode) {
-	if node.Kind == DockNodeSplit {
+	if node.Kind == dockNodeSplit {
 		if node.First != nil {
 			dockTreeCollectPanelNodesRec(node.First, result)
 		}
@@ -169,7 +171,7 @@ func dockTreeCollectPanelNodesRec(node *DockNode, result *[]*DockNode) {
 // DockTreeFindGroupByPanel returns the panel group node containing
 // the given panelID, or nil if not found.
 func DockTreeFindGroupByPanel(node *DockNode, panelID string) (*DockNode, bool) {
-	if node.Kind == DockNodeSplit {
+	if node.Kind == dockNodeSplit {
 		if node.First != nil {
 			if g, ok := DockTreeFindGroupByPanel(node.First, panelID); ok {
 				return g, true
@@ -188,15 +190,15 @@ func DockTreeFindGroupByPanel(node *DockNode, panelID string) (*DockNode, bool) 
 
 // DockTreeFindGroupByID returns the panel group node with the
 // given group id, or nil if not found.
-func DockTreeFindGroupByID(node *DockNode, groupID string) (*DockNode, bool) {
-	if node.Kind == DockNodeSplit {
+func dockTreeFindGroupByID(node *DockNode, groupID string) (*DockNode, bool) {
+	if node.Kind == dockNodeSplit {
 		if node.First != nil {
-			if g, ok := DockTreeFindGroupByID(node.First, groupID); ok {
+			if g, ok := dockTreeFindGroupByID(node.First, groupID); ok {
 				return g, true
 			}
 		}
 		if node.Second != nil {
-			if g, ok := DockTreeFindGroupByID(node.Second, groupID); ok {
+			if g, ok := dockTreeFindGroupByID(node.Second, groupID); ok {
 				return g, true
 			}
 		}
@@ -214,7 +216,7 @@ func DockTreeRemovePanel(root *DockNode, panelID string) *DockNode {
 }
 
 func dockTreeRemovePanelRec(nd *DockNode, panelID string) *DockNode {
-	if nd.Kind == DockNodeSplit {
+	if nd.Kind == dockNodeSplit {
 		if nd.First == nil || nd.Second == nil {
 			return nd
 		}
@@ -252,7 +254,7 @@ func dockTreeRemovePanelRec(nd *DockNode, panelID string) *DockNode {
 }
 
 func dockTreeIsEmpty(node *DockNode) bool {
-	return node.Kind == DockNodePanelGroup && len(node.PanelIDs) == 0
+	return node.Kind == dockNodePanelGroup && len(node.PanelIDs) == 0
 }
 
 // DockTreeAddTab adds a panel to an existing group (by groupID).
@@ -262,7 +264,7 @@ func DockTreeAddTab(root *DockNode, groupID, panelID string) *DockNode {
 }
 
 func dockTreeAddTabRec(nd *DockNode, groupID, panelID string) *DockNode {
-	if nd.Kind == DockNodeSplit {
+	if nd.Kind == dockNodeSplit {
 		if nd.First == nil || nd.Second == nil {
 			return nd
 		}
@@ -285,12 +287,12 @@ func dockTreeAddTabRec(nd *DockNode, groupID, panelID string) *DockNode {
 // DockTreeSplitAt replaces a group (by groupID) with a new split
 // containing the original group and a new single-panel group.
 // The new panel goes into the position indicated by zone.
-func DockTreeSplitAt(root *DockNode, groupID, panelID string, zone DockDropZone) *DockNode {
+func dockTreeSplitAt(root *DockNode, groupID, panelID string, zone DockDropZone) *DockNode {
 	return dockTreeSplitAtRec(root, groupID, panelID, zone)
 }
 
 func dockTreeSplitAtRec(nd *DockNode, groupID, panelID string, zone DockDropZone) *DockNode {
-	if nd.Kind == DockNodeSplit {
+	if nd.Kind == dockNodeSplit {
 		if nd.First == nil || nd.Second == nil {
 			return nd
 		}
@@ -308,7 +310,7 @@ func dockTreeSplitAtRec(nd *DockNode, groupID, panelID string, zone DockDropZone
 	existing := DockPanelGroup(nd.ID, nd.PanelIDs, nd.SelectedID)
 	dir := dockZoneToSplitDir(zone)
 	splitID := ScopeID(groupID, "split", panelID)
-	firstIsNew := zone == DockDropLeft || zone == DockDropTop
+	firstIsNew := zone == dockDropLeft || zone == dockDropTop
 	if firstIsNew {
 		return DockSplit(splitID, dir, 0.5, newGroup, existing)
 	}
@@ -317,11 +319,11 @@ func dockTreeSplitAtRec(nd *DockNode, groupID, panelID string, zone DockDropZone
 
 // DockTreeWrapRoot wraps the current root in a new split for
 // window-edge docking. The new panel goes at the indicated edge.
-func DockTreeWrapRoot(root *DockNode, panelID string, zone DockDropZone) *DockNode {
+func dockTreeWrapRoot(root *DockNode, panelID string, zone DockDropZone) *DockNode {
 	newGroup := DockPanelGroup(ScopeID("dock_edge", panelID), []string{panelID}, panelID)
 	dir := dockZoneToSplitDir(zone)
 	splitID := ScopeID("dock_root_split", panelID)
-	firstIsNew := zone == DockDropWindowLeft || zone == DockDropWindowTop
+	firstIsNew := zone == dockDropWindowLeft || zone == dockDropWindowTop
 	ratio := float32(0.8)
 	if firstIsNew {
 		ratio = 0.2
@@ -335,23 +337,23 @@ func DockTreeWrapRoot(root *DockNode, panelID string, zone DockDropZone) *DockNo
 // DockTreeMovePanel removes a panel from its source group and
 // inserts it at the target: either as a tab (center zone) or as a
 // new split (edge zones). Returns the new root.
-func DockTreeMovePanel(root *DockNode, panelID, targetGroupID string, zone DockDropZone) *DockNode {
+func dockTreeMovePanel(root *DockNode, panelID, targetGroupID string, zone DockDropZone) *DockNode {
 	newRoot := DockTreeRemovePanel(root, panelID)
 	switch zone {
-	case DockDropCenter:
+	case dockDropCenter:
 		return DockTreeAddTab(newRoot, targetGroupID, panelID)
-	case DockDropWindowTop, DockDropWindowBottom,
-		DockDropWindowLeft, DockDropWindowRight:
-		return DockTreeWrapRoot(newRoot, panelID, zone)
+	case dockDropWindowTop, dockDropWindowBottom,
+		dockDropWindowLeft, dockDropWindowRight:
+		return dockTreeWrapRoot(newRoot, panelID, zone)
 	default:
-		return DockTreeSplitAt(newRoot, targetGroupID, panelID, zone)
+		return dockTreeSplitAt(newRoot, targetGroupID, panelID, zone)
 	}
 }
 
 // DockTreeSelectPanel sets the selected panel in the group with
 // the given groupID. Returns the new root.
 func DockTreeSelectPanel(nd *DockNode, groupID, panelID string) *DockNode {
-	if nd.Kind == DockNodeSplit {
+	if nd.Kind == dockNodeSplit {
 		if nd.First == nil || nd.Second == nil {
 			return nd
 		}
@@ -369,7 +371,7 @@ func DockTreeSelectPanel(nd *DockNode, groupID, panelID string) *DockNode {
 // dockZoneToSplitDir maps a drop zone to a split direction.
 func dockZoneToSplitDir(zone DockDropZone) DockSplitDir {
 	switch zone {
-	case DockDropLeft, DockDropRight, DockDropWindowLeft, DockDropWindowRight:
+	case dockDropLeft, dockDropRight, dockDropWindowLeft, dockDropWindowRight:
 		return DockSplitHorizontal
 	default:
 		return DockSplitVertical
@@ -383,7 +385,7 @@ func dockTreeUpdateRatio(root *DockNode, splitID string, ratio float32) *DockNod
 }
 
 func dockTreeUpdateRatioRec(nd *DockNode, splitID string, ratio float32) *DockNode {
-	if nd.Kind == DockNodeSplit {
+	if nd.Kind == dockNodeSplit {
 		if nd.ID == splitID {
 			return DockSplit(nd.ID, nd.Dir, ratio, nd.First, nd.Second)
 		}

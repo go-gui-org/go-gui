@@ -20,7 +20,7 @@ func TestMenubarLayout(t *testing.T) {
 	if layout.Shape.ID != "mb" {
 		t.Errorf("ID = %q", layout.Shape.ID)
 	}
-	if layout.Shape.Axis != AxisLeftToRight {
+	if layout.Shape.Axis != axisLeftToRight {
 		t.Errorf("axis = %d, want LeftToRight", layout.Shape.Axis)
 	}
 	// Should have at least 2 children (one per item).
@@ -108,11 +108,11 @@ func TestMenubarAmendLayoutClearOnDefocus(t *testing.T) {
 func TestApplyMenubarDefaultsSpacingSubmenu(t *testing.T) {
 	cfg := MenubarCfg{}
 	applyMenubarDefaults(&cfg)
-	if !cfg.SpacingSubmenu.IsSet() {
+	if !cfg.spacingSubmenu.IsSet() {
 		t.Fatal("SpacingSubmenu should be set after defaults")
 	}
-	got := cfg.SpacingSubmenu.Get(0)
-	want := DefaultMenubarStyle.SpacingSubmenu
+	got := cfg.spacingSubmenu.Get(0)
+	want := defaultMenubarStyle.spacingSubmenu
 	if got != want {
 		t.Errorf("SpacingSubmenu = %v, want %v", got, want)
 	}

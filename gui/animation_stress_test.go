@@ -259,7 +259,7 @@ func TestAnimationStressValueCommand(t *testing.T) {
 	for range workers {
 		wg.Go(func() {
 			for range cmds {
-				w.QueueValueCommand(func(v float32, _ *Window) {
+				w.queueValueCommand(func(v float32, _ *Window) {
 					mu.Lock()
 					sum += v
 					mu.Unlock()

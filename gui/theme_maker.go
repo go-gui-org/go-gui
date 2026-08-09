@@ -19,17 +19,17 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	// Icon family for every theme-driven icon style. A ThemeCfg built
 	// from scratch (not via baseCfg) leaves this empty, so fall back to
 	// the bundled font rather than render icons in the default family.
-	iconFamily := cmp.Or(cfg.IconFontFamily, IconFontName)
+	iconFamily := cmp.Or(cfg.iconFontFamily, IconFontName)
 
 	borderFocus := cfg.ColorBorderFocus
-	if borderFocus.Eq(Color{}) {
+	if borderFocus.eq(Color{}) {
 		borderFocus = cfg.ColorSelect
 	}
 
 	// Scrollbar radius: none if cfg.Radius is none.
 	sbRadius := cfg.RadiusSmall
-	if cfg.Radius == RadiusNone {
-		sbRadius = RadiusNone
+	if cfg.Radius == radiusNone {
+		sbRadius = radiusNone
 	}
 
 	placeholderColor := RGBA(ts.Color.R, ts.Color.G, ts.Color.B, 100)
@@ -47,18 +47,18 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		ColorSelect:     cfg.ColorSelect,
 		TitlebarDark:    cfg.TitlebarDark,
 
-		ButtonStyle: ButtonStyle{
+		ButtonStyle: buttonStyle{
 			Color:            cfg.ColorInterior,
 			ColorHover:       cfg.ColorHover,
 			ColorFocus:       cfg.ColorActive,
-			ColorClick:       cfg.ColorFocus,
+			colorClick:       cfg.ColorFocus,
 			ColorBorder:      cfg.ColorBorder,
 			ColorBorderFocus: borderFocus,
-			Padding:          PaddingButton,
+			Padding:          paddingButton,
 			SizeBorder:       cfg.SizeBorder,
 			Radius:           cfg.Radius,
 		},
-		ContainerStyle: ContainerStyle{
+		ContainerStyle: containerStyle{
 			Color:       ColorTransparent,
 			ColorBorder: ColorTransparent,
 			Padding:     cfg.Padding,
@@ -66,7 +66,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Spacing:     cfg.SpacingMedium,
 			SizeBorder:  cfg.SizeBorder,
 		},
-		RectangleStyle: RectangleStyle{
+		rectangleStyle: RectangleStyle{
 			Color:       ColorTransparent,
 			ColorBorder: cfg.ColorBorder,
 			Radius:      cfg.Radius,
@@ -77,64 +77,64 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Color:            cfg.ColorInterior,
 			ColorHover:       cfg.ColorHover,
 			ColorFocus:       cfg.ColorInterior,
-			ColorClick:       cfg.ColorActive,
+			colorClick:       cfg.ColorActive,
 			ColorBorder:      cfg.ColorBorder,
 			ColorBorderFocus: borderFocus,
 			Padding:          cfg.Padding,
 			SizeBorder:       cfg.SizeBorder,
 			Radius:           cfg.Radius,
-			TextStyleNormal:  ts,
+			textStyleNormal:  ts,
 			PlaceholderStyle: TextStyle{
 				Color: placeholderColor,
 				Size:  ts.Size,
 			},
-			ColorSpellError: cfg.ColorError,
+			colorSpellError: cfg.ColorError,
 		},
 		ScrollbarStyle: ScrollbarStyle{
-			Size:            cfg.SizeScrollbar,
-			MinThumbSize:    cfg.SizeScrollbarMin,
-			ColorThumb:      cfg.ColorActive,
+			Size:            cfg.sizeScrollbar,
+			minThumbSize:    cfg.sizeScrollbarMin,
+			colorThumb:      cfg.ColorActive,
 			ColorBackground: ColorTransparent,
 			Radius:          sbRadius,
-			RadiusThumb:     sbRadius,
+			radiusThumb:     sbRadius,
 			GapEdge:         3,
 			GapEnd:          2,
 		},
-		RadioStyle: RadioStyle{
-			Size:             cfg.SizeRadio,
+		radioStyle: RadioStyle{
+			Size:             cfg.sizeRadio,
 			Color:            cfg.ColorPanel,
 			ColorHover:       cfg.ColorHover,
 			ColorFocus:       cfg.ColorSelect,
-			ColorClick:       cfg.ColorActive,
+			colorClick:       cfg.ColorActive,
 			ColorBorder:      cfg.ColorBorder,
 			ColorBorderFocus: borderFocus,
 			ColorSelect:      cfg.ColorSelect,
-			ColorUnselect:    cfg.ColorActive,
+			colorUnselect:    cfg.ColorActive,
 			Padding:          PadAll(4),
 			SizeBorder:       cfg.SizeBorder,
-			TextStyleNormal:  ts,
+			textStyleNormal:  ts,
 		},
-		SwitchStyle: SwitchStyle{
-			SizeWidth:        cfg.SizeSwitchWidth,
-			SizeHeight:       cfg.SizeSwitchHeight,
+		switchStyle: SwitchStyle{
+			sizeWidth:        cfg.sizeSwitchWidth,
+			sizeHeight:       cfg.sizeSwitchHeight,
 			Color:            cfg.ColorPanel,
-			ColorClick:       cfg.ColorInterior,
+			colorClick:       cfg.ColorInterior,
 			ColorFocus:       cfg.ColorInterior,
 			ColorHover:       cfg.ColorHover,
 			ColorBorder:      cfg.ColorBorder,
 			ColorBorderFocus: borderFocus,
 			ColorSelect:      cfg.ColorSelect,
-			ColorUnselect:    cfg.ColorActive,
+			colorUnselect:    cfg.ColorActive,
 			Padding:          paddingThree,
 			SizeBorder:       cfg.SizeBorder,
-			Radius:           RadiusLarge * 2,
-			TextStyleNormal:  ts,
+			Radius:           radiusLarge * 2,
+			textStyleNormal:  ts,
 		},
-		ToggleStyle: ToggleStyle{
+		toggleStyle: ToggleStyle{
 			Color:            cfg.ColorPanel,
 			ColorBorder:      cfg.ColorBorder,
 			ColorBorderFocus: borderFocus,
-			ColorClick:       cfg.ColorInterior,
+			colorClick:       cfg.ColorInterior,
 			ColorFocus:       cfg.ColorInterior,
 			ColorHover:       cfg.ColorHover,
 			ColorSelect:      cfg.ColorInterior,
@@ -142,30 +142,30 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Size:             ts.Size + 4,
 			SizeBorder:       cfg.SizeBorder,
 			Radius:           cfg.Radius,
-			TextStyleNormal:  ts,
-			TextStyleLabel:   ts,
+			textStyleNormal:  ts,
+			textStyleLabel:   ts,
 		},
-		SelectStyle: SelectStyle{
+		selectStyle: SelectStyle{
 			MinWidth:         75,
 			MaxWidth:         200,
 			Color:            cfg.ColorInterior,
 			ColorHover:       cfg.ColorHover,
 			ColorFocus:       cfg.ColorFocus,
-			ColorClick:       cfg.ColorActive,
+			colorClick:       cfg.ColorActive,
 			ColorBorder:      cfg.ColorBorder,
 			ColorBorderFocus: borderFocus,
 			ColorSelect:      cfg.ColorSelect,
 			Padding:          PaddingSmall,
 			SizeBorder:       cfg.SizeBorder,
 			Radius:           cfg.RadiusMedium,
-			TextStyleNormal:  ts,
-			SubheadingStyle:  ts,
+			textStyleNormal:  ts,
+			subheadingStyle:  ts,
 			PlaceholderStyle: TextStyle{
 				Color: placeholderColor,
 				Size:  ts.Size,
 			},
 		},
-		ListBoxStyle: ListBoxStyle{
+		listBoxStyle: ListBoxStyle{
 			Color:           cfg.ColorInterior,
 			ColorHover:      cfg.ColorHover,
 			ColorBorder:     cfg.ColorBorder,
@@ -173,10 +173,10 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Padding:         cfg.Padding,
 			SizeBorder:      cfg.SizeBorder,
 			Radius:          cfg.Radius,
-			TextStyleNormal: ts,
-			SubheadingStyle: ts,
+			textStyleNormal: ts,
+			subheadingStyle: ts,
 		},
-		TreeStyle: TreeStyle{
+		treeStyle: TreeStyle{
 			Color:       ColorTransparent,
 			ColorHover:  cfg.ColorHover,
 			ColorFocus:  cfg.ColorFocus,
@@ -185,48 +185,48 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			SizeBorder:  cfg.SizeBorder,
 			Radius:      cfg.Radius,
 			TextStyle:   ts,
-			TextStyleIcon: TextStyle{
+			textStyleIcon: TextStyle{
 				Color:  ts.Color,
-				Size:   cfg.SizeTextSmall,
+				Size:   cfg.sizeTextSmall,
 				Family: iconFamily,
 			},
-			Indent:  25,
+			indent:  25,
 			Spacing: 0,
 		},
-		DialogStyle: DialogStyle{
+		dialogStyle: DialogStyle{
 			Color:            cfg.ColorPanel,
 			ColorBorder:      cfg.ColorBorder,
 			ColorBorderFocus: borderFocus,
 			Padding:          cfg.PaddingLarge,
 			SizeBorder:       cfg.SizeBorder,
 			Radius:           cfg.RadiusMedium,
-			RadiusBorder:     cfg.RadiusMedium,
+			radiusBorder:     cfg.RadiusMedium,
 			AlignButtons:     HAlignCenter,
 			MinWidth:         200,
 			MaxWidth:         300,
-			TitleTextStyle:   makeStyle(ts, cfg.SizeTextLarge),
+			titleTextStyle:   makeStyle(ts, cfg.sizeTextLarge),
 			TextStyle:        ts,
 		},
-		ToastStyle: ToastStyle{
-			MaxVisible:   5,
-			Anchor:       ToastBottomRight,
+		toastStyle: ToastStyle{
+			maxVisible:   5,
+			Anchor:       toastBottomRight,
 			Width:        260,
-			Margin:       16,
+			margin:       16,
 			Spacing:      8,
-			AccentWidth:  4,
+			accentWidth:  4,
 			Padding:      cfg.PaddingMedium,
 			Radius:       cfg.RadiusMedium,
 			SizeBorder:   cfg.SizeBorder,
 			Color:        cfg.ColorPanel,
 			ColorBorder:  cfg.ColorBorder,
-			ColorInfo:    cfg.ColorSelect,
+			colorInfo:    cfg.ColorSelect,
 			ColorSuccess: RGBA(46, 160, 67, 255),
 			ColorWarning: RGBA(210, 153, 34, 255),
 			ColorError:   cfg.ColorError,
 			TextStyle:    ts,
-			TitleStyle:   makeStyle(ts, cfg.SizeTextMedium),
+			TitleStyle:   makeStyle(ts, cfg.sizeTextMedium),
 		},
-		TooltipStyle: TooltipStyle{
+		tooltipStyle: TooltipStyle{
 			Delay:       500 * time.Millisecond,
 			Color:       cfg.ColorInterior,
 			ColorBorder: cfg.ColorBorder,
@@ -235,152 +235,152 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Radius:      cfg.RadiusSmall,
 			TextStyle:   ts,
 		},
-		BadgeStyle: BadgeStyle{
+		badgeStyle: BadgeStyle{
 			Color:        cfg.ColorActive,
-			ColorInfo:    cfg.ColorSelect,
+			colorInfo:    cfg.ColorSelect,
 			ColorSuccess: RGBA(46, 160, 67, 255),
 			ColorWarning: RGBA(210, 153, 34, 255),
 			ColorError:   cfg.ColorError,
 			Padding:      NewPadding(2, 6, 2, 6),
-			DotSize:      8,
+			dotSize:      8,
 		},
-		ExpandPanelStyle: ExpandPanelStyle{
+		expandPanelStyle: ExpandPanelStyle{
 			Color:        cfg.ColorPanel,
 			ColorHover:   cfg.ColorHover,
-			ColorClick:   cfg.ColorActive,
+			colorClick:   cfg.ColorActive,
 			ColorBorder:  cfg.ColorBorder,
 			Padding:      cfg.PaddingMedium,
 			SizeBorder:   cfg.SizeBorder,
 			Radius:       cfg.RadiusMedium,
-			RadiusBorder: cfg.RadiusMedium,
+			radiusBorder: cfg.RadiusMedium,
 		},
-		ProgressBarStyle: ProgressBarStyle{
-			Size:           cfg.SizeProgressBar,
+		progressBarStyle: ProgressBarStyle{
+			Size:           cfg.sizeProgressBar,
 			Color:          cfg.ColorInterior,
-			ColorBar:       cfg.ColorSelect,
+			colorBar:       cfg.ColorSelect,
 			ColorBorder:    cfg.ColorBorder,
-			TextBackground: ColorTransparent,
+			textBackground: ColorTransparent,
 			Padding:        PaddingNone,
-			TextPadding:    NewPadding(1, 4, 1, 4),
+			textPadding:    NewPadding(1, 4, 1, 4),
 			Radius:         cfg.RadiusSmall,
 			TextShow:       true,
 			TextStyle:      ts,
 		},
-		SkeletonStyle: SkeletonStyle{
+		skeletonStyle: SkeletonStyle{
 			Color:          cfg.ColorInterior,
 			ColorHighlight: cfg.ColorInterior.Add(RGBA(20, 20, 20, 0)),
 			Radius:         cfg.RadiusSmall,
 		},
-		SliderStyle: SliderStyle{
-			Size:             cfg.SizeSlider,
-			ThumbSize:        cfg.SizeSliderThumb,
+		sliderStyle: SliderStyle{
+			Size:             cfg.sizeSlider,
+			ThumbSize:        cfg.sizeSliderThumb,
 			Color:            cfg.ColorInterior,
-			ColorClick:       cfg.ColorActive,
-			ColorThumb:       cfg.ColorPanel,
-			ColorLeft:        cfg.ColorSelect,
+			colorClick:       cfg.ColorActive,
+			colorThumb:       cfg.ColorPanel,
+			colorLeft:        cfg.ColorSelect,
 			ColorFocus:       cfg.ColorSelect,
 			ColorHover:       cfg.ColorHover,
 			ColorBorder:      cfg.ColorBorder,
 			ColorBorderFocus: borderFocus,
 			Padding:          PaddingNone,
 			SizeBorder:       cfg.SizeBorder,
-			Radius:           cfg.SizeSlider / 2,
+			Radius:           cfg.sizeSlider / 2,
 		},
-		TabControlStyle: TabControlStyle{
+		tabControlStyle: TabControlStyle{
 			Color:               cfg.ColorPanel,
 			ColorBorder:         cfg.ColorBorder,
 			ColorHeader:         ColorTransparent,
-			ColorHeaderBorder:   ColorTransparent,
-			ColorContent:        cfg.ColorPanel,
-			ColorContentBorder:  cfg.ColorBorder,
-			ColorTab:            cfg.ColorInterior,
-			ColorTabHover:       cfg.ColorHover,
-			ColorTabFocus:       cfg.ColorFocus,
-			ColorTabClick:       cfg.ColorActive,
-			ColorTabSelected:    cfg.ColorSelect,
-			ColorTabDisabled:    cfg.ColorPanel,
-			ColorTabBorder:      cfg.ColorBorder,
-			ColorTabBorderFocus: borderFocus,
+			colorHeaderBorder:   ColorTransparent,
+			colorContent:        cfg.ColorPanel,
+			colorContentBorder:  cfg.ColorBorder,
+			colorTab:            cfg.ColorInterior,
+			colorTabHover:       cfg.ColorHover,
+			colorTabFocus:       cfg.ColorFocus,
+			colorTabClick:       cfg.ColorActive,
+			colorTabSelected:    cfg.ColorSelect,
+			colorTabDisabled:    cfg.ColorPanel,
+			colorTabBorder:      cfg.ColorBorder,
+			colorTabBorderFocus: borderFocus,
 			Padding:             PaddingNone,
 			PaddingHeader:       PaddingNone,
-			PaddingContent:      cfg.PaddingMedium,
-			PaddingTab:          cfg.PaddingSmall,
+			paddingContent:      cfg.PaddingMedium,
+			paddingTab:          cfg.PaddingSmall,
 			SizeBorder:          cfg.SizeBorder,
-			SizeTabBorder:       cfg.SizeBorder,
+			sizeTabBorder:       cfg.SizeBorder,
 			Radius:              cfg.RadiusMedium,
-			RadiusHeader:        cfg.RadiusSmall,
-			RadiusContent:       cfg.RadiusMedium,
-			RadiusTab:           cfg.RadiusSmall,
-			SpacingHeader:       2,
+			radiusHeader:        cfg.RadiusSmall,
+			radiusContent:       cfg.RadiusMedium,
+			radiusTab:           cfg.RadiusSmall,
+			spacingHeader:       2,
 			TextStyle:           ts,
-			TextStyleSelected:   ts,
-			TextStyleDisabled: TextStyle{
+			textStyleSelected:   ts,
+			textStyleDisabled: TextStyle{
 				Color: RGBA(ts.Color.R, ts.Color.G, ts.Color.B, 130),
 				Size:  ts.Size,
 			},
 		},
-		BreadcrumbStyle: BreadcrumbStyle{
+		breadcrumbStyle: BreadcrumbStyle{
 			Separator:          "/",
 			Color:              ColorTransparent,
 			ColorBorder:        ColorTransparent,
-			ColorTrail:         ColorTransparent,
-			ColorCrumb:         ColorTransparent,
-			ColorCrumbHover:    cfg.ColorHover,
-			ColorCrumbClick:    cfg.ColorActive,
-			ColorCrumbSelected: ColorTransparent,
-			ColorCrumbDisabled: ColorTransparent,
-			ColorContent:       cfg.ColorPanel,
-			ColorContentBorder: cfg.ColorBorder,
+			colorTrail:         ColorTransparent,
+			colorCrumb:         ColorTransparent,
+			colorCrumbHover:    cfg.ColorHover,
+			colorCrumbClick:    cfg.ColorActive,
+			colorCrumbSelected: ColorTransparent,
+			colorCrumbDisabled: ColorTransparent,
+			colorContent:       cfg.ColorPanel,
+			colorContentBorder: cfg.ColorBorder,
 			Padding:            PaddingNone,
-			PaddingTrail:       cfg.PaddingSmall,
-			PaddingCrumb:       NewPadding(2, 4, 2, 4),
-			PaddingContent:     cfg.PaddingMedium,
+			paddingTrail:       cfg.PaddingSmall,
+			paddingCrumb:       NewPadding(2, 4, 2, 4),
+			paddingContent:     cfg.PaddingMedium,
 			Radius:             cfg.RadiusMedium,
-			RadiusCrumb:        cfg.RadiusSmall,
-			RadiusContent:      cfg.RadiusMedium,
+			radiusCrumb:        cfg.RadiusSmall,
+			radiusContent:      cfg.RadiusMedium,
 			Spacing:            cfg.SpacingSmall,
-			SpacingTrail:       cfg.SpacingSmall,
-			SizeContentBorder:  cfg.SizeBorder,
+			spacingTrail:       cfg.SpacingSmall,
+			sizeContentBorder:  cfg.SizeBorder,
 			TextStyle:          ts,
-			TextStyleSelected:  ts,
-			TextStyleDisabled: TextStyle{
+			textStyleSelected:  ts,
+			textStyleDisabled: TextStyle{
 				Color: RGBA(ts.Color.R, ts.Color.G, ts.Color.B, 130),
 				Size:  ts.Size,
 			},
-			TextStyleSeparator: TextStyle{
+			textStyleSeparator: TextStyle{
 				Color: RGBA(ts.Color.R, ts.Color.G, ts.Color.B, 160),
 				Size:  ts.Size,
 			},
 		},
-		SplitterStyle: SplitterStyle{
+		splitterStyle: SplitterStyle{
 			HandleSize:        9,
-			DragStep:          0.02,
-			DragStepLarge:     0.10,
-			ColorHandle:       cfg.ColorInterior,
-			ColorHandleHover:  cfg.ColorHover,
-			ColorHandleActive: cfg.ColorActive,
-			ColorHandleBorder: cfg.ColorBorder,
-			ColorGrip:         cfg.ColorSelect,
-			ColorButton:       cfg.ColorInterior,
-			ColorButtonHover:  cfg.ColorHover,
-			ColorButtonActive: cfg.ColorActive,
-			ColorButtonIcon:   ts.Color,
+			dragStep:          0.02,
+			dragStepLarge:     0.10,
+			colorHandle:       cfg.ColorInterior,
+			colorHandleHover:  cfg.ColorHover,
+			colorHandleActive: cfg.ColorActive,
+			colorHandleBorder: cfg.ColorBorder,
+			colorGrip:         cfg.ColorSelect,
+			colorButton:       cfg.ColorInterior,
+			colorButtonHover:  cfg.ColorHover,
+			colorButtonActive: cfg.ColorActive,
+			colorButtonIcon:   ts.Color,
 			SizeBorder:        cfg.SizeBorder,
 			Radius:            cfg.RadiusSmall,
-			RadiusBorder:      cfg.RadiusSmall,
+			radiusBorder:      cfg.RadiusSmall,
 		},
-		TableStyle: TableStyle{
+		tableStyle: TableStyle{
 			ColorBorder:        cfg.ColorBorder,
 			ColorSelect:        cfg.ColorSelect,
 			ColorHover:         cfg.ColorHover,
-			CellPadding:        PaddingTwoFive,
+			cellPadding:        PaddingTwoFive,
 			TextStyle:          ts,
 			TextStyleHead:      ts,
-			AlignHead:          HAlignCenter,
-			ColumnWidthDefault: 50,
-			ColumnWidthMin:     20,
+			alignHead:          HAlignCenter,
+			columnWidthDefault: 50,
+			columnWidthMin:     20,
 		},
-		ComboboxStyle: ComboboxStyle{
+		comboboxStyle: ComboboxStyle{
 			Color:             cfg.ColorInterior,
 			ColorHover:        cfg.ColorHover,
 			ColorFocus:        cfg.ColorInterior,
@@ -392,14 +392,14 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Radius:            cfg.Radius,
 			MinWidth:          75,
 			MaxWidth:          200,
-			MaxDropdownHeight: 200,
+			maxDropdownHeight: 200,
 			TextStyle:         ts,
 			PlaceholderStyle: TextStyle{
 				Color: placeholderColor,
 				Size:  ts.Size,
 			},
 		},
-		CommandPaletteStyle: CommandPaletteStyle{
+		commandPaletteStyle: CommandPaletteStyle{
 			Color:          cfg.ColorPanel,
 			ColorBorder:    cfg.ColorBorder,
 			ColorHighlight: cfg.ColorSelect,
@@ -408,15 +408,15 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Width:          500,
 			MaxHeight:      400,
 			TextStyle:      ts,
-			DetailStyle: TextStyle{
+			detailStyle: TextStyle{
 				Color: RGBA(ts.Color.R, ts.Color.G, ts.Color.B, 140),
 				Size:  ts.Size,
 			},
-			BackdropColor: RGBA(0, 0, 0, 120),
+			backdropColor: RGBA(0, 0, 0, 120),
 		},
 		MenubarStyle: MenubarStyle{
-			WidthSubmenuMin:  50,
-			WidthSubmenuMax:  200,
+			widthSubmenuMin:  50,
+			widthSubmenuMax:  200,
 			Color:            cfg.ColorInterior,
 			ColorHover:       cfg.ColorHover,
 			ColorFocus:       cfg.ColorFocus,
@@ -424,49 +424,49 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			ColorBorderFocus: borderFocus,
 			ColorSelect:      cfg.ColorSelect,
 			Padding:          cfg.PaddingSmall,
-			PaddingMenuItem:  PaddingTwoFive,
-			PaddingSubmenu:   cfg.PaddingSmall,
-			PaddingSubtitle:  NewPadding(0, cfg.PaddingSmall.Right, 0, cfg.PaddingSmall.Left),
+			paddingMenuItem:  PaddingTwoFive,
+			paddingSubmenu:   cfg.PaddingSmall,
+			paddingSubtitle:  NewPadding(0, cfg.PaddingSmall.Right, 0, cfg.PaddingSmall.Left),
 			SizeBorder:       cfg.SizeBorder,
 			Radius:           cfg.RadiusSmall,
-			RadiusBorder:     cfg.RadiusMedium,
-			RadiusSubmenu:    cfg.RadiusSmall,
-			RadiusMenuItem:   cfg.RadiusSmall,
+			radiusBorder:     cfg.RadiusMedium,
+			radiusSubmenu:    cfg.RadiusSmall,
+			radiusMenuItem:   cfg.RadiusSmall,
 			Spacing:          cfg.SpacingMedium,
-			SpacingSubmenu:   1,
+			spacingSubmenu:   1,
 			TextStyle:        ts,
-			TextStyleSubtitle: TextStyle{
+			textStyleSubtitle: TextStyle{
 				Color: ts.Color,
-				Size:  cfg.SizeTextSmall,
+				Size:  cfg.sizeTextSmall,
 			},
 		},
-		DatePickerStyle: DatePickerStyle{
-			CellSpacing:      2,
+		datePickerStyle: DatePickerStyle{
+			cellSpacing:      2,
 			Color:            cfg.ColorInterior,
 			ColorHover:       cfg.ColorHover,
 			ColorFocus:       cfg.ColorFocus,
-			ColorClick:       cfg.ColorActive,
+			colorClick:       cfg.ColorActive,
 			ColorBorder:      cfg.ColorBorder,
 			ColorBorderFocus: borderFocus,
 			ColorSelect:      cfg.ColorSelect,
 			Padding:          cfg.PaddingSmall,
 			SizeBorder:       cfg.SizeBorder,
 			Radius:           cfg.RadiusMedium,
-			RadiusBorder:     cfg.RadiusMedium,
+			radiusBorder:     cfg.RadiusMedium,
 			TextStyle:        ts,
 		},
-		ColorPickerStyle: ColorPickerStyle{
+		colorPickerStyle: ColorPickerStyle{
 			Color:            cfg.ColorInterior,
 			ColorBorder:      cfg.ColorBorder,
 			ColorBorderFocus: borderFocus,
 			SizeBorder:       cfg.SizeBorder,
 			Radius:           cfg.RadiusMedium,
-			SVSize:           200,
-			SliderHeight:     24,
-			IndicatorSize:    16,
+			sVSize:           200,
+			sliderHeight:     24,
+			indicatorSize:    16,
 			TextStyle:        ts,
 		},
-		DataGridStyle: DataGridStyle{
+		dataGridStyle: DataGridStyle{
 			ColorBackground:   cfg.ColorInterior,
 			ColorHeader:       cfg.ColorPanel,
 			ColorHeaderHover:  cfg.ColorHover,
@@ -491,7 +491,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			},
 			TextStyleFilter: ts,
 		},
-		InspectorStyle: DefaultInspectorStyle,
+		inspectorStyle: defaultInspectorStyle,
 
 		// Layout constants.
 		PaddingSmall:  cfg.PaddingSmall,
@@ -508,76 +508,76 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		SpacingLarge:  cfg.SpacingLarge,
 
 		SizeTextTiny:   cfg.SizeTextTiny,
-		SizeTextXSmall: cfg.SizeTextXSmall,
-		SizeTextSmall:  cfg.SizeTextSmall,
-		SizeTextMedium: cfg.SizeTextMedium,
-		SizeTextLarge:  cfg.SizeTextLarge,
-		SizeTextXLarge: cfg.SizeTextXLarge,
+		sizeTextXSmall: cfg.sizeTextXSmall,
+		sizeTextSmall:  cfg.sizeTextSmall,
+		sizeTextMedium: cfg.sizeTextMedium,
+		sizeTextLarge:  cfg.sizeTextLarge,
+		sizeTextXLarge: cfg.sizeTextXLarge,
 
-		ScrollMultiplier: cfg.ScrollMultiplier,
-		ScrollDeltaLine:  cfg.ScrollDeltaLine,
-		ScrollDeltaPage:  cfg.ScrollDeltaPage,
+		scrollMultiplier: cfg.scrollMultiplier,
+		scrollDeltaLine:  cfg.scrollDeltaLine,
+		scrollDeltaPage:  cfg.scrollDeltaPage,
 	}
 
 	// Text size shortcuts.
 	normal := ts
 	bold := ts
 	bold.Typeface = glyph.TypefaceBold
-	theme.N1 = makeStyle(normal, theme.SizeTextXLarge)
-	theme.N2 = makeStyle(normal, theme.SizeTextLarge)
+	theme.N1 = makeStyle(normal, theme.sizeTextXLarge)
+	theme.N2 = makeStyle(normal, theme.sizeTextLarge)
 	theme.N3 = ts
-	theme.N4 = makeStyle(normal, theme.SizeTextSmall)
-	theme.N5 = makeStyle(normal, theme.SizeTextXSmall)
+	theme.N4 = makeStyle(normal, theme.sizeTextSmall)
+	theme.N5 = makeStyle(normal, theme.sizeTextXSmall)
 	theme.N6 = makeStyle(normal, theme.SizeTextTiny)
-	theme.B1 = makeStyle(bold, theme.SizeTextXLarge)
-	theme.B2 = makeStyle(bold, theme.SizeTextLarge)
-	theme.B3 = makeStyle(bold, theme.SizeTextMedium)
-	theme.B4 = makeStyle(bold, theme.SizeTextSmall)
-	theme.B5 = makeStyle(bold, theme.SizeTextXSmall)
+	theme.B1 = makeStyle(bold, theme.sizeTextXLarge)
+	theme.B2 = makeStyle(bold, theme.sizeTextLarge)
+	theme.B3 = makeStyle(bold, theme.sizeTextMedium)
+	theme.B4 = makeStyle(bold, theme.sizeTextSmall)
+	theme.B5 = makeStyle(bold, theme.sizeTextXSmall)
 	theme.B6 = makeStyle(bold, theme.SizeTextTiny)
-	theme.TableStyle.TextStyleHead = theme.B3
-	theme.BadgeStyle.TextStyle = theme.B5
-	theme.BadgeStyle.TextStyle.Color = White
+	theme.tableStyle.TextStyleHead = theme.B3
+	theme.badgeStyle.TextStyle = theme.B5
+	theme.badgeStyle.TextStyle.Color = White
 
 	// Italic shortcuts.
 	italic := ts
 	italic.Typeface = glyph.TypefaceItalic
-	theme.I1 = makeStyle(italic, theme.SizeTextXLarge)
-	theme.I2 = makeStyle(italic, theme.SizeTextLarge)
-	theme.I3 = makeStyle(italic, theme.SizeTextMedium)
-	theme.I4 = makeStyle(italic, theme.SizeTextSmall)
-	theme.I5 = makeStyle(italic, theme.SizeTextXSmall)
-	theme.I6 = makeStyle(italic, theme.SizeTextTiny)
+	theme.i1 = makeStyle(italic, theme.sizeTextXLarge)
+	theme.i2 = makeStyle(italic, theme.sizeTextLarge)
+	theme.I3 = makeStyle(italic, theme.sizeTextMedium)
+	theme.i4 = makeStyle(italic, theme.sizeTextSmall)
+	theme.i5 = makeStyle(italic, theme.sizeTextXSmall)
+	theme.i6 = makeStyle(italic, theme.SizeTextTiny)
 
 	// Bold+italic shortcuts.
 	boldItalic := ts
 	boldItalic.Typeface = glyph.TypefaceBoldItalic
-	theme.BI1 = makeStyle(boldItalic, theme.SizeTextXLarge)
-	theme.BI2 = makeStyle(boldItalic, theme.SizeTextLarge)
-	theme.BI3 = makeStyle(boldItalic, theme.SizeTextMedium)
-	theme.BI4 = makeStyle(boldItalic, theme.SizeTextSmall)
-	theme.BI5 = makeStyle(boldItalic, theme.SizeTextXSmall)
-	theme.BI6 = makeStyle(boldItalic, theme.SizeTextTiny)
+	theme.bI1 = makeStyle(boldItalic, theme.sizeTextXLarge)
+	theme.bI2 = makeStyle(boldItalic, theme.sizeTextLarge)
+	theme.BI3 = makeStyle(boldItalic, theme.sizeTextMedium)
+	theme.bI4 = makeStyle(boldItalic, theme.sizeTextSmall)
+	theme.bI5 = makeStyle(boldItalic, theme.sizeTextXSmall)
+	theme.bI6 = makeStyle(boldItalic, theme.SizeTextTiny)
 
 	// Mono shortcuts (+1 size offset).
 	mono := ts
-	mono.Family = cfg.MonoFontFamily
-	theme.M1 = makeStyle(mono, theme.SizeTextXLarge+1)
-	theme.M2 = makeStyle(mono, theme.SizeTextLarge+1)
-	theme.M3 = makeStyle(mono, theme.SizeTextMedium+1)
-	theme.M4 = makeStyle(mono, theme.SizeTextSmall+1)
-	theme.M5 = makeStyle(mono, theme.SizeTextXSmall+1)
+	mono.Family = cfg.monoFontFamily
+	theme.M1 = makeStyle(mono, theme.sizeTextXLarge+1)
+	theme.M2 = makeStyle(mono, theme.sizeTextLarge+1)
+	theme.M3 = makeStyle(mono, theme.sizeTextMedium+1)
+	theme.M4 = makeStyle(mono, theme.sizeTextSmall+1)
+	theme.M5 = makeStyle(mono, theme.sizeTextXSmall+1)
 	theme.M6 = makeStyle(mono, theme.SizeTextTiny+1)
 
 	// Icon font shortcuts.
 	icon := ts
 	icon.Family = iconFamily
-	theme.Icon1 = makeStyle(icon, theme.SizeTextXLarge)
-	theme.Icon2 = makeStyle(icon, theme.SizeTextLarge)
-	theme.Icon3 = makeStyle(icon, theme.SizeTextMedium)
-	theme.Icon4 = makeStyle(icon, theme.SizeTextSmall)
-	theme.Icon5 = makeStyle(icon, theme.SizeTextXSmall)
-	theme.Icon6 = makeStyle(icon, theme.SizeTextTiny)
+	theme.Icon1 = makeStyle(icon, theme.sizeTextXLarge)
+	theme.Icon2 = makeStyle(icon, theme.sizeTextLarge)
+	theme.Icon3 = makeStyle(icon, theme.sizeTextMedium)
+	theme.Icon4 = makeStyle(icon, theme.sizeTextSmall)
+	theme.icon5 = makeStyle(icon, theme.sizeTextXSmall)
+	theme.icon6 = makeStyle(icon, theme.SizeTextTiny)
 
 	return theme
 }

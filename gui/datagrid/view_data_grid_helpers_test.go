@@ -17,7 +17,7 @@ func TestFilterHeightUsesHeaderHeight(t *testing.T) {
 }
 
 func TestFilterHeightFallsBackToRowHeight(t *testing.T) {
-	cfg := &DataGridCfg{RowHeight: 22}
+	cfg := &DataGridCfg{rowHeight: 22}
 	got := dataGridFilterHeight(cfg)
 	if got != 22 {
 		t.Errorf("got %v, want 22", got)
@@ -35,7 +35,7 @@ func TestQuickFilterHeightUsesHeaderHeight(t *testing.T) {
 }
 
 func TestQuickFilterHeightFallsBackToRowHeight(t *testing.T) {
-	cfg := &DataGridCfg{RowHeight: 20}
+	cfg := &DataGridCfg{rowHeight: 20}
 	got := dataGridQuickFilterHeight(cfg)
 	if got != 20 {
 		t.Errorf("got %v, want 20", got)
@@ -45,7 +45,7 @@ func TestQuickFilterHeightFallsBackToRowHeight(t *testing.T) {
 // --- dataGridColumnChooserHeight ---
 
 func TestColumnChooserHeightClosed(t *testing.T) {
-	cfg := &DataGridCfg{RowHeight: 24}
+	cfg := &DataGridCfg{rowHeight: 24}
 	got := dataGridColumnChooserHeight(cfg, false)
 	if got != 24 {
 		t.Errorf("closed: got %v, want 24", got)
@@ -53,7 +53,7 @@ func TestColumnChooserHeightClosed(t *testing.T) {
 }
 
 func TestColumnChooserHeightOpen(t *testing.T) {
-	cfg := &DataGridCfg{RowHeight: 24}
+	cfg := &DataGridCfg{rowHeight: 24}
 	got := dataGridColumnChooserHeight(cfg, true)
 	if got != 48 {
 		t.Errorf("open: got %v, want 48", got)
@@ -171,7 +171,7 @@ func TestDataGridHeightZeroWhenNone(t *testing.T) {
 // --- dataGridPagerEnabled ---
 
 func TestPagerEnabled(t *testing.T) {
-	cfg := &DataGridCfg{PageSize: 25}
+	cfg := &DataGridCfg{pageSize: 25}
 	if !dataGridPagerEnabled(cfg, 4) {
 		t.Fatal("should be enabled with pageSize>0 and pageCount>1")
 	}
@@ -185,7 +185,7 @@ func TestPagerDisabledNoPageSize(t *testing.T) {
 }
 
 func TestPagerDisabledSinglePage(t *testing.T) {
-	cfg := &DataGridCfg{PageSize: 25}
+	cfg := &DataGridCfg{pageSize: 25}
 	if dataGridPagerEnabled(cfg, 1) {
 		t.Fatal("should be disabled with single page")
 	}
@@ -194,7 +194,7 @@ func TestPagerDisabledSinglePage(t *testing.T) {
 // --- dataGridPagerHeight ---
 
 func TestPagerHeightUsesRowHeight(t *testing.T) {
-	cfg := &DataGridCfg{RowHeight: 26}
+	cfg := &DataGridCfg{rowHeight: 26}
 	if got := dataGridPagerHeight(cfg); got != 26 {
 		t.Errorf("got %v, want 26", got)
 	}
@@ -230,7 +230,7 @@ func TestHeaderHeightConfigured(t *testing.T) {
 }
 
 func TestHeaderHeightFallsBackToRowHeight(t *testing.T) {
-	cfg := &DataGridCfg{RowHeight: 22}
+	cfg := &DataGridCfg{rowHeight: 22}
 	if got := dataGridHeaderHeight(cfg); got != 22 {
 		t.Errorf("got %v, want 22", got)
 	}
@@ -239,7 +239,7 @@ func TestHeaderHeightFallsBackToRowHeight(t *testing.T) {
 // --- dataGridRowHeight ---
 
 func TestRowHeightConfigured(t *testing.T) {
-	cfg := &DataGridCfg{RowHeight: 28}
+	cfg := &DataGridCfg{rowHeight: 28}
 	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	if got := dataGridRowHeight(cfg, w); got != 28 {
@@ -251,7 +251,7 @@ func TestRowHeightConfigured(t *testing.T) {
 
 func TestStaticTopHeightHeaderAndChooser(t *testing.T) {
 	cfg := &DataGridCfg{
-		RowHeight:         20,
+		rowHeight:         20,
 		ShowColumnChooser: true,
 	}
 	got := dataGridStaticTopHeight(cfg, 0, true, true)
@@ -264,7 +264,7 @@ func TestStaticTopHeightHeaderAndChooser(t *testing.T) {
 
 func TestStaticTopHeightNoHeader(t *testing.T) {
 	cfg := &DataGridCfg{
-		RowHeight: 20,
+		rowHeight: 20,
 	}
 	got := dataGridStaticTopHeight(cfg, 0, false, false)
 	if got != 0 {
@@ -337,7 +337,7 @@ func TestVisibleRangeWithStaticTop(t *testing.T) {
 
 func TestDetailRowExpanded(t *testing.T) {
 	cfg := &DataGridCfg{
-		DetailExpandedRowIDs: map[string]bool{"r1": true},
+		detailExpandedRowIDs: map[string]bool{"r1": true},
 	}
 	if !dataGridDetailRowExpanded(cfg, "r1") {
 		t.Fatal("r1 should be expanded")
@@ -413,7 +413,7 @@ func TestHasRowID(t *testing.T) {
 
 func TestActiveRowIndex(t *testing.T) {
 	rows := []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}}
-	sel := GridSelection{ActiveRowID: "b"}
+	sel := GridSelection{activeRowID: "b"}
 	got := dataGridActiveRowIndex(rows, sel)
 	if got != 1 {
 		t.Errorf("got %d, want 1", got)
@@ -422,7 +422,7 @@ func TestActiveRowIndex(t *testing.T) {
 
 func TestActiveRowIndexFallbackToFirst(t *testing.T) {
 	rows := []GridRow{{ID: "a"}, {ID: "b"}}
-	sel := GridSelection{ActiveRowID: "z"}
+	sel := GridSelection{activeRowID: "z"}
 	got := dataGridActiveRowIndex(rows, sel)
 	if got != 0 {
 		t.Errorf("got %d, want 0", got)
@@ -430,7 +430,7 @@ func TestActiveRowIndexFallbackToFirst(t *testing.T) {
 }
 
 func TestActiveRowIndexEmptyRows(t *testing.T) {
-	got := dataGridActiveRowIndex(nil, GridSelection{ActiveRowID: "a"})
+	got := dataGridActiveRowIndex(nil, GridSelection{activeRowID: "a"})
 	if got != -1 {
 		t.Errorf("got %d, want -1", got)
 	}
@@ -440,7 +440,7 @@ func TestActiveRowIndexEmptyRows(t *testing.T) {
 
 func TestActiveRowIndexStrict(t *testing.T) {
 	rows := []GridRow{{ID: "a"}, {ID: "b"}}
-	sel := GridSelection{ActiveRowID: "b"}
+	sel := GridSelection{activeRowID: "b"}
 	got := dataGridActiveRowIndexStrict(rows, sel)
 	if got != 1 {
 		t.Errorf("got %d, want 1", got)
@@ -450,7 +450,7 @@ func TestActiveRowIndexStrict(t *testing.T) {
 func TestActiveRowIndexStrictFallbackToSelected(t *testing.T) {
 	rows := []GridRow{{ID: "a"}, {ID: "b"}}
 	sel := GridSelection{
-		ActiveRowID:    "",
+		activeRowID:    "",
 		SelectedRowIDs: map[string]bool{"b": true},
 	}
 	got := dataGridActiveRowIndexStrict(rows, sel)

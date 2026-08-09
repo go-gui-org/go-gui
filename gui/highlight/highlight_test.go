@@ -34,11 +34,11 @@ func TestTokenizeGoKeyword(t *testing.T) {
 func TestTokenizeUnknownLang(t *testing.T) {
 	t.Parallel()
 	toks := Default().Tokenize("", "hello")
-	if len(toks) != 1 || toks[0].Kind != KindPlain || toks[0].Text != "hello" {
+	if len(toks) != 1 || toks[0].Kind != kindPlain || toks[0].Text != "hello" {
 		t.Errorf("unexpected fallback: %+v", toks)
 	}
 	toks = Default().Tokenize("fortran", "hello")
-	if len(toks) != 1 || toks[0].Kind != KindPlain {
+	if len(toks) != 1 || toks[0].Kind != kindPlain {
 		t.Errorf("expected plain fallback for uncurated lang, got %+v", toks)
 	}
 }
@@ -54,7 +54,7 @@ func TestTokenize_OverMaxBytes_FallsBackToPlain(t *testing.T) {
 	t.Parallel()
 	src := strings.Repeat("a", maxTokenizeBytes+1)
 	toks := Default().Tokenize("go", src)
-	if len(toks) != 1 || toks[0].Kind != KindPlain {
+	if len(toks) != 1 || toks[0].Kind != kindPlain {
 		t.Errorf("oversized: want single plain token, got %d tokens", len(toks))
 	}
 	if toks[0].Text != src {

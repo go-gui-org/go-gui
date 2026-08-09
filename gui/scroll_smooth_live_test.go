@@ -13,7 +13,7 @@ import (
 // interactions — regression cover for the command scratch buffer
 // being handed back to writers while the flush loop still read it.
 func TestScrollVerticalToSmoothLiveLoop(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 
 	// NewWindow, not a bare Window: the animation goroutine only
 	// starts when the lifecycle channels exist.
@@ -33,7 +33,7 @@ func TestScrollVerticalToSmoothLiveLoop(t *testing.T) {
 				ID:         "live",
 				Width:      100,
 				Height:     100,
-				Axis:       AxisTopToBottom,
+				Axis:       axisTopToBottom,
 			},
 			Children: []Layout{child},
 		}},

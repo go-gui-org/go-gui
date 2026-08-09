@@ -92,8 +92,8 @@ func TestParseSvg_ClipPathFromInlineStyle(t *testing.T) {
 	if len(vg.Paths) == 0 {
 		t.Fatal("no paths parsed")
 	}
-	if vg.Paths[0].ClipPathID != "cp" {
-		t.Fatalf("ClipPathID=%q; want cp", vg.Paths[0].ClipPathID)
+	if vg.Paths[0].clipPathID != "cp" {
+		t.Fatalf("ClipPathID=%q; want cp", vg.Paths[0].clipPathID)
 	}
 }
 
@@ -111,8 +111,8 @@ func TestParseSvg_ClipPathFromCSSRule(t *testing.T) {
 	if len(vg.Paths) == 0 {
 		t.Fatal("no paths parsed")
 	}
-	if vg.Paths[0].ClipPathID != "cp" {
-		t.Fatalf("ClipPathID=%q; want cp", vg.Paths[0].ClipPathID)
+	if vg.Paths[0].clipPathID != "cp" {
+		t.Fatalf("ClipPathID=%q; want cp", vg.Paths[0].clipPathID)
 	}
 }
 
@@ -133,7 +133,7 @@ func TestParseSvg_InlineStyleClipPathOverridesAttr(t *testing.T) {
 	if len(vg.Paths) == 0 {
 		t.Fatal("no paths parsed")
 	}
-	if got := vg.Paths[0].ClipPathID; got != "b" {
+	if got := vg.Paths[0].clipPathID; got != "b" {
 		t.Fatalf("ClipPathID=%q; inline style should override attr → want b", got)
 	}
 }
@@ -183,7 +183,7 @@ func TestParseSvg_ClipPathNoneViaCSSWipesInherited(t *testing.T) {
 	if len(vg.Paths) == 0 {
 		t.Fatal("no paths parsed")
 	}
-	if got := vg.Paths[0].ClipPathID; got != "" {
+	if got := vg.Paths[0].clipPathID; got != "" {
 		t.Fatalf("ClipPathID=%q; clip-path:none should clear → want \"\"", got)
 	}
 }
@@ -292,7 +292,7 @@ func TestParseSvg_EmptyURLClipPathTreatedAsInvalid(t *testing.T) {
 	if len(vg.Paths) == 0 {
 		t.Fatal("no paths parsed")
 	}
-	got := vg.Paths[0].ClipPathID
+	got := vg.Paths[0].clipPathID
 	if got == "" || got == "cp" {
 		t.Fatalf("ClipPathID=%q; nested svg with empty url() clip-path "+
 			"must receive synth viewport clip", got)
@@ -323,7 +323,7 @@ func TestParseSvg_InvalidClipPathOnNestedSvgKeepsViewportClip(t *testing.T) {
 	if len(vg.Paths) == 0 {
 		t.Fatal("no paths parsed")
 	}
-	got := vg.Paths[0].ClipPathID
+	got := vg.Paths[0].clipPathID
 	if got == "" || got == "cp" {
 		t.Fatalf("ClipPathID=%q; nested svg with invalid clip-path "+
 			"must receive synth viewport clip (not inherited cp, not empty)",

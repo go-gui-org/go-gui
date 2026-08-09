@@ -73,4 +73,5 @@ func SvgSpinnerName(k SvgSpinnerKind) string {
 }
 
 // SvgSpinnerCount returns the number of built-in spinner kinds.
+// exportaudit:keep — collides with the svgSpinnerCount const
 func SvgSpinnerCount() int { return svgSpinnerCount }

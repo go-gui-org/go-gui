@@ -37,8 +37,8 @@ func (c *pdfCtx) ph(h float32) float64 { return float64(h * c.scale) }
 func renderToPDF(renderers []RenderCmd, job PrintJob,
 	sourceW, sourceH float32) error {
 
-	pageW, pageH := PrintPageSize(job.Paper, job.Orientation)
-	m := job.Margins
+	pageW, pageH := printPageSize(job.paper, job.Orientation)
+	m := job.margins
 
 	printableW := (pageW - m.Left - m.Right) * ptToMM
 	printableH := (pageH - m.Top - m.Bottom) * ptToMM
@@ -50,7 +50,7 @@ func renderToPDF(renderers []RenderCmd, job PrintJob,
 	// Scale factor: fit source viewport into printable area.
 	var scale float32
 	switch job.ScaleMode {
-	case PrintScaleActualSize:
+	case printScaleActualSize:
 		// 1pt source = 1pt print (assume 72 DPI screen)
 		scale = ptToMM
 	default: // FitToPage
@@ -60,7 +60,7 @@ func renderToPDF(renderers []RenderCmd, job PrintJob,
 	}
 
 	orientation := "P"
-	if job.Orientation == PrintLandscape {
+	if job.Orientation == printLandscape {
 		orientation = "L"
 	}
 
@@ -87,11 +87,11 @@ func renderToPDF(renderers []RenderCmd, job PrintJob,
 	}
 
 	// Header/footer rendering.
-	if job.Header.Enabled {
+	if job.Header.enabled {
 		renderHeaderFooter(pdf, tr, job.Header, job, pageW, m, true)
 	}
-	if job.Footer.Enabled {
-		renderHeaderFooter(pdf, tr, job.Footer, job, pageW, m, false)
+	if job.footer.enabled {
+		renderHeaderFooter(pdf, tr, job.footer, job, pageW, m, false)
 	}
 
 	var clipStack []clipEntry
@@ -480,7 +480,7 @@ func pdfRenderLayout(ctx *pdfCtx, cmd RenderCmd) {
 }
 
 func pdfRenderTextPath(ctx *pdfCtx, cmd RenderCmd) {
-	tp := cmd.TextPath
+	tp := cmd.textPath
 	if tp == nil || cmd.TextStylePtr == nil || cmd.Text == "" {
 		return
 	}
@@ -517,8 +517,8 @@ func pdfRenderTextPath(ctx *pdfCtx, cmd RenderCmd) {
 
 	// Method=stretch: scale advances to fill path.
 	advScale := 1.0
-	if tp.Method == SvgTextPathMethodStretch && totalAdv > 0 {
-		remaining := float64(tp.TotalLen*ctx.scale) - offset
+	if tp.method == svgTextPathMethodStretch && totalAdv > 0 {
+		remaining := float64(tp.totalLen*ctx.scale) - offset
 		if remaining > 0 {
 			advScale = remaining / totalAdv
 		}
@@ -529,7 +529,7 @@ func pdfRenderTextPath(ctx *pdfCtx, cmd RenderCmd) {
 	for i, ch := range runes {
 		adv := advances[i] * advScale
 		centerDist := float32((offset + cumAdv + adv/2) / float64(ctx.scale))
-		pathX, pathY, angle := SamplePathAt(
+		pathX, pathY, angle := samplePathAt(
 			tp.Polyline, tp.Table, centerDist)
 		halfAdv := float32(adv / 2 / float64(ctx.scale))
 		cosA := float32(math.Cos(float64(angle)))
@@ -682,7 +682,7 @@ func gradientCoords(dir GradientDirection) (float64, float64, float64, float64) 
 
 // renderHeaderFooter draws a header or footer line on the page.
 func renderHeaderFooter(pdf *fpdf.Fpdf, tr func(string) string,
-	cfg PrintHeaderFooterCfg,
+	cfg printHeaderFooterCfg,
 	job PrintJob, pageW float32, m PrintMargins, isHeader bool) {
 
 	fontSize := 8.0 // points
@@ -693,7 +693,7 @@ func renderHeaderFooter(pdf *fpdf.Fpdf, tr func(string) string,
 	if isHeader {
 		yPt = m.Top * 0.5 // center in top margin
 	} else {
-		_, pageH := PrintPageSize(job.Paper, job.Orientation)
+		_, pageH := printPageSize(job.paper, job.Orientation)
 		yPt = pageH - m.Bottom*0.5
 	}
 	y := float64(yPt * ptToMM)

@@ -91,7 +91,7 @@ func BenchmarkCommandPaletteGenerateLayout(b *testing.B) {
 
 	w := newTestWindow()
 	id := "bench-cp"
-	CommandPaletteShow(id, w)
+	commandPaletteShow(id, w)
 	StateMap[string, string](w, nsCmdPaletteQuery, capModerate).
 		Set(id, "49")
 

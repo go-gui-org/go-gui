@@ -13,19 +13,19 @@ const layoutTransitionID = "__layout_transition__"
 
 // LayoutTransition animates layout changes (resize, reorder, add,
 // remove) using FLIP-style animation.
-type LayoutTransition struct {
+type layoutTransition struct {
 	snapshots map[string]posSnapshot
 	transitionBase
 }
 
 // ID implements Animation.
-func (l *LayoutTransition) ID() string { return layoutTransitionID }
+func (l *layoutTransition) ID() string { return layoutTransitionID }
 
 // RefreshKind implements Animation.
-func (l *LayoutTransition) RefreshKind() AnimationRefreshKind { return AnimationRefreshLayout }
+func (l *layoutTransition) RefreshKind() AnimationRefreshKind { return AnimationRefreshLayout }
 
 // Update implements Animation.
-func (l *LayoutTransition) Update(_ *Window, _ float32, ac *AnimationCommands) bool {
+func (l *layoutTransition) Update(_ *Window, _ float32, ac *AnimationCommands) bool {
 	return updateTransition(&l.transitionBase, ac)
 }
 
@@ -40,7 +40,7 @@ func (w *Window) AnimateLayout(cfg LayoutTransitionCfg) {
 	if eas == nil {
 		eas = EaseOutCubic
 	}
-	lt := &LayoutTransition{
+	lt := &layoutTransition{
 		transitionBase: transitionBase{
 			duration: dur,
 			easing:   eas,
@@ -78,14 +78,14 @@ func captureSnapshots(layout *Layout, snapshots map[string]posSnapshot, heroOnly
 // getLayoutTransition returns the active layout transition, if any.
 // Acquires w.animMu to safely read w.animations (the animation
 // goroutine may concurrently delete stopped animations).
-func (w *Window) getLayoutTransition() *LayoutTransition {
+func (w *Window) getLayoutTransition() *layoutTransition {
 	w.animMu.Lock()
 	a, ok := w.animations[layoutTransitionID]
 	w.animMu.Unlock()
 	if !ok {
 		return nil
 	}
-	lt, ok := a.(*LayoutTransition)
+	lt, ok := a.(*layoutTransition)
 	if !ok {
 		return nil
 	}
@@ -101,14 +101,14 @@ func applyLayoutTransition(layout *Layout, w *Window) {
 	applyTransitionRecursive(layout, lt)
 }
 
-func applyTransitionRecursive(layout *Layout, lt *LayoutTransition) {
+func applyTransitionRecursive(layout *Layout, lt *layoutTransition) {
 	if layout.Shape.ID != "" {
 		if old, ok := lt.snapshots[layout.Shape.idKey()]; ok {
 			t := lt.progress
-			layout.Shape.X = Lerp(old.x, layout.Shape.X, t)
-			layout.Shape.Y = Lerp(old.y, layout.Shape.Y, t)
-			layout.Shape.Width = Lerp(old.width, layout.Shape.Width, t)
-			layout.Shape.Height = Lerp(old.height, layout.Shape.Height, t)
+			layout.Shape.X = lerp(old.x, layout.Shape.X, t)
+			layout.Shape.Y = lerp(old.y, layout.Shape.Y, t)
+			layout.Shape.Width = lerp(old.width, layout.Shape.Width, t)
+			layout.Shape.Height = lerp(old.height, layout.Shape.Height, t)
 		}
 	}
 	for i := range layout.Children {

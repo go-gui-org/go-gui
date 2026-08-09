@@ -7,26 +7,29 @@ import (
 )
 
 // InputMaskPreset defines common mask patterns.
+// exportaudit:keep — reachable from an exported signature
 type InputMaskPreset uint8
 
 // InputMaskPreset constants.
 const (
-	MaskNone InputMaskPreset = iota
+	maskNone InputMaskPreset = iota
 	MaskPhoneUS
-	MaskCreditCard16
-	MaskCreditCardAmex
+	maskCreditCard16
+	maskCreditCardAmex
 	MaskExpiryMMYY
-	MaskCVC
+	maskCVC
 )
 
 // MaskTokenDef defines one token symbol in a mask pattern.
+// exportaudit:keep — reachable from an exported signature
 type MaskTokenDef struct {
-	Matcher   func(rune) bool
+	matcher   func(rune) bool
 	Transform func(rune) rune
 	Symbol    rune
 }
 
 // MaskEditResult stores the output of a mask edit operation.
+// exportaudit:keep — reachable from an exported signature
 type MaskEditResult struct {
 	Text      string
 	CursorPos int
@@ -49,8 +52,9 @@ type compiledMaskEntry struct {
 }
 
 // CompiledInputMask stores parsed mask entries and lookup indexes.
+// exportaudit:keep — reachable from an exported signature
 type CompiledInputMask struct {
-	Pattern          string
+	pattern          string
 	entries          []compiledMaskEntry
 	slotEntryIndexes []int
 }
@@ -61,26 +65,26 @@ func isMaskLetter(r rune) bool { return unicode.IsLetter(r) }
 func isMaskAlnum(r rune) bool  { return unicode.IsLetter(r) || unicode.IsNumber(r) }
 
 // InputMaskDefaultTokens returns built-in mask tokens.
-func InputMaskDefaultTokens() []MaskTokenDef {
+func inputMaskDefaultTokens() []MaskTokenDef {
 	return []MaskTokenDef{
-		{Symbol: '9', Matcher: isASCIIDigit},
-		{Symbol: 'a', Matcher: isMaskLetter},
-		{Symbol: '*', Matcher: isMaskAlnum},
+		{Symbol: '9', matcher: isASCIIDigit},
+		{Symbol: 'a', matcher: isMaskLetter},
+		{Symbol: '*', matcher: isMaskAlnum},
 	}
 }
 
 // InputMaskFromPreset returns the mask pattern for a preset.
-func InputMaskFromPreset(preset InputMaskPreset) string {
+func inputMaskFromPreset(preset InputMaskPreset) string {
 	switch preset {
 	case MaskPhoneUS:
 		return "(999) 999-9999"
-	case MaskCreditCard16:
+	case maskCreditCard16:
 		return "9999 9999 9999 9999"
-	case MaskCreditCardAmex:
+	case maskCreditCardAmex:
 		return "9999 999999 99999"
 	case MaskExpiryMMYY:
 		return "99/99"
-	case MaskCVC:
+	case maskCVC:
 		return "999"
 	default:
 		return ""
@@ -89,13 +93,13 @@ func InputMaskFromPreset(preset InputMaskPreset) string {
 
 // CompileInputMask parses a mask pattern and resolves token
 // definitions.
-func CompileInputMask(mask string, custom []MaskTokenDef) (CompiledInputMask, error) {
+func compileInputMask(mask string, custom []MaskTokenDef) (CompiledInputMask, error) {
 	if len(mask) == 0 {
 		return CompiledInputMask{}, errors.New("mask pattern is empty")
 	}
 
 	tokenMap := make(map[rune]MaskTokenDef)
-	for _, def := range InputMaskDefaultTokens() {
+	for _, def := range inputMaskDefaultTokens() {
 		tokenMap[def.Symbol] = def
 	}
 	for _, def := range custom {
@@ -126,7 +130,7 @@ func CompileInputMask(mask string, custom []MaskTokenDef) (CompiledInputMask, er
 			entries = append(entries, compiledMaskEntry{
 				kind:      maskSlot,
 				symbol:    def.Symbol,
-				matcher:   def.Matcher,
+				matcher:   def.matcher,
 				transform: transform,
 			})
 		} else {
@@ -151,7 +155,7 @@ func CompileInputMask(mask string, custom []MaskTokenDef) (CompiledInputMask, er
 	}
 
 	return CompiledInputMask{
-		Pattern:          mask,
+		pattern:          mask,
 		entries:          entries,
 		slotEntryIndexes: slotIndexes,
 	}, nil
@@ -266,7 +270,7 @@ func (m *CompiledInputMask) cursorFromRawIndex(raw []rune, rawIndex int) int {
 }
 
 // InputMaskInsert inserts input into a masked formatted string.
-func InputMaskInsert(formatted string, cursorPos int, selectBeg, selectEnd uint32, input string, compiled *CompiledInputMask) MaskEditResult {
+func inputMaskInsert(formatted string, cursorPos int, selectBeg, selectEnd uint32, input string, compiled *CompiledInputMask) MaskEditResult {
 	if compiled == nil || compiled.slotCount() == 0 {
 		return MaskEditResult{Text: formatted, CursorPos: cursorPos}
 	}
@@ -337,12 +341,12 @@ func inputMaskRemove(formatted string, cursorPos int, selectBeg, selectEnd uint3
 }
 
 // InputMaskBackspace removes one editable slot left of cursor.
-func InputMaskBackspace(formatted string, cursorPos int, selectBeg, selectEnd uint32, compiled *CompiledInputMask) MaskEditResult {
+func inputMaskBackspace(formatted string, cursorPos int, selectBeg, selectEnd uint32, compiled *CompiledInputMask) MaskEditResult {
 	return inputMaskRemove(formatted, cursorPos, selectBeg, selectEnd, true, compiled)
 }
 
 // InputMaskDelete removes one editable slot at/after cursor.
-func InputMaskDelete(formatted string, cursorPos int, selectBeg, selectEnd uint32, compiled *CompiledInputMask) MaskEditResult {
+func inputMaskDelete(formatted string, cursorPos int, selectBeg, selectEnd uint32, compiled *CompiledInputMask) MaskEditResult {
 	return inputMaskRemove(formatted, cursorPos, selectBeg, selectEnd, false, compiled)
 }
 

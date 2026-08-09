@@ -6,7 +6,7 @@ import (
 )
 
 // Matches reports whether a compound selector matches el.
-func (c Compound) Matches(el ElementInfo) bool {
+func (c compound) Matches(el ElementInfo) bool {
 	if c.Tag != "" && c.Tag != "*" && c.Tag != el.Tag {
 		return false
 	}
@@ -26,16 +26,16 @@ func (c Compound) Matches(el ElementInfo) bool {
 	if c.Root && !el.IsRoot {
 		return false
 	}
-	if c.NthChild != nil && !c.NthChild.Matches(el.Index) {
+	if c.nthChild != nil && !c.nthChild.Matches(el.Index) {
 		return false
 	}
-	if c.HoverPseudo && !el.State.Hover {
+	if c.hoverPseudo && !el.State.Hover {
 		return false
 	}
-	if c.FocusPseudo && !el.State.Focus {
+	if c.focusPseudo && !el.State.Focus {
 		return false
 	}
-	if c.Not != nil && c.Not.Matches(el) {
+	if c.not != nil && c.not.Matches(el) {
 		return false
 	}
 	return true
@@ -45,28 +45,28 @@ func (c Compound) Matches(el ElementInfo) bool {
 // attribute. Missing attributes never match (even AttrOpExists is
 // false when the attr is absent). Empty selector value is rejected
 // for operators that require a non-empty needle.
-func matchAttr(a AttrSel, attrs map[string]string) bool {
+func matchAttr(a attrSel, attrs map[string]string) bool {
 	v, ok := attrs[a.Name]
 	if !ok {
 		return false
 	}
 	switch a.Op {
-	case AttrOpExists:
+	case attrOpExists:
 		return true
-	case AttrOpEqual:
+	case attrOpEqual:
 		return v == a.Value
-	case AttrOpInclude:
+	case attrOpInclude:
 		if a.Value == "" || strings.ContainsAny(a.Value, " \t\n\r\f") {
 			return false
 		}
 		return slices.Contains(strings.Fields(v), a.Value)
-	case AttrOpDashMatch:
+	case attrOpDashMatch:
 		return v == a.Value || strings.HasPrefix(v, a.Value+"-")
-	case AttrOpPrefix:
+	case attrOpPrefix:
 		return a.Value != "" && strings.HasPrefix(v, a.Value)
-	case AttrOpSuffix:
+	case attrOpSuffix:
 		return a.Value != "" && strings.HasSuffix(v, a.Value)
-	case AttrOpSubstring:
+	case attrOpSubstring:
 		return a.Value != "" && strings.Contains(v, a.Value)
 	}
 	return false
@@ -77,31 +77,31 @@ func matchAttr(a AttrSel, attrs map[string]string) bool {
 // ordered root-first; ancestors[len-1] is the immediate parent.
 // Siblings are ordered first-to-last with siblings[len-1] = el's
 // immediate previous sibling. Both slices may be nil.
-func (cs ComplexSelector) Matches(
+func (cs complexSelector) Matches(
 	el ElementInfo, ancestors, siblings []ElementInfo,
 ) bool {
-	parts := cs.Parts
+	parts := cs.parts
 	if len(parts) == 0 {
 		return false
 	}
 	last := parts[len(parts)-1]
-	if !last.Compound.Matches(el) {
+	if !last.compound.Matches(el) {
 		return false
 	}
 	ai := len(ancestors) - 1
 	si := len(siblings) - 1
 	for i := range slices.Backward(parts[:len(parts)-1]) {
-		comb := parts[i+1].Combinator
+		comb := parts[i+1].combinator
 		switch comb {
-		case CombChild:
-			if ai < 0 || !parts[i].Compound.Matches(ancestors[ai]) {
+		case combChild:
+			if ai < 0 || !parts[i].compound.Matches(ancestors[ai]) {
 				return false
 			}
 			ai--
-		case CombDescendant:
+		case combDescendant:
 			matched := false
 			for j := ai; j >= 0; j-- {
-				if parts[i].Compound.Matches(ancestors[j]) {
+				if parts[i].compound.Matches(ancestors[j]) {
 					ai = j - 1
 					matched = true
 					break
@@ -110,15 +110,15 @@ func (cs ComplexSelector) Matches(
 			if !matched {
 				return false
 			}
-		case CombAdjacent:
-			if si < 0 || !parts[i].Compound.Matches(siblings[si]) {
+		case combAdjacent:
+			if si < 0 || !parts[i].compound.Matches(siblings[si]) {
 				return false
 			}
 			si--
-		case CombGeneralSibling:
+		case combGeneralSibling:
 			matched := false
 			for j := si; j >= 0; j-- {
-				if parts[i].Compound.Matches(siblings[j]) {
+				if parts[i].compound.Matches(siblings[j]) {
 					si = j - 1
 					matched = true
 					break
@@ -139,8 +139,8 @@ func (cs ComplexSelector) Matches(
 // other declarations during the cascade walk.
 type MatchedDecl struct {
 	Decl
-	Origin Origin
-	Spec   Specificity
+	Origin origin
+	spec   Specificity
 	Source int
 }
 
@@ -159,12 +159,12 @@ func Match(
 		r := &rules[ri]
 		var spec Specificity
 		matched := false
-		for _, sel := range r.Selectors {
+		for _, sel := range r.selectors {
 			if !sel.Matches(el, ancestors, siblings) {
 				continue
 			}
-			if !matched || spec.Less(sel.Spec) {
-				spec = sel.Spec
+			if !matched || spec.less(sel.spec) {
+				spec = sel.spec
 				matched = true
 			}
 		}
@@ -174,8 +174,8 @@ func Match(
 		for _, d := range r.Decls {
 			out = append(out, MatchedDecl{
 				Decl:   d,
-				Origin: OriginRule,
-				Spec:   spec,
+				Origin: originRule,
+				spec:   spec,
 				Source: r.Source,
 			})
 		}
@@ -221,8 +221,8 @@ func cascadeLess(a, b MatchedDecl) bool {
 	if la != lb {
 		return la < lb
 	}
-	if a.Spec != b.Spec {
-		return a.Spec.Less(b.Spec)
+	if a.spec != b.spec {
+		return a.spec.less(b.spec)
 	}
 	return a.Source < b.Source
 }

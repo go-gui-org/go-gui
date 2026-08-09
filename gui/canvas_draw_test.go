@@ -568,10 +568,10 @@ func TestDrawContextImageWithFetcher(t *testing.T) {
 	if len(dc.images) != 2 {
 		t.Fatalf("images = %d, want 2", len(dc.images))
 	}
-	if dc.images[0].Fetcher == nil {
+	if dc.images[0].fetcher == nil {
 		t.Error("ImageWithFetcher: Fetcher = nil, want set")
 	}
-	if dc.images[1].Fetcher != nil {
+	if dc.images[1].fetcher != nil {
 		t.Error("Image: Fetcher != nil, want nil (fallback path)")
 	}
 }
@@ -594,7 +594,7 @@ func TestDrawContextImagesAccessor(t *testing.T) {
 	if len(got) != 2 {
 		t.Fatalf("Images() = %d, want 2", len(got))
 	}
-	if op := got[0].BgOpacity.Get(1.0); op != 0.5 {
+	if op := got[0].bgOpacity.Get(1.0); op != 0.5 {
 		t.Errorf("first BgOpacity = %v, want 0.5", op)
 	}
 }
@@ -727,7 +727,7 @@ func TestDrawContextImageClipped(t *testing.T) {
 	if im.Src != "test.png" {
 		t.Errorf("src = %q, want %q", im.Src, "test.png")
 	}
-	if im.Fetcher != nil {
+	if im.fetcher != nil {
 		t.Error("ImageClipped must not set Fetcher")
 	}
 }

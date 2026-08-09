@@ -139,7 +139,7 @@ func (m *BoundedMap[K, V]) Keys() []K {
 
 // RangeKeys iterates active keys in insertion order.
 // If fn returns false, iteration stops.
-func (m *BoundedMap[K, V]) RangeKeys(fn func(K) bool) {
+func (m *BoundedMap[K, V]) rangeKeys(fn func(K) bool) {
 	if len(m.data) == 0 || m.head >= len(m.order) {
 		return
 	}
@@ -174,7 +174,7 @@ func (m *BoundedMap[K, V]) Range(fn func(K, V) bool) {
 // remaining entries plus newBytes is <= maxBytes. Returns the number
 // of entries evicted. If maxBytes <= 0 the budget is unbounded and
 // no entries are evicted.
-func (m *BoundedMap[K, V]) EvictToBudget(maxBytes int, newBytes int, sizeFn func(V) int) int {
+func (m *BoundedMap[K, V]) evictToBudget(maxBytes int, newBytes int, sizeFn func(V) int) int {
 	if maxBytes <= 0 || len(m.data) == 0 {
 		return 0
 	}

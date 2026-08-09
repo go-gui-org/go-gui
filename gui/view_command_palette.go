@@ -34,7 +34,7 @@ type CommandPaletteItem struct {
 // CommandPaletteCfg configures a command palette view.
 type CommandPaletteCfg struct {
 	TextStyle   TextStyle
-	DetailStyle TextStyle
+	detailStyle TextStyle
 	OnAction    func(string, EventCtx)
 	OnDismiss   func(*Window)
 	ID          string `gui:"required"`
@@ -52,7 +52,7 @@ type CommandPaletteCfg struct {
 	Color          Color
 	ColorBorder    Color
 	ColorHighlight Color
-	BackdropColor  Color
+	backdropColor  Color
 }
 
 // commandPaletteView implements View for command palette.
@@ -72,7 +72,7 @@ func (cp *commandPaletteView) Content() []View { return nil }
 
 func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 	cfg := &cp.cfg
-	dn := &DefaultCommandPaletteStyle
+	dn := &defaultCommandPaletteStyle
 	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
 	radius := cfg.Radius.Get(dn.Radius)
 	// Palette state is keyed by the effective ID. The public helpers
@@ -138,7 +138,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 
 	coreCfg := listCoreCfg{
 		TextStyle:      cfg.TextStyle,
-		DetailStyle:    cfg.DetailStyle,
+		detailStyle:    cfg.detailStyle,
 		ColorHighlight: cfg.ColorHighlight,
 		ColorHover:     cfg.ColorHighlight,
 		ColorSelected:  cfg.ColorHighlight,
@@ -149,7 +149,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 			if onAction != nil {
 				onAction(itemID, EventCtx{nil, ctx.Event, ctx.Window})
 			}
-			CommandPaletteDismiss(paletteID, ctx.Window)
+			commandPaletteDismiss(paletteID, ctx.Window)
 			if onDismiss != nil {
 				onDismiss(ctx.Window)
 			}
@@ -175,7 +175,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 
 	// Build layout: backdrop column with centered card.
 	return generateViewLayout(Column(ContainerCfg{
-		Color:       cfg.BackdropColor,
+		Color:       cfg.backdropColor,
 		Sizing:      FillFill,
 		Float:       true,
 		FloatZIndex: cfg.FloatZIndex,
@@ -183,7 +183,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 		HAlign:      HAlignCenter,
 		Padding:     NoPadding,
 		OnClick: func(ctx EventCtx) {
-			CommandPaletteDismiss(paletteID, ctx.Window)
+			commandPaletteDismiss(paletteID, ctx.Window)
 			if onDismiss != nil {
 				onDismiss(ctx.Window)
 			}
@@ -249,7 +249,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 
 // CommandPaletteShow makes the palette visible and focuses input.
 // It always resets the results scroll (keyed ScopeID(id, "scroll")) to the top.
-func CommandPaletteShow(id string, w *Window) {
+func commandPaletteShow(id string, w *Window) {
 	ss := StateMap[string, bool](w, nsCmdPalette, capModerate)
 	ss.Set(id, true)
 	sq := StateMap[string, string](w, nsCmdPaletteQuery, capModerate)
@@ -262,7 +262,7 @@ func CommandPaletteShow(id string, w *Window) {
 }
 
 // CommandPaletteDismiss hides the palette.
-func CommandPaletteDismiss(id string, w *Window) {
+func commandPaletteDismiss(id string, w *Window) {
 	ss := StateMap[string, bool](w, nsCmdPalette, capModerate)
 	ss.Set(id, false)
 	sq := StateMap[string, string](w, nsCmdPaletteQuery, capModerate)
@@ -276,14 +276,14 @@ func CommandPaletteDismiss(id string, w *Window) {
 func CommandPaletteToggle(id string, w *Window) {
 	visible := StateReadOr(w, nsCmdPalette, id, false)
 	if visible {
-		CommandPaletteDismiss(id, w)
+		commandPaletteDismiss(id, w)
 	} else {
-		CommandPaletteShow(id, w)
+		commandPaletteShow(id, w)
 	}
 }
 
 // CommandPaletteIsVisible returns whether the palette is showing.
-func CommandPaletteIsVisible(id string, w *Window) bool {
+func commandPaletteIsVisible(id string, w *Window) bool {
 	return StateReadOr(w, nsCmdPalette, id, false)
 }
 
@@ -307,7 +307,7 @@ func makePaletteOnEnter(paletteID string, onAction func(string, EventCtx), onDis
 		if cur >= 0 && cur < itemCount && onAction != nil &&
 			!filtered[cur].Disabled {
 			onAction(filteredIDs[cur], EventCtx{nil, ctx.Event, ctx.Window})
-			CommandPaletteDismiss(paletteID, ctx.Window)
+			commandPaletteDismiss(paletteID, ctx.Window)
 			if onDismiss != nil {
 				onDismiss(ctx.Window)
 			}
@@ -363,7 +363,7 @@ func makePaletteOnKeyDown(paletteID string, onAction func(string, EventCtx), onD
 
 func paletteOnKeyDown(paletteID string, onAction func(string, EventCtx), onDismiss func(*Window), filtered []listCoreItem, filteredIDs []string, e *Event, w *Window) {
 	if e.KeyCode == KeyEscape {
-		CommandPaletteDismiss(paletteID, w)
+		commandPaletteDismiss(paletteID, w)
 		if onDismiss != nil {
 			onDismiss(w)
 		}
@@ -381,7 +381,7 @@ func paletteOnKeyDown(paletteID string, onAction func(string, EventCtx), onDismi
 		if cur >= 0 && cur < itemCount && onAction != nil &&
 			!filtered[cur].Disabled {
 			onAction(filteredIDs[cur], EventCtx{nil, e, w})
-			CommandPaletteDismiss(paletteID, w)
+			commandPaletteDismiss(paletteID, w)
 			if onDismiss != nil {
 				onDismiss(w)
 			}
@@ -398,7 +398,7 @@ func paletteOnKeyDown(paletteID string, onAction func(string, EventCtx), onDismi
 }
 
 func applyCommandPaletteDefaults(cfg *CommandPaletteCfg) {
-	d := &DefaultCommandPaletteStyle
+	d := &defaultCommandPaletteStyle
 	if cfg.ID == "" {
 		cfg.ID = "__cmd_palette__"
 	}
@@ -423,11 +423,11 @@ func applyCommandPaletteDefaults(cfg *CommandPaletteCfg) {
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.TextStyle
 	}
-	if cfg.DetailStyle == (TextStyle{}) {
-		cfg.DetailStyle = d.DetailStyle
+	if cfg.detailStyle == (TextStyle{}) {
+		cfg.detailStyle = d.detailStyle
 	}
-	if !cfg.BackdropColor.IsSet() {
-		cfg.BackdropColor = d.BackdropColor
+	if !cfg.backdropColor.IsSet() {
+		cfg.backdropColor = d.backdropColor
 	}
 	if cfg.FloatZIndex == 0 {
 		cfg.FloatZIndex = 1000

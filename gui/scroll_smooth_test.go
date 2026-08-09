@@ -29,7 +29,7 @@ func driveScrollSmooth(w *Window, maxTicks int) int {
 }
 
 func TestScrollSmoothTargetSetDisplayUnchangedFrame0(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	layout, w := makeScrollLayout("1", 100, 100, 100, 300)
 
 	ok := scrollSmoothBy(w, layout, scrollAxisY, -50)
@@ -56,7 +56,7 @@ func TestScrollSmoothTargetSetDisplayUnchangedFrame0(t *testing.T) {
 }
 
 func TestScrollSmoothConvergesAndStops(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	layout, w := makeScrollLayout("2", 100, 100, 100, 300)
 	scrollSmoothBy(w, layout, scrollAxisY, -50)
 
@@ -105,7 +105,7 @@ func TestScrollSmoothConvergesAndStops(t *testing.T) {
 }
 
 func TestScrollSmoothClampsAtBounds(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	layout, w := makeScrollLayout("3", 100, 100, 100, 300) // maxOffset -200
 
 	// Huge delta clamps target to the max offset.
@@ -132,7 +132,7 @@ func TestScrollSmoothClampsAtBounds(t *testing.T) {
 }
 
 func TestScrollSmoothAccumulatesTarget(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	layout, w := makeScrollLayout("4", 100, 100, 100, 300)
 
 	// Two rapid notches before any tick: targets accumulate.
@@ -149,7 +149,7 @@ func TestScrollSmoothAccumulatesTarget(t *testing.T) {
 }
 
 func TestScrollSmoothCanceledByInstantScroll(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	layout, w := makeScrollLayout("5", 100, 100, 100, 300)
 
 	scrollSmoothBy(w, layout, scrollAxisY, -50)
@@ -170,7 +170,7 @@ func TestScrollSmoothCanceledByInstantScroll(t *testing.T) {
 }
 
 func TestScrollSmoothHorizontalAxis(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	w := &Window{}
 	child := Layout{Shape: &Shape{shapeType: shapeRectangle, Width: 400, Height: 50}}
 	layout := Layout{
@@ -180,7 +180,7 @@ func TestScrollSmoothHorizontalAxis(t *testing.T) {
 			ID:         "6",
 			Width:      100,
 			Height:     50,
-			Axis:       AxisLeftToRight,
+			Axis:       axisLeftToRight,
 		},
 		Children: []Layout{child},
 	}
@@ -198,12 +198,12 @@ func TestScrollSmoothHorizontalAxis(t *testing.T) {
 }
 
 func TestScrollSmoothFiresOnScroll(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	layout, w := makeScrollLayout("7", 100, 100, 100, 300)
 	w.layout.Children[0].Parent = &w.layout
 	fired := 0
 	layout.Shape.events = &eventHandlers{
-		OnScroll: func(ctx EventCtx) { fired++ },
+		onScroll: func(ctx EventCtx) { fired++ },
 	}
 	scrollSmoothBy(w, layout, scrollAxisY, -50)
 	driveScrollSmooth(w, 200)
@@ -213,7 +213,7 @@ func TestScrollSmoothFiresOnScroll(t *testing.T) {
 }
 
 func TestScrollSmoothResetClearsEntries(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	layout, w := makeScrollLayout("8", 100, 100, 100, 300)
 	scrollSmoothBy(w, layout, scrollAxisY, -50)
 	w.scrollSmoothReset()
@@ -228,7 +228,7 @@ func TestScrollSmoothResetClearsEntries(t *testing.T) {
 // TestScrollSmoothNoAllocSteadyState guards the per-event allocation
 // budget: once an entry exists, accumulating deltas must not allocate.
 func TestScrollSmoothNoAllocSteadyState(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	layout, w := makeScrollLayout("9", 100, 100, 100, 900) // maxOffset -800
 	// Warm up: create the entry and animations map.
 	scrollSmoothBy(w, layout, scrollAxisY, -5)
@@ -252,7 +252,7 @@ func TestScrollSmoothNoAllocSteadyState(t *testing.T) {
 // deltas poisoning the ease target into a never-settling animation
 // (60fps layout-refresh DoS).
 func TestScrollSmoothRejectsNonFiniteDelta(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	nan := float32(math.NaN())
 	layout, w := makeScrollLayout("10", 100, 100, 100, 300)
 
@@ -277,7 +277,7 @@ func TestScrollSmoothRejectsNonFiniteDelta(t *testing.T) {
 // TestScrollSmoothRetiresPoisonedEntry verifies Update deactivates an
 // entry whose target became non-finite instead of ticking forever.
 func TestScrollSmoothRetiresPoisonedEntry(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	layout, w := makeScrollLayout("11", 100, 100, 100, 300)
 	scrollSmoothBy(w, layout, scrollAxisY, -50)
 	e := w.scrollSmooth.findEntry("11", scrollAxisY)
@@ -296,7 +296,7 @@ func TestScrollSmoothRetiresPoisonedEntry(t *testing.T) {
 }
 
 func TestScrollSmoothByNoScrollID(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	layout, w := makeScrollLayout("0", 100, 100, 100, 300)
 	layout.Shape.Scrollable = false
 	layout.Shape.ID = ""
@@ -306,7 +306,7 @@ func TestScrollSmoothByNoScrollID(t *testing.T) {
 }
 
 func TestScrollSmoothByRespectsScrollMode(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	layout, w := makeScrollLayout("12", 100, 100, 100, 300)
 
 	layout.Shape.ScrollMode = ScrollHorizontalOnly
@@ -320,7 +320,7 @@ func TestScrollSmoothByRespectsScrollMode(t *testing.T) {
 }
 
 func TestScrollSmoothCanceledByScrollToPct(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	layout, w := makeScrollLayout("13", 100, 100, 100, 300)
 	scrollSmoothBy(w, layout, scrollAxisY, -50)
 
@@ -341,11 +341,11 @@ func TestCommandApplyScrollSmoothNilSafe(t *testing.T) {
 }
 
 func TestScrollVerticalToSmoothEasesToAbsoluteTarget(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	_, w := makeScrollLayout("14", 100, 100, 100, 300)
 	w.scrollY().Set("14", -100)
 
-	w.ScrollVerticalToSmooth("14", 0)
+	w.scrollVerticalToSmooth("14", 0)
 
 	e := w.scrollSmooth.findEntry("14", scrollAxisY)
 	if e == nil || !e.active {
@@ -358,7 +358,7 @@ func TestScrollVerticalToSmoothEasesToAbsoluteTarget(t *testing.T) {
 		t.Errorf("current = %v, want -100 (displayed offset)", e.current)
 	}
 	// Absolute target must not accumulate on repeat calls.
-	w.ScrollVerticalToSmooth("14", 0)
+	w.scrollVerticalToSmooth("14", 0)
 	if e.target != 0 {
 		t.Errorf("target after repeat call = %v, want 0", e.target)
 	}
@@ -369,10 +369,10 @@ func TestScrollVerticalToSmoothEasesToAbsoluteTarget(t *testing.T) {
 }
 
 func TestScrollVerticalToSmoothClampsAtBounds(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	_, w := makeScrollLayout("15", 100, 100, 100, 300) // maxOffset -200
 
-	w.ScrollVerticalToSmooth("15", -9999)
+	w.scrollVerticalToSmooth("15", -9999)
 	e := w.scrollSmooth.findEntry("15", scrollAxisY)
 	if e == nil || e.target != -200 {
 		t.Fatalf("target = %v, want -200 (clamped)", e.target)
@@ -384,11 +384,11 @@ func TestScrollVerticalToSmoothClampsAtBounds(t *testing.T) {
 }
 
 func TestScrollVerticalToSmoothNoOpAtTarget(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	_, w := makeScrollLayout("16", 100, 100, 100, 300)
 
 	// Already at offset 0: nothing to ease, no entry armed.
-	w.ScrollVerticalToSmooth("16", 0)
+	w.scrollVerticalToSmooth("16", 0)
 	if w.scrollSmooth != nil {
 		if e := w.scrollSmooth.findEntry("16", scrollAxisY); e != nil && e.active {
 			t.Error("expected no active entry when already at target")
@@ -397,17 +397,17 @@ func TestScrollVerticalToSmoothNoOpAtTarget(t *testing.T) {
 }
 
 func TestScrollVerticalToSmoothUnknownID(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	_, w := makeScrollLayout("17", 100, 100, 100, 300)
 
-	w.ScrollVerticalToSmooth("nope", -50) // must not panic or arm
+	w.scrollVerticalToSmooth("nope", -50) // must not panic or arm
 	if w.scrollSmooth != nil && w.scrollSmooth.findEntry("nope", scrollAxisY) != nil {
 		t.Error("unknown scroll id must not create an entry")
 	}
 }
 
 func TestScrollHorizontalToSmoothEases(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	w := &Window{}
 	child := Layout{Shape: &Shape{shapeType: shapeRectangle, Width: 400, Height: 50}}
 	layout := Layout{
@@ -417,7 +417,7 @@ func TestScrollHorizontalToSmoothEases(t *testing.T) {
 			ID:         "18",
 			Width:      100,
 			Height:     50,
-			Axis:       AxisLeftToRight,
+			Axis:       axisLeftToRight,
 		},
 		Children: []Layout{child},
 	}
@@ -426,7 +426,7 @@ func TestScrollHorizontalToSmoothEases(t *testing.T) {
 		Children: []Layout{layout},
 	}
 
-	w.ScrollHorizontalToSmooth("18", -50)
+	w.scrollHorizontalToSmooth("18", -50)
 	driveScrollSmooth(w, 200)
 	if v, _ := w.scrollX().Get("18"); v != -50 {
 		t.Errorf("horizontal settled = %v, want -50", v)
@@ -434,11 +434,11 @@ func TestScrollHorizontalToSmoothEases(t *testing.T) {
 }
 
 func TestScrollVerticalToSmoothCanceledByInstantScroll(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	_, w := makeScrollLayout("19", 100, 100, 100, 300)
 	w.scrollY().Set("19", -100)
 
-	w.ScrollVerticalToSmooth("19", 0)
+	w.scrollVerticalToSmooth("19", 0)
 	if e := w.scrollSmooth.findEntry("19", scrollAxisY); e == nil || !e.active {
 		t.Fatal("expected active entry before instant scroll")
 	}
@@ -454,7 +454,7 @@ func TestScrollVerticalToSmoothCanceledByInstantScroll(t *testing.T) {
 }
 
 func TestScrollHorizontalToSmoothCanceledByInstantScroll(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	w := &Window{}
 	child := Layout{Shape: &Shape{shapeType: shapeRectangle, Width: 400, Height: 50}}
 	layout := Layout{
@@ -464,7 +464,7 @@ func TestScrollHorizontalToSmoothCanceledByInstantScroll(t *testing.T) {
 			ID:         "20",
 			Width:      100,
 			Height:     50,
-			Axis:       AxisLeftToRight,
+			Axis:       axisLeftToRight,
 		},
 		Children: []Layout{child},
 	}
@@ -474,7 +474,7 @@ func TestScrollHorizontalToSmoothCanceledByInstantScroll(t *testing.T) {
 	}
 	w.scrollX().Set("20", -100)
 
-	w.ScrollHorizontalToSmooth("20", 0)
+	w.scrollHorizontalToSmooth("20", 0)
 	if e := w.scrollSmooth.findEntry("20", scrollAxisX); e == nil || !e.active {
 		t.Fatal("expected active entry before instant scroll")
 	}
@@ -490,10 +490,10 @@ func TestScrollHorizontalToSmoothCanceledByInstantScroll(t *testing.T) {
 }
 
 func TestScrollVerticalToSmoothRejectsNaN(t *testing.T) {
-	guiTheme.ScrollMultiplier = 1
+	guiTheme.scrollMultiplier = 1
 	_, w := makeScrollLayout("21", 100, 100, 100, 300)
 
-	w.ScrollVerticalToSmooth("21", float32(math.NaN()))
+	w.scrollVerticalToSmooth("21", float32(math.NaN()))
 	if w.scrollSmooth != nil {
 		if e := w.scrollSmooth.findEntry("21", scrollAxisY); e != nil && e.active {
 			t.Error("NaN offset must not arm an entry")

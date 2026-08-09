@@ -42,7 +42,7 @@ type RadioButtonGroupCfg struct {
 }
 
 // DefaultRadioGroupStyle holds defaults for RadioButtonGroupCfg Opt fields.
-var DefaultRadioGroupStyle = RadioGroupStyle{
+var defaultRadioGroupStyle = radioGroupStyle{
 	SizeBorder: 1.5,
 }
 
@@ -69,7 +69,7 @@ func radioGroup(cfg RadioButtonGroupCfg, axis func(ContainerCfg) View) View {
 				Label: cfg.Items[i], Value: cfg.Items[i]}
 		}
 	}
-	sizeBorder := cfg.SizeBorder.Get(DefaultRadioGroupStyle.SizeBorder)
+	sizeBorder := cfg.SizeBorder.Get(defaultRadioGroupStyle.SizeBorder)
 	return axis(ContainerCfg{
 		A11YRole:        AccessRoleRadioGroup,
 		A11YLabel:       cfg.A11YLabel,

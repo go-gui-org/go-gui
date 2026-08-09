@@ -439,7 +439,7 @@ func emitErrorPlaceholder(x, y, w, h float32, win *Window) {
 		Y:     y,
 		W:     w,
 		H:     h,
-		Color: Magenta,
+		Color: magenta,
 		Fill:  true,
 	}, win)
 	emitRenderer(RenderCmd{

@@ -3,26 +3,26 @@ package gui
 import "time"
 
 // SidebarRuntimeState tracks animation state for a sidebar.
-type SidebarRuntimeState struct {
-	AnimFrac    float32
-	PrevOpen    bool
+type sidebarRuntimeState struct {
+	animFrac    float32
+	prevOpen    bool
 	Initialized bool
 }
 
 // SidebarCfg configures a sidebar view.
 type SidebarCfg struct {
 	Shadow      *BoxShadow
-	TweenEasing EasingFn
+	tweenEasing EasingFn
 	ID          string
 
 	// Accessibility
 	A11YLabel       string
 	A11YDescription string
 	Content         []View
-	TweenDuration   time.Duration
+	tweenDuration   time.Duration
 	Padding         Opt[Padding]
 	// TweenDuration > 0 uses tween; 0 uses spring.
-	Spring    SpringCfg
+	spring    springCfg
 	Width     float32
 	Radius    float32
 	Color     Color
@@ -47,12 +47,12 @@ func (w *Window) Sidebar(cfg SidebarCfg) View {
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = Some(guiTheme.ContainerStyle.Padding)
 	}
-	if cfg.Spring == (SpringCfg{}) {
-		cfg.Spring = SpringStiff
+	if cfg.spring == (springCfg{}) {
+		cfg.spring = springStiff
 	}
-	if cfg.TweenDuration == 0 && cfg.TweenEasing == nil {
-		cfg.TweenDuration = 300 * time.Millisecond
-		cfg.TweenEasing = EaseInOutCubic
+	if cfg.tweenDuration == 0 && cfg.tweenEasing == nil {
+		cfg.tweenDuration = 300 * time.Millisecond
+		cfg.tweenEasing = easeInOutCubic
 	}
 
 	if cfg.Invisible {
@@ -98,12 +98,12 @@ func (w *Window) Sidebar(cfg SidebarCfg) View {
 }
 
 func sidebarAnimatedWidth(w *Window, cfg SidebarCfg) float32 {
-	sm := StateMap[string, SidebarRuntimeState](
+	sm := StateMap[string, sidebarRuntimeState](
 		w, nsSidebar, capFew)
 
 	rt, ok := sm.Get(cfg.ID)
 	if !ok {
-		rt = SidebarRuntimeState{}
+		rt = sidebarRuntimeState{}
 	}
 
 	target := float32(0)
@@ -112,36 +112,36 @@ func sidebarAnimatedWidth(w *Window, cfg SidebarCfg) float32 {
 	}
 
 	if !rt.Initialized {
-		rt.AnimFrac = target
-		rt.PrevOpen = cfg.Open
+		rt.animFrac = target
+		rt.prevOpen = cfg.Open
 		rt.Initialized = true
 		sm.Set(cfg.ID, rt)
 		return cfg.Width * target
 	}
 
-	if cfg.Open != rt.PrevOpen {
-		rt.PrevOpen = cfg.Open
+	if cfg.Open != rt.prevOpen {
+		rt.prevOpen = cfg.Open
 		sm.Set(cfg.ID, rt)
-		sidebarStartAnimation(cfg.ID, rt.AnimFrac, target,
-			cfg.Spring, cfg.TweenDuration, cfg.TweenEasing, w)
+		sidebarStartAnimation(cfg.ID, rt.animFrac, target,
+			cfg.spring, cfg.tweenDuration, cfg.tweenEasing, w)
 	}
 
-	return cfg.Width * f32Max(0, rt.AnimFrac)
+	return cfg.Width * f32Max(0, rt.animFrac)
 }
 
 func sidebarStartAnimation(
 	sidebarID string, from, to float32,
-	springCfg SpringCfg,
+	spring springCfg,
 	tweenDur time.Duration, tweenEasing EasingFn,
 	w *Window,
 ) {
 	animID := ScopeID("sidebar", sidebarID)
 	onValue := func(v float32, w *Window) {
-		sm := StateMap[string, SidebarRuntimeState](
+		sm := StateMap[string, sidebarRuntimeState](
 			w, nsSidebar, capFew)
 		// Default zero: valid initial state for a new sidebar.
-		rt := sm.GetOr(sidebarID, SidebarRuntimeState{})
-		rt.AnimFrac = v
+		rt := sm.GetOr(sidebarID, sidebarRuntimeState{})
+		rt.animFrac = v
 		sm.Set(sidebarID, rt)
 	}
 	if tweenDur > 0 {
@@ -156,7 +156,7 @@ func sidebarStartAnimation(
 	} else {
 		sp := &SpringAnimation{
 			AnimID:  animID,
-			Config:  springCfg,
+			Config:  spring,
 			OnValue: onValue,
 		}
 		sp.SpringTo(from, to)

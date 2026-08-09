@@ -23,13 +23,13 @@ type TreeCfg struct {
 	// string is slash-separated ("a/b/c") and auto-expanded into
 	// nested TreeNodeCfg nodes. Duplicate path prefixes are merged.
 	// When set, ItemPaths takes precedence over Nodes.
-	ItemPaths  []string
+	itemPaths  []string
 	Nodes      []TreeNodeCfg
 	Padding    Opt[Padding]
 	SizeBorder Opt[float32]
 	Radius     Opt[float32]
 
-	Indent  float32
+	indent  float32
 	Spacing float32
 
 	// FocusDisabled opts out of the default-on focus. Focus also
@@ -62,7 +62,7 @@ type TreeCfg struct {
 // TreeNodeCfg configures a single tree node.
 type TreeNodeCfg struct {
 	TextStyle     TextStyle
-	TextStyleIcon TextStyle
+	textStyleIcon TextStyle
 	ID            string
 	Text          string
 	Icon          string
@@ -76,7 +76,7 @@ type treeView struct {
 
 type treeFlatRow struct {
 	TextStyle       TextStyle
-	TextStyleIcon   TextStyle
+	textStyleIcon   TextStyle
 	ID              string
 	ParentID        string
 	Text            string
@@ -153,8 +153,8 @@ func itemPathsToNodes(paths []string) []TreeNodeCfg {
 func Tree(cfg TreeCfg) View {
 	RequireID("Tree", cfg.ID)
 	applyTreeDefaults(&cfg)
-	if len(cfg.ItemPaths) > 0 {
-		cfg.Nodes = itemPathsToNodes(cfg.ItemPaths)
+	if len(cfg.itemPaths) > 0 {
+		cfg.Nodes = itemPathsToNodes(cfg.itemPaths)
 	}
 	return &treeView{cfg: cfg}
 }
@@ -226,7 +226,7 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 		dragSibs := siblingsByParent[dragParent]
 		if drag.currentIndex >= len(dragSibs) {
 			rows = append(rows,
-				dragReorderGapView(drag, DragReorderVertical))
+				dragReorderGapView(drag, dragReorderVertical))
 		}
 	}
 	if dragging && ghostContent != nil {
@@ -234,14 +234,14 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 			dragReorderGhostView(drag, ghostContent))
 	}
 
-	sizeBorder := cfg.SizeBorder.Get(DefaultTreeStyle.SizeBorder)
-	radius := cfg.Radius.Get(DefaultTreeStyle.Radius)
+	sizeBorder := cfg.SizeBorder.Get(defaultTreeStyle.SizeBorder)
+	radius := cfg.Radius.Get(defaultTreeStyle.Radius)
 
 	return generateViewLayout(Column(ContainerCfg{
 		ID:         cfg.ID,
 		A11YRole:   AccessRoleTree,
 		A11YLabel:  a11yLabel(cfg.A11YLabel, cfg.ID),
-		A11Y:       makeA11YInfo(a11yLabel(cfg.A11YLabel, cfg.ID), cfg.A11YDescription),
+		a11Y:       makeA11YInfo(a11yLabel(cfg.A11YLabel, cfg.ID), cfg.A11YDescription),
 		Focusable:  !cfg.FocusDisabled,
 		Scrollable: cfg.Scrollable,
 		OnKeyDown: func(ctx EventCtx) {
@@ -260,7 +260,7 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 						if si >= 0 &&
 							dragReorderKeyboardMove(
 								ctx.Event.KeyCode, ctx.Event.Modifiers,
-								DragReorderVertical,
+								dragReorderVertical,
 								si, sibs, onReorder, ctx.Window) {
 							ctx.Consume()
 							return
@@ -419,7 +419,7 @@ func treeBuildRows(
 			si := siblingIdx[row.ID]
 			if si == drag.currentIndex {
 				rows = append(rows,
-					dragReorderGapView(drag, DragReorderVertical))
+					dragReorderGapView(drag, dragReorderVertical))
 			}
 			if si == drag.sourceIndex {
 				ghostContent = treeRowContent(
@@ -455,9 +455,9 @@ func treeBuildRows(
 }
 
 func applyTreeDefaults(cfg *TreeCfg) {
-	d := &DefaultTreeStyle
-	if cfg.Indent == 0 {
-		cfg.Indent = d.Indent
+	d := &defaultTreeStyle
+	if cfg.indent == 0 {
+		cfg.indent = d.indent
 	}
 	if cfg.Spacing == 0 {
 		cfg.Spacing = d.Spacing

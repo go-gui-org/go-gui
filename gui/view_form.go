@@ -8,50 +8,46 @@ import (
 // ---------- public enum types ----------
 
 // FormValidateOn controls when field validation triggers.
-type FormValidateOn uint8
+type formValidateOn uint8
 
 // FormValidateOn values.
 const (
-	FormValidateInherit      FormValidateOn = iota
-	FormValidateOnChange                    // every keystroke
-	FormValidateOnBlur                      // field loses focus
-	FormValidateOnBlurSubmit                // blur or submit
-	FormValidateOnSubmit                    // submit only
+	formValidateInherit      formValidateOn = iota
+	formValidateOnChange                    // every keystroke
+	formValidateOnBlur                      // field loses focus
+	formValidateOnBlurSubmit                // blur or submit
+	formValidateOnSubmit                    // submit only
 )
 
 // FormIssueKind distinguishes error from warning.
-type FormIssueKind uint8
-
-// FormIssueKind values.
-const (
-	FormIssueError FormIssueKind = iota
-	FormIssueWarning
-)
+type formIssueKind uint8
 
 // FormValidationTrigger indicates which user action triggered
 // validation.
+// exportaudit:keep — reachable from an exported signature
 type FormValidationTrigger uint8
 
 // FormValidationTrigger values.
 const (
 	FormTriggerChange FormValidationTrigger = iota
 	FormTriggerBlur
-	FormTriggerSubmit
+	formTriggerSubmit
 )
 
 // ---------- public data types ----------
 
 // FormIssue is a single validation issue for a field.
 type FormIssue struct {
+	// exportaudit:keep — json-tagged or same-named member
 	Code string
 	Msg  string
-	Kind FormIssueKind
+	Kind formIssueKind
 }
 
 // FormFieldSnapshot is a read-only snapshot of one field,
 // passed to validators.
 type FormFieldSnapshot struct {
-	FormID  string
+	formID  string
 	FieldID string
 	Value   string
 	Touched bool
@@ -59,13 +55,15 @@ type FormFieldSnapshot struct {
 }
 
 // FormFieldState is the public view of a field's runtime state.
+// exportaudit:keep — reachable from an exported signature
 type FormFieldState struct {
 	Value        string
-	InitialValue string
-	Errors       []FormIssue
-	Touched      bool
-	Dirty        bool
-	Pending      bool
+	initialValue string
+	// exportaudit:keep — field name collides with datagrid.Errors
+	Errors  []FormIssue
+	Touched bool
+	Dirty   bool
+	Pending bool
 }
 
 // FormSnapshot is a read-only snapshot of the entire form,
@@ -73,13 +71,14 @@ type FormFieldState struct {
 type FormSnapshot struct {
 	Values map[string]string
 	Fields map[string]FormFieldState
-	FormID string
+	formID string
 }
 
 // FormSummaryState aggregates validation state across all
 // fields.
+// exportaudit:keep — reachable from an exported signature
 type FormSummaryState struct {
-	Issues       map[string][]FormIssue
+	issues       map[string][]FormIssue
 	InvalidCount int
 	PendingCount int
 	Valid        bool
@@ -87,8 +86,9 @@ type FormSummaryState struct {
 }
 
 // FormPendingState lists fields with pending async validation.
+// exportaudit:keep — reachable from an exported signature
 type FormPendingState struct {
-	FormID       string
+	formID       string
 	FieldIDs     []string
 	PendingCount int
 }
@@ -97,7 +97,7 @@ type FormPendingState struct {
 type FormSubmitEvent struct {
 	State   FormSummaryState
 	Values  map[string]string
-	FormID  string
+	formID  string
 	Valid   bool
 	Pending bool
 }
@@ -105,7 +105,7 @@ type FormSubmitEvent struct {
 // FormResetEvent is delivered to OnReset handlers.
 type FormResetEvent struct {
 	Values map[string]string
-	FormID string
+	formID string
 }
 
 // ---------- validator function types ----------
@@ -126,11 +126,11 @@ type FormAsyncValidator func(
 type FormFieldAdapterCfg struct {
 	FieldID            string
 	Value              string
-	InitialValue       string
+	initialValue       string
 	SyncValidators     []FormSyncValidator
 	AsyncValidators    []FormAsyncValidator
-	HasInitialValue    bool
-	ValidateOnOverride FormValidateOn
+	hasInitialValue    bool
+	validateOnOverride formValidateOn
 }
 
 // ---------- FormCfg ----------
@@ -144,9 +144,9 @@ type FormCfg struct {
 	// Callbacks.
 	OnSubmit    func(FormSubmitEvent, EventCtx)
 	OnReset     func(FormResetEvent, EventCtx)
-	ErrorSlot   func(string, []FormIssue) View
-	SummarySlot func(FormSummaryState) View
-	PendingSlot func(FormPendingState) View
+	errorSlot   func(string, []FormIssue) View
+	summarySlot func(FormSummaryState) View
+	pendingSlot func(FormPendingState) View
 
 	// Identity — required for validation runtime.
 	ID string `gui:"required"`
@@ -165,10 +165,10 @@ type FormCfg struct {
 	Sizing Sizing
 
 	// Validation behaviour.
-	ValidateOn         FormValidateOn // 0 → BlurSubmit
-	NoSubmitOnEnter    bool           // true disables enter-to-submit
-	AllowInvalidSubmit bool           // true permits submit with errors
-	AllowPendingSubmit bool           // true permits submit while async pending
+	validateOn         formValidateOn // 0 → BlurSubmit
+	noSubmitOnEnter    bool           // true disables enter-to-submit
+	allowInvalidSubmit bool           // true permits submit with errors
+	allowPendingSubmit bool           // true permits submit while async pending
 	Disabled           bool
 	Invisible          bool
 }
@@ -203,21 +203,21 @@ func (fv *formView) GenerateLayout(w *Window) Layout {
 	children := make([]View, len(fv.content), len(fv.content)+3)
 	copy(children, fv.content)
 
-	if cfg.ErrorSlot != nil {
-		fieldIDs := make([]string, 0, len(summary.Issues))
-		for fid := range summary.Issues {
+	if cfg.errorSlot != nil {
+		fieldIDs := make([]string, 0, len(summary.issues))
+		for fid := range summary.issues {
 			fieldIDs = append(fieldIDs, fid)
 		}
 		slices.Sort(fieldIDs)
 		for _, fid := range fieldIDs {
-			children = append(children, cfg.ErrorSlot(fid, summary.Issues[fid]))
+			children = append(children, cfg.errorSlot(fid, summary.issues[fid]))
 		}
 	}
-	if cfg.SummarySlot != nil {
-		children = append(children, cfg.SummarySlot(summary))
+	if cfg.summarySlot != nil {
+		children = append(children, cfg.summarySlot(summary))
 	}
-	if cfg.PendingSlot != nil {
-		children = append(children, cfg.PendingSlot(pending))
+	if cfg.pendingSlot != nil {
+		children = append(children, cfg.pendingSlot(pending))
 	}
 
 	inner := Column(ContainerCfg{
@@ -273,14 +273,14 @@ type formFieldRuntime struct {
 	touched      bool
 	dirty        bool
 	pending      bool
-	validateOn   FormValidateOn
+	validateOn   formValidateOn
 }
 
 type formRuntimeState struct {
 	fields        map[string]*formFieldRuntime
 	submitReq     bool
 	resetReq      bool
-	validateOn    FormValidateOn
+	validateOn    formValidateOn
 	submitOnEnter bool
 	blockInvalid  bool
 	blockPending  bool
@@ -296,7 +296,7 @@ func formRuntime(w *Window, formID string) *formRuntimeState {
 	if !ok {
 		state = &formRuntimeState{
 			fields:     make(map[string]*formFieldRuntime),
-			validateOn: FormValidateOnBlurSubmit,
+			validateOn: formValidateOnBlurSubmit,
 		}
 		sm.Set(formID, state)
 	}

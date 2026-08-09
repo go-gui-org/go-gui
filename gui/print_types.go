@@ -17,26 +17,29 @@ const (
 )
 
 // PaperSize selects standard paper dimensions.
+// exportaudit:keep — reachable from an exported signature
 type PaperSize uint8
 
 // PaperSize constants.
 const (
-	PaperLetter PaperSize = iota
-	PaperLegal
-	PaperA4
-	PaperA3
+	paperLetter PaperSize = iota
+	paperLegal
+	paperA4
+	paperA3
 )
 
 // PrintOrientation selects portrait or landscape.
+// exportaudit:keep — reachable from an exported signature
 type PrintOrientation uint8
 
 // PrintOrientation constants.
 const (
-	PrintPortrait PrintOrientation = iota
-	PrintLandscape
+	printPortrait PrintOrientation = iota
+	printLandscape
 )
 
 // PrintMargins defines page margins in points (1/72 inch).
+// exportaudit:keep — reachable from an exported signature
 type PrintMargins struct {
 	Top    float32
 	Right  float32
@@ -45,41 +48,27 @@ type PrintMargins struct {
 }
 
 // DefaultPrintMargins returns 36-point margins (0.5 inch).
-func DefaultPrintMargins() PrintMargins {
+func defaultPrintMargins() PrintMargins {
 	return PrintMargins{Top: 36, Right: 36, Bottom: 36, Left: 36}
 }
 
 // PrintScaleMode controls content scaling.
-type PrintScaleMode uint8
+type printScaleMode uint8
 
 // PrintScaleMode constants.
 const (
-	PrintScaleFitToPage PrintScaleMode = iota
-	PrintScaleActualSize
+	printScaleFitToPage printScaleMode = iota
+	printScaleActualSize
 )
 
 // PrintDuplexMode controls duplex printing.
-type PrintDuplexMode uint8
-
-// PrintDuplexMode constants.
-const (
-	PrintDuplexDefault PrintDuplexMode = iota
-	PrintDuplexSimplex
-	PrintDuplexLongEdge
-	PrintDuplexShortEdge
-)
+type printDuplexMode uint8
 
 // PrintColorMode controls color output.
-type PrintColorMode uint8
-
-// PrintColorMode constants.
-const (
-	PrintColorDefault PrintColorMode = iota
-	PrintColorColor
-	PrintColorGrayscale
-)
+type printColorMode uint8
 
 // PrintPageRange defines a contiguous page range (1-based).
+// exportaudit:keep — reachable from an exported signature
 type PrintPageRange struct {
 	From int
 	To   int
@@ -87,60 +76,60 @@ type PrintPageRange struct {
 
 // PrintHeaderFooterCfg configures page header or footer text.
 // Tokens: {page}, {pages}, {date}, {title}, {job}.
-type PrintHeaderFooterCfg struct {
+type printHeaderFooterCfg struct {
 	Left    string
 	Center  string
 	Right   string
-	Enabled bool
+	enabled bool
 }
 
 // PrintJobSourceKind selects the print source.
-type PrintJobSourceKind uint8
+type printJobSourceKind uint8
 
 // PrintJobSourceKind constants.
 const (
-	PrintSourceCurrentView PrintJobSourceKind = iota
-	PrintSourcePDFPath
+	printSourceCurrentView printJobSourceKind = iota
+	printSourcePDFPath
 )
 
 // PrintJobSource identifies what to print.
-type PrintJobSource struct {
+type printJobSource struct {
 	PDFPath string
-	Kind    PrintJobSourceKind
+	Kind    printJobSourceKind
 }
 
 // PrintJob configures a print or PDF export operation.
+// exportaudit:keep — reachable from an exported signature
 type PrintJob struct {
-	Header       PrintHeaderFooterCfg
-	Footer       PrintHeaderFooterCfg
-	Source       PrintJobSource
+	Header       printHeaderFooterCfg
+	footer       printHeaderFooterCfg
+	Source       printJobSource
 	OutputPath   string
 	Title        string
 	JobName      string
 	PageRanges   []PrintPageRange
 	Copies       int
-	RasterDPI    int
-	JPEGQuality  int
-	Margins      PrintMargins
-	SourceWidth  float32
-	SourceHeight float32
-	Paper        PaperSize
+	rasterDPI    int
+	jPEGQuality  int
+	margins      PrintMargins
+	sourceWidth  float32
+	sourceHeight float32
+	paper        PaperSize
 	Orientation  PrintOrientation
-	Paginate     bool
-	ScaleMode    PrintScaleMode
-	Duplex       PrintDuplexMode
-	ColorMode    PrintColorMode
+	ScaleMode    printScaleMode
+	duplex       printDuplexMode
+	ColorMode    printColorMode
 }
 
 // NewPrintJob returns a PrintJob with sensible defaults.
 func NewPrintJob() PrintJob {
 	return PrintJob{
-		Paper:       PaperA4,
-		Orientation: PrintPortrait,
-		Margins:     DefaultPrintMargins(),
+		paper:       paperA4,
+		Orientation: printPortrait,
+		margins:     defaultPrintMargins(),
 		Copies:      1,
-		RasterDPI:   300,
-		JPEGQuality: 85,
+		rasterDPI:   300,
+		jPEGQuality: 85,
 	}
 }
 
@@ -154,41 +143,35 @@ const (
 	PrintRunError
 )
 
-// PrintWarning describes a non-fatal issue during printing.
-type PrintWarning struct {
-	Code    string
-	Message string
-}
-
 // PrintRunResult contains the outcome of RunPrintJob.
 type PrintRunResult struct {
 	ErrorCode    string
 	ErrorMessage string
 	PDFPath      string
-	Warnings     []PrintWarning
 	Status       PrintRunStatus
 }
 
 // PrintExportStatus reports the outcome of ExportPrintJob.
-type PrintExportStatus uint8
+type printExportStatus uint8
 
 // PrintExportStatus constants.
 const (
-	PrintExportOK PrintExportStatus = iota
-	PrintExportError
+	printExportOK printExportStatus = iota
+	printExportError
 )
 
 // PrintExportResult contains the outcome of ExportPrintJob.
+// exportaudit:keep — reachable from an exported signature
 type PrintExportResult struct {
 	Path         string
 	ErrorCode    string
 	ErrorMessage string
-	Status       PrintExportStatus
+	Status       printExportStatus
 }
 
 // IsOk returns true if the export succeeded.
-func (r PrintExportResult) IsOk() bool {
-	return r.Status == PrintExportOK
+func (r PrintExportResult) isOk() bool {
+	return r.Status == printExportOK
 }
 
 // --- result constructors ---
@@ -198,32 +181,32 @@ func printRunErrorResult(code, message string) PrintRunResult {
 }
 
 func printExportErrorResult(path, code, message string) PrintExportResult {
-	return PrintExportResult{Status: PrintExportError, Path: path, ErrorCode: code, ErrorMessage: message}
+	return PrintExportResult{Status: printExportError, Path: path, ErrorCode: code, ErrorMessage: message}
 }
 
 func printExportOKResult(path string) PrintExportResult {
-	return PrintExportResult{Status: PrintExportOK, Path: path}
+	return PrintExportResult{Status: printExportOK, Path: path}
 }
 
 // --- page geometry ---
 
 // PrintPageSize returns (width, height) in points for the given
 // paper size and orientation.
-func PrintPageSize(paper PaperSize, orientation PrintOrientation) (float32, float32) {
+func printPageSize(paper PaperSize, orientation PrintOrientation) (float32, float32) {
 	var w, h float32
 	switch paper {
-	case PaperLetter:
+	case paperLetter:
 		w, h = 612, 792
-	case PaperLegal:
+	case paperLegal:
 		w, h = 612, 1008
-	case PaperA4:
+	case paperA4:
 		w, h = 595, 842
-	case PaperA3:
+	case paperA3:
 		w, h = 842, 1191
 	default:
 		w, h = 595, 842
 	}
-	if orientation == PrintLandscape {
+	if orientation == printLandscape {
 		return h, w
 	}
 	return w, h
@@ -245,14 +228,14 @@ func validatePrintMargins(pageW, pageH float32, m PrintMargins) error {
 }
 
 func validatePrintJob(job PrintJob) error {
-	pw, ph := PrintPageSize(job.Paper, job.Orientation)
-	if err := validatePrintMargins(pw, ph, job.Margins); err != nil {
+	pw, ph := printPageSize(job.paper, job.Orientation)
+	if err := validatePrintMargins(pw, ph, job.margins); err != nil {
 		return err
 	}
 	if job.Copies < 1 {
 		return errors.New("copies must be >= 1")
 	}
-	if job.Source.Kind == PrintSourcePDFPath {
+	if job.Source.Kind == printSourcePDFPath {
 		if strings.TrimSpace(job.Source.PDFPath) == "" {
 			return errors.New("pdf_path is required for pdf_path source")
 		}
@@ -265,13 +248,13 @@ func validatePrintJob(job PrintJob) error {
 	if err := validateHeaderFooterCfg(job.Header); err != nil {
 		return err
 	}
-	if err := validateHeaderFooterCfg(job.Footer); err != nil {
+	if err := validateHeaderFooterCfg(job.footer); err != nil {
 		return err
 	}
-	if job.RasterDPI < 72 || job.RasterDPI > 1200 {
+	if job.rasterDPI < 72 || job.rasterDPI > 1200 {
 		return errors.New("raster_dpi must be 72..1200")
 	}
-	if job.JPEGQuality < 10 || job.JPEGQuality > 100 {
+	if job.jPEGQuality < 10 || job.jPEGQuality > 100 {
 		return errors.New("jpeg_quality must be 10..100")
 	}
 	return nil
@@ -284,8 +267,8 @@ func validateExportPrintJob(job PrintJob) error {
 	return validatePrintJob(job)
 }
 
-func validateHeaderFooterCfg(cfg PrintHeaderFooterCfg) error {
-	if !cfg.Enabled {
+func validateHeaderFooterCfg(cfg printHeaderFooterCfg) error {
+	if !cfg.enabled {
 		return nil
 	}
 	for _, token := range extractPrintTokens(cfg.Left) {
@@ -335,7 +318,7 @@ func validatePrintToken(token string) error {
 }
 
 // NormalizePrintPageRanges sorts and merges overlapping ranges.
-func NormalizePrintPageRanges(ranges []PrintPageRange) []PrintPageRange {
+func normalizePrintPageRanges(ranges []PrintPageRange) []PrintPageRange {
 	if len(ranges) == 0 {
 		return nil
 	}

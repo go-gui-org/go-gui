@@ -97,7 +97,7 @@ func layoutApplyScrollAnchors(layout *Layout, w *Window) {
 	}
 	kept := w.scrollAnchors[:0]
 	for _, a := range w.scrollAnchors {
-		sc, ok := FindLayoutByScrollID(layout, a.scrollID)
+		sc, ok := findLayoutByScrollID(layout, a.scrollID)
 		if !ok {
 			if w.frameCount-a.frame <= scrollAnchorMaxAge {
 				kept = append(kept, a)

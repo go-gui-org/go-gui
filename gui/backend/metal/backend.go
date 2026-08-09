@@ -54,11 +54,13 @@ const maxCustomPipelines = 32
 // Backend is the Metal backend for go-gui (single-window mode).
 // Embeds windowState so all draw methods are shared with
 // multi-window mode.
+// exportaudit:keep — reachable from an exported signature
 type Backend struct {
 	windowState
 }
 
 // New creates a Metal backend and initializes the window.
+// exportaudit:keep — lowercase new shadows the Go builtin
 func New(w *gui.Window) (*Backend, error) {
 	runtime.LockOSThread()
 
@@ -154,7 +156,7 @@ func (b *Backend) Run(w *gui.Window) {
 // cleans up on exit. Panics on error; call RunE for error-returning
 // variant.
 func Run(w *gui.Window) {
-	if err := RunE(w); err != nil {
+	if err := runE(w); err != nil {
 		panic(fmt.Sprintf("metal: %v", err))
 	}
 }
@@ -162,7 +164,7 @@ func Run(w *gui.Window) {
 // RunE initializes the Metal backend, runs the event loop, and
 // cleans up on exit. Returns an error instead of panicking so
 // embedders and tests can handle backend init failures.
-func RunE(w *gui.Window) error {
+func runE(w *gui.Window) error {
 	b, err := New(w)
 	if err != nil {
 		return fmt.Errorf("metal: %w", err)
@@ -175,7 +177,7 @@ func RunE(w *gui.Window) error {
 // RunApp starts a multi-window event loop. Panics on error;
 // call RunAppE for error-returning variant.
 func RunApp(app *gui.App, initialWindows ...*gui.Window) {
-	if err := RunAppE(app, initialWindows...); err != nil {
+	if err := runAppE(app, initialWindows...); err != nil {
 		panic(fmt.Sprintf("metal: %v", err))
 	}
 }
@@ -186,7 +188,7 @@ func RunApp(app *gui.App, initialWindows ...*gui.Window) {
 // panicking so embedders and tests can handle init failures.
 //
 //nolint:gocyclo // backend event loop
-func RunAppE(app *gui.App, initialWindows ...*gui.Window) error {
+func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 	runtime.LockOSThread()
 
 	// Activate the app before creating any windows so

@@ -34,7 +34,7 @@ func (c EventCtx) Consume() {
 
 // Handled reports whether the event has been consumed. Reports false
 // when Event is nil.
-func (c EventCtx) Handled() bool {
+func (c EventCtx) handled() bool {
 	return c.Event != nil && c.Event.IsHandled
 }
 
@@ -50,6 +50,7 @@ func (c EventCtx) Handled() bool {
 // An absolute leaf (one containing IDSep) and a leaf naming nothing in
 // the ancestor chain both resolve exactly as the resolve pass would
 // resolve them in this position.
+// exportaudit:keep — public seam for widget factories (see CLAUDE.md)
 func (c EventCtx) EffID(leaf string) string {
 	if leaf == "" || c.Layout == nil {
 		return leaf

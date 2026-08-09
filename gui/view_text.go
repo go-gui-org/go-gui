@@ -21,7 +21,7 @@ type TextCfg struct {
 
 	// Mode controls text wrapping and overflow behavior. See
 	// TextMode constants.
-	Mode TextMode
+	Mode textMode
 
 	Invisible  bool
 	Clip       bool
@@ -31,7 +31,7 @@ type TextCfg struct {
 
 	// PlaceholderActive enables placeholder styling (dimmed).
 	// Set by input widgets; not typically set directly.
-	PlaceholderActive bool
+	placeholderActive bool
 
 	// Hero marks this text element for hero transition
 	// animations between views.
@@ -52,7 +52,7 @@ type TextCfg struct {
 // textView implements View for text rendering.
 type textView struct {
 	cfg TextCfg
-	tc  ShapeTextConfig
+	tc  shapeTextConfig
 }
 
 // textEventHandlers is a shared handler set for focused text
@@ -69,14 +69,14 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 	c := &tv.cfg
 	ts := &c.TextStyle
 
-	tv.tc = ShapeTextConfig{
+	tv.tc = shapeTextConfig{
 		Text:              c.Text,
 		TextStyle:         ts,
-		TextIsPassword:    c.IsPassword,
-		TextIsPlaceholder: c.PlaceholderActive,
+		textIsPassword:    c.IsPassword,
+		textIsPlaceholder: c.placeholderActive,
 		TextMode:          c.Mode,
 		TextTabSize:       c.TabSize,
-		TextReadOnly:      c.readOnly,
+		textReadOnly:      c.readOnly,
 	}
 
 	layout := Layout{
@@ -86,7 +86,7 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 			focusOwner: c.focusOwner,
 			Focusable:  c.Focusable,
 			A11YRole:   AccessRoleStaticText,
-			A11Y: makeA11YInfo(
+			a11Y: makeA11YInfo(
 				a11yLabel(c.A11YLabel, c.Text), c.A11YDescription,
 			),
 			Clip:      c.Clip,
@@ -107,14 +107,14 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 		layout.Shape.Height = fallbackLineHeight(*ts)
 	}
 	if c.Mode == TextModeSingleLine ||
-		layout.Shape.Sizing.Width == SizingFixed {
+		layout.Shape.Sizing.Width == sizingFixed {
 		layout.Shape.MinWidth = f32Max(
 			layout.Shape.Width, layout.Shape.MinWidth,
 		)
 		layout.Shape.Width = layout.Shape.MinWidth
 	}
 	if c.Mode == TextModeSingleLine ||
-		layout.Shape.Sizing.Height == SizingFixed {
+		layout.Shape.Sizing.Height == sizingFixed {
 		layout.Shape.MinHeight = f32Max(
 			layout.Shape.Height, layout.Shape.MinHeight,
 		)
@@ -150,7 +150,7 @@ func Text(cfg TextCfg) View {
 		cfg.TextStyle = DefaultTextStyle
 	}
 	if cfg.TextStyle.Size == 0 {
-		cfg.TextStyle.Size = SizeTextMedium
+		cfg.TextStyle.Size = sizeTextMedium
 	}
 	cfg.Sizing = sizing
 	return &textView{cfg: cfg}

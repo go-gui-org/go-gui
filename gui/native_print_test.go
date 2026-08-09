@@ -6,7 +6,7 @@ func TestExportPrintJobNoOutputPath(t *testing.T) {
 	w := &Window{windowWidth: 800, windowHeight: 600}
 	job := NewPrintJob()
 	result := w.ExportPrintJob(job)
-	if result.IsOk() {
+	if result.isOk() {
 		t.Error("expected error for empty output path")
 	}
 	if result.ErrorCode != printErrorInvalidCfg {
@@ -18,9 +18,9 @@ func TestExportPrintJobBadDPI(t *testing.T) {
 	w := &Window{windowWidth: 800, windowHeight: 600}
 	job := NewPrintJob()
 	job.OutputPath = "/tmp/out.pdf"
-	job.RasterDPI = 10
+	job.rasterDPI = 10
 	result := w.ExportPrintJob(job)
-	if result.IsOk() {
+	if result.isOk() {
 		t.Error("expected error for bad DPI")
 	}
 }
@@ -30,7 +30,7 @@ func TestExportPrintJobNoRenderers(t *testing.T) {
 	job := NewPrintJob()
 	job.OutputPath = "/tmp/out.pdf"
 	result := w.ExportPrintJob(job)
-	if result.IsOk() {
+	if result.isOk() {
 		t.Error("expected error for no renderers")
 	}
 	if result.ErrorCode != printErrorRender {
@@ -66,7 +66,7 @@ func TestRunPrintJobBadCopies(t *testing.T) {
 func TestRunPrintJobPDFPathSource(t *testing.T) {
 	w := &Window{}
 	job := NewPrintJob()
-	job.Source = PrintJobSource{Kind: PrintSourcePDFPath, PDFPath: "/path.pdf"}
+	job.Source = printJobSource{Kind: printSourcePDFPath, PDFPath: "/path.pdf"}
 	result := w.RunPrintJob(job)
 	// No platform → unsupported.
 	if result.Status != PrintRunError {
@@ -77,7 +77,7 @@ func TestRunPrintJobPDFPathSource(t *testing.T) {
 func TestPrintJobResolvePDFPathEmpty(t *testing.T) {
 	w := &Window{}
 	job := NewPrintJob()
-	job.Source = PrintJobSource{Kind: PrintSourcePDFPath}
+	job.Source = printJobSource{Kind: printSourcePDFPath}
 	_, err := printJobResolvePDFPath(w, job)
 	if err == nil {
 		t.Error("expected error for empty pdf_path")
@@ -87,7 +87,7 @@ func TestPrintJobResolvePDFPathEmpty(t *testing.T) {
 func TestPrintJobResolvePDFPathOK(t *testing.T) {
 	w := &Window{}
 	job := NewPrintJob()
-	job.Source = PrintJobSource{Kind: PrintSourcePDFPath, PDFPath: "/test.pdf"}
+	job.Source = printJobSource{Kind: printSourcePDFPath, PDFPath: "/test.pdf"}
 	path, err := printJobResolvePDFPath(w, job)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -108,7 +108,7 @@ func TestPrintJobResolveCurrentViewNotImpl(t *testing.T) {
 
 // mockPrintPlatform returns a preset PrintRunResult.
 type mockPrintPlatform struct {
-	NoopNativePlatform
+	noopNativePlatform
 	result PrintRunResult
 }
 
@@ -126,7 +126,7 @@ func TestRunPrintJobSuccess(t *testing.T) {
 	}
 	job := NewPrintJob()
 	job.Copies = 1
-	job.Source = PrintJobSource{Kind: PrintSourcePDFPath, PDFPath: "/test.pdf"}
+	job.Source = printJobSource{Kind: printSourcePDFPath, PDFPath: "/test.pdf"}
 	result := w.RunPrintJob(job)
 	if result.Status != PrintRunOK {
 		t.Errorf("Status: got %d, want %d", result.Status, PrintRunOK)
@@ -143,7 +143,7 @@ func TestRunPrintJobCancelled(t *testing.T) {
 	}
 	job := NewPrintJob()
 	job.Copies = 1
-	job.Source = PrintJobSource{Kind: PrintSourcePDFPath, PDFPath: "/test.pdf"}
+	job.Source = printJobSource{Kind: printSourcePDFPath, PDFPath: "/test.pdf"}
 	result := w.RunPrintJob(job)
 	if result.Status != PrintRunCancel {
 		t.Errorf("Status: got %d, want %d", result.Status, PrintRunCancel)
@@ -161,7 +161,7 @@ func TestRunPrintJobPlatformError(t *testing.T) {
 	}
 	job := NewPrintJob()
 	job.Copies = 1
-	job.Source = PrintJobSource{Kind: PrintSourcePDFPath, PDFPath: "/test.pdf"}
+	job.Source = printJobSource{Kind: printSourcePDFPath, PDFPath: "/test.pdf"}
 	result := w.RunPrintJob(job)
 	if result.Status != PrintRunError {
 		t.Errorf("Status: got %d, want %d", result.Status, PrintRunError)

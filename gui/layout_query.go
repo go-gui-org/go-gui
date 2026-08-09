@@ -1,9 +1,9 @@
 package gui
 
 // FindShape walks the layout depth-first until predicate is satisfied.
-func (layout *Layout) FindShape(predicate func(Layout) bool) (*Shape, bool) {
+func (layout *Layout) findShape(predicate func(Layout) bool) (*Shape, bool) {
 	for i := range layout.Children {
-		if s, ok := layout.Children[i].FindShape(predicate); ok {
+		if s, ok := layout.Children[i].findShape(predicate); ok {
 			return s, true
 		}
 	}
@@ -31,12 +31,12 @@ func (layout *Layout) FindLayout(predicate func(Layout) bool) (*Layout, bool) {
 // id is an effective ID (see gui/id_resolve.go): the full path a widget
 // resolves to under its ID-bearing ancestors, which is what the focus
 // store holds.
-func FindLayoutByFocusID(layout *Layout, id string) (*Layout, bool) {
+func findLayoutByFocusID(layout *Layout, id string) (*Layout, bool) {
 	if id != "" && layout.Shape.Focusable && layout.Shape.idKey() == id {
 		return layout, true
 	}
 	for i := range layout.Children {
-		if ly, ok := FindLayoutByFocusID(&layout.Children[i], id); ok {
+		if ly, ok := findLayoutByFocusID(&layout.Children[i], id); ok {
 			return ly, true
 		}
 	}
@@ -46,12 +46,12 @@ func FindLayoutByFocusID(layout *Layout, id string) (*Layout, bool) {
 // FindLayoutByScrollID recursively searches for a Scrollable layout
 // with matching scroll ID. An empty id never matches. id is an
 // effective ID, as in [FindLayoutByFocusID].
-func FindLayoutByScrollID(layout *Layout, id string) (*Layout, bool) {
+func findLayoutByScrollID(layout *Layout, id string) (*Layout, bool) {
 	if id != "" && layout.Shape.Scrollable && layout.Shape.idKey() == id {
 		return layout, true
 	}
 	for i := range layout.Children {
-		if ly, ok := FindLayoutByScrollID(&layout.Children[i], id); ok {
+		if ly, ok := findLayoutByScrollID(&layout.Children[i], id); ok {
 			return ly, true
 		}
 	}
@@ -170,13 +170,13 @@ func (layout *Layout) findFocusable(w *Window, find focusFinder) (*Shape, bool) 
 
 // NextFocusable returns the next focusable shape after the
 // current focus. Wraps to first if at end.
-func (layout *Layout) NextFocusable(w *Window) (*Shape, bool) {
+func (layout *Layout) nextFocusable(w *Window) (*Shape, bool) {
 	return layout.findFocusable(w, focusFindNext)
 }
 
 // PreviousFocusable returns the previous focusable shape before
 // the current focus. Wraps to last if at beginning.
-func (layout *Layout) PreviousFocusable(w *Window) (*Shape, bool) {
+func (layout *Layout) previousFocusable(w *Window) (*Shape, bool) {
 	return layout.findFocusable(w, focusFindPrevious)
 }
 
@@ -200,7 +200,7 @@ func rectIntersection(a, b drawClip) (drawClip, bool) {
 }
 
 // PointInRectangle returns true if point is within bounds of rectangle.
-func PointInRectangle(x, y float32, rect drawClip) bool {
+func pointInRectangle(x, y float32, rect drawClip) bool {
 	return x >= rect.X && y >= rect.Y &&
 		x < (rect.X+rect.Width) && y < (rect.Y+rect.Height)
 }

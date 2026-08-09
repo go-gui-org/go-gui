@@ -36,22 +36,22 @@ func TestMarkRenderOnlyRefreshSkipsWhenLayoutPending(t *testing.T) {
 }
 
 func TestMaxAnimationRefreshKindPrefersLayout(t *testing.T) {
-	kind := maxAnimationRefreshKind(AnimationRefreshRenderOnly, AnimationRefreshLayout)
+	kind := maxAnimationRefreshKind(animationRefreshRenderOnly, AnimationRefreshLayout)
 	if kind != AnimationRefreshLayout {
 		t.Errorf("got %d, want layout", kind)
 	}
 }
 
 func TestMaxAnimationRefreshKindPrefersRenderOnlyOverNone(t *testing.T) {
-	kind := maxAnimationRefreshKind(AnimationRefreshNone, AnimationRefreshRenderOnly)
-	if kind != AnimationRefreshRenderOnly {
+	kind := maxAnimationRefreshKind(animationRefreshNone, animationRefreshRenderOnly)
+	if kind != animationRefreshRenderOnly {
 		t.Errorf("got %d, want render_only", kind)
 	}
 }
 
 func TestBlinkCursorAnimationRefreshKindIsRenderOnly(t *testing.T) {
-	a := NewBlinkCursorAnimation()
-	if a.RefreshKind() != AnimationRefreshRenderOnly {
+	a := newBlinkCursorAnimation()
+	if a.RefreshKind() != animationRefreshRenderOnly {
 		t.Errorf("got %d, want render_only", a.RefreshKind())
 	}
 }
@@ -70,9 +70,9 @@ func TestAnimateRefreshKindOverride(t *testing.T) {
 	a := &Animate{
 		AnimID:   "test",
 		Callback: func(*Animate, *Window) {},
-		Refresh:  AnimationRefreshRenderOnly,
+		Refresh:  animationRefreshRenderOnly,
 	}
-	if a.RefreshKind() != AnimationRefreshRenderOnly {
+	if a.RefreshKind() != animationRefreshRenderOnly {
 		t.Errorf("got %d, want render_only", a.RefreshKind())
 	}
 }

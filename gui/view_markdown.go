@@ -15,54 +15,54 @@ import (
 // MarkdownStyle controls rendered markdown appearance.
 type MarkdownStyle struct {
 	Text           TextStyle
-	H1             TextStyle
+	h1             TextStyle
 	H2             TextStyle
-	H3             TextStyle
-	H4             TextStyle
-	H5             TextStyle
-	H6             TextStyle
+	h3             TextStyle
+	h4             TextStyle
+	h5             TextStyle
+	h6             TextStyle
 	Bold           TextStyle
 	Italic         TextStyle
-	BoldItalic     TextStyle
+	boldItalic     TextStyle
 	Code           TextStyle
-	CodeBlockText  TextStyle
-	TableHeadStyle TextStyle
-	TableCellStyle TextStyle
+	codeBlockText  TextStyle
+	tableHeadStyle TextStyle
+	tableCellStyle TextStyle
 	// CodeHighlighter, when non-nil, is used to re-tokenize fenced
 	// code blocks whose info string names a supported language.
 	// When nil, the markdown parser's built-in primitive tokenizer
 	// is used. Use highlight.Default() for chroma-backed coverage.
 	CodeHighlighter   highlight.Highlighter
-	TableRowAlt       *Color
-	MathDPIDisplay    int
-	MathDPIInline     int
-	CodeBlockPadding  Opt[Padding]
-	TableCellPadding  Opt[Padding]
-	BlockSpacing      float32
-	NestIndent        float32
-	PrefixCharWidth   float32
-	CodeBlockRadius   float32
-	TableBorderSize   float32
+	tableRowAlt       *Color
+	mathDPIDisplay    int
+	mathDPIInline     int
+	codeBlockPadding  Opt[Padding]
+	tableCellPadding  Opt[Padding]
+	blockSpacing      float32
+	nestIndent        float32
+	prefixCharWidth   float32
+	codeBlockRadius   float32
+	tableBorderSize   float32
 	CodeBlockBG       Color
-	CodeKeywordColor  Color
-	CodeStringColor   Color
-	CodeNumberColor   Color
-	CodeCommentColor  Color
-	CodeOperatorColor Color
-	CodeTypeColor     Color
-	CodeFunctionColor Color
-	CodeBuiltinColor  Color
-	HRColor           Color
-	LinkColor         Color
-	BlockquoteBorder  Color
-	BlockquoteBG      Color
-	TableBorderColor  Color
-	HighlightBG       Color
-	MermaidBG         Color
-	H1Separator       bool
-	H2Separator       bool
+	codeKeywordColor  Color
+	codeStringColor   Color
+	codeNumberColor   Color
+	codeCommentColor  Color
+	codeOperatorColor Color
+	codeTypeColor     Color
+	codeFunctionColor Color
+	codeBuiltinColor  Color
+	hRColor           Color
+	linkColor         Color
+	blockquoteBorder  Color
+	blockquoteBG      Color
+	tableBorderColor  Color
+	highlightBG       Color
+	mermaidBG         Color
+	h1Separator       bool
+	h2Separator       bool
 	TableBorderStyle  TableBorderStyle
-	HardLineBreaks    bool
+	hardLineBreaks    bool
 }
 
 // DefaultMarkdownStyle returns a MarkdownStyle using the
@@ -72,50 +72,50 @@ func DefaultMarkdownStyle() MarkdownStyle {
 	// leading, floored to a minimum em ratio); no manual LineSpacing needed.
 	text := guiTheme.N4
 	bold := guiTheme.B4
-	italic := guiTheme.I4
-	bi := guiTheme.BI4
+	italic := guiTheme.i4
+	bi := guiTheme.bI4
 
 	return MarkdownStyle{
 		Text:              text,
-		H1:                guiTheme.B1,
+		h1:                guiTheme.B1,
 		H2:                guiTheme.B2,
-		H3:                guiTheme.B3,
-		H4:                guiTheme.B4,
-		H5:                guiTheme.B5,
-		H6:                guiTheme.B6,
+		h3:                guiTheme.B3,
+		h4:                guiTheme.B4,
+		h5:                guiTheme.B5,
+		h6:                guiTheme.B6,
 		Bold:              bold,
 		Italic:            italic,
-		BoldItalic:        bi,
+		boldItalic:        bi,
 		Code:              guiTheme.M5,
-		CodeBlockText:     guiTheme.M5,
+		codeBlockText:     guiTheme.M5,
 		CodeBlockBG:       RGBA(0, 0, 0, 50),
-		CodeKeywordColor:  guiTheme.ColorSelect,
-		CodeStringColor:   RGB(75, 125, 75),
-		CodeNumberColor:   RGB(169, 114, 62),
-		CodeCommentColor:  guiTheme.ColorBorder,
-		CodeOperatorColor: guiTheme.N3.Color,
-		CodeTypeColor:     RGB(78, 140, 178),
-		CodeFunctionColor: RGB(160, 100, 170),
-		CodeBuiltinColor:  RGB(78, 140, 178),
-		HRColor:           guiTheme.ColorBorder,
-		LinkColor:         guiTheme.ColorSelect,
-		BlockquoteBorder:  guiTheme.ColorBorder,
-		BlockquoteBG:      RGBA(128, 128, 128, 20),
-		BlockSpacing:      12,
-		NestIndent:        16,
-		PrefixCharWidth:   4,
-		CodeBlockPadding:  Some(PadAll(10)),
-		CodeBlockRadius:   3.5,
+		codeKeywordColor:  guiTheme.ColorSelect,
+		codeStringColor:   RGB(75, 125, 75),
+		codeNumberColor:   RGB(169, 114, 62),
+		codeCommentColor:  guiTheme.ColorBorder,
+		codeOperatorColor: guiTheme.N3.Color,
+		codeTypeColor:     RGB(78, 140, 178),
+		codeFunctionColor: RGB(160, 100, 170),
+		codeBuiltinColor:  RGB(78, 140, 178),
+		hRColor:           guiTheme.ColorBorder,
+		linkColor:         guiTheme.ColorSelect,
+		blockquoteBorder:  guiTheme.ColorBorder,
+		blockquoteBG:      RGBA(128, 128, 128, 20),
+		blockSpacing:      12,
+		nestIndent:        16,
+		prefixCharWidth:   4,
+		codeBlockPadding:  Some(PadAll(10)),
+		codeBlockRadius:   3.5,
 		TableBorderStyle:  TableBorderHeaderOnly,
-		TableBorderColor:  guiTheme.ColorBorder,
-		TableBorderSize:   1,
-		TableHeadStyle:    guiTheme.B4,
-		TableCellStyle:    guiTheme.N4,
-		TableCellPadding:  SomeP(5, 10, 5, 10),
-		HighlightBG:       RGB(199, 142, 18),
-		MathDPIDisplay:    150,
-		MathDPIInline:     200,
-		MermaidBG:         RGBA(248, 248, 255, 255),
+		tableBorderColor:  guiTheme.ColorBorder,
+		tableBorderSize:   1,
+		tableHeadStyle:    guiTheme.B4,
+		tableCellStyle:    guiTheme.N4,
+		tableCellPadding:  SomeP(5, 10, 5, 10),
+		highlightBG:       RGB(199, 142, 18),
+		mathDPIDisplay:    150,
+		mathDPIInline:     200,
+		mermaidBG:         RGBA(248, 248, 255, 255),
 	}
 }
 
@@ -124,7 +124,7 @@ type MarkdownCfg struct {
 	ID                  string
 	Source              string
 	Style               MarkdownStyle
-	MermaidWidth        int // max pixel width for mermaid diagrams (0 = 600)
+	mermaidWidth        int // max pixel width for mermaid diagrams (0 = 600)
 	Padding             Opt[Padding]
 	SizeBorder          Opt[float32]
 	Radius              Opt[float32]
@@ -132,36 +132,36 @@ type MarkdownCfg struct {
 	MinWidth            float32
 	Color               Color
 	ColorBorder         Color
-	Mode                Opt[TextMode]
+	Mode                Opt[textMode]
 	Invisible           bool
 	Clip                bool
 	FocusSkip           bool
 	Disabled            bool
-	DisableExternalAPIs bool
+	disableExternalAPIs bool
 
 	// MathFetcher replaces the default CodeCogs renderer.
 	// When nil, uses the default CodeCogs endpoint. Ignored
 	// when DisableExternalAPIs is true.
-	MathFetcher MathFetcher
+	mathFetcher mathFetcher
 
 	// MermaidFetcher replaces the default Kroki renderer.
 	// When nil, uses the default Kroki endpoint. Ignored
 	// when DisableExternalAPIs is true.
-	MermaidFetcher MermaidFetcher
+	mermaidFetcher mermaidFetcher
 }
 
 // MathFetcher fetches a LaTeX math expression as a PNG image.
 // When nil, defaults to the CodeCogs API. The implementation
 // must be safe for concurrent use. Ignored when
 // DisableExternalAPIs is true.
-type MathFetcher func(ctx context.Context, latex string, dpi int,
+type mathFetcher func(ctx context.Context, latex string, dpi int,
 	fgColor Color) ([]byte, error)
 
 // MermaidFetcher fetches a Mermaid diagram as a PNG image.
 // When nil, defaults to the Kroki API. The implementation must
 // be safe for concurrent use. Ignored when
 // DisableExternalAPIs is true.
-type MermaidFetcher func(ctx context.Context, source string) ([]byte, error)
+type mermaidFetcher func(ctx context.Context, source string) ([]byte, error)
 
 var markdownExternalAPIsEnabled bool
 
@@ -174,7 +174,7 @@ func SetMarkdownExternalAPIsEnabled(enabled bool) {
 func ensureDiagramCache(w *Window) *BoundedDiagramCache {
 	if w.viewState.diagramCache == nil {
 		w.viewState.diagramCache =
-			NewBoundedDiagramCache(50)
+			newBoundedDiagramCache(50)
 	}
 	return w.viewState.diagramCache
 }
@@ -208,7 +208,7 @@ func markdownDiagramErrorView(
 // buildMarkdownTableData converts ParsedTable to
 // TableRowCfg array.
 func buildMarkdownTableData(
-	parsed ParsedTable, _ MarkdownStyle,
+	parsed parsedTable, _ MarkdownStyle,
 ) []TableRowCfg {
 	rows := make([]TableRowCfg, 0, len(parsed.Rows)+1)
 
@@ -268,7 +268,7 @@ func (w *Window) Markdown(cfg MarkdownCfg) View {
 	if w.viewState.markdownCache == nil ||
 		w.viewState.markdownTheme != themeName {
 		w.viewState.markdownCache =
-			NewBoundedMap[int64, []MarkdownBlock](100)
+			NewBoundedMap[int64, []markdownBlock](100)
 		w.viewState.markdownTheme = themeName
 	}
 	blocks, ok := w.viewState.markdownCache.Get(hash)
@@ -278,7 +278,7 @@ func (w *Window) Markdown(cfg MarkdownCfg) View {
 	}
 
 	allowExternalAPIs := markdownExternalAPIsEnabled &&
-		!cfg.DisableExternalAPIs
+		!cfg.disableExternalAPIs
 	if allowExternalAPIs {
 		markdownTriggerMathFetches(blocks, cfg, w)
 	}
@@ -317,7 +317,7 @@ func (w *Window) Markdown(cfg MarkdownCfg) View {
 		SizeBorder:  cfg.SizeBorder,
 		Radius:      cfg.Radius,
 		Padding:     cfg.Padding,
-		Spacing:     Some(cfg.Style.BlockSpacing),
+		Spacing:     Some(cfg.Style.blockSpacing),
 		Sizing:      sizing,
 		Content:     content,
 	}
@@ -333,7 +333,7 @@ func (w *Window) Markdown(cfg MarkdownCfg) View {
 // markdownTriggerMathFetches starts async fetches for inline math
 // expressions that are not already cached.
 func markdownTriggerMathFetches(
-	blocks []MarkdownBlock, cfg MarkdownCfg, w *Window,
+	blocks []markdownBlock, cfg MarkdownCfg, w *Window,
 ) {
 	markdownWarnExternalAPIOnce(w)
 	inlineCache := ensureDiagramCache(w)
@@ -353,12 +353,12 @@ func markdownTriggerMathFetches(
 			reqID := nextDiagramRequestID(w)
 			inlineCache.Set(mhash,
 				DiagramCacheEntry{
-					State:     DiagramLoading,
+					State:     diagramLoading,
 					RequestID: reqID,
 				})
 			fetchMathAsync(w, run.MathLatex, mhash,
-				reqID, cfg.Style.MathDPIInline,
-				cfg.Style.Text.Color, cfg.MathFetcher)
+				reqID, cfg.Style.mathDPIInline,
+				cfg.Style.Text.Color, cfg.mathFetcher)
 		}
 	}
 }
@@ -366,8 +366,8 @@ func markdownTriggerMathFetches(
 // markdownBuildContent converts parsed blocks into views,
 // handling list accumulation and blockquote spacing.
 func markdownBuildContent(
-	blocks []MarkdownBlock, cfg MarkdownCfg,
-	mode TextMode, w *Window,
+	blocks []markdownBlock, cfg MarkdownCfg,
+	mode textMode, w *Window,
 ) []View {
 	content := make([]View, 0, len(blocks))
 	var listItems []View
@@ -375,7 +375,7 @@ func markdownBuildContent(
 	runeOffset := uint32(0)
 	selEnabled := cfg.Focusable
 
-	makeCtx := func(block MarkdownBlock) *mdBlockCtx {
+	makeCtx := func(block markdownBlock) *mdBlockCtx {
 		if !selEnabled {
 			return nil
 		}
@@ -388,7 +388,7 @@ func markdownBuildContent(
 		if prevWasBQ && !block.IsBlockquote {
 			content = append(content, Rectangle(RectangleCfg{
 				Sizing: FillFixed,
-				Height: cfg.Style.BlockSpacing,
+				Height: cfg.Style.blockSpacing,
 			}))
 		}
 		prevWasBQ = block.IsBlockquote

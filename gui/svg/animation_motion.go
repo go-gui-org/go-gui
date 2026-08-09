@@ -38,7 +38,7 @@ func flattenMotionD(d string) ([]float32, []float32) {
 	if len(segs) == 0 {
 		return nil, nil
 	}
-	vp := &VectorPath{
+	vp := &vectorPath{
 		Segments:  segs,
 		Transform: identityTransform,
 	}

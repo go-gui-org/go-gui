@@ -62,7 +62,7 @@ func TestUpdateAnimate(t *testing.T) {
 }
 
 func TestUpdateBlinkCursor(t *testing.T) {
-	b := NewBlinkCursorAnimation()
+	b := newBlinkCursorAnimation()
 	b.start = time.Now().Add(-time.Second)
 	w := &Window{}
 	ok := updateBlinkCursor(b, w)

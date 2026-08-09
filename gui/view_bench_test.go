@@ -27,7 +27,7 @@ func (v *benchView) GenerateLayout(_ *Window) Layout {
 
 func benchViewFlat(n int) *benchView {
 	root := &benchView{
-		shape:    Shape{shapeType: shapeRectangle, Axis: AxisTopToBottom},
+		shape:    Shape{shapeType: shapeRectangle, Axis: axisTopToBottom},
 		children: make([]*benchView, n),
 	}
 	for i := range n {
@@ -48,7 +48,7 @@ func benchViewNested(depth, childrenPerLevel int) *benchView {
 	v := &benchView{
 		shape: Shape{
 			shapeType: shapeRectangle,
-			Axis:      AxisTopToBottom,
+			Axis:      axisTopToBottom,
 		},
 	}
 	if depth <= 0 {
@@ -63,7 +63,7 @@ func benchViewNested(depth, childrenPerLevel int) *benchView {
 
 func benchViewDeep(depth int) *benchView {
 	v := &benchView{
-		shape: Shape{shapeType: shapeRectangle, Axis: AxisTopToBottom},
+		shape: Shape{shapeType: shapeRectangle, Axis: axisTopToBottom},
 	}
 	if depth <= 0 {
 		return v

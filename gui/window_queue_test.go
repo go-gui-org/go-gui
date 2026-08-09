@@ -46,7 +46,7 @@ func TestFlushCommandsEmptyQueueIsNoop(t *testing.T) {
 func TestQueueValueCommandExecutes(t *testing.T) {
 	w := &Window{}
 	var gotVal float32
-	w.QueueValueCommand(func(v float32, _ *Window) {
+	w.queueValueCommand(func(v float32, _ *Window) {
 		gotVal = v
 	}, 3.14)
 	w.flushCommands()
@@ -59,7 +59,7 @@ func TestQueueAnimateCommandExecutes(t *testing.T) {
 	w := &Window{}
 	a := &Animate{AnimID: "test"}
 	var gotAnimate *Animate
-	w.QueueAnimateCommand(func(anim *Animate, _ *Window) {
+	w.queueAnimateCommand(func(anim *Animate, _ *Window) {
 		gotAnimate = anim
 	}, a)
 	w.flushCommands()
@@ -78,7 +78,7 @@ func TestQueueCommandNilNoOp(t *testing.T) {
 
 func TestQueueValueCommandNilNoOp(t *testing.T) {
 	w := &Window{}
-	w.QueueValueCommand(nil, 1.0)
+	w.queueValueCommand(nil, 1.0)
 	if len(w.commands) != 0 {
 		t.Errorf("commands: got %d, want 0 for nil cb", len(w.commands))
 	}
@@ -86,7 +86,7 @@ func TestQueueValueCommandNilNoOp(t *testing.T) {
 
 func TestQueueAnimateCommandNilNoOp(t *testing.T) {
 	w := &Window{}
-	w.QueueAnimateCommand(nil, nil)
+	w.queueAnimateCommand(nil, nil)
 	if len(w.commands) != 0 {
 		t.Errorf("commands: got %d, want 0 for nil cb", len(w.commands))
 	}

@@ -9,7 +9,7 @@ func TestMathSpinnerDefaultLayout(t *testing.T) {
 	w := &Window{}
 	v := MathSpinner(MathSpinnerCfg{ID: "s1"}, w)
 	layout := generateViewLayout(v, w)
-	if layout.Shape.Axis != AxisLeftToRight {
+	if layout.Shape.Axis != axisLeftToRight {
 		t.Error("default should be row")
 	}
 	if len(layout.Children) != 1 {
@@ -50,7 +50,7 @@ func TestMathSpinnerExplicitZeroParam(t *testing.T) {
 	v := MathSpinner(MathSpinnerCfg{
 		ID:        "s4",
 		CurveType: CurveLissajous,
-		ParamB:    Some[float32](0),
+		paramB:    Some[float32](0),
 	}, w)
 	layout := generateViewLayout(v, w)
 	if layout.Shape.Width != 48 {

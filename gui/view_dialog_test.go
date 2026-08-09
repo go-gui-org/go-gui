@@ -339,7 +339,7 @@ func TestDialogConfirmDefaultButtonYes(t *testing.T) {
 	w.Dialog(DialogCfg{
 		DialogType:    DialogConfirm,
 		Title:         "Quit?",
-		DefaultButton: DialogButtonYes,
+		defaultButton: dialogButtonYes,
 	})
 	// DialogButtonYes focuses IDFocus+1 ("Yes").
 	want := ScopeIDN(w.dialogCfg.FocusID, "", 1)
@@ -355,7 +355,7 @@ func TestDialogDefaultButtonYesIgnoredForNonConfirm(t *testing.T) {
 	w.Dialog(DialogCfg{
 		DialogType:    DialogMessage,
 		Title:         "Done",
-		DefaultButton: DialogButtonYes,
+		defaultButton: dialogButtonYes,
 	})
 	if got := w.FocusID(); got != w.dialogCfg.FocusID {
 		t.Fatalf("focus = %q, want base %q", got, w.dialogCfg.FocusID)
@@ -370,7 +370,7 @@ func TestRetainDialogFocus_DefaultButtonYes(t *testing.T) {
 	w.Dialog(DialogCfg{
 		DialogType:    DialogConfirm,
 		Title:         "Quit?",
-		DefaultButton: DialogButtonYes,
+		defaultButton: dialogButtonYes,
 	})
 	dialog := generateViewLayout(dialogViewGenerator(w.dialogCfg), w)
 
@@ -450,7 +450,7 @@ func TestDialogFocusTargetIsAddressable(t *testing.T) {
 			DialogType: DialogConfirm,
 			// The Yes button is the ScopeIDN-composed sibling, so this
 			// covers the composed arm of dialogFocusID too.
-			DefaultButton: DialogButtonYes,
+			defaultButton: dialogButtonYes,
 		}},
 		{"prompt", DialogCfg{Title: "t", DialogType: DialogPrompt}},
 		{"caller-supplied focus id", DialogCfg{

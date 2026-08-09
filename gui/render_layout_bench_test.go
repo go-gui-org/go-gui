@@ -8,7 +8,7 @@ func benchmarkRenderTree(depth, childrenPerLevel int) Layout {
 	root := Layout{
 		Shape: &Shape{
 			shapeType: shapeRectangle,
-			Axis:      AxisTopToBottom,
+			Axis:      axisTopToBottom,
 			Sizing:    FillFill,
 			Width:     1200,
 			Height:    900,
@@ -27,7 +27,7 @@ func buildRenderChildren(parent *Layout, depth, n int) {
 	for i := range n {
 		s := &Shape{
 			shapeType: shapeRectangle,
-			Axis:      AxisLeftToRight,
+			Axis:      axisLeftToRight,
 			Width:     parent.Shape.Width,
 			Height:    h,
 			X:         parent.Shape.X,

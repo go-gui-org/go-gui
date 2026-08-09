@@ -725,7 +725,7 @@ func TestClipContentsEmitsStencilBracket(t *testing.T) {
 	}
 	root := &Layout{
 		Shape: &Shape{
-			ClipContents: true,
+			clipContents: true,
 			Radius:       12,
 			Width:        100,
 			Height:       80,
@@ -773,7 +773,7 @@ func TestClipContentsNestedIncrementsDepth(t *testing.T) {
 	w := makeWindow()
 	inner := Layout{
 		Shape: &Shape{
-			ClipContents: true,
+			clipContents: true,
 			Radius:       6,
 			Width:        40,
 			Height:       30,
@@ -782,7 +782,7 @@ func TestClipContentsNestedIncrementsDepth(t *testing.T) {
 	}
 	outer := &Layout{
 		Shape: &Shape{
-			ClipContents: true,
+			clipContents: true,
 			Radius:       12,
 			Width:        100,
 			Height:       80,
@@ -816,7 +816,7 @@ func TestClipContentsCoexistsWithClip(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			Clip:         true,
-			ClipContents: true,
+			clipContents: true,
 			Radius:       8,
 			Width:        60,
 			Height:       40,

@@ -58,7 +58,7 @@ func RichAbbr(
 }
 
 // RichFootnote creates a footnote marker with tooltip.
-func RichFootnote(
+func richFootnote(
 	id, content string, baseStyle TextStyle,
 ) RichTextRun {
 	s := baseStyle
@@ -92,11 +92,11 @@ func (rt RichText) toGlyphRichTextWithMath(
 			hash := diagramCacheHash(run.MathID)
 			if cache != nil {
 				if entry, ok := cache.Get(hash); ok &&
-					entry.State == DiagramReady &&
-					entry.DPI > 0 {
-					scale := (72.0 / entry.DPI) *
+					entry.State == diagramReady &&
+					entry.dPI > 0 {
+					scale := (72.0 / entry.dPI) *
 						(run.Style.Size / 12.0)
-					s := run.Style.ToGlyphStyle()
+					s := run.Style.toGlyphStyle()
 					h := entry.Height * scale
 					s.Object = &glyph.InlineObject{
 						ID:     run.MathID,
@@ -116,13 +116,13 @@ func (rt RichText) toGlyphRichTextWithMath(
 			// Fallback: show raw LaTeX source.
 			runs = append(runs, glyph.StyleRun{
 				Text:  run.MathLatex,
-				Style: run.Style.ToGlyphStyle(),
+				Style: run.Style.toGlyphStyle(),
 			})
 			continue
 		}
 		runs = append(runs, glyph.StyleRun{
 			Text:  run.Text,
-			Style: run.Style.ToGlyphStyle(),
+			Style: run.Style.toGlyphStyle(),
 		})
 	}
 	return glyph.RichText{Runs: runs}, mathHashes

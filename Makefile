@@ -209,3 +209,14 @@ ergo-fix-dry:
 ergo-fix:
 	go run ./tools/ergoaudit/ -mode focus -gui . \
 	  -fix -fix-only '_test\.go$$|^examples/' .
+
+# Gate the exported API surface (tools/exportaudit): every export in gui/
+# must be referenced from outside gui/ — a consumer repo, an example, or
+# the external test package — or carry a // exportaudit:keep marker.
+# The consumer scan is authoritative: without the sibling repos an export
+# used only there would misclassify, so the in-repo run is advisory.
+export-audit:
+	go run ./tools/exportaudit/ -mode gate -gui . .
+	go run ./tools/exportaudit/ -mode gate -gui . \
+	  ../go-charts ../go-edit ../go-kite ../go-term ../go-map || \
+	  (echo "exportaudit: sibling repos not found at ../go-*; run from a checkout with siblings present" >&2; true)

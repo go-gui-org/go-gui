@@ -130,11 +130,11 @@ func (w *Window) handleKeyDownEvent(layout *Layout, e *Event) {
 	}
 	if !e.IsHandled && e.KeyCode == KeyTab &&
 		e.Modifiers == ModShift {
-		if shape, ok := layout.PreviousFocusable(w); ok {
+		if shape, ok := layout.previousFocusable(w); ok {
 			w.SetFocus(shape.idKey())
 		}
 	} else if !e.IsHandled && e.KeyCode == KeyTab {
-		if shape, ok := layout.NextFocusable(w); ok {
+		if shape, ok := layout.nextFocusable(w); ok {
 			w.SetFocus(shape.idKey())
 		}
 	}

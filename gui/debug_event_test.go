@@ -84,7 +84,7 @@ func TestCollapseSilentWhenAncestorDisabled(t *testing.T) {
 func TestCollapseRespectsAncestorClickButton(t *testing.T) {
 	root := collapseTree(
 		&eventHandlers{
-			OnClick: func(EventCtx) {}, ClickButton: MouseRight,
+			OnClick: func(EventCtx) {}, clickButton: MouseRight,
 		},
 		&eventHandlers{OnClick: func(EventCtx) {}},
 	)
@@ -102,7 +102,7 @@ func TestCollapseToggleResetsWarnOnce(t *testing.T) {
 		&eventHandlers{OnClick: func(EventCtx) {}},
 	)
 	buf := captureDebug(t)
-	DebugCategories(DebugUnconsumed)
+	debugCategories(DebugUnconsumed)
 	w := &Window{}
 
 	mouseDownHandler(root, false, &Event{MouseX: 5, MouseY: 5}, w)
@@ -111,9 +111,9 @@ func TestCollapseToggleResetsWarnOnce(t *testing.T) {
 		t.Fatalf("want a finding on the first dispatch, got %q", first)
 	}
 
-	DebugCategories(0)
+	debugCategories(0)
 	buf.Reset()
-	DebugCategories(DebugUnconsumed)
+	debugCategories(DebugUnconsumed)
 	mouseDownHandler(root, false, &Event{MouseX: 5, MouseY: 5}, w)
 	if n := strings.Count(buf.String(), "OnClick on"); n != 1 {
 		t.Fatalf("want the finding re-reported once, got %d occurrences (%q)",
@@ -143,14 +143,14 @@ func TestCollapseGatedByUnconsumedCategory(t *testing.T) {
 		&eventHandlers{OnClick: func(EventCtx) {}},
 	)
 	buf := captureDebug(t)
-	DebugCategories(DebugDuplicates)
+	debugCategories(debugDuplicates)
 	mouseDownHandler(root, false, &Event{MouseX: 5, MouseY: 5}, &Window{})
 	if got := buf.String(); got != "" {
 		t.Errorf("identity-only mask must be silent at dispatch, got %q", got)
 	}
 
 	buf.Reset()
-	DebugCategories(DebugUnconsumed)
+	debugCategories(DebugUnconsumed)
 	mouseDownHandler(root, false, &Event{MouseX: 5, MouseY: 5}, &Window{})
 	if !strings.Contains(buf.String(), `OnClick on "inner"`) {
 		t.Errorf("want a collapse finding under the unconsumed category, got %q", buf.String())

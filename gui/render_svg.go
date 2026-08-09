@@ -14,9 +14,9 @@ func renderSvg(shape *Shape, clip drawClip, w *Window) {
 
 	var cached *CachedSvg
 	var err error
-	if shape.SvgOpts != nil {
+	if shape.svgOpts != nil {
 		cached, err = w.LoadSvgWithOpts(shape.Resource,
-			shape.Width, shape.Height, *shape.SvgOpts)
+			shape.Width, shape.Height, *shape.svgOpts)
 	} else {
 		cached, err = w.LoadSvg(shape.Resource,
 			shape.Width, shape.Height)
@@ -81,23 +81,23 @@ func renderSvg(shape *Shape, clip drawClip, w *Window) {
 
 	// Compute animation state for SMIL animations.
 	var animState map[uint32]svgAnimState
-	if cached.HasAnimations && cached.AnimStartNs != 0 {
+	if cached.hasAnimations && cached.animStartNs != 0 {
 		animState = w.scratch.svgAnimStates.take(len(cached.Animations))
 		defer w.scratch.svgAnimStates.put(animState)
 		nowNs := time.Now().UnixNano()
 		// Keep animation alive while SVG is being rendered.
-		if cached.AnimHash != "" {
+		if cached.animHash != "" {
 			animSeen := StateMap[string, int64](
 				w, nsSvgAnimSeen, capImageCache)
-			animSeen.Set(cached.AnimHash, nowNs)
+			animSeen.Set(cached.animHash, nowNs)
 		}
-		elapsed := float32(nowNs-cached.AnimStartNs) /
+		elapsed := float32(nowNs-cached.animStartNs) /
 			float32(time.Second)
 		contribScratch := w.scratch.svgAnimContribs.take(
 			len(cached.Animations))
 		animState = computeSvgAnimationsReuse(
 			cached.Animations, elapsed, animState, contribScratch,
-			cached.BaseByPath)
+			cached.baseByPath)
 		w.scratch.svgAnimContribs.put(contribScratch)
 	}
 
@@ -105,7 +105,7 @@ func renderSvg(shape *Shape, clip drawClip, w *Window) {
 	// PathID, so the same map serves main and filtered-group passes.
 	var animTris []TessellatedPath
 	var animByPID map[uint32][]float32
-	if cached.HasAttrAnim && cached.HasAnimatedPaths {
+	if cached.hasAttrAnim && cached.hasAnimatedPaths {
 		overrides := extractAttrOverrides(w, animState)
 		if len(overrides) > 0 {
 			if ap, ok := w.svgParser.(AnimatedSvgParser); ok {
@@ -127,25 +127,25 @@ func renderSvg(shape *Shape, clip drawClip, w *Window) {
 
 	// Emit main paths, text, and textPath elements.
 	nonUniform := validNonUniform(scaleX, scaleY, cached.Scale)
-	emitSvgGroup(cached.RenderPaths, animByPID, cached.TextDraws,
-		cached.TextPathDraws, color, sx, sy,
+	emitSvgGroup(cached.renderPaths, animByPID, cached.textDraws,
+		cached.textPathDraws, color, sx, sy,
 		cached.Scale, scaleX, scaleY, nonUniform, animState, w)
 
 	// Emit filtered groups.
 	for i, fg := range cached.FilteredGroups {
 		// Scale the filter bbox and blur; non-uniform stretch
 		// uses independent scaleX/scaleY.
-		fw := fg.BBox[2] * cached.Scale
-		fh := fg.BBox[3] * cached.Scale
+		fw := fg.bBox[2] * cached.Scale
+		fh := fg.bBox[3] * cached.Scale
 		blur := fg.Filter.StdDev * cached.Scale
 		if nonUniform {
-			fw = fg.BBox[2] * scaleX
-			fh = fg.BBox[3] * scaleY
+			fw = fg.bBox[2] * scaleX
+			fh = fg.bBox[3] * scaleY
 			blur = fg.Filter.StdDev * max(scaleX, scaleY)
 		}
 		emitRenderer(RenderCmd{
 			Kind:       RenderFilterBegin,
-			GroupIdx:   i,
+			groupIdx:   i,
 			X:          sx,
 			Y:          sy,
 			W:          fw,
@@ -154,8 +154,8 @@ func renderSvg(shape *Shape, clip drawClip, w *Window) {
 			BlurRadius: blur,
 			Layers:     fg.Filter.BlurLayers,
 		}, w)
-		emitSvgGroup(fg.RenderPaths, animByPID, fg.TextDraws,
-			fg.TextPathDraws, color, sx, sy,
+		emitSvgGroup(fg.renderPaths, animByPID, fg.textDraws,
+			fg.textPathDraws, color, sx, sy,
 			cached.Scale, scaleX, scaleY, nonUniform, animState, w)
 		emitRenderer(RenderCmd{
 			Kind: RenderFilterEnd,
@@ -163,8 +163,8 @@ func renderSvg(shape *Shape, clip drawClip, w *Window) {
 
 		// KeepSource: re-draw sharp original on top of blur.
 		if fg.Filter.KeepSource {
-			emitSvgGroup(fg.RenderPaths, animByPID, fg.TextDraws,
-				fg.TextPathDraws, color, sx, sy,
+			emitSvgGroup(fg.renderPaths, animByPID, fg.textDraws,
+				fg.textPathDraws, color, sx, sy,
 				cached.Scale, scaleX, scaleY, nonUniform, animState, w)
 		}
 	}
@@ -218,10 +218,10 @@ func validNonUniform(sx, sy, uniform float32) bool {
 // primitive shapes keyed by PathID. Animated paths look up their
 // override geometry; absent entries fall back to cached triangles.
 func emitSvgGroup(
-	paths []CachedSvgPath,
+	paths []cachedSvgPath,
 	animByPID map[uint32][]float32,
-	textDraws []CachedSvgTextDraw,
-	textPathDraws []CachedSvgTextPathDraw,
+	textDraws []cachedSvgTextDraw,
+	textPathDraws []cachedSvgTextPathDraw,
 	color Color, sx, sy, scale, scaleX, scaleY float32,
 	nonUniform bool,
 	animState map[uint32]svgAnimState, w *Window,
@@ -249,7 +249,7 @@ func emitSvgGroup(
 // modulated in so per-element opacity (baked into path.Color.A
 // during parsing) survives the override. animState applies SMIL
 // rotation/opacity per GroupID.
-func emitSvgPathRenderer(path CachedSvgPath, tint Color,
+func emitSvgPathRenderer(path cachedSvgPath, tint Color,
 	x, y, scale, nsScaleX, nsScaleY float32,
 	nonUniform bool,
 	animState map[uint32]svgAnimState, w *Window) {
@@ -397,7 +397,7 @@ func emitSvgPathRenderer(path CachedSvgPath, tint Color,
 // emitCachedSvgTextDraw emits a cached SVG text draw as a
 // RenderText command. Takes pointer into CachedSvg.TextDraws
 // slice so TextStylePtr remains stable.
-func emitCachedSvgTextDraw(draw *CachedSvgTextDraw,
+func emitCachedSvgTextDraw(draw *cachedSvgTextDraw,
 	shapeX, shapeY float32, w *Window) {
 	emitRenderer(RenderCmd{
 		Kind:         RenderText,
@@ -413,7 +413,7 @@ func emitCachedSvgTextDraw(draw *CachedSvgTextDraw,
 	}, w)
 }
 
-func emitCachedSvgTextPathDraw(draw *CachedSvgTextPathDraw,
+func emitCachedSvgTextPathDraw(draw *cachedSvgTextPathDraw,
 	shapeX, shapeY float32, w *Window) {
 	emitRenderer(RenderCmd{
 		Kind:         RenderTextPath,
@@ -421,6 +421,6 @@ func emitCachedSvgTextPathDraw(draw *CachedSvgTextPathDraw,
 		X:            shapeX,
 		Y:            shapeY,
 		TextStylePtr: &draw.TextStyle,
-		TextPath:     &draw.Path,
+		textPath:     &draw.Path,
 	}, w)
 }

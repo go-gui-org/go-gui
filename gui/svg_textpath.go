@@ -453,7 +453,7 @@ func buildArcLengthTable(polyline []float32) ([]float32, float32) {
 
 // SamplePathAt returns (x, y, angle) at distance dist along the
 // polyline. Uses binary search on the arc-length table.
-func SamplePathAt(polyline, table []float32,
+func samplePathAt(polyline, table []float32,
 	dist float32) (float32, float32, float32) {
 	n := len(table)
 	if n < 2 {

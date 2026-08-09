@@ -150,7 +150,7 @@ func TestNumericCurrencyCommit(t *testing.T) {
 		mc := numericModeCfg{
 			mode:              NumericCurrency,
 			affix:             "$",
-			affixPosition:     AffixPrefix,
+			affixPosition:     affixPrefix,
 			displayMultiplier: 1.0,
 		}
 		val, text := numericInputCommitResultMode(
@@ -170,7 +170,7 @@ func TestNumericCurrencyCommit(t *testing.T) {
 		mc := numericModeCfg{
 			mode:              NumericCurrency,
 			affix:             "EUR",
-			affixPosition:     AffixSuffix,
+			affixPosition:     affixSuffix,
 			affixSpacing:      true,
 			displayMultiplier: 1.0,
 		}
@@ -223,7 +223,7 @@ func TestNumericPreCommit(t *testing.T) {
 		mc := numericModeCfg{
 			mode:              NumericCurrency,
 			affix:             "$",
-			affixPosition:     AffixPrefix,
+			affixPosition:     affixPrefix,
 			displayMultiplier: 1.0,
 		}
 		got, ok := numericInputPreCommitTransformMode(
@@ -248,7 +248,7 @@ func TestNumericPreCommit(t *testing.T) {
 		mc := numericModeCfg{
 			mode:              NumericPercent,
 			affix:             "%",
-			affixPosition:     AffixSuffix,
+			affixPosition:     affixSuffix,
 			displayMultiplier: 100.0,
 		}
 		got, ok := numericInputPreCommitTransformMode(
@@ -294,8 +294,8 @@ func TestNumericStepResultModifiers(t *testing.T) {
 	t.Parallel()
 	cfg := NumericStepCfg{
 		Step:            1.0,
-		ShiftMultiplier: 10.0,
-		AltMultiplier:   0.1,
+		shiftMultiplier: 10.0,
+		altMultiplier:   0.1,
 	}
 	t.Run("shift", func(t *testing.T) {
 		t.Parallel()
@@ -330,7 +330,7 @@ func TestNumericPercentCommitRatioValue(t *testing.T) {
 	mc := numericModeCfg{
 		mode:              NumericPercent,
 		affix:             "%",
-		affixPosition:     AffixSuffix,
+		affixPosition:     affixSuffix,
 		displayMultiplier: 100.0,
 	}
 	val, text := numericInputCommitResultMode(
@@ -350,7 +350,7 @@ func TestNumericPercentStepResult(t *testing.T) {
 	mc := numericModeCfg{
 		mode:              NumericPercent,
 		affix:             "%",
-		affixPosition:     AffixSuffix,
+		affixPosition:     affixSuffix,
 		displayMultiplier: 100.0,
 	}
 	val, text := numericInputStepResultMode(
@@ -371,7 +371,7 @@ func TestNumericPercentRoundTrip(t *testing.T) {
 	mc := numericModeCfg{
 		mode:              NumericPercent,
 		affix:             "%",
-		affixPosition:     AffixSuffix,
+		affixPosition:     affixSuffix,
 		displayMultiplier: 100.0,
 	}
 	loc := numericLocaleNormalize(NumericLocaleCfg{})
@@ -400,7 +400,7 @@ func TestNumericEmptyPrefixSpacing(t *testing.T) {
 	mc := numericModeCfg{
 		mode:              NumericCurrency,
 		affix:             "$",
-		affixPosition:     AffixPrefix,
+		affixPosition:     affixPrefix,
 		affixSpacing:      true,
 		displayMultiplier: 1.0,
 	}

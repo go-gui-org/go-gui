@@ -13,7 +13,7 @@ func TestPhase3SplineParsingAnimateAttribute(t *testing.T) {
 	elem := `<animate attributeName="cy" calcMode="spline" dur="0.6s" ` +
 		`values="12;6;12" ` +
 		`keySplines=".33,.66,.66,1;.33,0,.66,.33"/>`
-	a, ok := parseAnimateAttributeElement(elem, ComputedStyle{GroupID: "g"})
+	a, ok := parseAnimateAttributeElement(elem, computedStyle{GroupID: "g"})
 	if !ok {
 		t.Fatal("parse failed")
 	}
@@ -33,7 +33,7 @@ func TestPhase3SplineParsingAnimateAttribute(t *testing.T) {
 func TestPhase3NonSplineCalcModeIgnoresKeySplines(t *testing.T) {
 	elem := `<animate attributeName="cy" calcMode="linear" dur="0.6s" ` +
 		`values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"/>`
-	a, ok := parseAnimateAttributeElement(elem, ComputedStyle{GroupID: "g"})
+	a, ok := parseAnimateAttributeElement(elem, computedStyle{GroupID: "g"})
 	if !ok {
 		t.Fatal("parse failed")
 	}
@@ -48,7 +48,7 @@ func TestPhase3NonSplineCalcModeIgnoresKeySplines(t *testing.T) {
 func TestPhase3MissingCalcModeIgnoresKeySplines(t *testing.T) {
 	elem := `<animate attributeName="cy" dur="0.6s" ` +
 		`values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"/>`
-	a, ok := parseAnimateAttributeElement(elem, ComputedStyle{GroupID: "g"})
+	a, ok := parseAnimateAttributeElement(elem, computedStyle{GroupID: "g"})
 	if !ok {
 		t.Fatal("parse failed")
 	}
@@ -63,7 +63,7 @@ func TestPhase3SegmentCountMismatchDropsSplines(t *testing.T) {
 	// 3 values → 2 segments; only 1 spline supplied.
 	elem := `<animate attributeName="cy" calcMode="spline" dur="0.6s" ` +
 		`values="12;6;12" keySplines=".33,.66,.66,1"/>`
-	a, ok := parseAnimateAttributeElement(elem, ComputedStyle{GroupID: "g"})
+	a, ok := parseAnimateAttributeElement(elem, computedStyle{GroupID: "g"})
 	if !ok {
 		t.Fatal("parse failed")
 	}
@@ -79,7 +79,7 @@ func TestPhase3SplineParsingOpacity(t *testing.T) {
 	elem := `<animate attributeName="opacity" calcMode="spline" ` +
 		`dur="1s" values="0;1;0" ` +
 		`keySplines=".4,0,.6,1;.4,0,.6,1"/>`
-	a, ok := parseAnimateElement(elem, ComputedStyle{GroupID: "g"})
+	a, ok := parseAnimateElement(elem, computedStyle{GroupID: "g"})
 	if !ok {
 		t.Fatal("parse failed")
 	}
@@ -95,7 +95,7 @@ func TestPhase3SplineParsingRotate(t *testing.T) {
 		`dur="1s" values="0 12 12;180 12 12;360 12 12" ` +
 		`keySplines=".4,0,.6,1;.4,0,.6,1"/>`
 	a, ok := parseAnimateTransformElement(elem,
-		ComputedStyle{GroupID: "g"})
+		computedStyle{GroupID: "g"})
 	if !ok {
 		t.Fatal("parse failed")
 	}
@@ -109,7 +109,7 @@ func TestPhase3SplineParsingRotate(t *testing.T) {
 func TestPhase3SpaceSeparatedKeySplines(t *testing.T) {
 	elem := `<animate attributeName="cy" calcMode="spline" dur="0.6s" ` +
 		`values="12;6" keySplines=".33 .66 .66 1"/>`
-	a, ok := parseAnimateAttributeElement(elem, ComputedStyle{GroupID: "g"})
+	a, ok := parseAnimateAttributeElement(elem, computedStyle{GroupID: "g"})
 	if !ok {
 		t.Fatal("parse failed")
 	}

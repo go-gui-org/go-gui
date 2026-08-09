@@ -59,7 +59,7 @@ func TestParseKeySplinesIfSpline_AcceptsInRange(t *testing.T) {
 
 func TestPutAnimatedScratch_RejectsOversizeBuffer(t *testing.T) {
 	p := New()
-	huge := make([]VectorPath, 0, maxAnimatedScratchCap+1)
+	huge := make([]vectorPath, 0, maxAnimatedScratchCap+1)
 	p.putAnimatedScratch(huge)
 	// Drain the pool a few times — sync.Pool may return nil
 	// legitimately, but must never surface the oversize buffer.
@@ -68,7 +68,7 @@ func TestPutAnimatedScratch_RejectsOversizeBuffer(t *testing.T) {
 		if v == nil {
 			continue
 		}
-		buf, ok := v.(*[]VectorPath)
+		buf, ok := v.(*[]vectorPath)
 		if ok && cap(*buf) > maxAnimatedScratchCap {
 			t.Fatalf("oversize buffer (cap=%d) parked in pool",
 				cap(*buf))
@@ -98,7 +98,7 @@ func TestGetAnimatedScratch_NegativeMinCapZeroed(t *testing.T) {
 
 func TestPutAnimatedScratch_RetainsModestBuffer(t *testing.T) {
 	p := New()
-	buf := make([]VectorPath, 0, 8)
+	buf := make([]vectorPath, 0, 8)
 	p.putAnimatedScratch(buf)
 	got := p.getAnimatedScratch(8)
 	if cap(got) < 8 {
@@ -117,7 +117,7 @@ func TestParseAnimateDashArrayElement_UpperBoundFrames(t *testing.T) {
 	}
 	elem := `<animate attributeName="stroke-dasharray" dur="1s" ` +
 		`values="` + string(sb) + `">`
-	a, ok := parseAnimateDashArrayElement(elem, ComputedStyle{GroupID: "g"})
+	a, ok := parseAnimateDashArrayElement(elem, computedStyle{GroupID: "g"})
 	if !ok {
 		t.Fatalf("expected ok=true at upper bound")
 	}

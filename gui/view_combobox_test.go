@@ -103,8 +103,8 @@ func TestComboboxKeyNavScrolls(t *testing.T) {
 func TestComboboxDefaults(t *testing.T) {
 	cfg := ComboboxCfg{}
 	applyComboboxDefaults(&cfg)
-	if cfg.MaxDropdownHeight != 200 {
-		t.Errorf("max dropdown = %f", cfg.MaxDropdownHeight)
+	if cfg.maxDropdownHeight != 200 {
+		t.Errorf("max dropdown = %f", cfg.maxDropdownHeight)
 	}
 	if cfg.MinWidth != 75 {
 		t.Errorf("min width = %f", cfg.MinWidth)
@@ -187,7 +187,7 @@ func TestScrollEnsureVisibleSurvivesPipeline(t *testing.T) {
 			Scrollable: true,
 			ID:         idScroll,
 			Height:     200, // MaxHeight clamped
-			Axis:       AxisTopToBottom,
+			Axis:       axisTopToBottom,
 			Padding:    Padding{Top: 5, Right: 5, Bottom: 5, Left: 5},
 			SizeBorder: 1.5,
 		},
@@ -226,7 +226,7 @@ func TestScrollPositionsShiftChildren(t *testing.T) {
 			Scrollable: true,
 			ID:         idScroll,
 			Height:     200,
-			Axis:       AxisTopToBottom,
+			Axis:       axisTopToBottom,
 			Padding:    Padding{Top: 5, Right: 5, Bottom: 5, Left: 5},
 			SizeBorder: 1.5,
 		},

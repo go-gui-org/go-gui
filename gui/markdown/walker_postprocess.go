@@ -297,7 +297,7 @@ func trimTrailingBreaks(runs []Run) []Run {
 }
 
 // RunsToText concatenates run text into a single string.
-func RunsToText(runs []Run) string {
+func runsToText(runs []Run) string {
 	var sb strings.Builder
 	for _, r := range runs {
 		sb.WriteString(r.Text)

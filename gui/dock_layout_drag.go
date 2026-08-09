@@ -10,20 +10,21 @@ const (
 )
 
 // DockDropZone identifies where a panel will be inserted on drop.
+// exportaudit:keep — reachable from an exported signature
 type DockDropZone uint8
 
 // DockDropZone constants.
 const (
-	DockDropNone   DockDropZone = iota
-	DockDropCenter              // add as tab
-	DockDropTop                 // split above
-	DockDropBottom              // split below
-	DockDropLeft                // split left
-	DockDropRight               // split right
-	DockDropWindowTop
-	DockDropWindowBottom
-	DockDropWindowLeft
-	DockDropWindowRight
+	dockDropNone   DockDropZone = iota
+	dockDropCenter              // add as tab
+	dockDropTop                 // split above
+	dockDropBottom              // split below
+	dockDropLeft                // split left
+	dockDropRight               // split right
+	dockDropWindowTop
+	dockDropWindowBottom
+	dockDropWindowLeft
+	dockDropWindowRight
 )
 
 // dockDragState tracks an in-progress dock panel drag.
@@ -128,7 +129,7 @@ func dockDragOnMouseMove(
 			return
 		}
 		state.active = true
-		state.panelNodes = DockTreeCollectPanelNodes(root)
+		state.panelNodes = dockTreeCollectPanelNodes(root)
 	}
 
 	zone, groupID := dockDragDetectZone(
@@ -148,8 +149,8 @@ func dockDragOnMouseUp(
 	state := dockDragGet(w, dockID)
 	w.MouseUnlock()
 
-	if state.active && state.hoverZone != DockDropNone && onLayoutChange != nil {
-		newRoot := DockTreeMovePanel(
+	if state.active && state.hoverZone != dockDropNone && onLayoutChange != nil {
+		newRoot := dockTreeMovePanel(
 			root, state.panelID, state.hoverGroupID,
 			state.hoverZone)
 		onLayoutChange(newRoot, EventCtx{nil, nil, w})
@@ -179,30 +180,30 @@ func dockDragDetectZone(
 ) (DockDropZone, string) {
 	dockLayout, ok := w.layout.FindByID(dockID)
 	if !ok {
-		return DockDropNone, ""
+		return dockDropNone, ""
 	}
 	clip := dockLayout.Shape.shapeClip
 	if clip.Width <= 0 || clip.Height <= 0 {
-		return DockDropNone, ""
+		return dockDropNone, ""
 	}
 
 	// Check window-edge zones first.
 	edge := dockDragWindowEdgeZone
 	if mouseX >= clip.X && mouseX < clip.X+edge &&
 		mouseY >= clip.Y && mouseY < clip.Y+clip.Height {
-		return DockDropWindowLeft, ""
+		return dockDropWindowLeft, ""
 	}
 	if mouseX >= clip.X+clip.Width-edge && mouseX < clip.X+clip.Width &&
 		mouseY >= clip.Y && mouseY < clip.Y+clip.Height {
-		return DockDropWindowRight, ""
+		return dockDropWindowRight, ""
 	}
 	if mouseY >= clip.Y && mouseY < clip.Y+edge &&
 		mouseX >= clip.X && mouseX < clip.X+clip.Width {
-		return DockDropWindowTop, ""
+		return dockDropWindowTop, ""
 	}
 	if mouseY >= clip.Y+clip.Height-edge && mouseY < clip.Y+clip.Height &&
 		mouseX >= clip.X && mouseX < clip.X+clip.Width {
-		return DockDropWindowBottom, ""
+		return dockDropWindowBottom, ""
 	}
 
 	// Check each panel group's zone.
@@ -227,13 +228,13 @@ func dockDragDetectZone(
 		relY := (mouseY - gc.Y) / gc.Height
 		zone := dockClassifyZone(relX, relY)
 		// Skip center drop on same group (already a tab there).
-		if zone == DockDropCenter && group.ID == sourceGroup {
+		if zone == dockDropCenter && group.ID == sourceGroup {
 			continue
 		}
 		return zone, group.ID
 	}
 
-	return DockDropNone, ""
+	return dockDropNone, ""
 }
 
 // dockClassifyZone classifies a relative position (0..1) within
@@ -241,18 +242,18 @@ func dockDragDetectZone(
 func dockClassifyZone(relX, relY float32) DockDropZone {
 	edge := dockDragEdgeRatio
 	if relY < edge {
-		return DockDropTop
+		return dockDropTop
 	}
 	if relY > 1.0-edge {
-		return DockDropBottom
+		return dockDropBottom
 	}
 	if relX < edge {
-		return DockDropLeft
+		return dockDropLeft
 	}
 	if relX > 1.0-edge {
-		return DockDropRight
+		return dockDropRight
 	}
-	return DockDropCenter
+	return dockDropCenter
 }
 
 // dockDragGhostView returns a floating ghost of the dragged tab.
@@ -297,7 +298,7 @@ func dockDragAmendOverlay(
 	layout *Layout, w *Window,
 ) {
 	state := dockDragGet(w, dockID)
-	if !state.active || state.hoverZone == DockDropNone {
+	if !state.active || state.hoverZone == dockDropNone {
 		return
 	}
 
@@ -317,10 +318,10 @@ func dockDragAmendOverlay(
 	var tx, ty, tw, th float32
 
 	switch {
-	case state.hoverZone == DockDropWindowTop ||
-		state.hoverZone == DockDropWindowBottom ||
-		state.hoverZone == DockDropWindowLeft ||
-		state.hoverZone == DockDropWindowRight:
+	case state.hoverZone == dockDropWindowTop ||
+		state.hoverZone == dockDropWindowBottom ||
+		state.hoverZone == dockDropWindowLeft ||
+		state.hoverZone == dockDropWindowRight:
 		tx = layout.Shape.X
 		ty = layout.Shape.Y
 		tw = layout.Shape.Width
@@ -340,17 +341,17 @@ func dockDragAmendOverlay(
 
 	// Subdivide based on zone.
 	switch state.hoverZone {
-	case DockDropTop, DockDropWindowTop:
+	case dockDropTop, dockDropWindowTop:
 		th *= 0.5
-	case DockDropBottom, DockDropWindowBottom:
+	case dockDropBottom, dockDropWindowBottom:
 		ty += th * 0.5
 		th *= 0.5
-	case DockDropLeft, DockDropWindowLeft:
+	case dockDropLeft, dockDropWindowLeft:
 		tw *= 0.5
-	case DockDropRight, DockDropWindowRight:
+	case dockDropRight, dockDropWindowRight:
 		tx += tw * 0.5
 		tw *= 0.5
-	case DockDropCenter, DockDropNone:
+	case dockDropCenter, dockDropNone:
 		// full rect
 	}
 

@@ -289,7 +289,7 @@ func TestBoundedMapRangeKeysOrder(t *testing.T) {
 	m.Set("c", 3)
 
 	var got []string
-	m.RangeKeys(func(k string) bool {
+	m.rangeKeys(func(k string) bool {
 		got = append(got, k)
 		return true
 	})
@@ -311,7 +311,7 @@ func TestBoundedMapRangeKeysEarlyStop(t *testing.T) {
 		m.Set(i, i)
 	}
 	seen := 0
-	m.RangeKeys(func(k int) bool {
+	m.rangeKeys(func(k int) bool {
 		seen++
 		return k != 2
 	})
@@ -329,7 +329,7 @@ func TestBoundedMapRangeKeysAfterChurn(t *testing.T) {
 	}
 
 	var got []int
-	m.RangeKeys(func(k int) bool {
+	m.rangeKeys(func(k int) bool {
 		got = append(got, k)
 		return true
 	})
@@ -378,7 +378,7 @@ func TestBoundedMapEvictToBudget(t *testing.T) {
 		m := NewBoundedMap[string, int](10)
 		m.Set("a", 10)
 		m.Set("b", 20)
-		n := m.EvictToBudget(100, 30, sizeFn)
+		n := m.evictToBudget(100, 30, sizeFn)
 		if n != 0 {
 			t.Errorf("evicted %d, want 0", n)
 		}
@@ -393,7 +393,7 @@ func TestBoundedMapEvictToBudget(t *testing.T) {
 		m.Set("b", 30)
 		m.Set("c", 20)
 		// total = 90, new=30 → need 120 > maxBytes=100
-		n := m.EvictToBudget(100, 30, sizeFn)
+		n := m.evictToBudget(100, 30, sizeFn)
 		if n == 0 {
 			t.Error("should have evicted entries")
 		}
@@ -410,7 +410,7 @@ func TestBoundedMapEvictToBudget(t *testing.T) {
 
 	t.Run("empty map", func(t *testing.T) {
 		m := NewBoundedMap[string, int](10)
-		n := m.EvictToBudget(100, 50, sizeFn)
+		n := m.evictToBudget(100, 50, sizeFn)
 		if n != 0 {
 			t.Errorf("evicted %d, want 0", n)
 		}
@@ -419,7 +419,7 @@ func TestBoundedMapEvictToBudget(t *testing.T) {
 	t.Run("unbounded budget", func(t *testing.T) {
 		m := NewBoundedMap[string, int](10)
 		m.Set("a", 1000)
-		n := m.EvictToBudget(0, 50, sizeFn)
+		n := m.evictToBudget(0, 50, sizeFn)
 		if n != 0 {
 			t.Errorf("evicted %d, want 0", n)
 		}
@@ -429,7 +429,7 @@ func TestBoundedMapEvictToBudget(t *testing.T) {
 		m := NewBoundedMap[string, int](10)
 		m.Set("a", 10)
 		// newBytes=200 > maxBytes=100, should evict "a"
-		n := m.EvictToBudget(100, 200, sizeFn)
+		n := m.evictToBudget(100, 200, sizeFn)
 		// "a"(10) evicted, budget becomes 10, still < 200... but we
 		// evict until total <= maxBytes or no entries left.
 		if m.Len() != 0 {
@@ -443,7 +443,7 @@ func TestBoundedMapEvictToBudget(t *testing.T) {
 		m.Set("a", 50)
 		m.Set("b", 50)
 		// total=100, new=30 → need 130 > maxBytes=100
-		n := m.EvictToBudget(100, 30, sizeFn)
+		n := m.evictToBudget(100, 30, sizeFn)
 		if n != 1 {
 			t.Errorf("evicted %d, want 1", n)
 		}

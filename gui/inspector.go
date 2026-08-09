@@ -43,11 +43,11 @@ const (
 )
 
 func inspectorNodeTextStyle() TextStyle {
-	return guiTheme.TreeStyle.TextStyle
+	return guiTheme.treeStyle.TextStyle
 }
 
 func inspectorNodeIconStyle() TextStyle {
-	return guiTheme.TreeStyle.TextStyleIcon
+	return guiTheme.treeStyle.textStyleIcon
 }
 
 type inspectorStackFrame struct {
@@ -74,7 +74,7 @@ type inspectorNodeProps struct {
 	Color       Color
 	Sizing      Sizing
 	HAlign      HorizontalAlign
-	VAlign      VerticalAlign
+	VAlign      verticalAlign
 	IsFloat     bool
 	Clip        bool
 }
@@ -147,7 +147,7 @@ func inspectorFloatingPanel(w *Window) View {
 	scrollbarPad := guiTheme.ScrollbarStyle.Size +
 		guiTheme.ScrollbarStyle.GapEdge*2
 	scrollbarCfg := &ScrollbarCfg{
-		ColorThumb: guiTheme.ScrollbarStyle.ColorThumb,
+		colorThumb: guiTheme.ScrollbarStyle.colorThumb,
 	}
 
 	return Column(ContainerCfg{
@@ -159,7 +159,7 @@ func inspectorFloatingPanel(w *Window) View {
 		Sizing:        FixedFixed,
 		Width:         panelWidth,
 		Height:        panelHeight,
-		Color:         guiTheme.InspectorStyle.ColorPanel,
+		Color:         guiTheme.inspectorStyle.ColorPanel,
 		Radius:        SomeF(8),
 		Clip:          true,
 		ID:            inspectorScrollPanel,
@@ -180,7 +180,7 @@ func inspectorFloatingPanel(w *Window) View {
 	})
 }
 
-func inspectorFloatAttach(left bool) FloatAttach {
+func inspectorFloatAttach(left bool) floatAttach {
 	if left {
 		return FloatTopLeft
 	}
@@ -198,8 +198,8 @@ func inspectorHelpBar() View {
 	return Text(TextCfg{
 		Text: "  F12 toggle  Alt+Left/Right resize  Alt+Up side",
 		TextStyle: TextStyle{
-			Size:  guiTheme.SizeTextXSmall,
-			Color: guiTheme.InspectorStyle.ColorTextHelp,
+			Size:  guiTheme.sizeTextXSmall,
+			Color: guiTheme.inspectorStyle.colorTextHelp,
 		},
 	})
 }
@@ -211,7 +211,7 @@ func inspectorTreeView(w *Window) View {
 	}
 	return Tree(TreeCfg{
 		ID:       inspectorTreeID,
-		Indent:   16,
+		indent:   16,
 		Spacing:  1,
 		Nodes:    nodes,
 		OnSelect: func(id string, ctx EventCtx) { inspectorSelect(id, ctx.Window) },
@@ -356,7 +356,7 @@ func inspectorLayoutToTree(
 		ID:            path,
 		Text:          inspectorNodeLabel(layout.Shape),
 		TextStyle:     inspectorNodeTextStyle(),
-		TextStyleIcon: inspectorNodeIconStyle(),
+		textStyleIcon: inspectorNodeIconStyle(),
 		Nodes:         childNodes,
 	}}
 }
@@ -366,19 +366,19 @@ func inspectorPropNode(
 ) TreeNodeCfg {
 	return TreeNodeCfg{
 		ID: id, Text: text,
-		TextStyle: ps, TextStyleIcon: pis,
+		TextStyle: ps, textStyleIcon: pis,
 	}
 }
 
 func inspectorPropsNodes(p inspectorNodeProps) []TreeNodeCfg {
-	propColor := guiTheme.InspectorStyle.ColorTextProp
+	propColor := guiTheme.inspectorStyle.colorTextProp
 	ps := TextStyle{
-		Size:  guiTheme.SizeTextXSmall,
+		Size:  guiTheme.sizeTextXSmall,
 		Color: propColor,
 	}
 	// Icon5 is the XSmall themed icon style, so it already carries the
 	// theme's icon family (app-overridable via ThemeCfg.IconFontFamily).
-	pis := guiTheme.Icon5
+	pis := guiTheme.icon5
 	pis.Color = propColor
 
 	nodes := make([]TreeNodeCfg, 0, 16)
@@ -400,12 +400,12 @@ func inspectorPropsNodes(p inspectorNodeProps) []TreeNodeCfg {
 			"size: "+strconv.Itoa(int(p.Width))+" x "+
 				strconv.Itoa(int(p.Height)), ps, pis),
 	)
-	if p.Sizing.Width != SizingFit || p.Sizing.Height != SizingFit {
+	if p.Sizing.Width != sizingFit || p.Sizing.Height != sizingFit {
 		nodes = append(nodes,
 			inspectorPropNode(inspectorPropSizingID,
 				"sizing: "+inspectorSizingString(p.Sizing), ps, pis))
 	}
-	if !p.Padding.IsNone() {
+	if !p.Padding.isNone() {
 		nodes = append(nodes,
 			inspectorPropNode(inspectorPropPaddingID,
 				"pad: "+strconv.Itoa(int(p.Padding.Top))+" "+
@@ -424,8 +424,8 @@ func inspectorPropsNodes(p inspectorNodeProps) []TreeNodeCfg {
 			Text:      "color: " + inspectorColorString(p.Color),
 			Icon:      "\u25A0",
 			TextStyle: ps,
-			TextStyleIcon: TextStyle{
-				Size:  guiTheme.SizeTextXSmall,
+			textStyleIcon: TextStyle{
+				Size:  guiTheme.sizeTextXSmall,
 				Color: p.Color,
 			},
 		})
@@ -554,9 +554,9 @@ func inspectorTypeName(shape *Shape) string {
 		return "termgrid"
 	case shapeNone, shapeRectangle:
 		switch shape.Axis {
-		case AxisTopToBottom:
+		case axisTopToBottom:
 			return "column"
-		case AxisLeftToRight:
+		case axisLeftToRight:
 			return "row"
 		default:
 			return "canvas"
@@ -601,11 +601,11 @@ func inspectorInjectWireframe(w *Window) {
 		W:         shape.Width,
 		H:         shape.Height,
 		Radius:    shape.Radius,
-		Color:     guiTheme.InspectorStyle.ColorWireframe,
+		Color:     guiTheme.inspectorStyle.colorWireframe,
 		Thickness: 2,
 	}, w)
 
-	if shape.Padding.IsNone() {
+	if shape.Padding.isNone() {
 		return
 	}
 	emitRenderer(RenderCmd{
@@ -614,7 +614,7 @@ func inspectorInjectWireframe(w *Window) {
 		Y:         shape.Y + shape.Padding.Top,
 		W:         f32Max(0, shape.Width-shape.Padding.Left-shape.Padding.Right),
 		H:         f32Max(0, shape.Height-shape.Padding.Top-shape.Padding.Bottom),
-		Color:     guiTheme.InspectorStyle.ColorPadding,
+		Color:     guiTheme.inspectorStyle.colorPadding,
 		Thickness: 1,
 	}, w)
 }
@@ -642,13 +642,13 @@ func inspectorEventsString(events *eventHandlers) string {
 	if events.OnMouseScroll != nil {
 		names = append(names, "scroll")
 	}
-	if events.OnScroll != nil {
+	if events.onScroll != nil {
 		names = append(names, "scroll_cb")
 	}
 	if events.OnHover != nil {
 		names = append(names, "hover")
 	}
-	if events.OnIMECommit != nil {
+	if events.onIMECommit != nil {
 		names = append(names, "ime")
 	}
 	if events.AmendLayout != nil {
@@ -724,18 +724,18 @@ func inspectorSizingString(s Sizing) string {
 		inspectorSizingTypeString(s.Height)
 }
 
-func inspectorSizingTypeString(s SizingType) string {
+func inspectorSizingTypeString(s sizingType) string {
 	switch s {
-	case SizingFill:
+	case sizingFill:
 		return "fill"
-	case SizingFixed:
+	case sizingFixed:
 		return "fixed"
 	default:
 		return "fit"
 	}
 }
 
-func inspectorAlignString(h HorizontalAlign, v VerticalAlign) string {
+func inspectorAlignString(h HorizontalAlign, v verticalAlign) string {
 	return inspectorHAlignString(h) + ", " + inspectorVAlignString(v)
 }
 
@@ -754,7 +754,7 @@ func inspectorHAlignString(h HorizontalAlign) string {
 	}
 }
 
-func inspectorVAlignString(v VerticalAlign) string {
+func inspectorVAlignString(v verticalAlign) string {
 	switch v {
 	case VAlignMiddle:
 		return "middle"

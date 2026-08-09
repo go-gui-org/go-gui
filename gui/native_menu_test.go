@@ -7,7 +7,7 @@ func TestNativeMenuItemsFromMenuItems_Basic(t *testing.T) {
 		{ID: "a", Text: "Alpha", CommandID: "cmd-a"},
 		{ID: "b", Text: "Beta"},
 	}
-	got := NativeMenuItemsFromMenuItems(items)
+	got := nativeMenuItemsFromMenuItems(items)
 	if len(got) != 2 {
 		t.Fatalf("len = %d, want 2", len(got))
 	}
@@ -26,7 +26,7 @@ func TestNativeMenuItemsFromMenuItems_Separator(t *testing.T) {
 	items := []MenuItemCfg{
 		MenuSeparator(),
 	}
-	got := NativeMenuItemsFromMenuItems(items)
+	got := nativeMenuItemsFromMenuItems(items)
 	if len(got) != 1 {
 		t.Fatalf("len = %d, want 1", len(got))
 	}
@@ -42,7 +42,7 @@ func TestNativeMenuItemsFromMenuItems_Submenu(t *testing.T) {
 			{ID: "open", Text: "Open"},
 		}),
 	}
-	got := NativeMenuItemsFromMenuItems(items)
+	got := nativeMenuItemsFromMenuItems(items)
 	if len(got) != 1 {
 		t.Fatalf("len = %d, want 1", len(got))
 	}
@@ -56,7 +56,7 @@ func TestNativeMenuItemsFromMenuItems_Submenu(t *testing.T) {
 }
 
 func TestNativeMenuItemsFromMenuItems_Empty(t *testing.T) {
-	got := NativeMenuItemsFromMenuItems(nil)
+	got := nativeMenuItemsFromMenuItems(nil)
 	if len(got) != 0 {
 		t.Fatalf("len = %d, want 0", len(got))
 	}
@@ -66,7 +66,7 @@ func TestNativeMenuItemsFromMenuItems_Disabled(t *testing.T) {
 	items := []MenuItemCfg{
 		MenuSubtitle("Section"),
 	}
-	got := NativeMenuItemsFromMenuItems(items)
+	got := nativeMenuItemsFromMenuItems(items)
 	if !got[0].Disabled {
 		t.Error("expected Disabled=true for subtitle")
 	}
@@ -104,7 +104,7 @@ func TestExitOnTrayRemoved(t *testing.T) {
 // mockMenuPlatform tracks menubar and tray state for interface-level
 // testing of the NativeMenubar / NativeSystemTray contracts.
 type mockMenuPlatform struct {
-	NoopNativePlatform
+	noopNativePlatform
 	menubarCfg NativeMenubarCfg
 	menubarCB  func(string)
 	menubarSet bool

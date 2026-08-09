@@ -55,7 +55,7 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	}
 
 	text := tc.Text
-	if tc.TextIsPassword {
+	if tc.textIsPassword {
 		text = maskPassword(tc.Text)
 	}
 
@@ -63,7 +63,7 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	// A read-only field stays Focusable (to keep selection and
 	// cursor) but can never commit a composition, so its preedit
 	// must not render — makeInputOnChar would swallow the commit.
-	imeComposing := !tc.TextReadOnly &&
+	imeComposing := !tc.textReadOnly &&
 		textShapeFocused(shape, w) && w.IMEComposing()
 	compText := ""
 	compRuneLen := 0
@@ -73,9 +73,9 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 		compRunes := []rune(compText)
 		compRuneLen = len(compRunes)
 		is := StateReadOr(w, nsInput, shape.focusKey(),
-			InputState{})
+			inputState{})
 		runes := []rune(text)
-		if tc.TextIsPlaceholder {
+		if tc.textIsPlaceholder {
 			// The placeholder is a hint, not content: a composition
 			// replaces it outright. Inserting into it would push the
 			// hint out to the right of the preedit.
@@ -116,7 +116,7 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 
 	var preLayout glyph.Layout
 	hasPreLayout := false
-	needLayout := tc.TextSelBeg != tc.TextSelEnd ||
+	needLayout := tc.textSelBeg != tc.textSelEnd ||
 		(textShapeFocused(shape, w) && w.inputCursorOn()) ||
 		imeComposing ||
 		spellCheckHasRanges(shape.focusKey(), w)
@@ -135,8 +135,8 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 			TextStylePtr: w.scratch.renderTextStyles.alloc(renderStyle),
 			TextGradient: renderStyle.Gradient,
 		}
-		if renderStyle.HasTextTransform() {
-			transform := renderStyle.EffectiveTextTransform()
+		if renderStyle.hasTextTransform() {
+			transform := renderStyle.effectiveTextTransform()
 			cmd.Kind = RenderLayoutTransformed
 			cmd.LayoutTransform = w.scratch.renderAffineTransforms.alloc(transform)
 		}
@@ -207,10 +207,10 @@ func renderInputCursor(shape *Shape, text string, baseX, baseY float32,
 	if !w.inputCursorOn() {
 		return
 	}
-	if shape.TC != nil && shape.TC.TextIsPlaceholder {
+	if shape.TC != nil && shape.TC.textIsPlaceholder {
 		text = ""
 	}
-	is := StateReadOr(w, nsInput, shape.focusKey(), InputState{})
+	is := StateReadOr(w, nsInput, shape.focusKey(), inputState{})
 	runeLen := utf8RuneCount(text)
 	pos := min(is.CursorPos, runeLen)
 
@@ -221,7 +221,7 @@ func renderInputCursor(shape *Shape, text string, baseX, baseY float32,
 	layout := preLayout
 	ok := hasPreLayout
 	if !ok {
-		layout, ok = inputGlyphLayoutResolved(text, shape, style, w, shape.TC != nil && shape.TC.TextIsPassword)
+		layout, ok = inputGlyphLayoutResolved(text, shape, style, w, shape.TC != nil && shape.TC.textIsPassword)
 	}
 	if ok {
 		cp, cpOK := layout.GetCursorPos(byteIdx)
@@ -238,7 +238,7 @@ func renderInputCursor(shape *Shape, text string, baseX, baseY float32,
 			}
 		}
 		adjustCursorTrailing(
-			&cp, layout.Lines, byteIdx, is.CursorTrailing)
+			&cp, layout.Lines, byteIdx, is.cursorTrailing)
 		emitRenderer(RenderCmd{
 			Kind:  RenderRect,
 			X:     baseX + cp.X,
@@ -270,10 +270,10 @@ func renderInputCursor(shape *Shape, text string, baseX, baseY float32,
 func renderInputSelection(shape *Shape, text string, baseX, baseY float32,
 	preLayout glyph.Layout, hasPreLayout bool, w *Window) {
 	tc := shape.TC
-	if tc == nil || tc.TextSelBeg == tc.TextSelEnd {
+	if tc == nil || tc.textSelBeg == tc.textSelEnd {
 		return
 	}
-	beg, end := u32Sort(tc.TextSelBeg, tc.TextSelEnd)
+	beg, end := u32Sort(tc.textSelBeg, tc.textSelEnd)
 	runeLen := utf8RuneCount(text)
 	if int(beg) > runeLen || int(end) > runeLen {
 		return
@@ -287,7 +287,7 @@ func renderInputSelection(shape *Shape, text string, baseX, baseY float32,
 	layout := preLayout
 	ok := hasPreLayout
 	if !ok {
-		layout, ok = inputGlyphLayoutResolved(text, shape, style, w, tc.TextIsPassword)
+		layout, ok = inputGlyphLayoutResolved(text, shape, style, w, tc.textIsPassword)
 	}
 	if ok {
 		rects := layout.GetSelectionRects(startByte, endByte)
@@ -394,7 +394,7 @@ func inputGlyphLayoutResolved(text string, shape *Shape, style TextStyle, w *Win
 		return glyph.Layout{}, false
 	}
 	displayText := text
-	if shape.TC != nil && shape.TC.TextIsPassword && !textAlreadyMasked {
+	if shape.TC != nil && shape.TC.textIsPassword && !textAlreadyMasked {
 		displayText = maskPassword(text)
 	}
 	return plainTextLayoutResolved(displayText, shape, style, w)
@@ -421,11 +421,11 @@ func fontHeight(style TextStyle, w *Window) float32 {
 }
 
 // textWidthFallback approximates text width for tests (no glyph).
-func textWidthFallback(text string, runePos int, tc *ShapeTextConfig, style TextStyle, w *Window) float32 {
+func textWidthFallback(text string, runePos int, tc *shapeTextConfig, style TextStyle, w *Window) float32 {
 	runeLen := utf8RuneCount(text)
 	runePos = min(runePos, runeLen)
 	prefix := text[:runeToByteIndex(text, runePos)]
-	if tc != nil && tc.TextIsPassword {
+	if tc != nil && tc.textIsPassword {
 		prefix = passwordMask(prefix)
 	}
 	if w.textMeasurer != nil {
@@ -452,12 +452,12 @@ func renderRtf(shape *Shape, clip drawClip, w *Window) {
 		Kind:      RenderRTF,
 		X:         baseX,
 		Y:         baseY,
-		LayoutPtr: shape.TC.RTFLayout,
+		LayoutPtr: shape.TC.rTFLayout,
 	}, w)
 
-	if shape.TC.RTFFlatText != "" {
-		renderInputSelection(shape, shape.TC.RTFFlatText,
-			baseX, baseY, *shape.TC.RTFLayout, true, w)
+	if shape.TC.rTFFlatText != "" {
+		renderInputSelection(shape, shape.TC.rTFFlatText,
+			baseX, baseY, *shape.TC.rTFLayout, true, w)
 	}
 
 	// Emit RenderImage for inline math objects.
@@ -471,8 +471,8 @@ func renderRtf(shape *Shape, clip drawClip, w *Window) {
 		return
 	}
 	objIdx := 0
-	for i := range shape.TC.RTFLayout.Items {
-		item := &shape.TC.RTFLayout.Items[i]
+	for i := range shape.TC.rTFLayout.Items {
+		item := &shape.TC.rTFLayout.Items[i]
 		if !item.IsObject {
 			continue
 		}
@@ -483,7 +483,7 @@ func renderRtf(shape *Shape, clip drawClip, w *Window) {
 		hash := hashes[objIdx]
 		objIdx++
 		entry, ok := cache.Get(hash)
-		if !ok || entry.State != DiagramReady {
+		if !ok || entry.State != diagramReady {
 			continue
 		}
 		// Prefer the InlineObject's own height/offset so tall math
@@ -503,7 +503,7 @@ func renderRtf(shape *Shape, clip drawClip, w *Window) {
 			Y:        baseY + y,
 			W:        float32(item.Width),
 			H:        h,
-			Resource: entry.PNGPath,
+			Resource: entry.pNGPath,
 		}, w)
 	}
 }

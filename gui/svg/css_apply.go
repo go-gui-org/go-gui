@@ -92,7 +92,7 @@ func splitClassAttr(s string) []string {
 // them low-to-high so the last write wins per property. Animation
 // properties (animation-*) are routed via applyCSSAnimProp before
 // this is reached.
-func applyCSSProp(name, value string, out *ComputedStyle) {
+func applyCSSProp(name, value string, out *computedStyle) {
 	v := strings.TrimSpace(value)
 	if v == "" {
 		return
@@ -105,25 +105,25 @@ func applyCSSProp(name, value string, out *ComputedStyle) {
 
 // applyCSSPaintProp handles paint, stroke, and opacity declarations.
 // Returns true when name matched and the property was folded.
-func applyCSSPaintProp(name, v string, out *ComputedStyle) bool {
+func applyCSSPaintProp(name, v string, out *computedStyle) bool {
 	switch name {
 	case "fill":
-		applyPaintProp(v, &out.Fill, &out.FillSet, &out.FillGradient)
+		applyPaintProp(v, &out.Fill, &out.fillSet, &out.fillGradient)
 	case "stroke":
-		applyPaintProp(v, &out.Stroke, &out.StrokeSet, &out.StrokeGradient)
+		applyPaintProp(v, &out.stroke, &out.strokeSet, &out.strokeGradient)
 	case "stroke-width":
 		out.StrokeWidth = sanitizeStrokeWidth(parseLength(v))
 	case "stroke-linecap":
-		out.StrokeCap = parseStrokeCap(v)
+		out.strokeCap = parseStrokeCap(v)
 	case "stroke-linejoin":
-		out.StrokeJoin = parseStrokeJoin(v)
+		out.strokeJoin = parseStrokeJoin(v)
 	case "stroke-dasharray":
-		out.StrokeDasharray = parseDashList(v)
+		out.strokeDasharray = parseDashList(v)
 	case "stroke-dashoffset":
 		n := parseFloatTrimmed(v)
 		if isFiniteF32(n) {
 			out.StrokeDashOffset = n
-			out.StrokeDashOffsetSet = true
+			out.strokeDashOffsetSet = true
 		}
 	case "opacity":
 		out.Opacity = clampOpacity01(parseOpacityNumber(v))
@@ -133,9 +133,9 @@ func applyCSSPaintProp(name, v string, out *ComputedStyle) bool {
 		out.StrokeOpacity = clampOpacity01(parseOpacityNumber(v))
 	case "fill-rule":
 		if v == "evenodd" {
-			out.FillRule = FillRuleEvenOdd
+			out.fillRule = fillRuleEvenOdd
 		} else {
-			out.FillRule = FillRuleNonzero
+			out.fillRule = fillRuleNonzero
 		}
 	default:
 		return false
@@ -145,7 +145,7 @@ func applyCSSPaintProp(name, v string, out *ComputedStyle) bool {
 
 // applyCSSLayoutProp handles font/text, display/visibility, transform
 // origin, and the clip-path/filter url() references.
-func applyCSSLayoutProp(name, v string, out *ComputedStyle) {
+func applyCSSLayoutProp(name, v string, out *computedStyle) {
 	switch name {
 	case "font-family":
 		out.FontFamily = v
@@ -154,29 +154,29 @@ func applyCSSLayoutProp(name, v string, out *ComputedStyle) {
 	case "font-weight":
 		out.FontWeight = v
 	case "font-style":
-		out.FontStyle = v
+		out.fontStyle = v
 	case "text-anchor":
-		out.TextAnchor = v
+		out.textAnchor = v
 	case "transform-origin":
-		out.TransformOrigin = v
+		out.transformOrigin = v
 	case "display":
 		if strings.EqualFold(v, "none") {
-			out.Display = DisplayNone
+			out.Display = displayNone
 		} else {
-			out.Display = DisplayInline
+			out.Display = displayInline
 		}
 	case "visibility":
 		switch strings.ToLower(v) {
 		case "hidden", "collapse":
-			out.Visibility = VisibilityHidden
+			out.visibility = visibilityHidden
 		default:
-			out.Visibility = VisibilityVisible
+			out.visibility = visibilityVisible
 		}
 	case "clip-path":
 		if id, ok := parseFillURL(v); ok {
-			out.ClipPathID = id
+			out.clipPathID = id
 		} else if strings.EqualFold(v, "none") {
-			out.ClipPathID = ""
+			out.clipPathID = ""
 		}
 	case "filter":
 		if id, ok := parseFillURL(v); ok {

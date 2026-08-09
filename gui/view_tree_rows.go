@@ -31,7 +31,7 @@ func treeCollectFlatRows(
 			Text:            node.Text,
 			Icon:            node.Icon,
 			TextStyle:       treeNodeTextStyle(node),
-			TextStyleIcon:   treeNodeTextStyleIcon(node),
+			textStyleIcon:   treeNodeTextStyleIcon(node),
 			HasChildren:     hasChildren,
 			HasRealChildren: hasRealChildren,
 			IsLazy:          node.Lazy,
@@ -53,8 +53,8 @@ func treeCollectFlatRows(
 				ParentID:      nodeID,
 				Depth:         depth + 1,
 				Text:          ActiveLocale.StrLoading,
-				TextStyle:     DefaultTreeStyle.TextStyle,
-				TextStyleIcon: DefaultTreeStyle.TextStyleIcon,
+				TextStyle:     defaultTreeStyle.TextStyle,
+				textStyleIcon: defaultTreeStyle.textStyleIcon,
 				IsLoading:     true,
 			})
 		}
@@ -62,7 +62,7 @@ func treeCollectFlatRows(
 }
 
 func treeEstimateRowHeight(cfg TreeCfg, w *Window) float32 {
-	style := DefaultTreeStyle.TextStyle
+	style := defaultTreeStyle.TextStyle
 	if len(cfg.Nodes) > 0 {
 		style = treeNodeTextStyle(cfg.Nodes[0])
 	}
@@ -98,24 +98,24 @@ func treeNodeTextStyle(node TreeNodeCfg) TextStyle {
 	if node.TextStyle != (TextStyle{}) {
 		return node.TextStyle
 	}
-	return DefaultTreeStyle.TextStyle
+	return defaultTreeStyle.TextStyle
 }
 
 func treeNodeTextStyleIcon(node TreeNodeCfg) TextStyle {
-	if node.TextStyleIcon != (TextStyle{}) {
-		return node.TextStyleIcon
+	if node.textStyleIcon != (TextStyle{}) {
+		return node.textStyleIcon
 	}
-	return DefaultTreeStyle.TextStyleIcon
+	return defaultTreeStyle.textStyleIcon
 }
 
 func treeIconWidth(cfg *TreeCfg, w *Window) float32 {
-	style := DefaultTreeStyle.TextStyleIcon
+	style := defaultTreeStyle.textStyleIcon
 	if len(cfg.Nodes) > 0 {
 		style = treeNodeTextStyleIcon(cfg.Nodes[0])
 	}
 	if w != nil && w.textMeasurer != nil {
 		return max(
-			w.textMeasurer.TextWidth(IconDropDown+" ", style),
+			w.textMeasurer.TextWidth(iconDropDown+" ", style),
 			style.Size+4,
 		)
 	}
@@ -127,12 +127,12 @@ func treeArrowIcon(row treeFlatRow) string {
 		return " "
 	}
 	if row.IsExpanded {
-		return IconDropDown
+		return iconDropDown
 	}
 	if ActiveLocale.TextDir == TextDirRTL {
-		return IconDropLeft
+		return iconDropLeft
 	}
-	return IconDropRight
+	return iconDropRight
 }
 
 func treeRowView(
@@ -145,7 +145,7 @@ func treeRowView(
 		return Row(ContainerCfg{
 			Padding: SomeP(
 				2, 5, 2,
-				float32(row.Depth)*cfg.Indent+5,
+				float32(row.Depth)*cfg.indent+5,
 			),
 			Sizing: FillFit,
 			Content: []View{
@@ -176,10 +176,10 @@ func treeRowView(
 		A11YLabel: row.Text,
 		A11YState: a11yState,
 		Color:     rowColor,
-		Radius:    Some(cfg.Radius.Get(DefaultTreeStyle.Radius)),
+		Radius:    Some(cfg.Radius.Get(defaultTreeStyle.Radius)),
 		Padding: SomeP(
 			2, 5, 2,
-			float32(row.Depth)*cfg.Indent+5,
+			float32(row.Depth)*cfg.indent+5,
 		),
 		Sizing:  FillFit,
 		Spacing: NoSpacing,
@@ -235,10 +235,10 @@ func treeDragRowView(
 		A11YLabel: row.Text,
 		A11YState: a11yState,
 		Color:     rowColor,
-		Radius:    Some(cfg.Radius.Get(DefaultTreeStyle.Radius)),
+		Radius:    Some(cfg.Radius.Get(defaultTreeStyle.Radius)),
 		Padding: SomeP(
 			2, 5, 2,
-			float32(row.Depth)*cfg.Indent+5,
+			float32(row.Depth)*cfg.indent+5,
 		),
 		Sizing:  FillFit,
 		Spacing: NoSpacing,
@@ -248,12 +248,12 @@ func treeDragRowView(
 				DragKey:       treeID,
 				Index:         sibIdx,
 				ItemID:        rowID,
-				Axis:          DragReorderVertical,
+				Axis:          dragReorderVertical,
 				ItemIDs:       siblingIDs,
 				OnReorder:     onReorder,
 				ItemLayoutIDs: itemLayoutIDs,
 				MidsOffset:    midsOffset,
-				ScrollID:      scrollID,
+				scrollID:      scrollID,
 				Layout:        ctx.Layout,
 				Event:         ctx.Event,
 			}, ctx.Window)
@@ -283,10 +283,10 @@ func treeRowContent(
 	}
 	return Row(ContainerCfg{
 		Color:  rowColor,
-		Radius: Some(cfg.Radius.Get(DefaultTreeStyle.Radius)),
+		Radius: Some(cfg.Radius.Get(defaultTreeStyle.Radius)),
 		Padding: SomeP(
 			2, 5, 2,
-			float32(row.Depth)*cfg.Indent+5,
+			float32(row.Depth)*cfg.indent+5,
 		),
 		Sizing:  FillFit,
 		Spacing: NoSpacing,
@@ -299,12 +299,12 @@ func treeRowContentViews(row treeFlatRow, iconWidth float32) []View {
 		Text(TextCfg{
 			Text:      treeArrowIcon(row) + " ",
 			MinWidth:  iconWidth,
-			TextStyle: row.TextStyleIcon,
+			TextStyle: row.textStyleIcon,
 		}),
 		Text(TextCfg{
 			Text:      treeIconText(row.Icon),
 			MinWidth:  iconWidth,
-			TextStyle: row.TextStyleIcon,
+			TextStyle: row.textStyleIcon,
 		}),
 		Text(TextCfg{
 			Text:      row.Text,

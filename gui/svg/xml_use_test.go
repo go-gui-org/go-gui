@@ -384,7 +384,7 @@ func TestParseSvg_UseSymbolPreserveSliceClipsToBox(t *testing.T) {
 		t.Fatalf("parse: %v", err)
 	}
 	var clipID string
-	for id := range vg.ClipPaths {
+	for id := range vg.clipPaths {
 		if strings.HasPrefix(id, "__use_clip_") {
 			clipID = id
 			break
@@ -396,9 +396,9 @@ func TestParseSvg_UseSymbolPreserveSliceClipsToBox(t *testing.T) {
 	if len(vg.Paths) == 0 {
 		t.Fatal("no paths from inlined symbol")
 	}
-	if vg.Paths[0].ClipPathID != clipID {
+	if vg.Paths[0].clipPathID != clipID {
 		t.Fatalf("inlined shape ClipPathID=%q; want %q",
-			vg.Paths[0].ClipPathID, clipID)
+			vg.Paths[0].clipPathID, clipID)
 	}
 }
 
@@ -466,7 +466,7 @@ func TestParseSvg_MultipleSliceUsesGetDistinctClipIDs(t *testing.T) {
 		t.Fatalf("parse: %v", err)
 	}
 	var ids []string
-	for id := range vg.ClipPaths {
+	for id := range vg.clipPaths {
 		if strings.HasPrefix(id, "__use_clip_") {
 			ids = append(ids, id)
 		}
@@ -480,9 +480,9 @@ func TestParseSvg_MultipleSliceUsesGetDistinctClipIDs(t *testing.T) {
 	if len(vg.Paths) != 2 {
 		t.Fatalf("got %d paths; want 2", len(vg.Paths))
 	}
-	if vg.Paths[0].ClipPathID == vg.Paths[1].ClipPathID {
+	if vg.Paths[0].clipPathID == vg.Paths[1].clipPathID {
 		t.Fatalf("paths reference same clip id %q; each <use> should have own",
-			vg.Paths[0].ClipPathID)
+			vg.Paths[0].clipPathID)
 	}
 }
 
@@ -506,7 +506,7 @@ func TestExpandUseSymbolPreserveSlice_AuthorIDCollisionAvoided(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
-	authored, ok := vg.ClipPaths["__use_clip_1"]
+	authored, ok := vg.clipPaths["__use_clip_1"]
 	if !ok {
 		t.Fatal("authored __use_clip_1 missing from ClipPaths")
 	}
@@ -516,7 +516,7 @@ func TestExpandUseSymbolPreserveSlice_AuthorIDCollisionAvoided(t *testing.T) {
 		t.Fatal("authored __use_clip_1 has no segments")
 	}
 	var synthID string
-	for id := range vg.ClipPaths {
+	for id := range vg.clipPaths {
 		if strings.HasPrefix(id, "__use_clip_") && id != "__use_clip_1" {
 			synthID = id
 			break
@@ -548,22 +548,22 @@ func TestExpandUseSymbolPreserveSlice_AuthorIDCollisionAvoided_ConsecutiveAuthor
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
-	if _, ok := vg.ClipPaths["__use_clip_1"]; !ok {
+	if _, ok := vg.clipPaths["__use_clip_1"]; !ok {
 		t.Fatal("authored __use_clip_1 missing")
 	}
-	if _, ok := vg.ClipPaths["__use_clip_2"]; !ok {
+	if _, ok := vg.clipPaths["__use_clip_2"]; !ok {
 		t.Fatal("authored __use_clip_2 missing")
 	}
-	if _, taken := vg.ClipPaths["__use_clip_3"]; !taken {
+	if _, taken := vg.clipPaths["__use_clip_3"]; !taken {
 		t.Fatal("synth slice clip should land on __use_clip_3 " +
 			"after skipping authored 1 and 2")
 	}
 	if len(vg.Paths) != 1 {
 		t.Fatalf("got %d paths; want 1", len(vg.Paths))
 	}
-	if vg.Paths[0].ClipPathID != "__use_clip_3" {
+	if vg.Paths[0].clipPathID != "__use_clip_3" {
 		t.Fatalf("Paths[0].ClipPathID=%q; want __use_clip_3",
-			vg.Paths[0].ClipPathID)
+			vg.Paths[0].clipPathID)
 	}
 }
 
@@ -581,7 +581,7 @@ func TestExpandUseSymbolPreserveSlice_WidthOnlyUsesViewBoxHeight(t *testing.T) {
 		t.Fatalf("parse: %v", err)
 	}
 	var clipID string
-	for id := range vg.ClipPaths {
+	for id := range vg.clipPaths {
 		if strings.HasPrefix(id, "__use_clip_") {
 			clipID = id
 		}
@@ -589,7 +589,7 @@ func TestExpandUseSymbolPreserveSlice_WidthOnlyUsesViewBoxHeight(t *testing.T) {
 	if clipID == "" {
 		t.Fatal("expected synth __use_clip_* with width-only <use>")
 	}
-	rect := vg.ClipPaths[clipID][0]
+	rect := vg.clipPaths[clipID][0]
 	w := rect.Segments[1].Points[0] - rect.Segments[0].Points[0]
 	h := rect.Segments[2].Points[1] - rect.Segments[1].Points[1]
 	if w != 40 {
@@ -613,7 +613,7 @@ func TestExpandUseSymbolPreserveSlice_HeightOnlyUsesViewBoxWidth(t *testing.T) {
 		t.Fatalf("parse: %v", err)
 	}
 	var clipID string
-	for id := range vg.ClipPaths {
+	for id := range vg.clipPaths {
 		if strings.HasPrefix(id, "__use_clip_") {
 			clipID = id
 		}
@@ -621,7 +621,7 @@ func TestExpandUseSymbolPreserveSlice_HeightOnlyUsesViewBoxWidth(t *testing.T) {
 	if clipID == "" {
 		t.Fatal("expected synth __use_clip_* with height-only <use>")
 	}
-	rect := vg.ClipPaths[clipID][0]
+	rect := vg.clipPaths[clipID][0]
 	w := rect.Segments[1].Points[0] - rect.Segments[0].Points[0]
 	h := rect.Segments[2].Points[1] - rect.Segments[1].Points[1]
 	if w != 5 {

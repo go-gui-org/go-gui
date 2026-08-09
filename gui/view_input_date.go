@@ -23,9 +23,9 @@ type InputDateCfg struct {
 	AllowedDates    []time.Time
 	Padding         Opt[Padding]
 	SizeBorder      Opt[float32]
-	CellSpacing     Opt[float32]
+	cellSpacing     Opt[float32]
 	Radius          Opt[float32]
-	RadiusBorder    Opt[float32]
+	radiusBorder    Opt[float32]
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled bool
@@ -173,9 +173,9 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 					Colors:               ColorSet{Hover: cfg.Colors.Hover, Click: cfg.Colors.Click, Focus: cfg.Colors.Focus, Border: cfg.Colors.Border, BorderFocus: cfg.Colors.BorderFocus},
 					ColorSelect:          cfg.ColorSelect,
 					SizeBorder:           cfg.SizeBorder,
-					CellSpacing:          cfg.CellSpacing,
+					cellSpacing:          cfg.cellSpacing,
 					Radius:               cfg.Radius,
-					RadiusBorder:         cfg.RadiusBorder,
+					radiusBorder:         cfg.radiusBorder,
 					SelectMultiple:       cfg.SelectMultiple,
 					HideTodayIndicator:   cfg.HideTodayIndicator,
 					MondayFirstDayOfWeek: cfg.MondayFirstDayOfWeek,
@@ -200,7 +200,7 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 		Color:       cfg.Colors.Base,
 		ColorBorder: cfg.Colors.Border,
 		SizeBorder:  cfg.SizeBorder,
-		Radius:      cfg.RadiusBorder,
+		Radius:      cfg.radiusBorder,
 		Padding:     cfg.Padding,
 		Sizing:      cfg.Sizing,
 		Width:       cfg.Width,
@@ -306,9 +306,9 @@ func inputDateClose(id string, w *Window) {
 }
 
 func applyInputDateDefaults(cfg *InputDateCfg) {
-	d := &DefaultDatePickerStyle
+	d := &defaultDatePickerStyle
 	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
-		d.Color, d.ColorHover, d.ColorClick,
+		d.Color, d.ColorHover, d.colorClick,
 		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
 	))
 	if !cfg.ColorSelect.IsSet() {
@@ -318,13 +318,13 @@ func applyInputDateDefaults(cfg *InputDateCfg) {
 		cfg.Padding = Some(PaddingSmall)
 	}
 	sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)
-	cellSpacing := cfg.CellSpacing.Get(d.CellSpacing)
+	cellSpacing := cfg.cellSpacing.Get(d.cellSpacing)
 	radius := cfg.Radius.Get(d.Radius)
-	radiusBorder := cfg.RadiusBorder.Get(d.RadiusBorder)
+	radiusBorder := cfg.radiusBorder.Get(d.radiusBorder)
 	cfg.SizeBorder = Some(sizeBorder)
-	cfg.CellSpacing = Some(cellSpacing)
+	cfg.cellSpacing = Some(cellSpacing)
 	cfg.Radius = Some(radius)
-	cfg.RadiusBorder = Some(radiusBorder)
+	cfg.radiusBorder = Some(radiusBorder)
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.TextStyle
 	}

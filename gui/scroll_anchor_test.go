@@ -31,7 +31,7 @@ func anchorLayoutTree(posts []anchorPost) Layout {
 			ID:         anchorScrollID,
 			Width:      100,
 			Height:     100,
-			Axis:       AxisTopToBottom,
+			Axis:       axisTopToBottom,
 		},
 		Children: children,
 	}
@@ -193,7 +193,7 @@ func TestScrollAnchorShiftsInFlightEase(t *testing.T) {
 	w := anchorWindow(-30, posts)
 
 	// An ease toward -10 is mid-flight when the anchor applies.
-	sc, ok := FindLayoutByScrollID(&w.layout, anchorScrollID)
+	sc, ok := findLayoutByScrollID(&w.layout, anchorScrollID)
 	if !ok {
 		t.Fatal("scrollable not found")
 	}

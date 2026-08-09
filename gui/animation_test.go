@@ -71,7 +71,7 @@ func TestUpdateTransitionNilEasingDefaultsToEaseOutCubic(t *testing.T) {
 func TestUpdateTransitionWithEasing(t *testing.T) {
 	tb := &transitionBase{
 		duration: 10 * time.Second,
-		easing:   EaseInQuad,
+		easing:   easeInQuad,
 		start:    time.Now().Add(-50 * time.Millisecond),
 	}
 	deferred := make([]queuedCommand, 0, 4)
@@ -103,7 +103,7 @@ func TestUpdateTransitionNilOnDone(t *testing.T) {
 }
 
 func TestBlinkCursorAnimationIsStopped(t *testing.T) {
-	b := NewBlinkCursorAnimation()
+	b := newBlinkCursorAnimation()
 	if b.IsStopped() {
 		t.Error("new blink should not be stopped")
 	}
@@ -114,7 +114,7 @@ func TestBlinkCursorAnimationIsStopped(t *testing.T) {
 }
 
 func TestBlinkCursorAnimationUpdate(t *testing.T) {
-	b := NewBlinkCursorAnimation()
+	b := newBlinkCursorAnimation()
 	b.start = time.Now().Add(-time.Second)
 	w := &Window{}
 	ok := b.Update(w, 0, nil)
@@ -143,10 +143,10 @@ func TestAnimateRefreshKindDefault(t *testing.T) {
 }
 
 func TestAnimateRefreshKindCustom(t *testing.T) {
-	a := &Animate{AnimID: "test", Refresh: AnimationRefreshRenderOnly}
-	if a.RefreshKind() != AnimationRefreshRenderOnly {
+	a := &Animate{AnimID: "test", Refresh: animationRefreshRenderOnly}
+	if a.RefreshKind() != animationRefreshRenderOnly {
 		t.Errorf("RefreshKind = %d, want %d",
-			a.RefreshKind(), AnimationRefreshRenderOnly)
+			a.RefreshKind(), animationRefreshRenderOnly)
 	}
 }
 
@@ -210,22 +210,22 @@ func TestTransitionBaseSetStart(t *testing.T) {
 }
 
 func TestBlinkCursorAnimationID(t *testing.T) {
-	b := NewBlinkCursorAnimation()
+	b := newBlinkCursorAnimation()
 	if b.ID() != blinkCursorAnimationID {
 		t.Errorf("ID = %q, want %q", b.ID(), blinkCursorAnimationID)
 	}
 }
 
 func TestBlinkCursorAnimationRefreshKind(t *testing.T) {
-	b := NewBlinkCursorAnimation()
-	if b.RefreshKind() != AnimationRefreshRenderOnly {
+	b := newBlinkCursorAnimation()
+	if b.RefreshKind() != animationRefreshRenderOnly {
 		t.Errorf("RefreshKind = %d, want %d",
-			b.RefreshKind(), AnimationRefreshRenderOnly)
+			b.RefreshKind(), animationRefreshRenderOnly)
 	}
 }
 
 func TestBlinkCursorAnimationSetStart(t *testing.T) {
-	b := NewBlinkCursorAnimation()
+	b := newBlinkCursorAnimation()
 	now := time.Now()
 	b.SetStart(now)
 	if b.start != now {
@@ -268,7 +268,7 @@ func TestCommandMarkRenderOnlyRefresh(t *testing.T) {
 func TestAnimationCommandsAppendOnDoneNilFn(t *testing.T) {
 	deferred := make([]queuedCommand, 0, 4)
 	ac := newAnimationCommands(&deferred)
-	ac.AppendOnDone(nil)
+	ac.appendOnDone(nil)
 	if len(deferred) != 0 {
 		t.Error("nil fn should not queue")
 	}
@@ -278,7 +278,7 @@ func TestAnimationCommandsAppendOnDoneWithFn(t *testing.T) {
 	called := false
 	deferred := make([]queuedCommand, 0, 4)
 	ac := newAnimationCommands(&deferred)
-	ac.AppendOnDone(func(*Window) { called = true })
+	ac.appendOnDone(func(*Window) { called = true })
 	if len(deferred) != 1 {
 		t.Fatal("should queue one command")
 	}
@@ -292,7 +292,7 @@ func TestAnimationCommandsAppendOnValue(t *testing.T) {
 	var got float32
 	deferred := make([]queuedCommand, 0, 4)
 	ac := newAnimationCommands(&deferred)
-	ac.AppendOnValue(func(v float32, _ *Window) { got = v }, 42)
+	ac.appendOnValue(func(v float32, _ *Window) { got = v }, 42)
 	if len(deferred) != 1 {
 		t.Fatal("should queue one command")
 	}

@@ -27,7 +27,7 @@ func TestListCoreFilterMatch(t *testing.T) {
 
 func TestListCoreFilterSkipsSubheadings(t *testing.T) {
 	items := []listCoreItem{
-		{ID: "h", Label: "Header", IsSubheading: true},
+		{ID: "h", Label: "Header", isSubheading: true},
 		{ID: "a", Label: "Alpha"},
 	}
 	result := listCoreFilter(items, "hea")
@@ -101,10 +101,10 @@ func TestListCoreViewsWithSpacers(t *testing.T) {
 }
 
 func TestListCoreSubheadingView(t *testing.T) {
-	item := listCoreItem{ID: "h", Label: "Group A", IsSubheading: true}
+	item := listCoreItem{ID: "h", Label: "Group A", isSubheading: true}
 	cfg := listCoreCfg{
 		TextStyle:       DefaultTextStyle,
-		SubheadingStyle: DefaultTextStyle,
+		subheadingStyle: DefaultTextStyle,
 		PaddingItem:     PaddingSmall,
 	}
 	views := listCoreViews([]listCoreItem{item}, cfg, 0, 0, -1, nil, 20)

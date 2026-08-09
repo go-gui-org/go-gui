@@ -31,7 +31,7 @@ func updateTransition(tb *transitionBase, ac *AnimationCommands) bool {
 	if done {
 		tb.progress = 1.0
 		tb.stopped = true
-		ac.AppendOnDone(tb.OnDone)
+		ac.appendOnDone(tb.OnDone)
 		return true
 	}
 	easing := tb.easing
@@ -58,8 +58,8 @@ type AnimationRefreshKind uint8
 
 // AnimationRefreshKind constants.
 const (
-	AnimationRefreshNone       AnimationRefreshKind = iota
-	AnimationRefreshRenderOnly                      // repaint only
+	animationRefreshNone       AnimationRefreshKind = iota
+	animationRefreshRenderOnly                      // repaint only
 	AnimationRefreshLayout                          // full layout rebuild
 )
 
@@ -77,6 +77,7 @@ func maxAnimationRefreshKind(current, incoming AnimationRefreshKind) AnimationRe
 // deferred callbacks (OnDone / OnValue) — those run after Update
 // returns so callback bodies cannot reenter the animation loop mutex.
 // Return false once the animation has stopped so the loop retires it.
+// exportaudit:keep — reachable from an exported signature
 type Animation interface {
 	ID() string
 	RefreshKind() AnimationRefreshKind
@@ -86,6 +87,7 @@ type Animation interface {
 }
 
 // BlinkCursorAnimation toggles cursor visibility on a timer.
+// exportaudit:keep — reachable from an exported signature
 type BlinkCursorAnimation struct {
 	start   time.Time
 	stopped bool
@@ -95,7 +97,7 @@ const blinkCursorAnimationID = "___blinky_cursor_animation___"
 const blinkCursorAnimationDelay = 600 * time.Millisecond
 
 // NewBlinkCursorAnimation creates a cursor blink animation.
-func NewBlinkCursorAnimation() *BlinkCursorAnimation {
+func newBlinkCursorAnimation() *BlinkCursorAnimation {
 	return &BlinkCursorAnimation{}
 }
 
@@ -103,7 +105,7 @@ func NewBlinkCursorAnimation() *BlinkCursorAnimation {
 func (a *BlinkCursorAnimation) ID() string { return blinkCursorAnimationID }
 
 // RefreshKind implements Animation.
-func (a *BlinkCursorAnimation) RefreshKind() AnimationRefreshKind { return AnimationRefreshRenderOnly }
+func (a *BlinkCursorAnimation) RefreshKind() AnimationRefreshKind { return animationRefreshRenderOnly }
 
 // IsStopped implements Animation.
 func (a *BlinkCursorAnimation) IsStopped() bool { return a.stopped }

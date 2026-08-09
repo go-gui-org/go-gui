@@ -7,10 +7,10 @@ type VibrancyMaterial uint8
 // VibrancyMaterial constants. VibrancyNone disables the effect and restores an
 // opaque window.
 const (
-	VibrancyNone VibrancyMaterial = iota // no effect (opaque window)
+	vibrancyNone VibrancyMaterial = iota // no effect (opaque window)
 	VibrancySidebar
-	VibrancyMenu
-	VibrancyHUD
+	vibrancyMenu
+	vibrancyHUD
 	VibrancyUnderWindow
 )
 

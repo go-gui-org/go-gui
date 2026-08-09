@@ -156,7 +156,7 @@ func TestRenderToPDF_SkippedKinds(t *testing.T) {
 
 func TestRenderToPDF_Landscape(t *testing.T) {
 	j := testPrintJob(t)
-	j.Orientation = PrintLandscape
+	j.Orientation = printLandscape
 	cmds := []RenderCmd{{
 		Kind: RenderRect, X: 10, Y: 10, W: 200, H: 100,
 		Color: RGBA(0, 0, 255, 255),
@@ -169,7 +169,7 @@ func TestRenderToPDF_Landscape(t *testing.T) {
 
 func TestRenderToPDF_ActualSize(t *testing.T) {
 	j := testPrintJob(t)
-	j.ScaleMode = PrintScaleActualSize
+	j.ScaleMode = printScaleActualSize
 	cmds := []RenderCmd{{
 		Kind: RenderRect, X: 0, Y: 0, W: 100, H: 100,
 		Color: RGBA(128, 128, 128, 255),
@@ -242,14 +242,14 @@ func TestRenderToPDF_HeaderFooter(t *testing.T) {
 	j := testPrintJob(t)
 	j.Title = "Test Document"
 	j.JobName = "test-job"
-	j.Header = PrintHeaderFooterCfg{
-		Enabled: true,
+	j.Header = printHeaderFooterCfg{
+		enabled: true,
 		Left:    "{title}",
 		Center:  "Page {page}",
 		Right:   "{date}",
 	}
-	j.Footer = PrintHeaderFooterCfg{
-		Enabled: true,
+	j.footer = printHeaderFooterCfg{
+		enabled: true,
 		Center:  "{job}",
 	}
 	if err := renderToPDF(nil, j, 800, 600); err != nil {
@@ -348,10 +348,10 @@ func TestRenderToPDF_TextPath(t *testing.T) {
 			Size:   14,
 			Color:  RGBA(0, 0, 0, 255),
 		},
-		TextPath: &TextPathData{
+		textPath: &textPathData{
 			Polyline: polyline,
 			Table:    table,
-			TotalLen: 100,
+			totalLen: 100,
 		},
 	}}
 	if err := renderToPDF(cmds, j, 800, 600); err != nil {
@@ -438,7 +438,7 @@ func TestRenderToPDF_Layout(t *testing.T) {
 
 func TestPrintJobResolvePDFPath_UnknownSource(t *testing.T) {
 	job := NewPrintJob()
-	job.Source.Kind = PrintJobSourceKind(99)
+	job.Source.Kind = printJobSourceKind(99)
 	_, err := printJobResolvePDFPath(nil, job)
 	if err == nil {
 		t.Fatal("expected error for unknown source kind")

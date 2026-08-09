@@ -8,20 +8,20 @@ const (
 	ScrollbarAuto ScrollbarOverflow = iota
 	ScrollbarHidden
 	ScrollbarVisible
-	ScrollbarOnHover
+	scrollbarOnHover
 )
 
 // ScrollbarCfg configures the style of a scrollbar.
 type ScrollbarCfg struct {
 	ID              string
 	Size            float32
-	MinThumbSize    float32
+	minThumbSize    float32
 	Radius          float32
-	RadiusThumb     float32
+	radiusThumb     float32
 	GapEdge         float32
 	GapEnd          float32
-	ScrollID        string `gui:"required"`
-	ColorThumb      Color
+	scrollID        string `gui:"required"`
+	colorThumb      Color
 	ColorBackground Color
 	Overflow        ScrollbarOverflow
 	Orientation     ScrollbarOrientation
@@ -36,8 +36,8 @@ const (
 )
 
 func applyScrollbarDefaults(cfg *ScrollbarCfg) {
-	if !cfg.ColorThumb.IsSet() {
-		cfg.ColorThumb = DefaultScrollbarStyle.ColorThumb
+	if !cfg.colorThumb.IsSet() {
+		cfg.colorThumb = DefaultScrollbarStyle.colorThumb
 	}
 	if !cfg.ColorBackground.IsSet() {
 		cfg.ColorBackground = DefaultScrollbarStyle.ColorBackground
@@ -45,14 +45,14 @@ func applyScrollbarDefaults(cfg *ScrollbarCfg) {
 	if cfg.Size == 0 {
 		cfg.Size = DefaultScrollbarStyle.Size
 	}
-	if cfg.MinThumbSize == 0 {
-		cfg.MinThumbSize = DefaultScrollbarStyle.MinThumbSize
+	if cfg.minThumbSize == 0 {
+		cfg.minThumbSize = DefaultScrollbarStyle.minThumbSize
 	}
 	if cfg.Radius == 0 {
 		cfg.Radius = DefaultScrollbarStyle.Radius
 	}
-	if cfg.RadiusThumb == 0 {
-		cfg.RadiusThumb = DefaultScrollbarStyle.RadiusThumb
+	if cfg.radiusThumb == 0 {
+		cfg.radiusThumb = DefaultScrollbarStyle.radiusThumb
 	}
 	if cfg.GapEdge == 0 {
 		cfg.GapEdge = DefaultScrollbarStyle.GapEdge
@@ -63,19 +63,19 @@ func applyScrollbarDefaults(cfg *ScrollbarCfg) {
 }
 
 // Scrollbar creates a scrollbar overlay view.
-func Scrollbar(cfg ScrollbarCfg) View {
+func scrollbar(cfg ScrollbarCfg) View {
 	applyScrollbarDefaults(&cfg)
 
 	thumbView := scrollbarThumb(cfg)
 
-	if cfg.Orientation == ScrollbarHorizontal {
+	if cfg.Orientation == scrollbarHorizontal {
 		return Row(ContainerCfg{
 			ID:                   cfg.ID,
 			A11YRole:             AccessRoleScrollBar,
 			Color:                cfg.ColorBackground,
 			OverDraw:             true,
 			Padding:              NoPadding,
-			scrollbarOrientation: ScrollbarHorizontal,
+			scrollbarOrientation: scrollbarHorizontal,
 			AmendLayout:          makeScrollbarAmendLayout(cfg),
 			OnHover:              makeScrollbarOnHover(cfg),
 			OnClick:              makeScrollbarGutterClick(cfg),
@@ -88,7 +88,7 @@ func Scrollbar(cfg ScrollbarCfg) View {
 		Color:                cfg.ColorBackground,
 		OverDraw:             true,
 		Padding:              NoPadding,
-		scrollbarOrientation: ScrollbarVertical,
+		scrollbarOrientation: scrollbarVertical,
 		AmendLayout:          makeScrollbarAmendLayout(cfg),
 		OnHover:              makeScrollbarOnHover(cfg),
 		OnClick:              makeScrollbarGutterClick(cfg),
@@ -98,8 +98,8 @@ func Scrollbar(cfg ScrollbarCfg) View {
 
 func scrollbarThumb(cfg ScrollbarCfg) View {
 	return Column(ContainerCfg{
-		Color:   cfg.ColorThumb,
-		Radius:  Some(cfg.RadiusThumb),
+		Color:   cfg.colorThumb,
+		Radius:  Some(cfg.radiusThumb),
 		Padding: NoPadding,
 		OnClick: makeScrollbarOnMouseDown(cfg),
 	})
@@ -117,8 +117,8 @@ func makeScrollbarOnHover(cfg ScrollbarCfg) func(EventCtx) {
 			return
 		}
 		if ctx.Layout.Children[thumbIndex].Shape.Color != ColorTransparent ||
-			cfg.Overflow == ScrollbarOnHover {
-			ctx.Layout.Children[thumbIndex].Shape.Color = cfg.ColorThumb
+			cfg.Overflow == scrollbarOnHover {
+			ctx.Layout.Children[thumbIndex].Shape.Color = cfg.colorThumb
 			ctx.Window.setMouseCursor(CursorArrow)
 		}
 	}
@@ -135,10 +135,10 @@ func scrollbarAmendLayout(
 	// by effective ID, so resolve it against this shape's ancestors —
 	// the scrollable is one of them. cfg is already a copy, so this
 	// costs nothing beyond the lookup.
-	cfg.ScrollID = ctx.EffID(cfg.ScrollID)
+	cfg.scrollID = ctx.EffID(cfg.scrollID)
 	parent := layout.Parent
 
-	if cfg.Orientation == ScrollbarHorizontal {
+	if cfg.Orientation == scrollbarHorizontal {
 		layout.Shape.X = parent.Shape.X + parent.Shape.Padding.Left
 		layout.Shape.Y = parent.Shape.Y + parent.Shape.Height - cfg.Size
 		layout.Shape.Width = parent.Shape.Width - parent.Shape.Padding.Width()
@@ -149,12 +149,12 @@ func scrollbarAmendLayout(
 			return
 		}
 		tWidth := layout.Shape.Width * (layout.Shape.Width / cWidth)
-		thumbWidth := f32Clamp(tWidth, cfg.MinThumbSize, layout.Shape.Width)
+		thumbWidth := f32Clamp(tWidth, cfg.minThumbSize, layout.Shape.Width)
 		availWidth := layout.Shape.Width - thumbWidth
 
 		sx := w.scrollX()
 		scrollOffset := float32(0)
-		if v, ok := sx.Get(cfg.ScrollID); ok {
+		if v, ok := sx.Get(cfg.scrollID); ok {
 			scrollOffset = -v
 		}
 
@@ -174,7 +174,7 @@ func scrollbarAmendLayout(
 		layout.Children[thumbIndex].Shape.Height = cfg.Size
 
 		if (cfg.Overflow != ScrollbarVisible && availWidth < 0.1) ||
-			cfg.Overflow == ScrollbarOnHover {
+			cfg.Overflow == scrollbarOnHover {
 			layout.Children[thumbIndex].Shape.Color = ColorTransparent
 		}
 	} else {
@@ -188,12 +188,12 @@ func scrollbarAmendLayout(
 			return
 		}
 		tHeight := layout.Shape.Height * (layout.Shape.Height / cHeight)
-		thumbHeight := f32Clamp(tHeight, cfg.MinThumbSize, layout.Shape.Height)
+		thumbHeight := f32Clamp(tHeight, cfg.minThumbSize, layout.Shape.Height)
 		availHeight := layout.Shape.Height - thumbHeight
 
 		sy := w.scrollY()
 		scrollOffset := float32(0)
-		if v, ok := sy.Get(cfg.ScrollID); ok {
+		if v, ok := sy.Get(cfg.scrollID); ok {
 			scrollOffset = -v
 		}
 
@@ -213,7 +213,7 @@ func scrollbarAmendLayout(
 		layout.Children[thumbIndex].Shape.Width = cfg.Size
 
 		if (cfg.Overflow != ScrollbarVisible && availHeight < 0.1) ||
-			cfg.Overflow == ScrollbarOnHover {
+			cfg.Overflow == scrollbarOnHover {
 			layout.Children[thumbIndex].Shape.Color = ColorTransparent
 		}
 	}
@@ -223,7 +223,7 @@ func scrollbarAmendLayout(
 // that initiates a drag via MouseLock.
 func makeScrollbarOnMouseDown(cfg ScrollbarCfg) func(EventCtx) {
 	orientation := cfg.Orientation
-	leafScrollID := cfg.ScrollID
+	leafScrollID := cfg.scrollID
 	return func(ctx EventCtx) {
 		scrollID := ctx.EffID(leafScrollID)
 		ctx.Window.MouseLock(MouseLockCfg{
@@ -243,10 +243,10 @@ func makeScrollbarOnMouseDown(cfg ScrollbarCfg) func(EventCtx) {
 // for continued dragging.
 func makeScrollbarGutterClick(cfg ScrollbarCfg) func(EventCtx) {
 	orientation := cfg.Orientation
-	leafScrollID := cfg.ScrollID
+	leafScrollID := cfg.scrollID
 	return func(ctx EventCtx) {
 		scrollID := ctx.EffID(leafScrollID)
-		if ctx.Window.MouseIsLocked() {
+		if ctx.Window.mouseIsLocked() {
 			// A drag already owns the pointer, so this click is not the
 			// gutter's to act on — but it is still not the enclosing
 			// scroll container's either. Consume so the early return
@@ -254,7 +254,7 @@ func makeScrollbarGutterClick(cfg ScrollbarCfg) func(EventCtx) {
 			ctx.Consume()
 			return
 		}
-		if orientation == ScrollbarHorizontal {
+		if orientation == scrollbarHorizontal {
 			offsetFromMouseX(&ctx.Window.layout, ctx.Event.MouseX, scrollID, ctx.Window)
 		} else {
 			offsetFromMouseY(&ctx.Window.layout, ctx.Event.MouseY, scrollID, ctx.Window)
@@ -273,11 +273,11 @@ func makeScrollbarGutterClick(cfg ScrollbarCfg) func(EventCtx) {
 
 // scrollbarMouseMove handles mouse movement during thumb drag.
 func scrollbarMouseMove(orientation ScrollbarOrientation, scrollID string, layout *Layout, e *Event, w *Window) {
-	ly, ok := FindLayoutByScrollID(layout, scrollID)
+	ly, ok := findLayoutByScrollID(layout, scrollID)
 	if !ok {
 		return
 	}
-	if orientation == ScrollbarHorizontal {
+	if orientation == scrollbarHorizontal {
 		if e.MouseX >= ly.Shape.X-scrollExtend &&
 			e.MouseX <= ly.Shape.X+ly.Shape.Width+scrollExtend {
 			sx := w.scrollX()
@@ -333,7 +333,7 @@ func offsetMouseChangeY(sy *BoundedMap[string, float32], layout *Layout, mouseDY
 // offsetFromMouseX calculates and applies horizontal offset
 // from absolute mouse x position.
 func offsetFromMouseX(layout *Layout, mouseX float32, scrollID string, w *Window) {
-	sb, ok := FindLayoutByScrollID(layout, scrollID)
+	sb, ok := findLayoutByScrollID(layout, scrollID)
 	if !ok {
 		return
 	}
@@ -355,7 +355,7 @@ func offsetFromMouseX(layout *Layout, mouseX float32, scrollID string, w *Window
 // offsetFromMouseY calculates and applies vertical offset
 // from absolute mouse y position.
 func offsetFromMouseY(layout *Layout, mouseY float32, scrollID string, w *Window) {
-	sb, ok := FindLayoutByScrollID(layout, scrollID)
+	sb, ok := findLayoutByScrollID(layout, scrollID)
 	if !ok {
 		return
 	}

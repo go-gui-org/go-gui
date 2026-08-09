@@ -23,7 +23,7 @@ type WindowCfg struct {
 	Title          string
 	// AllowedSvgRoots restricts file-based SVG loads to these paths.
 	// Empty means allow any local SVG path.
-	AllowedSvgRoots []string
+	allowedSvgRoots []string
 	// AllowedImageRoots restricts file-based image loads to these
 	// paths. Empty means allow any local image path. To render
 	// remote http/https images (fetched via ResolveImageSrc), the
@@ -51,12 +51,12 @@ type WindowCfg struct {
 	// matching OSM's guidance for well-behaved map clients. The
 	// first Window whose config is consulted fixes the limit for
 	// the process lifetime — later Windows cannot resize it.
-	MaxImageDownloads int
+	maxImageDownloads int
 	// HistoryBytes caps time-travel snapshot memory. Evicts
 	// oldest entries when exceeded. Zero or negative selects
 	// a default (64 MiB). Only consulted when DebugTimeTravel
 	// is true.
-	HistoryBytes int
+	historyBytes int
 	BgColor      Color
 	// FixedSize disables user-driven window resizing when supported
 	// by the active backend.
@@ -93,7 +93,7 @@ func NewWindow(cfg WindowCfg) *Window {
 		},
 	}
 	if cfg.DebugTimeTravel {
-		w.EnableHistory(cfg.HistoryBytes)
+		w.enableHistory(cfg.historyBytes)
 	}
 	return w
 }

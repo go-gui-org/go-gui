@@ -308,7 +308,7 @@ func TestPhaseC_DashArrayRejectsNaN(t *testing.T) {
 		t.Fatal("expected stroked line")
 	}
 	for i := range vg.Paths {
-		for _, d := range vg.Paths[i].StrokeDasharray {
+		for _, d := range vg.Paths[i].strokeDasharray {
 			if d != d || d < 0 { // d != d ⇒ NaN
 				t.Errorf("dash slot leaked non-finite: %v", d)
 			}
@@ -349,11 +349,11 @@ func TestPhaseC_StrokeDasharrayCSS(t *testing.T) {
 		<line x1="0" y1="5" x2="10" y2="5"/>
 	</svg>`
 	vg := parseSvgT(t, src)
-	if len(vg.Paths[0].StrokeDasharray) != 2 ||
-		vg.Paths[0].StrokeDasharray[0] != 3 ||
-		vg.Paths[0].StrokeDasharray[1] != 2 {
+	if len(vg.Paths[0].strokeDasharray) != 2 ||
+		vg.Paths[0].strokeDasharray[0] != 3 ||
+		vg.Paths[0].strokeDasharray[1] != 2 {
 		t.Errorf("stroke-dasharray via CSS: %+v",
-			vg.Paths[0].StrokeDasharray)
+			vg.Paths[0].strokeDasharray)
 	}
 }
 

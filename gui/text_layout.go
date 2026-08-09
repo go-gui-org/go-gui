@@ -31,7 +31,7 @@ func fallbackLineHeight(style TextStyle) float32 {
 // window built by NewTestWindow.
 func plainTextHeightNoMeasurer(
 	shape *Shape,
-	tc *ShapeTextConfig,
+	tc *shapeTextConfig,
 	style TextStyle,
 	w *Window,
 ) float32 {
@@ -74,7 +74,7 @@ func plainTextHeightNoMeasurer(
 
 func plainTextNeedsGlyphLayout(
 	shape *Shape,
-	tc *ShapeTextConfig,
+	tc *shapeTextConfig,
 	style TextStyle,
 ) bool {
 	if shape == nil || tc == nil {
@@ -86,12 +86,12 @@ func plainTextNeedsGlyphLayout(
 		style.BgColor.A > 0 ||
 		style.Features != nil ||
 		style.Gradient != nil ||
-		style.HasTextTransform()
+		style.hasTextTransform()
 }
 
 func plainTextLayoutWidthArg(
 	shape *Shape,
-	tc *ShapeTextConfig,
+	tc *shapeTextConfig,
 	style TextStyle,
 ) float32 {
 	if shape == nil || tc == nil || shape.Width <= 0 {
@@ -124,14 +124,14 @@ func plainTextLayoutResolved(
 		tc.textLayoutText == text &&
 		tc.textLayoutStyle == style &&
 		tc.textLayoutMode == tc.TextMode &&
-		tc.TextLayout != nil {
-		return *tc.TextLayout, true
+		tc.textLayout != nil {
+		return *tc.textLayout, true
 	}
 	layout, err := w.textMeasurer.LayoutText(text, style, widthArg)
 	if err != nil {
 		return glyph.Layout{}, false
 	}
-	tc.TextLayout = &layout
+	tc.textLayout = &layout
 	tc.textLayoutWidth = widthArg
 	tc.textLayoutText = text
 	tc.textLayoutStyle = style

@@ -6,7 +6,7 @@ func benchmarkPipelineLayout(childCount int) Layout {
 	root := Layout{
 		Shape: &Shape{
 			shapeType: shapeRectangle,
-			Axis:      AxisTopToBottom,
+			Axis:      axisTopToBottom,
 			Sizing:    FillFill,
 			Width:     1200,
 			Height:    900,
@@ -18,7 +18,7 @@ func benchmarkPipelineLayout(childCount int) Layout {
 		root.Children[i] = Layout{
 			Shape: &Shape{
 				shapeType: shapeRectangle,
-				Axis:      AxisLeftToRight,
+				Axis:      axisLeftToRight,
 				Sizing:    FillFit,
 				Width:     200,
 				Height:    40,

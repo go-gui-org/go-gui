@@ -237,7 +237,7 @@ func TestNativeSaveDiscardDialogNoPlatform(t *testing.T) {
 
 // saveDiscardPlatform is a minimal NativePlatform stub that returns
 // DialogDiscard from ShowSaveDiscardDialog.
-type saveDiscardPlatform struct{ NoopNativePlatform }
+type saveDiscardPlatform struct{ noopNativePlatform }
 
 func (saveDiscardPlatform) ShowSaveDiscardDialog(_, _ string, _ NativeAlertLevel) NativeAlertResult {
 	return NativeAlertResult{Status: DialogDiscard}
@@ -257,7 +257,7 @@ func TestNativeSaveDiscardDialogDiscardStatus(t *testing.T) {
 }
 
 func TestNoopShowSaveDiscardDialogReturnsZero(t *testing.T) {
-	var p NoopNativePlatform
+	var p noopNativePlatform
 	r := p.ShowSaveDiscardDialog("", "", AlertInfo)
 	if r.Status != DialogOK {
 		t.Errorf("expected DialogOK (zero), got %d", r.Status)
@@ -280,7 +280,7 @@ func TestNativeOpenDialogBadExtension(t *testing.T) {
 // mockDialogPlatform returns preset dialog results via the
 // NativePlatform interface (PlatformDialogResult return types).
 type mockDialogPlatform struct {
-	NoopNativePlatform
+	noopNativePlatform
 	openResult  PlatformDialogResult
 	alertResult NativeAlertResult
 }
@@ -478,7 +478,7 @@ func TestNativeOpenDialogCancelled(t *testing.T) {
 
 // mockPlatformErrorDialog returns errors from all dialog methods.
 type mockPlatformErrorDialog struct {
-	NoopNativePlatform
+	noopNativePlatform
 }
 
 func (mockPlatformErrorDialog) ShowOpenDialog(_, _ string, _ []string, _ bool) PlatformDialogResult {

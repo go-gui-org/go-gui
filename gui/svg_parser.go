@@ -67,6 +67,7 @@ type SvgA11y struct {
 
 // SvgParser parses and tessellates SVG documents. Set by the
 // backend; nil in tests (SVG views degrade to error placeholders).
+// exportaudit:keep — collides with the window's svgParser state field
 type SvgParser interface {
 	ParseSvg(data string) (*SvgParsed, error)
 	ParseSvgFile(path string) (*SvgParsed, error)
@@ -92,7 +93,7 @@ type SvgParseOpts struct {
 // parse calls take a SvgParseOpts snapshot. LoadSvg detects this via
 // type assertion and falls back to ParseSvg/ParseSvgFile when the
 // backend hasn't opted in.
-type SvgParserWithOpts interface {
+type svgParserWithOpts interface {
 	ParseSvgWithOpts(data string, opts SvgParseOpts) (*SvgParsed, error)
 	ParseSvgFileWithOpts(path string, opts SvgParseOpts) (*SvgParsed, error)
 }
@@ -184,6 +185,7 @@ func (w *Window) SetSvgParser(p SvgParser) {
 }
 
 // SvgParser returns the current SVG parser, or nil.
+// exportaudit:keep — accessor pair with SetSvgParser
 func (w *Window) SvgParser() SvgParser {
 	return w.svgParser
 }

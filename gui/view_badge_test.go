@@ -5,7 +5,7 @@ import "testing"
 func TestBadgeDefaultLayout(t *testing.T) {
 	v := Badge(BadgeCfg{Label: "3"})
 	layout := generateViewLayout(v, &Window{})
-	if layout.Shape.Axis != AxisLeftToRight {
+	if layout.Shape.Axis != axisLeftToRight {
 		t.Error("badge should be a row")
 	}
 	if len(layout.Children) != 1 {
@@ -17,7 +17,7 @@ func TestBadgeDefaultLayout(t *testing.T) {
 }
 
 func TestBadgeDotMode(t *testing.T) {
-	v := Badge(BadgeCfg{Dot: true, DotSize: SomeF(10)})
+	v := Badge(BadgeCfg{Dot: true, dotSize: SomeF(10)})
 	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.Width != 10 || layout.Shape.Height != 10 {
 		t.Errorf("dot size = %fx%f, want 10x10",
@@ -32,13 +32,13 @@ func TestBadgeDotMode(t *testing.T) {
 }
 
 func TestBadgeVariantColors(t *testing.T) {
-	style := guiTheme.BadgeStyle
+	style := guiTheme.badgeStyle
 	tests := []struct {
-		variant BadgeVariant
+		variant badgeVariant
 		want    Color
 	}{
-		{BadgeDefault, style.Color},
-		{BadgeInfo, style.ColorInfo},
+		{badgeDefault, style.Color},
+		{BadgeInfo, style.colorInfo},
 		{BadgeSuccess, style.ColorSuccess},
 		{BadgeWarning, style.ColorWarning},
 		{BadgeError, style.ColorError},
@@ -77,35 +77,35 @@ func TestBadgeLabelMax(t *testing.T) {
 func TestBadgeA11Y(t *testing.T) {
 	v := Badge(BadgeCfg{Label: "42"})
 	layout := generateViewLayout(v, &Window{})
-	if layout.Shape.A11Y == nil {
+	if layout.Shape.a11Y == nil {
 		t.Fatal("a11y should be set")
 	}
-	if layout.Shape.A11Y.Label != "42" {
-		t.Errorf("a11y label = %q, want 42", layout.Shape.A11Y.Label)
+	if layout.Shape.a11Y.Label != "42" {
+		t.Errorf("a11y label = %q, want 42", layout.Shape.a11Y.Label)
 	}
 }
 
 func TestBadgeA11YDescription(t *testing.T) {
 	v := Badge(BadgeCfg{Label: "5", A11YDescription: "unread messages"})
 	layout := generateViewLayout(v, &Window{})
-	if layout.Shape.A11Y == nil {
+	if layout.Shape.a11Y == nil {
 		t.Fatal("a11y should be set")
 	}
-	if layout.Shape.A11Y.Description != "unread messages" {
+	if layout.Shape.a11Y.Description != "unread messages" {
 		t.Errorf("a11y description = %q, want %q",
-			layout.Shape.A11Y.Description, "unread messages")
+			layout.Shape.a11Y.Description, "unread messages")
 	}
 }
 
 func TestBadgeA11YDescriptionDot(t *testing.T) {
 	v := Badge(BadgeCfg{Dot: true, A11YDescription: "active"})
 	layout := generateViewLayout(v, &Window{})
-	if layout.Shape.A11Y == nil {
+	if layout.Shape.a11Y == nil {
 		t.Fatal("a11y should be set")
 	}
-	if layout.Shape.A11Y.Description != "active" {
+	if layout.Shape.a11Y.Description != "active" {
 		t.Errorf("a11y description = %q, want %q",
-			layout.Shape.A11Y.Description, "active")
+			layout.Shape.a11Y.Description, "active")
 	}
 }
 
@@ -114,7 +114,7 @@ func TestBadgeCustomColorWithVariant(t *testing.T) {
 	v := Badge(BadgeCfg{Label: "x", Color: custom, Variant: BadgeError})
 	layout := generateViewLayout(v, &Window{})
 	// Variant overrides custom color
-	if layout.Shape.Color != guiTheme.BadgeStyle.ColorError {
+	if layout.Shape.Color != guiTheme.badgeStyle.ColorError {
 		t.Error("variant should override custom color")
 	}
 }
@@ -126,7 +126,7 @@ func TestBadgeTextStyle(t *testing.T) {
 		t.Fatalf("children: got %d, want 1", len(layout.Children))
 	}
 	ts := layout.Children[0].Shape.TC.TextStyle
-	want := guiTheme.BadgeStyle.TextStyle
+	want := guiTheme.badgeStyle.TextStyle
 	if ts.Size != want.Size || ts.Color != want.Color ||
 		ts.Typeface != want.Typeface {
 		t.Errorf("text style mismatch: got size=%v color=%v face=%v",

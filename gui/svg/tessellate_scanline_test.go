@@ -120,7 +120,7 @@ func TestTessellate_NaNInputProducesNoNonFiniteTriangles(t *testing.T) {
 	bad := []float32{20, 20, nan, 25, 25, 25, 25, 20}
 	worse := []float32{30, 30, 40, inf, 40, 40, 30, 40}
 	tris := tessellatePolylines(
-		[][]float32{good, bad, worse}, FillRuleNonzero)
+		[][]float32{good, bad, worse}, fillRuleNonzero)
 	for i, v := range tris {
 		if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
 			t.Fatalf("non-finite value at index %d: %v", i, v)
@@ -139,7 +139,7 @@ func TestTessellate_NaNInputProducesNoNonFiniteTriangles(t *testing.T) {
 // each have area 25; total = 50.
 func TestTessellate_EvenOddBowtieCarved(t *testing.T) {
 	bowtie := []float32{0, 0, 10, 10, 10, 0, 0, 10}
-	tris := tessellatePolylines([][]float32{bowtie}, FillRuleEvenOdd)
+	tris := tessellatePolylines([][]float32{bowtie}, fillRuleEvenOdd)
 	got := triangleAreaSum(tris)
 	if f32Abs(got-50.0) > 1.0 {
 		t.Fatalf("expected evenodd bowtie area ~50, got %f", got)

@@ -15,55 +15,59 @@ import (
 const dataGridSourceMaxPageLimit = 10000
 
 // GridDataRequest is the request payload for FetchData.
+// exportaudit:keep — reachable from an exported signature
 type GridDataRequest struct {
-	Page      GridPageRequest
+	page      GridPageRequest
 	Signal    *gg.GridAbortSignal
 	Query     GridQueryState
-	GridID    string
+	gridID    string
 	RequestID uint64
 }
 
 // GridDataResult is the response from FetchData.
+// exportaudit:keep — reachable from an exported signature
 type GridDataResult struct {
-	NextCursor    string
-	PrevCursor    string
+	nextCursor    string
+	prevCursor    string
 	Rows          []GridRow
 	RowCount      int // -1 when unknown
 	ReceivedCount int
-	HasMore       bool
+	hasMore       bool
 }
 
 // GridDataCapabilities describes what a data source supports.
+// exportaudit:keep — reachable from an exported signature
 type GridDataCapabilities struct {
-	SupportsCursorPagination bool
-	SupportsOffsetPagination bool
-	SupportsNumberedPages    bool
-	RowCountKnown            bool
-	SupportsCreate           bool
-	SupportsUpdate           bool
-	SupportsDelete           bool
-	SupportsBatchDelete      bool
+	supportsCursorPagination bool
+	supportsOffsetPagination bool
+	supportsNumberedPages    bool
+	rowCountKnown            bool
+	supportsCreate           bool
+	supportsUpdate           bool
+	supportsDelete           bool
+	supportsBatchDelete      bool
 }
 
 // GridMutationRequest is the request payload for MutateData.
+// exportaudit:keep — reachable from an exported signature
 type GridMutationRequest struct {
 	Signal    *gg.GridAbortSignal
 	Query     GridQueryState
-	GridID    string
+	gridID    string
 	Rows      []GridRow
-	RowIDs    []string
-	Edits     []GridCellEdit
+	rowIDs    []string
+	edits     []GridCellEdit
 	RequestID uint64
-	Kind      GridMutationKind
+	Kind      gridMutationKind
 }
 
 // GridMutationResult is the response from MutateData.
+// exportaudit:keep — reachable from an exported signature
 type GridMutationResult struct {
 	Errors     map[string]string
-	Created    []GridRow
-	Updated    []GridRow
-	DeletedIDs []string
-	FailedIDs  []string
+	created    []GridRow
+	updated    []GridRow
+	deletedIDs []string
 	RowCount   int // -1 when unknown
 }
 
@@ -83,9 +87,9 @@ type InMemoryDataSource struct {
 	DefaultLimit   int
 	LatencyMs      int
 	mu             sync.RWMutex
-	RowCountKnown  bool
+	rowCountKnown  bool
 	SupportsCursor bool
-	SupportsOffset bool
+	supportsOffset bool
 }
 
 // NewInMemoryDataSource creates an InMemoryDataSource with
@@ -94,29 +98,31 @@ func NewInMemoryDataSource(rows []GridRow) *InMemoryDataSource {
 	return &InMemoryDataSource{
 		Rows:           rows,
 		DefaultLimit:   100,
-		RowCountKnown:  true,
+		rowCountKnown:  true,
 		SupportsCursor: true,
-		SupportsOffset: true,
+		supportsOffset: true,
 	}
 }
 
 // Capabilities returns the supported operations for in-memory data.
+// exportaudit:keep — exported DataSource interface method
 func (s *InMemoryDataSource) Capabilities() GridDataCapabilities {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return GridDataCapabilities{
-		SupportsCursorPagination: s.SupportsCursor,
-		SupportsOffsetPagination: s.SupportsOffset,
-		SupportsNumberedPages:    s.SupportsOffset,
-		RowCountKnown:            s.RowCountKnown,
-		SupportsCreate:           true,
-		SupportsUpdate:           true,
-		SupportsDelete:           true,
-		SupportsBatchDelete:      true,
+		supportsCursorPagination: s.SupportsCursor,
+		supportsOffsetPagination: s.supportsOffset,
+		supportsNumberedPages:    s.supportsOffset,
+		rowCountKnown:            s.rowCountKnown,
+		supportsCreate:           true,
+		supportsUpdate:           true,
+		supportsDelete:           true,
+		supportsBatchDelete:      true,
 	}
 }
 
 // FetchData returns paginated rows from in-memory storage.
+// exportaudit:keep — exported DataSource interface method
 func (s *InMemoryDataSource) FetchData(req GridDataRequest) (GridDataResult, error) {
 	if err := dataGridSourceSleepWithAbort(req.Signal, s.LatencyMs); err != nil {
 		return GridDataResult{}, err
@@ -126,7 +132,7 @@ func (s *InMemoryDataSource) FetchData(req GridDataRequest) (GridDataResult, err
 	rows := make([]GridRow, len(s.Rows))
 	copy(rows, s.Rows)
 	defaultLimit := s.DefaultLimit
-	rowCountKnown := s.RowCountKnown
+	rowCountKnown := s.rowCountKnown
 	// latencyMs=0: sleep already applied above; inner call
 	// degenerates to abort-check only.
 	return dataGridSourceInMemoryFetch(
@@ -134,6 +140,7 @@ func (s *InMemoryDataSource) FetchData(req GridDataRequest) (GridDataResult, err
 }
 
 // MutateData applies create/update/delete mutations to in-memory rows.
+// exportaudit:keep — exported DataSource interface method
 func (s *InMemoryDataSource) MutateData(req GridMutationRequest) (GridMutationResult, error) {
 	if err := dataGridSourceSleepWithAbort(req.Signal, s.LatencyMs); err != nil {
 		return GridMutationResult{}, err
@@ -141,7 +148,7 @@ func (s *InMemoryDataSource) MutateData(req GridMutationRequest) (GridMutationRe
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return dataGridSourceInMemoryMutate(
-		&s.Rows, 0, s.RowCountKnown, req)
+		&s.Rows, 0, s.rowCountKnown, req)
 }
 
 func dataGridSourceInMemoryFetch(
@@ -155,16 +162,16 @@ func dataGridSourceInMemoryFetch(
 	limit := max(1, min(dataGridSourceMaxPageLimit,
 		nonZero(defaultLimit, 100)))
 	var start, end int
-	switch p := req.Page.(type) {
-	case GridCursorPageReq:
+	switch p := req.page.(type) {
+	case gridCursorPageReq:
 		s := max(0, min(len(filtered),
 			dataGridSourceCursorToIndex(p.Cursor)))
 		chunk := max(1, min(dataGridSourceMaxPageLimit,
-			nonZero(p.Limit, limit)))
+			nonZero(p.limit, limit)))
 		start, end = s, min(len(filtered), s+chunk)
-	case GridOffsetPageReq:
+	case gridOffsetPageReq:
 		start, end = dataGridSourceOffsetBounds(
-			p.StartIndex, p.EndIndex, len(filtered), limit)
+			p.StartIndex, p.endIndex, len(filtered), limit)
 	default:
 		start, end = 0, min(len(filtered), limit)
 	}
@@ -173,7 +180,7 @@ func dataGridSourceInMemoryFetch(
 	if err := gridAbortCheck(req.Signal); err != nil {
 		return GridDataResult{}, err
 	}
-	_, isCursor := req.Page.(GridCursorPageReq)
+	_, isCursor := req.page.(gridCursorPageReq)
 	rc := -1
 	if rowCountKnown {
 		rc = len(filtered)
@@ -187,10 +194,10 @@ func dataGridSourceInMemoryFetch(
 	}
 	return GridDataResult{
 		Rows:          page,
-		NextCursor:    nextCursor,
-		PrevCursor:    prevCursor,
+		nextCursor:    nextCursor,
+		prevCursor:    prevCursor,
 		RowCount:      rc,
-		HasMore:       end < len(filtered),
+		hasMore:       end < len(filtered),
 		ReceivedCount: len(page),
 	}, nil
 }
@@ -205,7 +212,7 @@ func dataGridSourceInMemoryMutate(
 	work := make([]GridRow, len(*rows))
 	copy(work, *rows)
 	result, err := dataGridSourceApplyMutation(
-		&work, req.Kind, req.Rows, req.RowIDs, req.Edits)
+		&work, req.Kind, req.Rows, req.rowIDs, req.edits)
 	if err != nil {
 		return GridMutationResult{}, err
 	}
@@ -218,9 +225,9 @@ func dataGridSourceInMemoryMutate(
 		rc = len(*rows)
 	}
 	return GridMutationResult{
-		Created:    result.created,
-		Updated:    result.updated,
-		DeletedIDs: result.deletedIDs,
+		created:    result.created,
+		updated:    result.updated,
+		deletedIDs: result.deletedIDs,
 		RowCount:   rc,
 	}, nil
 }
@@ -396,7 +403,7 @@ func dataGridSourceApplyQuery(
 				ka := keyCols[si][a]
 				kb := keyCols[si][b]
 				if c := cmp.Compare(ka, kb); c != 0 {
-					if s.Dir != GridSortAsc {
+					if s.Dir != gridSortAsc {
 						return -c
 					}
 					return c

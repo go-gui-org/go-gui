@@ -28,6 +28,7 @@ import (
 
 // Backend is the OpenGL 3.3 backend for go-gui. Platform-specific
 // windowing state lives in plat (platformState), defined per platform.
+// exportaudit:keep — reachable from an exported signature
 type Backend struct {
 	plat platformState
 

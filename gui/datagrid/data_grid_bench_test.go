@@ -64,7 +64,7 @@ func BenchmarkDataGridPresentationRows(b *testing.B) {
 		}
 		cfg := &DataGridCfg{
 			Rows:    rows,
-			GroupBy: []string{"colA"},
+			groupBy: []string{"colA"},
 		}
 		cols := []GridColumnCfg{
 			{ID: "colA", Title: "Column A"},
@@ -84,7 +84,7 @@ func BenchmarkDataGridPresentationRows(b *testing.B) {
 		}
 		cfg := &DataGridCfg{
 			Rows:    rows,
-			GroupBy: []string{"colA"},
+			groupBy: []string{"colA"},
 		}
 		cols := []GridColumnCfg{
 			{ID: "colA", Title: "Column A"},

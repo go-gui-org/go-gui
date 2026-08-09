@@ -3,7 +3,7 @@ package gui
 import "testing"
 
 func BenchmarkBoundedStackPushBelowCapacity(b *testing.B) {
-	s := NewBoundedStack[int](1024)
+	s := newBoundedStack[int](1024)
 	b.ReportAllocs()
 	b.ResetTimer()
 	n := 0
@@ -17,7 +17,7 @@ func BenchmarkBoundedStackPushBelowCapacity(b *testing.B) {
 }
 
 func BenchmarkBoundedStackPushOverflow(b *testing.B) {
-	s := NewBoundedStack[int](1024)
+	s := newBoundedStack[int](1024)
 	for i := range 1024 {
 		s.Push(i)
 	}
@@ -31,7 +31,7 @@ func BenchmarkBoundedStackPushOverflow(b *testing.B) {
 }
 
 func BenchmarkBoundedStackPushPopCycle(b *testing.B) {
-	s := NewBoundedStack[int](1024)
+	s := newBoundedStack[int](1024)
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {

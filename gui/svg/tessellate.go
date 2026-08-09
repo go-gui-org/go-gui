@@ -8,7 +8,7 @@ import (
 
 // getTriangles tessellates all paths in the graphic into GPU-ready
 // triangle geometry. Returns triangles in viewBox coordinate space.
-func (vg *VectorGraphic) getTriangles(scale float32) []gui.TessellatedPath {
+func (vg *vectorGraphic) getTriangles(scale float32) []gui.TessellatedPath {
 	return vg.tessellatePaths(vg.Paths, scale)
 }
 
@@ -33,7 +33,7 @@ func clampStrokeWidthForScale(w, scale float32) float32 {
 
 // tessellatePaths tessellates an arbitrary set of VectorPaths,
 // using the VectorGraphic's clip paths and gradients.
-func (vg *VectorGraphic) tessellatePaths(paths []VectorPath, scale float32) []gui.TessellatedPath {
+func (vg *vectorGraphic) tessellatePaths(paths []vectorPath, scale float32) []gui.TessellatedPath {
 	result := make([]gui.TessellatedPath, 0, len(paths)*2)
 
 	baseTol := 0.5 / scale
@@ -53,13 +53,13 @@ func (vg *VectorGraphic) tessellatePaths(paths []VectorPath, scale float32) []gu
 	// N full re-tessellations (O(N * clipComplexity) DoS). nil when
 	// no clipPaths exist (most icons/spinners) — appendClipMasks
 	// nil-guards both read and write.
-	clipTriCache := newClipTriCache(len(vg.ClipPaths))
+	clipTriCache := newClipTriCache(len(vg.clipPaths))
 
 	for i := range paths {
 		path := &paths[i]
 
 		clipGroup := 0
-		if path.ClipPathID != "" {
+		if path.clipPathID != "" {
 			result, clipGroup = vg.appendClipMasks(result, path,
 				tolerance, &clipGroupCounter, clipTriCache)
 		}
@@ -78,7 +78,7 @@ func (vg *VectorGraphic) tessellatePaths(paths []VectorPath, scale float32) []gu
 		// Fill tessellation
 		hasGradient := path.FillGradientID != ""
 		if path.FillColor.A > 0 || hasGradient {
-			rawTris := tessellatePolylines(polylines, path.FillRule)
+			rawTris := tessellatePolylines(polylines, path.fillRule)
 			if len(rawTris) > 0 {
 				if hasGradient {
 					if g, ok := vg.Gradients[path.FillGradientID]; ok {
@@ -125,19 +125,19 @@ func (vg *VectorGraphic) tessellatePaths(paths []VectorPath, scale float32) []gu
 		// small render scales (e.g. spinner.svg viewBox 200 at
 		// scale=0.03 gives a 0.18px hairline that effectively
 		// disappears).
-		hasStrokeGrad := path.StrokeGradientID != ""
+		hasStrokeGrad := path.strokeGradientID != ""
 		if (path.StrokeColor.A > 0 || hasStrokeGrad) && path.StrokeWidth > 0 &&
 			finiteF32(path.StrokeWidth) {
 			strokeWidth := clampStrokeWidthForScale(path.StrokeWidth, scale)
 			strokePoly := polylines
-			if len(path.StrokeDasharray) > 0 {
+			if len(path.strokeDasharray) > 0 {
 				strokePoly = applyDasharray(polylines,
-					path.StrokeDasharray, path.StrokeDashOffset)
+					path.strokeDasharray, path.StrokeDashOffset)
 			}
-			rawStroke := tessellateStroke(strokePoly, strokeWidth, path.StrokeCap, path.StrokeJoin)
+			rawStroke := tessellateStroke(strokePoly, strokeWidth, path.strokeCap, path.strokeJoin)
 			if len(rawStroke) > 0 {
 				if hasStrokeGrad {
-					if g, ok := vg.Gradients[path.StrokeGradientID]; ok {
+					if g, ok := vg.Gradients[path.strokeGradientID]; ok {
 						grad := g
 						if g.GradientUnits == "objectBoundingBox" || g.GradientUnits == "" {
 							bx0, by0, bx1, by1 := bboxFromTriangles(rawStroke)
@@ -203,7 +203,7 @@ func (vg *VectorGraphic) tessellatePaths(paths []VectorPath, scale float32) []gu
 // overwrite the rotation component alone without disturbing a
 // separate translate.
 func seedFromTransform(
-	path *VectorPath,
+	path *vectorPath,
 ) (gui.TessellatedPath, bool) {
 	var seed gui.TessellatedPath
 	if isIdentityTransform(path.Transform) {
@@ -266,11 +266,11 @@ func newClipTriCache(nClipPaths int) map[string][][]float32 {
 // appendClipMasks emits per-subpath clip-mask TessellatedPaths for
 // the path's referenced clipPath. Bumps counter and returns the
 // assigned clipGroup so subsequent fill/stroke entries inherit it.
-func (vg *VectorGraphic) appendClipMasks(result []gui.TessellatedPath,
-	path *VectorPath, tolerance float32, counter *int,
+func (vg *vectorGraphic) appendClipMasks(result []gui.TessellatedPath,
+	path *vectorPath, tolerance float32, counter *int,
 	cache map[string][][]float32,
 ) ([]gui.TessellatedPath, int) {
-	clipGeom, ok := vg.ClipPaths[path.ClipPathID]
+	clipGeom, ok := vg.clipPaths[path.clipPathID]
 	if !ok {
 		return result, 0
 	}
@@ -279,20 +279,20 @@ func (vg *VectorGraphic) appendClipMasks(result []gui.TessellatedPath,
 	var cached [][]float32
 	hit := false
 	if cache != nil {
-		cached, hit = cache[path.ClipPathID]
+		cached, hit = cache[path.clipPathID]
 	}
 	if !hit {
 		cached = make([][]float32, 0, len(clipGeom))
 		for j := range clipGeom {
 			cpPoly := flattenPath(&clipGeom[j], tolerance)
-			clipTris := tessellatePolylines(cpPoly, FillRuleNonzero)
+			clipTris := tessellatePolylines(cpPoly, fillRuleNonzero)
 			if len(clipTris) == 0 {
 				continue
 			}
 			cached = append(cached, clipTris)
 		}
 		if cache != nil {
-			cache[path.ClipPathID] = cached
+			cache[path.clipPathID] = cached
 		}
 	}
 	for _, clipTris := range cached {
@@ -315,11 +315,11 @@ func (vg *VectorGraphic) appendClipMasks(result []gui.TessellatedPath,
 // seed carries clip/group/primitive/base-transform state shared with
 // the concrete fill/stroke emissions.
 func appendDegeneratePlaceholders(result []gui.TessellatedPath,
-	path *VectorPath, seed gui.TessellatedPath,
+	path *vectorPath, seed gui.TessellatedPath,
 ) []gui.TessellatedPath {
 	wantsFill := path.FillColor.A > 0 || path.FillGradientID != ""
 	wantsStroke := (path.StrokeColor.A > 0 ||
-		path.StrokeGradientID != "") && path.StrokeWidth > 0
+		path.strokeGradientID != "") && path.StrokeWidth > 0
 	if !wantsFill && !wantsStroke {
 		wantsFill = true // ensure at least one placeholder
 	}
@@ -474,7 +474,7 @@ func dashPhase(dasharray []float32, offset, cycleLen float32) (int, bool, float3
 
 // --- Curve flattening ---
 
-func flattenPath(path *VectorPath, tolerance float32) [][]float32 {
+func flattenPath(path *vectorPath, tolerance float32) [][]float32 {
 	return flattenPathWithBake(path, tolerance, !isIdentityTransform(path.Transform))
 }
 
@@ -482,7 +482,7 @@ func flattenPath(path *VectorPath, tolerance float32) [][]float32 {
 // path.Transform is baked into vertex coordinates. When bakeXform is
 // false, vertices emit in local (pre-transform) space — caller applies
 // the transform at render time via TessellatedPath.Base* fields.
-func flattenPathWithBake(path *VectorPath, tolerance float32, bakeXform bool) [][]float32 {
+func flattenPathWithBake(path *vectorPath, tolerance float32, bakeXform bool) [][]float32 {
 	var polylines [][]float32
 	estimatedCap := len(path.Segments) * 16
 	current := make([]float32, 0, estimatedCap)
@@ -491,7 +491,7 @@ func flattenPathWithBake(path *VectorPath, tolerance float32, bakeXform bool) []
 
 	for _, seg := range path.Segments {
 		switch seg.Cmd {
-		case CmdMoveTo:
+		case cmdMoveTo:
 			if len(current) >= 4 {
 				polylines = append(polylines, current)
 			}
@@ -507,7 +507,7 @@ func flattenPathWithBake(path *VectorPath, tolerance float32, bakeXform bool) []
 				current = append(current, x, y)
 			}
 
-		case CmdLineTo:
+		case cmdLineTo:
 			x = seg.Points[0]
 			y = seg.Points[1]
 			if hasTx {
@@ -523,7 +523,7 @@ func flattenPathWithBake(path *VectorPath, tolerance float32, bakeXform bool) []
 				current = append(current, x, y)
 			}
 
-		case CmdQuadTo:
+		case cmdQuadTo:
 			cx := seg.Points[0]
 			cy := seg.Points[1]
 			ex := seg.Points[2]
@@ -539,7 +539,7 @@ func flattenPathWithBake(path *VectorPath, tolerance float32, bakeXform bool) []
 			x = ex
 			y = ey
 
-		case CmdCubicTo:
+		case cmdCubicTo:
 			c1x := seg.Points[0]
 			c1y := seg.Points[1]
 			c2x := seg.Points[2]
@@ -558,7 +558,7 @@ func flattenPathWithBake(path *VectorPath, tolerance float32, bakeXform bool) []
 			x = ex
 			y = ey
 
-		case CmdClose:
+		case cmdClose:
 			if len(current) >= 2 {
 				if x != startX || y != startY {
 					if hasTx {

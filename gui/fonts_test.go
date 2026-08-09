@@ -19,11 +19,11 @@ func TestIconLookupKnownKeys(t *testing.T) {
 		key  string
 		want string
 	}{
-		{"icon_arrow_down", IconArrowDown},
-		{"icon_check", IconCheck},
-		{"icon_home", IconHome},
+		{"icon_arrow_down", iconArrowDown},
+		{"icon_check", iconCheck},
+		{"icon_home", iconHome},
 		{"icon_star", IconStar},
-		{"icon_yaki_dango", IconYakiDango},
+		{"icon_yaki_dango", iconYakiDango},
 	}
 	for _, tt := range tests {
 		if got, ok := IconLookup[tt.key]; !ok {
@@ -41,8 +41,8 @@ func TestIconLookupMissingKey(t *testing.T) {
 }
 
 func TestFontVariantsStruct(t *testing.T) {
-	fv := FontVariants{Normal: "a.ttf", Bold: "b.ttf", Italic: "i.ttf", Mono: "m.ttf"}
-	if fv.Normal != "a.ttf" || fv.Mono != "m.ttf" {
+	fv := fontVariants{normal: "a.ttf", Bold: "b.ttf", Italic: "i.ttf", mono: "m.ttf"}
+	if fv.normal != "a.ttf" || fv.mono != "m.ttf" {
 		t.Error("FontVariants fields not set correctly")
 	}
 }
@@ -56,42 +56,42 @@ func TestIconFontName(t *testing.T) {
 func TestRegisterAppFont(t *testing.T) {
 	// Registration lists are process globals; restore them so other
 	// tests (and the backends) see the original state.
-	saved := AppFontPaths
-	t.Cleanup(func() { AppFontPaths = saved })
-	AppFontPaths = nil
+	saved := appFontPaths
+	t.Cleanup(func() { appFontPaths = saved })
+	appFontPaths = nil
 
 	RegisterAppFont("/tmp/a.ttf")
 	RegisterAppFont("/tmp/a.ttf")
 	RegisterAppFont("/tmp/b.ttf")
-	if len(AppFontPaths) != 2 {
-		t.Fatalf("AppFontPaths = %v, want 2 entries", AppFontPaths)
+	if len(appFontPaths) != 2 {
+		t.Fatalf("AppFontPaths = %v, want 2 entries", appFontPaths)
 	}
-	if AppFontPaths[0] != "/tmp/a.ttf" || AppFontPaths[1] != "/tmp/b.ttf" {
-		t.Errorf("AppFontPaths = %v, want [a b] in order", AppFontPaths)
+	if appFontPaths[0] != "/tmp/a.ttf" || appFontPaths[1] != "/tmp/b.ttf" {
+		t.Errorf("AppFontPaths = %v, want [a b] in order", appFontPaths)
 	}
 }
 
 func TestRegisterAppFontBytes(t *testing.T) {
-	saved := AppFontData
-	t.Cleanup(func() { AppFontData = saved })
-	AppFontData = nil
+	saved := appFontData
+	t.Cleanup(func() { appFontData = saved })
+	appFontData = nil
 
-	RegisterAppFontBytes(nil)
-	RegisterAppFontBytes([]byte{})
-	if len(AppFontData) != 0 {
-		t.Fatalf("empty data registered: %v", AppFontData)
+	registerAppFontBytes(nil)
+	registerAppFontBytes([]byte{})
+	if len(appFontData) != 0 {
+		t.Fatalf("empty data registered: %v", appFontData)
 	}
 
-	RegisterAppFontBytes([]byte("font-a"))
+	registerAppFontBytes([]byte("font-a"))
 	// Distinct slice, equal contents — must dedupe by value.
-	RegisterAppFontBytes([]byte("font-a"))
-	RegisterAppFontBytes([]byte("font-b"))
-	if len(AppFontData) != 2 {
-		t.Fatalf("AppFontData has %d entries, want 2", len(AppFontData))
+	registerAppFontBytes([]byte("font-a"))
+	registerAppFontBytes([]byte("font-b"))
+	if len(appFontData) != 2 {
+		t.Fatalf("AppFontData has %d entries, want 2", len(appFontData))
 	}
-	if string(AppFontData[0]) != "font-a" || string(AppFontData[1]) != "font-b" {
+	if string(appFontData[0]) != "font-a" || string(appFontData[1]) != "font-b" {
 		t.Errorf("AppFontData = %q, want [font-a font-b] in order",
-			AppFontData)
+			appFontData)
 	}
 }
 
@@ -124,9 +124,9 @@ func (f *fakeRegistrar) AddFontBytes(data []byte) error {
 // and restores them when the test ends.
 func setAppFonts(t *testing.T, paths []string, data [][]byte) {
 	t.Helper()
-	savedPaths, savedData := AppFontPaths, AppFontData
-	t.Cleanup(func() { AppFontPaths, AppFontData = savedPaths, savedData })
-	AppFontPaths, AppFontData = paths, data
+	savedPaths, savedData := appFontPaths, appFontData
+	t.Cleanup(func() { appFontPaths, appFontData = savedPaths, savedData })
+	appFontPaths, appFontData = paths, data
 }
 
 func TestLoadAppFontsRegistersBothLists(t *testing.T) {

@@ -119,7 +119,7 @@ func renderSpellCheckUnderlines(
 		return
 	}
 
-	color := DefaultInputStyle.ColorSpellError
+	color := defaultInputStyle.colorSpellError
 	underlineH := max(float32(1.5), shape.TC.TextStyle.Size/10)
 
 	for _, r := range state.Ranges {

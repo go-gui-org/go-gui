@@ -14,11 +14,11 @@ var (
 	paddingThree   = PadAll(3)
 	paddingTwoFour = NewPadding(2, 4, 2, 4)
 	PaddingTwoFive = NewPadding(2, 5, 2, 5)
-	PaddingXSmall  = PadAll(PadXSmall)
+	paddingXSmall  = PadAll(PadXSmall)
 	PaddingSmall   = PadAll(PadSmall)
-	PaddingMedium  = PadAll(PadMedium)
+	paddingMedium  = PadAll(PadMedium)
 	PaddingLarge   = PadAll(PadLarge)
-	PaddingButton  = PadAll(6)
+	paddingButton  = PadAll(6)
 )
 
 // Padding is the gap inside the edges of a Shape. Parameter order
@@ -48,7 +48,7 @@ func (p Padding) Height() float32 {
 }
 
 // IsNone returns true if all sides are zero.
-func (p Padding) IsNone() bool {
+func (p Padding) isNone() bool {
 	return p.Left == 0 && p.Right == 0 && p.Top == 0 && p.Bottom == 0
 }
 
@@ -58,6 +58,6 @@ func PadAll(p float32) Padding {
 }
 
 // PadTBLR creates a Padding with top/bottom = tb and left/right = lr.
-func PadTBLR(tb, lr float32) Padding {
+func padTBLR(tb, lr float32) Padding {
 	return Padding{Top: tb, Right: lr, Bottom: tb, Left: lr}
 }

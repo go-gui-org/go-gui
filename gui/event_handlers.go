@@ -29,7 +29,7 @@ func charHandler(layout *Layout, e *Event, w *Window) {
 	if layout.Shape == nil {
 		return
 	}
-	var onChar ShapeCallback
+	var onChar shapeCallback
 	var events *eventHandlers
 	if layout.Shape.hasEvents() {
 		onChar = layout.Shape.events.OnChar
@@ -45,8 +45,8 @@ func charHandler(layout *Layout, e *Event, w *Window) {
 	// than marking after — marking after would override a
 	// ctx.Bubble() the callback made.
 	if events != nil &&
-		events.ClickOnSpace &&
-		e.CharCode == CharSpace &&
+		events.clickOnSpace &&
+		e.CharCode == charSpace &&
 		events.OnClick != nil {
 		if isFocusedTarget(layout, w) {
 			e.IsHandled = true
@@ -84,7 +84,7 @@ func keydownHandler(layout *Layout, e *Event, w *Window) {
 	if layout.Shape == nil || !isFocusedTarget(layout, w) {
 		return
 	}
-	var onKeyDown ShapeCallback
+	var onKeyDown shapeCallback
 	var events *eventHandlers
 	if layout.Shape.hasEvents() {
 		onKeyDown = layout.Shape.events.OnKeyDown
@@ -102,7 +102,7 @@ func keydownHandler(layout *Layout, e *Event, w *Window) {
 	// OnClick is consume-class, so pre-mark here — the surrounding
 	// OnKeyDown dispatch does not.
 	if events != nil &&
-		events.ClickOnEnter &&
+		events.clickOnEnter &&
 		e.KeyCode == KeyEnter &&
 		events.OnClick != nil {
 		e.IsHandled = true
@@ -139,7 +139,7 @@ func keyupHandler(layout *Layout, e *Event, w *Window) {
 	if layout.Shape == nil || !isFocusedTarget(layout, w) {
 		return
 	}
-	var onKeyUp ShapeCallback
+	var onKeyUp shapeCallback
 	if layout.Shape.hasEvents() {
 		onKeyUp = layout.Shape.events.OnKeyUp
 	}
@@ -154,8 +154,8 @@ const (
 )
 
 func keyDownScrollHandler(layout *Layout, e *Event, w *Window) {
-	deltaLine := guiTheme.ScrollDeltaLine
-	deltaPage := guiTheme.ScrollDeltaPage
+	deltaLine := guiTheme.scrollDeltaLine
+	deltaPage := guiTheme.scrollDeltaPage
 
 	switch e.Modifiers {
 	case ModNone:
@@ -191,8 +191,8 @@ func mouseDownHandler(
 ) {
 	// Check mouse lock (only at top level).
 	if !inHandler {
-		if w.viewState.mouseLock.MouseDown != nil {
-			w.viewState.mouseLock.MouseDown(EventCtx{layout, e, w})
+		if w.viewState.mouseLock.mouseDown != nil {
+			w.viewState.mouseLock.mouseDown(EventCtx{layout, e, w})
 			return
 		}
 	}
@@ -218,11 +218,11 @@ func mouseDownHandler(
 			w.SetFocus(layout.Shape.idKey())
 			e.IsHandled = true
 		}
-		var onClick ShapeCallback
+		var onClick shapeCallback
 		if layout.Shape.hasEvents() {
 			events := layout.Shape.events
-			if events.ClickButton == 0 ||
-				e.MouseButton == events.ClickButton {
+			if events.clickButton == 0 ||
+				e.MouseButton == events.clickButton {
 				onClick = events.OnClick
 			}
 		}
@@ -238,7 +238,7 @@ func mouseMoveHandler(layout *Layout, e *Event, w *Window) {
 		w.viewState.mouseLock.MouseMove(EventCtx{layout, e, w})
 		return
 	}
-	if !w.PointerOverApp(e) {
+	if !w.pointerOverApp(e) {
 		return
 	}
 	ox, oy := rotateMouseInverse(layout.Shape, e)
@@ -256,7 +256,7 @@ func mouseMoveHandler(layout *Layout, e *Event, w *Window) {
 	if layout.Shape == nil {
 		return
 	}
-	var onMouseMove ShapeCallback
+	var onMouseMove shapeCallback
 	if layout.Shape.hasEvents() {
 		onMouseMove = layout.Shape.events.OnMouseMove
 	}
@@ -287,7 +287,7 @@ func mouseUpHandler(layout *Layout, e *Event, w *Window) {
 	if layout.Shape == nil {
 		return
 	}
-	var onMouseUp ShapeCallback
+	var onMouseUp shapeCallback
 	if layout.Shape.hasEvents() {
 		onMouseUp = layout.Shape.events.OnMouseUp
 	}
@@ -303,7 +303,7 @@ func focusedScrollTarget(layout *Layout, w *Window) *Layout {
 	if focusID == "" {
 		return nil
 	}
-	ly, ok := FindLayoutByFocusID(layout, focusID)
+	ly, ok := findLayoutByFocusID(layout, focusID)
 	if !ok || ly.Shape == nil || !ly.Shape.hasEvents() ||
 		ly.Shape.events.OnMouseScroll == nil {
 		return nil
@@ -395,7 +395,7 @@ func fileDropHandler(layout *Layout, e *Event, w *Window) {
 	if layout.Shape == nil {
 		return
 	}
-	var onFileDrop ShapeCallback
+	var onFileDrop shapeCallback
 	if layout.Shape.hasEvents() {
 		onFileDrop = layout.Shape.events.OnFileDrop
 	}

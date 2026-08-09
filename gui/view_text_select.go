@@ -46,11 +46,11 @@ func textOnClick(ctx EventCtx) {
 	}
 
 	focusID := shape.idKey()
-	imap := StateMap[string, InputState](
+	imap := StateMap[string, inputState](
 		ctx.Window, nsInput, capMany,
 	)
 	// Default InputState{}: zero value seeds initial selection/cursor state.
-	is := imap.GetOr(focusID, InputState{})
+	is := imap.GetOr(focusID, inputState{})
 
 	// Double-click detection.
 	now := time.Now().UnixMilli()
@@ -70,21 +70,21 @@ func textOnClick(ctx EventCtx) {
 				[]rune(text), runePos)
 		}
 		is.CursorPos = end
-		is.SelectBeg = uint32(beg)
-		is.SelectEnd = uint32(end)
+		is.selectBeg = uint32(beg)
+		is.selectEnd = uint32(end)
 	} else {
 		is.CursorPos = runePos
-		is.SelectBeg = uint32(runePos)
-		is.SelectEnd = uint32(runePos)
+		is.selectBeg = uint32(runePos)
+		is.selectEnd = uint32(runePos)
 	}
-	is.CursorOffset = -1
+	is.cursorOffset = -1
 	imap.Set(focusID, is)
 	resetBlinkCursorVisible(ctx.Window)
 	ctx.Consume()
 
 	// Drag-to-select via MouseLock.
-	anchorPos := is.SelectBeg
-	anchorEnd := is.SelectEnd
+	anchorPos := is.selectBeg
+	anchorEnd := is.selectEnd
 	dragGL := gl
 	dragGLOK := glOK
 	dragFocusID := focusID
@@ -142,11 +142,11 @@ func textOnClick(ctx EventCtx) {
 
 	runes := []rune(text)
 	updateDragSelection := func(rp int, w *Window) {
-		dim := StateMap[string, InputState](
+		dim := StateMap[string, inputState](
 			w, nsInput, capMany,
 		)
 		// Default InputState{}: zero value seeds initial drag-edit state.
-		dis := dim.GetOr(dragFocusID, InputState{})
+		dis := dim.GetOr(dragFocusID, inputState{})
 		if doubleClick {
 			var wb, we int
 			if dragGLOK {
@@ -158,20 +158,20 @@ func textOnClick(ctx EventCtx) {
 				wb, we = wordBoundsAt(runes, rp)
 			}
 			if rp < int(anchorPos) {
-				dis.SelectBeg = anchorEnd
-				dis.SelectEnd = uint32(wb)
+				dis.selectBeg = anchorEnd
+				dis.selectEnd = uint32(wb)
 				dis.CursorPos = wb
 			} else {
-				dis.SelectBeg = anchorPos
-				dis.SelectEnd = uint32(we)
+				dis.selectBeg = anchorPos
+				dis.selectEnd = uint32(we)
 				dis.CursorPos = we
 			}
 		} else {
 			dis.CursorPos = rp
-			dis.SelectBeg = anchorPos
-			dis.SelectEnd = uint32(rp)
+			dis.selectBeg = anchorPos
+			dis.selectEnd = uint32(rp)
 		}
-		dis.CursorOffset = -1
+		dis.cursorOffset = -1
 		dim.Set(dragFocusID, dis)
 		resetBlinkCursorVisible(w)
 	}
@@ -242,15 +242,15 @@ func textOnKeyDown(ctx EventCtx) {
 	}
 	id := shape.idKey()
 	text := shape.TC.Text
-	imap := StateMap[string, InputState](
+	imap := StateMap[string, inputState](
 		ctx.Window, nsInput, capMany,
 	)
 	// Default InputState{}: zero value seeds initial keyboard-nav state.
-	is := imap.GetOr(id, InputState{})
-	savedOffset := is.CursorOffset
-	savedTrailing := is.CursorTrailing
-	is.CursorOffset = -1
-	is.CursorTrailing = false
+	is := imap.GetOr(id, inputState{})
+	savedOffset := is.cursorOffset
+	savedTrailing := is.cursorTrailing
+	is.cursorOffset = -1
+	is.cursorTrailing = false
 	runeLen := utf8RuneCount(text)
 	pos := is.CursorPos
 	pos = min(pos, runeLen)
@@ -296,7 +296,7 @@ func textOnKeyDown(ctx EventCtx) {
 		}
 	case KeyC:
 		handled = inputKeyCopy(
-			text, id, shape.TC.TextIsPassword, ctx.Event, ctx.Window)
+			text, id, shape.TC.textIsPassword, ctx.Event, ctx.Window)
 	default:
 		handled = false
 	}
@@ -311,9 +311,9 @@ func textOnKeyDown(ctx EventCtx) {
 // textKeyVertical handles KeyUp/KeyDown for text selection.
 // Returns false when the key is unhandled (single-line mode).
 func textKeyVertical(
-	imap *BoundedMap[string, InputState], id string, is InputState,
+	imap *BoundedMap[string, inputState], id string, is inputState,
 	text string, pos int, isShift bool,
-	savedOffset float32, up bool, mode TextMode,
+	savedOffset float32, up bool, mode textMode,
 	gl glyph.Layout, glOK bool,
 ) bool {
 	if mode == TextModeSingleLine {
@@ -328,7 +328,7 @@ func textKeyVertical(
 				px = cp.X
 			}
 		}
-		is.CursorOffset = px
+		is.cursorOffset = px
 		if up {
 			newPos = byteToRuneIndex(text,
 				gl.MoveCursorUp(bi, px))
@@ -355,8 +355,8 @@ func textAmendLayout(ctx EventCtx) {
 		return
 	}
 	is := StateReadOr(
-		ctx.Window, nsInput, ctx.Layout.Shape.idKey(), InputState{},
+		ctx.Window, nsInput, ctx.Layout.Shape.idKey(), inputState{},
 	)
-	ctx.Layout.Shape.TC.TextSelBeg = is.SelectBeg
-	ctx.Layout.Shape.TC.TextSelEnd = is.SelectEnd
+	ctx.Layout.Shape.TC.textSelBeg = is.selectBeg
+	ctx.Layout.Shape.TC.textSelEnd = is.selectEnd
 }

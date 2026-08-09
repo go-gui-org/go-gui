@@ -1,16 +1,16 @@
 package gui
 
 // mirrorFloatAttach swaps left/right anchors for RTL mirroring.
-func mirrorFloatAttach(a FloatAttach) FloatAttach {
+func mirrorFloatAttach(a floatAttach) floatAttach {
 	switch a {
 	case FloatTopLeft:
 		return FloatTopRight
 	case FloatTopRight:
 		return FloatTopLeft
-	case FloatMiddleLeft:
+	case floatMiddleLeft:
 		return FloatMiddleRight
 	case FloatMiddleRight:
-		return FloatMiddleLeft
+		return floatMiddleLeft
 	case FloatBottomLeft:
 		return FloatBottomRight
 	case FloatBottomRight:
@@ -22,7 +22,7 @@ func mirrorFloatAttach(a FloatAttach) FloatAttach {
 
 // flipVerticalAttach swaps top/bottom anchors, preserving the
 // horizontal component (Left/Center/Right).
-func flipVerticalAttach(a FloatAttach) FloatAttach {
+func flipVerticalAttach(a floatAttach) floatAttach {
 	switch a {
 	case FloatTopLeft:
 		return FloatBottomLeft
@@ -43,13 +43,13 @@ func flipVerticalAttach(a FloatAttach) FloatAttach {
 
 // attachOffset returns the (dx, dy) offset for a FloatAttach
 // point given element dimensions w and h.
-func attachOffset(a FloatAttach, w, h float32) (float32, float32) {
+func attachOffset(a floatAttach, w, h float32) (float32, float32) {
 	switch a {
 	case FloatTopCenter:
 		return w / 2, 0
 	case FloatTopRight:
 		return w, 0
-	case FloatMiddleLeft:
+	case floatMiddleLeft:
 		return 0, h / 2
 	case FloatMiddleCenter:
 		return w / 2, h / 2
@@ -116,7 +116,7 @@ func floatAttachLayout(
 	x := parent.X + ax - tx + offsetX
 	y := parent.Y + ay - ty + offsetY
 
-	if !shape.FloatAutoFlip {
+	if !shape.floatAutoFlip {
 		return x, y
 	}
 

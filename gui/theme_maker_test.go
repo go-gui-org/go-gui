@@ -10,9 +10,9 @@ func iconStyleFamilies(theme Theme) []string {
 		theme.Icon2.Family,
 		theme.Icon3.Family,
 		theme.Icon4.Family,
-		theme.Icon5.Family,
-		theme.Icon6.Family,
-		theme.TreeStyle.TextStyleIcon.Family,
+		theme.icon5.Family,
+		theme.icon6.Family,
+		theme.treeStyle.textStyleIcon.Family,
 	}
 }
 
@@ -28,7 +28,7 @@ func TestThemeMakerIconFamilyDefault(t *testing.T) {
 
 func TestThemeMakerIconFamilyOverride(t *testing.T) {
 	cfg := baseCfg()
-	cfg.IconFontFamily = "mycustomicons"
+	cfg.iconFontFamily = "mycustomicons"
 	theme := ThemeMaker(cfg)
 	for i, got := range iconStyleFamilies(theme) {
 		if got != "mycustomicons" {
@@ -52,7 +52,7 @@ func TestThemeMakerIconFamilyEmptyFallsBack(t *testing.T) {
 
 func TestThemeMakerMonoFamily(t *testing.T) {
 	cfg := baseCfg()
-	cfg.MonoFontFamily = "mycustommono"
+	cfg.monoFontFamily = "mycustommono"
 	theme := ThemeMaker(cfg)
 	styles := []TextStyle{
 		theme.M1, theme.M2, theme.M3, theme.M4, theme.M5, theme.M6,
@@ -71,13 +71,13 @@ func TestThemeMakerMonoFamily(t *testing.T) {
 func TestThemeMakerIconFamilyDoesNotLeak(t *testing.T) {
 	cfg := baseCfg()
 	cfg.TextStyleDef.Family = "mytextfamily"
-	cfg.MonoFontFamily = "mymonofamily"
-	cfg.IconFontFamily = "myiconfamily"
+	cfg.monoFontFamily = "mymonofamily"
+	cfg.iconFontFamily = "myiconfamily"
 	theme := ThemeMaker(cfg)
 
 	text := map[string]TextStyle{
-		"I3": theme.I3, "I6": theme.I6,
-		"BI3": theme.BI3, "BI6": theme.BI6,
+		"I3": theme.I3, "I6": theme.i6,
+		"BI3": theme.BI3, "BI6": theme.bI6,
 	}
 	for name, s := range text {
 		if s.Family != "mytextfamily" {
@@ -98,7 +98,7 @@ func TestPresetThemesIconFamily(t *testing.T) {
 	presets := map[string]Theme{
 		"ThemeDark":  ThemeDark,
 		"ThemeLight": ThemeLight,
-		"ThemeBlue":  ThemeBlue,
+		"ThemeBlue":  themeBlue,
 	}
 	for name, theme := range presets {
 		for i, got := range iconStyleFamilies(theme) {
@@ -127,12 +127,12 @@ func TestThemeMakerBorderFocusFallsBackToSelect(t *testing.T) {
 	theme := ThemeMaker(cfg)
 	consumers := map[string]Color{
 		"ButtonStyle": theme.ButtonStyle.ColorBorderFocus,
-		"ToggleStyle": theme.ToggleStyle.ColorBorderFocus,
-		"SliderStyle": theme.SliderStyle.ColorBorderFocus,
-		"TabControl":  theme.TabControlStyle.ColorTabBorderFocus,
+		"ToggleStyle": theme.toggleStyle.ColorBorderFocus,
+		"SliderStyle": theme.sliderStyle.ColorBorderFocus,
+		"TabControl":  theme.tabControlStyle.colorTabBorderFocus,
 	}
 	for name, got := range consumers {
-		if !got.Eq(cfg.ColorSelect) {
+		if !got.eq(cfg.ColorSelect) {
 			t.Errorf("%s.ColorBorderFocus = %v, want ColorSelect %v",
 				name, got, cfg.ColorSelect)
 		}
@@ -145,13 +145,13 @@ func TestThemeMakerBorderFocusExplicitWins(t *testing.T) {
 	cfg.ColorBorderFocus = RGBA(200, 100, 50, 255)
 
 	theme := ThemeMaker(cfg)
-	if !theme.ButtonStyle.ColorBorderFocus.Eq(cfg.ColorBorderFocus) {
+	if !theme.ButtonStyle.ColorBorderFocus.eq(cfg.ColorBorderFocus) {
 		t.Errorf("ButtonStyle.ColorBorderFocus = %v, want %v",
 			theme.ButtonStyle.ColorBorderFocus, cfg.ColorBorderFocus)
 	}
-	if !theme.SliderStyle.ColorBorderFocus.Eq(cfg.ColorBorderFocus) {
+	if !theme.sliderStyle.ColorBorderFocus.eq(cfg.ColorBorderFocus) {
 		t.Errorf("SliderStyle.ColorBorderFocus = %v, want %v",
-			theme.SliderStyle.ColorBorderFocus, cfg.ColorBorderFocus)
+			theme.sliderStyle.ColorBorderFocus, cfg.ColorBorderFocus)
 	}
 }
 
@@ -160,32 +160,32 @@ func TestThemeMakerBorderFocusExplicitWins(t *testing.T) {
 // rounded. This is the surprising half of the branch.
 func TestThemeMakerScrollbarRadiusForcedNoneByRadius(t *testing.T) {
 	cfg := baseCfg()
-	cfg.Radius = RadiusNone
-	cfg.RadiusSmall = RadiusSmall // deliberately rounded
+	cfg.Radius = radiusNone
+	cfg.RadiusSmall = radiusSmall // deliberately rounded
 
 	theme := ThemeMaker(cfg)
-	if theme.ScrollbarStyle.Radius != RadiusNone {
+	if theme.ScrollbarStyle.Radius != radiusNone {
 		t.Errorf("ScrollbarStyle.Radius = %v, want RadiusNone", theme.ScrollbarStyle.Radius)
 	}
-	if theme.ScrollbarStyle.RadiusThumb != RadiusNone {
+	if theme.ScrollbarStyle.radiusThumb != radiusNone {
 		t.Errorf("ScrollbarStyle.RadiusThumb = %v, want RadiusNone",
-			theme.ScrollbarStyle.RadiusThumb)
+			theme.ScrollbarStyle.radiusThumb)
 	}
 }
 
 func TestThemeMakerScrollbarRadiusUsesRadiusSmall(t *testing.T) {
 	cfg := baseCfg()
-	cfg.Radius = RadiusMedium
-	cfg.RadiusSmall = RadiusSmall
+	cfg.Radius = radiusMedium
+	cfg.RadiusSmall = radiusSmall
 
 	theme := ThemeMaker(cfg)
-	if theme.ScrollbarStyle.Radius != RadiusSmall {
+	if theme.ScrollbarStyle.Radius != radiusSmall {
 		t.Errorf("ScrollbarStyle.Radius = %v, want RadiusSmall %v",
-			theme.ScrollbarStyle.Radius, RadiusSmall)
+			theme.ScrollbarStyle.Radius, radiusSmall)
 	}
-	if theme.ScrollbarStyle.RadiusThumb != RadiusSmall {
+	if theme.ScrollbarStyle.radiusThumb != radiusSmall {
 		t.Errorf("ScrollbarStyle.RadiusThumb = %v, want RadiusSmall %v",
-			theme.ScrollbarStyle.RadiusThumb, RadiusSmall)
+			theme.ScrollbarStyle.radiusThumb, radiusSmall)
 	}
 }
 
@@ -193,17 +193,17 @@ func TestThemeMakerScrollbarRadiusUsesRadiusSmall(t *testing.T) {
 // of 100, shared by Input, Select and Combobox.
 func TestThemeMakerPlaceholderColor(t *testing.T) {
 	cfg := baseCfg()
-	cfg.TextStyleDef = TextStyle{Color: RGBA(220, 210, 200, 255), Size: SizeTextMedium}
+	cfg.TextStyleDef = TextStyle{Color: RGBA(220, 210, 200, 255), Size: sizeTextMedium}
 
 	theme := ThemeMaker(cfg)
 	want := RGBA(220, 210, 200, 100)
 	placeholders := map[string]TextStyle{
 		"InputStyle":    theme.InputStyle.PlaceholderStyle,
-		"SelectStyle":   theme.SelectStyle.PlaceholderStyle,
-		"ComboboxStyle": theme.ComboboxStyle.PlaceholderStyle,
+		"SelectStyle":   theme.selectStyle.PlaceholderStyle,
+		"ComboboxStyle": theme.comboboxStyle.PlaceholderStyle,
 	}
 	for name, got := range placeholders {
-		if !got.Color.Eq(want) {
+		if !got.Color.eq(want) {
 			t.Errorf("%s.PlaceholderStyle.Color = %v, want %v", name, got.Color, want)
 		}
 		if got.Size != cfg.TextStyleDef.Size {
@@ -219,23 +219,23 @@ func TestThemeMakerPlaceholderColor(t *testing.T) {
 // cannot silently appear to take effect.
 func TestThemeMakerPostLiteralOverwrites(t *testing.T) {
 	cfg := baseCfg()
-	cfg.TextStyleDef = TextStyle{Color: RGBA(200, 200, 200, 255), Size: SizeTextMedium}
+	cfg.TextStyleDef = TextStyle{Color: RGBA(200, 200, 200, 255), Size: sizeTextMedium}
 	theme := ThemeMaker(cfg)
 
-	if theme.TableStyle.TextStyleHead != theme.B3 {
+	if theme.tableStyle.TextStyleHead != theme.B3 {
 		t.Errorf("TableStyle.TextStyleHead = %+v, want B3 %+v",
-			theme.TableStyle.TextStyleHead, theme.B3)
+			theme.tableStyle.TextStyleHead, theme.B3)
 	}
 
 	wantBadge := theme.B5
 	wantBadge.Color = White
-	if theme.BadgeStyle.TextStyle != wantBadge {
+	if theme.badgeStyle.TextStyle != wantBadge {
 		t.Errorf("BadgeStyle.TextStyle = %+v, want B5 with White color %+v",
-			theme.BadgeStyle.TextStyle, wantBadge)
+			theme.badgeStyle.TextStyle, wantBadge)
 	}
-	if !theme.BadgeStyle.TextStyle.Color.Eq(White) {
+	if !theme.badgeStyle.TextStyle.Color.eq(White) {
 		t.Errorf("BadgeStyle.TextStyle.Color = %v, want White",
-			theme.BadgeStyle.TextStyle.Color)
+			theme.badgeStyle.TextStyle.Color)
 	}
 }
 
@@ -243,16 +243,16 @@ func TestThemeMakerPostLiteralOverwrites(t *testing.T) {
 func TestThemeMakerDerivedSizes(t *testing.T) {
 	cfg := baseCfg()
 	cfg.TextStyleDef = TextStyle{Size: 18}
-	cfg.SizeSlider = 10
+	cfg.sizeSlider = 10
 
 	theme := ThemeMaker(cfg)
-	if theme.ToggleStyle.Size != 22 {
+	if theme.toggleStyle.Size != 22 {
 		t.Errorf("ToggleStyle.Size = %v, want TextStyleDef.Size+4 = 22",
-			theme.ToggleStyle.Size)
+			theme.toggleStyle.Size)
 	}
-	if theme.SliderStyle.Radius != 5 {
+	if theme.sliderStyle.Radius != 5 {
 		t.Errorf("SliderStyle.Radius = %v, want SizeSlider/2 = 5",
-			theme.SliderStyle.Radius)
+			theme.sliderStyle.Radius)
 	}
 }
 
@@ -260,12 +260,12 @@ func TestThemeMakerDerivedSizes(t *testing.T) {
 // rather than a default. Documented, not a bug to "fix" here.
 func TestThemeMakerSliderRadiusZeroSizeNotClamped(t *testing.T) {
 	cfg := baseCfg()
-	cfg.SizeSlider = 0
+	cfg.sizeSlider = 0
 
 	theme := ThemeMaker(cfg)
-	if theme.SliderStyle.Radius != 0 {
+	if theme.sliderStyle.Radius != 0 {
 		t.Errorf("SliderStyle.Radius = %v, want 0 for SizeSlider 0",
-			theme.SliderStyle.Radius)
+			theme.sliderStyle.Radius)
 	}
 }
 
@@ -289,7 +289,7 @@ func TestThemeMakerZeroCfg(t *testing.T) {
 			theme.ButtonStyle.Radius, theme.ButtonStyle.SizeBorder)
 	}
 	// borderFocus fallback resolves to the (also zero) ColorSelect.
-	if !theme.ButtonStyle.ColorBorderFocus.Eq(Color{}) {
+	if !theme.ButtonStyle.ColorBorderFocus.eq(Color{}) {
 		t.Errorf("ButtonStyle.ColorBorderFocus = %v, want zero Color",
 			theme.ButtonStyle.ColorBorderFocus)
 	}

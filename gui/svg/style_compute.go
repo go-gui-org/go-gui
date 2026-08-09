@@ -40,13 +40,13 @@ func parseElementStyle(elem string) elementStyle {
 		Transform:        getTransform(elem),
 		StrokeColor:      getStrokeColor(elem),
 		StrokeWidth:      getStrokeWidth(elem),
-		StrokeCap:        getStrokeLinecap(elem),
-		StrokeJoin:       getStrokeLinejoin(elem),
+		strokeCap:        getStrokeLinecap(elem),
+		strokeJoin:       getStrokeLinejoin(elem),
 		Opacity:          parseOpacityAttr(elem, "opacity", 1.0),
 		FillOpacity:      parseOpacityAttr(elem, "fill-opacity", 1.0),
 		StrokeOpacity:    parseOpacityAttr(elem, "stroke-opacity", 1.0),
-		StrokeGradientID: getStrokeGradientID(elem),
-		StrokeDasharray:  getStrokeDasharray(elem),
+		strokeGradientID: getStrokeGradientID(elem),
+		strokeDasharray:  getStrokeDasharray(elem),
 	}
 }
 
@@ -63,29 +63,29 @@ func parseElementStyle(elem string) elementStyle {
 // own; clip-path / filter are inherited unless the element overrides.
 func computeStyle(
 	elem string,
-	parent ComputedStyle,
+	parent computedStyle,
 	state *parseState,
 	info css.ElementInfo,
 	ancestors []css.ElementInfo,
 	siblings []css.ElementInfo,
-) ComputedStyle {
+) computedStyle {
 	out := parent
 	out.Transform = matrixMultiply(parent.Transform, getTransform(elem))
-	out.Vars = parent.Vars
+	out.vars = parent.vars
 	// Reset per-element opacity scalar; combine with parent at the
 	// end. FillOpacity / StrokeOpacity inherit values directly.
 	out.Opacity = 1
 	out.FillOpacity = parent.FillOpacity
 	out.StrokeOpacity = parent.StrokeOpacity
 	// CSS animations are not inherited.
-	out.Animation = cssAnimSpec{}
+	out.animation = cssAnimSpec{}
 	// transform-origin is not inherited per CSS Transforms 1; reset.
-	out.TransformOrigin = ""
+	out.transformOrigin = ""
 	// display is not inherited; visibility is. Reset display so
 	// descendants of a non-skipped element start "rendered". Skip
 	// logic in parseSvgContent / appendShape filters elements whose
 	// own cascade resolves to display:none.
-	out.Display = DisplayInline
+	out.Display = displayInline
 
 	// clip-path / filter participate in the cascade so CSS rules and
 	// inline style="" can set them, not only the bare attribute. Seed
@@ -94,10 +94,10 @@ func computeStyle(
 	// fold, a fresh FilterID allocates a new per-occurrence FilterGroupKey
 	// so two siblings sharing one filter render to two offscreen
 	// buffers (composite-z correctness).
-	out.ClipPathID = parent.ClipPathID
+	out.clipPathID = parent.clipPathID
 	out.FilterID = parent.FilterID
 	out.FilterGroupKey = parent.FilterGroupKey
-	out.AuthoredClipPath = false
+	out.authoredClipPath = false
 	if gid, ok := findAttr(elem, "id"); ok {
 		out.GroupID = gid
 	} else {
@@ -131,13 +131,13 @@ func computeStyle(
 	}
 	css.SortCascade(decls)
 
-	out.Vars = collectVars(decls, parent.Vars)
+	out.vars = collectVars(decls, parent.vars)
 	var authoredFilter bool
 	for _, d := range decls {
 		if d.CustomProp {
 			continue
 		}
-		v := resolveVarRefs(d.Value, out.Vars)
+		v := resolveVarRefs(d.Value, out.vars)
 		if v == "" {
 			continue
 		}
@@ -145,7 +145,7 @@ func computeStyle(
 		if v == "" {
 			continue
 		}
-		if applyCSSAnimProp(d.Name, v, &out.Animation) {
+		if applyCSSAnimProp(d.Name, v, &out.animation) {
 			continue
 		}
 		// Mark authored only when the declaration parses as a usable
@@ -157,7 +157,7 @@ func computeStyle(
 		switch d.Name {
 		case "clip-path":
 			if isValidClipOrFilterValue(v) {
-				out.AuthoredClipPath = true
+				out.authoredClipPath = true
 			}
 		case "filter":
 			if isValidClipOrFilterValue(v) {
@@ -246,15 +246,15 @@ func applyPseudoState(info *css.ElementInfo, state *parseState) {
 // inherited value. "evenodd" maps to FillRuleEvenOdd; any other
 // token (including the empty string) maps to FillRuleNonzero,
 // which is the SVG default. Case-sensitive per SVG spec.
-func resolveFillRule(elem string, parent ComputedStyle) FillRule {
+func resolveFillRule(elem string, parent computedStyle) fillRule {
 	val, ok := findAttrOrStyle(elem, "fill-rule")
 	if !ok {
-		return parent.FillRule
+		return parent.fillRule
 	}
 	if strings.TrimSpace(val) == "evenodd" {
-		return FillRuleEvenOdd
+		return fillRuleEvenOdd
 	}
-	return FillRuleNonzero
+	return fillRuleNonzero
 }
 
 // applyComputedStyle folds the cascade-resolved style into a
@@ -264,15 +264,15 @@ func resolveFillRule(elem string, parent ComputedStyle) FillRule {
 // parser stashed onto path is overwritten. Geometry (Segments,
 // Primitive, FillRule) and shape-owned IDs (ClipPathID, GroupID
 // when the shape has inline animations) survive.
-func applyComputedStyle(path *VectorPath, inh ComputedStyle) {
+func applyComputedStyle(path *vectorPath, inh computedStyle) {
 	// inh.Transform = parent × own (composed in computeStyle). The
 	// shape parser already stashed `own` onto path.Transform via
 	// parseElementStyle; assigning inh.Transform replaces that with
 	// the fully composed matrix and avoids double-applying `own`.
 	path.Transform = inh.Transform
 
-	if path.ClipPathID == "" && inh.ClipPathID != "" {
-		path.ClipPathID = inh.ClipPathID
+	if path.clipPathID == "" && inh.clipPathID != "" {
+		path.clipPathID = inh.clipPathID
 	}
 	if path.FilterID == "" && inh.FilterID != "" {
 		path.FilterID = inh.FilterID
@@ -284,10 +284,10 @@ func applyComputedStyle(path *VectorPath, inh ComputedStyle) {
 	// Fill — gradient takes precedence over color. Honor cascade
 	// winner over the shape's pres-attr-derived value.
 	switch {
-	case inh.FillGradient != "":
-		path.FillGradientID = inh.FillGradient
+	case inh.fillGradient != "":
+		path.FillGradientID = inh.fillGradient
 		path.FillColor = colorTransparent
-	case inh.FillSet:
+	case inh.fillSet:
 		path.FillColor = inh.Fill
 		path.FillGradientID = ""
 	case path.FillGradientID == "" && path.FillColor == colorInherit:
@@ -295,12 +295,12 @@ func applyComputedStyle(path *VectorPath, inh ComputedStyle) {
 	}
 
 	switch {
-	case inh.StrokeGradient != "":
-		path.StrokeGradientID = inh.StrokeGradient
+	case inh.strokeGradient != "":
+		path.strokeGradientID = inh.strokeGradient
 		path.StrokeColor = colorTransparent
-	case inh.StrokeSet:
-		path.StrokeColor = inh.Stroke
-		path.StrokeGradientID = ""
+	case inh.strokeSet:
+		path.StrokeColor = inh.stroke
+		path.strokeGradientID = ""
 	case path.StrokeColor == colorInherit:
 		path.StrokeColor = colorTransparent
 	}
@@ -310,22 +310,22 @@ func applyComputedStyle(path *VectorPath, inh ComputedStyle) {
 	if path.StrokeWidth < 0 {
 		path.StrokeWidth = 1.0
 	}
-	if inh.StrokeCap != strokeCapInherit {
-		path.StrokeCap = inh.StrokeCap
+	if inh.strokeCap != strokeCapInherit {
+		path.strokeCap = inh.strokeCap
 	}
-	if path.StrokeCap == strokeCapInherit {
-		path.StrokeCap = gui.SvgButtCap
+	if path.strokeCap == strokeCapInherit {
+		path.strokeCap = gui.SvgButtCap
 	}
-	if inh.StrokeJoin != strokeJoinInherit {
-		path.StrokeJoin = inh.StrokeJoin
+	if inh.strokeJoin != strokeJoinInherit {
+		path.strokeJoin = inh.strokeJoin
 	}
-	if path.StrokeJoin == strokeJoinInherit {
-		path.StrokeJoin = gui.SvgMiterJoin
+	if path.strokeJoin == strokeJoinInherit {
+		path.strokeJoin = gui.SvgMiterJoin
 	}
-	if inh.StrokeDasharray != nil {
-		path.StrokeDasharray = inh.StrokeDasharray
+	if inh.strokeDasharray != nil {
+		path.strokeDasharray = inh.strokeDasharray
 	}
-	if inh.StrokeDashOffsetSet {
+	if inh.strokeDashOffsetSet {
 		path.StrokeDashOffset = inh.StrokeDashOffset
 	}
 
@@ -342,7 +342,7 @@ func applyComputedStyle(path *VectorPath, inh ComputedStyle) {
 	path.StrokeOpacity = inh.StrokeOpacity
 
 	bakePathOpacity(path, inh)
-	path.Computed = inh
+	path.computed = inh
 }
 
 // bakePathOpacity folds the cascade-resolved opacity values into
@@ -352,11 +352,11 @@ func applyComputedStyle(path *VectorPath, inh ComputedStyle) {
 // 1 so an inline SMIL animation can supply that channel at render
 // time without being clipped to zero by the static value
 // (e.g. fill-opacity="0").
-func bakePathOpacity(path *VectorPath, inh ComputedStyle) {
+func bakePathOpacity(path *vectorPath, inh computedStyle) {
 	// visibility:hidden suppresses paint without removing the element
 	// from the box tree. Force fill+stroke alpha to zero so tessellate
 	// drops the path and the gradient compositor sees zero opacity.
-	if inh.Visibility == VisibilityHidden {
+	if inh.visibility == visibilityHidden {
 		path.FillColor = applyOpacity(path.FillColor, 0)
 		path.StrokeColor = applyOpacity(path.StrokeColor, 0)
 		path.Opacity = 0
@@ -365,15 +365,15 @@ func bakePathOpacity(path *VectorPath, inh ComputedStyle) {
 		return
 	}
 	combinedOpacity := inh.Opacity
-	if inh.SkipOpacity {
+	if inh.skipOpacity {
 		combinedOpacity = 1
 	}
 	fillOpacity := inh.FillOpacity
-	if inh.SkipFillOpacity {
+	if inh.skipFillOpacity {
 		fillOpacity = 1
 	}
 	strokeOpacity := inh.StrokeOpacity
-	if inh.SkipStrokeOpacity {
+	if inh.skipStrokeOpacity {
 		strokeOpacity = 1
 	}
 	// Sentinel colors (colorInherit, colorCurrent) carry tiny A

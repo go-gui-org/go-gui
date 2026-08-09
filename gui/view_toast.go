@@ -6,14 +6,14 @@ import (
 )
 
 // ToastSeverity indicates the visual severity of a toast.
-type ToastSeverity uint8
+type toastSeverity uint8
 
 // ToastSeverity constants.
 const (
-	ToastInfo ToastSeverity = iota
-	ToastSuccess
-	ToastWarning
-	ToastError
+	toastInfo toastSeverity = iota
+	toastSuccess
+	toastWarning
+	toastError
 )
 
 // ToastCfg configures a toast notification.
@@ -21,9 +21,9 @@ type ToastCfg struct {
 	OnAction    func(EventCtx)
 	Title       string
 	Body        string
-	ActionLabel string
+	actionLabel string
 	Duration    time.Duration // 0 = default (3s); toastPersistent = no auto-dismiss
-	Severity    ToastSeverity
+	severity    toastSeverity
 }
 
 // toastNotification is an active toast instance.
@@ -66,40 +66,40 @@ func toastContainerView(w *Window) View {
 		w.toasts[i].hovered = false
 	}
 
-	style := DefaultToastStyle
+	style := defaultToastStyle
 
 	// Map anchor to float attach.
-	var anchor, tieOff FloatAttach
+	var anchor, tieOff floatAttach
 	var offsetX, offsetY float32
 
 	switch style.Anchor {
-	case ToastTopLeft:
+	case toastTopLeft:
 		anchor = FloatTopLeft
 		tieOff = FloatTopLeft
-		offsetX = style.Margin
-		offsetY = style.Margin
-	case ToastTopRight:
+		offsetX = style.margin
+		offsetY = style.margin
+	case toastTopRight:
 		anchor = FloatTopRight
 		tieOff = FloatTopRight
-		offsetX = -style.Margin
-		offsetY = style.Margin
-	case ToastBottomLeft:
+		offsetX = -style.margin
+		offsetY = style.margin
+	case toastBottomLeft:
 		anchor = FloatBottomLeft
 		tieOff = FloatBottomLeft
-		offsetX = style.Margin
-		offsetY = -style.Margin
-	case ToastBottomRight:
+		offsetX = style.margin
+		offsetY = -style.margin
+	case toastBottomRight:
 		anchor = FloatBottomRight
 		tieOff = FloatBottomRight
-		offsetX = -style.Margin
-		offsetY = -style.Margin
+		offsetX = -style.margin
+		offsetY = -style.margin
 	}
 
 	// Build toast items. Bottom anchors: newest last.
 	// Top anchors: newest first (reversed).
 	items := make([]View, 0, len(w.toasts))
-	isTop := style.Anchor == ToastTopLeft ||
-		style.Anchor == ToastTopRight
+	isTop := style.Anchor == toastTopLeft ||
+		style.Anchor == toastTopRight
 
 	if isTop {
 		for i := range slices.Backward(w.toasts) {
@@ -135,14 +135,14 @@ func toastItemView(toast *toastNotification, style ToastStyle) View {
 
 	// Accent color based on severity.
 	var accentColor Color
-	switch toast.cfg.Severity {
-	case ToastInfo:
-		accentColor = style.ColorInfo
-	case ToastSuccess:
+	switch toast.cfg.severity {
+	case toastInfo:
+		accentColor = style.colorInfo
+	case toastSuccess:
 		accentColor = style.ColorSuccess
-	case ToastWarning:
+	case toastWarning:
 		accentColor = style.ColorWarning
-	case ToastError:
+	case toastError:
 		accentColor = style.ColorError
 	}
 
@@ -164,12 +164,12 @@ func toastItemView(toast *toastNotification, style ToastStyle) View {
 
 	// Buttons column: action + dismiss.
 	var buttons []View
-	if toast.cfg.ActionLabel != "" && toast.cfg.OnAction != nil {
+	if toast.cfg.actionLabel != "" && toast.cfg.OnAction != nil {
 		onAction := toast.cfg.OnAction
 		buttons = append(buttons, Button(ButtonCfg{
 			ID:      toastBtnID(id, "action"),
 			Color:   ColorTransparent,
-			Content: []View{Text(TextCfg{Text: toast.cfg.ActionLabel, TextStyle: style.TextStyle})},
+			Content: []View{Text(TextCfg{Text: toast.cfg.actionLabel, TextStyle: style.TextStyle})},
 			OnClick: func(ctx EventCtx) {
 				onAction(ctx)
 				toastStartExit(ctx.Window, id)
@@ -220,7 +220,7 @@ func toastItemView(toast *toastNotification, style ToastStyle) View {
 			// Accent bar.
 			Rectangle(RectangleCfg{
 				Color:  accentColor,
-				Width:  style.AccentWidth,
+				Width:  style.accentWidth,
 				Sizing: FixedFill,
 			}),
 			// Body.
@@ -343,7 +343,7 @@ func toastStartExit(w *Window, id uint64) {
 	w.AnimationAdd(&TweenAnimation{
 		AnimID:   animID,
 		Duration: toastExitDuration,
-		Easing:   EaseInCubic,
+		Easing:   easeInCubic,
 		From:     1,
 		To:       0,
 		OnValue: func(val float32, w *Window) {
@@ -374,7 +374,7 @@ func toastRemove(w *Window, id uint64) {
 // toastEnforceMaxVisible starts exit on oldest non-exiting toasts
 // when count exceeds max.
 func toastEnforceMaxVisible(w *Window) {
-	maxVisible := DefaultToastStyle.MaxVisible
+	maxVisible := defaultToastStyle.maxVisible
 	if maxVisible <= 0 {
 		return
 	}
@@ -436,6 +436,7 @@ func (w *Window) Toast(cfg ToastCfg) uint64 {
 }
 
 // ToastDismiss starts exit on a specific toast.
+// exportaudit:keep — documented public API (showcase docs)
 func (w *Window) ToastDismiss(id uint64) {
 	toastStartExit(w, id)
 }

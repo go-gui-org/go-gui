@@ -19,7 +19,7 @@ func TestRestoreTypeMismatchRecovers(t *testing.T) {
 		delete(snapshotableNamespaces.set, ns)
 		snapshotableNamespaces.mu.Unlock()
 	})
-	RegisterNamespaceSnapshot(ns)
+	registerNamespaceSnapshot(ns)
 
 	w := &Window{state: &testState{}, focused: true}
 	w.history = newSnapshotRing(1 << 20)
@@ -32,7 +32,7 @@ func TestRestoreTypeMismatchRecovers(t *testing.T) {
 	// so restoreAny will panic; safeRestoreAny must recover.
 	w.viewState.registry.maps[ns] = NewBoundedMap[string, string](capFew)
 
-	w.PostRestore(0)
+	w.postRestore(0)
 	w.flushCommands()
 	// No panic and the second namespace (untouched) keeps whatever
 	// is in it — restore simply skipped this one.
@@ -68,7 +68,7 @@ func (s *oversizedState) Size() int     { return s.n }
 // the slider emits NaN or ±Inf (implementation-defined int()).
 func TestOnSliderChangeRejectsNaN(t *testing.T) {
 	w, _ := newFixtureApp(t, 3)
-	c := &TimeTravelController{App: w, Cursor: 1}
+	c := &timeTravelController{App: w, Cursor: 1}
 
 	c.onSliderChange(float32(math.NaN()), EventCtx{nil, nil, nil})
 	w.flushCommands()
@@ -94,7 +94,7 @@ func TestOnSliderChangeRejectsNaN(t *testing.T) {
 
 // TestOnSliderChangeNil tolerates a nil receiver.
 func TestOnSliderChangeNil(t *testing.T) {
-	var c *TimeTravelController
+	var c *timeTravelController
 	c.onSliderChange(1.0, EventCtx{nil, nil, nil})
 }
 
@@ -103,7 +103,7 @@ func TestOnSliderChangeNil(t *testing.T) {
 // leave sliderValue outside the track's [Min, Max].
 func TestOnSliderChangeClampsOutOfRange(t *testing.T) {
 	w, _ := newFixtureApp(t, 4)
-	c := &TimeTravelController{App: w, Cursor: 2}
+	c := &timeTravelController{App: w, Cursor: 2}
 
 	c.onSliderChange(-5, EventCtx{nil, nil, nil})
 	w.flushCommands()
@@ -130,8 +130,8 @@ func TestOnSliderChangeClampsOutOfRange(t *testing.T) {
 // to a zero-max slider.
 func TestOnSliderChangeEmptyRingNoOp(t *testing.T) {
 	w := &Window{state: &testState{}}
-	w.EnableHistory(0)
-	c := &TimeTravelController{App: w}
+	w.enableHistory(0)
+	c := &timeTravelController{App: w}
 	c.onSliderChange(5, EventCtx{nil, nil, nil})
 	if c.sliderValue != 0 {
 		t.Fatalf("sliderValue = %v, want 0", c.sliderValue)
@@ -147,7 +147,7 @@ func TestOnSliderChangeEmptyRingNoOp(t *testing.T) {
 // position instead of snapping to the cursor.
 func TestOnSliderChangeKeepsFractional(t *testing.T) {
 	w, _ := newFixtureApp(t, 5)
-	c := &TimeTravelController{App: w, Cursor: 0}
+	c := &timeTravelController{App: w, Cursor: 0}
 	c.onSliderChange(2.7, EventCtx{nil, nil, nil})
 	w.flushCommands()
 	if c.Cursor != 2 {
@@ -164,8 +164,8 @@ func TestOnSliderChangeKeepsFractional(t *testing.T) {
 // cursor via Jump.
 func TestJumpSyncsSliderValue(t *testing.T) {
 	w, _ := newFixtureApp(t, 5)
-	c := &TimeTravelController{App: w, Cursor: 0, sliderValue: 3.7}
-	c.Jump(1)
+	c := &timeTravelController{App: w, Cursor: 0, sliderValue: 3.7}
+	c.jump(1)
 	if c.sliderValue != 1 {
 		t.Fatalf("sliderValue = %v, want 1 after Jump", c.sliderValue)
 	}
@@ -180,12 +180,12 @@ func TestOpenDebugWindowCloseResumes(t *testing.T) {
 	w := &Window{state: &testState{}}
 	w.app = app
 	w.platformID = 1
-	w.EnableHistory(0)
+	w.enableHistory(0)
 	w.Freeze()
-	if !w.IsFrozen() {
+	if !w.isFrozen() {
 		t.Fatal("precondition: app should be frozen")
 	}
-	w.OpenDebugWindow()
+	w.openDebugWindow()
 
 	cfg := <-app.PendingOpen()
 	if cfg.OnCloseRequest == nil {
@@ -194,7 +194,7 @@ func TestOpenDebugWindowCloseResumes(t *testing.T) {
 	dw := NewWindow(cfg)
 	cfg.OnCloseRequest(dw)
 
-	if w.IsFrozen() {
+	if w.isFrozen() {
 		t.Fatal("app still frozen after debug close")
 	}
 	if !dw.CloseRequested() {
@@ -209,8 +209,8 @@ func TestOpenDebugWindowDimensions(t *testing.T) {
 	w := &Window{state: &testState{}}
 	w.app = app
 	w.platformID = 1
-	w.EnableHistory(0)
-	w.OpenDebugWindow()
+	w.enableHistory(0)
+	w.openDebugWindow()
 
 	cfg := <-app.PendingOpen()
 	if cfg.Width != 300 || cfg.Height != 150 {
@@ -221,7 +221,7 @@ func TestOpenDebugWindowDimensions(t *testing.T) {
 // TestControllerViewNilHost returns an empty view rather than
 // panicking when the host window is nil.
 func TestControllerViewNilHost(t *testing.T) {
-	c := &TimeTravelController{}
+	c := &timeTravelController{}
 	if c.View(nil) == nil {
 		t.Fatal("View(nil) returned nil")
 	}
@@ -277,8 +277,8 @@ func TestOpenDebugWindowTruncatesLongTitle(t *testing.T) {
 	w.app = app
 	w.platformID = 1
 	w.Config.Title = strings.Repeat("x", 4096)
-	w.EnableHistory(0)
-	w.OpenDebugWindow()
+	w.enableHistory(0)
+	w.openDebugWindow()
 
 	select {
 	case cfg := <-app.PendingOpen():
@@ -369,8 +369,8 @@ func TestFreezeLabel(t *testing.T) {
 func TestControllerResumeLiveEmpty(t *testing.T) {
 	w := &Window{state: &testState{}}
 	w.history = newSnapshotRing(1 << 20)
-	c := &TimeTravelController{App: w, Cursor: 7}
-	c.ResumeLive()
+	c := &timeTravelController{App: w, Cursor: 7}
+	c.resumeLive()
 	if c.Cursor != 7 {
 		t.Fatalf("Cursor = %d, want 7 (empty history leaves cursor)",
 			c.Cursor)
@@ -381,14 +381,14 @@ func TestControllerResumeLiveEmpty(t *testing.T) {
 // oldest entries are evicted to fit.
 func TestEnableHistoryShrinkEvicts(t *testing.T) {
 	w := &Window{state: &testState{}}
-	w.EnableHistory(4 * snapshotDefaultSize)
+	w.enableHistory(4 * snapshotDefaultSize)
 	for range 4 {
 		w.history.push((&testState{}).Snapshot(), time.Now(), "e")
 	}
 	if w.history.len() != 4 {
 		t.Fatalf("pre-shrink len = %d, want 4", w.history.len())
 	}
-	w.EnableHistory(2 * snapshotDefaultSize)
+	w.enableHistory(2 * snapshotDefaultSize)
 	if w.history.len() != 2 {
 		t.Fatalf("post-shrink len = %d, want 2", w.history.len())
 	}
@@ -404,7 +404,7 @@ func TestEnableHistoryShrinkEvicts(t *testing.T) {
 func TestTimeTravelScrubIntegration(t *testing.T) {
 	s := &testState{}
 	w := &Window{state: s, focused: true}
-	w.EnableHistory(0)
+	w.enableHistory(0)
 
 	// Drive 5 mouse-down events that each bump the counter.
 	for i := 1; i <= 5; i++ {
@@ -421,25 +421,25 @@ func TestTimeTravelScrubIntegration(t *testing.T) {
 	// Scrub back to snapshot 1 (counter was 2 when that entry
 	// was captured AFTER the second event; snapshot 0 has
 	// counter == 1). Jump to 0.
-	c := &TimeTravelController{App: w, Cursor: 4}
-	c.Jump(0)
+	c := &timeTravelController{App: w, Cursor: 4}
+	c.jump(0)
 	w.flushCommands()
 	if s.counter != 1 {
 		t.Fatalf("scrubbed counter = %d, want 1", s.counter)
 	}
-	if !w.IsFrozen() {
+	if !w.isFrozen() {
 		t.Fatal("scrubbing should auto-freeze")
 	}
 
 	// ResumeLive restores the newest entry and unfreezes.
-	c.ResumeLive()
+	c.resumeLive()
 	w.flushCommands()
 	// Resume itself does not replay snapshots; it only unpins
 	// time and unfreezes. Cursor snaps to newest entry.
 	if c.Cursor != 4 {
 		t.Fatalf("Cursor = %d, want 4 after ResumeLive", c.Cursor)
 	}
-	if w.IsFrozen() {
+	if w.isFrozen() {
 		t.Fatal("still frozen after ResumeLive")
 	}
 

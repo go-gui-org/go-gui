@@ -94,7 +94,7 @@ func queueDiagramError(
 		}
 		w.viewState.diagramCache.Set(hash,
 			DiagramCacheEntry{
-				State:     DiagramError,
+				State:     diagramError,
 				Error:     errMsg,
 				RequestID: requestID,
 			})
@@ -170,7 +170,7 @@ func defaultMathFetcher(
 func fetchMathAsync(
 	w *Window, latex string, hash int64,
 	requestID uint64, dpi int, fgColor Color,
-	fetcher MathFetcher,
+	fetcher mathFetcher,
 ) {
 	actualFetcher := fetcher
 	if actualFetcher == nil {

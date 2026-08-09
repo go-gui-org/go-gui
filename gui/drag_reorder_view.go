@@ -43,7 +43,7 @@ func dragReorderCalcIndexFromMids(
 // dragReorderItemMidsFromLayouts resolves draggable layout IDs
 // and stores axis midpoints for fast per-move hit testing.
 func dragReorderItemMidsFromLayouts(
-	axis DragReorderAxis,
+	axis dragReorderAxis,
 	itemLayoutIDs []string,
 	w *Window,
 ) ([]float32, bool) {
@@ -57,9 +57,9 @@ func dragReorderItemMidsFromLayouts(
 			return nil, false
 		}
 		switch axis {
-		case DragReorderVertical:
+		case dragReorderVertical:
 			mids = append(mids, ly.Shape.Y+(ly.Shape.Height/2))
-		case DragReorderHorizontal:
+		case dragReorderHorizontal:
 			mids = append(mids, ly.Shape.X+(ly.Shape.Width/2))
 		}
 	}
@@ -100,10 +100,10 @@ func dragReorderGhostView(state dragReorderState, content View) View {
 // dragReorderGapView returns a transparent spacer the same
 // size as the dragged item.
 func dragReorderGapView(
-	state dragReorderState, axis DragReorderAxis,
+	state dragReorderState, axis dragReorderAxis,
 ) View {
 	sizing := FillFixed
-	if axis == DragReorderHorizontal {
+	if axis == dragReorderHorizontal {
 		sizing = FixedFit
 	}
 	return Rectangle(RectangleCfg{

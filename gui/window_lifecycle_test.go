@@ -267,9 +267,9 @@ func TestPasswordMaskInRenderText(t *testing.T) {
 		Width:     100,
 		Height:    20,
 		Opacity:   1.0,
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			Text:           "secret",
-			TextIsPassword: true,
+			textIsPassword: true,
 			TextStyle:      &TextStyle{Color: RGB(255, 255, 255), Size: 16},
 		},
 	}
@@ -303,7 +303,7 @@ func TestRenderTextWrapSetsWidth(t *testing.T) {
 		Width:     250,
 		Height:    20,
 		Opacity:   1.0,
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			Text:     "wrap me",
 			TextMode: TextModeWrap,
 			TextStyle: &TextStyle{
@@ -339,7 +339,7 @@ func TestRenderTextNoWrapOmitsWidth(t *testing.T) {
 		Width:     250,
 		Height:    20,
 		Opacity:   1.0,
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			Text: "no wrap",
 			TextStyle: &TextStyle{
 				Color: RGB(255, 255, 255), Size: 16,
@@ -388,13 +388,13 @@ func TestSetClipboardNilSafe(t *testing.T) {
 
 func TestSetIDFocusClearsInputSelections(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int), Width: 100, Height: 100})
-	setInputState(w, "f10", InputState{SelectBeg: 1, SelectEnd: 5})
+	setInputState(w, "f10", inputState{selectBeg: 1, selectEnd: 5})
 	w.SetFocus("f20")
 
 	is := getInputState(w, "f10")
-	if is.SelectBeg != 0 || is.SelectEnd != 0 {
+	if is.selectBeg != 0 || is.selectEnd != 0 {
 		t.Errorf("selection not cleared: beg=%d end=%d",
-			is.SelectBeg, is.SelectEnd)
+			is.selectBeg, is.selectEnd)
 	}
 }
 
@@ -410,17 +410,17 @@ func TestSetIDFocusEnablesCursorBlink(t *testing.T) {
 
 func TestMouseLockAndUnlock(t *testing.T) {
 	w := &Window{}
-	if w.MouseIsLocked() {
+	if w.mouseIsLocked() {
 		t.Error("should not be locked initially")
 	}
 	w.MouseLock(MouseLockCfg{
 		MouseMove: func(ctx EventCtx) {},
 	})
-	if !w.MouseIsLocked() {
+	if !w.mouseIsLocked() {
 		t.Error("should be locked after MouseLock")
 	}
 	w.MouseUnlock()
-	if w.MouseIsLocked() {
+	if w.mouseIsLocked() {
 		t.Error("should not be locked after MouseUnlock")
 	}
 }
@@ -428,7 +428,7 @@ func TestMouseLockAndUnlock(t *testing.T) {
 func TestPointerOverAppInside(t *testing.T) {
 	w := &Window{windowWidth: 800, windowHeight: 600}
 	e := &Event{MouseX: 400, MouseY: 300}
-	if !w.PointerOverApp(e) {
+	if !w.pointerOverApp(e) {
 		t.Error("center point should be inside")
 	}
 }
@@ -436,11 +436,11 @@ func TestPointerOverAppInside(t *testing.T) {
 func TestPointerOverAppOutside(t *testing.T) {
 	w := &Window{windowWidth: 800, windowHeight: 600}
 	e := &Event{MouseX: -1, MouseY: 300}
-	if w.PointerOverApp(e) {
+	if w.pointerOverApp(e) {
 		t.Error("negative X should be outside")
 	}
 	e2 := &Event{MouseX: 900, MouseY: 300}
-	if w.PointerOverApp(e2) {
+	if w.pointerOverApp(e2) {
 		t.Error("beyond width should be outside")
 	}
 }

@@ -8,7 +8,7 @@ import (
 
 func TestComputeTextPathPlacements_NilTextSys(t *testing.T) {
 	layout, placements, err := ComputeTextPathPlacements(
-		&RenderCmd{TextPath: &TextPathData{}, TextStylePtr: &TextStyle{}},
+		&RenderCmd{textPath: &textPathData{}, TextStylePtr: &TextStyle{}},
 		nil, nil, func(ts TextStyle) glyph.TextConfig { return glyph.TextConfig{} },
 	)
 	if err != nil {
@@ -36,7 +36,7 @@ func TestComputeTextPathPlacements_NilTextPath(t *testing.T) {
 
 func TestComputeTextPathPlacements_NilTextStylePtr(t *testing.T) {
 	layout, placements, err := ComputeTextPathPlacements(
-		&RenderCmd{TextPath: &TextPathData{}},
+		&RenderCmd{textPath: &textPathData{}},
 		nil, nil, func(ts TextStyle) glyph.TextConfig { return glyph.TextConfig{} },
 	)
 	if err != nil {

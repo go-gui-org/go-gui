@@ -9,7 +9,7 @@ func TestThemeRegisterAndGet(t *testing.T) {
 		themeRegistryMu.Unlock()
 	}()
 
-	ThemeRegister(Theme{Name: "test-reg", ColorPanel: Red})
+	themeRegister(Theme{Name: "test-reg", ColorPanel: Red})
 	got, ok := ThemeGet("test-reg")
 	if !ok {
 		t.Fatal("expected theme to be found")
@@ -34,9 +34,9 @@ func TestThemeRegisteredNames(t *testing.T) {
 		themeRegistryMu.Unlock()
 	}()
 
-	ThemeRegister(Theme{Name: "zz-test"})
-	ThemeRegister(Theme{Name: "aa-test"})
-	names := ThemeRegisteredNames()
+	themeRegister(Theme{Name: "zz-test"})
+	themeRegister(Theme{Name: "aa-test"})
+	names := themeRegisteredNames()
 	// Should be sorted and contain our entries.
 	found := 0
 	for i, n := range names {

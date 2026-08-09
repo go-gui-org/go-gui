@@ -36,7 +36,7 @@ import (
 )
 
 // LocaleDetect returns the BCP 47 locale ID from the OS.
-func LocaleDetect() string {
+func localeDetect() string {
 	cStr := C.detectLocale()
 	if cStr == nil {
 		return localeFromEnv()

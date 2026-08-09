@@ -82,7 +82,7 @@ func BenchmarkUpdateKeyframe(b *testing.B) {
 func BenchmarkUpdateSpring(b *testing.B) {
 	sp := NewSpringAnimation("bench:spring", benchAnimationOnValue)
 	sp.OnDone = benchAnimationOnDone
-	sp.Config = SpringGentle
+	sp.Config = springGentle
 	sp.SpringTo(0, 100)
 	sp.start = time.Now().Add(-time.Second)
 	w := &Window{}

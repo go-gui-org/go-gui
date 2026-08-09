@@ -2,13 +2,14 @@ package gui
 
 // Axis defines if a Layout arranges children horizontally,
 // vertically, or not at all.
+// exportaudit:keep — lowercase axis is pervasive as a local (layout code)
 type Axis uint8
 
 // Axis constants.
 const (
-	AxisNone        Axis = iota
-	AxisTopToBottom      // vertical
-	AxisLeftToRight      // horizontal
+	axisNone        Axis = iota
+	axisTopToBottom      // vertical
+	axisLeftToRight      // horizontal
 )
 
 // HorizontalAlign specifies horizontal alignment.
@@ -24,11 +25,11 @@ const (
 )
 
 // VerticalAlign specifies vertical alignment.
-type VerticalAlign uint8
+type verticalAlign uint8
 
 // VerticalAlign constants.
 const (
-	VAlignTop VerticalAlign = iota
+	VAlignTop verticalAlign = iota
 	VAlignMiddle
 	VAlignBottom
 )

@@ -135,7 +135,7 @@ func (c evClass) wouldReach(anc *Layout, e *Event, w *Window) bool {
 		// (mouseDownHandler), so an ancestor listening for right-click
 		// only is not reached by a left-click.
 		if ev.OnClick == nil ||
-			(ev.ClickButton != 0 && e.MouseButton != ev.ClickButton) {
+			(ev.clickButton != 0 && e.MouseButton != ev.clickButton) {
 			return false
 		}
 		return s.PointInShape(e.MouseX, e.MouseY)
@@ -200,13 +200,14 @@ func (c evClass) name() string {
 //
 // Named TestUnconsumedEvents before v0.55.0, when it measured the cost of
 // a collapse that has since happened.
+// exportaudit:keep — public testing API used by sibling repos
 func (w *Window) TestUnconsumedEvents() []string {
 	root := w.TestRender(nil)
 	if root == nil {
 		return nil
 	}
 	var found []string
-	prevOn := DebugEnabled()
+	prevOn := debugEnabled()
 	// A fresh warn-once map: a sweep should report the window in front
 	// of it, not skip what an earlier sweep or a stray frame reported.
 	prevWarned := w.debug.warned
@@ -252,7 +253,7 @@ func (w *Window) sweepShape(root, l *Layout) {
 	cy := s.shapeClip.Y + s.shapeClip.Height/2
 	if ev.OnClick != nil {
 		mouseDownHandler(root, false,
-			&Event{MouseX: cx, MouseY: cy, MouseButton: ev.ClickButton}, w)
+			&Event{MouseX: cx, MouseY: cy, MouseButton: ev.clickButton}, w)
 	}
 	if ev.OnMouseUp != nil {
 		mouseUpHandler(root, &Event{MouseX: cx, MouseY: cy}, w)

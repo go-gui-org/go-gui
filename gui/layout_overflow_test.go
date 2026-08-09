@@ -28,7 +28,7 @@ func TestLayoutOverflowSkipsNonOverflow(t *testing.T) {
 	layout := &Layout{
 		Shape: &Shape{
 			Overflow: false,
-			Axis:     AxisLeftToRight,
+			Axis:     axisLeftToRight,
 		},
 		Children: []Layout{
 			{Shape: &Shape{shapeType: shapeRectangle, Width: 50}},
@@ -50,7 +50,7 @@ func TestLayoutOverflowSkipsNonLTR(t *testing.T) {
 	layout := &Layout{
 		Shape: &Shape{
 			Overflow: true,
-			Axis:     AxisTopToBottom,
+			Axis:     axisTopToBottom,
 		},
 		Children: []Layout{
 			{Shape: &Shape{shapeType: shapeRectangle, Width: 50}},
@@ -71,7 +71,7 @@ func TestLayoutOverflowSkipsTooFewChildren(t *testing.T) {
 	layout := &Layout{
 		Shape: &Shape{
 			Overflow: true,
-			Axis:     AxisLeftToRight,
+			Axis:     axisLeftToRight,
 		},
 		Children: []Layout{
 			{Shape: &Shape{shapeType: shapeRectangle, Width: 50}},
@@ -89,7 +89,7 @@ func TestLayoutOverflowSkipsScrollContainer(t *testing.T) {
 	layout := &Layout{
 		Shape: &Shape{
 			Overflow:   true,
-			Axis:       AxisLeftToRight,
+			Axis:       axisLeftToRight,
 			Scrollable: true,
 			ID:         "1",
 		},
@@ -120,7 +120,7 @@ func TestLayoutOverflowHidesExcessChildren(t *testing.T) {
 		Shape: &Shape{
 			ID:       "overflow-test",
 			Overflow: true,
-			Axis:     AxisLeftToRight,
+			Axis:     axisLeftToRight,
 			Width:    100,
 		},
 		Children: []Layout{
@@ -156,7 +156,7 @@ func TestLayoutOverflowAllFit(t *testing.T) {
 		Shape: &Shape{
 			ID:       "overflow-allfit",
 			Overflow: true,
-			Axis:     AxisLeftToRight,
+			Axis:     axisLeftToRight,
 			Width:    200,
 		},
 		Children: []Layout{

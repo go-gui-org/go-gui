@@ -66,23 +66,12 @@ const (
 )
 
 // SvgTextPathMethod selects the method for textPath glyph placement.
-type SvgTextPathMethod uint8
+type svgTextPathMethod uint8
 
 // SvgTextPathMethod constants.
 const (
-	SvgTextPathMethodAlign SvgTextPathMethod = iota
-	SvgTextPathMethodStretch
-)
-
-// SvgTextPathSide selects which side of the path textPath glyphs sit on.
-// Currently parsed but the renderer always places glyphs on the left side;
-// right-side placement is pending.
-type SvgTextPathSide uint8
-
-// SvgTextPathSide constants.
-const (
-	SvgTextPathSideLeft SvgTextPathSide = iota
-	SvgTextPathSideRight
+	svgTextPathMethodAlign svgTextPathMethod = iota
+	svgTextPathMethodStretch
 )
 
 // SvgText holds a parsed SVG text element.
@@ -117,8 +106,7 @@ type SvgTextPath struct {
 	FilterID      string
 	FontWeight    int // CSS numeric weight (100-900); 0 = default (400)
 	Anchor        SvgTextAnchor
-	Method        SvgTextPathMethod
-	Side          SvgTextPathSide
+	method        svgTextPathMethod
 	FontSize      float32
 	Opacity       float32
 	StartOffset   float32
@@ -381,11 +369,11 @@ type SvgAnimation struct {
 const SvgAnimIterInfinite uint16 = 0xFFFF
 
 // SvgPrimitiveKind identifies the source primitive of a VectorPath.
-type SvgPrimitiveKind uint8
+type svgPrimitiveKind uint8
 
 // SvgPrimitiveKind constants.
 const (
-	SvgPrimNone SvgPrimitiveKind = iota
+	SvgPrimNone svgPrimitiveKind = iota
 	SvgPrimCircle
 	SvgPrimEllipse
 	SvgPrimRect
@@ -398,7 +386,7 @@ const (
 // composed transform lives on the owning VectorPath / GroupID; only
 // the primitive-local attributes are captured here.
 type SvgPrimitive struct {
-	Kind   SvgPrimitiveKind
+	Kind   svgPrimitiveKind
 	CX, CY float32 // circle / ellipse center
 	R      float32 // circle radius
 	RX, RY float32 // ellipse / rect corner radii

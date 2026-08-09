@@ -113,7 +113,7 @@ func TestDragReorderItemMidsFromLayouts(t *testing.T) {
 		},
 	}
 	mids, ok := dragReorderItemMidsFromLayouts(
-		DragReorderVertical, []string{"a", "b", "c"}, w)
+		dragReorderVertical, []string{"a", "b", "c"}, w)
 	if !ok || len(mids) != 3 {
 		t.Fatalf("expected 3 mids, got %d ok=%v", len(mids), ok)
 	}
@@ -131,7 +131,7 @@ func TestDragReorderItemMidsFromLayoutsMissing(t *testing.T) {
 		},
 	}
 	_, ok := dragReorderItemMidsFromLayouts(
-		DragReorderVertical, []string{"a", "missing"}, w)
+		dragReorderVertical, []string{"a", "missing"}, w)
 	if ok {
 		t.Error("expected false for missing layout ID")
 	}
@@ -178,7 +178,7 @@ func TestDragReorderStartSetsLayoutValidity(t *testing.T) {
 	dragKeyOK := "drag_layout_ok"
 	dragReorderStart(dragReorderStartCfg{
 		DragKey: dragKeyOK, Index: 0, ItemID: "a",
-		Axis: DragReorderVertical, ItemIDs: []string{"a", "b"},
+		Axis: dragReorderVertical, ItemIDs: []string{"a", "b"},
 		OnReorder: noop, ItemLayoutIDs: []string{"a", "b"},
 		Layout: item, Event: e,
 	}, w)
@@ -191,7 +191,7 @@ func TestDragReorderStartSetsLayoutValidity(t *testing.T) {
 	dragKeyMissing := "drag_layout_missing"
 	dragReorderStart(dragReorderStartCfg{
 		DragKey: dragKeyMissing, Index: 0, ItemID: "a",
-		Axis: DragReorderVertical, ItemIDs: []string{"a", "b"},
+		Axis: dragReorderVertical, ItemIDs: []string{"a", "b"},
 		OnReorder: noop, ItemLayoutIDs: []string{"a", "missing"},
 		Layout: item, Event: e,
 	}, w)
@@ -206,7 +206,7 @@ func TestDragReorderKeyboardMoveRequiresAlt(t *testing.T) {
 	w.layout = Layout{Shape: &Shape{ID: "root"}}
 	called := false
 	handled := dragReorderKeyboardMove(
-		KeyDown, ModNone, DragReorderVertical, 1,
+		KeyDown, ModNone, dragReorderVertical, 1,
 		[]string{"a", "b", "c"},
 		func(string, string, EventCtx) { called = true }, w)
 	if handled || called {
@@ -220,7 +220,7 @@ func TestDragReorderKeyboardMovePayloadAndBoundary(t *testing.T) {
 	var moved, before string
 	called := false
 	handled := dragReorderKeyboardMove(
-		KeyRight, ModAlt, DragReorderHorizontal, 1,
+		KeyRight, ModAlt, dragReorderHorizontal, 1,
 		[]string{"a", "b", "c", "d"},
 		func(m, b string, _ EventCtx) {
 			called = true
@@ -237,7 +237,7 @@ func TestDragReorderKeyboardMovePayloadAndBoundary(t *testing.T) {
 	// Boundary: Alt+Left at index 0 is a no-op.
 	boundaryCalled := false
 	handled = dragReorderKeyboardMove(
-		KeyLeft, ModAlt, DragReorderHorizontal, 0,
+		KeyLeft, ModAlt, dragReorderHorizontal, 0,
 		[]string{"a", "b", "c"},
 		func(string, string, EventCtx) { boundaryCalled = true }, w)
 	if handled || boundaryCalled {
@@ -268,7 +268,7 @@ func TestDragReorderCalcIndexWithScrollDelta(t *testing.T) {
 	// Container scrolls down to -20 (delta = -10).
 	sy.Set(idScroll, -20.0)
 
-	dragReorderOnMouseMove(dragKey, DragReorderVertical, 0, 115, w)
+	dragReorderOnMouseMove(dragKey, dragReorderVertical, 0, 115, w)
 
 	newState := dragReorderGet(w, dragKey)
 	if newState.currentIndex != 1 {
@@ -296,7 +296,7 @@ func TestDragReorderAutoScrollTimerActivation(t *testing.T) {
 	dragReorderSet(w, dragKey, state)
 
 	// Mouse near start edge (within scroll zone).
-	dragReorderOnMouseMove(dragKey, DragReorderVertical, 0, 5, w)
+	dragReorderOnMouseMove(dragKey, dragReorderVertical, 0, 5, w)
 
 	newState := dragReorderGet(w, dragKey)
 	if !newState.scrollTimerActive {
@@ -307,7 +307,7 @@ func TestDragReorderAutoScrollTimerActivation(t *testing.T) {
 	}
 
 	// Mouse moves away from scroll zone.
-	dragReorderOnMouseMove(dragKey, DragReorderVertical, 0, 50, w)
+	dragReorderOnMouseMove(dragKey, dragReorderVertical, 0, 50, w)
 	stateAfter := dragReorderGet(w, dragKey)
 	if stateAfter.scrollTimerActive {
 		t.Error("scroll timer should be inactive")
@@ -335,7 +335,7 @@ func TestDragReorderCancelsOnMidDragMutation(t *testing.T) {
 	called := false
 	dragReorderStart(dragReorderStartCfg{
 		DragKey: dragKey, Index: 0, ItemID: "a",
-		Axis: DragReorderVertical, ItemIDs: []string{"a", "b", "c"},
+		Axis: dragReorderVertical, ItemIDs: []string{"a", "b", "c"},
 		OnReorder:     func(_ string, _ string, ctx EventCtx) { called = true },
 		ItemLayoutIDs: []string{"a", "b", "c"},
 		Layout:        item, Event: e,
@@ -374,7 +374,7 @@ func TestDragReorderCancelsOnMidDragMoveMutation(t *testing.T) {
 	// Mutate IDs before move.
 	dragReorderIDsMetaSet(w, dragKey, []string{"a", "c"})
 	dragReorderOnMouseMove(
-		dragKey, DragReorderVertical, 0, 0, w)
+		dragKey, dragReorderVertical, 0, 0, w)
 
 	newState := dragReorderGet(w, dragKey)
 	if newState.started || newState.active {
@@ -424,7 +424,7 @@ func TestDragReorderGapViewSizing(t *testing.T) {
 		itemWidth: 120, itemHeight: 40,
 	}
 
-	vGap := dragReorderGapView(state, DragReorderVertical)
+	vGap := dragReorderGapView(state, dragReorderVertical)
 	vLy := generateViewLayout(vGap, w)
 	if vLy.Shape.Width != 120 || vLy.Shape.Height != 40 {
 		t.Errorf("vertical gap = %vx%v, want 120x40",
@@ -435,7 +435,7 @@ func TestDragReorderGapViewSizing(t *testing.T) {
 			vLy.Shape.Sizing)
 	}
 
-	hGap := dragReorderGapView(state, DragReorderHorizontal)
+	hGap := dragReorderGapView(state, dragReorderHorizontal)
 	hLy := generateViewLayout(hGap, w)
 	if hLy.Shape.Width != 120 || hLy.Shape.Height != 40 {
 		t.Errorf("horizontal gap = %vx%v, want 120x40",
@@ -472,7 +472,7 @@ func TestDragReorderScrollChangeUsesUniformEstimate(t *testing.T) {
 
 	// With scroll change, mids are invalid; uniform should yield 0.
 	dragReorderOnMouseMove(
-		dragKey, DragReorderVertical, 0, 15, w)
+		dragKey, dragReorderVertical, 0, 15, w)
 
 	newState := dragReorderGet(w, dragKey)
 	if newState.currentIndex != 0 {

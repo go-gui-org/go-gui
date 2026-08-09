@@ -9,7 +9,7 @@ type Kind uint8
 
 // Kind values — the classes a Token may belong to.
 const (
-	KindPlain Kind = iota
+	kindPlain Kind = iota
 	KindKeyword
 	KindString
 	KindNumber

@@ -13,14 +13,14 @@ func TestPresetThemesDefined(t *testing.T) {
 		{"light", ThemeLight},
 		{"light-no-padding", themeLightNoPadding},
 		{"light-bordered", themeLightBordered},
-		{"blue-dark", ThemeBlue},
+		{"blue-dark", themeBlue},
 		{"blue-dark-bordered", themeBlueBordered},
 	}
 	for _, tt := range themes {
 		if tt.theme.Name == "" {
 			t.Errorf("%s: empty name", tt.name)
 		}
-		if tt.theme.ColorBackground.Eq(Color{}) {
+		if tt.theme.ColorBackground.eq(Color{}) {
 			t.Errorf("%s: zero background", tt.name)
 		}
 	}
@@ -45,7 +45,7 @@ func TestLightThemeColors(t *testing.T) {
 }
 
 func TestPresetThemesRegistered(t *testing.T) {
-	names := ThemeRegisteredNames()
+	names := themeRegisteredNames()
 	if len(names) < 8 {
 		t.Errorf("registered themes = %d, want >= 8",
 			len(names))

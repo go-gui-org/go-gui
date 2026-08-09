@@ -13,9 +13,9 @@ func rtfSelectAmendLayout(ctx EventCtx) {
 	if ctx.Layout.Shape.ID == "" || !ctx.Layout.Shape.Focusable || ctx.Layout.Shape.TC == nil {
 		return
 	}
-	is := StateReadOr(ctx.Window, nsInput, ctx.Layout.Shape.idKey(), InputState{})
-	ctx.Layout.Shape.TC.TextSelBeg = is.SelectBeg
-	ctx.Layout.Shape.TC.TextSelEnd = is.SelectEnd
+	is := StateReadOr(ctx.Window, nsInput, ctx.Layout.Shape.idKey(), inputState{})
+	ctx.Layout.Shape.TC.textSelBeg = is.selectBeg
+	ctx.Layout.Shape.TC.textSelEnd = is.selectEnd
 }
 
 // rtfMarkdownAmendLayout calls rtfAmendTooltip and the markdown block
@@ -38,16 +38,16 @@ func rtfSelectOnClick(ctx EventCtx) {
 	}
 	ctx.Window.SetFocus(shape.idKey())
 
-	gl := shape.TC.RTFLayout
-	flatText := shape.TC.RTFFlatText
+	gl := shape.TC.rTFLayout
+	flatText := shape.TC.rTFFlatText
 
 	byteIdx := gl.GetClosestOffset(ctx.Event.MouseX, ctx.Event.MouseY)
 	runePos := byteToRuneIndex(flatText, byteIdx)
 
 	focusID := shape.idKey()
-	imap := StateMap[string, InputState](ctx.Window, nsInput, capMany)
+	imap := StateMap[string, inputState](ctx.Window, nsInput, capMany)
 	// Default InputState{}: zero value seeds initial selection/cursor state.
-	is := imap.GetOr(focusID, InputState{})
+	is := imap.GetOr(focusID, inputState{})
 
 	now := time.Now().UnixMilli()
 	doubleClick := is.LastClickTime > 0 &&
@@ -59,19 +59,19 @@ func rtfSelectOnClick(ctx EventCtx) {
 		beg := byteToRuneIndex(flatText, bBeg)
 		end := byteToRuneIndex(flatText, bEnd)
 		is.CursorPos = end
-		is.SelectBeg = uint32(beg)
-		is.SelectEnd = uint32(end)
+		is.selectBeg = uint32(beg)
+		is.selectEnd = uint32(end)
 	} else {
 		is.CursorPos = runePos
-		is.SelectBeg = uint32(runePos)
-		is.SelectEnd = uint32(runePos)
+		is.selectBeg = uint32(runePos)
+		is.selectEnd = uint32(runePos)
 	}
-	is.CursorOffset = -1
+	is.cursorOffset = -1
 	imap.Set(focusID, is)
 	ctx.Consume()
 
-	anchorPos := is.SelectBeg
-	anchorEnd := is.SelectEnd
+	anchorPos := is.selectBeg
+	anchorEnd := is.selectEnd
 	dragShapeX := shape.X
 	dragShapeY := shape.Y
 
@@ -111,29 +111,29 @@ func rtfSelectOnClick(ctx EventCtx) {
 	}
 
 	updateDrag := func(rp int, w *Window) {
-		dim := StateMap[string, InputState](w, nsInput, capMany)
+		dim := StateMap[string, inputState](w, nsInput, capMany)
 		// Default InputState{}: zero value seeds initial drag-edit state.
-		dis := dim.GetOr(focusID, InputState{})
+		dis := dim.GetOr(focusID, inputState{})
 		if doubleClick {
 			bi := runeToByteIndex(flatText, rp)
 			bBeg, bEnd := gl.GetWordAtIndex(bi)
 			wb := byteToRuneIndex(flatText, bBeg)
 			we := byteToRuneIndex(flatText, bEnd)
 			if rp < int(anchorPos) {
-				dis.SelectBeg = anchorEnd
-				dis.SelectEnd = uint32(wb)
+				dis.selectBeg = anchorEnd
+				dis.selectEnd = uint32(wb)
 				dis.CursorPos = wb
 			} else {
-				dis.SelectBeg = anchorPos
-				dis.SelectEnd = uint32(we)
+				dis.selectBeg = anchorPos
+				dis.selectEnd = uint32(we)
 				dis.CursorPos = we
 			}
 		} else {
 			dis.CursorPos = rp
-			dis.SelectBeg = anchorPos
-			dis.SelectEnd = uint32(rp)
+			dis.selectBeg = anchorPos
+			dis.selectEnd = uint32(rp)
 		}
-		dis.CursorOffset = -1
+		dis.cursorOffset = -1
 		dim.Set(focusID, dis)
 	}
 
@@ -195,16 +195,16 @@ func rtfSelectOnKeyDown(ctx EventCtx) {
 		return
 	}
 	id := shape.idKey()
-	flatText := shape.TC.RTFFlatText
-	gl := *shape.TC.RTFLayout
+	flatText := shape.TC.rTFFlatText
+	gl := *shape.TC.rTFLayout
 
-	imap := StateMap[string, InputState](ctx.Window, nsInput, capMany)
+	imap := StateMap[string, inputState](ctx.Window, nsInput, capMany)
 	// Default InputState{}: zero value seeds initial keyboard-nav state.
-	is := imap.GetOr(id, InputState{})
-	savedOffset := is.CursorOffset
-	savedTrailing := is.CursorTrailing
-	is.CursorOffset = -1
-	is.CursorTrailing = false
+	is := imap.GetOr(id, inputState{})
+	savedOffset := is.cursorOffset
+	savedTrailing := is.cursorTrailing
+	is.cursorOffset = -1
+	is.cursorTrailing = false
 	runeLen := utf8RuneCount(flatText)
 	pos := min(is.CursorPos, runeLen)
 	isShift := ctx.Event.Modifiers.Has(ModShift)

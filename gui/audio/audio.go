@@ -10,19 +10,20 @@ import (
 
 // Cfg configures the audio subsystem.  Zero value selects sensible
 // defaults.
+// exportaudit:keep — reachable from an exported signature
 type Cfg struct {
 	// Frequency is the output sample rate in Hz.  Default: 44100.
-	Frequency int
+	frequency int
 	// OutputChannels is the number of output channels
 	// (1 = mono, 2 = stereo).  beep is stereo-only; this field is
 	// accepted but ignored.  Default: 2.
-	OutputChannels int
+	outputChannels int
 	// ChunkSize is the speaker buffer size in samples.  Smaller
 	// values reduce latency but increase CPU.  Default: 2048.
-	ChunkSize int
+	chunkSize int
 	// MixChannels is the number of mixing channels for sound
 	// effects.  Default: 16.
-	MixChannels int
+	mixChannels int
 }
 
 var (
@@ -35,27 +36,27 @@ var (
 //
 // Pass zero or one [Cfg]; additional values are ignored.
 // Call from any goroutine.  Idempotent — repeated calls return nil.
-func Init(cfg ...Cfg) error {
+func Init(opts ...Cfg) error {
 	if initialized {
 		return nil
 	}
 	var c Cfg
-	if len(cfg) > 0 {
-		c = cfg[0]
+	if len(opts) > 0 {
+		c = opts[0]
 	}
-	c.Frequency = cmp.Or(c.Frequency, 44100)
-	c.OutputChannels = cmp.Or(c.OutputChannels, 2)
-	c.ChunkSize = cmp.Or(c.ChunkSize, 2048)
-	c.MixChannels = cmp.Or(c.MixChannels, 16)
+	c.frequency = cmp.Or(c.frequency, 44100)
+	c.outputChannels = cmp.Or(c.outputChannels, 2)
+	c.chunkSize = cmp.Or(c.chunkSize, 2048)
+	c.mixChannels = cmp.Or(c.mixChannels, 16)
 
-	if c.Frequency < 8000 || c.Frequency > 192000 {
-		return fmt.Errorf("audio: frequency %d out of range [8000, 192000]", c.Frequency)
+	if c.frequency < 8000 || c.frequency > 192000 {
+		return fmt.Errorf("audio: frequency %d out of range [8000, 192000]", c.frequency)
 	}
-	if c.ChunkSize < 64 || c.ChunkSize > 16384 {
-		return fmt.Errorf("audio: chunk size %d out of range [64, 16384]", c.ChunkSize)
+	if c.chunkSize < 64 || c.chunkSize > 16384 {
+		return fmt.Errorf("audio: chunk size %d out of range [64, 16384]", c.chunkSize)
 	}
-	if c.MixChannels < 1 || c.MixChannels > 256 {
-		return fmt.Errorf("audio: mix channels %d out of range [1, 256]", c.MixChannels)
+	if c.mixChannels < 1 || c.mixChannels > 256 {
+		return fmt.Errorf("audio: mix channels %d out of range [1, 256]", c.mixChannels)
 	}
 
 	if err := backend.Init(c); err != nil {
@@ -67,7 +68,7 @@ func Init(cfg ...Cfg) error {
 
 // Quit shuts down the audio subsystem.  All playing sounds and music
 // are halted.  Safe to call even if [Init] was never called.
-func Quit() {
+func quit() {
 	if !initialized {
 		return
 	}
@@ -82,18 +83,19 @@ func SetMasterVolume(v float64) {
 }
 
 // MasterVolume returns the current master sound volume (0–1).
+// exportaudit:keep — collides with the backend's masterVolume field
 func MasterVolume() float64 {
 	return backend.MasterVolume()
 }
 
 // SetMusicVolume sets the global music volume.
 // v is clamped to [0, 1].
-func SetMusicVolume(v float64) {
+func setMusicVolume(v float64) {
 	backend.SetMusicVolume(v)
 }
 
 // MusicVolume returns the current music volume (0–1).
-func MusicVolume() float64 {
+func musicVolume() float64 {
 	return backend.MusicVolume()
 }
 

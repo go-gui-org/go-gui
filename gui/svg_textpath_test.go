@@ -253,7 +253,7 @@ func TestBuildArcLengthTableDiagonal(t *testing.T) {
 }
 
 func TestSamplePathAtEmpty(t *testing.T) {
-	x, y, a := SamplePathAt(nil, nil, 0)
+	x, y, a := samplePathAt(nil, nil, 0)
 	if x != 0 || y != 0 || a != 0 {
 		t.Fatal("expected zeros")
 	}
@@ -262,7 +262,7 @@ func TestSamplePathAtEmpty(t *testing.T) {
 func TestSamplePathAtSinglePoint(t *testing.T) {
 	poly := []float32{5, 10}
 	table := []float32{0}
-	x, y, a := SamplePathAt(poly, table, 0)
+	x, y, a := samplePathAt(poly, table, 0)
 	if x != 5 || y != 10 || a != 0 {
 		t.Fatalf("expected (5,10,0), got (%f,%f,%f)", x, y, a)
 	}
@@ -271,7 +271,7 @@ func TestSamplePathAtSinglePoint(t *testing.T) {
 func TestSamplePathAtStart(t *testing.T) {
 	poly := []float32{0, 0, 10, 0}
 	table := []float32{0, 10}
-	x, y, angle := SamplePathAt(poly, table, 0)
+	x, y, angle := samplePathAt(poly, table, 0)
 	if x != 0 || y != 0 {
 		t.Fatalf("expected (0,0), got (%f,%f)", x, y)
 	}
@@ -283,7 +283,7 @@ func TestSamplePathAtStart(t *testing.T) {
 func TestSamplePathAtEnd(t *testing.T) {
 	poly := []float32{0, 0, 10, 0}
 	table := []float32{0, 10}
-	x, y, angle := SamplePathAt(poly, table, 10)
+	x, y, angle := samplePathAt(poly, table, 10)
 	if x != 10 || y != 0 {
 		t.Fatalf("expected (10,0), got (%f,%f)", x, y)
 	}
@@ -295,7 +295,7 @@ func TestSamplePathAtEnd(t *testing.T) {
 func TestSamplePathAtMidpoint(t *testing.T) {
 	poly := []float32{0, 0, 10, 0}
 	table := []float32{0, 10}
-	x, y, _ := SamplePathAt(poly, table, 5)
+	x, y, _ := samplePathAt(poly, table, 5)
 	if f32Abs(x-5) > 0.01 || f32Abs(y) > 0.01 {
 		t.Fatalf("expected (5,0), got (%f,%f)", x, y)
 	}
@@ -304,7 +304,7 @@ func TestSamplePathAtMidpoint(t *testing.T) {
 func TestSamplePathAtVertical(t *testing.T) {
 	poly := []float32{0, 0, 0, 10}
 	table := []float32{0, 10}
-	_, _, angle := SamplePathAt(poly, table, 5)
+	_, _, angle := samplePathAt(poly, table, 5)
 	expected := float32(math.Pi / 2)
 	if f32Abs(angle-expected) > 0.01 {
 		t.Fatalf("expected angle %f, got %f", expected, angle)
@@ -314,7 +314,7 @@ func TestSamplePathAtVertical(t *testing.T) {
 func TestSamplePathAtMultiSegment(t *testing.T) {
 	poly := []float32{0, 0, 10, 0, 20, 0}
 	table := []float32{0, 10, 20}
-	x, y, _ := SamplePathAt(poly, table, 15)
+	x, y, _ := samplePathAt(poly, table, 15)
 	if f32Abs(x-15) > 0.01 || f32Abs(y) > 0.01 {
 		t.Fatalf("expected (15,0), got (%f,%f)", x, y)
 	}

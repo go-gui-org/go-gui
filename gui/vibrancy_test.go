@@ -7,5 +7,5 @@ func TestSetWindowVibrancyNilPlatform(_ *testing.T) {
 	defer w.Close()
 	// Should not panic with nil nativePlatform.
 	w.SetWindowVibrancy(VibrancyUnderWindow)
-	w.SetWindowVibrancy(VibrancyNone)
+	w.SetWindowVibrancy(vibrancyNone)
 }

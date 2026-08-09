@@ -56,12 +56,12 @@ type ButtonCfg struct {
 	Colors ColorSet
 
 	HAlign Opt[HorizontalAlign]
-	VAlign Opt[VerticalAlign]
+	VAlign Opt[verticalAlign]
 
 	Sizing      Sizing
 	Float       bool
-	FloatAnchor FloatAttach
-	FloatTieOff FloatAttach
+	FloatAnchor floatAttach
+	FloatTieOff floatAttach
 	Disabled    bool
 	Invisible   bool
 
@@ -95,7 +95,7 @@ func buttonOnHover(ctx EventCtx) {
 		ctx.Layout.Shape.Color = ctx.Layout.Shape.bc.ColorHover
 	}
 	if ctx.Event.MouseButton == MouseLeft {
-		ctx.Layout.Shape.Color = ctx.Layout.Shape.bc.ColorClick
+		ctx.Layout.Shape.Color = ctx.Layout.Shape.bc.colorClick
 	}
 	if ctx.Layout.Shape.bc.OnHover != nil {
 		ctx.Layout.Shape.bc.OnHover(EventCtx{ctx.Layout, ctx.Event, ctx.Window})
@@ -114,7 +114,7 @@ func Button(cfg ButtonCfg) View {
 	applyButtonDefaults(&cfg)
 	requireFocusID("Button", cfg.FocusDisabled, cfg.ID)
 
-	d := &DefaultButtonStyle
+	d := &defaultButtonStyle
 	sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)
 	radius := cfg.Radius.Get(d.Radius)
 	hAlign := cfg.HAlign.Get(HAlignCenter)
@@ -158,8 +158,8 @@ func Button(cfg ButtonCfg) View {
 		FloatOffsetX:    cfg.FloatOffsetX,
 		FloatOffsetY:    cfg.FloatOffsetY,
 		OnClick:         onClick,
-		ClickOnSpace:    true,
-		ClickOnEnter:    true,
+		clickOnSpace:    true,
+		clickOnEnter:    true,
 		Content:         cfg.Content,
 	}).(*containerView)
 
@@ -192,7 +192,7 @@ const commandButtonIDScope = "cmdbtn"
 // explicitly when placing two buttons for the same command in one
 // window, otherwise both get the same focus ID.
 func CommandButton(cmdID string, cfg ButtonCfg) View {
-	return ViewFunc(func(w *Window) View {
+	return viewFunc(func(w *Window) View {
 		cmd, ok := w.CommandByID(cmdID)
 		if !ok {
 			return Text(TextCfg{
@@ -224,7 +224,7 @@ func CommandButton(cmdID string, cfg ButtonCfg) View {
 			cmdExec := cmd.Execute
 			cID := cmdID
 			cfg.OnClick = func(ctx EventCtx) {
-				if ctx.Window.CommandCanExecute(cID) && cmdExec != nil {
+				if ctx.Window.commandCanExecute(cID) && cmdExec != nil {
 					cmdExec(ctx.Event, ctx.Window)
 				}
 			}
@@ -240,9 +240,9 @@ func CommandButton(cmdID string, cfg ButtonCfg) View {
 }
 
 func applyButtonDefaults(cfg *ButtonCfg) {
-	d := &DefaultButtonStyle
+	d := &defaultButtonStyle
 	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
-		d.Color, d.ColorHover, d.ColorClick,
+		d.Color, d.ColorHover, d.colorClick,
 		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
 	))
 	if !cfg.Padding.IsSet() {

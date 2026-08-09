@@ -64,7 +64,7 @@ func getMaxSize(shape *Shape, axis distributeAxis) float32 {
 	return shape.MaxHeight
 }
 
-func getSizing(shape *Shape, axis distributeAxis) SizingType {
+func getSizing(shape *Shape, axis distributeAxis) sizingType {
 	if axis == distributeHorizontal {
 		return shape.Sizing.Width
 	}
@@ -90,14 +90,14 @@ func siblingSumPtr(shape *Shape, axis distributeAxis) *float32 {
 
 // mainAxisOf returns the layout axis that distributes children
 // along the given dimension (horizontal → LeftToRight, etc.).
-func mainAxisOf(axis distributeAxis) Axis {
-	if axis == distributeHorizontal {
-		return AxisLeftToRight
+func mainAxisOf(ax distributeAxis) Axis {
+	if ax == distributeHorizontal {
+		return axisLeftToRight
 	}
-	return AxisTopToBottom
+	return axisTopToBottom
 }
 
-func scrollExcludesAxis(mode ScrollMode, axis distributeAxis) bool {
+func scrollExcludesAxis(mode scrollMode, axis distributeAxis) bool {
 	if axis == distributeHorizontal {
 		return mode == ScrollVerticalOnly
 	}
@@ -120,7 +120,7 @@ func clampMinMax(shape *Shape, axis distributeAxis) {
 // containers to fit parent's remaining space, clamps to min/max, and
 // propagates fill size to children.
 func layoutFillCrossAxis(layout *Layout, axis distributeAxis, fb *fillBuffers) {
-	if layout.Shape.Scrollable && getSizing(layout.Shape, axis) == SizingFill &&
+	if layout.Shape.Scrollable && getSizing(layout.Shape, axis) == sizingFill &&
 		!scrollExcludesAxis(layout.Shape.ScrollMode, axis) &&
 		layout.Parent != nil && layout.Parent.Shape.Axis == mainAxisOf(axis) {
 		// Use cached sibling sum from parent Shape to avoid O(n²)
@@ -147,7 +147,7 @@ func layoutFillCrossAxis(layout *Layout, axis distributeAxis, fb *fillBuffers) {
 	clampMinMax(layout.Shape, axis)
 	remaining := getSize(layout.Shape, axis) - getPadding(layout.Shape, axis)
 	for i := range layout.Children {
-		if getSizing(layout.Children[i].Shape, axis) == SizingFill {
+		if getSizing(layout.Children[i].Shape, axis) == sizingFill {
 			setSize(layout.Children[i].Shape, axis, remaining)
 			clampMinMax(layout.Children[i].Shape, axis)
 		}
@@ -165,7 +165,7 @@ func collectDistributionCandidates(layout *Layout, axis distributeAxis, mode dis
 		fb.fixedIndices = fb.fixedIndices[:0]
 	}
 	for i := range layout.Children {
-		if getSizing(layout.Children[i].Shape, axis) == SizingFill {
+		if getSizing(layout.Children[i].Shape, axis) == sizingFill {
 			fb.candidates = append(fb.candidates, i)
 		} else if mode == distributeShrink {
 			fb.fixedIndices = append(fb.fixedIndices, i)
@@ -349,7 +349,7 @@ func distributeSpace(layout *Layout, remainingIn float32, mode distributeMode, a
 // layoutWidths arranges children horizontally (bottom-up).
 func layoutWidths(layout *Layout) {
 	padding := layout.Shape.paddingWidth()
-	if layout.Shape.Axis == AxisLeftToRight {
+	if layout.Shape.Axis == axisLeftToRight {
 		sp := layout.spacing()
 		// A Fixed axis with an explicit 0 size degrades to content
 		// sizing. A zero-size Fixed box renders (children self-draw)
@@ -357,7 +357,7 @@ func layoutWidths(layout *Layout) {
 		// therefore the hit-test and clip region — of every descendant
 		// (see issue #94). Content sizing keeps bounds enclosing the
 		// children. Childless boxes still resolve to 0, unchanged.
-		if layout.Shape.Sizing.Width == SizingFixed && layout.Shape.Width > 0 {
+		if layout.Shape.Sizing.Width == sizingFixed && layout.Shape.Width > 0 {
 			for i := range layout.Children {
 				layoutWidths(&layout.Children[i])
 			}
@@ -389,11 +389,11 @@ func layoutWidths(layout *Layout) {
 				layout.Shape.Width = f32Max(layout.Shape.MinWidth, layout.Shape.Width)
 			}
 		}
-	} else if layout.Shape.Axis == AxisTopToBottom {
+	} else if layout.Shape.Axis == axisTopToBottom {
 		// Fixed cross-axis with a 0 size degrades to content sizing
 		// (see the AxisLeftToRight note above / issue #94). Captured
 		// before the loop mutates Width, so it stays stable per child.
-		fitWidth := layout.Shape.Sizing.Width != SizingFixed || layout.Shape.Width == 0
+		fitWidth := layout.Shape.Sizing.Width != sizingFixed || layout.Shape.Width == 0
 		for i := range layout.Children {
 			layoutWidths(&layout.Children[i])
 			if fitWidth {
@@ -415,12 +415,12 @@ func layoutWidths(layout *Layout) {
 // layoutHeights arranges children vertically (bottom-up).
 func layoutHeights(layout *Layout) {
 	padding := layout.Shape.paddingHeight()
-	if layout.Shape.Axis == AxisTopToBottom {
+	if layout.Shape.Axis == axisTopToBottom {
 		sp := layout.spacing()
 		// Fixed with an explicit 0 height degrades to content sizing
 		// (see layoutWidths / issue #94): a zero-height Fixed box would
 		// otherwise collapse every descendant's clip/hit-test region.
-		if layout.Shape.Sizing.Height == SizingFixed && layout.Shape.Height > 0 {
+		if layout.Shape.Sizing.Height == sizingFixed && layout.Shape.Height > 0 {
 			for i := range layout.Children {
 				layoutHeights(&layout.Children[i])
 			}
@@ -443,14 +443,14 @@ func layoutHeights(layout *Layout) {
 			if layout.Shape.MinHeight > 0 {
 				layout.Shape.Height = f32Max(layout.Shape.MinHeight, layout.Shape.Height)
 			}
-			if layout.Shape.Sizing.Height == SizingFill && layout.Shape.Scrollable {
+			if layout.Shape.Sizing.Height == sizingFill && layout.Shape.Scrollable {
 				layout.Shape.MinHeight = spacingSmall
 			}
 		}
-	} else if layout.Shape.Axis == AxisLeftToRight {
+	} else if layout.Shape.Axis == axisLeftToRight {
 		// Fixed cross-axis with a 0 height degrades to content sizing
 		// (see issue #94). Captured before the loop mutates Height.
-		fitHeight := layout.Shape.Sizing.Height != SizingFixed || layout.Shape.Height == 0
+		fitHeight := layout.Shape.Sizing.Height != sizingFixed || layout.Shape.Height == 0
 		for i := range layout.Children {
 			layoutHeights(&layout.Children[i])
 			if fitHeight {
@@ -479,7 +479,7 @@ func layoutFillWidthsImpl(layout *Layout, fb *fillBuffers) {
 	remainingWidth := layout.Shape.Width - layout.Shape.paddingWidth()
 
 	switch layout.Shape.Axis {
-	case AxisLeftToRight:
+	case axisLeftToRight:
 		for i := range layout.Children {
 			if layout.Children[i].Shape.OverDraw {
 				continue
@@ -494,7 +494,7 @@ func layoutFillWidthsImpl(layout *Layout, fb *fillBuffers) {
 		if remainingWidth < -f32Tolerance && !layout.Shape.Wrap && !layout.Shape.Overflow {
 			distributeSpace(layout, remainingWidth, distributeShrink, distributeHorizontal, fb)
 		}
-	case AxisTopToBottom:
+	case axisTopToBottom:
 		layoutFillCrossAxis(layout, distributeHorizontal, fb)
 	}
 
@@ -533,7 +533,7 @@ func layoutFillHeightsImpl(layout *Layout, fb *fillBuffers) {
 	remainingHeight := layout.Shape.Height - layout.Shape.paddingHeight()
 
 	switch layout.Shape.Axis {
-	case AxisTopToBottom:
+	case axisTopToBottom:
 		for i := range layout.Children {
 			if layout.Children[i].Shape.OverDraw {
 				continue
@@ -549,7 +549,7 @@ func layoutFillHeightsImpl(layout *Layout, fb *fillBuffers) {
 		if remainingHeight < -f32Tolerance {
 			distributeSpace(layout, remainingHeight, distributeShrink, distributeVertical, fb)
 		}
-	case AxisLeftToRight:
+	case axisLeftToRight:
 		layoutFillCrossAxis(layout, distributeVertical, fb)
 	}
 

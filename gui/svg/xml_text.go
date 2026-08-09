@@ -32,7 +32,7 @@ func prepareTextRun(s string) string {
 // <tspan> children and <textPath> references. textAncestors must
 // already include this element so descendant <tspan>s see <text> as
 // a parent during their own cascade.
-func parseTextElement(n *xmlNode, computed ComputedStyle, state *parseState,
+func parseTextElement(n *xmlNode, computed computedStyle, state *parseState,
 	textAncestors []css.ElementInfo) {
 	elem := n.OpenTag
 	x := attrFloat(elem, "x", 0)
@@ -46,7 +46,7 @@ func parseTextElement(n *xmlNode, computed ComputedStyle, state *parseState,
 // the textParentAttrs the body/tspan/textPath emitters consume.
 // text-decoration / letter-spacing aren't in the cascade yet so they
 // still read raw attr/style on elem.
-func buildTextAttrsFromComputed(elem string, computed ComputedStyle) textParentAttrs {
+func buildTextAttrsFromComputed(elem string, computed computedStyle) textParentAttrs {
 	fontSize := float32(16)
 	if computed.FontSize != "" {
 		fontSize = parseLength(computed.FontSize)
@@ -54,13 +54,13 @@ func buildTextAttrsFromComputed(elem string, computed ComputedStyle) textParentA
 	fontFamily := cleanFontFamily(computed.FontFamily)
 
 	color := colorBlack
-	if computed.FillSet {
+	if computed.fillSet {
 		color = computed.Fill
 	}
-	fillGradientID := computed.FillGradient
+	fillGradientID := computed.fillGradient
 
 	anchor := gui.SvgTextAnchorStart
-	switch computed.TextAnchor {
+	switch computed.textAnchor {
 	case "middle":
 		anchor = gui.SvgTextAnchorMiddle
 	case "end":
@@ -69,7 +69,7 @@ func buildTextAttrsFromComputed(elem string, computed ComputedStyle) textParentA
 
 	fontWeight := parseFontWeight(computed.FontWeight)
 	bold := fontWeight >= 600
-	italic := computed.FontStyle == "italic" || computed.FontStyle == "oblique"
+	italic := computed.fontStyle == "italic" || computed.fontStyle == "oblique"
 
 	underline, strikethrough := false, false
 	if td, ok := findAttrOrStyle(elem, "text-decoration"); ok {
@@ -87,8 +87,8 @@ func buildTextAttrsFromComputed(elem string, computed ComputedStyle) textParentA
 
 	var strokeColor gui.SvgColor
 	var strokeWidth float32
-	if computed.StrokeSet {
-		strokeColor = computed.Stroke
+	if computed.strokeSet {
+		strokeColor = computed.stroke
 		strokeWidth = sanitizeStrokeWidth(computed.StrokeWidth)
 		// stroke="none" cascades as transparent; drop the width so
 		// renderers don't emit a zero-alpha hairline.
@@ -150,7 +150,7 @@ type textParentAttrs struct {
 // are forwarded so each <tspan> can run its own cascade against the
 // <text> element as parent.
 func parseTextBody(n *xmlNode, p textParentAttrs, state *parseState,
-	parentComputed ComputedStyle, ancestors []css.ElementInfo) {
+	parentComputed computedStyle, ancestors []css.ElementInfo) {
 	curY := p.y
 
 	// Direct text that precedes any child element.
@@ -221,7 +221,7 @@ func makeTextFromParent(text string, x, y float32, p textParentAttrs) gui.SvgTex
 // they reach shapes. parentComputed is the <text> element's resolved
 // style; ancestors is the chain rooted at <svg> through <text>.
 func parseTspan(n *xmlNode, p textParentAttrs, curY *float32, state *parseState,
-	parentComputed ComputedStyle, info css.ElementInfo,
+	parentComputed computedStyle, info css.ElementInfo,
 	ancestors, siblings []css.ElementInfo) {
 	elem := n.OpenTag
 	text := prepareTextRun(n.Text)
@@ -231,7 +231,7 @@ func parseTspan(n *xmlNode, p textParentAttrs, curY *float32, state *parseState,
 
 	computed := computeStyle(elem, parentComputed, state, info,
 		ancestors, siblings)
-	if computed.Display == DisplayNone {
+	if computed.Display == displayNone {
 		return
 	}
 
@@ -264,20 +264,20 @@ func parseTspan(n *xmlNode, p textParentAttrs, curY *float32, state *parseState,
 		bold = fontWeight >= 600
 	}
 	italic := p.italic
-	if computed.FontStyle != "" {
-		italic = computed.FontStyle == "italic" ||
-			computed.FontStyle == "oblique"
+	if computed.fontStyle != "" {
+		italic = computed.fontStyle == "italic" ||
+			computed.fontStyle == "oblique"
 	}
 	color := p.color
 	fillGradientID := p.fillGradientID
-	if computed.FillSet {
+	if computed.fillSet {
 		color = computed.Fill
-		fillGradientID = computed.FillGradient
+		fillGradientID = computed.fillGradient
 	}
 	strokeColor := p.strokeColor
 	strokeWidth := p.strokeWidth
-	if computed.StrokeSet {
-		strokeColor = computed.Stroke
+	if computed.strokeSet {
+		strokeColor = computed.stroke
 		strokeWidth = computed.StrokeWidth
 	}
 	// computeStyle already composes opacity through the cascade.
@@ -285,7 +285,7 @@ func parseTspan(n *xmlNode, p textParentAttrs, curY *float32, state *parseState,
 	opacity := computed.Opacity
 
 	anchor := p.anchor
-	switch computed.TextAnchor {
+	switch computed.textAnchor {
 	case "start":
 		anchor = gui.SvgTextAnchorStart
 	case "middle":

@@ -8,11 +8,11 @@ import (
 
 func TestDefaultInputStyleColors(t *testing.T) {
 	s := pristineInputStyle
-	if s.Color.Eq(Color{}) {
+	if s.Color.eq(Color{}) {
 		t.Error("input color should not be zero")
 	}
-	if s.Radius != RadiusMedium {
-		t.Errorf("radius = %f, want %f", s.Radius, RadiusMedium)
+	if s.Radius != radiusMedium {
+		t.Errorf("radius = %f, want %f", s.Radius, radiusMedium)
 	}
 }
 
@@ -21,8 +21,8 @@ func TestDefaultScrollbarStyle(t *testing.T) {
 	if s.Size != 7 {
 		t.Errorf("scrollbar size = %f", s.Size)
 	}
-	if s.MinThumbSize != 20 {
-		t.Errorf("min thumb = %f", s.MinThumbSize)
+	if s.minThumbSize != 20 {
+		t.Errorf("min thumb = %f", s.minThumbSize)
 	}
 }
 
@@ -48,11 +48,11 @@ func TestDefaultWidgetStylesNonZero(t *testing.T) {
 
 func TestDefaultDialogStyle(t *testing.T) {
 	s := pristineDialogStyle
-	if s.Color.Eq(Color{}) {
+	if s.Color.eq(Color{}) {
 		t.Error("dialog color should not be zero")
 	}
-	if s.Radius != RadiusMedium {
-		t.Errorf("radius = %f, want %f", s.Radius, RadiusMedium)
+	if s.Radius != radiusMedium {
+		t.Errorf("radius = %f, want %f", s.Radius, radiusMedium)
 	}
 	if s.AlignButtons != HAlignCenter {
 		t.Errorf("align = %d, want center", s.AlignButtons)
@@ -61,13 +61,13 @@ func TestDefaultDialogStyle(t *testing.T) {
 
 func TestDefaultToastStyle(t *testing.T) {
 	s := pristineToastStyle
-	if s.MaxVisible != 5 {
-		t.Errorf("max_visible = %d, want 5", s.MaxVisible)
+	if s.maxVisible != 5 {
+		t.Errorf("max_visible = %d, want 5", s.maxVisible)
 	}
 	if s.Width != 260 {
 		t.Errorf("width = %f, want 260", s.Width)
 	}
-	if s.Anchor != ToastBottomRight {
+	if s.Anchor != toastBottomRight {
 		t.Errorf("anchor = %d, want bottom-right", s.Anchor)
 	}
 }
@@ -77,8 +77,8 @@ func TestDefaultTooltipStyle(t *testing.T) {
 	if s.Delay == 0 {
 		t.Error("delay should not be zero")
 	}
-	if s.Radius != RadiusSmall {
-		t.Errorf("radius = %f, want %f", s.Radius, RadiusSmall)
+	if s.Radius != radiusSmall {
+		t.Errorf("radius = %f, want %f", s.Radius, radiusSmall)
 	}
 }
 
@@ -96,7 +96,7 @@ func TestAffineTransformIsIdentity(t *testing.T) {
 func TestEffectiveTextTransformExplicit(t *testing.T) {
 	af := glyph.AffineRotation(1.0)
 	ts := TextStyle{AffineTransform: &af}
-	got := ts.EffectiveTextTransform()
+	got := ts.effectiveTextTransform()
 	if got != af {
 		t.Error("should return explicit affine transform")
 	}
@@ -104,7 +104,7 @@ func TestEffectiveTextTransformExplicit(t *testing.T) {
 
 func TestEffectiveTextTransformRotation(t *testing.T) {
 	ts := TextStyle{RotationRadians: 0.5}
-	got := ts.EffectiveTextTransform()
+	got := ts.effectiveTextTransform()
 	want := glyph.AffineRotation(0.5)
 	if got != want {
 		t.Errorf("got %v, want %v", got, want)
@@ -113,7 +113,7 @@ func TestEffectiveTextTransformRotation(t *testing.T) {
 
 func TestEffectiveTextTransformDefault(t *testing.T) {
 	ts := TextStyle{}
-	got := ts.EffectiveTextTransform()
+	got := ts.effectiveTextTransform()
 	want := glyph.AffineIdentity()
 	if got != want {
 		t.Errorf("got %v, want %v", got, want)
@@ -125,10 +125,10 @@ func TestDefaultTreeStyle(t *testing.T) {
 	if !s.ColorHover.IsSet() {
 		t.Error("tree hover color should be set")
 	}
-	if s.Radius != RadiusMedium {
-		t.Errorf("radius = %f, want %f", s.Radius, RadiusMedium)
+	if s.Radius != radiusMedium {
+		t.Errorf("radius = %f, want %f", s.Radius, radiusMedium)
 	}
-	if s.TextStyleIcon.Family != IconFontName {
-		t.Errorf("icon family = %q, want %q", s.TextStyleIcon.Family, IconFontName)
+	if s.textStyleIcon.Family != IconFontName {
+		t.Errorf("icon family = %q, want %q", s.textStyleIcon.Family, IconFontName)
 	}
 }

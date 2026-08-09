@@ -22,13 +22,13 @@ func layoutPositions(layout *Layout, offsetX, offsetY float32, w *Window) {
 	for i := range layout.Children {
 		child := &layout.Children[i]
 		var xAlign, yAlign float32
-		if axis == AxisLeftToRight {
+		if axis == axisLeftToRight {
 			yAlign = childCrossAxisVAlign(child, layout.Shape, layoutH)
 		} else {
 			xAlign = childCrossAxisHAlign(child, layout.Shape, hAlign, layoutW)
 		}
 
-		if isRTL && axis == AxisLeftToRight {
+		if isRTL && axis == axisLeftToRight {
 			layoutPositions(child, x-child.Shape.Width+xAlign, y+yAlign, w)
 		} else {
 			layoutPositions(child, x+xAlign, y+yAlign, w)
@@ -36,13 +36,13 @@ func layoutPositions(layout *Layout, offsetX, offsetY float32, w *Window) {
 
 		if child.Shape.shapeType != shapeNone && !child.Shape.OverDraw {
 			switch axis {
-			case AxisLeftToRight:
+			case axisLeftToRight:
 				if isRTL {
 					x -= child.Shape.Width + spacing
 				} else {
 					x += child.Shape.Width + spacing
 				}
-			case AxisTopToBottom:
+			case axisTopToBottom:
 				y += child.Shape.Height + spacing
 			}
 		}
@@ -54,7 +54,7 @@ func layoutPositions(layout *Layout, offsetX, offsetY float32, w *Window) {
 func layoutChildStartPos(
 	layout *Layout, isRTL bool, axis Axis, w *Window,
 ) (x, y float32) {
-	if isRTL && axis == AxisLeftToRight {
+	if isRTL && axis == axisLeftToRight {
 		x = layout.Shape.X + layout.Shape.Width -
 			layout.Shape.Padding.Left - layout.Shape.SizeBorder
 	} else if isRTL {
@@ -124,7 +124,7 @@ func applyContainerAlignment(
 	x, y, layoutW, layoutH float32,
 ) (float32, float32) {
 	switch axis {
-	case AxisLeftToRight:
+	case axisLeftToRight:
 		var remaining float32
 		if isRTL && hAlign != HAlignRight ||
 			!isRTL && hAlign != HAlignLeft {
@@ -139,7 +139,7 @@ func applyContainerAlignment(
 		} else {
 			x += remaining
 		}
-	case AxisTopToBottom:
+	case axisTopToBottom:
 		if layout.Shape.VAlign != VAlignTop {
 			remaining := layoutH - layout.Shape.paddingHeight() -
 				contentHeight(layout)

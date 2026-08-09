@@ -38,7 +38,7 @@ type Align uint8
 
 // Align constants.
 const (
-	AlignStart Align = iota
+	alignStart Align = iota
 	AlignEnd
 	AlignCenter
 	AlignLeft
@@ -50,7 +50,7 @@ type Format uint8
 
 // Format constants.
 const (
-	FormatPlain Format = iota
+	formatPlain Format = iota
 	FormatBold
 	FormatItalic
 	FormatBoldItalic
@@ -72,25 +72,26 @@ const (
 
 // CodeLanguage identifies a programming language for
 // syntax highlighting.
+// exportaudit:keep — reachable from an exported signature
 type CodeLanguage uint8
 
 // CodeLanguage constants.
 const (
-	LangGeneric CodeLanguage = iota
-	LangV
-	LangJavaScript
-	LangTypeScript
-	LangPython
-	LangJSON
-	LangGo
-	LangRust
-	LangC
-	LangShell
-	LangHTML
+	langGeneric CodeLanguage = iota
+	langV
+	langJavaScript
+	langTypeScript
+	langPython
+	langJSON
+	langGo
+	langRust
+	langC
+	langShell
+	langHTML
 )
 
 // CodeToken represents a highlighted token span.
-type CodeToken struct {
+type codeToken struct {
 	Kind  CodeTokenKind
 	Start int
 	End   int

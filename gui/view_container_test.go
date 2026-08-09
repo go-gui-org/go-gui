@@ -34,7 +34,7 @@ func TestContainerScrollbarCfgYOverrides(t *testing.T) {
 	v := Column(ContainerCfg{
 		Scrollable:    true,
 		ID:            "test-scroll-3",
-		ScrollbarCfgY: &ScrollbarCfg{ColorThumb: customThumb},
+		ScrollbarCfgY: &ScrollbarCfg{colorThumb: customThumb},
 		Content:       []View{Rectangle(RectangleCfg{})},
 	})
 	cv := v.(*containerView)

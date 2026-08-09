@@ -3,7 +3,7 @@ package gui
 // ShapeCallback is the type for shape event callbacks. It is a type
 // alias so untyped closure literals in Cfg structs compile without a
 // conversion.
-type ShapeCallback = func(EventCtx)
+type shapeCallback = func(EventCtx)
 
 // isFocusedTarget reports whether the layout has keyboard focus
 // (or is the reserved dialog).
@@ -29,7 +29,7 @@ func isFocusedTarget(layout *Layout, w *Window) bool {
 // selects a dispatch rule, because there is only one.
 func executeFocusCallback(
 	layout *Layout, e *Event, w *Window,
-	callback ShapeCallback, class evClass,
+	callback shapeCallback, class evClass,
 ) bool {
 	if !isFocusedTarget(layout, w) {
 		return false
@@ -53,7 +53,7 @@ func executeFocusCallback(
 // save/restore ordering it forced — is gone with spec §4.3b.
 func callRelative(
 	layout *Layout, e *Event, w *Window,
-	callback ShapeCallback, class evClass,
+	callback shapeCallback, class evClass,
 ) bool {
 	saved := *e
 	e.MouseX = saved.MouseX - layout.Shape.X
@@ -80,7 +80,7 @@ func callRelative(
 // OnFileDrop consume, OnMouseMove notifies).
 func executeMouseCallback(
 	layout *Layout, e *Event, w *Window,
-	callback ShapeCallback, class evClass,
+	callback shapeCallback, class evClass,
 ) bool {
 	if layout.Shape == nil ||
 		!layout.Shape.PointInShape(e.MouseX, e.MouseY) {

@@ -3,12 +3,12 @@ package css
 import "testing"
 
 func TestParseStylesheet_IsPseudoNested(t *testing.T) {
-	rules := ParseStylesheet(
+	rules := parseStylesheet(
 		`:is(:is(#a, #b), #c) { fill: red }`, ParseOptions{})
 	if len(rules) != 1 {
 		t.Fatalf("rules: %d", len(rules))
 	}
-	sels := rules[0].Selectors
+	sels := rules[0].selectors
 	if len(sels) != 3 {
 		t.Fatalf("selectors: %d, want 3", len(sels))
 	}
@@ -25,29 +25,29 @@ func TestParseStylesheet_IsPseudoNested(t *testing.T) {
 
 func TestParseStylesheet_IsExpansionUnderCap(t *testing.T) {
 	src := `:is(:is(:is(#a, #b), #c), #d) { fill: red }`
-	rules := ParseStylesheet(src, ParseOptions{})
+	rules := parseStylesheet(src, ParseOptions{})
 	if len(rules) != 1 {
 		t.Fatalf("rules: %d", len(rules))
 	}
-	if len(rules[0].Selectors) != 4 {
-		t.Fatalf("selectors: %d, want 4", len(rules[0].Selectors))
+	if len(rules[0].selectors) != 4 {
+		t.Fatalf("selectors: %d, want 4", len(rules[0].selectors))
 	}
 }
 
 func TestParseStylesheet_CommaInsideFunction(t *testing.T) {
 	src := `:is(.a, .b), #c { fill: red }`
-	rules := ParseStylesheet(src, ParseOptions{})
+	rules := parseStylesheet(src, ParseOptions{})
 	if len(rules) != 1 {
 		t.Fatalf("rules: %d", len(rules))
 	}
-	if len(rules[0].Selectors) != 3 {
-		t.Fatalf("selectors: %d, want 3", len(rules[0].Selectors))
+	if len(rules[0].selectors) != 3 {
+		t.Fatalf("selectors: %d, want 3", len(rules[0].selectors))
 	}
 }
 
 func TestStripLineComments_SingleQuotedString(t *testing.T) {
 	src := `.x { content: '//keep me' }`
-	rules := ParseStylesheet(src, ParseOptions{})
+	rules := parseStylesheet(src, ParseOptions{})
 	if len(rules) != 1 || len(rules[0].Decls) != 1 {
 		t.Fatalf("rules: %+v", rules)
 	}
@@ -60,7 +60,7 @@ func TestStripLineComments_SingleQuotedString(t *testing.T) {
 // `'` after `\` closes the string and `//` would start a comment.
 func TestStripLineComments_EscapedQuote(t *testing.T) {
 	src := `.x { content: '\'//still inside' }`
-	rules := ParseStylesheet(src, ParseOptions{})
+	rules := parseStylesheet(src, ParseOptions{})
 	if len(rules) != 1 || len(rules[0].Decls) != 1 {
 		t.Fatalf("rules: %+v", rules)
 	}
@@ -71,7 +71,7 @@ func TestStripLineComments_EscapedQuote(t *testing.T) {
 
 func TestStripLineComments_EOF(t *testing.T) {
 	src := ".x { fill: red } // trailing"
-	rules := ParseStylesheet(src, ParseOptions{})
+	rules := parseStylesheet(src, ParseOptions{})
 	if len(rules) != 1 {
 		t.Fatalf("rules: %d", len(rules))
 	}
@@ -84,7 +84,7 @@ func TestStripLineComments_EOF(t *testing.T) {
 // otherwise the rest of the file becomes one big comment.
 func TestStripLineComments_CRLF(t *testing.T) {
 	src := ".x { fill: red; // bye\r\n stroke: blue }"
-	rules := ParseStylesheet(src, ParseOptions{})
+	rules := parseStylesheet(src, ParseOptions{})
 	if len(rules) != 1 {
 		t.Fatalf("rules: %d", len(rules))
 	}
@@ -98,7 +98,7 @@ func TestStripLineComments_CRLF(t *testing.T) {
 
 func TestStripLineComments_HTTPSPreserved(t *testing.T) {
 	src := `.x { background: url(https://example.com/y.png) }`
-	rules := ParseStylesheet(src, ParseOptions{})
+	rules := parseStylesheet(src, ParseOptions{})
 	if len(rules) != 1 || len(rules[0].Decls) != 1 {
 		t.Fatalf("rules: %+v", rules)
 	}

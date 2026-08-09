@@ -11,10 +11,10 @@ func TestMetalVertexShaders(t *testing.T) {
 		name   string
 		source string
 	}{
-		{"VsMetal", VsMetal},
-		{"VsShadowMetal", VsShadowMetal},
-		{"VsBlurMetal", VsBlurMetal},
-		{"VsGradientMetal", VsGradientMetal},
+		{"VsMetal", vsMetal},
+		{"VsShadowMetal", vsShadowMetal},
+		{"VsBlurMetal", vsBlurMetal},
+		{"VsGradientMetal", vsGradientMetal},
 	}
 	for _, tt := range tests {
 		if tt.source == "" {
@@ -32,10 +32,10 @@ func TestMetalFragmentShaders(t *testing.T) {
 		name   string
 		source string
 	}{
-		{"FsMetal", FsMetal},
-		{"FsShadowMetal", FsShadowMetal},
-		{"FsBlurMetal", FsBlurMetal},
-		{"FsGradientMetal", FsGradientMetal},
+		{"FsMetal", fsMetal},
+		{"FsShadowMetal", fsShadowMetal},
+		{"FsBlurMetal", fsBlurMetal},
+		{"FsGradientMetal", fsGradientMetal},
 	}
 	for _, tt := range tests {
 		if tt.source == "" {

@@ -11,7 +11,7 @@ import (
 func dataGridMakeOnChar(cfg *DataGridCfg, columns []GridColumnCfg) func(gg.EventCtx) {
 	rows := cfg.Rows
 	selection := cfg.Selection
-	onCopyRows := cfg.OnCopyRows
+	onCopyRows := cfg.onCopyRows
 	return func(ctx gg.EventCtx) {
 		if !dataGridCharIsCopy(ctx.Event) {
 			// Only the copy chord is ours
@@ -105,14 +105,14 @@ func dataGridMakeOnKeydown(cfg *DataGridCfg, columns []GridColumnCfg, rowHeight,
 		columns:           columns,
 		selection:         cfg.Selection,
 		multiSelect:       boolDefault(cfg.MultiSelect, true),
-		rangeSelect:       boolDefault(cfg.RangeSelect, true),
+		rangeSelect:       boolDefault(cfg.rangeSelect, true),
 		onSelectionChange: cfg.OnSelectionChange,
-		onRowActivate:     cfg.OnRowActivate,
-		onPageChange:      cfg.OnPageChange,
+		onRowActivate:     cfg.onRowActivate,
+		onPageChange:      cfg.onPageChange,
 		editEnabled:       dataGridEditingEnabled(cfg),
 		crudEnabled:       dataGridCrudEnabled(cfg),
-		pageSize:          cfg.PageSize,
-		pageIndex:         cfg.PageIndex,
+		pageSize:          cfg.pageSize,
+		pageIndex:         cfg.pageIndex,
 		viewportH:         dataGridHeight(cfg),
 		pageRows:          dataGridPageRows(cfg, rowHeight),
 		firstEditColIdx:   dataGridFirstEditableColumnIndex(cfg, columns),
@@ -244,11 +244,11 @@ func dataGridHandleSelectAllShortcut(kc dataGridKeydownContext, e *gg.Event, w *
 		selected[dataGridRowID(rowData, rowIdx)] = true
 	}
 	nextSelection := GridSelection{
-		AnchorRowID:    dataGridRowID(kc.rows[0], 0),
-		ActiveRowID:    dataGridRowID(kc.rows[len(kc.rows)-1], len(kc.rows)-1),
+		anchorRowID:    dataGridRowID(kc.rows[0], 0),
+		activeRowID:    dataGridRowID(kc.rows[len(kc.rows)-1], len(kc.rows)-1),
 		SelectedRowIDs: selected,
 	}
-	dataGridSetAnchor(kc.gridID, nextSelection.AnchorRowID, w)
+	dataGridSetAnchor(kc.gridID, nextSelection.anchorRowID, w)
 	if kc.onSelectionChange != nil {
 		kc.onSelectionChange(nextSelection, gg.EventCtx{Layout: nil, Event: e, Window: w})
 	}

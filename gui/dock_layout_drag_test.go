@@ -6,35 +6,35 @@ import "testing"
 
 func TestDockClassifyZoneCenter(t *testing.T) {
 	z := dockClassifyZone(0.5, 0.5)
-	if z != DockDropCenter {
+	if z != dockDropCenter {
 		t.Fatalf("got %d, want center", z)
 	}
 }
 
 func TestDockClassifyZoneTop(t *testing.T) {
 	z := dockClassifyZone(0.5, 0.1)
-	if z != DockDropTop {
+	if z != dockDropTop {
 		t.Fatalf("got %d, want top", z)
 	}
 }
 
 func TestDockClassifyZoneBottom(t *testing.T) {
 	z := dockClassifyZone(0.5, 0.9)
-	if z != DockDropBottom {
+	if z != dockDropBottom {
 		t.Fatalf("got %d, want bottom", z)
 	}
 }
 
 func TestDockClassifyZoneLeft(t *testing.T) {
 	z := dockClassifyZone(0.1, 0.5)
-	if z != DockDropLeft {
+	if z != dockDropLeft {
 		t.Fatalf("got %d, want left", z)
 	}
 }
 
 func TestDockClassifyZoneRight(t *testing.T) {
 	z := dockClassifyZone(0.9, 0.5)
-	if z != DockDropRight {
+	if z != dockDropRight {
 		t.Fatalf("got %d, want right", z)
 	}
 }
@@ -43,7 +43,7 @@ func TestDockClassifyZoneEdgeBoundary(t *testing.T) {
 	// Exactly at edge ratio boundary
 	edge := dockDragEdgeRatio
 	z := dockClassifyZone(edge, edge)
-	if z != DockDropCenter {
+	if z != dockDropCenter {
 		t.Fatalf("at boundary should be center, got %d", z)
 	}
 }
@@ -51,7 +51,7 @@ func TestDockClassifyZoneEdgeBoundary(t *testing.T) {
 func TestDockClassifyZoneTopLeftCorner(t *testing.T) {
 	// Top takes priority over left when both in edge
 	z := dockClassifyZone(0.1, 0.1)
-	if z != DockDropTop {
+	if z != dockDropTop {
 		t.Fatalf("top-left corner should be top, got %d", z)
 	}
 }
@@ -108,7 +108,7 @@ func TestDockDragDetectZoneNoLayout(t *testing.T) {
 	w := &Window{}
 	w.layout = Layout{Shape: &Shape{ID: "other"}}
 	zone, _ := dockDragDetectZone("dock1", nil, 50, 50, "", w)
-	if zone != DockDropNone {
+	if zone != dockDropNone {
 		t.Fatal("should be none with no matching layout")
 	}
 }
@@ -127,10 +127,10 @@ func TestDockDragDetectZoneWindowEdges(t *testing.T) {
 		x, y float32
 		want DockDropZone
 	}{
-		{5, 300, DockDropWindowLeft},
-		{795, 300, DockDropWindowRight},
-		{400, 5, DockDropWindowTop},
-		{400, 595, DockDropWindowBottom},
+		{5, 300, dockDropWindowLeft},
+		{795, 300, dockDropWindowRight},
+		{400, 5, dockDropWindowTop},
+		{400, 595, dockDropWindowBottom},
 	}
 	for _, tc := range tests {
 		zone, _ := dockDragDetectZone("dock1", nil, tc.x, tc.y, "", w)
@@ -164,7 +164,7 @@ func TestDockDragDetectZoneGroupZone(t *testing.T) {
 	zone, gid := dockDragDetectZone(
 		"dock1", []*DockNode{groupNode},
 		300, 250, "other", w)
-	if zone != DockDropCenter || gid != "g1" {
+	if zone != dockDropCenter || gid != "g1" {
 		t.Fatalf("center: zone=%d, gid=%s", zone, gid)
 	}
 
@@ -172,7 +172,7 @@ func TestDockDragDetectZoneGroupZone(t *testing.T) {
 	zone, gid = dockDragDetectZone(
 		"dock1", []*DockNode{groupNode},
 		300, 110, "other", w)
-	if zone != DockDropTop || gid != "g1" {
+	if zone != dockDropTop || gid != "g1" {
 		t.Fatalf("top: zone=%d, gid=%s", zone, gid)
 	}
 }
@@ -200,7 +200,7 @@ func TestDockDragDetectZoneSkipSinglePanelSource(t *testing.T) {
 	zone, _ := dockDragDetectZone(
 		"dock1", []*DockNode{groupNode},
 		300, 250, "g1", w)
-	if zone != DockDropNone {
+	if zone != dockDropNone {
 		t.Fatal("should skip single-panel source group")
 	}
 }
@@ -228,7 +228,7 @@ func TestDockDragDetectZoneSkipCenterSameGroup(t *testing.T) {
 	zone, _ := dockDragDetectZone(
 		"dock1", []*DockNode{groupNode},
 		300, 250, "g1", w)
-	if zone != DockDropNone {
+	if zone != dockDropNone {
 		t.Fatal("should skip center drop on same group")
 	}
 }
@@ -254,7 +254,7 @@ func TestDockDragAmendOverlayWindowTop(t *testing.T) {
 	w := &Window{}
 	dockDragSet(w, "dock1", dockDragState{
 		active:    true,
-		hoverZone: DockDropWindowTop,
+		hoverZone: dockDropWindowTop,
 	})
 
 	layout := &Layout{
@@ -294,7 +294,7 @@ func TestDockDragAmendOverlayGroupRight(t *testing.T) {
 
 	dockDragSet(w, "dock1", dockDragState{
 		active:       true,
-		hoverZone:    DockDropRight,
+		hoverZone:    dockDropRight,
 		hoverGroupID: "g1",
 	})
 
@@ -347,15 +347,15 @@ func TestDockDragZoneOverlayView(t *testing.T) {
 // --- DockDropZone constants ---
 
 func TestDockDropZoneValues(t *testing.T) {
-	if DockDropNone != 0 {
+	if dockDropNone != 0 {
 		t.Fatal("DockDropNone should be 0")
 	}
 	// Verify all zones have distinct values
 	zones := []DockDropZone{
-		DockDropNone, DockDropCenter, DockDropTop,
-		DockDropBottom, DockDropLeft, DockDropRight,
-		DockDropWindowTop, DockDropWindowBottom,
-		DockDropWindowLeft, DockDropWindowRight,
+		dockDropNone, dockDropCenter, dockDropTop,
+		dockDropBottom, dockDropLeft, dockDropRight,
+		dockDropWindowTop, dockDropWindowBottom,
+		dockDropWindowLeft, dockDropWindowRight,
 	}
 	seen := make(map[DockDropZone]bool)
 	for _, z := range zones {

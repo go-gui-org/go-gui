@@ -18,11 +18,11 @@ type Shape struct {
 
 	// Optional sub-structs (nil when unused)
 	events  *eventHandlers     // event handlers
-	TC      *ShapeTextConfig   // text/RTF fields
+	TC      *shapeTextConfig   // text/RTF fields
 	fx      *shapeEffects      // visual effects
-	A11Y    *AccessInfo        // accessibility metadata
+	a11Y    *accessInfo        // accessibility metadata
 	bc      *shapeButtonColors // button hover/focus colors
-	SvgOpts *SvgParseOpts      // per-render SVG parse overrides
+	svgOpts *SvgParseOpts      // per-render SVG parse overrides
 	tg      *TermGridData      // terminal grid buffer (shapeTermGrid)
 
 	// ID is a user-assigned string identifier. Used for event routing,
@@ -65,7 +65,7 @@ type Shape struct {
 	// Interpreted by the rendering backend.
 	Resource string
 
-	UID uint64 // internal use only
+	uID uint64 // internal use only
 
 	Version     uint64 // for cache invalidation (DrawCanvas, etc.)
 	FloatZIndex int    // stack order for floating elements; higher = on top
@@ -112,19 +112,19 @@ type Shape struct {
 	Axis                 Axis
 	shapeType            shapeType
 	HAlign               HorizontalAlign
-	VAlign               VerticalAlign
-	ScrollMode           ScrollMode
-	ScrollbarOrientation ScrollbarOrientation
-	TextDir              TextDirection
+	VAlign               verticalAlign
+	ScrollMode           scrollMode
+	scrollbarOrientation ScrollbarOrientation
+	TextDir              textDirection
 
 	// FloatAnchor is the attachment point on the floating element.
 	// Combined with FloatTieOff to position the element relative
 	// to its parent. See FloatAttach constants.
-	FloatAnchor FloatAttach
+	FloatAnchor floatAttach
 
 	// FloatTieOff is the attachment point on the parent that the
 	// floating element anchors to. See FloatAttach constants.
-	FloatTieOff FloatAttach
+	FloatTieOff floatAttach
 
 	// Clip scissor-clips children to this element's bounds.
 	Clip bool
@@ -132,7 +132,7 @@ type Shape struct {
 	// ClipContents enables stencil-buffer clipping for nested
 	// containers. More expensive than Clip but supports nested
 	// clipping hierarchies.
-	ClipContents bool
+	clipContents bool
 
 	Disabled bool
 
@@ -143,7 +143,7 @@ type Shape struct {
 
 	// FloatAutoFlip flips the float position (e.g. left→right)
 	// to keep the element within the window bounds.
-	FloatAutoFlip bool
+	floatAutoFlip bool
 
 	// Focusable opts the widget into the keyboard-focus system.
 	// It receives focus via click or Tab, and its per-widget input
@@ -214,9 +214,9 @@ type Shape struct {
 }
 
 // NewShape returns a Shape with default field values.
-func NewShape() *Shape {
+func newShape() *Shape {
 	return &Shape{
-		UID:     rand.Uint64(),
+		uID:     rand.Uint64(),
 		Opacity: 1.0,
 	}
 }
@@ -238,44 +238,45 @@ const (
 )
 
 // TextDirection controls text/layout direction.
-type TextDirection uint8
+type textDirection uint8
 
 // TextDirection constants.
 const (
-	TextDirAuto TextDirection = iota // inherit from parent/global
+	textDirAuto textDirection = iota // inherit from parent/global
 	TextDirLTR
 	TextDirRTL
 )
 
 // ScrollMode allows scrolling in one or both directions.
-type ScrollMode uint8
+type scrollMode uint8
 
 // ScrollMode constants.
 const (
-	ScrollBoth ScrollMode = iota
+	scrollBoth scrollMode = iota
 	ScrollVerticalOnly
 	ScrollHorizontalOnly
 )
 
 // ScrollbarOrientation determines scrollbar orientation.
+// exportaudit:keep — collides with the container's scrollbarOrientation state
 type ScrollbarOrientation uint8
 
 // ScrollbarOrientation constants.
 const (
-	ScrollbarNone ScrollbarOrientation = iota
-	ScrollbarVertical
-	ScrollbarHorizontal
+	scrollbarNone ScrollbarOrientation = iota
+	scrollbarVertical
+	scrollbarHorizontal
 )
 
 // FloatAttach defines anchor points for floating elements.
-type FloatAttach uint8
+type floatAttach uint8
 
 // FloatAttach constants.
 const (
-	FloatTopLeft FloatAttach = iota
+	FloatTopLeft floatAttach = iota
 	FloatTopCenter
 	FloatTopRight
-	FloatMiddleLeft
+	floatMiddleLeft
 	FloatMiddleCenter
 	FloatMiddleRight
 	FloatBottomLeft
@@ -357,52 +358,52 @@ type drawClip struct {
 }
 
 // ShapeTextConfig holds text/RTF-specific fields for a Shape.
-type ShapeTextConfig struct {
+type shapeTextConfig struct {
 	textLayoutStyle    TextStyle
 	TextStyle          *TextStyle
-	TextLayout         *glyph.Layout
-	RTFRuns            *RichText
-	RTFLayout          *glyph.Layout
+	textLayout         *glyph.Layout
+	rTFRuns            *RichText
+	rTFLayout          *glyph.Layout
 	rtfGlyphRT         *glyph.RichText // cached conversion
 	Text               string
-	RTFFlatText        string // concatenation of all run texts; rune↔byte conversion for selection
+	rTFFlatText        string // concatenation of all run texts; rune↔byte conversion for selection
 	textLayoutText     string
 	rtfMathHashes      []int64 // cache keys per inline math object
-	RTFBaseStyle       glyph.TextStyle
-	RTFLineSpacing     float32 // gui LineSpacing; glyph.TextStyle drops it, so carried separately for BlockStyle
-	TextSelBeg         uint32
-	TextSelEnd         uint32
+	rTFBaseStyle       glyph.TextStyle
+	rTFLineSpacing     float32 // gui LineSpacing; glyph.TextStyle drops it, so carried separately for BlockStyle
+	textSelBeg         uint32
+	textSelEnd         uint32
 	TextTabSize        uint32
-	HangingIndent      float32
-	MarkdownID         string // non-empty when this RTF block belongs to a markdown widget
-	MarkdownBlockStart uint32 // rune offset of this block within the markdown flat text
-	MarkdownRuneLen    uint32 // rune count of this block's flat text
+	hangingIndent      float32
+	markdownID         string // non-empty when this RTF block belongs to a markdown widget
+	markdownBlockStart uint32 // rune offset of this block within the markdown flat text
+	markdownRuneLen    uint32 // rune count of this block's flat text
 	wrapCacheWidth     float32
 	wrapCacheHeight    float32
 	textLayoutWidth    float32
-	TextMode           TextMode
-	TextIsPassword     bool
-	TextIsPlaceholder  bool
+	TextMode           textMode
+	textIsPassword     bool
+	textIsPlaceholder  bool
 	// TextReadOnly suppresses IME preedit rendering for read-only
 	// fields, which stay Focusable (for selection/cursor) but can
 	// never commit a composition. See render_text.go.
-	TextReadOnly    bool
+	textReadOnly    bool
 	wrapCacheValid  bool
 	textLayoutValid bool
-	textLayoutMode  TextMode
+	textLayoutMode  textMode
 }
 
 // hasRtfLayout returns true if the shape has an RTF layout.
 func (s *Shape) hasRtfLayout() bool {
-	return s.TC != nil && s.TC.RTFLayout != nil
+	return s.TC != nil && s.TC.rTFLayout != nil
 }
 
 // TextMode controls how a text view renders text.
-type TextMode uint8
+type textMode uint8
 
 // TextMode constants.
 const (
-	TextModeSingleLine TextMode = iota
+	TextModeSingleLine textMode = iota
 	TextModeMultiline
 	TextModeWrap
 	TextModeWrapKeepSpaces
@@ -426,19 +427,19 @@ type eventHandlers struct {
 	OnMouseScroll func(EventCtx)
 	OnHover       func(EventCtx)
 	OnMouseLeave  func(EventCtx)
-	OnIMECommit   func(string, EventCtx)
+	onIMECommit   func(string, EventCtx)
 
 	// No originating event — ctx.Event is nil in these.
-	OnScroll    func(EventCtx)
+	onScroll    func(EventCtx)
 	AmendLayout func(EventCtx)
 
 	OnDraw func(*DrawContext)
 
 	// Click filters — set by widget factories to avoid the per-frame
 	// closure allocation a wrapper callback would cost.
-	ClickButton  MouseButton // non-zero filters OnClick by mouse button
-	ClickOnSpace bool        // fire OnClick on spacebar via OnChar dispatch
-	ClickOnEnter bool        // fire OnClick on Enter key via OnKeyDown dispatch
+	clickButton  MouseButton // non-zero filters OnClick by mouse button
+	clickOnSpace bool        // fire OnClick on spacebar via OnChar dispatch
+	clickOnEnter bool        // fire OnClick on Enter key via OnKeyDown dispatch
 }
 
 // shapeButtonColors holds per-button color state read by
@@ -448,7 +449,7 @@ type shapeButtonColors struct {
 	OnHover          func(EventCtx)
 	OnAmend          func(EventCtx)
 	ColorHover       Color
-	ColorClick       Color
+	colorClick       Color
 	ColorFocus       Color
 	ColorBorderFocus Color
 }
@@ -472,11 +473,11 @@ type BoxShadow struct {
 }
 
 // GradientType specifies the gradient algorithm.
-type GradientType uint8
+type gradientType uint8
 
 // GradientType constants.
 const (
-	GradientLinear GradientType = iota
+	GradientLinear gradientType = iota
 	GradientRadial
 )
 
@@ -505,14 +506,14 @@ type GradientStop struct {
 // GradientDef defines a gradient with stops and direction.
 type GradientDef struct {
 	Stops     []GradientStop
-	Angle     float32 // explicit angle in degrees
-	Type      GradientType
+	angle     float32 // explicit angle in degrees
+	Type      gradientType
 	Direction GradientDirection
-	HasAngle  bool // true when Angle overrides Direction
+	hasAngle  bool // true when Angle overrides Direction
 }
 
 // AccessInfo holds string accessibility data.
-type AccessInfo struct {
+type accessInfo struct {
 	Label       string
 	Description string
 	ValueNum    float32
@@ -590,11 +591,11 @@ func (s *Shape) paddingHeight() float32 {
 }
 
 // makeA11YInfo returns an AccessInfo if label or desc is set.
-func makeA11YInfo(label, desc string) *AccessInfo {
+func makeA11YInfo(label, desc string) *accessInfo {
 	if label == "" && desc == "" {
 		return nil
 	}
-	return &AccessInfo{Label: label, Description: desc}
+	return &accessInfo{Label: label, Description: desc}
 }
 
 // a11yLabel returns label if set, otherwise falls back to text.

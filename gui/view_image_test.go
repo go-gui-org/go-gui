@@ -163,11 +163,11 @@ func TestImageA11Y(t *testing.T) {
 	if layout.Shape.A11YRole != AccessRoleImage {
 		t.Fatal("expected AccessRoleImage")
 	}
-	if layout.Shape.A11Y == nil {
+	if layout.Shape.a11Y == nil {
 		t.Fatal("expected A11Y info")
 	}
-	if layout.Shape.A11Y.Label != "test image" {
+	if layout.Shape.a11Y.Label != "test image" {
 		t.Fatalf("expected label 'test image', got %q",
-			layout.Shape.A11Y.Label)
+			layout.Shape.a11Y.Label)
 	}
 }

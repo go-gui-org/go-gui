@@ -14,7 +14,7 @@ func TestDefsClipPathRect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	paths, ok := vg.ClipPaths["c1"]
+	paths, ok := vg.clipPaths["c1"]
 	if !ok {
 		t.Fatal("clipPath c1 not found")
 	}
@@ -35,8 +35,8 @@ func TestDefsClipPathNoID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(vg.ClipPaths) != 0 {
-		t.Errorf("expected no clip paths, got %d", len(vg.ClipPaths))
+	if len(vg.clipPaths) != 0 {
+		t.Errorf("expected no clip paths, got %d", len(vg.clipPaths))
 	}
 }
 

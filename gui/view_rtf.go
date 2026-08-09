@@ -24,14 +24,14 @@ type RTFCfg struct {
 	RichText        RichText
 	MinWidth        float32
 	Focusable       bool
-	HangingIndent   float32 // negative indent for wrapped lines
+	hangingIndent   float32 // negative indent for wrapped lines
 
 	// markdownID > 0 when this block belongs to a markdown widget.
 	// markdownBlockStart is the rune offset of this block in the
 	// markdown's flat text. Both are set by view_markdown.go only.
 	markdownID         string
 	markdownBlockStart uint32
-	Mode               TextMode
+	Mode               textMode
 	Invisible          bool
 	Clip               bool
 	FocusSkip          bool
@@ -98,7 +98,7 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 	var baseStyle glyph.TextStyle
 	var lineSpacing float32
 	if v.BaseTextStyle != nil {
-		baseStyle = v.BaseTextStyle.ToGlyphStyle()
+		baseStyle = v.BaseTextStyle.toGlyphStyle()
 		lineSpacing = v.BaseTextStyle.LineSpacing
 	} else if len(v.RichText.Runs) > 0 {
 		baseStyle = vgRT.Runs[0].Style
@@ -118,7 +118,7 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 			Block: glyph.BlockStyle{
 				Wrap:        glyph.WrapWord,
 				Width:       -1.0,
-				Indent:      -v.HangingIndent,
+				Indent:      -v.hangingIndent,
 				LineSpacing: lineSpacing,
 			},
 		}
@@ -164,7 +164,7 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 		ID:        v.ID,
 		Focusable: v.Focusable,
 		A11YRole:  AccessRoleStaticText,
-		A11Y:      makeA11YInfo(v.A11YLabel, v.A11YDescription),
+		a11Y:      makeA11YInfo(v.A11YLabel, v.A11YDescription),
 		Width:     layout.Width,
 		Height:    layout.Height,
 		Clip:      v.Clip,
@@ -173,23 +173,23 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 		MinWidth:  v.MinWidth,
 		Sizing:    v.sizing,
 		events:    events,
-		TC: &ShapeTextConfig{
+		TC: &shapeTextConfig{
 			TextMode:           v.Mode,
-			HangingIndent:      v.HangingIndent,
-			RTFBaseStyle:       baseStyle,
-			RTFLineSpacing:     lineSpacing,
-			RTFLayout:          &layout,
-			RTFRuns:            &v.RichText,
-			RTFFlatText:        flatText,
-			MarkdownID:         v.markdownID,
-			MarkdownBlockStart: v.markdownBlockStart,
-			MarkdownRuneLen:    uint32(utf8RuneCount(flatText)),
+			hangingIndent:      v.hangingIndent,
+			rTFBaseStyle:       baseStyle,
+			rTFLineSpacing:     lineSpacing,
+			rTFLayout:          &layout,
+			rTFRuns:            &v.RichText,
+			rTFFlatText:        flatText,
+			markdownID:         v.markdownID,
+			markdownBlockStart: v.markdownBlockStart,
+			markdownRuneLen:    uint32(utf8RuneCount(flatText)),
 			rtfGlyphRT:         &vgRT,
 			rtfMathHashes:      mathHashes,
 		},
 	})
 	l := Layout{Shape: shape}
-	blockKey := rtfRunsKey(shape.TC.RTFRuns)
+	blockKey := rtfRunsKey(shape.TC.rTFRuns)
 	if ts := &w.viewState.tooltip; ts.id != "" &&
 		ts.text != "" && ts.blockKey != 0 &&
 		blockKey == ts.blockKey {
@@ -242,11 +242,11 @@ func rtfFindRunAtIndex(
 	l *Layout, startIndex int,
 ) RichTextRun {
 	if l.Shape == nil || l.Shape.TC == nil ||
-		l.Shape.TC.RTFRuns == nil {
+		l.Shape.TC.rTFRuns == nil {
 		return RichTextRun{}
 	}
 	idx := 0
-	for _, r := range l.Shape.TC.RTFRuns.Runs {
+	for _, r := range l.Shape.TC.rTFRuns.Runs {
 		runLen := len(r.Text)
 		if startIndex >= idx &&
 			startIndex < idx+runLen {
@@ -264,7 +264,7 @@ func rtfMouseMove(ctx EventCtx) {
 		return
 	}
 	ts := &ctx.Window.viewState.tooltip
-	layout := ctx.Layout.Shape.TC.RTFLayout
+	layout := ctx.Layout.Shape.TC.rTFLayout
 	for _, run := range layout.Items {
 		if run.IsObject {
 			continue
@@ -289,7 +289,7 @@ func rtfMouseMove(ctx EventCtx) {
 				ts.floatOffsetX = r.X + r.Width/2
 				ts.floatOffsetY = r.Y - 3
 				ts.blockKey = rtfRunsKey(
-					ctx.Layout.Shape.TC.RTFRuns)
+					ctx.Layout.Shape.TC.rTFRuns)
 				ts.hoverStart = time.Now()
 				ctx.Window.AnimationAdd(rtfTooltipAnimation(tipID))
 				ctx.Consume()
@@ -310,7 +310,7 @@ func rtfMouseMove(ctx EventCtx) {
 func rtfTooltipAnimation(tipID string) *Animate {
 	return &Animate{
 		AnimID: "___tooltip___",
-		Delay:  DefaultTooltipStyle.Delay,
+		Delay:  defaultTooltipStyle.Delay,
 		Callback: func(_ *Animate, w *Window) {
 			ts := &w.viewState.tooltip
 			if ts.hoverID == tipID && ts.text != "" {
@@ -443,7 +443,7 @@ func rtfMathStateKey(
 		h *= fnvPrime64
 		h ^= uint64(math.Float32bits(entry.Height))
 		h *= fnvPrime64
-		h ^= uint64(math.Float32bits(entry.DPI))
+		h ^= uint64(math.Float32bits(entry.dPI))
 		h *= fnvPrime64
 	}
 	return h
@@ -452,11 +452,11 @@ func rtfMathStateKey(
 // rtfTooltipView builds a floating tooltip popup positioned
 // relative to the owning RTF shape via the float system.
 func rtfTooltipView(ts *tooltipState) View {
-	d := &DefaultTooltipStyle
+	d := &defaultTooltipStyle
 	return Column(ContainerCfg{
 		ID:            ts.popupID,
 		Float:         true,
-		FloatAutoFlip: true,
+		floatAutoFlip: true,
 		FloatTieOff:   FloatBottomCenter,
 		FloatOffsetX:  ts.floatOffsetX,
 		FloatOffsetY:  ts.floatOffsetY,
@@ -480,7 +480,7 @@ func rtfOnClick(ctx EventCtx) {
 	if !ctx.Layout.Shape.hasRtfLayout() {
 		return
 	}
-	layout := ctx.Layout.Shape.TC.RTFLayout
+	layout := ctx.Layout.Shape.TC.rTFLayout
 	for _, run := range layout.Items {
 		if run.IsObject {
 			continue
@@ -492,13 +492,13 @@ func rtfOnClick(ctx EventCtx) {
 					showLinkContextMenu(ctx.Window, found.Link,
 						ctx.Event.MouseX,
 						ctx.Event.MouseY,
-						rtfRunsKey(ctx.Layout.Shape.TC.RTFRuns))
+						rtfRunsKey(ctx.Layout.Shape.TC.rTFRuns))
 					ctx.Consume()
 					return
 				}
 				if len(found.Link) > 0 &&
 					found.Link[0] == '#' {
-					ctx.Window.ScrollToView(found.Link[1:])
+					ctx.Window.scrollToView(found.Link[1:])
 				} else if ctx.Window.nativePlatform != nil {
 					_ = ctx.Window.nativePlatform.OpenURI(found.Link)
 				}
@@ -556,7 +556,7 @@ func rtfLinkMenuDismiss(w *Window) {
 // for RTF link right-click.
 func rtfLinkMenuView(w *Window, st rtfLinkMenuState) View {
 	link := st.Link
-	return Menu(w, MenubarCfg{
+	return menu(w, MenubarCfg{
 		ID: rtfLinkMenuFocusID,
 		Items: []MenuItemCfg{
 			{ID: "open_link", Text: "Open Link"},
@@ -575,7 +575,7 @@ func rtfLinkMenuView(w *Window, st rtfLinkMenuState) View {
 			rtfLinkMenuDismiss(ctx.Window)
 		},
 		Float:         true,
-		FloatAutoFlip: true,
+		floatAutoFlip: true,
 		FloatAnchor:   FloatTopLeft,
 		FloatTieOff:   FloatTopLeft,
 		FloatOffsetX:  st.X,

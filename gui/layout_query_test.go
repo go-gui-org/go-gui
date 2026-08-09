@@ -62,13 +62,13 @@ func TestNextFocusable(t *testing.T) {
 	w := &Window{}
 	w.viewState.focusID = "f10"
 
-	s, ok := root.NextFocusable(w)
+	s, ok := root.nextFocusable(w)
 	if !ok || s.ID != "f20" {
 		t.Errorf("next from 10: got %v, want 20", s)
 	}
 
 	w.viewState.focusID = "f30"
-	s, ok = root.NextFocusable(w)
+	s, ok = root.nextFocusable(w)
 	if !ok || s.ID != "f10" {
 		t.Errorf("wrap from 30: got %v, want 10", s)
 	}
@@ -86,13 +86,13 @@ func TestPreviousFocusable(t *testing.T) {
 	w := &Window{}
 	w.viewState.focusID = "f20"
 
-	s, ok := root.PreviousFocusable(w)
+	s, ok := root.previousFocusable(w)
 	if !ok || s.ID != "f10" {
 		t.Errorf("prev from 20: got %v, want 10", s)
 	}
 
 	w.viewState.focusID = "f10"
-	s, ok = root.PreviousFocusable(w)
+	s, ok = root.previousFocusable(w)
 	if !ok || s.ID != "f30" {
 		t.Errorf("wrap from 10: got %v, want 30", s)
 	}
@@ -111,7 +111,7 @@ func TestFocusableSkipsDisabledAndFocusSkip(t *testing.T) {
 	w := &Window{}
 	w.viewState.focusID = "f10"
 
-	s, ok := root.NextFocusable(w)
+	s, ok := root.nextFocusable(w)
 	if !ok || s.ID != "f40" {
 		t.Errorf("next from 10 skipping disabled/focusskip: got %v, want 40", s)
 	}
@@ -121,11 +121,11 @@ func TestFocusableEmpty(t *testing.T) {
 	root := &Layout{Shape: &Shape{}}
 	w := &Window{}
 
-	_, ok := root.NextFocusable(w)
+	_, ok := root.nextFocusable(w)
 	if ok {
 		t.Error("empty should return false")
 	}
-	_, ok = root.PreviousFocusable(w)
+	_, ok = root.previousFocusable(w)
 	if ok {
 		t.Error("empty should return false")
 	}
@@ -166,7 +166,7 @@ func TestFindShapeFound(t *testing.T) {
 			{Shape: &Shape{ID: "child2"}},
 		},
 	}
-	s, ok := root.FindShape(func(l Layout) bool {
+	s, ok := root.findShape(func(l Layout) bool {
 		return l.Shape.ID == "child2"
 	})
 	if !ok {
@@ -181,7 +181,7 @@ func TestFindShapeNotFound(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{ID: "root"},
 	}
-	_, ok := root.FindShape(func(l Layout) bool {
+	_, ok := root.findShape(func(l Layout) bool {
 		return l.Shape.ID == "missing"
 	})
 	if ok {
@@ -203,7 +203,7 @@ func TestPointInRectangle(t *testing.T) {
 		{50, 5, false},   // above rect
 	}
 	for _, tt := range tests {
-		got := PointInRectangle(tt.x, tt.y, rect)
+		got := pointInRectangle(tt.x, tt.y, rect)
 		if got != tt.want {
 			t.Errorf("PointInRectangle(%f,%f) = %v, want %v",
 				tt.x, tt.y, got, tt.want)
@@ -221,12 +221,12 @@ func TestNextPreviousFocusableNilWindow(t *testing.T) {
 		},
 	}
 
-	next, ok := root.NextFocusable(nil)
+	next, ok := root.nextFocusable(nil)
 	if !ok || next.ID != "f10" {
 		t.Fatalf("next nil window: got %v, want ID f10", next)
 	}
 
-	prev, ok := root.PreviousFocusable(nil)
+	prev, ok := root.previousFocusable(nil)
 	if !ok || prev.ID != "f30" {
 		t.Fatalf("prev nil window: got %v, want ID f30", prev)
 	}
@@ -308,5 +308,5 @@ func TestFindByIDEmptyIDNeverMatches(t *testing.T) {
 // still being built. It must be a no-op, not a panic.
 func TestScrollToViewBeforeLayout(t *testing.T) {
 	var w Window
-	w.ScrollToView("some-id")
+	w.scrollToView("some-id")
 }

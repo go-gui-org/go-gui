@@ -39,12 +39,12 @@ type InputCfg struct {
 	// callback by design — if security invariants (max length,
 	// forbidden chars) must be enforced unconditionally, use
 	// OnTextChanged instead.
-	PreTextChange func(current, proposed string) (string, bool)
+	preTextChange func(current, proposed string) (string, bool)
 
 	// PostCommitNormalize transforms the final text before
 	// OnTextCommit fires. Use for trimming whitespace,
 	// normalizing case, or formatting.
-	PostCommitNormalize func(text string, reason InputCommitReason) string
+	postCommitNormalize func(text string, reason InputCommitReason) string
 
 	ID          string `gui:"required,focus"`
 	Text        string
@@ -61,7 +61,7 @@ type InputCfg struct {
 
 	// MaskTokens defines custom mask token types for the Mask
 	// field. See MaskTokenDef for the format.
-	MaskTokens []MaskTokenDef
+	maskTokens []MaskTokenDef
 
 	// Appearance
 	Padding    Opt[Padding]
@@ -107,7 +107,7 @@ type InputCfg struct {
 
 	// Mode controls input behavior: single-line, multiline, or
 	// search with clear button. See InputMode constants.
-	Mode InputMode
+	Mode inputMode
 
 	// IsPassword masks displayed characters with dots/bullets.
 	IsPassword bool
@@ -133,7 +133,7 @@ func Input(cfg InputCfg) View {
 	applyInputDefaults(&cfg)
 	requireFocusID("Input", cfg.FocusDisabled, cfg.ID)
 
-	d := &DefaultInputStyle
+	d := &defaultInputStyle
 	sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)
 	radius := cfg.Radius.Get(d.Radius)
 
@@ -159,20 +159,20 @@ func Input(cfg InputCfg) View {
 
 	hcfg := inputHandlerCfg{
 		FocusID:             cfg.ID,
-		ScrollID:            inputScrollIDFor(&cfg),
+		scrollID:            inputScrollIDFor(&cfg),
 		IsPassword:          cfg.IsPassword,
 		ReadOnly:            cfg.ReadOnly,
 		Mode:                cfg.Mode,
 		Mask:                cfg.Mask,
 		MaskPreset:          cfg.MaskPreset,
-		MaskTokens:          cfg.MaskTokens,
+		maskTokens:          cfg.maskTokens,
 		OnTextChanged:       cfg.OnTextChanged,
 		OnTextCommit:        cfg.OnTextCommit,
 		OnEnter:             cfg.OnEnter,
 		OnKeyDown:           cfg.OnKeyDown,
 		OnKeyUp:             cfg.OnKeyUp,
-		PreTextChange:       cfg.PreTextChange,
-		PostCommitNormalize: cfg.PostCommitNormalize,
+		preTextChange:       cfg.preTextChange,
+		postCommitNormalize: cfg.postCommitNormalize,
 	}
 	hcfg.CompiledMask = hcfg.compiledMask()
 
@@ -203,7 +203,7 @@ func Input(cfg InputCfg) View {
 			TextStyle:         txtStyle,
 			Mode:              mode,
 			IsPassword:        cfg.IsPassword,
-			PlaceholderActive: placeholderActive,
+			placeholderActive: placeholderActive,
 			readOnly:          cfg.ReadOnly,
 		}),
 	}
@@ -283,7 +283,7 @@ func Input(cfg InputCfg) View {
 }
 
 func applyInputDefaults(cfg *InputCfg) {
-	d := &DefaultInputStyle
+	d := &defaultInputStyle
 	if !cfg.Color.IsSet() {
 		cfg.Color = d.Color
 	}
@@ -303,7 +303,7 @@ func applyInputDefaults(cfg *InputCfg) {
 		cfg.TextStyle = DefaultTextStyle
 	}
 	if cfg.PlaceholderStyle == (TextStyle{}) {
-		cfg.PlaceholderStyle = DefaultInputStyle.PlaceholderStyle
+		cfg.PlaceholderStyle = defaultInputStyle.PlaceholderStyle
 	}
 	if !cfg.Radius.IsSet() {
 		cfg.Radius = Some(d.Radius)
@@ -322,15 +322,15 @@ type inputHandlerCfg struct {
 	OnEnter             func(EventCtx)
 	OnKeyDown           func(EventCtx)
 	OnKeyUp             func(EventCtx)
-	PreTextChange       func(current, proposed string) (string, bool)
-	PostCommitNormalize func(text string, reason InputCommitReason) string
+	preTextChange       func(current, proposed string) (string, bool)
+	postCommitNormalize func(text string, reason InputCommitReason) string
 	Mask                string
-	MaskTokens          []MaskTokenDef
+	maskTokens          []MaskTokenDef
 	FocusID             string
-	ScrollID            string
+	scrollID            string
 	IsPassword          bool
 	ReadOnly            bool
-	Mode                InputMode
+	Mode                inputMode
 	MaskPreset          InputMaskPreset
 }
 
@@ -361,23 +361,23 @@ func (h *inputHandlerCfg) fireTextChanged(
 func (h *inputHandlerCfg) normalizeOnCommit(
 	text string, reason InputCommitReason,
 ) string {
-	if h.ReadOnly || h.PostCommitNormalize == nil {
+	if h.ReadOnly || h.postCommitNormalize == nil {
 		return text
 	}
-	return h.PostCommitNormalize(text, reason)
+	return h.postCommitNormalize(text, reason)
 }
 
 // compiledMask returns a non-nil *CompiledInputMask if the
 // handler config specifies a mask pattern.
 func (h *inputHandlerCfg) compiledMask() *CompiledInputMask {
 	pattern := h.Mask
-	if pattern == "" && h.MaskPreset != MaskNone {
-		pattern = InputMaskFromPreset(h.MaskPreset)
+	if pattern == "" && h.MaskPreset != maskNone {
+		pattern = inputMaskFromPreset(h.MaskPreset)
 	}
 	if pattern == "" {
 		return nil
 	}
-	c, err := CompileInputMask(pattern, h.MaskTokens)
+	c, err := compileInputMask(pattern, h.maskTokens)
 	if err != nil {
 		log.Printf("input: mask compile failed: %v", err)
 		return nil
@@ -421,16 +421,16 @@ func inputOnClick(leafID, leafScrollID string, canFocus bool) func(EventCtx) {
 			// No text config: not ours
 			return
 		}
-		if ly.Shape.TC.TextIsPlaceholder {
-			imap := StateMap[string, InputState](
+		if ly.Shape.TC.textIsPlaceholder {
+			imap := StateMap[string, inputState](
 				ctx.Window, nsInput, capMany,
 			)
 			// Default InputState{}: zero value seeds initial state.
-			is := imap.GetOr(focusID, InputState{})
+			is := imap.GetOr(focusID, inputState{})
 			is.CursorPos = 0
-			is.SelectBeg = 0
-			is.SelectEnd = 0
-			is.CursorOffset = -1
+			is.selectBeg = 0
+			is.selectEnd = 0
+			is.cursorOffset = -1
 			imap.Set(focusID, is)
 			resetBlinkCursorVisible(ctx.Window)
 			ctx.Consume()
@@ -449,16 +449,16 @@ func inputOnClick(leafID, leafScrollID string, canFocus bool) func(EventCtx) {
 		relY := ctx.Event.MouseY - (ly.Shape.Y - ctx.Layout.Shape.Y)
 		byteIdx := gl.GetClosestOffset(relX, relY)
 		displayText := text
-		if ly.Shape.TC.TextIsPassword {
+		if ly.Shape.TC.textIsPassword {
 			displayText = passwordMask(text)
 		}
 		runePos := byteToRuneIndex(displayText, byteIdx)
-		imap := StateMap[string, InputState](
+		imap := StateMap[string, inputState](
 			ctx.Window, nsInput, capMany,
 		)
 		// Default InputState{}: zero LastClickTime safely gates
 		// double-click (the > 0 check below prevents false match).
-		is := imap.GetOr(focusID, InputState{})
+		is := imap.GetOr(focusID, inputState{})
 
 		// Double-click selects word.
 		now := time.Now().UnixMilli()
@@ -471,14 +471,14 @@ func inputOnClick(leafID, leafScrollID string, canFocus bool) func(EventCtx) {
 			runes = []rune(displayText)
 			beg, end := wordBoundsAt(runes, runePos)
 			is.CursorPos = end
-			is.SelectBeg = uint32(beg)
-			is.SelectEnd = uint32(end)
+			is.selectBeg = uint32(beg)
+			is.selectEnd = uint32(end)
 		} else {
 			is.CursorPos = runePos
-			is.SelectBeg = uint32(runePos)
-			is.SelectEnd = uint32(runePos)
+			is.selectBeg = uint32(runePos)
+			is.selectEnd = uint32(runePos)
 		}
-		is.CursorOffset = -1
+		is.cursorOffset = -1
 		imap.Set(focusID, is)
 		resetBlinkCursorVisible(ctx.Window)
 		if scrollID != "" && ctx.Layout.Parent != nil {
@@ -490,8 +490,8 @@ func inputOnClick(leafID, leafScrollID string, canFocus bool) func(EventCtx) {
 
 		// Drag-to-select via MouseLock.
 		ds := &inputDragState{
-			anchorPos:   is.SelectBeg,
-			anchorEnd:   is.SelectEnd,
+			anchorPos:   is.selectBeg,
+			anchorEnd:   is.selectEnd,
 			gl:          gl,
 			displayText: displayText,
 			txtOffX:     ly.Shape.X - ctx.Layout.Shape.X,
@@ -545,13 +545,13 @@ func inputAmendLayout(
 		if wasFocused && !focused {
 			text := inputTextFromLayout(ctx.Layout)
 			if normalized := hcfg.normalizeOnCommit(
-				text, CommitBlur,
+				text, commitBlur,
 			); normalized != text {
 				text = normalized
 				hcfg.fireTextChanged(ctx.Layout, text, ctx.Window)
 			}
 			if hcfg.OnTextCommit != nil {
-				hcfg.OnTextCommit(text, CommitBlur, ctx)
+				hcfg.OnTextCommit(text, commitBlur, ctx)
 			}
 			if spellChk {
 				spellCheckClear(key, ctx.Window)
@@ -568,9 +568,9 @@ func inputAmendLayout(
 				txt := &inner.Children[0]
 				if txt.Shape.TC != nil {
 					is := StateReadOr(ctx.Window, nsInput,
-						key, InputState{})
-					txt.Shape.TC.TextSelBeg = is.SelectBeg
-					txt.Shape.TC.TextSelEnd = is.SelectEnd
+						key, inputState{})
+					txt.Shape.TC.textSelBeg = is.selectBeg
+					txt.Shape.TC.textSelEnd = is.selectEnd
 				}
 			}
 		}

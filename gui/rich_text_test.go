@@ -44,7 +44,7 @@ func TestRichAbbrSetsBoldTypeface(t *testing.T) {
 
 func TestRichFootnoteReducesSize(t *testing.T) {
 	s := TextStyle{Size: 20}
-	r := RichFootnote("1", "footnote text", s)
+	r := richFootnote("1", "footnote text", s)
 	if r.Style.Size >= 20 {
 		t.Fatalf("size should be reduced: got %v", r.Style.Size)
 	}
@@ -73,13 +73,13 @@ func TestRichTextToGlyphConversion(t *testing.T) {
 }
 
 func TestMathRunEmitsInlineObject(t *testing.T) {
-	cache := NewBoundedDiagramCache(10)
+	cache := newBoundedDiagramCache(10)
 	hash := diagramCacheHash("x^2")
 	cache.Set(hash, DiagramCacheEntry{
-		State:  DiagramReady,
+		State:  diagramReady,
 		Width:  120,
 		Height: 40,
-		DPI:    150,
+		dPI:    150,
 	})
 	rt := RichText{
 		Runs: []RichTextRun{
@@ -120,10 +120,10 @@ func TestMathRunEmitsInlineObject(t *testing.T) {
 }
 
 func TestMathRunFallbackWhenLoading(t *testing.T) {
-	cache := NewBoundedDiagramCache(10)
+	cache := newBoundedDiagramCache(10)
 	hash := diagramCacheHash("y^2")
 	cache.Set(hash, DiagramCacheEntry{
-		State: DiagramLoading,
+		State: diagramLoading,
 	})
 	rt := RichText{
 		Runs: []RichTextRun{{

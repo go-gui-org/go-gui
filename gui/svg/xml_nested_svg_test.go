@@ -12,7 +12,7 @@ const epsilon32 = 1e-4
 
 // firstShapePath returns the first VectorPath whose segments are
 // non-empty (i.e. a real shape and not a clip-mask placeholder).
-func firstShapePath(t *testing.T, vg *VectorGraphic) VectorPath {
+func firstShapePath(t *testing.T, vg *vectorGraphic) vectorPath {
 	t.Helper()
 	for _, p := range vg.Paths {
 		if len(p.Segments) > 0 {
@@ -20,7 +20,7 @@ func firstShapePath(t *testing.T, vg *VectorGraphic) VectorPath {
 		}
 	}
 	t.Fatalf("no shape paths in parsed SVG")
-	return VectorPath{}
+	return vectorPath{}
 }
 
 func nearEq32(a, b float32) bool {
@@ -239,7 +239,7 @@ func TestNestedSvg_SiblingViewportRestored(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
-	var shapes []VectorPath
+	var shapes []vectorPath
 	for _, p := range vg.Paths {
 		if len(p.Segments) > 0 {
 			shapes = append(shapes, p)
@@ -493,10 +493,10 @@ func TestNestedSvg_ClipsOutsideContent(t *testing.T) {
 	}
 	p := firstShapePath(t, vg)
 	const want = "__nested_svg_clip_1"
-	if p.ClipPathID != want {
-		t.Fatalf("ClipPathID=%q; want %q", p.ClipPathID, want)
+	if p.clipPathID != want {
+		t.Fatalf("ClipPathID=%q; want %q", p.clipPathID, want)
 	}
-	clip, ok := vg.ClipPaths[want]
+	clip, ok := vg.clipPaths[want]
 	if !ok {
 		t.Fatalf("vg.ClipPaths[%q] missing", want)
 	}
@@ -520,10 +520,10 @@ func TestNestedSvg_ClipsInsideContent(t *testing.T) {
 		t.Fatalf("parse: %v", err)
 	}
 	p := firstShapePath(t, vg)
-	if p.ClipPathID != "__nested_svg_clip_1" {
-		t.Fatalf("ClipPathID=%q", p.ClipPathID)
+	if p.clipPathID != "__nested_svg_clip_1" {
+		t.Fatalf("ClipPathID=%q", p.clipPathID)
 	}
-	if _, ok := vg.ClipPaths["__nested_svg_clip_1"]; !ok {
+	if _, ok := vg.clipPaths["__nested_svg_clip_1"]; !ok {
 		t.Fatal("clip registry entry missing")
 	}
 }
@@ -537,7 +537,7 @@ func TestNestedSvg_EmptyNoClip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
-	for k := range vg.ClipPaths {
+	for k := range vg.clipPaths {
 		if strings.HasPrefix(k, "__nested_svg_clip_") {
 			t.Fatalf("unexpected synth clip %q for empty <svg/>", k)
 		}
@@ -559,7 +559,7 @@ func TestNestedSvg_SiblingsDistinctClips(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
-	var shapes []VectorPath
+	var shapes []vectorPath
 	for _, p := range vg.Paths {
 		if len(p.Segments) > 0 {
 			shapes = append(shapes, p)
@@ -568,16 +568,16 @@ func TestNestedSvg_SiblingsDistinctClips(t *testing.T) {
 	if len(shapes) != 2 {
 		t.Fatalf("shapes=%d want 2", len(shapes))
 	}
-	if shapes[0].ClipPathID != "__nested_svg_clip_1" {
-		t.Fatalf("shape0 clip=%q", shapes[0].ClipPathID)
+	if shapes[0].clipPathID != "__nested_svg_clip_1" {
+		t.Fatalf("shape0 clip=%q", shapes[0].clipPathID)
 	}
-	if shapes[1].ClipPathID != "__nested_svg_clip_2" {
-		t.Fatalf("shape1 clip=%q", shapes[1].ClipPathID)
+	if shapes[1].clipPathID != "__nested_svg_clip_2" {
+		t.Fatalf("shape1 clip=%q", shapes[1].clipPathID)
 	}
-	if _, ok := vg.ClipPaths["__nested_svg_clip_1"]; !ok {
+	if _, ok := vg.clipPaths["__nested_svg_clip_1"]; !ok {
 		t.Fatal("clip 1 not registered")
 	}
-	if _, ok := vg.ClipPaths["__nested_svg_clip_2"]; !ok {
+	if _, ok := vg.clipPaths["__nested_svg_clip_2"]; !ok {
 		t.Fatal("clip 2 not registered")
 	}
 }
@@ -598,8 +598,8 @@ func TestNestedSvg_DoublyNestedInheritsInnermost(t *testing.T) {
 		t.Fatalf("parse: %v", err)
 	}
 	p := firstShapePath(t, vg)
-	if p.ClipPathID != "__nested_svg_clip_2" {
-		t.Fatalf("ClipPathID=%q want __nested_svg_clip_2", p.ClipPathID)
+	if p.clipPathID != "__nested_svg_clip_2" {
+		t.Fatalf("ClipPathID=%q want __nested_svg_clip_2", p.clipPathID)
 	}
 }
 
@@ -621,7 +621,7 @@ func TestNestedSvg_DefsClipPathReachable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
-	if paths, ok := vg.ClipPaths["cp1"]; !ok || len(paths) == 0 {
+	if paths, ok := vg.clipPaths["cp1"]; !ok || len(paths) == 0 {
 		t.Fatalf("cp1 not reachable from nested-svg defs (paths=%v)", paths)
 	}
 }
@@ -727,7 +727,7 @@ func TestNestedSvg_DegenerateViewportNoClip(t *testing.T) {
 		if err != nil {
 			t.Fatalf("case %d parse: %v", i, err)
 		}
-		for k := range vg.ClipPaths {
+		for k := range vg.clipPaths {
 			if strings.HasPrefix(k, "__nested_svg_clip_") {
 				t.Fatalf("case %d: unexpected synth clip %q for "+
 					"degenerate viewport", i, k)
@@ -761,12 +761,12 @@ func TestNestedSvg_AuthorClipPathOnSvgPreserved(t *testing.T) {
 		t.Fatalf("parse: %v", err)
 	}
 	p := firstShapePath(t, vg)
-	if p.ClipPathID != "author" {
+	if p.clipPathID != "author" {
 		t.Fatalf("ClipPathID=%q; want author (authored clip wins, viewport clip skipped)",
-			p.ClipPathID)
+			p.clipPathID)
 	}
 	// Synth clip must NOT have been allocated for this <svg>.
-	if _, ok := vg.ClipPaths["__nested_svg_clip_1"]; ok {
+	if _, ok := vg.clipPaths["__nested_svg_clip_1"]; ok {
 		t.Fatal("synth viewport clip allocated despite authored clip")
 	}
 }
@@ -858,7 +858,7 @@ func TestNestedSvg_ClipRectMatchesViewport(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
-	clip, ok := vg.ClipPaths["__nested_svg_clip_1"]
+	clip, ok := vg.clipPaths["__nested_svg_clip_1"]
 	if !ok || len(clip) != 1 {
 		t.Fatalf("clip missing or wrong count: %v", clip)
 	}
@@ -897,9 +897,9 @@ func TestNestedSvg_DescendantAuthorClipOverridesSynth(t *testing.T) {
 		t.Fatalf("parse: %v", err)
 	}
 	p := firstShapePath(t, vg)
-	if p.ClipPathID != "author" {
+	if p.clipPathID != "author" {
 		t.Fatalf("ClipPathID=%q; want \"author\" (descendant clip overrides synth)",
-			p.ClipPathID)
+			p.clipPathID)
 	}
 }
 
@@ -976,11 +976,11 @@ func TestNestedSvg_RedeclaredSameClipPathSuppressesSynthClip(t *testing.T) {
 		t.Fatalf("parse: %v", err)
 	}
 	p := firstShapePath(t, vg)
-	if p.ClipPathID != "a" {
+	if p.clipPathID != "a" {
 		t.Fatalf("ClipPathID=%q; redeclared author clip should win → want a",
-			p.ClipPathID)
+			p.clipPathID)
 	}
-	if _, ok := vg.ClipPaths["__nested_svg_clip_1"]; ok {
+	if _, ok := vg.clipPaths["__nested_svg_clip_1"]; ok {
 		t.Fatal("synth viewport clip allocated despite redeclared authored clip")
 	}
 }
@@ -1003,11 +1003,11 @@ func TestNestedSvg_InnerSvgInlineStyleClipPathSuppressesSynthClip(t *testing.T) 
 		t.Fatalf("parse: %v", err)
 	}
 	p := firstShapePath(t, vg)
-	if p.ClipPathID != "author" {
+	if p.clipPathID != "author" {
 		t.Fatalf("ClipPathID=%q; inline-style author clip should win → want author",
-			p.ClipPathID)
+			p.clipPathID)
 	}
-	if _, ok := vg.ClipPaths["__nested_svg_clip_1"]; ok {
+	if _, ok := vg.clipPaths["__nested_svg_clip_1"]; ok {
 		t.Fatal("synth viewport clip allocated despite inline-style author clip")
 	}
 }

@@ -10,9 +10,9 @@ func TestTableBasic(t *testing.T) {
 	v := Table(TableCfg{
 		ID: "tbl-test",
 		Data: []TableRowCfg{
-			TR([]TableCellCfg{TH("Name"), TH("Age")}),
-			TR([]TableCellCfg{TD("Alice"), TD("30")}),
-			TR([]TableCellCfg{TD("Bob"), TD("25")}),
+			TR([]TableCellCfg{tH("Name"), tH("Age")}),
+			TR([]TableCellCfg{tD("Alice"), tD("30")}),
+			TR([]TableCellCfg{tD("Bob"), tD("25")}),
 		},
 	})
 	w := &Window{}
@@ -37,8 +37,8 @@ func TestTableBorderAll(t *testing.T) {
 		BorderStyle: TableBorderAll,
 		SizeBorder:  1,
 		Data: []TableRowCfg{
-			TR([]TableCellCfg{TD("a"), TD("b")}),
-			TR([]TableCellCfg{TD("c"), TD("d")}),
+			TR([]TableCellCfg{tD("a"), tD("b")}),
+			TR([]TableCellCfg{tD("c"), tD("d")}),
 		},
 	})
 	w := &Window{}
@@ -61,9 +61,9 @@ func TestTableBorderHorizontal(t *testing.T) {
 		BorderStyle: TableBorderHorizontal,
 		SizeBorder:  1,
 		Data: []TableRowCfg{
-			TR([]TableCellCfg{TH("H")}),
-			TR([]TableCellCfg{TD("a")}),
-			TR([]TableCellCfg{TD("b")}),
+			TR([]TableCellCfg{tH("H")}),
+			TR([]TableCellCfg{tD("a")}),
+			TR([]TableCellCfg{tD("b")}),
 		},
 	})
 	w := &Window{}
@@ -80,9 +80,9 @@ func TestTableBorderHeaderOnly(t *testing.T) {
 		BorderStyle: TableBorderHeaderOnly,
 		SizeBorder:  2,
 		Data: []TableRowCfg{
-			TR([]TableCellCfg{TH("H")}),
-			TR([]TableCellCfg{TD("a")}),
-			TR([]TableCellCfg{TD("b")}),
+			TR([]TableCellCfg{tH("H")}),
+			TR([]TableCellCfg{tD("a")}),
+			TR([]TableCellCfg{tD("b")}),
 		},
 	})
 	w := &Window{}
@@ -96,7 +96,7 @@ func TestTableBorderHeaderOnly(t *testing.T) {
 func TestTableRawData(t *testing.T) {
 	v := Table(TableCfg{
 		ID: "rawdata-test",
-		RawData: [][]string{
+		rawData: [][]string{
 			{"Name", "Age"},
 			{"Alice", "30"},
 			{"Bob", "25"},
@@ -113,12 +113,12 @@ func TestTableRawDataPrecedence(t *testing.T) {
 	// RawData should take precedence over Data.
 	v := Table(TableCfg{
 		ID: "rawdata-prec",
-		RawData: [][]string{
+		rawData: [][]string{
 			{"Header"},
 			{"Real"},
 		},
 		Data: []TableRowCfg{
-			TR([]TableCellCfg{TD("ignored")}),
+			TR([]TableCellCfg{tD("ignored")}),
 		},
 	})
 	w := &Window{}
@@ -134,7 +134,7 @@ func TestTableRawDataHeaderRow(t *testing.T) {
 	// TableCfgFromData which sets HeadCell.
 	v := Table(TableCfg{
 		ID: "rawdata-header",
-		RawData: [][]string{
+		rawData: [][]string{
 			{"Name"},
 			{"Alice"},
 		},
@@ -150,7 +150,7 @@ func TestTableRawDataHeaderOnly(t *testing.T) {
 	// Single-row RawData: only a header row, no data rows.
 	v := Table(TableCfg{
 		ID: "rawdata-header-only",
-		RawData: [][]string{
+		rawData: [][]string{
 			{"Col1", "Col2"},
 		},
 	})
@@ -179,7 +179,7 @@ func TestTableCfgFromData(t *testing.T) {
 }
 
 func TestTableCfgError(t *testing.T) {
-	cfg := TableCfgError("oops")
+	cfg := tableCfgError("oops")
 	if len(cfg.Data) != 1 {
 		t.Fatalf("rows = %d, want 1", len(cfg.Data))
 	}
@@ -189,7 +189,7 @@ func TestTableCfgError(t *testing.T) {
 }
 
 func TestTableHelpers(t *testing.T) {
-	row := TR([]TableCellCfg{TH("x"), TD("y")})
+	row := TR([]TableCellCfg{tH("x"), tD("y")})
 	if len(row.Cells) != 2 {
 		t.Fatalf("cells = %d", len(row.Cells))
 	}
@@ -207,8 +207,8 @@ func TestTableSelection(t *testing.T) {
 	v := Table(TableCfg{
 		ID: "tbl-test",
 		Data: []TableRowCfg{
-			TR([]TableCellCfg{TD("a")}),
-			TR([]TableCellCfg{TD("b")}),
+			TR([]TableCellCfg{tD("a")}),
+			TR([]TableCellCfg{tD("b")}),
 		},
 		OnSelect: func(sel map[int]bool, row int, ctx EventCtx) {
 			selectedRows = sel
@@ -247,10 +247,10 @@ func TestTableColumnAutoWidth(t *testing.T) {
 	w.textMeasurer = &tableTestMeasurer{}
 	v := w.Table(TableCfg{
 		ID:          "auto-width-test",
-		CellPadding: SomeP(4, 4, 4, 4),
+		cellPadding: SomeP(4, 4, 4, 4),
 		Data: []TableRowCfg{
-			TR([]TableCellCfg{TH("Name"), TH("Age")}),
-			TR([]TableCellCfg{TD("Alexander"), TD("30")}),
+			TR([]TableCellCfg{tH("Name"), tH("Age")}),
+			TR([]TableCellCfg{tD("Alexander"), tD("30")}),
 		},
 	})
 	layout := generateViewLayout(v, w)
@@ -273,8 +273,8 @@ func TestTableRowAltColor(t *testing.T) {
 		ID:          "tbl-test",
 		ColorRowAlt: &alt,
 		Data: []TableRowCfg{
-			TR([]TableCellCfg{TD("a")}),
-			TR([]TableCellCfg{TD("b")}),
+			TR([]TableCellCfg{tD("a")}),
+			TR([]TableCellCfg{tD("b")}),
 		},
 	})
 	w := &Window{}
@@ -292,8 +292,8 @@ func TestWindowTable(t *testing.T) {
 	v := w.Table(TableCfg{
 		ID: "window-table-test",
 		Data: []TableRowCfg{
-			TR([]TableCellCfg{TH("A"), TH("B")}),
-			TR([]TableCellCfg{TD("x"), TD("yy")}),
+			TR([]TableCellCfg{tH("A"), tH("B")}),
+			TR([]TableCellCfg{tD("x"), tD("yy")}),
 		},
 	})
 	layout := generateViewLayout(v, w)
@@ -308,8 +308,8 @@ func TestTableColumnWidthCaching(t *testing.T) {
 	cfg := TableCfg{
 		ID: "cache-test",
 		Data: []TableRowCfg{
-			TR([]TableCellCfg{TH("Name")}),
-			TR([]TableCellCfg{TD("Alice")}),
+			TR([]TableCellCfg{tH("Name")}),
+			TR([]TableCellCfg{tD("Alice")}),
 		},
 	}
 	// First call measures.
@@ -330,20 +330,20 @@ func TestClearTableCache(_ *testing.T) {
 	cfg := TableCfg{
 		ID: "clear-cache-test",
 		Data: []TableRowCfg{
-			TR([]TableCellCfg{TH("Col")}),
-			TR([]TableCellCfg{TD("val")}),
+			TR([]TableCellCfg{tH("Col")}),
+			TR([]TableCellCfg{tD("val")}),
 		},
 	}
 	v := w.Table(cfg)
 	_ = generateViewLayout(v, w)
 
 	// Clear specific.
-	w.ClearTableCache("clear-cache-test")
+	w.clearTableCache("clear-cache-test")
 
 	// Clear all.
 	v2 := w.Table(cfg)
 	_ = generateViewLayout(v2, w)
-	w.ClearAllTableCaches()
+	w.clearAllTableCaches()
 }
 
 func TestTableVirtualization(t *testing.T) {
@@ -351,9 +351,9 @@ func TestTableVirtualization(t *testing.T) {
 	w.textMeasurer = &tableTestMeasurer{}
 
 	data := make([]TableRowCfg, 0, 101)
-	data = append(data, TR([]TableCellCfg{TH("Col")}))
+	data = append(data, TR([]TableCellCfg{tH("Col")}))
 	for range 100 {
-		data = append(data, TR([]TableCellCfg{TD("row")}))
+		data = append(data, TR([]TableCellCfg{tD("row")}))
 	}
 
 	v := w.Table(TableCfg{
@@ -373,7 +373,7 @@ func TestTableVirtualization(t *testing.T) {
 
 func TestTableCfgFromCSV(t *testing.T) {
 	csv := "Name,Age\nAlice,30\nBob,25\n"
-	cfg, err := TableCfgFromCSV(csv)
+	cfg, err := tableCfgFromCSV(csv)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -390,7 +390,7 @@ func TestTableCfgFromCSV(t *testing.T) {
 
 func TestTableFromCSV(t *testing.T) {
 	w := &Window{}
-	v := w.TableFromCSV("A,B\n1,2\n")
+	v := w.tableFromCSV("A,B\n1,2\n")
 	layout := generateViewLayout(v, w)
 	if len(layout.Children) != 2 {
 		t.Fatalf("rows = %d, want 2", len(layout.Children))
@@ -399,7 +399,7 @@ func TestTableFromCSV(t *testing.T) {
 
 func TestTableFromCSVError(t *testing.T) {
 	w := &Window{}
-	v := w.TableFromCSV("\"unclosed")
+	v := w.tableFromCSV("\"unclosed")
 	layout := generateViewLayout(v, w)
 	// Should produce error table with 1 row.
 	if len(layout.Children) != 1 {
@@ -416,9 +416,9 @@ func TestTableFreezeHeader(t *testing.T) {
 		MaxHeight:    200,
 		FreezeHeader: true,
 		Data: []TableRowCfg{
-			TR([]TableCellCfg{TH("Name"), TH("Age")}),
-			TR([]TableCellCfg{TD("Alice"), TD("30")}),
-			TR([]TableCellCfg{TD("Bob"), TD("25")}),
+			TR([]TableCellCfg{tH("Name"), tH("Age")}),
+			TR([]TableCellCfg{tD("Alice"), tD("30")}),
+			TR([]TableCellCfg{tD("Bob"), tD("25")}),
 		},
 	})
 	layout := generateViewLayout(v, w)
@@ -451,9 +451,9 @@ func TestTableFreezeHeaderWithSeparator(t *testing.T) {
 		BorderStyle:  TableBorderHeaderOnly,
 		SizeBorder:   2,
 		Data: []TableRowCfg{
-			TR([]TableCellCfg{TH("H")}),
-			TR([]TableCellCfg{TD("a")}),
-			TR([]TableCellCfg{TD("b")}),
+			TR([]TableCellCfg{tH("H")}),
+			TR([]TableCellCfg{tD("a")}),
+			TR([]TableCellCfg{tD("b")}),
 		},
 	})
 	layout := generateViewLayout(v, w)
@@ -480,9 +480,9 @@ func TestTableFreezeHeaderNoScroll(t *testing.T) {
 		ID:           "tbl-test",
 		FreezeHeader: true,
 		Data: []TableRowCfg{
-			TR([]TableCellCfg{TH("H")}),
-			TR([]TableCellCfg{TD("a")}),
-			TR([]TableCellCfg{TD("b")}),
+			TR([]TableCellCfg{tH("H")}),
+			TR([]TableCellCfg{tD("a")}),
+			TR([]TableCellCfg{tD("b")}),
 		},
 	})
 	w := &Window{}
@@ -498,9 +498,9 @@ func TestTableFreezeHeaderVirtualization(t *testing.T) {
 	w.textMeasurer = &tableTestMeasurer{}
 
 	data := make([]TableRowCfg, 0, 101)
-	data = append(data, TR([]TableCellCfg{TH("Col")}))
+	data = append(data, TR([]TableCellCfg{tH("Col")}))
 	for range 100 {
-		data = append(data, TR([]TableCellCfg{TD("row")}))
+		data = append(data, TR([]TableCellCfg{tD("row")}))
 	}
 
 	v := w.Table(TableCfg{

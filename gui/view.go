@@ -15,16 +15,16 @@ type View interface {
 // layout-generation time so the function can read window state. It is
 // useful inside Content slices when a subtree needs State(*Window)
 // but the enclosing function does not receive w.
-type ViewFunc func(*Window) View
+type viewFunc func(*Window) View
 
 // Content satisfies the View interface. ViewFunc always
 // returns empty content; its GenerateLayout defers to the
 // wrapped function to build the subtree.
-func (f ViewFunc) Content() []View { return nil }
+func (f viewFunc) Content() []View { return nil }
 
 // GenerateLayout calls the wrapped function and recursively
 // builds the full Layout tree from the returned View.
-func (f ViewFunc) GenerateLayout(w *Window) Layout {
+func (f viewFunc) GenerateLayout(w *Window) Layout {
 	v := f(w)
 	if v == nil {
 		return Layout{}

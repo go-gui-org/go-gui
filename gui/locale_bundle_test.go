@@ -62,14 +62,14 @@ func TestLocaleParseFull(t *testing.T) {
 	if l.Date.FirstDayOfWeek != 1 {
 		t.Fatalf("FirstDayOfWeek = %d", l.Date.FirstDayOfWeek)
 	}
-	if l.Currency.Position != AffixSuffix {
+	if l.Currency.Position != affixSuffix {
 		t.Fatalf("Position = %d", l.Currency.Position)
 	}
-	if l.StrOK != "D'accord" {
-		t.Fatalf("StrOK = %q", l.StrOK)
+	if l.strOK != "D'accord" {
+		t.Fatalf("StrOK = %q", l.strOK)
 	}
-	if l.StrYes != "Oui" {
-		t.Fatalf("StrYes = %q", l.StrYes)
+	if l.strYes != "Oui" {
+		t.Fatalf("StrYes = %q", l.strYes)
 	}
 	if l.WeekdaysShort[0] != "D" {
 		t.Fatalf("WeekdaysShort[0] = %q", l.WeekdaysShort[0])

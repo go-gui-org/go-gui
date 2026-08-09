@@ -298,15 +298,15 @@ type beepBackend struct {
 	initialized  bool
 }
 
-func (b *beepBackend) Init(cfg Cfg) error {
+func (b *beepBackend) Init(opts Cfg) error {
 	if b.initialized {
 		return nil
 	}
 	// Init (audio.go) already applied the defaults and range-validated
 	// every field, so no re-defaulting here.
-	sr := beep.SampleRate(cfg.Frequency)
-	bufSize := cfg.ChunkSize
-	nch := cfg.MixChannels
+	sr := beep.SampleRate(opts.frequency)
+	bufSize := opts.chunkSize
+	nch := opts.mixChannels
 	if err := outputInit(sr, bufSize); err != nil {
 		return fmt.Errorf("audio: init output: %w", err)
 	}

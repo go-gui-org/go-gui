@@ -225,28 +225,28 @@ func TestApplyPseudoState_EmptyIDNoMatch(t *testing.T) {
 
 func TestResolveFillRule_EvenOdd(t *testing.T) {
 	elem := `<path fill-rule="evenodd"/>`
-	parent := ComputedStyle{FillRule: FillRuleNonzero}
+	parent := computedStyle{fillRule: fillRuleNonzero}
 	got := resolveFillRule(elem, parent)
-	if got != FillRuleEvenOdd {
+	if got != fillRuleEvenOdd {
 		t.Errorf("got %v want FillRuleEvenOdd", got)
 	}
 }
 
 func TestResolveFillRule_NonzeroDefault(t *testing.T) {
 	elem := `<path fill-rule="bogus"/>`
-	parent := ComputedStyle{FillRule: FillRuleEvenOdd}
+	parent := computedStyle{fillRule: fillRuleEvenOdd}
 	got := resolveFillRule(elem, parent)
 	// bogus value defaults to nonzero, not inherited.
-	if got != FillRuleNonzero {
+	if got != fillRuleNonzero {
 		t.Errorf("got %v want FillRuleNonzero", got)
 	}
 }
 
 func TestResolveFillRule_InheritsFromParent(t *testing.T) {
 	elem := `<path/>`
-	parent := ComputedStyle{FillRule: FillRuleEvenOdd}
+	parent := computedStyle{fillRule: fillRuleEvenOdd}
 	got := resolveFillRule(elem, parent)
-	if got != FillRuleEvenOdd {
+	if got != fillRuleEvenOdd {
 		t.Errorf("got %v want FillRuleEvenOdd (inherited)", got)
 	}
 }
@@ -254,12 +254,12 @@ func TestResolveFillRule_InheritsFromParent(t *testing.T) {
 // --- computeStyle ---
 
 func TestComputeStyle_BasicInheritance(t *testing.T) {
-	parent := ComputedStyle{
+	parent := computedStyle{
 		Opacity:       0.8,
 		FillOpacity:   0.9,
 		StrokeOpacity: 0.7,
 		Fill:          gui.SvgColor{R: 255, G: 0, B: 0, A: 255},
-		FillSet:       true,
+		fillSet:       true,
 		Transform:     [6]float32{1, 0, 0, 1, 10, 0},
 	}
 	elem := `<rect fill="none"/>`
@@ -274,13 +274,13 @@ func TestComputeStyle_BasicInheritance(t *testing.T) {
 	// fill="none" → display:none check not in computeStyle (that's in
 	// parseSvgContent). The cascade fold should still run but with no
 	// CSS rules or inline style, only pres-attrs.
-	if out.FillSet {
+	if out.fillSet {
 		t.Log("FillSet may be set from pres-attr 'none' — cascade-ok")
 	}
 }
 
 func TestComputeStyle_NilStateNoCSS(t *testing.T) {
-	parent := ComputedStyle{
+	parent := computedStyle{
 		Opacity: 1.0,
 		GroupID: "parent-group",
 	}
@@ -293,7 +293,7 @@ func TestComputeStyle_NilStateNoCSS(t *testing.T) {
 }
 
 func TestComputeStyle_GroupIDInheritedWhenNoID(t *testing.T) {
-	parent := ComputedStyle{GroupID: "g1"}
+	parent := computedStyle{GroupID: "g1"}
 	elem := `<rect fill="red"/>`
 	info := css.ElementInfo{Tag: "rect"}
 	out := computeStyle(elem, parent, nil, info, nil, nil)
@@ -303,7 +303,7 @@ func TestComputeStyle_GroupIDInheritedWhenNoID(t *testing.T) {
 }
 
 func TestComputeStyle_OpacityMultipliesThroughAncestors(t *testing.T) {
-	parent := ComputedStyle{Opacity: 0.5}
+	parent := computedStyle{Opacity: 0.5}
 	elem := `<rect opacity="0.5"/>`
 	info := css.ElementInfo{Tag: "rect"}
 	out := computeStyle(elem, parent, nil, info, nil, nil)
@@ -314,12 +314,12 @@ func TestComputeStyle_OpacityMultipliesThroughAncestors(t *testing.T) {
 }
 
 func TestComputeStyle_DisplayReset(t *testing.T) {
-	parent := ComputedStyle{Display: DisplayNone}
+	parent := computedStyle{Display: displayNone}
 	elem := `<rect/>`
 	info := css.ElementInfo{Tag: "rect"}
 	out := computeStyle(elem, parent, nil, info, nil, nil)
 	// display is NOT inherited; computeStyle resets to DisplayInline.
-	if out.Display != DisplayInline {
+	if out.Display != displayInline {
 		t.Errorf("Display=%v want DisplayInline (reset)", out.Display)
 	}
 }
@@ -327,12 +327,12 @@ func TestComputeStyle_DisplayReset(t *testing.T) {
 // --- applyComputedStyle ---
 
 func TestApplyComputedStyle_TransformApplied(t *testing.T) {
-	path := &VectorPath{
+	path := &vectorPath{
 		FillColor:  gui.SvgColor{R: 255, G: 255, B: 255, A: 255},
-		StrokeCap:  strokeCapInherit,
-		StrokeJoin: strokeJoinInherit,
+		strokeCap:  strokeCapInherit,
+		strokeJoin: strokeJoinInherit,
 	}
-	inh := ComputedStyle{
+	inh := computedStyle{
 		Transform:   [6]float32{2, 0, 0, 2, 5, 5},
 		Opacity:     1,
 		FillOpacity: 1, StrokeOpacity: 1,
@@ -344,12 +344,12 @@ func TestApplyComputedStyle_TransformApplied(t *testing.T) {
 }
 
 func TestApplyComputedStyle_FillInheritDefaultsToBlack(t *testing.T) {
-	path := &VectorPath{
+	path := &vectorPath{
 		FillColor:      colorInherit,
 		FillGradientID: "",
 		StrokeColor:    colorTransparent,
 	}
-	inh := ComputedStyle{
+	inh := computedStyle{
 		Opacity:     1,
 		FillOpacity: 1, StrokeOpacity: 1,
 	}
@@ -360,11 +360,11 @@ func TestApplyComputedStyle_FillInheritDefaultsToBlack(t *testing.T) {
 }
 
 func TestApplyComputedStyle_StrokeInheritDefaultsToTransparent(t *testing.T) {
-	path := &VectorPath{
+	path := &vectorPath{
 		StrokeColor: colorInherit,
 		FillColor:   gui.SvgColor{R: 255, G: 255, B: 255, A: 255},
 	}
-	inh := ComputedStyle{
+	inh := computedStyle{
 		Opacity:     1,
 		FillOpacity: 1, StrokeOpacity: 1,
 	}
@@ -375,13 +375,13 @@ func TestApplyComputedStyle_StrokeInheritDefaultsToTransparent(t *testing.T) {
 }
 
 func TestApplyComputedStyle_UndefinedStrokeWidthDefaultsToOne(t *testing.T) {
-	path := &VectorPath{
+	path := &vectorPath{
 		StrokeWidth: -1, // sentinel for "unset"
 		FillColor:   gui.SvgColor{R: 255, G: 255, B: 255, A: 255},
 		StrokeColor: colorTransparent,
 	}
 	// StrokeWidth < 0 on inh means "unset" so the path keeps its own.
-	inh := ComputedStyle{
+	inh := computedStyle{
 		StrokeWidth:   -1,
 		Opacity:       1,
 		FillOpacity:   1,
@@ -394,45 +394,45 @@ func TestApplyComputedStyle_UndefinedStrokeWidthDefaultsToOne(t *testing.T) {
 }
 
 func TestApplyComputedStyle_UndefinedStrokeCapDefaultsToButt(t *testing.T) {
-	path := &VectorPath{
-		StrokeCap:   strokeCapInherit,
+	path := &vectorPath{
+		strokeCap:   strokeCapInherit,
 		FillColor:   gui.SvgColor{R: 255, G: 255, B: 255, A: 255},
 		StrokeColor: colorTransparent,
 	}
-	inh := ComputedStyle{
+	inh := computedStyle{
 		Opacity:     1,
 		FillOpacity: 1, StrokeOpacity: 1,
 	}
 	applyComputedStyle(path, inh)
-	if path.StrokeCap != gui.SvgButtCap {
-		t.Errorf("StrokeCap=%v want SvgButtCap", path.StrokeCap)
+	if path.strokeCap != gui.SvgButtCap {
+		t.Errorf("StrokeCap=%v want SvgButtCap", path.strokeCap)
 	}
 }
 
 func TestApplyComputedStyle_UndefinedStrokeJoinDefaultsToMiter(t *testing.T) {
-	path := &VectorPath{
-		StrokeJoin:  strokeJoinInherit,
+	path := &vectorPath{
+		strokeJoin:  strokeJoinInherit,
 		FillColor:   gui.SvgColor{R: 255, G: 255, B: 255, A: 255},
 		StrokeColor: colorTransparent,
 	}
-	inh := ComputedStyle{
+	inh := computedStyle{
 		Opacity:     1,
 		FillOpacity: 1, StrokeOpacity: 1,
 	}
 	applyComputedStyle(path, inh)
-	if path.StrokeJoin != gui.SvgMiterJoin {
-		t.Errorf("StrokeJoin=%v want SvgMiterJoin", path.StrokeJoin)
+	if path.strokeJoin != gui.SvgMiterJoin {
+		t.Errorf("StrokeJoin=%v want SvgMiterJoin", path.strokeJoin)
 	}
 }
 
 func TestApplyComputedStyle_GradientOverridesColor(t *testing.T) {
-	path := &VectorPath{
+	path := &vectorPath{
 		FillColor:   gui.SvgColor{R: 255, G: 0, B: 0, A: 255},
 		StrokeColor: colorTransparent,
 	}
-	inh := ComputedStyle{
-		FillGradient: "url(#g1)",
-		FillSet:      true,
+	inh := computedStyle{
+		fillGradient: "url(#g1)",
+		fillSet:      true,
 		Opacity:      1,
 		FillOpacity:  1, StrokeOpacity: 1,
 	}
@@ -446,27 +446,27 @@ func TestApplyComputedStyle_GradientOverridesColor(t *testing.T) {
 }
 
 func TestApplyComputedStyle_ClipPathInheritedWhenUnset(t *testing.T) {
-	path := &VectorPath{
+	path := &vectorPath{
 		FillColor:   gui.SvgColor{R: 255, G: 255, B: 255, A: 255},
 		StrokeColor: colorTransparent,
 	}
-	inh := ComputedStyle{
-		ClipPathID:  "clip1",
+	inh := computedStyle{
+		clipPathID:  "clip1",
 		Opacity:     1,
 		FillOpacity: 1, StrokeOpacity: 1,
 	}
 	applyComputedStyle(path, inh)
-	if path.ClipPathID != "clip1" {
-		t.Errorf("ClipPathID=%q want clip1", path.ClipPathID)
+	if path.clipPathID != "clip1" {
+		t.Errorf("ClipPathID=%q want clip1", path.clipPathID)
 	}
 }
 
 func TestApplyComputedStyle_GroupIDInheritedWhenUnset(t *testing.T) {
-	path := &VectorPath{
+	path := &vectorPath{
 		FillColor:   gui.SvgColor{R: 255, G: 255, B: 255, A: 255},
 		StrokeColor: colorTransparent,
 	}
-	inh := ComputedStyle{
+	inh := computedStyle{
 		GroupID:     "g1",
 		Opacity:     1,
 		FillOpacity: 1, StrokeOpacity: 1,
@@ -478,11 +478,11 @@ func TestApplyComputedStyle_GroupIDInheritedWhenUnset(t *testing.T) {
 }
 
 func TestApplyComputedStyle_OpacityMirroredToPath(t *testing.T) {
-	path := &VectorPath{
+	path := &vectorPath{
 		FillColor:   gui.SvgColor{R: 255, G: 255, B: 255, A: 255},
 		StrokeColor: colorTransparent,
 	}
-	inh := ComputedStyle{
+	inh := computedStyle{
 		Opacity:       0.5,
 		FillOpacity:   0.8,
 		StrokeOpacity: 0.3,
@@ -502,12 +502,12 @@ func TestApplyComputedStyle_OpacityMirroredToPath(t *testing.T) {
 // --- bakePathOpacity ---
 
 func TestBakePathOpacity_VisibilityHiddenZeroesAlpha(t *testing.T) {
-	path := &VectorPath{
+	path := &vectorPath{
 		FillColor:   gui.SvgColor{R: 100, G: 100, B: 100, A: 200},
 		StrokeColor: gui.SvgColor{R: 50, G: 50, B: 50, A: 128},
 	}
-	inh := ComputedStyle{
-		Visibility:    VisibilityHidden,
+	inh := computedStyle{
+		visibility:    visibilityHidden,
 		Opacity:       1,
 		FillOpacity:   1,
 		StrokeOpacity: 1,
@@ -523,11 +523,11 @@ func TestBakePathOpacity_VisibilityHiddenZeroesAlpha(t *testing.T) {
 }
 
 func TestBakePathOpacity_Normal(t *testing.T) {
-	path := &VectorPath{
+	path := &vectorPath{
 		FillColor:   gui.SvgColor{R: 100, G: 100, B: 100, A: 200},
 		StrokeColor: gui.SvgColor{R: 50, G: 50, B: 50, A: 128},
 	}
-	inh := ComputedStyle{
+	inh := computedStyle{
 		Opacity:       0.5,
 		FillOpacity:   1,
 		StrokeOpacity: 1,

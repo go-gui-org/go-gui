@@ -11,16 +11,16 @@ func TestPrintPageSize(t *testing.T) {
 		wantW       float32
 		wantH       float32
 	}{
-		{"A4_portrait", PaperA4, PrintPortrait, 595, 842},
-		{"A4_landscape", PaperA4, PrintLandscape, 842, 595},
-		{"letter", PaperLetter, PrintPortrait, 612, 792},
-		{"legal", PaperLegal, PrintPortrait, 612, 1008},
-		{"A3", PaperA3, PrintPortrait, 842, 1191},
+		{"A4_portrait", paperA4, printPortrait, 595, 842},
+		{"A4_landscape", paperA4, printLandscape, 842, 595},
+		{"letter", paperLetter, printPortrait, 612, 792},
+		{"legal", paperLegal, printPortrait, 612, 1008},
+		{"A3", paperA3, printPortrait, 842, 1191},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			w, h := PrintPageSize(tt.paper, tt.orientation)
+			w, h := printPageSize(tt.paper, tt.orientation)
 			if w != tt.wantW || h != tt.wantH {
 				t.Errorf("got %gx%g, want %gx%g",
 					w, h, tt.wantW, tt.wantH)
@@ -31,7 +31,7 @@ func TestPrintPageSize(t *testing.T) {
 
 func TestDefaultPrintMargins(t *testing.T) {
 	t.Parallel()
-	m := DefaultPrintMargins()
+	m := defaultPrintMargins()
 	if m.Top != 36 || m.Right != 36 || m.Bottom != 36 || m.Left != 36 {
 		t.Errorf("defaults: %+v", m)
 	}
@@ -63,7 +63,7 @@ func TestValidatePrintMargins(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
 		t.Parallel()
 		if err := validatePrintMargins(595, 842,
-			DefaultPrintMargins()); err != nil {
+			defaultPrintMargins()); err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
 	})
@@ -104,7 +104,7 @@ func TestValidatePrintJob(t *testing.T) {
 	t.Run("bad_DPI", func(t *testing.T) {
 		t.Parallel()
 		job := NewPrintJob()
-		job.RasterDPI = 50
+		job.rasterDPI = 50
 		if err := validatePrintJob(job); err == nil {
 			t.Error("expected error for low DPI")
 		}
@@ -112,7 +112,7 @@ func TestValidatePrintJob(t *testing.T) {
 	t.Run("bad_quality", func(t *testing.T) {
 		t.Parallel()
 		job := NewPrintJob()
-		job.JPEGQuality = 5
+		job.jPEGQuality = 5
 		if err := validatePrintJob(job); err == nil {
 			t.Error("expected error for low quality")
 		}
@@ -120,7 +120,7 @@ func TestValidatePrintJob(t *testing.T) {
 	t.Run("pdf_path_required", func(t *testing.T) {
 		t.Parallel()
 		job := NewPrintJob()
-		job.Source = PrintJobSource{Kind: PrintSourcePDFPath}
+		job.Source = printJobSource{Kind: printSourcePDFPath}
 		if err := validatePrintJob(job); err == nil {
 			t.Error("expected error for empty pdf_path")
 		}
@@ -149,13 +149,13 @@ func TestNormalizePrintPageRanges(t *testing.T) {
 	t.Parallel()
 	t.Run("empty", func(t *testing.T) {
 		t.Parallel()
-		if result := NormalizePrintPageRanges(nil); result != nil {
+		if result := normalizePrintPageRanges(nil); result != nil {
 			t.Errorf("expected nil, got %v", result)
 		}
 	})
 	t.Run("single", func(t *testing.T) {
 		t.Parallel()
-		result := NormalizePrintPageRanges(
+		result := normalizePrintPageRanges(
 			[]PrintPageRange{{From: 1, To: 5}})
 		if len(result) != 1 ||
 			result[0].From != 1 || result[0].To != 5 {
@@ -164,7 +164,7 @@ func TestNormalizePrintPageRanges(t *testing.T) {
 	})
 	t.Run("merge_adjacent", func(t *testing.T) {
 		t.Parallel()
-		result := NormalizePrintPageRanges(
+		result := normalizePrintPageRanges(
 			[]PrintPageRange{{From: 1, To: 3}, {From: 4, To: 6}})
 		if len(result) != 1 ||
 			result[0].From != 1 || result[0].To != 6 {
@@ -173,7 +173,7 @@ func TestNormalizePrintPageRanges(t *testing.T) {
 	})
 	t.Run("merge_overlap", func(t *testing.T) {
 		t.Parallel()
-		result := NormalizePrintPageRanges(
+		result := normalizePrintPageRanges(
 			[]PrintPageRange{{From: 1, To: 5}, {From: 3, To: 8}})
 		if len(result) != 1 ||
 			result[0].From != 1 || result[0].To != 8 {
@@ -182,7 +182,7 @@ func TestNormalizePrintPageRanges(t *testing.T) {
 	})
 	t.Run("disjoint", func(t *testing.T) {
 		t.Parallel()
-		result := NormalizePrintPageRanges(
+		result := normalizePrintPageRanges(
 			[]PrintPageRange{{From: 1, To: 3}, {From: 10, To: 12}})
 		if len(result) != 2 {
 			t.Errorf("expected 2 ranges, got %v", result)
@@ -190,7 +190,7 @@ func TestNormalizePrintPageRanges(t *testing.T) {
 	})
 	t.Run("sort", func(t *testing.T) {
 		t.Parallel()
-		result := NormalizePrintPageRanges(
+		result := normalizePrintPageRanges(
 			[]PrintPageRange{{From: 10, To: 12}, {From: 1, To: 3}})
 		if len(result) != 2 ||
 			result[0].From != 1 || result[1].From != 10 {
@@ -250,8 +250,8 @@ func TestValidateHeaderFooter(t *testing.T) {
 	t.Parallel()
 	t.Run("ok", func(t *testing.T) {
 		t.Parallel()
-		cfg := PrintHeaderFooterCfg{
-			Enabled: true, Left: "Page {page}",
+		cfg := printHeaderFooterCfg{
+			enabled: true, Left: "Page {page}",
 		}
 		if err := validateHeaderFooterCfg(cfg); err != nil {
 			t.Errorf("unexpected error: %v", err)
@@ -259,8 +259,8 @@ func TestValidateHeaderFooter(t *testing.T) {
 	})
 	t.Run("bad_token", func(t *testing.T) {
 		t.Parallel()
-		cfg := PrintHeaderFooterCfg{
-			Enabled: true, Center: "{invalid}",
+		cfg := printHeaderFooterCfg{
+			enabled: true, Center: "{invalid}",
 		}
 		if err := validateHeaderFooterCfg(cfg); err == nil {
 			t.Error("expected error for bad token")
@@ -268,8 +268,8 @@ func TestValidateHeaderFooter(t *testing.T) {
 	})
 	t.Run("disabled_skips_validation", func(t *testing.T) {
 		t.Parallel()
-		cfg := PrintHeaderFooterCfg{
-			Enabled: false, Center: "{invalid}",
+		cfg := printHeaderFooterCfg{
+			enabled: false, Center: "{invalid}",
 		}
 		if err := validateHeaderFooterCfg(cfg); err != nil {
 			t.Errorf("disabled header should skip validation: %v", err)
@@ -304,11 +304,11 @@ func TestPrintPageRangesToString(t *testing.T) {
 func TestPrintExportResultIsOk(t *testing.T) {
 	t.Parallel()
 	ok := printExportOKResult("/tmp/out.pdf")
-	if !ok.IsOk() {
+	if !ok.isOk() {
 		t.Error("expected IsOk true")
 	}
 	fail := printExportErrorResult("/tmp/out.pdf", "err", "msg")
-	if fail.IsOk() {
+	if fail.isOk() {
 		t.Error("expected IsOk false")
 	}
 }
@@ -316,16 +316,16 @@ func TestPrintExportResultIsOk(t *testing.T) {
 func TestNewPrintJob(t *testing.T) {
 	t.Parallel()
 	job := NewPrintJob()
-	if job.Paper != PaperA4 {
-		t.Errorf("Paper: got %d, want %d", job.Paper, PaperA4)
+	if job.paper != paperA4 {
+		t.Errorf("Paper: got %d, want %d", job.paper, paperA4)
 	}
 	if job.Copies != 1 {
 		t.Errorf("Copies: got %d, want 1", job.Copies)
 	}
-	if job.RasterDPI != 300 {
-		t.Errorf("RasterDPI: got %d, want 300", job.RasterDPI)
+	if job.rasterDPI != 300 {
+		t.Errorf("RasterDPI: got %d, want 300", job.rasterDPI)
 	}
-	if job.JPEGQuality != 85 {
-		t.Errorf("JPEGQuality: got %d, want 85", job.JPEGQuality)
+	if job.jPEGQuality != 85 {
+		t.Errorf("JPEGQuality: got %d, want 85", job.jPEGQuality)
 	}
 }

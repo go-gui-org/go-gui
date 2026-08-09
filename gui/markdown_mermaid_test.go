@@ -44,9 +44,9 @@ func TestMarkdownMermaidAltFence(t *testing.T) {
 }
 
 func TestDiagramCacheBasicOps(t *testing.T) {
-	cache := NewBoundedDiagramCache(10)
+	cache := newBoundedDiagramCache(10)
 	entry := DiagramCacheEntry{
-		State:     DiagramLoading,
+		State:     diagramLoading,
 		RequestID: 42,
 	}
 	cache.Set(100, entry)
@@ -63,13 +63,13 @@ func TestDiagramCacheBasicOps(t *testing.T) {
 }
 
 func TestDiagramCacheReplacesOldEntry(t *testing.T) {
-	cache := NewBoundedDiagramCache(10)
+	cache := newBoundedDiagramCache(10)
 	cache.Set(100, DiagramCacheEntry{
-		State:     DiagramLoading,
+		State:     diagramLoading,
 		RequestID: 1,
 	})
 	cache.Set(100, DiagramCacheEntry{
-		State:     DiagramReady,
+		State:     diagramReady,
 		RequestID: 2,
 		Width:     100,
 		Height:    50,
@@ -78,17 +78,17 @@ func TestDiagramCacheReplacesOldEntry(t *testing.T) {
 	if !ok {
 		t.Fatal("expected cache hit")
 	}
-	if got.State != DiagramReady || got.RequestID != 2 {
+	if got.State != diagramReady || got.RequestID != 2 {
 		t.Fatalf("expected ready/2, got %v/%d",
 			got.State, got.RequestID)
 	}
 }
 
 func TestDiagramCacheEviction(t *testing.T) {
-	cache := NewBoundedDiagramCache(3)
+	cache := newBoundedDiagramCache(3)
 	for i := range 5 {
 		cache.Set(int64(i), DiagramCacheEntry{
-			State:     DiagramReady,
+			State:     diagramReady,
 			RequestID: uint64(i),
 		})
 	}
@@ -111,10 +111,10 @@ func TestDefaultMermaidFetcher_SourceTooLarge(t *testing.T) {
 }
 
 func TestDiagramCacheClear(t *testing.T) {
-	cache := NewBoundedDiagramCache(10)
-	cache.Set(1, DiagramCacheEntry{State: DiagramLoading})
-	cache.Set(2, DiagramCacheEntry{State: DiagramReady})
-	cache.Set(3, DiagramCacheEntry{State: DiagramLoading})
+	cache := newBoundedDiagramCache(10)
+	cache.Set(1, DiagramCacheEntry{State: diagramLoading})
+	cache.Set(2, DiagramCacheEntry{State: diagramReady})
+	cache.Set(3, DiagramCacheEntry{State: diagramLoading})
 	cache.Clear()
 	if cache.Len() != 0 {
 		t.Fatalf("expected empty cache after clear: len=%d",

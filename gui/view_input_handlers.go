@@ -9,18 +9,18 @@ func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id 
 	mask := hcfg.CompiledMask
 	if mask != nil {
 		is := inputStateOrDefault(id, w)
-		res := InputMaskInsert(text, is.CursorPos, is.SelectBeg, is.SelectEnd, ins, mask)
+		res := inputMaskInsert(text, is.CursorPos, is.selectBeg, is.selectEnd, ins, mask)
 		if res.Changed {
 			undo := inputPushUndo(is, text)
 			text = res.Text
-			StateMap[string, InputState](w, nsInput, capMany).Set(id, InputState{
+			StateMap[string, inputState](w, nsInput, capMany).Set(id, inputState{
 				CursorPos: res.CursorPos, Undo: undo,
 			})
 			return text, true
 		}
-	} else if hcfg.PreTextChange != nil {
+	} else if hcfg.preTextChange != nil {
 		proposed := inputProposedText(text, ins, id, w)
-		if adjusted, ok := hcfg.PreTextChange(text, proposed); ok {
+		if adjusted, ok := hcfg.preTextChange(text, proposed); ok {
 			if adjusted == proposed {
 				text = inputInsert(text, ins, id, w)
 			} else {
@@ -56,7 +56,7 @@ func makeInputOnChar(hcfg inputHandlerCfg) func(EventCtx) {
 		ch := ctx.Event.CharCode
 
 		// Control characters are handled by OnKeyDown.
-		if ch < CharSpace {
+		if ch < charSpace {
 			ctx.Consume()
 			return
 		}
@@ -72,7 +72,7 @@ func makeInputOnChar(hcfg inputHandlerCfg) func(EventCtx) {
 			resetBlinkCursorVisible(ctx.Window)
 			hcfg.fireTextChanged(ctx.Layout, text, ctx.Window)
 			inputScrollCursorIntoView(
-				ctx.EffID(hcfg.ScrollID), text, ctx.Layout, ctx.Window,
+				ctx.EffID(hcfg.scrollID), text, ctx.Layout, ctx.Window,
 			)
 		}
 		ctx.Consume()
@@ -84,7 +84,7 @@ func makeInputOnChar(hcfg inputHandlerCfg) func(EventCtx) {
 // (arrows/Home/End), selection (Shift, Ctrl+A), and copy (Ctrl+C) stay
 // live. Cut/undo/redo only mutate with a Ctrl/Super modifier; without
 // one their handlers decline the key, so it must not be swallowed here.
-func inputKeyMutatesText(e *Event, mode InputMode) bool {
+func inputKeyMutatesText(e *Event, mode inputMode) bool {
 	switch e.KeyCode {
 	case KeyBackspace, KeyDelete:
 		return true
@@ -111,14 +111,14 @@ func makeInputOnKeyDown(hcfg inputHandlerCfg) func(EventCtx) {
 			ctx.Consume()
 			return
 		}
-		imap := StateMap[string, InputState](ctx.Window, nsInput, capMany)
+		imap := StateMap[string, inputState](ctx.Window, nsInput, capMany)
 		// Default InputState{}: zero CursorOffset/CursorTrailing seed
 		// initial state; both are immediately overwritten below.
-		is := imap.GetOr(id, InputState{})
-		savedOffset := is.CursorOffset
-		savedTrailing := is.CursorTrailing
-		is.CursorOffset = -1
-		is.CursorTrailing = false
+		is := imap.GetOr(id, inputState{})
+		savedOffset := is.cursorOffset
+		savedTrailing := is.cursorTrailing
+		is.cursorOffset = -1
+		is.cursorTrailing = false
 		text := inputTextFromLayout(ctx.Layout)
 		runeLen := utf8RuneCount(text)
 		pos := is.CursorPos
@@ -195,7 +195,7 @@ func makeInputOnKeyDown(hcfg inputHandlerCfg) func(EventCtx) {
 				hcfg.fireTextChanged(ctx.Layout, text, ctx.Window)
 			}
 			inputScrollCursorIntoView(
-				ctx.EffID(hcfg.ScrollID), text, ctx.Layout, ctx.Window,
+				ctx.EffID(hcfg.scrollID), text, ctx.Layout, ctx.Window,
 			)
 			ctx.Consume()
 		} else if hcfg.OnKeyDown != nil {
@@ -228,10 +228,10 @@ func inputKeyEnter(
 }
 
 func inputKeyEscape(
-	imap *BoundedMap[string, InputState], id string, is InputState,
+	imap *BoundedMap[string, inputState], id string, is inputState,
 ) {
-	is.SelectBeg = 0
-	is.SelectEnd = 0
+	is.selectBeg = 0
+	is.selectEnd = 0
 	imap.Set(id, is)
 }
 

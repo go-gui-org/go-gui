@@ -3,21 +3,21 @@ package gui
 import "time"
 
 // SpringCfg controls spring physics behavior.
-type SpringCfg struct {
+type springCfg struct {
 	// Stiffness controls spring force. Values >= ~15600 (with
 	// Mass=1) will diverge at the 16ms fixed timestep.
-	Stiffness float32
-	Damping   float32
-	Mass      float32
+	stiffness float32
+	damping   float32
+	mass      float32
 	Threshold float32
 }
 
 // Spring presets.
 var (
-	SpringDefault = SpringCfg{Stiffness: 100, Damping: 10, Mass: 1.0, Threshold: 0.01}
-	SpringGentle  = SpringCfg{Stiffness: 50, Damping: 8, Mass: 1.0, Threshold: 0.01}
-	SpringBouncy  = SpringCfg{Stiffness: 300, Damping: 15, Mass: 1.0, Threshold: 0.01}
-	SpringStiff   = SpringCfg{Stiffness: 500, Damping: 30, Mass: 1.0, Threshold: 0.01}
+	springDefault = springCfg{stiffness: 100, damping: 10, mass: 1.0, Threshold: 0.01}
+	springGentle  = springCfg{stiffness: 50, damping: 8, mass: 1.0, Threshold: 0.01}
+	SpringBouncy  = springCfg{stiffness: 300, damping: 15, mass: 1.0, Threshold: 0.01}
+	springStiff   = springCfg{stiffness: 500, damping: 30, mass: 1.0, Threshold: 0.01}
 )
 
 // springState tracks current spring physics.
@@ -29,12 +29,13 @@ type springState struct {
 }
 
 // SpringAnimation uses spring physics for natural motion.
+// exportaudit:keep — reachable from an exported signature
 type SpringAnimation struct {
 	start   time.Time
 	OnValue func(float32, *Window)
 	OnDone  func(*Window)
 	AnimID  string
-	Config  SpringCfg
+	Config  springCfg
 	state   springState
 	stopped bool
 }
@@ -60,7 +61,7 @@ func (s *SpringAnimation) Update(_ *Window, dt float32, ac *AnimationCommands) b
 func NewSpringAnimation(id string, onValue func(float32, *Window)) *SpringAnimation {
 	return &SpringAnimation{
 		AnimID:  id,
-		Config:  SpringDefault,
+		Config:  springDefault,
 		OnValue: onValue,
 	}
 }
@@ -75,7 +76,7 @@ func (s *SpringAnimation) SpringTo(from, to float32) {
 }
 
 // Retarget changes the target while preserving position/velocity.
-func (s *SpringAnimation) Retarget(to float32) {
+func (s *SpringAnimation) retarget(to float32) {
 	s.state.target = to
 	s.state.atRest = false
 	s.stopped = false
@@ -90,16 +91,16 @@ func updateSpring(sp *SpringAnimation, dt float32, ac *AnimationCommands) bool {
 		return false
 	}
 	cfg := sp.Config
-	if cfg.Mass <= 0 {
-		cfg.Mass = SpringDefault.Mass
+	if cfg.mass <= 0 {
+		cfg.mass = springDefault.mass
 	}
 	if cfg.Threshold <= 0 {
-		cfg.Threshold = SpringDefault.Threshold
+		cfg.Threshold = springDefault.Threshold
 	}
 	displacement := sp.state.position - sp.state.target
-	springForce := -cfg.Stiffness * displacement
-	dampingForce := -cfg.Damping * sp.state.velocity
-	acceleration := (springForce + dampingForce) / cfg.Mass
+	springForce := -cfg.stiffness * displacement
+	dampingForce := -cfg.damping * sp.state.velocity
+	acceleration := (springForce + dampingForce) / cfg.mass
 
 	sp.state.velocity += acceleration * dt
 	sp.state.position += sp.state.velocity * dt
@@ -109,12 +110,12 @@ func updateSpring(sp *SpringAnimation, dt float32, ac *AnimationCommands) bool {
 		sp.state.position = sp.state.target
 		sp.state.velocity = 0
 		sp.state.atRest = true
-		ac.AppendOnValue(sp.OnValue, sp.state.target)
-		ac.AppendOnDone(sp.OnDone)
+		ac.appendOnValue(sp.OnValue, sp.state.target)
+		ac.appendOnDone(sp.OnDone)
 		sp.stopped = true
 		return true
 	}
 
-	ac.AppendOnValue(sp.OnValue, sp.state.position)
+	ac.appendOnValue(sp.OnValue, sp.state.position)
 	return true
 }

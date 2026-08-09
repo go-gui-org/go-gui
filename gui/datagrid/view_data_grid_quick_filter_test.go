@@ -31,9 +31,9 @@ func findShapeText(layout *gg.Layout, want string) bool {
 func TestQuickFilterDebounceDefaultInMemory(t *testing.T) {
 	cfg := &DataGridCfg{ID: "g1"}
 	applyDataGridDefaults(cfg)
-	if cfg.QuickFilterDebounce != 0 {
+	if cfg.quickFilterDebounce != 0 {
 		t.Fatalf("QuickFilterDebounce = %v without DataSource, want 0",
-			cfg.QuickFilterDebounce)
+			cfg.quickFilterDebounce)
 	}
 }
 
@@ -43,9 +43,9 @@ func TestQuickFilterDebounceDefaultWithSource(t *testing.T) {
 		DataSource: NewInMemoryDataSource(nil),
 	}
 	applyDataGridDefaults(cfg)
-	if cfg.QuickFilterDebounce != 200*time.Millisecond {
+	if cfg.quickFilterDebounce != 200*time.Millisecond {
 		t.Fatalf("QuickFilterDebounce = %v with DataSource, want 200ms",
-			cfg.QuickFilterDebounce)
+			cfg.quickFilterDebounce)
 	}
 }
 
@@ -53,12 +53,12 @@ func TestQuickFilterDebounceNegativeOptsOut(t *testing.T) {
 	cfg := &DataGridCfg{
 		ID:                  "g1",
 		DataSource:          NewInMemoryDataSource(nil),
-		QuickFilterDebounce: -1,
+		quickFilterDebounce: -1,
 	}
 	applyDataGridDefaults(cfg)
-	if cfg.QuickFilterDebounce != -1 {
+	if cfg.quickFilterDebounce != -1 {
 		t.Fatalf("QuickFilterDebounce = %v, want -1 preserved",
-			cfg.QuickFilterDebounce)
+			cfg.quickFilterDebounce)
 	}
 }
 
