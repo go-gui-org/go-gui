@@ -85,7 +85,7 @@ bench:
 bench-gate:
 	go test \
 	  -bench='Benchmark(Layout|GenerateViewLayout|ViewFrame|ParseSvg|Tessellate|BuildDefsPathDataCache|RenderLayout|RenderSvg)' \
-	  -benchmem -count=5 -run='^$' -timeout=15m ./gui/...
+	  -benchmem -count=5 -run='^$$' -timeout=15m ./gui/...
 
 clean:
 	rm -rf build/
@@ -189,10 +189,13 @@ workflow-audit:
 	@echo "Lines above use version tags instead of SHAs."
 
 # Report the API-surface measurements behind
-# docs/specs/developer-ergonomics.md.
+# docs/specs/developer-ergonomics.md, then gate on hand-rolled widget
+# IDs (docs/specs/widget-id-scoping.md). Mode ids exits non-zero on any
+# finding, so it runs last: the reports above still print either way.
 ergo-audit:
 	go run ./tools/ergoaudit/ -mode focus -gui . .
 	go run ./tools/ergoaudit/ -mode callbacks -gui . .
+	go run ./tools/ergoaudit/ -mode ids .
 
 # Insert a generated ID into every broken literal in this repo's tests
 # and examples. Scoped away from gui/ deliberately: go-gui's own widget

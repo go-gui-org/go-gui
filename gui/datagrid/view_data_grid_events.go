@@ -26,7 +26,7 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 	if draft, ok := draftMap.Get(gridID); ok {
 		value = draft
 	}
-	inputID := cfg.ID + ":quick_filter"
+	inputID := gg.ScopeID(cfg.ID, "quick_filter")
 	inputFocusID := inputID
 	matchesText := dataGridQuickFilterMatchesText(cfg)
 	clearDisabled := value == "" || queryCallback == nil
@@ -77,12 +77,12 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 				Mode:      gg.TextModeSingleLine,
 				TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
 			}),
-			dataGridIndicatorButton(gridID+":filter_clear", gg.ActiveLocale.StrClear, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(gg.ScopeID(gridID, "filter_clear"), gg.ActiveLocale.StrClear, cfg.TextStyleFilter, cfg.ColorHeaderHover,
 				clearDisabled, 0, func(ctx gg.EventCtx) {
 					if queryCallback == nil {
 						return
 					}
-					ctx.Window.AnimationRemove(inputID + ":debounce")
+					ctx.Window.AnimationRemove(gg.ScopeID(inputID, "debounce"))
 					gg.StateMap[string, string](ctx.Window, nsDgQuickDraft,
 						capModerate).Delete(gridID)
 					next := GridQueryState{
@@ -134,7 +134,7 @@ func dataGridQuickFilterOnTextChanged(
 		gg.StateMap[string, string](ctx.Window, nsDgQuickDraft,
 			capModerate).Set(gridID, text)
 		ctx.Window.AnimationAdd(&gg.Animate{
-			AnimID: inputID + ":debounce",
+			AnimID: gg.ScopeID(inputID, "debounce"),
 			Delay:  debounce,
 			Callback: func(_ *gg.Animate, w *gg.Window) {
 				next := GridQueryState{
@@ -185,7 +185,7 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.
 		Spacing: gg.SomeF(6),
 		VAlign:  gg.VAlignMiddle,
 		Content: []gg.View{
-			dataGridIndicatorButton(gridID+":column_chooser", chooserLabel, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(gg.ScopeID(gridID, "column_chooser"), chooserLabel, cfg.TextStyleFilter, cfg.ColorHeaderHover,
 				false, 0, func(ctx gg.EventCtx) {
 					dataGridToggleColumnChooserOpen(gridID, ctx.Window)
 					if focusID != "" {
@@ -204,7 +204,7 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.
 			hidden := cfg.HiddenColumnIDs[col.ID]
 			colID := col.ID
 			options = append(options, gg.Toggle(gg.ToggleCfg{
-				ID:       gridID + ":col-chooser:" + col.ID,
+				ID:       gg.ScopeID(gridID, "col-chooser", col.ID),
 				Label:    col.Title,
 				Selected: !hidden,
 				Disabled: !hasVisibilityCallback,

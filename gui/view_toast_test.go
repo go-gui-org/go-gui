@@ -282,11 +282,11 @@ func TestToastA11YLabelFallback(t *testing.T) {
 
 func TestToastAnimID(t *testing.T) {
 	got := toastAnimID("enter", 42)
-	if got != "enter_toast_42" {
-		t.Errorf("expected 'enter_toast_42', got %q", got)
+	if got != "enter:toast:42" {
+		t.Errorf("expected 'enter:toast:42', got %q", got)
 	}
 	got = toastAnimID("dismiss", 0)
-	if got != "dismiss_toast_0" {
-		t.Errorf("expected 'dismiss_toast_0', got %q", got)
+	if got != "dismiss:toast:0" {
+		t.Errorf("expected 'dismiss:toast:0', got %q", got)
 	}
 }

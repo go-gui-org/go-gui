@@ -361,7 +361,7 @@ func treeBuildSiblingInfo(
 				moff++
 			} else if fi <= last {
 				lids = append(lids,
-					"tr_"+treeID+"_"+sid)
+					treeRowID(treeID, sid))
 			}
 		}
 		parentLayoutIDs[pid] = lids
@@ -474,6 +474,12 @@ func applyTreeDefaults(cfg *TreeCfg) {
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = Some(d.Padding)
 	}
+}
+
+// treeRowID is the layout ID of one tree row. The row builder and the
+// scroll-into-view lookup both compose it, so they share this helper.
+func treeRowID(treeID, rowID string) string {
+	return ScopeID(treeID, "row", rowID)
 }
 
 func treeExpandedState(w *Window, treeID string) map[string]bool {

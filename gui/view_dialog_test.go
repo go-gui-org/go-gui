@@ -30,7 +30,7 @@ func TestRetainDialogFocus_KeepsDialogFocus(t *testing.T) {
 
 	// Confirm dialog's "Yes" button uses IDFocus+1; a legitimate Tab
 	// target inside the dialog must be preserved.
-	yes := w.dialogCfg.FocusID + "/1"
+	yes := ScopeIDN(w.dialogCfg.FocusID, "", 1)
 	w.SetFocus(yes)
 	w.retainDialogFocus(&dialog)
 
@@ -340,7 +340,7 @@ func TestDialogConfirmDefaultButtonYes(t *testing.T) {
 		DefaultButton: DialogButtonYes,
 	})
 	// DialogButtonYes focuses IDFocus+1 ("Yes").
-	want := w.dialogCfg.FocusID + "/1"
+	want := ScopeIDN(w.dialogCfg.FocusID, "", 1)
 	if got := w.FocusID(); got != want {
 		t.Fatalf("focus = %q, want Yes button %q", got, want)
 	}
@@ -375,7 +375,7 @@ func TestRetainDialogFocus_DefaultButtonYes(t *testing.T) {
 	w.SetFocus("f42") // steal focus outside the dialog
 	w.retainDialogFocus(&dialog)
 
-	want := w.dialogCfg.FocusID + "/1"
+	want := ScopeIDN(w.dialogCfg.FocusID, "", 1)
 	if got := w.FocusID(); got != want {
 		t.Fatalf("focus = %q, want Yes button %q", got, want)
 	}

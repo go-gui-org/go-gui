@@ -157,7 +157,7 @@ func numericInputField(cfg NumericInputCfg, locale NumericLocaleCfg, _ NumericSt
 	}
 	inputID := cfg.ID
 	if fillParent && len(cfg.ID) > 0 {
-		inputID = cfg.ID + "_field"
+		inputID = ScopeID(cfg.ID, "field")
 	}
 	color := cfg.Color
 	colorHover := cfg.ColorHover
@@ -240,11 +240,11 @@ func numericInputStepButtons(cfg NumericInputCfg, locale NumericLocaleCfg, stepC
 
 	stepUpID := ""
 	if len(cfg.ID) > 0 {
-		stepUpID = cfg.ID + "_step_up"
+		stepUpID = ScopeID(cfg.ID, "step_up")
 	}
 	stepDownID := ""
 	if len(cfg.ID) > 0 {
-		stepDownID = cfg.ID + "_step_down"
+		stepDownID = ScopeID(cfg.ID, "step_down")
 	}
 
 	// Read-only fields disable the steppers so they cannot mutate the

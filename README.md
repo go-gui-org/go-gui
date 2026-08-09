@@ -60,19 +60,10 @@ version and [`examples/web_demo/`](examples/web_demo/) for the browser build.
 
 https://go-gui.com
 
-📜 [Documentation](https://github.com/go-gui-org/go-gui/wiki)
+[Documentation](https://github.com/go-gui-org/go-gui/wiki)
 
 Guides: [Debugging](docs/debugging.md) · [Styling](docs/styling.md) ·
 [Testing](docs/testing.md)
-
-> **Debugging?** Set `GOGUI_DEBUG=1` (or `gui.Debug(true)`) to audit every
-> frame for duplicate widget IDs and focusable widgets without IDs. See
-> [docs/debugging.md](docs/debugging.md).
->
-> **Upgrading?** Event callbacks now take a single `gui.EventCtx`, and nothing
-> is marked handled for you. A callback that acts on an event calls
-> `ctx.Consume()`. A callback that does not lets the event travel on. See
-> [docs/migration-eventctx.md](docs/migration-eventctx.md).
 
 ---
 
@@ -188,6 +179,14 @@ golangci-lint run ./...
 Planning lives in [GitHub Issues](../../issues) and the go-gui-org project
 board, not a checked-in roadmap file. Browse open issues for current and planned
 work.
+
+---
+
+## Debugging
+
+Set `GOGUI_DEBUG=1` (or `gui.Debug(true)`) to audit every frame for duplicate
+widget IDs and focusable widgets without IDs. See
+[docs/debugging.md](docs/debugging.md).
 
 ## License
 

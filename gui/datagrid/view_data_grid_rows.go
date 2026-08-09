@@ -50,7 +50,7 @@ func dataGridDetailRowView(dctx dataGridCtx, rowData GridRow, rowIdx int) gg.Vie
 	pc := cfg.PaddingCell.Get(gg.Padding{})
 	focusID := dctx.focusID
 	return gg.Row(gg.ContainerCfg{
-		ID:          cfg.ID + ":detail:" + rowID,
+		ID:          gg.ScopeID(cfg.ID, "detail", rowID),
 		Height:      dctx.rowHeight,
 		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorBackground,
@@ -142,7 +142,7 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 		}
 
 		cells = append(cells, gg.Row(gg.ContainerCfg{
-			ID:          cfg.ID + ":cell:" + rowID + ":" + col.ID,
+			ID:          gg.ScopeID(cfg.ID, "cell", rowID, col.ID),
 			A11YRole:    gg.AccessRoleGridCell,
 			Width:       dataGridColumnWidthFor(col, columnWidths),
 			Sizing:      gg.FixedFill,
@@ -159,7 +159,7 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 
 	if showDeleteAction {
 		cells = append(cells, gg.Button(gg.ButtonCfg{
-			ID:         cfg.ID + ":row-delete:" + rowID,
+			ID:         gg.ScopeID(cfg.ID, "row-delete", rowID),
 			Width:      dataGridHeaderControlWidth + 10,
 			Sizing:     gg.FixedFill,
 			Padding:    gg.NoPadding,
@@ -190,7 +190,7 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 	disabled := cfg.Disabled
 
 	return gg.Row(gg.ContainerCfg{
-		ID:          cfg.ID + ":row:" + rowID,
+		ID:          gg.ScopeID(cfg.ID, "row", rowID),
 		Height:      rowHeight,
 		Sizing:      gg.FillFixed,
 		Color:       rowColor,
@@ -376,7 +376,7 @@ func dataGridDetailToggleControl(cfg *DataGridCfg, rowID string, expanded, enabl
 	onDetailExpandedChange := cfg.OnDetailExpandedChange
 	detailExpandedRowIDs := cfg.DetailExpandedRowIDs
 	return gg.Button(gg.ButtonCfg{
-		ID:         cfg.ID + ":detail_toggle:" + rowID,
+		ID:         gg.ScopeID(cfg.ID, "detail_toggle", rowID),
 		Width:      dataGridHeaderControlWidth,
 		Sizing:     gg.FixedFill,
 		Padding:    gg.NoPadding,

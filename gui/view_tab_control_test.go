@@ -94,7 +94,7 @@ func TestTabControlOnKeydown(t *testing.T) {
 
 func TestTabButtonID(t *testing.T) {
 	id := tabButtonID("main", "settings")
-	if id != "tc_main_settings" {
+	if id != "main:tab:settings" {
 		t.Errorf("got %q", id)
 	}
 }

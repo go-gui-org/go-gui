@@ -227,7 +227,7 @@ func treeDragRowView(
 	onLazyLoad := cfg.OnLazyLoad
 	onReorder := cfg.OnReorder
 	treeID := cfg.ID
-	layoutID := "tr_" + cfg.ID + "_" + row.ID
+	layoutID := treeRowID(cfg.ID, row.ID)
 
 	return Row(ContainerCfg{
 		ID:        layoutID,

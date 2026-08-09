@@ -36,7 +36,7 @@ func TestMarkdownTableIDsUnique(t *testing.T) {
 		if id == "" {
 			t.Error("table shape ID must be non-empty")
 		}
-		if !strings.HasPrefix(id, "md-doc.table.") {
+		if !strings.HasPrefix(id, "md-doc:table:") {
 			t.Errorf("id %q missing prefix md-doc.table.", id)
 		}
 		if seen[id] {
@@ -52,7 +52,7 @@ func collectTableShapeIDs(l *Layout) []string {
 	var out []string
 	var walk func(*Layout)
 	walk = func(n *Layout) {
-		if strings.HasPrefix(n.Shape.ID, "md-doc.table.") {
+		if strings.HasPrefix(n.Shape.ID, "md-doc:table:") {
 			out = append(out, n.Shape.ID)
 		}
 		for i := range n.Children {

@@ -2,7 +2,6 @@ package gui
 
 import (
 	"slices"
-	"strconv"
 	"time"
 )
 
@@ -407,11 +406,17 @@ func toastA11YLabel(t *toastNotification) string {
 // Several toasts can be on screen at once, so a fixed ID would
 // collapse their action buttons onto one focus and state identity.
 func toastBtnID(id uint64, part string) string {
-	return "toast_" + strconv.FormatUint(id, 10) + ":" + part
+	return ScopeID(toastScopeID(id), part)
 }
 
 func toastAnimID(prefix string, id uint64) string {
-	return prefix + "_toast_" + strconv.FormatUint(id, 10)
+	return ScopeID(prefix, toastScopeID(id))
+}
+
+// toastScopeID is the scope every one of a toast's inner IDs hangs
+// off. Toast IDs are a uint64 counter, so the value always fits an int.
+func toastScopeID(id uint64) string {
+	return ScopeIDN("toast", "", int(id))
 }
 
 // Toast shows a toast notification. Returns the toast id.

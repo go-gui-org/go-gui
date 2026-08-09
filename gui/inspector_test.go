@@ -90,8 +90,8 @@ func TestInspectorPickPathDeepestReverseOrder(t *testing.T) {
 		}},
 	}
 
-	if got := inspectorPickPath(&root, 20, 20); got != "0.1" {
-		t.Fatalf("inspectorPickPath() = %q, want %q", got, "0.1")
+	if got := inspectorPickPath(&root, 20, 20); got != "0:1" {
+		t.Fatalf("inspectorPickPath() = %q, want %q", got, "0:1")
 	}
 	if got := inspectorPickPath(&root, 90, 90); got != "0" {
 		t.Fatalf("inspectorPickPath() = %q, want %q", got, "0")
@@ -249,8 +249,8 @@ func TestEventFnInspectorHotkeysAndPick(t *testing.T) {
 	}
 
 	w.EventFn(&Event{Type: EventMouseDown, MouseX: 361, MouseY: 30})
-	if got := inspectorSelectedPath(w); got != "0.0" {
-		t.Fatalf("selected path = %q, want %q", got, "0.0")
+	if got := inspectorSelectedPath(w); got != "0:0" {
+		t.Fatalf("selected path = %q, want %q", got, "0:0")
 	}
 }
 
@@ -276,8 +276,8 @@ func TestInspectorLazyBuilding(t *testing.T) {
 	if len(nodes[0].Nodes) != 1 {
 		t.Fatalf("collapsed node should have 1 dummy child, got %d", len(nodes[0].Nodes))
 	}
-	if nodes[0].Nodes[0].ID != "0.__dummy__" {
-		t.Fatalf("dummy child ID = %q, want %q", nodes[0].Nodes[0].ID, "0.__dummy__")
+	if nodes[0].Nodes[0].ID != "0:__dummy__" {
+		t.Fatalf("dummy child ID = %q, want %q", nodes[0].Nodes[0].ID, "0:__dummy__")
 	}
 
 	// Case 2: Expanded root via window state.

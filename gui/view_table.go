@@ -67,7 +67,7 @@ type TableCfg struct {
 
 	// Scrollable enables scrolling. When set with Height or
 	// MaxHeight, virtualization renders only visible rows. Scroll
-	// state is keyed by Cfg.ID, or Cfg.ID + ":scroll" when
+	// state is keyed by Cfg.ID, or ScopeID(Cfg.ID, "scroll") when
 	// FreezeHeader is set — pass that to Window.ScrollVerticalTo.
 	Scrollable  bool
 	Width       float32
@@ -146,7 +146,7 @@ func (w *Window) Table(cfg TableCfg) View {
 // non-freeze path scrolls the outer Column, which carries cfg.ID.
 func tableScrollID(cfg *TableCfg, freeze bool) string {
 	if freeze {
-		return cfg.ID + ":scroll" // inner bodyCfg carries it
+		return ScopeID(cfg.ID, "scroll") // inner bodyCfg carries it
 	}
 	return cfg.ID // outerCfg carries it
 }

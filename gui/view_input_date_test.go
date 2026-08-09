@@ -209,7 +209,7 @@ func TestInputDateReadOnlyForwardsToInput(t *testing.T) {
 	if layout.Shape.A11YState != AccessStateReadOnly {
 		t.Errorf("outer A11YState=%d, want ReadOnly", layout.Shape.A11YState)
 	}
-	inp := findShapeByID(&layout, "id-ro-fwd.input")
+	inp := findShapeByID(&layout, ScopeID("id-ro-fwd", "input"))
 	if inp == nil {
 		t.Fatal("inner input not found")
 	}
@@ -235,7 +235,7 @@ func TestInputDateReadOnlyDoesNotOpenPicker(t *testing.T) {
 		layout := generateViewLayout(v, w)
 		// Closed: 1 child (the text+icon row). Open: 3 (row, backdrop,
 		// floating picker). The picker's presence is the OnSelect path.
-		hasPicker := findShapeByID(&layout, "id-open.picker") != nil
+		hasPicker := findShapeByID(&layout, ScopeID("id-open", "picker")) != nil
 		if readOnly && hasPicker {
 			t.Error("read-only date field opened the calendar picker")
 		}

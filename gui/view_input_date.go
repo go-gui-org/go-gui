@@ -96,7 +96,7 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 	sm := StateMap[string, string](w, nsInputDateText, capModerate)
 	// Default "": absent entry means no edit text cached yet.
 	editText := sm.GetOr(cfgID, "")
-	syncKey := cfgID + ".sync"
+	syncKey := ScopeID(cfgID, "sync")
 	// Default "": absent entry means no prior sync occurred.
 	lastSync := sm.GetOr(syncKey, "")
 	if dateText != "" && dateText != lastSync {
@@ -120,7 +120,7 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 				Button(ButtonCfg{
 					// Namespaced by the field's ID: a form can hold
 					// several date inputs.
-					ID:         cfgID + ":calendar",
+					ID:         ScopeID(cfgID, "calendar"),
 					Disabled:   cfg.Disabled || cfg.ReadOnly,
 					Padding:    NoPadding,
 					SizeBorder: NoBorder,
@@ -161,7 +161,7 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 			},
 			Content: []View{
 				DatePicker(DatePickerCfg{
-					ID:                   cfgID + ".picker",
+					ID:                   ScopeID(cfgID, "picker"),
 					Dates:                dates,
 					AllowedWeekdays:      cfg.AllowedWeekdays,
 					AllowedMonths:        cfg.AllowedMonths,
@@ -233,7 +233,7 @@ func inputDateTextField(
 		})
 	}
 	return Input(InputCfg{
-		ID: cfgID + ".input",
+		ID: ScopeID(cfgID, "input"),
 		// InputDate focus is default-on; propagate FocusDisabled
 		// intent to the inner Input.
 		FocusDisabled:    cfg.FocusDisabled,

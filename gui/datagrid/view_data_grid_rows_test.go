@@ -424,6 +424,26 @@ func TestCellEditorFocusBaseIDZeroCols(t *testing.T) {
 	}
 }
 
+// An editor cell's focus ID is spelled two ways: composed whole by
+// dataGridCellEditorFocusID, and rebuilt from a hoisted prefix by
+// dataGridEditorFocusIDFromBase (the path the row and key handlers
+// take). They must agree — if they drift, the grid moves focus to an
+// ID no shape carries and cell editing silently stops responding to
+// the keyboard. Neither existing test compares the two.
+func TestCellEditorFocusIDMatchesBaseComposition(t *testing.T) {
+	cfg := &DataGridCfg{ID: "grid"}
+	const colCount = 4
+	base := dataGridCellEditorFocusBaseID(cfg, colCount)
+	for colIdx := range colCount {
+		whole := dataGridCellEditorFocusID(cfg, colCount, 0, colIdx)
+		fromBase := dataGridEditorFocusIDFromBase(base, colCount, colIdx)
+		if whole != fromBase {
+			t.Errorf("col %d: composed %q, from base %q",
+				colIdx, whole, fromBase)
+		}
+	}
+}
+
 // --- dataGridCellEditorFocusID ---
 
 func TestCellEditorFocusID(t *testing.T) {

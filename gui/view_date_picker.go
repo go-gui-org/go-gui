@@ -267,7 +267,7 @@ func datePickerControls(
 			Button(ButtonCfg{
 				// Namespaced by the picker's ID so two date pickers in
 				// one window keep separate focus and state identities.
-				ID:      cfgID + ":month",
+				ID:      ScopeID(cfgID, "month"),
 				Color:   ColorTransparent,
 				Colors:  ColorSet{Border: ColorTransparent},
 				OnClick: onToggle,
@@ -277,7 +277,7 @@ func datePickerControls(
 			}),
 			Rectangle(RectangleCfg{Sizing: FillFit}),
 			Button(ButtonCfg{
-				ID:       cfgID + ":prev",
+				ID:       ScopeID(cfgID, "prev"),
 				Disabled: state.ShowYearMonthPicker,
 				Color:    ColorTransparent,
 				Colors:   ColorSet{Border: ColorTransparent},
@@ -288,7 +288,7 @@ func datePickerControls(
 				})},
 			}),
 			Button(ButtonCfg{
-				ID:       cfgID + ":next",
+				ID:       ScopeID(cfgID, "next"),
 				Disabled: state.ShowYearMonthPicker,
 				Color:    ColorTransparent,
 				Colors:   ColorSet{Border: ColorTransparent},

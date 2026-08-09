@@ -128,7 +128,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 	}
 
 	return gg.Row(gg.ContainerCfg{
-		ID:        editorID + ":wrap",
+		ID:        gg.ScopeID(editorID, "wrap"),
 		Focusable: true,
 		FocusSkip: true,
 		Sizing:    gg.FillFill,
@@ -212,20 +212,25 @@ func dataGridFirstEditableColumnIndexEx(columns []GridColumnCfg) int {
 	return -1
 }
 
+// dataGridEditFocusScope namespaces editor-cell focus IDs under their
+// grid. Composition and the base-prefix form both derive from it, so
+// the two cannot drift apart.
+const dataGridEditFocusScope = "efocus"
+
 // dataGridCellEditorFocusBaseID returns the focus-ID prefix for
 // editor cells. Each cell appends its column index.
 func dataGridCellEditorFocusBaseID(cfg *DataGridCfg, colCount int) string {
 	if colCount <= 0 {
 		return ""
 	}
-	return cfg.ID + ":efocus:"
+	return gg.ScopeID(cfg.ID, dataGridEditFocusScope) + gg.IDSep
 }
 
 func dataGridCellEditorFocusID(cfg *DataGridCfg, colCount, rowIdx, colIdx int) string {
 	if colCount <= 0 || rowIdx < 0 || colIdx < 0 || colIdx >= colCount {
 		return ""
 	}
-	return cfg.ID + ":efocus:" + strconv.Itoa(colIdx)
+	return gg.ScopeIDN(cfg.ID, dataGridEditFocusScope, colIdx)
 }
 
 func dataGridEditorFocusIDFromBase(base string, colCount, colIdx int) string {

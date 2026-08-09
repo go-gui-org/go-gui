@@ -160,7 +160,7 @@ func progressBarAmendLayout(
 	// ID to apply new parameters.
 	if indefinite {
 		percent = 0.3
-		animID := id + "_indefinite"
+		animID := ScopeID(id, "indefinite")
 		if !w.touchViewBoundAnimation(animID) {
 			kf := &KeyframeAnimation{
 				AnimID:   animID,

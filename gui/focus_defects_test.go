@@ -69,8 +69,8 @@ func TestToastButtonsGetPerToastIDs(t *testing.T) {
 
 	ids := focusableIDs(&layout)
 	want := []string{
-		"toast_1:action", "toast_1:dismiss",
-		"toast_2:action", "toast_2:dismiss",
+		"toast:1:action", "toast:1:dismiss",
+		"toast:2:action", "toast:2:dismiss",
 	}
 	for _, id := range want {
 		if !slices.Contains(ids, id) {
@@ -90,7 +90,7 @@ func TestToastDismissOnlyIsReachable(t *testing.T) {
 
 	layout := assertNoFocusDefects(t, w, toastContainerView(w))
 
-	if ids := focusableIDs(&layout); !slices.Contains(ids, "toast_7:dismiss") {
+	if ids := focusableIDs(&layout); !slices.Contains(ids, "toast:7:dismiss") {
 		t.Errorf("dismiss button not keyboard-reachable; got %v", ids)
 	}
 }

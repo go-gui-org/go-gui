@@ -89,7 +89,7 @@ func skeletonAmendLayout(
 ) {
 	// Note: animation duration is sampled once on first render.
 	// Use a different widget ID to apply new parameters.
-	animID := "skeleton_" + id
+	animID := ScopeID("skeleton", id)
 	if !w.touchViewBoundAnimation(animID) {
 		kf := &KeyframeAnimation{
 			AnimID:   animID,

@@ -56,7 +56,7 @@ func dataGridPagerContent(pctx dataGridPagerContext) []gg.View {
 	rowsText := dataGridPagerRowsText(pctx.pageStart, pctx.pageEnd, pctx.totalRows)
 	jumpCtx := dataGridJumpContextFromPager(pctx)
 	jumpEnabled := dataGridJumpEnabledLocal(len(cfg.Rows), cfg.OnSelectionChange, cfg.OnPageChange, cfg.PageSize, pctx.totalRows)
-	jumpInputID := cfg.ID + ":jump"
+	jumpInputID := gg.ScopeID(cfg.ID, "jump")
 	jumpFocusID := jumpInputID
 	prevArrow, nextArrow := dataGridPagerArrows()
 
@@ -92,7 +92,7 @@ func dataGridPagerArrows() (string, string) {
 }
 
 func dataGridPagerPrevButton(cfg *DataGridCfg, onPageChange func(int, gg.EventCtx), pageIndex int, focusID string, isFirst bool, prevArrow string) gg.View {
-	return dataGridIndicatorButton(cfg.ID+":pager_prev", prevArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover,
+	return dataGridIndicatorButton(gg.ScopeID(cfg.ID, "pager_prev"), prevArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover,
 		onPageChange == nil || isFirst, dataGridHeaderControlWidth+10,
 		func(ctx gg.EventCtx) {
 			if onPageChange == nil {
@@ -108,7 +108,7 @@ func dataGridPagerPrevButton(cfg *DataGridCfg, onPageChange func(int, gg.EventCt
 }
 
 func dataGridPagerNextButton(cfg *DataGridCfg, onPageChange func(int, gg.EventCtx), pageIndex, pageCount int, focusID string, isLast bool, nextArrow string) gg.View {
-	return dataGridIndicatorButton(cfg.ID+":pager_next", nextArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover,
+	return dataGridIndicatorButton(gg.ScopeID(cfg.ID, "pager_next"), nextArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover,
 		onPageChange == nil || isLast, dataGridHeaderControlWidth+10,
 		func(ctx gg.EventCtx) {
 			if onPageChange == nil {

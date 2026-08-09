@@ -1,7 +1,5 @@
 package gui
 
-import "strconv"
-
 // RadioOption defines a radio button for a RadioButtonGroupCfg.
 type RadioOption struct {
 	Label string
@@ -96,7 +94,7 @@ func buildRadioOptions(cfg RadioButtonGroupCfg) []View {
 	for i, opt := range cfg.Options {
 		optValue := opt.Value
 		content = append(content, Radio(RadioCfg{
-			ID:            cfg.ID + "/" + strconv.Itoa(i),
+			ID:            ScopeIDN(cfg.ID, "opt", i),
 			Label:         opt.Label,
 			FocusDisabled: cfg.FocusDisabled,
 			Selected:      cfg.Value == opt.Value,

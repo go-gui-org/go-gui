@@ -560,5 +560,5 @@ func tabPrevEnabledIndex(disabled []bool, selectedIdx int) int {
 }
 
 func tabButtonID(controlID, tabID string) string {
-	return "tc_" + controlID + "_" + tabID
+	return ScopeID(controlID, "tab", tabID)
 }

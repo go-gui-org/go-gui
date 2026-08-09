@@ -38,7 +38,7 @@ func splitterHandleView(cfg *SplitterCfg, core *splitterCore) View {
 	}
 
 	handleCfg := ContainerCfg{
-		ID:          cfg.ID + ":handle",
+		ID:          ScopeID(cfg.ID, "handle"),
 		Sizing:      FixedFixed,
 		Width:       handleWidth,
 		Height:      handleHeight,
