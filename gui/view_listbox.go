@@ -10,6 +10,15 @@ type listBoxCache struct {
 	itemIDs         []string
 	itemDataIndices []int
 	dataHash        uint64
+	// resolvedH is the list's height as resolved by the layout
+	// engine, captured after arrange (AmendLayout) each frame. The
+	// view phase runs before sizing, so virtualization under Fill
+	// sizing reads this from the previous frame. 0 until the first
+	// frame has been arranged.
+	resolvedH float32
+	// hSeen records that AmendLayout has run at least once, so a
+	// persistent 0 can be distinguished from "not arranged yet".
+	hSeen bool
 }
 
 // ListBoxOption represents one row in a ListBox.
@@ -40,13 +49,23 @@ type ListBoxCfg struct {
 	Padding    Opt[Padding]
 	Radius     Opt[float32]
 	SizeBorder Opt[float32]
-	Height     float32
-	MinWidth   float32
-	MaxWidth   float32
-	MinHeight  float32
-	MaxHeight  float32
+	// Height sets the list's height directly. Row virtualization
+	// needs a resolved height: with Height or MaxHeight the list
+	// virtualizes from the first frame; under Fill sizing the
+	// resolved height is read back from the previous frame's
+	// arrange, so the first frame builds every row once.
+	Height    float32
+	MinWidth  float32
+	MaxWidth  float32
+	MinHeight float32
+	// MaxHeight caps the list's height. Like Height, it resolves the
+	// height virtualization needs.
+	MaxHeight float32
 	// Scrollable opts the list into the scroll system. Scroll state
 	// is keyed by Cfg.ID — pass that same id to Window.ScrollVerticalTo.
+	// Virtualization is automatic; it requires a resolved height, so
+	// pair Scrollable with Height or MaxHeight, or rely on Fill
+	// sizing (which virtualizes from the second frame).
 	Scrollable bool
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
@@ -144,11 +163,12 @@ func ListBox(cfg ListBoxCfg) View {
 	})
 }
 
+// listBoxCanVirtualize reports whether the list takes the
+// virtualizing path. Scrollable alone qualifies: with no configured
+// height, virtualization starts on the second frame once Arrange has
+// resolved one.
 func listBoxCanVirtualize(cfg *ListBoxCfg) bool {
-	if cfg == nil || !cfg.Scrollable {
-		return false
-	}
-	return cfg.Height > 0 || cfg.MaxHeight > 0
+	return cfg != nil && cfg.Scrollable
 }
 
 func (lv *listBoxView) Content() []View { return nil }
@@ -164,7 +184,7 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 	selectedSet := listCoreSelectedSet(cfg.SelectedIDs)
 
 	first, last, virtualize, listH, rowH :=
-		listBoxVisibleRange(cfg, w)
+		listBoxVisibleRange(cfg, cache, w)
 
 	listBoxID := cfg.ID
 	isMultiple := cfg.Multiple
@@ -215,11 +235,12 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 	}
 
 	return generateViewLayout(Column(ContainerCfg{
-		ID:         cfg.ID,
-		A11YRole:   AccessRoleList,
-		A11YLabel:  a11yLabel(cfg.A11YLabel, cfg.ID),
-		Focusable:  !cfg.FocusDisabled,
-		Scrollable: cfg.Scrollable,
+		ID:          cfg.ID,
+		A11YRole:    AccessRoleList,
+		A11YLabel:   a11yLabel(cfg.A11YLabel, cfg.ID),
+		Focusable:   !cfg.FocusDisabled,
+		Scrollable:  cfg.Scrollable,
+		AmendLayout: listBoxAmendLayout(cache),
 		OnKeyDown: func(ctx EventCtx) {
 			if canReorder {
 				if dragReorderEscape(
@@ -290,9 +311,12 @@ func listBoxEnsureCache(cfg *ListBoxCfg, w *Window) *listBoxCache {
 }
 
 // listBoxVisibleRange computes the visible row range and
-// virtualization parameters for the list box.
+// virtualization parameters for the list box. The height comes from
+// Cfg.Height, then MaxHeight, then the cache's resolvedH — the
+// height the layout engine allocated last frame, which is how Fill
+// sizing virtualizes.
 func listBoxVisibleRange(
-	cfg *ListBoxCfg, w *Window,
+	cfg *ListBoxCfg, cache *listBoxCache, w *Window,
 ) (first, last int, virtualize bool, listH, rowH float32) {
 	first = 0
 	last = len(cfg.Data) - 1
@@ -300,6 +324,9 @@ func listBoxVisibleRange(
 	listH = cfg.Height
 	if listH <= 0 {
 		listH = cfg.MaxHeight
+	}
+	if listH <= 0 {
+		listH = cache.resolvedH
 	}
 	rowH = listCoreRowHeightEstimate(cfg.TextStyle, listBoxItemPad)
 	if virtualize && listH > 0 && len(cfg.Data) > 0 {
@@ -309,8 +336,38 @@ func listBoxVisibleRange(
 			len(cfg.Data), rowH, listH, scrollY)
 	} else {
 		virtualize = false
+		if cfg.Scrollable && cache.hSeen &&
+			len(cfg.Data) > 0 && DebugEnabled() {
+			// The layout has run at least once and still gave the
+			// list no height, so every row builds each frame.
+			w.debugWarn(debugCheckListBoxNoHeight, cfg.ID,
+				"scrollable listbox %q resolved to height 0, so "+
+					"virtualization is off and all %d rows build "+
+					"every frame; set Height/MaxHeight or give it "+
+					"sizing that allocates height",
+				cfg.ID, len(cfg.Data))
+		}
 	}
 	return first, last, virtualize, listH, rowH
+}
+
+// listBoxAmendLayout captures the arranged height into the cache so
+// the next frame's view phase can virtualize against it. Runs after
+// sizing, when Shape.Height holds the resolved height — including
+// the Fill-allocated height the view phase cannot know.
+func listBoxAmendLayout(cache *listBoxCache) func(EventCtx) {
+	return func(ctx EventCtx) {
+		if ctx.Layout == nil || ctx.Layout.Shape == nil {
+			return
+		}
+		// Guard against a non-finite or degenerate height: a
+		// non-finite value would flow into listCoreVisibleRange's
+		// float→int division.
+		if h := ctx.Layout.Shape.Height; h > 0 && f32IsFinite(h) {
+			cache.resolvedH = h
+		}
+		cache.hSeen = true
+	}
 }
 
 // listBoxDragIndexByRow builds a mapping from data row index to
@@ -686,6 +743,9 @@ func applyListBoxDefaults(cfg *ListBoxCfg) {
 	}
 }
 
+// listBoxDataHash hashes the fields the list box cache derives
+// from: ID and IsSubheading. Name and Value never reach the cache, so
+// hashing them would burn O(data) time every frame for nothing.
 func listBoxDataHash(items []ListBoxOption) uint64 {
 	const offset uint64 = 14695981039346656037
 	const prime uint64 = 1099511628211
@@ -694,20 +754,6 @@ func listBoxDataHash(items []ListBoxOption) uint64 {
 		it := items[i]
 		for j := range len(it.ID) {
 			h ^= uint64(it.ID[j])
-			h *= prime
-		}
-		h ^= 0xff
-		h *= prime
-
-		for j := range len(it.Name) {
-			h ^= uint64(it.Name[j])
-			h *= prime
-		}
-		h ^= 0xff
-		h *= prime
-
-		for j := range len(it.Value) {
-			h ^= uint64(it.Value[j])
 			h *= prime
 		}
 		h ^= 0xff

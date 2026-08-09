@@ -158,4 +158,30 @@ func BenchmarkListBoxGenerateLayout(b *testing.B) {
 			_ = generateViewLayout(v, w)
 		}
 	})
+
+	b.Run("fill_10k_virtualized", func(b *testing.B) {
+		// Fill sizing with no configured height: virtualization runs
+		// against the height the amend hook captured from the last
+		// arranged frame, so the 10k-row build stays bounded.
+		big := listBoxTestData(10_000)
+		w := newTestWindow()
+		cfg := ListBoxCfg{
+			ID:         "bench-lb-fill",
+			Scrollable: true,
+			Sizing:     FillFill,
+			Data:       big,
+			OnSelect:   func(_ []string, ctx EventCtx) {},
+		}
+		cache := listBoxEnsureCache(&cfg, w)
+		cache.resolvedH = 300
+		cache.hSeen = true
+		v := ListBox(cfg)
+
+		b.ReportAllocs()
+		b.ResetTimer()
+		for b.Loop() {
+			w.scratch.resetViewPools()
+			_ = generateViewLayout(v, w)
+		}
+	})
 }
