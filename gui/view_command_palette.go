@@ -75,20 +75,25 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 	dn := &DefaultCommandPaletteStyle
 	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
 	radius := cfg.Radius.Get(dn.Radius)
-	visible := StateReadOr(w, nsCmdPalette, cfg.ID, false)
+	// Palette state is keyed by the effective ID. The public helpers
+	// (CommandPaletteShow and friends) take effective IDs too, so an app
+	// that nests a palette under an ID-bearing panel passes the full
+	// path — the same string this resolves to.
+	id := w.EffID(cfg.ID)
+	visible := StateReadOr(w, nsCmdPalette, id, false)
 	if !visible {
 		return generateViewLayout(Row(ContainerCfg{Padding: NoPadding}), w)
 	}
 
-	query := StateReadOr(w, nsCmdPaletteQuery, cfg.ID, "")
-	highlighted := StateReadOr(w, nsCmdPaletteHighlight, cfg.ID, 0)
+	query := StateReadOr(w, nsCmdPaletteQuery, id, "")
+	highlighted := StateReadOr(w, nsCmdPaletteHighlight, id, 0)
 
 	cacheMap := StateMap[string, *cmdPaletteItemsCache](
 		w, nsCmdPaletteItems, capModerate)
-	cache, ok := cacheMap.Get(cfg.ID)
+	cache, ok := cacheMap.Get(id)
 	if !ok || cache == nil {
 		cache = &cmdPaletteItemsCache{}
-		cacheMap.Set(cfg.ID, cache)
+		cacheMap.Set(id, cache)
 	}
 
 	// Convert to core items only when source items changed.
@@ -119,7 +124,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 
 	// Virtualization.
 	rowH := listCoreRowHeightEstimate(cfg.TextStyle, PaddingTwoFive)
-	scrollID := ScopeID(cfg.ID, "scroll")
+	scrollID := ScopeID(id, "scroll")
 	var scrollY float32
 	if cfg.Scrollable {
 		// Default 0: unscrolled list before first scroll event.
@@ -128,7 +133,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 	first, last := listCoreVisibleRange(len(filtered), rowH, cfg.MaxHeight, scrollY)
 
 	onAction := cfg.OnAction
-	paletteID := cfg.ID
+	paletteID := id
 	onDismiss := cfg.OnDismiss
 
 	coreCfg := listCoreCfg{
@@ -214,12 +219,12 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 						SizeBorder: NoBorder,
 						Content: []View{
 							Input(InputCfg{
-								ID:            ScopeID(cfg.ID, "input"),
+								ID:            ScopeID(id, "input"),
 								Text:          query,
 								Placeholder:   cfg.Placeholder,
 								TextStyle:     cfg.TextStyle,
 								Sizing:        FillFit,
-								OnTextChanged: makePaletteOnTextChanged(cfg.ID),
+								OnTextChanged: makePaletteOnTextChanged(id),
 								OnKeyDown:     makePaletteOnKeyDown(paletteID, onAction, onDismiss, filtered, filteredIDs),
 								OnEnter:       makePaletteOnEnter(paletteID, onAction, onDismiss, filtered, filteredIDs),
 							}),

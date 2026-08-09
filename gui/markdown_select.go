@@ -70,7 +70,7 @@ func markdownBlockAmendSel(l *Layout, w *Window) {
 // It walks all RTF descendants belonging to this markdown widget, rebuilds the
 // block-position list in the StateMap, and triggers per-block selection update.
 func markdownContainerAmendLayout(ctx EventCtx) {
-	mdID := ctx.Layout.Shape.ID
+	mdID := ctx.Layout.Shape.idKey()
 	if mdID == "" {
 		return
 	}
@@ -236,7 +236,7 @@ func mdHitAbsRune(
 // markdownContainerOnKeyDown handles keyboard events for the markdown container.
 // Supports Ctrl+A (select all) and Ctrl+C (copy).
 func markdownContainerOnKeyDown(ctx EventCtx) {
-	mdID := ctx.Layout.Shape.ID
+	mdID := ctx.Layout.Shape.idKey()
 	if mdID == "" || !ctx.Window.IsFocus(mdID) {
 		return
 	}

@@ -28,12 +28,17 @@ func (tv *themePickerView) Content() []View { return nil }
 
 func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 	cfg := &tv.cfg
-	isOpen := StateReadOr(w, nsSelect, cfg.ID, false)
-	id := cfg.ID
+	// Everything this widget keys on hangs off its effective ID, so a
+	// second picker under a different ID-bearing panel gets its own
+	// open flag, its own listbox focus, its own dropdown scroll. The
+	// inner IDs stay absolute (they already contain IDSep), which is
+	// what keeps them identical to the keys computed here.
+	id := w.EffID(cfg.ID)
+	isOpen := StateReadOr(w, nsSelect, id, false)
 	currentName := guiTheme.Name
-	focusID := cfg.ID
+	focusID := id
 	onSel := cfg.OnSelect
-	lbID := cfg.ID + "lb"
+	lbID := ScopeID(id, "lb")
 
 	content := make([]View, 0, 2)
 
@@ -50,7 +55,7 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 			data[i] = NewListBoxOption(name, name, name)
 		}
 		content = append(content, Column(ContainerCfg{
-			ID:            cfg.ID + "dropdown",
+			ID:            ScopeID(id, "dropdown"),
 			Float:         true,
 			FloatAutoFlip: true,
 			FloatAnchor:   cfg.FloatAnchor,

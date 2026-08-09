@@ -51,7 +51,27 @@ Focus requires **both** `Focusable: true` **and** a non-empty `ID`
 (`isFocusedTarget`, `gui/event_traversal.go`); tab order additionally needs
 `!FocusSkip && !Disabled` (`layout_query.go`). `Focusable: true` without an `ID`
 is a silent no-op — the widget renders and clicks but never joins the tab order.
-The `requiredid` analyzer flags this. IDs must be unique per window.
+The `requiredid` analyzer flags this.
+
+**`Shape.ID` is a leaf; identity is the effective ID.** `resolveShapeIDs`
+(`gui/id_resolve.go`, run from `layoutArrange` before the layout passes) stamps
+`Shape.effID` = the leaf joined to the IDs of its **ID-bearing ancestors**, and
+every ID-keyed store and lookup uses that — read `shape.idKey()`, never
+`shape.ID`, at a keying site. So `Input{ID:"name"}` under `Panel{ID:"settings"}`
+is `settings:name`, and the same leaf under `profile` is a different widget.
+Only explicit IDs join (never position, never child index); an ID-less container
+adds no scope, and its children collide as loudly as before. A leaf already
+containing `:` is **absolute** and is not joined again. Effective IDs must be
+unique per window.
+
+Public APIs (`SetFocus`, `FindByID`, `IsFocus`, `ScrollVerticalTo`, `Test*`)
+take the **effective** ID. Two seams exist for widget code: `w.EffID(cfg.ID)`
+for state read during `GenerateLayout` (the read decides the subtree, so it
+cannot wait for the pass), and `ctx.EffID(leaf)` for handlers in factories that
+build eagerly with no `Window`. Both go through `resolveLeaf`, so they cannot
+drift from the pass. `gui/datagrid` is the documented exception — its child IDs
+are absolute by design (reverse-parsed) and stay window-global. See
+`docs/specs/widget-id-per-scope-uniqueness.md`.
 
 **Compose inner IDs with `gui.ScopeID` / `gui.ScopeIDN`, never by hand.** An ID
 is a `:`-joined path (`grid:header:name:resize`); the owner may itself be

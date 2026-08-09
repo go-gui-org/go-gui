@@ -46,7 +46,6 @@ func Skeleton(cfg SkeletonCfg) View {
 		label = "Loading"
 	}
 
-	id := cfg.ID
 	colorBase := cfg.Color
 	colorHL := cfg.ColorHighlight
 
@@ -72,8 +71,12 @@ func Skeleton(cfg SkeletonCfg) View {
 		Sizing:     cfg.Sizing,
 		Padding:    NoPadding,
 		AmendLayout: func(ctx EventCtx) {
-			skeletonAmendLayout(ctx.Layout, ctx.Window, id,
-				colorBase, colorHL)
+			// The shimmer's animation and state are keyed by this
+			// shape's effective ID, so two skeletons written with the
+			// same leaf under different ID-bearing panels shimmer
+			// independently.
+			skeletonAmendLayout(ctx.Layout, ctx.Window,
+				ctx.Layout.Shape.idKey(), colorBase, colorHL)
 		},
 	}
 

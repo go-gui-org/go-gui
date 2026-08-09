@@ -66,7 +66,7 @@ func inputScrollCursorIntoView(
 	}
 
 	is := StateReadOr(w, nsInput,
-		layout.Shape.ID, InputState{})
+		layout.Shape.idKey(), InputState{})
 	runeLen := utf8RuneCount(text)
 	pos := is.CursorPos
 	pos = min(pos, runeLen)
@@ -118,7 +118,7 @@ func textScrollCursorIntoView(layout *Layout, w *Window) {
 	if scrollParent == nil {
 		return
 	}
-	scrollID := scrollParent.Shape.ID
+	scrollID := scrollParent.Shape.idKey()
 
 	text := shape.TC.Text
 	style := textStyleOrDefault(shape)
@@ -128,7 +128,7 @@ func textScrollCursorIntoView(layout *Layout, w *Window) {
 	}
 
 	is := StateReadOr(
-		w, nsInput, shape.ID, InputState{})
+		w, nsInput, shape.idKey(), InputState{})
 	runeLen := utf8RuneCount(text)
 	pos := is.CursorPos
 	pos = min(pos, runeLen)
@@ -189,7 +189,7 @@ func scrollMaxOffsetY(layout *Layout) float32 {
 // used by the precise/trackpad and keyboard paths. The discrete
 // mouse-wheel path eases via scrollSmoothBy instead.
 func scrollHorizontal(layout *Layout, delta float32, w *Window) bool {
-	id := layout.Shape.ID
+	id := layout.Shape.idKey()
 	if !layout.Shape.Scrollable || id == "" ||
 		layout.Shape.ScrollMode == ScrollVerticalOnly {
 		return false
@@ -214,7 +214,7 @@ func scrollHorizontal(layout *Layout, delta float32, w *Window) bool {
 // used by the precise/trackpad and keyboard paths. The discrete
 // mouse-wheel path eases via scrollSmoothBy instead.
 func scrollVertical(layout *Layout, delta float32, w *Window) bool {
-	id := layout.Shape.ID
+	id := layout.Shape.idKey()
 	if !layout.Shape.Scrollable || id == "" ||
 		layout.Shape.ScrollMode == ScrollHorizontalOnly {
 		return false
@@ -245,7 +245,7 @@ func (w *Window) ScrollToView(id string) {
 	for p.Parent != nil {
 		p = p.Parent
 		if p.Shape.Scrollable {
-			scrollID := p.Shape.ID
+			scrollID := p.Shape.idKey()
 			// Default 0: unscrolled position when no offset
 			// recorded yet.
 			sy := w.scrollY()

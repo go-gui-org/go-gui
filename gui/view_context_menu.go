@@ -55,6 +55,9 @@ func ContextMenu(w *Window, cfg ContextMenuCfg) View {
 	checkForDuplicateMenuIDs(cfg.Items)
 	applyContextMenuDefaults(&cfg)
 
+	// One resolved identity for every key below; see (*Window).EffID.
+	cfg.ID = w.EffID(cfg.ID)
+
 	st := StateReadOr(
 		w, nsContextMenu, cfg.ID, contextMenuState{})
 

@@ -17,7 +17,11 @@ func isFocusedTarget(layout *Layout, w *Window) bool {
 	if !layout.Shape.Focusable || layout.Shape.ID == "" {
 		return false
 	}
-	return w.IsFocus(layout.Shape.ID)
+	// The focus store holds effective IDs, so compare on idKey, not on
+	// the leaf the widget was written with. reservedDialogID above stays
+	// a leaf comparison: a dialog is its own float root, where leaf and
+	// effID are equal.
+	return w.IsFocus(layout.Shape.idKey())
 }
 
 // executeFocusCallback delivers a keyboard event to the focused

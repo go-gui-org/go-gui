@@ -131,11 +131,11 @@ func (w *Window) handleKeyDownEvent(layout *Layout, e *Event) {
 	if !e.IsHandled && e.KeyCode == KeyTab &&
 		e.Modifiers == ModShift {
 		if shape, ok := layout.PreviousFocusable(w); ok {
-			w.SetFocus(shape.ID)
+			w.SetFocus(shape.idKey())
 		}
 	} else if !e.IsHandled && e.KeyCode == KeyTab {
 		if shape, ok := layout.NextFocusable(w); ok {
-			w.SetFocus(shape.ID)
+			w.SetFocus(shape.idKey())
 		}
 	}
 	// Non-global commands fire as fallback.

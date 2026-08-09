@@ -197,6 +197,9 @@ func makeTabDragClick(
 //nolint:gocyclo // complex widget layout
 func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 	cfg := &tv.cfg
+
+	// One resolved identity for every key below; see (*Window).EffID.
+	cfg.ID = w.EffID(cfg.ID)
 	s := &DefaultTabControlStyle
 
 	// Resolve Opt fields.

@@ -298,8 +298,11 @@ func TestComboboxScrollEndToEnd(t *testing.T) {
 	})
 	layout := generateViewLayout(v, w)
 
-	// Set parent pointers.
+	// Set parent pointers, then resolve identities — layoutArrange does
+	// both before it extracts the floats, and the dropdown's scroll key
+	// is the join of the combobox's ID with its "dropdown" leaf.
 	layoutParents(&layout, nil)
+	resolveShapeIDs(&layout, w)
 
 	// Extract float (dropdown) like layoutArrange does.
 	var floats []*Layout
@@ -311,7 +314,7 @@ func TestComboboxScrollEndToEnd(t *testing.T) {
 	// Find the dropdown float (has IDScroll).
 	var dropdown *Layout
 	for _, f := range floats {
-		if f.Shape.Scrollable && f.Shape.ID == idScroll {
+		if f.Shape.Scrollable && f.Shape.idKey() == idScroll {
 			dropdown = f
 			break
 		}

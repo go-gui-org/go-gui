@@ -391,3 +391,25 @@ func TestInspectorLazyBuilding(t *testing.T) {
 		t.Fatalf("expanded node should have 2 children, got %d", len(nodes[0].Nodes))
 	}
 }
+
+// The inspector's helpers key tree focus and expansion on the
+// inspectorTreeID constant, while the Tree widget keys them on the
+// identity it resolves to. If the constant is not that identity, the
+// wireframe still tracks the pick (it uses nsInspector) but the tree
+// never shows the selected row — the two halves write different slots.
+func TestInspectorTreeIDIsTheRenderedIdentity(t *testing.T) {
+	requireInspector(t)
+	w := NewTestWindow(WindowCfg{})
+	w.inspectorEnabled = true
+	root := w.TestRender(func(_ *Window) View {
+		return Column(ContainerCfg{Sizing: FillFill})
+	})
+	if root == nil {
+		t.Fatal("TestRender returned nil")
+	}
+	if _, ok := root.FindByID(inspectorTreeID); !ok {
+		t.Fatalf("no layout with the inspector tree's key %q; the "+
+			"constant the selection helpers write is not the identity "+
+			"the tree stores under", inspectorTreeID)
+	}
+}

@@ -21,6 +21,12 @@ import "testing"
 // Written against the phase-2 test API (TestScroll/TestScrollOffset),
 // which is why the gate could not be discharged before now.
 
+// innerID is the inner container's *effective* ID: its leaf is written
+// "inner", and the ID-bearing "outer" it sits in scopes it to
+// "outer:inner". The test APIs take effective IDs (see
+// gui/id_resolve.go), so that is what addresses it here.
+const innerID = "outer:inner"
+
 // newNestedScrollWindow builds an outer scrollable containing a short
 // inner scrollable plus enough sibling filler that the outer can scroll
 // too. Both are taller than their viewports, so both have somewhere to
@@ -72,10 +78,10 @@ func newNestedScrollWindow(t *testing.T) *Window {
 // pass for the wrong reason (inner never receiving anything).
 func TestNestedScrollInnerConsumesWhileItCan(t *testing.T) {
 	w := newNestedScrollWindow(t)
-	if err := w.TestScroll("inner", 0, -5); err != nil {
+	if err := w.TestScroll(innerID, 0, -5); err != nil {
 		t.Fatalf("TestScroll(inner) = %v, want nil", err)
 	}
-	_, inner, err := w.TestScrollOffset("inner")
+	_, inner, err := w.TestScrollOffset(innerID)
 	if err != nil {
 		t.Fatalf("TestScrollOffset(inner) = %v, want nil", err)
 	}
@@ -109,7 +115,7 @@ func TestNestedScrollCascadesToParentAtLimit(t *testing.T) {
 	for range 100 {
 		// Snapshot both offsets, then scroll. The gesture of interest
 		// is the one after which the inner has not moved.
-		_, innerBefore, err := w.TestScrollOffset("inner")
+		_, innerBefore, err := w.TestScrollOffset(innerID)
 		if err != nil {
 			t.Fatalf("TestScrollOffset(inner) = %v, want nil", err)
 		}
@@ -120,10 +126,10 @@ func TestNestedScrollCascadesToParentAtLimit(t *testing.T) {
 		// Errors are not assertable here: once the inner declines, the
 		// outer accepts, so the event is still handled and the return is
 		// still nil. The offsets are the signal.
-		if err = w.TestScroll("inner", 0, -20); err != nil {
+		if err = w.TestScroll(innerID, 0, -20); err != nil {
 			t.Fatalf("TestScroll(inner) = %v, want nil", err)
 		}
-		_, innerNow, err := w.TestScrollOffset("inner")
+		_, innerNow, err := w.TestScrollOffset(innerID)
 		if err != nil {
 			t.Fatalf("TestScrollOffset(inner) = %v, want nil", err)
 		}

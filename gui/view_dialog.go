@@ -286,6 +286,15 @@ func applyDialogDefaults(cfg *DialogCfg) {
 	if cfg.FocusID == "" {
 		cfg.FocusID = dialogBaseFocusID
 	}
+	// The dialog's controls hang off a container carrying
+	// reservedDialogID, so a plain-leaf focus ID resolves under it —
+	// while SetFocus and retainDialogFocus, which run outside layout
+	// generation, would keep passing the bare leaf and focus nothing.
+	// Scoping it here makes it absolute, so the shape's identity is
+	// exactly this string, and it keeps the ScopeIDN-derived siblings
+	// (":1", ":2") in the same namespace instead of a separate one.
+	// Idempotent, and it leaves a caller's already-composed ID alone.
+	cfg.FocusID = resolveLeaf(reservedDialogID, cfg.FocusID)
 	// HAlignStart is 0 (zero value), so explicit HAlignStart cannot be
 	// distinguished from unset. Use HAlignLeft for left alignment.
 	if cfg.AlignButtons == HAlignStart {

@@ -59,6 +59,9 @@ func (w *Window) Sidebar(cfg SidebarCfg) View {
 		return invisibleContainerView()
 	}
 
+	// One resolved identity for every key below; see (*Window).EffID.
+	cfg.ID = w.EffID(cfg.ID)
+
 	animW := sidebarAnimatedWidth(w, cfg)
 	p := cfg.Padding.Get(Padding{})
 	padW := p.Left + p.Right

@@ -10,6 +10,11 @@ import (
 // layoutPipeline runs all layout passes in order on a single
 // layout tree.
 func layoutPipeline(layout *Layout, w *Window) {
+	// Identities are already stamped: layoutArrange resolves the whole
+	// tree before it splits the floats out, and each injected overlay as
+	// it is generated. Resolving here instead would see a float as its
+	// own root and strip the scope its ancestors gave it.
+
 	// Width passes.
 	layoutWidths(layout)
 	w.scratch.beginFillPass()
@@ -120,9 +125,10 @@ func layoutMouseLeave(layout *Layout, w *Window) {
 		return
 	}
 	sm := w.hoverInside()
+	key := shape.idKey()
 	inside := shape.PointInShape(w.viewState.mousePosX, w.viewState.mousePosY)
 	// Default false: absent entry means cursor was not previously in shape.
-	wasInside := sm.GetOr(shape.ID, false)
+	wasInside := sm.GetOr(key, false)
 	if wasInside && !inside {
 		w.scratch.hoverEvent = Event{
 			MouseX:      w.viewState.mousePosX,
@@ -133,9 +139,9 @@ func layoutMouseLeave(layout *Layout, w *Window) {
 		shape.events.OnMouseLeave(EventCtx{layout, &w.scratch.hoverEvent, w})
 	}
 	if inside {
-		sm.Set(shape.ID, true)
+		sm.Set(key, true)
 	} else {
-		sm.Delete(shape.ID)
+		sm.Delete(key)
 	}
 }
 

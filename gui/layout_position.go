@@ -68,10 +68,11 @@ func layoutChildStartPos(
 	if layout.Shape.Scrollable {
 		sx := w.scrollX()
 		sy := w.scrollY()
-		if v, ok := sx.Get(layout.Shape.ID); ok {
+		id := layout.Shape.idKey()
+		if v, ok := sx.Get(id); ok {
 			x += v
 		}
-		if v, ok := sy.Get(layout.Shape.ID); ok {
+		if v, ok := sy.Get(id); ok {
 			y += v
 		}
 	}
@@ -219,7 +220,7 @@ func layoutSetShapeClips(layout *Layout, clip drawClip) {
 
 // layoutAdjustScrollOffsets ensures scroll offsets are in range.
 func layoutAdjustScrollOffsets(layout *Layout, w *Window) {
-	id := layout.Shape.ID
+	id := layout.Shape.idKey()
 	if layout.Shape.Scrollable && id != "" {
 		sx := w.scrollX()
 		sy := w.scrollY()

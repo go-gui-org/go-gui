@@ -59,8 +59,11 @@ func captureLayoutSnapshots(layout Layout) map[string]posSnapshot {
 }
 
 func captureSnapshots(layout *Layout, snapshots map[string]posSnapshot, heroOnly bool) {
+	// Snapshots key on the effective ID, so a widget keeps its identity
+	// across a transition only while its ID-bearing ancestors do — the
+	// same rule the stores use.
 	if layout.Shape.ID != "" && (!heroOnly || layout.Shape.Hero) {
-		snapshots[layout.Shape.ID] = posSnapshot{
+		snapshots[layout.Shape.idKey()] = posSnapshot{
 			x:      layout.Shape.X,
 			y:      layout.Shape.Y,
 			width:  layout.Shape.Width,
@@ -100,7 +103,7 @@ func applyLayoutTransition(layout *Layout, w *Window) {
 
 func applyTransitionRecursive(layout *Layout, lt *LayoutTransition) {
 	if layout.Shape.ID != "" {
-		if old, ok := lt.snapshots[layout.Shape.ID]; ok {
+		if old, ok := lt.snapshots[layout.Shape.idKey()]; ok {
 			t := lt.progress
 			layout.Shape.X = Lerp(old.x, layout.Shape.X, t)
 			layout.Shape.Y = Lerp(old.y, layout.Shape.Y, t)

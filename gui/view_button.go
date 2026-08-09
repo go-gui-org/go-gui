@@ -75,7 +75,7 @@ func buttonAmendLayout(ctx EventCtx) {
 		ctx.Layout.Shape.events.OnClick == nil {
 		return
 	}
-	if ctx.Window.IsFocus(ctx.Layout.Shape.ID) {
+	if ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
 		ctx.Layout.Shape.Color = ctx.Layout.Shape.bc.ColorFocus
 		ctx.Layout.Shape.ColorBorder = ctx.Layout.Shape.bc.ColorBorderFocus
 	}
@@ -91,7 +91,7 @@ func buttonOnHover(ctx EventCtx) {
 		return
 	}
 	ctx.Window.setMouseCursor(CursorPointingHand)
-	if !ctx.Window.IsFocus(ctx.Layout.Shape.ID) {
+	if !ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
 		ctx.Layout.Shape.Color = ctx.Layout.Shape.bc.ColorHover
 	}
 	if ctx.Event.MouseButton == MouseLeft {

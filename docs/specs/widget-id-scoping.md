@@ -179,14 +179,15 @@ the duplicate audit rather than passing silently.
 
 ## Remaining work
 
-Drafted in [`widget-id-per-scope-uniqueness.md`](widget-id-per-scope-uniqueness.md)
-(pending approval). That spec supersedes Decisions 1–2 here for identity
-resolution once implemented:
+**Done.** Specified and implemented in
+[`widget-id-per-scope-uniqueness.md`](widget-id-per-scope-uniqueness.md), which
+supersedes Decisions 1–2 here for identity resolution:
 
-- **Per-scope uniqueness** — framework-computed `effID` from ID-bearing
-  ancestors; leaf `Shape.ID` may repeat across scopes; uniqueness stays on the
-  effective key.
-- **Hero animations** — key on `effID`; same leaf under different ancestors does
-  not match (constraint of ID-only join).
-- **Caching composed IDs across frames** — benchmark first; identity-keyed memo
-  only if allocs show (positional cache still rejected).
+- **Per-scope uniqueness** (shipped) — framework-computed `effID` from
+  ID-bearing ancestors; leaf `Shape.ID` may repeat across scopes; uniqueness
+  stays on the effective key.
+- **Hero animations** (shipped) — keyed on `effID`; same leaf under different
+  ancestors does not match (constraint of ID-only join).
+- **Caching composed IDs across frames** (shipped) — the benchmark showed +1
+  alloc per widget per frame, so the identity-keyed memo landed
+  (`(*Window).joinLeaf`); a positional cache is still rejected.

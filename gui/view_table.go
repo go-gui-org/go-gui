@@ -158,6 +158,9 @@ func tableView(cfg TableCfg, w *Window) View {
 	}
 	applyTableDefaults(&cfg)
 
+	// One resolved identity for every key below; see (*Window).EffID.
+	cfg.ID = w.EffID(cfg.ID)
+
 	if len(cfg.Data) == 0 {
 		return Column(ContainerCfg{
 			ID:      cfg.ID,

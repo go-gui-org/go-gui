@@ -12,6 +12,14 @@ func layoutArrange(layout *Layout, w *Window) []Layout {
 	// Set parent pointers.
 	layoutParents(layout, nil)
 
+	// Resolve identities before anything reads one, and before the
+	// floats are split out: a float written inside an ID-bearing panel
+	// keeps that panel's scope, which it could not if it were resolved
+	// after extraction as a bare root. Every pass downstream — sizing's
+	// overflow map, scroll, hover, focus, the transition and hero
+	// snapshots, the debug audit — keys on what this stamps.
+	resolveShapeIDs(layout, w)
+
 	// Extract floating layouts from main tree.
 	floatingLayouts := w.scratch.takeFloatingLayouts(len(layout.Children))
 	defer func() {
@@ -80,5 +88,9 @@ func injectFloatingLayer(v View, w *Window, floatingLayouts *[]*Layout) {
 	l := generateViewLayout(v, w)
 	heap := w.scratch.allocFloatingLayout(l)
 	layoutParents(heap, nil)
+	// An injected overlay is generated outside the main tree, so it is
+	// its own scope root: it picks up prefixes only from ID-bearing
+	// shapes inside itself. Generation saw the same empty scope.
+	resolveShapeIDs(heap, w)
 	*floatingLayouts = append(*floatingLayouts, heap)
 }

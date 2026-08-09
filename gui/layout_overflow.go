@@ -56,14 +56,15 @@ func layoutOverflow(layout *Layout, w *Window) {
 	}
 
 	om := w.overflow()
-	old, ok := om.Get(layout.Shape.ID)
+	id := layout.Shape.idKey()
+	old, ok := om.Get(id)
 	if !ok {
 		old = -1
 	}
 	if old != visibleCount {
-		om.Set(layout.Shape.ID, visibleCount)
+		om.Set(id, visibleCount)
 		ss := StateMap[string, bool](w, nsSelect, capModerate)
-		ss.Delete(layout.Shape.ID)
+		ss.Delete(id)
 		w.refreshLayout = true
 	}
 }

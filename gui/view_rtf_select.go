@@ -13,7 +13,7 @@ func rtfSelectAmendLayout(ctx EventCtx) {
 	if ctx.Layout.Shape.ID == "" || !ctx.Layout.Shape.Focusable || ctx.Layout.Shape.TC == nil {
 		return
 	}
-	is := StateReadOr(ctx.Window, nsInput, ctx.Layout.Shape.ID, InputState{})
+	is := StateReadOr(ctx.Window, nsInput, ctx.Layout.Shape.idKey(), InputState{})
 	ctx.Layout.Shape.TC.TextSelBeg = is.SelectBeg
 	ctx.Layout.Shape.TC.TextSelEnd = is.SelectEnd
 }
@@ -36,7 +36,7 @@ func rtfSelectOnClick(ctx EventCtx) {
 	if shape.TC == nil || !shape.hasRtfLayout() || shape.ID == "" || !shape.Focusable {
 		return
 	}
-	ctx.Window.SetFocus(shape.ID)
+	ctx.Window.SetFocus(shape.idKey())
 
 	gl := shape.TC.RTFLayout
 	flatText := shape.TC.RTFFlatText
@@ -44,7 +44,7 @@ func rtfSelectOnClick(ctx EventCtx) {
 	byteIdx := gl.GetClosestOffset(ctx.Event.MouseX, ctx.Event.MouseY)
 	runePos := byteToRuneIndex(flatText, byteIdx)
 
-	focusID := shape.ID
+	focusID := shape.idKey()
 	imap := StateMap[string, InputState](ctx.Window, nsInput, capMany)
 	// Default InputState{}: zero value seeds initial selection/cursor state.
 	is := imap.GetOr(focusID, InputState{})
@@ -83,7 +83,7 @@ func rtfSelectOnClick(ctx EventCtx) {
 	maxScrollNeg := float32(0)
 	for p := ctx.Layout.Parent; p != nil; p = p.Parent {
 		if p.Shape != nil && p.Shape.Scrollable {
-			scrollID = p.Shape.ID
+			scrollID = p.Shape.idKey()
 			sy := ctx.Window.scrollY()
 			// Default 0: unscrolled container before first scroll event.
 			dragScrollY0 = sy.GetOr(scrollID, 0)
@@ -191,10 +191,10 @@ func rtfSelectOnClick(ctx EventCtx) {
 func rtfSelectOnKeyDown(ctx EventCtx) {
 	shape := ctx.Layout.Shape
 	if shape.TC == nil || shape.ID == "" || !shape.Focusable ||
-		!ctx.Window.IsFocus(shape.ID) {
+		!ctx.Window.IsFocus(shape.idKey()) {
 		return
 	}
-	id := shape.ID
+	id := shape.idKey()
 	flatText := shape.TC.RTFFlatText
 	gl := *shape.TC.RTFLayout
 

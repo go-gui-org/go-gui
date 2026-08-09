@@ -67,8 +67,14 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 	dn := &DefaultSelectStyle
 	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
 	radius := cfg.Radius.Get(dn.Radius)
-	isOpen := StateReadOr(w, nsSelect, cfg.ID, false)
-	dropdownScrollID := ScopeID(cfg.ID, "dropdown")
+	// Open/highlight state is keyed by the widget's effective ID, so two
+	// selects written with the same leaf under different ID-bearing
+	// panels do not share one dropdown. The dropdown itself is a child
+	// of this widget's container, so its shape carries the plain
+	// "dropdown" leaf and the framework joins it to the same string.
+	id := w.EffID(cfg.ID)
+	isOpen := StateReadOr(w, nsSelect, id, false)
+	dropdownScrollID := ScopeID(id, "dropdown")
 
 	empty := len(cfg.Selected) == 0 || len(cfg.Selected[0]) == 0
 	clip := cfg.SelectMultiple && cfg.NoWrap
@@ -115,7 +121,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 
 	if isOpen {
 		highlightedIdx := StateReadOr(
-			w, nsSelectHL, cfg.ID, 0)
+			w, nsSelectHL, id, 0)
 		options := make([]View, 0, len(cfg.Options))
 		for i, option := range cfg.Options {
 			if isSelectSubheader(option) {
@@ -123,12 +129,12 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 					selectSubHeaderView(cfg, option))
 			} else {
 				options = append(options,
-					selectOptionView(cfg, option, i,
+					selectOptionView(cfg, id, option, i,
 						i == highlightedIdx))
 			}
 		}
 		content = append(content, Column(ContainerCfg{
-			ID:            dropdownScrollID,
+			ID:            "dropdown",
 			SizeBorder:    Some(sizeBorder),
 			Radius:        Some(radius),
 			ColorBorder:   cfg.ColorBorder,
@@ -151,7 +157,6 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		}))
 	}
 
-	id := cfg.ID
 	colorFocus := cfg.ColorFocus
 	colorBorderFocus := cfg.ColorBorderFocus
 
@@ -177,12 +182,12 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 			if ctx.Layout.Shape.Disabled {
 				return
 			}
-			if ctx.Window.IsFocus(ctx.Layout.Shape.ID) {
+			if ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
 				ctx.Layout.Shape.Color = colorFocus
 				ctx.Layout.Shape.ColorBorder = colorBorderFocus
 			}
 		},
-		OnKeyDown: makeSelectOnKeyDown(&sv.cfg, dropdownScrollID),
+		OnKeyDown: makeSelectOnKeyDown(&sv.cfg, id, dropdownScrollID),
 		OnClick: func(ctx EventCtx) {
 			ss := StateMap[string, bool](
 				ctx.Window, nsSelect, capModerate)
@@ -206,13 +211,13 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 }
 
 // selectOptionView builds a single option row.
-func selectOptionView(cfg *SelectCfg, option string, index int, highlighted bool) View {
+func selectOptionView(
+	cfg *SelectCfg, id, option string, index int, highlighted bool,
+) View {
 	selectMultiple := cfg.SelectMultiple
 	onSelect := cfg.OnSelect
 	selectArray := cfg.Selected
 	colorSelect := cfg.ColorSelect
-	cfgID := cfg.ID
-
 	optColor := ColorTransparent
 	if highlighted {
 		optColor = cfg.ColorSelect
@@ -268,9 +273,9 @@ func selectOptionView(cfg *SelectCfg, option string, index int, highlighted bool
 			sh := StateMap[string, int](
 				ctx.Window, nsSelectHL, capModerate)
 			// Default 0: absent entry gets zero index, checked immediately.
-			cur := sh.GetOr(cfgID, 0)
+			cur := sh.GetOr(id, 0)
 			if cur != index {
-				sh.Set(cfgID, index)
+				sh.Set(id, index)
 			}
 		},
 	})
@@ -320,9 +325,11 @@ func selectSubHeaderView(cfg *SelectCfg, option string) View {
 	})
 }
 
-func makeSelectOnKeyDown(cfg *SelectCfg, scrollID string) func(EventCtx) {
+func makeSelectOnKeyDown(
+	cfg *SelectCfg, id, scrollID string,
+) func(EventCtx) {
 	return func(ctx EventCtx) {
-		selectOnKeyDown(cfg, scrollID, ctx.Event, ctx.Window)
+		selectOnKeyDown(cfg, id, scrollID, ctx.Event, ctx.Window)
 	}
 }
 
@@ -339,7 +346,9 @@ func selectInitialHighlight(selected, options []string) int {
 	return 0
 }
 
-func selectOnKeyDown(cfg *SelectCfg, scrollID string, e *Event, w *Window) {
+func selectOnKeyDown(
+	cfg *SelectCfg, id, scrollID string, e *Event, w *Window,
+) {
 	if len(cfg.Options) == 0 {
 		return
 	}
@@ -347,12 +356,12 @@ func selectOnKeyDown(cfg *SelectCfg, scrollID string, e *Event, w *Window) {
 	ss := StateMap[string, bool](w, nsSelect, capModerate)
 	sh := StateMap[string, int](w, nsSelectHL, capModerate)
 	// Default false: absent entry means dropdown not open.
-	isOpen := ss.GetOr(cfg.ID, false)
+	isOpen := ss.GetOr(id, false)
 
 	// Open on space/enter.
 	if (e.KeyCode == KeySpace || e.KeyCode == KeyEnter) && !isOpen {
-		ss.Set(cfg.ID, true)
-		sh.Set(cfg.ID, selectInitialHighlight(
+		ss.Set(id, true)
+		sh.Set(id, selectInitialHighlight(
 			cfg.Selected, cfg.Options))
 		e.IsHandled = true
 		return
@@ -370,7 +379,7 @@ func selectOnKeyDown(cfg *SelectCfg, scrollID string, e *Event, w *Window) {
 	}
 
 	// Default 0: first item highlighted; bounds-checked before use.
-	currentIdx := sh.GetOr(cfg.ID, 0)
+	currentIdx := sh.GetOr(id, 0)
 	action := listCoreNavigate(e.KeyCode, len(cfg.Options))
 
 	if action == listCoreSelectItem {
@@ -403,7 +412,7 @@ func selectOnKeyDown(cfg *SelectCfg, scrollID string, e *Event, w *Window) {
 				cfg.Options, len(cfg.Options)-1, -1)
 		}
 		if nextIdx >= 0 {
-			sh.Set(cfg.ID, nextIdx)
+			sh.Set(id, nextIdx)
 			selectScrollTo(cfg, scrollID, nextIdx, w)
 			e.IsHandled = true
 		}
@@ -418,7 +427,7 @@ func selectOnKeyDown(cfg *SelectCfg, scrollID string, e *Event, w *Window) {
 		nextIdx := selectNextSelectable(
 			cfg.Options, currentIdx+dir, dir)
 		if nextIdx >= 0 {
-			sh.Set(cfg.ID, nextIdx)
+			sh.Set(id, nextIdx)
 			selectScrollTo(cfg, scrollID, nextIdx, w)
 			e.IsHandled = true
 		}
