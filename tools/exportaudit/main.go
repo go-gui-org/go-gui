@@ -163,7 +163,15 @@ func main() {
 	case "gate":
 		failures, advisory := gate(exports, len(consumers) > 0)
 		if advisory != "" {
-			fmt.Fprintln(os.Stderr, advisory)
+			if failures != "" {
+				// Context for the offenders: show what is deferred too.
+				fmt.Fprintln(os.Stderr, advisory)
+			} else {
+				// Clean surface; the deferred list is one line, the
+				// full per-export list lives in -mode report.
+				first, _, _ := strings.Cut(advisory, "\n")
+				fmt.Fprintln(os.Stderr, first+" (see -mode report for the list)")
+			}
 		}
 		if failures != "" {
 			fmt.Fprint(os.Stderr, failures)
@@ -651,8 +659,16 @@ func gate(exports map[string]*export, hasConsumers bool) (failures, advisory str
 		b.Reset()
 	}
 	if len(adv) > 0 {
-		fmt.Fprintf(&b, "exportaudit: %d exports need a consumer scan to classify (advisory, deferred):\n%s",
-			len(adv), strings.Join(adv, "\n"))
+		if hasConsumers {
+			// With consumers scanned these are classified (internal):
+			// shared implementation between gui/ packages, accepted by
+			// policy — see docs/specs/exportaudit-surface-policy.md.
+			fmt.Fprintf(&b, "exportaudit: %d internal-class exports shared with gui/ subpackages (accepted, deferred):\n%s",
+				len(adv), strings.Join(adv, "\n"))
+		} else {
+			fmt.Fprintf(&b, "exportaudit: %d exports need a consumer scan to classify (advisory, deferred):\n%s",
+				len(adv), strings.Join(adv, "\n"))
+		}
 		advisory = b.String()
 	}
 	return failures, advisory

@@ -178,6 +178,18 @@ jobs:
       - name: Run gate checks
         run: make vet deps-doc-check large-files generate-check
 
+      # The export-audit gate needs the sibling consumer repos present to
+      # be authoritative (an export used only there would misclassify as
+      # internal-only). Shallow-clone them beside the checkout and run the
+      # consumer scan; the in-repo run alone cannot fail anything.
+      - name: Run export-audit (authoritative)
+        run: |
+          for repo in go-charts go-edit go-kite go-term go-map; do
+            git clone --quiet --depth 1 https://github.com/go-gui-org/$repo.git ../$repo
+          done
+          go run ./tools/exportaudit/ -mode gate -gui . \
+            ../go-charts ../go-edit ../go-kite ../go-term ../go-map
+
   examples:
     name: Build examples
     runs-on: ubuntu-latest

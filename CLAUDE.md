@@ -177,7 +177,9 @@ Backend injects at startup. Nil in tests:
 - After touching the exported surface of `gui/`, run `make export-audit`
   (tools/exportaudit): every export must be referenced from outside gui/ or
   carry a `// exportaudit:keep` marker. The consumer scan is authoritative; the
-  in-repo run is advisory.
+  in-repo run is advisory. `internal`-class exports (shared between gui/
+  packages) are accepted by policy, not hard failures; the deferred list is in
+  the gate advisory. See `docs/specs/exportaudit-surface-policy.md`.
 - Native/CGo or focus/activation bugs: confirm root cause with instrumented
   logging (evidence) before editing. Reproduce before, verify symptom gone
   after. Never leave the app non-launching. See `gui/backend/CLAUDE.md` for the
