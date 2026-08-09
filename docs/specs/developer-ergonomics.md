@@ -1,73 +1,70 @@
 # Developer ergonomics: assessment and improvement plan
 
-Status: accepted after three independent reviews; ready to implement.
-Two breaking phases: phase 1 (§4.2) shipped as v0.53.0, and §4.3/§4.4/
-§4.7 target v0.54.0 with 18 sibling call sites affected (§7). Phases
-2–3 ship as v0.53.x. §9 Q1–Q8 all resolved; Q6 remains a phase-2 gate
-on phase 4. The original single-breaking-release plan and why it was
-wrong: see the correction in §6.
+Status: accepted after three independent reviews; ready to implement. Two
+breaking phases: phase 1 (§4.2) shipped as v0.53.0, and §4.3/§4.4/ §4.7 target
+v0.54.0 with 18 sibling call sites affected (§7). Phases 2–3 ship as v0.53.x. §9
+Q1–Q8 all resolved; Q6 remains a phase-2 gate on phase 4. The original
+single-breaking-release plan and why it was wrong: see the correction in §6.
 Base: `main` @ `80715d1`. Phase progress: §6.1.
 
 ## Context
 
-Two independent reviews rated app-level ergonomics ~7/10. Both landed on
-the same shape of problem: the immediate-mode core is sound, and the
-friction is bookkeeping the framework pushes onto callers (IDs, state
-keys, event flags, per-widget colors). This spec records what was
-measured, corrects two claims that do not hold against the code, and
-prioritizes fixes.
+Two independent reviews rated app-level ergonomics ~7/10. Both landed on the
+same shape of problem: the immediate-mode core is sound, and the friction is
+bookkeeping the framework pushes onto callers (IDs, state keys, event flags,
+per-widget colors). This spec records what was measured, corrects two claims
+that do not hold against the code, and prioritizes fixes.
 
-Scope is API surface only. The rendering pipeline, allocation profile,
-and immediate-mode model are not in question.
+Scope is API surface only. The rendering pipeline, allocation profile, and
+immediate-mode model are not in question.
 
 ## 1. What was measured
 
-All counts taken from `main` @ `80715d1`. Counting rules in §10 —
-several figures depend on dedupe and scope choices.
+All counts taken from `main` @ `80715d1`. Counting rules in §10 — several
+figures depend on dedupe and scope choices.
 
-| Metric                                | Count | Source                            |
-| ------------------------------------- | ----- | --------------------------------- |
-| Widget factories taking a `*Cfg`      | ~50   | `gui/view_*.go`                   |
-| `On*` callback decls, raw             | 136   | `ergoaudit -mode callbacks`       |
-| — distinct (name, signature) pairs    | 70    | deduped by go/ast; see §10        |
-| — of shape `func(EventCtx)`           | 16    |                                   |
-| — of shape `func(T…, EventCtx)`       | 19    |                                   |
-| — with a trailing `*Window`           | 27    | 14 keep it; see §4.3              |
-| — exposing a raw `*Event`             | 6     |                                   |
-| — neither (no `Window`/`EventCtx`)    | 2     | `OnAction`, `OnDraw`              |
-| Fields on `ContainerCfg`              | 71    | `gui/view_container.go`           |
-| Fields on `ButtonCfg`                 | 38    | `gui/view_button.go`              |
-| Distinct `Color*` field names (approx)| 20+   | `gui/view_*.go`; see §10          |
-| `Opt[T]` field decls (approx)         | 110   | `gui/view_*.go`; see §10          |
-| `StateMap[string, …]` call sites      | 242   | `gui/*.go`                        |
-| `RequireFocusID` call sites           | **0** | dead; deleted by §4.2             |
-| Exported symbols in `gui` (go doc)    | 953   | 228 funcs, 349 types, 376 methods |
-| Exported event-dispatch entry points  | **0** | `Shape.events` unexported (§4.6)  |
-| Focusable-by-default `Cfg`s           | 15    | `FocusDisabled` opt-out           |
-| — of those, `ID` **not** required     | 9     | unguarded; see §4.2               |
-| Literals of those 9, all repos        | 408   | `go/ast` walk; see §4.2, §10      |
-| — focusable but ID-less (broken)      | 126   | 12 in go-gui's own widgets; fixed |
-| — using `FocusDisabled` opt-out       | **1** | decorative case is theoretical    |
-| Tests in `examples/*/main_test.go`    | 63    | 98 lines are no-panic assertions  |
-| `Cfg`s exposing `Scrollable bool`     | 7     | scroll state keyed by ID (§4.9)   |
-| — tag-guarded                         | 5     | Combobox, CmdPalette, ListBox,    |
-|                                       |       | Table, Tree                       |
-| — guarded at runtime only             | 1     | `Container`; sole `RequireScrollID`|
-| — unguarded entirely                  | 1     | **`Input`**                       |
-| Examples calling `WindowSize()`       | 45    | 50 sites, 108 arithmetic lines    |
+| Metric                                 | Count | Source                              |
+| -------------------------------------- | ----- | ----------------------------------- |
+| Widget factories taking a `*Cfg`       | ~50   | `gui/view_*.go`                     |
+| `On*` callback decls, raw              | 136   | `ergoaudit -mode callbacks`         |
+| — distinct (name, signature) pairs     | 70    | deduped by go/ast; see §10          |
+| — of shape `func(EventCtx)`            | 16    |                                     |
+| — of shape `func(T…, EventCtx)`        | 19    |                                     |
+| — with a trailing `*Window`            | 27    | 14 keep it; see §4.3                |
+| — exposing a raw `*Event`              | 6     |                                     |
+| — neither (no `Window`/`EventCtx`)     | 2     | `OnAction`, `OnDraw`                |
+| Fields on `ContainerCfg`               | 71    | `gui/view_container.go`             |
+| Fields on `ButtonCfg`                  | 38    | `gui/view_button.go`                |
+| Distinct `Color*` field names (approx) | 20+   | `gui/view_*.go`; see §10            |
+| `Opt[T]` field decls (approx)          | 110   | `gui/view_*.go`; see §10            |
+| `StateMap[string, …]` call sites       | 242   | `gui/*.go`                          |
+| `RequireFocusID` call sites            | **0** | dead; deleted by §4.2               |
+| Exported symbols in `gui` (go doc)     | 953   | 228 funcs, 349 types, 376 methods   |
+| Exported event-dispatch entry points   | **0** | `Shape.events` unexported (§4.6)    |
+| Focusable-by-default `Cfg`s            | 15    | `FocusDisabled` opt-out             |
+| — of those, `ID` **not** required      | 9     | unguarded; see §4.2                 |
+| Literals of those 9, all repos         | 408   | `go/ast` walk; see §4.2, §10        |
+| — focusable but ID-less (broken)       | 126   | 12 in go-gui's own widgets; fixed   |
+| — using `FocusDisabled` opt-out        | **1** | decorative case is theoretical      |
+| Tests in `examples/*/main_test.go`     | 63    | 98 lines are no-panic assertions    |
+| `Cfg`s exposing `Scrollable bool`      | 7     | scroll state keyed by ID (§4.9)     |
+| — tag-guarded                          | 5     | Combobox, CmdPalette, ListBox,      |
+|                                        |       | Table, Tree                         |
+| — guarded at runtime only              | 1     | `Container`; sole `RequireScrollID` |
+| — unguarded entirely                   | 1     | **`Input`**                         |
+| Examples calling `WindowSize()`        | 45    | 50 sites, 108 arithmetic lines      |
 
 ## 2. What works
 
 Not a preamble — these are the constraints any fix must preserve.
 
-- **Small core.** `NewWindow(WindowCfg)`, a view function,
-  `gui.State[T](w)`, `backend.Run(w)`. `examples/get_started/main.go` is
-  a stateful app in 60 lines including comments.
-- **Zero-value `Cfg` structs.** Uniform across all ~50 factories. Adding
-  a field is non-breaking, and autocomplete on `gui.ButtonCfg{` is the
-  documentation.
-- **No closures over state, no globals.** One typed state slot per
-  window kills the entire stale-closure bug class.
+- **Small core.** `NewWindow(WindowCfg)`, a view function, `gui.State[T](w)`,
+  `backend.Run(w)`. `examples/get_started/main.go` is a stateful app in 60 lines
+  including comments.
+- **Zero-value `Cfg` structs.** Uniform across all ~50 factories. Adding a field
+  is non-breaking, and autocomplete on `gui.ButtonCfg{` is the documentation.
+- **No closures over state, no globals.** One typed state slot per window kills
+  the entire stale-closure bug class.
 - **Composition is plain functions.** `cardView(w)`, `listView(w)` in
   `examples/todo/main.go` — no registration, no interface to implement.
 
@@ -85,103 +82,98 @@ OnTextChanged func(string, EventCtx)
 OnTextCommit  func(*Layout, string, InputCommitReason, *Window)
 ```
 
-Six callbacks still leak a raw `*Event` (§10 — two are the qualified
-`*gg.Event` in `datagrid`, which an unqualified grep misses), including
+Six callbacks still leak a raw `*Event` (§10 — two are the qualified `*gg.Event`
+in `datagrid`, which an unqualified grep misses), including
 `SplitterCfg.OnChange func(float32, SplitterCollapsed, *Event, *Window)`
 (`gui/view_splitter.go:125`). The v0.52 `EventCtx` refactor
-(`docs/specs/eventctx-callback-refactor.md`) converted the consume-class
-events and stopped.
+(`docs/specs/eventctx-callback-refactor.md`) converted the consume-class events
+and stopped.
 
 ### 3.2 "`StateMap` plumbing leaks into app code" — false
 
-Zero `StateMap` references exist in `examples/`. `nsSelect` and
-`capModerate` are unexported (`gui/layout_overflow.go:65`), so app code
-cannot write that call. The encapsulation being asked for already
-exists; the reviewer read an internal file as public surface. **No work
-required.**
+Zero `StateMap` references exist in `examples/`. `nsSelect` and `capModerate`
+are unexported (`gui/layout_overflow.go:65`), so app code cannot write that
+call. The encapsulation being asked for already exists; the reviewer read an
+internal file as public surface. **No work required.**
 
 ## 4. Proposals, prioritized
 
 ### 4.1 Debug gate — additive, do first
 
-`GOGUI_FOCUS_DEBUG` (`gui/layout_query.go:10`) already establishes the
-pattern for exactly one check. Generalize it into a single `gui.Debug`
-gate covering:
+`GOGUI_FOCUS_DEBUG` (`gui/layout_query.go:10`) already establishes the pattern
+for exactly one check. Generalize it into a single `gui.Debug` gate covering:
 
 - duplicate `ID` in one frame (not only focusable ones)
 - any shape with `Focusable == true && ID == ""` (see §4.2)
 - any shape with `Scrollable == true && ID == ""` (see §4.9)
 - `State[T]` type mismatch, with the concrete type held vs requested
 
-Deliberately **not** in v1 of the gate: "consume-class event reaching
-dispatch with no handler". Every inert shape under the cursor trips it,
-so it is noise before it is signal. Revisit scoped to shapes that are
-focusable or that claim a consume-class handler.
+Deliberately **not** in v1 of the gate: "consume-class event reaching dispatch
+with no handler". Every inert shape under the cursor trips it, so it is noise
+before it is signal. Revisit scoped to shapes that are focusable or that claim a
+consume-class handler.
 
-`focusDebug` is a package-level `os.Getenv` read
-(`gui/layout_query.go:10`), so the honest claim is **no-op unless
-enabled**, not "compiles to nothing" — there is no build tag and no
-dead-code elimination. If zero-cost-when-off matters, that is a separate
-`//go:build` decision, not something the current pattern delivers.
+`focusDebug` is a package-level `os.Getenv` read (`gui/layout_query.go:10`), so
+the honest claim is **no-op unless enabled**, not "compiles to nothing" — there
+is no build tag and no dead-code elimination. If zero-cost-when-off matters,
+that is a separate `//go:build` decision, not something the current pattern
+delivers.
 
-To be precise about the cost, since it has been queried: `var focusDebug
-= os.Getenv(...)` is evaluated **once** at package var-init. There is no
-per-frame `os.Getenv` today, and the guarded read in `focusDupWarn`
+To be precise about the cost, since it has been queried:
+`var focusDebug = os.Getenv(...)` is evaluated **once** at package var-init.
+There is no per-frame `os.Getenv` today, and the guarded read in `focusDupWarn`
 (`gui/layout_query.go:14`) is a plain bool load.
 
-**But make the flag `atomic.Bool`.** The proposal here is `gui.Debug(b)`
-— a function, so the flag becomes *mutable*, which today's env-only
-value is not. `focusDupWarn` is called from focus-candidate collection
-(`gui/layout_query.go:109`), i.e. per candidate per frame, so a plain
-bool read racing a `Debug(true)` write from another goroutine is a data
-race that `-race` will flag. `atomic.Bool.Load` compiles to a plain load
-on amd64 and arm64, so this costs nothing measurable. The mutability, not
-the lookup, is the reason.
+**But make the flag `atomic.Bool`.** The proposal here is `gui.Debug(b)` — a
+function, so the flag becomes _mutable_, which today's env-only value is not.
+`focusDupWarn` is called from focus-candidate collection
+(`gui/layout_query.go:109`), i.e. per candidate per frame, so a plain bool read
+racing a `Debug(true)` write from another goroutine is a data race that `-race`
+will flag. `atomic.Bool.Load` compiles to a plain load on amd64 and arm64, so
+this costs nothing measurable. The mutability, not the lookup, is the reason.
 
-**Warn once per `(check, ID)` per window.** These checks run at
-focus-candidate collection — per candidate, per frame — so an
-undeduplicated warning for one ID-less button is emitted at the frame
-rate. That is not a diagnostic, it is a reason to turn the gate back
-off, which defeats the item. Dedup state resets on window close and on
-a `false → true` transition of `Debug`, so re-enabling the gate after
-fixing something reports the current state rather than staying silent.
-The ID-less checks key on the shape's position in the tree, since `""`
+**Warn once per `(check, ID)` per window.** These checks run at focus-candidate
+collection — per candidate, per frame — so an undeduplicated warning for one
+ID-less button is emitted at the frame rate. That is not a diagnostic, it is a
+reason to turn the gate back off, which defeats the item. Dedup state resets on
+window close and on a `false → true` transition of `Debug`, so re-enabling the
+gate after fixing something reports the current state rather than staying
+silent. The ID-less checks key on the shape's position in the tree, since `""`
 is precisely what they are reporting.
 
-No API breakage. This converts the current "works but subtly doesn't"
-bugs into immediate errors and is the cheapest item on the list.
+No API breakage. This converts the current "works but subtly doesn't" bugs into
+immediate errors and is the cheapest item on the list.
 
 ### 4.2 Close the focus/ID hole, and delete `RequireFocusID`
 
-`isFocusedTarget` (`gui/event_traversal.go:17`) returns `false` on an
-empty ID, so a focusable widget without an `ID` renders, clicks, and
-silently never joins the tab order.
+`isFocusedTarget` (`gui/event_traversal.go:17`) returns `false` on an empty ID,
+so a focusable widget without an `ID` renders, clicks, and silently never joins
+the tab order.
 
-**There are two separate holes, and the uncovered one is larger.**
-Widget `Cfg` types split into two focus conventions:
+**There are two separate holes, and the uncovered one is larger.** Widget `Cfg`
+types split into two focus conventions:
 
 | Group             | Field                | Cfg types | Analyzer |
 | ----------------- | -------------------- | --------- | -------- |
 | Opt-in            | `Focusable bool`     | 12        | covers   |
 | Focusable-by-dflt | `FocusDisabled bool` | 15        | **none** |
 
-("Cfg types" is exact: the `Focusable bool` inventory also matches
-`Shape`, `termgrid`, and `inspector`, which are not app-facing `Cfg`s
-and are excluded from the 12.)
+("Cfg types" is exact: the `Focusable bool` inventory also matches `Shape`,
+`termgrid`, and `inspector`, which are not app-facing `Cfg`s and are excluded
+from the 12.)
 
 The analyzer's `checkFocusableID` keys on a literal `Focusable` field
-(`tools/requiredid/requiredid.go:91`). Focusable-by-default `Cfg`s never
-set one — their own testdata records this as intended: "Focusable-by-
-default Cfgs never set Focusable, so the rule stays quiet"
+(`tools/requiredid/requiredid.go:91`). Focusable-by-default `Cfg`s never set one
+— their own testdata records this as intended: "Focusable-by- default Cfgs never
+set Focusable, so the rule stays quiet"
 (`tools/requiredid/testdata/src/widgets/widgets.go:117`).
 
-So the second group is unguarded end to end. `gui/view_button.go:135`
-resolves `Focusable: !cfg.FocusDisabled` — true by default — and passes
-`ID: cfg.ID` through unvalidated, with no `RequireID` call. And **9 of
-the 15** default-on `Cfg`s carry no `gui:"required"` tag on `ID`:
-`Button`, `Input`, `NumericInput`, `InputDate`, `Radio`,
-`RadioButtonGroup`, `Select`, `Switch`, `Toggle`. Six do have it:
-`Combobox`, `ColorPicker`, `DatePicker`, `ListBox`, `Slider`, `Tree`.
+So the second group is unguarded end to end. `gui/view_button.go:135` resolves
+`Focusable: !cfg.FocusDisabled` — true by default — and passes `ID: cfg.ID`
+through unvalidated, with no `RequireID` call. And **9 of the 15** default-on
+`Cfg`s carry no `gui:"required"` tag on `ID`: `Button`, `Input`, `NumericInput`,
+`InputDate`, `Radio`, `RadioButtonGroup`, `Select`, `Switch`, `Toggle`. Six do
+have it: `Combobox`, `ColorPicker`, `DatePicker`, `ListBox`, `Slider`, `Tree`.
 
 Concretely, today:
 
@@ -192,30 +184,28 @@ gui.Button(gui.ButtonCfg{OnClick: handler}) // compiles, vets clean,
 ```
 
 That is the most-used widget in the library, failing silently, caught by
-nothing. `examples/get_started/main.go:47` sets `ID: "gs_counter"`, but
-by convention, not by any enforcement.
+nothing. `examples/get_started/main.go:47` sets `ID: "gs_counter"`, but by
+convention, not by any enforcement.
 
-**Delete `RequireFocusID` (`gui/state_registry.go:134`).** It is called
-by nothing — zero call sites in go-gui (tests included) and zero across
-all five sibling repos. Fourteen files expose a `Focusable bool` field
-and not one of them invokes it. It is a widget-authoring guard, not
-app-facing surface, and every widget in go-gui is first-party, so it
-has no external caller by construction. Removing it is preferable to
-wiring it up:
+**Delete `RequireFocusID` (`gui/state_registry.go:134`).** It is called by
+nothing — zero call sites in go-gui (tests included) and zero across all five
+sibling repos. Fourteen files expose a `Focusable bool` field and not one of
+them invokes it. It is a widget-authoring guard, not app-facing surface, and
+every widget in go-gui is first-party, so it has no external caller by
+construction. Removing it is preferable to wiring it up:
 
-- The `requiredid` analyzer (`tools/requiredid/requiredid.go:87`)
-  already reports the static case, at build time rather than at first
-  render, with a message naming the `Cfg` type.
-- `RequireFocusID` is redundant *with the analyzer*, at a strictly worse
-  moment. It is not a claim that panics are the wrong tool here — see
-  the enforcement split below.
-- Retaining a dead exported guard implies a check that does not run.
-  That is worse than no guard: it reads like coverage.
+- The `requiredid` analyzer (`tools/requiredid/requiredid.go:87`) already
+  reports the static case, at build time rather than at first render, with a
+  message naming the `Cfg` type.
+- `RequireFocusID` is redundant _with the analyzer_, at a strictly worse moment.
+  It is not a claim that panics are the wrong tool here — see the enforcement
+  split below.
+- Retaining a dead exported guard implies a check that does not run. That is
+  worse than no guard: it reads like coverage.
 
-**Enforcement split (resolves the apparent panic contradiction).**
-Deleting one panic while phase 4 adds `RequireID` to `Button` looks
-inconsistent. It is not, once the cases are separated by *when the
-defect is knowable*:
+**Enforcement split (resolves the apparent panic contradiction).** Deleting one
+panic while phase 4 adds `RequireID` to `Button` looks inconsistent. It is not,
+once the cases are separated by _when the defect is knowable_:
 
 | Case                              | Knowable at | Mechanism        |
 | --------------------------------- | ----------- | ---------------- |
@@ -223,52 +213,50 @@ defect is knowable*:
 | `ID: expr` that evaluates to `""` | first call  | `RequireID`      |
 | `Focusable` set dynamically       | render      | debug gate       |
 
-`gui:"required"` catches the overwhelming majority statically — that is
-where the 126 affected sites live. `RequireID` is the narrow runtime
-backstop for a computed ID that turns out empty, which no analyzer can
-see. The debug gate covers what neither can. `RequireFocusID` fits none
-of these rows: its static case is already the analyzer's, and its
-dynamic case is `RequireID`'s.
+`gui:"required"` catches the overwhelming majority statically — that is where
+the 126 affected sites live. `RequireID` is the narrow runtime backstop for a
+computed ID that turns out empty, which no analyzer can see. The debug gate
+covers what neither can. `RequireFocusID` fits none of these rows: its static
+case is already the analyzer's, and its dynamic case is `RequireID`'s.
 
-**Row 1 is compile-time only where the analyzer runs, which today is
-this repo alone.** `gui:"required"` is an ordinary struct tag. No
-compiler, no `go build`, and no plain `go vet` reads it; only
-`requiredid` does, and `requiredid` is a standalone binary invoked
-explicitly (`Makefile:104`, `.github/workflows/ci.yml:155`). Importing
-go-gui does not run it. For an app author who wires up nothing, the tag
-is inert and row 1 collapses into row 2:
+**Row 1 is compile-time only where the analyzer runs, which today is this repo
+alone.** `gui:"required"` is an ordinary struct tag. No compiler, no `go build`,
+and no plain `go vet` reads it; only `requiredid` does, and `requiredid` is a
+standalone binary invoked explicitly (`Makefile:104`,
+`.github/workflows/ci.yml:155`). Importing go-gui does not run it. For an app
+author who wires up nothing, the tag is inert and row 1 collapses into row 2:
 
-| Case                              | go-gui gets      | Author gets, unwired |
-| --------------------------------- | ---------------- | -------------------- |
-| Literal `Cfg{}`, `ID` absent/`""` | analyzer, in CI  | `RequireID` panic    |
-| `ID: expr` that evaluates to `""` | `RequireID`      | `RequireID`          |
-| `Focusable` set dynamically       | debug gate       | debug gate, if on    |
+| Case                              | go-gui gets     | Author gets, unwired |
+| --------------------------------- | --------------- | -------------------- |
+| Literal `Cfg{}`, `ID` absent/`""` | analyzer, in CI | `RequireID` panic    |
+| `ID: expr` that evaluates to `""` | `RequireID`     | `RequireID`          |
+| `Focusable` set dynamically       | debug gate      | debug gate, if on    |
 
 Consumers are not unprotected — `RequireID` genuinely panics
-(`gui/state_registry.go:125-129`), and phase 4 wires it into all 9
-default-on factories, so a missing ID is loud on first render rather
-than silent. But it is a runtime panic in a GUI app instead of a build
-failure, which is the trade this section argues against everywhere
-else. Stating it plainly matters because the 3 sibling sites and every
-future consumer sit in the right-hand column, not the left.
+(`gui/state_registry.go:125-129`), and phase 4 wires it into all 9 default-on
+factories, so a missing ID is loud on first render rather than silent. But it is
+a runtime panic in a GUI app instead of a build failure, which is the trade this
+section argues against everywhere else. Stating it plainly matters because the 3
+sibling sites and every future consumer sit in the right-hand column, not the
+left.
 
-Adoption is one line, which is what makes leaving it undocumented
-wasteful. `requiredid.Analyzer` is exported
-(`tools/requiredid/requiredid.go:27`), `tools/` is in the main module
-rather than a separate one, `cmd/requiredid` is a `singlechecker`, and
-`golang.org/x/tools` is already a direct dependency (`go.mod:19`):
+Adoption is one line, which is what makes leaving it undocumented wasteful.
+`requiredid.Analyzer` is exported (`tools/requiredid/requiredid.go:27`),
+`tools/` is in the main module rather than a separate one, `cmd/requiredid` is a
+`singlechecker`, and `golang.org/x/tools` is already a direct dependency
+(`go.mod:19`):
 
 ```fish
 go run github.com/go-gui-org/go-gui/tools/requiredid/cmd/requiredid ./...
 ```
 
-A `go tool` directive, `go vet -vettool=`, or a golangci-lint custom
-plugin all work equally. §8 carries the doc deliverable; whether the
-analyzer becomes *supported* surface rather than an internal tool is
-Q8 (§9), and it is the one question this spec does not resolve.
+A `go tool` directive, `go vet -vettool=`, or a golangci-lint custom plugin all
+work equally. §8 carries the doc deliverable; whether the analyzer becomes
+_supported_ surface rather than an internal tool is Q8 (§9), and it is the one
+question this spec does not resolve.
 
-**Route the residual gap to the debug gate.** The analyzer is static, so
-three cases stay dark. They belong in §4.1, not in a panic:
+**Route the residual gap to the debug gate.** The analyzer is static, so three
+cases stay dark. They belong in §4.1, not in a panic:
 
 | Case                                     | Analyzer | Debug gate |
 | ---------------------------------------- | -------- | ---------- |
@@ -277,389 +265,365 @@ three cases stay dark. They belong in §4.1, not in a panic:
 | `FocusCfg{ID: id}` where `id == ""`      | silent   | catches    |
 | `//requiredid:ignore` opt-out            | silent   | catches    |
 
-Add one `gui.Debug` check: at focus-candidate collection, warn on any
-shape with `Focusable == true && ID == ""`. It inspects `Shape`, not
-`Cfg`, so it covers **both** groups above — including the 15 default-on
-widgets the analyzer cannot see at all. This is the immediate mitigation
-and the reason phase 1 matters more than its size suggests.
+Add one `gui.Debug` check: at focus-candidate collection, warn on any shape with
+`Focusable == true && ID == ""`. It inspects `Shape`, not `Cfg`, so it covers
+**both** groups above — including the 15 default-on widgets the analyzer cannot
+see at all. This is the immediate mitigation and the reason phase 1 matters more
+than its size suggests.
 
-**Fix only the unguarded group. `ID` stays the single identity key.**
-The two holes are not symmetric, and treating them as one problem is
-what made earlier drafts of this section long:
+**Fix only the unguarded group. `ID` stays the single identity key.** The two
+holes are not symmetric, and treating them as one problem is what made earlier
+drafts of this section long:
 
-| Group             | Guarded today          | Live defects | Fix        |
-| ----------------- | ---------------------- | ------------ | ---------- |
-| Opt-in (12)       | yes — `checkFocusableID`| **0**       | none       |
-| Default-on (15)   | **no**                 | **126**      | tag 9 + `RequireID` |
+| Group           | Guarded today            | Live defects | Fix                 |
+| --------------- | ------------------------ | ------------ | ------------------- |
+| Opt-in (12)     | yes — `checkFocusableID` | **0**        | none                |
+| Default-on (15) | **no**                   | **126**      | tag 9 + `RequireID` |
 
-So the whole fix is the default-on row: tag `ID` with `gui:"required"`
-on the 9 that lack it, add `RequireID` to their factories. Focus stays
-default-on; the ID that focus depends on becomes mandatory. That is
-phase 1, non-breaking, and it closes **every defect the audit found**.
+So the whole fix is the default-on row: tag `ID` with `gui:"required"` on the 9
+that lack it, add `RequireID` to their factories. Focus stays default-on; the ID
+that focus depends on becomes mandatory. That is phase 1, non-breaking, and it
+closes **every defect the audit found**.
 
 **An earlier draft also proposed collapsing the opt-in group's
-`Focusable bool` + `ID` pair into `Focus: gui.Focus(id)` — a constructed
-value whose only constructor takes an ID, making the invalid state
-unrepresentable. That is cut.** It is a real improvement in the
-abstract and the wrong trade here:
+`Focusable bool` + `ID` pair into `Focus: gui.Focus(id)` — a constructed value
+whose only constructor takes an ID, making the invalid state unrepresentable.
+That is cut.** It is a real improvement in the abstract and the wrong trade
+here:
 
 - The opt-in group is **already covered**. `checkFocusableID`
-  (`tools/requiredid/requiredid.go:87-106`) reports `Focusable: true`
-  without a non-empty ID today. The audit found 126 broken literals and
-  **all of them are default-on** — the opt-in group has zero, because
-  the analyzer catches them. The collapse converts an error that is
-  already caught into one that cannot be written: real, marginal.
-- It costs a breaking change, 11 sibling edits to code that is correct
-  as written today, and the entire complication below.
+  (`tools/requiredid/requiredid.go:87-106`) reports `Focusable: true` without a
+  non-empty ID today. The audit found 126 broken literals and **all of them are
+  default-on** — the opt-in group has zero, because the analyzer catches them.
+  The collapse converts an error that is already caught into one that cannot be
+  written: real, marginal.
+- It costs a breaking change, 11 sibling edits to code that is correct as
+  written today, and the entire complication below.
 - **It erodes the property that makes IDs worth having.** `ID` is one
-  deterministic identity key: 242 `StateMap[string, …]` sites and
-  §4.9's scroll offsets all key off `Shape.ID`. A `Focus` value that
-  also carries an ID is a second way to write the same key.
-  `ContainerCfg` is the only type that is both opt-in-focusable and
-  scrollable (`Focusable` :97, `Scrollable` :102, `ID` :67), so it
-  would have had to carry `Focus: gui.Focus("panel")` for focus *and*
-  `ID: "panel"` for scroll keying, with nothing forcing them to agree:
+  deterministic identity key: 242 `StateMap[string, …]` sites and §4.9's scroll
+  offsets all key off `Shape.ID`. A `Focus` value that also carries an ID is a
+  second way to write the same key. `ContainerCfg` is the only type that is both
+  opt-in-focusable and scrollable (`Focusable` :97, `Scrollable` :102, `ID`
+  :67), so it would have had to carry `Focus: gui.Focus("panel")` for focus
+  _and_ `ID: "panel"` for scroll keying, with nothing forcing them to agree:
 
 ```go
 // Would have needed a new rule to forbid: which one keys the scroll?
 gui.ContainerCfg{Focus: gui.Focus("a"), ID: "b", Scrollable: true}
 ```
 
-That state does not exist today. Closing a hole that the analyzer
-already covers, by introducing a defect class that does not yet exist,
-is the wrong direction — and the mutual-exclusion rule, its analyzer
-check, and its debug check all existed only to contain a problem the
-change itself created.
+That state does not exist today. Closing a hole that the analyzer already
+covers, by introducing a defect class that does not yet exist, is the wrong
+direction — and the mutual-exclusion rule, its analyzer check, and its debug
+check all existed only to contain a problem the change itself created.
 
-**What is genuinely given up.** In a repo that does not run the
-analyzer, `Focusable: true` without an ID stays silently inert. That is
-bounded from both sides: the §4.1 debug gate catches it at render time
-regardless of analyzer adoption, and Q8 (§9) already governs whether
-the analyzer is something consumers are expected to run. It is the same
-gap Q8 exists to decide, not a new one.
+**What is genuinely given up.** In a repo that does not run the analyzer,
+`Focusable: true` without an ID stays silently inert. That is bounded from both
+sides: the §4.1 debug gate catches it at render time regardless of analyzer
+adoption, and Q8 (§9) already governs whether the analyzer is something
+consumers are expected to run. It is the same gap Q8 exists to decide, not a new
+one.
 
-Revisit only if the opt-in group starts accumulating real defects, or
-if a widget needs to move between the two groups.
+Revisit only if the opt-in group starts accumulating real defects, or if a
+widget needs to move between the two groups.
 
-**Follow-up: three interactive widgets are in the wrong group.** The
-split above reads cleanly — input controls default on, display and
-container elements opt in — with three exceptions:
+**Follow-up: three interactive widgets are in the wrong group.** The split above
+reads cleanly — input controls default on, display and container elements opt in
+— with three exceptions:
 
-| Cfg              | Group  | Ships keyboard nav               |
-| ---------------- | ------ | -------------------------------- |
+| Cfg              | Group  | Ships keyboard nav                                            |
+| ---------------- | ------ | ------------------------------------------------------------- |
 | `TabControlCfg`  | opt-in | `KeyLeft/Up`, `KeyRight/Down` (`view_tab_control.go:447,453`) |
-| `BreadcrumbCfg`  | opt-in | `KeyLeft`, `KeyRight` (`view_breadcrumb.go:294,300`) |
-| `ThemePickerCfg` | opt-in | `OnKeyDown` (`view_theme_picker.go:114`) |
+| `BreadcrumbCfg`  | opt-in | `KeyLeft`, `KeyRight` (`view_breadcrumb.go:294,300`)          |
+| `ThemePickerCfg` | opt-in | `OnKeyDown` (`view_theme_picker.go:114`)                      |
 
-All three are controls a user would expect to tab into, and all three
-**already implement arrow-key navigation**. That handler is dead code
-unless the author sets both `Focusable: true` and an `ID` — so the
-library ships keyboard support that is off by default, for widgets whose
-whole purpose is interaction.
+All three are controls a user would expect to tab into, and all three **already
+implement arrow-key navigation**. That handler is dead code unless the author
+sets both `Focusable: true` and an `ID` — so the library ships keyboard support
+that is off by default, for widgets whose whole purpose is interaction.
 
-This is a different defect class from the 126 and is why the audit does
-not count it: nothing here is written incorrectly. `Focusable` unset is
-a valid state that the analyzer cannot flag, because for `Container` and
-`Text` it is the right default. The gap is in the default itself, not in
-any call site.
+This is a different defect class from the 126 and is why the audit does not
+count it: nothing here is written incorrectly. `Focusable` unset is a valid
+state that the analyzer cannot flag, because for `Container` and `Text` it is
+the right default. The gap is in the default itself, not in any call site.
 
-Measured: of 18 literals of these three `Cfg`s outside their own
-factories, **3 set `Focusable: true`**. The other 15 render a control
-with working key handling that no keyboard user can reach.
+Measured: of 18 literals of these three `Cfg`s outside their own factories, **3
+set `Focusable: true`**. The other 15 render a control with working key handling
+that no keyboard user can reach.
 
-Proposed, as a follow-up rather than part of phase 1: move the three to
-the default-on group — replace `Focusable bool` with `FocusDisabled
-bool`, tag `ID` with `gui:"required"`, wire `RequireID`. It is breaking
-in the same shape as the flat-color removal, so it rides phase 4 if
-taken. Deliberately **not** folded into phase 1: phase 1 is scoped to
-defects that exist against the current design, and this is a change *to*
-the design. Deciding it needs a look at the remaining nine opt-in
-members (`Splitter`, `OverflowPanel`, `DatePickerRoller`, and `TermGrid`
-are the next-closest calls) rather than these three in isolation.
+Proposed, as a follow-up rather than part of phase 1: move the three to the
+default-on group — replace `Focusable bool` with `FocusDisabled bool`, tag `ID`
+with `gui:"required"`, wire `RequireID`. It is breaking in the same shape as the
+flat-color removal, so it rides phase 4 if taken. Deliberately **not** folded
+into phase 1: phase 1 is scoped to defects that exist against the current
+design, and this is a change _to_ the design. Deciding it needs a look at the
+remaining nine opt-in members (`Splitter`, `OverflowPanel`, `DatePickerRoller`,
+and `TermGrid` are the next-closest calls) rather than these three in isolation.
 
-**Measured migration cost.** All 408 literals of the 9 unguarded `Cfg`
-types across go-gui and the five siblings, counted with a `go/ast`
-walker (regex cannot bracket-match multi-line literals):
+**Measured migration cost.** All 408 literals of the 9 unguarded `Cfg` types
+across go-gui and the five siblings, counted with a `go/ast` walker (regex
+cannot bracket-match multi-line literals):
 
-| Location             | withID | noID + opt-out | noID (affected) |
-| -------------------- | ------ | -------------- | --------------- |
-| go-gui tests         | —      | —              | 66              |
-| go-gui examples      | —      | —              | 45              |
-| **go-gui library**   | —      | —              | **12**          |
-| go-charts            | 8      | 0              | 1               |
-| go-map               | 1      | 0              | 2               |
-| go-edit/kite/term    | 6      | 0              | 0               |
-| **Total**            | 281    | **1**          | **126**         |
+| Location           | withID | noID + opt-out | noID (affected) |
+| ------------------ | ------ | -------------- | --------------- |
+| go-gui tests       | —      | —              | 66              |
+| go-gui examples    | —      | —              | 45              |
+| **go-gui library** | —      | —              | **12**          |
+| go-charts          | 8      | 0              | 1               |
+| go-map             | 1      | 0              | 2               |
+| go-edit/kite/term  | 6      | 0              | 0               |
+| **Total**          | 281    | **1**          | **126**         |
 
 Three conclusions:
 
 1. **Consumer cost is 3 sites**, all in example programs
    (`go-charts/examples/basic_line/main.go:86`,
-   `go-map/examples/full-map/main.go:126,139`). Application code in
-   go-edit, go-kite, and go-term already supplies IDs throughout.
-2. **12 affected sites are go-gui's own widgets** — the toast action
-   and dismiss buttons (`gui/view_toast.go:170,179`), the date-picker
-   month toggle and prev/next arrows (`gui/view_date_picker.go:269,
-   278,288`), plus `view_date_picker_calendar.go:100`,
-   `view_input_date.go:121`, `view_markdown_blocks.go:166`,
-   `view_overflow_panel.go:60`, `time_travel_view.go:274`, and two in
-   `gui/datagrid/`. Each carries an `OnClick` and none is
-   keyboard-reachable. These are live accessibility defects in shipped
-   first-party widgets, and requiring `ID` is what surfaces them.
-3. **The decorative-button case is theoretical.** Exactly 1 literal of
-   408 uses `FocusDisabled` as an opt-out. Migration is "add an ID",
-   not "audit every button for intent".
+   `go-map/examples/full-map/main.go:126,139`). Application code in go-edit,
+   go-kite, and go-term already supplies IDs throughout.
+2. **12 affected sites are go-gui's own widgets** — the toast action and dismiss
+   buttons (`gui/view_toast.go:170,179`), the date-picker month toggle and
+   prev/next arrows (`gui/view_date_picker.go:269, 278,288`), plus
+   `view_date_picker_calendar.go:100`, `view_input_date.go:121`,
+   `view_markdown_blocks.go:166`, `view_overflow_panel.go:60`,
+   `time_travel_view.go:274`, and two in `gui/datagrid/`. Each carries an
+   `OnClick` and none is keyboard-reachable. These are live accessibility
+   defects in shipped first-party widgets, and requiring `ID` is what surfaces
+   them.
+3. **The decorative-button case is theoretical.** Exactly 1 literal of 408 uses
+   `FocusDisabled` as an opt-out. Migration is "add an ID", not "audit every
+   button for intent".
 
-The change is therefore a bug-finder that costs three example-file
-edits in repos you own — not a migration tax.
+The change is therefore a bug-finder that costs three example-file edits in
+repos you own — not a migration tax.
 
-**Pull the go-gui-internal half into phase 1.** The 12 library defects
-and the 9 missing `gui:"required"` tags need no API change — adding an
-`ID` to `gui/view_toast.go:170` is an ordinary bug fix, and tagging the
-9 `Cfg`s only breaks callers *inside* this repo, which `requiredid`
-flags in CI. Doing both in phase 1 closes the live accessibility bugs
-immediately and turns the analyzer into a working gate. Phase 1 as
-originally written only *warns* about these defects; there is no reason
-to wait to fix them.
+**Pull the go-gui-internal half into phase 1.** The 12 library defects and the 9
+missing `gui:"required"` tags need no API change — adding an `ID` to
+`gui/view_toast.go:170` is an ordinary bug fix, and tagging the 9 `Cfg`s only
+breaks callers _inside_ this repo, which `requiredid` flags in CI. Doing both in
+phase 1 closes the live accessibility bugs immediately and turns the analyzer
+into a working gate. Phase 1 as originally written only _warns_ about these
+defects; there is no reason to wait to fix them.
 
-With the opt-in collapse cut, **§4.2 is entirely phase 1** and contains
-no breaking change at all. Nothing here waits for the §4.3 release.
+With the opt-in collapse cut, **§4.2 is entirely phase 1** and contains no
+breaking change at all. Nothing here waits for the §4.3 release.
 
-(Both claims were wrong: §4.2 wires `RequireID` into nine factories,
-which is a runtime break. See the correction in §6.)
+(Both claims were wrong: §4.2 wires `RequireID` into nine factories, which is a
+runtime break. See the correction in §6.)
 
 ### 4.3 One combined breaking release: events + callbacks
 
-Two changes, one migration, because every one costs the five sibling
-repos (`go-charts`, `go-edit`, `go-kite`, `go-term`, `go-map`) a bump.
+Two changes, one migration, because every one costs the five sibling repos
+(`go-charts`, `go-edit`, `go-kite`, `go-term`, `go-map`) a bump.
 
 **Finish `EventCtx` — for event-driven callbacks only.** Convert the
-`*Window`-tailed and `*Event`-leaking callbacks that actually fire from
-an input event. Target for that set: two shapes — `func(EventCtx)` and
+`*Window`-tailed and `*Event`-leaking callbacks that actually fire from an input
+event. Target for that set: two shapes — `func(EventCtx)` and
 `func(T, EventCtx)` — with no `*Layout` or `*Event` parameter.
 
-**Explicitly out of scope: 14 of the 27 distinct `*Window`-tail
-signatures.** Twelve fire from a timer tick, a dialog completion, or a
-lifecycle transition — `OnInit`, `OnCloseRequest`, `OnCancelNo`,
-`OnOkYes`, `OnDismiss`, `OnReply`, `OnLazyLoad`, `OnValue`, and four
-`OnDone` variants. **There is no event.** Giving them an `EventCtx`
-means a permanently-nil `ctx.Event` — the wart `CLAUDE.md` already
-documents for `AmendLayout` and `OnScroll`, multiplied by twelve.
+**Explicitly out of scope: 14 of the 27 distinct `*Window`-tail signatures.**
+Twelve fire from a timer tick, a dialog completion, or a lifecycle transition —
+`OnInit`, `OnCloseRequest`, `OnCancelNo`, `OnOkYes`, `OnDismiss`, `OnReply`,
+`OnLazyLoad`, `OnValue`, and four `OnDone` variants. **There is no event.**
+Giving them an `EventCtx` means a permanently-nil `ctx.Event` — the wart
+`CLAUDE.md` already documents for `AmendLayout` and `OnScroll`, multiplied by
+twelve.
 
-Two more are not callbacks at all but view builders that return a
-value: `OnCellFormat func(…) GridCellFormat` and
-`OnDetailRowView func(…) gg.View`. They are misnamed rather than
-mis-signatured; renaming them out of the `On*` space would be clearer
-than converting them.
+Two more are not callbacks at all but view builders that return a value:
+`OnCellFormat func(…) GridCellFormat` and `OnDetailRowView func(…) gg.View`.
+They are misnamed rather than mis-signatured; renaming them out of the `On*`
+space would be clearer than converting them.
 
-That leaves **13 genuinely event-driven** signatures to convert:
-`OnAction`, `OnChange`, `OnLayoutChange`, `OnPanelClose`,
-`OnPanelSelect`, both `OnReorder` variants, `OnReset`, `OnSelect`,
-`OnSubmit`, `OnTextCommit`, `OnToggle`, `OnValueCommit`.
+That leaves **13 genuinely event-driven** signatures to convert: `OnAction`,
+`OnChange`, `OnLayoutChange`, `OnPanelClose`, `OnPanelSelect`, both `OnReorder`
+variants, `OnReset`, `OnSelect`, `OnSubmit`, `OnTextCommit`, `OnToggle`,
+`OnValueCommit`.
 
 `WindowCfg.OnEvent` / `Window.OnEvent` (`gui/window_cfg.go:14`,
-`gui/window.go:168`, the same field declared twice) is a raw escape
-hatch by design and also stays `func(*Event, *Window)`.
+`gui/window.go:168`, the same field declared twice) is a raw escape hatch by
+design and also stays `func(*Event, *Window)`.
 
 See §7.1 for how the boundary was measured.
 
-**Collapse the event model to one rule.** The consume-class /
-notify-class split plus `ctx.Bubble()` as an escape hatch is the most
-confusing part of the API. Adopt: every callback starts unhandled; call
-`ctx.Consume()` to stop propagation; delete `Bubble()` and the
-auto-handled class. Cost is real — 23 `Bubble()`/`Consume()` sites in
-`examples/` alone plus all sibling call sites — which is precisely why
-it bundles with the signature work rather than shipping separately.
+**Collapse the event model to one rule.** The consume-class / notify-class split
+plus `ctx.Bubble()` as an escape hatch is the most confusing part of the API.
+Adopt: every callback starts unhandled; call `ctx.Consume()` to stop
+propagation; delete `Bubble()` and the auto-handled class. Cost is real — 23
+`Bubble()`/`Consume()` sites in `examples/` alone plus all sibling call sites —
+which is precisely why it bundles with the signature work rather than shipping
+separately.
 
 #### 4.3.1 Pre-implementation verification (2026-08-08)
 
-Phase 4 is the first breaking phase, so every concrete claim in §4.3 and
-§4.7 was re-checked against the tree before any code was written. What
-follows is the result, not a plan.
+Phase 4 is the first breaking phase, so every concrete claim in §4.3 and §4.7
+was re-checked against the tree before any code was written. What follows is the
+result, not a plan.
 
-**Verified exactly, no change needed:** the 12 out-of-scope lifecycle
-signatures including all four `OnDone` variants; `OnCellFormat`
-returning `GridCellFormat` and `OnDetailRowView` returning `gg.View`,
-both confined to `gui/datagrid/`; zero sibling references to either;
-`RTF(cfg RtfCfg)` at `gui/view_rtf.go:212`; zero sibling references to
-`RtfCfg` or `gui.RTF`; `OnEvent` declared twice as
-`func(*Event, *Window)`; and the 8 `Color*` sibling sites, all in
-go-charts. The `27` distinct `func(T..., *Window)` signatures reproduce
-from `ergoaudit`.
+**Verified exactly, no change needed:** the 12 out-of-scope lifecycle signatures
+including all four `OnDone` variants; `OnCellFormat` returning `GridCellFormat`
+and `OnDetailRowView` returning `gg.View`, both confined to `gui/datagrid/`;
+zero sibling references to either; `RTF(cfg RtfCfg)` at `gui/view_rtf.go:212`;
+zero sibling references to `RtfCfg` or `gui.RTF`; `OnEvent` declared twice as
+`func(*Event, *Window)`; and the 8 `Color*` sibling sites, all in go-charts. The
+`27` distinct `func(T..., *Window)` signatures reproduce from `ergoaudit`.
 
-**Three event-driven callbacks appear in neither list.** §4.3 partitions
-27 signatures into 14 out-of-scope and 13 to convert. Scanning
-`gui/datagrid/` as well — it uses `*gg.Window`, which the §4.3 sweep
-did not match — surfaces three more:
+**Three event-driven callbacks appear in neither list.** §4.3 partitions 27
+signatures into 14 out-of-scope and 13 to convert. Scanning `gui/datagrid/` as
+well — it uses `*gg.Window`, which the §4.3 sweep did not match — surfaces three
+more:
 
 - `OnItemClick func(string, int, *Event, *Window)` — 2 call sites.
 - `OnColumnPinChange func(string, GridColumnPin, *gg.Event, *gg.Window)`
 - `OnCopyRows func([]GridRow, *gg.Event, *gg.Window) (string, bool)`
 
-The first two carry a raw `*Event` and convert cleanly. **`OnCopyRows`
-does not fit the target at all**: it returns `(string, bool)`, and both
-target shapes — `func(EventCtx)` and `func(T, EventCtx)` — return
-nothing. §4.3 found two value-returning callbacks and disposed of them
-by renaming out of the `On*` space, but that remedy does not apply
-here: `OnCopyRows` is genuinely event-driven, so it needs either a
-third target shape or an explicit exemption. This is the one gap that
-changes the design rather than the count.
+The first two carry a raw `*Event` and convert cleanly. **`OnCopyRows` does not
+fit the target at all**: it returns `(string, bool)`, and both target shapes —
+`func(EventCtx)` and `func(T, EventCtx)` — return nothing. §4.3 found two
+value-returning callbacks and disposed of them by renaming out of the `On*`
+space, but that remedy does not apply here: `OnCopyRows` is genuinely
+event-driven, so it needs either a third target shape or an explicit exemption.
+This is the one gap that changes the design rather than the count.
 
 **`OnReorder` has one signature, not two.** "Both `OnReorder` variants"
-describes four declaration sites of an identical type. Conversely
-`OnChange` and `OnSelect` each have two genuinely distinct signatures
-that the list counts once apiece.
+describes four declaration sites of an identical type. Conversely `OnChange` and
+`OnSelect` each have two genuinely distinct signatures that the list counts once
+apiece.
 
-**The `Bubble()`/`Consume()` figure is wrong, and understates the real
-cost by an order of magnitude.** `examples/` contains 19 `Consume()`
-calls and **zero** `Bubble()` calls, not 23 combined. All 26 non-test
-`Bubble()` sites are inside go-gui itself (`gui/` 15, `gui/datagrid/`
-6, `tools/eventctx` 5), plus 7 in siblings (go-edit 5, go-term 2).
+**The `Bubble()`/`Consume()` figure is wrong, and understates the real cost by
+an order of magnitude.** `examples/` contains 19 `Consume()` calls and **zero**
+`Bubble()` calls, not 23 combined. All 26 non-test `Bubble()` sites are inside
+go-gui itself (`gui/` 15, `gui/datagrid/` 6, `tools/eventctx` 5), plus 7 in
+siblings (go-edit 5, go-term 2).
 
 But counting `Bubble()`/`Consume()` measures the wrong thing. Under the
 collapse, `Consume()` keeps working unchanged; what changes is every
-**consume-class callback that relies on auto-handling** — those stop
-being handled by default and begin propagating to ancestors.
-`examples/` has **138** such sites (137 `OnClick`, 1 `OnGesture`). Most
-sit on widgets with no clickable ancestor and will be unaffected, but
-which ones those are is not determinable without checking nesting at
-each. That is the §7.2 silent class, at 138 sites rather than 23.
+**consume-class callback that relies on auto-handling** — those stop being
+handled by default and begin propagating to ancestors. `examples/` has **138**
+such sites (137 `OnClick`, 1 `OnGesture`). Most sit on widgets with no clickable
+ancestor and will be unaffected, but which ones those are is not determinable
+without checking nesting at each. That is the §7.2 silent class, at 138 sites
+rather than 23.
 
-**No sibling pays for the signature conversion.** Zero sibling call
-sites touch the 13-item convert set. After the tool fixes below, the
-five repos hold **25** `*Window`-tailed literals in go-gui-declared
-fields, and every one is `OnInit` (13), `OnDone` (9) or `OnValue`
-(3) — all in the out-of-scope 12.
+**No sibling pays for the signature conversion.** Zero sibling call sites touch
+the 13-item convert set. After the tool fixes below, the five repos hold **25**
+`*Window`-tailed literals in go-gui-declared fields, and every one is `OnInit`
+(13), `OnDone` (9) or `OnValue` (3) — all in the out-of-scope 12.
 
-| Repo      | go-gui fields          | Declared by the sibling |
-| --------- | ---------------------- | ----------------------- |
-| go-charts | 9 (OnDone/OnInit/OnValue) | 0                    |
-| go-edit   | 8 (OnDone/OnInit)      | 3 (`OnFileDrop`)        |
-| go-kite   | 1 (OnInit)             | 0                       |
-| go-term   | 1 (OnInit)             | 0                       |
-| go-map    | 6 (OnInit)             | 29 (`InfoWindowAction`) |
+| Repo      | go-gui fields             | Declared by the sibling |
+| --------- | ------------------------- | ----------------------- |
+| go-charts | 9 (OnDone/OnInit/OnValue) | 0                       |
+| go-edit   | 8 (OnDone/OnInit)         | 3 (`OnFileDrop`)        |
+| go-kite   | 1 (OnInit)                | 0                       |
+| go-term   | 1 (OnInit)                | 0                       |
+| go-map    | 6 (OnInit)                | 29 (`InfoWindowAction`) |
 
-Reaching those numbers required fixing three bugs in `ergoaudit
--mode callbacks`, each of which had produced a claim in this spec:
+Reaching those numbers required fixing three bugs in
+`ergoaudit -mode callbacks`, each of which had produced a claim in this spec:
 
 1. **Call sites were not attributed to a declaring package.** Any
    `OnX: func(..., *Window)` literal counted, so go-map's own
-   `mapview.InfoWindowAction.OnClick` and go-edit's own `OnFileDrop`
-   were reported as go-gui migration work. The tool now resolves the
-   literal's type through the file's imports and reports the two
-   groups separately. Nested literals that elide their type
-   (`[]T{{...}}`, exactly go-map's shape) inherit the element type.
+   `mapview.InfoWindowAction.OnClick` and go-edit's own `OnFileDrop` were
+   reported as go-gui migration work. The tool now resolves the literal's type
+   through the file's imports and reports the two groups separately. Nested
+   literals that elide their type (`[]T{{...}}`, exactly go-map's shape) inherit
+   the element type.
 2. **Distinct signatures were deduplicated on printed source**, so
    `func(movedID, beforeID string, w *Window)` and
-   `func(string, string, *Window)` counted as two. That is the origin
-   of "both `OnReorder` variants". Dedup is now by type, ignoring
-   parameter names.
-3. **Classification ignored results**, so the value-returning
-   callbacks were bucketed by their parameters — `OnCellFormat` and
-   `OnDetailRowView` as ordinary `*Window`-tailed, `OnCopyRows` as
-   ordinary `*Event`-leaking. The audit therefore could not surface
-   the one category that fits no target shape. There is now a
-   `returns a value` bucket, and it holds exactly those three.
+   `func(string, string, *Window)` counted as two. That is the origin of "both
+   `OnReorder` variants". Dedup is now by type, ignoring parameter names.
+3. **Classification ignored results**, so the value-returning callbacks were
+   bucketed by their parameters — `OnCellFormat` and `OnDetailRowView` as
+   ordinary `*Window`-tailed, `OnCopyRows` as ordinary `*Event`-leaking. The
+   audit therefore could not surface the one category that fits no target shape.
+   There is now a `returns a value` bucket, and it holds exactly those three.
 
-Corrected declaration figures for `./gui`: **69** distinct signatures
-(was 70), `func(T..., *Window)` **24** (was 27), `leaks raw *Event`
-**5** (was 6), `returns a value` **3** (new). The §4.3 partition
-should be restated against these.
+Corrected declaration figures for `./gui`: **69** distinct signatures (was 70),
+`func(T..., *Window)` **24** (was 27), `leaks raw *Event` **5** (was 6),
+`returns a value` **3** (new). The §4.3 partition should be restated against
+these.
 
-So the sibling cost of phase 4 is **not** "every change costs five
-repos a bump". It is: 8 `Color*` sites in go-charts, 7 `Bubble()`
-deletions in go-edit and go-term, and whatever silent exposure the
-model collapse creates in their consume-class handlers — which their
-71 combined `Consume()` sites suggest is the part worth measuring
-properly before starting.
+So the sibling cost of phase 4 is **not** "every change costs five repos a
+bump". It is: 8 `Color*` sites in go-charts, 7 `Bubble()` deletions in go-edit
+and go-term, and whatever silent exposure the model collapse creates in their
+consume-class handlers — which their 71 combined `Consume()` sites suggest is
+the part worth measuring properly before starting.
 
 #### 4.3.2 Conversion as implemented (2026-08-08)
 
 17 distinct signatures converted, against the 13 §4.3 listed: the three
-`gui/datagrid/` callbacks §4.3.1 surfaced, plus `OnChange` and
-`OnSelect` each contributing a second distinct signature the original
-count folded into one. The 13 that stayed are exactly the 12 lifecycle
-signatures plus `OnEvent`.
+`gui/datagrid/` callbacks §4.3.1 surfaced, plus `OnChange` and `OnSelect` each
+contributing a second distinct signature the original count folded into one. The
+13 that stayed are exactly the 12 lifecycle signatures plus `OnEvent`.
 
-**`OnCopyRows` took the invariant, not an exemption.** The rule adopted
-is that `EventCtx` replaces the `*Layout`, `*Event` and `*Window`
-parameters and says nothing about results, so it is now
-`func([]GridRow, EventCtx) (string, bool)`. No third target shape and
-no carve-out — the two target shapes in §4.3 were simply stated too
-narrowly, since "returns nothing" was never load-bearing.
+**`OnCopyRows` took the invariant, not an exemption.** The rule adopted is that
+`EventCtx` replaces the `*Layout`, `*Event` and `*Window` parameters and says
+nothing about results, so it is now `func([]GridRow, EventCtx) (string, bool)`.
+No third target shape and no carve-out — the two target shapes in §4.3 were
+simply stated too narrowly, since "returns nothing" was never load-bearing.
 
-Verified by re-running `ergoaudit -mode callbacks`:
-`func(T..., *Window)` 24 → **12**, `leaks raw *Event` 5 → **1**
-(`OnEvent` alone), `func(EventCtx)` 16 → **18**,
-`func(T..., EventCtx)` 19 → **32**.
+Verified by re-running `ergoaudit -mode callbacks`: `func(T..., *Window)` 24 →
+**12**, `leaks raw *Event` 5 → **1** (`OnEvent` alone), `func(EventCtx)` 16 →
+**18**, `func(T..., EventCtx)` 19 → **32**.
 
-**The codemod needed a name filter to be safe at all.** The v0.52 tool
-matched by signature, which works only because nothing else in the
-codebase looks like `func(*Layout, *Event, *Window)`. A trailing
-`*Window` is not distinctive — it describes most internal plumbing — so
-the widened matcher is gated on an explicit list of field names
-(`-fields`), matched ignoring the leading case so the internal spelling
-`onSelect` matches the field `OnSelect`.
+**The codemod needed a name filter to be safe at all.** The v0.52 tool matched
+by signature, which works only because nothing else in the codebase looks like
+`func(*Layout, *Event, *Window)`. A trailing `*Window` is not distinctive — it
+describes most internal plumbing — so the widened matcher is gated on an
+explicit list of field names (`-fields`), matched ignoring the leading case so
+the internal spelling `onSelect` matches the field `OnSelect`.
 
-Three defects surfaced only by running it against the tree, each a case
-where the name filter was consulted in the wrong place:
+Three defects surfaced only by running it against the tree, each a case where
+the name filter was consulted in the wrong place:
 
 1. **Nested closures inherited the owner name**, converting every
    `w.QueueCommand(func(w *gui.Window) {…})` written inside a converted
-   callback. Harmless in the old signature-driven mode, where the owner
-   only tinted the consume-class report; fatal once the owner is the
-   gate.
-2. **Named declarations were filtered by their own name.** A function
-   reaches the declaration pass only because the plan established it is
-   wired to an included field, but the filter then tested
-   `onShowcaseSplitterMainChange` against the field list and rejected
-   it.
+   callback. Harmless in the old signature-driven mode, where the owner only
+   tinted the consume-class report; fatal once the owner is the gate.
+2. **Named declarations were filtered by their own name.** A function reaches
+   the declaration pass only because the plan established it is wired to an
+   included field, but the filter then tested `onShowcaseSplitterMainChange`
+   against the field list and rejected it.
 3. **Assignment targets were read only from selectors**, so
-   `onChange := func(…)` — the spelling widget internals and tests
-   actually use — was invisible.
+   `onChange := func(…)` — the spelling widget internals and tests actually use
+   — was invisible.
 
 All three are pinned by tests in `tools/eventctx/general_test.go`.
 
-**Dispatch now passes the real context through.** Where a widget
-invokes one of these callbacks from inside an already-converted
-callback, the fold emits `ctx` rather than
-`EventCtx{nil, ctx.Event, ctx.Window}` — 29 sites. The old signature
+**Dispatch now passes the real context through.** Where a widget invokes one of
+these callbacks from inside an already-converted callback, the fold emits `ctx`
+rather than `EventCtx{nil, ctx.Event, ctx.Window}` — 29 sites. The old signature
 carried no `*Layout`, so this hands callers strictly more than before;
-synthesizing a nil layout when one is in scope would manufacture an
-absence. Where no layout genuinely exists (six internal helpers that
-only ever had a `*Window`), `EventCtx{nil, nil, w}` is emitted and is
-faithful.
+synthesizing a nil layout when one is in scope would manufacture an absence.
+Where no layout genuinely exists (six internal helpers that only ever had a
+`*Window`), `EventCtx{nil, nil, w}` is emitted and is faithful.
 
 Cost: 45 files, zero rule-4 review items, and **zero sibling sites** —
 confirming §4.3.1's finding that no sibling pays for this conversion.
 
 #### 4.3.3 Measuring the §4.3b collapse (2026-08-08)
 
-§7.2 says the collapse's risk is silent, and §4.3.1 put the exposure at
-138 consume-class sites in `examples/` — while noting that "most sit on
-widgets with no clickable ancestor, but which ones those are is not
-determinable" from the source. That is the whole difficulty: the
-question is about the layout tree at dispatch time, so no amount of
-grepping answers it.
+§7.2 says the collapse's risk is silent, and §4.3.1 put the exposure at 138
+consume-class sites in `examples/` — while noting that "most sit on widgets with
+no clickable ancestor, but which ones those are is not determinable" from the
+source. That is the whole difficulty: the question is about the layout tree at
+dispatch time, so no amount of grepping answers it.
 
-**So it is now answered at dispatch time.** `gui.Debug(true)` gained a
-check (`gui/debug_event.go`) that runs after every consume-class
-callback and reports the site when both halves of the hazard hold: the
-callback relied on the pre-mark (it neither called `ctx.Consume()` nor
-`ctx.Bubble()`), **and** an ancestor would also have received the event.
-Ancestor is decided by replaying that event's real dispatch condition —
-`PointInShape` plus the `ClickButton` filter for `OnClick`, the centroid
-for `OnGesture`, focus for `OnChar` — so the answer is the one dispatch
-would actually give.
+**So it is now answered at dispatch time.** `gui.Debug(true)` gained a check
+(`gui/debug_event.go`) that runs after every consume-class callback and reports
+the site when both halves of the hazard hold: the callback relied on the
+pre-mark (it neither called `ctx.Consume()` nor `ctx.Bubble()`), **and** an
+ancestor would also have received the event. Ancestor is decided by replaying
+that event's real dispatch condition — `PointInShape` plus the `ClickButton`
+filter for `OnClick`, the centroid for `OnGesture`, focus for `OnChar` — so the
+answer is the one dispatch would actually give.
 
-`(*Window).TestEventCollapse` sweeps a rendered window with the check
-armed: it fires one synthetic event per consume-class callback in the
-tree and returns the findings. It presses every button in the window,
-so it belongs on a throwaway window.
+`(*Window).TestEventCollapse` sweeps a rendered window with the check armed: it
+fires one synthetic event per consume-class callback in the tree and returns the
+findings. It presses every button in the window, so it belongs on a throwaway
+window.
 
-**Measured exposure: 18 sites, not 138.** Sweeping 37 of the 59
-examples (the rest build their state inside `main()`, so a generated
-sweep cannot construct them):
+**Measured exposure: 18 sites, not 138.** Sweeping 37 of the 59 examples (the
+rest build their state inside `main()`, so a generated sweep cannot construct
+them):
 
 | Example               | Findings |
 | --------------------- | -------- |
@@ -673,102 +637,100 @@ sweep cannot construct them):
 | `todo`                | 1        |
 
 **The important part is not the count but the owner.** Read the pairs:
-`"dock_close:editor"` inside `"dock_tab:top:editor"`, `"picker.rgb.0"`
-inside the color picker's row, a text input inside its clickable
-container. Both sides of nearly every pair are go-gui's own widget
-internals — `view_color_picker.go`, `dock_layout.go`, `view_input.go` —
-not application code. The collapse's silent cost is therefore mostly
-go-gui's to pay, in a handful of files, and mechanically: add
-`ctx.Consume()` to the inner handler and its behaviour is pinned before
-the model changes at all.
+`"dock_close:editor"` inside `"dock_tab:top:editor"`, `"picker.rgb.0"` inside
+the color picker's row, a text input inside its clickable container. Both sides
+of nearly every pair are go-gui's own widget internals — `view_color_picker.go`,
+`dock_layout.go`, `view_input.go` — not application code. The collapse's silent
+cost is therefore mostly go-gui's to pay, in a handful of files, and
+mechanically: add `ctx.Consume()` to the inner handler and its behaviour is
+pinned before the model changes at all.
 
-**Siblings: zero findings.** go-charts (`basic_bar`, `basic_line`) and
-go-map (`basic`, `full-map`, `partial-map`, `reference-map`) sweep
-clean against this branch. Not sweepable without building their real
-state: go-charts `showcase` (still uses the `Color*` fields deleted in
-§4.4, so it does not compile against the branch — that is the pending
-go-charts bump, not a check failure), go-edit `npad`, go-term
-`falcon`/`minimal`, go-map `gallery-map`/`stacked-map`.
+(The separator inconsistency visible in those IDs — `dock_close:editor` against
+`picker.rgb.0` — is resolved: `gui.ScopeID` and a single `:` replaced the five
+hand-rolled forms. See `docs/specs/widget-id-scoping.md`. The ownership analysis
+above stands.)
 
-**A sweep is a lower bound.** It sees one rendered frame, so a hazard
-behind a tab, a dialog, or a collapsed panel is invisible until the app
-is driven into that state. The 18 are what the default view of each
-example exposes.
+**Siblings: zero findings.** go-charts (`basic_bar`, `basic_line`) and go-map
+(`basic`, `full-map`, `partial-map`, `reference-map`) sweep clean against this
+branch. Not sweepable without building their real state: go-charts `showcase`
+(still uses the `Color*` fields deleted in §4.4, so it does not compile against
+the branch — that is the pending go-charts bump, not a check failure), go-edit
+`npad`, go-term `falcon`/`minimal`, go-map `gallery-map`/`stacked-map`.
 
-**This did not decide §4.3b** — §4.3.4 does. It replaced the missing
-number: the silent class is 18 known sites concentrated in ~6 go-gui
-widget files, each fixable ahead of the collapse and verifiable by
-re-running the sweep.
+**A sweep is a lower bound.** It sees one rendered frame, so a hazard behind a
+tab, a dialog, or a collapsed panel is invisible until the app is driven into
+that state. The 18 are what the default view of each example exposes.
+
+**This did not decide §4.3b** — §4.3.4 does. It replaced the missing number: the
+silent class is 18 known sites concentrated in ~6 go-gui widget files, each
+fixable ahead of the collapse and verifiable by re-running the sweep.
 
 #### 4.3.4 The collapse, as shipped (v0.55.0)
 
-Done. Nothing is pre-marked; every callback consumes explicitly;
-`ctx.Bubble()` is gone. Landed as three PRs, because the measurement was
-wrong twice before it was right.
+Done. Nothing is pre-marked; every callback consumes explicitly; `ctx.Bubble()`
+is gone. Landed as three PRs, because the measurement was wrong twice before it
+was right.
 
 **The 18 were one anti-idiom.** 14 sites across 12 files wrote
 `ctx.Event.IsHandled = true` instead of calling `ctx.Consume()`.
 Runtime-identical, but `Consume()` also set `explicitConsume`, the flag
-separating "the callback asked" from "dispatch pre-marked" — so every
-one of those sites looked like a decision and was a reliance. Swapping
-all 14 cleared 13 of the 18. The remaining five needed real judgement:
-the dock close button (4, inside its own tab button) and the theme
-picker root (1, hosted as a menu-item `CustomView`).
+separating "the callback asked" from "dispatch pre-marked" — so every one of
+those sites looked like a decision and was a reliance. Swapping all 14 cleared
+13 of the 18. The remaining five needed real judgement: the dock close button
+(4, inside its own tab button) and the theme picker root (1, hosted as a
+menu-item `CustomView`).
 
-**The check was measuring the smaller half.** §4.3.3 asked only whether
-an ancestor had a live callback for the same event. But
-`mouseDownHandler` takes focus on the way past any focusable shape under
-the cursor and marks the event handled doing so, **before any callback
-runs** (`gui/event_handlers.go:216`). So an unconsumed click on a
-non-focusable child inside a focusable ancestor does not merely fail to
-stop — it moves focus. No `OnClick` is involved anywhere, which is why
-the original check could not see it. Widening `ancestorHandler` to count
-focus-stealing ancestors, and sweeping all 37 constructible examples
-rather than the 8, found 7 more: the colour picker's hue strip and SV
-area, a slider track press, the scrollbar gutter's mouse-locked early
-return, and two in `gui/datagrid`.
+**The check was measuring the smaller half.** §4.3.3 asked only whether an
+ancestor had a live callback for the same event. But `mouseDownHandler` takes
+focus on the way past any focusable shape under the cursor and marks the event
+handled doing so, **before any callback runs** (`gui/event_handlers.go:216`). So
+an unconsumed click on a non-focusable child inside a focusable ancestor does
+not merely fail to stop — it moves focus. No `OnClick` is involved anywhere,
+which is why the original check could not see it. Widening `ancestorHandler` to
+count focus-stealing ancestors, and sweeping all 37 constructible examples
+rather than the 8, found 7 more: the colour picker's hue strip and SV area, a
+slider track press, the scrollbar gutter's mouse-locked early return, and two in
+`gui/datagrid`.
 
-**The static population was 214** — every consume-class callback calling
-neither `Consume()` nor `Bubble()`, 81 in `gui/` and 133 in `examples/`.
-That number is not a defect count and was never the work: under the new
-model an app callback with nothing above it is *correct* not consuming.
-The examples needed no changes at all.
+**The static population was 214** — every consume-class callback calling neither
+`Consume()` nor `Bubble()`, 81 in `gui/` and 133 in `examples/`. That number is
+not a defect count and was never the work: under the new model an app callback
+with nothing above it is _correct_ not consuming. The examples needed no changes
+at all.
 
-**What the collapse actually broke** was five handlers, and the test
-suite caught two of them:
+**What the collapse actually broke** was five handlers, and the test suite
+caught two of them:
 
-| Site | Why it broke |
-| ---- | ------------ |
-| `view_command_palette.go` backdrop | dismissal must not reach what the palette floats over |
-| `view_command_palette.go` card | **empty body**, whose only job was to stop the backdrop dismissing under a click into the card |
-| `view_toast.go` | **empty body** — a toast absorbs the clicks it covers |
-| `inspector.go` | **empty body** — clicks must not reach through and mutate what is under study |
-| `view_input_date.go` popup | **empty body** — a click in the popup is not the field's |
+| Site                               | Why it broke                                                                                   |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `view_command_palette.go` backdrop | dismissal must not reach what the palette floats over                                          |
+| `view_command_palette.go` card     | **empty body**, whose only job was to stop the backdrop dismissing under a click into the card |
+| `view_toast.go`                    | **empty body** — a toast absorbs the clicks it covers                                          |
+| `inspector.go`                     | **empty body** — clicks must not reach through and mutate what is under study                  |
+| `view_input_date.go` popup         | **empty body** — a click in the popup is not the field's                                       |
 
-Four of five were empty handlers. That is the migration hazard worth
-publishing: an empty consume-class callback used to be a working
-click-blocker, and now blocks nothing.
+Four of five were empty handlers. That is the migration hazard worth publishing:
+an empty consume-class callback used to be a working click-blocker, and now
+blocks nothing.
 
-**The debug check survives, inverted.** `debugCollapse` measured
-reliance on a pre-mark that no longer exists; `debugUnconsumed` reports
-a handler that acted without consuming while an ancestor also receives
-the event, and `TestEventCollapse` is now `TestUnconsumedEvents`. It has
-one honest false positive: deliberate pass-through — a handler that
-inspects an event, decides it is not its own and declines — is now the
-ordinary way to say no, and is indistinguishable from forgetting. The
-sweep is a list to read, not a list to drive to zero.
+**The debug check survives, inverted.** `debugCollapse` measured reliance on a
+pre-mark that no longer exists; `debugUnconsumed` reports a handler that acted
+without consuming while an ancestor also receives the event, and
+`TestEventCollapse` is now `TestUnconsumedEvents`. It has one honest false
+positive: deliberate pass-through — a handler that inspects an event, decides it
+is not its own and declines — is now the ordinary way to say no, and is
+indistinguishable from forgetting. The sweep is a list to read, not a list to
+drive to zero.
 
-Sweep across all 37 examples after the collapse: **one finding**, and it
-is that false positive — `inputOnClick`'s "no glyph layout, cannot place
-a cursor" path, reachable only with a nil `TextMeasurer`, i.e. only in
-tests.
+Sweep across all 37 examples after the collapse: **one finding**, and it is that
+false positive — `inputOnClick`'s "no glyph layout, cannot place a cursor" path,
+reachable only with a nil `TextMeasurer`, i.e. only in tests.
 
 ### 4.4 Color-set collapse — highest per-app line savings
 
-`examples/todo/main.go:139-166` sets six `Color*` fields on one button
-purely to stop it changing appearance on hover, focus, and click. That
-is a defaults failure presenting as API surface. Introduce a shared
-sub-struct:
+`examples/todo/main.go:139-166` sets six `Color*` fields on one button purely to
+stop it changing appearance on hover, focus, and click. That is a defaults
+failure presenting as API surface. Introduce a shared sub-struct:
 
 ```go
 type ColorSet struct {
@@ -779,142 +741,130 @@ type ColorSet struct {
 func Flat(c Color) ColorSet
 ```
 
-Unset states fall back to `Base`, `Base` falls back to theme. Removes
-~6 lines per styled widget.
+Unset states fall back to `Base`, `Base` falls back to theme. Removes ~6 lines
+per styled widget.
 
-**Precedence, when both a flat `Color*` field and a `ColorSet` are
-set: the flat field wins.** This is the only rule that makes the
-transition safe — existing code sets flat fields and must keep its
-current appearance when a `ColorSet` default arrives, and a
-partially-migrated literal should not silently change color. The rule
-is unintuitive (the newer, more specific-looking API loses), so it goes
-in the doc comment on both, not only here.
+**Precedence, when both a flat `Color*` field and a `ColorSet` are set: the flat
+field wins.** This is the only rule that makes the transition safe — existing
+code sets flat fields and must keep its current appearance when a `ColorSet`
+default arrives, and a partially-migrated literal should not silently change
+color. The rule is unintuitive (the newer, more specific-looking API loses), so
+it goes in the doc comment on both, not only here.
 
-**The struct does not shrink in phase 3 — it grows.** An additive
-`ColorSet` sits *alongside* the flat fields, so `ContainerCfg` gains a
-field rather than losing six. Shrinking requires deleting flat fields,
-which is breaking and was not scheduled anywhere. Scheduling it, with
-one split that the measurement forces:
+**The struct does not shrink in phase 3 — it grows.** An additive `ColorSet`
+sits _alongside_ the flat fields, so `ContainerCfg` gains a field rather than
+losing six. Shrinking requires deleting flat fields, which is breaking and was
+not scheduled anywhere. Scheduling it, with one split that the measurement
+forces:
 
-- **Delete in phase 4: the five state fields** — `ColorHover`,
-  `ColorFocus`, `ColorClick`, `ColorBorder`, `ColorBorderFocus`
-  (`gui/view_button.go:52-61`). These are exactly what `ColorSet`
-  replaces, and they are what makes the `examples/todo` literal six
-  lines long. Sibling cost is **8 sites, all in go-charts**; the other
-  four siblings set none.
-- **Keep `Color` permanently**, as shorthand for `ColorSet.Base`. It is
-  the single-color case, it is the overwhelmingly common one, and
-  `ColorSet{Base: c}` is strictly worse ergonomics for it than `Color:
-  c`. Retaining it is not the `InputCfg` two-conventions defect (§3.1),
-  because it is not a second way to say the same thing — it is the
-  degenerate case with its own name, the same relationship `Flat(c)`
-  has to a fully-specified `ColorSet`.
+- **Delete in phase 4: the five state fields** — `ColorHover`, `ColorFocus`,
+  `ColorClick`, `ColorBorder`, `ColorBorderFocus` (`gui/view_button.go:52-61`).
+  These are exactly what `ColorSet` replaces, and they are what makes the
+  `examples/todo` literal six lines long. Sibling cost is **8 sites, all in
+  go-charts**; the other four siblings set none.
+- **Keep `Color` permanently**, as shorthand for `ColorSet.Base`. It is the
+  single-color case, it is the overwhelmingly common one, and
+  `ColorSet{Base: c}` is strictly worse ergonomics for it than `Color: c`.
+  Retaining it is not the `InputCfg` two-conventions defect (§3.1), because it
+  is not a second way to say the same thing — it is the degenerate case with its
+  own name, the same relationship `Flat(c)` has to a fully-specified `ColorSet`.
 
-So the shrink claim survives, at five fields per styled `Cfg` rather
-than six. Phase 3 lands `ColorSet` plus the precedence rule; phase 4
-removes the five it replaced.
+So the shrink claim survives, at five fields per styled `Cfg` rather than six.
+Phase 3 lands `ColorSet` plus the precedence rule; phase 4 removes the five it
+replaced.
 
-A caution on measuring this: a naive `^\s+Color[A-Za-z]*:` grep reports
-173 sibling sites, which is off by 20x. Nearly all of them are
-go-charts' **own** `Color` field taking a go-gui color *value*
-(`Color: gui.Blue`) — the `gui.` on the line is the palette constant,
-not the `Cfg`. Match the specific state-field names.
+A caution on measuring this: a naive `^\s+Color[A-Za-z]*:` grep reports 173
+sibling sites, which is off by 20x. Nearly all of them are go-charts' **own**
+`Color` field taking a go-gui color _value_ (`Color: gui.Blue`) — the `gui.` on
+the line is the palette constant, not the `Cfg`. Match the specific state-field
+names.
 
 **Consider, but do not block on:** named theme-backed style presets. The
-`examples/todo` button is really asking for "the accent style", not for
-six specific colors. A small preset set (primary / secondary / chrome /
-danger) may remove more lines than `ColorSet` alone, and the two
-compose — `ColorSet` is the mechanism, presets are the vocabulary. Ship
-`ColorSet` first; presets are a separate additive proposal.
+`examples/todo` button is really asking for "the accent style", not for six
+specific colors. A small preset set (primary / secondary / chrome / danger) may
+remove more lines than `ColorSet` alone, and the two compose — `ColorSet` is the
+mechanism, presets are the vocabulary. Ship `ColorSet` first; presets are a
+separate additive proposal.
 
 #### 4.4.1 Corrections from the implementation (2026-08-07)
 
 **Q5 is reversed: `ColorSet` uses plain `Color`, not `Opt[Color]`.** Q5's
-premise — "`Color` has no reserved zero, so a plain field cannot
-distinguish 'unset, inherit from `Base`' from 'deliberately
-transparent'" — is false against the code. `Color` carries its own
-unexported `set` flag (`gui/color.go:11`), `Color{}` is unset, and
-`ColorTransparent = Color{0, 0, 0, 0, true}` (`gui/color.go:40`) is an
-explicitly-set transparent color. The distinction `Opt` was proposed to
-add already exists, and every widget in the repo already branches on
-`Color.IsSet()`.
+premise — "`Color` has no reserved zero, so a plain field cannot distinguish
+'unset, inherit from `Base`' from 'deliberately transparent'" — is false against
+the code. `Color` carries its own unexported `set` flag (`gui/color.go:11`),
+`Color{}` is unset, and `ColorTransparent = Color{0, 0, 0, 0, true}`
+(`gui/color.go:40`) is an explicitly-set transparent color. The distinction
+`Opt` was proposed to add already exists, and every widget in the repo already
+branches on `Color.IsSet()`.
 
-Wrapping would have given the field two independent notions of unset,
-where `Some(Color{})` reads as "set to unset" — the same
-two-conventions defect §3.1 objects to in `InputCfg`. Pinned by
-`TestColorSetTransparentIsNotUnset`.
+Wrapping would have given the field two independent notions of unset, where
+`Some(Color{})` reads as "set to unset" — the same two-conventions defect §3.1
+objects to in `InputCfg`. Pinned by `TestColorSetTransparentIsNotUnset`.
 
-**`Base` does not back the border fields.** §4.4 says "unset states
-fall back to `Base`". Applied literally to `Border` that produces a
-border the same color as the fill, which reads as *no* border — not a
-plausible meaning for omitting the field. `Base` backs `Hover`,
-`Click` and `Focus`; `Border` and `BorderFocus` fall through to the
-theme, and `BorderFocus` falls back to `Border` first. `Flat(c)` still
-pins all six, which is what makes it the "visually inert" case rather
-than merely "uniform fill".
+**`Base` does not back the border fields.** §4.4 says "unset states fall back to
+`Base`". Applied literally to `Border` that produces a border the same color as
+the fill, which reads as _no_ border — not a plausible meaning for omitting the
+field. `Base` backs `Hover`, `Click` and `Focus`; `Border` and `BorderFocus`
+fall through to the theme, and `BorderFocus` falls back to `Border` first.
+`Flat(c)` still pins all six, which is what makes it the "visually inert" case
+rather than merely "uniform fill".
 
-**Scoped to `ButtonCfg` in phase 3.** §4.4's phase-4 deletion list
-names only `gui/view_button.go:52-61`, so that is the one `Cfg` that
-gains `Colors`. `InputCfg` is the obvious next adopter — the same
-`examples/todo` view sets four of its color fields — but widening the
-additive change beyond what the measurement covered buys nothing before
-phase 4 removes the flat fields.
+**Scoped to `ButtonCfg` in phase 3.** §4.4's phase-4 deletion list names only
+`gui/view_button.go:52-61`, so that is the one `Cfg` that gains `Colors`.
+`InputCfg` is the obvious next adopter — the same `examples/todo` view sets four
+of its color fields — but widening the additive change beyond what the
+measurement covered buys nothing before phase 4 removes the flat fields.
 
-The `examples/todo` button is now `Colors: gui.Flat(colorAccent)`, one
-line replacing six, which is the saving §4.4 predicted.
+The `examples/todo` button is now `Colors: gui.Flat(colorAccent)`, one line
+replacing six, which is the saving §4.4 predicted.
 
 #### 4.4.2 Deletion scope, resolved in phase 4 (2026-08-08)
 
-**Deleting only `ButtonCfg`'s five fields would have made the API
-bimodal.** Six `Cfg`s carry the identical five state-color fields:
-`ButtonCfg`, `SwitchCfg`, `ToggleCfg`, `RadioCfg`, `InputDateCfg`,
-`DatePickerCfg`. Removing them from `ButtonCfg` alone — which is what
-§4.4 scheduled — leaves `Switch` and `Toggle` styled the old way beside
-a `Button` that uses `Colors`, inside one widget family. That is worse
-than the uniform verbosity it replaces.
+**Deleting only `ButtonCfg`'s five fields would have made the API bimodal.** Six
+`Cfg`s carry the identical five state-color fields: `ButtonCfg`, `SwitchCfg`,
+`ToggleCfg`, `RadioCfg`, `InputDateCfg`, `DatePickerCfg`. Removing them from
+`ButtonCfg` alone — which is what §4.4 scheduled — leaves `Switch` and `Toggle`
+styled the old way beside a `Button` that uses `Colors`, inside one widget
+family. That is worse than the uniform verbosity it replaces.
 
-Resolved by extending `ColorSet` to all six and deleting the five
-fields on all six. The 24 `Cfg`s holding a partial set (four fields
-down to one) keep theirs; "carries the full five" is the line, and it
-is exactly where `ColorSet` fits without inventing fields a widget does
-not have.
+Resolved by extending `ColorSet` to all six and deleting the five fields on all
+six. The 24 `Cfg`s holding a partial set (four fields down to one) keep theirs;
+"carries the full five" is the line, and it is exactly where `ColorSet` fits
+without inventing fields a widget does not have.
 
-**The shorthand must not back the interactive states.** `Base` backs
-`Hover`, `Click` and `Focus`, so folding the surviving `Color` field
-into `Base` *before* that fallback pins all three — and a widget that
-sets only its background silently stops reacting to the pointer and to
-focus. `Color` is applied after `resolve` instead, leaving the states
-to the theme exactly as before `ColorSet` existed.
+**The shorthand must not back the interactive states.** `Base` backs `Hover`,
+`Click` and `Focus`, so folding the surviving `Color` field into `Base` _before_
+that fallback pins all three — and a widget that sets only its background
+silently stops reacting to the pointer and to focus. `Color` is applied after
+`resolve` instead, leaving the states to the theme exactly as before `ColorSet`
+existed.
 
-This was caught by `TestButtonAmendLayoutFocus` going red, not by
-review, and it is the kind of change that ships unnoticed: no compile
-error, no visual difference until someone tabs to the control. Pinned
-by `TestButtonColorShorthandLeavesStatesThemed`.
+This was caught by `TestButtonAmendLayoutFocus` going red, not by review, and it
+is the kind of change that ships unnoticed: no compile error, no visual
+difference until someone tabs to the control. Pinned by
+`TestButtonColorShorthandLeavesStatesThemed`.
 
 ### 4.5 `Opt[T]` consistency pass and value shorthands
 
-110 `Opt[T]` fields coexist with plain-value fields under no documented
-rule.
+110 `Opt[T]` fields coexist with plain-value fields under no documented rule.
 
-**Decision: `Opt[T]` where the zero value is a legitimate user choice
-that must be distinguishable from "unset"; a plain field everywhere
-else.** This was the last §4 item still phrased as an either/or, which
-meant phase 3 could not start on it. The rule is not a style
-preference — it is the only thing that distinguishes the two cases,
-and `SizeBorder` is the worked example already in `CLAUDE.md`: a
-border width of 0 is a thing a caller means, so a plain field cannot
-tell "no border" from "not specified" and silently applies the theme
-default. Where zero is not meaningful (most sizes, counts, and
-indices), `Opt` costs a wrapper call and buys nothing.
+**Decision: `Opt[T]` where the zero value is a legitimate user choice that must
+be distinguishable from "unset"; a plain field everywhere else.** This was the
+last §4 item still phrased as an either/or, which meant phase 3 could not start
+on it. The rule is not a style preference — it is the only thing that
+distinguishes the two cases, and `SizeBorder` is the worked example already in
+`CLAUDE.md`: a border width of 0 is a thing a caller means, so a plain field
+cannot tell "no border" from "not specified" and silently applies the theme
+default. Where zero is not meaningful (most sizes, counts, and indices), `Opt`
+costs a wrapper call and buys nothing.
 
-Applying the rule is an audit of the existing 110, not a rewrite:
-fields that satisfy it stay, fields that do not become plain in phase
-4 with the other signature changes. Document the rule in `CLAUDE.md`
-so new `Cfg` fields are decided at authoring time rather than by
-whichever neighbor was copied.
+Applying the rule is an audit of the existing 110, not a rewrite: fields that
+satisfy it stay, fields that do not become plain in phase 4 with the other
+signature changes. Document the rule in `CLAUDE.md` so new `Cfg` fields are
+decided at authoring time rather than by whichever neighbor was copied.
 
-Pair either way with cheap value constructors returning the same types
-the current wrappers do — these are unaffected by the decision above:
+Pair either way with cheap value constructors returning the same types the
+current wrappers do — these are unaffected by the decision above:
 
 ```go
 gui.PadAll(12)  // == gui.SomeP(12, 12, 12, 12)
@@ -924,51 +874,48 @@ gui.PadXY(8, 4)
 #### 4.5.1 Corrections from the implementation (2026-08-07)
 
 **The shorthands already exist, with different return types.**
-`PadAll(p) Padding` and `PadTBLR(tb, lr) Padding` are at
-`gui/padding.go:56` and `:61`. Redefining `PadAll` to return
-`Opt[Padding]` is a breaking change to an exported function used at
-nine internal sites plus the siblings, and `PadXY(x, y)` inverts
-`PadTBLR`'s argument order — a silent swap for anyone who reaches for
-the familiar name. `Some(PadAll(12))` already says it with no new API,
-so nothing was added. Dropped from phase 3 rather than deferred.
+`PadAll(p) Padding` and `PadTBLR(tb, lr) Padding` are at `gui/padding.go:56` and
+`:61`. Redefining `PadAll` to return `Opt[Padding]` is a breaking change to an
+exported function used at nine internal sites plus the siblings, and
+`PadXY(x, y)` inverts `PadTBLR`'s argument order — a silent swap for anyone who
+reaches for the familiar name. `Some(PadAll(12))` already says it with no new
+API, so nothing was added. Dropped from phase 3 rather than deferred.
 
-**The field count is 165, not 110.** `grep` for `Opt[` field
-declarations in non-test files under `gui/` returns 165. The figure is
-worth restating because §4.5 uses it to size the work, and the audit
-below shows the work is smaller than either number implies.
+**The field count is 165, not 110.** `grep` for `Opt[` field declarations in
+non-test files under `gui/` returns 165. The figure is worth restating because
+§4.5 uses it to size the work, and the audit below shows the work is smaller
+than either number implies.
 
-**Audit result: the large majority already satisfy the rule.** Grouped
-by field family, with counts:
+**Audit result: the large majority already satisfy the rule.** Grouped by field
+family, with counts:
 
-| Family                                            | Count | Verdict |
-| ------------------------------------------------- | ----- | ------- |
-| `Padding*`, `*Padding`, `CellSpacing`             | ~45   | keep — zero padding is a real choice, `NoPadding` exists |
-| `SizeBorder`, `Size*Border`                       | ~30   | keep — the worked example; zero means "no border" |
-| `Radius*`                                         | ~35   | keep — zero means square corners, theme default is not zero |
-| `Spacing*`                                        | ~11   | keep — `NoSpacing` exists |
-| `Opacity`, `BgOpacity`, `ParamA/B/D`              | 6     | keep — zero is meaningful |
-| `HAlign`, `VAlign`, `Anchor`, `TieOff`, `Mode`    | 7     | keep — enum zero is a real member (`HAlignLeft == 0`) |
-| `Value`, `Min`, `Max`, `Ratio`, `DragStep*`       | 6     | keep — zero is a legitimate slider value |
-| `Size` (text), `Width*`, `Height`, `Min/MaxWidth` | ~11   | **plain in phase 4** — zero is not a meaningful size |
+| Family                                            | Count | Verdict                                                       |
+| ------------------------------------------------- | ----- | ------------------------------------------------------------- |
+| `Padding*`, `*Padding`, `CellSpacing`             | ~45   | keep — zero padding is a real choice, `NoPadding` exists      |
+| `SizeBorder`, `Size*Border`                       | ~30   | keep — the worked example; zero means "no border"             |
+| `Radius*`                                         | ~35   | keep — zero means square corners, theme default is not zero   |
+| `Spacing*`                                        | ~11   | keep — `NoSpacing` exists                                     |
+| `Opacity`, `BgOpacity`, `ParamA/B/D`              | 6     | keep — zero is meaningful                                     |
+| `HAlign`, `VAlign`, `Anchor`, `TieOff`, `Mode`    | 7     | keep — enum zero is a real member (`HAlignLeft == 0`)         |
+| `Value`, `Min`, `Max`, `Ratio`, `DragStep*`       | 6     | keep — zero is a legitimate slider value                      |
+| `Size` (text), `Width*`, `Height`, `Min/MaxWidth` | ~11   | **plain in phase 4** — zero is not a meaningful size          |
 | `OffsetX/Y`, `HandleSize`, `DotSize`              | 4     | borderline; zero is expressible but equals the default anyway |
 
-So §4.5's phase-4 work is roughly **11 fields, not 165**. That is a
-materially smaller change than the section implies, and it is the
-reason the rule is worth documenting even though almost nothing has to
-move: the value is in deciding new fields correctly, not in the
-cleanup.
+So §4.5's phase-4 work is roughly **11 fields, not 165**. That is a materially
+smaller change than the section implies, and it is the reason the rule is worth
+documenting even though almost nothing has to move: the value is in deciding new
+fields correctly, not in the cleanup.
 
 ### 4.6 App-testing API — largest additive gap
 
-Apps built on go-gui cannot test behavior. They can only test that a
-view function does not panic.
+Apps built on go-gui cannot test behavior. They can only test that a view
+function does not panic.
 
-The query half of the story is fine: `FindByID`, `FindLayout`,
-`FindShape`, `NextFocusable`, `PreviousFocusable` are all exported
-(`gui/layout_query.go`). The **dispatch half is entirely unexported**.
-`Shape.events` is a lowercase field (`gui/shape.go:19`) with zero
-exported accessors, and there is no public entry point that walks a
-layout tree and fires handlers.
+The query half of the story is fine: `FindByID`, `FindLayout`, `FindShape`,
+`NextFocusable`, `PreviousFocusable` are all exported (`gui/layout_query.go`).
+The **dispatch half is entirely unexported**. `Shape.events` is a lowercase
+field (`gui/shape.go:19`) with zero exported accessors, and there is no public
+entry point that walks a layout tree and fires handlers.
 
 The library's own tests reach straight through the field:
 
@@ -977,16 +924,16 @@ The library's own tests reach straight through the field:
 layout.Shape.events.OnClick(EventCtx{&layout, e, w})
 ```
 
-An app author cannot write that line. The measurable consequence: 63
-tests across `examples/*/main_test.go`, and 98 of their assertion lines
-are some form of "call `GenerateLayout` and see if it panics." Zero
-assert that clicking a button changed state.
+An app author cannot write that line. The measurable consequence: 63 tests
+across `examples/*/main_test.go`, and 98 of their assertion lines are some form
+of "call `GenerateLayout` and see if it panics." Zero assert that clicking a
+button changed state.
 
-This is the gap most worth closing, because immediate mode plus one
-typed state slot makes go-gui apps unusually testable *in principle* —
-a view is a pure function of state, so `state → tree → event → state'`
-is fully deterministic with no backend, no event loop, and no clock.
-None of that is reachable from outside the package.
+This is the gap most worth closing, because immediate mode plus one typed state
+slot makes go-gui apps unusually testable _in principle_ — a view is a pure
+function of state, so `state → tree → event → state'` is fully deterministic
+with no backend, no event loop, and no clock. None of that is reachable from
+outside the package.
 
 Proposed surface, additive, no breaking change:
 
@@ -1014,548 +961,522 @@ func (w *Window) TestScroll(id string, dx, dy float32) error
 func (w *Window) TestScrollOffset(id string) (x, y float32, err error)
 ```
 
-`TestTab` matters for phase 4 specifically: the focus unification
-(§4.2) and the `Scrollable` work (§4.9) both change tab-order and
-state-key behavior. Without a way to assert "tab from A lands on B",
-that phase ships with no test that justifies it.
+`TestTab` matters for phase 4 specifically: the focus unification (§4.2) and the
+`Scrollable` work (§4.9) both change tab-order and state-key behavior. Without a
+way to assert "tab from A lands on B", that phase ships with no test that
+justifies it.
 
-`TestScroll` is not optional either — **Q6's phase gate is
-undischargeable without it.** Q6 requires writing the nested-scroll
-case as a test in phase 2 and changing the propagation model against
-it; an API with click, key, type, focus, and tab has no way to express
-that test. The same pair is what pins §7.2's silent consume-class
-regressions, which by construction produce no compile error.
+`TestScroll` is not optional either — **Q6's phase gate is undischargeable
+without it.** Q6 requires writing the nested-scroll case as a test in phase 2
+and changing the propagation model against it; an API with click, key, type,
+focus, and tab has no way to express that test. The same pair is what pins
+§7.2's silent consume-class regressions, which by construction produce no
+compile error.
 
-Errors (not panics) on unknown ID, on a widget with no matching
-handler, and on a disabled widget — those are assertion failures in a
-test, not programmer errors at a render site.
+Errors (not panics) on unknown ID, on a widget with no matching handler, and on
+a disabled widget — those are assertion failures in a test, not programmer
+errors at a render site.
 
 Two open design points, listed in §9: whether this lives in `gui` or a
-`gui/guitest` subpackage, and whether `TestClick` runs full hit-testing
-from coordinates or targets the ID directly. Hit-testing is the more
-faithful simulation and would also catch overlay and z-order bugs;
-ID-targeting is simpler and sufficient for state-transition tests.
+`gui/guitest` subpackage, and whether `TestClick` runs full hit-testing from
+coordinates or targets the ID directly. Hit-testing is the more faithful
+simulation and would also catch overlay and z-order bugs; ID-targeting is
+simpler and sufficient for state-transition tests.
 
 #### 4.6.1 Corrections from the implementation (2026-08-07)
 
 Shipped in `gui/testing.go`. Three things §4.6 got wrong or left out.
 
-**The hit-testing/ID-targeting choice was a false dichotomy.** §9 Q2
-frames them as alternatives. They are orthogonal: the ID picks a
-coordinate, and dispatch then runs full hit-testing from the window
-root. `TestClick` does both. The parts of hit-testing worth having —
-z-order, clipping, disabled subtrees — come free, because the
-synthesized event goes through `Window.EventFn` rather than reaching
-into `Shape.events`. `TestClickAt(x, y)` is still a separate future
-name, but it buys only the ability to click a coordinate that no
-widget's ID names.
+**The hit-testing/ID-targeting choice was a false dichotomy.** §9 Q2 frames them
+as alternatives. They are orthogonal: the ID picks a coordinate, and dispatch
+then runs full hit-testing from the window root. `TestClick` does both. The
+parts of hit-testing worth having — z-order, clipping, disabled subtrees — come
+free, because the synthesized event goes through `Window.EventFn` rather than
+reaching into `Shape.events`. `TestClickAt(x, y)` is still a separate future
+name, but it buys only the ability to click a coordinate that no widget's ID
+names.
 
-**Overlay obstruction is not detectable, and §4.6 implied it was.** An
-overlay that covers the target consumes the click and marks the event
-handled, so `TestClick` returns nil. Dispatch does not record which
-shape it delivered to, so "the target handled it" and "something on
-top of the target handled it" are the same observation from outside.
-`ErrTestUnhandled` therefore catches only total non-delivery.
-Documented on the method and pinned by
-`TestTestClickBlockedByOverlay`. Closing the gap properly means having
-dispatch report its recipient — a change on the hottest event path,
-for a testing feature, and not worth it at this stage.
+**Overlay obstruction is not detectable, and §4.6 implied it was.** An overlay
+that covers the target consumes the click and marks the event handled, so
+`TestClick` returns nil. Dispatch does not record which shape it delivered to,
+so "the target handled it" and "something on top of the target handled it" are
+the same observation from outside. `ErrTestUnhandled` therefore catches only
+total non-delivery. Documented on the method and pinned by
+`TestTestClickBlockedByOverlay`. Closing the gap properly means having dispatch
+report its recipient — a change on the hottest event path, for a testing
+feature, and not worth it at this stage.
 
 **`TestScroll` must send a precise scroll, not a wheel notch.** Not a
 preference. The discrete-wheel path does not move the offset at all:
-`scrollSmoothBy` arms an exponential ease that lands over later frames
-driven by the animation goroutine, which no headless test runs — and
-`clearHotMaps` calls `scrollSmoothReset` on every view rebuild, so
-settling a frame would discard the in-flight ease regardless. Only
-`scrollVertical`/`scrollHorizontal`, the precise/trackpad path, write
-synchronously. Consequence for callers: a widget branching on
-`Event.ScrollPrecise` sees the trackpad branch under test.
+`scrollSmoothBy` arms an exponential ease that lands over later frames driven by
+the animation goroutine, which no headless test runs — and `clearHotMaps` calls
+`scrollSmoothReset` on every view rebuild, so settling a frame would discard the
+in-flight ease regardless. Only `scrollVertical`/`scrollHorizontal`, the
+precise/trackpad path, write synchronously. Consequence for callers: a widget
+branching on `Event.ScrollPrecise` sees the trackpad branch under test.
 
 ### 4.7 Naming: `RTF` / `RtfCfg` casing split
 
-`RTF(cfg RtfCfg)` (`gui/view_rtf.go:212`) is the only factory whose
-name disagrees with its `Cfg` in casing. Go convention initialises
-acronyms uniformly, so this should be `RTF(cfg RTFCfg)`. Breaking
-rename; fold into phase 4 where consumers already migrate.
+`RTF(cfg RtfCfg)` (`gui/view_rtf.go:212`) is the only factory whose name
+disagrees with its `Cfg` in casing. Go convention initialises acronyms
+uniformly, so this should be `RTF(cfg RTFCfg)`. Breaking rename; fold into phase
+4 where consumers already migrate.
 
-**Also in phase 4: rename `OnCellFormat` and `OnDetailRowView` out of
-the `On*` space.** §4.3 argues they are misnamed — they are view
-builders that return a value, not event callbacks — but named no phase,
-which would have meant either another breaking release or keeping a
-misnomer §8 already expects the next reviewer to trip on. Phase 4 is
-the only bus it can ride. Cost is zero outside the declaring package:
-no reference to either identifier exists in any of the five siblings,
-or anywhere in go-gui outside `gui/datagrid/`. Suggested `CellFormat`
-and `DetailRowView`, matching the `Cfg`-field-as-builder convention
+**Also in phase 4: rename `OnCellFormat` and `OnDetailRowView` out of the `On*`
+space.** §4.3 argues they are misnamed — they are view builders that return a
+value, not event callbacks — but named no phase, which would have meant either
+another breaking release or keeping a misnomer §8 already expects the next
+reviewer to trip on. Phase 4 is the only bus it can ride. Cost is zero outside
+the declaring package: no reference to either identifier exists in any of the
+five siblings, or anywhere in go-gui outside `gui/datagrid/`. Suggested
+`CellFormat` and `DetailRowView`, matching the `Cfg`-field-as-builder convention
 rather than the callback one.
 
-The other twelve factory/`Cfg` name divergences are deliberate and
-should stay: the container family (`Column`, `Row`, `Wrap`, `Canvas`,
-`Circle`) intentionally shares `ContainerCfg`, and
-`RadioButtonGroupColumn` / `RadioButtonGroupRow` follow the same
-axis-variant pattern.
+The other twelve factory/`Cfg` name divergences are deliberate and should stay:
+the container family (`Column`, `Row`, `Wrap`, `Canvas`, `Circle`) intentionally
+shares `ContainerCfg`, and `RadioButtonGroupColumn` / `RadioButtonGroupRow`
+follow the same axis-variant pattern.
 
 ### 4.8 Example audit: `FillFill` vs manual viewport math
 
-`examples/get_started/main.go:36` documents that `FillFill` removes the
-need for `WindowSize()` and manual arithmetic. **45 example files call
-`WindowSize()` anyway** — 50 call sites and 108 lines of
-`float32(ww)-N` arithmetic. This is not one contradictory pair; it is
-the dominant idiom in the examples, teaching the opposite of what the
-library recommends.
+`examples/get_started/main.go:36` documents that `FillFill` removes the need for
+`WindowSize()` and manual arithmetic. **45 example files call `WindowSize()`
+anyway** — 50 call sites and 108 lines of `float32(ww)-N` arithmetic. This is
+not one contradictory pair; it is the dominant idiom in the examples, teaching
+the opposite of what the library recommends.
 
 Treat it as an audit, not a file fix:
 
-1. Convert to `FillFill` wherever the size is only used to fill the
-   window or subtract padding.
-2. Keep an explicit allowlist for examples that genuinely need viewport
-   numbers — canvas, particle, game, and shader demos that compute
-   positions in pixel space. Document *why* in each.
-3. Once converted, the remaining `WindowSize()` calls are a signal
-   rather than noise.
+1. Convert to `FillFill` wherever the size is only used to fill the window or
+   subtract padding.
+2. Keep an explicit allowlist for examples that genuinely need viewport numbers
+   — canvas, particle, game, and shader demos that compute positions in pixel
+   space. Document _why_ in each.
+3. Once converted, the remaining `WindowSize()` calls are a signal rather than
+   noise.
 
-Highest-leverage change in the plan for *perceived* ergonomics: the
-examples are where the idiom is learned, and right now they teach
-manual layout.
+Highest-leverage change in the plan for _perceived_ ergonomics: the examples are
+where the idiom is learned, and right now they teach manual layout.
 
-Also convert two or three example tests from no-panic assertions to
-real state-transition assertions once §4.6 lands, so the testing
-pattern is demonstrated rather than described.
+Also convert two or three example tests from no-panic assertions to real
+state-transition assertions once §4.6 lands, so the testing pattern is
+demonstrated rather than described.
 
 #### 4.8.1 Audit result (2026-08-08)
 
-**45 files / 50 call sites → 8 files / 9 call sites.** 37 files
-converted; 8 allowlisted, each with a one-line reason at the call site
-so the remaining calls read as deliberate.
+**45 files / 50 call sites → 8 files / 9 call sites.** 37 files converted; 8
+allowlisted, each with a one-line reason at the call site so the remaining calls
+read as deliberate.
 
-Most of the conversion was one shape repeated 34 times: fetch the
-window size, set it as the root's `Width`/`Height`, and mark the root
-`FixedFixed`. That is `Sizing: gui.FillFill` and nothing else. Six
-cases carried real arithmetic:
+Most of the conversion was one shape repeated 34 times: fetch the window size,
+set it as the root's `Width`/`Height`, and mark the root `FixedFixed`. That is
+`Sizing: gui.FillFill` and nothing else. Six cases carried real arithmetic:
 
-| Example         | Was                              | Now                        |
-| --------------- | -------------------------------- | -------------------------- |
-| `todo`          | `cardView(ww-24, wh-24, w)`      | card is `FillFill` inside the page's 12px padding |
-| `listbox`       | `Height: float32(wh) - 70`       | list `FillFill` takes the column remainder |
-| `minesweeper`   | `ww, wh` threaded into both screens | both screens `FillFill`, params dropped |
-| `2048`          | window size in both screens      | `gameView` `FillFill`; landing still needs it |
-| `snake`         | window size in both screens      | play screen `FillFill`; landing still needs it |
-| `animation_stress` | window size in three places   | root `FillFill`; two spawn helpers still need it |
+| Example            | Was                                 | Now                                               |
+| ------------------ | ----------------------------------- | ------------------------------------------------- |
+| `todo`             | `cardView(ww-24, wh-24, w)`         | card is `FillFill` inside the page's 12px padding |
+| `listbox`          | `Height: float32(wh) - 70`          | list `FillFill` takes the column remainder        |
+| `minesweeper`      | `ww, wh` threaded into both screens | both screens `FillFill`, params dropped           |
+| `2048`             | window size in both screens         | `gameView` `FillFill`; landing still needs it     |
+| `snake`            | window size in both screens         | play screen `FillFill`; landing still needs it    |
+| `animation_stress` | window size in three places         | root `FillFill`; two spawn helpers still need it  |
 
 **The allowlist, with the reason each one is real:**
 
-| Example            | Why the viewport is genuinely needed                  |
-| ------------------ | ----------------------------------------------------- |
+| Example            | Why the viewport is genuinely needed                                          |
+| ------------------ | ----------------------------------------------------------------------------- |
 | `calculator`       | root is a `Canvas`, which does not arrange, so its centring child cannot Fill |
-| `digital_rain`     | grid columns/rows are the viewport divided by the character cell |
-| `fontviewer`       | virtualization: `ListVisibleRange` needs the viewport height before arrange |
-| `particles`        | particle field is simulated in pixel space            |
-| `solitaire`        | cards, status bar and win overlay at absolute positions |
-| `2048` (landing)   | backdrop tiles at computed pixel coordinates          |
-| `snake` (landing)  | same, plus a backdrop sized `ww-64` × `wh-88`         |
-| `animation_stress` | random spawn and retarget coordinates                 |
+| `digital_rain`     | grid columns/rows are the viewport divided by the character cell              |
+| `fontviewer`       | virtualization: `ListVisibleRange` needs the viewport height before arrange   |
+| `particles`        | particle field is simulated in pixel space                                    |
+| `solitaire`        | cards, status bar and win overlay at absolute positions                       |
+| `2048` (landing)   | backdrop tiles at computed pixel coordinates                                  |
+| `snake` (landing)  | same, plus a backdrop sized `ww-64` × `wh-88`                                 |
+| `animation_stress` | random spawn and retarget coordinates                                         |
 
 **`calculator` is the one that failed.** It was converted, measured, and
-reverted: with the inner column set to `FillFill`, a probe read the
-child as **0×0** against an 800×600 root. `Canvas` "does not arrange or
-layout its content" (`gui/view_container.go:454`), so a Fill child of a
-Canvas has nothing to fill against. The revert is the finding, and the
-comment at the call site now records it.
+reverted: with the inner column set to `FillFill`, a probe read the child as
+**0×0** against an 800×600 root. `Canvas` "does not arrange or layout its
+content" (`gui/view_container.go:454`), so a Fill child of a Canvas has nothing
+to fill against. The revert is the finding, and the comment at the call site now
+records it.
 
-Verification is by probe, not by absence of panic. Renders at 800×600
-confirmed the converted view roots fill exactly 800×600 (`markdown`,
-`context_menu`, `dock_layout`, `scroll_demo` — covering a scrollable
-root and a non-`ContainerCfg` root), that `todo`'s card resolves to
-773×573 inside the page's 12px padding and 1.5px border, and that
-`listbox`'s list still gets a real height (534.6) from Fill rather than
-from `wh - 70`.
+Verification is by probe, not by absence of panic. Renders at 800×600 confirmed
+the converted view roots fill exactly 800×600 (`markdown`, `context_menu`,
+`dock_layout`, `scroll_demo` — covering a scrollable root and a
+non-`ContainerCfg` root), that `todo`'s card resolves to 773×573 inside the
+page's 12px padding and 1.5px border, and that `listbox`'s list still gets a
+real height (534.6) from Fill rather than from `wh - 70`.
 
-**Test conversion.** Three examples moved from `TestMainViewNoPanic` to
-state assertions: `key_up_demo` (one `TestKey` moves both the down and
-up counters, which a no-panic render cannot distinguish), `todo`
-(`TestType` + `TestClick` grows the list, clears the draft; a second
-test deletes by generated per-item ID), and `dialogs` (clicking
-`dlg_message` puts the dialog overlay in the tree).
+**Test conversion.** Three examples moved from `TestMainViewNoPanic` to state
+assertions: `key_up_demo` (one `TestKey` moves both the down and up counters,
+which a no-panic render cannot distinguish), `todo` (`TestType` + `TestClick`
+grows the list, clears the draft; a second test deletes by generated per-item
+ID), and `dialogs` (clicking `dlg_message` puts the dialog overlay in the tree).
 
 `scroll_demo` was attempted and abandoned: `TestScroll` returns
-`ErrTestUnhandled` because with a nil `TextMeasurer` the content does
-not overflow, so there is nothing to scroll. Scroll assertions need a
-container whose overflow does not depend on measured text.
+`ErrTestUnhandled` because with a nil `TextMeasurer` the content does not
+overflow, so there is nothing to scroll. Scroll assertions need a container
+whose overflow does not depend on measured text.
 
-**Resolved (v0.55.1, §4.8.2).** Both blockers are fixed and
-`scroll_demo` now carries the two state assertions it was meant to
-have.
+**Resolved (v0.55.1, §4.8.2).** Both blockers are fixed and `scroll_demo` now
+carries the two state assertions it was meant to have.
 
 **Found, not fixed:** `examples/scroll_demo/main.go:111` gives all five
-percentage buttons the same ID, `"scroll_demo_pct_button"`. IDs must be
-unique per window; this is a §4.2-class defect, out of scope for a
-sizing audit, and it makes those buttons untargetable by ID from a test.
+percentage buttons the same ID, `"scroll_demo_pct_button"`. IDs must be unique
+per window; this is a §4.2-class defect, out of scope for a sizing audit, and it
+makes those buttons untargetable by ID from a test.
 
 #### 4.8.2 The headless-overflow gap, as closed
 
-The diagnosis in the paragraph above was right about the symptom and
-wrong about the mechanism. Text is _not_ zero-sized without a
-`TextMeasurer`: `Window.TextWidth` falls back to `0.6em` per rune and
-`view_text.go` seeds a `1.4em` height, so a single-line label has a
-plausible size headlessly. What is missing is the second pass.
-`layoutPlainText` recomputes height after sizing — that is where a
-wrapped paragraph learns it is 40 lines tall — and it returned
-immediately when `w.textMeasurer == nil`. Wrapped text therefore kept
-its **one-line seed** no matter how much text it held. Measured on a
-1000-rune paragraph in a 200×100 container: content height 22.4 against
-a 77px viewport, so no overflow, so no scroll.
+The diagnosis in the paragraph above was right about the symptom and wrong about
+the mechanism. Text is _not_ zero-sized without a `TextMeasurer`:
+`Window.TextWidth` falls back to `0.6em` per rune and `view_text.go` seeds a
+`1.4em` height, so a single-line label has a plausible size headlessly. What is
+missing is the second pass. `layoutPlainText` recomputes height after sizing —
+that is where a wrapped paragraph learns it is 40 lines tall — and it returned
+immediately when `w.textMeasurer == nil`. Wrapped text therefore kept its
+**one-line seed** no matter how much text it held. Measured on a 1000-rune
+paragraph in a 200×100 container: content height 22.4 against a 77px viewport,
+so no overflow, so no scroll.
 
 Two changes:
 
-**`plainTextHeightNoMeasurer` (`gui/text_layout.go`)** estimates the
-wrapped height from the same per-rune approximation the width fallback
-already uses: hard lines split on `\n`, each divided by the resolved
-width, times a shared `fallbackLineHeight`. The same paragraph now
-measures 1232px and the container overflows. It is an estimate of an
-estimate — right for "does this overflow", wrong for any pixel
-assertion, which is already `NewTestWindow`'s documented contract. It
-walks the string with `strings.IndexByte` rather than `strings.Split`,
-because this runs once per text shape inside the layout walk and a
-`Split` would heap-allocate on every one.
+**`plainTextHeightNoMeasurer` (`gui/text_layout.go`)** estimates the wrapped
+height from the same per-rune approximation the width fallback already uses:
+hard lines split on `\n`, each divided by the resolved width, times a shared
+`fallbackLineHeight`. The same paragraph now measures 1232px and the container
+overflows. It is an estimate of an estimate — right for "does this overflow",
+wrong for any pixel assertion, which is already `NewTestWindow`'s documented
+contract. It walks the string with `strings.IndexByte` rather than
+`strings.Split`, because this runs once per text shape inside the layout walk
+and a `Split` would heap-allocate on every one.
 
-**`ErrTestNoScrollRoom` (`gui/testing.go`)** is the diagnostic half.
-Even with the estimate, a fixture whose content genuinely fits still
-failed with a bare `ErrTestUnhandled`, which reads as "some widget
-swallowed your event". The two conditions call for opposite fixes — one
-says the fixture has nothing to scroll, the other says the container is
-real but already pinned at its limit — so they are now separate errors,
-and the message carries the content and viewport sizes that decided it.
-Room is measured exactly as `layoutAdjustScrollOffsets` clamps, so the
-error cannot disagree with the clamp that swallowed the scroll.
+**`ErrTestNoScrollRoom` (`gui/testing.go`)** is the diagnostic half. Even with
+the estimate, a fixture whose content genuinely fits still failed with a bare
+`ErrTestUnhandled`, which reads as "some widget swallowed your event". The two
+conditions call for opposite fixes — one says the fixture has nothing to scroll,
+the other says the container is real but already pinned at its limit — so they
+are now separate errors, and the message carries the content and viewport sizes
+that decided it. Room is measured exactly as `layoutAdjustScrollOffsets` clamps,
+so the error cannot disagree with the clamp that swallowed the scroll.
 
 Verified in both directions: the wrapped-text scroll test fails with
-`ErrTestUnhandled` before the estimate and passes after, and the
-existing `TestTestScrollClampsAtEnd` still gets `ErrTestUnhandled` at
-the limit rather than the new error. Full suite green, no benchmark
-movement — `plainTextNeedsGlyphLayout` gates the new path behind
-non-single-line text, which the hot-path benchmarks do not use.
+`ErrTestUnhandled` before the estimate and passes after, and the existing
+`TestTestScrollClampsAtEnd` still gets `ErrTestUnhandled` at the limit rather
+than the new error. Full suite green, no benchmark movement —
+`plainTextNeedsGlyphLayout` gates the new path behind non-single-line text,
+which the hot-path benchmarks do not use.
 
 ### 4.9 Close the `Scrollable`/ID hole alongside focus
 
-Same defect class as §4.2, found by the same audit. Scroll offsets are
-keyed by `Shape.ID` (`gui/layout_position.go:71-75`):
+Same defect class as §4.2, found by the same audit. Scroll offsets are keyed by
+`Shape.ID` (`gui/layout_position.go:71-75`):
 
 ```go
 if v, ok := sx.Get(layout.Shape.ID); ok { x += v }
 ```
 
-An empty ID is a valid map key, so **every ID-less scrollable in a
-window shares the key `""`** and they scroll in lockstep. That is worse
-than the focus hole: focus without an ID is inert, but scroll without an
-ID is cross-widget state bleed.
+An empty ID is a valid map key, so **every ID-less scrollable in a window shares
+the key `""`** and they scroll in lockstep. That is worse than the focus hole:
+focus without an ID is inert, but scroll without an ID is cross-widget state
+bleed.
 
 Current coverage of the 7 `Cfg`s exposing `Scrollable bool`:
 
-| Guard                    | Cfgs                                       |
-| ------------------------ | ------------------------------------------ |
-| `gui:"required"` tag     | Combobox, CommandPalette, ListBox, Table,  |
-|                          | Tree                                       |
-| `RequireScrollID` only   | Container (`gui/view_container.go:342`)    |
-| **none**                 | **Input**                                  |
+| Guard                  | Cfgs                                      |
+| ---------------------- | ----------------------------------------- |
+| `gui:"required"` tag   | Combobox, CommandPalette, ListBox, Table, |
+|                        | Tree                                      |
+| `RequireScrollID` only | Container (`gui/view_container.go:342`)   |
+| **none**               | **Input**                                 |
 
 `RequireScrollID` (`gui/state_registry.go:143`) is **not** dead the way
-`RequireFocusID` was — it has exactly one caller. So finish wiring it
-rather than deleting it. The analyzer has zero `Scrollable` references.
+`RequireFocusID` was — it has exactly one caller. So finish wiring it rather
+than deleting it. The analyzer has zero `Scrollable` references.
 
-**Correction (2026-08-07, phase 1).** An earlier draft claimed one live
-defect here: "`gui/view_select.go:145` builds the dropdown container
-with `Scrollable: true` and no ID." That is **false**, and it was false
-at this spec's own base commit. The literal sets
-`ID: dropdownScrollID` (= `cfg.ID + ".dropdown"`) at line 130;
-`Scrollable: true` sits fifteen lines below it at line 145, and the
-original reading took the second line without the first.
+**Correction (2026-08-07, phase 1).** An earlier draft claimed one live defect
+here: "`gui/view_select.go:145` builds the dropdown container with
+`Scrollable: true` and no ID." That is **false**, and it was false at this
+spec's own base commit. The literal sets `ID: dropdownScrollID` (=
+`cfg.ID + ".dropdown"`) at line 130; `Scrollable: true` sits fifteen lines below
+it at line 145, and the original reading took the second line without the first.
 
-Re-checked every `Scrollable: true` literal in `gui/` — command
-palette, inspector, table, theme picker, select, datagrid body — and
-**all six already carry an ID**. There are zero live scroll defects.
-The rest of this section still stands as a guard: the contract is
-unenforced even though nothing currently violates it.
+Re-checked every `Scrollable: true` literal in `gui/` — command palette,
+inspector, table, theme picker, select, datagrid body — and **all six already
+carry an ID**. There are zero live scroll defects. The rest of this section
+still stands as a guard: the contract is unenforced even though nothing
+currently violates it.
 
 Proposed, all additive except the tag:
 
-- Tag `ID` on `ContainerCfg` and `InputCfg`; wire `RequireScrollID`
-  into `Input`.
+- Tag `ID` on `ContainerCfg` and `InputCfg`; wire `RequireScrollID` into
+  `Input`.
 - Add a `checkScrollableID` rule to `tools/requiredid`, mirroring
   `checkFocusableID` — same shape, small diff.
-- Add the `Scrollable && ID == ""` check to the §4.1 debug gate, which
-  catches internal shapes the analyzer never sees.
-Phase 1, alongside the focus work: same mechanism, same audit. Note
-that this is now purely preventive — see the correction above.
+- Add the `Scrollable && ID == ""` check to the §4.1 debug gate, which catches
+  internal shapes the analyzer never sees. Phase 1, alongside the focus work:
+  same mechanism, same audit. Note that this is now purely preventive — see the
+  correction above.
 
-`ContainerCfg` is the only type that is both opt-in-focusable and
-scrollable (`Focusable` :97, `Scrollable` :102, `ID` :67). With §4.2's
-opt-in collapse cut, that is unremarkable: both concerns key off the
-same `ID` field, `checkScrollableID` needs to know nothing about focus,
-and nothing here carries into phase 4.
+`ContainerCfg` is the only type that is both opt-in-focusable and scrollable
+(`Focusable` :97, `Scrollable` :102, `ID` :67). With §4.2's opt-in collapse cut,
+that is unremarkable: both concerns key off the same `ID` field,
+`checkScrollableID` needs to know nothing about focus, and nothing here carries
+into phase 4.
 
 ## 5. Rejected
 
 ### 5.1 Positional auto-generated IDs
 
-Proposed as "derive stable IDs from tree position at layout time, like
-React keys; explicit `ID` becomes an override." **Reject.**
+Proposed as "derive stable IDs from tree position at layout time, like React
+keys; explicit `ID` becomes an override." **Reject.**
 
-IDs are not merely focus tokens — they are the identity key for all
-cross-frame widget state. 242 `StateMap[string, …]` sites key off
-`Shape.ID`: scroll offsets (`gui/layout_position.go:71`), overflow
-counts (`gui/layout_overflow.go:59`), dropdown open state
-(`gui/layout_overflow.go:65`). Positional identity is stable only while
-tree structure is stable — and React needs explicit keys *because* that
-assumption fails on insert and reorder.
+IDs are not merely focus tokens — they are the identity key for all cross-frame
+widget state. 242 `StateMap[string, …]` sites key off `Shape.ID`: scroll offsets
+(`gui/layout_position.go:71`), overflow counts (`gui/layout_overflow.go:59`),
+dropdown open state (`gui/layout_overflow.go:65`). Positional identity is stable
+only while tree structure is stable — and React needs explicit keys _because_
+that assumption fails on insert and reorder.
 
-Concretely: insert a row at the top of a list and every row below
-inherits the previous occupant's scroll position and open-dropdown
-state. That trades a loud analyzer error for silent state corruption,
-contradicting the proposal's own "never a silent no-op" principle. §4.2
-addresses the real complaint without touching identity semantics.
+Concretely: insert a row at the top of a list and every row below inherits the
+previous occupant's scroll position and open-dropdown state. That trades a loud
+analyzer error for silent state corruption, contradicting the proposal's own
+"never a silent no-op" principle. §4.2 addresses the real complaint without
+touching identity semantics.
 
 ### 5.2 Variadic modifier helpers
 
-Proposed as `gui.Row(gui.Pad(8), gui.Gap(4), children...)`, claimed to
-allocate nothing at build time. **Reject — the claim is inverted.**
-Variadic interface parameters allocate a backing slice plus one boxing
-allocation per modifier, per widget, per frame. That is the functional-
-options allocation pattern the proposal claims to avoid. The view phase
-is already the sole per-frame allocator (pipeline, arrange, and render
-are zero-alloc), so this would worsen the one hot spot. Struct literals
-allocate nothing extra; keep them and add value constructors (§4.5).
+Proposed as `gui.Row(gui.Pad(8), gui.Gap(4), children...)`, claimed to allocate
+nothing at build time. **Reject — the claim is inverted.** Variadic interface
+parameters allocate a backing slice plus one boxing allocation per modifier, per
+widget, per frame. That is the functional- options allocation pattern the
+proposal claims to avoid. The view phase is already the sole per-frame allocator
+(pipeline, arrange, and render are zero-alloc), so this would worsen the one hot
+spot. Struct literals allocate nothing extra; keep them and add value
+constructors (§4.5).
 
 ### 5.3 `State[T]` returning an error instead of panicking
 
-Keep the panic. A window holding the wrong state type is a programmer
-error discoverable at first render, not a runtime condition worth
-threading through every view function. Improve the message instead —
-report the type held and the type requested (§4.1).
+Keep the panic. A window holding the wrong state type is a programmer error
+discoverable at first render, not a runtime condition worth threading through
+every view function. Improve the message instead — report the type held and the
+type requested (§4.1).
 
 ## 6. Sequencing
 
-| Phase | Contents                          | Breaking | Notes               |
-| ----- | --------------------------------- | -------- | ------------------- |
-| 1     | §4.1 gate, §4.2 delete + tag 9 +  | no\*     | closes 13 live      |
-|       | fix 12 a11y defects, §4.9 scroll  |          | defects; go-gui only|
-| 2     | §4.6 test API (incl. `TestTab`,   | no       | unblocks the rest;  |
-|       | `TestScroll`)                     |          | discharges Q6 gate  |
-| 3     | §4.4 `ColorSet`, §4.5 `Opt` rule  | no       | additive + fallback |
-| 4     | §4.3, §4.7, flat `Color*`         | **yes**  | sibling migration   |
-|       | removal (§4.4)                    |          |                     |
-| 5     | §4.8 example audit                | no       | 45 files            |
+| Phase | Contents                         | Breaking | Notes                |
+| ----- | -------------------------------- | -------- | -------------------- |
+| 1     | §4.1 gate, §4.2 delete + tag 9 + | no\*     | closes 13 live       |
+|       | fix 12 a11y defects, §4.9 scroll |          | defects; go-gui only |
+| 2     | §4.6 test API (incl. `TestTab`,  | no       | unblocks the rest;   |
+|       | `TestScroll`)                    |          | discharges Q6 gate   |
+| 3     | §4.4 `ColorSet`, §4.5 `Opt` rule | no       | additive + fallback  |
+| 4     | §4.3, §4.7, flat `Color*`        | **yes**  | sibling migration    |
+|       | removal (§4.4)                   |          |                      |
+| 5     | §4.8 example audit               | no       | 45 files             |
 
-**Versions — superseded, see the correction below.** The original plan:
-phases 1–3 are additive and ship as `v0.52.x` point releases, phase 4
-is the single breaking release **v0.53.0**, and phase 5 rides whatever
-follows.
+**Versions — superseded, see the correction below.** The original plan: phases
+1–3 are additive and ship as `v0.52.x` point releases, phase 4 is the single
+breaking release **v0.53.0**, and phase 5 rides whatever follows.
 
-**Correction (2026-08-07).** Phase 1 shipped as **v0.53.0** and it is
-breaking. Two errors above:
+**Correction (2026-08-07).** Phase 1 shipped as **v0.53.0** and it is breaking.
+Two errors above:
 
-1. **Phase 1 is not non-breaking.** The footnote below reasons only
-   about the `gui:"required"` tag being inert in a repo that does not
-   invoke the analyzer. That much is true and was verified. But §4.2
-   also wires `RequireID` into the same nine factories, and a panic in
-   `Button` is breaking whether or not anyone runs the tool. Measured
-   rather than argued: go-charts and go-map each had example code that
-   panics at runtime on a routine bump — 3 sites, exactly the count
-   §7 predicted, reached by a mechanism §6 said could not reach them.
+1. **Phase 1 is not non-breaking.** The footnote below reasons only about the
+   `gui:"required"` tag being inert in a repo that does not invoke the analyzer.
+   That much is true and was verified. But §4.2 also wires `RequireID` into the
+   same nine factories, and a panic in `Button` is breaking whether or not
+   anyone runs the tool. Measured rather than argued: go-charts and go-map each
+   had example code that panics at runtime on a routine bump — 3 sites, exactly
+   the count §7 predicted, reached by a mechanism §6 said could not reach them.
 2. **v0.53.0 is consumed.** Phase 4 needs **v0.54.0**.
 
 Revised: phase 1 = v0.53.0 (breaking, shipped). Phases 2–3 additive as
-`v0.53.x`. Phase 4 = v0.54.0, the second breaking release. Phase 5
-rides whatever follows.
+`v0.53.x`. Phase 4 = v0.54.0, the second breaking release. Phase 5 rides
+whatever follows.
 
-The two breaking releases are not a regression against "one breaking
-release": phase 1's break is a runtime panic on a config that was
-already broken, and phase 4's is a compile-time signature change.
-Bundling them would have delayed the a11y fix behind the event
-refactor.
+The two breaking releases are not a regression against "one breaking release":
+phase 1's break is a runtime panic on a config that was already broken, and
+phase 4's is a compile-time signature change. Bundling them would have delayed
+the a11y fix behind the event refactor.
 
-§4.6 moves ahead of the cosmetic work deliberately: a color-set
-refactor (§4.4) and an event-model change (§4.3) both alter behavior
-that apps currently cannot assert on. Landing the test API first means
-the later phases ship with regression coverage instead of hoping the
-examples still look right.
+§4.6 moves ahead of the cosmetic work deliberately: a color-set refactor (§4.4)
+and an event-model change (§4.3) both alter behavior that apps currently cannot
+assert on. Landing the test API first means the later phases ship with
+regression coverage instead of hoping the examples still look right.
 
-\* **Wrong — see the correction above.** Retained because the reasoning
-about the analyzer is sound and worth keeping; the conclusion it feeds
-is not. Phase 1 is non-breaking **for consumers**. It removes one exported
-symbol with zero call sites anywhere (pre-1.0, no compatibility promise
-below v1), and adding `gui:"required"` to the 9 `Cfg`s breaks only
-go-gui's own callers — 111 of them, all in this repo's tests and
-examples, surfaced by `requiredid` in CI rather than at runtime. The 3
-sibling sites wait for phase 4 with the rest of the migration.
+\* **Wrong — see the correction above.** Retained because the reasoning about
+the analyzer is sound and worth keeping; the conclusion it feeds is not. Phase 1
+is non-breaking **for consumers**. It removes one exported symbol with zero call
+sites anywhere (pre-1.0, no compatibility promise below v1), and adding
+`gui:"required"` to the 9 `Cfg`s breaks only go-gui's own callers — 111 of them,
+all in this repo's tests and examples, surfaced by `requiredid` in CI rather
+than at runtime. The 3 sibling sites wait for phase 4 with the rest of the
+migration.
 
-That last claim depends on siblings not running the analyzer, so it was
-checked rather than assumed. `requiredid` is not a `go vet` plugin
-registered by importing go-gui; it is a standalone binary invoked
-explicitly (`Makefile:104` and `.github/workflows/ci.yml:155` both run
-`go run ./tools/requiredid/cmd/requiredid ./...`). All five siblings run
-plain `go vet ./...`, which does not load it. Tagging the 9 `Cfg`s
-therefore cannot red a sibling's CI on a routine version bump — the
-tags are inert in any repo that does not invoke the tool. If a sibling
-later adopts `requiredid`, it adopts the backlog at that moment by
-choice.
+That last claim depends on siblings not running the analyzer, so it was checked
+rather than assumed. `requiredid` is not a `go vet` plugin registered by
+importing go-gui; it is a standalone binary invoked explicitly (`Makefile:104`
+and `.github/workflows/ci.yml:155` both run
+`go run ./tools/requiredid/cmd/requiredid ./...`). All five siblings run plain
+`go vet ./...`, which does not load it. Tagging the 9 `Cfg`s therefore cannot
+red a sibling's CI on a routine version bump — the tags are inert in any repo
+that does not invoke the tool. If a sibling later adopts `requiredid`, it adopts
+the backlog at that moment by choice.
 
-Phase 4 must be a single release. Three breaking event refactors in
-consecutive versions is worse for consumers than one larger one.
+Phase 4 must be a single release. Three breaking event refactors in consecutive
+versions is worse for consumers than one larger one.
 
 ### 6.1 Progress
 
-Phase 1 ships as a series of PRs rather than one, so the 111 mechanical
-`ID` insertions land isolated from the hand-written changes instead of
-burying them in the same diff.
+Phase 1 ships as a series of PRs rather than one, so the 111 mechanical `ID`
+insertions land isolated from the hand-written changes instead of burying them
+in the same diff.
 
-| Phase | Item                                     | Status |
-| ----- | ---------------------------------------- | ------ |
-| 1     | §4.1 `gui.Debug` gate                    | done   |
-| 1     | §4.2 delete `RequireFocusID`             | done   |
-| 1     | §5.3 `State[T]` panic message            | done   |
-| 1     | §8 `ergoaudit -fix` codemod              | done   |
-| 1     | §4.2 fix 12 first-party a11y defects     | done   |
-| 1     | §4.9 `Select` scroll defect              | n/a — did not exist |
-| 1     | §4.2 tag 9 `Cfg`s + wire `RequireID`     | done   |
-| 1     | §8 run the codemod over the 111 literals | done   |
-| 1     | §8 README: running `requiredid` (Q8)     | done   |
-| 1     | §4.9 tag `Container`, wire scroll guard  | n/a — see below |
-| 1     | §4.9 `checkScrollableID` analyzer rule   | done   |
-| 1     | §4.1 `OnMouseLeave` gate check           | done   |
-| 2     | §4.6 test API in package `gui`           | done   |
-| 2     | Q6 nested-scroll gate written as a test  | done   |
-| 3     | §4.4 `ColorSet` + `Flat`, on `ButtonCfg` | done   |
-| 3     | §4.5 `Opt` rule documented in `CLAUDE.md` | done  |
-| 3     | §4.5 audit of the existing `Opt` fields  | done   |
-| 3     | §4.5 `PadAll` / `PadXY` shorthands       | n/a — already exist |
-| 4     | §4.7 `RTFCfg` + datagrid builder renames | done   |
-| 4     | §4.4 `ColorSet` on six `Cfg`s, flat state fields deleted | done |
-| 4     | §4.3 callback signature conversion       | done   |
-| 4     | §4.3b event-model collapse               | done — see §4.3.4 |
-| 5     | §4.8 example audit                       | done — see §4.8.1 |
-| 5     | §4.8 headless-overflow gap               | done — see §4.8.2 |
+| Phase | Item                                                     | Status              |
+| ----- | -------------------------------------------------------- | ------------------- |
+| 1     | §4.1 `gui.Debug` gate                                    | done                |
+| 1     | §4.2 delete `RequireFocusID`                             | done                |
+| 1     | §5.3 `State[T]` panic message                            | done                |
+| 1     | §8 `ergoaudit -fix` codemod                              | done                |
+| 1     | §4.2 fix 12 first-party a11y defects                     | done                |
+| 1     | §4.9 `Select` scroll defect                              | n/a — did not exist |
+| 1     | §4.2 tag 9 `Cfg`s + wire `RequireID`                     | done                |
+| 1     | §8 run the codemod over the 111 literals                 | done                |
+| 1     | §8 README: running `requiredid` (Q8)                     | done                |
+| 1     | §4.9 tag `Container`, wire scroll guard                  | n/a — see below     |
+| 1     | §4.9 `checkScrollableID` analyzer rule                   | done                |
+| 1     | §4.1 `OnMouseLeave` gate check                           | done                |
+| 2     | §4.6 test API in package `gui`                           | done                |
+| 2     | Q6 nested-scroll gate written as a test                  | done                |
+| 3     | §4.4 `ColorSet` + `Flat`, on `ButtonCfg`                 | done                |
+| 3     | §4.5 `Opt` rule documented in `CLAUDE.md`                | done                |
+| 3     | §4.5 audit of the existing `Opt` fields                  | done                |
+| 3     | §4.5 `PadAll` / `PadXY` shorthands                       | n/a — already exist |
+| 4     | §4.7 `RTFCfg` + datagrid builder renames                 | done                |
+| 4     | §4.4 `ColorSet` on six `Cfg`s, flat state fields deleted | done                |
+| 4     | §4.3 callback signature conversion                       | done                |
+| 4     | §4.3b event-model collapse                               | done — see §4.3.4   |
+| 5     | §4.8 example audit                                       | done — see §4.8.1   |
+| 5     | §4.8 headless-overflow gap                               | done — see §4.8.2   |
 
 Two corrections to §4.2 arising from the implementation.
 
-**The guard is scoped, not unconditional.** §4.2 says to wire
-`RequireID` into the nine factories. Wiring it unconditionally panics
-on legitimate code: `FocusDisabled: true` is the documented opt-out for
-a decorative control, and there is a live one — the date picker's blank
-out-of-month cell — plus test cases that exercise the opt-out. The tag
-gained an option, `gui:"required,focus"`, and the runtime guard an
-unexported `requireFocusID` that honours the same exemption. This is
-the predicate the deleted `RequireFocusID` encoded, inverted for the
-default-on convention; keeping it at the call site rather than behind
-an export makes the condition visible where it applies.
+**The guard is scoped, not unconditional.** §4.2 says to wire `RequireID` into
+the nine factories. Wiring it unconditionally panics on legitimate code:
+`FocusDisabled: true` is the documented opt-out for a decorative control, and
+there is a live one — the date picker's blank out-of-month cell — plus test
+cases that exercise the opt-out. The tag gained an option,
+`gui:"required,focus"`, and the runtime guard an unexported `requireFocusID`
+that honours the same exemption. This is the predicate the deleted
+`RequireFocusID` encoded, inverted for the default-on convention; keeping it at
+the call site rather than behind an export makes the condition visible where it
+applies.
 
-**`ID` is not only a focus key.** §4.2 frames a missing `ID` as a focus
-defect, but `layout_pipeline.go` also skips `OnMouseLeave` dispatch on
-an empty `ID`, with no `Focusable` precondition. A `FocusDisabled`
-control carrying an `OnMouseLeave` is therefore still silently broken,
-and neither `ergoaudit -mode focus` nor the §4.1 gate looks for it.
-Added to the table above as a §4.1 check rather than widening the
-runtime guard, since the opt-out is otherwise correct.
+**`ID` is not only a focus key.** §4.2 frames a missing `ID` as a focus defect,
+but `layout_pipeline.go` also skips `OnMouseLeave` dispatch on an empty `ID`,
+with no `Focusable` precondition. A `FocusDisabled` control carrying an
+`OnMouseLeave` is therefore still silently broken, and neither
+`ergoaudit -mode focus` nor the §4.1 gate looks for it. Added to the table above
+as a §4.1 check rather than widening the runtime guard, since the opt-out is
+otherwise correct.
 
-**§4.9's tag is struck, not deferred.** Two of its three items do not
-apply as written. The runtime guard already exists —
-`RequireScrollID("container", cfg.Scrollable, cfg.ID)` has been wired
-in `buildContainerShape` all along; `ergoaudit` listed `ContainerCfg`
-as unguarded because it judges by tag, not by call site. And tagging
-`ContainerCfg.ID` would be wrong: most containers legitimately have no
-ID, so a `required` tag on a normally-absent field inverts the default
-and flags the common case. The rule is conditional on
-`Scrollable: true`, which is exactly how `checkFocusableID` already
-handles `Focusable: true` — keyed on the field in the literal, no tag.
+**§4.9's tag is struck, not deferred.** Two of its three items do not apply as
+written. The runtime guard already exists —
+`RequireScrollID("container", cfg.Scrollable, cfg.ID)` has been wired in
+`buildContainerShape` all along; `ergoaudit` listed `ContainerCfg` as unguarded
+because it judges by tag, not by call site. And tagging `ContainerCfg.ID` would
+be wrong: most containers legitimately have no ID, so a `required` tag on a
+normally-absent field inverts the default and flags the common case. The rule is
+conditional on `Scrollable: true`, which is exactly how `checkFocusableID`
+already handles `Focusable: true` — keyed on the field in the literal, no tag.
 So §4.9 reduces to the analyzer rule, which is what shipped.
 
-`InputCfg` also dropped out of the scrollable gap on its own: phase 1
-made its `ID` unconditionally required, which subsumes the scroll case.
-`ContainerCfg` was the only remaining entry.
+`InputCfg` also dropped out of the scrollable gap on its own: phase 1 made its
+`ID` unconditionally required, which subsumes the scroll case. `ContainerCfg`
+was the only remaining entry.
 
 **Codemod scope note.** The 111 figure included one false positive:
-`CommandButton(cmdID, ButtonCfg{})` fills the `ID` in itself, so the
-empty `ID` at that call site is fine. `ergoaudit` no longer counts a
-literal passed to a factory other than its own, matching what
-`requiredid` and the runtime guard already did.
+`CommandButton(cmdID, ButtonCfg{})` fills the `ID` in itself, so the empty `ID`
+at that call site is fine. `ergoaudit` no longer counts a literal passed to a
+factory other than its own, matching what `requiredid` and the runtime guard
+already did.
 
 ## 7. Sibling impact
 
-All five siblings pin `go-gui v0.52.0`; `main` is v0.52.1, so these
-counts reflect the current API. Measured with `go/ast` walks over each
-repo (`scratchpad/siblingimpact.go`).
+All five siblings pin `go-gui v0.52.0`; `main` is v0.52.1, so these counts
+reflect the current API. Measured with `go/ast` walks over each repo
+(`scratchpad/siblingimpact.go`).
 
-| Item                       | Forced sibling edits         |
-| -------------------------- | ---------------------------- |
-| §4.2 default-on `ID`       | 3 (go-charts 1, go-map 2)    |
-| §4.3a finish `EventCtx`    | **0**                        |
-| §4.3b delete `Bubble()`    | 7 (go-edit 5, go-term 2)     |
-| §4.7 `RTF` rename          | **0** — no sibling uses it   |
-| §4.7 datagrid builders     | **0** — no sibling reference |
-| §4.4 `ColorSet` (phase 3)  | 0 — additive with fallback   |
-| §4.4 drop 5 state colors   | 8 (go-charts 8)              |
-| §4.6 test API              | 0 — purely additive          |
-| **Total**                  | **18 call sites**            |
+| Item                      | Forced sibling edits         |
+| ------------------------- | ---------------------------- |
+| §4.2 default-on `ID`      | 3 (go-charts 1, go-map 2)    |
+| §4.3a finish `EventCtx`   | **0**                        |
+| §4.3b delete `Bubble()`   | 7 (go-edit 5, go-term 2)     |
+| §4.7 `RTF` rename         | **0** — no sibling uses it   |
+| §4.7 datagrid builders    | **0** — no sibling reference |
+| §4.4 `ColorSet` (phase 3) | 0 — additive with fallback   |
+| §4.4 drop 5 state colors  | 8 (go-charts 8)              |
+| §4.6 test API             | 0 — purely additive          |
+| **Total**                 | **18 call sites**            |
 
-Eighteen edits across five repos, all mechanical. The cost of the whole
-breaking release is smaller than the cost of one of its parts was
-assumed to be.
+Eighteen edits across five repos, all mechanical. The cost of the whole breaking
+release is smaller than the cost of one of its parts was assumed to be.
 
-Two rows moved after review. The `ColorSet` row was `0` until the
-flat-field deletion was scheduled (§4.4); an additive-only reading
-scored it zero and quietly deferred the real number — `Color` is
-retained, so only the five state fields count. The `gui.Focus` row was
-11 until §4.2's opt-in collapse was cut; those 11 sites are correct as
-written today and now require no edit at all. **Only 3 of the remaining
-18 come from §4.2**, and none of those 3 is a breaking API change —
-they are IDs that should have been supplied anyway.
+Two rows moved after review. The `ColorSet` row was `0` until the flat-field
+deletion was scheduled (§4.4); an additive-only reading scored it zero and
+quietly deferred the real number — `Color` is retained, so only the five state
+fields count. The `gui.Focus` row was 11 until §4.2's opt-in collapse was cut;
+those 11 sites are correct as written today and now require no edit at all.
+**Only 3 of the remaining 18 come from §4.2**, and none of those 3 is a breaking
+API change — they are IDs that should have been supplied anyway.
 
 ### 7.1 How the §4.3 boundary was measured
 
-§4.3 states the conclusion; this is the derivation. A naive count finds
-38 `*Window`-tailed callback literals in the siblings. None is forced
-work:
+§4.3 states the conclusion; this is the derivation. A naive count finds 38
+`*Window`-tailed callback literals in the siblings. None is forced work:
 
-| Category                              | Sites | Verdict           |
-| ------------------------------------- | ----- | ----------------- |
-| `OnInit` (`WindowCfg` lifecycle)      | 13    | keep `*Window`    |
-| `OnDone` / `OnValue` (anim, dialog)   | 12    | keep `*Window`    |
-| go-map's own `OnClick`                | 10    | not go-gui's API  |
-| go-edit's own `OnFileDrop`            | 3     | not go-gui's API  |
+| Category                            | Sites | Verdict          |
+| ----------------------------------- | ----- | ---------------- |
+| `OnInit` (`WindowCfg` lifecycle)    | 13    | keep `*Window`   |
+| `OnDone` / `OnValue` (anim, dialog) | 12    | keep `*Window`   |
+| go-map's own `OnClick`              | 10    | not go-gui's API |
+| go-edit's own `OnFileDrop`          | 3     | not go-gui's API |
 
-The last two are sibling-defined fields that merely mirror go-gui's
-older convention — `go-map/mapview/overlay.go:104` declares
+The last two are sibling-defined fields that merely mirror go-gui's older
+convention — `go-map/mapview/overlay.go:104` declares
 `OnClick func(*gui.Window)`, and `go-edit/edit/editor.go:53` declares
-`OnFileDrop func(path string, w *gui.Window)`. Renaming go-gui's
-signatures does not touch them. They become *stylistically* out of step,
-which is a follow-suit invitation, not a migration.
+`OnFileDrop func(path string, w *gui.Window)`. Renaming go-gui's signatures does
+not touch them. They become _stylistically_ out of step, which is a follow-suit
+invitation, not a migration.
 
-The first two categories are what drove the §4.3 scope correction: they
-are go-gui's own callbacks, and they legitimately have no event to
-carry. §4.3 now lists the 14 excluded signatures directly.
+The first two categories are what drove the §4.3 scope correction: they are
+go-gui's own callbacks, and they legitimately have no event to carry. §4.3 now
+lists the 14 excluded signatures directly.
 
 ### 7.2 The §4.3b risk is silent, not loud
 
-Deleting `Bubble()` breaks 7 sites loudly — a compile error the
-consumer cannot miss. That is the safe part.
+Deleting `Bubble()` breaks 7 sites loudly — a compile error the consumer cannot
+miss. That is the safe part.
 
-The unsafe part is unmeasurable by counting: under the one-rule
-collapse, a consume-class handler that relied on dispatch's automatic
-handled-marking and never called `Consume()` will start bubbling. That
-is a **behavior change with no compile error**. Siblings already call
-`Consume()` 71 times, so the idiom is well established, but any handler
-that omitted it because the auto-mark made it unnecessary changes
-meaning silently.
+The unsafe part is unmeasurable by counting: under the one-rule collapse, a
+consume-class handler that relied on dispatch's automatic handled-marking and
+never called `Consume()` will start bubbling. That is a **behavior change with
+no compile error**. Siblings already call `Consume()` 71 times, so the idiom is
+well established, but any handler that omitted it because the auto-mark made it
+unnecessary changes meaning silently.
 
-This is the strongest argument for landing §4.6's test API first
-(phase 2): event-propagation regressions are precisely what an app-level
-test can catch and a compiler cannot.
+This is the strongest argument for landing §4.6's test API first (phase 2):
+event-propagation regressions are precisely what an app-level test can catch and
+a compiler cannot.
 
-**Resolved (v0.55.0, §4.3.4).** The argument held, and the test API paid
-for itself: of the five go-gui handlers the collapse actually broke, the
-suite caught two on the first run. The silent class turned out to be
-smaller and more specific than "any handler that omitted `Consume()`" —
-it is the **empty** handler, whose only function was to trigger the
-pre-mark. Four of the five were empty bodies.
+**Resolved (v0.55.0, §4.3.4).** The argument held, and the test API paid for
+itself: of the five go-gui handlers the collapse actually broke, the suite
+caught two on the first run. The silent class turned out to be smaller and more
+specific than "any handler that omitted `Consume()`" — it is the **empty**
+handler, whose only function was to trigger the pre-mark. Four of the five were
+empty bodies.
 
 ### 7.3 Reproducing these counts
 
@@ -1566,70 +1487,65 @@ go run ./tools/ergoaudit/ -mode focus     -gui . . ../go-charts ../go-edit ../go
 go run ./tools/ergoaudit/ -mode callbacks -gui . . ../go-charts ../go-edit ../go-kite ../go-term ../go-map
 ```
 
-or `make ergo-audit` for the go-gui-only run. Mode `focus` **derives**
-the unguarded `Cfg` set from the source instead of hardcoding it, so the
-numbers track the code — and the per-file scan that once misreported
-`ListBoxCfg` cannot recur.
+or `make ergo-audit` for the go-gui-only run. Mode `focus` **derives** the
+unguarded `Cfg` set from the source instead of hardcoding it, so the numbers
+track the code — and the per-file scan that once misreported `ListBoxCfg` cannot
+recur.
 
 **Sibling figures published before 2026-08-08 are not reliable.** Mode
-`callbacks` counted any `OnX: func(..., *Window)` literal regardless of
-which module declared the field, so sibling numbers included the
-siblings' own callbacks. It now splits the two; only the "go-gui
-fields" figure is a migration cost. See §4.3.1 for that fix and two
-others in the same mode.
+`callbacks` counted any `OnX: func(..., *Window)` literal regardless of which
+module declared the field, so sibling numbers included the siblings' own
+callbacks. It now splits the two; only the "go-gui fields" figure is a migration
+cost. See §4.3.1 for that fix and two others in the same mode.
 
 ## 8. Doc deliverables
 
-- `README.md` — color-set and padding-shorthand examples, and a
-  "testing your app" section (§4.6)
+- `README.md` — color-set and padding-shorthand examples, and a "testing your
+  app" section (§4.6)
 - `CHANGELOG.md` — per phase
 - `CLAUDE.md` — event-model section rewritten for the single rule (§4.3)
 - `docs/specs/eventctx-callback-refactor.md` — mark superseded by §4.3
 - `docs/specs/idfocus-to-focusable.md` — decision 3 cites `RequireID`
-  enforcement for `Focusable: true`; amend to record that the runtime
-  guard was never wired up and is now deleted in favour of the analyzer
-  plus the debug gate (§4.2)
-- **Phase-4 migration guide** (new, `docs/migration-v0.53.md` or
-  similar). 18 sibling sites plus ~126 ID fills are mechanical, and
-  §7.2's silent half is not — a before/after for `Focus`, `Consume`,
-  and `ColorSet` is cheap insurance.
-- **`ergoaudit -fix`** (new, phase 1). Not "consider" — commit to it.
-  Phase 1 alone rewrites 111 internal literals to add `ID` fields, and
-  phase 4 adds ~15 more; that is a week
-  of mechanical edits done by hand, and hand-editing 111 literals is
-  how a typo'd ID reaches `main` looking like intent. The `go/ast`
+  enforcement for `Focusable: true`; amend to record that the runtime guard was
+  never wired up and is now deleted in favour of the analyzer plus the debug
+  gate (§4.2)
+- **Phase-4 migration guide** (new, `docs/migration-v0.53.md` or similar). 18
+  sibling sites plus ~126 ID fills are mechanical, and §7.2's silent half is not
+  — a before/after for `Focus`, `Consume`, and `ColorSet` is cheap insurance.
+- **`ergoaudit -fix`** (new, phase 1). Not "consider" — commit to it. Phase 1
+  alone rewrites 111 internal literals to add `ID` fields, and phase 4 adds ~15
+  more; that is a week of mechanical edits done by hand, and hand-editing 111
+  literals is how a typo'd ID reaches `main` looking like intent. The `go/ast`
   `CompositeLit` walk that finds them is already written and tested in
-  `tools/ergoaudit`, so `-fix` is an insertion pass on top of the
-  existing classifier, not a new tool. IDs derive from the enclosing
-  file and variable name and are **written into the source literal** —
-  this does not reopen §5.1, which rejects IDs *computed at runtime
-  from tree position*. A generated ID in the file is an ordinary ID
-  that a human can read, review, and edit; the rejected design has no
-  source-level existence and changes when a sibling is inserted. If the
-  codemod is worth shipping for siblings, it is worth running on the
-  111 first — where its output is reviewable in the same PR that adds
-  the tags.
-- **Two callback families, documented as intentional** (godoc +
-  `CLAUDE.md`). Event-driven takes `EventCtx`; lifecycle, animation,
-  and completion take `func(T…, *Window)`. Writing this down is what
-  stops the next reviewer reopening §4.3 as "unfinished `EventCtx`".
-- **How to run `requiredid` in your own build** (new, `README.md` plus
-  the phase-4 migration guide). Phase 1 is the release that makes
-  `gui:"required"` load-bearing, and it is enforcement only in repos
-  that invoke the analyzer — see §4.2. Give authors the one-line
-  invocation, the `go vet -vettool=` and golangci-lint plugin
-  alternatives, and one sentence on what they get without it: a
-  `RequireID` panic on first render rather than a build failure. This
-  is the cheapest item on the list and the one that decides whether the
-  §4.2 enforcement story is true for anyone but this repo.
+  `tools/ergoaudit`, so `-fix` is an insertion pass on top of the existing
+  classifier, not a new tool. IDs derive from the enclosing file and variable
+  name and are **written into the source literal** — this does not reopen §5.1,
+  which rejects IDs _computed at runtime from tree position_. A generated ID in
+  the file is an ordinary ID that a human can read, review, and edit; the
+  rejected design has no source-level existence and changes when a sibling is
+  inserted. If the codemod is worth shipping for siblings, it is worth running
+  on the 111 first — where its output is reviewable in the same PR that adds the
+  tags.
+- **Two callback families, documented as intentional** (godoc + `CLAUDE.md`).
+  Event-driven takes `EventCtx`; lifecycle, animation, and completion take
+  `func(T…, *Window)`. Writing this down is what stops the next reviewer
+  reopening §4.3 as "unfinished `EventCtx`".
+- **How to run `requiredid` in your own build** (new, `README.md` plus the
+  phase-4 migration guide). Phase 1 is the release that makes `gui:"required"`
+  load-bearing, and it is enforcement only in repos that invoke the analyzer —
+  see §4.2. Give authors the one-line invocation, the `go vet -vettool=` and
+  golangci-lint plugin alternatives, and one sentence on what they get without
+  it: a `RequireID` panic on first render rather than a build failure. This is
+  the cheapest item on the list and the one that decides whether the §4.2
+  enforcement story is true for anyone but this repo.
 - affected per-example `README.md` files
 
 ## 9. Open questions
 
-Two independent reviews agreed with every recommendation below, so Q1–Q7
-are decisions rather than questions. Q6 remains a **phase gate**: agreed
-in approach, but it must be discharged by work in phase 2 before phase 4
-can proceed. Q8 was resolved on 2026-08-07, before phase 1 shipped.
+Two independent reviews agreed with every recommendation below, so Q1–Q7 are
+decisions rather than questions. Q6 remains a **phase gate**: agreed in
+approach, but it must be discharged by work in phase 2 before phase 4 can
+proceed. Q8 was resolved on 2026-08-07, before phase 1 shipped.
 
 | #   | Topic                    | Decision                             |
 | --- | ------------------------ | ------------------------------------ |
@@ -1644,154 +1560,143 @@ can proceed. Q8 was resolved on 2026-08-07, before phase 1 shipped.
 
 Detail where the decision carries a constraint:
 
-1. **Test API in `gui`.** A `gui/guitest` subpackage cannot reach
-   `Shape.events` without exporting it, permanently widening the public
-   surface to serve testing. Four exported names in an
-   already-953-symbol package is the cheaper trade.
-2. **ID-targeting for v1.** Answers the state-transition question that
-   63 example tests cannot answer today. Hit-testing arrives later as a
-   separate `TestClickAt(x, y)` — never by changing `TestClick`'s
-   meaning, which would silently reinterpret existing tests.
-3. **Nested focus via an unexported `Shape` helper.** Compound widgets
-   that mark an internal child focusable get an internal path to
-   propagate an ID derived from the parent's, so `Cfg.ID` stays the
-   only public spelling.
-5. **~~`Opt[Color]` for `ColorSet`.~~ Reversed 2026-08-07 during
-   implementation — see §4.4.1.** The original reasoning was: "`Color`
-   has no reserved zero, so a plain field cannot distinguish 'unset,
-   inherit from `Base`' from 'deliberately transparent' — and fallback
-   is the entire point of the type." That premise is false against the
-   code. `Color` has carried its own `set` flag all along, so the
-   distinction exists without a wrapper and adding one would give the
-   field two competing notions of unset. Shipped as plain `Color`;
-   `Flat(c)` survives unchanged as the all-states shorthand.
-6. **Nested scroll is the one real risk.** Under the one-rule collapse a
-   nested scrollable that today relies on notify-class propagation to
-   hand an unconsumed scroll to its parent changes behavior with **no
-   compile error** — the silent class from §7.2. Discharge it by writing
-   the nested-scroll case as a test in phase 2, then changing the model
-   against it. That test is only writable if phase 2 ships `TestScroll`
-   and `TestScrollOffset` (§4.6) — without an offset read-back the case
-   can be injected but not asserted, and the gate cannot be discharged.
-   This is also why §4.9 belongs in phase 1: scroll-state keying and
-   scroll propagation should not both be in motion at once.
+1. **Test API in `gui`.** A `gui/guitest` subpackage cannot reach `Shape.events`
+   without exporting it, permanently widening the public surface to serve
+   testing. Four exported names in an already-953-symbol package is the cheaper
+   trade.
+2. **ID-targeting for v1.** Answers the state-transition question that 63
+   example tests cannot answer today. Hit-testing arrives later as a separate
+   `TestClickAt(x, y)` — never by changing `TestClick`'s meaning, which would
+   silently reinterpret existing tests.
+3. **Nested focus via an unexported `Shape` helper.** Compound widgets that mark
+   an internal child focusable get an internal path to propagate an ID derived
+   from the parent's, so `Cfg.ID` stays the only public spelling.
+4. **~~`Opt[Color]` for `ColorSet`.~~ Reversed 2026-08-07 during implementation
+   — see §4.4.1.** The original reasoning was: "`Color` has no reserved zero, so
+   a plain field cannot distinguish 'unset, inherit from `Base`' from
+   'deliberately transparent' — and fallback is the entire point of the type."
+   That premise is false against the code. `Color` has carried its own `set`
+   flag all along, so the distinction exists without a wrapper and adding one
+   would give the field two competing notions of unset. Shipped as plain
+   `Color`; `Flat(c)` survives unchanged as the all-states shorthand.
+5. **Nested scroll is the one real risk.** Under the one-rule collapse a nested
+   scrollable that today relies on notify-class propagation to hand an
+   unconsumed scroll to its parent changes behavior with **no compile error** —
+   the silent class from §7.2. Discharge it by writing the nested-scroll case as
+   a test in phase 2, then changing the model against it. That test is only
+   writable if phase 2 ships `TestScroll` and `TestScrollOffset` (§4.6) —
+   without an offset read-back the case can be injected but not asserted, and
+   the gate cannot be discharged. This is also why §4.9 belongs in phase 1:
+   scroll-state keying and scroll propagation should not both be in motion at
+   once.
 
-   **Written 2026-08-07** as `gui/scroll_nested_test.go`. The current
-   contract holds: an inner scrollable pinned at its limit declines the
-   scroll, and traversal unwinds to the enclosing container in the same
-   gesture. Verified to fire by mutation — forcing `IsHandled = true`
-   on a scrollable under the cursor reds
-   `TestNestedScrollCascadesToParentAtLimit` with a message naming Q6.
-   Phase 4 now has something concrete to break, and breaking it is a
-   decision that has to be argued here rather than a silent behavior
-   change.
+   **Written 2026-08-07** as `gui/scroll_nested_test.go`. The current contract
+   holds: an inner scrollable pinned at its limit declines the scroll, and
+   traversal unwinds to the enclosing container in the same gesture. Verified to
+   fire by mutation — forcing `IsHandled = true` on a scrollable under the
+   cursor reds `TestNestedScrollCascadesToParentAtLimit` with a message naming
+   Q6. Phase 4 now has something concrete to break, and breaking it is a
+   decision that has to be argued here rather than a silent behavior change.
 
-   One incidental finding: the cascade is not assertable after the
-   fact. Once the outer container scrolls, the inner one is carried out
-   of view and has no clip to aim a follow-up scroll at, so the test
-   must assert across the single gesture where the handoff happens.
-7. **v0.54.0** for the §4.3/§4.4/§4.7 breaking phase; phases 2–3 as
-   `v0.53.x`. Revised from the original "v0.53.0, one breaking
-   release" — phase 1 turned out to be breaking and consumed that
-   version. The 18 remaining sibling edits still land in one release;
-   see §6.
-8. **`requiredid` for app authors — resolved 2026-08-07: documented
-   only.** It stays a `tools/` binary that authors may invoke. The
-   README carries the one-line invocation and the `go vet -vettool=`
-   and golangci-lint alternatives, plus one sentence on what an author
-   gets without it: a `RequireID` panic on first render rather than a
-   build failure. The analyzer's rules stay free to tighten, because
-   nothing promises they will not. The consequence accepted with this
-   choice is that most consumers sit on the `RequireID`-panic path by
-   default, and §4.2's static-enforcement claim remains true for this
-   repo alone.
+   One incidental finding: the cascade is not assertable after the fact. Once
+   the outer container scrolls, the inner one is carried out of view and has no
+   clip to aim a follow-up scroll at, so the test must assert across the single
+   gesture where the handoff happens.
+
+6. **v0.54.0** for the §4.3/§4.4/§4.7 breaking phase; phases 2–3 as `v0.53.x`.
+   Revised from the original "v0.53.0, one breaking release" — phase 1 turned
+   out to be breaking and consumed that version. The 18 remaining sibling edits
+   still land in one release; see §6.
+7. **`requiredid` for app authors — resolved 2026-08-07: documented only.** It
+   stays a `tools/` binary that authors may invoke. The README carries the
+   one-line invocation and the `go vet -vettool=` and golangci-lint
+   alternatives, plus one sentence on what an author gets without it: a
+   `RequireID` panic on first render rather than a build failure. The analyzer's
+   rules stay free to tighten, because nothing promises they will not. The
+   consequence accepted with this choice is that most consumers sit on the
+   `RequireID`-panic path by default, and §4.2's static-enforcement claim
+   remains true for this repo alone.
 
    The alternatives, recorded because the trade is not obvious:
 
-   - **Documented only.** It stays a `tools/` binary that authors may
-     invoke. Its rules can tighten freely, because nothing promises
-     they will not. Costs nothing; leaves most consumers on the
-     `RequireID`-panic path by default.
-   - **Supported.** Named in the README as part of the recommended
-     setup, versioned with the library, plausibly a `go tool`
-     directive. Makes §4.2's static-enforcement claim true for
-     everyone — and makes the analyzer's rules API. Tightening a rule
-     then breaks somebody's build on a patch bump, which is exactly
-     the failure mode `deps-doc` and the alloc gates exist to avoid.
+   - **Documented only.** It stays a `tools/` binary that authors may invoke.
+     Its rules can tighten freely, because nothing promises they will not. Costs
+     nothing; leaves most consumers on the `RequireID`-panic path by default.
+   - **Supported.** Named in the README as part of the recommended setup,
+     versioned with the library, plausibly a `go tool` directive. Makes §4.2's
+     static-enforcement claim true for everyone — and makes the analyzer's rules
+     API. Tightening a rule then breaks somebody's build on a patch bump, which
+     is exactly the failure mode `deps-doc` and the alloc gates exist to avoid.
 
-   Chosen "documented only" because the support commitment buys
-   little that the `RequireID` panic does not already buy loudly, and
-   costs the freedom to tighten a rule without reding somebody's build
-   on a patch bump — the failure mode `deps-doc` and the alloc gates
-   exist to avoid. Revisit if a sibling adopts the analyzer and asks
-   for a stability promise.
+   Chosen "documented only" because the support commitment buys little that the
+   `RequireID` panic does not already buy loudly, and costs the freedom to
+   tighten a rule without reding somebody's build on a patch bump — the failure
+   mode `deps-doc` and the alloc gates exist to avoid. Revisit if a sibling
+   adopts the analyzer and asks for a stability promise.
 
 ## 10. Counting rules
 
-§1's figures are not re-derivable without these. All against `main` @
-`80715d1`, `_test.go` excluded unless stated.
+§1's figures are not re-derivable without these. All against `main` @ `80715d1`,
+`_test.go` excluded unless stated.
 
 **Callback declarations — the unit is a (field name, signature) pair.**
-`ergoaudit -mode callbacks` walks `gui/` with `go/ast`, collects every
-exported `On*` field whose type is a `func`, and keys the dedupe on the
-field name joined to the `go/printer` rendering of its type. So
-`OnDone func(*Window)` and `OnDone func(NativeAlertResult, *Window)`
-are two entries, and an identical shape declared under two names stays
-two entries. **136 raw declarations reduce to 70 distinct pairs.**
-Scope is `gui/*.go` plus `gui/*/*.go`; `_test.go` excluded.
+`ergoaudit -mode callbacks` walks `gui/` with `go/ast`, collects every exported
+`On*` field whose type is a `func`, and keys the dedupe on the field name joined
+to the `go/printer` rendering of its type. So `OnDone func(*Window)` and
+`OnDone func(NativeAlertResult, *Window)` are two entries, and an identical
+shape declared under two names stays two entries. **136 raw declarations reduce
+to 70 distinct pairs.** Scope is `gui/*.go` plus `gui/*/*.go`; `_test.go`
+excluded.
 
-Text dedupe does not reproduce this. An earlier `grep | sort -u` pass
-reported 120, because gofmt aligns field types to the widest name in
-each struct, so one signature counts once per distinct indentation.
-`TestRenderExprNormalises` pins the AST rendering against that.
+Text dedupe does not reproduce this. An earlier `grep | sort -u` pass reported
+120, because gofmt aligns field types to the widest name in each struct, so one
+signature counts once per distinct indentation. `TestRenderExprNormalises` pins
+the AST rendering against that.
 
-**Shape breakdown.** Of the 70 distinct pairs: **16** bare
-`func(EventCtx)`, **19** `func(T…, EventCtx)`, **27** with a trailing
-`*Window`, **6** exposing a raw `*Event`, **2** in none of these
-(`OnAction func(id string)` and `OnDraw func(*DrawContext)`, which take
-neither a window nor a context). The two view builders `OnCellFormat`
-and `OnDetailRowView` are *not* in that last bucket: they end in
-`*gg.Window` and so count inside the 27, which is where §4.3 excludes
-them. Of the 27 `*Window`-tailed, **14 are excluded** by §4.3 as
-lifecycle/dialog callbacks that have no event to carry, leaving **13
-to convert**. §4.3 lists all 14 by name; that list, not this count, is
-the phase-4 work item.
+**Shape breakdown.** Of the 70 distinct pairs: **16** bare `func(EventCtx)`,
+**19** `func(T…, EventCtx)`, **27** with a trailing `*Window`, **6** exposing a
+raw `*Event`, **2** in none of these (`OnAction func(id string)` and
+`OnDraw func(*DrawContext)`, which take neither a window nor a context). The two
+view builders `OnCellFormat` and `OnDetailRowView` are _not_ in that last
+bucket: they end in `*gg.Window` and so count inside the 27, which is where §4.3
+excludes them. Of the 27 `*Window`-tailed, **14 are excluded** by §4.3 as
+lifecycle/dialog callbacks that have no event to carry, leaving **13 to
+convert**. §4.3 lists all 14 by name; that list, not this count, is the phase-4
+work item.
 
-The raw-`*Event` figure is 6, not the 5 a `grep '\*Event'` finds: two
-are declared in the `datagrid` subpackage as the qualified `*gg.Event`
-(`OnColumnPinChange`, `OnCopyRows`). `baseType` strips the package
-qualifier; `TestBaseType` pins it. Counted as declaration *lines*
-instead of pairs the figure is 7 — `OnEvent func(*Event, *Window)` is
-declared twice (`gui/window_cfg.go:14`, `gui/window.go:168`) with an
-identical signature and collapses to one pair.
+The raw-`*Event` figure is 6, not the 5 a `grep '\*Event'` finds: two are
+declared in the `datagrid` subpackage as the qualified `*gg.Event`
+(`OnColumnPinChange`, `OnCopyRows`). `baseType` strips the package qualifier;
+`TestBaseType` pins it. Counted as declaration _lines_ instead of pairs the
+figure is 7 — `OnEvent func(*Event, *Window)` is declared twice
+(`gui/window_cfg.go:14`, `gui/window.go:168`) with an identical signature and
+collapses to one pair.
 
 **`Opt[T]` fields — approximate.** 110 counts occurrences of `Opt[` in
-`gui/view_*.go` field position, which includes non-`Cfg` structs. Treat
-as an order-of-magnitude figure for "how much of the surface uses
-`Opt`", not an exact field census.
+`gui/view_*.go` field position, which includes non-`Cfg` structs. Treat as an
+order-of-magnitude figure for "how much of the surface uses `Opt`", not an exact
+field census.
 
 **`Color*` field names — approximate.** "20+" counts distinct
-`^\tColor[A-Za-z]*` field names across `gui/view_*.go` and does not
-separate `Cfg` fields from helpers. The load-bearing claim is the six
-fields on one `ButtonCfg` literal in `examples/todo/main.go:139-166`,
-which is exact.
+`^\tColor[A-Za-z]*` field names across `gui/view_*.go` and does not separate
+`Cfg` fields from helpers. The load-bearing claim is the six fields on one
+`ButtonCfg` literal in `examples/todo/main.go:139-166`, which is exact.
 
-**`Focusable` groups.** 12 and 15 count *`Cfg` types*. The raw
-`Focusable bool` inventory also matches `Shape` (`gui/shape.go:120`),
-`termgrid`, and `inspector`, which are excluded as not app-facing.
+**`Focusable` groups.** 12 and 15 count _`Cfg` types_. The raw `Focusable bool`
+inventory also matches `Shape` (`gui/shape.go:120`), `termgrid`, and
+`inspector`, which are excluded as not app-facing.
 
-**Required-tag audit.** Per-struct, not per-file: `awk` scoped to the
-struct containing the `FocusDisabled` field. A file-level `grep -m1`
-gives the wrong answer where a file declares several `Cfg` types —
-that error is what originally misclassified `ListBoxCfg` as untagged.
+**Required-tag audit.** Per-struct, not per-file: `awk` scoped to the struct
+containing the `FocusDisabled` field. A file-level `grep -m1` gives the wrong
+answer where a file declares several `Cfg` types — that error is what originally
+misclassified `ListBoxCfg` as untagged.
 
-**Literal audit (§4.2, §7).** `go/ast` `CompositeLit` walk over each
-repo, skipping `vendor/`, `.git/`, `testdata/`. `ID` counts as present
-unless absent or the literal `""`; a computed `ID` that evaluates empty
-at runtime counts as present, so 126 is a floor. Tests included and
-labelled separately.
+**Literal audit (§4.2, §7).** `go/ast` `CompositeLit` walk over each repo,
+skipping `vendor/`, `.git/`, `testdata/`. `ID` counts as present unless absent
+or the literal `""`; a computed `ID` that evaluates empty at runtime counts as
+present, so 126 is a floor. Tests included and labelled separately.
 
-**`WindowSize()` audit.** Call *expressions* under `examples/`,
-excluding `_test.go` and excluding the one occurrence in prose — the
-comment at `examples/get_started/main.go:36` that this section quotes.
-Counting that line as a call gives 46/51 instead of 45/50.
+**`WindowSize()` audit.** Call _expressions_ under `examples/`, excluding
+`_test.go` and excluding the one occurrence in prose — the comment at
+`examples/get_started/main.go:36` that this section quotes. Counting that line
+as a call gives 46/51 instead of 45/50.

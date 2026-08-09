@@ -60,7 +60,7 @@ func OverflowPanel(w *Window, cfg OverflowPanelCfg) View {
 	content = append(content, Button(ButtonCfg{
 		// Namespaced by the panel's ID: a toolbar can hold several
 		// overflow panels, each with its own trigger.
-		ID:       id + ":trigger",
+		ID:       ScopeID(id, "trigger"),
 		Color:    ColorTransparent,
 		Padding:  cfg.Padding,
 		Disabled: cfg.Disabled,
@@ -91,7 +91,7 @@ func OverflowPanel(w *Window, cfg OverflowPanelCfg) View {
 		}
 
 		content = append(content, Menu(w, MenubarCfg{
-			ID:           cfg.ID + "_menu",
+			ID:           ScopeID(cfg.ID, "menu"),
 			Items:        menuItems,
 			Float:        true,
 			FloatAnchor:  cfg.FloatAnchor,

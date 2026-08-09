@@ -270,7 +270,7 @@ func TestComboboxScrollEndToEnd(t *testing.T) {
 	w.windowWidth = 800
 	w.windowHeight = 600
 
-	idScroll := "cb-e2e.dropdown"
+	idScroll := ScopeID("cb-e2e", "dropdown")
 	options := []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"}
 
 	// Open the combobox.

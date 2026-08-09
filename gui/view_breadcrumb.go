@@ -422,5 +422,5 @@ func bcHasAnyContent(items []BreadcrumbItemCfg) bool {
 }
 
 func bcCrumbID(controlID, itemID string) string {
-	return controlID + ":crumb:" + itemID
+	return ScopeID(controlID, "crumb", itemID)
 }

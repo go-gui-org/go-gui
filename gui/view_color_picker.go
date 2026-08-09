@@ -1,7 +1,6 @@
 package gui
 
 import (
-	"fmt"
 	"strconv"
 )
 
@@ -137,7 +136,7 @@ func cpSVArea(
 	onChange := cfg.OnColorChange
 
 	return container(ContainerCfg{
-		ID:     cfg.ID + ".sv",
+		ID:     ScopeID(cfg.ID, "sv"),
 		Width:  size,
 		Height: size,
 		axis:   AxisTopToBottom,
@@ -186,7 +185,7 @@ func cpSVArea(
 					ctx.Window.MouseLock(MouseLockCfg{
 						MouseMove: func(ctx EventCtx) {
 							sv, ok := ctx.Layout.FindByID(
-								cfgID + ".sv")
+								ScopeID(cfgID, "sv"))
 							if !ok {
 								return
 							}
@@ -218,7 +217,7 @@ func cpHueSlider(
 	onChange := cfg.OnColorChange
 
 	return container(ContainerCfg{
-		ID:     cfg.ID + ".hue",
+		ID:     ScopeID(cfg.ID, "hue"),
 		Width:  sliderWidth,
 		Height: sliderHeight,
 		Gradient: &GradientDef{
@@ -259,7 +258,7 @@ func cpHueSlider(
 			ctx.Window.MouseLock(MouseLockCfg{
 				MouseMove: func(ctx EventCtx) {
 					hue, ok := ctx.Layout.FindByID(
-						cfgID + ".hue")
+						ScopeID(cfgID, "hue"))
 					if !ok {
 						return
 					}
@@ -285,7 +284,7 @@ func cpAlphaSlider(cfg *ColorPickerCfg) View {
 	thumbSize := cfg.Style.IndicatorSize
 	trackSize := float32(6)
 	return Slider(SliderCfg{
-		ID:           cfg.ID + ".alpha",
+		ID:           ScopeID(cfg.ID, "alpha"),
 		Value:        float32(c.A),
 		Min:          0,
 		Max:          255,
@@ -325,7 +324,7 @@ func cpPreviewRow(cfg *ColorPickerCfg) View {
 				Radius: cfg.Style.Radius,
 			}),
 			Input(InputCfg{
-				ID:        cfgID + ".hex",
+				ID:        ScopeID(cfgID, "hex"),
 				Text:      c.ToHexString(),
 				TextStyle: cfg.Style.TextStyle,
 				Width:     100,
@@ -385,7 +384,7 @@ func cpChannelInput(
 	applyFn := func(text string, w *Window) {
 		cpApplyRGB(text, idx, c, cfgID, onChange, w)
 	}
-	inputID := fmt.Sprintf("%s.rgb.%d", cfgID, idx)
+	inputID := ScopeIDN(cfgID, "rgb", idx)
 	return cpInputColumn(cfg, ch, int(val), inputID, applyFn)
 }
 
@@ -400,7 +399,7 @@ func cpHSVChannelInput(
 	applyFn := func(text string, w *Window) {
 		cpApplyHSV(text, idx, maxVal, cfgID, alpha, onChange, w)
 	}
-	inputID := fmt.Sprintf("%s.hsv.%d", cfgID, idx)
+	inputID := ScopeIDN(cfgID, "hsv", idx)
 	return cpInputColumn(cfg, ch, val, inputID, applyFn)
 }
 

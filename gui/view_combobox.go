@@ -47,7 +47,7 @@ type ComboboxCfg struct {
 	FocusDisabled bool
 
 	// Scrollable opts the dropdown into the scroll system. Scroll
-	// state is keyed by Cfg.ID + ".dropdown".
+	// state is keyed by ScopeID(Cfg.ID, "dropdown").
 	Scrollable       bool
 	Color            Color
 	ColorBorder      Color
@@ -123,7 +123,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 	pad := cfg.Padding.Get(Padding{})
 	listH := cfg.MaxDropdownHeight - 2*sizeBorder - pad.Top - pad.Bottom
 	var scrollY float32
-	dropdownScrollID := cfg.ID + ".dropdown"
+	dropdownScrollID := ScopeID(cfg.ID, "dropdown")
 	if cfg.Scrollable {
 		// Default 0: unscrolled dropdown before first scroll event.
 		scrollY = w.scrollY().GetOr(dropdownScrollID, 0)

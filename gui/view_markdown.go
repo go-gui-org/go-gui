@@ -291,8 +291,9 @@ func (w *Window) Markdown(cfg MarkdownCfg) View {
 		sizing = FillFit
 	}
 
-	// Document-level copy button.
-	docAnimID := "md_cp_doc"
+	// Document-level copy button. Scoped to the document: a constant
+	// here gave every Markdown widget in a window the same copy button.
+	docAnimID := ScopeID(cfg.ID, "copy-doc")
 	source := cfg.Source
 	content = append(content, mdCopyButton(docAnimID, w,
 		func(ctx EventCtx) {

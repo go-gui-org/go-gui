@@ -296,7 +296,7 @@ func TestCommandButtonDefaultsIDToCommandID(t *testing.T) {
 	// Deliberately no ID: the auto-fill is what this test exercises.
 	v := CommandButton("edit.increment", ButtonCfg{})
 	l := v.GenerateLayout(w)
-	want := commandButtonIDPrefix + "edit.increment"
+	want := "cmdbtn:edit.increment"
 	if got := l.Shape.ID; got != want {
 		t.Errorf("ID = %q, want %q", got, want)
 	}

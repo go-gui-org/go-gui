@@ -4,7 +4,6 @@ package gui
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/go-gui-org/go-gui/gui/markdown"
@@ -166,7 +165,7 @@ func mdCopyButton(
 	return Button(ButtonCfg{
 		// animID already identifies this code block uniquely (it keys
 		// the check-mark animation), so it namespaces the button too.
-		ID:           animID + ":copy",
+		ID:           ScopeID(animID, "copy"),
 		Float:        true,
 		FloatAnchor:  FloatTopRight,
 		FloatTieOff:  FloatTopRight,
@@ -185,7 +184,10 @@ func mdCopyButton(
 func renderMdCode(
 	block MarkdownBlock, cfg MarkdownCfg, w *Window, blockIdx int,
 ) View {
-	animID := "md_cp_" + strconv.Itoa(blockIdx)
+	// Scoped to the document: the block index alone repeats across
+	// Markdown views, so two documents in one window would give their
+	// nth code block the same copy-button ID and animation key.
+	animID := ScopeIDN(cfg.ID, "code", blockIdx)
 	copyBtn := mdCopyButton(animID, w,
 		func(ctx EventCtx) {
 			plain := richTextPlain(block.Content)
@@ -268,7 +270,7 @@ func mdRenderTable(
 		Clip:    true,
 		Content: []View{
 			w.Table(TableCfg{
-				ID:               cfg.ID + ".table." + strconv.Itoa(idx),
+				ID:               ScopeIDN(cfg.ID, "table", idx),
 				BorderStyle:      cfg.Style.TableBorderStyle,
 				ColorBorder:      cfg.Style.TableBorderColor,
 				SizeBorder:       cfg.Style.TableBorderSize,
@@ -353,7 +355,12 @@ func mdRenderHeading(
 		}))
 	}
 	rtfCfg := RTFCfg{
-		ID:            block.AnchorSlug,
+		// Scoped to the document: the slug is derived from heading text,
+		// so two Markdown views showing the same heading would otherwise
+		// claim one ID. Two identical headings in ONE document still
+		// collide, but the duplicate audit now reports that rather than
+		// letting it pass silently.
+		ID:            ScopeID(cfg.ID, "h", block.AnchorSlug),
 		RichText:      block.Content,
 		Mode:          mode,
 		BaseTextStyle: &block.BaseStyle,

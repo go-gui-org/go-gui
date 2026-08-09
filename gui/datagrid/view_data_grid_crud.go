@@ -188,17 +188,17 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 		Spacing:     gg.SomeF(6),
 		VAlign:      gg.VAlignMiddle,
 		Content: []gg.View{
-			dataGridIndicatorButton(gridID+":crud_add", gg.ActiveLocale.StrAdd, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_add"), gg.ActiveLocale.StrAdd, cfg.TextStyleFilter, cfg.ColorHeaderHover,
 				!canCreate || state.Saving, 0, func(ctx gg.EventCtx) {
 					dataGridCrudAddRow(gridID, columns, onSelectionChange, focusID,
 						scrollID, pageSize, pageIndex, onPageChange, ctx.Event, ctx.Window)
 				}),
-			dataGridIndicatorButton(gridID+":crud_delete", gg.ActiveLocale.StrDelete, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_delete"), gg.ActiveLocale.StrDelete, cfg.TextStyleFilter, cfg.ColorHeaderHover,
 				!canDelete || selectedCount == 0 || state.Saving, 0, func(ctx gg.EventCtx) {
 					dataGridCrudDeleteSelected(gridID, selection, onSelectionChange,
 						focusID, ctx.Event, ctx.Window)
 				}),
-			dataGridIndicatorButton(gridID+":crud_save", gg.ActiveLocale.StrSave, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_save"), gg.ActiveLocale.StrSave, cfg.TextStyleFilter, cfg.ColorHeaderHover,
 				!hasUnsaved || state.Saving, 0, func(ctx gg.EventCtx) {
 					dataGridCrudSave(dataGridCrudSaveContext{
 						gridID:            gridID,
@@ -213,7 +213,7 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 						focusID:           focusID,
 					}, ctx.Event, ctx.Window)
 				}),
-			dataGridIndicatorButton(gridID+":crud_cancel", gg.ActiveLocale.StrCancel, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_cancel"), gg.ActiveLocale.StrCancel, cfg.TextStyleFilter, cfg.ColorHeaderHover,
 				(!hasUnsaved && state.SaveError == "") || state.Saving, 0, func(ctx gg.EventCtx) {
 					dataGridCrudCancel(gridID, focusID, ctx.Event, ctx.Window)
 				}),
@@ -255,7 +255,8 @@ func dataGridCrudAddRow(gridID string, columns []GridColumnCfg, onSelectionChang
 	// Default zero state: absent entry means no rows added yet.
 	state := dgCrud.GetOr(gridID, dataGridCrudState{})
 	state.NextDraftSeq++
-	draftID := fmt.Sprintf("__draft_%s_%d", gridID, state.NextDraftSeq)
+	// A row key, not a scope: it becomes a part of composed row IDs.
+	draftID := fmt.Sprintf("__draft_%s_%d", gridID, state.NextDraftSeq) // ergoaudit:id-part
 	row := GridRow{
 		ID:    draftID,
 		Cells: dataGridCrudDefaultCells(columns),

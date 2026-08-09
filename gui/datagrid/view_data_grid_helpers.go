@@ -48,7 +48,8 @@ func dataGridRowAutoID(row GridRow) string {
 		h = gg.Fnv64Byte(h, '=')
 		h = gg.Fnv64Str(h, row.Cells[key])
 	}
-	return "__auto_" + zeroPadHex16(h)
+	// A row key, not a scope: it becomes a part of composed row IDs.
+	return "__auto_" + zeroPadHex16(h) // ergoaudit:id-part
 }
 
 func dataGridHeight(cfg *DataGridCfg) float32 {
@@ -121,7 +122,7 @@ func dataGridFocusID(cfg *DataGridCfg) string {
 }
 
 func dataGridScrollID(cfg *DataGridCfg) string {
-	return cfg.ID + ":scroll"
+	return gg.ScopeID(cfg.ID, "scroll")
 }
 
 // dataGridVisibleRangeForScroll converts scroll position to

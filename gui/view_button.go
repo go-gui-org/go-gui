@@ -174,12 +174,12 @@ func Button(cfg ButtonCfg) View {
 	return cv
 }
 
-// commandButtonIDPrefix namespaces auto-filled CommandButton IDs.
+// commandButtonIDScope namespaces auto-filled CommandButton IDs.
 // Menu items are keyed by raw command ID (see MenuItemCfg.CommandID),
-// and menu item shapes carry that ID; without the prefix a menubar and
+// and menu item shapes carry that ID; without the scope a menubar and
 // a CommandButton for the same command would produce two shapes with
 // the same ID in one window, making focus ambiguous.
-const commandButtonIDPrefix = "cmdbtn:"
+const commandButtonIDScope = "cmdbtn"
 
 // CommandButton creates a button wired to a registered
 // command. Construction is deferred to layout time via ViewFunc
@@ -188,7 +188,7 @@ const commandButtonIDPrefix = "cmdbtn:"
 // cmdID. Auto-disables via CanExecute. Wires OnClick to
 // Command.Execute.
 //
-// The auto-filled ID is commandButtonIDPrefix + cmdID. Set cfg.ID
+// The auto-filled ID is commandButtonIDScope scoped to cmdID. Set cfg.ID
 // explicitly when placing two buttons for the same command in one
 // window, otherwise both get the same focus ID.
 func CommandButton(cmdID string, cfg ButtonCfg) View {
@@ -204,7 +204,7 @@ func CommandButton(cmdID string, cfg ButtonCfg) View {
 		// Focus traversal is keyed by ID (see isFocusedTarget), so
 		// Focusable: true is a silent no-op without one.
 		if cfg.ID == "" {
-			cfg.ID = commandButtonIDPrefix + cmdID
+			cfg.ID = ScopeID(commandButtonIDScope, cmdID)
 		}
 
 		// Auto-fill content from command label.

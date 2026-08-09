@@ -51,16 +51,24 @@ Focus requires **both** `Focusable: true` **and** a non-empty `ID`
 (`isFocusedTarget`, `gui/event_traversal.go`); tab order additionally needs
 `!FocusSkip && !Disabled` (`layout_query.go`). `Focusable: true` without an `ID`
 is a silent no-op — the widget renders and clicks but never joins the tab order.
-The `requiredid` analyzer flags this. IDs must be unique per window: menu items
-are keyed by raw command ID, so `CommandButton` namespaces its auto-filled ID
-with `cmdbtn:`.
+The `requiredid` analyzer flags this. IDs must be unique per window.
+
+**Compose inner IDs with `gui.ScopeID` / `gui.ScopeIDN`, never by hand.** An ID
+is a `:`-joined path (`grid:header:name:resize`); the owner may itself be
+composed, and composition is associative. `ScopeIDN` appends a numeric segment
+without allocating for the number — use it for loop-derived identity. Both cost
+exactly one allocation; `gui/id_scope_test.go` asserts that. There is no
+escaping, so a **part** (a row key, a heading slug — a leaf value fed _into_ a
+composition) must not contain `:` and keeps its own spelling. Consumers matter
+as much as producers: rebuilding an ID at a lookup site is how the two drift.
+`make ergo-audit` (mode `ids`) fails on any hand-rolled composition; see
+`docs/specs/widget-id-scoping.md`.
 
 Uniqueness is strict, including within one widget: a composite widget's inner
 shape that needs the owning widget's focus or spell-check state sets
 `Shape.focusOwner` (a reference) instead of repeating its `ID` (an identity) —
 see `Input`'s text shape and `Shape.focusKey()`. `(*Window).TestDuplicateIDs`
-asserts a rendered window is clean; `docs/specs/widget-id-scoping.md` covers the
-open scoping question.
+asserts a rendered window is clean.
 
 #### `Opt[T]` vs plain fields
 

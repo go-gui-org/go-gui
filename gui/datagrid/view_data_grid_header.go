@@ -32,7 +32,7 @@ func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount in
 	hasReorder := showControls && cfg.OnColumnOrderChange != nil && col.Reorderable
 	hasPin := showControls && cfg.OnColumnPinChange != nil
 	headerControls := dataGridHeaderControlState(width, cfg.PaddingHeader.Get(gg.Padding{}), hasReorder, hasPin, showControls && col.Resizable)
-	headerFocusID := cfg.ID + ":header:" + col.ID
+	headerFocusID := dataGridHeaderCellID(cfg.ID, col.ID)
 
 	content := make([]gg.View, 0, 5)
 	indicator := dataGridHeaderIndicator(cfg.Query, col.ID)
@@ -90,7 +90,7 @@ func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount in
 	}
 
 	return gg.Row(gg.ContainerCfg{
-		ID:          cfg.ID + ":header:" + col.ID,
+		ID:          dataGridHeaderCellID(cfg.ID, col.ID),
 		A11YRole:    gg.AccessRoleGridCell,
 		A11YLabel:   col.Title,
 		A11YState:   headerA11YState,
@@ -142,7 +142,7 @@ func dataGridResizeHandle(cfg *DataGridCfg, col GridColumnCfg, focusID string) g
 	disabled := cfg.Disabled
 
 	return gg.Row(gg.ContainerCfg{
-		ID:      gridID + ":resize:" + col.ID,
+		ID:      gg.ScopeID(gridID, "resize", col.ID),
 		Width:   dataGridResizeHandleWidth,
 		Sizing:  gg.FixedFill,
 		Padding: gg.NoPadding,
@@ -212,8 +212,8 @@ func dataGridReorderControls(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 		Width:   dataGridHeaderControlsWidth(true, false, false),
 		Sizing:  gg.FixedFill,
 		Content: []gg.View{
-			dataGridOrderButton(cfg.ID+":reorder_left:"+colID, leftArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover, reorderCB(-1)),
-			dataGridOrderButton(cfg.ID+":reorder_right:"+colID, rightArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover, reorderCB(1)),
+			dataGridOrderButton(gg.ScopeID(cfg.ID, "reorder_left", colID), leftArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover, reorderCB(-1)),
+			dataGridOrderButton(gg.ScopeID(cfg.ID, "reorder_right", colID), rightArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover, reorderCB(1)),
 		},
 	})
 }
@@ -279,7 +279,7 @@ func dataGridPinControl(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 	colID := col.ID
 	colPin := col.Pin
 
-	return dataGridIndicatorButton(cfg.ID+":pin:"+col.ID, label, cfg.TextStyleHeader, cfg.ColorHeaderHover,
+	return dataGridIndicatorButton(gg.ScopeID(cfg.ID, "pin", col.ID), label, cfg.TextStyleHeader, cfg.ColorHeaderHover,
 		false, dataGridHeaderControlWidth, func(ctx gg.EventCtx) {
 			if onColumnPinChange == nil {
 				return
@@ -310,7 +310,7 @@ func dataGridFilterRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths m
 func dataGridFilterCell(cfg *DataGridCfg, col GridColumnCfg, width float32) gg.View {
 	query := cfg.Query
 	value := dataGridQueryFilterValue(query, col.ID)
-	inputID := cfg.ID + ":filter:" + col.ID
+	inputID := gg.ScopeID(cfg.ID, "filter", col.ID)
 	onQueryChange := cfg.OnQueryChange
 	colID := col.ID
 	var placeholder string
@@ -319,7 +319,7 @@ func dataGridFilterCell(cfg *DataGridCfg, col GridColumnCfg, width float32) gg.V
 	}
 
 	return gg.Row(gg.ContainerCfg{
-		ID:          cfg.ID + ":filter_cell:" + col.ID,
+		ID:          gg.ScopeID(cfg.ID, "filter_cell", col.ID),
 		Width:       width,
 		Sizing:      gg.FixedFill,
 		Padding:     cfg.PaddingFilter,
@@ -485,8 +485,25 @@ func dataGridShowHeaderControls(colID, hoveredColID, resizingColID, focusedColID
 		(colID == hoveredColID || colID == resizingColID || colID == focusedColID)
 }
 
+// dataGridHeaderScope namespaces a header cell's ID under its grid.
+// Composition (dataGridHeaderCellID) and the reverse prefix scan
+// (dataGridHeaderPrefix) both derive from it, so the two cannot drift.
+const dataGridHeaderScope = "header"
+
+// dataGridHeaderCellID is the ID of one column's header cell.
+func dataGridHeaderCellID(gridID, colID string) string {
+	return gg.ScopeID(gridID, dataGridHeaderScope, colID)
+}
+
+// dataGridHeaderPrefix is what a header cell's ID starts with. The
+// remainder is the column ID, recovered verbatim: header cell IDs are
+// composed, never escaped, so the suffix needs no decoding.
+func dataGridHeaderPrefix(gridID string) string {
+	return gg.ScopeID(gridID, dataGridHeaderScope) + gg.IDSep
+}
+
 func dataGridHeaderColUnderCursor(layout *gg.Layout, gridID string, mouseX, mouseY float32) string {
-	prefix := gridID + ":header:"
+	prefix := dataGridHeaderPrefix(gridID)
 	cell, ok := layout.FindLayout(func(n gg.Layout) bool {
 		return len(n.Shape.ID) > len(prefix) &&
 			n.Shape.ID[:len(prefix)] == prefix &&
@@ -499,7 +516,7 @@ func dataGridHeaderColUnderCursor(layout *gg.Layout, gridID string, mouseX, mous
 }
 
 func dataGridHeaderColIDFromLayoutID(gridID, layoutID string) string {
-	prefix := gridID + ":header:"
+	prefix := dataGridHeaderPrefix(gridID)
 	if len(layoutID) <= len(prefix) || layoutID[:len(prefix)] != prefix {
 		return ""
 	}

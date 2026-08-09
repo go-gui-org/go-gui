@@ -254,7 +254,7 @@ func TestMathSpinnerAnimationIsViewBound(t *testing.T) {
 	if w.animViewBound == nil {
 		t.Fatal("animViewBound nil after MathSpinner — animation not view-bound")
 	}
-	if _, ok := w.animViewBound["math_spinner_sp1"]; !ok {
+	if _, ok := w.animViewBound["math_spinner:sp1"]; !ok {
 		t.Error("math_spinner animation not registered as view-bound")
 	}
 }

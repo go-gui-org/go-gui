@@ -89,7 +89,7 @@ func TestNumericInputReadOnlyStepButtonsGated(t *testing.T) {
 			},
 		})
 		layout := generateViewLayout(v, w)
-		up := findShapeByID(&layout, "ni-step_step_up")
+		up := findShapeByID(&layout, ScopeID("ni-step", "step_up"))
 		if up == nil {
 			t.Fatal("step-up button not found")
 		}

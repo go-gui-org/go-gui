@@ -169,7 +169,7 @@ func MathSpinner(cfg MathSpinnerCfg, w *Window) View {
 	// after the widget is visible has no effect. Use a different
 	// widget ID to apply new parameters.
 	id := cfg.ID
-	animID := "math_spinner_" + id
+	animID := ScopeID("math_spinner", id)
 	dur := time.Duration(float64(5*time.Second) / float64(cfg.Speed))
 
 	if !w.touchViewBoundAnimation(animID) {
@@ -190,8 +190,8 @@ func MathSpinner(cfg MathSpinnerCfg, w *Window) View {
 	progress := StateReadOr(w, nsMathSpinner, id, float32(0))
 
 	// Optional slow rotation.
-	rotKey := id + "_rot"
-	rotAnimID := "math_spinner_rot_" + id
+	rotKey := ScopeID(id, "rot")
+	rotAnimID := ScopeID("math_spinner", id, "rot")
 	if cfg.Rotate {
 		if !w.touchViewBoundAnimation(rotAnimID) {
 			w.animationAddViewBound(&KeyframeAnimation{
@@ -235,7 +235,7 @@ func MathSpinner(cfg MathSpinnerCfg, w *Window) View {
 		MaxHeight:  cfg.MaxHeight,
 		Content: []View{
 			DrawCanvas(DrawCanvasCfg{
-				ID:      id + "_cv",
+				ID:      ScopeID(id, "cv"),
 				Sizing:  FillFill,
 				Clip:    true,
 				Version: uint64(math.Float32bits(progress + rotation)),

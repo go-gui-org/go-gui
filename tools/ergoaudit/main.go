@@ -6,6 +6,7 @@
 //
 //	go run ./tools/ergoaudit/ -mode focus [repo...]
 //	go run ./tools/ergoaudit/ -mode callbacks [repo...]
+//	go run ./tools/ergoaudit/ -mode ids [repo...]
 //
 // With no repo arguments both modes audit the current directory.
 //
@@ -32,7 +33,11 @@
 // raw, because the two differ (OnEvent alone is declared twice) and
 // quoting one without saying which is how review disagreements start.
 //
-// Both modes parse with go/ast: composite literals and func literals
+// Mode ids answers: does anything still compose a widget ID by hand,
+// rather than through gui.ScopeID? It exits non-zero on any finding, so
+// it gates. See ids.go for what counts and how to mark an exception.
+//
+// All modes parse with go/ast: composite literals and func literals
 // span lines, and regex cannot bracket-match them.
 package main
 
@@ -51,7 +56,7 @@ import (
 var listShape *string
 
 func main() {
-	mode := flag.String("mode", "focus", "audit to run: focus | callbacks")
+	mode := flag.String("mode", "focus", "audit to run: focus | callbacks | ids")
 	guiRoot := flag.String("gui", ".", "path to the go-gui repo (source of truth for mode=focus)")
 	listShape = flag.String("list", "", "mode=callbacks: also list distinct signatures of this shape, or \"all\"")
 	fix := flag.Bool("fix", false, "mode=focus: rewrite broken literals in place, adding a generated ID")
@@ -83,8 +88,10 @@ func main() {
 		err = runFocus(*guiRoot, repos, *fix || *fixDry, *fixDry, only, skip)
 	case "callbacks":
 		err = runCallbacks(*guiRoot, repos)
+	case "ids":
+		err = runIDs(repos)
 	default:
-		err = fmt.Errorf("unknown -mode %q (want focus or callbacks)", *mode)
+		err = fmt.Errorf("unknown -mode %q (want focus, callbacks or ids)", *mode)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "ergoaudit:", err)

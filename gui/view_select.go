@@ -68,7 +68,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
 	radius := cfg.Radius.Get(dn.Radius)
 	isOpen := StateReadOr(w, nsSelect, cfg.ID, false)
-	dropdownScrollID := cfg.ID + ".dropdown"
+	dropdownScrollID := ScopeID(cfg.ID, "dropdown")
 
 	empty := len(cfg.Selected) == 0 || len(cfg.Selected[0]) == 0
 	clip := cfg.SelectMultiple && cfg.NoWrap

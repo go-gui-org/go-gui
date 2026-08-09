@@ -173,6 +173,14 @@ ClickOnSpace: true,
 keyboard focus. `AmendLayout` runs every frame after sizing — use it to update
 child colors based on `w.IsFocus(layout.Shape.ID)`.
 
+**Inner IDs** — a composite widget's inner shapes need their own IDs. Compose
+them with `gui.ScopeID(cfg.ID, "part")`, or `gui.ScopeIDN(cfg.ID, "row", i)`
+when a loop index is what distinguishes siblings. Never concatenate by hand:
+`make ergo-audit` fails on it, and the separator zoo it replaced is documented
+in `docs/specs/widget-id-scoping.md`. If an inner shape only needs the owner's
+focus state rather than its own identity, set `Shape.focusOwner` instead of
+giving it an ID.
+
 **a11yLabel helper** — `a11yLabel(userLabel, fallback)` returns the
 user-supplied label if non-empty, otherwise the fallback. Always set on
 interactive widgets.

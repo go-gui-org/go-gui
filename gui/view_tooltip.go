@@ -94,7 +94,7 @@ func AnimationTooltip(cfg TooltipCfg) *Animate {
 				mx >= b.X && my >= b.Y &&
 				mx < b.X+b.Width && my < b.Y+b.Height {
 				ts.id = id
-				ts.popupID = id + "_popup"
+				ts.popupID = ScopeID(id, "popup")
 			}
 		},
 	}
@@ -178,7 +178,7 @@ func WithTooltip(w *Window, cfg WithTooltipCfg) View {
 func withTooltipAmend(
 	tipID string, delay time.Duration,
 ) func(EventCtx) {
-	popupID := tipID + "_popup"
+	popupID := ScopeID(tipID, "popup")
 	return func(ctx EventCtx) {
 		ts := &ctx.Window.viewState.tooltip
 		mx := ctx.Window.viewState.mousePosX

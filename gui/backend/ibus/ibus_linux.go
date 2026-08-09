@@ -215,8 +215,10 @@ func socketAddress() string {
 	// same way ibus does it. Globbing covers the cases where that
 	// reconstruction disagrees (a renamed host, IBUS_DISPLAY set for
 	// the daemon but not for us).
-	names := []string{id + "-" + displaySuffix()}
-	if matches, err := filepath.Glob(filepath.Join(dir, id+"-*")); err == nil {
+	// These are ibus socket filenames, not widget IDs.
+	names := []string{id + "-" + displaySuffix()} // ergoaudit:not-an-id
+	pattern := id + "-*"                          // ergoaudit:not-an-id
+	if matches, err := filepath.Glob(filepath.Join(dir, pattern)); err == nil {
 		for _, m := range matches {
 			names = append(names, filepath.Base(m))
 		}

@@ -15,7 +15,7 @@ type spellCheckState struct {
 const spellCheckDelay = 300 * time.Millisecond
 
 func spellCheckAnimID(focusID string) string {
-	return "spell-check-" + focusID
+	return ScopeID("spell-check", focusID)
 }
 
 // spellCheckTrigger schedules a debounced spell check for the given

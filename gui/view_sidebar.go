@@ -132,7 +132,7 @@ func sidebarStartAnimation(
 	tweenDur time.Duration, tweenEasing EasingFn,
 	w *Window,
 ) {
-	animID := "sidebar:" + sidebarID
+	animID := ScopeID("sidebar", sidebarID)
 	onValue := func(v float32, w *Window) {
 		sm := StateMap[string, SidebarRuntimeState](
 			w, nsSidebar, capFew)

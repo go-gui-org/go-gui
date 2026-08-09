@@ -393,13 +393,15 @@ func dataGridSourceSyntheticRowID(kind GridPaginationKind, state dataGridSourceS
 	switch kind {
 	case GridPaginationOffset:
 		absIdx := max(0, state.OffsetStart) + localIdx
-		return "__src_o_" + strconv.Itoa(absIdx)
+		// A row key, not a scope: it becomes a part of the grid's row
+		// IDs, so it must not contain the ID separator.
+		return "__src_o_" + strconv.Itoa(absIdx) // ergoaudit:id-part
 	default:
 		if start, ok := dataGridSourceCursorToIndexOpt(state.CurrentCursor); ok {
-			return "__src_c_" + strconv.Itoa(max(0, start)+localIdx)
+			return "__src_c_" + strconv.Itoa(max(0, start)+localIdx) // ergoaudit:id-part
 		}
 		h := gg.Fnv64Str(gg.Fnv64Offset, state.CurrentCursor)
-		return "__src_cx_" + zeroPadHex16(h) + "_" + strconv.Itoa(localIdx)
+		return "__src_cx_" + zeroPadHex16(h) + "_" + strconv.Itoa(localIdx) // ergoaudit:id-part
 	}
 }
 
@@ -642,11 +644,11 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 	}
 
 	gridID := cfg.ID
-	jumpInputID := gridID + ":jump"
+	jumpInputID := gg.ScopeID(gridID, "jump")
 	content := make([]gg.View, 0, 10)
 
 	// Prev button.
-	content = append(content, dataGridIndicatorButton(gridID+":src_prev", "\u25C0", cfg.TextStyleHeader, cfg.ColorHeaderHover,
+	content = append(content, dataGridIndicatorButton(gg.ScopeID(gridID, "src_prev"), "\u25C0", cfg.TextStyleHeader, cfg.ColorHeaderHover,
 		state.Loading || !hasPrev, dataGridHeaderControlWidth+10, func(ctx gg.EventCtx) {
 			dataGridSourcePrevPage(gridID, kind, pageLimit, ctx.Window)
 			if focusID != "" {
@@ -661,7 +663,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 		TextStyle: cfg.TextStyleFilter,
 	}))
 	// Next button.
-	content = append(content, dataGridIndicatorButton(gridID+":src_next", "\u25B6", cfg.TextStyleHeader, cfg.ColorHeaderHover,
+	content = append(content, dataGridIndicatorButton(gg.ScopeID(gridID, "src_next"), "\u25B6", cfg.TextStyleHeader, cfg.ColorHeaderHover,
 		state.Loading || !hasNext, dataGridHeaderControlWidth+10, func(ctx gg.EventCtx) {
 			dataGridSourceNextPage(gridID, kind, pageLimit, ctx.Window)
 			if focusID != "" {
@@ -677,7 +679,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 	// Retry button on error.
 	if state.LoadError != "" {
 		content = append(content, gg.Button(gg.ButtonCfg{
-			ID:         gridID + ":src_retry",
+			ID:         gg.ScopeID(gridID, "src_retry"),
 			Sizing:     gg.FitFill,
 			Padding:    gg.NoPadding,
 			SizeBorder: gg.SomeF(0),

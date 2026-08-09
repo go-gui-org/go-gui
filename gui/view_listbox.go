@@ -354,7 +354,7 @@ func listBoxItemLayoutIDs(
 		if idx >= 0 && idx < len(cfg.Data) &&
 			!cfg.Data[idx].IsSubheading {
 			itemLayoutIDs = append(itemLayoutIDs,
-				"lb_"+cfg.ID+"_"+cfg.Data[idx].ID)
+				listBoxItemID(cfg.ID, cfg.Data[idx].ID))
 		}
 	}
 	return itemLayoutIDs, midsOffset
@@ -505,7 +505,7 @@ func listBoxReorderItemView(
 		color = cfg.ColorSelect
 	}
 	content := listBoxItemContent(dat, cfg)
-	layoutID := "lb_" + cfg.ID + "_" + dat.ID
+	layoutID := listBoxItemID(cfg.ID, dat.ID)
 
 	datID := dat.ID
 	isMultiple := cfg.Multiple
@@ -558,6 +558,13 @@ func listBoxReorderItemView(
 			}
 		},
 	})
+}
+
+// listBoxItemID is the layout ID of one option row. Both the row
+// itself and the scroll-into-view lookup compose it, so they share
+// this helper rather than each spelling out the scope.
+func listBoxItemID(listID, optionID string) string {
+	return ScopeID(listID, "item", optionID)
 }
 
 func listBoxItemContent(dat ListBoxOption, cfg ListBoxCfg) View {

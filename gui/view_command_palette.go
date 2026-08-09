@@ -47,7 +47,7 @@ type CommandPaletteCfg struct {
 	MaxHeight   float32
 
 	// Scrollable opts the results list into the scroll system. Scroll
-	// state is keyed by Cfg.ID + ":scroll".
+	// state is keyed by ScopeID(Cfg.ID, "scroll").
 	Scrollable     bool
 	Color          Color
 	ColorBorder    Color
@@ -119,7 +119,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 
 	// Virtualization.
 	rowH := listCoreRowHeightEstimate(cfg.TextStyle, PaddingTwoFive)
-	scrollID := cfg.ID + ":scroll"
+	scrollID := ScopeID(cfg.ID, "scroll")
 	var scrollY float32
 	if cfg.Scrollable {
 		// Default 0: unscrolled list before first scroll event.
@@ -214,7 +214,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 						SizeBorder: NoBorder,
 						Content: []View{
 							Input(InputCfg{
-								ID:            cfg.ID + ".input",
+								ID:            ScopeID(cfg.ID, "input"),
 								Text:          query,
 								Placeholder:   cfg.Placeholder,
 								TextStyle:     cfg.TextStyle,
@@ -243,7 +243,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 }
 
 // CommandPaletteShow makes the palette visible and focuses input.
-// It always resets the results scroll (keyed id+":scroll") to the top.
+// It always resets the results scroll (keyed ScopeID(id, "scroll")) to the top.
 func CommandPaletteShow(id string, w *Window) {
 	ss := StateMap[string, bool](w, nsCmdPalette, capModerate)
 	ss.Set(id, true)
@@ -251,8 +251,8 @@ func CommandPaletteShow(id string, w *Window) {
 	sq.Set(id, "")
 	sh := StateMap[string, int](w, nsCmdPaletteHighlight, capModerate)
 	sh.Set(id, 0)
-	w.scrollY().Set(id+":scroll", 0)
-	w.SetFocus(id + ".input")
+	w.scrollY().Set(ScopeID(id, "scroll"), 0)
+	w.SetFocus(ScopeID(id, "input"))
 	w.UpdateWindow()
 }
 

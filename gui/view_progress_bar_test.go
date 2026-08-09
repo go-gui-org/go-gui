@@ -237,7 +237,7 @@ func TestProgressBarIndefiniteAnimationIsViewBound(t *testing.T) {
 	if w.animViewBound == nil {
 		t.Fatal("animViewBound nil after indefinite progress bar AmendLayout — animation not view-bound")
 	}
-	if _, ok := w.animViewBound["pb-vb_indefinite"]; !ok {
+	if _, ok := w.animViewBound[ScopeID("pb-vb", "indefinite")]; !ok {
 		t.Error("indefinite progress bar animation not registered as view-bound")
 	}
 }

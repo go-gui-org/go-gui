@@ -142,7 +142,7 @@ func TestSkeletonAnimationIsViewBound(t *testing.T) {
 	if w.animViewBound == nil {
 		t.Fatal("animViewBound nil after skeleton AmendLayout — animation not view-bound")
 	}
-	if _, ok := w.animViewBound["skeleton_sk1"]; !ok {
+	if _, ok := w.animViewBound["skeleton:sk1"]; !ok {
 		t.Error("skeleton animation not registered as view-bound")
 	}
 }

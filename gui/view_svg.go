@@ -112,7 +112,7 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 		animSeen := StateMap[string, int64](
 			w, nsSvgAnimSeen, capImageCache)
 		animSeen.Set(animHash, time.Now().UnixNano())
-		animID := "svg_anim:" + animHash
+		animID := ScopeID("svg_anim", animHash)
 		if !w.HasAnimation(animID) {
 			w.AnimationAdd(&Animate{
 				AnimID:  animID,

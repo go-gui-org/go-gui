@@ -263,9 +263,9 @@ func Splitter(cfg SplitterCfg) View {
 			splitterAmendLayout(core, ctx.Layout, ctx.Window)
 		},
 		Content: []View{
-			splitterPane(cfg.ID+":pane:first", cfg.First.Content),
+			splitterPane(ScopeID(cfg.ID, "pane", "first"), cfg.First.Content),
 			splitterHandleView(&cfg, core),
-			splitterPane(cfg.ID+":pane:second", cfg.Second.Content),
+			splitterPane(ScopeID(cfg.ID, "pane", "second"), cfg.Second.Content),
 		},
 	})
 }

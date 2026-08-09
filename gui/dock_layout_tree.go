@@ -304,10 +304,10 @@ func dockTreeSplitAtRec(nd *DockNode, groupID, panelID string, zone DockDropZone
 	if nd.ID != groupID {
 		return nd
 	}
-	newGroup := DockPanelGroup(groupID+"_new_"+panelID, []string{panelID}, panelID)
+	newGroup := DockPanelGroup(ScopeID(groupID, "new", panelID), []string{panelID}, panelID)
 	existing := DockPanelGroup(nd.ID, nd.PanelIDs, nd.SelectedID)
 	dir := dockZoneToSplitDir(zone)
-	splitID := groupID + "_split_" + panelID
+	splitID := ScopeID(groupID, "split", panelID)
 	firstIsNew := zone == DockDropLeft || zone == DockDropTop
 	if firstIsNew {
 		return DockSplit(splitID, dir, 0.5, newGroup, existing)
@@ -318,9 +318,9 @@ func dockTreeSplitAtRec(nd *DockNode, groupID, panelID string, zone DockDropZone
 // DockTreeWrapRoot wraps the current root in a new split for
 // window-edge docking. The new panel goes at the indicated edge.
 func DockTreeWrapRoot(root *DockNode, panelID string, zone DockDropZone) *DockNode {
-	newGroup := DockPanelGroup("dock_edge_"+panelID, []string{panelID}, panelID)
+	newGroup := DockPanelGroup(ScopeID("dock_edge", panelID), []string{panelID}, panelID)
 	dir := dockZoneToSplitDir(zone)
-	splitID := "dock_root_split_" + panelID
+	splitID := ScopeID("dock_root_split", panelID)
 	firstIsNew := zone == DockDropWindowLeft || zone == DockDropWindowTop
 	ratio := float32(0.8)
 	if firstIsNew {

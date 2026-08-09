@@ -36,7 +36,7 @@ func TestContextMenuOpensOnRightClick(t *testing.T) {
 		ID:    "cm3",
 		Items: []MenuItemCfg{{ID: "a", Text: "A"}},
 	}
-	focusID := cfg.ID + "_popup"
+	focusID := ScopeID(cfg.ID, "popup")
 
 	v := ContextMenu(w, cfg)
 	layout := v.GenerateLayout(w)
@@ -91,7 +91,7 @@ func TestContextMenuClosesOnFocusLoss(t *testing.T) {
 		ID:    "cm5",
 		Items: []MenuItemCfg{{ID: "a", Text: "A"}},
 	}
-	focusID := cfg.ID + "_popup"
+	focusID := ScopeID(cfg.ID, "popup")
 	w.SetFocus(focusID)
 
 	v := ContextMenu(w, cfg)
@@ -157,7 +157,7 @@ func TestContextMenuWrapperNotFocusable(t *testing.T) {
 	layout := v.GenerateLayout(w)
 
 	// The wrapper detects right-click but is not itself a tab stop;
-	// focus is routed to the popup (cfg.ID + "_popup").
+	// focus is routed to the popup (ScopeID(cfg.ID, "popup")).
 	if layout.Shape.Focusable {
 		t.Error("context-menu wrapper should not be focusable")
 	}
@@ -241,7 +241,7 @@ func contextMenuPopupLayout(t *testing.T, w *Window,
 	sm := StateMap[string, contextMenuState](
 		w, nsContextMenu, capFew)
 	sm.Set(cfg.ID, contextMenuState{Open: true, X: 0, Y: 0})
-	w.SetFocus(cfg.ID + "_popup")
+	w.SetFocus(ScopeID(cfg.ID, "popup"))
 
 	v := ContextMenu(w, cfg)
 	layout := generateViewLayout(v, w)
@@ -273,7 +273,7 @@ func TestContextMenuKeyboardEscapeCloses(t *testing.T) {
 	if !e.IsHandled {
 		t.Error("expected IsHandled")
 	}
-	if w.IsFocus(cfg.ID + "_popup") {
+	if w.IsFocus(ScopeID(cfg.ID, "popup")) {
 		t.Error("expected focus cleared")
 	}
 }
@@ -287,7 +287,7 @@ func TestContextMenuKeyboardAutoSelectsFirst(t *testing.T) {
 			{ID: "b", Text: "B"},
 		},
 	}
-	focusID := cfg.ID + "_popup"
+	focusID := ScopeID(cfg.ID, "popup")
 	contextMenuPopupLayout(t, w, cfg)
 
 	sel := StateReadOr(w, nsMenu, focusID, "")
@@ -306,7 +306,7 @@ func TestContextMenuKeyboardDownNavigation(t *testing.T) {
 			{ID: "c", Text: "C"},
 		},
 	}
-	focusID := cfg.ID + "_popup"
+	focusID := ScopeID(cfg.ID, "popup")
 	popup := contextMenuPopupLayout(t, w, cfg)
 
 	// Down: a → b
@@ -346,7 +346,7 @@ func TestContextMenuKeyboardUpNavigation(t *testing.T) {
 			{ID: "b", Text: "B"},
 		},
 	}
-	focusID := cfg.ID + "_popup"
+	focusID := ScopeID(cfg.ID, "popup")
 	popup := contextMenuPopupLayout(t, w, cfg)
 
 	// Up wraps: a → b
@@ -397,7 +397,7 @@ func TestContextMenuKeyboardSkipsSeparators(t *testing.T) {
 			{ID: "b", Text: "B"},
 		},
 	}
-	focusID := cfg.ID + "_popup"
+	focusID := ScopeID(cfg.ID, "popup")
 	popup := contextMenuPopupLayout(t, w, cfg)
 
 	// Down: a → b (skips separator).
@@ -443,7 +443,7 @@ func TestContextMenuKeyboardRightOpensSubmenu(t *testing.T) {
 			}),
 		},
 	}
-	focusID := cfg.ID + "_popup"
+	focusID := ScopeID(cfg.ID, "popup")
 	popup := contextMenuPopupLayout(t, w, cfg)
 
 	// Right: more → x (first submenu child).
@@ -466,7 +466,7 @@ func TestContextMenuKeyboardLeftClosesSubmenu(t *testing.T) {
 			}),
 		},
 	}
-	focusID := cfg.ID + "_popup"
+	focusID := ScopeID(cfg.ID, "popup")
 	popup := contextMenuPopupLayout(t, w, cfg)
 
 	// Right into submenu, then Left back.

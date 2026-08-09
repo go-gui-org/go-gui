@@ -144,7 +144,7 @@ func datePickerMonth(
 			dayVal := d
 			cfgID := cfg.ID
 			cells = append(cells, Button(ButtonCfg{
-				ID:         cfg.ID + ".day." + strconv.Itoa(d),
+				ID:         ScopeIDN(cfg.ID, "day", d),
 				MinWidth:   cellSize,
 				MaxWidth:   cellSize,
 				MaxHeight:  cellSize,
@@ -230,7 +230,7 @@ func datePickerAdjacentCell(
 	}
 
 	return Button(ButtonCfg{
-		ID:        cfg.ID + ".day." + idSuffix + "." + strconv.Itoa(adjDay),
+		ID:        ScopeIDN(ScopeID(cfg.ID, "day", idSuffix), "", adjDay),
 		Color:     ColorTransparent,
 		Colors:    ColorSet{Border: ColorTransparent},
 		MinWidth:  cellSize,
@@ -273,7 +273,7 @@ func datePickerYearMonthPicker(
 ) View {
 	cfgID := cfg.ID
 	return DatePickerRoller(DatePickerRollerCfg{
-		ID:           cfg.ID + ".roller",
+		ID:           ScopeID(cfg.ID, "roller"),
 		SelectedDate: datePickerViewTime(state),
 		DisplayMode:  RollerMonthYear,
 		VisibleItems: 5,

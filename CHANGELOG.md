@@ -10,6 +10,23 @@ and this project adheres to
 
 ### Added
 
+- **`gui.ScopeID` and `gui.ScopeIDN`.** The one way to compose an inner widget's
+  ID. An ID is now a `:`-joined path (`grid:header:name:resize`); the owner may
+  itself be composed, and composition is associative. `ScopeIDN` appends a
+  numeric last segment without materialising the number as its own string, for
+  loop-derived identity (a list row, a calendar day, a radio option). Both cost
+  exactly one allocation, asserted with `testing.AllocsPerRun`. They replace ~70
+  hand-rolled concatenations that used five different separators. There is no
+  escaping: a **part** — a row key, a heading slug, any leaf value fed into a
+  composition — must not contain `:` and keeps its own spelling. See
+  `docs/specs/widget-id-scoping.md`.
+
+- **`ergoaudit -mode ids`.** Part of `make ergo-audit`; fails on any hand-rolled
+  ID composition in `gui/`. It flags both producers and, importantly, consumers
+  — `w.IsFocus(cfg.ID+"_popup")` rebuilds an ID the producer may have moved, and
+  that is how the two drift. Exempt a line with `ergoaudit:id-part` (a leaf
+  part) or `ergoaudit:not-an-id` (not a widget ID at all).
+
 - **`(*Window).TestDuplicateIDs`.** The assertable form of what `GOGUI_DEBUG=1`
   prints: renders the window and returns every identity defect in the frame —
   duplicate IDs, and ID-less shapes whose focus, scroll, or `OnMouseLeave`
@@ -25,7 +42,52 @@ and this project adheres to
   at its limit — and the message carries the content and viewport sizes that
   decided it.
 
+### Changed
+
+- **Composed widget IDs are respelled with a single `:` separator.** Every
+  framework-composed inner ID changed. Nothing in the public API changed —
+  `SetFocus`, `ScrollVerticalTo`, `FindByID` and the test helpers still take the
+  whole composed string — but an application that hardcoded one of these
+  spellings (most likely in its own tests) must update it. There is no compile
+  error for that; the symptom is a test that no longer finds its widget.
+
+  | Widget                 | Was                           | Now                           |
+  | ---------------------- | ----------------------------- | ----------------------------- |
+  | Tab control button     | `tc_main_settings`            | `main:tab:settings`           |
+  | ListBox item           | `lb_list_apple`               | `list:item:apple`             |
+  | Tree row               | `tr_tree_node1`               | `tree:row:node1`              |
+  | Radio group option     | `rbg/0`                       | `rbg:opt:0`                   |
+  | Markdown table         | `doc.table.0`                 | `doc:table:0`                 |
+  | Markdown heading       | `some-heading`                | `doc:h:some-heading`          |
+  | Calendar day           | `dp.day.14`                   | `dp:day:14`                   |
+  | Color picker channel   | `cp.rgb.0`, `cp.hex`          | `cp:rgb:0`, `cp:hex`          |
+  | Dialog buttons         | `__gui_dialog__/1`            | `__gui_dialog__:1`            |
+  | Context menu / tooltip | `menu_popup`                  | `menu:popup`                  |
+  | Numeric input parts    | `n_field`, `n_step_up`        | `n:field`, `n:step_up`        |
+  | Select / combobox      | `sel.dropdown`                | `sel:dropdown`                |
+  | Date input parts       | `d.input`, `d.picker`         | `d:input`, `d:picker`         |
+  | Toast buttons          | `toast_1:action`              | `toast:1:action`              |
+  | Animation keys         | `skeleton_x`, `spell-check-x` | `skeleton:x`, `spell-check:x` |
+  | Dock node IDs          | `main_new_editor`             | `main:new:editor`             |
+  | Inspector tree paths   | `0.3.1`                       | `0:3:1`                       |
+
+  Dock node IDs are generated during drag-drop and stored in `DockNode`, which
+  an application may persist. Nothing parses them, so an old saved layout keeps
+  working — it simply carries old-format IDs alongside newly minted ones.
+
+  Unchanged: everything already spelled with `:` (`cmdbtn:`, `dock_close:`,
+  datagrid cells and headers, splitter handles, scroll IDs), and data-derived
+  row keys (`__auto_`, `__draft_`, `__src_o_`), which are parts rather than
+  scopes.
+
 ### Fixed
+
+- **Two `Markdown` widgets in one window no longer share IDs.** A heading's ID
+  was its bare anchor slug, a code block's copy button was keyed by block index
+  alone, and the document-level copy button was the constant `md_cp_doc` — so
+  two documents in one window collided on all three. All are now scoped to the
+  document. Two identical headings in a _single_ document still collide, but the
+  duplicate audit now reports that instead of letting it pass silently.
 
 - **Composite widgets no longer duplicate their own ID.** `Input` put `cfg.ID`
   on both its outer container and its inner text shape, and every `Markdown`

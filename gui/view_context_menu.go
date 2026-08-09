@@ -59,13 +59,13 @@ func ContextMenu(w *Window, cfg ContextMenuCfg) View {
 		w, nsContextMenu, cfg.ID, contextMenuState{})
 
 	content := cfg.Content
-	if st.Open && w.IsFocus(cfg.ID+"_popup") {
+	if st.Open && w.IsFocus(ScopeID(cfg.ID, "popup")) {
 		content = make([]View, len(cfg.Content)+1)
 		copy(content, cfg.Content)
 		content[len(cfg.Content)] = contextMenuPopup(w, cfg, st.X, st.Y)
 	}
 
-	focusID := cfg.ID + "_popup"
+	focusID := ScopeID(cfg.ID, "popup")
 	return Column(ContainerCfg{
 		ID:      cfg.ID,
 		Sizing:  cfg.Sizing,
@@ -144,7 +144,7 @@ func contextMenuPopup(w *Window, cfg ContextMenuCfg, mx, my float32) View {
 	}
 
 	return Menu(w, MenubarCfg{
-		ID:                cfg.ID + "_popup",
+		ID:                ScopeID(cfg.ID, "popup"),
 		Items:             cfg.Items,
 		Action:            action,
 		Color:             cfg.Color,

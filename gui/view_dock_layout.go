@@ -184,7 +184,7 @@ func dockSplitView(
 	}
 
 	return Splitter(SplitterCfg{
-		ID:          "dock_split:" + node.ID,
+		ID:          ScopeID("dock_split", node.ID),
 		Orientation: orientation,
 		Ratio:       SomeF(node.Ratio),
 		Sizing:      FillFill,
@@ -318,7 +318,7 @@ func dockTabButton(
 		btnContent = append(btnContent,
 			Rectangle(RectangleCfg{Sizing: FillFill, Color: ColorTransparent}))
 		btnContent = append(btnContent, Button(ButtonCfg{
-			ID:         "dock_close:" + panelID,
+			ID:         ScopeID("dock_close", panelID),
 			Width:      18,
 			Height:     18,
 			Sizing:     FixedFixed,
@@ -345,7 +345,7 @@ func dockTabButton(
 	}
 
 	return Button(ButtonCfg{
-		ID:         "dock_tab:" + groupID + ":" + panelID,
+		ID:         ScopeID("dock_tab", groupID, panelID),
 		Sizing:     FillFit,
 		HAlign:     Some(HAlignLeft),
 		Padding:    SomeP(4, 8, 4, 8),

@@ -1,7 +1,6 @@
 package gui
 
 import (
-	"strconv"
 	"testing"
 )
 
@@ -57,7 +56,7 @@ func TestRadioButtonGroupFocusIDs(t *testing.T) {
 	// Each radio gets a per-index focus ID derived from the group ID.
 	for i, child := range kids {
 		layout := child.GenerateLayout(w)
-		expected := "rbg/" + strconv.Itoa(i)
+		expected := ScopeIDN("rbg", "opt", i)
 		if !layout.Shape.Focusable {
 			t.Errorf("child[%d] not focusable", i)
 		}

@@ -1,107 +1,196 @@
 # Widget ID scoping
 
-Status: proposal, not implemented. Written 2026-08-09 after a
-`GOGUI_DEBUG=1` run of the showcase reported 39 duplicate IDs.
+Status: implemented. Written 2026-08-09 after a `GOGUI_DEBUG=1` run of the
+showcase reported 39 duplicate IDs; decided and implemented the same day.
 
 ## Problem
 
-`Shape.ID` is the identity key for focus, scroll offsets, per-widget
-state, `FindByID`, and hero animations. It must be unique per window.
-Nothing enforces that at compile time, and the failure is silent: two
-widgets sharing an ID collapse onto one tab stop and one state slot,
-with no error and no visual difference.
+`Shape.ID` is the identity key for focus, scroll offsets, per-widget state,
+`FindByID`, and hero animations. It must be unique per window. Nothing enforces
+that at compile time, and the failure is silent: two widgets sharing an ID
+collapse onto one tab stop and one state slot, with no error and no visual
+difference.
 
-The showcase run produced 39 reports. Only two were application
-mistakes. The rest came from the framework:
+The showcase run produced 39 reports. Only two were application mistakes. The
+rest came from the framework:
 
-| Count | Cause                                                       |
-| ----- | ----------------------------------------------------------- |
+| Count | Cause                                                         |
+| ----- | ------------------------------------------------------------- |
 | 32    | `Input` put `cfg.ID` on both its container and its inner text |
 | 5     | every markdown paragraph claimed the markdown widget's ID     |
 | 2     | showcase: a constant ID in a loop; a nested widget copy-paste |
 
-Both framework causes are now fixed (`Shape.focusOwner` for the first,
+Both framework causes were fixed first (`Shape.focusOwner` for the first,
 container-owned ID for the second), and the check is available as
-`(*Window).TestDuplicateIDs`. This document is about the ergonomics
-question those bugs exposed.
+`(*Window).TestDuplicateIDs`. This document is about the ergonomics question
+those bugs exposed.
 
-## Evidence that scoping is the missing primitive
+## Evidence that scoping was the missing primitive
 
-Composite widgets already build scoped IDs by hand, 36 times in `gui/`,
-with three different separators:
+Composite widgets built scoped IDs by hand at roughly 70 sites in `gui/`, with
+**five** different separators:
 
-| Separator | Example                                                    |
-| --------- | ---------------------------------------------------------- |
-| `/`       | `cfg.ID + "/" + strconv.Itoa(i)` (`view_radio_button_group.go:99`) |
-| `.`       | `cfg.ID + ".day." + strconv.Itoa(d)` (`view_date_picker_calendar.go:147`) |
-| `:`       | `cfg.ID + ":handle"` (`view_splitter_handle.go:41`)        |
-| prefix    | `cmdbtn:` namespacing in `CommandButton`                   |
+| Separator | Example                                                               |
+| --------- | --------------------------------------------------------------------- |
+| `:`       | `cfg.ID + ":handle"` (`view_splitter_handle.go`)                      |
+| `.`       | `cfg.ID + ".day." + strconv.Itoa(d)` (`view_date_picker_calendar.go`) |
+| `_`       | `"tc_" + controlID + "_" + tabID` (`view_tab_control.go`)             |
+| `-`       | `"spell-check-" + focusID` (`spell_check.go`)                         |
+| `/`       | `cfg.ID + "/" + strconv.Itoa(i)` (`view_radio_button_group.go`)       |
 
-Every composite widget reimplements an ID stack through string
-concatenation. `mdRenderParagraph` is the one that forgot, and that is
-the whole of the second cause above. A primitive the framework itself
-needs 36 times is a primitive, not a convenience.
+Every composite widget reimplemented an ID stack through string concatenation,
+and `mdRenderParagraph` was the one that forgot. A primitive the framework
+itself needs 70 times is a primitive, not a convenience.
 
 Two further consequences of having no scope:
 
 - Uniqueness is window-global. The showcase reuses `"input-text"` in two
-  different panels and gets away with it only because the panels never
-  appear at once. Every ID in a large application is a global name.
-- Heading blocks key off `block.AnchorSlug`
-  (`view_markdown_blocks.go:356`), so two headings with identical text
-  in one document collide. A scope keyed to the document would remove
-  the collision without inventing a disambiguator.
+  different panels and gets away with it only because the panels never appear at
+  once. Every ID in a large application is a global name.
+- Heading blocks keyed off `block.AnchorSlug`, so two markdown views showing the
+  same heading collided.
 
-## Failure modes explicit IDs actually produce
+## Why implicit IDs were the wrong fix
 
-1. **A constant ID inside a loop.** Eight overflow-panel buttons built
-   from one literal (`examples/showcase/demo_layout.go`). The ID must be
-   derived from the item, and nothing in the type system says so.
-2. **Copy-paste into a nested widget.** A `Button` and the
-   `ProgressBar` inside it sharing one ID
-   (`examples/showcase/demo_feedback.go`).
-
-Both are cheap to catch once the duplicate check is trustworthy, which
-is what the framework fixes bought. Neither is an argument for dropping
-explicit IDs.
-
-## Why implicit IDs are the wrong fix
-
-The obvious reaction — derive IDs from tree position and let the author
-skip them — trades a loud failure for a silent one. In an immediate-mode
-tree, identity must survive reordering, insertion, and conditional
-rendering. A position-derived key migrates state when a list changes:
-insert a row at the top and every row below it inherits the row above's
-cursor, selection, scroll offset and focus. There is no warning for
-that, because from the framework's view nothing is wrong.
+The obvious reaction — derive IDs from tree position and let the author skip
+them — trades a loud failure for a silent one. In an immediate-mode tree,
+identity must survive reordering, insertion, and conditional rendering. A
+position-derived key migrates state when a list changes: insert a row at the top
+and every row below it inherits the row above's cursor, selection, scroll offset
+and focus. There is no warning for that, because from the framework's view
+nothing is wrong.
 
 Prior art agrees. Dear ImGui uses an explicit ID stack (`PushID`/`PopID`)
-precisely so loop iterations disambiguate; egui derives an `Id` from the
-parent scope plus a caller-supplied `id_salt`. Both are explicit
-identity plus a scope, not implicit identity.
+precisely so loop iterations disambiguate; egui derives an `Id` from the parent
+scope plus a caller-supplied `id_salt`. Both are explicit identity plus a scope,
+not implicit identity.
 
-## Proposal to evaluate
+## Decisions
 
-1. **An ID-scope primitive.** A way to push a namespace for a subtree so
-   that inner IDs are resolved relative to it — replacing the 36
-   hand-rolled concatenations with one mechanism, and giving loops a
-   structural answer (`scope(i)`) instead of a naming convention.
-2. **One separator.** Whatever the scope uses, applied consistently, so
-   composed IDs are parseable and predictable.
-3. **Per-container uniqueness.** Decide whether the invariant should be
-   "unique within the enclosing scope" rather than "unique per window".
-   This is the change that would make large applications composable, and
-   the one with the largest blast radius: `FindByID`, focus traversal,
-   scroll keys, `StateMap` keys and the debug audit all assume a flat
-   namespace today.
+1. **An explicit helper, not an implicit scope push.** `gui.ScopeID` and
+   `gui.ScopeIDN` compose an inner ID from an owner and one or more parts.
+   Containers do not push a namespace, so moving a widget in the tree never
+   changes its identity.
+2. **IDs stay flat, window-global strings.** No public API changed: `SetFocus`,
+   `ScrollVerticalTo`, `FindByID` and the test helpers still take the whole
+   composed string. Per-scope uniqueness was considered and rejected for now —
+   it would touch `FindByID`, focus traversal, scroll keys, `StateMap` keys and
+   the debug audit, all of which assume a flat namespace.
+3. **One separator: `:`.** Already dominant, already parsed by the datagrid, and
+   rare in application IDs, which favour `-` and `_`.
+4. **No escaping.** See below.
 
-Open questions:
+## The grammar
 
-- Does a scope apply to every ID-keyed subsystem, or only to focus and
-  state? Hero animations match IDs across frames and across subtrees,
-  which a scope could break.
-- Do public IDs stay stable? Applications call `ScrollVerticalTo(id)`
-  and the test helpers take IDs; scoping changes what string an
-  application must pass.
-- Is the scope explicit at the call site or implicit in the container?
-  Implicit is less typing and harder to reason about when a widget moves.
+An ID is a `:`-joined path. The _owner_ may itself already be composed — that is
+how nesting works — and composition is associative:
+
+```go
+base := gui.ScopeID(cfg.ID, "header", col.ID) // "grid:header:name"
+gui.ScopeID(base, "resize")                   // "grid:header:name:resize"
+```
+
+`ScopeIDN` appends a numeric last segment without materialising the number as
+its own string, for loop-derived identity:
+
+```go
+gui.ScopeIDN(cfg.ID, "opt", i) // "group:opt:2"
+```
+
+Empty segments are dropped, so an ID-less composite still produces workable
+inner IDs — and two of them in one window collide loudly rather than silently.
+
+Both functions cost **exactly one allocation**: the returned string. `ScopeID`
+uses single-expression concatenation for the common arities and an exactly sized
+`strings.Builder` beyond them; the variadic backing array does not escape.
+`gui/id_scope_test.go` asserts this with `testing.AllocsPerRun`, and that test
+is the guard — a future edit that lets `parts` escape shows up there and nowhere
+else.
+
+### Scopes versus parts
+
+`ScopeID` composes **identities**. A **part** is a leaf value fed _into_ a
+composition — a row key, a column key, a heading slug. Because there is no
+escaping, a part must not contain `:`, so parts keep their own spelling:
+
+- `__src_o_`, `__src_c_`, `__src_cx_` synthetic row keys
+  (`gui/datagrid/data_source_grid.go`)
+- `__auto_` (`view_data_grid_helpers.go`) and `__draft_`
+  (`view_data_grid_crud.go`) row keys
+
+All three flow through `dataGridRowID` into `ScopeID(cfg.ID, "row", rowID)`.
+Rewriting them as `__src:o:5` would make a part contain the separator, producing
+`grid:row:__src:o:5` — ambiguous with a real nested scope. Underscore form is
+correct here, not a leftover.
+
+### Why no escaping
+
+Escaping would break the datagrid's reverse parse.
+`dataGridHeaderColIDFromLayoutID` recovers a column ID by trimming
+`dataGridHeaderPrefix(gridID)` and comparing the remainder verbatim on a
+per-frame hit-test path; an unescape step would add an allocation there.
+Composed IDs are also user-facing — applications pass them to
+`ScrollVerticalTo`, and they appear in `GOGUI_DEBUG` output and the inspector —
+and `a\:b` is worse to read and worse to type.
+
+The hazard escaping would remove is ambiguity: two different `(owner, parts)`
+tuples composing to the same string. That hazard is exactly a duplicate ID,
+which `debugCheckShape` already reports and `(*Window).TestDuplicateIDs` already
+asserts.
+
+## Enforcement
+
+`go run ./tools/ergoaudit/ -mode ids .` (part of `make ergo-audit`) fails on any
+hand-rolled composition in `gui/`. It flags a separator-bearing concatenation or
+`fmt.Sprintf` that either lands in an ID position — a Cfg `...ID` field, an
+assignment to an `...ID` variable or field, the result of an `...ID` function —
+or is built off something already named like an ID.
+
+That second rule is the one that earns its keep. The producers are easy to
+migrate; the **consumers** drift. `w.IsFocus(cfg.ID+"_popup")` rebuilds an ID
+the producer has already moved, and it sits in a call argument rather than any
+position the first rule can name. Four such consumers existed, and each broke
+its widget when only the producer was migrated.
+
+Two markers exempt a line, each naming its reason:
+
+- `ergoaudit:id-part` — a leaf part, per the rule above.
+- `ergoaudit:not-an-id` — not a widget ID at all: an ibus socket name, a
+  spreadsheet column name, a math cache key.
+
+The check deliberately lives in `ergoaudit` and not in `tools/requiredid`, which
+ships as a vet pass over _application_ code where hand-rolled composition is
+legitimate.
+
+## Collisions this fixed
+
+Three, of which the spec had predicted two:
+
+1. `mdRenderHeading` assigned a bare `block.AnchorSlug`, so two markdown views
+   sharing a heading collided. Now `ScopeID(cfg.ID, "h", slug)`.
+2. `renderMdCode` keyed its copy button by block index alone. Now
+   `ScopeIDN(cfg.ID, "code", blockIdx)`.
+3. **Found by the new regression test, not by inspection:** the document-level
+   copy button used the constant `"md_cp_doc"`, so every `Markdown` widget in a
+   window shared one. Now `ScopeID(cfg.ID, "copy-doc")`.
+
+Two identical headings in _one_ document still collide. That is now reported by
+the duplicate audit rather than passing silently.
+
+## Remaining work
+
+- **Per-container uniqueness.** Whether the invariant should become "unique
+  within the enclosing scope" rather than "unique per window" is still open. It
+  is the change that would make large applications composable, and the one with
+  the largest blast radius.
+- **Caching composed IDs across frames.** A 30×10 datagrid composes ~390 IDs per
+  frame. Each is already exactly one allocation — `runtime.concatstrings`
+  allocates once regardless of operand count — so hoisting a prefix out of a
+  loop saves nothing. Removing the allocation means reusing the previous frame's
+  string, which is tractable only as a positional (row index, column index)
+  cache. A positional cache that goes stale on reorder hands the wrong ID to the
+  wrong row: the exact identity-migration failure this design rejects implicit
+  IDs for. It needs its own invalidation proof and benchmark.
+- **Hero animations** match IDs across frames and across subtrees. They are
+  unaffected today because IDs stayed flat; per-scope uniqueness would have to
+  account for them.

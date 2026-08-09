@@ -315,7 +315,7 @@ func rtfTooltipAnimation(tipID string) *Animate {
 			ts := &w.viewState.tooltip
 			if ts.hoverID == tipID && ts.text != "" {
 				ts.id = tipID
-				ts.popupID = tipID + "_rtf_popup"
+				ts.popupID = ScopeID(tipID, "rtf_popup")
 			}
 		},
 	}

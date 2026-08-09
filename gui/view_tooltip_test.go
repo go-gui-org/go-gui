@@ -73,8 +73,8 @@ func TestAnimationTooltipCallback(t *testing.T) {
 		t.Errorf("expected tooltip id=tip1, got %q",
 			w.viewState.tooltip.id)
 	}
-	if w.viewState.tooltip.popupID != "tip1_popup" {
-		t.Errorf("expected popupID=tip1_popup, got %q",
+	if w.viewState.tooltip.popupID != ScopeID("tip1", "popup") {
+		t.Errorf("expected popupID=tip1:popup, got %q",
 			w.viewState.tooltip.popupID)
 	}
 }
@@ -135,7 +135,7 @@ func TestWithTooltipReturnsView(t *testing.T) {
 func TestWithTooltipShowsPopupWhenActive(t *testing.T) {
 	w := &Window{}
 	w.viewState.tooltip.id = "tip1"
-	w.viewState.tooltip.popupID = "tip1_popup"
+	w.viewState.tooltip.popupID = ScopeID("tip1", "popup")
 	v := WithTooltip(w, WithTooltipCfg{
 		ID:      "tip1",
 		Text:    "hello",
@@ -213,7 +213,7 @@ func TestWithTooltipAmendClearsOnLeave(t *testing.T) {
 	w.viewState.tooltip.hoverID = "tip1"
 	w.viewState.tooltip.hoverStart = time.Now()
 	w.viewState.tooltip.id = "tip1"
-	w.viewState.tooltip.popupID = "tip1_popup"
+	w.viewState.tooltip.popupID = ScopeID("tip1", "popup")
 	w.viewState.mousePosX = 200
 	w.viewState.mousePosY = 200
 
@@ -294,8 +294,8 @@ func TestWithTooltipAmendSetsIDAfterDelay(t *testing.T) {
 		t.Errorf("expected tooltip id=tip1, got %q",
 			w.viewState.tooltip.id)
 	}
-	if w.viewState.tooltip.popupID != "tip1_popup" {
-		t.Errorf("expected popupID=tip1_popup, got %q",
+	if w.viewState.tooltip.popupID != ScopeID("tip1", "popup") {
+		t.Errorf("expected popupID=tip1:popup, got %q",
 			w.viewState.tooltip.popupID)
 	}
 }

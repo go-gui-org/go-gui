@@ -171,7 +171,7 @@ func confirmView(cfg DialogCfg) View {
 		Spacing:    Some(SpacingMedium),
 		Content: []View{
 			Button(ButtonCfg{
-				ID:      cfg.FocusID + "/1",
+				ID:      ScopeIDN(cfg.FocusID, "", 1),
 				Content: []View{Text(TextCfg{Text: "Yes"})},
 				OnClick: func(ctx EventCtx) {
 					ctx.Window.DialogDismiss()
@@ -218,7 +218,7 @@ func promptView(cfg DialogCfg) []View {
 		Spacing:    Some(SpacingMedium),
 		Content: []View{
 			Button(ButtonCfg{
-				ID:       cfg.FocusID + "/1",
+				ID:       ScopeIDN(cfg.FocusID, "", 1),
 				Disabled: len(cfg.Reply) == 0,
 				Content:  []View{Text(TextCfg{Text: "OK"})},
 				OnClick: func(ctx EventCtx) {
@@ -230,7 +230,7 @@ func promptView(cfg DialogCfg) []View {
 				},
 			}),
 			Button(ButtonCfg{
-				ID:      cfg.FocusID + "/2",
+				ID:      ScopeIDN(cfg.FocusID, "", 2),
 				Content: []View{Text(TextCfg{Text: "Cancel"})},
 				OnClick: func(ctx EventCtx) {
 					ctx.Window.DialogDismiss()
@@ -295,11 +295,11 @@ func applyDialogDefaults(cfg *DialogCfg) {
 
 // dialogFocusID returns the focus ID of the button that should receive
 // initial keyboard focus. For confirm dialogs with DefaultButton set to
-// DialogButtonYes, this is the "Yes" button (cfg.FocusID+"/1"); otherwise
+// DialogButtonYes, this is the "Yes" button (scoped ":1"); otherwise
 // the base focus ID (the "No"/"OK"/input element).
 func dialogFocusID(cfg DialogCfg) string {
 	if cfg.DialogType == DialogConfirm && cfg.DefaultButton == DialogButtonYes {
-		return cfg.FocusID + "/1"
+		return ScopeIDN(cfg.FocusID, "", 1)
 	}
 	return cfg.FocusID
 }

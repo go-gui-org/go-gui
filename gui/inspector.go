@@ -270,7 +270,7 @@ func inspectorPickRecurse(layout *Layout, path string, x, y float32) string {
 		return ""
 	}
 	for i := range slices.Backward(layout.Children) {
-		childPath := path + "." + strconv.Itoa(i)
+		childPath := ScopeIDN(path, "", i)
 		if picked := inspectorPickRecurse(
 			&layout.Children[i], childPath, x, y); picked != "" {
 			return picked
@@ -325,11 +325,11 @@ func inspectorLayoutToTree(
 	}
 
 	isExpanded := expanded != nil && expanded[path]
-	isAncestor := !isExpanded && selected != "" && strings.HasPrefix(selected, path+".")
+	isAncestor := !isExpanded && selected != "" && strings.HasPrefix(selected, path+IDSep)
 
 	if isExpanded || isAncestor {
 		for i := range layout.Children {
-			childPath := path + "." + strconv.Itoa(i)
+			childPath := ScopeIDN(path, "", i)
 			childNodes = append(
 				childNodes,
 				inspectorLayoutToTree(
@@ -340,7 +340,7 @@ func inspectorLayoutToTree(
 	} else if len(layout.Children) > 0 {
 		// Add a dummy child to show the arrow icon for collapsed nodes.
 		childNodes = append(childNodes, TreeNodeCfg{
-			ID: path + ".__dummy__",
+			ID: ScopeID(path, "__dummy__"),
 		})
 	}
 
