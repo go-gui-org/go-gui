@@ -179,18 +179,14 @@ the duplicate audit rather than passing silently.
 
 ## Remaining work
 
-- **Per-container uniqueness.** Whether the invariant should become "unique
-  within the enclosing scope" rather than "unique per window" is still open. It
-  is the change that would make large applications composable, and the one with
-  the largest blast radius.
-- **Caching composed IDs across frames.** A 30×10 datagrid composes ~390 IDs per
-  frame. Each is already exactly one allocation — `runtime.concatstrings`
-  allocates once regardless of operand count — so hoisting a prefix out of a
-  loop saves nothing. Removing the allocation means reusing the previous frame's
-  string, which is tractable only as a positional (row index, column index)
-  cache. A positional cache that goes stale on reorder hands the wrong ID to the
-  wrong row: the exact identity-migration failure this design rejects implicit
-  IDs for. It needs its own invalidation proof and benchmark.
-- **Hero animations** match IDs across frames and across subtrees. They are
-  unaffected today because IDs stayed flat; per-scope uniqueness would have to
-  account for them.
+Drafted in [`widget-id-per-scope-uniqueness.md`](widget-id-per-scope-uniqueness.md)
+(pending approval). That spec supersedes Decisions 1–2 here for identity
+resolution once implemented:
+
+- **Per-scope uniqueness** — framework-computed `effID` from ID-bearing
+  ancestors; leaf `Shape.ID` may repeat across scopes; uniqueness stays on the
+  effective key.
+- **Hero animations** — key on `effID`; same leaf under different ancestors does
+  not match (constraint of ID-only join).
+- **Caching composed IDs across frames** — benchmark first; identity-keyed memo
+  only if allocs show (positional cache still rejected).

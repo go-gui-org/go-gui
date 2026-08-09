@@ -5,18 +5,24 @@ import (
 	"testing"
 )
 
-// captureDebug turns the gate on, redirects findings to a buffer, and
-// restores both on cleanup. Returns the buffer.
+// captureDebug turns every category on, redirects findings to a buffer,
+// and restores both on cleanup. Returns the buffer.
 func captureDebug(t *testing.T) *strings.Builder {
+	return captureDebugMask(t, DebugAll)
+}
+
+// captureDebugMask turns the given categories on, redirects findings to
+// a buffer, and restores both on cleanup. Returns the buffer.
+func captureDebugMask(t *testing.T, mask DebugCategory) *strings.Builder {
 	t.Helper()
 	var buf strings.Builder
 	prevOut := debugOut
-	prevOn := debugEnabled.Load()
+	prevMask := debugMask.Load()
 	debugOut = &buf
-	Debug(true)
+	DebugCategories(mask)
 	t.Cleanup(func() {
 		debugOut = prevOut
-		Debug(prevOn)
+		DebugCategories(DebugCategory(prevMask))
 	})
 	return &buf
 }
@@ -165,6 +171,95 @@ func TestDebugAuditNoopWhenOff(t *testing.T) {
 	}
 	if DebugEnabled() {
 		t.Fatal("DebugEnabled must report false")
+	}
+}
+
+// The point of the mask: identity checks run without the unconsumed
+// noise and vice versa. Each category reports only its own findings.
+func TestDebugCategoriesGateIndependently(t *testing.T) {
+	buf := captureDebug(t)
+	DebugCategories(DebugDuplicates)
+	w := &Window{}
+	tree := debugTree(&Shape{Focusable: true}, &Shape{ID: "dup"}, &Shape{ID: "dup"})
+
+	w.debugAudit(&tree)
+	got := buf.String()
+	if !strings.Contains(got, "duplicate ID") || strings.Contains(got, "focusable shape") {
+		t.Fatalf("want only the duplicate finding, got %q", got)
+	}
+
+	DebugCategories(DebugMissingIDs)
+	buf.Reset()
+	w.debugAudit(&tree)
+	got = buf.String()
+	if !strings.Contains(got, "focusable shape at 0") || strings.Contains(got, "duplicate ID") {
+		t.Fatalf("want only the missing-ID finding, got %q", got)
+	}
+}
+
+// A category that is off must never warn, and must not remember either:
+// turning it on later reports the frame in front of it, like cycling
+// the whole gate.
+func TestDebugCategoriesToggleResetsWarnOnce(t *testing.T) {
+	buf := captureDebug(t)
+	DebugCategories(DebugMissingIDs)
+	w := &Window{}
+	tree := debugTree(&Shape{Focusable: true})
+
+	w.debugAudit(&tree)
+	first := buf.String()
+	if first == "" {
+		t.Fatal("want a finding with the category on")
+	}
+
+	DebugCategories(0)
+	buf.Reset()
+	DebugCategories(DebugMissingIDs)
+	w.debugAudit(&tree)
+	// Re-reported, not the stale silence: the finding appears exactly
+	// once again in a buffer that was empty before the re-enable.
+	if n := strings.Count(buf.String(), "focusable shape"); n != 1 {
+		t.Fatalf("want the finding re-reported once, got %d occurrences (%q)",
+			n, buf.String())
+	}
+}
+
+// The tree walk exists for the frame audit categories only, so a mask
+// of dispatch-side categories must skip it entirely.
+func TestDebugCategoriesAuditSkippedWhenOnlyUnconsumed(t *testing.T) {
+	buf := captureDebug(t)
+	DebugCategories(DebugUnconsumed)
+	w := &Window{}
+	tree := debugTree(&Shape{Focusable: true}, &Shape{ID: "dup"}, &Shape{ID: "dup"})
+
+	w.debugAudit(&tree)
+
+	if got := buf.String(); got != "" {
+		t.Fatalf("audit must stay silent under a dispatch-only mask, got %q", got)
+	}
+}
+
+// Every internal check belongs to exactly one category, and DebugAll
+// covers them all, so no check can fall through a mask as unmaskable.
+func TestCheckCategoryMapping(t *testing.T) {
+	tests := []struct {
+		check debugCheck
+		want  DebugCategory
+	}{
+		{debugCheckDupID, DebugDuplicates},
+		{debugCheckFocusNoID, DebugMissingIDs},
+		{debugCheckScrollNoID, DebugMissingIDs},
+		{debugCheckMouseLeaveNoID, DebugMissingIDs},
+		{debugCheckUnconsumed, DebugUnconsumed},
+		{debugCheckListBoxNoHeight, DebugListBoxNoHeight},
+	}
+	for _, tc := range tests {
+		if got := checkCategory(tc.check); got != tc.want {
+			t.Errorf("checkCategory(%d) = %v, want %v", tc.check, got, tc.want)
+		}
+	}
+	if DebugAll != DebugDuplicates|DebugMissingIDs|DebugUnconsumed|DebugListBoxNoHeight {
+		t.Fatal("DebugAll must cover every category")
 	}
 }
 
@@ -374,15 +469,14 @@ func TestTestDuplicateIDsRestoresDebugState(t *testing.T) {
 	// inherit it, and must not drop it either.
 	sentinel := debugWarnKey{check: debugCheckDupID, subject: "sentinel"}
 	w.debug.warned = map[debugWarnKey]struct{}{sentinel: {}}
-	prevOn := debugEnabled.Load()
+	prevOn := DebugEnabled()
 
 	if got := w.TestDuplicateIDs(); len(got) != 0 {
 		t.Fatalf("want no findings, got %q", got)
 	}
 
-	if debugEnabled.Load() != prevOn {
-		t.Errorf("debug gate left at %v, want %v",
-			debugEnabled.Load(), prevOn)
+	if DebugEnabled() != prevOn {
+		t.Errorf("debug gate left at %v, want %v", DebugEnabled(), prevOn)
 	}
 	if _, ok := w.debug.warned[sentinel]; !ok {
 		t.Error("warn-once memory not restored")

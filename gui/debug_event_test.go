@@ -93,6 +93,34 @@ func TestCollapseRespectsAncestorClickButton(t *testing.T) {
 	}
 }
 
+// Re-enabling the unconsumed category must re-report like the audit
+// categories: the generation discard happens at the warn sink, not in
+// the per-frame walk, which never runs for a dispatch-only mask.
+func TestCollapseToggleResetsWarnOnce(t *testing.T) {
+	root := collapseTree(
+		&eventHandlers{OnClick: func(EventCtx) {}},
+		&eventHandlers{OnClick: func(EventCtx) {}},
+	)
+	buf := captureDebug(t)
+	DebugCategories(DebugUnconsumed)
+	w := &Window{}
+
+	mouseDownHandler(root, false, &Event{MouseX: 5, MouseY: 5}, w)
+	first := buf.String()
+	if !strings.Contains(first, `OnClick on "inner"`) {
+		t.Fatalf("want a finding on the first dispatch, got %q", first)
+	}
+
+	DebugCategories(0)
+	buf.Reset()
+	DebugCategories(DebugUnconsumed)
+	mouseDownHandler(root, false, &Event{MouseX: 5, MouseY: 5}, w)
+	if n := strings.Count(buf.String(), "OnClick on"); n != 1 {
+		t.Fatalf("want the finding re-reported once, got %d occurrences (%q)",
+			n, buf.String())
+	}
+}
+
 // The check is diagnostics only; with the gate off it must not fire.
 func TestCollapseSilentWhenDebugOff(t *testing.T) {
 	root := collapseTree(
@@ -104,6 +132,28 @@ func TestCollapseSilentWhenDebugOff(t *testing.T) {
 	mouseDownHandler(root, false, &Event{MouseX: 5, MouseY: 5}, &Window{})
 	if got := buf.String(); got != "" {
 		t.Errorf("gate off must be silent, got %q", got)
+	}
+}
+
+// The unconsumed check is its own category: an identity-only mask must
+// stay silent at dispatch, and the category alone must fire.
+func TestCollapseGatedByUnconsumedCategory(t *testing.T) {
+	root := collapseTree(
+		&eventHandlers{OnClick: func(EventCtx) {}},
+		&eventHandlers{OnClick: func(EventCtx) {}},
+	)
+	buf := captureDebug(t)
+	DebugCategories(DebugDuplicates)
+	mouseDownHandler(root, false, &Event{MouseX: 5, MouseY: 5}, &Window{})
+	if got := buf.String(); got != "" {
+		t.Errorf("identity-only mask must be silent at dispatch, got %q", got)
+	}
+
+	buf.Reset()
+	DebugCategories(DebugUnconsumed)
+	mouseDownHandler(root, false, &Event{MouseX: 5, MouseY: 5}, &Window{})
+	if !strings.Contains(buf.String(), `OnClick on "inner"`) {
+		t.Errorf("want a collapse finding under the unconsumed category, got %q", buf.String())
 	}
 }
 

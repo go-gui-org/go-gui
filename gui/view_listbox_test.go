@@ -377,3 +377,34 @@ func TestListBoxNoHeightWarning(t *testing.T) {
 		t.Fatalf("warning repeated: %v", found)
 	}
 }
+
+// The listbox warning is its own category: a mask without it must stay
+// silent at the site, and the category alone must fire.
+func TestListBoxNoHeightGatedByCategory(t *testing.T) {
+	prevMask := DebugCategory(debugMask.Load())
+	defer DebugCategories(prevMask)
+	w := newTestWindow()
+	cfg := ListBoxCfg{
+		ID:         "lb-cat",
+		Scrollable: true,
+		Data:       listBoxTestData(500),
+	}
+	v := ListBox(cfg)
+
+	DebugCategories(DebugMissingIDs)
+	var found []string
+	w.debug.collect = &found
+	layout := generateViewLayout(v, w)
+	layout.Shape.Height = 0
+	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, w})
+	generateViewLayout(v, w)
+	if len(found) != 0 {
+		t.Fatalf("missing-ID mask must not warn, got %v", found)
+	}
+
+	DebugCategories(DebugListBoxNoHeight)
+	generateViewLayout(v, w)
+	if len(found) != 1 {
+		t.Fatalf("listbox category must warn, got %d findings: %v", len(found), found)
+	}
+}
