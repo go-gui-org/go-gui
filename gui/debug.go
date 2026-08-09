@@ -116,6 +116,9 @@ const (
 	// debugCheckUnconsumed is the only check that runs from dispatch
 	// rather than from the per-frame layout audit; see debug_event.go.
 	debugCheckUnconsumed
+	// debugCheckListBoxNoHeight fires from the listbox view phase
+	// rather than from the layout audit; see listBoxVisibleRange.
+	debugCheckListBoxNoHeight
 )
 
 // debugWarnKey is the warn-once key. For the ID-less checks the
