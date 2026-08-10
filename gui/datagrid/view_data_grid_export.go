@@ -626,7 +626,7 @@ func dataGridCSVColumns(header []string, maxCols int) []GridColumnCfg {
 		var baseID string
 		if strings.TrimSpace(headerValue) == "" {
 			// A spreadsheet column name, not a widget ID.
-			baseID = fmt.Sprintf("col_%d", idx+1) // ergoaudit:not-an-id
+			baseID = fmt.Sprintf("col_%d", idx+1) // ergonomics-audit:not-an-id
 		} else {
 			baseID = dataGridCSVColumnID(title, idx)
 		}
@@ -665,7 +665,7 @@ func dataGridCSVColumnID(title string, idx int) string {
 	id := dataGridTrimCharEdges(string(out), '_')
 	if id == "" {
 		// A spreadsheet column name, not a widget ID.
-		id = fmt.Sprintf("col_%d", idx+1) // ergoaudit:not-an-id
+		id = fmt.Sprintf("col_%d", idx+1) // ergonomics-audit:not-an-id
 	}
 	return id
 }

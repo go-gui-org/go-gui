@@ -256,7 +256,7 @@ func dataGridCrudAddRow(gridID string, columns []GridColumnCfg, onSelectionChang
 	state := dgCrud.GetOr(gridID, dataGridCrudState{})
 	state.NextDraftSeq++
 	// A row key, not a scope: it becomes a part of composed row IDs.
-	draftID := fmt.Sprintf("__draft_%s_%d", gridID, state.NextDraftSeq) // ergoaudit:id-part
+	draftID := fmt.Sprintf("__draft_%s_%d", gridID, state.NextDraftSeq) // ergonomics-audit:id-part
 	row := GridRow{
 		ID:    draftID,
 		Cells: dataGridCrudDefaultCells(columns),

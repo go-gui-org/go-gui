@@ -23,7 +23,7 @@ type SliderCfg struct {
 	Step            float32
 	Width           float32
 	Height          float32
-	Size            float32
+	Size            float32 // ergonomics-audit:opt-plain — a zero-size slider is meaningless; 0 falls back to the theme
 	ThumbSize       float32
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.

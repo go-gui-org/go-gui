@@ -99,7 +99,7 @@ type MathSpinnerCfg struct {
 	Color       Color
 	StrokeWidth float32
 	Speed       float32
-	Size        float32
+	Size        float32 // ergonomics-audit:opt-plain — a zero-size spinner is meaningless; 0 falls back to 48
 	paramA      Opt[float32]
 	paramB      Opt[float32]
 	paramD      Opt[float32]

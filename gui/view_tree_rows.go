@@ -70,7 +70,7 @@ func treeEstimateRowHeight(cfg TreeCfg, w *Window) float32 {
 	if w != nil && w.textMeasurer != nil {
 		height = w.textMeasurer.FontHeight(style)
 	}
-	return height + PaddingTwoFive.Height() + cfg.Spacing
+	return height + PaddingTwoFive.Height() + cfg.Spacing.Get(defaultTreeStyle.Spacing)
 }
 
 func treeVisibleRange(

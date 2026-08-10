@@ -216,8 +216,8 @@ func socketAddress() string {
 	// reconstruction disagrees (a renamed host, IBUS_DISPLAY set for
 	// the daemon but not for us).
 	// These are ibus socket filenames, not widget IDs.
-	names := []string{id + "-" + displaySuffix()} // ergoaudit:not-an-id
-	pattern := id + "-*"                          // ergoaudit:not-an-id
+	names := []string{id + "-" + displaySuffix()} // ergonomics-audit:not-an-id
+	pattern := id + "-*"                          // ergonomics-audit:not-an-id
 	if matches, err := filepath.Glob(filepath.Join(dir, pattern)); err == nil {
 		for _, m := range matches {
 			names = append(names, filepath.Base(m))

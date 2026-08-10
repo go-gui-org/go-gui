@@ -10,7 +10,7 @@ make check-all                  # test + lint + vet gates (pre-push)
 make test                       # tests only
 make lint                       # golangci-lint (pinned version)
 make vet                        # go vet + requiredid analyzer
-make ergo-audit                 # focus/callbacks inventory + ID composition
+make ergonomics-audit                 # focus/callbacks inventory + ID composition
 make export-audit               # exported surface (advisory in-repo)
 ./scripts/large-files.sh        # report Go files >800 lines in gui/
 ```
@@ -67,7 +67,7 @@ silent no-op — the widget renders and clicks but never joins the tab order. Th
 ID requirement is unchanged — a default-on control still needs an `ID` to reach
 the tab order, which is what `requiredid` enforces. Everything else is opt-in
 via `Focusable: true`. See `docs/specs/focusable-default-input.md`; run
-`ergoaudit -mode focus` for the current inventory.
+`ergonomics-audit -mode focus` for the current inventory.
 
 **`Shape.ID` is a leaf; identity is the effective ID.** `resolveShapeIDs`
 (`gui/id_resolve.go`, run from `layoutArrange` before the layout passes) stamps
@@ -97,7 +97,7 @@ exactly one allocation; `gui/id_scope_test.go` asserts that. There is no
 escaping, so a **part** (a row key, a heading slug — a leaf value fed _into_ a
 composition) must not contain `:` and keeps its own spelling. Consumers matter
 as much as producers: rebuilding an ID at a lookup site is how the two drift.
-`make ergo-audit` (mode `ids`) fails on any hand-rolled composition; see
+`make ergonomics-audit` (mode `ids`) fails on any hand-rolled composition; see
 `docs/specs/widget-id-scoping.md`.
 
 Uniqueness is strict, including within one widget: a composite widget's inner

@@ -58,7 +58,7 @@ type DialogCfg struct {
 	Color        Color
 	ColorBorder  Color
 	DialogType   dialogType
-	AlignButtons HorizontalAlign
+	AlignButtons HorizontalAlign // ergonomics-audit:opt-plain — zero (HAlignStart) is the natural default; no distinct unset behavior
 
 	// DefaultButton selects which confirm-dialog button gets initial
 	// keyboard focus (so Enter/Space activate it). Defaults to

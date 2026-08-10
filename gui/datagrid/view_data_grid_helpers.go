@@ -49,7 +49,7 @@ func dataGridRowAutoID(row GridRow) string {
 		h = gg.Fnv64Str(h, row.Cells[key])
 	}
 	// A row key, not a scope: it becomes a part of composed row IDs.
-	return "__auto_" + zeroPadHex16(h) // ergoaudit:id-part
+	return "__auto_" + zeroPadHex16(h) // ergonomics-audit:id-part
 }
 
 func dataGridHeight(cfg *DataGridCfg) float32 {

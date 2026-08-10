@@ -30,7 +30,7 @@ type TreeCfg struct {
 	Radius     Opt[float32]
 
 	indent  float32
-	Spacing float32
+	Spacing Opt[float32] // 0 is a real choice (dense rows); unset falls back to the theme
 
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
@@ -284,7 +284,7 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 		SizeBorder:  Some(sizeBorder),
 		Radius:      Some(radius),
 		Padding:     cfg.Padding,
-		Spacing:     Some(cfg.Spacing),
+		Spacing:     cfg.Spacing,
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
 		Content:     rows,
@@ -459,8 +459,8 @@ func applyTreeDefaults(cfg *TreeCfg) {
 	if cfg.indent == 0 {
 		cfg.indent = d.indent
 	}
-	if cfg.Spacing == 0 {
-		cfg.Spacing = d.Spacing
+	if !cfg.Spacing.IsSet() {
+		cfg.Spacing = Some(d.Spacing)
 	}
 	if cfg.Color == (Color{}) {
 		cfg.Color = d.Color

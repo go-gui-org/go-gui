@@ -13,9 +13,9 @@ type RectangleCfg struct {
 	MinWidth       float32
 	MinHeight      float32
 	MaxHeight      float32
-	Radius         float32
+	Radius         float32 // ergonomics-audit:opt-plain — a rectangle is a primitive: radius 0 (sharp) and border 0 (none) are the real choices, and the theme default is not applicable
 	BlurRadius     float32
-	SizeBorder     float32
+	SizeBorder     float32 // ergonomics-audit:opt-plain — same primitive reasoning as Radius: 0 = no border, applied as-is
 	Color          Color
 	ColorBorder    Color
 	Sizing         Sizing

@@ -164,11 +164,11 @@ func TestIDsRespectsExemptionMarkers(t *testing.T) {
 import "strconv"
 
 func rowID(i int) string {
-	return "__src_o_" + strconv.Itoa(i) // ergoaudit:id-part
+	return "__src_o_" + strconv.Itoa(i) // ergonomics-audit:id-part
 }
 
 func colName(i int) string {
-	id := "col_" + strconv.Itoa(i) // ergoaudit:not-an-id
+	id := "col_" + strconv.Itoa(i) // ergonomics-audit:not-an-id
 	return id
 }
 `

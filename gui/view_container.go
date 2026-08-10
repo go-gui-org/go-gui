@@ -119,8 +119,8 @@ type ContainerCfg struct {
 
 	// Sizing
 	Sizing   Sizing
-	HAlign   HorizontalAlign
-	VAlign   verticalAlign
+	HAlign   HorizontalAlign // ergonomics-audit:opt-plain — zero (HAlignStart) is the natural default; no distinct unset behavior
+	VAlign   verticalAlign   // ergonomics-audit:opt-plain — zero (VAlignTop) is the natural default; no distinct unset behavior
 	TextDir  textDirection
 	Wrap     bool
 	Overflow bool

@@ -200,9 +200,9 @@ jobs:
       # Gates on hand-rolled `:` composition of widget IDs, which is how
       # scoping drifts between a producer and its lookup site. Only mode
       # ids is pass/fail (focus/callbacks are advisory inventories), so
-      # unlike `make ergo-audit` the step runs ids alone.
+      # unlike `make ergonomics-audit` the step runs ids alone.
       - name: Ergo-audit IDs
-        run: go run ./tools/ergoaudit/ -mode ids .
+        run: go run ./tools/ergonomics-audit/ -mode ids .
 
   check:
     name: Check (gate)
