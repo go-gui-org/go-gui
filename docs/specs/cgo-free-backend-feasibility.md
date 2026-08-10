@@ -1,40 +1,78 @@
 # CGo-free desktop backend — feasibility assessment
 
 Assessment of [issue #137](https://github.com/go-gui-org/go-gui/issues/137).
-Date: 2026-07-31. Status: **Phase 1 implemented**; Phase 2 (macOS) not started.
+Date: 2026-07-31. Status: **Phase 1 implemented**, and the `gui/audio` follow-up
+(§ Audio outcome) closed the remaining Linux CGo dependency; Phase 2 (macOS) not
+started.
 
 ## Phase 1 outcome (2026-07-31)
 
-`github.com/go-gl/gl` is gone. It was replaced by
-`gui/backend/internal/glbind`, a purego binding for the 55 GL entry points and
-45 constants the backend uses, resolved through the proc-address functions that
-already existed (`eglProc` on Linux; a new `glProc` on Windows reproducing
-go-gl's wglGetProcAddress-then-opengl32 fallback). Call sites changed by import
-swap only.
+`github.com/go-gl/gl` is gone. It was replaced by `gui/backend/internal/glbind`,
+a purego binding for the 55 GL entry points and 45 constants the backend uses,
+resolved through the proc-address functions that already existed (`eglProc` on
+Linux; a new `glProc` on Windows reproducing go-gl's
+wglGetProcAddress-then-opengl32 fallback). Call sites changed by import swap
+only.
 
 Measured result:
 
-| Target | `CGO_ENABLED=0 go build` |
-|---|---|
-| windows/amd64, windows/arm64 | `./...` — **entire module** |
-| linux/amd64, linux/arm64, linux/386 | `./gui/backend/...` |
+| Target                              | `CGO_ENABLED=0 go build`    |
+| ----------------------------------- | --------------------------- |
+| windows/amd64, windows/arm64        | `./...` — **entire module** |
+| linux/amd64, linux/arm64, linux/386 | `./gui/backend/...`         |
 
 Two corrections to the assessment below:
 
-- The constant count is **45**, not 47. The original `grep` used
-  `\b(gogl|gl)\.` where `go?gl` was intended, so bare `gl.`-qualified
-  references in `backend.go` were miscounted.
+- The constant count is **45**, not 47. The original `grep` used `\b(gogl|gl)\.`
+  where `go?gl` was intended, so bare `gl.`-qualified references in `backend.go`
+  were miscounted.
 - **`github.com/go-gl/gl` was not the only CGo dependency on Linux.**
-  `gui/audio` pulls in `github.com/ebitengine/oto/v3`, whose Linux driver is
-  cgo (`#cgo pkg-config: alsa` in `driver_unix.go`). The original verification
+  `gui/audio` pulls in `github.com/ebitengine/oto/v3`, whose Linux driver is cgo
+  (`#cgo pkg-config: alsa` in `driver_unix.go`). The original verification
   missed it because `go build` stopped at the go-gl load error. Windows is
-  unaffected — oto's Windows driver is pure syscall. Full `CGO_ENABLED=0
-  GOOS=linux go build ./...` therefore still fails, on `gui/audio` alone.
-  That is a separate dependency needing its own decision (gate `gui/audio`
-  behind a build tag, or replace oto on Linux) and was left out of Phase 1.
+  unaffected — oto's Windows driver is pure syscall. Full
+  `CGO_ENABLED=0 GOOS=linux go build ./...` therefore still fails, on
+  `gui/audio` alone. That is a separate dependency needing its own decision
+  (gate `gui/audio` behind a build tag, or replace oto on Linux) and was left
+  out of Phase 1.
 
-32-bit was **not** dropped: purego supports 386/arm via `syscall_32bit.go`,
-and `linux/386` builds.
+32-bit was **not** dropped: purego supports 386/arm via `syscall_32bit.go`, and
+`linux/386` builds.
+
+## Audio outcome (2026-08-04)
+
+The `gui/audio` dependency left out of Phase 1 (see the second correction above)
+is resolved. [Issue #141](https://github.com/go-gui-org/go-gui/issues/141) put
+the output driver behind a 3-function seam — `outputInit` / `outputPlay` /
+`outputClose`, split across `output_oto.go` and `output_pulse.go`.
+
+The default Linux sink is now a pure-Go PulseAudio client
+(`github.com/jfreymuth/pulse`), so `CGO_ENABLED=0 go build ./...` is green on
+Linux for the **entire module**, not just `./gui/backend/...`. oto/ALSA remains
+available on Linux, opt-in via `-tags otoaudio`. Windows and macOS still use
+oto. beep decode/mix was already pure Go and did not change.
+
+## Why not WebGPU (2026-06 → 2026-07-31)
+
+Recorded here because it is the question this assessment supersedes.
+
+A WebGPU backend was explored on branch `webgpu-backend` (since deleted): 12
+WGSL shader pipelines, device init, and the render loop all worked. It was
+rejected at the time because WebGPU has no native text rendering — font
+measurement and glyph rasterization required Canvas2D, and a hybrid backend
+defeats the purpose. GPU acceleration also does not address this project's
+actual bottleneck, which is heap allocation rather than throughput.
+
+By 2026-07 both original blockers were gone: go-glyph gained a pure-Go text
+pipeline (`bitmap_puregoft.go` — go-text/typesetting harfbuzz shaping plus
+`golang.org/x/image/vector` rasterization, no CGo), and
+[goffi](https://github.com/go-webgpu/goffi) supplies zero-CGo FFI for calling
+wgpu-native. A CGo-free WebGPU desktop backend became technically viable.
+
+It remains the wrong instrument, for the reasons in §4: wgpu is a superset that
+ships 10–40 MB of runtime shared libraries, supplies none of `NativePlatform`
+(10 sub-interfaces), and leaves macOS — the only real CGo backend, 5.9k lines of
+ObjC — untouched. Phase 1 got CGo-free Linux and Windows for ~600 lines instead.
 
 ## Summary
 
@@ -45,7 +83,7 @@ shaders."
 Both of the issue's premises verify. Its scoping does not.
 
 Linux and Windows are already CGo-free apart from **one** dependency
-(`github.com/go-gl/gl`), whose surface area in this repo is 55 functions and 47
+(`github.com/go-gl/gl`), whose surface area in this repo is 55 functions and 45
 constants — and whose proc-address loader is already written in pure Go. The
 wgpu path is a superset of that work, does not address macOS (the only real CGo
 backend), and trades a build-time C toolchain for a runtime shared-library
@@ -60,9 +98,9 @@ The issue is correct on both counts.
 **Pure-Go text.** The go-glyph root package has zero `import "C"`.
 `bitmap_puregoft.go`, `context_puregoft.go`, `layout_ft.go`, and
 `grapheme_ft.go` all build under `//go:build linux || darwin || windows` with no
-cgo tag gate — the pure-Go path is the *default*, not an opt-in.
-`go-glyph/go.mod` requires only go-text/typesetting, x/image, uniseg, and x/text.
-CGo in go-glyph is confined to `backend/gpu/`, `backend/android/`,
+cgo tag gate — the pure-Go path is the _default_, not an opt-in.
+`go-glyph/go.mod` requires only go-text/typesetting, x/image, uniseg, and
+x/text. CGo in go-glyph is confined to `backend/gpu/`, `backend/android/`,
 `backend/ios/`, and examples.
 
 **Zero-CGo FFI.** goffi is real: 8 desktop targets, crosscall2 C-thread
@@ -72,12 +110,12 @@ callbacks, full struct ABI, 88–114 ns/call.
 
 `gui/backend/gl/` contains no `import "C"` in any file. It already uses:
 
-| Concern | Mechanism | File |
-|---|---|---|
-| X11 windowing / events | `github.com/jezek/xgb` (pure Go) | `platform_x11.go` |
-| EGL context creation    | `github.com/ebitengine/purego` | `egl_linux.go:65` |
-| Win32 / WGL             | `golang.org/x/sys` syscall     | `platform_win32.go`, `wgl_windows.go` |
-| GL dispatch             | **`github.com/go-gl/gl` (cgo)** | 8 files |
+| Concern                | Mechanism                        | File                                  |
+| ---------------------- | -------------------------------- | ------------------------------------- |
+| X11 windowing / events | `github.com/jezek/xgb` (pure Go) | `platform_x11.go`                     |
+| EGL context creation   | `github.com/ebitengine/purego`   | `egl_linux.go:65`                     |
+| Win32 / WGL            | `golang.org/x/sys` syscall       | `platform_win32.go`, `wgl_windows.go` |
+| GL dispatch            | **`github.com/go-gl/gl` (cgo)**  | 8 files                               |
 
 The last row is the only CGo dependency. Confirmed by build — both targets fail
 with exactly one error, and it is that import:
@@ -88,9 +126,9 @@ package .../gui/backend
     imports github.com/go-gl/gl/v3.3-core/gl: build constraints exclude all Go files
 ```
 
-Surface area to port: **55 distinct GL functions, 47 constants**. Crucially, the
-proc-address plumbing needed to bind them is already written and already pure
-Go — `platform_x11.go:287` calls `gl.InitWithProcAddrFunc(eglProc)`, where
+Surface area to port: **55 distinct GL functions, 45 constants**. Crucially, the
+proc-address plumbing needed to bind them is already written and already pure Go
+— `platform_x11.go:287` calls `gl.InitWithProcAddrFunc(eglProc)`, where
 `eglProc` comes from a purego-loaded `eglGetProcAddress`; `wgl_windows.go` has
 the Windows equivalent.
 
@@ -106,7 +144,7 @@ bindings. No shader rewrite, no wgpu, no GLFW, no windowing changes.
   `filedialog/dialog_darwin.go`, `printdialog/print_darwin.go`,
   `spellcheck/spellcheck_darwin.go`, `sysbeep/sysbeep_darwin.go`,
   `gui/locale_detect_darwin.go`.
-- The Linux/Windows counterparts of those services are *already* pure Go:
+- The Linux/Windows counterparts of those services are _already_ pure Go:
   `dialog_linux.go` (396 lines, portal/zenity), `dialog_windows.go` (369 lines,
   syscall), `spellcheck_linux.go` (244 lines), godbus for SNI and AT-SPI.
 
@@ -125,14 +163,15 @@ and beep, and the android/ios backends are themselves cgo (`import "C"` in
 
 **CGo-free is not dependency-free.** Today's Linux/Windows build bundles no
 native library — it dlopens the system's `libEGL`/`libGL`/`opengl32`. A
-wgpu-native + GLFW backend replaces a *build-time* C toolchain requirement with a
-*runtime* obligation to ship and load ~10–40 MB of platform-specific shared
+wgpu-native + GLFW backend replaces a _build-time_ C toolchain requirement with
+a _runtime_ obligation to ship and load ~10–40 MB of platform-specific shared
 objects. That is a net regression for distribution, not an improvement.
 
-**goffi is pre-1.0.** v0.6.0 is in progress; API stability is planned for v1.0.0.
-It also has a documented duplicate-`_cgo_init` symbol conflict with purego, which
-go-gui already depends on (`go.mod`: `github.com/ebitengine/purego v0.10.1`).
-Adopting goffi would force `-tags nofakecgo` on every downstream consumer.
+**goffi is pre-1.0.** v0.6.0 is in progress; API stability is planned for
+v1.0.0. It also has a documented duplicate-`_cgo_init` symbol conflict with
+purego, which go-gui already depends on (`go.mod`:
+`github.com/ebitengine/purego v0.10.1`). Adopting goffi would force
+`-tags nofakecgo` on every downstream consumer.
 
 **The cost is strictly larger.** 12 WGSL shaders, device/surface init, and
 windowing glue, on top of the same GL-dispatch problem — and macOS still
@@ -145,7 +184,7 @@ unsolved at the end of it.
 Replace `github.com/go-gl/gl/v3.3-core/gl` with an internal purego-backed GL
 binding.
 
-- New package `gui/backend/internal/glbind/`: 55 function pointers plus the 47
+- New package `gui/backend/internal/glbind/`: 55 function pointers plus the 45
   referenced constants, bound through the existing proc-address callbacks.
 - Reuse the `purego.Dlopen` / `purego.RegisterLibFunc` pattern already in
   `gui/backend/gl/egl_linux.go`, and the existing `eglProc` / WGL proc lookups.
@@ -154,8 +193,8 @@ binding.
   `pipeline.go`, `buffers.go`, `textures.go`, `text.go`, `platform_x11.go`,
   `platform_win32.go`). Import swap only — call sites keep their signatures.
 - Watch items:
-  - `gogl.Strs` returns a free func; reimplement as a null-terminated
-    byte-slice helper.
+  - `gogl.Strs` returns a free func; reimplement as a null-terminated byte-slice
+    helper.
   - `VertexAttribPointerWithOffset` — offset marshaling.
   - `GetShaderiv` / `GetShaderInfoLog` / `GetProgramiv` / `GetProgramInfoLog`
     out-params need explicit pointer marshaling under purego.
@@ -168,12 +207,13 @@ Evaluate `github.com/ebitengine/purego/objc` for hosting an `NSView` /
 class registration. Gate the decision on two questions:
 
 1. Does purego work under `CGO_ENABLED=0` on darwin/arm64 for the
-   *class-registration* path, not just plain function calls?
+   _class-registration_ path, not just plain function calls?
 2. Can the ObjC be ported service-by-service, or does the NSApplication/NSView
    delegate graph force an all-or-nothing rewrite?
 
-If either answer is bad, macOS stays cgo. That is an acceptable outcome: macOS is
-the one platform where a C toolchain (Xcode CLT) is universally present anyway.
+If either answer is bad, macOS stays cgo. That is an acceptable outcome: macOS
+is the one platform where a C toolchain (Xcode CLT) is universally present
+anyway.
 
 ### Out of scope
 
@@ -193,9 +233,12 @@ grep -rl 'import "C"' --include='*.go' gui/backend/gl/   # empty
 env CGO_ENABLED=0 GOOS=linux go build -tags gl ./gui/...
 env CGO_ENABLED=0 GOOS=windows go build ./gui/...
 
-# 3. GL surface area to port (55 functions, 47 constants)
-grep -rhoE '\b(gogl|gl)\.[A-Z][A-Za-z0-9_]*\(' gui/backend/gl/ --include='*.go' | sort -u | wc -l
-grep -rhoE '\b(gogl|gl)\.[A-Z][A-Z0-9_]+\b'    gui/backend/gl/ --include='*.go' | sort -u | wc -l
+# 3. GL surface area to port (55 functions, 45 constants)
+# Historical: run before Phase 1, when gui/backend/gl/ still imported go-gl.
+# The regex is go?gl\. — the original used \b(gogl|gl)\. and over-counted
+# constants as 47; see the correction under "Phase 1 outcome" above.
+grep -rhoE '\bgo?gl\.[A-Z][A-Za-z0-9_]*\(' gui/backend/gl/ --include='*.go' | sort -u | wc -l
+grep -rhoE '\bgo?gl\.[A-Z][A-Z0-9_]+\b'    gui/backend/gl/ --include='*.go' | sort -u | wc -l
 
 # 4. macOS native surface
 grep -rl 'import "C"' --include='*.go' gui/backend/metal/ | wc -l   # 9

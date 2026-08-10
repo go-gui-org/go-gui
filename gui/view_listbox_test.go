@@ -341,7 +341,7 @@ func TestListBoxCacheRefreshIgnoresNameValue(t *testing.T) {
 }
 
 func TestListBoxNoHeightWarning(t *testing.T) {
-	prevOn := debugEnabled()
+	prevOn := DebugEnabled()
 	Debug(true)
 	defer Debug(prevOn)
 
@@ -382,7 +382,7 @@ func TestListBoxNoHeightWarning(t *testing.T) {
 // silent at the site, and the category alone must fire.
 func TestListBoxNoHeightGatedByCategory(t *testing.T) {
 	prevMask := DebugCategory(debugMask.Load())
-	defer debugCategories(prevMask)
+	defer DebugCategories(prevMask)
 	w := newTestWindow()
 	cfg := ListBoxCfg{
 		ID:         "lb-cat",
@@ -391,7 +391,7 @@ func TestListBoxNoHeightGatedByCategory(t *testing.T) {
 	}
 	v := ListBox(cfg)
 
-	debugCategories(debugMissingIDs)
+	DebugCategories(DebugMissingIDs)
 	var found []string
 	w.debug.collect = &found
 	layout := generateViewLayout(v, w)
@@ -402,7 +402,7 @@ func TestListBoxNoHeightGatedByCategory(t *testing.T) {
 		t.Fatalf("missing-ID mask must not warn, got %v", found)
 	}
 
-	debugCategories(debugListBoxNoHeight)
+	DebugCategories(DebugListBoxNoHeight)
 	generateViewLayout(v, w)
 	if len(found) != 1 {
 		t.Fatalf("listbox category must warn, got %d findings: %v", len(found), found)

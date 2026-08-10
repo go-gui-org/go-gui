@@ -8,7 +8,7 @@ import (
 // captureDebug turns every category on, redirects findings to a buffer,
 // and restores both on cleanup. Returns the buffer.
 func captureDebug(t *testing.T) *strings.Builder {
-	return captureDebugMask(t, debugAll)
+	return captureDebugMask(t, DebugAll)
 }
 
 // captureDebugMask turns the given categories on, redirects findings to
@@ -19,10 +19,10 @@ func captureDebugMask(t *testing.T, mask DebugCategory) *strings.Builder {
 	prevOut := debugOut
 	prevMask := debugMask.Load()
 	debugOut = &buf
-	debugCategories(mask)
+	DebugCategories(mask)
 	t.Cleanup(func() {
 		debugOut = prevOut
-		debugCategories(DebugCategory(prevMask))
+		DebugCategories(DebugCategory(prevMask))
 	})
 	return &buf
 }
@@ -169,7 +169,7 @@ func TestDebugAuditNoopWhenOff(t *testing.T) {
 	if got := buf.String(); got != "" {
 		t.Fatalf("gate off must be silent, got %q", got)
 	}
-	if debugEnabled() {
+	if DebugEnabled() {
 		t.Fatal("DebugEnabled must report false")
 	}
 }
@@ -178,7 +178,7 @@ func TestDebugAuditNoopWhenOff(t *testing.T) {
 // noise and vice versa. Each category reports only its own findings.
 func TestDebugCategoriesGateIndependently(t *testing.T) {
 	buf := captureDebug(t)
-	debugCategories(debugDuplicates)
+	DebugCategories(DebugDuplicates)
 	w := &Window{}
 	tree := debugTree(&Shape{Focusable: true}, &Shape{ID: "dup"}, &Shape{ID: "dup"})
 
@@ -188,7 +188,7 @@ func TestDebugCategoriesGateIndependently(t *testing.T) {
 		t.Fatalf("want only the duplicate finding, got %q", got)
 	}
 
-	debugCategories(debugMissingIDs)
+	DebugCategories(DebugMissingIDs)
 	buf.Reset()
 	w.debugAudit(&tree)
 	got = buf.String()
@@ -202,7 +202,7 @@ func TestDebugCategoriesGateIndependently(t *testing.T) {
 // the whole gate.
 func TestDebugCategoriesToggleResetsWarnOnce(t *testing.T) {
 	buf := captureDebug(t)
-	debugCategories(debugMissingIDs)
+	DebugCategories(DebugMissingIDs)
 	w := &Window{}
 	tree := debugTree(&Shape{Focusable: true})
 
@@ -212,9 +212,9 @@ func TestDebugCategoriesToggleResetsWarnOnce(t *testing.T) {
 		t.Fatal("want a finding with the category on")
 	}
 
-	debugCategories(0)
+	DebugCategories(0)
 	buf.Reset()
-	debugCategories(debugMissingIDs)
+	DebugCategories(DebugMissingIDs)
 	w.debugAudit(&tree)
 	// Re-reported, not the stale silence: the finding appears exactly
 	// once again in a buffer that was empty before the re-enable.
@@ -228,7 +228,7 @@ func TestDebugCategoriesToggleResetsWarnOnce(t *testing.T) {
 // of dispatch-side categories must skip it entirely.
 func TestDebugCategoriesAuditSkippedWhenOnlyUnconsumed(t *testing.T) {
 	buf := captureDebug(t)
-	debugCategories(DebugUnconsumed)
+	DebugCategories(DebugUnconsumed)
 	w := &Window{}
 	tree := debugTree(&Shape{Focusable: true}, &Shape{ID: "dup"}, &Shape{ID: "dup"})
 
@@ -246,13 +246,13 @@ func TestCheckCategoryMapping(t *testing.T) {
 		check debugCheck
 		want  DebugCategory
 	}{
-		{debugCheckDupID, debugDuplicates},
-		{debugCheckFocusNoID, debugMissingIDs},
-		{debugCheckScrollNoID, debugMissingIDs},
-		{debugCheckMouseLeaveNoID, debugMissingIDs},
+		{debugCheckDupID, DebugDuplicates},
+		{debugCheckFocusNoID, DebugMissingIDs},
+		{debugCheckScrollNoID, DebugMissingIDs},
+		{debugCheckMouseLeaveNoID, DebugMissingIDs},
 		{debugCheckUnconsumed, DebugUnconsumed},
-		{debugCheckListBoxNoHeight, debugListBoxNoHeight},
-		{debugCheckUnscopedID, debugUnscopedIDs},
+		{debugCheckListBoxNoHeight, DebugListBoxNoHeight},
+		{debugCheckUnscopedID, DebugUnscopedIDs},
 	}
 	for _, tc := range tests {
 		if got := checkCategory(tc.check); got != tc.want {
@@ -262,10 +262,10 @@ func TestCheckCategoryMapping(t *testing.T) {
 	// DebugAll covers every category Debug(true) turns on.
 	// DebugUnscopedIDs is opt-in and deliberately outside it: it reports
 	// a design property, not a defect.
-	if debugAll != debugDuplicates|debugMissingIDs|DebugUnconsumed|debugListBoxNoHeight {
+	if DebugAll != DebugDuplicates|DebugMissingIDs|DebugUnconsumed|DebugListBoxNoHeight {
 		t.Fatal("DebugAll must cover every category Debug(true) enables")
 	}
-	if debugAll&debugUnscopedIDs != 0 {
+	if DebugAll&DebugUnscopedIDs != 0 {
 		t.Fatal("DebugUnscopedIDs must stay opt-in, outside DebugAll")
 	}
 }
@@ -525,14 +525,14 @@ func TestTestDuplicateIDsRestoresDebugState(t *testing.T) {
 	// inherit it, and must not drop it either.
 	sentinel := debugWarnKey{check: debugCheckDupID, subject: "sentinel"}
 	w.debug.warned = map[debugWarnKey]struct{}{sentinel: {}}
-	prevOn := debugEnabled()
+	prevOn := DebugEnabled()
 
 	if got := w.TestDuplicateIDs(); len(got) != 0 {
 		t.Fatalf("want no findings, got %q", got)
 	}
 
-	if debugEnabled() != prevOn {
-		t.Errorf("debug gate left at %v, want %v", debugEnabled(), prevOn)
+	if DebugEnabled() != prevOn {
+		t.Errorf("debug gate left at %v, want %v", DebugEnabled(), prevOn)
 	}
 	if _, ok := w.debug.warned[sentinel]; !ok {
 		t.Error("warn-once memory not restored")
@@ -546,7 +546,7 @@ func TestTestDuplicateIDsRestoresDebugState(t *testing.T) {
 // with no ID-bearing ancestor still owns a window-global name.
 func TestDebugUnscopedIDsReportsGlobalLeaf(t *testing.T) {
 	buf := captureDebug(t)
-	debugCategories(debugUnscopedIDs)
+	DebugCategories(DebugUnscopedIDs)
 	w := &Window{}
 	tree := debugTree(&Shape{ID: "save", Focusable: true})
 	resolveShapeIDs(&tree, w)
