@@ -8,7 +8,24 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.57.0] - 2026-08-10
+
 ### Changed
+
+- **`Padding` self-flags; `Opt[Padding]` and `SomeP` removed (breaking,
+  #243).** `Padding` carries a `set` flag like `Color`: the zero value is
+  "unset" (theme default applies), `PaddingNone` is an explicitly-set zero,
+  and values are built with `NewPadding` / `PadAll` / `PaddingNone`.
+  `IsSet()` and `Or(def)` replace `Opt[Padding]`'s `IsSet()`/`Get(def)` on
+  the 50 affected Cfg fields; read sites moved from `.Get(Padding{})` to
+  `.Or(PaddingNone)`. Raw `Padding{...}` or `Color{...}` literals read as
+  unset, so `make ergonomics-audit` now also runs the new `-mode literals`
+  gate over the whole tree (defining files and the empty `Color{}` sentinel
+  exempt); `-mode opt` exempts Padding-typed fields like it exempts Color.
+  `ThemeMaker` stamps the flag on its `cfg.Padding*` copies so a resolved
+  theme value never reads as unset. Breaking for consumers of `SomeP` and
+  `Opt[Padding]`: go-charts, go-edit, go-kite, go-map and go-term bump
+  together.
 
 - **Exported API surface reduced (~1,400 symbols) as the v1.0 freeze
   (breaking).** `tools/exportaudit` classifies every export in `gui/` by who
