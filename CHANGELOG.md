@@ -25,6 +25,14 @@ and this project adheres to
 
 ### Fixed
 
+- **Windows: window and tray icons now render (#235).** `hicon.FromPNG`
+  passed a NULL `hbmMask` to `CreateIconIndirect`, which Win32 requires —
+  the call always failed, so the title bar, taskbar, alt-tab, and SNI tray
+  icons fell back to the shell's generic icon whether or not the app set
+  `WindowCfg.IconPNG`. The function now creates a zeroed 1bpp mask (fully
+  opaque), letting the 32bpp color bitmap's alpha shape the icon, so Windows
+  honors `IconPNG` like the other platforms.
+
 - **Windows: a revoked mouse capture no longer leaves a drag stuck (#110).**
   Win32 can take capture away without ever sending the matching button-up — a
   system modal or UAC prompt, Ctrl+Alt+Del, Win+L, another process calling

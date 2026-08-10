@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v6
 
@@ -25,9 +25,17 @@ jobs:
           install-linux-deps: 'true'
 
       - name: Test
+        # -race needs cgo, and mingw is not on PATH on Windows runners.
+        # Windows runs the suite un-raced (the suite only reached Windows
+        # CI with #235); race coverage stays on Linux/macOS.
+        shell: bash
         run: |
-          CGO_LDFLAGS="$(go env CGO_LDFLAGS)" \
-            go test -count=2 -race -timeout=10m ./gui/...
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            go test -count=2 -timeout=10m ./gui/...
+          else
+            CGO_LDFLAGS="$(go env CGO_LDFLAGS)" \
+              go test -count=2 -race -timeout=10m ./gui/...
+          fi
 
   coverage:
     name: Coverage

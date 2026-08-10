@@ -22,6 +22,7 @@ var (
 	procReleaseDC          = user32.NewProc("ReleaseDC")
 	procCreateDIBSection   = gdi32.NewProc("CreateDIBSection")
 	procDeleteObject       = gdi32.NewProc("DeleteObject")
+	procCreateBitmap       = gdi32.NewProc("CreateBitmap")
 	procCreateIconIndirect = user32.NewProc("CreateIconIndirect")
 )
 
@@ -134,13 +135,29 @@ func FromPNG(pngData []byte, maxDim int) (uintptr, error) {
 	dst := unsafe.Slice((*byte)(bits), len(pixels))
 	copy(dst, pixels)
 
-	// Create icon from bitmap (nil mask = use alpha channel).
+	// Create a 1bpp monochrome mask. CreateIconIndirect requires a
+	// non-NULL mask for fIcon; an all-zero mask is fully opaque, so
+	// the 32bpp color bitmap's alpha does the shaping.
+	// CreateBitmap with a NULL lpBits leaves the bits undefined, so
+	// pass an explicitly zeroed buffer.
+	maskStride := ((w + 15) / 16) * 2 // 1bpp rows are word-aligned
+	zeroMask := make([]byte, maskStride*h)
+	hMask, _, _ := procCreateBitmap.Call(
+		uintptr(w), uintptr(h), 1, 1,
+		uintptr(unsafe.Pointer(&zeroMask[0])))
+	if hMask == 0 {
+		return 0, errors.New("CreateBitmap failed")
+	}
+	// CreateIconIndirect copies both bitmaps, so the mask (like the
+	// color DIB above) can be deleted once the icon exists.
+	defer procDeleteObject.Call(hMask)
+
 	ii := iconInfo{
 		fIcon:    1, // TRUE
 		xHotspot: 0,
 		yHotspot: 0,
 		hbmColor: hbm,
-		hbmMask:  0, // NULL — alpha in color bitmap
+		hbmMask:  hMask,
 	}
 	hIcon, _, _ := procCreateIconIndirect.Call(
 		uintptr(unsafe.Pointer(&ii)))
