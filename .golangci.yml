@@ -19,6 +19,23 @@ linters:
     - perfsprint
     - gosmopolitan
   settings:
+    errcheck:
+      # The Win32 syscall wrappers return GetLastError() as their third
+      # value, and syscall.Errno is a uintptr boxed into a non-nil error
+      # interface — a successful call yields Errno(0), which stringifies
+      # to "The operation completed successfully." and still compares
+      # != nil. So `if err != nil` is always true and is never a valid
+      # success test for these; the result code (r1) is. Call sites that
+      # care already gate on r1 and use the errno only on that failure
+      # path. Requiring a check here would mean writing one that lies.
+      # Both wrapper families are in use: syscall.LazyProc in filedialog/
+      # and sni/, golang.org/x/sys/windows.LazyProc in gl/.
+      exclude-functions:
+        - (*syscall.LazyProc).Call
+        - (*syscall.Proc).Call
+        - syscall.SyscallN
+        - (*golang.org/x/sys/windows.LazyProc).Call
+        - (*golang.org/x/sys/windows.Proc).Call
     gocyclo:
       min-complexity: 30
     cyclop:

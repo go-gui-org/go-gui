@@ -6,6 +6,7 @@ package hicon
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"image/png"
 	"syscall"
@@ -76,7 +77,7 @@ func FromPNG(pngData []byte, maxDim int) (uintptr, error) {
 	w := bounds.Dx()
 	h := bounds.Dy()
 	if w <= 0 || h <= 0 {
-		return 0, fmt.Errorf("empty icon")
+		return 0, errors.New("empty icon")
 	}
 	if w > maxDim || h > maxDim {
 		return 0, fmt.Errorf("icon too large: %dx%d (max %d)",
@@ -86,8 +87,8 @@ func FromPNG(pngData []byte, maxDim int) (uintptr, error) {
 	// Build 32-bit BGRA pixel buffer (GDI expects BGR order).
 	stride := w * 4
 	pixels := make([]byte, stride*h)
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
+	for y := range h {
+		for x := range w {
 			r, g, b, a := img.At(x+bounds.Min.X, y+bounds.Min.Y).RGBA()
 			off := y*stride + x*4
 			pixels[off+0] = byte(b >> 8)
@@ -100,7 +101,7 @@ func FromPNG(pngData []byte, maxDim int) (uintptr, error) {
 	// Get screen DC for DIB creation.
 	hdc, _, _ := procGetDC.Call(0)
 	if hdc == 0 {
-		return 0, fmt.Errorf("GetDC failed")
+		return 0, errors.New("GetDC failed")
 	}
 	defer procReleaseDC.Call(0, hdc)
 
@@ -125,7 +126,7 @@ func FromPNG(pngData []byte, maxDim int) (uintptr, error) {
 		uintptr(unsafe.Pointer(&bits)),
 		0, 0)
 	if hbm == 0 {
-		return 0, fmt.Errorf("CreateDIBSection failed")
+		return 0, errors.New("CreateDIBSection failed")
 	}
 	defer procDeleteObject.Call(hbm)
 
@@ -144,7 +145,7 @@ func FromPNG(pngData []byte, maxDim int) (uintptr, error) {
 	hIcon, _, _ := procCreateIconIndirect.Call(
 		uintptr(unsafe.Pointer(&ii)))
 	if hIcon == 0 {
-		return 0, fmt.Errorf("CreateIconIndirect failed")
+		return 0, errors.New("CreateIconIndirect failed")
 	}
 
 	return hIcon, nil

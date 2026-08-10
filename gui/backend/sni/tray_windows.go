@@ -6,6 +6,7 @@ package sni
 
 import (
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"sync"
 	"syscall"
@@ -24,12 +25,10 @@ var (
 	procCreateWindowExW     = user32.NewProc("CreateWindowExW")
 	procDefWindowProcW      = user32.NewProc("DefWindowProcW")
 	procRegisterClassExW    = user32.NewProc("RegisterClassExW")
-	procUnregisterClassW    = user32.NewProc("UnregisterClassW")
 	procGetMessageW         = user32.NewProc("GetMessageW")
 	procTranslateMessage    = user32.NewProc("TranslateMessage")
 	procDispatchMessageW    = user32.NewProc("DispatchMessageW")
 	procPostMessageW        = user32.NewProc("PostMessageW")
-	procDestroyWindow       = user32.NewProc("DestroyWindow")
 	procCreatePopupMenu     = user32.NewProc("CreatePopupMenu")
 	procAppendMenuW         = user32.NewProc("AppendMenuW")
 	procTrackPopupMenu      = user32.NewProc("TrackPopupMenu")
@@ -196,7 +195,7 @@ func (t *Tray) initWindow() error {
 	atom, _, _ := procRegisterClassExW.Call(
 		uintptr(unsafe.Pointer(&wc)))
 	if atom == 0 {
-		return fmt.Errorf("sni: RegisterClassExW failed")
+		return errors.New("sni: RegisterClassExW failed")
 	}
 
 	hwnd, _, _ := procCreateWindowExW.Call(
@@ -211,7 +210,7 @@ func (t *Tray) initWindow() error {
 		0,           // lpParam
 	)
 	if hwnd == 0 {
-		return fmt.Errorf("sni: CreateWindowExW failed")
+		return errors.New("sni: CreateWindowExW failed")
 	}
 	t.hwnd = hwnd
 	t.done = make(chan struct{})
@@ -409,7 +408,7 @@ func (t *Tray) Create(
 		if hMenu != 0 {
 			procDestroyMenu.Call(hMenu)
 		}
-		return 0, fmt.Errorf("sni: Shell_NotifyIcon(NIM_ADD) failed")
+		return 0, errors.New("sni: Shell_NotifyIcon(NIM_ADD) failed")
 	}
 
 	t.mu.Lock()

@@ -3,6 +3,7 @@
 package gl
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"runtime"
@@ -464,7 +465,7 @@ func New(w *gui.Window) (*Backend, error) {
 	hdc, _, _ := pGetDC.Call(hwnd)
 	if hdc == 0 {
 		b.plat.destroy()
-		return nil, fmt.Errorf("gl: GetDC failed")
+		return nil, errors.New("gl: GetDC failed")
 	}
 	b.plat.hdc = hdc
 
@@ -518,14 +519,13 @@ func (b *Backend) Run(w *gui.Window) {
 	}
 	w.SetWakeMainFn(b.plat.wake)
 
-	rendered := true
 	var msg msgW
 	for {
 		pumpMessages(&msg)
 		if w.CloseRequested() {
 			break
 		}
-		rendered = w.FrameFn()
+		rendered := w.FrameFn()
 		if rendered {
 			b.renderFrame(w)
 		}
@@ -605,7 +605,6 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 		}
 	}
 
-	rendered := true
 	var msg msgW
 	for {
 		// Drain pending window opens.
@@ -642,7 +641,7 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 		}
 
 		// Frame + render each window.
-		rendered = false
+		rendered := false
 		for _, b := range backends {
 			w := b.plat.w
 			if w.FrameFn() {

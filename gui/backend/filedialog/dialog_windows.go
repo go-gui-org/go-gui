@@ -188,7 +188,7 @@ func ShowSaveDialog(title, startDir, defaultName, defaultExt string,
 		return gui.PlatformDialogResult{Status: gui.DialogCancel}
 	}
 
-	path := syscall.UTF16ToString(buf[:])
+	path := syscall.UTF16ToString(buf)
 	return gui.PlatformDialogResult{
 		Status: gui.DialogOK,
 		Paths:  []gui.PlatformPath{{Path: path}},
