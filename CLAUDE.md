@@ -108,15 +108,24 @@ asserts a rendered window is clean.
 
 #### `Opt[T]` vs plain fields
 
-**Rule: `Opt[T]` when the zero value is a legitimate user choice that must be
-distinguishable from "unset". A plain field everywhere else.**
+**Rule: types the repo owns self-flag; only primitives get `Opt`.**
+`Opt[T]` is for when the zero value is a legitimate user choice that must be
+distinguishable from "unset" — and only when the type cannot carry that
+distinction itself.
 
 `SizeBorder` is the worked example: a border width of `0` is something a caller
 means, so a plain `float32` cannot tell "no border" from "not specified" and
-silently applies the theme default. The same holds for `Padding`, `Radius`,
-`Spacing`, `Opacity`, and enum fields whose zero is a real member
-(`HAlignLeft == 0`). Where zero is not meaningful — most widths, heights,
-counts, and indices — `Opt` costs a wrapper call and buys nothing.
+silently applies the theme default. The same holds for `Radius`, `Spacing`,
+`Opacity`, and enum fields whose zero is a real member (`HAlignLeft == 0`).
+Where zero is not meaningful — most widths, heights, counts, and indices —
+`Opt` costs a wrapper call and buys nothing.
+
+Owned struct types self-flag instead of wrapping: `Color` (`gui/color.go`) and
+`Padding` (`gui/padding.go`) carry a `set` field, so they are plain fields with
+`IsSet()`/`Or()` rather than `Opt[T]`. Build `Padding` values with
+`NewPadding`/`PadAll`/`PaddingNone` — a raw `Padding{...}` literal reads as
+unset and silently takes the theme default (ergoaudit mode `literals` gates
+this).
 
 Decide this when authoring the field, not by copying whichever neighbor was
 nearest.
@@ -126,7 +135,10 @@ nearest.
 Use plain `Color`, never `Opt[Color]`. `Color` carries its own `set` flag
 (`gui/color.go`), so `Color{}` is unset and `ColorTransparent` is an explicit
 fully-transparent choice — the distinction `Opt` would add already exists, and
-wrapping gives the field two independent notions of unset.
+wrapping gives the field two independent notions of unset. Build colors with
+`RGBA`/`RGB`/`Hex` — a raw `Color{...}` literal reads as unset and silently
+takes the theme default (ergoaudit mode `literals` gates this; the empty
+`Color{}` sentinel is exempt).
 
 `ColorSet` (`gui/color_set.go`) groups the per-state colors; `Flat(c)` is the
 "keep one appearance" case. **Precedence: an assigned flat `Color*` field wins

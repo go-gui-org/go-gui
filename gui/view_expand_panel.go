@@ -11,7 +11,7 @@ type ExpandPanelCfg struct {
 	// Accessibility
 	A11YLabel       string
 	A11YDescription string
-	Padding         Opt[Padding]
+	Padding         Padding
 	SizeBorder      Opt[float32]
 	Radius          Opt[float32]
 	MinWidth        float32
@@ -42,7 +42,7 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 		cfg.ColorBorder = guiTheme.expandPanelStyle.ColorBorder
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(guiTheme.expandPanelStyle.Padding)
+		cfg.Padding = guiTheme.expandPanelStyle.Padding
 	}
 	sizeBorder := cfg.SizeBorder.Get(guiTheme.expandPanelStyle.SizeBorder)
 	radius := cfg.Radius.Get(guiTheme.expandPanelStyle.Radius)
@@ -86,7 +86,7 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 				Content: []View{
 					cfg.Head,
 					Row(ContainerCfg{
-						Padding: SomeP(0, PadMedium, 0, 0),
+						Padding: NewPadding(0, PadMedium, 0, 0),
 						Content: []View{
 							Text(TextCfg{
 								Text:      arrowText,

@@ -25,7 +25,7 @@ type TreeCfg struct {
 	// When set, ItemPaths takes precedence over Nodes.
 	itemPaths  []string
 	Nodes      []TreeNodeCfg
-	Padding    Opt[Padding]
+	Padding    Padding
 	SizeBorder Opt[float32]
 	Radius     Opt[float32]
 
@@ -475,7 +475,7 @@ func applyTreeDefaults(cfg *TreeCfg) {
 		cfg.ColorBorder = d.ColorBorder
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(d.Padding)
+		cfg.Padding = d.Padding
 	}
 }
 

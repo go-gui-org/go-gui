@@ -40,7 +40,7 @@ type DialogCfg struct {
 
 	CustomContent []View
 
-	Padding    Opt[Padding]
+	Padding    Padding
 	SizeBorder Opt[float32]
 
 	MinWidth Opt[float32]
@@ -275,7 +275,7 @@ func applyDialogDefaults(cfg *DialogCfg) {
 		cfg.ColorBorder = d.ColorBorder
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(d.Padding)
+		cfg.Padding = d.Padding
 	}
 	if cfg.titleTextStyle == (TextStyle{}) {
 		cfg.titleTextStyle = d.titleTextStyle

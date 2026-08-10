@@ -54,7 +54,7 @@ func TestBuildQuadPositions(t *testing.T) {
 }
 
 func TestBuildQuadColor(t *testing.T) {
-	c := gui.Color{R: 255, G: 128, B: 64, A: 255}
+	c := gui.RGBA(255, 128, 64, 255)
 	q := BuildQuad(0, 0, 10, 10, c, 0, 0)
 	for i := range 4 {
 		if q[i].R != 1.0 || q[i].G != 128.0/255.0 ||

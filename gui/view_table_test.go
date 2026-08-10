@@ -247,7 +247,7 @@ func TestTableColumnAutoWidth(t *testing.T) {
 	w.textMeasurer = &tableTestMeasurer{}
 	v := w.Table(TableCfg{
 		ID:          "auto-width-test",
-		cellPadding: SomeP(4, 4, 4, 4),
+		cellPadding: NewPadding(4, 4, 4, 4),
 		Data: []TableRowCfg{
 			TR([]TableCellCfg{tH("Name"), tH("Age")}),
 			TR([]TableCellCfg{tD("Alexander"), tD("30")}),

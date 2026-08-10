@@ -152,7 +152,7 @@ type FormCfg struct {
 	ID string `gui:"required"`
 
 	Content    []View
-	Padding    Opt[Padding]
+	Padding    Padding
 	Spacing    Opt[float32]
 	SizeBorder Opt[float32]
 	Radius     Opt[float32]

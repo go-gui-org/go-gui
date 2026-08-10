@@ -30,10 +30,10 @@ type TabControlCfg struct {
 	A11YLabel           string
 	A11YDescription     string
 	Items               []TabItemCfg
-	Padding             Opt[Padding]
-	PaddingHeader       Opt[Padding]
-	paddingContent      Opt[Padding]
-	paddingTab          Opt[Padding]
+	Padding             Padding
+	PaddingHeader       Padding
+	paddingContent      Padding
+	paddingTab          Padding
 	SizeBorder          Opt[float32]
 	sizeHeaderBorder    Opt[float32]
 	sizeContentBorder   Opt[float32]
@@ -119,16 +119,16 @@ func applyTabControlDefaults(cfg *TabControlCfg) {
 		cfg.colorTabBorderFocus = s.colorTabBorderFocus
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(s.Padding)
+		cfg.Padding = s.Padding
 	}
 	if !cfg.PaddingHeader.IsSet() {
-		cfg.PaddingHeader = Some(s.PaddingHeader)
+		cfg.PaddingHeader = s.PaddingHeader
 	}
 	if !cfg.paddingContent.IsSet() {
-		cfg.paddingContent = Some(s.paddingContent)
+		cfg.paddingContent = s.paddingContent
 	}
 	if !cfg.paddingTab.IsSet() {
-		cfg.paddingTab = Some(s.paddingTab)
+		cfg.paddingTab = s.paddingTab
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = s.TextStyle

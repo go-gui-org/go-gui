@@ -226,7 +226,7 @@ func toastItemView(toast *toastNotification, style ToastStyle) View {
 			// Body.
 			Column(ContainerCfg{
 				Sizing:  FillFit,
-				Padding: Some(style.Padding),
+				Padding: style.Padding,
 				Content: bodyContent,
 			}),
 			// Buttons.

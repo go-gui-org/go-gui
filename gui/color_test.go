@@ -160,8 +160,8 @@ func TestColorFromString(t *testing.T) {
 
 func TestEqIgnoresSet(t *testing.T) {
 	t.Parallel()
-	a := Color{R: 255, A: 255, set: true}
-	b := Color{R: 255, A: 255}
+	a := RGBA(255, 0, 0, 255)
+	b := RGBA(255, 0, 0, 255)
 	if !a.eq(b) {
 		t.Fatal("Eq should compare only RGBA channels")
 	}

@@ -114,9 +114,10 @@ func view(w *gui.Window) gui.View {
 		for c := range 3 {
 			s := all[r*3+c]
 			cells = append(cells, gui.Column(gui.ContainerCfg{
-				Padding: gui.Some(gui.PaddingTwoFive),
-				Sizing:  gui.FillFit,
-				HAlign:  gui.HAlignCenter,
+				Padding: gui.PaddingTwoFive,
+
+				Sizing: gui.FillFit,
+				HAlign: gui.HAlignCenter,
 				Content: []gui.View{
 					gui.Svg(gui.SvgCfg{
 						SvgData: s.Data, Sizing: gui.FixedFixed,

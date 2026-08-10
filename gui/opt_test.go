@@ -71,17 +71,6 @@ func TestOptSomeF(t *testing.T) {
 	}
 }
 
-func TestOptSomeP(t *testing.T) {
-	o := SomeP(1, 2, 3, 4)
-	if !o.IsSet() {
-		t.Error("SomeP should be set")
-	}
-	p, _ := o.Value()
-	if p.Top != 1 || p.Right != 2 || p.Bottom != 3 || p.Left != 4 {
-		t.Errorf("padding = %+v, want {1 2 3 4}", p)
-	}
-}
-
 func TestOptNoBorder(t *testing.T) {
 	if !NoBorder.IsSet() {
 		t.Error("NoBorder should be set")
@@ -113,7 +102,7 @@ func TestOptNoPadding(t *testing.T) {
 	if !NoPadding.IsSet() {
 		t.Error("NoPadding should be set")
 	}
-	if got := NoPadding.Get(PadAll(10)); got != PaddingNone {
-		t.Errorf("Get = %+v, want PaddingNone", got)
+	if got := NoPadding.Or(PadAll(10)); got != PaddingNone {
+		t.Errorf("Or = %+v, want PaddingNone", got)
 	}
 }

@@ -55,7 +55,7 @@ func TestPointInShapeZeroSize(t *testing.T) {
 
 func TestShapePaddingAccessors(t *testing.T) {
 	s := &Shape{
-		Padding:    Padding{Top: 2, Right: 3, Bottom: 4, Left: 5},
+		Padding:    NewPadding(2, 3, 4, 5),
 		SizeBorder: 1,
 	}
 	if !f32AreClose(s.PaddingLeft(), 6) {

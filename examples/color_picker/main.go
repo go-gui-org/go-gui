@@ -36,7 +36,8 @@ func mainView(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
-		Padding: gui.Some(t.PaddingMedium),
+		Padding: t.PaddingMedium,
+
 		Spacing: gui.Some(t.SpacingMedium),
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
@@ -81,8 +82,9 @@ func toggleTheme(app *App) gui.View {
 		TextSelect:   gui.IconMoon,
 		TextUnselect: gui.IconSunnyO,
 		TextStyle:    t.Icon3,
-		Padding:      gui.Some(t.PaddingSmall),
-		Selected:     app.LightTheme,
+		Padding:      t.PaddingSmall,
+
+		Selected: app.LightTheme,
 		OnClick: func(ctx gui.EventCtx) {
 			a := gui.State[App](ctx.Window)
 			a.LightTheme = !a.LightTheme

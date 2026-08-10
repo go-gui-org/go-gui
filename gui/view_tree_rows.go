@@ -143,7 +143,7 @@ func treeRowView(
 ) View {
 	if row.IsLoading {
 		return Row(ContainerCfg{
-			Padding: SomeP(
+			Padding: NewPadding(
 				2, 5, 2,
 				float32(row.Depth)*cfg.indent+5,
 			),
@@ -177,7 +177,7 @@ func treeRowView(
 		A11YState: a11yState,
 		Color:     rowColor,
 		Radius:    Some(cfg.Radius.Get(defaultTreeStyle.Radius)),
-		Padding: SomeP(
+		Padding: NewPadding(
 			2, 5, 2,
 			float32(row.Depth)*cfg.indent+5,
 		),
@@ -236,7 +236,7 @@ func treeDragRowView(
 		A11YState: a11yState,
 		Color:     rowColor,
 		Radius:    Some(cfg.Radius.Get(defaultTreeStyle.Radius)),
-		Padding: SomeP(
+		Padding: NewPadding(
 			2, 5, 2,
 			float32(row.Depth)*cfg.indent+5,
 		),
@@ -284,7 +284,7 @@ func treeRowContent(
 	return Row(ContainerCfg{
 		Color:  rowColor,
 		Radius: Some(cfg.Radius.Get(defaultTreeStyle.Radius)),
-		Padding: SomeP(
+		Padding: NewPadding(
 			2, 5, 2,
 			float32(row.Depth)*cfg.indent+5,
 		),

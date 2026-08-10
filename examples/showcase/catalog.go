@@ -28,7 +28,7 @@ func catalogPanel(w *gui.Window) gui.View {
 		Width:   catalogWidth,
 		Sizing:  gui.FixedFill,
 		Color:   t.ColorPanel,
-		Padding: gui.SomeP(12, 12, 12, 12),
+		Padding: gui.NewPadding(12, 12, 12, 12),
 		Spacing: gui.SomeF(8),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Component Catalog", TextStyle: t.B3}),
@@ -36,12 +36,10 @@ func catalogPanel(w *gui.Window) gui.View {
 			groupPicker(app),
 			line(),
 			gui.Column(gui.ContainerCfg{
-				ID:         scrollCatalog,
-				Scrollable: true,
-				Sizing:     gui.FillFill,
-				Padding: gui.Some(gui.Padding{
-					Right: t.ScrollbarStyle.Size + 4,
-				}),
+				ID:            scrollCatalog,
+				Scrollable:    true,
+				Sizing:        gui.FillFill,
+				Padding:       gui.NewPadding(0, t.ScrollbarStyle.Size+4, 0, 0),
 				Spacing:       gui.SomeF(2),
 				ScrollbarCfgY: &gui.ScrollbarCfg{GapEdge: 3},
 				Content:       catalogRows(entries, app),
@@ -120,7 +118,7 @@ func groupPickerItem(label, key string, app *ShowcaseApp) gui.View {
 		Color:   color,
 		Colors:  gui.ColorSet{Border: color},
 		Radius:  gui.SomeF(3),
-		Padding: gui.SomeP(3, 6, 3, 6),
+		Padding: gui.NewPadding(3, 6, 3, 6),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: label, TextStyle: t.N5}),
 		},
@@ -193,7 +191,7 @@ func catalogRow(entry DemoEntry, app *ShowcaseApp) gui.View {
 		Color:   color,
 		Colors:  gui.ColorSet{Hover: t.MenubarStyle.ColorSelect, Click: t.ColorActive, Focus: color, Border: gui.ColorTransparent, BorderFocus: gui.ColorTransparent},
 		Radius:  gui.SomeF(4),
-		Padding: gui.SomeP(3, 6, 3, 6),
+		Padding: gui.NewPadding(3, 6, 3, 6),
 		HAlign:  gui.Some(gui.HAlignLeft),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: entry.Label, TextStyle: t.N4}),
@@ -214,7 +212,7 @@ func toggleLocale(app *ShowcaseApp) gui.View {
 		ID:      "showcase-locale",
 		Color:   gui.ColorTransparent,
 		Colors:  gui.ColorSet{Border: gui.ColorTransparent, BorderFocus: gui.CurrentTheme().ColorActive},
-		Padding: gui.SomeP(6, 8, 6, 8),
+		Padding: gui.NewPadding(6, 8, 6, 8),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      label,

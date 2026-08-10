@@ -102,25 +102,19 @@ func lerpColorPremultiplied(a, b Color, t float32) Color {
 	pG := aG + (bG-aG)*ct
 	pB := aB + (bB-aB)*ct
 	if alpha <= 0.0001 {
-		return Color{0, 0, 0, 0, true}
+		return RGBA(0, 0, 0, 0)
 	}
 	r := (pR / alpha) * 255.0
 	g := (pG / alpha) * 255.0
 	bl := (pB / alpha) * 255.0
-	return Color{
-		R:   f32ToU8Saturated(r),
-		G:   f32ToU8Saturated(g),
-		B:   f32ToU8Saturated(bl),
-		A:   f32ToU8Saturated(alpha * 255.0),
-		set: true,
-	}
+	return RGBA(f32ToU8Saturated(r), f32ToU8Saturated(g), f32ToU8Saturated(bl), f32ToU8Saturated(alpha*255.0))
 }
 
 // SampleGradientStopColor returns the interpolated color at the
 // given position along the gradient stops.
 func SampleGradientStopColor(stops []GradientStop, pos float32) Color {
 	if len(stops) == 0 {
-		return Color{0, 0, 0, 0, true}
+		return RGBA(0, 0, 0, 0)
 	}
 	if pos <= stops[0].Pos {
 		return stops[0].Color

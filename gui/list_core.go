@@ -393,7 +393,7 @@ func listCoreItemView(item listCoreItem, index int, isHighlighted, isSelected bo
 
 	return Row(ContainerCfg{
 		Color:      bg,
-		Padding:    Some(cfg.PaddingItem),
+		Padding:    cfg.PaddingItem,
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Content:    content,

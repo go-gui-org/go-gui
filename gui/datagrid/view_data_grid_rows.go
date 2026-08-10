@@ -17,14 +17,14 @@ func dataGridGroupHeaderRowView(cfg *DataGridCfg, entry dataGridDisplayRow, rowH
 	if entry.AggregateText != "" {
 		label += "  " + entry.AggregateText
 	}
-	pc := cfg.PaddingCell.Get(gg.Padding{})
+	pc := cfg.PaddingCell.Or(gg.PaddingNone)
 	return gg.Row(gg.ContainerCfg{
 		Height:      rowHeight,
 		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorFilter,
 		ColorBorder: cfg.ColorBorder,
 		SizeBorder:  gg.SomeF(0),
-		Padding:     gg.SomeP(pc.Top, pc.Right, pc.Bottom, pc.Left+depthPad),
+		Padding:     gg.NewPadding(pc.Top, pc.Right, pc.Bottom, pc.Left+depthPad),
 		Spacing:     gg.Some(-cfg.SizeBorder.Get(0)),
 		Content: []gg.View{
 			gg.Text(gg.TextCfg{
@@ -47,7 +47,7 @@ func dataGridDetailRowView(dctx dataGridCtx, rowData GridRow, rowIdx int) gg.Vie
 	}
 	rowID := dataGridRowID(rowData, rowIdx)
 	detailView := cfg.detailRowView(rowData, dctx.w)
-	pc := cfg.PaddingCell.Get(gg.Padding{})
+	pc := cfg.PaddingCell.Or(gg.PaddingNone)
 	focusID := dctx.focusID
 	return gg.Row(gg.ContainerCfg{
 		ID:          gg.ScopeID(cfg.ID, "detail", rowID),
@@ -56,7 +56,7 @@ func dataGridDetailRowView(dctx dataGridCtx, rowData GridRow, rowIdx int) gg.Vie
 		Color:       cfg.ColorBackground,
 		ColorBorder: cfg.ColorBorder,
 		SizeBorder:  gg.SomeF(0),
-		Padding:     gg.SomeP(pc.Top, pc.Right, pc.Bottom, pc.Left+dataGridDetailIndent()),
+		Padding:     gg.NewPadding(pc.Top, pc.Right, pc.Bottom, pc.Left+dataGridDetailIndent()),
 		Spacing:     gg.Some(-cfg.SizeBorder.Get(0)),
 		Content: []gg.View{
 			gg.Row(gg.ContainerCfg{
@@ -450,7 +450,7 @@ func dataGridFrozenTopZone(cfg *DataGridCfg, rowViews []gg.View, zoneHeight, tot
 		Color:       cfg.ColorBackground,
 		ColorBorder: cfg.ColorBorder,
 		SizeBorder:  gg.SomeF(0),
-		Padding:     gg.Some(dataGridScrollPadding(cfg)),
+		Padding:     dataGridScrollPadding(cfg),
 		Spacing:     gg.SomeF(0),
 		Content: []gg.View{
 			gg.Column(gg.ContainerCfg{

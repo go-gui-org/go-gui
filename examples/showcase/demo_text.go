@@ -293,9 +293,10 @@ func textDemoCard(
 		Color:       t.ColorPanel,
 		ColorBorder: t.ColorBorder,
 		SizeBorder:  gui.SomeF(1),
-		Padding:     gui.Some(t.PaddingSmall),
-		Spacing:     gui.Some(t.SpacingSmall),
-		Content:     items,
+		Padding:     t.PaddingSmall,
+
+		Spacing: gui.Some(t.SpacingSmall),
+		Content: items,
 	}
 	if width > 0 {
 		cfg.Width = width

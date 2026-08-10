@@ -36,7 +36,7 @@ type ComboboxCfg struct {
 	A11YDescription   string
 	Options           []string
 	FloatZIndex       int
-	Padding           Opt[Padding]
+	Padding           Padding
 	SizeBorder        Opt[float32]
 	Radius            Opt[float32]
 	MinWidth          float32
@@ -124,8 +124,8 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 	hl := prepared.HL
 
 	// Virtualization.
-	rowH := listCoreRowHeightEstimate(cfg.TextStyle, cfg.Padding.Get(Padding{}))
-	pad := cfg.Padding.Get(Padding{})
+	rowH := listCoreRowHeightEstimate(cfg.TextStyle, cfg.Padding.Or(PaddingNone))
+	pad := cfg.Padding.Or(PaddingNone)
 	listH := cfg.maxDropdownHeight - 2*sizeBorder - pad.Top - pad.Bottom
 	var scrollY float32
 	// The dropdown is a child of the container that claims cfg.ID, so
@@ -146,7 +146,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 		ColorHighlight: cfg.ColorHighlight,
 		ColorHover:     cfg.ColorHover,
 		ColorSelected:  cfg.ColorHighlight,
-		PaddingItem:    cfg.Padding.Get(Padding{}),
+		PaddingItem:    cfg.Padding.Or(PaddingNone),
 		OnItemClick: func(itemID string, _ int, ctx EventCtx) {
 			if onSelect != nil {
 				onSelect(itemID, EventCtx{nil, ctx.Event, ctx.Window})
@@ -452,7 +452,7 @@ func applyComboboxDefaults(cfg *ComboboxCfg) {
 		cfg.ColorHighlight = d.ColorHighlight
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(d.Padding)
+		cfg.Padding = d.Padding
 	}
 	if cfg.MinWidth == 0 {
 		cfg.MinWidth = d.MinWidth

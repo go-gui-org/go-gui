@@ -101,7 +101,7 @@ func mainView(w *gui.Window) gui.View {
 	// clean leave semantics for the cursor reset.
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
-		Padding: gui.SomeP(16, 16, 16, 16),
+		Padding: gui.NewPadding(16, 16, 16, 16),
 		Spacing: gui.SomeF(12),
 		OnHover: func(ctx gui.EventCtx) {
 			ctx.Window.SetMouseCursorArrow()

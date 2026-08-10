@@ -590,7 +590,7 @@ func TestRenderToPDF_FullPipeline(t *testing.T) {
 				Scrollable: true,
 				Width:      300,
 				Sizing:     FixedFill,
-				Padding:    SomeP(8, 8, 8, 8),
+				Padding:    NewPadding(8, 8, 8, 8),
 				SizeBorder: NoBorder,
 				Color:      RGBA(55, 55, 58, 255),
 				Content: []View{
@@ -605,7 +605,7 @@ func TestRenderToPDF_FullPipeline(t *testing.T) {
 				ID:         "pdf-right",
 				Scrollable: true,
 				Sizing:     FillFill,
-				Padding:    SomeP(8, 8, 8, 8),
+				Padding:    NewPadding(8, 8, 8, 8),
 				SizeBorder: NoBorder,
 				Color:      RGBA(65, 65, 68, 255),
 				Content: []View{

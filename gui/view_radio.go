@@ -9,7 +9,7 @@ type RadioCfg struct {
 
 	A11YLabel       string
 	A11YDescription string
-	Padding         Opt[Padding]
+	Padding         Padding
 	Size            Opt[float32]
 	SizeBorder      Opt[float32]
 	// FocusDisabled opts out of the default-on focus. Focus also
@@ -59,7 +59,7 @@ func Radio(cfg RadioCfg) View {
 
 	if len(cfg.Label) > 0 {
 		content = append(content, Row(ContainerCfg{
-			Padding: SomeP(0, PadXSmall, 0, 0),
+			Padding: NewPadding(0, PadXSmall, 0, 0),
 			Content: []View{
 				Text(TextCfg{Text: cfg.Label, TextStyle: cfg.TextStyle}),
 			},
@@ -130,7 +130,7 @@ func applyRadioDefaults(cfg *RadioCfg) {
 		cfg.colorUnselect = d.colorUnselect
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(d.Padding)
+		cfg.Padding = d.Padding
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.textStyleNormal

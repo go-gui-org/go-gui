@@ -60,7 +60,7 @@ func animTweenDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
 						ID:      "btn-tween-go",
-						Padding: gui.SomeP(6, 16, 6, 16),
+						Padding: gui.NewPadding(6, 16, 6, 16),
 						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Animate", TextStyle: t.N3})},
 						OnClick: func(ctx gui.EventCtx) {
 							app := gui.State[ShowcaseApp](ctx.Window)
@@ -117,7 +117,7 @@ func animSpringDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
 						ID:      "btn-spring-go",
-						Padding: gui.SomeP(6, 16, 6, 16),
+						Padding: gui.NewPadding(6, 16, 6, 16),
 						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Spring", TextStyle: t.N3})},
 						OnClick: func(ctx gui.EventCtx) {
 							app := gui.State[ShowcaseApp](ctx.Window)
@@ -175,7 +175,7 @@ func animKeyframeDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
 						ID:      "btn-keyframe-go",
-						Padding: gui.SomeP(6, 16, 6, 16),
+						Padding: gui.NewPadding(6, 16, 6, 16),
 						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Keyframes", TextStyle: t.N3})},
 						OnClick: func(ctx gui.EventCtx) {
 							a := gui.NewKeyframeAnimation("showcase-keyframe",

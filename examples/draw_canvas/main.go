@@ -28,7 +28,8 @@ func mainView(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
-		Padding: gui.Some(gui.CurrentTheme().PaddingLarge),
+		Padding: gui.CurrentTheme().PaddingLarge,
+
 		Spacing: gui.SomeF(16),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -42,7 +43,7 @@ func mainView(w *gui.Window) gui.View {
 				Height:  360,
 				Color:   gui.RGBA(30, 30, 40, 255),
 				Radius:  8,
-				Padding: gui.Some(gui.Padding{Top: 30, Right: 40, Bottom: 40, Left: 50}),
+				Padding: gui.NewPadding(30, 40, 40, 50),
 				OnDraw:  drawChart,
 			}),
 		},

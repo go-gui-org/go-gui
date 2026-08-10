@@ -10,7 +10,7 @@ import (
 // --- dataGridResolveCellFormat ---
 
 func TestResolveCellFormatNoOverride(t *testing.T) {
-	base := gg.TextStyle{Color: gg.Color{R: 100}}
+	base := gg.TextStyle{Color: gg.RGBA(100, 0, 0, 0)}
 	format := gridCellFormat{}
 	ts, bg := dataGridResolveCellFormat(base, format)
 	if ts.Color.R != 100 {
@@ -22,8 +22,8 @@ func TestResolveCellFormatNoOverride(t *testing.T) {
 }
 
 func TestResolveCellFormatTextColor(t *testing.T) {
-	base := gg.TextStyle{Color: gg.Color{R: 100}}
-	format := gridCellFormat{hasTextColor: true, textColor: gg.Color{R: 200}}
+	base := gg.TextStyle{Color: gg.RGBA(100, 0, 0, 0)}
+	format := gridCellFormat{hasTextColor: true, textColor: gg.RGBA(200, 0, 0, 0)}
 	ts, _ := dataGridResolveCellFormat(base, format)
 	if ts.Color.R != 200 {
 		t.Errorf("got R=%d, want 200", ts.Color.R)
@@ -32,7 +32,7 @@ func TestResolveCellFormatTextColor(t *testing.T) {
 
 func TestResolveCellFormatBGColor(t *testing.T) {
 	base := gg.TextStyle{}
-	format := gridCellFormat{hasBGColor: true, bGColor: gg.Color{G: 150}}
+	format := gridCellFormat{hasBGColor: true, bGColor: gg.RGBA(0, 150, 0, 0)}
 	_, bg := dataGridResolveCellFormat(base, format)
 	if bg.G != 150 {
 		t.Errorf("got G=%d, want 150", bg.G)
@@ -738,7 +738,7 @@ func TestGroupHeaderRowView(t *testing.T) {
 	cfg := &DataGridCfg{
 		ColorBorder:     gg.RGBA(180, 180, 180, 255),
 		SizeBorder:      gg.SomeF(1),
-		PaddingCell:     gg.SomeP(2, 4, 2, 4),
+		PaddingCell:     gg.NewPadding(2, 4, 2, 4),
 		TextStyleHeader: gg.DefaultTextStyle,
 		ColorFilter:     gg.RGBA(240, 240, 240, 255),
 		showGroupCounts: &trueVal,
@@ -760,7 +760,7 @@ func TestGroupHeaderRowViewWithAggregate(t *testing.T) {
 	cfg := &DataGridCfg{
 		ColorBorder:     gg.RGBA(180, 180, 180, 255),
 		SizeBorder:      gg.SomeF(1),
-		PaddingCell:     gg.SomeP(2, 4, 2, 4),
+		PaddingCell:     gg.NewPadding(2, 4, 2, 4),
 		TextStyleHeader: gg.DefaultTextStyle,
 		ColorFilter:     gg.RGBA(240, 240, 240, 255),
 	}

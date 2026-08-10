@@ -540,8 +540,9 @@ func toggleTheme(app *App) gui.View {
 		TextSelect:   gui.IconMoon,
 		TextUnselect: gui.IconSunnyO,
 		TextStyle:    gui.CurrentTheme().Icon3,
-		Padding:      gui.Some(gui.PaddingSmall),
-		Selected:     app.LightTheme,
+		Padding:      gui.PaddingSmall,
+
+		Selected: app.LightTheme,
 		OnClick: func(ctx gui.EventCtx) {
 			app := gui.State[App](ctx.Window)
 			app.LightTheme = !app.LightTheme
@@ -562,7 +563,8 @@ func borderedGroup(title string, content []gui.View) gui.View {
 		ColorBorder: theme.ColorBorder,
 		SizeBorder:  gui.Some[float32](1),
 		MinWidth:    200,
-		Padding:     gui.Some(theme.Cfg.PaddingLarge),
-		Content:     content,
+		Padding:     theme.Cfg.PaddingLarge,
+
+		Content: content,
 	})
 }

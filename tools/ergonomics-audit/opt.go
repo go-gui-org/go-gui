@@ -45,7 +45,9 @@ package main
 //
 // Colors are out of scope by design: Color carries its own set flag
 // (gui/color.go), so Opt[Color] would be wrong; Color fields never
-// match the signals above.
+// match the signals above. Padding is out of scope the same way since
+// #243: Padding self-flags (gui/padding.go), so a plain Padding field
+// already distinguishes "unset" from an explicit zero (PaddingNone).
 
 import (
 	"fmt"
@@ -224,7 +226,7 @@ func inspectOptFields(
 				if len(fld.Names) == 0 {
 					continue // embedded field: no name to decide on
 				}
-				if optWrapped(fld.Type) || nilableType(fld.Type) {
+				if optWrapped(fld.Type) || nilableType(fld.Type) || paddingTyped(fld.Type) {
 					continue
 				}
 				for _, n := range fld.Names {
@@ -273,6 +275,19 @@ func optName(expr ast.Expr) bool {
 		return e.Name == "Opt"
 	case *ast.SelectorExpr:
 		return e.Sel.Name == "Opt"
+	}
+	return false
+}
+
+// paddingTyped reports whether a field type is Padding — bare ident or
+// qualified (gg.Padding). Padding self-flags (#243), so a plain Padding
+// field is exempt from the Opt rule the same way Color is.
+func paddingTyped(typ ast.Expr) bool {
+	switch t := typ.(type) {
+	case *ast.Ident:
+		return t.Name == "Padding"
+	case *ast.SelectorExpr:
+		return t.Sel.Name == "Padding"
 	}
 	return false
 }

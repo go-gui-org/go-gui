@@ -36,14 +36,14 @@ func TestGuiStyleToGlyphConfigFieldMapping(t *testing.T) {
 	s := gui.TextStyle{
 		Family:        "Test Font",
 		Size:          16,
-		Color:         gui.Color{R: 255, G: 128, B: 64, A: 255},
-		BgColor:       gui.Color{R: 0, G: 0, B: 0, A: 128},
+		Color:         gui.RGBA(255, 128, 64, 255),
+		BgColor:       gui.RGBA(0, 0, 0, 128),
 		Typeface:      glyph.TypefaceItalic,
 		Underline:     true,
 		Strikethrough: true,
 		LetterSpacing: 2.5,
 		StrokeWidth:   1.5,
-		StrokeColor:   gui.Color{R: 255, G: 0, B: 0, A: 255},
+		StrokeColor:   gui.RGBA(255, 0, 0, 255),
 		LineSpacing:   1.5,
 	}
 	gc := GuiStyleToGlyphConfig(s)

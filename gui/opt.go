@@ -34,10 +34,9 @@ var (
 	NoRadius  = SomeF(0)
 )
 
-// NoPadding is shorthand for Some(PaddingNone).
-var NoPadding = Some(PaddingNone)
-
-// SomeP is shorthand for Some(NewPadding(top, right, bottom, left)).
-func SomeP(top, right, bottom, left float32) Opt[Padding] {
-	return Opt[Padding]{val: NewPadding(top, right, bottom, left), set: true}
-}
+// NoPadding is shorthand for PaddingNone, the explicitly-set zero
+// padding. It exists so call sites read "no padding" instead of
+// reasoning about the flag. There is no SomeP any more: Padding
+// self-flags (gui/padding.go), so an explicit padding is built with
+// NewPadding / PadAll / PaddingNone, not wrapped in Opt.
+var NoPadding = PaddingNone

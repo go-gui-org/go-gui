@@ -163,10 +163,10 @@ func TestSvgColor(t *testing.T) {
 		SvgData: "<svg></svg>",
 		Width:   50,
 		Height:  50,
-		Color:   Color{255, 0, 0, 255, true},
+		Color:   RGBA(255, 0, 0, 255),
 	})
 	layout := v.GenerateLayout(w)
-	if layout.Shape.Color != (Color{255, 0, 0, 255, true}) {
+	if layout.Shape.Color != (RGBA(255, 0, 0, 255)) {
 		t.Fatalf("expected red, got %+v", layout.Shape.Color)
 	}
 }

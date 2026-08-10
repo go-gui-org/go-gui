@@ -67,7 +67,7 @@ func TestRectsOverlapNegativeCoords(t *testing.T) {
 }
 
 func TestDimAlphaPreservesRGB(t *testing.T) {
-	c := Color{R: 200, G: 100, B: 50, A: 80, set: true}
+	c := RGBA(200, 100, 50, 80)
 	d := dimAlpha(c)
 	if d.R != 200 || d.G != 100 || d.B != 50 {
 		t.Error("RGB should be unchanged")
@@ -81,7 +81,7 @@ func TestDimAlphaPreservesRGB(t *testing.T) {
 }
 
 func TestDimAlphaZeroAlpha(t *testing.T) {
-	c := Color{R: 255, G: 255, B: 255, A: 0}
+	c := RGBA(255, 255, 255, 0)
 	d := dimAlpha(c)
 	if d.A != 0 {
 		t.Errorf("zero alpha halved should be 0: got %d", d.A)
@@ -89,7 +89,7 @@ func TestDimAlphaZeroAlpha(t *testing.T) {
 }
 
 func TestDimAlphaOdd(t *testing.T) {
-	c := Color{A: 255}
+	c := RGBA(0, 0, 0, 255)
 	d := dimAlpha(c)
 	if d.A != 127 {
 		t.Errorf("255/2 should truncate to 127: got %d", d.A)
@@ -122,7 +122,7 @@ func TestResolveClipRadiusWithInset(t *testing.T) {
 		Clip:       true,
 		Radius:     10,
 		SizeBorder: 2,
-		Padding:    Padding{Left: 1, Right: 1, Top: 1, Bottom: 1},
+		Padding:    NewPadding(1, 1, 1, 1),
 	}
 	// inset = max(1+2, 1+2, 1+2, 1+2) = 3
 	// localRadius = max(0, 10-3) = 7

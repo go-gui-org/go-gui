@@ -153,7 +153,7 @@ func menu(w *gui.Window) gui.View {
 							MaxWidth:    100,
 							Sizing:      gui.FixedFill,
 							Placeholder: "Search",
-							Padding: gui.SomeP(2,
+							Padding: gui.NewPadding(2,
 								gui.CurrentTheme().InputStyle.Padding.Right,
 								2,
 								gui.CurrentTheme().InputStyle.Padding.Left),

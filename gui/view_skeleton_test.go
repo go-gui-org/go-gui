@@ -79,7 +79,7 @@ func TestSkeletonThemeColor(t *testing.T) {
 }
 
 func TestSkeletonCustomColor(t *testing.T) {
-	c := Color{R: 200, G: 50, B: 50, A: 255, set: true}
+	c := RGBA(200, 50, 50, 255)
 	v := Skeleton(SkeletonCfg{ID: "s8", Color: c})
 	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.Color != c {

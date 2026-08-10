@@ -98,8 +98,8 @@ const (
 // Card colors are fixed (not theme-derived): the preview must stay
 // near-black-on-light regardless of theme for font legibility.
 var (
-	colorCardBG      = gui.Color{R: 248, G: 248, B: 248, A: 255}
-	colorCardHover   = gui.Color{R: 200, G: 220, B: 255, A: 255}
+	colorCardBG      = gui.RGBA(248, 248, 248, 255)
+	colorCardHover   = gui.RGBA(200, 220, 255, 255)
 	colorPreviewText = gui.RGB(32, 32, 32)
 	colorCopiedBadge = gui.RGB(40, 140, 40) // green "Copied" confirmation
 )
@@ -218,7 +218,7 @@ func header() gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:     gui.FillFixed,
 		Height:     headerH,
-		Padding:    gui.Some(gui.Padding{Left: sidePad, Top: headerTopPad, Right: sidePad, Bottom: 0}),
+		Padding:    gui.NewPadding(headerTopPad, sidePad, 0, sidePad),
 		Spacing:    gui.SomeF(spacingTight),
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
@@ -236,7 +236,7 @@ func toolbarRow(topPad, bottomPad float32, content []gui.View) gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Sizing:     gui.FillFixed,
 		Height:     toolbarH / 2,
-		Padding:    gui.Some(gui.Padding{Left: sidePad, Right: sidePad, Top: topPad, Bottom: bottomPad}),
+		Padding:    gui.NewPadding(topPad, sidePad, bottomPad, sidePad),
 		Spacing:    gui.SomeF(toolbarSpacing),
 		VAlign:     gui.VAlignMiddle,
 		SizeBorder: gui.NoBorder,
@@ -415,7 +415,7 @@ func fontGrid(w *gui.Window, matches []string) gui.View {
 		Sizing:     gui.FixedFixed,
 		Width:      outerW,
 		Height:     listH,
-		Padding:    gui.Some(gui.Padding{Left: sidePad, Right: sidePad + scrollbarW}),
+		Padding:    gui.NewPadding(0, sidePad+scrollbarW, 0, sidePad),
 		Spacing:    gui.NoSpacing, // vertical gap lives in rowH, not spacing
 		SizeBorder: gui.NoBorder,
 		Content:    children,
@@ -432,7 +432,7 @@ func emptyState(noFonts bool) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
 		HAlign:  gui.HAlignCenter,
-		Padding: gui.Some(gui.Padding{Top: emptyStateTopPad}),
+		Padding: gui.NewPadding(emptyStateTopPad, 0, 0, 0),
 		Content: []gui.View{gui.Text(gui.TextCfg{Text: msg, TextStyle: gui.CurrentTheme().N3})},
 	})
 }
@@ -475,7 +475,7 @@ func fontCard(w *gui.Window, name string, cardW, cardH float32) gui.View {
 		Sizing:  gui.FixedFixed,
 		Color:   bg,
 		Radius:  gui.SomeF(cardRadius),
-		Padding: gui.Some(gui.Padding{Left: previewPad, Right: previewPad, Top: cardVPad, Bottom: cardVPad}),
+		Padding: gui.NewPadding(cardVPad, previewPad, cardVPad, previewPad),
 		Spacing: gui.SomeF(spacingTight),
 		Content: []gui.View{
 			cardNameRow(s, t, name),

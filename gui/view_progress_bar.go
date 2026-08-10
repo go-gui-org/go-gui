@@ -15,7 +15,7 @@ type ProgressBarCfg struct {
 	// Accessibility
 	A11YLabel       string
 	A11YDescription string
-	textPadding     Opt[Padding]
+	textPadding     Padding
 	Radius          Opt[float32]
 	Percent         float32 // 0.0 to 1.0
 	Width           float32
@@ -52,7 +52,7 @@ func ProgressBar(cfg ProgressBarCfg) View {
 		cfg.textBackground = guiTheme.progressBarStyle.textBackground
 	}
 	if !cfg.textPadding.IsSet() {
-		cfg.textPadding = Some(guiTheme.progressBarStyle.textPadding)
+		cfg.textPadding = guiTheme.progressBarStyle.textPadding
 	}
 	radius := cfg.Radius.Get(guiTheme.progressBarStyle.Radius)
 

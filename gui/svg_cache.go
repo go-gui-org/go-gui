@@ -66,8 +66,8 @@ func buildSvgTextStyle(
 		StrokeColor:   svgToColor(strokeColor),
 	}
 	if opacity < 1.0 {
-		ts.Color = Color{color.R, color.G, color.B,
-			uint8(float32(color.A)*opacity + 0.5), true}
+		ts.Color = RGBA(color.R, color.G, color.B,
+			uint8(float32(color.A)*opacity+0.5))
 	} else {
 		ts.Color = svgToColor(color)
 	}
@@ -90,7 +90,7 @@ func cachedSvgTextDraws(texts []SvgText, scale float32,
 
 		// Stroke-only text: fill=none + stroke set → transparent fill.
 		if ts.StrokeWidth > 0 && ts.Color.A == 0 {
-			ts.Color = Color{0, 0, 0, 0, true}
+			ts.Color = RGBA(0, 0, 0, 0)
 		}
 
 		// Build gradient config from SVG gradient def.

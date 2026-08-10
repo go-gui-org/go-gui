@@ -68,7 +68,7 @@ type DatePickerCfg struct {
 	AllowedMonths   []DatePickerMonths
 	AllowedYears    []int
 	AllowedDates    []time.Time
-	Padding         Opt[Padding]
+	Padding         Padding
 	SizeBorder      Opt[float32]
 	cellSpacing     Opt[float32]
 	Radius          Opt[float32]
@@ -141,7 +141,7 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 	// Stable size: 7 columns wide, 6 day rows + gaps tall.
 	// Include padding + border so min covers full outer box.
 	cellSize := datePickerCellSize(cfg)
-	pad := cfg.Padding.Get(dn.Padding)
+	pad := cfg.Padding.Or(dn.Padding)
 	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
 	padW := float32(pad.Left+pad.Right) + 2*sizeBorder
 	padH := float32(pad.Top+pad.Bottom) + 2*sizeBorder
@@ -433,7 +433,7 @@ func applyDatePickerDefaults(cfg *DatePickerCfg) {
 		cfg.ColorSelect = d.ColorSelect
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(d.Padding)
+		cfg.Padding = d.Padding
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.TextStyle

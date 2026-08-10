@@ -20,7 +20,7 @@ type SidebarCfg struct {
 	A11YDescription string
 	Content         []View
 	tweenDuration   time.Duration
-	Padding         Opt[Padding]
+	Padding         Padding
 	// TweenDuration > 0 uses tween; 0 uses spring.
 	spring    springCfg
 	Width     float32
@@ -45,7 +45,7 @@ func (w *Window) Sidebar(cfg SidebarCfg) View {
 		cfg.Color = guiTheme.ColorPanel
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(guiTheme.ContainerStyle.Padding)
+		cfg.Padding = guiTheme.ContainerStyle.Padding
 	}
 	if cfg.spring == (springCfg{}) {
 		cfg.spring = springStiff
@@ -63,11 +63,11 @@ func (w *Window) Sidebar(cfg SidebarCfg) View {
 	cfg.ID = w.EffID(cfg.ID)
 
 	animW := sidebarAnimatedWidth(w, cfg)
-	p := cfg.Padding.Get(Padding{})
+	p := cfg.Padding.Or(PaddingNone)
 	padW := p.Left + p.Right
 	pad := cfg.Padding
 	if animW <= padW {
-		pad = Some(Padding{})
+		pad = PaddingNone
 	}
 
 	// A Fixed-width box with Width 0 degrades to content sizing in

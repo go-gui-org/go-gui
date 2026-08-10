@@ -54,7 +54,7 @@ func TestPlainTextNeedsGlyphLayoutSpacing(t *testing.T) {
 func TestPlainTextNeedsGlyphLayoutBgColor(t *testing.T) {
 	s := &Shape{}
 	tc := &shapeTextConfig{TextMode: TextModeSingleLine}
-	style := TextStyle{BgColor: Color{R: 255, G: 0, B: 0, A: 128}}
+	style := TextStyle{BgColor: RGBA(255, 0, 0, 128)}
 	if !plainTextNeedsGlyphLayout(s, tc, style) {
 		t.Error("BgColor with A>0 should return true")
 	}

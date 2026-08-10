@@ -166,7 +166,7 @@ func inspectorFloatingPanel(w *Window) View {
 		Scrollable:    true,
 		ScrollbarCfgX: scrollbarCfg,
 		ScrollbarCfgY: scrollbarCfg,
-		Padding:       SomeP(0, scrollbarPad, 0, 0),
+		Padding:       NewPadding(0, scrollbarPad, 0, 0),
 		Spacing:       SomeF(0),
 		// The inspector panel overlays the app being inspected; clicks
 		// on it must not reach through and mutate what is under study.

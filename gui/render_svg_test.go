@@ -83,9 +83,9 @@ func TestEmitSvgPathRendererTint(t *testing.T) {
 	w := &Window{}
 	path := cachedSvgPath{
 		Triangles: []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
-		Color:     Color{0, 0, 0, 255, true},
+		Color:     RGBA(0, 0, 0, 255),
 	}
-	tint := Color{255, 0, 0, 200, true}
+	tint := RGBA(255, 0, 0, 200)
 	emitSvgPathRenderer(path, tint, 0, 0, 1.0, 0, 0, false, nil, w)
 
 	if len(w.renderers) != 1 {
@@ -103,7 +103,7 @@ func TestEmitSvgPathRendererVertexColors(t *testing.T) {
 	w := &Window{}
 	path := cachedSvgPath{
 		Triangles: []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
-		Color:     Color{0, 0, 0, 255, true},
+		Color:     RGBA(0, 0, 0, 255),
 		VertexColors: []Color{
 			{255, 0, 0, 255, true},
 			{0, 255, 0, 255, true},
@@ -126,7 +126,7 @@ func TestEmitSvgPathRendererAnimatedVertexAlphaNoCopy(t *testing.T) {
 	w := &Window{}
 	path := cachedSvgPath{
 		Triangles: []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
-		Color:     Color{0, 0, 0, 255, true},
+		Color:     RGBA(0, 0, 0, 255),
 		VertexColors: []Color{
 			{255, 0, 0, 255, true},
 			{0, 255, 0, 255, true},
@@ -161,7 +161,7 @@ func TestEmitCachedSvgTextDraw(t *testing.T) {
 		TextStyle: TextStyle{
 			Family: "sans",
 			Size:   12,
-			Color:  Color{0, 0, 0, 255, true},
+			Color:  RGBA(0, 0, 0, 255),
 		},
 		X: 5,
 		Y: 10,
@@ -198,11 +198,11 @@ func TestEmitCachedSvgTextDrawWithStyle(t *testing.T) {
 		TextStyle: TextStyle{
 			Family:        "serif",
 			Size:          24,
-			Color:         Color{255, 0, 0, 255, true},
+			Color:         RGBA(255, 0, 0, 255),
 			Underline:     true,
 			Strikethrough: true,
 			StrokeWidth:   2,
-			StrokeColor:   Color{0, 0, 255, 255, true},
+			StrokeColor:   RGBA(0, 0, 255, 255),
 		},
 		X: 10,
 		Y: 20,
@@ -233,7 +233,7 @@ func TestEmitCachedSvgTextPathDraw(t *testing.T) {
 		TextStyle: TextStyle{
 			Family: "sans",
 			Size:   12,
-			Color:  Color{10, 20, 30, 255, true},
+			Color:  RGBA(10, 20, 30, 255),
 		},
 		Path: textPathData{
 			Polyline: []float32{0, 0, 10, 0},
@@ -775,7 +775,7 @@ func TestEmitSvgPathRenderer_OpacityNaNClampedToZero(t *testing.T) {
 	w := &Window{}
 	path := cachedSvgPath{
 		Triangles: []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
-		Color:     Color{10, 20, 30, 200, true},
+		Color:     RGBA(10, 20, 30, 200),
 		PathID:    1,
 	}
 	animState := map[uint32]svgAnimState{
@@ -803,7 +803,7 @@ func TestSvgRender_FillOpacityAnimDoesNotDimStroke(t *testing.T) {
 	w := &Window{}
 	strokePath := cachedSvgPath{
 		Triangles: []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
-		Color:     Color{0, 0, 0, 255, true},
+		Color:     RGBA(0, 0, 0, 255),
 		PathID:    1,
 		IsStroke:  true,
 	}
@@ -1143,7 +1143,7 @@ func TestEmitSvgPathRenderer_NonUniformStretchNeutralisesScale(t *testing.T) {
 	w := &Window{}
 	path := cachedSvgPath{
 		Triangles: []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
-		Color:     Color{255, 255, 255, 255, true},
+		Color:     RGBA(255, 255, 255, 255),
 	}
 	// nsScaleX=2, nsScaleY=3, uniform scale=4 → nonUniform.
 	emitSvgPathRenderer(path, Color{}, 0, 0, 4, 2, 3, true, nil, w)
@@ -1172,7 +1172,7 @@ func TestEmitSvgPathRenderer_NonUniformCompoundsWithBaseXform(t *testing.T) {
 	w := &Window{}
 	path := cachedSvgPath{
 		Triangles:    []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
-		Color:        Color{255, 255, 255, 255, true},
+		Color:        RGBA(255, 255, 255, 255),
 		HasBaseXform: true,
 		BaseScaleX:   0.5,
 		BaseScaleY:   2,
@@ -1205,7 +1205,7 @@ func TestEmitSvgPathRenderer_NonUniformNoOpWhenUniform(t *testing.T) {
 	w := &Window{}
 	path := cachedSvgPath{
 		Triangles: []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
-		Color:     Color{255, 255, 255, 255, true},
+		Color:     RGBA(255, 255, 255, 255),
 	}
 	emitSvgPathRenderer(path, Color{}, 0, 0, 3, 0, 0, false, nil, w)
 
@@ -1227,7 +1227,7 @@ func TestEmitSvgPathRenderer_NonUniformSkipsWhenScaleEquals(t *testing.T) {
 	w := &Window{}
 	path := cachedSvgPath{
 		Triangles: []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
-		Color:     Color{255, 255, 255, 255, true},
+		Color:     RGBA(255, 255, 255, 255),
 	}
 	emitSvgPathRenderer(path, Color{}, 0, 0, 3, 3, 3, false, nil, w)
 

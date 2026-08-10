@@ -235,7 +235,7 @@ func TestTakeVColors_BasicReservation(t *testing.T) {
 	}
 	// Writes to b must not overwrite a.
 	for i := range b {
-		b[i] = Color{1, 2, 3, 4, true}
+		b[i] = RGBA(1, 2, 3, 4)
 	}
 	for i := range a {
 		if a[i] != (Color{}) {
@@ -251,13 +251,13 @@ func TestTakeVColors_ArenaGrowthPreservesPriorSlices(t *testing.T) {
 	var p scratchPools
 	first := p.takeVColors(4)
 	for i := range first {
-		first[i] = Color{byte(i + 1), 0, 0, 255, true}
+		first[i] = RGBA(byte(i+1), 0, 0, 255)
 	}
 	// Force at least one realloc by requesting a huge chunk.
 	_ = p.takeVColors(1024)
 	// first must still hold its original data.
 	for i := range first {
-		want := Color{byte(i + 1), 0, 0, 255, true}
+		want := RGBA(byte(i+1), 0, 0, 255)
 		if first[i] != want {
 			t.Fatalf("first[%d]=%+v clobbered by arena growth, want %+v",
 				i, first[i], want)

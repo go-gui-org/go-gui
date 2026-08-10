@@ -162,7 +162,7 @@ func TestRenderLayoutClipRTLPadding(t *testing.T) {
 		Width: 100, Height: 50,
 		Clip:       true,
 		TextDir:    TextDirRTL,
-		Padding:    Padding{Left: 5, Right: 10, Top: 3, Bottom: 3},
+		Padding:    NewPadding(3, 10, 3, 5),
 		SizeBorder: 2,
 		shapeClip:  drawClip{X: 0, Y: 0, Width: 100, Height: 50},
 	}

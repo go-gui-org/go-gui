@@ -92,7 +92,7 @@ func dockPanelContent(title, body string) []gui.View {
 	return []gui.View{
 		gui.Column(gui.ContainerCfg{
 			Sizing:  gui.FillFill,
-			Padding: gui.SomeP(8, 12, 8, 12),
+			Padding: gui.NewPadding(8, 12, 8, 12),
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{Text: title, TextStyle: t.B2}),
 				gui.Text(gui.TextCfg{Text: body}),

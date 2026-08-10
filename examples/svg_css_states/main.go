@@ -78,8 +78,9 @@ func view(w *gui.Window) gui.View {
 	}
 	clear := func(s *state) { *s = state{} }
 	controls := gui.Column(gui.ContainerCfg{
-		Padding: gui.Some(gui.PaddingTwoFive),
-		Sizing:  gui.FillFill,
+		Padding: gui.PaddingTwoFive,
+
+		Sizing: gui.FillFill,
 		Content: []gui.View{
 			btn("Hover #ring", func(s *state) {
 				clear(s)

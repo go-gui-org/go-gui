@@ -50,7 +50,8 @@ func view(w *gui.Window) gui.View {
 	}
 	return gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
-		Padding: gui.Some(gui.PaddingTwoFive),
+		Padding: gui.PaddingTwoFive,
+
 		Content: []gui.View{
 			gui.Svg(gui.SvgCfg{
 				SvgData: sampleSvg, Sizing: gui.FixedFixed,
@@ -58,7 +59,8 @@ func view(w *gui.Window) gui.View {
 			}),
 			gui.Column(gui.ContainerCfg{
 				Sizing:  gui.FillFill,
-				Padding: gui.Some(gui.PaddingTwoFive),
+				Padding: gui.PaddingTwoFive,
+
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{Text: meta}),
 				},

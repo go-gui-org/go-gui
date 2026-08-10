@@ -13,9 +13,9 @@ func TestToHSVPrimaries(t *testing.T) {
 		wantS float32
 		wantV float32
 	}{
-		{"red", Color{255, 0, 0, 255, true}, 0, 1, 1},
-		{"green", Color{0, 255, 0, 255, true}, 120, 1, 1},
-		{"blue", Color{0, 0, 255, 255, true}, 240, 1, 1},
+		{"red", RGBA(255, 0, 0, 255), 0, 1, 1},
+		{"green", RGBA(0, 255, 0, 255), 120, 1, 1},
+		{"blue", RGBA(0, 0, 255, 255), 240, 1, 1},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -36,9 +36,9 @@ func TestToHSVBlackWhiteGray(t *testing.T) {
 		wantS float32
 		wantV float32
 	}{
-		{"black", Color{0, 0, 0, 255, true}, 0, 0, 0},
-		{"white", Color{255, 255, 255, 255, true}, 0, 0, 1},
-		{"gray", Color{128, 128, 128, 255, true}, 0, 0, 128.0 / 255.0},
+		{"black", RGBA(0, 0, 0, 255), 0, 0, 0},
+		{"white", RGBA(255, 255, 255, 255), 0, 0, 1},
+		{"gray", RGBA(128, 128, 128, 255), 0, 0, 128.0 / 255.0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -82,9 +82,9 @@ func TestHueColorPrimaries(t *testing.T) {
 		hue  float32
 		want Color
 	}{
-		{0, Color{255, 0, 0, 255, true}},
-		{120, Color{0, 255, 0, 255, true}},
-		{240, Color{0, 0, 255, 255, true}},
+		{0, RGBA(255, 0, 0, 255)},
+		{120, RGBA(0, 255, 0, 255)},
+		{240, RGBA(0, 0, 255, 255)},
 	}
 	for _, tt := range tests {
 		got := hueColor(tt.hue)
@@ -95,14 +95,14 @@ func TestHueColorPrimaries(t *testing.T) {
 }
 
 func TestToHexStringOpaque(t *testing.T) {
-	c := Color{255, 0, 128, 255, true}
+	c := RGBA(255, 0, 128, 255)
 	if got := c.toHexString(); got != "#FF0080" {
 		t.Errorf("got %q, want #FF0080", got)
 	}
 }
 
 func TestToHexStringAlpha(t *testing.T) {
-	c := Color{255, 0, 128, 200, true}
+	c := RGBA(255, 0, 128, 200)
 	if got := c.toHexString(); got != "#FF0080C8" {
 		t.Errorf("got %q, want #FF0080C8", got)
 	}
@@ -113,10 +113,10 @@ func TestColorFromHexStringValid(t *testing.T) {
 		input string
 		want  Color
 	}{
-		{"#FF0000", Color{255, 0, 0, 255, true}},
-		{"#ff0000", Color{255, 0, 0, 255, true}},
-		{"FF0000", Color{255, 0, 0, 255, true}},
-		{"#AABBCCDD", Color{170, 187, 204, 221, true}},
+		{"#FF0000", RGBA(255, 0, 0, 255)},
+		{"#ff0000", RGBA(255, 0, 0, 255)},
+		{"FF0000", RGBA(255, 0, 0, 255)},
+		{"#AABBCCDD", RGBA(170, 187, 204, 221)},
 	}
 	for _, tt := range tests {
 		got, ok := colorFromHexString(tt.input)

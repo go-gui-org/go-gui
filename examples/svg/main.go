@@ -116,8 +116,9 @@ func navPanel(selected int) gui.View {
 		name := entry.Name
 		items[i] = gui.Row(gui.ContainerCfg{
 			Color:   color,
-			Padding: gui.Some(gui.PaddingTwoFive),
-			Sizing:  gui.FillFit,
+			Padding: gui.PaddingTwoFive,
+
+			Sizing: gui.FillFit,
 			OnClick: func(ctx gui.EventCtx) {
 				gui.State[SvgViewerApp](ctx.Window).Selected = idx
 			},

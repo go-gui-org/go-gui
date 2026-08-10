@@ -72,8 +72,9 @@ func scrollColumn(scrollID string, focusID string, text string, w *gui.Window) g
 			Overflow: overflow,
 		},
 		ColorBorder: colorBorder,
-		Padding:     gui.Some(pad),
-		Sizing:      gui.FillFill,
+		Padding:     pad,
+
+		Sizing: gui.FillFill,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				ID:        focusID,
@@ -152,8 +153,9 @@ func themeButton(app *App) gui.View {
 		TextSelect:   textSel,
 		TextUnselect: textUnsel,
 		TextStyle:    gui.CurrentTheme().Icon3,
-		Padding:      gui.Some(gui.PaddingSmall),
-		Selected:     app.Light,
+		Padding:      gui.PaddingSmall,
+
+		Selected: app.Light,
 		OnClick: func(ctx gui.EventCtx) {
 			app := gui.State[App](ctx.Window)
 			app.Light = !app.Light

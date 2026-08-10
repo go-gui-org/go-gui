@@ -52,7 +52,7 @@ func datePickerWeekdays(cfg *DatePickerCfg) View {
 			MaxWidth:   cellSize,
 			HAlign:     HAlignCenter,
 			SizeBorder: NoBorder,
-			Padding:    Some(paddingThree),
+			Padding:    paddingThree,
 			Content:    []View{Text(TextCfg{Text: label, TextStyle: wdTS})},
 		}))
 	}
@@ -109,7 +109,7 @@ func datePickerMonth(
 						MinWidth:      cellSize,
 						MaxWidth:      cellSize,
 						MaxHeight:     cellSize,
-						Padding:       Some(paddingThree),
+						Padding:       paddingThree,
 						Content:       []View{Text(TextCfg{Text: " "})},
 					}))
 				}
@@ -152,7 +152,7 @@ func datePickerMonth(
 				Colors:     ColorSet{Hover: colorHover, Click: cfg.ColorSelect, Border: borderColor},
 				SizeBorder: SomeF(2),
 				Radius:     Some(radius),
-				Padding:    Some(paddingThree),
+				Padding:    paddingThree,
 				Disabled:   disabled,
 				Content: []View{Text(TextCfg{
 					Text: dayStr, TextStyle: ts,
@@ -236,7 +236,7 @@ func datePickerAdjacentCell(
 		MinWidth:  cellSize,
 		MaxWidth:  cellSize,
 		MaxHeight: cellSize,
-		Padding:   Some(paddingThree),
+		Padding:   paddingThree,
 		Content: []View{Text(TextCfg{
 			Text:      strconv.Itoa(adjDay),
 			TextStyle: ts,

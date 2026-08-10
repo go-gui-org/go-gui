@@ -111,7 +111,7 @@ func applyDockLayoutDefaults(cfg *DockLayoutCfg) {
 		cfg.Sizing = FillFill
 	}
 	if !cfg.colorZonePreview.IsSet() {
-		cfg.colorZonePreview = Color{70, 130, 220, 80, true}
+		cfg.colorZonePreview = RGBA(70, 130, 220, 80)
 	}
 	if !cfg.colorTab.IsSet() {
 		cfg.colorTab = guiTheme.ColorPanel
@@ -265,7 +265,7 @@ func dockGroupView(
 	if !cfg.hideSingleTab || len(group.PanelIDs) > 1 {
 		groupContent = append(groupContent, Row(ContainerCfg{
 			Sizing:     FillFit,
-			Padding:    SomeP(2, 4, 0, 4),
+			Padding:    NewPadding(2, 4, 0, 4),
 			Spacing:    NoSpacing,
 			SizeBorder: NoBorder,
 			Color:      cfg.colorTabBar,
@@ -352,7 +352,7 @@ func dockTabButton(
 		ID:         ScopeID("dock_tab", groupID, panelID),
 		Sizing:     FillFit,
 		HAlign:     Some(HAlignLeft),
-		Padding:    SomeP(4, 8, 4, 8),
+		Padding:    NewPadding(4, 8, 4, 8),
 		Radius:     NoRadius,
 		SizeBorder: NoBorder,
 		Color:      colorTab,

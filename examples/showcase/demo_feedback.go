@@ -71,8 +71,9 @@ func buttonFeatureRows(w *gui.Window) []gui.View {
 			Color:      gui.RGB(195, 105, 0),
 			Colors:     gui.ColorSet{Hover: gui.RGB(195, 105, 0), Click: gui.RGB(205, 115, 0), Border: gui.RGB(160, 160, 160)},
 			SizeBorder: gui.SomeF(2),
-			Padding:    gui.Some(gui.CurrentTheme().PaddingMedium),
-			VAlign:     gui.Some(gui.VAlignMiddle),
+			Padding:    gui.CurrentTheme().PaddingMedium,
+
+			VAlign: gui.Some(gui.VAlignMiddle),
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{Text: strconv.Itoa(app.ButtonClicks), MinWidth: 25}),
 				gui.ProgressBar(gui.ProgressBarCfg{
@@ -338,7 +339,7 @@ func demoToast(_ *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Button(gui.ButtonCfg{
 				ID:      "btn-toast",
-				Padding: gui.SomeP(8, 16, 8, 16),
+				Padding: gui.NewPadding(8, 16, 8, 16),
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{Text: "Show Toast", TextStyle: t.N3}),
 				},
@@ -348,7 +349,7 @@ func demoToast(_ *gui.Window) gui.View {
 			}),
 			gui.Button(gui.ButtonCfg{
 				ID:      "btn-toast-dismiss",
-				Padding: gui.SomeP(8, 16, 8, 16),
+				Padding: gui.NewPadding(8, 16, 8, 16),
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{Text: "Dismiss All", TextStyle: t.N3}),
 				},

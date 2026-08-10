@@ -93,7 +93,7 @@ func TestLayoutWidthsLTR(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			Axis:    axisLeftToRight,
-			Padding: Padding{Left: 10, Right: 10},
+			Padding: NewPadding(0, 10, 0, 10),
 			Spacing: 5,
 		},
 		Children: []Layout{
@@ -147,7 +147,7 @@ func TestLayoutWidthsTTB(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			Axis:    axisTopToBottom,
-			Padding: Padding{Left: 5, Right: 5},
+			Padding: NewPadding(0, 5, 0, 5),
 		},
 		Children: []Layout{
 			{Shape: &Shape{Width: 100, MinWidth: 80}},
@@ -235,7 +235,7 @@ func TestLayoutPositionsCenter(t *testing.T) {
 			Axis:    axisLeftToRight,
 			HAlign:  HAlignCenter,
 			VAlign:  VAlignMiddle,
-			Padding: Padding{Left: 10, Right: 10, Top: 10, Bottom: 10},
+			Padding: NewPadding(10, 10, 10, 10),
 			Spacing: 5,
 		},
 		Children: []Layout{
@@ -375,7 +375,7 @@ func TestLayoutFillWidthsScrollChildNoRoundoffBias(t *testing.T) {
 			Sizing:    FixedFixed,
 			Width:     100,
 			Height:    50,
-			Padding:   Padding{Left: 4, Right: 6},
+			Padding:   NewPadding(0, 6, 0, 4),
 			Spacing:   8,
 		},
 		Children: []Layout{
@@ -398,7 +398,7 @@ func TestLayoutFillHeightsScrollChildNoRoundoffBias(t *testing.T) {
 			Sizing:    FixedFixed,
 			Width:     50,
 			Height:    100,
-			Padding:   Padding{Top: 4, Bottom: 6},
+			Padding:   NewPadding(4, 0, 6, 0),
 			Spacing:   8,
 		},
 		Children: []Layout{
@@ -421,7 +421,7 @@ func TestLayoutPositionsRTLRow(t *testing.T) {
 			X: 0, Y: 0, Width: 200, Height: 50,
 			Axis:    axisLeftToRight,
 			TextDir: TextDirRTL,
-			Padding: Padding{Left: 10, Right: 10},
+			Padding: NewPadding(0, 10, 0, 10),
 			Spacing: 5,
 		},
 		Children: []Layout{
@@ -474,7 +474,7 @@ func TestLayoutPositionsRTLOverrideLTR(t *testing.T) {
 			X: 0, Y: 0, Width: 200, Height: 50,
 			Axis:    axisLeftToRight,
 			TextDir: TextDirLTR, // explicit override
-			Padding: Padding{Left: 10, Right: 10},
+			Padding: NewPadding(0, 10, 0, 10),
 			Spacing: 5,
 		},
 		Children: []Layout{
@@ -501,7 +501,7 @@ func TestLayoutPositionsRTLPaddingSwap(t *testing.T) {
 			X: 0, Y: 0, Width: 200, Height: 50,
 			Axis:    axisLeftToRight,
 			TextDir: TextDirRTL,
-			Padding: Padding{Left: 20, Right: 5},
+			Padding: NewPadding(0, 5, 0, 20),
 		},
 		Children: []Layout{
 			{Shape: &Shape{shapeType: shapeRectangle, Width: 30, Height: 50}},
@@ -524,7 +524,7 @@ func TestLayoutPositionsRTLColumnPadding(t *testing.T) {
 			Axis:    axisTopToBottom,
 			HAlign:  HAlignLeft,
 			TextDir: TextDirRTL,
-			Padding: Padding{Left: 20, Right: 5},
+			Padding: NewPadding(0, 5, 0, 20),
 		},
 		Children: []Layout{
 			{Shape: &Shape{shapeType: shapeRectangle, Width: 30, Height: 50}},
@@ -573,7 +573,7 @@ func TestLayoutPositionsRTLColumnSymmetric(t *testing.T) {
 		Shape: &Shape{
 			X: 0, Y: 0, Width: 200, Height: 100,
 			Axis: axisTopToBottom, HAlign: HAlignCenter, TextDir: TextDirRTL,
-			Padding: Padding{Left: 10, Right: 10},
+			Padding: NewPadding(0, 10, 0, 10),
 		},
 		Children: []Layout{
 			{Shape: &Shape{shapeType: shapeRectangle, Width: 30, Height: 50}},
@@ -584,7 +584,7 @@ func TestLayoutPositionsRTLColumnSymmetric(t *testing.T) {
 		Shape: &Shape{
 			X: 0, Y: 0, Width: 200, Height: 100,
 			Axis: axisTopToBottom, HAlign: HAlignCenter, TextDir: TextDirLTR,
-			Padding: Padding{Left: 10, Right: 10},
+			Padding: NewPadding(0, 10, 0, 10),
 		},
 		Children: []Layout{
 			{Shape: &Shape{shapeType: shapeRectangle, Width: 30, Height: 50}},

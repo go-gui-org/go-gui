@@ -114,7 +114,7 @@ func TestHeaderColIDFromLayoutIDShort(t *testing.T) {
 
 func TestHeaderControlStateAllFit(t *testing.T) {
 	// Wide column: everything fits.
-	r := dataGridHeaderControlState(500, gg.Padding{}, true, true, true)
+	r := dataGridHeaderControlState(500, gg.PaddingNone, true, true, true)
 	if !r.showLabel || !r.showReorder || !r.showPin || !r.showResize {
 		t.Errorf("wide: got label=%v reorder=%v pin=%v resize=%v",
 			r.showLabel, r.showReorder, r.showPin, r.showResize)
@@ -123,14 +123,14 @@ func TestHeaderControlStateAllFit(t *testing.T) {
 
 func TestHeaderControlStateNarrowDropsAll(t *testing.T) {
 	// Very narrow column: nothing fits.
-	r := dataGridHeaderControlState(1, gg.Padding{}, true, true, true)
+	r := dataGridHeaderControlState(1, gg.PaddingNone, true, true, true)
 	if r.showReorder || r.showPin {
 		t.Error("very narrow should drop reorder and pin")
 	}
 }
 
 func TestHeaderControlStateNoControls(t *testing.T) {
-	r := dataGridHeaderControlState(100, gg.Padding{}, false, false, false)
+	r := dataGridHeaderControlState(100, gg.PaddingNone, false, false, false)
 	if r.showReorder || r.showPin || r.showResize {
 		t.Error("no controls requested: none should show")
 	}
@@ -190,14 +190,14 @@ func TestHeaderFocusedColIDEmpty(t *testing.T) {
 
 func TestHeaderControlStateMediumWidth(t *testing.T) {
 	// Medium width: label + some controls.
-	r := dataGridHeaderControlState(80, gg.Padding{}, true, false, true)
+	r := dataGridHeaderControlState(80, gg.PaddingNone, true, false, true)
 	if !r.showLabel {
 		t.Error("medium: label should show")
 	}
 }
 
 func TestHeaderControlStateOnlyReorder(t *testing.T) {
-	r := dataGridHeaderControlState(200, gg.Padding{}, true, false, false)
+	r := dataGridHeaderControlState(200, gg.PaddingNone, true, false, false)
 	if !r.showReorder {
 		t.Error("should show reorder")
 	}
@@ -210,7 +210,7 @@ func TestHeaderControlStateOnlyReorder(t *testing.T) {
 }
 
 func TestHeaderControlStateOnlyPin(t *testing.T) {
-	r := dataGridHeaderControlState(200, gg.Padding{}, false, true, false)
+	r := dataGridHeaderControlState(200, gg.PaddingNone, false, true, false)
 	if !r.showPin {
 		t.Error("should show pin")
 	}
@@ -221,12 +221,12 @@ func TestHeaderControlStateOnlyPin(t *testing.T) {
 
 func TestHeaderControlStateProgressiveDisclosure(t *testing.T) {
 	// Progressively narrower: first lose label, then pin, then reorder.
-	w0 := dataGridHeaderControlState(500, gg.Padding{}, true, true, true)
+	w0 := dataGridHeaderControlState(500, gg.PaddingNone, true, true, true)
 	if !w0.showLabel || !w0.showPin || !w0.showReorder || !w0.showResize {
 		t.Error("wide should show all")
 	}
 	// Narrow enough to drop label only.
-	w1 := dataGridHeaderControlState(150, gg.Padding{}, true, true, true)
+	w1 := dataGridHeaderControlState(150, gg.PaddingNone, true, true, true)
 	// Label may or may not show depending on constants; controls hierarchy
 	// is what matters — reorder drops before resize in priority order.
 	_ = w1
@@ -317,7 +317,7 @@ func TestFilterRowReturnsView(t *testing.T) {
 		ColorFilter:   gg.RGBA(240, 240, 240, 255),
 		ColorBorder:   gg.RGBA(180, 180, 180, 255),
 		SizeBorder:    gg.SomeF(1),
-		PaddingFilter: gg.SomeP(2, 4, 2, 4),
+		PaddingFilter: gg.NewPadding(2, 4, 2, 4),
 	}
 	columns := []GridColumnCfg{{ID: "c1"}, {ID: "c2"}}
 	v := dataGridFilterRow(cfg, columns, nil)
@@ -334,7 +334,7 @@ func TestFilterCellReturnsView(t *testing.T) {
 		ColorFilter:     gg.RGBA(240, 240, 240, 255),
 		ColorBorder:     gg.RGBA(180, 180, 180, 255),
 		SizeBorder:      gg.SomeF(1),
-		PaddingFilter:   gg.SomeP(2, 4, 2, 4),
+		PaddingFilter:   gg.NewPadding(2, 4, 2, 4),
 		TextStyleFilter: gg.DefaultTextStyle,
 	}
 	col := GridColumnCfg{ID: "c1", Filterable: true}
@@ -443,7 +443,7 @@ func TestHeaderRowReturnsView(t *testing.T) {
 		ID:              "g1",
 		ColorBorder:     gg.RGBA(180, 180, 180, 255),
 		SizeBorder:      gg.SomeF(1),
-		PaddingHeader:   gg.SomeP(2, 4, 2, 4),
+		PaddingHeader:   gg.NewPadding(2, 4, 2, 4),
 		TextStyleHeader: gg.DefaultTextStyle,
 	}
 	columns := []GridColumnCfg{{ID: "c1"}, {ID: "c2"}}
@@ -461,7 +461,7 @@ func TestHeaderCellReturnsView(t *testing.T) {
 		ColorHeader:      gg.RGBA(240, 240, 240, 255),
 		ColorBorder:      gg.RGBA(180, 180, 180, 255),
 		SizeBorder:       gg.SomeF(1),
-		PaddingHeader:    gg.SomeP(2, 4, 2, 4),
+		PaddingHeader:    gg.NewPadding(2, 4, 2, 4),
 		TextStyleHeader:  gg.DefaultTextStyle,
 		ColorHeaderHover: gg.RGBA(220, 220, 220, 255),
 	}
@@ -478,7 +478,7 @@ func TestHeaderCellWithControls(t *testing.T) {
 		ColorHeader:         gg.RGBA(240, 240, 240, 255),
 		ColorBorder:         gg.RGBA(180, 180, 180, 255),
 		SizeBorder:          gg.SomeF(1),
-		PaddingHeader:       gg.SomeP(2, 4, 2, 4),
+		PaddingHeader:       gg.NewPadding(2, 4, 2, 4),
 		TextStyleHeader:     gg.DefaultTextStyle,
 		ColorHeaderHover:    gg.RGBA(220, 220, 220, 255),
 		onColumnOrderChange: func(_ []string, ctx gg.EventCtx) {},

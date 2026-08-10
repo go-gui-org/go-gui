@@ -31,10 +31,10 @@ type BreadcrumbCfg struct {
 	A11YLabel          string
 	A11YDescription    string
 	Items              []BreadcrumbItemCfg
-	Padding            Opt[Padding]
-	paddingTrail       Opt[Padding]
-	paddingCrumb       Opt[Padding]
-	paddingContent     Opt[Padding]
+	Padding            Padding
+	paddingTrail       Padding
+	paddingCrumb       Padding
+	paddingContent     Padding
 	Radius             Opt[float32]
 	radiusCrumb        Opt[float32]
 	radiusContent      Opt[float32]
@@ -97,16 +97,16 @@ func applyBreadcrumbDefaults(cfg *BreadcrumbCfg) {
 		cfg.colorContentBorder = s.colorContentBorder
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(s.Padding)
+		cfg.Padding = s.Padding
 	}
 	if !cfg.paddingTrail.IsSet() {
-		cfg.paddingTrail = Some(s.paddingTrail)
+		cfg.paddingTrail = s.paddingTrail
 	}
 	if !cfg.paddingCrumb.IsSet() {
-		cfg.paddingCrumb = Some(s.paddingCrumb)
+		cfg.paddingCrumb = s.paddingCrumb
 	}
 	if !cfg.paddingContent.IsSet() {
-		cfg.paddingContent = Some(s.paddingContent)
+		cfg.paddingContent = s.paddingContent
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = s.TextStyle

@@ -44,7 +44,7 @@ func mainView(w *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FitFit,
 		Spacing: gui.Some[float32](40),
-		Padding: gui.SomeP(10, 40, 40, 40),
+		Padding: gui.NewPadding(10, 40, 40, 40),
 		HAlign:  gui.HAlignCenter,
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
@@ -146,7 +146,8 @@ func toggleTheme(app *App) gui.View {
 				TextStyle:    gui.CurrentTheme().Icon3,
 				Selected:     app.LightTheme,
 				ColorSelect:  gui.RGBA(0, 0, 0, 0),
-				Padding:      gui.Some(gui.PaddingSmall),
+				Padding:      gui.PaddingSmall,
+
 				OnClick: func(ctx gui.EventCtx) {
 					a := gui.State[App](ctx.Window)
 					// Swap themes first, then flip the toggle state to match.

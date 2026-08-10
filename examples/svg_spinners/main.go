@@ -80,7 +80,8 @@ func mainView(w *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
 		HAlign:  gui.HAlignCenter,
-		Padding: gui.Some(gui.PaddingSmall),
+		Padding: gui.PaddingSmall,
+
 		Content: rows,
 	})
 }
@@ -91,7 +92,8 @@ func cell(k gui.SvgSpinnerKind) gui.View {
 		Height:  cellSize,
 		Sizing:  gui.FixedFixed,
 		HAlign:  gui.HAlignCenter,
-		Padding: gui.Some(gui.PaddingSmall),
+		Padding: gui.PaddingSmall,
+
 		Content: []gui.View{
 			gui.SvgSpinner(gui.SvgSpinnerCfg{
 				Kind:   k,

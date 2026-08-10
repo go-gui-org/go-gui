@@ -77,7 +77,7 @@ type ContainerCfg struct {
 
 	FloatZIndex int
 
-	Padding Opt[Padding]
+	Padding Padding
 
 	// Layout
 	Spacing    Opt[float32]
@@ -154,7 +154,7 @@ func applyContainerDefaults(cfg *ContainerCfg) (spacing, sizeBorder, radius floa
 	return cfg.Spacing.Get(d.Spacing),
 		cfg.SizeBorder.Get(d.SizeBorder),
 		cfg.Radius.Get(d.Radius),
-		cfg.Padding.Get(d.Padding)
+		cfg.Padding.Or(d.Padding)
 }
 
 // containerView implements View for container-based layouts.

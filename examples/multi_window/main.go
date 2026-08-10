@@ -120,7 +120,8 @@ func inspectorView(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
-		Padding: gui.Some(gui.PadAll(8)),
+		Padding: gui.PadAll(8),
+
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Event Log",

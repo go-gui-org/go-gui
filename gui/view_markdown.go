@@ -36,8 +36,8 @@ type MarkdownStyle struct {
 	tableRowAlt       *Color
 	mathDPIDisplay    int
 	mathDPIInline     int
-	codeBlockPadding  Opt[Padding]
-	tableCellPadding  Opt[Padding]
+	codeBlockPadding  Padding
+	tableCellPadding  Padding
 	blockSpacing      float32
 	nestIndent        float32
 	prefixCharWidth   float32
@@ -104,14 +104,14 @@ func DefaultMarkdownStyle() MarkdownStyle {
 		blockSpacing:      12,
 		nestIndent:        16,
 		prefixCharWidth:   4,
-		codeBlockPadding:  Some(PadAll(10)),
+		codeBlockPadding:  PadAll(10),
 		codeBlockRadius:   3.5,
 		TableBorderStyle:  TableBorderHeaderOnly,
 		tableBorderColor:  guiTheme.ColorBorder,
 		tableBorderSize:   1,
 		tableHeadStyle:    guiTheme.B4,
 		tableCellStyle:    guiTheme.N4,
-		tableCellPadding:  SomeP(5, 10, 5, 10),
+		tableCellPadding:  NewPadding(5, 10, 5, 10),
 		highlightBG:       RGB(199, 142, 18),
 		mathDPIDisplay:    150,
 		mathDPIInline:     200,
@@ -125,7 +125,7 @@ type MarkdownCfg struct {
 	Source              string
 	Style               MarkdownStyle
 	mermaidWidth        int // max pixel width for mermaid diagrams (0 = 600)
-	Padding             Opt[Padding]
+	Padding             Padding
 	SizeBorder          Opt[float32]
 	Radius              Opt[float32]
 	Focusable           bool

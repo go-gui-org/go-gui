@@ -14,7 +14,7 @@ func TestEmitSvgPathRenderer_BaseTRSRoutesRotPivotToTranslate(t *testing.T) {
 	w := &Window{}
 	path := cachedSvgPath{
 		Triangles:    []float32{0, 0, 1, 0, 0, 1},
-		Color:        Color{0, 0, 0, 255, true},
+		Color:        RGBA(0, 0, 0, 255),
 		BaseTransX:   10,
 		BaseTransY:   20,
 		BaseScaleX:   2,
@@ -50,7 +50,7 @@ func TestEmitSvgPathRenderer_AnimStateRotCenterOverridesBase(t *testing.T) {
 	w := &Window{}
 	path := cachedSvgPath{
 		Triangles:    []float32{0, 0, 1, 0, 0, 1},
-		Color:        Color{0, 0, 0, 255, true},
+		Color:        RGBA(0, 0, 0, 255),
 		PathID:       1,
 		BaseTransX:   10,
 		BaseTransY:   20,
@@ -184,7 +184,7 @@ func TestEmitSvgPathRenderer_NonUniformCompoundsWithAnimXform(t *testing.T) {
 	path := cachedSvgPath{
 		PathID:       1,
 		Triangles:    []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
-		Color:        Color{255, 255, 255, 255, true},
+		Color:        RGBA(255, 255, 255, 255),
 		HasBaseXform: true,
 		BaseScaleX:   0.5,
 		BaseScaleY:   2,

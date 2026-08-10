@@ -45,8 +45,9 @@ func mainView(w *gui.Window) gui.View {
 	style.CodeBlockBG = gui.RGB(40, 44, 52)
 
 	return gui.Column(gui.ContainerCfg{
-		Sizing:     gui.FillFill,
-		Padding:    gui.Some(theme.PaddingLarge),
+		Sizing:  gui.FillFill,
+		Padding: theme.PaddingLarge,
+
 		Focusable:  true,
 		ID:         "markdown-scroll",
 		Scrollable: true,
@@ -58,7 +59,7 @@ func mainView(w *gui.Window) gui.View {
 				Color:      theme.ColorPanel,
 				SizeBorder: gui.SomeF(1),
 				Radius:     gui.SomeF(theme.RadiusMedium),
-				Padding:    gui.Some(theme.PaddingMedium),
+				Padding:    theme.PaddingMedium,
 			}),
 		},
 	})

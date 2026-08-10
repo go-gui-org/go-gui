@@ -13,7 +13,7 @@ type SliderCfg struct {
 	// Accessibility
 	A11YLabel       string
 	A11YDescription string
-	Padding         Opt[Padding]
+	Padding         Padding
 	SizeBorder      Opt[float32]
 	Radius          Opt[float32]
 	radiusBorder    Opt[float32]

@@ -40,7 +40,7 @@ func dataGridBuildPagerRow(pctx dataGridPagerContext) gg.View {
 		Color:       cfg.ColorFilter,
 		ColorBorder: cfg.ColorBorder,
 		SizeBorder:  gg.SomeF(0),
-		Padding:     gg.Some(dataGridPagerPadding(cfg)),
+		Padding:     dataGridPagerPadding(cfg),
 		Spacing:     gg.SomeF(6),
 		VAlign:      gg.VAlignMiddle,
 		Content:     content,
@@ -130,7 +130,7 @@ func dataGridPagerSpacer() gg.View {
 func dataGridPagerRowsStatus(cfg *DataGridCfg, rowsText string) gg.View {
 	return gg.Row(gg.ContainerCfg{
 		Sizing:  gg.FitFill,
-		Padding: gg.SomeP(0, 6, 0, 0),
+		Padding: gg.NewPadding(0, 6, 0, 0),
 		VAlign:  gg.VAlignMiddle,
 		Content: []gg.View{
 			gg.Text(gg.TextCfg{

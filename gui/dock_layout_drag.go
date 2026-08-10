@@ -273,7 +273,7 @@ func dockDragGhostView(state dockDragState, label string) View {
 		Opacity:      SomeF(dragGhostOpacity),
 		Sizing:       FixedFixed,
 		Clip:         true,
-		Padding:      SomeP(2, 6, 2, 6),
+		Padding:      NewPadding(2, 6, 2, 6),
 		Color:        guiTheme.ColorPanel,
 		Shadow: &BoxShadow{
 			Color:      dragGhostShadowColor,

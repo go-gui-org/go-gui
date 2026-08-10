@@ -6,7 +6,7 @@ func TestLayoutWidthsEmptyContainer(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			Axis:    axisLeftToRight,
-			Padding: Padding{Left: 5, Right: 5},
+			Padding: NewPadding(0, 5, 0, 5),
 		},
 	}
 	layoutWidths(root)
@@ -19,7 +19,7 @@ func TestLayoutHeightsEmptyContainer(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			Axis:    axisTopToBottom,
-			Padding: Padding{Top: 3, Bottom: 7},
+			Padding: NewPadding(3, 0, 7, 0),
 		},
 	}
 	layoutHeights(root)

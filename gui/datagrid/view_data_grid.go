@@ -233,9 +233,9 @@ type DataGridCfg struct {
 	// Defaults to 200ms on grids with a DataSource, 0 (immediate)
 	// otherwise; negative opts a sourced grid out of debouncing.
 	quickFilterDebounce time.Duration
-	PaddingCell         gg.Opt[gg.Padding]
-	PaddingHeader       gg.Opt[gg.Padding]
-	PaddingFilter       gg.Opt[gg.Padding]
+	PaddingCell         gg.Padding
+	PaddingHeader       gg.Padding
+	PaddingFilter       gg.Padding
 	Radius              gg.Opt[float32]
 	SizeBorder          gg.Opt[float32]
 	rowHeight           float32
@@ -335,10 +335,10 @@ func applyDataGridDefaults(cfg *DataGridCfg) {
 		cfg.ColorResizeActive = s.ColorResizeActive
 	}
 	if !cfg.PaddingCell.IsSet() {
-		cfg.PaddingCell = gg.Some(s.PaddingCell)
+		cfg.PaddingCell = s.PaddingCell
 	}
 	if !cfg.PaddingHeader.IsSet() {
-		cfg.PaddingHeader = gg.Some(s.PaddingHeader)
+		cfg.PaddingHeader = s.PaddingHeader
 	}
 	if cfg.TextStyle == (gg.TextStyle{}) {
 		cfg.TextStyle = s.TextStyle
@@ -350,7 +350,7 @@ func applyDataGridDefaults(cfg *DataGridCfg) {
 		cfg.TextStyleFilter = s.TextStyleFilter
 	}
 	if !cfg.PaddingFilter.IsSet() {
-		cfg.PaddingFilter = gg.Some(s.PaddingFilter)
+		cfg.PaddingFilter = s.PaddingFilter
 	}
 	if !cfg.Radius.IsSet() {
 		cfg.Radius = gg.SomeF(s.Radius)
@@ -595,7 +595,7 @@ func New(w *gg.Window, cfg DataGridCfg) gg.View {
 		ScrollbarCfgX: &scrollbarCfg,
 		ScrollbarCfgY: &scrollbarCfg,
 		Color:         resolvedCfg.ColorBackground,
-		Padding:       gg.Some(dataGridScrollPadding(&resolvedCfg)),
+		Padding:       dataGridScrollPadding(&resolvedCfg),
 		Spacing:       gg.SomeF(0),
 		Sizing:        gg.FillFill,
 		Content:       rows,
