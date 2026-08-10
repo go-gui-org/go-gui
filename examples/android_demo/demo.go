@@ -12,6 +12,7 @@ import (
 	"github.com/go-gui-org/go-gui/gui/backend/android"
 )
 
+// App is the demo state struct bound into the AAR for the Kotlin host.
 type App struct {
 	Clicks int
 }
@@ -44,16 +45,19 @@ func TouchInput(phase int, identifier int64, x, y float32) {
 }
 
 // TouchBegan maps a touch-down event.
+//
 // Deprecated: use TouchInput for multi-touch support.
-func TouchBegan(x, y float32) { android.TouchBegan(x, y) }
+func TouchBegan(x, y float32) { TouchInput(0, 0, x, y) }
 
 // TouchMoved maps a touch-move event.
+//
 // Deprecated: use TouchInput for multi-touch support.
-func TouchMoved(x, y float32) { android.TouchMoved(x, y) }
+func TouchMoved(x, y float32) { TouchInput(1, 0, x, y) }
 
 // TouchEnded maps a touch-up event.
+//
 // Deprecated: use TouchInput for multi-touch support.
-func TouchEnded(x, y float32) { android.TouchEnded(x, y) }
+func TouchEnded(x, y float32) { TouchInput(2, 0, x, y) }
 
 // Resize updates the viewport.
 func Resize(width, height int, scale float32) {

@@ -339,18 +339,21 @@ func Render() {
 }
 
 // TouchBegan dispatches a single-touch began event with id 0.
+//
 // Deprecated: use TouchInput for multi-touch support.
 func TouchBegan(x, y float32) {
 	touchEvent(gui.EventTouchesBegan, 0, x, y)
 }
 
 // TouchMoved dispatches a single-touch moved event with id 0.
+//
 // Deprecated: use TouchInput for multi-touch support.
 func TouchMoved(x, y float32) {
 	touchEvent(gui.EventTouchesMoved, 0, x, y)
 }
 
 // TouchEnded dispatches a single-touch ended event with id 0.
+//
 // Deprecated: use TouchInput for multi-touch support.
 func TouchEnded(x, y float32) {
 	touchEvent(gui.EventTouchesEnded, 0, x, y)

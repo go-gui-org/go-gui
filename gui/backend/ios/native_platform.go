@@ -3,6 +3,7 @@
 package ios
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -28,7 +29,7 @@ func (n *nativePlatform) OpenURI(uri string) error {
 		return fmt.Errorf("unsupported URI scheme: %q",
 			u.Scheme)
 	}
-	return fmt.Errorf("OpenURI not implemented on iOS")
+	return errors.New("OpenURI not implemented on iOS")
 }
 
 func (n *nativePlatform) ShowOpenDialog(title, startDir string, extensions []string, allowMultiple bool) gui.PlatformDialogResult {

@@ -335,7 +335,59 @@ func shouldPreventDefault(code string) bool {
 	return false
 }
 
-//nolint:gocyclo // key-mapping switch
+// keyCodes maps DOM KeyboardEvent.code values to gui.KeyCode. The zero
+// value of gui.KeyCode is gui.KeyInvalid, which the map lookup returns
+// naturally for any unmapped code, so no explicit default is needed.
+var keyCodes = map[string]gui.KeyCode{
+	"Space":        gui.KeySpace,
+	"Enter":        gui.KeyEnter,
+	"NumpadEnter":  gui.KeyEnter,
+	"Escape":       gui.KeyEscape,
+	"Tab":          gui.KeyTab,
+	"Backspace":    gui.KeyBackspace,
+	"Delete":       gui.KeyDelete,
+	"Insert":       gui.KeyInsert,
+	"ArrowRight":   gui.KeyRight,
+	"ArrowLeft":    gui.KeyLeft,
+	"ArrowDown":    gui.KeyDown,
+	"ArrowUp":      gui.KeyUp,
+	"PageUp":       gui.KeyPageUp,
+	"PageDown":     gui.KeyPageDown,
+	"Home":         gui.KeyHome,
+	"End":          gui.KeyEnd,
+	"ShiftLeft":    gui.KeyLeftShift,
+	"ShiftRight":   gui.KeyRightShift,
+	"ControlLeft":  gui.KeyLeftControl,
+	"ControlRight": gui.KeyRightControl,
+	"AltLeft":      gui.KeyLeftAlt,
+	"AltRight":     gui.KeyRightAlt,
+	"MetaLeft":     gui.KeyLeftSuper,
+	"MetaRight":    gui.KeyRightSuper,
+	"Comma":        gui.KeyComma,
+	"Minus":        gui.KeyMinus,
+	"Period":       gui.KeyPeriod,
+	"Slash":        gui.KeySlash,
+	"Semicolon":    gui.KeySemicolon,
+	"Equal":        gui.KeyEqual,
+	"BracketLeft":  gui.KeyLeftBracket,
+	"Backslash":    gui.KeyBackslash,
+	"BracketRight": gui.KeyRightBracket,
+	"Backquote":    gui.KeyGraveAccent,
+	"CapsLock":     gui.KeyCapsLock,
+	"F1":           gui.KeyF1,
+	"F2":           gui.KeyF2,
+	"F3":           gui.KeyF3,
+	"F4":           gui.KeyF4,
+	"F5":           gui.KeyF5,
+	"F6":           gui.KeyF6,
+	"F7":           gui.KeyF7,
+	"F8":           gui.KeyF8,
+	"F9":           gui.KeyF9,
+	"F10":          gui.KeyF10,
+	"F11":          gui.KeyF11,
+	"F12":          gui.KeyF12,
+}
+
 func mapKeyCode(code string) gui.KeyCode {
 	// Single-letter keys: KeyA..KeyZ.
 	if len(code) == 4 && code[:3] == "Key" {
@@ -351,103 +403,7 @@ func mapKeyCode(code string) gui.KeyCode {
 			return gui.KeyCode(ch)
 		}
 	}
-
-	switch code {
-	case "Space":
-		return gui.KeySpace
-	case "Enter", "NumpadEnter":
-		return gui.KeyEnter
-	case "Escape":
-		return gui.KeyEscape
-	case "Tab":
-		return gui.KeyTab
-	case "Backspace":
-		return gui.KeyBackspace
-	case "Delete":
-		return gui.KeyDelete
-	case "Insert":
-		return gui.KeyInsert
-	case "ArrowRight":
-		return gui.KeyRight
-	case "ArrowLeft":
-		return gui.KeyLeft
-	case "ArrowDown":
-		return gui.KeyDown
-	case "ArrowUp":
-		return gui.KeyUp
-	case "PageUp":
-		return gui.KeyPageUp
-	case "PageDown":
-		return gui.KeyPageDown
-	case "Home":
-		return gui.KeyHome
-	case "End":
-		return gui.KeyEnd
-	case "ShiftLeft":
-		return gui.KeyLeftShift
-	case "ShiftRight":
-		return gui.KeyRightShift
-	case "ControlLeft":
-		return gui.KeyLeftControl
-	case "ControlRight":
-		return gui.KeyRightControl
-	case "AltLeft":
-		return gui.KeyLeftAlt
-	case "AltRight":
-		return gui.KeyRightAlt
-	case "MetaLeft":
-		return gui.KeyLeftSuper
-	case "MetaRight":
-		return gui.KeyRightSuper
-	case "Comma":
-		return gui.KeyComma
-	case "Minus":
-		return gui.KeyMinus
-	case "Period":
-		return gui.KeyPeriod
-	case "Slash":
-		return gui.KeySlash
-	case "Semicolon":
-		return gui.KeySemicolon
-	case "Equal":
-		return gui.KeyEqual
-	case "BracketLeft":
-		return gui.KeyLeftBracket
-	case "Backslash":
-		return gui.KeyBackslash
-	case "BracketRight":
-		return gui.KeyRightBracket
-	case "Backquote":
-		return gui.KeyGraveAccent
-	case "CapsLock":
-		return gui.KeyCapsLock
-	case "F1":
-		return gui.KeyF1
-	case "F2":
-		return gui.KeyF2
-	case "F3":
-		return gui.KeyF3
-	case "F4":
-		return gui.KeyF4
-	case "F5":
-		return gui.KeyF5
-	case "F6":
-		return gui.KeyF6
-	case "F7":
-		return gui.KeyF7
-	case "F8":
-		return gui.KeyF8
-	case "F9":
-		return gui.KeyF9
-	case "F10":
-		return gui.KeyF10
-	case "F11":
-		return gui.KeyF11
-	case "F12":
-		return gui.KeyF12
-	default:
-		return gui.KeyInvalid
-	}
+	return keyCodes[code]
 }
 
 // cursorCSS maps gui.MouseCursor to CSS cursor values.

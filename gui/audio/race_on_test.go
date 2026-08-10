@@ -1,4 +1,4 @@
-//go:build race
+//go:build race && !js && !android && !ios
 
 package audio
 

@@ -163,6 +163,29 @@ jobs:
         with:
           version: v2.12
 
+      # Same blind spot as windows above, for the browser build: every
+      # //go:build js file (the gui/backend/web backend) was unlinted
+      # and had accumulated a two-issue baseline. GOARCH must be wasm —
+      # js/amd64 is not a valid target pair.
+      - name: Lint (GOOS=js)
+        uses: golangci/golangci-lint-action@v9
+        env:
+          GOOS: js
+          GOARCH: wasm
+        with:
+          version: v2.12
+
+      # The darwin build analyses from this runner with cgo disabled
+      # (automatic for cross-compilation), which covers the cgo-free
+      # darwin files. The cgo core of the metal backend still needs a
+      # macOS runner; tracked separately.
+      - name: Lint (GOOS=darwin)
+        uses: golangci/golangci-lint-action@v9
+        env:
+          GOOS: darwin
+        with:
+          version: v2.12
+
       - name: Required-ID check
         run: go run ./tools/requiredid/cmd/requiredid ./...
 
@@ -242,6 +265,28 @@ jobs:
           GOARCH=arm64 \
           CC="clang -isysroot $SDK -arch arm64 -miphoneos-version-min=15.0" \
           go vet -tags ios ./gui/backend/ios/...
+
+      # Full-module lint for the ios build, using the same trick as the
+      # vet step above: GOOS=darwin with the -tags ios flag satisfies
+      # //go:build ios while the iphoneos sysroot gives the cgo .m files
+      # a toolchain, and !ios-tagged darwin files (metal, sysbeep) drop
+      # out. The sysbeep test's `&& !ios` tag keeps it from referencing
+      # symbols that only the darwin cgo implementation provides.
+      - name: Locate iOS SDK
+        run: echo "IOS_SDK=$(xcrun --sdk iphoneos --show-sdk-path)" >> "$GITHUB_ENV"
+
+      - name: Lint (GOOS=ios)
+        uses: golangci/golangci-lint-action@v9
+        env:
+          CGO_ENABLED: '1'
+          GOOS: darwin
+          GOARCH: arm64
+          CC: clang
+          CGO_CFLAGS: -isysroot ${{ env.IOS_SDK }} -arch arm64 -miphoneos-version-min=15.0
+          CGO_LDFLAGS: -isysroot ${{ env.IOS_SDK }} -arch arm64 -miphoneos-version-min=15.0
+        with:
+          version: v2.12
+          args: --build-tags ios ./...
 
   wasm:
     name: WASM
@@ -352,6 +397,27 @@ jobs:
             | grep -v clang++ | sort | tail -1)
           CGO_ENABLED=1 GOOS=android GOARCH=arm64 CC=$NDK_CC \
             go vet ./gui/backend/android/...
+
+      # Full-module lint for the android build. Unlike the desktop
+      # targets it cannot run cgo-free: purego's android dlfcn uses
+      # cgo.Dlopen, and gui/backend/android itself links a C ES3 driver.
+      # Lint type-checks the whole module (test files included), not
+      # just the backend package the vet step above covers.
+      - name: Locate NDK clang
+        run: |
+          NDK_CC=$(find $ANDROID_NDK_ROOT -name "aarch64-linux-android*-clang" \
+            | grep -v clang++ | sort | tail -1)
+          echo "NDK_CC=$NDK_CC" >> "$GITHUB_ENV"
+
+      - name: Lint (GOOS=android)
+        uses: golangci/golangci-lint-action@v9
+        env:
+          CGO_ENABLED: '1'
+          GOOS: android
+          GOARCH: arm64
+          CC: ${{ env.NDK_CC }}
+        with:
+          version: v2.12
 
   benchmark:
     name: Benchmarks

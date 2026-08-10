@@ -1,4 +1,4 @@
-//go:build (!darwin || ios) && !windows && (!linux || android)
+//go:build (!darwin || ios || !cgo) && !windows && (!linux || android)
 
 package sysbeep
 

@@ -1,4 +1,4 @@
-//go:build !darwin && (!linux || android || !hunspell)
+//go:build (!darwin || !cgo) && !ios && (!linux || android || !hunspell)
 
 package spellcheck
 
