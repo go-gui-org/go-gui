@@ -6,7 +6,13 @@ Guidance for Claude Code (claude.ai/code) in this repo.
 
 ```
 go run ./examples/get_started/  # run the example app
-./scripts/large-files.sh     # report Go files >800 lines in gui/
+make check-all                  # test + lint + vet gates (pre-push)
+make test                       # tests only
+make lint                       # golangci-lint (pinned version)
+make vet                        # go vet + requiredid analyzer
+make ergo-audit                 # focus/callbacks inventory + ID composition
+make export-audit               # exported surface (advisory in-repo)
+./scripts/large-files.sh        # report Go files >800 lines in gui/
 ```
 
 ## Architecture
@@ -47,11 +53,21 @@ A `FillFill` root fills the window (min=max seed in `updateLayout`).
 All widgets take `*Cfg` struct (zero-initializable). Event callbacks share sig
 `func(EventCtx)`.
 
-Focus requires **both** `Focusable: true` **and** a non-empty `ID`
-(`isFocusedTarget`, `gui/event_traversal.go`); tab order additionally needs
-`!FocusSkip && !Disabled` (`layout_query.go`). `Focusable: true` without an `ID`
-is a silent no-op — the widget renders and clicks but never joins the tab order.
-The `requiredid` analyzer flags this.
+Focus requires **both** `Focusable` **and** a non-empty `ID` (`isFocusedTarget`,
+`gui/event_traversal.go`); tab order additionally needs
+`!FocusSkip && !Disabled` (`layout_query.go`). `Focusable` without an `ID` is a
+silent no-op — the widget renders and clicks but never joins the tab order. The
+`requiredid` analyzer flags this, and `gui.Debug` reports it at runtime.
+
+**Input controls are focusable by default (v0.36.0); opt out with
+`FocusDisabled`, never with `Focusable: false`.** Fifteen Cfgs default on:
+`Button`, `ColorPicker`, `Combobox`, `DatePicker`, `Input`, `InputDate`,
+`ListBox`, `NumericInput`, `RadioButtonGroup`, `Radio`, `Select`, `Slider`,
+`Switch`, `Toggle`, `Tree`. Setting `Focusable: true` on these is redundant. The
+ID requirement is unchanged — a default-on control still needs an `ID` to reach
+the tab order, which is what `requiredid` enforces. Everything else is opt-in
+via `Focusable: true`. See `docs/specs/focusable-default-input.md`; run
+`ergoaudit -mode focus` for the current inventory.
 
 **`Shape.ID` is a leaf; identity is the effective ID.** `resolveShapeIDs`
 (`gui/id_resolve.go`, run from `layoutArrange` before the layout passes) stamps
@@ -135,7 +151,7 @@ Backend injects at startup. Nil in tests:
 
 - `(*Layout).spacing()` counts only visible children (`ShapeType != ShapeNone`,
   `!Float`, `!OverDraw`). Fence-post gap calc
-- Shape text fields in `Shape.TC` (`*ShapeTextConfig`), not on `Shape`
+- Shape text fields in `Shape.TC` (`*shapeTextConfig`), not on `Shape`
 - `ContainerCfg.Title`/`TitleBG` render group-box label in top border (floating
   eraser + text, like HTML fieldset). `TitleBG` must match parent bg color to
   erase border behind title.
@@ -145,8 +161,8 @@ Backend injects at startup. Nil in tests:
 - `AmendLayout` hook on shapes runs after sizing to reposition overlays (color
   picker circles, splitter handles, etc.) or manage hover. Layout uses absolute
   coords. Moving parent in `AmendLayout` does NOT move children. Use float
-  system (`FloatAnchor`/`FloatTieOff`/`FloatOffset`) to position elements with
-  children.
+  system (`FloatAnchor`/`FloatTieOff`/`FloatOffsetX`/`FloatOffsetY`) to position
+  elements with children.
 - **One event rule (since v0.55.0): nothing is marked handled for you. A
   callback that acts on an event calls `ctx.Consume()`; one that does not, lets
   the event travel on.** This holds for every callback — `OnClick` and `OnChar`
@@ -157,7 +173,43 @@ Backend injects at startup. Nil in tests:
   unless it consumes. `ctx.Event` is nil in `AmendLayout` and `OnScroll`; both
   `EventCtx` methods are nil-safe. `gui.Debug(true)` reports handlers that act
   without consuming while an ancestor also handles;
-  `(*Window).TestUnconsumedEvents` sweeps a whole window for them
+  `(*Window).TestUnconsumedEvents` sweeps a whole window for them (see Dev-mode
+  diagnostics below)
+
+### Dev-mode diagnostics
+
+**Most identity mistakes in this repo are already detected at runtime — turn the
+gate on before hand-auditing a layout.** `gui.Debug(true)`, or `GOGUI_DEBUG=1`
+in the environment, walks the composed tree every frame from
+`updateLayoutLocked` and reports to stderr (`gui/debug.go`):
+
+- duplicate **effective** ID — names the key and both claim sites
+- focusable shape with no `ID` (never joins the tab order)
+- scrollable shape with no `ID` (shares one offset with every other)
+- `OnMouseLeave` with no `ID` (callback never fires)
+- a scrollable listbox that resolved to height 0
+- a callback that acted without `ctx.Consume()` while an ancestor also handles
+
+Findings are warn-once per window, so a real defect does not scroll past at
+frame rate. The gate allocates and walks the whole tree — dev only, never
+production.
+
+Categories gate independently via `gui.DebugCategories(mask)`;
+`gui.DebugEnabled()` queries the gate. `Debug(true)` is
+`DebugCategories(gui.DebugAll)`.
+
+**`DebugUnscopedIDs` is not in `DebugAll` and `Debug(true)` does not turn it
+on.** It reports an `ID` with no ID-bearing ancestor — still a window-global
+name, so the widget cannot be dropped into a second panel as it stands. That is
+a design property rather than a bug and fires on most widgets in a small app, so
+ask for it explicitly when auditing a screen for reusability:
+
+```go
+gui.DebugCategories(gui.DebugAll | gui.DebugUnscopedIDs)
+```
+
+Assertable forms for tests, which return findings as data instead of printing:
+`(*Window).TestDuplicateIDs` and `(*Window).TestUnconsumedEvents`.
 
 ## Coding Conventions
 
@@ -206,45 +258,17 @@ git/mkdir/rm/ls output. `ctx_fetch_and_index` instead of curl/wget/WebFetch.
 
 ## Rejected Approaches
 
-- **WebGPU Backend** (2026-06): Explored in branch `webgpu-backend` (deleted).
-  12 WGSL shader pipelines, device init, render loop all working. Rejected at
-  the time because WebGPU has no native text rendering — font measurement and
-  glyph rasterization require Canvas2D. A hybrid backend defeats the purpose; a
-  pure-Go TTF rasterizer in go-glyph was the missing piece. The existing
-  Canvas2D backend already handles every render command correctly. GPU
-  acceleration doesn't address the actual bottleneck (heap allocations).
+- **WebGPU backend** — explored and rejected; superseded by issue #137. Don't
+  re-propose it. `gui/backend/gl/` already has no cgo (X11 via xgb, EGL via
+  purego, Win32 via syscall), so purego bindings got CGo-free Linux+Windows for
+  ~600 lines, where wgpu would have added 10–40 MB of runtime libs, supplied
+  none of `NativePlatform`, and left macOS untouched.
+- **Current CGo state:** `CGO_ENABLED=0 go build ./...` is green on Linux and
+  Windows for the whole module. macOS (5.9k lines ObjC) is the entire remaining
+  problem and is not started.
 
-  **Update (2026-07):** go-glyph now has a pure-Go text pipeline
-  (`bitmap_puregoft.go` — go-text/typesetting harfbuzz shaping +
-  golang.org/x/image/vector rasterization, no CGo). Combined with
-  [goffi](https://github.com/go-webgpu/goffi) (zero-CGo FFI for calling
-  wgpu-native), a CGo-free WebGPU desktop backend is now technically viable —
-  blocked only by the upfront engineering cost of a full backend rewrite, not by
-  any missing dependencies.
-
-  **Superseded (2026-07-31, issue #137):** viable but the wrong instrument.
-  `gui/backend/gl/` has no cgo at all — X11 via xgb, EGL via purego, Win32 via
-  syscall. The sole CGo dependency on Linux/Windows is `github.com/go-gl/gl` (55
-  functions, 45 constants), and its proc-address loader is already pure Go.
-  Swapping that one dispatch layer for purego bindings gets CGo-free
-  Linux+Windows for ~600 lines; wgpu is a superset that also ships 10–40 MB of
-  runtime shared libs, supplies none of `NativePlatform` (10 sub-interfaces),
-  and leaves macOS (the only real CGo backend, 5.9k lines ObjC) untouched. Full
-  assessment: `docs/specs/cgo-free-backend-feasibility.md`.
-
-  **Phase 1 done (2026-07-31):** go-gl replaced by `gui/backend/internal/glbind`
-  (purego). `CGO_ENABLED=0` now builds the whole module for Windows, and
-  `./gui/backend/...` for Linux. The remaining Linux CGo dependency was
-  `gui/audio` → `ebitengine/oto` (ALSA), not the backend. macOS (Phase 2) is
-  untouched.
-
-  **Audio de-cgo'd (2026-08-04, issue #141):** `gui/audio`'s output driver is
-  now a 3-function seam (`outputInit`/`outputPlay`/`outputClose`,
-  `output_oto.go` vs `output_pulse.go`). The default Linux sink is a pure-Go
-  PulseAudio client (`github.com/jfreymuth/pulse`), so
-  `CGO_ENABLED=0 go build ./...` is green on Linux; oto/ALSA is opt-in via
-  `-tags otoaudio`. Windows/macOS still use oto. beep decode/mix was already
-  pure Go.
+Full history and rationale — WebGPU, the go-gl→glbind swap, the `gui/audio`
+de-cgo — in `docs/specs/cgo-free-backend-feasibility.md`.
 
 ## Specs
 

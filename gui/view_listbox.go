@@ -340,7 +340,7 @@ func listBoxVisibleRange(
 	} else {
 		virtualize = false
 		if cfg.Scrollable && cache.hSeen &&
-			len(cfg.Data) > 0 && debugEnabled() {
+			len(cfg.Data) > 0 && DebugEnabled() {
 			// The layout has run at least once and still gave the
 			// list no height, so every row builds each frame.
 			w.debugWarn(debugCheckListBoxNoHeight, cfg.ID,

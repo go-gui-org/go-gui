@@ -207,7 +207,7 @@ func (w *Window) TestUnconsumedEvents() []string {
 		return nil
 	}
 	var found []string
-	prevOn := debugEnabled()
+	prevOn := DebugEnabled()
 	// A fresh warn-once map: a sweep should report the window in front
 	// of it, not skip what an earlier sweep or a stray frame reported.
 	prevWarned := w.debug.warned

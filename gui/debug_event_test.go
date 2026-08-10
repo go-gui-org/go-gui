@@ -102,7 +102,7 @@ func TestCollapseToggleResetsWarnOnce(t *testing.T) {
 		&eventHandlers{OnClick: func(EventCtx) {}},
 	)
 	buf := captureDebug(t)
-	debugCategories(DebugUnconsumed)
+	DebugCategories(DebugUnconsumed)
 	w := &Window{}
 
 	mouseDownHandler(root, false, &Event{MouseX: 5, MouseY: 5}, w)
@@ -111,9 +111,9 @@ func TestCollapseToggleResetsWarnOnce(t *testing.T) {
 		t.Fatalf("want a finding on the first dispatch, got %q", first)
 	}
 
-	debugCategories(0)
+	DebugCategories(0)
 	buf.Reset()
-	debugCategories(DebugUnconsumed)
+	DebugCategories(DebugUnconsumed)
 	mouseDownHandler(root, false, &Event{MouseX: 5, MouseY: 5}, w)
 	if n := strings.Count(buf.String(), "OnClick on"); n != 1 {
 		t.Fatalf("want the finding re-reported once, got %d occurrences (%q)",
@@ -143,14 +143,14 @@ func TestCollapseGatedByUnconsumedCategory(t *testing.T) {
 		&eventHandlers{OnClick: func(EventCtx) {}},
 	)
 	buf := captureDebug(t)
-	debugCategories(debugDuplicates)
+	DebugCategories(DebugDuplicates)
 	mouseDownHandler(root, false, &Event{MouseX: 5, MouseY: 5}, &Window{})
 	if got := buf.String(); got != "" {
 		t.Errorf("identity-only mask must be silent at dispatch, got %q", got)
 	}
 
 	buf.Reset()
-	debugCategories(DebugUnconsumed)
+	DebugCategories(DebugUnconsumed)
 	mouseDownHandler(root, false, &Event{MouseX: 5, MouseY: 5}, &Window{})
 	if !strings.Contains(buf.String(), `OnClick on "inner"`) {
 		t.Errorf("want a collapse finding under the unconsumed category, got %q", buf.String())
