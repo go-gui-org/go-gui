@@ -192,6 +192,14 @@ type platformState struct {
 	w         *gui.Window
 	evt       gui.Event // reused per message to avoid per-event allocation
 	highSurr  uint16    // pending UTF-16 high surrogate for WM_CHAR
+
+	// IME state. The two buffers are reused across composition messages
+	// so a keystroke costs no allocation; imeRect caches the last caret
+	// rect reported to IMM, which the render path re-reports every frame.
+	imeBufW     []uint16
+	imeAttr     []byte
+	imeRect     rectW
+	imeHaveRect bool
 }
 
 func (p *platformState) wake() {
@@ -447,6 +455,10 @@ func New(w *gui.Window) (*Backend, error) {
 	b := &Backend{}
 	b.plat.hwnd = hwnd
 	registerWindow(hwnd, b)
+	// Detach the IME until a text widget takes focus and IMEStart
+	// re-attaches it, matching the focus gating on macOS and X11. Without
+	// this a composition can begin with nothing to render the preedit.
+	imeAssociate(hwnd, 0)
 	setWindowIcon(hwnd, cfg, &b.plat)
 
 	hdc, _, _ := pGetDC.Call(hwnd)
@@ -645,9 +657,3 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 		}
 	}
 }
-
-// --- IME (stub; WM_CHAR still yields EventChar) ---
-
-func (n *nativePlatform) IMEStart()                   {}
-func (n *nativePlatform) IMEStop()                    {}
-func (n *nativePlatform) IMESetRect(_, _, _, _ int32) {}
