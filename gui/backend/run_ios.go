@@ -7,6 +7,7 @@ import (
 	"github.com/go-gui-org/go-gui/gui/backend/ios"
 )
 
+// Run starts the application event loop using the iOS backend.
 func Run(w *gui.Window) { ios.Run(w) }
 
 // RunApp starts a multi-window event loop. On iOS, only the

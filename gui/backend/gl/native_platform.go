@@ -1,4 +1,4 @@
-//go:build !js && !darwin
+//go:build !js && !darwin && !android
 
 package gl
 
