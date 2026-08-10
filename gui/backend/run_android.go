@@ -4,6 +4,7 @@ package backend
 
 import "github.com/go-gui-org/go-gui/gui"
 
+// Run is not supported on Android.
 func Run(w *gui.Window) {
 	panic("android: use android.SetWindow/Start/Render pattern")
 }

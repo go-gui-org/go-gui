@@ -12,6 +12,7 @@ import (
 	"github.com/go-gui-org/go-gui/gui/backend/android"
 )
 
+// App is the demo state struct bound into the AAR for the Kotlin host.
 type App struct {
 	Clicks int
 }
