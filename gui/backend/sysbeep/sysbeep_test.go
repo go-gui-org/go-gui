@@ -1,3 +1,5 @@
+//go:build (linux || windows || (darwin && cgo)) && !ios
+
 package sysbeep
 
 import "testing"
