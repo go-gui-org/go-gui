@@ -90,6 +90,47 @@ func TestDockDragGetSetClear(t *testing.T) {
 	}
 }
 
+// Issue #110: losing mouse capture over a drop zone must not dock the
+// panel. Only releasing the button is a drop. Run the same state both
+// ways so the contrast, not just the silence, is asserted.
+func TestDockDragCaptureLossDoesNotDrop(t *testing.T) {
+	setup := func(dropped *bool) *Window {
+		w := &Window{}
+		w.layout = Layout{Shape: &Shape{ID: "dock"}}
+		root := DockPanelGroup("g1", []string{"p1", "p2"}, "p1")
+		dockDragStart("dock", "p1", "g1", root,
+			func(*DockNode, EventCtx) { *dropped = true },
+			&Layout{Shape: &Shape{ID: "tab"}}, &Event{}, w)
+		// Hovering a drop zone: a release here would dock the panel.
+		state := dockDragGet(w, "dock")
+		state.active = true
+		state.hoverZone = dockDropRight
+		state.hoverGroupID = "g1"
+		dockDragSet(w, "dock", state)
+		return w
+	}
+
+	upDropped := false
+	wUp := setup(&upDropped)
+	mouseUpHandler(&Layout{Shape: &Shape{}}, &Event{}, wUp)
+	if !upDropped {
+		t.Fatal("setup does not drop on release; the cancel case proves nothing")
+	}
+
+	dropped := false
+	w := setup(&dropped)
+	w.MouseCancel()
+	if dropped {
+		t.Error("panel docked by a drag the user never released")
+	}
+	if w.mouseIsLocked() {
+		t.Error("mouse still locked after capture loss")
+	}
+	if dockDragGet(w, "dock").active {
+		t.Error("drag state left active; the drop-zone overlay would persist")
+	}
+}
+
 func TestDockDragMultipleDocks(t *testing.T) {
 	w := &Window{}
 	dockDragSet(w, "d1", dockDragState{panelID: "p1"})

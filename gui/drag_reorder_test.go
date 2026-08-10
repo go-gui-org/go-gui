@@ -153,6 +153,51 @@ func TestDragReorderEscapeCancelsStartedDrag(t *testing.T) {
 	}
 }
 
+// Issue #110: losing mouse capture mid-drag must unwind the reorder,
+// not commit it. The same setup is run twice — once released, once
+// cancelled — so the assertion is that the two differ, not just that
+// the cancel path is quiet.
+func TestDragReorderCaptureLossDoesNotReorder(t *testing.T) {
+	setup := func(w *Window, dragKey string, fired *bool) {
+		w.layout = Layout{Shape: &Shape{ID: "root"}}
+		dragReorderStart(dragReorderStartCfg{
+			DragKey: dragKey, Index: 0, ItemID: "a",
+			Axis: dragReorderVertical, ItemIDs: []string{"a", "b", "c"},
+			ItemLayoutIDs: []string{"a", "b", "c"},
+			OnReorder:     func(string, string, EventCtx) { *fired = true },
+			Layout:        &Layout{Shape: &Shape{ID: "a"}},
+			Event:         &Event{},
+		}, w)
+		// A drag that has moved far enough to commit on release.
+		state := dragReorderGet(w, dragKey)
+		state.active = true
+		state.currentIndex = 2
+		dragReorderSet(w, dragKey, state)
+	}
+
+	wUp := &Window{}
+	upFired := false
+	setup(wUp, "drag_release", &upFired)
+	mouseUpHandler(&Layout{Shape: &Shape{}}, &Event{}, wUp)
+	if !upFired {
+		t.Fatal("setup does not commit on release; the cancel case proves nothing")
+	}
+
+	w := &Window{}
+	fired := false
+	setup(w, "drag_capture_loss", &fired)
+	w.MouseCancel()
+	if fired {
+		t.Error("OnReorder fired for a drag the user never released")
+	}
+	if w.mouseIsLocked() {
+		t.Error("mouse still locked after capture loss")
+	}
+	if state := dragReorderGet(w, "drag_capture_loss"); state.active {
+		t.Error("drag state left active; ghost and gap would keep rendering")
+	}
+}
+
 func TestDragReorderStartSetsLayoutValidity(t *testing.T) {
 	w := &Window{}
 	w.layout = Layout{

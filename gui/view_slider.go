@@ -181,6 +181,12 @@ func Slider(cfg SliderCfg) View {
 					ps.Set(pressID, false)
 					ctx.Window.MouseUnlock()
 				},
+				Cancel: func(w *Window) {
+					// Clear the pressed look; the value keeps
+					// whatever the last move set, as on release.
+					ps := StateMap[string, bool](w, nsSliderPress, capModerate)
+					ps.Set(pressID, false)
+				},
 			})
 			// A press on the track sets the value and starts a drag.
 			// Consume it: a slider nested in a focusable container (the

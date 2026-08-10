@@ -184,6 +184,9 @@ func rtfSelectOnClick(ctx EventCtx) {
 			ctx.Window.AnimationRemove(animIDTextDragScroll)
 			ctx.Window.MouseUnlock()
 		},
+		Cancel: func(w *Window) {
+			w.AnimationRemove(animIDTextDragScroll)
+		},
 	})
 }
 

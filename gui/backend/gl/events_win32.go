@@ -33,7 +33,10 @@ const (
 	wmMButtonUp   = 0x0208
 	wmMouseWheel  = 0x020A
 	wmMouseHWheel = 0x020E
-	wmApp         = 0x8000
+
+	wmCaptureChanged = 0x0215
+
+	wmApp = 0x8000
 
 	htClient      = 1
 	sizeMinimized = 1
@@ -108,6 +111,23 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		return b.mouseButton(gui.EventMouseDown, gui.MouseMiddle, lparam, true)
 	case wmMButtonUp:
 		return b.mouseButton(gui.EventMouseUp, gui.MouseMiddle, lparam, false)
+
+	case wmCaptureChanged:
+		// Win32 can revoke mouse capture without ever sending the
+		// matching button-up: another process calls SetCapture, a
+		// system modal or UAC prompt appears, Ctrl+Alt+Del or Win+L
+		// fires, a debugger breaks in. The drag is over, but nothing
+		// tells the gui layer, so a MouseLock would stay locked and
+		// every later move would keep driving it with no button held.
+		//
+		// capturing is cleared *before* our own ReleaseCapture, whose
+		// WM_CAPTURECHANGED reenters this wndproc synchronously — so
+		// reaching here with it still set means the loss was involuntary.
+		if b.plat.capturing {
+			b.plat.capturing = false
+			w.MouseCancel()
+		}
+		return 0, true
 
 	case wmMouseWheel:
 		return b.mouseWheel(0, notchesToLines(hiWordS(wparam)), lparam)
@@ -200,8 +220,13 @@ func (b *Backend) mouseButton(t gui.EventType, btn gui.MouseButton,
 	lparam uintptr, down bool) (uintptr, bool) {
 
 	if down {
+		b.plat.capturing = true
 		pSetCapture.Call(b.plat.hwnd)
-	} else {
+	} else if b.plat.capturing {
+		// Clear first: ReleaseCapture sends WM_CAPTURECHANGED back
+		// through this wndproc before it returns, and that handler
+		// must read a deliberate release, not a revoked one.
+		b.plat.capturing = false
 		pReleaseCapture.Call()
 	}
 	x, y := b.logicalXY(loWordS(lparam), hiWordS(lparam))

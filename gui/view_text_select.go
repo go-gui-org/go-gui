@@ -229,6 +229,12 @@ func textOnClick(ctx EventCtx) {
 			ctx.Window.AnimationRemove(animIDTextDragScroll)
 			ctx.Window.MouseUnlock()
 		},
+		Cancel: func(w *Window) {
+			// Stop the edge-scroll animation. Nothing else unwinds
+			// it once the lock is gone, so it would keep scrolling
+			// and extending the selection on its own.
+			w.AnimationRemove(animIDTextDragScroll)
+		},
 	})
 }
 

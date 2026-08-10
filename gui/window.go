@@ -301,6 +301,20 @@ type MouseLockCfg struct {
 	mouseDown func(EventCtx)
 	MouseMove func(EventCtx)
 	MouseUp   func(EventCtx)
+
+	// Cancel unwinds a drag that ended without a button release —
+	// the platform revoked mouse capture (a system modal, a lock
+	// screen, another process grabbing capture) so no MouseUp will
+	// ever arrive. Synthesising one is wrong: MouseUp *commits* a
+	// dock drop or a reorder, and a cancellation must not.
+	//
+	// It takes *Window, not EventCtx, precisely because there is no
+	// event to carry — the other callbacks all read ctx.Event.
+	// Optional: MouseCancel unlocks either way, so only a widget
+	// with state beyond the lock itself (a pending drop, a pressed
+	// flag, a drag-scroll animation) needs one.
+	Cancel func(*Window)
+
 	CursorPos int
 }
 
@@ -456,6 +470,27 @@ func (w *Window) MouseLock(cfg MouseLockCfg) {
 // MouseUnlock returns mouse handling events to normal behavior.
 func (w *Window) MouseUnlock() {
 	w.viewState.mouseLock = MouseLockCfg{}
+}
+
+// MouseCancel aborts an in-flight drag: it unlocks the mouse and
+// runs the lock's Cancel hook, if any. Backends call it when the
+// platform takes mouse capture away without delivering a button
+// release, which would otherwise leave the lock in place forever —
+// every later move keeps driving the drag with no button held.
+//
+// No-op when the mouse is not locked. The lock is cleared before
+// Cancel runs, so a hook that calls MouseUnlock itself (the
+// escape-key cancel paths do) stays correct.
+func (w *Window) MouseCancel() {
+	if !w.mouseIsLocked() {
+		return
+	}
+	cancel := w.viewState.mouseLock.Cancel
+	w.MouseUnlock()
+	if cancel != nil {
+		cancel(w)
+	}
+	w.UpdateWindow()
 }
 
 // SetTextMeasurer sets the text measurement backend.
