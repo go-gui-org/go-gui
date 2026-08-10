@@ -24,7 +24,7 @@ type SidebarCfg struct {
 	// TweenDuration > 0 uses tween; 0 uses spring.
 	spring    springCfg
 	Width     float32
-	Radius    float32
+	Radius    float32 // ergonomics-audit:opt-plain — sidebar radius 0 (sharp) is a real choice; no theme default distinct from it
 	Color     Color
 	Sizing    Sizing
 	Open      bool

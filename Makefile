@@ -6,7 +6,7 @@ LDFLAGS  = -X github.com/go-gui-org/go-gui/gui.Version=$(VERSION) \
 CC_WINDOWS ?= x86_64-w64-mingw32-gcc
 LINT_VERSION = v2.12.2
 
-.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test test-race vet lint check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergo-audit ergo-fix ergo-fix-dry
+.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test test-race vet lint check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergonomics-audit ergonomics-audit-fix ergonomics-audit-fix-dry
 
 build-linux:
 	CGO_ENABLED=1 \
@@ -190,24 +190,27 @@ workflow-audit:
 
 # Report the API-surface measurements behind
 # docs/specs/developer-ergonomics.md, then gate on hand-rolled widget
-# IDs (docs/specs/widget-id-scoping.md). Mode ids exits non-zero on any
-# finding, so it runs last: the reports above still print either way.
-ergo-audit:
-	go run ./tools/ergoaudit/ -mode focus -gui . .
-	go run ./tools/ergoaudit/ -mode callbacks -gui . .
-	go run ./tools/ergoaudit/ -mode ids .
+# IDs (docs/specs/widget-id-scoping.md) and on plain zero-meaningful
+# Cfg fields (the Opt[T] rule in CLAUDE.md, mode opt). Mode ids and opt
+# exit non-zero on any finding, so they run last: the reports above
+# still print either way.
+ergonomics-audit:
+	go run ./tools/ergonomics-audit/ -mode focus -gui . .
+	go run ./tools/ergonomics-audit/ -mode callbacks -gui . .
+	go run ./tools/ergonomics-audit/ -mode opt .
+	go run ./tools/ergonomics-audit/ -mode ids .
 
 # Insert a generated ID into every broken literal in this repo's tests
 # and examples. Scoped away from gui/ deliberately: go-gui's own widget
 # defects get hand-chosen IDs, because a shipped widget's ID is public
-# identity rather than scaffolding. Run ergo-fix-dry first and read the
+# identity rather than scaffolding. Run ergonomics-audit-fix-dry first and read the
 # proposed IDs before letting it write.
-ergo-fix-dry:
-	go run ./tools/ergoaudit/ -mode focus -gui . \
+ergonomics-audit-fix-dry:
+	go run ./tools/ergonomics-audit/ -mode focus -gui . \
 	  -fix-dry-run -fix-only '_test\.go$$|^examples/' .
 
-ergo-fix:
-	go run ./tools/ergoaudit/ -mode focus -gui . \
+ergonomics-audit-fix:
+	go run ./tools/ergonomics-audit/ -mode focus -gui . \
 	  -fix -fix-only '_test\.go$$|^examples/' .
 
 # Gate the exported API surface (tools/exportaudit): every export in gui/

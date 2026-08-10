@@ -14,9 +14,9 @@ const (
 // ScrollbarCfg configures the style of a scrollbar.
 type ScrollbarCfg struct {
 	ID              string
-	Size            float32
+	Size            float32 // ergonomics-audit:opt-plain — a zero-thickness scrollbar is meaningless; 0 means the theme default
 	minThumbSize    float32
-	Radius          float32
+	Radius          Opt[float32] // 0 is a real choice (square thumb); unset falls back to the theme
 	radiusThumb     float32
 	GapEdge         float32
 	GapEnd          float32
@@ -48,8 +48,8 @@ func applyScrollbarDefaults(cfg *ScrollbarCfg) {
 	if cfg.minThumbSize == 0 {
 		cfg.minThumbSize = DefaultScrollbarStyle.minThumbSize
 	}
-	if cfg.Radius == 0 {
-		cfg.Radius = DefaultScrollbarStyle.Radius
+	if !cfg.Radius.IsSet() {
+		cfg.Radius = Some(DefaultScrollbarStyle.Radius)
 	}
 	if cfg.radiusThumb == 0 {
 		cfg.radiusThumb = DefaultScrollbarStyle.radiusThumb

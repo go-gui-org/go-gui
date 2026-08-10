@@ -62,8 +62,8 @@ type TableCfg struct {
 	cellPadding        Opt[Padding]
 	columnWidthDefault float32
 	columnWidthMin     float32
-	SizeBorder         float32
-	SizeBorderHeader   float32
+	SizeBorder         float32 // ergonomics-audit:opt-plain — 0 = no borders, applied as-is; public API kept plain
+	SizeBorderHeader   float32 // ergonomics-audit:opt-plain — 0 = no header separator; public API kept plain
 
 	// Scrollable enables scrolling. When set with Height or
 	// MaxHeight, virtualization renders only visible rows. Scroll

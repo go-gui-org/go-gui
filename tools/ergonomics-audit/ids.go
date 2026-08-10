@@ -25,11 +25,11 @@ package main
 // Two kinds of site are exempt, each with its own marker so the reason
 // stays legible:
 //
-//   - "ergoaudit:id-part" — the value is a leaf *part* fed into a
+//   - "ergonomics-audit:id-part" — the value is a leaf *part* fed into a
 //     composition, not a scope. Because IDs are not escaped, a part must
 //     not contain the separator, so "__src_o_" + index is correct rather
 //     than a leftover.
-//   - "ergoaudit:not-an-id" — the string is not a widget ID at all. An
+//   - "ergonomics-audit:not-an-id" — the string is not a widget ID at all. An
 //     export filename or a spreadsheet column name only looks like one.
 
 import (
@@ -45,11 +45,11 @@ import (
 
 // idPartMarker exempts one line: the value it builds is a leaf part of
 // an ID, not a composed ID, so it keeps its own spelling.
-const idPartMarker = "ergoaudit:id-part"
+const idPartMarker = "ergonomics-audit:id-part"
 
 // idNotAnIDMarker exempts one line: the string it builds is not a
 // widget ID, it only occupies a name that looks like one.
-const idNotAnIDMarker = "ergoaudit:not-an-id"
+const idNotAnIDMarker = "ergonomics-audit:not-an-id"
 
 // idSeparators are the characters a hand-rolled ID composition joins
 // with. A concatenation mentioning none of them is not composing an ID

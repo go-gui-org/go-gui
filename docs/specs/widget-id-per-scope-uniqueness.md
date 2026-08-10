@@ -31,7 +31,7 @@ implementation, and the code is the authority.
    dispatch time instead, walking the ancestor chain for the shape that carries
    the leaf. Same `resolveLeaf`, so the two paths cannot drift.
 3. **The "still globally competing" warning is a debug category, not an
-   ergoaudit mode.** "Has no ID-bearing ancestor" is a property of the composed
+   ergonomics-audit mode.** "Has no ID-bearing ancestor" is a property of the composed
    tree, which the AST does not have. It is `gui.DebugUnscopedIDs`, deliberately
    **outside** `DebugAll` — it reports a design property, not a defect, and
    would fire on most widgets in a small app. Enable it with

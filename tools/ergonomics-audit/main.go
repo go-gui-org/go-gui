@@ -4,9 +4,10 @@
 //
 // Usage:
 //
-//	go run ./tools/ergoaudit/ -mode focus [repo...]
-//	go run ./tools/ergoaudit/ -mode callbacks [repo...]
-//	go run ./tools/ergoaudit/ -mode ids [repo...]
+//	go run ./tools/ergonomics-audit/ -mode focus [repo...]
+//	go run ./tools/ergonomics-audit/ -mode callbacks [repo...]
+//	go run ./tools/ergonomics-audit/ -mode ids [repo...]
+//	go run ./tools/ergonomics-audit/ -mode opt [repo...]
 //
 // With no repo arguments both modes audit the current directory.
 //
@@ -18,7 +19,7 @@
 // go-gui's own widgets get hand-chosen IDs — a shipped widget's ID is
 // public identity, not scaffolding:
 //
-//	go run ./tools/ergoaudit/ -mode focus -fix -fix-only '_test\.go$|^examples/' .
+//	go run ./tools/ergonomics-audit/ -mode focus -fix -fix-only '_test\.go$|^examples/' .
 //
 // Mode focus answers: which focusable-by-default widget Cfgs leave ID
 // unenforced, and how many call sites therefore render a control that
@@ -36,6 +37,12 @@
 // Mode ids answers: does anything still compose a widget ID by hand,
 // rather than through gui.ScopeID? It exits non-zero on any finding, so
 // it gates. See ids.go for what counts and how to mark an exception.
+//
+// Mode opt answers: which *Cfg fields are plain — not Opt[T] — but sit
+// in a zero-meaningful family (Padding, Radius, Spacing, Opacity,
+// Size*, *Align enums), so a caller cannot distinguish "unset" from the
+// zero value. It exits non-zero on any unmarked finding, so it gates
+// like ids. See opt.go.
 //
 // All modes parse with go/ast: composite literals and func literals
 // span lines, and regex cannot bracket-match them.
@@ -56,7 +63,7 @@ import (
 var listShape *string
 
 func main() {
-	mode := flag.String("mode", "focus", "audit to run: focus | callbacks | ids")
+	mode := flag.String("mode", "focus", "audit to run: focus | callbacks | ids | opt")
 	guiRoot := flag.String("gui", ".", "path to the go-gui repo (source of truth for mode=focus)")
 	listShape = flag.String("list", "", "mode=callbacks: also list distinct signatures of this shape, or \"all\"")
 	fix := flag.Bool("fix", false, "mode=focus: rewrite broken literals in place, adding a generated ID")
@@ -69,12 +76,12 @@ func main() {
 
 	only, err := compileFilter("-fix-only", *fixOnly)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "ergoaudit:", err)
+		fmt.Fprintln(os.Stderr, "ergonomics-audit:", err)
 		os.Exit(1)
 	}
 	skip, err := compileFilter("-fix-exclude", *fixSkip)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "ergoaudit:", err)
+		fmt.Fprintln(os.Stderr, "ergonomics-audit:", err)
 		os.Exit(1)
 	}
 
@@ -90,11 +97,13 @@ func main() {
 		err = runCallbacks(*guiRoot, repos)
 	case "ids":
 		err = runIDs(repos)
+	case "opt":
+		err = runOpt(repos)
 	default:
-		err = fmt.Errorf("unknown -mode %q (want focus, callbacks or ids)", *mode)
+		err = fmt.Errorf("unknown -mode %q (want focus, callbacks, ids or opt)", *mode)
 	}
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "ergoaudit:", err)
+		fmt.Fprintln(os.Stderr, "ergonomics-audit:", err)
 		os.Exit(1)
 	}
 }

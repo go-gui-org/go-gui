@@ -26,7 +26,7 @@ figures depend on dedupe and scope choices.
 | Metric                                 | Count | Source                              |
 | -------------------------------------- | ----- | ----------------------------------- |
 | Widget factories taking a `*Cfg`       | ~50   | `gui/view_*.go`                     |
-| `On*` callback decls, raw              | 136   | `ergoaudit -mode callbacks`         |
+| `On*` callback decls, raw              | 136   | `ergonomics-audit -mode callbacks`         |
 | — distinct (name, signature) pairs     | 70    | deduped by go/ast; see §10          |
 | — of shape `func(EventCtx)`            | 16    |                                     |
 | — of shape `func(T…, EventCtx)`        | 19    |                                     |
@@ -464,7 +464,7 @@ and `OnDetailRowView` returning `gg.View`, both confined to `gui/datagrid/`;
 zero sibling references to either; `RTF(cfg RtfCfg)` at `gui/view_rtf.go:212`;
 zero sibling references to `RtfCfg` or `gui.RTF`; `OnEvent` declared twice as
 `func(*Event, *Window)`; and the 8 `Color*` sibling sites, all in go-charts. The
-`27` distinct `func(T..., *Window)` signatures reproduce from `ergoaudit`.
+`27` distinct `func(T..., *Window)` signatures reproduce from `ergonomics-audit`.
 
 **Three event-driven callbacks appear in neither list.** §4.3 partitions 27
 signatures into 14 out-of-scope and 13 to convert. Scanning `gui/datagrid/` as
@@ -517,7 +517,7 @@ the 13-item convert set. After the tool fixes below, the five repos hold **25**
 | go-map    | 6 (OnInit)                | 29 (`InfoWindowAction`) |
 
 Reaching those numbers required fixing three bugs in
-`ergoaudit -mode callbacks`, each of which had produced a claim in this spec:
+`ergonomics-audit -mode callbacks`, each of which had produced a claim in this spec:
 
 1. **Call sites were not attributed to a declaring package.** Any
    `OnX: func(..., *Window)` literal counted, so go-map's own
@@ -560,7 +560,7 @@ nothing about results, so it is now `func([]GridRow, EventCtx) (string, bool)`.
 No third target shape and no carve-out — the two target shapes in §4.3 were
 simply stated too narrowly, since "returns nothing" was never load-bearing.
 
-Verified by re-running `ergoaudit -mode callbacks`: `func(T..., *Window)` 24 →
+Verified by re-running `ergonomics-audit -mode callbacks`: `func(T..., *Window)` 24 →
 **12**, `leaks raw *Event` 5 → **1** (`OnEvent` alone), `func(EventCtx)` 16 →
 **18**, `func(T..., EventCtx)` 19 → **32**.
 
@@ -1339,7 +1339,7 @@ in the same diff.
 | 1     | §4.1 `gui.Debug` gate                                    | done                |
 | 1     | §4.2 delete `RequireFocusID`                             | done                |
 | 1     | §5.3 `State[T]` panic message                            | done                |
-| 1     | §8 `ergoaudit -fix` codemod                              | done                |
+| 1     | §8 `ergonomics-audit -fix` codemod                              | done                |
 | 1     | §4.2 fix 12 first-party a11y defects                     | done                |
 | 1     | §4.9 `Select` scroll defect                              | n/a — did not exist |
 | 1     | §4.2 tag 9 `Cfg`s + wire `RequireID`                     | done                |
@@ -1378,14 +1378,14 @@ applies.
 but `layout_pipeline.go` also skips `OnMouseLeave` dispatch on an empty `ID`,
 with no `Focusable` precondition. A `FocusDisabled` control carrying an
 `OnMouseLeave` is therefore still silently broken, and neither
-`ergoaudit -mode focus` nor the §4.1 gate looks for it. Added to the table above
+`ergonomics-audit -mode focus` nor the §4.1 gate looks for it. Added to the table above
 as a §4.1 check rather than widening the runtime guard, since the opt-out is
 otherwise correct.
 
 **§4.9's tag is struck, not deferred.** Two of its three items do not apply as
 written. The runtime guard already exists —
 `RequireScrollID("container", cfg.Scrollable, cfg.ID)` has been wired in
-`buildContainerShape` all along; `ergoaudit` listed `ContainerCfg` as unguarded
+`buildContainerShape` all along; `ergonomics-audit` listed `ContainerCfg` as unguarded
 because it judges by tag, not by call site. And tagging `ContainerCfg.ID` would
 be wrong: most containers legitimately have no ID, so a `required` tag on a
 normally-absent field inverts the default and flags the common case. The rule is
@@ -1399,7 +1399,7 @@ was the only remaining entry.
 
 **Codemod scope note.** The 111 figure included one false positive:
 `CommandButton(cmdID, ButtonCfg{})` fills the `ID` in itself, so the empty `ID`
-at that call site is fine. `ergoaudit` no longer counts a literal passed to a
+at that call site is fine. `ergonomics-audit` no longer counts a literal passed to a
 factory other than its own, matching what `requiredid` and the runtime guard
 already did.
 
@@ -1480,14 +1480,14 @@ empty bodies.
 
 ### 7.3 Reproducing these counts
 
-Every figure in this spec comes from `tools/ergoaudit`, checked in:
+Every figure in this spec comes from `tools/ergonomics-audit`, checked in:
 
 ```
-go run ./tools/ergoaudit/ -mode focus     -gui . . ../go-charts ../go-edit ../go-kite ../go-term ../go-map
-go run ./tools/ergoaudit/ -mode callbacks -gui . . ../go-charts ../go-edit ../go-kite ../go-term ../go-map
+go run ./tools/ergonomics-audit/ -mode focus     -gui . . ../go-charts ../go-edit ../go-kite ../go-term ../go-map
+go run ./tools/ergonomics-audit/ -mode callbacks -gui . . ../go-charts ../go-edit ../go-kite ../go-term ../go-map
 ```
 
-or `make ergo-audit` for the go-gui-only run. Mode `focus` **derives** the
+or `make ergonomics-audit` for the go-gui-only run. Mode `focus` **derives** the
 unguarded `Cfg` set from the source instead of hardcoding it, so the numbers
 track the code — and the per-file scan that once misreported `ListBoxCfg` cannot
 recur.
@@ -1512,12 +1512,12 @@ cost. See §4.3.1 for that fix and two others in the same mode.
 - **Phase-4 migration guide** (new, `docs/migration-v0.53.md` or similar). 18
   sibling sites plus ~126 ID fills are mechanical, and §7.2's silent half is not
   — a before/after for `Focus`, `Consume`, and `ColorSet` is cheap insurance.
-- **`ergoaudit -fix`** (new, phase 1). Not "consider" — commit to it. Phase 1
+- **`ergonomics-audit -fix`** (new, phase 1). Not "consider" — commit to it. Phase 1
   alone rewrites 111 internal literals to add `ID` fields, and phase 4 adds ~15
   more; that is a week of mechanical edits done by hand, and hand-editing 111
   literals is how a typo'd ID reaches `main` looking like intent. The `go/ast`
   `CompositeLit` walk that finds them is already written and tested in
-  `tools/ergoaudit`, so `-fix` is an insertion pass on top of the existing
+  `tools/ergonomics-audit`, so `-fix` is an insertion pass on top of the existing
   classifier, not a new tool. IDs derive from the enclosing file and variable
   name and are **written into the source literal** — this does not reopen §5.1,
   which rejects IDs _computed at runtime from tree position_. A generated ID in
@@ -1640,7 +1640,7 @@ Detail where the decision carries a constraint:
 `_test.go` excluded unless stated.
 
 **Callback declarations — the unit is a (field name, signature) pair.**
-`ergoaudit -mode callbacks` walks `gui/` with `go/ast`, collects every exported
+`ergonomics-audit -mode callbacks` walks `gui/` with `go/ast`, collects every exported
 `On*` field whose type is a `func`, and keys the dedupe on the field name joined
 to the `go/printer` rendering of its type. So `OnDone func(*Window)` and
 `OnDone func(NativeAlertResult, *Window)` are two entries, and an identical

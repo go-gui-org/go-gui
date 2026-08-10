@@ -212,7 +212,7 @@ func inspectorTreeView(w *Window) View {
 	return Tree(TreeCfg{
 		ID:       inspectorTreeID,
 		indent:   16,
-		Spacing:  1,
+		Spacing:  SomeF(1),
 		Nodes:    nodes,
 		OnSelect: func(id string, ctx EventCtx) { inspectorSelect(id, ctx.Window) },
 	})
@@ -682,7 +682,7 @@ func inspectorApplyScrollTo(panelHeight float32, w *Window) {
 	}
 	rowHeight := treeEstimateRowHeight(TreeCfg{
 		Nodes:   w.inspectorTreeCache,
-		Spacing: 1,
+		Spacing: SomeF(1),
 	}, w)
 	targetY := float32(rowIdx) * rowHeight
 	newScroll := -(targetY - rowHeight*2)

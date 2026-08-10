@@ -396,13 +396,13 @@ func dataGridSourceSyntheticRowID(kind gridPaginationKind, state dataGridSourceS
 		absIdx := max(0, state.OffsetStart) + localIdx
 		// A row key, not a scope: it becomes a part of the grid's row
 		// IDs, so it must not contain the ID separator.
-		return "__src_o_" + strconv.Itoa(absIdx) // ergoaudit:id-part
+		return "__src_o_" + strconv.Itoa(absIdx) // ergonomics-audit:id-part
 	default:
 		if start, ok := dataGridSourceCursorToIndexOpt(state.CurrentCursor); ok {
-			return "__src_c_" + strconv.Itoa(max(0, start)+localIdx) // ergoaudit:id-part
+			return "__src_c_" + strconv.Itoa(max(0, start)+localIdx) // ergonomics-audit:id-part
 		}
 		h := gg.Fnv64Str(gg.Fnv64Offset, state.CurrentCursor)
-		return "__src_cx_" + zeroPadHex16(h) + "_" + strconv.Itoa(localIdx) // ergoaudit:id-part
+		return "__src_cx_" + zeroPadHex16(h) + "_" + strconv.Itoa(localIdx) // ergonomics-audit:id-part
 	}
 }
 

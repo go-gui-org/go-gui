@@ -176,7 +176,7 @@ child colors based on `w.IsFocus(layout.Shape.ID)`.
 **Inner IDs** — a composite widget's inner shapes need their own IDs. Compose
 them with `gui.ScopeID(cfg.ID, "part")`, or `gui.ScopeIDN(cfg.ID, "row", i)`
 when a loop index is what distinguishes siblings. Never concatenate by hand:
-`make ergo-audit` fails on it, and the separator zoo it replaced is documented
+`make ergonomics-audit` fails on it, and the separator zoo it replaced is documented
 in `docs/specs/widget-id-scoping.md`. If an inner shape only needs the owner's
 focus state rather than its own identity, set `Shape.focusOwner` instead of
 giving it an ID.

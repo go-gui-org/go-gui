@@ -140,14 +140,14 @@ func (w *mdWalker) walkInlineExt(
 	case nodeKindMathInline:
 		mi := node.(*nodeMathInline)
 		// A math cache key, not a widget ID.
-		id := fmt.Sprintf("math_%x", MathHash(mi.Latex)) // ergoaudit:not-an-id
+		id := fmt.Sprintf("math_%x", MathHash(mi.Latex)) // ergonomics-audit:not-an-id
 		return append(dst, Run{
 			MathID: id, MathLatex: mi.Latex, Format: state.format,
 		})
 	case nodeKindMathDisplay:
 		md := node.(*nodeMathDisplay)
 		// A math cache key, not a widget ID.
-		id := fmt.Sprintf("math_%x", MathHash(md.Latex)) // ergoaudit:not-an-id
+		id := fmt.Sprintf("math_%x", MathHash(md.Latex)) // ergonomics-audit:not-an-id
 		return append(dst, Run{
 			MathID: id, MathLatex: md.Latex, Format: state.format,
 		})

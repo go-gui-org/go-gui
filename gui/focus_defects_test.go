@@ -7,7 +7,7 @@ import (
 )
 
 // Regression tests for the first-party focus defects found by
-// ergoaudit (developer-ergonomics §4.2). Each of these widgets shipped
+// ergonomics-audit (developer-ergonomics §4.2). Each of these widgets shipped
 // a button carrying an OnClick that no keyboard user could reach,
 // because focus traversal is keyed by ID and the button had none.
 //

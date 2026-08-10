@@ -104,7 +104,7 @@ type GridColumnCfg struct {
 	Editable         bool
 	Editor           gridCellEditorKind
 	pin              gridColumnPin
-	Align            gg.HorizontalAlign
+	Align            gg.HorizontalAlign // ergonomics-audit:opt-plain — zero (HAlignStart) is the natural default; no distinct unset behavior
 }
 
 // gridColumnCfgDefaults applies V-style defaults to a

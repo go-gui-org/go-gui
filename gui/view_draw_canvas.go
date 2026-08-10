@@ -23,7 +23,7 @@ type DrawCanvasCfg struct {
 	MaxWidth        float32
 	MinHeight       float32
 	MaxHeight       float32
-	Radius          float32
+	Radius          float32 // ergonomics-audit:opt-plain — a canvas is a primitive: radius 0 (sharp) is a real choice, theme default not applicable
 	Focusable       bool
 	Color           Color
 	Sizing          Sizing
