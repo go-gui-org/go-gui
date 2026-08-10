@@ -194,6 +194,11 @@ type platformState struct {
 	evt       gui.Event // reused per message to avoid per-event allocation
 	highSurr  uint16    // pending UTF-16 high surrogate for WM_CHAR
 
+	// capturing tracks whether this window holds mouse capture, so
+	// WM_CAPTURECHANGED can tell our own ReleaseCapture from a
+	// revocation. See the wmCaptureChanged case in events_win32.go.
+	capturing bool
+
 	// IME state. The two buffers are reused across composition messages
 	// so a keystroke costs no allocation; imeRect caches the last caret
 	// rect reported to IMM, which the render path re-reports every frame.

@@ -107,6 +107,12 @@ func dockDragStart(
 		MouseUp: func(ctx EventCtx) {
 			dockDragOnMouseUp(dockID, root, onLayoutChange, ctx.Window)
 		},
+		Cancel: func(w *Window) {
+			// Capture lost mid-drag: drop the panel where it was.
+			// Committing the hovered zone would dock a panel the
+			// user never released over it.
+			dockDragCancel(dockID, w)
+		},
 	})
 }
 

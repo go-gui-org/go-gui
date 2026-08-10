@@ -318,6 +318,12 @@ func dragReorderMakeLock(
 			dragReorderOnMouseUp(
 				dragKey, itemIDs, onReorder, ctx.Window)
 		},
+		Cancel: func(w *Window) {
+			// Same unwind as the escape key: hide ghost and gap,
+			// leave the list order alone. OnReorder must not fire
+			// for a drag the user never released.
+			dragReorderCancel(dragKey, w)
+		},
 	}
 }
 

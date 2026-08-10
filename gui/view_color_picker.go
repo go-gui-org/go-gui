@@ -199,6 +199,10 @@ func cpSVArea(
 							ctx.Window.MouseUnlock()
 							ctx.Window.SetMouseCursorArrow()
 						},
+						Cancel: func(w *Window) {
+							// Restore the cursor the drag hid.
+							w.SetMouseCursorArrow()
+						},
 					})
 					// Same as the hue strip: nested in the focusable
 					// picker root, so consume to keep the focus where

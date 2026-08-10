@@ -393,6 +393,13 @@ func dataGridStartResize(gridID string, columns []GridColumnCfg, rows []GridRow,
 				ctx.Window.SetFocus(focusID)
 			}
 		},
+		Cancel: func(w *gg.Window) {
+			// Clear the active flag so the header stops drawing the
+			// resize affordance. The column keeps its dragged width,
+			// as it would on release; focus is not moved, since that
+			// is a response to the user letting go.
+			dataGridEndResize(gridID, w)
+		},
 	})
 	e.IsHandled = true
 }

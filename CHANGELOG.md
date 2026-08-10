@@ -23,7 +23,27 @@ and this project adheres to
   advisory. 449 files changed; consumers at v0.56.0 are unaffected unless they
   referenced internal-only names.
 
+### Fixed
+
+- **Windows: a revoked mouse capture no longer leaves a drag stuck (#110).**
+  Win32 can take capture away without ever sending the matching button-up — a
+  system modal or UAC prompt, Ctrl+Alt+Del, Win+L, another process calling
+  `SetCapture`, a debugger breaking in. `WM_CAPTURECHANGED` was unhandled, so
+  the `MouseLock` never cleared and every later mouse move kept driving the
+  drag with no button held (text selection tracking the cursor, a splitter or
+  slider still following it). The message now cancels the drag. Our own
+  `ReleaseCapture` raises the same message, so the backend tracks capture
+  ownership and only cancels on an involuntary loss.
+
 ### Added
+
+- **`MouseLockCfg.Cancel`** — a `func(*Window)` hook that unwinds a drag ending
+  without a release. `MouseUp` cannot serve: it *commits*, so synthesising one
+  on capture loss would dock a panel or reorder a list the user never dropped.
+  `(*Window).MouseCancel` unlocks and runs the hook; widgets whose state is
+  just the lock need no hook. Wired for text/RTF/input selection (stops the
+  edge-scroll animation), sliders, the color picker, datagrid column resize,
+  dock drags, and drag-reorder.
 
 - **`make export-audit` now actually fails the build when the gate trips.**
   The authoritative consumer scan previously ran under `|| true`, so a real

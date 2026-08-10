@@ -277,5 +277,8 @@ func startInputDrag(d *inputDragState, w *Window) {
 			ctx.Window.AnimationRemove(animIDDragScroll)
 			ctx.Window.MouseUnlock()
 		},
+		Cancel: func(w *Window) {
+			w.AnimationRemove(animIDDragScroll)
+		},
 	})
 }
