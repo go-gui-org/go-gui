@@ -200,10 +200,8 @@ func TestRenderDrawCanvasEmitsImage(t *testing.T) {
 		shapeType: shapeDrawCanvas,
 		X:         10, Y: 20,
 		Width: 100, Height: 100,
-		Color: ColorTransparent,
-		Padding: Padding{
-			Top: 5, Left: 5, Right: 5, Bottom: 5,
-		},
+		Color:   ColorTransparent,
+		Padding: NewPadding(5, 5, 5, 5),
 		events: &eventHandlers{
 			OnDraw: func(dc *DrawContext) {
 				dc.Image(3, 4, 16, 16, "tile.png",

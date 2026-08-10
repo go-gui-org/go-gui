@@ -31,7 +31,7 @@ func dataGridHeaderRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths m
 func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount int, width float32, focusID string, showControls bool) gg.View {
 	hasReorder := showControls && cfg.onColumnOrderChange != nil && col.Reorderable
 	hasPin := showControls && cfg.onColumnPinChange != nil
-	headerControls := dataGridHeaderControlState(width, cfg.PaddingHeader.Get(gg.Padding{}), hasReorder, hasPin, showControls && col.resizable)
+	headerControls := dataGridHeaderControlState(width, cfg.PaddingHeader.Or(gg.PaddingNone), hasReorder, hasPin, showControls && col.resizable)
 	headerFocusID := dataGridHeaderCellID(cfg.ID, col.ID)
 
 	content := make([]gg.View, 0, 5)
@@ -135,7 +135,7 @@ func dataGridResizeHandle(cfg *DataGridCfg, col GridColumnCfg, focusID string) g
 	rows := cfg.Rows
 	textStyleHeader := cfg.TextStyleHeader
 	textStyle := cfg.TextStyle
-	paddingCell := cfg.PaddingCell.Get(gg.Padding{})
+	paddingCell := cfg.PaddingCell.Or(gg.PaddingNone)
 	colorResizeHandle := cfg.ColorResizeHandle
 	colorResizeActive := cfg.ColorResizeActive
 

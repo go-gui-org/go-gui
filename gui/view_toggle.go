@@ -12,7 +12,7 @@ type ToggleCfg struct {
 
 	A11YLabel       string
 	A11YDescription string
-	Padding         Opt[Padding]
+	Padding         Padding
 	// Size overrides the square edge length of the check box.
 	Size       Opt[float32]
 	SizeBorder Opt[float32]
@@ -159,7 +159,7 @@ func applyToggleDefaults(cfg *ToggleCfg) {
 	}
 
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(d.Padding)
+		cfg.Padding = d.Padding
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.textStyleNormal

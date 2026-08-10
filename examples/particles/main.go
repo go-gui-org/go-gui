@@ -202,7 +202,7 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 		VAlign:     gui.VAlignMiddle,
 		Spacing:    gui.SomeF(16),
 		SizeBorder: gui.NoBorder,
-		Padding:    gui.SomeP(24, 24, 24, 24),
+		Padding:    gui.NewPadding(24, 24, 24, 24),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "PARTICLES",
@@ -228,7 +228,7 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 				Color:      colorNeonGreen.WithOpacity(0.12),
 				Colors:     gui.ColorSet{Hover: colorNeonGreen.WithOpacity(0.3), Click: colorNeonGreen.WithOpacity(0.5), Border: colorNeonGreen},
 				SizeBorder: gui.SomeF(2),
-				Padding:    gui.SomeP(14, 28, 14, 28),
+				Padding:    gui.NewPadding(14, 28, 14, 28),
 				OnClick: func(ctx gui.EventCtx) {
 					a := gui.State[App](ctx.Window)
 					a.Screen = ScreenPlaying
@@ -312,14 +312,14 @@ func sidebarView(w *gui.Window, wh float32) gui.View {
 	app := gui.State[App](w)
 	theme := gui.CurrentTheme()
 	sectionSpacing := gui.SomeF(8)
-	sectionPadding := gui.SomeP(10, 12, 10, 12)
+	sectionPadding := gui.NewPadding(10, 12, 10, 12)
 
 	return gui.Column(gui.ContainerCfg{
 		Width:      sidebarW,
 		Sizing:     gui.FixedFill,
 		Color:      colorPanel,
 		Spacing:    gui.SomeF(15),
-		Padding:    gui.SomeP(10, 10, 10, 10),
+		Padding:    gui.NewPadding(10, 10, 10, 10),
 		SizeBorder: gui.NoBorder,
 		ID:         "particles-scroll",
 		Scrollable: true,
@@ -424,7 +424,7 @@ func sidebarView(w *gui.Window, wh float32) gui.View {
 				ColorBorder: colorNeonCyan.WithOpacity(0.5),
 				Content: []gui.View{
 					gui.Row(gui.ContainerCfg{
-						Padding:    gui.SomeP(12, 10, 8, 10),
+						Padding:    gui.NewPadding(12, 10, 8, 10),
 						SizeBorder: gui.NoBorder,
 						Content: []gui.View{
 							presetBtn(w, "Fountain", colorNeonCyan, presetFountain),
@@ -433,7 +433,7 @@ func sidebarView(w *gui.Window, wh float32) gui.View {
 						},
 					}),
 					gui.Row(gui.ContainerCfg{
-						Padding:    gui.SomeP(0, 10, 10, 10),
+						Padding:    gui.NewPadding(0, 10, 10, 10),
 						SizeBorder: gui.NoBorder,
 						Content: []gui.View{
 							presetBtn(w, "Explode", gui.RGB(255, 200, 0), presetExplosion),
@@ -669,7 +669,7 @@ func presetBtn(_ *gui.Window, label string, color gui.Color,
 		Color:      color.WithOpacity(0.1),
 		Colors:     gui.ColorSet{Hover: color.WithOpacity(0.25), Click: color.WithOpacity(0.4), Border: color.WithOpacity(0.6)},
 		SizeBorder: gui.SomeF(1),
-		Padding:    gui.SomeP(6, 10, 6, 10),
+		Padding:    gui.NewPadding(6, 10, 6, 10),
 		Radius:     gui.SomeF(4),
 		OnClick: func(ctx gui.EventCtx) {
 			a := gui.State[App](ctx.Window)

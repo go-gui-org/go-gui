@@ -46,7 +46,7 @@ type ListBoxCfg struct {
 	// set, Items takes precedence over Data.
 	Items      []string
 	Data       []ListBoxOption
-	Padding    Opt[Padding]
+	Padding    Padding
 	Radius     Opt[float32]
 	SizeBorder Opt[float32]
 	// Height sets the list's height directly. Row virtualization
@@ -528,7 +528,7 @@ func listBoxItemView(dat ListBoxOption, cfg ListBoxCfg, selectedSet map[string]s
 		A11YLabel:  dat.Name,
 		A11YState:  a11yState,
 		Color:      color,
-		Padding:    Some(listBoxItemPad),
+		Padding:    listBoxItemPad,
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Content:    []View{content},
@@ -587,7 +587,7 @@ func listBoxReorderItemView(
 		A11YLabel:  dat.Name,
 		A11YState:  a11yState,
 		Color:      color,
-		Padding:    Some(listBoxItemPad),
+		Padding:    listBoxItemPad,
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Content:    []View{content},
@@ -735,7 +735,7 @@ func applyListBoxDefaults(cfg *ListBoxCfg) {
 		cfg.ColorSelect = d.ColorSelect
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(d.Padding)
+		cfg.Padding = d.Padding
 	}
 
 	if cfg.TextStyle == (TextStyle{}) {

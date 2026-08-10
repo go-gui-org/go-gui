@@ -21,7 +21,7 @@ type InputDateCfg struct {
 	AllowedMonths   []DatePickerMonths
 	AllowedYears    []int
 	AllowedDates    []time.Time
-	Padding         Opt[Padding]
+	Padding         Padding
 	SizeBorder      Opt[float32]
 	cellSpacing     Opt[float32]
 	Radius          Opt[float32]
@@ -315,7 +315,7 @@ func applyInputDateDefaults(cfg *InputDateCfg) {
 		cfg.ColorSelect = d.ColorSelect
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(PaddingSmall)
+		cfg.Padding = PaddingSmall
 	}
 	sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)
 	cellSpacing := cfg.cellSpacing.Get(d.cellSpacing)

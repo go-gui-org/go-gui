@@ -41,7 +41,8 @@ func mainView(w *gui.Window) gui.View {
 			gui.Column(gui.ContainerCfg{
 				Title:       "Custom Dialogs",
 				ColorBorder: theme.ColorActive,
-				Padding:     gui.Some(gui.PaddingLarge),
+				Padding:     gui.PaddingLarge,
+
 				Content: []gui.View{
 					messageButton(),
 					confirmButton(),
@@ -52,7 +53,8 @@ func mainView(w *gui.Window) gui.View {
 			gui.Column(gui.ContainerCfg{
 				Title:       "Native Dialogs",
 				ColorBorder: theme.ColorActive,
-				Padding:     gui.Some(gui.PaddingLarge),
+				Padding:     gui.PaddingLarge,
+
 				Content: []gui.View{
 					nativeOpenButton(),
 					nativeSaveButton(),
@@ -336,8 +338,9 @@ func toggleTheme(app *App, theme gui.Theme) gui.View {
 				TextSelect:   gui.IconMoon,
 				TextUnselect: gui.IconSunnyO,
 				TextStyle:    theme.Icon3,
-				Padding:      gui.Some(gui.PaddingSmall),
-				Selected:     app.LightTheme,
+				Padding:      gui.PaddingSmall,
+
+				Selected: app.LightTheme,
 				OnClick: func(ctx gui.EventCtx) {
 					a := gui.State[App](ctx.Window)
 					a.LightTheme = !a.LightTheme

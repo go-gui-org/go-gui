@@ -164,7 +164,7 @@ func landingView(w *gui.Window) gui.View {
 						MinWidth:   200,
 						Color:      gui.RGB(237, 194, 46),
 						Colors:     gui.ColorSet{Hover: gui.RGB(245, 210, 80), Border: gui.White},
-						Padding:    gui.SomeP(16, 32, 16, 32),
+						Padding:    gui.NewPadding(16, 32, 16, 32),
 						SizeBorder: gui.Some[float32](2),
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
@@ -224,7 +224,7 @@ func gameView(w *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
 		HAlign:  gui.HAlignCenter,
-		Padding: gui.SomeP(40, 0, 0, 0),
+		Padding: gui.NewPadding(40, 0, 0, 0),
 		Spacing: gui.Some[float32](20),
 		Content: []gui.View{
 			// Header: Score and Best
@@ -284,7 +284,7 @@ func scoreBox(label string, value int) gui.View {
 		Sizing:   gui.FixedFixed,
 		Color:    gui.RGB(187, 173, 160),
 		Radius:   gui.Some[float32](4),
-		Padding:  gui.SomeP(8, 10, 8, 10),
+		Padding:  gui.NewPadding(8, 10, 8, 10),
 		VAlign:   gui.VAlignMiddle,
 		HAlign:   gui.HAlignCenter,
 		Spacing:  gui.Some[float32](4),
@@ -398,7 +398,7 @@ func gameOverlay(msg string) gui.View {
 			gui.Button(gui.ButtonCfg{
 				ID:      "g2048_try_again",
 				Color:   gui.RGB(143, 122, 102),
-				Padding: gui.SomeP(12, 24, 12, 24),
+				Padding: gui.NewPadding(12, 24, 12, 24),
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      "TRY AGAIN",

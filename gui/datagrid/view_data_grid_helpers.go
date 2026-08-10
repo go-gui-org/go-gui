@@ -74,8 +74,8 @@ func dataGridPagerHeight(cfg *DataGridCfg) float32 {
 }
 
 func dataGridPagerPadding(cfg *DataGridCfg) gg.Padding {
-	pc := cfg.PaddingCell.Get(gg.Padding{})
-	pf := cfg.PaddingFilter.Get(gg.Padding{})
+	pc := cfg.PaddingCell.Or(gg.PaddingNone)
+	pf := cfg.PaddingFilter.Or(gg.PaddingNone)
 	left := f32Max(pf.Left, pc.Left)
 	right := f32Max(pf.Right, pc.Right)
 	return gg.NewPadding(pf.Top, right, pf.Bottom, left)
@@ -100,7 +100,7 @@ func dataGridRowHeight(cfg *DataGridCfg, _ *gg.Window) float32 {
 	if cfg.rowHeight > 0 {
 		return cfg.rowHeight
 	}
-	return cfg.TextStyle.Size + cfg.PaddingCell.Get(gg.Padding{}).Height() + cfg.SizeBorder.Get(0)
+	return cfg.TextStyle.Size + cfg.PaddingCell.Or(gg.PaddingNone).Height() + cfg.SizeBorder.Get(0)
 }
 
 func dataGridStaticTopHeight(cfg *DataGridCfg, _ float32, chooserOpen bool, includeHeader bool) float32 {

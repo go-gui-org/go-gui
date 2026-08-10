@@ -28,7 +28,7 @@ type SelectCfg struct {
 	Selected        []string // currently selected option text(s)
 	Options         []string
 	FloatZIndex     int
-	Padding         Opt[Padding]
+	Padding         Padding
 	SizeBorder      Opt[float32]
 	Radius          Opt[float32]
 	MinWidth        float32
@@ -150,7 +150,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 			FloatOffsetY:  -sizeBorder,
 			FloatZIndex:   cfg.FloatZIndex,
 			Scrollable:    true,
-			Padding: SomeP(
+			Padding: NewPadding(
 				PadSmall, PadMedium, PadSmall, PadSmall),
 			Spacing: NoSpacing,
 			Content: options,
@@ -230,11 +230,11 @@ func selectOptionView(
 
 	return Row(ContainerCfg{
 		Color:   optColor,
-		Padding: SomeP(0, PadSmall, 0, 1),
+		Padding: NewPadding(0, PadSmall, 0, 1),
 		Sizing:  FillFit,
 		Content: []View{
 			Row(ContainerCfg{
-				Padding: Some(padTBLR(2, 0)),
+				Padding: padTBLR(2, 0),
 				Content: []View{
 					Text(TextCfg{
 						Text: "✓",
@@ -288,7 +288,7 @@ func selectSubHeaderView(cfg *SelectCfg, option string) View {
 		label = option[len(selectSubheaderPrefix):]
 	}
 	return Column(ContainerCfg{
-		Padding: SomeP(guiTheme.PaddingMedium.Top, 0, 0, 0),
+		Padding: NewPadding(guiTheme.PaddingMedium.Top, 0, 0, 0),
 		Sizing:  FillFit,
 		Content: []View{
 			Row(ContainerCfg{
@@ -310,7 +310,7 @@ func selectSubHeaderView(cfg *SelectCfg, option string) View {
 				},
 			}),
 			Row(ContainerCfg{
-				Padding: Some(padTBLR(0, PadMedium)),
+				Padding: padTBLR(0, PadMedium),
 				Sizing:  FillFit,
 				Content: []View{
 					Rectangle(RectangleCfg{
@@ -470,7 +470,7 @@ func applySelectDefaults(cfg *SelectCfg) {
 		cfg.ColorSelect = d.ColorSelect
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(d.Padding)
+		cfg.Padding = d.Padding
 	}
 	if cfg.MinWidth == 0 {
 		cfg.MinWidth = d.MinWidth

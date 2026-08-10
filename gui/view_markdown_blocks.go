@@ -174,7 +174,7 @@ func mdCopyButton(
 		Radius:       SomeF(4),
 		Color:        ColorTransparent,
 		SizeBorder:   SomeF(0),
-		Padding:      SomeP(2, 4, 2, 4),
+		Padding:      NewPadding(2, 4, 2, 4),
 		Content:      btnContent,
 		OnClick:      onClick,
 	})
@@ -314,7 +314,7 @@ func mdRenderBlockquote(
 	applyMdCtx(&rtfCfg, ctx)
 	return Row(ContainerCfg{
 		Sizing:     FillFit,
-		Padding:    SomeP(0, 0, 0, leftMargin),
+		Padding:    NewPadding(0, 0, 0, leftMargin),
 		SizeBorder: NoBorder,
 		Content: []View{
 			Rectangle(RectangleCfg{
@@ -408,7 +408,7 @@ func mdRenderDefValue(
 	applyMdCtx(&rtfCfg, ctx)
 	return Row(ContainerCfg{
 		Sizing:  FillFit,
-		Padding: SomeP(0, 0, 0, cfg.Style.nestIndent),
+		Padding: NewPadding(0, 0, 0, cfg.Style.nestIndent),
 		Content: []View{RTF(rtfCfg)},
 	})
 }
@@ -451,7 +451,7 @@ func mdRenderListItem(
 	applyMdCtx(&rtfCfg, ctx)
 	return Row(ContainerCfg{
 		Sizing:     FillFit,
-		Padding:    SomeP(0, 0, 0, indentW),
+		Padding:    NewPadding(0, 0, 0, indentW),
 		SizeBorder: NoBorder,
 		Content: []View{
 			Column(ContainerCfg{

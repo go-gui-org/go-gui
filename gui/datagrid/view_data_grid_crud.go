@@ -184,7 +184,7 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 		Color:       cfg.ColorFilter,
 		ColorBorder: cfg.ColorBorder,
 		SizeBorder:  gg.SomeF(0),
-		Padding:     gg.Some(dataGridPagerPadding(cfg)),
+		Padding:     dataGridPagerPadding(cfg),
 		Spacing:     gg.SomeF(6),
 		VAlign:      gg.VAlignMiddle,
 		Content: []gg.View{

@@ -9,7 +9,7 @@ type SwitchCfg struct {
 
 	A11YLabel       string
 	A11YDescription string
-	Padding         Opt[Padding]
+	Padding         Padding
 	SizeBorder      Opt[float32]
 	Width           Opt[float32]
 	Height          Opt[float32]
@@ -42,7 +42,7 @@ func Switch(cfg SwitchCfg) View {
 	if cfg.Selected {
 		thumbColor = cfg.ColorSelect
 	}
-	circleSize := height - cfg.Padding.Get(Padding{}).Height() - (sizeBorder * 2)
+	circleSize := height - cfg.Padding.Or(PaddingNone).Height() - (sizeBorder * 2)
 
 	colorFocus := cfg.Colors.Focus
 	colorBorderFocus := cfg.Colors.BorderFocus
@@ -154,7 +154,7 @@ func applySwitchDefaults(cfg *SwitchCfg) {
 	}
 
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(d.Padding)
+		cfg.Padding = d.Padding
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.textStyleNormal

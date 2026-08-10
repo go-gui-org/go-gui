@@ -36,7 +36,7 @@ func demoAudio(w *gui.Window) gui.View {
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
 						ID:      "btn-beep",
-						Padding: gui.SomeP(8, 16, 8, 16),
+						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      gui.IconPlay,
@@ -53,7 +53,7 @@ func demoAudio(w *gui.Window) gui.View {
 					}),
 					gui.Button(gui.ButtonCfg{
 						ID:      "btn-beep-high",
-						Padding: gui.SomeP(8, 16, 8, 16),
+						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      gui.IconPlay,
@@ -70,7 +70,7 @@ func demoAudio(w *gui.Window) gui.View {
 					}),
 					gui.Button(gui.ButtonCfg{
 						ID:      "btn-fade-in",
-						Padding: gui.SomeP(8, 16, 8, 16),
+						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      gui.IconPlay,
@@ -96,7 +96,7 @@ func demoAudio(w *gui.Window) gui.View {
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
 						ID:      "btn-ch0",
-						Padding: gui.SomeP(8, 16, 8, 16),
+						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      gui.IconPlay,
@@ -113,7 +113,7 @@ func demoAudio(w *gui.Window) gui.View {
 					}),
 					gui.Button(gui.ButtonCfg{
 						ID:      "btn-ch1",
-						Padding: gui.SomeP(8, 16, 8, 16),
+						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      gui.IconPlay,
@@ -130,7 +130,7 @@ func demoAudio(w *gui.Window) gui.View {
 					}),
 					gui.Button(gui.ButtonCfg{
 						ID:      "btn-halt-ch0",
-						Padding: gui.SomeP(8, 16, 8, 16),
+						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      gui.IconStop,
@@ -158,7 +158,7 @@ func demoAudio(w *gui.Window) gui.View {
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
 						ID:      "btn-load-music",
-						Padding: gui.SomeP(8, 16, 8, 16),
+						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      gui.IconFolder,
@@ -175,7 +175,7 @@ func demoAudio(w *gui.Window) gui.View {
 					}),
 					gui.Button(gui.ButtonCfg{
 						ID:      "btn-play-music",
-						Padding: gui.SomeP(8, 16, 8, 16),
+						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      gui.IconPlay,
@@ -192,7 +192,7 @@ func demoAudio(w *gui.Window) gui.View {
 					}),
 					gui.Button(gui.ButtonCfg{
 						ID:      "btn-fadeout-music",
-						Padding: gui.SomeP(8, 16, 8, 16),
+						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      gui.IconStop,
@@ -209,7 +209,7 @@ func demoAudio(w *gui.Window) gui.View {
 					}),
 					gui.Button(gui.ButtonCfg{
 						ID:      "btn-halt-music",
-						Padding: gui.SomeP(8, 16, 8, 16),
+						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      gui.IconStop,

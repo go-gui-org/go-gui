@@ -239,7 +239,7 @@ func demoDragReorder(w *gui.Window) gui.View {
 		tabItems[i] = gui.NewTabItem(tab.ID, tab.Label, []gui.View{
 			gui.Column(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Padding: gui.SomeP(12, 12, 12, 12),
+				Padding: gui.NewPadding(12, 12, 12, 12),
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      tab.Label + " content",

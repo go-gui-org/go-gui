@@ -12,7 +12,8 @@ func isolatedView(w *gui.Window) gui.View {
 		Sizing:  gui.FillFill,
 		HAlign:  gui.HAlignCenter,
 		VAlign:  gui.VAlignMiddle,
-		Padding: gui.Some(gui.PaddingSmall),
+		Padding: gui.PaddingSmall,
+
 		Content: []gui.View{
 			gui.SvgSpinner(gui.SvgSpinnerCfg{
 				Kind:   gui.SvgSpinner90Ring,

@@ -392,11 +392,9 @@ func TestRenderLayoutClipPushPop(t *testing.T) {
 	w := makeWindow()
 	root := &Layout{
 		Shape: &Shape{
-			Color: ColorTransparent,
-			Clip:  true,
-			Padding: Padding{
-				Left: 2, Right: 3, Top: 4, Bottom: 5,
-			},
+			Color:      ColorTransparent,
+			Clip:       true,
+			Padding:    NewPadding(4, 3, 5, 2),
 			SizeBorder: 0,
 			shapeClip:  makeClip(10, 20, 100, 50),
 		},
@@ -466,7 +464,7 @@ func TestResolveClipRadiusSubtractsBorderAndPadding(t *testing.T) {
 	shape := &Shape{
 		Clip: true, Width: 80, Height: 60, Radius: 12,
 		SizeBorder: 1,
-		Padding:    Padding{Left: 2, Right: 2, Top: 2, Bottom: 2},
+		Padding:    NewPadding(2, 2, 2, 2),
 	}
 	// inset = 3, 12 - 3 = 9
 	if !f32AreClose(resolveClipRadius(0, shape), 9) {
@@ -478,7 +476,7 @@ func TestResolveClipRadiusUsesMaxInsetForAsymmetricPadding(t *testing.T) {
 	shape := &Shape{
 		Clip: true, Width: 80, Height: 60, Radius: 20,
 		SizeBorder: 2,
-		Padding:    Padding{Left: 1, Right: 7, Top: 3, Bottom: 0},
+		Padding:    NewPadding(3, 7, 0, 1),
 	}
 	// max inset = 9, 20 - 9 = 11
 	if !f32AreClose(resolveClipRadius(0, shape), 11) {
@@ -490,7 +488,7 @@ func TestResolveClipRadiusReturnsParentWhenInsetConsumesRadius(t *testing.T) {
 	shape := &Shape{
 		Clip: true, Width: 60, Height: 40, Radius: 6,
 		SizeBorder: 2,
-		Padding:    Padding{Left: 4, Right: 4, Top: 4, Bottom: 4},
+		Padding:    NewPadding(4, 4, 4, 4),
 	}
 	if !f32AreClose(resolveClipRadius(10, shape), 10) {
 		t.Error("should return parent")
@@ -821,7 +819,7 @@ func TestClipContentsCoexistsWithClip(t *testing.T) {
 			Width:        60,
 			Height:       40,
 			shapeClip:    makeClip(5, 5, 60, 40),
-			Padding:      Padding{Left: 2, Right: 2, Top: 2, Bottom: 2},
+			Padding:      NewPadding(2, 2, 2, 2),
 		},
 	}
 

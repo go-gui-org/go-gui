@@ -72,7 +72,8 @@ func main() {
 func mainView(w *gui.Window) gui.View {
 	s := gui.State[appState](w)
 	return gui.Column(gui.ContainerCfg{
-		Padding: gui.Some(gui.PadAll(16)),
+		Padding: gui.PadAll(16),
+
 		Spacing: gui.SomeF(12),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{

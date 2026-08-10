@@ -23,7 +23,7 @@ type MenuItemCfg struct {
 	shortcutText string
 	Submenu      []MenuItemCfg
 	level        int
-	Padding      Opt[Padding]
+	Padding      Padding
 	radius       float32
 	spacing      float32
 	// Internal — set by menuBuild from theme/context.
@@ -75,7 +75,7 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 	if itemCfg.Separator {
 		return Column(ContainerCfg{
 			Sizing:  FillFit,
-			Padding: SomeP(2, 0, 2, 0),
+			Padding: NewPadding(2, 0, 2, 0),
 			Content: []View{
 				Rectangle(RectangleCfg{
 					Height: 1,

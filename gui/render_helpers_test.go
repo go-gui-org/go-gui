@@ -122,7 +122,7 @@ func TestResolveClipRadiusWithInset(t *testing.T) {
 		Clip:       true,
 		Radius:     10,
 		SizeBorder: 2,
-		Padding:    Padding{Left: 1, Right: 1, Top: 1, Bottom: 1},
+		Padding:    NewPadding(1, 1, 1, 1),
 	}
 	// inset = max(1+2, 1+2, 1+2, 1+2) = 3
 	// localRadius = max(0, 10-3) = 7

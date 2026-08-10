@@ -705,7 +705,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 	// Rows status.
 	content = append(content, gg.Row(gg.ContainerCfg{
 		Sizing:  gg.FitFill,
-		Padding: gg.SomeP(0, 6, 0, 0),
+		Padding: gg.NewPadding(0, 6, 0, 0),
 		VAlign:  gg.VAlignMiddle,
 		Content: []gg.View{
 			gg.Text(gg.TextCfg{
@@ -756,7 +756,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 		Color:       cfg.ColorFilter,
 		ColorBorder: cfg.ColorBorder,
 		SizeBorder:  gg.SomeF(0),
-		Padding:     gg.Some(dataGridPagerPadding(cfg)),
+		Padding:     dataGridPagerPadding(cfg),
 		Spacing:     gg.SomeF(6),
 		VAlign:      gg.VAlignMiddle,
 		Content:     content,

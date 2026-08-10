@@ -7,7 +7,7 @@ func TestLayoutWidthsWithBorder(t *testing.T) {
 		Shape: &Shape{
 			Axis:       axisLeftToRight,
 			SizeBorder: 5,
-			Padding:    Padding{Left: 10, Right: 10},
+			Padding:    NewPadding(0, 10, 0, 10),
 		},
 		Children: []Layout{
 			{Shape: &Shape{Width: 50, MinWidth: 50}},
@@ -30,7 +30,7 @@ func TestLayoutHeightsWithBorder(t *testing.T) {
 		Shape: &Shape{
 			Axis:       axisTopToBottom,
 			SizeBorder: 5,
-			Padding:    Padding{Top: 10, Bottom: 10},
+			Padding:    NewPadding(10, 0, 10, 0),
 		},
 		Children: []Layout{
 			{Shape: &Shape{Height: 50, MinHeight: 50}},
@@ -53,7 +53,7 @@ func TestLayoutPositionWithBorder(t *testing.T) {
 			X: 0, Y: 0, Width: 100, Height: 100,
 			Axis:       axisLeftToRight,
 			SizeBorder: 5,
-			Padding:    Padding{Left: 10, Right: 10, Top: 10, Bottom: 10},
+			Padding:    NewPadding(10, 10, 10, 10),
 		},
 		Children: []Layout{
 			{Shape: &Shape{Width: 40, Height: 40}},

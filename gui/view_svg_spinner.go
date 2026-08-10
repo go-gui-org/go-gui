@@ -19,7 +19,7 @@ type SvgSpinnerCfg struct {
 	ID              string
 	A11YLabel       string
 	A11YDescription string
-	Padding         Opt[Padding]
+	Padding         Padding
 	Width           float32
 	Height          float32
 	MinWidth        float32

@@ -34,7 +34,7 @@ type SvgCfg struct {
 	// Accessibility
 	A11YLabel       string
 	A11YDescription string
-	Padding         Opt[Padding]
+	Padding         Padding
 	Width           float32 // display width
 	Height          float32 // display height
 
@@ -159,7 +159,7 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 			Color:    c.Color,
 			Opacity:  1,
 			Sizing:   c.Sizing,
-			Padding:  c.Padding.Get(Padding{}),
+			Padding:  c.Padding.Or(PaddingNone),
 			events:   events,
 			svgOpts:  svgOpts,
 		}),

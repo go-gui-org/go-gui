@@ -64,7 +64,7 @@ type InputCfg struct {
 	maskTokens []MaskTokenDef
 
 	// Appearance
-	Padding    Opt[Padding]
+	Padding    Padding
 	Radius     Opt[float32]
 	SizeBorder Opt[float32]
 	Width      float32
@@ -297,7 +297,7 @@ func applyInputDefaults(cfg *InputCfg) {
 		cfg.ColorBorderFocus = d.ColorBorderFocus
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(paddingTwoFour)
+		cfg.Padding = paddingTwoFour
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = DefaultTextStyle

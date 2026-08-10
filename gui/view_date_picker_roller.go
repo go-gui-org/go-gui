@@ -27,7 +27,7 @@ type DatePickerRollerCfg struct {
 	minYear          int
 	maxYear          int
 	visibleItems     int // must be odd
-	Padding          Opt[Padding]
+	Padding          Padding
 	SizeBorder       Opt[float32]
 	Radius           Opt[float32]
 	Focusable        bool
@@ -461,7 +461,7 @@ func applyRollerDefaults(cfg *DatePickerRollerCfg) {
 		cfg.Radius = Some(d.radiusBorder)
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(PaddingSmall)
+		cfg.Padding = PaddingSmall
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = DefaultTextStyle

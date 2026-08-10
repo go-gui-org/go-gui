@@ -16,7 +16,7 @@ type DrawCanvasCfg struct {
 	A11YLabel       string
 	A11YDescription string
 	Version         uint64
-	Padding         Opt[Padding]
+	Padding         Padding
 	Width           float32
 	Height          float32
 	MinWidth        float32
@@ -92,7 +92,7 @@ func (dv *drawCanvasView) GenerateLayout(w *Window) Layout {
 			MinHeight: c.MinHeight,
 			MaxHeight: c.MaxHeight,
 			Sizing:    c.Sizing,
-			Padding:   c.Padding.Get(Padding{}),
+			Padding:   c.Padding.Or(PaddingNone),
 			Clip:      c.Clip,
 			Color:     c.Color,
 			Radius:    c.Radius,

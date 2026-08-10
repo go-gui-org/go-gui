@@ -13,8 +13,9 @@ func showcaseMarkdownPanel(w *gui.Window, id, source string) gui.View {
 	style := gui.DefaultMarkdownStyle()
 	style.CodeHighlighter = highlight.Default()
 	return gui.Column(gui.ContainerCfg{
-		Sizing:     gui.FillFit,
-		Padding:    gui.Some(gui.PaddingSmall),
+		Sizing:  gui.FillFit,
+		Padding: gui.PaddingSmall,
+
 		SizeBorder: gui.NoBorder,
 		Color:      gui.CurrentTheme().ColorPanel,
 		Content: []gui.View{

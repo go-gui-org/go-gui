@@ -183,10 +183,10 @@ func TestContextMenuDefaults(t *testing.T) {
 	if cfg.TextStyle != d.TextStyle {
 		t.Error("TextStyle not defaulted")
 	}
-	if cfg.paddingMenuItem != Some(d.paddingMenuItem) {
+	if cfg.paddingMenuItem != d.paddingMenuItem {
 		t.Error("PaddingMenuItem not defaulted")
 	}
-	if cfg.paddingSubmenu != Some(d.paddingSubmenu) {
+	if cfg.paddingSubmenu != d.paddingSubmenu {
 		t.Error("PaddingSubmenu not defaulted")
 	}
 }

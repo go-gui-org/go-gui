@@ -81,7 +81,7 @@ func usageChart(
 				Clip:    true,
 				Radius:  gui.SomeF(theme.RadiusSmall),
 				Color:   theme.ColorInterior,
-				Padding: gui.SomeP(4, 4, 4, 4),
+				Padding: gui.NewPadding(4, 4, 4, 4),
 				Spacing: gui.SomeF(1),
 				Content: bars,
 			}),

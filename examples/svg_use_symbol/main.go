@@ -56,9 +56,10 @@ func main() {
 func view(w *gui.Window) gui.View {
 	cell := func(title, data string) gui.View {
 		return gui.Column(gui.ContainerCfg{
-			Padding: gui.Some(gui.PaddingTwoFive),
-			Sizing:  gui.FillFit,
-			HAlign:  gui.HAlignCenter,
+			Padding: gui.PaddingTwoFive,
+
+			Sizing: gui.FillFit,
+			HAlign: gui.HAlignCenter,
 			Content: []gui.View{
 				gui.Svg(gui.SvgCfg{
 					SvgData: data, Sizing: gui.FixedFixed,

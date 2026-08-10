@@ -214,7 +214,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 				},
 				Content: []View{
 					Row(ContainerCfg{
-						Padding:    Some(PaddingSmall),
+						Padding:    PaddingSmall,
 						Sizing:     FillFit,
 						SizeBorder: NoBorder,
 						Content: []View{

@@ -10,15 +10,19 @@ Every widget has a `*Cfg` struct. Conventions:
 
 - **Zero-initializable** — all fields have usable zero values. Users omit what
   they don't need: `ToggleCfg{Label: "Accept"}`
-- **Opt[T] for optional overrides** — `Opt[Padding]`, `Opt[float32]` distinguish
-  "not set" from an explicit zero. Use `cfg.Radius.Get(default)` in the factory.
+- **Opt[T] for optional overrides** — `Opt[float32]` distinguishes "not set"
+  from an explicit zero for primitives. Owned structs self-flag instead:
+  `Padding` and `Color` carry a `set` field, so they are plain fields —
+  `Padding{}` is unset (theme default applies), build values with
+  `NewPadding`/`PadAll`/`PaddingNone`. Read with `cfg.Radius.Get(default)` /
+  `cfg.Padding.Or(default)` in the factory.
 - **Common fields** — every interactive widget includes: `ID string`,
   `Disabled bool`, `Invisible bool`, and a focus field: either `Focusable bool`
   (opt-in, e.g. Button) or `FocusDisabled bool` (opt-out, for controls focusable
   by default, e.g. Input, Toggle, Slider, Select). Focus always requires a
   non-empty `ID` — without one the control never joins the tab order.
   Container-like widgets add `Sizing Sizing`, `Float bool`,
-  `FloatAnchor FloatAttach`, `FloatTieOff FloatAttach`, `Padding Opt[Padding]`,
+  `FloatAnchor FloatAttach`, `FloatTieOff FloatAttach`, `Padding Padding`,
   `Radius Opt[float32]`, `SizeBorder Opt[float32]`.
 - **Callbacks** — one func field per event. Sig: `func(EventCtx)`. One rule for
   all of them: call `ctx.Consume()` on any path that acts on the event, and
@@ -45,7 +49,7 @@ type ToggleCfg struct {
 
     A11YLabel       string
     A11YDescription string
-    Padding         Opt[Padding]
+    Padding         Padding
     // Size overrides the square edge length of the check box.
     Size       Opt[float32]
     SizeBorder Opt[float32]

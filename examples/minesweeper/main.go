@@ -190,7 +190,7 @@ func landingView(w *gui.Window) gui.View {
 		HAlign:  gui.HAlignCenter,
 		VAlign:  gui.VAlignMiddle,
 		Spacing: gui.SomeF(14),
-		Padding: gui.SomeP(24, 24, 24, 24),
+		Padding: gui.NewPadding(24, 24, 24, 24),
 		Content: landingContent(w, app, theme),
 	})
 }
@@ -273,7 +273,7 @@ func diffButton(w *gui.Window, title, subtitle string, diff Difficulty, color gu
 		Color:      color.WithOpacity(0.15),
 		Colors:     gui.ColorSet{Hover: color.WithOpacity(0.3), Click: color.WithOpacity(0.5), Border: color},
 		SizeBorder: gui.SomeF(2),
-		Padding:    gui.SomeP(12, 18, 12, 18),
+		Padding:    gui.NewPadding(12, 18, 12, 18),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      title,
@@ -508,7 +508,7 @@ func gameView(w *gui.Window) gui.View {
 		Sizing: gui.FillFill,
 		HAlign: gui.HAlignCenter, VAlign: gui.VAlignMiddle,
 		Spacing: gui.SomeF(8), SizeBorder: gui.NoBorder,
-		Padding: gui.SomeP(12, 16, 12, 16),
+		Padding: gui.NewPadding(12, 16, 12, 16),
 		Content: []gui.View{
 			headerView(app, theme, boardW),
 			boardView(app, g, theme, cellPx, boardW, boardH, training),
@@ -550,7 +550,7 @@ func headerView(app *App, theme gui.Theme, boardW float32) gui.View {
 						Color:      gui.RGB(40, 44, 52),
 						Colors:     gui.ColorSet{Hover: gui.RGB(55, 60, 68), Click: gui.RGB(30, 34, 40), Border: gui.RGB(100, 105, 110)},
 						SizeBorder: gui.SomeF(2),
-						Padding:    gui.SomeP(4, 4, 4, 4),
+						Padding:    gui.NewPadding(4, 4, 4, 4),
 						Radius:     gui.SomeF(6),
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
@@ -580,7 +580,7 @@ func ledDisplay(x, y float32, text string, theme gui.Theme) gui.View {
 		ColorBorder: gui.RGB(60, 60, 60),
 		HAlign:      gui.HAlignCenter,
 		VAlign:      gui.VAlignMiddle,
-		Padding:     gui.SomeP(4, 8, 4, 8),
+		Padding:     gui.NewPadding(4, 8, 4, 8),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      text,
@@ -904,7 +904,7 @@ func smallButton(label string, action func(*gui.Window)) gui.View {
 		Color:      gui.RGB(45, 50, 58),
 		Colors:     gui.ColorSet{Hover: gui.RGB(60, 66, 74), Click: gui.RGB(35, 40, 48), Border: gui.RGB(90, 95, 100)},
 		SizeBorder: gui.SomeF(1),
-		Padding:    gui.SomeP(6, 12, 6, 12),
+		Padding:    gui.NewPadding(6, 12, 6, 12),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text: label,

@@ -43,7 +43,7 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 		Color:       cfg.ColorQuickFilter,
 		ColorBorder: cfg.ColorBorder,
 		SizeBorder:  gg.SomeF(0),
-		Padding:     gg.SomeP(0, cfg.PaddingCell.Get(gg.Padding{}).Right, 0, cfg.PaddingCell.Get(gg.Padding{}).Left),
+		Padding:     gg.NewPadding(0, cfg.PaddingCell.Or(gg.PaddingNone).Right, 0, cfg.PaddingCell.Or(gg.PaddingNone).Left),
 		Spacing:     gg.SomeF(6),
 		VAlign:      gg.VAlignMiddle,
 		OnClick: func(ctx gg.EventCtx) {

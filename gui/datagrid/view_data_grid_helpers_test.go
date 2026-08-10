@@ -211,8 +211,8 @@ func TestPagerHeightFallsBackToHeaderHeight(t *testing.T) {
 
 func TestPagerPaddingTakesMax(t *testing.T) {
 	cfg := &DataGridCfg{
-		PaddingCell:   gg.SomeP(1, 2, 3, 4),
-		PaddingFilter: gg.SomeP(5, 8, 7, 6),
+		PaddingCell:   gg.NewPadding(1, 2, 3, 4),
+		PaddingFilter: gg.NewPadding(5, 8, 7, 6),
 	}
 	got := dataGridPagerPadding(cfg)
 	if got.Left != 6 || got.Right != 8 || got.Top != 5 || got.Bottom != 7 {

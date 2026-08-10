@@ -76,7 +76,7 @@ func mainView(w *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
 		Color:   colorPageBG,
-		Padding: gui.SomeP(12, 12, 12, 12),
+		Padding: gui.NewPadding(12, 12, 12, 12),
 		Content: []gui.View{
 			cardView(w),
 		},
@@ -90,7 +90,7 @@ func cardView(w *gui.Window) gui.View {
 		Sizing:      gui.FillFill,
 		Color:       colorCardBG,
 		Radius:      gui.SomeF(18),
-		Padding:     gui.SomeP(34, 34, 34, 34),
+		Padding:     gui.NewPadding(34, 34, 34, 34),
 		Spacing:     gui.SomeF(22),
 		ColorBorder: colorCardBG,
 		Content: []gui.View{
@@ -142,7 +142,7 @@ func composerView(w *gui.Window) gui.View {
 				ColorBorder:      colorInputBG,
 				ColorBorderFocus: colorAccent,
 				Radius:           gui.SomeF(20),
-				Padding:          gui.SomeP(18, 20, 18, 20),
+				Padding:          gui.NewPadding(18, 20, 18, 20),
 				TextStyle:        gui.TextStyle{Color: colorText, Size: 18},
 				PlaceholderStyle: gui.TextStyle{Color: colorMuted, Size: 18},
 				OnTextChanged: func(text string, ctx gui.EventCtx) {
@@ -159,7 +159,7 @@ func composerView(w *gui.Window) gui.View {
 				// press and focus; Flat says that in a line.
 				Colors:   gui.Flat(colorAccent),
 				Radius:   gui.SomeF(20),
-				Padding:  gui.SomeP(18, 28, 18, 28),
+				Padding:  gui.NewPadding(18, 28, 18, 28),
 				MinWidth: 140,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{

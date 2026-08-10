@@ -23,10 +23,10 @@ type ContextMenuCfg struct {
 
 	FloatZIndex int
 
-	Padding Opt[Padding]
+	Padding Padding
 
-	paddingMenuItem Opt[Padding]
-	paddingSubmenu  Opt[Padding]
+	paddingMenuItem Padding
+	paddingSubmenu  Padding
 	SizeBorder      Opt[float32]
 	Radius          Opt[float32]
 	radiusMenuItem  Opt[float32]
@@ -196,9 +196,9 @@ func applyContextMenuDefaults(cfg *ContextMenuCfg) {
 		cfg.textStyleSubtitle = d.textStyleSubtitle
 	}
 	if !cfg.paddingMenuItem.IsSet() {
-		cfg.paddingMenuItem = Some(d.paddingMenuItem)
+		cfg.paddingMenuItem = d.paddingMenuItem
 	}
 	if !cfg.paddingSubmenu.IsSet() {
-		cfg.paddingSubmenu = Some(d.paddingSubmenu)
+		cfg.paddingSubmenu = d.paddingSubmenu
 	}
 }

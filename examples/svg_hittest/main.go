@@ -68,8 +68,9 @@ func view(w *gui.Window) gui.View {
 		Sizing: gui.FillFill,
 		Content: []gui.View{
 			gui.Column(gui.ContainerCfg{
-				Padding: gui.Some(gui.PaddingTwoFive),
-				Sizing:  gui.FitFit,
+				Padding: gui.PaddingTwoFive,
+
+				Sizing: gui.FitFit,
 				Content: []gui.View{
 					gui.Svg(gui.SvgCfg{
 						SvgData: sampleSvg, Sizing: gui.FixedFixed,
@@ -82,8 +83,9 @@ func view(w *gui.Window) gui.View {
 				},
 			}),
 			gui.Column(gui.ContainerCfg{
-				Padding: gui.Some(gui.PaddingTwoFive),
-				Sizing:  gui.FillFill,
+				Padding: gui.PaddingTwoFive,
+
+				Sizing: gui.FillFill,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{Text: "Click a shape."}),
 					gui.Text(gui.TextCfg{Text: app.Last}),

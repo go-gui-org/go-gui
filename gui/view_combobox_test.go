@@ -188,7 +188,7 @@ func TestScrollEnsureVisibleSurvivesPipeline(t *testing.T) {
 			ID:         idScroll,
 			Height:     200, // MaxHeight clamped
 			Axis:       axisTopToBottom,
-			Padding:    Padding{Top: 5, Right: 5, Bottom: 5, Left: 5},
+			Padding:    NewPadding(5, 5, 5, 5),
 			SizeBorder: 1.5,
 		},
 		Children: children,
@@ -227,7 +227,7 @@ func TestScrollPositionsShiftChildren(t *testing.T) {
 			ID:         idScroll,
 			Height:     200,
 			Axis:       axisTopToBottom,
-			Padding:    Padding{Top: 5, Right: 5, Bottom: 5, Left: 5},
+			Padding:    NewPadding(5, 5, 5, 5),
 			SizeBorder: 1.5,
 		},
 		Children: children,

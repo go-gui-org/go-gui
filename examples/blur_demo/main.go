@@ -27,7 +27,7 @@ func mainView(_ *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FitFit,
 		Spacing: gui.Some[float32](60),
-		Padding: gui.SomeP(40, 40, 40, 40),
+		Padding: gui.NewPadding(40, 40, 40, 40),
 		HAlign:  gui.HAlignCenter,
 		Content: []gui.View{
 			// Each row highlights a different blur and radius combination.

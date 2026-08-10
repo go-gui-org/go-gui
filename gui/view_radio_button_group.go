@@ -27,7 +27,7 @@ type RadioButtonGroupCfg struct {
 	Items      []string
 	Options    []RadioOption
 	ID         string `gui:"required,focus"`
-	Padding    Opt[Padding]
+	Padding    Padding
 	Spacing    Opt[float32]
 	SizeBorder Opt[float32]
 	MinWidth   float32
@@ -115,7 +115,7 @@ func applyRadioGroupDefaults(cfg *RadioButtonGroupCfg) {
 		cfg.ColorBorder = guiTheme.ColorBorder
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(guiTheme.PaddingLarge)
+		cfg.Padding = guiTheme.PaddingLarge
 	}
 	if !cfg.Spacing.IsSet() {
 		cfg.Spacing = Some(SpacingSmall)

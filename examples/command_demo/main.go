@@ -228,7 +228,7 @@ func statusBar(app *App, theme gui.Theme) gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Sizing:     gui.FillFit,
 		SizeBorder: gui.NoBorder,
-		Padding:    gui.SomeP(4, 8, 4, 8),
+		Padding:    gui.NewPadding(4, 8, 4, 8),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      app.Log,

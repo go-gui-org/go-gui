@@ -21,7 +21,7 @@ func line() gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Sizing:     gui.FillFit,
 		Height:     1,
-		Padding:    gui.SomeP(3, 0, 0, 0),
+		Padding:    gui.NewPadding(3, 0, 0, 0),
 		SizeBorder: gui.NoBorder,
 		Radius:     gui.NoRadius,
 		Color:      gui.CurrentTheme().ColorActive,

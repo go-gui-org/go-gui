@@ -75,7 +75,8 @@ func view(w *gui.Window) gui.View {
 			ID:      "svg_css_vars_view",
 			Content: []gui.View{gui.Text(gui.TextCfg{Text: th.Name})},
 			Sizing:  gui.FitFit,
-			Padding: gui.Some(gui.PaddingTwoFive),
+			Padding: gui.PaddingTwoFive,
+
 			OnClick: func(ctx gui.EventCtx) {
 				app.ThemeIdx = idx
 				w.UpdateView(view)
@@ -92,7 +93,8 @@ func view(w *gui.Window) gui.View {
 				Text: fmt.Sprintf("base=%dpx", base),
 			})},
 			Sizing:  gui.FitFit,
-			Padding: gui.Some(gui.PaddingTwoFive),
+			Padding: gui.PaddingTwoFive,
+
 			OnClick: func(ctx gui.EventCtx) {
 				app.StrokeBase = base
 				w.UpdateView(view)
@@ -102,7 +104,8 @@ func view(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
-		Padding: gui.Some(gui.PaddingTwoFive),
+		Padding: gui.PaddingTwoFive,
+
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Theme (--primary, --accent)"}),
 			gui.Row(gui.ContainerCfg{

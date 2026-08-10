@@ -11,10 +11,10 @@ type MenubarCfg struct {
 	ID                string
 	Items             []MenuItemCfg
 	FloatZIndex       int
-	Padding           Opt[Padding]
-	paddingMenuItem   Opt[Padding]
-	paddingSubmenu    Opt[Padding]
-	paddingSubtitle   Opt[Padding]
+	Padding           Padding
+	paddingMenuItem   Padding
+	paddingSubmenu    Padding
+	paddingSubtitle   Padding
 	SizeBorder        Opt[float32]
 	widthSubmenuMin   Opt[float32]
 	widthSubmenuMax   Opt[float32]
@@ -105,16 +105,16 @@ func applyMenubarDefaults(cfg *MenubarCfg) {
 		cfg.Sizing = FillFit
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(d.Padding)
+		cfg.Padding = d.Padding
 	}
 	if !cfg.paddingMenuItem.IsSet() {
-		cfg.paddingMenuItem = Some(d.paddingMenuItem)
+		cfg.paddingMenuItem = d.paddingMenuItem
 	}
 	if !cfg.paddingSubmenu.IsSet() {
-		cfg.paddingSubmenu = Some(d.paddingSubmenu)
+		cfg.paddingSubmenu = d.paddingSubmenu
 	}
 	if !cfg.paddingSubtitle.IsSet() {
-		cfg.paddingSubtitle = Some(d.paddingSubtitle)
+		cfg.paddingSubtitle = d.paddingSubtitle
 	}
 	if !cfg.spacingSubmenu.IsSet() {
 		cfg.spacingSubmenu = Some(d.spacingSubmenu)

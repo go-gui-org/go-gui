@@ -181,7 +181,7 @@ func headerView(app *App) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Color:   theme.ColorPanel,
-		Padding: gui.SomeP(12, 16, 12, 16),
+		Padding: gui.NewPadding(12, 16, 12, 16),
 		Spacing: gui.SomeF(8),
 		Content: content,
 	})
@@ -230,7 +230,7 @@ func statPill(label, value string) gui.View {
 		Sizing:  gui.FitFit,
 		Color:   theme.ColorInterior,
 		Radius:  gui.SomeF(theme.RadiusSmall),
-		Padding: gui.SomeP(5, 9, 5, 9),
+		Padding: gui.NewPadding(5, 9, 5, 9),
 		Spacing: gui.SomeF(6),
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
@@ -245,7 +245,7 @@ func toolbarView(app *App) gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Color:   theme.ColorPanel,
-		Padding: gui.SomeP(8, 16, 8, 16),
+		Padding: gui.NewPadding(8, 16, 8, 16),
 		Spacing: gui.SomeF(12),
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
@@ -362,7 +362,7 @@ func headerCell(col column, idx int, app *App) gui.View {
 	cfg := gui.ContainerCfg{
 		VAlign:  gui.VAlignMiddle,
 		Clip:    true,
-		Padding: gui.SomeP(0, 6, 0, 6),
+		Padding: gui.NewPadding(0, 6, 0, 6),
 		Content: []gui.View{gui.Text(gui.TextCfg{Text: label, TextStyle: theme.B6, Clip: true})},
 		OnClick: func(ctx gui.EventCtx) {
 			a := gui.State[App](ctx.Window)
@@ -417,7 +417,7 @@ func detailView(app *App) gui.View {
 		return gui.Column(gui.ContainerCfg{
 			Sizing:  gui.FillFit,
 			Color:   theme.ColorPanel,
-			Padding: gui.SomeP(10, 16, 12, 16),
+			Padding: gui.NewPadding(10, 16, 12, 16),
 			Content: []gui.View{gui.Text(gui.TextCfg{Text: "Select a process", TextStyle: theme.N5})},
 		})
 	}
@@ -445,7 +445,7 @@ func detailView(app *App) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Color:   theme.ColorPanel,
-		Padding: gui.SomeP(10, 16, 12, 16),
+		Padding: gui.NewPadding(10, 16, 12, 16),
 		Spacing: gui.SomeF(6),
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
@@ -486,7 +486,7 @@ func textCell(width float32, s string, style gui.TextStyle) gui.View {
 		Sizing:  gui.FixedFill,
 		VAlign:  gui.VAlignMiddle,
 		Clip:    true,
-		Padding: gui.SomeP(0, 6, 0, 6),
+		Padding: gui.NewPadding(0, 6, 0, 6),
 		Content: []gui.View{gui.Text(gui.TextCfg{Text: s, TextStyle: style, Clip: true})},
 	})
 }
@@ -503,7 +503,7 @@ func cpuCell(p *Process, _ *App) gui.View {
 		Sizing:  gui.FixedFill,
 		VAlign:  gui.VAlignMiddle,
 		Clip:    true,
-		Padding: gui.SomeP(0, 6, 0, 6),
+		Padding: gui.NewPadding(0, 6, 0, 6),
 		Spacing: gui.SomeF(6),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: p.CPUText(), TextStyle: theme.N5}),
@@ -557,7 +557,7 @@ func nameCell(p *Process, app *App) gui.View {
 		Sizing:  gui.FillFill,
 		VAlign:  gui.VAlignMiddle,
 		Clip:    true,
-		Padding: gui.SomeP(0, 6, 0, 6),
+		Padding: gui.NewPadding(0, 6, 0, 6),
 		Spacing: gui.SomeF(2),
 		Content: kids,
 	})

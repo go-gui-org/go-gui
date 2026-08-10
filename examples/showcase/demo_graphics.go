@@ -364,7 +364,7 @@ func showcaseShadowCard(title, note string, bg, shadowColor gui.Color, shadowOff
 		Width:       170,
 		Height:      96,
 		Sizing:      gui.FixedFixed,
-		Padding:     gui.SomeP(10, 10, 10, 10),
+		Padding:     gui.NewPadding(10, 10, 10, 10),
 		Spacing:     gui.SomeF(2),
 		Radius:      gui.SomeF(10),
 		Color:       bg,
@@ -743,16 +743,14 @@ func demoDrawCanvasInteractive(app *ShowcaseApp) gui.View {
 	)
 
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:      "showcase-draw-canvas-interactive",
-		Version: app.DrawCanvasVersion,
-		Width:   canvasW,
-		Height:  canvasH,
-		Color:   gui.RGBA(30, 30, 40, 255),
-		Radius:  8,
-		Clip:    true,
-		Padding: gui.Some(gui.Padding{
-			Top: 20, Right: 20, Bottom: 20, Left: 20,
-		}),
+		ID:              "showcase-draw-canvas-interactive",
+		Version:         app.DrawCanvasVersion,
+		Width:           canvasW,
+		Height:          canvasH,
+		Color:           gui.RGBA(30, 30, 40, 255),
+		Radius:          8,
+		Clip:            true,
+		Padding:         gui.NewPadding(20, 20, 20, 20),
 		Focusable:       true,
 		A11YLabel:       "Interactive draw canvas",
 		A11YDescription: "Arrow keys move the marker",
@@ -827,9 +825,7 @@ func demoDrawCanvasLineChart(chartData []float32) gui.View {
 		Height:  280,
 		Color:   gui.RGBA(30, 30, 40, 255),
 		Radius:  8,
-		Padding: gui.Some(gui.Padding{
-			Top: 24, Right: 24, Bottom: 24, Left: 24,
-		}),
+		Padding: gui.NewPadding(24, 24, 24, 24),
 		OnDraw: func(dc *gui.DrawContext) {
 			cw := dc.Width
 			ch := dc.Height
@@ -922,9 +918,7 @@ func demoDrawCanvasBarChart(barData []float32) gui.View {
 		Height:  220,
 		Color:   gui.RGBA(30, 30, 40, 255),
 		Radius:  8,
-		Padding: gui.Some(gui.Padding{
-			Top: 24, Right: 24, Bottom: 24, Left: 24,
-		}),
+		Padding: gui.NewPadding(24, 24, 24, 24),
 		OnDraw: func(dc *gui.DrawContext) {
 			cw := dc.Width
 			ch := dc.Height
@@ -1194,7 +1188,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 					gui.Column(gui.ContainerCfg{
 						Width:       120,
 						Sizing:      gui.FixedFit,
-						Padding:     gui.SomeP(8, 8, 8, 8),
+						Padding:     gui.NewPadding(8, 8, 8, 8),
 						Radius:      gui.SomeF(6),
 						Color:       t.ColorPanel,
 						ColorFilter: gui.ColorFilterGrayscale(),
@@ -1203,7 +1197,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 					gui.Column(gui.ContainerCfg{
 						Width:       120,
 						Sizing:      gui.FixedFit,
-						Padding:     gui.SomeP(8, 8, 8, 8),
+						Padding:     gui.NewPadding(8, 8, 8, 8),
 						Radius:      gui.SomeF(6),
 						Color:       t.ColorPanel,
 						ColorFilter: gui.ColorFilterSepia(),
@@ -1212,7 +1206,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 					gui.Column(gui.ContainerCfg{
 						Width:       120,
 						Sizing:      gui.FixedFit,
-						Padding:     gui.SomeP(8, 8, 8, 8),
+						Padding:     gui.NewPadding(8, 8, 8, 8),
 						Radius:      gui.SomeF(6),
 						Color:       t.ColorPanel,
 						ColorFilter: gui.ColorFilterContrast(1.5),
@@ -1221,7 +1215,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 					gui.Column(gui.ContainerCfg{
 						Width:       120,
 						Sizing:      gui.FixedFit,
-						Padding:     gui.SomeP(8, 8, 8, 8),
+						Padding:     gui.NewPadding(8, 8, 8, 8),
 						Radius:      gui.SomeF(6),
 						Color:       t.ColorPanel,
 						ColorFilter: gui.ColorFilterSaturate(2.0),
@@ -1244,7 +1238,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 					gui.Column(gui.ContainerCfg{
 						Width:   120,
 						Sizing:  gui.FixedFit,
-						Padding: gui.SomeP(8, 8, 8, 8),
+						Padding: gui.NewPadding(8, 8, 8, 8),
 						Radius:  gui.SomeF(6),
 						Color:   t.ColorPanel,
 						Content: colorContent("Original"),
@@ -1252,7 +1246,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 					gui.Column(gui.ContainerCfg{
 						Width:       120,
 						Sizing:      gui.FixedFit,
-						Padding:     gui.SomeP(8, 8, 8, 8),
+						Padding:     gui.NewPadding(8, 8, 8, 8),
 						Radius:      gui.SomeF(6),
 						Color:       t.ColorPanel,
 						BlurRadius:  4,
@@ -1262,7 +1256,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 					gui.Column(gui.ContainerCfg{
 						Width:       120,
 						Sizing:      gui.FixedFit,
-						Padding:     gui.SomeP(8, 8, 8, 8),
+						Padding:     gui.NewPadding(8, 8, 8, 8),
 						Radius:      gui.SomeF(6),
 						Color:       t.ColorPanel,
 						BlurRadius:  4,
@@ -1272,7 +1266,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 					gui.Column(gui.ContainerCfg{
 						Width:       120,
 						Sizing:      gui.FixedFit,
-						Padding:     gui.SomeP(8, 8, 8, 8),
+						Padding:     gui.NewPadding(8, 8, 8, 8),
 						Radius:      gui.SomeF(6),
 						Color:       t.ColorPanel,
 						BlurRadius:  4,

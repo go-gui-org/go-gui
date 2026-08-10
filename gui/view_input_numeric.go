@@ -28,7 +28,7 @@ type NumericInputCfg struct {
 	Decimals int
 
 	// Appearance
-	Padding    Opt[Padding]
+	Padding    Padding
 	Radius     Opt[float32]
 	SizeBorder Opt[float32]
 	// FocusDisabled opts out of the default-on focus. Focus also
@@ -257,7 +257,7 @@ func numericInputStepButtons(cfg NumericInputCfg, locale NumericLocaleCfg, stepC
 		Sizing:    FitFill,
 		Disabled:  stepDisabled,
 		Invisible: cfg.Invisible,
-		Padding:   SomeP(0, PadSmall, 0, 0),
+		Padding:   NewPadding(0, PadSmall, 0, 0),
 		Content: []View{
 			Button(ButtonCfg{
 				ID:         stepUpID,
@@ -371,7 +371,7 @@ func applyNumericInputDefaults(cfg *NumericInputCfg) {
 		cfg.ColorBorderFocus = d.ColorBorderFocus
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(paddingTwoFour)
+		cfg.Padding = paddingTwoFour
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = DefaultTextStyle

@@ -26,7 +26,7 @@ type ButtonCfg struct {
 	A11YLabel       string
 	A11YDescription string
 	Content         []View
-	Padding         Opt[Padding]
+	Padding         Padding
 	SizeBorder      Opt[float32]
 	Radius          Opt[float32]
 
@@ -246,6 +246,6 @@ func applyButtonDefaults(cfg *ButtonCfg) {
 		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
 	))
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(d.Padding)
+		cfg.Padding = d.Padding
 	}
 }

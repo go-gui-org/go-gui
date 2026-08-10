@@ -51,8 +51,9 @@ func view(w *gui.Window) gui.View {
 	}
 	rows := []gui.View{
 		gui.Row(gui.ContainerCfg{
-			Padding: gui.Some(gui.PaddingTwoFive),
-			Sizing:  gui.FillFit,
+			Padding: gui.PaddingTwoFive,
+
+			Sizing: gui.FillFit,
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{
 					Text: fmt.Sprintf("Mode: %s — click to toggle", mode),
@@ -71,9 +72,10 @@ func view(w *gui.Window) gui.View {
 			a := all[r*3+c]
 			data := fmt.Sprintf(sampleSvg, a, mode)
 			cells = append(cells, gui.Column(gui.ContainerCfg{
-				Padding: gui.Some(gui.PaddingTwoFive),
-				Sizing:  gui.FillFit,
-				HAlign:  gui.HAlignCenter,
+				Padding: gui.PaddingTwoFive,
+
+				Sizing: gui.FillFit,
+				HAlign: gui.HAlignCenter,
 				Content: []gui.View{
 					gui.Svg(gui.SvgCfg{
 						SvgData: data, Sizing: gui.FixedFixed,

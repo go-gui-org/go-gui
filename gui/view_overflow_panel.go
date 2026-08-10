@@ -15,7 +15,7 @@ type OverflowPanelCfg struct {
 	Items        []OverflowItem
 	Trigger      []View
 	FloatZIndex  int
-	Padding      Opt[Padding]
+	Padding      Padding
 	Spacing      Opt[float32]
 	Focusable    bool
 	FloatOffsetX float32
@@ -119,7 +119,7 @@ func OverflowPanel(w *Window, cfg OverflowPanelCfg) View {
 
 func applyOverflowDefaults(cfg *OverflowPanelCfg) {
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = Some(defaultButtonStyle.Padding)
+		cfg.Padding = defaultButtonStyle.Padding
 	}
 	if cfg.FloatAnchor == 0 {
 		cfg.FloatAnchor = FloatBottomRight

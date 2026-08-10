@@ -45,8 +45,9 @@ func demoMathSpinner(w *gui.Window) gui.View {
 	cells := make([]gui.View, len(entries))
 	for i, e := range entries {
 		cells[i] = gui.Column(gui.ContainerCfg{
-			Sizing:     gui.FitFit,
-			Padding:    gui.Some(t.PaddingMedium),
+			Sizing:  gui.FitFit,
+			Padding: t.PaddingMedium,
+
 			SizeBorder: gui.NoBorder,
 			HAlign:     gui.HAlignCenter,
 			Spacing:    gui.SomeF(6),

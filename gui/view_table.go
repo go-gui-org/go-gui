@@ -59,7 +59,7 @@ type TableCfg struct {
 	rawData [][]string
 	Data    []TableRowCfg
 
-	cellPadding        Opt[Padding]
+	cellPadding        Padding
 	columnWidthDefault float32
 	columnWidthMin     float32
 	SizeBorder         float32 // ergonomics-audit:opt-plain — 0 = no borders, applied as-is; public API kept plain
@@ -100,7 +100,7 @@ func applyTableDefaults(cfg *TableCfg) {
 		cfg.ColorHover = s.ColorHover
 	}
 	if !cfg.cellPadding.IsSet() {
-		cfg.cellPadding = Some(s.cellPadding)
+		cfg.cellPadding = s.cellPadding
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = s.TextStyle
@@ -299,7 +299,7 @@ func tableView(cfg TableCfg, w *Window) View {
 
 	if cfg.Scrollable {
 		outerCfg.Scrollable = true
-		outerCfg.Padding = Some(Padding{Right: DefaultScrollbarStyle.Size + PadXSmall})
+		outerCfg.Padding = NewPadding(0, DefaultScrollbarStyle.Size+PadXSmall, 0, 0)
 		outerCfg.ScrollbarCfgX = &ScrollbarCfg{
 			Overflow: ScrollbarHidden,
 		}
@@ -477,7 +477,7 @@ func tableFreezeLayout(
 
 	bodyCfg := ContainerCfg{
 		Sizing:     FillFill,
-		Padding:    Some(Padding{Right: DefaultScrollbarStyle.Size + PadXSmall}),
+		Padding:    NewPadding(0, DefaultScrollbarStyle.Size+PadXSmall, 0, 0),
 		Spacing:    Some(rowSpacing),
 		SizeBorder: NoBorder,
 		ID:         scrollID,
@@ -529,7 +529,7 @@ func tableColumnWidths(cfg *TableCfg, w *Window) []float32 {
 	if w == nil || w.textMeasurer == nil {
 		widths := make([]float32, numCols)
 		cw := cfg.columnWidthDefault +
-			cfg.cellPadding.Get(Padding{}).Width()
+			cfg.cellPadding.Or(PaddingNone).Width()
 		for i := range widths {
 			widths[i] = cw
 		}
@@ -573,7 +573,7 @@ func tableMeasureWidths(
 		}
 	}
 	widths := make([]float32, numCols)
-	pad := cfg.cellPadding.Get(Padding{}).Width()
+	pad := cfg.cellPadding.Or(PaddingNone).Width()
 
 	for _, r := range cfg.Data {
 		for ci, cell := range r.Cells {
@@ -650,7 +650,7 @@ func tableEstimateRowHeight(cfg *TableCfg, w *Window) float32 {
 	if w != nil && w.textMeasurer != nil {
 		height = w.textMeasurer.FontHeight(style)
 	}
-	return height + cfg.cellPadding.Get(Padding{}).Height()
+	return height + cfg.cellPadding.Or(PaddingNone).Height()
 }
 
 // ClearTableCache removes cached column widths for the given

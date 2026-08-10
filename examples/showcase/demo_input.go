@@ -435,7 +435,7 @@ func demoForms(w *gui.Window) gui.View {
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
 						ID:      "showcase-form-submit",
-						Padding: gui.SomeP(8, 16, 8, 16),
+						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{gui.Text(gui.TextCfg{Text: gui.CurrentLocale().StrSubmit, TextStyle: gui.CurrentTheme().B3})},
 						OnClick: func(ctx gui.EventCtx) {
 							gui.FormRequestSubmit(ctx.Window, showcaseFormID)
@@ -443,7 +443,7 @@ func demoForms(w *gui.Window) gui.View {
 					}),
 					gui.Button(gui.ButtonCfg{
 						ID:      "showcase-form-reset",
-						Padding: gui.SomeP(8, 16, 8, 16),
+						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{gui.Text(gui.TextCfg{Text: gui.CurrentLocale().StrReset, TextStyle: gui.CurrentTheme().N3})},
 						OnClick: func(ctx gui.EventCtx) {
 							gui.FormRequestReset(ctx.Window, showcaseFormID)

@@ -171,7 +171,7 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 		VAlign:     gui.VAlignMiddle,
 		Spacing:    gui.SomeF(16),
 		SizeBorder: gui.NoBorder,
-		Padding:    gui.SomeP(24, 24, 24, 24),
+		Padding:    gui.NewPadding(24, 24, 24, 24),
 		Content: []gui.View{
 			// Title
 			gui.Text(gui.TextCfg{
@@ -248,7 +248,7 @@ func modeButton(w *gui.Window, title string, mode DrawMode, color gui.Color) gui
 		Color:      color.WithOpacity(0.12),
 		Colors:     gui.ColorSet{Hover: color.WithOpacity(0.3), Click: color.WithOpacity(0.5), Border: color},
 		SizeBorder: gui.SomeF(2),
-		Padding:    gui.SomeP(14, 22, 14, 22),
+		Padding:    gui.NewPadding(14, 22, 14, 22),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      title,
@@ -274,7 +274,7 @@ func miniCard(rank, suit string, color gui.Color) gui.View {
 		ColorBorder: colorCardBorder,
 		SizeBorder:  gui.SomeF(1),
 		Radius:      gui.SomeF(4),
-		Padding:     gui.SomeP(2, 3, 2, 3),
+		Padding:     gui.NewPadding(2, 3, 2, 3),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      rank + suit,
@@ -531,7 +531,7 @@ func cardFaceUpView(c Card, x, y float32, onClick func(gui.EventCtx)) gui.View {
 		ColorBorder: colorCardBorder,
 		SizeBorder:  gui.SomeF(1),
 		Radius:      gui.SomeF(6),
-		Padding:     gui.SomeP(4, 5, 4, 5),
+		Padding:     gui.NewPadding(4, 5, 4, 5),
 		Clip:        true,
 		OnAnyClick:  onClick,
 		Content: []gui.View{
@@ -715,7 +715,7 @@ func statusBar(app *App, theme gui.Theme, ww, wh float32) gui.View {
 		Sizing:     gui.FixedFixed,
 		Color:      gui.RGBA(0, 0, 0, 160),
 		SizeBorder: gui.NoBorder,
-		Padding:    gui.SomeP(4, 12, 4, 12),
+		Padding:    gui.NewPadding(4, 12, 4, 12),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      scoreText,

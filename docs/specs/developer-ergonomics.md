@@ -867,7 +867,7 @@ Pair either way with cheap value constructors returning the same types the
 current wrappers do — these are unaffected by the decision above:
 
 ```go
-gui.PadAll(12)  // == gui.SomeP(12, 12, 12, 12)
+gui.PadAll(12)  // == gui.NewPadding(12, 12, 12, 12)
 gui.PadXY(8, 4)
 ```
 
@@ -905,6 +905,20 @@ So §4.5's phase-4 work is roughly **11 fields, not 165**. That is a materially
 smaller change than the section implies, and it is the reason the rule is worth
 documenting even though almost nothing has to move: the value is in deciding new
 fields correctly, not in the cleanup.
+
+#### 4.5.2 `Padding` self-flags; `Opt[Padding]` and `SomeP` removed (2026-08-10, #243)
+
+The rule now reads: **types the repo owns self-flag; only primitives get
+`Opt`.** `Padding` joined `Color` in carrying a `set` field, so "unset" (zero
+value, theme default applies) is distinguishable from explicitly zero
+(`PaddingNone`) without a wrapper. The 33 `Opt[Padding]` field declarations
+became plain `Padding`; `SomeP` was deleted (use `NewPadding`); read sites
+moved from `.Get(def)` to `.Or(def)`. Raw `Padding{...}` literals — even with
+nonzero sides — read as unset, so ergoaudit mode `literals` gates them: build
+with `NewPadding`/`PadAll`/`PaddingNone`. `ThemeMaker` stamps the flag on its
+`cfg.Padding*` copies so a resolved theme value never reads as unset on a later
+`IsSet` check. Breaking for consumers of `SomeP` and `Opt[Padding]`; the
+sibling repos bump together.
 
 ### 4.6 App-testing API — largest additive gap
 
