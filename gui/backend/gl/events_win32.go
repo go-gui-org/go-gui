@@ -115,6 +115,14 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		return b.mouseWheel(notchesToChars(hiWordS(wparam)), 0, lparam)
 
 	case wmKeyDown, wmSysKeyDown:
+		// VK_PROCESSKEY means the input method consumed the keystroke:
+		// TranslateMessage has already handed it to IMM, and the WM_IME_*
+		// messages that follow carry its effect. Emitting it as well would
+		// let a widget act on an Enter or an arrow the IME owns, which is
+		// the suppression the X11 path gets from imeProcessKey.
+		if wparam == vkProcessKey {
+			return 0, true
+		}
 		b.emit(gui.Event{
 			Type:      gui.EventKeyDown,
 			KeyCode:   winkey.MapVKey(wparam),
@@ -123,6 +131,9 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		})
 		return 0, true
 	case wmKeyUp, wmSysKeyUp:
+		if wparam == vkProcessKey {
+			return 0, true
+		}
 		b.emit(gui.Event{
 			Type:      gui.EventKeyUp,
 			KeyCode:   winkey.MapVKey(wparam),
@@ -132,6 +143,10 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 
 	case wmChar:
 		return b.charInput(wparam)
+
+	case wmIMEStartComposition, wmIMEComposition, wmIMEEndComposition,
+		wmIMESetContext, wmIMEChar:
+		return b.imeMessage(msg, wparam, lparam)
 
 	case wmSize:
 		if wparam == sizeMinimized {
