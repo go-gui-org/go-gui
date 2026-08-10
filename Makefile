@@ -192,10 +192,10 @@ workflow-audit:
 # docs/specs/developer-ergonomics.md, then gate on hand-rolled widget
 # IDs (docs/specs/widget-id-scoping.md) and on plain zero-meaningful
 # Cfg fields (the Opt[T] rule in CLAUDE.md, mode opt) and on raw
-# Padding literals (mode literals: a Padding{...} reads as unset and
-# silently takes the theme default). Modes ids, opt and literals exit
-# non-zero on any finding, so they run last: the reports above still
-# print either way.
+# Padding/Color literals (mode literals: a Padding{...} or Color{...}
+# reads as unset and silently takes the theme default). Modes ids, opt
+# and literals exit non-zero on any finding, so they run last: the
+# reports above still print either way.
 ergonomics-audit:
 	go run ./tools/ergonomics-audit/ -mode focus -gui . .
 	go run ./tools/ergonomics-audit/ -mode callbacks -gui . .

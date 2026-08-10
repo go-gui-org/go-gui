@@ -7,7 +7,7 @@ import (
 )
 
 // scanLitSrc runs the literals-mode rules over one in-memory file and
-// returns the findings as "line:name" strings, so a case can be written
+// returns the findings as "kind:text" strings, so a case can be written
 // as source.
 func scanLitSrc(t *testing.T, rel, src string) []string {
 	t.Helper()
@@ -17,10 +17,10 @@ func scanLitSrc(t *testing.T, rel, src string) []string {
 		t.Fatalf("parse: %v", err)
 	}
 	var found []litFinding
-	inspectPaddingLiterals(fset, f, rel, &found)
+	inspectSelfFlaggedLiterals(fset, f, rel, &found)
 	out := make([]string, len(found))
 	for i, x := range found {
-		out[i] = x.text
+		out[i] = litKindName(x.kind) + ":" + x.text
 	}
 	return out
 }
@@ -36,32 +36,80 @@ var d = NewPadding(1, 2, 3, 4)
 var e = PaddingNone
 `
 	findings := scanLitSrc(t, "x.go", src)
-	want := "Padding{...} gui.Padding{...} Padding{...}"
+	want := "Padding:Padding{...} Padding:gui.Padding{...} Padding:Padding{...}"
 	if len(findings) != 3 || (findings[0]+" "+findings[1]+" "+findings[2]) != want {
 		t.Fatalf("findings = %q, want %q", findings, want)
 	}
 }
 
-func TestLiteralsExemptsDefiningFile(t *testing.T) {
+func TestLiteralsFlagsRawColor(t *testing.T) {
 	t.Parallel()
-	const src = `package gui
+	const src = `package p
+
+var a = Color{R: 80, G: 200, B: 80, A: 255}
+var b = gui.Color{R: 1, G: 2, B: 3, A: 4}
+var c = Color{80, 200, 80, 255, true}
+var d = RGBA(80, 200, 80, 255)
+var e = ColorTransparent
+`
+	findings := scanLitSrc(t, "x.go", src)
+	want := "Color:Color{...} Color:gui.Color{...} Color:Color{...}"
+	if len(findings) != 3 || (findings[0]+" "+findings[1]+" "+findings[2]) != want {
+		t.Fatalf("findings = %q, want %q", findings, want)
+	}
+}
+
+func TestLiteralsExemptsEmptyColor(t *testing.T) {
+	t.Parallel()
+	const src = `package p
+
+var a = Color{}
+var b = (gui.Color{})
+`
+	findings := scanLitSrc(t, "x.go", src)
+	if len(findings) != 0 {
+		t.Fatalf("findings = %q, want none (empty Color{} is the unset sentinel)", findings)
+	}
+}
+
+func TestLiteralsIgnoresForeignColor(t *testing.T) {
+	t.Parallel()
+	const src = `package p
+
+var a = glyph.Color{R: 1, G: 2, B: 3, A: 4}
+var b = SvgColor{R: 1, G: 2, B: 3, A: 4}
+`
+	findings := scanLitSrc(t, "x.go", src)
+	if len(findings) != 0 {
+		t.Fatalf("findings = %q, want none (foreign types are not go-gui colors)", findings)
+	}
+}
+
+func TestLiteralsExemptsDefiningFiles(t *testing.T) {
+	t.Parallel()
+	paddingSrc := `package gui
 
 var PaddingNone = Padding{set: true}
 var paddingButton = PadAll(6)
 `
-	findings := scanLitSrc(t, "gui/padding.go", src)
-	if len(findings) != 0 {
-		t.Fatalf("findings = %q, want none (defining file is exempt)", findings)
+	if f := scanLitSrc(t, "gui/padding.go", paddingSrc); len(f) != 0 {
+		t.Fatalf("padding.go findings = %q, want none (defining file is exempt)", f)
+	}
+	colorSrc := `package gui
+
+var Black = RGBA(0, 0, 0, 255)
+`
+	if f := scanLitSrc(t, "gui/color.go", colorSrc); len(f) != 0 {
+		t.Fatalf("color.go findings = %q, want none (defining file is exempt)", f)
 	}
 }
 
-func TestLiteralsNonPaddingLiteralsIgnored(t *testing.T) {
+func TestLiteralsNonSelfFlaggingLiteralsIgnored(t *testing.T) {
 	t.Parallel()
 	const src = `package p
 
-var a = Color{1, 2, 3, 4}
-var b = PaddingBox{Top: 1}
-var c = Opt[Padding]{}
+var a = PaddingBox{Top: 1}
+var b = Opt[Padding]{}
 `
 	findings := scanLitSrc(t, "x.go", src)
 	if len(findings) != 0 {

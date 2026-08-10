@@ -46,9 +46,9 @@
 // like ids. See opt.go. Padding fields are exempt: Padding self-flags
 // since #243.
 //
-// Mode literals answers: does any code build a Padding with a raw
-// composite literal instead of a constructor, silently reading as unset?
-// It exits non-zero on any finding, so it gates. See literals.go.
+// Mode literals answers: does any code build a Padding or Color with a
+// raw composite literal instead of a constructor, silently reading as
+// unset? It exits non-zero on any finding, so it gates. See literals.go.
 //
 // All modes parse with go/ast: composite literals and func literals
 // span lines, and regex cannot bracket-match them.

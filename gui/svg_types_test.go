@@ -13,7 +13,7 @@ func TestSvgToColor(t *testing.T) {
 func TestSvgToColorTransparent(t *testing.T) {
 	sc := SvgColor{}
 	c := svgToColor(sc)
-	if c != (Color{0, 0, 0, 0, true}) {
+	if c != (RGBA(0, 0, 0, 0)) {
 		t.Fatalf("expected transparent Color, got %+v", c)
 	}
 }

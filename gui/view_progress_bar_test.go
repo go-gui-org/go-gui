@@ -205,7 +205,7 @@ func TestProgressBarRadiusZeroOverride(t *testing.T) {
 }
 
 func TestProgressBarTextBackgroundColor(t *testing.T) {
-	bg := Color{255, 0, 0, 255, true}
+	bg := RGBA(255, 0, 0, 255)
 	v := ProgressBar(ProgressBarCfg{
 		ID:             "pb-test",
 		Percent:        0.5,

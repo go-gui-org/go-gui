@@ -152,7 +152,7 @@ func mdCopyButton(
 	var btnContent []View
 	if copied {
 		checkStyle := iconStyle
-		checkStyle.Color = Color{80, 200, 80, 255, true}
+		checkStyle.Color = RGBA(80, 200, 80, 255)
 		btnContent = []View{
 			Text(TextCfg{Text: iconCheck, TextStyle: checkStyle}),
 		}

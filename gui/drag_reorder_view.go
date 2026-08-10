@@ -1,6 +1,6 @@
 package gui
 
-var dragGhostShadowColor = Color{R: 0, G: 0, B: 0, A: 60, set: true}
+var dragGhostShadowColor = RGBA(0, 0, 0, 60)
 
 // --- index calculation ---
 

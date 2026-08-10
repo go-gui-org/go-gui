@@ -81,7 +81,7 @@ func TestGradientDirectionAngleOverride(t *testing.T) {
 }
 
 func TestPackRGB(t *testing.T) {
-	c := Color{R: 100, G: 150, B: 200, set: true}
+	c := RGBA(100, 150, 200, 0)
 	p := PackRGB(c)
 	// Unpack: R = p mod 256, G = (p/256) mod 256, B = p/65536
 	r := uint8(math.Mod(float64(p), 256))
@@ -93,7 +93,7 @@ func TestPackRGB(t *testing.T) {
 }
 
 func TestPackAlphaPos(t *testing.T) {
-	c := Color{A: 128, set: true}
+	c := RGBA(0, 0, 0, 128)
 	p := PackAlphaPos(c, 0.5)
 	// Alpha = p mod 256 = 128
 	a := uint8(math.Mod(float64(p), 256))
@@ -117,8 +117,8 @@ func TestF32ToU8Saturated(t *testing.T) {
 }
 
 func TestLerpColorPremultipliedEndpoints(t *testing.T) {
-	a := Color{R: 255, G: 0, B: 0, A: 255, set: true}
-	b := Color{R: 0, G: 0, B: 255, A: 255, set: true}
+	a := RGBA(255, 0, 0, 255)
+	b := RGBA(0, 0, 255, 255)
 	c0 := lerpColorPremultiplied(a, b, 0)
 	if c0 != a {
 		t.Errorf("t=0: got %v, want %v", c0, a)
@@ -130,8 +130,8 @@ func TestLerpColorPremultipliedEndpoints(t *testing.T) {
 }
 
 func TestLerpColorPremultipliedMid(t *testing.T) {
-	a := Color{R: 0, G: 0, B: 0, A: 255, set: true}
-	b := Color{R: 254, G: 254, B: 254, A: 255, set: true}
+	a := RGBA(0, 0, 0, 255)
+	b := RGBA(254, 254, 254, 255)
 	mid := lerpColorPremultiplied(a, b, 0.5)
 	if mid.R < 125 || mid.R > 129 {
 		t.Errorf("mid R: got %d", mid.R)
@@ -139,8 +139,8 @@ func TestLerpColorPremultipliedMid(t *testing.T) {
 }
 
 func TestLerpColorPremultipliedZeroAlpha(t *testing.T) {
-	a := Color{R: 255, A: 0, set: true}
-	b := Color{R: 0, A: 0, set: true}
+	a := RGBA(255, 0, 0, 0)
+	b := RGBA(0, 0, 0, 0)
 	c := lerpColorPremultiplied(a, b, 0.5)
 	if c.A != 0 {
 		t.Errorf("zero alpha: got A=%d", c.A)
@@ -155,7 +155,7 @@ func TestSampleGradientStopColorEmpty(t *testing.T) {
 }
 
 func TestSampleGradientStopColorSingle(t *testing.T) {
-	stops := []GradientStop{{Color: Color{R: 100, A: 255, set: true}, Pos: 0.5}}
+	stops := []GradientStop{{Color: RGBA(100, 0, 0, 255), Pos: 0.5}}
 	c := SampleGradientStopColor(stops, 0.0)
 	if c.R != 100 {
 		t.Errorf("single stop: got R=%d", c.R)
@@ -164,8 +164,8 @@ func TestSampleGradientStopColorSingle(t *testing.T) {
 
 func TestSampleGradientStopColorTwoStop(t *testing.T) {
 	stops := []GradientStop{
-		{Color: Color{R: 0, A: 255, set: true}, Pos: 0},
-		{Color: Color{R: 254, A: 255, set: true}, Pos: 1},
+		{Color: RGBA(0, 0, 0, 255), Pos: 0},
+		{Color: RGBA(254, 0, 0, 255), Pos: 1},
 	}
 	mid := SampleGradientStopColor(stops, 0.5)
 	if mid.R < 125 || mid.R > 129 {
@@ -175,8 +175,8 @@ func TestSampleGradientStopColorTwoStop(t *testing.T) {
 
 func TestSampleGradientStopColorBoundary(t *testing.T) {
 	stops := []GradientStop{
-		{Color: Color{R: 10, A: 255, set: true}, Pos: 0},
-		{Color: Color{R: 200, A: 255, set: true}, Pos: 1},
+		{Color: RGBA(10, 0, 0, 255), Pos: 0},
+		{Color: RGBA(200, 0, 0, 255), Pos: 1},
 	}
 	c0 := SampleGradientStopColor(stops, 0)
 	if c0.R != 10 {
@@ -198,8 +198,8 @@ func TestNormalizeGradientStopsIntoEmpty(t *testing.T) {
 
 func TestNormalizeGradientStopsIntoSorted(t *testing.T) {
 	stops := []GradientStop{
-		{Color: Color{R: 255, A: 255, set: true}, Pos: 0.8},
-		{Color: Color{R: 0, A: 255, set: true}, Pos: 0.2},
+		{Color: RGBA(255, 0, 0, 255), Pos: 0.8},
+		{Color: RGBA(0, 0, 0, 255), Pos: 0.2},
 	}
 	norm := make([]GradientStop, 0, 8)
 	sampled := make([]GradientStop, 0, 8)
@@ -213,7 +213,7 @@ func TestNormalizeGradientStopsIntoOverLimit(t *testing.T) {
 	stops := make([]GradientStop, 10)
 	for i := range stops {
 		stops[i] = GradientStop{
-			Color: Color{R: uint8(i * 25), A: 255, set: true},
+			Color: RGBA(uint8(i*25), 0, 0, 255),
 			Pos:   float32(i) / 9.0,
 		}
 	}
@@ -234,8 +234,8 @@ func TestNormalizeGradientStopsIntoOverLimit(t *testing.T) {
 
 func TestNormalizeGradientStopsIntoReuse(t *testing.T) {
 	stops := []GradientStop{
-		{Color: Color{R: 0, A: 255, set: true}, Pos: 0},
-		{Color: Color{R: 255, A: 255, set: true}, Pos: 1},
+		{Color: RGBA(0, 0, 0, 255), Pos: 0},
+		{Color: RGBA(255, 0, 0, 255), Pos: 1},
 	}
 	norm := make([]GradientStop, 0, 8)
 	sampled := make([]GradientStop, 0, 8)

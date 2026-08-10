@@ -135,7 +135,10 @@ nearest.
 Use plain `Color`, never `Opt[Color]`. `Color` carries its own `set` flag
 (`gui/color.go`), so `Color{}` is unset and `ColorTransparent` is an explicit
 fully-transparent choice — the distinction `Opt` would add already exists, and
-wrapping gives the field two independent notions of unset.
+wrapping gives the field two independent notions of unset. Build colors with
+`RGBA`/`RGB`/`Hex` — a raw `Color{...}` literal reads as unset and silently
+takes the theme default (ergoaudit mode `literals` gates this; the empty
+`Color{}` sentinel is exempt).
 
 `ColorSet` (`gui/color_set.go`) groups the per-state colors; `Flat(c)` is the
 "keep one appearance" case. **Precedence: an assigned flat `Color*` field wins

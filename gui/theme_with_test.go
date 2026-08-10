@@ -6,7 +6,7 @@ func TestWithStyleMethodsSetsField(t *testing.T) {
 	var base Theme
 
 	// Verify a representative method properly sets its field.
-	got := base.withButtonStyle(buttonStyle{Color: Color{R: 42}})
+	got := base.withButtonStyle(buttonStyle{Color: RGBA(42, 0, 0, 0)})
 	if got.ButtonStyle.Color.R != 42 {
 		t.Error("WithButtonStyle did not set ButtonStyle.Color")
 	}
@@ -56,7 +56,7 @@ func TestWithStyleMethodsCoverage(t *testing.T) {
 
 func TestWithTextStyleUsesTextStyleDefField(t *testing.T) {
 	var base Theme
-	got := base.withTextStyle(TextStyle{Color: Color{G: 99}})
+	got := base.withTextStyle(TextStyle{Color: RGBA(0, 99, 0, 0)})
 	if got.TextStyleDef.Color.G != 99 {
 		t.Error("WithTextStyle should set TextStyleDef field")
 	}

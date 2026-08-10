@@ -197,7 +197,7 @@ func pdfRenderText(ctx *pdfCtx, cmd RenderCmd) {
 	if cmd.TextGradient != nil &&
 		len(cmd.TextGradient.Stops) > 0 {
 		gc := cmd.TextGradient.Stops[0].Color
-		tc = Color{gc.R, gc.G, gc.B, gc.A, true}
+		tc = RGBA(gc.R, gc.G, gc.B, gc.A)
 	}
 	r, g, b := tc.R, tc.G, tc.B
 	ctx.pdf.SetTextColor(int(r), int(g), int(b))
@@ -341,7 +341,7 @@ func pdfRenderGradientBorder(ctx *pdfCtx, cmd RenderCmd) {
 	}
 	c := cmd.Gradient.Stops[0].Color
 	ctx.pdf.SetDrawColor(int(c.R), int(c.G), int(c.B))
-	alphaSet := setAlpha(ctx.pdf, Color{c.R, c.G, c.B, c.A, true})
+	alphaSet := setAlpha(ctx.pdf, RGBA(c.R, c.G, c.B, c.A))
 	lw := max(cmd.Thickness, 1)
 	ctx.pdf.SetLineWidth(float64(lw * ctx.scale))
 	if cmd.Radius > 0 {

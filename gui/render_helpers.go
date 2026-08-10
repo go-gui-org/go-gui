@@ -8,7 +8,8 @@ func rectsOverlap(r1, r2 drawClip) bool {
 
 // dimAlpha halves the alpha for visually indicating disabled state.
 func dimAlpha(c Color) Color {
-	return Color{R: c.R, G: c.G, B: c.B, A: c.A / 2, set: c.set}
+	c.A /= 2
+	return c
 }
 
 // resolveClipRadius computes the effective rounded clip radius for

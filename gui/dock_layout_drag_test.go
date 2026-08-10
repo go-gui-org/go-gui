@@ -285,7 +285,7 @@ func TestDockDragAmendOverlayInactive(t *testing.T) {
 		},
 	}
 	// No active drag — overlay should stay at zero size.
-	dockDragAmendOverlay("dock1", Color{70, 130, 220, 80, true}, layout, w)
+	dockDragAmendOverlay("dock1", RGBA(70, 130, 220, 80), layout, w)
 	if layout.Children[0].Shape.Width != 0 {
 		t.Fatal("overlay should not change when inactive")
 	}
@@ -304,7 +304,7 @@ func TestDockDragAmendOverlayWindowTop(t *testing.T) {
 			{Shape: &Shape{ID: "dock_zone_overlay"}},
 		},
 	}
-	colorZone := Color{70, 130, 220, 80, true}
+	colorZone := RGBA(70, 130, 220, 80)
 	dockDragAmendOverlay("dock1", colorZone, layout, w)
 
 	ov := layout.Children[0].Shape
@@ -346,7 +346,7 @@ func TestDockDragAmendOverlayGroupRight(t *testing.T) {
 			{Shape: &Shape{ID: "dock_zone_overlay"}},
 		},
 	}
-	dockDragAmendOverlay("dock1", Color{70, 130, 220, 80, true}, layout, w)
+	dockDragAmendOverlay("dock1", RGBA(70, 130, 220, 80), layout, w)
 
 	ov := layout.Children[1].Shape
 	if ov.X != 300 {
@@ -379,7 +379,7 @@ func TestDockDragGhostView(t *testing.T) {
 // --- Zone overlay view ---
 
 func TestDockDragZoneOverlayView(t *testing.T) {
-	v := dockDragZoneOverlayView(Color{70, 130, 220, 80, true})
+	v := dockDragZoneOverlayView(RGBA(70, 130, 220, 80))
 	if v == nil {
 		t.Fatal("nil view")
 	}

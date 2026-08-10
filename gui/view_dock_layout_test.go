@@ -65,7 +65,7 @@ func TestApplyDockLayoutDefaults(t *testing.T) {
 }
 
 func TestApplyDockLayoutDefaultsPreservesExplicit(t *testing.T) {
-	c := Color{255, 0, 0, 255, true}
+	c := RGBA(255, 0, 0, 255)
 	cfg := DockLayoutCfg{
 		Sizing:            FixedFixed,
 		colorZonePreview:  c,
@@ -373,7 +373,7 @@ func TestNewDockLayoutCore(t *testing.T) {
 		ID:               "d1",
 		Root:             DockPanelGroup("g", nil, ""),
 		OnLayoutChange:   func(_ *DockNode, ctx EventCtx) { called = true },
-		colorZonePreview: Color{1, 2, 3, 4, true},
+		colorZonePreview: RGBA(1, 2, 3, 4),
 	}
 	core := newDockLayoutCore(cfg)
 	if core.id != "d1" {
@@ -382,7 +382,7 @@ func TestNewDockLayoutCore(t *testing.T) {
 	if core.root != cfg.Root {
 		t.Fatal("wrong root")
 	}
-	if core.colorZonePreview != (Color{1, 2, 3, 4, true}) {
+	if core.colorZonePreview != (RGBA(1, 2, 3, 4)) {
 		t.Fatal("wrong color")
 	}
 	core.onLayoutChange(nil, EventCtx{nil, nil, nil})

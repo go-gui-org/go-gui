@@ -111,7 +111,7 @@ func applyDockLayoutDefaults(cfg *DockLayoutCfg) {
 		cfg.Sizing = FillFill
 	}
 	if !cfg.colorZonePreview.IsSet() {
-		cfg.colorZonePreview = Color{70, 130, 220, 80, true}
+		cfg.colorZonePreview = RGBA(70, 130, 220, 80)
 	}
 	if !cfg.colorTab.IsSet() {
 		cfg.colorTab = guiTheme.ColorPanel

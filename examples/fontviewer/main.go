@@ -98,8 +98,8 @@ const (
 // Card colors are fixed (not theme-derived): the preview must stay
 // near-black-on-light regardless of theme for font legibility.
 var (
-	colorCardBG      = gui.Color{R: 248, G: 248, B: 248, A: 255}
-	colorCardHover   = gui.Color{R: 200, G: 220, B: 255, A: 255}
+	colorCardBG      = gui.RGBA(248, 248, 248, 255)
+	colorCardHover   = gui.RGBA(200, 220, 255, 255)
 	colorPreviewText = gui.RGB(32, 32, 32)
 	colorCopiedBadge = gui.RGB(40, 140, 40) // green "Copied" confirmation
 )

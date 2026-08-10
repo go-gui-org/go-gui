@@ -920,6 +920,18 @@ with `NewPadding`/`PadAll`/`PaddingNone`. `ThemeMaker` stamps the flag on its
 `IsSet` check. Breaking for consumers of `SomeP` and `Opt[Padding]`; the
 sibling repos bump together.
 
+#### 4.5.3 The literal guard extends to `Color` (2026-08-10, #243 follow-up)
+
+Mode `literals` now covers `Color{...}` too: a keyed `gui.Color{R:...}` outside
+the package compiles and silently reads as unset, exactly like Padding did. The
+empty `Color{}` form stays exempt — it is the explicit spelling of "unset"
+(zero-sentinel comparisons, optional color parameters) and behaves like
+omitting the value. `glyph.Color{...}` (a foreign type) never flags. The sweep
+converted ~99 sites to `RGBA(...)`; two of them (examples/fontviewer,
+gui/backend/internal/glyphconv) were genuine silent-unset bugs where the theme
+default was applied instead of the color the code wrote. `dimAlpha` dropped
+its set-preserving literal for an in-place `c.A /= 2`.
+
 ### 4.6 App-testing API — largest additive gap
 
 Apps built on go-gui cannot test behavior. They can only test that a view

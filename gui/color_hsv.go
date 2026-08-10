@@ -70,13 +70,7 @@ func colorFromHSVA(h, s, v float32, a uint8) Color {
 		r, b = c, x
 	}
 
-	return Color{
-		R:   uint8((r+m)*255.0 + 0.5),
-		G:   uint8((g+m)*255.0 + 0.5),
-		B:   uint8((b+m)*255.0 + 0.5),
-		A:   a,
-		set: true,
-	}
+	return RGBA(uint8((r+m)*255.0+0.5), uint8((g+m)*255.0+0.5), uint8((b+m)*255.0+0.5), a)
 }
 
 // HueColor returns the pure color for a given hue (s=1, v=1).
@@ -121,7 +115,7 @@ func colorFromHexString(s string) (Color, bool) {
 			return Color{}, false
 		}
 	}
-	return Color{R: r, G: g, B: b, A: a, set: true}, true
+	return RGBA(r, g, b, a), true
 }
 
 func hexPair(hi, lo byte) (uint8, bool) {
