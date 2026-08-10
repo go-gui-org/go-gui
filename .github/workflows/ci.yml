@@ -151,6 +151,18 @@ jobs:
         with:
           version: v2.12
 
+      # The step above analyses the GOOS=linux build only, so every
+      # //go:build windows file (27 of them: gl/, sni/, filedialog/,
+      # hicon/) was never linted by CI and had accumulated a baseline
+      # nothing would flag. Linting is a type-check, not an execution,
+      # so the windows build analyses fine from this runner.
+      - name: Lint (GOOS=windows)
+        uses: golangci/golangci-lint-action@v9
+        env:
+          GOOS: windows
+        with:
+          version: v2.12
+
       - name: Required-ID check
         run: go run ./tools/requiredid/cmd/requiredid ./...
 
