@@ -1,14 +1,16 @@
 package main
 
-// Mode literals answers: does any code build a Padding or Color with a
-// raw composite literal instead of a constructor?
+// Mode literals answers: does any code build a Padding, Color or
+// Sizing with a raw composite literal instead of a constructor?
 //
-// Both types self-flag (issue #243, gui/padding.go and gui/color.go):
-// the unexported set field distinguishes "not set" from an explicit
-// value, and a raw literal — even one with nonzero contents — reads as
-// UNSET, silently falling through to the theme default. A literal is
-// therefore always a bug: the caller meant the values it wrote. Build
-// with NewPadding / PadAll / PaddingNone, or RGBA() / RGB() / Hex().
+// All three types self-flag (issue #243, gui/padding.go, gui/color.go
+// and gui/sizing.go): the unexported set field distinguishes "not set"
+// from an explicit value, and a raw literal — even one with nonzero
+// contents — reads as UNSET, silently falling through to the theme or
+// widget default. A literal is therefore always a bug: the caller meant
+// the values it wrote. Build with NewPadding / PadAll / PaddingNone,
+// RGBA() / RGB() / Hex(), or the predefined Sizing vars (FitFit …
+// FillFixed).
 //
 // The hazard is worst outside the package: a keyed gui.Padding{...} or
 // gui.RGBA(..., 0, 0, 0) in an example compiles fine and silently takes the
@@ -18,8 +20,9 @@ package main
 // Exemptions, per type:
 //
 //   - The defining files (gui/padding.go, gui/color.go,
-//     gui/color_set.go) — PaddingNone itself is a Padding{set: true}
-//     literal there.
+//     gui/color_set.go, gui/sizing.go) — PaddingNone itself is a
+//     Padding{set: true} literal there, and the predefined Sizing vars
+//     are Sizing{…, set: true} literals.
 //   - The empty Color{} form: it is the explicit spelling of "unset"
 //     (zero-sentinel comparisons like bg == (gui.Color{}) and passing
 //     Color{} to an optional color parameter). It behaves exactly like
@@ -38,13 +41,14 @@ import (
 )
 
 // Defining files are exempt from the literal check: their own
-// Padding{set: true} / Color{...} literals are the types' only legal
-// ones. In a sibling repo these files do not exist, so every literal
-// of the type flags.
+// Padding{set: true} / Color{...} / Sizing{...} literals are the
+// types' only legal ones. In a sibling repo these files do not exist,
+// so every literal of the type flags.
 const (
 	paddingDefFile  = "gui/padding.go"
 	colorDefFile    = "gui/color.go"
 	colorSetDefFile = "gui/color_set.go"
+	sizingDefFile   = "gui/sizing.go"
 )
 
 // litKind classifies a composite literal as one of the self-flagging
@@ -55,10 +59,11 @@ const (
 	litOther litKind = iota
 	litPadding
 	litColor
+	litSizing
 )
 
-// litFinding is one raw Padding/Color literal outside the defining
-// files.
+// litFinding is one raw Padding/Color/Sizing literal outside the
+// defining files.
 type litFinding struct {
 	path string
 	line int
@@ -66,8 +71,8 @@ type litFinding struct {
 	kind litKind
 }
 
-// runLiterals reports every raw Padding{...}/Color{...} composite
-// literal in each repo's tree. Any finding exits non-zero.
+// runLiterals reports every raw Padding{...}/Color{...}/Sizing{...}
+// composite literal in each repo's tree. Any finding exits non-zero.
 func runLiterals(repos []string) error {
 	var findings []litFinding
 	for _, repo := range repos {
@@ -84,7 +89,7 @@ func runLiterals(repos []string) error {
 		return findings[i].line < findings[j].line
 	})
 
-	fmt.Printf("Raw Padding/Color literal audit (%d finding(s))\n", len(findings))
+	fmt.Printf("Raw Padding/Color/Sizing literal audit (%d finding(s))\n", len(findings))
 	for _, f := range findings {
 		fmt.Printf("%s:%d: raw %s literal %s — reads as UNSET and silently\n",
 			f.path, f.line, litKindName(f.kind), f.text)
@@ -99,16 +104,22 @@ func runLiterals(repos []string) error {
 
 // litKindName is the type name as printed in a finding.
 func litKindName(k litKind) string {
-	if k == litColor {
+	switch k {
+	case litColor:
 		return "Color"
+	case litSizing:
+		return "Sizing"
 	}
 	return "Padding"
 }
 
 // litKindHint names the constructors for the type in a finding.
 func litKindHint(k litKind) string {
-	if k == litColor {
+	switch k {
+	case litColor:
 		return "RGBA() / RGB() / Hex()"
+	case litSizing:
+		return "the predefined Sizing vars (FitFit / FitFill / FitFixed / FixedFit / FixedFill / FixedFixed / FillFit / FillFill / FillFixed)"
 	}
 	return "NewPadding / PadAll / PaddingNone"
 }
@@ -130,7 +141,8 @@ func litKindList(findings []litFinding) string {
 }
 
 // scanSelfFlaggedLiterals walks one repo's whole tree (not just gui/)
-// for raw Padding{...}/Color{...} literals outside the defining files.
+// for raw Padding{...}/Color{...}/Sizing{...} literals outside the
+// defining files.
 func scanSelfFlaggedLiterals(repo string) ([]litFinding, error) {
 	var findings []litFinding
 	err := walkGo(repo, func(path string, fset *token.FileSet, f *ast.File) {
@@ -145,7 +157,7 @@ func scanSelfFlaggedLiterals(repo string) ([]litFinding, error) {
 func inspectSelfFlaggedLiterals(
 	fset *token.FileSet, f *ast.File, rel string, findings *[]litFinding,
 ) {
-	if rel == paddingDefFile || rel == colorDefFile || rel == colorSetDefFile {
+	if rel == paddingDefFile || rel == colorDefFile || rel == colorSetDefFile || rel == sizingDefFile {
 		return
 	}
 	ast.Inspect(f, func(n ast.Node) bool {
@@ -185,6 +197,8 @@ func litKindOf(lit *ast.CompositeLit) litKind {
 			return litPadding
 		case "Color":
 			return litColor
+		case "Sizing":
+			return litSizing
 		}
 	case *ast.SelectorExpr:
 		id, ok := t.X.(*ast.Ident)
@@ -196,6 +210,8 @@ func litKindOf(lit *ast.CompositeLit) litKind {
 			return litPadding
 		case "Color":
 			return litColor
+		case "Sizing":
+			return litSizing
 		}
 	}
 	return litOther

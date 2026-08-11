@@ -112,9 +112,13 @@ caller means, so a plain `float32` cannot tell "no border" from "not
 specified". Where zero is not meaningful — most widths, heights, counts, and
 indices — `Opt` costs a wrapper call and buys nothing.
 
-Owned struct types self-flag instead of wrapping: `Color` (`gui/color.go`) and
-`Padding` (`gui/padding.go`) carry a `set` field, so they are plain fields with
-`IsSet()`/`Or()` rather than `Opt[T]`. Build `Padding` values with
+Owned struct types self-flag instead of wrapping: `Color` (`gui/color.go`),
+`Padding` (`gui/padding.go`) and `Sizing` (`gui/sizing.go`) carry a `set`
+field, so they are plain fields with `IsSet()`/`Or()` rather than `Opt[T]`.
+`Sizing`'s zero value (FitFit) is a real combination, which is exactly why it
+flags: build sizings with the predefined vars (`FitFit`…`FillFixed`), never a
+raw `Sizing{...}` literal — that reads as unset (ergoaudit mode `literals`
+gates this). Build `Padding` values with
 `NewPadding`/`PadAll`/`PaddingNone`; a raw `Padding{...}` literal reads as
 unset (ergoaudit mode `literals` gates this).
 

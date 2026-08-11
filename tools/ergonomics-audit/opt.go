@@ -48,6 +48,10 @@ package main
 // match the signals above. Padding is out of scope the same way since
 // #243: Padding self-flags (gui/padding.go), so a plain Padding field
 // already distinguishes "unset" from an explicit zero (PaddingNone).
+// Sizing is out of scope the same way: it self-flags (gui/sizing.go),
+// and its zero value (FitFit) is a real combination, so a plain Sizing
+// field needs no Opt — but callers must use the predefined vars, never
+// a raw Sizing{...} literal (mode literals gates that).
 
 import (
 	"fmt"

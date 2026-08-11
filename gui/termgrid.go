@@ -111,9 +111,7 @@ type termGridView struct {
 // buffer (len >= Cols*Rows). Default sizing is Fixed at
 // Cols*CellW x Rows*CellH.
 func TermGrid(cfg TermGridCfg) View {
-	if cfg.Sizing == (Sizing{}) {
-		cfg.Sizing = FixedFixed
-	}
+	cfg.Sizing = cfg.Sizing.Or(FixedFixed)
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = DefaultTextStyle
 	}

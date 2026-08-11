@@ -73,9 +73,7 @@ func (tv *tabControlView) Content() []View { return nil }
 
 func applyTabControlDefaults(cfg *TabControlCfg) {
 	s := &defaultTabControlStyle
-	if cfg.Sizing == (Sizing{}) {
-		cfg.Sizing = FillFill
-	}
+	cfg.Sizing = cfg.Sizing.Or(FillFill)
 	if !cfg.Color.IsSet() {
 		cfg.Color = s.Color
 	}

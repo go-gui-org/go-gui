@@ -123,7 +123,7 @@ func Slider(cfg SliderCfg) View {
 
 	trackSizing := FillFixed
 	if cfg.vertical {
-		trackSizing = Sizing{sizingFixed, sizingFill}
+		trackSizing = FixedFill
 	}
 
 	trackAxis := axisLeftToRight
