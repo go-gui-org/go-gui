@@ -6,9 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v0.58.0] - 2026-08-11
 
 ### Added
+
+- **`scripts/dev-loop.sh` rebuild-and-relaunch wrapper (#218).** Watches the
+  module for `*.go`/`go.mod`/`go.sum` changes, rebuilds into the gitignored
+  `build/dev-loop/`, kills the running app and relaunches it with preserved
+  args. Build failures print loudly and keep the watcher and the last good
+  binary running; INT/TERM/EXIT traps clean up the app and artifacts. Documented
+  in `docs/dev-loop.md`, linked from `CONTRIBUTING.md`.
 
 - **`TextStyle.CellWidth`, `TextStyle.CellHeight` and
   `TextStyle.NoBuiltinBoxGlyphs` (#251).** go-glyph draws box-drawing
