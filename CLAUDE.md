@@ -51,7 +51,8 @@ A `FillFill` root fills the window (min=max seed in `updateLayout`).
 ### Widgets
 
 All widgets take `*Cfg` struct (zero-initializable). Event callbacks share sig
-`func(EventCtx)`.
+`func(EventCtx)`. Worked examples and failure modes for every rule below:
+`docs/dx-cheat-sheet.md`.
 
 Focus requires **both** `Focusable` **and** a non-empty `ID` (`isFocusedTarget`,
 `gui/event_traversal.go`); tab order additionally needs
@@ -63,18 +64,14 @@ silent no-op — the widget renders and clicks but never joins the tab order. Th
 `FocusDisabled`, never with `Focusable: false`.** Fifteen Cfgs default on:
 `Button`, `ColorPicker`, `Combobox`, `DatePicker`, `Input`, `InputDate`,
 `ListBox`, `NumericInput`, `RadioButtonGroup`, `Radio`, `Select`, `Slider`,
-`Switch`, `Toggle`, `Tree`. Setting `Focusable: true` on these is redundant. The
-ID requirement is unchanged — a default-on control still needs an `ID` to reach
-the tab order, which is what `requiredid` enforces. Everything else is opt-in
-via `Focusable: true`. See `docs/specs/focusable-default-input.md`; run
-`ergonomics-audit -mode focus` for the current inventory.
+`Switch`, `Toggle`, `Tree`. Everything else is opt-in via `Focusable: true`.
+See `docs/specs/focusable-default-input.md`; run `ergonomics-audit -mode focus`
+for the current inventory.
 
 **`Shape.ID` is a leaf; identity is the effective ID.** `resolveShapeIDs`
-(`gui/id_resolve.go`, run from `layoutArrange` before the layout passes) stamps
-`Shape.effID` = the leaf joined to the IDs of its **ID-bearing ancestors**, and
-every ID-keyed store and lookup uses that — read `shape.idKey()`, never
-`shape.ID`, at a keying site. So `Input{ID:"name"}` under `Panel{ID:"settings"}`
-is `settings:name`, and the same leaf under `profile` is a different widget.
+(`gui/id_resolve.go`, run from `layoutArrange`) stamps `Shape.effID` = the leaf
+joined to the IDs of its **ID-bearing ancestors**, and every ID-keyed store and
+lookup uses that — read `shape.idKey()`, never `shape.ID`, at a keying site.
 Only explicit IDs join (never position, never child index); an ID-less container
 adds no scope, and its children collide as loudly as before. A leaf already
 containing `:` is **absolute** and is not joined again. Effective IDs must be
@@ -93,12 +90,11 @@ are absolute by design (reverse-parsed) and stay window-global. See
 is a `:`-joined path (`grid:header:name:resize`); the owner may itself be
 composed, and composition is associative. `ScopeIDN` appends a numeric segment
 without allocating for the number — use it for loop-derived identity. Both cost
-exactly one allocation; `gui/id_scope_test.go` asserts that. There is no
-escaping, so a **part** (a row key, a heading slug — a leaf value fed _into_ a
-composition) must not contain `:` and keeps its own spelling. Consumers matter
-as much as producers: rebuilding an ID at a lookup site is how the two drift.
-`make ergonomics-audit` (mode `ids`) fails on any hand-rolled composition; see
-`docs/specs/widget-id-scoping.md`.
+exactly one allocation; `gui/id_scope_test.go` asserts that. A **part** (a row
+key, a heading slug — a leaf value fed _into_ a composition) must not contain
+`:` and keeps its own spelling; rebuilding an ID at a lookup site is how
+producers and consumers drift. `make ergonomics-audit` (mode `ids`) fails on
+any hand-rolled composition; see `docs/specs/widget-id-scoping.md`.
 
 Uniqueness is strict, including within one widget: a composite widget's inner
 shape that needs the owning widget's focus or spell-check state sets
@@ -111,21 +107,16 @@ asserts a rendered window is clean.
 **Rule: types the repo owns self-flag; only primitives get `Opt`.**
 `Opt[T]` is for when the zero value is a legitimate user choice that must be
 distinguishable from "unset" — and only when the type cannot carry that
-distinction itself.
-
-`SizeBorder` is the worked example: a border width of `0` is something a caller
-means, so a plain `float32` cannot tell "no border" from "not specified" and
-silently applies the theme default. The same holds for `Radius`, `Spacing`,
-`Opacity`, and enum fields whose zero is a real member (`HAlignLeft == 0`).
-Where zero is not meaningful — most widths, heights, counts, and indices —
-`Opt` costs a wrapper call and buys nothing.
+distinction itself. `SizeBorder` is the canonical case: `0` is a border width a
+caller means, so a plain `float32` cannot tell "no border" from "not
+specified". Where zero is not meaningful — most widths, heights, counts, and
+indices — `Opt` costs a wrapper call and buys nothing.
 
 Owned struct types self-flag instead of wrapping: `Color` (`gui/color.go`) and
 `Padding` (`gui/padding.go`) carry a `set` field, so they are plain fields with
 `IsSet()`/`Or()` rather than `Opt[T]`. Build `Padding` values with
-`NewPadding`/`PadAll`/`PaddingNone` — a raw `Padding{...}` literal reads as
-unset and silently takes the theme default (ergoaudit mode `literals` gates
-this).
+`NewPadding`/`PadAll`/`PaddingNone`; a raw `Padding{...}` literal reads as
+unset (ergoaudit mode `literals` gates this).
 
 Decide this when authoring the field, not by copying whichever neighbor was
 nearest.
@@ -134,11 +125,10 @@ nearest.
 
 Use plain `Color`, never `Opt[Color]`. `Color` carries its own `set` flag
 (`gui/color.go`), so `Color{}` is unset and `ColorTransparent` is an explicit
-fully-transparent choice — the distinction `Opt` would add already exists, and
-wrapping gives the field two independent notions of unset. Build colors with
-`RGBA`/`RGB`/`Hex` — a raw `Color{...}` literal reads as unset and silently
-takes the theme default (ergoaudit mode `literals` gates this; the empty
-`Color{}` sentinel is exempt).
+fully-transparent choice — wrapping would give the field two notions of unset.
+Build colors with `RGBA`/`RGB`/`Hex`; a raw `Color{...}` literal reads as
+unset (ergoaudit mode `literals` gates this; the empty `Color{}` sentinel is
+exempt).
 
 `ColorSet` (`gui/color_set.go`) groups the per-state colors; `Flat(c)` is the
 "keep one appearance" case. **Precedence: an assigned flat `Color*` field wins
