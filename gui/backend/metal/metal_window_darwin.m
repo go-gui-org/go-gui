@@ -215,8 +215,12 @@ static uint32_t _nextWindowID = 1;
     metalLayer.device = device;
     metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
     metalLayer.framebufferOnly = NO; // allow readback for filters
-    // Eliminate content shift during live window resize.
-    metalLayer.presentsWithTransaction = YES;
+    // Off outside live resize: transaction mode costs a main-thread block
+    // per frame, which delays every queued UI update. It is switched on
+    // only for the duration of a resize drag, where it is what stops
+    // content shifting inside the window — see windowWillStartLiveResize /
+    // windowDidEndLiveResize below and the rationale in metalCtxCreate.
+    metalLayer.presentsWithTransaction = NO;
 
     self = [super initWithFrame:frame];
     if (self) {
@@ -485,6 +489,34 @@ static uint32_t _nextWindowID = 1;
 // consumer in metalPollEvent.
 - (void)windowWillStartLiveResize:(NSNotification *)notification {
     _liveResizeStarted = 1;
+    [self setPresentsWithTransaction:YES];
+}
+
+// The other half of the presentation-mode switch. Without this the window
+// would latch into transaction mode after its first resize and keep the
+// per-frame main-thread block for the rest of the session.
+- (void)windowDidEndLiveResize:(NSNotification *)notification {
+    [self setPresentsWithTransaction:NO];
+}
+
+// setPresentsWithTransaction switches the content layer's presentation
+// mode. Safe between frames only, which is where both callers sit: the
+// live-resize notifications are delivered on the main thread, and
+// metalEndFrame re-reads the property each frame rather than caching it.
+- (void)setPresentsWithTransaction:(BOOL)on {
+    CALayer *layer = self.contentView.layer;
+    if ([layer isKindOfClass:[CAMetalLayer class]]) {
+        ((CAMetalLayer *)layer).presentsWithTransaction = on;
+    } else {
+        // Not reachable as written — the view installs a CAMetalLayer in
+        // initWithFrame: — but the failure is silent and would resurrect
+        // the content-shift bug this switch exists to preserve the fix
+        // for: no layer to set means resize runs the async path with no
+        // symptom until someone drags a window border.
+        NSLog(@"gogui: content layer is %@, not CAMetalLayer — live-resize "
+              @"presentation mode not applied",
+              NSStringFromClass([layer class]));
+    }
 }
 
 - (void)windowDidResize:(NSNotification *)notification {
@@ -1462,6 +1494,47 @@ int metalTestIMEQueueDepth(void) { return _textQCount; }
 // Forward declaration: the conformance helpers below reset the queue
 // they dirty, and the definition sits after them.
 void metalTestResetIMEQueue(void);
+
+// Fire the windowWillStartLiveResize: / windowDidEndLiveResize:
+// delegate methods exactly as AppKit's resize tracking loop would —
+// the window is its own delegate, so posting the NSNotification to
+// NSNotificationCenter would not reach it. AppKit exposes no
+// programmatic API to start a real drag, so this is the only way to
+// exercise the live-resize presentation switch from a test.
+static void metalTestFireLiveResizeNotification(void *windowHandle,
+                                                BOOL start) {
+    if (!windowHandle) return;
+    GoGuiWindow *gw = (GoGuiWindow *)windowHandle;
+    if (!gw->nsWindow) return;
+    NSNotification *note = [NSNotification
+        notificationWithName:(start ? NSWindowWillStartLiveResizeNotification
+                                    : NSWindowDidEndLiveResizeNotification)
+                      object:gw->nsWindow];
+    if (start) {
+        [gw->nsWindow.delegate windowWillStartLiveResize:note];
+    } else {
+        [gw->nsWindow.delegate windowDidEndLiveResize:note];
+    }
+}
+
+void metalTestStartLiveResize(void *windowHandle) {
+    metalTestFireLiveResizeNotification(windowHandle, YES);
+}
+
+void metalTestEndLiveResize(void *windowHandle) {
+    metalTestFireLiveResizeNotification(windowHandle, NO);
+}
+
+// Report the content layer's presentation mode: 1 = transaction mode,
+// 0 = async, -1 = no CAMetalLayer to inspect.
+int metalTestLayerPresentsWithTransaction(void *windowHandle) {
+    if (!windowHandle) return -1;
+    GoGuiWindow *gw = (GoGuiWindow *)windowHandle;
+    if (!gw->nsWindow) return -1;
+    CALayer *layer = gw->nsWindow.contentView.layer;
+    if (![layer isKindOfClass:[CAMetalLayer class]]) return -1;
+    return ((CAMetalLayer *)layer).presentsWithTransaction ? 1 : 0;
+}
 
 // Drive keyDown: with a composition in progress and report whether the
 // raw key was claimed by the input method. A key that reaches the
