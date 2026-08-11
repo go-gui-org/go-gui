@@ -58,12 +58,22 @@ type TextStyle struct {
 	// box width (logical px), preserving aspect and centered. Grid callers
 	// (terminals) set it to cells×cellWidth. 0 = default emoji sizing.
 	EmojiBoxWidth float32
-	Color         Color
-	BgColor       Color
-	StrokeColor   Color
-	Align         TextAlignment
-	Underline     bool
-	Strikethrough bool
+	// CellWidth and CellHeight are the grid cell size in logical px. Grid callers
+	// (terminals) set them so the built-in box-drawing and block-element glyphs
+	// fill the cell exactly and neighbouring cells abut. 0 = derive the cell from
+	// the glyph advance and the run's ascent+descent, which leaves a sub-pixel
+	// overlap wherever the advance is fractional.
+	CellWidth   float32
+	CellHeight  float32
+	Color       Color
+	BgColor     Color
+	StrokeColor Color
+	Align       TextAlignment
+	Underline   bool
+	// NoBuiltinBoxGlyphs keeps the font's own glyphs for U+2500–257F and
+	// U+2580–259F instead of the built-in procedural rasterizer.
+	NoBuiltinBoxGlyphs bool
+	Strikethrough      bool
 }
 
 // mergeTextStyle fills zero fields in s from fallback.
@@ -86,12 +96,17 @@ func (ts TextStyle) toGlyphStyle() glyph.TextStyle {
 		Size:          ts.Size,
 		LetterSpacing: ts.LetterSpacing,
 		EmojiBoxWidth: ts.EmojiBoxWidth,
-		Features:      ts.Features,
-		Underline:     ts.Underline,
-		Strikethrough: ts.Strikethrough,
-		Typeface:      ts.Typeface,
-		StrokeWidth:   ts.StrokeWidth,
-		StrokeColor:   glyph.Color{R: ts.StrokeColor.R, G: ts.StrokeColor.G, B: ts.StrokeColor.B, A: ts.StrokeColor.A},
+		// Grid geometry and the box-glyph opt-out are rasterization inputs, like
+		// EmojiBoxWidth; glyph inherits them per run from the base style.
+		CellWidth:          ts.CellWidth,
+		CellHeight:         ts.CellHeight,
+		NoBuiltinBoxGlyphs: ts.NoBuiltinBoxGlyphs,
+		Features:           ts.Features,
+		Underline:          ts.Underline,
+		Strikethrough:      ts.Strikethrough,
+		Typeface:           ts.Typeface,
+		StrokeWidth:        ts.StrokeWidth,
+		StrokeColor:        glyph.Color{R: ts.StrokeColor.R, G: ts.StrokeColor.G, B: ts.StrokeColor.B, A: ts.StrokeColor.A},
 	}
 }
 

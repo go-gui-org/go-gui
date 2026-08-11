@@ -27,9 +27,14 @@ func GuiStyleToGlyphConfig(s gui.TextStyle) glyph.TextConfig {
 			Strikethrough: s.Strikethrough,
 			LetterSpacing: s.LetterSpacing,
 			EmojiBoxWidth: s.EmojiBoxWidth,
-			StrokeWidth:   s.StrokeWidth,
-			StrokeColor:   glyph.Color{R: s.StrokeColor.R, G: s.StrokeColor.G, B: s.StrokeColor.B, A: s.StrokeColor.A},
-			Features:      s.Features,
+			// Grid cell size + box-glyph opt-out: rasterization inputs the plain
+			// text path must carry too, not just the rich-text path.
+			CellWidth:          s.CellWidth,
+			CellHeight:         s.CellHeight,
+			NoBuiltinBoxGlyphs: s.NoBuiltinBoxGlyphs,
+			StrokeWidth:        s.StrokeWidth,
+			StrokeColor:        glyph.Color{R: s.StrokeColor.R, G: s.StrokeColor.G, B: s.StrokeColor.B, A: s.StrokeColor.A},
+			Features:           s.Features,
 		},
 		Block: glyph.BlockStyle{
 			Align:       align,

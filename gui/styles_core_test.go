@@ -87,6 +87,36 @@ func TestToGlyphStyleMapping(t *testing.T) {
 	}
 }
 
+// Grid geometry reaches glyph only through toGlyphStyle; a dropped field is
+// silent (box glyphs just fall back to advance-derived cells), so assert it.
+func TestToGlyphStyleGridGeometry(t *testing.T) {
+	ts := TextStyle{
+		Family:             "mono",
+		Size:               14,
+		CellWidth:          9.5,
+		CellHeight:         20,
+		NoBuiltinBoxGlyphs: true,
+	}
+	gs := ts.toGlyphStyle()
+	if gs.CellWidth != 9.5 {
+		t.Errorf("CellWidth: got %f, want 9.5", gs.CellWidth)
+	}
+	if gs.CellHeight != 20 {
+		t.Errorf("CellHeight: got %f, want 20", gs.CellHeight)
+	}
+	if !gs.NoBuiltinBoxGlyphs {
+		t.Error("NoBuiltinBoxGlyphs should be true")
+	}
+}
+
+// Zero values must stay zero so glyph keeps its derive-the-cell default.
+func TestToGlyphStyleGridGeometryUnset(t *testing.T) {
+	gs := TextStyle{Family: "mono", Size: 14}.toGlyphStyle()
+	if gs.CellWidth != 0 || gs.CellHeight != 0 || gs.NoBuiltinBoxGlyphs {
+		t.Errorf("unset grid fields leaked: %+v", gs)
+	}
+}
+
 func TestAffineIdentityCheck(t *testing.T) {
 	id := glyph.AffineIdentity()
 	if !affineTransformIsIdentity(id) {

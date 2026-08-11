@@ -101,6 +101,33 @@ func TestGuiStyleToGlyphConfigFieldMapping(t *testing.T) {
 	}
 }
 
+// The plain-text path is the one a terminal grid actually renders through, so
+// the cell size and box-glyph opt-out must survive this conversion too.
+func TestGuiStyleToGlyphConfigGridGeometry(t *testing.T) {
+	t.Parallel()
+	s := gui.TextStyle{
+		Family:             "Mono",
+		Size:               14,
+		EmojiBoxWidth:      19,
+		CellWidth:          9.5,
+		CellHeight:         20,
+		NoBuiltinBoxGlyphs: true,
+	}
+	gc := GuiStyleToGlyphConfig(s)
+	if gc.Style.EmojiBoxWidth != 19 {
+		t.Errorf("EmojiBoxWidth: got %v, want 19", gc.Style.EmojiBoxWidth)
+	}
+	if gc.Style.CellWidth != 9.5 {
+		t.Errorf("CellWidth: got %v, want 9.5", gc.Style.CellWidth)
+	}
+	if gc.Style.CellHeight != 20 {
+		t.Errorf("CellHeight: got %v, want 20", gc.Style.CellHeight)
+	}
+	if !gc.Style.NoBuiltinBoxGlyphs {
+		t.Error("NoBuiltinBoxGlyphs should be true")
+	}
+}
+
 func TestGuiStyleToGlyphConfigFeaturesGradient(t *testing.T) {
 	t.Parallel()
 	feat := &glyph.FontFeatures{
