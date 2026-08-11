@@ -257,7 +257,7 @@ type DataGridCfg struct {
 	ColorBorder         gg.Color
 	ColorResizeHandle   gg.Color
 	ColorResizeActive   gg.Color
-	Sizing              gg.Opt[gg.Sizing]
+	Sizing              gg.Sizing
 	PaginationKind      gridPaginationKind
 	Loading             bool
 	ShowCRUDToolbar     bool
@@ -282,9 +282,7 @@ func boolDefault(p *bool, def bool) bool {
 // defaults and sensible fallbacks.
 func applyDataGridDefaults(cfg *DataGridCfg) {
 	s := gg.DefaultDataGridStyle
-	if !cfg.Sizing.IsSet() {
-		cfg.Sizing = gg.Some(gg.FillFill)
-	}
+	cfg.Sizing = cfg.Sizing.Or(gg.FillFill)
 	if cfg.rowHeight == 0 {
 		cfg.rowHeight = dataGridDefaultRowHeight
 	}
@@ -627,7 +625,7 @@ func New(w *gg.Window, cfg DataGridCfg) gg.View {
 		Spacing:     gg.SomeF(0),
 		Disabled:    resolvedCfg.Disabled,
 		Invisible:   resolvedCfg.Invisible,
-		Sizing:      resolvedCfg.Sizing.Get(gg.FillFill),
+		Sizing:      resolvedCfg.Sizing,
 		Width:       resolvedCfg.Width,
 		Height:      resolvedCfg.Height,
 		MinWidth:    resolvedCfg.MinWidth,

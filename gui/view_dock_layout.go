@@ -107,9 +107,7 @@ func DockLayout(cfg DockLayoutCfg) View {
 }
 
 func applyDockLayoutDefaults(cfg *DockLayoutCfg) {
-	if cfg.Sizing == (Sizing{}) {
-		cfg.Sizing = FillFill
-	}
+	cfg.Sizing = cfg.Sizing.Or(FillFill)
 	if !cfg.colorZonePreview.IsSet() {
 		cfg.colorZonePreview = RGBA(70, 130, 220, 80)
 	}

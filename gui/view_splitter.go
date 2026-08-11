@@ -208,9 +208,7 @@ func newSplitterCore(cfg *SplitterCfg) *splitterCore {
 
 func applySplitterDefaults(cfg *SplitterCfg) {
 	s := &defaultSplitterStyle
-	if cfg.Sizing == (Sizing{}) {
-		cfg.Sizing = FillFill
-	}
+	cfg.Sizing = cfg.Sizing.Or(FillFill)
 	if !cfg.colorHandle.IsSet() {
 		cfg.colorHandle = s.colorHandle
 	}

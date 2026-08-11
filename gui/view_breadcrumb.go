@@ -63,9 +63,7 @@ func applyBreadcrumbDefaults(cfg *BreadcrumbCfg) {
 	if cfg.Separator == "" {
 		cfg.Separator = s.Separator
 	}
-	if cfg.Sizing == (Sizing{}) {
-		cfg.Sizing = FillFit
-	}
+	cfg.Sizing = cfg.Sizing.Or(FillFit)
 	if !cfg.Color.IsSet() {
 		cfg.Color = s.Color
 	}

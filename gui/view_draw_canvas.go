@@ -37,9 +37,7 @@ type drawCanvasView struct {
 
 // DrawCanvas creates a canvas with user-drawn geometry.
 func DrawCanvas(cfg DrawCanvasCfg) View {
-	if cfg.Sizing == (Sizing{}) {
-		cfg.Sizing = FixedFixed
-	}
+	cfg.Sizing = cfg.Sizing.Or(FixedFixed)
 	if !cfg.Color.IsSet() {
 		cfg.Color = ColorTransparent
 	}

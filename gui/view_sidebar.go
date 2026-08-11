@@ -38,9 +38,7 @@ func (w *Window) Sidebar(cfg SidebarCfg) View {
 	if cfg.Width == 0 {
 		cfg.Width = 250
 	}
-	if cfg.Sizing == (Sizing{}) {
-		cfg.Sizing = FixedFill
-	}
+	cfg.Sizing = cfg.Sizing.Or(FixedFill)
 	if !cfg.Color.IsSet() {
 		cfg.Color = guiTheme.ColorPanel
 	}

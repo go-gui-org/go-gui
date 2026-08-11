@@ -100,7 +100,7 @@ func TestReaccumulateAncestorsFitWidth(t *testing.T) {
 	parent := &Shape{
 		Width: 100, Height: 50,
 		Axis:   axisLeftToRight,
-		Sizing: Sizing{Width: sizingFit, Height: sizingFixed},
+		Sizing: FitFixed,
 	}
 	layout := &Layout{
 		Shape:    parent,
@@ -121,7 +121,7 @@ func TestReaccumulateAncestorsStopsAtFixed(t *testing.T) {
 	child := &Shape{Width: 60, Height: 30}
 	parent := &Shape{
 		Width: 100, Height: 50,
-		Sizing: Sizing{Width: sizingFixed, Height: sizingFixed},
+		Sizing: FixedFixed,
 	}
 	layout := &Layout{
 		Shape:    parent,
@@ -143,7 +143,7 @@ func TestReaccumulateAncestorsStopsWhenNoChange(t *testing.T) {
 	parent := &Shape{
 		Width: 60, Height: 50,
 		Axis:   axisLeftToRight,
-		Sizing: Sizing{Width: sizingFit, Height: sizingFixed},
+		Sizing: FitFixed,
 	}
 	layout := &Layout{
 		Shape:    parent,
@@ -165,7 +165,7 @@ func TestRecomputeFitWidthLTR(t *testing.T) {
 	parent := &Shape{
 		Width: 0, Height: 50,
 		Axis:    axisLeftToRight,
-		Sizing:  Sizing{Width: sizingFit},
+		Sizing:  FitFit,
 		Spacing: 5,
 	}
 	layout := &Layout{
@@ -189,7 +189,7 @@ func TestRecomputeFitWidthTTB(t *testing.T) {
 	c2 := &Shape{Width: 50, Height: 10}
 	parent := &Shape{
 		Axis:   axisTopToBottom,
-		Sizing: Sizing{Width: sizingFit},
+		Sizing: FitFit,
 	}
 	layout := &Layout{
 		Shape: parent,
@@ -210,7 +210,7 @@ func TestRecomputeFitWidthClampsMinMax(t *testing.T) {
 	child := &Shape{Width: 10, Height: 10}
 	parent := &Shape{
 		Axis:     axisLeftToRight,
-		Sizing:   Sizing{Width: sizingFit},
+		Sizing:   FitFit,
 		MinWidth: 50,
 		MaxWidth: 80,
 	}
@@ -237,7 +237,7 @@ func TestRecomputeFitHeightLTR(t *testing.T) {
 	c2 := &Shape{Width: 50, Height: 25}
 	parent := &Shape{
 		Axis:   axisLeftToRight,
-		Sizing: Sizing{Height: sizingFit},
+		Sizing: FitFit,
 	}
 	layout := &Layout{
 		Shape: parent,
@@ -259,7 +259,7 @@ func TestRecomputeFitHeightTTB(t *testing.T) {
 	c2 := &Shape{Width: 50, Height: 25, shapeType: shapeRectangle}
 	parent := &Shape{
 		Axis:    axisTopToBottom,
-		Sizing:  Sizing{Height: sizingFit},
+		Sizing:  FitFit,
 		Spacing: 5,
 	}
 	layout := &Layout{
@@ -282,7 +282,7 @@ func TestRecomputeFitHeightClampsMinMax(t *testing.T) {
 	child := &Shape{Width: 10, Height: 5}
 	parent := &Shape{
 		Axis:      axisTopToBottom,
-		Sizing:    Sizing{Height: sizingFit},
+		Sizing:    FitFit,
 		MinHeight: 20,
 		MaxHeight: 50,
 	}
@@ -309,7 +309,7 @@ func TestRecomputeFitWidthSkipsOverDraw(t *testing.T) {
 		OverDraw: true}
 	parent := &Shape{
 		Axis:   axisLeftToRight,
-		Sizing: Sizing{Width: sizingFit},
+		Sizing: FitFit,
 	}
 	layout := &Layout{
 		Shape: parent,

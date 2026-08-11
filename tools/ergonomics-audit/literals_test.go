@@ -59,6 +59,23 @@ var e = ColorTransparent
 	}
 }
 
+func TestLiteralsFlagsRawSizing(t *testing.T) {
+	t.Parallel()
+	const src = `package p
+
+var a = Sizing{Width: sizingFill}
+var b = gg.Sizing{Width: sizingFixed, Height: sizingFit}
+var c = Sizing{}
+var d = FitFit
+var e = gg.FillFill
+`
+	findings := scanLitSrc(t, "x.go", src)
+	want := "Sizing:Sizing{...} Sizing:gg.Sizing{...} Sizing:Sizing{...}"
+	if len(findings) != 3 || (findings[0]+" "+findings[1]+" "+findings[2]) != want {
+		t.Fatalf("findings = %q, want %q", findings, want)
+	}
+}
+
 func TestLiteralsExemptsEmptyColor(t *testing.T) {
 	t.Parallel()
 	const src = `package p

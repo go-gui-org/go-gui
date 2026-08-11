@@ -135,7 +135,7 @@ func Text(cfg TextCfg) View {
 		return invisibleContainerView()
 	}
 	sizing := cfg.Sizing
-	if sizing == (Sizing{}) {
+	if !sizing.IsSet() {
 		if cfg.Mode == TextModeWrap ||
 			cfg.Mode == TextModeWrapKeepSpaces {
 			sizing = FillFit

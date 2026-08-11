@@ -101,9 +101,7 @@ func applyMenubarDefaults(cfg *MenubarCfg) {
 	if cfg.textStyleSubtitle == (TextStyle{}) {
 		cfg.textStyleSubtitle = d.textStyleSubtitle
 	}
-	if cfg.Sizing == (Sizing{}) {
-		cfg.Sizing = FillFit
-	}
+	cfg.Sizing = cfg.Sizing.Or(FillFit)
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = d.Padding
 	}

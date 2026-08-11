@@ -32,6 +32,35 @@ func TestSizingConstants(t *testing.T) {
 	}
 }
 
+func TestSizingSelfFlag(t *testing.T) {
+	// The zero value is FitFit — a real combination — so the set flag is
+	// what distinguishes "unset" from an explicit `Sizing: FitFit`.
+	var z Sizing
+	if z.IsSet() {
+		t.Error("zero Sizing reports IsSet() = true, want false")
+	}
+	for _, s := range []Sizing{FitFit, FitFill, FitFixed, FixedFit,
+		FixedFill, FixedFixed, FillFit, FillFill, FillFixed} {
+		if !s.IsSet() {
+			t.Errorf("%+v reports IsSet() = false, want true", s)
+		}
+	}
+}
+
+func TestSizingOr(t *testing.T) {
+	var z Sizing
+	if got := z.Or(FillFill); got != FillFill || !got.IsSet() {
+		t.Errorf("unset Or(FillFill) = %+v set=%v, want FillFill set=true",
+			got, got.IsSet())
+	}
+	if got := FitFit.Or(FillFill); got != FitFit {
+		t.Errorf("explicit FitFit Or(FillFill) = %+v, want FitFit", got)
+	}
+	if got := FitFit.Or(FillFill); !got.IsSet() {
+		t.Error("explicit Or(def) result should stay set")
+	}
+}
+
 func TestApplyFixedSizingConstraintsWidth(t *testing.T) {
 	s := &Shape{Sizing: FixedFixed, Width: 50, Height: 30}
 	applyFixedSizingConstraints(s)

@@ -217,10 +217,7 @@ func MathSpinner(cfg MathSpinnerCfg, w *Window) View {
 	strokeWidth := cfg.StrokeWidth
 	color := cfg.Color
 
-	sizing := cfg.Sizing
-	if sizing == (Sizing{}) {
-		sizing = FixedFixed
-	}
+	sizing := cfg.Sizing.Or(FixedFixed)
 
 	return Row(ContainerCfg{
 		ID:         cfg.ID,
