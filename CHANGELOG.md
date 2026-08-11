@@ -8,24 +8,39 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **`TextStyle.CellWidth`, `TextStyle.CellHeight` and
+  `TextStyle.NoBuiltinBoxGlyphs` (#251).** go-glyph draws box-drawing
+  (U+2500–257F) and block-element (U+2580–259F) characters procedurally at cell
+  size instead of through the font. Without a cell it derives one from the glyph
+  advance and the run's ascent+descent, which fixes the stroke weight and the
+  sub-pixel phase but leaves a sub-pixel overlap wherever the advance is
+  fractional. Grid callers (terminals) build a `gui.TextStyle`, never a
+  `glyph.TextStyle`, so they had no way to pass their real cell: setting
+  `CellWidth`/`CellHeight` is what makes neighbouring cells abut exactly.
+  `NoBuiltinBoxGlyphs` keeps the font's own glyphs instead. All three map
+  through both converters — the rich-text path (`toGlyphStyle`) and the
+  plain-text measure/render path (`glyphconv.GuiStyleToGlyphConfig`), which is
+  what `TermGrid` renders through. Zero/false keep today's behaviour.
+
 ## [v0.57.0] - 2026-08-10
 
 ### Changed
 
-- **`Padding` self-flags; `Opt[Padding]` and `SomeP` removed (breaking,
-  #243).** `Padding` carries a `set` flag like `Color`: the zero value is
-  "unset" (theme default applies), `PaddingNone` is an explicitly-set zero,
-  and values are built with `NewPadding` / `PadAll` / `PaddingNone`.
-  `IsSet()` and `Or(def)` replace `Opt[Padding]`'s `IsSet()`/`Get(def)` on
-  the 50 affected Cfg fields; read sites moved from `.Get(Padding{})` to
-  `.Or(PaddingNone)`. Raw `Padding{...}` or `Color{...}` literals read as
-  unset, so `make ergonomics-audit` now also runs the new `-mode literals`
-  gate over the whole tree (defining files and the empty `Color{}` sentinel
-  exempt); `-mode opt` exempts Padding-typed fields like it exempts Color.
-  `ThemeMaker` stamps the flag on its `cfg.Padding*` copies so a resolved
-  theme value never reads as unset. Breaking for consumers of `SomeP` and
-  `Opt[Padding]`: go-charts, go-edit, go-kite, go-map and go-term bump
-  together.
+- **`Padding` self-flags; `Opt[Padding]` and `SomeP` removed (breaking, #243).**
+  `Padding` carries a `set` flag like `Color`: the zero value is "unset" (theme
+  default applies), `PaddingNone` is an explicitly-set zero, and values are
+  built with `NewPadding` / `PadAll` / `PaddingNone`. `IsSet()` and `Or(def)`
+  replace `Opt[Padding]`'s `IsSet()`/`Get(def)` on the 50 affected Cfg fields;
+  read sites moved from `.Get(Padding{})` to `.Or(PaddingNone)`. Raw
+  `Padding{...}` or `Color{...}` literals read as unset, so
+  `make ergonomics-audit` now also runs the new `-mode literals` gate over the
+  whole tree (defining files and the empty `Color{}` sentinel exempt);
+  `-mode opt` exempts Padding-typed fields like it exempts Color. `ThemeMaker`
+  stamps the flag on its `cfg.Padding*` copies so a resolved theme value never
+  reads as unset. Breaking for consumers of `SomeP` and `Opt[Padding]`:
+  go-charts, go-edit, go-kite, go-map and go-term bump together.
 
 - **Exported API surface reduced (~1,400 symbols) as the v1.0 freeze
   (breaking).** `tools/exportaudit` classifies every export in `gui/` by who
@@ -42,40 +57,40 @@ and this project adheres to
 
 ### Fixed
 
-- **Windows: window and tray icons now render (#235).** `hicon.FromPNG`
-  passed a NULL `hbmMask` to `CreateIconIndirect`, which Win32 requires —
-  the call always failed, so the title bar, taskbar, alt-tab, and SNI tray
-  icons fell back to the shell's generic icon whether or not the app set
-  `WindowCfg.IconPNG`. The function now creates a zeroed 1bpp mask (fully
-  opaque), letting the 32bpp color bitmap's alpha shape the icon, so Windows
-  honors `IconPNG` like the other platforms.
+- **Windows: window and tray icons now render (#235).** `hicon.FromPNG` passed a
+  NULL `hbmMask` to `CreateIconIndirect`, which Win32 requires — the call always
+  failed, so the title bar, taskbar, alt-tab, and SNI tray icons fell back to
+  the shell's generic icon whether or not the app set `WindowCfg.IconPNG`. The
+  function now creates a zeroed 1bpp mask (fully opaque), letting the 32bpp
+  color bitmap's alpha shape the icon, so Windows honors `IconPNG` like the
+  other platforms.
 
 - **Windows: a revoked mouse capture no longer leaves a drag stuck (#110).**
   Win32 can take capture away without ever sending the matching button-up — a
   system modal or UAC prompt, Ctrl+Alt+Del, Win+L, another process calling
   `SetCapture`, a debugger breaking in. `WM_CAPTURECHANGED` was unhandled, so
-  the `MouseLock` never cleared and every later mouse move kept driving the
-  drag with no button held (text selection tracking the cursor, a splitter or
-  slider still following it). The message now cancels the drag. Our own
+  the `MouseLock` never cleared and every later mouse move kept driving the drag
+  with no button held (text selection tracking the cursor, a splitter or slider
+  still following it). The message now cancels the drag. Our own
   `ReleaseCapture` raises the same message, so the backend tracks capture
   ownership and only cancels on an involuntary loss.
 
 ### Added
 
 - **`MouseLockCfg.Cancel`** — a `func(*Window)` hook that unwinds a drag ending
-  without a release. `MouseUp` cannot serve: it *commits*, so synthesising one
+  without a release. `MouseUp` cannot serve: it _commits_, so synthesising one
   on capture loss would dock a panel or reorder a list the user never dropped.
-  `(*Window).MouseCancel` unlocks and runs the hook; widgets whose state is
-  just the lock need no hook. Wired for text/RTF/input selection (stops the
+  `(*Window).MouseCancel` unlocks and runs the hook; widgets whose state is just
+  the lock need no hook. Wired for text/RTF/input selection (stops the
   edge-scroll animation), sliders, the color picker, datagrid column resize,
   dock drags, and drag-reorder.
 
-- **`make export-audit` now actually fails the build when the gate trips.**
-  The authoritative consumer scan previously ran under `|| true`, so a real
-  gate failure (offenders found with siblings present) exited zero. It now
-  only tolerates missing sibling repos; CI shallow-clones the five consumers
-  into `../` and runs the authoritative scan, so the freeze is enforced on
-  every PR. See `docs/specs/exportaudit-surface-policy.md` for the accepted
+- **`make export-audit` now actually fails the build when the gate trips.** The
+  authoritative consumer scan previously ran under `|| true`, so a real gate
+  failure (offenders found with siblings present) exited zero. It now only
+  tolerates missing sibling repos; CI shallow-clones the five consumers into
+  `../` and runs the authoritative scan, so the freeze is enforced on every PR.
+  See `docs/specs/exportaudit-surface-policy.md` for the accepted
   `internal`-class policy.
 
 ## [v0.56.0] - 2026-08-09
