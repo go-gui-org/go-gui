@@ -36,6 +36,9 @@ void metalTestResetIMEQueue(void);
 int metalTestPopTextEvent(void);
 int metalTestIMEClientConformance(void *windowHandle);
 int metalTestIMEKeySuppressedWhileComposing(void *windowHandle);
+void metalTestStartLiveResize(void *windowHandle);
+void metalTestEndLiveResize(void *windowHandle);
+int metalTestLayerPresentsWithTransaction(void *windowHandle);
 */
 import "C"
 import (
@@ -161,6 +164,25 @@ func testIMEKeySuppressedWhileComposing(handle C.GoGuiNSWindow) bool {
 
 func testWindowID(handle C.GoGuiNSWindow) uint32 {
 	return uint32(C.metalWindowGetID(handle))
+}
+
+// testStartLiveResize / testEndLiveResize fire the live-resize
+// delegate methods the way AppKit's tracking loop does. testLayer-
+// PresentsWithTransaction reports the layer's presentation mode:
+// 1 = transaction, 0 = async, -1 = no CAMetalLayer. Together they
+// verify the async-presentation switch without a real drag, which
+// AppKit does not expose programmatically.
+func testStartLiveResize(handle C.GoGuiNSWindow) {
+	C.metalTestStartLiveResize(unsafe.Pointer(handle))
+}
+
+func testEndLiveResize(handle C.GoGuiNSWindow) {
+	C.metalTestEndLiveResize(unsafe.Pointer(handle))
+}
+
+func testLayerPresentsWithTransaction(handle C.GoGuiNSWindow) int {
+	return int(C.metalTestLayerPresentsWithTransaction(
+		unsafe.Pointer(handle)))
 }
 
 // testActivateNow calls C.metalAppFinishLaunch directly to verify

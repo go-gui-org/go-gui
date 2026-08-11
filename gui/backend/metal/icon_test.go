@@ -163,4 +163,11 @@ func runMainThreadTests() {
 	// 10. Frames must keep flowing while a nested AppKit runloop (modal
 	//     dialog, open menu, live resize) blocks the Go event loop.
 	runFramePumpMainThreadTests()
+
+	// 11. The layer's presentation mode must follow the live-resize
+	//     switch — async outside the drag, transaction mode during it,
+	//     and back to async when it ends. Regression for the window
+	//     latching into per-frame main-thread blocking after its first
+	//     resize.
+	runLiveResizePresentationTests()
 }
