@@ -7,6 +7,10 @@ go test ./... && go vet ./... && golangci-lint run ./...
 go run ./tools/requiredid/cmd/requiredid ./...
 ```
 
+For a tight edit → rebuild → relaunch loop while iterating on an example app,
+see [docs/dev-loop.md](docs/dev-loop.md)
+(`./scripts/dev-loop.sh ./examples/get_started/`).
+
 `go vet` does not run the `requiredid` analyzer — it is a standalone
 framework-owned analyzer. CI runs it on every push, and `make vet` includes it.
 Adopter projects can invoke it the same way, standalone, without the Makefile:
