@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.59.0] - 2026-08-11
+
+### Added
+
+- **`Sizing` self-flags like `Padding`/`Color` (#243, #254).** `Sizing`
+  carries a `set` field: the zero value (`FitFit`) is a real combination, so
+  the flag is what distinguishes "unset" from an explicit `Sizing{FitFit}`.
+  Predefined vars (`FitFit`…`FillFixed`) set it; read with `IsSet()`/`Or()`.
+  The raw `Sizing{...}` literal now reads as unset (ergoaudit literals mode
+  flags it). `DataGridCfg.Sizing` drops `Opt[gg.Sizing]` for plain
+  `gg.Sizing` (breaking). An explicit `FitFit` + wrap mode in text is no
+  longer clobbered to `FillFit`.
+
+### Changed
+
+- **Async present outside live resize on macOS Metal (#255).** During live
+  window resize the Metal backend now presents asynchronously, decoupling
+  presentation from the resize hot path instead of blocking on the
+  drawable. Reduced jank and dropped frames while resizing.
+
 ## [v0.58.0] - 2026-08-11
 
 ### Added
