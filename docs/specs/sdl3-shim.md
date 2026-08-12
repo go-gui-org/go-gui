@@ -3,6 +3,10 @@
 Source: [cataggar/SDL#1](https://github.com/cataggar/SDL/pull/1) +
 [cataggar/go-gui#1](https://github.com/cataggar/go-gui/pull/1)
 
+Status: **Closed 2026-08-12 by decision: not pursued — the SDL2 backend is
+retired, so there is nothing left to shim.** See § Decision for the rationale
+and the conditions that would reopen it.
+
 ## Summary
 
 Two coordinated PRs that let go-gui (and go-glyph) target SDL3 with zero
@@ -197,3 +201,42 @@ the engineering is solid. Before merging into go-gui:
    default format mask.
 7. Accept `replace` as a permanent part of the design. Document in README
    that downstream consumers must copy the directive to opt into SDL3.
+
+## Decision (2026-08-12): closed, not pursued
+
+~~**Adopt the approach, repackage first.**~~
+
+**Decision: close the shim path. Do not reopen without a concrete trigger.**
+
+The shim's design premise is gone, and its payoff is already delivered by
+other work:
+
+- **There is no import surface left to shim.** The shim works by replacing
+  `github.com/veandco/go-sdl2/sdl` so ~382 call sites compile unchanged. The
+  SDL2 backend was retired in `a930638` (#42): `gui/backend/sdl2/` is gone
+  and go.mod no longer references go-sdl2. A drop-in replacement with no
+  original to replace changes nothing.
+- **The toolchain elimination it promised is done without SDL.** The shim's
+  headline benefit was dropping MSYS2/MinGW and the C toolchain on Linux and
+  Windows. The purego `glbind` backend (cgo-free Phase 1, 2026-07-31) already
+  builds the entire module `CGO_ENABLED=0` on both platforms — no zig, no
+  SDL, no pkg-config.
+- **It would not serve the platform that still needs cgo.** macOS, the only
+  remaining CGo backend, is native Metal/AppKit with zero SDL dependency
+  (`macos-native-backend.md`, implemented). The shim adds nothing there.
+- **The cost stays real.** zig as a mandatory build tool for every
+  contributor and CI pipeline, hosting in a personal SDL fork
+  (`cataggar/SDL`) with no own lifecycle, and downstream
+  replace-directive leakage — all paid to feed a backend that no longer
+  exists.
+
+### Conditions that would reopen it
+
+- A platform appears where the purego `glbind` path cannot serve (e.g. an
+  EGL-less target for which SDL3 is the natural host), and the shim is first
+  repackaged as a standalone versioned module with its own tests.
+- An SDL2 import surface is reintroduced into the tree.
+
+The evaluation itself stands as valid groundwork: if either trigger fires,
+the architecture and the repackaging plan in § Recommendation are still the
+right starting point.
