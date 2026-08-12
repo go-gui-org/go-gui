@@ -7,6 +7,7 @@ Guidance for Claude Code (claude.ai/code) in this repo.
 ```
 go run ./examples/get_started/  # run the example app
 make check-all                  # test + lint + vet gates (pre-push)
+git config core.hooksPath .githooks  # enable tracked pre-commit/pre-push hooks
 make test                       # tests only
 make lint                       # golangci-lint (pinned version)
 make vet                        # go vet + requiredid analyzer

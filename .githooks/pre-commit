@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+
+if gofmt -l ./gui/ ./examples/ 2>/dev/null | grep -q .; then
+    echo "pre-commit: gofmt check failed on:"
+    gofmt -l ./gui/ ./examples/
+    exit 1
+fi
+
+golangci-lint run ./gui/... ./examples/...

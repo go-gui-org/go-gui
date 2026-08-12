@@ -1,0 +1,33 @@
+#!/bin/sh
+# Push gates, run from the repo root by git.
+# 1. Verify pkg-config paths for CGO deps actually exist on disk.
+#    Catches stale .pc files (e.g. harfbuzz Cellar path removed by brew cleanup).
+# 2. Run the full pre-push gate (make check-all: test + lint + vet + checks),
+#    matching what CLAUDE.md documents as the pre-push gate.
+
+set -e
+
+pkgs="freetype2 harfbuzz pango fontconfig"
+fail=0
+
+for p in $pkgs; do
+    if ! pkg-config --exists "$p" 2>/dev/null; then
+        echo "pre-push: pkg-config missing: $p" >&2
+        fail=1
+        continue
+    fi
+    libs=$(pkg-config --libs-only-L "$p" 2>/dev/null)
+    for l in $libs; do
+        dir=${l#-L}
+        if [ ! -d "$dir" ]; then
+            echo "pre-push: $p references missing dir: $dir" >&2
+            echo "  fix: brew reinstall $p" >&2
+            fail=1
+        fi
+    done
+done
+
+[ $fail -eq 0 ] || exit 1
+
+echo "pre-push: running make check-all (test + lint + vet + checks)..."
+make check-all

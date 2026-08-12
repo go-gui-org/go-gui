@@ -8,6 +8,8 @@
 
 !Makefile
 !LICENSE
+!.githooks/pre-commit
+!.githooks/pre-push
 
 # Binaries
 main
