@@ -111,7 +111,7 @@ vet:
 
 # Run golangci-lint (requires golangci-lint installed, pinned to LINT_VERSION).
 lint:
-	@golangci-lint --version | grep -q "$(LINT_VERSION)" || \
+	@golangci-lint --version | grep -q "$(LINT_VERSION:v%=%)" || \
 	  { echo "::error::golangci-lint $(LINT_VERSION) required. Run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(LINT_VERSION)"; exit 1; }
 	golangci-lint run ./...
 

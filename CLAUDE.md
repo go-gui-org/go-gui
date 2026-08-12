@@ -270,8 +270,9 @@ git/mkdir/rm/ls output. `ctx_fetch_and_index` instead of curl/wget/WebFetch.
   ~600 lines, where wgpu would have added 10–40 MB of runtime libs, supplied
   none of `NativePlatform`, and left macOS untouched.
 - **Current CGo state:** `CGO_ENABLED=0 go build ./...` is green on Linux and
-  Windows for the whole module. macOS (5.9k lines ObjC) is the entire remaining
-  problem and is not started.
+  Windows for the whole module. macOS (5.9k lines ObjC) stays cgo **by
+  decision** (2026-08-12) — the value argument inverts there; do not re-open
+  without a trigger. See `docs/specs/cgo-free-backend-feasibility.md` § Phase 2.
 
 Full history and rationale — WebGPU, the go-gl→glbind swap, the `gui/audio`
 de-cgo — in `docs/specs/cgo-free-backend-feasibility.md`.
