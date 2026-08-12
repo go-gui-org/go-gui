@@ -1,5 +1,9 @@
 # Unify metal quit dispatch with gl/sdl2 backends
 
+Status: **implemented** — the Metal backend's two quit paths collapsed into the
+single `!cont` → `DispatchQuitRequest(app)` path (`gui/backend/metal/backend.go`),
+with the divergent `EventQuitRequested` broadcast removed.
+
 ## Problem
 
 The Metal backend has two quit paths, one dead, one inconsistent:

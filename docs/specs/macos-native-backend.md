@@ -1,5 +1,9 @@
 # Native macOS backend (SDL2 elimination)
 
+Status: **implemented** — SDL2 eliminated from macOS (`bead449`, #11): sdl2 is
+gone from go.mod and the Metal backend speaks Cocoa/AppKit directly. macOS stays
+cgo by decision (2026-08-12); see `cgo-free-backend-feasibility.md` § Phase 2.
+
 ## Summary
 
 Replace SDL2's window creation, event loop, clipboard, cursors, and IME in the
