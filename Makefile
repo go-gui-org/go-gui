@@ -91,12 +91,18 @@ clean:
 	rm -rf build/
 
 # Run all tests with explicit timeout.
+# The gl backend must run cgo-free on Linux with a display: cgo + the
+# LockOSThread-in-init pattern + purego EGL calls crash the runtime exit path
+# (golang/go#80723). CGO_ENABLED=0 matches the backend's intended cgo-free
+# build; it is a no-op on darwin (gl has no cgo files there).
 test:
-	go test -count=1 -timeout=5m ./...
+	CGO_ENABLED=0 go test -count=1 -timeout=5m ./gui/backend/gl/
+	go test -count=1 -timeout=5m $$(go list ./... | grep -v '/gui/backend/gl')
 
 # Run all tests with race detector enabled.
 test-race:
-	go test -race -count=1 -timeout=10m ./...
+	CGO_ENABLED=0 go test -race -count=1 -timeout=10m ./gui/backend/gl/
+	go test -race -count=1 -timeout=10m $$(go list ./... | grep -v '/gui/backend/gl')
 
 # Run go vet static analysis.
 vet:
