@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.59.1] - 2026-08-12
+
+### Fixed
+
+- **GL backend tests now run cgo-free** to dodge a runtime exit crash on
+  macOS (issue #162, PR #257).
+- **`make` gates match golangci-lint's version string** without assuming a
+  `v` prefix (PR #258), fixing local runs against newer linter releases.
+
+### Changed
+
+- **go-glyph bumped to v1.20.1** — the face LRU is byte-budgeted, capping
+  resident memory from a single typeface (PR #260).
+
 ## [v0.59.0] - 2026-08-11
 
 ### Added
