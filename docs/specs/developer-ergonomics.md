@@ -1,10 +1,11 @@
 # Developer ergonomics: assessment and improvement plan
 
-Status: accepted after three independent reviews; ready to implement. Two
-breaking phases: phase 1 (§4.2) shipped as v0.53.0, and §4.3/§4.4/ §4.7 target
-v0.54.0 with 18 sibling call sites affected (§7). Phases 2–3 ship as v0.53.x. §9
-Q1–Q8 all resolved; Q6 remains a phase-2 gate on phase 4. The original
-single-breaking-release plan and why it was wrong: see the correction in §6.
+Status: **implemented** — every row of the §6.1 progress table is done: phase 1
+shipped v0.53.0, the §4.3 callback/event collapse v0.55.0, the §4.4/§4.5 color
+and padding work across v0.56–v0.59, and §4.8's example audit closed. All of
+§9 Q1–Q8 resolved, including the Q6 nested-scroll gate
+(`gui/scroll_nested_test.go`). The §4.7 renames are part of that; the release
+plan below is historical, not pending.
 Base: `main` @ `80715d1`. Phase progress: §6.1.
 
 ## Context
