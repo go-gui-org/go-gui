@@ -1,6 +1,9 @@
 # Spec: `Focusable` defaults true for input controls (`FocusDisabled` opt-out)
 
-Status: draft (pre-implementation)
+Status: **implemented** — Phase 1 shipped v0.36.0 (Input, Select, Slider,
+Toggle, Switch); Phase 2 shipped v0.37.0, dropping `Focusable bool` for
+`FocusDisabled bool` on the remaining nine controls. Both phases in CHANGELOG.
+
 Base: `main` @ `8522098`
 Target release: go-gui `v0.36.0` (breaking)
 
