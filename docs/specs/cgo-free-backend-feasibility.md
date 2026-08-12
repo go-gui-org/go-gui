@@ -2,8 +2,9 @@
 
 Assessment of [issue #137](https://github.com/go-gui-org/go-gui/issues/137).
 Date: 2026-07-31. Status: **Phase 1 implemented**, and the `gui/audio` follow-up
-(§ Audio outcome) closed the remaining Linux CGo dependency; Phase 2 (macOS) not
-started.
+(§ Audio outcome) closed the remaining Linux CGo dependency. **Phase 2
+(macOS) closed 2026-08-12 by decision: not pursued — macOS stays cgo.** See
+§ Phase 2 for the rationale and the conditions that would reopen it.
 
 ## Phase 1 outcome (2026-07-31)
 
@@ -200,20 +201,55 @@ binding.
     out-params need explicit pointer marshaling under purego.
 - Outcome: `CGO_ENABLED=0` cross-compilation to Linux and Windows from any host.
 
-### Phase 2 — macOS: time-boxed spike, no commitment
+### Phase 2 — macOS: decided 2026-08-12, not pursued
 
-Evaluate `github.com/ebitengine/purego/objc` for hosting an `NSView` /
+~~Evaluate `github.com/ebitengine/purego/objc` for hosting an `NSView` /
 `CAMetalLayer` subclass with delegate callbacks via `objc_msgSend` and runtime
-class registration. Gate the decision on two questions:
+class registration. Gate the decision on two questions:~~
 
-1. Does purego work under `CGO_ENABLED=0` on darwin/arm64 for the
-   _class-registration_ path, not just plain function calls?
-2. Can the ObjC be ported service-by-service, or does the NSApplication/NSView
-   delegate graph force an all-or-nothing rewrite?
+1. ~~Does purego work under `CGO_ENABLED=0` on darwin/arm64 for the
+   _class-registration_ path, not just plain function calls?~~
+2. ~~Can the ObjC be ported service-by-service, or does the NSApplication/NSView
+   delegate graph force an all-or-nothing rewrite?~~
 
-If either answer is bad, macOS stays cgo. That is an acceptable outcome: macOS
+~~If either answer is bad, macOS stays cgo. That is an acceptable outcome: macOS
 is the one platform where a C toolchain (Xcode CLT) is universally present
-anyway.
+anyway.~~
+
+**Decision: macOS keeps cgo. Do not reopen without a concrete trigger.**
+
+The value of a cgo-free build is build-time portability: `CGO_ENABLED=0`
+cross-compiles from any host, no clang/SDK install for consumers, smaller CI.
+Every one of those is weakest on macOS:
+
+- Cross-compiling a macOS GUI binary from another host is hollow: a GUI app
+  must be run and signed/notarized on a Mac anyway.
+- Xcode CLT is universally present on macOS; there is no toolchain-friction
+  story to fix for consumers.
+- The spike's hard part was never the call ABI but ObjC the language:
+  subclassing `NSView`/`CAMetalLayer` needs runtime class registration (the
+  shaky zone of `purego/objc`) and hand-managed retain/release and autorelease
+  pools where clang does it for free today. High bug surface, no user-visible
+  payoff.
+- The macOS-only CGo outside the backend (`nativemenu/menu_darwin.go`,
+  `filedialog/dialog_darwin.go`, `printdialog/print_darwin.go`,
+  `spellcheck/spellcheck_darwin.go`, `sysbeep/sysbeep_darwin.go`,
+  `gui/locale_detect_darwin.go`) would each need a port that is strictly worse
+  than its Linux/syscall counterpart.
+
+The Linux/Windows phase earned its keep because those hosts lack a guaranteed
+toolchain; the macOS phase inverts the argument. The issue
+(go-gui-org/go-gui#137) was closed when Phase 1 shipped and stays closed.
+
+Reopening conditions (any one, evidenced, not speculative):
+
+- Apple stops shipping a C toolchain with macOS / Xcode CLT becomes optional.
+- A consumer reports a real build blocker caused by the ObjC cgo (not a
+  hypothetical), and `purego/objc` class registration is proven working at
+  `CGO_ENABLED=0` on darwin/arm64.
+- A one-shot proof that the `NSView`/`CAMetalLayer` subclass graph ports
+  service-by-service rather than all-or-nothing, with the retain/release
+  management plan written down.
 
 ### Out of scope
 

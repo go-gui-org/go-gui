@@ -1,6 +1,15 @@
 # EventCtx: reduce event-handling ceremony
 
-Status: proposed — for review. Breaking change.
+Status: **implemented and superseded.** The signature collapse shipped in
+v0.52.0–v0.54.0 (`EventCtx`, `Consume()`, `tools/eventctx`); the
+handled-default flip (consume-class pre-mark + `ctx.Bubble()`) shipped with it
+and was then **deliberately reversed in v0.55.0** (`fe404f6`, #206): nothing is
+marked handled for you, `ctx.Bubble()` is deleted, `ctx.Consume()` is the one
+rule for every callback. The `class` argument survived only to name events for
+the `debugUnconsumed` check (`gui/event_traversal.go`). The one-event-rule
+design is authoritative; do not re-implement the consume-class default from
+this spec. Item 3 (typed `ctx.State`) was dropped for the documented Go
+reasons. Breaking change.
 
 ## Context
 

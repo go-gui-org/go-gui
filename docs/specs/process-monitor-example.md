@@ -1,6 +1,7 @@
 # Spec: `process_monitor` example
 
-Status: draft
+Status: **implemented** — `examples/process_monitor/` (main, view, store,
+chart, collect + sysmem platform files, tests).
 Author: spec generated for go-gui
 Target: `examples/process_monitor/`
 

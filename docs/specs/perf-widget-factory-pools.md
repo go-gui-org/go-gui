@@ -1,7 +1,13 @@
 # Spec: Cut per-frame widget-factory heap allocations
 
-Status: reviewed 2026-07-18 (claims verified against code; Circle migration,
-benchmark correction, cached-view tradeoff added)
+Status: **implemented 2026-07-19** (`22e1d48`, #107). Claims verified against
+code (Circle migration, benchmark correction, cached-view tradeoff added
+2026-07-18). Measured outcome on `BenchmarkViewFrame` (rows_200, per frame):
+allocs 1,403 → 802 (**−43%**), but B/op 221 KB → 318 KB and ns/op 66 µs →
+94 µs (**+43%** each) — the struct-growth and cached-view risks materialized as
+published, and the residual allocs are user-side interface boxes + `make([]View)`
+slices, unreachable without an API break. Net: a GC-object-count / coherence
+win, not a frame-time one.
 Area: performance / GC-allocation reduction
 Scope: `gui/` (examples excluded)
 

@@ -1,5 +1,8 @@
 # Font Viewer
 
+Status: **implemented** — `examples/fontviewer/` (main.go + tests). Shipped
+from this spec; see the feature table for P0 coverage.
+
 Browsable system-font catalog. Type sample text; every installed font family
 renders it in a scrollable card grid. Filter by name, adjust preview size,
 click to copy the family name.
