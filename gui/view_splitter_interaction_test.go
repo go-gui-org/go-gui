@@ -610,7 +610,7 @@ func TestSplitterHandleClickDisabledIsInert(t *testing.T) {
 	h := newSplitterHarness(t, SplitterCfg{ID: "sp"})
 	core := &splitterCore{id: "sp", disabled: true, handleSize: 9}
 	e := Event{Type: EventMouseDown, MouseButton: MouseLeft}
-	splitterOnHandleClick(core, &e, h.w)
+	splitterOnHandleClick(core, &Layout{Shape: &Shape{}}, &e, h.w)
 	if h.w.mouseIsLocked() {
 		t.Error("disabled splitter armed a drag")
 	}
@@ -792,25 +792,126 @@ func TestSplitterHandleHoverAwayKeepsBaseColor(t *testing.T) {
 	}
 }
 
-// The active (button-held) branch is exercised directly. layoutHover
-// bails while the mouse is locked and always synthesizes its hover event
-// with MouseButton: MouseInvalid, so no real frame can reach this branch
-// — see issue #265.
-func TestSplitterHandleHoverActiveColor(t *testing.T) {
-	h := newSplitterHarness(t, SplitterCfg{ID: "sp"})
-	layout := Layout{Shape: &Shape{}}
-	hover := RGBA(1, 2, 3, 255)
-	active := RGBA(4, 5, 6, 255)
-	e := Event{Type: EventMouseMove, MouseButton: MouseLeft}
-	splitterOnHandleHover(SplitterVertical, hover, active, &layout, &e, h.w)
-	if layout.Shape.Color != active {
-		t.Errorf("color = %v, want active %v", layout.Shape.Color, active)
+// The active (button-held) color is driven by the drag state, not the
+// hover event: layoutHover bails while the mouse is locked (a splitter
+// drag runs under MouseLock) and always synthesizes its hover event
+// with MouseButton: MouseInvalid, so no real frame could ever reach an
+// e.MouseButton == MouseLeft branch in the hover handler (issue #265).
+// The pressed flag is set on press, painted every frame by
+// splitterAmendLayout while the lock is held, and cleared on release —
+// all exercised here through real dispatch.
+func TestSplitterHandleDragShowsActiveColor(t *testing.T) {
+	a, b := splitterTwoPanes()
+	h := newSplitterHarness(t, SplitterCfg{
+		ID:     "sp",
+		Ratio:  SomeF(0.5),
+		First:  a,
+		Second: b,
+	})
+	h.pressHandle(t, "sp")
+	h.move(120, 150)
+
+	_, handle, _ := h.parts(t, "sp")
+	if handle.Shape.Color != defaultSplitterStyle.colorHandleActive {
+		t.Errorf("dragging handle color = %v, want active %v",
+			handle.Shape.Color, defaultSplitterStyle.colorHandleActive)
 	}
-	if !e.IsHandled {
-		t.Error("hover did not consume the event")
+
+	// A frame with no mouse event must keep the active color: the
+	// per-frame regeneration reseeds the base color, so only the amend
+	// paint can hold the pressed look through an idle frame.
+	h.w.TestRender(nil)
+	_, handle, _ = h.parts(t, "sp")
+	if handle.Shape.Color != defaultSplitterStyle.colorHandleActive {
+		t.Errorf("handle color after idle frame = %v, want active %v",
+			handle.Shape.Color, defaultSplitterStyle.colorHandleActive)
 	}
-	if h.w.viewState.mouseCursor != CursorResizeNS {
-		t.Errorf("cursor = %v, want CursorResizeNS", h.w.viewState.mouseCursor)
+
+	// Release with the pointer still over the handle (a drag centers
+	// the handle on the cursor): the hover repaint takes over.
+	h.release(120, 150)
+	_, handle, _ = h.parts(t, "sp")
+	if handle.Shape.Color != defaultSplitterStyle.colorHandleHover {
+		t.Errorf("handle color after release = %v, want hover %v",
+			handle.Shape.Color, defaultSplitterStyle.colorHandleHover)
+	}
+
+	// Moving away restores the base color.
+	h.move(5, 5)
+	_, handle, _ = h.parts(t, "sp")
+	if handle.Shape.Color != defaultSplitterStyle.colorHandle {
+		t.Errorf("handle color after leaving = %v, want base %v",
+			handle.Shape.Color, defaultSplitterStyle.colorHandle)
+	}
+}
+
+// A press with no movement still shows the active color, and holds
+// through a frame with no mouse event.
+func TestSplitterHandleClickAloneShowsActiveColor(t *testing.T) {
+	a, b := splitterTwoPanes()
+	h := newSplitterHarness(t, SplitterCfg{
+		ID:     "sp",
+		First:  a,
+		Second: b,
+	})
+	h.pressHandle(t, "sp")
+
+	_, handle, _ := h.parts(t, "sp")
+	if handle.Shape.Color != defaultSplitterStyle.colorHandleActive {
+		t.Errorf("handle color after press = %v, want active %v",
+			handle.Shape.Color, defaultSplitterStyle.colorHandleActive)
+	}
+
+	h.w.TestRender(nil)
+	_, handle, _ = h.parts(t, "sp")
+	if handle.Shape.Color != defaultSplitterStyle.colorHandleActive {
+		t.Errorf("handle color after idle frame = %v, want active %v",
+			handle.Shape.Color, defaultSplitterStyle.colorHandleActive)
+	}
+
+	// Release away from the handle: base color.
+	h.release(5, 5)
+	_, handle, _ = h.parts(t, "sp")
+	if handle.Shape.Color != defaultSplitterStyle.colorHandle {
+		t.Errorf("handle color after release = %v, want base %v",
+			handle.Shape.Color, defaultSplitterStyle.colorHandle)
+	}
+}
+
+// Capture lost without a release (the platform revoking mouse capture,
+// issue #237) must not leave the handle active forever: MouseCancel
+// clears the lock and runs the lock's Cancel hook, which clears the
+// pressed flag.
+func TestSplitterHandleDragCancelRestoresColor(t *testing.T) {
+	a, b := splitterTwoPanes()
+	h := newSplitterHarness(t, SplitterCfg{
+		ID:     "sp",
+		First:  a,
+		Second: b,
+	})
+	h.pressHandle(t, "sp")
+	_, handle, _ := h.parts(t, "sp")
+	if handle.Shape.Color != defaultSplitterStyle.colorHandleActive {
+		t.Fatalf("handle color after press = %v, want active %v",
+			handle.Shape.Color, defaultSplitterStyle.colorHandleActive)
+	}
+
+	h.w.MouseCancel()
+	h.w.settle()
+	if h.w.mouseIsLocked() {
+		t.Error("mouse still locked after MouseCancel")
+	}
+	_, handle, _ = h.parts(t, "sp")
+	if handle.Shape.Color != defaultSplitterStyle.colorHandle {
+		t.Errorf("handle color after cancel = %v, want base %v",
+			handle.Shape.Color, defaultSplitterStyle.colorHandle)
+	}
+	// A further frame must not resurrect the active color.
+	h.w.TestRender(nil)
+	_, handle, _ = h.parts(t, "sp")
+	if handle.Shape.Color != defaultSplitterStyle.colorHandle {
+		t.Errorf("handle color after idle frame = %v, want base %v",
+			handle.Shape.Color, defaultSplitterStyle.colorHandle)
 	}
 }
 
@@ -1499,7 +1600,7 @@ func TestSplitterHandleReleaseWithoutIDStillUnlocks(t *testing.T) {
 	h.w.SetFocus("elsewhere")
 	core := &splitterCore{id: "sp", handleSize: splitterTestHandle}
 	e := Event{Type: EventMouseDown, MouseButton: MouseLeft}
-	splitterOnHandleClick(core, &e, h.w)
+	splitterOnHandleClick(core, &Layout{Shape: &Shape{}}, &e, h.w)
 	if !h.w.mouseIsLocked() {
 		t.Fatal("handle click did not lock the mouse")
 	}

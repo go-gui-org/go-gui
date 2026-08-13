@@ -168,6 +168,13 @@ type splitterCore struct {
 	orientation   splitterOrientation
 	collapsed     SplitterCollapsed
 	disabled      bool
+	// Handle colors resolved from the (defaulted) cfg. The drag state
+	// itself lives in window state (nsSplitterDrag), not on this core —
+	// the view function rebuilds the core every frame, so a field here
+	// would not survive a drag.
+	colorHandle       Color
+	colorHandleHover  Color
+	colorHandleActive Color
 }
 
 type splitterComputed struct {
@@ -199,10 +206,13 @@ func newSplitterCore(cfg *SplitterCfg) *splitterCore {
 			collapsible:   cfg.Second.collapsible,
 			collapsedSize: cfg.Second.collapsedSize,
 		},
-		handleSize:    cfg.HandleSize.Get(s.HandleSize),
-		dragStep:      cfg.dragStep.Get(s.dragStep),
-		dragStepLarge: cfg.dragStepLarge.Get(s.dragStepLarge),
-		disabled:      cfg.Disabled,
+		handleSize:        cfg.HandleSize.Get(s.HandleSize),
+		dragStep:          cfg.dragStep.Get(s.dragStep),
+		dragStepLarge:     cfg.dragStepLarge.Get(s.dragStepLarge),
+		disabled:          cfg.Disabled,
+		colorHandle:       cfg.colorHandle,
+		colorHandleHover:  cfg.colorHandleHover,
+		colorHandleActive: cfg.colorHandleActive,
 	}
 }
 
@@ -390,6 +400,25 @@ func splitterAmendLayout(core *splitterCore, layout *Layout, w *Window) {
 		splitterLayoutChild(&layout.Children[2], x,
 			y+computed.firstMain+computed.handleMain,
 			wid, computed.secondMain, w)
+	}
+
+	// The handle's active (button-held) color is painted here, in the
+	// last pass that can write the shape's color before the render:
+	// layoutHover bails while the mouse is locked (a splitter drag runs
+	// under MouseLock) and the lock's MouseMove handler paints nothing,
+	// so a click-time paint alone would be overwritten by the next
+	// frame's regeneration of the handle (which reseeds the base
+	// color). The pressed flag is keyed by the splitter's effective ID
+	// — the same key splitterOnHandleClick writes — and cleared on
+	// MouseUp and by the lock's Cancel hook (capture revoked without a
+	// release, issue #237). Guarding on the window's actual lock state
+	// makes a stale flag unable to pin the handle active even if some
+	// future path clears the lock without either.
+	ps := StateMapRead[string, bool](w, nsSplitterDrag)
+	if ps != nil && w.mouseIsLocked() {
+		if pressed, ok := ps.Get(layout.Shape.idKey()); ok && pressed {
+			layout.Children[1].Shape.Color = core.colorHandleActive
+		}
 	}
 }
 

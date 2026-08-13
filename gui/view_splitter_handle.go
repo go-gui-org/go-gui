@@ -28,8 +28,6 @@ func splitterHandleView(cfg *SplitterCfg, core *splitterCore, id string) View {
 	}
 
 	orientation := cfg.Orientation
-	colorHover := cfg.colorHandleHover
-	colorActive := cfg.colorHandleActive
 
 	s := &defaultSplitterStyle
 	handleSize := cfg.HandleSize.Get(s.HandleSize)
@@ -54,11 +52,10 @@ func splitterHandleView(cfg *SplitterCfg, core *splitterCore, id string) View {
 		HAlign:      HAlignCenter,
 		VAlign:      VAlignMiddle,
 		OnClick: func(ctx EventCtx) {
-			splitterOnHandleClick(core, ctx.Event, ctx.Window)
+			splitterOnHandleClick(core, ctx.Layout, ctx.Event, ctx.Window)
 		},
 		OnHover: func(ctx EventCtx) {
-			splitterOnHandleHover(orientation, colorHover,
-				colorActive, ctx.Layout, ctx.Event, ctx.Window)
+			splitterOnHandleHover(core, ctx.Layout, ctx.Event, ctx.Window)
 		},
 		Content: content,
 	}
@@ -212,12 +209,24 @@ func splitterOnKeydown(core *splitterCore, e *Event, w *Window) {
 	}
 }
 
-func splitterOnHandleClick(core *splitterCore, e *Event, w *Window) {
+// splitterOnHandleClick arms the drag: it locks the mouse, records the
+// pressed flag the amend paint keys on, and paints the handle active
+// immediately (the press frame's amend pass already ran, so this is the
+// only write that colors this frame).
+func splitterOnHandleClick(core *splitterCore, layout *Layout, e *Event, w *Window) {
 	if core.disabled {
 		return
 	}
 	splitterSetCursor(core.orientation, w)
 	splitterFocus(core, w)
+
+	// Pressed state is keyed by the splitter's effective ID — stamped
+	// on the core by splitterAmendLayout and the same key the amend
+	// paint reads off the root shape. The core itself is rebuilt by the
+	// view function every frame, so cross-frame drag state lives in
+	// window state, mirroring the slider's nsSliderPress.
+	StateMap[string, bool](w, nsSplitterDrag, capModerate).Set(core.id, true)
+	layout.Shape.Color = core.colorHandleActive
 
 	focusID := core.focusID
 	w.MouseLock(MouseLockCfg{
@@ -225,25 +234,34 @@ func splitterOnHandleClick(core *splitterCore, e *Event, w *Window) {
 			splitterOnDragMove(core, ctx.Event, ctx.Window)
 		},
 		MouseUp: func(ctx EventCtx) {
+			// Clear the pressed look first; the unlock that follows
+			// lets hover take over painting the handle next frame.
+			StateMap[string, bool](ctx.Window, nsSplitterDrag, capModerate).
+				Set(core.id, false)
 			ctx.Window.MouseUnlock()
 			if focusID != "" {
 				ctx.Window.SetFocus(focusID)
 			}
 		},
+		Cancel: func(w *Window) {
+			// Capture revoked without a release (see MouseCancel,
+			// issue #237): the pressed flag must not pin the handle
+			// active forever.
+			StateMap[string, bool](w, nsSplitterDrag, capModerate).
+				Set(core.id, false)
+		},
 	})
 	e.IsHandled = true
 }
 
-func splitterOnHandleHover(
-	orientation splitterOrientation,
-	colorHover, colorActive Color,
-	layout *Layout, e *Event, w *Window,
-) {
-	splitterSetCursor(orientation, w)
-	layout.Shape.Color = colorHover
-	if e.MouseButton == MouseLeft {
-		layout.Shape.Color = colorActive
-	}
+// splitterOnHandleHover paints the hover color. The active color is not
+// this handler's job: layoutHover bails while the mouse is locked and
+// always synthesizes its event with MouseButton: MouseInvalid, so a
+// button branch here could never fire through the real pipeline
+// (issue #265) — the drag paint lives in splitterAmendLayout instead.
+func splitterOnHandleHover(core *splitterCore, layout *Layout, e *Event, w *Window) {
+	splitterSetCursor(core.orientation, w)
+	layout.Shape.Color = core.colorHandleHover
 	e.IsHandled = true
 }
 
