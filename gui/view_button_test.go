@@ -138,3 +138,72 @@ func TestButtonAmendLayoutSuppressedWhenNoOnClick(t *testing.T) {
 		t.Error("expected nil events when OnClick is nil")
 	}
 }
+
+// TestButtonHoverPressedColor pins the pressed-while-hovered branch of
+// buttonOnHover (view_button.go): a press-and-hold renders the click
+// color, release falls back to the hover color. FocusDisabled keeps the
+// press from taking focus — while focused, buttonAmendLayout paints the
+// focus color and buttonOnHover deliberately skips the hover color, so
+// the release assertion must observe the un-focused path.
+func TestButtonHoverPressedColor(t *testing.T) {
+	hover := RGBA(40, 200, 40, 255)
+	click := RGBA(200, 40, 40, 255)
+	w := NewTestWindow(WindowCfg{})
+	w.TestRender(func(win *Window) View {
+		return Button(ButtonCfg{
+			ID: "b", Width: 100, Height: 40,
+			FocusDisabled: true,
+			OnClick:       func(EventCtx) {},
+			Colors: ColorSet{
+				Base:  RGBA(10, 10, 10, 255),
+				Hover: hover,
+				Click: click,
+			},
+		})
+	})
+
+	x, y := hoverOver(t, w, "b")
+	if c := mustShape(t, w, "b").Color; c != hover {
+		t.Fatalf("hover: color = %+v, want %+v", c, hover)
+	}
+	pressAt(w, MouseLeft, x, y)
+	if c := mustShape(t, w, "b").Color; c != click {
+		t.Fatalf("held: color = %+v, want %+v", c, click)
+	}
+	releaseAt(w, MouseLeft, x, y)
+	if c := mustShape(t, w, "b").Color; c != hover {
+		t.Fatalf("released: color = %+v, want %+v", c, hover)
+	}
+}
+
+// TestButtonHoverRightButtonStaysHoverColor pins D5: while the right
+// button is held, hover events carry MouseRight and the == MouseLeft
+// branch must not fire — the button keeps the hover color, as a
+// right-button hold is not a press.
+func TestButtonHoverRightButtonStaysHoverColor(t *testing.T) {
+	hover := RGBA(40, 200, 40, 255)
+	click := RGBA(200, 40, 40, 255)
+	w := NewTestWindow(WindowCfg{})
+	w.TestRender(func(win *Window) View {
+		return Button(ButtonCfg{
+			ID: "b", Width: 100, Height: 40,
+			FocusDisabled: true,
+			OnClick:       func(EventCtx) {},
+			Colors: ColorSet{
+				Base:  RGBA(10, 10, 10, 255),
+				Hover: hover,
+				Click: click,
+			},
+		})
+	})
+
+	x, y := hoverOver(t, w, "b")
+	if c := mustShape(t, w, "b").Color; c != hover {
+		t.Fatalf("hover: color = %+v, want %+v", c, hover)
+	}
+	pressAt(w, MouseRight, x, y)
+	if c := mustShape(t, w, "b").Color; c != hover {
+		t.Fatalf("right held: color = %+v, want %+v", c, hover)
+	}
+	releaseAt(w, MouseRight, x, y)
+}

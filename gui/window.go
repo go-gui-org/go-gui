@@ -344,6 +344,7 @@ type ViewState struct {
 	idScope                  string
 	mousePosX                float32
 	mousePosY                float32
+	mouseButtonHeld          MouseButton
 	mouseCursor              MouseCursor
 	inputCursorOn            atomic.Bool
 	menuKeyNav               bool
@@ -482,6 +483,10 @@ func (w *Window) MouseUnlock() {
 // Cancel runs, so a hook that calls MouseUnlock itself (the
 // escape-key cancel paths do) stays correct.
 func (w *Window) MouseCancel() {
+	// Capture loss means no mouse-up will ever arrive, so the held
+	// button must be cleared here or the next hover pass would keep
+	// reporting a button nobody is holding.
+	w.viewState.mouseButtonHeld = MouseInvalid
 	if !w.mouseIsLocked() {
 		return
 	}

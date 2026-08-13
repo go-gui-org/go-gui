@@ -196,3 +196,41 @@ func TestBcKeydownCharCodeOnlyIsInert(t *testing.T) {
 		t.Error("a CharCode-only keydown was consumed")
 	}
 }
+
+// TestBreadcrumbHoverPressedColor pins the pressed-while-hovered branch
+// of makeBcOnHover (view_breadcrumb.go): a press-and-hold on a crumb
+// renders the click color, release falls back to the hover color. The
+// crumb under test is unselected — a selected crumb paints the selected
+// color in every hover state, so it cannot exercise the branch.
+func TestBreadcrumbHoverPressedColor(t *testing.T) {
+	hover := RGBA(40, 200, 40, 255)
+	click := RGBA(200, 40, 40, 255)
+	w := NewTestWindow(WindowCfg{})
+	w.TestRender(func(win *Window) View {
+		return Breadcrumb(BreadcrumbCfg{
+			ID:       "bc",
+			OnSelect: func(string, EventCtx) {},
+			Items: []BreadcrumbItemCfg{
+				{ID: "one", Label: "One"},
+				{ID: "two", Label: "Two"},
+			},
+			Selected:        "two",
+			colorCrumbHover: hover,
+			colorCrumbClick: click,
+		})
+	})
+
+	const crumbID = "bc:crumb:one"
+	x, y := hoverOver(t, w, crumbID)
+	if c := mustShape(t, w, crumbID).Color; c != hover {
+		t.Fatalf("hover: color = %+v, want %+v", c, hover)
+	}
+	pressAt(w, MouseLeft, x, y)
+	if c := mustShape(t, w, crumbID).Color; c != click {
+		t.Fatalf("held: color = %+v, want %+v", c, click)
+	}
+	releaseAt(w, MouseLeft, x, y)
+	if c := mustShape(t, w, crumbID).Color; c != hover {
+		t.Fatalf("released: color = %+v, want %+v", c, hover)
+	}
+}

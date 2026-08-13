@@ -844,12 +844,11 @@ func TestSplitterHandleHoverAwayKeepsBaseColor(t *testing.T) {
 
 // The active (button-held) color is driven by the drag state, not the
 // hover event: layoutHover bails while the mouse is locked (a splitter
-// drag runs under MouseLock) and always synthesizes its hover event
-// with MouseButton: MouseInvalid, so no real frame could ever reach an
-// e.MouseButton == MouseLeft branch in the hover handler (issue #265).
-// The pressed flag is set on press, painted every frame by
-// splitterAmendLayout while the lock is held, and cleared on release —
-// all exercised here through real dispatch.
+// drag runs under MouseLock), so a held button never reaches an
+// e.MouseButton == MouseLeft branch in the hover handler during the
+// drag it matters for (issue #265). The pressed flag is set on press,
+// painted every frame by splitterAmendLayout while the lock is held,
+// and cleared on release — all exercised here through real dispatch.
 func TestSplitterHandleDragShowsActiveColor(t *testing.T) {
 	a, b := splitterTwoPanes()
 	h := newSplitterHarness(t, SplitterCfg{

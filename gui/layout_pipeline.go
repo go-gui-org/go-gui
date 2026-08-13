@@ -96,7 +96,7 @@ func layoutHover(layout *Layout, w *Window) bool {
 		MouseX:      w.viewState.mousePosX,
 		MouseY:      w.viewState.mousePosY,
 		Type:        EventMouseMove,
-		MouseButton: MouseInvalid,
+		MouseButton: w.viewState.mouseButtonHeld,
 	}
 	shape.events.OnHover(EventCtx{layout, &w.scratch.hoverEvent, w})
 	return true

@@ -86,6 +86,10 @@ func NewWindow(cfg WindowCfg) *Window {
 		scratch:       newScratchPools(),
 		ctx:           ctx,
 		cancelCtx:     cancel,
+		// mouseButtonHeld's zero value is MouseLeft (0), but the
+		// resting state is "no button": hover synthesis must not
+		// report a press no one made.
+		viewState: ViewState{mouseButtonHeld: MouseInvalid},
 		windowAnimation: windowAnimation{
 			animationStop:     make(chan struct{}),
 			animationDone:     make(chan struct{}),

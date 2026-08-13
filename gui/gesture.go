@@ -562,6 +562,16 @@ func rotateCentroidInverse(
 
 // synthMouse creates a synthetic mouse event and dispatches it
 // through the normal mouse handler pipeline.
+//
+// This is the second entry into mouseDownHandler/mouseUpHandler
+// besides EventFn's handleMouseDown/UpEvent (which own the held-button
+// state machine for backend events). Touch-synthesized presses and
+// releases update that state here, so mixed mouse+touch input cannot
+// leave hover synthesis reporting a button nobody is holding — e.g. a
+// touch release after a backend mouse press must clear the hold, and a
+// touch press must record one. The dev-mode unconsumed sweep
+// (debug_event.go) also reaches the traversal handlers directly, but
+// only for inspection, so it must not run through this path.
 func synthMouse(
 	typ EventType, x, y float32, btn MouseButton,
 	layout *Layout, w *Window,
@@ -574,10 +584,12 @@ func synthMouse(
 	}
 	switch typ {
 	case EventMouseDown:
+		w.viewState.mouseButtonHeld = btn
 		mouseDownHandler(layout, false, &w.scratch.gestureEvent, w)
 	case EventMouseMove:
 		mouseMoveHandler(layout, &w.scratch.gestureEvent, w)
 	case EventMouseUp:
+		w.viewState.mouseButtonHeld = MouseInvalid
 		mouseUpHandler(layout, &w.scratch.gestureEvent, w)
 	}
 }

@@ -255,10 +255,10 @@ func splitterOnHandleClick(core *splitterCore, layout *Layout, e *Event, w *Wind
 }
 
 // splitterOnHandleHover paints the hover color. The active color is not
-// this handler's job: layoutHover bails while the mouse is locked and
-// always synthesizes its event with MouseButton: MouseInvalid, so a
-// button branch here could never fire through the real pipeline
-// (issue #265) — the drag paint lives in splitterAmendLayout instead.
+// this handler's job: pressing the handle starts a drag, and layoutHover
+// bails while the mouse is locked, so the pressed state never reaches
+// this handler during the drag it matters for (issue #265) — the drag
+// paint lives in splitterAmendLayout instead.
 func splitterOnHandleHover(core *splitterCore, layout *Layout, e *Event, w *Window) {
 	splitterSetCursor(core.orientation, w)
 	layout.Shape.Color = core.colorHandleHover

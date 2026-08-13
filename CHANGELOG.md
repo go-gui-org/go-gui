@@ -10,6 +10,16 @@ and this project adheres to
 
 ### Fixed
 
+- **Pressed-while-hovered colors now render.** Seven `OnHover` handlers
+  paint a click color while the left button is held (button
+  `Colors.Click`, breadcrumb crumb, expand-panel header, switch pill,
+  toggle, radio, datagrid resize handle), but no frame could reach
+  those branches: `layoutHover` synthesized its event with
+  `MouseButton: MouseInvalid` no matter what the user was holding. The
+  window now reports the real held button in hover events (see Changed
+  below), so a press-and-hold renders the click color and release
+  restores the hover color.
+
 - **Interrupted (capture-loss) selection drags no longer leave a stuck
   selection (issue #281).** Input, Text and RTF selection drags hold a
   mouse lock whose `Cancel` hook fired on capture loss — a mouse-up that
@@ -73,6 +83,18 @@ and this project adheres to
   highlight — and Ctrl+C would copy — the wrong runes of the new
   text. A same-length rewrite of the document is caught too; a pure
   layout change (resize, font) leaves the selection alone.
+
+### Changed
+
+- **`OnHover` receives the held mouse button.** The window tracks the
+  held button from its own event stream — set on `EventMouseDown`,
+  cleared on `EventMouseUp` and `MouseCancel` — and `layoutHover`
+  reports it in the synthesized hover event: `MouseLeft`/`MouseRight`/
+  `MouseMiddle` while held, `MouseInvalid` when none is held. A hover
+  handler can now distinguish a press-and-hold from a plain hover; it
+  could not before, because the event always arrived with
+  `MouseInvalid`. The event is still `Type: EventMouseMove` and is
+  rebuilt field-by-field every frame.
 
 ### Added
 
