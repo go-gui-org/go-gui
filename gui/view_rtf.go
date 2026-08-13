@@ -241,7 +241,7 @@ func rtfHitTest(run glyph.Item, mx, my float32) bool {
 func rtfFindRunAtIndex(
 	l *Layout, startIndex int,
 ) RichTextRun {
-	if l.Shape == nil || l.Shape.TC == nil ||
+	if l == nil || l.Shape == nil || l.Shape.TC == nil ||
 		l.Shape.TC.rTFRuns == nil {
 		return RichTextRun{}
 	}
