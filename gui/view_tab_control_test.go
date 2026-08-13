@@ -251,3 +251,58 @@ func TestTabOptZeroOverride(t *testing.T) {
 			layout.Shape.SizeBorder)
 	}
 }
+
+// Space activates the selected tab, driven the way a backend drives it:
+// an EventKeyDown carrying KeyCode == KeySpace and CharCode == 0. The
+// handler used to test CharCode, which backends populate only on
+// EventChar, so the spacebar reached it as a no-op.
+func TestTabControlKeydownSpaceSelects(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	var selected string
+	fires := 0
+	w.TestRender(func(_ *Window) View {
+		return TabControl(TabControlCfg{
+			ID:        "tabs",
+			Focusable: true,
+			Selected:  "b",
+			Items: []TabItemCfg{
+				{ID: "a", Label: "A"},
+				{ID: "b", Label: "B"},
+				{ID: "c", Label: "C"},
+			},
+			OnSelect: func(id string, _ EventCtx) {
+				selected = id
+				fires++
+			},
+		})
+	})
+	if err := w.TestKey("tabs", KeySpace, ModNone); err != nil {
+		t.Fatalf("TestKey: %v", err)
+	}
+	// Space re-fires on the already-selected tab (the refire rule), so
+	// both the ID and the callback firing are asserted.
+	if fires != 1 {
+		t.Errorf("OnSelect fired %d times, want 1", fires)
+	}
+	if selected != "b" {
+		t.Errorf("selected = %q, want b", selected)
+	}
+}
+
+// A keydown never carries CharCode, so nothing may key off it.
+func TestTabControlKeydownCharCodeOnlyIsInert(t *testing.T) {
+	ids := []string{"a", "b"}
+	disabled := []bool{false, false}
+	fired := false
+	onSelect := func(_ string, _ EventCtx) { fired = true }
+	w := &Window{}
+	e := &Event{CharCode: charSpace}
+
+	tabControlOnKeydown(false, ids, disabled, "a", onSelect, "", e, w)
+	if fired {
+		t.Error("a CharCode-only keydown selected a tab")
+	}
+	if e.IsHandled {
+		t.Error("a CharCode-only keydown was consumed")
+	}
+}

@@ -457,22 +457,17 @@ func tabControlOnKeydown(
 		targetIdx = tabFirstEnabledIndex(tabNavDisabled)
 	case KeyEnd:
 		targetIdx = tabLastEnabledIndex(tabNavDisabled)
-	case KeyEnter:
+	// Space reads from KeyCode: backends set CharCode only on
+	// EventChar, so testing it from a keydown handler never matched.
+	// The space and Enter bodies were already identical, so they group.
+	case KeyEnter, KeySpace:
 		if selectedIdx >= 0 {
 			targetIdx = selectedIdx
 		} else {
 			targetIdx = tabFirstEnabledIndex(tabNavDisabled)
 		}
 	default:
-		if e.CharCode == charSpace {
-			if selectedIdx >= 0 {
-				targetIdx = selectedIdx
-			} else {
-				targetIdx = tabFirstEnabledIndex(tabNavDisabled)
-			}
-		} else {
-			return
-		}
+		return
 	}
 
 	if targetIdx < 0 || targetIdx >= len(tabNavIDs) {
@@ -483,7 +478,7 @@ func tabControlOnKeydown(
 		return
 	}
 
-	refire := e.KeyCode == KeyEnter || e.CharCode == charSpace
+	refire := e.KeyCode == KeyEnter || e.KeyCode == KeySpace
 	if targetID != selected || refire {
 		if onSelect != nil {
 			onSelect(targetID, EventCtx{nil, e, w})

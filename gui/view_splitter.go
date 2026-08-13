@@ -209,6 +209,23 @@ func newSplitterCore(cfg *SplitterCfg) *splitterCore {
 func applySplitterDefaults(cfg *SplitterCfg) {
 	s := &defaultSplitterStyle
 	cfg.Sizing = cfg.Sizing.Or(FillFill)
+	// SplitterStyle's SizeBorder/Radius/radiusBorder were built and
+	// then never read: unset, the handle and buttons fell through to
+	// the generic container and button defaults instead. Under the
+	// stock theme that only cost the corner radius (radiusMedium 5.5
+	// rather than the splitter's radiusSmall 3.5), since both border
+	// widths happen to be sizeBorderDef — but for a custom theme the
+	// splitter's own values were dead. Seed them here so the style is
+	// what renders.
+	if !cfg.SizeBorder.IsSet() {
+		cfg.SizeBorder = SomeF(s.SizeBorder)
+	}
+	if !cfg.Radius.IsSet() {
+		cfg.Radius = SomeF(s.Radius)
+	}
+	if !cfg.radiusBorder.IsSet() {
+		cfg.radiusBorder = SomeF(s.radiusBorder)
+	}
 	if !cfg.colorHandle.IsSet() {
 		cfg.colorHandle = s.colorHandle
 	}

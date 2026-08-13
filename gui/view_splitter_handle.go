@@ -186,13 +186,12 @@ func splitterOnKeydown(core *splitterCore, e *Event, w *Window) {
 			nextCollapsed = SplitterCollapseSecond
 			handled = true
 		}
-	case KeyEnter:
+	// Space reads from KeyCode, not CharCode: backends populate
+	// CharCode only on EventChar, so a keydown-only handler that tested
+	// CharCode never saw the spacebar. Matches DatePicker, Tree, Menu
+	// and the rest.
+	case KeyEnter, KeySpace:
 		if isNone {
-			nextCollapsed, handled = splitterToggleCollapse(
-				core, nextCollapsed)
-		}
-	default:
-		if e.CharCode == charSpace && isNone {
 			nextCollapsed, handled = splitterToggleCollapse(
 				core, nextCollapsed)
 		}
