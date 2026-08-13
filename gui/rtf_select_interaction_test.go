@@ -291,15 +291,17 @@ func (h *rtfSelectHarness) release(x, y float32) Event {
 	return e
 }
 
-// key dispatches one key down/up pair without re-asserting focus. The
-// click that precedes it already focused the RTF; a SetFocus here would
-// call clearInputSelections (window.go) and wipe the selection the
-// sequence builds on.
-func (h *rtfSelectHarness) key(k KeyCode, mods Modifier) {
-	h.w.EventFn(&Event{Type: EventKeyDown, KeyCode: k, Modifiers: mods})
-	h.w.settle()
-	h.w.EventFn(&Event{Type: EventKeyUp, KeyCode: k, Modifiers: mods})
-	h.w.settle()
+// key dispatches one key down/up pair to the RTF via TestKey, which
+// re-asserts focus on the same id. Same-id re-asserts no longer clear
+// selections (issue #277), so chained calls build on the selection the
+// preceding click or key established. The original helper dispatched
+// raw EventFn pairs to dodge the old unconditional clear that
+// setFocusLocked ran on every re-assert; that workaround is obsolete.
+func (h *rtfSelectHarness) key(t *testing.T, k KeyCode, mods Modifier) {
+	t.Helper()
+	if err := h.w.TestKey(h.id, k, mods); err != nil {
+		t.Fatalf("TestKey(%s): %v", keyName(k), err)
+	}
 }
 
 // rtfRunePoint returns the window coordinate of the middle of localRune
@@ -541,35 +543,35 @@ func TestRtfSelectKeyNavArrows(t *testing.T) {
 	h.release(x, y)
 	expectRtfCursor(t, h, 4)
 
-	h.key(KeyRight, ModNone)
+	h.key(t, KeyRight, ModNone)
 	expectRtfCursor(t, h, 5)
-	h.key(KeyRight, ModNone)
+	h.key(t, KeyRight, ModNone)
 	expectRtfCursor(t, h, 6)
-	h.key(KeyLeft, ModNone)
+	h.key(t, KeyLeft, ModNone)
 	expectRtfCursor(t, h, 5)
 
 	// Word movement: from ' ' (5) Ctrl+Right lands on 'w' (6);
 	// Ctrl+Left from there lands on 'h' (0).
-	h.key(KeyRight, ModCtrl)
+	h.key(t, KeyRight, ModCtrl)
 	expectRtfCursor(t, h, 6)
-	h.key(KeyLeft, ModCtrl)
+	h.key(t, KeyLeft, ModCtrl)
 	expectRtfCursor(t, h, 0)
 
 	// Alt is a word modifier too, matching the Input/Text handlers.
-	h.key(KeyRight, ModAlt)
+	h.key(t, KeyRight, ModAlt)
 	expectRtfCursor(t, h, 6)
 
-	h.key(KeyHome, ModNone)
+	h.key(t, KeyHome, ModNone)
 	expectRtfCursor(t, h, 0)
-	h.key(KeyEnd, ModNone)
+	h.key(t, KeyEnd, ModNone)
 	expectRtfCursor(t, h, 11)
-	h.key(KeyHome, ModNone)
+	h.key(t, KeyHome, ModNone)
 	expectRtfCursor(t, h, 0)
 
 	// An unmodified arrow collapses the selection to its end.
-	h.key(KeyRight, ModShift)
+	h.key(t, KeyRight, ModShift)
 	expectRtfSel(t, h, 0, 1)
-	h.key(KeyRight, ModNone)
+	h.key(t, KeyRight, ModNone)
 	expectRtfSel(t, h, 0, 0)
 	expectRtfCursor(t, h, 1)
 }
@@ -583,15 +585,15 @@ func TestRtfSelectKeyShiftExtendsSelection(t *testing.T) {
 	h.press(x, y)
 	h.release(x, y)
 
-	h.key(KeyRight, ModShift)
+	h.key(t, KeyRight, ModShift)
 	expectRtfSel(t, h, 4, 5)
-	h.key(KeyRight, ModShift)
+	h.key(t, KeyRight, ModShift)
 	expectRtfSel(t, h, 4, 6)
-	h.key(KeyLeft, ModShift)
+	h.key(t, KeyLeft, ModShift)
 	expectRtfSel(t, h, 4, 5)
-	h.key(KeyLeft, ModShift)
+	h.key(t, KeyLeft, ModShift)
 	expectRtfSel(t, h, 4, 4)
-	h.key(KeyLeft, ModShift)
+	h.key(t, KeyLeft, ModShift)
 	expectRtfSel(t, h, 4, 3) // inverted: anchor stays at 4
 }
 
@@ -626,12 +628,12 @@ func TestRtfSelectCtrlASelectsAllAndCtrlCCopies(t *testing.T) {
 	h.press(x, y)
 	h.release(x, y)
 
-	h.key(KeyA, ModCtrl)
+	h.key(t, KeyA, ModCtrl)
 	expectRtfSel(t, h, 0, 11)
 
 	var got string
 	h.w.SetClipboardFn(func(s string) { got = s })
-	h.key(KeyC, ModCtrl)
+	h.key(t, KeyC, ModCtrl)
 	if got != "hello world" {
 		t.Errorf("clipboard = %q, want %q", got, "hello world")
 	}
