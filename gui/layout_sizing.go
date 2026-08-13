@@ -409,6 +409,26 @@ func layoutWidths(layout *Layout) {
 		if layout.Shape.MaxWidth > 0 {
 			layout.Shape.Width = f32Min(layout.Shape.Width, layout.Shape.MaxWidth)
 		}
+	} else {
+		// axisNone: no children to distribute along the axis, so there
+		// is nothing to fit against. Honor explicit min/max pins only —
+		// the Fill root pin from updateLayoutLocked (Min = Max = window
+		// size) is the case that matters (issue #262): a FillFill root
+		// like a Splitter (Canvas) used to resolve to 0x0 because the
+		// pin was set and never read. Fixed sizing pins via
+		// applyFixedSizingConstraints (Min = Max = Width), where the
+		// clamp is a no-op; children keep today's sizing semantics.
+		// Invariant: the fill impls must stay size-neutral for axisNone
+		// — today they only recurse and cache contentW — or the pin
+		// would be overwritten after this pass (plan item: "making the
+		// fill passes distribute children of axisNone roots" is out of
+		// scope and must not drift in as a size writer).
+		if layout.Shape.MinWidth > 0 {
+			layout.Shape.Width = f32Max(layout.Shape.Width, layout.Shape.MinWidth)
+		}
+		if layout.Shape.MaxWidth > 0 {
+			layout.Shape.Width = f32Min(layout.Shape.Width, layout.Shape.MaxWidth)
+		}
 	}
 }
 
@@ -458,6 +478,18 @@ func layoutHeights(layout *Layout) {
 				layout.Shape.MinHeight = f32Max(layout.Shape.MinHeight, layout.Children[i].Shape.MinHeight+padding)
 			}
 		}
+		if layout.Shape.MinHeight > 0 {
+			layout.Shape.Height = f32Max(layout.Shape.Height, layout.Shape.MinHeight)
+		}
+		if layout.Shape.MaxHeight > 0 {
+			layout.Shape.Height = f32Min(layout.Shape.Height, layout.Shape.MaxHeight)
+		}
+	} else {
+		// axisNone: mirror layoutWidths — nothing to distribute, so
+		// honor explicit min/max pins only (the Fill root pin from
+		// updateLayoutLocked, issue #262). Same fill-impl size-neutral
+		// invariant as layoutWidths: the height fill impl must not gain
+		// an axisNone size writer.
 		if layout.Shape.MinHeight > 0 {
 			layout.Shape.Height = f32Max(layout.Shape.Height, layout.Shape.MinHeight)
 		}

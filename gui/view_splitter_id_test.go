@@ -117,7 +117,8 @@ func TestSplitterSameLeafIDInTwoScopesDoesNotCollide(t *testing.T) {
 // part keeps the exact spelling it had before #264.
 func TestSplitterUnscopedKeepsFlatIDs(t *testing.T) {
 	h := newSplitterHarness(t, splitterCollapsibleCfg("sp"))
-	// splitterFillParent's Row carries no ID, so it opens no scope.
+	// The splitter is the root view, so it opens no scope: its effective
+	// ID equals cfg.ID.
 	for _, id := range []string{
 		"sp",
 		"sp:pane:first",
