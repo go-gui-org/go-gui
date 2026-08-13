@@ -10,6 +10,15 @@ and this project adheres to
 
 ### Fixed
 
+- **The datagrid column-resize handle now renders its active color
+  during a resize drag (issue #284).** A drag holds a mouse lock and
+  `layoutHover` bails under a lock, so the handle's pressed color —
+  painted only from `OnHover` — could not fire mid-drag and the handle
+  showed its resting color while resizing. The handle's color now comes
+  from the resize state read at generation time
+  (`dataGridActiveResizeColID`), live for the whole drag and reverting
+  on release or cancel.
+
 - **Pressed-while-hovered colors now render.** Seven `OnHover` handlers
   paint a click color while the left button is held (button
   `Colors.Click`, breadcrumb crumb, expand-panel header, switch pill,
