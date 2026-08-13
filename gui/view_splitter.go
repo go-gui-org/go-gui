@@ -255,12 +255,38 @@ func applySplitterDefaults(cfg *SplitterCfg) {
 	}
 }
 
+// splitterView implements View for the splitter. The splitter is a
+// struct view rather than a plain factory because its inner IDs must be
+// composed from the widget's *effective* ID, which only exists once a
+// Window is in hand (see docs/specs/widget-id-per-scope-uniqueness.md).
+// Composing them in the factory produced absolute strings that
+// resolveShapeIDs never joins, so every part stayed window-global under
+// an ID-bearing ancestor (issue #264).
+type splitterView struct {
+	core *splitterCore
+	cfg  SplitterCfg
+}
+
 // Splitter creates a two-pane splitter with drag/keyboard/collapse.
 func Splitter(cfg SplitterCfg) View {
 	applySplitterDefaults(&cfg)
-	core := newSplitterCore(&cfg)
+	return &splitterView{cfg: cfg, core: newSplitterCore(&cfg)}
+}
 
-	return Canvas(ContainerCfg{
+func (sv *splitterView) Content() []View { return nil }
+
+func (sv *splitterView) GenerateLayout(w *Window) Layout {
+	cfg := &sv.cfg
+	core := sv.core
+	// Every part hangs off the splitter's effective ID, so two splitters
+	// written with the same leaf under different ID-bearing panels do not
+	// collide. With no ID-bearing ancestor, id == cfg.ID and the parts
+	// keep their historical spellings ("sp:handle", "sp:pane:first").
+	// The root shape carries the plain leaf; the framework joins it to
+	// the same string.
+	id := w.EffID(cfg.ID)
+
+	return generateViewLayout(Canvas(ContainerCfg{
 		ID:              cfg.ID,
 		Focusable:       cfg.Focusable,
 		A11YRole:        AccessRoleSplitter,
@@ -278,11 +304,11 @@ func Splitter(cfg SplitterCfg) View {
 			splitterAmendLayout(core, ctx.Layout, ctx.Window)
 		},
 		Content: []View{
-			splitterPane(ScopeID(cfg.ID, "pane", "first"), cfg.First.Content),
-			splitterHandleView(&cfg, core),
-			splitterPane(ScopeID(cfg.ID, "pane", "second"), cfg.Second.Content),
+			splitterPane(ScopeID(id, "pane", "first"), cfg.First.Content),
+			splitterHandleView(cfg, core, id),
+			splitterPane(ScopeID(id, "pane", "second"), cfg.Second.Content),
 		},
-	})
+	}), w)
 }
 
 func splitterPane(id string, content []View) View {
@@ -329,10 +355,11 @@ func splitterAmendLayout(core *splitterCore, layout *Layout, w *Window) {
 	if len(layout.Children) < 3 {
 		return
 	}
-	// Splitter builds its tree with no Window in hand, so the core holds
-	// leaf IDs. Amend runs on the splitter's own shape, every frame,
+	// The core is built in the factory and holds the leaf cfg.ID; only
+	// the resolve pass (via the shape's idKey) knows the effective path,
+	// so Amend — which runs on the splitter's own shape, every frame,
 	// before any handler that looks the splitter up (FindByID) or moves
-	// focus to it — so this is where the leaves become identities.
+	// focus to it — is where the leaf becomes the identity.
 	core.id = layout.Shape.idKey()
 	if core.focusID != "" {
 		core.focusID = core.id

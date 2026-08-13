@@ -32,6 +32,16 @@ and this project adheres to
   the border width was already `sizeBorderDef` either way. For a custom
   theme the splitter's own three values were dead and now apply. An
   explicit `SomeF(0)` still means "no border".
+- **Splitter: part IDs now scope with the root (issue #264).** `Splitter`
+  composed its pane, handle and collapse-button IDs in the factory, where no
+  `Window` exists, so under an ID-bearing ancestor the root resolved to
+  `outer:sp` while every part stayed window-global (`sp:handle`, …) — two
+  splitters reusing one leaf ID collided on every part. The splitter is now a
+  struct view whose `GenerateLayout` resolves the effective ID
+  (`w.EffID(cfg.ID)`) and composes every part under that path. With no
+  ID-bearing ancestor the spellings are unchanged. API consequence: parts of
+  a nested splitter are addressed by scoped effective IDs (`outer:sp:handle`,
+  `outer:sp:pane:first`).
 
 ### Added
 
