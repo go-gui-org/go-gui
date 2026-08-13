@@ -531,6 +531,95 @@ func TestRtfSelectRightClickLeavesSelectionUntouched(t *testing.T) {
 	expectRtfSel(t, h, 2, 2)
 }
 
+// TestRtfSelectDragCancelZeroesSelection pins issue #281: capture
+// loss mid-drag (MouseCancel — the platform revoked the lock, no
+// release will come) must zero the partial selection instead of
+// leaving it stuck. The Cancel hook is scoped to the dragged RTF's
+// own nsInput key.
+func TestRtfSelectDragCancelZeroesSelection(t *testing.T) {
+	h := newRtfSelectHarness(t, rtfHelloWorld())
+
+	x0, y0 := rtfRunePoint(h.shape(t), 2)
+	h.press(x0, y0)
+	x1, y1 := rtfRunePoint(h.shape(t), 8)
+	h.move(x1, y1)
+	expectRtfSel(t, h, 2, 8)
+
+	h.w.MouseCancel()
+	h.w.settle()
+	if h.w.mouseIsLocked() {
+		t.Error("mouse still locked after MouseCancel")
+	}
+	expectRtfSel(t, h, 0, 0)
+}
+
+// TestRtfSelectDragCancelScopedToOwnState asserts the Cancel hook
+// zeroes only the dragged RTF's selection: a second widget's nsInput
+// entry written after the drag started survives the cancel. (A
+// selection present before the press would already have been cleared
+// by the RTF taking focus — a real focus change clears selections
+// window-wide by design, so the unrelated entry must be planted after
+// focus is established.)
+func TestRtfSelectDragCancelScopedToOwnState(t *testing.T) {
+	h := newRtfSelectHarness(t, rtfHelloWorld())
+
+	x0, y0 := rtfRunePoint(h.shape(t), 2)
+	h.press(x0, y0)
+	x1, y1 := rtfRunePoint(h.shape(t), 8)
+	h.move(x1, y1)
+	expectRtfSel(t, h, 2, 8)
+
+	setInputState(h.w, "other", inputState{CursorPos: 3, selectBeg: 1, selectEnd: 3})
+	h.w.MouseCancel()
+	h.w.settle()
+	expectRtfSel(t, h, 0, 0)
+	if is := getInputState(h.w, "other"); is.selectBeg != 1 || is.selectEnd != 3 {
+		t.Errorf("unrelated widget selection = [%d,%d), want [1,3)",
+			is.selectBeg, is.selectEnd)
+	}
+}
+
+// TestRtfSelectReleaseOutsideCommitsSelection pins the asymmetry that
+// makes cancel-zeros correct: a normal MouseUp — even at a point far
+// outside the widget — COMMITS the drag selection. The mouse lock
+// delivers the release regardless of position; only capture loss goes
+// through the Cancel hook.
+func TestRtfSelectReleaseOutsideCommitsSelection(t *testing.T) {
+	h := newRtfSelectHarness(t, rtfHelloWorld())
+
+	x0, y0 := rtfRunePoint(h.shape(t), 2)
+	h.press(x0, y0)
+	x1, y1 := rtfRunePoint(h.shape(t), 8)
+	h.move(x1, y1)
+	expectRtfSel(t, h, 2, 8)
+
+	h.release(700, 700) // outside the widget: commits
+	if h.w.mouseIsLocked() {
+		t.Error("mouse still locked after release")
+	}
+	expectRtfSel(t, h, 2, 8)
+}
+
+// TestRtfSelectDragCancelCollapsedSelectionHarmless asserts the
+// guard: a cancel when no selection is in progress (the press only
+// collapsed to a caret) leaves the state clean — no corruption, no
+// stuck lock.
+func TestRtfSelectDragCancelCollapsedSelectionHarmless(t *testing.T) {
+	h := newRtfSelectHarness(t, rtfHelloWorld())
+
+	x, y := rtfRunePoint(h.shape(t), 2)
+	h.press(x, y)
+	expectRtfSel(t, h, 2, 2)
+
+	h.w.MouseCancel()
+	h.w.settle()
+	if h.w.mouseIsLocked() {
+		t.Error("mouse still locked after MouseCancel")
+	}
+	expectRtfSel(t, h, 0, 0)
+	expectRtfCursor(t, h, 2)
+}
+
 // --- Keyboard navigation ---
 
 // TestRtfSelectKeyNavArrows walks the single-line key map: plain

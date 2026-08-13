@@ -1678,3 +1678,179 @@ func TestInputClickOnFocusedInputCollapsesSelectionToCaret(t *testing.T) {
 		t.Fatalf("cursor = %d, want 8", is.CursorPos)
 	}
 }
+
+// --- Issue #281: capture-loss cancel zeroes the partial drag selection ---
+
+// newInputSelWindow renders a single-line input with the deterministic
+// measurer and returns the window plus the layout for ID.
+func newInputSelWindow(t *testing.T, cfg InputCfg) (*Window, *Layout) {
+	t.Helper()
+	w := NewTestWindow(WindowCfg{})
+	w.textMeasurer = inputSelTestMeasurer{}
+	w.TestRender(func(win *Window) View { return Input(cfg) })
+	ly, ok := w.layout.FindByID(cfg.ID)
+	if !ok {
+		t.Fatalf("no input with effective ID %s", cfg.ID)
+	}
+	return w, ly
+}
+
+// inputTextShape walks the input layout to its inner text shape, whose
+// origin anchors the deterministic char rects.
+func inputTextShape(t *testing.T, ly *Layout) *Shape {
+	t.Helper()
+	if len(ly.Children) == 0 || len(ly.Children[0].Children) == 0 {
+		t.Fatal("input layout missing inner text child")
+	}
+	txt := ly.Children[0].Children[0].Shape
+	if txt.TC == nil {
+		t.Fatal("inner child is not a text shape")
+	}
+	return txt
+}
+
+// inputRunePoint returns the window-absolute center of localRune —
+// valid for both the click path (shape-relative after callRelative)
+// and the MouseLock drag path (window-absolute; the drag subtracts
+// the text shape's offset from the input box itself).
+func inputRunePoint(txt *Shape, localRune int) (float32, float32) {
+	return txt.X + float32(localRune)*inputSelCharW + inputSelCharW/2,
+		txt.Y + inputSelCharH/2
+}
+
+// TestInputDragCancelZeroesSelection pins issue #281: capture loss
+// mid-drag (MouseCancel — no release will ever arrive) must zero the
+// partial selection, not leave a stuck highlight.
+func TestInputDragCancelZeroesSelection(t *testing.T) {
+	w, ly := newInputSelWindow(t, InputCfg{ID: "f281", Text: "hello world"})
+	txt := inputTextShape(t, ly)
+
+	x0, y0 := inputRunePoint(txt, 2)
+	x1, y1 := inputRunePoint(txt, 8)
+	w.EventFn(&Event{Type: EventMouseDown, MouseButton: MouseLeft,
+		MouseX: x0, MouseY: y0})
+	w.settle()
+	if !w.mouseIsLocked() {
+		t.Fatal("press on the input did not lock the mouse")
+	}
+	w.EventFn(&Event{Type: EventMouseMove, MouseButton: MouseInvalid,
+		MouseX: x1, MouseY: y1})
+	w.settle()
+	is := getInputState(w, "f281")
+	if is.selectBeg != 2 || is.selectEnd != 8 {
+		t.Fatalf("drag selected [%d,%d), want [2,8)",
+			is.selectBeg, is.selectEnd)
+	}
+
+	w.MouseCancel()
+	w.settle()
+	if w.mouseIsLocked() {
+		t.Error("mouse still locked after MouseCancel")
+	}
+	is = getInputState(w, "f281")
+	if is.selectBeg != 0 || is.selectEnd != 0 {
+		t.Errorf("selection after cancel = [%d,%d), want [0,0)",
+			is.selectBeg, is.selectEnd)
+	}
+}
+
+// TestInputDragCancelScopedToOwnState asserts the Input Cancel hook
+// zeroes only the dragged input's nsInput entry: another widget's
+// state written after the drag started survives the cancel. (A state
+// written before the press would be wiped by the focus change.)
+func TestInputDragCancelScopedToOwnState(t *testing.T) {
+	w, ly := newInputSelWindow(t, InputCfg{ID: "f281", Text: "hello world"})
+	txt := inputTextShape(t, ly)
+
+	x0, y0 := inputRunePoint(txt, 2)
+	x1, y1 := inputRunePoint(txt, 8)
+	w.EventFn(&Event{Type: EventMouseDown, MouseButton: MouseLeft,
+		MouseX: x0, MouseY: y0})
+	w.settle()
+	w.EventFn(&Event{Type: EventMouseMove, MouseButton: MouseInvalid,
+		MouseX: x1, MouseY: y1})
+	w.settle()
+
+	setInputState(w, "other", inputState{CursorPos: 3, selectBeg: 1, selectEnd: 3})
+	w.MouseCancel()
+	w.settle()
+	if is := getInputState(w, "f281"); is.selectBeg != 0 || is.selectEnd != 0 {
+		t.Errorf("dragged input selection = [%d,%d), want [0,0)",
+			is.selectBeg, is.selectEnd)
+	}
+	if is := getInputState(w, "other"); is.selectBeg != 1 || is.selectEnd != 3 {
+		t.Errorf("unrelated widget selection = [%d,%d), want [1,3)",
+			is.selectBeg, is.selectEnd)
+	}
+}
+
+// TestInputReleaseOutsideCommitsSelection pins the asymmetry: a
+// normal MouseUp — even at a point far outside the fixed-size input —
+// COMMITS the drag selection. The lock delivers the release anywhere;
+// only capture loss goes through the Cancel hook.
+func TestInputReleaseOutsideCommitsSelection(t *testing.T) {
+	w, ly := newInputSelWindow(t, InputCfg{
+		ID: "f281", Text: "hello world",
+		Sizing: FixedFixed, Width: 200, Height: 30,
+	})
+	txt := inputTextShape(t, ly)
+
+	x0, y0 := inputRunePoint(txt, 2)
+	x1, y1 := inputRunePoint(txt, 8)
+	w.EventFn(&Event{Type: EventMouseDown, MouseButton: MouseLeft,
+		MouseX: x0, MouseY: y0})
+	w.settle()
+	w.EventFn(&Event{Type: EventMouseMove, MouseButton: MouseInvalid,
+		MouseX: x1, MouseY: y1})
+	w.settle()
+	if is := getInputState(w, "f281"); is.selectBeg != 2 || is.selectEnd != 8 {
+		t.Fatalf("drag selected [%d,%d), want [2,8)",
+			is.selectBeg, is.selectEnd)
+	}
+
+	w.EventFn(&Event{Type: EventMouseUp, MouseButton: MouseLeft,
+		MouseX: 700, MouseY: 700})
+	w.settle()
+	if w.mouseIsLocked() {
+		t.Error("mouse still locked after release")
+	}
+	is := getInputState(w, "f281")
+	if is.selectBeg != 2 || is.selectEnd != 8 {
+		t.Errorf("selection after outside release = [%d,%d), want [2,8)",
+			is.selectBeg, is.selectEnd)
+	}
+}
+
+// TestInputDragCancelCollapsedSelectionHarmless asserts the guard:
+// a cancel when no selection is in progress (the press only collapsed
+// to a caret) leaves the state clean — no corruption, no stuck lock.
+func TestInputDragCancelCollapsedSelectionHarmless(t *testing.T) {
+	w, ly := newInputSelWindow(t, InputCfg{ID: "f281", Text: "hello world"})
+	txt := inputTextShape(t, ly)
+
+	x, y := inputRunePoint(txt, 2)
+	w.EventFn(&Event{Type: EventMouseDown, MouseButton: MouseLeft,
+		MouseX: x, MouseY: y})
+	w.settle()
+	if !w.mouseIsLocked() {
+		t.Fatal("press on the input did not lock the mouse")
+	}
+	if is := getInputState(w, "f281"); is.selectBeg != 2 || is.selectEnd != 2 {
+		t.Fatalf("press left selection [%d,%d), want caret at 2",
+			is.selectBeg, is.selectEnd)
+	}
+
+	w.MouseCancel()
+	w.settle()
+	if w.mouseIsLocked() {
+		t.Error("mouse still locked after MouseCancel")
+	}
+	is := getInputState(w, "f281")
+	if is.selectBeg != 0 || is.selectEnd != 0 {
+		t.Errorf("selection after cancel = [%d,%d), want [0,0)",
+			is.selectBeg, is.selectEnd)
+	}
+	if is.CursorPos != 2 {
+		t.Errorf("cursor = %d, want 2", is.CursorPos)
+	}
+}

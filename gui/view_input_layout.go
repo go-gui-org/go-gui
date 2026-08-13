@@ -279,6 +279,15 @@ func startInputDrag(d *inputDragState, w *Window) {
 		},
 		Cancel: func(w *Window) {
 			w.AnimationRemove(animIDDragScroll)
+			// The drag was mutating this input's own nsInput state:
+			// zero the partial selection so a cancelled drag never
+			// leaves a stuck highlight (issue #281). Other widgets'
+			// selections are untouched — the key is d.focusID.
+			imap := StateMap[string, inputState](w, nsInput, capMany)
+			is := imap.GetOr(d.focusID, inputState{})
+			is.selectBeg = 0
+			is.selectEnd = 0
+			imap.Set(d.focusID, is)
 		},
 	})
 }

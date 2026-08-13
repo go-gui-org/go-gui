@@ -488,14 +488,19 @@ func inputOnClick(leafID, leafScrollID string, canFocus bool) func(EventCtx) {
 		}
 		ctx.Consume()
 
-		// Drag-to-select via MouseLock.
+		// Drag-to-select via MouseLock. The lock delivers mouse moves in
+		// window-absolute coordinates (event_handlers.go), so the drag
+		// offset must be the text shape's absolute position — subtracting
+		// the box-relative offset (txt.X - box.X) would leave the drag
+		// shifted by the input's window X. The click path derives the
+		// same text-relative frame from the box-relative event.
 		ds := &inputDragState{
 			anchorPos:   is.selectBeg,
 			anchorEnd:   is.selectEnd,
 			gl:          gl,
 			displayText: displayText,
-			txtOffX:     ly.Shape.X - ctx.Layout.Shape.X,
-			txtOffY:     ly.Shape.Y - ctx.Layout.Shape.Y,
+			txtOffX:     ly.Shape.X,
+			txtOffY:     ly.Shape.Y,
 			focusID:     focusID,
 			scrollID:    scrollID,
 		}
