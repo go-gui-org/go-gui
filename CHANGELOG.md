@@ -10,6 +10,16 @@ and this project adheres to
 
 ### Fixed
 
+- **Splitter: a collapsed pane with content now reaches its collapsed
+  size (issue #263).** `splitterLayoutChild` pinned the pane to the size
+  `splitterCompute` decided, then re-ran the fit passes, which recomputed
+  the pane from its content's minimum and overwrote the pin — so a pane
+  holding real content kept a sliver that drew underneath the handle. The
+  pin is now re-applied after the fit passes, so collapse is exact
+  (zero-width with the default `collapsedSize`, or exactly
+  `collapsedSize` when set). Contract note: pane sizes come from
+  ratio/min/max only; content larger than the computed pane size is
+  clipped (panes have `Clip: true`), never stretches the pane.
 - **Splitter: the spacebar toggles collapse again.** `splitterOnKeydown`
   tested `Event.CharCode`, which backends populate only on `EventChar` —
   a space keydown arrives with `KeyCode == KeySpace` and `CharCode == 0`,

@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // Interaction-level coverage for the splitter: the AmendLayout geometry
 // pass, drag resize through the mouse lock, hover feedback, the keyboard
@@ -151,10 +154,11 @@ func splitterTwoPanes() (first, second SplitterPaneCfg) {
 		SplitterPaneCfg{Content: []View{Text(TextCfg{Text: "R"})}}
 }
 
-// splitterEmptyPanes is for geometry assertions that need a pane able to
-// reach zero width. A pane with content cannot: the fit pass floors it at
-// the content's own minimum (see
-// TestSplitterCollapsedPaneKeepsContentMinimum).
+// splitterEmptyPanes builds content-free panes for geometry assertions
+// that only care about the computed sizes. They were introduced as a
+// workaround for the collapsed-pane sliver (issue #263, since fixed) —
+// content panes now collapse fully too, so this helper is a convenience,
+// not a workaround.
 func splitterEmptyPanes() (first, second SplitterPaneCfg) {
 	return SplitterPaneCfg{}, SplitterPaneCfg{}
 }
@@ -290,13 +294,12 @@ func TestSplitterAmendLayoutCollapsedFirst(t *testing.T) {
 	nearF(t, "second width", second.Shape.Width, avail, 0.5)
 }
 
-// A collapsed pane is only as small as its content allows.
-// splitterLayoutChild pins the pane to width 0, but then re-runs the fit
-// pass on the subtree, which grows the pane back to its content's
-// minimum — so the "collapsed" pane keeps a sliver and draws underneath
-// the handle, which sits at x=0. Asserted as-is to pin the behavior;
-// see issue #263.
-func TestSplitterCollapsedPaneKeepsContentMinimum(t *testing.T) {
+// A collapsed pane with content reaches exactly its collapsed size:
+// splitterLayoutChild re-applies the pinned size after the fit passes,
+// which previously grew the pane back to its content's minimum and left
+// a sliver underneath the handle (issue #263). At width 0 the pane
+// occupies no pixels, so it shares none with the 9px handle at x=0.
+func TestSplitterCollapsedPaneReachesZeroWidthWithContent(t *testing.T) {
 	a, b := splitterTwoPanes()
 	a.collapsible = true
 	h := newSplitterHarness(t, SplitterCfg{
@@ -305,18 +308,116 @@ func TestSplitterCollapsedPaneKeepsContentMinimum(t *testing.T) {
 		First:     a,
 		Second:    b,
 	})
-	first, handle, _ := h.parts(t, "sp")
-	if first.Shape.Width <= 0 {
-		t.Errorf("collapsed pane width = %g: #263 appears fixed, so "+
-			"this test and the geometry cases using splitterEmptyPanes "+
-			"should be rewritten to expect a true zero-width collapse",
-			first.Shape.Width)
+	first, handle, second := h.parts(t, "sp")
+	avail := float32(splitterTestW - splitterTestHandle)
+	nearF(t, "collapsed first width", first.Shape.Width, 0, 0.01)
+	nearF(t, "first x", first.Shape.X, 0, 0.01)
+	nearF(t, "handle x", handle.Shape.X, 0, 0.01)
+	if first.Shape.X+first.Shape.Width > handle.Shape.X {
+		t.Errorf("collapsed pane spans %g..%g, handle starts at %g — "+
+			"the pane must not share pixels with the handle",
+			first.Shape.X, first.Shape.X+first.Shape.Width,
+			handle.Shape.X)
 	}
-	if first.Shape.X != handle.Shape.X {
-		t.Errorf("collapsed pane x = %g, handle x = %g: expected the "+
-			"residual pane to sit under the handle",
-			first.Shape.X, handle.Shape.X)
+	nearF(t, "second width", second.Shape.Width, avail, 0.5)
+}
+
+// A non-zero collapsedSize is the pin value the pane must respect even
+// with content: the pane collapses to its collapsedSize, the handle
+// follows it, and the remaining pane takes the rest.
+func TestSplitterCollapsedPaneRespectsCollapsedSizeWithContent(t *testing.T) {
+	a, b := splitterTwoPanes()
+	a.collapsible = true
+	a.collapsedSize = 24
+	h := newSplitterHarness(t, SplitterCfg{
+		ID:        "sp",
+		Collapsed: SplitterCollapseFirst,
+		First:     a,
+		Second:    b,
+	})
+	first, handle, second := h.parts(t, "sp")
+	avail := float32(splitterTestW - splitterTestHandle)
+	nearF(t, "collapsed first width", first.Shape.Width, 24, 0.5)
+	nearF(t, "handle x", handle.Shape.X, 24, 0.5)
+	nearF(t, "second width", second.Shape.Width, avail-24, 0.5)
+}
+
+// The fix holds for the second pane too: collapsing it must leave it at
+// zero width at the right edge, not as a sliver under the handle.
+func TestSplitterCollapsedSecondPaneReachesZeroWidthWithContent(t *testing.T) {
+	a, b := splitterTwoPanes()
+	b.collapsible = true
+	h := newSplitterHarness(t, SplitterCfg{
+		ID:        "sp",
+		Collapsed: SplitterCollapseSecond,
+		First:     a,
+		Second:    b,
+	})
+	first, handle, second := h.parts(t, "sp")
+	avail := float32(splitterTestW - splitterTestHandle)
+	nearF(t, "first width", first.Shape.Width, avail, 0.5)
+	nearF(t, "handle x", handle.Shape.X, avail, 0.5)
+	nearF(t, "collapsed second width", second.Shape.Width, 0, 0.01)
+	nearF(t, "second x", second.Shape.X, splitterTestW, 0.5)
+	if second.Shape.X < handle.Shape.X+handle.Shape.Width {
+		t.Errorf("collapsed second pane starts at %g, handle ends at %g — "+
+			"the pane must not share pixels with the handle",
+			second.Shape.X, handle.Shape.X+handle.Shape.Width)
 	}
+}
+
+// Pane sizes come from ratio/min/max, never from content: the pinned size
+// is re-applied after the fit passes, so a pane whose content wants more
+// room keeps the computed size and clips the overflow (the pane is built
+// with Clip: true) instead of stretching.
+func TestSplitterNormalPaneNotStretchedByContent(t *testing.T) {
+	a, b := splitterTwoPanes()
+	a.Content = []View{Text(TextCfg{Text: strings.Repeat("wide", 40)})}
+	h := newSplitterHarness(t, SplitterCfg{
+		ID:     "sp",
+		Ratio:  SomeF(0.25),
+		First:  a,
+		Second: b,
+	})
+	first, _, _ := h.parts(t, "sp")
+	avail := float32(splitterTestW - splitterTestHandle)
+	want := avail * 0.25
+	nearF(t, "first width", first.Shape.Width, want, 0.5)
+	if !first.Shape.Clip {
+		t.Error("pane does not clip; content overflow would paint outside")
+	}
+	// The content really is wider than the pane, so the clip assertion
+	// above is not vacuous.
+	if text := first.Children[0].Shape; text.Width <= first.Shape.Width {
+		t.Errorf("content width %g does not exceed pane width %g",
+			text.Width, first.Shape.Width)
+	}
+}
+
+// Vertical orientation: a collapsed first pane with content reaches zero
+// height, so nothing draws beneath the handle at y=0.
+func TestSplitterCollapsedPaneVerticalReachesZeroHeightWithContent(t *testing.T) {
+	a, b := splitterTwoPanes()
+	a.collapsible = true
+	h := newSplitterHarness(t, SplitterCfg{
+		ID:          "sp",
+		Orientation: SplitterVertical,
+		Collapsed:   SplitterCollapseFirst,
+		First:       a,
+		Second:      b,
+	})
+	first, handle, second := h.parts(t, "sp")
+	avail := float32(splitterTestH - splitterTestHandle)
+	nearF(t, "collapsed first height", first.Shape.Height, 0, 0.01)
+	nearF(t, "first y", first.Shape.Y, 0, 0.01)
+	nearF(t, "handle y", handle.Shape.Y, 0, 0.01)
+	if first.Shape.Y+first.Shape.Height > handle.Shape.Y {
+		t.Errorf("collapsed pane spans %g..%g, handle starts at %g — "+
+			"the pane must not share pixels with the handle",
+			first.Shape.Y, first.Shape.Y+first.Shape.Height,
+			handle.Shape.Y)
+	}
+	nearF(t, "second height", second.Shape.Height, avail, 0.5)
 }
 
 func TestSplitterAmendLayoutCollapsedSecondHonorsCollapsedSize(t *testing.T) {
@@ -366,6 +467,37 @@ func TestSplitterAmendLayoutOversizedHandle(t *testing.T) {
 	nearF(t, "handle width", handle.Shape.Width, splitterTestW, 0.01)
 	nearF(t, "first width", first.Shape.Width, 0, 0.01)
 	nearF(t, "second width", second.Shape.Width, 0, 0.01)
+}
+
+// Same degenerate geometry with real content in both panes, where both
+// are pinned to zero at once (the collapse tests cover one zero pane at a
+// time). The sliver fix (#263) must hold here too, or the panes grow to
+// their content minimum and draw over the full-width handle.
+func TestSplitterAmendLayoutOversizedHandleWithContent(t *testing.T) {
+	a, b := splitterTwoPanes()
+	h := newSplitterHarness(t, SplitterCfg{
+		ID:         "sp",
+		HandleSize: SomeF(splitterTestW + 200),
+		First:      a,
+		Second:     b,
+	})
+	first, handle, second := h.parts(t, "sp")
+	nearF(t, "handle width", handle.Shape.Width, splitterTestW, 0.01)
+	nearF(t, "first width", first.Shape.Width, 0, 0.01)
+	nearF(t, "second width", second.Shape.Width, 0, 0.01)
+	// The panes occupy no pixels, so nothing draws under or beyond the
+	// full-width handle.
+	if first.Shape.X+first.Shape.Width > handle.Shape.X {
+		t.Errorf("first pane spans %g..%g, handle starts at %g — "+
+			"the pane must not share pixels with the handle",
+			first.Shape.X, first.Shape.X+first.Shape.Width,
+			handle.Shape.X)
+	}
+	if second.Shape.X < handle.Shape.X+handle.Shape.Width {
+		t.Errorf("second pane starts at %g, handle ends at %g — "+
+			"the pane must not share pixels with the handle",
+			second.Shape.X, handle.Shape.X+handle.Shape.Width)
+	}
 }
 
 // AmendLayout indexes Children[0..2] unconditionally after the length
@@ -783,9 +915,8 @@ func TestSplitterKeyHomeCollapsesFirst(t *testing.T) {
 		t.Errorf("collapsed = %v, want first", h.state.Collapsed)
 	}
 	// The collapse reaches layout, not just the reported state: the
-	// second pane is assigned the whole available span. That says
-	// nothing about the first pane, whose residual sliver overlaps the
-	// handle rather than shrinking the second (#263).
+	// second pane is assigned the whole available span and the first
+	// pane collapses to zero, so nothing overlaps the handle (#263).
 	_, _, second := h.parts(t, "sp")
 	nearF(t, "second width", second.Shape.Width,
 		splitterTestW-splitterTestHandle, 0.5)
