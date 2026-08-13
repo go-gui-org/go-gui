@@ -10,6 +10,17 @@ and this project adheres to
 
 ### Fixed
 
+- **Interrupted (capture-loss) selection drags no longer leave a stuck
+  selection (issue #281).** Input, Text and RTF selection drags hold a
+  mouse lock whose `Cancel` hook fired on capture loss — a mouse-up that
+  will never arrive (window-resize steal, alt-tab, the #237 class) —
+  but only removed the edge-scroll animation; the partial selection
+  survived as if committed. The three Cancel hooks now zero the dragged
+  widget's own `selectBeg`/`selectEnd` (scoped to its `nsInput` key,
+  never other widgets'), so an interrupted drag leaves nothing. A normal
+  release still commits even outside the widget — the lock delivers the
+  mouse-up anywhere; only capture loss goes through the Cancel hook.
+
 - **Re-asserting focus no longer clears input selections (issue
   #277).** `setFocusLocked` called `clearInputSelections()` on every
   `SetFocus`, unconditionally, while the IME clear next to it was

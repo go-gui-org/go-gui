@@ -234,6 +234,15 @@ func textOnClick(ctx EventCtx) {
 			// it once the lock is gone, so it would keep scrolling
 			// and extending the selection on its own.
 			w.AnimationRemove(animIDTextDragScroll)
+			// Zero the partial selection the drag was mutating
+			// (nsInput keyed by the dragged text's own ID, issue
+			// #281) — capture loss must not leave a stuck
+			// highlight, while a normal release still commits.
+			dim := StateMap[string, inputState](w, nsInput, capMany)
+			dis := dim.GetOr(dragFocusID, inputState{})
+			dis.selectBeg = 0
+			dis.selectEnd = 0
+			dim.Set(dragFocusID, dis)
 		},
 	})
 }

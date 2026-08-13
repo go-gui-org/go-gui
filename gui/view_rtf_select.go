@@ -192,6 +192,15 @@ func rtfSelectOnClick(ctx EventCtx) {
 		},
 		Cancel: func(w *Window) {
 			w.AnimationRemove(animIDTextDragScroll)
+			// Zero the partial selection the drag was mutating
+			// (nsInput keyed by this RTF's own ID, issue #281) —
+			// capture loss must not leave a stuck highlight, while
+			// a normal release still commits.
+			dim := StateMap[string, inputState](w, nsInput, capMany)
+			dis := dim.GetOr(focusID, inputState{})
+			dis.selectBeg = 0
+			dis.selectEnd = 0
+			dim.Set(focusID, dis)
 		},
 	})
 }
