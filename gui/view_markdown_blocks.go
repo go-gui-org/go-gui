@@ -296,6 +296,7 @@ func mdRenderHR(cfg MarkdownCfg) View {
 func applyMdCtx(cfg *RTFCfg, ctx *mdBlockCtx) {
 	if ctx != nil {
 		cfg.markdownID = ctx.ID
+		cfg.markdownSel = ctx.Sel
 		cfg.markdownBlockStart = ctx.Start
 	}
 }

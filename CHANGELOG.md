@@ -10,6 +10,21 @@ and this project adheres to
 
 ### Fixed
 
+- **Markdown/RTF in-document anchor links (`#slug`) now scroll
+  (issue #278).** `rtfOnClick` scrolled the bare slug, but a heading's
+  ID is scoped to its document (`ScopeID(docID, "h", slug)` — e.g.
+  `md:h:slug`, or `panel:md:h:slug` nested), so `FindByID(slug)` missed
+  and the scroll silently no-opped — even at root. The `#` branch now
+  resolves through `rtfResolveAnchor`: for a markdown block (every
+  block carries the document's effective ID in `TC.markdownID`, now
+  stamped on non-focusable documents too), the document-scoped heading
+  spelling is tried first, then the bare slug — so arbitrary absolute
+  targets (`#view:bottom`) and standalone RTF links keep working. The
+  identity stamping and the selection machinery are separate flags now:
+  a non-focusable markdown document gains anchor resolution but keeps
+  its exact prior click behavior (no focus, no mouse lock, no
+  per-frame selection walk).
+
 - **Markdown: cross-block selection works under ID-bearing ancestors
   (issue #273).** The document's blocks were stamped with the raw
   `cfg.ID` at generation time, while the container's amend and key

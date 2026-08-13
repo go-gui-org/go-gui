@@ -36,10 +36,13 @@ type mdBlockInfo struct {
 
 // mdBlockCtx carries the markdown widget ID and the current cumulative rune
 // offset so render functions can stamp each RTF block with its position within
-// the markdown's virtual flat text.
+// the markdown's virtual flat text. ID is stamped on every block — it is the
+// document identity anchor-resolution keys on — while Start is meaningful only
+// when Sel is set, which gates the selection machinery.
 type mdBlockCtx struct {
 	ID    string
 	Start uint32
+	Sel   bool
 }
 
 // markdownBlockAmendSel is called from rtfMarkdownAmendLayout for each RTF
