@@ -400,12 +400,7 @@ func splitterLayoutChild(
 ) {
 	splitterResetPositions(child, true, axisNone, 0, 0)
 	child.Shape.Sizing = FixedFixed
-	child.Shape.Width = f32Max(0, width)
-	child.Shape.Height = f32Max(0, height)
-	child.Shape.MinWidth = child.Shape.Width
-	child.Shape.MaxWidth = child.Shape.Width
-	child.Shape.MinHeight = child.Shape.Height
-	child.Shape.MaxHeight = child.Shape.Height
+	splitterPinShapeSize(child.Shape, width, height)
 	child.Shape.X = 0
 	child.Shape.Y = 0
 
@@ -414,9 +409,34 @@ func splitterLayoutChild(
 	layoutWrapText(child, w)
 	layoutHeights(child)
 	layoutFillHeights(child, &w.scratch)
+
+	// Re-apply the pin after the fit passes. The fit passes recompute
+	// the pane's size from its content's minimums, which grows a
+	// pinned-0 (collapsed) pane back into a sliver that draws underneath
+	// the handle (issue #263). The re-assert is what the downstream
+	// scroll, position, amend and render passes see, so a collapsed pane
+	// reaches exactly its computed size. For panes pinned >0 it is a
+	// no-op — those sizes already survived the fit passes — and it makes
+	// the sizing contract structural: pane sizes come from splitterCompute
+	// (ratio/min/max), never from content, which is clipped (Clip: true)
+	// when larger.
+	splitterPinShapeSize(child.Shape, width, height)
+
 	layoutAdjustScrollOffsets(child, w)
 	layoutPositions(child, x, y, w)
 	layoutAmend(child, w)
+}
+
+// splitterPinShapeSize pins a shape to the exact size splitterCompute
+// decided. Applied once before the fit passes (so the fixed sizing is
+// seeded) and re-applied after them; see splitterLayoutChild for why.
+func splitterPinShapeSize(shape *Shape, width, height float32) {
+	shape.Width = f32Max(0, width)
+	shape.Height = f32Max(0, height)
+	shape.MinWidth = shape.Width
+	shape.MaxWidth = shape.Width
+	shape.MinHeight = shape.Height
+	shape.MaxHeight = shape.Height
 }
 
 func splitterResetPositions(layout *Layout, isRoot bool,
