@@ -412,11 +412,20 @@ func markdownBuildContent(
 	runeOffset := uint32(0)
 	selEnabled := cfg.Focusable
 
+	// Every block is stamped with the document's identity (markdownID,
+	// which anchor resolution keys on), but the per-block rune offsets
+	// and selection flag belong to the focusable path only. Non-focusable
+	// documents therefore reuse one ctx for all blocks — one allocation
+	// per frame per document instead of one per block.
+	var sharedCtx *mdBlockCtx
 	makeCtx := func(block markdownBlock) *mdBlockCtx {
 		if !selEnabled {
-			return nil
+			if sharedCtx == nil {
+				sharedCtx = &mdBlockCtx{ID: cfg.ID}
+			}
+			return sharedCtx
 		}
-		ctx := &mdBlockCtx{ID: cfg.ID, Start: runeOffset}
+		ctx := &mdBlockCtx{ID: cfg.ID, Start: runeOffset, Sel: true}
 		runeOffset += uint32(rtfRuneCountFromRuns(&block.Content))
 		return ctx
 	}

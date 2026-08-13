@@ -120,6 +120,29 @@ func (mdSelectTestMeasurer) LayoutText(
 	return glyph.Layout{Height: style.Size * 1.2}, nil
 }
 
+// mdRunItems emits one Item per run, the granularity glyph's shaping
+// produces, so link/tooltip hit tests (rtfOnClick, rtfMouseMove) only
+// answer for the run under the cursor. mdCharLayoutForText leaves Items
+// empty — selection never reads it, but the click path does. The
+// baseline sits at Y=16 with Ascent 12 / Descent 4, so the hit rect
+// spans [4,20) — inside the char-rect band [0,20) that GetClosestOffset
+// maps.
+func mdRunItems(runs []glyph.StyleRun) []glyph.Item {
+	items := make([]glyph.Item, 0, len(runs))
+	offset := 0
+	for _, r := range runs {
+		items = append(items, glyph.Item{
+			X: float64(offset) * 10, Y: 16,
+			Width:  float64(len(r.Text)) * 10,
+			Ascent: 12, Descent: 4,
+			StartIndex: offset,
+			RunText:    r.Text,
+		})
+		offset += len(r.Text)
+	}
+	return items
+}
+
 // LayoutRichText concatenates the run texts — the same flat text the
 // shape carries in rTFFlatText — and shapes it.
 func (mdSelectTestMeasurer) LayoutRichText(
@@ -129,7 +152,9 @@ func (mdSelectTestMeasurer) LayoutRichText(
 	for _, r := range rt.Runs {
 		b.WriteString(r.Text)
 	}
-	return mdCharLayoutForText(b.String()), nil
+	l := mdCharLayoutForText(b.String())
+	l.Items = mdRunItems(rt.Runs)
+	return l, nil
 }
 
 // mdSelectHarness renders one focusable markdown document and exposes

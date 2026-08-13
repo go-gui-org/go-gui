@@ -26,11 +26,16 @@ type RTFCfg struct {
 	Focusable       bool
 	hangingIndent   float32 // negative indent for wrapped lines
 
-	// markdownID > 0 when this block belongs to a markdown widget.
-	// markdownBlockStart is the rune offset of this block in the
-	// markdown's flat text. Both are set by view_markdown.go only.
+	// markdownID is non-empty when this block belongs to a markdown
+	// widget. markdownBlockStart is the rune offset of this block in
+	// the markdown's flat text. All three are set by view_markdown.go
+	// only: markdownID is stamped on every markdown block — it is the
+	// document identity anchor resolution keys on — while markdownSel
+	// gates the cross-block selection machinery and is set only for
+	// focusable documents.
 	markdownID         string
 	markdownBlockStart uint32
+	markdownSel        bool
 	Mode               textMode
 	Invisible          bool
 	Clip               bool
@@ -138,7 +143,7 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 
 	var events *eventHandlers
 	switch {
-	case v.markdownID != "":
+	case v.markdownSel:
 		events = w.allocEventHandlers(eventHandlers{
 			OnClick:     markdownBlockOnClick,
 			OnMouseMove: rtfMouseMove,
@@ -498,7 +503,11 @@ func rtfOnClick(ctx EventCtx) {
 				}
 				if len(found.Link) > 0 &&
 					found.Link[0] == '#' {
-					ctx.Window.scrollToView(found.Link[1:])
+					if id, ok := rtfResolveAnchor(ctx.Window,
+						ctx.Layout.Shape.TC.markdownID,
+						found.Link[1:]); ok {
+						ctx.Window.scrollToView(id)
+					}
 				} else if ctx.Window.nativePlatform != nil {
 					_ = ctx.Window.nativePlatform.OpenURI(found.Link)
 				}
@@ -507,6 +516,31 @@ func rtfOnClick(ctx EventCtx) {
 			return
 		}
 	}
+}
+
+// rtfResolveAnchor resolves an in-document anchor ('#slug') to the
+// scrollable target it names. A link inside a markdown document (TC
+// markdownID non-empty) names a heading of that document, whose ID is
+// scoped to the document: ScopeID(markdownID, "h", slug) — the
+// "md:h:slug" (or "panel:md:h:slug") path the resolve pass treats as
+// absolute — so the scoped spelling is tried first. Targets that are
+// not headings keep working: an arbitrary absolute ID ("#view:bottom")
+// or a standalone RTF link (markdownID == "") falls back to the bare
+// slug. ok is false when neither lookup finds a shape.
+func rtfResolveAnchor(
+	w *Window, markdownID, slug string,
+) (id string, ok bool) {
+	if markdownID != "" {
+		if scoped := ScopeID(markdownID, "h", slug); scoped != "" {
+			if _, found := w.layout.FindByID(scoped); found {
+				return scoped, true
+			}
+		}
+	}
+	if _, found := w.layout.FindByID(slug); found {
+		return slug, true
+	}
+	return "", false
 }
 
 // rtfLinkMenuState holds state for the RTF link context menu.
