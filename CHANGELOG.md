@@ -10,6 +10,44 @@ and this project adheres to
 
 ### Fixed
 
+- **Markdown: cross-block selection works under ID-bearing ancestors
+  (issue #273).** The document's blocks were stamped with the raw
+  `cfg.ID` at generation time, while the container's amend and key
+  handlers keyed on the *effective* ID the resolve pass stamps — so a
+  markdown nested in a panel with an ID collected an empty block list
+  (`nsMdBlocks` was keyed `panel:md`, the blocks matched `md`), and
+  cross-block drag, Ctrl+A, Ctrl+C and click focus were dead, with the
+  click writing selection state under a key nothing read. `Markdown` is
+  now a struct view whose `GenerateLayout` resolves the effective ID
+  once (`w.EffID(cfg.ID)`, the same mechanism the splitter uses) and
+  stamps it into every block and inner ID, so the container, the
+  blocks, the state slots and `SetFocus` all agree on one identity.
+  Flat documents are unchanged; two documents sharing a leaf under
+  different panels now keep separate selections.
+
+- **Markdown: a stale selection no longer survives a document content
+  change (issue #275).** `markdownContainerAmendLayout` now hashes the
+  block list (offsets, rune counts, flat text) each frame and resets
+  the per-widget selection when the hash changes: `SelBeg`/`SelEnd`
+  are rune offsets into the *previous* source, so a stale range would
+  highlight — and Ctrl+C would copy — the wrong runes of the new
+  text. A same-length rewrite of the document is caught too; a pure
+  layout change (resize, font) leaves the selection alone.
+
+### Added
+
+- **Markdown interaction test suite expands to the nested-document and
+  source-change cases** (`gui/markdown_select_interaction_test.go`):
+  effective-ID block collection, click focus, Ctrl+A/C, cross-block
+  drag and per-panel isolation under ID-bearing ancestors; offset-block
+  click accuracy (the click handlers receive shape-relative coordinates
+  via `callRelative`, so a click maps to the rune under the cursor
+  wherever the block sits); and selection reset on content change with
+  an idle-frame positive control. Plus diagram-cache async tests
+  (`gui/markdown_diagram_fetch_test.go`) and block-renderer tests
+  (`gui/view_markdown_blocks_test.go`). Package `gui/` moves from
+  81.0% to 82.4%.
+
 - **FillFill roots on axis-less containers resolve to the window size
   (issue #262).** `updateLayoutLocked` pins a Fill root to the window
   dimensions via `Min = Max`, but the width/height sizing passes only

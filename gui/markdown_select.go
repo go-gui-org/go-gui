@@ -87,6 +87,51 @@ func markdownContainerAmendLayout(ctx EventCtx) {
 	// Persist for drag callbacks.
 	bm := StateMap[string, []mdBlockInfo](ctx.Window, nsMdBlocks, capMany)
 	bm.Set(mdID, blocks)
+
+	// Reset the selection when the document content changed since the
+	// last frame: SelBeg/SelEnd are rune offsets into the *previous*
+	// source, so a stale range would highlight — and Ctrl+C would
+	// copy — the wrong runes of the new text. The signature covers
+	// the block layout and full flat text, so any content change
+	// (including same-length rewrites) is caught; a mere layout
+	// change (resize, font) leaves the selection alone.
+	sig := mdBlocksSignature(blocks)
+	sm := StateMap[string, uint64](ctx.Window, nsMdSelSig, capMany)
+	if prev, ok := sm.Get(mdID); ok && prev != sig {
+		imap := StateMap[string, mdSelState](ctx.Window, nsMdSel, capMany)
+		// Default mdSelState{}: a cleared selection. Amend runs
+		// children-first, so a changed document shows the old
+		// highlight for the one frame being arranged — cosmetic
+		// only, the render after this frame already paints nothing.
+		imap.Set(mdID, mdSelState{})
+	}
+	sm.Set(mdID, sig)
+}
+
+// mdBlocksSignature hashes the block list — per-block rune offsets,
+// rune counts and full flat text — to detect document content changes
+// between frames. FNV-1a over the (small) total text; the per-frame
+// glyph shaping the blocks undergo anyway is far more expensive. Field
+// separators match the sibling FNV helpers in view_rtf.go.
+func mdBlocksSignature(blocks []mdBlockInfo) uint64 {
+	h := fnvOffset64
+	for _, b := range blocks {
+		h ^= uint64(b.StartRune)
+		h *= fnvPrime64
+		h ^= fnvFieldSep
+		h *= fnvPrime64
+		h ^= uint64(b.RuneLen)
+		h *= fnvPrime64
+		h ^= fnvFieldSep
+		h *= fnvPrime64
+		for i := range len(b.FlatText) {
+			h ^= uint64(b.FlatText[i])
+			h *= fnvPrime64
+		}
+		h ^= fnvFieldSep
+		h *= fnvPrime64
+	}
+	return h
 }
 
 // mdWalkBlocks recursively walks the layout tree to collect RTF blocks
@@ -129,7 +174,13 @@ func markdownBlockOnClick(ctx EventCtx) {
 	}
 	ctx.Window.SetFocus(mdID)
 
-	// Compute abs rune position within the markdown flat text.
+	// Compute abs rune position within the markdown flat text. OnClick
+	// is dispatched through callRelative, which already translates the
+	// event to shape-local coordinates — the glyph layout's char rects
+	// are in that same space, so no further translation (and no scroll
+	// accounting) is needed here. The drag path differs: MouseLock
+	// callbacks receive window coordinates, which is why mdHitAbsRune
+	// subtracts the block's ShapeX/ShapeY.
 	gl := shape.TC.rTFLayout
 	flatText := shape.TC.rTFFlatText
 	byteIdx := gl.GetClosestOffset(ctx.Event.MouseX, ctx.Event.MouseY)

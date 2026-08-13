@@ -237,6 +237,7 @@ const (
 	nsHoverInside         = "gui.hover.inside"
 	nsMdSel               = "gui.markdown.sel"
 	nsMdBlocks            = "gui.markdown.blocks"
+	nsMdSelSig            = "gui.markdown.sel_sig"
 )
 
 // Capacity tiers.

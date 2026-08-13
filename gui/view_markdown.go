@@ -260,6 +260,40 @@ func (w *Window) Markdown(cfg MarkdownCfg) View {
 	if cfg.Invisible {
 		return invisibleContainerView()
 	}
+	return &markdownView{cfg: cfg}
+}
+
+// markdownView is the widget node for a Markdown document. It is a
+// struct view (like the splitter, issue #264) because the document has
+// several identities that must agree: the container claims cfg.ID, and
+// every block references the widget through TC.markdownID — both keyed
+// by the *effective* ID, which only exists during generation. The
+// factory runs before generation (no ancestor scope yet), so the
+// resolution happens here, in GenerateLayout, where w.EffID can see
+// the enclosing panel.
+type markdownView struct {
+	cfg MarkdownCfg
+}
+
+func (mv *markdownView) Content() []View { return nil }
+
+func (mv *markdownView) GenerateLayout(w *Window) Layout {
+	cfg := &mv.cfg
+	// The document's identity is the effective ID: the container claims
+	// it, the blocks stamp it into TC.markdownID, and every state slot
+	// (nsMdSel, nsMdBlocks) and focus move keys on it. Under an
+	// ID-bearing ancestor this resolves to "outer:md", so two documents
+	// written with the same leaf under different panels keep separate
+	// selections; flat, it is cfg.ID unchanged. The result contains
+	// IDSep, which the resolve pass treats as absolute, so the
+	// container's effID stays exactly what is stamped here — resolving
+	// is idempotent. The overwrite fixes the identity at first
+	// generation: a cached instance moved between differently-scoped
+	// ancestors keeps the old path (safe here — the view rebuilds its
+	// subtree from cfg every frame, and an app that re-roots a document
+	// creates a fresh MarkdownCfg).
+	cfg.ID = w.EffID(cfg.ID)
+
 	mode := cfg.Mode.Get(TextModeWrap)
 
 	// Cache lookup; invalidate on theme change.
@@ -280,10 +314,10 @@ func (w *Window) Markdown(cfg MarkdownCfg) View {
 	allowExternalAPIs := markdownExternalAPIsEnabled &&
 		!cfg.disableExternalAPIs
 	if allowExternalAPIs {
-		markdownTriggerMathFetches(blocks, cfg, w)
+		markdownTriggerMathFetches(blocks, *cfg, w)
 	}
 
-	content := markdownBuildContent(blocks, cfg, mode, w)
+	content := markdownBuildContent(blocks, *cfg, mode, w)
 
 	sizing := FitFit
 	if mode == TextModeWrap ||
@@ -327,7 +361,10 @@ func (w *Window) Markdown(cfg MarkdownCfg) View {
 		colCfg.AmendLayout = markdownContainerAmendLayout
 		colCfg.OnKeyDown = markdownContainerOnKeyDown
 	}
-	return Column(colCfg)
+	// Generate the container subtree here so the inner IDs (heading
+	// anchors, copy buttons) compose under the resolved scope, exactly
+	// as a composite widget's GenerateLayout does.
+	return generateViewLayout(Column(colCfg), w)
 }
 
 // markdownTriggerMathFetches starts async fetches for inline math

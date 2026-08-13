@@ -41,6 +41,12 @@ func rtfSelectOnClick(ctx EventCtx) {
 	gl := shape.TC.rTFLayout
 	flatText := shape.TC.rTFFlatText
 
+	// The glyph layout's char rects are in the same space as the click
+	// coordinates: OnClick arrives through callRelative, which already
+	// translated the event to shape-local coordinates (scroll offsets
+	// included — the shape's post-scroll position is subtracted). The
+	// drag path below handles its own translation because MouseLock
+	// callbacks receive window coordinates.
 	byteIdx := gl.GetClosestOffset(ctx.Event.MouseX, ctx.Event.MouseY)
 	runePos := byteToRuneIndex(flatText, byteIdx)
 
