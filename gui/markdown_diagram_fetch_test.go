@@ -18,6 +18,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -161,10 +162,22 @@ func TestFetchMermaidAsyncStoresReadyEntry(t *testing.T) {
 	if entry.pNGPath == "" {
 		t.Fatal("ready entry has no stored PNG path")
 	}
-	if _, err := os.Stat(entry.pNGPath); err != nil {
-		t.Errorf("stored PNG missing: %v", err)
+	if runtime.GOOS == "js" {
+		// The WASM build stores diagrams as data URLs, not temp
+		// files (diagram_store_js.go) — there is no filesystem to
+		// stat. Pin the wasm contract instead: the entry's "path" is
+		// a base64 data URL of the fetched PNG.
+		if !strings.HasPrefix(entry.pNGPath,
+			"data:image/png;base64,") {
+			t.Errorf("entry pNGPath = %q, want a PNG data URL on "+
+				"wasm", entry.pNGPath)
+		}
+	} else {
+		if _, err := os.Stat(entry.pNGPath); err != nil {
+			t.Errorf("stored PNG missing: %v", err)
+		}
+		t.Cleanup(func() { removeDiagramPNG(entry.pNGPath) })
 	}
-	t.Cleanup(func() { removeDiagramPNG(entry.pNGPath) })
 }
 
 // TestFetchMermaidAsyncFetcherErrorQueuesError asserts a fetcher
