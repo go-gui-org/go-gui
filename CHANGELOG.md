@@ -10,6 +10,20 @@ and this project adheres to
 
 ### Fixed
 
+- **Re-asserting focus no longer clears input selections (issue
+  #277).** `setFocusLocked` called `clearInputSelections()` on every
+  `SetFocus`, unconditionally, while the IME clear next to it was
+  already guarded by `id != prev` (#156). Because consumers
+  legitimately re-assert focus from inside their View function — which
+  runs on every layout rebuild — an unconditional clear wiped every
+  `nsInput` selection window-wide on each re-assert, silently dropping
+  selections in the focused input and every unrelated field. The clear
+  is now guarded exactly like the IME clear: only a real focus change
+  drops selections (window-wide, as before); a same-widget re-assert
+  leaves them alone. Clicking an already-focused input still collapses
+  its selection to a caret at the click — that path sets the selection
+  itself and never depended on the clear.
+
 - **Markdown/RTF in-document anchor links (`#slug`) now scroll
   (issue #278).** `rtfOnClick` scrolled the bare slug, but a heading's
   ID is scoped to its document (`ScopeID(docID, "h", slug)` — e.g.

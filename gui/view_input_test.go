@@ -1509,3 +1509,172 @@ func TestInputReadOnlyDoesNotRenderIMEPreedit(t *testing.T) {
 		t.Fatalf("read-only field dropped its text; got %q", readonly)
 	}
 }
+
+// --- SetFocus / selection contract (issue #277) ---
+
+// TestSetFocusReassertSameIDPreservesSelection pins the #277 fix: a
+// same-widget SetFocus re-assert must leave in-flight text selections
+// alone. Before the fix the unconditional clearInputSelections() in
+// setFocusLocked wiped every nsInput selection window-wide on every
+// re-assert, even when nothing changed. Real focus *changes* still
+// clear them (tested below).
+func TestSetFocusReassertSameIDPreservesSelection(t *testing.T) {
+	w := newTestWindow()
+	w.SetFocus("f900")
+	setInputState(w, "f900", inputState{
+		CursorPos: 5, selectBeg: 0, selectEnd: 5,
+	})
+	w.SetFocus("f900")
+	if is := getInputState(w, "f900"); is.selectBeg != 0 || is.selectEnd != 5 {
+		t.Fatalf("same-id re-assert dropped selection: [%d,%d), want [0,5)",
+			is.selectBeg, is.selectEnd)
+	}
+}
+
+// The #156 pattern: a View function that re-asserts focus on every
+// frame (documented as legitimate in window_focus.go). TestRender(nil)
+// re-runs the installed generator without clearing the registry
+// (UpdateView would), so the second frame observes the state the first
+// frame's re-assert must not have wiped.
+func TestSetFocusReassertFromViewPreservesSelection(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	view := func(win *Window) View {
+		w.SetFocus("f901")
+		return Input(InputCfg{ID: "f901", Text: "hello"})
+	}
+	w.TestRender(view)
+	setInputState(w, "f901", inputState{
+		CursorPos: 5, selectBeg: 0, selectEnd: 5,
+	})
+	w.TestRender(nil) // next frame: the View re-asserts focus on f901
+	if is := getInputState(w, "f901"); is.selectBeg != 0 || is.selectEnd != 5 {
+		t.Fatalf("frame re-assert dropped selection: [%d,%d), want [0,5)",
+			is.selectBeg, is.selectEnd)
+	}
+}
+
+// Real focus changes keep today's contract: every nsInput selection in
+// the window is cleared — the widget losing focus, the one gaining it,
+// and unrelated fields — not just the newly focused one.
+func TestSetFocusRealChangeClearsSelectionsWindowWide(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	w.TestRender(func(win *Window) View {
+		return Column(ContainerCfg{Sizing: FillFill, Content: []View{
+			Input(InputCfg{ID: "f911", Text: "aaaa"}),
+			Input(InputCfg{ID: "f912", Text: "bbbb"}),
+			Input(InputCfg{ID: "f913", Text: "cccc"}),
+		}})
+	})
+	w.SetFocus("f911")
+	for _, id := range []string{"f911", "f912", "f913"} {
+		setInputState(w, id, inputState{
+			CursorPos: 4, selectBeg: 0, selectEnd: 4,
+		})
+	}
+	w.SetFocus("f912") // real change: f911 -> f912
+	for _, id := range []string{"f911", "f912", "f913"} {
+		if is := getInputState(w, id); is.selectBeg != 0 || is.selectEnd != 0 {
+			t.Errorf("%s selection survived real focus change: [%d,%d), want [0,0)",
+				id, is.selectBeg, is.selectEnd)
+		}
+	}
+}
+
+// Returning to a widget (empty focus -> widget) is a real transition:
+// selections that predate focus arrival must not survive it.
+func TestSetFocusFromEmptyClearsPreExistingSelections(t *testing.T) {
+	w := newTestWindow()
+	w.SetFocus("f920")
+	setInputState(w, "f920", inputState{
+		CursorPos: 4, selectBeg: 0, selectEnd: 4,
+	})
+	w.SetFocus("") // real change: f920 -> none
+	// Seed again while unfocused: a stale selection must not survive
+	// the empty -> widget transition below.
+	setInputState(w, "f920", inputState{
+		CursorPos: 4, selectBeg: 0, selectEnd: 4,
+	})
+	w.SetFocus("f920")
+	if is := getInputState(w, "f920"); is.selectBeg != 0 || is.selectEnd != 0 {
+		t.Fatalf("empty->widget transition kept selection: [%d,%d), want [0,0)",
+			is.selectBeg, is.selectEnd)
+	}
+}
+
+// inputSelTestMeasurer shapes plain text into the deterministic
+// 10x20-per-byte char-rect layout rtfSelCharLayout builds, so
+// inputOnClick's GetClosestOffset maps clicks to runes headlessly.
+// The metric methods are rtfSelTestMeasurer's; only the plain-text
+// shaper differs.
+type inputSelTestMeasurer struct {
+	rtfSelTestMeasurer
+}
+
+func (inputSelTestMeasurer) LayoutText(
+	text string, _ TextStyle, _ float32,
+) (glyph.Layout, error) {
+	return rtfSelCharLayout(text, nil), nil
+}
+
+// rtfSelCharLayout lays one char rect per byte at a fixed 10x20
+// pitch. The click coordinates below are derived from it, so they
+// stay consistent with the measurer that produced the layout.
+const (
+	inputSelCharW = 10
+	inputSelCharH = 20
+)
+
+// Condition-1 pin for #277: clicking an already-focused input must
+// collapse its selection to a caret at the click position. The input's
+// own click path (inputOnClick) sets selectBeg/selectEnd explicitly
+// from the click, so the fix — which leaves same-id re-asserts alone
+// — cannot regress it.
+func TestInputClickOnFocusedInputCollapsesSelectionToCaret(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	w.textMeasurer = inputSelTestMeasurer{}
+	w.TestRender(func(win *Window) View {
+		return Input(InputCfg{ID: "f930", Text: "hello world"})
+	})
+	w.SetFocus("f930")
+	setInputState(w, "f930", inputState{
+		CursorPos: 5, selectBeg: 0, selectEnd: 5,
+	})
+
+	ly, ok := w.layout.FindByID("f930")
+	if !ok {
+		t.Fatal("no input with effective ID f930")
+	}
+	if len(ly.Children) == 0 || len(ly.Children[0].Children) == 0 {
+		t.Fatal("input layout missing inner text child")
+	}
+	txt := ly.Children[0].Children[0].Shape
+	if txt.TC == nil {
+		t.Fatal("inner child is not a text shape")
+	}
+
+	// Click mid-rune-8 ('o' of "world"): char rects are inputSelCharW
+	// wide and start at the text shape origin, so X + 8*W + W/2 is
+	// the rune's center; Y + H/2 is the middle of the glyph line band.
+	clickX := txt.X + 8*inputSelCharW + inputSelCharW/2
+	clickY := txt.Y + inputSelCharH/2
+	down := Event{
+		Type: EventMouseDown, MouseButton: MouseLeft,
+		MouseX: clickX, MouseY: clickY,
+	}
+	w.EventFn(&down)
+	w.settle()
+	w.EventFn(&Event{
+		Type: EventMouseUp, MouseButton: MouseLeft,
+		MouseX: clickX, MouseY: clickY,
+	})
+	w.settle()
+
+	is := getInputState(w, "f930")
+	if is.selectBeg != 8 || is.selectEnd != 8 {
+		t.Fatalf("click on focused input left selection [%d,%d), want caret at 8",
+			is.selectBeg, is.selectEnd)
+	}
+	if is.CursorPos != 8 {
+		t.Fatalf("cursor = %d, want 8", is.CursorPos)
+	}
+}
