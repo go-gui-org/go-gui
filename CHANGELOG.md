@@ -6,6 +6,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Splitter: the spacebar toggles collapse again.** `splitterOnKeydown`
+  tested `Event.CharCode`, which backends populate only on `EventChar` —
+  a space keydown arrives with `KeyCode == KeySpace` and `CharCode == 0`,
+  so the branch never fired. Now reads `KeyCode`, matching `DatePicker`,
+  `Tree`, `Menu` and `Select`.
+- **Breadcrumb and TabControl: the spacebar activates again.** Both had
+  the same defect — `bcOnKeydown` and `tabControlOnKeydown` tested
+  `Event.CharCode` from an `OnKeyDown` handler, so space never selected
+  the focused crumb or tab. Both now read `KeyCode == KeySpace`, grouped
+  with the identical `KeyEnter` branch. `Splitter`, `Breadcrumb` and
+  `TabControl` were the only three sites with this defect; every other
+  `CharCode` reader in `gui/` is an `OnChar` handler, where the field is
+  populated.
+- **Splitter: `SplitterStyle`'s border and radius reach the handle.**
+  `applySplitterDefaults` seeded every color from the style but skipped
+  `SizeBorder`, `Radius` and `radiusBorder`, so the handle and the
+  collapse buttons fell through to the generic container and button
+  defaults. Visible change under the stock theme: corner radius on both
+  goes from `radiusMedium` (5.5) to the splitter's `radiusSmall` (3.5) —
+  the border width was already `sizeBorderDef` either way. For a custom
+  theme the splitter's own three values were dead and now apply. An
+  explicit `SomeF(0)` still means "no border".
+
+### Added
+
+- **Splitter interaction test suite**
+  (`gui/view_splitter_interaction_test.go`): AmendLayout geometry, drag
+  resize through the mouse lock, hover, the keyboard map, and the
+  collapse buttons. Both splitter files reach 100% statement coverage;
+  package `gui/` moves from 79.8% to 81.0%.
+
 ## [v0.59.2] - 2026-08-13
 
 ### Changed

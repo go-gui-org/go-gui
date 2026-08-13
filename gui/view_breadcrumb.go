@@ -305,22 +305,17 @@ func bcOnKeydown(
 		targetIdx = bcFirstEnabledIndex(items)
 	case KeyEnd:
 		targetIdx = bcLastEnabledIndex(items)
-	case KeyEnter:
+	// Space reads from KeyCode: backends set CharCode only on
+	// EventChar, so testing it from a keydown handler never matched.
+	// The space and Enter bodies were already identical, so they group.
+	case KeyEnter, KeySpace:
 		if selectedIdx >= 0 {
 			targetIdx = selectedIdx
 		} else {
 			targetIdx = bcFirstEnabledIndex(items)
 		}
 	default:
-		if e.CharCode == charSpace {
-			if selectedIdx >= 0 {
-				targetIdx = selectedIdx
-			} else {
-				targetIdx = bcFirstEnabledIndex(items)
-			}
-		} else {
-			return
-		}
+		return
 	}
 
 	if targetIdx < 0 || targetIdx >= len(items) {
@@ -331,7 +326,7 @@ func bcOnKeydown(
 		return
 	}
 
-	refire := e.KeyCode == KeyEnter || e.CharCode == charSpace
+	refire := e.KeyCode == KeyEnter || e.KeyCode == KeySpace
 	if targetID != selected || refire {
 		if onSelect != nil {
 			onSelect(targetID, EventCtx{nil, e, w})
