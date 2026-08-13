@@ -29,7 +29,12 @@ implementation, and the code is the authority.
    `Splitter`, `ProgressBar`, `Skeleton` and `Scrollbar` build their trees in
    plain factories and capture `cfg.ID` as a leaf. Their handlers resolve at
    dispatch time instead, walking the ancestor chain for the shape that carries
-   the leaf. Same `resolveLeaf`, so the two paths cannot drift.
+   the    leaf. Same `resolveLeaf`, so the two paths cannot drift. `Splitter` is
+   now converted (issue #264): it is a struct view whose `GenerateLayout`
+   resolves the effective ID once (`id := w.EffID(cfg.ID)`) and composes
+   every inner ID (panes, handle, collapse buttons) from that path — the
+   root shape stays on the plain leaf and the framework joins it to the
+   same string, while the composed children are absolute.
 3. **The "still globally competing" warning is a debug category, not an
    ergonomics-audit mode.** "Has no ID-bearing ancestor" is a property of the composed
    tree, which the AST does not have. It is `gui.DebugUnscopedIDs`, deliberately

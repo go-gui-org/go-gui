@@ -409,17 +409,15 @@ func TestSplitterAmendLayoutStampsEffectiveID(t *testing.T) {
 	if _, ok := w.layout.FindByID("outer:sp"); !ok {
 		t.Fatal("nested splitter did not resolve to outer:sp")
 	}
-	// The inner IDs are composed eagerly in the factory, with no Window
-	// in hand, so they already contain ':' and resolveShapeIDs treats
-	// them as absolute — "sp:handle" stays window-global rather than
-	// becoming "outer:sp:handle". Asserted as-is; see issue #264.
-	ly, ok := w.layout.FindByID("sp:handle")
+	// The inner IDs are composed in GenerateLayout from the splitter's
+	// effective ID, so the handle scopes under its ancestor with the
+	// root (issue #264). The old unscoped spelling must be gone.
+	ly, ok := w.layout.FindByID("outer:sp:handle")
 	if !ok {
-		t.Fatal("handle did not resolve to the unscoped sp:handle")
+		t.Fatal("handle did not resolve to the scoped outer:sp:handle")
 	}
-	if _, nested := w.layout.FindByID("outer:sp:handle"); nested {
-		t.Error("handle now scopes under its ancestor: #264 appears " +
-			"fixed, so this test should expect outer:sp:handle")
+	if _, flat := w.layout.FindByID("sp:handle"); flat {
+		t.Error("handle still resolves to the unscoped sp:handle")
 	}
 	x, y := center(ly)
 	down := Event{

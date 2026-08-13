@@ -7,18 +7,21 @@ var splitterButtonSuffix = [3]string{
 	":button:2",
 }
 
-func splitterHandleView(cfg *SplitterCfg, core *splitterCore) View {
+// splitterHandleView builds the drag handle. id is the splitter's
+// effective ID, so the handle and its buttons are named under the same
+// path the framework stamps on the splitter's own shape.
+func splitterHandleView(cfg *SplitterCfg, core *splitterCore, id string) View {
 	content := make([]View, 0, 3)
 	if cfg.ShowCollapseButtons &&
 		(cfg.First.collapsible || cfg.Second.collapsible) {
 		if cfg.First.collapsible {
 			content = append(content,
-				splitterButton(cfg, core, SplitterCollapseFirst))
+				splitterButton(cfg, core, SplitterCollapseFirst, id))
 		}
 		content = append(content, splitterGrip(cfg))
 		if cfg.Second.collapsible {
 			content = append(content,
-				splitterButton(cfg, core, SplitterCollapseSecond))
+				splitterButton(cfg, core, SplitterCollapseSecond, id))
 		}
 	} else {
 		content = append(content, splitterGrip(cfg))
@@ -38,7 +41,7 @@ func splitterHandleView(cfg *SplitterCfg, core *splitterCore) View {
 	}
 
 	handleCfg := ContainerCfg{
-		ID:          ScopeID(cfg.ID, "handle"),
+		ID:          ScopeID(id, "handle"),
 		Sizing:      FixedFixed,
 		Width:       handleWidth,
 		Height:      handleHeight,
@@ -88,7 +91,7 @@ func splitterGrip(cfg *SplitterCfg) View {
 }
 
 func splitterButton(cfg *SplitterCfg, core *splitterCore,
-	target SplitterCollapsed) View {
+	target SplitterCollapsed, id string) View {
 	s := &defaultSplitterStyle
 	size := f32Max(4, cfg.HandleSize.Get(s.HandleSize)-2)
 	ts := TextStyle{
@@ -96,7 +99,7 @@ func splitterButton(cfg *SplitterCfg, core *splitterCore,
 		Size:  size,
 	}
 	return Button(ButtonCfg{
-		ID:      cfg.ID + splitterButtonSuffix[target],
+		ID:      id + splitterButtonSuffix[target],
 		Width:   size,
 		Height:  size,
 		Sizing:  FixedFixed,
