@@ -52,6 +52,20 @@ and this project adheres to
   ID-bearing ancestor the spellings are unchanged. API consequence: parts of
   a nested splitter are addressed by scoped effective IDs (`outer:sp:handle`,
   `outer:sp:pane:first`).
+- **Splitter: the handle's active (button-held) color now renders during a
+  drag (issue #265).** `splitterOnHandleHover` painted `colorHandleActive`
+  only while `Event.MouseButton == MouseLeft` — a branch no real frame could
+  reach, because `layoutHover` bails while the mouse is locked (and a
+  splitter drag runs under `MouseLock`) and always synthesizes hover events
+  with `MouseButton: MouseInvalid`. The active color is now driven from the
+  splitter's own drag state instead: the press paints the handle immediately
+  and records a pressed flag in window state, and `splitterAmendLayout`
+  re-paints the active color every frame while the lock is held, so the
+  pressed feedback survives the per-frame regeneration of the handle. The
+  flag is cleared on release and by the mouse lock's `Cancel` hook, and the
+  amend paint is additionally guarded by the window's actual lock state, so
+  capture lost without a release (issue #237) can never leave the handle
+  permanently active.
 
 ### Added
 
