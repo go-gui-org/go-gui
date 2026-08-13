@@ -91,3 +91,57 @@ func TestExpandPanelOnToggle(t *testing.T) {
 		t.Error("OnToggle should be called")
 	}
 }
+
+// TestExpandPanelHoverPressedColor pins the pressed-while-hovered branch
+// of the expand panel header's OnHover (view_expand_panel.go): a
+// press-and-hold renders the click color, release falls back to the
+// hover color. The header row carries no ID, so the test resolves it as
+// the panel's first child and hits it directly.
+func TestExpandPanelHoverPressedColor(t *testing.T) {
+	hover := RGBA(40, 200, 40, 255)
+	click := RGBA(200, 40, 40, 255)
+	w := NewTestWindow(WindowCfg{})
+	w.TestRender(func(win *Window) View {
+		return ExpandPanel(ExpandPanelCfg{
+			ID:         "ep",
+			Head:       Text(TextCfg{Text: "Head"}),
+			ColorHover: hover,
+			colorClick: click,
+		})
+	})
+
+	ly, ok := w.layout.FindByID("ep")
+	if !ok {
+		t.Fatal("no expand panel with effective ID ep")
+	}
+	if len(ly.Children) == 0 {
+		t.Fatal("expand panel has no header child")
+	}
+	header := ly.Children[0]
+	// The header row carries no ID; re-resolve it by position each
+	// frame, because settles rebuild the tree.
+	headerShape := func() *Shape {
+		cur, ok := w.layout.FindByID("ep")
+		if !ok {
+			t.Fatal("expand panel vanished")
+		}
+		return cur.Children[0].Shape
+	}
+	x, y, err := testHitPoint(&header, "ep")
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.EventFn(&Event{Type: EventMouseMove, MouseX: x, MouseY: y})
+	w.settle()
+	if c := headerShape().Color; c != hover {
+		t.Fatalf("hover: color = %+v, want %+v", c, hover)
+	}
+	pressAt(w, MouseLeft, x, y)
+	if c := headerShape().Color; c != click {
+		t.Fatalf("held: color = %+v, want %+v", c, click)
+	}
+	releaseAt(w, MouseLeft, x, y)
+	if c := headerShape().Color; c != hover {
+		t.Fatalf("released: color = %+v, want %+v", c, hover)
+	}
+}

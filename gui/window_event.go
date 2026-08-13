@@ -149,6 +149,7 @@ func (w *Window) handleKeyUpEvent(layout *Layout, e *Event) {
 }
 
 func (w *Window) handleMouseDownEvent(layout *Layout, e *Event) {
+	w.viewState.mouseButtonHeld = e.MouseButton
 	w.setMouseCursor(CursorArrow)
 	if inspectorSupported && w.inspectorEnabled {
 		panelW := inspectorPanelWidth(w)
@@ -193,6 +194,7 @@ func (w *Window) handleMouseMoveEvent(layout *Layout, e *Event) {
 }
 
 func (w *Window) handleMouseUpEvent(layout *Layout, e *Event) {
+	w.viewState.mouseButtonHeld = MouseInvalid
 	mouseUpHandler(layout, e, w)
 }
 

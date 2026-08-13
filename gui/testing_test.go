@@ -530,3 +530,51 @@ func TestTestRenderNilReusesGenerator(t *testing.T) {
 		t.Fatal("TestRender(nil) lost the tree; generator was not reused")
 	}
 }
+
+// --- Hover pressed-state helpers ---
+//
+// These drive the real pipeline: a mouse event, then a settled frame,
+// which is where layoutHover fires (layoutArrange runs it after the
+// layout passes). They are what the hover pressed-state widget tests
+// are built on — asserting colors after feeding a mouse down/up.
+
+// hoverOver moves the pointer to the clip center of the shape with
+// effective ID id and settles a frame, so the hover pass runs at that
+// point. Returns the hit point for subsequent press/release events.
+func hoverOver(t *testing.T, w *Window, id string) (float32, float32) {
+	t.Helper()
+	ly, ok := w.layout.FindByID(id)
+	if !ok {
+		t.Fatalf("no shape with effective ID %s", id)
+	}
+	x, y, err := testHitPoint(ly, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.EventFn(&Event{Type: EventMouseMove, MouseX: x, MouseY: y})
+	w.settle()
+	return x, y
+}
+
+// pressAt feeds a button press at the given point and settles a frame;
+// releaseAt feeds the release. The settle runs the layout pass, which
+// is where hover fires with the window's held-button state.
+func pressAt(w *Window, btn MouseButton, x, y float32) {
+	w.EventFn(&Event{Type: EventMouseDown, MouseButton: btn, MouseX: x, MouseY: y})
+	w.settle()
+}
+
+func releaseAt(w *Window, btn MouseButton, x, y float32) {
+	w.EventFn(&Event{Type: EventMouseUp, MouseButton: btn, MouseX: x, MouseY: y})
+	w.settle()
+}
+
+// mustShape resolves id against the current layout tree.
+func mustShape(t *testing.T, w *Window, id string) *Shape {
+	t.Helper()
+	ly, ok := w.layout.FindByID(id)
+	if !ok {
+		t.Fatalf("no shape with effective ID %s", id)
+	}
+	return ly.Shape
+}

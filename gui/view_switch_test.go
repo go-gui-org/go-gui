@@ -68,3 +68,52 @@ func TestSwitchLabelAddsChild(t *testing.T) {
 			len(layout.Children))
 	}
 }
+
+// TestSwitchHoverPressedColor pins the pressed-while-hovered branch of
+// the switch's OnHover (view_switch.go): a press-and-hold renders the
+// click color on the pill (child 0), release falls back to the hover
+// color. The switch takes focus on press; the hover pass runs after
+// AmendLayout, so the pill's hover/click paint always wins over the
+// focus paint.
+func TestSwitchHoverPressedColor(t *testing.T) {
+	hover := RGBA(40, 200, 40, 255)
+	click := RGBA(200, 40, 40, 255)
+	w := NewTestWindow(WindowCfg{})
+	w.TestRender(func(win *Window) View {
+		return Switch(SwitchCfg{
+			ID:      "sw",
+			OnClick: func(EventCtx) {},
+			Colors: ColorSet{
+				Base:   RGBA(10, 10, 10, 255),
+				Hover:  hover,
+				Click:  click,
+				Focus:  RGBA(10, 10, 10, 255),
+				Border: RGBA(10, 10, 10, 255),
+			},
+		})
+	})
+
+	pill := func() *Shape {
+		ly, ok := w.layout.FindByID("sw")
+		if !ok {
+			t.Fatal("no switch with effective ID sw")
+		}
+		if len(ly.Children) == 0 {
+			t.Fatal("switch has no pill child")
+		}
+		return ly.Children[0].Shape
+	}
+
+	x, y := hoverOver(t, w, "sw")
+	if c := pill().Color; c != hover {
+		t.Fatalf("hover: color = %+v, want %+v", c, hover)
+	}
+	pressAt(w, MouseLeft, x, y)
+	if c := pill().Color; c != click {
+		t.Fatalf("held: color = %+v, want %+v", c, click)
+	}
+	releaseAt(w, MouseLeft, x, y)
+	if c := pill().Color; c != hover {
+		t.Fatalf("released: color = %+v, want %+v", c, hover)
+	}
+}

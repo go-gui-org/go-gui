@@ -142,6 +142,163 @@ func TestLayoutHoverMouseLocked(t *testing.T) {
 	}
 }
 
+// TestLayoutHoverSynthesizesHeldMouseButton pins the hover pressed-state
+// contract: the synthesized hover event reports the button the window
+// learned from its own event stream, MouseInvalid when none is held.
+// The window is driven through real dispatch (EventFn); the hover pass
+// is the layoutHover call, matching the direct-call harness of the
+// other layout-pipeline tests.
+func TestLayoutHoverSynthesizesHeldMouseButton(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	w.viewState.mousePosX = 15
+	w.viewState.mousePosY = 15
+
+	got := MouseInvalid
+	shape := &Shape{
+		shapeType: shapeRectangle,
+		shapeClip: drawClip{X: 0, Y: 0, Width: 50, Height: 50},
+		events: &eventHandlers{
+			OnHover: func(ctx EventCtx) { got = ctx.Event.MouseButton },
+		},
+		Opacity: 1,
+	}
+	layout := Layout{Shape: shape}
+	hover := func() MouseButton {
+		layoutHover(&layout, w)
+		return got
+	}
+
+	// Regression pin: no press ever synthesizes a button.
+	if btn := hover(); btn != MouseInvalid {
+		t.Fatalf("no press: hover button = %v, want MouseInvalid", btn)
+	}
+
+	// Press: the next hover pass reports the held button.
+	w.EventFn(&Event{Type: EventMouseDown, MouseButton: MouseLeft})
+	if btn := hover(); btn != MouseLeft {
+		t.Fatalf("left held: hover button = %v, want MouseLeft", btn)
+	}
+
+	// Release: back to MouseInvalid.
+	w.EventFn(&Event{Type: EventMouseUp, MouseButton: MouseLeft})
+	if btn := hover(); btn != MouseInvalid {
+		t.Fatalf("after up: hover button = %v, want MouseInvalid", btn)
+	}
+
+	// A right-button hold is reported truthfully (D5): the widget
+	// branches that check == MouseLeft fall through to hover colors.
+	w.EventFn(&Event{Type: EventMouseDown, MouseButton: MouseRight})
+	if btn := hover(); btn != MouseRight {
+		t.Fatalf("right held: hover button = %v, want MouseRight", btn)
+	}
+
+	// Capture loss: MouseCancel clears without a mouse-up (D4), and
+	// a fresh press re-arms the state.
+	w.MouseCancel()
+	if btn := hover(); btn != MouseInvalid {
+		t.Fatalf("after cancel: hover button = %v, want MouseInvalid", btn)
+	}
+	w.EventFn(&Event{Type: EventMouseDown, MouseButton: MouseLeft})
+	if btn := hover(); btn != MouseLeft {
+		t.Fatalf("re-press: hover button = %v, want MouseLeft", btn)
+	}
+}
+
+// TestLayoutHoverMouseLockedSilencesHeldButton pins D3: a press followed
+// by a mouse lock (a drag started elsewhere) must never reach a hover
+// callback, even though a button is held — the lock bail is what keeps
+// pressed state out of drags.
+func TestLayoutHoverMouseLockedSilencesHeldButton(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	w.viewState.mousePosX = 15
+	w.viewState.mousePosY = 15
+
+	fired := false
+	shape := &Shape{
+		shapeType: shapeRectangle,
+		shapeClip: drawClip{X: 0, Y: 0, Width: 50, Height: 50},
+		events: &eventHandlers{
+			OnHover: func(ctx EventCtx) { fired = true },
+		},
+		Opacity: 1,
+	}
+	layout := Layout{Shape: shape}
+
+	w.EventFn(&Event{Type: EventMouseDown, MouseButton: MouseLeft})
+	w.MouseLock(MouseLockCfg{MouseMove: func(EventCtx) {}})
+	if layoutHover(&layout, w) {
+		t.Error("hover fired while locked with a button held")
+	}
+	if fired {
+		t.Error("OnHover ran while locked with a button held")
+	}
+}
+
+// hoverButtonWindow returns a window whose layout tree is a plain
+// gesture target (no handlers), with a local hover-recording layout
+// ready for layoutHover, and a hover closure that reports the
+// synthesized button. Shared by the gesture-path tests below.
+func hoverButtonWindow() (w *Window, hover func() MouseButton) {
+	w = NewTestWindow(WindowCfg{})
+	w.viewState.mousePosX = 15
+	w.viewState.mousePosY = 15
+	got := MouseInvalid
+	shape := &Shape{
+		shapeType: shapeRectangle,
+		shapeClip: drawClip{X: 0, Y: 0, Width: 50, Height: 50},
+		events: &eventHandlers{
+			OnHover: func(ctx EventCtx) { got = ctx.Event.MouseButton },
+		},
+		Opacity: 1,
+	}
+	layout := Layout{Shape: shape}
+	w.layout = *gestureLayout(nil)
+	return w, func() MouseButton {
+		layoutHover(&layout, w)
+		return got
+	}
+}
+
+// TestTouchSynthesizedPressReportsHeldButton covers the gesture path:
+// a touch press travels EventFn → handleTouch → handleTouchBegan →
+// synthMouse(EventMouseDown), bypassing handleMouseDownEvent. It must
+// record the held button just like a backend press, so the next hover
+// pass carries it.
+func TestTouchSynthesizedPressReportsHeldButton(t *testing.T) {
+	w, hover := hoverButtonWindow()
+	if btn := hover(); btn != MouseInvalid {
+		t.Fatalf("before touch: hover button = %v, want MouseInvalid", btn)
+	}
+	w.handleTouch(&w.layout, touchEvent(EventTouchesBegan, 1, 15, 15))
+	if btn := hover(); btn != MouseLeft {
+		t.Fatalf("touch held: hover button = %v, want MouseLeft", btn)
+	}
+}
+
+// TestTouchSynthesizedReleaseClearsHeldButton pins the mixed-input case
+// that made the gesture path load-bearing: a backend mouse press sets
+// the hold, and a touch release — synthesized by handleTouchEnded via
+// synthMouse(EventMouseUp), which never passes through
+// handleMouseUpEvent — must clear it. Without the clear, hover would
+// keep reporting a left press no one is holding.
+func TestTouchSynthesizedReleaseClearsHeldButton(t *testing.T) {
+	w, hover := hoverButtonWindow()
+
+	// Backend press: the real mouse button goes down.
+	w.EventFn(&Event{Type: EventMouseDown, MouseButton: MouseLeft})
+	if btn := hover(); btn != MouseLeft {
+		t.Fatalf("mouse held: hover button = %v, want MouseLeft", btn)
+	}
+
+	// The user then interacts by touch; the finger's release is the
+	// only release that arrives.
+	w.handleTouch(&w.layout, touchEvent(EventTouchesBegan, 1, 15, 15))
+	w.handleTouch(&w.layout, touchEvent(EventTouchesEnded, 1, 15, 15))
+	if btn := hover(); btn != MouseInvalid {
+		t.Fatalf("after touch release: hover button = %v, want MouseInvalid", btn)
+	}
+}
+
 func TestLayoutHoverBlockedByDialog(t *testing.T) {
 	w := &Window{}
 	w.viewState.mousePosX = 15

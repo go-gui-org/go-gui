@@ -376,6 +376,108 @@ func TestResizeHandleReturnsView(t *testing.T) {
 	}
 }
 
+// TestResizeHandleHoverPressedColor pins the pressed-while-hovered
+// branch of the resize handle's OnHover (view_data_grid_header.go):
+// while the left button is held over the handle, the hover event
+// carries MouseLeft and the handle renders colorResizeActive; release
+// falls back to colorResizeHandle.
+//
+// A plain press on the handle starts a resize drag, which locks the
+// mouse and silences hover (layoutHover bails under a lock), so the
+// held-button hover pass is observed on the double-click window: the
+// second press of a double-click auto-fits the column without locking,
+// leaving hover live while the button is held. The auto-fit writes
+// back the column's current width (headless: no measurer, same value),
+// so the geometry does not shift under the pointer.
+func TestResizeHandleHoverPressedColor(t *testing.T) {
+	handle := gg.RGBA(180, 180, 180, 255)
+	active := gg.RGBA(100, 100, 255, 255)
+	cfg := DataGridCfg{
+		ID:                "g1",
+		ColorResizeHandle: handle,
+		ColorResizeActive: active,
+		TextStyleHeader:   gg.DefaultTextStyle,
+		TextStyle:         gg.DefaultTextStyle,
+		ColorHeader:       gg.RGBA(240, 240, 240, 255),
+		ColorBorder:       gg.RGBA(180, 180, 180, 255),
+		PaddingHeader:     gg.NewPadding(2, 4, 2, 4),
+		SizeBorder:        gg.SomeF(0),
+		Columns: []GridColumnCfg{{
+			ID: "c1", Title: "Col1", resizable: true,
+			Width: gg.SomeF(120),
+		}},
+	}
+	w := gg.NewTestWindow(gg.WindowCfg{})
+	defer w.Close()
+	w.TestRender(func(win *gg.Window) gg.View { return New(w, cfg) })
+
+	// The resize handle renders only while its column shows header
+	// controls (focused/hovered/resizing); focus the header cell to
+	// bring it into the tree.
+	w.SetFocus("g1:header:c1")
+	root := w.TestRender(nil)
+
+	handleColor := func() gg.Color {
+		ly, ok := root.FindByID("g1:resize:c1")
+		if !ok {
+			t.Fatal("resize handle left the tree")
+		}
+		return ly.Shape.Color
+	}
+
+	// Hit point: the handle shape's center.
+	ly, ok := root.FindByID("g1:resize:c1")
+	if !ok {
+		t.Fatal("no resize handle in tree after focusing the column")
+	}
+	s := ly.Shape
+	x, y := s.X+s.Width/2, s.Y+s.Height/2
+	if !s.PointInShape(x, y) {
+		t.Fatalf("handle center (%.0f,%.0f) misses the shape", x, y)
+	}
+
+	// Plain hover, no button held: the resting color.
+	w.EventFn(&gg.Event{Type: gg.EventMouseMove, MouseX: x, MouseY: y})
+	root = w.TestRender(nil)
+	if c := handleColor(); c != handle {
+		t.Fatalf("hover: color = %+v, want %+v", c, handle)
+	}
+
+	// Advance the frame counter so the first press records a
+	// non-zero LastClickFrame (the double-click guard requires it).
+	w.FrameFn()
+
+	// Click 1: starts a resize drag — the mouse locks and hover is
+	// silent, so the color is untouched while held (D3).
+	press := &gg.Event{Type: gg.EventMouseDown, MouseButton: gg.MouseLeft,
+		MouseX: x, MouseY: y}
+	w.EventFn(press)
+	root = w.TestRender(nil)
+	if c := handleColor(); c != handle {
+		t.Fatalf("drag held: color = %+v, want %+v (hover must stay silent under the lock)", c, handle)
+	}
+	w.EventFn(&gg.Event{Type: gg.EventMouseUp, MouseButton: gg.MouseLeft,
+		MouseX: x, MouseY: y})
+	root = w.TestRender(nil)
+
+	// Click 2 within the double-click window: auto-fit, no lock —
+	// hover is live again and the held button paints the active color.
+	w.EventFn(press)
+	root = w.TestRender(nil)
+	if c := handleColor(); c != active {
+		t.Fatalf("held: color = %+v, want %+v", c, active)
+	}
+
+	// Release: the button is no longer held; hover falls back to the
+	// resting color.
+	w.EventFn(&gg.Event{Type: gg.EventMouseUp, MouseButton: gg.MouseLeft,
+		MouseX: x, MouseY: y})
+	root = w.TestRender(nil)
+	if c := handleColor(); c != handle {
+		t.Fatalf("released: color = %+v, want %+v", c, handle)
+	}
+}
+
 // --- dataGridReorderControls ---
 
 func TestReorderControls(t *testing.T) {
