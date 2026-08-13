@@ -21,7 +21,10 @@ const (
 )
 
 // splitterHarness renders a splitter as the whole window with the ratio
-// and collapse state owned by the test.
+// and collapse state owned by the test. The splitter is returned
+// directly as the root view: it defaults to FillFill and, since #262,
+// the framework pins a Fill root to the window size even on an
+// axis-less container, so the splitter fills the window on its own.
 //
 // The widget stores nothing: it reads cfg.Ratio every frame and reports a
 // new one through OnChange. A test that did not write the reported value
@@ -55,23 +58,9 @@ func newSplitterHarness(t *testing.T, cfg SplitterCfg) *splitterHarness {
 			h.state = SplitterState{Ratio: ratio, Collapsed: col}
 			h.changes++
 		}
-		return splitterFillParent(Splitter(c))
+		return Splitter(c)
 	})
 	return h
-}
-
-// splitterFillParent wraps a splitter in a Fill parent that fills the
-// window exactly. The splitter defaults to FillFill but Canvas has no
-// axis, and a Fill root with no parent to fill against resolves to 0x0 —
-// so a splitter used as the whole view collapses. Real apps put it inside
-// a Row/Column (see examples/showcase), which is what this reproduces.
-func splitterFillParent(v View) View {
-	return Row(ContainerCfg{
-		Sizing:     FillFill,
-		Padding:    NoPadding,
-		SizeBorder: NoBorder,
-		Content:    []View{v},
-	})
 }
 
 // find resolves an effective ID in the current tree. Every helper
@@ -161,6 +150,67 @@ func splitterTwoPanes() (first, second SplitterPaneCfg) {
 // not a workaround.
 func splitterEmptyPanes() (first, second SplitterPaneCfg) {
 	return SplitterPaneCfg{}, SplitterPaneCfg{}
+}
+
+// --- Root view (issue #262) ---
+
+// The #262 reproduction: a Splitter returned directly as the root view
+// resolves to the window size, and the panes/handle get the geometry
+// splitterCompute decides. Before the framework fix the Fill root pin
+// was set (Min = Max = window size) but never read on an axis-less
+// container, so the root stayed 0x0 and the widget was invisible.
+func TestSplitterAsRootViewFillsWindow(t *testing.T) {
+	a, b := splitterTwoPanes()
+	w := NewTestWindow(WindowCfg{Width: splitterTestW, Height: splitterTestH})
+	w.TestRender(func(_ *Window) View {
+		return Splitter(SplitterCfg{
+			ID: "sp", Ratio: SomeF(0.5), First: a, Second: b,
+		})
+	})
+	root, ok := w.layout.FindByID("sp")
+	if !ok {
+		t.Fatal("root splitter not found")
+	}
+	nearF(t, "root width", root.Shape.Width, splitterTestW, 0.01)
+	nearF(t, "root height", root.Shape.Height, splitterTestH, 0.01)
+
+	if len(root.Children) != 3 {
+		t.Fatalf("root children = %d, want 3", len(root.Children))
+	}
+	first, handle, second := root.Children[0], root.Children[1], root.Children[2]
+	avail := float32(splitterTestW - splitterTestHandle)
+	wantFirst := avail * 0.5
+	nearF(t, "first width", first.Shape.Width, wantFirst, 0.5)
+	nearF(t, "handle width", handle.Shape.Width, splitterTestHandle, 0.01)
+	nearF(t, "second width", second.Shape.Width, avail-wantFirst, 0.5)
+	for _, ly := range []*Layout{&first, &handle, &second} {
+		nearF(t, "child height", ly.Shape.Height, splitterTestH, 0.01)
+	}
+}
+
+// The root pin is re-applied per frame, so a FillFill root tracks window
+// resize: updateLayoutLocked re-pins Min = Max to the new window size on
+// every frame, and the axisNone branch must see it.
+func TestSplitterAsRootTracksWindowResize(t *testing.T) {
+	a, b := splitterTwoPanes()
+	h := newSplitterHarness(t, SplitterCfg{
+		ID: "sp", Ratio: SomeF(0.5), First: a, Second: b,
+	})
+	root := h.find(t, "sp")
+	nearF(t, "width", root.Shape.Width, splitterTestW, 0.01)
+	nearF(t, "height", root.Shape.Height, splitterTestH, 0.01)
+
+	h.w.windowWidth, h.w.windowHeight = 640, 480
+	h.w.TestRender(nil)
+	root = h.find(t, "sp")
+	nearF(t, "width after resize", root.Shape.Width, 640, 0.01)
+	nearF(t, "height after resize", root.Shape.Height, 480, 0.01)
+
+	// The panes follow the new window size on the next frame too.
+	first, _, second := h.parts(t, "sp")
+	avail := float32(640 - splitterTestHandle)
+	nearF(t, "first width after resize", first.Shape.Width, avail*0.5, 0.5)
+	nearF(t, "second width after resize", second.Shape.Width, avail*0.5, 0.5)
 }
 
 // --- AmendLayout geometry ---

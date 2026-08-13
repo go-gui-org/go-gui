@@ -10,6 +10,20 @@ and this project adheres to
 
 ### Fixed
 
+- **FillFill roots on axis-less containers resolve to the window size
+  (issue #262).** `updateLayoutLocked` pins a Fill root to the window
+  dimensions via `Min = Max`, but the width/height sizing passes only
+  consulted the pin on axis-bearing containers — so a `Splitter` (built
+  on a `Canvas`) returned directly as the root view resolved to 0x0 and
+  was invisible, despite `Sizing` defaulting to `FillFill`. The
+  `axisNone` branch of both passes now honors explicit min/max pins, so
+  `FillFill` is honest on axis-less roots and tracks window resize. It
+  also makes an explicit `MinWidth`/`MaxWidth` on a `Fit`-sized `Canvas`
+  take effect, which is the documented intent of those fields (Fill
+  roots keep the window pin; the fill distribution clamps nested Fill
+  children). Children of axis-less containers keep their sizing
+  semantics unchanged.
+
 - **Splitter: a collapsed pane with content now reaches its collapsed
   size (issue #263).** `splitterLayoutChild` pinned the pane to the size
   `splitterCompute` decided, then re-ran the fit passes, which recomputed

@@ -88,6 +88,98 @@ func TestLayoutHeightsMaxHeightClamp(t *testing.T) {
 	}
 }
 
+// axisNone has no children to fit against, so the pass only honors
+// explicit min/max pins — the Fill root pin from updateLayoutLocked
+// (issue #262). Without a pin the size must stay untouched.
+func TestLayoutWidthsAxisNoneHonorsMinMax(t *testing.T) {
+	root := &Layout{Shape: &Shape{Axis: axisNone}}
+	layoutWidths(root)
+	if root.Shape.Width != 0 {
+		t.Errorf("width: got %f, want 0 (no pin)", root.Shape.Width)
+	}
+
+	root.Shape.MinWidth = 400
+	root.Shape.MaxWidth = 400
+	layoutWidths(root)
+	if !f32AreClose(root.Shape.Width, 400) {
+		t.Errorf("width: got %f, want 400 (Fill root pin)", root.Shape.Width)
+	}
+}
+
+func TestLayoutHeightsAxisNoneHonorsMinMax(t *testing.T) {
+	root := &Layout{Shape: &Shape{Axis: axisNone}}
+	layoutHeights(root)
+	if root.Shape.Height != 0 {
+		t.Errorf("height: got %f, want 0 (no pin)", root.Shape.Height)
+	}
+
+	root.Shape.MinHeight = 300
+	root.Shape.MaxHeight = 300
+	layoutHeights(root)
+	if !f32AreClose(root.Shape.Height, 300) {
+		t.Errorf("height: got %f, want 300 (Fill root pin)", root.Shape.Height)
+	}
+}
+
+// An explicit max alone clamps an axisNone shape; a min below the
+// current size must not shrink it.
+func TestLayoutWidthsAxisNoneHonorsMax(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{
+			Axis:     axisNone,
+			Width:    500,
+			MaxWidth: 400,
+		},
+	}
+	layoutWidths(root)
+	if !f32AreClose(root.Shape.Width, 400) {
+		t.Errorf("width: got %f, want 400", root.Shape.Width)
+	}
+}
+
+// The axisNone branch must not grow into the children's job: children
+// of an axis-less container keep the sizes they arrived with (they are
+// positioned by the container's AmendLayout, e.g. the splitter), so the
+// pass recurses nowhere.
+func TestLayoutWidthsAxisNoneLeavesChildrenAlone(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{
+			Axis:     axisNone,
+			MinWidth: 400,
+			MaxWidth: 400,
+		},
+		Children: []Layout{
+			{Shape: &Shape{Width: 30}},
+			{Shape: &Shape{Width: 20}},
+		},
+	}
+	layoutWidths(root)
+	if root.Children[0].Shape.Width != 30 || root.Children[1].Shape.Width != 20 {
+		t.Error("axisNone fit pass must not re-size children (they keep " +
+			"their arrival sizes)")
+	}
+}
+
+// The general case of #262, through the full pipeline: a plain axis-less
+// FillFill root (a Canvas, not a splitter) resolves to the window size —
+// the fix lives in the sizing passes, not in the splitter.
+func TestCanvasFillFillRootFillsWindow(t *testing.T) {
+	w := NewTestWindow(WindowCfg{Width: 400, Height: 300})
+	w.TestRender(func(_ *Window) View {
+		return Canvas(ContainerCfg{
+			ID:      "c",
+			Sizing:  FillFill,
+			Content: []View{Text(TextCfg{Text: "content"})},
+		})
+	})
+	root, ok := w.layout.FindByID("c")
+	if !ok {
+		t.Fatal("canvas root not found")
+	}
+	nearF(t, "root width", root.Shape.Width, 400, 0.01)
+	nearF(t, "root height", root.Shape.Height, 300, 0.01)
+}
+
 func TestLayoutFillWidthsAllGrow(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
