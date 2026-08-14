@@ -92,9 +92,10 @@ func appendChildViewsFlat(w *Window, parent *Layout, children []View) {
 func appendChildViewsScoped(
 	w *Window, parent *Layout, children []View, scope bool,
 ) {
-	// PRECONDITION: parent.Shape is non-nil. All three callers build it
-	// before calling; childScopeID reads it immediately below, so a
-	// normalization here would only move the nil deref one line down.
+	// Callers build parent.Shape before calling: childScopeID reads its
+	// ID to derive the child scope, and a shape built late (or a nil
+	// shape — childScopeID's nil branch) silently generates the
+	// children in the enclosing scope instead of under the parent.
 	if len(children) == 0 {
 		return
 	}
