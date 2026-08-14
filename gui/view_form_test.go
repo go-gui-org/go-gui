@@ -797,68 +797,122 @@ func TestFormFieldErrorsAliasesRuntimeSlice(t *testing.T) {
 
 // --- Form child ID scoping ---
 //
-// Form children generate under the form's *enclosing* scope, not under
-// "form:<id>". The form's inner container carries an absolute ID
-// ("form:myform", formLayoutID), so a scope push there would resolve
-// children as form:myform:email and change every SetFocus/FindByID
-// caller that uses the flat name. The tests below pin the flat behavior
-// (see docs/specs/view-single-method.md, issue #306).
+// Form children generate under the form's own scope: the inner
+// container carries an absolute ID ("form:myform", formLayoutID), so a
+// child resolves as form:myform:<leaf> — the same rule every other
+// container applies. Because formLayoutID is absolute, a form nested in
+// an ID-bearing panel still scopes its children under "form:<id>",
+// never the panel's scope (issue #306).
+//
+// The form field registry is a separate namespace and is unaffected
+// either way: FieldID never passes through ID resolution.
 
-// TestFormChildrenStayFlat documents that w.EffID resolves a form
-// child's leaf against the enclosing scope (empty here), never against
-// "form:<id>". The generation-time scope is the seam the form's child
-// append path controls.
-func TestFormChildrenStayFlat(t *testing.T) {
-	w := newTestWindow()
-	formID := "flat-form"
-	captured := ""
-	v := Form(FormCfg{
-		ID: formID,
-		Content: []View{
-			viewFunc(func(w *Window) View {
-				captured = w.EffID("email")
-				return Input(InputCfg{ID: "email"})
-			}),
-		},
+// renderScopedFormChild renders a form holding one leaf-named child —
+// wrapped in wrap when given — and returns the effective ID the child
+// resolved to at generation time plus the composed root layout.
+func renderScopedFormChild(
+	t *testing.T, w *Window, formID, leaf string, wrap func(v View) View,
+) (captured string, root *Layout) {
+	t.Helper()
+	root = w.TestRender(func(_ *Window) View {
+		form := Form(FormCfg{
+			ID: formID,
+			Content: []View{
+				viewFunc(func(w *Window) View {
+					captured = w.EffID(leaf)
+					return Input(InputCfg{ID: leaf})
+				}),
+			},
+		})
+		if wrap != nil {
+			return wrap(form)
+		}
+		return form
 	})
-	layout := generateViewLayout(v, w)
-	if layout.Shape.ID != formLayoutID(formID) {
-		t.Fatalf("form root ID = %q, want %q",
-			layout.Shape.ID, formLayoutID(formID))
-	}
-	if captured != "email" {
+	return captured, root
+}
+
+// TestFormChildrenScoped documents that w.EffID resolves a form child's
+// leaf against "form:<id>", that the resolve pass stamps the same
+// identity (so FindByID finds it), and that SetFocus accepts the
+// scoped name end to end.
+func TestFormChildrenScoped(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	const formID = "scoped-form"
+	captured, root := renderScopedFormChild(t, w, formID, "email", nil)
+	want := ScopeID(formLayoutID(formID), "email")
+	if captured != want {
 		t.Errorf("w.EffID(\"email\") inside form = %q, want %q",
-			captured, "email")
+			captured, want)
 	}
-	if len(layout.Children) != 1 {
-		t.Fatalf("form children = %d, want 1", len(layout.Children))
+	if _, ok := root.FindByID(want); !ok {
+		t.Fatalf("FindByID(%q) = false, want the scoped input", want)
+	}
+	if err := w.testFocus(want); err != nil {
+		t.Fatalf("TestFocus(%s) = %v, want nil", want, err)
+	}
+	if got := w.FocusID(); got != want {
+		t.Fatalf("FocusID() = %q, want %q", got, want)
 	}
 }
 
-// TestFormChildrenFlatInsideIDPanel pins the same flatness when the
-// form sits inside an ID-bearing panel: "flat" means the form's
-// enclosing scope — the panel's, here — not window-global, because
-// formLayoutID is absolute.
-func TestFormChildrenFlatInsideIDPanel(t *testing.T) {
-	w := newTestWindow()
-	captured := ""
-	form := Form(FormCfg{
-		ID: "nested-form",
-		Content: []View{
-			viewFunc(func(w *Window) View {
-				captured = w.EffID("email")
-				return Input(InputCfg{ID: "email"})
-			}),
-		},
-	})
-	v := Column(ContainerCfg{
-		ID:      "panel",
-		Content: []View{form},
-	})
-	generateViewLayout(v, w)
-	if captured != "panel:email" {
+// TestFormChildrenScopedInsideIDPanel pins the absolute-prefix rule: a
+// form inside an ID-bearing panel still scopes its children under
+// "form:<id>", never "panel:form:<id>". This is the same absolute-ID
+// pattern as gui/datagrid and is what formDecodeLayoutID's
+// reverse-parse relies on.
+func TestFormChildrenScopedInsideIDPanel(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	const formID = "nested-form"
+	captured, root := renderScopedFormChild(t, w, formID, "email",
+		func(v View) View {
+			return Column(ContainerCfg{ID: "panel", Content: []View{v}})
+		})
+	want := ScopeID(formLayoutID(formID), "email")
+	if captured != want {
 		t.Errorf("w.EffID(\"email\") inside panel-nested form = %q, want %q",
-			captured, "panel:email")
+			captured, want)
+	}
+	if _, ok := root.FindByID(want); !ok {
+		t.Fatalf("FindByID(%q) = false, want the scoped input", want)
+	}
+}
+
+// TestFormChildrenDistinctPerForm pins the reason the form scopes its
+// children at all: two forms in one window may each hold an
+// Input{ID: "email"} without colliding on one effective ID. The flat
+// behavior Form had before made such a window fail TestDuplicateIDs.
+func TestFormChildrenDistinctPerForm(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	root := w.TestRender(func(_ *Window) View {
+		return Column(ContainerCfg{
+			Sizing: FillFill,
+			Content: []View{
+				Form(FormCfg{
+					ID: "login",
+					Content: []View{
+						Input(InputCfg{ID: "email"}),
+					},
+				}),
+				Form(FormCfg{
+					ID: "signup",
+					Content: []View{
+						Input(InputCfg{ID: "email"}),
+					},
+				}),
+			},
+		})
+	})
+	for _, id := range []string{
+		ScopeID(formLayoutID("login"), "email"),
+		ScopeID(formLayoutID("signup"), "email"),
+	} {
+		if _, ok := root.FindByID(id); !ok {
+			t.Fatalf("FindByID(%q) = false, want the scoped input", id)
+		}
+	}
+	if got := w.TestDuplicateIDs(); len(got) != 0 {
+		t.Fatalf("want no duplicate findings, got %q", got)
 	}
 }
 

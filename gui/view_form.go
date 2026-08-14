@@ -246,11 +246,10 @@ func (fv *formView) GenerateLayout(w *Window) Layout {
 	// carries no Content, so its own appendChildViews call is a no-op
 	// and no scope is pushed for it.
 	layout := generateViewLayout(inner, w)
-	// Form children append flat — they resolve in the form's enclosing
-	// scope, never under "form:<id>" (appendChildViewsFlat). The field
-	// registry is unaffected either way: FieldID never passes through ID
-	// resolution. See issue #306.
-	appendChildViewsFlat(w, &layout, children)
+	// Children resolve under the absolute "form:<id>" scope (issue #306);
+	// the field registry is unaffected — FieldID never passes through ID
+	// resolution.
+	appendChildViews(w, &layout, children)
 	return layout
 }
 
