@@ -480,6 +480,7 @@ func mdRenderListItem(
 func mdTaskCheckbox(checked bool, boxSize float32, cfg MarkdownCfg) View {
 	boxColor := ColorTransparent
 	var content []View
+	var amend func(EventCtx)
 	if checked {
 		boxColor = cfg.Style.linkColor
 		checkStyle := guiTheme.icon5
@@ -488,6 +489,10 @@ func mdTaskCheckbox(checked bool, boxSize float32, cfg MarkdownCfg) View {
 		content = []View{
 			Text(TextCfg{Text: iconCheck, TextStyle: checkStyle}),
 		}
+		// Same defect as Toggle's check: the icon font's advance box is
+		// taller and wider than the mark, so flow centring leaves it high
+		// and off to one side inside this small fixed box.
+		amend = centerGlyphOnInk(iconCheck, checkStyle)
 	}
 
 	return Column(ContainerCfg{
@@ -504,6 +509,7 @@ func mdTaskCheckbox(checked bool, boxSize float32, cfg MarkdownCfg) View {
 		Padding:     NoPadding,
 		HAlign:      HAlignCenter,
 		VAlign:      VAlignMiddle,
+		AmendLayout: amend,
 		Content:     content,
 	})
 }

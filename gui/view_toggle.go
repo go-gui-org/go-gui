@@ -78,6 +78,7 @@ func Toggle(cfg ToggleCfg) View {
 		Sizing:      FixedFixed,
 		HAlign:      HAlignCenter,
 		VAlign:      VAlignMiddle,
+		AmendLayout: centerGlyphOnInk(txt, txtStyle),
 		Content: []View{
 			Text(TextCfg{Text: txt, TextStyle: txtStyle}),
 		},

@@ -138,12 +138,15 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			ColorFocus:       cfg.ColorInterior,
 			ColorHover:       cfg.ColorHover,
 			ColorSelect:      cfg.ColorInterior,
-			Padding:          NewPadding(1, 1, 1, 2),
-			Size:             ts.Size + 4,
-			SizeBorder:       cfg.SizeBorder,
-			Radius:           cfg.Radius,
-			textStyleNormal:  ts,
-			textStyleLabel:   ts,
+			// Symmetric: the check is centred on its ink (see
+			// centerGlyphOnInk), so any padding asymmetry here is a
+			// pure off-centre error, not a nudge that helps.
+			Padding:         PadAll(1),
+			Size:            ts.Size + 4,
+			SizeBorder:      cfg.SizeBorder,
+			Radius:          cfg.Radius,
+			textStyleNormal: ts,
+			textStyleLabel:  ts,
 		},
 		selectStyle: SelectStyle{
 			MinWidth:         75,
