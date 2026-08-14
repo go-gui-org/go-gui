@@ -1,75 +1,42 @@
 package gui
 
 import (
-	"strconv"
 	"testing"
 )
 
-type benchView struct {
-	shape    Shape
-	children []*benchView
+// benchViewFlat builds a production-shaped flat tree: one Column with n
+// Text children. The benchmark measures the real factories (Column,
+// Text), so its before/after numbers reflect production code rather
+// than a harness stub's per-node Content() slice allocation.
+func benchViewFlat(n int) View {
+	views := make([]View, n)
+	for i := range views {
+		views[i] = Text(TextCfg{Text: "row"})
+	}
+	return Column(ContainerCfg{ID: "root", Content: views})
 }
 
-func (v *benchView) Content() []View {
-	if len(v.children) == 0 {
-		return nil
-	}
-	views := make([]View, len(v.children))
-	for i, c := range v.children {
-		views[i] = c
-	}
-	return views
-}
-
-func (v *benchView) GenerateLayout(_ *Window) Layout {
-	return Layout{Shape: &v.shape}
-}
-
-func benchViewFlat(n int) *benchView {
-	root := &benchView{
-		shape:    Shape{shapeType: shapeRectangle, Axis: axisTopToBottom},
-		children: make([]*benchView, n),
-	}
-	for i := range n {
-		root.children[i] = &benchView{
-			shape: Shape{
-				shapeType: shapeRectangle,
-				Width:     200,
-				Height:    40,
-				Focusable: true,
-				ID:        "f" + strconv.Itoa(i+1),
-			},
+// benchViewNested builds a production-shaped 3-level tree:
+// Column → childrenPerLevel Columns → Text leaves each.
+func benchViewNested(childrenPerLevel int) View {
+	columns := make([]View, childrenPerLevel)
+	for i := range columns {
+		rows := make([]View, childrenPerLevel)
+		for j := range rows {
+			rows[j] = Text(TextCfg{Text: "cell"})
 		}
+		columns[i] = Column(ContainerCfg{Content: rows})
 	}
-	return root
+	return Column(ContainerCfg{ID: "root", Content: columns})
 }
 
-func benchViewNested(depth, childrenPerLevel int) *benchView {
-	v := &benchView{
-		shape: Shape{
-			shapeType: shapeRectangle,
-			Axis:      axisTopToBottom,
-		},
-	}
+// benchViewDeep builds a production-shaped chain: depth nested Columns
+// with a single Text leaf, exercising the recursion depth.
+func benchViewDeep(depth int) View {
 	if depth <= 0 {
-		return v
+		return Text(TextCfg{Text: "leaf"})
 	}
-	v.children = make([]*benchView, childrenPerLevel)
-	for i := range childrenPerLevel {
-		v.children[i] = benchViewNested(depth-1, childrenPerLevel)
-	}
-	return v
-}
-
-func benchViewDeep(depth int) *benchView {
-	v := &benchView{
-		shape: Shape{shapeType: shapeRectangle, Axis: axisTopToBottom},
-	}
-	if depth <= 0 {
-		return v
-	}
-	v.children = []*benchView{benchViewDeep(depth - 1)}
-	return v
+	return Column(ContainerCfg{Content: []View{benchViewDeep(depth - 1)}})
 }
 
 func BenchmarkGenerateViewLayout(b *testing.B) {
@@ -89,7 +56,7 @@ func BenchmarkGenerateViewLayout(b *testing.B) {
 
 	b.Run("nested_3x10", func(b *testing.B) {
 		w := &Window{scratch: newScratchPools()}
-		view := benchViewNested(3, 10)
+		view := benchViewNested(10)
 		b.ReportAllocs()
 		for b.Loop() {
 			w.scratch.resetViewPools()
