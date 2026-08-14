@@ -4,6 +4,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/go-gui-org/go-glyph"
@@ -311,6 +312,9 @@ func (s *stubGlyphBackend) DrawTexturedQuadTransformed(
 func (s *stubGlyphBackend) DPIScale() float32 { return 1 }
 
 func TestFlushText(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("glyph.NewTextSystem requires a DOM canvas; covered on native")
+	}
 	fs, br := newTestFS()
 
 	// No text queued: nothing happens, even with a nil system.
