@@ -201,17 +201,10 @@ func init() {
 	themeRegister(themeBlueBordered)
 
 	// Dark is both the app default and the initially installed theme.
-	//
-	// Deliberately NOT applyTheme: the ~30 default*Style literals in
-	// styles*.go do not all match ThemeDark (button/input/container
-	// borders are 1.5 there and 0 in ThemeDark, the dataGrid literal is
-	// an unstyled placeholder), and an app that never calls SetTheme
-	// runs on that mixture today. Installing ThemeDark here would
-	// silently restyle every such app. Seeding installedThemeID instead
-	// makes the first frame's installTheme a no-op, so the shipped
-	// default appearance is bit-identical to before per-window themes.
-	// Reconciling the literals with ThemeDark is a separate change.
+	// applyTheme is what fills the default*Style mirrors — they carry no
+	// literals of their own, so an app that never calls SetTheme still
+	// gets ThemeDark everywhere rather than a mixture (issue #300). It
+	// also sets guiTheme and installedThemeID.
 	defaultTheme = ThemeDark
-	guiTheme = ThemeDark
-	installedThemeID = ThemeDark.id
+	applyTheme(ThemeDark)
 }

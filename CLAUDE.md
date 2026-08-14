@@ -173,6 +173,15 @@ Backend injects at startup. Nil in tests:
   generation time because factories resolve defaults when called. Anything keyed
   on a theme keys on `Theme.id`, never `Theme.Name` — names are not unique. See
   `docs/specs/per-window-theme.md`.
+- **`ThemeMaker` is the only source of default styling. The `default*Style`
+  package vars have no initializers — never add one.** They are mirrors: `init`
+  fills them with `applyTheme(ThemeDark)` and `installTheme` refills them per
+  theme change. A literal there is a second source of truth that silently drifts
+  (issue #300 removed ~30 of them; `ThemeDark` is borderless, bordered is the
+  `dark-bordered` preset or `Theme.WithBorders(true)`). The two exceptions are
+  `DefaultTextStyle` and `defaultInspectorStyle`, which are ThemeMaker _inputs_.
+  `TestDefaultStylesMirrorThemeDark` is the gate. See
+  `docs/specs/theme-style-single-source.md`.
 - `AmendLayout` hook on shapes runs after sizing to reposition overlays (color
   picker circles, splitter handles, etc.) or manage hover. Layout uses absolute
   coords. Moving parent in `AmendLayout` does NOT move children. Use float

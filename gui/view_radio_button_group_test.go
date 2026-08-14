@@ -197,3 +197,39 @@ func TestNewRadioOption(t *testing.T) {
 		t.Errorf("got %+v", opt)
 	}
 }
+
+// TestRadioButtonGroupBorderFollowsTheme covers issue #300: the group
+// box border used to resolve against a private 1.5px literal that no
+// theme could reach. An unset cfg.SizeBorder must fall back to the
+// themed container style, and an explicit value must still win.
+func TestRadioButtonGroupBorderFollowsTheme(t *testing.T) {
+	restoreTheme(t)
+	th := ThemeDark.withContainerStyle(containerStyle{SizeBorder: 7})
+	SetTheme(th)
+
+	w := &Window{}
+	v := RadioButtonGroupColumn(RadioButtonGroupCfg{
+		ID: "radio-group-theme-border",
+		Options: []RadioOption{
+			{Label: "A", Value: "a"},
+		},
+		OnSelect: func(_ string, ctx EventCtx) {},
+	})
+	layout := generateViewLayout(v, w)
+	if layout.Shape.SizeBorder != 7 {
+		t.Errorf("size_border = %v, want 7 (container style)", layout.Shape.SizeBorder)
+	}
+
+	v = RadioButtonGroupColumn(RadioButtonGroupCfg{
+		ID:         "radio-group-theme-border-override",
+		SizeBorder: SomeF(3),
+		Options: []RadioOption{
+			{Label: "A", Value: "a"},
+		},
+		OnSelect: func(_ string, ctx EventCtx) {},
+	})
+	layout = generateViewLayout(v, w)
+	if layout.Shape.SizeBorder != 3 {
+		t.Errorf("size_border = %v, want 3 (cfg wins)", layout.Shape.SizeBorder)
+	}
+}

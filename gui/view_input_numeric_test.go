@@ -68,6 +68,39 @@ func TestNumericInputReadOnlyForwardsToInput(t *testing.T) {
 	}
 }
 
+// TestNumericInputBorderFollowsTheme covers issue #300: the numeric
+// input used to resolve its fallback border/radius against a private
+// literal that no theme could reach. It must take them from the
+// theme's input style, and an explicit cfg value must still win.
+func TestNumericInputBorderFollowsTheme(t *testing.T) {
+	restoreTheme(t)
+	th := ThemeDark.withInputStyle(InputStyle{SizeBorder: 7, Radius: 9})
+	SetTheme(th)
+
+	w := &Window{}
+	v := NumericInput(NumericInputCfg{
+		ID:      "ni-theme-border",
+		StepCfg: NumericStepCfg{ShowButtons: true, Step: 1},
+	})
+	layout := generateViewLayout(v, w)
+	if layout.Shape.SizeBorder != 7 {
+		t.Errorf("size_border = %v, want 7 (input style)", layout.Shape.SizeBorder)
+	}
+	if layout.Shape.Radius != 9 {
+		t.Errorf("radius = %v, want 9 (input style)", layout.Shape.Radius)
+	}
+
+	v = NumericInput(NumericInputCfg{
+		ID:         "ni-theme-border-override",
+		StepCfg:    NumericStepCfg{ShowButtons: true, Step: 1},
+		SizeBorder: SomeF(3),
+	})
+	layout = generateViewLayout(v, w)
+	if layout.Shape.SizeBorder != 3 {
+		t.Errorf("size_border = %v, want 3 (cfg wins)", layout.Shape.SizeBorder)
+	}
+}
+
 // TestNumericInputReadOnlyStepButtonsGated covers #82: a read-only
 // numeric input must not increment via its step buttons. The buttons
 // are visually disabled, and numericInputApplyStep (the choke point)

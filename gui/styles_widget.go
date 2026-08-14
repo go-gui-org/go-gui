@@ -48,11 +48,6 @@ type RadioStyle struct {
 	colorUnselect    Color
 }
 
-// RadioGroupStyle defines radio button group visual properties.
-type radioGroupStyle struct {
-	SizeBorder float32
-}
-
 // SwitchStyle defines switch toggle visual properties.
 // exportaudit:keep — reachable from an exported signature
 type SwitchStyle struct {
@@ -114,103 +109,19 @@ type SelectStyle struct {
 	ColorSelect      Color
 }
 
-// Default widget styles (dark theme).
+// Widget style mirrors. See the note on the mirror block in styles.go:
+// ThemeMaker is the only source of these values — never add an
+// initializer here.
 var (
-	defaultInputStyle = InputStyle{
-		Color:            colorInteriorDark,
-		ColorHover:       colorHoverDark,
-		ColorFocus:       colorActiveDark,
-		colorClick:       colorActiveDark,
-		ColorBorder:      colorBorderDark,
-		ColorBorderFocus: colorSelectDark,
-		colorSpellError:  RGBA(255, 80, 80, 220),
-		Padding:          PaddingSmall,
-		SizeBorder:       sizeBorderDef,
-		Radius:           radiusMedium,
-		textStyleNormal:  DefaultTextStyle,
-		PlaceholderStyle: TextStyle{
-			Color: RGBA(colorTextDark.R, colorTextDark.G, colorTextDark.B, 100),
-			Size:  sizeTextMedium,
-		},
-	}
+	defaultInputStyle InputStyle
 
-	DefaultScrollbarStyle = ScrollbarStyle{
-		Size:            7,
-		minThumbSize:    20,
-		colorThumb:      colorActiveDark,
-		ColorBackground: ColorTransparent,
-		Radius:          radiusSmall,
-		radiusThumb:     radiusSmall,
-		GapEdge:         3,
-		GapEnd:          2,
-	}
+	DefaultScrollbarStyle ScrollbarStyle
 
-	defaultRadioStyle = RadioStyle{
-		Size:             sizeTextMedium,
-		Color:            colorPanelDark,
-		ColorHover:       colorHoverDark,
-		ColorFocus:       colorSelectDark,
-		colorClick:       colorActiveDark,
-		ColorBorder:      colorBorderDark,
-		ColorBorderFocus: colorSelectDark,
-		ColorSelect:      colorSelectDark,
-		colorUnselect:    colorActiveDark,
-		Padding:          PadAll(4),
-		SizeBorder:       2.0,
-		textStyleNormal:  DefaultTextStyle,
-	}
+	defaultRadioStyle RadioStyle
 
-	defaultSwitchStyle = SwitchStyle{
-		sizeWidth:        36,
-		sizeHeight:       22,
-		Color:            colorPanelDark,
-		colorClick:       colorInteriorDark,
-		ColorFocus:       colorFocusDark,
-		ColorHover:       colorHoverDark,
-		ColorBorder:      colorBorderDark,
-		ColorBorderFocus: colorSelectDark,
-		ColorSelect:      colorSelectDark,
-		colorUnselect:    colorActiveDark,
-		Padding:          paddingThree,
-		SizeBorder:       sizeBorderDef,
-		Radius:           radiusLarge * 2,
-		textStyleNormal:  DefaultTextStyle,
-	}
+	defaultSwitchStyle SwitchStyle
 
-	defaultToggleStyle = ToggleStyle{
-		Color:            colorPanelDark,
-		ColorBorder:      colorBorderDark,
-		ColorBorderFocus: colorSelectDark,
-		colorClick:       colorInteriorDark,
-		ColorFocus:       colorActiveDark,
-		ColorHover:       colorHoverDark,
-		ColorSelect:      colorInteriorDark,
-		Padding:          NewPadding(1, 1, 1, 2),
-		Size:             sizeTextMedium + 4,
-		SizeBorder:       sizeBorderDef,
-		Radius:           radiusSmall,
-		textStyleNormal:  DefaultTextStyle,
-		textStyleLabel:   DefaultTextStyle,
-	}
+	defaultToggleStyle ToggleStyle
 
-	defaultSelectStyle = SelectStyle{
-		MinWidth:         75,
-		MaxWidth:         200,
-		Color:            colorInteriorDark,
-		ColorHover:       colorHoverDark,
-		ColorFocus:       colorFocusDark,
-		colorClick:       colorActiveDark,
-		ColorBorder:      colorBorderDark,
-		ColorBorderFocus: colorSelectDark,
-		ColorSelect:      colorSelectDark,
-		Padding:          PaddingSmall,
-		SizeBorder:       sizeBorderDef,
-		Radius:           radiusMedium,
-		textStyleNormal:  DefaultTextStyle,
-		subheadingStyle:  DefaultTextStyle,
-		PlaceholderStyle: TextStyle{
-			Color: RGBA(colorTextDark.R, colorTextDark.G, colorTextDark.B, 100),
-			Size:  sizeTextMedium,
-		},
-	}
+	defaultSelectStyle SelectStyle
 )

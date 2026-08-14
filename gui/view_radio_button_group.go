@@ -41,11 +41,6 @@ type RadioButtonGroupCfg struct {
 	Disabled      bool
 }
 
-// DefaultRadioGroupStyle holds defaults for RadioButtonGroupCfg Opt fields.
-var defaultRadioGroupStyle = radioGroupStyle{
-	SizeBorder: 1.5,
-}
-
 // RadioButtonGroupColumn creates a vertically stacked radio
 // button group.
 func RadioButtonGroupColumn(cfg RadioButtonGroupCfg) View {
@@ -69,13 +64,16 @@ func radioGroup(cfg RadioButtonGroupCfg, axis func(ContainerCfg) View) View {
 				Label: cfg.Items[i], Value: cfg.Items[i]}
 		}
 	}
-	sizeBorder := cfg.SizeBorder.Get(defaultRadioGroupStyle.SizeBorder)
+	// The group's border is the group box's, so pass the Opt through
+	// unresolved and let Container fall back to the themed container
+	// style. Resolving it here against a private literal was how this
+	// widget stayed at a 1.5px border under every theme (issue #300).
 	return axis(ContainerCfg{
 		A11YRole:        AccessRoleRadioGroup,
 		A11YLabel:       cfg.A11YLabel,
 		A11YDescription: cfg.A11YDescription,
 		ColorBorder:     cfg.ColorBorder,
-		SizeBorder:      Some(sizeBorder),
+		SizeBorder:      cfg.SizeBorder,
 		Title:           cfg.Title,
 		TitleBG:         cfg.TitleBG,
 		Spacing:         cfg.Spacing,

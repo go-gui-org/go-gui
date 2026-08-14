@@ -7,7 +7,7 @@ import (
 )
 
 func TestDefaultInputStyleColors(t *testing.T) {
-	s := pristineInputStyle
+	s := ThemeDark.InputStyle
 	if s.Color.eq(Color{}) {
 		t.Error("input color should not be zero")
 	}
@@ -17,7 +17,7 @@ func TestDefaultInputStyleColors(t *testing.T) {
 }
 
 func TestDefaultScrollbarStyle(t *testing.T) {
-	s := pristineScrollbarStyle
+	s := ThemeDark.ScrollbarStyle
 	if s.Size != 7 {
 		t.Errorf("scrollbar size = %f", s.Size)
 	}
@@ -26,28 +26,30 @@ func TestDefaultScrollbarStyle(t *testing.T) {
 	}
 }
 
-func TestDefaultWidgetStylesNonZero(t *testing.T) {
-	// Verify all widget default styles have non-zero radius
-	// (except scrollbar which uses RadiusSmall).
+// ThemeDark is borderless by design — bordered is the separate
+// dark-bordered preset, or Theme.WithBorders(true). What every widget
+// style must have is a real corner radius, so a widget never renders
+// with square corners just because a style went unpopulated.
+func TestDefaultWidgetStylesRadius(t *testing.T) {
 	styles := []struct {
 		name   string
 		radius float32
 	}{
-		{"radio", pristineRadioStyle.SizeBorder},
-		{"switch", pristineSwitchStyle.SizeBorder},
-		{"toggle", pristineToggleStyle.SizeBorder},
-		{"select", pristineSelectStyle.SizeBorder},
-		{"listbox", pristineListBoxStyle.SizeBorder},
+		{"button", ThemeDark.ButtonStyle.Radius},
+		{"input", ThemeDark.InputStyle.Radius},
+		{"toggle", ThemeDark.toggleStyle.Radius},
+		{"select", ThemeDark.selectStyle.Radius},
+		{"listbox", ThemeDark.listBoxStyle.Radius},
 	}
 	for _, s := range styles {
 		if s.radius == 0 {
-			t.Errorf("%s has zero size_border", s.name)
+			t.Errorf("%s has zero radius", s.name)
 		}
 	}
 }
 
 func TestDefaultDialogStyle(t *testing.T) {
-	s := pristineDialogStyle
+	s := ThemeDark.dialogStyle
 	if s.Color.eq(Color{}) {
 		t.Error("dialog color should not be zero")
 	}
@@ -60,7 +62,7 @@ func TestDefaultDialogStyle(t *testing.T) {
 }
 
 func TestDefaultToastStyle(t *testing.T) {
-	s := pristineToastStyle
+	s := ThemeDark.toastStyle
 	if s.maxVisible != 5 {
 		t.Errorf("max_visible = %d, want 5", s.maxVisible)
 	}
@@ -73,7 +75,7 @@ func TestDefaultToastStyle(t *testing.T) {
 }
 
 func TestDefaultTooltipStyle(t *testing.T) {
-	s := pristineTooltipStyle
+	s := ThemeDark.tooltipStyle
 	if s.Delay == 0 {
 		t.Error("delay should not be zero")
 	}
@@ -121,7 +123,7 @@ func TestEffectiveTextTransformDefault(t *testing.T) {
 }
 
 func TestDefaultTreeStyle(t *testing.T) {
-	s := pristineTreeStyle
+	s := ThemeDark.treeStyle
 	if !s.ColorHover.IsSet() {
 		t.Error("tree hover color should be set")
 	}

@@ -179,34 +179,28 @@ type RectangleStyle struct {
 	ColorBorder    Color
 }
 
-// Default styles (dark theme).
+// DefaultTextStyle is a ThemeMaker *input*, not a mirror: baseDarkCfg
+// reads it while building ThemeDark, which happens during init before
+// any theme is installed, so it needs a real literal. applyTheme
+// re-assigns it afterwards (a no-op for ThemeDark).
+var DefaultTextStyle = TextStyle{
+	Family: defaultFontFamily,
+	Color:  colorTextDark,
+	Size:   sizeTextMedium,
+}
+
+// Widget style mirrors (issue #300). ThemeMaker is the only source of
+// these values: init() fills them via applyTheme(ThemeDark) and
+// (*Window).installTheme refills them whenever the active theme changes.
+//
+// Never give one an initializer. A literal here is a second source of
+// truth that silently drifts from ThemeMaker — which is exactly the bug
+// this block used to carry (button/input/container borders were 1.5 here
+// and 0 in ThemeDark, and DefaultDataGridStyle stayed unstyled until an
+// app happened to call SetTheme).
 var (
-	DefaultTextStyle = TextStyle{
-		Family: defaultFontFamily,
-		Color:  colorTextDark,
-		Size:   sizeTextMedium,
-	}
-
-	defaultButtonStyle = buttonStyle{
-		Color:            colorInteriorDark,
-		ColorHover:       colorHoverDark,
-		ColorFocus:       colorActiveDark,
-		colorClick:       colorActiveDark,
-		ColorBorder:      colorBorderDark,
-		ColorBorderFocus: colorSelectDark,
-		Padding:          paddingButton,
-		SizeBorder:       sizeBorderDef,
-		Radius:           radiusMedium,
-	}
-
-	defaultContainerStyle = containerStyle{
-		Color:       ColorTransparent,
-		ColorBorder: ColorTransparent,
-		Padding:     paddingMedium,
-		Radius:      radiusMedium,
-		Spacing:     SpacingMedium,
-		SizeBorder:  sizeBorderDef,
-	}
+	defaultButtonStyle    buttonStyle
+	defaultContainerStyle containerStyle
 
 	DefaultDataGridStyle DataGridStyle
 )
@@ -246,7 +240,9 @@ type InspectorStyle struct {
 	colorPadding   Color
 }
 
-// DefaultInspectorStyle provides the default inspector color palette.
+// defaultInspectorStyle provides the default inspector color palette.
+// Like DefaultTextStyle it is a ThemeMaker input (ThemeMaker copies it
+// into every theme's inspectorStyle), so it keeps a real literal.
 var defaultInspectorStyle = InspectorStyle{
 	ColorPanel:     RGBA(64, 64, 64, 245),
 	colorTextHelp:  RGBA(225, 225, 225, 130),

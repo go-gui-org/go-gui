@@ -1,10 +1,6 @@
 package gui
 
-import (
-	"time"
-
-	"github.com/go-gui-org/go-glyph"
-)
+import "time"
 
 // ListBoxStyle defines list box visual properties.
 // exportaudit:keep — reachable from an exported signature
@@ -128,106 +124,21 @@ type ExpandPanelStyle struct {
 	radiusBorder float32
 }
 
-// Default widget styles (dark theme).
+// Widget style mirrors. See the note on the mirror block in styles.go:
+// ThemeMaker is the only source of these values — never add an
+// initializer here.
 var (
-	defaultListBoxStyle = ListBoxStyle{
-		Color:           colorInteriorDark,
-		ColorHover:      colorHoverDark,
-		ColorBorder:     colorBorderDark,
-		ColorSelect:     colorSelectDark,
-		Padding:         paddingButton,
-		SizeBorder:      sizeBorderDef,
-		Radius:          radiusMedium,
-		textStyleNormal: DefaultTextStyle,
-		subheadingStyle: DefaultTextStyle,
-	}
+	defaultListBoxStyle ListBoxStyle
 
-	defaultTreeStyle = TreeStyle{
-		Color:       ColorTransparent,
-		ColorHover:  colorHoverDark,
-		ColorFocus:  colorFocusDark,
-		ColorBorder: ColorTransparent,
-		Padding:     PaddingNone,
-		SizeBorder:  sizeBorderDef,
-		Radius:      radiusMedium,
-		TextStyle:   DefaultTextStyle,
-		textStyleIcon: TextStyle{
-			Color:  colorTextDark,
-			Size:   sizeTextSmall,
-			Family: IconFontName,
-		},
-		indent:  25,
-		Spacing: 0,
-	}
+	defaultTreeStyle TreeStyle
 
-	DefaultDialogStyle = DialogStyle{
-		Color:            colorPanelDark,
-		ColorBorder:      colorBorderDark,
-		ColorBorderFocus: colorSelectDark,
-		Padding:          PaddingLarge,
-		SizeBorder:       sizeBorderDef,
-		Radius:           radiusMedium,
-		radiusBorder:     radiusMedium,
-		AlignButtons:     HAlignCenter,
-		titleTextStyle: TextStyle{
-			Color: colorTextDark,
-			Size:  sizeTextLarge,
-		},
-		TextStyle: DefaultTextStyle,
-	}
+	DefaultDialogStyle DialogStyle
 
-	defaultToastStyle = ToastStyle{
-		maxVisible:   5,
-		Anchor:       toastBottomRight,
-		Width:        260,
-		margin:       16,
-		Spacing:      8,
-		accentWidth:  4,
-		Padding:      paddingMedium,
-		Radius:       radiusMedium,
-		SizeBorder:   sizeBorderDef,
-		Color:        colorPanelDark,
-		ColorBorder:  colorBorderDark,
-		colorInfo:    colorSelectDark,
-		ColorSuccess: RGBA(46, 160, 67, 255),
-		ColorWarning: RGBA(210, 153, 34, 255),
-		ColorError:   RGBA(218, 54, 51, 255),
-		TextStyle:    DefaultTextStyle,
-		TitleStyle: TextStyle{
-			Color:    colorTextDark,
-			Size:     sizeTextMedium,
-			Typeface: glyph.TypefaceBold,
-		},
-	}
+	defaultToastStyle ToastStyle
 
-	defaultTooltipStyle = TooltipStyle{
-		Delay:       500 * time.Millisecond,
-		Color:       colorInteriorDark,
-		ColorBorder: colorBorderDark,
-		Padding:     PaddingSmall,
-		SizeBorder:  sizeBorderDef,
-		Radius:      radiusSmall,
-		TextStyle:   DefaultTextStyle,
-	}
+	defaultTooltipStyle TooltipStyle
 
-	defaultBadgeStyle = BadgeStyle{
-		Color:        colorSelectDark,
-		colorInfo:    colorSelectDark,
-		ColorSuccess: RGBA(46, 160, 67, 255),
-		ColorWarning: RGBA(210, 153, 34, 255),
-		ColorError:   RGBA(218, 54, 51, 255),
-		Padding:      NewPadding(2, 6, 2, 6),
-		dotSize:      8,
-	}
+	defaultBadgeStyle BadgeStyle
 
-	defaultExpandPanelStyle = ExpandPanelStyle{
-		Color:        colorPanelDark,
-		ColorHover:   colorHoverDark,
-		colorClick:   colorActiveDark,
-		ColorBorder:  colorBorderDark,
-		Padding:      paddingMedium,
-		SizeBorder:   sizeBorderDef,
-		Radius:       radiusMedium,
-		radiusBorder: radiusMedium,
-	}
+	defaultExpandPanelStyle ExpandPanelStyle
 )
