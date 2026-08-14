@@ -19,6 +19,11 @@ import (
 
 // Backend is the Canvas2D/WASM backend for go-gui.
 type Backend struct {
+	// win is the one window this backend serves — the browser window
+	// IS the application window here. Held so draw paths that resolve
+	// a theme default (custom-shader fallback) can name the window
+	// instead of reading the frame-scoped theme cache.
+	win       *gui.Window
 	canvas    js.Value
 	ctx2d     js.Value
 	glyphBack *glyphweb.Backend
@@ -148,6 +153,7 @@ func newBackend(w *gui.Window) (*Backend, error) {
 	loadIconFont(gui.IconFontData)
 
 	b := &Backend{
+		win:          w,
 		canvas:       canvas,
 		ctx2d:        ctx2d,
 		glyphBack:    glyphBack,
@@ -250,8 +256,10 @@ func (b *Backend) renderFrame(w *gui.Window) {
 	// default — not distinguishable from unset.
 	bg := w.Config.BgColor
 	if bg == (gui.Color{}) {
-		t := gui.CurrentTheme()
-		bg = t.ColorBackground
+		// Runs after FrameFn on the same thread, so the installed
+		// theme happens to be right; w.Theme() makes it right by
+		// construction instead of by timing.
+		bg = w.Theme().ColorBackground
 	}
 	b.glyphBack.BeginFrame(
 		float32(bg.R)/255, float32(bg.G)/255,

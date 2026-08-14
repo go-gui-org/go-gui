@@ -84,7 +84,9 @@ func (b *Backend) drawCustomShader(r *gui.RenderCmd) {
 func (b *Backend) drawCustomShaderFallback(r *gui.RenderCmd) {
 	fill := r.Color
 	if fill == (gui.Color{}) {
-		fill = gui.CurrentTheme().ColorActive
+		// Draw path, outside generation: name the window this backend
+		// serves rather than the frame-scoped theme cache.
+		fill = b.win.Theme().ColorActive
 	}
 	fallback := *r
 	fallback.Fill = true

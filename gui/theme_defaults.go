@@ -205,6 +205,6 @@ func init() {
 	// literals of their own, so an app that never calls SetTheme still
 	// gets ThemeDark everywhere rather than a mixture (issue #300). It
 	// also sets guiTheme and installedThemeID.
-	defaultTheme = ThemeDark
+	defaultTheme = &ThemeDark
 	applyTheme(ThemeDark)
 }

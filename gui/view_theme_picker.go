@@ -191,7 +191,9 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 // theme name.
 func themePickerSyncHighlight(lbID string, w *Window) {
 	names := themeRegisteredNames()
-	current := guiTheme.Name
+	// Runs from the listbox handlers, after generation: the frame cache
+	// holds whichever window generated last, so name this one.
+	current := w.Theme().Name
 	idx := 0
 	for i, n := range names {
 		if n == current {

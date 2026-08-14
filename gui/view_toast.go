@@ -374,7 +374,9 @@ func toastRemove(w *Window, id uint64) {
 // toastEnforceMaxVisible starts exit on oldest non-exiting toasts
 // when count exceeds max.
 func toastEnforceMaxVisible(w *Window) {
-	maxVisible := defaultToastStyle.maxVisible
+	// Reached from (*Window).Toast, outside generation: read the
+	// window's theme rather than the frame-scoped style mirror.
+	maxVisible := w.Theme().toastStyle.maxVisible
 	if maxVisible <= 0 {
 		return
 	}

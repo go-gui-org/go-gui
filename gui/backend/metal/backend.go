@@ -626,8 +626,10 @@ func (ws *windowState) destroy() {
 func (ws *windowState) renderFrame(w *gui.Window) {
 	bg := w.Config.BgColor
 	if bg == (gui.Color{}) {
-		t := gui.CurrentTheme()
-		bg = t.ColorBackground
+		// Runs after FrameFn on the same thread, so the installed
+		// theme happens to be right; w.Theme() makes it right by
+		// construction instead of by timing.
+		bg = w.Theme().ColorBackground
 	}
 	rc := C.metalBeginFrame(ws.ctx,
 		C.float(float32(bg.R)/255.0),

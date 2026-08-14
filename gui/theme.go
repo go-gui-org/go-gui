@@ -20,7 +20,11 @@ var (
 	guiTheme   Theme
 	guiThemeMu sync.RWMutex
 
-	defaultTheme   Theme
+	// Held as a pointer to an immutable value for the same reason
+	// Window.theme is: readers take the pointer and skip copying a
+	// large struct. SetTheme publishes a new value; nothing writes
+	// through the pointer.
+	defaultTheme   *Theme
 	defaultThemeMu sync.RWMutex
 
 	// installedThemeID is the id of the theme currently written into
@@ -273,8 +277,9 @@ func CurrentTheme() Theme {
 // one pick this up on their next frame, so calling SetTheme from main or
 // from an event handler rethemes the app as it always has.
 func SetTheme(t Theme) {
+	published := t
 	defaultThemeMu.Lock()
-	defaultTheme = t
+	defaultTheme = &published
 	defaultThemeMu.Unlock()
 	// Install eagerly as well, so callers outside a frame pass — main
 	// before Run, tests building views directly — see the change at
@@ -286,9 +291,22 @@ func SetTheme(t Theme) {
 
 // currentDefaultTheme returns the app-default theme.
 func currentDefaultTheme() Theme {
+	return *currentDefaultThemeRef()
+}
+
+// currentDefaultThemeRef is currentDefaultTheme without the copy. The
+// value it points at is never written through, so the pointer stays
+// valid after the lock is dropped. Callers must not mutate it.
+func currentDefaultThemeRef() *Theme {
 	defaultThemeMu.RLock()
-	defer defaultThemeMu.RUnlock()
-	return defaultTheme
+	t := defaultTheme
+	defaultThemeMu.RUnlock()
+	if t == nil {
+		// Before init's SetTheme-equivalent runs (a test constructing
+		// a Window in an init of its own).
+		return &ThemeDark
+	}
+	return t
 }
 
 // applyTheme installs t as the active theme: guiTheme plus every

@@ -71,24 +71,36 @@ func (w *Window) themePinned() bool {
 // Theme returns the window's active theme: the one set with SetTheme, or
 // the app default when the window has not pinned one.
 func (w *Window) Theme() Theme {
+	return *w.themeRef()
+}
+
+// themeRef is Theme without the copy. Theme is a large value (~40 style
+// structs plus ~40 text styles), so the per-event reads on the scroll
+// path must not copy it. The pointed-to value is published once and
+// never written through, so the pointer stays valid after the lock is
+// dropped. Callers must not mutate it.
+func (w *Window) themeRef() *Theme {
 	if w == nil {
-		return currentDefaultTheme()
+		return currentDefaultThemeRef()
 	}
 	w.themeMu.RLock()
 	pinned, t := w.themeSet, w.theme
 	w.themeMu.RUnlock()
-	if pinned {
+	if pinned && t != nil {
 		return t
 	}
-	return currentDefaultTheme()
+	return currentDefaultThemeRef()
 }
 
 // SetTheme pins t as this window's theme and requests a rebuild. Other
 // windows keep theirs. The install happens at the start of the next
 // frame, which the requested rebuild guarantees.
 func (w *Window) SetTheme(t Theme) {
+	// Publish a fresh value rather than writing through the pointer:
+	// a reader may still hold the previous one.
+	pinned := t
 	w.themeMu.Lock()
-	w.theme = t
+	w.theme = &pinned
 	w.themeSet = true
 	w.themeMu.Unlock()
 	// Installed eagerly for the same reason package SetTheme does it:

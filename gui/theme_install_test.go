@@ -58,6 +58,50 @@ func TestWindowThemeIsolated(t *testing.T) {
 	}
 }
 
+// TestThemeNilWindowReturnsDefault guards the nil-receiver branch of
+// themeRef: Theme() on a nil window must resolve to the app default
+// rather than dereferencing nil (issue #301 moved the branch into
+// themeRef).
+func TestThemeNilWindowReturnsDefault(t *testing.T) {
+	var w *Window
+	if got, want := w.Theme().id, currentDefaultTheme().id; got != want {
+		t.Errorf("nil-window theme id = %d, want %d (app default)",
+			got, want)
+	}
+}
+
+// TestWindowThemeScrollIsPerWindow covers the post-generation half of
+// per-window theming (issue #301): the scroll paths run after
+// generation, so before they read w.Theme() they resolved against the
+// installed frame cache — whichever window generated last. Two windows
+// with different scroll multipliers must scroll by their own.
+func TestWindowThemeScrollIsPerWindow(t *testing.T) {
+	restoreTheme(t)
+	slowCfg := themeDarkCfg
+	slowCfg.Name = "slow"
+	slowCfg.scrollMultiplier = 1
+	fastCfg := themeDarkCfg
+	fastCfg.Name = "fast"
+	fastCfg.scrollMultiplier = 4
+
+	l1, w1 := makeScrollLayout("s1", 100, 100, 100, 300)
+	l2, w2 := makeScrollLayout("s2", 100, 100, 100, 300)
+	w1.SetTheme(ThemeMaker(slowCfg))
+	w2.SetTheme(ThemeMaker(fastCfg))
+
+	// w2 pinned last, so the installed cache holds "fast": w1 must
+	// still scroll at 1x.
+	scrollVertical(l1, -10, w1)
+	scrollVertical(l2, -10, w2)
+
+	if v, _ := w1.scrollY().Get("s1"); v != -10 {
+		t.Errorf("w1 offset = %v, want -10 (multiplier 1)", v)
+	}
+	if v, _ := w2.scrollY().Get("s2"); v != -40 {
+		t.Errorf("w2 offset = %v, want -40 (multiplier 4)", v)
+	}
+}
+
 func TestWindowThemeFollowsDefault(t *testing.T) {
 	restoreTheme(t)
 	green := themeWithPanel(t, "green", RGB(0, 200, 0))

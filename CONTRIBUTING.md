@@ -63,6 +63,14 @@ go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
 
 Code must pass `golangci-lint run ./...` and `gofmt`. No variable shadowing.
 
+Theme reads follow the generation boundary. Code that runs **outside**
+generation — event handlers, post-arrange work, backends — and has a `*Window`
+in hand calls `w.Theme()`. The bare `guiTheme` / `default*Style` read is for
+widget factories and `GenerateLayout`, which have no window at hand and where
+the bare read is also what makes `gui.Themed` subtree scoping work.
+`make ergonomics-audit` (mode `theme`) gates the post-generation paths; see
+[docs/specs/per-window-theme.md](docs/specs/per-window-theme.md).
+
 ## Submitting Changes
 
 1. Fork, create a feature branch, make focused commits.

@@ -64,6 +64,21 @@ and this project adheres to
 
 ### Fixed
 
+- **Post-generation code now reads the theme of the window it is acting on
+  (issue #301).** Event handlers, post-arrange work and the backends resolved
+  the theme from the frame-scoped cache, which holds whichever window generated
+  last — correct in a one-window app, wrong with two. Thirteen such sites now
+  call `w.Theme()`: the scroll and key-scroll paths, print export, the theme
+  picker's highlight sync (visibly wrong before), toast max-visible, the select
+  dropdown scroll, the inspector wireframe, and every backend's clear color.
+  Widget factories and `GenerateLayout` are unchanged and keep the bare read,
+  which is what makes `gui.Themed` subtree scoping work. The window and app
+  theme stores now hold a pointer to an immutable value, so the per-event reads
+  do not copy a struct holding ~40 style structs (the scroll benchmark stays at
+  ~39 ns/op, 0 allocs); `w.Theme()` still returns a value and is unchanged for
+  callers. A new `make ergonomics-audit` mode (`theme`) gates the
+  post-generation paths. See `docs/specs/per-window-theme.md`.
+
 - **Theme-keyed text caches no longer serve stale layouts.** The per-window
   markdown and rich-text layout caches invalidated on `Theme.Name`; two themes
   can share a name and differ in text styles, as a derived or scoped theme does.

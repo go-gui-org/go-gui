@@ -447,8 +447,10 @@ func selectNextSelectable(options []string, start, dir int) int {
 
 func selectScrollTo(cfg *SelectCfg, scrollID string, idx int, w *Window) {
 	rowH := cfg.TextStyle.Size + 4
+	// Called from the key handler, after generation: read the window's
+	// theme rather than the frame-scoped style mirror.
 	listH := selectDropdownMaxH - 2*cfg.SizeBorder.Get(
-		defaultSelectStyle.SizeBorder)
+		w.Theme().selectStyle.SizeBorder)
 	scrollEnsureVisible(scrollID, idx, rowH, listH, w)
 }
 

@@ -195,7 +195,11 @@ type Window struct {
 	// which case the window follows the app default. Read from any
 	// goroutine (Theme()), written by SetTheme — hence its own lock
 	// rather than piggybacking on mu, which the frame pass holds.
-	theme    Theme
+	// Stored as a pointer to an immutable value: SetTheme publishes a
+	// new one rather than writing through, so a hot read (themeRef, on
+	// the scroll path) can take the pointer and skip copying a struct
+	// that holds ~40 style structs and ~40 text styles.
+	theme    *Theme
 	themeSet bool
 	themeMu  sync.RWMutex
 
