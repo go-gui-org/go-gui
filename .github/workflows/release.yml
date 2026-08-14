@@ -120,6 +120,8 @@ jobs:
           repository: go-gui-org/go-glyph
           path: go-glyph
 
+      # msys2 is kept only for the `zip` tool the Package step uses; the
+      # showcase itself builds cgo-free (purego GL bindings, #155).
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -127,8 +129,6 @@ jobs:
           release: false
           path-type: inherit
           install: >-
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-pkg-config
             zip
 
       - uses: actions/setup-go@v6
@@ -143,7 +143,7 @@ jobs:
         working-directory: go-gui
         run: |
           VERSION=$(git describe --tags --always 2>/dev/null || echo "dev")
-          CGO_ENABLED=1 GOOS=windows GOARCH=amd64 CC=gcc \
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 \
             go build -ldflags \
               "-X github.com/go-gui-org/go-gui/gui.Version=${VERSION} \
                -X github.com/go-gui-org/go-gui/gui.Commit=$(git rev-parse --short HEAD)" \

@@ -6,6 +6,23 @@
 !*/
 ### Above combination will ignore all files without extension
 
+# Build outputs belong in build/ or examples/bin/ — never the repo root.
+# The catch-all above already ignores extensionless binaries, but these
+# strays were built with a bare `go build` before -o conventions existed.
+# `make clean` removes them; do not recreate them. Add new tool/example
+# binaries here if one slips through.
+/showcase
+/fontviewer
+/listbox
+/get_started
+/command_demo
+/process_monitor
+/scroll_demo
+/depsdoc
+/exportaudit
+/ergonomics-audit
+/readme_check
+
 !Makefile
 !LICENSE
 !.githooks/pre-commit

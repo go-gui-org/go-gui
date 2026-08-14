@@ -3,18 +3,20 @@ COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 LDFLAGS  = -X github.com/go-gui-org/go-gui/gui.Version=$(VERSION) \
            -X github.com/go-gui-org/go-gui/gui.Commit=$(COMMIT)
 
-CC_WINDOWS ?= x86_64-w64-mingw32-gcc
 LINT_VERSION = v2.12.2
 
 .PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test test-race vet lint check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergonomics-audit ergonomics-audit-fix ergonomics-audit-fix-dry
 
+# Desktop builds are cgo-free since the purego GL bindings (#155): the
+# backend/gl uses X11/xgb + purego EGL on Linux and Win32 syscalls on
+# Windows. Only macOS (Metal) and the mobile backends need cgo.
 build-linux:
-	CGO_ENABLED=1 \
+	CGO_ENABLED=0 \
 	go build -ldflags "$(LDFLAGS)" \
 	  -o build/showcase-linux ./examples/showcase/
 
 build-windows:
-	CGO_ENABLED=1 GOOS=windows GOARCH=amd64 CC=$(CC_WINDOWS) \
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 \
 	go build -ldflags "$(LDFLAGS)" \
 	  -o build/showcase-windows.exe ./examples/showcase/
 
@@ -87,8 +89,16 @@ bench-gate:
 	  -bench='Benchmark(Layout|GenerateViewLayout|ViewFrame|ParseSvg|Tessellate|BuildDefsPathDataCache|RenderLayout|RenderSvg)' \
 	  -benchmem -count=5 -run='^$$' -timeout=15m ./gui/...
 
+# Remove all build artifacts: the two artifact directories plus the stray
+# root-level binaries produced by bare `go build ./examples/<name>/` or
+# `go build ./tools/<name>/` before -o conventions were documented. New
+# binaries belong in build/ or examples/bin/, never the repo root.
 clean:
 	rm -rf build/
+	rm -rf examples/bin/
+	rm -f showcase fontviewer listbox get_started command_demo \
+	  process_monitor scroll_demo depsdoc exportaudit \
+	  ergonomics-audit readme_check
 
 # Run all tests with explicit timeout.
 # The gl backend must run cgo-free on Linux with a display: cgo + the
