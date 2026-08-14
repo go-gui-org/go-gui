@@ -68,8 +68,6 @@ func CommandPalette(cfg CommandPaletteCfg) View {
 	return &commandPaletteView{cfg: cfg}
 }
 
-func (cp *commandPaletteView) Content() []View { return nil }
-
 func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 	cfg := &cp.cfg
 	dn := &defaultCommandPaletteStyle

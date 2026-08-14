@@ -28,11 +28,6 @@ func Themed(t Theme, build func(w *Window) View) View {
 	return themedView{theme: t, build: build}
 }
 
-// Content satisfies View. Themed generates its own subtree so it can
-// restore the enclosing theme afterwards, which a Content slice walked
-// by the parent recursion would give it no hook to do.
-func (v themedView) Content() []View { return nil }
-
 // GenerateLayout installs the scoped theme, builds and generates the
 // subtree under it, then restores the theme it displaced.
 func (v themedView) GenerateLayout(w *Window) Layout {

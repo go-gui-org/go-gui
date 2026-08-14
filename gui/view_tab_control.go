@@ -69,8 +69,6 @@ type tabControlView struct {
 	cfg TabControlCfg
 }
 
-func (tv *tabControlView) Content() []View { return nil }
-
 func applyTabControlDefaults(cfg *TabControlCfg) {
 	s := &defaultTabControlStyle
 	cfg.Sizing = cfg.Sizing.Or(FillFill)

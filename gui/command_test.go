@@ -524,11 +524,6 @@ func TestCommandButtonViewFuncType(t *testing.T) {
 	if _, ok := v.(viewFunc); !ok {
 		t.Error("CommandButton should return ViewFunc")
 	}
-
-	// Content() should return nil (ViewFunc never has eager content).
-	if c := v.Content(); c != nil {
-		t.Error("ViewFunc Content() should return nil")
-	}
 }
 
 func TestCommandDispatchNoMatch(t *testing.T) {

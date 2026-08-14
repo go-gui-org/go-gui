@@ -141,18 +141,20 @@ type stubView struct {
 	children []View
 }
 
-func (sv *stubView) Content() []View { return sv.children }
-func (sv *stubView) GenerateLayout(_ *Window) Layout {
-	return Layout{Shape: &Shape{ID: sv.id}}
+func (sv *stubView) GenerateLayout(w *Window) Layout {
+	layout := Layout{Shape: &Shape{ID: sv.id}}
+	appendChildViews(w, &layout, sv.children)
+	return layout
 }
 
 type nilShapeStubView struct {
 	children []View
 }
 
-func (v *nilShapeStubView) Content() []View { return v.children }
-func (v *nilShapeStubView) GenerateLayout(_ *Window) Layout {
-	return Layout{}
+func (v *nilShapeStubView) GenerateLayout(w *Window) Layout {
+	layout := Layout{}
+	appendChildViews(w, &layout, v.children)
+	return layout
 }
 
 func TestGenerateViewLayoutFlat(t *testing.T) {
@@ -268,15 +270,6 @@ func TestGenerateViewLayoutNormalizesNilShape(t *testing.T) {
 }
 
 // --- ViewFunc tests ---
-
-func TestViewFuncContentReturnsNil(t *testing.T) {
-	f := viewFunc(func(w *Window) View {
-		return &stubView{id: "inner"}
-	})
-	if content := f.Content(); content != nil {
-		t.Errorf("Content(): got %v, want nil", content)
-	}
-}
 
 func TestViewFuncGenerateLayout(t *testing.T) {
 	f := viewFunc(func(w *Window) View {
@@ -1138,17 +1131,52 @@ func TestCursorHelpers(t *testing.T) {
 }
 
 func TestGenerateViewLayout_ExcessiveChildren(t *testing.T) {
-	// maxEventChildren caps direct children at 10000.
+	// maxEventChildren caps direct children at 10000. The framework no
+	// longer walks a raw Content() — the cap lives in appendChildViews,
+	// so it is exercised through a container.
 	n := maxEventChildren + 100
 	children := make([]View, n)
 	for i := range children {
 		children[i] = &stubView{id: "child"}
 	}
-	v := &stubView{id: "parent", children: children}
+	v := Column(ContainerCfg{ID: "parent", Content: children})
 	layout := generateViewLayout(v, &Window{})
 
 	if len(layout.Children) != maxEventChildren {
 		t.Errorf("children: got %d, want capped to %d",
 			len(layout.Children), maxEventChildren)
+	}
+}
+
+// TestGroupBoxTitleChildrenOrder pins the group-box injection order:
+// addGroupBoxTitle's floating eraser + title label must stay ahead of
+// the Content children, which append after them. A container with both
+// Title and Content is the one layout where this ordering is visible.
+func TestGroupBoxTitleChildrenOrder(t *testing.T) {
+	v := Column(ContainerCfg{
+		ID:          "gb",
+		Title:       "Group",
+		TitleBG:     RGB(30, 30, 30),
+		ColorBorder: RGB(100, 100, 100),
+		Content: []View{
+			Text(TextCfg{Text: "child"}),
+		},
+	})
+	layout := generateViewLayout(v, &Window{})
+	if len(layout.Children) != 3 {
+		t.Fatalf("children = %d, want 3 (eraser, label, content)",
+			len(layout.Children))
+	}
+	eraser := layout.Children[0].Shape
+	if eraser.shapeType != shapeRectangle || !eraser.Float {
+		t.Errorf("children[0] = %+v, want floating eraser rectangle", eraser)
+	}
+	label := layout.Children[1].Shape
+	if label.shapeType != shapeText || !label.Float {
+		t.Errorf("children[1] = %+v, want floating title label", label)
+	}
+	content := layout.Children[2].Shape
+	if content.shapeType != shapeText || content.Float {
+		t.Errorf("children[2] = %+v, want non-floating content text", content)
 	}
 }

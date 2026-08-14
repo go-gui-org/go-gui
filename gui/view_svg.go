@@ -58,8 +58,6 @@ func Svg(cfg SvgCfg) View {
 	return &svgView{cfg: cfg}
 }
 
-func (sv *svgView) Content() []View { return nil }
-
 func (sv *svgView) GenerateLayout(w *Window) Layout {
 	c := &sv.cfg
 	svgSrc := c.fileName

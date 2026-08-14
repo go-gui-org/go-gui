@@ -15,9 +15,9 @@ func TestRadioButtonGroupColumnBasic(t *testing.T) {
 		},
 		OnSelect: func(_ string, ctx EventCtx) {},
 	})
-	kids := v.Content()
-	if len(kids) != 3 {
-		t.Fatalf("children = %d, want 3", len(kids))
+	layout := generateViewLayout(v, newTestWindow())
+	if len(layout.Children) != 3 {
+		t.Fatalf("children = %d, want 3", len(layout.Children))
 	}
 }
 
@@ -31,9 +31,9 @@ func TestRadioButtonGroupRowBasic(t *testing.T) {
 		},
 		OnSelect: func(_ string, ctx EventCtx) {},
 	})
-	kids := v.Content()
-	if len(kids) != 2 {
-		t.Fatalf("children = %d, want 2", len(kids))
+	layout := generateViewLayout(v, newTestWindow())
+	if len(layout.Children) != 2 {
+		t.Fatalf("children = %d, want 2", len(layout.Children))
 	}
 }
 
@@ -49,20 +49,19 @@ func TestRadioButtonGroupFocusIDs(t *testing.T) {
 		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	w := newTestWindow()
-	kids := v.Content()
-	if len(kids) != 3 {
-		t.Fatalf("children = %d, want 3", len(kids))
+	layout := generateViewLayout(v, w)
+	if len(layout.Children) != 3 {
+		t.Fatalf("children = %d, want 3", len(layout.Children))
 	}
 	// Each radio gets a per-index focus ID derived from the group ID.
-	for i, child := range kids {
-		layout := child.GenerateLayout(w)
+	for i, child := range layout.Children {
 		expected := ScopeIDN("rbg", "opt", i)
-		if !layout.Shape.Focusable {
+		if !child.Shape.Focusable {
 			t.Errorf("child[%d] not focusable", i)
 		}
-		if layout.Shape.ID != expected {
+		if child.Shape.ID != expected {
 			t.Errorf("child[%d] ID = %q, want %q",
-				i, layout.Shape.ID, expected)
+				i, child.Shape.ID, expected)
 		}
 	}
 }
@@ -72,7 +71,8 @@ func TestRadioButtonGroupEmpty(t *testing.T) {
 		ID:       "radio_button_group_test_test_radio_button_group_empty",
 		OnSelect: func(_ string, ctx EventCtx) {},
 	})
-	if len(v.Content()) != 0 {
+	layout := generateViewLayout(v, newTestWindow())
+	if len(layout.Children) != 0 {
 		t.Error("empty options should produce no children")
 	}
 }
@@ -91,11 +91,11 @@ func TestRadioButtonGroupOnSelect(t *testing.T) {
 		},
 	})
 	w := newTestWindow()
-	kids := v.Content()
+	layout := generateViewLayout(v, w)
 	// Click second radio.
-	layout := kids[1].GenerateLayout(w)
-	if layout.Shape.hasEvents() && layout.Shape.events.OnClick != nil {
-		layout.Shape.events.OnClick(EventCtx{&layout, &Event{}, w})
+	second := &layout.Children[1]
+	if second.Shape.hasEvents() && second.Shape.events.OnClick != nil {
+		second.Shape.events.OnClick(EventCtx{second, &Event{}, w})
 	}
 	if selected != "b" {
 		t.Errorf("selected = %q, want b", selected)
@@ -114,14 +114,13 @@ func TestRadioButtonGroupDisabledPropagation(t *testing.T) {
 		},
 		OnSelect: func(_ string, ctx EventCtx) {},
 	})
-	kids := v.Content()
-	for i, child := range kids {
-		layout := generateViewLayout(child, w)
+	layout := generateViewLayout(v, w)
+	for i, child := range layout.Children {
 		// Circle child should be disabled.
-		if len(layout.Children) == 0 {
+		if len(child.Children) == 0 {
 			t.Fatalf("child[%d] has no children", i)
 		}
-		if !layout.Children[0].Shape.Disabled {
+		if !child.Children[0].Shape.Disabled {
 			t.Errorf("child[%d] circle not disabled", i)
 		}
 	}
@@ -134,9 +133,9 @@ func TestRadioButtonGroupItems(t *testing.T) {
 		Items:    []string{"go", "rust", "zig"},
 		OnSelect: func(_ string, ctx EventCtx) {},
 	})
-	kids := v.Content()
-	if len(kids) != 3 {
-		t.Fatalf("children = %d, want 3", len(kids))
+	layout := generateViewLayout(v, newTestWindow())
+	if len(layout.Children) != 3 {
+		t.Fatalf("children = %d, want 3", len(layout.Children))
 	}
 }
 
@@ -151,9 +150,9 @@ func TestRadioButtonGroupItemsPrecedence(t *testing.T) {
 		},
 		OnSelect: func(_ string, ctx EventCtx) {},
 	})
-	kids := v.Content()
-	if len(kids) != 2 {
-		t.Fatalf("children = %d, want 2", len(kids))
+	layout := generateViewLayout(v, newTestWindow())
+	if len(layout.Children) != 2 {
+		t.Fatalf("children = %d, want 2", len(layout.Children))
 	}
 }
 
@@ -168,10 +167,10 @@ func TestRadioButtonGroupItemsOnSelect(t *testing.T) {
 		},
 	})
 	w := newTestWindow()
-	kids := v.Content()
-	layout := kids[1].GenerateLayout(w)
-	if layout.Shape.hasEvents() && layout.Shape.events.OnClick != nil {
-		layout.Shape.events.OnClick(EventCtx{&layout, &Event{}, w})
+	layout := generateViewLayout(v, w)
+	second := &layout.Children[1]
+	if second.Shape.hasEvents() && second.Shape.events.OnClick != nil {
+		second.Shape.events.OnClick(EventCtx{second, &Event{}, w})
 	}
 	if selected != "b" {
 		t.Errorf("selected = %q, want b", selected)
@@ -185,9 +184,9 @@ func TestRadioButtonGroupRowItems(t *testing.T) {
 		Items:    []string{"go", "rust", "zig"},
 		OnSelect: func(_ string, ctx EventCtx) {},
 	})
-	kids := v.Content()
-	if len(kids) != 3 {
-		t.Fatalf("children = %d, want 3", len(kids))
+	layout := generateViewLayout(v, newTestWindow())
+	if len(layout.Children) != 3 {
+		t.Fatalf("children = %d, want 3", len(layout.Children))
 	}
 }
 

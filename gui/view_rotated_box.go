@@ -17,25 +17,20 @@ func RotatedBox(cfg RotatedBoxCfg) View {
 		return &rotatedBoxView{turns: 0}
 	}
 	return &rotatedBoxView{
-		turns:   uint8(turns),
-		content: cfg.Content,
+		turns:        uint8(turns),
+		contentSlice: []View{cfg.Content},
 	}
 }
 
 type rotatedBoxView struct {
-	content View
-	turns   uint8
-}
-
-func (v *rotatedBoxView) Content() []View {
-	if v.content == nil {
-		return nil
-	}
-	return []View{v.content}
+	// contentSlice is built once in the factory so GenerateLayout does
+	// not allocate a one-element slice per node per frame.
+	contentSlice []View
+	turns        uint8
 }
 
 func (v *rotatedBoxView) GenerateLayout(w *Window) Layout {
-	return Layout{
+	layout := Layout{
 		Shape: w.allocShape(Shape{
 			shapeType:    shapeRectangle,
 			Axis:         axisTopToBottom,
@@ -45,4 +40,6 @@ func (v *rotatedBoxView) GenerateLayout(w *Window) Layout {
 			Opacity:      1.0,
 		}),
 	}
+	appendChildViews(w, &layout, v.contentSlice)
+	return layout
 }

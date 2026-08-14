@@ -794,3 +794,119 @@ func TestFormFieldErrorsAliasesRuntimeSlice(t *testing.T) {
 			retained[0].Msg, "second")
 	}
 }
+
+// --- Form child ID scoping ---
+//
+// Form children generate under the form's *enclosing* scope, not under
+// "form:<id>". The form's inner container carries an absolute ID
+// ("form:myform", formLayoutID), so a scope push there would resolve
+// children as form:myform:email and change every SetFocus/FindByID
+// caller that uses the flat name. The tests below pin the flat behavior
+// (see docs/specs/view-single-method.md, issue #306).
+
+// TestFormChildrenStayFlat documents that w.EffID resolves a form
+// child's leaf against the enclosing scope (empty here), never against
+// "form:<id>". The generation-time scope is the seam the form's child
+// append path controls.
+func TestFormChildrenStayFlat(t *testing.T) {
+	w := newTestWindow()
+	formID := "flat-form"
+	captured := ""
+	v := Form(FormCfg{
+		ID: formID,
+		Content: []View{
+			viewFunc(func(w *Window) View {
+				captured = w.EffID("email")
+				return Input(InputCfg{ID: "email"})
+			}),
+		},
+	})
+	layout := generateViewLayout(v, w)
+	if layout.Shape.ID != formLayoutID(formID) {
+		t.Fatalf("form root ID = %q, want %q",
+			layout.Shape.ID, formLayoutID(formID))
+	}
+	if captured != "email" {
+		t.Errorf("w.EffID(\"email\") inside form = %q, want %q",
+			captured, "email")
+	}
+	if len(layout.Children) != 1 {
+		t.Fatalf("form children = %d, want 1", len(layout.Children))
+	}
+}
+
+// TestFormChildrenFlatInsideIDPanel pins the same flatness when the
+// form sits inside an ID-bearing panel: "flat" means the form's
+// enclosing scope — the panel's, here — not window-global, because
+// formLayoutID is absolute.
+func TestFormChildrenFlatInsideIDPanel(t *testing.T) {
+	w := newTestWindow()
+	captured := ""
+	form := Form(FormCfg{
+		ID: "nested-form",
+		Content: []View{
+			viewFunc(func(w *Window) View {
+				captured = w.EffID("email")
+				return Input(InputCfg{ID: "email"})
+			}),
+		},
+	})
+	v := Column(ContainerCfg{
+		ID:      "panel",
+		Content: []View{form},
+	})
+	generateViewLayout(v, w)
+	if captured != "panel:email" {
+		t.Errorf("w.EffID(\"email\") inside panel-nested form = %q, want %q",
+			captured, "panel:email")
+	}
+}
+
+// TestFormFieldStateUnaffectedByScoping documents that the form field
+// registry keys on FormFieldAdapterCfg.FieldID — a namespace that never
+// passes through ID resolution — so no amount of child scoping can
+// break field lookup. Registered fields resolve by plain FieldID.
+func TestFormFieldStateUnaffectedByScoping(t *testing.T) {
+	w := newTestWindow()
+	formID := "field-scope-form"
+	FormRegisterFieldByID(w, formID, FormFieldAdapterCfg{
+		FieldID: "username",
+		Value:   "alice",
+	})
+	v := Form(FormCfg{
+		ID: formID,
+		Content: []View{
+			Input(InputCfg{ID: "showcase-form-username"}),
+		},
+	})
+	generateViewLayout(v, w)
+	fs, ok := w.FormFieldState(formID, "username")
+	if !ok {
+		t.Fatal("FormFieldState should resolve by plain FieldID")
+	}
+	if fs.Value != "alice" {
+		t.Errorf("value = %q, want alice", fs.Value)
+	}
+}
+
+// TestFormChildrenShareEventCap pins that the form's child append path
+// applies the same maxEventChildren cap every container gets. Before
+// this refactor the form appended children without the cap; the
+// dispatch gate (hasTooManyChildren) refuses >maxEventChildren anyway,
+// so the cap here only bounds generation work.
+func TestFormChildrenShareEventCap(t *testing.T) {
+	w := newTestWindow()
+	n := maxEventChildren + 100
+	children := make([]View, n)
+	for i := range children {
+		children[i] = &stubView{id: "child"}
+	}
+	layout := generateViewLayout(Form(FormCfg{
+		ID:      "cap-form",
+		Content: children,
+	}), w)
+	if len(layout.Children) != maxEventChildren {
+		t.Errorf("form children = %d, want %d",
+			len(layout.Children), maxEventChildren)
+	}
+}

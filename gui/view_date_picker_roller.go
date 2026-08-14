@@ -55,8 +55,6 @@ func DatePickerRoller(cfg DatePickerRollerCfg) View {
 	return &datePickerRollerView{cfg: cfg}
 }
 
-func (rv *datePickerRollerView) Content() []View { return nil }
-
 func (rv *datePickerRollerView) GenerateLayout(w *Window) Layout {
 	cfg := &rv.cfg
 	sel := cfg.SelectedDate

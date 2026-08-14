@@ -101,8 +101,6 @@ func DatePicker(cfg DatePickerCfg) View {
 	return &datePickerView{cfg: cfg}
 }
 
-func (dv *datePickerView) Content() []View { return nil }
-
 func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 	cfg := &dv.cfg
 

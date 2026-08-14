@@ -24,8 +24,6 @@ type themePickerView struct {
 	cfg ThemePickerCfg
 }
 
-func (tv *themePickerView) Content() []View { return nil }
-
 func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 	cfg := &tv.cfg
 	// Everything this widget keys on hangs off its effective ID, so a

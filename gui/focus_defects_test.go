@@ -22,7 +22,7 @@ import (
 //
 // Uses generateViewLayout, not v.GenerateLayout: the latter builds one
 // node, and every button under test is a descendant reached through
-// Content().
+// the container's child walk (appendChildViews).
 func assertNoFocusDefects(t *testing.T, w *Window, v View) Layout {
 	t.Helper()
 	buf := captureDebug(t)

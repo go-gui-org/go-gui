@@ -189,8 +189,6 @@ func Form(cfg FormCfg) View {
 	return &formView{cfg: cfg, content: content}
 }
 
-func (fv *formView) Content() []View { return fv.content }
-
 func (fv *formView) GenerateLayout(w *Window) Layout {
 	cfg := fv.cfg
 	formID := cfg.ID
@@ -243,18 +241,16 @@ func (fv *formView) GenerateLayout(w *Window) Layout {
 		},
 	})
 
-	layout := inner.GenerateLayout(w)
-	// Clear content so outer generateViewLayout does not
-	// double-process children.
-	fv.content = fv.content[:0]
-	for _, child := range children {
-		if child != nil {
-			layout.Children = append(
-				layout.Children,
-				generateViewLayout(child, w),
-			)
-		}
-	}
+	// generateViewLayout rather than inner.GenerateLayout(w): the node
+	// belongs on the one generation path (ensureLayoutShape runs). inner
+	// carries no Content, so its own appendChildViews call is a no-op
+	// and no scope is pushed for it.
+	layout := generateViewLayout(inner, w)
+	// Form children append flat — they resolve in the form's enclosing
+	// scope, never under "form:<id>" (appendChildViewsFlat). The field
+	// registry is unaffected either way: FieldID never passes through ID
+	// resolution. See issue #306.
+	appendChildViewsFlat(w, &layout, children)
 	return layout
 }
 

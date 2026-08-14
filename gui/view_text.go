@@ -63,8 +63,6 @@ var textEventHandlers = &eventHandlers{
 	AmendLayout: textAmendLayout,
 }
 
-func (tv *textView) Content() []View { return nil }
-
 func (tv *textView) GenerateLayout(w *Window) Layout {
 	c := &tv.cfg
 	ts := &c.TextStyle

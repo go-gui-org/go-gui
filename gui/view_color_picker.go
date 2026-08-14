@@ -43,8 +43,6 @@ func ColorPicker(cfg ColorPickerCfg) View {
 	return &colorPickerView{cfg: cfg}
 }
 
-func (cv *colorPickerView) Content() []View { return nil }
-
 func (cv *colorPickerView) GenerateLayout(w *Window) Layout {
 	cfg := &cv.cfg
 

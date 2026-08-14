@@ -12,13 +12,6 @@ func TestSvgFactory(t *testing.T) {
 	}
 }
 
-func TestSvgContent(t *testing.T) {
-	v := Svg(SvgCfg{ID: "svg1"})
-	if v.Content() != nil {
-		t.Fatal("expected nil Content")
-	}
-}
-
 func TestSvgGenerateLayoutErrorFallback(t *testing.T) {
 	w := &Window{}
 	v := Svg(SvgCfg{

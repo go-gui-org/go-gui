@@ -77,9 +77,15 @@
 //
 // The [Layout] tree is the central data structure. Each frame:
 //
-//  1. [View] functions return a Layout tree via [GenerateViewLayout]
+//  1. The active view function returns a [View]; [GenerateViewLayout]
+//     generates its [Layout] tree
 //  2. The layout engine sizes and positions nodes ([layoutArrange])
 //  3. The renderer walks the tree to produce []RenderCmd ([renderLayout])
+//
+// A View generates its children itself, through appendChildViews, so a
+// View tree cannot be walked without generating it — and generating it
+// discards View identity: Layout.Children carries [Shape], not View.
+// Record the Views you need to find by type at construction time.
 //
 // Layouts use pointer parents and value children — no reference
 // cycles. [Shape] holds visual state (position, size, color, events).
