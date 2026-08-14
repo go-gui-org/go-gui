@@ -72,6 +72,23 @@ func appendChildViews(w *Window, parent *Layout, children []View) {
 	appendChildViewsScoped(w, parent, children, true)
 }
 
+// appendChildViewsFlat appends children WITHOUT pushing the parent's ID
+// scope, so they resolve in the parent's enclosing scope.
+//
+// Exactly one caller: Form, and only to preserve today's observable
+// effective IDs. Form's own field registry is NOT affected either way —
+// FormFieldAdapterCfg.FieldID never passes through ID resolution. What
+// scoping would change is the effective ID of every widget the caller
+// put inside the form, and therefore SetFocus/FindByID against it.
+//
+// Form is therefore the one container whose children do not take its
+// scope. That is deliberate here only in the sense that this refactor
+// preserves it; whether it should hold at all is issue #306. This helper
+// is the single place that decision would change.
+func appendChildViewsFlat(w *Window, parent *Layout, children []View) {
+	appendChildViewsScoped(w, parent, children, false)
+}
+
 func appendChildViewsScoped(
 	w *Window, parent *Layout, children []View, scope bool,
 ) {
