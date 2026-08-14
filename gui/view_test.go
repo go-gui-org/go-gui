@@ -141,18 +141,20 @@ type stubView struct {
 	children []View
 }
 
-func (sv *stubView) Content() []View { return sv.children }
-func (sv *stubView) GenerateLayout(_ *Window) Layout {
-	return Layout{Shape: &Shape{ID: sv.id}}
+func (sv *stubView) GenerateLayout(w *Window) Layout {
+	layout := Layout{Shape: &Shape{ID: sv.id}}
+	appendChildViews(w, &layout, sv.children)
+	return layout
 }
 
 type nilShapeStubView struct {
 	children []View
 }
 
-func (v *nilShapeStubView) Content() []View { return v.children }
-func (v *nilShapeStubView) GenerateLayout(_ *Window) Layout {
-	return Layout{}
+func (v *nilShapeStubView) GenerateLayout(w *Window) Layout {
+	layout := Layout{}
+	appendChildViews(w, &layout, v.children)
+	return layout
 }
 
 func TestGenerateViewLayoutFlat(t *testing.T) {
@@ -268,15 +270,6 @@ func TestGenerateViewLayoutNormalizesNilShape(t *testing.T) {
 }
 
 // --- ViewFunc tests ---
-
-func TestViewFuncContentReturnsNil(t *testing.T) {
-	f := viewFunc(func(w *Window) View {
-		return &stubView{id: "inner"}
-	})
-	if content := f.Content(); content != nil {
-		t.Errorf("Content(): got %v, want nil", content)
-	}
-}
 
 func TestViewFuncGenerateLayout(t *testing.T) {
 	f := viewFunc(func(w *Window) View {
@@ -1138,13 +1131,15 @@ func TestCursorHelpers(t *testing.T) {
 }
 
 func TestGenerateViewLayout_ExcessiveChildren(t *testing.T) {
-	// maxEventChildren caps direct children at 10000.
+	// maxEventChildren caps direct children at 10000. The framework no
+	// longer walks a raw Content() — the cap lives in appendChildViews,
+	// so it is exercised through a container.
 	n := maxEventChildren + 100
 	children := make([]View, n)
 	for i := range children {
 		children[i] = &stubView{id: "child"}
 	}
-	v := &stubView{id: "parent", children: children}
+	v := Column(ContainerCfg{ID: "parent", Content: children})
 	layout := generateViewLayout(v, &Window{})
 
 	if len(layout.Children) != maxEventChildren {

@@ -46,8 +46,6 @@ func Image(cfg ImageCfg) View {
 	return &imageView{cfg: cfg}
 }
 
-func (iv *imageView) Content() []View { return nil }
-
 func (iv *imageView) GenerateLayout(w *Window) Layout {
 	c := &iv.cfg
 	imagePath := c.Src

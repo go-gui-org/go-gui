@@ -23,13 +23,6 @@ func TestImageInvisible(t *testing.T) {
 	}
 }
 
-func TestImageContent(t *testing.T) {
-	v := Image(ImageCfg{ID: "img1", Src: "test.png"})
-	if v.Content() != nil {
-		t.Fatal("expected nil Content")
-	}
-}
-
 func TestImageGenerateLayoutLocalMissing(t *testing.T) {
 	w := &Window{}
 	v := Image(ImageCfg{

@@ -189,8 +189,6 @@ func Form(cfg FormCfg) View {
 	return &formView{cfg: cfg, content: content}
 }
 
-func (fv *formView) Content() []View { return fv.content }
-
 func (fv *formView) GenerateLayout(w *Window) Layout {
 	cfg := fv.cfg
 	formID := cfg.ID

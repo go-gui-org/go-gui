@@ -60,8 +60,6 @@ func Select(cfg SelectCfg) View {
 	return &selectView{cfg: cfg}
 }
 
-func (sv *selectView) Content() []View { return nil }
-
 func (sv *selectView) GenerateLayout(w *Window) Layout {
 	cfg := &sv.cfg
 	dn := &defaultSelectStyle

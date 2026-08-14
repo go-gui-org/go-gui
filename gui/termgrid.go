@@ -126,8 +126,6 @@ func TermGrid(cfg TermGridCfg) View {
 	return &termGridView{cfg: cfg}
 }
 
-func (tv *termGridView) Content() []View { return nil }
-
 func (tv *termGridView) GenerateLayout(w *Window) Layout {
 	c := &tv.cfg
 

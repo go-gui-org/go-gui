@@ -1,9 +1,9 @@
 package gui
 
 // Layout is a node in the UI tree. Each frame, the active [View] function
-// returns a Layout tree via [GenerateViewLayout]. The layout engine then
-// sizes and positions nodes ([layoutArrange]), and the renderer walks the
-// tree to produce a flat []RenderCmd ([renderLayout]).
+// returns a [View] whose GenerateLayout produces its Layout tree; the
+// layout engine then sizes and positions nodes ([layoutArrange]), and the
+// renderer walks the tree to produce a flat []RenderCmd ([renderLayout]).
 //
 // Parents are pointers; children are values. This avoids reference cycles
 // while allowing upward traversal during event dispatch and layout queries.
@@ -14,8 +14,8 @@ package gui
 //
 // Users construct Layouts indirectly via widget factory functions
 // ([Button], [Text], [Column], etc.), which return [View] interfaces.
-// The Layout type itself is the concrete View implementation — every
-// widget factory ultimately produces a Layout tree.
+// Widget factories build the Layout tree for their subtree at
+// generation time.
 type Layout struct {
 	// Shape holds the visual state for this node: position, size, color,
 	// event handlers, text, and effects. Set by widget factories;

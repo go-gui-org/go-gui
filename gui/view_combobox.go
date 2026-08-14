@@ -71,8 +71,6 @@ func Combobox(cfg ComboboxCfg) View {
 	return &comboboxView{cfg: cfg}
 }
 
-func (cv *comboboxView) Content() []View { return nil }
-
 func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 	cfg := &cv.cfg
 	dn := &defaultComboboxStyle

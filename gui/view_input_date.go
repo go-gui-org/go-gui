@@ -59,8 +59,6 @@ type inputDateView struct {
 	cfg InputDateCfg
 }
 
-func (idv *inputDateView) Content() []View { return nil }
-
 // InputDate creates a date input field with a dropdown calendar.
 func InputDate(cfg InputDateCfg) View {
 	applyInputDateDefaults(&cfg)

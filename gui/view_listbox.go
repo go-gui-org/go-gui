@@ -171,8 +171,6 @@ func listBoxCanVirtualize(cfg *ListBoxCfg) bool {
 	return cfg != nil && cfg.Scrollable
 }
 
-func (lv *listBoxView) Content() []View { return nil }
-
 func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 	cfg := &lv.cfg
 

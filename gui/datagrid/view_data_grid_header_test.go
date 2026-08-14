@@ -262,8 +262,10 @@ func TestOrderButtonIDIsPerGridAndColumn(t *testing.T) {
 	a := dataGridOrderButton("gridA:reorder_left:col1", "◀", style, hover, cb)
 	b := dataGridOrderButton("gridB:reorder_left:col1", "◀", style, hover, cb)
 
-	idA := a.GenerateLayout(nil).Shape.ID
-	idB := b.GenerateLayout(nil).Shape.ID
+	// GenerateLayout needs a usable window: a container now generates
+	// its children itself, and the Text children read window state.
+	idA := a.GenerateLayout(&gg.Window{}).Shape.ID
+	idB := b.GenerateLayout(&gg.Window{}).Shape.ID
 	if idA == "" || idB == "" {
 		t.Fatalf("header control has no ID: %q, %q", idA, idB)
 	}

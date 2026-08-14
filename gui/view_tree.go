@@ -159,8 +159,6 @@ func Tree(cfg TreeCfg) View {
 	return &treeView{cfg: cfg}
 }
 
-func (tv *treeView) Content() []View { return nil }
-
 func (tv *treeView) GenerateLayout(w *Window) Layout {
 	cfg := &tv.cfg
 

@@ -77,8 +77,6 @@ type rtfView struct {
 	sizing Sizing
 }
 
-func (v *rtfView) Content() []View { return nil }
-
 // rtfSuppressInlineObjectGlyphs prevents object placeholder glyphs from
 // painting when a later render pass draws the actual inline object.
 func rtfSuppressInlineObjectGlyphs(layout *glyph.Layout) {

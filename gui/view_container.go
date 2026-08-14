@@ -178,8 +178,6 @@ type containerView struct {
 	colorBorderFocus Color
 }
 
-func (cv *containerView) Content() []View { return cv.content }
-
 func (cv *containerView) GenerateLayout(w *Window) Layout {
 	layout := Layout{
 		Shape: w.allocShape(buildContainerShape(&cv.cfg, w)),
@@ -203,6 +201,9 @@ func (cv *containerView) GenerateLayout(w *Window) Layout {
 	}
 	addGroupBoxTitle(cv.cfg.Title, cv.cfg.TitleBG, cv.cfg.ColorBorder,
 		cv.cfg.Disabled, w, &layout)
+	// Content children append after the group-box eraser + label, which
+	// addGroupBoxTitle injected above; see appendChildViews ordering.
+	appendChildViews(w, &layout, cv.content)
 	return layout
 }
 

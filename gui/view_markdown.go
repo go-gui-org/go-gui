@@ -275,8 +275,6 @@ type markdownView struct {
 	cfg MarkdownCfg
 }
 
-func (mv *markdownView) Content() []View { return nil }
-
 func (mv *markdownView) GenerateLayout(w *Window) Layout {
 	cfg := &mv.cfg
 	// The document's identity is the effective ID: the container claims

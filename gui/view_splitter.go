@@ -283,8 +283,6 @@ func Splitter(cfg SplitterCfg) View {
 	return &splitterView{cfg: cfg, core: newSplitterCore(&cfg)}
 }
 
-func (sv *splitterView) Content() []View { return nil }
-
 func (sv *splitterView) GenerateLayout(w *Window) Layout {
 	cfg := &sv.cfg
 	core := sv.core
