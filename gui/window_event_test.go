@@ -381,3 +381,185 @@ func TestKeyUpEventFlow_WindowToInput(t *testing.T) {
 		t.Error("Event should be marked as handled by input widget")
 	}
 }
+
+// --- IME composition and file-drop routing ---
+
+func TestEventFnRoutesIMEComposition(t *testing.T) {
+	w := newEventTestWindow()
+	w.layout = Layout{Shape: &Shape{}}
+
+	e := &Event{
+		Type:      EventIMEComposition,
+		IMEText:   "かん",
+		IMEStart:  0,
+		IMELength: 1,
+	}
+	w.EventFn(e)
+
+	if !w.IMEComposing() {
+		t.Fatal("IME composition state should be set")
+	}
+	if w.IMECompText() != "かん" {
+		t.Fatalf("IMECompText = %q, want かん", w.IMECompText())
+	}
+	if !e.IsHandled {
+		t.Error("IME composition event should be marked handled")
+	}
+}
+
+func TestEventFnIMECompositionEmptyClears(t *testing.T) {
+	w := newEventTestWindow()
+	w.layout = Layout{Shape: &Shape{}}
+	w.imeUpdate(&Event{Type: EventIMEComposition, IMEText: "字"})
+	if !w.IMEComposing() {
+		t.Fatal("precondition: composing")
+	}
+
+	// An empty preedit commits/clears the composition.
+	w.EventFn(&Event{Type: EventIMEComposition, IMEText: ""})
+	if w.IMEComposing() {
+		t.Fatal("empty composition event should clear the preedit")
+	}
+}
+
+func TestHandleIMECompositionEventDirect(t *testing.T) {
+	// The window-level wrapper updates IME state and marks the event
+	// handled, matching imeCompositionHandler.
+	w := newEventTestWindow()
+	e := &Event{
+		Type:      EventIMEComposition,
+		IMEText:   "abc",
+		IMEStart:  1,
+		IMELength: 2,
+	}
+	w.handleIMECompositionEvent(&Layout{Shape: &Shape{}}, e)
+	if w.IMECompText() != "abc" {
+		t.Fatalf("IMECompText = %q, want abc", w.IMECompText())
+	}
+	if w.IMECompCursor() != 1 || w.IMECompSelLen() != 2 {
+		t.Fatalf("clause = %d/%d, want 1/2",
+			w.IMECompCursor(), w.IMECompSelLen())
+	}
+	if !e.IsHandled {
+		t.Error("wrapper must mark the event handled")
+	}
+}
+
+func TestEventFnRoutesFileDropped(t *testing.T) {
+	w := newEventTestWindow()
+	var gotPath string
+	w.layout = Layout{
+		Shape: &Shape{},
+		Children: []Layout{
+			{Shape: &Shape{
+				shapeClip: drawClip{X: 0, Y: 0, Width: 100, Height: 100},
+				events: &eventHandlers{
+					OnFileDrop: func(ctx EventCtx) {
+						gotPath = ctx.Event.FilePath
+						ctx.Consume()
+					},
+				},
+			}},
+		},
+	}
+
+	e := &Event{
+		Type:     EventFileDropped,
+		MouseX:   50,
+		MouseY:   50,
+		FilePath: "/tmp/dropped.txt",
+	}
+	w.EventFn(e)
+
+	if gotPath != "/tmp/dropped.txt" {
+		t.Fatalf("OnFileDrop received %q, want /tmp/dropped.txt", gotPath)
+	}
+	if !e.IsHandled {
+		t.Error("file drop should be marked handled")
+	}
+}
+
+func TestEventFnFileDroppedAllowedWhenUnfocused(t *testing.T) {
+	// eventAllowed admits file drops to an unfocused window: drags
+	// land before any focus transfer.
+	w := newEventTestWindow()
+	w.focused = false
+	called := false
+	w.layout = Layout{
+		Shape: &Shape{},
+		Children: []Layout{
+			{Shape: &Shape{
+				shapeClip: drawClip{X: 0, Y: 0, Width: 100, Height: 100},
+				events: &eventHandlers{
+					OnFileDrop: func(ctx EventCtx) { called = true },
+				},
+			}},
+		},
+	}
+	w.EventFn(&Event{
+		Type:     EventFileDropped,
+		MouseX:   50,
+		MouseY:   50,
+		FilePath: "/tmp/x.txt",
+	})
+	if !called {
+		t.Error("file drop must reach the layout while unfocused")
+	}
+}
+
+func TestHandleFileDroppedEventDirect(t *testing.T) {
+	// The window-level wrapper routes to the topmost enabled child
+	// under the pointer.
+	w := newEventTestWindow()
+	var hit string
+	layout := &Layout{
+		Shape: &Shape{},
+		Children: []Layout{
+			{Shape: &Shape{
+				shapeClip: drawClip{X: 0, Y: 0, Width: 50, Height: 50},
+				events: &eventHandlers{
+					OnFileDrop: func(ctx EventCtx) { hit = "first" },
+				},
+			}},
+			{Shape: &Shape{
+				shapeClip: drawClip{X: 0, Y: 0, Width: 100, Height: 100},
+				events: &eventHandlers{
+					OnFileDrop: func(ctx EventCtx) {
+						hit = "second"
+						ctx.Consume()
+					},
+				},
+			}},
+		},
+	}
+	e := &Event{MouseX: 75, MouseY: 75, FilePath: "/tmp/a.txt"}
+	w.handleFileDroppedEvent(layout, e)
+	if hit != "second" {
+		t.Fatalf("hit = %q, want second (topmost under pointer)", hit)
+	}
+	if !e.IsHandled {
+		t.Error("wrapper should propagate IsHandled")
+	}
+}
+
+func TestEventFnFileDroppedFrozen(t *testing.T) {
+	// Time-travel freeze gates every user event, including drops.
+	w := newEventTestWindow()
+	w.frozen.Store(true)
+	called := false
+	w.layout = Layout{
+		Shape: &Shape{},
+		Children: []Layout{
+			{Shape: &Shape{
+				shapeClip: drawClip{X: 0, Y: 0, Width: 100, Height: 100},
+				events: &eventHandlers{
+					OnFileDrop: func(ctx EventCtx) { called = true },
+				},
+			}},
+		},
+	}
+	w.EventFn(&Event{Type: EventFileDropped, MouseX: 50, MouseY: 50})
+	if called {
+		t.Error("file drop must be gated while frozen")
+	}
+}

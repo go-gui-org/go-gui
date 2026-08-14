@@ -120,3 +120,39 @@ func TestInputMaskCustomTokenTransform(t *testing.T) {
 		t.Fatalf("got %q, want %q", res.Text, "AB-12")
 	}
 }
+
+// --- mask token predicates ---
+
+func TestIsMaskLetter(t *testing.T) {
+	cases := []struct {
+		r    rune
+		want bool
+	}{
+		{'a', true}, {'Z', true}, {'é', true}, {'中', true},
+		{'0', false}, {'9', false}, {'-', false}, {'_', false},
+		{' ', false}, {'.', false},
+	}
+	for _, tc := range cases {
+		if got := isMaskLetter(tc.r); got != tc.want {
+			t.Errorf("isMaskLetter(%q) = %v, want %v",
+				tc.r, got, tc.want)
+		}
+	}
+}
+
+func TestIsMaskAlnum(t *testing.T) {
+	cases := []struct {
+		r    rune
+		want bool
+	}{
+		{'a', true}, {'Z', true}, {'0', true}, {'9', true},
+		{'é', true}, {'中', true}, {'٣', true}, // Arabic-Indic digit: unicode.IsNumber
+		{'-', false}, {'_', false}, {' ', false}, {'.', false},
+	}
+	for _, tc := range cases {
+		if got := isMaskAlnum(tc.r); got != tc.want {
+			t.Errorf("isMaskAlnum(%q) = %v, want %v",
+				tc.r, got, tc.want)
+		}
+	}
+}

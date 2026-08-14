@@ -230,6 +230,26 @@ func TestTableSelection(t *testing.T) {
 	}
 }
 
+func TestCopySelected(t *testing.T) {
+	// Non-nil input is copied deeply: mutating the copy must not
+	// touch the original.
+	orig := map[int]bool{1: true, 3: true}
+	cp := copySelected(orig)
+	if len(cp) != 2 || !cp[1] || !cp[3] {
+		t.Fatalf("copy = %v, want {1:true, 3:true}", cp)
+	}
+	cp[3] = false
+	delete(cp, 1)
+	if !orig[1] || !orig[3] {
+		t.Fatal("mutating the copy must not affect the source")
+	}
+
+	// Nil input yields an empty, usable map.
+	if got := copySelected(nil); got == nil || len(got) != 0 {
+		t.Fatalf("copySelected(nil) = %v, want empty non-nil map", got)
+	}
+}
+
 type tableTestMeasurer struct{}
 
 func (m *tableTestMeasurer) TextWidth(text string, _ TextStyle) float32 {

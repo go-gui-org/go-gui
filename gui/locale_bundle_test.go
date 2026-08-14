@@ -1,6 +1,10 @@
 package gui
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestLocaleParseFull(t *testing.T) {
 	json := `{
@@ -184,5 +188,60 @@ func TestLocaleParseCurrencyDecimals(t *testing.T) {
 	}
 	if l.Currency.Decimals != 0 {
 		t.Fatalf("Decimals = %d, want 0", l.Currency.Decimals)
+	}
+}
+
+// --- LocaleLoad (file-based) ---
+
+func TestLocaleLoadFile(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "fr.json")
+	content := `{
+		"id": "fr-FR",
+		"number": {"decimal_sep": ",", "group_sep": " "},
+		"date": {"short_date": "DD/MM/YYYY", "first_day_of_week": 1},
+		"currency": {"symbol": "€", "code": "EUR", "position": "suffix"},
+		"strings": {"ok": "D'accord", "cancel": "Annuler"}
+	}`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	l, err := LocaleLoad(path)
+	if err != nil {
+		t.Fatalf("LocaleLoad() error = %v", err)
+	}
+	if l.ID != "fr-FR" {
+		t.Fatalf("ID = %q, want fr-FR", l.ID)
+	}
+	if l.Number.DecimalSep != ',' {
+		t.Fatalf("DecimalSep = %c, want ','", l.Number.DecimalSep)
+	}
+	if l.Date.ShortDate != "DD/MM/YYYY" {
+		t.Fatalf("ShortDate = %q", l.Date.ShortDate)
+	}
+	if l.Currency.Code != "EUR" || l.Currency.Symbol != "\u20AC" {
+		t.Fatalf("currency = %s/%s, want EUR/€",
+			l.Currency.Code, l.Currency.Symbol)
+	}
+	if l.strOK != "D'accord" || l.StrCancel != "Annuler" {
+		t.Fatalf("strings = %q/%q", l.strOK, l.StrCancel)
+	}
+}
+
+func TestLocaleLoadMissingFile(t *testing.T) {
+	if _, err := LocaleLoad(filepath.Join(t.TempDir(), "nope.json")); err == nil {
+		t.Fatal("LocaleLoad(missing) must return an error")
+	}
+}
+
+func TestLocaleLoadInvalidJSON(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "bad.json")
+	if err := os.WriteFile(path, []byte(`{"id": "x",`), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	if _, err := LocaleLoad(path); err == nil {
+		t.Fatal("LocaleLoad(invalid JSON) must return an error")
 	}
 }

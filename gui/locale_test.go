@@ -94,3 +94,55 @@ func TestLocalePresets(t *testing.T) {
 			localeDeDE.Date.FirstDayOfWeek)
 	}
 }
+
+// --- public locale-switching API ---
+
+func TestWindowSetLocale(t *testing.T) {
+	old := ActiveLocale
+	defer func() { ActiveLocale = old }()
+
+	w := &Window{}
+	w.SetLocale(localeDeDE)
+	if ActiveLocale.ID != "de-DE" {
+		t.Fatalf("ActiveLocale.ID = %q, want de-DE", ActiveLocale.ID)
+	}
+	// The locale swap must have requested a window refresh.
+	if !w.refreshLayout {
+		t.Fatal("SetLocale should mark the window for a layout refresh")
+	}
+}
+
+func TestWindowSetLocaleIDKnown(t *testing.T) {
+	old := ActiveLocale
+	defer func() { ActiveLocale = old }()
+
+	// Use the built-in registry entry; do not mutate the registry.
+	w := &Window{}
+	if err := w.SetLocaleID("de-DE"); err != nil {
+		t.Fatalf("SetLocaleID(de-DE) error = %v", err)
+	}
+	if ActiveLocale.ID != "de-DE" {
+		t.Fatalf("ActiveLocale.ID = %q, want de-DE", ActiveLocale.ID)
+	}
+	if !w.refreshLayout {
+		t.Fatal("SetLocaleID should mark the window for a layout refresh")
+	}
+}
+
+func TestWindowSetLocaleIDUnknown(t *testing.T) {
+	old := ActiveLocale
+	defer func() { ActiveLocale = old }()
+
+	w := &Window{}
+	err := w.SetLocaleID("xx-XX")
+	if err == nil {
+		t.Fatal("SetLocaleID(unknown) must return an error")
+	}
+	if ActiveLocale.ID != old.ID {
+		t.Fatalf("ActiveLocale changed to %q on a failed lookup",
+			ActiveLocale.ID)
+	}
+	if w.refreshLayout {
+		t.Fatal("failed lookup must not request a window refresh")
+	}
+}

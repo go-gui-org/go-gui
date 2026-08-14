@@ -171,3 +171,32 @@ func TestImageA11Y(t *testing.T) {
 			layout.Shape.a11Y.Label)
 	}
 }
+
+func TestDownloadingPlaceholder(t *testing.T) {
+	// Neutral rectangle shown while a remote image download is in
+	// flight: default 100x100, theme background, carries the ID.
+	layout := downloadingPlaceholder(&ImageCfg{ID: "img-remote"})
+	if layout.Shape.shapeType != shapeRectangle {
+		t.Fatalf("placeholder shapeType = %d, want rectangle",
+			layout.Shape.shapeType)
+	}
+	if layout.Shape.ID != "img-remote" {
+		t.Fatalf("placeholder ID = %q, want img-remote", layout.Shape.ID)
+	}
+	if layout.Shape.Width != 100 || layout.Shape.Height != 100 {
+		t.Fatalf("placeholder size = %fx%f, want 100x100",
+			layout.Shape.Width, layout.Shape.Height)
+	}
+
+	// Explicit dimensions and opacity are honored.
+	cfg := ImageCfg{ID: "img2", Width: 200, Height: 50, Opacity: SomeF(0.5)}
+	layout2 := downloadingPlaceholder(&cfg)
+	if layout2.Shape.Width != 200 || layout2.Shape.Height != 50 {
+		t.Fatalf("placeholder size = %fx%f, want 200x50",
+			layout2.Shape.Width, layout2.Shape.Height)
+	}
+	if layout2.Shape.Opacity != 0.5 {
+		t.Fatalf("placeholder opacity = %v, want 0.5",
+			layout2.Shape.Opacity)
+	}
+}

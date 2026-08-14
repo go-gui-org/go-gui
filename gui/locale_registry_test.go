@@ -1,6 +1,8 @@
 package gui
 
 import (
+	"os"
+	"path/filepath"
 	"slices"
 	"testing"
 )
@@ -111,5 +113,98 @@ func TestLocalePresetFields(t *testing.T) {
 		if l.MonthsFull[0] == "" {
 			t.Errorf("%s: MonthsFull[0] empty", tt.id)
 		}
+	}
+}
+
+// --- LocaleLoadDir ---
+
+const testLocaleDirJSON = `{
+  "id": "test-dir-locale",
+  "number": {"decimal_sep": ",", "group_sep": "."},
+  "date": {"first_day_of_week": 1},
+  "currency": {"symbol": "T", "code": "TST", "position": "suffix"},
+  "strings": {"ok": "Ja", "cancel": "Nein"}
+}`
+
+func writeLocaleJSON(t *testing.T, dir, name, content string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(dir, name),
+		[]byte(content), 0o644); err != nil {
+		t.Fatalf("write %s: %v", name, err)
+	}
+}
+
+func TestLocaleLoadDirRegistersAll(t *testing.T) {
+	dir := t.TempDir()
+	writeLocaleJSON(t, dir, "aa.json",
+		`{"id": "test-aa", "strings": {"ok": "A"}}`)
+	writeLocaleJSON(t, dir, "bb.json",
+		`{"id": "test-bb", "strings": {"ok": "B"}}`)
+
+	if err := LocaleLoadDir(dir); err != nil {
+		t.Fatalf("LocaleLoadDir() error = %v", err)
+	}
+	if _, ok := LocaleGet("test-aa"); !ok {
+		t.Error("test-aa not registered after LocaleLoadDir")
+	}
+	if _, ok := LocaleGet("test-bb"); !ok {
+		t.Error("test-bb not registered after LocaleLoadDir")
+	}
+}
+
+func TestLocaleLoadDirBadJSON(t *testing.T) {
+	dir := t.TempDir()
+	// Glob order is sorted, so name the good file first: it must be
+	// registered before the bad file aborts the directory load.
+	writeLocaleJSON(t, dir, "a-good.json",
+		`{"id": "test-good", "strings": {"ok": "G"}}`)
+	writeLocaleJSON(t, dir, "z-bad.json", `{"id": "test-bad",`)
+
+	err := LocaleLoadDir(dir)
+	if err == nil {
+		t.Fatal("LocaleLoadDir with a bad bundle must return an error")
+	}
+	// The good file must still have been registered.
+	if _, ok := LocaleGet("test-good"); !ok {
+		t.Error("a-good.json should be registered before the failure")
+	}
+	// The bad file's locale must not be registered.
+	if _, ok := LocaleGet("test-bad"); ok {
+		t.Error("z-bad.json must not be registered")
+	}
+}
+
+func TestLocaleLoadDirEmptyDir(t *testing.T) {
+	if err := LocaleLoadDir(t.TempDir()); err != nil {
+		t.Fatalf("LocaleLoadDir(empty) error = %v", err)
+	}
+}
+
+func TestLocaleLoadDirLoadsFields(t *testing.T) {
+	dir := t.TempDir()
+	writeLocaleJSON(t, dir, "tl.json", testLocaleDirJSON)
+
+	if err := LocaleLoadDir(dir); err != nil {
+		t.Fatalf("LocaleLoadDir() error = %v", err)
+	}
+	l, ok := LocaleGet("test-dir-locale")
+	if !ok {
+		t.Fatal("test-dir-locale not registered")
+	}
+	if l.ID != "test-dir-locale" {
+		t.Fatalf("ID = %q", l.ID)
+	}
+	if l.Number.DecimalSep != ',' || l.Number.GroupSep != '.' {
+		t.Fatalf("number = %c/%c, want ,/.", l.Number.DecimalSep, l.Number.GroupSep)
+	}
+	if l.Date.FirstDayOfWeek != 1 {
+		t.Fatalf("FirstDayOfWeek = %d, want 1", l.Date.FirstDayOfWeek)
+	}
+	if l.Currency.Code != "TST" || l.Currency.Symbol != "T" {
+		t.Fatalf("currency = %s/%s, want TST/T",
+			l.Currency.Code, l.Currency.Symbol)
+	}
+	if l.strOK != "Ja" || l.StrCancel != "Nein" {
+		t.Fatalf("strings = %q/%q, want Ja/Nein", l.strOK, l.StrCancel)
 	}
 }

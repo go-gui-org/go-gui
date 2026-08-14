@@ -290,3 +290,154 @@ func TestToastAnimID(t *testing.T) {
 		t.Errorf("expected 'dismiss:toast:0', got %q", got)
 	}
 }
+
+// --- dismiss flow ---
+
+func TestToastStartDismissTimerPersistentNoAnimation(t *testing.T) {
+	w := &Window{}
+	w.toasts = []toastNotification{
+		{id: 1, cfg: ToastCfg{Duration: toastPersistent}, phase: toastVisible},
+	}
+	toastStartDismissTimer(w, 1)
+	if w.HasAnimation(toastAnimID("dismiss", 1)) {
+		t.Error("persistent toast must not arm a dismiss timer")
+	}
+}
+
+func TestToastStartDismissTimerArms(t *testing.T) {
+	w := &Window{}
+	w.toasts = []toastNotification{
+		{id: 1, cfg: ToastCfg{Duration: 5 * time.Second}, phase: toastVisible},
+	}
+	toastStartDismissTimer(w, 1)
+
+	a, ok := w.animations[toastAnimID("dismiss", 1)]
+	if !ok {
+		t.Fatal("dismiss timer animation not registered")
+	}
+	anim, ok := a.(*Animate)
+	if !ok {
+		t.Fatalf("dismiss timer = %T, want *Animate", a)
+	}
+	if anim.Delay != 5*time.Second {
+		t.Errorf("delay = %v, want 5s", anim.Delay)
+	}
+}
+
+func TestToastStartDismissTimerCallbackExits(t *testing.T) {
+	w := &Window{}
+	w.toasts = []toastNotification{
+		{id: 1, cfg: ToastCfg{Duration: time.Second}, phase: toastVisible},
+	}
+	toastStartDismissTimer(w, 1)
+	a := w.animations[toastAnimID("dismiss", 1)].(*Animate)
+
+	// Fire the timer: toast is not hovered → starts exit.
+	a.Callback(a, w)
+	if w.toasts[0].phase != toastExiting {
+		t.Error("non-hovered toast should exit when the timer fires")
+	}
+}
+
+func TestToastStartDismissTimerCallbackHoveredResets(t *testing.T) {
+	w := &Window{}
+	w.toasts = []toastNotification{
+		{id: 1, cfg: ToastCfg{Duration: time.Second}, phase: toastVisible, hovered: true},
+	}
+	toastStartDismissTimer(w, 1)
+	a := w.animations[toastAnimID("dismiss", 1)].(*Animate)
+
+	// Fire the timer while hovered: hover cleared, timer re-armed,
+	// toast stays visible.
+	a.Callback(a, w)
+	if w.toasts[0].phase != toastVisible {
+		t.Error("hovered toast must not exit when the timer fires")
+	}
+	if w.toasts[0].hovered {
+		t.Error("hovered flag should be cleared by the timer callback")
+	}
+	if !w.HasAnimation(toastAnimID("dismiss", 1)) {
+		t.Error("dismiss timer should be re-armed after a hovered fire")
+	}
+}
+
+func TestToastStartDismissTimerHoveredResetThenExits(t *testing.T) {
+	// Simulate the natural sequence: timer fires while hovered
+	// (re-arms), then fires again once the pointer left — exit starts.
+	w := &Window{}
+	w.toasts = []toastNotification{
+		{id: 1, cfg: ToastCfg{Duration: time.Second}, phase: toastVisible, hovered: true},
+	}
+	toastStartDismissTimer(w, 1)
+	a := w.animations[toastAnimID("dismiss", 1)].(*Animate)
+
+	a.Callback(a, w) // hovered → re-arm
+	second := w.animations[toastAnimID("dismiss", 1)].(*Animate)
+	second.Callback(second, w) // not hovered anymore → exit
+	if w.toasts[0].phase != toastExiting {
+		t.Error("toast should exit on the second timer fire")
+	}
+}
+
+func TestToastDismiss(t *testing.T) {
+	w := &Window{}
+	w.toasts = []toastNotification{
+		{id: 1, cfg: ToastCfg{Title: "A"}, phase: toastVisible},
+		{id: 2, cfg: ToastCfg{Title: "B"}, phase: toastVisible},
+	}
+	w.ToastDismiss(1)
+	if w.toasts[0].phase != toastExiting {
+		t.Error("dismissed toast should be exiting")
+	}
+	if w.toasts[1].phase != toastVisible {
+		t.Error("other toast must be untouched")
+	}
+	if !w.HasAnimation(toastAnimID("exit", 1)) {
+		t.Error("exit animation should be registered")
+	}
+}
+
+func TestToastDismissUnknownIDNoop(t *testing.T) {
+	w := &Window{}
+	w.toasts = []toastNotification{
+		{id: 1, cfg: ToastCfg{Title: "A"}, phase: toastVisible},
+	}
+	w.ToastDismiss(99)
+	if w.toasts[0].phase != toastVisible {
+		t.Error("dismissing an unknown id must not touch existing toasts")
+	}
+	if len(w.animations) != 0 {
+		t.Errorf("unknown dismiss registered animations: %d", len(w.animations))
+	}
+}
+
+func TestToastFullLifecycle(t *testing.T) {
+	// Toast → enter → dismiss timer → exit → removed, driven through
+	// the animation callbacks so no timers run.
+	w := &Window{}
+	id := w.Toast(ToastCfg{Title: "T"})
+
+	// Enter animation registered on creation.
+	enter, ok := w.animations[toastAnimID("enter", id)].(*TweenAnimation)
+	if !ok {
+		t.Fatal("enter animation not registered")
+	}
+	// Finish enter → visible + dismiss timer armed.
+	enter.OnDone(w)
+	if w.toasts[0].phase != toastVisible {
+		t.Fatal("toast should be visible after enter completes")
+	}
+	dismiss := w.animations[toastAnimID("dismiss", id)].(*Animate)
+
+	// Fire dismiss → exiting.
+	dismiss.Callback(dismiss, w)
+	if w.toasts[0].phase != toastExiting {
+		t.Fatal("toast should be exiting after dismiss fires")
+	}
+	// Finish exit → removed.
+	exit := w.animations[toastAnimID("exit", id)].(*TweenAnimation)
+	exit.OnDone(w)
+	if len(w.toasts) != 0 {
+		t.Fatalf("toasts = %d, want 0 after exit completes", len(w.toasts))
+	}
+}

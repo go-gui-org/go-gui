@@ -509,3 +509,228 @@ func TestTreeItemPathsPrecedence(t *testing.T) {
 			len(layout.Children))
 	}
 }
+
+// --- tree build maps and drag-reorder scaffolding ---
+
+func TestTreeBuildParentMapsDisabled(t *testing.T) {
+	// Non-reorderable trees must not build the drag maps at all.
+	parentOf, siblings := treeBuildParentMaps(
+		[]treeFlatRow{{ID: "a", ParentID: ""}, {ID: "b", ParentID: "a"}},
+		[]string{"a", "b"},
+		false,
+	)
+	if parentOf != nil || siblings != nil {
+		t.Fatalf("canReorder=false: got (%v, %v), want (nil, nil)",
+			parentOf, siblings)
+	}
+}
+
+func TestTreeBuildParentMapsSkipsLoadingRows(t *testing.T) {
+	parentOf, siblings := treeBuildParentMaps(
+		[]treeFlatRow{
+			{ID: "a", ParentID: ""},
+			{ID: "loading", ParentID: "a", IsLoading: true},
+			{ID: "b", ParentID: "a"},
+			{ID: "c", ParentID: ""},
+		},
+		[]string{"a", "b", "c"},
+		true,
+	)
+	if parentOf["a"] != "" || parentOf["b"] != "a" || parentOf["c"] != "" {
+		t.Fatalf("parentOf = %v, want a->\"\", b->a, c->\"\"", parentOf)
+	}
+	if _, ok := parentOf["loading"]; ok {
+		t.Fatal("loading placeholder must be excluded from parentOf")
+	}
+	if got := siblings[""]; len(got) != 2 || got[0] != "a" || got[1] != "c" {
+		t.Fatalf("siblings[\"\"] = %v, want [a c]", got)
+	}
+	if got := siblings["a"]; len(got) != 1 || got[0] != "b" {
+		t.Fatalf("siblings[\"a\"] = %v, want [b]", got)
+	}
+}
+
+func TestTreeBuildSiblingInfoDisabled(t *testing.T) {
+	idx, lids, moff := treeBuildSiblingInfo(
+		"tree", []treeFlatRow{{ID: "a"}}, nil, false, 0, 0)
+	if idx != nil || lids != nil || moff != nil {
+		t.Fatalf("canReorder=false: got (%v, %v, %v), want all nil",
+			idx, lids, moff)
+	}
+}
+
+func TestTreeBuildSiblingInfoVirtualized(t *testing.T) {
+	// Five root rows; virtualization window shows rows 1..3 (flat
+	// indices 1..3). Sibling 0 is above the window, siblings 1-3 are
+	// inside, sibling 4 is below.
+	rows := make([]treeFlatRow, 5)
+	for i := range rows {
+		rows[i] = treeFlatRow{ID: string(rune('a' + i)), ParentID: ""}
+	}
+	idx, lids, moff := treeBuildSiblingInfo(
+		"tree", rows,
+		map[string][]string{"": {"a", "b", "c", "d", "e"}},
+		true, 1, 3,
+	)
+	if idx["a"] != 0 || idx["e"] != 4 {
+		t.Fatalf("siblingIdx = %v, want a->0, e->4", idx)
+	}
+	if moff[""] != 1 {
+		t.Fatalf("midsOffset = %d, want 1 (one sibling above window)",
+			moff[""])
+	}
+	wantLids := []string{"tree:row:b", "tree:row:c", "tree:row:d"}
+	if len(lids[""]) != len(wantLids) {
+		t.Fatalf("layoutIDs = %v, want %v", lids[""], wantLids)
+	}
+	for i := range wantLids {
+		if lids[""][i] != wantLids[i] {
+			t.Fatalf("layoutIDs = %v, want %v", lids[""], wantLids)
+		}
+	}
+}
+
+func TestTreeRowID(t *testing.T) {
+	if got := treeRowID("tree", "node"); got != "tree:row:node" {
+		t.Fatalf("treeRowID() = %q, want %q", got, "tree:row:node")
+	}
+	// Nested scope composes without a trailing separator.
+	if got := treeRowID("tree:row:node", "child"); got != "tree:row:node:row:child" {
+		t.Fatalf("nested treeRowID() = %q", got)
+	}
+}
+
+func TestTreeBuildRowsVirtualizedSpacers(t *testing.T) {
+	rows := make([]treeFlatRow, 5)
+	for i := range rows {
+		rows[i] = treeFlatRow{ID: string(rune('a' + i))}
+	}
+	cfg := &TreeCfg{ID: "tree", Spacing: Some(float32(0))}
+	views, ghost := treeBuildRows(
+		cfg, rows, "", 16,
+		nil, nil, nil, nil, nil, "",
+		false, false, dragReorderState{}, "",
+		true, 10, 1, 3,
+	)
+	if ghost != nil {
+		t.Fatal("no drag: ghost content must be nil")
+	}
+	// 1 leading spacer + 3 visible rows + 1 trailing spacer.
+	if len(views) != 5 {
+		t.Fatalf("len(views) = %d, want 5 (2 spacers + 3 rows)", len(views))
+	}
+	leading := generateViewLayout(views[0], newTestWindow())
+	if leading.Shape.Height != 10 {
+		t.Fatalf("leading spacer height = %v, want 10", leading.Shape.Height)
+	}
+	trailing := generateViewLayout(views[4], newTestWindow())
+	if trailing.Shape.Height != 10 {
+		t.Fatalf("trailing spacer height = %v, want 10", trailing.Shape.Height)
+	}
+}
+
+func TestTreeBuildRowsDragGapAndGhost(t *testing.T) {
+	// Three root siblings; dragging "a" (index 0) currently at index 2.
+	// Row "a" becomes ghost content, row "c" is preceded by the gap.
+	rows := []treeFlatRow{
+		{ID: "a", ParentID: ""},
+		{ID: "b", ParentID: ""},
+		{ID: "c", ParentID: ""},
+	}
+	cfg := &TreeCfg{ID: "tree", Spacing: Some(float32(0))}
+	drag := dragReorderState{
+		itemID:       "a",
+		sourceIndex:  0,
+		currentIndex: 2,
+		active:       true,
+		itemHeight:   20,
+	}
+	views, ghost := treeBuildRows(
+		cfg, rows, "", 16,
+		map[string]string{"a": "", "b": "", "c": ""},
+		map[string][]string{"": {"a", "b", "c"}},
+		map[string]int{"a": 0, "b": 1, "c": 2},
+		map[string][]string{"": {"tree:row:a", "tree:row:b", "tree:row:c"}},
+		map[string]int{"": 0},
+		"",
+		true, true, drag, "",
+		false, 0, 0, 2,
+	)
+	if ghost == nil {
+		t.Fatal("drag: ghost content must be captured from the source row")
+	}
+	// a skipped, b, gap, c → 3 views.
+	if len(views) != 3 {
+		t.Fatalf("len(views) = %d, want 3 (b, gap, c)", len(views))
+	}
+	gap := generateViewLayout(views[1], newTestWindow())
+	if gap.Shape.ID != "drag_reorder_gap" {
+		t.Fatalf("views[1] = %q, want drag gap", gap.Shape.ID)
+	}
+	last := generateViewLayout(views[2], newTestWindow())
+	if last.Shape.ID != "tree:row:c" {
+		t.Fatalf("views[2] = %q, want row c", last.Shape.ID)
+	}
+}
+
+func TestTreeGenerateLayoutReorderable(t *testing.T) {
+	// A reorderable tree must produce drag row views keyed by
+	// treeRowID and honour Alt+Arrow keyboard reorder.
+	w := newTestWindow()
+	var moved, before string
+	reordered := false
+	layout := generateViewLayout(Tree(TreeCfg{
+		ID:          "tree-reo",
+		Reorderable: true,
+		OnReorder: func(m, b string, _ EventCtx) {
+			moved, before, reordered = m, b, true
+		},
+		Nodes: []TreeNodeCfg{
+			{ID: "a", Text: "A"},
+			{ID: "b", Text: "B"},
+		},
+	}), w)
+	if got := len(layout.Children); got != 2 {
+		t.Fatalf("children = %d, want 2", got)
+	}
+	if got := layout.Children[0].Shape.ID; got != "tree-reo:row:a" {
+		t.Fatalf("row[0] ID = %q, want tree-reo:row:a", got)
+	}
+
+	// Alt+Down on focused "a" moves it past "b": before = "" (end).
+	w.layout = Layout{Shape: &Shape{ID: "root"}}
+	treeFocusedSet(w, "tree-reo", "a")
+	e := &Event{KeyCode: KeyDown, Modifiers: ModAlt}
+	layout.Shape.events.OnKeyDown(EventCtx{&layout, e, w})
+	if !reordered {
+		t.Fatal("Alt+Down should trigger OnReorder")
+	}
+	if moved != "a" || before != "" {
+		t.Fatalf("OnReorder(%q, %q), want (a, \"\")", moved, before)
+	}
+	if !e.IsHandled {
+		t.Fatal("Alt+Down should be consumed")
+	}
+}
+
+func TestTreeGenerateLayoutEscapeCancelsDrag(t *testing.T) {
+	w := newTestWindow()
+	w.layout = Layout{Shape: &Shape{ID: "root"}}
+	dragReorderSet(w, "tree-esc", dragReorderState{started: true})
+
+	layout := generateViewLayout(Tree(TreeCfg{
+		ID:          "tree-esc",
+		Reorderable: true,
+		OnReorder:   func(string, string, EventCtx) {},
+		Nodes:       []TreeNodeCfg{{ID: "a", Text: "A"}},
+	}), w)
+
+	e := &Event{KeyCode: KeyEscape}
+	layout.Shape.events.OnKeyDown(EventCtx{&layout, e, w})
+	if !e.IsHandled {
+		t.Fatal("Escape during a drag must be consumed")
+	}
+	if state := dragReorderGet(w, "tree-esc"); state.started || state.active {
+		t.Fatal("drag state should be cleared after Escape")
+	}
+}

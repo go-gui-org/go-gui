@@ -399,3 +399,157 @@ func TestDatePickerKeyboardNav(t *testing.T) {
 		t.Errorf("focus after Home = %d", s.FocusDay)
 	}
 }
+
+// --- DatePickerReset and the embedded month/year roller ---
+
+func TestDatePickerReset(t *testing.T) {
+	w := &Window{}
+	cfg := DatePickerCfg{
+		ID:    "dp-reset",
+		Dates: []time.Time{time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local)},
+	}
+	// GenerateLayout seeds the per-instance state.
+	generateViewLayout(DatePicker(cfg), w)
+	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
+	if _, ok := sm.Get("dp-reset"); !ok {
+		t.Fatal("state should be seeded by layout generation")
+	}
+
+	w.DatePickerReset("dp-reset")
+	if _, ok := sm.Get("dp-reset"); ok {
+		t.Fatal("DatePickerReset must delete the instance state")
+	}
+
+	// A fresh layout regenerates state from the configured dates,
+	// not from the old view month.
+	layout := generateViewLayout(DatePicker(cfg), w)
+	s, ok := sm.Get("dp-reset")
+	if !ok {
+		t.Fatal("state should be re-seeded after reset")
+	}
+	if s.ViewMonth != 3 || s.ViewYear != 2025 {
+		t.Fatalf("re-seeded view = %d/%d, want 3/2025",
+			s.ViewMonth, s.ViewYear)
+	}
+	if layout.Shape.ID != "dp-reset" {
+		t.Fatalf("layout ID = %q", layout.Shape.ID)
+	}
+}
+
+func TestDatePickerResetUnknownIDNoop(t *testing.T) {
+	w := &Window{}
+	// Must not panic, and must not disturb other instances.
+	w.Toast(ToastCfg{Title: "unrelated"}) // any prior state is untouched
+	w.DatePickerReset("never-existed")
+}
+
+func TestDatePickerYearMonthPickerView(t *testing.T) {
+	// The year/month picker embeds a month-year roller fed by the
+	// picker's view state.
+	cfg := DatePickerCfg{ID: "dp-ym"}
+	applyDatePickerDefaults(&cfg)
+	state := datePickerState{ViewMonth: 6, ViewYear: 2025}
+
+	v := datePickerYearMonthPicker(&cfg, state)
+	layout := generateViewLayout(v, &Window{})
+	if layout.Shape.ID != "dp-ym:roller" {
+		t.Fatalf("roller ID = %q, want dp-ym:roller", layout.Shape.ID)
+	}
+	if layout.Shape.A11YRole != AccessRoleDateField {
+		t.Fatalf("roller role = %d, want DateField", layout.Shape.A11YRole)
+	}
+	// MonthYear mode → two drums (month, year).
+	if got := len(layout.Children); got != 2 {
+		t.Fatalf("drums = %d, want 2", got)
+	}
+}
+
+func TestDatePickerRollerKeyDownEscape(t *testing.T) {
+	w := &Window{}
+	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
+	s := datePickerState{ViewMonth: 6, ViewYear: 2025, ShowYearMonthPicker: true}
+	sm.Set("dp-roller", s)
+
+	e := &Event{KeyCode: KeyEscape, Modifiers: ModNone}
+	datePickerRollerKeyDown(sm, "dp-roller", s, e, w)
+	if !e.IsHandled {
+		t.Fatal("Escape should be handled")
+	}
+	got, _ := sm.Get("dp-roller")
+	if got.ShowYearMonthPicker {
+		t.Fatal("Escape should close the year/month picker")
+	}
+	if got.ViewMonth != 6 || got.ViewYear != 2025 {
+		t.Fatalf("Escape must not move the view: %d/%d",
+			got.ViewMonth, got.ViewYear)
+	}
+}
+
+func TestDatePickerRollerKeyDownMonthNav(t *testing.T) {
+	w := &Window{}
+	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
+	s := datePickerState{ViewMonth: 1, ViewYear: 2025}
+
+	// Up: January wraps to December of the previous year.
+	e := &Event{KeyCode: KeyUp, Modifiers: ModNone}
+	datePickerRollerKeyDown(sm, "dp-roller", s, e, w)
+	got, _ := sm.Get("dp-roller")
+	if got.ViewMonth != 12 || got.ViewYear != 2024 {
+		t.Fatalf("Up from Jan = %d/%d, want 12/2024",
+			got.ViewMonth, got.ViewYear)
+	}
+	if !e.IsHandled {
+		t.Fatal("Up should be handled")
+	}
+
+	// Down: December wraps to January of the next year.
+	s = datePickerState{ViewMonth: 12, ViewYear: 2025}
+	e = &Event{KeyCode: KeyDown, Modifiers: ModNone}
+	datePickerRollerKeyDown(sm, "dp-roller", s, e, w)
+	got, _ = sm.Get("dp-roller")
+	if got.ViewMonth != 1 || got.ViewYear != 2026 {
+		t.Fatalf("Down from Dec = %d/%d, want 1/2026",
+			got.ViewMonth, got.ViewYear)
+	}
+}
+
+func TestDatePickerRollerKeyDownYearNav(t *testing.T) {
+	w := &Window{}
+	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
+	s := datePickerState{ViewMonth: 6, ViewYear: 2025}
+
+	// Shift+Up: year-1.
+	e := &Event{KeyCode: KeyUp, Modifiers: ModShift}
+	datePickerRollerKeyDown(sm, "dp-roller", s, e, w)
+	got, _ := sm.Get("dp-roller")
+	if got.ViewYear != 2024 || got.ViewMonth != 6 {
+		t.Fatalf("Shift+Up = %d/%d, want 2024/6",
+			got.ViewYear, got.ViewMonth)
+	}
+
+	// Shift+Down: year+1.
+	e = &Event{KeyCode: KeyDown, Modifiers: ModShift}
+	datePickerRollerKeyDown(sm, "dp-roller", s, e, w)
+	got, _ = sm.Get("dp-roller")
+	if got.ViewYear != 2026 {
+		t.Fatalf("Shift+Down = %d, want 2026", got.ViewYear)
+	}
+}
+
+func TestDatePickerRollerKeyDownIgnoresOtherKeys(t *testing.T) {
+	w := &Window{}
+	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
+	s := datePickerState{ViewMonth: 6, ViewYear: 2025}
+	sm.Set("dp-roller", s)
+
+	e := &Event{KeyCode: KeyA, Modifiers: ModNone}
+	datePickerRollerKeyDown(sm, "dp-roller", s, e, w)
+	if e.IsHandled {
+		t.Fatal("unrecognized key must not be handled")
+	}
+	got, _ := sm.Get("dp-roller")
+	if got.ViewMonth != 6 || got.ViewYear != 2025 {
+		t.Fatalf("unrecognized key mutated state: %d/%d",
+			got.ViewMonth, got.ViewYear)
+	}
+}
