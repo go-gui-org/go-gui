@@ -69,29 +69,6 @@ func generateViewLayout(view View, w *Window) Layout {
 // its children resolve under it. Children the parent injected directly
 // (addGroupBoxTitle's eraser + label) keep their position ahead of these.
 func appendChildViews(w *Window, parent *Layout, children []View) {
-	appendChildViewsScoped(w, parent, children, true)
-}
-
-// appendChildViewsFlat appends children WITHOUT pushing the parent's ID
-// scope, so they resolve in the parent's enclosing scope.
-//
-// Exactly one caller: Form, and only to preserve today's observable
-// effective IDs. Form's own field registry is NOT affected either way —
-// FormFieldAdapterCfg.FieldID never passes through ID resolution. What
-// scoping would change is the effective ID of every widget the caller
-// put inside the form, and therefore SetFocus/FindByID against it.
-//
-// Form is therefore the one container whose children do not take its
-// scope. That is deliberate here only in the sense that this refactor
-// preserves it; whether it should hold at all is issue #306. This helper
-// is the single place that decision would change.
-func appendChildViewsFlat(w *Window, parent *Layout, children []View) {
-	appendChildViewsScoped(w, parent, children, false)
-}
-
-func appendChildViewsScoped(
-	w *Window, parent *Layout, children []View, scope bool,
-) {
 	// Callers build parent.Shape before calling: childScopeID reads its
 	// ID to derive the child scope, and a shape built late (or a nil
 	// shape — childScopeID's nil branch) silently generates the
@@ -119,12 +96,8 @@ func appendChildViewsScoped(
 	}
 	// Saved and restored rather than recomputed on the way out: a sibling
 	// must not inherit a child's scope.
-	saved := ""
-	pushed := scope && w != nil
-	if pushed {
-		saved = w.viewState.idScope
-		w.viewState.idScope = childScopeID(w, saved, parent.Shape)
-	}
+	saved := w.viewState.idScope
+	w.viewState.idScope = childScopeID(w, saved, parent.Shape)
 	for _, child := range children {
 		if child == nil {
 			continue
@@ -134,7 +107,5 @@ func appendChildViewsScoped(
 			generateViewLayout(child, w),
 		)
 	}
-	if pushed {
-		w.viewState.idScope = saved
-	}
+	w.viewState.idScope = saved
 }
