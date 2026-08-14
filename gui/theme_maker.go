@@ -579,5 +579,10 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	theme.icon5 = makeStyle(icon, theme.sizeTextXSmall)
 	theme.icon6 = makeStyle(icon, theme.SizeTextTiny)
 
+	// Every theme leaving this constructor carries a fresh identity.
+	// Install and cache-invalidation compare ids, never Name: two themes
+	// may legitimately share a name and differ in styles.
+	theme.id = nextThemeID()
+
 	return theme
 }

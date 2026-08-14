@@ -65,9 +65,9 @@ silent no-op — the widget renders and clicks but never joins the tab order. Th
 `FocusDisabled`, never with `Focusable: false`.** Fifteen Cfgs default on:
 `Button`, `ColorPicker`, `Combobox`, `DatePicker`, `Input`, `InputDate`,
 `ListBox`, `NumericInput`, `RadioButtonGroup`, `Radio`, `Select`, `Slider`,
-`Switch`, `Toggle`, `Tree`. Everything else is opt-in via `Focusable: true`.
-See `docs/specs/focusable-default-input.md`; run `ergonomics-audit -mode focus`
-for the current inventory.
+`Switch`, `Toggle`, `Tree`. Everything else is opt-in via `Focusable: true`. See
+`docs/specs/focusable-default-input.md`; run `ergonomics-audit -mode focus` for
+the current inventory.
 
 **`Shape.ID` is a leaf; identity is the effective ID.** `resolveShapeIDs`
 (`gui/id_resolve.go`, run from `layoutArrange`) stamps `Shape.effID` = the leaf
@@ -94,8 +94,8 @@ without allocating for the number — use it for loop-derived identity. Both cos
 exactly one allocation; `gui/id_scope_test.go` asserts that. A **part** (a row
 key, a heading slug — a leaf value fed _into_ a composition) must not contain
 `:` and keeps its own spelling; rebuilding an ID at a lookup site is how
-producers and consumers drift. `make ergonomics-audit` (mode `ids`) fails on
-any hand-rolled composition; see `docs/specs/widget-id-scoping.md`.
+producers and consumers drift. `make ergonomics-audit` (mode `ids`) fails on any
+hand-rolled composition; see `docs/specs/widget-id-scoping.md`.
 
 Uniqueness is strict, including within one widget: a composite widget's inner
 shape that needs the owning widget's focus or spell-check state sets
@@ -105,23 +105,22 @@ asserts a rendered window is clean.
 
 #### `Opt[T]` vs plain fields
 
-**Rule: types the repo owns self-flag; only primitives get `Opt`.**
-`Opt[T]` is for when the zero value is a legitimate user choice that must be
-distinguishable from "unset" — and only when the type cannot carry that
-distinction itself. `SizeBorder` is the canonical case: `0` is a border width a
-caller means, so a plain `float32` cannot tell "no border" from "not
-specified". Where zero is not meaningful — most widths, heights, counts, and
-indices — `Opt` costs a wrapper call and buys nothing.
+**Rule: types the repo owns self-flag; only primitives get `Opt`.** `Opt[T]` is
+for when the zero value is a legitimate user choice that must be distinguishable
+from "unset" — and only when the type cannot carry that distinction itself.
+`SizeBorder` is the canonical case: `0` is a border width a caller means, so a
+plain `float32` cannot tell "no border" from "not specified". Where zero is not
+meaningful — most widths, heights, counts, and indices — `Opt` costs a wrapper
+call and buys nothing.
 
 Owned struct types self-flag instead of wrapping: `Color` (`gui/color.go`),
-`Padding` (`gui/padding.go`) and `Sizing` (`gui/sizing.go`) carry a `set`
-field, so they are plain fields with `IsSet()`/`Or()` rather than `Opt[T]`.
-`Sizing`'s zero value (FitFit) is a real combination, which is exactly why it
-flags: build sizings with the predefined vars (`FitFit`…`FillFixed`), never a
-raw `Sizing{...}` literal — that reads as unset (ergoaudit mode `literals`
-gates this). Build `Padding` values with
-`NewPadding`/`PadAll`/`PaddingNone`; a raw `Padding{...}` literal reads as
-unset (ergoaudit mode `literals` gates this).
+`Padding` (`gui/padding.go`) and `Sizing` (`gui/sizing.go`) carry a `set` field,
+so they are plain fields with `IsSet()`/`Or()` rather than `Opt[T]`. `Sizing`'s
+zero value (FitFit) is a real combination, which is exactly why it flags: build
+sizings with the predefined vars (`FitFit`…`FillFixed`), never a raw
+`Sizing{...}` literal — that reads as unset (ergoaudit mode `literals` gates
+this). Build `Padding` values with `NewPadding`/`PadAll`/`PaddingNone`; a raw
+`Padding{...}` literal reads as unset (ergoaudit mode `literals` gates this).
 
 Decide this when authoring the field, not by copying whichever neighbor was
 nearest.
@@ -131,9 +130,8 @@ nearest.
 Use plain `Color`, never `Opt[Color]`. `Color` carries its own `set` flag
 (`gui/color.go`), so `Color{}` is unset and `ColorTransparent` is an explicit
 fully-transparent choice — wrapping would give the field two notions of unset.
-Build colors with `RGBA`/`RGB`/`Hex`; a raw `Color{...}` literal reads as
-unset (ergoaudit mode `literals` gates this; the empty `Color{}` sentinel is
-exempt).
+Build colors with `RGBA`/`RGB`/`Hex`; a raw `Color{...}` literal reads as unset
+(ergoaudit mode `literals` gates this; the empty `Color{}` sentinel is exempt).
 
 `ColorSet` (`gui/color_set.go`) groups the per-state colors; `Flat(c)` is the
 "keep one appearance" case. **Precedence: an assigned flat `Color*` field wins
@@ -165,6 +163,16 @@ Backend injects at startup. Nil in tests:
 - `Children []Layout` = values. Parents = pointers. Avoids cycles
 - `StateMap` (keyed by namespace consts like `nsOverflow`, `nsSvgCache`) =
   per-window typed kv store for widget internal state
+- **Theme is window-owned; `guiTheme` and the `default*Style` mirrors are a
+  frame-scoped cache, not app state.** `FrameFn` calls `w.installTheme()` before
+  anything reads them, so a factory-time read resolves to the window being
+  generated — that works only because every window's frame pass runs on the one
+  main OS thread. `w.Theme()` reads, `w.SetTheme` pins that window, package
+  `SetTheme` sets the app default for windows that never pinned one.
+  `Themed(t, build)` scopes a theme to one subtree; its builder must run at
+  generation time because factories resolve defaults when called. Anything keyed
+  on a theme keys on `Theme.id`, never `Theme.Name` — names are not unique. See
+  `docs/specs/per-window-theme.md`.
 - `AmendLayout` hook on shapes runs after sizing to reposition overlays (color
   picker circles, splitter handles, etc.) or manage hover. Layout uses absolute
   coords. Moving parent in `AmendLayout` does NOT move children. Use float

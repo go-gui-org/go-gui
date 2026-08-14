@@ -99,5 +99,8 @@ func NewWindow(cfg WindowCfg) *Window {
 	if cfg.DebugTimeTravel {
 		w.enableHistory(cfg.historyBytes)
 	}
+	// Tracked so a later package-level SetTheme can repaint the windows
+	// that follow the app default. Dropped again in WindowCleanup.
+	registerWindow(w)
 	return w
 }

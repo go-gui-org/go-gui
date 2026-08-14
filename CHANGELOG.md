@@ -8,110 +8,123 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **Per-window themes (issue #296).** A `Window` now owns its theme.
+  `w.SetTheme(t)` themes that window alone and `w.Theme()` reads it back;
+  windows that never pin one follow the app default, which package-level
+  `gui.SetTheme` still sets. The frame pass installs the active window's theme
+  before the view function runs, so widget factories keep resolving their
+  defaults exactly as before — no factory signature changed, no allocation was
+  added, and existing single-window code behaves identically. See
+  `docs/specs/per-window-theme.md`.
+
+- **`gui.Themed(t, build)` scopes a theme to one subtree.** Views the builder
+  returns resolve their defaults from `t`; everything outside keeps the window's
+  theme, and `Themed` nests. The builder runs at layout-generation time, which
+  is what makes the scope work: factories resolve defaults when they are called,
+  so ready-made child views would already carry the enclosing theme.
+
 ### Fixed
 
-- **The datagrid column-resize handle now renders its active color
-  during a resize drag (issue #284).** A drag holds a mouse lock and
-  `layoutHover` bails under a lock, so the handle's pressed color —
-  painted only from `OnHover` — could not fire mid-drag and the handle
-  showed its resting color while resizing. The handle's color now comes
-  from the resize state read at generation time
-  (`dataGridActiveResizeColID`), live for the whole drag and reverting
-  on release or cancel.
+- **Theme-keyed text caches no longer serve stale layouts.** The per-window
+  markdown and rich-text layout caches invalidated on `Theme.Name`; two themes
+  can share a name and differ in text styles, as a derived or scoped theme does.
+  Both now key on a stamped theme identity.
 
-- **Pressed-while-hovered colors now render.** Seven `OnHover` handlers
-  paint a click color while the left button is held (button
-  `Colors.Click`, breadcrumb crumb, expand-panel header, switch pill,
-  toggle, radio, datagrid resize handle), but no frame could reach
-  those branches: `layoutHover` synthesized its event with
-  `MouseButton: MouseInvalid` no matter what the user was holding. The
-  window now reports the real held button in hover events (see Changed
-  below), so a press-and-hold renders the click color and release
+- **The datagrid column-resize handle now renders its active color during a
+  resize drag (issue #284).** A drag holds a mouse lock and `layoutHover` bails
+  under a lock, so the handle's pressed color — painted only from `OnHover` —
+  could not fire mid-drag and the handle showed its resting color while
+  resizing. The handle's color now comes from the resize state read at
+  generation time (`dataGridActiveResizeColID`), live for the whole drag and
+  reverting on release or cancel.
+
+- **Pressed-while-hovered colors now render.** Seven `OnHover` handlers paint a
+  click color while the left button is held (button `Colors.Click`, breadcrumb
+  crumb, expand-panel header, switch pill, toggle, radio, datagrid resize
+  handle), but no frame could reach those branches: `layoutHover` synthesized
+  its event with `MouseButton: MouseInvalid` no matter what the user was
+  holding. The window now reports the real held button in hover events (see
+  Changed below), so a press-and-hold renders the click color and release
   restores the hover color.
 
-- **Interrupted (capture-loss) selection drags no longer leave a stuck
-  selection (issue #281).** Input, Text and RTF selection drags hold a
-  mouse lock whose `Cancel` hook fired on capture loss — a mouse-up that
-  will never arrive (window-resize steal, alt-tab, the #237 class) —
-  but only removed the edge-scroll animation; the partial selection
-  survived as if committed. The three Cancel hooks now zero the dragged
-  widget's own `selectBeg`/`selectEnd` (scoped to its `nsInput` key,
-  never other widgets'), so an interrupted drag leaves nothing. A normal
-  release still commits even outside the widget — the lock delivers the
-  mouse-up anywhere; only capture loss goes through the Cancel hook.
+- **Interrupted (capture-loss) selection drags no longer leave a stuck selection
+  (issue #281).** Input, Text and RTF selection drags hold a mouse lock whose
+  `Cancel` hook fired on capture loss — a mouse-up that will never arrive
+  (window-resize steal, alt-tab, the #237 class) — but only removed the
+  edge-scroll animation; the partial selection survived as if committed. The
+  three Cancel hooks now zero the dragged widget's own `selectBeg`/`selectEnd`
+  (scoped to its `nsInput` key, never other widgets'), so an interrupted drag
+  leaves nothing. A normal release still commits even outside the widget — the
+  lock delivers the mouse-up anywhere; only capture loss goes through the Cancel
+  hook.
 
-- **Re-asserting focus no longer clears input selections (issue
-  #277).** `setFocusLocked` called `clearInputSelections()` on every
-  `SetFocus`, unconditionally, while the IME clear next to it was
-  already guarded by `id != prev` (#156). Because consumers
-  legitimately re-assert focus from inside their View function — which
-  runs on every layout rebuild — an unconditional clear wiped every
-  `nsInput` selection window-wide on each re-assert, silently dropping
-  selections in the focused input and every unrelated field. The clear
-  is now guarded exactly like the IME clear: only a real focus change
-  drops selections (window-wide, as before); a same-widget re-assert
-  leaves them alone. Clicking an already-focused input still collapses
-  its selection to a caret at the click — that path sets the selection
-  itself and never depended on the clear.
+- **Re-asserting focus no longer clears input selections (issue #277).**
+  `setFocusLocked` called `clearInputSelections()` on every `SetFocus`,
+  unconditionally, while the IME clear next to it was already guarded by
+  `id != prev` (#156). Because consumers legitimately re-assert focus from
+  inside their View function — which runs on every layout rebuild — an
+  unconditional clear wiped every `nsInput` selection window-wide on each
+  re-assert, silently dropping selections in the focused input and every
+  unrelated field. The clear is now guarded exactly like the IME clear: only a
+  real focus change drops selections (window-wide, as before); a same-widget
+  re-assert leaves them alone. Clicking an already-focused input still collapses
+  its selection to a caret at the click — that path sets the selection itself
+  and never depended on the clear.
 
-- **Markdown/RTF in-document anchor links (`#slug`) now scroll
-  (issue #278).** `rtfOnClick` scrolled the bare slug, but a heading's
-  ID is scoped to its document (`ScopeID(docID, "h", slug)` — e.g.
-  `md:h:slug`, or `panel:md:h:slug` nested), so `FindByID(slug)` missed
-  and the scroll silently no-opped — even at root. The `#` branch now
-  resolves through `rtfResolveAnchor`: for a markdown block (every
-  block carries the document's effective ID in `TC.markdownID`, now
-  stamped on non-focusable documents too), the document-scoped heading
-  spelling is tried first, then the bare slug — so arbitrary absolute
-  targets (`#view:bottom`) and standalone RTF links keep working. The
-  identity stamping and the selection machinery are separate flags now:
-  a non-focusable markdown document gains anchor resolution but keeps
-  its exact prior click behavior (no focus, no mouse lock, no
-  per-frame selection walk).
+- **Markdown/RTF in-document anchor links (`#slug`) now scroll (issue #278).**
+  `rtfOnClick` scrolled the bare slug, but a heading's ID is scoped to its
+  document (`ScopeID(docID, "h", slug)` — e.g. `md:h:slug`, or `panel:md:h:slug`
+  nested), so `FindByID(slug)` missed and the scroll silently no-opped — even at
+  root. The `#` branch now resolves through `rtfResolveAnchor`: for a markdown
+  block (every block carries the document's effective ID in `TC.markdownID`, now
+  stamped on non-focusable documents too), the document-scoped heading spelling
+  is tried first, then the bare slug — so arbitrary absolute targets
+  (`#view:bottom`) and standalone RTF links keep working. The identity stamping
+  and the selection machinery are separate flags now: a non-focusable markdown
+  document gains anchor resolution but keeps its exact prior click behavior (no
+  focus, no mouse lock, no per-frame selection walk).
 
-- **Markdown: cross-block selection works under ID-bearing ancestors
-  (issue #273).** The document's blocks were stamped with the raw
-  `cfg.ID` at generation time, while the container's amend and key
-  handlers keyed on the *effective* ID the resolve pass stamps — so a
-  markdown nested in a panel with an ID collected an empty block list
-  (`nsMdBlocks` was keyed `panel:md`, the blocks matched `md`), and
-  cross-block drag, Ctrl+A, Ctrl+C and click focus were dead, with the
-  click writing selection state under a key nothing read. `Markdown` is
-  now a struct view whose `GenerateLayout` resolves the effective ID
-  once (`w.EffID(cfg.ID)`, the same mechanism the splitter uses) and
-  stamps it into every block and inner ID, so the container, the
-  blocks, the state slots and `SetFocus` all agree on one identity.
-  Flat documents are unchanged; two documents sharing a leaf under
-  different panels now keep separate selections.
+- **Markdown: cross-block selection works under ID-bearing ancestors (issue
+  #273).** The document's blocks were stamped with the raw `cfg.ID` at
+  generation time, while the container's amend and key handlers keyed on the
+  _effective_ ID the resolve pass stamps — so a markdown nested in a panel with
+  an ID collected an empty block list (`nsMdBlocks` was keyed `panel:md`, the
+  blocks matched `md`), and cross-block drag, Ctrl+A, Ctrl+C and click focus
+  were dead, with the click writing selection state under a key nothing read.
+  `Markdown` is now a struct view whose `GenerateLayout` resolves the effective
+  ID once (`w.EffID(cfg.ID)`, the same mechanism the splitter uses) and stamps
+  it into every block and inner ID, so the container, the blocks, the state
+  slots and `SetFocus` all agree on one identity. Flat documents are unchanged;
+  two documents sharing a leaf under different panels now keep separate
+  selections.
 
-- **Markdown: a stale selection no longer survives a document content
-  change (issue #275).** `markdownContainerAmendLayout` now hashes the
-  block list (offsets, rune counts, flat text) each frame and resets
-  the per-widget selection when the hash changes: `SelBeg`/`SelEnd`
-  are rune offsets into the *previous* source, so a stale range would
-  highlight — and Ctrl+C would copy — the wrong runes of the new
-  text. A same-length rewrite of the document is caught too; a pure
-  layout change (resize, font) leaves the selection alone.
+- **Markdown: a stale selection no longer survives a document content change
+  (issue #275).** `markdownContainerAmendLayout` now hashes the block list
+  (offsets, rune counts, flat text) each frame and resets the per-widget
+  selection when the hash changes: `SelBeg`/`SelEnd` are rune offsets into the
+  _previous_ source, so a stale range would highlight — and Ctrl+C would copy —
+  the wrong runes of the new text. A same-length rewrite of the document is
+  caught too; a pure layout change (resize, font) leaves the selection alone.
 
 ### Changed
 
-- **`OnHover` receives the held mouse button.** The window tracks the
-  held button from its own event stream — set on `EventMouseDown`,
-  cleared on `EventMouseUp` and `MouseCancel` — and `layoutHover`
-  reports it in the synthesized hover event: `MouseLeft`/`MouseRight`/
-  `MouseMiddle` while held, `MouseInvalid` when none is held. A hover
-  handler can now distinguish a press-and-hold from a plain hover; it
-  could not before, because the event always arrived with
-  `MouseInvalid`. The event is still `Type: EventMouseMove` and is
-  rebuilt field-by-field every frame.
+- **`OnHover` receives the held mouse button.** The window tracks the held
+  button from its own event stream — set on `EventMouseDown`, cleared on
+  `EventMouseUp` and `MouseCancel` — and `layoutHover` reports it in the
+  synthesized hover event: `MouseLeft`/`MouseRight`/ `MouseMiddle` while held,
+  `MouseInvalid` when none is held. A hover handler can now distinguish a
+  press-and-hold from a plain hover; it could not before, because the event
+  always arrived with `MouseInvalid`. The event is still `Type: EventMouseMove`
+  and is rebuilt field-by-field every frame.
 
-- **`Theme.WithInspectorStyle` is unexported (breaking; no known
-  consumers).** It was the only exported member of the `with*Style`
-  family and was carried on an `exportaudit:keep` claim of sibling-repo
-  use that does not exist. It is now `withInspectorStyle`, matching
-  `withDataGridStyle` and the rest of the family. This completes the
-  issue #288 API-surface review: with all sibling repos scanned, the
-  authoritative audit reports a clean surface — one `none` export
+- **`Theme.WithInspectorStyle` is unexported (breaking; no known consumers).**
+  It was the only exported member of the `with*Style` family and was carried on
+  an `exportaudit:keep` claim of sibling-repo use that does not exist. It is now
+  `withInspectorStyle`, matching `withDataGridStyle` and the rest of the family.
+  This completes the issue #288 API-surface review: with all sibling repos
+  scanned, the authoritative audit reports a clean surface — one `none` export
   (`FillBorder`, intentionally public, showcase-documented) and every
   self/selftest-only export carries a justified keep marker.
 
@@ -119,62 +132,57 @@ and this project adheres to
 
 - **Markdown interaction test suite expands to the nested-document and
   source-change cases** (`gui/markdown_select_interaction_test.go`):
-  effective-ID block collection, click focus, Ctrl+A/C, cross-block
-  drag and per-panel isolation under ID-bearing ancestors; offset-block
-  click accuracy (the click handlers receive shape-relative coordinates
-  via `callRelative`, so a click maps to the rune under the cursor
-  wherever the block sits); and selection reset on content change with
-  an idle-frame positive control. Plus diagram-cache async tests
-  (`gui/markdown_diagram_fetch_test.go`) and block-renderer tests
-  (`gui/view_markdown_blocks_test.go`). Package `gui/` moves from
-  81.0% to 82.4%.
+  effective-ID block collection, click focus, Ctrl+A/C, cross-block drag and
+  per-panel isolation under ID-bearing ancestors; offset-block click accuracy
+  (the click handlers receive shape-relative coordinates via `callRelative`, so
+  a click maps to the rune under the cursor wherever the block sits); and
+  selection reset on content change with an idle-frame positive control. Plus
+  diagram-cache async tests (`gui/markdown_diagram_fetch_test.go`) and
+  block-renderer tests (`gui/view_markdown_blocks_test.go`). Package `gui/`
+  moves from 81.0% to 82.4%.
 
-- **FillFill roots on axis-less containers resolve to the window size
-  (issue #262).** `updateLayoutLocked` pins a Fill root to the window
-  dimensions via `Min = Max`, but the width/height sizing passes only
-  consulted the pin on axis-bearing containers — so a `Splitter` (built
-  on a `Canvas`) returned directly as the root view resolved to 0x0 and
-  was invisible, despite `Sizing` defaulting to `FillFill`. The
-  `axisNone` branch of both passes now honors explicit min/max pins, so
-  `FillFill` is honest on axis-less roots and tracks window resize. It
-  also makes an explicit `MinWidth`/`MaxWidth` on a `Fit`-sized `Canvas`
-  take effect, which is the documented intent of those fields (Fill
-  roots keep the window pin; the fill distribution clamps nested Fill
-  children). Children of axis-less containers keep their sizing
-  semantics unchanged.
+- **FillFill roots on axis-less containers resolve to the window size (issue
+  #262).** `updateLayoutLocked` pins a Fill root to the window dimensions via
+  `Min = Max`, but the width/height sizing passes only consulted the pin on
+  axis-bearing containers — so a `Splitter` (built on a `Canvas`) returned
+  directly as the root view resolved to 0x0 and was invisible, despite `Sizing`
+  defaulting to `FillFill`. The `axisNone` branch of both passes now honors
+  explicit min/max pins, so `FillFill` is honest on axis-less roots and tracks
+  window resize. It also makes an explicit `MinWidth`/`MaxWidth` on a
+  `Fit`-sized `Canvas` take effect, which is the documented intent of those
+  fields (Fill roots keep the window pin; the fill distribution clamps nested
+  Fill children). Children of axis-less containers keep their sizing semantics
+  unchanged.
 
-- **Splitter: a collapsed pane with content now reaches its collapsed
-  size (issue #263).** `splitterLayoutChild` pinned the pane to the size
-  `splitterCompute` decided, then re-ran the fit passes, which recomputed
-  the pane from its content's minimum and overwrote the pin — so a pane
-  holding real content kept a sliver that drew underneath the handle. The
-  pin is now re-applied after the fit passes, so collapse is exact
-  (zero-width with the default `collapsedSize`, or exactly
-  `collapsedSize` when set). Contract note: pane sizes come from
-  ratio/min/max only; content larger than the computed pane size is
-  clipped (panes have `Clip: true`), never stretches the pane.
-- **Splitter: the spacebar toggles collapse again.** `splitterOnKeydown`
-  tested `Event.CharCode`, which backends populate only on `EventChar` —
-  a space keydown arrives with `KeyCode == KeySpace` and `CharCode == 0`,
-  so the branch never fired. Now reads `KeyCode`, matching `DatePicker`,
-  `Tree`, `Menu` and `Select`.
-- **Breadcrumb and TabControl: the spacebar activates again.** Both had
-  the same defect — `bcOnKeydown` and `tabControlOnKeydown` tested
-  `Event.CharCode` from an `OnKeyDown` handler, so space never selected
-  the focused crumb or tab. Both now read `KeyCode == KeySpace`, grouped
-  with the identical `KeyEnter` branch. `Splitter`, `Breadcrumb` and
-  `TabControl` were the only three sites with this defect; every other
-  `CharCode` reader in `gui/` is an `OnChar` handler, where the field is
-  populated.
+- **Splitter: a collapsed pane with content now reaches its collapsed size
+  (issue #263).** `splitterLayoutChild` pinned the pane to the size
+  `splitterCompute` decided, then re-ran the fit passes, which recomputed the
+  pane from its content's minimum and overwrote the pin — so a pane holding real
+  content kept a sliver that drew underneath the handle. The pin is now
+  re-applied after the fit passes, so collapse is exact (zero-width with the
+  default `collapsedSize`, or exactly `collapsedSize` when set). Contract note:
+  pane sizes come from ratio/min/max only; content larger than the computed pane
+  size is clipped (panes have `Clip: true`), never stretches the pane.
+- **Splitter: the spacebar toggles collapse again.** `splitterOnKeydown` tested
+  `Event.CharCode`, which backends populate only on `EventChar` — a space
+  keydown arrives with `KeyCode == KeySpace` and `CharCode == 0`, so the branch
+  never fired. Now reads `KeyCode`, matching `DatePicker`, `Tree`, `Menu` and
+  `Select`.
+- **Breadcrumb and TabControl: the spacebar activates again.** Both had the same
+  defect — `bcOnKeydown` and `tabControlOnKeydown` tested `Event.CharCode` from
+  an `OnKeyDown` handler, so space never selected the focused crumb or tab. Both
+  now read `KeyCode == KeySpace`, grouped with the identical `KeyEnter` branch.
+  `Splitter`, `Breadcrumb` and `TabControl` were the only three sites with this
+  defect; every other `CharCode` reader in `gui/` is an `OnChar` handler, where
+  the field is populated.
 - **Splitter: `SplitterStyle`'s border and radius reach the handle.**
   `applySplitterDefaults` seeded every color from the style but skipped
-  `SizeBorder`, `Radius` and `radiusBorder`, so the handle and the
-  collapse buttons fell through to the generic container and button
-  defaults. Visible change under the stock theme: corner radius on both
-  goes from `radiusMedium` (5.5) to the splitter's `radiusSmall` (3.5) —
-  the border width was already `sizeBorderDef` either way. For a custom
-  theme the splitter's own three values were dead and now apply. An
-  explicit `SomeF(0)` still means "no border".
+  `SizeBorder`, `Radius` and `radiusBorder`, so the handle and the collapse
+  buttons fell through to the generic container and button defaults. Visible
+  change under the stock theme: corner radius on both goes from `radiusMedium`
+  (5.5) to the splitter's `radiusSmall` (3.5) — the border width was already
+  `sizeBorderDef` either way. For a custom theme the splitter's own three values
+  were dead and now apply. An explicit `SomeF(0)` still means "no border".
 - **Splitter: part IDs now scope with the root (issue #264).** `Splitter`
   composed its pane, handle and collapse-button IDs in the factory, where no
   `Window` exists, so under an ID-bearing ancestor the root resolved to
@@ -182,49 +190,47 @@ and this project adheres to
   splitters reusing one leaf ID collided on every part. The splitter is now a
   struct view whose `GenerateLayout` resolves the effective ID
   (`w.EffID(cfg.ID)`) and composes every part under that path. With no
-  ID-bearing ancestor the spellings are unchanged. API consequence: parts of
-  a nested splitter are addressed by scoped effective IDs (`outer:sp:handle`,
+  ID-bearing ancestor the spellings are unchanged. API consequence: parts of a
+  nested splitter are addressed by scoped effective IDs (`outer:sp:handle`,
   `outer:sp:pane:first`).
-- **Splitter: the handle's active (button-held) color now renders during a
-  drag (issue #265).** `splitterOnHandleHover` painted `colorHandleActive`
-  only while `Event.MouseButton == MouseLeft` — a branch no real frame could
-  reach, because `layoutHover` bails while the mouse is locked (and a
-  splitter drag runs under `MouseLock`) and always synthesizes hover events
-  with `MouseButton: MouseInvalid`. The active color is now driven from the
-  splitter's own drag state instead: the press paints the handle immediately
-  and records a pressed flag in window state, and `splitterAmendLayout`
-  re-paints the active color every frame while the lock is held, so the
-  pressed feedback survives the per-frame regeneration of the handle. The
-  flag is cleared on release and by the mouse lock's `Cancel` hook, and the
-  amend paint is additionally guarded by the window's actual lock state, so
-  capture lost without a release (issue #237) can never leave the handle
-  permanently active.
+- **Splitter: the handle's active (button-held) color now renders during a drag
+  (issue #265).** `splitterOnHandleHover` painted `colorHandleActive` only while
+  `Event.MouseButton == MouseLeft` — a branch no real frame could reach, because
+  `layoutHover` bails while the mouse is locked (and a splitter drag runs under
+  `MouseLock`) and always synthesizes hover events with
+  `MouseButton: MouseInvalid`. The active color is now driven from the
+  splitter's own drag state instead: the press paints the handle immediately and
+  records a pressed flag in window state, and `splitterAmendLayout` re-paints
+  the active color every frame while the lock is held, so the pressed feedback
+  survives the per-frame regeneration of the handle. The flag is cleared on
+  release and by the mouse lock's `Cancel` hook, and the amend paint is
+  additionally guarded by the window's actual lock state, so capture lost
+  without a release (issue #237) can never leave the handle permanently active.
 
 ### Added
 
-- **Splitter interaction test suite**
-  (`gui/view_splitter_interaction_test.go`): AmendLayout geometry, drag
-  resize through the mouse lock, hover, the keyboard map, and the
-  collapse buttons. Both splitter files reach 100% statement coverage;
-  package `gui/` moves from 79.8% to 81.0%.
+- **Splitter interaction test suite** (`gui/view_splitter_interaction_test.go`):
+  AmendLayout geometry, drag resize through the mouse lock, hover, the keyboard
+  map, and the collapse buttons. Both splitter files reach 100% statement
+  coverage; package `gui/` moves from 79.8% to 81.0%.
 
 ## [v0.59.2] - 2026-08-13
 
 ### Changed
 
-- **go-glyph bumped to v1.20.2** — the face LRU now idle-evicts and the
-  fallback cache evicts FIFO, so long sessions release font memory without
-  new face churn; single-codepoint emoji fallback is decided from cmap
-  coverage alone (PR #266).
+- **go-glyph bumped to v1.20.2** — the face LRU now idle-evicts and the fallback
+  cache evicts FIFO, so long sessions release font memory without new face
+  churn; single-codepoint emoji fallback is decided from cmap coverage alone (PR
+  #266).
 
 ## [v0.59.1] - 2026-08-12
 
 ### Fixed
 
-- **GL backend tests now run cgo-free** to dodge a runtime exit crash on
-  macOS (issue #162, PR #257).
-- **`make` gates match golangci-lint's version string** without assuming a
-  `v` prefix (PR #258), fixing local runs against newer linter releases.
+- **GL backend tests now run cgo-free** to dodge a runtime exit crash on macOS
+  (issue #162, PR #257).
+- **`make` gates match golangci-lint's version string** without assuming a `v`
+  prefix (PR #258), fixing local runs against newer linter releases.
 
 ### Changed
 
@@ -235,21 +241,20 @@ and this project adheres to
 
 ### Added
 
-- **`Sizing` self-flags like `Padding`/`Color` (#243, #254).** `Sizing`
-  carries a `set` field: the zero value (`FitFit`) is a real combination, so
-  the flag is what distinguishes "unset" from an explicit `Sizing{FitFit}`.
-  Predefined vars (`FitFit`…`FillFixed`) set it; read with `IsSet()`/`Or()`.
-  The raw `Sizing{...}` literal now reads as unset (ergoaudit literals mode
-  flags it). `DataGridCfg.Sizing` drops `Opt[gg.Sizing]` for plain
-  `gg.Sizing` (breaking). An explicit `FitFit` + wrap mode in text is no
-  longer clobbered to `FillFit`.
+- **`Sizing` self-flags like `Padding`/`Color` (#243, #254).** `Sizing` carries
+  a `set` field: the zero value (`FitFit`) is a real combination, so the flag is
+  what distinguishes "unset" from an explicit `Sizing{FitFit}`. Predefined vars
+  (`FitFit`…`FillFixed`) set it; read with `IsSet()`/`Or()`. The raw
+  `Sizing{...}` literal now reads as unset (ergoaudit literals mode flags it).
+  `DataGridCfg.Sizing` drops `Opt[gg.Sizing]` for plain `gg.Sizing` (breaking).
+  An explicit `FitFit` + wrap mode in text is no longer clobbered to `FillFit`.
 
 ### Changed
 
 - **Async present outside live resize on macOS Metal (#255).** During live
   window resize the Metal backend now presents asynchronously, decoupling
-  presentation from the resize hot path instead of blocking on the
-  drawable. Reduced jank and dropped frames while resizing.
+  presentation from the resize hot path instead of blocking on the drawable.
+  Reduced jank and dropped frames while resizing.
 
 ## [v0.58.0] - 2026-08-11
 

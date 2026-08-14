@@ -88,9 +88,12 @@ type ViewState struct {
 	rtfLayoutCache *BoundedMap[uint64, rtfLayoutEntry]
 	tooltip        tooltipState
 
-	// Markdown caches (lazy-init: nil until first use).
-	markdownTheme     string
-	rtfLayoutTheme    string
+	// Markdown caches (lazy-init: nil until first use). Keyed on
+	// Theme.id, not Theme.Name: a derived or scoped theme can carry the
+	// same name with different text styles, which a name key would serve
+	// stale layouts for.
+	markdownTheme     uint64
+	rtfLayoutTheme    uint64
 	diagramRequestSeq uint64
 	focusID           string
 
