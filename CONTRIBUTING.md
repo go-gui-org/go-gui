@@ -11,6 +11,13 @@ For a tight edit → rebuild → relaunch loop while iterating on an example app
 see [docs/dev-loop.md](docs/dev-loop.md)
 (`./scripts/dev-loop.sh ./examples/get_started/`).
 
+Build artifacts never land in the repo root: `make build-examples` writes each
+example to `examples/bin/`, `make build-macos`/`build-windows`/etc. write to
+`build/`, and `scripts/dev-loop.sh` writes to `build/dev-loop/`. A bare
+`go build ./examples/<name>/` or `go build ./tools/<name>/` drops a binary in
+the repo root, so always pass `-o` with an explicit output path (e.g.
+`-o build/<name>`).
+
 `go vet` does not run the `requiredid` analyzer — it is a standalone
 framework-owned analyzer. CI runs it on every push, and `make vet` includes it.
 Adopter projects can invoke it the same way, standalone, without the Makefile:
@@ -78,27 +85,3 @@ package that demonstrates a specific feature or pattern.
 ## License
 
 Contributions are accepted under the [MIT License](LICENSE).
-
-## Troubleshooting
-
-### Windows: `undefined reference to __ms_vsscanf`
-
-`gui/compat_mingw.go` provides a compatibility shim so **this error should not
-appear** when building with current go-gui. If you see it on an older revision:
-
-**Why:** Bundled static libraries compiled against older MinGW GCC may reference
-`__ms_vsscanf`, which was removed in MinGW-w64 GCC ≥15. The
-`gui/compat_mingw.go` file provides a compatibility shim.
-
-**Solutions (pick one):**
-
-1. **Update go-gui** to a revision that includes `gui/compat_mingw.go`.
-
-2. **Use dynamic linking** (simplest for development):
-
-   ```bash
-   CGO_ENABLED=1 go build ./examples/showcase/
-   ```
-
-3. **Use the release zip's pre-built binary.** Download from the latest GitHub
-   release.
