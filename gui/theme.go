@@ -1,12 +1,41 @@
 package gui
 
-import "sync"
+import (
+	"sync"
+	"sync/atomic"
+)
 
-// guiTheme is the package-level active theme.
+// Theme state comes in two layers.
+//
+// guiTheme (and the ~30 default*Style mirrors that applyTheme writes) is
+// the *installed* theme: a frame-scoped cache of the theme belonging to
+// the window currently being generated. Widget factories read it at
+// construction time, which is inside that window's frame pass, so the
+// value they see is that window's theme. Only the frame thread writes it,
+// through applyTheme.
+//
+// defaultTheme is *app* state: the theme a window follows until it sets
+// its own with (*Window).SetTheme. Package-level SetTheme writes this one.
 var (
 	guiTheme   Theme
 	guiThemeMu sync.RWMutex
+
+	defaultTheme   Theme
+	defaultThemeMu sync.RWMutex
+
+	// installedThemeID is the id of the theme currently written into
+	// guiTheme and the style mirrors. Frame-thread only.
+	installedThemeID uint64
+
+	// themeIDCounter hands out Theme.id values. Starts at 1 so a
+	// zero-valued Theme never collides with a real one.
+	themeIDCounter atomic.Uint64
 )
+
+// nextThemeID returns a fresh theme identity.
+func nextThemeID() uint64 {
+	return themeIDCounter.Add(1)
+}
 
 // Theme describes a complete GUI theme. Only styles for existing
 // Go views are populated (Button, Container, Rectangle, Text,
@@ -111,6 +140,12 @@ type Theme struct {
 	scrollDeltaLine  float32
 	scrollDeltaPage  float32
 	inspectorStyle   InspectorStyle
+
+	// id identifies this exact theme value. Stamped by ThemeMaker and
+	// re-stamped by every with*Style helper, so a derived theme never
+	// reuses its parent's id. Zero means "built outside ThemeMaker" and
+	// forces a re-install rather than a wrong fast-path hit.
+	id uint64
 
 	ColorBackground Color
 	ColorPanel      Color
@@ -233,8 +268,36 @@ func CurrentTheme() Theme {
 	return guiTheme
 }
 
-// SetTheme sets the active theme and updates all Default*Style vars.
+// SetTheme sets the app-default theme: the theme every window follows
+// until it pins its own with (*Window).SetTheme. Windows that never pin
+// one pick this up on their next frame, so calling SetTheme from main or
+// from an event handler rethemes the app as it always has.
 func SetTheme(t Theme) {
+	defaultThemeMu.Lock()
+	defaultTheme = t
+	defaultThemeMu.Unlock()
+	// Install eagerly as well, so callers outside a frame pass — main
+	// before Run, tests building views directly — see the change at
+	// once. Each window's frame start re-installs its own theme, so
+	// this cannot outlive the next frame of a window that pinned one.
+	applyTheme(t)
+	appUpdateWindows()
+}
+
+// currentDefaultTheme returns the app-default theme.
+func currentDefaultTheme() Theme {
+	defaultThemeMu.RLock()
+	defer defaultThemeMu.RUnlock()
+	return defaultTheme
+}
+
+// applyTheme installs t as the active theme: guiTheme plus every
+// default*Style mirror that widget factories read.
+//
+// Frame-thread only. Callers are (*Window).installTheme at frame start,
+// Themed's push/pop around a scoped subtree, and package init.
+func applyTheme(t Theme) {
+	installedThemeID = t.id
 	guiThemeMu.Lock()
 	defer guiThemeMu.Unlock()
 	guiTheme = t

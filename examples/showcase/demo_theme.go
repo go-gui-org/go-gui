@@ -285,7 +285,55 @@ func demoThemeGen(w *gui.Window) gui.View {
 					}),
 				},
 			}),
+			themeContrastPreview(),
 		},
+	})
+}
+
+// themeContrastPreview renders the same widgets under the light preset
+// while the rest of the window keeps its own theme. gui.Themed scopes a
+// theme to one subtree; its builder runs at layout-generation time,
+// which is what lets the widgets inside resolve their defaults from the
+// scoped theme rather than the window's.
+func themeContrastPreview() gui.View {
+	light, ok := gui.ThemeGet("light")
+	if !ok {
+		return nil
+	}
+	return gui.Themed(light, func(w *gui.Window) gui.View {
+		lt := gui.CurrentTheme()
+		return gui.Column(gui.ContainerCfg{
+			ID:      "theme-preview",
+			Sizing:  gui.FillFit,
+			Spacing: gui.SomeF(8),
+			Padding: gui.PadAll(12),
+			Color:   lt.ColorPanel,
+			Radius:  gui.SomeF(8),
+			Content: []gui.View{
+				gui.Text(gui.TextCfg{
+					Text:      "Scoped theme (light) — window theme unchanged",
+					TextStyle: lt.N3,
+				}),
+				gui.Row(gui.ContainerCfg{
+					Sizing:  gui.FillFit,
+					Spacing: gui.SomeF(8),
+					Padding: gui.NoPadding,
+					Content: []gui.View{
+						gui.Button(gui.ButtonCfg{
+							ID:      "theme-preview-btn",
+							Content: []gui.View{gui.Text(gui.TextCfg{Text: "Button"})},
+						}),
+						gui.Switch(gui.SwitchCfg{ID: "theme-preview-switch"}),
+						gui.Slider(gui.SliderCfg{
+							ID:     "theme-preview-slider",
+							Value:  40,
+							Width:  120,
+							Sizing: gui.FixedFit,
+						}),
+					},
+				}),
+			},
+		})
 	})
 }
 

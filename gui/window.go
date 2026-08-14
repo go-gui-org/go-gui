@@ -191,6 +191,14 @@ type Window struct {
 	// Cleanup guard.
 	cleanupOnce sync.Once
 
+	// Theme owned by this window. Unset until SetTheme pins one, in
+	// which case the window follows the app default. Read from any
+	// goroutine (Theme()), written by SetTheme — hence its own lock
+	// rather than piggybacking on mu, which the frame pass holds.
+	theme    Theme
+	themeSet bool
+	themeMu  sync.RWMutex
+
 	// Mutexes.
 	mu         sync.Mutex // guards layout/renderer state
 	commandsMu sync.Mutex // guards command queue
@@ -465,12 +473,6 @@ func (w *Window) Timings() FrameTimings { return w.frameTimings }
 // MouseCursorState returns the current mouse cursor shape.
 func (w *Window) MouseCursorState() MouseCursor {
 	return w.viewState.mouseCursor
-}
-
-// SetTheme sets the active theme and updates the window.
-func (w *Window) SetTheme(t Theme) {
-	SetTheme(t)
-	w.UpdateWindow()
 }
 
 // App returns the parent App, or nil for single-window mode.

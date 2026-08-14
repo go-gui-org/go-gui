@@ -223,10 +223,10 @@ func layoutWrapRTF(shape *Shape, tc *shapeTextConfig, w *Window) {
 	vs := &w.viewState
 
 	// Invalidate on theme change.
-	themeName := guiTheme.Name
-	if vs.rtfLayoutCache != nil && vs.rtfLayoutTheme != themeName {
+	themeID := guiTheme.id
+	if vs.rtfLayoutCache != nil && vs.rtfLayoutTheme != themeID {
 		vs.rtfLayoutCache.Clear()
-		vs.rtfLayoutTheme = themeName
+		vs.rtfLayoutTheme = themeID
 	}
 
 	// Check cross-frame cache.
@@ -285,7 +285,7 @@ func layoutWrapRTF(shape *Shape, tc *shapeTextConfig, w *Window) {
 	// Store in cross-frame cache.
 	if vs.rtfLayoutCache == nil {
 		vs.rtfLayoutCache = NewBoundedMap[uint64, rtfLayoutEntry](200)
-		vs.rtfLayoutTheme = themeName
+		vs.rtfLayoutTheme = themeID
 	}
 	vs.rtfLayoutCache.Set(cacheKey, rtfLayoutEntry{
 		Layout: l,

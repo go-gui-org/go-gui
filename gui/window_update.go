@@ -160,6 +160,10 @@ func (w *Window) UpdateView(gen func(*Window) View) {
 // should call renderFrame.
 func (w *Window) FrameFn() bool {
 	w.frameCount++
+	// Before anything reads theme state this frame: make this window's
+	// theme the installed one. Also covers the backend's clear-color
+	// read, which happens right after FrameFn on the same thread.
+	w.installTheme()
 	w.flushCommands()
 	var rebuilt bool
 	if w.refreshLayout {
@@ -208,6 +212,9 @@ func (w *Window) PumpFrame() bool {
 
 // Update performs a full layout rebuild and re-renders.
 func (w *Window) Update() {
+	// Repeated from FrameFn because tests drive Update directly.
+	// Idempotent: a no-op when this window's theme is already installed.
+	w.installTheme()
 	w.mu.Lock()
 	w.refreshLayout = false
 	w.refreshRenderOnly = false

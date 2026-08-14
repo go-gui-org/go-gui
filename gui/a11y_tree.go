@@ -316,5 +316,6 @@ func (w *Window) WindowCleanup() {
 		}
 		w.clearViewStateLocked()
 		w.renderGuardWarned = 0
+		unregisterWindow(w)
 	})
 }

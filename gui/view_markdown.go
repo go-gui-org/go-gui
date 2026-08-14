@@ -298,12 +298,12 @@ func (mv *markdownView) GenerateLayout(w *Window) Layout {
 
 	// Cache lookup; invalidate on theme change.
 	hash := int64(markdown.MathHash(cfg.Source))
-	themeName := guiTheme.Name
+	themeID := guiTheme.id
 	if w.viewState.markdownCache == nil ||
-		w.viewState.markdownTheme != themeName {
+		w.viewState.markdownTheme != themeID {
 		w.viewState.markdownCache =
 			NewBoundedMap[int64, []markdownBlock](100)
-		w.viewState.markdownTheme = themeName
+		w.viewState.markdownTheme = themeID
 	}
 	blocks, ok := w.viewState.markdownCache.Get(hash)
 	if !ok {
