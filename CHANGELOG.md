@@ -25,6 +25,43 @@ and this project adheres to
   is what makes the scope work: factories resolve defaults when they are called,
   so ready-made child views would already carry the enclosing theme.
 
+### Changed
+
+- **The default appearance changed: `ThemeMaker` is now the only source of
+  widget styling (issue #300).** Go-Gui carried two sets of defaults — about 30
+  `default*Style` literals in `styles*.go`, and `ThemeDark` — and they had
+  drifted apart. Because `init` never installed a theme, an app that never
+  called `SetTheme` ran on a mixture of the two, and switching themes once
+  restyled it. The literals are gone; `init` installs `ThemeDark`.
+
+  Every widget now looks the way it already did after any theme switch. The
+  visible differences from the old fresh-app look:
+
+  - Buttons, inputs, containers, dialogs, toasts, tooltips, expand panels,
+    selects, trees, switches, toggles, tab controls, date pickers, color
+    pickers, menubars, splitters, the command palette, comboboxes and listboxes
+    lose their 1.5px border. Sliders lose 1px, radios 2px. `ThemeDark` is
+    borderless by design; bordered is the separate `dark-bordered` preset.
+  - The **data grid gains its styling**. Its literal was an unstyled placeholder
+    with zero colors, so an unthemed datagrid rendered flat.
+  - Inputs and listboxes take the theme's medium padding (10 rather than 5/6),
+    so they are slightly taller.
+  - Badges turn grey with bold white text instead of blue with unstyled text.
+  - Dialogs gain 200/300 width bounds; toast titles are no longer bold; the
+    button click color, input/switch/toggle focus colors, toggle radius, submenu
+    spacing, command-palette detail color and input spell-error color all move
+    to their `ThemeDark` values.
+  - `NumericInput` and `RadioButtonGroup` follow the active theme. Both had a
+    private hard-coded 1.5px border that no theme could reach, light included.
+
+  To keep the previous look, install the bordered variant:
+
+  ```go
+  gui.SetTheme(gui.ThemeDark.WithBorders(true))
+  ```
+
+  See `docs/specs/theme-style-single-source.md`.
+
 ### Fixed
 
 - **Theme-keyed text caches no longer serve stale layouts.** The per-window

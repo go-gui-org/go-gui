@@ -101,24 +101,20 @@ of the active theme.
 Unchanged. Factories fill only the fields a caller left unset, so an assigned
 `Cfg` field beats the theme at every level, inside a `Themed` subtree included.
 
-## Known drift, deliberately not fixed here
+## One source of truth
 
-`init` seeds `installedThemeID` instead of installing `ThemeDark`, so the first
-frame's `installTheme` is a no-op and the shipped default appearance is
-unchanged.
+`init` calls `applyTheme(ThemeDark)`, so the `default*Style` package vars in
+`styles*.go` are filled from `ThemeMaker` before the first frame. They carry no
+literals of their own.
 
-This matters because the `default*Style` literals in `styles*.go` do not all
-match `ThemeDark`. Examples: `SizeBorder` is 1.5 in the literals and 0 in
-`ThemeDark` for button, input, container, dialog, toast and others; the
-`dataGrid` literal is an unstyled placeholder with zero colors; `badge.Color`,
-`input.Padding` and `listbox.Padding` differ. An app that never calls `SetTheme`
-runs on this mixture today, because some widgets read `guiTheme.xStyle` and
-others read the `default*Style` mirror.
-
-Installing `ThemeDark` at init would silently restyle every such app. The first
-`SetTheme` call already replaces the literals, today and before this change, so
-the mixture is short-lived in practice. Reconciling the literals with
-`ThemeDark` is a visible-appearance decision and belongs in its own change.
+This was not true when per-window themes landed. `init` seeded
+`installedThemeID` instead, leaving the literals in place, so an app that never
+called `SetTheme` ran on a mixture: widgets reading `guiTheme.xStyle` got
+`ThemeDark` while widgets reading the mirror got the literals. Issue #300
+removed the literals and resolved every delta in `ThemeDark`'s favour — a
+visible change to the default appearance, chiefly the loss of the 1.5px border
+on buttons, inputs and containers. See
+`docs/specs/theme-style-single-source.md`.
 
 ## Follow-up
 

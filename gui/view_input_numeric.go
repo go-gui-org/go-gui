@@ -61,21 +61,15 @@ type NumericInputCfg struct {
 	Invisible bool
 }
 
-// DefaultNumericInputStyle holds defaults for NumericInputCfg Opt fields.
-var defaultNumericInputStyle = struct {
-	SizeBorder float32
-	Radius     float32
-}{
-	SizeBorder: sizeBorderDef,
-	Radius:     radiusMedium,
-}
-
 // NumericInput creates a locale-aware numeric input.
 func NumericInput(cfg NumericInputCfg) View {
 	applyNumericInputDefaults(&cfg)
 	requireFocusID("NumericInput", cfg.FocusDisabled, cfg.ID)
 
-	dn := &defaultNumericInputStyle
+	// A numeric input is an Input with steppers, so it takes its border
+	// and radius from the theme's input style rather than a private copy
+	// that no theme could reach (issue #300).
+	dn := &defaultInputStyle
 	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
 	radius := cfg.Radius.Get(dn.Radius)
 	locale := numericLocaleNormalize(cfg.Locale)

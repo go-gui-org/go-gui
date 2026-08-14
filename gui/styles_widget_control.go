@@ -1,7 +1,5 @@
 package gui
 
-import "github.com/go-gui-org/go-glyph"
-
 // ProgressBarStyle defines progress bar visual properties.
 // exportaudit:keep — reachable from an exported signature
 type ProgressBarStyle struct {
@@ -243,240 +241,31 @@ type SkeletonStyle struct {
 	Radius         float32
 }
 
-// Default widget styles (dark theme).
+// Widget style mirrors. See the note on the mirror block in styles.go:
+// ThemeMaker is the only source of these values — never add an
+// initializer here.
 var (
-	defaultProgressBarStyle = ProgressBarStyle{
-		Size:           20,
-		Color:          colorInteriorDark,
-		colorBar:       colorSelectDark,
-		ColorBorder:    colorBorderDark,
-		textBackground: ColorTransparent,
-		Padding:        PaddingNone,
-		textPadding:    NewPadding(1, 4, 1, 4),
-		SizeBorder:     0,
-		Radius:         radiusSmall,
-		TextShow:       true,
-		TextStyle:      DefaultTextStyle,
-	}
+	defaultProgressBarStyle ProgressBarStyle
 
-	defaultSliderStyle = SliderStyle{
-		Size:             6,
-		ThumbSize:        16,
-		Color:            colorInteriorDark,
-		colorClick:       colorActiveDark,
-		colorThumb:       colorPanelDark,
-		colorLeft:        colorSelectDark,
-		ColorFocus:       colorSelectDark,
-		ColorHover:       colorHoverDark,
-		ColorBorder:      colorBorderDark,
-		ColorBorderFocus: colorSelectDark,
-		Padding:          PaddingNone,
-		SizeBorder:       1,
-		Radius:           3,
-	}
+	defaultSliderStyle SliderStyle
 
-	defaultTabControlStyle = TabControlStyle{
-		Color:               colorPanelDark,
-		ColorBorder:         colorBorderDark,
-		ColorHeader:         ColorTransparent,
-		colorHeaderBorder:   ColorTransparent,
-		colorContent:        colorPanelDark,
-		colorContentBorder:  colorBorderDark,
-		colorTab:            colorInteriorDark,
-		colorTabHover:       colorHoverDark,
-		colorTabFocus:       colorFocusDark,
-		colorTabClick:       colorActiveDark,
-		colorTabSelected:    colorSelectDark,
-		colorTabDisabled:    colorPanelDark,
-		colorTabBorder:      colorBorderDark,
-		colorTabBorderFocus: colorSelectDark,
-		Padding:             PaddingNone,
-		PaddingHeader:       PaddingNone,
-		paddingContent:      paddingMedium,
-		paddingTab:          PaddingSmall,
-		SizeBorder:          sizeBorderDef,
-		sizeTabBorder:       sizeBorderDef,
-		Radius:              radiusMedium,
-		radiusHeader:        radiusSmall,
-		radiusContent:       radiusMedium,
-		radiusTab:           radiusSmall,
-		spacingHeader:       2,
-		TextStyle:           DefaultTextStyle,
-		textStyleSelected: TextStyle{
-			Color: colorTextDark,
-			Size:  sizeTextMedium,
-		},
-		textStyleDisabled: TextStyle{
-			Color: RGBA(colorTextDark.R, colorTextDark.G, colorTextDark.B, 130),
-			Size:  sizeTextMedium,
-		},
-	}
+	defaultTabControlStyle TabControlStyle
 
-	defaultBreadcrumbStyle = BreadcrumbStyle{
-		Separator:          "/",
-		Color:              ColorTransparent,
-		ColorBorder:        ColorTransparent,
-		colorTrail:         ColorTransparent,
-		colorCrumb:         ColorTransparent,
-		colorCrumbHover:    colorHoverDark,
-		colorCrumbClick:    colorActiveDark,
-		colorCrumbSelected: ColorTransparent,
-		colorCrumbDisabled: ColorTransparent,
-		colorContent:       colorPanelDark,
-		colorContentBorder: colorBorderDark,
-		Padding:            PaddingNone,
-		paddingTrail:       PaddingSmall,
-		paddingCrumb:       NewPadding(2, 4, 2, 4),
-		paddingContent:     paddingMedium,
-		Radius:             radiusMedium,
-		radiusCrumb:        radiusSmall,
-		radiusContent:      radiusMedium,
-		Spacing:            SpacingSmall,
-		spacingTrail:       SpacingSmall,
-		sizeContentBorder:  sizeBorderDef,
-		TextStyle:          DefaultTextStyle,
-		textStyleSelected: TextStyle{
-			Color: colorTextDark,
-			Size:  sizeTextMedium,
-		},
-		textStyleDisabled: TextStyle{
-			Color: RGBA(colorTextDark.R, colorTextDark.G, colorTextDark.B, 130),
-			Size:  sizeTextMedium,
-		},
-		textStyleSeparator: TextStyle{
-			Color: RGBA(colorTextDark.R, colorTextDark.G, colorTextDark.B, 160),
-			Size:  sizeTextMedium,
-		},
-	}
+	defaultBreadcrumbStyle BreadcrumbStyle
 
-	defaultSplitterStyle = SplitterStyle{
-		HandleSize:        9,
-		dragStep:          0.02,
-		dragStepLarge:     0.10,
-		colorHandle:       colorInteriorDark,
-		colorHandleHover:  colorHoverDark,
-		colorHandleActive: colorActiveDark,
-		colorHandleBorder: colorBorderDark,
-		colorGrip:         colorSelectDark,
-		colorButton:       colorInteriorDark,
-		colorButtonHover:  colorHoverDark,
-		colorButtonActive: colorActiveDark,
-		colorButtonIcon:   colorTextDark,
-		SizeBorder:        sizeBorderDef,
-		Radius:            radiusSmall,
-		radiusBorder:      radiusSmall,
-	}
+	defaultSplitterStyle SplitterStyle
 
-	defaultTableStyle = TableStyle{
-		ColorBorder: colorBorderDark,
-		ColorSelect: colorSelectDark,
-		ColorHover:  colorHoverDark,
-		cellPadding: PaddingTwoFive,
-		TextStyle:   DefaultTextStyle,
-		TextStyleHead: TextStyle{
-			Color:    DefaultTextStyle.Color,
-			Size:     DefaultTextStyle.Size,
-			Typeface: glyph.TypefaceBold,
-		},
-		alignHead:          HAlignCenter,
-		columnWidthDefault: 50,
-		columnWidthMin:     20,
-	}
+	defaultTableStyle TableStyle
 
-	defaultComboboxStyle = ComboboxStyle{
-		Color:             colorInteriorDark,
-		ColorHover:        colorHoverDark,
-		ColorFocus:        colorInteriorDark,
-		ColorBorder:       colorBorderDark,
-		ColorBorderFocus:  colorSelectDark,
-		ColorHighlight:    colorSelectDark,
-		Padding:           PaddingSmall,
-		SizeBorder:        sizeBorderDef,
-		Radius:            radiusMedium,
-		MinWidth:          75,
-		MaxWidth:          200,
-		maxDropdownHeight: 200,
-		TextStyle:         DefaultTextStyle,
-		PlaceholderStyle: TextStyle{
-			Color: RGBA(colorTextDark.R, colorTextDark.G, colorTextDark.B, 100),
-			Size:  sizeTextMedium,
-		},
-	}
+	defaultComboboxStyle ComboboxStyle
 
-	defaultCommandPaletteStyle = CommandPaletteStyle{
-		Color:          colorPanelDark,
-		ColorBorder:    colorBorderDark,
-		ColorHighlight: colorSelectDark,
-		SizeBorder:     sizeBorderDef,
-		Radius:         radiusMedium,
-		Width:          500,
-		MaxHeight:      400,
-		TextStyle:      DefaultTextStyle,
-		detailStyle: TextStyle{
-			Color: RGBA(128, 128, 128, 200),
-			Size:  sizeTextMedium,
-		},
-		backdropColor: RGBA(0, 0, 0, 120),
-	}
+	defaultCommandPaletteStyle CommandPaletteStyle
 
-	defaultDatePickerStyle = DatePickerStyle{
-		cellSpacing:      2,
-		Color:            colorInteriorDark,
-		ColorHover:       colorHoverDark,
-		ColorFocus:       colorFocusDark,
-		colorClick:       colorActiveDark,
-		ColorBorder:      colorBorderDark,
-		ColorBorderFocus: colorSelectDark,
-		ColorSelect:      colorSelectDark,
-		Padding:          PaddingSmall,
-		SizeBorder:       sizeBorderDef,
-		Radius:           radiusMedium,
-		radiusBorder:     radiusMedium,
-		TextStyle:        DefaultTextStyle,
-	}
+	defaultDatePickerStyle DatePickerStyle
 
-	defaultColorPickerStyle = ColorPickerStyle{
-		Color:            colorInteriorDark,
-		ColorBorder:      colorBorderDark,
-		ColorBorderFocus: colorSelectDark,
-		SizeBorder:       sizeBorderDef,
-		Radius:           radiusMedium,
-		sVSize:           200,
-		sliderHeight:     24,
-		indicatorSize:    16,
-		TextStyle:        DefaultTextStyle,
-	}
+	defaultColorPickerStyle ColorPickerStyle
 
-	defaultSkeletonStyle = SkeletonStyle{
-		Color:          colorInteriorDark,
-		ColorHighlight: colorInteriorDark.Add(RGBA(20, 20, 20, 0)),
-		Radius:         radiusSmall,
-	}
+	defaultSkeletonStyle SkeletonStyle
 
-	defaultMenubarStyle = MenubarStyle{
-		widthSubmenuMin:  50,
-		widthSubmenuMax:  200,
-		Color:            colorInteriorDark,
-		ColorHover:       colorHoverDark,
-		ColorFocus:       colorFocusDark,
-		ColorBorder:      colorBorderDark,
-		ColorBorderFocus: colorSelectDark,
-		ColorSelect:      colorSelectDark,
-		Padding:          PaddingSmall,
-		paddingMenuItem:  PaddingTwoFive,
-		paddingSubmenu:   PaddingSmall,
-		paddingSubtitle:  NewPadding(0, PadSmall, 0, PadSmall),
-		SizeBorder:       sizeBorderDef,
-		Radius:           radiusSmall,
-		radiusBorder:     radiusMedium,
-		radiusSubmenu:    radiusSmall,
-		radiusMenuItem:   radiusSmall,
-		Spacing:          SpacingMedium,
-		spacingSubmenu:   0,
-		TextStyle:        DefaultTextStyle,
-		textStyleSubtitle: TextStyle{
-			Color: colorTextDark,
-			Size:  sizeTextSmall,
-		},
-	}
+	defaultMenubarStyle MenubarStyle
 )
