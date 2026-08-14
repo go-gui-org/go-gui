@@ -370,7 +370,7 @@ func TestResizeHandleReturnsView(t *testing.T) {
 		Columns:           []GridColumnCfg{{ID: "c1"}},
 	}
 	col := GridColumnCfg{ID: "c1"}
-	v := dataGridResizeHandle(cfg, col, "")
+	v := dataGridResizeHandle(cfg, col, "", "")
 	if v == nil {
 		t.Fatal("resize handle should return a view")
 	}
@@ -448,13 +448,15 @@ func TestResizeHandleHoverPressedColor(t *testing.T) {
 	w.FrameFn()
 
 	// Click 1: starts a resize drag — the mouse locks and hover is
-	// silent, so the color is untouched while held (D3).
+	// silent, so OnHover cannot paint; the handle renders its
+	// generation-time color instead, which is the active color while
+	// the resize state is set (issue #284).
 	press := &gg.Event{Type: gg.EventMouseDown, MouseButton: gg.MouseLeft,
 		MouseX: x, MouseY: y}
 	w.EventFn(press)
 	root = w.TestRender(nil)
-	if c := handleColor(); c != handle {
-		t.Fatalf("drag held: color = %+v, want %+v (hover must stay silent under the lock)", c, handle)
+	if c := handleColor(); c != active {
+		t.Fatalf("drag held: color = %+v, want %+v (resize state drives the mid-drag color)", c, active)
 	}
 	w.EventFn(&gg.Event{Type: gg.EventMouseUp, MouseButton: gg.MouseLeft,
 		MouseX: x, MouseY: y})
@@ -475,6 +477,150 @@ func TestResizeHandleHoverPressedColor(t *testing.T) {
 	root = w.TestRender(nil)
 	if c := handleColor(); c != handle {
 		t.Fatalf("released: color = %+v, want %+v", c, handle)
+	}
+}
+
+// TestResizeHandleActiveDuringDrag pins the generation-time color of
+// the resize handle while a resize drag is in flight: the handle's
+// resting color must come from the resize state
+// (dataGridActiveResizeColID), not from hover, because the drag holds
+// a mouse lock and layoutHover bails under a lock
+// (gui/layout_pipeline.go) — the OnHover active-color branch cannot
+// fire mid-drag. Press starts the drag, the handle renders
+// colorResizeActive; release ends the drag and the handle reverts to
+// colorResizeHandle.
+func TestResizeHandleActiveDuringDrag(t *testing.T) {
+	handle := gg.RGBA(180, 180, 180, 255)
+	active := gg.RGBA(100, 100, 255, 255)
+	cfg := DataGridCfg{
+		ID:                "g1",
+		ColorResizeHandle: handle,
+		ColorResizeActive: active,
+		TextStyleHeader:   gg.DefaultTextStyle,
+		TextStyle:         gg.DefaultTextStyle,
+		ColorHeader:       gg.RGBA(240, 240, 240, 255),
+		ColorBorder:       gg.RGBA(180, 180, 180, 255),
+		PaddingHeader:     gg.NewPadding(2, 4, 2, 4),
+		SizeBorder:        gg.SomeF(0),
+		Columns: []GridColumnCfg{{
+			ID: "c1", Title: "Col1", resizable: true,
+			Width: gg.SomeF(120),
+		}},
+	}
+	w := gg.NewTestWindow(gg.WindowCfg{})
+	defer w.Close()
+	w.TestRender(func(win *gg.Window) gg.View { return New(w, cfg) })
+
+	// Bring the header controls (and the handle) into the tree by
+	// focusing the header cell.
+	w.SetFocus("g1:header:c1")
+	root := w.TestRender(nil)
+
+	ly, ok := root.FindByID("g1:resize:c1")
+	if !ok {
+		t.Fatal("no resize handle in tree after focusing the column")
+	}
+	s := ly.Shape
+	x, y := s.X+s.Width/2, s.Y+s.Height/2
+
+	handleColor := func() gg.Color {
+		ly, ok := root.FindByID("g1:resize:c1")
+		if !ok {
+			t.Fatal("resize handle left the tree")
+		}
+		return ly.Shape.Color
+	}
+
+	w.FrameFn()
+
+	// Press: starts the resize drag and locks the mouse. The next
+	// generation paints the active color because the resize state says
+	// this column is being resized.
+	w.EventFn(&gg.Event{Type: gg.EventMouseDown, MouseButton: gg.MouseLeft,
+		MouseX: x, MouseY: y})
+	root = w.TestRender(nil)
+	if c := handleColor(); c != active {
+		t.Fatalf("during drag: color = %+v, want %+v", c, active)
+	}
+
+	// Drag a few px: the lock routes the move into the drag handler,
+	// and the next generation still paints the active color.
+	w.EventFn(&gg.Event{Type: gg.EventMouseMove, MouseX: x + 5, MouseY: y})
+	root = w.TestRender(nil)
+	if c := handleColor(); c != active {
+		t.Fatalf("after drag: color = %+v, want %+v", c, active)
+	}
+
+	// Release: the resize state clears and the handle reverts to the
+	// resting color.
+	w.EventFn(&gg.Event{Type: gg.EventMouseUp, MouseButton: gg.MouseLeft,
+		MouseX: x + 5, MouseY: y})
+	root = w.TestRender(nil)
+	if c := handleColor(); c != handle {
+		t.Fatalf("after release: color = %+v, want %+v", c, handle)
+	}
+}
+
+// TestResizeHandleRestingAfterCancel pins the Cancel hook's state
+// clear: capture loss (window-resize steal, alt-tab, the #281 class)
+// cancels an in-flight resize drag, and the handle must not stay
+// pinned in the active color once the drag is gone.
+func TestResizeHandleRestingAfterCancel(t *testing.T) {
+	handle := gg.RGBA(180, 180, 180, 255)
+	active := gg.RGBA(100, 100, 255, 255)
+	cfg := DataGridCfg{
+		ID:                "g1",
+		ColorResizeHandle: handle,
+		ColorResizeActive: active,
+		TextStyleHeader:   gg.DefaultTextStyle,
+		TextStyle:         gg.DefaultTextStyle,
+		ColorHeader:       gg.RGBA(240, 240, 240, 255),
+		ColorBorder:       gg.RGBA(180, 180, 180, 255),
+		PaddingHeader:     gg.NewPadding(2, 4, 2, 4),
+		SizeBorder:        gg.SomeF(0),
+		Columns: []GridColumnCfg{{
+			ID: "c1", Title: "Col1", resizable: true,
+			Width: gg.SomeF(120),
+		}},
+	}
+	w := gg.NewTestWindow(gg.WindowCfg{})
+	defer w.Close()
+	w.TestRender(func(win *gg.Window) gg.View { return New(w, cfg) })
+
+	w.SetFocus("g1:header:c1")
+	root := w.TestRender(nil)
+
+	ly, ok := root.FindByID("g1:resize:c1")
+	if !ok {
+		t.Fatal("no resize handle in tree after focusing the column")
+	}
+	s := ly.Shape
+	x, y := s.X+s.Width/2, s.Y+s.Height/2
+
+	w.FrameFn()
+
+	// Press: starts the drag — the handle paints the active color.
+	w.EventFn(&gg.Event{Type: gg.EventMouseDown, MouseButton: gg.MouseLeft,
+		MouseX: x, MouseY: y})
+	root = w.TestRender(nil)
+	ly, ok = root.FindByID("g1:resize:c1")
+	if !ok {
+		t.Fatal("resize handle left the tree")
+	}
+	if c := ly.Shape.Color; c != active {
+		t.Fatalf("during drag: color = %+v, want %+v", c, active)
+	}
+
+	// Capture loss: the Cancel hook clears the resize state; the next
+	// generation paints the resting color, not a stale active one.
+	w.MouseCancel()
+	root = w.TestRender(nil)
+	ly, ok = root.FindByID("g1:resize:c1")
+	if !ok {
+		t.Fatal("resize handle left the tree")
+	}
+	if c := ly.Shape.Color; c != handle {
+		t.Fatalf("after cancel: color = %+v, want %+v", c, handle)
 	}
 }
 
@@ -568,7 +714,7 @@ func TestHeaderCellReturnsView(t *testing.T) {
 		ColorHeaderHover: gg.RGBA(220, 220, 220, 255),
 	}
 	col := GridColumnCfg{ID: "c1", Title: "Column 1"}
-	v := dataGridHeaderCell(cfg, col, 0, 2, 100, "", false)
+	v := dataGridHeaderCell(cfg, col, 0, 2, 100, "", false, "")
 	if v == nil {
 		t.Fatal("header cell should return a view")
 	}
@@ -590,7 +736,7 @@ func TestHeaderCellWithControls(t *testing.T) {
 		ID: "c1", Title: "Column 1",
 		Reorderable: true, resizable: true, pin: gridColumnPinNone,
 	}
-	v := dataGridHeaderCell(cfg, col, 0, 2, 300, "", true)
+	v := dataGridHeaderCell(cfg, col, 0, 2, 300, "", true, "")
 	if v == nil {
 		t.Fatal("header cell with controls should return a view")
 	}

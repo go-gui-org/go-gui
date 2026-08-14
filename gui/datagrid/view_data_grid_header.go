@@ -14,7 +14,7 @@ func dataGridHeaderRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths m
 	for idx, col := range columns {
 		width := dataGridColumnWidthFor(col, columnWidths)
 		showControls := dataGridShowHeaderControls(col.ID, hoveredColID, resizingColID, focusedColID)
-		cells = append(cells, dataGridHeaderCell(cfg, col, idx, len(columns), width, focusID, showControls))
+		cells = append(cells, dataGridHeaderCell(cfg, col, idx, len(columns), width, focusID, showControls, resizingColID))
 	}
 	return gg.Row(gg.ContainerCfg{
 		Height:      dataGridHeaderHeight(cfg),
@@ -28,7 +28,7 @@ func dataGridHeaderRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths m
 	})
 }
 
-func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount int, width float32, focusID string, showControls bool) gg.View {
+func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount int, width float32, focusID string, showControls bool, resizingColID string) gg.View {
 	hasReorder := showControls && cfg.onColumnOrderChange != nil && col.Reorderable
 	hasPin := showControls && cfg.onColumnPinChange != nil
 	headerControls := dataGridHeaderControlState(width, cfg.PaddingHeader.Or(gg.PaddingNone), hasReorder, hasPin, showControls && col.resizable)
@@ -74,7 +74,7 @@ func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount in
 		content = append(content, dataGridPinControl(cfg, col))
 	}
 	if headerControls.showResize {
-		content = append(content, dataGridResizeHandle(cfg, col, headerFocusID))
+		content = append(content, dataGridResizeHandle(cfg, col, headerFocusID, resizingColID))
 	}
 
 	onQueryChange := cfg.OnQueryChange
@@ -129,7 +129,7 @@ func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount in
 	})
 }
 
-func dataGridResizeHandle(cfg *DataGridCfg, col GridColumnCfg, focusID string) gg.View {
+func dataGridResizeHandle(cfg *DataGridCfg, col GridColumnCfg, focusID string, resizingColID string) gg.View {
 	gridID := cfg.ID
 	columns := cfg.Columns
 	rows := cfg.Rows
@@ -141,12 +141,23 @@ func dataGridResizeHandle(cfg *DataGridCfg, col GridColumnCfg, focusID string) g
 
 	disabled := cfg.Disabled
 
+	// The handle's resting color follows the resize state, not hover:
+	// an active drag holds a mouse lock, so layoutHover bails
+	// (gui/layout_pipeline.go:64) and the OnHover active-color branch
+	// below cannot fire. dataGridActiveResizeColID is read at
+	// generation time each frame, so this paints the active color for
+	// the whole drag and reverts on release or cancel.
+	handleColor := colorResizeHandle
+	if resizingColID == col.ID {
+		handleColor = colorResizeActive
+	}
+
 	return gg.Row(gg.ContainerCfg{
 		ID:      gg.ScopeID(gridID, "resize", col.ID),
 		Width:   dataGridResizeHandleWidth,
 		Sizing:  gg.FixedFill,
 		Padding: gg.NoPadding,
-		Color:   colorResizeHandle,
+		Color:   handleColor,
 		OnClick: func(ctx gg.EventCtx) {
 			if disabled {
 				// A disabled handle must not eat the click
