@@ -48,7 +48,7 @@ func createMetalTexture(w, h int32,
 // image to a Metal texture.
 func (b *Backend) loadImageTexture(
 	path string) (metalTexture, error) {
-	f, err := imgload.OpenSafe(path, b.allowedImageRoots)
+	f, err := imgload.OpenSafe(path, b.AllowedImageRoots)
 	if err != nil {
 		return metalTexture{}, err
 	}
