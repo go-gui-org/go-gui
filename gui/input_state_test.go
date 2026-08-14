@@ -350,3 +350,65 @@ func TestInputCfgMaskedInsertDelete(t *testing.T) {
 		t.Fatalf("got %q, want %q", res2.Text, "(555) 123-456")
 	}
 }
+
+// --- proposed text (no state mutation) ---
+
+func TestInputProposedText(t *testing.T) {
+	w := newTestWindow()
+	id := "f-prop"
+	setInputState(w, id, inputState{CursorPos: 2})
+
+	if got := inputProposedText("hello", "X", id, w); got != "heXllo" {
+		t.Fatalf("insert at cursor = %q, want heXllo", got)
+	}
+	// Empty insert is a passthrough.
+	if got := inputProposedText("hello", "", id, w); got != "hello" {
+		t.Fatalf("empty insert = %q, want hello", got)
+	}
+	// State must be untouched by a propose.
+	if is := getInputState(w, id); is.CursorPos != 2 {
+		t.Fatalf("state cursor = %d, want 2 (unchanged)", is.CursorPos)
+	}
+}
+
+func TestInputProposedTextReplacesSelection(t *testing.T) {
+	w := newTestWindow()
+	id := "f-prop-sel"
+	setInputState(w, id, inputState{CursorPos: 3, selectBeg: 1, selectEnd: 3})
+
+	if got := inputProposedText("hello", "XX", id, w); got != "hXXlo" {
+		t.Fatalf("insert over selection = %q, want hXXlo", got)
+	}
+}
+
+func TestInputProposedTextClampsHugeInsert(t *testing.T) {
+	w := newTestWindow()
+	id := "f-prop-big"
+	setInputState(w, id, inputState{CursorPos: 0})
+
+	big := make([]rune, inputMaxInsertRunes+1000)
+	for i := range big {
+		big[i] = 'x'
+	}
+	got := inputProposedText("", string(big), id, w)
+	if utf8RuneCount(got) != inputMaxInsertRunes {
+		t.Fatalf("proposed rune count = %d, want %d (clamped)",
+			utf8RuneCount(got), inputMaxInsertRunes)
+	}
+}
+
+func TestInputSetTextAndCursorAtEnd(t *testing.T) {
+	w := newTestWindow()
+	id := "f-setend"
+	setInputState(w, id, inputState{CursorPos: 0})
+
+	inputSetTextAndCursorAtEnd("old", "新しい", id, w)
+	is := getInputState(w, id)
+	if is.CursorPos != utf8RuneCount("新しい") {
+		t.Fatalf("cursor = %d, want %d (end of new text)",
+			is.CursorPos, utf8RuneCount("新しい"))
+	}
+	if is.Undo == nil {
+		t.Fatal("undo stack must be pushed with the old text")
+	}
+}

@@ -408,3 +408,171 @@ func TestListBoxNoHeightGatedByCategory(t *testing.T) {
 		t.Fatalf("listbox category must warn, got %d findings: %v", len(found), found)
 	}
 }
+
+// --- drag-reorder plumbing ---
+
+func TestListBoxDragIndexByRowDisabled(t *testing.T) {
+	// Non-reorderable lists build no drag index map at all.
+	got := listBoxDragIndexByRow(&ListBoxCfg{}, false)
+	if got != nil {
+		t.Fatalf("canReorder=false: got %v, want nil", got)
+	}
+}
+
+func TestListBoxDragIndexByRowSkipsSubheadings(t *testing.T) {
+	cfg := &ListBoxCfg{Data: []ListBoxOption{
+		{ID: "a", Name: "A"},
+		NewListBoxSubheading("h", "Header"),
+		{ID: "b", Name: "B"},
+		{ID: "c", Name: "C"},
+		NewListBoxSubheading("h2", "Header 2"),
+		{ID: "d", Name: "D"},
+	}}
+	got := listBoxDragIndexByRow(cfg, true)
+	want := []int{0, -1, 1, 2, -1, 3}
+	if len(got) != len(want) {
+		t.Fatalf("len = %d, want %d", len(got), len(want))
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("dragIdx[%d] = %d, want %d", i, got[i], want[i])
+		}
+	}
+}
+
+func TestListBoxDragIndexByRowAllSubheadings(t *testing.T) {
+	cfg := &ListBoxCfg{Data: []ListBoxOption{
+		NewListBoxSubheading("h1", "One"),
+		NewListBoxSubheading("h2", "Two"),
+	}}
+	got := listBoxDragIndexByRow(cfg, true)
+	if len(got) != 2 || got[0] != -1 || got[1] != -1 {
+		t.Fatalf("got %v, want [-1 -1]", got)
+	}
+}
+
+func TestListBoxItemLayoutIDsDisabled(t *testing.T) {
+	lids, moff := listBoxItemLayoutIDs(&ListBoxCfg{}, false, 0, 0)
+	if lids != nil || moff != 0 {
+		t.Fatalf("canReorder=false: got (%v, %d), want (nil, 0)", lids, moff)
+	}
+}
+
+func TestListBoxItemLayoutIDsVirtualized(t *testing.T) {
+	// Five rows, one subheading between row 0 and 1; the virtual
+	// window shows data rows 1..3 (flat indices 1..3).
+	cfg := &ListBoxCfg{
+		ID: "lb",
+		Data: []ListBoxOption{
+			{ID: "a", Name: "A"},
+			{ID: "b", Name: "B"},
+			NewListBoxSubheading("h", "Header"),
+			{ID: "c", Name: "C"},
+			{ID: "d", Name: "D"},
+		},
+	}
+	lids, moff := listBoxItemLayoutIDs(cfg, true, 1, 3)
+	// Row 0 ("a") is a draggable row above the window → midsOffset 1.
+	// Inside the window: b (1), h skipped, c (2) → two layout IDs.
+	if moff != 1 {
+		t.Fatalf("midsOffset = %d, want 1", moff)
+	}
+	want := []string{"lb:item:b", "lb:item:c"}
+	if len(lids) != len(want) {
+		t.Fatalf("layoutIDs = %v, want %v", lids, want)
+	}
+	for i := range want {
+		if lids[i] != want[i] {
+			t.Fatalf("layoutIDs = %v, want %v", lids, want)
+		}
+	}
+}
+
+func TestListBoxItemID(t *testing.T) {
+	if got := listBoxItemID("lb", "opt"); got != "lb:item:opt" {
+		t.Fatalf("listBoxItemID() = %q, want lb:item:opt", got)
+	}
+}
+
+func TestListBoxReorderItemView(t *testing.T) {
+	// The reorder row carries its layout ID and a11y role.
+	cfg := ListBoxCfg{ID: "lb"}
+	view := listBoxReorderItemView(
+		ListBoxOption{ID: "a", Name: "Alpha"},
+		cfg,
+		nil,
+		0,
+		[]string{"a"},
+		[]string{"lb:item:a"},
+		0,
+		"",
+	)
+	w := newTestWindow()
+	w.layout = Layout{Shape: &Shape{ID: "root"}}
+	layout := generateViewLayout(view, w)
+	if layout.Shape.ID != "lb:item:a" {
+		t.Fatalf("row ID = %q, want lb:item:a", layout.Shape.ID)
+	}
+	if layout.Shape.A11YRole != AccessRoleListItem {
+		t.Fatalf("row role = %d, want ListItem", layout.Shape.A11YRole)
+	}
+	if layout.Shape.events == nil || layout.Shape.events.OnClick == nil {
+		t.Fatal("reorder row must carry an OnClick handler")
+	}
+}
+
+func TestListBoxReorderItemViewSelectedState(t *testing.T) {
+	cfg := ListBoxCfg{ID: "lb", SelectedIDs: []string{"a"}}
+	view := listBoxReorderItemView(
+		ListBoxOption{ID: "a", Name: "Alpha"},
+		cfg,
+		listCoreSelectedSet(cfg.SelectedIDs),
+		0,
+		[]string{"a"},
+		[]string{"lb:item:a"},
+		0,
+		"",
+	)
+	layout := generateViewLayout(view, newTestWindow())
+	if !layout.Shape.A11YState.Has(AccessStateSelected) {
+		t.Fatal("selected row should expose AccessStateSelected")
+	}
+}
+
+func TestListBoxReorderItemViewClickArmsDrag(t *testing.T) {
+	// Clicking a reorderable row arms the drag-reorder state and
+	// reports the selection through OnSelect.
+	cfg := ListBoxCfg{
+		ID: "lb-drag",
+	}
+	var selected []string
+	cfg.OnSelect = func(ids []string, ctx EventCtx) { selected = ids }
+	view := listBoxReorderItemView(
+		ListBoxOption{ID: "a", Name: "A"},
+		cfg,
+		nil,
+		0,
+		[]string{"a", "b"},
+		[]string{"lb-drag:item:a", "lb-drag:item:b"},
+		0,
+		"",
+	)
+	w := newTestWindow()
+	w.layout = Layout{Shape: &Shape{ID: "root"}}
+	layout := generateViewLayout(view, w)
+
+	e := &Event{MouseX: 5, MouseY: 5}
+	layout.Shape.events.OnClick(EventCtx{&layout, e, w})
+
+	state := dragReorderGet(w, "lb-drag")
+	if !state.started {
+		t.Fatal("click should arm the drag-reorder state")
+	}
+	if state.itemID != "a" || state.sourceIndex != 0 {
+		t.Fatalf("drag state = %+v, want itemID a at index 0", state)
+	}
+	// Single-select: the clicked row becomes the selection.
+	if len(selected) != 1 || selected[0] != "a" {
+		t.Fatalf("onSelect = %v, want [a]", selected)
+	}
+}

@@ -167,6 +167,29 @@ func TestGenerateViewLayoutFlat(t *testing.T) {
 	}
 }
 
+// The exported GenerateViewLayout is the supported entry point for
+// composite widgets; it must behave exactly like the internal builder.
+func TestGenerateViewLayoutExported(t *testing.T) {
+	v := &stubView{
+		id: "parent",
+		children: []View{
+			&stubView{id: "child1"},
+			&stubView{id: "child2"},
+		},
+	}
+	layout := GenerateViewLayout(v, &Window{})
+	if layout.Shape.ID != "parent" {
+		t.Fatalf("root ID = %q, want parent", layout.Shape.ID)
+	}
+	if len(layout.Children) != 2 {
+		t.Fatalf("children = %d, want 2", len(layout.Children))
+	}
+	if layout.Children[0].Shape.ID != "child1" ||
+		layout.Children[1].Shape.ID != "child2" {
+		t.Fatal("child IDs mismatched")
+	}
+}
+
 func TestGenerateViewLayoutWithChildren(t *testing.T) {
 	v := &stubView{
 		id: "parent",

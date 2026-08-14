@@ -17,6 +17,40 @@ func TestProgressBarDefaultLayout(t *testing.T) {
 	}
 }
 
+func TestProgressBarCenterLabel(t *testing.T) {
+	// The label must be centered on both axes inside the parent,
+	// shifting its own child to keep the offset consistent.
+	parent := &Shape{X: 100, Y: 50, Width: 200, Height: 40}
+	lbl := &Layout{
+		Shape: &Shape{X: 0, Y: 0, Width: 60, Height: 20},
+		Children: []Layout{
+			{Shape: &Shape{X: 5, Y: 5, Width: 50, Height: 10}},
+		},
+	}
+
+	progressBarCenterLabel(parent, lbl)
+	// Center of parent (200, 70) minus half the label (30, 10).
+	if lbl.Shape.X != 170 || lbl.Shape.Y != 60 {
+		t.Fatalf("label at (%v, %v), want (170, 60)",
+			lbl.Shape.X, lbl.Shape.Y)
+	}
+	// The inner child follows the label's translation: it moved from
+	// (5,5) to (175, 65) — a shift of +170 x, +55 y.
+	inner := &lbl.Children[0]
+	if inner.Shape.X != 175 || inner.Shape.Y != 65 {
+		t.Fatalf("inner child at (%v, %v), want (175, 65)",
+			inner.Shape.X, inner.Shape.Y)
+	}
+
+	// A label without children still centers (no child shift).
+	lbl2 := &Layout{Shape: &Shape{X: 0, Y: 0, Width: 40, Height: 10}}
+	progressBarCenterLabel(parent, lbl2)
+	if lbl2.Shape.X != 180 || lbl2.Shape.Y != 65 {
+		t.Fatalf("childless label at (%v, %v), want (180, 65)",
+			lbl2.Shape.X, lbl2.Shape.Y)
+	}
+}
+
 func TestProgressBarVertical(t *testing.T) {
 	v := ProgressBar(ProgressBarCfg{
 		ID:       "pb-test",

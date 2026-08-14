@@ -244,3 +244,48 @@ func TestThemeMakerTreeStyle(t *testing.T) {
 			theme.treeStyle.indent)
 	}
 }
+
+func TestThemeWithPadding(t *testing.T) {
+	t.Parallel()
+	cfg := baseDarkCfg()
+	cfg.Padding = PadAll(4)
+	cfg.PaddingSmall = PadAll(3)
+	cfg.PaddingMedium = PadAll(6)
+	cfg.PaddingLarge = PadAll(8)
+	cfg.SizeBorder = 2
+	cfg.Radius = 5
+	cfg.RadiusSmall = 3
+	cfg.RadiusMedium = 6
+	cfg.RadiusLarge = 10
+	theme := ThemeMaker(cfg)
+
+	// Off: every padding/radius/border is zeroed.
+	flat := theme.WithPadding(false)
+	if flat.Cfg.Padding != PaddingNone ||
+		flat.Cfg.PaddingSmall != PaddingNone ||
+		flat.Cfg.PaddingMedium != PaddingNone ||
+		flat.Cfg.PaddingLarge != PaddingNone {
+		t.Error("WithPadding(false) must zero all paddings")
+	}
+	if flat.Cfg.SizeBorder != 0 {
+		t.Errorf("SizeBorder = %v, want 0", flat.Cfg.SizeBorder)
+	}
+	if flat.Cfg.Radius != radiusNone ||
+		flat.Cfg.RadiusSmall != radiusNone ||
+		flat.Cfg.RadiusMedium != radiusNone ||
+		flat.Cfg.RadiusLarge != radiusNone {
+		t.Error("WithPadding(false) must zero all radii")
+	}
+	// Non-padding fields survive.
+	if flat.Name != theme.Name {
+		t.Error("WithPadding(false) must not touch the theme name")
+	}
+
+	// On: rebuild from the stored config, restoring the values.
+	restored := theme.WithPadding(true)
+	if restored.Cfg.Padding != cfg.Padding ||
+		restored.Cfg.SizeBorder != cfg.SizeBorder ||
+		restored.Cfg.Radius != cfg.Radius {
+		t.Error("WithPadding(true) must restore the stored config")
+	}
+}

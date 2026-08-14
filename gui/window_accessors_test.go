@@ -184,3 +184,54 @@ func TestSetWakeMainFnAcceptsNil(t *testing.T) {
 	w.SetWakeMainFn(func() {})
 	w.SetWakeMainFn(nil)
 }
+
+func TestSetStateTyped(t *testing.T) {
+	w := newTestWindow()
+	type appState struct{ count int }
+	w.setState(&appState{count: 7})
+
+	got := State[appState](w)
+	if got.count != 7 {
+		t.Fatalf("State().count = %d, want 7", got.count)
+	}
+}
+
+func TestStatePanicsOnTypeMismatch(t *testing.T) {
+	w := newTestWindow()
+	w.setState("string-state")
+	defer func() {
+		if recover() == nil {
+			t.Fatal("State[int] on a string state must panic")
+		}
+	}()
+	_ = State[int](w)
+}
+
+func TestFrameCount(t *testing.T) {
+	w := newTestWindow()
+	if got := w.FrameCount(); got != 0 {
+		t.Fatalf("FrameCount before frames = %d, want 0", got)
+	}
+	w.FrameFn()
+	w.FrameFn()
+	w.FrameFn()
+	if got := w.FrameCount(); got != 3 {
+		t.Fatalf("FrameCount after 3 FrameFn = %d, want 3", got)
+	}
+}
+
+func TestSetPrimaryGetFn(t *testing.T) {
+	w := newTestWindow()
+	if got := w.GetPrimary(); got != "" {
+		t.Fatalf("GetPrimary without fn = %q, want \"\"", got)
+	}
+	w.SetPrimaryGetFn(func() string { return "sel" })
+	if got := w.GetPrimary(); got != "sel" {
+		t.Fatalf("GetPrimary = %q, want sel", got)
+	}
+	// Clearing the fn falls back to empty.
+	w.SetPrimaryGetFn(nil)
+	if got := w.GetPrimary(); got != "" {
+		t.Fatalf("GetPrimary after nil fn = %q, want \"\"", got)
+	}
+}

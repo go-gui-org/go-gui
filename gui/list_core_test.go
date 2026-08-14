@@ -186,6 +186,69 @@ func TestVisibleRangeSingleItem(t *testing.T) {
 	}
 }
 
+// --- ListVisibleRange (exported, tunable overscan) ---
+
+func TestListVisibleRangeDegenerate(t *testing.T) {
+	// Zero items, zero/negative row height, and zero list height all
+	// return the empty range (0, -1).
+	for _, tc := range []struct {
+		name     string
+		count    int
+		rowH, lH float32
+	}{
+		{"zero items", 0, 20, 100},
+		{"zero row height", 10, 0, 100},
+		{"zero list height", 10, 20, 0},
+	} {
+		first, last := ListVisibleRange(tc.count, tc.rowH, tc.lH, 0, 2)
+		if first != 0 || last != -1 {
+			t.Errorf("%s: got %d,%d, want 0,-1", tc.name, first, last)
+		}
+	}
+}
+
+func TestListVisibleRangeNoScroll(t *testing.T) {
+	// visibleRows = 100/20+1 = 6; overscan 4 → firstVisible 0,
+	// lastVisible = min(99, 0+6+4) = 10.
+	first, last := ListVisibleRange(100, 20, 100, 0, 4)
+	if first != 0 || last != 10 {
+		t.Errorf("got %d,%d, want 0,10", first, last)
+	}
+}
+
+func TestListVisibleRangeScrolled(t *testing.T) {
+	// Scroll 60px into 100 items at 20px each, overscan 2.
+	// absScroll=60 → first=3 → firstVisible 1, lastVisible 11.
+	first, last := ListVisibleRange(100, 20, 100, -60, 2)
+	if first != 1 || last != 11 {
+		t.Errorf("got %d,%d, want 1,11", first, last)
+	}
+}
+
+func TestListVisibleRangeClampsAtEnd(t *testing.T) {
+	// Scrolling deep must clamp last to the final item, and first
+	// must not overshoot past it.
+	first, last := ListVisibleRange(20, 20, 100, -5000, 4)
+	if first < 0 || first >= 20 {
+		t.Errorf("first = %d, want in [0, 20)", first)
+	}
+	if last != 19 {
+		t.Errorf("last = %d, want 19", last)
+	}
+}
+
+func TestListVisibleRangeCustomOverscan(t *testing.T) {
+	// Overscan 0 must produce a tighter window than overscan 4.
+	first0, last0 := ListVisibleRange(100, 20, 100, 0, 0)
+	first4, last4 := ListVisibleRange(100, 20, 100, 0, 4)
+	if first0 != 0 || last0 != 6 {
+		t.Errorf("overscan 0: got %d,%d, want 0,6", first0, last0)
+	}
+	if first4 != 0 || last4 != 10 {
+		t.Errorf("overscan 4: got %d,%d, want 0,10", first4, last4)
+	}
+}
+
 // --- listCoreFilter (additional) ---
 
 func TestFilterNoMatches(t *testing.T) {

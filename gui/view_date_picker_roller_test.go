@@ -134,6 +134,93 @@ func TestRollerAdjustDayNilOnChange(_ *testing.T) {
 	rollerAdjustDay(1, sel, 1900, 2100, nil, &Window{})
 }
 
+// rollerDrumAdjust is the dispatcher every roller interaction goes
+// through — clicks, scrolls, and the embedded date-picker roller.
+func TestRollerDrumAdjustDay(t *testing.T) {
+	sel := time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local)
+	var got time.Time
+	onChange := func(d time.Time, ctx EventCtx) { got = d }
+	w := &Window{}
+
+	rollerDrumAdjust("day", 1, sel, 1900, 2100, onChange, w, false)
+	if got.Day() != 16 {
+		t.Errorf("day drum +1 = %d, want 16", got.Day())
+	}
+	// Month boundary: March 31 + 1 day → April 1.
+	sel = time.Date(2025, 3, 31, 0, 0, 0, 0, time.Local)
+	rollerDrumAdjust("day", 1, sel, 1900, 2100, onChange, w, false)
+	if got.Month() != 4 || got.Day() != 1 {
+		t.Errorf("day drum month rollover = %v, want Apr 1", got)
+	}
+}
+
+func TestRollerDrumAdjustMonth(t *testing.T) {
+	sel := time.Date(2025, 1, 15, 0, 0, 0, 0, time.Local)
+	var got time.Time
+	onChange := func(d time.Time, ctx EventCtx) { got = d }
+	w := &Window{}
+
+	rollerDrumAdjust("month", 1, sel, 1900, 2100, onChange, w, false)
+	if got.Month() != 2 {
+		t.Errorf("month drum +1 = %v, want February", got)
+	}
+	// December + 1 wraps to January next year.
+	sel = time.Date(2025, 12, 10, 0, 0, 0, 0, time.Local)
+	rollerDrumAdjust("month", 1, sel, 1900, 2100, onChange, w, false)
+	if got.Month() != 1 || got.Year() != 2026 {
+		t.Errorf("month drum year wrap = %v, want Jan 2026", got)
+	}
+	// Month-end clamping: Jan 31 + 1 month → Feb 28.
+	sel = time.Date(2025, 1, 31, 0, 0, 0, 0, time.Local)
+	rollerDrumAdjust("month", 1, sel, 1900, 2100, onChange, w, false)
+	if got.Month() != 2 || got.Day() != 28 {
+		t.Errorf("month drum clamp = %v, want Feb 28", got)
+	}
+}
+
+func TestRollerDrumAdjustYear(t *testing.T) {
+	sel := time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local)
+	var got time.Time
+	onChange := func(d time.Time, ctx EventCtx) { got = d }
+	w := &Window{}
+
+	rollerDrumAdjust("year", 1, sel, 1900, 2100, onChange, w, false)
+	if got.Year() != 2026 {
+		t.Errorf("year drum +1 = %d, want 2026", got.Year())
+	}
+	// Out of bounds without wrap → no change.
+	rollerDrumAdjust("year", 1, time.Date(2100, 3, 15, 0, 0, 0, 0, time.Local),
+		1900, 2100, onChange, w, false)
+	if got.Year() != 2026 {
+		t.Errorf("year drum past max changed to %d, want unchanged", got.Year())
+	}
+	// Wrapping year: max + 1 wraps to min.
+	rollerDrumAdjust("year", 1, time.Date(2100, 3, 15, 0, 0, 0, 0, time.Local),
+		1900, 2100, onChange, w, true)
+	if got.Year() != 1900 {
+		t.Errorf("year drum wrap = %d, want 1900", got.Year())
+	}
+}
+
+func TestRollerDrumAdjustUnknownDrumNoop(t *testing.T) {
+	sel := time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local)
+	fired := false
+	onChange := func(time.Time, EventCtx) { fired = true }
+	rollerDrumAdjust("unknown", 1, sel, 1900, 2100, onChange, &Window{}, false)
+	if fired {
+		t.Error("unknown drum name must not fire onChange")
+	}
+}
+
+func TestRollerDrumAdjustNilOnChange(_ *testing.T) {
+	sel := time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local)
+	// All drum names, nil callback: must not panic.
+	rollerDrumAdjust("day", 1, sel, 1900, 2100, nil, &Window{}, false)
+	rollerDrumAdjust("month", 1, sel, 1900, 2100, nil, &Window{}, false)
+	rollerDrumAdjust("year", 1, sel, 1900, 2100, nil, &Window{}, true)
+	rollerDrumAdjust("year", 1, sel, 1900, 2100, nil, &Window{}, false)
+}
+
 func TestRollerAdjustMonth(t *testing.T) {
 	sel := time.Date(2025, 1, 15, 0, 0, 0, 0, time.Local)
 	var got time.Time

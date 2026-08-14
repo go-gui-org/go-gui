@@ -231,3 +231,192 @@ func TestSliderVerticalMouseDedup(t *testing.T) {
 			callCount)
 	}
 }
+
+// sliderTestLayout builds the wrapper → track → [leftBar, thumb]
+// tree sliderAmendLayoutSlide navigates, with the geometry a laid-out
+// slider would have.
+func sliderTestLayout() Layout {
+	track := Layout{
+		Shape: &Shape{Width: 200, Height: 20},
+		Children: []Layout{
+			{Shape: &Shape{}},
+			{Shape: &Shape{}},
+		},
+	}
+	return Layout{
+		Shape:    &Shape{ID: "rs", Width: 200, Height: 20},
+		Children: []Layout{track},
+	}
+}
+
+func TestSliderAmendLayoutSlideHorizontal(t *testing.T) {
+	layout := sliderTestLayout()
+	onChange := func(float32, EventCtx) {}
+	sliderAmendLayoutSlide(&layout, nil,
+		onChange, 50, 0, 100, 20, 2, false,
+		RGB(255, 0, 0), RGB(0, 0, 255), false, "rs", false)
+
+	leftBar := &layout.Children[0].Children[0]
+	// 50% of 200 width = 100; height = size - 2*border = 16.
+	if leftBar.Shape.Width != 100 {
+		t.Errorf("left bar width = %v, want 100", leftBar.Shape.Width)
+	}
+	if leftBar.Shape.Height != 16 {
+		t.Errorf("left bar height = %v, want 16", leftBar.Shape.Height)
+	}
+	// A scroll handler must have been attached.
+	if layout.Shape.events == nil || layout.Shape.events.OnMouseScroll == nil {
+		t.Error("slider shape should carry an OnMouseScroll handler")
+	}
+}
+
+func TestSliderAmendLayoutSlideVertical(t *testing.T) {
+	layout := sliderTestLayout()
+	sliderAmendLayoutSlide(&layout, nil, nil,
+		25, 0, 100, 20, 2, true,
+		RGB(255, 0, 0), RGB(0, 0, 255), false, "rs", false)
+
+	leftBar := &layout.Children[0].Children[0]
+	// 25% of 20 height = 5; width = size - 2*border = 16.
+	if leftBar.Shape.Height != 5 {
+		t.Errorf("left bar height = %v, want 5", leftBar.Shape.Height)
+	}
+	if leftBar.Shape.Width != 16 {
+		t.Errorf("left bar width = %v, want 16", leftBar.Shape.Width)
+	}
+}
+
+func TestSliderAmendLayoutSlideClamps(t *testing.T) {
+	layout := sliderTestLayout()
+	// Value above max must not overflow the track.
+	sliderAmendLayoutSlide(&layout, nil, nil,
+		250, 0, 100, 20, 2, false,
+		RGB(255, 0, 0), RGB(0, 0, 255), false, "rs", false)
+	leftBar := &layout.Children[0].Children[0]
+	if leftBar.Shape.Width != 200 {
+		t.Errorf("left bar width = %v, want 200 (clamped)", leftBar.Shape.Width)
+	}
+
+	// Value below min clamps to zero.
+	layout2 := sliderTestLayout()
+	sliderAmendLayoutSlide(&layout2, nil, nil,
+		-50, 0, 100, 20, 2, false,
+		RGB(255, 0, 0), RGB(0, 0, 255), false, "rs", false)
+	leftBar2 := &layout2.Children[0].Children[0]
+	if leftBar2.Shape.Width != 0 {
+		t.Errorf("left bar width = %v, want 0 (clamped)", leftBar2.Shape.Width)
+	}
+}
+
+func TestSliderAmendLayoutSlideFocused(t *testing.T) {
+	w := &Window{}
+	layout := sliderTestLayout()
+	sliderAmendLayoutSlide(&layout, w, nil,
+		50, 0, 100, 20, 2, false,
+		RGB(255, 0, 0), RGB(0, 0, 255), false, "rs", false)
+
+	// Not focused yet: thumb keeps its original color.
+	thumb := &layout.Children[0].Children[1]
+	if thumb.Shape.Color == RGB(255, 0, 0) {
+		t.Error("thumb should not be focus-colored before focus")
+	}
+
+	w.SetFocus("rs")
+	sliderAmendLayoutSlide(&layout, w, nil,
+		50, 0, 100, 20, 2, false,
+		RGB(255, 0, 0), RGB(0, 0, 255), false, "rs", false)
+	if thumb.Shape.Color != RGB(255, 0, 0) {
+		t.Error("thumb should be focus-colored while focused")
+	}
+}
+
+func TestSliderAmendLayoutSlidePressed(t *testing.T) {
+	w := &Window{}
+	layout := sliderTestLayout()
+	// Press state is keyed by the shape's idKey.
+	ps := StateMap[string, bool](w, nsSliderPress, capModerate)
+	ps.Set(layout.Shape.idKey(), true)
+
+	sliderAmendLayoutSlide(&layout, w, nil,
+		50, 0, 100, 20, 2, false,
+		RGB(255, 0, 0), RGB(0, 0, 255), false, "rs", false)
+	thumb := &layout.Children[0].Children[1]
+	if thumb.Shape.Color != RGB(0, 0, 255) {
+		t.Error("thumb should be press-colored while pressed")
+	}
+}
+
+func TestSliderAmendLayoutSlideDisabled(t *testing.T) {
+	w := &Window{}
+	w.SetFocus("rs")
+	layout := sliderTestLayout()
+	sliderAmendLayoutSlide(&layout, w, nil,
+		50, 0, 100, 20, 2, false,
+		RGB(255, 0, 0), RGB(0, 0, 255), true, "rs", false)
+
+	thumb := &layout.Children[0].Children[1]
+	if thumb.Shape.Color == RGB(255, 0, 0) {
+		t.Error("disabled slider must not paint the focus color")
+	}
+}
+
+func TestSliderAmendLayoutSlideDegenerate(t *testing.T) {
+	// Empty and short layouts are no-ops, not panics.
+	sliderAmendLayoutSlide(&Layout{Shape: &Shape{}}, nil, nil,
+		50, 0, 100, 20, 2, false,
+		RGB(255, 0, 0), RGB(0, 0, 255), false, "", false)
+	sliderAmendLayoutSlide(&Layout{
+		Shape:    &Shape{},
+		Children: []Layout{{Shape: &Shape{}}},
+	}, nil, nil,
+		50, 0, 100, 20, 2, false,
+		RGB(255, 0, 0), RGB(0, 0, 255), false, "", false)
+}
+
+func TestSliderAmendLayoutThumbHorizontal(t *testing.T) {
+	parent := &Layout{Shape: &Shape{X: 10, Y: 5, Width: 200, Height: 20}}
+	thumb := Layout{Shape: &Shape{X: 10, Y: 5}, Parent: parent}
+	sliderAmendLayoutThumb(&thumb, nil, 50, 0, 100, 12, false)
+
+	// Thumb radius = 6. Center at 50% of 200 → x = 10+100-6 = 104;
+	// y centered on the track: 5 + 10 - 6 = 9.
+	if thumb.Shape.X != 104 {
+		t.Errorf("thumb X = %v, want 104", thumb.Shape.X)
+	}
+	if thumb.Shape.Y != 9 {
+		t.Errorf("thumb Y = %v, want 9", thumb.Shape.Y)
+	}
+}
+
+func TestSliderAmendLayoutThumbVertical(t *testing.T) {
+	parent := &Layout{Shape: &Shape{X: 10, Y: 5, Width: 200, Height: 20}}
+	thumb := Layout{Shape: &Shape{X: 10, Y: 5}, Parent: parent}
+	sliderAmendLayoutThumb(&thumb, nil, 50, 0, 100, 12, true)
+
+	// Vertical: y = parent.Y + 50% of 20 - 6 = 9; x centered on
+	// parent width: 10 + 100 - 6 = 104.
+	if thumb.Shape.Y != 9 {
+		t.Errorf("thumb Y = %v, want 9", thumb.Shape.Y)
+	}
+	if thumb.Shape.X != 104 {
+		t.Errorf("thumb X = %v, want 104", thumb.Shape.X)
+	}
+}
+
+func TestSliderAmendLayoutThumbClamped(t *testing.T) {
+	parent := &Layout{Shape: &Shape{X: 0, Y: 0, Width: 100, Height: 10}}
+	thumb := Layout{Shape: &Shape{X: 0, Y: 0}, Parent: parent}
+	// Value above max must clamp to the far edge, not overflow.
+	sliderAmendLayoutThumb(&thumb, nil, 999, 0, 100, 10, false)
+	if thumb.Shape.X != 95 {
+		t.Errorf("thumb X = %v, want 95 (edge minus radius)", thumb.Shape.X)
+	}
+}
+
+func TestSliderAmendLayoutThumbNoParent(t *testing.T) {
+	thumb := Layout{Shape: &Shape{}}
+	sliderAmendLayoutThumb(&thumb, nil, 50, 0, 100, 12, false)
+	if thumb.Shape.X != 0 || thumb.Shape.Y != 0 {
+		t.Error("thumb without parent must be left untouched")
+	}
+}
