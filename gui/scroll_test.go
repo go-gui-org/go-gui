@@ -5,8 +5,12 @@ import (
 	"testing"
 )
 
+// makeScrollLayout builds a one-child scrollable layout and the window
+// that owns it. The window is pinned to a theme whose scroll multiplier
+// is 1, so a delta maps 1:1 to an offset in every scroll test.
 func makeScrollLayout(idScroll string, width, height float32, contentW, contentH float32) (*Layout, *Window) {
 	w := &Window{}
+	pinScrollMultiplier(w, 1)
 	child := Layout{
 		Shape: &Shape{
 			shapeType: shapeRectangle,
@@ -34,7 +38,6 @@ func makeScrollLayout(idScroll string, width, height float32, contentW, contentH
 
 func TestScrollVerticalClampsWithinBounds(t *testing.T) {
 	layout, w := makeScrollLayout("1", 100, 100, 100, 300)
-	guiTheme.scrollMultiplier = 1
 
 	ok := scrollVertical(layout, -50, w)
 	if !ok {
@@ -55,7 +58,7 @@ func TestScrollVerticalClampsWithinBounds(t *testing.T) {
 
 func TestScrollHorizontalClampsWithinBounds(t *testing.T) {
 	w := &Window{}
-	guiTheme.scrollMultiplier = 1
+	pinScrollMultiplier(w, 1)
 	child := Layout{
 		Shape: &Shape{shapeType: shapeRectangle, Width: 400, Height: 50},
 	}
@@ -262,7 +265,6 @@ func TestScrollPctNoScrollNeeded(t *testing.T) {
 }
 
 func TestScrollVerticalFiresOnScroll(t *testing.T) {
-	guiTheme.scrollMultiplier = 1
 	fired := false
 	layout, w := makeScrollLayout("7", 100, 100, 100, 300)
 	layout.Shape.events = &eventHandlers{
@@ -275,7 +277,6 @@ func TestScrollVerticalFiresOnScroll(t *testing.T) {
 }
 
 func TestScrollReturnsFalseAtBoundary(t *testing.T) {
-	guiTheme.scrollMultiplier = 1
 	t.Run("vertical", func(t *testing.T) {
 		layout, w := makeScrollLayout("10", 100, 100, 100, 300)
 		scrollVertical(layout, -500, w)
@@ -340,9 +341,9 @@ func TestScrollReturnsFalseAtBoundary(t *testing.T) {
 }
 
 func TestScrollMode(t *testing.T) {
-	guiTheme.scrollMultiplier = 1
 	t.Run("vertical_only_blocks_horizontal", func(t *testing.T) {
 		w := &Window{}
+		pinScrollMultiplier(w, 1)
 		child := Layout{
 			Shape: &Shape{shapeType: shapeRectangle,
 				Width: 400, Height: 50},

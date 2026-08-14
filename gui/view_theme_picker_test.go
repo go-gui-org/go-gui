@@ -34,9 +34,7 @@ func TestThemePickerOpen(t *testing.T) {
 }
 
 func TestThemePickerSyncHighlight(t *testing.T) {
-	savedName := guiTheme.Name
 	defer func() {
-		guiTheme.Name = savedName
 		themeRegistryMu.Lock()
 		delete(themeRegistry, "alpha")
 		delete(themeRegistry, "beta")
@@ -44,9 +42,11 @@ func TestThemePickerSyncHighlight(t *testing.T) {
 	}()
 	themeRegister(Theme{Name: "alpha"})
 	themeRegister(Theme{Name: "beta"})
-	guiTheme.Name = "beta"
 
+	// The sync runs post-generation and reads the window's theme, so
+	// pin the name on the window rather than on the frame cache.
 	w := &Window{}
+	pinTheme(w, func(th *Theme) { th.Name = "beta" })
 	themePickerSyncHighlight("test-lb", w)
 	idx := StateReadOr(w, nsListBoxFocus, "test-lb", -1)
 	// "alpha"=0, "beta"=1 (sorted).

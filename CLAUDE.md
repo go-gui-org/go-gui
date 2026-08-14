@@ -173,6 +173,17 @@ Backend injects at startup. Nil in tests:
   generation time because factories resolve defaults when called. Anything keyed
   on a theme keys on `Theme.id`, never `Theme.Name` — names are not unique. See
   `docs/specs/per-window-theme.md`.
+- **Theme reads split by phase, not by reachability. Code running _outside_
+  generation with a `*Window` in hand calls `w.Theme()`; factories and
+  `GenerateLayout` keep the bare `guiTheme` / `default*Style` read.** Outside
+  generation the frame cache holds whichever window generated last — wrong as
+  soon as there are two windows (issue #301 migrated 13 such sites). Inside
+  generation the bare read is required, not tolerated: `Themed` scopes a theme
+  by push/pop of the _installed_ theme, so `w.Theme()` there would ignore the
+  scope. `make ergonomics-audit` mode `theme` gates the post-generation paths
+  (`gui/backend/**`, `gui/scroll*.go`, `gui/event*.go`, `gui/native_*.go`,
+  `gui/window_*.go`); mark a deliberate exception
+  `ergonomics-audit:theme-global`.
 - **`ThemeMaker` is the only source of default styling. The `default*Style`
   package vars have no initializers — never add one.** They are mirrors: `init`
   fills them with `applyTheme(ThemeDark)` and `installTheme` refills them per

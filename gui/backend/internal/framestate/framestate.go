@@ -139,14 +139,16 @@ func (fs *FrameState) HandleResize(w, h int32, scale float32) {
 }
 
 // FrameBg resolves the frame clear color: the window's configured
-// background, falling back to the current theme's background when
+// background, falling back to the window's theme background when
 // unset. Returns normalized 0..1 components ready for the C
 // begin-frame call.
 func (fs *FrameState) FrameBg(w *gui.Window) (r, g, b, a float32) {
 	bg := w.Config.BgColor
 	if bg == (gui.Color{}) {
-		t := gui.CurrentTheme()
-		bg = t.ColorBackground
+		// Runs after FrameFn on the same thread, so the installed
+		// theme happens to be right; w.Theme() makes it right by
+		// construction instead of by timing.
+		bg = w.Theme().ColorBackground
 	}
 	return float32(bg.R) / 255.0,
 		float32(bg.G) / 255.0,

@@ -198,8 +198,9 @@ func scrollHorizontal(layout *Layout, delta float32, w *Window) bool {
 	sx := w.scrollX()
 	// Default 0: unscrolled position when no offset recorded yet.
 	old := sx.GetOr(id, 0)
+	// Post-generation read: this window's theme, not the frame cache.
 	clamped := f32Clamp(
-		old+delta*guiTheme.scrollMultiplier, maxOffset, 0)
+		old+delta*w.themeRef().scrollMultiplier, maxOffset, 0)
 	if old == clamped {
 		return false
 	}
@@ -223,8 +224,9 @@ func scrollVertical(layout *Layout, delta float32, w *Window) bool {
 	sy := w.scrollY()
 	// Default 0: unscrolled position when no offset recorded yet.
 	old := sy.GetOr(id, 0)
+	// Post-generation read: this window's theme, not the frame cache.
 	clamped := f32Clamp(
-		old+delta*guiTheme.scrollMultiplier, maxOffset, 0)
+		old+delta*w.themeRef().scrollMultiplier, maxOffset, 0)
 	if old == clamped {
 		return false
 	}

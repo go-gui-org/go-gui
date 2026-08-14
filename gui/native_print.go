@@ -33,7 +33,8 @@ func (w *Window) ExportPrintJob(job PrintJob) PrintExportResult {
 		// background via Clear(), which is not in the renderers).
 		bg := w.Config.BgColor
 		if bg == (Color{}) {
-			bg = CurrentTheme().ColorBackground
+			// Export runs outside generation: this window's theme.
+			bg = w.Theme().ColorBackground
 		}
 		out := make([]RenderCmd, 0, len(w.renderers)+1)
 		out = append(out, RenderCmd{

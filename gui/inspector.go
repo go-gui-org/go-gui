@@ -177,6 +177,9 @@ func inspectorInjectWireframe(w *Window) {
 		return
 	}
 	shape := node.Shape
+	// Runs from updateLayout after arrange, outside generation: name
+	// the window rather than the installed frame cache.
+	insp := w.Theme().inspectorStyle
 	emitRenderer(RenderCmd{
 		Kind:      RenderStrokeRect,
 		X:         shape.X,
@@ -184,7 +187,7 @@ func inspectorInjectWireframe(w *Window) {
 		W:         shape.Width,
 		H:         shape.Height,
 		Radius:    shape.Radius,
-		Color:     guiTheme.inspectorStyle.colorWireframe,
+		Color:     insp.colorWireframe,
 		Thickness: 2,
 	}, w)
 
@@ -197,7 +200,7 @@ func inspectorInjectWireframe(w *Window) {
 		Y:         shape.Y + shape.Padding.Top,
 		W:         f32Max(0, shape.Width-shape.Padding.Left-shape.Padding.Right),
 		H:         f32Max(0, shape.Height-shape.Padding.Top-shape.Padding.Bottom),
-		Color:     guiTheme.inspectorStyle.colorPadding,
+		Color:     insp.colorPadding,
 		Thickness: 1,
 	}, w)
 }

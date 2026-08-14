@@ -9,6 +9,7 @@
 //	go run ./tools/ergonomics-audit/ -mode ids [repo...]
 //	go run ./tools/ergonomics-audit/ -mode opt [repo...]
 //	go run ./tools/ergonomics-audit/ -mode literals [repo...]
+//	go run ./tools/ergonomics-audit/ -mode theme [repo...]
 //
 // With no repo arguments both modes audit the current directory.
 //
@@ -69,7 +70,7 @@ import (
 var listShape *string
 
 func main() {
-	mode := flag.String("mode", "focus", "audit to run: focus | callbacks | ids | opt | literals")
+	mode := flag.String("mode", "focus", "audit to run: focus | callbacks | ids | opt | literals | theme")
 	guiRoot := flag.String("gui", ".", "path to the go-gui repo (source of truth for mode=focus)")
 	listShape = flag.String("list", "", "mode=callbacks: also list distinct signatures of this shape, or \"all\"")
 	fix := flag.Bool("fix", false, "mode=focus: rewrite broken literals in place, adding a generated ID")
@@ -107,8 +108,10 @@ func main() {
 		err = runOpt(repos)
 	case "literals":
 		err = runLiterals(repos)
+	case "theme":
+		err = runTheme(repos)
 	default:
-		err = fmt.Errorf("unknown -mode %q (want focus, callbacks, ids, opt or literals)", *mode)
+		err = fmt.Errorf("unknown -mode %q (want focus, callbacks, ids, opt, literals or theme)", *mode)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "ergonomics-audit:", err)

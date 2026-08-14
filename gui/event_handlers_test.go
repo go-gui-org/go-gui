@@ -158,7 +158,9 @@ func TestKeydownHandlerFallbackScroll(t *testing.T) {
 	}
 	w := &Window{}
 	w.SetFocus("f1")
-	guiTheme.scrollDeltaLine = 20
+	pinTheme(w, func(th *Theme) {
+		th.scrollDeltaLine = 20
+	})
 	e := &Event{KeyCode: KeyDown, Modifiers: ModNone}
 	keydownHandler(root, e, w)
 	if !e.IsHandled {
@@ -167,9 +169,6 @@ func TestKeydownHandlerFallbackScroll(t *testing.T) {
 }
 
 func TestKeyDownScrollHandlerArrows(t *testing.T) {
-	guiTheme.scrollDeltaLine = 20
-	guiTheme.scrollDeltaPage = 100
-	guiTheme.scrollMultiplier = 1
 
 	layout := &Layout{
 		Shape: &Shape{
@@ -183,6 +182,11 @@ func TestKeyDownScrollHandlerArrows(t *testing.T) {
 		},
 	}
 	w := &Window{}
+	pinTheme(w, func(th *Theme) {
+		th.scrollDeltaLine = 20
+		th.scrollDeltaPage = 100
+		th.scrollMultiplier = 1
+	})
 
 	tests := []struct {
 		name string
@@ -363,7 +367,6 @@ func TestMouseMoveHandlerSkipsOutOfWindow(t *testing.T) {
 }
 
 func TestMouseScrollHandlerVertical(t *testing.T) {
-	guiTheme.scrollMultiplier = 1
 	root := &Layout{Shape: &Shape{
 		Scrollable: true,
 		ID:         "1",
@@ -375,6 +378,9 @@ func TestMouseScrollHandlerVertical(t *testing.T) {
 		{Shape: &Shape{shapeType: shapeRectangle, Height: 200}},
 	}}
 	w := &Window{windowWidth: 800, windowHeight: 600}
+	pinTheme(w, func(th *Theme) {
+		th.scrollMultiplier = 1
+	})
 	e := &Event{
 		MouseX:    50,
 		MouseY:    25,
@@ -388,7 +394,6 @@ func TestMouseScrollHandlerVertical(t *testing.T) {
 }
 
 func TestMouseScrollHandlerHorizontalShift(t *testing.T) {
-	guiTheme.scrollMultiplier = 1
 	root := &Layout{Shape: &Shape{
 		Scrollable: true,
 		ID:         "1",
@@ -401,6 +406,9 @@ func TestMouseScrollHandlerHorizontalShift(t *testing.T) {
 		{Shape: &Shape{shapeType: shapeRectangle, Width: 200}},
 	}}
 	w := &Window{windowWidth: 800, windowHeight: 600}
+	pinTheme(w, func(th *Theme) {
+		th.scrollMultiplier = 1
+	})
 	e := &Event{
 		MouseX:    25,
 		MouseY:    50,
@@ -440,7 +448,6 @@ func TestMouseScrollHandlerFocusedOnMouseScroll(t *testing.T) {
 }
 
 func TestMouseScrollUnhandledCascadesToScrollContainer(t *testing.T) {
-	guiTheme.scrollMultiplier = 1
 	// Focused handler does NOT set IsHandled — scroll should
 	// cascade to the scroll container fallback.
 	focusCalled := false
@@ -470,6 +477,9 @@ func TestMouseScrollUnhandledCascadesToScrollContainer(t *testing.T) {
 		},
 	}
 	w := &Window{windowWidth: 800, windowHeight: 600}
+	pinTheme(w, func(th *Theme) {
+		th.scrollMultiplier = 1
+	})
 	w.SetFocus("f7")
 	e := &Event{
 		MouseX: 50, MouseY: 25,
@@ -529,7 +539,6 @@ func TestMouseScrollFallbackRespectsIsHandled(t *testing.T) {
 }
 
 func TestMouseScrollFallbackUnhandledReachesContainer(t *testing.T) {
-	guiTheme.scrollMultiplier = 1
 	// Layout callback does NOT set IsHandled — scroll should
 	// fall through to the parent scroll container.
 	root := &Layout{
@@ -557,6 +566,9 @@ func TestMouseScrollFallbackUnhandledReachesContainer(t *testing.T) {
 		},
 	}
 	w := &Window{windowWidth: 800, windowHeight: 600}
+	pinTheme(w, func(th *Theme) {
+		th.scrollMultiplier = 1
+	})
 	e := &Event{
 		MouseX: 50, MouseY: 25,
 		ScrollY: -10, Modifiers: ModNone,

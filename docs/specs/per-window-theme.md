@@ -116,8 +116,88 @@ visible change to the default appearance, chiefly the loss of the 1.5px border
 on buttons, inputs and containers. See
 `docs/specs/theme-style-single-source.md`.
 
-## Follow-up
+## The generation boundary (issue #301)
 
-Migrating factory-time reads to `w.Theme()` is optional and only pays where a
-window is already in hand and no closure is added: the event path
-(`gui/event_handlers.go`, `gui/scroll.go`), the backends, and new widgets.
+Reads split by **phase**, not by whether a window happens to be reachable.
+
+**During generation** — widget factories and `GenerateLayout` — the bare
+`guiTheme` / `default*Style` read stays. It is not a compromise: `Themed` scopes
+a theme by push/pop of the _installed_ theme, so a generation-time read that
+called `w.Theme()` would silently ignore the scope. The ~420 sites are also the
+hot path; deferring one means a closure plus a `Cfg` heap escape per widget per
+frame.
+
+**Outside generation** — event handlers, post-arrange injection, public window
+methods reached from handlers, and the backends — the read names its window.
+Before #301 those resolved against whichever window generated last: right by
+timing in a one-window app, wrong with two. `themePickerSyncHighlight` was
+already wrong that way.
+
+Migrated in #301:
+
+| File                                    | Function                                       |
+| --------------------------------------- | ---------------------------------------------- |
+| `gui/event_handlers.go`                 | `keyDownScrollHandler`                         |
+| `gui/scroll.go`                         | `scrollHorizontal`, `scrollVertical`           |
+| `gui/scroll_smooth.go`                  | `scrollSmoothBy`                               |
+| `gui/native_print.go`                   | `ExportPrintJob`                               |
+| `gui/view_theme_picker.go`              | `themePickerSyncHighlight`                     |
+| `gui/view_toast.go`                     | `toastEnforceMaxVisible`                       |
+| `gui/view_select.go`                    | `selectScrollTo`                               |
+| `gui/inspector.go`                      | `inspectorInjectWireframe`                     |
+| `gui/backend/{metal,gl,web}/backend.go` | `renderFrame`                                  |
+| `gui/backend/internal/framestate`       | `FrameBg`                                      |
+| `gui/backend/web/custom_shader.go`      | `drawCustomShaderFallback` (via `Backend.win`) |
+
+### The copy, and why the store is a pointer
+
+`Theme` is a large value — ~40 style structs plus ~40 text styles — so
+`w.Theme()`, which returns it by value, is not free. The scroll path reads it
+per wheel or arrow event, and the first cut of #301 cost 36 ns → 1083 ns per
+event on `BenchmarkEventFnMouseScrollFocused`: a 30x regression, all of it
+memcpy.
+
+So both stores hold a pointer to an immutable value: `Window.theme` and the
+package `defaultTheme`. A setter publishes a new value instead of writing
+through the pointer, so a reader that took the pointer under `RLock` may keep
+using it after dropping the lock. `w.Theme()` is unchanged for callers — it
+dereferences — and internal hot reads call the unexported `w.themeRef()`
+(`gui/theme_install.go`), which returns the pointer and copies nothing. With
+that, the scroll benchmark is back at ~39 ns/op, 0 allocs.
+
+Per-frame readers (the backends' clear color) keep `w.Theme()`; the copy is
+irrelevant once per frame and the value form is the safer default.
+
+### Gate
+
+`make ergonomics-audit` runs mode `theme`, which flags a `guiTheme`,
+`CurrentTheme()` or `default*Style` read inside a function with a `*Window` /
+`*gui.Window` receiver or parameter — but only in paths that are post-generation
+by construction: `gui/backend/**`, `gui/scroll*.go`, `gui/event*.go`,
+`gui/native_*.go`, `gui/window_*.go`. The phase cannot be decided from one
+function's syntax, so the mode does not guess; handlers living in mixed-phase
+`view_*.go` files are covered by the convention only. A deliberate exception
+carries `ergonomics-audit:theme-global` on its line.
+
+### Rejected: `w.Button(...)` receiver sugar
+
+Raised as #296 proposal item 5 and declined again in #301:
+
+1. It does not fix the phase problem. `w.Button(cfg)` still runs eagerly and
+   still resolves the theme at factory time — the same error with a window name
+   attached.
+2. It breaks reusability. A package factory builds window-agnostic view intent;
+   a receiver binds a fragment to a window at construction, so every sub-tree
+   helper threads `w` and closing over the wrong window becomes easy — the bug
+   class per-window themes set out to close.
+3. It fights `Themed`, for the reason above: the subtree scope lives in the
+   installed theme, not in the window.
+4. It is all cost. ~60 factories, every example, and the sibling consumers
+   churn, with no perf win — the closure cost that ruled out the blanket
+   migration comes from deferring, not from the receiver.
+5. The access already exists where it is needed: `GenerateLayout(w)`,
+   `EventCtx.Window`, `viewFunc(func(w *Window) View)`, `w.EffID` / `ctx.EffID`.
+
+The pattern is not banned — the boundary is a receiver for window-level
+singletons (`(*Window).Sidebar`, `(*Window).Toast`) and a package factory for
+reusable view fragments.

@@ -442,7 +442,7 @@ func TestPanFallbackScroll(t *testing.T) {
 	w.animations = make(map[string]Animation)
 	gs := &w.viewState.gesture
 	gs.nowFn = fixedClock(0)
-	guiTheme.scrollMultiplier = 1
+	pinScrollMultiplier(w, 1)
 
 	w.handleTouch(root, touchEvent(EventTouchesBegan, 1, 100, 100))
 	// Pan downward — first move crosses threshold (Began).

@@ -154,8 +154,11 @@ const (
 )
 
 func keyDownScrollHandler(layout *Layout, e *Event, w *Window) {
-	deltaLine := guiTheme.scrollDeltaLine
-	deltaPage := guiTheme.scrollDeltaPage
+	// Post-generation read: name the window rather than the installed
+	// frame cache, which belongs to whichever window generated last.
+	th := w.themeRef()
+	deltaLine := th.scrollDeltaLine
+	deltaPage := th.scrollDeltaPage
 
 	switch e.Modifiers {
 	case ModNone:
