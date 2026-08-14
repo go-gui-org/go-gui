@@ -17,11 +17,12 @@ import (
 	"os"
 	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/go-gui-org/go-glyph"
 
 	"github.com/go-gui-org/go-gui/gui"
-	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/framestate"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/imgpath"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/tempfont"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
@@ -47,39 +48,32 @@ var (
 	androidWindow  *gui.Window
 )
 
+// glesBridge implements framestate.Bridge with the GLES C calls.
+type glesBridge struct{}
+
+func (glesBridge) SetPipeline(pipe int, mvp *[16]float32) {
+	C.glesSetPipeline(C.int(pipe))
+	C.glesSetMVP((*C.float)(unsafe.Pointer(mvp)))
+}
+
+func (glesBridge) Resize(physW, physH int32) {
+	C.glesResize(C.int(physW), C.int(physH))
+}
+
 // Backend is the Android GLES3 backend for go-gui.
+// Embeds framestate.FrameState for all shared render-frame
+// state; platform-specific resources stay on the Backend.
 type Backend struct {
-	textSys  *glyph.TextSystem
-	dpiScale float32
-	physW    int32
-	physH    int32
-	mvp      [16]float32
+	framestate.FrameState
 
-	mvpStack [][16]float32
+	textSys      *glyph.TextSystem
+	textures     texcache.Cache[string, glesTexture]
+	glyphBack    *glesGlyphBackend
+	customCache  texcache.Cache[uint64, C.int]
+	iconFontPath string
 
-	// Reusable buffers.
-	svgVerts           []gpu.Vertex
-	textPathPlacements []glyph.GlyphPlacement
-	normBuf            []gui.GradientStop
-	sampledBuf         []gui.GradientStop
-
-	textures          texcache.Cache[string, glesTexture]
-	glyphBack         *glesGlyphBackend
-	filterBlur        float32
-	filterLayer       int
-	filterColorMatrix *[16]float32
-	customCache       texcache.Cache[uint64, C.int]
-	iconFontPath      string
-
-	allowedImageRoots []string
-	imagePathCache    texcache.Cache[string, string]
-	maxImageBytes     int64
-	maxImagePixels    int64
-
-	// Pipeline state tracking to skip redundant CGo calls.
-	lastPipe   int
-	mvpDirty   bool
-	textQueued bool
+	maxImageBytes  int64
+	maxImagePixels int64
 }
 
 // --- Pattern B only (no Pattern A / Run) ---
@@ -188,28 +182,21 @@ func initBackend(w, h int32, scale float32) {
 		panic(fmt.Sprintf("android: glesInit failed: %d", rc))
 	}
 
-	physW := int32(float32(w) * scale)
-	physH := int32(float32(h) * scale)
-	C.glesResize(C.int(physW), C.int(physH))
-
 	cfg := androidWindow.Config
 	b := &Backend{
-		dpiScale: scale,
-		physW:    physW,
-		physH:    physH,
+		FrameState: *framestate.New(
+			int(pipeSolid), int(pipeGlyphTex), glesBridge{}),
 		textures: newGLESTexCacheLRU(128),
 		customCache: texcache.New[uint64, C.int](
 			maxCustomPipelines,
 			func(idx C.int) { C.glesDeleteCustomPipeline(idx) },
 		),
-		imagePathCache: texcache.New[string, string](1024, nil),
 		maxImageBytes:  cfg.MaxImageBytes,
 		maxImagePixels: cfg.MaxImagePixels,
-		lastPipe:       -1,
 	}
-	b.allowedImageRoots = imgpath.NormalizeRoots(
+	b.AllowedImageRoots = imgpath.NormalizeRoots(
 		cfg.AllowedImageRoots)
-	b.updateProjection()
+	b.HandleResize(int32(w), int32(h), scale)
 
 	// Initialize glyph text system with GLES backend.
 	b.glyphBack = newGLESGlyphBackend(scale)
@@ -260,49 +247,27 @@ func initBackend(w, h int32, scale float32) {
 // renderFrame clears the screen, draws the current layout, and
 // flushes the GL pipeline.
 func (b *Backend) renderFrame(w *gui.Window) {
-	bg := w.Config.BgColor
-	if bg == (gui.Color{}) {
-		t := gui.CurrentTheme()
-		bg = t.ColorBackground
-	}
+	r, g, bl, a := b.FrameBg(w)
 
 	C.glesBeginFrame(
-		C.float(float32(bg.R)/255.0),
-		C.float(float32(bg.G)/255.0),
-		C.float(float32(bg.B)/255.0),
-		C.float(float32(bg.A)/255.0),
+		C.float(r), C.float(g), C.float(bl), C.float(a),
 	)
 
-	b.invalidatePipelineState()
-	b.setPipeline(pipeSolid)
+	b.InvalidatePipelineState()
+	b.SetPipeline(b.SolidPipe)
 
 	w.Lock()
 	b.renderersDraw(w)
 	w.Unlock()
 
 	// Flush queued text.
-	if b.textQueued {
-		b.useGlyphPipeline()
-		b.textSys.Commit()
-		b.textQueued = false
-	}
+	b.FlushText(b.textSys)
 
 	C.glesEndFrame()
 }
 
 func (b *Backend) handleResize(w, h int32, scale float32) {
-	b.dpiScale = scale
-	b.physW = int32(float32(w) * scale)
-	b.physH = int32(float32(h) * scale)
-	C.glesResize(C.int(b.physW), C.int(b.physH))
-	b.updateProjection()
-}
-
-func (b *Backend) updateProjection() {
-	gpu.Ortho(&b.mvp,
-		0, float32(b.physW),
-		float32(b.physH), 0,
-		-1, 1)
+	b.HandleResize(w, h, scale)
 }
 
 // Destroy releases all backend resources.
@@ -320,29 +285,6 @@ func (b *Backend) Destroy() {
 		b.iconFontPath = ""
 	}
 	C.glesDestroy()
-}
-
-// setPipeline sets GLES pipeline and MVP, skipping redundant
-// CGo calls when unchanged.
-func (b *Backend) setPipeline(pipe int) {
-	if pipe == b.lastPipe && !b.mvpDirty {
-		return
-	}
-	C.glesSetPipeline(C.int(pipe))
-	C.glesSetMVP((*C.float)(&b.mvp[0]))
-	b.lastPipe = pipe
-	b.mvpDirty = false
-}
-
-// invalidatePipelineState forces the next setPipeline to issue
-// CGo calls.
-func (b *Backend) invalidatePipelineState() {
-	b.lastPipe = -1
-}
-
-// useGlyphPipeline sets up GLES state for glyph text rendering.
-func (b *Backend) useGlyphPipeline() {
-	b.setPipeline(pipeGlyphTex)
 }
 
 // --- OpenURI bridge ---

@@ -48,7 +48,7 @@ func createGLESTexture(w, h int32,
 // image to a GLES texture.
 func (b *Backend) loadImageTexture(
 	path string) (glesTexture, error) {
-	f, err := imgload.OpenSafe(path, b.allowedImageRoots)
+	f, err := imgload.OpenSafe(path, b.AllowedImageRoots)
 	if err != nil {
 		return glesTexture{}, err
 	}

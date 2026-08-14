@@ -17,7 +17,6 @@ import (
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
-	"github.com/go-gui-org/go-gui/gui/backend/internal/imgload"
 )
 
 // renderersDraw iterates render commands and draws them.
@@ -85,29 +84,29 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 // --- Individual draw commands ---
 
 func (b *Backend) drawClip(r *gui.RenderCmd) {
-	s := b.dpiScale
+	s := b.DPIScale
 	x := int32(r.X * s)
 	y := int32(r.Y * s)
 	w := int32(r.W * s)
 	h := int32(r.H * s)
 	C.glesSetScissor(C.int(x), C.int(y), C.int(w), C.int(h),
-		C.int(b.physH))
+		C.int(b.PhysH))
 }
 
 func (b *Backend) drawRect(r *gui.RenderCmd) {
 	if !r.Fill {
 		return
 	}
-	s := b.dpiScale
-	b.setPipeline(pipeSolid)
+	s := b.DPIScale
+	b.SetPipeline(pipeSolid)
 	verts := gpu.BuildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
 		r.Color, r.Radius*s, 0)
 	C.glesDrawQuad((*C.float)(unsafe.Pointer(&verts[0])))
 }
 
 func (b *Backend) drawStrokeRect(r *gui.RenderCmd) {
-	s := b.dpiScale
-	b.setPipeline(pipeSolid)
+	s := b.DPIScale
+	b.SetPipeline(pipeSolid)
 	verts := gpu.BuildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
 		r.Color, r.Radius*s, r.Thickness*s)
 	C.glesDrawQuad((*C.float)(unsafe.Pointer(&verts[0])))
@@ -117,9 +116,9 @@ func (b *Backend) drawCircle(r *gui.RenderCmd) {
 	if !r.Fill || r.Radius <= 0 {
 		return
 	}
-	s := b.dpiScale
+	s := b.DPIScale
 	rad := r.Radius * s
-	b.setPipeline(pipeSolid)
+	b.SetPipeline(pipeSolid)
 	verts := gpu.BuildQuad(
 		(r.X-r.Radius)*s,
 		(r.Y-r.Radius)*s,
@@ -129,7 +128,7 @@ func (b *Backend) drawCircle(r *gui.RenderCmd) {
 }
 
 func (b *Backend) drawLine(r *gui.RenderCmd) {
-	s := b.dpiScale
+	s := b.DPIScale
 	x0 := r.X * s
 	y0 := r.Y * s
 	x1 := r.OffsetX * s
@@ -154,12 +153,12 @@ func (b *Backend) drawLine(r *gui.RenderCmd) {
 		{X: x0 - nx, Y: y0 - ny, Z: 0, U: -1, V: 1, R: cr, G: cg, B: cb, A: ca},
 	}
 
-	b.setPipeline(pipeSolid)
+	b.SetPipeline(pipeSolid)
 	C.glesDrawQuad((*C.float)(unsafe.Pointer(&verts[0])))
 }
 
 func (b *Backend) drawShadow(r *gui.RenderCmd) {
-	s := b.dpiScale
+	s := b.DPIScale
 	x := (r.X + r.OffsetX) * s
 	y := (r.Y + r.OffsetY) * s
 	w := r.W * s
@@ -173,7 +172,7 @@ func (b *Backend) drawShadow(r *gui.RenderCmd) {
 	qw := w + 2*expand
 	qh := h + 2*expand
 
-	b.setPipeline(pipeShadow)
+	b.SetPipeline(pipeShadow)
 
 	tm := gpu.IdentityTM()
 	tm[12] = r.OffsetX * s
@@ -185,12 +184,12 @@ func (b *Backend) drawShadow(r *gui.RenderCmd) {
 }
 
 func (b *Backend) drawBlur(r *gui.RenderCmd) {
-	s := b.dpiScale
+	s := b.DPIScale
 	blur := r.BlurRadius * s
 	rad := r.Radius * s
 	expand := blur * 1.5
 
-	b.setPipeline(pipeBlur)
+	b.SetPipeline(pipeBlur)
 	tm := gpu.IdentityTM()
 	C.glesSetTM((*C.float)(&tm[0]))
 
@@ -206,7 +205,7 @@ func (b *Backend) drawGradient(r *gui.RenderCmd) {
 		r.W <= 0 || r.H <= 0 {
 		return
 	}
-	s := b.dpiScale
+	s := b.DPIScale
 	x := r.X * s
 	y := r.Y * s
 	w := r.W * s
@@ -214,14 +213,14 @@ func (b *Backend) drawGradient(r *gui.RenderCmd) {
 	rad := r.Radius * s
 
 	stops := gui.NormalizeGradientStopsInto(
-		r.Gradient.Stops, &b.normBuf, &b.sampledBuf)
+		r.Gradient.Stops, &b.NormBuf, &b.SampledBuf)
 	if len(stops) == 0 {
 		return
 	}
 
 	tm := gpu.PackGradientUniforms(r.Gradient, stops, w, h)
 
-	b.setPipeline(pipeGradient)
+	b.SetPipeline(pipeGradient)
 	C.glesSetTM((*C.float)(&tm[0]))
 
 	verts := gpu.BuildQuad(x, y, w, h, gui.White, rad, 0)
@@ -232,9 +231,9 @@ func (b *Backend) drawGradientBorder(r *gui.RenderCmd) {
 	if r.Gradient == nil || len(r.Gradient.Stops) == 0 {
 		return
 	}
-	s := b.dpiScale
+	s := b.DPIScale
 	rects := gui.GradientBorderRects(r)
-	b.setPipeline(pipeSolid)
+	b.SetPipeline(pipeSolid)
 	for i := range 4 {
 		rc := &rects[i]
 		verts := gpu.BuildQuad(rc.X*s, rc.Y*s, rc.W*s, rc.H*s,
@@ -244,18 +243,7 @@ func (b *Backend) drawGradientBorder(r *gui.RenderCmd) {
 }
 
 func (b *Backend) drawImage(r *gui.RenderCmd) {
-	path, ok := b.imagePathCache.Get(r.Resource)
-	if !ok {
-		var err error
-		path, err = imgload.ResolveValidatedPath(
-			r.Resource, b.allowedImageRoots)
-		if err != nil {
-			log.Printf("android: drawImage: %v",
-				err)
-			path = "-"
-		}
-		b.imagePathCache.Set(r.Resource, path)
-	}
+	path := b.ResolveImagePath(r.Resource, "android")
 	if path == "-" {
 		return
 	}
@@ -273,7 +261,7 @@ func (b *Backend) drawImage(r *gui.RenderCmd) {
 		return
 	}
 
-	s := b.dpiScale
+	s := b.DPIScale
 	x := r.X * s
 	y := r.Y * s
 	w := r.W * s
@@ -281,12 +269,12 @@ func (b *Backend) drawImage(r *gui.RenderCmd) {
 
 	// Fill background.
 	if r.Color.A > 0 {
-		b.setPipeline(pipeSolid)
+		b.SetPipeline(pipeSolid)
 		verts := gpu.BuildQuad(x, y, w, h, r.Color, 0, 0)
 		C.glesDrawQuad((*C.float)(unsafe.Pointer(&verts[0])))
 	}
 
-	b.setPipeline(pipeImageClip)
+	b.SetPipeline(pipeImageClip)
 	C.glesBindTexture(C.int(tex.id))
 
 	z := gpu.PackParams(r.ClipRadius*s, 0)
@@ -307,7 +295,7 @@ func (b *Backend) drawSvg(r *gui.RenderCmd) {
 	if len(r.Triangles) == 0 || len(r.Triangles)%6 != 0 {
 		return
 	}
-	s := b.dpiScale
+	s := b.DPIScale
 	numVerts := len(r.Triangles) / 2
 	hasVCols := len(r.VertexColors) == numVerts
 	vAlpha := float32(1)
@@ -329,10 +317,10 @@ func (b *Backend) drawSvg(r *gui.RenderCmd) {
 		rcx, rcy = r.RotCX, r.RotCY
 	}
 
-	if cap(b.svgVerts) < numVerts {
-		b.svgVerts = make([]gpu.Vertex, numVerts)
+	if cap(b.SVGVerts) < numVerts {
+		b.SVGVerts = make([]gpu.Vertex, numVerts)
 	}
-	verts := b.svgVerts[:numVerts]
+	verts := b.SVGVerts[:numVerts]
 	var flatR, flatG, flatB, flatA float32
 	if !hasVCols {
 		flatR, flatG, flatB, flatA = gpu.NormColor(r.Color.R, r.Color.G,
@@ -375,7 +363,7 @@ func (b *Backend) drawSvg(r *gui.RenderCmd) {
 		}
 	}
 
-	b.setPipeline(pipeSolid)
+	b.SetPipeline(pipeSolid)
 	C.glesDrawTriangles(
 		(*C.float)(unsafe.Pointer(&verts[0])),
 		C.int(numVerts))
@@ -409,17 +397,17 @@ func (b *Backend) drawText(r *gui.RenderCmd) {
 		cfg.Block.Width = r.W
 	}
 
-	b.useGlyphPipeline()
-	b.textQueued = true
+	b.UseGlyphPipeline()
+	b.TextQueued = true
 	if err := b.textSys.DrawText(r.X, r.Y, r.Text, cfg); err != nil {
 		log.Printf("android: DrawText: %v", err)
 	}
-	b.invalidatePipelineState()
+	b.InvalidatePipelineState()
 }
 
 func (b *Backend) drawTextPath(r *gui.RenderCmd) {
 	layout, placements, err := gui.ComputeTextPathPlacements(
-		r, b.textSys, &b.textPathPlacements,
+		r, b.textSys, &b.TextPathPlacements,
 		guiStyleToGlyphConfig)
 	if err != nil {
 		log.Printf("android: drawTextPath: %v", err)
@@ -428,19 +416,19 @@ func (b *Backend) drawTextPath(r *gui.RenderCmd) {
 	if len(placements) == 0 {
 		return
 	}
-	b.textPathPlacements = placements
-	b.useGlyphPipeline()
-	b.textQueued = true
+	b.TextPathPlacements = placements
+	b.UseGlyphPipeline()
+	b.TextQueued = true
 	b.textSys.DrawLayoutPlaced(layout, placements)
-	b.invalidatePipelineState()
+	b.InvalidatePipelineState()
 }
 
 func (b *Backend) drawLayout(r *gui.RenderCmd) {
 	if b.textSys == nil || r.LayoutPtr == nil {
 		return
 	}
-	b.useGlyphPipeline()
-	b.textQueued = true
+	b.UseGlyphPipeline()
+	b.TextQueued = true
 	if r.TextGradient != nil {
 		b.textSys.DrawLayoutWithGradient(
 			*r.LayoutPtr, r.X, r.Y, r.TextGradient,
@@ -448,7 +436,7 @@ func (b *Backend) drawLayout(r *gui.RenderCmd) {
 	} else {
 		b.textSys.DrawLayout(*r.LayoutPtr, r.X, r.Y)
 	}
-	b.invalidatePipelineState()
+	b.InvalidatePipelineState()
 }
 
 func (b *Backend) drawLayoutTransformed(r *gui.RenderCmd) {
@@ -456,8 +444,8 @@ func (b *Backend) drawLayoutTransformed(r *gui.RenderCmd) {
 		r.LayoutTransform == nil {
 		return
 	}
-	b.useGlyphPipeline()
-	b.textQueued = true
+	b.UseGlyphPipeline()
+	b.TextQueued = true
 	if r.TextGradient != nil {
 		b.textSys.DrawLayoutTransformedWithGradient(
 			*r.LayoutPtr, r.X, r.Y,
@@ -468,7 +456,7 @@ func (b *Backend) drawLayoutTransformed(r *gui.RenderCmd) {
 			*r.LayoutPtr, r.X, r.Y, *r.LayoutTransform,
 		)
 	}
-	b.invalidatePipelineState()
+	b.InvalidatePipelineState()
 }
 
 func (b *Backend) drawRtf(r *gui.RenderCmd) {
@@ -496,9 +484,9 @@ func (b *Backend) drawCustomShader(r *gui.RenderCmd) {
 		b.customCache.Set(h, idx)
 	}
 
-	s := b.dpiScale
+	s := b.DPIScale
 	C.glesSetCustomPipeline(idx)
-	C.glesSetMVP((*C.float)(&b.mvp[0]))
+	C.glesSetMVP((*C.float)(&b.MVP[0]))
 
 	var tm [16]float32
 	for i := range min(len(r.Shader.Params), 16) {
@@ -509,7 +497,7 @@ func (b *Backend) drawCustomShader(r *gui.RenderCmd) {
 	verts := gpu.BuildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
 		r.Color, r.Radius*s, 0)
 	C.glesDrawQuad((*C.float)(unsafe.Pointer(&verts[0])))
-	b.invalidatePipelineState()
+	b.InvalidatePipelineState()
 }
 
 func buildCustomGLES3Fragment(body string) string {
@@ -559,75 +547,63 @@ void main() {
 // --- Stencil clip ---
 
 func (b *Backend) beginStencilClip(r *gui.RenderCmd) {
-	s := b.dpiScale
-	b.setPipeline(pipeSolid)
+	s := b.DPIScale
+	b.SetPipeline(pipeSolid)
 	verts := gpu.BuildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
 		gui.White, r.Radius*s, 0)
 	C.glesBeginStencilClip(
 		(*C.float)(unsafe.Pointer(&verts[0])),
 		C.int(r.StencilDepth))
-	b.invalidatePipelineState()
-	b.setPipeline(pipeSolid)
+	b.InvalidatePipelineState()
+	b.SetPipeline(pipeSolid)
 }
 
 func (b *Backend) endStencilClip(r *gui.RenderCmd) {
-	s := b.dpiScale
+	s := b.DPIScale
 	verts := gpu.BuildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
 		gui.White, r.Radius*s, 0)
 	C.glesEndStencilClip(
 		(*C.float)(unsafe.Pointer(&verts[0])),
 		C.int(r.StencilDepth))
-	b.invalidatePipelineState()
-	b.setPipeline(pipeSolid)
+	b.InvalidatePipelineState()
+	b.SetPipeline(pipeSolid)
 }
 
 // --- Rotation ---
 
 func (b *Backend) beginRotation(r *gui.RenderCmd) {
-	b.mvpStack = append(b.mvpStack, b.mvp)
-	s := b.dpiScale
-	cx := r.RotCX * s
-	cy := r.RotCY * s
-	gpu.ApplyRotation(&b.mvp, r.RotAngle, cx, cy)
-	b.mvpDirty = true
-	b.setPipeline(pipeSolid)
+	s := b.DPIScale
+	b.BeginRotation(r.RotAngle, r.RotCX*s, r.RotCY*s)
 }
 
 func (b *Backend) endRotation() {
-	n := len(b.mvpStack)
-	if n == 0 {
-		return
-	}
-	b.mvp = b.mvpStack[n-1]
-	b.mvpStack = b.mvpStack[:n-1]
-	b.mvpDirty = true
-	b.setPipeline(pipeSolid)
+	b.EndRotation()
 }
 
 // --- Filter (glow) ---
 
 func (b *Backend) beginFilter(r *gui.RenderCmd) {
-	b.filterBlur = r.BlurRadius * b.dpiScale
-	b.filterLayer = r.Layers
-	b.filterColorMatrix = r.ColorMatrix
+	b.FilterBlur = r.BlurRadius * b.DPIScale
+	b.FilterLayer = r.Layers
+	b.FilterColorMatrix = r.ColorMatrix
 
-	b.setPipeline(pipeSolid)
+	b.SetPipeline(pipeSolid)
 
-	rc := C.glesBeginFilter(C.int(b.physW), C.int(b.physH))
+	rc := C.glesBeginFilter(C.int(b.PhysW), C.int(b.PhysH))
 	if rc != 0 {
 		return
 	}
-	b.invalidatePipelineState()
-	b.setPipeline(pipeSolid)
+	b.InvalidatePipelineState()
+	b.SetPipeline(pipeSolid)
 }
 
 func (b *Backend) endFilter() {
 	var cmPtr *C.float
-	if b.filterColorMatrix != nil {
-		cmPtr = (*C.float)(&b.filterColorMatrix[0])
+	if b.FilterColorMatrix != nil {
+		cmPtr = (*C.float)(&b.FilterColorMatrix[0])
 	}
-	C.glesEndFilter(C.float(b.filterBlur),
-		C.int(b.filterLayer), cmPtr)
-	b.invalidatePipelineState()
-	b.setPipeline(pipeSolid)
+	C.glesEndFilter(C.float(b.FilterBlur),
+		C.int(b.FilterLayer), cmPtr)
+	b.InvalidatePipelineState()
+	b.SetPipeline(pipeSolid)
 }
