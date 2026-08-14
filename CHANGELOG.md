@@ -105,6 +105,16 @@ and this project adheres to
   `MouseInvalid`. The event is still `Type: EventMouseMove` and is
   rebuilt field-by-field every frame.
 
+- **`Theme.WithInspectorStyle` is unexported (breaking; no known
+  consumers).** It was the only exported member of the `with*Style`
+  family and was carried on an `exportaudit:keep` claim of sibling-repo
+  use that does not exist. It is now `withInspectorStyle`, matching
+  `withDataGridStyle` and the rest of the family. This completes the
+  issue #288 API-surface review: with all sibling repos scanned, the
+  authoritative audit reports a clean surface — one `none` export
+  (`FillBorder`, intentionally public, showcase-documented) and every
+  self/selftest-only export carries a justified keep marker.
+
 ### Added
 
 - **Markdown interaction test suite expands to the nested-document and

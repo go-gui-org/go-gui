@@ -65,12 +65,12 @@ func TestWithTextStyleUsesTextStyleDefField(t *testing.T) {
 func TestWithInspectorStyle(t *testing.T) {
 	var base Theme
 	s := InspectorStyle{ColorPanel: RGB(10, 20, 30)}
-	got := base.WithInspectorStyle(s)
+	got := base.withInspectorStyle(s)
 	if got.inspectorStyle.ColorPanel != s.ColorPanel {
-		t.Error("WithInspectorStyle should set the inspector style")
+		t.Error("withInspectorStyle should set the inspector style")
 	}
 	// Value semantics: the receiver stays untouched.
 	if base.inspectorStyle.ColorPanel != (Color{}) {
-		t.Error("WithInspectorStyle must not mutate the receiver")
+		t.Error("withInspectorStyle must not mutate the receiver")
 	}
 }

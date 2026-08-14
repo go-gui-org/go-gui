@@ -180,9 +180,8 @@ func (t Theme) withDataGridStyle(s DataGridStyle) Theme {
 	return t
 }
 
-// WithInspectorStyle returns a Theme with the given style.
-// exportaudit:keep — public theme API used by sibling repos
-func (t Theme) WithInspectorStyle(s InspectorStyle) Theme {
+// withInspectorStyle returns a Theme with the given style.
+func (t Theme) withInspectorStyle(s InspectorStyle) Theme {
 	t.inspectorStyle = s
 	return t
 }

@@ -200,7 +200,7 @@ func (c evClass) name() string {
 //
 // Named TestUnconsumedEvents before v0.55.0, when it measured the cost of
 // a collapse that has since happened.
-// exportaudit:keep — public testing API used by sibling repos
+// exportaudit:keep — public testing API in the documented Test* family
 func (w *Window) TestUnconsumedEvents() []string {
 	root := w.TestRender(nil)
 	if root == nil {
