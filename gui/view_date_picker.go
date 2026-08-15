@@ -147,10 +147,13 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 
 	cfgID := cfg.ID
 	col := Column(ContainerCfg{
-		ID:          cfg.ID,
-		Focusable:   !cfg.FocusDisabled,
-		A11YRole:    AccessRoleGrid,
-		A11YCfg:     A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, "Date Picker")},
+		ID:        cfg.ID,
+		Focusable: !cfg.FocusDisabled,
+		A11YRole:  AccessRoleGrid,
+		A11YCfg: A11YCfg{
+			A11YLabel:       a11yLabel(cfg.A11YLabel, "Date Picker"),
+			A11YDescription: cfg.A11YDescription,
+		},
 		Color:       cfg.Colors.Base,
 		ColorBorder: cfg.Colors.Border,
 		SizeBorder:  cfg.SizeBorder,

@@ -133,9 +133,12 @@ func ListBox(cfg ListBoxCfg) View {
 	}
 
 	return Column(ContainerCfg{
-		ID:         cfg.ID,
-		A11YRole:   AccessRoleList,
-		A11YCfg:    A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, cfg.ID)},
+		ID:       cfg.ID,
+		A11YRole: AccessRoleList,
+		A11YCfg: A11YCfg{
+			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.ID),
+			A11YDescription: cfg.A11YDescription,
+		},
 		Focusable:  !cfg.FocusDisabled,
 		Scrollable: cfg.Scrollable,
 		OnKeyDown: func(ctx EventCtx) {
@@ -235,9 +238,12 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 	}
 
 	return generateViewLayout(Column(ContainerCfg{
-		ID:          cfg.ID,
-		A11YRole:    AccessRoleList,
-		A11YCfg:     A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, cfg.ID)},
+		ID:       cfg.ID,
+		A11YRole: AccessRoleList,
+		A11YCfg: A11YCfg{
+			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.ID),
+			A11YDescription: cfg.A11YDescription,
+		},
 		Focusable:   !cfg.FocusDisabled,
 		Scrollable:  cfg.Scrollable,
 		AmendLayout: listBoxAmendLayout(cache),

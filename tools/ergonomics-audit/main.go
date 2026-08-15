@@ -10,6 +10,7 @@
 //	go run ./tools/ergonomics-audit/ -mode opt [repo...]
 //	go run ./tools/ergonomics-audit/ -mode literals [repo...]
 //	go run ./tools/ergonomics-audit/ -mode theme [repo...]
+//	go run ./tools/ergonomics-audit/ -mode a11y [repo...]
 //
 // With no repo arguments both modes audit the current directory.
 //
@@ -51,6 +52,11 @@
 // raw composite literal instead of a constructor, silently reading as
 // unset? It exits non-zero on any finding, so it gates. See literals.go.
 //
+// Mode a11y answers: does any code build a keyed A11YCfg literal that
+// forwards the label but drops the description, so a description never
+// reaches the accessibility tree? It exits non-zero on any finding, so
+// it gates. See a11y.go.
+//
 // All modes parse with go/ast: composite literals and func literals
 // span lines, and regex cannot bracket-match them.
 package main
@@ -70,7 +76,7 @@ import (
 var listShape *string
 
 func main() {
-	mode := flag.String("mode", "focus", "audit to run: focus | callbacks | ids | opt | literals | theme")
+	mode := flag.String("mode", "focus", "audit to run: focus | callbacks | ids | opt | literals | theme | a11y")
 	guiRoot := flag.String("gui", ".", "path to the go-gui repo (source of truth for mode=focus)")
 	listShape = flag.String("list", "", "mode=callbacks: also list distinct signatures of this shape, or \"all\"")
 	fix := flag.Bool("fix", false, "mode=focus: rewrite broken literals in place, adding a generated ID")
@@ -110,8 +116,10 @@ func main() {
 		err = runLiterals(repos)
 	case "theme":
 		err = runTheme(repos)
+	case "a11y":
+		err = runA11Y(repos)
 	default:
-		err = fmt.Errorf("unknown -mode %q (want focus, callbacks, ids, opt, literals or theme)", *mode)
+		err = fmt.Errorf("unknown -mode %q (want focus, callbacks, ids, opt, literals, theme or a11y)", *mode)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "ergonomics-audit:", err)

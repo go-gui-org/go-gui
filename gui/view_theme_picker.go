@@ -95,9 +95,12 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 		ID:        cfg.ID,
 		Focusable: cfg.Focusable,
 		A11YRole:  AccessRoleButton,
-		A11YCfg:   A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, "Theme Picker")},
-		Sizing:    cfg.Sizing,
-		Padding:   PaddingSmall,
+		A11YCfg: A11YCfg{
+			A11YLabel:       a11yLabel(cfg.A11YLabel, "Theme Picker"),
+			A11YDescription: cfg.A11YDescription,
+		},
+		Sizing:  cfg.Sizing,
+		Padding: PaddingSmall,
 		OnClick: func(ctx EventCtx) {
 			ss := StateMap[string, bool](ctx.Window, nsSelect, capModerate)
 			ss.Clear()

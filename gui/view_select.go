@@ -159,11 +159,14 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 
 	// Build the outer row layout directly.
 	ccfg := ContainerCfg{
-		ID:          cfg.ID,
-		Focusable:   !cfg.FocusDisabled,
-		Clip:        clip,
-		A11YRole:    AccessRoleComboBox,
-		A11YCfg:     A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, cfg.Placeholder)},
+		ID:        cfg.ID,
+		Focusable: !cfg.FocusDisabled,
+		Clip:      clip,
+		A11YRole:  AccessRoleComboBox,
+		A11YCfg: A11YCfg{
+			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Placeholder),
+			A11YDescription: cfg.A11YDescription,
+		},
 		Color:       cfg.Color,
 		ColorBorder: cfg.ColorBorder,
 		SizeBorder:  Some(sizeBorder),

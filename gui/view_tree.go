@@ -235,9 +235,11 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 	radius := cfg.Radius.Get(defaultTreeStyle.Radius)
 
 	return generateViewLayout(Column(ContainerCfg{
-		ID:         cfg.ID,
-		A11YRole:   AccessRoleTree,
-		A11YCfg:    A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, cfg.ID)},
+		ID:       cfg.ID,
+		A11YRole: AccessRoleTree,
+		// a11y comes from the explicit field: makeContainerA11Y honors
+		// it over the A11YCfg literal, and a11yInfo carries the
+		// caller's description with the label.
 		a11Y:       cfg.a11yInfo(cfg.ID),
 		Focusable:  !cfg.FocusDisabled,
 		Scrollable: cfg.Scrollable,
