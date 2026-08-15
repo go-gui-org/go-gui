@@ -278,7 +278,7 @@ func tableView(cfg TableCfg, w *Window) View {
 	outerCfg := ContainerCfg{
 		ID:        cfg.ID,
 		A11YRole:  AccessRoleGrid,
-		A11YCfg:   A11YCfg{A11YLabel: cfg.A11YLabel},
+		A11YCfg:   A11YCfg{A11YLabel: cfg.A11YLabel, A11YDescription: cfg.A11YDescription},
 		Color:     ColorTransparent,
 		Padding:   NoPadding,
 		Spacing:   Some(rowSpacing),

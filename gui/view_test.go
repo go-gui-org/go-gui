@@ -948,6 +948,34 @@ func TestA11YLabelFallback(t *testing.T) {
 	}
 }
 
+// A11YCfg.a11yInfo is the makeA11YInfo(a11yLabel(...)) pairing every
+// widget cfg uses to build its shape's accessInfo.
+func TestA11YCfgA11YInfo(t *testing.T) {
+	if info := (A11YCfg{}).a11yInfo(""); info != nil {
+		t.Error("empty cfg and fallback should yield nil info")
+	}
+
+	info := (A11YCfg{A11YLabel: "explicit", A11YDescription: "desc"}).
+		a11yInfo("fallback")
+	if info == nil {
+		t.Fatal("explicit label should not be nil")
+	}
+	if info.Label != "explicit" || info.Description != "desc" {
+		t.Errorf("got label=%q desc=%q, want explicit/desc",
+			info.Label, info.Description)
+	}
+
+	if info := (A11YCfg{}).a11yInfo("fallback"); info == nil ||
+		info.Label != "fallback" {
+		t.Error("empty label should fall back to fallback text")
+	}
+
+	if info := (A11YCfg{}).a11yInfo("settings:name"); info == nil ||
+		info.Label != "name" {
+		t.Error("scoped fallback should be stripped to its last segment")
+	}
+}
+
 // The fallback is frequently a widget's ID, and an ID may be a scoped
 // path once the widget resolves its identity. A screen reader must hear
 // a name, not a path.
