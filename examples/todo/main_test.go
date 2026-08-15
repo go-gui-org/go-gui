@@ -10,8 +10,10 @@ import (
 // grew. This is the whole point of the app-testing API: the previous
 // version of this test only proved mainView did not panic, which would
 // still have held if the button were wired to nothing.
+// Not t.Parallel: SetTheme mutates process-global theme state
+// (applyTheme writes the default*Style mirrors), which is documented
+// frame-thread-only and races any other test touching theme state.
 func TestAddTodoAppendsItem(t *testing.T) {
-	t.Parallel()
 	gui.SetTheme(gui.ThemeLight.WithPadding(false))
 
 	app := newAppState()
@@ -44,8 +46,8 @@ func TestAddTodoAppendsItem(t *testing.T) {
 // The delete button is generated per item, so its ID is only correct if
 // the list rendered the item at all — a click that lands proves both the
 // ID scheme and the callback.
+// Not t.Parallel: see TestAddTodoAppendsItem (SetTheme is not race-safe).
 func TestDeleteTodoRemovesItem(t *testing.T) {
-	t.Parallel()
 	gui.SetTheme(gui.ThemeLight.WithPadding(false))
 
 	app := newAppState()

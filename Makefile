@@ -5,7 +5,7 @@ LDFLAGS  = -X github.com/go-gui-org/go-gui/gui.Version=$(VERSION) \
 
 LINT_VERSION = v2.12.2
 
-.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test test-race vet lint check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergonomics-audit ergonomics-audit-fix ergonomics-audit-fix-dry
+.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test test-race vet lint lint-pin lint-cross cross-compile coverage-gate prepush check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergonomics-audit ergonomics-audit-fix ergonomics-audit-fix-dry
 
 # Desktop builds are cgo-free since the purego GL bindings (#155): the
 # backend/gl uses X11/xgb + purego EGL on Linux and Win32 syscalls on
@@ -119,11 +119,48 @@ vet:
 	go vet ./...
 	go run ./tools/requiredid/cmd/requiredid ./...
 
-# Run golangci-lint (requires golangci-lint installed, pinned to LINT_VERSION).
-lint:
+# Verify golangci-lint is installed at the pinned version. Shared by
+# lint and lint-cross so the pin lives in one place.
+lint-pin:
 	@golangci-lint --version | grep -q "$(LINT_VERSION:v%=%)" || \
 	  { echo "::error::golangci-lint $(LINT_VERSION) required. Run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(LINT_VERSION)"; exit 1; }
+
+# Run golangci-lint (requires golangci-lint installed, pinned to LINT_VERSION).
+lint: lint-pin
 	golangci-lint run ./...
+
+# Lint the GOOS-conditional files the default (GOOS=linux or darwin)
+# build cannot see: every //go:build windows/js file was unlinted before
+# CI added these steps. Linting is a type-check, not an execution, so
+# each target analyses fine from any host. On macOS the darwin run is a
+# strict superset of CI's: it also covers the cgo metal files, which CI
+# cannot compile from a Linux runner. Mirror of the CI vet job's lint
+# steps (issue #292).
+lint-cross: lint-pin
+	GOOS=windows golangci-lint run ./...
+	GOOS=js GOARCH=wasm golangci-lint run ./...
+	GOOS=darwin golangci-lint run ./...
+
+# Cross-compile the whole module with no C toolchain on the host, for
+# every desktop target CI guards (issue #292). A new cgo import anywhere
+# fails this; gui/audio's default Linux output is the pure-Go PulseAudio
+# sink, so the oto/ALSA sink (-tags otoaudio) is built explicitly to
+# keep it from bit-rotting. Mirror of the CI vet job's build steps.
+cross-compile:
+	for target in linux/amd64 linux/arm64 windows/amd64 windows/arm64; do \
+		echo "==> $$target"; \
+		CGO_ENABLED=0 GOOS=$${target%/*} GOARCH=$${target#*/} \
+		  go build ./...; \
+	done
+	go build -tags otoaudio ./gui/audio/...
+
+# Enforce CI's coverage gates locally: 70% total over gui/ plus the
+# per-package floors. The thresholds live in scripts/coverage-gate.sh,
+# shared with the CI coverage job (issue #292). Scope matches CI's
+# ./gui/..., unlike cov-report's ./... report.
+coverage-gate:
+	go test -count=1 -coverprofile=/tmp/go-gui-coverage-gate.out ./gui/...
+	scripts/coverage-gate.sh /tmp/go-gui-coverage-gate.out
 
 # Run non-duplicated validation steps for CI gate.
 # test and lint run as separate CI jobs with OS matrices.
@@ -131,6 +168,17 @@ check: vet deps-doc-check large-files generate-check tidy-check
 
 # Run all validation steps: test, vet, lint, and gate checks.
 check-all: test lint check
+
+# Recommended full local validation before pushing (issue #292):
+# approximates the CI matrix from one host — race tests, linux + cross-
+# GOOS lint, cgo-free cross-compiles, coverage gate, export audit. The
+# .githooks/pre-push hook runs make check-all; run prepush once per
+# branch to cover the rest. Omissions vs CI, by design: OS-matrix runs,
+# coverage diff and benchmark gates (need a main baseline), WASM node
+# tests, iOS/Android vet+lint (Xcode/NDK), Windows smoke test, release
+# packaging. `make check` is the fast gate when only gate checks are
+# wanted.
+prepush: test-race lint check lint-cross cross-compile coverage-gate export-audit
 
 # Regenerate docs/dependencies.md from go.mod.
 deps-doc:

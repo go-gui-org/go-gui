@@ -2,10 +2,25 @@
 
 ## Build and Test
 
+Run the full local validation gate before pushing a branch:
+
 ```bash
-go test ./... && go vet ./... && golangci-lint run ./...
-go run ./tools/requiredid/cmd/requiredid ./...
+make prepush
 ```
+
+`make prepush` approximates the CI matrix from one host: race-enabled
+tests, vet, lint (linux + the cross-GOOS `//go:build` files via
+`make lint-cross`), cgo-free cross-compiles of the whole module
+(`make cross-compile`), the coverage gate (`make coverage-gate`: 70%
+total + per-package floors), and the export audit. CI and the Makefile
+share the coverage thresholds via `scripts/coverage-gate.sh`.
+
+When only the fast gate checks are wanted, `make check` (vet,
+deps-doc, large-files, generate-check, tidy-check) is the quick subset.
+The tracked `.githooks/pre-push` hook runs `make check-all` (test +
+lint + check) on every push — enable it with
+`git config core.hooksPath .githooks`. Tools like golangci-lint and
+gosec must be installed; `make lint` pins the golangci-lint version.
 
 For a tight edit → rebuild → relaunch loop while iterating on an example app,
 see [docs/dev-loop.md](docs/dev-loop.md)
@@ -35,8 +50,24 @@ harmless duplicate-library warnings with
 `export CGO_LDFLAGS="-Wl,-no_warn_duplicate_libraries"` (or use the repo's
 `.envrc` with [direnv](https://direnv.net/)).
 
-CI enforces 70% coverage, race detector, and benchmark regression gates. Run
-`go test ./...` locally before pushing.
+CI also enforces race detector and benchmark regression gates. Run
+`make test-race` locally before pushing (prepush includes it).
+
+### CI-only validation
+
+These CI checks have no local Makefile equivalent — they either need a
+different OS runner or a baseline from `main` that only CI can supply:
+
+- OS-matrix test runs (Windows, macOS runners; Windows also runs the
+  showcase smoke test with Mesa's software GL)
+- Coverage diff on PRs and the benchmark regression gate — both compare
+  against a baseline cached from `main` (`scripts/cov-diff.sh` can run
+  them locally if you supply two profiles)
+- WASM build/vet/test (`GOOS=js` needs a node `wasm_exec` wrapper);
+  `make build-wasm` covers the build half
+- iOS and Android vet+lint — need an Xcode iphoneos sysroot / Android
+  NDK; `make build-ios` and `make build-android` cover the build half
+- Release packaging (`release.yml`)
 
 ### Local development with sibling repos
 
@@ -75,7 +106,7 @@ the bare read is also what makes `gui.Themed` subtree scoping work.
 
 1. Fork, create a feature branch, make focused commits.
 2. Add or update tests.
-3. Run `go test ./... && go vet ./... && golangci-lint run ./...`.
+3. Run `make prepush` (fast subset: `make check`).
 4. Open a pull request against `main`.
 
 ## Claude Code hooks

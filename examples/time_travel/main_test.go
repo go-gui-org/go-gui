@@ -7,8 +7,10 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 )
 
+// Not t.Parallel: SetTheme mutates process-global theme state
+// (applyTheme writes the default*Style mirrors), which is documented
+// frame-thread-only and races any other test touching theme state.
 func TestMainViewNoPanic(t *testing.T) {
-	t.Parallel()
 	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  &appState{},
@@ -67,8 +69,8 @@ func TestSnapshotSize(t *testing.T) {
 
 // TestMainViewWithDebugTimeTravel verifies the example view renders
 // when DebugTimeTravel is enabled (the normal example path).
+// Not t.Parallel: see TestMainViewNoPanic (SetTheme is not race-safe).
 func TestMainViewWithDebugTimeTravel(t *testing.T) {
-	t.Parallel()
 	gui.SetTheme(gui.ThemeLight.WithPadding(false))
 	w := gui.NewWindow(gui.WindowCfg{
 		State:           &appState{Count: 7},
@@ -87,8 +89,8 @@ func TestMainViewWithDebugTimeTravel(t *testing.T) {
 
 // TestStateMutations verifies the Increment and Reset click handlers
 // mutate state as expected.
+// Not t.Parallel: see TestMainViewNoPanic (SetTheme is not race-safe).
 func TestStateMutations(t *testing.T) {
-	t.Parallel()
 	gui.SetTheme(gui.ThemeLight.WithPadding(false))
 	w := gui.NewWindow(gui.WindowCfg{
 		State:           &appState{Count: 0},
