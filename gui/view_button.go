@@ -22,13 +22,12 @@ type ButtonCfg struct {
 	// overlays or adjust layout post-arrange.
 	AmendLayout func(EventCtx)
 
-	ID              string `gui:"required,focus"`
-	A11YLabel       string
-	A11YDescription string
-	Content         []View
-	Padding         Padding
-	SizeBorder      Opt[float32]
-	Radius          Opt[float32]
+	ID string `gui:"required,focus"`
+	A11YCfg
+	Content    []View
+	Padding    Padding
+	SizeBorder Opt[float32]
+	Radius     Opt[float32]
 
 	// BlurRadius controls the shadow blur. 0 = no shadow.
 	BlurRadius float32
@@ -128,39 +127,38 @@ func Button(cfg ButtonCfg) View {
 	}
 
 	cv := Row(ContainerCfg{
-		ID:              cfg.ID,
-		Focusable:       !cfg.FocusDisabled,
-		A11YRole:        a11yRole,
-		A11YState:       cfg.A11YState,
-		A11YLabel:       cfg.A11YLabel,
-		A11YDescription: cfg.A11YDescription,
-		Color:           cfg.Colors.Base,
-		ColorBorder:     cfg.Colors.Border,
-		SizeBorder:      Some(sizeBorder),
-		BlurRadius:      cfg.BlurRadius,
-		Shadow:          cfg.Shadow,
-		Gradient:        cfg.Gradient,
-		Padding:         cfg.Padding,
-		Radius:          Some(radius),
-		Width:           cfg.Width,
-		Height:          cfg.Height,
-		MinWidth:        cfg.MinWidth,
-		MaxWidth:        cfg.MaxWidth,
-		MinHeight:       cfg.MinHeight,
-		MaxHeight:       cfg.MaxHeight,
-		Sizing:          cfg.Sizing,
-		Disabled:        cfg.Disabled,
-		HAlign:          hAlign,
-		VAlign:          vAlign,
-		Float:           cfg.Float,
-		FloatAnchor:     cfg.FloatAnchor,
-		FloatTieOff:     cfg.FloatTieOff,
-		FloatOffsetX:    cfg.FloatOffsetX,
-		FloatOffsetY:    cfg.FloatOffsetY,
-		OnClick:         onClick,
-		clickOnSpace:    true,
-		clickOnEnter:    true,
-		Content:         cfg.Content,
+		ID:           cfg.ID,
+		Focusable:    !cfg.FocusDisabled,
+		A11YRole:     a11yRole,
+		A11YState:    cfg.A11YState,
+		A11YCfg:      cfg.A11YCfg,
+		Color:        cfg.Colors.Base,
+		ColorBorder:  cfg.Colors.Border,
+		SizeBorder:   Some(sizeBorder),
+		BlurRadius:   cfg.BlurRadius,
+		Shadow:       cfg.Shadow,
+		Gradient:     cfg.Gradient,
+		Padding:      cfg.Padding,
+		Radius:       Some(radius),
+		Width:        cfg.Width,
+		Height:       cfg.Height,
+		MinWidth:     cfg.MinWidth,
+		MaxWidth:     cfg.MaxWidth,
+		MinHeight:    cfg.MinHeight,
+		MaxHeight:    cfg.MaxHeight,
+		Sizing:       cfg.Sizing,
+		Disabled:     cfg.Disabled,
+		HAlign:       hAlign,
+		VAlign:       vAlign,
+		Float:        cfg.Float,
+		FloatAnchor:  cfg.FloatAnchor,
+		FloatTieOff:  cfg.FloatTieOff,
+		FloatOffsetX: cfg.FloatOffsetX,
+		FloatOffsetY: cfg.FloatOffsetY,
+		OnClick:      onClick,
+		clickOnSpace: true,
+		clickOnEnter: true,
+		Content:      cfg.Content,
 	}).(*containerView)
 
 	cv.isButton = true

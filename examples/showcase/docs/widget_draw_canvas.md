@@ -146,11 +146,12 @@ widget ID.
 
 ## Accessibility
 
-| Property        | Type   | Description            |
-| --------------- | ------ | ---------------------- |
-| A11YLabel       | string | Accessible label       |
-| A11YDescription | string | Accessible description |
+| Property | Type    | Description                          |
+| -------- | ------- | ------------------------------------ |
+| A11YCfg  | A11YCfg | Embedded: A11YLabel, A11YDescription |
 
 A focusable canvas advertises as an interactive element (button role) to
 assistive tech; non-focusable canvases advertise as images. Provide a meaningful
 `A11YLabel` on interactive canvases.
+
+Set the pair through the embed: `A11YCfg: gui.A11YCfg{A11YLabel: "Save"}`.

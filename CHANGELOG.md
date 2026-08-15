@@ -8,6 +8,31 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: `A11YLabel` and `A11YDescription` moved to an embedded `A11YCfg`
+  (issue #311).** The two fields were declared independently in 35 `Cfg`
+  structs; an AST scan across every `Cfg` shows they are a perfect co-occurrence
+  group — 35 carry both, **zero** carry exactly one — so they are now declared
+  once and embedded. Behaviour is unchanged: `accessInfo`, `makeA11YInfo`,
+  `a11yLabel` and the accessibility tree are untouched, and no test assertion
+  moved. Field promotion keeps every **read** and **assignment** spelled exactly
+  as before (`cfg.A11YLabel`), but Go has no promoted-field key in a composite
+  literal, so code that **sets** either field in a literal must name the embed:
+
+  ```go
+  // before
+  gui.ButtonCfg{ID: "save", A11YLabel: "Save"}
+  // after
+  gui.ButtonCfg{ID: "save", A11YCfg: gui.A11YCfg{A11YLabel: "Save"}}
+  ```
+
+  `A11YRole` and `A11YState` are unaffected — only `ButtonCfg` and
+  `ContainerCfg` carry those, which is far short of a group worth embedding. The
+  new `A11YCfg.a11yInfo(fallback)` method gives the recurring
+  `makeA11YInfo(a11yLabel(cfg.A11YLabel, X), cfg.A11YDescription)` pairing a
+  home; it is a wrapper, and both helpers stay as they were.
+
 ### Fixed
 
 - **The check mark now sits in the middle of the checkbox.** `Toggle` (and its

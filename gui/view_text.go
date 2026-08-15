@@ -8,10 +8,9 @@ type TextCfg struct {
 	ID        string
 	Text      string
 
-	A11YLabel       string
-	A11YDescription string
-	Opacity         Opt[float32]
-	Focusable       bool
+	A11YCfg
+	Opacity   Opt[float32]
+	Focusable bool
 
 	// TabSize sets the tab stop width in spaces (default 4).
 	TabSize uint32
@@ -84,17 +83,15 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 			focusOwner: c.focusOwner,
 			Focusable:  c.Focusable,
 			A11YRole:   AccessRoleStaticText,
-			a11Y: makeA11YInfo(
-				a11yLabel(c.A11YLabel, c.Text), c.A11YDescription,
-			),
-			Clip:      c.Clip,
-			FocusSkip: c.FocusSkip,
-			Disabled:  c.Disabled,
-			MinWidth:  c.MinWidth,
-			Sizing:    c.Sizing,
-			Hero:      c.Hero,
-			Opacity:   c.Opacity.Get(1.0),
-			TC:        &tv.tc,
+			a11Y:       c.a11yInfo(c.Text),
+			Clip:       c.Clip,
+			FocusSkip:  c.FocusSkip,
+			Disabled:   c.Disabled,
+			MinWidth:   c.MinWidth,
+			Sizing:     c.Sizing,
+			Hero:       c.Hero,
+			Opacity:    c.Opacity.Get(1.0),
+			TC:         &tv.tc,
 		}),
 	}
 

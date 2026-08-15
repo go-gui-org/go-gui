@@ -16,11 +16,10 @@ type SidebarCfg struct {
 	ID          string
 
 	// Accessibility
-	A11YLabel       string
-	A11YDescription string
-	Content         []View
-	tweenDuration   time.Duration
-	Padding         Padding
+	A11YCfg
+	Content       []View
+	tweenDuration time.Duration
+	Padding       Padding
 	// TweenDuration > 0 uses tween; 0 uses spring.
 	spring    springCfg
 	Width     float32
@@ -79,19 +78,21 @@ func (w *Window) Sidebar(cfg SidebarCfg) View {
 	}
 
 	return Column(ContainerCfg{
-		ID:              cfg.ID,
-		Sizing:          cfg.Sizing,
-		Width:           animW,
-		Padding:         pad,
-		Color:           cfg.Color,
-		Shadow:          cfg.Shadow,
-		Radius:          Some(cfg.Radius),
-		Clip:            cfg.Clip,
-		Disabled:        cfg.Disabled,
-		A11YRole:        AccessRoleGroup,
-		A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.ID),
-		A11YDescription: cfg.A11YDescription,
-		Content:         content,
+		ID:       cfg.ID,
+		Sizing:   cfg.Sizing,
+		Width:    animW,
+		Padding:  pad,
+		Color:    cfg.Color,
+		Shadow:   cfg.Shadow,
+		Radius:   Some(cfg.Radius),
+		Clip:     cfg.Clip,
+		Disabled: cfg.Disabled,
+		A11YRole: AccessRoleGroup,
+		A11YCfg: A11YCfg{
+			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.ID),
+			A11YDescription: cfg.A11YDescription,
+		},
+		Content: content,
 	})
 }
 

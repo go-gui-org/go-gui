@@ -173,7 +173,7 @@ func treeRowView(
 
 	return Row(ContainerCfg{
 		A11YRole:  AccessRoleTreeItem,
-		A11YLabel: row.Text,
+		A11YCfg:   A11YCfg{A11YLabel: row.Text},
 		A11YState: a11yState,
 		Color:     rowColor,
 		Radius:    Some(cfg.Radius.Get(defaultTreeStyle.Radius)),
@@ -232,7 +232,7 @@ func treeDragRowView(
 	return Row(ContainerCfg{
 		ID:        layoutID,
 		A11YRole:  AccessRoleTreeItem,
-		A11YLabel: row.Text,
+		A11YCfg:   A11YCfg{A11YLabel: row.Text},
 		A11YState: a11yState,
 		Color:     rowColor,
 		Radius:    Some(cfg.Radius.Get(defaultTreeStyle.Radius)),

@@ -47,9 +47,11 @@ type ToggleCfg struct {
     TextSelect     string
     TextUnselect   string
 
-    A11YLabel       string
-    A11YDescription string
-    Padding         Padding
+    // A11YCfg embeds A11YLabel + A11YDescription. Every Cfg whose
+    // widget reaches the a11y tree carries it; never redeclare the
+    // two fields.
+    A11YCfg
+    Padding Padding
     // Size overrides the square edge length of the check box.
     Size       Opt[float32]
     SizeBorder Opt[float32]
@@ -137,24 +139,26 @@ func Toggle(cfg ToggleCfg) View {
     colorClick := cfg.Colors.Click
 
     return Row(ContainerCfg{
-        ID:              cfg.ID,
-        Focusable:       !cfg.FocusDisabled,
-        Disabled:        cfg.Disabled,
-        Invisible:       cfg.Invisible,
-        SizeBorder:      NoBorder,
-        Padding:         NoPadding,
-        VAlign:          VAlignMiddle,
-        A11YRole:        AccessRoleCheckbox,
-        A11YState:       a11yState,
-        A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Label),
-        A11YDescription: cfg.A11YDescription,
-        ClickOnSpace:    true,
-        OnClick:         cfg.OnClick,
-        ClickButton:     MouseLeft,
-        MinWidth:        cfg.MinWidth,
-        OnHover:         /* hover highlight */,
-        AmendLayout:     /* focus highlight */,
-        Content:         content,
+        ID:         cfg.ID,
+        Focusable:  !cfg.FocusDisabled,
+        Disabled:   cfg.Disabled,
+        Invisible:  cfg.Invisible,
+        SizeBorder: NoBorder,
+        Padding:    NoPadding,
+        VAlign:     VAlignMiddle,
+        A11YRole:   AccessRoleCheckbox,
+        A11YState:  a11yState,
+        A11YCfg: A11YCfg{
+            A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Label),
+            A11YDescription: cfg.A11YDescription,
+        },
+        ClickOnSpace: true,
+        OnClick:      cfg.OnClick,
+        ClickButton:  MouseLeft,
+        MinWidth:     cfg.MinWidth,
+        OnHover:      /* hover highlight */,
+        AmendLayout:  /* focus highlight */,
+        Content:      content,
     })
 }
 ```
@@ -180,14 +184,17 @@ child colors based on `w.IsFocus(layout.Shape.ID)`.
 **Inner IDs** — a composite widget's inner shapes need their own IDs. Compose
 them with `gui.ScopeID(cfg.ID, "part")`, or `gui.ScopeIDN(cfg.ID, "row", i)`
 when a loop index is what distinguishes siblings. Never concatenate by hand:
-`make ergonomics-audit` fails on it, and the separator zoo it replaced is documented
-in `docs/specs/widget-id-scoping.md`. If an inner shape only needs the owner's
-focus state rather than its own identity, set `Shape.focusOwner` instead of
-giving it an ID.
+`make ergonomics-audit` fails on it, and the separator zoo it replaced is
+documented in `docs/specs/widget-id-scoping.md`. If an inner shape only needs
+the owner's focus state rather than its own identity, set `Shape.focusOwner`
+instead of giving it an ID.
 
 **a11yLabel helper** — `a11yLabel(userLabel, fallback)` returns the
 user-supplied label if non-empty, otherwise the fallback. Always set on
-interactive widgets.
+interactive widgets. When the widget builds a `Shape` directly rather than
+delegating to a `ContainerCfg`, use `cfg.a11yInfo(fallback)` instead — it is the
+same pairing, promoted from the embedded `A11YCfg`, and returns the
+`*accessInfo` the shape's `a11Y` field wants.
 
 ## 3. Theme defaults
 

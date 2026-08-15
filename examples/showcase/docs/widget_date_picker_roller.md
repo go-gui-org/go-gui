@@ -72,10 +72,9 @@ gui.DatePickerRoller(gui.DatePickerRollerCfg{
 
 ## Accessibility
 
-| Property        | Type   | Description            |
-| --------------- | ------ | ---------------------- |
-| A11YLabel       | string | Accessible label       |
-| A11YDescription | string | Accessible description |
+| Property | Type    | Description                          |
+| -------- | ------- | ------------------------------------ |
+| A11YCfg  | A11YCfg | Embedded: A11YLabel, A11YDescription |
 
 ## Keyboard
 
@@ -83,3 +82,5 @@ gui.DatePickerRoller(gui.DatePickerRollerCfg{
 - **Shift+Up/Down** -- change year
 - **Alt+Up/Down** -- change day
 - **Escape** -- exit roller view
+
+Set the pair through the embed: `A11YCfg: gui.A11YCfg{A11YLabel: "Save"}`.

@@ -18,13 +18,12 @@ import (
 type RTFCfg struct {
 	BaseTextStyle *TextStyle
 
-	ID              string
-	A11YLabel       string
-	A11YDescription string
-	RichText        RichText
-	MinWidth        float32
-	Focusable       bool
-	hangingIndent   float32 // negative indent for wrapped lines
+	ID string
+	A11YCfg
+	RichText      RichText
+	MinWidth      float32
+	Focusable     bool
+	hangingIndent float32 // negative indent for wrapped lines
 
 	// markdownID is non-empty when this block belongs to a markdown
 	// widget. markdownBlockStart is the rune offset of this block in
@@ -167,7 +166,7 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 		ID:        v.ID,
 		Focusable: v.Focusable,
 		A11YRole:  AccessRoleStaticText,
-		a11Y:      makeA11YInfo(v.A11YLabel, v.A11YDescription),
+		a11Y:      v.a11yInfo(""),
 		Width:     layout.Width,
 		Height:    layout.Height,
 		Clip:      v.Clip,

@@ -32,11 +32,10 @@ type SvgCfg struct {
 	FocusedElementID string
 
 	// Accessibility
-	A11YLabel       string
-	A11YDescription string
-	Padding         Padding
-	Width           float32 // display width
-	Height          float32 // display height
+	A11YCfg
+	Padding Padding
+	Width   float32 // display width
+	Height  float32 // display height
 
 	// FlatnessTolerance, when > 0, overrides the default tessellation
 	// tolerance floor (0.15 viewBox units). Higher = coarser triangles
@@ -147,19 +146,16 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 			shapeType: shapeSVG,
 			ID:        c.ID,
 			A11YRole:  AccessRoleImage,
-			a11Y: makeA11YInfo(
-				a11yLabel(c.A11YLabel, c.ID),
-				c.A11YDescription,
-			),
-			Resource: svgSrc,
-			Width:    width,
-			Height:   height,
-			Color:    c.Color,
-			Opacity:  1,
-			Sizing:   c.Sizing,
-			Padding:  c.Padding.Or(PaddingNone),
-			events:   events,
-			svgOpts:  svgOpts,
+			a11Y:      c.a11yInfo(c.ID),
+			Resource:  svgSrc,
+			Width:     width,
+			Height:    height,
+			Color:     c.Color,
+			Opacity:   1,
+			Sizing:    c.Sizing,
+			Padding:   c.Padding.Or(PaddingNone),
+			events:    events,
+			svgOpts:   svgOpts,
 		}),
 	}
 	applyFixedSizingConstraints(layout.Shape)

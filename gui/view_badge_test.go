@@ -86,7 +86,7 @@ func TestBadgeA11Y(t *testing.T) {
 }
 
 func TestBadgeA11YDescription(t *testing.T) {
-	v := Badge(BadgeCfg{Label: "5", A11YDescription: "unread messages"})
+	v := Badge(BadgeCfg{Label: "5", A11YCfg: A11YCfg{A11YDescription: "unread messages"}})
 	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.a11Y == nil {
 		t.Fatal("a11y should be set")
@@ -98,7 +98,7 @@ func TestBadgeA11YDescription(t *testing.T) {
 }
 
 func TestBadgeA11YDescriptionDot(t *testing.T) {
-	v := Badge(BadgeCfg{Dot: true, A11YDescription: "active"})
+	v := Badge(BadgeCfg{Dot: true, A11YCfg: A11YCfg{A11YDescription: "active"}})
 	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.a11Y == nil {
 		t.Fatal("a11y should be set")

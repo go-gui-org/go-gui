@@ -32,8 +32,7 @@ type ComboboxCfg struct {
 	Value            string
 	Placeholder      string
 
-	A11YLabel         string
-	A11YDescription   string
+	A11YCfg
 	Options           []string
 	FloatZIndex       int
 	Padding           Padding
@@ -259,7 +258,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 		ID:          cfg.ID,
 		Focusable:   !cfg.FocusDisabled,
 		A11YRole:    AccessRoleComboBox,
-		A11YLabel:   a11yLabel(cfg.A11YLabel, cfg.Placeholder),
+		A11YCfg:     A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, cfg.Placeholder)},
 		Color:       cfg.Color,
 		ColorBorder: cfg.ColorBorder,
 		SizeBorder:  Some(sizeBorder),

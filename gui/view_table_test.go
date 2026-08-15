@@ -31,6 +31,47 @@ func TestTableEmpty(t *testing.T) {
 	}
 }
 
+// The table's outer grid shape must carry both embedded a11y fields;
+// A11YDescription was a declared-but-dead field until the A11YCfg
+// refactor wired it through. Exercised on both layout paths: plain and
+// freeze (frozen header + scrollable body).
+func TestTableA11Y(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		cfg  TableCfg
+	}{
+		{name: "plain"},
+		{name: "freeze", cfg: TableCfg{
+			FreezeHeader: true,
+			Scrollable:   true,
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.cfg.ID = "tbl-test"
+			tc.cfg.A11YCfg = A11YCfg{
+				A11YLabel:       "table",
+				A11YDescription: "rows of data",
+			}
+			tc.cfg.Data = []TableRowCfg{
+				TR([]TableCellCfg{tH("Name"), tH("Age")}),
+				TR([]TableCellCfg{tD("Alice"), tD("30")}),
+			}
+			layout := generateViewLayout(Table(tc.cfg), &Window{})
+			info := layout.Shape.a11Y
+			if info == nil {
+				t.Fatal("a11y info should be set")
+			}
+			if info.Label != "table" {
+				t.Errorf("label = %q, want table", info.Label)
+			}
+			if info.Description != "rows of data" {
+				t.Errorf("description = %q, want rows of data",
+					info.Description)
+			}
+		})
+	}
+}
+
 func TestTableBorderAll(t *testing.T) {
 	v := Table(TableCfg{
 		ID:          "tbl-test",

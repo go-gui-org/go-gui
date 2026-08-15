@@ -20,11 +20,10 @@ type BadgeCfg struct {
 	Label     string
 
 	// Accessibility
-	A11YLabel       string
-	A11YDescription string
-	Max             int // 0 = no cap; shows "max+" when exceeded
-	Padding         Padding
-	dotSize         Opt[float32]
+	A11YCfg
+	Max     int // 0 = no cap; shows "max+" when exceeded
+	Padding Padding
+	dotSize Opt[float32]
 
 	Color   Color
 	Variant badgeVariant
@@ -62,31 +61,35 @@ func Badge(cfg BadgeCfg) View {
 	if cfg.Dot {
 		sz := dotSize
 		return Row(ContainerCfg{
-			A11YRole:        AccessRoleStaticText,
-			A11YLabel:       a11yLabel(cfg.A11YLabel, "status"),
-			A11YDescription: cfg.A11YDescription,
-			Color:           bg,
-			Radius:          Some(sz / 2),
-			Width:           sz,
-			Height:          sz,
-			Sizing:          FixedFixed,
-			Padding:         NoPadding,
-			SizeBorder:      NoBorder,
+			A11YRole: AccessRoleStaticText,
+			A11YCfg: A11YCfg{
+				A11YLabel:       a11yLabel(cfg.A11YLabel, "status"),
+				A11YDescription: cfg.A11YDescription,
+			},
+			Color:      bg,
+			Radius:     Some(sz / 2),
+			Width:      sz,
+			Height:     sz,
+			Sizing:     FixedFixed,
+			Padding:    NoPadding,
+			SizeBorder: NoBorder,
 		})
 	}
 
 	label := badgeLabel(cfg.Label, cfg.Max)
 	return Row(ContainerCfg{
-		A11YRole:        AccessRoleStaticText,
-		A11YLabel:       a11yLabel(cfg.A11YLabel, label),
-		A11YDescription: cfg.A11YDescription,
-		Color:           bg,
-		Radius:          Some(radius),
-		Sizing:          FitFit,
-		Padding:         pad,
-		SizeBorder:      NoBorder,
-		HAlign:          HAlignCenter,
-		VAlign:          VAlignMiddle,
+		A11YRole: AccessRoleStaticText,
+		A11YCfg: A11YCfg{
+			A11YLabel:       a11yLabel(cfg.A11YLabel, label),
+			A11YDescription: cfg.A11YDescription,
+		},
+		Color:      bg,
+		Radius:     Some(radius),
+		Sizing:     FitFit,
+		Padding:    pad,
+		SizeBorder: NoBorder,
+		HAlign:     HAlignCenter,
+		VAlign:     VAlignMiddle,
 		Content: []View{
 			Text(TextCfg{
 				Text:      label,

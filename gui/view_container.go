@@ -68,9 +68,8 @@ type ContainerCfg struct {
 
 	// Title renders a group-box label in the top border. See the
 	// type doc for TitleBG requirements.
-	Title           string
-	A11YLabel       string
-	A11YDescription string
+	Title string
+	A11YCfg
 
 	// Content holds the child views displayed inside this container.
 	Content []View
@@ -324,7 +323,7 @@ func makeContainerA11Y(c *ContainerCfg) *accessInfo {
 	if c.a11Y != nil {
 		return c.a11Y
 	}
-	return makeA11YInfo(c.A11YLabel, c.A11YDescription)
+	return c.a11yInfo("")
 }
 
 func deriveContainerA11YRole(c *ContainerCfg) AccessRole {

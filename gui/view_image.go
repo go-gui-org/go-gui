@@ -16,8 +16,7 @@ type ImageCfg struct {
 	Src         string
 
 	// Accessibility
-	A11YLabel       string
-	A11YDescription string
+	A11YCfg
 
 	Opacity   Opt[float32]
 	Width     float32
@@ -99,10 +98,7 @@ func (iv *imageView) GenerateLayout(w *Window) Layout {
 			shapeType: shapeImage,
 			ID:        c.ID,
 			A11YRole:  AccessRoleImage,
-			a11Y: makeA11YInfo(
-				a11yLabel(c.A11YLabel, c.ID),
-				c.A11YDescription,
-			),
+			a11Y:      c.a11yInfo(c.ID),
 			Resource:  imagePath,
 			Color:     c.BgColor,
 			Opacity:   c.Opacity.Get(1.0),

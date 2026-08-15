@@ -9,15 +9,14 @@ type ExpandPanelCfg struct {
 	ID       string
 
 	// Accessibility
-	A11YLabel       string
-	A11YDescription string
-	Padding         Padding
-	SizeBorder      Opt[float32]
-	Radius          Opt[float32]
-	MinWidth        float32
-	MaxWidth        float32
-	MinHeight       float32
-	MaxHeight       float32
+	A11YCfg
+	Padding    Padding
+	SizeBorder Opt[float32]
+	Radius     Opt[float32]
+	MinWidth   float32
+	MaxWidth   float32
+	MinHeight  float32
+	MaxHeight  float32
 
 	Color       Color
 	ColorHover  Color
@@ -62,22 +61,21 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 	}
 
 	return Column(ContainerCfg{
-		ID:              cfg.ID,
-		A11YRole:        AccessRoleDisclosure,
-		A11YState:       a11yState,
-		A11YLabel:       cfg.A11YLabel,
-		A11YDescription: cfg.A11YDescription,
-		Color:           cfg.Color,
-		ColorBorder:     cfg.ColorBorder,
-		SizeBorder:      Some(sizeBorder),
-		Padding:         cfg.Padding,
-		Radius:          Some(radius),
-		Sizing:          cfg.Sizing,
-		MinWidth:        cfg.MinWidth,
-		MaxWidth:        cfg.MaxWidth,
-		MinHeight:       cfg.MinHeight,
-		MaxHeight:       cfg.MaxHeight,
-		Spacing:         SomeF(0),
+		ID:          cfg.ID,
+		A11YRole:    AccessRoleDisclosure,
+		A11YState:   a11yState,
+		A11YCfg:     cfg.A11YCfg,
+		Color:       cfg.Color,
+		ColorBorder: cfg.ColorBorder,
+		SizeBorder:  Some(sizeBorder),
+		Padding:     cfg.Padding,
+		Radius:      Some(radius),
+		Sizing:      cfg.Sizing,
+		MinWidth:    cfg.MinWidth,
+		MaxWidth:    cfg.MaxWidth,
+		MinHeight:   cfg.MinHeight,
+		MaxHeight:   cfg.MaxHeight,
+		Spacing:     SomeF(0),
 		Content: []View{
 			Row(ContainerCfg{
 				Padding: NoPadding,

@@ -7,12 +7,11 @@ type SwitchCfg struct {
 	ID        string `gui:"required,focus"`
 	Label     string
 
-	A11YLabel       string
-	A11YDescription string
-	Padding         Padding
-	SizeBorder      Opt[float32]
-	Width           Opt[float32]
-	Height          Opt[float32]
+	A11YCfg
+	Padding    Padding
+	SizeBorder Opt[float32]
+	Width      Opt[float32]
+	Height     Opt[float32]
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled bool
@@ -98,14 +97,16 @@ func Switch(cfg SwitchCfg) View {
 		Padding:    NoPadding,
 		// Centre the pill and its label on the row's cross axis so the
 		// label sits vertically middle-aligned with the switch.
-		VAlign:          VAlignMiddle,
-		A11YRole:        AccessRoleSwitchToggle,
-		A11YState:       a11yState,
-		A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Label),
-		A11YDescription: cfg.A11YDescription,
-		clickOnSpace:    true,
-		OnClick:         cfg.OnClick,
-		clickButton:     MouseLeft,
+		VAlign:    VAlignMiddle,
+		A11YRole:  AccessRoleSwitchToggle,
+		A11YState: a11yState,
+		A11YCfg: A11YCfg{
+			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Label),
+			A11YDescription: cfg.A11YDescription,
+		},
+		clickOnSpace: true,
+		OnClick:      cfg.OnClick,
+		clickButton:  MouseLeft,
 		OnHover: func(ctx EventCtx) {
 			if ctx.Layout.Shape.Disabled ||
 				!ctx.Layout.Shape.hasEvents() ||

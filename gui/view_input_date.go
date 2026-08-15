@@ -14,8 +14,7 @@ type InputDateCfg struct {
 	ID               string `gui:"required,focus"`
 	Placeholder      string
 
-	A11YLabel       string
-	A11YDescription string
+	A11YCfg
 	Dates           []time.Time
 	AllowedWeekdays []DatePickerWeekdays
 	AllowedMonths   []DatePickerMonths
@@ -194,7 +193,7 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 		Focusable:   !cfg.FocusDisabled,
 		A11YRole:    AccessRoleDateField,
 		A11YState:   a11yReadOnlyState(cfg.ReadOnly),
-		A11YLabel:   a11yLabel(cfg.A11YLabel, "Date Input"),
+		A11YCfg:     A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, "Date Input")},
 		Color:       cfg.Colors.Base,
 		ColorBorder: cfg.Colors.Border,
 		SizeBorder:  cfg.SizeBorder,

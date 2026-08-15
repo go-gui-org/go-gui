@@ -121,9 +121,9 @@ func TestProgressBarIndefiniteA11Y(t *testing.T) {
 
 func TestProgressBarA11YLabel(t *testing.T) {
 	v := ProgressBar(ProgressBarCfg{
-		ID:        "pb-test",
-		Percent:   0.5,
-		A11YLabel: "upload",
+		ID:      "pb-test",
+		Percent: 0.5,
+		A11YCfg: A11YCfg{A11YLabel: "upload"},
 	})
 	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.a11Y == nil {
@@ -137,9 +137,9 @@ func TestProgressBarA11YLabel(t *testing.T) {
 
 func TestProgressBarA11YDescription(t *testing.T) {
 	v := ProgressBar(ProgressBarCfg{
-		ID:              "pb-test",
-		Percent:         0.5,
-		A11YDescription: "uploading file",
+		ID:      "pb-test",
+		Percent: 0.5,
+		A11YCfg: A11YCfg{A11YDescription: "uploading file"},
 	})
 	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.a11Y == nil {

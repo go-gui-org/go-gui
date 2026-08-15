@@ -13,17 +13,16 @@ type ProgressBarCfg struct {
 	Text      string
 
 	// Accessibility
-	A11YLabel       string
-	A11YDescription string
-	textPadding     Padding
-	Radius          Opt[float32]
-	Percent         float32 // 0.0 to 1.0
-	Width           float32
-	Height          float32
-	MinWidth        float32
-	MaxWidth        float32
-	MinHeight       float32
-	MaxHeight       float32
+	A11YCfg
+	textPadding Padding
+	Radius      Opt[float32]
+	Percent     float32 // 0.0 to 1.0
+	Width       float32
+	Height      float32
+	MinWidth    float32
+	MaxWidth    float32
+	MinHeight   float32
+	MaxHeight   float32
 
 	Color          Color
 	colorBar       Color

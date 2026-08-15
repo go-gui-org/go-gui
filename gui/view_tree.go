@@ -16,8 +16,7 @@ type TreeCfg struct {
 
 	ID string `gui:"required"`
 
-	A11YLabel       string
-	A11YDescription string
+	A11YCfg
 
 	// ItemPaths is a convenience field for flat path strings. Each
 	// string is slash-separated ("a/b/c") and auto-expanded into
@@ -238,8 +237,8 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 	return generateViewLayout(Column(ContainerCfg{
 		ID:         cfg.ID,
 		A11YRole:   AccessRoleTree,
-		A11YLabel:  a11yLabel(cfg.A11YLabel, cfg.ID),
-		a11Y:       makeA11YInfo(a11yLabel(cfg.A11YLabel, cfg.ID), cfg.A11YDescription),
+		A11YCfg:    A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, cfg.ID)},
+		a11Y:       cfg.a11yInfo(cfg.ID),
 		Focusable:  !cfg.FocusDisabled,
 		Scrollable: cfg.Scrollable,
 		OnKeyDown: func(ctx EventCtx) {

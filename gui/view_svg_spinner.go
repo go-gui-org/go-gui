@@ -15,20 +15,19 @@ package gui
 // origin; :is() / :where() selectors. Affected assets render
 // as the static initial frame.
 type SvgSpinnerCfg struct {
-	OnClick         func(EventCtx)
-	ID              string
-	A11YLabel       string
-	A11YDescription string
-	Padding         Padding
-	Width           float32
-	Height          float32
-	MinWidth        float32
-	MaxWidth        float32
-	MinHeight       float32
-	MaxHeight       float32
-	Kind            SvgSpinnerKind
-	Color           Color
-	Sizing          Sizing
+	OnClick func(EventCtx)
+	ID      string
+	A11YCfg
+	Padding   Padding
+	Width     float32
+	Height    float32
+	MinWidth  float32
+	MaxWidth  float32
+	MinHeight float32
+	MaxHeight float32
+	Kind      SvgSpinnerKind
+	Color     Color
+	Sizing    Sizing
 }
 
 // SvgSpinner renders a built-in animated SVG spinner identified
@@ -50,16 +49,15 @@ func SvgSpinner(cfg SvgSpinnerCfg) View {
 		height = 48
 	}
 	return Svg(SvgCfg{
-		ID:              cfg.ID,
-		SvgData:         svgSpinnerData[cfg.Kind],
-		Width:           width,
-		Height:          height,
-		Color:           cfg.Color,
-		Sizing:          cfg.Sizing,
-		Padding:         cfg.Padding,
-		OnClick:         cfg.OnClick,
-		A11YLabel:       cfg.A11YLabel,
-		A11YDescription: cfg.A11YDescription,
+		ID:      cfg.ID,
+		SvgData: svgSpinnerData[cfg.Kind],
+		Width:   width,
+		Height:  height,
+		Color:   cfg.Color,
+		Sizing:  cfg.Sizing,
+		Padding: cfg.Padding,
+		OnClick: cfg.OnClick,
+		A11YCfg: cfg.A11YCfg,
 	})
 }
 

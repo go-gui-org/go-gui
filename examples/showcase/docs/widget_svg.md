@@ -96,11 +96,12 @@ first frame or are ignored.
 
 ## Accessibility
 
-| Property        | Type   | Description                             |
-| --------------- | ------ | --------------------------------------- |
-| A11YLabel       | string | Accessible label (overrides title)      |
-| A11YDescription | string | Accessible description (overrides desc) |
+| Property | Type    | Description                                                        |
+| -------- | ------- | ------------------------------------------------------------------ |
+| A11YCfg  | A11YCfg | Embedded: A11YLabel, A11YDescription (override the SVG title/desc) |
 
 `<title>`/`<desc>` and `aria-*` attributes inside the SVG populate
 `SvgParsed.A11y` and feed the platform a11y tree when no `A11YLabel` override is
 set.
+
+Set the pair through the embed: `A11YCfg: gui.A11YCfg{A11YLabel: "Save"}`.

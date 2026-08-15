@@ -19,8 +19,7 @@ type RadioButtonGroupCfg struct {
 	Value    string
 	Title    string
 
-	A11YLabel       string
-	A11YDescription string
+	A11YCfg
 	// Items is a convenience field for simple string lists. Each
 	// string becomes a RadioOption with Label==Value. When set,
 	// Items takes precedence over Options.
@@ -69,20 +68,19 @@ func radioGroup(cfg RadioButtonGroupCfg, axis func(ContainerCfg) View) View {
 	// style. Resolving it here against a private literal was how this
 	// widget stayed at a 1.5px border under every theme (issue #300).
 	return axis(ContainerCfg{
-		A11YRole:        AccessRoleRadioGroup,
-		A11YLabel:       cfg.A11YLabel,
-		A11YDescription: cfg.A11YDescription,
-		ColorBorder:     cfg.ColorBorder,
-		SizeBorder:      cfg.SizeBorder,
-		Title:           cfg.Title,
-		TitleBG:         cfg.TitleBG,
-		Spacing:         cfg.Spacing,
-		Padding:         cfg.Padding,
-		MinWidth:        cfg.MinWidth,
-		MinHeight:       cfg.MinHeight,
-		Sizing:          cfg.Sizing,
-		Disabled:        cfg.Disabled,
-		Content:         buildRadioOptions(cfg),
+		A11YRole:    AccessRoleRadioGroup,
+		A11YCfg:     cfg.A11YCfg,
+		ColorBorder: cfg.ColorBorder,
+		SizeBorder:  cfg.SizeBorder,
+		Title:       cfg.Title,
+		TitleBG:     cfg.TitleBG,
+		Spacing:     cfg.Spacing,
+		Padding:     cfg.Padding,
+		MinWidth:    cfg.MinWidth,
+		MinHeight:   cfg.MinHeight,
+		Sizing:      cfg.Sizing,
+		Disabled:    cfg.Disabled,
+		Content:     buildRadioOptions(cfg),
 	})
 }
 

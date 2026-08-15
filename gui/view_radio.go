@@ -7,11 +7,10 @@ type RadioCfg struct {
 	ID        string `gui:"required,focus"`
 	Label     string
 
-	A11YLabel       string
-	A11YDescription string
-	Padding         Padding
-	Size            Opt[float32]
-	SizeBorder      Opt[float32]
+	A11YCfg
+	Padding    Padding
+	Size       Opt[float32]
+	SizeBorder Opt[float32]
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled bool
@@ -72,19 +71,21 @@ func Radio(cfg RadioCfg) View {
 	}
 
 	return Row(ContainerCfg{
-		ID:              cfg.ID,
-		Focusable:       !cfg.FocusDisabled,
-		Disabled:        cfg.Disabled,
-		Invisible:       cfg.Invisible,
-		Padding:         cfg.Padding,
-		VAlign:          VAlignMiddle,
-		A11YRole:        AccessRoleRadioButton,
-		A11YState:       a11yState,
-		A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Label),
-		A11YDescription: cfg.A11YDescription,
-		OnClick:         cfg.OnClick,
-		clickButton:     MouseLeft,
-		clickOnSpace:    true,
+		ID:        cfg.ID,
+		Focusable: !cfg.FocusDisabled,
+		Disabled:  cfg.Disabled,
+		Invisible: cfg.Invisible,
+		Padding:   cfg.Padding,
+		VAlign:    VAlignMiddle,
+		A11YRole:  AccessRoleRadioButton,
+		A11YState: a11yState,
+		A11YCfg: A11YCfg{
+			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Label),
+			A11YDescription: cfg.A11YDescription,
+		},
+		OnClick:      cfg.OnClick,
+		clickButton:  MouseLeft,
+		clickOnSpace: true,
 		AmendLayout: func(ctx EventCtx) {
 			if ctx.Layout.Shape.Disabled ||
 				!ctx.Layout.Shape.hasEvents() ||

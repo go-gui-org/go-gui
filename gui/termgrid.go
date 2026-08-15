@@ -84,9 +84,8 @@ type TermGridCfg struct {
 	OnClick       func(EventCtx)
 	OnMouseScroll func(EventCtx)
 
-	ID              string
-	A11YLabel       string
-	A11YDescription string
+	ID string
+	A11YCfg
 
 	Cells     []TermCell // len must be >= Cols*Rows; row-major
 	Cursor    TermCursor
@@ -165,7 +164,7 @@ func (tv *termGridView) GenerateLayout(w *Window) Layout {
 			shapeType: shapeTermGrid,
 			ID:        c.ID,
 			A11YRole:  a11yRole,
-			a11Y:      makeA11YInfo(c.A11YLabel, c.A11YDescription),
+			a11Y:      c.a11yInfo(""),
 			Width:     width,
 			Height:    height,
 			Sizing:    c.Sizing,

@@ -64,10 +64,9 @@ ColorPickerStyle fields:
 
 ## Accessibility
 
-| Property        | Type   | Description            |
-| --------------- | ------ | ---------------------- |
-| A11YLabel       | string | Accessible label       |
-| A11YDescription | string | Accessible description |
+| Property | Type    | Description                          |
+| -------- | ------- | ------------------------------------ |
+| A11YCfg  | A11YCfg | Embedded: A11YLabel, A11YDescription |
 
 ## Components
 
@@ -78,3 +77,5 @@ ColorPickerStyle fields:
 - **RGB inputs** -- Red, Green, Blue channel inputs (0--255)
 - **HSV inputs** -- Hue (0--360), Sat (0--100), Val (0--100) (when ShowHSV is
   true)
+
+Set the pair through the embed: `A11YCfg: gui.A11YCfg{A11YLabel: "Save"}`.

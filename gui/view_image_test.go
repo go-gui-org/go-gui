@@ -145,12 +145,14 @@ func TestImageA11Y(t *testing.T) {
 	os.WriteFile(path, []byte("fake"), 0o644)
 	w := &Window{}
 	v := Image(ImageCfg{
-		ID:              "img1",
-		Src:             path,
-		Width:           50,
-		Height:          50,
-		A11YLabel:       "test image",
-		A11YDescription: "a test",
+		ID:     "img1",
+		Src:    path,
+		Width:  50,
+		Height: 50,
+		A11YCfg: A11YCfg{
+			A11YLabel:       "test image",
+			A11YDescription: "a test",
+		},
 	})
 	layout := v.GenerateLayout(w)
 	if layout.Shape.A11YRole != AccessRoleImage {

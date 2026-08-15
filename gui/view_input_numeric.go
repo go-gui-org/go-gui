@@ -15,15 +15,14 @@ type NumericInputCfg struct {
 	Placeholder string
 
 	// Accessibility
-	A11YLabel       string
-	A11YDescription string
-	currencyCfg     numericCurrencyModeCfg
-	percentCfg      numericPercentModeCfg
-	Locale          NumericLocaleCfg
-	StepCfg         NumericStepCfg
-	Value           Opt[float64]
-	Min             Opt[float64]
-	Max             Opt[float64]
+	A11YCfg
+	currencyCfg numericCurrencyModeCfg
+	percentCfg  numericPercentModeCfg
+	Locale      NumericLocaleCfg
+	StepCfg     NumericStepCfg
+	Value       Opt[float64]
+	Min         Opt[float64]
+	Max         Opt[float64]
 
 	Decimals int
 
@@ -94,7 +93,7 @@ func NumericInput(cfg NumericInputCfg) View {
 		Focusable:   !cfg.FocusDisabled,
 		A11YRole:    AccessRoleTextField,
 		A11YState:   a11yReadOnlyState(cfg.ReadOnly),
-		A11YLabel:   a11yLabel(cfg.A11YLabel, cfg.Placeholder),
+		A11YCfg:     A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, cfg.Placeholder)},
 		Width:       cfg.Width,
 		Height:      cfg.Height,
 		MinWidth:    cfg.MinWidth,
