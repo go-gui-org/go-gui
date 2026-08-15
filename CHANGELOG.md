@@ -6,7 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v0.61.0] - 2026-08-15
+
+### Changed
+
+- **go-glyph bumped v1.21.0 → v1.22.0.** Brings `backend/ebitengine` out of
+  the root module into its own module (same import path), so ebiten and the
+  `oto/v3` audio stack drop out of the dependency graph for every go-gui
+  consumer. Also adds a `make prepush` gate on the glyph side.
 
 ### Fixed
 
