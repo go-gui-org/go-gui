@@ -323,7 +323,7 @@ func makeContainerA11Y(c *ContainerCfg) *accessInfo {
 	if c.a11Y != nil {
 		return c.a11Y
 	}
-	return makeA11YInfo(c.A11YLabel, c.A11YDescription)
+	return c.a11yInfo("")
 }
 
 func deriveContainerA11YRole(c *ContainerCfg) AccessRole {

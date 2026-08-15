@@ -238,7 +238,7 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 		ID:         cfg.ID,
 		A11YRole:   AccessRoleTree,
 		A11YCfg:    A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, cfg.ID)},
-		a11Y:       makeA11YInfo(a11yLabel(cfg.A11YLabel, cfg.ID), cfg.A11YDescription),
+		a11Y:       cfg.a11yInfo(cfg.ID),
 		Focusable:  !cfg.FocusDisabled,
 		Scrollable: cfg.Scrollable,
 		OnKeyDown: func(ctx EventCtx) {

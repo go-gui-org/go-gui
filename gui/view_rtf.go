@@ -166,7 +166,7 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 		ID:        v.ID,
 		Focusable: v.Focusable,
 		A11YRole:  AccessRoleStaticText,
-		a11Y:      makeA11YInfo(v.A11YLabel, v.A11YDescription),
+		a11Y:      v.a11yInfo(""),
 		Width:     layout.Width,
 		Height:    layout.Height,
 		Clip:      v.Clip,

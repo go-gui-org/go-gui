@@ -20,3 +20,13 @@ type A11YCfg struct {
 	// label. Empty means no description node is emitted.
 	A11YDescription string
 }
+
+// a11yInfo builds the shape's accessInfo, using fallback as the accessible
+// name when A11YLabel is empty. Nil when neither name nor description
+// resolves to anything, which is the signal to emit no a11y node.
+//
+// Pass "" for fallback where the widget has nothing of its own to derive
+// a name from; a11yLabel then returns A11YLabel unchanged.
+func (a A11YCfg) a11yInfo(fallback string) *accessInfo {
+	return makeA11YInfo(a11yLabel(a.A11YLabel, fallback), a.A11YDescription)
+}

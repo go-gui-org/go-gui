@@ -79,7 +79,7 @@ func (dv *drawCanvasView) GenerateLayout(w *Window) Layout {
 			ID:        c.ID,
 			Version:   c.Version,
 			A11YRole:  a11yRole,
-			a11Y:      makeA11YInfo(c.A11YLabel, c.A11YDescription),
+			a11Y:      c.a11yInfo(""),
 			Width:     c.Width,
 			Height:    c.Height,
 			MinWidth:  c.MinWidth,
