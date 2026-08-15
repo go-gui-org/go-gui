@@ -91,7 +91,8 @@ gui.Skeleton(gui.SkeletonCfg{
 
 ## Accessibility
 
-| Property        | Type   | Description                          |
-| --------------- | ------ | ------------------------------------ |
-| A11YLabel       | string | Accessible label (default "Loading") |
-| A11YDescription | string | Accessible description               |
+| Property | Type    | Description                                                  |
+| -------- | ------- | ------------------------------------------------------------ |
+| A11YCfg  | A11YCfg | Embedded: A11YLabel (defaults to "Loading"), A11YDescription |
+
+Set the pair through the embed: `A11YCfg: gui.A11YCfg{A11YLabel: "Save"}`.

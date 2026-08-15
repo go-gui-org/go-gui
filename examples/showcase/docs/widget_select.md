@@ -71,7 +71,8 @@ gui.Select(gui.SelectCfg{
 
 ## Accessibility
 
-| Property        | Type   | Description            |
-| --------------- | ------ | ---------------------- |
-| A11YLabel       | string | Accessible label       |
-| A11YDescription | string | Accessible description |
+| Property | Type    | Description                          |
+| -------- | ------- | ------------------------------------ |
+| A11YCfg  | A11YCfg | Embedded: A11YLabel, A11YDescription |
+
+Set the pair through the embed: `A11YCfg: gui.A11YCfg{A11YLabel: "Save"}`.

@@ -67,10 +67,9 @@ for i := range gui.SvgSpinnerCount() {
 
 ## Accessibility
 
-| Property        | Type   | Description                                      |
-| --------------- | ------ | ------------------------------------------------ |
-| A11YLabel       | string | Short name announced by screen readers           |
-| A11YDescription | string | Longer description (e.g. "loading, please wait") |
+| Property | Type    | Description                                                                            |
+| -------- | ------- | -------------------------------------------------------------------------------------- |
+| A11YCfg  | A11YCfg | Embedded: A11YLabel (short spoken name), A11YDescription (e.g. "loading, please wait") |
 
 ## Helpers
 
@@ -258,3 +257,5 @@ CSS features:
 - `SvgSpinnerCount` and enum values are generated from the embedded asset
   directory, so numeric values shift when assets are added or removed — always
   reference kinds by their named constant.
+
+Set the pair through the embed: `A11YCfg: gui.A11YCfg{A11YLabel: "Save"}`.

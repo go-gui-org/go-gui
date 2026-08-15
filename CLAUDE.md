@@ -103,6 +103,25 @@ shape that needs the owning widget's focus or spell-check state sets
 see `Input`'s text shape and `Shape.focusKey()`. `(*Window).TestDuplicateIDs`
 asserts a rendered window is clean.
 
+#### Accessibility fields
+
+**`A11YLabel` and `A11YDescription` live on the embedded `A11YCfg`
+(`gui/a11y_cfg.go`); never redeclare them on a Cfg.** They are a perfect
+co-occurrence group — every Cfg that carries one carries the other — so they are
+declared once and embedded in all 35. Promotion keeps reads spelled unchanged
+(`cfg.A11YLabel`), but Go has no promoted-field key in a composite literal, so
+**construction names the embed**:
+
+```go
+gui.ButtonCfg{ID: "save", A11YCfg: gui.A11YCfg{A11YLabel: "Save"}}
+```
+
+`A11YCfg.a11yInfo(fallback)` builds the shape's `accessInfo` — it is the
+`makeA11YInfo(a11yLabel(cfg.A11YLabel, X), cfg.A11YDescription)` pairing, and
+staticcheck elides the embedded selector, so the call reads `cfg.a11yInfo(X)`.
+Pass `""` where the widget has no content to derive a name from. `A11YRole` and
+`A11YState` stay plain fields — only `ButtonCfg` and `ContainerCfg` carry them.
+
 #### `Opt[T]` vs plain fields
 
 **Rule: types the repo owns self-flag; only primitives get `Opt`.** `Opt[T]` is

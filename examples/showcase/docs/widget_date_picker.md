@@ -84,10 +84,9 @@ gui.DatePicker(gui.DatePickerCfg{
 
 ## Accessibility
 
-| Property        | Type   | Description            |
-| --------------- | ------ | ---------------------- |
-| A11YLabel       | string | Accessible label       |
-| A11YDescription | string | Accessible description |
+| Property | Type    | Description                          |
+| -------- | ------- | ------------------------------------ |
+| A11YCfg  | A11YCfg | Embedded: A11YLabel, A11YDescription |
 
 ## Weekday Label Lengths
 
@@ -106,3 +105,5 @@ gui.DatePicker(gui.DatePickerCfg{
 ## API
 
 `w.DatePickerReset(id)` clears picker state.
+
+Set the pair through the embed: `A11YCfg: gui.A11YCfg{A11YLabel: "Save"}`.
