@@ -3,20 +3,20 @@ module github.com/go-gui-org/go-gui
 go 1.26.0
 
 require (
-	github.com/alecthomas/chroma/v2 v2.26.1
-	github.com/ebitengine/purego v0.10.1
+	github.com/alecthomas/chroma/v2 v2.27.0
+	github.com/ebitengine/purego v0.10.2
 	github.com/go-gui-org/go-glyph v1.21.0
 	github.com/go-pdf/fpdf v0.9.0
 	github.com/godbus/dbus/v5 v5.2.2
 	github.com/gopxl/beep/v2 v2.1.1
 	github.com/jezek/xgb v1.3.1
 	github.com/jfreymuth/pulse v0.1.2
-	github.com/tdewolff/parse/v2 v2.8.13
-	github.com/yuin/goldmark v1.8.2
+	github.com/tdewolff/parse/v2 v2.8.16
+	github.com/yuin/goldmark v1.8.5
 	github.com/yuin/goldmark-emoji v1.0.6
-	golang.org/x/mod v0.37.0
-	golang.org/x/sys v0.46.0
-	golang.org/x/tools v0.47.0
+	golang.org/x/mod v0.40.0
+	golang.org/x/sys v0.47.0
+	golang.org/x/tools v0.49.0
 )
 
 require (
@@ -31,10 +31,10 @@ require (
 	github.com/mewkiz/pkg v0.0.0-20230226050401-4010bf0fec14 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	golang.org/x/image v0.44.0 // indirect
+	golang.org/x/image v0.45.0 // indirect
 	golang.org/x/mobile v0.0.0-20260602190626-68735029466e // indirect
 	golang.org/x/sync v0.22.0 // indirect
-	golang.org/x/text v0.40.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 )
 
 tool golang.org/x/mobile/cmd/gobind
