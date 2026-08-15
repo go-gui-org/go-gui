@@ -54,6 +54,16 @@ func TestContainerNoIDScrollNoScrollbars(t *testing.T) {
 	}
 }
 
+func TestContainerAnimSnapReachesShape(t *testing.T) {
+	// The mask is only useful if app code can set it; ContainerCfg is
+	// the write-through seam (the same one Hero uses).
+	v := Column(ContainerCfg{ID: "snap", AnimSnap: AnimSnapSize})
+	got := v.GenerateLayout(&Window{}).Shape.AnimSnap
+	if got != AnimSnapSize {
+		t.Errorf("AnimSnap = %d, want %d", got, AnimSnapSize)
+	}
+}
+
 func TestContainerGenerateLayoutShapeIsolation(t *testing.T) {
 	v := Row(ContainerCfg{
 		Content: []View{Text(TextCfg{Text: "a"})},

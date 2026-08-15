@@ -133,6 +133,13 @@ type ContainerCfg struct {
 	OverDraw     bool
 	Hero         bool
 
+	// AnimSnap holds layout-transition channels still for this
+	// container and everything under it — AnimSnapSize to slide
+	// without stretching, AnimSnapAll to exclude a scroll viewport or
+	// grid body from a transition running elsewhere on screen. Zero
+	// animates normally.
+	AnimSnap AnimFlags
+
 	// Floating
 	Float         bool
 	floatAutoFlip bool
@@ -384,6 +391,7 @@ func buildContainerShape(cfg *ContainerCfg, w *Window) Shape {
 		OverDraw:             cfg.OverDraw,
 		ScrollMode:           cfg.ScrollMode,
 		Hero:                 cfg.Hero,
+		AnimSnap:             cfg.AnimSnap,
 		Wrap:                 cfg.Wrap,
 		Overflow:             cfg.Overflow,
 		Opacity:              cfg.Opacity.Get(1.0),

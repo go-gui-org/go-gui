@@ -11,6 +11,38 @@ type LayoutTransitionCfg struct {
 
 const layoutTransitionID = "__layout_transition__"
 
+// AnimFlags marks the layout-transition channels that SNAP instead of
+// easing. It is an opt-out mask: the zero value animates every channel
+// the active transition covers, so a caller that never sets it sees the
+// behaviour it always had.
+//
+// go-gui animates only when AnimateLayout / AnimationAdd is called, so
+// "don't animate this" is already spelled "don't start the animation".
+// The mask exists for the narrower case — a transition that must run,
+// with one channel or one subtree held still.
+//
+// exportaudit:keep — reachable from an exported field (ContainerCfg.AnimSnap)
+type AnimFlags uint8
+
+const (
+	// AnimSnapPos skips the X/Y lerp: the shape jumps to its new
+	// position while its size still eases.
+	//
+	// exportaudit:keep — one member of a public mask; the set ships whole
+	AnimSnapPos AnimFlags = 1 << iota
+
+	// AnimSnapSize skips the Width/Height lerp: the shape jumps to its
+	// new size while its position still eases. This is the "slide, don't
+	// stretch" case for card and grid reflow.
+	AnimSnapSize
+
+	// AnimSnapAll holds a shape (and, by inheritance, its subtree)
+	// completely still for the duration of a transition.
+	//
+	// exportaudit:keep — one member of a public mask; the set ships whole
+	AnimSnapAll = AnimSnapPos | AnimSnapSize
+)
+
 // LayoutTransition animates layout changes (resize, reorder, add,
 // remove) using FLIP-style animation.
 type layoutTransition struct {
@@ -98,20 +130,60 @@ func applyLayoutTransition(layout *Layout, w *Window) {
 	if lt == nil || lt.stopped {
 		return
 	}
-	applyTransitionRecursive(layout, lt)
+	applyTransitionRecursive(layout, lt, 0, 0, 0)
 }
 
-func applyTransitionRecursive(layout *Layout, lt *layoutTransition) {
-	if layout.Shape.ID != "" {
+// applyTransitionRecursive lerps each covered channel toward the shape's
+// current (post-layout) value. snap is the mask inherited from the
+// ancestors; the walk already carries state, so inheritance is a
+// parameter rather than a separate cascade pass.
+//
+// dx/dy carry the nearest interpolated ancestor's position shift. Layout
+// coordinates are absolute, so moving a container does not move its
+// children — a Text has no ID, so it has no snapshot of its own, and
+// without the carried shift it would sit at its final position while its
+// container slid underneath it. A shape that has its own snapshot
+// replaces the shift rather than adding to it: the snapshot recorded an
+// absolute position, so it already accounts for wherever its ancestors
+// were.
+func applyTransitionRecursive(layout *Layout, lt *layoutTransition, snap AnimFlags, dx, dy float32) {
+	// OR-inherit: a snapped parent snaps its whole subtree. With
+	// opt-out semantics there is deliberately no way for a child to
+	// escape an ancestor's mask — that escape hatch is where the
+	// prior art (go-shirei) spends most of its complexity.
+	snap |= layout.Shape.AnimSnap
+
+	// A shape whose position snaps sits at its final coordinates, and so
+	// does everything under it.
+	if snap&AnimSnapPos != 0 {
+		dx, dy = 0, 0
+	}
+
+	shifted := false
+	if layout.Shape.ID != "" && snap != AnimSnapAll {
 		if old, ok := lt.snapshots[layout.Shape.idKey()]; ok {
 			t := lt.progress
-			layout.Shape.X = lerp(old.x, layout.Shape.X, t)
-			layout.Shape.Y = lerp(old.y, layout.Shape.Y, t)
-			layout.Shape.Width = lerp(old.width, layout.Shape.Width, t)
-			layout.Shape.Height = lerp(old.height, layout.Shape.Height, t)
+			if snap&AnimSnapPos == 0 {
+				finalX, finalY := layout.Shape.X, layout.Shape.Y
+				layout.Shape.X = lerp(old.x, finalX, t)
+				layout.Shape.Y = lerp(old.y, finalY, t)
+				dx, dy = layout.Shape.X-finalX, layout.Shape.Y-finalY
+				shifted = true
+			}
+			if snap&AnimSnapSize == 0 {
+				layout.Shape.Width = lerp(old.width, layout.Shape.Width, t)
+				layout.Shape.Height = lerp(old.height, layout.Shape.Height, t)
+			}
 		}
 	}
+	if !shifted {
+		// No snapshot of its own (an ID-less child, or one that first
+		// appeared this frame): ride the ancestor's shift.
+		layout.Shape.X += dx
+		layout.Shape.Y += dy
+	}
+
 	for i := range layout.Children {
-		applyTransitionRecursive(&layout.Children[i], lt)
+		applyTransitionRecursive(&layout.Children[i], lt, snap, dx, dy)
 	}
 }

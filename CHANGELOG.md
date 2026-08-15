@@ -8,6 +8,46 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **Layout and hero transitions left ID-less descendants behind.**
+  `AnimateLayout` only moved shapes that had a snapshot of their own, and layout
+  coordinates are absolute, so a sliding container's `Text` (no `ID`, so no
+  snapshot) jumped straight to its final position while the container eased
+  under it. The walk now carries the nearest interpolated ancestor's position
+  delta and applies it to descendants that have no snapshot — the standard FLIP
+  subtree shift. A shape with its own snapshot replaces the carried delta rather
+  than adding to it, since the snapshot is absolute and already accounts for its
+  ancestors. `AnimSnapPos` zeroes the delta for the subtree, so a snapped
+  container still holds everything under it still. `HeroTransition` had the
+  identical defect — a morphing card travelled without its label — and
+  `applyHeroRecursive` now carries the shift by the same rule.
+
+- **`examples/animations`: the seven toolbar buttons all shared one `ID`.** A
+  duplicate effective ID is a single identity, and the layout transition
+  snapshots by effective ID, so pressing **Layout** made every button lerp from
+  whichever button wrote the snapshot last — the toolbar borders visibly slid.
+  Each button now keys on its label under a scoping `animations_toolbar` row,
+  and `TestMainViewNoDuplicateIDs` asserts the window is clean.
+
+### Added
+
+- **Per-shape snap mask for layout transitions (issue #310).** `AnimateLayout`
+  used to be all-or-nothing over the whole window: every ID-bearing shape got X,
+  Y, Width and Height lerped, with no way to exclude a channel, a shape or a
+  subtree. `Shape.AnimSnap` (and its `ContainerCfg.AnimSnap` write-through, the
+  same seam `Hero` uses) now marks channels that snap instead of easing —
+  `AnimSnapPos`, `AnimSnapSize`, `AnimSnapAll`. This covers "slide, don't
+  stretch" card and grid reflow, and holding a scroll viewport, datagrid body or
+  virtualised list still while the surrounding chrome animates. The mask is an
+  **opt-out**: the zero value animates every channel the active transition
+  covers, so no existing caller changes behaviour. It is OR-inherited down the
+  layout walk, so a snapped container snaps its whole subtree and a child cannot
+  escape it. The hero transition is unaffected — `Shape.Hero` is already an
+  explicit per-shape opt-in. Cost is a `uint8` that lands in existing struct
+  padding (`Shape` stays 304 bytes) plus two branches inside a walk that already
+  runs.
+
 ### Changed
 
 - **BREAKING: `A11YLabel` and `A11YDescription` moved to an embedded `A11YCfg`

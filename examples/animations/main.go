@@ -60,6 +60,10 @@ func mainView(w *gui.Window) gui.View {
 		Content: []gui.View{
 			// Control buttons
 			gui.Row(gui.ContainerCfg{
+				// The toolbar scopes the buttons: each button's leaf is
+				// its label, so the effective IDs are
+				// "animations_toolbar:Tween" and friends.
+				ID:      "animations_toolbar",
 				Spacing: gui.Some[float32](10),
 				Content: []gui.View{
 					animButton("Tween", tweenBox),
@@ -85,6 +89,22 @@ func mainView(w *gui.Window) gui.View {
 						Padding: gui.NewPadding(10, 10, 10, 10),
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{Text: "Sidebar"}),
+						},
+					}),
+					// Same width change as the sidebar, driven by the
+					// same layout transition — but AnimSnapSize holds
+					// the size channel still, so this pane jumps to its
+					// new width while the purple one eases into it.
+					gui.Column(gui.ContainerCfg{
+						ID:       "snap-pane",
+						AnimSnap: gui.AnimSnapSize,
+						Width:    s.SidebarWidth,
+						Sizing:   gui.FixedFill,
+						Color:    gui.CornflowerBlue,
+						Radius:   gui.Some[float32](8),
+						Padding:  gui.NewPadding(10, 10, 10, 10),
+						Content: []gui.View{
+							gui.Text(gui.TextCfg{Text: "Snap size"}),
 						},
 					}),
 					// Canvas for absolute positioning
@@ -200,9 +220,13 @@ func detailView(w *gui.Window) gui.View {
 	})
 }
 
+// animButton keys each button on its own label. One shared ID across all
+// seven made them a single identity: the layout transition snapshots by
+// effective ID, so every button lerped from whichever button wrote the
+// entry last, and the toolbar visibly slid on any AnimateLayout.
 func animButton(label string, action func(w *gui.Window)) gui.View {
 	return gui.Button(gui.ButtonCfg{
-		ID:      "animations_anim_button",
+		ID:      label,
 		Content: []gui.View{gui.Text(gui.TextCfg{Text: label})},
 		OnClick: func(ctx gui.EventCtx) {
 			action(ctx.Window)
