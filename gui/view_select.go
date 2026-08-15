@@ -89,11 +89,6 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		wrapMode = TextModeWrap
 	}
 
-	arrowText := "▼"
-	if isOpen {
-		arrowText = "▲"
-	}
-
 	spacerSizing := FillFill
 	if wrapMode != TextModeSingleLine {
 		spacerSizing = FitFill
@@ -110,10 +105,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 			Sizing:  spacerSizing,
 			Padding: NoPadding,
 		}),
-		Text(TextCfg{
-			Text:      arrowText,
-			TextStyle: cfg.TextStyle,
-		}),
+		disclosureArrow(isOpen, cfg.TextStyle),
 	)
 
 	if isOpen {
@@ -178,6 +170,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
 		axis:        axisLeftToRight,
+		VAlign:      VAlignMiddle,
 		AmendLayout: func(ctx EventCtx) {
 			if ctx.Layout.Shape.Disabled {
 				return

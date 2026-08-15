@@ -188,14 +188,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 		}),
 	)
 
-	arrowText := "▼"
-	if isOpen {
-		arrowText = "▲"
-	}
-	content = append(content, Text(TextCfg{
-		Text:      arrowText,
-		TextStyle: cfg.TextStyle,
-	}))
+	content = append(content, disclosureArrow(isOpen, cfg.TextStyle))
 
 	if isOpen {
 		viewKey := comboboxViewKey{
@@ -272,6 +265,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 		MaxWidth:    cfg.MaxWidth,
 		Disabled:    cfg.Disabled,
 		axis:        axisLeftToRight,
+		VAlign:      VAlignMiddle,
 		AmendLayout: func(ctx EventCtx) {
 			if ctx.Layout.Shape.Disabled {
 				return
