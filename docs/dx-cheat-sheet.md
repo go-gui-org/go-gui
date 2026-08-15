@@ -88,6 +88,25 @@ behind the label.
 Column{Title: "Account", TitleBG: RGB(255, 255, 255), ...}
 ```
 
+## Layout transitions: snap a channel or a subtree
+
+`AnimateLayout` eases X, Y, Width and Height on every ID-bearing shape.
+`AnimSnap` removes a channel from that, and the zero value keeps today's
+behavior, so it is an opt-out:
+
+```go
+// Slides to its new position, jumps to its new size.
+Column(ContainerCfg{ID: "card", AnimSnap: gui.AnimSnapSize, ...})
+
+// Holds a scroll viewport or grid body still while the chrome animates.
+Column(ContainerCfg{ID: "grid", AnimSnap: gui.AnimSnapAll, ...})
+```
+
+The mask inherits down the tree, and only down: a snapped container snaps
+everything inside it, and a child cannot escape the container's mask. The hero
+transition (`Shape.Hero`) ignores `AnimSnap` — it is already an explicit
+per-shape opt-in.
+
 ## The one-event rule
 
 Nothing is marked handled for you. A callback that acts on an event calls

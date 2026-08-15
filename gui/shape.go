@@ -187,6 +187,13 @@ type Shape struct {
 	// center.
 	QuarterTurns uint8
 
+	// AnimSnap marks the layout-transition channels this shape snaps
+	// instead of easing. It inherits: applyTransitionRecursive ORs the
+	// mask down the walk, so a snapped shape snaps its whole subtree.
+	// Zero animates everything the active transition covers, which is
+	// why it is safe on every shape that never sets it.
+	AnimSnap AnimFlags
+
 	// fillGen matches scratchPools.fillGen when contentW and
 	// contentH are valid for the current frame. Set during the
 	// fill-height pass; read during position and scroll-offset
