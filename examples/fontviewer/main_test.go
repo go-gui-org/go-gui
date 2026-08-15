@@ -6,8 +6,10 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 )
 
+// Not t.Parallel: SetTheme mutates process-global theme state
+// (applyTheme writes the default*Style mirrors), which is documented
+// frame-thread-only and races any other test touching theme state.
 func TestMainViewNoPanic(t *testing.T) {
-	t.Parallel()
 	gui.SetTheme(gui.ThemeLight.WithPadding(false))
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  &FontViewerState{FontSize: initialFontSize, Sample: "The quick brown fox"},
@@ -129,8 +131,8 @@ func TestRandomPangramExcludes(t *testing.T) {
 	}
 }
 
+// Not t.Parallel: see TestMainViewNoPanic (SetTheme is not race-safe).
 func TestMainViewEmptyCatalog(t *testing.T) {
-	t.Parallel()
 	gui.SetTheme(gui.ThemeLight.WithBorders(true))
 	// Families is nil, Loaded is false → empty state shows "No system fonts".
 	w := gui.NewWindow(gui.WindowCfg{

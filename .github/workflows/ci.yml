@@ -50,45 +50,10 @@ jobs:
       - name: Test with coverage
         run: go test -count=1 -coverprofile=coverage.out ./gui/...
 
-      - name: Check coverage threshold
-        run: |
-          go tool cover -func=coverage.out | awk 'END {
-            gsub(/%/, "", $3);
-            if ($3 + 0 < 70) {
-              printf "::error::Coverage %.1f%% below 70%% threshold\n", $3;
-              exit 1
-            } else {
-              printf "Coverage %.1f%% >= 70%% threshold\n", $3
-            }
-          }'
-
-      - name: Check per-package coverage floors
-        run: |
-          failures=0
-          while IFS='|' read -r pkg floor; do
-            pct=$(go tool cover -func=coverage.out | \
-              awk -v pkg="$pkg" '
-                $1 ~ "^"pkg"/" { stmts += $2; if ($3 > 0) cov += $2 }
-                END { if (stmts > 0) printf "%.1f", 100 * cov / stmts;
-                      else print "0.0" }')
-            if [ -n "$pct" ] && awk "BEGIN { exit ($pct < $floor) ? 0 : 1 }"; then
-              echo "::error::$pkg coverage ${pct}% below ${floor}% floor"
-              failures=$((failures + 1))
-            fi
-          done << 'EOF'
-          github.com/go-gui-org/go-gui/gui/backend/internal/glyphconv|0
-          github.com/go-gui-org/go-gui/gui/backend/internal/imgpath|0
-          github.com/go-gui-org/go-gui/gui/backend/internal/texcache|0
-          github.com/go-gui-org/go-gui/gui/backend/internal/imgload|0
-          github.com/go-gui-org/go-gui/gui/backend/internal/tempfont|0
-          github.com/go-gui-org/go-gui/gui/backend/internal/nativehost|0
-          github.com/go-gui-org/go-gui/gui/backend/filedialog|0
-          EOF
-          if [ "$failures" -gt 0 ]; then
-            echo "::error::$failures package(s) below coverage floor"
-            exit 1
-          fi
-          echo "All per-package coverage floors met."
+      # Thresholds and floors live in scripts/coverage-gate.sh, shared
+      # with `make coverage-gate` (issue #292).
+      - name: Check coverage gates
+        run: scripts/coverage-gate.sh coverage.out
 
       - name: Save baseline coverage
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
