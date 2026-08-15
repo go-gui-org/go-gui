@@ -2,7 +2,8 @@
 //
 // Usage:
 //
-//	buildapp [-o outdir] [-name Name] [-id bundle.id] [-icon icon.png] <binary>
+//	buildapp [-o outdir] [-name Name] [-id bundle.id] [-icon icon.png]
+//	         [-sign identity] <binary>
 package main
 
 import (
@@ -27,7 +28,17 @@ type bundleOpts struct {
 	Icon       string
 	Version    string
 	BundleDeps bool
+	// SignID is the codesign identity ("-" = ad-hoc).  Empty is treated
+	// as "-" so a zero-valued bundleOpts keeps the historical behaviour.
+	SignID string
 }
+
+// envSignIdentity supplies the -sign default, so a developer with a
+// certificate can set it once per machine instead of per Makefile.
+const envSignIdentity = "BUILDAPP_SIGN_IDENTITY"
+
+// adHocIdentity is codesign's spelling of "sign with no certificate".
+const adHocIdentity = "-"
 
 const infoPlistTmpl = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -64,6 +75,8 @@ func run() error {
 	flag.StringVar(&o.Version, "version", "1.0", "bundle version")
 	flag.BoolVar(&o.BundleDeps, "bundle-deps", false,
 		"copy non-system dylibs into Contents/Frameworks and rewrite paths")
+	flag.StringVar(&o.SignID, "sign", defaultSignIdentity(),
+		"codesign identity; \"-\" is ad-hoc, which drops TCC grants on every rebuild (see README)")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "usage: buildapp [flags] <binary>\n")
 		flag.PrintDefaults()
@@ -75,6 +88,22 @@ func run() error {
 	}
 	o.Binary = flag.Arg(0)
 	return build(o)
+}
+
+// defaultSignIdentity resolves the -sign default from the environment,
+// falling back to ad-hoc.  An explicit -sign wins because flag.Parse
+// overwrites the default.
+func defaultSignIdentity() string {
+	return signIdentityOr(os.Getenv(envSignIdentity))
+}
+
+// signIdentityOr maps an unset identity onto ad-hoc.  Used for both the
+// env default and for programmatic callers that leave SignID empty.
+func signIdentityOr(id string) string {
+	if id == "" {
+		return adHocIdentity
+	}
+	return id
 }
 
 // #nosec G301 — standard macOS .app bundle permissions
@@ -89,6 +118,7 @@ func build(o bundleOpts) error {
 	if o.ID == "" {
 		o.ID = "local.gogui." + strings.ToLower(o.Name)
 	}
+	o.SignID = signIdentityOr(o.SignID)
 
 	stage, err := os.MkdirTemp("", "buildapp-*")
 	if err != nil {
@@ -125,15 +155,15 @@ func build(o bundleOpts) error {
 	}
 
 	if o.BundleDeps {
-		if err = bundleDeps(stagedBin, contents); err != nil {
+		if err = bundleDeps(stagedBin, contents, o.SignID); err != nil {
 			return fmt.Errorf("bundle deps: %w", err)
 		}
 	}
 
-	// Sign the entire .app bundle (ad-hoc).  Without a bundle-level
-	// signature macOS Gatekeeper reports the app as damaged even when
-	// individual binaries inside are signed.
-	if err = signBundle(appDir); err != nil {
+	// Sign the entire .app bundle.  Without a bundle-level signature
+	// macOS Gatekeeper reports the app as damaged even when individual
+	// binaries inside are signed.
+	if err = signBundle(appDir, o.SignID); err != nil {
 		return fmt.Errorf("sign bundle: %w", err)
 	}
 
@@ -278,10 +308,10 @@ func moveDir(src, dst string) error {
 
 // bundleDeps copies non-system dylibs referenced by binary into
 // Contents/Frameworks, rewrites all install names to @rpath form, adds
-// an rpath of @executable_path/../Frameworks, and ad-hoc re-signs every
-// modified file. Recurses through transitive dependencies.
+// an rpath of @executable_path/../Frameworks, and re-signs every
+// modified file with signID. Recurses through transitive dependencies.
 // #nosec G204,G301 — build tool, args from otool output on own binaries
-func bundleDeps(binary, contents string) error {
+func bundleDeps(binary, contents, signID string) error {
 	for _, tool := range []string{"otool", "install_name_tool", "codesign"} {
 		if _, err := exec.LookPath(tool); err != nil {
 			return fmt.Errorf("%s not found", tool)
@@ -335,14 +365,19 @@ func bundleDeps(binary, contents string) error {
 		return fmt.Errorf("add_rpath: %w", err)
 	}
 
-	// ad-hoc re-sign everything we touched
+	// re-sign everything we touched: install_name_tool invalidates the
+	// existing signature, and an unsigned Mach-O will not load on Apple
+	// Silicon.  Capture codesign's output — with a caller-supplied
+	// identity the usual failure is "identity not found", which is
+	// unreadable from the exit status alone.
 	signTargets := []string{binary}
 	for _, base := range copied {
 		signTargets = append(signTargets, filepath.Join(fw, base))
 	}
 	for _, t := range signTargets {
-		if err := exec.Command("codesign", "-s", "-", "--force", t).Run(); err != nil {
-			return fmt.Errorf("codesign %s: %w", t, err)
+		cmd := exec.Command("codesign", "-s", signID, "--force", t)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("codesign %s: %v: %s", t, err, out)
 		}
 	}
 	return nil
@@ -384,15 +419,28 @@ func otoolDeps(path string) ([]string, error) {
 	return deps, nil
 }
 
-// signBundle ad-hoc signs the entire .app bundle.  A missing
+// signBundle signs the entire .app bundle with signID.  A missing
 // bundle-level signature causes Gatekeeper to report the app as
 // "damaged" even when every binary inside is individually signed.
+//
+// signID "-" is ad-hoc: no certificate, no team identifier, so TCC has
+// no designated requirement to key a grant against and falls back to the
+// cdhash.  The cdhash changes on every rebuild, so every ad-hoc rebuild
+// silently revokes screen recording, microphone, camera, accessibility
+// and friends — see README, "Signing".  Pass a real identity to keep
+// grants across rebuilds.
+//
+// --deep re-signs the nested code under Contents/Frameworks that
+// bundleDeps already signed.  Apple deprecates it for distribution
+// signing; it is kept here because the bundle carries no entitlements
+// and no nested code beyond those dylibs, so a same-identity re-sign
+// costs nothing.
 // #nosec G204 — build tool, appDir from temp dir
-func signBundle(appDir string) error {
+func signBundle(appDir, signID string) error {
 	if _, err := exec.LookPath("codesign"); err != nil {
 		return errors.New("codesign not found")
 	}
-	cmd := exec.Command("codesign", "-s", "-", "--force", "--deep", appDir)
+	cmd := exec.Command("codesign", "-s", signID, "--force", "--deep", appDir)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("%v: %s", err, out)
 	}

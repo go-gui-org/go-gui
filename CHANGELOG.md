@@ -6,14 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`buildapp` ad-hoc signing silently revoked every TCC grant on each
+  rebuild.** The tool hard-coded `codesign -s -`, and an ad-hoc signature
+  carries no certificate and no team identifier, so TCC keys its grant on the
+  cdhash — which changes every build. Screen recording, microphone, camera,
+  accessibility, input monitoring and full disk access were all dropped on every
+  `make app`, while the System Settings row survived (that list is keyed by
+  bundle id, the authorization check by cdhash), so the permission looked
+  granted and the API returned denied. New `-sign <identity>` flag, defaulting
+  to `$BUILDAPP_SIGN_IDENTITY` and then to `-`, so existing callers are
+  unchanged and anyone with a self-signed code-signing certificate keeps grants
+  across rebuilds. The `-bundle-deps` re-sign now reports `codesign`'s own
+  output instead of a bare exit status. See `cmd/buildapp/README.md` § Signing
+  (issue #303).
+
 ## [v0.61.0] - 2026-08-15
 
 ### Changed
 
-- **go-glyph bumped v1.21.0 → v1.22.0.** Brings `backend/ebitengine` out of
-  the root module into its own module (same import path), so ebiten and the
-  `oto/v3` audio stack drop out of the dependency graph for every go-gui
-  consumer. Also adds a `make prepush` gate on the glyph side.
+- **go-glyph bumped v1.21.0 → v1.22.0.** Brings `backend/ebitengine` out of the
+  root module into its own module (same import path), so ebiten and the `oto/v3`
+  audio stack drop out of the dependency graph for every go-gui consumer. Also
+  adds a `make prepush` gate on the glyph side.
 
 ### Fixed
 

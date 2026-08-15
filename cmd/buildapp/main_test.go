@@ -303,6 +303,70 @@ func TestBundleDepsOnStub(t *testing.T) {
 	}
 }
 
+func TestSignIdentityOr(t *testing.T) {
+	for _, tc := range []struct{ in, want string }{
+		{"", "-"},
+		{"-", "-"},
+		{"My Dev Cert", "My Dev Cert"},
+	} {
+		if got := signIdentityOr(tc.in); got != tc.want {
+			t.Errorf("signIdentityOr(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}
+
+func TestDefaultSignIdentityFromEnv(t *testing.T) {
+	t.Setenv(envSignIdentity, "")
+	if got := defaultSignIdentity(); got != "-" {
+		t.Errorf("unset env: got %q, want %q", got, "-")
+	}
+	t.Setenv(envSignIdentity, "Env Cert")
+	if got := defaultSignIdentity(); got != "Env Cert" {
+		t.Errorf("env set: got %q, want %q", got, "Env Cert")
+	}
+}
+
+// A zero-valued bundleOpts must keep signing ad-hoc, the behaviour every
+// caller had before -sign existed.
+func TestBuildDefaultsToAdHoc(t *testing.T) {
+	bin := buildStubBinary(t)
+	if _, err := exec.LookPath("codesign"); err != nil {
+		t.Skip("codesign not available")
+	}
+	outDir := t.TempDir()
+	if err := build(bundleOpts{Binary: bin, OutDir: outDir, Version: "1.0"}); err != nil {
+		t.Fatalf("build: %v", err)
+	}
+	// codesign -dv writes its report to stderr.
+	out, err := exec.Command("codesign", "-dv",
+		filepath.Join(outDir, "Stub.app")).CombinedOutput()
+	if err != nil {
+		t.Fatalf("codesign -dv: %v: %s", err, out)
+	}
+	if !strings.Contains(string(out), "Signature=adhoc") {
+		t.Errorf("expected an ad-hoc signature, got:\n%s", out)
+	}
+}
+
+// An unknown identity must fail loudly and carry codesign's own message,
+// which is the only readable diagnosis of a mistyped certificate name.
+func TestBuildUnknownIdentityErrors(t *testing.T) {
+	bin := buildStubBinary(t)
+	if _, err := exec.LookPath("codesign"); err != nil {
+		t.Skip("codesign not available")
+	}
+	err := build(bundleOpts{
+		Binary: bin, OutDir: t.TempDir(), Version: "1.0",
+		SignID: "buildapp-no-such-identity",
+	})
+	if err == nil {
+		t.Fatal("expected an error for an unknown signing identity")
+	}
+	if !strings.Contains(err.Error(), "buildapp-no-such-identity") {
+		t.Errorf("error should quote codesign's output, got: %v", err)
+	}
+}
+
 func TestWritePlistOmitsEmptyIcon(t *testing.T) {
 	p := filepath.Join(t.TempDir(), "Info.plist")
 	if err := writePlist(p, "stub", "id", "Stub", "1.0", ""); err != nil {
