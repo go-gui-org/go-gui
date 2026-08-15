@@ -55,11 +55,6 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 		a11yState = AccessStateExpanded
 	}
 
-	arrowText := "▼"
-	if cfg.Open {
-		arrowText = "▲"
-	}
-
 	return Column(ContainerCfg{
 		ID:          cfg.ID,
 		A11YRole:    AccessRoleDisclosure,
@@ -86,10 +81,7 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 					Row(ContainerCfg{
 						Padding: NewPadding(0, PadMedium, 0, 0),
 						Content: []View{
-							Text(TextCfg{
-								Text:      arrowText,
-								TextStyle: guiTheme.N3,
-							}),
+							disclosureArrow(cfg.Open, guiTheme.N3),
 						},
 					}),
 				},
