@@ -75,10 +75,13 @@ func (rv *datePickerRollerView) GenerateLayout(w *Window) Layout {
 	wrapYear := cfg.wrapYear
 
 	return generateViewLayout(container(ContainerCfg{
-		ID:          cfg.ID,
-		Focusable:   cfg.Focusable,
-		A11YRole:    AccessRoleDateField,
-		A11YCfg:     A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, "Date Roller")},
+		ID:        cfg.ID,
+		Focusable: cfg.Focusable,
+		A11YRole:  AccessRoleDateField,
+		A11YCfg: A11YCfg{
+			A11YLabel:       a11yLabel(cfg.A11YLabel, "Date Roller"),
+			A11YDescription: cfg.A11YDescription,
+		},
 		Color:       cfg.Color,
 		ColorBorder: cfg.ColorBorder,
 		SizeBorder:  cfg.SizeBorder,

@@ -89,11 +89,14 @@ func NumericInput(cfg NumericInputCfg) View {
 	}
 
 	return Row(ContainerCfg{
-		ID:          cfg.ID,
-		Focusable:   !cfg.FocusDisabled,
-		A11YRole:    AccessRoleTextField,
-		A11YState:   a11yReadOnlyState(cfg.ReadOnly),
-		A11YCfg:     A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, cfg.Placeholder)},
+		ID:        cfg.ID,
+		Focusable: !cfg.FocusDisabled,
+		A11YRole:  AccessRoleTextField,
+		A11YState: a11yReadOnlyState(cfg.ReadOnly),
+		A11YCfg: A11YCfg{
+			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Placeholder),
+			A11YDescription: cfg.A11YDescription,
+		},
 		Width:       cfg.Width,
 		Height:      cfg.Height,
 		MinWidth:    cfg.MinWidth,
@@ -177,6 +180,7 @@ func numericInputField(cfg NumericInputCfg, locale NumericLocaleCfg, _ NumericSt
 		ReadOnly:         cfg.ReadOnly,
 		Text:             cfg.Text,
 		Placeholder:      cfg.Placeholder,
+		A11YCfg:          cfg.A11YCfg,
 		Sizing:           sizing,
 		Width:            width,
 		Height:           height,

@@ -84,10 +84,13 @@ func (cv *colorPickerView) GenerateLayout(w *Window) Layout {
 	}
 
 	ccfg := ContainerCfg{
-		ID:          cfg.ID,
-		Focusable:   !cfg.FocusDisabled,
-		A11YRole:    AccessRoleColorWell,
-		A11YCfg:     A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, "Color Picker")},
+		ID:        cfg.ID,
+		Focusable: !cfg.FocusDisabled,
+		A11YRole:  AccessRoleColorWell,
+		A11YCfg: A11YCfg{
+			A11YLabel:       a11yLabel(cfg.A11YLabel, "Color Picker"),
+			A11YDescription: cfg.A11YDescription,
+		},
 		Color:       style.Color,
 		ColorBorder: style.ColorBorder,
 		SizeBorder:  Some(style.SizeBorder),

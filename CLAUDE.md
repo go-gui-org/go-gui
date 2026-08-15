@@ -6,12 +6,14 @@ Guidance for Claude Code (claude.ai/code) in this repo.
 
 ```
 go run ./examples/get_started/  # run the example app
-make check-all                  # test + lint + vet gates (pre-push)
+make prepush                    # full pre-push gate (race, cross-lint, cross-compile, coverage, export audit)
+make check-all                  # test + lint + vet gates (what .githooks/pre-push runs)
+make check                      # fast subset (vet, deps-doc, large-files, generate-check, tidy-check)
 git config core.hooksPath .githooks  # enable tracked pre-commit/pre-push hooks
 make test                       # tests only
 make lint                       # golangci-lint (pinned version)
 make vet                        # go vet + requiredid analyzer
-make ergonomics-audit                 # focus/callbacks inventory + ID composition
+make ergonomics-audit                 # focus/callbacks inventory + ID/a11y composition
 make export-audit               # exported surface (advisory in-repo)
 ./scripts/large-files.sh        # report Go files >800 lines in gui/
 ```

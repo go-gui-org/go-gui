@@ -267,6 +267,7 @@ ergonomics-audit:
 	go run ./tools/ergonomics-audit/ -mode ids .
 	go run ./tools/ergonomics-audit/ -mode literals .
 	go run ./tools/ergonomics-audit/ -mode theme .
+	go run ./tools/ergonomics-audit/ -mode a11y .
 
 # Insert a generated ID into every broken literal in this repo's tests
 # and examples. Scoped away from gui/ deliberately: go-gui's own widget

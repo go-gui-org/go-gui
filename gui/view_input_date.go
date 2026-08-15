@@ -189,11 +189,14 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 	}
 
 	col := Column(ContainerCfg{
-		ID:          cfg.ID,
-		Focusable:   !cfg.FocusDisabled,
-		A11YRole:    AccessRoleDateField,
-		A11YState:   a11yReadOnlyState(cfg.ReadOnly),
-		A11YCfg:     A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, "Date Input")},
+		ID:        cfg.ID,
+		Focusable: !cfg.FocusDisabled,
+		A11YRole:  AccessRoleDateField,
+		A11YState: a11yReadOnlyState(cfg.ReadOnly),
+		A11YCfg: A11YCfg{
+			A11YLabel:       a11yLabel(cfg.A11YLabel, "Date Input"),
+			A11YDescription: cfg.A11YDescription,
+		},
 		Color:       cfg.Colors.Base,
 		ColorBorder: cfg.Colors.Border,
 		SizeBorder:  cfg.SizeBorder,
