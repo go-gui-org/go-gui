@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **The check mark now sits in the middle of the checkbox.** `Toggle` (and its
+  `Checkbox` alias) centred the check on the font's advance box, which spans the
+  descent the glyph never paints into and each side bearing, so the check
+  floated above centre — barely at the default size, glaringly on a large one.
+  It is now centred on its ink: the backend measures the glyph's painted box
+  (new go-glyph `InkBounds`) and `AmendLayout` moves the arranged glyph, so
+  nothing about sizing, draw order, or the widget tree changes. Backends without
+  the capability, and tests with no measurer, keep the previous advance-box
+  centring. The toggle theme style's padding is symmetric again, its left-heavy
+  value having been a partial nudge for the same defect. The same correction now
+  applies wherever a single glyph is centred inside a drawn frame: the markdown
+  task-list checkbox and the splitter's collapse buttons.
+
 ## [v0.60.0] - 2026-08-14
 
 ### Added
@@ -27,17 +44,17 @@ and this project adheres to
 
 ### Changed
 
-- **`View` is now a single method — `GenerateLayout(*Window) Layout` (breaking).**
-  `View.Content() []View` is gone. The 24 container and composite widgets that
-  built child trees in `Content()` now build them in `GenerateLayout` and hand
-  them to `appendChildViews`, which owns the child walk, the event-children cap,
-  the scratch-arena reservation and the ID-scope push/restore — one mechanism
-  instead of two, with identical behavior and allocations (flat_100 100,
-  nested_3x10 100, deep_12x1 1). `*Layout` does not implement `View`;
-  `ContainerCfg.Content` remains a plain field. Sibling consumers migrate in
-  lockstep: go-charts records its gallery charts at build time (go-charts#41),
-  go-map and go-term drop their `Content()` implementations. See
-  `docs/specs/view-single-method.md`.
+- **`View` is now a single method — `GenerateLayout(*Window) Layout`
+  (breaking).** `View.Content() []View` is gone. The 24 container and composite
+  widgets that built child trees in `Content()` now build them in
+  `GenerateLayout` and hand them to `appendChildViews`, which owns the child
+  walk, the event-children cap, the scratch-arena reservation and the ID-scope
+  push/restore — one mechanism instead of two, with identical behavior and
+  allocations (flat_100 100, nested_3x10 100, deep_12x1 1). `*Layout` does not
+  implement `View`; `ContainerCfg.Content` remains a plain field. Sibling
+  consumers migrate in lockstep: go-charts records its gallery charts at build
+  time (go-charts#41), go-map and go-term drop their `Content()`
+  implementations. See `docs/specs/view-single-method.md`.
 
 - **The default appearance changed: `ThemeMaker` is now the only source of
   widget styling (issue #300).** Go-Gui carried two sets of defaults — about 30

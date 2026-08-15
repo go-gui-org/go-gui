@@ -95,21 +95,29 @@ func splitterButton(cfg *SplitterCfg, core *splitterCore,
 		Color: cfg.colorButtonIcon,
 		Size:  size,
 	}
+	icon := splitterButtonIcon(core, target)
 	return Button(ButtonCfg{
 		ID:      id + splitterButtonSuffix[target],
 		Width:   size,
 		Height:  size,
 		Sizing:  FixedFixed,
 		Padding: NoPadding,
-		Color:   cfg.colorButton,
-		Colors:  ColorSet{Hover: cfg.colorButtonHover, Click: cfg.colorButtonActive, Focus: cfg.colorButtonHover},
-		Radius:  cfg.radiusBorder,
+		// A triangle sits well above the baseline and its side bearings
+		// are lopsided, so advance-box centring puts it high and off to
+		// one side of this small square button. Note Button's own amend
+		// hook skips a disabled button, so a disabled one keeps the
+		// uncorrected position — cosmetic, and disabled splitter buttons
+		// are not a state the widget produces today.
+		AmendLayout: centerGlyphOnInk(icon, ts),
+		Color:       cfg.colorButton,
+		Colors:      ColorSet{Hover: cfg.colorButtonHover, Click: cfg.colorButtonActive, Focus: cfg.colorButtonHover},
+		Radius:      cfg.radiusBorder,
 		OnClick: func(ctx EventCtx) {
 			splitterOnButtonClick(core, target, ctx.Event, ctx.Window)
 		},
 		Content: []View{
 			Text(TextCfg{
-				Text:      splitterButtonIcon(core, target),
+				Text:      icon,
 				TextStyle: ts,
 			}),
 		},

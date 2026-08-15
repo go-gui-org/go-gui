@@ -53,6 +53,22 @@ func (tm *textMeasurer) FontAscent(
 	return m.Ascender
 }
 
+// TextInkBounds returns the painted box of text, relative to the
+// top-left of its advance box. Backs gui's optional ink-measuring
+// capability, which widgets use to centre a single glyph on its ink
+// instead of on the font's advance box.
+func (tm *textMeasurer) TextInkBounds(
+	text string, style gui.TextStyle) (gui.InkBounds, bool) {
+	cfg := glyphconv.GuiStyleToGlyphConfig(style)
+	r, ok := tm.textSys.InkBounds(text, cfg)
+	if !ok {
+		return gui.InkBounds{}, false
+	}
+	return gui.InkBounds{
+		X: r.X, Y: r.Y, Width: r.Width, Height: r.Height,
+	}, true
+}
+
 func (tm *textMeasurer) LayoutText(
 	text string, style gui.TextStyle, wrapWidth float32,
 ) (glyph.Layout, error) {

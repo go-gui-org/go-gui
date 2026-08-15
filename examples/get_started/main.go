@@ -42,7 +42,7 @@ func mainView(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Hello GUI! 😀🚀🎉👍",
-				TextStyle: w.Theme().B1,
+				TextStyle: gui.CurrentTheme().B1,
 			}),
 			gui.Button(gui.ButtonCfg{
 				ID: "gs_counter",
