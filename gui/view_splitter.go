@@ -125,8 +125,7 @@ type SplitterCfg struct {
 	OnChange func(float32, SplitterCollapsed, EventCtx)
 	ID       string
 
-	A11YLabel           string
-	A11YDescription     string
+	A11YCfg
 	First               SplitterPaneCfg
 	Second              SplitterPaneCfg
 	Ratio               Opt[float32]
@@ -295,16 +294,18 @@ func (sv *splitterView) GenerateLayout(w *Window) Layout {
 	id := w.EffID(cfg.ID)
 
 	return generateViewLayout(Canvas(ContainerCfg{
-		ID:              cfg.ID,
-		Focusable:       cfg.Focusable,
-		A11YRole:        AccessRoleSplitter,
-		A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.ID),
-		A11YDescription: cfg.A11YDescription,
-		Sizing:          cfg.Sizing,
-		Padding:         NoPadding,
-		Clip:            true,
-		Disabled:        cfg.Disabled,
-		Invisible:       cfg.Invisible,
+		ID:        cfg.ID,
+		Focusable: cfg.Focusable,
+		A11YRole:  AccessRoleSplitter,
+		A11YCfg: A11YCfg{
+			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.ID),
+			A11YDescription: cfg.A11YDescription,
+		},
+		Sizing:    cfg.Sizing,
+		Padding:   NoPadding,
+		Clip:      true,
+		Disabled:  cfg.Disabled,
+		Invisible: cfg.Invisible,
 		OnKeyDown: func(ctx EventCtx) {
 			splitterOnKeydown(core, ctx.Event, ctx.Window)
 		},

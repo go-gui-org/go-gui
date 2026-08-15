@@ -200,7 +200,7 @@ func toastItemView(toast *toastNotification, style ToastStyle) View {
 		Spacing:     Some(SpacingSmall),
 		A11YRole:    AccessRoleGroup,
 		A11YState:   AccessStateLive,
-		A11YLabel:   toastA11YLabel(toast),
+		A11YCfg:     A11YCfg{A11YLabel: toastA11YLabel(toast)},
 		AmendLayout: func(ctx EventCtx) {
 			if frac < 1.0 {
 				ctx.Layout.Shape.Height *= frac

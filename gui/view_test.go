@@ -536,8 +536,10 @@ func TestContainerA11YDerivation(t *testing.T) {
 
 func TestContainerA11YInfo(t *testing.T) {
 	v := Column(ContainerCfg{
-		A11YLabel:       "test",
-		A11YDescription: "desc",
+		A11YCfg: A11YCfg{
+			A11YLabel:       "test",
+			A11YDescription: "desc",
+		},
 	})
 	layout := v.GenerateLayout(&Window{})
 	if layout.Shape.a11Y == nil {

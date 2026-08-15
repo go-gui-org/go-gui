@@ -23,16 +23,15 @@ type SelectCfg struct {
 	ID               string `gui:"required,focus"`
 	Placeholder      string
 
-	A11YLabel       string
-	A11YDescription string
-	Selected        []string // currently selected option text(s)
-	Options         []string
-	FloatZIndex     int
-	Padding         Padding
-	SizeBorder      Opt[float32]
-	Radius          Opt[float32]
-	MinWidth        float32
-	MaxWidth        float32
+	A11YCfg
+	Selected    []string // currently selected option text(s)
+	Options     []string
+	FloatZIndex int
+	Padding     Padding
+	SizeBorder  Opt[float32]
+	Radius      Opt[float32]
+	MinWidth    float32
+	MaxWidth    float32
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled    bool
@@ -164,7 +163,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		Focusable:   !cfg.FocusDisabled,
 		Clip:        clip,
 		A11YRole:    AccessRoleComboBox,
-		A11YLabel:   a11yLabel(cfg.A11YLabel, cfg.Placeholder),
+		A11YCfg:     A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, cfg.Placeholder)},
 		Color:       cfg.Color,
 		ColorBorder: cfg.ColorBorder,
 		SizeBorder:  Some(sizeBorder),

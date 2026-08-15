@@ -16,8 +16,7 @@ type ImageCfg struct {
 	Src         string
 
 	// Accessibility
-	A11YLabel       string
-	A11YDescription string
+	A11YCfg
 
 	Opacity   Opt[float32]
 	Width     float32

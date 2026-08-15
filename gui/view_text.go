@@ -8,10 +8,9 @@ type TextCfg struct {
 	ID        string
 	Text      string
 
-	A11YLabel       string
-	A11YDescription string
-	Opacity         Opt[float32]
-	Focusable       bool
+	A11YCfg
+	Opacity   Opt[float32]
+	Focusable bool
 
 	// TabSize sets the tab stop width in spaces (default 4).
 	TabSize uint32

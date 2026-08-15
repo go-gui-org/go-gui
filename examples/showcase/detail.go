@@ -134,7 +134,7 @@ func docButton(showDocs bool) gui.View {
 	}
 	return gui.Button(gui.ButtonCfg{
 		ID:         "btn-doc-toggle",
-		A11YLabel:  "Toggle docs",
+		A11YCfg:    gui.A11YCfg{A11YLabel: "Toggle docs"},
 		Color:      color,
 		SizeBorder: gui.NoBorder,
 		Padding:    gui.NewPadding(4, 8, 4, 8),

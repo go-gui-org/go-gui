@@ -27,8 +27,7 @@ type TabControlCfg struct {
 	ID       string
 	Selected string
 
-	A11YLabel           string
-	A11YDescription     string
+	A11YCfg
 	Items               []TabItemCfg
 	Padding             Padding
 	PaddingHeader       Padding
@@ -309,7 +308,7 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 			ID:         tabButtonID(cfg.ID, item.ID),
 			A11YRole:   AccessRoleTabItem,
 			A11YState:  a11yState,
-			A11YLabel:  item.Label,
+			A11YCfg:    A11YCfg{A11YLabel: item.Label},
 			Color:      tabColor,
 			Colors:     ColorSet{Hover: hoverColor, Click: clickColor, Focus: focusColor, Border: borderColor, BorderFocus: cfg.colorTabBorderFocus},
 			Padding:    cfg.paddingTab,
@@ -359,20 +358,22 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 	controlID := cfg.ID
 
 	return generateViewLayout(Column(ContainerCfg{
-		ID:              cfg.ID,
-		Focusable:       cfg.Focusable,
-		A11YRole:        AccessRoleTab,
-		A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.ID),
-		A11YDescription: cfg.A11YDescription,
-		Sizing:          cfg.Sizing,
-		Color:           cfg.Color,
-		ColorBorder:     cfg.ColorBorder,
-		SizeBorder:      SomeF(sizeBorder),
-		Radius:          SomeF(radius),
-		Padding:         cfg.Padding,
-		Spacing:         SomeF(spacing),
-		Disabled:        cfg.Disabled,
-		Invisible:       cfg.Invisible,
+		ID:        cfg.ID,
+		Focusable: cfg.Focusable,
+		A11YRole:  AccessRoleTab,
+		A11YCfg: A11YCfg{
+			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.ID),
+			A11YDescription: cfg.A11YDescription,
+		},
+		Sizing:      cfg.Sizing,
+		Color:       cfg.Color,
+		ColorBorder: cfg.ColorBorder,
+		SizeBorder:  SomeF(sizeBorder),
+		Radius:      SomeF(radius),
+		Padding:     cfg.Padding,
+		Spacing:     SomeF(spacing),
+		Disabled:    cfg.Disabled,
+		Invisible:   cfg.Invisible,
 		OnKeyDown: func(ctx EventCtx) {
 			if reorderable {
 				if dragReorderEscape(

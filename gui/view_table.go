@@ -40,15 +40,14 @@ type TableCellCfg struct {
 
 // TableCfg configures a table layout.
 type TableCfg struct {
-	TextStyle        TextStyle
-	TextStyleHead    TextStyle
-	ColorRowAlt      *Color
-	alignHead        *HorizontalAlign
-	Selected         map[int]bool
-	OnSelect         func(map[int]bool, int, EventCtx)
-	ID               string `gui:"required"`
-	A11YLabel        string
-	A11YDescription  string
+	TextStyle     TextStyle
+	TextStyleHead TextStyle
+	ColorRowAlt   *Color
+	alignHead     *HorizontalAlign
+	Selected      map[int]bool
+	OnSelect      func(map[int]bool, int, EventCtx)
+	ID            string `gui:"required"`
+	A11YCfg
 	columnAlignments []HorizontalAlign
 	// RawData is a convenience field for CSV-style data. First row
 	// is treated as the header. When set, RawData takes precedence
@@ -279,7 +278,7 @@ func tableView(cfg TableCfg, w *Window) View {
 	outerCfg := ContainerCfg{
 		ID:        cfg.ID,
 		A11YRole:  AccessRoleGrid,
-		A11YLabel: cfg.A11YLabel,
+		A11YCfg:   A11YCfg{A11YLabel: cfg.A11YLabel},
 		Color:     ColorTransparent,
 		Padding:   NoPadding,
 		Spacing:   Some(rowSpacing),

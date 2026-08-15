@@ -56,8 +56,7 @@ type InputCfg struct {
 	Mask string
 
 	// Accessibility
-	A11YLabel       string
-	A11YDescription string
+	A11YCfg
 
 	// MaskTokens defines custom mask token types for the Mask
 	// field. See MaskTokenDef for the format.
@@ -242,32 +241,34 @@ func Input(cfg InputCfg) View {
 	}
 
 	return Column(ContainerCfg{
-		ID:              cfg.ID,
-		Focusable:       !cfg.FocusDisabled,
-		A11YRole:        a11yRole,
-		A11YState:       a11yState,
-		A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Placeholder),
-		A11YDescription: cfg.A11YDescription,
-		Width:           cfg.Width,
-		Height:          cfg.Height,
-		MinWidth:        cfg.MinWidth,
-		MaxWidth:        cfg.MaxWidth,
-		MinHeight:       cfg.MinHeight,
-		MaxHeight:       cfg.MaxHeight,
-		Disabled:        cfg.Disabled,
-		Clip:            true,
-		Color:           cfg.Color,
-		ColorBorder:     cfg.ColorBorder,
-		SizeBorder:      Some(sizeBorder),
-		Invisible:       cfg.Invisible,
-		Padding:         cfg.Padding,
-		Radius:          Some(radius),
-		Sizing:          cfg.Sizing,
-		Scrollable:      cfg.Scrollable,
-		Spacing:         SomeF(0),
-		OnChar:          makeInputOnChar(hcfg),
-		OnKeyDown:       makeInputOnKeyDown(hcfg),
-		OnKeyUp:         makeInputOnKeyUp(hcfg),
+		ID:        cfg.ID,
+		Focusable: !cfg.FocusDisabled,
+		A11YRole:  a11yRole,
+		A11YState: a11yState,
+		A11YCfg: A11YCfg{
+			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Placeholder),
+			A11YDescription: cfg.A11YDescription,
+		},
+		Width:       cfg.Width,
+		Height:      cfg.Height,
+		MinWidth:    cfg.MinWidth,
+		MaxWidth:    cfg.MaxWidth,
+		MinHeight:   cfg.MinHeight,
+		MaxHeight:   cfg.MaxHeight,
+		Disabled:    cfg.Disabled,
+		Clip:        true,
+		Color:       cfg.Color,
+		ColorBorder: cfg.ColorBorder,
+		SizeBorder:  Some(sizeBorder),
+		Invisible:   cfg.Invisible,
+		Padding:     cfg.Padding,
+		Radius:      Some(radius),
+		Sizing:      cfg.Sizing,
+		Scrollable:  cfg.Scrollable,
+		Spacing:     SomeF(0),
+		OnChar:      makeInputOnChar(hcfg),
+		OnKeyDown:   makeInputOnKeyDown(hcfg),
+		OnKeyUp:     makeInputOnKeyUp(hcfg),
 		OnHover: func(ctx EventCtx) {
 			ctx.Window.setMouseCursor(CursorIBeam)
 			// This handler sits on the container that claims cfg.ID, so

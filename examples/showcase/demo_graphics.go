@@ -743,17 +743,19 @@ func demoDrawCanvasInteractive(app *ShowcaseApp) gui.View {
 	)
 
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:              "showcase-draw-canvas-interactive",
-		Version:         app.DrawCanvasVersion,
-		Width:           canvasW,
-		Height:          canvasH,
-		Color:           gui.RGBA(30, 30, 40, 255),
-		Radius:          8,
-		Clip:            true,
-		Padding:         gui.NewPadding(20, 20, 20, 20),
-		Focusable:       true,
-		A11YLabel:       "Interactive draw canvas",
-		A11YDescription: "Arrow keys move the marker",
+		ID:        "showcase-draw-canvas-interactive",
+		Version:   app.DrawCanvasVersion,
+		Width:     canvasW,
+		Height:    canvasH,
+		Color:     gui.RGBA(30, 30, 40, 255),
+		Radius:    8,
+		Clip:      true,
+		Padding:   gui.NewPadding(20, 20, 20, 20),
+		Focusable: true,
+		A11YCfg: gui.A11YCfg{
+			A11YLabel:       "Interactive draw canvas",
+			A11YDescription: "Arrow keys move the marker",
+		},
 		OnDraw: func(dc *gui.DrawContext) {
 			// Row of image tiles across the top.
 			const tiles = 4

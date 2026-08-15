@@ -28,8 +28,7 @@ type BreadcrumbCfg struct {
 	Selected           string
 	Separator          string
 
-	A11YLabel          string
-	A11YDescription    string
+	A11YCfg
 	Items              []BreadcrumbItemCfg
 	Padding            Padding
 	paddingTrail       Padding
@@ -219,20 +218,22 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 	}
 
 	return Column(ContainerCfg{
-		ID:              cfg.ID,
-		Focusable:       cfg.Focusable,
-		A11YRole:        AccessRoleToolbar,
-		A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.ID),
-		A11YDescription: cfg.A11YDescription,
-		Sizing:          cfg.Sizing,
-		Color:           cfg.Color,
-		ColorBorder:     cfg.ColorBorder,
-		SizeBorder:      Some(sizeBorder),
-		Radius:          Some(radius),
-		Padding:         cfg.Padding,
-		Spacing:         Some(spacing),
-		Disabled:        cfg.Disabled,
-		Invisible:       cfg.Invisible,
+		ID:        cfg.ID,
+		Focusable: cfg.Focusable,
+		A11YRole:  AccessRoleToolbar,
+		A11YCfg: A11YCfg{
+			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.ID),
+			A11YDescription: cfg.A11YDescription,
+		},
+		Sizing:      cfg.Sizing,
+		Color:       cfg.Color,
+		ColorBorder: cfg.ColorBorder,
+		SizeBorder:  Some(sizeBorder),
+		Radius:      Some(radius),
+		Padding:     cfg.Padding,
+		Spacing:     Some(spacing),
+		Disabled:    cfg.Disabled,
+		Invisible:   cfg.Invisible,
 		OnKeyDown: func(ctx EventCtx) {
 			bcOnKeydown(cfg.Disabled, cfg.Items, cfg.Selected,
 				cfg.OnSelect, cfg.ID, ctx.Event, ctx.Window)

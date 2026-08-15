@@ -58,11 +58,10 @@ type datePickerState struct {
 
 // DatePickerCfg configures a date picker calendar view.
 type DatePickerCfg struct {
-	TextStyle       TextStyle
-	OnSelect        func([]time.Time, EventCtx)
-	ID              string `gui:"required"`
-	A11YLabel       string
-	A11YDescription string
+	TextStyle TextStyle
+	OnSelect  func([]time.Time, EventCtx)
+	ID        string `gui:"required"`
+	A11YCfg
 	Dates           []time.Time
 	AllowedWeekdays []DatePickerWeekdays
 	AllowedMonths   []DatePickerMonths
@@ -151,7 +150,7 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 		ID:          cfg.ID,
 		Focusable:   !cfg.FocusDisabled,
 		A11YRole:    AccessRoleGrid,
-		A11YLabel:   a11yLabel(cfg.A11YLabel, "Date Picker"),
+		A11YCfg:     A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, "Date Picker")},
 		Color:       cfg.Colors.Base,
 		ColorBorder: cfg.Colors.Border,
 		SizeBorder:  cfg.SizeBorder,

@@ -172,11 +172,11 @@ func WithTooltip(w *Window, cfg WithTooltipCfg) View {
 	}
 
 	return Column(ContainerCfg{
-		A11YRole:        AccessRoleGroup,
-		A11YDescription: cfg.Text,
-		SizeBorder:      NoBorder,
-		Content:         content,
-		AmendLayout:     withTooltipAmend(tipID, delay),
+		A11YRole:    AccessRoleGroup,
+		A11YCfg:     A11YCfg{A11YDescription: cfg.Text},
+		SizeBorder:  NoBorder,
+		Content:     content,
+		AmendLayout: withTooltipAmend(tipID, delay),
 	})
 }
 

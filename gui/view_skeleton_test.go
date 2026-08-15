@@ -43,8 +43,8 @@ func TestSkeletonA11YState(t *testing.T) {
 
 func TestSkeletonA11YLabel(t *testing.T) {
 	v := Skeleton(SkeletonCfg{
-		ID:        "s5",
-		A11YLabel: "avatar",
+		ID:      "s5",
+		A11YCfg: A11YCfg{A11YLabel: "avatar"},
 	})
 	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.a11Y == nil {

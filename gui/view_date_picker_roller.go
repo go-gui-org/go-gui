@@ -18,12 +18,11 @@ const (
 
 // DatePickerRollerCfg configures a roller-style date picker.
 type DatePickerRollerCfg struct {
-	TextStyle        TextStyle
-	SelectedDate     time.Time
-	OnChange         func(time.Time, EventCtx)
-	ID               string
-	A11YLabel        string
-	A11YDescription  string
+	TextStyle    TextStyle
+	SelectedDate time.Time
+	OnChange     func(time.Time, EventCtx)
+	ID           string
+	A11YCfg
 	minYear          int
 	maxYear          int
 	visibleItems     int // must be odd
@@ -79,7 +78,7 @@ func (rv *datePickerRollerView) GenerateLayout(w *Window) Layout {
 		ID:          cfg.ID,
 		Focusable:   cfg.Focusable,
 		A11YRole:    AccessRoleDateField,
-		A11YLabel:   a11yLabel(cfg.A11YLabel, "Date Roller"),
+		A11YCfg:     A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, "Date Roller")},
 		Color:       cfg.Color,
 		ColorBorder: cfg.ColorBorder,
 		SizeBorder:  cfg.SizeBorder,

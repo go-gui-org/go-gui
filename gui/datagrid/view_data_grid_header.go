@@ -92,7 +92,7 @@ func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount in
 	return gg.Row(gg.ContainerCfg{
 		ID:          dataGridHeaderCellID(cfg.ID, col.ID),
 		A11YRole:    gg.AccessRoleGridCell,
-		A11YLabel:   col.Title,
+		A11YCfg:     gg.A11YCfg{A11YLabel: col.Title},
 		A11YState:   headerA11YState,
 		Width:       width,
 		Sizing:      gg.FixedFill,

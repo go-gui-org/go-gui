@@ -38,9 +38,8 @@ type ListBoxCfg struct {
 
 	ID string `gui:"required"`
 
-	A11YLabel       string
-	A11YDescription string
-	SelectedIDs     []string
+	A11YCfg
+	SelectedIDs []string
 	// Items is a convenience field for simple string lists. Each
 	// string becomes a ListBoxOption with ID==Name==Value. When
 	// set, Items takes precedence over Data.
@@ -136,7 +135,7 @@ func ListBox(cfg ListBoxCfg) View {
 	return Column(ContainerCfg{
 		ID:         cfg.ID,
 		A11YRole:   AccessRoleList,
-		A11YLabel:  a11yLabel(cfg.A11YLabel, cfg.ID),
+		A11YCfg:    A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, cfg.ID)},
 		Focusable:  !cfg.FocusDisabled,
 		Scrollable: cfg.Scrollable,
 		OnKeyDown: func(ctx EventCtx) {
@@ -238,7 +237,7 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 	return generateViewLayout(Column(ContainerCfg{
 		ID:          cfg.ID,
 		A11YRole:    AccessRoleList,
-		A11YLabel:   a11yLabel(cfg.A11YLabel, cfg.ID),
+		A11YCfg:     A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, cfg.ID)},
 		Focusable:   !cfg.FocusDisabled,
 		Scrollable:  cfg.Scrollable,
 		AmendLayout: listBoxAmendLayout(cache),

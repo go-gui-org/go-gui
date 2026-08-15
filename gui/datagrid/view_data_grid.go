@@ -212,12 +212,11 @@ type DataGridCfg struct {
 	Cursor                 string
 	loadError              string
 	quickFilterPlaceholder string
-	A11YLabel              string
-	A11YDescription        string
-	Columns                []GridColumnCfg
-	columnOrder            []string
-	groupBy                []string
-	aggregates             []gridAggregateCfg
+	gg.A11YCfg
+	Columns     []GridColumnCfg
+	columnOrder []string
+	groupBy     []string
+	aggregates  []gridAggregateCfg
 	// RowsData is a convenience field for key-value row data.
 	// Map keys must match Column IDs. When set, RowsData takes
 	// precedence over Rows. If Columns is empty, column
@@ -608,11 +607,10 @@ func New(w *gg.Window, cfg DataGridCfg) gg.View {
 		sourceState)
 
 	return gg.Column(gg.ContainerCfg{
-		ID:              resolvedCfg.ID,
-		Focusable:       true,
-		A11YRole:        gg.AccessRoleGrid,
-		A11YLabel:       resolvedCfg.A11YLabel,
-		A11YDescription: resolvedCfg.A11YDescription,
+		ID:        resolvedCfg.ID,
+		Focusable: true,
+		A11YRole:  gg.AccessRoleGrid,
+		A11YCfg:   resolvedCfg.A11YCfg,
 		OnKeyDown: dataGridMakeOnKeydown(&resolvedCfg, columns, rowHeight,
 			staticTop, scrollID, pageIndices, frozenTopIDs, presentation.DataToDisplay),
 		OnChar:      dataGridMakeOnChar(&resolvedCfg, columns),

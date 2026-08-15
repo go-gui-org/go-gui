@@ -2,32 +2,31 @@ package gui
 
 // DrawCanvasCfg configures a draw canvas view.
 type DrawCanvasCfg struct {
-	OnDraw          func(*DrawContext)
-	OnClick         func(EventCtx)
-	OnHover         func(EventCtx)
-	OnMouseMove     func(EventCtx)
-	OnMouseUp       func(EventCtx)
-	OnMouseLeave    func(EventCtx)
-	OnGesture       func(EventCtx)
-	OnMouseScroll   func(EventCtx)
-	OnFileDrop      func(EventCtx)
-	OnKeyDown       func(EventCtx)
-	ID              string
-	A11YLabel       string
-	A11YDescription string
-	Version         uint64
-	Padding         Padding
-	Width           float32
-	Height          float32
-	MinWidth        float32
-	MaxWidth        float32
-	MinHeight       float32
-	MaxHeight       float32
-	Radius          float32 // ergonomics-audit:opt-plain — a canvas is a primitive: radius 0 (sharp) is a real choice, theme default not applicable
-	Focusable       bool
-	Color           Color
-	Sizing          Sizing
-	Clip            bool
+	OnDraw        func(*DrawContext)
+	OnClick       func(EventCtx)
+	OnHover       func(EventCtx)
+	OnMouseMove   func(EventCtx)
+	OnMouseUp     func(EventCtx)
+	OnMouseLeave  func(EventCtx)
+	OnGesture     func(EventCtx)
+	OnMouseScroll func(EventCtx)
+	OnFileDrop    func(EventCtx)
+	OnKeyDown     func(EventCtx)
+	ID            string
+	A11YCfg
+	Version   uint64
+	Padding   Padding
+	Width     float32
+	Height    float32
+	MinWidth  float32
+	MaxWidth  float32
+	MinHeight float32
+	MaxHeight float32
+	Radius    float32 // ergonomics-audit:opt-plain — a canvas is a primitive: radius 0 (sharp) is a real choice, theme default not applicable
+	Focusable bool
+	Color     Color
+	Sizing    Sizing
+	Clip      bool
 }
 
 // drawCanvasView implements View for user-drawn canvas content.

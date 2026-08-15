@@ -68,9 +68,8 @@ type ContainerCfg struct {
 
 	// Title renders a group-box label in the top border. See the
 	// type doc for TitleBG requirements.
-	Title           string
-	A11YLabel       string
-	A11YDescription string
+	Title string
+	A11YCfg
 
 	// Content holds the child views displayed inside this container.
 	Content []View

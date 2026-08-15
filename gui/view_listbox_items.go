@@ -131,7 +131,7 @@ func listBoxItemView(dat ListBoxOption, cfg ListBoxCfg, selectedSet map[string]s
 
 	return Row(ContainerCfg{
 		A11YRole:   AccessRoleListItem,
-		A11YLabel:  dat.Name,
+		A11YCfg:    A11YCfg{A11YLabel: dat.Name},
 		A11YState:  a11yState,
 		Color:      color,
 		Padding:    listBoxItemPad,
@@ -190,7 +190,7 @@ func listBoxReorderItemView(
 	return Row(ContainerCfg{
 		ID:         layoutID,
 		A11YRole:   AccessRoleListItem,
-		A11YLabel:  dat.Name,
+		A11YCfg:    A11YCfg{A11YLabel: dat.Name},
 		A11YState:  a11yState,
 		Color:      color,
 		Padding:    listBoxItemPad,

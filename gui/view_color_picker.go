@@ -18,8 +18,7 @@ type ColorPickerCfg struct {
 	OnColorChange func(Color, EventCtx)
 	ID            string `gui:"required"`
 
-	A11YLabel       string
-	A11YDescription string
+	A11YCfg
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled bool
@@ -88,7 +87,7 @@ func (cv *colorPickerView) GenerateLayout(w *Window) Layout {
 		ID:          cfg.ID,
 		Focusable:   !cfg.FocusDisabled,
 		A11YRole:    AccessRoleColorWell,
-		A11YLabel:   a11yLabel(cfg.A11YLabel, "Color Picker"),
+		A11YCfg:     A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, "Color Picker")},
 		Color:       style.Color,
 		ColorBorder: style.ColorBorder,
 		SizeBorder:  Some(style.SizeBorder),

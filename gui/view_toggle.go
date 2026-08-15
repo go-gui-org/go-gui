@@ -10,9 +10,8 @@ type ToggleCfg struct {
 	TextSelect     string
 	TextUnselect   string
 
-	A11YLabel       string
-	A11YDescription string
-	Padding         Padding
+	A11YCfg
+	Padding Padding
 	// Size overrides the square edge length of the check box.
 	Size       Opt[float32]
 	SizeBorder Opt[float32]
@@ -95,21 +94,23 @@ func Toggle(cfg ToggleCfg) View {
 	}
 
 	return Row(ContainerCfg{
-		ID:              cfg.ID,
-		Focusable:       !cfg.FocusDisabled,
-		Disabled:        cfg.Disabled,
-		Invisible:       cfg.Invisible,
-		SizeBorder:      NoBorder,
-		Padding:         NoPadding,
-		VAlign:          VAlignMiddle,
-		A11YRole:        AccessRoleCheckbox,
-		A11YState:       a11yState,
-		A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Label),
-		A11YDescription: cfg.A11YDescription,
-		clickOnSpace:    true,
-		OnClick:         cfg.OnClick,
-		clickButton:     MouseLeft,
-		MinWidth:        cfg.MinWidth,
+		ID:         cfg.ID,
+		Focusable:  !cfg.FocusDisabled,
+		Disabled:   cfg.Disabled,
+		Invisible:  cfg.Invisible,
+		SizeBorder: NoBorder,
+		Padding:    NoPadding,
+		VAlign:     VAlignMiddle,
+		A11YRole:   AccessRoleCheckbox,
+		A11YState:  a11yState,
+		A11YCfg: A11YCfg{
+			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Label),
+			A11YDescription: cfg.A11YDescription,
+		},
+		clickOnSpace: true,
+		OnClick:      cfg.OnClick,
+		clickButton:  MouseLeft,
+		MinWidth:     cfg.MinWidth,
 		OnHover: func(ctx EventCtx) {
 			if ctx.Layout.Shape.Disabled ||
 				!ctx.Layout.Shape.hasEvents() ||

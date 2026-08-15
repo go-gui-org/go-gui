@@ -32,11 +32,10 @@ type SvgCfg struct {
 	FocusedElementID string
 
 	// Accessibility
-	A11YLabel       string
-	A11YDescription string
-	Padding         Padding
-	Width           float32 // display width
-	Height          float32 // display height
+	A11YCfg
+	Padding Padding
+	Width   float32 // display width
+	Height  float32 // display height
 
 	// FlatnessTolerance, when > 0, overrides the default tessellation
 	// tolerance floor (0.15 viewBox units). Higher = coarser triangles

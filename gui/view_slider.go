@@ -11,20 +11,19 @@ type SliderCfg struct {
 	ID       string `gui:"required"`
 
 	// Accessibility
-	A11YLabel       string
-	A11YDescription string
-	Padding         Padding
-	SizeBorder      Opt[float32]
-	Radius          Opt[float32]
-	radiusBorder    Opt[float32]
-	Value           float32
-	Min             float32
-	Max             float32
-	Step            float32
-	Width           float32
-	Height          float32
-	Size            float32 // ergonomics-audit:opt-plain — a zero-size slider is meaningless; 0 falls back to the theme
-	ThumbSize       float32
+	A11YCfg
+	Padding      Padding
+	SizeBorder   Opt[float32]
+	Radius       Opt[float32]
+	radiusBorder Opt[float32]
+	Value        float32
+	Min          float32
+	Max          float32
+	Step         float32
+	Width        float32
+	Height       float32
+	Size         float32 // ergonomics-audit:opt-plain — a zero-size slider is meaningless; 0 falls back to the theme
+	ThumbSize    float32
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled bool

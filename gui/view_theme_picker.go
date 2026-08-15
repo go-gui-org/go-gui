@@ -2,16 +2,15 @@ package gui
 
 // ThemePickerCfg configures a theme picker view.
 type ThemePickerCfg struct {
-	OnSelect        func(string, EventCtx)
-	ID              string
-	A11YLabel       string
-	A11YDescription string
-	Focusable       bool
-	FloatOffsetX    float32
-	FloatOffsetY    float32
-	Sizing          Sizing
-	FloatAnchor     floatAttach
-	FloatTieOff     floatAttach
+	OnSelect func(string, EventCtx)
+	ID       string
+	A11YCfg
+	Focusable    bool
+	FloatOffsetX float32
+	FloatOffsetY float32
+	Sizing       Sizing
+	FloatAnchor  floatAttach
+	FloatTieOff  floatAttach
 }
 
 // ThemePicker creates a palette icon that opens a dropdown of
@@ -96,7 +95,7 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 		ID:        cfg.ID,
 		Focusable: cfg.Focusable,
 		A11YRole:  AccessRoleButton,
-		A11YLabel: a11yLabel(cfg.A11YLabel, "Theme Picker"),
+		A11YCfg:   A11YCfg{A11YLabel: a11yLabel(cfg.A11YLabel, "Theme Picker")},
 		Sizing:    cfg.Sizing,
 		Padding:   PaddingSmall,
 		OnClick: func(ctx EventCtx) {

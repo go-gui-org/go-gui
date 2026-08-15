@@ -84,9 +84,8 @@ type TermGridCfg struct {
 	OnClick       func(EventCtx)
 	OnMouseScroll func(EventCtx)
 
-	ID              string
-	A11YLabel       string
-	A11YDescription string
+	ID string
+	A11YCfg
 
 	Cells     []TermCell // len must be >= Cols*Rows; row-major
 	Cursor    TermCursor
