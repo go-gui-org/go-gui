@@ -368,7 +368,7 @@ func applyNumericInputDefaults(cfg *NumericInputCfg) {
 		cfg.ColorBorderFocus = d.ColorBorderFocus
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = paddingTwoFour
+		cfg.Padding = guiTheme.PaddingField
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = DefaultTextStyle

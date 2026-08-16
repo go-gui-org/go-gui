@@ -93,12 +93,6 @@ const (
 	// rendered field — the cap-height term alone left the ink 1.5
 	// device pixels high at size 16.
 	colorFieldLeadRatio = 0.047
-	// colorFieldPadX is the fields' horizontal padding, matching the
-	// input default (paddingTwoFour).
-	colorFieldPadX = 4
-	// colorFieldPadY is its vertical half, the baseline the optical
-	// correction adjusts around.
-	colorFieldPadY = 2
 )
 
 // colorFieldLabelStyle styles one channel label.
@@ -382,8 +376,12 @@ func centeredText(s TextStyle) TextStyle {
 // twice that. Ascent and descent are measured; only cap height is a
 // ratio, and it is the smallest term.
 func colorFieldPadding(w *Window, style TextStyle) Padding {
-	even := NewPadding(
-		colorFieldPadY, colorFieldPadX, colorFieldPadY, colorFieldPadX)
+	// The field inset comes from the theme, not from this widget: a
+	// channel field is a form control and has to match the Input and
+	// Select beside it (issue #335, audit section 7). Only the
+	// optical correction below is local.
+	even := guiTheme.PaddingField
+	padY, padX := even.Top, even.Left
 	if w == nil || w.textMeasurer == nil {
 		return even // no metrics: metric centring is the best available
 	}
@@ -396,8 +394,8 @@ func colorFieldPadding(w *Window, style TextStyle) Padding {
 	}
 	// Take from the bottom first so the field grows only by whatever
 	// the bottom padding cannot cover.
-	bottom := f32Max(colorFieldPadY-shift, 0)
-	return NewPadding(bottom+shift, colorFieldPadX, bottom, colorFieldPadX)
+	bottom := f32Max(padY-shift, 0)
+	return NewPadding(bottom+shift, padX, bottom, padX)
 }
 
 // colorFieldsBlockWidth is the width of a default-configured fields

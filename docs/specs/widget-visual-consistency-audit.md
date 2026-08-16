@@ -279,6 +279,21 @@ ListBox move while Input stays put.
 `ColorFields` hardcodes 4/2 (`gui/view_color_fields.go:104-110`) for the stated
 reason that no field-inset token is reachable.
 
+### 7.1 The inset was only half of it
+
+Unifying the inset was not enough to make a form row line up. With Input, Select
+and Combobox all on the shared tier, Input still arranged 3px taller.
+
+The cause was invisible: Input's inner row leaves `SizeBorder` unset, so it
+inherited the theme's container border of 1.5, and a container reserves space
+for its border whether or not the border is painted. That row's border is
+transparent, so 3px of height went to a border nobody could see.
+
+Only the arranged geometry showed it — the configured paddings were equal and
+the source read as correct. `TestFieldControlsShareHeight` therefore asserts the
+_arranged_ height through the real pipeline rather than the configured padding,
+which is the same lesson as §1.1: measure the render, not the source.
+
 Button (6) and TextButton (16) are noted but not counted as divergence: a button
 is not a field, and `gui/view_button.go:104-107` documents its choice.
 

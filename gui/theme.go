@@ -148,7 +148,17 @@ type Theme struct {
 	PaddingSmall  Padding
 	PaddingMedium Padding
 	PaddingLarge  Padding
-	SizeBorder    float32
+
+	// PaddingField is the inset a text-bearing form control puts
+	// around its text. Separate from the Small/Medium/Large ladder
+	// because it answers a different question: those size the gap
+	// between things, this one sizes a control. Sharing it is what
+	// makes an Input and a Select in one row the same height.
+	//
+	// exportaudit:keep — themable form density.
+	PaddingField Padding
+
+	SizeBorder float32
 
 	RadiusSmall  float32
 	RadiusMedium float32
@@ -210,6 +220,12 @@ type ThemeCfg struct {
 	PaddingSmall  Padding
 	PaddingMedium Padding
 	PaddingLarge  Padding
+
+	// PaddingField seeds Theme.PaddingField; see there. Unset falls
+	// back to paddingField.
+	//
+	// exportaudit:keep — themable form density.
+	PaddingField Padding
 
 	SizeBorder float32
 	Radius     float32
@@ -289,6 +305,7 @@ func (t Theme) WithPadding(padding bool) Theme {
 		cfg.PaddingSmall = PaddingNone
 		cfg.PaddingMedium = PaddingNone
 		cfg.PaddingLarge = PaddingNone
+		cfg.PaddingField = PaddingNone
 		cfg.SizeBorder = 0
 		cfg.Radius = radiusNone
 		cfg.RadiusSmall = radiusNone

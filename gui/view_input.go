@@ -228,10 +228,18 @@ func Input(cfg InputCfg) View {
 	scrollID := inputScrollIDFor(&cfg)
 	innerCfg := ContainerCfg{
 		Padding: NoPadding,
-		Sizing:  innerSizing,
-		VAlign:  vAlign,
-		OnClick: inputOnClick(cfg.ID, scrollID, !cfg.FocusDisabled),
-		Content: txtContent,
+		// An unset SizeBorder falls back to the theme's container
+		// border (1.5), and a container reserves space for its border
+		// whether or not the border is painted. This row's is
+		// transparent, so it was silently adding 3px to every Input's
+		// height -- which is what still made an Input taller than the
+		// Select beside it after both took the shared field inset
+		// (issue #335, audit section 7).
+		SizeBorder: NoBorder,
+		Sizing:     innerSizing,
+		VAlign:     vAlign,
+		OnClick:    inputOnClick(cfg.ID, scrollID, !cfg.FocusDisabled),
+		Content:    txtContent,
 	}
 	var inner View
 	if cfg.Mode == InputMultiline {
@@ -298,7 +306,10 @@ func applyInputDefaults(cfg *InputCfg) {
 		cfg.ColorBorderFocus = d.ColorBorderFocus
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = paddingTwoFour
+		// Was a hardcoded inset, which made InputStyle.Padding dead:
+		// a theme author editing it saw Container and ListBox move
+		// while Input stayed put (issue #335, audit section 7).
+		cfg.Padding = d.Padding
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = DefaultTextStyle

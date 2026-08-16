@@ -166,3 +166,81 @@ func TestWithRoleAlphaKeepsHue(t *testing.T) {
 		t.Error("disabled role must carry its marker through")
 	}
 }
+
+// Form density: the point of the field-inset tier is that controls in
+// one row line up. Input, Select and Combobox each picked their own
+// inset, which made a Select six pixels taller than the Input beside it
+// (issue #335, audit section 7).
+//
+// Asserted on the *arranged* height, not on the configured padding.
+// Equal insets were not enough: Input's inner row left SizeBorder unset
+// and so inherited the theme's container border, reserving 3px of
+// height for a border it never painted. Only running the real pipeline
+// showed it.
+func TestFieldControlsShareHeight(t *testing.T) {
+	arrangedHeight := func(t *testing.T, build func() View) float32 {
+		t.Helper()
+		w := NewWindow(WindowCfg{State: new(int), Width: 320, Height: 240})
+		w.viewGenerator = func(_ *Window) View {
+			return Column(ContainerCfg{
+				Sizing:  FillFill,
+				Content: []View{build()},
+			})
+		}
+		w.refreshLayout = true
+		w.FrameFn()
+		// Root -> filling wrapper -> the control.
+		field := &w.layout.Children[0].Children[0]
+		return field.Shape.Height
+	}
+
+	in := arrangedHeight(t, func() View {
+		return Input(InputCfg{ID: "in", Text: "x"})
+	})
+	sel := arrangedHeight(t, func() View {
+		return Select(SelectCfg{ID: "sel", Options: []string{"x"}})
+	})
+	cb := arrangedHeight(t, func() View {
+		return Combobox(ComboboxCfg{ID: "cb", Options: []string{"x"}})
+	})
+
+	if in != sel || in != cb {
+		t.Errorf("field heights differ: Input %v, Select %v, Combobox %v"+
+			" -- a form row will not line up", in, sel, cb)
+	}
+}
+
+// The theme's Input padding used to be dead: view_input.go fell back to
+// a hardcoded inset instead of the style's, so editing the theme moved
+// every other control but not Input.
+func TestInputPaddingComesFromTheme(t *testing.T) {
+	if !defaultInputStyle.Padding.IsSet() {
+		t.Fatal("InputStyle.Padding unset; the theme is not seeding it")
+	}
+	got := Input(InputCfg{ID: "in"}).GenerateLayout(&Window{}).Shape.Padding
+	if got != defaultInputStyle.Padding {
+		t.Errorf("Input padding = %+v, want the theme's %+v",
+			got, defaultInputStyle.Padding)
+	}
+}
+
+// The field inset is one tier every text-bearing control shares, so a
+// theme that rescales it moves all of them together.
+func TestFieldInsetIsThemed(t *testing.T) {
+	cfg := baseCfg()
+	cfg.TextStyleDef = DefaultTextStyle
+	cfg.PaddingField = PadAll(9)
+	th := ThemeMaker(cfg)
+
+	for name, got := range map[string]Padding{
+		"input":    th.InputStyle.Padding,
+		"select":   th.selectStyle.Padding,
+		"combobox": th.comboboxStyle.Padding,
+		"theme":    th.PaddingField,
+	} {
+		if got != PadAll(9) {
+			t.Errorf("%s padding = %+v, want the configured %+v",
+				name, got, PadAll(9))
+		}
+	}
+}

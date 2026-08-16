@@ -44,6 +44,14 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		sbRadius = radiusNone
 	}
 
+	// Field inset: the padding a text-bearing form control puts
+	// around its text. One tier, so an Input and a Select in the same
+	// row share a height (issue #335, audit section 7).
+	fieldPad := cfg.PaddingField
+	if !fieldPad.IsSet() {
+		fieldPad = paddingField
+	}
+
 	// Named text roles. Every de-emphasized style below draws from
 	// these rather than restating an alpha (issue #335).
 	textSecondary, textLabel, textDisabled, textPlaceholder :=
@@ -99,7 +107,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			colorClick:       cfg.ColorActive,
 			ColorBorder:      cfg.ColorBorder,
 			ColorBorderFocus: borderFocus,
-			Padding:          cfg.Padding,
+			Padding:          fieldPad,
 			SizeBorder:       cfg.SizeBorder,
 			Radius:           cfg.Radius,
 			textStyleNormal:  ts,
@@ -174,7 +182,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			ColorBorder:      cfg.ColorBorder,
 			ColorBorderFocus: borderFocus,
 			ColorSelect:      cfg.ColorSelect,
-			Padding:          PaddingSmall,
+			Padding:          fieldPad,
 			SizeBorder:       cfg.SizeBorder,
 			Radius:           cfg.RadiusMedium,
 			textStyleNormal:  ts,
@@ -399,7 +407,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			ColorBorder:       cfg.ColorBorder,
 			ColorBorderFocus:  borderFocus,
 			ColorHighlight:    cfg.ColorSelect,
-			Padding:           cfg.PaddingSmall.withSet(),
+			Padding:           fieldPad,
 			SizeBorder:        cfg.SizeBorder,
 			Radius:            cfg.Radius,
 			MinWidth:          75,
@@ -503,6 +511,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		PaddingSmall:  cfg.PaddingSmall.withSet(),
 		PaddingMedium: cfg.PaddingMedium.withSet(),
 		PaddingLarge:  cfg.PaddingLarge.withSet(),
+		PaddingField:  fieldPad,
 		SizeBorder:    cfg.SizeBorder,
 
 		RadiusSmall:  cfg.RadiusSmall,

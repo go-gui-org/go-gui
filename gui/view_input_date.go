@@ -315,7 +315,7 @@ func applyInputDateDefaults(cfg *InputDateCfg) {
 		cfg.ColorSelect = d.ColorSelect
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = PaddingSmall
+		cfg.Padding = guiTheme.PaddingField
 	}
 	sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)
 	cellSpacing := cfg.cellSpacing.Get(d.cellSpacing)
