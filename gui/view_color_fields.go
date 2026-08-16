@@ -70,7 +70,7 @@ const (
 	// never widens the column. It sets the whole picker's width — four
 	// of these is its widest row — so the slack here is what shows up as
 	// empty space beside the shorter rows.
-	defaultColorFieldWidth = 46
+	defaultColorFieldWidth = 44
 	// defaultHexFieldWidth holds the widest value the field ever shows
 	// — "#RRGGBBAA", which Hex() emits whenever alpha is not full — so
 	// pinning the field to it never clips.
@@ -82,7 +82,22 @@ const (
 	// which stays the height so the swatch keeps matching the hex
 	// input's line.
 	colorFieldsSwatchAspect = 2
+	// colorFieldLabelDrop takes the channel labels one step down from
+	// the value text, the theme's N3-to-N4 step. The label names the
+	// field; the value is what gets read, so the value keeps the larger
+	// size. It also stops a long label ("Lightness") from setting the
+	// column width, which is what the whole picker's width follows.
+	colorFieldLabelDrop = 2
+	// colorFieldLabelMin floors the drop so a caller already using a
+	// tiny TextStyle does not end up with an unreadable label.
+	colorFieldLabelMin = 10
 )
+
+// colorFieldLabelSize derives a channel label's size from the value
+// text's, never going below the floor.
+func colorFieldLabelSize(valueSize float32) float32 {
+	return f32Max(valueSize-colorFieldLabelDrop, colorFieldLabelMin)
+}
 
 func (fv *colorFieldsView) GenerateLayout(w *Window) Layout {
 	cfg := &fv.cfg
@@ -292,7 +307,7 @@ func colorFieldColumn(
 				Text: label,
 				TextStyle: TextStyle{
 					Color: cfg.TextStyle.Color,
-					Size:  cfg.TextStyle.Size,
+					Size:  colorFieldLabelSize(cfg.TextStyle.Size),
 					Align: TextAlignCenter,
 				},
 			}),
