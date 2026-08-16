@@ -276,3 +276,15 @@ func TestFieldLabelFeedsA11Y(t *testing.T) {
 		t.Errorf("A11YLabel = %q, want the caller's own", got)
 	}
 }
+
+// The inspector's help text is ordinary supporting text, so it must
+// follow the secondary role rather than the fixed literal
+// defaultInspectorStyle carries.
+func TestInspectorHelpFromSecondaryRole(t *testing.T) {
+	th := ThemeMaker(baseCfg())
+	s := inspectorStyleFor(th.TextStyleSecondary)
+	if !s.colorTextHelp.eq(th.TextStyleSecondary.Color) {
+		t.Errorf("help color = %v, want secondary %v",
+			s.colorTextHelp, th.TextStyleSecondary.Color)
+	}
+}
