@@ -8,7 +8,7 @@ import (
 
 func demoAnimations(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
@@ -63,14 +63,14 @@ func animTweenDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 						Padding: gui.NewPadding(6, 16, 6, 16),
 						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Animate", TextStyle: t.N3})},
 						OnClick: func(ctx gui.EventCtx) {
-							app := gui.State[ShowcaseApp](ctx.Window)
+							app := appState(ctx.Window)
 							target := float32(300)
 							if app.AnimTweenX > 100 {
 								target = 0
 							}
 							a := gui.NewTweenAnimation("showcase-tween", app.AnimTweenX, target,
 								func(v float32, w *gui.Window) {
-									gui.State[ShowcaseApp](w).AnimTweenX = v
+									appState(w).AnimTweenX = v
 								})
 							ctx.Window.AnimationAdd(a)
 						},
@@ -120,14 +120,14 @@ func animSpringDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 						Padding: gui.NewPadding(6, 16, 6, 16),
 						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Spring", TextStyle: t.N3})},
 						OnClick: func(ctx gui.EventCtx) {
-							app := gui.State[ShowcaseApp](ctx.Window)
+							app := appState(ctx.Window)
 							target := float32(300)
 							if app.AnimSpringX > 100 {
 								target = 0
 							}
 							a := gui.NewSpringAnimation("showcase-spring",
 								func(v float32, w *gui.Window) {
-									gui.State[ShowcaseApp](w).AnimSpringX = v
+									appState(w).AnimSpringX = v
 								})
 							a.SpringTo(app.AnimSpringX, target)
 							ctx.Window.AnimationAdd(a)
@@ -187,7 +187,7 @@ func animKeyframeDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 									{At: 1.0, Value: 0, Easing: gui.EaseOutCubic},
 								},
 								func(v float32, w *gui.Window) {
-									gui.State[ShowcaseApp](w).AnimKeyframeX = v
+									appState(w).AnimKeyframeX = v
 								})
 							ctx.Window.AnimationAdd(a)
 						},

@@ -30,6 +30,13 @@ type App struct {
 	TreeMode    bool
 }
 
+// state is the typed state accessor for this window. Callbacks
+// reach the app state through it instead of repeating
+// state(...) at every site.
+func state(w *gui.Window) *App {
+	return gui.State[App](w)
+}
+
 // Sample interval presets shown by the toolbar radio group.
 var intervalLabels = []string{"0.5s", "1s", "2s", "5s"}
 
@@ -79,7 +86,7 @@ func startSampler(w *gui.Window) {
 			snap, err := Collect()
 
 			w.Lock()
-			app := gui.State[App](w)
+			app := state(w)
 			app.Snapshot = snap
 			app.Err = err
 			if snap != nil {

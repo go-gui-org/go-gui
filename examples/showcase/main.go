@@ -28,7 +28,7 @@ func main() {
 		Height: 700,
 		OnInit: func(w *gui.Window) {
 			loadEmbeddedLocales()
-			sa := gui.State[ShowcaseApp](w)
+			sa := appState(w)
 			syncThemeGenFromCfg(sa, gui.CurrentTheme().Cfg)
 			_ = w.RegisterCommands(
 				gui.Command{
@@ -42,7 +42,7 @@ func main() {
 					ID: "sc.count", Label: "Count", Icon: gui.IconPlus,
 					Shortcut: gui.Shortcut{Key: gui.KeyF5, Modifiers: gui.ModShift},
 					Execute: func(_ *gui.Event, w *gui.Window) {
-						gui.State[ShowcaseApp](w).CmdButtonCount++
+						appState(w).CmdButtonCount++
 					},
 				},
 				gui.Command{

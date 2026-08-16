@@ -101,6 +101,21 @@ func buttonOnHover(ctx EventCtx) {
 	}
 }
 
+// TextButton is the thin form of Button for the common case: one
+// label on a clickable button. The padding default (8, 16, 8, 16) is
+// the most common explicit padding across the examples; a caller that
+// wants the theme default or a custom inset uses Button directly.
+func TextButton(id, label string, onClick func(EventCtx)) View {
+	return Button(ButtonCfg{
+		ID:      id,
+		OnClick: onClick,
+		Padding: NewPadding(8, 16, 8, 16),
+		Content: []View{
+			Text(TextCfg{Text: label}),
+		},
+	})
+}
+
 // Button creates a clickable button. Delegates to Row with
 // package-level amend_layout for focus coloring and on_hover
 // for cursor/color state changes. Colors are stored in a pooled

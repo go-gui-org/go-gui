@@ -3,7 +3,7 @@ package main
 import "github.com/go-gui-org/go-gui/gui"
 
 func demoBreadcrumb(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
@@ -20,7 +20,7 @@ func demoBreadcrumb(w *gui.Window) gui.View {
 				},
 				Selected: app.BCSelected,
 				OnSelect: func(id string, ctx gui.EventCtx) {
-					gui.State[ShowcaseApp](ctx.Window).BCSelected = id
+					appState(ctx.Window).BCSelected = id
 				},
 			}),
 			gui.Text(gui.TextCfg{
@@ -32,7 +32,7 @@ func demoBreadcrumb(w *gui.Window) gui.View {
 }
 
 func demoTabControl(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	t := gui.CurrentTheme()
 	return gui.TabControl(gui.TabControlCfg{
 		ID:        "tab-demo",
@@ -68,13 +68,13 @@ func demoTabControl(w *gui.Window) gui.View {
 		},
 		Selected: app.TabSelected,
 		OnSelect: func(id string, ctx gui.EventCtx) {
-			gui.State[ShowcaseApp](ctx.Window).TabSelected = id
+			appState(ctx.Window).TabSelected = id
 		},
 	})
 }
 
 func demoMenus(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 
 	return gui.Menubar(w, gui.MenubarCfg{
 		ID: "menubar-demo",
@@ -184,7 +184,7 @@ func demoMenus(w *gui.Window) gui.View {
 							TextStyle:        gui.CurrentTheme().MenubarStyle.TextStyle,
 							PlaceholderStyle: gui.CurrentTheme().MenubarStyle.TextStyle,
 							OnTextChanged: func(s string, ctx gui.EventCtx) {
-								gui.State[ShowcaseApp](ctx.Window).MenuSearchText = s
+								appState(ctx.Window).MenuSearchText = s
 							},
 						}),
 					},
@@ -201,7 +201,7 @@ func demoMenus(w *gui.Window) gui.View {
 
 func demoCommandPalette(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 
 	const paletteID = "cmd-palette"
 
@@ -235,7 +235,7 @@ func demoCommandPalette(w *gui.Window) gui.View {
 					{ID: "search", Label: "Search", Icon: gui.IconSearch, Group: "Edit"},
 				},
 				OnAction: func(id string, ctx gui.EventCtx) {
-					gui.State[ShowcaseApp](ctx.Window).PaletteAction = id
+					appState(ctx.Window).PaletteAction = id
 				},
 			}),
 		},

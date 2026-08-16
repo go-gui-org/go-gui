@@ -139,7 +139,7 @@ var svgSpinnerGroups = map[string][]gui.SvgSpinnerKind{
 }
 
 func demoSvgSpinner(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	t := gui.CurrentTheme()
 
 	category := app.SvgSpinnerCategory
@@ -195,7 +195,7 @@ func demoSvgSpinner(w *gui.Window) gui.View {
 						Options:  svgSpinnerCategories,
 						OnSelect: func(sel []string, ctx gui.EventCtx) {
 							if len(sel) > 0 {
-								gui.State[ShowcaseApp](ctx.Window).SvgSpinnerCategory = sel[0]
+								appState(ctx.Window).SvgSpinnerCategory = sel[0]
 							}
 						},
 					}),

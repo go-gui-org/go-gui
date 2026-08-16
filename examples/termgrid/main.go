@@ -23,7 +23,7 @@ type App struct {
 }
 
 func main() {
-	gui.SetTheme(gui.ThemeDark)
+	gui.SetTheme(gui.ThemeDark.WithBorders(false))
 
 	app := &App{cells: buildCells()}
 

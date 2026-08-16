@@ -47,18 +47,17 @@ Two literals in `gui/styles.go` are **not** mirrors and keep their values:
 Both are still re-assigned by `applyTheme`; for `ThemeDark` that assignment is a
 no-op, and for any other theme it is the correct behaviour.
 
-## Why `ThemeDark` won every delta
+## Why `ThemeDark` carries the 1.5 border
 
-The literals were effectively the `dark-bordered` preset, not `dark`. Three
-independent signals say borderless is the designed default and the 1.5 values
-were the drift:
-
-- `baseCfg` never sets `SizeBorder`. It is 0 by omission in `dark`, `light` and
-  `blue-dark` alike.
-- `dark-bordered`, `light-bordered` and `blue-dark-bordered` are each their base
-  config plus `SizeBorder = sizeBorderDef`. Folding 1.5 into `baseCfg` would
-  have made all three presets exact duplicates of their base.
-- `Theme.WithBorders(true)` exists so a caller can opt in.
+Folding `SizeBorder = sizeBorderDef` into `baseCfg` makes `dark-bordered`
+an exact duplicate of `dark`. That is accepted, not an accident: the
+call-site count behind issue #325 found 90 of 104 example files calling
+`SetTheme(ThemeDark.WithBorders(true))` explicitly, so bordered is what
+applications actually use, and `ThemeDark` is the implicit default for
+apps that never call `SetTheme`. The `dark-bordered` preset stays
+registered for name-based theme selection, and `Theme.WithBorders(false)`
+restores the old borderless look. `light` and `blue-dark` remain
+borderless by omission.
 
 Every other delta was a literal that had simply fallen behind: an unstyled
 `dataGrid` placeholder, a dialog with no width bounds, a badge with no text
@@ -66,11 +65,14 @@ style.
 
 ## Appearance changes
 
-Borders. `SizeBorder` drops to 0 on button, input, container, dialog, toast,
-tooltip, expand panel, select, tree, switch, toggle, tab control, date picker,
-color picker, menubar, splitter, command palette, combobox and listbox (1.5), on
-slider (1) and on radio (2). The tab control's `sizeTabBorder` and the
-breadcrumb's `sizeContentBorder` follow.
+Borders, revisited 2026-08: issue #300 removed the literal borders and
+left `ThemeDark` borderless (`SizeBorder` 0 on every widget). The
+call-site count behind issue #325 then showed the borderless default
+missed the audience — 90 of 104 example files re-opted in with
+`Theme.WithBorders(true)` — so `baseDarkCfg` carries `sizeBorderDef`
+again. Widgets render with their 1.5 (slider 1, radio 2) borders under
+`ThemeDark` and the app default; `Theme.WithBorders(false)` restores the
+borderless look, and `light`/`blue-dark` remain borderless.
 
 Everything else:
 
@@ -90,10 +92,10 @@ Everything else:
 | numeric input   | follows the active theme                       |
 | radio group     | follows the active theme                       |
 
-To keep the previous bordered look:
+To get the old borderless look:
 
 ```go
-gui.SetTheme(gui.ThemeDark.WithBorders(true))
+gui.SetTheme(gui.ThemeDark.WithBorders(false))
 ```
 
 ## Related

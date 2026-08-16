@@ -209,8 +209,10 @@ Backend injects at startup. Nil in tests:
   package vars have no initializers — never add one.** They are mirrors: `init`
   fills them with `applyTheme(ThemeDark)` and `installTheme` refills them per
   theme change. A literal there is a second source of truth that silently drifts
-  (issue #300 removed ~30 of them; `ThemeDark` is borderless, bordered is the
-  `dark-bordered` preset or `Theme.WithBorders(true)`). The two exceptions are
+  (issue #300 removed ~30 of them; `ThemeDark` is bordered since 2026-08
+  — 90 of 104 examples call `WithBorders(true)` explicitly — use
+  `Theme.WithBorders(false)` or the `dark-no-padding` preset for the old
+  borderless look). The two exceptions are
   `DefaultTextStyle` and `defaultInspectorStyle`, which are ThemeMaker _inputs_.
   `TestDefaultStylesMirrorThemeDark` is the gate. See
   `docs/specs/theme-style-single-source.md`.

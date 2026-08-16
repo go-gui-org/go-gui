@@ -22,18 +22,25 @@ import (
 // 6. LAYOUT  - automatic position/size interpolation between frames
 // 7. HERO    - morph elements between different views
 
-type State struct {
+type AppState struct {
 	SidebarWidth float32
 	BoxX         float32
 	SpringValue  float32
 	ShowDetail   bool
 }
 
+// state is the typed state accessor for this window. Callbacks
+// reach the app state through it instead of repeating
+// gui.State[AppState](...) at every site.
+func state(w *gui.Window) *AppState {
+	return gui.State[AppState](w)
+}
+
 func main() {
 	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 
 	w := gui.NewWindow(gui.WindowCfg{
-		State: &State{
+		State: &AppState{
 			SidebarWidth: 200,
 			BoxX:         50,
 			SpringValue:  100,
@@ -51,7 +58,7 @@ func main() {
 }
 
 func mainView(w *gui.Window) gui.View {
-	s := gui.State[State](w)
+	s := state(w)
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
@@ -236,14 +243,14 @@ func animButton(label string, action func(w *gui.Window)) gui.View {
 
 // Tween: interpolate box_x over fixed duration with easing.
 func tweenBox(w *gui.Window) {
-	s := gui.State[State](w)
+	s := state(w)
 	target := float32(400)
 	if s.BoxX >= 300 {
 		target = 50
 	}
 	a := gui.NewTweenAnimation("box_move", s.BoxX, target,
 		func(v float32, w *gui.Window) {
-			gui.State[State](w).BoxX = v
+			state(w).BoxX = v
 		})
 	a.Duration = 500 * time.Millisecond
 	a.Easing = gui.EaseOutCubic
@@ -252,14 +259,14 @@ func tweenBox(w *gui.Window) {
 
 // Spring: physics-based sidebar resize.
 func springSidebar(w *gui.Window) {
-	s := gui.State[State](w)
+	s := state(w)
 	target := float32(60)
 	if s.SidebarWidth <= 100 {
 		target = 200
 	}
 	a := gui.NewSpringAnimation("sidebar",
 		func(v float32, w *gui.Window) {
-			gui.State[State](w).SidebarWidth = v
+			state(w).SidebarWidth = v
 		})
 	a.Config = gui.SpringBouncy
 	a.SpringTo(s.SidebarWidth, target)
@@ -268,17 +275,17 @@ func springSidebar(w *gui.Window) {
 
 // Bounce: chained tween with bounce easing, then return.
 func bounceAnim(w *gui.Window) {
-	s := gui.State[State](w)
+	s := state(w)
 	a := gui.NewTweenAnimation("bounce", s.SpringValue, 300,
 		func(v float32, w *gui.Window) {
-			gui.State[State](w).SpringValue = v
+			state(w).SpringValue = v
 		})
 	a.Duration = 800 * time.Millisecond
 	a.Easing = gui.EaseOutBounce
 	a.OnDone = func(w *gui.Window) {
 		ret := gui.NewTweenAnimation("bounce_return", 300, 100,
 			func(v float32, w *gui.Window) {
-				gui.State[State](w).SpringValue = v
+				state(w).SpringValue = v
 			})
 		ret.Duration = 300 * time.Millisecond
 		ret.Easing = gui.EaseOutQuad
@@ -289,14 +296,14 @@ func bounceAnim(w *gui.Window) {
 
 // Elastic: tween with elastic overshoot easing.
 func elasticAnim(w *gui.Window) {
-	s := gui.State[State](w)
+	s := state(w)
 	target := float32(500)
 	if s.BoxX >= 300 {
 		target = 50
 	}
 	a := gui.NewTweenAnimation("elastic", s.BoxX, target,
 		func(v float32, w *gui.Window) {
-			gui.State[State](w).BoxX = v
+			state(w).BoxX = v
 		})
 	a.Duration = 1000 * time.Millisecond
 	a.Easing = gui.EaseOutElastic
@@ -308,7 +315,7 @@ func layoutAnim(w *gui.Window) {
 	w.AnimateLayout(gui.LayoutTransitionCfg{
 		Duration: 300 * time.Millisecond,
 	})
-	s := gui.State[State](w)
+	s := state(w)
 	if s.SidebarWidth > 100 {
 		s.SidebarWidth = 60
 	} else {
@@ -333,7 +340,7 @@ func heroBack(w *gui.Window) {
 
 // Keyframe: multi-waypoint shake effect.
 func keyframeAnim(w *gui.Window) {
-	s := gui.State[State](w)
+	s := state(w)
 	center := s.BoxX
 	a := gui.NewKeyframeAnimation("shake", []gui.Keyframe{
 		{At: 0.0, Value: center},
@@ -343,7 +350,7 @@ func keyframeAnim(w *gui.Window) {
 		{At: 0.8, Value: center + 8, Easing: gui.EaseOutQuad},
 		{At: 1.0, Value: center, Easing: gui.EaseOutQuad},
 	}, func(v float32, w *gui.Window) {
-		gui.State[State](w).BoxX = v
+		state(w).BoxX = v
 	})
 	a.Duration = 500 * time.Millisecond
 	w.AnimationAdd(a)

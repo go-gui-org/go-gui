@@ -26,7 +26,7 @@ const showcaseDataGridFeaturesSource = `# Data Grid Features
 - Clipboard and export helpers`
 
 func demoTable(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	rows := showcaseTableRowsSorted(app.TableSortBy)
 	cfg := gui.TableCfgFromData(rows)
 	cfg.ID = "catalog-table"
@@ -42,7 +42,7 @@ func demoTable(w *gui.Window) gui.View {
 	cfg.FreezeHeader = app.TableFreezeHeader
 	cfg.Selected = app.TableSelected
 	cfg.OnSelect = func(sel map[int]bool, _ int, ctx gui.EventCtx) {
-		gui.State[ShowcaseApp](ctx.Window).TableSelected = sel
+		appState(ctx.Window).TableSelected = sel
 	}
 
 	if cfg.BorderStyle == gui.TableBorderNone {
@@ -64,7 +64,7 @@ func demoTable(w *gui.Window) gui.View {
 			Value:    label,
 			HeadCell: true,
 			OnClick: func(ctx gui.EventCtx) {
-				app := gui.State[ShowcaseApp](ctx.Window)
+				app := appState(ctx.Window)
 				switch app.TableSortBy {
 				case col:
 					app.TableSortBy = -col
@@ -111,7 +111,7 @@ func demoTable(w *gui.Window) gui.View {
 							gui.NewRadioOption("None", "none"),
 						},
 						OnSelect: func(value string, ctx gui.EventCtx) {
-							gui.State[ShowcaseApp](ctx.Window).TableBorderStyle = value
+							appState(ctx.Window).TableBorderStyle = value
 						},
 					}),
 					gui.Column(gui.ContainerCfg{
@@ -124,7 +124,7 @@ func demoTable(w *gui.Window) gui.View {
 								Label:    "Multi-select",
 								Selected: app.TableMultiSelect,
 								OnClick: func(ctx gui.EventCtx) {
-									a := gui.State[ShowcaseApp](ctx.Window)
+									a := appState(ctx.Window)
 									a.TableMultiSelect = !a.TableMultiSelect
 									a.TableSelected = nil
 								},
@@ -134,7 +134,7 @@ func demoTable(w *gui.Window) gui.View {
 								Label:    "Freeze header",
 								Selected: app.TableFreezeHeader,
 								OnClick: func(ctx gui.EventCtx) {
-									gui.State[ShowcaseApp](ctx.Window).TableFreezeHeader = !app.TableFreezeHeader
+									appState(ctx.Window).TableFreezeHeader = !app.TableFreezeHeader
 								},
 							}),
 						},
@@ -154,7 +154,7 @@ func demoTable(w *gui.Window) gui.View {
 }
 
 func demoDataGrid(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	rows := showcaseDataGridApplyQuery(showcaseDataGridRows(), app.DataGridQuery)
 	gridFeaturesStyle := gui.DefaultMarkdownStyle()
 	gridFeaturesStyle.CodeHighlighter = highlight.Default()
@@ -183,10 +183,10 @@ func demoDataGrid(w *gui.Window) gui.View {
 				ShowFilterRow:     true,
 				ShowColumnChooser: true,
 				OnQueryChange: func(query datagrid.GridQueryState, ctx gui.EventCtx) {
-					gui.State[ShowcaseApp](ctx.Window).DataGridQuery = query
+					appState(ctx.Window).DataGridQuery = query
 				},
 				OnSelectionChange: func(selection datagrid.GridSelection, ctx gui.EventCtx) {
-					gui.State[ShowcaseApp](ctx.Window).DataGridSelection = selection
+					appState(ctx.Window).DataGridSelection = selection
 				},
 			}),
 			w.Markdown(gui.MarkdownCfg{
@@ -199,7 +199,7 @@ func demoDataGrid(w *gui.Window) gui.View {
 }
 
 func demoDataSource(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	if app.DataSource == nil {
 		app.DataSource = datagrid.NewInMemoryDataSource(showcaseDataSourceRows())
 	}
@@ -230,10 +230,10 @@ func demoDataSource(w *gui.Window) gui.View {
 				Selection:       app.DataSourceSelection,
 				MaxHeight:       260,
 				OnQueryChange: func(query datagrid.GridQueryState, ctx gui.EventCtx) {
-					gui.State[ShowcaseApp](ctx.Window).DataSourceQuery = query
+					appState(ctx.Window).DataSourceQuery = query
 				},
 				OnSelectionChange: func(selection datagrid.GridSelection, ctx gui.EventCtx) {
-					gui.State[ShowcaseApp](ctx.Window).DataSourceSelection = selection
+					appState(ctx.Window).DataSourceSelection = selection
 				},
 			}),
 			gui.Text(gui.TextCfg{Text: "- DataGridDataSource interface for async backends"}),
@@ -244,7 +244,7 @@ func demoDataSource(w *gui.Window) gui.View {
 }
 
 func demoTree(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
@@ -492,13 +492,13 @@ func showcaseBigTreeNodes() []gui.TreeNodeCfg {
 }
 
 func showcaseTreeOnSelect(id string, ctx gui.EventCtx) {
-	gui.State[ShowcaseApp](ctx.Window).TreeSelected = id
+	appState(ctx.Window).TreeSelected = id
 }
 
 func showcaseTreeOnLazyLoad(_ string, nodeID string, w *gui.Window) {
 	// Capture abort counter now (under w.mu) so the goroutine can
 	// detect navigation-away before applying its result.
-	abortAt := gui.State[ShowcaseApp](w).TreeLazyLoadAbort
+	abortAt := appState(w).TreeLazyLoadAbort
 	go func() {
 		time.Sleep(800 * time.Millisecond)
 
@@ -520,7 +520,7 @@ func showcaseTreeOnLazyLoad(_ string, nodeID string, w *gui.Window) {
 		}
 
 		w.QueueCommand(func(w *gui.Window) {
-			app := gui.State[ShowcaseApp](w)
+			app := appState(w)
 			if app.TreeLazyLoadAbort != abortAt {
 				return // navigated away; discard stale result
 			}

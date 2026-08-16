@@ -124,6 +124,14 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 	return layout
 }
 
+// Label is the thin form of Text for the common case: a text string
+// and a style. Pass the zero TextStyle to get the default theme
+// style. Callers needing Focusable, Sizing, Mode, or the rest of
+// TextCfg use Text directly.
+func Label(text string, style TextStyle) View {
+	return Text(TextCfg{Text: text, TextStyle: style})
+}
+
 // Text creates a text view for displaying text content.
 func Text(cfg TextCfg) View {
 	if cfg.Invisible {

@@ -51,6 +51,13 @@ type App struct {
 	LightTheme bool
 }
 
+// state is the typed state accessor for this window. Callbacks
+// reach the app state through it instead of repeating
+// gui.State[App](...) at every site.
+func state(w *gui.Window) *App {
+	return gui.State[App](w)
+}
+
 func main() {
 	gui.SetTheme(gui.ThemeDark.WithBorders(true))
 
@@ -68,7 +75,7 @@ func main() {
 }
 
 func mainView(w *gui.Window) gui.View {
-	app := gui.State[App](w)
+	app := state(w)
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
@@ -200,7 +207,7 @@ func datePicker(app *App, _ *gui.Window) gui.View {
 		AllowedYears:         allowedYears,
 		AllowedDates:         allowedDates,
 		OnSelect: func(times []time.Time, ctx gui.EventCtx) {
-			gui.State[App](ctx.Window).Dates = times
+			state(ctx.Window).Dates = times
 			ctx.Consume()
 		},
 	})
@@ -216,8 +223,8 @@ func optionsGroup(app *App) gui.View {
 					Label:    "Monday first day of week",
 					Selected: app.MondayFirst,
 					OnClick: func(ctx gui.EventCtx) {
-						gui.State[App](ctx.Window).MondayFirst =
-							!gui.State[App](ctx.Window).MondayFirst
+						state(ctx.Window).MondayFirst =
+							!state(ctx.Window).MondayFirst
 					},
 				}),
 				gui.Toggle(gui.ToggleCfg{
@@ -225,8 +232,8 @@ func optionsGroup(app *App) gui.View {
 					Label:    "Show adjacent months",
 					Selected: app.ShowAdjacentMonths,
 					OnClick: func(ctx gui.EventCtx) {
-						gui.State[App](ctx.Window).ShowAdjacentMonths =
-							!gui.State[App](ctx.Window).ShowAdjacentMonths
+						state(ctx.Window).ShowAdjacentMonths =
+							!state(ctx.Window).ShowAdjacentMonths
 					},
 				}),
 				gui.Toggle(gui.ToggleCfg{
@@ -234,8 +241,8 @@ func optionsGroup(app *App) gui.View {
 					Label:    "Hide today indicator",
 					Selected: app.HideTodayIndicator,
 					OnClick: func(ctx gui.EventCtx) {
-						gui.State[App](ctx.Window).HideTodayIndicator =
-							!gui.State[App](ctx.Window).HideTodayIndicator
+						state(ctx.Window).HideTodayIndicator =
+							!state(ctx.Window).HideTodayIndicator
 					},
 				}),
 				gui.Toggle(gui.ToggleCfg{
@@ -243,8 +250,8 @@ func optionsGroup(app *App) gui.View {
 					Label:    "Multiple select",
 					Selected: app.SelectMultiple,
 					OnClick: func(ctx gui.EventCtx) {
-						gui.State[App](ctx.Window).SelectMultiple =
-							!gui.State[App](ctx.Window).SelectMultiple
+						state(ctx.Window).SelectMultiple =
+							!state(ctx.Window).SelectMultiple
 					},
 				}),
 			}),
@@ -276,7 +283,7 @@ func weekdaysLenGroup(app *App) gui.View {
 				gui.NewRadioOption("Full", "full"),
 			},
 			OnSelect: func(value string, ctx gui.EventCtx) {
-				gui.State[App](ctx.Window).WeekdaysLen = value
+				state(ctx.Window).WeekdaysLen = value
 			},
 		}),
 	})
@@ -312,7 +319,7 @@ func allowedWeekdaysGroup(app *App) gui.View {
 }
 
 func clickAllowWeekday(ctx gui.EventCtx) {
-	app := gui.State[App](ctx.Window)
+	app := state(ctx.Window)
 	switch ctx.Layout.Shape.ID {
 	case "mon":
 		app.AllowMonday = !app.AllowMonday
@@ -367,7 +374,7 @@ func monthsGroup(app *App) gui.View {
 }
 
 func clickAllowMonth(ctx gui.EventCtx) {
-	app := gui.State[App](ctx.Window)
+	app := state(ctx.Window)
 	switch ctx.Layout.Shape.ID {
 	case "jan":
 		app.AllowJanuary = !app.AllowJanuary
@@ -419,7 +426,7 @@ func yearsDatesGroup(app *App, _ *gui.Window) gui.View {
 						},
 						OnClick: func(ctx gui.EventCtx) {
 							ctx.Window.DatePickerReset("example")
-							app := gui.State[App](ctx.Window)
+							app := state(ctx.Window)
 							app.Dates = []time.Time{time.Now()}
 							app.WeekdaysLen = "one"
 							app.MondayFirst = false
@@ -485,7 +492,7 @@ func allowedYearsGroup(app *App) gui.View {
 }
 
 func clickAllowYear(ctx gui.EventCtx) {
-	app := gui.State[App](ctx.Window)
+	app := state(ctx.Window)
 	switch ctx.Layout.Shape.ID {
 	case "year_now":
 		app.AllowYearNow = !app.AllowYearNow
@@ -522,7 +529,7 @@ func allowedDatesGroup(app *App) gui.View {
 }
 
 func clickAllowDate(ctx gui.EventCtx) {
-	app := gui.State[App](ctx.Window)
+	app := state(ctx.Window)
 	switch ctx.Layout.Shape.ID {
 	case "tdy":
 		app.AllowToday = !app.AllowToday
@@ -544,7 +551,7 @@ func toggleTheme(app *App) gui.View {
 
 		Selected: app.LightTheme,
 		OnClick: func(ctx gui.EventCtx) {
-			app := gui.State[App](ctx.Window)
+			app := state(ctx.Window)
 			app.LightTheme = !app.LightTheme
 			if app.LightTheme {
 				ctx.Window.SetTheme(gui.ThemeLight.WithBorders(true))

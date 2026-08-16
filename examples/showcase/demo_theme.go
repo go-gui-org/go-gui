@@ -11,7 +11,7 @@ import (
 
 func demoThemeGen(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	strategies := []string{"mono", "complement", "analogous", "triadic", "warm", "cool"}
 	pickerColor := app.ThemeGenSeed
 	if app.ThemeGenPickText {
@@ -37,7 +37,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 			Radius:   gui.SomeF(12),
 			Content:  []gui.View{gui.Text(gui.TextCfg{Text: strategyLabel(sv), TextStyle: textStyle})},
 			OnClick: func(ctx gui.EventCtx) {
-				gui.State[ShowcaseApp](ctx.Window).ThemeGenStrategy = sv
+				appState(ctx.Window).ThemeGenStrategy = sv
 				applyGenTheme(ctx.Window)
 			},
 		})
@@ -69,7 +69,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 								ID:    "theme-gen-cp",
 								Color: pickerColor,
 								OnColorChange: func(c gui.Color, ctx gui.EventCtx) {
-									app := gui.State[ShowcaseApp](ctx.Window)
+									app := appState(ctx.Window)
 									if app.ThemeGenPickText {
 										app.ThemeGenText = c
 									} else {
@@ -100,10 +100,10 @@ func demoThemeGen(w *gui.Window) gui.View {
 												Width:    80,
 												Sizing:   gui.FixedFit,
 												OnTextChanged: func(text string, ctx gui.EventCtx) {
-													gui.State[ShowcaseApp](ctx.Window).ThemeGenRadiusText = text
+													appState(ctx.Window).ThemeGenRadiusText = text
 												},
 												OnValueCommit: func(value gui.Opt[float64], text string, ctx gui.EventCtx) {
-													app := gui.State[ShowcaseApp](ctx.Window)
+													app := appState(ctx.Window)
 													app.ThemeGenRadiusText = text
 													if v, ok := value.Value(); ok {
 														app.ThemeGenRadius = float32(v)
@@ -130,10 +130,10 @@ func demoThemeGen(w *gui.Window) gui.View {
 												Width:    80,
 												Sizing:   gui.FixedFit,
 												OnTextChanged: func(text string, ctx gui.EventCtx) {
-													gui.State[ShowcaseApp](ctx.Window).ThemeGenBorderText = text
+													appState(ctx.Window).ThemeGenBorderText = text
 												},
 												OnValueCommit: func(value gui.Opt[float64], text string, ctx gui.EventCtx) {
-													app := gui.State[ShowcaseApp](ctx.Window)
+													app := appState(ctx.Window)
 													app.ThemeGenBorderText = text
 													if v, ok := value.Value(); ok {
 														app.ThemeGenBorder = float32(v)
@@ -164,7 +164,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 								Label:    "Edit text color",
 								Selected: app.ThemeGenPickText,
 								OnClick: func(ctx gui.EventCtx) {
-									gui.State[ShowcaseApp](ctx.Window).ThemeGenPickText = !gui.State[ShowcaseApp](ctx.Window).ThemeGenPickText
+									appState(ctx.Window).ThemeGenPickText = !appState(ctx.Window).ThemeGenPickText
 								},
 							}),
 							gui.Row(gui.ContainerCfg{
@@ -178,7 +178,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Reset Dark", TextStyle: t.N3})},
 										OnClick: func(ctx gui.EventCtx) {
 											ctx.Window.SetTheme(gui.ThemeDark.WithBorders(true))
-											syncThemeGenFromCfg(gui.State[ShowcaseApp](ctx.Window), gui.ThemeDark.WithBorders(true).Cfg)
+											syncThemeGenFromCfg(appState(ctx.Window), gui.ThemeDark.WithBorders(true).Cfg)
 										},
 									}),
 									gui.Button(gui.ButtonCfg{
@@ -187,7 +187,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Reset Light", TextStyle: t.N3})},
 										OnClick: func(ctx gui.EventCtx) {
 											ctx.Window.SetTheme(gui.ThemeLight.WithBorders(true))
-											syncThemeGenFromCfg(gui.State[ShowcaseApp](ctx.Window), gui.ThemeLight.WithBorders(true).Cfg)
+											syncThemeGenFromCfg(appState(ctx.Window), gui.ThemeLight.WithBorders(true).Cfg)
 										},
 									}),
 								},
@@ -214,7 +214,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 													if result.Status != gui.DialogOK || len(result.Paths) == 0 {
 														return
 													}
-													app := gui.State[ShowcaseApp](w)
+													app := appState(w)
 													cfg := generateThemeCfg(
 														app.ThemeGenSeed,
 														app.ThemeGenStrategy,
@@ -251,11 +251,11 @@ func demoThemeGen(w *gui.Window) gui.View {
 													path := result.Paths[0].Path
 													cfg, err := themeCfgLoad(path)
 													if err != nil {
-														gui.State[ShowcaseApp](w).ThemeGenName = err.Error()
+														appState(w).ThemeGenName = err.Error()
 														return
 													}
 													w.SetTheme(gui.ThemeMaker(cfg))
-													app := gui.State[ShowcaseApp](w)
+													app := appState(w)
 													syncThemeGenFromCfg(app, cfg)
 													app.ThemeGenName = filepath.Base(path)
 												},
@@ -277,7 +277,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 								Width:    140,
 								Sizing:   gui.FixedFit,
 								OnChange: func(v float32, ctx gui.EventCtx) {
-									gui.State[ShowcaseApp](ctx.Window).ThemeGenTint = v
+									appState(ctx.Window).ThemeGenTint = v
 									applyGenTheme(ctx.Window)
 								},
 							}),
@@ -357,7 +357,7 @@ func syncThemeGenFromCfg(app *ShowcaseApp, cfg gui.ThemeCfg) {
 }
 
 func applyGenTheme(w *gui.Window) {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	cfg := generateThemeCfg(
 		app.ThemeGenSeed,
 		app.ThemeGenStrategy,

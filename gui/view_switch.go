@@ -26,6 +26,20 @@ type SwitchCfg struct {
 	Selected      bool
 }
 
+// LabeledSwitch is the thin form of Switch for the common case: a
+// label next to a pill switch in its initial selected state. Callers
+// needing TextStyle, Colors, Width, or the rest of SwitchCfg use
+// Switch directly.
+// exportaudit:keep — convenience form; no example uses it yet
+func LabeledSwitch(id, label string, selected bool, onClick func(EventCtx)) View {
+	return Switch(SwitchCfg{
+		ID:       id,
+		Label:    label,
+		Selected: selected,
+		OnClick:  onClick,
+	})
+}
+
 // Switch creates a pill-shaped toggle switch.
 func Switch(cfg SwitchCfg) View {
 	applySwitchDefaults(&cfg)

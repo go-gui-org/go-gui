@@ -134,7 +134,7 @@ func lessRSS(a, b *Process) bool {
 // rootView is registered once in OnInit; the sampler goroutine re-runs it each
 // refresh via Window.UpdateWindow.
 func rootView(w *gui.Window) gui.View {
-	app := gui.State[App](w)
+	app := state(w)
 	theme := gui.CurrentTheme()
 
 	return gui.Column(gui.ContainerCfg{
@@ -257,7 +257,7 @@ func toolbarView(app *App) gui.View {
 				Text:        app.Filter,
 				Placeholder: "name, command, user, or PID",
 				OnTextChanged: func(text string, ctx gui.EventCtx) {
-					gui.State[App](ctx.Window).Filter = text
+					state(ctx.Window).Filter = text
 				},
 			}),
 			spacer(),
@@ -279,7 +279,7 @@ func viewModeRadio(app *App) gui.View {
 		Items: []string{"Flat", "Tree"},
 		Value: value,
 		OnSelect: func(v string, ctx gui.EventCtx) {
-			gui.State[App](ctx.Window).TreeMode = v == "Tree"
+			state(ctx.Window).TreeMode = v == "Tree"
 		},
 	})
 }
@@ -290,7 +290,7 @@ func intervalRadio(app *App) gui.View {
 		Items: intervalLabels,
 		Value: intervalLabel(app.Interval),
 		OnSelect: func(v string, ctx gui.EventCtx) {
-			gui.State[App](ctx.Window).Interval = intervalFromLabel(v)
+			state(ctx.Window).Interval = intervalFromLabel(v)
 		},
 	})
 }
@@ -365,7 +365,7 @@ func headerCell(col column, idx int, app *App) gui.View {
 		Padding: gui.NewPadding(0, 6, 0, 6),
 		Content: []gui.View{gui.Text(gui.TextCfg{Text: label, TextStyle: theme.B6, Clip: true})},
 		OnClick: func(ctx gui.EventCtx) {
-			a := gui.State[App](ctx.Window)
+			a := state(ctx.Window)
 			if a.Sort.Column == idx {
 				a.Sort.Desc = !a.Sort.Desc
 			} else {
@@ -406,7 +406,7 @@ func processRow(p *Process, app *App, i int) gui.View {
 		VAlign:  gui.VAlignMiddle,
 		Content: cells,
 		OnClick: func(ctx gui.EventCtx) {
-			gui.State[App](ctx.Window).Selected = p
+			state(ctx.Window).Selected = p
 		},
 	})
 }

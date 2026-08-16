@@ -21,7 +21,7 @@ var (
 
 func demoAudio(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
@@ -143,7 +143,7 @@ func demoAudio(w *gui.Window) gui.View {
 						},
 						OnClick: func(ctx gui.EventCtx) {
 							audio.HaltChannel(0)
-							app := gui.State[ShowcaseApp](ctx.Window)
+							app := appState(ctx.Window)
 							app.AudioStatus = "Ch 0 halted"
 						},
 					}),
@@ -241,7 +241,7 @@ func demoAudio(w *gui.Window) gui.View {
 						Max:    100,
 						Sizing: gui.FillFit,
 						OnChange: func(v float32, ctx gui.EventCtx) {
-							a := gui.State[ShowcaseApp](ctx.Window)
+							a := appState(ctx.Window)
 							a.AudioVolume = float64(v) / 100
 							audio.SetMasterVolume(a.AudioVolume)
 						},
@@ -265,7 +265,7 @@ func demoAudio(w *gui.Window) gui.View {
 }
 
 func ensureAudioInit(w *gui.Window) bool {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	if app.AudioReady {
 		return true
 	}
@@ -285,7 +285,7 @@ func playBeep(w *gui.Window) {
 	if !ensureAudioInit(w) {
 		return
 	}
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	if beepSound == nil {
 		wav := generateWAV(440, 0.25, 44100)
 		snd, err := audio.LoadSoundBytes(wav)
@@ -306,7 +306,7 @@ func playHighTone(w *gui.Window) {
 	if !ensureAudioInit(w) {
 		return
 	}
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	if highSound == nil {
 		wav := generateWAV(880, 0.25, 44100)
 		snd, err := audio.LoadSoundBytes(wav)
@@ -327,7 +327,7 @@ func fadeInBeep(w *gui.Window) {
 	if !ensureAudioInit(w) {
 		return
 	}
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	if beepSound == nil {
 		wav := generateWAV(440, 0.25, 44100)
 		snd, err := audio.LoadSoundBytes(wav)
@@ -348,7 +348,7 @@ func playOnChannel(w *gui.Window, channel int) {
 	if !ensureAudioInit(w) {
 		return
 	}
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	if highSound == nil {
 		wav := generateWAV(880, 0.5, 44100)
 		snd, err := audio.LoadSoundBytes(wav)
@@ -372,7 +372,7 @@ func loadMusicDemo(w *gui.Window) {
 	if !ensureAudioInit(w) {
 		return
 	}
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	cleanupMusic(w)
 	wav := generateWAV(660, 3, 44100)
 	tmp, err := os.CreateTemp("", "showcase-audio-*.wav")
@@ -398,7 +398,7 @@ func loadMusicDemo(w *gui.Window) {
 }
 
 func playMusic(w *gui.Window) {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	if musicTrack == nil {
 		app.AudioStatus = "Load music first"
 		return
@@ -413,7 +413,7 @@ func playMusic(w *gui.Window) {
 }
 
 func fadeOutMusic(w *gui.Window) {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	if !app.AudioMusicPlaying {
 		app.AudioStatus = "No music to fade out"
 		return
@@ -425,7 +425,7 @@ func fadeOutMusic(w *gui.Window) {
 
 func stopMusic(w *gui.Window) {
 	audio.HaltMusic()
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	app.AudioMusicPlaying = false
 	app.AudioMusicPaused = false
 	app.AudioStatus = "Music stopped"
@@ -441,7 +441,7 @@ func cleanupMusic(w *gui.Window) {
 		_ = os.Remove(musicPath)
 		musicPath = ""
 	}
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	app.AudioMusicLoaded = false
 	app.AudioMusicPlaying = false
 }

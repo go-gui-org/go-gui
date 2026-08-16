@@ -7,7 +7,7 @@ import (
 )
 
 func demoToggle(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Spacing: gui.SomeF(12),
@@ -18,7 +18,7 @@ func demoToggle(w *gui.Window) gui.View {
 				Label:    "Toggle",
 				Selected: app.ToggleA,
 				OnClick: func(ctx gui.EventCtx) {
-					a := gui.State[ShowcaseApp](ctx.Window)
+					a := appState(ctx.Window)
 					a.ToggleA = !a.ToggleA
 				},
 			}),
@@ -27,7 +27,7 @@ func demoToggle(w *gui.Window) gui.View {
 				Label:    "Checkbox",
 				Selected: app.CheckboxA,
 				OnClick: func(ctx gui.EventCtx) {
-					a := gui.State[ShowcaseApp](ctx.Window)
+					a := appState(ctx.Window)
 					a.CheckboxA = !a.CheckboxA
 				},
 			}),
@@ -36,7 +36,7 @@ func demoToggle(w *gui.Window) gui.View {
 }
 
 func demoSwitch(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	return gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Spacing: gui.SomeF(12),
@@ -48,7 +48,7 @@ func demoSwitch(w *gui.Window) gui.View {
 				Label:    "Enable feature",
 				Selected: app.SwitchA,
 				OnClick: func(ctx gui.EventCtx) {
-					a := gui.State[ShowcaseApp](ctx.Window)
+					a := appState(ctx.Window)
 					a.SwitchA = !a.SwitchA
 				},
 			}),
@@ -57,7 +57,7 @@ func demoSwitch(w *gui.Window) gui.View {
 }
 
 func demoRadio(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	options := []struct{ label, value string }{
 		{"Go", "go"},
 		{"Rust", "rust"},
@@ -71,7 +71,7 @@ func demoRadio(w *gui.Window) gui.View {
 			Label:    opt.label,
 			Selected: app.RadioValue == v,
 			OnClick: func(ctx gui.EventCtx) {
-				gui.State[ShowcaseApp](ctx.Window).RadioValue = v
+				appState(ctx.Window).RadioValue = v
 			},
 		})
 	}
@@ -84,7 +84,7 @@ func demoRadio(w *gui.Window) gui.View {
 }
 
 func demoRadioGroup(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
@@ -101,7 +101,7 @@ func demoRadioGroup(w *gui.Window) gui.View {
 					gui.NewRadioOption("Zig", "zig"),
 				},
 				OnSelect: func(v string, ctx gui.EventCtx) {
-					gui.State[ShowcaseApp](ctx.Window).RadioValue = v
+					appState(ctx.Window).RadioValue = v
 				},
 			}),
 			gui.Text(gui.TextCfg{Text: "Row layout", TextStyle: t.B3}),
@@ -114,7 +114,7 @@ func demoRadioGroup(w *gui.Window) gui.View {
 					gui.NewRadioOption("Zig", "zig"),
 				},
 				OnSelect: func(v string, ctx gui.EventCtx) {
-					gui.State[ShowcaseApp](ctx.Window).RadioValue = v
+					appState(ctx.Window).RadioValue = v
 				},
 			}),
 		},
@@ -122,7 +122,7 @@ func demoRadioGroup(w *gui.Window) gui.View {
 }
 
 func demoSelect(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
@@ -140,7 +140,7 @@ func demoSelect(w *gui.Window) gui.View {
 				Selected:    app.SelectValue,
 				Options:     []string{"Go", "Rust", "Zig", "C", "Python", "TypeScript"},
 				OnSelect: func(sel []string, ctx gui.EventCtx) {
-					gui.State[ShowcaseApp](ctx.Window).SelectValue = sel
+					appState(ctx.Window).SelectValue = sel
 				},
 			}),
 			sectionLabel(t, "Multi-Select"),
@@ -151,7 +151,7 @@ func demoSelect(w *gui.Window) gui.View {
 				SelectMultiple: true,
 				Options:        []string{"Go", "Rust", "Zig", "C", "Python", "TypeScript"},
 				OnSelect: func(sel []string, ctx gui.EventCtx) {
-					gui.State[ShowcaseApp](ctx.Window).SelectValue = sel
+					appState(ctx.Window).SelectValue = sel
 				},
 			}),
 		},
@@ -159,7 +159,7 @@ func demoSelect(w *gui.Window) gui.View {
 }
 
 func demoListBox(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
@@ -195,7 +195,7 @@ func demoListBox(w *gui.Window) gui.View {
 					gui.NewListBoxOption("lua", "Lua", "lua"),
 				},
 				OnSelect: func(ids []string, ctx gui.EventCtx) {
-					gui.State[ShowcaseApp](ctx.Window).ListBoxSelected = ids
+					appState(ctx.Window).ListBoxSelected = ids
 				},
 			}),
 		},
@@ -203,7 +203,7 @@ func demoListBox(w *gui.Window) gui.View {
 }
 
 func demoCombobox(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
@@ -222,7 +222,7 @@ func demoCombobox(w *gui.Window) gui.View {
 				Options:     []string{"Go", "Rust", "Zig", "C", "C++", "Python", "TypeScript", "JavaScript", "Ruby", "Elixir"},
 				Sizing:      gui.FillFit,
 				OnSelect: func(v string, ctx gui.EventCtx) {
-					gui.State[ShowcaseApp](ctx.Window).ComboboxValue = v
+					appState(ctx.Window).ComboboxValue = v
 				},
 			}),
 		},
@@ -230,7 +230,7 @@ func demoCombobox(w *gui.Window) gui.View {
 }
 
 func demoDragReorder(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	t := gui.CurrentTheme()
 
 	// Tab content panels (simple label per tab).
@@ -269,7 +269,7 @@ func demoDragReorder(w *gui.Window) gui.View {
 				Data:        app.DragListItems,
 				Reorderable: true,
 				OnReorder: func(movedID string, beforeID string, ctx gui.EventCtx) {
-					a := gui.State[ShowcaseApp](ctx.Window)
+					a := appState(ctx.Window)
 					from, to := gui.ReorderIndices(
 						dragListIDs(a.DragListItems), movedID, beforeID)
 					if from >= 0 {
@@ -287,7 +287,7 @@ func demoDragReorder(w *gui.Window) gui.View {
 				Sizing:      gui.FillFit,
 				Reorderable: true,
 				OnReorder: func(movedID string, beforeID string, ctx gui.EventCtx) {
-					a := gui.State[ShowcaseApp](ctx.Window)
+					a := appState(ctx.Window)
 					from, to := gui.ReorderIndices(
 						dragTabIDs(a.DragTabItems), movedID, beforeID)
 					if from >= 0 {
@@ -295,7 +295,7 @@ func demoDragReorder(w *gui.Window) gui.View {
 					}
 				},
 				OnSelect: func(id string, ctx gui.EventCtx) {
-					gui.State[ShowcaseApp](ctx.Window).DragTabSel = id
+					appState(ctx.Window).DragTabSel = id
 				},
 			}),
 
@@ -308,7 +308,7 @@ func demoDragReorder(w *gui.Window) gui.View {
 				Scrollable:  true,
 				Reorderable: true,
 				OnReorder: func(movedID string, beforeID string, ctx gui.EventCtx) {
-					a := gui.State[ShowcaseApp](ctx.Window)
+					a := appState(ctx.Window)
 					dragTreeReorder(a, movedID, beforeID)
 				},
 			}),
@@ -366,7 +366,7 @@ func dragTreeReorderNodes(
 }
 
 func demoSlider(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
@@ -384,7 +384,7 @@ func demoSlider(w *gui.Window) gui.View {
 				Max:    100,
 				Sizing: gui.FillFit,
 				OnChange: func(v float32, ctx gui.EventCtx) {
-					gui.State[ShowcaseApp](ctx.Window).RangeValue = v
+					appState(ctx.Window).RangeValue = v
 				},
 			}),
 		},

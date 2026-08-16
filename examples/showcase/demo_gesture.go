@@ -9,7 +9,7 @@ import (
 
 func demoGesture(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 
 	if app.GesturePadLabel == "" {
 		app.GesturePadLabel = "Touch or click the pad"
@@ -39,7 +39,7 @@ func demoGesture(w *gui.Window) gui.View {
 				Clip:    true,
 				OnDraw:  gestureOnDraw(app),
 				OnClick: func(ctx gui.EventCtx) {
-					a := gui.State[ShowcaseApp](ctx.Window)
+					a := appState(ctx.Window)
 					a.GesturePadMarkers = append(
 						a.GesturePadMarkers,
 						GestureMarker{X: ctx.Event.MouseX, Y: ctx.Event.MouseY},
@@ -49,7 +49,7 @@ func demoGesture(w *gui.Window) gui.View {
 					a.GesturePadVersion++
 				},
 				OnGesture: func(ctx gui.EventCtx) {
-					a := gui.State[ShowcaseApp](ctx.Window)
+					a := appState(ctx.Window)
 					gestureOnGesture(a, ctx.Event)
 				},
 			}),

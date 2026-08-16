@@ -72,6 +72,20 @@ type WindowCfg struct {
 	DebugTimeTravel bool
 }
 
+// SimpleWindow is the thin form of NewWindow for the common case:
+// title, size, state, and an OnInit that wires the root view. Any
+// caller needing the rest of WindowCfg (OnCloseRequest, ImageFetcher,
+// FixedSize, ...) uses NewWindow directly.
+func SimpleWindow(title string, w, h int, state any, onInit func(*Window)) *Window {
+	return NewWindow(WindowCfg{
+		Title:  title,
+		Width:  w,
+		Height: h,
+		State:  state,
+		OnInit: onInit,
+	})
+}
+
 // NewWindow creates a Window from the given configuration.
 func NewWindow(cfg WindowCfg) *Window {
 	ctx, cancel := context.WithCancel(context.Background())

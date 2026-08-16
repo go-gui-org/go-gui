@@ -13,7 +13,7 @@ func dockInitialLayout() *gui.DockNode {
 }
 
 func demoDockLayout(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	if app.DockRoot == nil {
 		app.DockRoot = dockInitialLayout()
 	}
@@ -31,14 +31,14 @@ func demoDockLayout(w *gui.Window) gui.View {
 				Root:   app.DockRoot,
 				Panels: dockPanels(),
 				OnLayoutChange: func(root *gui.DockNode, ctx gui.EventCtx) {
-					gui.State[ShowcaseApp](ctx.Window).DockRoot = root
+					appState(ctx.Window).DockRoot = root
 				},
 				OnPanelSelect: func(groupID string, panelID string, ctx gui.EventCtx) {
-					a := gui.State[ShowcaseApp](ctx.Window)
+					a := appState(ctx.Window)
 					a.DockRoot = gui.DockTreeSelectPanel(a.DockRoot, groupID, panelID)
 				},
 				OnPanelClose: func(panelID string, ctx gui.EventCtx) {
-					a := gui.State[ShowcaseApp](ctx.Window)
+					a := appState(ctx.Window)
 					a.DockRoot = gui.DockTreeRemovePanel(a.DockRoot, panelID)
 				},
 			}),
@@ -57,14 +57,14 @@ func dockToolbar(_ *ShowcaseApp) gui.View {
 				ID:      "demo_dock_layout_reset",
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: "Reset"})},
 				OnClick: func(ctx gui.EventCtx) {
-					gui.State[ShowcaseApp](ctx.Window).DockRoot = dockInitialLayout()
+					appState(ctx.Window).DockRoot = dockInitialLayout()
 				},
 			}),
 			gui.Button(gui.ButtonCfg{
 				ID:      "demo_dock_layout_add_properties",
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: "Add Properties"})},
 				OnClick: func(ctx gui.EventCtx) {
-					a := gui.State[ShowcaseApp](ctx.Window)
+					a := appState(ctx.Window)
 					if _, ok := gui.DockTreeFindGroupByPanel(a.DockRoot, "properties"); ok {
 						ctx.Consume()
 						return
