@@ -448,3 +448,39 @@ func TestColorFieldsMinWidths(t *testing.T) {
 		}
 	}
 }
+
+// A white swatch on a light theme is an invisible rectangle without an
+// outline, and the outline has to sit on the color overlay: that float
+// covers the whole widget, so a border on the box beneath would be
+// drawn under it.
+func TestColorSwatchColorLayerHasOutline(t *testing.T) {
+	w := &Window{}
+	l := generateViewLayout(ColorSwatch(ColorSwatchCfg{
+		ID:     "sw",
+		Color:  White,
+		Width:  40,
+		Height: 20,
+	}), w)
+
+	var found bool
+	var walk func(*Layout)
+	walk = func(n *Layout) {
+		if s := n.Shape; s != nil && s.Float && s.Color.eq(White) {
+			found = true
+			if s.SizeBorder <= 0 {
+				t.Errorf("color layer border = %v, want > 0",
+					s.SizeBorder)
+			}
+			if s.ColorBorder.A == 0 {
+				t.Error("color layer outline is fully transparent")
+			}
+		}
+		for i := range n.Children {
+			walk(&n.Children[i])
+		}
+	}
+	walk(&l)
+	if !found {
+		t.Fatal("no floating color layer in the swatch")
+	}
+}

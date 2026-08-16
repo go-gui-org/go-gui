@@ -310,6 +310,13 @@ func colorHSLRow(cfg *ColorFieldsCfg, id string, v HSLA) View {
 	})
 }
 
+// centeredText centres a copy of a style, leaving the caller's
+// unchanged.
+func centeredText(s TextStyle) TextStyle {
+	s.Align = TextAlignCenter
+	return s
+}
+
 // colorFieldColumn builds one labeled numeric input.
 func colorFieldColumn(
 	cfg *ColorFieldsCfg, label string, val int,
@@ -335,9 +342,12 @@ func colorFieldColumn(
 				},
 			}),
 			Input(InputCfg{
-				ID:        inputID,
-				Text:      strconv.Itoa(val),
-				TextStyle: cfg.TextStyle,
+				ID:   inputID,
+				Text: strconv.Itoa(val),
+				// Centred under a centred label, so the pair reads
+				// as one unit -- and so "60" and "140" do not sit
+				// ragged against each other down the row.
+				TextStyle: centeredText(cfg.TextStyle),
 				Width:     cfg.FieldWidth,
 				// Pinned both ways like the hex field: an Input is
 				// Fit-sized, so "0" and "255" would resolve to

@@ -47,7 +47,23 @@ func applyColorSwatchDefaults(cfg *ColorSwatchCfg) {
 const (
 	defaultSwatchWidth  = 48
 	defaultSwatchHeight = 32
+	// colorSwatchBorder is a hairline: enough to separate the color
+	// from the surface behind it, not enough to read as a frame around
+	// it or to eat into a small swatch.
+	colorSwatchBorder = 1
+	// colorSwatchEdgeAlpha keeps the outline a contour rather than a
+	// stroke. Derived from the theme's border color, so it darkens on
+	// a light theme and lightens on a dark one instead of being one
+	// gray that is wrong against one of them.
+	colorSwatchEdgeAlpha = 0.5
 )
+
+// colorSwatchEdge is the swatch's outline color, dimmed from the
+// theme's own border color.
+func colorSwatchEdge() Color {
+	c := defaultColorPickerStyle.ColorBorder
+	return RGBA(c.R, c.G, c.B, uint8(float32(c.A)*colorSwatchEdgeAlpha))
+}
 
 func (sv *colorSwatchView) GenerateLayout(w *Window) Layout {
 	cfg := &sv.cfg
@@ -84,13 +100,21 @@ func (sv *colorSwatchView) GenerateLayout(w *Window) Layout {
 			// The color rides over the checker as a float so it
 			// covers it exactly rather than being laid out after it.
 			container(ContainerCfg{
-				Float:      true,
-				Width:      cfg.Width,
-				Height:     cfg.Height,
-				Color:      cfg.Color,
-				Radius:     cfg.Radius,
-				Padding:    NoPadding,
-				SizeBorder: NoBorder,
+				Float:  true,
+				Width:  cfg.Width,
+				Height: cfg.Height,
+				Color:  cfg.Color,
+				Radius: cfg.Radius,
+				// The outline goes on the color, not on the box
+				// beneath it: this container covers the whole
+				// swatch, so a border on the parent would be drawn
+				// under it. Without one a white value on a light
+				// theme is an invisible rectangle -- the swatch
+				// vanishes exactly when the color is hardest to
+				// read off the hex string.
+				ColorBorder: colorSwatchEdge(),
+				SizeBorder:  SomeF(colorSwatchBorder),
+				Padding:     NoPadding,
 			}),
 		},
 	}, w)
