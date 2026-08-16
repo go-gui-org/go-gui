@@ -30,6 +30,20 @@ type ToggleCfg struct {
 	Selected    bool
 }
 
+// LabeledToggle is the thin form of Toggle for the common case: a
+// label next to a checkbox in its initial selected state. Callers
+// needing TextStyle, Colors, Size, or the rest of ToggleCfg use
+// Toggle directly.
+// exportaudit:keep — convenience form; no example uses it yet
+func LabeledToggle(id, label string, selected bool, onClick func(EventCtx)) View {
+	return Toggle(ToggleCfg{
+		ID:       id,
+		Label:    label,
+		Selected: selected,
+		OnClick:  onClick,
+	})
+}
+
 // Toggle creates a toggle/checkbox view.
 func Toggle(cfg ToggleCfg) View {
 	applyToggleDefaults(&cfg)

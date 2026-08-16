@@ -22,12 +22,8 @@ import (
 type App struct{ Clicks int }
 
 func main() {
-    w := gui.NewWindow(gui.WindowCfg{
-        State:  &App{},
-        Title:  "Counter",
-        Width:  300,
-        Height: 150,
-        OnInit: func(w *gui.Window) { w.UpdateView(mainView) },
+    w := gui.SimpleWindow("Counter", 300, 150, &App{}, func(w *gui.Window) {
+        w.UpdateView(mainView)
     })
 
     backend.Run(w)
@@ -38,19 +34,42 @@ func mainView(w *gui.Window) gui.View {
 
     return gui.Column(gui.ContainerCfg{
         Content: []gui.View{
-            gui.Text(gui.TextCfg{Text: fmt.Sprintf("%d Clicks", app.Clicks)}),
-            gui.Button(gui.ButtonCfg{
-                ID: "counter",
-                Content: []gui.View{
-                    gui.Text(gui.TextCfg{Text: "Click Me"}),
-                },
-                OnClick: func(ctx gui.EventCtx) {
-                    gui.State[App](ctx.Window).Clicks++
-                },
+            gui.Label(fmt.Sprintf("%d Clicks", app.Clicks), gui.TextStyle{}),
+            gui.TextButton("counter", "Click Me", func(ctx gui.EventCtx) {
+                gui.State[App](ctx.Window).Clicks++
             }),
         },
     })
 }
+```
+
+`gui.Label(text, style)` — pass the zero `TextStyle{}` for the default theme
+style. `gui.TextButton(id, label, onClick)` and `gui.SimpleWindow` are the
+same thin forwards; the `ID` argument stays explicit because identity is
+caller-owned.
+
+### Full control
+
+Every convenience form forwards to the matching `Cfg` struct. Use it when you
+need the knobs — fonts, colors, sizing, padding, events:
+
+```go
+w := gui.NewWindow(gui.WindowCfg{
+    State:  &App{},
+    Title:  "Counter",
+    Width:  300,
+    Height: 150,
+    OnInit: func(w *gui.Window) { w.UpdateView(mainView) },
+})
+
+gui.Button(gui.ButtonCfg{
+    ID:      "counter",
+    Content: []gui.View{gui.Text(gui.TextCfg{Text: "Click Me"})},
+    Padding: gui.NewPadding(8, 16, 8, 16),
+    OnClick: func(ctx gui.EventCtx) {
+        gui.State[App](ctx.Window).Clicks++
+    },
+})
 ```
 
 See [`examples/get_started/`](examples/get_started/) for the full runnable
