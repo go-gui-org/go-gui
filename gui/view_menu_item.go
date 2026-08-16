@@ -73,16 +73,9 @@ func MenuSubmenu(id, text string, submenu []MenuItemCfg) MenuItemCfg {
 // menuItem builds the View for a single menu item.
 func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 	if itemCfg.Separator {
-		return Column(ContainerCfg{
-			Sizing:  FillFit,
-			Padding: NewPadding(2, 0, 2, 0),
-			Content: []View{
-				Rectangle(RectangleCfg{
-					Height: 1,
-					Sizing: FillFit,
-					Color:  menubarCfg.ColorBorder,
-				}),
-			},
+		return Separator(SeparatorCfg{
+			Color: menubarCfg.ColorBorder,
+			Inset: NewPadding(2, 0, 2, 0),
 		})
 	}
 

@@ -26,6 +26,18 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		borderFocus = cfg.ColorSelect
 	}
 
+	// Separator role: a divider is an edge, and reusing ColorBorder
+	// would couple the two forever. Unset falls back to the border
+	// color so existing themes keep their look without restating it.
+	colorSeparator := cfg.ColorSeparator
+	if !colorSeparator.IsSet() {
+		colorSeparator = cfg.ColorBorder
+	}
+	sizeSeparator := cfg.sizeSeparator
+	if sizeSeparator == 0 {
+		sizeSeparator = 1
+	}
+
 	// Scrollbar radius: none if cfg.Radius is none.
 	sbRadius := cfg.RadiusSmall
 	if cfg.Radius == radiusNone {
@@ -273,6 +285,10 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Color:          cfg.ColorInterior,
 			ColorHighlight: cfg.ColorInterior.Add(RGBA(20, 20, 20, 0)),
 			Radius:         cfg.RadiusSmall,
+		},
+		separatorStyle: SeparatorStyle{
+			Color: colorSeparator,
+			Size:  sizeSeparator,
 		},
 		sliderStyle: SliderStyle{
 			Size:             cfg.sizeSlider,

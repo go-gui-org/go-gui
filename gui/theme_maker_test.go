@@ -155,6 +155,22 @@ func TestThemeMakerBorderFocusExplicitWins(t *testing.T) {
 	}
 }
 
+// An explicit separator color and thickness win over the fallbacks.
+func TestThemeMakerSeparatorExplicitWins(t *testing.T) {
+	cfg := baseCfg()
+	cfg.ColorSeparator = RGBA(10, 20, 30, 255)
+	cfg.sizeSeparator = 4
+
+	theme := ThemeMaker(cfg)
+	if !theme.separatorStyle.Color.eq(cfg.ColorSeparator) {
+		t.Errorf("separatorStyle.Color = %v, want %v",
+			theme.separatorStyle.Color, cfg.ColorSeparator)
+	}
+	if theme.separatorStyle.Size != 4 {
+		t.Errorf("separatorStyle.Size = %f, want 4", theme.separatorStyle.Size)
+	}
+}
+
 // The scrollbar radius keys off cfg.Radius, NOT cfg.RadiusSmall — so a
 // square-cornered theme squares the scrollbar even when RadiusSmall is
 // rounded. This is the surprising half of the branch.
@@ -297,5 +313,13 @@ func TestThemeMakerZeroCfg(t *testing.T) {
 	if theme.InputStyle.PlaceholderStyle.Color.A != 100 {
 		t.Errorf("placeholder alpha = %d, want 100",
 			theme.InputStyle.PlaceholderStyle.Color.A)
+	}
+	// Separator falls back to the border color and 1px thickness.
+	if theme.separatorStyle.Color != theme.ColorBorder {
+		t.Errorf("separatorStyle.Color = %v, want ColorBorder %v",
+			theme.separatorStyle.Color, theme.ColorBorder)
+	}
+	if theme.separatorStyle.Size != 1 {
+		t.Errorf("separatorStyle.Size = %f, want 1", theme.separatorStyle.Size)
 	}
 }

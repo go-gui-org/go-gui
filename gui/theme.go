@@ -118,6 +118,7 @@ type Theme struct {
 	expandPanelStyle    ExpandPanelStyle
 	ScrollbarStyle      ScrollbarStyle
 	skeletonStyle       SkeletonStyle
+	separatorStyle      SeparatorStyle
 
 	// Layout constants.
 	PaddingSmall  Padding
@@ -216,6 +217,7 @@ type ThemeCfg struct {
 	sizeProgressBar  float32
 	sizeSlider       float32
 	sizeSliderThumb  float32
+	sizeSeparator    float32
 	ColorBackground  Color
 	ColorPanel       Color
 	ColorInterior    Color
@@ -224,6 +226,7 @@ type ThemeCfg struct {
 	ColorActive      Color
 	ColorBorder      Color
 	ColorBorderFocus Color
+	ColorSeparator   Color
 	ColorSelect      Color
 	ColorSuccess     Color
 	ColorWarning     Color
@@ -348,5 +351,6 @@ func applyTheme(t Theme) {
 	defaultColorPickerStyle = t.colorPickerStyle
 	DefaultDataGridStyle = t.dataGridStyle
 	defaultSkeletonStyle = t.skeletonStyle
+	defaultSeparatorStyle = t.separatorStyle
 	defaultInspectorStyle = t.inspectorStyle
 }
