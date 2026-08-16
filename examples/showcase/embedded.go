@@ -205,6 +205,7 @@ type themeCfgJSON struct {
 	ColorActive      colorJSON     `json:"color_active"`
 	ColorBorder      colorJSON     `json:"color_border"`
 	ColorBorderFocus colorJSON     `json:"color_border_focus"`
+	ColorSeparator   colorJSON     `json:"color_separator"`
 	ColorSelect      colorJSON     `json:"color_select"`
 	TitlebarDark     bool          `json:"titlebar_dark"`
 }
@@ -263,6 +264,7 @@ func themeCfgJSONFromCfg(cfg gui.ThemeCfg) themeCfgJSON {
 		ColorActive:      colorJSONFromColor(cfg.ColorActive),
 		ColorBorder:      colorJSONFromColor(cfg.ColorBorder),
 		ColorBorderFocus: colorJSONFromColor(cfg.ColorBorderFocus),
+		ColorSeparator:   colorJSONFromColor(cfg.ColorSeparator),
 		ColorSelect:      colorJSONFromColor(cfg.ColorSelect),
 		TitlebarDark:     cfg.TitlebarDark,
 		SizeBorder:       cfg.SizeBorder,
@@ -285,6 +287,7 @@ func (cfg themeCfgJSON) toThemeCfg() gui.ThemeCfg {
 		ColorActive:      cfg.ColorActive.toColor(),
 		ColorBorder:      cfg.ColorBorder.toColor(),
 		ColorBorderFocus: cfg.ColorBorderFocus.toColor(),
+		ColorSeparator:   cfg.ColorSeparator.toColor(),
 		ColorSelect:      cfg.ColorSelect.toColor(),
 		TitlebarDark:     cfg.TitlebarDark,
 		SizeBorder:       cfg.SizeBorder,

@@ -81,6 +81,7 @@ func TestDefaultStylesMirrorThemeDark(t *testing.T) {
 		{defaultColorPickerStyle, ThemeDark.colorPickerStyle, "defaultColorPickerStyle"},
 		{DefaultDataGridStyle, ThemeDark.dataGridStyle, "DefaultDataGridStyle"},
 		{defaultSkeletonStyle, ThemeDark.skeletonStyle, "defaultSkeletonStyle"},
+		{defaultSeparatorStyle, ThemeDark.separatorStyle, "defaultSeparatorStyle"},
 		{defaultInspectorStyle, ThemeDark.inspectorStyle, "defaultInspectorStyle"},
 	}
 

@@ -195,9 +195,17 @@ func TestDetailPanelWelcomeWrappersHaveNoBorder(t *testing.T) {
 	if got, want := line.Shape.SizeBorder, float32(0); got != want {
 		t.Fatalf("layout.Children[0].Children[1].Shape.SizeBorder = %v, want %v", got, want)
 	}
-	// line() returns a single Row node; Height 1 renders the separator.
-	if got, want := line.Shape.Height, float32(1); got != want {
-		t.Fatalf("layout.Children[0].Children[1].Shape.Height = %v, want %v", got, want)
+	// line() is a gui.Separator: a transparent inset wrapper around the
+	// rule node.
+	if len(line.Children) == 0 {
+		t.Fatal("len(layout.Children[0].Children[1].Children) = 0, want the rule")
+	}
+	rule := line.Children[0]
+	if got, want := rule.Shape.SizeBorder, float32(0); got != want {
+		t.Fatalf("rule.Shape.SizeBorder = %v, want %v", got, want)
+	}
+	if got, want := rule.Shape.Height, float32(1); got != want {
+		t.Fatalf("rule.Shape.Height = %v, want %v", got, want)
 	}
 }
 

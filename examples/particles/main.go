@@ -223,10 +223,9 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 				Text:      "ARCADE SECTOR 2026",
 				TextStyle: ts(theme.M3, 14, colorNeonCyan.WithOpacity(0.6)),
 			}),
-			gui.Rectangle(gui.RectangleCfg{
-				Width:  300,
-				Height: 2,
-				Sizing: gui.FixedFixed,
+			gui.Separator(gui.SeparatorCfg{
+				Length: 300,
+				Size:   2,
 				Color:  colorNeonCyan.WithOpacity(0.3),
 			}),
 			gui.Button(gui.ButtonCfg{
@@ -251,10 +250,9 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 				Text:      "CLICK TO START",
 				TextStyle: ts(theme.B3, 16, startColor),
 			}),
-			gui.Rectangle(gui.RectangleCfg{
-				Width:  300,
-				Height: 1,
-				Sizing: gui.FixedFixed,
+			gui.Separator(gui.SeparatorCfg{
+				Length: 300,
+				Size:   1,
 				Color:  colorNeonCyan.WithOpacity(0.15),
 			}),
 			gui.Text(gui.TextCfg{

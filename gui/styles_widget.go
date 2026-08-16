@@ -31,6 +31,13 @@ type ScrollbarStyle struct {
 	GapEnd          float32
 }
 
+// SeparatorStyle defines divider rule visual properties.
+// exportaudit:keep — reachable from an exported signature
+type SeparatorStyle struct {
+	Color Color
+	Size  float32
+}
+
 // RadioStyle defines radio button visual properties.
 // exportaudit:keep — reachable from an exported signature
 type RadioStyle struct {
@@ -124,4 +131,6 @@ var (
 	defaultToggleStyle ToggleStyle
 
 	defaultSelectStyle SelectStyle
+
+	defaultSeparatorStyle SeparatorStyle
 )

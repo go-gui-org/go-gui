@@ -286,10 +286,8 @@ func mdRenderTable(
 }
 
 func mdRenderHR(cfg MarkdownCfg) View {
-	return Rectangle(RectangleCfg{
-		Sizing: FillFixed,
-		Height: 1,
-		Color:  cfg.Style.hRColor,
+	return Separator(SeparatorCfg{
+		Color: cfg.Style.hRColor,
 	})
 }
 
@@ -371,10 +369,8 @@ func mdRenderHeading(
 	if (block.HeaderLevel == 1 && cfg.Style.h1Separator) ||
 		(block.HeaderLevel == 2 && cfg.Style.h2Separator) {
 		headingContent = append(headingContent,
-			Rectangle(RectangleCfg{
-				Sizing: FillFixed,
-				Height: 1,
-				Color:  cfg.Style.hRColor,
+			Separator(SeparatorCfg{
+				Color: cfg.Style.hRColor,
 			}))
 	}
 	views = append(views, Column(ContainerCfg{

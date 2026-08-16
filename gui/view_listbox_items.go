@@ -244,17 +244,8 @@ func listBoxItemContent(dat ListBoxOption, cfg ListBoxCfg) View {
 					Text:      dat.Name,
 					TextStyle: cfg.subheadingStyle,
 				}),
-				Row(ContainerCfg{
-					Padding: NoPadding,
-					Sizing:  FillFit,
-					Content: []View{
-						Rectangle(RectangleCfg{
-							Width:  1,
-							Height: 1,
-							Sizing: FillFit,
-							Color:  cfg.subheadingStyle.Color,
-						}),
-					},
+				Separator(SeparatorCfg{
+					Color: cfg.subheadingStyle.Color,
 				}),
 			},
 		})

@@ -302,17 +302,9 @@ func selectSubHeaderView(cfg *SelectCfg, option string) View {
 					}),
 				},
 			}),
-			Row(ContainerCfg{
-				Padding: padTBLR(0, PadMedium),
-				Sizing:  FillFit,
-				Content: []View{
-					Rectangle(RectangleCfg{
-						Width:  1,
-						Height: 1,
-						Sizing: FillFit,
-						Color:  cfg.subheadingStyle.Color,
-					}),
-				},
+			Separator(SeparatorCfg{
+				Color: cfg.subheadingStyle.Color,
+				Inset: NewPadding(0, PadMedium, 0, PadMedium),
 			}),
 		},
 	})

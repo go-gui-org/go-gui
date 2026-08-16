@@ -17,14 +17,11 @@ func safeFloat(v, fallback float32) float32 {
 	return v
 }
 
+// line returns a horizontal divider rule. The theme's divider color
+// applies; the top inset is the demo's breathing room above the rule.
 func line() gui.View {
-	return gui.Row(gui.ContainerCfg{
-		Sizing:     gui.FillFit,
-		Height:     1,
-		Padding:    gui.NewPadding(3, 0, 0, 0),
-		SizeBorder: gui.NoBorder,
-		Radius:     gui.NoRadius,
-		Color:      gui.CurrentTheme().ColorActive,
+	return gui.Separator(gui.SeparatorCfg{
+		Inset: gui.NewPadding(3, 0, 0, 0),
 	})
 }
 
