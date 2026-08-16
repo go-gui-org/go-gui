@@ -11,6 +11,7 @@
 //	go run ./tools/ergonomics-audit/ -mode literals [repo...]
 //	go run ./tools/ergonomics-audit/ -mode theme [repo...]
 //	go run ./tools/ergonomics-audit/ -mode a11y [repo...]
+//	go run ./tools/ergonomics-audit/ -mode visual [repo...]
 //
 // With no repo arguments both modes audit the current directory.
 //
@@ -57,6 +58,12 @@
 // reaches the accessibility tree? It exits non-zero on any finding, so
 // it gates. See a11y.go.
 //
+// Mode visual answers: does widget code still spell a dimming alpha or a
+// type-size step as a literal, when the theme defines named roles for
+// both (issue #335)? It scans gui/view_*.go and exits non-zero on any
+// unmarked finding, so it gates. See visual.go for what counts and how to
+// mark an exception.
+//
 // All modes parse with go/ast: composite literals and func literals
 // span lines, and regex cannot bracket-match them.
 package main
@@ -76,7 +83,7 @@ import (
 var listShape *string
 
 func main() {
-	mode := flag.String("mode", "focus", "audit to run: focus | callbacks | ids | opt | literals | theme | a11y")
+	mode := flag.String("mode", "focus", "audit to run: focus | callbacks | ids | opt | literals | theme | a11y | visual")
 	guiRoot := flag.String("gui", ".", "path to the go-gui repo (source of truth for mode=focus)")
 	listShape = flag.String("list", "", "mode=callbacks: also list distinct signatures of this shape, or \"all\"")
 	fix := flag.Bool("fix", false, "mode=focus: rewrite broken literals in place, adding a generated ID")
@@ -118,8 +125,10 @@ func main() {
 		err = runTheme(repos)
 	case "a11y":
 		err = runA11Y(repos)
+	case "visual":
+		err = runVisual(repos)
 	default:
-		err = fmt.Errorf("unknown -mode %q (want focus, callbacks, ids, opt, literals, theme or a11y)", *mode)
+		err = fmt.Errorf("unknown -mode %q (want focus, callbacks, ids, opt, literals, theme, a11y or visual)", *mode)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "ergonomics-audit:", err)

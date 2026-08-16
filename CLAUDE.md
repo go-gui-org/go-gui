@@ -13,7 +13,7 @@ git config core.hooksPath .githooks  # enable tracked pre-commit/pre-push hooks
 make test                       # tests only
 make lint                       # golangci-lint (pinned version)
 make vet                        # go vet + requiredid analyzer
-make ergonomics-audit                 # focus/callbacks inventory + ID/a11y composition
+make ergonomics-audit                 # focus/callbacks inventory + ID/a11y/theme/visual gates
 make export-audit               # exported surface (advisory in-repo)
 ./scripts/large-files.sh        # report Go files >800 lines in gui/
 ```
@@ -163,7 +163,9 @@ over the `ColorSet`**, so existing code keeps its appearance when a set arrives.
 **Never spell a de-emphasis alpha, a label's size step, or a form control's text
 inset at a call site.** Each has one named source; a literal there is the
 divergence issue #335 measured and removed
-(`docs/specs/widget-visual-consistency-audit.md`).
+(`docs/specs/widget-visual-consistency-audit.md`). The _when_ — which role
+each decision takes, and when a deviation may carry the marker — is
+`docs/style-guide.md`, enforced by `ergonomics-audit -mode visual`.
 
 - **Quiet text** takes one of four `Theme` roles — `TextStyleSecondary`,
   `TextStyleLabel`, `TextStyleDisabled`, `TextStylePlaceholder`

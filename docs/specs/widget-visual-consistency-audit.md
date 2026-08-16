@@ -331,30 +331,38 @@ like should be recorded, not read.
 What this branch changed, per axis. The measurements above describe the state at
 `b6adf899` and are kept as the "before"; this section is the "after".
 
-| §   | Axis              | Outcome                                                   |
-| --- | ----------------- | --------------------------------------------------------- |
-| 1   | Dimming           | closed — four named roles, per-theme and contrast-matched |
-| 2   | Type steps        | partly — label step is a role; DockLayout bypass fixed    |
-| 3   | Field labels      | closed — `Label` on all eight, one shared convention      |
-| 4   | Spacing           | untouched                                                 |
-| 5   | Borders           | untouched, by decision                                    |
-| 6   | Interaction state | partly — focus rings for the four that could take one     |
-| 7   | Density           | closed — one field-inset tier, two latent bugs fixed      |
+| §   | Axis              | Outcome                                                              |
+| --- | ----------------- | -------------------------------------------------------------------- |
+| 1   | Dimming           | closed — four named roles, per-theme and contrast-matched            |
+| 2   | Type steps        | mostly — full ladder exported, mono +1 documented, two steps tracked |
+| 3   | Field labels      | closed — `Label` on all eight, one shared convention                 |
+| 4   | Spacing           | untouched                                                            |
+| 5   | Borders           | untouched, by decision                                               |
+| 6   | Interaction state | partly — focus rings for the four that could take one                |
+| 7   | Density           | closed — one field-inset tier, two latent bugs fixed                 |
 
 ### Left open
 
 - **§1.1.2** — widgets that never themed their disabled text still lean on
   `dimAlpha`. Correct on dark, 22 alpha short on light.
-- **§2** — `N5`, `N6` and `i4` stay unexported; the mono ladder's `+1` baseline
-  offset is still undocumented at the call site; `view_color_fields.go` and
-  `view_input_numeric.go` still floor an inline size step at two different
-  values.
+- **§2** — the export half is closed: every ladder rung is exported (the
+  `N1`..`N6`, `B1`..`B6`, `I1`..`I6`, `BI1`..`BI6`, `M1`..`M6`, `Icon1`..`Icon6`
+  sets), and the mono `+1` is documented at the declaration in `ThemeMaker`.
+  `ColorFields`' label now steps through the `TextStyleLabel` role, so that call
+  site is gone. Two arithmetic steps remain, both marked and both stepping from
+  a caller-supplied size that lands on no rung: the roller's `+2` center
+  emphasis, and `NumericInput`'s `Size-4` triangle. The triangle's magic floor
+  `8` is gone — it is bounded by `N6.Size` below and the field text above — but
+  naming the bounds does not name the step. Closing these needs a
+  ladder-relative "one rung down from an arbitrary size" operation the ladder
+  does not currently offer.
 - **§4** — `SpacingLarge` still has no caller inside `gui/`, and about ten magic
   spacings still bypass the ladder.
 - **§6** — `ColorSet` still reaches only 5 of ~18 interactive widgets. `Table`,
   `ColorSwatch` and the `ExpandPanel` header are not focusable at all, so a
   focus ring there needs keyboard navigation designed first (§6.1).
-- **#335 steps 3 and 4** — `docs/style-guide.md` (the _when_, citing roles
-  rather than values) and `ergonomics-audit -mode visual` to gate raw dimming
-  and size-step literals in `gui/view_*.go`. The gate needs the deferred-marker
-  shape from the `theme` mode so the §1.2 ramps can be marked.
+- **#335 steps 3 and 4** — closed: `docs/style-guide.md` (the _when_, citing
+  roles rather than values) and `ergonomics-audit -mode visual`, which gates raw
+  dimming and size-step literals in `gui/view_*.go`. The §1.2 ramps and the two
+  §2 size steps carry the deferred marker (`ergonomics-audit:visual`), so the
+  exemptions are visible in every audit run.

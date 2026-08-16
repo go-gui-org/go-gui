@@ -10,8 +10,8 @@ func iconStyleFamilies(theme Theme) []string {
 		theme.Icon2.Family,
 		theme.Icon3.Family,
 		theme.Icon4.Family,
-		theme.icon5.Family,
-		theme.icon6.Family,
+		theme.Icon5.Family,
+		theme.Icon6.Family,
 		theme.treeStyle.textStyleIcon.Family,
 	}
 }
@@ -76,8 +76,8 @@ func TestThemeMakerIconFamilyDoesNotLeak(t *testing.T) {
 	theme := ThemeMaker(cfg)
 
 	text := map[string]TextStyle{
-		"I3": theme.I3, "I6": theme.i6,
-		"BI3": theme.BI3, "BI6": theme.bI6,
+		"I3": theme.I3, "I6": theme.I6,
+		"BI3": theme.BI3, "BI6": theme.BI6,
 	}
 	for name, s := range text {
 		if s.Family != "mytextfamily" {
@@ -321,5 +321,72 @@ func TestThemeMakerZeroCfg(t *testing.T) {
 	}
 	if theme.separatorStyle.Size != 1 {
 		t.Errorf("separatorStyle.Size = %f, want 1", theme.separatorStyle.Size)
+	}
+}
+
+// TestThemeMakerLadderGrid locks the closed 6x6 ladder (issue #343):
+// every rung of every face is populated, rungs ascend N1..N6 within a
+// face, the roman faces share one size scale, and the mono face sits
+// +1 above it. A zero rung or a drifted mono offset would otherwise
+// render silently and surface nowhere.
+func TestThemeMakerLadderGrid(t *testing.T) {
+	type face struct {
+		name string
+		runs [6]TextStyle
+	}
+	faces := []face{
+		{"N", [6]TextStyle{ThemeDark.N1, ThemeDark.N2, ThemeDark.N3, ThemeDark.N4, ThemeDark.N5, ThemeDark.N6}},
+		{"B", [6]TextStyle{ThemeDark.B1, ThemeDark.B2, ThemeDark.B3, ThemeDark.B4, ThemeDark.B5, ThemeDark.B6}},
+		{"I", [6]TextStyle{ThemeDark.I1, ThemeDark.I2, ThemeDark.I3, ThemeDark.I4, ThemeDark.I5, ThemeDark.I6}},
+		{"BI", [6]TextStyle{ThemeDark.BI1, ThemeDark.BI2, ThemeDark.BI3, ThemeDark.BI4, ThemeDark.BI5, ThemeDark.BI6}},
+		{"Icon", [6]TextStyle{ThemeDark.Icon1, ThemeDark.Icon2, ThemeDark.Icon3, ThemeDark.Icon4, ThemeDark.Icon5, ThemeDark.Icon6}},
+		{"M", [6]TextStyle{ThemeDark.M1, ThemeDark.M2, ThemeDark.M3, ThemeDark.M4, ThemeDark.M5, ThemeDark.M6}},
+	}
+
+	// The canonical roman scale the other faces must match, rung by rung.
+	nSizes := [6]float32{
+		ThemeDark.N1.Size, ThemeDark.N2.Size, ThemeDark.N3.Size,
+		ThemeDark.N4.Size, ThemeDark.N5.Size, ThemeDark.N6.Size,
+	}
+
+	for _, f := range faces {
+		for i, s := range f.runs {
+			if s.Size <= 0 {
+				t.Errorf("%s%d.Size = %v, want > 0", f.name, i+1, s.Size)
+			}
+		}
+		// Rungs ascend within a face: N1 (xlarge) is the largest.
+		for i := 0; i+1 < len(f.runs); i++ {
+			if f.runs[i].Size <= f.runs[i+1].Size {
+				t.Errorf("%s%d.Size = %v, want > %s%d (%v)",
+					f.name, i+1, f.runs[i].Size,
+					f.name, i+2, f.runs[i+1].Size)
+			}
+		}
+	}
+
+	// The roman faces share the N scale at every rung.
+	for _, f := range faces {
+		if f.name == "M" {
+			continue
+		}
+		for rung := range 6 {
+			if f.runs[rung].Size != nSizes[rung] {
+				t.Errorf("%s%d.Size = %v, want N%d %v",
+					f.name, rung+1, f.runs[rung].Size, rung+1, nSizes[rung])
+			}
+		}
+	}
+
+	// The mono face sits +1 above the roman scale at every rung.
+	mSizes := [6]float32{
+		ThemeDark.M1.Size, ThemeDark.M2.Size, ThemeDark.M3.Size,
+		ThemeDark.M4.Size, ThemeDark.M5.Size, ThemeDark.M6.Size,
+	}
+	for rung := range 6 {
+		if mSizes[rung] != nSizes[rung]+1 {
+			t.Errorf("M%d.Size = %v, want N%d+1 %v",
+				rung+1, mSizes[rung], rung+1, nSizes[rung]+1)
+		}
 	}
 }

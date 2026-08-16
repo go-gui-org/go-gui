@@ -78,54 +78,40 @@ type Theme struct {
 	// The four are the vocabulary an app styles its own widgets with.
 	// Unexporting any would leave an app unable to match the toolkit's
 	// own de-emphasis, which is the divergence #335 exists to end.
-
+	//
 	// exportaudit:keep — public styling vocabulary (see above).
-	TextStyleSecondary TextStyle
-	// exportaudit:keep — public styling vocabulary (see above).
-	TextStyleLabel TextStyle
-	// exportaudit:keep — public styling vocabulary (see above).
-	TextStyleDisabled TextStyle
-	// exportaudit:keep — public styling vocabulary (see above).
-	TextStylePlaceholder TextStyle
+	TextStyleSecondary, TextStyleLabel, TextStyleDisabled, TextStylePlaceholder TextStyle
 
 	// Text size shortcuts (N = normal, B = bold,
 	// I = italic, M = mono, BI = bold+italic).
-	N1    TextStyle
-	N2    TextStyle
-	N3    TextStyle
-	N4    TextStyle
-	N5    TextStyle
-	N6    TextStyle
-	B1    TextStyle
-	B2    TextStyle
-	B3    TextStyle
-	B4    TextStyle
-	B5    TextStyle
-	B6    TextStyle
-	i1    TextStyle
-	i2    TextStyle
-	I3    TextStyle
-	i4    TextStyle
-	i5    TextStyle
-	i6    TextStyle
-	bI1   TextStyle
-	bI2   TextStyle
-	BI3   TextStyle
-	bI4   TextStyle
-	bI5   TextStyle
-	bI6   TextStyle
-	M1    TextStyle
-	M2    TextStyle
-	M3    TextStyle
-	M4    TextStyle
-	M5    TextStyle
-	M6    TextStyle
-	Icon1 TextStyle
-	Icon2 TextStyle
-	Icon3 TextStyle
-	Icon4 TextStyle
-	icon5 TextStyle
-	icon6 TextStyle
+	//
+	// The rungs are the toolkit's shorthand for the two dimensions a
+	// caller actually chooses — face and size — so a widget names one
+	// handle instead of filling in a whole TextStyle. Read them the way
+	// HTML's h1..h6 are read: the number is the step, not a measurement.
+	//
+	// The set is a closed 6x6 grid, and every cell is exported because a
+	// half-exported grid is a broken vocabulary: bold-small reachable
+	// and italic-small not is an accident of which cell a widget in this
+	// repo happened to need first. Completeness is the design here, so
+	// "no caller yet" is not the test for whether a rung belongs.
+	//
+	// The M ladder sits +1 above the roman ladder at every rung (M4 is
+	// 15 where N4 is 14); see ThemeMaker.
+	//
+	// Declared one face per line so a single keep marker covers the
+	// face: exportaudit reads the marker off the field declaration, and
+	// every name on that line shares it.
+	N1, N2, N3, N4, N5, N6 TextStyle
+	B1, B2, B3, B4, B5, B6 TextStyle
+	// exportaudit:keep — closed grid, exported for completeness (see above).
+	I1, I2, I3, I4, I5, I6 TextStyle
+	// exportaudit:keep — closed grid, exported for completeness (see above).
+	BI1, BI2, BI3, BI4, BI5, BI6 TextStyle
+	// exportaudit:keep — closed grid, exported for completeness (see above).
+	M1, M2, M3, M4, M5, M6 TextStyle
+	// exportaudit:keep — closed grid, exported for completeness (see above).
+	Icon1, Icon2, Icon3, Icon4, Icon5, Icon6 TextStyle
 
 	// Per-widget styles.
 	ButtonStyle         buttonStyle

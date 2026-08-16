@@ -196,13 +196,21 @@ func rollerDrum(
 
 		itemTS := ts
 		if offset == 0 {
-			itemTS.Size = ts.Size + 2
+			// The drum's center item pops one optical step above the
+			// rest. It tracks the configured style rather than a fixed
+			// rung, and the ladder's own rungs are non-uniform (+2 at
+			// the small end, +4 above medium), so no named step equals
+			// this at every size — the +2 is deliberate drum emphasis,
+			// not a type step (issue #335 §2).
+			itemTS.Size = ts.Size + 2 // ergonomics-audit:visual
 		} else {
 			dist := offset
 			if dist < 0 {
 				dist = -dist
 			}
-			alpha := uint8(150)
+			// Audit §1.2: the roller distance ramp is exempt from the
+			// dimming roles — it is a ramp, not a de-emphasis.
+			alpha := uint8(150) // ergonomics-audit:visual
 			if dist > 1 {
 				alpha = 80
 			}

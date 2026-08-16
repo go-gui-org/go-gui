@@ -59,7 +59,7 @@ func inspectorPropsNodes(p inspectorNodeProps) []TreeNodeCfg {
 	}
 	// Icon5 is the XSmall themed icon style, so it already carries the
 	// theme's icon family (app-overridable via ThemeCfg.IconFontFamily).
-	pis := guiTheme.icon5
+	pis := guiTheme.Icon5
 	pis.Color = propColor
 
 	nodes := make([]TreeNodeCfg, 0, 16)
