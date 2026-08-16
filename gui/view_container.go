@@ -260,7 +260,11 @@ func addGroupBoxTitle(title string, titleBG, colorBorder Color,
 
 	textColor := colorBorder
 	if disabled {
-		textColor = dimAlpha(textColor)
+		// The title shapes are Float and leave the main tree in
+		// layoutRemoveFloatingLayouts, so layoutDisables never
+		// stamps them: the disabled amount has to be applied here,
+		// not at render (issue #341).
+		textColor = guiTheme.disabledTextColor(textColor)
 	}
 	ts.Color = textColor
 	textShape := Shape{

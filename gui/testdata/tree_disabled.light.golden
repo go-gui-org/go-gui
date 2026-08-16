@@ -1,0 +1,6 @@
+Text xy=15.00,12.00 wh=0.00,0.00 color=#20202095 text="  " size=14.00
+Text xy=33.00,12.00 wh=0.00,0.00 color=#20202095 text=" " size=14.00
+Text xy=51.00,12.00 wh=0.00,0.00 color=#20202095 text="Alpha" size=16.00
+Text xy=15.00,38.40 wh=0.00,0.00 color=#20202095 text="  " size=14.00
+Text xy=33.00,38.40 wh=0.00,0.00 color=#20202095 text=" " size=14.00
+Text xy=51.00,38.40 wh=0.00,0.00 color=#20202095 text="Beta" size=16.00

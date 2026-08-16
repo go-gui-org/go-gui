@@ -138,6 +138,36 @@ func themeTextRoles(cfg ThemeCfg, base TextStyle, labelSize float32) (
 	return secondary, label, disabled, placeholder
 }
 
+// disabledTextColor is the color disabled text takes when its own base
+// color is base: base's hue at the theme's disabled amount.
+//
+// Unexported on purpose. The role reaches downstream widgets without
+// this seam: they build Shapes, layoutDisables stamps the state, and
+// renderText asks the theme for them — so a caller outside gui/ has
+// nothing to ask. Export it when something outside the shape pipeline
+// needs the amount, not before.
+//
+// The amount is the theme's decision — per-theme and contrast-matched
+// (see textRolesFor) — so a caller never spells it. The renderer asks
+// this question for text shapes stamped Disabled, which is how a
+// widget that never themed its disabled text still lands on the role
+// instead of dimAlpha's theme-blind halving (issue #341). Factories
+// composing the same state at generation time use withRoleAlpha with
+// TextStyleDisabled, which also carries the disabledRole marker this
+// color answer cannot.
+//
+// base's own alpha is deliberately discarded, not multiplied: the role
+// is an absolute amount of de-emphasis, and one disabled control reads
+// as one amount of dead — a translucent base is therefore raised to the
+// role, not quieted twice. The consequence to know about is at the
+// renderText call site, where a shape's Opacity has already been folded
+// into base: a disabled text shape ignores its Opacity. Fade a disabled
+// text shape by animating the color itself, or by fading a parent whose
+// own text is not stamped Disabled.
+func (t Theme) disabledTextColor(base Color) Color {
+	return RGBA(base.R, base.G, base.B, t.TextStyleDisabled.Color.A)
+}
+
 // inspectorStyleFor returns the inspector palette for a theme, with its
 // help text taken from the secondary role.
 //

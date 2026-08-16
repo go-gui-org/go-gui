@@ -167,6 +167,40 @@ func TestWithRoleAlphaKeepsHue(t *testing.T) {
 	}
 }
 
+// disabledTextColor is the render-time companion to withRoleAlpha: the
+// renderer asks the theme for the disabled amount of a caller-supplied
+// base color. It must keep the hue, take the role's alpha, and reflect
+// an explicit ColorTextDisabled override — and the light theme must ask
+// for more, not less, than the dark one.
+func TestDisabledTextColor(t *testing.T) {
+	base := RGBA(200, 50, 5, 255)
+	for _, th := range []Theme{ThemeDark, ThemeLight} {
+		got := th.disabledTextColor(base)
+		if got.R != 200 || got.G != 50 || got.B != 5 {
+			t.Errorf("%s: hue = %v, want the base's own", th.Name, got)
+		}
+		if got.A != th.TextStyleDisabled.Color.A {
+			t.Errorf("%s: alpha = %d, want the role's %d",
+				th.Name, got.A, th.TextStyleDisabled.Color.A)
+		}
+	}
+	if ThemeLight.disabledTextColor(base).A <=
+		ThemeDark.disabledTextColor(base).A {
+		t.Error("light asks for no more alpha than dark; " +
+			"the light-theme contrast gap of #341 is back")
+	}
+
+	cfg := baseCfg()
+	cfg.ColorBackground = RGB(48, 48, 48)
+	cfg.TextStyleDef = DefaultTextStyle
+	want := RGBA(10, 20, 30, 200)
+	cfg.ColorTextDisabled = want
+	th := ThemeMaker(cfg)
+	if got := th.disabledTextColor(base); got.A != 200 {
+		t.Errorf("override: alpha = %d, want the configured 200", got.A)
+	}
+}
+
 // Form density: the point of the field-inset tier is that controls in
 // one row line up. Input, Select and Combobox each picked their own
 // inset, which made a Select six pixels taller than the Input beside it

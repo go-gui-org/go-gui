@@ -1,0 +1,5 @@
+Rect xy=23.00,23.00 wh=118.60,31.40 color=#4a4a4a7f radius=5.50 fill
+StrokeRect xy=23.00,23.00 wh=118.60,31.40 color=#6464647f radius=5.50 thickness=1.50
+Clip xy=29.50,27.50 wh=105.60,22.40
+Text xy=29.50,27.50 wh=0.00,0.00 color=#e1e1e180 text="typed value" size=16.00
+Clip xy=0.00,0.00 wh=320.00,240.00

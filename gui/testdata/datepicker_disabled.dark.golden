@@ -1,0 +1,49 @@
+Rect xy=11.50,11.50 wh=277.00,287.20 color=#4a4a4a7f radius=5.50 fill
+StrokeRect xy=11.50,11.50 wh=277.00,287.20 color=#6464647f radius=5.50 thickness=1.50
+Text xy=25.50,25.50 wh=0.00,0.00 color=#e1e1e180 text="August 2026" size=16.00
+Text xy=230.30,25.50 wh=0.00,0.00 color=#e1e1e180 text="\uf101" size=16.00
+Text xy=264.90,25.50 wh=0.00,0.00 color=#e1e1e180 text="\uf102" size=16.00
+Text xy=31.20,60.40 wh=0.00,0.00 color=#e1e1e180 text="S" size=16.00
+Text xy=69.20,60.40 wh=0.00,0.00 color=#e1e1e180 text="M" size=16.00
+Text xy=107.20,60.40 wh=0.00,0.00 color=#e1e1e180 text="T" size=16.00
+Text xy=145.20,60.40 wh=0.00,0.00 color=#e1e1e180 text="W" size=16.00
+Text xy=183.20,60.40 wh=0.00,0.00 color=#e1e1e180 text="T" size=16.00
+Text xy=221.20,60.40 wh=0.00,0.00 color=#e1e1e180 text="F" size=16.00
+Text xy=259.20,60.40 wh=0.00,0.00 color=#e1e1e180 text="S" size=16.00
+Text xy=31.20,92.30 wh=0.00,0.00 color=#e1e1e180 text=" " size=16.00
+Text xy=69.20,92.30 wh=0.00,0.00 color=#e1e1e180 text=" " size=16.00
+Text xy=107.20,92.30 wh=0.00,0.00 color=#e1e1e180 text=" " size=16.00
+Text xy=145.20,92.30 wh=0.00,0.00 color=#e1e1e180 text=" " size=16.00
+Text xy=183.20,92.30 wh=0.00,0.00 color=#e1e1e180 text=" " size=16.00
+Text xy=221.20,92.30 wh=0.00,0.00 color=#e1e1e180 text=" " size=16.00
+Text xy=259.20,92.80 wh=0.00,0.00 color=#e1e1e180 text="1" size=16.00
+Text xy=31.20,127.20 wh=0.00,0.00 color=#e1e1e180 text="2" size=16.00
+Text xy=69.20,127.20 wh=0.00,0.00 color=#e1e1e180 text="3" size=16.00
+Text xy=107.20,127.20 wh=0.00,0.00 color=#e1e1e180 text="4" size=16.00
+Text xy=145.20,127.20 wh=0.00,0.00 color=#e1e1e180 text="5" size=16.00
+Text xy=183.20,127.20 wh=0.00,0.00 color=#e1e1e180 text="6" size=16.00
+Text xy=221.20,127.20 wh=0.00,0.00 color=#e1e1e180 text="7" size=16.00
+Text xy=259.20,127.20 wh=0.00,0.00 color=#e1e1e180 text="8" size=16.00
+Text xy=31.20,161.60 wh=0.00,0.00 color=#e1e1e180 text="9" size=16.00
+Text xy=64.40,161.60 wh=0.00,0.00 color=#e1e1e180 text="10" size=16.00
+Text xy=102.40,161.60 wh=0.00,0.00 color=#e1e1e180 text="11" size=16.00
+Text xy=140.40,161.60 wh=0.00,0.00 color=#e1e1e180 text="12" size=16.00
+Text xy=178.40,161.60 wh=0.00,0.00 color=#e1e1e180 text="13" size=16.00
+Text xy=216.40,161.60 wh=0.00,0.00 color=#e1e1e180 text="14" size=16.00
+Rect xy=246.00,156.60 wh=36.00,32.40 color=#4169e17f radius=5.50 fill
+Text xy=254.40,161.60 wh=0.00,0.00 color=#e1e1e180 text="15" size=16.00
+StrokeRect xy=18.00,191.00 wh=36.00,32.40 color=#e1e1e17f radius=5.50 thickness=2.00
+Text xy=26.40,196.00 wh=0.00,0.00 color=#e1e1e180 text="16" size=16.00
+Text xy=64.40,196.00 wh=0.00,0.00 color=#e1e1e180 text="17" size=16.00
+Text xy=102.40,196.00 wh=0.00,0.00 color=#e1e1e180 text="18" size=16.00
+Text xy=140.40,196.00 wh=0.00,0.00 color=#e1e1e180 text="19" size=16.00
+Text xy=178.40,196.00 wh=0.00,0.00 color=#e1e1e180 text="20" size=16.00
+Text xy=216.40,196.00 wh=0.00,0.00 color=#e1e1e180 text="21" size=16.00
+Text xy=254.40,196.00 wh=0.00,0.00 color=#e1e1e180 text="22" size=16.00
+Text xy=26.40,230.40 wh=0.00,0.00 color=#e1e1e180 text="23" size=16.00
+Text xy=64.40,230.40 wh=0.00,0.00 color=#e1e1e180 text="24" size=16.00
+Text xy=102.40,230.40 wh=0.00,0.00 color=#e1e1e180 text="25" size=16.00
+Text xy=140.40,230.40 wh=0.00,0.00 color=#e1e1e180 text="26" size=16.00
+Text xy=178.40,230.40 wh=0.00,0.00 color=#e1e1e180 text="27" size=16.00
+Text xy=216.40,230.40 wh=0.00,0.00 color=#e1e1e180 text="28" size=16.00
+Text xy=254.40,230.40 wh=0.00,0.00 color=#e1e1e180 text="29" size=16.00
