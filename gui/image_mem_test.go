@@ -74,6 +74,8 @@ func TestUseImageRejectsBadBuffers(t *testing.T) {
 		{"negative height", "k", 1, -1, nil},
 		{"short buffer", "k", 4, 4, pixels(2, 2, 0)},
 		{"long buffer", "k", 2, 2, pixels(4, 4, 0)},
+		{"oversized dimension", "k", maxMemImageDim + 1, 1, pixels(1, 1, 0)},
+		{"wrapping dimension", "k", 1 << 30, 1 << 30, pixels(1, 1, 0)},
 	}
 	for _, tc := range cases {
 		if got := UseImage(tc.key, tc.w, tc.h, tc.pix); got != "" {

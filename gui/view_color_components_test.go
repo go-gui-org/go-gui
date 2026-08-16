@@ -284,6 +284,42 @@ func TestColorPickerNoDuplicateIDs(t *testing.T) {
 	}
 }
 
+// The marker must sit on the color it names: its centre lands at the
+// value's point on the plane, in the plane's own coordinates. AmendLayout
+// positions it in absolute space, and a mis-mapped control drifts the
+// thumb off the color it reports — the failure mode the inset-mapping
+// tests exist to catch on the slider.
+func TestColorPlaneMarkerTracksValue(t *testing.T) {
+	w := &Window{}
+	const size float32 = 100
+	v := HSLA{H: 210, S: 0.7, L: 0.55, A: 1}
+	l := w.TestRender(func(*Window) View {
+		return ColorPlane(ColorPlaneCfg{ID: "p", Value: v, Size: size})
+	})
+
+	var marker *Shape
+	var walk func(*Layout)
+	walk = func(n *Layout) {
+		if s := n.Shape; s != nil && s.Float {
+			marker = s
+		}
+		for i := range n.Children {
+			walk(&n.Children[i])
+		}
+	}
+	walk(l)
+	if marker == nil {
+		t.Fatal("no marker shape")
+	}
+	r := marker.Width / 2
+	wantX := v.S*size - r
+	wantY := (1-v.L)*size - r
+	if f32Abs(marker.X-wantX) > 0.1 || f32Abs(marker.Y-wantY) > 0.1 {
+		t.Errorf("marker at %v,%v, want %v,%v",
+			marker.X, marker.Y, wantX, wantY)
+	}
+}
+
 // The thumb must select the color under its centre, which is what the
 // inset mapping buys.
 func TestTrackFraction(t *testing.T) {

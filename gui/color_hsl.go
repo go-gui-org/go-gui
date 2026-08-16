@@ -27,7 +27,23 @@ type HSLA struct {
 // Normalized returns v with H wrapped into [0, 360) and S, L, A
 // clamped to [0, 1]. Conversions call it, so callers may hand over raw
 // pointer-derived values.
+//
+// Non-finite components become zero rather than surviving into color
+// math: f32Clamp lets NaN through (both comparisons are false), and a
+// NaN hue or saturation would corrupt every pixel it reaches.
 func (v HSLA) Normalized() HSLA {
+	if !f32IsFinite(v.H) {
+		v.H = 0
+	}
+	if !f32IsFinite(v.S) {
+		v.S = 0
+	}
+	if !f32IsFinite(v.L) {
+		v.L = 0
+	}
+	if !f32IsFinite(v.A) {
+		v.A = 0
+	}
 	h := f32Mod(v.H, 360)
 	if h < 0 {
 		h += 360
@@ -55,21 +71,8 @@ func (v HSLA) Color() Color {
 	x := c * (1 - f32Abs(f32Mod(hh, 2)-1))
 	m := n.L - c/2
 
-	var r, g, b float32
-	switch {
-	case hh < 1:
-		r, g = c, x
-	case hh < 2:
-		r, g = x, c
-	case hh < 3:
-		g, b = c, x
-	case hh < 4:
-		g, b = x, c
-	case hh < 5:
-		r, b = x, c
-	default:
-		r, b = c, x
-	}
+	// Same sector geometry as the HSV conversion; see sectorRGB.
+	r, g, b := sectorRGB(hh, c, x)
 	return RGBA(
 		uint8((r+m)*255+0.5),
 		uint8((g+m)*255+0.5),

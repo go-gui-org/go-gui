@@ -124,6 +124,36 @@ func TestRenderToPDF_ImageMissing(t *testing.T) {
 	assertPDFExists(t, j.OutputPath)
 }
 
+// A mem: source embeds a registered buffer as PNG rather than reading
+// a file. It must render without a path, and the same resource drawn
+// twice must not re-encode it (the GetImageInfo dedup branch).
+func TestRenderToPDF_MemImage(t *testing.T) {
+	j := testPrintJob(t)
+	resetMemImages(t)
+	src := UseImage("pdf/checker", 8, 8, pixels(8, 8, 0x7f))
+	cmds := []RenderCmd{
+		{Kind: RenderImage, X: 0, Y: 0, W: 100, H: 100, Resource: src},
+		{Kind: RenderImage, X: 150, Y: 0, W: 50, H: 50, Resource: src},
+	}
+	if err := renderToPDF(cmds, j, 800, 600); err != nil {
+		t.Fatal(err)
+	}
+	assertPDFExists(t, j.OutputPath)
+}
+
+// An unregistered mem: key must skip the draw, not panic the render.
+func TestRenderToPDF_MemImageMissing(t *testing.T) {
+	j := testPrintJob(t)
+	cmds := []RenderCmd{{
+		Kind: RenderImage, X: 0, Y: 0, W: 100, H: 100,
+		Resource: "mem:pdf/nope",
+	}}
+	if err := renderToPDF(cmds, j, 800, 600); err != nil {
+		t.Fatal(err)
+	}
+	assertPDFExists(t, j.OutputPath)
+}
+
 func TestRenderToPDF_ClipBeginEnd(t *testing.T) {
 	j := testPrintJob(t)
 	cmds := []RenderCmd{

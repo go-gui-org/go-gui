@@ -54,6 +54,25 @@ func TestColorPickerShowHSVStillAddsRow(t *testing.T) {
 	}
 }
 
+// FocusDisabled must reach the focusable parts of the composition — the
+// plane and the two sliders — or a picker opted out of focus still joins
+// the tab order three times over. The text fields' inputs stay focusable:
+// they always were, under the old picker too.
+func TestColorPickerFocusDisabledPropagates(t *testing.T) {
+	w := &Window{}
+	l := generateViewLayout(ColorPicker(ColorPickerCfg{
+		ID: "cp-fd", Color: RGB(0, 128, 255), FocusDisabled: true,
+	}), w)
+
+	for _, id := range []string{"cp-fd:plane", "cp-fd:hue", "cp-fd:alpha"} {
+		if s := findShapeByID(&l, id); s == nil {
+			t.Fatalf("missing shape %q", id)
+		} else if s.Shape.Focusable {
+			t.Errorf("%q still focusable under FocusDisabled", id)
+		}
+	}
+}
+
 func TestColorPickerDefaults(t *testing.T) {
 	cfg := ColorPickerCfg{}
 	applyColorPickerDefaults(&cfg)
@@ -168,7 +187,7 @@ func TestColorPickerPlaneFitsFields(t *testing.T) {
 
 	thick := f32Max(style.sliderHeight, style.indicatorSize)
 	top := size + 2*(thick+colorPickerPlaneGap)
-	fields := float32(4*defaultColorFieldWidth + 3*SpacingSmall)
+	fields := colorFieldsBlockWidth()
 	if top != fields {
 		t.Errorf("top row = %v, fields row = %v; want equal",
 			top, fields)

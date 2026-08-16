@@ -122,15 +122,10 @@ func (wv *colorWheelView) GenerateLayout(w *Window) Layout {
 func colorWheelKeys(
 	v HSLA, onChange func(HSLA, EventCtx),
 ) func(EventCtx) {
-	return func(ctx EventCtx) {
-		dx, dy, ok := colorKeyDelta(ctx.Event)
-		if !ok || onChange == nil {
-			return // not ours: let it travel on
-		}
-		out := v
-		out.H = v.H + dx*360
-		out.S = f32Clamp(v.S-dy, 0, 1)
-		onChange(out.Normalized(), ctx)
-		ctx.Consume()
-	}
+	return colorArrowKeys(v, onChange,
+		func(v HSLA, dx, dy float32) HSLA {
+			v.H += dx * 360
+			v.S = f32Clamp(v.S-dy, 0, 1)
+			return v.Normalized()
+		})
 }

@@ -36,6 +36,11 @@ const memImagePrefix = "mem:"
 // drag from growing memory without limit.
 const defaultMemImageBudget = 32 << 20 // 32 MiB
 
+// maxMemImageDim caps one registered buffer's edge, in pixels. 4096 is
+// beyond any generated control imagery and keeps the dimension × 4 byte
+// count far below int overflow on every platform.
+const maxMemImageDim = 4096
+
 // memImage is one registered buffer. Pix is NRGBA8, straight (non-
 // premultiplied) alpha, W*H*4 bytes, matching imgload.DecodeNRGBA so
 // backends upload it with no conversion.
@@ -84,6 +89,15 @@ var memImages = memImageRegistry{budget: defaultMemImageBudget}
 // can draw imagery gradients cannot express.
 func UseImage(key string, w, h int, pix []byte) string {
 	if key == "" || w <= 0 || h <= 0 || len(pix) != w*h*4 {
+		return ""
+	}
+	// w*h*4 above is int arithmetic: for dimensions past a few thousand
+	// pixels it can wrap, passing the length check with a corrupt
+	// stride. The cap bounds the wrapped product below int64 range on
+	// every platform, and the int64 comparison then rejects any buffer
+	// whose true byte count does not match its dimensions.
+	if w > maxMemImageDim || h > maxMemImageDim ||
+		int64(w)*int64(h)*4 != int64(len(pix)) {
 		return ""
 	}
 	memImages.mu.Lock()

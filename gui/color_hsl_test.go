@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 func TestHSLAColorPrimaries(t *testing.T) {
 	cases := []struct {
@@ -38,6 +41,25 @@ func TestHSLANormalized(t *testing.T) {
 	}
 	if got := (HSLA{H: 720}).Normalized().H; got != 0 {
 		t.Errorf("720° wrapped to %v, want 0", got)
+	}
+}
+
+// Non-finite components must normalize to zero, not survive into the
+// color math: f32Clamp lets NaN through, and a NaN hue would corrupt
+// every pixel a buffer generator draws.
+func TestHSLANormalizedNonFinite(t *testing.T) {
+	got := HSLA{
+		H: float32(math.NaN()),
+		S: float32(math.Inf(1)),
+		L: float32(math.NaN()),
+		A: float32(math.Inf(-1)),
+	}.Normalized()
+	want := HSLA{0, 0, 0, 0}
+	if got != want {
+		t.Errorf("Normalized() = %+v, want %+v", got, want)
+	}
+	if c := (HSLA{S: float32(math.NaN())}).Normalized().Color(); !c.IsSet() {
+		t.Error("a NaN saturation must not poison Color()")
 	}
 }
 

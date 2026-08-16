@@ -103,26 +103,29 @@ func (cv *colorPickerView) GenerateLayout(w *Window) Layout {
 			Spacing:    Some(colorPickerPlaneGap),
 			Content: []View{
 				ColorPlane(ColorPlaneCfg{
-					ID:       ScopeID(cfg.ID, "plane"),
-					Value:    v,
-					Size:     planeSize,
-					OnChange: onChange,
+					ID:            ScopeID(cfg.ID, "plane"),
+					Value:         v,
+					Size:          planeSize,
+					FocusDisabled: cfg.FocusDisabled,
+					OnChange:      onChange,
 				}),
 				ColorChannelSlider(ColorChannelSliderCfg{
-					ID:       ScopeID(cfg.ID, "hue"),
-					Channel:  ChannelHue,
-					Value:    v,
-					Vertical: true,
-					Height:   planeSize,
-					OnChange: onChange,
+					ID:            ScopeID(cfg.ID, "hue"),
+					Channel:       ChannelHue,
+					Value:         v,
+					Vertical:      true,
+					Height:        planeSize,
+					FocusDisabled: cfg.FocusDisabled,
+					OnChange:      onChange,
 				}),
 				ColorChannelSlider(ColorChannelSliderCfg{
-					ID:       ScopeID(cfg.ID, "alpha"),
-					Channel:  ChannelAlpha,
-					Value:    v,
-					Vertical: true,
-					Height:   planeSize,
-					OnChange: onChange,
+					ID:            ScopeID(cfg.ID, "alpha"),
+					Channel:       ChannelAlpha,
+					Value:         v,
+					Vertical:      true,
+					Height:        planeSize,
+					FocusDisabled: cfg.FocusDisabled,
+					OnChange:      onChange,
 				}),
 			},
 		}),
@@ -194,10 +197,8 @@ const colorPickerMinPlane = 120
 // asking for a small plane is never grown to fill the row.
 func colorPickerPlaneSize(style ColorPickerStyle) float32 {
 	sliderThick := f32Max(style.sliderHeight, style.indicatorSize)
-	// The fields block's own width, mirroring colorRGBARow: four
-	// inputs at the default width with small spacing between them.
-	fieldsW := 4*defaultColorFieldWidth + 3*SpacingSmall
-	size := fieldsW - 2*(sliderThick+colorPickerPlaneGap)
+	// The fields block's own width; see colorFieldsBlockWidth.
+	size := colorFieldsBlockWidth() - 2*(sliderThick+colorPickerPlaneGap)
 	if size > style.sVSize {
 		size = style.sVSize
 	}

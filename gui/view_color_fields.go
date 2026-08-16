@@ -130,7 +130,7 @@ func colorFieldLabelSize(valueSize float32) float32 {
 // flat gray chosen against one background is wrong against the other.
 // The same trick sets placeholder text in ThemeMaker.
 func colorFieldLabelColor(c Color) Color {
-	return RGBA(c.R, c.G, c.B, uint8(float32(c.A)*colorFieldLabelAlpha))
+	return c.WithOpacity(colorFieldLabelAlpha)
 }
 
 func (fv *colorFieldsView) GenerateLayout(w *Window) Layout {
@@ -256,6 +256,33 @@ func colorHexField(
 	})
 }
 
+// colorFieldSpec is one labeled channel input: the label, the current
+// value to show, the scoped ID, and the parse-and-commit closure.
+type colorFieldSpec struct {
+	label string
+	val   int
+	id    string
+	apply func(string, EventCtx)
+}
+
+// colorFieldRow lays out a row of labeled channel inputs. The RGBA and
+// HSL rows share everything except what each column edits, so the
+// difference lives in the specs, not in a second copy of the row.
+func colorFieldRow(cfg *ColorFieldsCfg, pad Padding, specs []colorFieldSpec) View {
+	fields := make([]View, 0, len(specs))
+	for i := range specs {
+		s := &specs[i]
+		fields = append(fields, colorFieldColumn(cfg, pad,
+			s.label, s.val, s.id, s.apply))
+	}
+	return Row(ContainerCfg{
+		Padding:    NoPadding,
+		SizeBorder: NoBorder, // structural; see colorFieldsView
+		Spacing:    Some(SpacingSmall),
+		Content:    fields,
+	})
+}
+
 // colorRGBARow builds the R/G/B/A inputs. They edit the Color the HSLA
 // converts to, then convert back — the one place in these components
 // where a value round-trips through RGBA, because that is exactly what
@@ -268,11 +295,13 @@ func colorRGBARow(
 	vals := [4]uint8{c.R, c.G, c.B, c.A}
 	labels := [4]string{l.strRed, l.strGreen, l.strBlue, l.strAlpha}
 
-	fields := make([]View, 0, 4)
+	specs := make([]colorFieldSpec, 0, 4)
 	for i := range 4 {
-		fields = append(fields, colorFieldColumn(cfg, pad,
-			labels[i], int(vals[i]), ScopeIDN(id, "rgb", i),
-			func(text string, ctx EventCtx) {
+		specs = append(specs, colorFieldSpec{
+			label: labels[i],
+			val:   int(vals[i]),
+			id:    ScopeIDN(id, "rgb", i),
+			apply: func(text string, ctx EventCtx) {
 				n, err := strconv.ParseUint(text, 10, 8)
 				if err != nil || cfg.OnChange == nil {
 					return
@@ -295,14 +324,10 @@ func colorRGBARow(
 					next.H = v.H
 				}
 				cfg.OnChange(next, ctx)
-			}))
+			},
+		})
 	}
-	return Row(ContainerCfg{
-		Padding:    NoPadding,
-		SizeBorder: NoBorder, // structural; see colorFieldsView
-		Spacing:    Some(SpacingSmall),
-		Content:    fields,
-	})
+	return colorFieldRow(cfg, pad, specs)
 }
 
 // colorHSLRow builds the H/S/L inputs, which edit the value directly
@@ -322,12 +347,14 @@ func colorHSLRow(
 		{l.strLightness, int(v.L*100 + 0.5), 100},
 	}
 
-	fields := make([]View, 0, 3)
+	specs := make([]colorFieldSpec, 0, 3)
 	for i := range 3 {
 		f := fs[i]
-		fields = append(fields, colorFieldColumn(cfg, pad,
-			f.label, f.val, ScopeIDN(id, "hsl", i),
-			func(text string, ctx EventCtx) {
+		specs = append(specs, colorFieldSpec{
+			label: f.label,
+			val:   f.val,
+			id:    ScopeIDN(id, "hsl", i),
+			apply: func(text string, ctx EventCtx) {
 				n, err := strconv.Atoi(text)
 				if err != nil || cfg.OnChange == nil {
 					return
@@ -343,14 +370,10 @@ func colorHSLRow(
 					out.L = float32(n) / 100
 				}
 				cfg.OnChange(out, ctx)
-			}))
+			},
+		})
 	}
-	return Row(ContainerCfg{
-		Padding:    NoPadding,
-		SizeBorder: NoBorder, // structural; see colorFieldsView
-		Spacing:    Some(SpacingSmall),
-		Content:    fields,
-	})
+	return colorFieldRow(cfg, pad, specs)
 }
 
 // centeredText centres a copy of a style, leaving the caller's
@@ -391,6 +414,15 @@ func colorFieldPadding(w *Window, style TextStyle) Padding {
 	// the bottom padding cannot cover.
 	bottom := f32Max(colorFieldPadY-shift, 0)
 	return NewPadding(bottom+shift, colorFieldPadX, bottom, colorFieldPadX)
+}
+
+// colorFieldsBlockWidth is the width of a default-configured fields
+// block: four channel inputs at the default width with small spacing
+// between them. The picker's plane-size math mirrors it so the two
+// rows of a composed picker come out the same width, and both sides
+// read one name instead of one hard-coded formula each.
+func colorFieldsBlockWidth() float32 {
+	return 4*defaultColorFieldWidth + 3*SpacingSmall
 }
 
 // colorFieldColumn builds one labeled numeric input.

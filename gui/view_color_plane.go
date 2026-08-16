@@ -116,15 +116,10 @@ func (pv *colorPlaneView) GenerateLayout(w *Window) Layout {
 func colorPlaneKeys(
 	v HSLA, onChange func(HSLA, EventCtx),
 ) func(EventCtx) {
-	return func(ctx EventCtx) {
-		dx, dy, ok := colorKeyDelta(ctx.Event)
-		if !ok || onChange == nil {
-			return // not ours: let it travel on
-		}
-		out := v
-		out.S = f32Clamp(v.S+dx, 0, 1)
-		out.L = f32Clamp(v.L-dy, 0, 1)
-		onChange(out, ctx)
-		ctx.Consume()
-	}
+	return colorArrowKeys(v, onChange,
+		func(v HSLA, dx, dy float32) HSLA {
+			v.S = f32Clamp(v.S+dx, 0, 1)
+			v.L = f32Clamp(v.L-dy, 0, 1)
+			return v
+		})
 }

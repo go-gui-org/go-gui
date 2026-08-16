@@ -220,22 +220,18 @@ func (ch ColorChannel) name() string {
 func colorChannelKeys(
 	ch ColorChannel, v HSLA, onChange func(HSLA, EventCtx),
 ) func(EventCtx) {
-	return func(ctx EventCtx) {
-		dx, dy, ok := colorKeyDelta(ctx.Event)
-		if !ok || onChange == nil {
-			return // not ours: let it travel on
-		}
-		d := dx - dy // up/right increase, down/left decrease
-		span := ch.span()
-		next := ch.value(v) + d*span
-		if ch == ChannelHue {
-			// Hue wraps: stepping past 360 lands back at 0 rather
-			// than sticking at the end of the strip.
-			next = f32Mod(next+360, 360)
-		} else {
-			next = f32Clamp(next, 0, span)
-		}
-		onChange(ch.with(v, next), ctx)
-		ctx.Consume()
-	}
+	return colorArrowKeys(v, onChange,
+		func(v HSLA, dx, dy float32) HSLA {
+			d := dx - dy // up/right increase, down/left decrease
+			span := ch.span()
+			next := ch.value(v) + d*span
+			if ch == ChannelHue {
+				// Hue wraps: stepping past 360 lands back at 0 rather
+				// than sticking at the end of the strip.
+				next = f32Mod(next+360, 360)
+			} else {
+				next = f32Clamp(next, 0, span)
+			}
+			return ch.with(v, next)
+		})
 }

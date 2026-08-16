@@ -61,8 +61,7 @@ const (
 // colorSwatchEdge is the swatch's outline color, dimmed from the
 // theme's own border color.
 func colorSwatchEdge() Color {
-	c := defaultColorPickerStyle.ColorBorder
-	return RGBA(c.R, c.G, c.B, uint8(float32(c.A)*colorSwatchEdgeAlpha))
+	return defaultColorPickerStyle.ColorBorder.WithOpacity(colorSwatchEdgeAlpha)
 }
 
 func (sv *colorSwatchView) GenerateLayout(w *Window) Layout {

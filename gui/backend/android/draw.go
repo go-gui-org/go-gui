@@ -243,40 +243,31 @@ func (b *Backend) drawGradientBorder(r *gui.RenderCmd) {
 }
 
 func (b *Backend) drawImage(r *gui.RenderCmd) {
-	tex, ok := b.resolveMemTexture(r.Resource)
-	if !ok {
-		tex, ok = b.resolvePathTexture(r.Resource)
-	}
+	tex, ok := b.resolveImageTexture(r.Resource)
 	if !ok || tex.id == 0 {
 		return
 	}
 	b.drawImageTex(r, tex)
 }
 
-// resolveMemTexture returns the texture for a mem: source — a buffer
-// in gui's in-memory registry. It has no path, so it skips path
-// resolution and the AllowedImageRoots sandbox (see gui.LookupImage on
-// why that is safe). Cached under the Resource string itself, which
-// callers content-key, so a changed buffer arrives as a new key and
-// never reuses a stale upload.
-func (b *Backend) resolveMemTexture(
-	res string,
-) (glesTexture, bool) {
-	iw, ih, pix, ok := gui.LookupImage(res)
-	if !ok {
-		return glesTexture{}, false
+// resolveImageTexture returns the uploaded texture for a render
+// command's Resource, uploading on first use.
+//
+// A mem: source names a buffer in gui's in-memory registry: it has no
+// path, so it skips path resolution and the AllowedImageRoots sandbox
+// (see gui.LookupImage on why that is safe). The texture is cached
+// under the Resource string itself, which callers content-key, so a
+// changed buffer arrives as a new key and never reuses a stale upload.
+func (b *Backend) resolveImageTexture(res string) (glesTexture, bool) {
+	if iw, ih, pix, ok := gui.LookupImage(res); ok {
+		tex, hit := b.textures.Get(res)
+		if !hit {
+			tex = createGLESTexture(int32(iw), int32(ih), pix)
+			b.textures.Set(res, tex)
+		}
+		return tex, true
 	}
-	tex, hit := b.textures.Get(res)
-	if !hit {
-		tex = createGLESTexture(int32(iw), int32(ih), pix)
-		b.textures.Set(res, tex)
-	}
-	return tex, true
-}
 
-func (b *Backend) resolvePathTexture(
-	res string,
-) (glesTexture, bool) {
 	path := b.ResolveImagePath(res, "android")
 	if path == "-" {
 		return glesTexture{}, false

@@ -100,3 +100,22 @@ func colorKeyDelta(e *Event) (dx, dy float32, ok bool) {
 	}
 	return 0, 0, false
 }
+
+// colorArrowKeys is the key-handling skeleton every color control
+// shares: read the arrow delta, decline anything that is not an arrow
+// (it must travel on — consuming would swallow Tab and trap focus),
+// and consume the event it acted on. apply maps the step to the
+// control's own axes.
+func colorArrowKeys(
+	v HSLA, onChange func(HSLA, EventCtx),
+	apply func(cur HSLA, dx, dy float32) HSLA,
+) func(EventCtx) {
+	return func(ctx EventCtx) {
+		dx, dy, ok := colorKeyDelta(ctx.Event)
+		if !ok || onChange == nil {
+			return // not ours: let it travel on
+		}
+		onChange(apply(v, dx, dy), ctx)
+		ctx.Consume()
+	}
+}
