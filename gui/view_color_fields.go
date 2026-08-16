@@ -102,9 +102,14 @@ func (fv *colorFieldsView) GenerateLayout(w *Window) Layout {
 		cfg: ContainerCfg{
 			ID:      id,
 			Padding: NoPadding,
-			Spacing: Some(SpacingSmall),
-			axis:    axisTopToBottom,
-			A11YCfg: cfg.A11YCfg,
+			// Structural: these containers group fields, they are not
+			// boxes. Without opting out they inherit the theme border
+			// under a bordered theme, and every nesting level then adds
+			// its width to the row and shifts its children.
+			SizeBorder: NoBorder,
+			Spacing:    Some(SpacingSmall),
+			axis:       axisTopToBottom,
+			A11YCfg:    cfg.A11YCfg,
 		},
 		content: rows,
 	}, w)
@@ -119,9 +124,10 @@ func colorHexRow(cfg *ColorFieldsCfg, id string, v HSLA) View {
 		return hex
 	}
 	return Row(ContainerCfg{
-		Padding: NoPadding,
-		Spacing: Some(SpacingSmall),
-		VAlign:  VAlignMiddle,
+		Padding:    NoPadding,
+		SizeBorder: NoBorder, // structural; see colorFieldsView
+		Spacing:    Some(SpacingSmall),
+		VAlign:     VAlignMiddle,
 		Content: []View{
 			hex,
 			ColorSwatch(ColorSwatchCfg{
@@ -219,9 +225,10 @@ func colorRGBARow(cfg *ColorFieldsCfg, id string, v HSLA) View {
 			}))
 	}
 	return Row(ContainerCfg{
-		Padding: NoPadding,
-		Spacing: Some(SpacingSmall),
-		Content: fields,
+		Padding:    NoPadding,
+		SizeBorder: NoBorder, // structural; see colorFieldsView
+		Spacing:    Some(SpacingSmall),
+		Content:    fields,
 	})
 }
 
@@ -264,9 +271,10 @@ func colorHSLRow(cfg *ColorFieldsCfg, id string, v HSLA) View {
 			}))
 	}
 	return Row(ContainerCfg{
-		Padding: NoPadding,
-		Spacing: Some(SpacingSmall),
-		Content: fields,
+		Padding:    NoPadding,
+		SizeBorder: NoBorder, // structural; see colorFieldsView
+		Spacing:    Some(SpacingSmall),
+		Content:    fields,
 	})
 }
 
@@ -276,8 +284,9 @@ func colorFieldColumn(
 	inputID string, apply func(string, EventCtx),
 ) View {
 	return Column(ContainerCfg{
-		Padding: NoPadding,
-		Spacing: SomeF(2),
+		Padding:    NoPadding,
+		SizeBorder: NoBorder, // structural; see colorFieldsView
+		Spacing:    SomeF(2),
 		Content: []View{
 			Text(TextCfg{
 				Text: label,

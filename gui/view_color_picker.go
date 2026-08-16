@@ -97,7 +97,10 @@ func (cv *colorPickerView) GenerateLayout(w *Window) Layout {
 		// squarer than a stack of full-width tracks would make it.
 		Row(ContainerCfg{
 			Padding: NoPadding,
-			Spacing: Some(colorPickerPlaneGap),
+			// Structural: a bordered theme would otherwise give this
+			// row a border of its own, widening it past the fields.
+			SizeBorder: NoBorder,
+			Spacing:    Some(colorPickerPlaneGap),
 			Content: []View{
 				ColorPlane(ColorPlaneCfg{
 					ID:       ScopeID(cfg.ID, "plane"),

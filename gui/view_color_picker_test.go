@@ -174,3 +174,37 @@ func TestColorPickerPlaneFitsFields(t *testing.T) {
 			top, fields)
 	}
 }
+
+// A bordered theme gives every container a border unless it opts out.
+// The picker's rows are structural, so a border there would widen the
+// fields block past the plane row and offset it — the two must stay the
+// same width and start at the same x under either theme.
+func TestColorPickerRowsAlignUnderBorders(t *testing.T) {
+	for _, borders := range []bool{false, true} {
+		w := &Window{}
+		w.SetTheme(ThemeDark.WithBorders(borders))
+		// A real measurer is needed: the labels above each field are
+		// zero-width without one, so the defect would not show.
+		w.textMeasurer = &stubTextMeasurer{charWidth: 7, fontHeight: 16}
+		l := w.TestRender(func(*Window) View {
+			return ColorPicker(ColorPickerCfg{ID: "p", ShowHSL: true})
+		})
+
+		fields := findShapeByID(l, "p:fields")
+		plane := findShapeByID(l, "p:plane")
+		alpha := findShapeByID(l, "p:alpha")
+		if fields == nil || plane == nil || alpha == nil {
+			t.Fatalf("borders=%v: missing shapes", borders)
+		}
+		if fields.Shape.X != plane.Shape.X {
+			t.Errorf("borders=%v: fields x = %v, plane x = %v",
+				borders, fields.Shape.X, plane.Shape.X)
+		}
+		// The plane row ends at the alpha slider's right edge.
+		rowEnd := alpha.Shape.X + alpha.Shape.Width
+		if got := fields.Shape.X + fields.Shape.Width; got != rowEnd {
+			t.Errorf("borders=%v: fields right = %v, plane row = %v",
+				borders, got, rowEnd)
+		}
+	}
+}
