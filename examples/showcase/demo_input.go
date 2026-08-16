@@ -240,6 +240,10 @@ func demoColorPicker(w *gui.Window) gui.View {
 				Text:      fmt.Sprintf("RGBA(%d, %d, %d, %d)", c.R, c.G, c.B, c.A),
 				TextStyle: gui.CurrentTheme().N3,
 			}),
+			// The composite control above and the loose components
+			// below edit different values, so a rule between them says
+			// where one demo ends and the next begins.
+			line(),
 			demoColorComponents(app),
 		},
 	})
