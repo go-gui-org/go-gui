@@ -66,7 +66,10 @@ func ColorFields(cfg ColorFieldsCfg) View {
 
 const (
 	defaultColorFieldWidth = 50
-	defaultHexFieldWidth   = 100
+	// defaultHexFieldWidth holds the widest value the field ever shows
+	// — "#RRGGBBAA", which Hex() emits whenever alpha is not full — so
+	// pinning the field to it never clips.
+	defaultHexFieldWidth = 115
 	// defaultColorFieldsSwatch matches the hex input's height closely
 	// enough that the two read as one row.
 	defaultColorFieldsSwatch = 28
@@ -152,11 +155,13 @@ func colorHexField(cfg *ColorFieldsCfg, id string, v HSLA) View {
 		TextStyle: cfg.TextStyle,
 		Width:     defaultHexFieldWidth,
 		// An Input is Fit-sized, so Width alone is only a starting
-		// point and the field tracks its text: "#FFF" and "#3C8CDDD9"
-		// give different widths, and the swatch beside it slides
-		// around as the user types. MinWidth pins the floor so the
-		// row only ever grows, never twitches.
+		// point and the field tracks its text. Hex() emits "#RRGGBB"
+		// at full alpha and "#RRGGBBAA" otherwise, and even at one
+		// length the glyphs differ in width, so the field — and the
+		// swatch beside it — would move on nearly every edit. Both
+		// bounds pin it: a floor alone still lets a long value grow.
 		MinWidth: defaultHexFieldWidth,
+		MaxWidth: defaultHexFieldWidth,
 		A11YCfg:  A11YCfg{A11YLabel: "Hex color"},
 		OnTextChanged: func(text string, ctx EventCtx) {
 			apply(text, ctx)
@@ -282,11 +287,12 @@ func colorFieldColumn(
 				Text:      strconv.Itoa(val),
 				TextStyle: cfg.TextStyle,
 				Width:     cfg.FieldWidth,
-				// Same floor as the hex field: an Input is
+				// Pinned both ways like the hex field: an Input is
 				// Fit-sized, so "0" and "255" would resolve to
 				// different widths and the whole column of fields
 				// would shift as the user drags a control.
 				MinWidth: cfg.FieldWidth,
+				MaxWidth: cfg.FieldWidth,
 				A11YCfg:  A11YCfg{A11YLabel: label},
 				OnTextChanged: func(text string, ctx EventCtx) {
 					apply(text, ctx)

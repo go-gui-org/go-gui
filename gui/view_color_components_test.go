@@ -423,9 +423,11 @@ func TestColorFieldsMinWidths(t *testing.T) {
 			t.Fatalf("no hex field for %v", v)
 		}
 		s := found.Shape
-		if s.MinWidth != defaultHexFieldWidth {
-			t.Errorf("hex MinWidth = %v, want %v",
-				s.MinWidth, defaultHexFieldWidth)
+		if s.MinWidth != defaultHexFieldWidth ||
+			s.MaxWidth != defaultHexFieldWidth {
+			t.Errorf("hex width bounds = [%v,%v], want [%v,%v]",
+				s.MinWidth, s.MaxWidth,
+				defaultHexFieldWidth, defaultHexFieldWidth)
 		}
 
 		// The numeric fields have the same problem: "0" and "255"
@@ -437,9 +439,11 @@ func TestColorFieldsMinWidths(t *testing.T) {
 			if f == nil {
 				t.Fatalf("no field %q for %v", leaf, v)
 			}
-			if f.Shape.MinWidth != defaultColorFieldWidth {
-				t.Errorf("%s MinWidth = %v, want %v", leaf,
-					f.Shape.MinWidth, defaultColorFieldWidth)
+			if f.Shape.MinWidth != defaultColorFieldWidth ||
+				f.Shape.MaxWidth != defaultColorFieldWidth {
+				t.Errorf("%s width bounds = [%v,%v], want [%v,%v]",
+					leaf, f.Shape.MinWidth, f.Shape.MaxWidth,
+					defaultColorFieldWidth, defaultColorFieldWidth)
 			}
 		}
 	}
