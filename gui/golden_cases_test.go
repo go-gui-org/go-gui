@@ -164,6 +164,49 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// The new Label field. A labelled Input must differ from
+			// the unlabelled one by exactly a label Text plus the
+			// stack it sits in -- the field itself must not move
+			// relative to its own box (issue #335, audit section 3).
+			name: "input_labelled",
+			build: func(_ *Window) View {
+				return Input(InputCfg{
+					ID:    "in",
+					Text:  "typed value",
+					Label: "Full name",
+				})
+			},
+		},
+		{
+			// Same label convention on a different control: the two
+			// recordings are what prove there is one convention and
+			// not two implementations.
+			name: "select_labelled",
+			build: func(_ *Window) View {
+				return Select(SelectCfg{
+					ID:       "sel",
+					Options:  []string{"alpha", "beta"},
+					Selected: []string{"beta"},
+					Label:    "Variant",
+				})
+			},
+		},
+		{
+			// The three boolean controls each spelled their trailing
+			// label differently; only Radio left a gap. Recording all
+			// three is what makes "one convention" checkable.
+			name: "boolean_labels",
+			build: func(_ *Window) View {
+				return Column(ContainerCfg{
+					Content: []View{
+						Switch(SwitchCfg{ID: "sw", Label: "Enabled"}),
+						Toggle(ToggleCfg{ID: "tg", Label: "Enabled"}),
+						Radio(RadioCfg{ID: "rd", Label: "Enabled"}),
+					},
+				})
+			},
+		},
+		{
 			name: "color_fields",
 			build: func(_ *Window) View {
 				return ColorFields(ColorFieldsCfg{

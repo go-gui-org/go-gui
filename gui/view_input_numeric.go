@@ -3,6 +3,11 @@ package gui
 // NumericInputCfg configures a locale-aware numeric input with
 // optional step controls.
 type NumericInputCfg struct {
+	// Label names this field. Empty renders exactly as before: no
+	// wrapper and no extra shape. Set, it stacks above the field in
+	// the theme's label role, and fills A11YLabel when that is unset.
+	// See gui/field_label.go for the convention and why it is one.
+	Label            string
 	TextStyle        TextStyle
 	PlaceholderStyle TextStyle
 
@@ -88,7 +93,8 @@ func NumericInput(cfg NumericInputCfg) View {
 		numericInputStepButtons(cfg, locale, stepCfg),
 	}
 
-	return Row(ContainerCfg{
+	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
+	control := Row(ContainerCfg{
 		ID:        cfg.ID,
 		Focusable: !cfg.FocusDisabled,
 		A11YRole:  AccessRoleTextField,
@@ -136,6 +142,7 @@ func NumericInput(cfg NumericInputCfg) View {
 		},
 		Content: content,
 	})
+	return labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, control)
 }
 
 func numericInputField(cfg NumericInputCfg, locale NumericLocaleCfg, _ NumericStepCfg, fillParent bool) View {

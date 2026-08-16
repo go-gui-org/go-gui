@@ -95,22 +95,6 @@ const (
 	colorFieldLeadRatio = 0.047
 )
 
-// colorFieldLabelStyle styles one channel label.
-//
-// Both the size step and the dimming come from the theme's label role
-// (gui/theme_text_roles.go), which is exactly the divergence issue #335
-// was filed about: this widget invented a two-step drop and a 0.7 alpha
-// on the spot because there was nothing to reach for. The role keeps
-// the caller's own text color and takes only the theme's answer for how
-// much quieter a name should be than the value it names.
-func colorFieldLabelStyle(base TextStyle) TextStyle {
-	role := guiTheme.TextStyleLabel
-	ts := withRoleAlpha(base, role)
-	ts.Size = role.Size
-	ts.Align = TextAlignCenter
-	return ts
-}
-
 func (fv *colorFieldsView) GenerateLayout(w *Window) Layout {
 	cfg := &fv.cfg
 	id := w.EffID(cfg.ID)
@@ -412,46 +396,39 @@ func colorFieldColumn(
 	cfg *ColorFieldsCfg, pad Padding, label string, val int,
 	inputID string, apply func(string, EventCtx),
 ) View {
-	return Column(ContainerCfg{
-		Padding:    NoPadding,
-		SizeBorder: NoBorder, // structural; see colorFieldsView
-		// Centered: the label is narrower than its field, and left
-		// alignment hangs it off the field's left edge instead of
-		// reading as a heading over it. TextAlignCenter alone cannot
-		// do this — a Fit text shape is only as wide as its glyphs, so
-		// there is nothing to center within.
-		HAlign:  HAlignCenter,
-		Spacing: SomeF(2),
-		Content: []View{
-			Text(TextCfg{
-				Text:      label,
-				TextStyle: colorFieldLabelStyle(cfg.TextStyle),
-			}),
-			Input(InputCfg{
-				ID:   inputID,
-				Text: strconv.Itoa(val),
-				// Centred under a centred label, so the pair reads
-				// as one unit -- and so "60" and "140" do not sit
-				// ragged against each other down the row.
-				TextStyle: centeredText(cfg.TextStyle),
-				Padding:   pad,
-				Width:     cfg.FieldWidth,
-				// Pinned both ways like the hex field: an Input is
-				// Fit-sized, so "0" and "255" would resolve to
-				// different widths and the whole column of fields
-				// would shift as the user drags a control.
-				MinWidth: cfg.FieldWidth,
-				MaxWidth: cfg.FieldWidth,
-				A11YCfg:  A11YCfg{A11YLabel: label},
-				OnTextChanged: func(text string, ctx EventCtx) {
-					apply(text, ctx)
-				},
-				OnTextCommit: func(
-					text string, _ InputCommitReason, ctx EventCtx,
-				) {
-					apply(text, ctx)
-				},
-			}),
-		},
-	})
+	// Centred rather than the default left: the label is narrower than
+	// its field, and left alignment hangs it off the field's left edge
+	// instead of reading as a heading over it. TextAlignCenter alone
+	// cannot do this — a Fit text shape is only as wide as its glyphs,
+	// so there is nothing to centre within.
+	//
+	// The stack itself is the shared convention (gui/field_label.go),
+	// not a local layout: this widget's hand-rolled label is what
+	// issue #335 was filed about.
+	return labelledField(label, cfg.TextStyle, HAlignCenter,
+		Input(InputCfg{
+			ID:   inputID,
+			Text: strconv.Itoa(val),
+			// Centred under a centred label, so the pair reads
+			// as one unit -- and so "60" and "140" do not sit
+			// ragged against each other down the row.
+			TextStyle: centeredText(cfg.TextStyle),
+			Padding:   pad,
+			Width:     cfg.FieldWidth,
+			// Pinned both ways like the hex field: an Input is
+			// Fit-sized, so "0" and "255" would resolve to
+			// different widths and the whole column of fields
+			// would shift as the user drags a control.
+			MinWidth: cfg.FieldWidth,
+			MaxWidth: cfg.FieldWidth,
+			A11YCfg:  A11YCfg{A11YLabel: label},
+			OnTextChanged: func(text string, ctx EventCtx) {
+				apply(text, ctx)
+			},
+			OnTextCommit: func(
+				text string, _ InputCommitReason, ctx EventCtx,
+			) {
+				apply(text, ctx)
+			},
+		}))
 }

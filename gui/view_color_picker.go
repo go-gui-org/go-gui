@@ -19,6 +19,11 @@ type colorPickerState struct {
 
 // ColorPickerCfg configures a color picker view.
 type ColorPickerCfg struct {
+	// Label names this field. Empty renders exactly as before: no
+	// wrapper and no extra shape. Set, it stacks above the field in
+	// the theme's label role, and fills A11YLabel when that is unset.
+	// See gui/field_label.go for the convention and why it is one.
+	Label         string
 	Style         ColorPickerStyle
 	OnColorChange func(Color, EventCtx)
 	ID            string `gui:"required"`
@@ -60,7 +65,8 @@ type colorPickerView struct {
 func ColorPicker(cfg ColorPickerCfg) View {
 	RequireID("ColorPicker", cfg.ID)
 	applyColorPickerDefaults(&cfg)
-	return &colorPickerView{cfg: cfg}
+	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
+	return labelledField(cfg.Label, TextStyle{}, HAlignLeft, &colorPickerView{cfg: cfg})
 }
 
 func applyColorPickerDefaults(cfg *ColorPickerCfg) {

@@ -16,6 +16,11 @@ const animIDDragScroll = "input-drag-scroll"
 // updated → OnTextChanged → re-render. On commit (Enter, blur, or
 // IME finalize): PostCommitNormalize → OnTextCommit.
 type InputCfg struct {
+	// Label names this field. Empty renders exactly as before: no
+	// wrapper and no extra shape. Set, it stacks above the field in
+	// the theme's label role, and fills A11YLabel when that is unset.
+	// See gui/field_label.go for the convention and why it is one.
+	Label            string
 	TextStyle        TextStyle
 	PlaceholderStyle TextStyle
 
@@ -248,7 +253,8 @@ func Input(cfg InputCfg) View {
 		inner = Row(innerCfg)
 	}
 
-	return Column(ContainerCfg{
+	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
+	field := Column(ContainerCfg{
 		ID:        cfg.ID,
 		Focusable: !cfg.FocusDisabled,
 		A11YRole:  a11yRole,
@@ -289,6 +295,7 @@ func Input(cfg InputCfg) View {
 			colorBorderFocus, spellChk, onBlur),
 		Content: []View{inner},
 	})
+	return labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, field)
 }
 
 func applyInputDefaults(cfg *InputCfg) {

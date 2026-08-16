@@ -244,3 +244,35 @@ func TestFieldInsetIsThemed(t *testing.T) {
 		}
 	}
 }
+
+// An unset Label must produce no wrapper and no extra shape, or adding
+// the field to eight Cfgs would be a visual break rather than an
+// addition (issue #335, audit section 3).
+func TestFieldLabelEmptyIsInert(t *testing.T) {
+	field := Input(InputCfg{ID: "in"})
+	if got := labelledField("", TextStyle{}, HAlignLeft, field); got != field {
+		t.Error("empty label must return the field untouched")
+	}
+}
+
+// Label fills A11YLabel when the caller left it unset, and never
+// overrides one the caller supplied.
+func TestFieldLabelFeedsA11Y(t *testing.T) {
+	w := &Window{}
+	derived := Select(SelectCfg{ID: "s", Label: "Variant"}).
+		GenerateLayout(w)
+	// The wrapper is the label stack; the control is its second child.
+	got := derived.Children[1].Shape.a11Y.Label
+	if got != "Variant" {
+		t.Errorf("A11YLabel = %q, want it derived from Label", got)
+	}
+
+	explicit := Select(SelectCfg{
+		ID:      "s",
+		Label:   "Variant",
+		A11YCfg: A11YCfg{A11YLabel: "Chosen variant"},
+	}).GenerateLayout(w)
+	if got = explicit.Children[1].Shape.a11Y.Label; got != "Chosen variant" {
+		t.Errorf("A11YLabel = %q, want the caller's own", got)
+	}
+}
