@@ -402,3 +402,29 @@ func TestColorComponentsNilOnChange(t *testing.T) {
 		h(EventCtx{nil, &Event{KeyCode: KeyRight}, nil})
 	}
 }
+
+// The hex field is Fit-sized, so without a floor it would track its
+// own text and the swatch beside it would shift as the value changed
+// length.
+func TestColorFieldsHexMinWidth(t *testing.T) {
+	w := &Window{}
+	for _, v := range []HSLA{
+		{H: 0, S: 0, L: 1, A: 1},           // "#FFFFFF", short form
+		{H: 210, S: 0.7, L: 0.55, A: 0.85}, // "#3C8CDDD9", long form
+	} {
+		l := generateViewLayout(ColorFields(ColorFieldsCfg{
+			ID:         "hexw",
+			Value:      v,
+			ShowSwatch: true,
+		}), w)
+		found := findShapeByID(&l, "hexw:hex")
+		if found == nil {
+			t.Fatalf("no hex field for %v", v)
+		}
+		s := found.Shape
+		if s.MinWidth != defaultHexFieldWidth {
+			t.Errorf("hex MinWidth = %v, want %v",
+				s.MinWidth, defaultHexFieldWidth)
+		}
+	}
+}

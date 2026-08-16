@@ -151,7 +151,13 @@ func colorHexField(cfg *ColorFieldsCfg, id string, v HSLA) View {
 		Text:      v.Color().Hex(),
 		TextStyle: cfg.TextStyle,
 		Width:     defaultHexFieldWidth,
-		A11YCfg:   A11YCfg{A11YLabel: "Hex color"},
+		// An Input is Fit-sized, so Width alone is only a starting
+		// point and the field tracks its text: "#FFF" and "#3C8CDDD9"
+		// give different widths, and the swatch beside it slides
+		// around as the user types. MinWidth pins the floor so the
+		// row only ever grows, never twitches.
+		MinWidth: defaultHexFieldWidth,
+		A11YCfg:  A11YCfg{A11YLabel: "Hex color"},
 		OnTextChanged: func(text string, ctx EventCtx) {
 			apply(text, ctx)
 		},
