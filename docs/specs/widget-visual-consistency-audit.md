@@ -119,9 +119,31 @@ its base color to 127. On the dark theme that is within one step of the role's
 sits 22 alpha below where the role says it should — the light-theme contrast gap
 of §1.1.1, surviving in the widgets the roles have not reached.
 
-Closing it means giving every such widget a themed disabled text style rather
-than leaning on `dimAlpha`, which is a sweep across roughly a dozen widgets and
-is tracked separately.
+**Closed by issue #341 — the renderer now asks the theme.** `renderText`
+(`gui/render_text.go`) replaced `dimAlpha` with `w.Theme().disabledTextColor(c)`
+for text shapes stamped `Disabled`: the caller's hue at the theme's disabled
+amount, per theme. Every disabled text shape in the package — Input, Select,
+Combobox, ListBox, NumericInput, InputDate, DatePicker, Button, Switch, Toggle,
+Radio, Tree, menu items, plain `Text` — renders at 128 on dark and 149 on light,
+in both the direct-disabled and ancestor-disabled cases, which the per-widget
+sweep the issue originally described could not reach. The verdict on the open
+question: `TextStyleDisabled` **replaces** `dimAlpha` for text. `dimAlpha`
+survives for non-text surfaces — fills, borders, `renderText`'s Bg/Stroke
+colors, and the group-box title eraser.
+
+One text path never reaches the renderer's branch: the group-box title
+(`addGroupBoxTitle`, `gui/view_container.go`) is a Float shape, so
+`layoutRemoveFloatingLayouts` extracts it from the tree before `layoutDisables`
+stamps it. It applies `guiTheme.disabledTextColor` at generation instead, and
+its recording moved with the rest of the sweep.
+
+The sweep is recorded per widget in `gui/golden_cases_test.go` (the `*_disabled`
+cases, added before the fix): each moved `#7f` → `#80` on dark and `#7f` → `#95`
+on light. `tab_control` and `breadcrumb` did not move — the `disabledRole`
+marker still prevents a second quieting. A placeholder or secondary-role text
+inside a disabled control now renders at the disabled amount rather than a
+halved version of its own — a deliberate consequence of one amount for every
+text in a dead control.
 
 ### 1.2 Out of scope
 
@@ -331,20 +353,22 @@ like should be recorded, not read.
 What this branch changed, per axis. The measurements above describe the state at
 `b6adf899` and are kept as the "before"; this section is the "after".
 
-| §   | Axis              | Outcome                                                              |
-| --- | ----------------- | -------------------------------------------------------------------- |
-| 1   | Dimming           | closed — four named roles, per-theme and contrast-matched            |
-| 2   | Type steps        | mostly — full ladder exported, mono +1 documented, two steps tracked |
-| 3   | Field labels      | closed — `Label` on all eight, one shared convention                 |
-| 4   | Spacing           | untouched                                                            |
-| 5   | Borders           | untouched, by decision                                               |
-| 6   | Interaction state | partly — focus rings for the four that could take one                |
-| 7   | Density           | closed — one field-inset tier, two latent bugs fixed                 |
+| §   | Axis              | Outcome                                                                                                           |
+| --- | ----------------- | ----------------------------------------------------------------------------------------------------------------- |
+| 1   | Dimming           | closed — four named roles, per-theme and contrast-matched; disabled text routed through the role at render (#341) |
+| 2   | Type steps        | mostly — full ladder exported, mono +1 documented, two steps tracked                                              |
+| 3   | Field labels      | closed — `Label` on all eight, one shared convention                                                              |
+| 4   | Spacing           | untouched                                                                                                         |
+| 5   | Borders           | untouched, by decision                                                                                            |
+| 6   | Interaction state | partly — focus rings for the four that could take one                                                             |
+| 7   | Density           | closed — one field-inset tier, two latent bugs fixed                                                              |
 
 ### Left open
 
-- **§1.1.2** — widgets that never themed their disabled text still lean on
-  `dimAlpha`. Correct on dark, 22 alpha short on light.
+- **§1.1.2** — closed: disabled text is themed at the renderer
+  (`Theme.disabledTextColor`, unexported: downstream widgets get the role
+  through the renderer and never ask), and the group-box title at generation.
+  `dimAlpha` remains for non-text shapes only.
 - **§2** — the export half is closed: every ladder rung is exported (the
   `N1`..`N6`, `B1`..`B6`, `I1`..`I6`, `BI1`..`BI6`, `M1`..`M6`, `Icon1`..`Icon6`
   sets), and the mono `+1` is documented at the declaration in `ThemeMaker`.

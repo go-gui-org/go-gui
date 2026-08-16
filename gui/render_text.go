@@ -48,9 +48,13 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 		c = c.WithOpacity(shape.Opacity)
 	}
 	// A style from the disabled role has already been quieted by the
-	// theme; dimming it again is the double-dim of issue #335.
+	// theme; quieting it again is the double-dim of issue #335. Any
+	// other text shape stamped Disabled takes the theme's disabled
+	// amount (issue #341): dimAlpha halved the caller's color, which
+	// matches the dark theme by construction and sits 22 alpha under
+	// the light theme's contrast-matched role.
 	if shape.Disabled && !tc.TextStyle.disabledRole {
-		c = dimAlpha(c)
+		c = w.Theme().disabledTextColor(c)
 	}
 	if c.A == 0 {
 		return

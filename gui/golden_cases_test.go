@@ -12,7 +12,10 @@ package gui
 // borders. A widget recorded only in its resting state would not
 // catch a change to the role it uses.
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 // goldenHSLA is one fixed color for every color-widget case, so a
 // diff never reflects a different input color.
@@ -249,6 +252,165 @@ func goldenCases() []goldenCase {
 				return ColorPlane(ColorPlaneCfg{
 					ID:    "cp",
 					Value: goldenHSLA,
+				})
+			},
+		},
+		// --- Disabled-text sweep (issue #341) ---
+		//
+		// One case per text-bearing widget that can be disabled.
+		// Before the fix, every disabled text command here renders
+		// at alpha 127 (#7f) on both themes — dimAlpha halving the
+		// color instead of the theme's TextStyleDisabled (128 dark,
+		// 149 light). The fix moves the dark recording to #80 and
+		// the light recording to #95; a case whose text does not
+		// move was never reaching dimAlpha and is not part of the
+		// sweep.
+		{
+			name: "select_disabled",
+			build: func(_ *Window) View {
+				return Select(SelectCfg{
+					ID:       "sel",
+					Options:  []string{"alpha", "beta"},
+					Selected: []string{"beta"},
+					Disabled: true,
+				})
+			},
+		},
+		{
+			name: "combobox_disabled",
+			build: func(_ *Window) View {
+				return Combobox(ComboboxCfg{
+					ID:       "cb",
+					Options:  []string{"alpha", "beta"},
+					Value:    "alpha",
+					Disabled: true,
+				})
+			},
+		},
+		{
+			name: "listbox_disabled",
+			build: func(_ *Window) View {
+				return ListBox(ListBoxCfg{
+					ID:          "lb",
+					Items:       []string{"one", "two", "three"},
+					SelectedIDs: []string{"two"},
+					Disabled:    true,
+				})
+			},
+		},
+		{
+			name: "numericinput_disabled",
+			build: func(_ *Window) View {
+				return NumericInput(NumericInputCfg{
+					ID:       "num",
+					Text:     "42.5",
+					Disabled: true,
+				})
+			},
+		},
+		{
+			name: "inputdate_disabled",
+			build: func(_ *Window) View {
+				return InputDate(InputDateCfg{
+					ID:       "id",
+					Date:     time.Date(2026, 8, 15, 0, 0, 0, 0, time.UTC),
+					Disabled: true,
+				})
+			},
+		},
+		{
+			name: "datepicker_disabled",
+			build: func(_ *Window) View {
+				return DatePicker(DatePickerCfg{
+					ID:       "dp",
+					Dates:    []time.Time{time.Date(2026, 8, 15, 0, 0, 0, 0, time.UTC)},
+					Disabled: true,
+				})
+			},
+		},
+		{
+			name: "button_disabled",
+			build: func(_ *Window) View {
+				return Button(ButtonCfg{
+					ID:       "btn",
+					Disabled: true,
+					Content:  []View{Text(TextCfg{Text: "Save"})},
+				})
+			},
+		},
+		{
+			name: "boolean_labels_disabled",
+			build: func(_ *Window) View {
+				return Column(ContainerCfg{
+					Content: []View{
+						Switch(SwitchCfg{ID: "sw", Label: "Enabled", Disabled: true}),
+						Toggle(ToggleCfg{ID: "tg", Label: "Enabled", Disabled: true}),
+						Radio(RadioCfg{ID: "rd", Label: "Enabled", Disabled: true}),
+					},
+				})
+			},
+		},
+		{
+			name: "tree_disabled",
+			build: func(_ *Window) View {
+				return Tree(TreeCfg{
+					ID:       "tr",
+					Disabled: true,
+					Nodes: []TreeNodeCfg{
+						{ID: "a", Text: "Alpha"},
+						{ID: "b", Text: "Beta"},
+					},
+				})
+			},
+		},
+		{
+			name: "menubar_disabled",
+			build: func(w *Window) View {
+				return Menubar(w, MenubarCfg{
+					ID: "mb",
+					Items: []MenuItemCfg{
+						MenuItemText("f", "File"),
+						MenuSubtitle("Grouped"),
+					},
+				})
+			},
+		},
+		{
+			// The group-box title is the one text path dimmed twice:
+			// addGroupBoxTitle halves at generation and renderText
+			// halves the stamp again. Before the fix the title
+			// records at ~63, a full stop under every other widget.
+			name: "container_title_disabled",
+			build: func(_ *Window) View {
+				return Column(ContainerCfg{
+					Title:       "Group",
+					ColorBorder: Hex(0x4a6b8a),
+					Disabled:    true,
+				})
+			},
+		},
+		{
+			name: "text_disabled",
+			build: func(_ *Window) View {
+				return Text(TextCfg{
+					Text:     "quiet",
+					Disabled: true,
+				})
+			},
+		},
+		{
+			// The widget itself is enabled; a disabled ancestor does
+			// the stamping via layoutDisables. This is the case the
+			// per-widget sweep could not reach — a widget themes its
+			// own disabled state, but cannot know about an ancestor's
+			// at generation time. The renderer's role read covers it.
+			name: "disabled_ancestor",
+			build: func(_ *Window) View {
+				return Column(ContainerCfg{
+					Disabled: true,
+					Content: []View{
+						Input(InputCfg{ID: "in", Text: "typed value"}),
+					},
 				})
 			},
 		},
