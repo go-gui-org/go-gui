@@ -7,7 +7,7 @@ import (
 
 func demoDialog(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Spacing: gui.SomeF(12),
@@ -30,7 +30,7 @@ func demoDialog(w *gui.Window) gui.View {
 								Body:       "This is a message dialog.",
 								DialogType: gui.DialogMessage,
 								OnOkYes: func(w *gui.Window) {
-									gui.State[ShowcaseApp](w).DialogResult = "OK"
+									appState(w).DialogResult = "OK"
 								},
 							})
 						},
@@ -47,10 +47,10 @@ func demoDialog(w *gui.Window) gui.View {
 								Body:       "Are you sure you want to proceed?",
 								DialogType: gui.DialogConfirm,
 								OnOkYes: func(w *gui.Window) {
-									gui.State[ShowcaseApp](w).DialogResult = "Yes"
+									appState(w).DialogResult = "Yes"
 								},
 								OnCancelNo: func(w *gui.Window) {
-									gui.State[ShowcaseApp](w).DialogResult = "No"
+									appState(w).DialogResult = "No"
 								},
 							})
 						},
@@ -67,10 +67,10 @@ func demoDialog(w *gui.Window) gui.View {
 								Body:       "Enter your name:",
 								DialogType: gui.DialogPrompt,
 								OnReply: func(reply string, w *gui.Window) {
-									gui.State[ShowcaseApp](w).DialogResult = "Reply: " + reply
+									appState(w).DialogResult = "Reply: " + reply
 								},
 								OnCancelNo: func(w *gui.Window) {
-									gui.State[ShowcaseApp](w).DialogResult = "Cancelled"
+									appState(w).DialogResult = "Cancelled"
 								},
 							})
 						},
@@ -105,7 +105,7 @@ func demoDialog(w *gui.Window) gui.View {
 									}),
 								},
 								OnOkYes: func(w *gui.Window) {
-									gui.State[ShowcaseApp](w).DialogResult = "Custom OK"
+									appState(w).DialogResult = "Custom OK"
 								},
 							})
 						},
@@ -129,12 +129,12 @@ func demoDialog(w *gui.Window) gui.View {
 						OnClick: func(ctx gui.EventCtx) {
 							np := ctx.Window.NativePlatformBackend()
 							if np == nil {
-								gui.State[ShowcaseApp](ctx.Window).DialogResult = "No native platform"
+								appState(ctx.Window).DialogResult = "No native platform"
 								ctx.Consume()
 								return
 							}
 							r := np.ShowOpenDialog("Open File", "", nil, false)
-							a := gui.State[ShowcaseApp](ctx.Window)
+							a := appState(ctx.Window)
 							if len(r.Paths) > 0 {
 								a.DialogResult = "Opened: " + r.Paths[0].Path
 							} else {
@@ -152,12 +152,12 @@ func demoDialog(w *gui.Window) gui.View {
 						OnClick: func(ctx gui.EventCtx) {
 							np := ctx.Window.NativePlatformBackend()
 							if np == nil {
-								gui.State[ShowcaseApp](ctx.Window).DialogResult = "No native platform"
+								appState(ctx.Window).DialogResult = "No native platform"
 								ctx.Consume()
 								return
 							}
 							r := np.ShowSaveDialog("Save File", "", "untitled.txt", ".txt", nil, true)
-							a := gui.State[ShowcaseApp](ctx.Window)
+							a := appState(ctx.Window)
 							if len(r.Paths) > 0 {
 								a.DialogResult = "Save: " + r.Paths[0].Path
 							} else {
@@ -175,12 +175,12 @@ func demoDialog(w *gui.Window) gui.View {
 						OnClick: func(ctx gui.EventCtx) {
 							np := ctx.Window.NativePlatformBackend()
 							if np == nil {
-								gui.State[ShowcaseApp](ctx.Window).DialogResult = "No native platform"
+								appState(ctx.Window).DialogResult = "No native platform"
 								ctx.Consume()
 								return
 							}
 							r := np.ShowFolderDialog("Select Folder", "")
-							a := gui.State[ShowcaseApp](ctx.Window)
+							a := appState(ctx.Window)
 							if len(r.Paths) > 0 {
 								a.DialogResult = "Folder: " + r.Paths[0].Path
 							} else {
@@ -200,7 +200,7 @@ func demoDialog(w *gui.Window) gui.View {
 
 func demoNotification(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Spacing: gui.SomeF(12),
@@ -218,7 +218,7 @@ func demoNotification(w *gui.Window) gui.View {
 						Title: "showcase",
 						Body:  "Hello from go-gui showcase!",
 						OnDone: func(r gui.NativeNotificationResult, w *gui.Window) {
-							a := gui.State[ShowcaseApp](w)
+							a := appState(w)
 							switch r.Status {
 							case gui.NotificationOK:
 								a.NotifyResult = "Notification sent"
@@ -283,10 +283,10 @@ func demoInspector(w *gui.Window) gui.View {
 
 func demoContextMenu(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 
 	action := func(id string, ctx gui.EventCtx) {
-		gui.State[ShowcaseApp](ctx.Window).ContextMenuResult = id
+		appState(ctx.Window).ContextMenuResult = id
 		ctx.Consume()
 	}
 

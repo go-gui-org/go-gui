@@ -43,6 +43,13 @@ type App struct {
 	LogoBoom     bool // true = bomb hit, showing all bombs
 }
 
+// state is the typed state accessor for this window. Callbacks
+// reach the app state through it instead of repeating
+// gui.State[App](...) at every site.
+func state(w *gui.Window) *App {
+	return gui.State[App](w)
+}
+
 // logoDot tracks a single pixel in the title animation.
 type logoDot struct {
 	Mine     bool
@@ -71,7 +78,7 @@ func main() {
 				Delay:  time.Second,
 				Repeat: true,
 				Callback: func(_ *gui.Animate, w *gui.Window) {
-					app := gui.State[App](w)
+					app := state(w)
 					app.LandingFrame++
 					if app.Screen == ScreenLanding {
 						logoTick(app)
@@ -96,7 +103,7 @@ func handleEvent(e *gui.Event, w *gui.Window) {
 	if e.Type != gui.EventKeyDown {
 		return
 	}
-	app := gui.State[App](w)
+	app := state(w)
 	if app.Screen == ScreenLanding {
 		return
 	}
@@ -146,7 +153,7 @@ func startNewGame(app *App, diff Difficulty) {
 // --- View routing ---
 
 func mainView(w *gui.Window) gui.View {
-	app := gui.State[App](w)
+	app := state(w)
 	if app.Screen == ScreenPlaying {
 		return gameView(w)
 	}
@@ -182,7 +189,7 @@ var numberColors = [9]gui.Color{
 // --- Landing page ---
 
 func landingView(w *gui.Window) gui.View {
-	app := gui.State[App](w)
+	app := state(w)
 	theme := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
@@ -225,8 +232,8 @@ func landingContent(w *gui.Window, app *App, theme gui.Theme) []gui.View {
 					Label:     "No-Guess",
 					TextStyle: ts(theme.M4, 14, colorDimText),
 					OnClick: func(ctx gui.EventCtx) {
-						gui.State[App](ctx.Window).NoGuessMode =
-							!gui.State[App](ctx.Window).NoGuessMode
+						state(ctx.Window).NoGuessMode =
+							!state(ctx.Window).NoGuessMode
 					},
 				}),
 				gui.Switch(gui.SwitchCfg{
@@ -235,8 +242,8 @@ func landingContent(w *gui.Window, app *App, theme gui.Theme) []gui.View {
 					Label:     "Training",
 					TextStyle: ts(theme.M4, 14, colorDimText),
 					OnClick: func(ctx gui.EventCtx) {
-						gui.State[App](ctx.Window).TrainingMode =
-							!gui.State[App](ctx.Window).TrainingMode
+						state(ctx.Window).TrainingMode =
+							!state(ctx.Window).TrainingMode
 					},
 				}),
 				gui.Switch(gui.SwitchCfg{
@@ -245,8 +252,8 @@ func landingContent(w *gui.Window, app *App, theme gui.Theme) []gui.View {
 					Label:     "Garden",
 					TextStyle: ts(theme.M4, 14, colorDimText),
 					OnClick: func(ctx gui.EventCtx) {
-						gui.State[App](ctx.Window).GardenTheme =
-							!gui.State[App](ctx.Window).GardenTheme
+						state(ctx.Window).GardenTheme =
+							!state(ctx.Window).GardenTheme
 					},
 				}),
 			},
@@ -285,7 +292,7 @@ func diffButton(w *gui.Window, title, subtitle string, diff Difficulty, color gu
 			}),
 		},
 		OnClick: func(ctx gui.EventCtx) {
-			startNewGame(gui.State[App](ctx.Window), diff)
+			startNewGame(state(ctx.Window), diff)
 		},
 	})
 }
@@ -487,7 +494,7 @@ func cellPxSize(d Difficulty) float32 {
 }
 
 func gameView(w *gui.Window) gui.View {
-	app := gui.State[App](w)
+	app := state(w)
 	g := app.Game
 	theme := gui.CurrentTheme()
 	cellPx := cellPxSize(app.Difficulty)
@@ -559,7 +566,7 @@ func headerView(app *App, theme gui.Theme, boardW float32) gui.View {
 							}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
-							resetGame(gui.State[App](ctx.Window))
+							resetGame(state(ctx.Window))
 						},
 					}),
 				},
@@ -791,7 +798,7 @@ func numContent(adj int, cellPx float32, theme gui.Theme) []gui.View {
 
 func cellClickHandler(row, col int) func(gui.EventCtx) {
 	return func(ctx gui.EventCtx) {
-		app := gui.State[App](ctx.Window)
+		app := state(ctx.Window)
 		g := app.Game
 		if g.State != GamePlaying {
 			return
@@ -862,14 +869,14 @@ func footerView(app *App, g *Game, theme gui.Theme) gui.View {
 	if g.State == GamePlaying {
 		buttons = []gui.View{
 			smallButton("Hint (H)", func(w *gui.Window) {
-				showHint(gui.State[App](w))
+				showHint(state(w))
 			}),
 			smallButton("Check (C)", func(w *gui.Window) {
-				a := gui.State[App](w)
+				a := state(w)
 				a.BadChecks = a.Game.CheckBoard()
 			}),
 			smallButton("Menu (Esc)", func(w *gui.Window) {
-				a := gui.State[App](w)
+				a := state(w)
 				a.Screen = ScreenLanding
 				a.TimerActive = false
 			}),
@@ -877,10 +884,10 @@ func footerView(app *App, g *Game, theme gui.Theme) gui.View {
 	} else {
 		buttons = []gui.View{
 			smallButton("New Game (R)", func(w *gui.Window) {
-				resetGame(gui.State[App](w))
+				resetGame(state(w))
 			}),
 			smallButton("Menu (Esc)", func(w *gui.Window) {
-				a := gui.State[App](w)
+				a := state(w)
 				a.Screen = ScreenLanding
 				a.TimerActive = false
 			}),

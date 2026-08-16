@@ -698,7 +698,7 @@ func demoDrawCanvas(w *gui.Window) gui.View {
 	chartData := []float32{2, 5, 3, 8, 6, 4, 7, 9, 5, 10, 8, 6, 11, 7}
 	barData := []float32{40, 65, 50, 80, 55, 70}
 	t := gui.CurrentTheme()
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:     gui.FillFit,
@@ -789,7 +789,7 @@ func demoDrawCanvasInteractive(app *ShowcaseApp) gui.View {
 				"arrow keys move marker", hint)
 		},
 		OnKeyDown: func(ctx gui.EventCtx) {
-			app := gui.State[ShowcaseApp](ctx.Window)
+			app := appState(ctx.Window)
 			dx, dy := float32(0), float32(0)
 			switch ctx.Event.KeyCode {
 			case gui.KeyLeft:
@@ -1049,7 +1049,7 @@ func demoShader(w *gui.Window) gui.View {
 	})
 
 	t := gui.CurrentTheme()
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	elapsed := float32(time.Since(app.ShaderStartTime).Milliseconds()) / 1000.0
 
 	return gui.Column(gui.ContainerCfg{

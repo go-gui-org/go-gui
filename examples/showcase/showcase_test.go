@@ -420,7 +420,7 @@ func TestDetailPanel_BumpsAbortCounterWhenNavigatingAwayFromTree(t *testing.T) {
 func TestDemoPagesHaveNoIDDefects(t *testing.T) {
 	w := gui.NewTestWindow(gui.WindowCfg{State: newShowcaseApp()})
 	w.UpdateView(mainView)
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 
 	for _, entry := range demoEntries {
 		app.SelectedGroup = entry.Group

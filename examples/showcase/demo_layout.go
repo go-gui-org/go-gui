@@ -213,7 +213,7 @@ func demoOverflowPanel(w *gui.Window) gui.View {
 
 func demoExpandPanel(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Spacing: gui.SomeF(12),
@@ -234,7 +234,7 @@ func demoExpandPanel(w *gui.Window) gui.View {
 					},
 				}),
 				OnToggle: func(ctx gui.EventCtx) {
-					a := gui.State[ShowcaseApp](ctx.Window)
+					a := appState(ctx.Window)
 					a.ExpandOpen = !a.ExpandOpen
 				},
 			}),
@@ -244,7 +244,7 @@ func demoExpandPanel(w *gui.Window) gui.View {
 
 func demoSidebar(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Spacing: gui.SomeF(12),
@@ -257,7 +257,7 @@ func demoSidebar(w *gui.Window) gui.View {
 					gui.Text(gui.TextCfg{Text: "Toggle Sidebar", TextStyle: t.N3}),
 				},
 				OnClick: func(ctx gui.EventCtx) {
-					a := gui.State[ShowcaseApp](ctx.Window)
+					a := appState(ctx.Window)
 					a.SidebarOpen = !a.SidebarOpen
 				},
 			}),
@@ -300,7 +300,7 @@ func demoSidebar(w *gui.Window) gui.View {
 }
 
 func demoSplitter(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	t := gui.CurrentTheme()
 	mainRatio := int(app.SplitterMainState.Ratio * 100)
 	detailRatio := int(app.SplitterDetailState.Ratio * 100)
@@ -337,7 +337,7 @@ func demoSplitter(w *gui.Window) gui.View {
 }
 
 func showcaseSplitterMain(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	return gui.Splitter(gui.SplitterCfg{
 		ID:          "catalog-splitter-main",
 		Focusable:   true,
@@ -363,7 +363,7 @@ func showcaseSplitterMain(w *gui.Window) gui.View {
 }
 
 func showcaseSplitterDetail(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	return gui.Splitter(gui.SplitterCfg{
 		ID:                  "catalog-splitter-detail",
 		Focusable:           true,
@@ -431,7 +431,7 @@ func showcaseSplitterPane(title, note string, accent gui.Color) gui.View {
 }
 
 func onShowcaseSplitterMainChange(ratio float32, collapsed gui.SplitterCollapsed, ctx gui.EventCtx) {
-	app := gui.State[ShowcaseApp](ctx.Window)
+	app := appState(ctx.Window)
 	app.SplitterMainState = gui.SplitterStateNormalize(gui.SplitterState{
 		Ratio:     ratio,
 		Collapsed: collapsed,
@@ -439,7 +439,7 @@ func onShowcaseSplitterMainChange(ratio float32, collapsed gui.SplitterCollapsed
 }
 
 func onShowcaseSplitterDetailChange(ratio float32, collapsed gui.SplitterCollapsed, ctx gui.EventCtx) {
-	app := gui.State[ShowcaseApp](ctx.Window)
+	app := appState(ctx.Window)
 	app.SplitterDetailState = gui.SplitterStateNormalize(gui.SplitterState{
 		Ratio:     ratio,
 		Collapsed: collapsed,
@@ -515,7 +515,7 @@ type multiWindowChildState struct {
 
 func demoMultiWindow(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 
 	childActive := app.MultiWindowChildID != 0 &&
 		w.App() != nil &&
@@ -559,7 +559,7 @@ func demoMultiWindow(w *gui.Window) gui.View {
 						Width:  320,
 						Height: 220,
 						OnInit: func(child *gui.Window) {
-							sa := gui.State[ShowcaseApp](parent)
+							sa := appState(parent)
 							sa.MultiWindowChildID = child.PlatformID()
 							parent.UpdateWindow()
 							child.UpdateView(multiWindowChildView(parent))
@@ -600,7 +600,7 @@ func multiWindowChildView(parent *gui.Window) func(*gui.Window) gui.View {
 						cs := gui.State[multiWindowChildState](ctx.Window)
 						cs.Message = "Sent!"
 						parent.QueueCommand(func(p *gui.Window) {
-							gui.State[ShowcaseApp](p).DialogResult =
+							appState(p).DialogResult =
 								"Hello from child window"
 							p.UpdateWindow()
 						})
@@ -626,7 +626,7 @@ func multiWindowChildView(parent *gui.Window) func(*gui.Window) gui.View {
 					OnClick: func(ctx gui.EventCtx) {
 						ctx.Window.Close()
 						parent.QueueCommand(func(p *gui.Window) {
-							gui.State[ShowcaseApp](p).MultiWindowChildID = 0
+							appState(p).MultiWindowChildID = 0
 							p.UpdateWindow()
 						})
 					},
@@ -649,7 +649,7 @@ func multiWindowStatus(t gui.Theme, active bool) gui.View {
 
 func demoPrinting(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Spacing: gui.SomeF(12),
@@ -668,7 +668,7 @@ func demoPrinting(w *gui.Window) gui.View {
 							gui.Text(gui.TextCfg{Text: "Export PDF", TextStyle: t.N3}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
-							a := gui.State[ShowcaseApp](ctx.Window)
+							a := appState(ctx.Window)
 							outPath := filepath.Join(os.TempDir(), "showcase_export.pdf")
 							job := gui.NewPrintJob()
 							job.OutputPath = outPath
@@ -690,7 +690,7 @@ func demoPrinting(w *gui.Window) gui.View {
 							gui.Text(gui.TextCfg{Text: "Print", TextStyle: t.N3}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
-							a := gui.State[ShowcaseApp](ctx.Window)
+							a := appState(ctx.Window)
 							job := gui.NewPrintJob()
 							job.Title = "showcase Print"
 							r := ctx.Window.RunPrintJob(job)

@@ -44,6 +44,13 @@ type App struct {
 	DragActive bool
 }
 
+// state is the typed state accessor for this window. Callbacks
+// reach the app state through it instead of repeating
+// gui.State[App](...) at every site.
+func state(w *gui.Window) *App {
+	return gui.State[App](w)
+}
+
 const blinkAnim = "solitaire-blink"
 
 func main() {
@@ -64,7 +71,7 @@ func main() {
 				Delay:  500 * time.Millisecond,
 				Repeat: true,
 				Callback: func(_ *gui.Animate, w *gui.Window) {
-					app := gui.State[App](w)
+					app := state(w)
 					app.LandingFrame++
 					// Auto-complete check.
 					if app.Screen == ScreenPlaying &&
@@ -87,7 +94,7 @@ func handleEvent(e *gui.Event, w *gui.Window) {
 	if e.Type != gui.EventKeyDown {
 		return
 	}
-	app := gui.State[App](w)
+	app := state(w)
 	switch e.KeyCode {
 	case gui.KeyN:
 		if app.Screen == ScreenPlaying {
@@ -105,7 +112,7 @@ func handleEvent(e *gui.Event, w *gui.Window) {
 // --- View routing ---
 
 func mainView(w *gui.Window) gui.View {
-	app := gui.State[App](w)
+	app := state(w)
 	// Allowlisted viewport use: both screens place cards, the status bar
 	// and the win overlay at absolute pixel positions.
 	ww, wh := w.WindowSize()
@@ -153,7 +160,7 @@ func colX(col int) float32 { return boardPadX + float32(col)*colStride }
 // --- Landing page ---
 
 func landingView(w *gui.Window, ww, wh float32) gui.View {
-	app := gui.State[App](w)
+	app := state(w)
 	theme := gui.CurrentTheme()
 	blink := app.LandingFrame%2 == 0
 
@@ -256,7 +263,7 @@ func modeButton(w *gui.Window, title string, mode DrawMode, color gui.Color) gui
 			}),
 		},
 		OnClick: func(ctx gui.EventCtx) {
-			app := gui.State[App](ctx.Window)
+			app := state(ctx.Window)
 			app.Game = NewGame(mode, nil)
 			app.Screen = ScreenPlaying
 		},
@@ -287,7 +294,7 @@ func miniCard(rank, suit string, color gui.Color) gui.View {
 // --- Game view ---
 
 func gameView(w *gui.Window, ww, wh float32) gui.View {
-	app := gui.State[App](w)
+	app := state(w)
 	game := app.Game
 	theme := gui.CurrentTheme()
 
@@ -337,7 +344,7 @@ func stockView(game *Game) gui.View {
 			if ctx.Event.MouseButton != gui.MouseLeft {
 				return
 			}
-			app := gui.State[App](ctx.Window)
+			app := state(ctx.Window)
 			app.Game.Draw()
 			ctx.Consume()
 		})
@@ -347,7 +354,7 @@ func stockView(game *Game) gui.View {
 		if ctx.Event.MouseButton != gui.MouseLeft {
 			return
 		}
-		app := gui.State[App](ctx.Window)
+		app := state(ctx.Window)
 		app.Game.Draw()
 		ctx.Event.IsHandled = true
 	})
@@ -384,7 +391,7 @@ func wasteViews(app *App) []gui.View {
 
 func makeWasteClickHandler() func(gui.EventCtx) {
 	return func(ctx gui.EventCtx) {
-		app := gui.State[App](ctx.Window)
+		app := state(ctx.Window)
 		game := app.Game
 		tw := game.TopWaste()
 		if tw == nil {
@@ -486,7 +493,7 @@ func tableauViews(app *App, col int) []gui.View {
 
 func makeTableauClickHandler(col, cardIdx int) func(gui.EventCtx) {
 	return func(ctx gui.EventCtx) {
-		app := gui.State[App](ctx.Window)
+		app := state(ctx.Window)
 		game := app.Game
 
 		// Right-click: auto-place top card to foundation.
@@ -603,12 +610,12 @@ func startDrag(app *App, layout *gui.Layout, e *gui.Event, w *gui.Window, src Dr
 
 	w.MouseLock(gui.MouseLockCfg{
 		MouseMove: func(ctx gui.EventCtx) {
-			a := gui.State[App](ctx.Window)
+			a := state(ctx.Window)
 			a.DragMouseX = ctx.Event.MouseX
 			a.DragMouseY = ctx.Event.MouseY
 		},
 		MouseUp: func(ctx gui.EventCtx) {
-			a := gui.State[App](ctx.Window)
+			a := state(ctx.Window)
 			ctx.Window.MouseUnlock()
 			dropCards(a, ctx.Event.MouseX, ctx.Event.MouseY)
 			a.DragActive = false

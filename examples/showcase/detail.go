@@ -6,7 +6,7 @@ import (
 )
 
 func detailPanel(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	entries := filteredEntries(app)
 
 	if len(entries) == 0 {
@@ -143,7 +143,7 @@ func docButton(showDocs bool) gui.View {
 			gui.Text(gui.TextCfg{Text: gui.IconBook, TextStyle: gui.CurrentTheme().Icon4}),
 		},
 		OnClick: func(ctx gui.EventCtx) {
-			gui.State[ShowcaseApp](ctx.Window).ShowDocs = !gui.State[ShowcaseApp](ctx.Window).ShowDocs
+			appState(ctx.Window).ShowDocs = !appState(ctx.Window).ShowDocs
 		},
 	})
 }

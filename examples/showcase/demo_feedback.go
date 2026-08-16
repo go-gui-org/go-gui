@@ -10,7 +10,7 @@ import (
 )
 
 func demoButton(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Spacing: gui.SomeF(8),
@@ -31,7 +31,7 @@ func demoButton(w *gui.Window) gui.View {
 }
 
 func buttonFeatureRows(w *gui.Window) []gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	buttonText := fmt.Sprintf("%d Clicks Given", app.ButtonClicks)
 	buttonWidth := float32(160)
 	progress := float32(math.Mod(float64(app.ButtonClicks)/25.0, 1.0))
@@ -94,7 +94,7 @@ func buttonFeatureRows(w *gui.Window) []gui.View {
 			Content:  []gui.View{gui.Text(gui.TextCfg{Text: copyLabel})},
 			OnClick: func(ctx gui.EventCtx) {
 				incrementButtonClicks(ctx.Window)
-				gui.State[ShowcaseApp](ctx.Window).ButtonCopyUntil = time.Now().Add(2 * time.Second)
+				appState(ctx.Window).ButtonCopyUntil = time.Now().Add(2 * time.Second)
 			},
 		})),
 	}
@@ -114,7 +114,7 @@ func buttonFeatureRow(label string, button gui.View) gui.View {
 }
 
 func incrementButtonClicks(w *gui.Window) {
-	gui.State[ShowcaseApp](w).ButtonClicks++
+	appState(w).ButtonClicks++
 }
 
 func showcaseButtonClick(ctx gui.EventCtx) {
@@ -198,7 +198,7 @@ func demoBadge(_ *gui.Window) gui.View {
 }
 
 func demoCommandButton(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
@@ -226,7 +226,7 @@ func demoCommandButton(w *gui.Window) gui.View {
 }
 
 func demoThemePicker(w *gui.Window) gui.View {
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	t := gui.CurrentTheme()
 	result := app.ThemePickerResult
 	if result == "" {
@@ -247,7 +247,7 @@ func demoThemePicker(w *gui.Window) gui.View {
 				FloatAnchor: gui.FloatBottomLeft,
 				FloatTieOff: gui.FloatTopLeft,
 				OnSelect: func(name string, ctx gui.EventCtx) {
-					gui.State[ShowcaseApp](ctx.Window).ThemePickerResult = name
+					appState(ctx.Window).ThemePickerResult = name
 				},
 			}),
 			gui.Text(gui.TextCfg{

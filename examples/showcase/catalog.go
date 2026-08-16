@@ -8,7 +8,7 @@ import (
 
 func catalogPanel(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
-	app := gui.State[ShowcaseApp](w)
+	app := appState(w)
 	entries := filteredEntries(app)
 
 	switch {
@@ -62,7 +62,7 @@ func catalogPanel(w *gui.Window) gui.View {
 							if !ok {
 								return
 							}
-							syncThemeGenFromCfg(gui.State[ShowcaseApp](ctx.Window), theme.Cfg)
+							syncThemeGenFromCfg(appState(ctx.Window), theme.Cfg)
 						},
 					}),
 				},
@@ -78,7 +78,7 @@ func searchInput(app *ShowcaseApp) gui.View {
 		Text:        app.NavQuery,
 		Placeholder: "Search controls...",
 		OnTextChanged: func(text string, ctx gui.EventCtx) {
-			gui.State[ShowcaseApp](ctx.Window).NavQuery = text
+			appState(ctx.Window).NavQuery = text
 		},
 	})
 }
@@ -123,7 +123,7 @@ func groupPickerItem(label, key string, app *ShowcaseApp) gui.View {
 			gui.Text(gui.TextCfg{Text: label, TextStyle: t.N5}),
 		},
 		OnClick: func(ctx gui.EventCtx) {
-			showcaseApp := gui.State[ShowcaseApp](ctx.Window)
+			showcaseApp := appState(ctx.Window)
 			showcaseApp.SelectedGroup = key
 			showcaseApp.ShowDocs = false
 			showcaseApp.NavQuery = ""
@@ -197,7 +197,7 @@ func catalogRow(entry DemoEntry, app *ShowcaseApp) gui.View {
 			gui.Text(gui.TextCfg{Text: entry.Label, TextStyle: t.N4}),
 		},
 		OnClick: func(ctx gui.EventCtx) {
-			showcaseApp := gui.State[ShowcaseApp](ctx.Window)
+			showcaseApp := appState(ctx.Window)
 			showcaseApp.SelectedComponent = entry.ID
 			showcaseApp.ShowDocs = false
 			ctx.Window.ScrollVerticalTo(scrollDetail, 0)
@@ -220,7 +220,7 @@ func toggleLocale(app *ShowcaseApp) gui.View {
 			}),
 		},
 		OnClick: func(ctx gui.EventCtx) {
-			showcaseApp := gui.State[ShowcaseApp](ctx.Window)
+			showcaseApp := appState(ctx.Window)
 			showcaseApp.LocaleIndex = (showcaseApp.LocaleIndex + 1) % localeCount()
 			if locale, ok := showcaseLocaleAt(showcaseApp.LocaleIndex); ok {
 				ctx.Window.SetLocale(locale)

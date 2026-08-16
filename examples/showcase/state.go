@@ -186,6 +186,14 @@ type GestureMarker struct {
 	LongPress bool
 }
 
+// appState is the typed state accessor for the showcase window.
+// Every demo repeats appState(w); centralizing the
+// type assertion here keeps call sites one word and the type
+// mention in one place.
+func appState(w *gui.Window) *ShowcaseApp {
+	return gui.State[ShowcaseApp](w)
+}
+
 func newShowcaseApp() *ShowcaseApp {
 	return &ShowcaseApp{
 		ShaderStartTime:      time.Now(),
