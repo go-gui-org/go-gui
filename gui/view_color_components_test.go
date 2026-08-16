@@ -403,10 +403,10 @@ func TestColorComponentsNilOnChange(t *testing.T) {
 	}
 }
 
-// The hex field is Fit-sized, so without a floor it would track its
-// own text and the swatch beside it would shift as the value changed
-// length.
-func TestColorFieldsHexMinWidth(t *testing.T) {
+// Every field is Fit-sized, so without a floor each would track its
+// own text: the swatch beside the hex value and the numeric columns
+// would shift as the value changed length.
+func TestColorFieldsMinWidths(t *testing.T) {
 	w := &Window{}
 	for _, v := range []HSLA{
 		{H: 0, S: 0, L: 1, A: 1},           // "#FFFFFF", short form
@@ -415,6 +415,7 @@ func TestColorFieldsHexMinWidth(t *testing.T) {
 		l := generateViewLayout(ColorFields(ColorFieldsCfg{
 			ID:         "hexw",
 			Value:      v,
+			ShowHSL:    true,
 			ShowSwatch: true,
 		}), w)
 		found := findShapeByID(&l, "hexw:hex")
@@ -425,6 +426,21 @@ func TestColorFieldsHexMinWidth(t *testing.T) {
 		if s.MinWidth != defaultHexFieldWidth {
 			t.Errorf("hex MinWidth = %v, want %v",
 				s.MinWidth, defaultHexFieldWidth)
+		}
+
+		// The numeric fields have the same problem: "0" and "255"
+		// would resolve to different widths and shift the column.
+		for _, leaf := range []string{
+			"hexw:rgb:0", "hexw:rgb:3", "hexw:hsl:0", "hexw:hsl:2",
+		} {
+			f := findShapeByID(&l, leaf)
+			if f == nil {
+				t.Fatalf("no field %q for %v", leaf, v)
+			}
+			if f.Shape.MinWidth != defaultColorFieldWidth {
+				t.Errorf("%s MinWidth = %v, want %v", leaf,
+					f.Shape.MinWidth, defaultColorFieldWidth)
+			}
 		}
 	}
 }

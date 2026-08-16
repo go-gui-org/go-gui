@@ -282,7 +282,12 @@ func colorFieldColumn(
 				Text:      strconv.Itoa(val),
 				TextStyle: cfg.TextStyle,
 				Width:     cfg.FieldWidth,
-				A11YCfg:   A11YCfg{A11YLabel: label},
+				// Same floor as the hex field: an Input is
+				// Fit-sized, so "0" and "255" would resolve to
+				// different widths and the whole column of fields
+				// would shift as the user drags a control.
+				MinWidth: cfg.FieldWidth,
+				A11YCfg:  A11YCfg{A11YLabel: label},
 				OnTextChanged: func(text string, ctx EventCtx) {
 					apply(text, ctx)
 				},
