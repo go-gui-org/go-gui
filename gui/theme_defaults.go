@@ -74,6 +74,13 @@ func baseDarkCfg() ThemeCfg {
 	cfg.TitlebarDark = true
 	cfg.TextStyleDef = DefaultTextStyle
 	cfg.ColorError = RGBA(218, 54, 51, 255)
+	// Bordered by default since 2026-08: the call-site count behind
+	// issue #325 found 90 of 104 example files explicitly calling
+	// SetTheme(ThemeDark.WithBorders(true)), so bordered is what
+	// applications actually want. Theme.WithBorders(false) restores
+	// the borderless look. The "dark-bordered" preset is now identical
+	// to ThemeDark but stays registered for name-based theme selection.
+	cfg.SizeBorder = sizeBorderDef
 	return cfg
 }
 
@@ -140,10 +147,11 @@ func init() {
 	themeDarkNoPaddingCfg.Radius = radiusNone
 	themeDarkNoPadding = ThemeMaker(themeDarkNoPaddingCfg)
 
-	// Dark bordered.
+	// Dark bordered. Now identical to ThemeDark (baseDarkCfg carries
+	// the border); kept registered for backward compatibility with
+	// name-based theme selection.
 	themeDarkBorderedCfg = baseDarkCfg()
 	themeDarkBorderedCfg.Name = "dark-bordered"
-	themeDarkBorderedCfg.SizeBorder = sizeBorderDef
 	themeDarkBordered = ThemeMaker(themeDarkBorderedCfg)
 
 	// Light.

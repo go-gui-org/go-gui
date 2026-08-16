@@ -35,6 +35,24 @@ func TestDarkThemeColors(t *testing.T) {
 	}
 }
 
+// ThemeDark carries the border since 2026-08 (issue #325 call-site
+// count: 90 of 104 examples opt in via WithBorders(true)); the flip
+// must keep WithBorders(false) able to restore the borderless look.
+func TestDarkThemeBorderedDefault(t *testing.T) {
+	if ThemeDark.Cfg.SizeBorder != sizeBorderDef {
+		t.Errorf("ThemeDark SizeBorder = %v, want %v",
+			ThemeDark.Cfg.SizeBorder, sizeBorderDef)
+	}
+	if got := ThemeDark.WithBorders(false).Cfg.SizeBorder; got != 0 {
+		t.Errorf("WithBorders(false) SizeBorder = %v, want 0", got)
+	}
+	// dark-bordered is now an exact duplicate of dark; keep them in
+	// lockstep so name-based selection cannot drift from ThemeDark.
+	if themeDarkBordered.Cfg.SizeBorder != ThemeDark.Cfg.SizeBorder {
+		t.Error("dark-bordered preset diverged from ThemeDark")
+	}
+}
+
 func TestLightThemeColors(t *testing.T) {
 	if ThemeLight.ColorBackground != colorBackgroundLight {
 		t.Error("light background mismatch")

@@ -17,7 +17,7 @@ type App struct {
 }
 
 func main() {
-	gui.SetTheme(gui.ThemeDark)
+	gui.SetTheme(gui.ThemeDark.WithBorders(false))
 
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  &App{StartTime: time.Now()},

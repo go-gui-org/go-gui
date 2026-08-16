@@ -26,9 +26,9 @@ func TestDefaultScrollbarStyle(t *testing.T) {
 	}
 }
 
-// ThemeDark is borderless by design — bordered is the separate
-// dark-bordered preset, or Theme.WithBorders(true). What every widget
-// style must have is a real corner radius, so a widget never renders
+// ThemeDark is bordered since 2026-08 (see baseDarkCfg); callers who
+// want the old borderless look use Theme.WithBorders(false). What every
+// widget style must have is a real corner radius, so a widget never renders
 // with square corners just because a style went unpopulated.
 func TestDefaultWidgetStylesRadius(t *testing.T) {
 	styles := []struct {
