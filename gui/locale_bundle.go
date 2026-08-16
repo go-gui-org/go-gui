@@ -168,6 +168,8 @@ func (b *localeBundle) toLocale() Locale {
 		strHue:   bundleStr(b.Strings, "hue", d.strHue),
 		strSat:   bundleStr(b.Strings, "sat", d.strSat),
 		strValue: bundleStr(b.Strings, "value", d.strValue),
+		strLightness: bundleStr(
+			b.Strings, "lightness", d.strLightness),
 
 		WeekdaysShort: toFixed7(b.WeekdaysShort, d.WeekdaysShort),
 		WeekdaysMed:   toFixed7(b.WeekdaysMed, d.WeekdaysMed),

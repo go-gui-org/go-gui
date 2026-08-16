@@ -220,23 +220,92 @@ func demoColorPicker(w *gui.Window) gui.View {
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Switch(gui.SwitchCfg{
-				ID:       "color-picker-hsv",
-				Label:    "Show HSV",
-				Selected: app.ColorPickerHSV,
+				ID:       "color-picker-hsl",
+				Label:    "Show HSL",
+				Selected: app.ColorPickerHSL,
 				OnClick: func(ctx gui.EventCtx) {
-					gui.State[ShowcaseApp](ctx.Window).ColorPickerHSV = !gui.State[ShowcaseApp](ctx.Window).ColorPickerHSV
+					a := gui.State[ShowcaseApp](ctx.Window)
+					a.ColorPickerHSL = !a.ColorPickerHSL
 				},
 			}),
 			gui.ColorPicker(gui.ColorPickerCfg{
 				ID:      "color-picker",
 				Color:   c,
-				ShowHSV: app.ColorPickerHSV,
+				ShowHSL: app.ColorPickerHSL,
 				OnColorChange: func(color gui.Color, ctx gui.EventCtx) {
 					gui.State[ShowcaseApp](ctx.Window).ColorPickerColor = color
 				},
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      fmt.Sprintf("RGBA(%d, %d, %d, %d)", c.R, c.G, c.B, c.A),
+				TextStyle: gui.CurrentTheme().N3,
+			}),
+			// The composite control above and the loose components
+			// below edit different values, so a rule between them says
+			// where one demo ends and the next begins.
+			line(),
+			demoColorComponents(app),
+		},
+	})
+}
+
+// demoColorComponents shows the pieces gui.ColorPicker is built from,
+// driven by one HSLA in app state. Each control writes the whole value
+// and reads it back, so they stay in sync with no state of their own.
+func demoColorComponents(app *ShowcaseApp) gui.View {
+	set := func(v gui.HSLA, ctx gui.EventCtx) {
+		gui.State[ShowcaseApp](ctx.Window).ColorHSLA = v
+	}
+	return gui.Column(gui.ContainerCfg{
+		Sizing:  gui.FillFit,
+		Spacing: gui.SomeF(8),
+		Padding: gui.NoPadding,
+		Content: []gui.View{
+			gui.Text(gui.TextCfg{
+				Text:      "Composable components",
+				TextStyle: gui.CurrentTheme().N2,
+			}),
+			gui.Row(gui.ContainerCfg{
+				Sizing:  gui.FitFit,
+				Padding: gui.NoPadding,
+				Spacing: gui.SomeF(12),
+				Content: []gui.View{
+					gui.ColorPlane(gui.ColorPlaneCfg{
+						ID:       "color-parts-plane",
+						Value:    app.ColorHSLA,
+						Size:     120,
+						OnChange: set,
+					}),
+					gui.ColorWheel(gui.ColorWheelCfg{
+						ID:       "color-parts-wheel",
+						Value:    app.ColorHSLA,
+						Size:     120,
+						OnChange: set,
+					}),
+					gui.ColorSwatch(gui.ColorSwatchCfg{
+						ID:     "color-parts-swatch",
+						Color:  app.ColorHSLA.Color(),
+						Width:  64,
+						Height: 120,
+					}),
+				},
+			}),
+			gui.ColorChannelSlider(gui.ColorChannelSliderCfg{
+				ID:       "color-parts-hue",
+				Channel:  gui.ChannelHue,
+				Value:    app.ColorHSLA,
+				Width:    320,
+				OnChange: set,
+			}),
+			gui.ColorChannelSlider(gui.ColorChannelSliderCfg{
+				ID:       "color-parts-alpha",
+				Channel:  gui.ChannelAlpha,
+				Value:    app.ColorHSLA,
+				Width:    320,
+				OnChange: set,
+			}),
+			gui.Text(gui.TextCfg{
+				Text:      app.ColorHSLA.String(),
 				TextStyle: gui.CurrentTheme().N3,
 			}),
 		},

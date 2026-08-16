@@ -171,7 +171,7 @@ func resolveImageSrcWithFetcher(
 	if src == "" {
 		return ""
 	}
-	if isDataURL(src) {
+	if isDataURL(src) || isMemImage(src) {
 		return src
 	}
 	if !isHTTPURL(src) {

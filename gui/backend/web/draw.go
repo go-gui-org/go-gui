@@ -385,57 +385,8 @@ func (b *Backend) drawGradientBorder(r *gui.RenderCmd) {
 }
 
 func (b *Backend) drawImage(r *gui.RenderCmd) {
-	if _, failed := b.failedImages[r.Resource]; failed {
-		return
-	}
-	img, ok := b.imgCache[r.Resource]
+	img, ok := b.resolveImageSource(r.Resource)
 	if !ok {
-		if !isAllowedImageSrc(r.Resource) {
-			scheme := r.Resource
-			if idx := strings.IndexByte(r.Resource, ':'); idx >= 0 {
-				scheme = r.Resource[:idx]
-			}
-			log.Printf("web: blocked image src scheme: %q",
-				scheme)
-			return
-		}
-		// Evict a batch of random entries when cache is full.
-		// Random eviction is O(1) with no bookkeeping. Batch
-		// eviction amortizes overhead for image-heavy UIs.
-		if len(b.imgCache) >= maxImageCacheSize {
-			n := 0
-			for k := range b.imgCache {
-				delete(b.imgCache, k)
-				n++
-				if n >= imageCacheEvictN {
-					break
-				}
-			}
-		}
-		img = js.Global().Get("Image").New()
-		img.Set("src", r.Resource)
-		b.imgCache[r.Resource] = img
-	}
-	if !img.Get("complete").Bool() {
-		return
-	}
-	// Loaded but broken (e.g. 404) — track in failedImages
-	// to prevent eternal retry. Keep the negative cache bounded
-	// so a stream of unique bad URLs cannot grow session memory
-	// without limit.
-	if img.Get("naturalWidth").Int() == 0 {
-		if len(b.failedImages) >= maxFailedImageCacheSize {
-			n := 0
-			for k := range b.failedImages {
-				delete(b.failedImages, k)
-				n++
-				if n >= failedImageCacheEvictN {
-					break
-				}
-			}
-		}
-		b.failedImages[r.Resource] = struct{}{}
-		delete(b.imgCache, r.Resource)
 		return
 	}
 	// Fill background.
@@ -460,6 +411,108 @@ func (b *Backend) drawImage(r *gui.RenderCmd) {
 	if r.ClipRadius > 0 {
 		b.ctx2d.Call("restore")
 	}
+}
+
+// resolveImageSource returns a canvas drawImage source for a render
+// command's Resource: an offscreen canvas for a mem: buffer, an Image
+// element for a path, URL, or data URL. ok=false means nothing is
+// drawable this frame — blocked scheme, download in flight, or a
+// permanently broken source.
+func (b *Backend) resolveImageSource(res string) (js.Value, bool) {
+	// A mem: source names a buffer in gui's in-memory registry. It has
+	// no URL to load, so it is painted into an offscreen canvas once
+	// and cached alongside the Image elements; a canvas is a valid
+	// drawImage source. Callers content-key, so a changed buffer
+	// arrives as a new key and never reuses this canvas.
+	if iw, ih, pix, ok := gui.LookupImage(res); ok {
+		if c, hit := b.imgCache[res]; hit {
+			return c, true
+		}
+		b.evictImageCache()
+		c := b.memImageCanvas(iw, ih, pix)
+		b.imgCache[res] = c
+		return c, true
+	}
+
+	if _, failed := b.failedImages[res]; failed {
+		return js.Value{}, false
+	}
+	img, ok := b.imgCache[res]
+	if !ok {
+		if !isAllowedImageSrc(res) {
+			scheme := res
+			if s, _, ok := strings.Cut(res, ":"); ok {
+				scheme = s
+			}
+			log.Printf("web: blocked image src scheme: %q",
+				scheme)
+			return js.Value{}, false
+		}
+		b.evictImageCache()
+		img = js.Global().Get("Image").New()
+		img.Set("src", res)
+		b.imgCache[res] = img
+	}
+	if !img.Get("complete").Bool() {
+		return js.Value{}, false
+	}
+	// Loaded but broken (e.g. 404) — track in failedImages
+	// to prevent eternal retry. Keep the negative cache bounded
+	// so a stream of unique bad URLs cannot grow session memory
+	// without limit.
+	if img.Get("naturalWidth").Int() == 0 {
+		if len(b.failedImages) >= maxFailedImageCacheSize {
+			n := 0
+			for k := range b.failedImages {
+				delete(b.failedImages, k)
+				n++
+				if n >= failedImageCacheEvictN {
+					break
+				}
+			}
+		}
+		b.failedImages[res] = struct{}{}
+		delete(b.imgCache, res)
+		return js.Value{}, false
+	}
+	return img, true
+}
+
+// evictImageCache drops a batch of random entries when the cache is
+// full. Random eviction is O(1) with no bookkeeping; batch eviction
+// amortizes the overhead for image-heavy UIs.
+func (b *Backend) evictImageCache() {
+	if len(b.imgCache) < maxImageCacheSize {
+		return
+	}
+	n := 0
+	for k := range b.imgCache {
+		delete(b.imgCache, k)
+		n++
+		if n >= imageCacheEvictN {
+			break
+		}
+	}
+}
+
+// memImageCanvas paints an NRGBA8 buffer into an offscreen canvas.
+// ImageData is non-premultiplied RGBA, the same layout the registry
+// stores, so the bytes transfer with no conversion.
+func (b *Backend) memImageCanvas(
+	w, h int, pix []byte,
+) js.Value {
+	canvas := js.Global().Get("document").
+		Call("createElement", "canvas")
+	canvas.Set("width", w)
+	canvas.Set("height", h)
+	ctx := canvas.Call("getContext", "2d")
+
+	buf := js.Global().Get("Uint8Array").New(len(pix))
+	js.CopyBytesToJS(buf, pix)
+	data := ctx.Call("createImageData", w, h)
+	data.Get("data").Call("set", buf)
+	ctx.Call("putImageData", data, 0, 0)
+	return canvas
 }
 
 func (b *Backend) drawSvg(r *gui.RenderCmd) {

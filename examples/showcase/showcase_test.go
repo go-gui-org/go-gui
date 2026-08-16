@@ -438,3 +438,24 @@ func TestDemoPagesHaveNoIDDefects(t *testing.T) {
 		app.ShowDocs = false
 	}
 }
+
+// The color picker demo shows both the packed widget and the
+// components it is built from. Generating it is what proves the
+// composable controls survive a real app's state wiring.
+func TestDemoColorPickerBuildsComponents(t *testing.T) {
+	w := gui.NewWindow(gui.WindowCfg{State: newShowcaseApp()})
+	layout := gui.GenerateViewLayout(demoColorPicker(w), w)
+
+	for _, id := range []string{
+		"color-picker",
+		"color-parts-plane",
+		"color-parts-wheel",
+		"color-parts-swatch",
+		"color-parts-hue",
+		"color-parts-alpha",
+	} {
+		if _, ok := layout.FindByID(id); !ok {
+			t.Errorf("color picker demo is missing %q", id)
+		}
+	}
+}

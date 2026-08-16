@@ -53,8 +53,15 @@ func colorFromHSVA(h, s, v float32, a uint8) Color {
 	hh := f32Mod(h/60.0, 6)
 	x := c * (1.0 - f32Abs(f32Mod(hh, 2)-1.0))
 	m := v - c
+	r, g, b := sectorRGB(hh, c, x)
+	return RGBA(uint8((r+m)*255.0+0.5), uint8((g+m)*255.0+0.5), uint8((b+m)*255.0+0.5), a)
+}
 
-	var r, g, b float32
+// sectorRGB maps the hue sector hh (in units of 60°, 0–6) to RGB
+// components from chroma c and its intermediate x. The HSV and HSL
+// conversions share this geometry; only the chroma and the offset m
+// differ between them, so the sector mapping lives here once.
+func sectorRGB(hh, c, x float32) (r, g, b float32) {
 	switch {
 	case hh < 1:
 		r, g = c, x
@@ -69,8 +76,7 @@ func colorFromHSVA(h, s, v float32, a uint8) Color {
 	default:
 		r, b = c, x
 	}
-
-	return RGBA(uint8((r+m)*255.0+0.5), uint8((g+m)*255.0+0.5), uint8((b+m)*255.0+0.5), a)
+	return r, g, b
 }
 
 // HueColor returns the pure color for a given hue (s=1, v=1).

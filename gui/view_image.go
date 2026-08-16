@@ -64,8 +64,9 @@ func (iv *imageView) GenerateLayout(w *Window) Layout {
 	}
 
 	// Data URLs are passed directly to the backend renderer
-	// (used by WASM for embedded image assets).
-	if !isDataURL(c.Src) {
+	// (used by WASM for embedded image assets). mem: sources name a
+	// buffer in the in-memory registry, so there is no path to stat.
+	if !isDataURL(c.Src) && !isMemImage(c.Src) {
 		if err := validateImagePath(imagePath); err != nil {
 			log.Printf("image: %v", err)
 			return errorTextLayout(c.Src, w)
