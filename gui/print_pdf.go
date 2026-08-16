@@ -1,8 +1,11 @@
 package gui
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"image"
+	"image/png"
 	"math"
 	"os"
 	"strings"
@@ -288,11 +291,43 @@ func pdfRenderImage(ctx *pdfCtx, cmd RenderCmd) {
 	if path == "" {
 		return
 	}
+	if isMemImage(path) {
+		pdfRenderMemImage(ctx, cmd)
+		return
+	}
 	if _, err := os.Stat(path); err != nil {
 		return
 	}
 	opts := fpdf.ImageOptions{ReadDpi: true}
 	ctx.pdf.ImageOptions(path, ctx.px(cmd.X), ctx.py(cmd.Y),
+		ctx.pw(cmd.W), ctx.ph(cmd.H), false, opts, 0, "")
+}
+
+// pdfRenderMemImage embeds a registered in-memory buffer. fpdf reads
+// encoded image files, not raw pixels, so the buffer is PNG-encoded
+// once and registered under its Resource name — repeat draws of the
+// same key reuse the embedded image rather than re-encoding.
+func pdfRenderMemImage(ctx *pdfCtx, cmd RenderCmd) {
+	w, h, pix, ok := LookupImage(cmd.Resource)
+	if !ok {
+		return
+	}
+	if info := ctx.pdf.GetImageInfo(cmd.Resource); info == nil {
+		img := &image.NRGBA{
+			Pix:    pix,
+			Stride: w * 4,
+			Rect:   image.Rect(0, 0, w, h),
+		}
+		var buf bytes.Buffer
+		if err := png.Encode(&buf, img); err != nil {
+			return
+		}
+		opts := fpdf.ImageOptions{ImageType: "PNG"}
+		ctx.pdf.RegisterImageOptionsReader(
+			cmd.Resource, opts, &buf)
+	}
+	opts := fpdf.ImageOptions{ImageType: "PNG"}
+	ctx.pdf.ImageOptions(cmd.Resource, ctx.px(cmd.X), ctx.py(cmd.Y),
 		ctx.pw(cmd.W), ctx.ph(cmd.H), false, opts, 0, "")
 }
 

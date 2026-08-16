@@ -243,9 +243,43 @@ func (b *Backend) drawGradientBorder(r *gui.RenderCmd) {
 }
 
 func (b *Backend) drawImage(r *gui.RenderCmd) {
-	path := b.ResolveImagePath(r.Resource, "ios")
-	if path == "-" {
+	tex, ok := b.resolveMemTexture(r.Resource)
+	if !ok {
+		tex, ok = b.resolvePathTexture(r.Resource)
+	}
+	if !ok || tex.id == 0 {
 		return
+	}
+	b.drawImageTex(r, tex)
+}
+
+// resolveMemTexture returns the texture for a mem: source — a buffer
+// in gui's in-memory registry. It has no path, so it skips path
+// resolution and the AllowedImageRoots sandbox (see gui.LookupImage on
+// why that is safe). Cached under the Resource string itself, which
+// callers content-key, so a changed buffer arrives as a new key and
+// never reuses a stale upload.
+func (b *Backend) resolveMemTexture(
+	res string,
+) (metalTexture, bool) {
+	iw, ih, pix, ok := gui.LookupImage(res)
+	if !ok {
+		return metalTexture{}, false
+	}
+	tex, hit := b.textures.Get(res)
+	if !hit {
+		tex = createMetalTexture(int32(iw), int32(ih), pix)
+		b.textures.Set(res, tex)
+	}
+	return tex, true
+}
+
+func (b *Backend) resolvePathTexture(
+	res string,
+) (metalTexture, bool) {
+	path := b.ResolveImagePath(res, "ios")
+	if path == "-" {
+		return metalTexture{}, false
 	}
 
 	tex, ok := b.textures.Get(path)
@@ -257,10 +291,14 @@ func (b *Backend) drawImage(r *gui.RenderCmd) {
 		}
 		b.textures.Set(path, tex)
 	}
-	if tex.id == 0 {
-		return
-	}
+	return tex, true
+}
 
+// drawImageTex paints an already-resolved texture into the command's
+// rect, filling BgColor behind it first.
+func (b *Backend) drawImageTex(
+	r *gui.RenderCmd, tex metalTexture,
+) {
 	s := b.DPIScale
 	x := r.X * s
 	y := r.Y * s

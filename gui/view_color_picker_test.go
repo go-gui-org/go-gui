@@ -17,16 +17,40 @@ func TestColorPickerLayout(t *testing.T) {
 	}
 }
 
-func TestColorPickerLayoutWithHSV(t *testing.T) {
-	w := &Window{}
-	v := ColorPicker(ColorPickerCfg{
-		ID:      "cp-hsv",
-		Color:   RGB(0, 128, 255),
-		ShowHSV: true,
+// ShowHSV is the deprecated spelling of ShowHSL and must keep working:
+// callers in other repos still set it.
+func TestColorPickerShowHSVStillAddsRow(t *testing.T) {
+	countInputs := func(cfg ColorPickerCfg) int {
+		w := &Window{}
+		layout := generateViewLayout(ColorPicker(cfg), w)
+		n := 0
+		var walk func(*Layout)
+		walk = func(l *Layout) {
+			if l.Shape != nil && l.Shape.shapeType == shapeText {
+				n++
+			}
+			for i := range l.Children {
+				walk(&l.Children[i])
+			}
+		}
+		walk(&layout)
+		return n
+	}
+	base := countInputs(ColorPickerCfg{
+		ID: "cp-plain", Color: RGB(0, 128, 255),
 	})
-	layout := generateViewLayout(v, w)
-	if layout.Shape.ID != "cp-hsv" {
-		t.Errorf("ID = %q", layout.Shape.ID)
+	hsv := countInputs(ColorPickerCfg{
+		ID: "cp-hsv", Color: RGB(0, 128, 255), ShowHSV: true,
+	})
+	hsl := countInputs(ColorPickerCfg{
+		ID: "cp-hsl", Color: RGB(0, 128, 255), ShowHSL: true,
+	})
+	if hsv <= base {
+		t.Errorf("ShowHSV added no row: %d vs %d", hsv, base)
+	}
+	if hsl != hsv {
+		t.Errorf("ShowHSL = %d, ShowHSV = %d; want the same row",
+			hsl, hsv)
 	}
 }
 
@@ -58,302 +82,51 @@ func TestColorPickerDefaultColor(t *testing.T) {
 func TestColorPickerStateInit(t *testing.T) {
 	w := &Window{}
 	c := RGB(255, 0, 0) // pure red
-	v := ColorPicker(ColorPickerCfg{ID: "cp-state", Color: c})
-	generateViewLayout(v, w)
+	generateViewLayout(
+		ColorPicker(ColorPickerCfg{ID: "cp-state", Color: c}), w)
 
 	sm := StateMap[string, colorPickerState](
 		w, nsColorPicker, capModerate)
-	hsv, ok := sm.Get("cp-state")
+	st, ok := sm.Get("cp-state")
 	if !ok {
 		t.Fatal("state should be initialized")
 	}
-	// Pure red → H≈0, S≈1, V≈1.
-	if hsv.S < 0.99 || hsv.V < 0.99 {
-		t.Errorf("HSV = %v %v %v", hsv.H, hsv.S, hsv.V)
+	// Pure red → H≈0, S≈1, L≈0.5 in HSL.
+	if st.hsla.S < 0.99 || f32Abs(st.hsla.L-0.5) > 0.01 {
+		t.Errorf("HSLA = %+v", st.hsla)
 	}
 }
 
-func TestCpParseUint8(t *testing.T) {
-	tests := []struct {
-		input string
-		want  uint8
-		ok    bool
-	}{
-		{"0", 0, true},
-		{"255", 255, true},
-		{"128", 128, true},
-		{"-1", 0, false},
-		{"256", 0, false},
-		{"abc", 0, false},
-		{"", 0, false},
-	}
-	for _, tt := range tests {
-		got, ok := cpParseUint8(tt.input)
-		if ok != tt.ok || (ok && got != tt.want) {
-			t.Errorf("cpParseUint8(%q) = %d, %v; want %d, %v",
-				tt.input, got, ok, tt.want, tt.ok)
-		}
-	}
-}
-
-func TestCpAmendSVIndicator(t *testing.T) {
-	parent := &Layout{
-		Shape: &Shape{X: 10, Y: 20, Width: 200, Height: 200},
-	}
-	child := &Layout{Shape: &Shape{}, Parent: parent}
-	hsv := colorPickerState{H: 0, S: 0.5, V: 0.75}
-	cpAmendSVIndicator(child, hsv, 200, 12)
-
-	wantX := float32(10 + 0.5*200 - 6)
-	wantY := float32(20 + (1-0.75)*200 - 6)
-	if child.Shape.X != wantX {
-		t.Errorf("X = %f, want %f", child.Shape.X, wantX)
-	}
-	if child.Shape.Y != wantY {
-		t.Errorf("Y = %f, want %f", child.Shape.Y, wantY)
-	}
-}
-
-func TestCpAmendSVIndicatorNoParent(t *testing.T) {
-	child := &Layout{Shape: &Shape{X: 5, Y: 5}}
-	hsv := colorPickerState{H: 0, S: 0.5, V: 0.5}
-	cpAmendSVIndicator(child, hsv, 200, 12)
-	// Should not modify when no parent.
-	if child.Shape.X != 5 || child.Shape.Y != 5 {
-		t.Error("should not modify layout without parent")
-	}
-}
-
-func TestCpAmendHueIndicator(t *testing.T) {
-	parent := &Layout{
-		Shape: &Shape{X: 10, Y: 20, Width: 30, Height: 200},
-	}
-	child := &Layout{Shape: &Shape{}, Parent: parent}
-	hsv := colorPickerState{H: 180, S: 1, V: 1}
-	cpAmendHueIndicator(child, hsv, 200, 12)
-
-	wantX := float32(10 + 30.0/2 - 6)
-	wantY := float32(20 + (180.0/360)*200 - 6)
-	if child.Shape.X != wantX {
-		t.Errorf("X = %f, want %f", child.Shape.X, wantX)
-	}
-	if child.Shape.Y != wantY {
-		t.Errorf("Y = %f, want %f", child.Shape.Y, wantY)
-	}
-}
-
-func TestCpAmendHueIndicatorNoParent(t *testing.T) {
-	child := &Layout{Shape: &Shape{X: 5, Y: 5}}
-	hsv := colorPickerState{H: 90, S: 1, V: 1}
-	cpAmendHueIndicator(child, hsv, 200, 12)
-	if child.Shape.X != 5 || child.Shape.Y != 5 {
-		t.Error("should not modify layout without parent")
-	}
-}
-
-func TestCpSVMouseAction(t *testing.T) {
+// The picker's whole reason for holding state: a value the user drove
+// to a gray or to black must not lose the hue it was on, even though
+// the caller only ever sees a Color.
+func TestCpValuePreservesHueThroughRoundTrip(t *testing.T) {
 	w := &Window{}
-	sm := StateMap[string, colorPickerState](
-		w, nsColorPicker, capModerate)
-	sm.Set("sv-test", colorPickerState{H: 120, S: 0, V: 0})
+	const id = "cp-hue"
 
-	var gotColor Color
-	onChange := func(c Color, ctx EventCtx) { gotColor = c }
+	// Start on cyan, then drag lightness to zero.
+	cpStore(w, id, HSLA{H: 180, S: 1, L: 0.5, A: 1})
+	black := HSLA{H: 180, S: 1, L: 0, A: 1}
+	cpStore(w, id, black)
 
-	layout := &Layout{
-		Shape: &Shape{X: 0, Y: 0, Width: 100, Height: 100},
-	}
-	e := &Event{MouseX: 50, MouseY: 25}
-	cpSVMouseAction("sv-test", RGB(0, 0, 0), onChange, layout.Shape, e, w)
-
-	hsv, _ := sm.Get("sv-test")
-	if hsv.S < 0.49 || hsv.S > 0.51 {
-		t.Errorf("S = %f, want ~0.5", hsv.S)
-	}
-	if hsv.V < 0.74 || hsv.V > 0.76 {
-		t.Errorf("V = %f, want ~0.75", hsv.V)
-	}
-	if !gotColor.IsSet() {
-		t.Error("onChange should be called")
+	// The caller hands back exactly the Color the picker produced —
+	// a round trip, so the stored hue must survive.
+	got := cpValue(w, id, black.Color())
+	if got.H != 180 {
+		t.Errorf("H = %v after round trip, want 180 preserved", got.H)
 	}
 }
 
-func TestCpSVMouseActionWithOffset(t *testing.T) {
+// A Color the picker did not produce is the caller setting the value,
+// and it must win over the stored one.
+func TestCpValueCallerSetColorWins(t *testing.T) {
 	w := &Window{}
-	sm := StateMap[string, colorPickerState](
-		w, nsColorPicker, capModerate)
-	sm.Set("sv-off", colorPickerState{H: 120, S: 0, V: 0})
+	const id = "cp-set"
 
-	var gotColor Color
-	onChange := func(c Color, ctx EventCtx) { gotColor = c }
-
-	shape := &Shape{X: 100, Y: 200, Width: 100, Height: 100}
-	e := &Event{MouseX: 150, MouseY: 225}
-	cpSVMouseAction("sv-off", RGB(0, 0, 0), onChange, shape, e, w)
-
-	hsv, _ := sm.Get("sv-off")
-	if hsv.S < 0.49 || hsv.S > 0.51 {
-		t.Errorf("S = %f, want ~0.5", hsv.S)
-	}
-	if hsv.V < 0.74 || hsv.V > 0.76 {
-		t.Errorf("V = %f, want ~0.75", hsv.V)
-	}
-	if !gotColor.IsSet() {
-		t.Error("onChange should be called")
-	}
-}
-
-func TestCpSVMouseActionNilOnChange(_ *testing.T) {
-	w := &Window{}
-	layout := &Layout{
-		Shape: &Shape{X: 0, Y: 0, Width: 100, Height: 100},
-	}
-	e := &Event{MouseX: 50, MouseY: 50}
-	// Should not panic.
-	cpSVMouseAction("nil-test", RGB(0, 0, 0), nil, layout.Shape, e, w)
-}
-
-func TestCpHueMouseAction(t *testing.T) {
-	w := &Window{}
-	sm := StateMap[string, colorPickerState](
-		w, nsColorPicker, capModerate)
-	sm.Set("hue-test", colorPickerState{H: 0, S: 1, V: 1})
-
-	var gotColor Color
-	onChange := func(c Color, ctx EventCtx) { gotColor = c }
-
-	layout := &Layout{
-		Shape: &Shape{X: 0, Y: 0, Width: 30, Height: 360},
-	}
-	e := &Event{MouseX: 15, MouseY: 180}
-	cpHueMouseAction("hue-test", RGB(255, 0, 0), onChange, layout.Shape, e, w)
-
-	hsv, _ := sm.Get("hue-test")
-	if hsv.H < 179 || hsv.H > 181 {
-		t.Errorf("H = %f, want ~180", hsv.H)
-	}
-	if !gotColor.IsSet() {
-		t.Error("onChange should be called")
-	}
-}
-
-func TestCpHueMouseActionNilOnChange(_ *testing.T) {
-	w := &Window{}
-	layout := &Layout{
-		Shape: &Shape{X: 0, Y: 0, Width: 30, Height: 360},
-	}
-	e := &Event{MouseX: 15, MouseY: 180}
-	cpHueMouseAction("nil-test", RGB(255, 0, 0), nil, layout.Shape, e, w)
-}
-
-func TestCpSVMouseActionZeroSize(t *testing.T) {
-	w := &Window{}
-	called := false
-	onChange := func(_ Color, ctx EventCtx) { called = true }
-	shape := &Shape{X: 0, Y: 0, Width: 0, Height: 0}
-	e := &Event{MouseX: 50, MouseY: 50}
-	cpSVMouseAction("zero", RGB(0, 0, 0), onChange, shape, e, w)
-	if called {
-		t.Error("onChange should not be called with zero-size shape")
-	}
-}
-
-func TestCpHueMouseActionZeroHeight(t *testing.T) {
-	w := &Window{}
-	called := false
-	onChange := func(_ Color, ctx EventCtx) { called = true }
-	shape := &Shape{X: 0, Y: 0, Width: 30, Height: 0}
-	e := &Event{MouseX: 15, MouseY: 50}
-	cpHueMouseAction("zero", RGB(255, 0, 0), onChange, shape, e, w)
-	if called {
-		t.Error("onChange should not be called with zero-height shape")
-	}
-}
-
-func TestCpApplyRGB(t *testing.T) {
-	w := &Window{}
-	var got Color
-	onChange := func(c Color, ctx EventCtx) { got = c }
-	cpApplyRGB("128", 0, RGB(0, 50, 100), "rgb-test", onChange, w)
-	if got.R != 128 || got.G != 50 || got.B != 100 {
-		t.Errorf("color = %v, want R=128 G=50 B=100", got)
-	}
-	// Verify HSV state updated.
-	sm := StateMap[string, colorPickerState](
-		w, nsColorPicker, capModerate)
-	if _, ok := sm.Get("rgb-test"); !ok {
-		t.Error("HSV state should be set")
-	}
-}
-
-func TestCpApplyRGBInvalid(t *testing.T) {
-	w := &Window{}
-	called := false
-	onChange := func(_ Color, ctx EventCtx) { called = true }
-	cpApplyRGB("abc", 0, RGB(0, 0, 0), "inv", onChange, w)
-	if called {
-		t.Error("onChange should not be called for invalid input")
-	}
-}
-
-func TestCpApplyHSV(t *testing.T) {
-	w := &Window{}
-	sm := StateMap[string, colorPickerState](
-		w, nsColorPicker, capModerate)
-	sm.Set("hsv-test", colorPickerState{H: 0, S: 1, V: 1})
-
-	var got Color
-	onChange := func(c Color, ctx EventCtx) { got = c }
-	cpApplyHSV("180", 0, 360, "hsv-test", 255, onChange, w)
-	hsv, _ := sm.Get("hsv-test")
-	if hsv.H != 180 {
-		t.Errorf("H = %f, want 180", hsv.H)
-	}
-	if !got.IsSet() {
-		t.Error("onChange should be called")
-	}
-}
-
-func TestCpApplyHSVClamp(t *testing.T) {
-	w := &Window{}
-	sm := StateMap[string, colorPickerState](
-		w, nsColorPicker, capModerate)
-	sm.Set("hsv-clamp", colorPickerState{H: 0, S: 1, V: 1})
-
-	var got Color
-	onChange := func(c Color, ctx EventCtx) { got = c }
-	cpApplyHSV("-10", 0, 360, "hsv-clamp", 255, onChange, w)
-	hsv, _ := sm.Get("hsv-clamp")
-	if hsv.H != 0 {
-		t.Errorf("H = %f, want 0 (clamped)", hsv.H)
-	}
-	if !got.IsSet() {
-		t.Error("onChange should be called")
-	}
-}
-
-func TestCpApplyHex(t *testing.T) {
-	w := &Window{}
-	var got Color
-	onChange := func(c Color, ctx EventCtx) { got = c }
-	cpApplyHex("#FF8000", "hex-test", onChange, w)
-	if got.R != 255 || got.G != 128 || got.B != 0 {
-		t.Errorf("color = %v, want R=255 G=128 B=0", got)
-	}
-	sm := StateMap[string, colorPickerState](
-		w, nsColorPicker, capModerate)
-	if _, ok := sm.Get("hex-test"); !ok {
-		t.Error("HSV state should be set")
-	}
-}
-
-func TestCpApplyHexInvalid(t *testing.T) {
-	w := &Window{}
-	called := false
-	onChange := func(_ Color, ctx EventCtx) { called = true }
-	cpApplyHex("not-hex", "inv", onChange, w)
-	if called {
-		t.Error("onChange should not be called for invalid hex")
+	cpStore(w, id, HSLA{H: 180, S: 1, L: 0.5, A: 1})
+	got := cpValue(w, id, RGB(255, 0, 0)) // caller assigns red
+	if got.H != 0 || got.S < 0.99 {
+		t.Errorf("got %+v, want the caller's red", got)
 	}
 }
 
@@ -376,5 +149,28 @@ func TestHSVRoundTrip(t *testing.T) {
 			t.Errorf("round-trip %v: HSV(%f,%f,%f) → %v",
 				c, h, s, v, got)
 		}
+	}
+}
+
+// TestColorPickerPlaneFitsFields asserts the derived plane size makes
+// the plane-plus-sliders row exactly as wide as the RGBA fields row.
+// Any surplus renders as empty space to the right of the alpha input.
+func TestColorPickerPlaneFitsFields(t *testing.T) {
+	cfg := ColorPickerCfg{}
+	applyColorPickerDefaults(&cfg)
+	style := cfg.Style
+
+	size := colorPickerPlaneSize(style)
+	if size > style.sVSize {
+		t.Errorf("plane = %v, must not exceed sVSize %v",
+			size, style.sVSize)
+	}
+
+	thick := f32Max(style.sliderHeight, style.indicatorSize)
+	top := size + 2*(thick+SpacingSmall)
+	fields := float32(4*defaultColorFieldWidth + 3*SpacingSmall)
+	if top != fields {
+		t.Errorf("top row = %v, fields row = %v; want equal",
+			top, fields)
 	}
 }

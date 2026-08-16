@@ -156,6 +156,10 @@ type ShowcaseApp struct {
 
 	ColorPickerColor gui.Color
 
+	// ColorHSLA drives the composable color components. It is an HSLA
+	// rather than a Color so hue survives a drag through gray or black.
+	ColorHSLA gui.HSLA
+
 	ThemeGenSeed gui.Color
 	ThemeGenText gui.Color
 	ShowDocs     bool
@@ -165,7 +169,7 @@ type ShowcaseApp struct {
 	ToggleA        bool
 	CheckboxA      bool
 	SwitchA        bool
-	ColorPickerHSV bool
+	ColorPickerHSL bool
 
 	SidebarOpen bool
 	ExpandOpen  bool
@@ -201,6 +205,7 @@ func newShowcaseApp() *ShowcaseApp {
 		InputDate:            time.Now(),
 		RollerDate:           time.Now(),
 		ColorPickerColor:     gui.RGBA(51, 79, 103, 255),
+		ColorHSLA:            gui.HSLA{H: 205, S: 0.34, L: 0.3, A: 1},
 		BCSelected:           "page",
 		BCPath:               append([]gui.BreadcrumbItemCfg(nil), showcaseBreadcrumbPath...),
 		TabSelected:          "overview",

@@ -8,6 +8,39 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **Composable color components.** `ColorPlane` (saturation × lightness),
+  `ColorWheel` (hue × saturation), `ColorChannelSlider` (one HSLA channel, with
+  a track showing the colors it can pick, horizontal or `Vertical`),
+  `ColorSwatch` (a color over a transparency checkerboard) and `ColorFields`
+  (hex and channel inputs) are now public widgets. They are stateless: each
+  takes a `gui.HSLA` and reports changes, so an app holding one value can drive
+  any arrangement of them and they stay in sync. See
+  `docs/specs/color-picker-components.md`.
+- **`gui.HSLA`**, the color model those components speak, plus `ColorToHSLA`,
+  `HSLA.Color`, `HSLA.String` (CSS `hsla()` notation), `Color.Hex` and
+  `ColorFromHex`. An app holds an `HSLA` rather than a `Color` because RGBA
+  cannot carry hue through a gray or through black.
+- **In-memory image registry** — `gui.UseImage`, `HasImage`, `DropImage`,
+  `SetMemImageBudget`. Register an NRGBA8 pixel buffer under a content key and
+  get a `Src` string usable anywhere `ImageCfg.Src` or `DrawContext.Image` is
+  accepted; every backend uploads it as a texture. This is what makes imagery no
+  gradient can express — a hue wheel, an HSL plane, an alpha checkerboard —
+  drawable at all.
+
+### Changed
+
+- **`gui.ColorPicker` is now a composition of the components above.** Its
+  `ColorPickerCfg` is unchanged and existing callers compile untouched. Five
+  visible changes: the square is the HSL saturation × lightness plane rather
+  than the HSV square, the hue and alpha sliders stand vertically to the right
+  of the plane instead of stacking beneath it (so the picker is squarer), the
+  preview swatch moves next to the hex field it previews, the alpha slider gains
+  a real transparency checkerboard, and the hue strip is exact instead of being
+  silently resampled to five gradient stops. `ShowHSV` still works and is
+  deprecated in favour of `ShowHSL`.
+
 ### Fixed
 
 - **`buildapp` ad-hoc signing silently revoked every TCC grant on each

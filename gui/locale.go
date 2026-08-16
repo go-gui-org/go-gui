@@ -140,6 +140,10 @@ type Locale struct {
 	strHue   string
 	strSat   string
 	strValue string
+	// strLightness is HSL's L. Distinct from strValue, which is
+	// HSV's V — the two are different quantities, not translations
+	// of one another.
+	strLightness string
 
 	// Data grid
 	StrColumns  string
@@ -209,6 +213,8 @@ func localeDefaults() Locale {
 		strHue:   "Hue",
 		strSat:   "Sat",
 		strValue: "Value",
+
+		strLightness: "Lightness",
 
 		StrColumns:  "Columns",
 		StrSelected: "Selected",

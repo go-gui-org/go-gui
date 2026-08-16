@@ -248,32 +248,8 @@ func (b *Backend) drawGradientBorder(r *gui.RenderCmd) {
 }
 
 func (b *Backend) drawImage(r *gui.RenderCmd) {
-	path, ok := b.imagePathCache.Get(r.Resource)
-	if !ok {
-		var err error
-		path, err = imgload.ResolveValidatedPath(
-			r.Resource, b.allowedImageRoots)
-		if err != nil {
-			log.Printf("gl: drawImage: %v",
-				err)
-			path = "-"
-		}
-		b.imagePathCache.Set(r.Resource, path)
-	}
-	if path == "-" {
-		return
-	}
-
-	tex, ok := b.textures.Get(path)
-	if !ok {
-		var err error
-		tex, err = b.loadImageTexture(path)
-		if err != nil {
-			log.Printf("gl: drawImage: %v", err)
-		}
-		b.textures.Set(path, tex)
-	}
-	if tex.id == 0 {
+	tex, ok := b.resolveImageTexture(r.Resource)
+	if !ok || tex.id == 0 {
 		return
 	}
 
@@ -298,6 +274,51 @@ func (b *Backend) drawImage(r *gui.RenderCmd) {
 	}
 	b.drawQuadUV(x, y, w, h, gui.White, r.ClipRadius*s)
 	gogl.BindTexture(gogl.TEXTURE_2D, 0)
+}
+
+// resolveImageTexture returns the uploaded texture for a render
+// command's Resource, uploading on first use.
+//
+// A mem: source names a buffer in gui's in-memory registry: it has no
+// path, so it skips path resolution and the AllowedImageRoots sandbox
+// (see gui.LookupImage on why that is safe). The texture is cached
+// under the Resource string itself, which callers content-key, so a
+// changed buffer arrives as a new key and never reuses a stale upload.
+func (b *Backend) resolveImageTexture(res string) (glTexture, bool) {
+	if iw, ih, pix, ok := gui.LookupImage(res); ok {
+		tex, hit := b.textures.Get(res)
+		if !hit {
+			tex = createTexture(int32(iw), int32(ih), pix)
+			b.textures.Set(res, tex)
+		}
+		return tex, true
+	}
+
+	path, ok := b.imagePathCache.Get(res)
+	if !ok {
+		var err error
+		path, err = imgload.ResolveValidatedPath(
+			res, b.allowedImageRoots)
+		if err != nil {
+			log.Printf("gl: drawImage: %v", err)
+			path = "-"
+		}
+		b.imagePathCache.Set(res, path)
+	}
+	if path == "-" {
+		return glTexture{}, false
+	}
+
+	tex, ok := b.textures.Get(path)
+	if !ok {
+		var err error
+		tex, err = b.loadImageTexture(path)
+		if err != nil {
+			log.Printf("gl: drawImage: %v", err)
+		}
+		b.textures.Set(path, tex)
+	}
+	return tex, true
 }
 
 func (b *Backend) drawSvg(r *gui.RenderCmd) {

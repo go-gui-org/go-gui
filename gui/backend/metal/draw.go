@@ -254,32 +254,8 @@ func (b *windowState) drawGradientBorder(r *gui.RenderCmd) {
 }
 
 func (b *windowState) drawImage(r *gui.RenderCmd) {
-	path, ok := b.imagePathCache.Get(r.Resource)
-	if !ok {
-		var err error
-		path, err = imgload.ResolveValidatedPath(
-			r.Resource, b.allowedImageRoots)
-		if err != nil {
-			log.Printf("metal: drawImage: %v",
-				err)
-			path = "-"
-		}
-		b.imagePathCache.Set(r.Resource, path)
-	}
-	if path == "-" {
-		return
-	}
-
-	tex, ok := b.textures.Get(path)
-	if !ok {
-		var err error
-		tex, err = b.loadImageTexture(path)
-		if err != nil {
-			log.Printf("metal: drawImage: %v", err)
-		}
-		b.textures.Set(path, tex)
-	}
-	if tex.id == 0 {
+	tex, ok := b.resolveImageTexture(r.Resource)
+	if !ok || tex.id == 0 {
 		return
 	}
 
@@ -310,6 +286,54 @@ func (b *windowState) drawImage(r *gui.RenderCmd) {
 		{X: x, Y: y + h, Z: z, U: -1, V: 1, R: cr, G: cg, B: cb, A: ca},
 	}
 	C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
+}
+
+// resolveImageTexture returns the uploaded texture for a render
+// command's Resource, uploading on first use.
+//
+// A mem: source names a buffer in gui's in-memory registry: it has no
+// path, so it skips path resolution and the AllowedImageRoots sandbox
+// (see gui.LookupImage on why that is safe). The texture is cached
+// under the Resource string itself, which callers content-key, so a
+// changed buffer arrives as a new key and never reuses a stale upload.
+func (b *windowState) resolveImageTexture(
+	res string,
+) (metalTexture, bool) {
+	if iw, ih, pix, ok := gui.LookupImage(res); ok {
+		tex, hit := b.textures.Get(res)
+		if !hit {
+			tex = createMetalTexture(
+				b.ctx, int32(iw), int32(ih), pix)
+			b.textures.Set(res, tex)
+		}
+		return tex, true
+	}
+
+	path, ok := b.imagePathCache.Get(res)
+	if !ok {
+		var err error
+		path, err = imgload.ResolveValidatedPath(
+			res, b.allowedImageRoots)
+		if err != nil {
+			log.Printf("metal: drawImage: %v", err)
+			path = "-"
+		}
+		b.imagePathCache.Set(res, path)
+	}
+	if path == "-" {
+		return metalTexture{}, false
+	}
+
+	tex, ok := b.textures.Get(path)
+	if !ok {
+		var err error
+		tex, err = b.loadImageTexture(path)
+		if err != nil {
+			log.Printf("metal: drawImage: %v", err)
+		}
+		b.textures.Set(path, tex)
+	}
+	return tex, true
 }
 
 func (b *windowState) drawSvg(r *gui.RenderCmd) {

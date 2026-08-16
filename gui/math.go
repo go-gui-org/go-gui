@@ -75,6 +75,30 @@ func f32Max(a, b float32) float32 {
 	return b
 }
 
+// f32Pi is math.Pi in float32 precision.
+const f32Pi = float32(math.Pi)
+
+// f32Sqrt returns the square root of x.
+func f32Sqrt(x float32) float32 {
+	return float32(math.Sqrt(float64(x)))
+}
+
+// f32Sin returns the sine of x, in radians.
+func f32Sin(x float32) float32 {
+	return float32(math.Sin(float64(x)))
+}
+
+// f32Cos returns the cosine of x, in radians.
+func f32Cos(x float32) float32 {
+	return float32(math.Cos(float64(x)))
+}
+
+// f32Atan2 returns the arc tangent of y/x, using the signs of both to
+// place the result in the correct quadrant.
+func f32Atan2(y, x float32) float32 {
+	return float32(math.Atan2(float64(y), float64(x)))
+}
+
 // f32IsFinite returns true if value is not NaN or Inf.
 func f32IsFinite(f float32) bool {
 	return math.Float32bits(f)&0x7F800000 != 0x7F800000
