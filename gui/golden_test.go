@@ -181,7 +181,7 @@ func serializeCmds(cmds []RenderCmd) string {
 // It goes through FrameFn rather than calling renderLayout directly so
 // the golden covers what the app actually runs — including
 // installTheme, which is what makes the theme argument mean anything.
-func renderGolden(t *testing.T, theme Theme, build func(*Window) View) string {
+func renderGolden(t *testing.T, theme Theme, c goldenCase) string {
 	t.Helper()
 
 	w := NewWindow(WindowCfg{
@@ -197,10 +197,13 @@ func renderGolden(t *testing.T, theme Theme, build func(*Window) View) string {
 	w.viewGenerator = func(win *Window) View {
 		return Column(ContainerCfg{
 			Sizing:  FillFill,
-			Content: []View{build(win)},
+			Content: []View{c.build(win)},
 		})
 	}
 	w.SetTheme(theme)
+	if c.focusID != "" {
+		w.SetFocus(c.focusID)
+	}
 	w.refreshLayout = true
 	w.FrameFn()
 
@@ -277,6 +280,11 @@ func goldenDiff(want, got string) string {
 type goldenCase struct {
 	build func(*Window) View
 	name  string
+	// focusID, when set, is focused before the frame is rendered.
+	// Focus resolves after layout, so a focus ring only appears in a
+	// recording that actually holds focus — a case without this pins
+	// the resting appearance and would not notice a ring regressing.
+	focusID string
 }
 
 // goldenThemes are recorded for every case. Two themes is the point:
@@ -305,7 +313,7 @@ func TestGolden(t *testing.T) {
 		for _, th := range goldenThemes() {
 			name := c.name + "." + th.name
 			t.Run(name, func(t *testing.T) {
-				got := renderGolden(t, th.theme, c.build)
+				got := renderGolden(t, th.theme, c)
 				checkGolden(t, name, got)
 			})
 		}

@@ -171,16 +171,8 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		Invisible:   cfg.Invisible,
 		axis:        axisLeftToRight,
 		VAlign:      VAlignMiddle,
-		AmendLayout: func(ctx EventCtx) {
-			if ctx.Layout.Shape.Disabled {
-				return
-			}
-			if ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
-				ctx.Layout.Shape.Color = colorFocus
-				ctx.Layout.Shape.ColorBorder = colorBorderFocus
-			}
-		},
-		OnKeyDown: makeSelectOnKeyDown(&sv.cfg, id, dropdownScrollID),
+		AmendLayout: focusRingAmend(colorFocus, colorBorderFocus),
+		OnKeyDown:   makeSelectOnKeyDown(&sv.cfg, id, dropdownScrollID),
 		OnClick: func(ctx EventCtx) {
 			ss := StateMap[string, bool](
 				ctx.Window, nsSelect, capModerate)

@@ -90,6 +90,30 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// Focused, so the ring ListBox previously lacked is
+			// actually in the recording (issue #335, audit s6).
+			name:    "listbox_focused",
+			focusID: "lb",
+			build: func(_ *Window) View {
+				return ListBox(ListBoxCfg{
+					ID:          "lb",
+					Items:       []string{"one", "two", "three"},
+					SelectedIDs: []string{"two"},
+				})
+			},
+		},
+		{
+			name:    "select_focused",
+			focusID: "sel",
+			build: func(_ *Window) View {
+				return Select(SelectCfg{
+					ID:       "sel",
+					Options:  []string{"alpha", "beta"},
+					Selected: []string{"beta"},
+				})
+			},
+		},
+		{
 			name: "table",
 			build: func(_ *Window) View {
 				return Table(TableCfg{
@@ -162,6 +186,22 @@ func goldenCases() []goldenCase {
 		},
 		{
 			name: "color_plane",
+			build: func(_ *Window) View {
+				return ColorPlane(ColorPlaneCfg{
+					ID:    "cp",
+					Value: goldenHSLA,
+				})
+			},
+		},
+		{
+			// The plane had no focus indication at all. The ring is
+			// painted from AmendLayout rather than reserved as a
+			// border, so this golden must show a stroke appearing
+			// while the gradient image stays at the same xy as the
+			// resting case — a shifted image means the ring went
+			// back to insetting content (issue #335).
+			name:    "color_plane_focused",
+			focusID: "cp",
 			build: func(_ *Window) View {
 				return ColorPlane(ColorPlaneCfg{
 					ID:    "cp",

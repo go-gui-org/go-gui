@@ -217,29 +217,43 @@ and ~10 sites build an inline `ColorSet{...}` without calling `.resolved()`.
 `ThemeMaker` tally: **21** styles define a hover color, **19** a click color,
 only **14** a focus color.
 
-| Widget                  | Missing                                       |
-| ----------------------- | --------------------------------------------- |
-| ColorPicker family (4)  | **no hover, no press** — focus is border-only |
-| ListBox, Table          | **no focus** — keyboard users get no caret    |
-| ExpandPanel, Breadcrumb | no focus                                      |
-| Combobox, Menubar, Tree | no active                                     |
-| Scrollbar               | no focus, no active                           |
+### 6.1 Two different problems wear the same label
 
-The ColorPicker row is the worst: `ColorPlane`, `ColorWheel`,
-`ColorChannelSlider` and `ColorSwatch` are all focusable and draggable
-(`gui/view_color_plane.go:81`, `gui/view_color_wheel.go:88`,
-`gui/view_color_channel_slider.go:139`) and give **no hover or press feedback at
-all**.
+"No focus" turned out to cover two unrelated situations, and only one of them is
+a styling bug. Sorted by what is actually true in the code:
 
-The ListBox row is the most tractable: `ListBoxStyle.ColorBorderFocus` already
-exists and is commented _"Reserved for future focus-ring styling"_
-(`gui/styles_widget_overlay.go:50`). `Shape.ColorBorderFocus` is the established
-mechanism, and `gui/theme_colors.go:54-88` already fans a `borderFocus` value
-out to nine styles.
+| Widget                                | State                                     |
+| ------------------------------------- | ----------------------------------------- |
+| ListBox                               | focusable, key-navigable, **no ring**     |
+| ColorPlane, ColorWheel, ChannelSlider | focusable, draggable, **no indication**   |
+| Table                                 | **not focusable** — no ID, no key handler |
+| ColorSwatch                           | **not focusable**                         |
+| ExpandPanel header                    | **not focusable** — has OnClick, no focus |
+| Combobox, Menubar, Tree               | no active state                           |
+| Scrollbar                             | no focus, no active                       |
 
-This is the axis with the largest effect on perceived quality, and the ListBox
-and Table gaps are an accessibility defect: a keyboard user has no indication of
-where focus is.
+The first two rows are the defect this audit is about: the widget participates
+in the focus system, the user can tab to it, and nothing on screen says so. That
+is an accessibility failure with a styling fix.
+
+The middle rows are a different thing. `Table` has no `Focusable`, no key
+handler and a transparent, borderless outer container; `ExpandPanel`'s header
+row has `OnClick` and `OnChar` but never joins the tab order. Giving these a
+focus ring means first designing keyboard navigation for them — a feature, and
+out of scope for a consistency pass. Recording them here as _not focusable_
+rather than _unstyled_ is the point: the fix is different work.
+
+The ColorPicker controls are also the awkward case for hover and press. A
+gradient surface cannot tint on hover the way a button fill can, because the
+fill **is** the value being edited — so the affordance has to go on the border
+or the marker.
+
+**Correction:** an earlier draft of this section said
+`ListBoxStyle.ColorBorderFocus` already existed and was merely unwired. It does
+not exist. The "Reserved for future focus-ring styling" comment at
+`gui/styles_widget_overlay.go:50` belongs to `DialogStyle`. The field had to be
+added to `ListBoxStyle`, `ListBoxCfg`, `ThemeMaker` and the `theme_colors.go`
+fan.
 
 ## 7. Density — five text insets
 

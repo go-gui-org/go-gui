@@ -82,7 +82,7 @@ func (wv *colorWheelView) GenerateLayout(w *Window) Layout {
 	my := radius - f32Sin(rad)*mr
 
 	px := int(size) * imgScale
-	return generateViewLayout(&containerView{
+	cv := &containerView{
 		cfg: ContainerCfg{
 			ID:        id,
 			Focusable: !cfg.FocusDisabled,
@@ -113,7 +113,9 @@ func (wv *colorWheelView) GenerateLayout(w *Window) Layout {
 				colorAmendMarker(ctx.Layout, mx, my, cfg.MarkerSize)
 			}),
 		},
-	}, w)
+	}
+	colorControlFocusRing(&cv.cfg)
+	return generateViewLayout(cv, w)
 }
 
 // colorWheelKeys steps hue with the horizontal arrows and saturation

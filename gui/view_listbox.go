@@ -72,12 +72,15 @@ type ListBoxCfg struct {
 	Color         Color
 	ColorHover    Color
 	ColorBorder   Color
-	ColorSelect   Color
-	Sizing        Sizing
-	Multiple      bool
-	Disabled      bool
-	Invisible     bool
-	Reorderable   bool
+	// ColorBorderFocus is the border while the list holds focus.
+	// Unset takes the theme's.
+	ColorBorderFocus Color
+	ColorSelect      Color
+	Sizing           Sizing
+	Multiple         bool
+	Disabled         bool
+	Invisible        bool
+	Reorderable      bool
 }
 
 // ListBoxOption helpers.
@@ -139,8 +142,9 @@ func ListBox(cfg ListBoxCfg) View {
 			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.ID),
 			A11YDescription: cfg.A11YDescription,
 		},
-		Focusable:  !cfg.FocusDisabled,
-		Scrollable: cfg.Scrollable,
+		Focusable:   !cfg.FocusDisabled,
+		Scrollable:  cfg.Scrollable,
+		AmendLayout: focusRingAmend(Color{}, cfg.ColorBorderFocus),
 		OnKeyDown: func(ctx EventCtx) {
 			listBoxOnKeyDown(listBoxID, itemIDs,
 				isMultiple, onSelect, selectedIDs,
@@ -244,9 +248,11 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.ID),
 			A11YDescription: cfg.A11YDescription,
 		},
-		Focusable:   !cfg.FocusDisabled,
-		Scrollable:  cfg.Scrollable,
-		AmendLayout: listBoxAmendLayout(cache),
+		Focusable:  !cfg.FocusDisabled,
+		Scrollable: cfg.Scrollable,
+		AmendLayout: amendAll(
+			listBoxAmendLayout(cache),
+			focusRingAmend(Color{}, cfg.ColorBorderFocus)),
 		OnKeyDown: func(ctx EventCtx) {
 			if canReorder {
 				if dragReorderEscape(
@@ -457,6 +463,9 @@ func applyListBoxDefaults(cfg *ListBoxCfg) {
 	}
 	if !cfg.ColorBorder.IsSet() {
 		cfg.ColorBorder = d.ColorBorder
+	}
+	if !cfg.ColorBorderFocus.IsSet() {
+		cfg.ColorBorderFocus = d.ColorBorderFocus
 	}
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
