@@ -484,3 +484,37 @@ func TestColorSwatchColorLayerHasOutline(t *testing.T) {
 		t.Fatal("no floating color layer in the swatch")
 	}
 }
+
+// The fields correct for optical centring: an Input centres the text's
+// line box, and the descent space under a digit is empty, so metric
+// centring leaves the ink visibly high. This asserts the predicted ink
+// centre lands on the box centre, and that a window with no measurer
+// falls back to even padding rather than to a guess.
+func TestColorFieldPaddingCentersInkOptically(t *testing.T) {
+	style := TextStyle{Size: 16}
+
+	if got := colorFieldPadding(nil, style); got.Top != got.Bottom {
+		t.Errorf("no measurer: padding %v, want symmetric", got)
+	}
+
+	w := &Window{}
+	w.textMeasurer = &stubTextMeasurer{charWidth: 8, fontHeight: 19}
+	pad := colorFieldPadding(w, style)
+	if pad.Top <= pad.Bottom {
+		t.Fatalf("padding %v: top must exceed bottom to lower the ink",
+			pad)
+	}
+
+	// Where the ink lands, relative to the field's own centre: the
+	// line box starts below the top padding, the glyphs start one
+	// ascent-minus-cap below that, and the box spans both paddings
+	// plus the line.
+	ascent := w.textMeasurer.FontAscent(style)
+	line := w.textMeasurer.FontHeight(style)
+	capH := style.Size * colorFieldCapRatio
+	inkMid := pad.Top + (ascent - capH) + capH/2
+	boxMid := (pad.Top + line + pad.Bottom) / 2
+	if off := inkMid - boxMid; off < -0.75 || off > 0.75 {
+		t.Errorf("ink centre off by %.2fpt, want within 0.75", off)
+	}
+}

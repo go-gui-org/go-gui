@@ -91,6 +91,23 @@ const (
 	// colorFieldLabelMin floors the drop so a caller already using a
 	// tiny TextStyle does not end up with an unreadable label.
 	colorFieldLabelMin = 10
+	// colorFieldCapRatio is a digit's cap height as a fraction of the
+	// font size. It is the one metric TextMeasurer does not expose, and
+	// it varies little across text faces; every other term in the
+	// optical-centring correction is measured.
+	colorFieldCapRatio = 0.72
+	// colorFieldLeadRatio covers half-leading: FontHeight includes line
+	// spacing beyond ascent+descent, split above and below the glyphs,
+	// and the metrics do not separate it out. Measured from the
+	// rendered field — the cap-height term alone left the ink 1.5
+	// device pixels high at size 16.
+	colorFieldLeadRatio = 0.047
+	// colorFieldPadX is the fields' horizontal padding, matching the
+	// input default (paddingTwoFour).
+	colorFieldPadX = 4
+	// colorFieldPadY is its vertical half, the baseline the optical
+	// correction adjusts around.
+	colorFieldPadY = 2
 	// colorFieldLabelAlpha dims the label against its value. Size alone
 	// separates them only while both are read in isolation; dropping
 	// contrast as well is what makes the column scan as "value, with a
@@ -121,13 +138,17 @@ func (fv *colorFieldsView) GenerateLayout(w *Window) Layout {
 	id := w.EffID(cfg.ID)
 	v := cfg.Value.Normalized()
 
+	// One measurement for every field in the block; see
+	// colorFieldPadding.
+	pad := colorFieldPadding(w, cfg.TextStyle)
+
 	rows := make([]View, 0, 3)
 	if !cfg.HideHex {
-		rows = append(rows, colorHexRow(cfg, id, v))
+		rows = append(rows, colorHexRow(cfg, id, v, pad))
 	}
-	rows = append(rows, colorRGBARow(cfg, id, v))
+	rows = append(rows, colorRGBARow(cfg, id, v, pad))
 	if cfg.ShowHSL {
-		rows = append(rows, colorHSLRow(cfg, id, v))
+		rows = append(rows, colorHSLRow(cfg, id, v, pad))
 	}
 
 	return generateViewLayout(&containerView{
@@ -150,8 +171,10 @@ func (fv *colorFieldsView) GenerateLayout(w *Window) Layout {
 // colorHexRow builds the hex text field, and — with ShowSwatch — the
 // preview swatch beside it. The swatch belongs next to the hex value:
 // both are readouts of the same color, one exact and one legible.
-func colorHexRow(cfg *ColorFieldsCfg, id string, v HSLA) View {
-	hex := colorHexField(cfg, id, v)
+func colorHexRow(
+	cfg *ColorFieldsCfg, id string, v HSLA, pad Padding,
+) View {
+	hex := colorHexField(cfg, id, v, pad)
 	if !cfg.ShowSwatch {
 		return hex
 	}
@@ -177,7 +200,9 @@ func colorHexRow(cfg *ColorFieldsCfg, id string, v HSLA) View {
 	})
 }
 
-func colorHexField(cfg *ColorFieldsCfg, id string, v HSLA) View {
+func colorHexField(
+	cfg *ColorFieldsCfg, id string, v HSLA, pad Padding,
+) View {
 	onChange := cfg.OnChange
 	apply := func(text string, ctx EventCtx) {
 		c, ok := ColorFromHex(text)
@@ -205,6 +230,7 @@ func colorHexField(cfg *ColorFieldsCfg, id string, v HSLA) View {
 		// bounds pin it: a floor alone still lets a long value grow.
 		MinWidth: defaultHexFieldWidth,
 		MaxWidth: defaultHexFieldWidth,
+		Padding:  pad,
 		A11YCfg:  A11YCfg{A11YLabel: "Hex color"},
 		OnTextChanged: func(text string, ctx EventCtx) {
 			apply(text, ctx)
@@ -221,7 +247,9 @@ func colorHexField(cfg *ColorFieldsCfg, id string, v HSLA) View {
 // converts to, then convert back — the one place in these components
 // where a value round-trips through RGBA, because that is exactly what
 // the user asked to edit.
-func colorRGBARow(cfg *ColorFieldsCfg, id string, v HSLA) View {
+func colorRGBARow(
+	cfg *ColorFieldsCfg, id string, v HSLA, pad Padding,
+) View {
 	c := v.Color()
 	l := ActiveLocale
 	vals := [4]uint8{c.R, c.G, c.B, c.A}
@@ -229,7 +257,7 @@ func colorRGBARow(cfg *ColorFieldsCfg, id string, v HSLA) View {
 
 	fields := make([]View, 0, 4)
 	for i := range 4 {
-		fields = append(fields, colorFieldColumn(cfg,
+		fields = append(fields, colorFieldColumn(cfg, pad,
 			labels[i], int(vals[i]), ScopeIDN(id, "rgb", i),
 			func(text string, ctx EventCtx) {
 				n, err := strconv.ParseUint(text, 10, 8)
@@ -266,7 +294,9 @@ func colorRGBARow(cfg *ColorFieldsCfg, id string, v HSLA) View {
 
 // colorHSLRow builds the H/S/L inputs, which edit the value directly
 // with no RGBA round-trip and so cannot lose the hue.
-func colorHSLRow(cfg *ColorFieldsCfg, id string, v HSLA) View {
+func colorHSLRow(
+	cfg *ColorFieldsCfg, id string, v HSLA, pad Padding,
+) View {
 	l := ActiveLocale
 	type field struct {
 		label string
@@ -282,7 +312,7 @@ func colorHSLRow(cfg *ColorFieldsCfg, id string, v HSLA) View {
 	fields := make([]View, 0, 3)
 	for i := range 3 {
 		f := fs[i]
-		fields = append(fields, colorFieldColumn(cfg,
+		fields = append(fields, colorFieldColumn(cfg, pad,
 			f.label, f.val, ScopeIDN(id, "hsl", i),
 			func(text string, ctx EventCtx) {
 				n, err := strconv.Atoi(text)
@@ -317,9 +347,42 @@ func centeredText(s TextStyle) TextStyle {
 	return s
 }
 
+// colorFieldPadding centres a digit string optically rather than
+// metrically inside its field.
+//
+// An Input centres the text's *line box*, which is correct and still
+// looks wrong here: the line box reserves descent space, and digits and
+// hex have no descenders, so the ink hangs above the box's middle by
+// half the descent. Measured on the RGBA row, the gap below the digits
+// was twice the gap above.
+//
+// The correction moves the line box down by shifting padding from the
+// bottom to the top. Working from the box's own centre, the ink sits
+// off by (ascent - cap - descent)/2, so top-minus-bottom must make up
+// twice that. Ascent and descent are measured; only cap height is a
+// ratio, and it is the smallest term.
+func colorFieldPadding(w *Window, style TextStyle) Padding {
+	even := NewPadding(
+		colorFieldPadY, colorFieldPadX, colorFieldPadY, colorFieldPadX)
+	if w == nil || w.textMeasurer == nil {
+		return even // no metrics: metric centring is the best available
+	}
+	ascent := w.textMeasurer.FontAscent(style)
+	descent := w.textMeasurer.FontHeight(style) - ascent
+	shift := descent - ascent +
+		style.Size*(colorFieldCapRatio+colorFieldLeadRatio)
+	if shift <= 0 {
+		return even // a face whose ink already sits centred
+	}
+	// Take from the bottom first so the field grows only by whatever
+	// the bottom padding cannot cover.
+	bottom := f32Max(colorFieldPadY-shift, 0)
+	return NewPadding(bottom+shift, colorFieldPadX, bottom, colorFieldPadX)
+}
+
 // colorFieldColumn builds one labeled numeric input.
 func colorFieldColumn(
-	cfg *ColorFieldsCfg, label string, val int,
+	cfg *ColorFieldsCfg, pad Padding, label string, val int,
 	inputID string, apply func(string, EventCtx),
 ) View {
 	return Column(ContainerCfg{
@@ -348,6 +411,7 @@ func colorFieldColumn(
 				// as one unit -- and so "60" and "140" do not sit
 				// ragged against each other down the row.
 				TextStyle: centeredText(cfg.TextStyle),
+				Padding:   pad,
 				Width:     cfg.FieldWidth,
 				// Pinned both ways like the hex field: an Input is
 				// Fit-sized, so "0" and "255" would resolve to
