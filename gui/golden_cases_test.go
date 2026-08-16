@@ -73,6 +73,23 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// A descender-bearing placeholder, which is where Select
+			// parts company with Badge and Button: those measure the
+			// run and leave a descender alone, this one centres the
+			// cap band regardless, so both spellings sit level
+			// (issue #346). If this ever records the same Y as an
+			// uncorrected shape, the widget has reverted to the
+			// measured form.
+			name: "select_placeholder_descender",
+			build: func(_ *Window) View {
+				return Select(SelectCfg{
+					ID:          "sel",
+					Options:     []string{"alpha", "beta"},
+					Placeholder: "pick a language",
+				})
+			},
+		},
+		{
 			name: "combobox",
 			build: func(_ *Window) View {
 				return Combobox(ComboboxCfg{
@@ -395,6 +412,96 @@ func goldenCases() []goldenCase {
 				return Text(TextCfg{
 					Text:     "quiet",
 					Disabled: true,
+				})
+			},
+		},
+		// The optical-centring cases (issue #346). Both widgets render
+		// digits the widget owns, so both take the correction, and both
+		// exist to make the ~0.09em downward shift of the text command a
+		// reviewable diff rather than something only a screenshot would
+		// catch.
+		//
+		// TextMeasurer is nil here, so what these pin is the fallback
+		// ratio path, not the per-face measurement: that the correction
+		// happens and by how much, not what a given font measures.
+		{
+			name: "badge",
+			build: func(_ *Window) View {
+				return Badge(BadgeCfg{Label: "128"})
+			},
+		},
+		{
+			// Max forces the "+" form, the widest label a badge
+			// produces and still descender-free.
+			name: "badge_capped",
+			build: func(_ *Window) View {
+				return Badge(BadgeCfg{Label: "250", Max: 99})
+			},
+		},
+		{
+			// The counter-case: a label that paints below the baseline
+			// keeps metric centring, because it already sits low. If
+			// this one ever moves, the correction has stopped asking
+			// what the run actually does.
+			name: "badge_descender",
+			build: func(_ *Window) View {
+				return Badge(BadgeCfg{Label: "gypsy"})
+			},
+		},
+		{
+			// Enabled and disabled buttons must take the same
+			// correction: buttonAmendLayout returns early for a
+			// disabled button, so the label would otherwise sit a
+			// pixel above its enabled neighbour. button_disabled is
+			// the other half of this pair.
+			name: "button",
+			build: func(_ *Window) View {
+				return Button(ButtonCfg{
+					ID:      "btn",
+					Content: []View{Text(TextCfg{Text: "Save"})},
+					OnClick: func(EventCtx) {},
+				})
+			},
+		},
+		{
+			// The button counter-case: a label that descends keeps
+			// metric centring, exactly as the badge one does.
+			name: "button_descender",
+			build: func(_ *Window) View {
+				return Button(ButtonCfg{
+					ID:      "btn",
+					Content: []View{Text(TextCfg{Text: "Apply gypsy"})},
+					OnClick: func(EventCtx) {},
+				})
+			},
+		},
+		{
+			// The two editable fields whose mask constrains the
+			// alphabet, so they take the content-free correction while
+			// the plain `input` case above must stay put. That pairing
+			// is the rule: `input` moving is the regression to watch
+			// for, not these two.
+			name: "numeric_input",
+			build: func(_ *Window) View {
+				return NumericInput(NumericInputCfg{ID: "num", Text: "42.5"})
+			},
+		},
+		{
+			name: "input_date",
+			build: func(_ *Window) View {
+				return InputDate(InputDateCfg{
+					ID:   "id",
+					Date: time.Date(2026, 8, 15, 0, 0, 0, 0, time.UTC),
+				})
+			},
+		},
+		{
+			name: "progress_bar",
+			build: func(_ *Window) View {
+				return ProgressBar(ProgressBarCfg{
+					ID:       "pb",
+					Percent:  0.42,
+					TextShow: true,
 				})
 			},
 		},

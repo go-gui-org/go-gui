@@ -563,24 +563,93 @@ func TestColorFieldPaddingCentersInkOptically(t *testing.T) {
 		t.Errorf("no measurer: padding %v, want symmetric", got)
 	}
 
+	// A measurer that reports an ink box drives the measured path: the
+	// ink sits 2 below the advance-box top and 5 above its bottom, so
+	// its centre is 1.5 above the box centre and the correction must be
+	// exactly that.
 	w := &Window{}
-	w.textMeasurer = &stubTextMeasurer{charWidth: 8, fontHeight: 19}
+	w.textMeasurer = &inkStubMeasurer{
+		stubTextMeasurer: stubTextMeasurer{charWidth: 8, fontHeight: 19},
+		top:              2,
+		bottom:           5,
+	}
 	pad := colorFieldPadding(w, style)
 	if pad.Top <= pad.Bottom {
 		t.Fatalf("padding %v: top must exceed bottom to lower the ink",
 			pad)
 	}
 
-	// Where the ink lands, relative to the field's own centre: the
-	// line box starts below the top padding, the glyphs start one
-	// ascent-minus-cap below that, and the box spans both paddings
-	// plus the line.
-	ascent := w.textMeasurer.FontAscent(style)
+	// Where the ink lands relative to the field's own centre. The line
+	// box starts below the top padding and the ink starts its own top
+	// margin below that; the box spans both paddings plus the line. The
+	// padding split is twice the offset, because giving the bottom's
+	// space to the top moves the box centre up by half of it.
 	line := w.textMeasurer.FontHeight(style)
-	capH := style.Size * colorFieldCapRatio
-	inkMid := pad.Top + (ascent - capH) + capH/2
+	ink, ok := w.textInkBounds(opticalProbe, style)
+	if !ok {
+		t.Fatal("stub measurer reported no ink box")
+	}
+	inkMid := pad.Top + ink.Y + ink.Height/2
 	boxMid := (pad.Top + line + pad.Bottom) / 2
-	if off := inkMid - boxMid; off < -0.75 || off > 0.75 {
-		t.Errorf("ink centre off by %.2fpt, want within 0.75", off)
+	if off := inkMid - boxMid; off < -0.01 || off > 0.01 {
+		t.Errorf("ink centre off by %.2fpt, want centred", off)
+	}
+}
+
+// A run that already paints below the box centre must not be pushed
+// further down. Measured at 48pt, "gypsy" sits 0.022em low before any
+// correction, so the right correction for it is none — this is the case
+// that makes the offset per-run rather than per-face for widget-owned
+// labels (issue #346).
+func TestOpticalTextOffsetSkipsDescenders(t *testing.T) {
+	w := &Window{}
+	// Ink filling the box to its bottom edge: a descender-bearing run
+	// leaves no slack underneath, so no shift can improve it.
+	w.textMeasurer = &inkStubMeasurer{
+		stubTextMeasurer: stubTextMeasurer{charWidth: 8, fontHeight: 19},
+		top:              2,
+	}
+	style := TextStyle{Size: 16}
+	if got := w.opticalTextOffset(style, "gypsy"); got != 0 {
+		t.Errorf("descender run shifted by %v, want 0", got)
+	}
+
+	// The same run, measured with slack below it, does take the shift —
+	// so the zero above is the measurement talking, not a disabled path.
+	w2 := &Window{}
+	w2.textMeasurer = &inkStubMeasurer{
+		stubTextMeasurer: stubTextMeasurer{charWidth: 8, fontHeight: 19},
+		top:              2,
+		bottom:           5,
+	}
+	if got := w2.opticalTextOffset(style, "gypsy"); got <= 0 {
+		t.Errorf("run with slack below shifted by %v, want positive", got)
+	}
+}
+
+// The content-free form is a property of the face, not of the string. If
+// an editable field's offset were measured from its live text, the
+// baseline would move as the user typed a descender — the failure that
+// made an earlier attempt unusable (issue #346).
+func TestOpticalOffsetIgnoresContent(t *testing.T) {
+	w := &Window{}
+	w.textMeasurer = &inkStubMeasurer{
+		stubTextMeasurer: stubTextMeasurer{charWidth: 8, fontHeight: 19},
+		top:              2,
+		bottom:           5,
+	}
+	style := TextStyle{Size: 16}
+
+	want := w.opticalCapOffset(style)
+	if want <= 0 {
+		t.Fatalf("offset %v, want a positive correction", want)
+	}
+	// The API takes no text at all, so the guard is that repeated calls
+	// under any content the widget might hold return one value; the
+	// memo must not turn into a per-string cache either.
+	for range 3 {
+		if got := w.opticalCapOffset(style); got != want {
+			t.Errorf("offset drifted: got %v, want %v", got, want)
+		}
 	}
 }

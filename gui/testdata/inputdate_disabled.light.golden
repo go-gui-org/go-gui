@@ -1,6 +1,6 @@
 Rect xy=10.00,10.00 wh=120.60,28.40 color=#c3c3d77f radius=5.50 fill
 Clip xy=15.00,13.00 wh=96.00,22.40
-Text xy=15.00,13.00 wh=0.00,0.00 color=#20202095 text="08/15/2026" size=16.00
+Text xy=15.00,14.13 wh=0.00,0.00 color=#20202095 text="08/15/2026" size=16.00
 Clip xy=0.00,0.00 wh=320.00,240.00
 Rect xy=116.00,13.00 wh=9.60,22.40 color=#c3c3d77f radius=5.50 fill
-Text xy=116.00,13.00 wh=0.00,0.00 color=#20202095 text="📅" size=16.00
+Text xy=116.00,14.42 wh=0.00,0.00 color=#20202095 text="📅" size=16.00

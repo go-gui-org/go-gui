@@ -155,6 +155,15 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 	colorFocus := cfg.ColorFocus
 	colorBorderFocus := cfg.ColorBorderFocus
 
+	// A wrapping multi-select is excluded: its label is a block whose
+	// lines after the first are placed by the text layout, so there is no
+	// single centred line to correct. Same exclusion Input makes for
+	// multiline.
+	var opticalAmend func(EventCtx)
+	if wrapMode == TextModeSingleLine {
+		opticalAmend = opticalCenterLabelText
+	}
+
 	// Build the outer row layout directly.
 	ccfg := ContainerCfg{
 		ID:        cfg.ID,
@@ -177,8 +186,16 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		Invisible:   cfg.Invisible,
 		axis:        axisLeftToRight,
 		VAlign:      VAlignMiddle,
-		AmendLayout: focusRingAmend(colorFocus, colorBorderFocus),
-		OnKeyDown:   makeSelectOnKeyDown(&sv.cfg, id, dropdownScrollID),
+		// The label is the widget's own text — a placeholder, or the
+		// options joined — so it takes the optical correction; it is
+		// also swapped as the selection changes, so it takes the
+		// content-free cap-band form rather than the measured one
+		// (issue #346). The disclosure arrow is wrapped in its own row
+		// and carries its own nudge, so this reaches the label only.
+		AmendLayout: amendAll(
+			opticalAmend,
+			focusRingAmend(colorFocus, colorBorderFocus)),
+		OnKeyDown: makeSelectOnKeyDown(&sv.cfg, id, dropdownScrollID),
 		OnClick: func(ctx EventCtx) {
 			ss := StateMap[string, bool](
 				ctx.Window, nsSelect, capModerate)

@@ -1,0 +1,3 @@
+Rect xy=11.50,11.50 wh=53.40,37.40 color=#4a4a4aff radius=5.50 fill
+StrokeRect xy=11.50,11.50 wh=53.40,37.40 color=#646464ff radius=5.50 thickness=1.50
+Text xy=19.00,20.42 wh=0.00,0.00 color=#e1e1e1ff text="Save" size=16.00

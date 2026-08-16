@@ -85,6 +85,37 @@ groups children but is not a box) must set `SizeBorder: NoBorder` and
 `Padding: NoPadding`, so its reserved border and padding do not silently add
 height.
 
+## Vertical centring — correct the ink only where the alphabet allows
+
+A vertically-centred control centres the text's _line box_, which reserves
+descent space the ink may not use, so short descender-free text — digits above
+all — reads high. The correction is `opticalCenterText` (the `AmendLayout` form)
+or `colorFieldPadding` (the padding form); never a local number.
+
+Apply it only where **the widget owns the text**: a badge's count, a progress
+bar's percentage, a button or tab label — anything built on `Button` inherits it
+— **or where the widget constrains the alphabet** so nothing can descend: a
+colour channel, a date mask, a numeric field. Text the user types into an
+unconstrained control is not eligible — correcting it drops descender-bearing
+content low, and that is measured, not predicted (issue #346).
+
+A control that **re-labels itself** — a `Select` showing a placeholder until an
+option is chosen — takes `opticalCenterLabelText`: the cap band, whatever the
+label says. Measuring the run there both misses the defect (a descending label's
+ink band already reads low while its cap band rides high) and would step the
+label when the selection changed.
+
+Which form depends on who supplies the string. A widget-owned label is measured
+per run, so a count centres exactly and a label with a descender is left alone.
+Editable text takes the content-free form — `opticalCenterFieldText` as a hook,
+`colorFieldPadding` as padding — because an offset that follows the content
+moves the baseline as the user types. A widget wrapping `Input` opts in with the
+unexported `opticalDigitCenter`, which is what keeps the guarantee the caller's
+to make — and the probe must match the alphabet that guarantee names: the figure
+band for a digit field, the cap band for a hex one. Probing the taller band for
+digits overshoots by as much as leaving them alone. See
+`docs/specs/text-optical-centring.md`.
+
 ## Per-state colors — ColorSet, with flat as the exception
 
 Build per-state colors with `ColorSet` (its `resolved()` returns the

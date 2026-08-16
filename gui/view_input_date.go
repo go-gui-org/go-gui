@@ -242,18 +242,22 @@ func inputDateTextField(
 		ID: ScopeID(cfgID, "input"),
 		// InputDate focus is default-on; propagate FocusDisabled
 		// intent to the inner Input.
-		FocusDisabled:    cfg.FocusDisabled,
-		ReadOnly:         cfg.ReadOnly,
-		Text:             dateText,
-		Placeholder:      inputDatePlaceholder(cfg),
-		Mask:             localeDateMaskPattern(ActiveLocale.Date.ShortDate),
-		TextStyle:        cfg.TextStyle,
-		PlaceholderStyle: cfg.PlaceholderStyle,
-		Sizing:           FillFit,
-		SizeBorder:       NoBorder,
-		Padding:          NoPadding,
-		Color:            ColorTransparent,
-		Disabled:         cfg.Disabled,
+		FocusDisabled: cfg.FocusDisabled,
+		ReadOnly:      cfg.ReadOnly,
+		Text:          dateText,
+		Placeholder:   inputDatePlaceholder(cfg),
+		Mask:          localeDateMaskPattern(ActiveLocale.Date.ShortDate),
+		// The mask admits digits and separators only, so the reserved
+		// descent is provably empty and the date can be centred on its
+		// ink rather than on its line box (issue #346).
+		opticalDigitCenter: true,
+		TextStyle:          cfg.TextStyle,
+		PlaceholderStyle:   cfg.PlaceholderStyle,
+		Sizing:             FillFit,
+		SizeBorder:         NoBorder,
+		Padding:            NoPadding,
+		Color:              ColorTransparent,
+		Disabled:           cfg.Disabled,
 		OnTextChanged: func(s string, ctx EventCtx) {
 			sm := StateMap[string, string](ctx.Window, nsInputDateText, capModerate)
 			sm.Set(cfgID, s)

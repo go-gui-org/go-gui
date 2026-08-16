@@ -66,13 +66,20 @@ func ProgressBar(cfg ProgressBarCfg) View {
 	if cfg.TextShow && !cfg.Indefinite {
 		pct := math.Min(math.Max(float64(cfg.Percent), 0), 1)
 		pct = math.Round(pct * 100)
+		readout := fmt.Sprintf("%.0f%%", pct)
 		content = append(content, Row(ContainerCfg{
 			SizeBorder: NoBorder,
 			Color:      cfg.textBackground,
 			Padding:    cfg.textPadding,
+			// The readout is digits and a percent sign, so nothing
+			// paints into the descent the line box reserves and the
+			// label reads high against the bar it sits on (issue #346).
+			// progressBarCenterLabel moves this container and its child
+			// by the same delta, so the correction survives it.
+			AmendLayout: opticalCenterText,
 			Content: []View{
 				Text(TextCfg{
-					Text:      fmt.Sprintf("%.0f%%", pct),
+					Text:      readout,
 					TextStyle: cfg.TextStyle,
 				}),
 			},

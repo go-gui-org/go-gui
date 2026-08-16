@@ -126,16 +126,55 @@ func TestButtonAmendLayoutNotCalledWhenDisabled(t *testing.T) {
 }
 
 func TestButtonAmendLayoutSuppressedWhenNoOnClick(t *testing.T) {
-	// When OnClick is nil, the button creates no event handlers at
-	// all — AmendLayout cannot fire because it's never wired.
+	// A click-less button still carries handlers, because every button
+	// wires the optical-centring correction (issue #346) — its label is
+	// centred whether or not the button can be pressed. What stays
+	// suppressed is the caller's own hook: buttonAmendLayout returns
+	// before OnAmend when there is no OnClick.
 	w := &Window{}
+	called := false
 	v := Button(ButtonCfg{
 		ID:          "b9",
-		AmendLayout: func(ctx EventCtx) {},
+		Content:     []View{Text(TextCfg{Text: "Save"})},
+		AmendLayout: func(ctx EventCtx) { called = true },
 	})
 	layout := generateViewLayout(v, w)
-	if layout.Shape.events != nil {
-		t.Error("expected nil events when OnClick is nil")
+	if layout.Shape.events == nil ||
+		layout.Shape.events.AmendLayout == nil {
+		t.Fatal("expected the correction to be wired")
+	}
+	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, w})
+	if called {
+		t.Error("caller AmendLayout should not fire without OnClick")
+	}
+}
+
+// The correction must not depend on the button being interactive: a
+// disabled button's label sits beside an enabled one, and
+// buttonAmendLayout returns early for both the disabled and the
+// click-less case (issue #346).
+func TestButtonOpticalCorrectionIgnoresButtonState(t *testing.T) {
+	labelY := func(cfg ButtonCfg) float32 {
+		w := &Window{}
+		w.textMeasurer = &stubTextMeasurer{charWidth: 8, fontHeight: 19}
+		cfg.ID = "b"
+		cfg.Content = []View{Text(TextCfg{Text: "Save"})}
+		layout := generateViewLayout(Button(cfg), w)
+		layout.Children[0].Shape.Y = 100
+		layout.Shape.events.AmendLayout(EventCtx{&layout, nil, w})
+		return layout.Children[0].Shape.Y
+	}
+
+	enabled := labelY(ButtonCfg{OnClick: func(EventCtx) {}})
+	disabled := labelY(ButtonCfg{Disabled: true, OnClick: func(EventCtx) {}})
+	clickless := labelY(ButtonCfg{})
+
+	if enabled <= 100 {
+		t.Fatalf("enabled label not corrected: y=%v, want > 100", enabled)
+	}
+	if disabled != enabled || clickless != enabled {
+		t.Errorf("label y differs by state: enabled=%v disabled=%v "+
+			"clickless=%v, want all equal", enabled, disabled, clickless)
 	}
 }
 
