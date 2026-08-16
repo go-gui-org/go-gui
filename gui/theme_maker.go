@@ -557,24 +557,28 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	// Italic shortcuts.
 	italic := ts
 	italic.Typeface = glyph.TypefaceItalic
-	theme.i1 = makeStyle(italic, theme.sizeTextXLarge)
-	theme.i2 = makeStyle(italic, theme.sizeTextLarge)
+	theme.I1 = makeStyle(italic, theme.sizeTextXLarge)
+	theme.I2 = makeStyle(italic, theme.sizeTextLarge)
 	theme.I3 = makeStyle(italic, theme.sizeTextMedium)
-	theme.i4 = makeStyle(italic, theme.sizeTextSmall)
-	theme.i5 = makeStyle(italic, theme.sizeTextXSmall)
-	theme.i6 = makeStyle(italic, theme.SizeTextTiny)
+	theme.I4 = makeStyle(italic, theme.sizeTextSmall)
+	theme.I5 = makeStyle(italic, theme.sizeTextXSmall)
+	theme.I6 = makeStyle(italic, theme.SizeTextTiny)
 
 	// Bold+italic shortcuts.
 	boldItalic := ts
 	boldItalic.Typeface = glyph.TypefaceBoldItalic
-	theme.bI1 = makeStyle(boldItalic, theme.sizeTextXLarge)
-	theme.bI2 = makeStyle(boldItalic, theme.sizeTextLarge)
+	theme.BI1 = makeStyle(boldItalic, theme.sizeTextXLarge)
+	theme.BI2 = makeStyle(boldItalic, theme.sizeTextLarge)
 	theme.BI3 = makeStyle(boldItalic, theme.sizeTextMedium)
-	theme.bI4 = makeStyle(boldItalic, theme.sizeTextSmall)
-	theme.bI5 = makeStyle(boldItalic, theme.sizeTextXSmall)
-	theme.bI6 = makeStyle(boldItalic, theme.SizeTextTiny)
+	theme.BI4 = makeStyle(boldItalic, theme.sizeTextSmall)
+	theme.BI5 = makeStyle(boldItalic, theme.sizeTextXSmall)
+	theme.BI6 = makeStyle(boldItalic, theme.SizeTextTiny)
 
-	// Mono shortcuts (+1 size offset).
+	// Mono shortcuts: +1 at every rung, so M4 (15) does not share N4's
+	// (14) baseline. Mono faces typically draw optically smaller than
+	// roman ones at the same point size; the offset is the compensation,
+	// applied uniformly because it is the same face at every size. Apps
+	// reading M-rungs beside N-rungs should expect the step.
 	mono := ts
 	mono.Family = cfg.monoFontFamily
 	theme.M1 = makeStyle(mono, theme.sizeTextXLarge+1)
@@ -591,8 +595,8 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	theme.Icon2 = makeStyle(icon, theme.sizeTextLarge)
 	theme.Icon3 = makeStyle(icon, theme.sizeTextMedium)
 	theme.Icon4 = makeStyle(icon, theme.sizeTextSmall)
-	theme.icon5 = makeStyle(icon, theme.sizeTextXSmall)
-	theme.icon6 = makeStyle(icon, theme.SizeTextTiny)
+	theme.Icon5 = makeStyle(icon, theme.sizeTextXSmall)
+	theme.Icon6 = makeStyle(icon, theme.SizeTextTiny)
 
 	// Every theme leaving this constructor carries a fresh identity.
 	// Install and cache-invalidation compare ids, never Name: two themes

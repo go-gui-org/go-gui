@@ -196,8 +196,12 @@ func rollerDrum(
 
 		itemTS := ts
 		if offset == 0 {
-			// Audit §2: the center item steps one type size inline; N5/N6
-			// are unexported so there is no named handle to use yet.
+			// The drum's center item pops one optical step above the
+			// rest. It tracks the configured style rather than a fixed
+			// rung, and the ladder's own rungs are non-uniform (+2 at
+			// the small end, +4 above medium), so no named step equals
+			// this at every size — the +2 is deliberate drum emphasis,
+			// not a type step (issue #335 §2).
 			itemTS.Size = ts.Size + 2 // ergonomics-audit:visual
 		} else {
 			dist := offset

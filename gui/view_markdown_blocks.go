@@ -146,7 +146,7 @@ func mdCopyButton(
 ) View {
 	copied := w.hasAnimationLocked(animID)
 
-	iconStyle := guiTheme.icon5
+	iconStyle := guiTheme.Icon5
 	iconStyle.Color = Gray
 
 	var btnContent []View
@@ -479,7 +479,7 @@ func mdTaskCheckbox(checked bool, boxSize float32, cfg MarkdownCfg) View {
 	var amend func(EventCtx)
 	if checked {
 		boxColor = cfg.Style.linkColor
-		checkStyle := guiTheme.icon5
+		checkStyle := guiTheme.Icon5
 		checkStyle.Size = boxSize * 1.1
 		checkStyle.Color = White
 		content = []View{

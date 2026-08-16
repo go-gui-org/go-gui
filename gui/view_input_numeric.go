@@ -234,9 +234,23 @@ func numericInputField(cfg NumericInputCfg, locale NumericLocaleCfg, _ NumericSt
 }
 
 func numericInputStepButtons(cfg NumericInputCfg, locale NumericLocaleCfg, stepCfg NumericStepCfg) View {
-	// Audit §2: the step triangle floors an inline size step at 8; N5/N6
-	// are unexported so there is no named handle to use yet.
-	triangleSize := f32Max(cfg.TextStyle.Size-4, 8) // ergonomics-audit:visual
+	// The step triangle sits below the field text by a fixed 4pt, not by
+	// a rung: the field text is caller-supplied and lands anywhere, so
+	// there is no rung to step from. At the default 16 the drop spans
+	// two rungs (16 -> 14 -> 12). This is the §2 step issue #335 left
+	// open — a named handle would have to be a "one rung down from an
+	// arbitrary size" operation the ladder does not offer, so the
+	// arithmetic stays marked and visible to the gate rather than
+	// disguised (issue #335 §2).
+	//
+	// Bounds are both named rungs of the installed theme: never below
+	// N6 (tiny), the smallest a triangle stays legible at, and never
+	// above the text it decorates — a theme with a large SizeTextTiny
+	// can otherwise floor the triangle bigger than the field.
+	triangleSize := f32Min(
+		f32Max(cfg.TextStyle.Size-4, guiTheme.N6.Size), // ergonomics-audit:visual
+		cfg.TextStyle.Size,
+	)
 	triangleStyle := TextStyle{
 		Color:  cfg.TextStyle.Color,
 		Size:   triangleSize,

@@ -144,6 +144,10 @@ func floor(cfg NumericInputCfg) {
 	_ = f32Max(cfg.TextStyle.Size-4, 8)
 }
 
+func namedFloor(cfg NumericInputCfg) {
+	_ = f32Max(cfg.TextStyle.Size-4, guiTheme.N6.Size)
+}
+
 func roller(ts TextStyle) TextStyle {
 	itemTS := ts
 	itemTS.Size = ts.Size + 2
@@ -165,6 +169,9 @@ func geometryMax(s handleSize) float32 {
 	got := scanVisualSrc(t, src)
 	want := []string{
 		"floor:sizes a text step inline:f32Max(cfg.TextStyle.Size-4, 8)",
+		// A named floor is an improvement, not a resolution: the step
+		// itself is still arithmetic, so the rule must still see it.
+		"namedFloor:sizes a text step inline:f32Max(cfg.TextStyle.Size-4, guiTheme.N6.Size)",
 		"roller:sizes a text step inline:ts.Size + 2",
 		"named:sizes a text step inline:TextStyle{Size: ts.Size - 2}",
 	}

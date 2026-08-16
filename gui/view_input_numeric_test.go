@@ -2,6 +2,90 @@ package gui
 
 import "testing"
 
+// TestNumericInputStepTriangleBounds locks the named bounds of the step
+// triangle (issue #335 §2): it sits 4pt below the field text, never
+// below the ladder's bottom rung (N6, tiny) and never above the text it
+// decorates. The old widget-local floor was 8 — below every named rung.
+func TestNumericInputStepTriangleBounds(t *testing.T) {
+	// The text sizes rendered in the generated layout, triangle included.
+	textSizes := func(cfg NumericInputCfg) map[float32]bool {
+		w := &Window{}
+		v := NumericInput(cfg)
+		layout := generateViewLayout(v, w)
+		sizes := map[float32]bool{}
+		var walk func(l Layout)
+		walk = func(l Layout) {
+			if l.Shape != nil && l.Shape.TC != nil {
+				sizes[l.Shape.TC.TextStyle.Size] = true
+			}
+			for _, c := range l.Children {
+				walk(c)
+			}
+		}
+		walk(layout)
+		return sizes
+	}
+
+	// The lowest size anywhere in the layout, which is the triangle
+	// whenever it is stepped below the field text.
+	minSize := func(sizes map[float32]bool) float32 {
+		var lo float32
+		set := false
+		for s := range sizes {
+			if !set || s < lo {
+				lo, set = s, true
+			}
+		}
+		return lo
+	}
+
+	// A small field text (12) steps to 8 — the old widget-local floor,
+	// and below every named rung. The named floor lifts it to N6 (10),
+	// a value nothing else in this layout renders, so the assertion is
+	// not satisfied by the field text itself.
+	small := DefaultTextStyle
+	small.Size = 12
+	smallSizes := textSizes(NumericInputCfg{
+		ID:        "ni-small",
+		TextStyle: small,
+		StepCfg:   NumericStepCfg{ShowButtons: true, Step: 1},
+	})
+	if got := minSize(smallSizes); got != guiTheme.N6.Size {
+		t.Errorf("small layout floors at %v, want N6 (%v); sizes = %v",
+			got, guiTheme.N6.Size, smallSizes)
+	}
+
+	// A default field steps clear of both bounds.
+	defSizes := textSizes(NumericInputCfg{
+		ID:      "ni-def",
+		StepCfg: NumericStepCfg{ShowButtons: true, Step: 1},
+	})
+	if got := minSize(defSizes); got != DefaultTextStyle.Size-4 {
+		t.Errorf("default layout triangle is %v, want %v; sizes = %v",
+			got, DefaultTextStyle.Size-4, defSizes)
+	}
+
+	// The ceiling: a field text below the bottom rung (8 against N6's
+	// 10) would have the floor lift the triangle *above* the text it
+	// decorates. The clamp keeps it at the text size. This is the bound
+	// a theme with a large SizeTextTiny crosses at ordinary text sizes.
+	belowFloor := DefaultTextStyle
+	belowFloor.Size = guiTheme.N6.Size - 2
+	belowSizes := textSizes(NumericInputCfg{
+		ID:        "ni-below",
+		TextStyle: belowFloor,
+		StepCfg:   NumericStepCfg{ShowButtons: true, Step: 1},
+	})
+	if got := minSize(belowSizes); got != belowFloor.Size {
+		t.Errorf("triangle is %v, want the field text %v; sizes = %v",
+			got, belowFloor.Size, belowSizes)
+	}
+	if belowSizes[guiTheme.N6.Size] {
+		t.Errorf("floor lifted the triangle to N6 (%v) above the field text %v; sizes = %v",
+			guiTheme.N6.Size, belowFloor.Size, belowSizes)
+	}
+}
+
 func TestNumericInputIDPassthrough(t *testing.T) {
 	w := &Window{}
 	v := NumericInput(NumericInputCfg{

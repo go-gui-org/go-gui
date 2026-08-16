@@ -290,18 +290,20 @@ func sizeSelector(e ast.Expr) (string, bool) {
 	return sel.Sel.Name, true
 }
 
-// floorSizeStep reports f32Max(X.Size + N, M) or f32Max(X.Size - N, M):
-// the audit's "inline floor" pattern, which produces a text size by
-// arithmetic and then clamps it.
+// floorSizeStep reports f32Max(X.Size + N, floor) or f32Max(X.Size - N,
+// floor): the audit's "inline floor" pattern, which produces a text size
+// by arithmetic and then clamps it.
+//
+// The floor's spelling is not what makes this a finding — the arithmetic
+// on the left is. Naming the floor (f32Max(X.Size-4, theme.N6.Size)) is
+// an improvement, not a resolution, so the rule matches any floor
+// expression rather than only a literal one. Keying on a literal floor
+// let a named-floor rewrite silently leave the rule's view.
 func floorSizeStep(call *ast.CallExpr) bool {
 	if callName(call) != "f32Max" || len(call.Args) != 2 {
 		return false
 	}
-	if !sizeStepExpr(call.Args[0]) {
-		return false
-	}
-	_, ok := intLiteral(call.Args[1])
-	return ok
+	return sizeStepExpr(call.Args[0])
 }
 
 // textStepLiteral reports a composite literal whose Size key is X.Size + N

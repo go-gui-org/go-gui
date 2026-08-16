@@ -72,8 +72,8 @@ func DefaultMarkdownStyle() MarkdownStyle {
 	// leading, floored to a minimum em ratio); no manual LineSpacing needed.
 	text := guiTheme.N4
 	bold := guiTheme.B4
-	italic := guiTheme.i4
-	bi := guiTheme.bI4
+	italic := guiTheme.I4
+	bi := guiTheme.BI4
 
 	return MarkdownStyle{
 		Text:          text,
