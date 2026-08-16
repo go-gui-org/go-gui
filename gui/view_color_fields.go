@@ -65,7 +65,12 @@ func ColorFields(cfg ColorFieldsCfg) View {
 }
 
 const (
-	defaultColorFieldWidth = 50
+	// defaultColorFieldWidth holds three digits with room for the caret,
+	// and stays just above the widest RGBA label ("Green") so the label
+	// never widens the column. It sets the whole picker's width — four
+	// of these is its widest row — so the slack here is what shows up as
+	// empty space beside the shorter rows.
+	defaultColorFieldWidth = 46
 	// defaultHexFieldWidth holds the widest value the field ever shows
 	// — "#RRGGBBAA", which Hex() emits whenever alpha is not full — so
 	// pinning the field to it never clips.
