@@ -19,6 +19,10 @@ package gui
 //     pin colors, alphas, insets and geometry, not glyph metrics.
 //   - Floats are rounded to two decimals so platform FP jitter does
 //     not red the suite.
+//   - FontName is not recorded: it resolves to a platform default
+//     (Segoe UI on Windows) where a font is reachable and stays empty
+//     where it is not, so it is noise against the geometry and colors
+//     these files pin.
 //   - Pointer fields (styles, gradients, layouts) are summarized by
 //     presence, not dereferenced. A golden is a fingerprint, not a
 //     serialization format.
@@ -132,9 +136,6 @@ func serializeCmd(c RenderCmd) string {
 	switch c.Kind {
 	case RenderText, RenderRTF, RenderTextPath:
 		fmt.Fprintf(&b, " text=%q", c.Text)
-		if c.FontName != "" {
-			fmt.Fprintf(&b, " font=%q", c.FontName)
-		}
 		if c.FontSize != 0 {
 			b.WriteString(" size=" + f2(c.FontSize))
 		}
