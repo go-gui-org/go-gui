@@ -23,8 +23,10 @@ exactly such a second source. The fix is **named roles and tiers in
 `ThemeMaker`** that widgets read, so the decision cannot be re-litigated per
 widget.
 
-The audit below covers seven axes. Notably, **dimming — the axis the issue was
-filed about — is the smallest of them.** The three with the largest effect on
+The audit below covers seven axes. Dimming — the axis the issue was filed about
+— looked like the smallest until it was measured at the renderer rather than in
+source: the same "disabled text" state renders at three different alphas
+spanning 2× in either direction (§1.1). The other three with a large effect on
 how the toolkit reads are missing interaction states (§6), form density (§7),
 and the absent field-label affordance (§3).
 
@@ -57,27 +59,52 @@ Seven distinct values covering four semantic roles. Two of them
 (`view_input_date.go:333`, `theme_maker.go:47`) are the _same_ role expressed
 twice, one a hand-rolled copy of the other.
 
-### 1.1 `dimAlpha` is a renderer-level path, not a theme value
+### 1.1 The table above is the source. The renderer disagrees with it.
 
 `dimAlpha` is reached from `render_layout.go` (fills, borders),
-`render_text.go`, `render_svg.go` and `view_container.go`. It is per-shape and
-does **not** propagate to children.
+`render_text.go`, `render_svg.go` and `view_container.go`. Read as source it
+looks per-shape — and that reading is wrong, because `layoutDisables`
+(`gui/layout.go:44`, run from `gui/layout_pipeline.go:36`) walks the composed
+tree and **stamps `Disabled` onto every descendant of a disabled shape** before
+rendering.
 
-**Verified, not assumed:** a `Text` inside a `Disabled` `Button` is _not_
-double-dimmed. `Button` stamps `Disabled` on its own container shape only
-(`gui/view_button.go:165`); the `Content` children carry `false`; and
-`render_text.go:51` tests the text shape's **own** `Disabled`. Probed directly
-on a disabled `Button` wrapping a themed-disabled `Text`: container
-`disabled=true`, text child `disabled=false`.
+So a themed `textStyleDisabled` alpha inside a widget that also sets `Disabled`
+on an ancestor container is applied and then halved again. Whether that happens
+is an accident of how each widget was built.
 
-So `dimAlpha` and the themed `textStyleDisabled` alphas apply to **disjoint**
-shapes. They are complements, not duplicates — which means a `TextStyleDisabled`
-role sits _beside_ `dimAlpha` rather than replacing it, and unifying the themed
-values does not make tab or breadcrumb text lighter.
+Measured at the renderer, via the golden harness (`gui/golden_test.go`), for the
+one semantic state "disabled text":
 
-The one genuine misuse is `gui/view_menu_item.go:106`, which applies the
+| Rendered   | Widget     | How it got there                                |
+| ---------- | ---------- | ----------------------------------------------- |
+| 65 (0.25)  | tab        | themed 130, then halved — ancestor `Disabled`   |
+| 127 (0.50) | Input      | base 255, halved — no themed alpha at all       |
+| 130 (0.51) | breadcrumb | themed 130, not halved — no ancestor `Disabled` |
+
+**Three widgets, one state, three values, spanning 2× in either direction.**
+This is a stronger finding than the source table above, and it is only visible
+at the renderer: reading `theme_maker.go` suggests tab and breadcrumb agree at
+130, and they do not.
+
+It also means a `TextStyleDisabled` role cannot simply be dropped in. Unifying
+the themed value while `layoutDisables` still halves it leaves tab at half of
+whatever the role says. The role and the `Disabled` stamp have to be reconciled,
+not just deduplicated.
+
+The one unambiguous misuse is `gui/view_menu_item.go:106`, which applies the
 **disabled** dim to a **live** shortcut hint. A live control and a dead one
 render identically there.
+
+### 1.1.1 The alphas do not vary by theme
+
+Same sites recorded under `ThemeLight`: tab `#20202041`, breadcrumb `#20202082`,
+Input disabled `#2020207f`, placeholder `#20202064` — byte-identical alphas to
+the dark theme, over a base color of `#202020` instead of `#e1e1e1`.
+
+De-emphasis today is a pure alpha, applied without reference to what it is
+blending toward. Alpha 65 over `#e1e1e1` on a dark ground is faint but legible;
+alpha 65 over `#202020` on a light ground is nearly gone. This is the direct
+evidence that a role must be a **per-theme value**, not one derived multiplier.
 
 ### 1.2 Out of scope
 
@@ -226,15 +253,29 @@ is not a field, and `gui/view_button.go:104-107` documents its choice.
 
 ## Summary
 
-| §   | Axis              | State                                             |
-| --- | ----------------- | ------------------------------------------------- |
-| 1   | Dimming           | 7 values, 4 roles, 3 notations; 1 outright misuse |
-| 2   | Type steps        | 3 parallel systems; 1 theme bypass                |
-| 3   | Field labels      | absent on 8 widgets; 3 conventions elsewhere      |
-| 4   | Spacing           | 1 tier of 3 unused; ~10 magic values              |
-| 5   | Borders           | healthy; 2 outliers                               |
-| 6   | Interaction state | ColorSet at 5/18; focus missing where it matters  |
-| 7   | Density           | 5 insets; Input's theme padding dead              |
+| §   | Axis              | State                                                         |
+| --- | ----------------- | ------------------------------------------------------------- |
+| 1   | Dimming           | 7 source values; disabled text renders at 3, over a 2× spread |
+| 2   | Type steps        | 3 parallel systems; 1 theme bypass                            |
+| 3   | Field labels      | absent on 8 widgets; 3 conventions elsewhere                  |
+| 4   | Spacing           | 1 tier of 3 unused; ~10 magic values                          |
+| 5   | Borders           | healthy; 2 outliers                                           |
+| 6   | Interaction state | ColorSet at 5/18; focus missing where it matters              |
+| 7   | Density           | 5 insets; Input's theme padding dead                          |
 
 The ordering that follows from this is: fix §6 and §7 first (a user sees them),
 then §1 and §3 (an author trips on them), and leave §5 alone.
+
+## Method
+
+The source-literal findings were read from the tree at commit `b6adf899`. The
+rendered values in §1.1 come from `gui/golden_test.go`, which drives the real
+frame pipeline and records the emitted `[]RenderCmd` per widget per theme into
+`gui/testdata/`.
+
+That distinction is the audit's own lesson. §1.1 originally recorded the
+opposite conclusion — that disabled text is dimmed once — reached by walking a
+widget's `GenerateLayout` output directly. That snapshot is taken _before_
+`layoutDisables` runs, so it does not show what the renderer sees. The golden
+harness caught it. Any future claim in this document about what a widget looks
+like should be recorded, not read.

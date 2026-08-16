@@ -1,0 +1,4 @@
+Rect xy=10.00,10.00 wh=132.80,26.40 color=#c3c3d7ff radius=5.50 fill
+Clip xy=14.00,12.00 wh=124.80,22.40
+Text xy=14.00,12.00 wh=0.00,0.00 color=#20202064 text="enter a value" size=16.00
+Clip xy=0.00,0.00 wh=320.00,240.00
