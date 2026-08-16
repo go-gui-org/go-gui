@@ -167,7 +167,7 @@ func TestColorPickerPlaneFitsFields(t *testing.T) {
 	}
 
 	thick := f32Max(style.sliderHeight, style.indicatorSize)
-	top := size + 2*(thick+SpacingSmall)
+	top := size + 2*(thick+colorPickerPlaneGap)
 	fields := float32(4*defaultColorFieldWidth + 3*SpacingSmall)
 	if top != fields {
 		t.Errorf("top row = %v, fields row = %v; want equal",

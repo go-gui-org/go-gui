@@ -32,7 +32,8 @@ type ColorFieldsCfg struct {
 	// exportaudit:keep — caller-facing layout choice; ColorPicker is the
 	// only in-repo user.
 	ShowSwatch bool
-	// SwatchSize is the swatch's edge length. Zero takes the default.
+	// SwatchSize is the swatch's height; it is drawn twice as wide.
+	// Zero takes the default.
 	//
 	// exportaudit:keep — caller-facing sizing
 	SwatchSize float32
@@ -69,6 +70,10 @@ const (
 	// defaultColorFieldsSwatch matches the hex input's height closely
 	// enough that the two read as one row.
 	defaultColorFieldsSwatch = 28
+	// colorFieldsSwatchAspect widens the swatch relative to SwatchSize,
+	// which stays the height so the swatch keeps matching the hex
+	// input's line.
+	colorFieldsSwatchAspect = 2
 )
 
 func (fv *colorFieldsView) GenerateLayout(w *Window) Layout {
@@ -112,9 +117,14 @@ func colorHexRow(cfg *ColorFieldsCfg, id string, v HSLA) View {
 		Content: []View{
 			hex,
 			ColorSwatch(ColorSwatchCfg{
-				ID:     ScopeID(id, "swatch"),
-				Color:  v.Color(),
-				Width:  cfg.SwatchSize,
+				ID:    ScopeID(id, "swatch"),
+				Color: v.Color(),
+				// Twice as wide as it is tall. A square beside a
+				// text field reads as a button; a wide bar reads
+				// as a sample of the value next to it, and gives
+				// the checkerboard room to show under a
+				// translucent color.
+				Width:  cfg.SwatchSize * colorFieldsSwatchAspect,
 				Height: cfg.SwatchSize,
 			}),
 		},

@@ -97,7 +97,7 @@ func (cv *colorPickerView) GenerateLayout(w *Window) Layout {
 		// squarer than a stack of full-width tracks would make it.
 		Row(ContainerCfg{
 			Padding: NoPadding,
-			Spacing: Some(SpacingSmall),
+			Spacing: Some(colorPickerPlaneGap),
 			Content: []View{
 				ColorPlane(ColorPlaneCfg{
 					ID:       ScopeID(cfg.ID, "plane"),
@@ -163,6 +163,15 @@ func (cv *colorPickerView) GenerateLayout(w *Window) Layout {
 // colorPickerSwatchSize is the preview swatch's edge length.
 const colorPickerSwatchSize = 32
 
+// colorPickerPlaneGap separates the plane from the two vertical
+// sliders beside it. Wider than the picker's usual small spacing: the
+// sliders carry their own imagery, so at small spacing they read as
+// part of the plane's edge rather than as separate controls.
+//
+// colorPickerPlaneSize subtracts it, so widening the gap narrows the
+// plane and the row's total width does not move.
+const colorPickerPlaneGap = SpacingMedium
+
 // colorPickerMinPlane floors the derived plane size. A theme with wide
 // sliders and narrow fields could otherwise drive the plane down to
 // something unusable; below this the picker stops shrinking and simply
@@ -185,7 +194,7 @@ func colorPickerPlaneSize(style ColorPickerStyle) float32 {
 	// The fields block's own width, mirroring colorRGBARow: four
 	// inputs at the default width with small spacing between them.
 	fieldsW := 4*defaultColorFieldWidth + 3*SpacingSmall
-	size := fieldsW - 2*(sliderThick+SpacingSmall)
+	size := fieldsW - 2*(sliderThick+colorPickerPlaneGap)
 	if size > style.sVSize {
 		size = style.sVSize
 	}

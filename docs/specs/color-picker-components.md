@@ -122,13 +122,24 @@ end-cap insets land on the wrong sides.
 `ColorFields` set `ShowSwatch` puts a `ColorSwatch` to the right of the hex
 field, under the fields' own ID scope. Both are readouts of the same color — one
 exact, one legible — so they belong on one line; a caller that wants the swatch
-anywhere else leaves the flag off and places a plain `ColorSwatch`.
+anywhere else leaves the flag off and places a plain `ColorSwatch`. It is drawn
+twice as wide as `SwatchSize`, which stays its height: a square beside a text
+field reads as a button, where a wide bar reads as a sample of the value next to
+it.
 
 `gui.ColorPicker` is now a composition of `ColorPlane`, two vertical
 `ColorChannelSlider`s standing to the right of the plane, and `ColorFields`
 carrying the swatch. Its `Cfg` is unchanged and every existing caller compiles
-untouched. `ShowHSV` still works and is deprecated in favour of `ShowHSL`, which
-names what the row contains.
+untouched.
+
+The plane's size is derived rather than taken from the theme's `sVSize`, which
+becomes an upper bound. The picker is as wide as its widest row — the four RGBA
+fields — so the plane is that width less what the two sliders and the gaps
+beside them occupy, and the two rows come out flush. Widening the gap therefore
+narrows the plane instead of widening the picker.
+
+`ShowHSV` still works and is deprecated in favour of `ShowHSL`, which names what
+the row contains.
 
 ## What callers see change
 
