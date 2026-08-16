@@ -74,6 +74,22 @@ type TextStyle struct {
 	// U+2580–259F instead of the built-in procedural rasterizer.
 	NoBuiltinBoxGlyphs bool
 	Strikethrough      bool
+	// disabledRole marks a style whose Color already expresses the
+	// disabled state, because it came from Theme.TextStyleDisabled.
+	//
+	// layoutDisables (gui/layout.go) stamps Disabled onto every
+	// descendant of a disabled shape, and renderText then halves the
+	// alpha of anything carrying it. A widget that had already applied
+	// the themed disabled color therefore got dimmed twice, which is
+	// why tab text rendered at alpha 65 while breadcrumb text — same
+	// state, same themed value — rendered at 130 (issue #335). This
+	// flag lets the renderer skip the second dim.
+	//
+	// Unexported and set only by themeTextRoles, so it cannot be
+	// spelled at a call site: a widget states the role, never the
+	// mechanism. It rides along through the ordinary struct copies
+	// widgets make of a TextStyle.
+	disabledRole bool
 }
 
 // mergeTextStyle fills zero fields in s from fallback.

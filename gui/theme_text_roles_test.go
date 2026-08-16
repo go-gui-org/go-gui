@@ -1,0 +1,168 @@
+package gui
+
+import "testing"
+
+// Roles must track the theme's own text style, or a theme that changes
+// its type scale silently leaves them behind.
+func TestTextRolesTrackTextStyleDef(t *testing.T) {
+	cfg := baseCfg()
+	cfg.ColorBackground = RGB(48, 48, 48)
+	cfg.TextStyleDef = TextStyle{
+		Family: "TestFace",
+		Color:  RGB(200, 210, 220),
+		Size:   19,
+	}
+	th := ThemeMaker(cfg)
+
+	roles := map[string]TextStyle{
+		"secondary":   th.TextStyleSecondary,
+		"disabled":    th.TextStyleDisabled,
+		"placeholder": th.TextStylePlaceholder,
+		"label":       th.TextStyleLabel,
+	}
+	for name, r := range roles {
+		if r.Family != "TestFace" {
+			t.Errorf("%s: Family = %q, want TestFace", name, r.Family)
+		}
+		if r.Color.R != 200 || r.Color.G != 210 || r.Color.B != 220 {
+			t.Errorf("%s: color hue = %v, want the theme's own",
+				r.Color, name)
+		}
+		if r.Color.A == 255 {
+			t.Errorf("%s: alpha 255, role is not de-emphasized", name)
+		}
+	}
+
+	// Only the label steps size; it names a value rather than being
+	// one, so it sits a rung down.
+	for name, r := range map[string]TextStyle{
+		"secondary":   th.TextStyleSecondary,
+		"disabled":    th.TextStyleDisabled,
+		"placeholder": th.TextStylePlaceholder,
+	} {
+		if r.Size != 19 {
+			t.Errorf("%s: Size = %v, want 19", name, r.Size)
+		}
+	}
+	if th.TextStyleLabel.Size != cfg.sizeTextXSmall {
+		t.Errorf("label Size = %v, want %v",
+			th.TextStyleLabel.Size, cfg.sizeTextXSmall)
+	}
+}
+
+// The ladder is ordered: a placeholder is quieter than disabled text,
+// which is quieter than secondary, which is quieter than a label. If
+// that ordering breaks, the roles stop being distinguishable on screen.
+func TestTextRolesOrdered(t *testing.T) {
+	for _, th := range []Theme{ThemeDark, ThemeLight} {
+		a := []struct {
+			name  string
+			alpha uint8
+		}{
+			{"placeholder", th.TextStylePlaceholder.Color.A},
+			{"disabled", th.TextStyleDisabled.Color.A},
+			{"secondary", th.TextStyleSecondary.Color.A},
+			{"label", th.TextStyleLabel.Color.A},
+		}
+		for i := 1; i < len(a); i++ {
+			if a[i].alpha <= a[i-1].alpha {
+				t.Errorf("%s theme: %s (%d) not quieter than %s (%d)",
+					th.Name, a[i-1].name, a[i-1].alpha,
+					a[i].name, a[i].alpha)
+			}
+		}
+	}
+}
+
+// The point of per-theme ladders: the light theme must not simply reuse
+// the dark alphas, because the same alpha yields lower contrast against
+// a light ground. This is the regression that would silently undo the
+// contrast matching.
+func TestTextRolesDifferPerTheme(t *testing.T) {
+	if ThemeDark.TextStyleDisabled.Color.A ==
+		ThemeLight.TextStyleDisabled.Color.A {
+		t.Error("dark and light disabled alpha are equal; " +
+			"the light ladder is not contrast-matched")
+	}
+	if ThemeLight.TextStyleDisabled.Color.A <
+		ThemeDark.TextStyleDisabled.Color.A {
+		t.Error("light disabled alpha is lower than dark; " +
+			"dark text on a light ground needs more, not less")
+	}
+}
+
+// Polarity is derived, not configured, so a theme an app builds itself
+// still gets the right ladder.
+func TestTextRolesPolarityDerived(t *testing.T) {
+	onDark := textRolesFor(RGB(225, 225, 225), RGB(48, 48, 48))
+	if onDark != textRolesOnDark {
+		t.Error("light text over dark background: want the dark ladder")
+	}
+	onLight := textRolesFor(RGB(32, 32, 32), RGB(225, 225, 225))
+	if onLight != textRolesOnLight {
+		t.Error("dark text over light background: want the light ladder")
+	}
+}
+
+// An explicit ColorText* wins over the derived ladder — that is what
+// makes a role a per-theme value rather than a fixed multiplier.
+func TestTextRolesExplicitOverride(t *testing.T) {
+	cfg := baseCfg()
+	cfg.ColorBackground = RGB(48, 48, 48)
+	cfg.TextStyleDef = DefaultTextStyle
+	want := RGBA(10, 20, 30, 200)
+	cfg.ColorTextSecondary = want
+
+	th := ThemeMaker(cfg)
+	if !th.TextStyleSecondary.Color.eq(want) {
+		t.Errorf("secondary = %v, want the configured %v",
+			th.TextStyleSecondary.Color, want)
+	}
+	// The roles that were not overridden still derive.
+	if th.TextStyleDisabled.Color.eq(want) {
+		t.Error("overriding secondary must not move disabled")
+	}
+}
+
+// The disabled role carries the marker that exempts it from
+// renderText's second dim; no other role may, or ordinary quiet text
+// inside a disabled control would stop dimming with it.
+func TestTextRolesDisabledMarker(t *testing.T) {
+	if !ThemeDark.TextStyleDisabled.disabledRole {
+		t.Error("disabled role must set disabledRole")
+	}
+	for name, r := range map[string]TextStyle{
+		"secondary":   ThemeDark.TextStyleSecondary,
+		"placeholder": ThemeDark.TextStylePlaceholder,
+		"label":       ThemeDark.TextStyleLabel,
+		"default":     ThemeDark.TextStyleDef,
+	} {
+		if r.disabledRole {
+			t.Errorf("%s must not set disabledRole", name)
+		}
+	}
+}
+
+// withRoleAlpha shares the amount of de-emphasis without taking the
+// hue, which is what lets a caller keep its own text color.
+func TestWithRoleAlphaKeepsHue(t *testing.T) {
+	base := TextStyle{Color: RGBA(10, 20, 30, 255), Size: 14}
+	got := withRoleAlpha(base, ThemeDark.TextStyleSecondary)
+
+	if got.Color.R != 10 || got.Color.G != 20 || got.Color.B != 30 {
+		t.Errorf("hue = %v, want the base's own", got.Color)
+	}
+	if got.Color.A != ThemeDark.TextStyleSecondary.Color.A {
+		t.Errorf("alpha = %d, want the role's %d",
+			got.Color.A, ThemeDark.TextStyleSecondary.Color.A)
+	}
+	if got.Size != 14 {
+		t.Errorf("Size = %v, want the base's 14", got.Size)
+	}
+	if got.disabledRole {
+		t.Error("secondary role must not mark the result disabled")
+	}
+	if !withRoleAlpha(base, ThemeDark.TextStyleDisabled).disabledRole {
+		t.Error("disabled role must carry its marker through")
+	}
+}

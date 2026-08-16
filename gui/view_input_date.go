@@ -329,12 +329,7 @@ func applyInputDateDefaults(cfg *InputDateCfg) {
 		cfg.TextStyle = d.TextStyle
 	}
 	if cfg.PlaceholderStyle == (TextStyle{}) {
-		cfg.PlaceholderStyle = TextStyle{
-			Color: RGBA(
-				d.TextStyle.Color.R,
-				d.TextStyle.Color.G,
-				d.TextStyle.Color.B, 100),
-			Size: d.TextStyle.Size,
-		}
+		cfg.PlaceholderStyle = withRoleAlpha(
+			d.TextStyle, guiTheme.TextStylePlaceholder)
 	}
 }

@@ -41,8 +41,8 @@ func datePickerWeekdays(cfg *DatePickerCfg) View {
 	dn := &defaultDatePickerStyle
 	cellSpacing := cfg.cellSpacing.Get(dn.cellSpacing)
 	cellSize := datePickerCellSize(cfg)
-	wdTS := cfg.TextStyle
-	wdTS.Color = RGBA(wdTS.Color.R, wdTS.Color.G, wdTS.Color.B, 160)
+	// A weekday header names the column; the dates are what is read.
+	wdTS := withRoleAlpha(cfg.TextStyle, guiTheme.TextStyleSecondary)
 	labels := make([]View, 0, 7)
 	for i := range 7 {
 		dow := datePickerWeekdayIndex(i, cfg.MondayFirstDayOfWeek)
@@ -138,7 +138,7 @@ func datePickerMonth(
 
 			ts := cfg.TextStyle
 			if disabled {
-				ts.Color = RGBA(ts.Color.R, ts.Color.G, ts.Color.B, 100)
+				ts = withRoleAlpha(ts, guiTheme.TextStyleDisabled)
 			}
 
 			dayVal := d
@@ -216,8 +216,9 @@ func datePickerAdjacentCell(
 		adjDay = day - daysInMonth
 		delta = 1
 	}
-	ts := cfg.TextStyle
-	ts.Color = RGBA(ts.Color.R, ts.Color.G, ts.Color.B, 80)
+	// An adjacent-month day is context, not an unavailable date: it
+	// takes the secondary role, not the disabled one.
+	ts := withRoleAlpha(cfg.TextStyle, guiTheme.TextStyleSecondary)
 	cfgID := cfg.ID
 	onSelect := cfg.OnSelect
 	selectMultiple := cfg.SelectMultiple

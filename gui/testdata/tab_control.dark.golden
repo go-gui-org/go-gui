@@ -8,5 +8,5 @@ StrokeRect xy=76.00,13.00 wh=70.60,35.40 color=#646464ff radius=3.50 thickness=1
 Text xy=82.50,19.50 wh=0.00,0.00 color=#e1e1e1ff text="Second" size=16.00
 Rect xy=148.60,13.00 wh=61.00,35.40 color=#4040407f radius=3.50 fill
 StrokeRect xy=148.60,13.00 wh=61.00,35.40 color=#6464647f radius=3.50 thickness=1.50
-Text xy=155.10,19.50 wh=0.00,0.00 color=#e1e1e141 text="Third" size=16.00
+Text xy=155.10,19.50 wh=0.00,0.00 color=#e1e1e180 text="Third" size=16.00
 Rect xy=13.00,48.40 wh=294.00,178.60 color=#404040ff radius=5.50 fill

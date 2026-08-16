@@ -47,7 +47,9 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	if shape.Opacity < 1.0 {
 		c = c.WithOpacity(shape.Opacity)
 	}
-	if shape.Disabled {
+	// A style from the disabled role has already been quieted by the
+	// theme; dimming it again is the double-dim of issue #335.
+	if shape.Disabled && !tc.TextStyle.disabledRole {
 		c = dimAlpha(c)
 	}
 	if c.A == 0 {

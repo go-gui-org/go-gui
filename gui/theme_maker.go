@@ -44,20 +44,27 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		sbRadius = radiusNone
 	}
 
-	placeholderColor := RGBA(ts.Color.R, ts.Color.G, ts.Color.B, 100)
+	// Named text roles. Every de-emphasized style below draws from
+	// these rather than restating an alpha (issue #335).
+	textSecondary, textLabel, textDisabled, textPlaceholder :=
+		themeTextRoles(cfg, ts, cfg.sizeTextXSmall)
 
 	theme := Theme{
-		Cfg:             cfg,
-		Name:            cfg.Name,
-		ColorBackground: cfg.ColorBackground,
-		ColorPanel:      cfg.ColorPanel,
-		ColorInterior:   cfg.ColorInterior,
-		ColorHover:      cfg.ColorHover,
-		ColorFocus:      cfg.ColorFocus,
-		ColorActive:     cfg.ColorActive,
-		ColorBorder:     cfg.ColorBorder,
-		ColorSelect:     cfg.ColorSelect,
-		TitlebarDark:    cfg.TitlebarDark,
+		Cfg:                  cfg,
+		Name:                 cfg.Name,
+		TextStyleSecondary:   textSecondary,
+		TextStyleLabel:       textLabel,
+		TextStyleDisabled:    textDisabled,
+		TextStylePlaceholder: textPlaceholder,
+		ColorBackground:      cfg.ColorBackground,
+		ColorPanel:           cfg.ColorPanel,
+		ColorInterior:        cfg.ColorInterior,
+		ColorHover:           cfg.ColorHover,
+		ColorFocus:           cfg.ColorFocus,
+		ColorActive:          cfg.ColorActive,
+		ColorBorder:          cfg.ColorBorder,
+		ColorSelect:          cfg.ColorSelect,
+		TitlebarDark:         cfg.TitlebarDark,
 
 		ButtonStyle: buttonStyle{
 			Color:            cfg.ColorInterior,
@@ -96,11 +103,8 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			SizeBorder:       cfg.SizeBorder,
 			Radius:           cfg.Radius,
 			textStyleNormal:  ts,
-			PlaceholderStyle: TextStyle{
-				Color: placeholderColor,
-				Size:  ts.Size,
-			},
-			colorSpellError: cfg.ColorError,
+			PlaceholderStyle: textPlaceholder,
+			colorSpellError:  cfg.ColorError,
 		},
 		ScrollbarStyle: ScrollbarStyle{
 			Size:            cfg.sizeScrollbar,
@@ -175,10 +179,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Radius:           cfg.RadiusMedium,
 			textStyleNormal:  ts,
 			subheadingStyle:  ts,
-			PlaceholderStyle: TextStyle{
-				Color: placeholderColor,
-				Size:  ts.Size,
-			},
+			PlaceholderStyle: textPlaceholder,
 		},
 		listBoxStyle: ListBoxStyle{
 			Color:           cfg.ColorInterior,
@@ -333,10 +334,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			spacingHeader:       2,
 			TextStyle:           ts,
 			textStyleSelected:   ts,
-			textStyleDisabled: TextStyle{
-				Color: RGBA(ts.Color.R, ts.Color.G, ts.Color.B, 130),
-				Size:  ts.Size,
-			},
+			textStyleDisabled:   textDisabled,
 		},
 		breadcrumbStyle: BreadcrumbStyle{
 			Separator:          "/",
@@ -362,14 +360,8 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			sizeContentBorder:  cfg.SizeBorder,
 			TextStyle:          ts,
 			textStyleSelected:  ts,
-			textStyleDisabled: TextStyle{
-				Color: RGBA(ts.Color.R, ts.Color.G, ts.Color.B, 130),
-				Size:  ts.Size,
-			},
-			textStyleSeparator: TextStyle{
-				Color: RGBA(ts.Color.R, ts.Color.G, ts.Color.B, 160),
-				Size:  ts.Size,
-			},
+			textStyleDisabled:  textDisabled,
+			textStyleSeparator: textSecondary,
 		},
 		splitterStyle: SplitterStyle{
 			HandleSize:        9,
@@ -413,10 +405,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			MaxWidth:          200,
 			maxDropdownHeight: 200,
 			TextStyle:         ts,
-			PlaceholderStyle: TextStyle{
-				Color: placeholderColor,
-				Size:  ts.Size,
-			},
+			PlaceholderStyle:  textPlaceholder,
 		},
 		commandPaletteStyle: CommandPaletteStyle{
 			Color:          cfg.ColorPanel,
@@ -427,11 +416,8 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Width:          500,
 			MaxHeight:      400,
 			TextStyle:      ts,
-			detailStyle: TextStyle{
-				Color: RGBA(ts.Color.R, ts.Color.G, ts.Color.B, 140),
-				Size:  ts.Size,
-			},
-			backdropColor: RGBA(0, 0, 0, 120),
+			detailStyle:    textSecondary,
+			backdropColor:  RGBA(0, 0, 0, 120),
 		},
 		MenubarStyle: MenubarStyle{
 			widthSubmenuMin:  50,
@@ -510,7 +496,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			},
 			TextStyleFilter: ts,
 		},
-		inspectorStyle: defaultInspectorStyle,
+		inspectorStyle: inspectorStyleFor(textSecondary),
 
 		// Layout constants.
 		PaddingSmall:  cfg.PaddingSmall.withSet(),

@@ -339,8 +339,10 @@ func dockTabButton(
 			},
 			Content: []View{
 				Text(TextCfg{
-					Text:      "×", // ×
-					TextStyle: mergeTextStyle(TextStyle{Size: sizeTextSmall}, DefaultTextStyle),
+					Text: "×", // ×
+					TextStyle: mergeTextStyle(
+						TextStyle{Size: guiTheme.sizeTextSmall},
+						DefaultTextStyle),
 				}),
 			},
 		}))

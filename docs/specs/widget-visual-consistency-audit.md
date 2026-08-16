@@ -106,6 +106,23 @@ blending toward. Alpha 65 over `#e1e1e1` on a dark ground is faint but legible;
 alpha 65 over `#202020` on a light ground is nearly gone. This is the direct
 evidence that a role must be a **per-theme value**, not one derived multiplier.
 
+### 1.1.2 What the roles did and did not close
+
+The four roles unify every site that _named_ a de-emphasis value, and the
+`disabledRole` marker (`TextStyle`, `gui/styles.go`) stops the renderer halving
+a color the theme has already quieted — so tab and breadcrumb now agree.
+
+They do not reach widgets that never themed their disabled text at all. `Input`
+is the example: it carries no disabled text style, so `dimAlpha` still halves
+its base color to 127. On the dark theme that is within one step of the role's
+128 and invisible. On the light theme the role is 149, so Input's disabled text
+sits 22 alpha below where the role says it should — the light-theme contrast gap
+of §1.1.1, surviving in the widgets the roles have not reached.
+
+Closing it means giving every such widget a themed disabled text style rather
+than leaning on `dimAlpha`, which is a sweep across roughly a dozen widgets and
+is tracked separately.
+
 ### 1.2 Out of scope
 
 These are ramps and non-text alphas, not de-emphasis roles, and a later gate

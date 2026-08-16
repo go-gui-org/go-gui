@@ -82,15 +82,6 @@ const (
 	// which stays the height so the swatch keeps matching the hex
 	// input's line.
 	colorFieldsSwatchAspect = 2
-	// colorFieldLabelDrop takes the channel labels two steps down from
-	// the value text — the theme's N3-to-N5 step. The label names the
-	// field; the value is what gets read, so the value keeps the larger
-	// size. It also stops a long label ("Lightness") from setting the
-	// column width, which is what the whole picker's width follows.
-	colorFieldLabelDrop = 4
-	// colorFieldLabelMin floors the drop so a caller already using a
-	// tiny TextStyle does not end up with an unreadable label.
-	colorFieldLabelMin = 10
 	// colorFieldCapRatio is a digit's cap height as a fraction of the
 	// font size. It is the one metric TextMeasurer does not expose, and
 	// it varies little across text faces; every other term in the
@@ -108,29 +99,22 @@ const (
 	// colorFieldPadY is its vertical half, the baseline the optical
 	// correction adjusts around.
 	colorFieldPadY = 2
-	// colorFieldLabelAlpha dims the label against its value. Size alone
-	// separates them only while both are read in isolation; dropping
-	// contrast as well is what makes the column scan as "value, with a
-	// name over it" rather than as two competing lines. Kept well above
-	// placeholder dimness (~0.4), which reads as disabled.
-	colorFieldLabelAlpha = 0.7
 )
 
-// colorFieldLabelSize derives a channel label's size from the value
-// text's, never going below the floor.
-func colorFieldLabelSize(valueSize float32) float32 {
-	return f32Max(valueSize-colorFieldLabelDrop, colorFieldLabelMin)
-}
-
-// colorFieldLabelColor dims a channel label relative to its value.
+// colorFieldLabelStyle styles one channel label.
 //
-// Scaling the text color's alpha rather than picking a gray keeps one
-// source of truth: the label tracks whatever color the caller or theme
-// set, and it stays legible on a light theme and a dark one alike. A
-// flat gray chosen against one background is wrong against the other.
-// The same trick sets placeholder text in ThemeMaker.
-func colorFieldLabelColor(c Color) Color {
-	return c.WithOpacity(colorFieldLabelAlpha)
+// Both the size step and the dimming come from the theme's label role
+// (gui/theme_text_roles.go), which is exactly the divergence issue #335
+// was filed about: this widget invented a two-step drop and a 0.7 alpha
+// on the spot because there was nothing to reach for. The role keeps
+// the caller's own text color and takes only the theme's answer for how
+// much quieter a name should be than the value it names.
+func colorFieldLabelStyle(base TextStyle) TextStyle {
+	role := guiTheme.TextStyleLabel
+	ts := withRoleAlpha(base, role)
+	ts.Size = role.Size
+	ts.Align = TextAlignCenter
+	return ts
 }
 
 func (fv *colorFieldsView) GenerateLayout(w *Window) Layout {
@@ -442,12 +426,8 @@ func colorFieldColumn(
 		Spacing: SomeF(2),
 		Content: []View{
 			Text(TextCfg{
-				Text: label,
-				TextStyle: TextStyle{
-					Color: colorFieldLabelColor(cfg.TextStyle.Color),
-					Size:  colorFieldLabelSize(cfg.TextStyle.Size),
-					Align: TextAlignCenter,
-				},
+				Text:      label,
+				TextStyle: colorFieldLabelStyle(cfg.TextStyle),
 			}),
 			Input(InputCfg{
 				ID:   inputID,
