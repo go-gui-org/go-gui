@@ -158,6 +158,39 @@ Build colors with `RGBA`/`RGB`/`Hex`; a raw `Color{...}` literal reads as unset
 "keep one appearance" case. **Precedence: an assigned flat `Color*` field wins
 over the `ColorSet`**, so existing code keeps its appearance when a set arrives.
 
+#### Visual roles and tiers
+
+**Never spell a de-emphasis alpha, a label's size step, or a form control's text
+inset at a call site.** Each has one named source; a literal there is the
+divergence issue #335 measured and removed
+(`docs/specs/widget-visual-consistency-audit.md`).
+
+- **Quiet text** takes one of four `Theme` roles — `TextStyleSecondary`,
+  `TextStyleLabel`, `TextStyleDisabled`, `TextStylePlaceholder`
+  (`gui/theme_text_roles.go`). Use the role style directly where the text color
+  is the theme's; use `withRoleAlpha(base, role)` where it is caller-supplied,
+  which shares the _amount_ of de-emphasis without taking the hue. If none of
+  the four fits, add a fifth role — not a local number.
+- **Role values are per-theme and contrast-matched.** Alpha blends toward the
+  background, so one multiplier cannot mean the same thing on a dark and a light
+  ground. `textRolesFor` picks the ladder from the theme's own polarity;
+  `ThemeCfg.ColorText*` overrides it.
+- **`TextStyle.disabledRole`** marks a style that already expresses the disabled
+  state so `renderText` skips `dimAlpha`. It is set only by `themeTextRoles` and
+  must not be spelled at a call site. Without it, `layoutDisables`
+  (`gui/layout.go`) — which stamps `Disabled` onto _every descendant_ of a
+  disabled shape — halves a color the theme already quieted.
+- **A form control's text inset** is `Theme.PaddingField`, so controls in one
+  row share a height. Not the Small/Medium/Large ladder: those size the gap
+  between things, this sizes a control.
+- **A field's label** goes through `labelledField` (`gui/field_label.go`); a
+  boolean control's through `trailingLabel`. Both exist so the placement is
+  decided once.
+
+A container reserves space for its border whether or not it paints one, so a
+structural wrapper must set `SizeBorder: NoBorder` — an unset one inherits the
+theme's container border and silently adds height.
+
 ### External Dependencies
 
 - `glyph` — text shaping/rendering lib. Consumed as versioned module; a
@@ -209,11 +242,11 @@ Backend injects at startup. Nil in tests:
   package vars have no initializers — never add one.** They are mirrors: `init`
   fills them with `applyTheme(ThemeDark)` and `installTheme` refills them per
   theme change. A literal there is a second source of truth that silently drifts
-  (issue #300 removed ~30 of them; `ThemeDark` is bordered since 2026-08
-  — 90 of 104 examples call `WithBorders(true)` explicitly — use
+  (issue #300 removed ~30 of them; `ThemeDark` is bordered since 2026-08 — 90 of
+  104 examples call `WithBorders(true)` explicitly — use
   `Theme.WithBorders(false)` or the `dark-no-padding` preset for the old
-  borderless look). The two exceptions are
-  `DefaultTextStyle` and `defaultInspectorStyle`, which are ThemeMaker _inputs_.
+  borderless look). The two exceptions are `DefaultTextStyle` and
+  `defaultInspectorStyle`, which are ThemeMaker _inputs_.
   `TestDefaultStylesMirrorThemeDark` is the gate. See
   `docs/specs/theme-style-single-source.md`.
 - `AmendLayout` hook on shapes runs after sizing to reposition overlays (color
@@ -284,6 +317,15 @@ Assertable forms for tests, which return findings as data instead of printing:
 - Rebuild AND run the relevant tests before claiming a fix works. Never report
   success on an unverified change. State failures plainly with the output; if a
   step was skipped, say so.
+- **Visual claims get recorded, not read.** `gui/golden_test.go` builds a
+  widget, drives the real frame pipeline and diffs the emitted `[]RenderCmd`
+  against `gui/testdata/`, in both `ThemeDark` and `ThemeLight`. Re-record with
+  `go test ./gui/ -run TestGolden -update` **after reading the diff**. Reading
+  source is not equivalent: a widget's `GenerateLayout` output is taken before
+  `layoutDisables` and before arrange, so it shows neither inherited `Disabled`
+  nor resolved geometry. Both mistakes were made and caught this way (issue
+  #335). Add a case for any widget whose appearance a change can move; set
+  `focusID` on it to record a focus state.
 - After touching the exported surface of `gui/`, run `make export-audit`
   (tools/exportaudit): every export must be referenced from outside gui/ or
   carry a `// exportaudit:keep` marker. The consumer scan is authoritative; the

@@ -325,3 +325,36 @@ widget's `GenerateLayout` output directly. That snapshot is taken _before_
 `layoutDisables` runs, so it does not show what the renderer sees. The golden
 harness caught it. Any future claim in this document about what a widget looks
 like should be recorded, not read.
+
+## Resolution
+
+What this branch changed, per axis. The measurements above describe the state at
+`b6adf899` and are kept as the "before"; this section is the "after".
+
+| §   | Axis              | Outcome                                                   |
+| --- | ----------------- | --------------------------------------------------------- |
+| 1   | Dimming           | closed — four named roles, per-theme and contrast-matched |
+| 2   | Type steps        | partly — label step is a role; DockLayout bypass fixed    |
+| 3   | Field labels      | closed — `Label` on all eight, one shared convention      |
+| 4   | Spacing           | untouched                                                 |
+| 5   | Borders           | untouched, by decision                                    |
+| 6   | Interaction state | partly — focus rings for the four that could take one     |
+| 7   | Density           | closed — one field-inset tier, two latent bugs fixed      |
+
+### Left open
+
+- **§1.1.2** — widgets that never themed their disabled text still lean on
+  `dimAlpha`. Correct on dark, 22 alpha short on light.
+- **§2** — `N5`, `N6` and `i4` stay unexported; the mono ladder's `+1` baseline
+  offset is still undocumented at the call site; `view_color_fields.go` and
+  `view_input_numeric.go` still floor an inline size step at two different
+  values.
+- **§4** — `SpacingLarge` still has no caller inside `gui/`, and about ten magic
+  spacings still bypass the ladder.
+- **§6** — `ColorSet` still reaches only 5 of ~18 interactive widgets. `Table`,
+  `ColorSwatch` and the `ExpandPanel` header are not focusable at all, so a
+  focus ring there needs keyboard navigation designed first (§6.1).
+- **#335 steps 3 and 4** — `docs/style-guide.md` (the _when_, citing roles
+  rather than values) and `ergonomics-audit -mode visual` to gate raw dimming
+  and size-step literals in `gui/view_*.go`. The gate needs the deferred-marker
+  shape from the `theme` mode so the §1.2 ramps can be marked.
