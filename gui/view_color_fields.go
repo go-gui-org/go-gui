@@ -82,15 +82,6 @@ const (
 	// which stays the height so the swatch keeps matching the hex
 	// input's line.
 	colorFieldsSwatchAspect = 2
-	// colorFieldLabelDrop takes the channel labels two steps down from
-	// the value text — the theme's N3-to-N5 step. The label names the
-	// field; the value is what gets read, so the value keeps the larger
-	// size. It also stops a long label ("Lightness") from setting the
-	// column width, which is what the whole picker's width follows.
-	colorFieldLabelDrop = 4
-	// colorFieldLabelMin floors the drop so a caller already using a
-	// tiny TextStyle does not end up with an unreadable label.
-	colorFieldLabelMin = 10
 	// colorFieldCapRatio is a digit's cap height as a fraction of the
 	// font size. It is the one metric TextMeasurer does not expose, and
 	// it varies little across text faces; every other term in the
@@ -102,36 +93,7 @@ const (
 	// rendered field — the cap-height term alone left the ink 1.5
 	// device pixels high at size 16.
 	colorFieldLeadRatio = 0.047
-	// colorFieldPadX is the fields' horizontal padding, matching the
-	// input default (paddingTwoFour).
-	colorFieldPadX = 4
-	// colorFieldPadY is its vertical half, the baseline the optical
-	// correction adjusts around.
-	colorFieldPadY = 2
-	// colorFieldLabelAlpha dims the label against its value. Size alone
-	// separates them only while both are read in isolation; dropping
-	// contrast as well is what makes the column scan as "value, with a
-	// name over it" rather than as two competing lines. Kept well above
-	// placeholder dimness (~0.4), which reads as disabled.
-	colorFieldLabelAlpha = 0.7
 )
-
-// colorFieldLabelSize derives a channel label's size from the value
-// text's, never going below the floor.
-func colorFieldLabelSize(valueSize float32) float32 {
-	return f32Max(valueSize-colorFieldLabelDrop, colorFieldLabelMin)
-}
-
-// colorFieldLabelColor dims a channel label relative to its value.
-//
-// Scaling the text color's alpha rather than picking a gray keeps one
-// source of truth: the label tracks whatever color the caller or theme
-// set, and it stays legible on a light theme and a dark one alike. A
-// flat gray chosen against one background is wrong against the other.
-// The same trick sets placeholder text in ThemeMaker.
-func colorFieldLabelColor(c Color) Color {
-	return c.WithOpacity(colorFieldLabelAlpha)
-}
 
 func (fv *colorFieldsView) GenerateLayout(w *Window) Layout {
 	cfg := &fv.cfg
@@ -398,8 +360,12 @@ func centeredText(s TextStyle) TextStyle {
 // twice that. Ascent and descent are measured; only cap height is a
 // ratio, and it is the smallest term.
 func colorFieldPadding(w *Window, style TextStyle) Padding {
-	even := NewPadding(
-		colorFieldPadY, colorFieldPadX, colorFieldPadY, colorFieldPadX)
+	// The field inset comes from the theme, not from this widget: a
+	// channel field is a form control and has to match the Input and
+	// Select beside it (issue #335, audit section 7). Only the
+	// optical correction below is local.
+	even := guiTheme.PaddingField
+	padY, padX := even.Top, even.Left
 	if w == nil || w.textMeasurer == nil {
 		return even // no metrics: metric centring is the best available
 	}
@@ -412,8 +378,8 @@ func colorFieldPadding(w *Window, style TextStyle) Padding {
 	}
 	// Take from the bottom first so the field grows only by whatever
 	// the bottom padding cannot cover.
-	bottom := f32Max(colorFieldPadY-shift, 0)
-	return NewPadding(bottom+shift, colorFieldPadX, bottom, colorFieldPadX)
+	bottom := f32Max(padY-shift, 0)
+	return NewPadding(bottom+shift, padX, bottom, padX)
 }
 
 // colorFieldsBlockWidth is the width of a default-configured fields
@@ -430,50 +396,39 @@ func colorFieldColumn(
 	cfg *ColorFieldsCfg, pad Padding, label string, val int,
 	inputID string, apply func(string, EventCtx),
 ) View {
-	return Column(ContainerCfg{
-		Padding:    NoPadding,
-		SizeBorder: NoBorder, // structural; see colorFieldsView
-		// Centered: the label is narrower than its field, and left
-		// alignment hangs it off the field's left edge instead of
-		// reading as a heading over it. TextAlignCenter alone cannot
-		// do this — a Fit text shape is only as wide as its glyphs, so
-		// there is nothing to center within.
-		HAlign:  HAlignCenter,
-		Spacing: SomeF(2),
-		Content: []View{
-			Text(TextCfg{
-				Text: label,
-				TextStyle: TextStyle{
-					Color: colorFieldLabelColor(cfg.TextStyle.Color),
-					Size:  colorFieldLabelSize(cfg.TextStyle.Size),
-					Align: TextAlignCenter,
-				},
-			}),
-			Input(InputCfg{
-				ID:   inputID,
-				Text: strconv.Itoa(val),
-				// Centred under a centred label, so the pair reads
-				// as one unit -- and so "60" and "140" do not sit
-				// ragged against each other down the row.
-				TextStyle: centeredText(cfg.TextStyle),
-				Padding:   pad,
-				Width:     cfg.FieldWidth,
-				// Pinned both ways like the hex field: an Input is
-				// Fit-sized, so "0" and "255" would resolve to
-				// different widths and the whole column of fields
-				// would shift as the user drags a control.
-				MinWidth: cfg.FieldWidth,
-				MaxWidth: cfg.FieldWidth,
-				A11YCfg:  A11YCfg{A11YLabel: label},
-				OnTextChanged: func(text string, ctx EventCtx) {
-					apply(text, ctx)
-				},
-				OnTextCommit: func(
-					text string, _ InputCommitReason, ctx EventCtx,
-				) {
-					apply(text, ctx)
-				},
-			}),
-		},
-	})
+	// Centred rather than the default left: the label is narrower than
+	// its field, and left alignment hangs it off the field's left edge
+	// instead of reading as a heading over it. TextAlignCenter alone
+	// cannot do this — a Fit text shape is only as wide as its glyphs,
+	// so there is nothing to centre within.
+	//
+	// The stack itself is the shared convention (gui/field_label.go),
+	// not a local layout: this widget's hand-rolled label is what
+	// issue #335 was filed about.
+	return labelledField(label, cfg.TextStyle, HAlignCenter,
+		Input(InputCfg{
+			ID:   inputID,
+			Text: strconv.Itoa(val),
+			// Centred under a centred label, so the pair reads
+			// as one unit -- and so "60" and "140" do not sit
+			// ragged against each other down the row.
+			TextStyle: centeredText(cfg.TextStyle),
+			Padding:   pad,
+			Width:     cfg.FieldWidth,
+			// Pinned both ways like the hex field: an Input is
+			// Fit-sized, so "0" and "255" would resolve to
+			// different widths and the whole column of fields
+			// would shift as the user drags a control.
+			MinWidth: cfg.FieldWidth,
+			MaxWidth: cfg.FieldWidth,
+			A11YCfg:  A11YCfg{A11YLabel: label},
+			OnTextChanged: func(text string, ctx EventCtx) {
+				apply(text, ctx)
+			},
+			OnTextCommit: func(
+				text string, _ InputCommitReason, ctx EventCtx,
+			) {
+				apply(text, ctx)
+			},
+		}))
 }

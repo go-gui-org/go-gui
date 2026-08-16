@@ -7,6 +7,11 @@ import (
 
 // SliderCfg configures a slider view.
 type SliderCfg struct {
+	// Label names this field. Empty renders exactly as before: no
+	// wrapper and no extra shape. Set, it stacks above the field in
+	// the theme's label role, and fills A11YLabel when that is unset.
+	// See gui/field_label.go for the convention and why it is one.
+	Label    string
 	OnChange func(float32, EventCtx)
 	ID       string `gui:"required"`
 
@@ -135,7 +140,8 @@ func Slider(cfg SliderCfg) View {
 		wrapperAxis = axisTopToBottom
 	}
 
-	return container(ContainerCfg{
+	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
+	field := container(ContainerCfg{
 		ID:        cfg.ID,
 		Focusable: !cfg.FocusDisabled,
 		A11YRole:  AccessRoleSlider,
@@ -246,6 +252,7 @@ func Slider(cfg SliderCfg) View {
 			}),
 		},
 	})
+	return labelledField(cfg.Label, TextStyle{}, HAlignLeft, field)
 }
 
 func sliderAmendLayoutSlide(

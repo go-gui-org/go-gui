@@ -25,6 +25,11 @@ type comboboxViewKey struct {
 
 // ComboboxCfg configures a combobox view with typeahead filtering.
 type ComboboxCfg struct {
+	// Label names this field. Empty renders exactly as before: no
+	// wrapper and no extra shape. Set, it stacks above the field in
+	// the theme's label role, and fills A11YLabel when that is unset.
+	// See gui/field_label.go for the convention and why it is one.
+	Label            string
 	TextStyle        TextStyle
 	PlaceholderStyle TextStyle
 	OnSelect         func(string, EventCtx)
@@ -67,7 +72,8 @@ type comboboxView struct {
 func Combobox(cfg ComboboxCfg) View {
 	RequireID("Combobox", cfg.ID)
 	applyComboboxDefaults(&cfg)
-	return &comboboxView{cfg: cfg}
+	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
+	return labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, &comboboxView{cfg: cfg})
 }
 
 func (cv *comboboxView) GenerateLayout(w *Window) Layout {

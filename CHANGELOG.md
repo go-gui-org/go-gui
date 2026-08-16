@@ -10,6 +10,32 @@ and this project adheres to
 
 ### Added
 
+- **Named text roles on `Theme`** — `TextStyleSecondary`, `TextStyleLabel`,
+  `TextStyleDisabled`, `TextStylePlaceholder`, with matching
+  `ThemeCfg.ColorText*` overrides. A widget that wants quiet text now names the
+  reason it is quiet and takes the theme's answer, instead of spelling an alpha.
+  The values are per-theme and contrast-matched, not one multiplier: alpha
+  blends toward the background, and the same alpha that reads as "present but
+  quiet" on a dark ground reads as nearly gone on a light one. Polarity is
+  derived from the theme's own text and background luminance, so a theme an app
+  builds itself gets the right ladder without knowing the roles exist. See
+  `docs/specs/widget-visual-consistency-audit.md` (issue #335).
+- **`Label` on eight field Cfgs** — `Input`, `Select`, `Combobox`, `Slider`,
+  `NumericInput`, `DatePicker`, `InputDate` and `ColorPicker`. One convention,
+  decided once: above the field, left-aligned, in the theme's label role. Fills
+  `A11YLabel` when that is unset. Additive — an empty `Label` renders exactly as
+  before, with no wrapper and no extra shape (issue #335).
+- **`Theme.PaddingField` / `ThemeCfg.PaddingField`** — the inset a text-bearing
+  form control puts around its text, so controls in one row share a height
+  (issue #335).
+- **`ListBoxCfg.ColorBorderFocus` and `ListBoxStyle.ColorBorderFocus`** — a
+  `ListBox` is focusable and key-navigable and previously drew no focus ring at
+  all (issue #335).
+- **Golden render tests** (`gui/golden_test.go`, `gui/testdata/`). Builds a
+  widget, drives the real frame pipeline, and diffs the emitted `[]RenderCmd`
+  against a recording, in both `ThemeDark` and `ThemeLight`. Re-record with
+  `go test ./gui/ -run TestGolden -update` after reading the diff.
+
 - **Composable color components.** `ColorPlane` (saturation × lightness),
   `ColorWheel` (hue × saturation), `ColorChannelSlider` (one HSLA channel, with
   a track showing the colors it can pick, horizontal or `Vertical`),
@@ -41,8 +67,39 @@ and this project adheres to
   silently resampled to five gradient stops. `ShowHSV` still works and is
   deprecated in favour of `ShowHSL`.
 
+- **Visual: de-emphasized text is unified across widgets** (issue #335). The
+  same "disabled text" state used to render at three different alphas — 65 on a
+  tab, 127 in an `Input`, 130 on a breadcrumb — because whether the themed value
+  got halved again depended on how each widget happened to be built. Disabled
+  tab text lightens (65 → 128) and breadcrumb text moves 130 → 128. On the light
+  theme every quiet role gains contrast, since the alphas had been copied from
+  the dark theme unchanged.
+- **Visual: form controls share a height.** `Input`, `Select` and `Combobox`
+  each picked their own text inset, so a `Select` rendered six pixels taller
+  than the `Input` beside it. All text-bearing controls now take
+  `Theme.PaddingField` (issue #335).
+- **Visual: `ListBox`, `ColorPlane`, `ColorWheel` and `ColorChannelSlider` show
+  focus.** All four take keyboard focus and previously gave no indication of it
+  (issue #335).
+- **Visual: `Switch` and `Toggle` labels gain the gap `Radio` already had.** The
+  three spelled their trailing label three ways; all three now sit the same
+  distance from their control (issue #335).
+- **Visual: `ColorFields` channel labels** take the theme's label role instead
+  of an invented two-step size drop and 0.7 alpha, and the shared spacing tier
+  instead of a bespoke 2px gap (issue #335).
+
 ### Fixed
 
+- **`Input` ignored the theme's own padding** (issue #335). `InputStyle.Padding`
+  was dead: the widget fell back to a hardcoded inset, so a theme author editing
+  it saw `Container` and `ListBox` move while `Input` stayed put. `Input`'s
+  inner row also left `SizeBorder` unset and so inherited the theme's container
+  border, silently reserving 3px of height for a border it never painted.
+- **A live menu item's shortcut hint wore the disabled dim** (issue #335), so an
+  enabled item and a dead one rendered identically.
+- **`DockLayout`'s close glyph bypassed the theme**, reading a package size
+  constant directly, so a theme that shifted its type scale could not move it
+  (issue #335).
 - **`buildapp` ad-hoc signing silently revoked every TCC grant on each
   rebuild.** The tool hard-coded `codesign -s -`, and an ad-hoc signature
   carries no certificate and no team identifier, so TCC keys its grant on the

@@ -1,0 +1,5 @@
+Text xy=19.00,17.00 wh=0.00,0.00 color=#202020ff text="Home" size=16.00
+Text xy=66.40,17.00 wh=0.00,0.00 color=#202020ae text="/" size=16.00
+Text xy=85.00,17.00 wh=0.00,0.00 color=#20202095 text="Docs" size=16.00
+Text xy=132.40,17.00 wh=0.00,0.00 color=#202020ae text="/" size=16.00
+Text xy=151.00,17.00 wh=0.00,0.00 color=#202020ff text="Page" size=16.00

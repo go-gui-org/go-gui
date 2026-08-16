@@ -14,13 +14,28 @@ var (
 	// fall through to the theme default like Padding{} (unset) does.
 	PaddingNone    = Padding{set: true}
 	paddingThree   = PadAll(3)
-	paddingTwoFour = NewPadding(2, 4, 2, 4)
 	PaddingTwoFive = NewPadding(2, 5, 2, 5)
 	paddingXSmall  = PadAll(PadXSmall)
 	PaddingSmall   = PadAll(PadSmall)
 	paddingMedium  = PadAll(PadMedium)
 	PaddingLarge   = PadAll(PadLarge)
 	paddingButton  = PadAll(6)
+
+	// paddingField is the inset a text-bearing form control puts
+	// around its text — the seed for ThemeCfg.PaddingField.
+	//
+	// Six field widgets each picked their own: Input, NumericInput and
+	// ColorFields at (2,4), Select, Combobox and InputDate at (5,5).
+	// The vertical half is what makes a Select six pixels taller than
+	// the Input beside it in the same form (issue #335, audit section
+	// 7), so one tier is the fix.
+	//
+	// Built from the existing ladder rather than picked: PadXSmall
+	// vertical, PadSmall horizontal. It lands between the two values
+	// in use, and — the point — it is spelled in tokens the theme
+	// already has, so a theme that rescales its spacing carries the
+	// field inset with it.
+	paddingField = NewPadding(PadXSmall, PadSmall, PadXSmall, PadSmall)
 )
 
 // Padding is the gap inside the edges of a Shape. Parameter order

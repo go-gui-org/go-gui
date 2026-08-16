@@ -126,8 +126,8 @@ func TestSelectedRowsUsesAutoID(t *testing.T) {
 func TestIndicatorTextStyleDimsColor(t *testing.T) {
 	base := gg.TextStyle{Color: gg.RGBA(255, 255, 255, 255), Size: 14}
 	got := dataGridIndicatorTextStyle(base)
-	if got.Color.A != dataGridIndicatorAlpha {
-		t.Errorf("alpha: got %d, want %d", got.Color.A, dataGridIndicatorAlpha)
+	if got.Color.A != gg.CurrentTheme().TextStyleSecondary.Color.A {
+		t.Errorf("alpha: got %d, want %d", got.Color.A, gg.CurrentTheme().TextStyleSecondary.Color.A)
 	}
 	if got.Size != base.Size {
 		t.Errorf("size: got %v, want %v", got.Size, base.Size)
@@ -139,7 +139,7 @@ func TestIndicatorTextStyleDimsColor(t *testing.T) {
 func TestDimColorReducesAlpha(t *testing.T) {
 	c := gg.RGBA(100, 150, 200, 255)
 	got := dataGridDimColor(c)
-	want := gg.RGBA(100, 150, 200, dataGridIndicatorAlpha)
+	want := gg.RGBA(100, 150, 200, gg.CurrentTheme().TextStyleSecondary.Color.A)
 	if got != want {
 		t.Errorf("got %v, want %v", got, want)
 	}

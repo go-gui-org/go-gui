@@ -78,7 +78,9 @@ func TestLabeledToggleForwards(t *testing.T) {
 	if len(sel.Children) != 2 {
 		t.Fatalf("got %d children, want 2 (box + label)", len(sel.Children))
 	}
-	if got := sel.Children[1].Shape.TC.Text; got != "Accept" {
+	// The label sits inside the shared trailingLabel wrapper, which
+	// carries the gap between control and name (issue #335).
+	if got := sel.Children[1].Children[0].Shape.TC.Text; got != "Accept" {
 		t.Fatalf("label = %q, want %q", got, "Accept")
 	}
 
@@ -123,7 +125,7 @@ func TestLabeledSwitchForwards(t *testing.T) {
 	if len(sel.Children) != 2 {
 		t.Fatalf("got %d children, want 2 (pill + label)", len(sel.Children))
 	}
-	if got := sel.Children[1].Shape.TC.Text; got != "Auto" {
+	if got := sel.Children[1].Children[0].Shape.TC.Text; got != "Auto" {
 		t.Fatalf("label = %q, want %q", got, "Auto")
 	}
 

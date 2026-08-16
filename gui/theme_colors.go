@@ -91,6 +91,7 @@ func (t Theme) withColors(o ColorOverrides) Theme {
 	t.listBoxStyle.Color = interior
 	t.listBoxStyle.ColorHover = hover
 	t.listBoxStyle.ColorBorder = border
+	t.listBoxStyle.ColorBorderFocus = borderFocus
 	t.listBoxStyle.ColorSelect = sel
 
 	t.treeStyle.ColorHover = hover

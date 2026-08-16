@@ -1,0 +1,10 @@
+Rect xy=23.00,23.20 wh=36.00,22.00 color=#404040ff radius=11.00 fill
+StrokeRect xy=23.00,23.20 wh=36.00,22.00 color=#646464ff radius=11.00 thickness=1.50
+Circle xy=34.00,34.20 wh=0.00,0.00 color=#686868ff radius=6.50 fill
+Text xy=69.00,23.00 wh=0.00,0.00 color=#e1e1e1ff text="Enabled" size=16.00
+Rect xy=23.00,56.60 wh=20.00,20.00 color=#404040ff radius=5.50 fill
+StrokeRect xy=23.00,56.60 wh=20.00,20.00 color=#646464ff radius=5.50 thickness=1.50
+Text xy=53.00,55.40 wh=0.00,0.00 color=#e1e1e1ff text="Enabled" size=16.00
+Circle xy=36.50,104.50 wh=0.00,0.00 color=#686868ff radius=8.00 fill
+StrokeRect xy=28.50,96.50 wh=16.00,16.00 color=#646464ff radius=8.00 thickness=1.50
+Text xy=54.50,93.30 wh=0.00,0.00 color=#e1e1e1ff text="Enabled" size=16.00

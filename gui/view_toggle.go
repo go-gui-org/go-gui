@@ -99,7 +99,7 @@ func Toggle(cfg ToggleCfg) View {
 
 	if len(cfg.Label) > 0 {
 		content = append(content,
-			Text(TextCfg{Text: cfg.Label, TextStyle: cfg.textStyleLabel}))
+			trailingLabel(cfg.Label, cfg.textStyleLabel))
 	}
 
 	a11yState := AccessStateNone

@@ -102,8 +102,11 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 			Mode:      mode,
 		})
 		if itemCfg.shortcutText != "" && itemCfg.level > 0 {
-			hintStyle := itemCfg.textStyle
-			hintStyle.Color = dimAlpha(hintStyle.Color)
+			// A shortcut hint is supporting text on a live item.
+			// It used to borrow dimAlpha, the disabled dim, which
+			// made an enabled item read as a dead one (issue #335).
+			hintStyle := withRoleAlpha(
+				itemCfg.textStyle, guiTheme.TextStyleSecondary)
 			content = Row(ContainerCfg{
 				Sizing:     FillFit,
 				Padding:    NoPadding,

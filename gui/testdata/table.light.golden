@@ -1,0 +1,4 @@
+Text xy=20.80,12.00 wh=0.00,0.00 color=#202020ff text="Name" size=16.00
+Text xy=80.80,12.00 wh=0.00,0.00 color=#202020ff text="Size" size=16.00
+Text xy=15.00,38.40 wh=0.00,0.00 color=#202020ff text="alpha" size=16.00
+Text xy=75.00,38.40 wh=0.00,0.00 color=#202020ff text="12" size=16.00

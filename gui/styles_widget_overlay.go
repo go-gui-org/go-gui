@@ -13,7 +13,12 @@ type ListBoxStyle struct {
 	Color           Color
 	ColorHover      Color
 	ColorBorder     Color
-	ColorSelect     Color
+	// ColorBorderFocus is the border while the list holds focus. A
+	// ListBox is focusable and key-navigable but drew no focus ring at
+	// all, so a keyboard user could not tell which list they were in
+	// (issue #335).
+	ColorBorderFocus Color
+	ColorSelect      Color
 }
 
 // TreeStyle defines tree view visual properties.

@@ -1,0 +1,39 @@
+Rect xy=10.00,10.00 wh=115.00,28.40 color=#c3c3d7ff radius=5.50 fill
+Clip xy=15.00,13.00 wh=105.00,22.40
+Text xy=15.00,13.00 wh=0.00,0.00 color=#202020ff text="#3380CC" size=16.00
+Clip xy=0.00,0.00 wh=320.00,240.00
+Text xy=21.20,43.40 wh=0.00,0.00 color=#202020ba text="Red" size=12.00
+Rect xy=10.00,65.20 wh=44.00,28.40 color=#c3c3d7ff radius=5.50 fill
+Clip xy=15.00,68.20 wh=34.00,22.40
+Text xy=15.00,68.20 wh=0.00,0.00 color=#202020ff text="51" size=16.00
+Clip xy=0.00,0.00 wh=320.00,240.00
+Text xy=63.00,43.40 wh=0.00,0.00 color=#202020ba text="Green" size=12.00
+Rect xy=59.00,65.20 wh=44.00,28.40 color=#c3c3d7ff radius=5.50 fill
+Clip xy=64.00,68.20 wh=34.00,22.40
+Text xy=64.00,68.20 wh=0.00,0.00 color=#202020ff text="128" size=16.00
+Clip xy=0.00,0.00 wh=320.00,240.00
+Text xy=115.60,43.40 wh=0.00,0.00 color=#202020ba text="Blue" size=12.00
+Rect xy=108.00,65.20 wh=44.00,28.40 color=#c3c3d7ff radius=5.50 fill
+Clip xy=113.00,68.20 wh=34.00,22.40
+Text xy=113.00,68.20 wh=0.00,0.00 color=#202020ff text="204" size=16.00
+Clip xy=0.00,0.00 wh=320.00,240.00
+Text xy=161.00,43.40 wh=0.00,0.00 color=#202020ba text="Alpha" size=12.00
+Rect xy=157.00,65.20 wh=44.00,28.40 color=#c3c3d7ff radius=5.50 fill
+Clip xy=162.00,68.20 wh=34.00,22.40
+Text xy=162.00,68.20 wh=0.00,0.00 color=#202020ff text="255" size=16.00
+Clip xy=0.00,0.00 wh=320.00,240.00
+Text xy=21.20,98.60 wh=0.00,0.00 color=#202020ba text="Hue" size=12.00
+Rect xy=10.00,120.40 wh=44.00,28.40 color=#c3c3d7ff radius=5.50 fill
+Clip xy=15.00,123.40 wh=34.00,22.40
+Text xy=15.00,123.40 wh=0.00,0.00 color=#202020ff text="210" size=16.00
+Clip xy=0.00,0.00 wh=320.00,240.00
+Text xy=70.20,98.60 wh=0.00,0.00 color=#202020ba text="Sat" size=12.00
+Rect xy=59.00,120.40 wh=44.00,28.40 color=#c3c3d7ff radius=5.50 fill
+Clip xy=64.00,123.40 wh=34.00,22.40
+Text xy=64.00,123.40 wh=0.00,0.00 color=#202020ff text="60" size=16.00
+Clip xy=0.00,0.00 wh=320.00,240.00
+Text xy=108.00,98.60 wh=0.00,0.00 color=#202020ba text="Lightness" size=12.00
+Rect xy=118.40,120.40 wh=44.00,28.40 color=#c3c3d7ff radius=5.50 fill
+Clip xy=123.40,123.40 wh=34.00,22.40
+Text xy=123.40,123.40 wh=0.00,0.00 color=#202020ff text="50" size=16.00
+Clip xy=0.00,0.00 wh=320.00,240.00

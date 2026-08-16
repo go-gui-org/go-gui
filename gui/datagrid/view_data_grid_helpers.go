@@ -15,8 +15,14 @@ func dataGridIndicatorTextStyle(base gg.TextStyle) gg.TextStyle {
 	return s
 }
 
+// dataGridDimColor quiets c to the theme's secondary-text role.
+//
+// A sort/filter indicator is supporting text beside the column name, so
+// it takes the shared role rather than a grid-local alpha (issue #335).
+// Only the alpha is borrowed: the caller's own text color survives.
 func dataGridDimColor(c gg.Color) gg.Color {
-	return gg.RGBA(c.R, c.G, c.B, dataGridIndicatorAlpha)
+	alpha := gg.CurrentTheme().TextStyleSecondary.Color.A
+	return gg.RGBA(c.R, c.G, c.B, alpha)
 }
 
 func dataGridRowID(row GridRow, idx int) string {

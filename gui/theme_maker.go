@@ -44,20 +44,35 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		sbRadius = radiusNone
 	}
 
-	placeholderColor := RGBA(ts.Color.R, ts.Color.G, ts.Color.B, 100)
+	// Field inset: the padding a text-bearing form control puts
+	// around its text. One tier, so an Input and a Select in the same
+	// row share a height (issue #335, audit section 7).
+	fieldPad := cfg.PaddingField
+	if !fieldPad.IsSet() {
+		fieldPad = paddingField
+	}
+
+	// Named text roles. Every de-emphasized style below draws from
+	// these rather than restating an alpha (issue #335).
+	textSecondary, textLabel, textDisabled, textPlaceholder :=
+		themeTextRoles(cfg, ts, cfg.sizeTextXSmall)
 
 	theme := Theme{
-		Cfg:             cfg,
-		Name:            cfg.Name,
-		ColorBackground: cfg.ColorBackground,
-		ColorPanel:      cfg.ColorPanel,
-		ColorInterior:   cfg.ColorInterior,
-		ColorHover:      cfg.ColorHover,
-		ColorFocus:      cfg.ColorFocus,
-		ColorActive:     cfg.ColorActive,
-		ColorBorder:     cfg.ColorBorder,
-		ColorSelect:     cfg.ColorSelect,
-		TitlebarDark:    cfg.TitlebarDark,
+		Cfg:                  cfg,
+		Name:                 cfg.Name,
+		TextStyleSecondary:   textSecondary,
+		TextStyleLabel:       textLabel,
+		TextStyleDisabled:    textDisabled,
+		TextStylePlaceholder: textPlaceholder,
+		ColorBackground:      cfg.ColorBackground,
+		ColorPanel:           cfg.ColorPanel,
+		ColorInterior:        cfg.ColorInterior,
+		ColorHover:           cfg.ColorHover,
+		ColorFocus:           cfg.ColorFocus,
+		ColorActive:          cfg.ColorActive,
+		ColorBorder:          cfg.ColorBorder,
+		ColorSelect:          cfg.ColorSelect,
+		TitlebarDark:         cfg.TitlebarDark,
 
 		ButtonStyle: buttonStyle{
 			Color:            cfg.ColorInterior,
@@ -92,15 +107,12 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			colorClick:       cfg.ColorActive,
 			ColorBorder:      cfg.ColorBorder,
 			ColorBorderFocus: borderFocus,
-			Padding:          cfg.Padding,
+			Padding:          fieldPad,
 			SizeBorder:       cfg.SizeBorder,
 			Radius:           cfg.Radius,
 			textStyleNormal:  ts,
-			PlaceholderStyle: TextStyle{
-				Color: placeholderColor,
-				Size:  ts.Size,
-			},
-			colorSpellError: cfg.ColorError,
+			PlaceholderStyle: textPlaceholder,
+			colorSpellError:  cfg.ColorError,
 		},
 		ScrollbarStyle: ScrollbarStyle{
 			Size:            cfg.sizeScrollbar,
@@ -170,26 +182,24 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			ColorBorder:      cfg.ColorBorder,
 			ColorBorderFocus: borderFocus,
 			ColorSelect:      cfg.ColorSelect,
-			Padding:          PaddingSmall,
+			Padding:          fieldPad,
 			SizeBorder:       cfg.SizeBorder,
 			Radius:           cfg.RadiusMedium,
 			textStyleNormal:  ts,
 			subheadingStyle:  ts,
-			PlaceholderStyle: TextStyle{
-				Color: placeholderColor,
-				Size:  ts.Size,
-			},
+			PlaceholderStyle: textPlaceholder,
 		},
 		listBoxStyle: ListBoxStyle{
-			Color:           cfg.ColorInterior,
-			ColorHover:      cfg.ColorHover,
-			ColorBorder:     cfg.ColorBorder,
-			ColorSelect:     cfg.ColorSelect,
-			Padding:         cfg.Padding,
-			SizeBorder:      cfg.SizeBorder,
-			Radius:          cfg.Radius,
-			textStyleNormal: ts,
-			subheadingStyle: ts,
+			Color:            cfg.ColorInterior,
+			ColorHover:       cfg.ColorHover,
+			ColorBorder:      cfg.ColorBorder,
+			ColorBorderFocus: borderFocus,
+			ColorSelect:      cfg.ColorSelect,
+			Padding:          cfg.Padding,
+			SizeBorder:       cfg.SizeBorder,
+			Radius:           cfg.Radius,
+			textStyleNormal:  ts,
+			subheadingStyle:  ts,
 		},
 		treeStyle: TreeStyle{
 			Color:       ColorTransparent,
@@ -333,10 +343,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			spacingHeader:       2,
 			TextStyle:           ts,
 			textStyleSelected:   ts,
-			textStyleDisabled: TextStyle{
-				Color: RGBA(ts.Color.R, ts.Color.G, ts.Color.B, 130),
-				Size:  ts.Size,
-			},
+			textStyleDisabled:   textDisabled,
 		},
 		breadcrumbStyle: BreadcrumbStyle{
 			Separator:          "/",
@@ -362,14 +369,8 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			sizeContentBorder:  cfg.SizeBorder,
 			TextStyle:          ts,
 			textStyleSelected:  ts,
-			textStyleDisabled: TextStyle{
-				Color: RGBA(ts.Color.R, ts.Color.G, ts.Color.B, 130),
-				Size:  ts.Size,
-			},
-			textStyleSeparator: TextStyle{
-				Color: RGBA(ts.Color.R, ts.Color.G, ts.Color.B, 160),
-				Size:  ts.Size,
-			},
+			textStyleDisabled:  textDisabled,
+			textStyleSeparator: textSecondary,
 		},
 		splitterStyle: SplitterStyle{
 			HandleSize:        9,
@@ -406,17 +407,14 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			ColorBorder:       cfg.ColorBorder,
 			ColorBorderFocus:  borderFocus,
 			ColorHighlight:    cfg.ColorSelect,
-			Padding:           cfg.PaddingSmall.withSet(),
+			Padding:           fieldPad,
 			SizeBorder:        cfg.SizeBorder,
 			Radius:            cfg.Radius,
 			MinWidth:          75,
 			MaxWidth:          200,
 			maxDropdownHeight: 200,
 			TextStyle:         ts,
-			PlaceholderStyle: TextStyle{
-				Color: placeholderColor,
-				Size:  ts.Size,
-			},
+			PlaceholderStyle:  textPlaceholder,
 		},
 		commandPaletteStyle: CommandPaletteStyle{
 			Color:          cfg.ColorPanel,
@@ -427,11 +425,8 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Width:          500,
 			MaxHeight:      400,
 			TextStyle:      ts,
-			detailStyle: TextStyle{
-				Color: RGBA(ts.Color.R, ts.Color.G, ts.Color.B, 140),
-				Size:  ts.Size,
-			},
-			backdropColor: RGBA(0, 0, 0, 120),
+			detailStyle:    textSecondary,
+			backdropColor:  RGBA(0, 0, 0, 120),
 		},
 		MenubarStyle: MenubarStyle{
 			widthSubmenuMin:  50,
@@ -510,12 +505,13 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			},
 			TextStyleFilter: ts,
 		},
-		inspectorStyle: defaultInspectorStyle,
+		inspectorStyle: inspectorStyleFor(textSecondary),
 
 		// Layout constants.
 		PaddingSmall:  cfg.PaddingSmall.withSet(),
 		PaddingMedium: cfg.PaddingMedium.withSet(),
 		PaddingLarge:  cfg.PaddingLarge.withSet(),
+		PaddingField:  fieldPad,
 		SizeBorder:    cfg.SizeBorder,
 
 		RadiusSmall:  cfg.RadiusSmall,

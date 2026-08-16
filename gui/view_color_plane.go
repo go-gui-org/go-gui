@@ -75,7 +75,7 @@ func (pv *colorPlaneView) GenerateLayout(w *Window) Layout {
 	}
 
 	px := int(size) * imgScale
-	return generateViewLayout(&containerView{
+	cv := &containerView{
 		cfg: ContainerCfg{
 			ID:        id,
 			Focusable: !cfg.FocusDisabled,
@@ -108,7 +108,9 @@ func (pv *colorPlaneView) GenerateLayout(w *Window) Layout {
 					v.S*size, (1-v.L)*size, cfg.MarkerSize)
 			}),
 		},
-	}, w)
+	}
+	colorControlFocusRing(&cv.cfg)
+	return generateViewLayout(cv, w)
 }
 
 // colorPlaneKeys moves saturation with the horizontal arrows and

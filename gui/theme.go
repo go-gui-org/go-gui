@@ -64,6 +64,30 @@ type Theme struct {
 	colorPickerStyle ColorPickerStyle
 	TextStyleDef     TextStyle
 
+	// Named text roles. A widget that wants quiet text names the
+	// reason it is quiet and takes the theme's answer, rather than
+	// spelling an alpha (issue #335). Built by themeTextRoles; see
+	// gui/theme_text_roles.go for what each one means and why the
+	// values differ per theme.
+	//
+	// Plain Theme fields, deliberately not default*Style mirrors:
+	// applyTheme mirrors widget style structs, and these follow the
+	// N1..N6 precedent instead. Read them as guiTheme.TextStyleX
+	// during generation, w.Theme().TextStyleX outside it.
+	//
+	// The four are the vocabulary an app styles its own widgets with.
+	// Unexporting any would leave an app unable to match the toolkit's
+	// own de-emphasis, which is the divergence #335 exists to end.
+
+	// exportaudit:keep — public styling vocabulary (see above).
+	TextStyleSecondary TextStyle
+	// exportaudit:keep — public styling vocabulary (see above).
+	TextStyleLabel TextStyle
+	// exportaudit:keep — public styling vocabulary (see above).
+	TextStyleDisabled TextStyle
+	// exportaudit:keep — public styling vocabulary (see above).
+	TextStylePlaceholder TextStyle
+
 	// Text size shortcuts (N = normal, B = bold,
 	// I = italic, M = mono, BI = bold+italic).
 	N1    TextStyle
@@ -124,7 +148,17 @@ type Theme struct {
 	PaddingSmall  Padding
 	PaddingMedium Padding
 	PaddingLarge  Padding
-	SizeBorder    float32
+
+	// PaddingField is the inset a text-bearing form control puts
+	// around its text. Separate from the Small/Medium/Large ladder
+	// because it answers a different question: those size the gap
+	// between things, this one sizes a control. Sharing it is what
+	// makes an Input and a Select in one row the same height.
+	//
+	// exportaudit:keep — themable form density.
+	PaddingField Padding
+
+	SizeBorder float32
 
 	RadiusSmall  float32
 	RadiusMedium float32
@@ -187,6 +221,12 @@ type ThemeCfg struct {
 	PaddingMedium Padding
 	PaddingLarge  Padding
 
+	// PaddingField seeds Theme.PaddingField; see there. Unset falls
+	// back to paddingField.
+	//
+	// exportaudit:keep — themable form density.
+	PaddingField Padding
+
 	SizeBorder float32
 	Radius     float32
 
@@ -227,11 +267,29 @@ type ThemeCfg struct {
 	ColorBorder      Color
 	ColorBorderFocus Color
 	ColorSeparator   Color
-	ColorSelect      Color
-	ColorSuccess     Color
-	ColorWarning     Color
-	ColorError       Color
-	TitlebarDark     bool
+
+	// De-emphasized text colors, one per named role. Unset derives
+	// from TextStyleDef.Color and the theme's polarity — see
+	// textRolesFor — so a theme only states these to override.
+	//
+	// The four are the override seam for a theme whose de-emphasis
+	// cannot be derived — a tinted or deliberately low-contrast
+	// palette.
+
+	// exportaudit:keep — theme override seam (see above).
+	ColorTextSecondary Color
+	// exportaudit:keep — theme override seam (see above).
+	ColorTextLabel Color
+	// exportaudit:keep — theme override seam (see above).
+	ColorTextDisabled Color
+	// exportaudit:keep — theme override seam (see above).
+	ColorTextPlaceholder Color
+
+	ColorSelect  Color
+	ColorSuccess Color
+	ColorWarning Color
+	ColorError   Color
+	TitlebarDark bool
 	// exportaudit:keep — documented public API (showcase docs)
 	FillBorder bool
 }
@@ -247,6 +305,7 @@ func (t Theme) WithPadding(padding bool) Theme {
 		cfg.PaddingSmall = PaddingNone
 		cfg.PaddingMedium = PaddingNone
 		cfg.PaddingLarge = PaddingNone
+		cfg.PaddingField = PaddingNone
 		cfg.SizeBorder = 0
 		cfg.Radius = radiusNone
 		cfg.RadiusSmall = radiusNone

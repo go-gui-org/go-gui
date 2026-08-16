@@ -1,0 +1,4 @@
+StrokeRect xy=11.50,11.50 wh=200.00,200.00 color=#4169e1ff radius=5.50 thickness=1.50
+Image xy=11.50,11.50 wh=200.00,200.00 res="mem:gui/cplane/400-210-"
+Circle xy=131.50,111.50 wh=0.00,0.00 color=#3380ccff radius=8.00 fill
+StrokeRect xy=123.50,103.50 wh=16.00,16.00 color=#ffffffff radius=8.00 thickness=2.00

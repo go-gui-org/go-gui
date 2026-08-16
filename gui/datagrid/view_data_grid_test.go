@@ -568,9 +568,9 @@ func TestDataGridIndicatorTextStyleDimsAlpha(t *testing.T) {
 		Size:  14,
 	}
 	got := dataGridIndicatorTextStyle(base)
-	if got.Color.A != dataGridIndicatorAlpha {
+	if got.Color.A != gg.CurrentTheme().TextStyleSecondary.Color.A {
 		t.Errorf("alpha: got %d, want %d",
-			got.Color.A, dataGridIndicatorAlpha)
+			got.Color.A, gg.CurrentTheme().TextStyleSecondary.Color.A)
 	}
 	if got.Color.R != 200 || got.Color.G != 100 || got.Color.B != 50 {
 		t.Error("RGB channels should be preserved")

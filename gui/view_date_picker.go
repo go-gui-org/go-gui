@@ -58,6 +58,11 @@ type datePickerState struct {
 
 // DatePickerCfg configures a date picker calendar view.
 type DatePickerCfg struct {
+	// Label names this field. Empty renders exactly as before: no
+	// wrapper and no extra shape. Set, it stacks above the field in
+	// the theme's label role, and fills A11YLabel when that is unset.
+	// See gui/field_label.go for the convention and why it is one.
+	Label     string
 	TextStyle TextStyle
 	OnSelect  func([]time.Time, EventCtx)
 	ID        string `gui:"required"`
@@ -97,7 +102,8 @@ type datePickerView struct {
 func DatePicker(cfg DatePickerCfg) View {
 	RequireID("DatePicker", cfg.ID)
 	applyDatePickerDefaults(&cfg)
-	return &datePickerView{cfg: cfg}
+	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
+	return labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, &datePickerView{cfg: cfg})
 }
 
 func (dv *datePickerView) GenerateLayout(w *Window) Layout {

@@ -16,6 +16,11 @@ func isSelectSubheader(option string) bool {
 
 // SelectCfg configures a select (dropdown) view.
 type SelectCfg struct {
+	// Label names this field. Empty renders exactly as before: no
+	// wrapper and no extra shape. Set, it stacks above the field in
+	// the theme's label role, and fills A11YLabel when that is unset.
+	// See gui/field_label.go for the convention and why it is one.
+	Label            string
 	TextStyle        TextStyle
 	subheadingStyle  TextStyle
 	PlaceholderStyle TextStyle
@@ -56,7 +61,8 @@ type selectView struct {
 func Select(cfg SelectCfg) View {
 	applySelectDefaults(&cfg)
 	requireFocusID("Select", cfg.FocusDisabled, cfg.ID)
-	return &selectView{cfg: cfg}
+	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
+	return labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, &selectView{cfg: cfg})
 }
 
 func (sv *selectView) GenerateLayout(w *Window) Layout {
@@ -171,16 +177,8 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		Invisible:   cfg.Invisible,
 		axis:        axisLeftToRight,
 		VAlign:      VAlignMiddle,
-		AmendLayout: func(ctx EventCtx) {
-			if ctx.Layout.Shape.Disabled {
-				return
-			}
-			if ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
-				ctx.Layout.Shape.Color = colorFocus
-				ctx.Layout.Shape.ColorBorder = colorBorderFocus
-			}
-		},
-		OnKeyDown: makeSelectOnKeyDown(&sv.cfg, id, dropdownScrollID),
+		AmendLayout: focusRingAmend(colorFocus, colorBorderFocus),
+		OnKeyDown:   makeSelectOnKeyDown(&sv.cfg, id, dropdownScrollID),
 		OnClick: func(ctx EventCtx) {
 			ss := StateMap[string, bool](
 				ctx.Window, nsSelect, capModerate)

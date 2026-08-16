@@ -133,7 +133,7 @@ func (sv *colorChannelSliderView) GenerateLayout(w *Window) Layout {
 		trackOffX, trackOffY = (thick-cfg.TrackHeight)/2, 0
 	}
 
-	return generateViewLayout(&containerView{
+	cv := &containerView{
 		cfg: ContainerCfg{
 			ID:        id,
 			Focusable: !cfg.FocusDisabled,
@@ -179,7 +179,9 @@ func (sv *colorChannelSliderView) GenerateLayout(w *Window) Layout {
 					thumbX, thumbY, cfg.ThumbSize)
 			}),
 		},
-	}, w)
+	}
+	colorControlFocusRing(&cv.cfg)
+	return generateViewLayout(cv, w)
 }
 
 // defaultColorSliderWidth is the track length used when Width is

@@ -94,7 +94,7 @@ func Switch(cfg SwitchCfg) View {
 	}))
 	if len(cfg.Label) > 0 {
 		content = append(content,
-			Text(TextCfg{Text: cfg.Label, TextStyle: cfg.TextStyle}))
+			trailingLabel(cfg.Label, cfg.TextStyle))
 	}
 
 	a11yState := AccessStateNone

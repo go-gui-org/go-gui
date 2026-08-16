@@ -7,6 +7,11 @@ import (
 
 // InputDateCfg configures a date input with dropdown calendar.
 type InputDateCfg struct {
+	// Label names this field. Empty renders exactly as before: no
+	// wrapper and no extra shape. Set, it stacks above the field in
+	// the theme's label role, and fills A11YLabel when that is unset.
+	// See gui/field_label.go for the convention and why it is one.
+	Label            string
 	TextStyle        TextStyle
 	PlaceholderStyle TextStyle
 	Date             time.Time
@@ -62,7 +67,8 @@ type inputDateView struct {
 func InputDate(cfg InputDateCfg) View {
 	applyInputDateDefaults(&cfg)
 	requireFocusID("InputDate", cfg.FocusDisabled, cfg.ID)
-	return &inputDateView{cfg: cfg}
+	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
+	return labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, &inputDateView{cfg: cfg})
 }
 
 func (idv *inputDateView) GenerateLayout(w *Window) Layout {
@@ -315,7 +321,7 @@ func applyInputDateDefaults(cfg *InputDateCfg) {
 		cfg.ColorSelect = d.ColorSelect
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = PaddingSmall
+		cfg.Padding = guiTheme.PaddingField
 	}
 	sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)
 	cellSpacing := cfg.cellSpacing.Get(d.cellSpacing)
@@ -329,12 +335,7 @@ func applyInputDateDefaults(cfg *InputDateCfg) {
 		cfg.TextStyle = d.TextStyle
 	}
 	if cfg.PlaceholderStyle == (TextStyle{}) {
-		cfg.PlaceholderStyle = TextStyle{
-			Color: RGBA(
-				d.TextStyle.Color.R,
-				d.TextStyle.Color.G,
-				d.TextStyle.Color.B, 100),
-			Size: d.TextStyle.Size,
-		}
+		cfg.PlaceholderStyle = withRoleAlpha(
+			d.TextStyle, guiTheme.TextStylePlaceholder)
 	}
 }
