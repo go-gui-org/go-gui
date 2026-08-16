@@ -183,8 +183,21 @@ func colorHexRow(
 		SizeBorder: NoBorder, // structural; see colorFieldsView
 		Spacing:    Some(SpacingSmall),
 		VAlign:     VAlignMiddle,
+		// Fill so the row spans the block's full width — set by the
+		// wider RGBA row below — giving the spacer something to take
+		// up. A Fit row would shrink to hex + swatch and the spacer
+		// would collapse to nothing.
+		Sizing: FillFit,
 		Content: []View{
 			hex,
+			// Flexible gap: it absorbs the whole surplus, pinning the
+			// swatch to the block's right edge so it lines up with the
+			// last channel field under it rather than floating mid-row.
+			Row(ContainerCfg{
+				Sizing:     FillFit,
+				Padding:    NoPadding,
+				SizeBorder: NoBorder,
+			}),
 			ColorSwatch(ColorSwatchCfg{
 				ID:    ScopeID(id, "swatch"),
 				Color: v.Color(),

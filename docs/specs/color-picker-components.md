@@ -125,7 +125,9 @@ exact, one legible — so they belong on one line; a caller that wants the swatc
 anywhere else leaves the flag off and places a plain `ColorSwatch`. It is drawn
 twice as wide as `SwatchSize`, which stays its height: a square beside a text
 field reads as a button, where a wide bar reads as a sample of the value next to
-it.
+it. A flexible spacer sits between the two, so the swatch tracks the block's
+right edge — set by the wider channel row beneath it — instead of leaving dead
+space past a short hex value.
 
 `gui.ColorPicker` is now a composition of `ColorPlane`, two vertical
 `ColorChannelSlider`s standing to the right of the plane, and `ColorFields`

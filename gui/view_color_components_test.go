@@ -222,6 +222,36 @@ func TestColorFieldsShowSwatch(t *testing.T) {
 	}
 }
 
+// The hex row is narrower than the RGBA row below it, so the swatch
+// must ride out to the block's right edge on a flexible spacer rather
+// than sit against the hex field with dead space beyond it.
+func TestColorFieldsSwatchIsRightAligned(t *testing.T) {
+	for _, borders := range []bool{false, true} {
+		w := &Window{}
+		w.SetTheme(ThemeDark.WithBorders(borders))
+		// A real measurer: without one the labels are zero-width and
+		// the rows' widths do not differ enough to show the defect.
+		w.textMeasurer = &stubTextMeasurer{charWidth: 7, fontHeight: 16}
+		l := w.TestRender(func(*Window) View {
+			return ColorFields(ColorFieldsCfg{
+				ID:         "cf",
+				Value:      HSLA{H: 200, S: 0.5, L: 0.5, A: 1},
+				ShowSwatch: true,
+			})
+		})
+		fields := findShapeByID(l, "cf")
+		swatch := findShapeByID(l, "cf:swatch")
+		if fields == nil || swatch == nil {
+			t.Fatalf("borders=%v: missing shapes", borders)
+		}
+		want := fields.Shape.X + fields.Shape.Width
+		if got := swatch.Shape.X + swatch.Shape.Width; got != want {
+			t.Errorf("borders=%v: swatch right = %v, block right = %v",
+				borders, got, want)
+		}
+	}
+}
+
 func TestColorFieldsHideHexAndHSL(t *testing.T) {
 	w := &Window{}
 	l := generateViewLayout(ColorFields(ColorFieldsCfg{
