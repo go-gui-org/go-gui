@@ -109,7 +109,8 @@ func DockLayout(cfg DockLayoutCfg) View {
 func applyDockLayoutDefaults(cfg *DockLayoutCfg) {
 	cfg.Sizing = cfg.Sizing.Or(FillFill)
 	if !cfg.colorZonePreview.IsSet() {
-		cfg.colorZonePreview = RGBA(70, 130, 220, 80)
+		// Non-text fill, exempt from the dimming roles (audit §1.2).
+		cfg.colorZonePreview = RGBA(70, 130, 220, 80) // ergonomics-audit:visual
 	}
 	if !cfg.colorTab.IsSet() {
 		cfg.colorTab = guiTheme.ColorPanel

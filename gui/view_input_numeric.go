@@ -234,7 +234,9 @@ func numericInputField(cfg NumericInputCfg, locale NumericLocaleCfg, _ NumericSt
 }
 
 func numericInputStepButtons(cfg NumericInputCfg, locale NumericLocaleCfg, stepCfg NumericStepCfg) View {
-	triangleSize := f32Max(cfg.TextStyle.Size-4, 8)
+	// Audit §2: the step triangle floors an inline size step at 8; N5/N6
+	// are unexported so there is no named handle to use yet.
+	triangleSize := f32Max(cfg.TextStyle.Size-4, 8) // ergonomics-audit:visual
 	triangleStyle := TextStyle{
 		Color:  cfg.TextStyle.Color,
 		Size:   triangleSize,

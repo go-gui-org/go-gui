@@ -354,7 +354,9 @@ What this branch changed, per axis. The measurements above describe the state at
 - **§6** — `ColorSet` still reaches only 5 of ~18 interactive widgets. `Table`,
   `ColorSwatch` and the `ExpandPanel` header are not focusable at all, so a
   focus ring there needs keyboard navigation designed first (§6.1).
-- **#335 steps 3 and 4** — `docs/style-guide.md` (the _when_, citing roles
-  rather than values) and `ergonomics-audit -mode visual` to gate raw dimming
-  and size-step literals in `gui/view_*.go`. The gate needs the deferred-marker
-  shape from the `theme` mode so the §1.2 ramps can be marked.
+- **#335 steps 3 and 4** — closed: `docs/style-guide.md` (the _when_,
+  citing roles rather than values) and `ergonomics-audit -mode visual`,
+  which gates raw dimming and size-step literals in `gui/view_*.go`. The
+  §1.2 ramps and the two §2 size steps carry the deferred marker
+  (`ergonomics-audit:visual`), so the exemptions are visible in every
+  audit run.

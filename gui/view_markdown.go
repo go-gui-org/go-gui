@@ -76,19 +76,20 @@ func DefaultMarkdownStyle() MarkdownStyle {
 	bi := guiTheme.bI4
 
 	return MarkdownStyle{
-		Text:              text,
-		h1:                guiTheme.B1,
-		H2:                guiTheme.B2,
-		h3:                guiTheme.B3,
-		h4:                guiTheme.B4,
-		h5:                guiTheme.B5,
-		h6:                guiTheme.B6,
-		Bold:              bold,
-		Italic:            italic,
-		boldItalic:        bi,
-		Code:              guiTheme.M5,
-		codeBlockText:     guiTheme.M5,
-		CodeBlockBG:       RGBA(0, 0, 0, 50),
+		Text:          text,
+		h1:            guiTheme.B1,
+		H2:            guiTheme.B2,
+		h3:            guiTheme.B3,
+		h4:            guiTheme.B4,
+		h5:            guiTheme.B5,
+		h6:            guiTheme.B6,
+		Bold:          bold,
+		Italic:        italic,
+		boldItalic:    bi,
+		Code:          guiTheme.M5,
+		codeBlockText: guiTheme.M5,
+		// Non-text fills, exempt from the dimming roles (audit §1.2).
+		CodeBlockBG:       RGBA(0, 0, 0, 50), // ergonomics-audit:visual
 		codeKeywordColor:  guiTheme.ColorSelect,
 		codeStringColor:   RGB(75, 125, 75),
 		codeNumberColor:   RGB(169, 114, 62),
@@ -100,7 +101,7 @@ func DefaultMarkdownStyle() MarkdownStyle {
 		hRColor:           guiTheme.ColorBorder,
 		linkColor:         guiTheme.ColorSelect,
 		blockquoteBorder:  guiTheme.ColorBorder,
-		blockquoteBG:      RGBA(128, 128, 128, 20),
+		blockquoteBG:      RGBA(128, 128, 128, 20), // ergonomics-audit:visual
 		blockSpacing:      12,
 		nestIndent:        16,
 		prefixCharWidth:   4,

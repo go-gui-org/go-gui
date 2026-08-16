@@ -280,7 +280,9 @@ func mathSpinnerDraw(
 		ghostPts[i*2] = cx + (px*cosR-py*sinR)*scale
 		ghostPts[i*2+1] = cy + (px*sinR+py*cosR)*scale
 	}
-	ghostColor := RGBA(color.R, color.G, color.B, 30)
+	// Audit §1.2: the ghost trail is a ramp, exempt from the dimming
+	// roles — it is a fade, not a de-emphasis.
+	ghostColor := RGBA(color.R, color.G, color.B, 30) // ergonomics-audit:visual
 	// Safety: PolylineJoined copies the path data internally and
 	// does not retain the ghostPts slice. The buffer is safe to
 	// return to the pool immediately after this call.

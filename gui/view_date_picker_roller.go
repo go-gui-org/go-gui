@@ -196,13 +196,17 @@ func rollerDrum(
 
 		itemTS := ts
 		if offset == 0 {
-			itemTS.Size = ts.Size + 2
+			// Audit §2: the center item steps one type size inline; N5/N6
+			// are unexported so there is no named handle to use yet.
+			itemTS.Size = ts.Size + 2 // ergonomics-audit:visual
 		} else {
 			dist := offset
 			if dist < 0 {
 				dist = -dist
 			}
-			alpha := uint8(150)
+			// Audit §1.2: the roller distance ramp is exempt from the
+			// dimming roles — it is a ramp, not a de-emphasis.
+			alpha := uint8(150) // ergonomics-audit:visual
 			if dist > 1 {
 				alpha = 80
 			}
