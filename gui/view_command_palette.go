@@ -129,6 +129,8 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 		scrollY = w.scrollY().GetOr(scrollID, 0)
 	}
 	first, last := listCoreVisibleRange(len(filtered), rowH, cfg.MaxHeight, scrollY)
+	// Index space: the *filtered* items, so it moves with the query.
+	listHeightRegisterUniform(w, scrollID, len(filtered), rowH, 0, 0)
 
 	onAction := cfg.OnAction
 	paletteID := id

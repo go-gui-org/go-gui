@@ -64,12 +64,12 @@ silent no-op — the widget renders and clicks but never joins the tab order. Th
 `requiredid` analyzer flags this, and `gui.Debug` reports it at runtime.
 
 **Input controls are focusable by default (v0.36.0); opt out with
-`FocusDisabled`, never with `Focusable: false`.** Fifteen Cfgs default on:
+`FocusDisabled`, never with `Focusable: false`.** Sixteen Cfgs default on:
 `Button`, `ColorPicker`, `Combobox`, `DatePicker`, `Input`, `InputDate`,
 `ListBox`, `NumericInput`, `RadioButtonGroup`, `Radio`, `Select`, `Slider`,
-`Switch`, `Toggle`, `Tree`. Everything else is opt-in via `Focusable: true`. See
-`docs/specs/focusable-default-input.md`; run `ergonomics-audit -mode focus` for
-the current inventory.
+`Switch`, `Toggle`, `Tree`, `VirtualList`. Everything else is opt-in via
+`Focusable: true`. See `docs/specs/focusable-default-input.md`; run
+`ergonomics-audit -mode focus` for the current inventory.
 
 **`Shape.ID` is a leaf; identity is the effective ID.** `resolveShapeIDs`
 (`gui/id_resolve.go`, run from `layoutArrange`) stamps `Shape.effID` = the leaf
@@ -163,8 +163,8 @@ over the `ColorSet`**, so existing code keeps its appearance when a set arrives.
 **Never spell a de-emphasis alpha, a label's size step, or a form control's text
 inset at a call site.** Each has one named source; a literal there is the
 divergence issue #335 measured and removed
-(`docs/specs/widget-visual-consistency-audit.md`). The _when_ — which role
-each decision takes, and when a deviation may carry the marker — is
+(`docs/specs/widget-visual-consistency-audit.md`). The _when_ — which role each
+decision takes, and when a deviation may carry the marker — is
 `docs/style-guide.md`, enforced by `ergonomics-audit -mode visual`.
 
 - **Quiet text** takes one of four `Theme` roles — `TextStyleSecondary`,

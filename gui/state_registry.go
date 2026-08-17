@@ -184,6 +184,8 @@ const (
 	nsSelectHL            = "gui.select.highlight"
 	nsListBoxFocus        = "gui.listbox.focus"
 	nsListBoxCache        = "gui.listbox.cache"
+	nsListHeights         = "gui.list.heights"
+	nsVirtualListFocus    = "gui.virtual_list.focus"
 	nsProgress            = "gui.progress"
 	nsSidebar             = "gui.sidebar"
 	nsCombobox            = "gui.combobox"

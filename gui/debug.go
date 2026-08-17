@@ -66,9 +66,12 @@ const (
 	// consuming it while an ancestor also received it.
 	// exportaudit:keep — const name collides with the debugUnconsumed helper
 	DebugUnconsumed
-	// DebugListBoxNoHeight reports a scrollable listbox that resolved to
-	// height 0, which disables virtualization so every row builds each
-	// frame.
+	// DebugListBoxNoHeight reports virtualization that degraded: a
+	// scrollable listbox resolved to height 0, so every row builds each
+	// frame; a variable-height list whose item count passed the
+	// per-item storage cap, so it fell back to a uniform row height; or
+	// a virtual list that widens frame after frame because its rows
+	// demand the width they were handed.
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugListBoxNoHeight
 
@@ -198,6 +201,13 @@ const (
 	// debugCheckListBoxNoHeight fires from the listbox view phase
 	// rather than from the layout audit; see listBoxVisibleRange.
 	debugCheckListBoxNoHeight
+	// debugCheckListHeightsCapped fires from the list height registry
+	// when a variable-height list is too large for per-item storage.
+	debugCheckListHeightsCapped
+	// debugCheckListWidthRatchet fires from the VirtualList measurement
+	// hook when the list widens frame after frame with the window
+	// standing still; see virtualListNoteWidth.
+	debugCheckListWidthRatchet
 	// debugCheckUnscopedID reports an identity that has no ID-bearing
 	// ancestor, so it is still a window-global name.
 	debugCheckUnscopedID
@@ -214,7 +224,8 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugMissingIDs
 	case debugCheckUnconsumed:
 		return DebugUnconsumed
-	case debugCheckListBoxNoHeight:
+	case debugCheckListBoxNoHeight, debugCheckListHeightsCapped,
+		debugCheckListWidthRatchet:
 		return DebugListBoxNoHeight
 	case debugCheckUnscopedID:
 		return DebugUnscopedIDs

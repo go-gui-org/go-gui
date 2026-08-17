@@ -10,16 +10,51 @@ and this project adheres to
 
 ### Added
 
+- **`VirtualList` — virtualized lists whose rows may differ in height, and
+  index-addressed scrolling** (issue #332). Virtualization was arithmetic over
+  one scalar row height, which is exact for a widget that owns its row shape and
+  useless for rows the caller builds; and a row virtualization had not built
+  could not be scrolled to at all, because `scrollToView` resolves through
+  `FindByID`.
+  - `VirtualList`/`VirtualListCfg` build only the rows near the viewport and
+    hold the rest of the space in two spacers, sized from a per-list prefix-sum
+    (Fenwick) height model that seeds from an estimate and converges on measured
+    heights. `ItemHeight` is the cheap path — exact from frame 1, no
+    measurement. `ItemKey` stores measured heights under a stable identity, so
+    an insert, delete or reorder keeps each height on its own item. `OverscanPx`
+    tunes how far past the viewport rows are built, in pixels rather than rows.
+  - `Window.ScrollToIndex`, `ScrollToIndexAt(frac)`, `ScrollIndexIntoView` and
+    `ScrollToEnd` address rows by index through the height model, so they reach
+    rows that do not exist this frame. `ScrollToEnd` is the correct
+    pin-to-bottom: `ScrollVerticalToPct(id, 1)` takes a percentage of a content
+    height that virtualized rows only estimate, so it drifts.
+    `Window.InvalidateListHeights` re-measures a list whose content changed
+    under a stable key.
+  - `ListBox`, `Table`, `Tree`, `Combobox` and the command palette register the
+    uniform (O(1), no per-item storage) form of the same model, so the index API
+    works on them too. Index spaces differ per widget — a frozen table header is
+    data index 0 but sits outside the scrollable, and the combobox indexes its
+    _filtered_ items.
+  - `Window.VirtualListFocusedIndex` / `SetVirtualListFocusedIndex`: an unbuilt
+    row has no shape to hold focus, so a virtual list's keyboard focus is an
+    index on the list.
+  - A row must not turn the width `ItemView` hands it into a width it demands:
+    `MinWidth` taken from that argument ratchets the list wider every frame, and
+    each width change re-wraps every row, so the list never settles. `Debug`
+    reports it (the `DebugListBoxNoHeight` category) after four consecutive
+    frames of widening with the window unchanged.
+  - See `docs/specs/virtualized-variable-height-lists.md` and
+    `examples/virtual_list`.
+
 - **Keyboard navigation for `Table`, `ColorSwatch` and the `ExpandPanel`
-  header** — the three widgets the #335 audit recorded as "not focusable"
-  (issue #345).
+  header** — the three widgets the #335 audit recorded as "not focusable" (issue
+  #345).
   - `TableCfg.Focusable` opts a table into the tab order. Focus lands on the
     table; Up/Down/Home/End move an active row — tinted with the hover color,
     scrolled into view under virtualization, and synced to mouse clicks — and
-    Enter/Space activate the active row the way a click would. Selection
-    follows movement when `OnSelect` is set; Shift extends a range under
-    `MultiSelect`. `TableCfg.ColorBorderFocus` (theme-backed) paints the focus
-    ring.
+    Enter/Space activate the active row the way a click would. Selection follows
+    movement when `OnSelect` is set; Shift extends a range under `MultiSelect`.
+    `TableCfg.ColorBorderFocus` (theme-backed) paints the focus ring.
   - The `ExpandPanel` header now joins the tab order ahead of the panel body's
     own focusables; Space/Enter toggle it. `ExpandPanelCfg.ColorBorderFocus`
     (theme-backed) paints the ring.
@@ -33,10 +68,9 @@ and this project adheres to
   of v0.54.0 already used. Additive and zero visual change: the surviving flat
   `Color*` fields still win over the set when both are set (the `applyTo`
   precedence), so existing callers keep their appearance. `ColorSelect` and
-  `ColorHighlight`, which have no set slot, stay flat. Inline
-  `ColorSet{...}` constructions inside gui/ and gui/datagrid/ resolve at the
-  construction site instead of relying on the receiving widget to resolve
-  (issue #342).
+  `ColorHighlight`, which have no set slot, stay flat. Inline `ColorSet{...}`
+  constructions inside gui/ and gui/datagrid/ resolve at the construction site
+  instead of relying on the receiving widget to resolve (issue #342).
 - **Named text roles on `Theme`** — `TextStyleSecondary`, `TextStyleLabel`,
   `TextStyleDisabled`, `TextStylePlaceholder`, with matching
   `ThemeCfg.ColorText*` overrides. A widget that wants quiet text now names the

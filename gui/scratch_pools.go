@@ -111,6 +111,15 @@ type scratchPools struct {
 	// header, and per-node Children headers stay internally consistent.
 	layoutChildrenArena []Layout
 
+	// viewArena is a grow-only, frame-scoped arena for the []View
+	// slices a widget builds for its children during the view phase.
+	// It exists beside layoutChildrenArena rather than reusing it
+	// because that one hands out []Layout, and beside a scratchSlice
+	// because a scratchSlice hands out one shared buffer that nested
+	// lists would alias. Reset to len=0 in resetViewPools; the
+	// realloc-safety argument is layoutChildrenArena's.
+	viewArena []View
+
 	floatingLayouts      []*Layout
 	floatingLayoutPool   []*Layout
 	placeholderShapePool []*Shape
@@ -213,6 +222,45 @@ func (p *scratchPools) resetViewPools() {
 	} else {
 		p.layoutChildrenArena = p.layoutChildrenArena[:0]
 	}
+	if cap(p.viewArena) > viewArenaRetainMax {
+		p.viewArena = make([]View, 0, viewArenaShrinkTo)
+	} else {
+		p.viewArena = p.viewArena[:0]
+	}
+}
+
+const (
+	viewArenaRetainMax = 1 << 14 // 16 384 View interface values
+	viewArenaShrinkTo  = 1 << 10 // 1 024
+
+	// maxViewReservation bounds a single reservation, matching
+	// maxLayoutChildrenReservation's reasoning: beyond it a standalone
+	// slice keeps arena memory from being held across frames.
+	maxViewReservation = 1 << 20
+)
+
+// takeViews reserves a pinned, zero-length subslice with capacity n
+// from the frame-scoped view arena. The cap is pinned to n so the
+// caller's appends cannot bleed into a later reservation, which is
+// what makes nested lists safe. Callers must not retain the slice
+// past the frame — appendChildViews copies out of it.
+func (p *scratchPools) takeViews(n int) []View {
+	if n <= 0 {
+		return nil
+	}
+	if n > maxViewReservation {
+		return make([]View, 0, n)
+	}
+	start := len(p.viewArena)
+	need := start + n
+	if cap(p.viewArena) < need {
+		grown := make([]View, need, growCap(cap(p.viewArena), need))
+		copy(grown, p.viewArena)
+		p.viewArena = grown
+	} else {
+		p.viewArena = p.viewArena[:need]
+	}
+	return p.viewArena[start:start:need]
 }
 
 const (

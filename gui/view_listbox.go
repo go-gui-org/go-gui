@@ -350,6 +350,10 @@ func listBoxVisibleRange(
 		scrollY := w.scrollY().GetOr(cfg.ID, 0)
 		first, last = listCoreVisibleRange(
 			len(cfg.Data), rowH, listH, scrollY)
+		// Register the same rowH the spacers use, so ScrollToIndex
+		// agrees with the arithmetic already on screen. Index space:
+		// cfg.Data, subheadings included.
+		listHeightRegisterUniform(w, cfg.ID, len(cfg.Data), rowH, 0, 0)
 	} else {
 		virtualize = false
 		if cfg.Scrollable && cache.hSeen &&

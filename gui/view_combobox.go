@@ -145,6 +145,9 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 		scrollY = w.scrollY().GetOr(dropdownScrollID, 0)
 	}
 	first, last := listCoreVisibleRange(len(filtered), rowH, listH, scrollY)
+	// Index space: the *filtered* items, so it moves with the query.
+	listHeightRegisterUniform(w, dropdownScrollID, len(filtered),
+		rowH, 0, 0)
 
 	// Build dropdown content.
 	onSelect := cfg.OnSelect

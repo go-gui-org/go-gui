@@ -33,6 +33,7 @@ func layoutPipeline(layout *Layout, w *Window) {
 	fx, fy := floatAttachLayout(layout, w.windowRect())
 	layoutPositions(layout, fx, fy, w)
 	layoutApplyScrollAnchors(layout, w)
+	layoutApplyVirtualScrolls(layout, w)
 	layoutDisables(layout, false)
 
 	// Post-position passes.
