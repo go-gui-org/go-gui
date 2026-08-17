@@ -136,7 +136,7 @@ func makeInputOnKeyDown(hcfg inputHandlerCfg) func(EventCtx) {
 			inputKeyLeft(imap, id, is, text, pos,
 				isShift, isWordMod, gl, glOK)
 		case KeyRight:
-			inputKeyRight(imap, id, is, text, pos, runeLen,
+			inputKeyRight(imap, id, is, text, pos,
 				isShift, isWordMod, gl, glOK)
 		case KeyHome:
 			inputKeyHome(imap, id, is, text, pos,

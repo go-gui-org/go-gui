@@ -18,6 +18,7 @@ Go toolchain pin: `go 1.26.0`.
 | `github.com/gopxl/beep/v2` | v2.1.1 | Audio decode + mixing (sound effects, music, mixer, fade) for `gui/audio`. |
 | `github.com/jezek/xgb` | v1.3.1 | Pure-Go X11 windowing + events for the native Linux backend (`gui/backend/gl`). |
 | `github.com/jfreymuth/pulse` | v0.1.2 | Pure-Go PulseAudio native-protocol client. Default Linux audio output sink (`gui/audio/output_pulse.go`), keeping `CGO_ENABLED=0` builds cgo-free. Needs a running PulseAudio/PipeWire server. |
+| `github.com/rivo/uniseg` | v0.4.7 | UAX #29 grapheme segmentation for the input caret-motion fallback (`gui/grapheme.go`) and go-glyph. |
 | `github.com/tdewolff/parse/v2` | v2.8.16 | CSS tokenizer for the SVG `<style>` / `style=""` cascade pipeline. |
 | `github.com/yuin/goldmark` | v1.8.5 | Markdown parser (markdown widget + showcase docs). |
 | `github.com/yuin/goldmark-emoji` | v1.0.6 | Goldmark extension: `:emoji:` shortcodes. |
@@ -41,7 +42,6 @@ Pulled in transitively; listed for completeness.
 | `github.com/mewkiz/flac` | v1.0.12 | gopxl/beep (FLAC decode) |
 | `github.com/mewkiz/pkg` | v0.0.0-20230226050401-4010bf0fec14 | mewkiz/flac (FLAC decode) |
 | `github.com/pkg/errors` | v0.9.1 | gopxl/beep (audio) |
-| `github.com/rivo/uniseg` | v0.4.7 | grapheme segmentation (chroma/glyph) |
 | `golang.org/x/image` | v0.45.0 | go-glyph (pure-Go rasterization) |
 | `golang.org/x/mobile` | v0.0.0-20260602190626-68735029466e | gobind tool (Android AAR builds) |
 | `golang.org/x/sync` | v0.22.0 | x/tools |

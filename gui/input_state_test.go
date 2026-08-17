@@ -126,6 +126,8 @@ func TestForwardDeleteOnEmoji(t *testing.T) {
 }
 
 func TestBackspaceCombiningChar(t *testing.T) {
+	// e + combining acute is one grapheme: Backspace removes the
+	// whole cluster, not just the combining mark (issue #330).
 	w := newTestWindow()
 	id := "f10013"
 	setInputState(w, id, inputState{CursorPos: 2})
@@ -133,8 +135,8 @@ func TestBackspaceCombiningChar(t *testing.T) {
 	if !ok {
 		t.Fatal("expected ok")
 	}
-	if got != "e" {
-		t.Fatalf("got %q, want %q", got, "e")
+	if got != "" {
+		t.Fatalf("got %q, want %q", got, "")
 	}
 }
 

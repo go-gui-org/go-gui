@@ -178,7 +178,10 @@ func inputSetTextAndCursorAtEnd(oldText, newText string, focusID string, w *Wind
 	})
 }
 
-// inputDelete removes text at cursor or selected range.
+// inputDelete removes text at cursor or selected range. A plain
+// (unselected) delete removes one whole grapheme cluster — the same
+// granularity the glyph-backed path gives — so the nil-measurer
+// fallback never splits an emoji or combining sequence.
 // forwardDelete=true for Delete key, false for Backspace.
 func inputDelete(text string, focusID string, forwardDelete bool, w *Window) (string, bool) {
 	runes := []rune(text)
@@ -205,19 +208,26 @@ func inputDelete(text string, focusID string, forwardDelete bool, w *Window) (st
 		if cursorPos == len(runes) && forwardDelete {
 			return text, true
 		}
-		delPos := cursorPos
+		// No glyph layout behind this path (nil textMeasurer), so
+		// cluster boundaries are recomputed with UAX #29 — the same
+		// segmentation shaping produces — keeping Backspace/Delete
+		// whole-cluster in the fallback as well.
+		stops := graphemeStops(text)
+		delPos, delEnd := cursorPos, cursorPos
 		if !forwardDelete {
-			delPos = cursorPos - 1
+			delPos = prevGraphemeStop(stops, cursorPos)
+		} else {
+			delEnd = nextGraphemeStop(stops, cursorPos)
 		}
-		if delPos < 0 || delPos >= len(runes) {
+		if delPos < 0 || delPos >= len(runes) || delEnd > len(runes) {
 			return text, false
 		}
-		result := make([]rune, 0, len(runes)-1)
+		result := make([]rune, 0, len(runes)-(delEnd-delPos))
 		result = append(result, runes[:delPos]...)
-		result = append(result, runes[delPos+1:]...)
+		result = append(result, runes[delEnd:]...)
 		runes = result
 		if !forwardDelete {
-			cursorPos--
+			cursorPos = delPos
 		}
 	}
 
