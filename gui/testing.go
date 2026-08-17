@@ -203,20 +203,23 @@ func testHitPoint(ly *Layout, id string) (x, y float32, err error) {
 // supposed to change; do not read a nil return as proof the target
 // fired.
 //
-// OnClick fires on press (see mouseDownHandler), so the release is sent
-// only for the benefit of OnMouseUp handlers and drag-end logic.
+// OnClick and OnMouseDown fire on press (see mouseDownHandler), so the
+// release is sent only for the benefit of OnMouseUp handlers and
+// drag-end logic.
 //
-// Returns ErrTestNoHandler when the widget has neither an OnClick nor
-// focusability, since a click on such a widget cannot have any effect
-// worth asserting on.
+// Returns ErrTestNoHandler when the widget has neither an OnClick, an
+// OnMouseDown nor focusability, since a click on such a widget cannot
+// have any effect worth asserting on.
 func (w *Window) TestClick(id string) error {
 	ly, err := w.testTarget(id)
 	if err != nil {
 		return err
 	}
-	hasClick := ly.Shape.hasEvents() && ly.Shape.events.OnClick != nil
+	ev := ly.Shape.events
+	hasClick := ly.Shape.hasEvents() &&
+		(ev.OnClick != nil || ev.OnMouseDown != nil)
 	if !hasClick && !ly.Shape.Focusable {
-		return fmt.Errorf("%w: %q has no OnClick and is not focusable",
+		return fmt.Errorf("%w: %q has no click handler and is not focusable",
 			errTestNoHandler, id)
 	}
 	x, y, err := testHitPoint(ly, id)

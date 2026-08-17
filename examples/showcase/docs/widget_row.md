@@ -99,6 +99,7 @@ gui.Row(gui.ContainerCfg{
 | OnChar      | func(EventCtx)         | Character input         |
 | OnKeyDown   | func(EventCtx)         | Key pressed             |
 | OnMouseMove | func(EventCtx)         | Mouse movement          |
+| OnMouseDown | func(EventCtx)         | Mouse button pressed    |
 | OnMouseUp   | func(EventCtx)         | Mouse button released   |
 | OnHover     | func(EventCtx)         | Mouse hover             |
 | OnScroll    | func(EventCtx)         | Scroll position changed |

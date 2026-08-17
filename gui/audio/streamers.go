@@ -231,6 +231,23 @@ func (cm *channelMixer) isPlaying(channel int) bool {
 func (cm *channelMixer) numChannels() int { return len(cm.chans) }
 
 // ---------------------------------------------------------------------------
+// sourceStreamer
+// ---------------------------------------------------------------------------
+
+// sourceStreamer adapts a [Source] to beep.Streamer.  It holds the
+// source by reference and forwards Fill verbatim — the beep backend
+// path is exactly one interface hop and zero allocations per call.
+type sourceStreamer struct {
+	src Source
+}
+
+func (s *sourceStreamer) Stream(samples [][2]float64) (int, bool) {
+	return s.src.Fill(samples)
+}
+
+func (s *sourceStreamer) Err() error { return nil }
+
+// ---------------------------------------------------------------------------
 // neverDrain
 // ---------------------------------------------------------------------------
 

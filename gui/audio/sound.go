@@ -8,6 +8,8 @@ import "github.com/gopxl/beep/v2"
 //
 // Sounds play on numbered mixing channels.  Pass channel -1 to
 // auto-select the first free channel.
+// exportaudit:keep — sample-playback API consumed by apps outside this
+// repo; the showcase exercises live sources instead (issue #331).
 type Sound struct {
 	buffer *beep.Buffer
 	format beep.Format
@@ -23,6 +25,8 @@ func loadSound(path string) (*Sound, error) {
 
 // LoadSoundBytes loads a sound effect from in-memory bytes.
 // The caller must not modify data after this call.
+// exportaudit:keep — sample-playback API consumed by apps outside this
+// repo; the showcase exercises live sources instead (issue #331).
 func LoadSoundBytes(data []byte) (*Sound, error) {
 	return backend.LoadSoundBytes(data)
 }
@@ -35,11 +39,15 @@ func (s *Sound) Play(channel, loops int) (int, error) {
 }
 
 // PlayOnce plays the sound once on the first free channel.
+// exportaudit:keep — sample-playback API consumed by apps outside this
+// repo; the showcase exercises live sources instead (issue #331).
 func (s *Sound) PlayOnce() (int, error) {
 	return backend.SoundPlay(s, -1, 0)
 }
 
 // FadeIn plays the sound with a fade-in over ms milliseconds.
+// exportaudit:keep — sample-playback API consumed by apps outside this
+// repo; the showcase exercises live sources instead (issue #331).
 func (s *Sound) FadeIn(channel, loops, ms int) (int, error) {
 	return backend.SoundFadeIn(s, channel, loops, ms)
 }
@@ -64,6 +72,8 @@ func (s *Sound) Free() {
 // --- Channel-level helpers ---
 
 // HaltChannel stops playback on the given channel (-1 = all).
+// exportaudit:keep — channel API consumed by apps outside this repo;
+// the showcase exercises live sources instead (issue #331).
 func HaltChannel(channel int) { backend.HaltChannel(channel) }
 
 // FadeOutChannel fades out the given channel over ms milliseconds,

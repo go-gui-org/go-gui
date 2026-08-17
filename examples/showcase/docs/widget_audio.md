@@ -39,6 +39,56 @@ audio.ResumeMusic()
 audio.FadeOutMusic(1000)
 ```
 
+The showcase demo loads its music clip from the embedded asset
+`examples/showcase/assets/music.ogg` (Mozart, Eine kleine Nachtmusik
+K. 525, I. Allegro — public-domain Musopen recording) via
+`embeddedAssetPath`, since `LoadMusic` takes a file path.
+
+## Live Synthesis
+
+Stream generated samples instead of playing files back:
+
+```go
+// Fill is called on the audio thread; it must not allocate or block.
+// Write stereo samples (left, right) and return the count written.
+// Return ok = false to end the source; its channel is freed.
+type Source interface {
+    Fill(samples [][2]float64) (n int, ok bool)
+}
+
+// Start a source on a channel (-1 = first free).
+if err := audio.PlaySource(-1, mySource); err != nil { ... }
+audio.HaltChannel(ch) // stop early
+
+// Synthesis code needs the configured rate for phase increments.
+rate := audio.SampleRate() // 0 before Init
+```
+
+The `Source` signature matches `beep.Streamer` exactly, so the beep backend
+is a zero-cost adapter — no allocations on the audio path.
+
+A synth pad pairs `Source` with the container press/release callbacks:
+
+```go
+gui.Column(gui.ContainerCfg{
+    ID: "pad",
+    // OnMouseDown starts the voice; OnMouseUp starts its note-off.
+    OnMouseDown: func(ctx gui.EventCtx) {
+        active = newVoice(freq) // your Source
+        audio.PlaySource(-1, active)
+        ctx.Consume()
+    },
+    OnMouseUp: func(ctx gui.EventCtx) {
+        active.release() // voice decays, then ends itself
+        ctx.Consume()
+    },
+})
+```
+
+A voice plays a note-off by releasing internally and returning
+`(0, false)` once its release envelope finishes — the channel frees
+itself, so no per-pad channel bookkeeping is needed.
+
 ## Volume
 
 ```go

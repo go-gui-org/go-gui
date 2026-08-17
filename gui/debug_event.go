@@ -139,6 +139,8 @@ func (c evClass) wouldReach(anc *Layout, e *Event, w *Window) bool {
 			return false
 		}
 		return s.PointInShape(e.MouseX, e.MouseY)
+	case evMouseDown:
+		return ev.OnMouseDown != nil && s.PointInShape(e.MouseX, e.MouseY)
 	case evMouseUp:
 		return ev.OnMouseUp != nil && s.PointInShape(e.MouseX, e.MouseY)
 	case evFileDrop:
@@ -164,6 +166,8 @@ func (c evClass) name() string {
 		return "OnClick"
 	case evChar:
 		return "OnChar"
+	case evMouseDown:
+		return "OnMouseDown"
 	case evMouseUp:
 		return "OnMouseUp"
 	case evFileDrop:
@@ -178,7 +182,7 @@ func (c evClass) name() string {
 // event without consuming it while an ancestor would also receive it,
 // and returns one finding per site.
 //
-// It renders a frame, then for every shape carrying one of the five
+// It renders a frame, then for every shape carrying one of the six
 // hit-tested callbacks it synthesizes that event at the shape's centre
 // and runs it through real dispatch with the check armed.
 //
@@ -254,6 +258,9 @@ func (w *Window) sweepShape(root, l *Layout) {
 	if ev.OnClick != nil {
 		mouseDownHandler(root, false,
 			&Event{MouseX: cx, MouseY: cy, MouseButton: ev.clickButton}, w)
+	}
+	if ev.OnMouseDown != nil {
+		mouseDownHandler(root, false, &Event{MouseX: cx, MouseY: cy}, w)
 	}
 	if ev.OnMouseUp != nil {
 		mouseUpHandler(root, &Event{MouseX: cx, MouseY: cy}, w)

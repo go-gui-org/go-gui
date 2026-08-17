@@ -3,21 +3,15 @@
 package main
 
 import (
-	"encoding/binary"
 	"fmt"
 	"math"
-	"os"
+	"sync/atomic"
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/audio"
 )
 
-var (
-	beepSound  *audio.Sound
-	highSound  *audio.Sound
-	musicTrack *audio.Music
-	musicPath  string
-)
+var musicTrack *audio.Music
 
 func demoAudio(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
@@ -28,108 +22,15 @@ func demoAudio(w *gui.Window) gui.View {
 		Spacing: gui.SomeF(16),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
-			sectionLabel(t, "Sound Effects"),
-			gui.Row(gui.ContainerCfg{
+			sectionLabel(t, "Live Synthesis"),
+			gui.Column(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
 				Spacing: gui.SomeF(8),
 				Padding: gui.NoPadding,
 				Content: []gui.View{
+					synthPadGrid(t),
 					gui.Button(gui.ButtonCfg{
-						ID:      "btn-beep",
-						Padding: gui.NewPadding(8, 16, 8, 16),
-						Content: []gui.View{
-							gui.Text(gui.TextCfg{
-								Text:      gui.IconPlay,
-								TextStyle: t.Icon3,
-							}),
-							gui.Text(gui.TextCfg{
-								Text:      "Play Beep",
-								TextStyle: t.N3,
-							}),
-						},
-						OnClick: func(ctx gui.EventCtx) {
-							playBeep(ctx.Window)
-						},
-					}),
-					gui.Button(gui.ButtonCfg{
-						ID:      "btn-beep-high",
-						Padding: gui.NewPadding(8, 16, 8, 16),
-						Content: []gui.View{
-							gui.Text(gui.TextCfg{
-								Text:      gui.IconPlay,
-								TextStyle: t.Icon3,
-							}),
-							gui.Text(gui.TextCfg{
-								Text:      "Play High Tone",
-								TextStyle: t.N3,
-							}),
-						},
-						OnClick: func(ctx gui.EventCtx) {
-							playHighTone(ctx.Window)
-						},
-					}),
-					gui.Button(gui.ButtonCfg{
-						ID:      "btn-fade-in",
-						Padding: gui.NewPadding(8, 16, 8, 16),
-						Content: []gui.View{
-							gui.Text(gui.TextCfg{
-								Text:      gui.IconPlay,
-								TextStyle: t.Icon3,
-							}),
-							gui.Text(gui.TextCfg{
-								Text:      "Fade In Beep (1s)",
-								TextStyle: t.N3,
-							}),
-						},
-						OnClick: func(ctx gui.EventCtx) {
-							fadeInBeep(ctx.Window)
-						},
-					}),
-				},
-			}),
-
-			sectionLabel(t, "Multi-Channel"),
-			gui.Row(gui.ContainerCfg{
-				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(8),
-				Padding: gui.NoPadding,
-				Content: []gui.View{
-					gui.Button(gui.ButtonCfg{
-						ID:      "btn-ch0",
-						Padding: gui.NewPadding(8, 16, 8, 16),
-						Content: []gui.View{
-							gui.Text(gui.TextCfg{
-								Text:      gui.IconPlay,
-								TextStyle: t.Icon3,
-							}),
-							gui.Text(gui.TextCfg{
-								Text:      "Play on Ch 0",
-								TextStyle: t.N3,
-							}),
-						},
-						OnClick: func(ctx gui.EventCtx) {
-							playOnChannel(ctx.Window, 0)
-						},
-					}),
-					gui.Button(gui.ButtonCfg{
-						ID:      "btn-ch1",
-						Padding: gui.NewPadding(8, 16, 8, 16),
-						Content: []gui.View{
-							gui.Text(gui.TextCfg{
-								Text:      gui.IconPlay,
-								TextStyle: t.Icon3,
-							}),
-							gui.Text(gui.TextCfg{
-								Text:      "Play on Ch 1",
-								TextStyle: t.N3,
-							}),
-						},
-						OnClick: func(ctx gui.EventCtx) {
-							playOnChannel(ctx.Window, 1)
-						},
-					}),
-					gui.Button(gui.ButtonCfg{
-						ID:      "btn-halt-ch0",
+						ID:      "btn-halt-all",
 						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
@@ -137,15 +38,20 @@ func demoAudio(w *gui.Window) gui.View {
 								TextStyle: t.Icon3,
 							}),
 							gui.Text(gui.TextCfg{
-								Text:      "Halt Ch 0",
+								Text:      "Halt All",
 								TextStyle: t.N3,
 							}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
-							audio.HaltChannel(0)
-							app := appState(ctx.Window)
-							app.AudioStatus = "Ch 0 halted"
+							haltAllSounds(ctx.Window)
 						},
+					}),
+					gui.Text(gui.TextCfg{
+						Text: "Press a pad to start a voice; release to let it decay. " +
+							"Press and drag off without releasing and the voice keeps playing — " +
+							"Halt All stops everything.",
+						TextStyle: t.N4,
+						Mode:      gui.TextModeWrap,
 					}),
 				},
 			}),
@@ -264,6 +170,253 @@ func demoAudio(w *gui.Window) gui.View {
 	})
 }
 
+// ---------------------------------------------------------------------------
+// Live synthesis: a pad grid of streaming audio sources
+//
+// Each pad press creates a synthVoice and hands it to audio.PlaySource,
+// which streams it on a free mixer channel; the release starts the
+// voice's note-off envelope, and the voice ends itself by returning
+// ok = false once the envelope completes.
+// ---------------------------------------------------------------------------
+
+// synthPadDef describes one pad: its note name and frequency.
+type synthPadDef struct {
+	id   string
+	name string
+	freq float64
+}
+
+// synthPadsPerRow is the pad grid width; synthPadRows holds the notes
+// and synthActive one live voice per slot (row*synthPadsPerRow+col).
+const synthPadsPerRow = 4
+
+// synthPadRows is the pad grid, C4 major pentatonic in two rows of
+// four.
+var synthPadRows = [2][]synthPadDef{
+	{
+		{id: "pad-c4", name: "C4", freq: 261.63},
+		{id: "pad-d4", name: "D4", freq: 293.66},
+		{id: "pad-e4", name: "E4", freq: 329.63},
+		{id: "pad-g4", name: "G4", freq: 392.00},
+	},
+	{
+		{id: "pad-a4", name: "A4", freq: 440.00},
+		{id: "pad-c5", name: "C5", freq: 523.25},
+		{id: "pad-d5", name: "D5", freq: 587.33},
+		{id: "pad-e5", name: "E5", freq: 659.25},
+	},
+}
+
+// synthActive holds the live voice per pad slot. It is written from
+// the UI thread and read only there; the voice's own state is
+// audio-thread-exclusive apart from the release flag.
+var synthActive [len(synthPadRows) * synthPadsPerRow]*synthVoice
+
+// Envelope timings in seconds.
+const (
+	synthAttackS  = 0.01
+	synthDecayS   = 0.25
+	synthReleaseS = 0.30
+	synthSustain  = 0.35 // sustain level as a fraction of the peak
+)
+
+// synthVoice is a live audio source: three harmonics of the pad's
+// frequency shaped by an ADSR envelope. Fill runs on the audio thread,
+// so the envelope state lives entirely there; the note-off arrives via
+// an atomic flag set from the UI thread.
+type synthVoice struct {
+	sampleRate   float64
+	freq         float64
+	phase        float64
+	level        float64
+	elapsed      float64
+	releaseLevel float64 // amplitude at note-off; release ramps from it
+	releasing    atomic.Bool
+	done         bool
+}
+
+func newSynthVoice(freq float64) *synthVoice {
+	v := &synthVoice{
+		sampleRate: float64(audio.SampleRate()),
+		freq:       freq,
+		level:      0.2,
+	}
+	if v.sampleRate == 0 {
+		v.sampleRate = 44100
+	}
+	return v
+}
+
+// release starts the note-off envelope.
+func (v *synthVoice) release() { v.releasing.Store(true) }
+
+// Fill implements audio.Source. It must not allocate or block, and it
+// writes stereo samples into the caller-owned buffer.
+func (v *synthVoice) Fill(samples [][2]float64) (int, bool) {
+	dt := 1 / v.sampleRate
+	n := 0
+	for i := range samples {
+		if v.done {
+			break
+		}
+		amp := v.envelope(dt)
+		v.phase += 2 * math.Pi * v.freq * dt
+		// Three harmonics sum to 1.75 peak; scale so the envelope
+		// level is the peak amplitude.
+		wave := (math.Sin(v.phase) + 0.5*math.Sin(2*v.phase) +
+			0.25*math.Sin(3*v.phase)) / 1.75
+		samples[i][0] = wave * amp
+		samples[i][1] = wave * amp
+		n++
+	}
+	// Returning ok = false ends the source and frees the channel; the
+	// mixer reads only the n valid samples.
+	return n, !v.done
+}
+
+// envelope advances the ADSR state by dt and returns the current
+// amplitude. Called once per sample from Fill.
+func (v *synthVoice) envelope(dt float64) float64 {
+	if v.releasing.Load() {
+		if v.elapsed >= synthReleaseS {
+			v.done = true
+			return 0
+		}
+		amp := v.releaseLevel * (1 - v.elapsed/synthReleaseS)
+		v.elapsed += dt
+		return amp
+	}
+	switch {
+	case v.elapsed < synthAttackS:
+		amp := v.level * (v.elapsed / synthAttackS)
+		v.elapsed += dt
+		v.releaseLevel = amp
+		return amp
+	case v.elapsed < synthAttackS+synthDecayS:
+		t := (v.elapsed - synthAttackS) / synthDecayS
+		amp := v.level * (1 - (1-synthSustain)*t)
+		v.elapsed += dt
+		v.releaseLevel = amp
+		return amp
+	default:
+		amp := v.level * synthSustain
+		v.releaseLevel = amp
+		return amp
+	}
+}
+
+// synthNoteOn starts a new voice for pad slot i on the first free
+// mixer channel, releasing the previous voice of the same pad if it is
+// still decaying.
+func synthNoteOn(w *gui.Window, i int, freq float64) {
+	if !ensureAudioInit(w) {
+		return
+	}
+	app := appState(w)
+	if prev := synthActive[i]; prev != nil {
+		prev.release()
+	}
+	voice := newSynthVoice(freq)
+	if err := audio.PlaySource(-1, voice); err != nil {
+		app.AudioStatus = "Synth error: " + err.Error()
+		return
+	}
+	synthActive[i] = voice
+	app.AudioStatus = synthPadRows[i/synthPadsPerRow][i%synthPadsPerRow].name + " on"
+}
+
+// synthNoteOff starts the note-off envelope of the pad's voice. A
+// release over a pad with no live voice (already released, or after
+// Halt All) is a silent no-op.
+func synthNoteOff(w *gui.Window, i int) {
+	v := synthActive[i]
+	if v == nil {
+		return
+	}
+	v.release()
+	synthActive[i] = nil
+	appState(w).AudioStatus = synthPadRows[i/synthPadsPerRow][i%synthPadsPerRow].name + " off"
+}
+
+// haltAllSounds stops every voice and the music track: halts all
+// mixer channels, forgets the pad voices (so a later release over a
+// pad is a no-op), and halts music.
+func haltAllSounds(w *gui.Window) {
+	app := appState(w)
+	// HaltMusic on an uninitialized backend derefs a nil ctrl, so
+	// guard on the flag rather than letting the user panic the app
+	// by clicking Halt All before anything ever played.
+	if !app.AudioReady {
+		app.AudioStatus = "No audio initialized"
+		return
+	}
+	audio.HaltChannel(-1)
+	audio.HaltMusic()
+	for i := range synthActive {
+		synthActive[i] = nil
+	}
+	app.AudioMusicPlaying = false
+	app.AudioMusicPaused = false
+	app.AudioStatus = "All sounds halted"
+}
+
+// synthPadView builds one pad. Press starts the voice (OnMouseDown);
+// release starts its decay (OnMouseUp).
+func synthPadView(t gui.Theme, i int, p synthPadDef) gui.View {
+	return gui.Column(gui.ContainerCfg{
+		ID:          p.id,
+		Width:       88,
+		Height:      56,
+		Sizing:      gui.FixedFixed,
+		Color:       t.ColorPanel,
+		ColorBorder: t.ColorBorder,
+		Radius:      gui.SomeF(10),
+		HAlign:      gui.HAlignCenter,
+		VAlign:      gui.VAlignMiddle,
+		Content: []gui.View{
+			gui.Text(gui.TextCfg{
+				Text:      p.name,
+				TextStyle: t.N3,
+			}),
+			gui.Text(gui.TextCfg{
+				Text:      fmt.Sprintf("%.0f Hz", p.freq),
+				TextStyle: t.N4,
+			}),
+		},
+		OnMouseDown: func(ctx gui.EventCtx) {
+			synthNoteOn(ctx.Window, i, p.freq)
+			ctx.Consume()
+		},
+		OnMouseUp: func(ctx gui.EventCtx) {
+			synthNoteOff(ctx.Window, i)
+			ctx.Consume()
+		},
+	})
+}
+
+// synthPadGrid builds the pad rows.
+func synthPadGrid(t gui.Theme) gui.View {
+	var rows []gui.View
+	for r := range synthPadRows {
+		pads := make([]gui.View, 0, len(synthPadRows[r]))
+		for c := range synthPadRows[r] {
+			pads = append(pads, synthPadView(t, r*synthPadsPerRow+c, synthPadRows[r][c]))
+		}
+		rows = append(rows, gui.Row(gui.ContainerCfg{
+			Sizing:  gui.FillFit,
+			Spacing: gui.SomeF(8),
+			Padding: gui.NoPadding,
+			Content: pads,
+		}))
+	}
+	return gui.Column(gui.ContainerCfg{
+		Sizing:  gui.FillFit,
+		Spacing: gui.SomeF(8),
+		Padding: gui.NoPadding,
+		Content: rows,
+	})
+}
+
 func ensureAudioInit(w *gui.Window) bool {
 	app := appState(w)
 	if app.AudioReady {
@@ -279,122 +432,31 @@ func ensureAudioInit(w *gui.Window) bool {
 	return true
 }
 
-// --- sound effects ---
-
-func playBeep(w *gui.Window) {
-	if !ensureAudioInit(w) {
-		return
-	}
-	app := appState(w)
-	if beepSound == nil {
-		wav := generateWAV(440, 0.25, 44100)
-		snd, err := audio.LoadSoundBytes(wav)
-		if err != nil {
-			app.AudioStatus = "Load error: " + err.Error()
-			return
-		}
-		beepSound = snd
-	}
-	if _, err := beepSound.PlayOnce(); err != nil {
-		app.AudioStatus = "Play error: " + err.Error()
-		return
-	}
-	app.AudioStatus = "Playing 440 Hz beep"
-}
-
-func playHighTone(w *gui.Window) {
-	if !ensureAudioInit(w) {
-		return
-	}
-	app := appState(w)
-	if highSound == nil {
-		wav := generateWAV(880, 0.25, 44100)
-		snd, err := audio.LoadSoundBytes(wav)
-		if err != nil {
-			app.AudioStatus = "Load error: " + err.Error()
-			return
-		}
-		highSound = snd
-	}
-	if _, err := highSound.PlayOnce(); err != nil {
-		app.AudioStatus = "Play error: " + err.Error()
-		return
-	}
-	app.AudioStatus = "Playing 880 Hz tone"
-}
-
-func fadeInBeep(w *gui.Window) {
-	if !ensureAudioInit(w) {
-		return
-	}
-	app := appState(w)
-	if beepSound == nil {
-		wav := generateWAV(440, 0.25, 44100)
-		snd, err := audio.LoadSoundBytes(wav)
-		if err != nil {
-			app.AudioStatus = "Load error: " + err.Error()
-			return
-		}
-		beepSound = snd
-	}
-	if _, err := beepSound.FadeIn(-1, 0, 1000); err != nil {
-		app.AudioStatus = "Fade error: " + err.Error()
-		return
-	}
-	app.AudioStatus = "Beep fading in (1s)"
-}
-
-func playOnChannel(w *gui.Window, channel int) {
-	if !ensureAudioInit(w) {
-		return
-	}
-	app := appState(w)
-	if highSound == nil {
-		wav := generateWAV(880, 0.5, 44100)
-		snd, err := audio.LoadSoundBytes(wav)
-		if err != nil {
-			app.AudioStatus = "Load error: " + err.Error()
-			return
-		}
-		highSound = snd
-	}
-	ch, err := highSound.Play(channel, 0)
-	if err != nil {
-		app.AudioStatus = "Channel play error: " + err.Error()
-		return
-	}
-	app.AudioStatus = fmt.Sprintf("Playing on ch %d", ch)
-}
-
 // --- music ---
 
+// loadMusicDemo loads the embedded music clip (Mozart, Eine kleine
+// Nachtmusik, K. 525, I. Allegro — public-domain Musopen recording,
+// assets/music.ogg). LoadMusic is path-only, so the embedded asset is
+// extracted to a temp file first, the same way the image demos do.
 func loadMusicDemo(w *gui.Window) {
 	if !ensureAudioInit(w) {
 		return
 	}
 	app := appState(w)
 	cleanupMusic(w)
-	wav := generateWAV(660, 3, 44100)
-	tmp, err := os.CreateTemp("", "showcase-audio-*.wav")
-	if err != nil {
-		app.AudioStatus = "Temp file error: " + err.Error()
+	path := embeddedAssetPath("assets/music.ogg")
+	if path == "" {
+		app.AudioStatus = "Music asset missing"
 		return
 	}
-	if _, err := tmp.Write(wav); err != nil {
-		_ = tmp.Close()
-		app.AudioStatus = "Write error: " + err.Error()
-		return
-	}
-	_ = tmp.Close()
-	musicPath = tmp.Name()
-	track, err := audio.LoadMusic(musicPath)
+	track, err := audio.LoadMusic(path)
 	if err != nil {
 		app.AudioStatus = "Load music error: " + err.Error()
 		return
 	}
 	musicTrack = track
 	app.AudioMusicLoaded = true
-	app.AudioStatus = "Music loaded (3s 660 Hz tone)"
+	app.AudioStatus = "Music loaded (Mozart K. 525)"
 }
 
 func playMusic(w *gui.Window) {
@@ -424,8 +486,12 @@ func fadeOutMusic(w *gui.Window) {
 }
 
 func stopMusic(w *gui.Window) {
-	audio.HaltMusic()
 	app := appState(w)
+	if !app.AudioReady {
+		app.AudioStatus = "No audio initialized"
+		return
+	}
+	audio.HaltMusic()
 	app.AudioMusicPlaying = false
 	app.AudioMusicPaused = false
 	app.AudioStatus = "Music stopped"
@@ -437,63 +503,7 @@ func cleanupMusic(w *gui.Window) {
 		musicTrack.Free()
 		musicTrack = nil
 	}
-	if musicPath != "" {
-		_ = os.Remove(musicPath)
-		musicPath = ""
-	}
 	app := appState(w)
 	app.AudioMusicLoaded = false
 	app.AudioMusicPlaying = false
-}
-
-// generateWAV creates a mono 16-bit PCM WAV with a sine tone.
-// freq and seconds are clamped to safe ranges to prevent overflow.
-func generateWAV(freq, seconds float64, sampleRate int) []byte {
-	const maxSeconds = 300
-	if sampleRate <= 0 {
-		sampleRate = 44100
-	}
-	if sampleRate > 192000 {
-		sampleRate = 192000
-	}
-	if math.IsNaN(seconds) || math.IsInf(seconds, 0) || seconds < 0 {
-		seconds = 0
-	}
-	seconds = min(seconds, maxSeconds)
-
-	n := int(seconds * float64(sampleRate))
-	const maxSamples = 60 * 192000 // 60 seconds at max rate
-	if n > maxSamples {
-		n = maxSamples
-	}
-	dataSize := n * 2
-	buf := make([]byte, 44+dataSize)
-
-	copy(buf[0:4], "RIFF")
-	binary.LittleEndian.PutUint32(buf[4:8], uint32(36+dataSize))
-	copy(buf[8:12], "WAVE")
-
-	copy(buf[12:16], "fmt ")
-	binary.LittleEndian.PutUint32(buf[16:20], 16)
-	binary.LittleEndian.PutUint16(buf[20:22], 1)
-	binary.LittleEndian.PutUint16(buf[22:24], 1)
-	binary.LittleEndian.PutUint32(buf[24:28], uint32(sampleRate))
-	binary.LittleEndian.PutUint32(buf[28:32], uint32(sampleRate*2))
-	binary.LittleEndian.PutUint16(buf[32:34], 2)
-	binary.LittleEndian.PutUint16(buf[34:36], 16)
-
-	copy(buf[36:40], "data")
-	binary.LittleEndian.PutUint32(buf[40:44], uint32(dataSize))
-
-	if math.IsNaN(freq) || math.IsInf(freq, 0) {
-		freq = 0
-	}
-
-	omega := 2 * math.Pi * freq / float64(sampleRate)
-	for i := range n {
-		sample := int16(math.Sin(omega*float64(i)) * 0.5 * 32767)
-		binary.LittleEndian.PutUint16(
-			buf[44+i*2:46+i*2], uint16(sample))
-	}
-	return buf
 }

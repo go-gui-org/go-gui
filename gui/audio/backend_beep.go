@@ -398,3 +398,28 @@ func (b *beepBackend) ResumeChannel(channel int) {
 func (b *beepBackend) IsPlaying(channel int) bool {
 	return b.channels.isPlaying(channel)
 }
+
+// --- live sources ---
+
+// PlaySource starts a live [Source] on the given channel.  The adapter
+// is a plain struct: Fill writes into the caller-owned buffer, so the
+// path allocates nothing per callback.
+func (b *beepBackend) PlaySource(channel int, s Source) error {
+	if channel < 0 {
+		channel = b.channels.firstFree()
+	}
+	if channel < 0 {
+		return errors.New("audio: no free channel for source")
+	}
+	if channel >= b.channels.numChannels() {
+		return fmt.Errorf("audio: channel %d out of range [0, %d)",
+			channel, b.channels.numChannels()-1)
+	}
+	b.channels.set(channel, &sourceStreamer{src: s})
+	return nil
+}
+
+// SampleRate returns the configured output sample rate in Hz.
+func (b *beepBackend) SampleRate() int {
+	return int(b.sampleRate)
+}
