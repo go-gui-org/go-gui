@@ -38,7 +38,7 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 		case gui.RenderBlur:
 			b.drawBlur(r)
 		case gui.RenderGradient:
-			b.drawGradient(r)
+			b.drawGradient(w, r)
 		case gui.RenderGradientBorder:
 			b.drawGradientBorder(r)
 		case gui.RenderImage:
@@ -207,7 +207,7 @@ func (b *Backend) drawBlur(r *gui.RenderCmd) {
 		r.Color, rad+expand, blur)
 }
 
-func (b *Backend) drawGradient(r *gui.RenderCmd) {
+func (b *Backend) drawGradient(w *gui.Window, r *gui.RenderCmd) {
 	if r.Gradient == nil || len(r.Gradient.Stops) == 0 ||
 		r.W <= 0 || r.H <= 0 {
 		return
@@ -215,7 +215,7 @@ func (b *Backend) drawGradient(r *gui.RenderCmd) {
 	s := b.dpiScale
 	x := r.X * s
 	y := r.Y * s
-	w := r.W * s
+	width := r.W * s
 	h := r.H * s
 	rad := r.Radius * s
 
@@ -224,14 +224,17 @@ func (b *Backend) drawGradient(r *gui.RenderCmd) {
 	if len(stops) == 0 {
 		return
 	}
+	if len(stops) < len(r.Gradient.Stops) {
+		w.DebugGradientResampled(r.X, r.Y, len(stops), len(r.Gradient.Stops))
+	}
 
-	tm := gpu.PackGradientUniforms(r.Gradient, stops, w, h)
+	tm := gpu.PackGradientUniforms(r.Gradient, stops, width, h)
 
 	b.usePipeline(&b.pipelines.gradient)
 	gogl.UniformMatrix4fv(b.pipelines.gradient.uTM, 1, false,
 		&tm[0])
 
-	b.drawQuad(x, y, w, h, gui.White, rad, 0)
+	b.drawQuad(x, y, width, h, gui.White, rad, 0)
 }
 
 func (b *Backend) drawGradientBorder(r *gui.RenderCmd) {

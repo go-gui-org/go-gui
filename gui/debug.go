@@ -74,6 +74,11 @@ const (
 	// demand the width they were handed.
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugListBoxNoHeight
+	// DebugGradientResampled reports a fill gradient with more stops
+	// than the GPU shader uniforms can carry, silently resampled to
+	// evenly spaced stops on GPU backends.
+	// exportaudit:keep — dev-diagnostic API for app authors
+	DebugGradientResampled
 
 	// DebugUnscopedIDs reports a focusable or scrollable shape whose ID
 	// resolves to itself — no ID-bearing ancestor above it — so its
@@ -92,7 +97,7 @@ const (
 	// would fire on most widgets in a small app.
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugAll = DebugDuplicates | DebugMissingIDs | DebugUnconsumed |
-		DebugListBoxNoHeight
+		DebugListBoxNoHeight | DebugGradientResampled
 )
 
 func init() {
@@ -126,6 +131,8 @@ func envTruthy(name string) bool {
 //   - a shape with an OnMouseLeave and no ID (the callback never fires)
 //   - a scrollable listbox that resolved to height 0 (virtualization
 //     off, every row builds each frame)
+//   - a fill gradient with more stops than the GPU shader uniform limit
+//     (silently resampled to evenly spaced stops on GPU backends)
 //
 // It also reports, from dispatch rather than from the frame audit, any
 // consume-class callback that relies on automatic handling while an
@@ -211,6 +218,10 @@ const (
 	// debugCheckUnscopedID reports an identity that has no ID-bearing
 	// ancestor, so it is still a window-global name.
 	debugCheckUnscopedID
+	// debugCheckGradientResampled fires from the GPU backends' draw
+	// pass when a fill gradient has more stops than the shader uniform
+	// layout can carry.
+	debugCheckGradientResampled
 )
 
 // checkCategory maps an internal check to the public category that
@@ -229,6 +240,8 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugListBoxNoHeight
 	case debugCheckUnscopedID:
 		return DebugUnscopedIDs
+	case debugCheckGradientResampled:
+		return DebugGradientResampled
 	}
 	return 0
 }
@@ -426,6 +439,27 @@ func (w *Window) debugWarn(check debugCheck, subject, format string, args ...any
 	// Diagnostics are best-effort; a failed write to stderr is not
 	// something a GUI frame can act on.
 	_, _ = fmt.Fprintf(debugOut, "gui: "+format+"\n", args...)
+}
+
+// DebugGradientResampled reports a fill gradient whose stops exceeded
+// the GPU shader uniform limit and were resampled to evenly spaced
+// positions, degrading its appearance. Called by the GPU backends'
+// draw pass; x, y is the gradient rect origin, used as the warn-once
+// discriminator.
+func (w *Window) DebugGradientResampled(x, y float32, kept, total int) {
+	// NaN never equals itself, so a NaN map key could never match and
+	// the warn-once memory would grow a key every frame. Fold NaN in
+	// the discriminator only; the message keeps the true position.
+	if x != x {
+		x = 0
+	}
+	if y != y {
+		y = 0
+	}
+	w.debugWarn(debugCheckGradientResampled,
+		fmt.Sprintf("gradient %g,%g", x, y),
+		"gradient at (%g, %g) has %d stops; resampled to %d "+
+			"(GPU shader uniform limit)", x, y, total, kept)
 }
 
 // debugPath renders a tree path as "0/3/1". The root is "root".

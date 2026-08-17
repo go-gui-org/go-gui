@@ -135,12 +135,14 @@ func SampleGradientStopColor(stops []GradientStop, pos float32) Color {
 	return stops[len(stops)-1].Color
 }
 
-// NormalizeGradientStopsInto is the non-allocating variant that
-// reuses caller-provided slices.
-func NormalizeGradientStopsInto(stops []GradientStop, norm, sampled *[]GradientStop) []GradientStop {
+// NormalizeGradientStops clamps every stop position to [0,1] and
+// sorts by position, preserving the full stop count. Backends whose
+// gradient path has no stop limit — the web backend's canvas
+// gradients — use this instead of NormalizeGradientStopsInto so
+// fidelity is never resampled away.
+func NormalizeGradientStops(stops []GradientStop, norm *[]GradientStop) []GradientStop {
 	if len(stops) == 0 {
 		*norm = (*norm)[:0]
-		*sampled = (*sampled)[:0]
 		return nil
 	}
 	*norm = (*norm)[:0]
@@ -151,9 +153,22 @@ func NormalizeGradientStopsInto(stops []GradientStop, norm, sampled *[]GradientS
 		*norm = append(*norm, GradientStop{Color: s.Color, Pos: clampUnit(s.Pos)})
 	}
 	slices.SortFunc(*norm, compareStops)
-	if len(*norm) <= gradientShaderStopLimit {
+	return *norm
+}
+
+// NormalizeGradientStopsInto is the non-allocating variant that
+// reuses caller-provided slices. Stops beyond gradientShaderStopLimit
+// are resampled to evenly spaced positions; NormalizeGradientStops is
+// the no-resample variant for backends without a stop limit.
+func NormalizeGradientStopsInto(stops []GradientStop, norm, sampled *[]GradientStop) []GradientStop {
+	result := NormalizeGradientStops(stops, norm)
+	if result == nil {
 		*sampled = (*sampled)[:0]
-		return *norm
+		return nil
+	}
+	if len(result) <= gradientShaderStopLimit {
+		*sampled = (*sampled)[:0]
+		return result
 	}
 	*sampled = (*sampled)[:0]
 	if cap(*sampled) < gradientShaderStopLimit {
@@ -162,7 +177,7 @@ func NormalizeGradientStopsInto(stops []GradientStop, norm, sampled *[]GradientS
 	for i := range gradientShaderStopLimit {
 		samplePos := float32(i) / float32(gradientShaderStopLimit-1)
 		*sampled = append(*sampled, GradientStop{
-			Color: SampleGradientStopColor(*norm, samplePos),
+			Color: SampleGradientStopColor(result, samplePos),
 			Pos:   samplePos,
 		})
 	}

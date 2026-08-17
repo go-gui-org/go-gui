@@ -43,7 +43,7 @@ func (b *windowState) renderersDraw(w *gui.Window) {
 		case gui.RenderBlur:
 			b.drawBlur(r)
 		case gui.RenderGradient:
-			b.drawGradient(r)
+			b.drawGradient(w, r)
 		case gui.RenderGradientBorder:
 			b.drawGradientBorder(r)
 		case gui.RenderImage:
@@ -209,7 +209,7 @@ func (b *windowState) drawBlur(r *gui.RenderCmd) {
 	C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
 }
 
-func (b *windowState) drawGradient(r *gui.RenderCmd) {
+func (b *windowState) drawGradient(w *gui.Window, r *gui.RenderCmd) {
 	if r.Gradient == nil || len(r.Gradient.Stops) == 0 ||
 		r.W <= 0 || r.H <= 0 {
 		return
@@ -217,7 +217,7 @@ func (b *windowState) drawGradient(r *gui.RenderCmd) {
 	s := b.dpiScale
 	x := r.X * s
 	y := r.Y * s
-	w := r.W * s
+	width := r.W * s
 	h := r.H * s
 	rad := r.Radius * s
 
@@ -226,14 +226,17 @@ func (b *windowState) drawGradient(r *gui.RenderCmd) {
 	if len(stops) == 0 {
 		return
 	}
+	if len(stops) < len(r.Gradient.Stops) {
+		w.DebugGradientResampled(r.X, r.Y, len(stops), len(r.Gradient.Stops))
+	}
 
-	tm := gpu.PackGradientUniforms(r.Gradient, stops, w, h)
+	tm := gpu.PackGradientUniforms(r.Gradient, stops, width, h)
 
 	C.metalSetPipeline(b.ctx, C.int(pipeGradient))
 	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
 	C.metalSetTM(b.ctx, (*C.float)(&tm[0]))
 
-	verts := gpu.BuildQuad(x, y, w, h, gui.White, rad, 0)
+	verts := gpu.BuildQuad(x, y, width, h, gui.White, rad, 0)
 	C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
 }
 

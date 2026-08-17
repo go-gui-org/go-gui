@@ -232,6 +232,69 @@ func TestNormalizeGradientStopsIntoOverLimit(t *testing.T) {
 	}
 }
 
+// NormalizeGradientStops keeps every stop: it is the no-resample
+// variant for backends without a stop limit (web canvas gradients).
+func TestNormalizeGradientStopsKeepsAll(t *testing.T) {
+	stops := make([]GradientStop, 10)
+	for i := range stops {
+		stops[i] = GradientStop{
+			Color: RGBA(uint8(i*25), 0, 0, 255),
+			Pos:   float32(i) / 9.0,
+		}
+	}
+	// Out-of-range and unsorted input exercises the clamp and sort.
+	stops[9].Pos = 1.5
+	stops[8].Pos = -0.5
+	norm := make([]GradientStop, 0, 16)
+	result := NormalizeGradientStops(stops, &norm)
+	if len(result) != 10 {
+		t.Fatalf("want all 10 stops preserved, got %d", len(result))
+	}
+	if result[0].Pos != 0 {
+		t.Errorf("first pos: got %v, want 0.0", result[0].Pos)
+	}
+	if result[9].Pos != 1 {
+		t.Errorf("last pos: got %v, want 1.0 (clamped)", result[9].Pos)
+	}
+	for i := 1; i < len(result); i++ {
+		if result[i-1].Pos > result[i].Pos {
+			t.Fatalf("stops must be sorted, index %d: %v > %v",
+				i, result[i-1].Pos, result[i].Pos)
+		}
+	}
+}
+
+func TestNormalizeGradientStopsEmpty(t *testing.T) {
+	norm := make([]GradientStop, 0)
+	if got := NormalizeGradientStops(nil, &norm); got != nil {
+		t.Errorf("want nil, got %v", got)
+	}
+}
+
+// NaN positions must fold to 0 (clampUnit) rather than poison the
+// sort order or the output positions.
+func TestNormalizeGradientStopsNaNPosition(t *testing.T) {
+	nan := float32(math.NaN())
+	stops := []GradientStop{
+		{Color: RGBA(0, 255, 0, 255), Pos: 1},
+		{Color: RGBA(255, 0, 0, 255), Pos: nan},
+		{Color: RGBA(0, 0, 255, 255), Pos: 0.5},
+	}
+	norm := make([]GradientStop, 0, 8)
+	result := NormalizeGradientStops(stops, &norm)
+	if len(result) != 3 {
+		t.Fatalf("want 3 stops, got %d", len(result))
+	}
+	for i, s := range result {
+		if s.Pos != s.Pos {
+			t.Fatalf("stop %d keeps a NaN position", i)
+		}
+		if s.Pos < 0 || s.Pos > 1 {
+			t.Fatalf("stop %d out of range: %v", i, s.Pos)
+		}
+	}
+}
+
 func TestNormalizeGradientStopsIntoReuse(t *testing.T) {
 	stops := []GradientStop{
 		{Color: RGBA(0, 0, 0, 255), Pos: 0},
