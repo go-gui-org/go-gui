@@ -241,6 +241,21 @@ func fallbackOffset(style TextStyle, probe string, ratio float32) float32 {
 	return style.Size * ratio
 }
 
+// glyphStyle marks a style whose runs are symbol glyphs rather than
+// text: a triangle, a multiplication sign standing in for a close
+// button, a vertical ellipsis. Such a run has no cap band to centre on
+// and must keep its own ink, the way an icon-font glyph does — the
+// theme's Icon rungs carry the mark already, and this is the spelling
+// for a symbol drawn in an ordinary text face (issue #346).
+//
+// It is a function rather than a field a caller sets so the mark stays
+// unexported and searchable: every glyph-in-a-button in the toolkit
+// goes through here.
+func glyphStyle(ts TextStyle) TextStyle {
+	ts.glyphRole = true
+	return ts
+}
+
 // opticalCenterText is an AmendLayout hook that moves a container's
 // direct text children down onto their optical centre. Use it on a
 // container that centres text the widget itself owns — a badge's count,
@@ -336,9 +351,26 @@ func opticalCenterChildren(ctx EventCtx, band opticalBand) {
 		// The style comes from the shape, so a field showing its
 		// placeholder is corrected for the placeholder's face rather
 		// than the text style it will have once typed into.
+		// A blank run is *not* skipped on a content-free band, and
+		// that is the point of one: an empty digit field still shows a
+		// caret, whose position comes from this shape, so declining to
+		// move it would step the caret the moment the first character
+		// arrived. The measured band declines a blank run inside
+		// opticalTextOffset, where the question is about ink.
 		style := textStyleOrDefault(txt)
+		// A content-free band is a claim about an alphabet, and an icon
+		// glyph is not in one. Centring an arrow on the icon face's cap
+		// band would shift it by whatever that face's "H" measures — a
+		// notdef box, or nothing at all, in a face drawn for symbols —
+		// where its own ink is the answer the toolkit already gives a
+		// single glyph elsewhere (centerGlyphOnInk). The style says
+		// which it is, because no measurement can.
+		effective := band
+		if style.glyphRole && band != opticalBandRun {
+			effective = opticalBandRun
+		}
 		var off float32
-		switch band {
+		switch effective {
 		case opticalBandDigit:
 			off = ctx.Window.opticalDigitOffset(style)
 		case opticalBandCap:

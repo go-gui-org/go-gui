@@ -459,6 +459,11 @@ type shapeButtonColors struct {
 	colorClick       Color
 	ColorFocus       Color
 	ColorBorderFocus Color
+	// opticalDigits centres the button's label on the face's figure
+	// band instead of its cap band, for a button whose label is digits
+	// by construction — a date picker's day cell. Set from the
+	// unexported ButtonCfg.opticalDigitLabel; see buttonAmendLayout.
+	opticalDigits bool
 }
 
 // shapeEffects holds optional visual effect fields.

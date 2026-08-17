@@ -53,10 +53,13 @@ func mainView(w *gui.Window) gui.View {
 
 	rows := []gui.View{
 		gui.Label("Optical centring probe — issue #346", th.B2),
-		gui.Label("corrected: badge, button, tab, progress readout, "+
-			"colour fields. uncorrected: plain text, input. a run that "+
-			"descends is skipped, so the gypsy rows should sit level "+
-			"across all three columns.", th.TextStyleSecondary),
+		gui.Label("corrected: badge and progress readout on their own "+
+			"ink; button, tab, select and menu on the face's cap band; "+
+			"colour fields and masked inputs on its figures. "+
+			"uncorrected: plain text, input. a badge that descends is "+
+			"left alone, while a button that descends is not — the "+
+			"badge is a value, the button is a label.",
+			th.TextStyleSecondary),
 		gui.Separator(gui.SeparatorCfg{}),
 		// Select re-labels itself as the selection changes, so it takes
 		// the content-free cap-band form: both of these must sit at the
@@ -153,6 +156,15 @@ func sizeRow(size float32, text string) gui.View {
 			gui.Button(gui.ButtonCfg{
 				ID:      gui.ScopeIDN("probe", "btn_"+text, int(size)),
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: text, TextStyle: ts})},
+				OnClick: func(gui.EventCtx) {},
+			}),
+			// A cap-only button beside the row's own spelling. Buttons
+			// take the cap band, so this one and the "gypsy" button a
+			// row down must sit at the same height in their boxes —
+			// that is the property, and it is only visible as a pair.
+			gui.Button(gui.ButtonCfg{
+				ID:      gui.ScopeIDN("probe", "btncap_"+text, int(size)),
+				Content: []gui.View{gui.Text(gui.TextCfg{Text: "PICK", TextStyle: ts})},
 				OnClick: func(gui.EventCtx) {},
 			}),
 			gui.Text(gui.TextCfg{Text: text, TextStyle: ts}),

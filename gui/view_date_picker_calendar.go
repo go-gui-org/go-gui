@@ -106,15 +106,19 @@ func datePickerMonth(
 					// decorative case FocusDisabled exists for, so opt
 					// out rather than invent an ID for empty space.
 					cells = append(cells, Button(ButtonCfg{
-						FocusDisabled: true,
-						Color:         ColorTransparent,
-						Colors:        ColorSet{Border: ColorTransparent},
-						Disabled:      true,
-						MinWidth:      cellSize,
-						MaxWidth:      cellSize,
-						MaxHeight:     cellSize,
-						Padding:       paddingThree,
-						Content:       []View{Text(TextCfg{Text: " "})},
+						// Same band as the cells it stands among, so
+						// the whole grid is corrected once and the
+						// recording does not carry an odd one out.
+						opticalDigitLabel: true,
+						FocusDisabled:     true,
+						Color:             ColorTransparent,
+						Colors:            ColorSet{Border: ColorTransparent},
+						Disabled:          true,
+						MinWidth:          cellSize,
+						MaxWidth:          cellSize,
+						MaxHeight:         cellSize,
+						Padding:           paddingThree,
+						Content:           []View{Text(TextCfg{Text: " "})},
 					}))
 				}
 				continue
@@ -148,16 +152,20 @@ func datePickerMonth(
 			dayVal := d
 			cfgID := cfg.ID
 			cells = append(cells, Button(ButtonCfg{
-				ID:         ScopeIDN(cfg.ID, "day", d),
-				MinWidth:   cellSize,
-				MaxWidth:   cellSize,
-				MaxHeight:  cellSize,
-				Color:      cellColor,
-				Colors:     ColorSet{Hover: colorHover, Click: cfg.ColorSelect, Border: borderColor},
-				SizeBorder: SomeF(2),
-				Radius:     Some(radius),
-				Padding:    paddingThree,
-				Disabled:   disabled,
+				ID: ScopeIDN(cfg.ID, "day", d),
+				// A day number is digits by construction, and figures
+				// measure shorter than caps: on the cap band every cell
+				// would land low (issue #346).
+				opticalDigitLabel: true,
+				MinWidth:          cellSize,
+				MaxWidth:          cellSize,
+				MaxHeight:         cellSize,
+				Color:             cellColor,
+				Colors:            ColorSet{Hover: colorHover, Click: cfg.ColorSelect, Border: borderColor},
+				SizeBorder:        SomeF(2),
+				Radius:            Some(radius),
+				Padding:           paddingThree,
+				Disabled:          disabled,
 				Content: []View{Text(TextCfg{
 					Text: dayStr, TextStyle: ts,
 				})},
@@ -235,13 +243,16 @@ func datePickerAdjacentCell(
 	}
 
 	return Button(ButtonCfg{
-		ID:        ScopeIDN(ScopeID(cfg.ID, "day", idSuffix), "", adjDay),
-		Color:     ColorTransparent,
-		Colors:    ColorSet{Border: ColorTransparent},
-		MinWidth:  cellSize,
-		MaxWidth:  cellSize,
-		MaxHeight: cellSize,
-		Padding:   paddingThree,
+		ID: ScopeIDN(ScopeID(cfg.ID, "day", idSuffix), "", adjDay),
+		// Digits, like the in-month cells beside it, and it has to sit
+		// level with them.
+		opticalDigitLabel: true,
+		Color:             ColorTransparent,
+		Colors:            ColorSet{Border: ColorTransparent},
+		MinWidth:          cellSize,
+		MaxWidth:          cellSize,
+		MaxHeight:         cellSize,
+		Padding:           paddingThree,
 		Content: []View{Text(TextCfg{
 			Text:      strconv.Itoa(adjDay),
 			TextStyle: ts,

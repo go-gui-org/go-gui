@@ -90,6 +90,24 @@ type TextStyle struct {
 	// mechanism. It rides along through the ordinary struct copies
 	// widgets make of a TextStyle.
 	disabledRole bool
+	// glyphRole marks a style whose runs are icon glyphs rather than
+	// text, because it came from the theme's icon family.
+	//
+	// Optical centring needs the distinction and cannot measure it: a
+	// label is centred on the face's cap band, which is what the eye
+	// reads a control's label by, while a glyph has no cap band to
+	// speak of and must be centred on its own ink — the same answer
+	// centerGlyphOnInk gives a checkbox's check. An arrow's ink can sit
+	// inside the cap band exactly as a word's does, so no geometric
+	// test separates them; the style has to say which it is (issue
+	// #346).
+	//
+	// Unexported and set only where a style takes the icon family
+	// (gui/theme_maker.go), for the same reason disabledRole is: a
+	// widget states what the text is, never what the correction should
+	// do about it. It rides along through the ordinary struct copies
+	// widgets make of a TextStyle.
+	glyphRole bool
 }
 
 // mergeTextStyle fills zero fields in s from fallback.

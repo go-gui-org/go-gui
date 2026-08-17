@@ -178,6 +178,7 @@ type containerView struct {
 	isButton         bool
 	userOnHover      func(EventCtx)
 	userAmendLayout  func(EventCtx)
+	opticalDigits    bool
 	colorHover       Color
 	colorClick       Color
 	colorFocus       Color
@@ -196,6 +197,7 @@ func (cv *containerView) GenerateLayout(w *Window) Layout {
 			ColorBorderFocus: cv.colorBorderFocus,
 			OnHover:          cv.userOnHover,
 			OnAmend:          cv.userAmendLayout,
+			opticalDigits:    cv.opticalDigits,
 		}
 		if w != nil {
 			layout.Shape.bc = w.scratch.buttonColors.alloc(bc)

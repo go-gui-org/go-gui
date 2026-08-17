@@ -54,7 +54,7 @@ func OverflowPanel(w *Window, cfg OverflowPanelCfg) View {
 		triggerContent = []View{
 			Text(TextCfg{
 				Text:      "\u22EE",
-				TextStyle: DefaultTextStyle,
+				TextStyle: glyphStyle(DefaultTextStyle),
 			}),
 		}
 	}
