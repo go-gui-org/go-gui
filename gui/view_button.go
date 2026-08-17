@@ -69,6 +69,10 @@ type ButtonCfg struct {
 }
 
 func buttonAmendLayout(ctx EventCtx) {
+	// Unconditional: the correction is a property of the label, not of
+	// the button's state, and the early return below covers only the
+	// hover/focus colouring and the caller's own hook.
+	opticalCenterText(ctx)
 	if ctx.Layout.Shape.Disabled ||
 		!ctx.Layout.Shape.hasEvents() ||
 		ctx.Layout.Shape.events.OnClick == nil {
@@ -173,7 +177,18 @@ func Button(cfg ButtonCfg) View {
 		OnClick:      onClick,
 		clickOnSpace: true,
 		clickOnEnter: true,
-		Content:      cfg.Content,
+		// A button's label is text the widget owns, so it takes the
+		// optical correction (issue #346); tabs, command buttons and
+		// every other widget built on Button inherit it here.
+		//
+		// Set on the cfg rather than through cv.userAmendLayout because
+		// that slot is reached from buttonAmendLayout, which returns
+		// early for a disabled or click-less button — a disabled label
+		// would then sit a pixel above the enabled one beside it. This
+		// also guarantees the shape gets an events record, which a
+		// bubble-text Button otherwise has no reason to allocate.
+		AmendLayout: opticalCenterText,
+		Content:     cfg.Content,
 	}).(*containerView)
 
 	cv.isButton = true

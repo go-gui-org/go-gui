@@ -223,6 +223,7 @@ const (
 	nsSvgCache            = "gui.svg_cache"
 	nsSvgDimCache         = "gui.svg_dim_cache"
 	nsSvgAnimSeen         = "gui.svg_anim_seen"
+	nsOpticalOffset       = "gui.optical_offset"
 	nsDragReorder         = "gui.drag_reorder"
 	nsDragReorderIDsMeta  = "gui.drag_reorder.ids_meta"
 	nsTableColWidths      = "gui.table.col_widths"

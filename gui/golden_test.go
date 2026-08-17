@@ -37,6 +37,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 var updateGolden = flag.Bool("update", false,
@@ -201,6 +202,11 @@ func renderGolden(t *testing.T, theme Theme, c goldenCase) string {
 			Content: []View{c.build(win)},
 		})
 	}
+	// Pin the clock. A widget that rings "today" — the date picker's
+	// calendar — otherwise records a different cell every day, so the
+	// recording rots overnight rather than when the widget changes.
+	goldenNow := time.Date(2026, 8, 16, 12, 0, 0, 0, time.UTC)
+	w.setVirtualNow(&goldenNow)
 	w.SetTheme(theme)
 	if c.focusID != "" {
 		w.SetFocus(c.focusID)

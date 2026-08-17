@@ -116,6 +116,17 @@ type InputCfg struct {
 	// IsPassword masks displayed characters with dots/bullets.
 	IsPassword bool
 
+	// opticalDigitCenter opts the field's text into optical centring on
+	// the face's figure band (issue #346). Unexported and opt-in because
+	// it is only sound where the *caller* guarantees the alphabet is
+	// digits and separators — InputDate and NumericInput, by their masks.
+	// A general Input keeps metric centring: its text is arbitrary, and a
+	// run with a descender is already below the middle.
+	//
+	// Content-free, so it cannot jitter as the user types; see
+	// opticalCenterFieldText.
+	opticalDigitCenter bool
+
 	// SpellCheck enables platform spell checking. Mac only.
 	SpellCheck bool
 
@@ -245,6 +256,13 @@ func Input(cfg InputCfg) View {
 		VAlign:     vAlign,
 		OnClick:    inputOnClick(cfg.ID, scrollID, !cfg.FocusDisabled),
 		Content:    txtContent,
+	}
+	// Multiline is excluded on top of the caller's opt-in: it aligns to
+	// the top, so there is no centring to correct, and its lines after
+	// the first are positioned by the text layout rather than by this
+	// row.
+	if cfg.opticalDigitCenter && cfg.Mode != InputMultiline {
+		innerCfg.AmendLayout = opticalCenterFieldText
 	}
 	var inner View
 	if cfg.Mode == InputMultiline {

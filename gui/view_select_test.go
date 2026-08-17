@@ -346,3 +346,57 @@ func TestSelectMultipleJoinsSelected(t *testing.T) {
 		t.Errorf("expected 'A, B', got %s", txt)
 	}
 }
+
+// selectLabelY renders a Select and returns the arranged Y of its label
+// shape — the one number optical centring moves.
+func selectLabelY(t *testing.T, cfg SelectCfg) float32 {
+	t.Helper()
+	w := NewTestWindow(WindowCfg{})
+	cfg.ID = "s"
+	w.TestRender(func(*Window) View { return Select(cfg) })
+	field, ok := w.layout.FindByID("s")
+	if !ok {
+		t.Fatal("no select in the rendered window")
+	}
+	if len(field.Children) == 0 || field.Children[0].Shape == nil ||
+		field.Children[0].Shape.shapeType != shapeText {
+		t.Fatal("first child of the select is not its label")
+	}
+	return field.Children[0].Shape.Y
+}
+
+// A Select swaps its label as the selection changes, so the correction
+// must be content-free: a descender-bearing label and a cap-only one
+// have to land on the same baseline, or picking an option would step
+// the label vertically in a control that has not moved (issue #346).
+func TestSelectOpticalCenterDoesNotFollowContent(t *testing.T) {
+	base := selectLabelY(t, SelectCfg{Placeholder: "PICK"})
+	for _, label := range []string{
+		"Pick a language", // descends
+		"gypsy",           // descends, no caps
+		"Go",
+	} {
+		got := selectLabelY(t, SelectCfg{Placeholder: label})
+		if got != base {
+			t.Errorf("label %q: text Y %v, want %v (content-free)",
+				label, got, base)
+		}
+	}
+}
+
+// And it is applied at all: the label sits below where metric centring
+// alone would put it. The plain Input is the counter-case that must not
+// move — see TestInputOpticalCenterIsOptIn.
+func TestSelectOpticalCenterIsApplied(t *testing.T) {
+	// A wrapping multi-select is the uncorrected reference: it is the
+	// one spelling of this widget the hook deliberately skips, and it
+	// centres the same label in the same row otherwise.
+	uncorrected := selectLabelY(t, SelectCfg{
+		Placeholder: "PICK", SelectMultiple: true,
+	})
+	corrected := selectLabelY(t, SelectCfg{Placeholder: "PICK"})
+	if corrected <= uncorrected {
+		t.Errorf("corrected label Y %v, want below uncorrected %v",
+			corrected, uncorrected)
+	}
+}

@@ -1854,3 +1854,65 @@ func TestInputDragCancelCollapsedSelectionHarmless(t *testing.T) {
 		t.Errorf("cursor = %d, want 2", is.CursorPos)
 	}
 }
+
+// inputTextShapeY renders one Input and reports the arranged Y of its
+// text shape, which is what the optical correction moves.
+func inputTextShapeY(t *testing.T, cfg InputCfg) float32 {
+	t.Helper()
+	w := NewTestWindow(WindowCfg{})
+	cfg.ID = "f"
+	w.TestRender(func(*Window) View { return Input(cfg) })
+	field, ok := w.layout.FindByID("f")
+	if !ok {
+		t.Fatal("no input in the rendered window")
+	}
+	// The text sits under the inner row that carries the hook, so walk
+	// to the first text descendant rather than assuming a depth.
+	var find func(l *Layout) *Shape
+	find = func(l *Layout) *Shape {
+		for i := range l.Children {
+			c := &l.Children[i]
+			if c.Shape != nil && c.Shape.shapeType == shapeText {
+				return c.Shape
+			}
+			if got := find(c); got != nil {
+				return got
+			}
+		}
+		return nil
+	}
+	txt := find(field)
+	if txt == nil {
+		t.Fatal("no text shape under the input")
+	}
+	return txt.Y
+}
+
+// The correction must be content-free where it is applied at all: an
+// offset that followed the string would move the baseline as the user
+// types, which is the failure that ruled out correcting Input in general
+// (issue #346).
+func TestInputOpticalCenterDoesNotFollowContent(t *testing.T) {
+	base := InputCfg{Text: "0", opticalDigitCenter: true}
+	first := inputTextShapeY(t, base)
+
+	for _, txt := range []string{"1", "0000", "08/16/2026", ""} {
+		cfg := base
+		cfg.Text = txt
+		if got := inputTextShapeY(t, cfg); got != first {
+			t.Errorf("text %q moved the baseline: got %v, want %v",
+				txt, got, first)
+		}
+	}
+}
+
+// The opt-in is the whole safety argument: a plain Input keeps metric
+// centring, and only a caller that can name the alphabet turns the
+// correction on.
+func TestInputOpticalCenterIsOptIn(t *testing.T) {
+	plain := inputTextShapeY(t, InputCfg{Text: "128"})
+	opted := inputTextShapeY(t, InputCfg{Text: "128", opticalDigitCenter: true})
+	if opted <= plain {
+		t.Errorf("opted-in text y = %v, want below plain %v", opted, plain)
+	}
+}

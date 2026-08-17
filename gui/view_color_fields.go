@@ -82,17 +82,6 @@ const (
 	// which stays the height so the swatch keeps matching the hex
 	// input's line.
 	colorFieldsSwatchAspect = 2
-	// colorFieldCapRatio is a digit's cap height as a fraction of the
-	// font size. It is the one metric TextMeasurer does not expose, and
-	// it varies little across text faces; every other term in the
-	// optical-centring correction is measured.
-	colorFieldCapRatio = 0.72
-	// colorFieldLeadRatio covers half-leading: FontHeight includes line
-	// spacing beyond ascent+descent, split above and below the glyphs,
-	// and the metrics do not separate it out. Measured from the
-	// rendered field — the cap-height term alone left the ink 1.5
-	// device pixels high at size 16.
-	colorFieldLeadRatio = 0.047
 )
 
 func (fv *colorFieldsView) GenerateLayout(w *Window) Layout {
@@ -350,15 +339,23 @@ func centeredText(s TextStyle) TextStyle {
 //
 // An Input centres the text's *line box*, which is correct and still
 // looks wrong here: the line box reserves descent space, and digits and
-// hex have no descenders, so the ink hangs above the box's middle by
-// half the descent. Measured on the RGBA row, the gap below the digits
-// was twice the gap above.
+// hex have no descenders, so the ink hangs above the box's middle.
+// Measured on the RGBA row, the gap below the digits was twice the gap
+// above. A channel field earns the correction where a general Input does
+// not, because its alphabet cannot descend (issue #346).
 //
-// The correction moves the line box down by shifting padding from the
-// bottom to the top. Working from the box's own centre, the ink sits
-// off by (ascent - cap - descent)/2, so top-minus-bottom must make up
-// twice that. Ascent and descent are measured; only cap height is a
-// ratio, and it is the smallest term.
+// The correction moves the line box down by giving the offset to the
+// top and taking the same amount off the bottom. Splitting it that way
+// keeps the total inset — and so the field's height — exactly what the
+// theme asked for, which is what lets a channel field keep matching the
+// Input and Select beside it. Spending it one-sided instead would move
+// the ink and resize the control, and only half the shift would reach
+// the glyphs, because the box centre moves with the box.
+//
+// The offset itself is measured from the face's ink; this function only
+// decides how to spend it. It stays padding rather than the shared
+// AmendLayout hook because these fields are generated with a *Window in
+// hand and the row is sized around the result.
 func colorFieldPadding(w *Window, style TextStyle) Padding {
 	// The field inset comes from the theme, not from this widget: a
 	// channel field is a form control and has to match the Input and
@@ -366,20 +363,19 @@ func colorFieldPadding(w *Window, style TextStyle) Padding {
 	// optical correction below is local.
 	even := guiTheme.PaddingField
 	padY, padX := even.Top, even.Left
-	if w == nil || w.textMeasurer == nil {
+	if w == nil {
 		return even // no metrics: metric centring is the best available
 	}
-	ascent := w.textMeasurer.FontAscent(style)
-	descent := w.textMeasurer.FontHeight(style) - ascent
-	shift := descent - ascent +
-		style.Size*(colorFieldCapRatio+colorFieldLeadRatio)
-	if shift <= 0 {
+	off := w.opticalCapOffset(style)
+	if off <= 0 {
 		return even // a face whose ink already sits centred
 	}
-	// Take from the bottom first so the field grows only by whatever
-	// the bottom padding cannot cover.
-	bottom := f32Max(padY-shift, 0)
-	return NewPadding(bottom+shift, padX, bottom, padX)
+	// A correction deeper than the inset cannot be paid for out of the
+	// bottom alone. Give what the bottom has and let the top carry the
+	// rest, which grows the field — at that point a taller field is the
+	// lesser error, and no theme inset in the repo is that small.
+	bottom := f32Max(padY-off, 0)
+	return NewPadding(bottom+2*off, padX, bottom, padX)
 }
 
 // colorFieldsBlockWidth is the width of a default-configured fields

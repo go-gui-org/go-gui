@@ -84,6 +84,16 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 		itemColor = itemCfg.colorSelect
 	}
 
+	// A menu item's label is the app's, and static per call site, so the
+	// ownership rule admits the correction — but the band is the face's,
+	// not each run's. Items stack in a list at a regular pitch, so
+	// measuring per run would move a descender-free label down while
+	// leaving its descending neighbour where it was, and the unevenness
+	// reads down the whole menu. Cap band, whatever the item says
+	// (issue #346). Set below only where the widget owns the text — a
+	// CustomView's content is the app's to place.
+	var opticalAmend func(EventCtx)
+
 	var content View
 	if itemCfg.CustomView != nil {
 		content = itemCfg.CustomView
@@ -96,6 +106,13 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 		if itemCfg.sizing == FillFit {
 			mode = TextModeWrap
 		}
+		// A wrapping label is included, unlike Select's and Input's.
+		// The exclusion there is about a *block* whose later lines the
+		// text layout places against a top-aligned box; a menu item's
+		// box hugs its label, so the reserved descent that goes unused
+		// is the last line's either way, and the offset is the same
+		// one.
+		opticalAmend = opticalCenterLabelText
 		label := Text(TextCfg{
 			Text:      textContent,
 			TextStyle: itemCfg.textStyle,
@@ -107,10 +124,18 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 			// made an enabled item read as a dead one (issue #335).
 			hintStyle := withRoleAlpha(
 				itemCfg.textStyle, guiTheme.TextStyleSecondary)
+			// The label and its shortcut hint are direct children of
+			// this row, so the correction goes here and reaches both —
+			// they must move together or the pair reads skewed. The
+			// outer column then has no text child of its own left to
+			// correct.
+			rowAmend := opticalAmend
+			opticalAmend = nil
 			content = Row(ContainerCfg{
-				Sizing:     FillFit,
-				Padding:    NoPadding,
-				SizeBorder: NoBorder,
+				Sizing:      FillFit,
+				Padding:     NoPadding,
+				SizeBorder:  NoBorder,
+				AmendLayout: rowAmend,
 				Content: []View{
 					label,
 					Rectangle(RectangleCfg{
@@ -167,7 +192,10 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 		Disabled: itemCfg.disabled,
 		OnClick:  menuItemClick(menubarCfg, itemCfg),
 		OnHover:  onHover,
-		Content:  itemContent,
+		// Reaches the label only: an attached submenu is a container,
+		// not a text shape, so the hook passes over it.
+		AmendLayout: opticalAmend,
+		Content:     itemContent,
 	})
 }
 

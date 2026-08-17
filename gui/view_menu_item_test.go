@@ -84,3 +84,96 @@ func TestMenuItemSubmenuIndicator(t *testing.T) {
 		t.Error("expected text with submenu indicator")
 	}
 }
+
+// menuItemTextYs renders one menu item through the real frame pipeline
+// and returns the arranged Y of every text shape under it, in order. It
+// is the number optical centring moves, and the only way to see it: the
+// hook runs in AmendLayout, after arrange, so a bare GenerateLayout
+// shows nothing.
+func menuItemTextYs(t *testing.T, itemCfg MenuItemCfg) []float32 {
+	t.Helper()
+	itemCfg.textStyle = DefaultTextStyle
+	itemCfg.sizing = FitFit
+	w := NewTestWindow(WindowCfg{})
+	w.TestRender(func(*Window) View {
+		return menuItem(MenubarCfg{}, itemCfg)
+	})
+	item, ok := w.layout.FindByID(itemCfg.ID)
+	if !ok {
+		t.Fatal("no menu item in the rendered window")
+	}
+	var ys []float32
+	var walk func(l *Layout)
+	walk = func(l *Layout) {
+		if l.Shape != nil && l.Shape.shapeType == shapeText {
+			ys = append(ys, l.Shape.Y)
+		}
+		for i := range l.Children {
+			walk(&l.Children[i])
+		}
+	}
+	walk(item)
+	return ys
+}
+
+// A menu is a list at a regular pitch, so its items are corrected on the
+// face's cap band rather than each label's own ink: a descending label
+// and a cap-only one must take the same offset, or the baselines step
+// down the menu (issue #346).
+func TestMenuItemOpticalCenterDoesNotFollowContent(t *testing.T) {
+	base := menuItemTextYs(t, MenuItemText("m", "PICK"))
+	if len(base) != 1 {
+		t.Fatalf("want one text shape, got %d", len(base))
+	}
+	for _, label := range []string{
+		"Copy",  // descends
+		"gypsy", // descends, no caps
+		"Paste",
+	} {
+		got := menuItemTextYs(t, MenuItemText("m", label))
+		if len(got) != 1 || got[0] != base[0] {
+			t.Errorf("label %q: y=%v, want %v", label, got, base[0])
+		}
+	}
+}
+
+// A CustomView item is the uncorrected reference: its content is the
+// app's to place, so the hook is not attached at all.
+func TestMenuItemOpticalCenterIsApplied(t *testing.T) {
+	uncorrected := menuItemTextYs(t, MenuItemCfg{
+		ID: "m",
+		CustomView: Text(TextCfg{
+			Text: "PICK", TextStyle: DefaultTextStyle,
+		}),
+	})
+	corrected := menuItemTextYs(t, MenuItemText("m", "PICK"))
+	if len(uncorrected) != 1 || len(corrected) != 1 {
+		t.Fatalf("want one text shape each, got %d and %d",
+			len(uncorrected), len(corrected))
+	}
+	if corrected[0] <= uncorrected[0] {
+		t.Errorf("corrected y %v not below uncorrected %v",
+			corrected[0], uncorrected[0])
+	}
+}
+
+// The label and its shortcut hint sit in one row and must move together;
+// the correction is attached to that row rather than to the item, or the
+// pair would read skewed.
+func TestMenuItemShortcutHintMovesWithLabel(t *testing.T) {
+	item := MenuItemText("m", "Copy")
+	item.level = 1
+	item.shortcutText = "Ctrl+C"
+	ys := menuItemTextYs(t, item)
+	if len(ys) != 2 {
+		t.Fatalf("want label and hint, got %d text shapes", len(ys))
+	}
+	if ys[0] != ys[1] {
+		t.Errorf("label y %v, hint y %v: must match", ys[0], ys[1])
+	}
+	plain := menuItemTextYs(t, MenuItemText("m", "Copy"))
+	if ys[0] <= plain[0]-1 || ys[0] >= plain[0]+1 {
+		t.Errorf("row-corrected y %v differs from item-corrected %v",
+			ys[0], plain[0])
+	}
+}

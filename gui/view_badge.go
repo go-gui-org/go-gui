@@ -90,6 +90,12 @@ func Badge(cfg BadgeCfg) View {
 		SizeBorder: NoBorder,
 		HAlign:     HAlignCenter,
 		VAlign:     VAlignMiddle,
+		// A badge carries a count or a short tag it renders itself, so
+		// the reserved descent below a cap-only label is what makes an
+		// uncorrected badge read high in its pill (issue #346). The
+		// label is measured, so "128" centres exactly and a tag with a
+		// descender keeps metric centring instead of sinking.
+		AmendLayout: opticalCenterText,
 		Content: []View{
 			Text(TextCfg{
 				Text:      label,
