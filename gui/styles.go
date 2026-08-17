@@ -34,8 +34,27 @@ const (
 	sizeBorderDef  float32 = 1.5
 )
 
-// Spacing constants.
+// Spacing constants. Each tier names a gap between things, and the
+// rungs differ in how closely related the things are (audit §4,
+// issue #344):
+//
+//	SpacingTight   (2)  — inside one composite control, between parts
+//	                       that read as a single unit: calendar cells,
+//	                       the tab strip, submenu items.
+//	SpacingSmall   (5)  — members of one visual group that share a
+//	                       container: a control and its readout, the
+//	                       ColorFields channel row.
+//	SpacingMedium (10)  — sibling controls in a stack or row: dialog
+//	                       rows, the toasts in a stack.
+//	SpacingLarge  (15)  — unrelated sections of a surface: markdown
+//	                       blocks, distinct groups.
+//
+// The tiers size gaps between things. Theme.PaddingField and the
+// padding tiers answer a different question — how much inset a control
+// puts around its own content — and are not rungs of this ladder.
 const (
+	// exportaudit:keep — new rung, consumed inside gui/ only.
+	SpacingTight float32 = 2
 	// exportaudit:keep — const name collides with the spacingSmall helper
 	SpacingSmall  float32 = 5
 	SpacingMedium float32 = 10

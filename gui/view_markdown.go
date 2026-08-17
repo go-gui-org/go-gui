@@ -102,8 +102,8 @@ func DefaultMarkdownStyle() MarkdownStyle {
 		linkColor:         guiTheme.ColorSelect,
 		blockquoteBorder:  guiTheme.ColorBorder,
 		blockquoteBG:      RGBA(128, 128, 128, 20), // ergonomics-audit:visual
-		blockSpacing:      12,
-		nestIndent:        16,
+		blockSpacing:      SpacingLarge,            // blocks are sections; Large is the section gap (audit §4, #344)
+		nestIndent:        16,                      // structural indent, not a sibling gap — off the ladder
 		prefixCharWidth:   4,
 		codeBlockPadding:  PadAll(10),
 		codeBlockRadius:   3.5,

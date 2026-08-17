@@ -238,7 +238,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Anchor:       toastBottomRight,
 			Width:        260,
 			margin:       16,
-			Spacing:      8,
+			Spacing:      cfg.SpacingMedium,
 			accentWidth:  4,
 			Padding:      cfg.PaddingMedium.withSet(),
 			Radius:       cfg.RadiusMedium,
@@ -342,7 +342,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			radiusHeader:        cfg.RadiusSmall,
 			radiusContent:       cfg.RadiusMedium,
 			radiusTab:           cfg.RadiusSmall,
-			spacingHeader:       2,
+			spacingHeader:       cfg.SpacingTight,
 			TextStyle:           ts,
 			textStyleSelected:   ts,
 			textStyleDisabled:   textDisabled,
@@ -450,7 +450,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			radiusSubmenu:    cfg.RadiusSmall,
 			radiusMenuItem:   cfg.RadiusSmall,
 			Spacing:          cfg.SpacingMedium,
-			spacingSubmenu:   1,
+			spacingSubmenu:   cfg.SpacingTight,
 			TextStyle:        ts,
 			textStyleSubtitle: TextStyle{
 				Color: ts.Color,
@@ -458,7 +458,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			},
 		},
 		datePickerStyle: DatePickerStyle{
-			cellSpacing:      2,
+			cellSpacing:      cfg.SpacingTight,
 			Color:            cfg.ColorInterior,
 			ColorHover:       cfg.ColorHover,
 			ColorFocus:       cfg.ColorFocus,
@@ -521,6 +521,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		RadiusMedium: cfg.RadiusMedium,
 		RadiusLarge:  cfg.RadiusLarge,
 
+		SpacingTight:  cfg.SpacingTight,
 		SpacingSmall:  cfg.SpacingSmall,
 		SpacingMedium: cfg.SpacingMedium,
 		SpacingLarge:  cfg.SpacingLarge,

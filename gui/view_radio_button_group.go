@@ -114,6 +114,10 @@ func applyRadioGroupDefaults(cfg *RadioButtonGroupCfg) {
 		cfg.Padding = guiTheme.PaddingLarge
 	}
 	if !cfg.Spacing.IsSet() {
-		cfg.Spacing = Some(SpacingSmall)
+		// Sibling controls in a stack take the Medium tier (audit §4,
+		// issue #344), not the Small one — Small is for members of one
+		// visual group, and the options in a radio group are separate
+		// siblings stacked under the group box.
+		cfg.Spacing = Some(SpacingMedium)
 	}
 }

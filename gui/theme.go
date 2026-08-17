@@ -150,6 +150,11 @@ type Theme struct {
 	RadiusMedium float32
 	RadiusLarge  float32
 
+	// SpacingTight is the inside-a-composite tier of the spacing
+	// ladder (2px): calendar cells, the tab strip, submenu items.
+	//
+	// exportaudit:keep — themable tight spacing, consumed inside gui/ only.
+	SpacingTight  float32
 	SpacingSmall  float32
 	SpacingMedium float32
 	SpacingLarge  float32
@@ -220,6 +225,10 @@ type ThemeCfg struct {
 	RadiusMedium float32
 	RadiusLarge  float32
 
+	// SpacingTight seeds Theme.SpacingTight; see there.
+	//
+	// exportaudit:keep — themable tight spacing.
+	SpacingTight  float32
 	SpacingSmall  float32
 	SpacingMedium float32
 	SpacingLarge  float32
