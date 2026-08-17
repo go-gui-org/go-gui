@@ -8,6 +8,20 @@ import (
 	"time"
 )
 
+// Markdown block gaps are the Large tier — blocks are unrelated sections
+// of the surface (issue #344, audit §4). nestIndent is a structural
+// indent for nested blockquotes and list depths, deliberately off the
+// spacing ladder.
+func TestDefaultMarkdownStyleSpacing(t *testing.T) {
+	style := DefaultMarkdownStyle()
+	if style.blockSpacing != SpacingLarge {
+		t.Errorf("blockSpacing = %v, want SpacingLarge (%v)", style.blockSpacing, SpacingLarge)
+	}
+	if style.nestIndent != 16 {
+		t.Errorf("nestIndent = %v, want 16", style.nestIndent)
+	}
+}
+
 func TestMarkdownViewGeneratesLayout(t *testing.T) {
 	w := &Window{}
 	v := w.Markdown(MarkdownCfg{

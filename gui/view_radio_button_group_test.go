@@ -232,3 +232,14 @@ func TestRadioButtonGroupBorderFollowsTheme(t *testing.T) {
 		t.Errorf("size_border = %v, want 3 (cfg wins)", layout.Shape.SizeBorder)
 	}
 }
+
+// Sibling options in a radio group are separate controls stacked under
+// the group box, so the default gap is the Medium tier — not Small,
+// which is for members of one visual group (issue #344, audit §4).
+func TestRadioButtonGroupDefaultSpacingMedium(t *testing.T) {
+	cfg := RadioButtonGroupCfg{}
+	applyRadioGroupDefaults(&cfg)
+	if got := cfg.Spacing.Get(0); got != SpacingMedium {
+		t.Errorf("default Spacing = %v, want %v (SpacingMedium)", got, SpacingMedium)
+	}
+}
