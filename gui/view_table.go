@@ -73,12 +73,24 @@ type TableCfg struct {
 	MinHeight   float32
 	MaxHeight   float32
 	ColorBorder Color
-	ColorSelect Color
-	ColorHover  Color
+	// ColorBorderFocus is the border while the table holds focus.
+	// Unset takes the theme's.
+	ColorBorderFocus Color
+	ColorSelect      Color
+	ColorHover       Color
 	// Colors sets the per-state colors. The flat Color* fields
 	// above win over their Colors slots. Table has no base fill,
 	// so Base is unused and Hover/Border are the live slots.
 	Colors ColorSet
+
+	// Focusable opts the table into the tab order. When set, focus
+	// lands on the table itself and Up/Down/Home/End move an active
+	// row — tinted with the hover color — which follows the mouse
+	// click and drives selection when OnSelect is set (Shift extends
+	// a range under MultiSelect). Enter/Space activate the active
+	// row the way a click would. Opt-in, not default: a table is a
+	// display surface until its rows are navigable.
+	Focusable bool
 
 	// Sizing
 	Sizing       Sizing
@@ -92,10 +104,10 @@ func applyTableDefaults(cfg *TableCfg) {
 	s := &defaultTableStyle
 	cfg.Colors = cfg.Colors.resolved(Color{}, themeColorSet(
 		Color{}, s.ColorHover, Color{},
-		Color{}, s.ColorBorder, Color{},
+		Color{}, s.ColorBorder, s.ColorBorderFocus,
 	))
 	cfg.Colors.applyTo(nil, &cfg.ColorHover, nil, nil,
-		&cfg.ColorBorder, nil)
+		&cfg.ColorBorder, &cfg.ColorBorderFocus)
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = s.ColorSelect
 	}
@@ -151,6 +163,30 @@ func tableScrollID(cfg *TableCfg, freeze bool) string {
 	return cfg.ID // outerCfg carries it
 }
 
+// tableActiveRow returns the keyboard position for a focusable
+// table, or -1 for one that never joins the tab order (so its rows
+// take no active-row tint).
+func tableActiveRow(cfg *TableCfg, w *Window) int {
+	if !cfg.Focusable {
+		return -1
+	}
+	return StateReadOr(w, nsTableFocus, cfg.ID, 0)
+}
+
+// tableEmptyView is the bare container an empty table resolves to.
+// It still carries the tab stop and ring when focusable, so a
+// keyboard user lands on it instead of skipping past a control with
+// nothing to navigate yet.
+func tableEmptyView(cfg *TableCfg) View {
+	fw := tableFocusWiring(cfg, nil, false, nil, "", 0, 0, 0)
+	return Column(ContainerCfg{
+		ID:          cfg.ID,
+		Focusable:   fw.focusable,
+		AmendLayout: fw.ring,
+		Padding:     NoPadding,
+	})
+}
+
 func tableView(cfg TableCfg, w *Window) View {
 	if len(cfg.rawData) > 0 {
 		n := min(len(cfg.rawData), maxDataConvLen)
@@ -161,11 +197,21 @@ func tableView(cfg TableCfg, w *Window) View {
 	// One resolved identity for every key below; see (*Window).EffID.
 	cfg.ID = w.EffID(cfg.ID)
 
+	// Keyboard focus state (issue #345): the active row is the
+	// position arrow keys move and Enter/Space activate. -1 disables
+	// the highlight for a table that never joins the tab order.
+	activeRowIdx := tableActiveRow(&cfg, w)
+	// Row clicks sync the keyboard position so arrow keys continue
+	// from where the mouse went — but only a focusable table ever
+	// reads it back, so leave the key empty and skip the per-click
+	// write for the others.
+	navKey := cfg.ID
+	if !cfg.Focusable {
+		navKey = ""
+	}
+
 	if len(cfg.Data) == 0 {
-		return Column(ContainerCfg{
-			ID:      cfg.ID,
-			Padding: NoPadding,
-		})
+		return tableEmptyView(&cfg)
 	}
 
 	lastRowIdx := len(cfg.Data) - 1
@@ -217,66 +263,20 @@ func tableView(cfg TableCfg, w *Window) View {
 		last = vLast + dataStart
 	}
 
-	capacity := last - first + 3
-	if !virtualize {
-		capacity = len(cfg.Data) * 2
-	}
-	rows := make([]View, 0, capacity)
+	rows := tableBuildRows(&cfg, columnWidths, cellBorder,
+		selected, multiSelect, colorHover, onSelect,
+		activeRowIdx, navKey, first, last, lastRowIdx, dataStart,
+		rowHeight, virtualize)
 
-	// Top spacer for virtualization.
-	if virtualize && first > dataStart && rowHeight > 0 {
-		rows = append(rows, Rectangle(RectangleCfg{
-			Color:  ColorTransparent,
-			Height: float32(first-dataStart) * rowHeight,
-			Sizing: FillFixed,
-		}))
-	}
-
-	for rowIdx := first; rowIdx <= last; rowIdx++ {
-		if rowIdx < 0 || rowIdx > lastRowIdx {
-			continue
-		}
-		rows = append(rows, tableBuildRow(
-			&cfg, rowIdx, columnWidths, cellBorder,
-			selected, multiSelect, colorHover, onSelect))
-
-		// Horizontal separator.
-		sepHeight := cfg.SizeBorder
-		if rowIdx == 0 && cfg.SizeBorderHeader > 0 {
-			sepHeight = cfg.SizeBorderHeader
-		}
-
-		needsSep := false
-		switch cfg.BorderStyle {
-		case TableBorderHorizontal:
-			needsSep = rowIdx != lastRowIdx
-		case TableBorderHeaderOnly:
-			needsSep = rowIdx == 0
-		}
-
-		if needsSep {
-			rows = append(rows, Rectangle(RectangleCfg{
-				Color:  cfg.ColorBorder,
-				Height: sepHeight,
-				Sizing: FillFixed,
-			}))
-		}
-	}
-
-	// Bottom spacer for virtualization.
-	if virtualize && last < lastRowIdx && rowHeight > 0 {
-		remaining := lastRowIdx - last
-		rows = append(rows, Rectangle(RectangleCfg{
-			Color:  ColorTransparent,
-			Height: float32(remaining) * rowHeight,
-			Sizing: FillFixed,
-		}))
-	}
+	// Keyboard focus wiring for the outer container, shared by the
+	// freeze and non-freeze layouts (issue #345).
+	fw := tableFocusWiring(&cfg, selected, multiSelect, onSelect,
+		scrollID, rowHeight, listHeight, freezeBodyOffset(freeze))
 
 	if freeze {
 		return tableFreezeLayout(&cfg, columnWidths, cellBorder,
 			rowSpacing, selected, multiSelect, colorHover,
-			onSelect, rows, scrollID)
+			onSelect, rows, scrollID, activeRowIdx, navKey, fw)
 	}
 
 	outerCfg := ContainerCfg{
@@ -296,6 +296,10 @@ func tableView(cfg TableCfg, w *Window) View {
 		MaxHeight: cfg.MaxHeight,
 		Content:   rows,
 	}
+
+	// Focus wiring is a no-op for a non-focusable table: the zero
+	// state carries false/nil/nil, which is what outerCfg already is.
+	tableWireFocus(&outerCfg, fw)
 
 	if cfg.Scrollable {
 		outerCfg.Scrollable = true

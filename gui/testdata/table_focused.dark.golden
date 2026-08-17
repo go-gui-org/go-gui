@@ -1,0 +1,8 @@
+StrokeRect xy=11.50,11.50 wh=123.00,82.20 color=#4169e1ff thickness=1.50
+Rect xy=13.00,13.00 wh=120.00,26.40 color=#545454ff radius=5.50 fill
+Text xy=23.80,15.00 wh=0.00,0.00 color=#e1e1e1ff text="Name" size=16.00
+Text xy=83.80,15.00 wh=0.00,0.00 color=#e1e1e1ff text="Size" size=16.00
+Text xy=18.00,41.40 wh=0.00,0.00 color=#e1e1e1ff text="alpha" size=16.00
+Text xy=78.00,41.40 wh=0.00,0.00 color=#e1e1e1ff text="12" size=16.00
+Text xy=18.00,67.80 wh=0.00,0.00 color=#e1e1e1ff text="beta" size=16.00
+Text xy=78.00,67.80 wh=0.00,0.00 color=#e1e1e1ff text="9" size=16.00

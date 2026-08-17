@@ -119,14 +119,15 @@ type BadgeStyle struct {
 // ExpandPanelStyle defines expand panel visual properties.
 // exportaudit:keep — reachable from an exported signature
 type ExpandPanelStyle struct {
-	Color        Color
-	ColorHover   Color
-	colorClick   Color
-	ColorBorder  Color
-	Padding      Padding
-	SizeBorder   float32
-	Radius       float32
-	radiusBorder float32
+	Color            Color
+	ColorHover       Color
+	colorClick       Color
+	ColorBorder      Color
+	ColorBorderFocus Color // the header's ring while the panel holds focus
+	Padding          Padding
+	SizeBorder       float32
+	Radius           float32
+	radiusBorder     float32
 }
 
 // Widget style mirrors. See the note on the mirror block in styles.go:

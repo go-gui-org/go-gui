@@ -575,6 +575,72 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// Focused header: the ring that lands on the header row
+			// when it joins the tab order (issue #345). The header is
+			// scoped under the panel, hence the ep:head focus ID.
+			name:    "expand_panel_focused",
+			focusID: "ep:head",
+			build: func(_ *Window) View {
+				return ExpandPanel(ExpandPanelCfg{
+					ID:      "ep",
+					Head:    Text(TextCfg{Text: "Details"}),
+					Content: Text(TextCfg{Text: "content"}),
+					Open:    true,
+				})
+			},
+		},
+		{
+			// Resting swatch: hairline outline, no ring. The focused
+			// case is the contrast that proves the ring replaces the
+			// outline on the color layer rather than adding a frame
+			// around the box.
+			name: "color_swatch",
+			build: func(_ *Window) View {
+				return ColorSwatch(ColorSwatchCfg{
+					ID:    "sw",
+					Color: RGBA(80, 120, 200, 128),
+				})
+			},
+		},
+		{
+			name:    "color_swatch_focused",
+			focusID: "sw",
+			build: func(_ *Window) View {
+				return ColorSwatch(ColorSwatchCfg{
+					ID:        "sw",
+					Color:     RGBA(80, 120, 200, 128),
+					Focusable: true,
+				})
+			},
+		},
+		{
+			// Focused table: the outer ring plus the active row's
+			// hover tint (row 0 by default) are what keyboard
+			// navigation looks like before any arrow key is pressed.
+			name:    "table_focused",
+			focusID: "tbl",
+			build: func(_ *Window) View {
+				return Table(TableCfg{
+					ID:        "tbl",
+					Focusable: true,
+					Data: []TableRowCfg{
+						{Cells: []TableCellCfg{
+							{Value: "Name", HeadCell: true},
+							{Value: "Size", HeadCell: true},
+						}},
+						{Cells: []TableCellCfg{
+							{Value: "alpha"},
+							{Value: "12"},
+						}},
+						{Cells: []TableCellCfg{
+							{Value: "beta"},
+							{Value: "9"},
+						}},
+					},
+				})
+			},
+		},
+		{
 			name: "context_menu",
 			build: func(w *Window) View {
 				return ContextMenu(w, ContextMenuCfg{

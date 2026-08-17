@@ -131,6 +131,7 @@ type TableStyle struct {
 	columnWidthMin     float32
 	SizeBorder         float32
 	ColorBorder        Color
+	ColorBorderFocus   Color
 	ColorSelect        Color
 	ColorHover         Color
 	alignHead          HorizontalAlign

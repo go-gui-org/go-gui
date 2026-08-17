@@ -227,6 +227,8 @@ const (
 	nsDragReorder         = "gui.drag_reorder"
 	nsDragReorderIDsMeta  = "gui.drag_reorder.ids_meta"
 	nsTableColWidths      = "gui.table.col_widths"
+	nsTableFocus          = "gui.table.focus"
+	nsTableAnchor         = "gui.table.anchor"
 	nsDockDrag            = "gui.dock_drag"
 	nsContextMenu         = "gui.context_menu"
 	nsContextMenuFocus    = "gui.context_menu.focus"

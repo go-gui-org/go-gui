@@ -60,6 +60,8 @@ var snapshotableNamespaces = struct {
 		nsInputFocus:   {},
 		nsListBoxFocus: {},
 		nsTreeFocus:    {},
+		nsTableFocus:   {},
+		nsTableAnchor:  {},
 	},
 }
 

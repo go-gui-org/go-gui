@@ -180,7 +180,7 @@ func (sv *colorChannelSliderView) GenerateLayout(w *Window) Layout {
 			}),
 		},
 	}
-	colorControlFocusRing(&cv.cfg)
+	colorControlFocusRing(&cv.cfg, w.EffID(cv.cfg.ID))
 	return generateViewLayout(cv, w)
 }
 
