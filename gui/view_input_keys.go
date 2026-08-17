@@ -31,8 +31,9 @@ func inputKeyLeft(
 			newPos = byteToRuneIndex(text,
 				gl.MoveCursorLeft(byteIdx))
 		} else {
-			newPos = pos - 1
-			newPos = max(newPos, 0)
+			// No glyph layout: snap to the previous UAX #29 grapheme
+			// boundary so the caret never rests mid-cluster.
+			newPos = prevGraphemeStop(graphemeStops(text), pos)
 		}
 		updateCursorAndSelection(imap, id, is,
 			newPos, isShift)
@@ -41,7 +42,7 @@ func inputKeyLeft(
 
 func inputKeyRight(
 	imap *BoundedMap[string, inputState], id string, is inputState,
-	text string, pos, runeLen int, isShift, isWordMod bool,
+	text string, pos int, isShift, isWordMod bool,
 	gl glyph.Layout, glOK bool,
 ) {
 	if isWordMod {
@@ -66,8 +67,9 @@ func inputKeyRight(
 			newPos = byteToRuneIndex(text,
 				gl.MoveCursorRight(byteIdx))
 		} else {
-			newPos = pos + 1
-			newPos = min(newPos, runeLen)
+			// No glyph layout: snap to the next UAX #29 grapheme
+			// boundary so the caret never rests mid-cluster.
+			newPos = nextGraphemeStop(graphemeStops(text), pos)
 		}
 		updateCursorAndSelection(imap, id, is,
 			newPos, isShift)
@@ -185,6 +187,10 @@ func inputKeyVertical(
 		} else {
 			newPos = moveCursorDown([]rune(text), pos)
 		}
+		// Line-column math is rune-based; snap the result to the
+		// nearest cluster boundary so vertical motion cannot park
+		// the caret inside a multi-rune grapheme.
+		newPos = closestGraphemeStop(graphemeStops(text), newPos)
 	}
 	updateCursorAndSelection(imap, id, is,
 		newPos, isShift)

@@ -37,6 +37,7 @@ var directPurpose = map[string]string{
 	"github.com/ebitengine/purego":    "cgo-free dynamic loading of libEGL and the OpenGL entry points (`gui/backend/internal/glbind`) for the native Linux and Windows backends.",
 	"github.com/gopxl/beep/v2":        "Audio decode + mixing (sound effects, music, mixer, fade) for `gui/audio`.",
 	"github.com/jfreymuth/pulse":      "Pure-Go PulseAudio native-protocol client. Default Linux audio output sink (`gui/audio/output_pulse.go`), keeping `CGO_ENABLED=0` builds cgo-free. Needs a running PulseAudio/PipeWire server.",
+	"github.com/rivo/uniseg":          "UAX #29 grapheme segmentation for the input caret-motion fallback (`gui/grapheme.go`) and go-glyph.",
 	"github.com/tdewolff/parse/v2":    "CSS tokenizer for the SVG `<style>` / `style=\"\"` cascade pipeline.",
 	"github.com/alecthomas/chroma/v2": "Syntax highlighting in the markdown widget.",
 	"github.com/yuin/goldmark":        "Markdown parser (markdown widget + showcase docs).",

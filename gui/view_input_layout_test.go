@@ -216,18 +216,41 @@ func TestInputDeleteGraphemeForward(t *testing.T) {
 	}
 }
 
-func TestInputDeleteGraphemeFallbackRunes(t *testing.T) {
-	// Without a text measurer, deletion falls back to rune-based
-	// inputDelete — still removes exactly one rune, no panic.
+func TestInputDeleteGraphemeFallbackCluster(t *testing.T) {
+	// Without a text measurer, deletion falls back to UAX #29
+	// boundaries computed by gui — a whole grapheme per keystroke,
+	// same granularity as the shaped path.
 	w := newTestWindow() // no textMeasurer
-	layout := inputLayoutWithText(t, "ab", nil)
 	focusID := "f-fallback"
+
+	// ASCII: one rune per cluster, behaves exactly as before.
+	layout := inputLayoutWithText(t, "ab", nil)
 	StateMap[string, inputState](w, nsInput, capMany).Set(
 		focusID, inputState{CursorPos: 1})
-
 	got, changed := inputDeleteGrapheme("ab", focusID, false, layout, w)
 	if !changed || got != "b" {
 		t.Fatalf("fallback backspace = (%q, %v), want (\"b\", true)", got, changed)
+	}
+
+	// ZWJ family emoji: one Backspace removes all seven runes.
+	text := "a\U0001F468\u200D\U0001F469\u200D\U0001F467\u200D\U0001F466"
+	layout = inputLayoutWithText(t, text, nil)
+	StateMap[string, inputState](w, nsInput, capMany).Set(
+		focusID, inputState{CursorPos: utf8RuneCount(text)})
+	got, changed = inputDeleteGrapheme(text, focusID, false, layout, w)
+	if !changed || got != "a" {
+		t.Fatalf("fallback cluster backspace = (%q, %v), want (\"a\", true)", got, changed)
+	}
+	if is := inputStateOrDefault(focusID, w); is.CursorPos != 1 {
+		t.Fatalf("cursor = %d, want 1", is.CursorPos)
+	}
+
+	// Forward delete from after "a" removes the whole cluster too.
+	StateMap[string, inputState](w, nsInput, capMany).Set(
+		focusID, inputState{CursorPos: 1})
+	got, changed = inputDeleteGrapheme(text, focusID, true, layout, w)
+	if !changed || got != "a" {
+		t.Fatalf("fallback cluster forward = (%q, %v), want (\"a\", true)", got, changed)
 	}
 }
 

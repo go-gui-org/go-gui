@@ -234,7 +234,7 @@ func rtfSelectOnKeyDown(ctx EventCtx) {
 		inputKeyLeft(imap, id, is, flatText, pos,
 			isShift, isWordMod, gl, true)
 	case KeyRight:
-		inputKeyRight(imap, id, is, flatText, pos, runeLen,
+		inputKeyRight(imap, id, is, flatText, pos,
 			isShift, isWordMod, gl, true)
 	case KeyHome:
 		inputKeyHome(imap, id, is, flatText, pos,

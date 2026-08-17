@@ -611,6 +611,129 @@ func TestInputOnKeyDownLeftCollapsesSelection(t *testing.T) {
 	}
 }
 
+// --- Grapheme-cluster caret motion (issue #330) ---
+
+// seedInputGlyphLayout stamps a fake glyph layout onto the input's
+// inner text shape so the key handler's navigation takes the shaped
+// path headlessly. cursors are the byte indices valid as cursor
+// positions — the cluster boundaries a real measurer would produce.
+func seedInputGlyphLayout(t *testing.T, ctx *inputTestCtx, text string, cursors []int) {
+	t.Helper()
+	ctx.w.textMeasurer = &stubTextMeasurer{charWidth: 10, fontHeight: 20}
+	if len(ctx.layout.Children) == 0 || len(ctx.layout.Children[0].Children) == 0 {
+		t.Fatal("input layout missing inner text shape")
+	}
+	shape := ctx.layout.Children[0].Children[0].Shape
+	if shape.TC == nil {
+		t.Fatal("inner child is not a text shape")
+	}
+	style := textStyleOrDefault(shape)
+	shape.TC.textLayout = glyphCursorLayout(text, cursors)
+	shape.TC.textLayoutWidth = plainTextLayoutWidthArg(shape, shape.TC, style)
+	shape.TC.textLayoutText = text
+	shape.TC.textLayoutStyle = style
+	shape.TC.textLayoutMode = shape.TC.TextMode
+	shape.TC.textLayoutValid = true
+}
+
+func TestInputArrowLeftGraphemeGlyphPath(t *testing.T) {
+	// 👍🏽 = base + skin-tone modifier, one cluster: Left from the end
+	// lands before the cluster, never between base and modifier.
+	text := "\U0001F44D\U0001F3FD"
+	ctx := newInputTest(text, "f620", utf8RuneCount(text))
+	seedInputGlyphLayout(t, ctx, text, []int{0, len(text)})
+	ctx.fireKeyDown(KeyLeft, ModNone)
+	if is := ctx.state(); is.CursorPos != 0 {
+		t.Fatalf("cursor=%d, want 0", is.CursorPos)
+	}
+}
+
+func TestInputArrowRightGraphemeGlyphPath(t *testing.T) {
+	// 🇺🇸 = two regional indicators, one cluster: Right from before it
+	// steps past the whole cluster in one key.
+	text := "\U0001F1FA\U0001F1F8"
+	ctx := newInputTest(text, "f621", 0)
+	seedInputGlyphLayout(t, ctx, text, []int{0, len(text)})
+	ctx.fireKeyDown(KeyRight, ModNone)
+	if is := ctx.state(); is.CursorPos != utf8RuneCount(text) {
+		t.Fatalf("cursor=%d, want %d", is.CursorPos, utf8RuneCount(text))
+	}
+}
+
+func TestInputShiftLeftGraphemeGlyphPath(t *testing.T) {
+	// Shift+Left from the end of a ZWJ family emoji extends the
+	// selection by the whole cluster, not one rune.
+	text := "a\U0001F468\u200D\U0001F469\u200D\U0001F467"
+	ctx := newInputTest(text, "f622", utf8RuneCount(text))
+	seedInputGlyphLayout(t, ctx, text, []int{0, 1, len(text)})
+	ctx.fireKeyDown(KeyLeft, ModShift)
+	is := ctx.state()
+	if is.CursorPos != 1 {
+		t.Fatalf("cursor=%d, want 1", is.CursorPos)
+	}
+	if is.selectBeg != uint32(utf8RuneCount(text)) || is.selectEnd != 1 {
+		t.Fatalf("sel=%d-%d, want %d-1", is.selectBeg, is.selectEnd,
+			utf8RuneCount(text))
+	}
+}
+
+func TestInputArrowLeftGraphemeFallback(t *testing.T) {
+	// No glyph layout: Left snaps to the previous UAX #29 boundary.
+	text := "\U0001F44D\U0001F3FD"
+	ctx := newInputTest(text, "f623", utf8RuneCount(text))
+	ctx.fireKeyDown(KeyLeft, ModNone)
+	if is := ctx.state(); is.CursorPos != 0 {
+		t.Fatalf("cursor=%d, want 0", is.CursorPos)
+	}
+}
+
+func TestInputArrowRightGraphemeFallback(t *testing.T) {
+	// No glyph layout: Right steps past the whole cluster in one key.
+	text := "\U0001F1FA\U0001F1F8"
+	ctx := newInputTest(text, "f624", 0)
+	ctx.fireKeyDown(KeyRight, ModNone)
+	if is := ctx.state(); is.CursorPos != utf8RuneCount(text) {
+		t.Fatalf("cursor=%d, want %d", is.CursorPos, utf8RuneCount(text))
+	}
+}
+
+func TestInputBackspaceGraphemeFallback(t *testing.T) {
+	// One Backspace on a ZWJ family emoji removes the whole cluster,
+	// leaving the leading "a".
+	text := "a\U0001F468\u200D\U0001F469\u200D\U0001F467\u200D\U0001F466"
+	ctx := newInputTest(text, "f625", utf8RuneCount(text))
+	ctx.fireKeyDown(KeyBackspace, ModNone)
+	if ctx.lastText != "a" {
+		t.Fatalf("text=%q, want %q", ctx.lastText, "a")
+	}
+	if is := ctx.state(); is.CursorPos != 1 {
+		t.Fatalf("cursor=%d, want 1", is.CursorPos)
+	}
+}
+
+func TestInputForwardDeleteGraphemeFallback(t *testing.T) {
+	// Forward Delete at the start of a skin-tone emoji removes the
+	// whole cluster — symmetric with Backspace.
+	text := "\U0001F44D\U0001F3FD"
+	ctx := newInputTest(text, "f626", 0)
+	ctx.fireKeyDown(KeyDelete, ModNone)
+	if ctx.lastText != "" {
+		t.Fatalf("text=%q, want empty", ctx.lastText)
+	}
+}
+
+func TestInputArrowDownGraphemeFallback(t *testing.T) {
+	// Down from the end of "ab" onto a line whose ZWJ emoji starts at
+	// the target column: rune-column math lands at rune 5 (inside the
+	// cluster); the fallback snaps to the nearest boundary, 4.
+	text := "ab\na\U0001F468\u200D\U0001F469\u200D\U0001F467"
+	ctx := newInputTestMultiline(text, "f627", 2)
+	ctx.fireKeyDown(KeyDown, ModNone)
+	if is := ctx.state(); is.CursorPos != 4 {
+		t.Fatalf("cursor=%d, want 4", is.CursorPos)
+	}
+}
+
 // --- Cursor movement helpers ---
 
 func TestMoveCursorWordLeft(t *testing.T) {
