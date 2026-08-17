@@ -233,6 +233,15 @@ func scrollSmoothArm(w *Window, id string, axis scrollAxis, displayed, maxOffset
 // programmatic) is not overwritten by an in-flight ease. No-op if none
 // active. Main goroutine only.
 func scrollSmoothCancel(w *Window, id string, axis scrollAxis) {
+	if axis == scrollAxisY {
+		// The same later-intent rule covers a pending index-addressed
+		// scroll: it re-applies for a few frames while its rows are
+		// measured (layoutApplyVirtualScrolls), and would snap the
+		// direct write back. scrollIndexRequest cancels before it
+		// queues, so it never drops its own request. Outside animMu:
+		// virtualScrolls is main-goroutine state.
+		w.dropVirtualScroll(id)
+	}
 	w.animMu.Lock()
 	defer w.animMu.Unlock()
 	if w.scrollSmooth == nil {

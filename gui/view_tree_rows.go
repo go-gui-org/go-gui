@@ -84,6 +84,10 @@ func treeVisibleRange(
 	}
 	// Default 0: unscrolled position when no offset recorded yet.
 	scrollY := w.scrollY().GetOr(scrollID, 0)
+	// Index space: the *flat* row index, not the node index. Re-
+	// registered every frame because flatRows is rebuilt whenever a
+	// node expands or collapses.
+	listHeightRegisterUniform(w, scrollID, totalRows, rowHeight, 0, 0)
 	return listCoreVisibleRange(totalRows, rowHeight, treeHeight, scrollY)
 }
 

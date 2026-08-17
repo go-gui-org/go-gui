@@ -261,6 +261,11 @@ func tableView(cfg TableCfg, w *Window) View {
 			dataCount, rowHeight, listHeight, scrollY)
 		first = vFirst + dataStart
 		last = vLast + dataStart
+		// Index space: cfg.Data. With Freeze, data row 0 is the frozen
+		// header and sits outside the scrollable, which is what
+		// indexBase records.
+		listHeightRegisterUniform(w, scrollID, dataCount,
+			rowHeight, 0, dataStart)
 	}
 
 	rows := tableBuildRows(&cfg, columnWidths, cellBorder,

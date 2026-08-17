@@ -22,10 +22,10 @@ Input{ID: "name", FocusDisabled: true} // not in the tab order
 Most input controls are focusable by default: `Button`, `ColorChannelSlider`,
 `ColorPicker`, `ColorPlane`, `ColorWheel`, `Combobox`, `DatePicker`, `Input`,
 `InputDate`, `ListBox`, `NumericInput`, `RadioButtonGroup`, `Radio`, `Select`,
-`Slider`, `Switch`, `Toggle`, `Tree`. Everything else opts in with
-`Focusable: true`. If a control never answers the keyboard, the usual cause is a
-missing `ID`. The `requiredid` analyzer and the `DebugMissingIDs` gate report
-it. See `docs/specs/focusable-default-input.md`.
+`Slider`, `Switch`, `Toggle`, `Tree`, `VirtualList`. Everything else opts in
+with `Focusable: true`. If a control never answers the keyboard, the usual cause
+is a missing `ID`. The `requiredid` analyzer and the `DebugMissingIDs` gate
+report it. See `docs/specs/focusable-default-input.md`.
 
 ## ID scoping
 
@@ -106,6 +106,60 @@ The mask inherits down the tree, and only down: a snapped container snaps
 everything inside it, and a child cannot escape the container's mask. The hero
 transition (`Shape.Hero`) ignores `AnimSnap` — it is already an explicit
 per-shape opt-in.
+
+## Virtualized lists
+
+`ListBox`, `Table`, `Tree` and `Combobox` virtualize automatically when the
+scroll container has a bounded height (`Scrollable` plus `Height`, `MaxHeight`,
+or — `ListBox` only — a height Fill sizing resolved last frame). Every row is
+the same height there, which is exact because the widget owns the row shape.
+
+For rows the app builds, of heights only the layout engine knows, use
+`VirtualList`:
+
+```go
+gui.VirtualList(gui.VirtualListCfg{
+    ID:        "feed",
+    ItemCount: len(msgs),
+    Sizing:    gui.FillFill,
+    // Optional but wanted whenever items can be inserted or reordered:
+    // measured heights follow the key, not the index.
+    ItemKey: func(i int) string { return msgs[i].ID },
+    ItemView: func(i int, width float32) gui.View {
+        // width is the inner width recorded by the previous arrange.
+        // It is 0 on the first frame.
+        return card(msgs[i], gui.ScopeIDN("feed", "row", i), width)
+    },
+})
+```
+
+Set `ItemHeight` when the height is cheap to compute: heights are then exact
+from the first frame and nothing is measured. Put spacing _inside_ the row — the
+list's own spacing is fixed at zero, because a gap between rows is height the
+model does not account for.
+
+**Use `width` for decisions, never for a minimum.** A row that sets `MinWidth`
+from it asks the list for at least the width the list just reported; the row's
+own border pushes that further, the list widens, and the cycle repeats every
+frame — re-wrapping and re-measuring each time, so nothing settles. Rows fill
+the width they are handed through `Sizing`. `gui.Debug(true)` reports the
+ratchet.
+
+Scroll by index, not by ID or percentage — a row outside the viewport has no
+shape for `FindByID` to resolve, and the content height under virtualization is
+an estimate, so a percentage drifts:
+
+```go
+w.ScrollToIndex("feed", 4000)          // row at the viewport top
+w.ScrollToIndexAt("feed", 4000, 0.5)   // centred
+w.ScrollIndexIntoView("feed", 4000)    // nearest edge; no-op when visible
+w.ScrollToEnd("feed")                  // pin to bottom, exactly
+```
+
+These work on the uniform widgets too, in each one's own index space (a frozen
+table header is data index 0 but sits outside the scrollable). Call
+`w.InvalidateListHeights(id)` when a row's content changed under a stable key —
+nothing detects that. See `docs/specs/virtualized-variable-height-lists.md`.
 
 ## The one-event rule
 

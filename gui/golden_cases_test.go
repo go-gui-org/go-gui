@@ -659,6 +659,47 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// A variable-height virtualized list, scrolled into the
+			// middle so both spacers and the row window are recorded.
+			// This is the pixel-level guard on the spacer arithmetic:
+			// a leading spacer sized from the wrong prefix moves every
+			// row, and reading GenerateLayout would not show it —
+			// spacer heights only become geometry after arrange.
+			name: "virtual_list",
+			build: func(w *Window) View {
+				const id = "vl"
+				rowH := func(i int, _ float32) float32 {
+					if i%3 == 0 {
+						return 44
+					}
+					return 22
+				}
+				// Fixed offset rather than a driven scroll: a golden
+				// pins appearance, and an offset set here is the same
+				// every run.
+				w.scrollY().Set(id, -300)
+				return VirtualList(VirtualListCfg{
+					ID:         id,
+					ItemCount:  400,
+					Height:     160,
+					Sizing:     FillFixed,
+					OverscanPx: 20,
+					ItemHeight: rowH,
+					ItemView: func(i int, _ float32) View {
+						return Column(ContainerCfg{
+							ID:         ScopeIDN(id, "row", i),
+							Height:     rowH(i, 0),
+							Sizing:     FillFixed,
+							SizeBorder: NoBorder,
+							Content: []View{Text(TextCfg{
+								Text: "row " + itoa(i),
+							})},
+						})
+					},
+				})
+			},
+		},
+		{
 			// The resting menubar: only menubar_disabled exists today,
 			// which cannot see a change to the resting colors.
 			name: "menubar",

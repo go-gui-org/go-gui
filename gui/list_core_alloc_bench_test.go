@@ -185,3 +185,68 @@ func BenchmarkListBoxGenerateLayout(b *testing.B) {
 		}
 	})
 }
+
+// BenchmarkVirtualListGenerateLayout pins the property that matters
+// for a virtualized list: the per-frame cost is a function of the
+// *visible* rows, not of the corpus. The assertion in the alloc gate
+// is invariance across ItemCount, not an absolute number — a build
+// that starts scaling with the data is the regression, whatever the
+// constant happens to be on the day.
+func BenchmarkVirtualListGenerateLayout(b *testing.B) {
+	for _, n := range []int{1_000, 100_000, 1_000_000} {
+		b.Run(strconv.Itoa(n), func(b *testing.B) {
+			w := newTestWindow()
+			cfg := virtualListCfg("bench-vl", n, 300)
+			cfg.ItemHeight = func(i int, _ float32) float32 {
+				return virtualListRowH(i)
+			}
+			v := VirtualList(cfg)
+			// Land mid-corpus so both spacers exist and the range walk
+			// is a real Fenwick descent rather than a top-of-list hit.
+			_ = generateViewLayout(v, w)
+			m, _ := listHeightLookup(w, "bench-vl")
+			w.scrollY().Set("bench-vl", -m.Prefix(n/2))
+
+			b.ReportAllocs()
+			b.ResetTimer()
+			for b.Loop() {
+				w.scratch.resetViewPools()
+				_ = generateViewLayout(v, w)
+			}
+		})
+	}
+}
+
+// TestVirtualListAllocsAreFlat is the gate form of the benchmark
+// above: the per-frame allocation count must not grow with the item
+// count. A build that starts touching every item shows up here as a
+// thousand-fold difference, long before it shows up as a slow frame.
+func TestVirtualListAllocsAreFlat(t *testing.T) {
+	measure := func(n int) float64 {
+		w := newTestWindow()
+		cfg := virtualListCfg("flat-vl", n, 300)
+		cfg.ItemHeight = func(i int, _ float32) float32 {
+			return virtualListRowH(i)
+		}
+		v := VirtualList(cfg)
+		_ = generateViewLayout(v, w)
+		m, _ := listHeightLookup(w, "flat-vl")
+		w.scrollY().Set("flat-vl", -m.Prefix(n/2))
+		res := testing.Benchmark(func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				w.scratch.resetViewPools()
+				_ = generateViewLayout(v, w)
+			}
+		})
+		return float64(res.AllocsPerOp())
+	}
+	small, big := measure(1_000), measure(1_000_000)
+	if small == 0 {
+		t.Fatal("benchmark reported no allocations")
+	}
+	if ratio := big / small; ratio > 1.05 {
+		t.Fatalf("allocs/op grew with ItemCount: %v at 1k, %v at 1M",
+			small, big)
+	}
+}

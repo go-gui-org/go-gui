@@ -162,6 +162,11 @@ type Window struct {
 	// consumed by the layout pipeline. See Window.ScrollAnchor.
 	scrollAnchors []scrollAnchor
 
+	// virtualScrolls holds pending index-addressed scroll requests for
+	// lists whose height model was not registered yet, consumed by the
+	// layout pipeline. See Window.ScrollToIndex.
+	virtualScrolls []virtualScrollReq
+
 	windowToast
 
 	// Embedded concern groups.

@@ -44,8 +44,8 @@ func mainView(w *gui.Window) gui.View {
 ```
 
 `gui.Label(text, style)` — pass the zero `TextStyle{}` for the default theme
-style. `gui.TextButton(id, label, onClick)` and `gui.SimpleWindow` are the
-same thin forwards; the `ID` argument stays explicit because identity is
+style. `gui.TextButton(id, label, onClick)` and `gui.SimpleWindow` are the same
+thin forwards; the `ID` argument stays explicit because identity is
 caller-owned.
 
 ### Full control
@@ -138,6 +138,10 @@ sharing the same rendering pipeline and event system.
 - **50+ widgets** — buttons, inputs, sliders, tables, trees, tabs, menus,
   dialogs, toasts, DataGrid with virtualization (CSV/XLSX/PDF export), Markdown
   and RTF views, SVG rendering, and more
+- **Virtualized lists, uniform or not** — `ListBox`, `Table` and `Tree`
+  virtualize rows they own; `VirtualList` handles rows the app builds, of
+  heights only the layout engine knows, and `Window.ScrollToIndex` addresses a
+  row that does not exist yet
 - **GPU-accelerated** — Metal (macOS), OpenGL (Linux/Windows), WebGL/WASM
   (browser), Metal/UIKit (iOS)
 - **Animation subsystem** — keyframe, spring, tween, hero transitions, color
