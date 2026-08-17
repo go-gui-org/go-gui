@@ -105,6 +105,11 @@ label says. Measuring the run there both misses the defect (a descending label's
 ink band already reads low while its cap band rides high) and would step the
 label when the selection changed.
 
+A control in a **list at a regular pitch** — a menu item — takes the cap band
+for a second reason: measuring each run would move a descender-free label while
+leaving its neighbour, and uneven baselines read down the whole list. The same
+disagreement between two badges side by side does not.
+
 Which form depends on who supplies the string. A widget-owned label is measured
 per run, so a count centres exactly and a label with a descender is left alone.
 Editable text takes the content-free form — `opticalCenterFieldText` as a hook,

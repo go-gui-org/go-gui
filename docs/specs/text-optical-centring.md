@@ -100,6 +100,28 @@ says. Measured after, the cap band of "Pick a language" and of "PICK" both land
 exists for. The descender then hangs below centre instead of pulling the whole
 label up; that is how a control label is set, and it is deliberate.
 
+A **menu item** takes the same band, for a different reason. Its label is the
+app's and static per call site, so the ownership rule would admit the measured
+form — but items stack in a list at a regular pitch, and measuring each run
+would move a descender-free label down while leaving its descending neighbour
+where it was. The unevenness reads down the whole menu, where the same
+disagreement between two badges side by side does not. Cap band, whatever the
+item says.
+
+Two details follow from the widget rather than the rule. A menu item's label and
+its shortcut hint share one row, so the correction is attached to that row and
+reaches both — they have to move together or the pair reads skewed. And a
+_wrapping_ label is included here, unlike `Select`'s and `Input`'s: the
+exclusion there is about a block whose later lines are placed against a
+top-aligned box, while a menu item's box hugs its label, so the reserved descent
+that goes unused is the last line's either way. Submenu items are the wrapping
+spelling, and they are exactly the ones the defect was reported on.
+
+Measured on the real render (an open submenu, device pixels): before, the
+menubar item's ink centre sat 2.0 above its highlight box's centre; after, 0.5
+below — the same residual an exactly centred badge records. All three submenu
+labels, descending and not, moved by the same 3 device pixels.
+
 The consequence worth knowing: a descender-bearing `Select` label sits about 1.4
 logical pixels lower than the same string in a `Button` beside it, because
 `Button` measures its run and leaves a descender where it was. `Button` labels
@@ -191,18 +213,31 @@ Two forms, because widgets reach the correction at two different times:
 
 `gui/golden_cases_test.go` records `badge`, `badge_capped`, `badge_descender`,
 `button`, `button_descender`, `numeric_input`, `input_date`,
-`select_placeholder_descender` and `progress_bar`; `color_fields`,
-`button_disabled`, `tab_control`, `datepicker_disabled`, `inputdate_disabled`,
-`numericinput_disabled` and the five `select_*` cases moved.
-`select_placeholder_descender` records level with `select_placeholder`, which is
-what a revert to the measured form would break. `badge_descender` and
+`select_placeholder_descender`, `menu_open_descender` and `progress_bar`;
+`color_fields`, `button_disabled`, `tab_control`, `datepicker_disabled`,
+`inputdate_disabled`, `numericinput_disabled` and the five `select_*` cases
+moved. `select_placeholder_descender` records level with `select_placeholder`,
+which is what a revert to the measured form would break. `badge_descender` and
 `button_descender` are the counter-cases: they must **not** move, and they are
 what would catch the correction reverting to a per-face constant applied to
 every run. The plain `input` case is the third counter-case, and the one that
 pins the opt-in: general text must stay metrically centred. `TextMeasurer` is
 nil under the golden harness, so those files pin the fallback-ratio path: that
 the correction happens and by how much, not what a given font measures.
+`menu_open_descender` opens a menu for one frame (menu selection is `nsMenu`
+keyed by the menubar's ID) and records `Copy` and `Paste` at the same offset
+from their own row: the measured form would move one and not the other, which is
+the pitch defect the band exists to avoid. Its shortcut-hint sibling is a unit
+test rather than a golden, because `Shortcut.String()` renders macOS glyphs on
+darwin and words elsewhere, so the recording would not be portable.
 `examples/optical_centring/` is the probe for what a golden cannot show.
+
+Two goldens changed for a reason that is not the correction: the golden harness
+now pins the window clock (`setVirtualNow`) and `datePickerMonth` reads
+`w.Now()` rather than `time.Now()`. The calendar rings _today_, so
+`datepicker_disabled` recorded a different cell every day and reddened
+overnight; the same read is what a time-travel scrub needs, since a snapshot's
+calendar should ring the scrubbed day.
 
 ## Where it is applied
 
@@ -211,6 +246,11 @@ the focus ring through `amendAll`; the disclosure arrow sits in its own wrapper
 and carries its own nudge, so the hook reaches the label only). A wrapping
 multi-select is excluded — its label is a block whose later lines are placed by
 the text layout, the same exclusion `Input` makes for multiline.
+
+The **menu item** (cap band as well, on the item's own column, or on the
+label+shortcut row where there is a hint; a `CustomView` item is skipped, since
+its content is the app's to place). `Menubar`'s top-level items and every
+submenu item are the same factory, so both take it.
 
 `Badge`, `ProgressBar`'s readout, `ColorFields`, `InputDate`, `NumericInput`,
 and **`Button`** — which is what `TabControl`, `CommandButton` and the date
@@ -226,6 +266,6 @@ and `button_disabled` are recorded as a pair to keep that honest.
 
 Still uncorrected: `Input` and every editable control whose alphabet is _not_
 constrained (by the rule above), and the widgets that centre text without going
-through `Button` — menu item, breadcrumb, expand panel. Those are a
+through `Button` or the menu item — breadcrumb, expand panel. Those are a
 straightforward extension when wanted; each needs the hook on the container that
 holds its label.

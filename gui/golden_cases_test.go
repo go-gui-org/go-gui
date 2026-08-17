@@ -393,6 +393,31 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// An open menu, which is where the choice of band shows:
+			// items stack at a regular pitch, so a descending label and
+			// a cap-only one must record the same offset from their own
+			// row. The cap band gives that; measuring each run would
+			// move "Paste" down and leave the descending "Copy" where
+			// it was, skewing the pitch between them (issue #346).
+			name:    "menu_open_descender",
+			focusID: "mb",
+			build: func(w *Window) View {
+				// Menu selection lives in nsMenu keyed by the menubar's
+				// ID; setting it is what opens the menu for one frame.
+				StateMap[string, string](w, nsMenu, capModerate).
+					Set("mb", "edit")
+				return Menubar(w, MenubarCfg{
+					ID: "mb",
+					Items: []MenuItemCfg{
+						MenuSubmenu("edit", "Edit", []MenuItemCfg{
+							MenuItemText("copy", "Copy"),
+							MenuItemText("paste", "Paste"),
+						}),
+					},
+				})
+			},
+		},
+		{
 			// The group-box title is the one text path dimmed twice:
 			// addGroupBoxTitle halves at generation and renderText
 			// halves the stamp again. Before the fix the title

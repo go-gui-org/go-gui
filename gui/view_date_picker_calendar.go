@@ -82,7 +82,11 @@ func datePickerMonth(
 		startDOW = (startDOW + 6) % 7 // shift Sunday from 0 to 6
 	}
 
-	today := time.Now()
+	// The window's clock, not the wall clock: a time-travel scrub pins a
+	// virtual instant, and a calendar that read time.Now() would ring a
+	// different cell than the snapshot it is rendering. w.Now() is
+	// nil-safe and falls back to the wall clock.
+	today := w.Now()
 	onSelect := cfg.OnSelect
 	selectMultiple := cfg.SelectMultiple
 
