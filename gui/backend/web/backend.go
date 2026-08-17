@@ -34,7 +34,6 @@ type Backend struct {
 	height    int
 
 	normBuf      []gui.GradientStop
-	sampledBuf   []gui.GradientStop
 	imgCache     map[string]js.Value
 	failedImages map[string]struct{}
 	clipDepth    int

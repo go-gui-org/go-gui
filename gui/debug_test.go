@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"math"
 	"strings"
 	"testing"
 )
@@ -253,6 +254,7 @@ func TestCheckCategoryMapping(t *testing.T) {
 		{debugCheckUnconsumed, DebugUnconsumed},
 		{debugCheckListBoxNoHeight, DebugListBoxNoHeight},
 		{debugCheckUnscopedID, DebugUnscopedIDs},
+		{debugCheckGradientResampled, DebugGradientResampled},
 	}
 	for _, tc := range tests {
 		if got := checkCategory(tc.check); got != tc.want {
@@ -262,11 +264,71 @@ func TestCheckCategoryMapping(t *testing.T) {
 	// DebugAll covers every category Debug(true) turns on.
 	// DebugUnscopedIDs is opt-in and deliberately outside it: it reports
 	// a design property, not a defect.
-	if DebugAll != DebugDuplicates|DebugMissingIDs|DebugUnconsumed|DebugListBoxNoHeight {
+	if DebugAll != DebugDuplicates|DebugMissingIDs|DebugUnconsumed|DebugListBoxNoHeight|DebugGradientResampled {
 		t.Fatal("DebugAll must cover every category Debug(true) enables")
 	}
 	if DebugAll&DebugUnscopedIDs != 0 {
 		t.Fatal("DebugUnscopedIDs must stay opt-in, outside DebugAll")
+	}
+}
+
+// A gradient resample is reported once per rect and only while its
+// category is on, and the counts in the message are the degraded and
+// original stop counts.
+func TestDebugGradientResampledWarnOnce(t *testing.T) {
+	buf := captureDebugMask(t, DebugGradientResampled)
+	w := &Window{}
+
+	w.DebugGradientResampled(10, 20, 5, 7)
+	w.DebugGradientResampled(10, 20, 5, 7)
+	got := buf.String()
+	if !strings.Contains(got, "gradient at (10, 20) has 7 stops; resampled to 5") {
+		t.Fatalf("want resample finding with both counts, got %q", got)
+	}
+	if n := strings.Count(got, "resampled"); n != 1 {
+		t.Fatalf("warn-once: want 1 finding, got %d", n)
+	}
+
+	// A different rect is a distinct finding.
+	w.DebugGradientResampled(100, 200, 5, 9)
+	got = buf.String()
+	if n := strings.Count(got, "resampled"); n != 2 {
+		t.Fatalf("want a second finding for a new rect, got %d", n)
+	}
+}
+
+// The gradient check is dispatch-side: it must stay silent under a
+// mask that does not include it, and not remember the miss either.
+func TestDebugGradientResampledCategoryGate(t *testing.T) {
+	buf := captureDebug(t)
+	DebugCategories(DebugMissingIDs)
+	w := &Window{}
+
+	w.DebugGradientResampled(0, 0, 5, 7)
+	if got := buf.String(); got != "" {
+		t.Fatalf("category off must be silent, got %q", got)
+	}
+
+	DebugCategories(0)
+	buf.Reset()
+	DebugCategories(DebugGradientResampled)
+	w.DebugGradientResampled(0, 0, 5, 7)
+	if n := strings.Count(buf.String(), "resampled"); n != 1 {
+		t.Fatalf("re-enabled category must re-report, got %d", n)
+	}
+}
+
+// NaN coords would never match a warn-once key, so the finding must
+// fold to (0, 0) and dedupe against the (0, 0) finding.
+func TestDebugGradientResampledNaNFolds(t *testing.T) {
+	buf := captureDebugMask(t, DebugGradientResampled)
+	w := &Window{}
+	nan := float32(math.NaN())
+
+	w.DebugGradientResampled(nan, nan, 5, 7)
+	w.DebugGradientResampled(0, 0, 5, 7)
+	if n := strings.Count(buf.String(), "resampled"); n != 1 {
+		t.Fatalf("NaN coords must fold to (0, 0) and dedupe, got %d findings", n)
 	}
 }
 

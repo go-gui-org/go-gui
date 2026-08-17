@@ -310,8 +310,8 @@ func (b *Backend) drawGradient(r *gui.RenderCmd) {
 		r.W <= 0 || r.H <= 0 {
 		return
 	}
-	stops := gui.NormalizeGradientStopsInto(
-		r.Gradient.Stops, &b.normBuf, &b.sampledBuf)
+	stops := gui.NormalizeGradientStops(
+		r.Gradient.Stops, &b.normBuf)
 	if len(stops) == 0 {
 		return
 	}
@@ -360,8 +360,8 @@ func (b *Backend) drawGradientBorder(r *gui.RenderCmd) {
 	if r.Gradient == nil || len(r.Gradient.Stops) == 0 {
 		return
 	}
-	stops := gui.NormalizeGradientStopsInto(
-		r.Gradient.Stops, &b.normBuf, &b.sampledBuf)
+	stops := gui.NormalizeGradientStops(
+		r.Gradient.Stops, &b.normBuf)
 	if len(stops) == 0 {
 		return
 	}
