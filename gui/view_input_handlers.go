@@ -11,10 +11,25 @@ func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id 
 		is := inputStateOrDefault(id, w)
 		res := inputMaskInsert(text, is.CursorPos, is.selectBeg, is.selectEnd, ins, mask)
 		if res.Changed {
-			undo := inputPushUndo(is, text)
+			// IME commits are multi-rune; they break the run the way
+			// inputInsert does for a paste. Only the ">1 rune"
+			// question matters, and ins is caller-sized input that
+			// inputMaskInsert bounds, so count with an early exit.
+			n := 0
+			for range ins {
+				n++
+				if n > 1 {
+					break
+				}
+			}
+			op := inputOpInsert
+			if n > 1 {
+				op = inputOpNone
+			}
+			undo := inputPushUndo(is, text, op)
 			text = res.Text
 			StateMap[string, inputState](w, nsInput, capMany).Set(id, inputState{
-				CursorPos: res.CursorPos, Undo: undo,
+				CursorPos: res.CursorPos, Undo: undo, lastEditOp: op,
 			})
 			return text, true
 		}

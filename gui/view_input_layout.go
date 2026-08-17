@@ -137,12 +137,13 @@ func inputDeleteGrapheme(
 		return text, false
 	}
 	newPos := byteToRuneIndex(res.NewText, res.CursorPos)
-	undo := inputPushUndo(is, text)
+	undo := inputPushUndo(is, text, inputOpDelete)
 	imap := StateMap[string, inputState](w, nsInput, capMany)
 	imap.Set(focusID, inputState{
 		CursorPos:    newPos,
 		cursorOffset: -1,
 		Undo:         undo,
+		lastEditOp:   inputOpDelete,
 	})
 	return res.NewText, true
 }
@@ -220,6 +221,9 @@ func (d *inputDragState) updateSelection(rp int, w *Window) {
 		is.selectEnd = uint32(rp)
 	}
 	is.cursorOffset = -1
+	// Drag selection is caret motion: break any undo run so a
+	// subsequent edit starts a fresh undo step (issue #328).
+	is.lastEditOp = inputOpNone
 	imap.Set(d.focusID, is)
 	resetBlinkCursorVisible(w)
 }

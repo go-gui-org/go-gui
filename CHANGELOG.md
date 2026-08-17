@@ -184,6 +184,15 @@ and this project adheres to
 
 ### Fixed
 
+- **`Input` undo recorded every keystroke as its own step, evicting the whole
+  history after 50 characters** (issue #328). Consecutive edits of the same kind
+  — a typing run, a backspace chain — now coalesce into one undo step whose
+  anchor is the state before the run began, so Ctrl+Z after typing a sentence
+  undoes the sentence, and a long run no longer pushes older history out of the
+  50-entry cap. A run breaks on caret motion or click, on a drag selection, on
+  paste or any multi-rune insert (IME commits included), on a programmatic text
+  set, and on a change of edit kind (typing after backspace and backspace after
+  typing are separate steps).
 - **`Input` ignored the theme's own padding** (issue #335). `InputStyle.Padding`
   was dead: the widget fell back to a hardcoded inset, so a theme author editing
   it saw `Container` and `ListBox` move while `Input` stayed put. `Input`'s

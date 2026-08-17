@@ -215,7 +215,8 @@ func inputKeyPaste(
 			cis.selectBeg,
 			cis.selectEnd, clip, mask)
 		if res.Changed {
-			undo := inputPushUndo(cis, text)
+			// A paste is never part of a typing run.
+			undo := inputPushUndo(cis, text, inputOpNone)
 			StateMap[string, inputState](
 				w, nsInput, capMany,
 			).Set(id, inputState{
@@ -282,11 +283,11 @@ func inputHandleDelete(
 		if !res.Changed {
 			return text, false
 		}
-		undo := inputPushUndo(is, text)
+		undo := inputPushUndo(is, text, inputOpDelete)
 		StateMap[string, inputState](
 			w, nsInput, capMany,
 		).Set(id, inputState{
-			CursorPos: res.CursorPos, Undo: undo,
+			CursorPos: res.CursorPos, Undo: undo, lastEditOp: inputOpDelete,
 		})
 		return res.Text, true
 	}
