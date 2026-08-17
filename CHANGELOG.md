@@ -87,6 +87,29 @@ and this project adheres to
 - **Visual: `ColorFields` channel labels** take the theme's label role instead
   of an invented two-step size drop and 0.7 alpha, and the shared spacing tier
   instead of a bespoke 2px gap (issue #335).
+- **Visual: vertically-centred text is centred on its ink, not its line box**
+  (issue #346). A text shape is sized to the font's full height, so the descent
+  it reserves goes unused by text that cannot descend — digits above all — and
+  the text reads high. Every vertically-centred control that owns its text now
+  corrects for this: `Badge` counts, the progress-bar readout, `Button` and
+  everything built on it (tabs, command buttons), menu items, `Select`'s label,
+  `ColorFields` channels, date masks and numeric fields. Roughly 1px at 16pt,
+  3px at 48pt.
+
+  The correction is deliberately not uniform, because a single rule was tried
+  and measured worse: it made badges read right while dropping single-line
+  inputs too low. What the text **is** decides the band it is centred on — a
+  value on its own ink, a label on the face's cap band, a glyph (icon, step
+  triangle, `×`) always on its own ink, and editable text on a band that ignores
+  content so the baseline cannot move as the user types. Text the user types
+  into an unconstrained control is not corrected at all. See
+  `docs/specs/text-optical-centring.md` and the "Vertical centring" section of
+  `docs/style-guide.md`.
+
+  No new public API: the opt-ins are internal, so a widget outside `gui/`
+  inherits the correction through `Button` and the field widgets but cannot
+  request a band of its own. Run `examples/optical_centring/` to see the bands
+  side by side at 16/24/48pt.
 
 ### Fixed
 
@@ -97,6 +120,16 @@ and this project adheres to
   border, silently reserving 3px of height for a border it never painted.
 - **A live menu item's shortcut hint wore the disabled dim** (issue #335), so an
   enabled item and a dead one rendered identically.
+- **`ColorFields`' private optical correction overshot by ~0.04em** — about
+  0.7px at 16pt, 2px at 48pt (issue #346). It shifted padding from bottom to
+  top, which moves the text by twice the offset, and compensated for a
+  half-leading term the line box does not carry: `glyph` reports line gap
+  separately from the height a text shape is sized to. Measured ink replaces
+  both of its local ratios, and the shared helper is now what every widget
+  reaches for.
+- **The date-picker calendar read the wall clock directly** to ring today, via
+  `time.Now()` rather than the window's clock, so it could not be pinned by a
+  test and the golden recording broke on every date rollover (issue #346).
 - **`DockLayout`'s close glyph bypassed the theme**, reading a package size
   constant directly, so a theme that shifted its type scale could not move it
   (issue #335).
