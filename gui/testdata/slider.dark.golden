@@ -1,0 +1,5 @@
+Rect xy=13.00,16.50 wh=35.00,6.00 color=#4a4a4aff radius=3.00 fill
+StrokeRect xy=13.00,16.50 wh=35.00,6.00 color=#646464ff radius=3.00 thickness=1.50
+Rect xy=14.50,18.00 wh=14.00,3.00 color=#4169e1ff fill
+Circle xy=27.00,19.50 wh=0.00,0.00 color=#404040ff radius=8.00 fill
+StrokeRect xy=19.00,11.50 wh=16.00,16.00 color=#646464ff radius=8.00 thickness=1.50

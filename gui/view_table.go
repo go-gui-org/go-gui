@@ -75,6 +75,10 @@ type TableCfg struct {
 	ColorBorder Color
 	ColorSelect Color
 	ColorHover  Color
+	// Colors sets the per-state colors. The flat Color* fields
+	// above win over their Colors slots. Table has no base fill,
+	// so Base is unused and Hover/Border are the live slots.
+	Colors ColorSet
 
 	// Sizing
 	Sizing       Sizing
@@ -86,14 +90,14 @@ type TableCfg struct {
 
 func applyTableDefaults(cfg *TableCfg) {
 	s := &defaultTableStyle
-	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = s.ColorBorder
-	}
+	cfg.Colors = cfg.Colors.resolved(Color{}, themeColorSet(
+		Color{}, s.ColorHover, Color{},
+		Color{}, s.ColorBorder, Color{},
+	))
+	cfg.Colors.applyTo(nil, &cfg.ColorHover, nil, nil,
+		&cfg.ColorBorder, nil)
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = s.ColorSelect
-	}
-	if !cfg.ColorHover.IsSet() {
-		cfg.ColorHover = s.ColorHover
 	}
 	if !cfg.cellPadding.IsSet() {
 		cfg.cellPadding = s.cellPadding

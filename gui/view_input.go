@@ -103,6 +103,10 @@ type InputCfg struct {
 	ColorHover       Color
 	ColorBorder      Color
 	ColorBorderFocus Color
+	// Colors sets the per-state colors. Color above is the
+	// shorthand for Colors.Base and wins over it; the other flat
+	// Color* fields win over their Colors slots the same way.
+	Colors ColorSet
 
 	Sizing Sizing
 
@@ -318,18 +322,12 @@ func Input(cfg InputCfg) View {
 
 func applyInputDefaults(cfg *InputCfg) {
 	d := &defaultInputStyle
-	if !cfg.Color.IsSet() {
-		cfg.Color = d.Color
-	}
-	if !cfg.ColorHover.IsSet() {
-		cfg.ColorHover = d.ColorHover
-	}
-	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = d.ColorBorder
-	}
-	if !cfg.ColorBorderFocus.IsSet() {
-		cfg.ColorBorderFocus = d.ColorBorderFocus
-	}
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
+		d.Color, d.ColorHover, d.colorClick,
+		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
+	))
+	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, nil, nil,
+		&cfg.ColorBorder, &cfg.ColorBorderFocus)
 	if !cfg.Padding.IsSet() {
 		// Was a hardcoded inset, which made InputStyle.Padding dead:
 		// a theme author editing it saw Container and ListBox move

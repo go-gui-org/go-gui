@@ -549,6 +549,63 @@ func goldenCases() []goldenCase {
 				})
 			},
 		},
+		// --- ColorSet migration (issue #342) ---
+		//
+		// The eleven flat-Color* widgets gain a Colors ColorSet that
+		// folds through applyTo into their flat fields. The migration
+		// must not move a pixel: these four widgets had no recording
+		// before, so the no-diff criterion could not see them. Each
+		// case is recorded pre-migration behavior and must hold
+		// across the refactor.
+		{
+			name: "slider",
+			build: func(_ *Window) View {
+				return Slider(SliderCfg{ID: "sl", Value: 40})
+			},
+		},
+		{
+			name: "expand_panel",
+			build: func(_ *Window) View {
+				return ExpandPanel(ExpandPanelCfg{
+					ID:      "ep",
+					Head:    Text(TextCfg{Text: "Details"}),
+					Content: Text(TextCfg{Text: "content"}),
+					Open:    true,
+				})
+			},
+		},
+		{
+			name: "context_menu",
+			build: func(w *Window) View {
+				return ContextMenu(w, ContextMenuCfg{
+					ID: "cm",
+					Content: []View{
+						Button(ButtonCfg{
+							ID:      "cm_btn",
+							Content: []View{Text(TextCfg{Text: "Target"})},
+						}),
+					},
+					Items: []MenuItemCfg{
+						MenuItemText("open", "Open"),
+						MenuItemText("save", "Save"),
+					},
+				})
+			},
+		},
+		{
+			// The resting menubar: only menubar_disabled exists today,
+			// which cannot see a change to the resting colors.
+			name: "menubar",
+			build: func(w *Window) View {
+				return Menubar(w, MenubarCfg{
+					ID: "mb",
+					Items: []MenuItemCfg{
+						MenuItemText("f", "File"),
+						MenuItemText("e", "Edit"),
+					},
+				})
+			},
+		},
 	}
 }
 

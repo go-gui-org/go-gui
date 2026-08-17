@@ -278,7 +278,7 @@ func datePickerControls(
 				// one window keep separate focus and state identities.
 				ID:      ScopeID(cfgID, "month"),
 				Color:   ColorTransparent,
-				Colors:  ColorSet{Border: ColorTransparent},
+				Colors:  ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, themeButtonSet()),
 				OnClick: onToggle,
 				Content: []View{Text(TextCfg{
 					Text: monthLabel, TextStyle: cfg.TextStyle,
@@ -289,7 +289,7 @@ func datePickerControls(
 				ID:       ScopeID(cfgID, "prev"),
 				Disabled: state.ShowYearMonthPicker,
 				Color:    ColorTransparent,
-				Colors:   ColorSet{Border: ColorTransparent},
+				Colors:   ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, themeButtonSet()),
 				OnClick:  onPrev,
 				Content: []View{Text(TextCfg{
 					Text:      iconArrowLeft,
@@ -300,7 +300,7 @@ func datePickerControls(
 				ID:       ScopeID(cfgID, "next"),
 				Disabled: state.ShowYearMonthPicker,
 				Color:    ColorTransparent,
-				Colors:   ColorSet{Border: ColorTransparent},
+				Colors:   ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, themeButtonSet()),
 				OnClick:  onNext,
 				Content: []View{Text(TextCfg{
 					Text:      iconArrowRight,

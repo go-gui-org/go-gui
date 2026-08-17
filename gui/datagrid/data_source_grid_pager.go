@@ -270,7 +270,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 			SizeBorder: gg.SomeF(0),
 			Radius:     gg.SomeF(0),
 			Color:      gg.ColorTransparent,
-			Colors:     gg.ColorSet{Hover: cfg.ColorHeaderHover, Click: cfg.ColorHeaderHover, Focus: gg.ColorTransparent, Border: gg.ColorTransparent},
+			Colors:     gg.ColorSet{Base: gg.ColorTransparent, Hover: cfg.ColorHeaderHover, Click: cfg.ColorHeaderHover, Focus: gg.ColorTransparent, Border: gg.ColorTransparent, BorderFocus: gg.ColorTransparent},
 			OnClick: func(ctx gg.EventCtx) {
 				dataGridSourceRetry(gridID, ctx.Window)
 				if focusID != "" {

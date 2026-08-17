@@ -110,7 +110,7 @@ func splitterButton(cfg *SplitterCfg, core *splitterCore,
 		// are not a state the widget produces today.
 		AmendLayout: centerGlyphOnInk(icon, ts),
 		Color:       cfg.colorButton,
-		Colors:      ColorSet{Hover: cfg.colorButtonHover, Click: cfg.colorButtonActive, Focus: cfg.colorButtonHover},
+		Colors:      ColorSet{Hover: cfg.colorButtonHover, Click: cfg.colorButtonActive, Focus: cfg.colorButtonHover}.resolved(cfg.colorButton, themeButtonSet()),
 		Radius:      cfg.radiusBorder,
 		OnClick: func(ctx EventCtx) {
 			splitterOnButtonClick(core, target, ctx.Event, ctx.Window)

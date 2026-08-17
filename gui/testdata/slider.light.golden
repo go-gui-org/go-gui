@@ -1,0 +1,3 @@
+Rect xy=10.00,15.00 wh=32.00,6.00 color=#c3c3d7ff radius=3.00 fill
+Rect xy=10.00,15.00 wh=12.80,6.00 color=#4169e1ff fill
+Circle xy=22.80,18.00 wh=0.00,0.00 color=#cdcdd7ff radius=8.00 fill

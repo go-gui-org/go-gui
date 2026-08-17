@@ -22,27 +22,17 @@ type ExpandPanelCfg struct {
 	ColorHover  Color
 	colorClick  Color
 	ColorBorder Color
-	Sizing      Sizing
-	Open        bool
+	// Colors sets the per-state colors. Color above is the
+	// shorthand for Colors.Base and wins over it; the other flat
+	// Color* fields win over their Colors slots the same way.
+	Colors ColorSet
+	Sizing Sizing
+	Open   bool
 }
 
 // ExpandPanel creates an expandable panel view.
 func ExpandPanel(cfg ExpandPanelCfg) View {
-	if !cfg.Color.IsSet() {
-		cfg.Color = guiTheme.expandPanelStyle.Color
-	}
-	if !cfg.ColorHover.IsSet() {
-		cfg.ColorHover = guiTheme.expandPanelStyle.ColorHover
-	}
-	if !cfg.colorClick.IsSet() {
-		cfg.colorClick = guiTheme.expandPanelStyle.colorClick
-	}
-	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = guiTheme.expandPanelStyle.ColorBorder
-	}
-	if !cfg.Padding.IsSet() {
-		cfg.Padding = guiTheme.expandPanelStyle.Padding
-	}
+	applyExpandPanelDefaults(&cfg)
 	sizeBorder := cfg.SizeBorder.Get(guiTheme.expandPanelStyle.SizeBorder)
 	radius := cfg.Radius.Get(guiTheme.expandPanelStyle.Radius)
 
@@ -120,4 +110,18 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 			}),
 		},
 	})
+}
+
+// applyExpandPanelDefaults fills zero-value color fields from the theme.
+func applyExpandPanelDefaults(cfg *ExpandPanelCfg) {
+	d := &defaultExpandPanelStyle
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
+		d.Color, d.ColorHover, d.colorClick,
+		Color{}, d.ColorBorder, Color{},
+	))
+	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, &cfg.colorClick,
+		nil, &cfg.ColorBorder, nil)
+	if !cfg.Padding.IsSet() {
+		cfg.Padding = d.Padding
+	}
 }

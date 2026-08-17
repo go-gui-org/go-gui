@@ -4,6 +4,12 @@ package gui
 // one value, so a caller who wants a single consistent appearance says
 // it once instead of assigning five or six flat Color* fields.
 //
+// Seventeen widgets carry it: Button, Switch, Toggle, Radio, DatePicker,
+// InputDate (flat state fields deleted), and Input, NumericInput, Select,
+// Combobox, ListBox, Tree, Slider, ContextMenu, Menubar, Table,
+// ExpandPanel (flat fields retained and winning over the set; see
+// applyTo).
+//
 // Zero value is "nothing specified": every field falls back, and a
 // ColorSet a caller never touches changes nothing.
 //
@@ -96,6 +102,16 @@ func themeColorSet(base, hover, click, focus, border, borderFocus Color) ColorSe
 		Border:      border,
 		BorderFocus: borderFocus,
 	}
+}
+
+// themeButtonSet returns the theme's button style as a ColorSet. It is
+// the seam for a construction site that hands Button a partial set:
+// resolving at the site makes the set self-contained instead of
+// relying on applyButtonDefaults to fill the unset fields (issue #342).
+func themeButtonSet() ColorSet {
+	d := &defaultButtonStyle
+	return themeColorSet(d.Color, d.ColorHover, d.colorClick,
+		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus)
 }
 
 // resolved returns a fully-populated set: the caller's own fallbacks

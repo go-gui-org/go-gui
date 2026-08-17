@@ -166,7 +166,7 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 			SizeBorder: gg.SomeF(0),
 			Radius:     gg.SomeF(0),
 			Color:      gg.ColorTransparent,
-			Colors:     gg.ColorSet{Hover: cfg.ColorHeaderHover, Click: cfg.ColorHeaderHover, Focus: gg.ColorTransparent, Border: cfg.ColorBorder},
+			Colors:     gg.ColorSet{Base: gg.ColorTransparent, Hover: cfg.ColorHeaderHover, Click: cfg.ColorHeaderHover, Focus: gg.ColorTransparent, Border: cfg.ColorBorder, BorderFocus: cfg.ColorBorder},
 			OnClick: func(ctx gg.EventCtx) {
 				dataGridCrudDeleteRows(gridID, selection, onSelectionChange, []string{rowID}, focusID, ctx.Event, ctx.Window)
 			},
@@ -383,7 +383,7 @@ func dataGridDetailToggleControl(cfg *DataGridCfg, rowID string, expanded, enabl
 		SizeBorder: gg.SomeF(0),
 		Radius:     gg.SomeF(0),
 		Color:      gg.ColorTransparent,
-		Colors:     gg.ColorSet{Hover: cfg.ColorRowHover, Click: cfg.ColorRowHover, Focus: gg.ColorTransparent, Border: gg.ColorTransparent},
+		Colors:     gg.ColorSet{Base: gg.ColorTransparent, Hover: cfg.ColorRowHover, Click: cfg.ColorRowHover, Focus: gg.ColorTransparent, Border: gg.ColorTransparent, BorderFocus: gg.ColorTransparent},
 		OnClick: func(ctx gg.EventCtx) {
 			if rowID == "" || onDetailExpandedChange == nil {
 				// Nothing to toggle: pass the click on

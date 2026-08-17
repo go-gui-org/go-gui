@@ -255,7 +255,7 @@ func dataGridIndicatorButton(id, label string, baseStyle gg.TextStyle, hoverColo
 		SizeBorder: gg.SomeF(0),
 		Radius:     gg.SomeF(0),
 		Color:      gg.ColorTransparent,
-		Colors:     gg.ColorSet{Hover: hoverColor, Click: hoverColor, Focus: gg.ColorTransparent, Border: gg.ColorTransparent},
+		Colors:     gg.ColorSet{Base: gg.ColorTransparent, Hover: hoverColor, Click: hoverColor, Focus: gg.ColorTransparent, Border: gg.ColorTransparent, BorderFocus: gg.ColorTransparent},
 		Disabled:   disabled,
 		// Wrapped rather than passed through: every toolbar control
 		// sits inside the focusable grid, which takes focus on any
