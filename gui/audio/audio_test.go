@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // TestMain skips the whole package under the race detector. Many tests
@@ -512,6 +513,109 @@ func TestSoundFadeIn(t *testing.T) {
 	}
 	if ch < 0 {
 		t.Error("expected non-negative channel from FadeIn")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Live sources
+// ---------------------------------------------------------------------------
+
+// testSource fills with silence and never self-ends, so a channel it is
+// playing on stays playing until halted.
+type testSource struct{}
+
+func (testSource) Fill(samples [][2]float64) (int, bool) {
+	clear(samples)
+	return len(samples), true
+}
+
+func TestPlaySourceSmoke(t *testing.T) {
+	err := Init()
+	if err != nil {
+		t.Skipf("audio init unavailable: %v", err)
+	}
+	defer quit()
+
+	if err := PlaySource(0, &testSource{}); err != nil {
+		t.Fatalf("PlaySource returned error: %v", err)
+	}
+	if !IsPlaying(0) {
+		t.Error("expected channel 0 playing after PlaySource")
+	}
+	HaltChannel(0)
+	if IsPlaying(0) {
+		t.Error("expected channel 0 halted after HaltChannel")
+	}
+}
+
+func TestPlaySourceErrors(t *testing.T) {
+	err := Init()
+	if err != nil {
+		t.Skipf("audio init unavailable: %v", err)
+	}
+	defer quit()
+
+	if err := PlaySource(0, nil); err == nil {
+		t.Error("PlaySource(nil source) = nil error, want error")
+	}
+	if err := PlaySource(999, &testSource{}); err == nil {
+		t.Error("PlaySource(out-of-range channel) = nil error, want error")
+	} else if !strings.Contains(err.Error(), "out of range") {
+		t.Errorf("PlaySource(999) error = %q, want out-of-range message", err)
+	}
+	if err := PlaySource(-1, &testSource{}); err != nil {
+		t.Errorf("PlaySource(-1) auto-select returned error: %v", err)
+	}
+}
+
+// endingSource plays one buffer of silence, then returns ok = false to
+// end itself — the channelMixer reaper path (streamers.go) must see the
+// (0, false) return, free the channel, and make it reusable.
+type endingSource struct{ done bool }
+
+func (s *endingSource) Fill(samples [][2]float64) (int, bool) {
+	if s.done {
+		return 0, false
+	}
+	clear(samples)
+	s.done = true
+	return len(samples), true
+}
+
+func TestPlaySourceSourceEnd(t *testing.T) {
+	err := Init()
+	if err != nil {
+		t.Skipf("audio init unavailable: %v", err)
+	}
+	defer quit()
+
+	if err := PlaySource(0, &endingSource{}); err != nil {
+		t.Fatalf("PlaySource returned error: %v", err)
+	}
+	// The audio thread reaps the ended source asynchronously, so poll.
+	deadline := time.Now().Add(2 * time.Second)
+	for IsPlaying(0) {
+		if time.Now().After(deadline) {
+			t.Fatal("channel 0 still playing after source ended")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	// The freed channel is immediately reusable.
+	if err := PlaySource(0, &testSource{}); err != nil {
+		t.Fatalf("PlaySource after source end returned error: %v", err)
+	}
+	HaltChannel(0)
+}
+
+func TestSampleRateDefault(t *testing.T) {
+	err := Init()
+	if err != nil {
+		t.Skipf("audio init unavailable: %v", err)
+	}
+	defer quit()
+
+	if got := SampleRate(); got != 44100 {
+		t.Errorf("SampleRate() = %d, want default 44100", got)
 	}
 }
 

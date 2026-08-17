@@ -422,11 +422,12 @@ type eventHandlers struct {
 	// to stop propagation. Until v0.55.0 the five below were
 	// "consume-class" and dispatch marked their events handled before
 	// the callback ran; that split is gone.
-	OnChar     func(EventCtx)
-	OnClick    func(EventCtx)
-	OnMouseUp  func(EventCtx)
-	OnGesture  func(EventCtx)
-	OnFileDrop func(EventCtx)
+	OnChar      func(EventCtx)
+	OnClick     func(EventCtx)
+	OnMouseUp   func(EventCtx)
+	OnMouseDown func(EventCtx)
+	OnGesture   func(EventCtx)
+	OnFileDrop  func(EventCtx)
 
 	OnKeyDown     func(EventCtx)
 	OnKeyUp       func(EventCtx)

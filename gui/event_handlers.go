@@ -221,6 +221,12 @@ func mouseDownHandler(
 			w.SetFocus(layout.Shape.idKey())
 			e.IsHandled = true
 		}
+		var onMouseDown shapeCallback
+		if layout.Shape.hasEvents() {
+			onMouseDown = layout.Shape.events.OnMouseDown
+		}
+		// OnMouseDown is consume-class.
+		executeMouseCallback(layout, e, w, onMouseDown, evMouseDown)
 		var onClick shapeCallback
 		if layout.Shape.hasEvents() {
 			events := layout.Shape.events

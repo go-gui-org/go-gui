@@ -86,3 +86,32 @@ func TestContainerGenerateLayoutShapeIsolation(t *testing.T) {
 		t.Errorf("Width leaked across frames: got %g, want 0", l2.Shape.Width)
 	}
 }
+
+// OnMouseDown fires on the press and is consume-class: TestClick's
+// release must not re-fire it, and a consuming handler stops the press
+// from reaching any ancestor handler.
+func TestContainerOnMouseDownFiresOnPress(t *testing.T) {
+	pressed := 0
+	released := 0
+	w := NewTestWindow(WindowCfg{})
+	w.TestRender(func(w *Window) View {
+		return Column(ContainerCfg{
+			ID:     "pad",
+			Sizing: FillFill,
+			OnMouseDown: func(ctx EventCtx) {
+				pressed++
+				ctx.Consume()
+			},
+			OnMouseUp: func(ctx EventCtx) { released++ },
+		})
+	})
+	if err := w.TestClick("pad"); err != nil {
+		t.Fatalf("TestClick(pad) = %v, want nil", err)
+	}
+	if pressed != 1 {
+		t.Errorf("OnMouseDown fired %d times after one click, want 1", pressed)
+	}
+	if released != 1 {
+		t.Errorf("OnMouseUp fired %d times after one click, want 1", released)
+	}
+}

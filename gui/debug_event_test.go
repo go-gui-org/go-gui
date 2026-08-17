@@ -188,6 +188,21 @@ func TestCollapseCoversMouseUp(t *testing.T) {
 	}
 }
 
+// OnMouseDown is consume-class too, and shares the ancestor rule with
+// OnClick: a press handler that does not consume lets the press travel
+// to a containing handler.
+func TestCollapseCoversMouseDown(t *testing.T) {
+	root := collapseTree(
+		&eventHandlers{OnMouseDown: func(EventCtx) {}},
+		&eventHandlers{OnMouseDown: func(EventCtx) {}},
+	)
+	buf := captureDebug(t)
+	mouseDownHandler(root, false, &Event{MouseX: 5, MouseY: 5}, &Window{})
+	if !strings.Contains(buf.String(), `OnMouseDown on "inner"`) {
+		t.Errorf("expected an OnMouseDown finding, got %q", buf.String())
+	}
+}
+
 // OnChar reaches only the focused target and a window has one focus ID,
 // so nesting two OnChar handlers is not a hazard. Pins the reasoning in
 // wouldReach rather than an accident of the tree.

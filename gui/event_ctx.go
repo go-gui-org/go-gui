@@ -106,6 +106,7 @@ const (
 	evMouseUp
 	evFileDrop
 	evGesture
+	evMouseDown
 )
 
 // named reports whether this class identifies a specific event, which

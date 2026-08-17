@@ -48,4 +48,6 @@ type Backend interface {
 	PauseChannel(channel int)
 	ResumeChannel(channel int)
 	IsPlaying(channel int) bool
+	PlaySource(channel int, s Source) error
+	SampleRate() int
 }

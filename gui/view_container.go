@@ -26,6 +26,7 @@ type ContainerCfg struct {
 	OnKeyDown   func(EventCtx)
 	OnKeyUp     func(EventCtx)
 	OnMouseMove func(EventCtx)
+	OnMouseDown func(EventCtx)
 	OnMouseUp   func(EventCtx)
 
 	// ClickButton filters OnClick by mouse button (0 = any).
@@ -308,6 +309,7 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 	if c.OnClick == nil && c.OnChar == nil &&
 		c.OnKeyDown == nil && c.OnKeyUp == nil &&
 		c.OnMouseMove == nil && c.OnMouseUp == nil &&
+		c.OnMouseDown == nil &&
 		c.OnHover == nil && c.OnGesture == nil &&
 		c.OnFileDrop == nil && c.onIMECommit == nil &&
 		c.onScroll == nil && c.AmendLayout == nil {
@@ -319,6 +321,7 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		OnKeyDown:    c.OnKeyDown,
 		OnKeyUp:      c.OnKeyUp,
 		OnMouseMove:  c.OnMouseMove,
+		OnMouseDown:  c.OnMouseDown,
 		OnMouseUp:    c.OnMouseUp,
 		OnHover:      c.OnHover,
 		OnGesture:    c.OnGesture,

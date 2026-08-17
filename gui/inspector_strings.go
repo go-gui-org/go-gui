@@ -19,6 +19,9 @@ func inspectorEventsString(events *eventHandlers) string {
 	if events.OnMouseMove != nil {
 		names = append(names, "mouse_move")
 	}
+	if events.OnMouseDown != nil {
+		names = append(names, "mouse_down")
+	}
 	if events.OnMouseUp != nil {
 		names = append(names, "mouse_up")
 	}

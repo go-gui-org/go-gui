@@ -28,6 +28,8 @@ func (m *Music) Play(loops int) error {
 }
 
 // FadeIn starts music with a fade-in over ms milliseconds.
+// exportaudit:keep — music API consumed by apps outside this repo
+// (the showcase fades its loaded track via the global control).
 func (m *Music) FadeIn(loops, ms int) error {
 	return backend.MusicFadeIn(m, loops, ms)
 }
