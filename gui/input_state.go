@@ -12,7 +12,8 @@ type inputState struct {
 	selectBeg      uint32
 	selectEnd      uint32
 	cursorOffset   float32
-	cursorTrailing bool // prefer end-of-previous-line at wrap boundaries
+	cursorTrailing bool  // prefer end-of-previous-line at wrap boundaries
+	lastEditOp     uint8 // kind of edit the current undo run holds (issue #328)
 }
 
 // InputMemento stores a snapshot for undo/redo.
@@ -44,6 +45,16 @@ const (
 
 const undoMaxSize = 50
 
+// Undo run kinds for inputState.lastEditOp. Consecutive edits of the
+// same kind coalesce into one undo step; inputOpNone breaks the run
+// and always pushes, so caret motion, paste, and programmatic text
+// sets each start a fresh undo step.
+const (
+	inputOpNone uint8 = iota
+	inputOpInsert
+	inputOpDelete
+)
+
 func inputStateOrDefault(focusID string, w *Window) inputState {
 	m := StateMap[string, inputState](w, nsInput, capMany)
 	if v, ok := m.Get(focusID); ok {
@@ -62,12 +73,20 @@ func inputMementoFromState(text string, is inputState) inputMemento {
 	}
 }
 
-func inputPushUndo(is inputState, text string) *BoundedStack[inputMemento] {
+// inputPushUndo records a text edit for undo, coalescing it with the
+// previous edit when both are the same kind (insert or delete) and no
+// selection was involved, so a typing run undoes as one step instead
+// of one per character (issue #328). The pre-run state stays at the
+// top of the stack for the whole run; the caller stores the op it
+// passed as the new lastEditOp.
+func inputPushUndo(is inputState, text string, op uint8) *BoundedStack[inputMemento] {
 	stack := is.Undo
 	if stack == nil {
 		stack = newBoundedStack[inputMemento](undoMaxSize)
 	}
-	stack.Push(inputMementoFromState(text, is))
+	if op == inputOpNone || op != is.lastEditOp || is.selectBeg != is.selectEnd {
+		stack.Push(inputMementoFromState(text, is))
+	}
 	return stack
 }
 
@@ -154,12 +173,19 @@ func inputInsert(text string, insertText string, focusID string, w *Window) stri
 	}
 
 	nextText := string(runes)
-	undo := inputPushUndo(is, text)
+	op := inputOpInsert
+	if len(insertRunes) > 1 {
+		// Multi-rune inserts (paste, IME commits) are one undo step
+		// even after a typing run, so they break the run.
+		op = inputOpNone
+	}
+	undo := inputPushUndo(is, text, op)
 	imap := StateMap[string, inputState](w, nsInput, capMany)
 	imap.Set(focusID, inputState{
 		CursorPos:    cursorPos,
 		cursorOffset: -1,
 		Undo:         undo,
+		lastEditOp:   op,
 	})
 	return nextText
 }
@@ -169,7 +195,8 @@ func inputInsert(text string, insertText string, focusID string, w *Window) stri
 // positional cursor mapping is unreliable.
 func inputSetTextAndCursorAtEnd(oldText, newText string, focusID string, w *Window) {
 	is := inputStateOrDefault(focusID, w)
-	undo := inputPushUndo(is, oldText)
+	// A programmatic text set is never part of a typing run.
+	undo := inputPushUndo(is, oldText, inputOpNone)
 	imap := StateMap[string, inputState](w, nsInput, capMany)
 	imap.Set(focusID, inputState{
 		CursorPos:    utf8RuneCount(newText),
@@ -232,12 +259,13 @@ func inputDelete(text string, focusID string, forwardDelete bool, w *Window) (st
 	}
 
 	nextText := string(runes)
-	undo := inputPushUndo(is, text)
+	undo := inputPushUndo(is, text, inputOpDelete)
 	imap := StateMap[string, inputState](w, nsInput, capMany)
 	imap.Set(focusID, inputState{
 		CursorPos:    cursorPos,
 		cursorOffset: -1,
 		Undo:         undo,
+		lastEditOp:   inputOpDelete,
 	})
 	return nextText, true
 }
@@ -356,6 +384,9 @@ func updateCursorAndSelection(
 		is.selectEnd = 0
 	}
 	is.CursorPos = newPos
+	// Any caret motion breaks the current undo run, so edits after
+	// navigation form their own undo step (issue #328).
+	is.lastEditOp = inputOpNone
 	imap.Set(focusID, is)
 }
 

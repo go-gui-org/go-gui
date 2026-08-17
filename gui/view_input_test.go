@@ -444,6 +444,34 @@ func TestInputOnCharRedo(t *testing.T) {
 	}
 }
 
+// Typing one character at a time through the real OnChar pipeline
+// must coalesce into a single undo step: one Ctrl+Z restores "", and
+// one redo restores the whole run (issue #328).
+func TestInputUndoCoalescesTypingRun(t *testing.T) {
+	ctx := newInputTest("", "f508", 0)
+	for _, ch := range "hello" {
+		ctx.fireChar(uint32(ch))
+		ctx.layout = generateViewLayout(Input(InputCfg{
+			Text: ctx.lastText,
+			ID:   "f508",
+			OnTextChanged: func(newText string, _ EventCtx) {
+				ctx.lastText = newText
+			},
+		}), ctx.w)
+	}
+	if ctx.lastText != "hello" {
+		t.Fatalf("typing: got %q, want %q", ctx.lastText, "hello")
+	}
+	ctx.fireKeyDown(KeyZ, ModCtrl)
+	if ctx.lastText != "" {
+		t.Fatalf("undo: got %q, want empty", ctx.lastText)
+	}
+	ctx.fireKeyDown(KeyZ, ModCtrl|ModShift)
+	if ctx.lastText != "hello" {
+		t.Fatalf("redo: got %q, want %q", ctx.lastText, "hello")
+	}
+}
+
 func TestInputSelectAll(t *testing.T) {
 	ctx := newInputTest("abc", "f508", 1)
 	ctx.fireKeyDown(KeyA, ModCtrl)

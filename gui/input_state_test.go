@@ -296,6 +296,239 @@ func TestUndoRedoBasic(t *testing.T) {
 	}
 }
 
+// --- Undo coalescing (issue #328) ---
+
+// typeTypedRun types each rune of typed as its own one-rune insert
+// into an empty field and returns the accumulated text.
+func typeTypedRun(t *testing.T, typed string, id string, w *Window) string {
+	t.Helper()
+	text := ""
+	for _, ch := range typed {
+		text = inputInsert(text, string(ch), id, w)
+	}
+	return text
+}
+
+// Consecutive single-rune inserts must coalesce: typing "hello" then
+// one Ctrl+Z restores "".
+func TestUndoCoalescesTypingRun(t *testing.T) {
+	w := newTestWindow()
+	id := "f30001"
+	setInputState(w, id, inputState{CursorPos: 0})
+	text := typeTypedRun(t, "hello", id, w)
+	if got := inputUndo(text, id, w); got != "" {
+		t.Fatalf("one undo: got %q, want empty", got)
+	}
+}
+
+// Caret motion breaks the run: typing "x" after moving the caret is
+// its own undo step, and undoing twice restores "".
+func TestUndoBreaksRunOnCaretMotion(t *testing.T) {
+	w := newTestWindow()
+	id := "f30002"
+	setInputState(w, id, inputState{CursorPos: 0})
+	text := typeTypedRun(t, "hello", id, w)
+	imap := StateMap[string, inputState](w, nsInput, capMany)
+	updateCursorAndSelection(imap, id, inputStateOrDefault(id, w), 1, false)
+	text = inputInsert(text, "x", id, w)
+	undo1 := inputUndo(text, id, w)
+	if undo1 != "hello" {
+		t.Fatalf("undo 1: got %q, want %q", undo1, "hello")
+	}
+	undo2 := inputUndo(undo1, id, w)
+	if undo2 != "" {
+		t.Fatalf("undo 2: got %q, want empty", undo2)
+	}
+}
+
+// A selection-replacing edit pushes its own anchor: select all, type
+// "x", one Ctrl+Z restores "hello" in full.
+func TestUndoSelectionReplaceIsOneStep(t *testing.T) {
+	w := newTestWindow()
+	id := "f30003"
+	setInputState(w, id, inputState{CursorPos: 0})
+	text := typeTypedRun(t, "hello", id, w)
+	inputSelectAll(text, id, w)
+	text = inputInsert(text, "x", id, w)
+	if text != "x" {
+		t.Fatalf("replace: got %q, want %q", text, "x")
+	}
+	if got := inputUndo(text, id, w); got != "hello" {
+		t.Fatalf("undo: got %q, want %q", got, "hello")
+	}
+}
+
+// Masked typing coalesces like plain typing: three digits into a
+// phone mask, one Ctrl+Z restores the empty field (issue #328).
+func TestUndoCoalescesMaskedTypingRun(t *testing.T) {
+	w := newTestWindow()
+	id := "f30008"
+	setInputState(w, id, inputState{CursorPos: 0})
+	compiled, err := compileInputMask(inputMaskFromPreset(MaskPhoneUS), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hcfg := inputHandlerCfg{CompiledMask: &compiled}
+	text := ""
+	for _, ch := range "555" {
+		text, _ = inputTextChange(hcfg, nil, text, string(ch), id, w)
+	}
+	if got := inputUndo(text, id, w); got != "" {
+		t.Fatalf("one undo: got %q, want empty", got)
+	}
+}
+
+// Masked deletes coalesce too: two masked backspaces undo as one step
+// back to the pre-delete text (issue #328).
+func TestUndoCoalescesMaskedDeleteRun(t *testing.T) {
+	w := newTestWindow()
+	id := "f30009"
+	setInputState(w, id, inputState{CursorPos: 0})
+	compiled, err := compileInputMask(inputMaskFromPreset(MaskPhoneUS), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hcfg := inputHandlerCfg{CompiledMask: &compiled}
+	text := ""
+	for _, ch := range "555" {
+		text, _ = inputTextChange(hcfg, nil, text, string(ch), id, w)
+	}
+	pre := text
+	text, _ = inputHandleDelete(text, id, false, &compiled, nil, w)
+	text, _ = inputHandleDelete(text, id, false, &compiled, nil, w)
+	if text == pre {
+		t.Fatal("masked deletes changed nothing")
+	}
+	if got := inputUndo(text, id, w); got != pre {
+		t.Fatalf("one undo: got %q, want %q", got, pre)
+	}
+}
+
+// A multi-rune IME commit through the masked path breaks the run:
+// committing "55" then typing "5" takes two Ctrl+Z steps (issue
+// #328).
+func TestUndoIMEBreaksMaskedRun(t *testing.T) {
+	w := newTestWindow()
+	id := "f30010"
+	setInputState(w, id, inputState{CursorPos: 0})
+	compiled, err := compileInputMask(inputMaskFromPreset(MaskPhoneUS), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hcfg := inputHandlerCfg{CompiledMask: &compiled}
+	text, _ := inputTextChange(hcfg, nil, "", "55", id, w)
+	text, _ = inputTextChange(hcfg, nil, text, "5", id, w)
+	undo1 := inputUndo(text, id, w)
+	if undo1 == "" {
+		t.Fatal("undo 1 must restore pre-IME text, not the whole run")
+	}
+	if got := inputUndo(undo1, id, w); got != "" {
+		t.Fatalf("undo 2: got %q, want empty", got)
+	}
+}
+
+// A programmatic text set breaks the run: typing after a
+// PreTextChange-adjusted set undoes back to the set text, not to the
+// pre-run state (issue #328).
+func TestUndoProgrammaticSetBreaksRun(t *testing.T) {
+	w := newTestWindow()
+	id := "f30011"
+	setInputState(w, id, inputState{CursorPos: 0})
+	text := typeTypedRun(t, "hello", id, w)
+	inputSetTextAndCursorAtEnd(text, "HELLO", id, w)
+	text = inputInsert("HELLO", "!", id, w)
+	undo1 := inputUndo(text, id, w)
+	if undo1 != "HELLO" {
+		t.Fatalf("undo 1: got %q, want %q", undo1, "HELLO")
+	}
+	undo2 := inputUndo(undo1, id, w)
+	if undo2 != "hello" {
+		t.Fatalf("undo 2: got %q, want %q", undo2, "hello")
+	}
+}
+
+// A multi-rune insert (paste) breaks the run: pasting "abc" then
+// typing "d" takes two Ctrl+Z steps to get back to "".
+func TestUndoPasteBreaksRun(t *testing.T) {
+	w := newTestWindow()
+	id := "f30004"
+	setInputState(w, id, inputState{CursorPos: 0})
+	text := inputInsert("", "abc", id, w)
+	text = inputInsert(text, "d", id, w)
+	undo1 := inputUndo(text, id, w)
+	if undo1 != "abc" {
+		t.Fatalf("undo 1: got %q, want %q", undo1, "abc")
+	}
+	undo2 := inputUndo(undo1, id, w)
+	if undo2 != "" {
+		t.Fatalf("undo 2: got %q, want empty", undo2)
+	}
+}
+
+// A delete after an insert run is a different edit kind and starts
+// its own step: type "ab", backspace, undo restores "ab" then "".
+func TestUndoDeleteBreaksInsertRun(t *testing.T) {
+	w := newTestWindow()
+	id := "f30005"
+	setInputState(w, id, inputState{CursorPos: 0})
+	text := typeTypedRun(t, "ab", id, w)
+	text, _ = inputDelete(text, id, false, w)
+	if text != "a" {
+		t.Fatalf("delete: got %q, want %q", text, "a")
+	}
+	undo1 := inputUndo(text, id, w)
+	if undo1 != "ab" {
+		t.Fatalf("undo 1: got %q, want %q", undo1, "ab")
+	}
+	undo2 := inputUndo(undo1, id, w)
+	if undo2 != "" {
+		t.Fatalf("undo 2: got %q, want empty", undo2)
+	}
+}
+
+// Consecutive deletes coalesce too: three backspaces undo as one.
+func TestUndoCoalescesDeleteRun(t *testing.T) {
+	w := newTestWindow()
+	id := "f30006"
+	setInputState(w, id, inputState{CursorPos: 0})
+	text := typeTypedRun(t, "abcdef", id, w)
+	text, _ = inputDelete(text, id, false, w)
+	text, _ = inputDelete(text, id, false, w)
+	text, _ = inputDelete(text, id, false, w)
+	if text != "abc" {
+		t.Fatalf("delete: got %q, want %q", text, "abc")
+	}
+	undo1 := inputUndo(text, id, w)
+	if undo1 != "abcdef" {
+		t.Fatalf("undo: got %q, want %q", undo1, "abcdef")
+	}
+}
+
+// A 60-character run is one undo entry, so previously pushed history
+// survives instead of being evicted by the 50-entry cap.
+func TestUndoLongRunDoesNotEvictHistory(t *testing.T) {
+	w := newTestWindow()
+	id := "f30007"
+	setInputState(w, id, inputState{CursorPos: 0})
+	text := inputInsert("", "seed", id, w)
+	text = inputInsert(text, "seed2", id, w)
+	for range 60 {
+		text = inputInsert(text, "x", id, w)
+	}
+	undo1 := inputUndo(text, id, w)
+	if undo1 != "seedseed2" {
+		t.Fatalf("undo 1: got %q, want %q", undo1, "seedseed2")
+	}
+	undo2 := inputUndo(undo1, id, w)
+	if undo2 != "seed" {
+		t.Fatalf("undo 2: got %q, want %q", undo2, "seed")
+	}
+	undo3 := inputUndo(undo2, id, w)
+	if undo3 != "" {
+		t.Fatalf("undo 3: got %q, want empty", undo3)
+	}
+}
+
 // --- Select all ---
 
 func TestSelectAll(t *testing.T) {
