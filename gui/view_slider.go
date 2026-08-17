@@ -39,37 +39,21 @@ type SliderCfg struct {
 	ColorHover    Color
 	colorLeft     Color
 	colorClick    Color
-	Sizing        Sizing
-	roundValue    bool
-	vertical      bool
-	Disabled      bool
-	Invisible     bool
+	// Colors sets the per-state colors. Color above is the
+	// shorthand for Colors.Base and wins over it; the other flat
+	// Color* fields win over their Colors slots the same way.
+	Colors     ColorSet
+	Sizing     Sizing
+	roundValue bool
+	vertical   bool
+	Disabled   bool
+	Invisible  bool
 }
 
 // Slider creates a slider view.
 func Slider(cfg SliderCfg) View {
 	RequireID("Slider", cfg.ID)
-	if !cfg.Color.IsSet() {
-		cfg.Color = guiTheme.sliderStyle.Color
-	}
-	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = guiTheme.sliderStyle.ColorBorder
-	}
-	if !cfg.colorThumb.IsSet() {
-		cfg.colorThumb = guiTheme.sliderStyle.colorThumb
-	}
-	if !cfg.ColorFocus.IsSet() {
-		cfg.ColorFocus = guiTheme.sliderStyle.ColorFocus
-	}
-	if !cfg.ColorHover.IsSet() {
-		cfg.ColorHover = guiTheme.sliderStyle.ColorHover
-	}
-	if !cfg.colorLeft.IsSet() {
-		cfg.colorLeft = guiTheme.sliderStyle.colorLeft
-	}
-	if !cfg.colorClick.IsSet() {
-		cfg.colorClick = guiTheme.sliderStyle.colorClick
-	}
+	applySliderDefaults(&cfg)
 	sizeBorder := cfg.SizeBorder.Get(guiTheme.sliderStyle.SizeBorder)
 	if cfg.Size == 0 {
 		cfg.Size = guiTheme.sliderStyle.Size
@@ -408,6 +392,23 @@ func sliderOnKeyDown(
 	}
 	if v != curValue {
 		onChange(v, EventCtx{nil, e, w})
+	}
+}
+
+// applySliderDefaults fills zero-value color fields from the theme.
+func applySliderDefaults(cfg *SliderCfg) {
+	d := &defaultSliderStyle
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
+		d.Color, d.ColorHover, d.colorClick,
+		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
+	))
+	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, &cfg.colorClick,
+		&cfg.ColorFocus, &cfg.ColorBorder, nil)
+	if !cfg.colorThumb.IsSet() {
+		cfg.colorThumb = d.colorThumb
+	}
+	if !cfg.colorLeft.IsSet() {
+		cfg.colorLeft = d.colorLeft
 	}
 }
 

@@ -44,12 +44,16 @@ type SelectCfg struct {
 	ColorBorder      Color
 	ColorBorderFocus Color
 	ColorFocus       Color
-	ColorSelect      Color
-	Sizing           Sizing
-	SelectMultiple   bool
-	noWrap           bool
-	Disabled         bool
-	Invisible        bool
+	// Colors sets the per-state colors. Color above is the
+	// shorthand for Colors.Base and wins over it; the other flat
+	// Color* fields win over their Colors slots the same way.
+	Colors         ColorSet
+	ColorSelect    Color
+	Sizing         Sizing
+	SelectMultiple bool
+	noWrap         bool
+	Disabled       bool
+	Invisible      bool
 }
 
 // selectView implements View for select (dropdown).
@@ -456,18 +460,12 @@ func selectScrollTo(cfg *SelectCfg, scrollID string, idx int, w *Window) {
 
 func applySelectDefaults(cfg *SelectCfg) {
 	d := &defaultSelectStyle
-	if !cfg.Color.IsSet() {
-		cfg.Color = d.Color
-	}
-	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = d.ColorBorder
-	}
-	if !cfg.ColorBorderFocus.IsSet() {
-		cfg.ColorBorderFocus = d.ColorBorderFocus
-	}
-	if !cfg.ColorFocus.IsSet() {
-		cfg.ColorFocus = d.ColorFocus
-	}
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
+		d.Color, d.ColorHover, d.colorClick,
+		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
+	))
+	cfg.Colors.applyTo(&cfg.Color, nil, nil,
+		&cfg.ColorFocus, &cfg.ColorBorder, &cfg.ColorBorderFocus)
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
 	}

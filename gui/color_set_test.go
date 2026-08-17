@@ -172,3 +172,80 @@ func TestColorSetAdoptedByAllSixWidgets(t *testing.T) {
 		}
 	}
 }
+
+// The eleven widgets that kept their flat Color* fields must fold a
+// caller's ColorSet into those fields through applyTo — with the flat
+// fields still winning when both are set (issue #342).
+func TestColorSetAdoptedByTheEleven(t *testing.T) {
+	// Each widget resolves Flat(Blue) into its flat fields, and a flat
+	// field set by the caller outranks the ColorSet.
+	in := InputCfg{ID: "in", Colors: Flat(Blue)}
+	applyInputDefaults(&in)
+	ni := NumericInputCfg{ID: "ni", Colors: Flat(Blue)}
+	applyNumericInputDefaults(&ni)
+	sel := SelectCfg{ID: "sel", Colors: Flat(Blue)}
+	applySelectDefaults(&sel)
+	cb := ComboboxCfg{ID: "cb", Colors: Flat(Blue)}
+	applyComboboxDefaults(&cb)
+	lb := ListBoxCfg{ID: "lb", Colors: Flat(Blue)}
+	applyListBoxDefaults(&lb)
+	tr := TreeCfg{ID: "tr", Colors: Flat(Blue)}
+	applyTreeDefaults(&tr)
+	sl := SliderCfg{ID: "sl", Colors: Flat(Blue)}
+	applySliderDefaults(&sl)
+	cm := ContextMenuCfg{Colors: Flat(Blue)}
+	applyContextMenuDefaults(&cm)
+	mb := MenubarCfg{ID: "mb", Colors: Flat(Blue)}
+	applyMenubarDefaults(&mb)
+	tb := TableCfg{Colors: Flat(Blue)}
+	applyTableDefaults(&tb)
+	ep := ExpandPanelCfg{Colors: Flat(Blue)}
+	applyExpandPanelDefaults(&ep)
+
+	for name, got := range map[string]struct {
+		color, hover, border Color
+	}{
+		"Input":        {in.Color, in.ColorHover, in.ColorBorder},
+		"NumericInput": {ni.Color, ni.ColorHover, ni.ColorBorder},
+		"Select":       {sel.Color, sel.Color, sel.ColorBorder},
+		"Combobox":     {cb.Color, cb.ColorHover, cb.ColorBorder},
+		"ListBox":      {lb.Color, lb.ColorHover, lb.ColorBorder},
+		"Tree":         {tr.Color, tr.ColorHover, tr.ColorBorder},
+		"Slider":       {sl.Color, sl.ColorHover, sl.ColorBorder},
+		"ContextMenu":  {cm.Color, cm.Color, cm.ColorBorder},
+		"Menubar":      {mb.Color, mb.Color, mb.ColorBorder},
+		"ExpandPanel":  {ep.Color, ep.ColorHover, ep.ColorBorder},
+	} {
+		if got.color != Blue || got.hover != Blue || got.border != Blue {
+			t.Errorf("%s: Flat(Blue) did not reach the flat fields: %+v",
+				name, got)
+		}
+	}
+	// Table has no base Color field: Flat(Blue) reaches Hover and Border.
+	if tb.ColorHover != Blue || tb.ColorBorder != Blue {
+		t.Errorf("Table: Flat(Blue) did not reach Hover/Border: hover=%v border=%v",
+			tb.ColorHover, tb.ColorBorder)
+	}
+	// Slider and ExpandPanel fold their unexported click color through
+	// Colors.Click — the one slot no exported field can assert.
+	if sl.colorClick != Blue || sl.Colors.Click != Blue {
+		t.Errorf("Slider: Flat(Blue) did not reach the click slot: "+
+			"colorClick=%v Colors.Click=%v", sl.colorClick, sl.Colors.Click)
+	}
+	if ep.colorClick != Blue || ep.Colors.Click != Blue {
+		t.Errorf("ExpandPanel: Flat(Blue) did not reach the click slot: "+
+			"colorClick=%v Colors.Click=%v", ep.colorClick, ep.Colors.Click)
+	}
+
+	// Precedence: an assigned flat field wins over the ColorSet.
+	win := InputCfg{ID: "in", Color: Red, Colors: Flat(Blue)}
+	applyInputDefaults(&win)
+	if win.Color != Red {
+		t.Errorf("flat Color = %v, want Red — flat must win over ColorSet",
+			win.Color)
+	}
+	if win.ColorHover != Blue {
+		t.Errorf("ColorHover = %v, want Blue — unset flats take the set",
+			win.ColorHover)
+	}
+}

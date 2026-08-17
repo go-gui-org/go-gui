@@ -49,6 +49,10 @@ type NumericInputCfg struct {
 	ColorHover       Color
 	ColorBorder      Color
 	ColorBorderFocus Color
+	// Colors sets the per-state colors. Color above is the
+	// shorthand for Colors.Base and wins over it; the other flat
+	// Color* fields win over their Colors slots the same way.
+	Colors ColorSet
 
 	// Sizing
 	Sizing Sizing
@@ -292,7 +296,7 @@ func numericInputStepButtons(cfg NumericInputCfg, locale NumericLocaleCfg, stepC
 				Sizing:     FillFill,
 				Padding:    NoPadding,
 				Color:      baseColor,
-				Colors:     ColorSet{Hover: cfg.ColorHover, Click: cfg.ColorBorderFocus, Focus: cfg.ColorHover, Border: ColorTransparent},
+				Colors:     ColorSet{Hover: cfg.Colors.Hover, Click: cfg.Colors.BorderFocus, Focus: cfg.Colors.Hover, Border: ColorTransparent},
 				SizeBorder: SomeF(0),
 				Radius:     SomeF(0),
 				OnClick: func(ctx EventCtx) {
@@ -313,7 +317,7 @@ func numericInputStepButtons(cfg NumericInputCfg, locale NumericLocaleCfg, stepC
 				Sizing:     FillFill,
 				Padding:    NoPadding,
 				Color:      baseColor,
-				Colors:     ColorSet{Hover: cfg.ColorHover, Click: cfg.ColorBorderFocus, Focus: cfg.ColorHover, Border: ColorTransparent},
+				Colors:     ColorSet{Hover: cfg.Colors.Hover, Click: cfg.Colors.BorderFocus, Focus: cfg.Colors.Hover, Border: ColorTransparent},
 				SizeBorder: SomeF(0),
 				Radius:     SomeF(0),
 				OnClick: func(ctx EventCtx) {
@@ -385,18 +389,12 @@ func numericModeCfgFromInput(cfg NumericInputCfg) numericModeCfg {
 
 func applyNumericInputDefaults(cfg *NumericInputCfg) {
 	d := &defaultInputStyle
-	if !cfg.Color.IsSet() {
-		cfg.Color = d.Color
-	}
-	if !cfg.ColorHover.IsSet() {
-		cfg.ColorHover = d.ColorHover
-	}
-	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = d.ColorBorder
-	}
-	if !cfg.ColorBorderFocus.IsSet() {
-		cfg.ColorBorderFocus = d.ColorBorderFocus
-	}
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
+		d.Color, d.ColorHover, d.colorClick,
+		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
+	))
+	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, nil, nil,
+		&cfg.ColorBorder, &cfg.ColorBorderFocus)
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = guiTheme.PaddingField
 	}

@@ -310,7 +310,7 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 			A11YState:  a11yState,
 			A11YCfg:    A11YCfg{A11YLabel: item.Label},
 			Color:      tabColor,
-			Colors:     ColorSet{Hover: hoverColor, Click: clickColor, Focus: focusColor, Border: borderColor, BorderFocus: cfg.colorTabBorderFocus},
+			Colors:     ColorSet{Hover: hoverColor, Click: clickColor, Focus: focusColor, Border: borderColor, BorderFocus: cfg.colorTabBorderFocus}.resolved(tabColor, themeButtonSet()),
 			Padding:    cfg.paddingTab,
 			SizeBorder: SomeF(sizeTabBorder),
 			Radius:     SomeF(radiusTab),

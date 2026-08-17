@@ -10,6 +10,16 @@ and this project adheres to
 
 ### Added
 
+- **`Colors ColorSet` on eleven more widgets** — `Input`, `NumericInput`,
+  `Select`, `Combobox`, `ListBox`, `Tree`, `Slider`, `ContextMenu`, `Menubar`,
+  `Table` and `ExpandPanel` now accept the per-state `ColorSet` the six widgets
+  of v0.54.0 already used. Additive and zero visual change: the surviving flat
+  `Color*` fields still win over the set when both are set (the `applyTo`
+  precedence), so existing callers keep their appearance. `ColorSelect` and
+  `ColorHighlight`, which have no set slot, stay flat. Inline
+  `ColorSet{...}` constructions inside gui/ and gui/datagrid/ resolve at the
+  construction site instead of relying on the receiving widget to resolve
+  (issue #342).
 - **Named text roles on `Theme`** — `TextStyleSecondary`, `TextStyleLabel`,
   `TextStyleDisabled`, `TextStylePlaceholder`, with matching
   `ThemeCfg.ColorText*` overrides. A widget that wants quiet text now names the

@@ -232,9 +232,13 @@ Recorded for completeness. No action proposed.
 ## 6. Interaction-state coverage
 
 `ColorSet` (`gui/color_set.go`) is the intended abstraction for per-state
-colors. It reached **5 of ~18** interactive widgets — Button, Radio, Toggle,
-DatePicker, InputDate. Eleven still carry the flat `Color*` fields it replaces,
-and ~10 sites build an inline `ColorSet{...}` without calling `.resolved()`.
+colors. At audit time it reached **5 of ~18** interactive widgets — Button,
+Radio, Toggle, DatePicker, InputDate. Eleven carried the flat `Color*` fields
+it replaces, and ~10 sites built an inline `ColorSet{...}` without calling
+`.resolved()`. **Closed by issue #342**: the eleven now carry `Colors` too,
+with their flat fields retained and winning via `applyTo`, and the inline
+sites resolve at construction. (Table and ColorSwatch remain unfocusable —
+see §6.1 and issue #345.)
 
 `ThemeMaker` tally: **21** styles define a hover color, **19** a click color,
 only **14** a focus color.
@@ -328,7 +332,7 @@ is not a field, and `gui/view_button.go:104-107` documents its choice.
 | 3   | Field labels      | absent on 8 widgets; 3 conventions elsewhere                  |
 | 4   | Spacing           | 1 tier of 3 unused; ~10 magic values                          |
 | 5   | Borders           | healthy; 2 outliers                                           |
-| 6   | Interaction state | ColorSet at 5/18; focus missing where it matters              |
+| 6   | Interaction state | ColorSet on 17/17 interactive widgets; focus missing where a widget cannot take one |
 | 7   | Density           | 5 insets; Input's theme padding dead                          |
 
 The ordering that follows from this is: fix §6 and §7 first (a user sees them),
@@ -360,7 +364,7 @@ What this branch changed, per axis. The measurements above describe the state at
 | 3   | Field labels      | closed — `Label` on all eight, one shared convention                                                              |
 | 4   | Spacing           | untouched                                                                                                         |
 | 5   | Borders           | untouched, by decision                                                                                            |
-| 6   | Interaction state | partly — focus rings for the four that could take one                                                             |
+| 6   | Interaction state | closed — `ColorSet` on all 17 interactive widgets (#342); focus rings for the four that could take one |
 | 7   | Density           | closed — one field-inset tier, two latent bugs fixed                                                              |
 
 ### Left open
@@ -382,9 +386,15 @@ What this branch changed, per axis. The measurements above describe the state at
   does not currently offer.
 - **§4** — `SpacingLarge` still has no caller inside `gui/`, and about ten magic
   spacings still bypass the ladder.
-- **§6** — `ColorSet` still reaches only 5 of ~18 interactive widgets. `Table`,
-  `ColorSwatch` and the `ExpandPanel` header are not focusable at all, so a
-  focus ring there needs keyboard navigation designed first (§6.1).
+- **§6** — the ColorSet half is closed: all eleven flat-`Color*` widgets —
+  Input, NumericInput, Select, Combobox, ListBox, Tree, Slider, ContextMenu,
+  Menubar, Table, ExpandPanel — gained `Colors ColorSet` (issue #342). Additive
+  and zero visual change: their flat fields survive and win over the set via
+  `applyTo`, so the #335 goldens recorded no diff. The inline `ColorSet{...}`
+  constructions in gui/ and gui/datagrid/ now resolve at the construction site
+  rather than leaning on the receiving widget. `Table`, `ColorSwatch` and the
+  `ExpandPanel` header are still not focusable — a focus ring there needs
+  keyboard navigation designed first (§6.1, issue #345).
 - **#335 steps 3 and 4** — closed: `docs/style-guide.md` (the _when_, citing
   roles rather than values) and `ergonomics-audit -mode visual`, which gates raw
   dimming and size-step literals in `gui/view_*.go`. The §1.2 ramps and the two

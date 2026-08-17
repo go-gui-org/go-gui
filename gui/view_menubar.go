@@ -29,13 +29,17 @@ type MenubarCfg struct {
 	Color             Color
 	ColorBorder       Color
 	ColorSelect       Color
-	Sizing            Sizing
-	FloatAnchor       floatAttach
-	FloatTieOff       floatAttach
-	Disabled          bool
-	Invisible         bool
-	Float             bool
-	floatAutoFlip     bool
+	// Colors sets the per-state colors. Color above is the
+	// shorthand for Colors.Base and wins over it; the other flat
+	// Color* fields win over their Colors slots the same way.
+	Colors        ColorSet
+	Sizing        Sizing
+	FloatAnchor   floatAttach
+	FloatTieOff   floatAttach
+	Disabled      bool
+	Invisible     bool
+	Float         bool
+	floatAutoFlip bool
 }
 
 // Menubar creates a horizontal menubar with keyboard
@@ -86,12 +90,12 @@ func Menubar(w *Window, cfg MenubarCfg) View {
 
 func applyMenubarDefaults(cfg *MenubarCfg) {
 	d := &defaultMenubarStyle
-	if !cfg.Color.IsSet() {
-		cfg.Color = d.Color
-	}
-	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = d.ColorBorder
-	}
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
+		d.Color, d.ColorHover, Color{},
+		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
+	))
+	cfg.Colors.applyTo(&cfg.Color, nil, nil, nil,
+		&cfg.ColorBorder, nil)
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
 	}

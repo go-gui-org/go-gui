@@ -50,6 +50,10 @@ type TreeCfg struct {
 	ColorHover  Color
 	ColorFocus  Color
 	ColorBorder Color
+	// Colors sets the per-state colors. Color above is the
+	// shorthand for Colors.Base and wins over it; the other flat
+	// Color* fields win over their Colors slots the same way.
+	Colors ColorSet
 
 	Sizing Sizing
 
@@ -461,18 +465,12 @@ func applyTreeDefaults(cfg *TreeCfg) {
 	if !cfg.Spacing.IsSet() {
 		cfg.Spacing = Some(d.Spacing)
 	}
-	if cfg.Color == (Color{}) {
-		cfg.Color = d.Color
-	}
-	if !cfg.ColorHover.IsSet() {
-		cfg.ColorHover = d.ColorHover
-	}
-	if !cfg.ColorFocus.IsSet() {
-		cfg.ColorFocus = d.ColorFocus
-	}
-	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = d.ColorBorder
-	}
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
+		d.Color, d.ColorHover, Color{},
+		d.ColorFocus, d.ColorBorder, Color{},
+	))
+	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, nil,
+		&cfg.ColorFocus, &cfg.ColorBorder, nil)
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = d.Padding
 	}

@@ -75,12 +75,16 @@ type ListBoxCfg struct {
 	// ColorBorderFocus is the border while the list holds focus.
 	// Unset takes the theme's.
 	ColorBorderFocus Color
-	ColorSelect      Color
-	Sizing           Sizing
-	Multiple         bool
-	Disabled         bool
-	Invisible        bool
-	Reorderable      bool
+	// Colors sets the per-state colors. Color above is the
+	// shorthand for Colors.Base and wins over it; the other flat
+	// Color* fields win over their Colors slots the same way.
+	Colors      ColorSet
+	ColorSelect Color
+	Sizing      Sizing
+	Multiple    bool
+	Disabled    bool
+	Invisible   bool
+	Reorderable bool
 }
 
 // ListBoxOption helpers.
@@ -455,18 +459,12 @@ func listBoxOnKeyDown(
 
 func applyListBoxDefaults(cfg *ListBoxCfg) {
 	d := &defaultListBoxStyle
-	if !cfg.Color.IsSet() {
-		cfg.Color = d.Color
-	}
-	if !cfg.ColorHover.IsSet() {
-		cfg.ColorHover = d.ColorHover
-	}
-	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = d.ColorBorder
-	}
-	if !cfg.ColorBorderFocus.IsSet() {
-		cfg.ColorBorderFocus = d.ColorBorderFocus
-	}
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
+		d.Color, d.ColorHover, Color{},
+		Color{}, d.ColorBorder, d.ColorBorderFocus,
+	))
+	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, nil, nil,
+		&cfg.ColorBorder, &cfg.ColorBorderFocus)
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
 	}

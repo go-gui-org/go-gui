@@ -41,6 +41,10 @@ type ContextMenuCfg struct {
 	Color       Color
 	ColorBorder Color
 	ColorSelect Color
+	// Colors sets the per-state colors. Color above is the
+	// shorthand for Colors.Base and wins over it; the other flat
+	// Color* fields win over their Colors slots the same way.
+	Colors ColorSet
 
 	// Container passthrough (outer wrapper).
 	Sizing Sizing
@@ -177,12 +181,12 @@ func contextMenuPopup(w *Window, cfg ContextMenuCfg, mx, my float32) View {
 // from DefaultMenubarStyle.
 func applyContextMenuDefaults(cfg *ContextMenuCfg) {
 	d := &defaultMenubarStyle
-	if !cfg.Color.IsSet() {
-		cfg.Color = d.Color
-	}
-	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = d.ColorBorder
-	}
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
+		d.Color, d.ColorHover, Color{},
+		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
+	))
+	cfg.Colors.applyTo(&cfg.Color, nil, nil, nil,
+		&cfg.ColorBorder, nil)
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
 	}

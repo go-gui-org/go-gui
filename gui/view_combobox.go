@@ -59,8 +59,12 @@ type ComboboxCfg struct {
 	ColorFocus       Color
 	ColorHighlight   Color
 	ColorHover       Color
-	Sizing           Sizing
-	Disabled         bool
+	// Colors sets the per-state colors. Color above is the
+	// shorthand for Colors.Base and wins over it; the other flat
+	// Color* fields win over their Colors slots the same way.
+	Colors   ColorSet
+	Sizing   Sizing
+	Disabled bool
 }
 
 // comboboxView implements View for combobox.
@@ -433,21 +437,12 @@ func scrollEnsureVisible(
 
 func applyComboboxDefaults(cfg *ComboboxCfg) {
 	d := &defaultComboboxStyle
-	if !cfg.Color.IsSet() {
-		cfg.Color = d.Color
-	}
-	if !cfg.ColorHover.IsSet() {
-		cfg.ColorHover = d.ColorHover
-	}
-	if !cfg.ColorFocus.IsSet() {
-		cfg.ColorFocus = d.ColorFocus
-	}
-	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = d.ColorBorder
-	}
-	if !cfg.ColorBorderFocus.IsSet() {
-		cfg.ColorBorderFocus = d.ColorBorderFocus
-	}
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
+		d.Color, d.ColorHover, Color{},
+		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
+	))
+	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, nil,
+		&cfg.ColorFocus, &cfg.ColorBorder, &cfg.ColorBorderFocus)
 	if !cfg.ColorHighlight.IsSet() {
 		cfg.ColorHighlight = d.ColorHighlight
 	}
