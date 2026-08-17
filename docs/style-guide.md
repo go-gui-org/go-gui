@@ -110,8 +110,24 @@ for a second reason: measuring each run would move a descender-free label while
 leaving its neighbour, and uneven baselines read down the whole list. The same
 disagreement between two badges side by side does not.
 
-Which form depends on who supplies the string. A widget-owned label is measured
-per run, so a count centres exactly and a label with a descender is left alone.
+Which form depends on what the text **is**, and the split is worth learning as
+one rule:
+
+- a **value** — a badge's count, a progress readout — is centred on its own ink;
+- a **label** — a button, tab, menu item, select — on the face's cap band;
+- a **glyph** — an icon, a step triangle, a `×` — always on its own ink, and it
+  says so through its style: the theme's `Icon` rungs carry the mark, and
+  `glyphStyle(ts)` applies it to a symbol drawn in a text face. A glyph child
+  inside a cap-band container corrects itself, so an icon button needs nothing
+  at the call site;
+- **editable text** takes a content-free band, or none at all.
+
+A digit-only label is the one case that needs saying out loud: figures measure
+shorter than caps, so a widget that knows its label is digits opts into the
+figure band (`ButtonCfg.opticalDigitLabel`, as the date picker's cells do). An
+application cannot — the alphabet is a guarantee only the widget building the
+label can make.
+
 Editable text takes the content-free form — `opticalCenterFieldText` as a hook,
 `colorFieldPadding` as padding — because an offset that follows the content
 moves the baseline as the user types. A widget wrapping `Input` opts in with the

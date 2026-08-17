@@ -256,11 +256,13 @@ func numericInputStepButtons(cfg NumericInputCfg, locale NumericLocaleCfg, stepC
 		f32Max(cfg.TextStyle.Size-4, guiTheme.N6.Size), // ergonomics-audit:visual
 		cfg.TextStyle.Size,
 	)
-	triangleStyle := TextStyle{
+	// A triangle is a glyph, not a label: it keeps its own ink
+	// rather than taking the face's cap band (issue #346).
+	triangleStyle := glyphStyle(TextStyle{
 		Color:  cfg.TextStyle.Color,
 		Size:   triangleSize,
 		Family: cfg.TextStyle.Family,
-	}
+	})
 	baseColor := cfg.Color
 
 	stepUpID := ""

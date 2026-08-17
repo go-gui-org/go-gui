@@ -180,7 +180,9 @@ func toastItemView(toast *toastNotification, style ToastStyle) View {
 		ID:         toastBtnID(id, "dismiss"),
 		Color:      ColorTransparent,
 		SizeBorder: NoBorder,
-		Content:    []View{Text(TextCfg{Text: "\u00d7", TextStyle: style.TextStyle})},
+		Content: []View{Text(TextCfg{
+			Text: "\u00d7", TextStyle: glyphStyle(style.TextStyle),
+		})},
 		OnClick: func(ctx EventCtx) {
 			toastStartExit(ctx.Window, id)
 		},

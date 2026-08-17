@@ -489,8 +489,11 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
-			// The button counter-case: a label that descends keeps
-			// metric centring, exactly as the badge one does.
+			// A descending label takes the same offset as a cap-only
+			// one: a button is a control whose text is a label, and a
+			// row of them must agree. This records level with `button`
+			// (issue #346); measuring the run would leave this one
+			// behind.
 			name: "button_descender",
 			build: func(_ *Window) View {
 				return Button(ButtonCfg{

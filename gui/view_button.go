@@ -63,6 +63,17 @@ type ButtonCfg struct {
 	FloatTieOff floatAttach
 	Disabled    bool
 	Invisible   bool
+	// opticalDigitLabel centres this button's label on the face's
+	// figure band rather than its cap band. Digits measure shorter than
+	// caps, so a digit-only label centred on the cap band lands as far
+	// low as an uncorrected one sits high — the overshoot measured on
+	// NumericInput (issue #346).
+	//
+	// Unexported and opt-in, like InputCfg.opticalDigitCenter: the
+	// alphabet is a guarantee only the widget building the label can
+	// make. A date picker's day cell can; an app's button holding a
+	// count it also relabels cannot.
+	opticalDigitLabel bool
 
 	// Accessibility
 	A11YRole AccessRole
@@ -72,7 +83,19 @@ func buttonAmendLayout(ctx EventCtx) {
 	// Unconditional: the correction is a property of the label, not of
 	// the button's state, and the early return below covers only the
 	// hover/focus colouring and the caller's own hook.
-	opticalCenterText(ctx)
+	//
+	// The cap band, not the run: a button is a control whose text is a
+	// label, and a strip of tabs or a toolbar row is a list at a
+	// regular pitch, where measuring each run would drop a
+	// descender-free label and leave its descending neighbour behind.
+	// A label holding digits by construction says so and takes the
+	// figure band; an icon child opts itself back onto its own ink
+	// through the style's glyph role (issue #346).
+	band := opticalBandCap
+	if ctx.Layout.Shape.bc != nil && ctx.Layout.Shape.bc.opticalDigits {
+		band = opticalBandDigit
+	}
+	opticalCenterChildren(ctx, band)
 	if ctx.Layout.Shape.Disabled ||
 		!ctx.Layout.Shape.hasEvents() ||
 		ctx.Layout.Shape.events.OnClick == nil {
@@ -177,11 +200,14 @@ func Button(cfg ButtonCfg) View {
 		OnClick:      onClick,
 		clickOnSpace: true,
 		clickOnEnter: true,
-		// A button's label is text the widget owns, so it takes the
-		// optical correction (issue #346); tabs, command buttons and
-		// every other widget built on Button inherit it here.
+		// A button's label takes the optical correction (issue #346);
+		// tabs, command buttons and every other widget built on Button
+		// inherit it. The hook here is not the one that runs —
+		// buttonAmendLayout replaces it and picks the band — it is what
+		// guarantees the shape gets an events record at all, which a
+		// bubble-text Button otherwise has no reason to allocate.
 		//
-		// Set on the cfg rather than through cv.userAmendLayout because
+		// Not routed through cv.userAmendLayout, because
 		// that slot is reached from buttonAmendLayout, which returns
 		// early for a disabled or click-less button — a disabled label
 		// would then sit a pixel above the enabled one beside it. This
@@ -198,6 +224,7 @@ func Button(cfg ButtonCfg) View {
 	cv.colorBorderFocus = cfg.Colors.BorderFocus
 	cv.userOnHover = cfg.OnHover
 	cv.userAmendLayout = cfg.AmendLayout
+	cv.opticalDigits = cfg.opticalDigitLabel
 
 	return cv
 }

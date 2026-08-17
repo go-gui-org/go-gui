@@ -211,9 +211,10 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Radius:      cfg.Radius,
 			TextStyle:   ts,
 			textStyleIcon: TextStyle{
-				Color:  ts.Color,
-				Size:   cfg.sizeTextSmall,
-				Family: iconFamily,
+				Color:     ts.Color,
+				Size:      cfg.sizeTextSmall,
+				Family:    iconFamily,
+				glyphRole: true,
 			},
 			indent:  25,
 			Spacing: 0,
@@ -591,6 +592,10 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	// Icon font shortcuts.
 	icon := ts
 	icon.Family = iconFamily
+	// Runs in this family are glyphs, not text: optical centring must
+	// centre them on their own ink rather than on a cap band the face
+	// does not really have.
+	icon.glyphRole = true
 	theme.Icon1 = makeStyle(icon, theme.sizeTextXLarge)
 	theme.Icon2 = makeStyle(icon, theme.sizeTextLarge)
 	theme.Icon3 = makeStyle(icon, theme.sizeTextMedium)
