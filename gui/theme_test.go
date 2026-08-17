@@ -27,6 +27,7 @@ func TestThemeMaker(t *testing.T) {
 		RadiusSmall:      radiusSmall,
 		RadiusMedium:     radiusMedium,
 		RadiusLarge:      radiusLarge,
+		SpacingTight:     SpacingTight,
 		SpacingSmall:     SpacingSmall,
 		SpacingMedium:    SpacingMedium,
 		SpacingLarge:     SpacingLarge,
@@ -54,6 +55,36 @@ func TestThemeMaker(t *testing.T) {
 	}
 	if theme.N1.Size != sizeTextXLarge {
 		t.Errorf("N1.Size = %f", theme.N1.Size)
+	}
+}
+
+// The tight tier must actually drive the composite-control gaps it was
+// invented for (issue #344, audit §4): the tab header, submenu items and
+// calendar cells fold their old private 2/1/2 into cfg.SpacingTight, and
+// the toast stack folds its 8 into cfg.SpacingMedium. A future edit that
+// hardcodes one of those values would silently regress the ladder, so
+// pin the mapping.
+func TestThemeMakerSpacingTierWiring(t *testing.T) {
+	cfg := ThemeCfg{
+		SpacingTight:  4,
+		SpacingMedium: 20,
+	}
+	theme := ThemeMaker(cfg)
+
+	if theme.SpacingTight != cfg.SpacingTight {
+		t.Errorf("Theme.SpacingTight = %v, want %v", theme.SpacingTight, cfg.SpacingTight)
+	}
+	if theme.tabControlStyle.spacingHeader != cfg.SpacingTight {
+		t.Errorf("tab spacingHeader = %v, want %v", theme.tabControlStyle.spacingHeader, cfg.SpacingTight)
+	}
+	if theme.MenubarStyle.spacingSubmenu != cfg.SpacingTight {
+		t.Errorf("submenu spacing = %v, want %v", theme.MenubarStyle.spacingSubmenu, cfg.SpacingTight)
+	}
+	if theme.datePickerStyle.cellSpacing != cfg.SpacingTight {
+		t.Errorf("calendar cellSpacing = %v, want %v", theme.datePickerStyle.cellSpacing, cfg.SpacingTight)
+	}
+	if theme.toastStyle.Spacing != cfg.SpacingMedium {
+		t.Errorf("toast Spacing = %v, want %v", theme.toastStyle.Spacing, cfg.SpacingMedium)
 	}
 }
 
@@ -109,6 +140,7 @@ func TestAdjustFontSize(t *testing.T) {
 		RadiusSmall:      radiusSmall,
 		RadiusMedium:     radiusMedium,
 		RadiusLarge:      radiusLarge,
+		SpacingTight:     SpacingTight,
 		SpacingMedium:    SpacingMedium,
 		PaddingMedium:    paddingMedium,
 		sizeScrollbar:    7,

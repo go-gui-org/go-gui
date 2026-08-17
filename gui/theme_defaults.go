@@ -35,6 +35,7 @@ func baseCfg() ThemeCfg {
 		RadiusSmall:      radiusSmall,
 		RadiusMedium:     radiusMedium,
 		RadiusLarge:      radiusLarge,
+		SpacingTight:     SpacingTight,
 		SpacingSmall:     SpacingSmall,
 		SpacingMedium:    SpacingMedium,
 		SpacingLarge:     SpacingLarge,

@@ -84,6 +84,16 @@ and this project adheres to
 
 ### Changed
 
+- **Spacing tiers now mean relatedness** (issue #344). The four rungs —
+  `SpacingTight 2`, `SpacingSmall 5`, `SpacingMedium 10`, `SpacingLarge 15` —
+  state what each gaps, documented at the const block in `gui/styles.go` and in
+  `docs/style-guide.md`. The tab strip, submenu items and calendar cells fold
+  their private `2`/`1`/`2` into `SpacingTight`; the toast stack and
+  `RadioButtonGroup`'s default move from `Small` to `Medium` (toasts spread
+  8→10, radio options 5→10); markdown block spacing moves 12→15 as the first
+  internal caller of `SpacingLarge`. `nestIndent` stays 16 and is documented as
+  a structural indent, not a sibling gap.
+
 - **`gui.ColorPicker` is now a composition of the components above.** Its
   `ColorPickerCfg` is unchanged and existing callers compile untouched. Five
   visible changes: the square is the HSL saturation × lightness plane rather

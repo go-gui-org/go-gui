@@ -207,18 +207,26 @@ that `ThemeMaker` sets to the _same_ value (`gui/theme_maker.go:161`), and
 visual label is not. That is worth stating precisely: this is a visual gap, not
 an accessibility one.
 
-## 4. Spacing tiers — `SpacingLarge` is dead
+## 4. Spacing tiers — closed by issue #344
 
-`SpacingSmall 5 / SpacingMedium 10 / SpacingLarge 15` (`gui/styles.go:38-43`).
-Usage inside `gui/`: Small ~10 sites, Medium ~6, **Large zero**.
+`SpacingSmall 5 / SpacingMedium 10 / SpacingLarge 15` (`gui/styles.go`), with a
+new lowest rung **`SpacingTight 2`**. The tiers now state a meaning, decided
+once and documented at the const block and in `docs/style-guide.md`:
 
-The related-vs-unrelated distinction the tiers imply does not hold. `Small`
-covers both a tightly related pair (the ColorFields channel row) and unrelated
-stacks (Toast, RadioButtonGroup).
+- `SpacingTight` — inside one composite control, between parts that read as a
+  single unit. `spacingHeader` (tab strip), `spacingSubmenu` (submenu items)
+  and `cellSpacing` (calendar cells) all fold to it.
+- `SpacingSmall` — members of one visual group that share a container. The
+  ColorFields channel row stays on it.
+- `SpacingMedium` — sibling controls in a stack. The toast stack (`8`) and
+  RadioButtonGroup's default (was `Small`) migrate up to it.
+- `SpacingLarge` — unrelated sections. Markdown `blockSpacing` (12) folds to
+  it, giving the tier its first caller inside `gui/`.
 
-About ten spacings bypass the ladder entirely: `spacingHeader: 2`,
-`spacingSubmenu: 1`, `cellSpacing: 2`, toast `8`
-(`gui/theme_maker.go:333,455,463,230`), `blockSpacing: 12`, `nestIndent: 16`.
+`nestIndent` (16) is a structural indent for nested blockquotes and list
+depths, not a gap between siblings; it stays off the ladder and says so in a
+comment. `Theme.PaddingField` remains a separate concept: it sizes a control,
+the tiers size the gaps between them.
 
 ## 5. Borders — the healthiest axis
 
@@ -362,7 +370,7 @@ What this branch changed, per axis. The measurements above describe the state at
 | 1   | Dimming           | closed — four named roles, per-theme and contrast-matched; disabled text routed through the role at render (#341) |
 | 2   | Type steps        | mostly — full ladder exported, mono +1 documented, two steps tracked                                              |
 | 3   | Field labels      | closed — `Label` on all eight, one shared convention                                                              |
-| 4   | Spacing           | untouched                                                                                                         |
+| 4   | Spacing           | closed — four tiers with stated meanings; the tight values, toast stack, and block/radio-group defaults fold in (#344) |
 | 5   | Borders           | untouched, by decision                                                                                            |
 | 6   | Interaction state | closed — `ColorSet` on all 17 interactive widgets (#342); focus rings for the four that could take one |
 | 7   | Density           | closed — one field-inset tier, two latent bugs fixed                                                              |
@@ -384,8 +392,6 @@ What this branch changed, per axis. The measurements above describe the state at
   naming the bounds does not name the step. Closing these needs a
   ladder-relative "one rung down from an arbitrary size" operation the ladder
   does not currently offer.
-- **§4** — `SpacingLarge` still has no caller inside `gui/`, and about ten magic
-  spacings still bypass the ladder.
 - **§6** — the ColorSet half is closed: all eleven flat-`Color*` widgets —
   Input, NumericInput, Select, Combobox, ListBox, Tree, Slider, ContextMenu,
   Menubar, Table, ExpandPanel — gained `Colors ColorSet` (issue #342). Additive
