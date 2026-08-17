@@ -189,6 +189,118 @@ func TestColorSwatchLayout(t *testing.T) {
 	}
 }
 
+// A swatch is a color well: focusable by opt-in, and Space/Enter
+// select the color it shows, the way Enter selects on a button.
+func TestColorSwatchKeyboardActivation(t *testing.T) {
+	calls := 0
+	w := &Window{}
+	w.SetFocus("sw")
+	l := generateViewLayout(ColorSwatch(ColorSwatchCfg{
+		ID:        "sw",
+		Color:     RGBA(255, 0, 0, 255),
+		Focusable: true,
+		OnClick: func(EventCtx) {
+			calls++
+		},
+	}), w)
+	if !l.Shape.Focusable {
+		t.Fatal("swatch must join the tab order when Focusable")
+	}
+	keydownHandler(&l, &Event{KeyCode: KeyEnter}, w)
+	charHandler(&l, &Event{CharCode: charSpace}, w)
+	if calls != 2 {
+		t.Fatalf("activations = %d, want 2 (enter + space)", calls)
+	}
+}
+
+func TestColorSwatchNotFocusableByDefault(t *testing.T) {
+	l := generateViewLayout(ColorSwatch(ColorSwatchCfg{
+		ID:    "sw",
+		Color: RGBA(255, 0, 0, 255),
+	}), &Window{})
+	if l.Shape.Focusable {
+		t.Error("swatch must be opt-in focusable")
+	}
+}
+
+// The focus ring lives on the color layer — the float that covers the
+// whole swatch — replacing its resting hairline outline while the
+// swatch holds focus (issue #345). The layer has no ID of its own, so
+// the ring keys on the swatch's own effective ID.
+//
+// The theme is pinned to a bordered one: the mirror styles are refilled
+// by the last frame's installTheme, and the ring is only attached when
+// the picker style carries a border width (the light theme is
+// borderless, exactly like the other color controls' rings).
+func TestColorSwatchFocusRing(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int), Width: 200, Height: 200})
+	w.SetTheme(ThemeDark)
+	w.viewGenerator = func(win *Window) View {
+		return Column(ContainerCfg{})
+	}
+	w.FrameFn()
+	w.SetFocus("sw")
+
+	l := generateViewLayout(ColorSwatch(ColorSwatchCfg{
+		ID:        "sw",
+		Color:     RGBA(255, 0, 0, 255),
+		Focusable: true,
+	}), w)
+
+	var layer *Layout
+	var walk func(*Layout)
+	walk = func(n *Layout) {
+		if n.Shape != nil && n.Shape.Color.IsSet() &&
+			n.Shape.events != nil && n.Shape.events.AmendLayout != nil {
+			layer = n
+			return
+		}
+		for i := range n.Children {
+			walk(&n.Children[i])
+		}
+	}
+	walk(&l)
+	if layer == nil {
+		t.Fatal("no ring-bearing color layer")
+	}
+
+	d := &defaultColorPickerStyle
+	layer.Shape.events.AmendLayout(EventCtx{layer, &Event{}, w})
+	if layer.Shape.SizeBorder != d.SizeBorder {
+		t.Errorf("ring width = %v, want %v",
+			layer.Shape.SizeBorder, d.SizeBorder)
+	}
+	if layer.Shape.ColorBorder != d.ColorBorderFocus {
+		t.Errorf("ring color = %v, want %v",
+			layer.Shape.ColorBorder, d.ColorBorderFocus)
+	}
+
+	// Without focus the layer keeps its resting hairline outline.
+	w.SetFocus("")
+	l2 := generateViewLayout(ColorSwatch(ColorSwatchCfg{
+		ID:        "sw",
+		Color:     RGBA(255, 0, 0, 255),
+		Focusable: true,
+	}), w)
+	var walk2 func(*Layout)
+	walk2 = func(n *Layout) {
+		if n.Shape != nil && n.Shape.Color.IsSet() &&
+			n.Shape.events != nil && n.Shape.events.AmendLayout != nil {
+			layer = n
+			return
+		}
+		for i := range n.Children {
+			walk2(&n.Children[i])
+		}
+	}
+	walk2(&l2)
+	layer.Shape.events.AmendLayout(EventCtx{layer, &Event{}, w})
+	if layer.Shape.ColorBorder != colorSwatchEdge() {
+		t.Errorf("resting outline = %v, want hairline %v",
+			layer.Shape.ColorBorder, colorSwatchEdge())
+	}
+}
+
 // Inner IDs must be composed under the component's own ID, or two
 // pickers on one screen collide.
 func TestColorFieldsComposesInnerIDs(t *testing.T) {

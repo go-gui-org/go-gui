@@ -31,7 +31,13 @@ package gui
 // the marker positions, which are computed from the control's own size.
 // AmendLayout runs after arrange, so a ring set there strokes the edge
 // without moving anything inside it.
-func colorControlFocusRing(cfg *ContainerCfg) {
+// key is the effective ID the ring tests focus against. The control's
+// own shape keys via idKey() at hook time; the swatch's ring lives on
+// its color layer, which has no identity of its own, so the swatch
+// captures its effective ID at generation instead. AmendLayout runs
+// after arrange, so a ring set there strokes the edge without moving
+// anything inside it.
+func colorControlFocusRing(cfg *ContainerCfg, key string) {
 	d := &defaultColorPickerStyle
 	width, color := d.SizeBorder, d.ColorBorderFocus
 	if width <= 0 || !color.IsSet() {
@@ -42,7 +48,7 @@ func colorControlFocusRing(cfg *ContainerCfg) {
 		if shape == nil || shape.Disabled || ctx.Window == nil {
 			return
 		}
-		if !ctx.Window.IsFocus(shape.idKey()) {
+		if !ctx.Window.IsFocus(key) {
 			return
 		}
 		shape.SizeBorder = width

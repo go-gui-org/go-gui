@@ -15,6 +15,16 @@ type ColorSwatchCfg struct {
 	// Color is the value shown. Its alpha is honored.
 	Color Color
 
+	// OnClick fires when the swatch is clicked, and — when Focusable
+	// is set — on Space/Enter while it holds focus. A swatch is a
+	// color well: activation picks the color it shows.
+	OnClick func(EventCtx)
+
+	// Focusable opts the swatch into the tab order. Opt-in, not
+	// default: most swatches are passive previews (a picker's
+	// readout), and only an interactive one needs a tab stop.
+	Focusable bool
+
 	Width  float32
 	Height float32
 	Radius Opt[float32]
@@ -67,6 +77,40 @@ func colorSwatchEdge() Color {
 func (sv *colorSwatchView) GenerateLayout(w *Window) Layout {
 	cfg := &sv.cfg
 
+	// The focus ring lives on the color layer, not on the box around
+	// it: the float color container covers the whole swatch, so a
+	// border on the outer shape would be painted under it and never
+	// seen. The ring therefore replaces the resting hairline outline
+	// for the focused control — the same "the fill is the value, the
+	// ring goes on the border" rule the other color controls follow
+	// (colorControlFocusRing).
+	//
+	// The layer has no identity of its own, so the ring is keyed on
+	// the swatch's effective ID captured at generation: the focus
+	// belongs to the swatch, and AmendLayout's ctx reaches only the
+	// layer's shape.
+	effID := w.EffID(cfg.ID)
+	colorCfg := ContainerCfg{
+		Float:  true,
+		Width:  cfg.Width,
+		Height: cfg.Height,
+		Color:  cfg.Color,
+		Radius: cfg.Radius,
+		// The outline goes on the color, not on the box
+		// beneath it: this container covers the whole
+		// swatch, so a border on the parent would be drawn
+		// under it. Without one a white value on a light
+		// theme is an invisible rectangle -- the swatch
+		// vanishes exactly when the color is hardest to
+		// read off the hex string.
+		ColorBorder: colorSwatchEdge(),
+		SizeBorder:  SomeF(colorSwatchBorder),
+		Padding:     NoPadding,
+	}
+	if cfg.Focusable {
+		colorControlFocusRing(&colorCfg, effID)
+	}
+
 	return generateViewLayout(&containerView{
 		cfg: ContainerCfg{
 			ID:       cfg.ID,
@@ -78,8 +122,12 @@ func (sv *colorSwatchView) GenerateLayout(w *Window) Layout {
 					cfg.Color.Hex()),
 				A11YDescription: cfg.A11YDescription,
 			},
-			Width:  cfg.Width,
-			Height: cfg.Height,
+			Focusable:    cfg.Focusable,
+			clickOnSpace: cfg.OnClick != nil,
+			clickOnEnter: cfg.OnClick != nil,
+			OnClick:      cfg.OnClick,
+			Width:        cfg.Width,
+			Height:       cfg.Height,
 			// Fixed: the checkerboard is generated at this size.
 			Sizing:     FixedFixed,
 			Padding:    NoPadding,
@@ -98,23 +146,7 @@ func (sv *colorSwatchView) GenerateLayout(w *Window) Layout {
 			}),
 			// The color rides over the checker as a float so it
 			// covers it exactly rather than being laid out after it.
-			container(ContainerCfg{
-				Float:  true,
-				Width:  cfg.Width,
-				Height: cfg.Height,
-				Color:  cfg.Color,
-				Radius: cfg.Radius,
-				// The outline goes on the color, not on the box
-				// beneath it: this container covers the whole
-				// swatch, so a border on the parent would be drawn
-				// under it. Without one a white value on a light
-				// theme is an invisible rectangle -- the swatch
-				// vanishes exactly when the color is hardest to
-				// read off the hex string.
-				ColorBorder: colorSwatchEdge(),
-				SizeBorder:  SomeF(colorSwatchBorder),
-				Padding:     NoPadding,
-			}),
+			container(colorCfg),
 		},
 	}, w)
 }

@@ -22,6 +22,9 @@ type ExpandPanelCfg struct {
 	ColorHover  Color
 	colorClick  Color
 	ColorBorder Color
+	// ColorBorderFocus is the header's border while it holds focus.
+	// Unset takes the theme's.
+	ColorBorderFocus Color
 	// Colors sets the per-state colors. Color above is the
 	// shorthand for Colors.Base and wins over it; the other flat
 	// Color* fields win over their Colors slots the same way.
@@ -39,11 +42,17 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 	onToggle := cfg.OnToggle
 	colorHover := cfg.ColorHover
 	colorClick := cfg.colorClick
+	colorBorderFocus := cfg.ColorBorderFocus
 
 	a11yState := AccessState(0)
 	if cfg.Open {
 		a11yState = AccessStateExpanded
 	}
+
+	// The header row joins the tab order: Space/Enter toggle the
+	// panel (issue #345). The body's own focusables sit after it in
+	// tab order because the header row precedes them in the Column.
+	headID := ScopeID(cfg.ID, "head")
 
 	return Column(ContainerCfg{
 		ID:          cfg.ID,
@@ -63,9 +72,14 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 		Spacing:     SomeF(0),
 		Content: []View{
 			Row(ContainerCfg{
-				Padding: NoPadding,
-				Sizing:  FillFit,
-				VAlign:  VAlignMiddle,
+				ID:           headID,
+				Padding:      NoPadding,
+				Sizing:       FillFit,
+				VAlign:       VAlignMiddle,
+				Focusable:    true,
+				clickOnSpace: true,
+				clickOnEnter: true,
+				AmendLayout:  focusRingAmend(Color{}, colorBorderFocus),
 				Content: []View{
 					cfg.Head,
 					Row(ContainerCfg{
@@ -80,15 +94,6 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 						onToggle(ctx)
 						ctx.Consume()
 					}
-				},
-				OnChar: func(ctx EventCtx) {
-					// Only the spacebar activates the header; every
-					// other character has to keep travelling.
-					if ctx.Event.CharCode != charSpace || onToggle == nil {
-						return
-					}
-					onToggle(ctx)
-					ctx.Consume()
 				},
 				OnHover: func(ctx EventCtx) {
 					ctx.Window.SetMouseCursorPointingHand()
@@ -117,10 +122,10 @@ func applyExpandPanelDefaults(cfg *ExpandPanelCfg) {
 	d := &defaultExpandPanelStyle
 	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
 		d.Color, d.ColorHover, d.colorClick,
-		Color{}, d.ColorBorder, Color{},
+		Color{}, d.ColorBorder, d.ColorBorderFocus,
 	))
 	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, &cfg.colorClick,
-		nil, &cfg.ColorBorder, nil)
+		nil, &cfg.ColorBorder, &cfg.ColorBorderFocus)
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = d.Padding
 	}

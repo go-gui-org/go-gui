@@ -392,9 +392,13 @@ What this branch changed, per axis. The measurements above describe the state at
   and zero visual change: their flat fields survive and win over the set via
   `applyTo`, so the #335 goldens recorded no diff. The inline `ColorSet{...}`
   constructions in gui/ and gui/datagrid/ now resolve at the construction site
-  rather than leaning on the receiving widget. `Table`, `ColorSwatch` and the
-  `ExpandPanel` header are still not focusable — a focus ring there needs
-  keyboard navigation designed first (§6.1, issue #345).
+  rather than leaning on the receiving widget. The keyboard side is closed too
+  (issue #345): `Table` (opt-in `Focusable`, arrow/Home/End movement with an
+  active-row tint, Shift range under `MultiSelect`, Enter/Space activation,
+  row-level like datagrid's), `ColorSwatch` (opt-in `Focusable` + `OnClick`,
+  Space/Enter activate) and the `ExpandPanel` header (always a tab stop,
+  Space/Enter toggle) all gained a `ColorBorderFocus` ring, and the audit's
+  theme tally is 15 styles with a focus color.
 - **#335 steps 3 and 4** — closed: `docs/style-guide.md` (the _when_, citing
   roles rather than values) and `ergonomics-audit -mode visual`, which gates raw
   dimming and size-step literals in `gui/view_*.go`. The §1.2 ramps and the two

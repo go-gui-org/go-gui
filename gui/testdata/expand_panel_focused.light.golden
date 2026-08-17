@@ -1,0 +1,4 @@
+Rect xy=10.00,10.00 wh=112.96,64.80 color=#cdcdd7ff radius=5.50 fill
+Text xy=20.00,20.00 wh=0.00,0.00 color=#202020ff text="Details" size=16.00
+Text xy=97.20,25.44 wh=0.00,0.00 color=#202020ff text="▲" size=9.60
+Text xy=20.00,42.40 wh=0.00,0.00 color=#202020ff text="content" size=16.00

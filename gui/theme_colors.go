@@ -121,6 +121,7 @@ func (t Theme) withColors(o ColorOverrides) Theme {
 	t.expandPanelStyle.ColorHover = hover
 	t.expandPanelStyle.colorClick = active
 	t.expandPanelStyle.ColorBorder = border
+	t.expandPanelStyle.ColorBorderFocus = borderFocus
 
 	t.progressBarStyle.Color = interior
 	t.progressBarStyle.colorBar = sel
@@ -164,6 +165,7 @@ func (t Theme) withColors(o ColorOverrides) Theme {
 	t.splitterStyle.colorButtonActive = active
 
 	t.tableStyle.ColorBorder = border
+	t.tableStyle.ColorBorderFocus = borderFocus
 	t.tableStyle.ColorSelect = sel
 	t.tableStyle.ColorHover = hover
 

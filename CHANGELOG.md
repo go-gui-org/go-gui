@@ -10,6 +10,23 @@ and this project adheres to
 
 ### Added
 
+- **Keyboard navigation for `Table`, `ColorSwatch` and the `ExpandPanel`
+  header** — the three widgets the #335 audit recorded as "not focusable"
+  (issue #345).
+  - `TableCfg.Focusable` opts a table into the tab order. Focus lands on the
+    table; Up/Down/Home/End move an active row — tinted with the hover color,
+    scrolled into view under virtualization, and synced to mouse clicks — and
+    Enter/Space activate the active row the way a click would. Selection
+    follows movement when `OnSelect` is set; Shift extends a range under
+    `MultiSelect`. `TableCfg.ColorBorderFocus` (theme-backed) paints the focus
+    ring.
+  - The `ExpandPanel` header now joins the tab order ahead of the panel body's
+    own focusables; Space/Enter toggle it. `ExpandPanelCfg.ColorBorderFocus`
+    (theme-backed) paints the ring.
+  - `ColorSwatchCfg` gains opt-in `Focusable` and `OnClick`; Space/Enter
+    activate a focused swatch like a click. The ring replaces the resting
+    outline on the color layer, the same border convention as the other color
+    controls.
 - **`Colors ColorSet` on eleven more widgets** — `Input`, `NumericInput`,
   `Select`, `Combobox`, `ListBox`, `Tree`, `Slider`, `ContextMenu`, `Menubar`,
   `Table` and `ExpandPanel` now accept the per-state `ColorSet` the six widgets
