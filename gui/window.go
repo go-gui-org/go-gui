@@ -189,6 +189,10 @@ type Window struct {
 	windowWidth  int
 	windowHeight int
 
+	// headlessRender suppresses wall-clock-driven visuals so a
+	// captured frame is reproducible. See gui/headless.go.
+	headlessRender bool
+
 	// Frame counter — incremented each FrameFn call, stamped
 	// on events for frame-based timing (double-click detection).
 	frameCount uint64
@@ -306,6 +310,12 @@ func (w *Window) clearInputSelections() {
 
 // inputCursorOn returns the input cursor blink state.
 func (w *Window) inputCursorOn() bool {
+	// A headless capture has no blink goroutine driving the atomic, so
+	// the caret is already off in practice; the gate makes that a
+	// guarantee instead of an accident of timing.
+	if w.headlessRender {
+		return false
+	}
 	return w.viewState.inputCursorOn.Load()
 }
 
