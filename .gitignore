@@ -50,6 +50,10 @@ examples/bin/
 # tracked, so this stays anchored to the repo root.
 /headless.png
 
+# Pixel-golden failure artifacts, written by TestPixelGolden on a
+# mismatch and uploaded by CI. Committed references live alongside.
+gui/backend/soft/testdata/failures/
+
 # iOS c-archive build artifacts
 *.a
 examples/ios_demo/ios/libgoguiapp.h

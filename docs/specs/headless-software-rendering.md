@@ -226,9 +226,12 @@ near-black. `overPremul` is the single place that blend is spelled.
 
 ## Not in either phase
 
-Pixel golden images (issue #361). Platform font variance and antialiasing
-stability make them a separate decision from the renderer itself; the tests here
-assert pixel values from constructed command streams instead, which is
+Pixel golden images (issue #361) are a separate decision from the renderer
+itself and landed as their own suite (`TestPixelGolden` in this package,
+`testdata/*.png`): platform font variance and antialiasing stability make the
+goldens text-free by construction, with a tolerance-based comparison instead of
+exact bytes. See `docs/specs/pixel-golden-images.md`. The tests here assert
+pixel values from constructed command streams as well, which is
 platform-independent.
 
 ## Attribution

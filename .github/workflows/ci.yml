@@ -37,6 +37,19 @@ jobs:
               go test -count=2 -race -timeout=10m ./gui/...
           fi
 
+      # A failing pixel golden is undebuggable from a log: the actual,
+      # expected and diff PNGs are what tell whether the renderer
+      # moved or the tolerance needs widening. TestPixelGolden writes
+      # them under gui/backend/soft/testdata/failures/ (gitignored).
+      - name: Upload pixel-golden failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pixel-golden-failures-${{ matrix.os }}
+          path: gui/backend/soft/testdata/failures
+          if-no-files-found: ignore
+          retention-days: 14
+
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
