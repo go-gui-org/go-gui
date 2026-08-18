@@ -9,6 +9,7 @@
 package soft
 
 import (
+	"fmt"
 	"image"
 	"os"
 	"path/filepath"
@@ -369,5 +370,134 @@ func TestRenderTermGridSelectionCursorAndUnderline(t *testing.T) {
 	// Underline: a thin foreground line along the cell bottom.
 	if r, _, _, _ := at(img, 35, 39); r < 200 {
 		t.Errorf("underline red = %d, want near 255", r)
+	}
+}
+
+// TestMultilineTextBoxHasNoTrailingLeading pins the fix for a ListBox
+// row reading top-biased: glyph sizes a line box as the
+// baseline-to-baseline advance (ascent + descent + leading, floored at
+// 1.15em), while rendering puts the baseline at ascent below the top.
+// The trailing leading was therefore reserved at the bottom of every
+// multiline shape and nothing painted into it, so a one-line multiline
+// shape came out taller than the same text in single-line mode.
+//
+// Measured through the real rasterizer: the coloured Fit container
+// around each Text is the shape box, so the two must span the same
+// rows.
+func TestMultilineTextBoxHasNoTrailingLeading(t *testing.T) {
+	bg := gui.RGB(255, 0, 0)
+	build := func(txt gui.TextCfg) func(*gui.Window) gui.View {
+		return func(w *gui.Window) gui.View {
+			return gui.Column(gui.ContainerCfg{
+				Color:      bg,
+				Padding:    gui.PaddingNone,
+				SizeBorder: gui.NoBorder,
+				Sizing:     gui.FitFit,
+				Content: []gui.View{
+					gui.Text(txt),
+				},
+			})
+		}
+	}
+	// bandHeight counts the rows the red container covers.
+	bandHeight := func(txt gui.TextCfg) int {
+		win := newWin(t, 200, 80, build(txt))
+		img, err := RenderToImage(win, 1)
+		if err != nil {
+			t.Fatalf("RenderToImage: %v", err)
+		}
+		rows := 0
+		for y := range 80 {
+			for x := range 200 {
+				r, g, b, _ := at(img, x, y)
+				if r > 200 && g < 60 && b < 60 {
+					rows++
+					break
+				}
+			}
+		}
+		return rows
+	}
+	single := bandHeight(gui.TextCfg{Text: "list item"})
+	multi := bandHeight(gui.TextCfg{
+		Text: "list item", Mode: gui.TextModeMultiline,
+	})
+	if single == 0 {
+		t.Fatal("single-line container did not render")
+	}
+	if multi != single {
+		t.Errorf("multiline box = %d rows, single-line = %d; "+
+			"the difference is trailing leading nothing paints into",
+			multi, single)
+	}
+}
+
+// TestListBoxVirtualizedFillsViewport pins the row-height estimate a
+// virtualized ListBox virtualizes with. The visible range is
+// listHeight/rowHeight (plus a two-row overscan), the spacers are
+// index*rowHeight, and the height model ScrollToIndex reads is
+// registered with the same number — so an estimate that over-counts
+// builds too few rows to cover the viewport and leaves the bottom of
+// a scrolled list blank. The list here is tall enough (800px) that the
+// over-count outruns the two-row overscan and the defect shows; at
+// 400px the overscan absorbs it and the test would pass either way.
+//
+// Measured through the real rasterizer, because the defect only
+// exists once a text measurer is present: with no measurer the
+// estimate and the arranged height agree by construction.
+func TestListBoxVirtualizedFillsViewport(t *testing.T) {
+	const (
+		listH  = 800
+		winH   = 840
+		winW   = 220
+		nItems = 400
+	)
+	items := make([]gui.ListBoxOption, 0, nItems)
+	for i := range nItems {
+		id := fmt.Sprintf("%03d", i)
+		items = append(items, gui.NewListBoxOption(id, "item "+id, id))
+	}
+	win := newWin(t, winW, winH, func(w *gui.Window) gui.View {
+		return gui.Column(gui.ContainerCfg{
+			Padding:    gui.PaddingNone,
+			SizeBorder: gui.NoBorder,
+			Sizing:     gui.FillFill,
+			Content: []gui.View{
+				gui.ListBox(gui.ListBoxCfg{
+					ID:         "lb",
+					Scrollable: true,
+					Height:     listH,
+					Data:       items,
+				}),
+			},
+		})
+	})
+	// Frame 1 builds the layout the scroll API needs to find.
+	if _, err := RenderToImage(win, 1); err != nil {
+		t.Fatalf("RenderToImage: %v", err)
+	}
+	win.ScrollVerticalToPct("lb", 0.5)
+	img, err := RenderToImage(win, 1)
+	if err != nil {
+		t.Fatalf("RenderToImage: %v", err)
+	}
+	// hasInk reports whether any row in [y0,y1) carries text.
+	hasInk := func(y0, y1 int) bool {
+		for y := y0; y < y1; y++ {
+			for x := range winW {
+				r, g, b, _ := at(img, x, y)
+				if r > 150 && g > 150 && b > 150 {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	// The last few pixels of the viewport, above the list bottom edge:
+	// with the estimate right, a row covers them.
+	if !hasInk(listH-14, listH) {
+		t.Error("bottom of a mid-scrolled virtualized list is blank: " +
+			"the row-height estimate over-counts, so too few rows " +
+			"are built to cover the viewport")
 	}
 }

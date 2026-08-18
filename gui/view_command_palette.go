@@ -121,7 +121,8 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 	hl := prepared.HL
 
 	// Virtualization.
-	rowH := listCoreRowHeightEstimate(cfg.TextStyle, PaddingTwoFive)
+	rowH := listCoreRowHeightEstimate(
+		cfg.TextStyle, PaddingTwoFive, w)
 	scrollID := ScopeID(id, "scroll")
 	var scrollY float32
 	if cfg.Scrollable {

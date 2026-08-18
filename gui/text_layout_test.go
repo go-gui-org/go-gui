@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"math"
 	"strings"
 	"testing"
 
@@ -114,6 +115,83 @@ func TestPlainTextLayoutResolvedNilWindow(t *testing.T) {
 // reporting one line tall. Asserted as a line count rather than a pixel
 // height: the per-rune width is an approximation and may be retuned,
 // but "more text in the same width is more lines" must hold.
+// plainTextBoxHeight converts glyph's whole-line-box height into the
+// ascent..descent box the single-line path uses: the trailing leading
+// below the last baseline is dropped, inter-line spacing kept, and a
+// face whose line box is tighter than ascent+descent keeps glyph's
+// number untouched (growing the shape would be a regression).
+func TestPlainTextBoxHeight(t *testing.T) {
+	style := TextStyle{Size: 16}
+	// fh controls fontHeight via the window's measurer.
+	w := &Window{}
+	w.textMeasurer = &stubTextMeasurer{fontHeight: 20}
+
+	lines := func(n int) []glyph.Line { return make([]glyph.Line, n) }
+
+	cases := []struct {
+		name string
+		l    glyph.Layout
+		want float32
+	}{
+		{
+			name: "one line drops trailing leading",
+			l:    glyph.Layout{Height: 23, Lines: lines(1)},
+			want: 20, // fh, not the 23px line box
+		},
+		{
+			name: "two lines keep inter-line spacing",
+			l:    glyph.Layout{Height: 46, Lines: lines(2)},
+			want: 43, // 23px line box + 20px last line
+		},
+		{
+			name: "empty lines keep layout height",
+			l:    glyph.Layout{Height: 23},
+			want: 23,
+		},
+		{
+			name: "zero height passes through",
+			l:    glyph.Layout{Height: 0, Lines: lines(1)},
+			want: 0,
+		},
+		{
+			name: "non-finite height passes through untouched",
+			l:    glyph.Layout{Height: float32(math.NaN()), Lines: lines(1)},
+			want: float32(math.NaN()),
+		},
+		{
+			// fh 20 >= lineH 20: the formula would grow the shape
+			// (1*20+20 = 40 > 40 is equal here; use fh > lineH below).
+			name: "line box tighter than font height keeps layout height",
+			l:    glyph.Layout{Height: 40, Lines: lines(2)},
+			want: 40,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := plainTextBoxHeight(tc.l, style, w)
+			if tc.want != tc.want { // NaN
+				if got == got {
+					t.Errorf("got %v, want NaN", got)
+				}
+				return
+			}
+			if got != tc.want {
+				t.Errorf("got %v, want %v", got, tc.want)
+			}
+		})
+	}
+
+	// fh (24) > lineH (20): growing the shape would be a regression,
+	// so glyph's number stands even though the formula would say 44.
+	wTight := &Window{}
+	wTight.textMeasurer = &stubTextMeasurer{fontHeight: 24}
+	if got := plainTextBoxHeight(glyph.Layout{
+		Height: 40, Lines: lines(2),
+	}, style, wTight); got != 40 {
+		t.Errorf("tight line box = %v, want 40", got)
+	}
+}
+
 func TestPlainTextHeightNoMeasurer(t *testing.T) {
 	style := TextStyle{Size: 10}
 	lineH := fallbackLineHeight(style)

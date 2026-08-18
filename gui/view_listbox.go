@@ -234,7 +234,7 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 		cfg, selectedSet, focusedID, dragIdxByRow,
 		itemIDs, itemLayoutIDs, midsOffset, scrollID,
 		canReorder, dragging, drag,
-		virtualize, first, last)
+		virtualize, first, last, rowH)
 
 	if dragging && drag.currentIndex >= len(itemIDs) {
 		list = append(list,
@@ -344,7 +344,7 @@ func listBoxVisibleRange(
 	if listH <= 0 {
 		listH = cache.resolvedH
 	}
-	rowH = listCoreRowHeightEstimate(cfg.TextStyle, listBoxItemPad)
+	rowH = listCoreRowHeightEstimate(cfg.TextStyle, listBoxItemPad, w)
 	if virtualize && listH > 0 && len(cfg.Data) > 0 {
 		// Default 0: absent entry means not scrolled.
 		scrollY := w.scrollY().GetOr(cfg.ID, 0)
