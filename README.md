@@ -152,6 +152,9 @@ sharing the same rendering pipeline and event system.
   frame-by-frame; implement `Snapshotter` on your state type and set
   `DebugTimeTravel: true`
 - **Headless testing** — all layout and widget logic runs without a display
+- **Headless rendering** — `gui/backend/soft` rasterizes a frame to a PNG on the
+  CPU, with real text metrics and no GPU, for CI screenshots and pixel-level
+  regression tests
 - **Cross-platform integration** — native file dialogs, menus, notifications,
   print/PDF, system tray, IME, a11y, spell check
 - **go-glyph powered** — professional text shaping, rendering, bidirectional

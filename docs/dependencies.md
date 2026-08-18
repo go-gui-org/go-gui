@@ -22,6 +22,7 @@ Go toolchain pin: `go 1.26.0`.
 | `github.com/tdewolff/parse/v2` | v2.8.16 | CSS tokenizer for the SVG `<style>` / `style=""` cascade pipeline. |
 | `github.com/yuin/goldmark` | v1.8.5 | Markdown parser (markdown widget + showcase docs). |
 | `github.com/yuin/goldmark-emoji` | v1.0.6 | Goldmark extension: `:emoji:` shortcodes. |
+| `golang.org/x/image` | v0.45.0 | Antialiased vector rasterization for the headless software renderer (`gui/backend/soft`). Also pulled in by go-glyph. |
 | `golang.org/x/mod` | v0.40.0 | Module version parsing; imported by `requiredid` analyzer. |
 | `golang.org/x/sys` | v0.47.0 | Win32 + WGL syscalls for the native Windows backend (`gui/backend/gl`, `winkey`). |
 | `golang.org/x/tools` | v0.49.0 | `go/analysis` framework for the `requiredid` analyzer (`tools/`). |
@@ -42,7 +43,6 @@ Pulled in transitively; listed for completeness.
 | `github.com/mewkiz/flac` | v1.0.12 | gopxl/beep (FLAC decode) |
 | `github.com/mewkiz/pkg` | v0.0.0-20230226050401-4010bf0fec14 | mewkiz/flac (FLAC decode) |
 | `github.com/pkg/errors` | v0.9.1 | gopxl/beep (audio) |
-| `golang.org/x/image` | v0.45.0 | go-glyph (pure-Go rasterization) |
 | `golang.org/x/mobile` | v0.0.0-20260602190626-68735029466e | gobind tool (Android AAR builds) |
 | `golang.org/x/sync` | v0.22.0 | x/tools |
 | `golang.org/x/text` | v0.41.0 | misc. text processing (transitive) |

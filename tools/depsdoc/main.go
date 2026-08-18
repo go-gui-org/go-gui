@@ -44,6 +44,7 @@ var directPurpose = map[string]string{
 	"github.com/yuin/goldmark-emoji":  "Goldmark extension: `:emoji:` shortcodes.",
 	"github.com/go-pdf/fpdf":          "PDF generation for the print-dialog backend.",
 	"github.com/godbus/dbus/v5":       "Linux native platform: notifications, portals.",
+	"golang.org/x/image":              "Antialiased vector rasterization for the headless software renderer (`gui/backend/soft`). Also pulled in by go-glyph.",
 	"golang.org/x/mod":                "Module version parsing; imported by `requiredid` analyzer.",
 	"golang.org/x/sys":                "Win32 + WGL syscalls for the native Windows backend (`gui/backend/gl`, `winkey`).",
 	"golang.org/x/tools":              "`go/analysis` framework for the `requiredid` analyzer (`tools/`).",

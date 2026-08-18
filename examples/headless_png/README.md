@@ -1,0 +1,21 @@
+# headless_png
+
+Renders a window to a PNG with no GPU and no window on screen, using the
+software rasterizer in `gui/backend/soft`.
+
+```
+go run ./examples/headless_png/            # writes headless.png
+go run ./examples/headless_png/ shot.png   # writes shot.png
+```
+
+The window is built exactly as it would be for `backend.Run` — same
+`gui.SimpleWindow`, same view function. `soft.RenderToPNG` runs `OnInit`,
+settles one frame and rasterizes it on the CPU, so the only difference from a
+real run is the last step.
+
+The `2` in `soft.RenderToPNG(w, 2, out)` is the device pixel ratio: `1` gives
+one device pixel per logical pixel, `2` captures at Retina density.
+
+Useful for CI screenshots and pixel-level regression tests. See
+`docs/specs/headless-software-rendering.md` for what the renderer covers; SVG,
+shadow, blur and filter commands are skipped in this phase.

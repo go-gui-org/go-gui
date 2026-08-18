@@ -10,6 +10,28 @@ and this project adheres to
 
 ### Added
 
+- **Headless frame rendering: a software rasterizer and `RenderToPNG`** (issue
+  #333). go-gui could not produce a pixel image of a frame without a GPU and a
+  window, which ruled out CI screenshots and pixel-level regression tests.
+  - New package `gui/backend/soft`: `RenderToImage(w, scale)`,
+    `RenderToPNG(w, scale, path)` and `Release(w)`. It replays the same flat
+    `[]RenderCmd` stream the GPU backends and the PDF printer consume, so no
+    existing backend changes and none consults it. `scale` is the device pixel
+    ratio; a window that has not rendered yet has its `OnInit` run first, so the
+    same window value passed to `backend.Run` can be passed here instead.
+  - Text is real, not approximated. The package implements `glyph.DrawBackend`
+    over a CPU framebuffer and installs the resulting `glyph.TextSystem` as the
+    window's `gui.TextMeasurer`, so shaping, metrics and glyph rasterization are
+    the code the GPU backends already run — go-glyph is pure Go.
+  - `(*Window).SetHeadlessRender` / `HeadlessRender` mark a window as rendering
+    headlessly, suppressing wall-clock-driven visuals (today the blinking caret)
+    so repeated captures of one window state produce the same pixels.
+  - Phase 1 covers clip, rect, stroke rect, circle, line, gradient, gradient
+    border, image and every text kind. SVG, shadow, blur, filter, stencil,
+    rotation and terminal-grid commands are accepted and skipped; custom shaders
+    stay unsupported by design. See `docs/specs/headless-software-rendering.md`
+    and `examples/headless_png/`.
+
 - **`VirtualList` — virtualized lists whose rows may differ in height, and
   index-addressed scrolling** (issue #332). Virtualization was arithmetic over
   one scalar row height, which is exact for a widget that owns its row shape and
