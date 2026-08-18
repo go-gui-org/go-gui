@@ -441,8 +441,12 @@ type windowState struct {
 	termRunText        []rune                 // TermGrid: scratch run text
 	termRunCols        []int                  // TermGrid: scratch run columns
 	termPlace          []glyph.GlyphPlacement // TermGrid: scratch placements
-	normBuf            []gui.GradientStop
-	sampledBuf         []gui.GradientStop
+
+	// textErrLogged warns once for a persistent DrawText failure
+	// instead of spamming stderr every frame.
+	textErrLogged bool
+	normBuf       []gui.GradientStop
+	sampledBuf    []gui.GradientStop
 
 	textures          texcache.Cache[string, metalTexture]
 	glyphBack         *metalGlyphBackend

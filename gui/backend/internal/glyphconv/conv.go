@@ -6,6 +6,38 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 )
 
+// GuiTextConfigFromRender builds the glyph.TextConfig for a plain
+// RenderText command: the rich style when TextStylePtr is set, the flat
+// FontName/Size/Color fallback otherwise, and the wrap-width override
+// when the command carries a width. Shared by all backends so the
+// fallback semantics cannot drift (issue #362).
+func GuiTextConfigFromRender(r *gui.RenderCmd) glyph.TextConfig {
+	var cfg glyph.TextConfig
+	if r.TextStylePtr != nil {
+		cfg = GuiStyleToGlyphConfig(*r.TextStylePtr)
+		cfg.Gradient = r.TextGradient
+	} else {
+		cfg = glyph.TextConfig{
+			Style: glyph.TextStyle{
+				FontName: r.FontName,
+				Size:     r.FontSize,
+				Color: glyph.Color{
+					R: r.Color.R,
+					G: r.Color.G,
+					B: r.Color.B,
+					A: r.Color.A,
+				},
+			},
+			Block: glyph.DefaultBlockStyle(),
+		}
+	}
+	if r.W > 0 {
+		cfg.Block.Wrap = glyph.WrapWord
+		cfg.Block.Width = r.W
+	}
+	return cfg
+}
+
 // GuiStyleToGlyphConfig converts a gui.TextStyle to a
 // glyph.TextConfig suitable for text measurement and rendering.
 func GuiStyleToGlyphConfig(s gui.TextStyle) glyph.TextConfig {

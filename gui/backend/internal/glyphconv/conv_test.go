@@ -173,3 +173,114 @@ func TestGuiStyleToGlyphConfigZeroValue(t *testing.T) {
 			gc.Block.Width)
 	}
 }
+
+// The flat fallback is what every backend renders when a RenderText
+// command has no TextStylePtr; the fields must map exactly so the six
+// backends cannot drift (issue #362).
+func TestGuiTextConfigFromRenderFallback(t *testing.T) {
+	t.Parallel()
+	r := &gui.RenderCmd{
+		FontName: "Fallback Font",
+		FontSize: 13.5,
+		Color:    gui.RGBA(10, 20, 30, 40),
+	}
+	gc := GuiTextConfigFromRender(r)
+
+	if gc.Style.FontName != "Fallback Font" {
+		t.Errorf("FontName: got %q, want %q",
+			gc.Style.FontName, "Fallback Font")
+	}
+	if gc.Style.Size != 13.5 {
+		t.Errorf("Size: got %v, want 13.5", gc.Style.Size)
+	}
+	if gc.Style.Color.R != 10 || gc.Style.Color.G != 20 ||
+		gc.Style.Color.B != 30 || gc.Style.Color.A != 40 {
+		t.Errorf("Color mismatch: got %+v", gc.Style.Color)
+	}
+	if gc.Style.BgColor != (glyph.Color{}) {
+		t.Errorf("BgColor: expected zero, got %+v", gc.Style.BgColor)
+	}
+	if gc.Gradient != nil {
+		t.Errorf("Gradient: expected nil, got %v", gc.Gradient)
+	}
+	// The fallback must not inherit the style converter's defaults:
+	// the pre-issue blocks used DefaultBlockStyle() verbatim.
+	def := glyph.DefaultBlockStyle()
+	if gc.Block.Align != def.Align || gc.Block.Wrap != def.Wrap ||
+		gc.Block.Width != def.Width || gc.Block.Indent != def.Indent ||
+		gc.Block.LineSpacing != def.LineSpacing ||
+		len(gc.Block.Tabs) != len(def.Tabs) {
+		t.Errorf("Block: got %+v, want DefaultBlockStyle %+v",
+			gc.Block, def)
+	}
+}
+
+func TestGuiTextConfigFromRenderWrapWidth(t *testing.T) {
+	t.Parallel()
+	r := &gui.RenderCmd{W: 240}
+	gc := GuiTextConfigFromRender(r)
+	if gc.Block.Wrap != glyph.WrapWord {
+		t.Errorf("Wrap: got %v, want WrapWord", gc.Block.Wrap)
+	}
+	if gc.Block.Width != 240 {
+		t.Errorf("Width: got %v, want 240", gc.Block.Width)
+	}
+
+	// No width: keep the default block style untouched.
+	gc = GuiTextConfigFromRender(&gui.RenderCmd{})
+	def := glyph.DefaultBlockStyle()
+	if gc.Block.Wrap != def.Wrap {
+		t.Errorf("Wrap: got %v, want %v", gc.Block.Wrap, def.Wrap)
+	}
+	if gc.Block.Width != def.Width {
+		t.Errorf("Width: got %v, want %v", gc.Block.Width, def.Width)
+	}
+
+	// Negative width must not enable wrapping.
+	gc = GuiTextConfigFromRender(&gui.RenderCmd{W: -100})
+	if gc.Block.Wrap != def.Wrap {
+		t.Errorf("negative width: Wrap got %v, want %v",
+			gc.Block.Wrap, def.Wrap)
+	}
+	if gc.Block.Width != def.Width {
+		t.Errorf("negative width: Width got %v, want %v",
+			gc.Block.Width, def.Width)
+	}
+}
+
+func TestGuiTextConfigFromRenderStyled(t *testing.T) {
+	t.Parallel()
+	style := gui.TextStyle{
+		Family: "Styled",
+		Size:   18,
+		Color:  gui.RGBA(1, 2, 3, 4),
+	}
+	grad := &glyph.GradientConfig{
+		Direction: glyph.GradientVertical,
+		Stops: []glyph.GradientStop{
+			{Color: glyph.Color{R: 255, A: 255}, Position: 0},
+			{Color: glyph.Color{R: 0, A: 255}, Position: 1},
+		},
+	}
+	r := &gui.RenderCmd{
+		TextStylePtr: &style,
+		TextGradient: grad,
+		W:            120,
+	}
+	gc := GuiTextConfigFromRender(r)
+
+	// Styled path must agree with the style converter, plus gradient.
+	want := GuiStyleToGlyphConfig(style)
+	want.Gradient = grad
+	want.Block.Wrap = glyph.WrapWord
+	want.Block.Width = 120
+	if gc.Style != want.Style {
+		t.Errorf("Style: got %+v, want %+v", gc.Style, want.Style)
+	}
+	if gc.Gradient != grad {
+		t.Errorf("Gradient pointer not passed through")
+	}
+	if gc.Block.Wrap != glyph.WrapWord || gc.Block.Width != 120 {
+		t.Errorf("Block: got %+v, want wrap 120", gc.Block)
+	}
+}

@@ -1,6 +1,8 @@
 package soft
 
 import (
+	"log"
+
 	"github.com/go-gui-org/go-glyph"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -98,30 +100,13 @@ func (r *renderer) drawText(cmd *gui.RenderCmd) {
 	if r.textSys == nil || cmd.Text == "" {
 		return
 	}
-	var cfg glyph.TextConfig
-	if cmd.TextStylePtr != nil {
-		cfg = guiStyleToGlyphConfig(*cmd.TextStylePtr)
-		cfg.Gradient = cmd.TextGradient
-	} else {
-		cfg = glyph.TextConfig{
-			Style: glyph.TextStyle{
-				FontName: cmd.FontName,
-				Size:     cmd.FontSize,
-				Color: glyph.Color{
-					R: cmd.Color.R,
-					G: cmd.Color.G,
-					B: cmd.Color.B,
-					A: cmd.Color.A,
-				},
-			},
-			Block: glyph.DefaultBlockStyle(),
-		}
+	cfg := glyphconv.GuiTextConfigFromRender(cmd)
+	if err := r.textSys.DrawText(cmd.X, cmd.Y, cmd.Text, cfg); err != nil && !r.textErrLogged {
+		// Warn once per renderer: a persistent failure (e.g. missing
+		// font) would otherwise log every frame.
+		r.textErrLogged = true
+		log.Printf("soft: DrawText: %v", err)
 	}
-	if cmd.W > 0 {
-		cfg.Block.Wrap = glyph.WrapWord
-		cfg.Block.Width = cmd.W
-	}
-	_ = r.textSys.DrawText(cmd.X, cmd.Y, cmd.Text, cfg)
 }
 
 func (r *renderer) drawLayout(cmd *gui.RenderCmd) {
