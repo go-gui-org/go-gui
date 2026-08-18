@@ -24,8 +24,9 @@ func closeTo(got, want, tol uint8) bool {
 // newRenderer builds a renderer over a black buffer, with no text
 // system: these tests exercise the shape and clip paths only.
 func newRenderer(w, h int, scale float32) *renderer {
-	r := &renderer{buf: newBuffer(w, h), scale: scale}
-	r.buf.clear(gui.RGB(0, 0, 0))
+	root := newBuffer(w, h)
+	r := &renderer{buf: root, rootBuf: root, scale: scale}
+	root.clear(gui.RGB(0, 0, 0))
 	return r
 }
 
@@ -250,13 +251,14 @@ func TestDrawImageMemSource(t *testing.T) {
 
 func TestUnsupportedKindsAreSkipped(t *testing.T) {
 	r := newRenderer(8, 8, 1)
-	// Phase-2 kinds must not draw and must not panic.
+	// RenderCustomShader is GLSL with no CPU equivalent, and
+	// RenderFilterComposite is never emitted by the render path; both
+	// must draw nothing and must not panic.
 	r.drawAll([]gui.RenderCmd{
-		{Kind: gui.RenderShadow, X: 0, Y: 0, W: 8, H: 8,
+		{Kind: gui.RenderCustomShader, X: 0, Y: 0, W: 8, H: 8,
 			Color: gui.RGB(255, 255, 255)},
-		{Kind: gui.RenderSvg, X: 0, Y: 0, Scale: 1},
-		{Kind: gui.RenderStencilBegin},
-		{Kind: gui.RenderStencilEnd},
+		{Kind: gui.RenderFilterComposite, X: 0, Y: 0, W: 8, H: 8,
+			Layers: 1},
 	})
 	for y := range 8 {
 		for x := range 8 {

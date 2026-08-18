@@ -45,6 +45,11 @@ examples/bin/
 # Output
 *.out
 
+# Software-rasterizer captures. examples/headless_png writes headless.png
+# into the working directory when run with no argument; assets/*.png are
+# tracked, so this stays anchored to the repo root.
+/headless.png
+
 # iOS c-archive build artifacts
 *.a
 examples/ios_demo/ios/libgoguiapp.h

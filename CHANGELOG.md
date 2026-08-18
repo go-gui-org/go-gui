@@ -27,10 +27,36 @@ and this project adheres to
     headlessly, suppressing wall-clock-driven visuals (today the blinking caret)
     so repeated captures of one window state produce the same pixels.
   - Phase 1 covers clip, rect, stroke rect, circle, line, gradient, gradient
-    border, image and every text kind. SVG, shadow, blur, filter, stencil,
-    rotation and terminal-grid commands are accepted and skipped; custom shaders
-    stay unsupported by design. See `docs/specs/headless-software-rendering.md`
-    and `examples/headless_png/`.
+    border, image and every text kind. See
+    `docs/specs/headless-software-rendering.md` and `examples/headless_png/`.
+
+- **Software rasterizer phase 2: SVG, shadow and blur, filters, stencil,
+  rotation, terminal grid** (issue #360). `gui/backend/soft` now draws every
+  render kind the pipeline emits, so a headless capture is the frame rather than
+  the subset of it phase 1 could rasterize.
+  - `RenderSvg` rasterizes the tessellated triangle list, honouring `HasXform`,
+    `RotAngle` and `VertexAlphaScale` in the same order the GL backend applies
+    them. Triangles are filled in runs of one colour so a shape's interior edges
+    cancel instead of showing as antialiasing seams; a triangle with per-vertex
+    colours is interpolated barycentrically.
+  - `RenderShadow` and `RenderBlur` rasterize their rounded rect into a coverage
+    mask and blur it with three box passes, the shadow additionally erasing the
+    part that would sit under its caster.
+  - Filter, stencil and rotation brackets share one mechanism: the bracketed
+    commands draw into a pooled offscreen layer, and the matching end composites
+    it back with the effect applied — a coverage mask, an inverse-mapped
+    resample, or blur plus colour matrix plus repeated composite. Because the
+    layer is composited rather than the geometry transformed, the effects hold
+    for text and images, not only for shapes.
+  - `RenderTermGrid` renders the terminal character grid — background runs,
+    selection, cursor styles, column-pinned glyph runs and underlines — so
+    go-term can capture a terminal headlessly.
+  - Hostile input is bounded rather than trusted: blur radii and filter layer
+    counts are clamped, NaN extents and corner radii are rejected before they
+    reach the rasterizer, and compositing saturates instead of wrapping a
+    colour-matrixed pixel to near-black.
+  - `RenderCustomShader` remains unsupported by design: it is GLSL, and there is
+    no CPU equivalent to compile.
 
 - **`VirtualList` — virtualized lists whose rows may differ in height, and
   index-addressed scrolling** (issue #332). Virtualization was arithmetic over

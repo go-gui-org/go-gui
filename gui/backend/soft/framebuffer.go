@@ -27,6 +27,12 @@ type buffer struct {
 	clip image.Rectangle
 	rast vector.Rasterizer
 
+	// dirty is the union of every pixel rectangle written since the
+	// buffer was last cleared. A layer composite walks it instead of
+	// the whole image, so a bracket around one small widget costs a
+	// small pass even though layers are allocated full size.
+	dirty image.Rectangle
+
 	// uni is the reusable solid-color source. image.NewUniform would
 	// allocate once per draw command; the rasterizer only reads it
 	// during the Draw call, so one instance can be re-pointed.
@@ -38,10 +44,25 @@ func newBuffer(w, h int) *buffer {
 	return &buffer{img: img, clip: img.Bounds()}
 }
 
+// markDirty widens the written-pixels box. Callers that composite their
+// own source pixel by pixel — the glyph atlas blitters — call it once
+// with the region they are about to walk.
+func (b *buffer) markDirty(r image.Rectangle) {
+	if r.Empty() {
+		return
+	}
+	if b.dirty.Empty() {
+		b.dirty = r
+		return
+	}
+	b.dirty = b.dirty.Union(r)
+}
+
 // clear paints the whole buffer with c, ignoring the clip rect. c is
 // straight (non-premultiplied) as every gui.Color is.
 func (b *buffer) clear(c gui.Color) {
 	r, g, bl, a := premul(c)
+	b.dirty = b.img.Bounds()
 	pix := b.img.Pix
 	for i := 0; i < len(pix); i += 4 {
 		pix[i] = r
@@ -78,6 +99,11 @@ func deviceRect(x, y, w, h float32) image.Rectangle {
 	)
 }
 
+// floor32 is math.Floor without the float64 round trip at the call site.
+func floor32(v float32) float32 {
+	return float32(math.Floor(float64(v)))
+}
+
 // fillPath rasterizes the path emitted by emit and composites src through
 // the resulting coverage mask into region.
 //
@@ -96,6 +122,7 @@ func (b *buffer) fillPath(region image.Rectangle, src image.Image,
 	b.rast.Reset(region.Dx(), region.Dy())
 	emit(&b.rast, float32(region.Min.X), float32(region.Min.Y))
 	b.rast.Draw(b.img, region, src, region.Min)
+	b.markDirty(region)
 }
 
 // solid returns the reusable uniform source for c. Valid until the next
@@ -122,6 +149,21 @@ func (b *buffer) blendPixel(x, y int, sr, sg, sb, sa uint32) {
 	pix[i+1] = uint8((sg*sa + uint32(pix[i+1])*inv + 127) / 255)
 	pix[i+2] = uint8((sb*sa + uint32(pix[i+2])*inv + 127) / 255)
 	pix[i+3] = uint8((sa*255 + uint32(pix[i+3])*inv + 127) / 255)
+}
+
+// overPremul composites one premultiplied source channel over one
+// destination channel: s + dst*inv/255, saturating.
+//
+// The clamp is not decoration. A filter's color matrix clamps each
+// channel independently, so it can leave a pixel whose color exceeds
+// its own alpha; the unclamped sum then passes 255 and wraps a bright
+// pixel to near-black. Saturating is what the GPU blend does.
+func overPremul(s, d, inv uint32) uint8 {
+	v := s + (d*inv+127)/255
+	if v > 255 {
+		return 255
+	}
+	return uint8(v)
 }
 
 // premul converts a straight gui.Color to premultiplied bytes.
@@ -159,11 +201,15 @@ func pathRect(z *vector.Rasterizer, ox, oy, x, y, w, h float32) {
 // reverse winds the contour backwards.
 func pathRoundRect(z *vector.Rasterizer, ox, oy, x, y, w, h, r float32,
 	reverse bool) {
-	if w <= 0 || h <= 0 {
+	// Written as negated > rather than <= so a NaN — which a hostile
+	// SVG radius or a NaN-producing animation can reach here through
+	// the shadow, blur and stencil masks — takes the reject branch
+	// instead of emitting NaN control points into the rasterizer.
+	if !(w > 0) || !(h > 0) {
 		return
 	}
 	r = min(r, min(w, h)/2)
-	if r <= 0 {
+	if !(r > 0) {
 		if reverse {
 			x -= ox
 			y -= oy

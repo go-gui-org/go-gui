@@ -105,6 +105,7 @@ func (gb *glyphBackend) DrawTexturedQuad(id glyph.TextureID,
 	if region.Empty() {
 		return
 	}
+	gb.buf.markDirty(region)
 	invW := 1 / (x1 - x0)
 	invH := 1 / (y1 - y0)
 	for py := region.Min.Y; py < region.Max.Y; py++ {
@@ -152,6 +153,7 @@ func (gb *glyphBackend) DrawTexturedQuadTransformed(id glyph.TextureID,
 	if region.Empty() {
 		return
 	}
+	gb.buf.markDirty(region)
 
 	// Inverse of the affine, applied to logical coordinates.
 	invDet := 1 / det

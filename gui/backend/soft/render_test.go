@@ -248,8 +248,10 @@ func TestRenderTextFallbackStyle(t *testing.T) {
 	// Drive the command stream directly with a fallback-style
 	// RenderText (no TextStylePtr) to cover drawText's else branch
 	// and the textured-quad blend path.
+	root := newBuffer(120, 60)
 	r := &renderer{
-		buf:       newBuffer(120, 60),
+		buf:       root,
+		rootBuf:   root,
 		scale:     1,
 		textSys:   tm.textSys,
 		glyphBack: tm.back,
@@ -267,5 +269,105 @@ func TestRenderTextFallbackStyle(t *testing.T) {
 
 	if lit := countLitPixels(r.buf.img); lit == 0 {
 		t.Fatal("no glyph pixels via fallback style")
+	}
+}
+
+// --- Phase 2 kinds, end to end through a real window ---
+
+func TestRenderTermGridPixels(t *testing.T) {
+	cells := make([]gui.TermCell, 4)
+	for i := range cells {
+		cells[i] = gui.TermCell{
+			Ch:    'X',
+			FG:    gui.RGB(255, 255, 255),
+			BG:    gui.RGB(0, 0, 255),
+			Width: 1,
+		}
+	}
+	cells[3].BG = gui.RGB(255, 0, 0)
+
+	win := newWin(t, 100, 100, func(w *gui.Window) gui.View {
+		return gui.TermGrid(gui.TermGridCfg{
+			ID:    "term",
+			Cells: cells,
+			Cols:  2,
+			Rows:  2,
+			CellW: 20,
+			CellH: 20,
+		})
+	})
+	img, err := RenderToImage(win, 1)
+	if err != nil {
+		t.Fatalf("RenderToImage: %v", err)
+	}
+
+	// Cell (0,0) carries the blue background, cell (1,1) the red one.
+	if _, _, b, _ := at(img, 5, 5); b != 255 {
+		t.Errorf("cell(0,0) blue = %d, want 255", b)
+	}
+	if r, _, b, _ := at(img, 35, 35); r != 255 || b != 0 {
+		t.Errorf("cell(1,1) = r%d b%d, want the red background", r, b)
+	}
+}
+
+// TestRenderTermGridSelectionCursorAndUnderline exercises the overlay
+// branches the pixel test above leaves untouched: the selection tint,
+// the block cursor, reverse video and the underline attribute. Every
+// cell is blank so the assertions read the fills, never the glyph ink.
+func TestRenderTermGridSelectionCursorAndUnderline(t *testing.T) {
+	cells := make([]gui.TermCell, 4)
+	for i := range cells {
+		cells[i] = gui.TermCell{
+			Ch:    ' ',
+			FG:    gui.RGB(255, 255, 255),
+			BG:    gui.RGB(0, 0, 255),
+			Width: 1,
+		}
+	}
+	// (0,1): reverse swaps fg/bg, so the background becomes the FG.
+	cells[2].FG = gui.RGB(255, 0, 255)
+	cells[2].BG = gui.RGB(255, 255, 255)
+	cells[2].Attrs = gui.TermReverse
+	// (1,1): underline draws a thin foreground line along the bottom.
+	cells[3].Attrs = gui.TermUnderline
+
+	win := newWin(t, 100, 100, func(w *gui.Window) gui.View {
+		return gui.TermGrid(gui.TermGridCfg{
+			ID:    "term",
+			Cells: cells,
+			Cols:  2,
+			Rows:  2,
+			CellW: 20,
+			CellH: 20,
+			Selection: gui.TermSelRange{
+				Start: 0, End: 2, Color: gui.RGB(0, 255, 0),
+			},
+			Cursor: gui.TermCursor{
+				Col: 0, Row: 0, Visible: true,
+				Style: gui.TermCursorBlock, Color: gui.RGB(255, 0, 0),
+			},
+		})
+	})
+	img, err := RenderToImage(win, 1)
+	if err != nil {
+		t.Fatalf("RenderToImage: %v", err)
+	}
+
+	// Selection tints the whole first row over its backgrounds.
+	if _, g, _, _ := at(img, 25, 5); g != 255 {
+		t.Errorf("selection cell(1,0) green = %d, want 255", g)
+	}
+	// Reverse cell: the background is the swapped-in foreground.
+	if r, g, b, _ := at(img, 5, 25); r != 255 || g != 0 || b != 255 {
+		t.Errorf("reverse cell background = r%d g%d b%d, want magenta",
+			r, g, b)
+	}
+	// Block cursor paints the whole cell clear of any glyph.
+	if r, _, _, _ := at(img, 2, 2); r != 255 {
+		t.Errorf("cursor corner red = %d, want 255", r)
+	}
+	// Underline: a thin foreground line along the cell bottom.
+	if r, _, _, _ := at(img, 35, 39); r < 200 {
+		t.Errorf("underline red = %d, want near 255", r)
 	}
 }

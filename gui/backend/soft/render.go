@@ -64,8 +64,10 @@ func RenderToImage(w *gui.Window, scale float32) (*image.RGBA, error) {
 	w.TestRender(nil)
 	cmds := w.Renderers()
 
+	root := newBuffer(pw, ph)
 	r := &renderer{
-		buf:               newBuffer(pw, ph),
+		buf:               root,
+		rootBuf:           root,
 		scale:             scale,
 		textSys:           tm.textSys,
 		glyphBack:         tm.back,
@@ -90,13 +92,16 @@ func RenderToImage(w *gui.Window, scale float32) (*image.RGBA, error) {
 	r.textSys.Commit()
 
 	// Pass 2 draws for real.
-	r.glyphBack.buf = r.buf
 	r.warm = false
-	r.buf.clear(backgroundColor(w))
+	r.setTarget(root)
+	root.clear(backgroundColor(w))
 	r.drawAll(cmds)
 	r.textSys.Commit()
+	// A stream that ended inside a begin/end bracket still has its
+	// content sitting in a layer; land it rather than drop it.
+	r.finishBrackets()
 
-	return r.buf.img, nil
+	return root.img, nil
 }
 
 // RenderToPNG renders w and writes the result to path as a PNG,
