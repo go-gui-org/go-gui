@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gopxl/beep/v2"
@@ -98,6 +99,11 @@ func (b *beepBackend) MusicVolume() float64 {
 // --- load / decode ---
 
 func (b *beepBackend) LoadMusic(path string) (*Music, error) {
+	for _, seg := range strings.Split(filepath.ToSlash(path), "/") {
+		if seg == ".." {
+			return nil, fmt.Errorf("invalid file path")
+		}
+	}
 	ext := filepath.Ext(path)
 	// #nosec G304 — path is a public-API argument; loading a caller-named
 	// audio file by arbitrary path is the intended behavior.
@@ -114,6 +120,11 @@ func (b *beepBackend) LoadMusic(path string) (*Music, error) {
 }
 
 func (b *beepBackend) LoadSound(path string) (*Sound, error) {
+	for _, seg := range strings.Split(filepath.ToSlash(path), "/") {
+		if seg == ".." {
+			return nil, fmt.Errorf("invalid file path")
+		}
+	}
 	// #nosec G304 — path is a public-API argument; loading a caller-named
 	// audio file by arbitrary path is the intended behavior.
 	data, err := os.ReadFile(path)
