@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"slices"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -765,41 +766,119 @@ func TestInputArrowDownGraphemeFallback(t *testing.T) {
 // --- Cursor movement helpers ---
 
 func TestMoveCursorWordLeft(t *testing.T) {
-	runes := []rune("hello world test")
-	assertEqual(t, moveCursorWordLeft(runes, 16), 12)
-	assertEqual(t, moveCursorWordLeft(runes, 12), 6)
-	assertEqual(t, moveCursorWordLeft(runes, 6), 0)
-	assertEqual(t, moveCursorWordLeft(runes, 0), 0)
+	const text = "hello world test"
+	assertEqual(t, moveCursorWordLeft(text, 16), 12)
+	assertEqual(t, moveCursorWordLeft(text, 12), 6)
+	assertEqual(t, moveCursorWordLeft(text, 6), 0)
+	assertEqual(t, moveCursorWordLeft(text, 0), 0)
 }
 
 func TestMoveCursorWordRight(t *testing.T) {
-	runes := []rune("hello world test")
-	assertEqual(t, moveCursorWordRight(runes, 0), 6)
-	assertEqual(t, moveCursorWordRight(runes, 6), 12)
-	assertEqual(t, moveCursorWordRight(runes, 12), 16)
+	const text = "hello world test"
+	assertEqual(t, moveCursorWordRight(text, 0), 6)
+	assertEqual(t, moveCursorWordRight(text, 6), 12)
+	// Past the last word start there is nowhere to go but the end.
+	assertEqual(t, moveCursorWordRight(text, 12), 16)
+	// At the end, and beyond it, the caret stays put.
+	assertEqual(t, moveCursorWordRight(text, 16), 16)
+	assertEqual(t, moveCursorWordRight(text, 100), 16)
+}
+
+// Word motion segments by rune class, so a punctuation run is a word of
+// its own and a script change ends a word (issue #329). These are the
+// same rules go-glyph applies when a layout is available.
+func TestMoveCursorWordClassRuns(t *testing.T) {
+	// Walking left from the end of a dotted identifier must stop at every
+	// component and every separator, not jump the whole token.
+	const dotted = "foo.bar.baz"
+	var left []int
+	for pos := len(dotted); pos > 0; {
+		pos = moveCursorWordLeft(dotted, pos)
+		left = append(left, pos)
+	}
+	if want := []int{8, 7, 4, 3, 0}; !slices.Equal(left, want) {
+		t.Fatalf("word-left walk over %q = %v, want %v", dotted, left, want)
+	}
+
+	// Underscore is a word rune, so snake_case stays one word.
+	assertEqual(t, moveCursorWordLeft("snake_case_name", 15), 0)
+
+	// Japanese has no spaces; script transitions are the boundaries.
+	// 日本語 | の | テキスト at rune indices 0, 3, 4.
+	const jp = "日本語のテキスト"
+	assertEqual(t, moveCursorWordRight(jp, 0), 3)
+	assertEqual(t, moveCursorWordRight(jp, 3), 4)
+	assertEqual(t, moveCursorWordLeft(jp, 8), 4)
+
+	// Right motion skips a punctuation run to land on the next word
+	// start; the old whitespace-only separator rules skipped through the
+	// whole following token instead ("foo.bar" from the dot landed past
+	// "bar", at the end of the string).
+	assertEqual(t, moveCursorWordRight("foo.bar", 3), 4)
+	assertEqual(t, moveCursorWordRight("a+b", 1), 2)
 }
 
 func TestWordBoundsAt(t *testing.T) {
-	runes := []rune("hello world test")
+	const text = "hello world test"
 	// Middle of first word.
-	b, e := wordBoundsAt(runes, 2)
+	b, e := wordBoundsAt(text, 2)
 	if b != 0 || e != 5 {
 		t.Fatalf("got %d-%d, want 0-5", b, e)
 	}
 	// On space between words.
-	b, e = wordBoundsAt(runes, 5)
+	b, e = wordBoundsAt(text, 5)
 	if b != 5 || e != 6 {
 		t.Fatalf("got %d-%d, want 5-6", b, e)
 	}
 	// Last word.
-	b, e = wordBoundsAt(runes, 14)
+	b, e = wordBoundsAt(text, 14)
 	if b != 12 || e != 16 {
 		t.Fatalf("got %d-%d, want 12-16", b, e)
 	}
 	// Empty string.
-	b, e = wordBoundsAt(nil, 0)
+	b, e = wordBoundsAt("", 0)
 	if b != 0 || e != 0 {
 		t.Fatalf("empty: got %d-%d, want 0-0", b, e)
+	}
+	// Caret past the end still selects the final word.
+	b, e = wordBoundsAt(text, 16)
+	if b != 12 || e != 16 {
+		t.Fatalf("past-end: got %d-%d, want 12-16", b, e)
+	}
+	// Whitespace-only text has no words: the range is empty at pos,
+	// matching the layout path (GetWordAtIndex reports the same).
+	b, e = wordBoundsAt("  ", 1)
+	if b != 1 || e != 1 {
+		t.Fatalf("whitespace-only: got %d-%d, want 1-1", b, e)
+	}
+}
+
+// Double-click selection follows the same class runs as word motion.
+func TestWordBoundsAtClassRuns(t *testing.T) {
+	tests := []struct {
+		name     string
+		text     string
+		pos      int
+		beg, end int
+	}{
+		{"dotted component", "foo.bar.baz", 5, 4, 7},
+		{"separator alone", "foo.bar.baz", 3, 3, 4},
+		{"lone punctuation", "a+b", 1, 1, 2},
+		{"snake_case is one word", "snake_case_name", 3, 0, 15},
+		{"whitespace run selects the run", "hello   world", 6, 5, 8},
+		// The combining acute stays attached to its base "e".
+		{"combining mark joins base", "café", 3, 0, 5},
+		{"han run", "日本語のテキスト", 1, 0, 3},
+		{"katakana run", "日本語のテキスト", 5, 4, 8},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			beg, end := wordBoundsAt(tt.text, tt.pos)
+			if beg != tt.beg || end != tt.end {
+				t.Fatalf("wordBoundsAt(%q, %d) = %d-%d, want %d-%d",
+					tt.text, tt.pos, beg, end, tt.beg, tt.end)
+			}
+		})
 	}
 }
 
@@ -1828,6 +1907,91 @@ func TestInputClickOnFocusedInputCollapsesSelectionToCaret(t *testing.T) {
 	if is.CursorPos != 8 {
 		t.Fatalf("cursor = %d, want 8", is.CursorPos)
 	}
+}
+
+// TestInputDoubleClickSelectsWord drives two real clicks through the
+// event pipeline: the second, within doubleClickThresholdMs of the first,
+// selects the class run under the caret. Issue #329 made the runs
+// go-glyph's — a punctuation run is a word of its own and a script
+// change ends a word — so the dotted-identifier cases are the fix.
+func TestInputDoubleClickSelectsWord(t *testing.T) {
+	cases := []struct {
+		name   string
+		text   string
+		runeAt int
+		beg    int
+		end    int
+	}{
+		{"plain word", "hello world", 2, 0, 5},
+		{"dotted component", "foo.bar.baz", 5, 4, 7},
+		{"separator is its own word", "foo.bar.baz", 3, 3, 4},
+		{"whitespace run selects itself", "hello  world", 5, 5, 7},
+	}
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			w, ly := newInputSelWindow(t, InputCfg{
+				ID: "fdc", Text: tt.text,
+			})
+			w.SetFocus("fdc")
+			txt := inputTextShape(t, ly)
+			x, y := inputRunePoint(txt, tt.runeAt)
+			click := func() {
+				w.EventFn(&Event{Type: EventMouseDown,
+					MouseButton: MouseLeft, MouseX: x, MouseY: y})
+				w.settle()
+				w.EventFn(&Event{Type: EventMouseUp,
+					MouseButton: MouseLeft, MouseX: x, MouseY: y})
+				w.settle()
+			}
+			click()
+			click()
+			is := getInputState(w, "fdc")
+			if is.selectBeg != uint32(tt.beg) ||
+				is.selectEnd != uint32(tt.end) {
+				t.Fatalf("double-click at rune %d selected [%d,%d), "+
+					"want [%d,%d)", tt.runeAt, is.selectBeg,
+					is.selectEnd, tt.beg, tt.end)
+			}
+			if is.CursorPos != tt.end {
+				t.Fatalf("cursor = %d, want %d", is.CursorPos, tt.end)
+			}
+		})
+	}
+}
+
+// Double-click then press-drag extends the selection by whole words: the
+// press within doubleClickThresholdMs of the click builds the drag state
+// with wordSelect set, so updateSelection rounds the pointer position to
+// word bounds. Dragging from "hello" into "world" must end at [0, 11).
+func TestInputDoubleClickDragExtendsByWord(t *testing.T) {
+	w, ly := newInputSelWindow(t, InputCfg{ID: "fdc", Text: "hello world"})
+	w.SetFocus("fdc")
+	txt := inputTextShape(t, ly)
+	x0, y0 := inputRunePoint(txt, 2)
+	x1, y1 := inputRunePoint(txt, 10)
+	click := func() {
+		w.EventFn(&Event{Type: EventMouseDown, MouseButton: MouseLeft,
+			MouseX: x0, MouseY: y0})
+		w.settle()
+		w.EventFn(&Event{Type: EventMouseUp, MouseButton: MouseLeft,
+			MouseX: x0, MouseY: y0})
+		w.settle()
+	}
+	click()
+	click()
+	w.EventFn(&Event{Type: EventMouseDown, MouseButton: MouseLeft,
+		MouseX: x0, MouseY: y0})
+	w.settle()
+	w.EventFn(&Event{Type: EventMouseMove, MouseButton: MouseInvalid,
+		MouseX: x1, MouseY: y1})
+	w.settle()
+	is := getInputState(w, "fdc")
+	if is.selectBeg != 0 || is.selectEnd != 11 {
+		t.Fatalf("word-drag selected [%d,%d), want [0,11)",
+			is.selectBeg, is.selectEnd)
+	}
+	w.MouseCancel()
+	w.settle()
 }
 
 // --- Issue #281: capture-loss cancel zeroes the partial drag selection ---

@@ -16,7 +16,7 @@ func inputKeyLeft(
 			newPos = byteToRuneIndex(text,
 				gl.MoveCursorWordLeft(byteIdx))
 		} else {
-			newPos = moveCursorWordLeft([]rune(text), pos)
+			newPos = moveCursorWordLeft(text, pos)
 		}
 		updateCursorAndSelection(imap, id, is,
 			newPos, isShift)
@@ -52,7 +52,7 @@ func inputKeyRight(
 			newPos = byteToRuneIndex(text,
 				gl.MoveCursorWordRight(byteIdx))
 		} else {
-			newPos = moveCursorWordRight([]rune(text), pos)
+			newPos = moveCursorWordRight(text, pos)
 		}
 		updateCursorAndSelection(imap, id, is,
 			newPos, isShift)

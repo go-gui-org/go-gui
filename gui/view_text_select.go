@@ -66,8 +66,7 @@ func textOnClick(ctx EventCtx) {
 			beg = byteToRuneIndex(text, bBeg)
 			end = byteToRuneIndex(text, bEnd)
 		} else {
-			beg, end = wordBoundsAt(
-				[]rune(text), runePos)
+			beg, end = wordBoundsAt(text, runePos)
 		}
 		is.CursorPos = end
 		is.selectBeg = uint32(beg)
@@ -140,7 +139,6 @@ func textOnClick(ctx EventCtx) {
 		return rp
 	}
 
-	runes := []rune(text)
 	updateDragSelection := func(rp int, w *Window) {
 		dim := StateMap[string, inputState](
 			w, nsInput, capMany,
@@ -155,7 +153,7 @@ func textOnClick(ctx EventCtx) {
 				wb = byteToRuneIndex(text, bBeg)
 				we = byteToRuneIndex(text, bEnd)
 			} else {
-				wb, we = wordBoundsAt(runes, rp)
+				wb, we = wordBoundsAt(text, rp)
 			}
 			if rp < int(anchorPos) {
 				dis.selectBeg = anchorEnd

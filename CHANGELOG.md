@@ -8,6 +8,31 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **Word motion and double-click select by rune class, not whitespace** (issue
+  #329). `Ctrl+Left`/`Ctrl+Right` and double-click treated only space, tab and
+  newline as separators, so `foo.bar.baz` was one word, `a+b` was one word, and
+  Japanese text had no interior boundaries at all — a word motion jumped the
+  whole line and a double-click selected it. A word is now a maximal run of one
+  rune class (whitespace, punctuation, word, Han, Hiragana, Katakana), so a
+  punctuation run is a word of its own and a script change ends a word.
+  Underscore stays a word rune, keeping `snake_case_name` whole, and a combining
+  mark stays attached to its base.
+  - The rules are go-glyph's, not a second copy: the no-layout path now calls
+    `glyph.WordStartLeft`, `glyph.WordStartRight` and
+    `glyph.WordBoundsInString`, which apply the same class runs as the `Layout`
+    methods the measured path already used. A window with a text measurer and
+    one without now segment identically; previously they disagreed even about
+    `\n`.
+  - `Input` double-click and double-click drag-extend never had a layout path,
+    so this is a visible fix there, not only in headless tests.
+  - `moveCursorWordRight` now lands on the next word's start rather than past
+    the current word's trailing whitespace. Identical for space-separated text.
+  - Each `Ctrl+arrow` keypress and each double-click drops one `[]rune`
+    conversion; the helpers take the string and convert at the go-glyph
+    boundary.
+
 ### Added
 
 - **Headless frame rendering: a software rasterizer and `RenderToPNG`** (issue

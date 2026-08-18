@@ -324,9 +324,10 @@ func TestInputDragStateUpdateSelection(t *testing.T) {
 	// Double-click word drag: anchor inside "hello", pointer moves
 	// into the word → selection expands to the whole word forward.
 	dw := &inputDragState{
-		focusID:   focusID,
-		runes:     []rune("hello world"),
-		anchorPos: 0, anchorEnd: 5,
+		focusID:     focusID,
+		displayText: "hello world",
+		wordSelect:  true,
+		anchorPos:   0, anchorEnd: 5,
 	}
 	dw.updateSelection(3, w)
 	is = inputStateOrDefault(focusID, w)
@@ -337,9 +338,10 @@ func TestInputDragStateUpdateSelection(t *testing.T) {
 	// Word drag backwards: pointer before the anchor → selection
 	// runs from the word start back to the anchor end.
 	dw2 := &inputDragState{
-		focusID:   focusID,
-		runes:     []rune("hello world"),
-		anchorPos: 6, anchorEnd: 11,
+		focusID:     focusID,
+		displayText: "hello world",
+		wordSelect:  true,
+		anchorPos:   6, anchorEnd: 11,
 	}
 	dw2.updateSelection(1, w)
 	is = inputStateOrDefault(focusID, w)

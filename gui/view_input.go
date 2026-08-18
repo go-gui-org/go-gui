@@ -501,10 +501,8 @@ func inputOnClick(leafID, leafScrollID string, canFocus bool) func(EventCtx) {
 			now-is.LastClickTime <= 400
 		is.LastClickTime = now
 
-		var runes []rune
 		if doubleClick {
-			runes = []rune(displayText)
-			beg, end := wordBoundsAt(runes, runePos)
+			beg, end := wordBoundsAt(displayText, runePos)
 			is.CursorPos = end
 			is.selectBeg = uint32(beg)
 			is.selectEnd = uint32(end)
@@ -534,13 +532,11 @@ func inputOnClick(leafID, leafScrollID string, canFocus bool) func(EventCtx) {
 			anchorEnd:   is.selectEnd,
 			gl:          gl,
 			displayText: displayText,
+			wordSelect:  doubleClick,
 			txtOffX:     ly.Shape.X,
 			txtOffY:     ly.Shape.Y,
 			focusID:     focusID,
 			scrollID:    scrollID,
-		}
-		if doubleClick {
-			ds.runes = runes
 		}
 		if scrollID != "" && ctx.Layout.Parent != nil {
 			sy := ctx.Window.scrollY()
