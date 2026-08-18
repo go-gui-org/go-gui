@@ -6,32 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Fixed
-
-- **Word motion and double-click select by rune class, not whitespace** (issue
-  #329). `Ctrl+Left`/`Ctrl+Right` and double-click treated only space, tab and
-  newline as separators, so `foo.bar.baz` was one word, `a+b` was one word, and
-  Japanese text had no interior boundaries at all — a word motion jumped the
-  whole line and a double-click selected it. A word is now a maximal run of one
-  rune class (whitespace, punctuation, word, Han, Hiragana, Katakana), so a
-  punctuation run is a word of its own and a script change ends a word.
-  Underscore stays a word rune, keeping `snake_case_name` whole, and a combining
-  mark stays attached to its base.
-  - The rules are go-glyph's, not a second copy: the no-layout path now calls
-    `glyph.WordStartLeft`, `glyph.WordStartRight` and
-    `glyph.WordBoundsInString`, which apply the same class runs as the `Layout`
-    methods the measured path already used. A window with a text measurer and
-    one without now segment identically; previously they disagreed even about
-    `\n`.
-  - `Input` double-click and double-click drag-extend never had a layout path,
-    so this is a visible fix there, not only in headless tests.
-  - `moveCursorWordRight` now lands on the next word's start rather than past
-    the current word's trailing whitespace. Identical for space-separated text.
-  - Each `Ctrl+arrow` keypress and each double-click drops one `[]rune`
-    conversion; the helpers take the string and convert at the go-glyph
-    boundary.
+## [v0.62.0] - 2026-08-18
 
 ### Added
 
@@ -256,6 +231,29 @@ and this project adheres to
   side by side at 16/24/48pt.
 
 ### Fixed
+
+- **Word motion and double-click select by rune class, not whitespace** (issue
+  #329). `Ctrl+Left`/`Ctrl+Right` and double-click treated only space, tab and
+  newline as separators, so `foo.bar.baz` was one word, `a+b` was one word, and
+  Japanese text had no interior boundaries at all — a word motion jumped the
+  whole line and a double-click selected it. A word is now a maximal run of one
+  rune class (whitespace, punctuation, word, Han, Hiragana, Katakana), so a
+  punctuation run is a word of its own and a script change ends a word.
+  Underscore stays a word rune, keeping `snake_case_name` whole, and a combining
+  mark stays attached to its base.
+  - The rules are go-glyph's, not a second copy: the no-layout path now calls
+    `glyph.WordStartLeft`, `glyph.WordStartRight` and
+    `glyph.WordBoundsInString`, which apply the same class runs as the `Layout`
+    methods the measured path already used. A window with a text measurer and
+    one without now segment identically; previously they disagreed even about
+    `\n`.
+  - `Input` double-click and double-click drag-extend never had a layout path,
+    so this is a visible fix there, not only in headless tests.
+  - `moveCursorWordRight` now lands on the next word's start rather than past
+    the current word's trailing whitespace. Identical for space-separated text.
+  - Each `Ctrl+arrow` keypress and each double-click drops one `[]rune`
+    conversion; the helpers take the string and convert at the go-glyph
+    boundary.
 
 - **Multi-line text sat high in its box, so `ListBox` rows read top-biased.**
   go-glyph sizes a line box as the baseline-to-baseline advance — ascent +
