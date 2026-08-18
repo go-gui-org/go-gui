@@ -17,8 +17,16 @@
 // gui.TextMeasurer, so shaping, metrics and glyph rasterization are the
 // same code the GPU backends run.
 //
-// Phase 1 covers the core command kinds — clip, rect, stroke rect, circle,
-// line, gradient, gradient border, image, and every text kind. SVG,
-// shadow, blur, filter and stencil commands are accepted and skipped; see
-// docs/specs/headless-software-rendering.md for the phase split.
+// Every render kind the pipeline emits is drawn: clip, rect, stroke
+// rect, circle, line, gradient, gradient border, image, every text kind,
+// SVG triangles, shadow and blur, filter brackets, stencil clipping,
+// rotation brackets and the terminal grid. Filter, stencil and rotation
+// brackets render into an offscreen layer that is composited back with
+// the scoped effect applied, which is why they hold for text and images
+// and not only for shapes.
+//
+// RenderCustomShader is unsupported by design: it is GLSL, and there is
+// no CPU equivalent to compile. SVG clip-mask geometry is skipped, as it
+// is in every other backend. See
+// docs/specs/headless-software-rendering.md.
 package soft

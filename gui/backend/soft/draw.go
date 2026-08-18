@@ -3,6 +3,8 @@ package soft
 import (
 	"image"
 
+	"golang.org/x/image/vector"
+
 	"github.com/go-gui-org/go-glyph"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -12,8 +14,11 @@ import (
 // analogue of gui/backend/gl's Backend.renderersDraw: same dispatch, same
 // per-command scaling by the device pixel ratio.
 type renderer struct {
-	buf   *buffer
-	scale float32
+	// buf is the current target: the window buffer, or the innermost
+	// open bracket's layer. rootBuf is always the window buffer.
+	buf     *buffer
+	rootBuf *buffer
+	scale   float32
 
 	textSys   *glyph.TextSystem
 	glyphBack *glyphBackend
@@ -29,9 +34,21 @@ type renderer struct {
 	// shapes, gradients and images rasterize exactly once.
 	warm bool
 
+	// brackets holds the open begin/end pairs — filter, stencil and
+	// rotate all scope later drawing by pushing an offscreen layer.
+	brackets  []bracket
+	layerPool []*buffer
+
 	// Scratch buffers reused across commands.
 	placements []glyph.GlyphPlacement
 	normStops  []gui.GradientStop
+	maskRast   vector.Rasterizer
+	maskPix    []uint8
+	maskPix2   []uint8
+	blurTmp    []uint8
+	svgBatch   []float32
+	termRunes  []rune
+	termCols   []int
 }
 
 // drawAll replays every command in cmds. With warm set it draws only the
@@ -43,7 +60,8 @@ func (r *renderer) drawAll(cmds []gui.RenderCmd) {
 		if r.warm {
 			switch cmd.Kind {
 			case gui.RenderText, gui.RenderLayout, gui.RenderRTF,
-				gui.RenderLayoutTransformed, gui.RenderTextPath:
+				gui.RenderLayoutTransformed, gui.RenderTextPath,
+				gui.RenderTermGrid:
 			default:
 				continue
 			}
@@ -74,24 +92,39 @@ func (r *renderer) drawAll(cmds []gui.RenderCmd) {
 			r.drawLayoutTransformed(cmd)
 		case gui.RenderTextPath:
 			r.drawTextPath(cmd)
+		case gui.RenderSvg:
+			r.drawSvg(cmd)
+		case gui.RenderShadow:
+			r.drawShadow(cmd)
+		case gui.RenderBlur:
+			r.drawBlur(cmd)
+		case gui.RenderFilterBegin:
+			r.beginFilter(cmd)
+		case gui.RenderFilterEnd:
+			r.endFilter()
+		case gui.RenderStencilBegin:
+			r.beginStencil(cmd)
+		case gui.RenderStencilEnd:
+			r.endStencil()
+		case gui.RenderRotateBegin:
+			r.beginRotation(cmd)
+		case gui.RenderRotateEnd:
+			r.endRotation()
+		case gui.RenderTermGrid:
+			r.drawTermGrid(cmd)
 
-		// Phase 2 (see docs/specs/headless-software-rendering.md).
+		// Unsupported by design, or never emitted by the render path.
 		// Listed explicitly rather than caught by a default so a new
 		// render kind is a compile-visible decision, following the
 		// precedent in gui/print_pdf.go.
+		//
+		// RenderCustomShader is GLSL: there is no CPU equivalent to
+		// compile. RenderFilterComposite is not emitted by the render
+		// path — endFilter reads the layer count from the bracket's
+		// RenderFilterBegin, as the GPU backends do.
 		case gui.RenderNone,
-			gui.RenderSvg,
-			gui.RenderShadow,
-			gui.RenderBlur,
-			gui.RenderFilterBegin,
-			gui.RenderFilterEnd,
-			gui.RenderFilterComposite,
-			gui.RenderStencilBegin,
-			gui.RenderStencilEnd,
-			gui.RenderRotateBegin,
-			gui.RenderRotateEnd,
 			gui.RenderCustomShader,
-			gui.RenderTermGrid,
+			gui.RenderFilterComposite,
 			gui.RenderLayoutPlaced:
 		}
 	}
