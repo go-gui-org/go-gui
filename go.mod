@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/ebitengine/purego v0.10.2
-	github.com/go-gui-org/go-glyph v1.22.0
+	github.com/go-gui-org/go-glyph v1.23.0
 	github.com/go-pdf/fpdf v0.9.0
 	github.com/godbus/dbus/v5 v5.2.2
 	github.com/gopxl/beep/v2 v2.1.1

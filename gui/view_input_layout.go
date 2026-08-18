@@ -169,10 +169,10 @@ func passwordMask(text string) string {
 
 // inputDragState holds state for drag-to-select in an input.
 // Replaces ~10 closure-captured locals with explicit fields;
-// runes is non-nil iff the drag started from a double-click.
+// wordSelect is set iff the drag started from a double-click.
 type inputDragState struct {
 	displayText            string
-	runes                  []rune // non-nil = double-click word select
+	wordSelect             bool // drag extends by whole words
 	gl                     glyph.Layout
 	anchorPos, anchorEnd   uint32
 	txtOffX, txtOffY       float32
@@ -204,8 +204,8 @@ func (d *inputDragState) updateSelection(rp int, w *Window) {
 	imap := StateMap[string, inputState](w, nsInput, capMany)
 	// Default InputState{}: zero value seeds initial drag-selection state.
 	is := imap.GetOr(d.focusID, inputState{})
-	if d.runes != nil {
-		wb, we := wordBoundsAt(d.runes, rp)
+	if d.wordSelect {
+		wb, we := wordBoundsAt(d.displayText, rp)
 		if rp < int(d.anchorPos) {
 			is.selectBeg = d.anchorEnd
 			is.selectEnd = uint32(wb)

@@ -1,5 +1,7 @@
 package gui
 
+import "github.com/go-gui-org/go-glyph"
+
 const inputMaxInsertRunes = 65_536
 
 // InputState manages cursor, selection, and undo/redo for
@@ -390,66 +392,50 @@ func updateCursorAndSelection(
 	imap.Set(focusID, is)
 }
 
-// moveCursorWordLeft scans backwards to the previous word boundary.
-func moveCursorWordLeft(runes []rune, pos int) int {
+// Word motion with no glyph layout. The rules live in go-glyph
+// (layout_words.go) and are the same class-run rules its Layout methods
+// apply, so a window with a text measurer and one without segment text
+// identically. Never re-implement them here — one copy is the point.
+//
+// The one divergence go-glyph documents: the string helpers have no
+// grapheme-cluster data, so an emoji ZWJ sequence splits at the ZWJ where
+// the Layout path keeps it whole. Accepted; the affected path is a
+// double-click on an emoji sequence in an input.
+//
+// All three take the text and a rune index, converting at the go-glyph
+// boundary, which is cheaper than the []rune conversion these used to do
+// on every Ctrl+arrow keypress.
+
+// moveCursorWordLeft returns the rune index of the word start before pos.
+func moveCursorWordLeft(text string, pos int) int {
 	if pos <= 0 {
 		return 0
 	}
-	i := pos - 1
-	// Skip whitespace.
-	for i > 0 && isWordSep(runes[i]) {
-		i--
-	}
-	// Skip word characters.
-	for i > 0 && !isWordSep(runes[i-1]) {
-		i--
-	}
-	return i
+	return byteToRuneIndex(text,
+		glyph.WordStartLeft(text, runeToByteIndex(text, pos)))
 }
 
-// moveCursorWordRight scans forward to the next word boundary.
-func moveCursorWordRight(runes []rune, pos int) int {
-	n := len(runes)
-	if pos >= n {
-		return n
-	}
-	i := pos
-	// Skip word characters.
-	for i < n && !isWordSep(runes[i]) {
-		i++
-	}
-	// Skip whitespace.
-	for i < n && isWordSep(runes[i]) {
-		i++
-	}
-	return i
-}
-
-func isWordSep(r rune) bool {
-	return r == ' ' || r == '\t' || r == '\n' || r == '\r'
+// moveCursorWordRight returns the rune index of the word start after pos.
+// Note this lands on the next word's *start*, not past the trailing
+// whitespace of the current one — the two agree for space-separated text
+// and differ once punctuation forms words of its own.
+func moveCursorWordRight(text string, pos int) int {
+	return byteToRuneIndex(text,
+		glyph.WordStartRight(text, runeToByteIndex(text, pos)))
 }
 
 // wordBoundsAt returns the start and end rune indices of the word
-// surrounding pos. If pos is on a separator, selects the separator run.
-func wordBoundsAt(runes []rune, pos int) (int, int) {
-	n := len(runes)
-	if n == 0 {
+// surrounding pos. A punctuation run is a word of its own; if pos is on
+// whitespace, the whitespace run is selected, which is what double-click
+// does on macOS. The exception is whitespace-only text, which has no words
+// at all: the range is empty at pos, mirroring the layout path's
+// GetWordAtIndex (see glyph.WordBoundsInString).
+func wordBoundsAt(text string, pos int) (int, int) {
+	if text == "" {
 		return 0, 0
 	}
-	if pos >= n {
-		pos = n - 1
-	}
-	pos = max(pos, 0)
-	sep := isWordSep(runes[pos])
-	beg := pos
-	for beg > 0 && isWordSep(runes[beg-1]) == sep {
-		beg--
-	}
-	end := pos + 1
-	for end < n && isWordSep(runes[end]) == sep {
-		end++
-	}
-	return beg, end
+	beg, end := glyph.WordBoundsInString(text, runeToByteIndex(text, pos))
+	return byteToRuneIndex(text, beg), byteToRuneIndex(text, end)
 }
 
 // moveCursorUp moves cursor up one line in multiline text.
