@@ -16,7 +16,6 @@ import (
 )
 
 const (
-	animID     = "benchmark-tick"
 	bufSize    = 500
 	typeButton = "Button"
 	typeText   = "Text"
@@ -101,37 +100,10 @@ func main() {
 		Timings: true,
 		OnInit: func(w *gui.Window) {
 			w.UpdateView(benchView)
-			startAnimation(w)
 		},
 	})
 
 	backend.Run(w)
-}
-
-func startAnimation(w *gui.Window) {
-	gui.State[App](w).LastFrame = time.Now()
-	w.AnimationAdd(&gui.Animate{
-		AnimID: animID,
-		Delay:  0,
-		Repeat: true,
-		Callback: func(_ *gui.Animate, w *gui.Window) {
-			app := gui.State[App](w)
-			// Sample timings every frame so the averages track the live view.
-			now := time.Now()
-			if !app.LastFrame.IsZero() {
-				dt := now.Sub(app.LastFrame)
-				if dt > time.Millisecond {
-					app.FPS.Add(1e9 / float64(dt))
-				}
-			}
-			app.LastFrame = now
-
-			t := w.Timings()
-			app.ViewAvg.Add(float64(t.ViewGen.Microseconds()))
-			app.LayoutAvg.Add(float64(t.LayoutArrange.Microseconds()))
-			app.RenderAvg.Add(float64(t.RenderBuild.Microseconds()))
-		},
-	})
 }
 
 func benchView(w *gui.Window) gui.View {
@@ -139,6 +111,38 @@ func benchView(w *gui.Window) gui.View {
 	theme := gui.CurrentTheme()
 	countOptions := []string{"10", "100", "1000", "5000"}
 	typeOptions := []string{typeButton, typeText, typeToggle, typeMixed}
+
+	if app.Running {
+		// Sample the frame cadence here, in the per-frame path, not
+		// from an animation callback: a repeating animation fires on
+		// its own ticker (animationCycle, 16 ms — ~62.5 FPS), so it
+		// caps the measurement at the ticker's rate. The view runs
+		// once per rebuilt frame, so the wall-clock delta between
+		// consecutive calls is the true frame time.
+		now := time.Now()
+		if !app.LastFrame.IsZero() {
+			dt := now.Sub(app.LastFrame)
+			if dt > time.Millisecond {
+				app.FPS.Add(1e9 / float64(dt))
+			}
+		}
+		app.LastFrame = now
+
+		// w.Timings() reports the previous frame's phases: the view
+		// runs at the start of the next frame's rebuild, after the
+		// last frame's Update stored them.
+		t := w.Timings()
+		app.ViewAvg.Add(float64(t.ViewGen.Microseconds()))
+		app.LayoutAvg.Add(float64(t.LayoutArrange.Microseconds()))
+		app.RenderAvg.Add(float64(t.RenderBuild.Microseconds()))
+
+		// Re-arm the next frame: the backend loop sleeps while no
+		// refresh is pending, so an uncapped pump must request a
+		// rebuild every frame. A full layout refresh is required —
+		// a render-only refresh never runs the view again, and
+		// RequestRedraw from here would stall after one frame.
+		w.UpdateWindow()
+	}
 
 	selectedCount := strconv.Itoa(app.WidgetCount)
 
@@ -207,9 +211,10 @@ func benchView(w *gui.Window) gui.View {
 							app := gui.State[App](ctx.Window)
 							app.Running = !app.Running
 							if app.Running {
-								startAnimation(ctx.Window)
+								// First sample must start fresh, or the
+								// idle pause skews one rolling average.
+								app.LastFrame = time.Time{}
 							} else {
-								ctx.Window.AnimationRemove(animID)
 								app.ResetAvgs()
 							}
 						},
