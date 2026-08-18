@@ -7,6 +7,20 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 )
 
+// at returns the pixel at (x, y) as straight RGBA components.
+func at(img *image.RGBA, x, y int) (r, g, b, a uint8) {
+	i := img.PixOffset(x, y)
+	p := img.Pix
+	return p[i], p[i+1], p[i+2], p[i+3]
+}
+
+func closeTo(got, want, tol uint8) bool {
+	if got > want {
+		return got-want <= tol
+	}
+	return want-got <= tol
+}
+
 // newRenderer builds a renderer over a black buffer, with no text
 // system: these tests exercise the shape and clip paths only.
 func newRenderer(w, h int, scale float32) *renderer {

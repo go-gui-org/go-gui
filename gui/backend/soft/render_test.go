@@ -1,3 +1,11 @@
+//go:build !wasm
+
+//
+// Every test here drives RenderToImage, which builds a go-glyph text
+// system; on wasm that construction needs a DOM (syscall/js), which the
+// node-based CI harness does not provide. draw_test.go covers the pure
+// rasterizer paths on every platform.
+
 package soft
 
 import (
@@ -20,20 +28,6 @@ func newWin(t *testing.T, w, h int, view func(*gui.Window) gui.View) *gui.Window
 	})
 	t.Cleanup(func() { Release(win) })
 	return win
-}
-
-// at returns the pixel at (x, y) as straight RGBA components.
-func at(img *image.RGBA, x, y int) (r, g, b, a uint8) {
-	i := img.PixOffset(x, y)
-	p := img.Pix
-	return p[i], p[i+1], p[i+2], p[i+3]
-}
-
-func closeTo(got, want, tol uint8) bool {
-	if got > want {
-		return got-want <= tol
-	}
-	return want-got <= tol
 }
 
 func TestRenderRectPixels(t *testing.T) {
