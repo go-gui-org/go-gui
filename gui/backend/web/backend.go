@@ -31,7 +31,11 @@ type Backend struct {
 	shaders   *customShaderRenderer
 	dpiScale  float32
 	width     int
-	height    int
+
+	// textErrLogged warns once for a persistent DrawText failure
+	// instead of spamming stderr every frame.
+	textErrLogged bool
+	height        int
 
 	normBuf      []gui.GradientStop
 	imgCache     map[string]js.Value

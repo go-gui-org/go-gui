@@ -74,6 +74,10 @@ type Backend struct {
 
 	maxImageBytes  int64
 	maxImagePixels int64
+
+	// textErrLogged warns once for a persistent DrawText failure
+	// instead of spamming stderr every frame.
+	textErrLogged bool
 }
 
 // --- Pattern B only (no Pattern A / Run) ---

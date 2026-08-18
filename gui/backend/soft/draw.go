@@ -23,6 +23,10 @@ type renderer struct {
 	textSys   *glyph.TextSystem
 	glyphBack *glyphBackend
 
+	// textErrLogged warns once for a persistent DrawText failure
+	// instead of spamming stderr every frame.
+	textErrLogged bool
+
 	// images caches decoded sources by the RenderCmd.Resource string.
 	images map[string]*image.NRGBA
 

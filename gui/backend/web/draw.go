@@ -10,7 +10,6 @@ import (
 	"strings"
 	"syscall/js"
 
-	"github.com/go-gui-org/go-glyph"
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/glyphconv"
 )
@@ -212,28 +211,11 @@ func (b *Backend) drawText(r *gui.RenderCmd) {
 	if b.textSys == nil || len(r.Text) == 0 {
 		return
 	}
-	var cfg glyph.TextConfig
-	if r.TextStylePtr != nil {
-		cfg = glyphconv.GuiStyleToGlyphConfig(*r.TextStylePtr)
-		cfg.Gradient = r.TextGradient
-	} else {
-		cfg = glyph.TextConfig{
-			Style: glyph.TextStyle{
-				FontName: r.FontName,
-				Size:     r.FontSize,
-				Color: glyph.Color{
-					R: r.Color.R, G: r.Color.G,
-					B: r.Color.B, A: r.Color.A,
-				},
-			},
-			Block: glyph.DefaultBlockStyle(),
-		}
-	}
-	if r.W > 0 {
-		cfg.Block.Wrap = glyph.WrapWord
-		cfg.Block.Width = r.W
-	}
-	if err := b.textSys.DrawText(r.X, r.Y, r.Text, cfg); err != nil {
+	cfg := glyphconv.GuiTextConfigFromRender(r)
+	if err := b.textSys.DrawText(r.X, r.Y, r.Text, cfg); err != nil && !b.textErrLogged {
+		// Warn once per backend: a persistent failure (e.g. missing
+		// font) would otherwise log every frame.
+		b.textErrLogged = true
 		log.Printf("web: DrawText: %v", err)
 	}
 }

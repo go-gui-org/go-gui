@@ -42,6 +42,10 @@ type Backend struct {
 	glyphBack    *glyphBackend
 	iconFontPath string
 
+	// textErrLogged warns once for a persistent DrawText failure
+	// instead of spamming stderr every frame.
+	textErrLogged bool
+
 	mvpStack [][16]float32
 
 	textPathPlacements []glyph.GlyphPlacement
