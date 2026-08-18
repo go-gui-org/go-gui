@@ -258,10 +258,27 @@ func TestListCoreRowHeightEstimate(t *testing.T) {
 	layout := generateViewLayout(views[0], w)
 	layoutWidths(&layout)
 	layoutHeights(&layout)
-	est := listCoreRowHeightEstimate(DefaultTextStyle, PaddingSmall)
+	est := listCoreRowHeightEstimate(DefaultTextStyle, PaddingSmall, w)
 	actual := layout.Shape.Height
 	if est != actual {
 		t.Errorf("estimate=%f, actual=%f", est, actual)
+	}
+
+	// With a measurer the estimate must track FontHeight, not the
+	// 1.4em fallback — the fix that made virtualization spacers match
+	// what actually arranges on screen.
+	w.textMeasurer = &stubTextMeasurer{fontHeight: 20}
+	layout = generateViewLayout(views[0], w)
+	layoutWidths(&layout)
+	layoutHeights(&layout)
+	est = listCoreRowHeightEstimate(DefaultTextStyle, PaddingSmall, w)
+	actual = layout.Shape.Height
+	want := float32(20) + PaddingSmall.Height()
+	if est != want {
+		t.Errorf("with measurer estimate=%f, want %f", est, want)
+	}
+	if actual != est {
+		t.Errorf("with measurer actual=%f, estimate=%f", actual, est)
 	}
 }
 

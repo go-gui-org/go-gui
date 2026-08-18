@@ -28,6 +28,11 @@ func listBoxItemLayoutIDs(
 
 // listBoxBuildItems builds the list of item views, including
 // virtualization spacers and drag-reorder gap/ghost handling.
+//
+// rowH is the caller's row-height estimate rather than a second
+// computation of it: the spacers, the visible range and the height
+// model registered for ScrollToIndex are one arithmetic, and
+// recomputing it here is how the three drift apart.
 func listBoxBuildItems(
 	cfg *ListBoxCfg,
 	selectedSet map[string]struct{},
@@ -38,6 +43,7 @@ func listBoxBuildItems(
 	canReorder, dragging bool,
 	drag dragReorderState,
 	virtualize bool, first, last int,
+	rowH float32,
 ) ([]View, View) {
 	listCap := len(cfg.Data)
 	if virtualize && last >= first {
@@ -49,11 +55,9 @@ func listBoxBuildItems(
 	list := make([]View, 0, listCap)
 
 	if virtualize && first > 0 {
-		rh := listCoreRowHeightEstimate(
-			cfg.TextStyle, listBoxItemPad)
 		list = append(list, Rectangle(RectangleCfg{
 			Color:  ColorTransparent,
-			Height: float32(first) * rh,
+			Height: float32(first) * rowH,
 			Sizing: FillFixed,
 		}))
 	}
@@ -93,12 +97,10 @@ func listBoxBuildItems(
 	}
 
 	if virtualize && last < len(cfg.Data)-1 {
-		rh := listCoreRowHeightEstimate(
-			cfg.TextStyle, listBoxItemPad)
 		remaining := len(cfg.Data) - 1 - last
 		list = append(list, Rectangle(RectangleCfg{
 			Color:  ColorTransparent,
-			Height: float32(remaining) * rh,
+			Height: float32(remaining) * rowH,
 			Sizing: FillFixed,
 		}))
 	}

@@ -322,7 +322,7 @@ func layoutPlainText(
 	if !ok {
 		return
 	}
-	shape.Height = l.Height
+	shape.Height = plainTextBoxHeight(l, style, w)
 	if tc.TextMode == TextModeMultiline &&
 		shape.Sizing.Width != sizingFixed && l.Width > 0 {
 		shape.Width = l.Width

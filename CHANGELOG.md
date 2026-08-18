@@ -232,6 +232,27 @@ and this project adheres to
 
 ### Fixed
 
+- **Multi-line text sat high in its box, so `ListBox` rows read top-biased.**
+  go-glyph sizes a line box as the baseline-to-baseline advance — ascent +
+  descent + leading, floored at 1.15em — while rendering puts the baseline at
+  `FontAscent` below the shape top. The layout pass took that height verbatim,
+  so the leading below the _last_ baseline was reserved at the bottom of every
+  multiline or wrapped text shape and nothing ever painted into it: 2.4px at
+  size 16, all of it under the text. A text shape is now sized to the
+  ascent..descent box the single-line path already uses
+  (`(lines-1)*lineHeight + FontHeight`), which is also the box
+  `docs/specs/text-optical-centring.md` assumes. Inter-line spacing is
+  unchanged; only the trailing leading goes.
+- **A virtualized `ListBox` built too few rows to cover its viewport.** The row
+  height it virtualizes with was estimated as `1.4 x font size + padding`, which
+  over-counted a row by ~30% once a real text measurer was present — a row is
+  one text shape (`FontHeight`) plus its padding. Spacers, the visible range and
+  the height model `ScrollToIndex` reads all divide by that number, so a tall
+  scrolled list left a blank strip along its bottom edge that the two-row
+  overscan could not cover. The estimate now asks the measurer, falling back to
+  the same approximation the text path itself uses when there is none, and the
+  spacers take the caller's number rather than recomputing it. `Combobox`, the
+  command palette and `VirtualList` share the estimate and are fixed with it.
 - **`Input` undo recorded every keystroke as its own step, evicting the whole
   history after 50 characters** (issue #328). Consecutive edits of the same kind
   — a typing run, a backspace chain — now coalesce into one undo step whose

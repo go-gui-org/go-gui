@@ -131,7 +131,8 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 	hl := prepared.HL
 
 	// Virtualization.
-	rowH := listCoreRowHeightEstimate(cfg.TextStyle, cfg.Padding.Or(PaddingNone))
+	rowH := listCoreRowHeightEstimate(
+		cfg.TextStyle, cfg.Padding.Or(PaddingNone), w)
 	pad := cfg.Padding.Or(PaddingNone)
 	listH := cfg.maxDropdownHeight - 2*sizeBorder - pad.Top - pad.Bottom
 	var scrollY float32

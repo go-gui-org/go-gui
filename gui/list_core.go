@@ -152,10 +152,23 @@ func ListVisibleRange(itemCount int, rowHeight, listHeight,
 }
 
 // listCoreRowHeightEstimate estimates row height from text
-// style + padding. No Window needed. Uses the same 1.4×
-// line-height factor as text shape layout.
-func listCoreRowHeightEstimate(style TextStyle, pad Padding) float32 {
-	return style.Size*1.4 + pad.Height()
+// style + padding. It reports what a row actually arranges to, so
+// virtualization spacers, the visible range and the registered
+// height model all agree with what lands on screen.
+//
+// A row is one text shape plus its padding, and a text shape is
+// sized to FontHeight — ascent + descent (text_optical.go) — so the
+// measurer is the source when there is one. Without a measurer the
+// text path falls back to fallbackLineHeight, and so does this: the
+// estimate tracks whichever height the layout will really use.
+func listCoreRowHeightEstimate(
+	style TextStyle, pad Padding, w *Window,
+) float32 {
+	height := fallbackLineHeight(style)
+	if w != nil && w.textMeasurer != nil {
+		height = w.textMeasurer.FontHeight(style)
+	}
+	return height + pad.Height()
 }
 
 // listCoreFuzzyScore scores a candidate against a query.

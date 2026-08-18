@@ -223,7 +223,7 @@ func virtualListModel(cfg *VirtualListCfg, w *Window) *listHeightModel {
 	}
 	return listHeightEnsureVariable(w, cfg.ID, listHeightSpec{
 		n:        max(cfg.ItemCount, 0),
-		estimate: virtualListEstimate(cfg, width),
+		estimate: virtualListEstimate(cfg, width, w),
 		width:    width,
 		keyAt:    cfg.ItemKey,
 		heightFn: cfg.ItemHeight,
@@ -233,12 +233,14 @@ func virtualListModel(cfg *VirtualListCfg, w *Window) *listHeightModel {
 // virtualListEstimate seeds unmeasured rows. The caller's own
 // function wins; otherwise the shared list row estimate, which is
 // what the uniform widgets already assume.
-func virtualListEstimate(cfg *VirtualListCfg, width float32) float32 {
+func virtualListEstimate(
+	cfg *VirtualListCfg, width float32, w *Window,
+) float32 {
 	if cfg.ItemHeight != nil && cfg.ItemCount > 0 {
 		if h := cfg.ItemHeight(0, width); h > 0 && f32IsFinite(h) {
 			return h
 		}
 	}
 	return listCoreRowHeightEstimate(
-		defaultListBoxStyle.textStyleNormal, listBoxItemPad)
+		defaultListBoxStyle.textStyleNormal, listBoxItemPad, w)
 }

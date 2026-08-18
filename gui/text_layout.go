@@ -139,3 +139,38 @@ func plainTextLayoutResolved(
 	tc.textLayoutValid = true
 	return layout, true
 }
+
+// plainTextBoxHeight converts glyph's layout height into the box
+// go-gui sizes text with.
+//
+// glyph reports Height as n whole line boxes, and a line box is the
+// baseline-to-baseline advance: ascent + descent + leading, floored at
+// 1.15em (go-glyph linespacing.go). Rendering, though, puts the first
+// baseline at FontAscent below the shape top and advances by that same
+// line height, so the leading below the *last* baseline is space
+// nothing ever paints into. Kept in the shape, it is padding only at
+// the bottom: a centred or padded row then reads visibly top-biased —
+// 2.4px at size 16, which is what a ListBox row showed.
+//
+// Dropping the trailing leading makes a one-line shape exactly
+// FontHeight, the same box the single-line path in view_text.go
+// assigns, so the two paths agree and the optical-centring model in
+// text_optical.go ("a text shape is sized to FontHeight") holds for
+// multi-line text too. Inter-line spacing is untouched: only the tail
+// goes.
+func plainTextBoxHeight(
+	l glyph.Layout, style TextStyle, w *Window,
+) float32 {
+	lines := len(l.Lines)
+	if lines == 0 || l.Height <= 0 || !f32IsFinite(l.Height) {
+		return l.Height
+	}
+	fh := fontHeight(style, w)
+	// Guard a face (or a LineSpacing) whose line box is tighter than
+	// ascent+descent: growing the shape here would be a regression.
+	lineH := l.Height / float32(lines)
+	if fh >= lineH {
+		return l.Height
+	}
+	return float32(lines-1)*lineH + fh
+}
