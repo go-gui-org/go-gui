@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-idkCI9qQG7UNLa9aJuAOTit6DCDy0tPnoGJ7tjrQMsQ='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>go-gui showcase</title>
   <style>
     * { margin: 0; padding: 0; }
@@ -45,6 +46,9 @@
   </div>
   <script src="wasm_exec.js"></script>
   <script>
+    // Clickjacking guard: never render this page inside a frame.
+    if (self !== top) top.location = self.location.href;
+
     const overlay = document.getElementById('loading-overlay');
     const label = document.getElementById('loading-label');
     const sizeEl = document.getElementById('loading-size');
