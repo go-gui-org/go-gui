@@ -84,31 +84,44 @@ func TestThemeMakerFansOutElevation(t *testing.T) {
 	}
 }
 
-// The macOS themes are the reason the tokens exist, so they must
+// The platform themes are the reason the tokens exist, so they must
 // actually carry them, and must be reachable by name like every other
-// preset.
-func TestMacOSThemesRegisteredAndElevated(t *testing.T) {
+// preset. GNOME and Windows keep the hard accent outline for focus
+// (ColorBorderFocus) rather than the macOS glow, so they must NOT
+// carry a ring.
+func TestPlatformThemesRegisteredAndElevated(t *testing.T) {
 	t.Parallel()
-	for _, name := range []string{"macos", "macos-dark"} {
-		th, ok := ThemeGet(name)
+	for _, tc := range []struct {
+		name     string
+		wantRing bool
+	}{
+		{"macos", true},
+		{"macos-dark", true},
+		{"gnome", false},
+		{"gnome-dark", false},
+		{"windows", false},
+		{"windows-dark", false},
+	} {
+		th, ok := ThemeGet(tc.name)
 		if !ok {
-			t.Fatalf("%q not registered", name)
+			t.Fatalf("%q not registered", tc.name)
 		}
-		if th.Name != name {
-			t.Errorf("%q: Name is %q", name, th.Name)
+		if th.Name != tc.name {
+			t.Errorf("%q: Name is %q", tc.name, th.Name)
 		}
 		if th.dialogStyle.Shadow == nil {
-			t.Errorf("%q: dialog has no elevation", name)
+			t.Errorf("%q: dialog has no elevation", tc.name)
 		}
 		if th.selectStyle.Shadow == nil {
-			t.Errorf("%q: dropdown has no elevation", name)
+			t.Errorf("%q: dropdown has no elevation", tc.name)
 		}
-		if th.focusRing == nil {
-			t.Errorf("%q: no focus ring", name)
+		if got := th.focusRing != nil; got != tc.wantRing {
+			t.Errorf("%q: focus ring present=%v, want %v",
+				tc.name, got, tc.wantRing)
 		}
 	}
 
-	// The ring is tinted with the theme's own accent, so the two
+	// The macOS ring is tinted with the theme's own accent, so the two
 	// polarities must not share one value.
 	if themeMacOS.focusRing == themeMacOSDark.focusRing {
 		t.Error("light and dark share a focus ring; accent differs")
