@@ -713,6 +713,34 @@ func goldenCases() []goldenCase {
 				})
 			},
 		},
+		{
+			// A Fit-width wrap resolves against its nearest definite
+			// ancestor (issue #379): this records wrapped rows at the
+			// window width, not one unwrapped row at the content sum.
+			// 3 chips of 80 + 2 gaps of 4 fit in the 320 window; a
+			// regression to the unconstrained sum would record a single
+			// row of 12 chips at 1004px.
+			name: "wrap_fit",
+			build: func(_ *Window) View {
+				chips := make([]View, 12)
+				for i := range chips {
+					chips[i] = Column(ContainerCfg{
+						ID:         "chip-" + itoa(i),
+						Sizing:     FixedFixed,
+						Width:      80,
+						Height:     40,
+						SizeBorder: NoBorder,
+						Color:      RGBA(180, 190, 200, 255),
+					})
+				}
+				return Wrap(ContainerCfg{
+					ID:      "chips",
+					Sizing:  FitFit,
+					Spacing: SomeF(4),
+					Content: chips,
+				})
+			},
+		},
 	}
 }
 

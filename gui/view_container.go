@@ -474,6 +474,14 @@ func Row(cfg ContainerCfg) View {
 
 // Wrap arranges content left to right, flowing to the next
 // line when container width is exceeded.
+//
+// Fit width on a Wrap resolves as fit-content (issue #379): the container
+// takes min(single-row sum, its nearest definite-width ancestor's
+// available), so it wraps within its parent instead of rendering one
+// unwrapped row wider than it. A Fit chain with no definite ancestor — no
+// Fixed/Fill width anywhere above — has no width to wrap within and keeps
+// the single-row sum (a Row). Prefer Fill width when the wrap should fill
+// the parent regardless.
 func Wrap(cfg ContainerCfg) View {
 	cfg.axis = axisLeftToRight
 	cfg.Wrap = true

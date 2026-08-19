@@ -6,8 +6,19 @@ func layoutOverflow(layout *Layout, w *Window) {
 		layoutOverflow(&layout.Children[i], w)
 	}
 
-	if !layout.Shape.Overflow || layout.Shape.Axis != axisLeftToRight ||
-		len(layout.Children) < 2 || layout.Shape.Scrollable {
+	if !layout.Shape.Overflow || layout.Shape.Axis != axisLeftToRight {
+		return
+	}
+
+	// A Fit-width overflow container resolves against its nearest
+	// definite-width ancestor (issue #379): its fit width is the full
+	// content sum, so nothing below it ever overflows.
+	if changed, path, depth := constrainFitContainerWidth(layout); changed {
+		refitFitAncestors(layout, path[:depth])
+		layout.Shape.contentW = computeContentWidth(layout)
+	}
+
+	if len(layout.Children) < 2 || layout.Shape.Scrollable {
 		return
 	}
 
