@@ -455,9 +455,10 @@ jobs:
           go-version: stable
           cache: true
 
-      - name: Install system dependencies
-        run: ./scripts/install-ubuntu-deps.sh
-
+      # No system deps: the gate runs pure-Go layout/render benchmarks
+      # with nil injected backends, and the module is cgo-free on Linux
+      # (gl backend dlopens libEGL at runtime). The apt step copied from
+      # the build jobs only slowed the gate down.
       - name: Restore baseline
         id: cache
         uses: actions/cache/restore@v5
