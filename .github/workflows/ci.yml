@@ -22,7 +22,11 @@ jobs:
 
       - uses: ./.github/actions/setup-go-glyph
         with:
-          install-linux-deps: 'true'
+          # No Linux system deps needed: the module has no cgo files on
+          # Linux (go-glyph's shaping is pure-Go; gl is purego; oto only
+          # compiles under -tags otoaudio), and -race needs only the gcc
+          # that ships on the runner.
+          install-linux-deps: 'false'
 
       - name: Test
         # -race needs cgo, and mingw is not on PATH on Windows runners.
@@ -58,7 +62,9 @@ jobs:
 
       - uses: ./.github/actions/setup-go-glyph
         with:
-          install-linux-deps: 'true'
+          # No Linux system deps needed: plain `go test` builds the
+          # cgo-free module without any X11/harfbuzz headers.
+          install-linux-deps: 'false'
 
       - name: Test with coverage
         run: go test -count=1 -coverprofile=coverage.out ./gui/...
@@ -108,6 +114,9 @@ jobs:
           go-version: stable
           cache: true
 
+      # Only job that needs the deps: the -tags otoaudio ALSA sink
+      # compiles oto v3, whose Linux driver binds ALSA via cgo
+      # (#cgo pkg-config: alsa) — libasound2-dev must be present.
       - name: Install system dependencies
         run: ./scripts/install-ubuntu-deps.sh
 
@@ -191,7 +200,9 @@ jobs:
 
       - uses: ./.github/actions/setup-go-glyph
         with:
-          install-linux-deps: 'true'
+          # No Linux system deps needed: vet/tidy/gates build the
+          # cgo-free module without any X11/harfbuzz headers.
+          install-linux-deps: 'false'
           add-replace: 'false'
 
       # tidy-check must run BEFORE the go-glyph replace directive is
@@ -226,7 +237,9 @@ jobs:
 
       - uses: ./.github/actions/setup-go-glyph
         with:
-          install-linux-deps: 'true'
+          # No Linux system deps needed: examples build the cgo-free
+          # module (no X11/harfbuzz headers required).
+          install-linux-deps: 'false'
 
       - name: Build examples
         run: make build-examples
