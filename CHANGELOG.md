@@ -8,6 +8,17 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **`gnome`/`gnome-dark` and `windows`/`windows-dark` theme presets**
+  (issue #374 pattern). Adwaita-derived and WinUI-derived platform themes,
+  registered like the `macos` presets and reached by name through `ThemeGet`:
+  hairline borders, platform corner rounding (GNOME rounder, Windows squarer),
+  platform accent colors, and subtle popover/dialog elevation. Both keep the
+  platform's hard accent outline for focus (`ColorBorderFocus`) instead of the
+  macOS glow — `FocusRing` stays nil. Fonts stay unpinned so each resolves to
+  the machine's system face (Cantarell on GNOME, Segoe UI on Windows).
+
 ### Fixed
 
 - **Restored caller-facing `*Cfg` fields unexported by the #230 surface sweep**
