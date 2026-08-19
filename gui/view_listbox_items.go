@@ -81,7 +81,7 @@ func listBoxBuildItems(
 
 		if dragging && isDraggable && di == drag.sourceIndex {
 			ghostContent = listBoxItemContent(
-				cfg.Data[idx], *cfg)
+				cfg.Data[idx], *cfg, false)
 			continue
 		}
 
@@ -113,11 +113,13 @@ func listBoxItemView(dat ListBoxOption, cfg ListBoxCfg, selectedSet map[string]s
 	if dat.ID == focusedID && !dat.isSubheading {
 		color = cfg.ColorHover
 	}
+	selected := false
 	if listCoreContainsSelected(selectedSet, cfg.SelectedIDs, dat.ID) {
 		color = cfg.ColorSelect
+		selected = true
 	}
 	isSub := dat.isSubheading
-	content := listBoxItemContent(dat, cfg)
+	content := listBoxItemContent(dat, cfg, selected)
 
 	datID := dat.ID
 	isMultiple := cfg.Multiple
@@ -127,7 +129,7 @@ func listBoxItemView(dat ListBoxOption, cfg ListBoxCfg, selectedSet map[string]s
 	colorHover := cfg.ColorHover
 
 	a11yState := AccessStateNone
-	if listCoreContainsSelected(selectedSet, cfg.SelectedIDs, dat.ID) {
+	if selected {
 		a11yState = AccessStateSelected
 	}
 
@@ -169,10 +171,12 @@ func listBoxReorderItemView(
 	scrollID string,
 ) View {
 	color := ColorTransparent
+	selected := false
 	if listCoreContainsSelected(selectedSet, cfg.SelectedIDs, dat.ID) {
 		color = cfg.ColorSelect
+		selected = true
 	}
-	content := listBoxItemContent(dat, cfg)
+	content := listBoxItemContent(dat, cfg, selected)
 	layoutID := listBoxItemID(cfg.ID, dat.ID)
 
 	datID := dat.ID
@@ -185,7 +189,7 @@ func listBoxReorderItemView(
 	onReorder := cfg.OnReorder
 
 	a11yState := AccessStateNone
-	if listCoreContainsSelected(selectedSet, cfg.SelectedIDs, dat.ID) {
+	if selected {
 		a11yState = AccessStateSelected
 	}
 
@@ -235,7 +239,13 @@ func listBoxItemID(listID, optionID string) string {
 	return ScopeID(listID, "item", optionID)
 }
 
-func listBoxItemContent(dat ListBoxOption, cfg ListBoxCfg) View {
+// listBoxItemContent builds the content view of one row: the
+// subheading block, or the label with the style the row's fill
+// calls for. The selected fill and the text on it are one decision
+// (issue #373) — a selected row draws its label in the paired
+// foreground — so the resolution lives here, next to the fill
+// callers already compute.
+func listBoxItemContent(dat ListBoxOption, cfg ListBoxCfg, selected bool) View {
 	if dat.isSubheading {
 		return Column(ContainerCfg{
 			Spacing: SomeF(1),
@@ -255,7 +265,7 @@ func listBoxItemContent(dat ListBoxOption, cfg ListBoxCfg) View {
 	return Text(TextCfg{
 		Text:      dat.Name,
 		Mode:      TextModeMultiline,
-		TextStyle: cfg.TextStyle,
+		TextStyle: textOnFill(cfg.TextStyle, selected, cfg.ColorTextOnSelect),
 	})
 }
 

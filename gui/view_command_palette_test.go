@@ -35,6 +35,35 @@ func TestCommandPaletteVisible(t *testing.T) {
 	}
 }
 
+// The palette's highlighted row fills with the accent color, so its
+// label draws in the paired foreground; the other rows keep the
+// body color (issue #373).
+func TestCommandPaletteHighlightedTextColor(t *testing.T) {
+	w := &Window{}
+	commandPaletteShow("cp-sel-text", w)
+
+	v := CommandPalette(CommandPaletteCfg{
+		ID: "cp-sel-text",
+		Items: []CommandPaletteItem{
+			{ID: "save", Label: "Save"},
+			{ID: "open", Label: "Open"},
+		},
+		ColorTextOnSelect: White,
+		OnAction:          func(_ string, ctx EventCtx) {},
+	})
+	layout := generateViewLayout(v, w)
+	if len(layout.Children) == 0 {
+		t.Fatal("visible palette should have children")
+	}
+	if got := textColorOf(t, w, v, "Save"); !got.eq(White) {
+		t.Errorf("highlighted row color = %v, want %v", got, White)
+	}
+	if got := textColorOf(t, w, v, "Open"); !got.eq(DefaultTextStyle.Color) {
+		t.Errorf("plain row color = %v, want body %v",
+			got, DefaultTextStyle.Color)
+	}
+}
+
 func TestCommandPaletteShowDismiss(t *testing.T) {
 	w := &Window{}
 	id := "cp-sd"

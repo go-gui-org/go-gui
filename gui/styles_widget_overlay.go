@@ -19,6 +19,9 @@ type ListBoxStyle struct {
 	// (issue #335).
 	ColorBorderFocus Color
 	ColorSelect      Color
+	// ColorTextOnSelect is the text color drawn over ColorSelect
+	// fills. Resolved by ThemeMaker; unset themes keep body text.
+	ColorTextOnSelect Color
 }
 
 // TreeStyle defines tree view visual properties.

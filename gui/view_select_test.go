@@ -21,6 +21,51 @@ func TestSelectGeneratesClosedLayout(t *testing.T) {
 	}
 }
 
+// The highlighted option row fills with the accent color, so its
+// label and check mark draw in the paired foreground; a plain row
+// keeps the body color (issue #373).
+func TestSelectOptionHighlightedTextColor(t *testing.T) {
+	w := &Window{}
+	cfg := &SelectCfg{
+		TextStyle:         DefaultTextStyle,
+		ColorSelect:       Blue,
+		ColorTextOnSelect: White,
+		Selected:          []string{"B"},
+	}
+
+	highlighted := generateViewLayout(
+		selectOptionView(cfg, "s", "B", 0, true), w)
+	optionRow := highlighted.Children[0]
+	if len(optionRow.Children) < 2 {
+		t.Fatalf("option children = %d, want 2", len(optionRow.Children))
+	}
+	check := optionRow.Children[0].Shape.TC
+	label := optionRow.Children[1].Shape.TC
+	if check == nil || label == nil {
+		t.Fatal("option text missing")
+	}
+	if !check.TextStyle.Color.eq(White) {
+		t.Errorf("highlighted check color = %v, want %v",
+			check.TextStyle.Color, White)
+	}
+	if !label.TextStyle.Color.eq(White) {
+		t.Errorf("highlighted label color = %v, want %v",
+			label.TextStyle.Color, White)
+	}
+
+	plain := generateViewLayout(
+		selectOptionView(cfg, "s", "B", 0, false), w)
+	plainRow := plain.Children[0]
+	plainLabel := plainRow.Children[1].Shape.TC
+	if plainLabel == nil {
+		t.Fatal("plain option text missing")
+	}
+	if !plainLabel.TextStyle.Color.eq(DefaultTextStyle.Color) {
+		t.Errorf("plain label color = %v, want body %v",
+			plainLabel.TextStyle.Color, DefaultTextStyle.Color)
+	}
+}
+
 func TestSelectGeneratesDropdownWhenOpen(t *testing.T) {
 	w := &Window{}
 	ss := StateMap[string, bool](w, nsSelect, capModerate)

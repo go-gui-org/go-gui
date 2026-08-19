@@ -190,24 +190,25 @@ func themeCfgLoad(path string) (gui.ThemeCfg, error) {
 }
 
 type themeCfgJSON struct {
-	TextStyleDef     textStyleJSON `json:"text_style_def"`
-	Name             string        `json:"name"`
-	SizeBorder       float32       `json:"size_border"`
-	Radius           float32       `json:"radius"`
-	RadiusSmall      float32       `json:"radius_small"`
-	RadiusMedium     float32       `json:"radius_medium"`
-	RadiusLarge      float32       `json:"radius_large"`
-	ColorBackground  colorJSON     `json:"color_background"`
-	ColorPanel       colorJSON     `json:"color_panel"`
-	ColorInterior    colorJSON     `json:"color_interior"`
-	ColorHover       colorJSON     `json:"color_hover"`
-	ColorFocus       colorJSON     `json:"color_focus"`
-	ColorActive      colorJSON     `json:"color_active"`
-	ColorBorder      colorJSON     `json:"color_border"`
-	ColorBorderFocus colorJSON     `json:"color_border_focus"`
-	ColorSeparator   colorJSON     `json:"color_separator"`
-	ColorSelect      colorJSON     `json:"color_select"`
-	TitlebarDark     bool          `json:"titlebar_dark"`
+	TextStyleDef      textStyleJSON `json:"text_style_def"`
+	Name              string        `json:"name"`
+	SizeBorder        float32       `json:"size_border"`
+	Radius            float32       `json:"radius"`
+	RadiusSmall       float32       `json:"radius_small"`
+	RadiusMedium      float32       `json:"radius_medium"`
+	RadiusLarge       float32       `json:"radius_large"`
+	ColorBackground   colorJSON     `json:"color_background"`
+	ColorPanel        colorJSON     `json:"color_panel"`
+	ColorInterior     colorJSON     `json:"color_interior"`
+	ColorHover        colorJSON     `json:"color_hover"`
+	ColorFocus        colorJSON     `json:"color_focus"`
+	ColorActive       colorJSON     `json:"color_active"`
+	ColorBorder       colorJSON     `json:"color_border"`
+	ColorBorderFocus  colorJSON     `json:"color_border_focus"`
+	ColorSeparator    colorJSON     `json:"color_separator"`
+	ColorSelect       colorJSON     `json:"color_select"`
+	ColorTextOnSelect colorJSON     `json:"color_text_on_select"`
+	TitlebarDark      bool          `json:"titlebar_dark"`
 }
 
 type colorJSON struct {
@@ -255,47 +256,49 @@ type textStyleJSON struct {
 
 func themeCfgJSONFromCfg(cfg gui.ThemeCfg) themeCfgJSON {
 	return themeCfgJSON{
-		Name:             cfg.Name,
-		ColorBackground:  colorJSONFromColor(cfg.ColorBackground),
-		ColorPanel:       colorJSONFromColor(cfg.ColorPanel),
-		ColorInterior:    colorJSONFromColor(cfg.ColorInterior),
-		ColorHover:       colorJSONFromColor(cfg.ColorHover),
-		ColorFocus:       colorJSONFromColor(cfg.ColorFocus),
-		ColorActive:      colorJSONFromColor(cfg.ColorActive),
-		ColorBorder:      colorJSONFromColor(cfg.ColorBorder),
-		ColorBorderFocus: colorJSONFromColor(cfg.ColorBorderFocus),
-		ColorSeparator:   colorJSONFromColor(cfg.ColorSeparator),
-		ColorSelect:      colorJSONFromColor(cfg.ColorSelect),
-		TitlebarDark:     cfg.TitlebarDark,
-		SizeBorder:       cfg.SizeBorder,
-		Radius:           cfg.Radius,
-		RadiusSmall:      cfg.RadiusSmall,
-		RadiusMedium:     cfg.RadiusMedium,
-		RadiusLarge:      cfg.RadiusLarge,
-		TextStyleDef:     textStyleJSONFromTextStyle(cfg.TextStyleDef),
+		Name:              cfg.Name,
+		ColorBackground:   colorJSONFromColor(cfg.ColorBackground),
+		ColorPanel:        colorJSONFromColor(cfg.ColorPanel),
+		ColorInterior:     colorJSONFromColor(cfg.ColorInterior),
+		ColorHover:        colorJSONFromColor(cfg.ColorHover),
+		ColorFocus:        colorJSONFromColor(cfg.ColorFocus),
+		ColorActive:       colorJSONFromColor(cfg.ColorActive),
+		ColorBorder:       colorJSONFromColor(cfg.ColorBorder),
+		ColorBorderFocus:  colorJSONFromColor(cfg.ColorBorderFocus),
+		ColorSeparator:    colorJSONFromColor(cfg.ColorSeparator),
+		ColorSelect:       colorJSONFromColor(cfg.ColorSelect),
+		ColorTextOnSelect: colorJSONFromColor(cfg.ColorTextOnSelect),
+		TitlebarDark:      cfg.TitlebarDark,
+		SizeBorder:        cfg.SizeBorder,
+		Radius:            cfg.Radius,
+		RadiusSmall:       cfg.RadiusSmall,
+		RadiusMedium:      cfg.RadiusMedium,
+		RadiusLarge:       cfg.RadiusLarge,
+		TextStyleDef:      textStyleJSONFromTextStyle(cfg.TextStyleDef),
 	}
 }
 
 func (cfg themeCfgJSON) toThemeCfg() gui.ThemeCfg {
 	return gui.ThemeCfg{
-		Name:             cfg.Name,
-		ColorBackground:  cfg.ColorBackground.toColor(),
-		ColorPanel:       cfg.ColorPanel.toColor(),
-		ColorInterior:    cfg.ColorInterior.toColor(),
-		ColorHover:       cfg.ColorHover.toColor(),
-		ColorFocus:       cfg.ColorFocus.toColor(),
-		ColorActive:      cfg.ColorActive.toColor(),
-		ColorBorder:      cfg.ColorBorder.toColor(),
-		ColorBorderFocus: cfg.ColorBorderFocus.toColor(),
-		ColorSeparator:   cfg.ColorSeparator.toColor(),
-		ColorSelect:      cfg.ColorSelect.toColor(),
-		TitlebarDark:     cfg.TitlebarDark,
-		SizeBorder:       cfg.SizeBorder,
-		Radius:           cfg.Radius,
-		RadiusSmall:      cfg.RadiusSmall,
-		RadiusMedium:     cfg.RadiusMedium,
-		RadiusLarge:      cfg.RadiusLarge,
-		TextStyleDef:     cfg.TextStyleDef.toTextStyle(),
+		Name:              cfg.Name,
+		ColorBackground:   cfg.ColorBackground.toColor(),
+		ColorPanel:        cfg.ColorPanel.toColor(),
+		ColorInterior:     cfg.ColorInterior.toColor(),
+		ColorHover:        cfg.ColorHover.toColor(),
+		ColorFocus:        cfg.ColorFocus.toColor(),
+		ColorActive:       cfg.ColorActive.toColor(),
+		ColorBorder:       cfg.ColorBorder.toColor(),
+		ColorBorderFocus:  cfg.ColorBorderFocus.toColor(),
+		ColorSeparator:    cfg.ColorSeparator.toColor(),
+		ColorSelect:       cfg.ColorSelect.toColor(),
+		ColorTextOnSelect: cfg.ColorTextOnSelect.toColor(),
+		TitlebarDark:      cfg.TitlebarDark,
+		SizeBorder:        cfg.SizeBorder,
+		Radius:            cfg.Radius,
+		RadiusSmall:       cfg.RadiusSmall,
+		RadiusMedium:      cfg.RadiusMedium,
+		RadiusLarge:       cfg.RadiusLarge,
+		TextStyleDef:      cfg.TextStyleDef.toTextStyle(),
 	}
 }
 

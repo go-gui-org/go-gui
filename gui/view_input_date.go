@@ -45,8 +45,12 @@ type InputDateCfg struct {
 	Color         Color
 	// Colors sets the per-state colors. Color above is the
 	// shorthand for Colors.Base and wins over it.
-	Colors               ColorSet
-	ColorSelect          Color
+	Colors      ColorSet
+	ColorSelect Color
+	// ColorTextOnSelect is the text color drawn over the selected
+	// day's fill. Unset takes the theme's.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorTextOnSelect    Color
 	Sizing               Sizing
 	WeekdaysLen          DatePickerWeekdayLen
 	Disabled             bool
@@ -188,6 +192,7 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 					Color:                cfg.Colors.Base,
 					Colors:               ColorSet{Hover: cfg.Colors.Hover, Click: cfg.Colors.Click, Focus: cfg.Colors.Focus, Border: cfg.Colors.Border, BorderFocus: cfg.Colors.BorderFocus},
 					ColorSelect:          cfg.ColorSelect,
+					ColorTextOnSelect:    cfg.ColorTextOnSelect,
 					SizeBorder:           cfg.SizeBorder,
 					CellSpacing:          cfg.CellSpacing,
 					Radius:               cfg.Radius,

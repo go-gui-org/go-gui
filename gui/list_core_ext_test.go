@@ -2,6 +2,54 @@ package gui
 
 import "testing"
 
+// firstTextColor renders a view and returns the color of its first
+// text shape.
+func firstTextColor(t *testing.T, v View) Color {
+	t.Helper()
+	layout := generateViewLayout(v, &Window{})
+	var color Color
+	var walk func(Layout)
+	walk = func(l Layout) {
+		if l.Shape != nil && l.Shape.shapeType == shapeText &&
+			l.Shape.TC != nil && l.Shape.TC.TextStyle != nil {
+			color = l.Shape.TC.TextStyle.Color
+			return
+		}
+		for i := range l.Children {
+			walk(l.Children[i])
+		}
+	}
+	walk(layout)
+	return color
+}
+
+// textColorOf renders v with w and returns the color of the text
+// shape whose text equals label. The zero Color is returned when
+// the label is not found. The window is passed through because
+// widget state (open dropdowns, selections) lives on it.
+func textColorOf(t *testing.T, w *Window, v View, label string) Color {
+	t.Helper()
+	layout := generateViewLayout(v, w)
+	var color Color
+	var walk func(Layout)
+	walk = func(l Layout) {
+		if color.IsSet() {
+			return
+		}
+		if l.Shape != nil && l.Shape.shapeType == shapeText &&
+			l.Shape.TC != nil && l.Shape.TC.TextStyle != nil &&
+			l.Shape.TC.Text == label {
+			color = l.Shape.TC.TextStyle.Color
+			return
+		}
+		for i := range l.Children {
+			walk(l.Children[i])
+		}
+	}
+	walk(layout)
+	return color
+}
+
 func TestListCoreFilterEmpty(t *testing.T) {
 	items := []listCoreItem{
 		{ID: "a", Label: "Alpha"},
@@ -110,5 +158,33 @@ func TestListCoreSubheadingView(t *testing.T) {
 	views := listCoreViews([]listCoreItem{item}, cfg, 0, 0, -1, nil, 20)
 	if len(views) != 1 {
 		t.Fatalf("views = %d", len(views))
+	}
+}
+
+// The accent row fill and the label on it travel together: a
+// highlighted or selected row draws its label in the paired
+// foreground, a plain row keeps the body color (issue #373).
+func TestListCoreItemViewTextOnSelectFill(t *testing.T) {
+	item := listCoreItem{ID: "a", Label: "Alpha"}
+	cfg := listCoreCfg{
+		TextStyle:         DefaultTextStyle,
+		ColorHighlight:    Blue,
+		ColorSelected:     Blue,
+		colorTextOnSelect: White,
+		PaddingItem:       PaddingSmall,
+	}
+
+	plain := firstTextColor(t, listCoreItemView(item, 0, false, false, cfg))
+	if !plain.eq(DefaultTextStyle.Color) {
+		t.Errorf("plain row color = %v, want body %v",
+			plain, DefaultTextStyle.Color)
+	}
+	highlighted := firstTextColor(t, listCoreItemView(item, 0, true, false, cfg))
+	if !highlighted.eq(White) {
+		t.Errorf("highlighted row color = %v, want %v", highlighted, White)
+	}
+	selected := firstTextColor(t, listCoreItemView(item, 0, false, true, cfg))
+	if !selected.eq(White) {
+		t.Errorf("selected row color = %v, want %v", selected, White)
 	}
 }

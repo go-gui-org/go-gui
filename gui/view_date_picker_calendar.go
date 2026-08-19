@@ -144,7 +144,9 @@ func datePickerMonth(
 				borderColor = cfg.Colors.BorderFocus
 			}
 
-			ts := cfg.TextStyle
+			// The selected fill and the day number on it travel
+			// together (issue #373).
+			ts := textOnFill(cfg.TextStyle, selected, cfg.ColorTextOnSelect)
 			if disabled {
 				ts = withRoleAlpha(ts, guiTheme.TextStyleDisabled)
 			}

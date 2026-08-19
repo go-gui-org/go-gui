@@ -28,9 +28,12 @@ type MenuItemCfg struct {
 	spacing      float32
 	// Internal — set by menuBuild from theme/context.
 	colorSelect Color
-	sizing      Sizing
-	disabled    bool
-	selected    bool
+	// Internal — text color over the selected item's fill, set by
+	// menuBuild from the theme (issue #373).
+	colorTextOnSelect Color
+	sizing            Sizing
+	disabled          bool
+	selected          bool
 
 	Separator bool
 }
@@ -94,6 +97,12 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 	// CustomView's content is the app's to place.
 	var opticalAmend func(EventCtx)
 
+	// The selected fill and the text on it travel together: a
+	// selected item draws its label — and the shortcut hint derived
+	// from it — in the paired foreground (issue #373).
+	textStyle := textOnFill(itemCfg.textStyle,
+		itemCfg.selected, itemCfg.colorTextOnSelect)
+
 	var content View
 	if itemCfg.CustomView != nil {
 		content = itemCfg.CustomView
@@ -115,7 +124,7 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 		opticalAmend = opticalCenterLabelText
 		label := Text(TextCfg{
 			Text:      textContent,
-			TextStyle: itemCfg.textStyle,
+			TextStyle: textStyle,
 			Mode:      mode,
 		})
 		if itemCfg.shortcutText != "" && itemCfg.level > 0 {
@@ -123,7 +132,7 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 			// It used to borrow dimAlpha, the disabled dim, which
 			// made an enabled item read as a dead one (issue #335).
 			hintStyle := withRoleAlpha(
-				itemCfg.textStyle, guiTheme.TextStyleSecondary)
+				textStyle, guiTheme.TextStyleSecondary)
 			// The label and its shortcut hint are direct children of
 			// this row, so the correction goes here and reaches both —
 			// they must move together or the pair reads skewed. The

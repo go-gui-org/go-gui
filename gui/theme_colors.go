@@ -15,6 +15,9 @@ type ColorOverrides struct {
 	ColorBorder      *Color
 	ColorBorderFocus *Color
 	ColorSelect      *Color
+	// ColorTextOnSelect is the text drawn over ColorSelect fills.
+	// Nil keeps the theme's current value.
+	ColorTextOnSelect *Color
 }
 
 func colorOr(override *Color, fallback Color) Color {
@@ -36,6 +39,7 @@ func (t Theme) withColors(o ColorOverrides) Theme {
 	border := colorOr(o.ColorBorder, t.ColorBorder)
 	borderFocus := colorOr(o.ColorBorderFocus, t.ColorSelect)
 	sel := colorOr(o.ColorSelect, t.ColorSelect)
+	selText := colorOr(o.ColorTextOnSelect, t.ColorTextOnSelect)
 
 	t.ColorBackground = bg
 	t.ColorPanel = panel
@@ -45,6 +49,7 @@ func (t Theme) withColors(o ColorOverrides) Theme {
 	t.ColorActive = active
 	t.ColorBorder = border
 	t.ColorSelect = sel
+	t.ColorTextOnSelect = selText
 
 	t.ButtonStyle.Color = interior
 	t.ButtonStyle.ColorHover = hover
@@ -87,12 +92,14 @@ func (t Theme) withColors(o ColorOverrides) Theme {
 	t.selectStyle.ColorBorder = border
 	t.selectStyle.ColorBorderFocus = borderFocus
 	t.selectStyle.ColorSelect = sel
+	t.selectStyle.ColorTextOnSelect = selText
 
 	t.listBoxStyle.Color = interior
 	t.listBoxStyle.ColorHover = hover
 	t.listBoxStyle.ColorBorder = border
 	t.listBoxStyle.ColorBorderFocus = borderFocus
 	t.listBoxStyle.ColorSelect = sel
+	t.listBoxStyle.ColorTextOnSelect = selText
 
 	t.treeStyle.ColorHover = hover
 	t.treeStyle.ColorFocus = focus
@@ -167,6 +174,7 @@ func (t Theme) withColors(o ColorOverrides) Theme {
 	t.tableStyle.ColorBorder = border
 	t.tableStyle.ColorBorderFocus = borderFocus
 	t.tableStyle.ColorSelect = sel
+	t.tableStyle.ColorTextOnSelect = selText
 	t.tableStyle.ColorHover = hover
 
 	t.comboboxStyle.Color = interior
@@ -175,10 +183,12 @@ func (t Theme) withColors(o ColorOverrides) Theme {
 	t.comboboxStyle.ColorBorder = border
 	t.comboboxStyle.ColorBorderFocus = borderFocus
 	t.comboboxStyle.ColorHighlight = sel
+	t.comboboxStyle.ColorTextOnSelect = selText
 
 	t.commandPaletteStyle.Color = panel
 	t.commandPaletteStyle.ColorBorder = border
 	t.commandPaletteStyle.ColorHighlight = sel
+	t.commandPaletteStyle.ColorTextOnSelect = selText
 
 	t.MenubarStyle.Color = interior
 	t.MenubarStyle.ColorHover = hover
@@ -186,6 +196,7 @@ func (t Theme) withColors(o ColorOverrides) Theme {
 	t.MenubarStyle.ColorBorder = border
 	t.MenubarStyle.ColorBorderFocus = borderFocus
 	t.MenubarStyle.ColorSelect = sel
+	t.MenubarStyle.ColorTextOnSelect = selText
 
 	t.datePickerStyle.Color = interior
 	t.datePickerStyle.ColorHover = hover
@@ -194,6 +205,7 @@ func (t Theme) withColors(o ColorOverrides) Theme {
 	t.datePickerStyle.ColorBorder = border
 	t.datePickerStyle.ColorBorderFocus = borderFocus
 	t.datePickerStyle.ColorSelect = sel
+	t.datePickerStyle.ColorTextOnSelect = selText
 
 	t.colorPickerStyle.Color = interior
 	t.colorPickerStyle.ColorBorder = border

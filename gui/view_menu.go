@@ -167,6 +167,7 @@ func menuBuild(cfg MenubarCfg, level int, items []MenuItemCfg, w *Window) []View
 		// Build the configured item.
 		configured := item
 		configured.colorSelect = cfg.ColorSelect
+		configured.colorTextOnSelect = cfg.ColorTextOnSelect
 		configured.Padding = pad
 		configured.selected = (selectedID == item.ID)
 		configured.sizing = sizing

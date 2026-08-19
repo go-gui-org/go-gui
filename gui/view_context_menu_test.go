@@ -61,6 +61,32 @@ func TestContextMenuOpensOnRightClick(t *testing.T) {
 	}
 }
 
+// The selected item fills with the accent color, so its label draws
+// in the paired foreground forwarded from the menu; the other items
+// keep the body color (issue #373).
+func TestContextMenuSelectedItemTextColor(t *testing.T) {
+	w := &Window{}
+	sm := StateMap[string, contextMenuState](w, nsContextMenu, capFew)
+	sm.Set("cm-text", contextMenuState{Open: true, X: 10, Y: 10})
+	focusID := ScopeID("cm-text", "popup")
+	w.SetFocus(focusID)
+	sel := StateMap[string, string](w, nsMenu, capFew)
+	sel.Set(focusID, "a")
+
+	v := ContextMenu(w, ContextMenuCfg{
+		ID:                "cm-text",
+		Items:             []MenuItemCfg{{ID: "a", Text: "A"}, {ID: "b", Text: "B"}},
+		ColorTextOnSelect: White,
+	})
+	if got := textColorOf(t, w, v, "A"); !got.eq(White) {
+		t.Errorf("selected item color = %v, want %v", got, White)
+	}
+	if got := textColorOf(t, w, v, "B"); !got.eq(DefaultTextStyle.Color) {
+		t.Errorf("plain item color = %v, want body %v",
+			got, DefaultTextStyle.Color)
+	}
+}
+
 func TestContextMenuClosesOnLeftClick(t *testing.T) {
 	w := &Window{}
 	sm := StateMap[string, contextMenuState](w, nsContextMenu, capFew)

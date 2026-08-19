@@ -255,6 +255,43 @@ func TestThemeMakerPostLiteralOverwrites(t *testing.T) {
 	}
 }
 
+// ColorTextOnSelect resolves to the body text color when unset, so
+// a theme that never states it keeps its current appearance — and
+// every preset stays byte-identical (issue #373). An explicit value
+// wins over the body fallback.
+func TestThemeMakerColorTextOnSelect(t *testing.T) {
+	body := RGBA(12, 34, 56, 255)
+	tests := []struct {
+		name string
+		set  bool
+		want Color
+	}{
+		{"unset falls back to body", false, body},
+		{"explicit wins", true, White},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := baseCfg()
+			cfg.TextStyleDef.Color = body
+			if tt.set {
+				cfg.ColorTextOnSelect = White
+			}
+
+			theme := ThemeMaker(cfg)
+			if !theme.ColorTextOnSelect.eq(tt.want) {
+				t.Errorf("Theme.ColorTextOnSelect = %v, want %v",
+					theme.ColorTextOnSelect, tt.want)
+			}
+			for name, got := range colorTextOnSelectByStyle(theme) {
+				if !got.eq(tt.want) {
+					t.Errorf("%s.ColorTextOnSelect = %v, want %v",
+						name, got, tt.want)
+				}
+			}
+		})
+	}
+}
+
 // Sizes derived from cfg rather than copied straight through.
 func TestThemeMakerDerivedSizes(t *testing.T) {
 	cfg := baseCfg()
