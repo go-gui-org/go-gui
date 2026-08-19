@@ -6,7 +6,33 @@ func layoutOverflow(layout *Layout, w *Window) {
 		layoutOverflow(&layout.Children[i], w)
 	}
 
-	if !layout.Shape.Overflow || layout.Shape.Axis != axisLeftToRight {
+	if !layout.Shape.Overflow {
+		return
+	}
+
+	// Wrap and Overflow are contradictory strategies for the same
+	// condition — wrap breaks content onto a new row, overflow hides the
+	// tail behind a trigger — and wrap wins (issue #380). Without the
+	// gate, a wrap whose content fits one row keeps its LTR axis and
+	// layoutOverflow hides a child even when everything fits, because it
+	// reserves room for the trigger button.
+	//
+	// Checked before the axis bail so the note fires for any wrap+overflow
+	// container: a wrap that broke rows flips to a TTB axis, and the
+	// report must not depend on whether the content happened to fit. The
+	// mask guard keeps the off-state cost at one atomic load, matching
+	// debugUnconsumed.
+	if layout.Shape.Wrap {
+		if DebugCategory(debugMask.Load())&DebugWrapOverflow != 0 {
+			key := layout.Shape.idKey()
+			w.debugWarn(debugCheckWrapOverflow, key,
+				"container %q sets both Wrap and Overflow; Overflow is "+
+					"ignored (issue #380)", key)
+		}
+		return
+	}
+
+	if layout.Shape.Axis != axisLeftToRight {
 		return
 	}
 

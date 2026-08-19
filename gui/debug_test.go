@@ -255,6 +255,7 @@ func TestCheckCategoryMapping(t *testing.T) {
 		{debugCheckListBoxNoHeight, DebugListBoxNoHeight},
 		{debugCheckUnscopedID, DebugUnscopedIDs},
 		{debugCheckGradientResampled, DebugGradientResampled},
+		{debugCheckWrapOverflow, DebugWrapOverflow},
 	}
 	for _, tc := range tests {
 		if got := checkCategory(tc.check); got != tc.want {
@@ -264,7 +265,7 @@ func TestCheckCategoryMapping(t *testing.T) {
 	// DebugAll covers every category Debug(true) turns on.
 	// DebugUnscopedIDs is opt-in and deliberately outside it: it reports
 	// a design property, not a defect.
-	if DebugAll != DebugDuplicates|DebugMissingIDs|DebugUnconsumed|DebugListBoxNoHeight|DebugGradientResampled {
+	if DebugAll != DebugDuplicates|DebugMissingIDs|DebugUnconsumed|DebugListBoxNoHeight|DebugGradientResampled|DebugWrapOverflow {
 		t.Fatal("DebugAll must cover every category Debug(true) enables")
 	}
 	if DebugAll&DebugUnscopedIDs != 0 {
@@ -649,5 +650,89 @@ func TestDebugAllExcludesUnscopedIDs(t *testing.T) {
 	w.debugAudit(&tree)
 	if got := buf.String(); strings.Contains(got, "no ID-bearing ancestor") {
 		t.Fatalf("Debug(true) reported the advisory: %q", got)
+	}
+}
+
+// TestWrapOverflowWarning reports the issue #380 combination: a container
+// that sets both Wrap and Overflow gets a warn-once note naming it, once
+// per window. Both axes report — a wrap that broke rows flips to TTB, and
+// the finding is about the flags, not whether the content happened to fit.
+func TestWrapOverflowWarning(t *testing.T) {
+	buf := captureDebugMask(t, DebugWrapOverflow)
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+
+	report := func(layout *Layout) string {
+		layoutOverflow(layout, w)
+		return buf.String()
+	}
+
+	// Single row: axis stays LTR after the wrap pass.
+	singleRow := &Layout{
+		Shape: &Shape{
+			ID:       "wo-warn",
+			Overflow: true,
+			Wrap:     true,
+			Axis:     axisLeftToRight,
+		},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 50}},
+		},
+	}
+	got := report(singleRow)
+	if !strings.Contains(got, `"wo-warn"`) ||
+		!strings.Contains(got, "sets both Wrap and Overflow") {
+		t.Fatalf("want the wrap+overflow finding, got %q", got)
+	}
+
+	// Multi row: the wrap pass flipped the axis to TTB; still reported.
+	wrapped := &Layout{
+		Shape: &Shape{
+			ID:       "wo-wrapped",
+			Overflow: true,
+			Wrap:     true,
+			Axis:     axisTopToBottom,
+		},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 50}},
+		},
+	}
+	got = report(wrapped)
+	if !strings.Contains(got, `"wo-wrapped"`) {
+		t.Fatalf("want the finding for a wrapped (TTB) container, got %q", got)
+	}
+
+	// Warn-once: later passes do not repeat a finding.
+	report(singleRow)
+	report(wrapped)
+	if got := buf.String(); strings.Count(got, "sets both Wrap and Overflow") != 2 {
+		t.Fatalf("warning repeated: %q", got)
+	}
+}
+
+// The wrap+overflow warning is its own category: a mask without it must
+// stay silent at the site.
+func TestWrapOverflowGatedByCategory(t *testing.T) {
+	buf := captureDebugMask(t, DebugMissingIDs)
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	layout := &Layout{
+		Shape: &Shape{
+			ID:       "wo-silent",
+			Overflow: true,
+			Wrap:     true,
+			Axis:     axisLeftToRight,
+		},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 50}},
+		},
+	}
+
+	layoutOverflow(layout, w)
+	if got := buf.String(); got != "" {
+		t.Fatalf("mask without DebugWrapOverflow reported %q", got)
 	}
 }

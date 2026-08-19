@@ -482,6 +482,10 @@ func Row(cfg ContainerCfg) View {
 // Fixed/Fill width anywhere above — has no width to wrap within and keeps
 // the single-row sum (a Row). Prefer Fill width when the wrap should fill
 // the parent regardless.
+//
+// Setting Overflow on the same container is ignored: the two express
+// contradictory strategies for the same condition and wrap wins (issue
+// #380). gui.Debug reports the combination.
 func Wrap(cfg ContainerCfg) View {
 	cfg.axis = axisLeftToRight
 	cfg.Wrap = true

@@ -106,6 +106,34 @@ func TestLayoutOverflowSkipsScrollContainer(t *testing.T) {
 	}
 }
 
+// TestLayoutOverflowSkipsWrapContainer pins issue #380: Wrap and Overflow
+// are contradictory strategies for the same condition and wrap wins, so
+// layoutOverflow must not hide a child of a Wrap container — not even in
+// the single-row case where the axis stayed LTR and the trigger-room check
+// would hide one despite the slack.
+func TestLayoutOverflowSkipsWrapContainer(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+	layout := &Layout{
+		Shape: &Shape{
+			Overflow: true,
+			Wrap:     true,
+			Axis:     axisLeftToRight,
+			Width:    100,
+		},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 50}},
+		},
+	}
+	layoutOverflow(layout, w)
+	for i, c := range layout.Children {
+		if c.Shape.shapeType == shapeNone {
+			t.Errorf("child %d should not be hidden on a Wrap container", i)
+		}
+	}
+}
+
 func TestLayoutOverflowHidesExcessChildren(t *testing.T) {
 	w := NewWindow(WindowCfg{})
 	defer w.Close()
@@ -176,6 +204,64 @@ func TestLayoutOverflowAllFit(t *testing.T) {
 	// When all fit, trigger gets hidden.
 	if layout.Children[2].Shape.shapeType != shapeNone {
 		t.Error("trigger should be hidden when all children fit")
+	}
+}
+
+// TestWrapOverflowSingleRowKeepsChildren is issue #380 end to end: a
+// FillFit wrap+overflow container whose content fits one row used to keep
+// its LTR axis, after which layoutOverflow hid a child anyway (it reserves
+// room for the trigger button). With wrap winning, every child stays
+// visible and the overflow map never records the container.
+func TestWrapOverflowSingleRowKeepsChildren(t *testing.T) {
+	const (
+		parentWidth = 700
+		childWidth  = 100
+		spacing     = 10
+		childCount  = 6 // 6*100 + 5*10 = 650 < 700, comfortably one row
+	)
+
+	children := make([]Layout, childCount)
+	for i := range children {
+		children[i] = Layout{Shape: &Shape{
+			Width: childWidth, Height: 20, shapeType: shapeRectangle,
+		}}
+	}
+
+	root := &Layout{
+		Shape: &Shape{
+			Axis: axisTopToBottom, Width: parentWidth, Height: 200,
+			Sizing: FixedFixed, shapeType: shapeRectangle,
+		},
+		Children: []Layout{{
+			Shape: &Shape{
+				ID: "wo", Overflow: true, Wrap: true,
+				Axis: axisLeftToRight, Sizing: FillFit,
+				Spacing: spacing, shapeType: shapeRectangle,
+			},
+			Children: children,
+		}},
+	}
+
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+
+	layoutParents(root, nil)
+	layoutWidths(root)
+	layoutFillWidths(root, &scratchPools{})
+	layoutWrapContainers(root, w)
+	layoutOverflow(root, w)
+
+	wo := &root.Children[0]
+	if wo.Shape.Axis != axisLeftToRight {
+		t.Error("single-row wrap should keep its LTR axis")
+	}
+	for i := range wo.Children {
+		if wo.Children[i].Shape.shapeType == shapeNone {
+			t.Errorf("child %d should not be hidden", i)
+		}
+	}
+	if _, ok := w.overflow().Get("wo"); ok {
+		t.Error("overflow map must not record a wrap container")
 	}
 }
 

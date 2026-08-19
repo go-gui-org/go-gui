@@ -79,6 +79,11 @@ const (
 	// evenly spaced stops on GPU backends.
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugGradientResampled
+	// DebugWrapOverflow reports a container that sets both Wrap and
+	// Overflow: the two are contradictory strategies for the same
+	// condition, wrap wins, and overflow is ignored.
+	// exportaudit:keep — dev-diagnostic API for app authors
+	DebugWrapOverflow
 
 	// DebugUnscopedIDs reports a focusable or scrollable shape whose ID
 	// resolves to itself — no ID-bearing ancestor above it — so its
@@ -97,7 +102,7 @@ const (
 	// would fire on most widgets in a small app.
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugAll = DebugDuplicates | DebugMissingIDs | DebugUnconsumed |
-		DebugListBoxNoHeight | DebugGradientResampled
+		DebugListBoxNoHeight | DebugGradientResampled | DebugWrapOverflow
 )
 
 func init() {
@@ -133,6 +138,8 @@ func envTruthy(name string) bool {
 //     off, every row builds each frame)
 //   - a fill gradient with more stops than the GPU shader uniform limit
 //     (silently resampled to evenly spaced stops on GPU backends)
+//   - a container that sets both Wrap and Overflow (wrap wins, overflow
+//     is ignored)
 //
 // It also reports, from dispatch rather than from the frame audit, any
 // consume-class callback that relies on automatic handling while an
@@ -222,6 +229,9 @@ const (
 	// pass when a fill gradient has more stops than the shader uniform
 	// layout can carry.
 	debugCheckGradientResampled
+	// debugCheckWrapOverflow fires from layoutOverflow when a container
+	// sets both Wrap and Overflow; wrap wins and overflow is ignored.
+	debugCheckWrapOverflow
 )
 
 // checkCategory maps an internal check to the public category that
@@ -242,6 +252,8 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugUnscopedIDs
 	case debugCheckGradientResampled:
 		return DebugGradientResampled
+	case debugCheckWrapOverflow:
+		return DebugWrapOverflow
 	}
 	return 0
 }
