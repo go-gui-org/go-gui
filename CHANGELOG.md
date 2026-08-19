@@ -21,6 +21,17 @@ and this project adheres to
 
 ### Fixed
 
+- **`Wrap` + `Overflow` on one container hid children that fit** (issue
+  #380). The two flags express contradictory strategies for the same
+  condition — `Wrap` breaks content onto a new row, `Overflow` hides the
+  tail behind a trigger — and nothing arbitrated between them. When a wrap
+  container's content fit a single row, `layoutWrapContainers` kept its
+  left-to-right axis and `layoutOverflow` then hid a child anyway, because
+  it reserves room for a trigger button that a wrap never has. `Wrap` now
+  wins: `layoutOverflow` skips any container with `Wrap` set, and the new
+  `DebugWrapOverflow` category (part of `DebugAll`) reports the combination
+  once per window. Scrollable containers were already unaffected.
+
 - **`Wrap` stopped wrapping once the child count grew past the window width**
   (issue #378). `layoutWidths` seeded a container's min-width floor with the
   full single-row inter-child gap sum, which is right for a plain `Row` but

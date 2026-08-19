@@ -281,6 +281,7 @@ in the environment, walks the composed tree every frame from
 - scrollable shape with no `ID` (shares one offset with every other)
 - `OnMouseLeave` with no `ID` (callback never fires)
 - a scrollable listbox that resolved to height 0
+- a container setting both `Wrap` and `Overflow` (wrap wins; issue #380)
 - a callback that acted without `ctx.Consume()` while an ancestor also handles
 
 Findings are warn-once per window, so a real defect does not scroll past at
