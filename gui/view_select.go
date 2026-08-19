@@ -134,6 +134,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		}
 		content = append(content, Column(ContainerCfg{
 			ID:            "dropdown",
+			Shadow:        dn.Shadow,
 			SizeBorder:    Some(sizeBorder),
 			Radius:        Some(radius),
 			ColorBorder:   cfg.ColorBorder,

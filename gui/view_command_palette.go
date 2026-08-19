@@ -196,6 +196,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 			Column(ContainerCfg{
 				ID:          cfg.ID,
 				A11YRole:    AccessRoleDialog,
+				Shadow:      dn.Shadow,
 				Color:       cfg.Color,
 				ColorBorder: cfg.ColorBorder,
 				SizeBorder:  Some(sizeBorder),

@@ -65,6 +65,7 @@ func Tooltip(cfg TooltipCfg) View {
 		FloatOffsetX:  cfg.OffsetX.Get(-3),
 		FloatOffsetY:  cfg.OffsetY.Get(-3),
 		FloatZIndex:   cfg.FloatZIndex,
+		Shadow:        d.Shadow,
 		Color:         cfg.Color,
 		ColorBorder:   cfg.ColorBorder,
 		SizeBorder:    SomeF(cfg.SizeBorder.Get(d.SizeBorder)),

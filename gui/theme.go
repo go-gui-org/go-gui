@@ -185,7 +185,13 @@ type Theme struct {
 	ColorActive     Color
 	ColorBorder     Color
 	ColorSelect     Color
-	TitlebarDark    bool
+
+	// focusRing carries ThemeCfg.focusRing through to the widgets.
+	// Read it during generation off the bare guiTheme, like any other
+	// factory-time theme read.
+	focusRing *BoxShadow
+
+	TitlebarDark bool
 }
 
 // ThemeCfg is the configuration struct for ThemeMaker.
@@ -284,6 +290,31 @@ type ThemeCfg struct {
 	ColorSuccess Color
 	ColorWarning Color
 	ColorError   Color
+
+	// Elevation. Two tiers, because that is how the platforms this
+	// exists to imitate actually think about it: a menu floats a
+	// little, a modal floats a lot. A per-widget field would be seven
+	// knobs nobody sets differently.
+	//
+	// Nil means "this theme does not describe elevation", which keeps
+	// every theme predating these fields byte-identical: nil reaches
+	// ContainerCfg.Shadow unchanged, makeContainerEffects still
+	// short-circuits, and no shapeEffects is ever allocated.
+	//
+	// Theme-owned and built once by the theme's cfg function, so
+	// assigning one into a ContainerCfg costs a pointer copy and no
+	// per-frame allocation. Never write through the pointer — one
+	// value is shared by every shape in the window.
+	shadowPopover *BoxShadow // menus, dropdowns, tooltips, toasts
+	shadowDialog  *BoxShadow // modals, command palette
+
+	// focusRing is the focus indication drawn *outside* a control's
+	// bounds, as a zero-offset tinted shadow. macOS's ring is a soft
+	// accent glow, which the inset ColorBorderFocus border cannot
+	// express at any width. Nil leaves the border ring in charge, so
+	// themes that do not set it are unaffected.
+	focusRing *BoxShadow
+
 	TitlebarDark bool
 	// exportaudit:keep — documented public API (showcase docs)
 	FillBorder bool

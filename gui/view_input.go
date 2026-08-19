@@ -558,6 +558,8 @@ func inputAmendLayout(
 	colorBorderFocus Color, spellChk bool,
 	onBlur func(EventCtx),
 ) func(EventCtx) {
+	// Captured at generation; see focusRingAmend.
+	ring := guiTheme.focusRing
 	return func(ctx EventCtx) {
 		if !ctx.Layout.Shape.Focusable || ctx.Layout.Shape.ID == "" {
 			return
@@ -570,6 +572,7 @@ func inputAmendLayout(
 			ctx.Window.IsFocus(key)
 		if focused {
 			ctx.Layout.Shape.ColorBorder = colorBorderFocus
+			applyFocusRingShadow(ctx.Layout.Shape, ctx.Window, ring)
 		}
 
 		// Blur detection: fire commit on focus loss.

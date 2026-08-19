@@ -60,6 +60,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	theme := Theme{
 		Cfg:                  cfg,
 		Name:                 cfg.Name,
+		focusRing:            cfg.focusRing,
 		TextStyleSecondary:   textSecondary,
 		TextStyleLabel:       textLabel,
 		TextStyleDisabled:    textDisabled,
@@ -173,6 +174,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			textStyleLabel:  ts,
 		},
 		selectStyle: SelectStyle{
+			Shadow:           cfg.shadowPopover,
 			MinWidth:         75,
 			MaxWidth:         200,
 			Color:            cfg.ColorInterior,
@@ -220,6 +222,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Spacing: 0,
 		},
 		dialogStyle: DialogStyle{
+			Shadow:           cfg.shadowDialog,
 			Color:            cfg.ColorPanel,
 			ColorBorder:      cfg.ColorBorder,
 			ColorBorderFocus: borderFocus,
@@ -234,6 +237,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			TextStyle:        ts,
 		},
 		toastStyle: ToastStyle{
+			Shadow:       cfg.shadowPopover,
 			maxVisible:   5,
 			Anchor:       toastBottomRight,
 			Width:        260,
@@ -253,6 +257,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			TitleStyle:   makeStyle(ts, cfg.sizeTextMedium),
 		},
 		tooltipStyle: TooltipStyle{
+			Shadow:      cfg.shadowPopover,
 			Delay:       500 * time.Millisecond,
 			Color:       cfg.ColorInterior,
 			ColorBorder: cfg.ColorBorder,
@@ -404,6 +409,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			columnWidthMin:     20,
 		},
 		comboboxStyle: ComboboxStyle{
+			Shadow:            cfg.shadowPopover,
 			Color:             cfg.ColorInterior,
 			ColorHover:        cfg.ColorHover,
 			ColorFocus:        cfg.ColorInterior,
@@ -420,6 +426,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			PlaceholderStyle:  textPlaceholder,
 		},
 		commandPaletteStyle: CommandPaletteStyle{
+			Shadow:         cfg.shadowDialog,
 			Color:          cfg.ColorPanel,
 			ColorBorder:    cfg.ColorBorder,
 			ColorHighlight: cfg.ColorSelect,
@@ -432,6 +439,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			backdropColor:  RGBA(0, 0, 0, 120),
 		},
 		MenubarStyle: MenubarStyle{
+			Shadow:           cfg.shadowPopover,
 			widthSubmenuMin:  50,
 			widthSubmenuMax:  200,
 			Color:            cfg.ColorInterior,
@@ -458,6 +466,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			},
 		},
 		datePickerStyle: DatePickerStyle{
+			Shadow:           cfg.shadowPopover,
 			cellSpacing:      cfg.SpacingTight,
 			Color:            cfg.ColorInterior,
 			ColorHover:       cfg.ColorHover,

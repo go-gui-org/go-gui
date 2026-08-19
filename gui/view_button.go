@@ -104,6 +104,8 @@ func buttonAmendLayout(ctx EventCtx) {
 	if ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
 		ctx.Layout.Shape.Color = ctx.Layout.Shape.bc.ColorFocus
 		ctx.Layout.Shape.ColorBorder = ctx.Layout.Shape.bc.ColorBorderFocus
+		applyFocusRingShadow(ctx.Layout.Shape, ctx.Window,
+			ctx.Layout.Shape.bc.focusRing)
 	}
 	if ctx.Layout.Shape.bc.OnAmend != nil {
 		ctx.Layout.Shape.bc.OnAmend(EventCtx{ctx.Layout, nil, ctx.Window})

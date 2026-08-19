@@ -199,6 +199,7 @@ func (cv *containerView) GenerateLayout(w *Window) Layout {
 			OnHover:          cv.userOnHover,
 			OnAmend:          cv.userAmendLayout,
 			opticalDigits:    cv.opticalDigits,
+			focusRing:        guiTheme.focusRing,
 		}
 		if w != nil {
 			layout.Shape.bc = w.scratch.buttonColors.alloc(bc)

@@ -102,6 +102,10 @@ type SelectStyle struct {
 	textStyleNormal  TextStyle
 	subheadingStyle  TextStyle
 	PlaceholderStyle TextStyle
+	// Shadow lifts the open dropdown off the content behind it. Nil
+	// on a theme that does not describe elevation, which is every
+	// theme that predates ThemeCfg.shadowPopover.
+	Shadow           *BoxShadow
 	Padding          Padding
 	MinWidth         float32
 	MaxWidth         float32
