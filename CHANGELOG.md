@@ -21,6 +21,20 @@ and this project adheres to
 
 ### Fixed
 
+- **`Wrap` stopped wrapping once the child count grew past the window width**
+  (issue #378). `layoutWidths` seeded a container's min-width floor with the
+  full single-row inter-child gap sum, which is right for a plain `Row` but
+  wrong for `Wrap` and `Overflow` — both exist so the container can be narrower
+  than one row of content. The floor therefore grew linearly with the child
+  count (`(n-1) * Spacing`), and once it exceeded the available width the fill
+  pass clamped the container back up to it, so wrapping measured against a
+  width wider than the window and rows spilled past the right edge. Only
+  visible in a non-maximized window, and only past the item count where the
+  floor overtook the real width — hence "wraps at 40 items, overflows at 50". A
+  wrapping or overflowing container now floors at its widest single child plus
+  padding. Not verified against the reporter's repo, which pins released
+  v0.51; the fix lands on the unreleased line.
+
 - **Restored caller-facing `*Cfg` fields unexported by the #230 surface sweep**
   (issue #372). The sweep unexported every symbol with no in-repo external
   reference, including configuration fields users set directly in struct

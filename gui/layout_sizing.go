@@ -362,20 +362,31 @@ func layoutWidths(layout *Layout) {
 				layoutWidths(&layout.Children[i])
 			}
 		} else {
-			minWidths := padding + sp
+			// A wrapping or overflowing row can be narrower than the
+			// sum of its content: rows break (Wrap) or trailing
+			// children are hidden (Overflow). Seeding the floor with
+			// the full inter-child gap sum would make MinWidth grow
+			// with the child count and pin the container wider than
+			// its parent (issue #378) — only the widest single child
+			// has to fit.
+			wrapOrOverflow := layout.Shape.Wrap || layout.Shape.Overflow
+			minWidths := padding
+			if !wrapOrOverflow {
+				minWidths += sp
+			}
 			for i := range layout.Children {
 				layoutWidths(&layout.Children[i])
 				if layout.Children[i].Shape.OverDraw {
 					continue
 				}
 				layout.Shape.Width += layout.Children[i].Shape.Width
-				if layout.Shape.Wrap || layout.Shape.Overflow {
+				if wrapOrOverflow {
 					minWidths = f32Max(minWidths, layout.Children[i].Shape.Width+padding)
 				} else if !layout.Shape.Clip {
 					minWidths += layout.Children[i].Shape.MinWidth
 				}
 			}
-			if !layout.Shape.Wrap && !layout.Shape.Overflow {
+			if !wrapOrOverflow {
 				layout.Shape.MinWidth = f32Max(minWidths, layout.Shape.MinWidth+padding+sp)
 			} else {
 				layout.Shape.MinWidth = f32Max(minWidths, layout.Shape.MinWidth)
