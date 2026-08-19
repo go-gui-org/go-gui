@@ -161,6 +161,16 @@ table header is data index 0 but sits outside the scrollable). Call
 `w.InvalidateListHeights(id)` when a row's content changed under a stable key —
 nothing detects that. See `docs/specs/virtualized-variable-height-lists.md`.
 
+## `Wrap` with Fit width
+
+`Wrap` with a Fit width resolves as **fit-content** (issue #379): the width is
+`min(single-row sum, nearest definite-width ancestor's available)`, so the
+container wraps within its parent instead of rendering one unwrapped row wider
+than it. A Fit chain with no Fixed/Fill width above it has no width to wrap
+within and keeps the single-row sum — that combination behaves as a `Row`, not
+a wrap. When the wrap should always fill its parent, use Fill width, which is
+what every example in this repo does.
+
 ## The one-event rule
 
 Nothing is marked handled for you. A callback that acts on an event calls
