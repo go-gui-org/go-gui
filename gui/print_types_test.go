@@ -250,8 +250,8 @@ func TestValidateHeaderFooter(t *testing.T) {
 	t.Parallel()
 	t.Run("ok", func(t *testing.T) {
 		t.Parallel()
-		cfg := printHeaderFooterCfg{
-			enabled: true, Left: "Page {page}",
+		cfg := PrintHeaderFooterCfg{
+			Enabled: true, Left: "Page {page}",
 		}
 		if err := validateHeaderFooterCfg(cfg); err != nil {
 			t.Errorf("unexpected error: %v", err)
@@ -259,8 +259,8 @@ func TestValidateHeaderFooter(t *testing.T) {
 	})
 	t.Run("bad_token", func(t *testing.T) {
 		t.Parallel()
-		cfg := printHeaderFooterCfg{
-			enabled: true, Center: "{invalid}",
+		cfg := PrintHeaderFooterCfg{
+			Enabled: true, Center: "{invalid}",
 		}
 		if err := validateHeaderFooterCfg(cfg); err == nil {
 			t.Error("expected error for bad token")
@@ -268,8 +268,8 @@ func TestValidateHeaderFooter(t *testing.T) {
 	})
 	t.Run("disabled_skips_validation", func(t *testing.T) {
 		t.Parallel()
-		cfg := printHeaderFooterCfg{
-			enabled: false, Center: "{invalid}",
+		cfg := PrintHeaderFooterCfg{
+			Enabled: false, Center: "{invalid}",
 		}
 		if err := validateHeaderFooterCfg(cfg); err != nil {
 			t.Errorf("disabled header should skip validation: %v", err)

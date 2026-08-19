@@ -28,7 +28,7 @@ func TestThemeMakerIconFamilyDefault(t *testing.T) {
 
 func TestThemeMakerIconFamilyOverride(t *testing.T) {
 	cfg := baseCfg()
-	cfg.iconFontFamily = "mycustomicons"
+	cfg.IconFontFamily = "mycustomicons"
 	theme := ThemeMaker(cfg)
 	for i, got := range iconStyleFamilies(theme) {
 		if got != "mycustomicons" {
@@ -52,7 +52,7 @@ func TestThemeMakerIconFamilyEmptyFallsBack(t *testing.T) {
 
 func TestThemeMakerMonoFamily(t *testing.T) {
 	cfg := baseCfg()
-	cfg.monoFontFamily = "mycustommono"
+	cfg.MonoFontFamily = "mycustommono"
 	theme := ThemeMaker(cfg)
 	styles := []TextStyle{
 		theme.M1, theme.M2, theme.M3, theme.M4, theme.M5, theme.M6,
@@ -71,8 +71,8 @@ func TestThemeMakerMonoFamily(t *testing.T) {
 func TestThemeMakerIconFamilyDoesNotLeak(t *testing.T) {
 	cfg := baseCfg()
 	cfg.TextStyleDef.Family = "mytextfamily"
-	cfg.monoFontFamily = "mymonofamily"
-	cfg.iconFontFamily = "myiconfamily"
+	cfg.MonoFontFamily = "mymonofamily"
+	cfg.IconFontFamily = "myiconfamily"
 	theme := ThemeMaker(cfg)
 
 	text := map[string]TextStyle{
@@ -159,7 +159,7 @@ func TestThemeMakerBorderFocusExplicitWins(t *testing.T) {
 func TestThemeMakerSeparatorExplicitWins(t *testing.T) {
 	cfg := baseCfg()
 	cfg.ColorSeparator = RGBA(10, 20, 30, 255)
-	cfg.sizeSeparator = 4
+	cfg.SizeSeparator = 4
 
 	theme := ThemeMaker(cfg)
 	if !theme.separatorStyle.Color.eq(cfg.ColorSeparator) {
@@ -259,7 +259,7 @@ func TestThemeMakerPostLiteralOverwrites(t *testing.T) {
 func TestThemeMakerDerivedSizes(t *testing.T) {
 	cfg := baseCfg()
 	cfg.TextStyleDef = TextStyle{Size: 18}
-	cfg.sizeSlider = 10
+	cfg.SizeSlider = 10
 
 	theme := ThemeMaker(cfg)
 	if theme.toggleStyle.Size != 22 {
@@ -276,7 +276,7 @@ func TestThemeMakerDerivedSizes(t *testing.T) {
 // rather than a default. Documented, not a bug to "fix" here.
 func TestThemeMakerSliderRadiusZeroSizeNotClamped(t *testing.T) {
 	cfg := baseCfg()
-	cfg.sizeSlider = 0
+	cfg.SizeSlider = 0
 
 	theme := ThemeMaker(cfg)
 	if theme.sliderStyle.Radius != 0 {

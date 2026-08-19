@@ -209,8 +209,8 @@ func TestDatePickerWeekdayLabel(t *testing.T) {
 func TestDatePickerDefaults(t *testing.T) {
 	cfg := DatePickerCfg{}
 	applyDatePickerDefaults(&cfg)
-	if cfg.cellSpacing.Get(0) != 2 {
-		t.Errorf("spacing = %f", cfg.cellSpacing.Get(0))
+	if cfg.CellSpacing.Get(0) != 2 {
+		t.Errorf("spacing = %f", cfg.CellSpacing.Get(0))
 	}
 	if !cfg.Radius.IsSet() {
 		t.Error("radius should be set")

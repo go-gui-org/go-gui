@@ -231,10 +231,10 @@ func (t Theme) AdjustFontSize(delta, minSize, maxSize float32) (Theme, error) {
 	}
 	cfg.TextStyleDef.Size = newSize
 	cfg.SizeTextTiny = max(cfg.SizeTextTiny+delta, 6)
-	cfg.sizeTextXSmall = max(cfg.sizeTextXSmall+delta, 6)
-	cfg.sizeTextSmall = max(cfg.sizeTextSmall+delta, 6)
-	cfg.sizeTextMedium = max(cfg.sizeTextMedium+delta, 6)
-	cfg.sizeTextLarge = max(cfg.sizeTextLarge+delta, 6)
-	cfg.sizeTextXLarge = max(cfg.sizeTextXLarge+delta, 6)
+	cfg.SizeTextXSmall = max(cfg.SizeTextXSmall+delta, 6)
+	cfg.SizeTextSmall = max(cfg.SizeTextSmall+delta, 6)
+	cfg.SizeTextMedium = max(cfg.SizeTextMedium+delta, 6)
+	cfg.SizeTextLarge = max(cfg.SizeTextLarge+delta, 6)
+	cfg.SizeTextXLarge = max(cfg.SizeTextXLarge+delta, 6)
 	return ThemeMaker(cfg), nil
 }

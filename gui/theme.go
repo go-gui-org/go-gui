@@ -159,17 +159,28 @@ type Theme struct {
 	SpacingMedium float32
 	SpacingLarge  float32
 
-	SizeTextTiny   float32
-	sizeTextXSmall float32
-	sizeTextSmall  float32
-	sizeTextMedium float32
-	sizeTextLarge  float32
-	sizeTextXLarge float32
+	SizeTextTiny float32
+	// SizeTextXSmall .. SizeTextXLarge are the text size ladder. Zero
+	// takes the built-in defaults.
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeTextXSmall float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeTextSmall float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeTextMedium float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeTextLarge float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeTextXLarge float32
 
-	scrollMultiplier float32
-	scrollDeltaLine  float32
-	scrollDeltaPage  float32
-	inspectorStyle   InspectorStyle
+	// ScrollMultiplier scales wheel/trackpad scroll distance.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ScrollMultiplier float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	ScrollDeltaLine float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	ScrollDeltaPage float32
+	inspectorStyle  InspectorStyle
 
 	// id identifies this exact theme value. Stamped by ThemeMaker and
 	// re-stamped by every with*Style helper, so a derived theme never
@@ -200,7 +211,9 @@ type ThemeCfg struct {
 
 	Name string
 
-	monoFontFamily string // font family for code/mono text
+	// MonoFontFamily is the font family for code/mono text.
+	// exportaudit:keep — caller-facing config (issue #372)
+	MonoFontFamily string // font family for code/mono text
 
 	// IconFontFamily is the font family for the themed icon styles
 	// (Icon1..Icon6, TreeStyle.TextStyleIcon). Defaults to
@@ -210,7 +223,8 @@ type ThemeCfg struct {
 	// Setting this only retargets the styles — the font itself must
 	// still be registered with RegisterAppFont or RegisterAppFontBytes
 	// before the backend starts, or icons render as tofu.
-	iconFontFamily string
+	// exportaudit:keep — caller-facing config (issue #372)
+	IconFontFamily string
 
 	Padding Padding
 
@@ -239,26 +253,46 @@ type ThemeCfg struct {
 	SpacingMedium float32
 	SpacingLarge  float32
 
-	SizeTextTiny   float32
-	sizeTextXSmall float32
-	sizeTextSmall  float32
-	sizeTextMedium float32
-	sizeTextLarge  float32
-	sizeTextXLarge float32
+	SizeTextTiny float32
+	// SizeTextXSmall .. SizeTextXLarge are the text size ladder. Zero
+	// takes the built-in defaults.
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeTextXSmall float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeTextSmall float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeTextMedium float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeTextLarge float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeTextXLarge float32
 
-	scrollMultiplier float32
-	scrollDeltaLine  float32
-	scrollDeltaPage  float32
+	// ScrollMultiplier scales wheel/trackpad scroll distance.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ScrollMultiplier float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	ScrollDeltaLine float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	ScrollDeltaPage float32
 
-	sizeSwitchWidth  float32
-	sizeSwitchHeight float32
-	sizeRadio        float32
-	sizeScrollbar    float32
-	sizeScrollbarMin float32
-	sizeProgressBar  float32
-	sizeSlider       float32
-	sizeSliderThumb  float32
-	sizeSeparator    float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeSwitchWidth float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeSwitchHeight float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeRadio float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeScrollbar float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeScrollbarMin float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeProgressBar float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeSlider float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeSliderThumb float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeSeparator    float32
 	ColorBackground  Color
 	ColorPanel       Color
 	ColorInterior    Color
@@ -305,15 +339,21 @@ type ThemeCfg struct {
 	// assigning one into a ContainerCfg costs a pointer copy and no
 	// per-frame allocation. Never write through the pointer — one
 	// value is shared by every shape in the window.
-	shadowPopover *BoxShadow // menus, dropdowns, tooltips, toasts
-	shadowDialog  *BoxShadow // modals, command palette
+	// ShadowPopover/ShadowDialog are the two elevation tiers.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ShadowPopover *BoxShadow // menus, dropdowns, tooltips, toasts
+	// exportaudit:keep — caller-facing config (issue #372)
+	ShadowDialog *BoxShadow // modals, command palette
 
 	// focusRing is the focus indication drawn *outside* a control's
 	// bounds, as a zero-offset tinted shadow. macOS's ring is a soft
 	// accent glow, which the inset ColorBorderFocus border cannot
 	// express at any width. Nil leaves the border ring in charge, so
 	// themes that do not set it are unaffected.
-	focusRing *BoxShadow
+	// FocusRing is the outside-the-bounds focus glow. Nil leaves the
+	// border ring in charge.
+	// exportaudit:keep — caller-facing config (issue #372)
+	FocusRing *BoxShadow
 
 	TitlebarDark bool
 	// exportaudit:keep — documented public API (showcase docs)

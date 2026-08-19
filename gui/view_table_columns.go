@@ -18,8 +18,8 @@ func tableColumnWidths(cfg *TableCfg, w *Window) []float32 {
 
 	if w == nil || w.textMeasurer == nil {
 		widths := make([]float32, numCols)
-		cw := cfg.columnWidthDefault +
-			cfg.cellPadding.Or(PaddingNone).Width()
+		cw := cfg.ColumnWidthDefault +
+			cfg.CellPadding.Or(PaddingNone).Width()
 		for i := range widths {
 			widths[i] = cw
 		}
@@ -63,7 +63,7 @@ func tableMeasureWidths(
 		}
 	}
 	widths := make([]float32, numCols)
-	pad := cfg.cellPadding.Or(PaddingNone).Width()
+	pad := cfg.CellPadding.Or(PaddingNone).Width()
 
 	for _, r := range cfg.Data {
 		for ci, cell := range r.Cells {
@@ -87,8 +87,8 @@ func tableMeasureWidths(
 	}
 
 	for i := range widths {
-		if widths[i] < cfg.columnWidthMin {
-			widths[i] = cfg.columnWidthMin
+		if widths[i] < cfg.ColumnWidthMin {
+			widths[i] = cfg.ColumnWidthMin
 		}
 	}
 	return widths
@@ -140,7 +140,7 @@ func tableEstimateRowHeight(cfg *TableCfg, w *Window) float32 {
 	if w != nil && w.textMeasurer != nil {
 		height = w.textMeasurer.FontHeight(style)
 	}
-	return height + cfg.cellPadding.Or(PaddingNone).Height()
+	return height + cfg.CellPadding.Or(PaddingNone).Height()
 }
 
 // ClearTableCache removes cached column widths for the given

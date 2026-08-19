@@ -50,7 +50,7 @@ func TestMathSpinnerExplicitZeroParam(t *testing.T) {
 	v := MathSpinner(MathSpinnerCfg{
 		ID:        "s4",
 		CurveType: CurveLissajous,
-		paramB:    Some[float32](0),
+		ParamB:    Some[float32](0),
 	}, w)
 	layout := generateViewLayout(v, w)
 	if layout.Shape.Width != 48 {

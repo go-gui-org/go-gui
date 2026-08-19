@@ -216,11 +216,11 @@ func numericInputField(cfg NumericInputCfg, locale NumericLocaleCfg, _ NumericSt
 		Disabled:           cfg.Disabled,
 		Invisible:          cfg.Invisible,
 		OnTextChanged:      cfg.OnTextChanged,
-		preTextChange: func(current, proposed string) (string, bool) {
+		PreTextChange: func(current, proposed string) (string, bool) {
 			return numericInputPreCommitTransformMode(
 				current, proposed, cfg.Decimals, locale, modeCfg)
 		},
-		postCommitNormalize: func(text string, _ InputCommitReason) string {
+		PostCommitNormalize: func(text string, _ InputCommitReason) string {
 			_, committed := numericInputCommitResultMode(
 				text, cfg.Value, cfg.Min, cfg.Max,
 				cfg.Decimals, locale, modeCfg)

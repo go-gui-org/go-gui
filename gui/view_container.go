@@ -37,26 +37,32 @@ type ContainerCfg struct {
 	// ClickOnSpace fires OnClick on spacebar via the char dispatch
 	// path. Avoids the per-frame closure allocation from
 	// spacebarToClick.
-	clickOnSpace bool
+	// exportaudit:keep — caller-facing config (issue #372)
+	ClickOnSpace bool
 
 	// ClickOnEnter fires OnClick on Enter key via the key-down
 	// dispatch path. Avoids the per-frame closure allocation from
 	// enterToClick.
-	clickOnEnter bool
+	// exportaudit:keep — caller-facing config (issue #372)
+	ClickOnEnter bool
 
 	// OnScroll fires when the container receives scroll events.
 	// Requires Scrollable and a scrollable Overflow/ScrollMode.
-	onScroll func(EventCtx)
+	// exportaudit:keep — caller-facing config (issue #372)
+	OnScroll func(EventCtx)
 
 	// AmendLayout runs after sizing to reposition overlays
 	// (color picker circles, splitter handles) or manage hover
 	// indicators. Coordinates are absolute.
 	AmendLayout func(EventCtx)
 
-	OnHover     func(EventCtx)
-	OnGesture   func(EventCtx)
-	OnFileDrop  func(EventCtx)
-	onIMECommit func(string, EventCtx)
+	OnHover    func(EventCtx)
+	OnGesture  func(EventCtx)
+	OnFileDrop func(EventCtx)
+	// OnIMECommit fires when an IME composition commits. Requires
+	// an active input session; use with IsIMEEnabled.
+	// exportaudit:keep — caller-facing config (issue #372)
+	OnIMECommit func(string, EventCtx)
 
 	// ScrollbarCfgX/Y override scrollbar appearance for this
 	// container. nil uses theme defaults. Only active when
@@ -125,9 +131,12 @@ type ContainerCfg struct {
 	Wrap     bool
 	Overflow bool
 
-	ScrollMode   scrollMode
-	Clip         bool
-	clipContents bool
+	ScrollMode scrollMode
+	Clip       bool
+	// ClipContents clips children to the container bounds. Default
+	// false; containers clip via ScrollMode/Overflow when scrollable.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ClipContents bool
 	FocusSkip    bool
 	Disabled     bool
 	Invisible    bool
@@ -142,8 +151,11 @@ type ContainerCfg struct {
 	AnimSnap AnimFlags
 
 	// Floating
-	Float         bool
-	floatAutoFlip bool
+	Float bool
+	// FloatAutoFlip mirrors the float to the opposite side when it
+	// would cross the window edge.
+	// exportaudit:keep — caller-facing config (issue #372)
+	FloatAutoFlip bool
 	FloatAnchor   floatAttach
 	FloatTieOff   floatAttach
 
@@ -312,8 +324,8 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		c.OnMouseMove == nil && c.OnMouseUp == nil &&
 		c.OnMouseDown == nil &&
 		c.OnHover == nil && c.OnGesture == nil &&
-		c.OnFileDrop == nil && c.onIMECommit == nil &&
-		c.onScroll == nil && c.AmendLayout == nil {
+		c.OnFileDrop == nil && c.OnIMECommit == nil &&
+		c.OnScroll == nil && c.AmendLayout == nil {
 		return eventHandlers{}, false
 	}
 	return eventHandlers{
@@ -327,12 +339,12 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		OnHover:      c.OnHover,
 		OnGesture:    c.OnGesture,
 		OnFileDrop:   c.OnFileDrop,
-		onIMECommit:  c.onIMECommit,
-		onScroll:     c.onScroll,
+		onIMECommit:  c.OnIMECommit,
+		onScroll:     c.OnScroll,
 		AmendLayout:  c.AmendLayout,
 		clickButton:  c.clickButton,
-		clickOnSpace: c.clickOnSpace,
-		clickOnEnter: c.clickOnEnter,
+		clickOnSpace: c.ClickOnSpace,
+		clickOnEnter: c.ClickOnEnter,
 	}, true
 }
 
@@ -377,7 +389,7 @@ func buildContainerShape(cfg *ContainerCfg, w *Window) Shape {
 		MinHeight:            cfg.MinHeight,
 		MaxHeight:            cfg.MaxHeight,
 		Clip:                 cfg.Clip,
-		clipContents:         cfg.clipContents,
+		clipContents:         cfg.ClipContents,
 		FocusSkip:            cfg.FocusSkip,
 		Spacing:              spacing,
 		Sizing:               cfg.Sizing,
@@ -391,7 +403,7 @@ func buildContainerShape(cfg *ContainerCfg, w *Window) Shape {
 		ColorBorder:          cfg.ColorBorder,
 		Disabled:             cfg.Disabled,
 		Float:                cfg.Float,
-		floatAutoFlip:        cfg.floatAutoFlip,
+		floatAutoFlip:        cfg.FloatAutoFlip,
 		FloatAnchor:          cfg.FloatAnchor,
 		FloatTieOff:          cfg.FloatTieOff,
 		FloatOffsetX:         cfg.FloatOffsetX,

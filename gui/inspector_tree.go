@@ -13,7 +13,7 @@ func inspectorTreeView(w *Window) View {
 	}
 	return Tree(TreeCfg{
 		ID:       inspectorTreeID,
-		indent:   16,
+		Indent:   16,
 		Spacing:  SomeF(1),
 		Nodes:    nodes,
 		OnSelect: func(id string, ctx EventCtx) { inspectorSelect(id, ctx.Window) },
@@ -158,7 +158,7 @@ func inspectorLayoutToTree(
 		ID:            path,
 		Text:          inspectorNodeLabel(layout.Shape),
 		TextStyle:     inspectorNodeTextStyle(),
-		textStyleIcon: inspectorNodeIconStyle(),
+		TextStyleIcon: inspectorNodeIconStyle(),
 		Nodes:         childNodes,
 	}}
 }

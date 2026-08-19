@@ -11,7 +11,7 @@ import (
 func dataGridGroupHeaderRowView(cfg *DataGridCfg, entry dataGridDisplayRow, rowHeight float32) gg.View {
 	depthPad := float32(entry.GroupDepth) * dataGridGroupIndentStep
 	label := entry.GroupColTitle + ": " + entry.GroupValue
-	if boolDefault(cfg.showGroupCounts, true) {
+	if boolDefault(cfg.ShowGroupCounts, true) {
 		label += " (" + strconv.Itoa(entry.GroupCount) + ")"
 	}
 	if entry.AggregateText != "" {
@@ -38,20 +38,20 @@ func dataGridGroupHeaderRowView(cfg *DataGridCfg, entry dataGridDisplayRow, rowH
 
 func dataGridDetailRowView(dctx dataGridCtx, rowData GridRow, rowIdx int) gg.View {
 	cfg := dctx.cfg
-	if cfg.detailRowView == nil {
+	if cfg.DetailRowView == nil {
 		return gg.Rectangle(gg.RectangleCfg{
-			Height: dctx.rowHeight,
+			Height: dctx.RowHeight,
 			Sizing: gg.FillFixed,
 			Color:  gg.ColorTransparent,
 		})
 	}
 	rowID := dataGridRowID(rowData, rowIdx)
-	detailView := cfg.detailRowView(rowData, dctx.w)
+	detailView := cfg.DetailRowView(rowData, dctx.w)
 	pc := cfg.PaddingCell.Or(gg.PaddingNone)
 	focusID := dctx.focusID
 	return gg.Row(gg.ContainerCfg{
 		ID:          gg.ScopeID(cfg.ID, "detail", rowID),
-		Height:      dctx.rowHeight,
+		Height:      dctx.RowHeight,
 		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorBackground,
 		ColorBorder: cfg.ColorBorder,
@@ -81,7 +81,7 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 	cfg := dctx.cfg
 	columns := dctx.columns
 	columnWidths := dctx.columnWidths
-	rowHeight := dctx.rowHeight
+	rowHeight := dctx.RowHeight
 	focusID := dctx.focusID
 	w := dctx.w
 	rowID := dataGridRowID(rowData, rowIdx)
@@ -91,12 +91,12 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 	onSelectionChange := cfg.OnSelectionChange
 	rows := cfg.Rows
 	multiSelect := boolDefault(cfg.MultiSelect, true)
-	rangeSelect := boolDefault(cfg.rangeSelect, true)
+	rangeSelect := boolDefault(cfg.RangeSelect, true)
 	editEnabled := dataGridEditingEnabled(cfg)
 	editorFocusBase := dataGridCellEditorFocusBaseID(cfg, len(columns))
 	colCount := len(columns)
-	detailEnabled := cfg.detailRowView != nil
-	detailToggleEnabled := cfg.onDetailExpandedChange != nil
+	detailEnabled := cfg.DetailRowView != nil
+	detailToggleEnabled := cfg.OnDetailExpandedChange != nil
 	detailExpanded := dataGridDetailRowExpanded(cfg, rowID)
 	isEditingRow := dctx.editingRowID == rowID && editEnabled
 
@@ -109,8 +109,8 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 		}
 		textStyle := baseTextStyle
 		cellColor := gg.ColorTransparent
-		if cfg.cellFormat != nil {
-			cellFormat := cfg.cellFormat(rowData, rowIdx, col, value, w)
+		if cfg.CellFormat != nil {
+			cellFormat := cfg.CellFormat(rowData, rowIdx, col, value, w)
 			textStyle, cellColor = dataGridResolveCellFormat(baseTextStyle, cellFormat)
 		}
 		isEditingCell := isEditingRow && col.Editable
@@ -216,7 +216,7 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 	})
 }
 
-func dataGridResolveCellFormat(base gg.TextStyle, format gridCellFormat) (gg.TextStyle, gg.Color) {
+func dataGridResolveCellFormat(base gg.TextStyle, format GridCellFormat) (gg.TextStyle, gg.Color) {
 	textStyle := base
 	if format.hasTextColor {
 		textStyle.Color = format.textColor
@@ -373,8 +373,8 @@ func dataGridDetailToggleControl(cfg *DataGridCfg, rowID string, expanded, enabl
 			},
 		})
 	}
-	onDetailExpandedChange := cfg.onDetailExpandedChange
-	detailExpandedRowIDs := cfg.detailExpandedRowIDs
+	onDetailExpandedChange := cfg.OnDetailExpandedChange
+	detailExpandedRowIDs := cfg.DetailExpandedRowIDs
 	return gg.Button(gg.ButtonCfg{
 		ID:         gg.ScopeID(cfg.ID, "detail_toggle", rowID),
 		Width:      dataGridHeaderControlWidth,
@@ -483,7 +483,7 @@ func dataGridFrozenTopViews(dctx dataGridCtx, frozenTopIndices []int, showDelete
 		rowID := dataGridRowID(rowData, rowIdx)
 		views = append(views, dataGridRowView(dctx, rowData, rowIdx, showDeleteAction))
 		displayRows++
-		if cfg.detailRowView != nil && dataGridDetailRowExpanded(cfg, rowID) {
+		if cfg.DetailRowView != nil && dataGridDetailRowExpanded(cfg, rowID) {
 			views = append(views, dataGridDetailRowView(dctx, rowData, rowIdx))
 			displayRows++
 		}
@@ -492,11 +492,11 @@ func dataGridFrozenTopViews(dctx dataGridCtx, frozenTopIndices []int, showDelete
 }
 
 func dataGridFrozenTopIDSet(cfg *DataGridCfg) map[string]bool {
-	if len(cfg.frozenTopRowIDs) == 0 {
+	if len(cfg.FrozenTopRowIDs) == 0 {
 		return nil
 	}
-	out := make(map[string]bool, len(cfg.frozenTopRowIDs))
-	for _, rowID := range cfg.frozenTopRowIDs {
+	out := make(map[string]bool, len(cfg.FrozenTopRowIDs))
+	for _, rowID := range cfg.FrozenTopRowIDs {
 		trimmed := strings.TrimSpace(rowID)
 		if trimmed != "" {
 			out[trimmed] = true

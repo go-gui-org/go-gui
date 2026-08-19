@@ -47,7 +47,7 @@ func TestCrudRowDeleteEnabledCrudDisabled(t *testing.T) {
 
 func TestCrudRowDeleteEnabledAllowDeleteFalse(t *testing.T) {
 	f := false
-	cfg := &DataGridCfg{ShowCRUDToolbar: true, allowDelete: &f}
+	cfg := &DataGridCfg{ShowCRUDToolbar: true, AllowDelete: &f}
 	if dataGridCrudRowDeleteEnabled(cfg, true, GridDataCapabilities{supportsDelete: true}) {
 		t.Fatal("should be false when AllowDelete is false")
 	}

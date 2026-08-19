@@ -17,9 +17,12 @@ type RadioCfg struct {
 	Color         Color
 	// Colors sets the per-state colors. Color above is the
 	// shorthand for Colors.Base and wins over it.
-	Colors        ColorSet
-	ColorSelect   Color
-	colorUnselect Color
+	Colors      ColorSet
+	ColorSelect Color
+	// ColorUnselect paints the ring in the off state. Unset takes
+	// the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorUnselect Color
 	Disabled      bool
 	Selected      bool
 	Invisible     bool
@@ -37,7 +40,7 @@ func Radio(cfg RadioCfg) View {
 	colorBorderFocus := cfg.Colors.BorderFocus
 	colorHover := cfg.Colors.Hover
 	colorClick := cfg.Colors.Click
-	circleColor := cfg.colorUnselect
+	circleColor := cfg.ColorUnselect
 	if cfg.Selected {
 		circleColor = cfg.ColorSelect
 	}
@@ -81,7 +84,7 @@ func Radio(cfg RadioCfg) View {
 		},
 		OnClick:      cfg.OnClick,
 		clickButton:  MouseLeft,
-		clickOnSpace: true,
+		ClickOnSpace: true,
 		AmendLayout: func(ctx EventCtx) {
 			if ctx.Layout.Shape.Disabled ||
 				!ctx.Layout.Shape.hasEvents() ||
@@ -123,8 +126,8 @@ func applyRadioDefaults(cfg *RadioCfg) {
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
 	}
-	if !cfg.colorUnselect.IsSet() {
-		cfg.colorUnselect = d.colorUnselect
+	if !cfg.ColorUnselect.IsSet() {
+		cfg.ColorUnselect = d.colorUnselect
 	}
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = d.Padding

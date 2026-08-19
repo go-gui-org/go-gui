@@ -43,23 +43,39 @@ type TableCfg struct {
 	TextStyle     TextStyle
 	TextStyleHead TextStyle
 	ColorRowAlt   *Color
-	alignHead     *HorizontalAlign
-	Selected      map[int]bool
-	OnSelect      func(map[int]bool, int, EventCtx)
-	ID            string `gui:"required"`
+	// AlignHead overrides the header alignment. Unset takes the
+	// theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	AlignHead *HorizontalAlign
+	Selected  map[int]bool
+	OnSelect  func(map[int]bool, int, EventCtx)
+	ID        string `gui:"required"`
 	A11YCfg
-	columnAlignments []HorizontalAlign
+	// ColumnAlignments per-column horizontal alignment, in display
+	// order. Shorter than the column count leaves the tail at the
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColumnAlignments []HorizontalAlign
 	// RawData is a convenience field for CSV-style data. First row
 	// is treated as the header. When set, RawData takes precedence
 	// over Data.
-	rawData [][]string
+	// exportaudit:keep — caller-facing config (issue #372)
+	RawData [][]string
 	Data    []TableRowCfg
 
-	cellPadding        Padding
-	columnWidthDefault float32
-	columnWidthMin     float32
-	SizeBorder         float32 // ergonomics-audit:opt-plain — 0 = no borders, applied as-is; public API kept plain
-	SizeBorderHeader   float32 // ergonomics-audit:opt-plain — 0 = no header separator; public API kept plain
+	// CellPadding insets every cell. Unset takes the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	CellPadding Padding
+	// ColumnWidthDefault is the fallback width for columns without
+	// an explicit width. Zero takes the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColumnWidthDefault float32
+	// ColumnWidthMin is the narrowest any column may size. Zero
+	// takes the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColumnWidthMin   float32
+	SizeBorder       float32 // ergonomics-audit:opt-plain — 0 = no borders, applied as-is; public API kept plain
+	SizeBorderHeader float32 // ergonomics-audit:opt-plain — 0 = no header separator; public API kept plain
 
 	// Scrollable enables scrolling. When set with Height or
 	// MaxHeight, virtualization renders only visible rows. Scroll
@@ -111,8 +127,8 @@ func applyTableDefaults(cfg *TableCfg) {
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = s.ColorSelect
 	}
-	if !cfg.cellPadding.IsSet() {
-		cfg.cellPadding = s.cellPadding
+	if !cfg.CellPadding.IsSet() {
+		cfg.CellPadding = s.cellPadding
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = s.TextStyle
@@ -120,14 +136,14 @@ func applyTableDefaults(cfg *TableCfg) {
 	if cfg.TextStyleHead == (TextStyle{}) {
 		cfg.TextStyleHead = s.TextStyleHead
 	}
-	if cfg.alignHead == nil {
-		cfg.alignHead = &s.alignHead
+	if cfg.AlignHead == nil {
+		cfg.AlignHead = &s.alignHead
 	}
-	if cfg.columnWidthDefault == 0 {
-		cfg.columnWidthDefault = s.columnWidthDefault
+	if cfg.ColumnWidthDefault == 0 {
+		cfg.ColumnWidthDefault = s.columnWidthDefault
 	}
-	if cfg.columnWidthMin == 0 {
-		cfg.columnWidthMin = s.columnWidthMin
+	if cfg.ColumnWidthMin == 0 {
+		cfg.ColumnWidthMin = s.columnWidthMin
 	}
 }
 
@@ -188,9 +204,9 @@ func tableEmptyView(cfg *TableCfg) View {
 }
 
 func tableView(cfg TableCfg, w *Window) View {
-	if len(cfg.rawData) > 0 {
-		n := min(len(cfg.rawData), maxDataConvLen)
-		cfg.Data = TableCfgFromData(cfg.rawData[:n]).Data
+	if len(cfg.RawData) > 0 {
+		n := min(len(cfg.RawData), maxDataConvLen)
+		cfg.Data = TableCfgFromData(cfg.RawData[:n]).Data
 	}
 	applyTableDefaults(&cfg)
 

@@ -35,9 +35,9 @@ func tableBuildRow(
 		if cell.HAlign != nil {
 			hAlign = *cell.HAlign
 		} else if cell.HeadCell {
-			hAlign = *cfg.alignHead
-		} else if colIdx < len(cfg.columnAlignments) {
-			hAlign = cfg.columnAlignments[colIdx]
+			hAlign = *cfg.AlignHead
+		} else if colIdx < len(cfg.ColumnAlignments) {
+			hAlign = cfg.ColumnAlignments[colIdx]
 		}
 
 		var cellContent []View
@@ -71,7 +71,7 @@ func tableBuildRow(
 			Color:       ColorTransparent,
 			ColorBorder: cfg.ColorBorder,
 			SizeBorder:  Some(cellBorder),
-			Padding:     cfg.cellPadding,
+			Padding:     cfg.CellPadding,
 			Radius:      SomeF(0),
 			HAlign:      hAlign,
 			Sizing:      FixedFill,

@@ -44,12 +44,14 @@ type InputCfg struct {
 	// callback by design — if security invariants (max length,
 	// forbidden chars) must be enforced unconditionally, use
 	// OnTextChanged instead.
-	preTextChange func(current, proposed string) (string, bool)
+	// exportaudit:keep — caller-facing config (issue #372)
+	PreTextChange func(current, proposed string) (string, bool)
 
 	// PostCommitNormalize transforms the final text before
 	// OnTextCommit fires. Use for trimming whitespace,
 	// normalizing case, or formatting.
-	postCommitNormalize func(text string, reason InputCommitReason) string
+	// exportaudit:keep — caller-facing config (issue #372)
+	PostCommitNormalize func(text string, reason InputCommitReason) string
 
 	ID          string `gui:"required,focus"`
 	Text        string
@@ -190,8 +192,8 @@ func Input(cfg InputCfg) View {
 		OnEnter:             cfg.OnEnter,
 		OnKeyDown:           cfg.OnKeyDown,
 		OnKeyUp:             cfg.OnKeyUp,
-		preTextChange:       cfg.preTextChange,
-		postCommitNormalize: cfg.postCommitNormalize,
+		preTextChange:       cfg.PreTextChange,
+		postCommitNormalize: cfg.PostCommitNormalize,
 	}
 	hcfg.CompiledMask = hcfg.compiledMask()
 

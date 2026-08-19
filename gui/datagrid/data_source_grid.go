@@ -29,7 +29,7 @@ func GetSourceStats(w *gg.Window, gridID string) SourceStats {
 	}
 	return SourceStats{
 		Loading:        state.Loading,
-		loadError:      state.loadError,
+		loadError:      state.LoadError,
 		RequestCount:   state.RequestCount,
 		CancelledCount: state.CancelledCount,
 		StaleDropCount: state.StaleDropCount,
@@ -51,7 +51,7 @@ func dataGridSourceApplyLocalMutation(gridID string, rows []GridRow, rowCount in
 	state.ReceivedCount = len(rows)
 	state.HasLoaded = true
 	state.Loading = false
-	state.loadError = ""
+	state.LoadError = ""
 	state.RowsDirty = true
 	state.RowsSignature = dataGridRowsSignature(rows, nil)
 	state.ActiveAbort = nil
@@ -81,7 +81,7 @@ func dataGridSourceForceRefetch(gridID string, w *gg.Window) {
 	dataGridSourceCancelActive(&state)
 	state.Loading = false
 	state.RequestKey = ""
-	state.loadError = ""
+	state.LoadError = ""
 	state.CapsCached = false
 	state.ActiveAbort = nil
 	dgSrc.Set(gridID, state)
@@ -122,10 +122,10 @@ func dataGridResolveSourceCfg(cfg DataGridCfg, w *gg.Window) (DataGridCfg, dataG
 	rows = dataGridSourceRowsWithStableIDs(rows, state.PaginationKind, state)
 	resolved := cfg
 	resolved.Rows = rows
-	resolved.pageSize = 0
-	resolved.pageIndex = 0
+	resolved.PageSize = 0
+	resolved.PageIndex = 0
 	resolved.Loading = state.Loading
-	resolved.loadError = state.loadError
+	resolved.LoadError = state.LoadError
 	resolved.RowCount = rowCount
 	return resolved, state, true, caps
 }
@@ -135,7 +135,7 @@ func dataGridSourceResolveState(cfg DataGridCfg, caps GridDataCapabilities, dgSr
 	if !ok {
 		state = dataGridSourceState{
 			CurrentCursor:  cfg.Cursor,
-			OffsetStart:    max(0, cfg.pageIndex*dataGridPageLimit(&cfg)),
+			OffsetStart:    max(0, cfg.PageIndex*dataGridPageLimit(&cfg)),
 			PaginationKind: cfg.PaginationKind,
 			ConfigCursor:   cfg.Cursor,
 		}
@@ -157,8 +157,8 @@ func dataGridSourceResolveState(cfg DataGridCfg, caps GridDataCapabilities, dgSr
 	}
 	querySig := gridQuerySignature(cfg.Query)
 	dataGridSourceApplyQueryReset(&state, &cfg, querySig)
-	if kind == GridPaginationOffset && cfg.pageSize > 0 {
-		desiredStart := max(0, cfg.pageIndex*cfg.pageSize)
+	if kind == GridPaginationOffset && cfg.PageSize > 0 {
+		desiredStart := max(0, cfg.PageIndex*cfg.PageSize)
 		if desiredStart != state.OffsetStart {
 			state.OffsetStart = desiredStart
 			state.RequestKey = ""
@@ -219,7 +219,7 @@ func dataGridSourceResetPagination(state *dataGridSourceState, cursor string) {
 	state.RequestKey = ""
 }
 
-func dataGridSourceEffectivePaginationKind(preferred gridPaginationKind, caps GridDataCapabilities) gridPaginationKind {
+func dataGridSourceEffectivePaginationKind(preferred GridPaginationKind, caps GridDataCapabilities) GridPaginationKind {
 	if preferred == GridPaginationCursor {
 		if caps.supportsCursorPagination {
 			return GridPaginationCursor
@@ -227,7 +227,7 @@ func dataGridSourceEffectivePaginationKind(preferred gridPaginationKind, caps Gr
 		if caps.supportsOffsetPagination {
 			return GridPaginationOffset
 		}
-		return gridPaginationNone
+		return GridPaginationNone
 	}
 	if caps.supportsOffsetPagination {
 		return GridPaginationOffset
@@ -235,15 +235,15 @@ func dataGridSourceEffectivePaginationKind(preferred gridPaginationKind, caps Gr
 	if caps.supportsCursorPagination {
 		return GridPaginationCursor
 	}
-	return gridPaginationNone
+	return GridPaginationNone
 }
 
 func dataGridPageLimit(cfg *DataGridCfg) int {
 	if cfg.PageLimit > 0 {
 		return cfg.PageLimit
 	}
-	if cfg.pageSize > 0 {
-		return cfg.pageSize
+	if cfg.PageSize > 0 {
+		return cfg.PageSize
 	}
 	return dataGridDefaultPageLimit
 }

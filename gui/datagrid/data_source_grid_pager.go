@@ -6,7 +6,7 @@ import (
 	gg "github.com/go-gui-org/go-gui/gui"
 )
 
-func dataGridSourceRowsText(kind gridPaginationKind, state dataGridSourceState) string {
+func dataGridSourceRowsText(kind GridPaginationKind, state dataGridSourceState) string {
 	if kind == GridPaginationOffset {
 		return dataGridSourceFormatRows(state.OffsetStart, state.ReceivedCount, state.RowCount)
 	}
@@ -35,14 +35,14 @@ func dataGridSourceFormatRows(start, count int, total *int) string {
 	return gg.ActiveLocale.StrRows + " " + strconv.Itoa(start+1) + "-" + strconv.Itoa(end) + "/" + totalText
 }
 
-func dataGridSourceCanPrev(kind gridPaginationKind, state dataGridSourceState, pageLimit int) bool {
+func dataGridSourceCanPrev(kind GridPaginationKind, state dataGridSourceState, pageLimit int) bool {
 	if kind == GridPaginationCursor {
 		return state.prevCursor != ""
 	}
 	return state.OffsetStart > 0 && pageLimit > 0
 }
 
-func dataGridSourceCanNext(kind gridPaginationKind, state dataGridSourceState, pageLimit int) bool {
+func dataGridSourceCanNext(kind GridPaginationKind, state dataGridSourceState, pageLimit int) bool {
 	if kind == GridPaginationCursor {
 		return state.nextCursor != ""
 	}
@@ -55,7 +55,7 @@ func dataGridSourceCanNext(kind gridPaginationKind, state dataGridSourceState, p
 	return state.ReceivedCount >= max(1, pageLimit)
 }
 
-func dataGridSourcePrevPage(gridID string, kind gridPaginationKind, pageLimit int, w *gg.Window) {
+func dataGridSourcePrevPage(gridID string, kind GridPaginationKind, pageLimit int, w *gg.Window) {
 	dgSrc := gg.StateMap[string, dataGridSourceState](w, nsDgSource, capModerate)
 	state, ok := dgSrc.Get(gridID)
 	if !ok {
@@ -76,12 +76,12 @@ func dataGridSourcePrevPage(gridID string, kind gridPaginationKind, pageLimit in
 		state.OffsetStart = max(0, state.OffsetStart-pageLimit)
 	}
 	state.RequestKey = ""
-	state.loadError = ""
+	state.LoadError = ""
 	dgSrc.Set(gridID, state)
 	w.UpdateWindow()
 }
 
-func dataGridSourceNextPage(gridID string, kind gridPaginationKind, pageLimit int, w *gg.Window) {
+func dataGridSourceNextPage(gridID string, kind GridPaginationKind, pageLimit int, w *gg.Window) {
 	dgSrc := gg.StateMap[string, dataGridSourceState](w, nsDgSource, capModerate)
 	state, ok := dgSrc.Get(gridID)
 	if !ok {
@@ -102,7 +102,7 @@ func dataGridSourceNextPage(gridID string, kind gridPaginationKind, pageLimit in
 		}
 	}
 	state.RequestKey = ""
-	state.loadError = ""
+	state.LoadError = ""
 	dgSrc.Set(gridID, state)
 	w.UpdateWindow()
 }
@@ -124,13 +124,13 @@ func dataGridSourceJumpToRow(gridID string, targetIdx, pageLimit int, w *gg.Wind
 	if pageStart != state.OffsetStart {
 		state.OffsetStart = pageStart
 		state.RequestKey = ""
-		state.loadError = ""
+		state.LoadError = ""
 	}
 	dgSrc.Set(gridID, state)
 	w.UpdateWindow()
 }
 
-func dataGridSourceRowPositionText(cfg *DataGridCfg, state dataGridSourceState, kind gridPaginationKind) string {
+func dataGridSourceRowPositionText(cfg *DataGridCfg, state dataGridSourceState, kind GridPaginationKind) string {
 	totalText := "?"
 	if state.RowCount != nil {
 		totalText = strconv.Itoa(*state.RowCount)
@@ -154,7 +154,7 @@ func dataGridSourceRowPositionText(cfg *DataGridCfg, state dataGridSourceState, 
 	return "Row " + strconv.Itoa(current) + " of " + totalText
 }
 
-func dataGridSourceJumpEnabled(onSelectionChange func(GridSelection, gg.EventCtx), rowCount *int, loading bool, loadError string, kind gridPaginationKind, pageLimit int) bool {
+func dataGridSourceJumpEnabled(onSelectionChange func(GridSelection, gg.EventCtx), rowCount *int, loading bool, loadError string, kind GridPaginationKind, pageLimit int) bool {
 	if onSelectionChange == nil || pageLimit <= 0 {
 		return false
 	}
@@ -167,7 +167,7 @@ func dataGridSourceJumpEnabled(onSelectionChange func(GridSelection, gg.EventCtx
 	return false
 }
 
-func dataGridSourceSubmitJump(onSelectionChange func(GridSelection, gg.EventCtx), rowCount *int, loading bool, loadError string, kind gridPaginationKind, pageLimit int, gridID string, focusID string, e *gg.Event, w *gg.Window) {
+func dataGridSourceSubmitJump(onSelectionChange func(GridSelection, gg.EventCtx), rowCount *int, loading bool, loadError string, kind GridPaginationKind, pageLimit int, gridID string, focusID string, e *gg.Event, w *gg.Window) {
 	if !dataGridSourceJumpEnabled(onSelectionChange, rowCount, loading, loadError, kind, pageLimit) {
 		return
 	}
@@ -197,7 +197,7 @@ func dataGridSourceRetry(gridID string, w *gg.Window) {
 		return
 	}
 	state.RequestKey = ""
-	state.loadError = ""
+	state.LoadError = ""
 	dgSrc.Set(gridID, state)
 	w.UpdateWindow()
 }
@@ -211,7 +211,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 	onSelectionChange := cfg.OnSelectionChange
 	rowCount := state.RowCount
 	loading := state.Loading
-	loadError := state.loadError
+	loadError := state.LoadError
 	jumpEnabled := dataGridSourceJumpEnabled(onSelectionChange, rowCount, loading, loadError, kind, pageLimit)
 	var modeText string
 	if kind == GridPaginationCursor {
@@ -222,7 +222,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 	var status string
 	if state.Loading {
 		status = gg.ActiveLocale.StrLoading
-	} else if state.loadError != "" {
+	} else if state.LoadError != "" {
 		status = gg.ActiveLocale.StrError
 	} else {
 		status = modeText
@@ -262,7 +262,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 		Padding: gg.NoPadding,
 	}))
 	// Retry button on error.
-	if state.loadError != "" {
+	if state.LoadError != "" {
 		content = append(content, gg.Button(gg.ButtonCfg{
 			ID:         gg.ScopeID(gridID, "src_retry"),
 			Sizing:     gg.FitFill,
@@ -349,7 +349,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 
 func dataGridSourceStatusRow(cfg *DataGridCfg, message string) gg.View {
 	return gg.Row(gg.ContainerCfg{
-		Height:      cfg.rowHeight,
+		Height:      cfg.RowHeight,
 		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorFilter,
 		ColorBorder: cfg.ColorBorder,

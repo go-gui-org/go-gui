@@ -26,8 +26,8 @@ func dataGridFnv64U64(h, val uint64) uint64 {
 // --- Presentation building ---
 
 func dataGridCachedPresentation(cfg *DataGridCfg, columns []GridColumnCfg, rowIndices []int, w *gg.Window) dataGridPresentation {
-	groupCols := dataGridGroupColumns(cfg.groupBy, columns)
-	valueCols := dataGridPresentationValueCols(groupCols, cfg.aggregates)
+	groupCols := dataGridGroupColumns(cfg.GroupBy, columns)
+	valueCols := dataGridPresentationValueCols(groupCols, cfg.Aggregates)
 	visibleIndices := dataGridVisibleRowIndices(len(cfg.Rows), rowIndices)
 	groupTitles := dataGridGroupTitles(columns)
 	signature := dataGridPresentationSignature(cfg, columns, visibleIndices, groupCols, valueCols, groupTitles)
@@ -59,7 +59,7 @@ func dataGridCachedPresentation(cfg *DataGridCfg, columns []GridColumnCfg, rowIn
 
 func dataGridPresentationSignature(cfg *DataGridCfg, _ []GridColumnCfg, visibleIndices []int, groupCols []string, valueCols []string, groupTitles map[string]string) uint64 {
 	h := gg.Fnv64Offset
-	if len(groupCols) == 0 && len(cfg.aggregates) == 0 && cfg.detailRowView == nil {
+	if len(groupCols) == 0 && len(cfg.Aggregates) == 0 && cfg.DetailRowView == nil {
 		h = gg.Fnv64Str(h, cfg.ID)
 		h = gg.Fnv64Byte(h, 0x1e)
 		for _, idx := range visibleIndices {
@@ -87,7 +87,7 @@ func dataGridPresentationSignature(cfg *DataGridCfg, _ []GridColumnCfg, visibleI
 		h = gg.Fnv64Byte(h, 0x1f)
 	}
 	h = gg.Fnv64Byte(h, 0x1e)
-	for _, agg := range cfg.aggregates {
+	for _, agg := range cfg.Aggregates {
 		h = gg.Fnv64Str(h, agg.ColID)
 		h = gg.Fnv64Byte(h, 0x1f)
 		h = gg.Fnv64Byte(h, byte(agg.Op))
@@ -95,7 +95,7 @@ func dataGridPresentationSignature(cfg *DataGridCfg, _ []GridColumnCfg, visibleI
 		h = gg.Fnv64Str(h, agg.Label)
 		h = gg.Fnv64Byte(h, 0x1f)
 	}
-	detailEnabled := cfg.detailRowView != nil
+	detailEnabled := cfg.DetailRowView != nil
 	if detailEnabled {
 		h = gg.Fnv64Byte(h, '1')
 	} else {
@@ -124,7 +124,7 @@ func dataGridPresentationSignature(cfg *DataGridCfg, _ []GridColumnCfg, visibleI
 	return h
 }
 
-func dataGridPresentationValueCols(groupCols []string, aggregates []gridAggregateCfg) []string {
+func dataGridPresentationValueCols(groupCols []string, aggregates []GridAggregateCfg) []string {
 	seen := map[string]bool{}
 	cols := make([]string, 0, len(groupCols)+len(aggregates))
 	for _, colID := range groupCols {
@@ -147,7 +147,7 @@ func dataGridPresentationValueCols(groupCols []string, aggregates []gridAggregat
 
 func dataGridPresentationRows(cfg *DataGridCfg, columns []GridColumnCfg, rowIndices []int) dataGridPresentation {
 	visibleIndices := dataGridVisibleRowIndices(len(cfg.Rows), rowIndices)
-	groupCols := dataGridGroupColumns(cfg.groupBy, columns)
+	groupCols := dataGridGroupColumns(cfg.GroupBy, columns)
 	groupTitles := dataGridGroupTitles(columns)
 	var groupRanges map[string]int
 	if len(groupCols) > 0 && len(visibleIndices) > 0 {
@@ -169,7 +169,7 @@ func dataGridPresentationRowsWithGroupRanges(cfg *DataGridCfg, _ []GridColumnCfg
 				Kind:       dataGridDisplayRowData,
 				DataRowIdx: rowIdx,
 			})
-			if cfg.detailRowView != nil && dataGridDetailRowExpanded(cfg, dataGridRowID(row, rowIdx)) {
+			if cfg.DetailRowView != nil && dataGridDetailRowExpanded(cfg, dataGridRowID(row, rowIdx)) {
 				rows = append(rows, dataGridDisplayRow{
 					Kind:       dataGridDisplayRowDetail,
 					DataRowIdx: rowIdx,
@@ -224,7 +224,7 @@ func dataGridPresentationRowsWithGroupRanges(cfg *DataGridCfg, _ []GridColumnCfg
 			Kind:       dataGridDisplayRowData,
 			DataRowIdx: rowIdx,
 		})
-		if cfg.detailRowView != nil && dataGridDetailRowExpanded(cfg, dataGridRowID(row, rowIdx)) {
+		if cfg.DetailRowView != nil && dataGridDetailRowExpanded(cfg, dataGridRowID(row, rowIdx)) {
 			rows = append(rows, dataGridDisplayRow{
 				Kind:       dataGridDisplayRowDetail,
 				DataRowIdx: rowIdx,
@@ -310,11 +310,11 @@ func dataGridGroupRanges(rows []GridRow, indices []int, groupCols []string) map[
 }
 
 func dataGridGroupAggregateText(cfg *DataGridCfg, startIdx, endIdx int) string {
-	if len(cfg.aggregates) == 0 || startIdx < 0 || endIdx < startIdx || endIdx >= len(cfg.Rows) {
+	if len(cfg.Aggregates) == 0 || startIdx < 0 || endIdx < startIdx || endIdx >= len(cfg.Rows) {
 		return ""
 	}
-	parts := make([]string, 0, len(cfg.aggregates))
-	for _, agg := range cfg.aggregates {
+	parts := make([]string, 0, len(cfg.Aggregates))
+	for _, agg := range cfg.Aggregates {
 		value, ok := dataGridAggregateValue(cfg.Rows, startIdx, endIdx, agg)
 		if !ok {
 			continue
@@ -324,7 +324,7 @@ func dataGridGroupAggregateText(cfg *DataGridCfg, startIdx, endIdx int) string {
 	return strings.Join(parts, "  ")
 }
 
-func dataGridAggregateLabel(agg gridAggregateCfg) string {
+func dataGridAggregateLabel(agg GridAggregateCfg) string {
 	if agg.Label != "" {
 		return agg.Label
 	}
@@ -337,7 +337,7 @@ func dataGridAggregateLabel(agg gridAggregateCfg) string {
 	return agg.Op.String() + " " + agg.ColID
 }
 
-func dataGridAggregateValue(rows []GridRow, startIdx, endIdx int, agg gridAggregateCfg) (string, bool) {
+func dataGridAggregateValue(rows []GridRow, startIdx, endIdx int, agg GridAggregateCfg) (string, bool) {
 	if agg.Op == gridAggregateCount {
 		return strconv.Itoa(endIdx - startIdx + 1), true
 	}
@@ -434,16 +434,16 @@ func dataGridScrollBodyRows(
 		rows = append(rows,
 			dataGridSourceStatusRow(cfg, gg.ActiveLocale.StrLoading))
 	}
-	if hasSource && cfg.loadError != "" && len(presentation.Rows) == 0 {
+	if hasSource && cfg.LoadError != "" && len(presentation.Rows) == 0 {
 		rows = append(rows, dataGridSourceStatusRow(cfg,
-			gg.ActiveLocale.StrLoadError+": "+cfg.loadError))
+			gg.ActiveLocale.StrLoadError+": "+cfg.LoadError))
 	}
 
 	lastRowIdx := len(presentation.Rows) - 1
 	if virtualize && firstVisible > 0 {
 		rows = append(rows, gg.Rectangle(gg.RectangleCfg{
 			Color:  gg.ColorTransparent,
-			Height: float32(firstVisible) * dctx.rowHeight,
+			Height: float32(firstVisible) * dctx.RowHeight,
 			Sizing: gg.FillFixed,
 		}))
 	}
@@ -455,7 +455,7 @@ func dataGridScrollBodyRows(
 		entry := presentation.Rows[rowIdx]
 		if entry.Kind == dataGridDisplayRowGroupHeader {
 			rows = append(rows,
-				dataGridGroupHeaderRowView(cfg, entry, dctx.rowHeight))
+				dataGridGroupHeaderRowView(cfg, entry, dctx.RowHeight))
 			continue
 		}
 		if entry.Kind == dataGridDisplayRowDetail {
@@ -480,7 +480,7 @@ func dataGridScrollBodyRows(
 		remaining := lastRowIdx - lastVisible
 		rows = append(rows, gg.Rectangle(gg.RectangleCfg{
 			Color:  gg.ColorTransparent,
-			Height: float32(remaining) * dctx.rowHeight,
+			Height: float32(remaining) * dctx.RowHeight,
 			Sizing: gg.FillFixed,
 		}))
 	}
@@ -513,12 +513,12 @@ func dataGridFinalContent(
 			[]gg.View{dataGridQuickFilterRow(cfg, dctx.w)},
 			qfHeight, totalWidth, scrollX))
 	}
-	if boolDefault(cfg.showHeader, true) && cfg.FreezeHeader {
+	if boolDefault(cfg.ShowHeader, true) && cfg.FreezeHeader {
 		content = append(content, dataGridFrozenTopZone(cfg,
 			[]gg.View{headerView}, headerHeight, totalWidth, scrollX))
 	}
 	if frozenTopDisplayRows > 0 {
-		frozenHeight := float32(frozenTopDisplayRows) * dctx.rowHeight
+		frozenHeight := float32(frozenTopDisplayRows) * dctx.RowHeight
 		content = append(content, dataGridFrozenTopZone(cfg,
 			frozenTopViews, frozenHeight, totalWidth, scrollX))
 	}
@@ -533,7 +533,7 @@ func dataGridFinalContent(
 		jumpText := dgJump.GetOr(cfg.ID, "")
 		content = append(content, dataGridPagerRow(cfg, dctx.focusID,
 			pageIndex, pageCount, pageStart, pageEnd, totalRows,
-			gridHeight, dctx.rowHeight, staticTop, dctx.scrollID,
+			gridHeight, dctx.RowHeight, staticTop, dctx.scrollID,
 			presentation.DataToDisplay, jumpText))
 	}
 	if sourcePagerEnabled {

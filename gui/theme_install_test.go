@@ -79,10 +79,10 @@ func TestWindowThemeScrollIsPerWindow(t *testing.T) {
 	restoreTheme(t)
 	slowCfg := themeDarkCfg
 	slowCfg.Name = "slow"
-	slowCfg.scrollMultiplier = 1
+	slowCfg.ScrollMultiplier = 1
 	fastCfg := themeDarkCfg
 	fastCfg.Name = "fast"
-	fastCfg.scrollMultiplier = 4
+	fastCfg.ScrollMultiplier = 4
 
 	l1, w1 := makeScrollLayout("s1", 100, 100, 100, 300)
 	l2, w2 := makeScrollLayout("s2", 100, 100, 100, 300)

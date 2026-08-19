@@ -6,24 +6,34 @@ import (
 )
 
 // ToastSeverity indicates the visual severity of a toast.
-type toastSeverity uint8
+// exportaudit:keep — caller-facing config (issue #372)
+type ToastSeverity uint8
 
 // ToastSeverity constants.
 const (
-	toastInfo toastSeverity = iota
-	toastSuccess
-	toastWarning
-	toastError
+	// exportaudit:keep — caller-facing config (issue #372)
+	ToastInfo ToastSeverity = iota
+	// exportaudit:keep — caller-facing config (issue #372)
+	ToastSuccess
+	// exportaudit:keep — caller-facing config (issue #372)
+	ToastWarning
+	// exportaudit:keep — caller-facing config (issue #372)
+	ToastError
 )
 
 // ToastCfg configures a toast notification.
 type ToastCfg struct {
-	OnAction    func(EventCtx)
-	Title       string
-	Body        string
-	actionLabel string
+	OnAction func(EventCtx)
+	Title    string
+	Body     string
+	// ActionLabel is the text for the action button (shown when
+	// OnAction is set).
+	// exportaudit:keep — caller-facing config (issue #372)
+	ActionLabel string
 	Duration    time.Duration // 0 = default (3s); toastPersistent = no auto-dismiss
-	severity    toastSeverity
+	// Severity picks the accent color and icon.
+	// exportaudit:keep — caller-facing config (issue #372)
+	Severity ToastSeverity
 }
 
 // toastNotification is an active toast instance.
@@ -135,14 +145,14 @@ func toastItemView(toast *toastNotification, style ToastStyle) View {
 
 	// Accent color based on severity.
 	var accentColor Color
-	switch toast.cfg.severity {
-	case toastInfo:
+	switch toast.cfg.Severity {
+	case ToastInfo:
 		accentColor = style.colorInfo
-	case toastSuccess:
+	case ToastSuccess:
 		accentColor = style.ColorSuccess
-	case toastWarning:
+	case ToastWarning:
 		accentColor = style.ColorWarning
-	case toastError:
+	case ToastError:
 		accentColor = style.ColorError
 	}
 
@@ -164,12 +174,12 @@ func toastItemView(toast *toastNotification, style ToastStyle) View {
 
 	// Buttons column: action + dismiss.
 	var buttons []View
-	if toast.cfg.actionLabel != "" && toast.cfg.OnAction != nil {
+	if toast.cfg.ActionLabel != "" && toast.cfg.OnAction != nil {
 		onAction := toast.cfg.OnAction
 		buttons = append(buttons, Button(ButtonCfg{
 			ID:      toastBtnID(id, "action"),
 			Color:   ColorTransparent,
-			Content: []View{Text(TextCfg{Text: toast.cfg.actionLabel, TextStyle: style.TextStyle})},
+			Content: []View{Text(TextCfg{Text: toast.cfg.ActionLabel, TextStyle: style.TextStyle})},
 			OnClick: func(ctx EventCtx) {
 				onAction(ctx)
 				toastStartExit(ctx.Window, id)

@@ -20,17 +20,17 @@ func TestDatePickerRollerLayout(t *testing.T) {
 func TestRollerDefaults(t *testing.T) {
 	cfg := DatePickerRollerCfg{}
 	applyRollerDefaults(&cfg)
-	if cfg.minYear != 1900 {
-		t.Errorf("MinYear = %d", cfg.minYear)
+	if cfg.MinYear != 1900 {
+		t.Errorf("MinYear = %d", cfg.MinYear)
 	}
-	if cfg.maxYear != 2100 {
-		t.Errorf("MaxYear = %d", cfg.maxYear)
+	if cfg.MaxYear != 2100 {
+		t.Errorf("MaxYear = %d", cfg.MaxYear)
 	}
-	if cfg.itemHeight != 24 {
-		t.Errorf("ItemHeight = %f", cfg.itemHeight)
+	if cfg.ItemHeight != 24 {
+		t.Errorf("ItemHeight = %f", cfg.ItemHeight)
 	}
-	if cfg.visibleItems != 3 {
-		t.Errorf("VisibleItems = %d", cfg.visibleItems)
+	if cfg.VisibleItems != 3 {
+		t.Errorf("VisibleItems = %d", cfg.VisibleItems)
 	}
 	if !cfg.ColorBorderFocus.IsSet() {
 		t.Error("ColorBorderFocus should have a default value")
@@ -41,26 +41,26 @@ func TestRollerDefaults(t *testing.T) {
 }
 
 func TestRollerDefaultsEvenVisible(t *testing.T) {
-	cfg := DatePickerRollerCfg{visibleItems: 4}
+	cfg := DatePickerRollerCfg{VisibleItems: 4}
 	applyRollerDefaults(&cfg)
-	if cfg.visibleItems != 5 {
-		t.Errorf("VisibleItems = %d, want 5 (rounded up)", cfg.visibleItems)
+	if cfg.VisibleItems != 5 {
+		t.Errorf("VisibleItems = %d, want 5 (rounded up)", cfg.VisibleItems)
 	}
 }
 
 func TestRollerDisplayModes(t *testing.T) {
 	w := &Window{}
-	modes := []datePickerRollerDisplayMode{
-		rollerDayMonthYear,
-		rollerMonthDayYear,
-		rollerMonthYear,
-		rollerYearOnly,
+	modes := []DatePickerRollerDisplayMode{
+		RollerDayMonthYear,
+		RollerMonthDayYear,
+		RollerMonthYear,
+		RollerYearOnly,
 	}
 	for _, m := range modes {
 		v := DatePickerRoller(DatePickerRollerCfg{
 			ID:           "rm",
 			SelectedDate: time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local),
-			displayMode:  m,
+			DisplayMode:  m,
 		})
 		layout := generateViewLayout(v, w)
 		if layout.Shape.ID != "rm" {
@@ -271,11 +271,11 @@ func TestRollerAdjustYearBounds(t *testing.T) {
 }
 
 func TestRollerDefaultsMinMaxSwap(t *testing.T) {
-	cfg := DatePickerRollerCfg{minYear: 2100, maxYear: 1900}
+	cfg := DatePickerRollerCfg{MinYear: 2100, MaxYear: 1900}
 	applyRollerDefaults(&cfg)
-	if cfg.minYear != 1900 || cfg.maxYear != 2100 {
+	if cfg.MinYear != 1900 || cfg.MaxYear != 2100 {
 		t.Errorf("MinYear=%d MaxYear=%d, want 1900/2100",
-			cfg.minYear, cfg.maxYear)
+			cfg.MinYear, cfg.MaxYear)
 	}
 }
 
@@ -328,7 +328,7 @@ func TestRollerOnKeyDown(t *testing.T) {
 	// Up arrow → day-1 in default mode.
 	e := &Event{KeyCode: KeyUp, Modifiers: ModNone}
 	rollerOnKeyDown(onChange, sel, 1900, 2100, e, w,
-		rollerDayMonthYear, false)
+		RollerDayMonthYear, false)
 	if got.Day() != 14 {
 		t.Errorf("Up day = %d, want 14", got.Day())
 	}
@@ -339,7 +339,7 @@ func TestRollerOnKeyDown(t *testing.T) {
 	// Shift+Up → year-1.
 	e = &Event{KeyCode: KeyUp, Modifiers: ModShift}
 	rollerOnKeyDown(onChange, sel, 1900, 2100, e, w,
-		rollerDayMonthYear, false)
+		RollerDayMonthYear, false)
 	if got.Year() != 2024 {
 		t.Errorf("Shift+Up year = %d, want 2024", got.Year())
 	}
@@ -347,7 +347,7 @@ func TestRollerOnKeyDown(t *testing.T) {
 	// Alt+Down → month+1.
 	e = &Event{KeyCode: KeyDown, Modifiers: ModAlt}
 	rollerOnKeyDown(onChange, sel, 1900, 2100, e, w,
-		rollerDayMonthYear, false)
+		RollerDayMonthYear, false)
 	if got.Month() != 7 {
 		t.Errorf("Alt+Down month = %d, want 7", got.Month())
 	}
@@ -355,7 +355,7 @@ func TestRollerOnKeyDown(t *testing.T) {
 	// Up in YearOnly mode → year-1.
 	e = &Event{KeyCode: KeyUp, Modifiers: ModNone}
 	rollerOnKeyDown(onChange, sel, 1900, 2100, e, w,
-		rollerYearOnly, false)
+		RollerYearOnly, false)
 	if got.Year() != 2024 {
 		t.Errorf("Up YearOnly = %d, want 2024", got.Year())
 	}
@@ -363,7 +363,7 @@ func TestRollerOnKeyDown(t *testing.T) {
 	// Up in MonthYear mode → month-1.
 	e = &Event{KeyCode: KeyUp, Modifiers: ModNone}
 	rollerOnKeyDown(onChange, sel, 1900, 2100, e, w,
-		rollerMonthYear, false)
+		RollerMonthYear, false)
 	if got.Month() != 5 {
 		t.Errorf("Up MonthYear = %d, want 5", got.Month())
 	}
@@ -371,20 +371,20 @@ func TestRollerOnKeyDown(t *testing.T) {
 
 func TestRollerDisplayModeDrumCount(t *testing.T) {
 	sel := time.Date(2025, 6, 15, 0, 0, 0, 0, time.Local)
-	cfg := DatePickerRollerCfg{minYear: 1900, maxYear: 2100}
+	cfg := DatePickerRollerCfg{MinYear: 1900, MaxYear: 2100}
 	applyRollerDefaults(&cfg)
 
 	tests := []struct {
-		mode datePickerRollerDisplayMode
+		mode DatePickerRollerDisplayMode
 		want int
 	}{
-		{rollerDayMonthYear, 3},
-		{rollerMonthDayYear, 3},
-		{rollerMonthYear, 2},
-		{rollerYearOnly, 1},
+		{RollerDayMonthYear, 3},
+		{RollerMonthDayYear, 3},
+		{RollerMonthYear, 2},
+		{RollerYearOnly, 1},
 	}
 	for _, tt := range tests {
-		cfg.displayMode = tt.mode
+		cfg.DisplayMode = tt.mode
 		specs := rollerDrumSpecs(&cfg, sel)
 		if len(specs) != tt.want {
 			t.Errorf("mode %d: drums = %d, want %d",

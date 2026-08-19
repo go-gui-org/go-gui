@@ -27,5 +27,5 @@ func pinTheme(w *Window, mutate func(*Theme)) {
 // scroll paths read per event. Tests use 1 so a delta maps 1:1 to an
 // offset.
 func pinScrollMultiplier(w *Window, mult float32) {
-	pinTheme(w, func(th *Theme) { th.scrollMultiplier = mult })
+	pinTheme(w, func(th *Theme) { th.ScrollMultiplier = mult })
 }

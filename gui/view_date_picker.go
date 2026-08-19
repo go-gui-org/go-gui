@@ -74,9 +74,14 @@ type DatePickerCfg struct {
 	AllowedDates    []time.Time
 	Padding         Padding
 	SizeBorder      Opt[float32]
-	cellSpacing     Opt[float32]
-	Radius          Opt[float32]
-	radiusBorder    Opt[float32]
+	// CellSpacing gaps the day cells. Unset takes the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	CellSpacing Opt[float32]
+	Radius      Opt[float32]
+	// RadiusBorder rounds the calendar frame. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	RadiusBorder Opt[float32]
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled bool
@@ -112,8 +117,8 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 	// One resolved identity for every key below; see (*Window).EffID.
 	cfg.ID = w.EffID(cfg.ID)
 	dn := &defaultDatePickerStyle
-	cellSpacing := cfg.cellSpacing.Get(dn.cellSpacing)
-	radiusBorder := cfg.radiusBorder.Get(dn.radiusBorder)
+	cellSpacing := cfg.CellSpacing.Get(dn.cellSpacing)
+	radiusBorder := cfg.RadiusBorder.Get(dn.radiusBorder)
 
 	// Get/init state.
 	state := datePickerGetState(w, cfg)
@@ -444,8 +449,8 @@ func applyDatePickerDefaults(cfg *DatePickerCfg) {
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.TextStyle
 	}
-	if !cfg.cellSpacing.IsSet() {
-		cfg.cellSpacing = Some(d.cellSpacing)
+	if !cfg.CellSpacing.IsSet() {
+		cfg.CellSpacing = Some(d.cellSpacing)
 	}
 	if !cfg.Radius.IsSet() {
 		cfg.Radius = Some(d.Radius)

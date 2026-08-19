@@ -5,20 +5,20 @@ import (
 )
 
 func formShouldValidate(
-	mode formValidateOn, trigger FormValidationTrigger,
+	mode FormValidateOn, trigger FormValidationTrigger,
 ) bool {
 	switch mode {
-	case formValidateInherit:
+	case FormValidateInherit:
 		// Should not reach here — formResolveValidateOn resolves
 		// Inherit before validation.
 		panic("gui: formShouldValidate called with unresolved " +
 			"FormValidateInherit")
-	case formValidateOnChange:
+	case FormValidateOnChange:
 		return true
-	case formValidateOnBlur, formValidateOnBlurSubmit:
+	case FormValidateOnBlur, FormValidateOnBlurSubmit:
 		return trigger == FormTriggerBlur ||
 			trigger == formTriggerSubmit
-	case formValidateOnSubmit:
+	case FormValidateOnSubmit:
 		return trigger == formTriggerSubmit
 	default:
 		return false
@@ -26,9 +26,9 @@ func formShouldValidate(
 }
 
 func formResolveValidateOn(
-	override, fallback formValidateOn,
-) formValidateOn {
-	if override == formValidateInherit {
+	override, fallback FormValidateOn,
+) FormValidateOn {
+	if override == FormValidateInherit {
 		return fallback
 	}
 	return override
@@ -52,7 +52,7 @@ func formToPublicFieldState(
 ) FormFieldState {
 	return FormFieldState{
 		Value:        field.value,
-		initialValue: field.initialValue,
+		InitialValue: field.initialValue,
 		Touched:      field.touched,
 		Dirty:        field.dirty,
 		Pending:      field.pending,
@@ -137,14 +137,14 @@ func formComputePending(
 
 func formApplyCfg(w *Window, formID string, cfg FormCfg) {
 	state := formRuntime(w, formID)
-	vo := cfg.validateOn
-	if vo == formValidateInherit {
-		vo = formValidateOnBlurSubmit
+	vo := cfg.ValidateOn
+	if vo == FormValidateInherit {
+		vo = FormValidateOnBlurSubmit
 	}
 	state.validateOn = vo
-	state.submitOnEnter = !cfg.noSubmitOnEnter
-	state.blockInvalid = !cfg.allowInvalidSubmit
-	state.blockPending = !cfg.allowPendingSubmit
+	state.submitOnEnter = !cfg.NoSubmitOnEnter
+	state.blockInvalid = !cfg.AllowInvalidSubmit
+	state.blockPending = !cfg.AllowPendingSubmit
 	state.disabled = cfg.Disabled
 }
 
@@ -234,11 +234,11 @@ func formProcessRequests(
 		formOnFieldEventForForm(w, formID, FormFieldAdapterCfg{
 			FieldID:            fieldID,
 			Value:              field.value,
-			initialValue:       field.initialValue,
-			hasInitialValue:    true,
+			InitialValue:       field.initialValue,
+			HasInitialValue:    true,
 			SyncValidators:     field.syncVals,
 			AsyncValidators:    field.asyncVals,
-			validateOnOverride: field.validateOn,
+			ValidateOnOverride: field.validateOn,
 		}, formTriggerSubmit)
 	}
 
@@ -303,8 +303,8 @@ func formEnsureField(
 	field, exists := state.fields[cfg.FieldID]
 	if !exists {
 		field = &formFieldRuntime{}
-		if cfg.hasInitialValue {
-			field.initialValue = cfg.initialValue
+		if cfg.HasInitialValue {
+			field.initialValue = cfg.InitialValue
 		} else {
 			field.initialValue = cfg.Value
 		}
@@ -315,7 +315,7 @@ func formEnsureField(
 	field.syncVals = cfg.SyncValidators
 	field.asyncVals = cfg.AsyncValidators
 	field.validateOn = formResolveValidateOn(
-		cfg.validateOnOverride, state.validateOn)
+		cfg.ValidateOnOverride, state.validateOn)
 	field.seenGen = state.layoutGen
 	return field
 }

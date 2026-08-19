@@ -14,7 +14,10 @@ type ProgressBarCfg struct {
 
 	// Accessibility
 	A11YCfg
-	textPadding Padding
+	// TextPadding insets the % label inside the bar. Zero takes the
+	// theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	TextPadding Padding
 	Radius      Opt[float32]
 	Percent     float32 // 0.0 to 1.0
 	Width       float32
@@ -24,15 +27,24 @@ type ProgressBarCfg struct {
 	MinHeight   float32
 	MaxHeight   float32
 
-	Color          Color
-	colorBar       Color
-	textBackground Color
+	Color Color
+	// ColorBar paints the filled portion. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorBar Color
+	// TextBackground paints behind the % label. Unset takes the
+	// theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	TextBackground Color
 	Sizing         Sizing
 	TextShow       bool
 	Disabled       bool
 	Invisible      bool
 	Indefinite     bool
-	vertical       bool
+	// Vertical renders the bar bottom-to-top instead of
+	// left-to-right.
+	// exportaudit:keep — caller-facing config (issue #372)
+	Vertical bool
 }
 
 // ProgressBar creates a progress bar view.
@@ -44,14 +56,14 @@ func ProgressBar(cfg ProgressBarCfg) View {
 	if !cfg.Color.IsSet() {
 		cfg.Color = guiTheme.progressBarStyle.Color
 	}
-	if !cfg.colorBar.IsSet() {
-		cfg.colorBar = guiTheme.progressBarStyle.colorBar
+	if !cfg.ColorBar.IsSet() {
+		cfg.ColorBar = guiTheme.progressBarStyle.colorBar
 	}
-	if !cfg.textBackground.IsSet() {
-		cfg.textBackground = guiTheme.progressBarStyle.textBackground
+	if !cfg.TextBackground.IsSet() {
+		cfg.TextBackground = guiTheme.progressBarStyle.textBackground
 	}
-	if !cfg.textPadding.IsSet() {
-		cfg.textPadding = guiTheme.progressBarStyle.textPadding
+	if !cfg.TextPadding.IsSet() {
+		cfg.TextPadding = guiTheme.progressBarStyle.textPadding
 	}
 	radius := cfg.Radius.Get(guiTheme.progressBarStyle.Radius)
 
@@ -60,7 +72,7 @@ func ProgressBar(cfg ProgressBarCfg) View {
 		Padding:    NoPadding,
 		SizeBorder: NoBorder,
 		Radius:     SomeF(radius),
-		Color:      cfg.colorBar,
+		Color:      cfg.ColorBar,
 	}))
 
 	if cfg.TextShow && !cfg.Indefinite {
@@ -69,8 +81,8 @@ func ProgressBar(cfg ProgressBarCfg) View {
 		readout := fmt.Sprintf("%.0f%%", pct)
 		content = append(content, Row(ContainerCfg{
 			SizeBorder: NoBorder,
-			Color:      cfg.textBackground,
-			Padding:    cfg.textPadding,
+			Color:      cfg.TextBackground,
+			Padding:    cfg.TextPadding,
 			// The readout is digits and a percent sign, so nothing
 			// paints into the descent the line box reserves and the
 			// label reads high against the bar it sits on (issue #346).
@@ -88,7 +100,7 @@ func ProgressBar(cfg ProgressBarCfg) View {
 
 	barPercent := cfg.Percent
 	textShow := cfg.TextShow
-	vertical := cfg.vertical
+	vertical := cfg.Vertical
 	indefinite := cfg.Indefinite
 
 	size := guiTheme.progressBarStyle.Size
@@ -144,7 +156,7 @@ func ProgressBar(cfg ProgressBarCfg) View {
 		Content: content,
 	}
 
-	if cfg.vertical {
+	if cfg.Vertical {
 		return Column(ccfg)
 	}
 	return Row(ccfg)

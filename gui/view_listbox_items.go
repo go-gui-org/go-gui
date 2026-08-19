@@ -244,10 +244,10 @@ func listBoxItemContent(dat ListBoxOption, cfg ListBoxCfg) View {
 			Content: []View{
 				Text(TextCfg{
 					Text:      dat.Name,
-					TextStyle: cfg.subheadingStyle,
+					TextStyle: cfg.SubheadingStyle,
 				}),
 				Separator(SeparatorCfg{
-					Color: cfg.subheadingStyle.Color,
+					Color: cfg.SubheadingStyle.Color,
 				}),
 			},
 		})

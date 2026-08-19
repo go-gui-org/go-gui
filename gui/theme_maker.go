@@ -19,7 +19,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	// Icon family for every theme-driven icon style. A ThemeCfg built
 	// from scratch (not via baseCfg) leaves this empty, so fall back to
 	// the bundled font rather than render icons in the default family.
-	iconFamily := cmp.Or(cfg.iconFontFamily, IconFontName)
+	iconFamily := cmp.Or(cfg.IconFontFamily, IconFontName)
 
 	borderFocus := cfg.ColorBorderFocus
 	if borderFocus.eq(Color{}) {
@@ -33,7 +33,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	if !colorSeparator.IsSet() {
 		colorSeparator = cfg.ColorBorder
 	}
-	sizeSeparator := cfg.sizeSeparator
+	sizeSeparator := cfg.SizeSeparator
 	if sizeSeparator == 0 {
 		sizeSeparator = 1
 	}
@@ -55,12 +55,12 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	// Named text roles. Every de-emphasized style below draws from
 	// these rather than restating an alpha (issue #335).
 	textSecondary, textLabel, textDisabled, textPlaceholder :=
-		themeTextRoles(cfg, ts, cfg.sizeTextXSmall)
+		themeTextRoles(cfg, ts, cfg.SizeTextXSmall)
 
 	theme := Theme{
 		Cfg:                  cfg,
 		Name:                 cfg.Name,
-		focusRing:            cfg.focusRing,
+		focusRing:            cfg.FocusRing,
 		TextStyleSecondary:   textSecondary,
 		TextStyleLabel:       textLabel,
 		TextStyleDisabled:    textDisabled,
@@ -116,8 +116,8 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			colorSpellError:  cfg.ColorError,
 		},
 		ScrollbarStyle: ScrollbarStyle{
-			Size:            cfg.sizeScrollbar,
-			minThumbSize:    cfg.sizeScrollbarMin,
+			Size:            cfg.SizeScrollbar,
+			minThumbSize:    cfg.SizeScrollbarMin,
 			colorThumb:      cfg.ColorActive,
 			ColorBackground: ColorTransparent,
 			Radius:          sbRadius,
@@ -126,7 +126,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			GapEnd:          2,
 		},
 		radioStyle: RadioStyle{
-			Size:             cfg.sizeRadio,
+			Size:             cfg.SizeRadio,
 			Color:            cfg.ColorPanel,
 			ColorHover:       cfg.ColorHover,
 			ColorFocus:       cfg.ColorSelect,
@@ -140,8 +140,8 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			textStyleNormal:  ts,
 		},
 		switchStyle: SwitchStyle{
-			sizeWidth:        cfg.sizeSwitchWidth,
-			sizeHeight:       cfg.sizeSwitchHeight,
+			sizeWidth:        cfg.SizeSwitchWidth,
+			sizeHeight:       cfg.SizeSwitchHeight,
 			Color:            cfg.ColorPanel,
 			colorClick:       cfg.ColorInterior,
 			ColorFocus:       cfg.ColorInterior,
@@ -174,7 +174,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			textStyleLabel:  ts,
 		},
 		selectStyle: SelectStyle{
-			Shadow:           cfg.shadowPopover,
+			Shadow:           cfg.ShadowPopover,
 			MinWidth:         75,
 			MaxWidth:         200,
 			Color:            cfg.ColorInterior,
@@ -214,7 +214,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			TextStyle:   ts,
 			textStyleIcon: TextStyle{
 				Color:     ts.Color,
-				Size:      cfg.sizeTextSmall,
+				Size:      cfg.SizeTextSmall,
 				Family:    iconFamily,
 				glyphRole: true,
 			},
@@ -222,7 +222,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Spacing: 0,
 		},
 		dialogStyle: DialogStyle{
-			Shadow:           cfg.shadowDialog,
+			Shadow:           cfg.ShadowDialog,
 			Color:            cfg.ColorPanel,
 			ColorBorder:      cfg.ColorBorder,
 			ColorBorderFocus: borderFocus,
@@ -233,11 +233,11 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			AlignButtons:     HAlignCenter,
 			MinWidth:         200,
 			MaxWidth:         300,
-			titleTextStyle:   makeStyle(ts, cfg.sizeTextLarge),
+			titleTextStyle:   makeStyle(ts, cfg.SizeTextLarge),
 			TextStyle:        ts,
 		},
 		toastStyle: ToastStyle{
-			Shadow:       cfg.shadowPopover,
+			Shadow:       cfg.ShadowPopover,
 			maxVisible:   5,
 			Anchor:       toastBottomRight,
 			Width:        260,
@@ -254,10 +254,10 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			ColorWarning: RGBA(210, 153, 34, 255),
 			ColorError:   cfg.ColorError,
 			TextStyle:    ts,
-			TitleStyle:   makeStyle(ts, cfg.sizeTextMedium),
+			TitleStyle:   makeStyle(ts, cfg.SizeTextMedium),
 		},
 		tooltipStyle: TooltipStyle{
-			Shadow:      cfg.shadowPopover,
+			Shadow:      cfg.ShadowPopover,
 			Delay:       500 * time.Millisecond,
 			Color:       cfg.ColorInterior,
 			ColorBorder: cfg.ColorBorder,
@@ -287,7 +287,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			radiusBorder:     cfg.RadiusMedium,
 		},
 		progressBarStyle: ProgressBarStyle{
-			Size:           cfg.sizeProgressBar,
+			Size:           cfg.SizeProgressBar,
 			Color:          cfg.ColorInterior,
 			colorBar:       cfg.ColorSelect,
 			ColorBorder:    cfg.ColorBorder,
@@ -308,8 +308,8 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Size:  sizeSeparator,
 		},
 		sliderStyle: SliderStyle{
-			Size:             cfg.sizeSlider,
-			ThumbSize:        cfg.sizeSliderThumb,
+			Size:             cfg.SizeSlider,
+			ThumbSize:        cfg.SizeSliderThumb,
 			Color:            cfg.ColorInterior,
 			colorClick:       cfg.ColorActive,
 			colorThumb:       cfg.ColorPanel,
@@ -320,7 +320,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			ColorBorderFocus: borderFocus,
 			Padding:          PaddingNone,
 			SizeBorder:       cfg.SizeBorder,
-			Radius:           cfg.sizeSlider / 2,
+			Radius:           cfg.SizeSlider / 2,
 		},
 		tabControlStyle: TabControlStyle{
 			Color:               cfg.ColorPanel,
@@ -409,7 +409,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			columnWidthMin:     20,
 		},
 		comboboxStyle: ComboboxStyle{
-			Shadow:            cfg.shadowPopover,
+			Shadow:            cfg.ShadowPopover,
 			Color:             cfg.ColorInterior,
 			ColorHover:        cfg.ColorHover,
 			ColorFocus:        cfg.ColorInterior,
@@ -426,7 +426,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			PlaceholderStyle:  textPlaceholder,
 		},
 		commandPaletteStyle: CommandPaletteStyle{
-			Shadow:         cfg.shadowDialog,
+			Shadow:         cfg.ShadowDialog,
 			Color:          cfg.ColorPanel,
 			ColorBorder:    cfg.ColorBorder,
 			ColorHighlight: cfg.ColorSelect,
@@ -439,7 +439,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			backdropColor:  RGBA(0, 0, 0, 120),
 		},
 		MenubarStyle: MenubarStyle{
-			Shadow:           cfg.shadowPopover,
+			Shadow:           cfg.ShadowPopover,
 			widthSubmenuMin:  50,
 			widthSubmenuMax:  200,
 			Color:            cfg.ColorInterior,
@@ -462,11 +462,11 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			TextStyle:        ts,
 			textStyleSubtitle: TextStyle{
 				Color: ts.Color,
-				Size:  cfg.sizeTextSmall,
+				Size:  cfg.SizeTextSmall,
 			},
 		},
 		datePickerStyle: DatePickerStyle{
-			Shadow:           cfg.shadowPopover,
+			Shadow:           cfg.ShadowPopover,
 			cellSpacing:      cfg.SpacingTight,
 			Color:            cfg.ColorInterior,
 			ColorHover:       cfg.ColorHover,
@@ -536,32 +536,32 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		SpacingLarge:  cfg.SpacingLarge,
 
 		SizeTextTiny:   cfg.SizeTextTiny,
-		sizeTextXSmall: cfg.sizeTextXSmall,
-		sizeTextSmall:  cfg.sizeTextSmall,
-		sizeTextMedium: cfg.sizeTextMedium,
-		sizeTextLarge:  cfg.sizeTextLarge,
-		sizeTextXLarge: cfg.sizeTextXLarge,
+		SizeTextXSmall: cfg.SizeTextXSmall,
+		SizeTextSmall:  cfg.SizeTextSmall,
+		SizeTextMedium: cfg.SizeTextMedium,
+		SizeTextLarge:  cfg.SizeTextLarge,
+		SizeTextXLarge: cfg.SizeTextXLarge,
 
-		scrollMultiplier: cfg.scrollMultiplier,
-		scrollDeltaLine:  cfg.scrollDeltaLine,
-		scrollDeltaPage:  cfg.scrollDeltaPage,
+		ScrollMultiplier: cfg.ScrollMultiplier,
+		ScrollDeltaLine:  cfg.ScrollDeltaLine,
+		ScrollDeltaPage:  cfg.ScrollDeltaPage,
 	}
 
 	// Text size shortcuts.
 	normal := ts
 	bold := ts
 	bold.Typeface = glyph.TypefaceBold
-	theme.N1 = makeStyle(normal, theme.sizeTextXLarge)
-	theme.N2 = makeStyle(normal, theme.sizeTextLarge)
+	theme.N1 = makeStyle(normal, theme.SizeTextXLarge)
+	theme.N2 = makeStyle(normal, theme.SizeTextLarge)
 	theme.N3 = ts
-	theme.N4 = makeStyle(normal, theme.sizeTextSmall)
-	theme.N5 = makeStyle(normal, theme.sizeTextXSmall)
+	theme.N4 = makeStyle(normal, theme.SizeTextSmall)
+	theme.N5 = makeStyle(normal, theme.SizeTextXSmall)
 	theme.N6 = makeStyle(normal, theme.SizeTextTiny)
-	theme.B1 = makeStyle(bold, theme.sizeTextXLarge)
-	theme.B2 = makeStyle(bold, theme.sizeTextLarge)
-	theme.B3 = makeStyle(bold, theme.sizeTextMedium)
-	theme.B4 = makeStyle(bold, theme.sizeTextSmall)
-	theme.B5 = makeStyle(bold, theme.sizeTextXSmall)
+	theme.B1 = makeStyle(bold, theme.SizeTextXLarge)
+	theme.B2 = makeStyle(bold, theme.SizeTextLarge)
+	theme.B3 = makeStyle(bold, theme.SizeTextMedium)
+	theme.B4 = makeStyle(bold, theme.SizeTextSmall)
+	theme.B5 = makeStyle(bold, theme.SizeTextXSmall)
 	theme.B6 = makeStyle(bold, theme.SizeTextTiny)
 	theme.tableStyle.TextStyleHead = theme.B3
 	theme.badgeStyle.TextStyle = theme.B5
@@ -570,21 +570,21 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	// Italic shortcuts.
 	italic := ts
 	italic.Typeface = glyph.TypefaceItalic
-	theme.I1 = makeStyle(italic, theme.sizeTextXLarge)
-	theme.I2 = makeStyle(italic, theme.sizeTextLarge)
-	theme.I3 = makeStyle(italic, theme.sizeTextMedium)
-	theme.I4 = makeStyle(italic, theme.sizeTextSmall)
-	theme.I5 = makeStyle(italic, theme.sizeTextXSmall)
+	theme.I1 = makeStyle(italic, theme.SizeTextXLarge)
+	theme.I2 = makeStyle(italic, theme.SizeTextLarge)
+	theme.I3 = makeStyle(italic, theme.SizeTextMedium)
+	theme.I4 = makeStyle(italic, theme.SizeTextSmall)
+	theme.I5 = makeStyle(italic, theme.SizeTextXSmall)
 	theme.I6 = makeStyle(italic, theme.SizeTextTiny)
 
 	// Bold+italic shortcuts.
 	boldItalic := ts
 	boldItalic.Typeface = glyph.TypefaceBoldItalic
-	theme.BI1 = makeStyle(boldItalic, theme.sizeTextXLarge)
-	theme.BI2 = makeStyle(boldItalic, theme.sizeTextLarge)
-	theme.BI3 = makeStyle(boldItalic, theme.sizeTextMedium)
-	theme.BI4 = makeStyle(boldItalic, theme.sizeTextSmall)
-	theme.BI5 = makeStyle(boldItalic, theme.sizeTextXSmall)
+	theme.BI1 = makeStyle(boldItalic, theme.SizeTextXLarge)
+	theme.BI2 = makeStyle(boldItalic, theme.SizeTextLarge)
+	theme.BI3 = makeStyle(boldItalic, theme.SizeTextMedium)
+	theme.BI4 = makeStyle(boldItalic, theme.SizeTextSmall)
+	theme.BI5 = makeStyle(boldItalic, theme.SizeTextXSmall)
 	theme.BI6 = makeStyle(boldItalic, theme.SizeTextTiny)
 
 	// Mono shortcuts: +1 at every rung, so M4 (15) does not share N4's
@@ -593,12 +593,12 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	// applied uniformly because it is the same face at every size. Apps
 	// reading M-rungs beside N-rungs should expect the step.
 	mono := ts
-	mono.Family = cfg.monoFontFamily
-	theme.M1 = makeStyle(mono, theme.sizeTextXLarge+1)
-	theme.M2 = makeStyle(mono, theme.sizeTextLarge+1)
-	theme.M3 = makeStyle(mono, theme.sizeTextMedium+1)
-	theme.M4 = makeStyle(mono, theme.sizeTextSmall+1)
-	theme.M5 = makeStyle(mono, theme.sizeTextXSmall+1)
+	mono.Family = cfg.MonoFontFamily
+	theme.M1 = makeStyle(mono, theme.SizeTextXLarge+1)
+	theme.M2 = makeStyle(mono, theme.SizeTextLarge+1)
+	theme.M3 = makeStyle(mono, theme.SizeTextMedium+1)
+	theme.M4 = makeStyle(mono, theme.SizeTextSmall+1)
+	theme.M5 = makeStyle(mono, theme.SizeTextXSmall+1)
 	theme.M6 = makeStyle(mono, theme.SizeTextTiny+1)
 
 	// Icon font shortcuts.
@@ -608,11 +608,11 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	// centre them on their own ink rather than on a cap band the face
 	// does not really have.
 	icon.glyphRole = true
-	theme.Icon1 = makeStyle(icon, theme.sizeTextXLarge)
-	theme.Icon2 = makeStyle(icon, theme.sizeTextLarge)
-	theme.Icon3 = makeStyle(icon, theme.sizeTextMedium)
-	theme.Icon4 = makeStyle(icon, theme.sizeTextSmall)
-	theme.Icon5 = makeStyle(icon, theme.sizeTextXSmall)
+	theme.Icon1 = makeStyle(icon, theme.SizeTextXLarge)
+	theme.Icon2 = makeStyle(icon, theme.SizeTextLarge)
+	theme.Icon3 = makeStyle(icon, theme.SizeTextMedium)
+	theme.Icon4 = makeStyle(icon, theme.SizeTextSmall)
+	theme.Icon5 = makeStyle(icon, theme.SizeTextXSmall)
 	theme.Icon6 = makeStyle(icon, theme.SizeTextTiny)
 
 	// Every theme leaving this constructor carries a fresh identity.

@@ -102,7 +102,7 @@ func getDownloadSem(w *Window) chan struct{} {
 	imageDownloadSemMu.Lock()
 	defer imageDownloadSemMu.Unlock()
 	if imageDownloadSem == nil {
-		n := w.Config.maxImageDownloads
+		n := w.Config.MaxImageDownloads
 		if n <= 0 {
 			n = defaultMaxImageDownloads
 		}

@@ -31,8 +31,11 @@ type ListBoxOption struct {
 
 // ListBoxCfg configures a list box view.
 type ListBoxCfg struct {
-	TextStyle       TextStyle
-	subheadingStyle TextStyle
+	TextStyle TextStyle
+	// SubheadingStyle styles the subheader rows (options with
+	// isSubheading set). Zero takes the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	SubheadingStyle TextStyle
 	OnSelect        func([]string, EventCtx)
 	OnReorder       func(string, string, EventCtx)
 
@@ -479,8 +482,8 @@ func applyListBoxDefaults(cfg *ListBoxCfg) {
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.textStyleNormal
 	}
-	if cfg.subheadingStyle == (TextStyle{}) {
-		cfg.subheadingStyle = d.subheadingStyle
+	if cfg.SubheadingStyle == (TextStyle{}) {
+		cfg.SubheadingStyle = d.subheadingStyle
 	}
 }
 

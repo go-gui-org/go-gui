@@ -3,21 +3,33 @@ package gui
 import "time"
 
 // SpringCfg controls spring physics behavior.
-type springCfg struct {
+// exportaudit:keep — caller-facing config (issue #372)
+type SpringCfg struct {
 	// Stiffness controls spring force. Values >= ~15600 (with
 	// Mass=1) will diverge at the 16ms fixed timestep.
-	stiffness float32
-	damping   float32
-	mass      float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	Stiffness float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	Damping float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	Mass      float32
 	Threshold float32
 }
 
 // Spring presets.
 var (
-	springDefault = springCfg{stiffness: 100, damping: 10, mass: 1.0, Threshold: 0.01}
-	springGentle  = springCfg{stiffness: 50, damping: 8, mass: 1.0, Threshold: 0.01}
-	SpringBouncy  = springCfg{stiffness: 300, damping: 15, mass: 1.0, Threshold: 0.01}
-	springStiff   = springCfg{stiffness: 500, damping: 30, mass: 1.0, Threshold: 0.01}
+	// SpringDefault is a neutral spring (100/10/1).
+	// exportaudit:keep — preset values (issue #372)
+	SpringDefault = SpringCfg{Stiffness: 100, Damping: 10, Mass: 1.0, Threshold: 0.01}
+	// SpringGentle is a soft, slow spring (50/8/1).
+	// exportaudit:keep — preset values (issue #372)
+	SpringGentle = SpringCfg{Stiffness: 50, Damping: 8, Mass: 1.0, Threshold: 0.01}
+	// SpringBouncy is a lively underdamped spring (300/15/1).
+	// exportaudit:keep — reachable from an exported signature
+	SpringBouncy = SpringCfg{Stiffness: 300, Damping: 15, Mass: 1.0, Threshold: 0.01}
+	// SpringStiff is a snappy spring (500/30/1).
+	// exportaudit:keep — preset values (issue #372)
+	SpringStiff = SpringCfg{Stiffness: 500, Damping: 30, Mass: 1.0, Threshold: 0.01}
 )
 
 // springState tracks current spring physics.
@@ -35,7 +47,7 @@ type SpringAnimation struct {
 	OnValue func(float32, *Window)
 	OnDone  func(*Window)
 	AnimID  string
-	Config  springCfg
+	Config  SpringCfg
 	state   springState
 	stopped bool
 }
@@ -61,7 +73,7 @@ func (s *SpringAnimation) Update(_ *Window, dt float32, ac *AnimationCommands) b
 func NewSpringAnimation(id string, onValue func(float32, *Window)) *SpringAnimation {
 	return &SpringAnimation{
 		AnimID:  id,
-		Config:  springDefault,
+		Config:  SpringDefault,
 		OnValue: onValue,
 	}
 }
@@ -91,16 +103,16 @@ func updateSpring(sp *SpringAnimation, dt float32, ac *AnimationCommands) bool {
 		return false
 	}
 	cfg := sp.Config
-	if cfg.mass <= 0 {
-		cfg.mass = springDefault.mass
+	if cfg.Mass <= 0 {
+		cfg.Mass = SpringDefault.Mass
 	}
 	if cfg.Threshold <= 0 {
-		cfg.Threshold = springDefault.Threshold
+		cfg.Threshold = SpringDefault.Threshold
 	}
 	displacement := sp.state.position - sp.state.target
-	springForce := -cfg.stiffness * displacement
-	dampingForce := -cfg.damping * sp.state.velocity
-	acceleration := (springForce + dampingForce) / cfg.mass
+	springForce := -cfg.Stiffness * displacement
+	dampingForce := -cfg.Damping * sp.state.velocity
+	acceleration := (springForce + dampingForce) / cfg.Mass
 
 	sp.state.velocity += acceleration * dt
 	sp.state.position += sp.state.velocity * dt

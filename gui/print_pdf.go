@@ -90,11 +90,11 @@ func renderToPDF(renderers []RenderCmd, job PrintJob,
 	}
 
 	// Header/footer rendering.
-	if job.Header.enabled {
+	if job.Header.Enabled {
 		renderHeaderFooter(pdf, tr, job.Header, job, pageW, m, true)
 	}
-	if job.footer.enabled {
-		renderHeaderFooter(pdf, tr, job.footer, job, pageW, m, false)
+	if job.Footer.Enabled {
+		renderHeaderFooter(pdf, tr, job.Footer, job, pageW, m, false)
 	}
 
 	var clipStack []clipEntry
@@ -717,7 +717,7 @@ func gradientCoords(dir GradientDirection) (float64, float64, float64, float64) 
 
 // renderHeaderFooter draws a header or footer line on the page.
 func renderHeaderFooter(pdf *fpdf.Fpdf, tr func(string) string,
-	cfg printHeaderFooterCfg,
+	cfg PrintHeaderFooterCfg,
 	job PrintJob, pageW float32, m PrintMargins, isHeader bool) {
 
 	fontSize := 8.0 // points

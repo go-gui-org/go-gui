@@ -13,15 +13,22 @@ const (
 
 // ScrollbarCfg configures the style of a scrollbar.
 type ScrollbarCfg struct {
-	ID              string
-	Size            float32 // ergonomics-audit:opt-plain — a zero-thickness scrollbar is meaningless; 0 means the theme default
-	minThumbSize    float32
-	Radius          Opt[float32] // 0 is a real choice (square thumb); unset falls back to the theme
-	radiusThumb     float32
-	GapEdge         float32
-	GapEnd          float32
-	scrollID        string `gui:"required"`
-	colorThumb      Color
+	ID   string
+	Size float32 // ergonomics-audit:opt-plain — a zero-thickness scrollbar is meaningless; 0 means the theme default
+	// MinThumbSize is the smallest the thumb may shrink to. Zero
+	// takes the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	MinThumbSize float32
+	Radius       Opt[float32] // 0 is a real choice (square thumb); unset falls back to the theme
+	// RadiusThumb rounds the thumb. Zero takes the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	RadiusThumb float32
+	GapEdge     float32
+	GapEnd      float32
+	scrollID    string `gui:"required"`
+	// ColorThumb paints the thumb. Unset takes the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorThumb      Color
 	ColorBackground Color
 	Overflow        ScrollbarOverflow
 	Orientation     ScrollbarOrientation
@@ -36,8 +43,8 @@ const (
 )
 
 func applyScrollbarDefaults(cfg *ScrollbarCfg) {
-	if !cfg.colorThumb.IsSet() {
-		cfg.colorThumb = DefaultScrollbarStyle.colorThumb
+	if !cfg.ColorThumb.IsSet() {
+		cfg.ColorThumb = DefaultScrollbarStyle.colorThumb
 	}
 	if !cfg.ColorBackground.IsSet() {
 		cfg.ColorBackground = DefaultScrollbarStyle.ColorBackground
@@ -45,14 +52,14 @@ func applyScrollbarDefaults(cfg *ScrollbarCfg) {
 	if cfg.Size == 0 {
 		cfg.Size = DefaultScrollbarStyle.Size
 	}
-	if cfg.minThumbSize == 0 {
-		cfg.minThumbSize = DefaultScrollbarStyle.minThumbSize
+	if cfg.MinThumbSize == 0 {
+		cfg.MinThumbSize = DefaultScrollbarStyle.minThumbSize
 	}
 	if !cfg.Radius.IsSet() {
 		cfg.Radius = Some(DefaultScrollbarStyle.Radius)
 	}
-	if cfg.radiusThumb == 0 {
-		cfg.radiusThumb = DefaultScrollbarStyle.radiusThumb
+	if cfg.RadiusThumb == 0 {
+		cfg.RadiusThumb = DefaultScrollbarStyle.radiusThumb
 	}
 	if cfg.GapEdge == 0 {
 		cfg.GapEdge = DefaultScrollbarStyle.GapEdge
@@ -98,8 +105,8 @@ func scrollbar(cfg ScrollbarCfg) View {
 
 func scrollbarThumb(cfg ScrollbarCfg) View {
 	return Column(ContainerCfg{
-		Color:   cfg.colorThumb,
-		Radius:  Some(cfg.radiusThumb),
+		Color:   cfg.ColorThumb,
+		Radius:  Some(cfg.RadiusThumb),
 		Padding: NoPadding,
 		OnClick: makeScrollbarOnMouseDown(cfg),
 	})
@@ -118,7 +125,7 @@ func makeScrollbarOnHover(cfg ScrollbarCfg) func(EventCtx) {
 		}
 		if ctx.Layout.Children[thumbIndex].Shape.Color != ColorTransparent ||
 			cfg.Overflow == scrollbarOnHover {
-			ctx.Layout.Children[thumbIndex].Shape.Color = cfg.colorThumb
+			ctx.Layout.Children[thumbIndex].Shape.Color = cfg.ColorThumb
 			ctx.Window.setMouseCursor(CursorArrow)
 		}
 	}
@@ -149,7 +156,7 @@ func scrollbarAmendLayout(
 			return
 		}
 		tWidth := layout.Shape.Width * (layout.Shape.Width / cWidth)
-		thumbWidth := f32Clamp(tWidth, cfg.minThumbSize, layout.Shape.Width)
+		thumbWidth := f32Clamp(tWidth, cfg.MinThumbSize, layout.Shape.Width)
 		availWidth := layout.Shape.Width - thumbWidth
 
 		sx := w.scrollX()
@@ -188,7 +195,7 @@ func scrollbarAmendLayout(
 			return
 		}
 		tHeight := layout.Shape.Height * (layout.Shape.Height / cHeight)
-		thumbHeight := f32Clamp(tHeight, cfg.minThumbSize, layout.Shape.Height)
+		thumbHeight := f32Clamp(tHeight, cfg.MinThumbSize, layout.Shape.Height)
 		availHeight := layout.Shape.Height - thumbHeight
 
 		sy := w.scrollY()

@@ -18,11 +18,11 @@ func cols(ids ...string) []GridColumnCfg {
 
 func colsWithPin(specs ...struct {
 	id  string
-	pin gridColumnPin
+	pin GridColumnPin
 }) []GridColumnCfg {
 	out := make([]GridColumnCfg, len(specs))
 	for i, s := range specs {
-		out[i] = GridColumnCfg{ID: s.id, Title: s.id, pin: s.pin}
+		out[i] = GridColumnCfg{ID: s.id, Title: s.id, Pin: s.pin}
 	}
 	return out
 }
@@ -100,20 +100,20 @@ func TestEffectiveColumnsPinPartitioning(t *testing.T) {
 	c := colsWithPin(
 		struct {
 			id  string
-			pin gridColumnPin
-		}{"r1", gridColumnPinRight},
+			pin GridColumnPin
+		}{"r1", GridColumnPinRight},
 		struct {
 			id  string
-			pin gridColumnPin
-		}{"c1", gridColumnPinNone},
+			pin GridColumnPin
+		}{"c1", GridColumnPinNone},
 		struct {
 			id  string
-			pin gridColumnPin
-		}{"l1", gridColumnPinLeft},
+			pin GridColumnPin
+		}{"l1", GridColumnPinLeft},
 		struct {
 			id  string
-			pin gridColumnPin
-		}{"c2", gridColumnPinNone},
+			pin GridColumnPin
+		}{"c2", GridColumnPinNone},
 	)
 	got := colIDs(dataGridEffectiveColumns(c, nil, nil))
 	want := []string{"l1", "c1", "c2", "r1"}
@@ -220,12 +220,12 @@ func TestColumnOrderMoveZeroDelta(t *testing.T) {
 
 func TestPartitionPinsLeftCenterRight(t *testing.T) {
 	input := []GridColumnCfg{
-		{ID: "c1", pin: gridColumnPinNone},
-		{ID: "r1", pin: gridColumnPinRight},
-		{ID: "l1", pin: gridColumnPinLeft},
-		{ID: "l2", pin: gridColumnPinLeft},
-		{ID: "c2", pin: gridColumnPinNone},
-		{ID: "r2", pin: gridColumnPinRight},
+		{ID: "c1", Pin: GridColumnPinNone},
+		{ID: "r1", Pin: GridColumnPinRight},
+		{ID: "l1", Pin: GridColumnPinLeft},
+		{ID: "l2", Pin: GridColumnPinLeft},
+		{ID: "c2", Pin: GridColumnPinNone},
+		{ID: "r2", Pin: GridColumnPinRight},
 	}
 	got := colIDs(dataGridPartitionPins(input))
 	want := []string{"l1", "l2", "c1", "c2", "r1", "r2"}
@@ -245,12 +245,12 @@ func TestPartitionPinsEmpty(t *testing.T) {
 
 func TestColumnNextPinCycle(t *testing.T) {
 	tests := []struct {
-		in   gridColumnPin
-		want gridColumnPin
+		in   GridColumnPin
+		want GridColumnPin
 	}{
-		{gridColumnPinNone, gridColumnPinLeft},
-		{gridColumnPinLeft, gridColumnPinRight},
-		{gridColumnPinRight, gridColumnPinNone},
+		{GridColumnPinNone, GridColumnPinLeft},
+		{GridColumnPinLeft, GridColumnPinRight},
+		{GridColumnPinRight, GridColumnPinNone},
 	}
 	for _, tt := range tests {
 		got := dataGridColumnNextPin(tt.in)

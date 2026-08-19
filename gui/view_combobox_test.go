@@ -103,8 +103,8 @@ func TestComboboxKeyNavScrolls(t *testing.T) {
 func TestComboboxDefaults(t *testing.T) {
 	cfg := ComboboxCfg{}
 	applyComboboxDefaults(&cfg)
-	if cfg.maxDropdownHeight != 200 {
-		t.Errorf("max dropdown = %f", cfg.maxDropdownHeight)
+	if cfg.MaxDropdownHeight != 200 {
+		t.Errorf("max dropdown = %f", cfg.MaxDropdownHeight)
 	}
 	if cfg.MinWidth != 75 {
 		t.Errorf("min width = %f", cfg.MinWidth)

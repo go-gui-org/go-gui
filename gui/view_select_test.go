@@ -107,7 +107,7 @@ func TestSelectOptionViewOnClickFires(t *testing.T) {
 func TestSelectSubHeaderView(t *testing.T) {
 	cfg := &SelectCfg{
 		ID: "s5",
-		subheadingStyle: TextStyle{
+		SubheadingStyle: TextStyle{
 			Color: RGB(180, 180, 180),
 			Size:  14,
 		},

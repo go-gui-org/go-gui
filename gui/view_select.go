@@ -20,9 +20,12 @@ type SelectCfg struct {
 	// wrapper and no extra shape. Set, it stacks above the field in
 	// the theme's label role, and fills A11YLabel when that is unset.
 	// See gui/field_label.go for the convention and why it is one.
-	Label            string
-	TextStyle        TextStyle
-	subheadingStyle  TextStyle
+	Label     string
+	TextStyle TextStyle
+	// SubheadingStyle styles the subheader rows (options prefixed with
+	// the subheader marker). Zero takes the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	SubheadingStyle  TextStyle
 	PlaceholderStyle TextStyle
 	OnSelect         func([]string, EventCtx)
 	ID               string `gui:"required,focus"`
@@ -51,9 +54,13 @@ type SelectCfg struct {
 	ColorSelect    Color
 	Sizing         Sizing
 	SelectMultiple bool
-	noWrap         bool
-	Disabled       bool
-	Invisible      bool
+	// NoWrap clips long option text to one line instead of wrapping.
+	// Relevant for multi-select, which renders selected options as
+	// chips. Zero allows wrapping.
+	// exportaudit:keep — caller-facing config (issue #372)
+	NoWrap    bool
+	Disabled  bool
+	Invisible bool
 }
 
 // selectView implements View for select (dropdown).
@@ -84,7 +91,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 	dropdownScrollID := ScopeID(id, "dropdown")
 
 	empty := len(cfg.Selected) == 0 || len(cfg.Selected[0]) == 0
-	clip := cfg.SelectMultiple && cfg.noWrap
+	clip := cfg.SelectMultiple && cfg.NoWrap
 
 	txt := cfg.Placeholder
 	if !empty {
@@ -95,7 +102,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		txtStyle = cfg.TextStyle
 	}
 	wrapMode := TextModeSingleLine
-	if cfg.SelectMultiple && !cfg.noWrap {
+	if cfg.SelectMultiple && !cfg.NoWrap {
 		wrapMode = TextModeWrap
 	}
 
@@ -144,7 +151,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 			MinWidth:      cfg.MinWidth,
 			MaxWidth:      cfg.MaxWidth,
 			Float:         true,
-			floatAutoFlip: true,
+			FloatAutoFlip: true,
 			FloatAnchor:   FloatBottomLeft,
 			FloatTieOff:   FloatTopLeft,
 			FloatOffsetY:  -sizeBorder,
@@ -313,17 +320,17 @@ func selectSubHeaderView(cfg *SelectCfg, option string) View {
 						Text: "✓",
 						TextStyle: TextStyle{
 							Color: ColorTransparent,
-							Size:  cfg.subheadingStyle.Size,
+							Size:  cfg.SubheadingStyle.Size,
 						},
 					}),
 					Text(TextCfg{
 						Text:      label,
-						TextStyle: cfg.subheadingStyle,
+						TextStyle: cfg.SubheadingStyle,
 					}),
 				},
 			}),
 			Separator(SeparatorCfg{
-				Color: cfg.subheadingStyle.Color,
+				Color: cfg.SubheadingStyle.Color,
 				Inset: NewPadding(0, PadMedium, 0, PadMedium),
 			}),
 		},
@@ -483,8 +490,8 @@ func applySelectDefaults(cfg *SelectCfg) {
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.textStyleNormal
 	}
-	if cfg.subheadingStyle == (TextStyle{}) {
-		cfg.subheadingStyle = d.subheadingStyle
+	if cfg.SubheadingStyle == (TextStyle{}) {
+		cfg.SubheadingStyle = d.subheadingStyle
 	}
 	if cfg.PlaceholderStyle == (TextStyle{}) {
 		cfg.PlaceholderStyle = d.PlaceholderStyle

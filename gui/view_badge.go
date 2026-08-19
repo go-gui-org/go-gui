@@ -23,7 +23,10 @@ type BadgeCfg struct {
 	A11YCfg
 	Max     int // 0 = no cap; shows "max+" when exceeded
 	Padding Padding
-	dotSize Opt[float32]
+	// DotSize is the dot badge's diameter. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	DotSize Opt[float32]
 
 	Color   Color
 	Variant badgeVariant
@@ -45,7 +48,7 @@ func Badge(cfg BadgeCfg) View {
 	}
 	pad := cfg.Padding.Or(style.Padding)
 	radius := (cfg.TextStyle.Size + pad.Top + pad.Bottom) / 2
-	dotSize := cfg.dotSize.Get(style.dotSize)
+	dotSize := cfg.DotSize.Get(style.dotSize)
 	bg := cfg.Color
 	switch cfg.Variant {
 	case BadgeInfo:

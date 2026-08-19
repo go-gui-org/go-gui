@@ -84,13 +84,13 @@ func baseMacOSCfg() ThemeCfg {
 	// Control geometry. The switch is a true capsule — height 22 with
 	// a 38 width gives the knob room to travel without the track
 	// looking stretched.
-	cfg.sizeSwitchWidth = 38
-	cfg.sizeSwitchHeight = 22
-	cfg.sizeScrollbar = 8
+	cfg.SizeSwitchWidth = 38
+	cfg.SizeSwitchHeight = 22
+	cfg.SizeScrollbar = 8
 
-	cfg.shadowPopover = macOSShadowPopover
-	cfg.shadowDialog = macOSShadowDialog
-	cfg.focusRing = macOSFocusRing
+	cfg.ShadowPopover = macOSShadowPopover
+	cfg.ShadowDialog = macOSShadowDialog
+	cfg.FocusRing = macOSFocusRing
 
 	// Fonts need no override on darwin: defaultFontFamily is "", which
 	// resolves to the backend's system face, and defaultMonoFontFamily
@@ -140,7 +140,7 @@ func macOSDarkCfg() ThemeCfg {
 	cfg.ColorWarning = ColorFromString("#FF9F0A")
 	cfg.ColorError = ColorFromString("#FF453A")
 	cfg.TitlebarDark = true
-	cfg.focusRing = macOSFocusRingDark
+	cfg.FocusRing = macOSFocusRingDark
 	cfg.TextStyleDef = TextStyle{
 		Family: defaultFontFamily,
 		Color:  ColorFromString("#FFFFFF"),

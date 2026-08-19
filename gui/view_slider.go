@@ -17,10 +17,13 @@ type SliderCfg struct {
 
 	// Accessibility
 	A11YCfg
-	Padding      Padding
-	SizeBorder   Opt[float32]
-	Radius       Opt[float32]
-	radiusBorder Opt[float32]
+	Padding    Padding
+	SizeBorder Opt[float32]
+	Radius     Opt[float32]
+	// RadiusBorder overrides the track border radius. Unset falls
+	// back to the theme.
+	// exportaudit:keep — caller-facing config (issue #372)
+	RadiusBorder Opt[float32]
 	Value        float32
 	Min          float32
 	Max          float32
@@ -34,20 +37,34 @@ type SliderCfg struct {
 	FocusDisabled bool
 	Color         Color
 	ColorBorder   Color
-	colorThumb    Color
-	ColorFocus    Color
-	ColorHover    Color
-	colorLeft     Color
-	colorClick    Color
+	// ColorThumb paints the thumb. Unset takes the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorThumb Color
+	ColorFocus Color
+	ColorHover Color
+	// ColorLeft paints the filled (value) side of the track. Unset
+	// takes the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorLeft Color
+	// ColorClick paints the track while the thumb is dragged. Unset
+	// takes the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorClick Color
 	// Colors sets the per-state colors. Color above is the
 	// shorthand for Colors.Base and wins over it; the other flat
 	// Color* fields win over their Colors slots the same way.
-	Colors     ColorSet
-	Sizing     Sizing
-	roundValue bool
-	vertical   bool
-	Disabled   bool
-	Invisible  bool
+	Colors ColorSet
+	Sizing Sizing
+	// RoundValue snaps the thumb and reported value to integer
+	// steps. Off by default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	RoundValue bool
+	// Vertical renders the slider top-to-bottom instead of
+	// left-to-right.
+	// exportaudit:keep — caller-facing config (issue #372)
+	Vertical  bool
+	Disabled  bool
+	Invisible bool
 }
 
 // Slider creates a slider view.
@@ -62,7 +79,7 @@ func Slider(cfg SliderCfg) View {
 		cfg.ThumbSize = guiTheme.sliderStyle.ThumbSize
 	}
 	radius := cfg.Radius.Get(guiTheme.sliderStyle.Radius)
-	radiusBorder := cfg.radiusBorder.Get(radius)
+	radiusBorder := cfg.RadiusBorder.Get(radius)
 	if cfg.Max == 0 && cfg.Min == 0 {
 		cfg.Max = 100
 	}
@@ -81,7 +98,7 @@ func Slider(cfg SliderCfg) View {
 	trackWidth := float32(0)
 	trackHeight := cfg.Size
 
-	if cfg.vertical {
+	if cfg.Vertical {
 		wrapperWidth = f32Max(cfg.Size, cfg.ThumbSize)
 		wrapperHeight = cfg.Size
 		trackWidth = cfg.Size
@@ -100,8 +117,8 @@ func Slider(cfg SliderCfg) View {
 	minVal := cfg.Min
 	maxVal := cfg.Max
 	step := cfg.Step
-	vertical := cfg.vertical
-	roundValue := cfg.roundValue
+	vertical := cfg.Vertical
+	roundValue := cfg.RoundValue
 	size := cfg.Size
 	szBorder := sizeBorder
 	thumbSize := cfg.ThumbSize
@@ -110,17 +127,17 @@ func Slider(cfg SliderCfg) View {
 	disabled := cfg.Disabled
 
 	trackSizing := FillFixed
-	if cfg.vertical {
+	if cfg.Vertical {
 		trackSizing = FixedFill
 	}
 
 	trackAxis := axisLeftToRight
-	if cfg.vertical {
+	if cfg.Vertical {
 		trackAxis = axisTopToBottom
 	}
 
 	wrapperAxis := axisLeftToRight
-	if cfg.vertical {
+	if cfg.Vertical {
 		wrapperAxis = axisTopToBottom
 	}
 
@@ -187,7 +204,7 @@ func Slider(cfg SliderCfg) View {
 		AmendLayout: func(ctx EventCtx) {
 			sliderAmendLayoutSlide(ctx.Layout, ctx.Window,
 				onChange, value, minVal, maxVal, size, szBorder,
-				vertical, colorFocus, cfg.colorLeft, disabled,
+				vertical, colorFocus, cfg.ColorLeft, disabled,
 				ctx.Layout.Shape.idKey(), roundValue)
 		},
 		OnHover: func(ctx EventCtx) {
@@ -214,14 +231,14 @@ func Slider(cfg SliderCfg) View {
 				Content: []View{
 					Rectangle(RectangleCfg{
 						Sizing:      FillFill,
-						Color:       cfg.colorLeft,
-						ColorBorder: cfg.colorLeft,
+						Color:       cfg.ColorLeft,
+						ColorBorder: cfg.ColorLeft,
 					}),
 					Circle(ContainerCfg{
 						Sizing:      FixedFixed,
 						Width:       cfg.ThumbSize,
 						Height:      cfg.ThumbSize,
-						Color:       cfg.colorThumb,
+						Color:       cfg.ColorThumb,
 						ColorBorder: cfg.ColorBorder,
 						SizeBorder:  Some(sizeBorder),
 						Padding:     NoPadding,
@@ -402,13 +419,13 @@ func applySliderDefaults(cfg *SliderCfg) {
 		d.Color, d.ColorHover, d.colorClick,
 		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
 	))
-	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, &cfg.colorClick,
+	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, &cfg.ColorClick,
 		&cfg.ColorFocus, &cfg.ColorBorder, nil)
-	if !cfg.colorThumb.IsSet() {
-		cfg.colorThumb = d.colorThumb
+	if !cfg.ColorThumb.IsSet() {
+		cfg.ColorThumb = d.colorThumb
 	}
-	if !cfg.colorLeft.IsSet() {
-		cfg.colorLeft = d.colorLeft
+	if !cfg.ColorLeft.IsSet() {
+		cfg.ColorLeft = d.colorLeft
 	}
 }
 

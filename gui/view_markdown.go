@@ -122,47 +122,57 @@ func DefaultMarkdownStyle() MarkdownStyle {
 
 // MarkdownCfg configures a Markdown View. Mode defaults to wrapped text.
 type MarkdownCfg struct {
-	ID                  string
-	Source              string
-	Style               MarkdownStyle
-	mermaidWidth        int // max pixel width for mermaid diagrams (0 = 600)
-	Padding             Padding
-	SizeBorder          Opt[float32]
-	Radius              Opt[float32]
-	Focusable           bool
-	MinWidth            float32
-	Color               Color
-	ColorBorder         Color
-	Mode                Opt[textMode]
-	Invisible           bool
-	Clip                bool
-	FocusSkip           bool
-	Disabled            bool
-	disableExternalAPIs bool
+	ID     string
+	Source string
+	Style  MarkdownStyle
+	// MermaidWidth is the max pixel width for mermaid diagrams
+	// (0 = 600).
+	// exportaudit:keep — caller-facing config (issue #372)
+	MermaidWidth int
+	Padding      Padding
+	SizeBorder   Opt[float32]
+	Radius       Opt[float32]
+	Focusable    bool
+	MinWidth     float32
+	Color        Color
+	ColorBorder  Color
+	Mode         Opt[textMode]
+	Invisible    bool
+	Clip         bool
+	FocusSkip    bool
+	Disabled     bool
+	// DisableExternalAPIs blocks CodeCogs/Kroki fetches, so math
+	// and mermaid render only when a custom fetcher is installed.
+	// exportaudit:keep — caller-facing config (issue #372)
+	DisableExternalAPIs bool
 
 	// MathFetcher replaces the default CodeCogs renderer.
 	// When nil, uses the default CodeCogs endpoint. Ignored
 	// when DisableExternalAPIs is true.
-	mathFetcher mathFetcher
+	// exportaudit:keep — caller-facing config (issue #372)
+	MathFetcher MathFetcher
 
 	// MermaidFetcher replaces the default Kroki renderer.
 	// When nil, uses the default Kroki endpoint. Ignored
 	// when DisableExternalAPIs is true.
-	mermaidFetcher mermaidFetcher
+	// exportaudit:keep — caller-facing config (issue #372)
+	MermaidFetcher MermaidFetcher
 }
 
 // MathFetcher fetches a LaTeX math expression as a PNG image.
 // When nil, defaults to the CodeCogs API. The implementation
 // must be safe for concurrent use. Ignored when
 // DisableExternalAPIs is true.
-type mathFetcher func(ctx context.Context, latex string, dpi int,
+// exportaudit:keep — caller-facing config (issue #372)
+type MathFetcher func(ctx context.Context, latex string, dpi int,
 	fgColor Color) ([]byte, error)
 
 // MermaidFetcher fetches a Mermaid diagram as a PNG image.
 // When nil, defaults to the Kroki API. The implementation must
 // be safe for concurrent use. Ignored when
 // DisableExternalAPIs is true.
-type mermaidFetcher func(ctx context.Context, source string) ([]byte, error)
+// exportaudit:keep — caller-facing config (issue #372)
+type MermaidFetcher func(ctx context.Context, source string) ([]byte, error)
 
 var markdownExternalAPIsEnabled bool
 
@@ -311,7 +321,7 @@ func (mv *markdownView) GenerateLayout(w *Window) Layout {
 	}
 
 	allowExternalAPIs := markdownExternalAPIsEnabled &&
-		!cfg.disableExternalAPIs
+		!cfg.DisableExternalAPIs
 	if allowExternalAPIs {
 		markdownTriggerMathFetches(blocks, *cfg, w)
 	}
@@ -394,7 +404,7 @@ func markdownTriggerMathFetches(
 				})
 			fetchMathAsync(w, run.MathLatex, mhash,
 				reqID, cfg.Style.mathDPIInline,
-				cfg.Style.Text.Color, cfg.mathFetcher)
+				cfg.Style.Text.Color, cfg.MathFetcher)
 		}
 	}
 }

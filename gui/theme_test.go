@@ -32,19 +32,19 @@ func TestThemeMaker(t *testing.T) {
 		SpacingMedium:    SpacingMedium,
 		SpacingLarge:     SpacingLarge,
 		SizeTextTiny:     sizeTextTiny,
-		sizeTextXSmall:   sizeTextXSmall,
-		sizeTextSmall:    sizeTextSmall,
-		sizeTextMedium:   sizeTextMedium,
-		sizeTextLarge:    sizeTextLarge,
-		sizeTextXLarge:   sizeTextXLarge,
-		sizeScrollbar:    7,
-		sizeScrollbarMin: 20,
-		sizeRadio:        16,
-		sizeSwitchWidth:  36,
-		sizeSwitchHeight: 22,
-		scrollMultiplier: 20,
-		scrollDeltaLine:  1,
-		scrollDeltaPage:  10,
+		SizeTextXSmall:   sizeTextXSmall,
+		SizeTextSmall:    sizeTextSmall,
+		SizeTextMedium:   sizeTextMedium,
+		SizeTextLarge:    sizeTextLarge,
+		SizeTextXLarge:   sizeTextXLarge,
+		SizeScrollbar:    7,
+		SizeScrollbarMin: 20,
+		SizeRadio:        16,
+		SizeSwitchWidth:  36,
+		SizeSwitchHeight: 22,
+		ScrollMultiplier: 20,
+		ScrollDeltaLine:  1,
+		ScrollDeltaPage:  10,
 	}
 	theme := ThemeMaker(cfg)
 	if theme.Name != "test" {
@@ -131,11 +131,11 @@ func TestAdjustFontSize(t *testing.T) {
 	cfg := ThemeCfg{
 		TextStyleDef:     TextStyle{Color: RGB(225, 225, 225), Size: 16},
 		SizeTextTiny:     10,
-		sizeTextXSmall:   12,
-		sizeTextSmall:    14,
-		sizeTextMedium:   16,
-		sizeTextLarge:    20,
-		sizeTextXLarge:   24,
+		SizeTextXSmall:   12,
+		SizeTextSmall:    14,
+		SizeTextMedium:   16,
+		SizeTextLarge:    20,
+		SizeTextXLarge:   24,
 		Radius:           radiusMedium,
 		RadiusSmall:      radiusSmall,
 		RadiusMedium:     radiusMedium,
@@ -143,19 +143,19 @@ func TestAdjustFontSize(t *testing.T) {
 		SpacingTight:     SpacingTight,
 		SpacingMedium:    SpacingMedium,
 		PaddingMedium:    paddingMedium,
-		sizeScrollbar:    7,
-		sizeScrollbarMin: 20,
-		sizeRadio:        16,
-		sizeSwitchWidth:  36,
-		sizeSwitchHeight: 22,
+		SizeScrollbar:    7,
+		SizeScrollbarMin: 20,
+		SizeRadio:        16,
+		SizeSwitchWidth:  36,
+		SizeSwitchHeight: 22,
 	}
 	theme := ThemeMaker(cfg)
 	bigger, err := theme.AdjustFontSize(2, 8, 32)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if bigger.sizeTextMedium != 18 {
-		t.Errorf("medium = %f, want 18", bigger.sizeTextMedium)
+	if bigger.SizeTextMedium != 18 {
+		t.Errorf("medium = %f, want 18", bigger.SizeTextMedium)
 	}
 	_, err = theme.AdjustFontSize(100, 1, 32)
 	if err == nil {
@@ -193,9 +193,9 @@ func TestThemeMakerProgressBarStyle(t *testing.T) {
 	t.Parallel()
 	cfg := baseDarkCfg()
 	theme := ThemeMaker(cfg)
-	if theme.progressBarStyle.Size != cfg.sizeProgressBar {
+	if theme.progressBarStyle.Size != cfg.SizeProgressBar {
 		t.Errorf("size = %f, want %f",
-			theme.progressBarStyle.Size, cfg.sizeProgressBar)
+			theme.progressBarStyle.Size, cfg.SizeProgressBar)
 	}
 	if theme.progressBarStyle.colorBar != cfg.ColorSelect {
 		t.Error("bar color should match select")

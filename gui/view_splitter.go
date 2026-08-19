@@ -104,11 +104,17 @@ func SplitterStateNormalize(state SplitterState) SplitterState {
 
 // SplitterPaneCfg configures one pane of a splitter.
 type SplitterPaneCfg struct {
-	Content       []View
-	MinSize       float32
-	MaxSize       float32
-	collapsedSize float32
-	collapsible   bool
+	Content []View
+	MinSize float32
+	MaxSize float32
+	// CollapsedSize is the pane's width/height when collapsed. Zero
+	// takes a small default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	CollapsedSize float32
+	// Collapsible enables the collapse button and collapse behavior
+	// for this pane.
+	// exportaudit:keep — caller-facing config (issue #372)
+	Collapsible bool
 }
 
 // splitterPaneCore holds pane fields needed by callbacks
@@ -126,25 +132,44 @@ type SplitterCfg struct {
 	ID       string
 
 	A11YCfg
-	First               SplitterPaneCfg
-	Second              SplitterPaneCfg
-	Ratio               Opt[float32]
-	HandleSize          Opt[float32]
-	dragStep            Opt[float32]
-	dragStepLarge       Opt[float32]
-	SizeBorder          Opt[float32]
-	Radius              Opt[float32]
-	radiusBorder        Opt[float32]
-	Focusable           bool
-	colorHandle         Color
-	colorHandleHover    Color
-	colorHandleActive   Color
-	colorHandleBorder   Color
-	colorGrip           Color
-	colorButton         Color
-	colorButtonHover    Color
-	colorButtonActive   Color
-	colorButtonIcon     Color
+	First      SplitterPaneCfg
+	Second     SplitterPaneCfg
+	Ratio      Opt[float32]
+	HandleSize Opt[float32]
+	// DragStep/DragStepLarge are the keyboard drag increments
+	// (normal and with a modifier). Unset takes the theme defaults.
+	// exportaudit:keep — caller-facing config (issue #372)
+	DragStep Opt[float32]
+	// exportaudit:keep — caller-facing config (issue #372)
+	DragStepLarge Opt[float32]
+	SizeBorder    Opt[float32]
+	Radius        Opt[float32]
+	// RadiusBorder rounds the handle. Unset takes the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	RadiusBorder Opt[float32]
+	Focusable    bool
+	// ColorHandle/ColorHandleHover/ColorHandleActive/
+	// ColorHandleBorder/ColorGrip/ColorButton/ColorButtonHover/
+	// ColorButtonActive/ColorButtonIcon theme the handle and its
+	// collapse buttons. Unset takes the theme defaults.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorHandle Color
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorHandleHover Color
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorHandleActive Color
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorHandleBorder Color
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorGrip Color
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorButton Color
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorButtonHover Color
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorButtonActive Color
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorButtonIcon     Color
 	Sizing              Sizing
 	Orientation         splitterOrientation
 	Collapsed           SplitterCollapsed
@@ -196,22 +221,22 @@ func newSplitterCore(cfg *SplitterCfg) *splitterCore {
 		first: splitterPaneCore{
 			minSize:       cfg.First.MinSize,
 			maxSize:       cfg.First.MaxSize,
-			collapsible:   cfg.First.collapsible,
-			collapsedSize: cfg.First.collapsedSize,
+			collapsible:   cfg.First.Collapsible,
+			collapsedSize: cfg.First.CollapsedSize,
 		},
 		second: splitterPaneCore{
 			minSize:       cfg.Second.MinSize,
 			maxSize:       cfg.Second.MaxSize,
-			collapsible:   cfg.Second.collapsible,
-			collapsedSize: cfg.Second.collapsedSize,
+			collapsible:   cfg.Second.Collapsible,
+			collapsedSize: cfg.Second.CollapsedSize,
 		},
 		handleSize:        cfg.HandleSize.Get(s.HandleSize),
-		dragStep:          cfg.dragStep.Get(s.dragStep),
-		dragStepLarge:     cfg.dragStepLarge.Get(s.dragStepLarge),
+		dragStep:          cfg.DragStep.Get(s.dragStep),
+		dragStepLarge:     cfg.DragStepLarge.Get(s.dragStepLarge),
 		disabled:          cfg.Disabled,
-		colorHandle:       cfg.colorHandle,
-		colorHandleHover:  cfg.colorHandleHover,
-		colorHandleActive: cfg.colorHandleActive,
+		colorHandle:       cfg.ColorHandle,
+		colorHandleHover:  cfg.ColorHandleHover,
+		colorHandleActive: cfg.ColorHandleActive,
 	}
 }
 
@@ -232,35 +257,35 @@ func applySplitterDefaults(cfg *SplitterCfg) {
 	if !cfg.Radius.IsSet() {
 		cfg.Radius = SomeF(s.Radius)
 	}
-	if !cfg.radiusBorder.IsSet() {
-		cfg.radiusBorder = SomeF(s.radiusBorder)
+	if !cfg.RadiusBorder.IsSet() {
+		cfg.RadiusBorder = SomeF(s.radiusBorder)
 	}
-	if !cfg.colorHandle.IsSet() {
-		cfg.colorHandle = s.colorHandle
+	if !cfg.ColorHandle.IsSet() {
+		cfg.ColorHandle = s.colorHandle
 	}
-	if !cfg.colorHandleHover.IsSet() {
-		cfg.colorHandleHover = s.colorHandleHover
+	if !cfg.ColorHandleHover.IsSet() {
+		cfg.ColorHandleHover = s.colorHandleHover
 	}
-	if !cfg.colorHandleActive.IsSet() {
-		cfg.colorHandleActive = s.colorHandleActive
+	if !cfg.ColorHandleActive.IsSet() {
+		cfg.ColorHandleActive = s.colorHandleActive
 	}
-	if !cfg.colorHandleBorder.IsSet() {
-		cfg.colorHandleBorder = s.colorHandleBorder
+	if !cfg.ColorHandleBorder.IsSet() {
+		cfg.ColorHandleBorder = s.colorHandleBorder
 	}
-	if !cfg.colorGrip.IsSet() {
-		cfg.colorGrip = s.colorGrip
+	if !cfg.ColorGrip.IsSet() {
+		cfg.ColorGrip = s.colorGrip
 	}
-	if !cfg.colorButton.IsSet() {
-		cfg.colorButton = s.colorButton
+	if !cfg.ColorButton.IsSet() {
+		cfg.ColorButton = s.colorButton
 	}
-	if !cfg.colorButtonHover.IsSet() {
-		cfg.colorButtonHover = s.colorButtonHover
+	if !cfg.ColorButtonHover.IsSet() {
+		cfg.ColorButtonHover = s.colorButtonHover
 	}
-	if !cfg.colorButtonActive.IsSet() {
-		cfg.colorButtonActive = s.colorButtonActive
+	if !cfg.ColorButtonActive.IsSet() {
+		cfg.ColorButtonActive = s.colorButtonActive
 	}
-	if !cfg.colorButtonIcon.IsSet() {
-		cfg.colorButtonIcon = s.colorButtonIcon
+	if !cfg.ColorButtonIcon.IsSet() {
+		cfg.ColorButtonIcon = s.colorButtonIcon
 	}
 }
 

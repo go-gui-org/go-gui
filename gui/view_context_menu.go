@@ -9,8 +9,11 @@ type contextMenuState struct {
 
 // ContextMenuCfg configures a ContextMenu widget.
 type ContextMenuCfg struct {
-	TextStyle         TextStyle
-	textStyleSubtitle TextStyle
+	TextStyle TextStyle
+	// TextStyleSubtitle styles subtitle items. Zero takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	TextStyleSubtitle TextStyle
 	Action            func(string, EventCtx)
 
 	// User click handler — fires before context menu logic.
@@ -25,14 +28,30 @@ type ContextMenuCfg struct {
 
 	Padding Padding
 
-	paddingMenuItem Padding
-	paddingSubmenu  Padding
-	SizeBorder      Opt[float32]
-	Radius          Opt[float32]
-	radiusMenuItem  Opt[float32]
-	spacingSubmenu  Opt[float32]
-	widthSubmenuMin Opt[float32]
-	widthSubmenuMax Opt[float32]
+	// PaddingMenuItem insets each item. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	PaddingMenuItem Padding
+	// PaddingSubmenu insets submenu panes. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	PaddingSubmenu Padding
+	SizeBorder     Opt[float32]
+	Radius         Opt[float32]
+	// RadiusMenuItem rounds each item. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	RadiusMenuItem Opt[float32]
+	// SpacingSubmenu gaps submenu items. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	SpacingSubmenu Opt[float32]
+	// WidthSubmenuMin/Max bound submenu panes. Unset takes the
+	// theme defaults.
+	// exportaudit:keep — caller-facing config (issue #372)
+	WidthSubmenuMin Opt[float32]
+	// exportaudit:keep — caller-facing config (issue #372)
+	WidthSubmenuMax Opt[float32]
 
 	Width  float32
 	Height float32
@@ -158,17 +177,17 @@ func contextMenuPopup(w *Window, cfg ContextMenuCfg, mx, my float32) View {
 		ColorBorder:       cfg.ColorBorder,
 		ColorSelect:       cfg.ColorSelect,
 		SizeBorder:        cfg.SizeBorder,
-		radiusBorder:      cfg.Radius,
-		radiusMenuItem:    cfg.radiusMenuItem,
+		RadiusBorder:      cfg.Radius,
+		RadiusMenuItem:    cfg.RadiusMenuItem,
 		TextStyle:         cfg.TextStyle,
-		textStyleSubtitle: cfg.textStyleSubtitle,
-		paddingMenuItem:   cfg.paddingMenuItem,
-		paddingSubmenu:    cfg.paddingSubmenu,
-		spacingSubmenu:    cfg.spacingSubmenu,
-		widthSubmenuMin:   cfg.widthSubmenuMin,
-		widthSubmenuMax:   cfg.widthSubmenuMax,
+		TextStyleSubtitle: cfg.TextStyleSubtitle,
+		PaddingMenuItem:   cfg.PaddingMenuItem,
+		PaddingSubmenu:    cfg.PaddingSubmenu,
+		SpacingSubmenu:    cfg.SpacingSubmenu,
+		WidthSubmenuMin:   cfg.WidthSubmenuMin,
+		WidthSubmenuMax:   cfg.WidthSubmenuMax,
 		Float:             true,
-		floatAutoFlip:     true,
+		FloatAutoFlip:     true,
 		FloatAnchor:       FloatTopLeft,
 		FloatTieOff:       FloatTopLeft,
 		FloatOffsetX:      mx,
@@ -196,13 +215,13 @@ func applyContextMenuDefaults(cfg *ContextMenuCfg) {
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.TextStyle
 	}
-	if cfg.textStyleSubtitle == (TextStyle{}) {
-		cfg.textStyleSubtitle = d.textStyleSubtitle
+	if cfg.TextStyleSubtitle == (TextStyle{}) {
+		cfg.TextStyleSubtitle = d.textStyleSubtitle
 	}
-	if !cfg.paddingMenuItem.IsSet() {
-		cfg.paddingMenuItem = d.paddingMenuItem
+	if !cfg.PaddingMenuItem.IsSet() {
+		cfg.PaddingMenuItem = d.paddingMenuItem
 	}
-	if !cfg.paddingSubmenu.IsSet() {
-		cfg.paddingSubmenu = d.paddingSubmenu
+	if !cfg.PaddingSubmenu.IsSet() {
+		cfg.PaddingSubmenu = d.paddingSubmenu
 	}
 }

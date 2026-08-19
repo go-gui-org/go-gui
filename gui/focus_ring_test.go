@@ -153,7 +153,7 @@ func TestFocusRingAmendAppliesShadowOnlyWhenFocused(t *testing.T) {
 	ring := &BoxShadow{Color: RGB(0, 122, 255), BlurRadius: 3}
 	cfg := baseDarkCfg()
 	cfg.Name = "ring-test"
-	cfg.focusRing = ring
+	cfg.FocusRing = ring
 	guiTheme = ThemeMaker(cfg)
 
 	hook := focusRingAmend(Color{}, RGB(1, 2, 3))

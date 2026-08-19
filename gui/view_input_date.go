@@ -27,9 +27,14 @@ type InputDateCfg struct {
 	AllowedDates    []time.Time
 	Padding         Padding
 	SizeBorder      Opt[float32]
-	cellSpacing     Opt[float32]
-	Radius          Opt[float32]
-	radiusBorder    Opt[float32]
+	// CellSpacing gaps the day cells. Unset takes the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	CellSpacing Opt[float32]
+	Radius      Opt[float32]
+	// RadiusBorder rounds the calendar frame. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	RadiusBorder Opt[float32]
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled bool
@@ -184,9 +189,9 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 					Colors:               ColorSet{Hover: cfg.Colors.Hover, Click: cfg.Colors.Click, Focus: cfg.Colors.Focus, Border: cfg.Colors.Border, BorderFocus: cfg.Colors.BorderFocus},
 					ColorSelect:          cfg.ColorSelect,
 					SizeBorder:           cfg.SizeBorder,
-					cellSpacing:          cfg.cellSpacing,
+					CellSpacing:          cfg.CellSpacing,
 					Radius:               cfg.Radius,
-					radiusBorder:         cfg.radiusBorder,
+					RadiusBorder:         cfg.RadiusBorder,
 					SelectMultiple:       cfg.SelectMultiple,
 					HideTodayIndicator:   cfg.HideTodayIndicator,
 					MondayFirstDayOfWeek: cfg.MondayFirstDayOfWeek,
@@ -214,7 +219,7 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 		Color:       cfg.Colors.Base,
 		ColorBorder: cfg.Colors.Border,
 		SizeBorder:  cfg.SizeBorder,
-		Radius:      cfg.radiusBorder,
+		Radius:      cfg.RadiusBorder,
 		Padding:     cfg.Padding,
 		Sizing:      cfg.Sizing,
 		Width:       cfg.Width,
@@ -336,13 +341,13 @@ func applyInputDateDefaults(cfg *InputDateCfg) {
 		cfg.Padding = guiTheme.PaddingField
 	}
 	sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)
-	cellSpacing := cfg.cellSpacing.Get(d.cellSpacing)
+	cellSpacing := cfg.CellSpacing.Get(d.cellSpacing)
 	radius := cfg.Radius.Get(d.Radius)
-	radiusBorder := cfg.radiusBorder.Get(d.radiusBorder)
+	radiusBorder := cfg.RadiusBorder.Get(d.radiusBorder)
 	cfg.SizeBorder = Some(sizeBorder)
-	cfg.cellSpacing = Some(cellSpacing)
+	cfg.CellSpacing = Some(cellSpacing)
 	cfg.Radius = Some(radius)
-	cfg.radiusBorder = Some(radiusBorder)
+	cfg.RadiusBorder = Some(radiusBorder)
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.TextStyle
 	}

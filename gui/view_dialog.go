@@ -26,7 +26,10 @@ const dialogBaseFocusID = "__gui_dialog__"
 
 // DialogCfg configures a modal dialog.
 type DialogCfg struct {
-	titleTextStyle TextStyle
+	// TitleTextStyle styles the dialog title. Zero takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	TitleTextStyle TextStyle
 	TextStyle      TextStyle
 
 	OnOkYes    func(*Window)
@@ -85,7 +88,7 @@ func dialogViewGenerator(cfg DialogCfg) View {
 	if cfg.Title != "" {
 		content = append(content, Text(TextCfg{
 			Text:      cfg.Title,
-			TextStyle: cfg.titleTextStyle,
+			TextStyle: cfg.TitleTextStyle,
 		}))
 	}
 
@@ -277,8 +280,8 @@ func applyDialogDefaults(cfg *DialogCfg) {
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = d.Padding
 	}
-	if cfg.titleTextStyle == (TextStyle{}) {
-		cfg.titleTextStyle = d.titleTextStyle
+	if cfg.TitleTextStyle == (TextStyle{}) {
+		cfg.TitleTextStyle = d.titleTextStyle
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.TextStyle

@@ -32,7 +32,7 @@ func TestSpringRetarget(t *testing.T) {
 func TestSpringSettles(t *testing.T) {
 	var got float32
 	sp := NewSpringAnimation("s", func(v float32, _ *Window) { got = v })
-	sp.Config = springStiff
+	sp.Config = SpringStiff
 	sp.SpringTo(100, 100) // already at target
 	sp.start = time.Now().Add(-time.Second)
 	deferred := make([]queuedCommand, 0, 4)
@@ -95,7 +95,7 @@ func TestSpringSetStart(t *testing.T) {
 func TestSpringUpdateInterface(t *testing.T) {
 	var got float32
 	sp := NewSpringAnimation("s", func(v float32, _ *Window) { got = v })
-	sp.Config = springStiff
+	sp.Config = SpringStiff
 	sp.SpringTo(100, 100) // already at target
 	deferred := make([]queuedCommand, 0, 4)
 	ac := newAnimationCommands(&deferred)
@@ -112,7 +112,7 @@ func TestSpringUpdateInterface(t *testing.T) {
 func TestSpringThresholdUsesUpdatedPosition(t *testing.T) {
 	var got float32
 	sp := NewSpringAnimation("s", func(v float32, _ *Window) { got = v })
-	sp.Config = springCfg{stiffness: 100, damping: 10, mass: 1, Threshold: 0.01}
+	sp.Config = SpringCfg{Stiffness: 100, Damping: 10, Mass: 1, Threshold: 0.01}
 	// Position very close to target: pre-update displacement is tiny,
 	// but velocity will carry position past threshold after integration.
 	sp.state.position = 100.005

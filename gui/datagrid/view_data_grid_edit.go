@@ -77,8 +77,8 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 		})
 	case GridCellEditorCheckbox:
 		checked := dataGridEditorBoolValue(value)
-		editorTrueValue := col.editorTrueValue
-		editorFalseValue := col.editorFalseValue
+		editorTrueValue := col.EditorTrueValue
+		editorFalseValue := col.EditorFalseValue
 		editor = gg.Toggle(gg.ToggleCfg{
 			ID:       editorID,
 			Selected: checked,

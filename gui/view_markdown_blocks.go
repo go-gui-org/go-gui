@@ -27,7 +27,7 @@ func renderMdMath(
 		},
 	})
 
-	if cfg.disableExternalAPIs || !markdownExternalAPIsEnabled {
+	if cfg.DisableExternalAPIs || !markdownExternalAPIsEnabled {
 		return codeFallback
 	}
 
@@ -63,7 +63,7 @@ func renderMdMath(
 			})
 		fetchMathAsync(w, block.MathLatex, diagramHash,
 			reqID, cfg.Style.mathDPIDisplay,
-			cfg.Style.Text.Color, cfg.mathFetcher)
+			cfg.Style.Text.Color, cfg.MathFetcher)
 	}
 	return codeFallback
 }
@@ -87,7 +87,7 @@ func renderMdMermaid(
 		},
 	})
 
-	if cfg.disableExternalAPIs || !markdownExternalAPIsEnabled {
+	if cfg.DisableExternalAPIs || !markdownExternalAPIsEnabled {
 		return codeFallback
 	}
 
@@ -103,7 +103,7 @@ func renderMdMermaid(
 			})
 		case diagramReady:
 			imgW, imgH := entry.Width, entry.Height
-			mw := float32(cfg.mermaidWidth)
+			mw := float32(cfg.MermaidWidth)
 			if mw <= 0 {
 				mw = 600
 			}
@@ -133,7 +133,7 @@ func renderMdMermaid(
 				RequestID: reqID,
 			})
 		fetchMermaidAsync(w, source, diagramHash, reqID,
-			cfg.mermaidFetcher)
+			cfg.MermaidFetcher)
 	}
 	return codeFallback
 }
@@ -276,9 +276,9 @@ func mdRenderTable(
 				SizeBorder:       cfg.Style.tableBorderSize,
 				TextStyleHead:    cfg.Style.tableHeadStyle,
 				TextStyle:        cfg.Style.tableCellStyle,
-				cellPadding:      cfg.Style.tableCellPadding,
+				CellPadding:      cfg.Style.tableCellPadding,
 				ColorRowAlt:      cfg.Style.tableRowAlt,
-				columnAlignments: block.TableData.Alignments,
+				ColumnAlignments: block.TableData.Alignments,
 				Data:             buildMarkdownTableData(*block.TableData, cfg.Style),
 			}),
 		},
