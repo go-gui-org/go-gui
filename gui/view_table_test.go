@@ -137,7 +137,7 @@ func TestTableBorderHeaderOnly(t *testing.T) {
 func TestTableRawData(t *testing.T) {
 	v := Table(TableCfg{
 		ID: "rawdata-test",
-		rawData: [][]string{
+		RawData: [][]string{
 			{"Name", "Age"},
 			{"Alice", "30"},
 			{"Bob", "25"},
@@ -154,7 +154,7 @@ func TestTableRawDataPrecedence(t *testing.T) {
 	// RawData should take precedence over Data.
 	v := Table(TableCfg{
 		ID: "rawdata-prec",
-		rawData: [][]string{
+		RawData: [][]string{
 			{"Header"},
 			{"Real"},
 		},
@@ -175,7 +175,7 @@ func TestTableRawDataHeaderRow(t *testing.T) {
 	// TableCfgFromData which sets HeadCell.
 	v := Table(TableCfg{
 		ID: "rawdata-header",
-		rawData: [][]string{
+		RawData: [][]string{
 			{"Name"},
 			{"Alice"},
 		},
@@ -191,7 +191,7 @@ func TestTableRawDataHeaderOnly(t *testing.T) {
 	// Single-row RawData: only a header row, no data rows.
 	v := Table(TableCfg{
 		ID: "rawdata-header-only",
-		rawData: [][]string{
+		RawData: [][]string{
 			{"Col1", "Col2"},
 		},
 	})
@@ -308,7 +308,7 @@ func TestTableColumnAutoWidth(t *testing.T) {
 	w.textMeasurer = &tableTestMeasurer{}
 	v := w.Table(TableCfg{
 		ID:          "auto-width-test",
-		cellPadding: NewPadding(4, 4, 4, 4),
+		CellPadding: NewPadding(4, 4, 4, 4),
 		Data: []TableRowCfg{
 			TR([]TableCellCfg{tH("Name"), tH("Age")}),
 			TR([]TableCellCfg{tD("Alexander"), tD("30")}),

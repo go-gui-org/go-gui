@@ -213,7 +213,7 @@ func finishDiagramFetch(
 // third-party API (kroki.io) for rendering.
 func fetchMermaidAsync(
 	w *Window, source string, hash int64,
-	requestID uint64, fetcher mermaidFetcher,
+	requestID uint64, fetcher MermaidFetcher,
 ) {
 	actualFetcher := fetcher
 	if actualFetcher == nil {

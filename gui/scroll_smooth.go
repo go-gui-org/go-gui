@@ -144,7 +144,7 @@ func scrollSmoothBy(w *Window, layout *Layout, axis scrollAxis, delta float32) b
 		return false
 	}
 	// Post-generation read: this window's theme, not the frame cache.
-	increment := delta * w.themeRef().scrollMultiplier
+	increment := delta * w.themeRef().ScrollMultiplier
 	return scrollSmoothArm(w, layout.Shape.idKey(), axis, displayed, maxOffset, increment, true)
 }
 

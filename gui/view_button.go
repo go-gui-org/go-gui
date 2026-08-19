@@ -200,8 +200,8 @@ func Button(cfg ButtonCfg) View {
 		FloatOffsetX: cfg.FloatOffsetX,
 		FloatOffsetY: cfg.FloatOffsetY,
 		OnClick:      onClick,
-		clickOnSpace: true,
-		clickOnEnter: true,
+		ClickOnSpace: true,
+		ClickOnEnter: true,
 		// A button's label takes the optical correction (issue #346);
 		// tabs, command buttons and every other widget built on Button
 		// inherit it. The hook here is not the one that runs —

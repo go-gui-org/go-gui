@@ -38,14 +38,17 @@ type ComboboxCfg struct {
 	Placeholder      string
 
 	A11YCfg
-	Options           []string
-	FloatZIndex       int
-	Padding           Padding
-	SizeBorder        Opt[float32]
-	Radius            Opt[float32]
-	MinWidth          float32
-	MaxWidth          float32
-	maxDropdownHeight float32
+	Options     []string
+	FloatZIndex int
+	Padding     Padding
+	SizeBorder  Opt[float32]
+	Radius      Opt[float32]
+	MinWidth    float32
+	MaxWidth    float32
+	// MaxDropdownHeight caps the dropdown list's height. Zero takes
+	// the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	MaxDropdownHeight float32
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled bool
@@ -134,7 +137,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 	rowH := listCoreRowHeightEstimate(
 		cfg.TextStyle, cfg.Padding.Or(PaddingNone), w)
 	pad := cfg.Padding.Or(PaddingNone)
-	listH := cfg.maxDropdownHeight - 2*sizeBorder - pad.Top - pad.Bottom
+	listH := cfg.MaxDropdownHeight - 2*sizeBorder - pad.Top - pad.Bottom
 	var scrollY float32
 	// The dropdown is a child of the container that claims cfg.ID, so
 	// its shape carries the plain leaf below and the framework joins it.
@@ -230,7 +233,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 			ColorBorder:  cfg.ColorBorder,
 			Color:        cfg.Color,
 			MinHeight:    50,
-			MaxHeight:    cfg.maxDropdownHeight,
+			MaxHeight:    cfg.MaxDropdownHeight,
 			Float:        true,
 			FloatAnchor:  FloatBottomLeft,
 			FloatTieOff:  FloatTopLeft,
@@ -466,8 +469,8 @@ func applyComboboxDefaults(cfg *ComboboxCfg) {
 	if cfg.PlaceholderStyle == (TextStyle{}) {
 		cfg.PlaceholderStyle = d.PlaceholderStyle
 	}
-	if cfg.maxDropdownHeight == 0 {
-		cfg.maxDropdownHeight = d.maxDropdownHeight
+	if cfg.MaxDropdownHeight == 0 {
+		cfg.MaxDropdownHeight = d.maxDropdownHeight
 	}
 }
 

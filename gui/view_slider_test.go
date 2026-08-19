@@ -114,7 +114,7 @@ func TestSliderVertical(t *testing.T) {
 	v := Slider(SliderCfg{
 		ID:       "rs",
 		Value:    50,
-		vertical: true,
+		Vertical: true,
 		OnChange: func(_ float32, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, &Window{})
@@ -214,7 +214,7 @@ func TestSliderVerticalMouseDedup(t *testing.T) {
 	v := Slider(SliderCfg{
 		ID:       "rs-vd",
 		Value:    50,
-		vertical: true,
+		Vertical: true,
 		OnChange: onChange,
 	})
 	w := &Window{}

@@ -44,9 +44,9 @@ func TestTextRolesTrackTextStyleDef(t *testing.T) {
 			t.Errorf("%s: Size = %v, want 19", name, r.Size)
 		}
 	}
-	if th.TextStyleLabel.Size != cfg.sizeTextXSmall {
+	if th.TextStyleLabel.Size != cfg.SizeTextXSmall {
 		t.Errorf("label Size = %v, want %v",
-			th.TextStyleLabel.Size, cfg.sizeTextXSmall)
+			th.TextStyleLabel.Size, cfg.SizeTextXSmall)
 	}
 }
 

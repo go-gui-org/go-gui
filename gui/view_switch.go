@@ -18,9 +18,12 @@ type SwitchCfg struct {
 	Color         Color
 	// Colors sets the per-state colors. Color above is the
 	// shorthand for Colors.Base and wins over it.
-	Colors        ColorSet
-	ColorSelect   Color
-	colorUnselect Color
+	Colors      ColorSet
+	ColorSelect Color
+	// ColorUnselect paints the track in the off state. Unset takes
+	// the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorUnselect Color
 	Disabled      bool
 	Invisible     bool
 	Selected      bool
@@ -51,7 +54,7 @@ func Switch(cfg SwitchCfg) View {
 	radius := height / 2
 	sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)
 
-	thumbColor := cfg.colorUnselect
+	thumbColor := cfg.ColorUnselect
 	if cfg.Selected {
 		thumbColor = cfg.ColorSelect
 	}
@@ -118,7 +121,7 @@ func Switch(cfg SwitchCfg) View {
 			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Label),
 			A11YDescription: cfg.A11YDescription,
 		},
-		clickOnSpace: true,
+		ClickOnSpace: true,
 		OnClick:      cfg.OnClick,
 		clickButton:  MouseLeft,
 		OnHover: func(ctx EventCtx) {
@@ -164,8 +167,8 @@ func applySwitchDefaults(cfg *SwitchCfg) {
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
 	}
-	if !cfg.colorUnselect.IsSet() {
-		cfg.colorUnselect = d.colorUnselect
+	if !cfg.ColorUnselect.IsSet() {
+		cfg.ColorUnselect = d.colorUnselect
 	}
 
 	if !cfg.Padding.IsSet() {

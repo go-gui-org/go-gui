@@ -73,10 +73,10 @@ func dataGridColumnOrderAndMap(columns []GridColumnCfg, columnOrder []string) ([
 func dataGridPartitionPins(columns []GridColumnCfg) []GridColumnCfg {
 	var left, center, right []GridColumnCfg
 	for _, col := range columns {
-		switch col.pin {
-		case gridColumnPinLeft:
+		switch col.Pin {
+		case GridColumnPinLeft:
 			left = append(left, col)
-		case gridColumnPinRight:
+		case GridColumnPinRight:
 			right = append(right, col)
 		default:
 			center = append(center, col)
@@ -89,14 +89,14 @@ func dataGridPartitionPins(columns []GridColumnCfg) []GridColumnCfg {
 	return merged
 }
 
-func dataGridColumnNextPin(pin gridColumnPin) gridColumnPin {
+func dataGridColumnNextPin(pin GridColumnPin) GridColumnPin {
 	switch pin {
-	case gridColumnPinNone:
-		return gridColumnPinLeft
-	case gridColumnPinLeft:
-		return gridColumnPinRight
+	case GridColumnPinNone:
+		return GridColumnPinLeft
+	case GridColumnPinLeft:
+		return GridColumnPinRight
 	default:
-		return gridColumnPinNone
+		return GridColumnPinNone
 	}
 }
 

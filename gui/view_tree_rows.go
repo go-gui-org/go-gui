@@ -106,8 +106,8 @@ func treeNodeTextStyle(node TreeNodeCfg) TextStyle {
 }
 
 func treeNodeTextStyleIcon(node TreeNodeCfg) TextStyle {
-	if node.textStyleIcon != (TextStyle{}) {
-		return node.textStyleIcon
+	if node.TextStyleIcon != (TextStyle{}) {
+		return node.TextStyleIcon
 	}
 	return defaultTreeStyle.textStyleIcon
 }
@@ -149,7 +149,7 @@ func treeRowView(
 		return Row(ContainerCfg{
 			Padding: NewPadding(
 				2, 5, 2,
-				float32(row.Depth)*cfg.indent+5,
+				float32(row.Depth)*cfg.Indent+5,
 			),
 			Sizing: FillFit,
 			Content: []View{
@@ -183,7 +183,7 @@ func treeRowView(
 		Radius:    Some(cfg.Radius.Get(defaultTreeStyle.Radius)),
 		Padding: NewPadding(
 			2, 5, 2,
-			float32(row.Depth)*cfg.indent+5,
+			float32(row.Depth)*cfg.Indent+5,
 		),
 		Sizing:  FillFit,
 		Spacing: NoSpacing,
@@ -242,7 +242,7 @@ func treeDragRowView(
 		Radius:    Some(cfg.Radius.Get(defaultTreeStyle.Radius)),
 		Padding: NewPadding(
 			2, 5, 2,
-			float32(row.Depth)*cfg.indent+5,
+			float32(row.Depth)*cfg.Indent+5,
 		),
 		Sizing:  FillFit,
 		Spacing: NoSpacing,
@@ -290,7 +290,7 @@ func treeRowContent(
 		Radius: Some(cfg.Radius.Get(defaultTreeStyle.Radius)),
 		Padding: NewPadding(
 			2, 5, 2,
-			float32(row.Depth)*cfg.indent+5,
+			float32(row.Depth)*cfg.Indent+5,
 		),
 		Sizing:  FillFit,
 		Spacing: NoSpacing,

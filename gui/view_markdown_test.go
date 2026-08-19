@@ -82,7 +82,7 @@ func TestMarkdownView_CustomMathFetcherCalled(t *testing.T) {
 	v := w.Markdown(MarkdownCfg{
 		ID:          "md_math",
 		Source:      "$$x^2$$",
-		mathFetcher: myFetcher,
+		MathFetcher: myFetcher,
 	})
 	_ = generateViewLayout(v, w)
 
@@ -114,7 +114,7 @@ func TestMarkdownView_CustomMermaidFetcherCalled(t *testing.T) {
 	v := w.Markdown(MarkdownCfg{
 		ID:             "md_mermaid",
 		Source:         "```mermaid\ngraph TD\n  A-->B\n```",
-		mermaidFetcher: myFetcher,
+		MermaidFetcher: myFetcher,
 	})
 	_ = generateViewLayout(v, w)
 
@@ -132,10 +132,10 @@ func TestMarkdownView_FetcherDefaultsToNil(t *testing.T) {
 	// Verify zero-value MarkdownCfg has nil fetchers
 	// (defaults are applied inside fetchMathAsync/fetchMermaidAsync).
 	cfg := MarkdownCfg{}
-	if cfg.mathFetcher != nil {
+	if cfg.MathFetcher != nil {
 		t.Error("zero MathFetcher should be nil")
 	}
-	if cfg.mermaidFetcher != nil {
+	if cfg.MermaidFetcher != nil {
 		t.Error("zero MermaidFetcher should be nil")
 	}
 }

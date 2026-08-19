@@ -307,7 +307,7 @@ func TestDebugTimeTravelCfgEnablesHistory(t *testing.T) {
 	w := NewWindow(WindowCfg{
 		State:           &testState{},
 		DebugTimeTravel: true,
-		historyBytes:    4096,
+		HistoryBytes:    4096,
 	})
 	if w.history == nil {
 		t.Fatal("history not enabled")

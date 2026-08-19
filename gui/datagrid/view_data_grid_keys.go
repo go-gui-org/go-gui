@@ -11,7 +11,7 @@ import (
 func dataGridMakeOnChar(cfg *DataGridCfg, columns []GridColumnCfg) func(gg.EventCtx) {
 	rows := cfg.Rows
 	selection := cfg.Selection
-	onCopyRows := cfg.onCopyRows
+	onCopyRows := cfg.OnCopyRows
 	return func(ctx gg.EventCtx) {
 		if !dataGridCharIsCopy(ctx.Event) {
 			// Only the copy chord is ours
@@ -105,14 +105,14 @@ func dataGridMakeOnKeydown(cfg *DataGridCfg, columns []GridColumnCfg, rowHeight,
 		columns:           columns,
 		selection:         cfg.Selection,
 		multiSelect:       boolDefault(cfg.MultiSelect, true),
-		rangeSelect:       boolDefault(cfg.rangeSelect, true),
+		rangeSelect:       boolDefault(cfg.RangeSelect, true),
 		onSelectionChange: cfg.OnSelectionChange,
-		onRowActivate:     cfg.onRowActivate,
-		onPageChange:      cfg.onPageChange,
+		onRowActivate:     cfg.OnRowActivate,
+		onPageChange:      cfg.OnPageChange,
 		editEnabled:       dataGridEditingEnabled(cfg),
 		crudEnabled:       dataGridCrudEnabled(cfg),
-		pageSize:          cfg.pageSize,
-		pageIndex:         cfg.pageIndex,
+		pageSize:          cfg.PageSize,
+		pageIndex:         cfg.PageIndex,
 		viewportH:         dataGridHeight(cfg),
 		pageRows:          dataGridPageRows(cfg, rowHeight),
 		firstEditColIdx:   dataGridFirstEditableColumnIndex(cfg, columns),

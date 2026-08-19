@@ -54,7 +54,7 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 		content = append(content, Column(ContainerCfg{
 			ID:            ScopeID(id, "dropdown"),
 			Float:         true,
-			floatAutoFlip: true,
+			FloatAutoFlip: true,
 			FloatAnchor:   cfg.FloatAnchor,
 			FloatTieOff:   cfg.FloatTieOff,
 			FloatOffsetX:  cfg.FloatOffsetX,

@@ -231,8 +231,8 @@ func TestBreadcrumbHoverPressedColor(t *testing.T) {
 				{ID: "two", Label: "Two"},
 			},
 			Selected:        "two",
-			colorCrumbHover: hover,
-			colorCrumbClick: click,
+			ColorCrumbHover: hover,
+			ColorCrumbClick: click,
 		})
 	})
 

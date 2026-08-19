@@ -6,14 +6,19 @@ import (
 )
 
 // DatePickerRollerDisplayMode controls which drums are shown.
-type datePickerRollerDisplayMode uint8
+// exportaudit:keep — caller-facing config (issue #372)
+type DatePickerRollerDisplayMode uint8
 
 // DatePickerRollerDisplayMode constants.
 const (
-	rollerDayMonthYear datePickerRollerDisplayMode = iota // DD MMM YYYY
-	rollerMonthDayYear                                    // MMM DD YYYY
-	rollerMonthYear                                       // MMM YYYY
-	rollerYearOnly                                        // YYYY
+	// exportaudit:keep — caller-facing config (issue #372)
+	RollerDayMonthYear DatePickerRollerDisplayMode = iota // DD MMM YYYY
+	// exportaudit:keep — caller-facing config (issue #372)
+	RollerMonthDayYear // MMM DD YYYY
+	// exportaudit:keep — caller-facing config (issue #372)
+	RollerMonthYear // MMM YYYY
+	// exportaudit:keep — caller-facing config (issue #372)
+	RollerYearOnly // YYYY
 )
 
 // DatePickerRollerCfg configures a roller-style date picker.
@@ -23,25 +28,46 @@ type DatePickerRollerCfg struct {
 	OnChange     func(time.Time, EventCtx)
 	ID           string
 	A11YCfg
-	minYear          int
-	maxYear          int
-	visibleItems     int // must be odd
-	Padding          Padding
-	SizeBorder       Opt[float32]
-	Radius           Opt[float32]
-	Focusable        bool
-	itemHeight       float32
-	MinWidth         float32
-	MaxWidth         float32
-	widthDay         float32
-	widthMonth       float32
-	widthYear        float32
+	// MinYear clamps the year drum's lower bound. Zero takes 1900.
+	// exportaudit:keep — caller-facing config (issue #372)
+	MinYear int
+	// MaxYear clamps the year drum's upper bound. Zero takes 2100.
+	// exportaudit:keep — caller-facing config (issue #372)
+	MaxYear int
+	// VisibleItems is the number of rows shown in a drum (must be
+	// odd). Zero takes 3.
+	// exportaudit:keep — caller-facing config (issue #372)
+	VisibleItems int
+	Padding      Padding
+	SizeBorder   Opt[float32]
+	Radius       Opt[float32]
+	Focusable    bool
+	// ItemHeight is one drum row's height. Zero takes 24.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ItemHeight float32
+	MinWidth   float32
+	MaxWidth   float32
+	// WidthDay/WidthMonth/WidthYear size the three drums. Zero
+	// takes the defaults.
+	// exportaudit:keep — caller-facing config (issue #372)
+	WidthDay float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	WidthMonth float32
+	// exportaudit:keep — caller-facing config (issue #372)
+	WidthYear        float32
 	Color            Color
 	ColorBorder      Color
 	ColorBorderFocus Color
-	displayMode      datePickerRollerDisplayMode
-	longMonths       bool // true = "January", false = "Jan"
-	wrapYear         bool
+	// DisplayMode picks which drums are shown.
+	// exportaudit:keep — caller-facing config (issue #372)
+	DisplayMode DatePickerRollerDisplayMode
+	// LongMonths renders full month names ("January") instead of
+	// "Jan".
+	// exportaudit:keep — caller-facing config (issue #372)
+	LongMonths bool
+	// WrapYear wraps the year drum around its bounds.
+	// exportaudit:keep — caller-facing config (issue #372)
+	WrapYear bool
 }
 
 type datePickerRollerView struct {
@@ -68,11 +94,11 @@ func (rv *datePickerRollerView) GenerateLayout(w *Window) Layout {
 	}
 
 	onChange := cfg.OnChange
-	minYear := cfg.minYear
-	maxYear := cfg.maxYear
+	minYear := cfg.MinYear
+	maxYear := cfg.MaxYear
 	selectedDate := cfg.SelectedDate
-	mode := cfg.displayMode
-	wrapYear := cfg.wrapYear
+	mode := cfg.DisplayMode
+	wrapYear := cfg.WrapYear
 
 	return generateViewLayout(container(ContainerCfg{
 		ID:        cfg.ID,
@@ -146,19 +172,19 @@ func rollerDrumSpecs(
 ) []drumSpec {
 	day := drumSpec{"day", sel.Day(), 1,
 		datePickerDaysInMonth(int(sel.Month()), sel.Year()),
-		rollerDayFormat, cfg.widthDay, true}
+		rollerDayFormat, cfg.WidthDay, true}
 	month := drumSpec{"month", int(sel.Month()), 1, 12,
-		rollerMonthFormat(cfg.longMonths), cfg.widthMonth, true}
+		rollerMonthFormat(cfg.LongMonths), cfg.WidthMonth, true}
 	year := drumSpec{"year", sel.Year(),
-		cfg.minYear, cfg.maxYear,
-		rollerYearFormat, cfg.widthYear, cfg.wrapYear}
+		cfg.MinYear, cfg.MaxYear,
+		rollerYearFormat, cfg.WidthYear, cfg.WrapYear}
 
-	switch cfg.displayMode {
-	case rollerMonthDayYear:
+	switch cfg.DisplayMode {
+	case RollerMonthDayYear:
 		return []drumSpec{month, day, year}
-	case rollerMonthYear:
+	case RollerMonthYear:
 		return []drumSpec{month, year}
-	case rollerYearOnly:
+	case RollerYearOnly:
 		return []drumSpec{year}
 	default: // RollerDayMonthYear
 		return []drumSpec{day, month, year}
@@ -172,13 +198,13 @@ func rollerDrum(
 	format func(int) string, drumWidth float32,
 	wrap bool,
 ) View {
-	vis := cfg.visibleItems
+	vis := cfg.VisibleItems
 	half := vis / 2
 	ts := cfg.TextStyle
 	onChange := cfg.OnChange
 	selectedDate := cfg.SelectedDate
-	minYear := cfg.minYear
-	maxYear := cfg.maxYear
+	minYear := cfg.MinYear
+	maxYear := cfg.MaxYear
 
 	items := make([]View, 0, vis)
 	for i := range vis {
@@ -222,7 +248,7 @@ func rollerDrum(
 		centeredTS.Align = TextAlignCenter
 		itemCfg := ContainerCfg{
 			Width:   drumWidth,
-			Height:  cfg.itemHeight,
+			Height:  cfg.ItemHeight,
 			Padding: NoPadding,
 			HAlign:  HAlignCenter,
 			VAlign:  VAlignMiddle,
@@ -274,7 +300,7 @@ func rollerOnKeyDown(
 	onChange func(time.Time, EventCtx),
 	sel time.Time, minYear, maxYear int,
 	e *Event, w *Window,
-	mode datePickerRollerDisplayMode,
+	mode DatePickerRollerDisplayMode,
 	wrapYear bool,
 ) {
 	if onChange == nil {
@@ -283,9 +309,9 @@ func rollerOnKeyDown(
 	switch {
 	case e.Modifiers == ModNone && e.KeyCode == KeyUp:
 		switch mode {
-		case rollerYearOnly:
+		case RollerYearOnly:
 			rollerAdjustYear(-1, sel, minYear, maxYear, onChange, w, wrapYear)
-		case rollerMonthYear:
+		case RollerMonthYear:
 			rollerAdjustMonth(-1, sel, minYear, maxYear, onChange, w)
 		default:
 			rollerAdjustDay(-1, sel, minYear, maxYear, onChange, w)
@@ -293,9 +319,9 @@ func rollerOnKeyDown(
 		e.IsHandled = true
 	case e.Modifiers == ModNone && e.KeyCode == KeyDown:
 		switch mode {
-		case rollerYearOnly:
+		case RollerYearOnly:
 			rollerAdjustYear(1, sel, minYear, maxYear, onChange, w, wrapYear)
-		case rollerMonthYear:
+		case RollerMonthYear:
 			rollerAdjustMonth(1, sel, minYear, maxYear, onChange, w)
 		default:
 			rollerAdjustDay(1, sel, minYear, maxYear, onChange, w)
@@ -421,36 +447,36 @@ func wrapRange(v, lo, hi int) int {
 }
 
 func applyRollerDefaults(cfg *DatePickerRollerCfg) {
-	if cfg.minYear == 0 {
-		cfg.minYear = 1900
+	if cfg.MinYear == 0 {
+		cfg.MinYear = 1900
 	}
-	if cfg.maxYear == 0 {
-		cfg.maxYear = 2100
+	if cfg.MaxYear == 0 {
+		cfg.MaxYear = 2100
 	}
-	if cfg.minYear > cfg.maxYear {
-		cfg.minYear, cfg.maxYear = cfg.maxYear, cfg.minYear
+	if cfg.MinYear > cfg.MaxYear {
+		cfg.MinYear, cfg.MaxYear = cfg.MaxYear, cfg.MinYear
 	}
-	if cfg.itemHeight == 0 {
-		cfg.itemHeight = 24
+	if cfg.ItemHeight == 0 {
+		cfg.ItemHeight = 24
 	}
-	if cfg.visibleItems == 0 {
-		cfg.visibleItems = 3
+	if cfg.VisibleItems == 0 {
+		cfg.VisibleItems = 3
 	}
-	if cfg.visibleItems%2 == 0 {
-		cfg.visibleItems++
+	if cfg.VisibleItems%2 == 0 {
+		cfg.VisibleItems++
 	}
-	if cfg.widthDay == 0 {
-		cfg.widthDay = 40
+	if cfg.WidthDay == 0 {
+		cfg.WidthDay = 40
 	}
-	if cfg.widthMonth == 0 {
-		if cfg.longMonths {
-			cfg.widthMonth = 100
+	if cfg.WidthMonth == 0 {
+		if cfg.LongMonths {
+			cfg.WidthMonth = 100
 		} else {
-			cfg.widthMonth = 64
+			cfg.WidthMonth = 64
 		}
 	}
-	if cfg.widthYear == 0 {
-		cfg.widthYear = 52
+	if cfg.WidthYear == 0 {
+		cfg.WidthYear = 52
 	}
 	if !cfg.Color.IsSet() {
 		cfg.Color = guiTheme.ColorBackground

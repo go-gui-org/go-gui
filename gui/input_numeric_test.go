@@ -294,8 +294,8 @@ func TestNumericStepResultModifiers(t *testing.T) {
 	t.Parallel()
 	cfg := NumericStepCfg{
 		Step:            1.0,
-		shiftMultiplier: 10.0,
-		altMultiplier:   0.1,
+		ShiftMultiplier: 10.0,
+		AltMultiplier:   0.1,
 	}
 	t.Run("shift", func(t *testing.T) {
 		t.Parallel()

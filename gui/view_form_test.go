@@ -26,7 +26,7 @@ func TestFormValidateInheritPanics(t *testing.T) {
 			t.Fatal("expected panic for unresolved FormValidateInherit")
 		}
 	}()
-	formShouldValidate(formValidateInherit, FormTriggerBlur)
+	formShouldValidate(FormValidateInherit, FormTriggerBlur)
 }
 
 func TestFormGeneratesLayout(t *testing.T) {
@@ -204,8 +204,8 @@ func TestFormReset(t *testing.T) {
 	FormRegisterFieldByID(w, formID, FormFieldAdapterCfg{
 		FieldID:         "email",
 		Value:           "changed@test.com",
-		initialValue:    "init@test.com",
-		hasInitialValue: true,
+		InitialValue:    "init@test.com",
+		HasInitialValue: true,
 	})
 
 	formApplyCfg(w, formID, FormCfg{ID: formID})
@@ -343,20 +343,20 @@ func TestFormAbortOnRevalidation(t *testing.T) {
 
 func TestFormShouldValidate(t *testing.T) {
 	tests := []struct {
-		mode    formValidateOn
+		mode    FormValidateOn
 		trigger FormValidationTrigger
 		want    bool
 	}{
-		{formValidateOnChange, FormTriggerChange, true},
-		{formValidateOnChange, FormTriggerBlur, true},
-		{formValidateOnBlur, FormTriggerChange, false},
-		{formValidateOnBlur, FormTriggerBlur, true},
-		{formValidateOnBlur, formTriggerSubmit, true},
-		{formValidateOnSubmit, FormTriggerChange, false},
-		{formValidateOnSubmit, FormTriggerBlur, false},
-		{formValidateOnSubmit, formTriggerSubmit, true},
-		{formValidateOnBlurSubmit, FormTriggerChange, false},
-		{formValidateOnBlurSubmit, FormTriggerBlur, true},
+		{FormValidateOnChange, FormTriggerChange, true},
+		{FormValidateOnChange, FormTriggerBlur, true},
+		{FormValidateOnBlur, FormTriggerChange, false},
+		{FormValidateOnBlur, FormTriggerBlur, true},
+		{FormValidateOnBlur, formTriggerSubmit, true},
+		{FormValidateOnSubmit, FormTriggerChange, false},
+		{FormValidateOnSubmit, FormTriggerBlur, false},
+		{FormValidateOnSubmit, formTriggerSubmit, true},
+		{FormValidateOnBlurSubmit, FormTriggerChange, false},
+		{FormValidateOnBlurSubmit, FormTriggerBlur, true},
 	}
 	for _, tt := range tests {
 		got := formShouldValidate(tt.mode, tt.trigger)
@@ -545,7 +545,7 @@ func TestFormRequestSubmitForLayoutSuppressedWhenDisabled(t *testing.T) {
 	child := formLayoutFixture("no-enter-form")
 	formApplyCfg(w, "no-enter-form", FormCfg{
 		ID:              "no-enter-form",
-		noSubmitOnEnter: true,
+		NoSubmitOnEnter: true,
 	})
 
 	formRequestSubmitForLayout(w, child)

@@ -8,15 +8,21 @@ import (
 // ---------- public enum types ----------
 
 // FormValidateOn controls when field validation triggers.
-type formValidateOn uint8
+// exportaudit:keep — caller-facing config (issue #372)
+type FormValidateOn uint8
 
 // FormValidateOn values.
 const (
-	formValidateInherit      formValidateOn = iota
-	formValidateOnChange                    // every keystroke
-	formValidateOnBlur                      // field loses focus
-	formValidateOnBlurSubmit                // blur or submit
-	formValidateOnSubmit                    // submit only
+	// exportaudit:keep — caller-facing config (issue #372)
+	FormValidateInherit FormValidateOn = iota
+	// exportaudit:keep — caller-facing config (issue #372)
+	FormValidateOnChange // every keystroke
+	// exportaudit:keep — caller-facing config (issue #372)
+	FormValidateOnBlur // field loses focus
+	// exportaudit:keep — caller-facing config (issue #372)
+	FormValidateOnBlurSubmit // blur or submit
+	// exportaudit:keep — caller-facing config (issue #372)
+	FormValidateOnSubmit // submit only
 )
 
 // FormIssueKind distinguishes error from warning.
@@ -57,8 +63,11 @@ type FormFieldSnapshot struct {
 // FormFieldState is the public view of a field's runtime state.
 // exportaudit:keep — reachable from an exported signature
 type FormFieldState struct {
-	Value        string
-	initialValue string
+	Value string
+	// InitialValue is the pristine value dirty-state is measured
+	// against.
+	// exportaudit:keep — caller-facing state (issue #372)
+	InitialValue string
 	// exportaudit:keep — field name collides with datagrid.Errors
 	Errors  []FormIssue
 	Touched bool
@@ -124,13 +133,22 @@ type FormAsyncValidator func(
 // FormFieldAdapterCfg configures how a field integrates with
 // an ancestor form.
 type FormFieldAdapterCfg struct {
-	FieldID            string
-	Value              string
-	initialValue       string
-	SyncValidators     []FormSyncValidator
-	AsyncValidators    []FormAsyncValidator
-	hasInitialValue    bool
-	validateOnOverride formValidateOn
+	FieldID string
+	Value   string
+	// InitialValue is the pristine value that "dirty" state is
+	// measured against.
+	// exportaudit:keep — caller-facing config (issue #372)
+	InitialValue    string
+	SyncValidators  []FormSyncValidator
+	AsyncValidators []FormAsyncValidator
+	// HasInitialValue marks InitialValue as set (an empty string is
+	// a real value).
+	// exportaudit:keep — caller-facing config (issue #372)
+	HasInitialValue bool
+	// ValidateOnOverride overrides the form's validate-on setting
+	// for this field. Zero (FormValidateInherit) defers to the form.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ValidateOnOverride FormValidateOn
 }
 
 // ---------- FormCfg ----------
@@ -142,11 +160,17 @@ const formLayoutIDPrefix = "form:"
 type FormCfg struct {
 
 	// Callbacks.
-	OnSubmit    func(FormSubmitEvent, EventCtx)
-	OnReset     func(FormResetEvent, EventCtx)
-	errorSlot   func(string, []FormIssue) View
-	summarySlot func(FormSummaryState) View
-	pendingSlot func(FormPendingState) View
+	OnSubmit func(FormSubmitEvent, EventCtx)
+	OnReset  func(FormResetEvent, EventCtx)
+	// ErrorSlot replaces the per-field error line renderer.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ErrorSlot func(string, []FormIssue) View
+	// SummarySlot replaces the validation summary renderer.
+	// exportaudit:keep — caller-facing config (issue #372)
+	SummarySlot func(FormSummaryState) View
+	// PendingSlot replaces the async-pending renderer.
+	// exportaudit:keep — caller-facing config (issue #372)
+	PendingSlot func(FormPendingState) View
 
 	// Identity — required for validation runtime.
 	ID string `gui:"required"`
@@ -165,10 +189,19 @@ type FormCfg struct {
 	Sizing Sizing
 
 	// Validation behaviour.
-	validateOn         formValidateOn // 0 → BlurSubmit
-	noSubmitOnEnter    bool           // true disables enter-to-submit
-	allowInvalidSubmit bool           // true permits submit with errors
-	allowPendingSubmit bool           // true permits submit while async pending
+	// ValidateOn controls when field validation triggers. Zero
+	// (FormValidateInherit) takes the form-level default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ValidateOn FormValidateOn // 0 → BlurSubmit
+	// NoSubmitOnEnter disables enter-to-submit.
+	// exportaudit:keep — caller-facing config (issue #372)
+	NoSubmitOnEnter bool
+	// AllowInvalidSubmit permits submit with errors.
+	// exportaudit:keep — caller-facing config (issue #372)
+	AllowInvalidSubmit bool
+	// AllowPendingSubmit permits submit while async pending.
+	// exportaudit:keep — caller-facing config (issue #372)
+	AllowPendingSubmit bool
 	Disabled           bool
 	Invisible          bool
 }
@@ -201,21 +234,21 @@ func (fv *formView) GenerateLayout(w *Window) Layout {
 	children := make([]View, len(fv.content), len(fv.content)+3)
 	copy(children, fv.content)
 
-	if cfg.errorSlot != nil {
+	if cfg.ErrorSlot != nil {
 		fieldIDs := make([]string, 0, len(summary.issues))
 		for fid := range summary.issues {
 			fieldIDs = append(fieldIDs, fid)
 		}
 		slices.Sort(fieldIDs)
 		for _, fid := range fieldIDs {
-			children = append(children, cfg.errorSlot(fid, summary.issues[fid]))
+			children = append(children, cfg.ErrorSlot(fid, summary.issues[fid]))
 		}
 	}
-	if cfg.summarySlot != nil {
-		children = append(children, cfg.summarySlot(summary))
+	if cfg.SummarySlot != nil {
+		children = append(children, cfg.SummarySlot(summary))
 	}
-	if cfg.pendingSlot != nil {
-		children = append(children, cfg.pendingSlot(pending))
+	if cfg.PendingSlot != nil {
+		children = append(children, cfg.PendingSlot(pending))
 	}
 
 	inner := Column(ContainerCfg{
@@ -268,14 +301,14 @@ type formFieldRuntime struct {
 	touched      bool
 	dirty        bool
 	pending      bool
-	validateOn   formValidateOn
+	validateOn   FormValidateOn
 }
 
 type formRuntimeState struct {
 	fields        map[string]*formFieldRuntime
 	submitReq     bool
 	resetReq      bool
-	validateOn    formValidateOn
+	validateOn    FormValidateOn
 	submitOnEnter bool
 	blockInvalid  bool
 	blockPending  bool
@@ -291,7 +324,7 @@ func formRuntime(w *Window, formID string) *formRuntimeState {
 	if !ok {
 		state = &formRuntimeState{
 			fields:     make(map[string]*formFieldRuntime),
-			validateOn: formValidateOnBlurSubmit,
+			validateOn: FormValidateOnBlurSubmit,
 		}
 		sm.Set(formID, state)
 	}

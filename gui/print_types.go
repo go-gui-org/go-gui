@@ -76,11 +76,14 @@ type PrintPageRange struct {
 
 // PrintHeaderFooterCfg configures page header or footer text.
 // Tokens: {page}, {pages}, {date}, {title}, {job}.
-type printHeaderFooterCfg struct {
-	Left    string
-	Center  string
-	Right   string
-	enabled bool
+// exportaudit:keep — caller-facing config (issue #372)
+type PrintHeaderFooterCfg struct {
+	Left   string
+	Center string
+	Right  string
+	// Enabled toggles the header/footer on the page.
+	// exportaudit:keep — caller-facing config (issue #372)
+	Enabled bool
 }
 
 // PrintJobSourceKind selects the print source.
@@ -101,8 +104,10 @@ type printJobSource struct {
 // PrintJob configures a print or PDF export operation.
 // exportaudit:keep — reachable from an exported signature
 type PrintJob struct {
-	Header       printHeaderFooterCfg
-	footer       printHeaderFooterCfg
+	Header PrintHeaderFooterCfg
+	// Footer is the page footer text config.
+	// exportaudit:keep — caller-facing config (issue #372)
+	Footer       PrintHeaderFooterCfg
 	Source       printJobSource
 	OutputPath   string
 	Title        string
@@ -248,7 +253,7 @@ func validatePrintJob(job PrintJob) error {
 	if err := validateHeaderFooterCfg(job.Header); err != nil {
 		return err
 	}
-	if err := validateHeaderFooterCfg(job.footer); err != nil {
+	if err := validateHeaderFooterCfg(job.Footer); err != nil {
 		return err
 	}
 	if job.rasterDPI < 72 || job.rasterDPI > 1200 {
@@ -267,8 +272,8 @@ func validateExportPrintJob(job PrintJob) error {
 	return validatePrintJob(job)
 }
 
-func validateHeaderFooterCfg(cfg printHeaderFooterCfg) error {
-	if !cfg.enabled {
+func validateHeaderFooterCfg(cfg PrintHeaderFooterCfg) error {
+	if !cfg.Enabled {
 		return nil
 	}
 	for _, token := range extractPrintTokens(cfg.Left) {

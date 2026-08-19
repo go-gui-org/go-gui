@@ -33,8 +33,11 @@ type CommandPaletteItem struct {
 
 // CommandPaletteCfg configures a command palette view.
 type CommandPaletteCfg struct {
-	TextStyle   TextStyle
-	detailStyle TextStyle
+	TextStyle TextStyle
+	// DetailStyle styles the detail line under each item. Zero
+	// takes the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	DetailStyle TextStyle
 	OnAction    func(string, EventCtx)
 	OnDismiss   func(*Window)
 	ID          string `gui:"required"`
@@ -52,7 +55,10 @@ type CommandPaletteCfg struct {
 	Color          Color
 	ColorBorder    Color
 	ColorHighlight Color
-	backdropColor  Color
+	// BackdropColor dims the window behind the palette. Unset takes
+	// the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	BackdropColor Color
 }
 
 // commandPaletteView implements View for command palette.
@@ -139,7 +145,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 
 	coreCfg := listCoreCfg{
 		TextStyle:      cfg.TextStyle,
-		detailStyle:    cfg.detailStyle,
+		detailStyle:    cfg.DetailStyle,
 		ColorHighlight: cfg.ColorHighlight,
 		ColorHover:     cfg.ColorHighlight,
 		ColorSelected:  cfg.ColorHighlight,
@@ -176,7 +182,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 
 	// Build layout: backdrop column with centered card.
 	return generateViewLayout(Column(ContainerCfg{
-		Color:       cfg.backdropColor,
+		Color:       cfg.BackdropColor,
 		Sizing:      FillFill,
 		Float:       true,
 		FloatZIndex: cfg.FloatZIndex,
@@ -425,11 +431,11 @@ func applyCommandPaletteDefaults(cfg *CommandPaletteCfg) {
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.TextStyle
 	}
-	if cfg.detailStyle == (TextStyle{}) {
-		cfg.detailStyle = d.detailStyle
+	if cfg.DetailStyle == (TextStyle{}) {
+		cfg.DetailStyle = d.detailStyle
 	}
-	if !cfg.backdropColor.IsSet() {
-		cfg.backdropColor = d.backdropColor
+	if !cfg.BackdropColor.IsSet() {
+		cfg.BackdropColor = d.backdropColor
 	}
 	if cfg.FloatZIndex == 0 {
 		cfg.FloatZIndex = 1000

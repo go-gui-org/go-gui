@@ -107,7 +107,7 @@ func inspectorFloatingPanel(w *Window) View {
 	scrollbarPad := guiTheme.ScrollbarStyle.Size +
 		guiTheme.ScrollbarStyle.GapEdge*2
 	scrollbarCfg := &ScrollbarCfg{
-		colorThumb: guiTheme.ScrollbarStyle.colorThumb,
+		ColorThumb: guiTheme.ScrollbarStyle.colorThumb,
 	}
 
 	return Column(ContainerCfg{
@@ -158,7 +158,7 @@ func inspectorHelpBar() View {
 	return Text(TextCfg{
 		Text: "  F12 toggle  Alt+Left/Right resize  Alt+Up side",
 		TextStyle: TextStyle{
-			Size:  guiTheme.sizeTextXSmall,
+			Size:  guiTheme.SizeTextXSmall,
 			Color: guiTheme.inspectorStyle.colorTextHelp,
 		},
 	})

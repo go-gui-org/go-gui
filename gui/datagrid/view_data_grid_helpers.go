@@ -69,12 +69,12 @@ func dataGridHeight(cfg *DataGridCfg) float32 {
 }
 
 func dataGridPagerEnabled(cfg *DataGridCfg, pageCount int) bool {
-	return cfg.pageSize > 0 && pageCount > 1
+	return cfg.PageSize > 0 && pageCount > 1
 }
 
 func dataGridPagerHeight(cfg *DataGridCfg) float32 {
-	if cfg.rowHeight > 0 {
-		return cfg.rowHeight
+	if cfg.RowHeight > 0 {
+		return cfg.RowHeight
 	}
 	return dataGridHeaderHeight(cfg)
 }
@@ -91,7 +91,7 @@ func dataGridHeaderHeight(cfg *DataGridCfg) float32 {
 	if cfg.HeaderHeight > 0 {
 		return cfg.HeaderHeight
 	}
-	return cfg.rowHeight
+	return cfg.RowHeight
 }
 
 func dataGridFilterHeight(cfg *DataGridCfg) float32 {
@@ -103,8 +103,8 @@ func dataGridQuickFilterHeight(cfg *DataGridCfg) float32 {
 }
 
 func dataGridRowHeight(cfg *DataGridCfg, _ *gg.Window) float32 {
-	if cfg.rowHeight > 0 {
-		return cfg.rowHeight
+	if cfg.RowHeight > 0 {
+		return cfg.RowHeight
 	}
 	return cfg.TextStyle.Size + cfg.PaddingCell.Or(gg.PaddingNone).Height() + cfg.SizeBorder.Get(0)
 }
@@ -147,7 +147,7 @@ func dataGridVisibleRangeForScroll(scrollY, viewportHeight, rowHeight float32, r
 }
 
 func dataGridDetailRowExpanded(cfg *DataGridCfg, rowID string) bool {
-	return rowID != "" && cfg.detailExpandedRowIDs[rowID]
+	return rowID != "" && cfg.DetailExpandedRowIDs[rowID]
 }
 
 func dataGridHasSource(cfg *DataGridCfg) bool {
@@ -155,7 +155,7 @@ func dataGridHasSource(cfg *DataGridCfg) bool {
 }
 
 func dataGridColumnChooserHeight(cfg *DataGridCfg, isOpen bool) float32 {
-	base := cfg.rowHeight
+	base := cfg.RowHeight
 	if base <= 0 {
 		base = dataGridHeaderHeight(cfg)
 	}

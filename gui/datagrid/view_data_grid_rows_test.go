@@ -11,7 +11,7 @@ import (
 
 func TestResolveCellFormatNoOverride(t *testing.T) {
 	base := gg.TextStyle{Color: gg.RGBA(100, 0, 0, 0)}
-	format := gridCellFormat{}
+	format := GridCellFormat{}
 	ts, bg := dataGridResolveCellFormat(base, format)
 	if ts.Color.R != 100 {
 		t.Error("text color should match base")
@@ -23,7 +23,7 @@ func TestResolveCellFormatNoOverride(t *testing.T) {
 
 func TestResolveCellFormatTextColor(t *testing.T) {
 	base := gg.TextStyle{Color: gg.RGBA(100, 0, 0, 0)}
-	format := gridCellFormat{hasTextColor: true, textColor: gg.RGBA(200, 0, 0, 0)}
+	format := GridCellFormat{hasTextColor: true, textColor: gg.RGBA(200, 0, 0, 0)}
 	ts, _ := dataGridResolveCellFormat(base, format)
 	if ts.Color.R != 200 {
 		t.Errorf("got R=%d, want 200", ts.Color.R)
@@ -32,7 +32,7 @@ func TestResolveCellFormatTextColor(t *testing.T) {
 
 func TestResolveCellFormatBGColor(t *testing.T) {
 	base := gg.TextStyle{}
-	format := gridCellFormat{hasBGColor: true, bGColor: gg.RGBA(0, 150, 0, 0)}
+	format := GridCellFormat{hasBGColor: true, bGColor: gg.RGBA(0, 150, 0, 0)}
 	_, bg := dataGridResolveCellFormat(base, format)
 	if bg.G != 150 {
 		t.Errorf("got G=%d, want 150", bg.G)
@@ -212,7 +212,7 @@ func TestNextDetailExpandedMapDoesNotMutateOriginal(t *testing.T) {
 // --- dataGridFrozenTopIDSet ---
 
 func TestFrozenTopIDSetNormal(t *testing.T) {
-	cfg := &DataGridCfg{frozenTopRowIDs: []string{"a", "b"}}
+	cfg := &DataGridCfg{FrozenTopRowIDs: []string{"a", "b"}}
 	got := dataGridFrozenTopIDSet(cfg)
 	if !got["a"] || !got["b"] || len(got) != 2 {
 		t.Errorf("got %v", got)
@@ -220,7 +220,7 @@ func TestFrozenTopIDSetNormal(t *testing.T) {
 }
 
 func TestFrozenTopIDSetTrimsWhitespace(t *testing.T) {
-	cfg := &DataGridCfg{frozenTopRowIDs: []string{"  a  ", ""}}
+	cfg := &DataGridCfg{FrozenTopRowIDs: []string{"  a  ", ""}}
 	got := dataGridFrozenTopIDSet(cfg)
 	if !got["a"] || len(got) != 1 {
 		t.Errorf("got %v", got)
@@ -319,7 +319,7 @@ func TestSplitFrozenTopIndicesNoFrozen(t *testing.T) {
 func TestSplitFrozenTopIndicesWithFrozen(t *testing.T) {
 	cfg := &DataGridCfg{
 		Rows:            []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}},
-		frozenTopRowIDs: []string{"b"},
+		FrozenTopRowIDs: []string{"b"},
 	}
 	frozen, body := dataGridSplitFrozenTopIndices(cfg, nil)
 	if len(frozen) != 1 {
@@ -741,7 +741,7 @@ func TestGroupHeaderRowView(t *testing.T) {
 		PaddingCell:     gg.NewPadding(2, 4, 2, 4),
 		TextStyleHeader: gg.DefaultTextStyle,
 		ColorFilter:     gg.RGBA(240, 240, 240, 255),
-		showGroupCounts: &trueVal,
+		ShowGroupCounts: &trueVal,
 	}
 	entry := dataGridDisplayRow{
 		Kind:          dataGridDisplayRowGroupHeader,

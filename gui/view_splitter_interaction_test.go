@@ -330,7 +330,7 @@ func TestSplitterAmendLayoutSecondMinSizeBoundsFirst(t *testing.T) {
 
 func TestSplitterAmendLayoutCollapsedFirst(t *testing.T) {
 	a, b := splitterEmptyPanes()
-	a.collapsible = true
+	a.Collapsible = true
 	h := newSplitterHarness(t, SplitterCfg{
 		ID:        "sp",
 		Collapsed: SplitterCollapseFirst,
@@ -351,7 +351,7 @@ func TestSplitterAmendLayoutCollapsedFirst(t *testing.T) {
 // occupies no pixels, so it shares none with the 9px handle at x=0.
 func TestSplitterCollapsedPaneReachesZeroWidthWithContent(t *testing.T) {
 	a, b := splitterTwoPanes()
-	a.collapsible = true
+	a.Collapsible = true
 	h := newSplitterHarness(t, SplitterCfg{
 		ID:        "sp",
 		Collapsed: SplitterCollapseFirst,
@@ -377,8 +377,8 @@ func TestSplitterCollapsedPaneReachesZeroWidthWithContent(t *testing.T) {
 // follows it, and the remaining pane takes the rest.
 func TestSplitterCollapsedPaneRespectsCollapsedSizeWithContent(t *testing.T) {
 	a, b := splitterTwoPanes()
-	a.collapsible = true
-	a.collapsedSize = 24
+	a.Collapsible = true
+	a.CollapsedSize = 24
 	h := newSplitterHarness(t, SplitterCfg{
 		ID:        "sp",
 		Collapsed: SplitterCollapseFirst,
@@ -396,7 +396,7 @@ func TestSplitterCollapsedPaneRespectsCollapsedSizeWithContent(t *testing.T) {
 // zero width at the right edge, not as a sliver under the handle.
 func TestSplitterCollapsedSecondPaneReachesZeroWidthWithContent(t *testing.T) {
 	a, b := splitterTwoPanes()
-	b.collapsible = true
+	b.Collapsible = true
 	h := newSplitterHarness(t, SplitterCfg{
 		ID:        "sp",
 		Collapsed: SplitterCollapseSecond,
@@ -448,7 +448,7 @@ func TestSplitterNormalPaneNotStretchedByContent(t *testing.T) {
 // height, so nothing draws beneath the handle at y=0.
 func TestSplitterCollapsedPaneVerticalReachesZeroHeightWithContent(t *testing.T) {
 	a, b := splitterTwoPanes()
-	a.collapsible = true
+	a.Collapsible = true
 	h := newSplitterHarness(t, SplitterCfg{
 		ID:          "sp",
 		Orientation: SplitterVertical,
@@ -472,8 +472,8 @@ func TestSplitterCollapsedPaneVerticalReachesZeroHeightWithContent(t *testing.T)
 
 func TestSplitterAmendLayoutCollapsedSecondHonorsCollapsedSize(t *testing.T) {
 	a, b := splitterEmptyPanes()
-	b.collapsible = true
-	b.collapsedSize = 24
+	b.Collapsible = true
+	b.CollapsedSize = 24
 	h := newSplitterHarness(t, SplitterCfg{
 		ID:        "sp",
 		Collapsed: SplitterCollapseSecond,
@@ -1056,7 +1056,7 @@ func TestSplitterKeyModifiedArrowsIgnored(t *testing.T) {
 
 func TestSplitterKeyHomeCollapsesFirst(t *testing.T) {
 	a, b := splitterTwoPanes()
-	a.collapsible = true
+	a.Collapsible = true
 	h := splitterKeyHarness(t, SplitterCfg{
 		ID: "sp", Ratio: SomeF(0.5), First: a, Second: b,
 	})
@@ -1074,7 +1074,7 @@ func TestSplitterKeyHomeCollapsesFirst(t *testing.T) {
 
 func TestSplitterKeyEndCollapsesSecond(t *testing.T) {
 	a, b := splitterTwoPanes()
-	b.collapsible = true
+	b.Collapsible = true
 	h := splitterKeyHarness(t, SplitterCfg{
 		ID: "sp", Ratio: SomeF(0.5), First: a, Second: b,
 	})
@@ -1098,7 +1098,7 @@ func TestSplitterKeyHomeEndInertWhenNotCollapsible(t *testing.T) {
 
 func TestSplitterKeyEnterTogglesCollapse(t *testing.T) {
 	a, b := splitterTwoPanes()
-	a.collapsible = true
+	a.Collapsible = true
 	h := splitterKeyHarness(t, SplitterCfg{
 		ID: "sp", Ratio: SomeF(0.5), First: a, Second: b,
 	})
@@ -1117,7 +1117,7 @@ func TestSplitterKeyEnterTogglesCollapse(t *testing.T) {
 // left collapsed and simultaneously reporting a fresh ratio.
 func TestSplitterKeyArrowClearsCollapse(t *testing.T) {
 	a, b := splitterTwoPanes()
-	a.collapsible = true
+	a.Collapsible = true
 	h := splitterKeyHarness(t, SplitterCfg{
 		ID: "sp", Ratio: SomeF(0.5), First: a, Second: b,
 	})
@@ -1138,7 +1138,7 @@ func TestSplitterKeyArrowClearsCollapse(t *testing.T) {
 // keydown (only EventChar carries it), so the spacebar did nothing.
 func TestSplitterKeySpaceTogglesCollapse(t *testing.T) {
 	a, b := splitterTwoPanes()
-	a.collapsible = true
+	a.Collapsible = true
 	h := splitterKeyHarness(t, SplitterCfg{
 		ID: "sp", Ratio: SomeF(0.5), First: a, Second: b,
 	})
@@ -1156,7 +1156,7 @@ func TestSplitterKeySpaceTogglesCollapse(t *testing.T) {
 // A space keydown never carries CharCode, so nothing may depend on it.
 func TestSplitterKeySpaceIgnoresCharCode(t *testing.T) {
 	a, b := splitterTwoPanes()
-	a.collapsible = true
+	a.Collapsible = true
 	h := splitterKeyHarness(t, SplitterCfg{
 		ID: "sp", Ratio: SomeF(0.5), First: a, Second: b,
 	})
@@ -1172,7 +1172,7 @@ func TestSplitterKeySpaceIgnoresCharCode(t *testing.T) {
 
 func TestSplitterKeySpaceWithModifierIgnored(t *testing.T) {
 	a, b := splitterTwoPanes()
-	a.collapsible = true
+	a.Collapsible = true
 	h := splitterKeyHarness(t, SplitterCfg{
 		ID: "sp", Ratio: SomeF(0.5), First: a, Second: b,
 	})
@@ -1217,8 +1217,8 @@ func TestSplitterKeyMissingLayoutIsInert(t *testing.T) {
 
 func splitterCollapsibleCfg(id string) SplitterCfg {
 	a, b := splitterTwoPanes()
-	a.collapsible = true
-	b.collapsible = true
+	a.Collapsible = true
+	b.Collapsible = true
 	return SplitterCfg{
 		ID:                  id,
 		Ratio:               SomeF(0.5),
@@ -1263,7 +1263,7 @@ func TestSplitterCollapseButtonsNeedCollapsiblePane(t *testing.T) {
 
 func TestSplitterCollapseButtonOnlyForCollapsiblePane(t *testing.T) {
 	cfg := splitterCollapsibleCfg("sp")
-	cfg.Second.collapsible = false
+	cfg.Second.Collapsible = false
 	h := newSplitterHarness(t, cfg)
 	if _, ok := h.w.layout.FindByID("sp:button:1"); !ok {
 		t.Error("first button missing")
@@ -1674,8 +1674,8 @@ func TestSplitterIDsAreUniquePerInstance(t *testing.T) {
 		mk := func(id string) View {
 			cfg := splitterCollapsibleCfg(id)
 			cfg.First, cfg.Second = a, b
-			cfg.First.collapsible = true
-			cfg.Second.collapsible = true
+			cfg.First.Collapsible = true
+			cfg.Second.Collapsible = true
 			return Splitter(cfg)
 		}
 		return Column(ContainerCfg{

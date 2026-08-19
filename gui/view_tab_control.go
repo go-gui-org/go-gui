@@ -18,9 +18,15 @@ func NewTabItem(id, label string, content []View) TabItemCfg {
 // TabControlCfg configures a tab control. Controlled component:
 // Selected is owned by app state and updated through OnSelect.
 type TabControlCfg struct {
-	TextStyle         TextStyle
-	textStyleSelected TextStyle
-	textStyleDisabled TextStyle
+	TextStyle TextStyle
+	// TextStyleSelected styles the selected tab label. Zero takes
+	// the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	TextStyleSelected TextStyle
+	// TextStyleDisabled styles disabled tab labels. Zero takes the
+	// theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	TextStyleDisabled TextStyle
 	OnSelect          func(string, EventCtx)
 	OnReorder         func(string, string, EventCtx)
 
@@ -28,36 +34,82 @@ type TabControlCfg struct {
 	Selected string
 
 	A11YCfg
-	Items               []TabItemCfg
-	Padding             Padding
-	PaddingHeader       Padding
-	paddingContent      Padding
-	paddingTab          Padding
-	SizeBorder          Opt[float32]
-	sizeHeaderBorder    Opt[float32]
-	sizeContentBorder   Opt[float32]
-	sizeTabBorder       Opt[float32]
-	Radius              Opt[float32]
-	radiusHeader        Opt[float32]
-	radiusContent       Opt[float32]
-	radiusTab           Opt[float32]
-	Spacing             Opt[float32]
-	spacingHeader       Opt[float32]
-	Focusable           bool
-	Color               Color
-	ColorBorder         Color
-	ColorHeader         Color
-	colorHeaderBorder   Color
-	colorContent        Color
-	colorContentBorder  Color
-	colorTab            Color
-	colorTabHover       Color
-	colorTabFocus       Color
-	colorTabClick       Color
-	colorTabSelected    Color
-	colorTabDisabled    Color
-	colorTabBorder      Color
-	colorTabBorderFocus Color
+	Items         []TabItemCfg
+	Padding       Padding
+	PaddingHeader Padding
+	// PaddingContent insets the tab content area. Unset takes the
+	// theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	PaddingContent Padding
+	// PaddingTab insets each tab. Unset takes the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	PaddingTab Padding
+	SizeBorder Opt[float32]
+	// SizeHeaderBorder widths the header strip border. Unset takes
+	// the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeHeaderBorder Opt[float32]
+	// SizeContentBorder widths the content area border. Unset takes
+	// the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeContentBorder Opt[float32]
+	// SizeTabBorder widths each tab's border. Unset takes the
+	// theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeTabBorder Opt[float32]
+	Radius        Opt[float32]
+	// RadiusHeader rounds the header strip. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	RadiusHeader Opt[float32]
+	// RadiusContent rounds the content area. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	RadiusContent Opt[float32]
+	// RadiusTab rounds each tab. Unset takes the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	RadiusTab Opt[float32]
+	Spacing   Opt[float32]
+	// SpacingHeader gaps the header tabs. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	SpacingHeader Opt[float32]
+	Focusable     bool
+	Color         Color
+	ColorBorder   Color
+	ColorHeader   Color
+	// ColorHeaderBorder colors the header strip border. Unset takes
+	// the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorHeaderBorder Color
+	// ColorContent colors the content area. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorContent Color
+	// ColorContentBorder colors the content area border. Unset
+	// takes the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorContentBorder Color
+	// ColorTab/ColorTabHover/ColorTabFocus/ColorTabClick/
+	// ColorTabSelected/ColorTabDisabled/ColorTabBorder/
+	// ColorTabBorderFocus theme the tabs. Unset takes the theme
+	// defaults.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorTab Color
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorTabHover Color
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorTabFocus Color
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorTabClick Color
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorTabSelected Color
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorTabDisabled Color
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorTabBorder Color
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorTabBorderFocus Color
 	Sizing              Sizing
 	Disabled            bool
 	Invisible           bool
@@ -80,38 +132,38 @@ func applyTabControlDefaults(cfg *TabControlCfg) {
 	if !cfg.ColorHeader.IsSet() {
 		cfg.ColorHeader = s.ColorHeader
 	}
-	if !cfg.colorHeaderBorder.IsSet() {
-		cfg.colorHeaderBorder = s.colorHeaderBorder
+	if !cfg.ColorHeaderBorder.IsSet() {
+		cfg.ColorHeaderBorder = s.colorHeaderBorder
 	}
-	if !cfg.colorContent.IsSet() {
-		cfg.colorContent = s.colorContent
+	if !cfg.ColorContent.IsSet() {
+		cfg.ColorContent = s.colorContent
 	}
-	if !cfg.colorContentBorder.IsSet() {
-		cfg.colorContentBorder = s.colorContentBorder
+	if !cfg.ColorContentBorder.IsSet() {
+		cfg.ColorContentBorder = s.colorContentBorder
 	}
-	if !cfg.colorTab.IsSet() {
-		cfg.colorTab = s.colorTab
+	if !cfg.ColorTab.IsSet() {
+		cfg.ColorTab = s.colorTab
 	}
-	if !cfg.colorTabHover.IsSet() {
-		cfg.colorTabHover = s.colorTabHover
+	if !cfg.ColorTabHover.IsSet() {
+		cfg.ColorTabHover = s.colorTabHover
 	}
-	if !cfg.colorTabFocus.IsSet() {
-		cfg.colorTabFocus = s.colorTabFocus
+	if !cfg.ColorTabFocus.IsSet() {
+		cfg.ColorTabFocus = s.colorTabFocus
 	}
-	if !cfg.colorTabClick.IsSet() {
-		cfg.colorTabClick = s.colorTabClick
+	if !cfg.ColorTabClick.IsSet() {
+		cfg.ColorTabClick = s.colorTabClick
 	}
-	if !cfg.colorTabSelected.IsSet() {
-		cfg.colorTabSelected = s.colorTabSelected
+	if !cfg.ColorTabSelected.IsSet() {
+		cfg.ColorTabSelected = s.colorTabSelected
 	}
-	if !cfg.colorTabDisabled.IsSet() {
-		cfg.colorTabDisabled = s.colorTabDisabled
+	if !cfg.ColorTabDisabled.IsSet() {
+		cfg.ColorTabDisabled = s.colorTabDisabled
 	}
-	if !cfg.colorTabBorder.IsSet() {
-		cfg.colorTabBorder = s.colorTabBorder
+	if !cfg.ColorTabBorder.IsSet() {
+		cfg.ColorTabBorder = s.colorTabBorder
 	}
-	if !cfg.colorTabBorderFocus.IsSet() {
-		cfg.colorTabBorderFocus = s.colorTabBorderFocus
+	if !cfg.ColorTabBorderFocus.IsSet() {
+		cfg.ColorTabBorderFocus = s.colorTabBorderFocus
 	}
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = s.Padding
@@ -119,20 +171,20 @@ func applyTabControlDefaults(cfg *TabControlCfg) {
 	if !cfg.PaddingHeader.IsSet() {
 		cfg.PaddingHeader = s.PaddingHeader
 	}
-	if !cfg.paddingContent.IsSet() {
-		cfg.paddingContent = s.paddingContent
+	if !cfg.PaddingContent.IsSet() {
+		cfg.PaddingContent = s.paddingContent
 	}
-	if !cfg.paddingTab.IsSet() {
-		cfg.paddingTab = s.paddingTab
+	if !cfg.PaddingTab.IsSet() {
+		cfg.PaddingTab = s.paddingTab
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = s.TextStyle
 	}
-	if cfg.textStyleSelected == (TextStyle{}) {
-		cfg.textStyleSelected = s.textStyleSelected
+	if cfg.TextStyleSelected == (TextStyle{}) {
+		cfg.TextStyleSelected = s.textStyleSelected
 	}
-	if cfg.textStyleDisabled == (TextStyle{}) {
-		cfg.textStyleDisabled = s.textStyleDisabled
+	if cfg.TextStyleDisabled == (TextStyle{}) {
+		cfg.TextStyleDisabled = s.textStyleDisabled
 	}
 }
 
@@ -199,15 +251,15 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 
 	// Resolve Opt fields.
 	sizeBorder := cfg.SizeBorder.Get(s.SizeBorder)
-	sizeHeaderBorder := cfg.sizeHeaderBorder.Get(s.sizeHeaderBorder)
-	sizeContentBorder := cfg.sizeContentBorder.Get(s.sizeContentBorder)
-	sizeTabBorder := cfg.sizeTabBorder.Get(s.sizeTabBorder)
+	sizeHeaderBorder := cfg.SizeHeaderBorder.Get(s.sizeHeaderBorder)
+	sizeContentBorder := cfg.SizeContentBorder.Get(s.sizeContentBorder)
+	sizeTabBorder := cfg.SizeTabBorder.Get(s.sizeTabBorder)
 	radius := cfg.Radius.Get(s.Radius)
-	radiusHeader := cfg.radiusHeader.Get(s.radiusHeader)
-	radiusContent := cfg.radiusContent.Get(s.radiusContent)
-	radiusTab := cfg.radiusTab.Get(s.radiusTab)
+	radiusHeader := cfg.RadiusHeader.Get(s.radiusHeader)
+	radiusContent := cfg.RadiusContent.Get(s.radiusContent)
+	radiusTab := cfg.RadiusTab.Get(s.radiusTab)
 	spacing := cfg.Spacing.Get(s.Spacing)
-	spacingHeader := cfg.spacingHeader.Get(s.spacingHeader)
+	spacingHeader := cfg.SpacingHeader.Get(s.spacingHeader)
 
 	// Build tab navigation arrays.
 	tabNavIDs := make([]string, len(cfg.Items))
@@ -264,29 +316,29 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 				dragReorderGapView(drag, dragReorderHorizontal))
 		}
 
-		tabColor := cfg.colorTab
-		hoverColor := cfg.colorTabHover
-		focusColor := cfg.colorTabFocus
-		clickColor := cfg.colorTabClick
-		borderColor := cfg.colorTabBorder
+		tabColor := cfg.ColorTab
+		hoverColor := cfg.ColorTabHover
+		focusColor := cfg.ColorTabFocus
+		clickColor := cfg.ColorTabClick
+		borderColor := cfg.ColorTabBorder
 
 		if isDisabled {
-			tabColor = cfg.colorTabDisabled
-			hoverColor = cfg.colorTabDisabled
-			focusColor = cfg.colorTabDisabled
-			clickColor = cfg.colorTabDisabled
+			tabColor = cfg.ColorTabDisabled
+			hoverColor = cfg.ColorTabDisabled
+			focusColor = cfg.ColorTabDisabled
+			clickColor = cfg.ColorTabDisabled
 		} else if isSelected {
-			tabColor = cfg.colorTabSelected
-			hoverColor = cfg.colorTabSelected
-			focusColor = cfg.colorTabSelected
-			clickColor = cfg.colorTabSelected
+			tabColor = cfg.ColorTabSelected
+			hoverColor = cfg.ColorTabSelected
+			focusColor = cfg.ColorTabSelected
+			clickColor = cfg.ColorTabSelected
 		}
 
 		ts := cfg.TextStyle
 		if isDisabled {
-			ts = cfg.textStyleDisabled
+			ts = cfg.TextStyleDisabled
 		} else if isSelected {
-			ts = cfg.textStyleSelected
+			ts = cfg.TextStyleSelected
 		}
 
 		a11yState := AccessStateNone
@@ -310,8 +362,8 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 			A11YState:  a11yState,
 			A11YCfg:    A11YCfg{A11YLabel: item.Label},
 			Color:      tabColor,
-			Colors:     ColorSet{Hover: hoverColor, Click: clickColor, Focus: focusColor, Border: borderColor, BorderFocus: cfg.colorTabBorderFocus}.resolved(tabColor, themeButtonSet()),
-			Padding:    cfg.paddingTab,
+			Colors:     ColorSet{Hover: hoverColor, Click: clickColor, Focus: focusColor, Border: borderColor, BorderFocus: cfg.ColorTabBorderFocus}.resolved(tabColor, themeButtonSet()),
+			Padding:    cfg.PaddingTab,
 			SizeBorder: SomeF(sizeTabBorder),
 			Radius:     SomeF(radiusTab),
 			Disabled:   isDisabled,
@@ -401,7 +453,7 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 		Content: []View{
 			Row(ContainerCfg{
 				Color:       cfg.ColorHeader,
-				ColorBorder: cfg.colorHeaderBorder,
+				ColorBorder: cfg.ColorHeaderBorder,
 				SizeBorder:  SomeF(sizeHeaderBorder),
 				Radius:      SomeF(radiusHeader),
 				Padding:     cfg.PaddingHeader,
@@ -410,11 +462,11 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 				Content:     headerItems,
 			}),
 			Column(ContainerCfg{
-				Color:       cfg.colorContent,
-				ColorBorder: cfg.colorContentBorder,
+				Color:       cfg.ColorContent,
+				ColorBorder: cfg.ColorContentBorder,
 				SizeBorder:  SomeF(sizeContentBorder),
 				Radius:      SomeF(radiusContent),
-				Padding:     cfg.paddingContent,
+				Padding:     cfg.PaddingContent,
 				Sizing:      FillFill,
 				Content:     activeContent,
 			}),

@@ -17,7 +17,7 @@ func TestBadgeDefaultLayout(t *testing.T) {
 }
 
 func TestBadgeDotMode(t *testing.T) {
-	v := Badge(BadgeCfg{Dot: true, dotSize: SomeF(10)})
+	v := Badge(BadgeCfg{Dot: true, DotSize: SomeF(10)})
 	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.Width != 10 || layout.Shape.Height != 10 {
 		t.Errorf("dot size = %fx%f, want 10x10",

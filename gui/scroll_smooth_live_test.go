@@ -18,7 +18,7 @@ func TestScrollVerticalToSmoothLiveLoop(t *testing.T) {
 	// starts when the lifecycle channels exist.
 	w := NewWindow(WindowCfg{Width: 100, Height: 100})
 	pinTheme(w, func(th *Theme) {
-		th.scrollMultiplier = 1
+		th.ScrollMultiplier = 1
 	})
 	t.Cleanup(func() {
 		w.stopAnimationLoop()

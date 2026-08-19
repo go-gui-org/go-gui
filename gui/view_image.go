@@ -55,7 +55,7 @@ func (iv *imageView) GenerateLayout(w *Window) Layout {
 		}
 		if strings.HasSuffix(imagePath, ".svg") {
 			sv := &svgView{cfg: SvgCfg{
-				fileName: imagePath,
+				FileName: imagePath,
 				Width:    c.Width,
 				Height:   c.Height,
 			}}

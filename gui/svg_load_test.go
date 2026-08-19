@@ -250,7 +250,7 @@ func TestLoadSvgRespectsAllowedRoots(t *testing.T) {
 	if err := os.WriteFile(inside, []byte("<svg viewBox=\"0 0 10 10\"></svg>"), 0o644); err != nil {
 		t.Fatalf("write file: %v", err)
 	}
-	w := NewWindow(WindowCfg{allowedSvgRoots: []string{root}})
+	w := NewWindow(WindowCfg{AllowedSvgRoots: []string{root}})
 	w.SetSvgParser(&mockSvgParser{width: 10, height: 10})
 	if _, err := w.LoadSvg(inside, 10, 10); err != nil {
 		t.Fatalf("expected in-root load to pass: %v", err)

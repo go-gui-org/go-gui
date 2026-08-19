@@ -327,7 +327,7 @@ func (w *Window) parseSvgWithOpts(
 // resolveAndCheckSvgSource validates, resolves, and size-checks
 // an SVG source path or inline data.
 func (w *Window) resolveAndCheckSvgSource(svgSrc string) (string, error) {
-	resolvedSrc, err := resolveValidatedSvgPath(svgSrc, w.Config.allowedSvgRoots)
+	resolvedSrc, err := resolveValidatedSvgPath(svgSrc, w.Config.AllowedSvgRoots)
 	if err != nil {
 		return "", err
 	}

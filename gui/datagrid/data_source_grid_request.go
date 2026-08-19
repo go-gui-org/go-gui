@@ -6,7 +6,7 @@ import (
 	gg "github.com/go-gui-org/go-gui/gui"
 )
 
-func dataGridSourceRequestKey(cfg *DataGridCfg, state dataGridSourceState, kind gridPaginationKind, querySig uint64) string {
+func dataGridSourceRequestKey(cfg *DataGridCfg, state dataGridSourceState, kind GridPaginationKind, querySig uint64) string {
 	limit := dataGridPageLimit(cfg)
 	switch kind {
 	case GridPaginationCursor:
@@ -17,7 +17,7 @@ func dataGridSourceRequestKey(cfg *DataGridCfg, state dataGridSourceState, kind 
 	}
 }
 
-func dataGridSourceStartRequest(cfg DataGridCfg, caps GridDataCapabilities, kind gridPaginationKind, requestKey string, state *dataGridSourceState, w *gg.Window) {
+func dataGridSourceStartRequest(cfg DataGridCfg, caps GridDataCapabilities, kind GridPaginationKind, requestKey string, state *dataGridSourceState, w *gg.Window) {
 	source := cfg.DataSource
 	if source == nil {
 		return
@@ -47,7 +47,7 @@ func dataGridSourceStartRequest(cfg DataGridCfg, caps GridDataCapabilities, kind
 		RequestID: nextRequestID,
 	}
 	state.Loading = true
-	state.loadError = ""
+	state.LoadError = ""
 	state.RequestID = nextRequestID
 	state.RequestKey = requestKey
 	state.ActiveAbort = controller
@@ -97,7 +97,7 @@ func dataGridSourceApplySuccess(gridID string, requestID uint64, result GridData
 	}
 	result.Rows = dataGridSourceRowsWithStableIDs(result.Rows, state.PaginationKind, state)
 	state.Loading = false
-	state.loadError = ""
+	state.LoadError = ""
 	state.HasLoaded = true
 	state.RowsSignature = dataGridRowsSignature(result.Rows, nil)
 	state.RowsDirty = true
@@ -121,7 +121,7 @@ func dataGridSourceApplySuccess(gridID string, requestID uint64, result GridData
 	w.UpdateWindow()
 }
 
-func dataGridSourceRowsWithStableIDs(rows []GridRow, kind gridPaginationKind, state dataGridSourceState) []GridRow {
+func dataGridSourceRowsWithStableIDs(rows []GridRow, kind GridPaginationKind, state dataGridSourceState) []GridRow {
 	if len(rows) == 0 {
 		return rows
 	}
@@ -145,7 +145,7 @@ func dataGridSourceRowsWithStableIDs(rows []GridRow, kind gridPaginationKind, st
 	return out
 }
 
-func dataGridSourceSyntheticRowID(kind gridPaginationKind, state dataGridSourceState, localIdx int) string {
+func dataGridSourceSyntheticRowID(kind GridPaginationKind, state dataGridSourceState, localIdx int) string {
 	localIdx = max(localIdx, 0)
 	switch kind {
 	case GridPaginationOffset:
@@ -172,7 +172,7 @@ func dataGridSourceApplyError(gridID string, requestID uint64, errMsg string, w 
 		return
 	}
 	state.Loading = false
-	state.loadError = errMsg
+	state.LoadError = errMsg
 	state.ActiveAbort = nil
 	dgSrc.Set(gridID, state)
 	w.UpdateWindow()

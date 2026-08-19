@@ -217,12 +217,12 @@ func TestDataGridPresentationSignatureDiffers(t *testing.T) {
 	t.Parallel()
 	cfg1 := &DataGridCfg{
 		ID:      "g1",
-		groupBy: []string{"a"},
+		GroupBy: []string{"a"},
 		Rows:    []GridRow{{Cells: map[string]string{"a": "1"}}},
 	}
 	cfg2 := &DataGridCfg{
 		ID:      "g1",
-		groupBy: []string{"a"},
+		GroupBy: []string{"a"},
 		Rows:    []GridRow{{Cells: map[string]string{"a": "2"}}},
 	}
 	cols := []GridColumnCfg{{ID: "a", Title: "A"}}
@@ -281,7 +281,7 @@ func TestDataGridBuildPresentationFlat(t *testing.T) {
 func TestDataGridBuildPresentationGrouped(t *testing.T) {
 	t.Parallel()
 	cfg := &DataGridCfg{
-		groupBy: []string{"dept"},
+		GroupBy: []string{"dept"},
 		Rows: []GridRow{
 			{ID: "r0", Cells: map[string]string{"dept": "eng"}},
 			{ID: "r1", Cells: map[string]string{"dept": "eng"}},
@@ -316,8 +316,8 @@ func TestDataGridBuildPresentationDetail(t *testing.T) {
 			{ID: "r0", Cells: map[string]string{"a": "1"}},
 			{ID: "r1", Cells: map[string]string{"a": "2"}},
 		},
-		detailExpandedRowIDs: map[string]bool{"r0": true},
-		detailRowView: func(GridRow, *gg.Window) gg.View {
+		DetailExpandedRowIDs: map[string]bool{"r0": true},
+		DetailRowView: func(GridRow, *gg.Window) gg.View {
 			return nil
 		},
 	}
@@ -381,7 +381,7 @@ func TestDataGridAggregateCount(t *testing.T) {
 		{Cells: map[string]string{"v": "20"}},
 		{Cells: map[string]string{"v": "30"}},
 	}
-	agg := gridAggregateCfg{Op: gridAggregateCount}
+	agg := GridAggregateCfg{Op: gridAggregateCount}
 	val, ok := dataGridAggregateValue(rows, 0, 2, agg)
 	if !ok || val != "3" {
 		t.Errorf("count: got %q ok=%v, want '3'", val, ok)
@@ -395,7 +395,7 @@ func TestDataGridAggregateSum(t *testing.T) {
 		{Cells: map[string]string{"v": "20"}},
 		{Cells: map[string]string{"v": "30"}},
 	}
-	agg := gridAggregateCfg{ColID: "v", Op: gridAggregateSum}
+	agg := GridAggregateCfg{ColID: "v", Op: gridAggregateSum}
 	val, ok := dataGridAggregateValue(rows, 0, 2, agg)
 	if !ok || val != "60" {
 		t.Errorf("sum: got %q ok=%v, want '60'", val, ok)
@@ -409,7 +409,7 @@ func TestDataGridAggregateAvg(t *testing.T) {
 		{Cells: map[string]string{"v": "20"}},
 		{Cells: map[string]string{"v": "30"}},
 	}
-	agg := gridAggregateCfg{ColID: "v", Op: gridAggregateAvg}
+	agg := GridAggregateCfg{ColID: "v", Op: gridAggregateAvg}
 	val, ok := dataGridAggregateValue(rows, 0, 2, agg)
 	if !ok || val != "20" {
 		t.Errorf("avg: got %q ok=%v, want '20'", val, ok)
@@ -423,7 +423,7 @@ func TestDataGridAggregateMin(t *testing.T) {
 		{Cells: map[string]string{"v": "10"}},
 		{Cells: map[string]string{"v": "20"}},
 	}
-	agg := gridAggregateCfg{ColID: "v", Op: gridAggregateMin}
+	agg := GridAggregateCfg{ColID: "v", Op: gridAggregateMin}
 	val, ok := dataGridAggregateValue(rows, 0, 2, agg)
 	if !ok || val != "10" {
 		t.Errorf("min: got %q ok=%v, want '10'", val, ok)
@@ -437,7 +437,7 @@ func TestDataGridAggregateMax(t *testing.T) {
 		{Cells: map[string]string{"v": "30"}},
 		{Cells: map[string]string{"v": "20"}},
 	}
-	agg := gridAggregateCfg{ColID: "v", Op: gridAggregateMax}
+	agg := GridAggregateCfg{ColID: "v", Op: gridAggregateMax}
 	val, ok := dataGridAggregateValue(rows, 0, 2, agg)
 	if !ok || val != "30" {
 		t.Errorf("max: got %q ok=%v, want '30'", val, ok)
@@ -449,7 +449,7 @@ func TestDataGridAggregateNonNumeric(t *testing.T) {
 	rows := []GridRow{
 		{Cells: map[string]string{"v": "abc"}},
 	}
-	agg := gridAggregateCfg{ColID: "v", Op: gridAggregateSum}
+	agg := GridAggregateCfg{ColID: "v", Op: gridAggregateSum}
 	_, ok := dataGridAggregateValue(rows, 0, 0, agg)
 	if ok {
 		t.Error("non-numeric should return ok=false")
@@ -537,7 +537,7 @@ func TestDataGridHasRowIDEmpty(t *testing.T) {
 
 func TestDataGridPagerEnabledTrue(t *testing.T) {
 	t.Parallel()
-	cfg := &DataGridCfg{pageSize: 10}
+	cfg := &DataGridCfg{PageSize: 10}
 	if !dataGridPagerEnabled(cfg, 3) {
 		t.Error("should be enabled with pageCount>1 and pageSize>0")
 	}
@@ -545,7 +545,7 @@ func TestDataGridPagerEnabledTrue(t *testing.T) {
 
 func TestDataGridPagerEnabledSinglePage(t *testing.T) {
 	t.Parallel()
-	cfg := &DataGridCfg{pageSize: 10}
+	cfg := &DataGridCfg{PageSize: 10}
 	if dataGridPagerEnabled(cfg, 1) {
 		t.Error("should not be enabled with pageCount=1")
 	}
@@ -553,7 +553,7 @@ func TestDataGridPagerEnabledSinglePage(t *testing.T) {
 
 func TestDataGridPagerEnabledZeroPageSize(t *testing.T) {
 	t.Parallel()
-	cfg := &DataGridCfg{pageSize: 0}
+	cfg := &DataGridCfg{PageSize: 0}
 	if dataGridPagerEnabled(cfg, 5) {
 		t.Error("should not be enabled with pageSize=0")
 	}
@@ -620,7 +620,7 @@ func TestDataGridRowsData(t *testing.T) {
 	w := &gg.Window{}
 	v := New(w, DataGridCfg{
 		ID: "dg-rowsdata",
-		rowsData: []map[string]string{
+		RowsData: []map[string]string{
 			{"name": "Alice", "age": "30"},
 			{"name": "Bob", "age": "25"},
 		},
@@ -636,8 +636,8 @@ func TestDataGridRowsDataAutoColumns(t *testing.T) {
 	w := &gg.Window{}
 	v := New(w, DataGridCfg{
 		ID:       "dg-autocol",
-		pageSize: 10,
-		rowsData: []map[string]string{
+		PageSize: 10,
+		RowsData: []map[string]string{
 			{"name": "Alice", "age": "30"},
 		},
 	})
@@ -654,7 +654,7 @@ func TestDataGridRowsDataPrecedence(t *testing.T) {
 	w := &gg.Window{}
 	v := New(w, DataGridCfg{
 		ID: "dg-prec",
-		rowsData: []map[string]string{
+		RowsData: []map[string]string{
 			{"col": "value"},
 		},
 		Rows: []GridRow{{ID: "ignored", Cells: map[string]string{"x": "y"}}},
@@ -676,7 +676,7 @@ func TestDataGridRowsDataDataSourceWins(t *testing.T) {
 		ID:         "dg-ds-wins",
 		Columns:    []GridColumnCfg{{ID: "name", Title: "Name"}},
 		DataSource: ds,
-		rowsData: []map[string]string{
+		RowsData: []map[string]string{
 			{"name": "FromRowsData"},
 		},
 	})
@@ -691,7 +691,7 @@ func TestDataGridRowsDataEmptyFirstRow(t *testing.T) {
 	w := &gg.Window{}
 	v := New(w, DataGridCfg{
 		ID: "dg-empty-first",
-		rowsData: []map[string]string{
+		RowsData: []map[string]string{
 			{},
 		},
 	})

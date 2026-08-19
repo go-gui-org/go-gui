@@ -159,7 +159,7 @@ func TestKeydownHandlerFallbackScroll(t *testing.T) {
 	w := &Window{}
 	w.SetFocus("f1")
 	pinTheme(w, func(th *Theme) {
-		th.scrollDeltaLine = 20
+		th.ScrollDeltaLine = 20
 	})
 	e := &Event{KeyCode: KeyDown, Modifiers: ModNone}
 	keydownHandler(root, e, w)
@@ -183,9 +183,9 @@ func TestKeyDownScrollHandlerArrows(t *testing.T) {
 	}
 	w := &Window{}
 	pinTheme(w, func(th *Theme) {
-		th.scrollDeltaLine = 20
-		th.scrollDeltaPage = 100
-		th.scrollMultiplier = 1
+		th.ScrollDeltaLine = 20
+		th.ScrollDeltaPage = 100
+		th.ScrollMultiplier = 1
 	})
 
 	tests := []struct {
@@ -379,7 +379,7 @@ func TestMouseScrollHandlerVertical(t *testing.T) {
 	}}
 	w := &Window{windowWidth: 800, windowHeight: 600}
 	pinTheme(w, func(th *Theme) {
-		th.scrollMultiplier = 1
+		th.ScrollMultiplier = 1
 	})
 	e := &Event{
 		MouseX:    50,
@@ -407,7 +407,7 @@ func TestMouseScrollHandlerHorizontalShift(t *testing.T) {
 	}}
 	w := &Window{windowWidth: 800, windowHeight: 600}
 	pinTheme(w, func(th *Theme) {
-		th.scrollMultiplier = 1
+		th.ScrollMultiplier = 1
 	})
 	e := &Event{
 		MouseX:    25,
@@ -478,7 +478,7 @@ func TestMouseScrollUnhandledCascadesToScrollContainer(t *testing.T) {
 	}
 	w := &Window{windowWidth: 800, windowHeight: 600}
 	pinTheme(w, func(th *Theme) {
-		th.scrollMultiplier = 1
+		th.ScrollMultiplier = 1
 	})
 	w.SetFocus("f7")
 	e := &Event{
@@ -567,7 +567,7 @@ func TestMouseScrollFallbackUnhandledReachesContainer(t *testing.T) {
 	}
 	w := &Window{windowWidth: 800, windowHeight: 600}
 	pinTheme(w, func(th *Theme) {
-		th.scrollMultiplier = 1
+		th.ScrollMultiplier = 1
 	})
 	e := &Event{
 		MouseX: 50, MouseY: 25,

@@ -170,7 +170,7 @@ func defaultMathFetcher(
 func fetchMathAsync(
 	w *Window, latex string, hash int64,
 	requestID uint64, dpi int, fgColor Color,
-	fetcher mathFetcher,
+	fetcher MathFetcher,
 ) {
 	actualFetcher := fetcher
 	if actualFetcher == nil {

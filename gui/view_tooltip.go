@@ -59,7 +59,7 @@ func Tooltip(cfg TooltipCfg) View {
 	return Column(ContainerCfg{
 		ID:            cfg.ID,
 		Float:         true,
-		floatAutoFlip: true,
+		FloatAutoFlip: true,
 		FloatAnchor:   cfg.Anchor.Get(FloatBottomCenter),
 		FloatTieOff:   cfg.tieOff.Get(FloatTopCenter),
 		FloatOffsetX:  cfg.OffsetX.Get(-3),

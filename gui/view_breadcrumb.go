@@ -19,39 +19,83 @@ func NewBreadcrumbItem(id, label string, content []View) BreadcrumbItemCfg {
 // Controlled component: Selected is owned by app state and
 // updated through OnSelect.
 type BreadcrumbCfg struct {
-	TextStyle          TextStyle
-	textStyleSelected  TextStyle
-	textStyleDisabled  TextStyle
-	textStyleSeparator TextStyle
+	TextStyle TextStyle
+	// TextStyleSelected styles the current crumb. Zero takes the
+	// theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	TextStyleSelected TextStyle
+	// TextStyleDisabled styles disabled crumbs. Zero takes the
+	// theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	TextStyleDisabled TextStyle
+	// TextStyleSeparator styles the separator glyph. Zero takes the
+	// theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	TextStyleSeparator TextStyle
 	OnSelect           func(string, EventCtx)
 	ID                 string
 	Selected           string
 	Separator          string
 
 	A11YCfg
-	Items              []BreadcrumbItemCfg
-	Padding            Padding
-	paddingTrail       Padding
-	paddingCrumb       Padding
-	paddingContent     Padding
-	Radius             Opt[float32]
-	radiusCrumb        Opt[float32]
-	radiusContent      Opt[float32]
-	Spacing            Opt[float32]
-	spacingTrail       Opt[float32]
-	SizeBorder         Opt[float32]
-	sizeContentBorder  Opt[float32]
-	Focusable          bool
-	Color              Color
-	ColorBorder        Color
-	colorTrail         Color
-	colorCrumb         Color
-	colorCrumbHover    Color
-	colorCrumbClick    Color
-	colorCrumbSelected Color
-	colorCrumbDisabled Color
-	colorContent       Color
-	colorContentBorder Color
+	Items   []BreadcrumbItemCfg
+	Padding Padding
+	// PaddingTrail insets the trail. Unset takes the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	PaddingTrail Padding
+	// PaddingCrumb insets each crumb. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	PaddingCrumb Padding
+	// PaddingContent insets the content area. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	PaddingContent Padding
+	Radius         Opt[float32]
+	// RadiusCrumb rounds each crumb. Unset takes the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	RadiusCrumb Opt[float32]
+	// RadiusContent rounds the content area. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	RadiusContent Opt[float32]
+	Spacing       Opt[float32]
+	// SpacingTrail gaps the crumbs. Unset takes the theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	SpacingTrail Opt[float32]
+	SizeBorder   Opt[float32]
+	// SizeContentBorder widths the content border. Unset takes the
+	// theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	SizeContentBorder Opt[float32]
+	Focusable         bool
+	Color             Color
+	ColorBorder       Color
+	// ColorTrail colors the trail background. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorTrail Color
+	// ColorCrumb/ColorCrumbHover/ColorCrumbClick/
+	// ColorCrumbSelected/ColorCrumbDisabled theme the crumbs. Unset
+	// takes the theme defaults.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorCrumb Color
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorCrumbHover Color
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorCrumbClick Color
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorCrumbSelected Color
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorCrumbDisabled Color
+	// ColorContent colors the content area. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorContent Color
+	// ColorContentBorder colors the content border. Unset takes the
+	// theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorContentBorder Color
 	Sizing             Sizing
 	Disabled           bool
 	Invisible          bool
@@ -69,53 +113,53 @@ func applyBreadcrumbDefaults(cfg *BreadcrumbCfg) {
 	if !cfg.ColorBorder.IsSet() {
 		cfg.ColorBorder = s.ColorBorder
 	}
-	if !cfg.colorTrail.IsSet() {
-		cfg.colorTrail = s.colorTrail
+	if !cfg.ColorTrail.IsSet() {
+		cfg.ColorTrail = s.colorTrail
 	}
-	if !cfg.colorCrumb.IsSet() {
-		cfg.colorCrumb = s.colorCrumb
+	if !cfg.ColorCrumb.IsSet() {
+		cfg.ColorCrumb = s.colorCrumb
 	}
-	if !cfg.colorCrumbHover.IsSet() {
-		cfg.colorCrumbHover = s.colorCrumbHover
+	if !cfg.ColorCrumbHover.IsSet() {
+		cfg.ColorCrumbHover = s.colorCrumbHover
 	}
-	if !cfg.colorCrumbClick.IsSet() {
-		cfg.colorCrumbClick = s.colorCrumbClick
+	if !cfg.ColorCrumbClick.IsSet() {
+		cfg.ColorCrumbClick = s.colorCrumbClick
 	}
-	if !cfg.colorCrumbSelected.IsSet() {
-		cfg.colorCrumbSelected = s.colorCrumbSelected
+	if !cfg.ColorCrumbSelected.IsSet() {
+		cfg.ColorCrumbSelected = s.colorCrumbSelected
 	}
-	if !cfg.colorCrumbDisabled.IsSet() {
-		cfg.colorCrumbDisabled = s.colorCrumbDisabled
+	if !cfg.ColorCrumbDisabled.IsSet() {
+		cfg.ColorCrumbDisabled = s.colorCrumbDisabled
 	}
-	if !cfg.colorContent.IsSet() {
-		cfg.colorContent = s.colorContent
+	if !cfg.ColorContent.IsSet() {
+		cfg.ColorContent = s.colorContent
 	}
-	if !cfg.colorContentBorder.IsSet() {
-		cfg.colorContentBorder = s.colorContentBorder
+	if !cfg.ColorContentBorder.IsSet() {
+		cfg.ColorContentBorder = s.colorContentBorder
 	}
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = s.Padding
 	}
-	if !cfg.paddingTrail.IsSet() {
-		cfg.paddingTrail = s.paddingTrail
+	if !cfg.PaddingTrail.IsSet() {
+		cfg.PaddingTrail = s.paddingTrail
 	}
-	if !cfg.paddingCrumb.IsSet() {
-		cfg.paddingCrumb = s.paddingCrumb
+	if !cfg.PaddingCrumb.IsSet() {
+		cfg.PaddingCrumb = s.paddingCrumb
 	}
-	if !cfg.paddingContent.IsSet() {
-		cfg.paddingContent = s.paddingContent
+	if !cfg.PaddingContent.IsSet() {
+		cfg.PaddingContent = s.paddingContent
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = s.TextStyle
 	}
-	if cfg.textStyleSelected == (TextStyle{}) {
-		cfg.textStyleSelected = s.textStyleSelected
+	if cfg.TextStyleSelected == (TextStyle{}) {
+		cfg.TextStyleSelected = s.textStyleSelected
 	}
-	if cfg.textStyleDisabled == (TextStyle{}) {
-		cfg.textStyleDisabled = s.textStyleDisabled
+	if cfg.TextStyleDisabled == (TextStyle{}) {
+		cfg.TextStyleDisabled = s.textStyleDisabled
 	}
-	if cfg.textStyleSeparator == (TextStyle{}) {
-		cfg.textStyleSeparator = s.textStyleSeparator
+	if cfg.TextStyleSeparator == (TextStyle{}) {
+		cfg.TextStyleSeparator = s.textStyleSeparator
 	}
 }
 
@@ -125,12 +169,12 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 
 	s := &defaultBreadcrumbStyle
 	radius := cfg.Radius.Get(s.Radius)
-	radiusCrumb := cfg.radiusCrumb.Get(s.radiusCrumb)
-	radiusContent := cfg.radiusContent.Get(s.radiusContent)
+	radiusCrumb := cfg.RadiusCrumb.Get(s.radiusCrumb)
+	radiusContent := cfg.RadiusContent.Get(s.radiusContent)
 	spacing := cfg.Spacing.Get(s.Spacing)
-	spacingTrail := cfg.spacingTrail.Get(s.spacingTrail)
+	spacingTrail := cfg.SpacingTrail.Get(s.spacingTrail)
 	sizeBorder := cfg.SizeBorder.Get(s.SizeBorder)
-	sizeContentBorder := cfg.sizeContentBorder.Get(s.sizeContentBorder)
+	sizeContentBorder := cfg.SizeContentBorder.Get(s.sizeContentBorder)
 
 	selectedIdx := bcSelectedIndex(cfg.Items, cfg.Selected)
 
@@ -141,7 +185,7 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 		if i > 0 {
 			trailItems = append(trailItems, Text(TextCfg{
 				Text:      cfg.Separator,
-				TextStyle: cfg.textStyleSeparator,
+				TextStyle: cfg.TextStyleSeparator,
 			}))
 		}
 
@@ -150,26 +194,26 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 
 		ts := cfg.TextStyle
 		if isDisabled {
-			ts = cfg.textStyleDisabled
+			ts = cfg.TextStyleDisabled
 		} else if isSelected {
-			ts = cfg.textStyleSelected
+			ts = cfg.TextStyleSelected
 		}
 
-		crumbColor := cfg.colorCrumb
+		crumbColor := cfg.ColorCrumb
 		if isDisabled {
-			crumbColor = cfg.colorCrumbDisabled
+			crumbColor = cfg.ColorCrumbDisabled
 		} else if isSelected {
-			crumbColor = cfg.colorCrumbSelected
+			crumbColor = cfg.ColorCrumbSelected
 		}
 
-		hoverColor := cfg.colorCrumbHover
-		clickColor := cfg.colorCrumbClick
+		hoverColor := cfg.ColorCrumbHover
+		clickColor := cfg.ColorCrumbClick
 		if isDisabled {
-			hoverColor = cfg.colorCrumbDisabled
-			clickColor = cfg.colorCrumbDisabled
+			hoverColor = cfg.ColorCrumbDisabled
+			clickColor = cfg.ColorCrumbDisabled
 		} else if isSelected {
-			hoverColor = cfg.colorCrumbSelected
-			clickColor = cfg.colorCrumbSelected
+			hoverColor = cfg.ColorCrumbSelected
+			clickColor = cfg.ColorCrumbSelected
 		}
 
 		var onClick func(EventCtx)
@@ -186,7 +230,7 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 		trailItems = append(trailItems, Row(ContainerCfg{
 			ID:      bcCrumbID(cfg.ID, item.ID),
 			Color:   crumbColor,
-			Padding: cfg.paddingCrumb,
+			Padding: cfg.PaddingCrumb,
 			Radius:  Some(radiusCrumb),
 			Spacing: Some(spacingTrail),
 			OnClick: onClick,
@@ -197,8 +241,8 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 
 	outerContent := make([]View, 0, 2)
 	outerContent = append(outerContent, Row(ContainerCfg{
-		Color:   cfg.colorTrail,
-		Padding: cfg.paddingTrail,
+		Color:   cfg.ColorTrail,
+		Padding: cfg.PaddingTrail,
 		Spacing: Some(spacingTrail),
 		Sizing:  FillFit,
 		VAlign:  VAlignMiddle,
@@ -207,11 +251,11 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 
 	if hasContent && selectedIdx >= 0 && selectedIdx < len(cfg.Items) {
 		outerContent = append(outerContent, Column(ContainerCfg{
-			Color:       cfg.colorContent,
-			ColorBorder: cfg.colorContentBorder,
+			Color:       cfg.ColorContent,
+			ColorBorder: cfg.ColorContentBorder,
 			SizeBorder:  Some(sizeContentBorder),
 			Radius:      Some(radiusContent),
-			Padding:     cfg.paddingContent,
+			Padding:     cfg.PaddingContent,
 			Sizing:      FillFill,
 			Content:     cfg.Items[selectedIdx].Content,
 		}))

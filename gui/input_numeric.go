@@ -40,12 +40,22 @@ type NumericLocaleCfg struct {
 
 // NumericStepCfg configures stepping interactions.
 type NumericStepCfg struct {
-	Step            float64
-	shiftMultiplier float64
-	altMultiplier   float64
-	mouseWheel      bool
-	keyboard        bool
-	ShowButtons     bool
+	Step float64
+	// ShiftMultiplier scales a step when Shift is held. Zero takes the
+	// default (10x).
+	// exportaudit:keep — caller-facing config (issue #372)
+	ShiftMultiplier float64
+	// AltMultiplier scales a step when Alt is held. Zero takes the
+	// default (0.1x).
+	// exportaudit:keep — caller-facing config (issue #372)
+	AltMultiplier float64
+	// MouseWheel enables stepping via the mouse wheel over the field.
+	// exportaudit:keep — caller-facing config (issue #372)
+	MouseWheel bool
+	// Keyboard enables stepping via Up/Down arrow keys.
+	// exportaudit:keep — caller-facing config (issue #372)
+	Keyboard    bool
+	ShowButtons bool
 }
 
 // NumericCurrencyModeCfg defines currency symbol placement.
@@ -129,20 +139,20 @@ func numericStepCfgNormalize(cfg NumericStepCfg) NumericStepCfg {
 	if step <= 0 {
 		step = 1.0
 	}
-	shift := cfg.shiftMultiplier
+	shift := cfg.ShiftMultiplier
 	if shift <= 0 {
 		shift = 10.0
 	}
-	alt := cfg.altMultiplier
+	alt := cfg.AltMultiplier
 	if alt <= 0 {
 		alt = 0.1
 	}
 	return NumericStepCfg{
 		Step:            step,
-		shiftMultiplier: shift,
-		altMultiplier:   alt,
-		mouseWheel:      cfg.mouseWheel,
-		keyboard:        cfg.keyboard,
+		ShiftMultiplier: shift,
+		AltMultiplier:   alt,
+		MouseWheel:      cfg.MouseWheel,
+		Keyboard:        cfg.Keyboard,
 		ShowButtons:     cfg.ShowButtons,
 	}
 }
@@ -534,10 +544,10 @@ func numericModeFormatValue(value float64, decimals int, loc NumericLocaleCfg, m
 func numericStepDelta(cfg NumericStepCfg, modifiers Modifier) float64 {
 	step := cfg.Step
 	if modifiers.Has(ModShift) {
-		step *= cfg.shiftMultiplier
+		step *= cfg.ShiftMultiplier
 	}
 	if modifiers.Has(ModAlt) {
-		step *= cfg.altMultiplier
+		step *= cfg.AltMultiplier
 	}
 	if step < 0 {
 		return -step

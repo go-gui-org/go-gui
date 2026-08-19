@@ -20,10 +20,13 @@ type RTFCfg struct {
 
 	ID string
 	A11YCfg
-	RichText      RichText
-	MinWidth      float32
-	Focusable     bool
-	hangingIndent float32 // negative indent for wrapped lines
+	RichText  RichText
+	MinWidth  float32
+	Focusable bool
+	// HangingIndent is the negative indent for wrapped lines
+	// (a hanging indent pulls the first line left of the rest).
+	// exportaudit:keep — caller-facing config (issue #372)
+	HangingIndent float32
 
 	// markdownID is non-empty when this block belongs to a markdown
 	// widget. markdownBlockStart is the rune offset of this block in
@@ -120,7 +123,7 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 			Block: glyph.BlockStyle{
 				Wrap:        glyph.WrapWord,
 				Width:       -1.0,
-				Indent:      -v.hangingIndent,
+				Indent:      -v.HangingIndent,
 				LineSpacing: lineSpacing,
 			},
 		}
@@ -177,7 +180,7 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 		events:    events,
 		TC: &shapeTextConfig{
 			TextMode:           v.Mode,
-			hangingIndent:      v.hangingIndent,
+			hangingIndent:      v.HangingIndent,
 			rTFBaseStyle:       baseStyle,
 			rTFLineSpacing:     lineSpacing,
 			rTFLayout:          &layout,
@@ -458,7 +461,7 @@ func rtfTooltipView(ts *tooltipState) View {
 	return Column(ContainerCfg{
 		ID:            ts.popupID,
 		Float:         true,
-		floatAutoFlip: true,
+		FloatAutoFlip: true,
 		FloatTieOff:   FloatBottomCenter,
 		FloatOffsetX:  ts.floatOffsetX,
 		FloatOffsetY:  ts.floatOffsetY,
@@ -606,7 +609,7 @@ func rtfLinkMenuView(w *Window, st rtfLinkMenuState) View {
 			rtfLinkMenuDismiss(ctx.Window)
 		},
 		Float:         true,
-		floatAutoFlip: true,
+		FloatAutoFlip: true,
 		FloatAnchor:   FloatTopLeft,
 		FloatTieOff:   FloatTopLeft,
 		FloatOffsetX:  st.X,

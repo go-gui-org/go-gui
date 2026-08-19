@@ -13,13 +13,13 @@ var splitterButtonSuffix = [3]string{
 func splitterHandleView(cfg *SplitterCfg, core *splitterCore, id string) View {
 	content := make([]View, 0, 3)
 	if cfg.ShowCollapseButtons &&
-		(cfg.First.collapsible || cfg.Second.collapsible) {
-		if cfg.First.collapsible {
+		(cfg.First.Collapsible || cfg.Second.Collapsible) {
+		if cfg.First.Collapsible {
 			content = append(content,
 				splitterButton(cfg, core, SplitterCollapseFirst, id))
 		}
 		content = append(content, splitterGrip(cfg))
-		if cfg.Second.collapsible {
+		if cfg.Second.Collapsible {
 			content = append(content,
 				splitterButton(cfg, core, SplitterCollapseSecond, id))
 		}
@@ -45,8 +45,8 @@ func splitterHandleView(cfg *SplitterCfg, core *splitterCore, id string) View {
 		Height:      handleHeight,
 		Padding:     NoPadding,
 		Spacing:     SomeF(1),
-		Color:       cfg.colorHandle,
-		ColorBorder: cfg.colorHandleBorder,
+		Color:       cfg.ColorHandle,
+		ColorBorder: cfg.ColorHandleBorder,
 		SizeBorder:  cfg.SizeBorder,
 		Radius:      cfg.Radius,
 		HAlign:      HAlignCenter,
@@ -81,8 +81,8 @@ func splitterGrip(cfg *SplitterCfg) View {
 	return Rectangle(RectangleCfg{
 		Width:  w,
 		Height: h,
-		Color:  cfg.colorGrip,
-		Radius: cfg.radiusBorder.Get(s.radiusBorder),
+		Color:  cfg.ColorGrip,
+		Radius: cfg.RadiusBorder.Get(s.radiusBorder),
 		Sizing: FixedFixed,
 	})
 }
@@ -92,7 +92,7 @@ func splitterButton(cfg *SplitterCfg, core *splitterCore,
 	s := &defaultSplitterStyle
 	size := f32Max(4, cfg.HandleSize.Get(s.HandleSize)-2)
 	ts := TextStyle{
-		Color: cfg.colorButtonIcon,
+		Color: cfg.ColorButtonIcon,
 		Size:  size,
 	}
 	icon := splitterButtonIcon(core, target)
@@ -109,9 +109,9 @@ func splitterButton(cfg *SplitterCfg, core *splitterCore,
 		// uncorrected position — cosmetic, and disabled splitter buttons
 		// are not a state the widget produces today.
 		AmendLayout: centerGlyphOnInk(icon, ts),
-		Color:       cfg.colorButton,
-		Colors:      ColorSet{Hover: cfg.colorButtonHover, Click: cfg.colorButtonActive, Focus: cfg.colorButtonHover}.resolved(cfg.colorButton, themeButtonSet()),
-		Radius:      cfg.radiusBorder,
+		Color:       cfg.ColorButton,
+		Colors:      ColorSet{Hover: cfg.ColorButtonHover, Click: cfg.ColorButtonActive, Focus: cfg.ColorButtonHover}.resolved(cfg.ColorButton, themeButtonSet()),
+		Radius:      cfg.RadiusBorder,
 		OnClick: func(ctx EventCtx) {
 			splitterOnButtonClick(core, target, ctx.Event, ctx.Window)
 		},

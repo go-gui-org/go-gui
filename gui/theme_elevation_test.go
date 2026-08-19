@@ -48,9 +48,9 @@ func TestThemeMakerFansOutElevation(t *testing.T) {
 
 	cfg := baseDarkCfg()
 	cfg.Name = "elevation-test"
-	cfg.shadowPopover = popover
-	cfg.shadowDialog = dialog
-	cfg.focusRing = ring
+	cfg.ShadowPopover = popover
+	cfg.ShadowDialog = dialog
+	cfg.FocusRing = ring
 	th := ThemeMaker(cfg)
 
 	popovers := map[string]*BoxShadow{

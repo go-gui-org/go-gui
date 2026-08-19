@@ -108,10 +108,10 @@ func TestMenubarAmendLayoutClearOnDefocus(t *testing.T) {
 func TestApplyMenubarDefaultsSpacingSubmenu(t *testing.T) {
 	cfg := MenubarCfg{}
 	applyMenubarDefaults(&cfg)
-	if !cfg.spacingSubmenu.IsSet() {
+	if !cfg.SpacingSubmenu.IsSet() {
 		t.Fatal("SpacingSubmenu should be set after defaults")
 	}
-	got := cfg.spacingSubmenu.Get(0)
+	got := cfg.SpacingSubmenu.Get(0)
 	want := defaultMenubarStyle.spacingSubmenu
 	if got != want {
 		t.Errorf("SpacingSubmenu = %v, want %v", got, want)

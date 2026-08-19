@@ -77,8 +77,8 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 				Sizing:       FillFit,
 				VAlign:       VAlignMiddle,
 				Focusable:    true,
-				clickOnSpace: true,
-				clickOnEnter: true,
+				ClickOnSpace: true,
+				ClickOnEnter: true,
 				AmendLayout:  focusRingAmend(Color{}, colorBorderFocus),
 				Content: []View{
 					cfg.Head,

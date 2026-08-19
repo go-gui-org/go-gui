@@ -427,7 +427,7 @@ func TestGetDownloadSemClampsOversizeConfig(t *testing.T) {
 	resetDownloadSem()
 	t.Cleanup(resetDownloadSem)
 	w := &Window{Config: WindowCfg{
-		maxImageDownloads: 10000,
+		MaxImageDownloads: 10000,
 	}}
 	sem := getDownloadSem(w)
 	if got := cap(sem); got != maxConcurrentImageDownloads {
@@ -510,7 +510,7 @@ func TestDownloadImageSemaphoreCap(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	dir := t.TempDir()
-	w := &Window{Config: WindowCfg{maxImageDownloads: maxCap}}
+	w := &Window{Config: WindowCfg{MaxImageDownloads: maxCap}}
 	w.ctx = t.Context()
 
 	var wg sync.WaitGroup

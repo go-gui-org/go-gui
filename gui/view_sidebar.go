@@ -11,17 +11,24 @@ type sidebarRuntimeState struct {
 
 // SidebarCfg configures a sidebar view.
 type SidebarCfg struct {
-	Shadow      *BoxShadow
-	tweenEasing EasingFn
+	Shadow *BoxShadow
+	// TweenEasing is the easing for tween animation. Ignored when
+	// TweenDuration is zero (spring mode).
+	// exportaudit:keep — caller-facing config (issue #372)
+	TweenEasing EasingFn
 	ID          string
 
 	// Accessibility
 	A11YCfg
-	Content       []View
-	tweenDuration time.Duration
+	Content []View
+	// TweenDuration > 0 uses tween animation; 0 uses spring.
+	// exportaudit:keep — caller-facing config (issue #372)
+	TweenDuration time.Duration
 	Padding       Padding
-	// TweenDuration > 0 uses tween; 0 uses spring.
-	spring    springCfg
+	// Spring tunes the spring animation (used when TweenDuration
+	// is zero). Zero takes the stiff default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	Spring    SpringCfg
 	Width     float32
 	Radius    float32 // ergonomics-audit:opt-plain — sidebar radius 0 (sharp) is a real choice; no theme default distinct from it
 	Color     Color
@@ -44,12 +51,12 @@ func (w *Window) Sidebar(cfg SidebarCfg) View {
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = guiTheme.ContainerStyle.Padding
 	}
-	if cfg.spring == (springCfg{}) {
-		cfg.spring = springStiff
+	if cfg.Spring == (SpringCfg{}) {
+		cfg.Spring = SpringStiff
 	}
-	if cfg.tweenDuration == 0 && cfg.tweenEasing == nil {
-		cfg.tweenDuration = 300 * time.Millisecond
-		cfg.tweenEasing = easeInOutCubic
+	if cfg.TweenDuration == 0 && cfg.TweenEasing == nil {
+		cfg.TweenDuration = 300 * time.Millisecond
+		cfg.TweenEasing = easeInOutCubic
 	}
 
 	if cfg.Invisible {
@@ -122,7 +129,7 @@ func sidebarAnimatedWidth(w *Window, cfg SidebarCfg) float32 {
 		rt.prevOpen = cfg.Open
 		sm.Set(cfg.ID, rt)
 		sidebarStartAnimation(cfg.ID, rt.animFrac, target,
-			cfg.spring, cfg.tweenDuration, cfg.tweenEasing, w)
+			cfg.Spring, cfg.TweenDuration, cfg.TweenEasing, w)
 	}
 
 	return cfg.Width * f32Max(0, rt.animFrac)
@@ -130,7 +137,7 @@ func sidebarAnimatedWidth(w *Window, cfg SidebarCfg) float32 {
 
 func sidebarStartAnimation(
 	sidebarID string, from, to float32,
-	spring springCfg,
+	spring SpringCfg,
 	tweenDur time.Duration, tweenEasing EasingFn,
 	w *Window,
 ) {

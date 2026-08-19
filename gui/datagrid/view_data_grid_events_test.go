@@ -791,8 +791,8 @@ func TestJumpContextFromPager(t *testing.T) {
 		ID:                "g1",
 		Rows:              []GridRow{{ID: "a"}},
 		OnSelectionChange: func(_ GridSelection, ctx gg.EventCtx) {},
-		onPageChange:      func(_ int, ctx gg.EventCtx) {},
-		pageSize:          25,
+		OnPageChange:      func(_ int, ctx gg.EventCtx) {},
+		PageSize:          25,
 	}
 	pctx := dataGridPagerContext{
 		cfg:           cfg,
@@ -1226,7 +1226,7 @@ func TestMakeOnKeydownReturnsCallback(t *testing.T) {
 		ID:       "g1",
 		Rows:     []GridRow{{ID: "a"}},
 		Columns:  []GridColumnCfg{{ID: "col1"}},
-		pageSize: 0,
+		PageSize: 0,
 	}
 	fn := dataGridMakeOnKeydown(cfg, cfg.Columns, 25, 0, "1", nil, nil, nil)
 	if fn == nil {

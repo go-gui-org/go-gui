@@ -55,7 +55,7 @@ func TestProgressBarVertical(t *testing.T) {
 	v := ProgressBar(ProgressBarCfg{
 		ID:       "pb-test",
 		Percent:  0.5,
-		vertical: true,
+		Vertical: true,
 	})
 	layout := generateViewLayout(v, &Window{})
 	if layout.Shape.Axis != axisTopToBottom {
@@ -195,7 +195,7 @@ func TestProgressBarVerticalTextShow(t *testing.T) {
 	v := ProgressBar(ProgressBarCfg{
 		ID:       "pb-test",
 		Percent:  0.5,
-		vertical: true,
+		Vertical: true,
 		TextShow: true,
 	})
 	layout := generateViewLayout(v, &Window{})
@@ -244,7 +244,7 @@ func TestProgressBarTextBackgroundColor(t *testing.T) {
 		ID:             "pb-test",
 		Percent:        0.5,
 		TextShow:       true,
-		textBackground: bg,
+		TextBackground: bg,
 	})
 	layout := generateViewLayout(v, &Window{})
 	if len(layout.Children) < 2 {

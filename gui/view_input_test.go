@@ -1586,7 +1586,7 @@ func TestInputReadOnlyEnterDoesNotNormalize(t *testing.T) {
 	committed := ""
 	layout := generateViewLayout(Input(InputCfg{
 		Text: "  hi  ", ID: "ro_norm_enter", ReadOnly: true,
-		postCommitNormalize: func(_ string, _ InputCommitReason) string {
+		PostCommitNormalize: func(_ string, _ InputCommitReason) string {
 			return "NORMALIZED"
 		},
 		OnTextChanged: func(nt string, ctx EventCtx) {
@@ -1616,7 +1616,7 @@ func TestInputReadOnlyBlurDoesNotNormalize(t *testing.T) {
 	committed := ""
 	cfg := InputCfg{
 		Text: "  hi  ", ID: "ro_norm_blur", ReadOnly: true,
-		postCommitNormalize: func(_ string, _ InputCommitReason) string {
+		PostCommitNormalize: func(_ string, _ InputCommitReason) string {
 			return "NORMALIZED"
 		},
 		OnTextChanged: func(nt string, ctx EventCtx) {
@@ -1654,7 +1654,7 @@ func TestInputEditableEnterStillNormalizes(t *testing.T) {
 	w.SetFocus("rw_norm_enter")
 	changed := ""
 	layout := generateViewLayout(Input(InputCfg{
-		Text: "  hi  ", ID: "rw_norm_enter", postCommitNormalize: func(_ string, _ InputCommitReason) string {
+		Text: "  hi  ", ID: "rw_norm_enter", PostCommitNormalize: func(_ string, _ InputCommitReason) string {
 			return "NORMALIZED"
 		},
 		OnTextChanged: func(nt string, ctx EventCtx) {

@@ -22,13 +22,17 @@ type TreeCfg struct {
 	// string is slash-separated ("a/b/c") and auto-expanded into
 	// nested TreeNodeCfg nodes. Duplicate path prefixes are merged.
 	// When set, ItemPaths takes precedence over Nodes.
-	itemPaths  []string
+	// exportaudit:keep — caller-facing config (issue #372)
+	ItemPaths  []string
 	Nodes      []TreeNodeCfg
 	Padding    Padding
 	SizeBorder Opt[float32]
 	Radius     Opt[float32]
 
-	indent  float32
+	// Indent is the horizontal pitch per tree depth. Zero takes the
+	// theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	Indent  float32
 	Spacing Opt[float32] // 0 is a real choice (dense rows); unset falls back to the theme
 
 	// FocusDisabled opts out of the default-on focus. Focus also
@@ -64,8 +68,11 @@ type TreeCfg struct {
 
 // TreeNodeCfg configures a single tree node.
 type TreeNodeCfg struct {
-	TextStyle     TextStyle
-	textStyleIcon TextStyle
+	TextStyle TextStyle
+	// TextStyleIcon styles the node's icon glyph. Zero takes the
+	// theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	TextStyleIcon TextStyle
 	ID            string
 	Text          string
 	Icon          string
@@ -156,8 +163,8 @@ func itemPathsToNodes(paths []string) []TreeNodeCfg {
 func Tree(cfg TreeCfg) View {
 	RequireID("Tree", cfg.ID)
 	applyTreeDefaults(&cfg)
-	if len(cfg.itemPaths) > 0 {
-		cfg.Nodes = itemPathsToNodes(cfg.itemPaths)
+	if len(cfg.ItemPaths) > 0 {
+		cfg.Nodes = itemPathsToNodes(cfg.ItemPaths)
 	}
 	return &treeView{cfg: cfg}
 }
@@ -459,8 +466,8 @@ func treeBuildRows(
 
 func applyTreeDefaults(cfg *TreeCfg) {
 	d := &defaultTreeStyle
-	if cfg.indent == 0 {
-		cfg.indent = d.indent
+	if cfg.Indent == 0 {
+		cfg.Indent = d.indent
 	}
 	if !cfg.Spacing.IsSet() {
 		cfg.Spacing = Some(d.Spacing)

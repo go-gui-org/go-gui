@@ -2,8 +2,11 @@ package gui
 
 // ToggleCfg configures a toggle/checkbox button.
 type ToggleCfg struct {
-	TextStyle      TextStyle
-	textStyleLabel TextStyle
+	TextStyle TextStyle
+	// TextStyleLabel styles the trailing label. Zero takes the
+	// theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	TextStyleLabel TextStyle
 	OnClick        func(EventCtx)
 	ID             string `gui:"required,focus"`
 	Label          string
@@ -99,7 +102,7 @@ func Toggle(cfg ToggleCfg) View {
 
 	if len(cfg.Label) > 0 {
 		content = append(content,
-			trailingLabel(cfg.Label, cfg.textStyleLabel))
+			trailingLabel(cfg.Label, cfg.TextStyleLabel))
 	}
 
 	a11yState := AccessStateNone
@@ -121,7 +124,7 @@ func Toggle(cfg ToggleCfg) View {
 			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Label),
 			A11YDescription: cfg.A11YDescription,
 		},
-		clickOnSpace: true,
+		ClickOnSpace: true,
 		OnClick:      cfg.OnClick,
 		clickButton:  MouseLeft,
 		MinWidth:     cfg.MinWidth,
@@ -182,9 +185,9 @@ func applyToggleDefaults(cfg *ToggleCfg) {
 	} else {
 		cfg.TextStyle = mergeTextStyle(cfg.TextStyle, d.textStyleNormal)
 	}
-	if cfg.textStyleLabel == (TextStyle{}) {
-		cfg.textStyleLabel = d.textStyleLabel
+	if cfg.TextStyleLabel == (TextStyle{}) {
+		cfg.TextStyleLabel = d.textStyleLabel
 	} else {
-		cfg.textStyleLabel = mergeTextStyle(cfg.textStyleLabel, d.textStyleLabel)
+		cfg.TextStyleLabel = mergeTextStyle(cfg.TextStyleLabel, d.textStyleLabel)
 	}
 }

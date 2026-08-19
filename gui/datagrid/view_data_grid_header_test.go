@@ -281,7 +281,7 @@ func TestPinControl(t *testing.T) {
 		TextStyleHeader:  gg.DefaultTextStyle,
 		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
 	}
-	col := GridColumnCfg{ID: "c1", pin: gridColumnPinNone}
+	col := GridColumnCfg{ID: "c1", Pin: GridColumnPinNone}
 	v := dataGridPinControl(cfg, col)
 	if v == nil {
 		t.Fatal("pin control should return a view")
@@ -293,7 +293,7 @@ func TestPinControlLeft(t *testing.T) {
 		TextStyleHeader:  gg.DefaultTextStyle,
 		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
 	}
-	col := GridColumnCfg{ID: "c1", pin: gridColumnPinLeft}
+	col := GridColumnCfg{ID: "c1", Pin: GridColumnPinLeft}
 	v := dataGridPinControl(cfg, col)
 	if v == nil {
 		t.Fatal("left-pinned control should return a view")
@@ -305,7 +305,7 @@ func TestPinControlRight(t *testing.T) {
 		TextStyleHeader:  gg.DefaultTextStyle,
 		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
 	}
-	col := GridColumnCfg{ID: "c1", pin: gridColumnPinRight}
+	col := GridColumnCfg{ID: "c1", Pin: GridColumnPinRight}
 	v := dataGridPinControl(cfg, col)
 	if v == nil {
 		t.Fatal("right-pinned control should return a view")
@@ -405,7 +405,7 @@ func TestResizeHandleHoverPressedColor(t *testing.T) {
 		PaddingHeader:     gg.NewPadding(2, 4, 2, 4),
 		SizeBorder:        gg.SomeF(0),
 		Columns: []GridColumnCfg{{
-			ID: "c1", Title: "Col1", resizable: true,
+			ID: "c1", Title: "Col1", Resizable: true,
 			Width: gg.SomeF(120),
 		}},
 	}
@@ -505,7 +505,7 @@ func TestResizeHandleActiveDuringDrag(t *testing.T) {
 		PaddingHeader:     gg.NewPadding(2, 4, 2, 4),
 		SizeBorder:        gg.SomeF(0),
 		Columns: []GridColumnCfg{{
-			ID: "c1", Title: "Col1", resizable: true,
+			ID: "c1", Title: "Col1", Resizable: true,
 			Width: gg.SomeF(120),
 		}},
 	}
@@ -581,7 +581,7 @@ func TestResizeHandleRestingAfterCancel(t *testing.T) {
 		PaddingHeader:     gg.NewPadding(2, 4, 2, 4),
 		SizeBorder:        gg.SomeF(0),
 		Columns: []GridColumnCfg{{
-			ID: "c1", Title: "Col1", resizable: true,
+			ID: "c1", Title: "Col1", Resizable: true,
 			Width: gg.SomeF(120),
 		}},
 	}
@@ -633,7 +633,7 @@ func TestReorderControls(t *testing.T) {
 		TextStyleHeader:  gg.DefaultTextStyle,
 		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
 		Columns:          []GridColumnCfg{{ID: "c1"}},
-		columnOrder:      []string{"c1"},
+		ColumnOrder:      []string{"c1"},
 	}
 	col := GridColumnCfg{ID: "c1", Reorderable: true}
 	v := dataGridReorderControls(cfg, col)
@@ -731,12 +731,12 @@ func TestHeaderCellWithControls(t *testing.T) {
 		PaddingHeader:       gg.NewPadding(2, 4, 2, 4),
 		TextStyleHeader:     gg.DefaultTextStyle,
 		ColorHeaderHover:    gg.RGBA(220, 220, 220, 255),
-		onColumnOrderChange: func(_ []string, ctx gg.EventCtx) {},
-		onColumnPinChange:   func(_ string, _ gridColumnPin, ctx gg.EventCtx) {},
+		OnColumnOrderChange: func(_ []string, ctx gg.EventCtx) {},
+		OnColumnPinChange:   func(_ string, _ GridColumnPin, ctx gg.EventCtx) {},
 	}
 	col := GridColumnCfg{
 		ID: "c1", Title: "Column 1",
-		Reorderable: true, resizable: true, pin: gridColumnPinNone,
+		Reorderable: true, Resizable: true, Pin: GridColumnPinNone,
 	}
 	v := dataGridHeaderCell(cfg, col, 0, 2, 300, "", true, "")
 	if v == nil {

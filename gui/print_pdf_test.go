@@ -272,14 +272,14 @@ func TestRenderToPDF_HeaderFooter(t *testing.T) {
 	j := testPrintJob(t)
 	j.Title = "Test Document"
 	j.JobName = "test-job"
-	j.Header = printHeaderFooterCfg{
-		enabled: true,
+	j.Header = PrintHeaderFooterCfg{
+		Enabled: true,
 		Left:    "{title}",
 		Center:  "Page {page}",
 		Right:   "{date}",
 	}
-	j.footer = printHeaderFooterCfg{
-		enabled: true,
+	j.Footer = PrintHeaderFooterCfg{
+		Enabled: true,
 		Center:  "{job}",
 	}
 	if err := renderToPDF(nil, j, 800, 600); err != nil {

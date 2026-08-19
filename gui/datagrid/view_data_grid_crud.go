@@ -22,7 +22,7 @@ func dataGridCrudHasUnsaved(state dataGridCrudState) bool {
 }
 
 func dataGridCrudRowDeleteEnabled(cfg *DataGridCfg, hasSource bool, caps GridDataCapabilities) bool {
-	if !dataGridCrudEnabled(cfg) || !boolDefault(cfg.allowDelete, true) {
+	if !dataGridCrudEnabled(cfg) || !boolDefault(cfg.AllowDelete, true) {
 		return false
 	}
 	if !hasSource {
@@ -128,21 +128,21 @@ func dataGridCrudResolveCfg(cfg DataGridCfg, w *gg.Window) (DataGridCfg, dataGri
 	}
 	dgCrud.Set(cfg.ID, state)
 
-	loadError := cfg.loadError
+	loadError := cfg.LoadError
 	if state.SaveError != "" {
 		loadError = state.SaveError
 	}
 	out := cfg
 	out.Rows = cloneRows(state.WorkingRows)
-	out.loadError = loadError
+	out.LoadError = loadError
 	out.Loading = cfg.Loading || state.Saving
 	return out, state
 }
 
 func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps GridDataCapabilities, hasSource bool, focusID string) gg.View {
 	hasUnsaved := dataGridCrudHasUnsaved(state)
-	canCreate := boolDefault(cfg.allowCreate, true) && (!hasSource || caps.supportsCreate)
-	canDelete := boolDefault(cfg.allowDelete, true) && (!hasSource || caps.supportsDelete)
+	canCreate := boolDefault(cfg.AllowCreate, true) && (!hasSource || caps.supportsCreate)
+	canDelete := boolDefault(cfg.AllowDelete, true) && (!hasSource || caps.supportsDelete)
 	selectedCount := len(cfg.Selection.SelectedRowIDs)
 	gridID := cfg.ID
 	columns := cfg.Columns
@@ -151,10 +151,10 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 	dataSource := cfg.DataSource
 	query := cfg.Query
 	onCRUDError := cfg.OnCRUDError
-	onRowsChange := cfg.onRowsChange
-	onPageChange := cfg.onPageChange
-	pageSize := cfg.pageSize
-	pageIndex := cfg.pageIndex
+	onRowsChange := cfg.OnRowsChange
+	onPageChange := cfg.OnPageChange
+	pageSize := cfg.PageSize
+	pageIndex := cfg.PageIndex
 	scrollID := dataGridScrollID(cfg)
 
 	dirtyCount := len(state.DirtyRowIDs)

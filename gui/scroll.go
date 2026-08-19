@@ -200,7 +200,7 @@ func scrollHorizontal(layout *Layout, delta float32, w *Window) bool {
 	old := sx.GetOr(id, 0)
 	// Post-generation read: this window's theme, not the frame cache.
 	clamped := f32Clamp(
-		old+delta*w.themeRef().scrollMultiplier, maxOffset, 0)
+		old+delta*w.themeRef().ScrollMultiplier, maxOffset, 0)
 	if old == clamped {
 		return false
 	}
@@ -226,7 +226,7 @@ func scrollVertical(layout *Layout, delta float32, w *Window) bool {
 	old := sy.GetOr(id, 0)
 	// Post-generation read: this window's theme, not the frame cache.
 	clamped := f32Clamp(
-		old+delta*w.themeRef().scrollMultiplier, maxOffset, 0)
+		old+delta*w.themeRef().ScrollMultiplier, maxOffset, 0)
 	if old == clamped {
 		return false
 	}

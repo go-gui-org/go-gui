@@ -10,11 +10,13 @@ const (
 )
 
 // GridPaginationKind selects cursor- or offset-based paging.
-type gridPaginationKind uint8
+// exportaudit:keep — caller-facing config (issue #372)
+type GridPaginationKind uint8
 
 // GridPaginationKind constants.
 const (
-	gridPaginationNone gridPaginationKind = iota
+	// exportaudit:keep — caller-facing config (issue #372)
+	GridPaginationNone GridPaginationKind = iota
 	GridPaginationCursor
 	GridPaginationOffset
 )

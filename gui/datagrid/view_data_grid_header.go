@@ -29,9 +29,9 @@ func dataGridHeaderRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths m
 }
 
 func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount int, width float32, focusID string, showControls bool, resizingColID string) gg.View {
-	hasReorder := showControls && cfg.onColumnOrderChange != nil && col.Reorderable
-	hasPin := showControls && cfg.onColumnPinChange != nil
-	headerControls := dataGridHeaderControlState(width, cfg.PaddingHeader.Or(gg.PaddingNone), hasReorder, hasPin, showControls && col.resizable)
+	hasReorder := showControls && cfg.OnColumnOrderChange != nil && col.Reorderable
+	hasPin := showControls && cfg.OnColumnPinChange != nil
+	headerControls := dataGridHeaderControlState(width, cfg.PaddingHeader.Or(gg.PaddingNone), hasReorder, hasPin, showControls && col.Resizable)
 	headerFocusID := dataGridHeaderCellID(cfg.ID, col.ID)
 
 	content := make([]gg.View, 0, 5)
@@ -79,7 +79,7 @@ func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount in
 
 	onQueryChange := cfg.OnQueryChange
 	query := cfg.Query
-	multiSort := boolDefault(cfg.multiSort, true)
+	multiSort := boolDefault(cfg.MultiSort, true)
 	colSortable := col.Sortable
 	colID := col.ID
 	colorHeaderHover := cfg.ColorHeaderHover
@@ -192,8 +192,8 @@ func dataGridResizeHandle(cfg *DataGridCfg, col GridColumnCfg, focusID string, r
 }
 
 func dataGridReorderControls(cfg *DataGridCfg, col GridColumnCfg) gg.View {
-	onColumnOrderChange := cfg.onColumnOrderChange
-	baseOrder, _ := dataGridColumnOrderAndMap(cfg.Columns, cfg.columnOrder)
+	onColumnOrderChange := cfg.OnColumnOrderChange
+	baseOrder, _ := dataGridColumnOrderAndMap(cfg.Columns, cfg.ColumnOrder)
 	colID := col.ID
 	leftArrow := "\u25C0"  // ◀
 	rightArrow := "\u25B6" // ▶
@@ -278,17 +278,17 @@ func dataGridIndicatorButton(id, label string, baseStyle gg.TextStyle, hoverColo
 
 func dataGridPinControl(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 	var label string
-	switch col.pin {
-	case gridColumnPinNone:
+	switch col.Pin {
+	case GridColumnPinNone:
 		label = "\u2022" // •
-	case gridColumnPinLeft:
+	case GridColumnPinLeft:
 		label = "\u21A4" // ↤
-	case gridColumnPinRight:
+	case GridColumnPinRight:
 		label = "\u21A6" // ↦
 	}
-	onColumnPinChange := cfg.onColumnPinChange
+	onColumnPinChange := cfg.OnColumnPinChange
 	colID := col.ID
-	colPin := col.pin
+	colPin := col.Pin
 
 	return dataGridIndicatorButton(gg.ScopeID(cfg.ID, "pin", col.ID), label, cfg.TextStyleHeader, cfg.ColorHeaderHover,
 		false, dataGridHeaderControlWidth, func(ctx gg.EventCtx) {

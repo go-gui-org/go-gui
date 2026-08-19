@@ -5,41 +5,72 @@ import "slices"
 // MenubarCfg configures a horizontal menubar or standalone
 // menu.
 type MenubarCfg struct {
-	TextStyle         TextStyle
-	textStyleSubtitle TextStyle
+	TextStyle TextStyle
+	// TextStyleSubtitle styles subtitle items. Zero takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	TextStyleSubtitle TextStyle
 	Action            func(string, EventCtx)
 	ID                string
 	Items             []MenuItemCfg
 	FloatZIndex       int
 	Padding           Padding
-	paddingMenuItem   Padding
-	paddingSubmenu    Padding
-	paddingSubtitle   Padding
-	SizeBorder        Opt[float32]
-	widthSubmenuMin   Opt[float32]
-	widthSubmenuMax   Opt[float32]
-	Radius            Opt[float32]
-	radiusBorder      Opt[float32]
-	radiusSubmenu     Opt[float32]
-	radiusMenuItem    Opt[float32]
-	Spacing           Opt[float32]
-	spacingSubmenu    Opt[float32]
-	FloatOffsetX      float32
-	FloatOffsetY      float32
-	Color             Color
-	ColorBorder       Color
-	ColorSelect       Color
+	// PaddingMenuItem insets each item. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	PaddingMenuItem Padding
+	// PaddingSubmenu insets submenu panes. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	PaddingSubmenu Padding
+	// PaddingSubtitle insets subtitle items. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	PaddingSubtitle Padding
+	SizeBorder      Opt[float32]
+	// WidthSubmenuMin/Max bound submenu panes. Unset takes the
+	// theme defaults.
+	// exportaudit:keep — caller-facing config (issue #372)
+	WidthSubmenuMin Opt[float32]
+	// exportaudit:keep — caller-facing config (issue #372)
+	WidthSubmenuMax Opt[float32]
+	Radius          Opt[float32]
+	// RadiusBorder rounds the bar frame. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	RadiusBorder Opt[float32]
+	// RadiusSubmenu rounds submenu panes. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	RadiusSubmenu Opt[float32]
+	// RadiusMenuItem rounds each item. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	RadiusMenuItem Opt[float32]
+	Spacing        Opt[float32]
+	// SpacingSubmenu gaps submenu items. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	SpacingSubmenu Opt[float32]
+	FloatOffsetX   float32
+	FloatOffsetY   float32
+	Color          Color
+	ColorBorder    Color
+	ColorSelect    Color
 	// Colors sets the per-state colors. Color above is the
 	// shorthand for Colors.Base and wins over it; the other flat
 	// Color* fields win over their Colors slots the same way.
-	Colors        ColorSet
-	Sizing        Sizing
-	FloatAnchor   floatAttach
-	FloatTieOff   floatAttach
-	Disabled      bool
-	Invisible     bool
-	Float         bool
-	floatAutoFlip bool
+	Colors      ColorSet
+	Sizing      Sizing
+	FloatAnchor floatAttach
+	FloatTieOff floatAttach
+	Disabled    bool
+	Invisible   bool
+	Float       bool
+	// FloatAutoFlip mirrors the float to the opposite side when it
+	// would cross the window edge.
+	// exportaudit:keep — caller-facing config (issue #372)
+	FloatAutoFlip bool
 }
 
 // Menubar creates a horizontal menubar with keyboard
@@ -68,12 +99,12 @@ func Menubar(w *Window, cfg MenubarCfg) View {
 		Color:         cfg.Color,
 		ColorBorder:   cfg.ColorBorder,
 		SizeBorder:    cfg.SizeBorder,
-		Radius:        cfg.radiusBorder,
+		Radius:        cfg.RadiusBorder,
 		Spacing:       cfg.Spacing,
 		Padding:       cfg.Padding,
 		Sizing:        cfg.Sizing,
 		Float:         cfg.Float,
-		floatAutoFlip: cfg.floatAutoFlip,
+		FloatAutoFlip: cfg.FloatAutoFlip,
 		FloatAnchor:   cfg.FloatAnchor,
 		FloatTieOff:   cfg.FloatTieOff,
 		FloatOffsetX:  cfg.FloatOffsetX,
@@ -102,24 +133,24 @@ func applyMenubarDefaults(cfg *MenubarCfg) {
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.TextStyle
 	}
-	if cfg.textStyleSubtitle == (TextStyle{}) {
-		cfg.textStyleSubtitle = d.textStyleSubtitle
+	if cfg.TextStyleSubtitle == (TextStyle{}) {
+		cfg.TextStyleSubtitle = d.textStyleSubtitle
 	}
 	cfg.Sizing = cfg.Sizing.Or(FillFit)
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = d.Padding
 	}
-	if !cfg.paddingMenuItem.IsSet() {
-		cfg.paddingMenuItem = d.paddingMenuItem
+	if !cfg.PaddingMenuItem.IsSet() {
+		cfg.PaddingMenuItem = d.paddingMenuItem
 	}
-	if !cfg.paddingSubmenu.IsSet() {
-		cfg.paddingSubmenu = d.paddingSubmenu
+	if !cfg.PaddingSubmenu.IsSet() {
+		cfg.PaddingSubmenu = d.paddingSubmenu
 	}
-	if !cfg.paddingSubtitle.IsSet() {
-		cfg.paddingSubtitle = d.paddingSubtitle
+	if !cfg.PaddingSubtitle.IsSet() {
+		cfg.PaddingSubtitle = d.paddingSubtitle
 	}
-	if !cfg.spacingSubmenu.IsSet() {
-		cfg.spacingSubmenu = Some(d.spacingSubmenu)
+	if !cfg.SpacingSubmenu.IsSet() {
+		cfg.SpacingSubmenu = Some(d.spacingSubmenu)
 	}
 	if cfg.Action == nil {
 		cfg.Action = func(_ string, ctx EventCtx) {

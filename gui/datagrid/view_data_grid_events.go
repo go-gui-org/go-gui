@@ -30,7 +30,7 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 	inputFocusID := inputID
 	matchesText := dataGridQuickFilterMatchesText(cfg)
 	clearDisabled := value == "" || queryCallback == nil
-	debounce := cfg.quickFilterDebounce
+	debounce := cfg.QuickFilterDebounce
 
 	dimColor := cfg.TextStyleFilter.Color
 	dimColor.A = 140
@@ -59,7 +59,7 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 			gg.Input(gg.InputCfg{
 				ID:               inputID,
 				Text:             value,
-				Placeholder:      cfg.quickFilterPlaceholder,
+				Placeholder:      cfg.QuickFilterPlaceholder,
 				Sizing:           gg.FillFill,
 				Padding:          gg.NoPadding,
 				SizeBorder:       gg.SomeF(0),
@@ -164,13 +164,13 @@ func dataGridQuickFilterMatchesText(cfg *DataGridCfg) string {
 // --- Column chooser ---
 
 func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.View {
-	onHiddenColumnsChange := cfg.onHiddenColumnsChange
+	onHiddenColumnsChange := cfg.OnHiddenColumnsChange
 	hasVisibilityCallback := onHiddenColumnsChange != nil
 	chooserLabel := gg.ActiveLocale.StrColumns + " ▶" // ▶
 	if isOpen {
 		chooserLabel = gg.ActiveLocale.StrColumns + " ▼" // ▼
 	}
-	rowH := cfg.rowHeight
+	rowH := cfg.RowHeight
 	if rowH <= 0 {
 		rowH = dataGridHeaderHeight(cfg)
 	}
@@ -201,7 +201,7 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.
 			if col.ID == "" {
 				continue
 			}
-			hidden := cfg.hiddenColumnIDs[col.ID]
+			hidden := cfg.HiddenColumnIDs[col.ID]
 			colID := col.ID
 			options = append(options, gg.Toggle(gg.ToggleCfg{
 				ID:       gg.ScopeID(gridID, "col-chooser", col.ID),
@@ -209,7 +209,7 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.
 				Selected: !hidden,
 				Disabled: !hasVisibilityCallback,
 				OnClick: dataGridMakeColumnChooserOnClick(onHiddenColumnsChange,
-					cfg.hiddenColumnIDs, columns, colID, focusID),
+					cfg.HiddenColumnIDs, columns, colID, focusID),
 			}))
 		}
 		content = append(content, gg.Row(gg.ContainerCfg{

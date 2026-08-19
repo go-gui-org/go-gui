@@ -200,7 +200,7 @@ func TestToastOnActionCallback(t *testing.T) {
 	w.toasts = []toastNotification{
 		{id: 1, cfg: ToastCfg{
 			Title:       "T",
-			actionLabel: "Undo",
+			ActionLabel: "Undo",
 			OnAction:    func(ctx EventCtx) { fired = true },
 		}, animFrac: 1, phase: toastVisible},
 	}
@@ -242,13 +242,13 @@ func TestToastAnchorPositioning(t *testing.T) {
 
 func TestToastItemViewSeverityColors(t *testing.T) {
 	style := defaultToastStyle
-	severities := []toastSeverity{
-		toastInfo, toastSuccess, toastWarning, toastError,
+	severities := []ToastSeverity{
+		ToastInfo, ToastSuccess, ToastWarning, ToastError,
 	}
 	for _, sev := range severities {
 		toast := &toastNotification{
 			id:       1,
-			cfg:      ToastCfg{Title: "T", severity: sev},
+			cfg:      ToastCfg{Title: "T", Severity: sev},
 			animFrac: 1,
 		}
 		v := toastItemView(toast, style)

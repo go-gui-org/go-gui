@@ -34,7 +34,7 @@ func TestEffectivePaginationKindCursorNeitherSupported(t *testing.T) {
 	// Cursor preferred, nothing supported → none.
 	caps := GridDataCapabilities{}
 	got := dataGridSourceEffectivePaginationKind(GridPaginationCursor, caps)
-	if got != gridPaginationNone {
+	if got != GridPaginationNone {
 		t.Fatalf("got %d, want GridPaginationNone", got)
 	}
 }
@@ -69,7 +69,7 @@ func TestDataGridPageLimit(t *testing.T) {
 		t.Fatalf("got %d, want 50", got)
 	}
 	// PageLimit zero, PageSize set → use PageSize.
-	cfg = &DataGridCfg{pageSize: 25}
+	cfg = &DataGridCfg{PageSize: 25}
 	if got := dataGridPageLimit(cfg); got != 25 {
 		t.Fatalf("got %d, want 25", got)
 	}
@@ -627,7 +627,7 @@ func TestGridScrollShiftsVisibleRows(t *testing.T) {
 	v := New(w, DataGridCfg{
 		ID:        gridID,
 		MaxHeight: maxHeight,
-		rowHeight: rowHeight,
+		RowHeight: rowHeight,
 		Columns:   []GridColumnCfg{{ID: "a", Title: "A"}},
 		Rows:      rows,
 	})
@@ -667,7 +667,7 @@ func TestGridScrollTopShowsFirstRows(t *testing.T) {
 	v := New(w, DataGridCfg{
 		ID:        gridID,
 		MaxHeight: 200,
-		rowHeight: 30,
+		RowHeight: 30,
 		Columns:   []GridColumnCfg{{ID: "a", Title: "A"}},
 		Rows:      rows,
 	})

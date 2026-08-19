@@ -39,13 +39,13 @@ func menu(w *Window, cfg MenubarCfg) View {
 		Color:         cfg.Color,
 		ColorBorder:   cfg.ColorBorder,
 		SizeBorder:    cfg.SizeBorder,
-		Radius:        cfg.radiusBorder,
-		MinWidth:      cfg.widthSubmenuMin.Get(defaultMenubarStyle.widthSubmenuMin),
-		MaxWidth:      cfg.widthSubmenuMax.Get(defaultMenubarStyle.widthSubmenuMax),
-		Spacing:       Some(cfg.spacingSubmenu.Get(defaultMenubarStyle.spacingSubmenu)),
-		Padding:       cfg.paddingSubmenu,
+		Radius:        cfg.RadiusBorder,
+		MinWidth:      cfg.WidthSubmenuMin.Get(defaultMenubarStyle.widthSubmenuMin),
+		MaxWidth:      cfg.WidthSubmenuMax.Get(defaultMenubarStyle.widthSubmenuMax),
+		Spacing:       Some(cfg.SpacingSubmenu.Get(defaultMenubarStyle.spacingSubmenu)),
+		Padding:       cfg.PaddingSubmenu,
 		Float:         cfg.Float,
-		floatAutoFlip: cfg.floatAutoFlip,
+		FloatAutoFlip: cfg.FloatAutoFlip,
 		FloatAnchor:   cfg.FloatAnchor,
 		FloatTieOff:   cfg.FloatTieOff,
 		FloatOffsetX:  cfg.FloatOffsetX,
@@ -152,16 +152,16 @@ func menuBuild(cfg MenubarCfg, level int, items []MenuItemCfg, w *Window) []View
 			if item.CustomView != nil {
 				pad = NoPadding
 			} else if item.ID == menuSubtitleID {
-				pad = cfg.paddingSubtitle
+				pad = cfg.PaddingSubtitle
 			} else {
-				pad = cfg.paddingMenuItem
+				pad = cfg.PaddingMenuItem
 			}
 		}
 
 		// Determine text style.
 		ts := cfg.TextStyle
 		if item.ID == menuSubtitleID {
-			ts = cfg.textStyleSubtitle
+			ts = cfg.TextStyleSubtitle
 		}
 
 		// Build the configured item.
@@ -170,8 +170,8 @@ func menuBuild(cfg MenubarCfg, level int, items []MenuItemCfg, w *Window) []View
 		configured.Padding = pad
 		configured.selected = (selectedID == item.ID)
 		configured.sizing = sizing
-		configured.radius = cfg.radiusMenuItem.Get(defaultMenubarStyle.radiusMenuItem)
-		configured.spacing = cfg.spacingSubmenu.Get(defaultMenubarStyle.spacingSubmenu)
+		configured.radius = cfg.RadiusMenuItem.Get(defaultMenubarStyle.radiusMenuItem)
+		configured.spacing = cfg.SpacingSubmenu.Get(defaultMenubarStyle.spacingSubmenu)
 		configured.level = level
 		configured.textStyle = ts
 
@@ -218,13 +218,13 @@ func menuBuild(cfg MenubarCfg, level int, items []MenuItemCfg, w *Window) []View
 				Color:         cfg.Color,
 				ColorBorder:   cfg.ColorBorder,
 				SizeBorder:    cfg.SizeBorder,
-				Radius:        cfg.radiusSubmenu,
-				MinWidth:      cfg.widthSubmenuMin.Get(defaultMenubarStyle.widthSubmenuMin),
-				MaxWidth:      cfg.widthSubmenuMax.Get(defaultMenubarStyle.widthSubmenuMax),
-				Spacing:       Some(cfg.spacingSubmenu.Get(defaultMenubarStyle.spacingSubmenu)),
-				Padding:       cfg.paddingSubmenu,
+				Radius:        cfg.RadiusSubmenu,
+				MinWidth:      cfg.WidthSubmenuMin.Get(defaultMenubarStyle.widthSubmenuMin),
+				MaxWidth:      cfg.WidthSubmenuMax.Get(defaultMenubarStyle.widthSubmenuMax),
+				Spacing:       Some(cfg.SpacingSubmenu.Get(defaultMenubarStyle.spacingSubmenu)),
+				Padding:       cfg.PaddingSubmenu,
 				Float:         true,
-				floatAutoFlip: true,
+				FloatAutoFlip: true,
 				FloatAnchor:   anchor,
 				FloatTieOff:   tieOff,
 				Content:       subViews,

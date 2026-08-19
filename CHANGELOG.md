@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Restored caller-facing `*Cfg` fields unexported by the #230 surface sweep**
+  (issue #372). The sweep unexported every symbol with no in-repo external
+  reference, including configuration fields users set directly in struct
+  literals. Restored: `SvgCfg.FileName`/`NoAnimate`, `SelectCfg.SubheadingStyle`/
+  `NoWrap`, `ListBoxCfg.SubheadingStyle`, `InputCfg.PreTextChange`/
+  `PostCommitNormalize`, `NumericStepCfg.ShiftMultiplier`/`AltMultiplier`/
+  `MouseWheel`/`Keyboard`, `ContainerCfg.OnScroll`/`OnIMECommit`/
+  `ClickOnSpace`/`ClickOnEnter`/`ClipContents`/`FloatAutoFlip`, the
+  TabControl/Breadcrumb/Menubar/ContextMenu/Splitter/Slider/Scrollbar/DockLayout
+  style ladders, `ThemeCfg` size/font/elevation knobs, `WindowCfg`
+  `AllowedSvgRoots`/`MaxImageDownloads`/`HistoryBytes`, datagrid's `DataGridCfg`
+  and `GridColumnCfg` surface, and ~80 more fields across every widget Cfg, plus
+  their enum types (`FormValidateOn`, `SpringCfg`, `ToastSeverity`,
+  `DatePickerRollerDisplayMode`, `GridColumnPin`, `GridCellEditorKind`,
+  `GridPaginationKind`, `GridAggregateCfg`, `GridCellFormat`, `MathFetcher`,
+  `MermaidFetcher`, `PrintHeaderFooterCfg`).
+
 ## [v0.62.0] - 2026-08-18
 
 ### Added

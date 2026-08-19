@@ -466,7 +466,7 @@ func TestTreeItemPaths(t *testing.T) {
 	w := newTestWindow()
 	layout := generateViewLayout(Tree(TreeCfg{
 		ID:        "tree-paths",
-		itemPaths: []string{"src/main.go", "src/lib.go", "docs/readme.md"},
+		ItemPaths: []string{"src/main.go", "src/lib.go", "docs/readme.md"},
 	}), w)
 	if len(layout.Children) != 2 {
 		t.Fatalf("children = %d, want 2", len(layout.Children))
@@ -499,7 +499,7 @@ func TestTreeItemPathsPrecedence(t *testing.T) {
 	w := newTestWindow()
 	layout := generateViewLayout(Tree(TreeCfg{
 		ID:        "tree-prec",
-		itemPaths: []string{"alpha", "beta"},
+		ItemPaths: []string{"alpha", "beta"},
 		Nodes: []TreeNodeCfg{
 			{ID: "ignored", Text: "Ignored"},
 		},

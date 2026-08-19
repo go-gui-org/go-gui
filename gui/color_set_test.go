@@ -226,11 +226,12 @@ func TestColorSetAdoptedByTheEleven(t *testing.T) {
 		t.Errorf("Table: Flat(Blue) did not reach Hover/Border: hover=%v border=%v",
 			tb.ColorHover, tb.ColorBorder)
 	}
-	// Slider and ExpandPanel fold their unexported click color through
-	// Colors.Click — the one slot no exported field can assert.
-	if sl.colorClick != Blue || sl.Colors.Click != Blue {
+	// ExpandPanel folds its unexported click color through Colors.Click —
+	// the one slot no exported field can assert. Slider asserts it
+	// directly through the exported ColorClick.
+	if sl.ColorClick != Blue || sl.Colors.Click != Blue {
 		t.Errorf("Slider: Flat(Blue) did not reach the click slot: "+
-			"colorClick=%v Colors.Click=%v", sl.colorClick, sl.Colors.Click)
+			"ColorClick=%v Colors.Click=%v", sl.ColorClick, sl.Colors.Click)
 	}
 	if ep.colorClick != Blue || ep.Colors.Click != Blue {
 		t.Errorf("ExpandPanel: Flat(Blue) did not reach the click slot: "+

@@ -47,14 +47,14 @@ func inspectorPropNode(
 ) TreeNodeCfg {
 	return TreeNodeCfg{
 		ID: id, Text: text,
-		TextStyle: ps, textStyleIcon: pis,
+		TextStyle: ps, TextStyleIcon: pis,
 	}
 }
 
 func inspectorPropsNodes(p inspectorNodeProps) []TreeNodeCfg {
 	propColor := guiTheme.inspectorStyle.colorTextProp
 	ps := TextStyle{
-		Size:  guiTheme.sizeTextXSmall,
+		Size:  guiTheme.SizeTextXSmall,
 		Color: propColor,
 	}
 	// Icon5 is the XSmall themed icon style, so it already carries the
@@ -105,8 +105,8 @@ func inspectorPropsNodes(p inspectorNodeProps) []TreeNodeCfg {
 			Text:      "color: " + inspectorColorString(p.Color),
 			Icon:      "\u25A0",
 			TextStyle: ps,
-			textStyleIcon: TextStyle{
-				Size:  guiTheme.sizeTextXSmall,
+			TextStyleIcon: TextStyle{
+				Size:  guiTheme.SizeTextXSmall,
 				Color: p.Color,
 			},
 		})

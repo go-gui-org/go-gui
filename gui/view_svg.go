@@ -18,8 +18,11 @@ const svgAnimStaleNs = 2 * int64(time.Second)
 type SvgCfg struct {
 	OnClick func(EventCtx)
 
-	ID       string
-	fileName string // SVG file path
+	ID string
+	// FileName loads the SVG from a file path. SvgData is the inline
+	// alternative; one of the two must be set.
+	// exportaudit:keep — caller-facing config (issue #372)
+	FileName string // SVG file path
 	SvgData  string // OR inline SVG string
 
 	// HoveredElementID / FocusedElementID drive CSS :hover / :focus
@@ -42,9 +45,11 @@ type SvgCfg struct {
 	// = lower vertex count. Cached separately per value.
 	FlatnessTolerance float32
 
-	Color     Color // override fill (for monochrome icons)
-	Sizing    Sizing
-	noAnimate bool // disable SMIL animation (default: animated)
+	Color  Color // override fill (for monochrome icons)
+	Sizing Sizing
+	// NoAnimate disables SMIL animation (default: animated).
+	// exportaudit:keep — caller-facing config (issue #372)
+	NoAnimate bool // disable SMIL animation (default: animated)
 }
 
 // svgView implements View for SVG rendering.
@@ -59,7 +64,7 @@ func Svg(cfg SvgCfg) View {
 
 func (sv *svgView) GenerateLayout(w *Window) Layout {
 	c := &sv.cfg
-	svgSrc := c.fileName
+	svgSrc := c.FileName
 	if svgSrc == "" {
 		svgSrc = c.SvgData
 	}
@@ -104,7 +109,7 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 	}
 
 	// Register animation loop for animated SVGs.
-	if cached.hasAnimations && !c.noAnimate {
+	if cached.hasAnimations && !c.NoAnimate {
 		animHash := cached.animHash
 		animSeen := StateMap[string, int64](
 			w, nsSvgAnimSeen, capImageCache)
