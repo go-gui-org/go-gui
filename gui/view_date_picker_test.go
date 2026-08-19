@@ -20,6 +20,25 @@ func TestDatePickerLayout(t *testing.T) {
 	}
 }
 
+// A selected day fills with the accent color, so its number draws in
+// the paired foreground; a plain day keeps the body color
+// (issue #373).
+func TestDatePickerSelectedDayTextColor(t *testing.T) {
+	w := &Window{}
+	v := DatePicker(DatePickerCfg{
+		ID:                "dp-text",
+		Dates:             []time.Time{time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local)},
+		ColorTextOnSelect: White,
+	})
+	if got := textColorOf(t, w, v, "15"); !got.eq(White) {
+		t.Errorf("selected day color = %v, want %v", got, White)
+	}
+	if got := textColorOf(t, w, v, "16"); !got.eq(DefaultTextStyle.Color) {
+		t.Errorf("plain day color = %v, want body %v",
+			got, DefaultTextStyle.Color)
+	}
+}
+
 func TestDatePickerStateInit(t *testing.T) {
 	w := &Window{}
 	d := time.Date(2025, 6, 10, 0, 0, 0, 0, time.Local)

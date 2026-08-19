@@ -135,6 +135,9 @@ type TableStyle struct {
 	ColorSelect        Color
 	ColorHover         Color
 	alignHead          HorizontalAlign
+	// ColorTextOnSelect is the text color drawn over ColorSelect
+	// fills. Resolved by ThemeMaker; unset themes keep body text.
+	ColorTextOnSelect Color
 }
 
 // ComboboxStyle defines combobox visual properties.
@@ -156,6 +159,9 @@ type ComboboxStyle struct {
 	ColorBorder       Color
 	ColorBorderFocus  Color
 	ColorHighlight    Color
+	// ColorTextOnSelect is the text color drawn over ColorHighlight
+	// fills. Resolved by ThemeMaker; unset themes keep body text.
+	ColorTextOnSelect Color
 }
 
 // CommandPaletteStyle defines command palette visual properties.
@@ -174,6 +180,9 @@ type CommandPaletteStyle struct {
 	ColorBorder    Color
 	ColorHighlight Color
 	backdropColor  Color
+	// ColorTextOnSelect is the text color drawn over ColorHighlight
+	// fills. Resolved by ThemeMaker; unset themes keep body text.
+	ColorTextOnSelect Color
 }
 
 // MenubarStyle defines menubar visual properties.
@@ -205,25 +214,31 @@ type MenubarStyle struct {
 	ColorBorder      Color
 	ColorBorderFocus Color
 	ColorSelect      Color
+	// ColorTextOnSelect is the text color drawn over ColorSelect
+	// fills. Resolved by ThemeMaker; unset themes keep body text.
+	ColorTextOnSelect Color
 }
 
 // DatePickerStyle defines date picker visual properties.
 // exportaudit:keep — reachable from an exported signature
 type DatePickerStyle struct {
-	TextStyle            TextStyle
-	Shadow               *BoxShadow
-	Padding              Padding
-	cellSpacing          float32
-	SizeBorder           float32
-	Radius               float32
-	radiusBorder         float32
-	Color                Color
-	ColorHover           Color
-	ColorFocus           Color
-	colorClick           Color
-	ColorBorder          Color
-	ColorBorderFocus     Color
-	ColorSelect          Color
+	TextStyle        TextStyle
+	Shadow           *BoxShadow
+	Padding          Padding
+	cellSpacing      float32
+	SizeBorder       float32
+	Radius           float32
+	radiusBorder     float32
+	Color            Color
+	ColorHover       Color
+	ColorFocus       Color
+	colorClick       Color
+	ColorBorder      Color
+	ColorBorderFocus Color
+	ColorSelect      Color
+	// ColorTextOnSelect is the text color drawn over ColorSelect
+	// fills. Resolved by ThemeMaker; unset themes keep body text.
+	ColorTextOnSelect    Color
 	HideTodayIndicator   bool
 	MondayFirstDayOfWeek bool
 	ShowAdjacentMonths   bool

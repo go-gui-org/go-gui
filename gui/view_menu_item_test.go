@@ -157,6 +157,40 @@ func TestMenuItemOpticalCenterIsApplied(t *testing.T) {
 	}
 }
 
+// The selected item fills with the accent color, so its label draws
+// in the paired foreground; a plain item keeps the body color
+// (issue #373).
+func TestMenuItemSelectedTextColor(t *testing.T) {
+	w := &Window{}
+	base := MenuItemText("m", "Copy")
+	base.textStyle = DefaultTextStyle
+	base.sizing = FitFit
+
+	plain := menuItem(MenubarCfg{}, base)
+	plainLayout := generateViewLayout(plain, w)
+	plainText := plainLayout.Children[0].Shape.TC
+	if plainText == nil {
+		t.Fatal("plain item text missing")
+	}
+	if !plainText.TextStyle.Color.eq(DefaultTextStyle.Color) {
+		t.Errorf("plain item color = %v, want body %v",
+			plainText.TextStyle.Color, DefaultTextStyle.Color)
+	}
+
+	sel := base
+	sel.selected = true
+	sel.colorTextOnSelect = White
+	selectedLayout := generateViewLayout(menuItem(MenubarCfg{}, sel), w)
+	selectedText := selectedLayout.Children[0].Shape.TC
+	if selectedText == nil {
+		t.Fatal("selected item text missing")
+	}
+	if !selectedText.TextStyle.Color.eq(White) {
+		t.Errorf("selected item color = %v, want %v",
+			selectedText.TextStyle.Color, White)
+	}
+}
+
 // The label and its shortcut hint sit in one row and must move together;
 // the correction is attached to that row rather than to the item, or the
 // pair would read skewed.

@@ -88,8 +88,12 @@ type DatePickerCfg struct {
 	Color         Color
 	// Colors sets the per-state colors. Color above is the
 	// shorthand for Colors.Base and wins over it.
-	Colors               ColorSet
-	ColorSelect          Color
+	Colors      ColorSet
+	ColorSelect Color
+	// ColorTextOnSelect is the text color drawn over the selected
+	// day's fill. Unset takes the theme's.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorTextOnSelect    Color
 	WeekdaysLen          DatePickerWeekdayLen
 	Disabled             bool
 	Invisible            bool
@@ -442,6 +446,9 @@ func applyDatePickerDefaults(cfg *DatePickerCfg) {
 	))
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
+	}
+	if !cfg.ColorTextOnSelect.IsSet() {
+		cfg.ColorTextOnSelect = d.ColorTextOnSelect
 	}
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = d.Padding

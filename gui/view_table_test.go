@@ -271,6 +271,48 @@ func TestTableSelection(t *testing.T) {
 	}
 }
 
+// A selected row's cells draw in the paired foreground while the
+// unselected row keeps the body color. A cell with its own TextStyle
+// is the caller's deliberate color and stays untouched (issue #373).
+func TestTableSelectedRowTextColor(t *testing.T) {
+	w := &Window{}
+	ownStyle := DefaultTextStyle
+	ownStyle.Color = Red
+	layout := generateViewLayout(Table(TableCfg{
+		ID: "tbl-sel-text",
+		Data: []TableRowCfg{
+			TR([]TableCellCfg{tD("a")}),
+			TR([]TableCellCfg{
+				tD("b"),
+				{Value: "c", TextStyle: &ownStyle},
+			}),
+		},
+		Selected:          map[int]bool{1: true},
+		ColorTextOnSelect: White,
+	}), w)
+	if len(layout.Children) < 2 {
+		t.Fatalf("rows = %d, want 2", len(layout.Children))
+	}
+	unselected := layout.Children[0].Children[0].Children[0].Shape.TC
+	selected := layout.Children[1].Children[0].Children[0].Shape.TC
+	owned := layout.Children[1].Children[1].Children[0].Shape.TC
+	if unselected == nil || selected == nil || owned == nil {
+		t.Fatal("cell text missing")
+	}
+	if !selected.TextStyle.Color.eq(White) {
+		t.Errorf("selected cell color = %v, want %v",
+			selected.TextStyle.Color, White)
+	}
+	if !unselected.TextStyle.Color.eq(DefaultTextStyle.Color) {
+		t.Errorf("unselected cell color = %v, want body %v",
+			unselected.TextStyle.Color, DefaultTextStyle.Color)
+	}
+	if !owned.TextStyle.Color.eq(Red) {
+		t.Errorf("cell with own style = %v, want caller's %v",
+			owned.TextStyle.Color, Red)
+	}
+}
+
 func TestCopySelected(t *testing.T) {
 	// Non-nil input is copied deeply: mutating the copy must not
 	// touch the original.

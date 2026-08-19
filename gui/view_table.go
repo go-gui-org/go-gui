@@ -94,6 +94,10 @@ type TableCfg struct {
 	ColorBorderFocus Color
 	ColorSelect      Color
 	ColorHover       Color
+	// ColorTextOnSelect is the text color drawn over the selected
+	// row's fill. Unset takes the theme's.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorTextOnSelect Color
 	// Colors sets the per-state colors. The flat Color* fields
 	// above win over their Colors slots. Table has no base fill,
 	// so Base is unused and Hover/Border are the live slots.
@@ -126,6 +130,9 @@ func applyTableDefaults(cfg *TableCfg) {
 		&cfg.ColorBorder, &cfg.ColorBorderFocus)
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = s.ColorSelect
+	}
+	if !cfg.ColorTextOnSelect.IsSet() {
+		cfg.ColorTextOnSelect = s.ColorTextOnSelect
 	}
 	if !cfg.CellPadding.IsSet() {
 		cfg.CellPadding = s.cellPadding

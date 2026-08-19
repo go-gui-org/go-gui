@@ -57,6 +57,10 @@ type MenubarCfg struct {
 	Color          Color
 	ColorBorder    Color
 	ColorSelect    Color
+	// ColorTextOnSelect is the text color drawn over the selected
+	// item's fill. Unset takes the theme's.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorTextOnSelect Color
 	// Colors sets the per-state colors. Color above is the
 	// shorthand for Colors.Base and wins over it; the other flat
 	// Color* fields win over their Colors slots the same way.
@@ -129,6 +133,9 @@ func applyMenubarDefaults(cfg *MenubarCfg) {
 		&cfg.ColorBorder, nil)
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
+	}
+	if !cfg.ColorTextOnSelect.IsSet() {
+		cfg.ColorTextOnSelect = d.ColorTextOnSelect
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.TextStyle

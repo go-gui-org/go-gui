@@ -55,6 +55,10 @@ type CommandPaletteCfg struct {
 	Color          Color
 	ColorBorder    Color
 	ColorHighlight Color
+	// ColorTextOnSelect is the text color drawn over the
+	// highlighted row's fill. Unset takes the theme's.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorTextOnSelect Color
 	// BackdropColor dims the window behind the palette. Unset takes
 	// the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
@@ -144,14 +148,15 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 	onDismiss := cfg.OnDismiss
 
 	coreCfg := listCoreCfg{
-		TextStyle:      cfg.TextStyle,
-		detailStyle:    cfg.DetailStyle,
-		ColorHighlight: cfg.ColorHighlight,
-		ColorHover:     cfg.ColorHighlight,
-		ColorSelected:  cfg.ColorHighlight,
-		PaddingItem:    PaddingTwoFive,
-		ShowDetails:    true,
-		ShowIcons:      true,
+		TextStyle:         cfg.TextStyle,
+		detailStyle:       cfg.DetailStyle,
+		ColorHighlight:    cfg.ColorHighlight,
+		ColorHover:        cfg.ColorHighlight,
+		ColorSelected:     cfg.ColorHighlight,
+		colorTextOnSelect: cfg.ColorTextOnSelect,
+		PaddingItem:       PaddingTwoFive,
+		ShowDetails:       true,
+		ShowIcons:         true,
 		OnItemClick: func(itemID string, _ int, ctx EventCtx) {
 			if onAction != nil {
 				onAction(itemID, EventCtx{nil, ctx.Event, ctx.Window})
@@ -421,6 +426,9 @@ func applyCommandPaletteDefaults(cfg *CommandPaletteCfg) {
 	}
 	if !cfg.ColorHighlight.IsSet() {
 		cfg.ColorHighlight = d.ColorHighlight
+	}
+	if !cfg.ColorTextOnSelect.IsSet() {
+		cfg.ColorTextOnSelect = d.ColorTextOnSelect
 	}
 	if cfg.Width == 0 {
 		cfg.Width = d.Width

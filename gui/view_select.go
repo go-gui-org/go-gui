@@ -50,10 +50,14 @@ type SelectCfg struct {
 	// Colors sets the per-state colors. Color above is the
 	// shorthand for Colors.Base and wins over it; the other flat
 	// Color* fields win over their Colors slots the same way.
-	Colors         ColorSet
-	ColorSelect    Color
-	Sizing         Sizing
-	SelectMultiple bool
+	Colors      ColorSet
+	ColorSelect Color
+	// ColorTextOnSelect is the text color drawn over the
+	// highlighted option row's fill. Unset takes the theme's.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorTextOnSelect Color
+	Sizing            Sizing
+	SelectMultiple    bool
 	// NoWrap clips long option text to one line instead of wrapping.
 	// Relevant for multi-select, which renders selected options as
 	// chips. Zero allows wrapping.
@@ -239,13 +243,17 @@ func selectOptionView(
 	selectArray := cfg.Selected
 	colorSelect := cfg.ColorSelect
 	optColor := ColorTransparent
+	// The highlighted row fills with the accent color, so its label
+	// and check mark draw in the paired foreground (issue #373).
+	textStyle := textOnFill(cfg.TextStyle,
+		highlighted, cfg.ColorTextOnSelect)
 	if highlighted {
 		optColor = cfg.ColorSelect
 	}
 
 	checkColor := ColorTransparent
 	if slices.Contains(cfg.Selected, option) {
-		checkColor = cfg.TextStyle.Color
+		checkColor = textStyle.Color
 	}
 
 	return Row(ContainerCfg{
@@ -265,7 +273,7 @@ func selectOptionView(
 					}),
 					Text(TextCfg{
 						Text:      option,
-						TextStyle: cfg.TextStyle,
+						TextStyle: textStyle,
 					}),
 				},
 			}),
@@ -476,6 +484,9 @@ func applySelectDefaults(cfg *SelectCfg) {
 		&cfg.ColorFocus, &cfg.ColorBorder, &cfg.ColorBorderFocus)
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
+	}
+	if !cfg.ColorTextOnSelect.IsSet() {
+		cfg.ColorTextOnSelect = d.ColorTextOnSelect
 	}
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = d.Padding

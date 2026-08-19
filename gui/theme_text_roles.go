@@ -202,3 +202,16 @@ func withRoleAlpha(base, role TextStyle) TextStyle {
 	out.disabledRole = role.disabledRole
 	return out
 }
+
+// textOnFill swaps ts's color to over when the text sits on a fill.
+// The fill and the text on it are one decision (issue #373); a
+// row's paired foreground is resolved by the theme alongside the
+// fill it belongs to. Resolving the pairing here keeps the rule at
+// one named source instead of at each row-rendering call site.
+func textOnFill(ts TextStyle, on bool, over Color) TextStyle {
+	if !on {
+		return ts
+	}
+	ts.Color = over
+	return ts
+}

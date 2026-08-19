@@ -118,6 +118,9 @@ type SelectStyle struct {
 	ColorBorder      Color
 	ColorBorderFocus Color
 	ColorSelect      Color
+	// ColorTextOnSelect is the text color drawn over ColorSelect
+	// fills. Resolved by ThemeMaker; unset themes keep body text.
+	ColorTextOnSelect Color
 }
 
 // Widget style mirrors. See the note on the mirror block in styles.go:

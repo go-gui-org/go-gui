@@ -41,6 +41,28 @@ func TestInputDateLayoutZeroDate(t *testing.T) {
 	}
 }
 
+// The popup calendar's selected day fills with the accent color, so
+// its number draws in the paired foreground forwarded from the
+// field; a plain day keeps the body color (issue #373).
+func TestInputDateSelectedDayTextColor(t *testing.T) {
+	w := &Window{}
+	sm := StateMap[string, bool](w, nsInputDate, capModerate)
+	sm.Set("id-text", true)
+
+	v := InputDate(InputDateCfg{
+		ID:                "id-text",
+		Date:              time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local),
+		ColorTextOnSelect: White,
+	})
+	if got := textColorOf(t, w, v, "15"); !got.eq(White) {
+		t.Errorf("selected day color = %v, want %v", got, White)
+	}
+	if got := textColorOf(t, w, v, "16"); !got.eq(DefaultTextStyle.Color) {
+		t.Errorf("plain day color = %v, want body %v",
+			got, DefaultTextStyle.Color)
+	}
+}
+
 func TestInputDateDefaultsPreserve(t *testing.T) {
 	cfg := InputDateCfg{
 		ID:           "input_date_test_test_input_date_defaults_preserve",

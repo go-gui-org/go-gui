@@ -197,6 +197,12 @@ type Theme struct {
 	ColorBorder     Color
 	ColorSelect     Color
 
+	// ColorTextOnSelect is the resolved text color drawn over
+	// ColorSelect fills (selected rows, highlighted list items).
+	// ThemeMaker resolves an unset Cfg token to the body text color,
+	// so a theme that never states it keeps its current appearance.
+	ColorTextOnSelect Color
+
 	// focusRing carries ThemeCfg.focusRing through to the widgets.
 	// Read it during generation off the bare guiTheme, like any other
 	// factory-time theme read.
@@ -324,6 +330,16 @@ type ThemeCfg struct {
 	ColorSuccess Color
 	ColorWarning Color
 	ColorError   Color
+
+	// ColorTextOnSelect is the text color drawn over ColorSelect
+	// fills — selected rows, highlighted list items. The fill and
+	// the text on it are decided together because contrast is a
+	// property of the pair, not of either color alone (issue #373).
+	// Unset resolves to TextStyleDef.Color, so existing themes stay
+	// byte-identical unless they opt in.
+	//
+	// exportaudit:keep — theme override seam.
+	ColorTextOnSelect Color
 
 	// Elevation. Two tiers, because that is how the platforms this
 	// exists to imitate actually think about it: a menu floats a

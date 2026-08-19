@@ -72,6 +72,38 @@ func TestWithColorsSelectPropagates(t *testing.T) {
 	}
 }
 
+// colorTextOnSelectByStyle collects the token across every style
+// that draws text over the select fill. One place to update when a
+// style adopts the token.
+func colorTextOnSelectByStyle(t Theme) map[string]Color {
+	return map[string]Color{
+		"SelectStyle":     t.selectStyle.ColorTextOnSelect,
+		"ListBoxStyle":    t.listBoxStyle.ColorTextOnSelect,
+		"TableStyle":      t.tableStyle.ColorTextOnSelect,
+		"ComboboxStyle":   t.comboboxStyle.ColorTextOnSelect,
+		"CommandPalette":  t.commandPaletteStyle.ColorTextOnSelect,
+		"MenubarStyle":    t.MenubarStyle.ColorTextOnSelect,
+		"DatePickerStyle": t.datePickerStyle.ColorTextOnSelect,
+	}
+}
+
+func TestWithColorsTextOnSelectPropagates(t *testing.T) {
+	theme := ThemeDark
+	newTxt := RGBA(10, 20, 30, 255)
+	updated := theme.withColors(ColorOverrides{
+		ColorTextOnSelect: &newTxt,
+	})
+	if updated.ColorTextOnSelect != newTxt {
+		t.Error("text-on-select should be overridden on theme")
+	}
+	for name, got := range colorTextOnSelectByStyle(updated) {
+		if got != newTxt {
+			t.Errorf("%s.ColorTextOnSelect = %v, want %v",
+				name, got, newTxt)
+		}
+	}
+}
+
 func TestAdjustFontSizeBasic(t *testing.T) {
 	theme := ThemeDark
 	origSize := theme.Cfg.TextStyleDef.Size

@@ -70,6 +70,37 @@ func TestListBoxDisabledFlag(t *testing.T) {
 	}
 }
 
+// A selected row draws its label in the paired foreground while an
+// unselected row keeps the body color (issue #373).
+func TestListBoxSelectedRowTextColor(t *testing.T) {
+	w := &Window{}
+	layout := generateViewLayout(ListBox(ListBoxCfg{
+		ID: "lb-sel-text",
+		Data: []ListBoxOption{
+			{ID: "x", Name: "Item X"},
+			{ID: "y", Name: "Item Y"},
+		},
+		SelectedIDs:       []string{"y"},
+		ColorTextOnSelect: White,
+	}), w)
+	if len(layout.Children) < 2 {
+		t.Fatalf("children = %d, want 2", len(layout.Children))
+	}
+	unselected := layout.Children[0].Children[0].Shape.TC
+	selected := layout.Children[1].Children[0].Shape.TC
+	if unselected == nil || selected == nil {
+		t.Fatal("row text missing")
+	}
+	if !selected.TextStyle.Color.eq(White) {
+		t.Errorf("selected row color = %v, want %v",
+			selected.TextStyle.Color, White)
+	}
+	if !unselected.TextStyle.Color.eq(DefaultTextStyle.Color) {
+		t.Errorf("unselected row color = %v, want body %v",
+			unselected.TextStyle.Color, DefaultTextStyle.Color)
+	}
+}
+
 func TestListBoxItems(t *testing.T) {
 	w := &Window{}
 	layout := generateViewLayout(ListBox(ListBoxCfg{

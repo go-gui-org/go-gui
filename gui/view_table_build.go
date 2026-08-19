@@ -16,6 +16,7 @@ func tableBuildRow(
 	activeRowIdx int, activeKey string,
 ) View {
 	r := cfg.Data[rowIdx]
+	isSelected := selected[rowIdx]
 	cells := make([]View, 0, len(r.Cells))
 
 	for colIdx, cell := range r.Cells {
@@ -25,6 +26,12 @@ func tableBuildRow(
 		} else if cell.HeadCell {
 			cellTextStyle = cfg.TextStyleHead
 		}
+
+		// The selected fill and the text on it travel together. A
+		// cell's own TextStyle is the caller's deliberate color and
+		// stays untouched (issue #373).
+		cellTextStyle = textOnFill(cellTextStyle,
+			isSelected && cell.TextStyle == nil, cfg.ColorTextOnSelect)
 
 		var colWidth float32
 		if colIdx < len(columnWidths) {
@@ -82,7 +89,6 @@ func tableBuildRow(
 		}))
 	}
 
-	isSelected := selected[rowIdx]
 	rowColor := ColorTransparent
 	if isSelected {
 		rowColor = cfg.ColorSelect

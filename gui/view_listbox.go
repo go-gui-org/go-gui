@@ -83,11 +83,15 @@ type ListBoxCfg struct {
 	// Color* fields win over their Colors slots the same way.
 	Colors      ColorSet
 	ColorSelect Color
-	Sizing      Sizing
-	Multiple    bool
-	Disabled    bool
-	Invisible   bool
-	Reorderable bool
+	// ColorTextOnSelect is the text color drawn over the selected
+	// row's fill. Unset takes the theme's.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorTextOnSelect Color
+	Sizing            Sizing
+	Multiple          bool
+	Disabled          bool
+	Invisible         bool
+	Reorderable       bool
 }
 
 // ListBoxOption helpers.
@@ -474,6 +478,9 @@ func applyListBoxDefaults(cfg *ListBoxCfg) {
 		&cfg.ColorBorder, &cfg.ColorBorderFocus)
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
+	}
+	if !cfg.ColorTextOnSelect.IsSet() {
+		cfg.ColorTextOnSelect = d.ColorTextOnSelect
 	}
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = d.Padding
