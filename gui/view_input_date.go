@@ -151,11 +151,19 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 			},
 		}))
 		content = append(content, Column(ContainerCfg{
-			Float:        true,
-			FloatAnchor:  FloatBottomLeft,
-			FloatTieOff:  FloatTopLeft,
-			Padding:      NoPadding,
-			SizeBorder:   NoBorder,
+			Float:       true,
+			FloatAnchor: FloatBottomLeft,
+			FloatTieOff: FloatTopLeft,
+			Padding:     NoPadding,
+			SizeBorder:  NoBorder,
+			// Elevation rides the floating wrapper rather than
+			// DatePicker itself, because a DatePicker placed inline in
+			// a form is not a popover and must stay flat. The wrapper
+			// exists only on the open-popup path, so it is the one
+			// place the distinction is already made. Radius matches the
+			// picker's so the shadow follows its corners.
+			Shadow:       defaultDatePickerStyle.Shadow,
+			Radius:       SomeF(defaultDatePickerStyle.Radius),
 			FloatOffsetY: -cfg.SizeBorder.Get(0),
 			// The popup floats over the form; a click inside it is the
 			// popup's, not that of the field it is covering.

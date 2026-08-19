@@ -140,8 +140,10 @@ type TableStyle struct {
 // ComboboxStyle defines combobox visual properties.
 // exportaudit:keep — reachable from an exported signature
 type ComboboxStyle struct {
-	TextStyle         TextStyle
-	PlaceholderStyle  TextStyle
+	TextStyle        TextStyle
+	PlaceholderStyle TextStyle
+	// Shadow lifts the open dropdown off the content behind it.
+	Shadow            *BoxShadow
 	Padding           Padding
 	SizeBorder        float32
 	Radius            float32
@@ -159,8 +161,11 @@ type ComboboxStyle struct {
 // CommandPaletteStyle defines command palette visual properties.
 // exportaudit:keep — reachable from an exported signature
 type CommandPaletteStyle struct {
-	TextStyle      TextStyle
-	detailStyle    TextStyle
+	TextStyle   TextStyle
+	detailStyle TextStyle
+	// Shadow lifts the palette off the backdrop. Modal tier, not
+	// popover tier — it floats further than a menu.
+	Shadow         *BoxShadow
 	SizeBorder     float32
 	Radius         float32
 	Width          float32
@@ -176,25 +181,30 @@ type CommandPaletteStyle struct {
 type MenubarStyle struct {
 	TextStyle         TextStyle
 	textStyleSubtitle TextStyle
-	Padding           Padding
-	paddingMenuItem   Padding
-	paddingSubmenu    Padding
-	paddingSubtitle   Padding
-	widthSubmenuMin   float32
-	widthSubmenuMax   float32
-	SizeBorder        float32
-	Radius            float32
-	radiusBorder      float32
-	radiusSubmenu     float32
-	radiusMenuItem    float32
-	Spacing           float32
-	spacingSubmenu    float32
-	Color             Color
-	ColorHover        Color
-	ColorFocus        Color
-	ColorBorder       Color
-	ColorBorderFocus  Color
-	ColorSelect       Color
+	// Shadow lifts an open menu surface — a popup menu or a submenu —
+	// off the content behind it. The menubar strip itself is flush
+	// with the window chrome and takes no elevation, so this is
+	// applied only where the menu actually floats.
+	Shadow           *BoxShadow
+	Padding          Padding
+	paddingMenuItem  Padding
+	paddingSubmenu   Padding
+	paddingSubtitle  Padding
+	widthSubmenuMin  float32
+	widthSubmenuMax  float32
+	SizeBorder       float32
+	Radius           float32
+	radiusBorder     float32
+	radiusSubmenu    float32
+	radiusMenuItem   float32
+	Spacing          float32
+	spacingSubmenu   float32
+	Color            Color
+	ColorHover       Color
+	ColorFocus       Color
+	ColorBorder      Color
+	ColorBorderFocus Color
+	ColorSelect      Color
 }
 
 // DatePickerStyle defines date picker visual properties.

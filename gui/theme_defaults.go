@@ -113,6 +113,14 @@ var (
 	ThemeDark  Theme
 	ThemeLight Theme
 	themeBlue  Theme
+
+	// macOS platform themes; see gui/theme_macos.go. Registered as
+	// "macos" and "macos-dark", and reached by name through ThemeGet.
+	// Unexported, following themeBlue rather than ThemeDark/ThemeLight:
+	// those two are the defaults an app assigns directly, these are
+	// presets a user picks. ThemePicker lists them off the registry.
+	themeMacOS     Theme
+	themeMacOSDark Theme
 )
 
 // Unexported preset configs and derived themes — kept for
@@ -193,6 +201,10 @@ func init() {
 	themeBlueCfg = baseBlueCfg()
 	themeBlue = ThemeMaker(themeBlueCfg)
 
+	// macOS, light and dark.
+	themeMacOS = ThemeMaker(macOSCfg())
+	themeMacOSDark = ThemeMaker(macOSDarkCfg())
+
 	// Blue bordered.
 	themeBlueBorderedCfg = baseBlueCfg()
 	themeBlueBorderedCfg.Name = "blue-dark-bordered"
@@ -208,6 +220,8 @@ func init() {
 	themeRegister(themeLightBordered)
 	themeRegister(themeBlue)
 	themeRegister(themeBlueBordered)
+	themeRegister(themeMacOS)
+	themeRegister(themeMacOSDark)
 
 	// Dark is both the app default and the initially installed theme.
 	// applyTheme is what fills the default*Style mirrors — they carry no

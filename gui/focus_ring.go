@@ -96,7 +96,11 @@ func amendAll(fns ...func(EventCtx)) func(EventCtx) {
 // Keying is via idKey(), the effective ID, so a widget dropped inside an
 // ID-bearing container still matches the focus the window recorded.
 func focusRingAmend(colorFill, colorBorder Color) func(EventCtx) {
-	if !colorFill.IsSet() && !colorBorder.IsSet() {
+	// Captured at generation, which is the only correct time to read a
+	// theme: the bare guiTheme honours a surrounding Themed scope, while
+	// w.Theme() at amend time would ignore it.
+	ring := guiTheme.focusRing
+	if !colorFill.IsSet() && !colorBorder.IsSet() && ring == nil {
 		return nil
 	}
 	return func(ctx EventCtx) {
@@ -113,5 +117,42 @@ func focusRingAmend(colorFill, colorBorder Color) func(EventCtx) {
 		if colorBorder.IsSet() {
 			shape.ColorBorder = colorBorder
 		}
+		applyFocusRingShadow(shape, ctx.Window, ring)
+	}
+}
+
+// applyFocusRingShadow hangs the theme's focus ring on a shape that
+// currently holds focus.
+//
+// The ring is a zero-offset tinted shadow rather than a border: macOS
+// draws focus as a soft glow *outside* the control, and a border insets
+// content, which would shift a control's interior the moment it took
+// focus. renderContainer emits the shadow before the fill, so the glow
+// sits behind the control rather than over it.
+//
+// Allocating here, rather than reserving a shapeEffects at generation
+// for every focusable widget, means only the one focused shape in the
+// window pays. The pool hands out individually allocated objects and
+// grows a slice of pointers, so a pointer taken here stays valid even
+// if the pool grows again later in the frame; it is invalidated only by
+// the next view-phase reset, which is also when the shape itself dies.
+//
+// ring is theme-owned and shared by every shape in the window — assign
+// it, never write through it.
+func applyFocusRingShadow(shape *Shape, w *Window, ring *BoxShadow) {
+	if ring == nil {
+		return
+	}
+	// Shapes are rebuilt from their Cfg every frame, so an unfocused
+	// shape never carries a stale ring and there is nothing to clear.
+	if shape.fx == nil {
+		shape.fx = w.allocEffects(shapeEffects{Shadow: ring})
+		return
+	}
+	// A widget that already paints its own shadow keeps it: the ring is
+	// focus indication, not elevation, and a popover that owns both
+	// would otherwise lose the elevation it was given.
+	if shape.fx.Shadow == nil {
+		shape.fx.Shadow = ring
 	}
 }
