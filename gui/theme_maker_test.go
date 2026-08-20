@@ -695,3 +695,64 @@ func TestThemeMakerLadderGrid(t *testing.T) {
 		}
 	}
 }
+
+// Button variants derive from the accent and error ramps, and their
+// geometry matches the base button style so variants of one theme
+// align in a row (visual-refresh §6).
+func TestThemeMakerButtonVariants(t *testing.T) {
+	dark := ThemeMaker(baseDarkCfg())
+	if dark.ButtonStylePrimary.Color != dark.ColorAccent {
+		t.Errorf("primary fill = %v, want the accent %v",
+			dark.ButtonStylePrimary.Color, dark.ColorAccent)
+	}
+	if dark.ButtonStylePrimary.ColorHover != dark.ColorAccentHover {
+		t.Errorf("primary hover = %v, want %v",
+			dark.ButtonStylePrimary.ColorHover, dark.ColorAccentHover)
+	}
+	if dark.ButtonStylePrimary.colorClick != dark.ColorAccentPressed {
+		t.Errorf("primary click = %v, want %v",
+			dark.ButtonStylePrimary.colorClick, dark.ColorAccentPressed)
+	}
+	if dark.ButtonStyleDanger.Color != dark.Cfg.ColorError {
+		t.Errorf("danger fill = %v, want the error color %v",
+			dark.ButtonStyleDanger.Color, dark.Cfg.ColorError)
+	}
+	if dark.ButtonStyleDanger.colorClick == dark.ButtonStyleDanger.Color {
+		t.Errorf("danger click = %v, want a pressed variant of the error color",
+			dark.ButtonStyleDanger.colorClick)
+	}
+	if dark.ButtonStyleGhost.Color != ColorTransparent {
+		t.Errorf("ghost fill = %v, want transparent", dark.ButtonStyleGhost.Color)
+	}
+	if dark.ButtonStyleGhost.ColorBorder != ColorTransparent {
+		t.Errorf("ghost border = %v, want transparent", dark.ButtonStyleGhost.ColorBorder)
+	}
+	// Geometry comes from the base style, never its own literals.
+	for _, v := range []buttonStyle{
+		dark.ButtonStylePrimary, dark.ButtonStyleGhost, dark.ButtonStyleDanger,
+	} {
+		if v.Padding != dark.ButtonStyle.Padding || v.Radius != dark.ButtonStyle.Radius ||
+			v.SizeBorder != dark.ButtonStyle.SizeBorder {
+			t.Errorf("variant geometry diverged from the base: %+v vs %+v",
+				v, dark.ButtonStyle)
+		}
+	}
+}
+
+// The error hover/pressed steps use the same absolute-L ramp as the
+// accent (theme_maker's accent derivation), clamped to [0,1].
+func TestThemeMakerDangerRamp(t *testing.T) {
+	dark := ThemeMaker(baseDarkCfg())
+	hover := ColorToHSLA(dark.ButtonStyleDanger.ColorHover)
+	base := ColorToHSLA(dark.ButtonStyleDanger.Color)
+	pressed := ColorToHSLA(dark.ButtonStyleDanger.colorClick)
+	if hover.L < base.L {
+		t.Errorf("danger hover L = %.2f, want above base %.2f", hover.L, base.L)
+	}
+	if pressed.L > base.L {
+		t.Errorf("danger pressed L = %.2f, want below base %.2f", pressed.L, base.L)
+	}
+	if base.L < 0.05 {
+		t.Errorf("danger base L = %.2f, want a non-black error color", base.L)
+	}
+}

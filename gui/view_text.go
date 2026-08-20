@@ -151,6 +151,9 @@ func Text(cfg TextCfg) View {
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = DefaultTextStyle
+		// Marks the style as taking the default color, so a filled
+		// button variant can recolor it (see TextStyle.defaultedColor).
+		cfg.TextStyle.defaultedColor = true
 	}
 	if cfg.TextStyle.Size == 0 {
 		cfg.TextStyle.Size = sizeTextMedium

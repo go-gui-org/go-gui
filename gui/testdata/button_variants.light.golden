@@ -1,0 +1,7 @@
+Rect xy=28.00,28.00 wh=49.20,29.60 color=#ffffffff radius=6.00 fill
+Text xy=40.00,34.24 wh=0.00,0.00 color=#1a1d21ff text="Sec" size=14.00
+Rect xy=85.20,28.00 wh=49.20,29.60 color=#2f6fe0ff radius=6.00 fill
+Text xy=97.20,34.24 wh=0.00,0.00 color=#ffffffff text="Pri" size=14.00
+Text xy=154.40,34.24 wh=0.00,0.00 color=#1a1d21ff text="Ghost" size=14.00
+Rect xy=216.40,28.00 wh=74.40,29.60 color=#d64545ff radius=6.00 fill
+Text xy=228.40,34.24 wh=0.00,0.00 color=#ffffffff text="Danger" size=14.00

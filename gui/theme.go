@@ -114,7 +114,14 @@ type Theme struct {
 	Icon1, Icon2, Icon3, Icon4, Icon5, Icon6 TextStyle
 
 	// Per-widget styles.
-	ButtonStyle         buttonStyle
+	ButtonStyle buttonStyle
+	// exportaudit:keep — phase-6 variant surface; consumers land with
+	// the next release (docs/specs/visual-refresh.md).
+	ButtonStylePrimary buttonStyle
+	// exportaudit:keep — phase-6 variant surface (see above).
+	ButtonStyleGhost buttonStyle
+	// exportaudit:keep — phase-6 variant surface (see above).
+	ButtonStyleDanger   buttonStyle
 	ContainerStyle      containerStyle
 	rectangleStyle      RectangleStyle
 	treeStyle           TreeStyle

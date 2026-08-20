@@ -171,6 +171,23 @@ type TextStyle struct {
 	// do about it. It rides along through the ordinary struct copies
 	// widgets make of a TextStyle.
 	glyphRole bool
+	// defaultedColor marks a style whose Color came from the
+	// DefaultTextStyle fallback, because the Text call left TextStyle
+	// zero.
+	//
+	// A filled button variant (ButtonPrimary, ButtonDanger) needs its
+	// label recolored to ColorTextOnAccent, but its children are
+	// fully-styled Views built before Button runs — the button cannot
+	// recolor them by wrapping, and recoloring an explicitly colored
+	// Text would override the caller's choice (visual-refresh §6).
+	// This flag tells the button's amend pass which shapes took the
+	// default and so may be recolored.
+	//
+	// Unexported and set only by Text on its DefaultTextStyle
+	// fallback, for the same reason disabledRole is: a caller states
+	// the style, never the mechanism. It rides along through the
+	// ordinary struct copies widgets make of a TextStyle.
+	defaultedColor bool
 }
 
 // mergeTextStyle fills zero fields in s from fallback.

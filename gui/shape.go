@@ -464,6 +464,11 @@ type shapeButtonColors struct {
 	// generation because buttonAmendLayout is a plain func with no
 	// closure to read guiTheme from at the right time.
 	focusRing *BoxShadow
+	// labelColor is a filled variant's ColorTextOnAccent, captured at
+	// generation for the same reason focusRing is; the amend pass
+	// recolors defaulted-color label shapes with it. Unset means no
+	// recolor.
+	labelColor Color
 	// opticalDigits centres the button's label on the face's figure
 	// band instead of its cap band, for a button whose label is digits
 	// by construction — a date picker's day cell. Set from the

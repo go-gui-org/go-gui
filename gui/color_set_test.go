@@ -89,7 +89,7 @@ func TestColorSetApplyToToleratesNilDestinations(t *testing.T) {
 // state, which is what the deleted six-field literal used to spell out.
 func TestButtonColorSetResolvesEveryState(t *testing.T) {
 	cfg := ButtonCfg{ID: "b", Colors: Flat(Blue)}
-	applyButtonDefaults(&cfg)
+	applyButtonDefaults(&cfg, &defaultButtonStyle)
 	c := cfg.Colors
 	if c.Base != Blue || c.Hover != Blue || c.Click != Blue ||
 		c.Focus != Blue || c.Border != Blue || c.BorderFocus != Blue {
@@ -100,7 +100,7 @@ func TestButtonColorSetResolvesEveryState(t *testing.T) {
 // Theme defaults still apply to whatever the ColorSet left unspecified.
 func TestButtonColorSetLeavesThemeDefaultsForUnsetFields(t *testing.T) {
 	cfg := ButtonCfg{ID: "b", Colors: ColorSet{Base: Blue}}
-	applyButtonDefaults(&cfg)
+	applyButtonDefaults(&cfg, &defaultButtonStyle)
 	if cfg.Colors.Base != Blue {
 		t.Fatalf("Base = %v, want Blue", cfg.Colors.Base)
 	}
@@ -113,7 +113,7 @@ func TestButtonColorSetLeavesThemeDefaultsForUnsetFields(t *testing.T) {
 // Color survives as the single-color shorthand and outranks Colors.Base.
 func TestButtonColorShorthandWinsOverBase(t *testing.T) {
 	cfg := ButtonCfg{ID: "b", Color: Red, Colors: ColorSet{Base: Blue}}
-	applyButtonDefaults(&cfg)
+	applyButtonDefaults(&cfg, &defaultButtonStyle)
 	if cfg.Colors.Base != Red {
 		t.Fatalf("Base = %v, want Red — Color must win", cfg.Colors.Base)
 	}
@@ -127,7 +127,7 @@ func TestButtonColorShorthandWinsOverBase(t *testing.T) {
 // all three states, which reds TestButtonAmendLayoutFocus.
 func TestButtonColorShorthandLeavesStatesThemed(t *testing.T) {
 	cfg := ButtonCfg{ID: "b", Color: RGB(50, 50, 50)}
-	applyButtonDefaults(&cfg)
+	applyButtonDefaults(&cfg, &defaultButtonStyle)
 	if cfg.Colors.Base != RGB(50, 50, 50) {
 		t.Fatalf("Base = %v, want the assigned color", cfg.Colors.Base)
 	}
@@ -144,7 +144,7 @@ func TestButtonColorShorthandLeavesStatesThemed(t *testing.T) {
 // A Cfg that touches no color at all is entirely theme-driven.
 func TestButtonWithoutAnyColorUsesTheme(t *testing.T) {
 	cfg := ButtonCfg{ID: "b"}
-	applyButtonDefaults(&cfg)
+	applyButtonDefaults(&cfg, &defaultButtonStyle)
 	if cfg.Colors.Base != defaultButtonStyle.Color {
 		t.Fatalf("Base = %v, want theme default", cfg.Colors.Base)
 	}
