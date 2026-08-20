@@ -143,20 +143,24 @@ func Toggle(cfg ToggleCfg) View {
 				ctx.Layout.Children[0].Shape.Color = colorClick
 			}
 		},
-		AmendLayout: func(ctx EventCtx) {
-			if ctx.Layout.Shape.Disabled ||
-				!ctx.Layout.Shape.hasEvents() ||
-				ctx.Layout.Shape.events.OnClick == nil {
-				return
-			}
-			if len(ctx.Layout.Children) == 0 {
-				return
-			}
-			if ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
-				ctx.Layout.Children[0].Shape.Color = colorFocus
-				ctx.Layout.Children[0].Shape.ColorBorder = colorBorderFocus
-			}
-		},
+		AmendLayout: amendAll(
+			func(ctx EventCtx) {
+				if ctx.Layout.Shape.Disabled ||
+					!ctx.Layout.Shape.hasEvents() ||
+					ctx.Layout.Shape.events.OnClick == nil {
+					return
+				}
+				if len(ctx.Layout.Children) == 0 {
+					return
+				}
+				if ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
+					ctx.Layout.Children[0].Shape.Color = colorFocus
+					ctx.Layout.Children[0].Shape.ColorBorder = colorBorderFocus
+				}
+			},
+			// Ring shadow on the focusable row; the box keeps its own
+			// accent fill and border (visual-refresh § 5.4).
+			focusRingAmend(Color{}, Color{})),
 		Content: content,
 	})
 }

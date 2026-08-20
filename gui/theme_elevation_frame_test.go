@@ -126,7 +126,8 @@ func TestDropdownShadowSurvivesAncestorClip(t *testing.T) {
 
 // An input's ring rides inputAmendLayout, a different wiring than the
 // button's, so it needs its own guard: a focused input under the macOS
-// theme must glow, and the same input under a ringless theme must not.
+// theme must glow, the same input under the ring-bearing dark preset
+// must ring, and under a ringless theme must do neither.
 func TestFocusedInputEmitsRingOnlyWhenThemed(t *testing.T) {
 	build := func(*Window) View {
 		return Input(InputCfg{ID: "field"})
@@ -141,8 +142,16 @@ func TestFocusedInputEmitsRingOnlyWhenThemed(t *testing.T) {
 		t.Errorf("macOS theme: unfocused input emitted %d shadows", got)
 	}
 	if got := countShadows(
-		frameCmds(t, ThemeDark, build, "field", nil)); got != 0 {
-		t.Errorf("dark theme: focused input emitted %d shadows", got)
+		frameCmds(t, ThemeDark, build, "field", nil)); got == 0 {
+		t.Error("dark theme: focused input emitted no focus ring")
+	}
+	if got := countShadows(
+		frameCmds(t, ThemeDark, build, "", nil)); got != 0 {
+		t.Errorf("dark theme: unfocused input emitted %d shadows", got)
+	}
+	if got := countShadows(
+		frameCmds(t, themeWindows, build, "field", nil)); got != 0 {
+		t.Errorf("ringless windows theme: focused input emitted %d shadows", got)
 	}
 }
 
@@ -166,7 +175,15 @@ func TestFocusedButtonEmitsRingOnlyWhenThemed(t *testing.T) {
 		t.Errorf("macOS theme: unfocused button emitted %d shadows", got)
 	}
 	if got := countShadows(
-		frameCmds(t, ThemeDark, build, "go", nil)); got != 0 {
-		t.Errorf("dark theme: focused button emitted %d shadows", got)
+		frameCmds(t, ThemeDark, build, "go", nil)); got == 0 {
+		t.Error("dark theme: focused button emitted no focus ring")
+	}
+	if got := countShadows(
+		frameCmds(t, ThemeDark, build, "", nil)); got != 0 {
+		t.Errorf("dark theme: unfocused button emitted %d shadows", got)
+	}
+	if got := countShadows(
+		frameCmds(t, themeWindows, build, "go", nil)); got != 0 {
+		t.Errorf("ringless windows theme: focused button emitted %d shadows", got)
 	}
 }

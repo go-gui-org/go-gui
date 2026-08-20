@@ -138,22 +138,26 @@ func Switch(cfg SwitchCfg) View {
 				}
 			}
 		},
-		AmendLayout: func(ctx EventCtx) {
-			if ctx.Layout.Shape.Disabled ||
-				!ctx.Layout.Shape.hasEvents() ||
-				ctx.Layout.Shape.events.OnClick == nil {
-				return
-			}
-			// Highlight only the pill (child 0), not the outer row —
-			// the outer row also spans the label.
-			if len(ctx.Layout.Children) == 0 {
-				return
-			}
-			if ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
-				ctx.Layout.Children[0].Shape.Color = colorFocus
-				ctx.Layout.Children[0].Shape.ColorBorder = colorBorderFocus
-			}
-		},
+		AmendLayout: amendAll(
+			func(ctx EventCtx) {
+				if ctx.Layout.Shape.Disabled ||
+					!ctx.Layout.Shape.hasEvents() ||
+					ctx.Layout.Shape.events.OnClick == nil {
+					return
+				}
+				// Highlight only the pill (child 0), not the outer row —
+				// the outer row also spans the label.
+				if len(ctx.Layout.Children) == 0 {
+					return
+				}
+				if ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
+					ctx.Layout.Children[0].Shape.Color = colorFocus
+					ctx.Layout.Children[0].Shape.ColorBorder = colorBorderFocus
+				}
+			},
+			// Ring shadow on the focusable row; the pill keeps its own
+			// accent fill and border (visual-refresh § 5.4).
+			focusRingAmend(Color{}, Color{})),
 		Content: content,
 	})
 }

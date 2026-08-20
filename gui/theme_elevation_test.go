@@ -36,12 +36,13 @@ func TestPresetThemesCarryNoElevation(t *testing.T) {
 }
 
 // The dark and light presets carry the spec's elevation values (§5.3
-// table), fanned out to the floating surfaces. The derived presets
-// (no-padding, bordered) copy their polarity's cfg, so this also pins
-// the init order — an elevation assignment moved after those copies
-// would silently deflate the twins. Pinning the resolved style shadows
-// keeps the table and the code from drifting the way
-// TestThemeMakerAccentRamp pins the accent ramp.
+// table), fanned out to the floating surfaces, and their § 5.4 focus
+// rings. The derived presets (no-padding, bordered) copy their
+// polarity's cfg, so this also pins the init order — an elevation or
+// ring assignment moved after those copies would silently deflate the
+// twins. Pinning the resolved style shadows keeps the table and the
+// code from drifting the way TestThemeMakerAccentRamp pins the accent
+// ramp.
 func TestThemePresetElevationValues(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
@@ -49,13 +50,14 @@ func TestThemePresetElevationValues(t *testing.T) {
 		theme       Theme
 		wantPopover *BoxShadow
 		wantDialog  *BoxShadow
+		wantRing    *BoxShadow
 	}{
-		{"dark", ThemeDark, darkShadowPopover, darkShadowDialog},
-		{"dark-no-padding", themeDarkNoPadding, darkShadowPopover, darkShadowDialog},
-		{"dark-bordered", themeDarkBordered, darkShadowPopover, darkShadowDialog},
-		{"light", ThemeLight, lightShadowPopover, lightShadowDialog},
-		{"light-no-padding", themeLightNoPadding, lightShadowPopover, lightShadowDialog},
-		{"light-bordered", themeLightBordered, lightShadowPopover, lightShadowDialog},
+		{"dark", ThemeDark, darkShadowPopover, darkShadowDialog, darkFocusRing},
+		{"dark-no-padding", themeDarkNoPadding, darkShadowPopover, darkShadowDialog, darkFocusRing},
+		{"dark-bordered", themeDarkBordered, darkShadowPopover, darkShadowDialog, darkFocusRing},
+		{"light", ThemeLight, lightShadowPopover, lightShadowDialog, lightFocusRing},
+		{"light-no-padding", themeLightNoPadding, lightShadowPopover, lightShadowDialog, lightFocusRing},
+		{"light-bordered", themeLightBordered, lightShadowPopover, lightShadowDialog, lightFocusRing},
 	} {
 		for name, got := range popoverShadows(tc.theme) {
 			if got != tc.wantPopover {
@@ -69,8 +71,9 @@ func TestThemePresetElevationValues(t *testing.T) {
 					tc.name, name, got, tc.wantDialog)
 			}
 		}
-		if tc.theme.focusRing != nil {
-			t.Errorf("%s: focus ring set, want nil until phase 5b", tc.name)
+		if tc.theme.focusRing != tc.wantRing {
+			t.Errorf("%s: focus ring = %v, want %v (visual-refresh § 5.4)",
+				tc.name, tc.theme.focusRing, tc.wantRing)
 		}
 	}
 }

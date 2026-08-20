@@ -163,7 +163,7 @@ func renderShapeInner(shape *Shape, parentColor Color, clip drawClip, w *Window)
 	isCanvas := shape.shapeType == shapeDrawCanvas
 	isTermGrid := shape.shapeType == shapeTermGrid
 	hasFX := shape.fx != nil && (shape.fx.Gradient != nil ||
-		shape.fx.BorderGradient != nil)
+		shape.fx.BorderGradient != nil || shape.fx.Shadow != nil)
 
 	isRTF := shape.shapeType == shapeRTF
 

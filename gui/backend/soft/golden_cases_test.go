@@ -551,5 +551,38 @@ func pixelCases() []pixelCase {
 				})
 			},
 		},
+		{
+			// The 5b representative case (visual-refresh §10): a
+			// focused switch under the base pair and the three
+			// platform darks. The focus ring is where the platform
+			// themes diverge from the base on purpose — the default
+			// presets carry a spread ring (spread 2, blur 3), macOS
+			// overrides it with its own soft glow, and GNOME/Windows
+			// deliberately keep no ring at all (border recolor only)
+			// — so an unrecorded platform theme is where a base-ring
+			// change silently breaks a hand-tuned override. The switch
+			// is the case because it is the focusable whose geometry
+			// the macOS theme also overrides (38×22).
+			name:    "switch_focused",
+			focusID: "swt",
+			themes: []pixelTheme{
+				{gui.ThemeDark, "dark"},
+				{gui.ThemeLight, "light"},
+				themeByName("macos-dark"),
+				themeByName("gnome-dark"),
+				themeByName("windows-dark"),
+			},
+			build: func(_ *gui.Window) gui.View {
+				return gui.Column(gui.ContainerCfg{
+					Sizing:     gui.FillFill,
+					SizeBorder: gui.NoBorder,
+					HAlign:     gui.HAlignCenter,
+					VAlign:     gui.VAlignMiddle,
+					Content: []gui.View{
+						gui.Switch(gui.SwitchCfg{ID: "swt", Selected: true}),
+					},
+				})
+			},
+		},
 	}
 }

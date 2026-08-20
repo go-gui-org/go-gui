@@ -236,11 +236,7 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
 		Content:     content,
-		AmendLayout: func(ctx EventCtx) {
-			if ctx.Window.IsFocus(cfg.ID) {
-				ctx.Layout.Shape.ColorBorder = cfg.Colors.BorderFocus
-			}
-		},
+		AmendLayout: focusRingAmend(Color{}, cfg.Colors.BorderFocus),
 	})
 	return generateViewLayout(col, w)
 }

@@ -298,6 +298,7 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
 		Content:     rows,
+		AmendLayout: focusRingAmend(Color{}, cfg.Colors.BorderFocus),
 	}), w)
 }
 

@@ -201,12 +201,16 @@ func Slider(cfg SliderCfg) View {
 			// removes the pre-mark.
 			ctx.Consume()
 		},
-		AmendLayout: func(ctx EventCtx) {
-			sliderAmendLayoutSlide(ctx.Layout, ctx.Window,
-				onChange, value, minVal, maxVal, size, szBorder,
-				vertical, colorFocus, cfg.ColorLeft, disabled,
-				ctx.Layout.Shape.idKey(), roundValue)
-		},
+		AmendLayout: amendAll(
+			func(ctx EventCtx) {
+				sliderAmendLayoutSlide(ctx.Layout, ctx.Window,
+					onChange, value, minVal, maxVal, size, szBorder,
+					vertical, colorFocus, cfg.ColorLeft, disabled,
+					ctx.Layout.Shape.idKey(), roundValue)
+			},
+			// Ring shadow on the focusable wrapper; the track keeps its
+			// own fill and the thumb its accent (visual-refresh § 5.4).
+			focusRingAmend(Color{}, Color{})),
 		OnHover: func(ctx EventCtx) {
 			ctx.Window.SetMouseCursorPointingHand()
 			if len(ctx.Layout.Children) > 0 {
