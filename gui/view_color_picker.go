@@ -190,7 +190,11 @@ const colorPickerPlaneGap = SpacingMedium
 // sliders and narrow fields could otherwise drive the plane down to
 // something unusable; below this the picker stops shrinking and simply
 // runs wider than its fields.
-const colorPickerMinPlane = 120
+//
+// The floor must sit under the default theme's own derivation (118 with
+// the refreshed spacing ladder) or the picker's two rows stop agreeing
+// on width for a geometry reason, not a design one.
+const colorPickerMinPlane = 112
 
 // colorPickerPlaneSize derives the plane's edge length instead of
 // taking the theme's sVSize directly.

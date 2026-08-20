@@ -1,6 +1,7 @@
 # Visual refresh: palette, type, density, elevation
 
-- **Status:** proposed
+- **Status:** phase 2 landed (§ 2 type ladder, § 3 density). Phases 1, 3, 4,
+  5a/5b, 6, 7, 8 pending.
 - **Extends:** `docs/style-guide.md`,
   `docs/specs/widget-visual-consistency-audit.md` (issue #335)
 - **Breaking:** yes, deliberately. All goldens re-record, every preset changes
@@ -546,17 +547,17 @@ default with no `SetTheme` call; that is kept and pinned by a test.
 
 Each phase re-records goldens and lands independently.
 
-| Phase | Content                                       | Surface |
-| ----- | --------------------------------------------- | ------- |
-| 1     | § 1 `labelledField` bug + field min widths    | widget  |
-| 2     | § 2 type ladder, § 3 density                  | theme   |
-| 3     | § 4 palettes and accent ramp, § 5.1 border    | theme   |
-| 4     | § 5.2 radius, § 5.3 elevation                 | theme   |
-| 5a    | § 5.5 `BoxShadow.Spread` through six backends | backend |
-| 5b    | § 5.4 focus ring + wiring the remaining ~8    | widget  |
-| 6     | § 6 button variants                           | widget  |
-| 7     | § 8 widget defects                            | widget  |
-| 8     | § 7 preset removal + all doc deliverables     | mixed   |
+| Phase | Content                                       | Surface | Status |
+| ----- | --------------------------------------------- | ------- | ------ |
+| 1     | § 1 `labelledField` bug + field min widths    | widget  | landed |
+| 2     | § 2 type ladder, § 3 density                  | theme   | landed |
+| 3     | § 4 palettes and accent ramp, § 5.1 border    | theme   |        |
+| 4     | § 5.2 radius, § 5.3 elevation                 | theme   |        |
+| 5a    | § 5.5 `BoxShadow.Spread` through six backends | backend |        |
+| 5b    | § 5.4 focus ring + wiring the remaining ~8    | widget  |        |
+| 6     | § 6 button variants                           | widget  |        |
+| 7     | § 8 widget defects                            | widget  |        |
+| 8     | § 7 preset removal + all doc deliverables     | mixed   |        |
 
 Phases 2–4 are constant edits in `gui/styles.go`, `gui/padding.go` and
 `gui/theme_defaults.go` — they move every widget at once and are cheap to
@@ -646,17 +647,40 @@ done until the docs say the same thing:
 - **`BoxShadow.Spread`** — add it (§ 5.5). Scope is six backend draw paths, not
   one field; phase 5a.
 - **Platform themes** — the six stay registered (§ 7). Eight preset names total.
+- **Tab label weight (§ 2.2)** — the selected tab takes `B3`; resting tab labels
+  stay `N3`. The strip keeps its quiet by default and gains hierarchy only where
+  the eye already points.
+- **Pixel-harness platform coverage (§ 10)** — a per-case `themes` list, not a
+  global six-theme recording: the one representative case (a form row and a
+  button row) records under dark, light and the three dark platform themes;
+  every other case keeps the dark/light pair.
+- **Body size** — phase 2 ships the spec table (dark/light 14, macOS 13, Windows
+  12, GNOME 15). The 14-vs-13 check on a non-HiDPI display is still open
+  (deferred question 1); if 13 wins, the dark/light ladder shifts one step and
+  phases 2–3 goldens re-record before phase 4.
+- **Markdown block gap** — `MarkdownStyle.blockSpacing` moves from
+  `SpacingLarge` to `SpacingMedium`. Under the phase-2 ladder Large went 15 →
+  28, and a markdown document is a stack of paragraphs, not a stack of unrelated
+  sections; at body 14 the 28px gap reads as a hole. The extra spacer emitted
+  after a closing blockquote drops to `blockSpacing / 2`, since that spacer is
+  itself a child and so carries a block gap on each side (a full-height one
+  totalled three gaps, ~84px).
+
+- **`colorPickerMinPlane`** — 120 → 112 (view_color_picker.go). The refreshed
+  spacing ladder drops the picker's derived plane to 118, tripping the old floor
+  and breaking the picker's row-width invariant; the floor is degenerate-theme
+  protection, so it now sits under the default derivation.
 
 ## Deferred questions
 
 Neither blocks phase 1. Each is answered from a render at the point named, not
 from source.
 
-1. **Body size 14 vs 13** — decide at the end of phase 2, from a phase-2 render
-   viewed on a non-HiDPI display. go-glyph hinting at 12–13px is the risk and
-   has not been measured; if 13 holds up there, the whole ladder shifts down a
-   step. Locking this before phase 3 keeps the palette goldens from recording
-   twice.
+1. **Body size 14 vs 13** — phase 2 shipped 14 (dark/light). The check is still
+   owed: a phase-2 render viewed on a non-HiDPI display. go-glyph hinting at
+   12–13px is the risk and has not been measured; if 13 holds up there, the
+   whole ladder shifts down a step and phases 2–3 goldens re-record before phase
+   3's palette lands, keeping the palette goldens from recording twice.
 2. **Selection fill vs `ColorAccentSubtle`** — decide before the list-like
    widgets are wired in phase 3. § 4.3 proposes the full accent fill for the
    focused widget's selected row and the subtle tint everywhere else, which is

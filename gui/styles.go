@@ -23,16 +23,44 @@ const (
 	radiusLarge  float32 = 7.5
 )
 
-// Text size constants.
+// Text size constants. The built-in ladder is the dark/light body of 14
+// (desktop, not web, size — visual-refresh §2.1) with the offsets the
+// ladder always uses. Platform themes derive their own ladder from their
+// body via textSizes.
 const (
-	sizeTextMedium float32 = 16
-	sizeTextTiny   float32 = sizeTextMedium - 6
-	sizeTextXSmall float32 = sizeTextMedium - 4
+	sizeTextMedium float32 = 14
+	sizeTextTiny   float32 = sizeTextMedium - 4
+	sizeTextXSmall float32 = sizeTextMedium - 3
 	sizeTextSmall  float32 = sizeTextMedium - 2
-	sizeTextLarge  float32 = sizeTextMedium + 4
+	sizeTextLarge  float32 = sizeTextMedium + 3
 	sizeTextXLarge float32 = sizeTextMedium + 8
 	sizeBorderDef  float32 = 1.5
 )
+
+// textSizeLadder is the six-rung type ladder derived from a body size.
+type textSizeLadder struct {
+	tiny, xSmall, small, medium, large, xLarge float32
+}
+
+// textSizes returns the ladder derived from a body size. Offsets, not
+// ratios: a ladder rounded from ratios lands on fractional pixels at
+// some bases and hints badly (visual-refresh §2.1).
+func textSizes(body float32) textSizeLadder {
+	return textSizeLadder{body - 4, body - 3, body - 2, body, body + 3, body + 8}
+}
+
+// setTextLadder seeds a ThemeCfg's SizeText* rungs from a native body
+// size. The body lands in TextStyleDef beside the call; SizeTextMedium
+// must agree with it (N3 reads TextStyleDef, B3 reads SizeTextMedium).
+func setTextLadder(cfg *ThemeCfg, body float32) {
+	ladder := textSizes(body)
+	cfg.SizeTextTiny = ladder.tiny
+	cfg.SizeTextXSmall = ladder.xSmall
+	cfg.SizeTextSmall = ladder.small
+	cfg.SizeTextMedium = ladder.medium
+	cfg.SizeTextLarge = ladder.large
+	cfg.SizeTextXLarge = ladder.xLarge
+}
 
 // Spacing constants. Each tier names a gap between things, and the
 // rungs differ in how closely related the things are (audit §4,
@@ -41,13 +69,13 @@ const (
 //	SpacingTight   (2)  — inside one composite control, between parts
 //	                       that read as a single unit: calendar cells,
 //	                       the tab strip, submenu items.
-//	SpacingSmall   (5)  — members of one visual group that share a
+//	SpacingSmall   (6)  — members of one visual group that share a
 //	                       container: a control and its readout, the
 //	                       ColorFields channel row.
-//	SpacingMedium (10)  — sibling controls in a stack or row: dialog
+//	SpacingMedium (14)  — sibling controls in a stack or row: dialog
 //	                       rows, the toasts in a stack.
-//	SpacingLarge  (15)  — unrelated sections of a surface: markdown
-//	                       blocks, distinct groups.
+//	SpacingLarge  (28)  — unrelated sections of a surface: distinct
+//	                       groups, panels stacked on one page.
 //
 // The tiers size gaps between things. Theme.PaddingField and the
 // padding tiers answer a different question — how much inset a control
@@ -56,9 +84,9 @@ const (
 	// exportaudit:keep — new rung, consumed inside gui/ only.
 	SpacingTight float32 = 2
 	// exportaudit:keep — const name collides with the spacingSmall helper
-	SpacingSmall  float32 = 5
-	SpacingMedium float32 = 10
-	SpacingLarge  float32 = 15
+	SpacingSmall  float32 = 6
+	SpacingMedium float32 = 14
+	SpacingLarge  float32 = 28
 )
 
 // TextStyle defines text rendering properties.

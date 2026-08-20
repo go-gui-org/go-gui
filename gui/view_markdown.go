@@ -102,21 +102,24 @@ func DefaultMarkdownStyle() MarkdownStyle {
 		linkColor:         guiTheme.ColorSelect,
 		blockquoteBorder:  guiTheme.ColorBorder,
 		blockquoteBG:      RGBA(128, 128, 128, 20), // ergonomics-audit:visual
-		blockSpacing:      SpacingLarge,            // blocks are sections; Large is the section gap (audit §4, #344)
-		nestIndent:        16,                      // structural indent, not a sibling gap — off the ladder
-		prefixCharWidth:   4,
-		codeBlockPadding:  PadAll(10),
-		codeBlockRadius:   3.5,
-		TableBorderStyle:  TableBorderHeaderOnly,
-		tableBorderColor:  guiTheme.ColorBorder,
-		tableBorderSize:   1,
-		tableHeadStyle:    guiTheme.B4,
-		tableCellStyle:    guiTheme.N4,
-		tableCellPadding:  NewPadding(5, 10, 5, 10),
-		highlightBG:       RGB(199, 142, 18),
-		mathDPIDisplay:    150,
-		mathDPIInline:     200,
-		mermaidBG:         RGBA(248, 248, 255, 255),
+		// Markdown blocks are paragraphs of one flowing document, not
+		// unrelated sections of a surface: Medium is the sibling gap.
+		// Large (28) reads as a hole between paragraphs at body 14.
+		blockSpacing:     SpacingMedium,
+		nestIndent:       16, // structural indent, not a sibling gap — off the ladder
+		prefixCharWidth:  4,
+		codeBlockPadding: PadAll(10),
+		codeBlockRadius:  3.5,
+		TableBorderStyle: TableBorderHeaderOnly,
+		tableBorderColor: guiTheme.ColorBorder,
+		tableBorderSize:  1,
+		tableHeadStyle:   guiTheme.B4,
+		tableCellStyle:   guiTheme.N4,
+		tableCellPadding: NewPadding(5, 10, 5, 10),
+		highlightBG:      RGB(199, 142, 18),
+		mathDPIDisplay:   150,
+		mathDPIInline:    200,
+		mermaidBG:        RGBA(248, 248, 255, 255),
 	}
 }
 
@@ -441,9 +444,12 @@ func markdownBuildContent(
 
 	for i, block := range blocks {
 		if prevWasBQ && !block.IsBlockquote {
+			// A quote closing gets extra air, but the spacer is a child:
+			// it carries a block gap on each side, so a full-height one
+			// totals three gaps. Half keeps the emphasis without a hole.
 			content = append(content, Rectangle(RectangleCfg{
 				Sizing: FillFixed,
-				Height: cfg.Style.blockSpacing,
+				Height: cfg.Style.blockSpacing / 2,
 			}))
 		}
 		prevWasBQ = block.IsBlockquote

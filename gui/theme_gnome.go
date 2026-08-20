@@ -70,6 +70,10 @@ func basegnomeCfg() ThemeCfg {
 	cfg.SizeSwitchHeight = 24
 	cfg.SizeScrollbar = 8
 
+	// Text ladder at GNOME's native body size (15), derived by
+	// textSizes like every theme's (visual-refresh §2.1).
+	setTextLadder(&cfg, 15)
+
 	cfg.ShadowPopover = gnomeShadowPopover
 	cfg.ShadowDialog = gnomeShadowDialog
 
@@ -102,7 +106,7 @@ func gnomeCfg() ThemeCfg {
 	cfg.TextStyleDef = TextStyle{
 		Family: defaultFontFamily,
 		Color:  ColorFromString("#1E1E1E"),
-		Size:   sizeTextMedium,
+		Size:   15,
 	}
 	return cfg
 }
@@ -127,7 +131,7 @@ func gnomeDarkCfg() ThemeCfg {
 	cfg.TextStyleDef = TextStyle{
 		Family: defaultFontFamily,
 		Color:  ColorFromString("#FFFFFF"),
-		Size:   sizeTextMedium,
+		Size:   15,
 	}
 	return cfg
 }

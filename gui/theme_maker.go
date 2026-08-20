@@ -16,6 +16,29 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		return s
 	}
 
+	// Text size ladder. The body size is the per-theme decision
+	// (visual-refresh §2.1): the ladder derives from it, so a theme
+	// that states TextStyleDef.Size alone gets a complete ladder and a
+	// theme that seeds explicit rungs keeps them. Zero takes the
+	// derived value, which is what "Zero takes the built-in defaults"
+	// on ThemeCfg.SizeText* promises.
+	body := ts.Size
+	if body <= 0 {
+		// Zero TextStyleDef.Size is "unset", not "0px text": fall back
+		// to the built-in body so a partial theme never derives a
+		// negative ladder.
+		body = sizeTextMedium
+	}
+	derived := textSizes(body)
+	ladder := textSizeLadder{
+		tiny:   cmp.Or(cfg.SizeTextTiny, derived.tiny),
+		xSmall: cmp.Or(cfg.SizeTextXSmall, derived.xSmall),
+		small:  cmp.Or(cfg.SizeTextSmall, derived.small),
+		medium: cmp.Or(cfg.SizeTextMedium, derived.medium),
+		large:  cmp.Or(cfg.SizeTextLarge, derived.large),
+		xLarge: cmp.Or(cfg.SizeTextXLarge, derived.xLarge),
+	}
+
 	// Icon family for every theme-driven icon style. A ThemeCfg built
 	// from scratch (not via baseCfg) leaves this empty, so fall back to
 	// the bundled font rather than render icons in the default family.
@@ -64,7 +87,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	// Named text roles. Every de-emphasized style below draws from
 	// these rather than restating an alpha (issue #335).
 	textSecondary, textLabel, textDisabled, textPlaceholder :=
-		themeTextRoles(cfg, ts, cfg.SizeTextXSmall)
+		themeTextRoles(cfg, ts, ladder.xSmall)
 
 	theme := Theme{
 		Cfg:                  cfg,
@@ -232,7 +255,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			TextStyle:   ts,
 			textStyleIcon: TextStyle{
 				Color:     ts.Color,
-				Size:      cfg.SizeTextSmall,
+				Size:      ladder.small,
 				Family:    iconFamily,
 				glyphRole: true,
 			},
@@ -487,7 +510,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			TextStyle:         ts,
 			textStyleSubtitle: TextStyle{
 				Color: ts.Color,
-				Size:  cfg.SizeTextSmall,
+				Size:  ladder.small,
 			},
 		},
 		datePickerStyle: DatePickerStyle{
@@ -562,12 +585,12 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		SpacingMedium: cfg.SpacingMedium,
 		SpacingLarge:  cfg.SpacingLarge,
 
-		SizeTextTiny:   cfg.SizeTextTiny,
-		SizeTextXSmall: cfg.SizeTextXSmall,
-		SizeTextSmall:  cfg.SizeTextSmall,
-		SizeTextMedium: cfg.SizeTextMedium,
-		SizeTextLarge:  cfg.SizeTextLarge,
-		SizeTextXLarge: cfg.SizeTextXLarge,
+		SizeTextTiny:   ladder.tiny,
+		SizeTextXSmall: ladder.xSmall,
+		SizeTextSmall:  ladder.small,
+		SizeTextMedium: ladder.medium,
+		SizeTextLarge:  ladder.large,
+		SizeTextXLarge: ladder.xLarge,
 
 		ScrollMultiplier: cfg.ScrollMultiplier,
 		ScrollDeltaLine:  cfg.ScrollDeltaLine,
@@ -593,6 +616,18 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	theme.tableStyle.TextStyleHead = theme.B3
 	theme.badgeStyle.TextStyle = theme.B5
 	theme.badgeStyle.TextStyle.Color = White
+
+	// Heading roles take B rungs (visual-refresh §2.2): a widget
+	// rendering a heading, a group-box title, a dialog title, a tab
+	// label or a table header names a bold step; body and value text
+	// stays N. TableStyle.TextStyleHead above and the DataGrid header
+	// are the pre-existing members of the set; these three join it
+	// here, where the rungs exist. The group-box title lives in
+	// addGroupBoxTitle (gui/view_container.go), reading guiTheme.B3.
+	theme.dialogStyle.titleTextStyle = theme.B2
+	theme.toastStyle.TitleStyle = theme.B3
+	// The selected tab carries the weight, the strip stays quiet.
+	theme.tabControlStyle.textStyleSelected = theme.B3
 
 	// Italic shortcuts.
 	italic := ts

@@ -70,6 +70,10 @@ func basewindowsCfg() ThemeCfg {
 	cfg.SizeSwitchHeight = 20
 	cfg.SizeScrollbar = 10
 
+	// Text ladder at Windows' native body size (12), derived by
+	// textSizes like every theme's (visual-refresh §2.1).
+	setTextLadder(&cfg, 12)
+
 	cfg.ShadowPopover = windowsShadowPopover
 	cfg.ShadowDialog = windowsShadowDialog
 
@@ -102,7 +106,7 @@ func windowsCfg() ThemeCfg {
 	cfg.TextStyleDef = TextStyle{
 		Family: defaultFontFamily,
 		Color:  ColorFromString("#1B1B1B"),
-		Size:   sizeTextMedium,
+		Size:   12,
 	}
 	return cfg
 }
@@ -127,7 +131,7 @@ func windowsDarkCfg() ThemeCfg {
 	cfg.TextStyleDef = TextStyle{
 		Family: defaultFontFamily,
 		Color:  ColorFromString("#FFFFFF"),
-		Size:   sizeTextMedium,
+		Size:   12,
 	}
 	return cfg
 }

@@ -420,6 +420,7 @@ func demoMarkdown(w *gui.Window) gui.View {
 		ID:        "showcase_markdown",
 		Focusable: true,
 		Style:     style,
+		Padding:   gui.NoPadding,
 		Source:    embeddedText("docs/markdown_demo.md"),
 	})
 }

@@ -1,3 +1,3 @@
-Rect xy=10.00,10.00 wh=179.76,28.40 color=#c3c3d7ff radius=5.50 fill
-Text xy=15.00,14.42 wh=0.00,0.00 color=#2020207c text="pick a language" size=16.00
-Text xy=179.00,18.44 wh=0.00,0.00 color=#202020ff text="▼" size=9.60
+Rect xy=14.00,14.00 wh=179.04,29.60 color=#c3c3d7ff radius=5.50 fill
+Text xy=24.00,20.24 wh=0.00,0.00 color=#2020207c text="pick a language" size=14.00
+Text xy=178.00,23.76 wh=0.00,0.00 color=#202020ff text="▼" size=8.40

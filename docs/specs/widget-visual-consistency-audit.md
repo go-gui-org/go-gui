@@ -156,10 +156,11 @@ selection highlight, swatch edge (`gui/view_color_swatch.go:64`).
 
 ## 2. Type-size steps — three parallel systems
 
-The ladder (`gui/styles.go:27-35`) is tiny 10, xsmall 12, small 14, **medium
-16**, large 20, xlarge 24 — non-uniform: −2, −2, −4 going down, +4, +4 going up.
-`ThemeMaker` builds `N/B/i/bI/M/Icon 1..6` handles from it
-(`gui/theme_maker.go:545-599`).
+The ladder (`gui/styles.go:27-35`) is tiny 10, xsmall 11, small 12, **medium
+14**, large 17, xlarge 22 — non-uniform: −1, −1, −2 going down, +3, +5 going up.
+The rungs derive from a per-theme body size via `textSizes` (visual-refresh
+§2.1), so these are the dark/light values. `ThemeMaker` builds
+`N/B/i/bI/M/Icon 1..6` handles from it (`gui/theme_maker.go:545-599`).
 
 Three ways to reach a size coexist:
 
@@ -180,7 +181,7 @@ Two structural findings:
 - **`N5`, `N6` and `i4` are unexported** (`gui/theme.go:73,74,84`), so an app
   cannot spell the same step its own widgets sit next to.
 - The mono ladder adds **+1 at every rung** (`gui/theme_maker.go:584-589`), so
-  `M4` (15) does not share `N4`'s baseline (14). Deliberate optical
+  `M4` (13) does not share `N4`'s baseline (12). Deliberate optical
   compensation, but undocumented and invisible at the call site.
 
 ## 3. Label placement — there is no field-label concept
@@ -209,9 +210,10 @@ an accessibility one.
 
 ## 4. Spacing tiers — closed by issue #344
 
-`SpacingSmall 5 / SpacingMedium 10 / SpacingLarge 15` (`gui/styles.go`), with a
-new lowest rung **`SpacingTight 2`**. The tiers now state a meaning, decided
-once and documented at the const block and in `docs/style-guide.md`:
+`SpacingSmall 6 / SpacingMedium 14 / SpacingLarge 28` (`gui/styles.go`,
+refreshed with the density ladder, visual-refresh §3.3), with a lowest rung
+**`SpacingTight 2`**. The tiers now state a meaning, decided once and documented
+at the const block and in `docs/style-guide.md`:
 
 - `SpacingTight` — inside one composite control, between parts that read as a
   single unit. `spacingHeader` (tab strip), `spacingSubmenu` (submenu items) and

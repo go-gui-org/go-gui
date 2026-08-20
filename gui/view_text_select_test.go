@@ -38,8 +38,8 @@ func TestTextDoubleClickWordSelect(t *testing.T) {
 	v := Text(TextCfg{Text: "hello world", Focusable: true, ID: "f42"})
 	layout := generateViewLayout(v, w)
 
-	// charWidth = 16 * 0.6 = 9.6 in test fallback.
-	charWidth := float32(16 * 0.6)
+	// charWidth = DefaultTextStyle.Size * 0.6 in the test fallback.
+	charWidth := textSelCharW
 	clickX := layout.Shape.X + charWidth*6 + charWidth*0.5
 	clickY := layout.Shape.Y + 1
 
@@ -149,8 +149,10 @@ func TestTextEscapeClearsSelection(t *testing.T) {
 // --- Issue #281: capture-loss cancel zeroes the partial drag selection ---
 
 // textSelCharW is the fallback char width the text click/drag paths use
-// with no glyph backend: style.Size * 0.6 = 16 * 0.6 = 9.6.
-const textSelCharW = float32(16 * 0.6)
+// with no glyph backend: style.Size * 0.6. Derived from the installed
+// default so a change to the body size (visual-refresh §2.1) moves the
+// click calibration with it instead of stranding it at the old rung.
+var textSelCharW = DefaultTextStyle.Size * 0.6
 
 // newTextSelWindow renders a focusable text widget and returns the
 // window plus its layout.

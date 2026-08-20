@@ -1,6 +1,6 @@
-Rect xy=10.00,10.00 wh=300.00,36.40 color=#c3c3d7ff radius=5.50 fill
-Rect xy=15.00,15.00 wh=48.40,26.40 color=#4169e1ff radius=3.50 fill
-Text xy=20.00,18.42 wh=0.00,0.00 color=#202020ff text="Edit" size=16.00
-Rect xy=15.00,41.40 wh=68.00,64.80 color=#c3c3d7ff radius=5.50 fill
-Text xy=25.00,49.82 wh=48.00,0.00 color=#202020ff text="Copy" size=16.00
-Text xy=25.00,78.22 wh=48.00,0.00 color=#202020ff text="Paste" size=16.00
+Rect xy=14.00,14.00 wh=292.00,35.60 color=#c3c3d7ff radius=5.50 fill
+Rect xy=20.00,20.00 wh=43.60,23.60 color=#4169e1ff radius=3.50 fill
+Text xy=25.00,23.24 wh=0.00,0.00 color=#202020ff text="Edit" size=14.00
+Rect xy=20.00,43.60 wh=64.00,61.20 color=#c3c3d7ff radius=5.50 fill
+Text xy=31.00,52.84 wh=42.00,0.00 color=#202020ff text="Copy" size=14.00
+Text xy=31.00,78.44 wh=42.00,0.00 color=#202020ff text="Paste" size=14.00
