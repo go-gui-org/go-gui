@@ -487,6 +487,9 @@ type BoxShadow struct {
 	OffsetX    float32
 	OffsetY    float32
 	BlurRadius float32
+	// Spread grows the shadow's own shape beyond the caster before
+	// blurring; zero is today's behavior.
+	Spread float32
 }
 
 // GradientType specifies the gradient algorithm.

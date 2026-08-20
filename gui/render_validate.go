@@ -127,7 +127,8 @@ func validGradientBorderCmd(r RenderCmd) bool {
 func validShadowCmd(r RenderCmd) bool {
 	return f32AllFinite6(r.X, r.Y, r.W, r.H, r.BlurRadius, r.Radius) &&
 		r.W >= 0 && r.H >= 0 &&
-		f32AllFinite2(r.OffsetX, r.OffsetY)
+		f32AllFinite2(r.OffsetX, r.OffsetY) &&
+		f32IsFinite(r.Spread) && r.Spread >= 0
 }
 
 func validBlurCmd(r RenderCmd) bool {

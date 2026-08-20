@@ -242,17 +242,22 @@ func (b *Backend) drawLine(r *gui.RenderCmd) {
 }
 
 func (b *Backend) drawShadow(r *gui.RenderCmd) {
+	// Canvas has no native shadow spread; the source shape is
+	// inflated by Spread instead, so its shadow grows beyond the
+	// caster on every side. The container's background (drawn next)
+	// covers the caster area, leaving the ring visible.
+	s := r.Spread
 	if r.BlurRadius <= 0 {
 		// Hard shadow.
 		b.setFillColor(r.Color)
-		x := r.X + r.OffsetX
-		y := r.Y + r.OffsetY
+		x := r.X + r.OffsetX - s
+		y := r.Y + r.OffsetY - s
 		if r.Radius > 0 {
-			b.fillRoundedRect(x, y, r.W, r.H, r.Radius)
+			b.fillRoundedRect(x, y, r.W+2*s, r.H+2*s, r.Radius+s)
 		} else {
 			b.ctx2d.Call("fillRect",
 				float64(x), float64(y),
-				float64(r.W), float64(r.H))
+				float64(r.W+2*s), float64(r.H+2*s))
 		}
 		return
 	}
@@ -267,11 +272,12 @@ func (b *Backend) drawShadow(r *gui.RenderCmd) {
 	// background (drawn next) covers this opaque fill.
 	b.ctx2d.Set("fillStyle", "#000")
 	if r.Radius > 0 {
-		b.fillRoundedRect(r.X, r.Y, r.W, r.H, r.Radius)
+		b.fillRoundedRect(r.X-s, r.Y-s, r.W+2*s, r.H+2*s,
+			r.Radius+s)
 	} else {
 		b.ctx2d.Call("fillRect",
-			float64(r.X), float64(r.Y),
-			float64(r.W), float64(r.H))
+			float64(r.X-s), float64(r.Y-s),
+			float64(r.W+2*s), float64(r.H+2*s))
 	}
 	b.ctx2d.Call("restore")
 }

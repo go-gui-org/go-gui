@@ -204,7 +204,8 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 	// Shadow
 	if hasFX && fx.Shadow != nil &&
 		fx.Shadow.Color.A > 0 &&
-		(fx.Shadow.BlurRadius > 0 || fx.Shadow.OffsetX != 0 || fx.Shadow.OffsetY != 0) {
+		(fx.Shadow.BlurRadius > 0 || fx.Shadow.OffsetX != 0 ||
+			fx.Shadow.OffsetY != 0 || fx.Shadow.Spread > 0) {
 		emitRenderer(RenderCmd{
 			Kind:       RenderShadow,
 			X:          shape.X,
@@ -213,6 +214,7 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 			H:          shape.Height,
 			Radius:     shape.Radius,
 			BlurRadius: fx.Shadow.BlurRadius,
+			Spread:     fx.Shadow.Spread,
 			Color:      fx.Shadow.Color,
 			OffsetX:    fx.Shadow.OffsetX,
 			OffsetY:    fx.Shadow.OffsetY,

@@ -76,6 +76,7 @@ type RenderCmd struct {
 	// Type-specific numerics.
 	Thickness  float32 // StrokeRect, GradientBorder
 	BlurRadius float32 // Shadow, Blur
+	Spread     float32 // Shadow: grows the shadow shape beyond the caster
 	Scale      float32 // Svg, FilterBegin
 	OffsetX    float32 // Shadow; Line X1
 	OffsetY    float32 // Shadow; Line Y1

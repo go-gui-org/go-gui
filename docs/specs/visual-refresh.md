@@ -1,8 +1,9 @@
 # Visual refresh: palette, type, density, elevation
 
-- **Status:** phase 4 landed (§ 5.2 radius ladder, § 5.3 elevation). Phases 1,
-  2, 3 landed earlier (§ 4 palettes, accent ramp, semantic colors; § 5.1 border;
-  type ladder; density). Phases 5a/5b, 6, 7, 8 pending.
+- **Status:** phase 5a landed (§ 5.5 `BoxShadow.Spread` through six backends).
+  Phase 4 landed earlier (§ 5.2 radius ladder, § 5.3 elevation). Phases 1, 2, 3
+  landed earlier still (§ 4 palettes, accent ramp, semantic colors; § 5.1
+  border; type ladder; density). Phases 5b, 6, 7, 8 pending.
 - **Extends:** `docs/style-guide.md`,
   `docs/specs/widget-visual-consistency-audit.md` (issue #335)
 - **Breaking:** yes, deliberately. All goldens re-record, every preset changes
@@ -564,7 +565,7 @@ Each phase re-records goldens and lands independently.
 | 2     | § 2 type ladder, § 3 density                  | theme   | landed |
 | 3     | § 4 palettes and accent ramp, § 5.1 border    | theme   | landed |
 | 4     | § 5.2 radius, § 5.3 elevation                 | theme   | landed |
-| 5a    | § 5.5 `BoxShadow.Spread` through six backends | backend |        |
+| 5a    | § 5.5 `BoxShadow.Spread` through six backends | backend | landed |
 | 5b    | § 5.4 focus ring + wiring the remaining ~8    | widget  |        |
 | 6     | § 6 button variants                           | widget  |        |
 | 7     | § 8 widget defects                            | widget  |        |
@@ -641,6 +642,46 @@ Mandatory before any phase is called done:
   a literal being reintroduced into a `default*Style` mirror.
 - `make prepush`.
 
+Phase 5a — written backend checklist (one pass per backend against the stated
+expectation): for a caster at `(x,y,w,h,rad)` with `Spread: s`, the shadow
+covers `(x-s, y-s, w+2s, h+2s, rad+s)`, the caster's own area is not covered,
+and the visible ring is `s` px wide on every side including diagonally through
+the corners.
+
+- **soft** — `softRoundRect` (`gui/backend/soft/draw_effects.go`) clamps
+  `spread` with `clampBlur` (NaN/neg → 0, cap 512, symmetric with blur), expands
+  `region` and the shadow mask's `coverageRoundRect` by `(s, s)` on each bound
+  with `rad+s`, and leaves the caster cut-out's `coverageRoundRect` at the
+  un-inflated `w, h, rad`. Verified by the three recorded pixel goldens
+  (`shadow-spread-ring`, `shadow-spread-blur`, `shadow-spread-rounded`), sampled
+  on all four sides and diagonally; the rounded case is the radius-divergence
+  pin (ring present at the corner diagonal, so the corner radius grew).
+- **metal / ios** — `drawShadow` (`metal/draw.go`, `ios/draw.go`) scales
+  `spread := r.Spread * s`, adds it to `expand`, passes the inflated
+  `rad+spread` to `gpu.BuildQuad`, and loads `tm[14] = spread` before
+  `metalSetTM`; `vs_shadow` forwards `tm[14]` as a `spread` varying (the
+  transformed zero-vector's `.z`), and `fs_shadow` shrinks the caster field by
+  it (`radius - spread`, `half_size - spread`). At `s = 0` every expression
+  degenerates to the pre-5a shader, so legacy shadows are byte-identical.
+- **gl** — same construction via `gogl.UniformMatrix4fv` on the shared `tm`
+  uniform (`gl/draw.go` `drawShadow`), same `VsShadowGLSL`/`FsShadowGLSL`.
+- **android** — same construction via `glesSetTM` and the GLES 300 sources
+  `vs_shadow_src`/`fs_shadow_src` (`gles_android.c`). GLES/NDK compile is
+  exercised only by `make build-android` (needs the NDK; not part of prepush),
+  so the C shader strings are validated by review and by the prepush cross-lint.
+- **web** — Canvas2D has no native shadow spread; both branches of `drawShadow`
+  (`web/draw.go`) inflate the source shape to `(x-s, y-s, w+2s, h+2s, rad+s)`,
+  whose native shadow covers the inflated area; the container's own fill (drawn
+  next) covers the caster. Coverage-equivalent to the SDF paths per the § 10
+  bar; not pixel-recorded (canvas backend has no pixel harness).
+
+Transport decision, recorded for 5b: the spread reaches the GPU shaders through
+the **existing `tm` uniform** (`tm[14]`), not through the packed vertex params
+(`PackParams`, 2 × 12 bits in one float32) — three packed slots would need 36
+bits against float32's 24-bit mantissa and cannot be exact. `tm` already carries
+the caster offset, so no new uniform or vertex attribute was added on any
+backend.
+
 Documentation deliverables, per the repo convention that a visual change is not
 done until the docs say the same thing:
 
@@ -656,7 +697,14 @@ done until the docs say the same thing:
 ## Decisions taken
 
 - **`BoxShadow.Spread`** — add it (§ 5.5). Scope is six backend draw paths, not
-  one field; phase 5a.
+  one field; phase 5a. Transport: `tm[14]` on the existing `tm` uniform (the
+  packed-params float32 cannot hold a third 12-bit slot exactly; see the § 10
+  checklist note). Validation class: finite and non-negative in `validShadowCmd`
+  — the same class as `BlurRadius`, which has no gui-level ceiling either
+  (`soft` clamps both at 512). Web: the source shape is inflated by spread
+  (Canvas2D has no native spread), coverage-equivalent by the § 10 bar. Demo
+  coverage: a "Spread ring" / "Focus ring" row in the showcase graphics demo and
+  a focus-ring card in `examples/shadow_demo`.
 - **Platform themes** — the six stay registered (§ 7). Eight preset names total.
 - **Tab label weight (§ 2.2)** — the selected tab takes `B3`; resting tab labels
   stay `N3`. The strip keeps its quiet by default and gains hierarchy only where

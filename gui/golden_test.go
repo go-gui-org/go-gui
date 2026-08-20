@@ -151,6 +151,9 @@ func serializeCmd(c RenderCmd) string {
 		fmt.Fprintf(&b, " from=%s,%s", f2(c.OffsetX), f2(c.OffsetY))
 	case RenderShadow:
 		fmt.Fprintf(&b, " offset=%s,%s", f2(c.OffsetX), f2(c.OffsetY))
+		if c.Spread != 0 {
+			b.WriteString(" spread=" + f2(c.Spread))
+		}
 	}
 
 	// Pointers are fingerprinted by presence. Dereferencing them

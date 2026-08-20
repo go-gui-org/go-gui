@@ -92,6 +92,11 @@ func mainView(w *gui.Window) gui.View {
 			gui.Row(gui.ContainerCfg{
 				Spacing: gui.Some[float32](40),
 				Content: []gui.View{
+					shadowCard("Focus Ring\n(Spread: 2, Blur: 3)", gui.Color{}, &gui.BoxShadow{
+						BlurRadius: 3,
+						Spread:     2,
+						Color:      gui.RGBA(0, 0, 0, 100),
+					}),
 					shadowCard("Blue BG\n(Blur: 15, OffsetY: 5)", gui.LightBlue, &gui.BoxShadow{
 						BlurRadius: 15,
 						OffsetY:    5,

@@ -171,8 +171,12 @@ func (b *windowState) drawShadow(r *gui.RenderCmd) {
 	h := r.H * s
 	blur := r.BlurRadius * s
 	rad := r.Radius * s
+	spread := r.Spread * s
 
-	expand := blur * 1.5
+	// The quad must cover the ring beyond the caster, and the vertex
+	// radius carries the inflated corner (rad+spread); the fragment
+	// shader subtracts spread back out for the caster cut-out.
+	expand := blur*1.5 + spread
 	qx := x - expand
 	qy := y - expand
 	qw := w + 2*expand
@@ -184,9 +188,10 @@ func (b *windowState) drawShadow(r *gui.RenderCmd) {
 	tm := gpu.IdentityTM()
 	tm[12] = r.OffsetX * s
 	tm[13] = r.OffsetY * s
+	tm[14] = spread
 	C.metalSetTM(b.ctx, (*C.float)(&tm[0]))
 
-	verts := gpu.BuildQuad(qx, qy, qw, qh, r.Color, rad, blur)
+	verts := gpu.BuildQuad(qx, qy, qw, qh, r.Color, rad+spread, blur)
 	C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
 }
 
