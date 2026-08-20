@@ -386,11 +386,12 @@ func layoutWidths(layout *Layout) {
 					minWidths += layout.Children[i].Shape.MinWidth
 				}
 			}
-			if !wrapOrOverflow {
-				layout.Shape.MinWidth = f32Max(minWidths, layout.Shape.MinWidth+padding+sp)
-			} else {
-				layout.Shape.MinWidth = f32Max(minWidths, layout.Shape.MinWidth)
-			}
+			// A stated MinWidth is border-box: it counts the caller's
+			// whole width budget, padding and spacing included (matches
+			// the column branch and MaxWidth below). Padding it here made
+			// a Row and a Column state the same minimum and arrange at
+			// different widths (issue #385).
+			layout.Shape.MinWidth = f32Max(minWidths, layout.Shape.MinWidth)
 			layout.Shape.Width += padding + sp
 			if layout.Shape.MaxWidth > 0 {
 				layout.Shape.Width = f32Min(layout.Shape.MaxWidth, layout.Shape.Width)

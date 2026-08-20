@@ -33,6 +33,14 @@ Visual refresh phase 1 (`docs/specs/visual-refresh.md`, sections 1 and 1b).
 - **An unsized labelled field is now 160px wide, not the width of its content.**
   Behaviour change for any app relying on a labelled `Input`, `Select`,
   `Combobox`, `NumericInput` or `InputDate` shrink-wrapping its text.
+- **A `Row`'s stated `MinWidth` is now border-box** (issue #385). `layoutWidths`
+  added the row's padding and inter-child gap sum on top of the caller's
+  `MinWidth` on a row but not on a column, so `Select` and `Combobox` (rows of
+  three children) arranged at 193px under the 160 field floor while an `Input`
+  beside them arranged at exactly 160. A row now takes a stated `MinWidth` as
+  the whole width budget — matching the column branch and `MaxWidth` — and
+  arranges narrower by its padding and spacing than before. Behaviour change for
+  any app calling `Row(ContainerCfg{MinWidth: X})`.
 
 ### Fixed
 

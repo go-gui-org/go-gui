@@ -251,6 +251,69 @@ func TestLayoutWidthsMinWidthFloor(t *testing.T) {
 	}
 }
 
+// TestRowAndColumnMinWidthAgree guards issue #385: layoutWidths used to pad a
+// row's stated MinWidth with its padding and inter-child gap sum (content-box)
+// while the column branch read the same field as border-box, so a Row and a
+// Column with identical padding, spacing and stated MinWidth arranged at
+// different widths. A stated MinWidth is the caller's whole width budget —
+// border-box, like MaxWidth — on both axes.
+func TestRowAndColumnMinWidthAgree(t *testing.T) {
+	// minWidthBox builds a PadAll(5)/Spacing 10 box with two 40px children;
+	// childMin is the MinWidth each child carries, 0 for none.
+	minWidthBox := func(axis Axis, stated, childMin float32) *Layout {
+		return &Layout{
+			Shape: &Shape{
+				Axis:      axis,
+				MinWidth:  stated,
+				Padding:   PadAll(5),
+				Spacing:   10,
+				shapeType: shapeRectangle,
+			},
+			Children: []Layout{
+				{Shape: &Shape{Width: 40, MinWidth: childMin, Height: 20, shapeType: shapeRectangle}},
+				{Shape: &Shape{Width: 40, MinWidth: childMin, Height: 20, shapeType: shapeRectangle}},
+			},
+		}
+	}
+
+	row := minWidthBox(axisLeftToRight, 160, 0)
+	col := minWidthBox(axisTopToBottom, 160, 0)
+	layoutWidths(row)
+	layoutWidths(col)
+
+	if !f32AreClose(row.Shape.MinWidth, 160) {
+		t.Errorf("row MinWidth: got %f, want 160 (border-box, padding and "+
+			"spacing not added on top)", row.Shape.MinWidth)
+	}
+	if !f32AreClose(row.Shape.Width, 160) {
+		t.Errorf("row width: got %f, want 160", row.Shape.Width)
+	}
+	if !f32AreClose(col.Shape.MinWidth, 160) {
+		t.Errorf("col MinWidth: got %f, want 160", col.Shape.MinWidth)
+	}
+	if !f32AreClose(col.Shape.Width, 160) {
+		t.Errorf("col width: got %f, want 160", col.Shape.Width)
+	}
+
+	// The child-min floor still wins over a smaller stated MinWidth. The
+	// row sums its children plus gaps (5+5 padding + 10 spacing + 200);
+	// the column is cross-axis, so it takes the widest child plus padding
+	// (110). The defect is the stated-MinWidth reading, not the content
+	// floor, so both must exceed their stated 100.
+	row = minWidthBox(axisLeftToRight, 100, 100)
+	col = minWidthBox(axisTopToBottom, 100, 100)
+	layoutWidths(row)
+	layoutWidths(col)
+	if !f32AreClose(row.Shape.Width, 220) {
+		t.Errorf("row width with child mins: got %f, want 220",
+			row.Shape.Width)
+	}
+	if !f32AreClose(col.Shape.Width, 110) {
+		t.Errorf("col width with child mins: got %f, want 110 (widest child "+
+			"+ padding)", col.Shape.Width)
+	}
+}
+
 func TestLayoutHeightsMinHeightFloor(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
