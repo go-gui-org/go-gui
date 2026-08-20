@@ -233,6 +233,16 @@ A focusable widget's focus affordance comes from the shared ring helpers
 colors. A hand-drawn focus stroke at a call site is a second implementation of
 the same affordance — the divergence the audit's §6 measured.
 
+## Button variants — one primary per surface
+
+`ButtonPrimary` is the accent-filled call to action; the convention is **one per
+surface**. A row of secondaries with a single primary says where the user should
+land; two primaries compete and say nothing. This is checked in review, not in
+code. `ButtonDanger` is reserved for destructive confirmations and carries the
+same one-per-surface rule. `ButtonGhost` is for actions that must not compete
+with the secondaries beside them — toolbar overflow, a "cancel" that sits next
+to a primary.
+
 ## Deviating
 
 A literal dimming alpha or size step in `gui/view_*.go` is a finding unless the

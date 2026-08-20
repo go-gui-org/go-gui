@@ -196,6 +196,10 @@ type containerView struct {
 	colorClick       Color
 	colorFocus       Color
 	colorBorderFocus Color
+	// labelColor, when set, is a filled variant's ColorTextOnAccent:
+	// buttonAmendLayout recolors label shapes carrying the
+	// defaulted-color marker with it (visual-refresh §6).
+	labelColor Color
 }
 
 func (cv *containerView) GenerateLayout(w *Window) Layout {
@@ -212,6 +216,7 @@ func (cv *containerView) GenerateLayout(w *Window) Layout {
 			OnAmend:          cv.userAmendLayout,
 			opticalDigits:    cv.opticalDigits,
 			focusRing:        guiTheme.focusRing,
+			labelColor:       cv.labelColor,
 		}
 		if w != nil {
 			layout.Shape.bc = w.scratch.buttonColors.alloc(bc)

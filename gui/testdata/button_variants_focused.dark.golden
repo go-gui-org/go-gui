@@ -1,0 +1,11 @@
+Rect xy=30.00,30.00 wh=51.20,31.60 color=#262a2fff radius=6.00 fill
+StrokeRect xy=30.00,30.00 wh=51.20,31.60 color=#ffffff1c radius=6.00 thickness=1.00
+Text xy=43.00,37.24 wh=0.00,0.00 color=#e6e8ebff text="Sec" size=14.00
+Shadow xy=89.20,30.00 wh=51.20,31.60 color=#4d82f03f radius=6.00 blur=2.00 offset=0.00,0.00
+Rect xy=89.20,30.00 wh=51.20,31.60 color=#4d82f0ff radius=6.00 fill
+StrokeRect xy=89.20,30.00 wh=51.20,31.60 color=#4d82f0ff radius=6.00 thickness=1.00
+Text xy=102.20,37.24 wh=0.00,0.00 color=#ffffffff text="Pri" size=14.00
+Text xy=161.40,37.24 wh=0.00,0.00 color=#e6e8ebff text="Ghost" size=14.00
+Rect xy=224.40,30.00 wh=76.40,31.60 color=#da3633ff radius=6.00 fill
+StrokeRect xy=224.40,30.00 wh=76.40,31.60 color=#da3633ff radius=6.00 thickness=1.00
+Text xy=237.40,37.24 wh=0.00,0.00 color=#ffffffff text="Danger" size=14.00

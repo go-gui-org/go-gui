@@ -580,7 +580,7 @@ Each phase re-records goldens and lands independently.
 | 4     | § 5.2 radius, § 5.3 elevation                 | theme   | landed |
 | 5a    | § 5.5 `BoxShadow.Spread` through six backends | backend | landed |
 | 5b    | § 5.4 focus ring + wiring the remaining ~8    | widget  | landed |
-| 6     | § 6 button variants                           | widget  |        |
+| 6     | § 6 button variants                           | widget  | landed |
 | 7     | § 8 widget defects                            | widget  |        |
 | 8     | § 7 preset removal + all doc deliverables     | mixed   |        |
 
@@ -775,6 +775,30 @@ done until the docs say the same thing:
   counts as FX in `renderShapeInner`) is the one non-wiring change; without it
   the ring silently vanishes on transparent, borderless shapes (the light table
   body).
+- **Button variants (§ 6, phase 6)** — `ButtonVariant` with the zero value being
+  today's button, and the variant styles `ButtonStylePrimary/Ghost/Danger`
+  derived in `ThemeMaker` by copying the base `ButtonStyle` and swapping fills
+  (geometry stays one source). Danger's hover/pressed use the same absolute-L
+  ±0.12 ramp as the accent, derived from `ColorError` — no new `ThemeCfg` knobs,
+  so a theme states the error color and the ramp follows. The variants are Theme
+  fields read at generation (like `focusRing`), not mirrors, so `applyTheme` and
+  the mirror gate are untouched. Label recoloring takes both spec paths:
+  `ButtonCfg.Label` builds the text inside `Button` with the variant's color
+  applied; a `Content`-built label is recolored by `buttonAmendLayout` only if
+  its style carries the new `TextStyle.defaultedColor` marker (set solely by
+  `Text` on its `DefaultTextStyle` fallback), which rides along through struct
+  copies like `disabledRole` — an explicitly colored label is never overridden.
+  The amend color is captured at generation onto `shapeButtonColors` (the
+  `focusRing` precedent) because the amend is a plain func with no closure.
+  `TextButton` keeps its signature; `TextButtonVariant` is the Label-path
+  sibling. Export audit: the type, the four constants and the three Theme fields
+  carry `exportaudit:keep` until a sibling consumer lands. Golden coverage: the
+  four variants side by side plus the same row focused on the primary — the
+  ring-over-accent-fill state. The row has no ID so the buttons stay at window
+  scope (the harness focuses by effective ID). No pixel case: the variants are
+  flat fills, and the § 10 platform representative (`switch_focused`) already
+  covers the platform ring overrides. The light theme's borderless buttons
+  (pre-existing: `baseCfg` sets no `SizeBorder`) are recorded as-is.
 - **`BoxShadow.Spread`** — add it (§ 5.5). Scope is six backend draw paths, not
   one field; phase 5a. Transport: `tm[14]` on the existing `tm` uniform (the
   packed-params float32 cannot hold a third 12-bit slot exactly; see the § 10

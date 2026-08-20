@@ -51,8 +51,17 @@ func TestLabelZeroStyleDefaults(t *testing.T) {
 	if layout.Shape.TC.Text != "hi" {
 		t.Fatalf("text = %q, want %q", layout.Shape.TC.Text, "hi")
 	}
-	if got := *layout.Shape.TC.TextStyle; got != DefaultTextStyle {
-		t.Fatalf("style = %v, want DefaultTextStyle", got)
+	ts := *layout.Shape.TC.TextStyle
+	if ts.Color != DefaultTextStyle.Color ||
+		ts.Size != DefaultTextStyle.Size ||
+		ts.Family != DefaultTextStyle.Family {
+		t.Fatalf("style = %v, want DefaultTextStyle", ts)
+	}
+	// The zero-style fallback is exactly what the defaulted-color
+	// marker exists for (visual-refresh §6): a filled button variant
+	// may recolor this label.
+	if !ts.defaultedColor {
+		t.Error("zero-style Label must carry the defaulted-color marker")
 	}
 }
 

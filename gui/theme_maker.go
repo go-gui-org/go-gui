@@ -177,6 +177,10 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	textSecondary, textLabel, textDisabled, textPlaceholder :=
 		themeTextRoles(cfg, ts, ladder.xSmall)
 
+	buttonBase, buttonPrimary, buttonGhost, buttonDanger :=
+		deriveButtonStyles(cfg, accent, accentHover, accentPressed,
+			colorError, borderFocus)
+
 	theme := Theme{
 		Cfg:                  cfg,
 		Name:                 cfg.Name,
@@ -204,17 +208,10 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		ColorWarningSubtle:   warningSubtle,
 		ColorErrorSubtle:     errorSubtle,
 
-		ButtonStyle: buttonStyle{
-			Color:            cfg.ColorInterior,
-			ColorHover:       cfg.ColorHover,
-			ColorFocus:       cfg.ColorActive,
-			colorClick:       cfg.ColorFocus,
-			ColorBorder:      cfg.ColorBorder,
-			ColorBorderFocus: borderFocus,
-			Padding:          paddingButton,
-			SizeBorder:       cfg.SizeBorder,
-			Radius:           cfg.Radius,
-		},
+		ButtonStyle:        buttonBase,
+		ButtonStylePrimary: buttonPrimary,
+		ButtonStyleGhost:   buttonGhost,
+		ButtonStyleDanger:  buttonDanger,
 		ContainerStyle: containerStyle{
 			Color:       ColorTransparent,
 			ColorBorder: ColorTransparent,

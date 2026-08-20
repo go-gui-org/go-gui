@@ -786,7 +786,45 @@ func goldenCases() []goldenCase {
 				})
 			},
 		},
+		{
+			// The four button variants side by side (visual-refresh
+			// §10): one Row carrying the hierarchy, so a diff on any
+			// variant's fill, label color or geometry lands on this
+			// case and nothing else. The row has no ID, so the buttons
+			// stay at window scope — the harness focuses by effective
+			// ID, and a scoped row would silently miss it. Labels are
+			// short: the golden window is 320 wide, and the renderer
+			// culls a text that starts past the right edge.
+			name:  "button_variants",
+			build: buildButtonVariants,
+		},
+		{
+			// The same row focused on the primary: the ring over the
+			// accent fill is a state no other case records.
+			name:    "button_variants_focused",
+			focusID: "bv_primary",
+			build:   buildButtonVariants,
+		},
 	}
+}
+
+// buildButtonVariants is the shared build for the two variant golden
+// cases; the focused variant only differs in the harness's focusID.
+func buildButtonVariants(_ *Window) View {
+	return Row(ContainerCfg{
+		Sizing:  FitFit,
+		Spacing: SomeF(8),
+		Content: []View{
+			TextButtonVariant("bv_sec", "Sec", ButtonSecondary,
+				func(EventCtx) {}),
+			TextButtonVariant("bv_primary", "Pri", ButtonPrimary,
+				func(EventCtx) {}),
+			TextButtonVariant("bv_ghost", "Ghost", ButtonGhost,
+				func(EventCtx) {}),
+			TextButtonVariant("bv_danger", "Danger", ButtonDanger,
+				func(EventCtx) {}),
+		},
+	})
 }
 
 // TestGoldenSerializerStable guards the harness itself: a golden is

@@ -1,5 +1,31 @@
 package gui
 
+// ButtonVariant picks a button's hierarchy position (visual-refresh
+// §6). The zero value is today's button, so existing call sites are
+// unaffected in structure.
+//
+// exportaudit:keep — phase-6 variant surface; consumers land with the
+// next release (docs/specs/visual-refresh.md).
+type ButtonVariant uint8
+
+const (
+	// ButtonSecondary is the zero value: the theme's plain button.
+	// exportaudit:keep — phase-6 variant surface (see above).
+	ButtonSecondary ButtonVariant = iota
+	// ButtonPrimary fills with the accent and pairs the label with
+	// ColorTextOnAccent. One accent-filled primary per surface is the
+	// convention (docs/style-guide.md).
+	// exportaudit:keep — phase-6 variant surface (see above).
+	ButtonPrimary
+	// ButtonGhost has no fill and no border; hover fills only.
+	// exportaudit:keep — phase-6 variant surface (see above).
+	ButtonGhost
+	// ButtonDanger fills with the error color and pairs the label
+	// with ColorTextOnAccent.
+	// exportaudit:keep — phase-6 variant surface (see above).
+	ButtonDanger
+)
+
 // ButtonCfg configures a clickable button. Without an OnClick handler,
 // it renders as a styled label with no mouse interaction.
 //
@@ -8,6 +34,17 @@ package gui
 type ButtonCfg struct {
 	Shadow   *BoxShadow
 	Gradient *GradientDef
+
+	// Label, when set, builds the button's text here: Button wraps it
+	// in a Text carrying the variant's label color (ColorTextOnAccent
+	// on the filled variants). This is the path a variant button
+	// should use — see TextButton. When empty, Content is used as-is.
+	Label string
+
+	// Variant picks the button's hierarchy position. Zero value
+	// ButtonSecondary is today's button. Colors set on this cfg keep
+	// precedence over the variant's fills, state by state.
+	Variant ButtonVariant
 
 	// OnClick fires when the button is clicked or activated via
 	// keyboard (Space/Enter). Required for interactive buttons;
@@ -96,6 +133,17 @@ func buttonAmendLayout(ctx EventCtx) {
 		band = opticalBandDigit
 	}
 	opticalCenterChildren(ctx, band)
+
+	// Filled variants recolor the labels that took the default color
+	// (visual-refresh §6). The color is captured at generation — this
+	// amend is a plain func with no closure — and the style's
+	// defaulted-color marker says which shapes may be recolored, so an
+	// explicitly colored label stays the caller's choice. Mutates the
+	// per-frame shape text config, never the caller's TextCfg.
+	if bc := ctx.Layout.Shape.bc; bc != nil && bc.labelColor.IsSet() {
+		stampButtonLabelColor(ctx.Layout, bc.labelColor)
+	}
+
 	if ctx.Layout.Shape.Disabled ||
 		!ctx.Layout.Shape.hasEvents() ||
 		ctx.Layout.Shape.events.OnClick == nil {
@@ -109,6 +157,27 @@ func buttonAmendLayout(ctx EventCtx) {
 	}
 	if ctx.Layout.Shape.bc.OnAmend != nil {
 		ctx.Layout.Shape.bc.OnAmend(EventCtx{ctx.Layout, nil, ctx.Window})
+	}
+}
+
+// stampButtonLabelColor recolors a button subtree's label shapes to c.
+// Only shapes whose style took the DefaultTextStyle fallback — the
+// defaulted-color marker — are touched; a label the caller colored
+// itself is a deliberate choice and is left alone. Runs after arrange,
+// when every text shape carries its resolved per-frame style.
+func stampButtonLabelColor(l *Layout, c Color) {
+	for i := range l.Children {
+		child := &l.Children[i]
+		if child.Shape == nil {
+			continue
+		}
+		if ts := child.Shape.TC; ts != nil &&
+			child.Shape.shapeType == shapeText &&
+			ts.TextStyle != nil &&
+			ts.TextStyle.defaultedColor {
+			ts.TextStyle.Color = c
+		}
+		stampButtonLabelColor(child, c)
 	}
 }
 
@@ -145,6 +214,19 @@ func TextButton(id, label string, onClick func(EventCtx)) View {
 	})
 }
 
+// TextButtonVariant is TextButton with a variant (visual-refresh §6).
+// It takes the Label path, so the button builds the text and applies
+// the variant's label color itself — the one way a filled variant's
+// label can be recolored (see ButtonCfg.Label).
+func TextButtonVariant(id, label string, v ButtonVariant, onClick func(EventCtx)) View {
+	return Button(ButtonCfg{
+		ID:      id,
+		Variant: v,
+		Label:   label,
+		OnClick: onClick,
+	})
+}
+
 // Button creates a clickable button. Delegates to Row with
 // package-level amend_layout for focus coloring and on_hover
 // for cursor/color state changes. Colors are stored in a pooled
@@ -154,10 +236,28 @@ func Button(cfg ButtonCfg) View {
 		return invisibleContainerView()
 	}
 
-	applyButtonDefaults(&cfg)
+	// Variant fills (visual-refresh §6). Secondary is the zero value
+	// and keeps the mirror; the rest read the installed theme at
+	// generation time, like every other theme-derived style. The
+	// ThemeMaker derives the variant geometry from the base button
+	// style, so padding, border and radius still resolve from one
+	// source.
+	d := &defaultButtonStyle
+	labelColor := Color{}
+	switch cfg.Variant {
+	case ButtonPrimary:
+		d = &guiTheme.ButtonStylePrimary
+		labelColor = guiTheme.ColorTextOnAccent
+	case ButtonGhost:
+		d = &guiTheme.ButtonStyleGhost
+	case ButtonDanger:
+		d = &guiTheme.ButtonStyleDanger
+		labelColor = guiTheme.ColorTextOnAccent
+	}
+
+	applyButtonDefaults(&cfg, d)
 	requireFocusID("Button", cfg.FocusDisabled, cfg.ID)
 
-	d := &defaultButtonStyle
 	sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)
 	radius := cfg.Radius.Get(d.Radius)
 	hAlign := cfg.HAlign.Get(HAlignCenter)
@@ -168,6 +268,21 @@ func Button(cfg ButtonCfg) View {
 	a11yRole := cfg.A11YRole
 	if a11yRole == AccessRoleNone {
 		a11yRole = AccessRoleButton
+	}
+
+	// The Label path builds the button's text here, so the variant's
+	// label color can be applied directly (the caller's own Text
+	// children cannot be recolored — see TextStyle.defaultedColor).
+	content := cfg.Content
+	if cfg.Label != "" {
+		labelStyle := DefaultTextStyle
+		if labelColor.IsSet() {
+			labelStyle.Color = labelColor
+		}
+		content = append(
+			[]View{Text(TextCfg{Text: cfg.Label, TextStyle: labelStyle})},
+			content...,
+		)
 	}
 
 	cv := Row(ContainerCfg{
@@ -216,7 +331,7 @@ func Button(cfg ButtonCfg) View {
 		// also guarantees the shape gets an events record, which a
 		// bubble-text Button otherwise has no reason to allocate.
 		AmendLayout: opticalCenterText,
-		Content:     cfg.Content,
+		Content:     content,
 	}).(*containerView)
 
 	cv.isButton = true
@@ -224,6 +339,7 @@ func Button(cfg ButtonCfg) View {
 	cv.colorClick = cfg.Colors.Click
 	cv.colorFocus = cfg.Colors.Focus
 	cv.colorBorderFocus = cfg.Colors.BorderFocus
+	cv.labelColor = labelColor
 	cv.userOnHover = cfg.OnHover
 	cv.userAmendLayout = cfg.AmendLayout
 	cv.opticalDigits = cfg.opticalDigitLabel
@@ -296,8 +412,12 @@ func CommandButton(cmdID string, cfg ButtonCfg) View {
 	})
 }
 
-func applyButtonDefaults(cfg *ButtonCfg) {
-	d := &defaultButtonStyle
+// applyButtonDefaults resolves the cfg's colors against the variant
+// style: the caller's own Colors keep precedence per state, and every
+// state the caller left unset takes the variant's value (visual-refresh
+// §6). d is the style the variant resolved to — the mirror for the
+// zero-value secondary, a Theme style otherwise.
+func applyButtonDefaults(cfg *ButtonCfg, d *buttonStyle) {
 	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
 		d.Color, d.ColorHover, d.colorClick,
 		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,

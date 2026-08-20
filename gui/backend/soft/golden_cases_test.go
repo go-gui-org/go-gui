@@ -556,13 +556,14 @@ func pixelCases() []pixelCase {
 			// focused switch under the base pair and the three
 			// platform darks. The focus ring is where the platform
 			// themes diverge from the base on purpose — the default
-			// presets carry a spread ring (spread 2, blur 3), macOS
-			// overrides it with its own soft glow, and GNOME/Windows
-			// deliberately keep no ring at all (border recolor only)
-			// — so an unrecorded platform theme is where a base-ring
-			// change silently breaks a hand-tuned override. The switch
-			// is the case because it is the focusable whose geometry
-			// the macOS theme also overrides (38×22).
+			// presets carry a spread-free glow (blur 2, no spread),
+			// macOS overrides it with its own soft glow, and
+			// GNOME/Windows deliberately keep no ring at all (border
+			// recolor only) — so an unrecorded platform theme is
+			// where a base-ring change silently breaks a hand-tuned
+			// override. The switch is the case because it is the
+			// focusable whose geometry the macOS theme also overrides
+			// (38×22).
 			name:    "switch_focused",
 			focusID: "swt",
 			themes: []pixelTheme{
