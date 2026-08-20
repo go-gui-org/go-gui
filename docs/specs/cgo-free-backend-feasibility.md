@@ -2,9 +2,9 @@
 
 Assessment of [issue #137](https://github.com/go-gui-org/go-gui/issues/137).
 Date: 2026-07-31. Status: **Phase 1 implemented**, and the `gui/audio` follow-up
-(§ Audio outcome) closed the remaining Linux CGo dependency. **Phase 2
-(macOS) closed 2026-08-12 by decision: not pursued — macOS stays cgo.** See
-§ Phase 2 for the rationale and the conditions that would reopen it.
+(§ Audio outcome) closed the remaining Linux CGo dependency. **Phase 2 (macOS)
+closed 2026-08-12 by decision: not pursued — macOS stays cgo.** See § Phase 2
+for the rationale and the conditions that would reopen it.
 
 ## Phase 1 outcome (2026-07-31)
 
@@ -222,8 +222,8 @@ The value of a cgo-free build is build-time portability: `CGO_ENABLED=0`
 cross-compiles from any host, no clang/SDK install for consumers, smaller CI.
 Every one of those is weakest on macOS:
 
-- Cross-compiling a macOS GUI binary from another host is hollow: a GUI app
-  must be run and signed/notarized on a Mac anyway.
+- Cross-compiling a macOS GUI binary from another host is hollow: a GUI app must
+  be run and signed/notarized on a Mac anyway.
 - Xcode CLT is universally present on macOS; there is no toolchain-friction
   story to fix for consumers.
 - The spike's hard part was never the call ABI but ObjC the language:

@@ -140,11 +140,11 @@ asserts.
 
 ## Enforcement
 
-`go run ./tools/ergonomics-audit/ -mode ids .` (part of `make ergonomics-audit`) fails on any
-hand-rolled composition in `gui/`. It flags a separator-bearing concatenation or
-`fmt.Sprintf` that either lands in an ID position — a Cfg `...ID` field, an
-assignment to an `...ID` variable or field, the result of an `...ID` function —
-or is built off something already named like an ID.
+`go run ./tools/ergonomics-audit/ -mode ids .` (part of `make ergonomics-audit`)
+fails on any hand-rolled composition in `gui/`. It flags a separator-bearing
+concatenation or `fmt.Sprintf` that either lands in an ID position — a Cfg
+`...ID` field, an assignment to an `...ID` variable or field, the result of an
+`...ID` function — or is built off something already named like an ID.
 
 That second rule is the one that earns its keep. The producers are easy to
 migrate; the **consumers** drift. `w.IsFocus(cfg.ID+"_popup")` rebuilds an ID
@@ -158,9 +158,9 @@ Two markers exempt a line, each naming its reason:
 - `ergonomics-audit:not-an-id` — not a widget ID at all: an ibus socket name, a
   spreadsheet column name, a math cache key.
 
-The check deliberately lives in `ergonomics-audit` and not in `tools/requiredid`, which
-ships as a vet pass over _application_ code where hand-rolled composition is
-legitimate.
+The check deliberately lives in `ergonomics-audit` and not in
+`tools/requiredid`, which ships as a vet pass over _application_ code where
+hand-rolled composition is legitimate.
 
 ## Collisions this fixed
 

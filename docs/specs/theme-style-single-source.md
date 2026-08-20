@@ -49,15 +49,14 @@ no-op, and for any other theme it is the correct behaviour.
 
 ## Why `ThemeDark` carries the 1.5 border
 
-Folding `SizeBorder = sizeBorderDef` into `baseCfg` makes `dark-bordered`
-an exact duplicate of `dark`. That is accepted, not an accident: the
-call-site count behind issue #325 found 90 of 104 example files calling
+Folding `SizeBorder = sizeBorderDef` into `baseCfg` makes `dark-bordered` an
+exact duplicate of `dark`. That is accepted, not an accident: the call-site
+count behind issue #325 found 90 of 104 example files calling
 `SetTheme(ThemeDark.WithBorders(true))` explicitly, so bordered is what
-applications actually use, and `ThemeDark` is the implicit default for
-apps that never call `SetTheme`. The `dark-bordered` preset stays
-registered for name-based theme selection, and `Theme.WithBorders(false)`
-restores the old borderless look. `light` and `blue-dark` remain
-borderless by omission.
+applications actually use, and `ThemeDark` is the implicit default for apps that
+never call `SetTheme`. The `dark-bordered` preset stays registered for
+name-based theme selection, and `Theme.WithBorders(false)` restores the old
+borderless look. `light` and `blue-dark` remain borderless by omission.
 
 Every other delta was a literal that had simply fallen behind: an unstyled
 `dataGrid` placeholder, a dialog with no width bounds, a badge with no text
@@ -65,14 +64,13 @@ style.
 
 ## Appearance changes
 
-Borders, revisited 2026-08: issue #300 removed the literal borders and
-left `ThemeDark` borderless (`SizeBorder` 0 on every widget). The
-call-site count behind issue #325 then showed the borderless default
-missed the audience — 90 of 104 example files re-opted in with
-`Theme.WithBorders(true)` — so `baseDarkCfg` carries `sizeBorderDef`
-again. Widgets render with their 1.5 (slider 1, radio 2) borders under
-`ThemeDark` and the app default; `Theme.WithBorders(false)` restores the
-borderless look, and `light`/`blue-dark` remain borderless.
+Borders, revisited 2026-08: issue #300 removed the literal borders and left
+`ThemeDark` borderless (`SizeBorder` 0 on every widget). The call-site count
+behind issue #325 then showed the borderless default missed the audience — 90 of
+104 example files re-opted in with `Theme.WithBorders(true)` — so `baseDarkCfg`
+carries `sizeBorderDef` again. Widgets render with their 1.5 (slider 1, radio 2)
+borders under `ThemeDark` and the app default; `Theme.WithBorders(false)`
+restores the borderless look, and `light`/`blue-dark` remain borderless.
 
 Everything else:
 

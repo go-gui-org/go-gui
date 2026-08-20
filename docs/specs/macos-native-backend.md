@@ -9,31 +9,33 @@ cgo by decision (2026-08-12); see `cgo-free-backend-feasibility.md` § Phase 2.
 Replace SDL2's window creation, event loop, clipboard, cursors, and IME in the
 macOS Metal backend with direct Cocoa/AppKit calls. The existing Metal rendering
 pipeline (`metal_darwin.m`, ~800 lines) is unchanged — it already takes a raw
-`CAMetalLayer*` and has zero SDL dependency. All existing native feature
-bridges (file drops, scroll phases, accessibility, dock icon, menus, print
-dialog, spellcheck) are already SDL-free — they use system frameworks directly.
+`CAMetalLayer*` and has zero SDL dependency. All existing native feature bridges
+(file drops, scroll phases, accessibility, dock icon, menus, print dialog,
+spellcheck) are already SDL-free — they use system frameworks directly.
 
-Net result: zero SDL on macOS. `go build` works with no Homebrew/pkg-config/MSYS2.
+Net result: zero SDL on macOS. `go build` works with no
+Homebrew/pkg-config/MSYS2.
 
 ## Motivation
 
 SDL2 is the #1 friction point for new users (issue #10). It requires:
 
-| Platform | SDL2 install |
-|---|---|
-| macOS | `brew install sdl2` |
-| Windows | MSYS2/MinGW (recently pinned to stable release, v0.27.1) |
-| Linux | `apt install libsdl2-dev` or equivalent |
+| Platform | SDL2 install                                             |
+| -------- | -------------------------------------------------------- |
+| macOS    | `brew install sdl2`                                      |
+| Windows  | MSYS2/MinGW (recently pinned to stable release, v0.27.1) |
+| Linux    | `apt install libsdl2-dev` or equivalent                  |
 
-The shim approach (sdl3-shim.md) eliminates MSYS2 by swapping to zig-built
-SDL3, but keeps a C build-toolchain dependency (zig). A native macOS backend
+The shim approach (sdl3-shim.md) eliminates MSYS2 by swapping to zig-built SDL3,
+but keeps a C build-toolchain dependency (zig). A native macOS backend
 eliminates ALL build-toolchain C dependencies on macOS. System framework CGo
 (Metal, AppKit, CoreFoundation) requires zero installs — they ship with macOS.
 
 SDL3 is the current SDL stable, so the shim is the right answer for Linux and
 eventually Windows. But for macOS specifically, the Metal backend already does
 native rendering — SDL is only providing window + events + clipboard + cursors
-+ IME. All of these have direct AppKit equivalents with smaller API surfaces.
+
+- IME. All of these have direct AppKit equivalents with smaller API surfaces.
 
 ## Architecture
 
@@ -60,24 +62,24 @@ Before:                              After:
 
 ## What SDL provides today (and its native replacement)
 
-| Capability | SDL2 API | Cocoa replacement | Lines |
-|---|---|---|---|
-| Window creation | `sdl.CreateWindow(WINDOW_METAL)` | `NSWindow` + `MetalContentView` with `CAMetalLayer` | ~150 |
-| Window title | `win.SetTitle()` | `[nsWindow setTitle:]` | 1 line |
-| Window size | `win.GetSize()` | `[nsWindow frame].size` | 1 line |
-| Event pump | `sdl.WaitEventTimeout` / `sdl.PollEvent` | `[NSApp nextEventMatchingMask:…]` | ~80 |
-| Mouse events | `sdl.MouseButtonEvent`, etc. | `NSEventTypeLeftMouseDown`, etc. | ~100 |
-| Keyboard events | `sdl.KeyboardEvent` | `NSEventTypeKeyDown` + key code mapping | ~80 |
-| Scroll events | `sdl.MouseWheelEvent` | `NSEventTypeScrollWheel` | ~30 |
-| Window events | `sdl.WindowEvent` (resize, focus, close) | `NSWindowDelegate` callbacks | ~50 |
-| Touch events | `sdl.FingerEvent` | `NSTouch` via touch tracking | ~60 |
-| Text input | `sdl.TextInputEvent` / `sdl.TextEditingEvent` | `NSTextInputClient` protocol | ~120 |
-| Clipboard get | `sdl.GetClipboardText()` | `[NSPasteboard generalPasteboard] stringForType:` | ~5 |
-| Clipboard set | `sdl.SetClipboardText()` | `[NSPasteboard generalPasteboard] clearContents` + `setString:` | ~8 |
-| Cursors | `[11]*sdl.Cursor` with `CreateSystemCursor` | `[NSCursor arrowCursor]` etc. | ~15 |
-| Live resize | `sdl.AddEventWatchFunc` + `WINDOWEVENT_SIZE_CHANGED` | `NSWindowDelegate windowDidResize:` | ~20 |
-| App quit | `sdl.QuitEvent` | `NSApplicationDelegate applicationShouldTerminate:` | ~8 |
-| Wake from timer | `sdl.RegisterEvents` + `sdl.PushEvent(UserEvent)` | `dispatch_async(dispatch_get_main_queue(), …)` or CFRunLoop source | ~15 |
+| Capability      | SDL2 API                                             | Cocoa replacement                                                  | Lines  |
+| --------------- | ---------------------------------------------------- | ------------------------------------------------------------------ | ------ |
+| Window creation | `sdl.CreateWindow(WINDOW_METAL)`                     | `NSWindow` + `MetalContentView` with `CAMetalLayer`                | ~150   |
+| Window title    | `win.SetTitle()`                                     | `[nsWindow setTitle:]`                                             | 1 line |
+| Window size     | `win.GetSize()`                                      | `[nsWindow frame].size`                                            | 1 line |
+| Event pump      | `sdl.WaitEventTimeout` / `sdl.PollEvent`             | `[NSApp nextEventMatchingMask:…]`                                  | ~80    |
+| Mouse events    | `sdl.MouseButtonEvent`, etc.                         | `NSEventTypeLeftMouseDown`, etc.                                   | ~100   |
+| Keyboard events | `sdl.KeyboardEvent`                                  | `NSEventTypeKeyDown` + key code mapping                            | ~80    |
+| Scroll events   | `sdl.MouseWheelEvent`                                | `NSEventTypeScrollWheel`                                           | ~30    |
+| Window events   | `sdl.WindowEvent` (resize, focus, close)             | `NSWindowDelegate` callbacks                                       | ~50    |
+| Touch events    | `sdl.FingerEvent`                                    | `NSTouch` via touch tracking                                       | ~60    |
+| Text input      | `sdl.TextInputEvent` / `sdl.TextEditingEvent`        | `NSTextInputClient` protocol                                       | ~120   |
+| Clipboard get   | `sdl.GetClipboardText()`                             | `[NSPasteboard generalPasteboard] stringForType:`                  | ~5     |
+| Clipboard set   | `sdl.SetClipboardText()`                             | `[NSPasteboard generalPasteboard] clearContents` + `setString:`    | ~8     |
+| Cursors         | `[11]*sdl.Cursor` with `CreateSystemCursor`          | `[NSCursor arrowCursor]` etc.                                      | ~15    |
+| Live resize     | `sdl.AddEventWatchFunc` + `WINDOWEVENT_SIZE_CHANGED` | `NSWindowDelegate windowDidResize:`                                | ~20    |
+| App quit        | `sdl.QuitEvent`                                      | `NSApplicationDelegate applicationShouldTerminate:`                | ~8     |
+| Wake from timer | `sdl.RegisterEvents` + `sdl.PushEvent(UserEvent)`    | `dispatch_async(dispatch_get_main_queue(), …)` or CFRunLoop source | ~15    |
 
 ## Files changed
 
@@ -114,6 +116,7 @@ void metalWindowDestroy(GoGuiNSWindow w);
 ```
 
 `metal_window.m` implements:
+
 - `GoGuiNSWindow` → wraps `NSWindow*` + `MetalContentView*`
 - `MetalContentView` → `NSView` subclass with `CAMetalLayer` backing, implements
   `NSTextInputClient` for IME
@@ -147,10 +150,9 @@ gui/backend/metal/rotation.go         — screen rotation
 
 ### Deleted files
 
-None. The Metal backend is gated by `//go:build darwin && !ios`. All SDL2 and
-GL backend files continue to serve Linux and Windows. `gui/compat_mingw.go`
-stays — it's gated `//go:build windows && cgo` and remains needed for SDL2 on
-Windows.
+None. The Metal backend is gated by `//go:build darwin && !ios`. All SDL2 and GL
+backend files continue to serve Linux and Windows. `gui/compat_mingw.go` stays —
+it's gated `//go:build windows && cgo` and remains needed for SDL2 on Windows.
 
 ### Shared files (no impact)
 
@@ -164,8 +166,8 @@ continues to select the SDL2 or GL backend as before.
 ### 1. Event loop
 
 The SDL `WaitEventTimeout` / `PollEvent` pattern is replaced with manual NSEvent
-polling. This mirrors what SDL does internally on macOS and gives Go full control
-over the loop timing.
+polling. This mirrors what SDL does internally on macOS and gives Go full
+control over the loop timing.
 
 ```go
 // backend.go
@@ -220,25 +222,25 @@ func mapNSEvent(event C.NSEventRef, b *Backend) (gui.Event, bool) {
 ```
 
 A thin C layer in `metal_window.m` extracts fields from NSEvent (location in
-window, button number, modifier flags, etc.) as simple C functions callable
-from cgo. This avoids exposing NSEvent's ObjC interface to Go.
+window, button number, modifier flags, etc.) as simple C functions callable from
+cgo. This avoids exposing NSEvent's ObjC interface to Go.
 
 Key mappings:
 
-| NSEvent | gui.Event |
-|---|---|
-| `NSEventTypeLeftMouseDown/Up` | `EventMouseDown/Up` with `MouseButtonLeft` |
-| `NSEventTypeRightMouseDown/Up` | `EventMouseDown/Up` with `MouseButtonRight` |
-| `NSEventTypeOtherMouseDown/Up` | `EventMouseDown/Up` with `MouseButtonMiddle` |
-| `NSEventTypeMouseMoved` / `NSEventTypeLeftMouseDragged` | `EventMouseMove` |
-| `NSEventTypeScrollWheel` | `EventMouseScroll` |
-| `NSEventTypeKeyDown/Up` | `EventKeyDown/Up` (with key code mapping) |
-| `NSEventTypeFlagsChanged` | Modifier-only key events |
-| Window delegate `windowDidResize:` | `EventResized` |
-| Window delegate `windowDidBecomeKey:` | `EventFocused` |
-| Window delegate `windowDidResignKey:` | `EventUnfocused` |
-| `NSTextInputClient insertText:` | `EventChar` |
-| `NSTextInputClient setMarkedText:` | `EventIMEComposition` |
+| NSEvent                                                 | gui.Event                                    |
+| ------------------------------------------------------- | -------------------------------------------- |
+| `NSEventTypeLeftMouseDown/Up`                           | `EventMouseDown/Up` with `MouseButtonLeft`   |
+| `NSEventTypeRightMouseDown/Up`                          | `EventMouseDown/Up` with `MouseButtonRight`  |
+| `NSEventTypeOtherMouseDown/Up`                          | `EventMouseDown/Up` with `MouseButtonMiddle` |
+| `NSEventTypeMouseMoved` / `NSEventTypeLeftMouseDragged` | `EventMouseMove`                             |
+| `NSEventTypeScrollWheel`                                | `EventMouseScroll`                           |
+| `NSEventTypeKeyDown/Up`                                 | `EventKeyDown/Up` (with key code mapping)    |
+| `NSEventTypeFlagsChanged`                               | Modifier-only key events                     |
+| Window delegate `windowDidResize:`                      | `EventResized`                               |
+| Window delegate `windowDidBecomeKey:`                   | `EventFocused`                               |
+| Window delegate `windowDidResignKey:`                   | `EventUnfocused`                             |
+| `NSTextInputClient insertText:`                         | `EventChar`                                  |
+| `NSTextInputClient setMarkedText:`                      | `EventIMEComposition`                        |
 
 Key code mapping replaces `sdlkey.MapKeyCode(e.Keysym.Sym)`. macOS key codes
 (`e.keyCode`) are hardware-scancode-based, similar to SDL scancodes. A new
@@ -291,8 +293,8 @@ event loop (existing pattern unchanged). The `Backend.cursors` array field is
 removed.
 
 Note: `_windowResizeNorthWestSouthEastCursor` is a private selector. If App
-Store submission is ever a goal, replace with `[[NSCursor alloc] initWithImage:
-hotSpot:]` from bundled PNG. Not needed now.
+Store submission is ever a goal, replace with
+`[[NSCursor alloc] initWithImage: hotSpot:]` from bundled PNG. Not needed now.
 
 ### 4. Clipboard
 
@@ -353,6 +355,7 @@ These three bridges currently use `SDL_GetWindowWMInfo` to extract the NSWindow
 from SDL's window handle. With a native NSWindow, the indirection disappears:
 
 **Before:**
+
 ```c
 SDL_SysWMinfo info;
 SDL_GetWindowWMInfo(win, &info);
@@ -360,6 +363,7 @@ NSWindow *nsWin = info.info.cocoa.window;
 ```
 
 **After:**
+
 ```c
 NSWindow *nsWin = ((GoGuiWindow *)win)->nsWindow;
 ```
@@ -379,8 +383,8 @@ typedef struct {
 ```
 
 The callback function pointers are set by Go via cgo and called from the
-NSWindowDelegate. This eliminates the `goFileDrop(SDL_Window*, char*)` pattern
-— all bridges use the same `GoGuiWindow` struct and its callbacks.
+NSWindowDelegate. This eliminates the `goFileDrop(SDL_Window*, char*)` pattern —
+all bridges use the same `GoGuiWindow` struct and its callbacks.
 
 ### 7. Multi-window support
 
@@ -389,7 +393,8 @@ has a `windowID` that `gui.App` uses for registration. `NSApp` natively manages
 multiple windows — no SDL hacks needed.
 
 The `onClose` callback fires for each window. `NSApp terminate:` only fires when
-the last window closes (configurable via `NSWindowDelegate applicationShouldTerminateAfterLastWindowClosed:`).
+the last window closes (configurable via
+`NSWindowDelegate applicationShouldTerminateAfterLastWindowClosed:`).
 
 ## Concerns
 
@@ -406,8 +411,8 @@ run it side-by-side with the SDL backend's keyboard output. Diff until zero.
 ### IME edge cases
 
 `NSTextInputClient` has subtle behavior around marked ranges, insertion points,
-and dead keys. The current SDL `TextEditingEvent` path handles these but
-through SDL's abstraction. Native IME needs:
+and dead keys. The current SDL `TextEditingEvent` path handles these but through
+SDL's abstraction. Native IME needs:
 
 - Correct `firstRectForCharacterRange:` for CJK candidate windows
 - `attributedSubstringForProposedRange:` for inline composition
@@ -419,10 +424,10 @@ The existing `gui.EventIMEComposition` with `IMEStart`/`IMELength` mirrors
 ### Touch/trackpad events
 
 SDL provides `FINGERDOWN`/`FINGERMOTION`/`FINGERUP` touch events. macOS exposes
-touch via `NSTouch` on `NSTouchBar`-capable devices and via
-`NSEventTypeGesture` for trackpad gestures. Direct `NSTouch` access requires
-`allowedTouchTypes` on the NSView. Multi-touch (e.g., for a drawing canvas) is
-usable but maps differently than SDL's finger abstraction.
+touch via `NSTouch` on `NSTouchBar`-capable devices and via `NSEventTypeGesture`
+for trackpad gestures. Direct `NSTouch` access requires `allowedTouchTypes` on
+the NSView. Multi-touch (e.g., for a drawing canvas) is usable but maps
+differently than SDL's finger abstraction.
 
 For the initial implementation, trackpad scroll (already handled via
 `NSEventTypeScrollWheel`) and mouse events cover the primary use cases. Full
@@ -444,8 +449,8 @@ if (dark) {
 ### Fullscreen
 
 SDL has `WINDOW_FULLSCREEN` / `WINDOW_FULLSCREEN_DESKTOP` flags. NSWindow has
-`toggleFullScreen:` and `NSWindowStyleMaskFullScreen`. The `WindowCfg` fullscreen
-options map to these. Not needed for v0.28 but should be noted.
+`toggleFullScreen:` and `NSWindowStyleMaskFullScreen`. The `WindowCfg`
+fullscreen options map to these. Not needed for v0.28 but should be noted.
 
 ### CGo framework dependencies
 
@@ -460,8 +465,8 @@ build-toolchain installs:
 -framework Foundation
 ```
 
-These ship with macOS. `go build` works on a fresh macOS install with Xcode
-CLT only.
+These ship with macOS. `go build` works on a fresh macOS install with Xcode CLT
+only.
 
 ### go-glyph CGo
 
@@ -475,7 +480,9 @@ go-glyph (see CLAUDE.md rejected WebGPU approach note).
 The existing `TestBackendRenderSmoke` reads backbuffer after `Present()`. SDL3's
 hardware-accelerated flip-model renderers can return empty pixels on this read.
 Under the native Metal backend, the test either:
-- Skipped on Metal (software-readback of Metal drawables is possible but slow), or
+
+- Skipped on Metal (software-readback of Metal drawables is possible but slow),
+  or
 - Moved to a Metal-specific pixel-readback path (GPU→CPU texture copy).
 
 Production blur/color-matrix filter paths render to offscreen textures and are
@@ -483,18 +490,18 @@ unaffected.
 
 ## Build comparison
 
-| | Current (SDL2) | Proposed (Native Metal) |
-|---|---|---|
-| C toolchain | Homebrew sdl2 | None (Xcode CLT only) |
-| Window/events | SDL2 via pkg-config | Cocoa/AppKit via system frameworks |
-| Rendering | SDL Metal or direct Metal | Metal (unchanged) |
-| Audio | SDL_mixer | SDL_mixer (unchanged for now) |
-| Clipboard | SDL2 | NSPasteboard |
-| Cursors | SDL2 | NSCursor |
-| IME | SDL2 | NSTextInputClient |
-| Text shaping | go-glyph CoreText CGo | go-glyph CoreText CGo (unchanged) |
-| `go build` deps | Homebrew | None |
-| Static linking | Partial (SDL dylib) | Full (no external dylibs) |
+|                 | Current (SDL2)            | Proposed (Native Metal)            |
+| --------------- | ------------------------- | ---------------------------------- |
+| C toolchain     | Homebrew sdl2             | None (Xcode CLT only)              |
+| Window/events   | SDL2 via pkg-config       | Cocoa/AppKit via system frameworks |
+| Rendering       | SDL Metal or direct Metal | Metal (unchanged)                  |
+| Audio           | SDL_mixer                 | SDL_mixer (unchanged for now)      |
+| Clipboard       | SDL2                      | NSPasteboard                       |
+| Cursors         | SDL2                      | NSCursor                           |
+| IME             | SDL2                      | NSTextInputClient                  |
+| Text shaping    | go-glyph CoreText CGo     | go-glyph CoreText CGo (unchanged)  |
+| `go build` deps | Homebrew                  | None                               |
+| Static linking  | Partial (SDL dylib)       | Full (no external dylibs)          |
 
 ## Non-goals for v0.28
 
@@ -507,8 +514,8 @@ unaffected.
 
 ## Implementation order
 
-1. **`metal_window.h/.m`** — NSWindow + MetalContentView + CAMetalLayer creation,
-   window delegate with callbacks, NSTextInputClient stub
+1. **`metal_window.h/.m`** — NSWindow + MetalContentView + CAMetalLayer
+   creation, window delegate with callbacks, NSTextInputClient stub
 2. **`backend.go` rewrite** — replace `New()` to use `metalWindowCreate`,
    replace `Run()` event loop with NSEvent polling, replace cursor/clipboard/IME
    glue

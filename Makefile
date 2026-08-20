@@ -5,7 +5,7 @@ LDFLAGS  = -X github.com/go-gui-org/go-gui/gui.Version=$(VERSION) \
 
 LINT_VERSION = v2.13.1
 
-.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test test-race vet lint lint-pin lint-cross cross-compile coverage-gate prepush check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergonomics-audit ergonomics-audit-fix ergonomics-audit-fix-dry
+.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test test-race vet lint lint-pin lint-cross cross-compile coverage-gate prepush check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergonomics-audit ergonomics-audit-fix ergonomics-audit-fix-dry fmt-md fmt-md-check
 
 # Desktop builds are cgo-free since the purego GL bindings (#155): the
 # backend/gl uses X11/xgb + purego EGL on Linux and Win32 syscalls on
@@ -164,7 +164,7 @@ coverage-gate:
 
 # Run non-duplicated validation steps for CI gate.
 # test and lint run as separate CI jobs with OS matrices.
-check: vet deps-doc-check large-files generate-check tidy-check
+check: vet deps-doc-check large-files generate-check tidy-check fmt-md-check
 
 # Run all validation steps: test, vet, lint, and gate checks.
 check-all: test lint check
@@ -179,6 +179,19 @@ check-all: test lint check
 # packaging. `make check` is the fast gate when only gate checks are
 # wanted.
 prepush: test-race lint check lint-cross cross-compile coverage-gate export-audit
+
+# Format every tracked Markdown file with Prettier.
+#
+# The wrap width and prose-wrap mode live in .prettierrc, so they are not
+# retyped per invocation -- CHANGELOG.md drifted for exactly that reason.
+# Uses npx, so no repo-local node_modules is required.
+fmt-md:
+	@npx --yes prettier --write $(shell git ls-files '*.md')
+
+# Gate: fail if any tracked Markdown file is unformatted. Part of `check`,
+# so the convention is enforced rather than remembered.
+fmt-md-check:
+	@npx --yes prettier --check $(shell git ls-files '*.md')
 
 # Regenerate docs/dependencies.md from go.mod.
 deps-doc:

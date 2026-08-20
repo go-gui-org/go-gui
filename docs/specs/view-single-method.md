@@ -535,17 +535,16 @@ implementations nor call sites.
 
 ### 5. Issue #306 — resolved: Form scopes its children
 
-Landed 2026-08-14, after the refactor settled. `Form` now routes through
-the single `appendChildViews` path like every other container;
-`appendChildViewsFlat` is deleted. Form children's effective IDs changed
-from the flat leaf to `form:<id>:<leaf>` (absolute prefix — a form inside
-an ID-bearing panel still scopes under `form:<id>`, never the panel's
-scope). That is a breaking change for `SetFocus` / `FindByID` callers
-that used the flat name; the field registry never participated
-(`FieldID` is a separate namespace) and is unaffected. What it fixes:
-two forms in one window may each hold an `Input{ID: "email"}` without
-colliding on one effective ID — the flat behavior made such a window
-fail `TestDuplicateIDs`.
+Landed 2026-08-14, after the refactor settled. `Form` now routes through the
+single `appendChildViews` path like every other container;
+`appendChildViewsFlat` is deleted. Form children's effective IDs changed from
+the flat leaf to `form:<id>:<leaf>` (absolute prefix — a form inside an
+ID-bearing panel still scopes under `form:<id>`, never the panel's scope). That
+is a breaking change for `SetFocus` / `FindByID` callers that used the flat
+name; the field registry never participated (`FieldID` is a separate namespace)
+and is unaffected. What it fixes: two forms in one window may each hold an
+`Input{ID: "email"}` without colliding on one effective ID — the flat behavior
+made such a window fail `TestDuplicateIDs`.
 
 ## Verification
 
@@ -641,12 +640,12 @@ A large API break across six repos, in exchange for a saving that measures zero.
    in this spec — that field registration would break — was wrong; field IDs are
    a separate namespace. See "The scope suppression is accidental" above.
 
-   **Decided (2026-08-14): keep flat, superseded by #306 the same day.**
-   This change was behavior-preserving — `appendChildViewsFlat` reproduced
-   today's effective IDs exactly, keeping any resulting focus bug
-   unambiguous between the two causes. Issue #306 then resolved the question
-   on its own merits: `Form` scopes its children like every other container,
-   and `appendChildViewsFlat` is gone. See §5.
+   **Decided (2026-08-14): keep flat, superseded by #306 the same day.** This
+   change was behavior-preserving — `appendChildViewsFlat` reproduced today's
+   effective IDs exactly, keeping any resulting focus bug unambiguous between
+   the two causes. Issue #306 then resolved the question on its own merits:
+   `Form` scopes its children like every other container, and
+   `appendChildViewsFlat` is gone. See §5.
 
 3. ~~Is the per-frame `View` interface box actually measurable?~~ **Resolved: it
    is exactly zero.** Measured on an Apple M5, `go test -benchmem`:

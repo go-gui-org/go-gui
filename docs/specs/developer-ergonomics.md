@@ -2,11 +2,11 @@
 
 Status: **implemented** — every row of the §6.1 progress table is done: phase 1
 shipped v0.53.0, the §4.3 callback/event collapse v0.55.0, the §4.4/§4.5 color
-and padding work across v0.56–v0.59, and §4.8's example audit closed. All of
-§9 Q1–Q8 resolved, including the Q6 nested-scroll gate
+and padding work across v0.56–v0.59, and §4.8's example audit closed. All of §9
+Q1–Q8 resolved, including the Q6 nested-scroll gate
 (`gui/scroll_nested_test.go`). The §4.7 renames are part of that; the release
-plan below is historical, not pending.
-Base: `main` @ `80715d1`. Phase progress: §6.1.
+plan below is historical, not pending. Base: `main` @ `80715d1`. Phase progress:
+§6.1.
 
 ## Context
 
@@ -27,7 +27,7 @@ figures depend on dedupe and scope choices.
 | Metric                                 | Count | Source                              |
 | -------------------------------------- | ----- | ----------------------------------- |
 | Widget factories taking a `*Cfg`       | ~50   | `gui/view_*.go`                     |
-| `On*` callback decls, raw              | 136   | `ergonomics-audit -mode callbacks`         |
+| `On*` callback decls, raw              | 136   | `ergonomics-audit -mode callbacks`  |
 | — distinct (name, signature) pairs     | 70    | deduped by go/ast; see §10          |
 | — of shape `func(EventCtx)`            | 16    |                                     |
 | — of shape `func(T…, EventCtx)`        | 19    |                                     |
@@ -465,7 +465,8 @@ and `OnDetailRowView` returning `gg.View`, both confined to `gui/datagrid/`;
 zero sibling references to either; `RTF(cfg RtfCfg)` at `gui/view_rtf.go:212`;
 zero sibling references to `RtfCfg` or `gui.RTF`; `OnEvent` declared twice as
 `func(*Event, *Window)`; and the 8 `Color*` sibling sites, all in go-charts. The
-`27` distinct `func(T..., *Window)` signatures reproduce from `ergonomics-audit`.
+`27` distinct `func(T..., *Window)` signatures reproduce from
+`ergonomics-audit`.
 
 **Three event-driven callbacks appear in neither list.** §4.3 partitions 27
 signatures into 14 out-of-scope and 13 to convert. Scanning `gui/datagrid/` as
@@ -518,7 +519,8 @@ the 13-item convert set. After the tool fixes below, the five repos hold **25**
 | go-map    | 6 (OnInit)                | 29 (`InfoWindowAction`) |
 
 Reaching those numbers required fixing three bugs in
-`ergonomics-audit -mode callbacks`, each of which had produced a claim in this spec:
+`ergonomics-audit -mode callbacks`, each of which had produced a claim in this
+spec:
 
 1. **Call sites were not attributed to a declaring package.** Any
    `OnX: func(..., *Window)` literal counted, so go-map's own
@@ -561,9 +563,9 @@ nothing about results, so it is now `func([]GridRow, EventCtx) (string, bool)`.
 No third target shape and no carve-out — the two target shapes in §4.3 were
 simply stated too narrowly, since "returns nothing" was never load-bearing.
 
-Verified by re-running `ergonomics-audit -mode callbacks`: `func(T..., *Window)` 24 →
-**12**, `leaks raw *Event` 5 → **1** (`OnEvent` alone), `func(EventCtx)` 16 →
-**18**, `func(T..., EventCtx)` 19 → **32**.
+Verified by re-running `ergonomics-audit -mode callbacks`: `func(T..., *Window)`
+24 → **12**, `leaks raw *Event` 5 → **1** (`OnEvent` alone), `func(EventCtx)` 16
+→ **18**, `func(T..., EventCtx)` 19 → **32**.
 
 **The codemod needed a name filter to be safe at all.** The v0.52 tool matched
 by signature, which works only because nothing else in the codebase looks like
@@ -913,25 +915,25 @@ The rule now reads: **types the repo owns self-flag; only primitives get
 `Opt`.** `Padding` joined `Color` in carrying a `set` field, so "unset" (zero
 value, theme default applies) is distinguishable from explicitly zero
 (`PaddingNone`) without a wrapper. The 33 `Opt[Padding]` field declarations
-became plain `Padding`; `SomeP` was deleted (use `NewPadding`); read sites
-moved from `.Get(def)` to `.Or(def)`. Raw `Padding{...}` literals — even with
-nonzero sides — read as unset, so ergoaudit mode `literals` gates them: build
-with `NewPadding`/`PadAll`/`PaddingNone`. `ThemeMaker` stamps the flag on its
+became plain `Padding`; `SomeP` was deleted (use `NewPadding`); read sites moved
+from `.Get(def)` to `.Or(def)`. Raw `Padding{...}` literals — even with nonzero
+sides — read as unset, so ergoaudit mode `literals` gates them: build with
+`NewPadding`/`PadAll`/`PaddingNone`. `ThemeMaker` stamps the flag on its
 `cfg.Padding*` copies so a resolved theme value never reads as unset on a later
-`IsSet` check. Breaking for consumers of `SomeP` and `Opt[Padding]`; the
-sibling repos bump together.
+`IsSet` check. Breaking for consumers of `SomeP` and `Opt[Padding]`; the sibling
+repos bump together.
 
 #### 4.5.3 The literal guard extends to `Color` (2026-08-10, #243 follow-up)
 
 Mode `literals` now covers `Color{...}` too: a keyed `gui.Color{R:...}` outside
 the package compiles and silently reads as unset, exactly like Padding did. The
 empty `Color{}` form stays exempt — it is the explicit spelling of "unset"
-(zero-sentinel comparisons, optional color parameters) and behaves like
-omitting the value. `glyph.Color{...}` (a foreign type) never flags. The sweep
-converted ~99 sites to `RGBA(...)`; two of them (examples/fontviewer,
+(zero-sentinel comparisons, optional color parameters) and behaves like omitting
+the value. `glyph.Color{...}` (a foreign type) never flags. The sweep converted
+~99 sites to `RGBA(...)`; two of them (examples/fontviewer,
 gui/backend/internal/glyphconv) were genuine silent-unset bugs where the theme
-default was applied instead of the color the code wrote. `dimAlpha` dropped
-its set-preserving literal for an in-place `c.A /= 2`.
+default was applied instead of the color the code wrote. `dimAlpha` dropped its
+set-preserving literal for an in-place `c.A /= 2`.
 
 ### 4.6 App-testing API — largest additive gap
 
@@ -1366,7 +1368,7 @@ in the same diff.
 | 1     | §4.1 `gui.Debug` gate                                    | done                |
 | 1     | §4.2 delete `RequireFocusID`                             | done                |
 | 1     | §5.3 `State[T]` panic message                            | done                |
-| 1     | §8 `ergonomics-audit -fix` codemod                              | done                |
+| 1     | §8 `ergonomics-audit -fix` codemod                       | done                |
 | 1     | §4.2 fix 12 first-party a11y defects                     | done                |
 | 1     | §4.9 `Select` scroll defect                              | n/a — did not exist |
 | 1     | §4.2 tag 9 `Cfg`s + wire `RequireID`                     | done                |
@@ -1405,20 +1407,20 @@ applies.
 but `layout_pipeline.go` also skips `OnMouseLeave` dispatch on an empty `ID`,
 with no `Focusable` precondition. A `FocusDisabled` control carrying an
 `OnMouseLeave` is therefore still silently broken, and neither
-`ergonomics-audit -mode focus` nor the §4.1 gate looks for it. Added to the table above
-as a §4.1 check rather than widening the runtime guard, since the opt-out is
-otherwise correct.
+`ergonomics-audit -mode focus` nor the §4.1 gate looks for it. Added to the
+table above as a §4.1 check rather than widening the runtime guard, since the
+opt-out is otherwise correct.
 
 **§4.9's tag is struck, not deferred.** Two of its three items do not apply as
 written. The runtime guard already exists —
 `RequireScrollID("container", cfg.Scrollable, cfg.ID)` has been wired in
-`buildContainerShape` all along; `ergonomics-audit` listed `ContainerCfg` as unguarded
-because it judges by tag, not by call site. And tagging `ContainerCfg.ID` would
-be wrong: most containers legitimately have no ID, so a `required` tag on a
-normally-absent field inverts the default and flags the common case. The rule is
-conditional on `Scrollable: true`, which is exactly how `checkFocusableID`
-already handles `Focusable: true` — keyed on the field in the literal, no tag.
-So §4.9 reduces to the analyzer rule, which is what shipped.
+`buildContainerShape` all along; `ergonomics-audit` listed `ContainerCfg` as
+unguarded because it judges by tag, not by call site. And tagging
+`ContainerCfg.ID` would be wrong: most containers legitimately have no ID, so a
+`required` tag on a normally-absent field inverts the default and flags the
+common case. The rule is conditional on `Scrollable: true`, which is exactly how
+`checkFocusableID` already handles `Focusable: true` — keyed on the field in the
+literal, no tag. So §4.9 reduces to the analyzer rule, which is what shipped.
 
 `InputCfg` also dropped out of the scrollable gap on its own: phase 1 made its
 `ID` unconditionally required, which subsumes the scroll case. `ContainerCfg`
@@ -1426,9 +1428,9 @@ was the only remaining entry.
 
 **Codemod scope note.** The 111 figure included one false positive:
 `CommandButton(cmdID, ButtonCfg{})` fills the `ID` in itself, so the empty `ID`
-at that call site is fine. `ergonomics-audit` no longer counts a literal passed to a
-factory other than its own, matching what `requiredid` and the runtime guard
-already did.
+at that call site is fine. `ergonomics-audit` no longer counts a literal passed
+to a factory other than its own, matching what `requiredid` and the runtime
+guard already did.
 
 ## 7. Sibling impact
 
@@ -1539,20 +1541,20 @@ cost. See §4.3.1 for that fix and two others in the same mode.
 - **Phase-4 migration guide** (new, `docs/migration-v0.53.md` or similar). 18
   sibling sites plus ~126 ID fills are mechanical, and §7.2's silent half is not
   — a before/after for `Focus`, `Consume`, and `ColorSet` is cheap insurance.
-- **`ergonomics-audit -fix`** (new, phase 1). Not "consider" — commit to it. Phase 1
-  alone rewrites 111 internal literals to add `ID` fields, and phase 4 adds ~15
-  more; that is a week of mechanical edits done by hand, and hand-editing 111
-  literals is how a typo'd ID reaches `main` looking like intent. The `go/ast`
-  `CompositeLit` walk that finds them is already written and tested in
-  `tools/ergonomics-audit`, so `-fix` is an insertion pass on top of the existing
-  classifier, not a new tool. IDs derive from the enclosing file and variable
-  name and are **written into the source literal** — this does not reopen §5.1,
-  which rejects IDs _computed at runtime from tree position_. A generated ID in
-  the file is an ordinary ID that a human can read, review, and edit; the
-  rejected design has no source-level existence and changes when a sibling is
-  inserted. If the codemod is worth shipping for siblings, it is worth running
-  on the 111 first — where its output is reviewable in the same PR that adds the
-  tags.
+- **`ergonomics-audit -fix`** (new, phase 1). Not "consider" — commit to it.
+  Phase 1 alone rewrites 111 internal literals to add `ID` fields, and phase 4
+  adds ~15 more; that is a week of mechanical edits done by hand, and
+  hand-editing 111 literals is how a typo'd ID reaches `main` looking like
+  intent. The `go/ast` `CompositeLit` walk that finds them is already written
+  and tested in `tools/ergonomics-audit`, so `-fix` is an insertion pass on top
+  of the existing classifier, not a new tool. IDs derive from the enclosing file
+  and variable name and are **written into the source literal** — this does not
+  reopen §5.1, which rejects IDs _computed at runtime from tree position_. A
+  generated ID in the file is an ordinary ID that a human can read, review, and
+  edit; the rejected design has no source-level existence and changes when a
+  sibling is inserted. If the codemod is worth shipping for siblings, it is
+  worth running on the 111 first — where its output is reviewable in the same PR
+  that adds the tags.
 - **Two callback families, documented as intentional** (godoc + `CLAUDE.md`).
   Event-driven takes `EventCtx`; lifecycle, animation, and completion take
   `func(T…, *Window)`. Writing this down is what stops the next reviewer
@@ -1667,10 +1669,10 @@ Detail where the decision carries a constraint:
 `_test.go` excluded unless stated.
 
 **Callback declarations — the unit is a (field name, signature) pair.**
-`ergonomics-audit -mode callbacks` walks `gui/` with `go/ast`, collects every exported
-`On*` field whose type is a `func`, and keys the dedupe on the field name joined
-to the `go/printer` rendering of its type. So `OnDone func(*Window)` and
-`OnDone func(NativeAlertResult, *Window)` are two entries, and an identical
+`ergonomics-audit -mode callbacks` walks `gui/` with `go/ast`, collects every
+exported `On*` field whose type is a `func`, and keys the dedupe on the field
+name joined to the `go/printer` rendering of its type. So `OnDone func(*Window)`
+and `OnDone func(NativeAlertResult, *Window)` are two entries, and an identical
 shape declared under two names stays two entries. **136 raw declarations reduce
 to 70 distinct pairs.** Scope is `gui/*.go` plus `gui/*/*.go`; `_test.go`
 excluded.
