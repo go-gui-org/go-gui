@@ -3,7 +3,7 @@ COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 LDFLAGS  = -X github.com/go-gui-org/go-gui/gui.Version=$(VERSION) \
            -X github.com/go-gui-org/go-gui/gui.Commit=$(COMMIT)
 
-LINT_VERSION = v2.12.2
+LINT_VERSION = v2.13.1
 
 .PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test test-race vet lint lint-pin lint-cross cross-compile coverage-gate prepush check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergonomics-audit ergonomics-audit-fix ergonomics-audit-fix-dry
 

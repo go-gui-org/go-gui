@@ -78,3 +78,16 @@ linters:
           - revive
       - path: gui/backend/(gl|metal|ios|android)/
         text: "unkeyed fields"
+      # SA4023 fires only under GOOS=js. os/exec is stubbed on wasm, so
+      # exec.LookPath always returns a non-nil error and staticcheck reads
+      # every `err != nil` guard around it as constant. process_monitor is
+      # the same shape one level up: its collect_other.go fallback always
+      # errors, so Collect's guard reads as constant too. Both guards are
+      # correct on the targets the code actually builds for -- buildapp is
+      # a macOS-only .app bundler -- and neither program is reachable from
+      # a wasm build. Surfaced by golangci-lint 2.13.1; 2.12 did not infer
+      # across the call.
+      - path: cmd/buildapp/
+        text: SA4023
+      - path: examples/process_monitor/
+        text: SA4023

@@ -144,7 +144,7 @@ jobs:
       - name: Lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.12
+          version: v2.13
 
       # The step above analyses the GOOS=linux build only, so every
       # //go:build windows file (27 of them: gl/, sni/, filedialog/,
@@ -156,7 +156,7 @@ jobs:
         env:
           GOOS: windows
         with:
-          version: v2.12
+          version: v2.13
 
       # Same blind spot as windows above, for the browser build: every
       # //go:build js file (the gui/backend/web backend) was unlinted
@@ -168,7 +168,7 @@ jobs:
           GOOS: js
           GOARCH: wasm
         with:
-          version: v2.12
+          version: v2.13
 
       # The darwin build analyses from this runner with cgo disabled
       # (automatic for cross-compilation), which covers the cgo-free
@@ -179,7 +179,7 @@ jobs:
         env:
           GOOS: darwin
         with:
-          version: v2.12
+          version: v2.13
 
       - name: Required-ID check
         run: go run ./tools/requiredid/cmd/requiredid ./...
@@ -291,7 +291,7 @@ jobs:
           CGO_CFLAGS: -isysroot ${{ env.IOS_SDK }} -arch arm64 -miphoneos-version-min=15.0
           CGO_LDFLAGS: -isysroot ${{ env.IOS_SDK }} -arch arm64 -miphoneos-version-min=15.0
         with:
-          version: v2.12
+          version: v2.13
           args: --build-tags ios ./...
 
   wasm:
@@ -423,7 +423,7 @@ jobs:
           GOARCH: arm64
           CC: ${{ env.NDK_CC }}
         with:
-          version: v2.12
+          version: v2.13
 
   benchmark:
     name: Benchmarks
