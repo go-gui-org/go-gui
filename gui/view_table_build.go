@@ -26,12 +26,11 @@ func tableBuildRow(
 		} else if cell.HeadCell {
 			cellTextStyle = cfg.TextStyleHead
 		}
-
-		// The selected fill and the text on it travel together. A
-		// cell's own TextStyle is the caller's deliberate color and
-		// stays untouched (issue #373).
-		cellTextStyle = textOnFill(cellTextStyle,
-			isSelected && cell.TextStyle == nil, cfg.ColorTextOnSelect)
+		// The selected row paints the subtle wash, so its cells keep
+		// their normal text color — a tint needs no paired foreground
+		// (visual-refresh §4.3). A cell's own TextStyle is the
+		// caller's deliberate color and stays untouched regardless
+		// (issue #373).
 
 		var colWidth float32
 		if colIdx < len(columnWidths) {
@@ -91,7 +90,10 @@ func tableBuildRow(
 
 	rowColor := ColorTransparent
 	if isSelected {
-		rowColor = cfg.ColorSelect
+		// Selection paints the subtle wash, not the full accent
+		// slab; focus is the ring, not a second fill
+		// (visual-refresh §4.3).
+		rowColor = cfg.ColorSelectSubtle
 	} else if rowIdx == activeRowIdx && activeRowIdx >= 0 {
 		rowColor = colorHover
 	} else if cfg.ColorRowAlt != nil && rowIdx%2 == 1 {

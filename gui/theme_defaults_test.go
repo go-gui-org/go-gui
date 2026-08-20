@@ -26,12 +26,22 @@ func TestPresetThemesDefined(t *testing.T) {
 	}
 }
 
+// The preset palette pins (visual-refresh §4): the dark ramp, and
+// ColorSelect resolving to the accent now that baseDarkCfg states
+// only ColorAccent.
 func TestDarkThemeColors(t *testing.T) {
 	if ThemeDark.ColorBackground != colorBackgroundDark {
 		t.Error("dark background mismatch")
 	}
-	if ThemeDark.ColorSelect != colorSelectDark {
-		t.Error("dark select mismatch")
+	if ThemeDark.ColorSelect != colorAccentDark {
+		t.Errorf("dark select = %v, want accent %v",
+			ThemeDark.ColorSelect, colorAccentDark)
+	}
+	if ThemeDark.ColorAccent != colorAccentDark {
+		t.Error("dark accent mismatch")
+	}
+	if ThemeDark.ColorBorder != colorBorderDark {
+		t.Error("dark border mismatch")
 	}
 }
 
@@ -59,6 +69,14 @@ func TestLightThemeColors(t *testing.T) {
 	}
 	if ThemeLight.TextStyleDef.Color != colorTextLight {
 		t.Error("light text color mismatch")
+	}
+	if ThemeLight.ColorSelect != colorAccentLight {
+		t.Errorf("light select = %v, want accent %v",
+			ThemeLight.ColorSelect, colorAccentLight)
+	}
+	if ThemeLight.ButtonStyle.ColorBorderFocus != colorAccentLight {
+		t.Errorf("light focus border = %v, want accent %v",
+			ThemeLight.ButtonStyle.ColorBorderFocus, colorAccentLight)
 	}
 }
 

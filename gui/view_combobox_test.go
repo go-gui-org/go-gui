@@ -38,9 +38,9 @@ func TestComboboxOpenLayout(t *testing.T) {
 	}
 }
 
-// The dropdown's keyboard-highlighted row fills with the accent
-// color, so its label draws in the paired foreground; the other
-// rows keep the body color (issue #373).
+// The dropdown's keyboard-highlighted row paints the subtle wash,
+// so its label keeps the body color; the other rows keep it too
+// (visual-refresh §4.3).
 func TestComboboxDropdownHighlightedTextColor(t *testing.T) {
 	w := &Window{}
 	ss := StateMap[string, bool](w, nsCombobox, capModerate)
@@ -49,17 +49,20 @@ func TestComboboxDropdownHighlightedTextColor(t *testing.T) {
 	sh.Set("cb-sel-text", 1)
 
 	v := Combobox(ComboboxCfg{
-		ID:                "cb-sel-text",
-		Options:           []string{"A", "B", "C"},
-		ColorTextOnSelect: White,
-		OnSelect:          func(_ string, ctx EventCtx) {},
+		ID:       "cb-sel-text",
+		Options:  []string{"A", "B", "C"},
+		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, w)
 	if len(layout.Children) < 3 {
 		t.Fatalf("children = %d, want >= 3", len(layout.Children))
 	}
-	if got := textColorOf(t, w, v, "B"); !got.eq(White) {
-		t.Errorf("highlighted row color = %v, want %v", got, White)
+	// The highlighted row paints the subtle wash, so its label keeps
+	// the body color — a tint needs no paired foreground
+	// (visual-refresh §4.3).
+	if got := textColorOf(t, w, v, "B"); !got.eq(DefaultTextStyle.Color) {
+		t.Errorf("highlighted row color = %v, want body %v",
+			got, DefaultTextStyle.Color)
 	}
 	if got := textColorOf(t, w, v, "A"); !got.eq(DefaultTextStyle.Color) {
 		t.Errorf("plain row color = %v, want body %v",

@@ -35,9 +35,9 @@ func TestCommandPaletteVisible(t *testing.T) {
 	}
 }
 
-// The palette's highlighted row fills with the accent color, so its
-// label draws in the paired foreground; the other rows keep the
-// body color (issue #373).
+// The palette's highlighted row paints the subtle wash, so its
+// label keeps the body color; the other rows keep it too
+// (visual-refresh §4.3).
 func TestCommandPaletteHighlightedTextColor(t *testing.T) {
 	w := &Window{}
 	commandPaletteShow("cp-sel-text", w)
@@ -48,15 +48,18 @@ func TestCommandPaletteHighlightedTextColor(t *testing.T) {
 			{ID: "save", Label: "Save"},
 			{ID: "open", Label: "Open"},
 		},
-		ColorTextOnSelect: White,
-		OnAction:          func(_ string, ctx EventCtx) {},
+		OnAction: func(_ string, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, w)
 	if len(layout.Children) == 0 {
 		t.Fatal("visible palette should have children")
 	}
-	if got := textColorOf(t, w, v, "Save"); !got.eq(White) {
-		t.Errorf("highlighted row color = %v, want %v", got, White)
+	// The highlighted row paints the subtle wash, so its label keeps
+	// the body color — a tint needs no paired foreground
+	// (visual-refresh §4.3).
+	if got := textColorOf(t, w, v, "Save"); !got.eq(DefaultTextStyle.Color) {
+		t.Errorf("highlighted row color = %v, want body %v",
+			got, DefaultTextStyle.Color)
 	}
 	if got := textColorOf(t, w, v, "Open"); !got.eq(DefaultTextStyle.Color) {
 		t.Errorf("plain row color = %v, want body %v",

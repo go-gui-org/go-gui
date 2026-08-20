@@ -1,17 +1,27 @@
 package gui
 
-// Light theme color vars.
+// Light theme color vars. The ramp mirrors the dark ramp's
+// direction: the page is the tint and the controls are the light
+// surface, moving down from white as energy increases
+// (visual-refresh §4.2).
 var (
-	colorBackgroundLight  = RGB(225, 225, 225)
-	colorPanelLight       = RGB(205, 205, 215)
-	colorInteriorLight    = RGB(195, 195, 215)
-	colorHoverLight       = RGB(185, 185, 215)
-	colorFocusLight       = RGB(175, 175, 215)
-	colorActiveLight      = RGB(165, 165, 215)
-	colorBorderLight      = RGB(135, 135, 165)
-	colorSelectLight      = RGB(65, 105, 225)
-	colorBorderFocusLight = RGB(0, 0, 165)
-	colorTextLight        = RGB(32, 32, 32)
+	colorBackgroundLight = RGB(242, 244, 247) // #F2F4F7
+	colorPanelLight      = RGB(255, 255, 255) // #FFFFFF
+	colorInteriorLight   = RGB(255, 255, 255) // #FFFFFF
+	colorHoverLight      = RGB(237, 240, 244) // #EDF0F4
+	colorFocusLight      = RGB(231, 235, 241) // #E7EBF1
+	colorActiveLight     = RGB(224, 229, 236) // #E0E5EC
+	colorBorderLight     = RGB(216, 221, 228) // #D8DDE4
+	colorSeparatorLight  = RGB(230, 234, 239) // #E6EAEF
+	// colorAccentLight is the single accent decision; the rest of the
+	// ramp derives from it in ThemeMaker (visual-refresh §4.3).
+	colorAccentLight = RGB(47, 111, 224) // #2F6FE0
+	// Semantic colors, chosen so each hue family reads at a glance on
+	// its polarity's ground (visual-refresh §4.4).
+	colorErrorLight   = RGB(214, 69, 69)  // #D64545
+	colorWarningLight = RGB(176, 126, 31) // #B07E1F
+	colorSuccessLight = RGB(46, 158, 91)  // #2E9E5B
+	colorTextLight    = RGB(26, 29, 33)   // #1A1D21
 )
 
 // Scroll constants.
@@ -71,11 +81,16 @@ func baseDarkCfg() ThemeCfg {
 	cfg.ColorFocus = colorFocusDark
 	cfg.ColorActive = colorActiveDark
 	cfg.ColorBorder = colorBorderDark
-	cfg.ColorBorderFocus = colorSelectDark
-	cfg.ColorSelect = colorSelectDark
+	// No ColorSelect, no ColorBorderFocus: both resolve to the
+	// accent, so selection and focus stay the same decision as the
+	// accent (visual-refresh §4.3).
+	cfg.ColorSeparator = colorSeparatorDark
+	cfg.ColorAccent = colorAccentDark
+	cfg.ColorSuccess = colorSuccessDark
+	cfg.ColorWarning = colorWarningDark
+	cfg.ColorError = colorErrorDark
 	cfg.TitlebarDark = true
 	cfg.TextStyleDef = DefaultTextStyle
-	cfg.ColorError = RGBA(218, 54, 51, 255)
 	// Bordered by default since 2026-08: the call-site count behind
 	// issue #325 found 90 of 104 example files explicitly calling
 	// SetTheme(ThemeDark.WithBorders(true)), so bordered is what
@@ -180,9 +195,14 @@ func init() {
 	themeLightCfg.ColorFocus = colorFocusLight
 	themeLightCfg.ColorActive = colorActiveLight
 	themeLightCfg.ColorBorder = colorBorderLight
-	themeLightCfg.ColorBorderFocus = colorBorderFocusLight
-	themeLightCfg.ColorSelect = colorSelectLight
-	themeLightCfg.ColorError = RGBA(200, 40, 40, 255)
+	// No ColorSelect, no ColorBorderFocus: both resolve to the
+	// accent, so selection and focus stay the same decision as the
+	// accent (visual-refresh §4.3). The dark preset does the same.
+	themeLightCfg.ColorSeparator = colorSeparatorLight
+	themeLightCfg.ColorAccent = colorAccentLight
+	themeLightCfg.ColorSuccess = colorSuccessLight
+	themeLightCfg.ColorWarning = colorWarningLight
+	themeLightCfg.ColorError = colorErrorLight
 	themeLightCfg.TextStyleDef = TextStyle{
 		Family: defaultFontFamily,
 		Color:  colorTextLight,

@@ -92,6 +92,34 @@ func textRolesFor(text, background Color) textRoleAlphas {
 	return textRolesOnDark
 }
 
+// subtleFor returns c at the polarity-fixed subtle alpha: 40 on a dark
+// ground, 30 on a light one (visual-refresh §4.3/§4.4). The amount of
+// tint a light wash can carry without becoming a slab; the polarity is
+// the theme's own, detected the same way textRolesFor does it.
+func subtleFor(c, background Color) Color {
+	alpha := uint8(40)
+	if srgbLuminance(c) < srgbLuminance(background) {
+		alpha = 30
+	}
+	return RGBA(c.R, c.G, c.B, alpha)
+}
+
+// subtleSlot resolves a widget's subtle fill slot from its defaults:
+// the caller's explicit color wins over the theme's wash, and the
+// wash wins when neither is stated (visual-refresh §4.3). The
+// explicit color keeps painting as before phase 3 — the wash is the
+// default, not a veto.
+func subtleSlot(slot *Color, explicit, fallback Color) {
+	if slot.IsSet() {
+		return
+	}
+	if explicit.IsSet() {
+		*slot = explicit
+		return
+	}
+	*slot = fallback
+}
+
 // themeTextRoles builds the four role styles for a theme.
 //
 // base is the theme's default text style; every role inherits its family

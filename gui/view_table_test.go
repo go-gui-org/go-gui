@@ -271,9 +271,9 @@ func TestTableSelection(t *testing.T) {
 	}
 }
 
-// A selected row's cells draw in the paired foreground while the
-// unselected row keeps the body color. A cell with its own TextStyle
-// is the caller's deliberate color and stays untouched (issue #373).
+// A selected row paints the subtle wash, so its cells keep the body
+// color. A cell with its own TextStyle is the caller's deliberate
+// color and stays untouched (issue #373; visual-refresh §4.3).
 func TestTableSelectedRowTextColor(t *testing.T) {
 	w := &Window{}
 	ownStyle := DefaultTextStyle
@@ -287,8 +287,7 @@ func TestTableSelectedRowTextColor(t *testing.T) {
 				{Value: "c", TextStyle: &ownStyle},
 			}),
 		},
-		Selected:          map[int]bool{1: true},
-		ColorTextOnSelect: White,
+		Selected: map[int]bool{1: true},
 	}), w)
 	if len(layout.Children) < 2 {
 		t.Fatalf("rows = %d, want 2", len(layout.Children))
@@ -299,9 +298,12 @@ func TestTableSelectedRowTextColor(t *testing.T) {
 	if unselected == nil || selected == nil || owned == nil {
 		t.Fatal("cell text missing")
 	}
-	if !selected.TextStyle.Color.eq(White) {
-		t.Errorf("selected cell color = %v, want %v",
-			selected.TextStyle.Color, White)
+	// The selected row paints the subtle wash, so its cells keep the
+	// body color — a tint needs no paired foreground
+	// (visual-refresh §4.3).
+	if !selected.TextStyle.Color.eq(DefaultTextStyle.Color) {
+		t.Errorf("selected cell color = %v, want body %v",
+			selected.TextStyle.Color, DefaultTextStyle.Color)
 	}
 	if !unselected.TextStyle.Color.eq(DefaultTextStyle.Color) {
 		t.Errorf("unselected cell color = %v, want body %v",

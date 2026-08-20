@@ -1,5 +1,5 @@
-Text xy=24.00,22.00 wh=0.00,0.00 color=#202020ff text="Home" size=14.00
-Text xy=67.60,22.00 wh=0.00,0.00 color=#202020ae text="/" size=14.00
-Text xy=86.00,22.00 wh=0.00,0.00 color=#20202095 text="Docs" size=14.00
-Text xy=129.60,22.00 wh=0.00,0.00 color=#202020ae text="/" size=14.00
-Text xy=148.00,22.00 wh=0.00,0.00 color=#202020ff text="Page" size=14.00
+Text xy=24.00,22.00 wh=0.00,0.00 color=#1a1d21ff text="Home" size=14.00
+Text xy=67.60,22.00 wh=0.00,0.00 color=#1a1d21ae text="/" size=14.00
+Text xy=86.00,22.00 wh=0.00,0.00 color=#1a1d2195 text="Docs" size=14.00
+Text xy=129.60,22.00 wh=0.00,0.00 color=#1a1d21ae text="/" size=14.00
+Text xy=148.00,22.00 wh=0.00,0.00 color=#1a1d21ff text="Page" size=14.00

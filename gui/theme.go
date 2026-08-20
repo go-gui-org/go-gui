@@ -209,6 +209,25 @@ type Theme struct {
 	ColorBorder     Color
 	ColorSelect     Color
 
+	// Accent ramp, resolved (visual-refresh §4.3). ThemeMaker fills
+	// every unset slot from ColorAccent (hover = L+0.12, pressed =
+	// L-0.12 in sRGB HSL; subtle = accent at a polarity-fixed alpha;
+	// textOnAccent = white/black by luminance), and an unstated
+	// accent resolves to ColorSelect. Read these during generation
+	// off the bare guiTheme, like any other theme read.
+	ColorAccent        Color
+	ColorAccentHover   Color
+	ColorAccentPressed Color
+	ColorAccentSubtle  Color
+	ColorTextOnAccent  Color
+
+	// Subtle companions for the semantic colors (visual-refresh
+	// §4.4), resolved the same way as ColorAccentSubtle. Consumers
+	// land with phase 7's validation work.
+	ColorSuccessSubtle Color
+	ColorWarningSubtle Color
+	ColorErrorSubtle   Color
+
 	// ColorTextOnSelect is the resolved text color drawn over
 	// ColorSelect fills (selected rows, highlighted list items).
 	// ThemeMaker resolves an unset Cfg token to the body text color,
@@ -347,6 +366,39 @@ type ThemeCfg struct {
 	ColorSuccess Color
 	ColorWarning Color
 	ColorError   Color
+
+	// Accent ramp. ColorAccent is the single accent decision; every
+	// other slot derives from it in ThemeMaker (visual-refresh §4.3):
+	// hover = L+0.12, pressed = L-0.12 in sRGB HSL, ColorAccentSubtle
+	// is the accent at a polarity-fixed alpha, ColorTextOnAccent is
+	// white or black by luminance. Unset ColorAccent resolves to
+	// ColorSelect, and unset ColorSelect to ColorAccent — a theme that
+	// states one color gets a working ramp, and existing themes keep
+	// their appearance (their select becomes their accent).
+	//
+	// exportaudit:keep — theme override seam (accent ramp).
+	ColorAccent Color
+	// exportaudit:keep — theme override seam (accent ramp).
+	ColorAccentHover Color
+	// exportaudit:keep — theme override seam (accent ramp).
+	ColorAccentPressed Color
+	// exportaudit:keep — theme override seam (accent ramp).
+	ColorAccentSubtle Color
+	// exportaudit:keep — theme override seam (accent ramp).
+	ColorTextOnAccent Color
+
+	// Subtle companions for the semantic colors, on the same
+	// derivation rule as ColorAccentSubtle: the fill behind a
+	// validation message is the same decision as the message color
+	// (visual-refresh §4.4). No consumers yet; the widgets that paint
+	// them land with phase 7's validation work.
+	//
+	// exportaudit:keep — theme override seam (semantic colors).
+	ColorSuccessSubtle Color
+	// exportaudit:keep — theme override seam (semantic colors).
+	ColorWarningSubtle Color
+	// exportaudit:keep — theme override seam (semantic colors).
+	ColorErrorSubtle Color
 
 	// ColorTextOnSelect is the text color drawn over ColorSelect
 	// fills — selected rows, highlighted list items. The fill and

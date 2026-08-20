@@ -1,4 +1,4 @@
-Rect xy=15.50,15.50 wh=160.00,32.60 color=#4a4a4aff radius=5.50 fill
-StrokeRect xy=15.50,15.50 wh=160.00,32.60 color=#646464ff radius=5.50 thickness=1.50
-Text xy=27.00,23.24 wh=0.00,0.00 color=#e1e1e164 text="choose one" size=14.00
-Text xy=157.46,26.76 wh=0.00,0.00 color=#e1e1e1ff text="▼" size=8.40
+Rect xy=15.00,15.00 wh=160.00,31.60 color=#262a2fff radius=5.50 fill
+StrokeRect xy=15.00,15.00 wh=160.00,31.60 color=#ffffff1c radius=5.50 thickness=1.00
+Text xy=26.00,22.24 wh=0.00,0.00 color=#e6e8eb64 text="choose one" size=14.00
+Text xy=157.96,25.76 wh=0.00,0.00 color=#e6e8ebff text="▼" size=8.40

@@ -171,6 +171,42 @@ theme-matched color for the shape's state) and keep one appearance with
 `Flat(c)`. Precedence: an assigned flat `Color*` field on the Cfg wins over the
 `ColorSet` — the widget keeps its appearance when a set arrives.
 
+## The accent ramp — one decision, five slots
+
+`ThemeCfg.ColorAccent` is the single accent decision (visual-refresh § 4.3). The
+other slots derive from it in `ThemeMaker` and a theme states them only to
+override:
+
+- `ColorAccentHover` — `L+0.12` in sRGB HSL (absolute, not relative — a relative
+  step collapses on a dark accent).
+- `ColorAccentPressed` — `L-0.12`.
+- `ColorAccentSubtle` — the accent at alpha 40 (dark polarity) / 30 (light), the
+  polarity detected as `textRolesFor` does it. **This is the selection wash.**
+  Selected and keyboard-highlighted rows in `ListBox`, `Table`, `DataGrid`,
+  `Select`, `Combobox` and the command palette paint `ColorAccentSubtle`, never
+  the full accent — focus is the ring, not a second fill. Text on a subtle row
+  stays the body color; only the full accent fill takes the paired
+  `ColorTextOnAccent` foreground.
+- `ColorTextOnAccent` — white when `srgbLuminance(accent) < 0.45`, black
+  otherwise.
+
+`ColorSelect` defaults to `ColorAccent`, and an unstated accent resolves to
+`ColorSelect`, so selection, focus and accent are one decision by default and
+two when a theme needs them apart. A platform theme keeps its native accent by
+stating only its own `ColorSelect`.
+
+`ColorTextOnSelect` — the foreground over the full-accent fills (menu selection,
+the selected tab, the slider fill) — defaults to the same luminance-paired
+color, so a light theme never draws its near-black body text on its blue accent.
+An explicit `ColorTextOnSelect` still wins. The progress bar's percentage is the
+exception: it straddles fill and track, so no single color pairs with both — it
+keeps the body text, unboxed, and stays secondary.
+
+The semantic colors (`ColorSuccess`, `ColorWarning`, `ColorError`) and their
+`*Subtle` companions follow the same rule — fill + tint, one decision. The
+presets fill all six; a validation message and its field background are meant to
+be one pair (the consumers land with the validation work).
+
 ## Focus rings — the shared helper, not a local stroke
 
 A focusable widget's focus affordance comes from the shared ring helpers

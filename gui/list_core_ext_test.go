@@ -161,17 +161,19 @@ func TestListCoreSubheadingView(t *testing.T) {
 	}
 }
 
-// The accent row fill and the label on it travel together: a
-// highlighted or selected row draws its label in the paired
-// foreground, a plain row keeps the body color (issue #373).
+// Highlighted and selected rows paint the subtle wash, never the
+// full accent slab (visual-refresh §4.3), so their labels stay in
+// the body color — a tint needs no paired foreground. The
+// accent/text pairing (issue #373) survives only where the full
+// accent fill still happens: menus and the focused widget's own
+// chrome.
 func TestListCoreItemViewTextOnSelectFill(t *testing.T) {
 	item := listCoreItem{ID: "a", Label: "Alpha"}
 	cfg := listCoreCfg{
-		TextStyle:         DefaultTextStyle,
-		ColorHighlight:    Blue,
-		ColorSelected:     Blue,
-		colorTextOnSelect: White,
-		PaddingItem:       PaddingSmall,
+		TextStyle:      DefaultTextStyle,
+		ColorHighlight: Blue,
+		ColorSelected:  Blue,
+		PaddingItem:    PaddingSmall,
 	}
 
 	plain := firstTextColor(t, listCoreItemView(item, 0, false, false, cfg))
@@ -180,11 +182,13 @@ func TestListCoreItemViewTextOnSelectFill(t *testing.T) {
 			plain, DefaultTextStyle.Color)
 	}
 	highlighted := firstTextColor(t, listCoreItemView(item, 0, true, false, cfg))
-	if !highlighted.eq(White) {
-		t.Errorf("highlighted row color = %v, want %v", highlighted, White)
+	if !highlighted.eq(DefaultTextStyle.Color) {
+		t.Errorf("highlighted row color = %v, want body %v",
+			highlighted, DefaultTextStyle.Color)
 	}
 	selected := firstTextColor(t, listCoreItemView(item, 0, false, true, cfg))
-	if !selected.eq(White) {
-		t.Errorf("selected row color = %v, want %v", selected, White)
+	if !selected.eq(DefaultTextStyle.Color) {
+		t.Errorf("selected row color = %v, want body %v",
+			selected, DefaultTextStyle.Color)
 	}
 }

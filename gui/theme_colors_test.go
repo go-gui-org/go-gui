@@ -73,15 +73,13 @@ func TestWithColorsSelectPropagates(t *testing.T) {
 }
 
 // colorTextOnSelectByStyle collects the token across every style
-// that draws text over the select fill. One place to update when a
-// style adopts the token.
+// that draws text over a full select fill. One place to update when a
+// style adopts the token. The list-like widgets paint the subtle wash
+// now and need no paired text (visual-refresh §4.3); only the menu
+// surface and the date picker's selected day still fill with the
+// accent.
 func colorTextOnSelectByStyle(t Theme) map[string]Color {
 	return map[string]Color{
-		"SelectStyle":     t.selectStyle.ColorTextOnSelect,
-		"ListBoxStyle":    t.listBoxStyle.ColorTextOnSelect,
-		"TableStyle":      t.tableStyle.ColorTextOnSelect,
-		"ComboboxStyle":   t.comboboxStyle.ColorTextOnSelect,
-		"CommandPalette":  t.commandPaletteStyle.ColorTextOnSelect,
 		"MenubarStyle":    t.MenubarStyle.ColorTextOnSelect,
 		"DatePickerStyle": t.datePickerStyle.ColorTextOnSelect,
 	}

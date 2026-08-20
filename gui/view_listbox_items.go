@@ -80,8 +80,7 @@ func listBoxBuildItems(
 		}
 
 		if dragging && isDraggable && di == drag.sourceIndex {
-			ghostContent = listBoxItemContent(
-				cfg.Data[idx], *cfg, false)
+			ghostContent = listBoxItemContent(cfg.Data[idx], *cfg)
 			continue
 		}
 
@@ -115,11 +114,14 @@ func listBoxItemView(dat ListBoxOption, cfg ListBoxCfg, selectedSet map[string]s
 	}
 	selected := false
 	if listCoreContainsSelected(selectedSet, cfg.SelectedIDs, dat.ID) {
-		color = cfg.ColorSelect
+		// Selection paints the subtle wash, not the full accent
+		// slab; focus is the ring, not a second fill
+		// (visual-refresh §4.3).
+		color = cfg.ColorSelectSubtle
 		selected = true
 	}
 	isSub := dat.isSubheading
-	content := listBoxItemContent(dat, cfg, selected)
+	content := listBoxItemContent(dat, cfg)
 
 	datID := dat.ID
 	isMultiple := cfg.Multiple
@@ -173,10 +175,13 @@ func listBoxReorderItemView(
 	color := ColorTransparent
 	selected := false
 	if listCoreContainsSelected(selectedSet, cfg.SelectedIDs, dat.ID) {
-		color = cfg.ColorSelect
+		// Selection paints the subtle wash, not the full accent
+		// slab; focus is the ring, not a second fill
+		// (visual-refresh §4.3).
+		color = cfg.ColorSelectSubtle
 		selected = true
 	}
-	content := listBoxItemContent(dat, cfg, selected)
+	content := listBoxItemContent(dat, cfg)
 	layoutID := listBoxItemID(cfg.ID, dat.ID)
 
 	datID := dat.ID
@@ -245,7 +250,9 @@ func listBoxItemID(listID, optionID string) string {
 // (issue #373) — a selected row draws its label in the paired
 // foreground — so the resolution lives here, next to the fill
 // callers already compute.
-func listBoxItemContent(dat ListBoxOption, cfg ListBoxCfg, selected bool) View {
+// The wash selection tint needs no paired foreground: body text reads
+// on the subtle fill, so the row's text stays its normal style.
+func listBoxItemContent(dat ListBoxOption, cfg ListBoxCfg) View {
 	if dat.isSubheading {
 		return Column(ContainerCfg{
 			Spacing: SomeF(1),
@@ -265,7 +272,7 @@ func listBoxItemContent(dat ListBoxOption, cfg ListBoxCfg, selected bool) View {
 	return Text(TextCfg{
 		Text:      dat.Name,
 		Mode:      TextModeMultiline,
-		TextStyle: textOnFill(cfg.TextStyle, selected, cfg.ColorTextOnSelect),
+		TextStyle: cfg.TextStyle,
 	})
 }
 

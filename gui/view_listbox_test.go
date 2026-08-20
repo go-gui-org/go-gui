@@ -70,8 +70,9 @@ func TestListBoxDisabledFlag(t *testing.T) {
 	}
 }
 
-// A selected row draws its label in the paired foreground while an
-// unselected row keeps the body color (issue #373).
+// A selected row paints the subtle wash, so its label keeps the
+// body color — a tint needs no paired foreground
+// (visual-refresh §4.3).
 func TestListBoxSelectedRowTextColor(t *testing.T) {
 	w := &Window{}
 	layout := generateViewLayout(ListBox(ListBoxCfg{
@@ -80,8 +81,7 @@ func TestListBoxSelectedRowTextColor(t *testing.T) {
 			{ID: "x", Name: "Item X"},
 			{ID: "y", Name: "Item Y"},
 		},
-		SelectedIDs:       []string{"y"},
-		ColorTextOnSelect: White,
+		SelectedIDs: []string{"y"},
 	}), w)
 	if len(layout.Children) < 2 {
 		t.Fatalf("children = %d, want 2", len(layout.Children))
@@ -91,9 +91,9 @@ func TestListBoxSelectedRowTextColor(t *testing.T) {
 	if unselected == nil || selected == nil {
 		t.Fatal("row text missing")
 	}
-	if !selected.TextStyle.Color.eq(White) {
-		t.Errorf("selected row color = %v, want %v",
-			selected.TextStyle.Color, White)
+	if !selected.TextStyle.Color.eq(DefaultTextStyle.Color) {
+		t.Errorf("selected row color = %v, want body %v",
+			selected.TextStyle.Color, DefaultTextStyle.Color)
 	}
 	if !unselected.TextStyle.Color.eq(DefaultTextStyle.Color) {
 		t.Errorf("unselected row color = %v, want body %v",

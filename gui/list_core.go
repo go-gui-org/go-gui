@@ -27,18 +27,14 @@ type listCoreCfg struct {
 	TextStyle       TextStyle
 	detailStyle     TextStyle
 	subheadingStyle TextStyle
-	// colorTextOnSelect colors text on the accent row fill (see
-	// listCoreItemView). Resolved by the caller's apply*Defaults, so
-	// it is always set for theme-built widgets.
-	colorTextOnSelect Color
-	OnItemClick       func(string, int, EventCtx)
-	OnItemHover       func(int, EventCtx)
-	PaddingItem       Padding
-	ColorHighlight    Color
-	ColorHover        Color
-	ColorSelected     Color
-	ShowDetails       bool
-	ShowIcons         bool
+	OnItemClick     func(string, int, EventCtx)
+	OnItemHover     func(int, EventCtx)
+	PaddingItem     Padding
+	ColorHighlight  Color
+	ColorHover      Color
+	ColorSelected   Color
+	ShowDetails     bool
+	ShowIcons       bool
 }
 
 // listCorePrepared holds pre-computed filter results for a frame.
@@ -359,20 +355,20 @@ func listCoreViews(items []listCoreItem, cfg listCoreCfg, first, last, highlight
 }
 
 // listCoreItemView renders a single item row.
+// Highlight and selection both paint the subtle wash, never the
+// full accent slab (visual-refresh §4.3). A tint needs no paired
+// foreground, so the row's text stays its normal style — the
+// accent/text pairing (issue #373) applies only where the full
+// accent fill still happens, which is menus and the focused
+// widget's own chrome.
 func listCoreItemView(item listCoreItem, index int, isHighlighted, isSelected bool, cfg listCoreCfg) View {
-	// The accent fill and the text on it travel together (issue
-	// #373): wherever the row picks the fill, its label picks the
-	// paired foreground. Combobox and CommandPalette draw their
-	// keyboard highlight with the accent color, so both branches
-	// carry the token.
 	bg := ColorTransparent
 	if isHighlighted {
 		bg = cfg.ColorHighlight
 	} else if isSelected {
 		bg = cfg.ColorSelected
 	}
-	ts := textOnFill(cfg.TextStyle,
-		isHighlighted || isSelected, cfg.colorTextOnSelect)
+	ts := cfg.TextStyle
 
 	if item.isSubheading {
 		return listCoreSubheadingView(item, cfg)
