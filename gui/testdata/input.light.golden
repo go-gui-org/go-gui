@@ -1,4 +1,4 @@
-Rect xy=14.00,14.00 wh=160.00,29.60 color=#ffffffff radius=5.50 fill
+Rect xy=14.00,14.00 wh=160.00,29.60 color=#ffffffff radius=6.00 fill
 Clip xy=24.00,19.00 wh=140.00,19.60
 Text xy=24.00,19.00 wh=0.00,0.00 color=#1a1d21ff text="typed value" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00

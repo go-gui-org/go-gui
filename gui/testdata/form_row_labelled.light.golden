@@ -1,9 +1,9 @@
 Text xy=28.00,28.00 wh=0.00,0.00 color=#1a1d21ba text="First" size=11.00
-Rect xy=28.00,49.40 wh=129.00,29.60 color=#ffffffff radius=5.50 fill
+Rect xy=28.00,49.40 wh=129.00,29.60 color=#ffffffff radius=6.00 fill
 Clip xy=38.00,54.40 wh=109.00,19.60
 Text xy=38.00,54.40 wh=0.00,0.00 color=#1a1d21ff text="Mike" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00
 Text xy=163.00,28.00 wh=0.00,0.00 color=#1a1d21ba text="Role" size=11.00
-Rect xy=163.00,49.40 wh=129.00,29.60 color=#ffffffff radius=5.50 fill
+Rect xy=163.00,49.40 wh=129.00,29.60 color=#ffffffff radius=6.00 fill
 Text xy=173.00,55.64 wh=0.00,0.00 color=#1a1d21ff text="user" size=14.00
 Text xy=276.96,59.16 wh=0.00,0.00 color=#1a1d21ff text="▼" size=8.40

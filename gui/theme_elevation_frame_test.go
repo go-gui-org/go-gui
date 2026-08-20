@@ -52,7 +52,9 @@ func countShadows(cmds []RenderCmd) int {
 // An open Select dropdown under a theme with elevation must emit a
 // shadow; under a theme without one it must emit none. The pair is the
 // point — the second half is what proves the first is the theme's
-// doing and not something the widget now always does.
+// doing and not something the widget now always does. macOS and dark
+// both carry elevation since visual-refresh §5.3; the blue taste
+// preset is the remaining flat theme.
 func TestOpenDropdownEmitsShadowOnlyWhenThemed(t *testing.T) {
 	build := func(*Window) View {
 		return Select(SelectCfg{
@@ -64,14 +66,19 @@ func TestOpenDropdownEmitsShadowOnlyWhenThemed(t *testing.T) {
 		StateMap[string, bool](w, nsSelect, capModerate).Set("picker", true)
 	}
 
-	elevated := frameCmds(t, themeMacOS, build, "", open)
-	if countShadows(elevated) == 0 {
-		t.Error("macOS theme: open dropdown emitted no shadow")
+	for name, theme := range map[string]Theme{
+		"macos": themeMacOS,
+		"dark":  ThemeDark,
+	} {
+		cmds := frameCmds(t, theme, build, "", open)
+		if countShadows(cmds) == 0 {
+			t.Errorf("%s theme: open dropdown emitted no shadow", name)
+		}
 	}
 
-	flat := frameCmds(t, ThemeDark, build, "", open)
+	flat := frameCmds(t, themeBlue, build, "", open)
 	if got := countShadows(flat); got != 0 {
-		t.Errorf("dark theme: got %d shadows, want 0", got)
+		t.Errorf("blue theme: got %d shadows, want 0", got)
 	}
 }
 

@@ -31,6 +31,37 @@ const (
 	scrollDeltaPage  float32 = 10
 )
 
+// Dark elevation tiers (visual-refresh §5.3). Floating surfaces only:
+// menus, dropdowns, tooltips, toasts on the popover tier; dialogs and
+// the command palette on the dialog tier. Inline panels and cards
+// separate by fill value, never by shadow.
+var (
+	darkShadowPopover = &BoxShadow{
+		Color:      RGBA(0, 0, 0, 140),
+		OffsetY:    4,
+		BlurRadius: 12,
+	}
+	darkShadowDialog = &BoxShadow{
+		Color:      RGBA(0, 0, 0, 170),
+		OffsetY:    12,
+		BlurRadius: 32,
+	}
+
+	// Light elevation tiers. The same geometry as dark with a softer
+	// ink: dark-on-dark shadows are barely visible at the low alphas a
+	// light surface needs, so the light ink is the page tint instead.
+	lightShadowPopover = &BoxShadow{
+		Color:      RGBA(16, 24, 40, 40),
+		OffsetY:    4,
+		BlurRadius: 12,
+	}
+	lightShadowDialog = &BoxShadow{
+		Color:      RGBA(16, 24, 40, 60),
+		OffsetY:    12,
+		BlurRadius: 32,
+	}
+)
+
 // baseCfg returns the shared sizing/spacing/widget-size fields
 // common to all preset themes.
 func baseCfg() ThemeCfg {
@@ -98,6 +129,12 @@ func baseDarkCfg() ThemeCfg {
 	// the borderless look. The "dark-bordered" preset is now identical
 	// to ThemeDark but stays registered for name-based theme selection.
 	cfg.SizeBorder = sizeBorderDef
+	// Elevation (visual-refresh §5.3): the dark presets float their
+	// popovers and modals. Derived presets (dark-no-padding,
+	// dark-bordered) copy the cfg and inherit it, which is what makes
+	// them dark's visual twins.
+	cfg.ShadowPopover = darkShadowPopover
+	cfg.ShadowDialog = darkShadowDialog
 	return cfg
 }
 
@@ -208,6 +245,11 @@ func init() {
 		Color:  colorTextLight,
 		Size:   sizeTextMedium,
 	}
+	// Elevation (visual-refresh §5.3), the light tier consts; the
+	// dark pattern is in baseDarkCfg. Derived presets (light-no-padding,
+	// light-bordered) copy the cfg and inherit it.
+	themeLightCfg.ShadowPopover = lightShadowPopover
+	themeLightCfg.ShadowDialog = lightShadowDialog
 	ThemeLight = ThemeMaker(themeLightCfg)
 
 	// Light no padding.

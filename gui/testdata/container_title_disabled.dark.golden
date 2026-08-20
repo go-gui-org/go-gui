@@ -1,2 +1,2 @@
-StrokeRect xy=15.00,15.00 wh=30.00,30.00 color=#4a6b8a7f radius=5.50 thickness=1.00
+StrokeRect xy=15.00,15.00 wh=30.00,30.00 color=#4a6b8a7f radius=6.00 thickness=1.00
 Text xy=40.00,7.00 wh=0.00,0.00 color=#4a6b8a80 text="Group" size=14.00

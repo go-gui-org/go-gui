@@ -74,13 +74,6 @@ func baseMacOSCfg() ThemeCfg {
 	// instead.
 	cfg.SizeBorder = 1
 
-	// Corner rounding. macOS buttons and fields sit near 6; menus and
-	// dialogs are rounder.
-	cfg.Radius = 6
-	cfg.RadiusSmall = 4
-	cfg.RadiusMedium = 6
-	cfg.RadiusLarge = 10
-
 	// Control geometry. The switch is a true capsule — height 22 with
 	// a 38 width gives the knob room to travel without the track
 	// looking stretched.

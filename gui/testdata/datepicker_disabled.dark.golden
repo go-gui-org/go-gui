@@ -1,5 +1,5 @@
-Rect xy=15.00,15.00 wh=278.00,262.80 color=#262a2f7f radius=5.50 fill
-StrokeRect xy=15.00,15.00 wh=278.00,262.80 color=#ffffff0e radius=5.50 thickness=1.00
+Rect xy=15.00,15.00 wh=278.00,262.80 color=#262a2f7f radius=6.00 fill
+StrokeRect xy=15.00,15.00 wh=278.00,262.80 color=#ffffff0e radius=6.00 thickness=1.00
 Text xy=35.00,29.24 wh=0.00,0.00 color=#e6e8eb80 text="August 2026" size=14.00
 Text xy=216.20,29.24 wh=0.00,0.00 color=#e6e8eb80 text="\uf101" size=14.00
 Text xy=264.60,29.24 wh=0.00,0.00 color=#e6e8eb80 text="\uf102" size=14.00
@@ -30,9 +30,9 @@ Text xy=107.60,152.39 wh=0.00,0.00 color=#e6e8eb80 text="11" size=14.00
 Text xy=145.60,152.39 wh=0.00,0.00 color=#e6e8eb80 text="12" size=14.00
 Text xy=183.60,152.39 wh=0.00,0.00 color=#e6e8eb80 text="13" size=14.00
 Text xy=221.60,152.39 wh=0.00,0.00 color=#e6e8eb80 text="14" size=14.00
-Rect xy=250.00,146.40 wh=36.00,29.60 color=#4d82f07f radius=5.50 fill
+Rect xy=250.00,146.40 wh=36.00,29.60 color=#4d82f07f radius=6.00 fill
 Text xy=259.60,152.39 wh=0.00,0.00 color=#ffffff80 text="15" size=14.00
-StrokeRect xy=22.00,178.00 wh=36.00,29.60 color=#e6e8eb7f radius=5.50 thickness=2.00
+StrokeRect xy=22.00,178.00 wh=36.00,29.60 color=#e6e8eb7f radius=6.00 thickness=2.00
 Text xy=31.60,183.99 wh=0.00,0.00 color=#e6e8eb80 text="16" size=14.00
 Text xy=69.60,183.99 wh=0.00,0.00 color=#e6e8eb80 text="17" size=14.00
 Text xy=107.60,183.99 wh=0.00,0.00 color=#e6e8eb80 text="18" size=14.00
