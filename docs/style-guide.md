@@ -74,14 +74,14 @@ neither substitutes for the other.
 
 ## Spacing and insets — the tiers mean relatedness
 
-`SpacingTight` is the gap inside one composite control, between parts that
-read as a single unit (calendar cells, the tab strip, submenu items);
-`SpacingSmall` binds a tightly related pair (a control and its readout);
-`SpacingMedium` separates members of one group; `SpacingLarge` separates
-sections. Prefer a tier over a magic number; a number that bypasses the ladder
-is a finding on the same basis as a dimming alpha. A structural indent (a
-nested blockquote, a list depth) is not a gap between siblings and stays off
-the ladder, but must say so in a comment.
+`SpacingTight` is the gap inside one composite control, between parts that read
+as a single unit (calendar cells, the tab strip, submenu items); `SpacingSmall`
+binds a tightly related pair (a control and its readout); `SpacingMedium`
+separates members of one group; `SpacingLarge` separates sections. Prefer a tier
+over a magic number; a number that bypasses the ladder is a finding on the same
+basis as a dimming alpha. A structural indent (a nested blockquote, a list
+depth) is not a gap between siblings and stays off the ladder, but must say so
+in a comment.
 
 A form control's text inset is `Theme.PaddingField` — that is what makes
 controls in one row share a height. A structural wrapper (a container that

@@ -146,7 +146,7 @@ func NumericInput(cfg NumericInputCfg) View {
 		},
 		Content: content,
 	})
-	return labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, control)
+	return labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, cfg.Sizing, control)
 }
 
 func numericInputField(cfg NumericInputCfg, locale NumericLocaleCfg, _ NumericStepCfg, fillParent bool) View {
@@ -187,21 +187,22 @@ func numericInputField(cfg NumericInputCfg, locale NumericLocaleCfg, _ NumericSt
 		ID: inputID,
 		// NumericInput focus is default-on; propagate FocusDisabled
 		// intent to the inner Input.
-		FocusDisabled: cfg.FocusDisabled,
-		ReadOnly:      cfg.ReadOnly,
-		Text:          cfg.Text,
-		Placeholder:   cfg.Placeholder,
-		A11YCfg:       cfg.A11YCfg,
-		Sizing:        sizing,
-		Width:         width,
-		Height:        height,
-		MinWidth:      minWidth,
-		MaxWidth:      maxWidth,
-		MinHeight:     minHeight,
-		MaxHeight:     maxHeight,
-		Padding:       cfg.Padding,
-		Radius:        radius,
-		SizeBorder:    sizeBorder,
+		FocusDisabled:   cfg.FocusDisabled,
+		ReadOnly:        cfg.ReadOnly,
+		Text:            cfg.Text,
+		Placeholder:     cfg.Placeholder,
+		A11YCfg:         cfg.A11YCfg,
+		Sizing:          sizing,
+		Width:           width,
+		Height:          height,
+		MinWidth:        minWidth,
+		MaxWidth:        maxWidth,
+		noMinWidthFloor: true,
+		MinHeight:       minHeight,
+		MaxHeight:       maxHeight,
+		Padding:         cfg.Padding,
+		Radius:          radius,
+		SizeBorder:      sizeBorder,
 		// The pre-commit transform admits digits, the locale's group and
 		// decimal separators and a sign, so the reserved descent is
 		// provably empty and the value can be centred on its ink rather
@@ -404,6 +405,7 @@ func applyNumericInputDefaults(cfg *NumericInputCfg) {
 	if cfg.PlaceholderStyle == (TextStyle{}) {
 		cfg.PlaceholderStyle = defaultInputStyle.PlaceholderStyle
 	}
+	cfg.MinWidth = fieldMinWidth(cfg.MinWidth, cfg.Width)
 	if cfg.currencyCfg == (numericCurrencyModeCfg{}) {
 		cfg.currencyCfg = numericCurrencyModeCfg{
 			Symbol:   "$",

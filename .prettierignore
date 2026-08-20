@@ -1,0 +1,6 @@
+# Generated from go.mod by tools/depsdoc; reformatting fights the generator.
+docs/dependencies.md
+
+# Vendored / third-party docs.
+vendor/
+node_modules/

@@ -8,7 +8,8 @@ Guidance for Claude Code (claude.ai/code) in this repo.
 go run ./examples/get_started/  # run the example app
 make prepush                    # full pre-push gate (race, cross-lint, cross-compile, coverage, export audit)
 make check-all                  # test + lint + vet gates (what .githooks/pre-push runs)
-make check                      # fast subset (vet, deps-doc, large-files, generate-check, tidy-check)
+make check                      # fast subset (vet, deps-doc, large-files, generate-check, tidy-check, fmt-md-check)
+make fmt-md                     # format every tracked .md with Prettier (.prettierrc holds the flags)
 git config core.hooksPath .githooks  # enable tracked pre-commit/pre-push hooks
 make test                       # tests only
 make lint                       # golangci-lint (pinned version)

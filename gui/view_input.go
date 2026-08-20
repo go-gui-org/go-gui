@@ -133,6 +133,14 @@ type InputCfg struct {
 	// opticalCenterFieldText.
 	opticalDigitCenter bool
 
+	// noMinWidthFloor opts a composed inner Input out of the theme
+	// field min-width floor. Set only by widgets that wrap an Input
+	// as a text layer inside their own control -- NumericInput and
+	// InputDate -- where the outer container already carries the
+	// floor and a second one on the fill-sized inner shape would push
+	// the whole control wider than the theme asked for.
+	noMinWidthFloor bool
+
 	// SpellCheck enables platform spell checking. Mac only.
 	SpellCheck bool
 
@@ -319,7 +327,7 @@ func Input(cfg InputCfg) View {
 			colorBorderFocus, spellChk, onBlur),
 		Content: []View{inner},
 	})
-	return labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, field)
+	return labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, cfg.Sizing, field)
 }
 
 func applyInputDefaults(cfg *InputCfg) {
@@ -344,6 +352,9 @@ func applyInputDefaults(cfg *InputCfg) {
 	}
 	if !cfg.Radius.IsSet() {
 		cfg.Radius = Some(d.Radius)
+	}
+	if !cfg.noMinWidthFloor {
+		cfg.MinWidth = fieldMinWidth(cfg.MinWidth, cfg.Width)
 	}
 	if !cfg.SizeBorder.IsSet() {
 		cfg.SizeBorder = Some(d.SizeBorder)

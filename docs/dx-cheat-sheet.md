@@ -167,9 +167,9 @@ nothing detects that. See `docs/specs/virtualized-variable-height-lists.md`.
 `min(single-row sum, nearest definite-width ancestor's available)`, so the
 container wraps within its parent instead of rendering one unwrapped row wider
 than it. A Fit chain with no Fixed/Fill width above it has no width to wrap
-within and keeps the single-row sum — that combination behaves as a `Row`, not
-a wrap. When the wrap should always fill its parent, use Fill width, which is
-what every example in this repo does.
+within and keeps the single-row sum — that combination behaves as a `Row`, not a
+wrap. When the wrap should always fill its parent, use Fill width, which is what
+every example in this repo does.
 
 ## The one-event rule
 

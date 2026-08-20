@@ -6,31 +6,73 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Visual refresh phase 1 (`docs/specs/visual-refresh.md`, sections 1 and 1b).
+
+### Added
+
+- **`ThemeCfg.SizeFieldMinWidth` / `Theme.SizeFieldMinWidth`** — the MinWidth
+  floor a text-bearing form control takes when its Cfg states none, seeded to
+  160 in `baseCfg()` so every preset carries it. Zero means no floor, not
+  "derive the default": a hand-built `ThemeCfg` that leaves it unset asks for
+  Fit-to-content. `Input`, `NumericInput`, `InputDate`, `Select` and `Combobox`
+  consume it; a Cfg stating its own `MinWidth` or `Width` opts out. This retires
+  four literals in `ThemeMaker` (`MinWidth: 75` / `MaxWidth: 200`, spelled once
+  on `selectStyle` and again on `comboboxStyle`), which is why a `Select` and an
+  `Input` in one row disagreed on width for a reason neither the theme nor the
+  caller stated.
+
+### Changed
+
+- **`selectStyle` and `comboboxStyle` are no longer width-capped.** The old
+  `MaxWidth: 200` stopped a `Select` given `FillFit` in a 900px row at 200px
+  with no way for the caller to see why, and it would have silently defeated the
+  labelled-field fix below. A caller wanting a ceiling sets `MaxWidth` on the
+  Cfg. `maxDropdownHeight` is unrelated and unchanged.
+- **An unsized labelled field is now 160px wide, not the width of its content.**
+  Behaviour change for any app relying on a labelled `Input`, `Select`,
+  `Combobox`, `NumericInput` or `InputDate` shrink-wrapping its text.
+
+### Fixed
+
+- **A labelled field could not fill its row** (`docs/specs/visual-refresh.md`
+  section 1). `labelledField` hardcoded `Sizing: FitFit` on the wrapper
+  `Column`, so the caller's sizing was unreachable: an
+  `InputCfg{Sizing: FillFit}` inside a `FillFit` `Row` still arranged at the
+  width of its text. Nine widgets route through that function, so no labelled
+  field in any app built on this toolkit could fill its row. The wrapper now
+  takes the field's width mode and pins its own height to `Fit`, so the
+  label/field stack still hugs its content. A Cfg that never set `Sizing` gets
+  the wrapper it got before. `ColorFields` and `DatePicker` pass `FitFit`
+  explicitly — neither Cfg has a `Sizing` field, and both are fixed-shape by
+  design.
+
 ## [v0.63.0] - 2026-08-19
 
 ### Added
 
-- **`gnome`/`gnome-dark` and `windows`/`windows-dark` theme presets**
-  (issue #374 pattern). Adwaita-derived and WinUI-derived platform themes,
-  registered like the `macos` presets and reached by name through `ThemeGet`:
-  hairline borders, platform corner rounding (GNOME rounder, Windows squarer),
-  platform accent colors, and subtle popover/dialog elevation. Both keep the
-  platform's hard accent outline for focus (`ColorBorderFocus`) instead of the
-  macOS glow — `FocusRing` stays nil. Fonts stay unpinned so each resolves to
-  the machine's system face (Cantarell on GNOME, Segoe UI on Windows).
+- **`gnome`/`gnome-dark` and `windows`/`windows-dark` theme presets** (issue
+  #374 pattern). Adwaita-derived and WinUI-derived platform themes, registered
+  like the `macos` presets and reached by name through `ThemeGet`: hairline
+  borders, platform corner rounding (GNOME rounder, Windows squarer), platform
+  accent colors, and subtle popover/dialog elevation. Both keep the platform's
+  hard accent outline for focus (`ColorBorderFocus`) instead of the macOS glow —
+  `FocusRing` stays nil. Fonts stay unpinned so each resolves to the machine's
+  system face (Cantarell on GNOME, Segoe UI on Windows).
 
 ### Fixed
 
-- **`Wrap` + `Overflow` on one container hid children that fit** (issue
-  #380). The two flags express contradictory strategies for the same
-  condition — `Wrap` breaks content onto a new row, `Overflow` hides the
-  tail behind a trigger — and nothing arbitrated between them. When a wrap
-  container's content fit a single row, `layoutWrapContainers` kept its
-  left-to-right axis and `layoutOverflow` then hid a child anyway, because
-  it reserves room for a trigger button that a wrap never has. `Wrap` now
-  wins: `layoutOverflow` skips any container with `Wrap` set, and the new
-  `DebugWrapOverflow` category (part of `DebugAll`) reports the combination
-  once per window. Scrollable containers were already unaffected.
+- **`Wrap` + `Overflow` on one container hid children that fit** (issue #380).
+  The two flags express contradictory strategies for the same condition — `Wrap`
+  breaks content onto a new row, `Overflow` hides the tail behind a trigger —
+  and nothing arbitrated between them. When a wrap container's content fit a
+  single row, `layoutWrapContainers` kept its left-to-right axis and
+  `layoutOverflow` then hid a child anyway, because it reserves room for a
+  trigger button that a wrap never has. `Wrap` now wins: `layoutOverflow` skips
+  any container with `Wrap` set, and the new `DebugWrapOverflow` category (part
+  of `DebugAll`) reports the combination once per window. Scrollable containers
+  were already unaffected.
 
 - **`Wrap` stopped wrapping once the child count grew past the window width**
   (issue #378). `layoutWidths` seeded a container's min-width floor with the
@@ -38,22 +80,23 @@ and this project adheres to
   wrong for `Wrap` and `Overflow` — both exist so the container can be narrower
   than one row of content. The floor therefore grew linearly with the child
   count (`(n-1) * Spacing`), and once it exceeded the available width the fill
-  pass clamped the container back up to it, so wrapping measured against a
-  width wider than the window and rows spilled past the right edge. Only
-  visible in a non-maximized window, and only past the item count where the
-  floor overtook the real width — hence "wraps at 40 items, overflows at 50". A
-  wrapping or overflowing container now floors at its widest single child plus
-  padding. Not verified against the reporter's repo, which pins released
-  v0.51; the fix lands on the unreleased line.
+  pass clamped the container back up to it, so wrapping measured against a width
+  wider than the window and rows spilled past the right edge. Only visible in a
+  non-maximized window, and only past the item count where the floor overtook
+  the real width — hence "wraps at 40 items, overflows at 50". A wrapping or
+  overflowing container now floors at its widest single child plus padding. Not
+  verified against the reporter's repo, which pins released v0.51; the fix lands
+  on the unreleased line.
 
 - **Restored caller-facing `*Cfg` fields unexported by the #230 surface sweep**
   (issue #372). The sweep unexported every symbol with no in-repo external
   reference, including configuration fields users set directly in struct
-  literals. Restored: `SvgCfg.FileName`/`NoAnimate`, `SelectCfg.SubheadingStyle`/
-  `NoWrap`, `ListBoxCfg.SubheadingStyle`, `InputCfg.PreTextChange`/
-  `PostCommitNormalize`, `NumericStepCfg.ShiftMultiplier`/`AltMultiplier`/
-  `MouseWheel`/`Keyboard`, `ContainerCfg.OnScroll`/`OnIMECommit`/
-  `ClickOnSpace`/`ClickOnEnter`/`ClipContents`/`FloatAutoFlip`, the
+  literals. Restored: `SvgCfg.FileName`/`NoAnimate`,
+  `SelectCfg.SubheadingStyle`/`NoWrap`, `ListBoxCfg.SubheadingStyle`,
+  `InputCfg.PreTextChange`/`PostCommitNormalize`,
+  `NumericStepCfg.ShiftMultiplier`/`AltMultiplier`/`MouseWheel`/`Keyboard`,
+  `ContainerCfg.OnScroll`, `OnIMECommit`, `ClickOnSpace`, `ClickOnEnter`,
+  `ClipContents` and `FloatAutoFlip`, the
   TabControl/Breadcrumb/Menubar/ContextMenu/Splitter/Slider/Scrollbar/DockLayout
   style ladders, `ThemeCfg` size/font/elevation knobs, `WindowCfg`
   `AllowedSvgRoots`/`MaxImageDownloads`/`HistoryBytes`, datagrid's `DataGridCfg`
@@ -636,7 +679,7 @@ and this project adheres to
 - **`OnHover` receives the held mouse button.** The window tracks the held
   button from its own event stream — set on `EventMouseDown`, cleared on
   `EventMouseUp` and `MouseCancel` — and `layoutHover` reports it in the
-  synthesized hover event: `MouseLeft`/`MouseRight`/ `MouseMiddle` while held,
+  synthesized hover event: `MouseLeft`/`MouseRight`/`MouseMiddle` while held,
   `MouseInvalid` when none is held. A hover handler can now distinguish a
   press-and-hold from a plain hover; it could not before, because the event
   always arrived with `MouseInvalid`. The event is still `Type: EventMouseMove`

@@ -214,19 +214,19 @@ new lowest rung **`SpacingTight 2`**. The tiers now state a meaning, decided
 once and documented at the const block and in `docs/style-guide.md`:
 
 - `SpacingTight` — inside one composite control, between parts that read as a
-  single unit. `spacingHeader` (tab strip), `spacingSubmenu` (submenu items)
-  and `cellSpacing` (calendar cells) all fold to it.
+  single unit. `spacingHeader` (tab strip), `spacingSubmenu` (submenu items) and
+  `cellSpacing` (calendar cells) all fold to it.
 - `SpacingSmall` — members of one visual group that share a container. The
   ColorFields channel row stays on it.
 - `SpacingMedium` — sibling controls in a stack. The toast stack (`8`) and
   RadioButtonGroup's default (was `Small`) migrate up to it.
-- `SpacingLarge` — unrelated sections. Markdown `blockSpacing` (12) folds to
-  it, giving the tier its first caller inside `gui/`.
+- `SpacingLarge` — unrelated sections. Markdown `blockSpacing` (12) folds to it,
+  giving the tier its first caller inside `gui/`.
 
-`nestIndent` (16) is a structural indent for nested blockquotes and list
-depths, not a gap between siblings; it stays off the ladder and says so in a
-comment. `Theme.PaddingField` remains a separate concept: it sizes a control,
-the tiers size the gaps between them.
+`nestIndent` (16) is a structural indent for nested blockquotes and list depths,
+not a gap between siblings; it stays off the ladder and says so in a comment.
+`Theme.PaddingField` remains a separate concept: it sizes a control, the tiers
+size the gaps between them.
 
 ## 5. Borders — the healthiest axis
 
@@ -241,12 +241,12 @@ Recorded for completeness. No action proposed.
 
 `ColorSet` (`gui/color_set.go`) is the intended abstraction for per-state
 colors. At audit time it reached **5 of ~18** interactive widgets — Button,
-Radio, Toggle, DatePicker, InputDate. Eleven carried the flat `Color*` fields
-it replaces, and ~10 sites built an inline `ColorSet{...}` without calling
-`.resolved()`. **Closed by issue #342**: the eleven now carry `Colors` too,
-with their flat fields retained and winning via `applyTo`, and the inline
-sites resolve at construction. (Table and ColorSwatch remain unfocusable —
-see §6.1 and issue #345.)
+Radio, Toggle, DatePicker, InputDate. Eleven carried the flat `Color*` fields it
+replaces, and ~10 sites built an inline `ColorSet{...}` without calling
+`.resolved()`. **Closed by issue #342**: the eleven now carry `Colors` too, with
+their flat fields retained and winning via `applyTo`, and the inline sites
+resolve at construction. (Table and ColorSwatch remain unfocusable — see §6.1
+and issue #345.)
 
 `ThemeMaker` tally: **21** styles define a hover color, **19** a click color,
 only **14** a focus color.
@@ -333,15 +333,15 @@ is not a field, and `gui/view_button.go:104-107` documents its choice.
 
 ## Summary
 
-| §   | Axis              | State                                                         |
-| --- | ----------------- | ------------------------------------------------------------- |
-| 1   | Dimming           | 7 source values; disabled text renders at 3, over a 2× spread |
-| 2   | Type steps        | 3 parallel systems; 1 theme bypass                            |
-| 3   | Field labels      | absent on 8 widgets; 3 conventions elsewhere                  |
-| 4   | Spacing           | 1 tier of 3 unused; ~10 magic values                          |
-| 5   | Borders           | healthy; 2 outliers                                           |
+| §   | Axis              | State                                                                               |
+| --- | ----------------- | ----------------------------------------------------------------------------------- |
+| 1   | Dimming           | 7 source values; disabled text renders at 3, over a 2× spread                       |
+| 2   | Type steps        | 3 parallel systems; 1 theme bypass                                                  |
+| 3   | Field labels      | absent on 8 widgets; 3 conventions elsewhere                                        |
+| 4   | Spacing           | 1 tier of 3 unused; ~10 magic values                                                |
+| 5   | Borders           | healthy; 2 outliers                                                                 |
 | 6   | Interaction state | ColorSet on 17/17 interactive widgets; focus missing where a widget cannot take one |
-| 7   | Density           | 5 insets; Input's theme padding dead                          |
+| 7   | Density           | 5 insets; Input's theme padding dead                                                |
 
 The ordering that follows from this is: fix §6 and §7 first (a user sees them),
 then §1 and §3 (an author trips on them), and leave §5 alone.
@@ -365,15 +365,15 @@ like should be recorded, not read.
 What this branch changed, per axis. The measurements above describe the state at
 `b6adf899` and are kept as the "before"; this section is the "after".
 
-| §   | Axis              | Outcome                                                                                                           |
-| --- | ----------------- | ----------------------------------------------------------------------------------------------------------------- |
-| 1   | Dimming           | closed — four named roles, per-theme and contrast-matched; disabled text routed through the role at render (#341) |
-| 2   | Type steps        | mostly — full ladder exported, mono +1 documented, two steps tracked                                              |
-| 3   | Field labels      | closed — `Label` on all eight, one shared convention                                                              |
+| §   | Axis              | Outcome                                                                                                                |
+| --- | ----------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| 1   | Dimming           | closed — four named roles, per-theme and contrast-matched; disabled text routed through the role at render (#341)      |
+| 2   | Type steps        | mostly — full ladder exported, mono +1 documented, two steps tracked                                                   |
+| 3   | Field labels      | closed — `Label` on all eight, one shared convention                                                                   |
 | 4   | Spacing           | closed — four tiers with stated meanings; the tight values, toast stack, and block/radio-group defaults fold in (#344) |
-| 5   | Borders           | untouched, by decision                                                                                            |
-| 6   | Interaction state | closed — `ColorSet` on all 17 interactive widgets (#342); focus rings for the four that could take one |
-| 7   | Density           | closed — one field-inset tier, two latent bugs fixed                                                              |
+| 5   | Borders           | untouched, by decision                                                                                                 |
+| 6   | Interaction state | closed — `ColorSet` on all 17 interactive widgets (#342); focus rings for the four that could take one                 |
+| 7   | Density           | closed — one field-inset tier, two latent bugs fixed                                                                   |
 
 ### Left open
 

@@ -253,7 +253,7 @@ func Slider(cfg SliderCfg) View {
 			}),
 		},
 	})
-	return labelledField(cfg.Label, TextStyle{}, HAlignLeft, field)
+	return labelledField(cfg.Label, TextStyle{}, HAlignLeft, cfg.Sizing, field)
 }
 
 func sliderAmendLayoutSlide(

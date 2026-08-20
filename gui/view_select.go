@@ -77,7 +77,9 @@ func Select(cfg SelectCfg) View {
 	applySelectDefaults(&cfg)
 	requireFocusID("Select", cfg.FocusDisabled, cfg.ID)
 	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
-	return labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, &selectView{cfg: cfg})
+	return labelledField(
+		cfg.Label, cfg.TextStyle, HAlignLeft, cfg.Sizing,
+		&selectView{cfg: cfg})
 }
 
 func (sv *selectView) GenerateLayout(w *Window) Layout {

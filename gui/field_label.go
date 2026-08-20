@@ -43,7 +43,8 @@ package gui
 // controls with no TextStyle field of their own (Slider, ColorPicker)
 // pass.
 func labelledField(
-	label string, base TextStyle, align HorizontalAlign, field View,
+	label string, base TextStyle, align HorizontalAlign,
+	sizing Sizing, field View,
 ) View {
 	if label == "" {
 		return field
@@ -57,7 +58,7 @@ func labelledField(
 		// reserve space, which is the defect that made Input arrange
 		// 3px taller than Select (audit section 7.1).
 		SizeBorder: NoBorder,
-		Sizing:     FitFit,
+		Sizing:     fitHeight(sizing),
 		HAlign:     align,
 		Spacing:    SomeF(guiTheme.SpacingSmall),
 		Content: []View{
@@ -68,6 +69,34 @@ func labelledField(
 			field,
 		},
 	})
+}
+
+// fitHeight keeps the caller's width mode and pins height to Fit.
+//
+// The wrapper must take the field's width -- a FillFit Input inside a
+// labelled wrapper was capped by a hardcoded FitFit column, so no
+// labelled field in any app on this toolkit could fill its row. The
+// height stays Fit so the label/field stack still hugs its content.
+//
+// An unset sizing returns FitFit, which is the wrapper a Cfg that never
+// set Sizing got before, so adding the pass-through is not itself a
+// visual break.
+//
+// Built from the predefined vars, never a raw Sizing{...} literal:
+// Sizing self-flags via an unexported set field, so a literal reads as
+// unset (see gui/sizing.go).
+func fitHeight(s Sizing) Sizing {
+	if !s.IsSet() {
+		return FitFit
+	}
+	switch s.Width {
+	case sizingFill:
+		return FillFit
+	case sizingFixed:
+		return FixedFit
+	default:
+		return FitFit
+	}
 }
 
 // fieldLabelStyle is the label role applied to a base text style.

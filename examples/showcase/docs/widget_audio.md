@@ -40,9 +40,9 @@ audio.FadeOutMusic(1000)
 ```
 
 The showcase demo loads its music clip from the embedded asset
-`examples/showcase/assets/music.ogg` (Mozart, Eine kleine Nachtmusik
-K. 525, I. Allegro — public-domain Musopen recording) via
-`embeddedAssetPath`, since `LoadMusic` takes a file path.
+`examples/showcase/assets/music.ogg` (Mozart, Eine kleine Nachtmusik K. 525, I.
+Allegro — public-domain Musopen recording) via `embeddedAssetPath`, since
+`LoadMusic` takes a file path.
 
 ## Live Synthesis
 
@@ -64,8 +64,8 @@ audio.HaltChannel(ch) // stop early
 rate := audio.SampleRate() // 0 before Init
 ```
 
-The `Source` signature matches `beep.Streamer` exactly, so the beep backend
-is a zero-cost adapter — no allocations on the audio path.
+The `Source` signature matches `beep.Streamer` exactly, so the beep backend is a
+zero-cost adapter — no allocations on the audio path.
 
 A synth pad pairs `Source` with the container press/release callbacks:
 
@@ -85,9 +85,9 @@ gui.Column(gui.ContainerCfg{
 })
 ```
 
-A voice plays a note-off by releasing internally and returning
-`(0, false)` once its release envelope finishes — the channel frees
-itself, so no per-pad channel bookkeeping is needed.
+A voice plays a note-off by releasing internally and returning `(0, false)` once
+its release envelope finishes — the channel frees itself, so no per-pad channel
+bookkeeping is needed.
 
 ## Volume
 

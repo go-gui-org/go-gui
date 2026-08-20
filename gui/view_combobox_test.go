@@ -135,8 +135,15 @@ func TestComboboxDefaults(t *testing.T) {
 	if cfg.MaxDropdownHeight != 200 {
 		t.Errorf("max dropdown = %f", cfg.MaxDropdownHeight)
 	}
-	if cfg.MinWidth != 75 {
+	// The theme states the field floor now; the old 75 was a literal
+	// in ThemeMaker that made Combobox disagree with Input.
+	if cfg.MinWidth != guiTheme.SizeFieldMinWidth {
 		t.Errorf("min width = %f", cfg.MinWidth)
+	}
+	// Uncapped: a labelled Combobox given FillFit must be able to
+	// fill its row, which the old MaxWidth 200 silently defeated.
+	if cfg.MaxWidth != 0 {
+		t.Errorf("max width = %f, want uncapped", cfg.MaxWidth)
 	}
 }
 

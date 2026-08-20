@@ -84,7 +84,9 @@ func Combobox(cfg ComboboxCfg) View {
 	RequireID("Combobox", cfg.ID)
 	applyComboboxDefaults(&cfg)
 	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
-	return labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, &comboboxView{cfg: cfg})
+	return labelledField(
+		cfg.Label, cfg.TextStyle, HAlignLeft, cfg.Sizing,
+		&comboboxView{cfg: cfg})
 }
 
 func (cv *comboboxView) GenerateLayout(w *Window) Layout {

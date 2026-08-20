@@ -66,7 +66,9 @@ func ColorPicker(cfg ColorPickerCfg) View {
 	RequireID("ColorPicker", cfg.ID)
 	applyColorPickerDefaults(&cfg)
 	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
-	return labelledField(cfg.Label, TextStyle{}, HAlignLeft, &colorPickerView{cfg: cfg})
+	return labelledField(
+		cfg.Label, TextStyle{}, HAlignLeft, cfg.Sizing,
+		&colorPickerView{cfg: cfg})
 }
 
 func applyColorPickerDefaults(cfg *ColorPickerCfg) {

@@ -1,13 +1,13 @@
 # Spec: `process_monitor` example
 
-Status: **implemented** — `examples/process_monitor/` (main, view, store,
-chart, collect + sysmem platform files, tests).
-Author: spec generated for go-gui
+Status: **implemented** — `examples/process_monitor/` (main, view, store, chart,
+collect + sysmem platform files, tests). Author: spec generated for go-gui
 Target: `examples/process_monitor/`
 
 ## Goal
 
-Port the [go-shirei `process_monitor`](../../../go-shirei/examples/process_monitor)
+Port the
+[go-shirei `process_monitor`](../../../go-shirei/examples/process_monitor)
 example to go-gui as a **functional** equivalent — a live task manager: process
 list, filter, flat/tree view, sortable columns, per-process CPU/RAM history
 charts. NOT a visual reproduction. Layout and styling take cues from existing
@@ -18,11 +18,11 @@ shirei original).
 ## Non-goals
 
 - Pixel/visual parity with shirei's HSL-tinted look.
-- Headless one-frame PNG render (`-png`): go-gui exposes no public
-  render-to-PNG API. Dropped. See Open Questions.
-- New core go-gui dependencies. The example must stay dependency-free
-  (stdlib only) because examples live in the **main go-gui module** — there is
-  no per-example `go.mod`, so any import lands in the root `go.mod`.
+- Headless one-frame PNG render (`-png`): go-gui exposes no public render-to-PNG
+  API. Dropped. See Open Questions.
+- New core go-gui dependencies. The example must stay dependency-free (stdlib
+  only) because examples live in the **main go-gui module** — there is no
+  per-example `go.mod`, so any import lands in the root `go.mod`.
 - Windows-grade CPU% fidelity in v1 (see Data Collection).
 
 ## Reference behavior (feature checklist)
@@ -32,11 +32,14 @@ From shirei's README + `main.go`. Port each:
 1. Live process list: PID, CPU%, RSS, MEM%, USER, STATE, THREADS, NAME.
 2. Click a column header to sort; click again to reverse.
 3. Row selection → detail panel + ~60s rolling CPU and RAM bar charts.
-4. Filter box: match name, command line, user, or PID (substring, case-insensitive).
-5. Flat list OR parent/child tree (collapse with ▸/▾; filter keeps ancestors visible).
+4. Filter box: match name, command line, user, or PID (substring,
+   case-insensitive).
+5. Flat list OR parent/child tree (collapse with ▸/▾; filter keeps ancestors
+   visible).
 6. Sample interval selector: 0.5s / 1s / 2s / 5s.
 7. Unreadable metrics render `--`, never a fake `0`.
-8. Header stats: active/kept process counts, last-updated time, system memory bar.
+8. Header stats: active/kept process counts, last-updated time, system memory
+   bar.
 9. Terminal mode (`-once`): print a sorted report and exit, no window.
 10. Charts built from ordinary containers (rects) — no canvas, no chart lib.
 
@@ -100,30 +103,30 @@ const CPUPercentUnknown float64 = -1
 Per-platform `collect()`:
 
 - **darwin + linux** (`collect_unix.go`): shell out via `os/exec` to
-  `ps -axo pid=,ppid=,pcpu=,rss=,user=,state=,nlwp=,comm=,args=` (drop `nlwp`
-  on darwin, which lacks it → threads = `MetricsUnknown`/`--`). Parse fixed
-  leading numeric columns, then `comm`/`args` as the trailing free text.
-  RSS is in KiB → ×1024. `StartTime` from `ps -o lstart=` (second field set) or
-  left zero if not collected.
+  `ps -axo pid=,ppid=,pcpu=,rss=,user=,state=,nlwp=,comm=,args=` (drop `nlwp` on
+  darwin, which lacks it → threads = `MetricsUnknown`/`--`). Parse fixed leading
+  numeric columns, then `comm`/`args` as the trailing free text. RSS is in KiB →
+  ×1024. `StartTime` from `ps -o lstart=` (second field set) or left zero if not
+  collected.
 - **windows** (`collect_windows.go`): `tasklist /fo csv /nh /v` → image name,
   PID, session, mem usage, status, user, CPU time. No live per-interval CPU%
   from a single call; report `CPUPercentUnknown` in v1 (renders `--`), or
-  compute a delta from two `tasklist` CPU-time reads if cheap. RSS from the
-  "Mem Usage" column.
-- **other** (`collect_other.go`): return an error; the UI shows the sample
-  error (matches shirei's error path).
+  compute a delta from two `tasklist` CPU-time reads if cheap. RSS from the "Mem
+  Usage" column.
+- **other** (`collect_other.go`): return an error; the UI shows the sample error
+  (matches shirei's error path).
 
 CPU% decision (v1): use `ps pcpu` directly. Caveat: on Unix `pcpu` is a
 **lifetime average**, not an interval rate. This is functionally present and
 keeps the collector to one `exec` per sample. A delta-based interval CPU%
-(re-read cumulative CPU time each sample and divide by wall-clock, like
-shirei's `computeSnapshot`) is a documented enhancement, not v1. History charts
-work regardless — they plot whatever CPU% is reported, over time.
+(re-read cumulative CPU time each sample and divide by wall-clock, like shirei's
+`computeSnapshot`) is a documented enhancement, not v1. History charts work
+regardless — they plot whatever CPU% is reported, over time.
 
-System memory (`sysmem_*.go`): `/proc/meminfo` (`MemTotal`, `MemTotal-MemAvailable`)
-on linux; `sysctl hw.memsize` + `vm_stat` on darwin. On failure/other, return
-`(0, 0)`; the header omits the memory bar rather than inventing a value
-(shirei's "-- not fake zero" philosophy).
+System memory (`sysmem_*.go`): `/proc/meminfo` (`MemTotal`,
+`MemTotal-MemAvailable`) on linux; `sysctl hw.memsize` + `vm_stat` on darwin. On
+failure/other, return `(0, 0)`; the header omits the memory bar rather than
+inventing a value (shirei's "-- not fake zero" philosophy).
 
 ### Sampler goroutine + refresh model
 
@@ -169,8 +172,8 @@ Critical detail: use `w.UpdateWindow()` (alias `markLayoutRefresh`), **NOT**
 which would drop input focus and scroll position on every sample.
 `RequestRedraw()` is render-only (no view re-run) so new rows would not appear —
 also wrong. `UpdateWindow` re-runs the registered view generator against fresh
-state while preserving the registry. Register the generator once in `OnInit`
-via `w.UpdateView(rootView)`.
+state while preserving the registry. Register the generator once in `OnInit` via
+`w.UpdateView(rootView)`.
 
 Reads of shared state during sampling and all mutations happen under `w.Lock()`
 / `w.Unlock()`. The view function itself runs under `w.mu` already (per
@@ -197,17 +200,17 @@ Root: a `gui.Column` filling the window (`FixedFixed`, `w.WindowSize()`),
 
 Theme tokens (from `gui.CurrentTheme()`) replace all shirei HSL literals:
 
-| shirei intent            | go-gui token                                  |
-|--------------------------|-----------------------------------------------|
-| page background          | `theme.ColorBackground`                       |
-| panel / card background  | `theme.ColorPanel`, `theme.ColorInterior`     |
-| row hover / selection    | `theme.ColorHover`, `theme.ColorSelect`       |
-| borders                  | `theme.ColorBorder`                           |
-| title / heading text     | `theme.B2`, `theme.B3`                         |
-| body / cell text         | `theme.N4`, `theme.N5`                         |
-| muted secondary text     | `theme.N5`/`N6`                               |
-| stopped / error accent   | `theme.ColorError`, `theme.ColorWarning`      |
-| running / ok accent      | `theme.ColorSuccess`                          |
+| shirei intent              | go-gui token                                                    |
+| -------------------------- | --------------------------------------------------------------- |
+| page background            | `theme.ColorBackground`                                         |
+| panel / card background    | `theme.ColorPanel`, `theme.ColorInterior`                       |
+| row hover / selection      | `theme.ColorHover`, `theme.ColorSelect`                         |
+| borders                    | `theme.ColorBorder`                                             |
+| title / heading text       | `theme.B2`, `theme.B3`                                          |
+| body / cell text           | `theme.N4`, `theme.N5`                                          |
+| muted secondary text       | `theme.N5`/`N6`                                                 |
+| stopped / error accent     | `theme.ColorError`, `theme.ColorWarning`                        |
+| running / ok accent        | `theme.ColorSuccess`                                            |
 | padding / spacing / radius | `theme.PaddingSmall`, `theme.SpacingSmall`, `theme.RadiusSmall` |
 
 Default theme: `gui.SetTheme(gui.ThemeDark.WithBorders(true))` (matches
@@ -218,16 +221,17 @@ demo light/dark switching (optional, see Open Questions).
 
 `gui.Row` of: title `gui.Text{TextStyle: theme.B2}`, spacer, and stat chips
 (`gui.Row`+`gui.Text` in a rounded `ColorInterior` container) for "active/kept"
-counts and last-updated time. System memory shown as a labelled `UsageBar`
-(see below) + "used / total" text. If `Snapshot == nil`: "Collecting…". If
+counts and last-updated time. System memory shown as a labelled `UsageBar` (see
+below) + "used / total" text. If `Snapshot == nil`: "Collecting…". If
 `Err != nil`: error text in `theme.ColorError`.
 
 ### Toolbar
 
 - Filter: `gui.Input` (like `todo`'s composer), fixed width ~300, bound to
-  `app.Filter` via `OnTextChanged`. Placeholder "Filter by name, cmd, user, PID".
-- View mode: `gui.RadioButtonGroupRow` or `gui.Toggle` → Flat / Tree,
-  bound to `app.TreeMode`.
+  `app.Filter` via `OnTextChanged`. Placeholder "Filter by name, cmd, user,
+  PID".
+- View mode: `gui.RadioButtonGroupRow` or `gui.Toggle` → Flat / Tree, bound to
+  `app.TreeMode`.
 - Sample interval: `gui.RadioButtonGroupRow` or `gui.Select` → 0.5s/1s/2s/5s,
   bound to `app.Interval`.
 
@@ -237,11 +241,11 @@ The go-gui `Table` widget (`view_table.go`) takes text `TableCellCfg`s and does
 not support custom cell content (CPU usage bars, tree chevrons). So build the
 table **immediate-mode**, like shirei does, for full cell control:
 
-- A header `gui.Row` of clickable column-title cells. Each is a `gui.Button`
-  (or a container with `OnClick`) that sets `app.Sort.Column` / toggles
+- A header `gui.Row` of clickable column-title cells. Each is a `gui.Button` (or
+  a container with `OnClick`) that sets `app.Sort.Column` / toggles
   `app.Sort.Desc`; show a ▲/▼ marker on the active column.
-- Body: a **scrollable** `gui.Column` (`Scrollable: true` + `ScrollbarCfgY`,
-  per `scroll_demo`) containing one `gui.Row` per visible process.
+- Body: a **scrollable** `gui.Column` (`Scrollable: true` + `ScrollbarCfgY`, per
+  `scroll_demo`) containing one `gui.Row` per visible process.
 - Each row: fixed-width cells matching the header. Cells:
   - PID/USER/STATE/MEM%/RSS/THR: `gui.Text` (`--` when `MetricsUnknown`).
   - CPU: `gui.Text` + a `UsageBar` (see below).
@@ -249,8 +253,8 @@ table **immediate-mode**, like shirei does, for full cell control:
     button toggling `p.Collapsed`, then the name.
   - Row background: alternate `ColorPanel`/`ColorInterior`; `ColorSelect` when
     `app.Selected == p`; `ColorHover` on hover. Row `OnClick` sets
-    `app.Selected = p`. `OnClick` is consume-class, so the click is
-    marked handled by dispatch.
+    `app.Selected = p`. `OnClick` is consume-class, so the click is marked
+    handled by dispatch.
 - Row ordering, filtering, and tree flattening are computed by the app (port
   shirei's `visibleRows` / `treeRows` / `orderProcesses` — pure Go), NOT by the
   table widget. The active sort column supplies the comparator.
@@ -268,11 +272,12 @@ Selected-process panel: name, pid, ppid, cpu, rss, start time; "stopped …" in
 
 `UsageChart` — port shirei's container-bar chart, restyled with theme tokens:
 
-- `resampleHistory(hist, 60s, 1s, valueFn)` → `[]HistBucket{Value, HasData,
-  Interpolated}`. Port verbatim (pure Go; unit-tested).
+- `resampleHistory(hist, 60s, 1s, valueFn)` →
+  `[]HistBucket{Value, HasData, Interpolated}`. Port verbatim (pure Go;
+  unit-tested).
 - Render: a fixed-size rounded panel; a `gui.Row` of per-bucket columns. Each
-  bucket is a `gui.Column` with a bottom-anchored `gui.Rectangle` whose height
-  = `ratio * chartHeight`. Empty buckets → 1px baseline. Interpolated buckets →
+  bucket is a `gui.Column` with a bottom-anchored `gui.Rectangle` whose height =
+  `ratio * chartHeight`. Empty buckets → 1px baseline. Interpolated buckets →
   dimmer fill. A floating title label over the bars.
 - CPU chart pins the y-scale floor at 100%; RAM chart auto-scales to the max
   seen (port `ramHistoryScale`).

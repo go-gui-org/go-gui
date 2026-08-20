@@ -217,6 +217,17 @@ jobs:
       - name: Run gate checks
         run: make vet deps-doc-check large-files generate-check
 
+      # Markdown formatting is a repo convention with no compiler behind
+      # it, so it drifts silently -- CHANGELOG.md accumulated hand-wrapping
+      # that no gate ever saw. Prettier reads .prettierrc for the wrap
+      # width, so the flags are not restated here.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Check Markdown formatting
+        run: make fmt-md-check
+
       # The export-audit gate needs the sibling consumer repos present to
       # be authoritative (an export used only there would misclassify as
       # internal-only). Shallow-clone them beside the checkout and run the

@@ -204,9 +204,9 @@ go-gui/
 ## Maintainer Invariants
 
 Rules maintainers rely on during changes. Each entry states what must remain
-true, where to change things, and which local or CI check catches a
-regression. Existing specs are linked where they define policy in depth —
-do not re-derive policy from code that drifts.
+true, where to change things, and which local or CI check catches a regression.
+Existing specs are linked where they define policy in depth — do not re-derive
+policy from code that drifts.
 
 ### Frame lifecycle
 
@@ -236,8 +236,8 @@ do not re-derive policy from code that drifts.
   pass-through — never pre-mark events handled.
 - **Catches:** `gui.Debug(true)` (category `DebugUnconsumed`) reports handlers
   that act without consuming while an ancestor also handles;
-  `(*Window).TestUnconsumedEvents` sweeps a whole window; `make ergonomics-audit`
-  mode `callbacks` inventories signatures. Policy:
+  `(*Window).TestUnconsumedEvents` sweeps a whole window;
+  `make ergonomics-audit` mode `callbacks` inventories signatures. Policy:
   `docs/specs/eventctx-callback-refactor.md`.
 
 ### ID scoping
@@ -245,8 +245,8 @@ do not re-derive policy from code that drifts.
 - `Shape.ID` is a leaf. `resolveShapeIDs` (run from `layoutArrange`) stamps
   `Shape.effID` = the leaf joined to its ID-bearing ancestors, and every
   ID-keyed store and lookup uses `shape.idKey()` — never bare `Shape.ID` at a
-  keying site. Effective IDs must be unique per window; a leaf containing `:`
-  is absolute and is not joined again.
+  keying site. Effective IDs must be unique per window; a leaf containing `:` is
+  absolute and is not joined again.
 - Compose inner IDs with `gui.ScopeID`/`gui.ScopeIDN`, never by hand (a part —
   row key, heading slug — must not contain `:`; rebuilding an ID at a lookup
   site is how producers and consumers drift). A composite widget's inner shape
@@ -277,14 +277,15 @@ do not re-derive policy from code that drifts.
 - Backends call into gui only on the main OS thread; they lock only their own
   state (e.g. the GL backend's own `w.Lock()` in `gui/backend/gl/backend.go`),
   never window state.
-- Platform dispatch is by build tag per the Backend Layer diagram above.
-  macOS stays CGo by decision; `CGO_ENABLED=0 go build ./...` is green on
-  Linux and Windows — do not re-open the CGo question without a trigger.
+- Platform dispatch is by build tag per the Backend Layer diagram above. macOS
+  stays CGo by decision; `CGO_ENABLED=0 go build ./...` is green on Linux and
+  Windows — do not re-open the CGo question without a trigger.
 - **Where to change:** new backends must follow the injected-interface pattern
   (below) and the build-tag table; keep `gui/` free of platform imports.
-- **Catches:** `make cross-compile`, `make lint-cross`, `make test` (runs the
-  GL backend with `CGO_ENABLED=0`). Direction:
-  `docs/specs/cgo-free-backend-feasibility.md`, `docs/specs/macos-native-backend.md`.
+- **Catches:** `make cross-compile`, `make lint-cross`, `make test` (runs the GL
+  backend with `CGO_ENABLED=0`). Direction:
+  `docs/specs/cgo-free-backend-feasibility.md`,
+  `docs/specs/macos-native-backend.md`.
 
 ### State ownership
 
@@ -297,14 +298,14 @@ do not re-derive policy from code that drifts.
   change and they have no initializers (the mirrors would drift). The two
   exceptions are `DefaultTextStyle` and `defaultInspectorStyle`, which are
   `ThemeMaker` inputs. Key on `Theme.id`, never `Theme.Name`.
-- Theme reads split by phase: outside generation call `w.Theme()`; factories
-  and `GenerateLayout` keep the bare `guiTheme`/`default*Style` read (required
-  for `Themed` subtree scoping). Mark deliberate exceptions
+- Theme reads split by phase: outside generation call `w.Theme()`; factories and
+  `GenerateLayout` keep the bare `guiTheme`/`default*Style` read (required for
+  `Themed` subtree scoping). Mark deliberate exceptions
   `ergonomics-audit:theme-global`.
 - **Where to change:** adding widget state → new namespace const + `StateMap`;
   adding a default style → `ThemeMaker` only.
-- **Catches:** `TestDefaultStylesMirrorThemeDark`;
-  `make ergonomics-audit` mode `theme` gates the post-generation paths. Specs:
+- **Catches:** `TestDefaultStylesMirrorThemeDark`; `make ergonomics-audit` mode
+  `theme` gates the post-generation paths. Specs:
   `docs/specs/per-window-theme.md`, `docs/specs/theme-style-single-source.md`.
 
 ### Native platform boundaries
@@ -316,8 +317,8 @@ do not re-derive policy from code that drifts.
   platform services.
 - **Where to change:** a new platform capability is a new `NativePlatform`
   method implemented per backend, not a direct call from `gui/`.
-- **Catches:** `make test` runs with nil injected interfaces; `make vet`
-  (incl. the `requiredid` analyzer) flags structural mistakes.
+- **Catches:** `make test` runs with nil injected interfaces; `make vet` (incl.
+  the `requiredid` analyzer) flags structural mistakes.
 
 ### Widget Cfg invariants
 
@@ -328,30 +329,30 @@ do not re-derive policy from code that drifts.
   `Focusable: false`. `Focusable` without a non-empty `ID` is a silent no-op —
   the widget renders and clicks but never joins the tab order. Spec:
   `docs/specs/focusable-default-input.md`.
-- **A11y fields:** `A11YLabel`/`A11YDescription` live on the embedded
-  `A11YCfg`; never redeclare them on a Cfg. Construction names the embed:
+- **A11y fields:** `A11YLabel`/`A11YDescription` live on the embedded `A11YCfg`;
+  never redeclare them on a Cfg. Construction names the embed:
   `gui.ButtonCfg{ID: "save", A11YCfg: gui.A11YCfg{A11YLabel: "Save"}}`.
 - **`Opt[T]` vs plain fields:** only primitives get `Opt` (when zero is a
   legitimate user choice that must be distinguishable from unset, e.g.
-  `SizeBorder`). Owned types self-flag instead: `Color`, `Padding`, and
-  `Sizing` carry a `set` field, so they are plain fields with
-  `IsSet()`/`Or()`. Build them with constructors — `RGBA`/`RGB`/`Hex`,
-  `NewPadding`/`PadAll`, the predefined `Sizing` vars — never raw
-  `Color{...}`/`Padding{...}`/`Sizing{...}` literals (they read as unset).
+  `SizeBorder`). Owned types self-flag instead: `Color`, `Padding`, and `Sizing`
+  carry a `set` field, so they are plain fields with `IsSet()`/`Or()`. Build
+  them with constructors — `RGBA`/`RGB`/`Hex`, `NewPadding`/`PadAll`, the
+  predefined `Sizing` vars — never raw `Color{...}`/`Padding{...}`/`Sizing{...}`
+  literals (they read as unset).
 - **Where to change:** any widget factory or Cfg struct.
-- **Catches:** `make vet` (`requiredid`), `make ergonomics-audit` modes
-  `focus`, `a11y`, `opt`, and `literals`; `gui.Debug` reports focusable
-  shapes with no ID at runtime.
+- **Catches:** `make vet` (`requiredid`), `make ergonomics-audit` modes `focus`,
+  `a11y`, `opt`, and `literals`; `gui.Debug` reports focusable shapes with no ID
+  at runtime.
 
 ### Generated-file expectations
 
 - `gui/svg_spinner_kinds_gen.go` is produced by `go generate ./...`
   (`gui/internal/gen/spinnerkinds/`). Commit generated output; never hand-edit
-  it. Any change to the generator must be committed with its regenerated
-  output, or `make generate-check` fails the push.
+  it. Any change to the generator must be committed with its regenerated output,
+  or `make generate-check` fails the push.
 - **Where to change:** `gui/internal/gen/`, then run `go generate ./...`.
-- **Catches:** `make generate-check` (part of `make check` and `prepush`)
-  fails if `go generate ./...` produces a diff in `*_gen.go`.
+- **Catches:** `make generate-check` (part of `make check` and `prepush`) fails
+  if `go generate ./...` produces a diff in `*_gen.go`.
 
 ### Validation map
 

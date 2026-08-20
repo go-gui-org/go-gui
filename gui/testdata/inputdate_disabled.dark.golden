@@ -1,7 +1,7 @@
-Rect xy=11.50,11.50 wh=123.60,31.40 color=#4a4a4a7f radius=5.50 fill
-StrokeRect xy=11.50,11.50 wh=123.60,31.40 color=#6464647f radius=5.50 thickness=1.50
-Clip xy=18.00,16.00 wh=96.00,22.40
+Rect xy=11.50,11.50 wh=160.00,31.40 color=#4a4a4a7f radius=5.50 fill
+StrokeRect xy=11.50,11.50 wh=160.00,31.40 color=#6464647f radius=5.50 thickness=1.50
+Clip xy=18.00,16.00 wh=132.40,22.40
 Text xy=18.00,17.13 wh=0.00,0.00 color=#e1e1e180 text="08/15/2026" size=16.00
 Clip xy=0.00,0.00 wh=320.00,240.00
-Rect xy=119.00,16.00 wh=9.60,22.40 color=#4a4a4a7f radius=5.50 fill
-Text xy=119.00,17.42 wh=0.00,0.00 color=#e1e1e180 text="📅" size=16.00
+Rect xy=155.40,16.00 wh=9.60,22.40 color=#4a4a4a7f radius=5.50 fill
+Text xy=155.40,17.42 wh=0.00,0.00 color=#e1e1e180 text="📅" size=16.00

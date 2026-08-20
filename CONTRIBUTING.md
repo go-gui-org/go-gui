@@ -8,19 +8,19 @@ Run the full local validation gate before pushing a branch:
 make prepush
 ```
 
-`make prepush` approximates the CI matrix from one host: race-enabled
-tests, vet, lint (linux + the cross-GOOS `//go:build` files via
-`make lint-cross`), cgo-free cross-compiles of the whole module
-(`make cross-compile`), the coverage gate (`make coverage-gate`: 70%
-total + per-package floors), and the export audit. CI and the Makefile
-share the coverage thresholds via `scripts/coverage-gate.sh`.
+`make prepush` approximates the CI matrix from one host: race-enabled tests,
+vet, lint (linux + the cross-GOOS `//go:build` files via `make lint-cross`),
+cgo-free cross-compiles of the whole module (`make cross-compile`), the coverage
+gate (`make coverage-gate`: 70% total + per-package floors), and the export
+audit. CI and the Makefile share the coverage thresholds via
+`scripts/coverage-gate.sh`.
 
-When only the fast gate checks are wanted, `make check` (vet,
-deps-doc, large-files, generate-check, tidy-check) is the quick subset.
-The tracked `.githooks/pre-push` hook runs `make check-all` (test +
-lint + check) on every push — enable it with
-`git config core.hooksPath .githooks`. Tools like golangci-lint and
-gosec must be installed; `make lint` pins the golangci-lint version.
+When only the fast gate checks are wanted, `make check` (vet, deps-doc,
+large-files, generate-check, tidy-check) is the quick subset. The tracked
+`.githooks/pre-push` hook runs `make check-all` (test + lint + check) on every
+push — enable it with `git config core.hooksPath .githooks`. Tools like
+golangci-lint and gosec must be installed; `make lint` pins the golangci-lint
+version.
 
 For a tight edit → rebuild → relaunch loop while iterating on an example app,
 see [docs/dev-loop.md](docs/dev-loop.md)
@@ -55,18 +55,18 @@ CI also enforces race detector and benchmark regression gates. Run
 
 ### CI-only validation
 
-These CI checks have no local Makefile equivalent — they either need a
-different OS runner or a baseline from `main` that only CI can supply:
+These CI checks have no local Makefile equivalent — they either need a different
+OS runner or a baseline from `main` that only CI can supply:
 
-- OS-matrix test runs (Windows, macOS runners; Windows also runs the
-  showcase smoke test with Mesa's software GL)
-- Coverage diff on PRs and the benchmark regression gate — both compare
-  against a baseline cached from `main` (`scripts/cov-diff.sh` can run
-  them locally if you supply two profiles)
+- OS-matrix test runs (Windows, macOS runners; Windows also runs the showcase
+  smoke test with Mesa's software GL)
+- Coverage diff on PRs and the benchmark regression gate — both compare against
+  a baseline cached from `main` (`scripts/cov-diff.sh` can run them locally if
+  you supply two profiles)
 - WASM build/vet/test (`GOOS=js` needs a node `wasm_exec` wrapper);
   `make build-wasm` covers the build half
-- iOS and Android vet+lint — need an Xcode iphoneos sysroot / Android
-  NDK; `make build-ios` and `make build-android` cover the build half
+- iOS and Android vet+lint — need an Xcode iphoneos sysroot / Android NDK;
+  `make build-ios` and `make build-android` cover the build half
 - Release packaging (`release.yml`)
 
 ### Local development with sibling repos
@@ -93,6 +93,10 @@ go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
 ## Coding Conventions
 
 Code must pass `golangci-lint run ./...` and `gofmt`. No variable shadowing.
+
+Markdown must pass Prettier. Run `make fmt-md` before committing; `make check`
+runs `make fmt-md-check` and fails on drift. The wrap width lives in
+`.prettierrc`, so no flags are needed at the call site.
 
 Theme reads follow the generation boundary. Code that runs **outside**
 generation — event handlers, post-arrange work, backends — and has a `*Window`

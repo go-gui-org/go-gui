@@ -144,6 +144,18 @@ type Theme struct {
 	// exportaudit:keep — themable form density.
 	PaddingField Padding
 
+	// SizeFieldMinWidth is the MinWidth floor a text-bearing form
+	// control takes when its Cfg states none. A Fit-sized empty field
+	// is a stub; without a floor a field is the width of whatever
+	// happens to be typed into it.
+	//
+	// Zero means no floor, not "derive the default": baseCfg seeds
+	// it, so every preset carries a value, and a hand-built ThemeCfg
+	// that leaves it zero is asking for Fit-to-content.
+	//
+	// exportaudit:keep — themable form density.
+	SizeFieldMinWidth float32
+
 	SizeBorder float32
 
 	RadiusSmall  float32
@@ -243,6 +255,11 @@ type ThemeCfg struct {
 	//
 	// exportaudit:keep — themable form density.
 	PaddingField Padding
+
+	// SizeFieldMinWidth seeds Theme.SizeFieldMinWidth; see there.
+	//
+	// exportaudit:keep — themable form density.
+	SizeFieldMinWidth float32
 
 	SizeBorder float32
 	Radius     float32

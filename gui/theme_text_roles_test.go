@@ -284,7 +284,7 @@ func TestFieldInsetIsThemed(t *testing.T) {
 // addition (issue #335, audit section 3).
 func TestFieldLabelEmptyIsInert(t *testing.T) {
 	field := Input(InputCfg{ID: "in"})
-	if got := labelledField("", TextStyle{}, HAlignLeft, field); got != field {
+	if got := labelledField("", TextStyle{}, HAlignLeft, FillFit, field); got != field {
 		t.Error("empty label must return the field untouched")
 	}
 }
