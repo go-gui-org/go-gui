@@ -1,3 +1,4 @@
+Shadow xy=14.00,14.00 wh=120.00,70.80 color=#2f6fe03f blur=2.00 offset=0.00,0.00
 Rect xy=14.00,14.00 wh=120.00,23.60 color=#edf0f4ff radius=6.00 fill
 Text xy=27.20,16.00 wh=0.00,0.00 color=#1a1d21ff text="Name" size=14.00
 Text xy=87.20,16.00 wh=0.00,0.00 color=#1a1d21ff text="Size" size=14.00

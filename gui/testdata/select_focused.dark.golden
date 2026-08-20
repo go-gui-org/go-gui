@@ -1,3 +1,4 @@
+Shadow xy=15.00,15.00 wh=160.00,31.60 color=#4d82f03f radius=6.00 blur=2.00 offset=0.00,0.00
 Rect xy=15.00,15.00 wh=160.00,31.60 color=#383e45ff radius=6.00 fill
 StrokeRect xy=15.00,15.00 wh=160.00,31.60 color=#4d82f0ff radius=6.00 thickness=1.00
 Text xy=26.00,22.24 wh=0.00,0.00 color=#e6e8ebff text="beta" size=14.00

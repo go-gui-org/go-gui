@@ -85,19 +85,24 @@ func Radio(cfg RadioCfg) View {
 		OnClick:      cfg.OnClick,
 		clickButton:  MouseLeft,
 		ClickOnSpace: true,
-		AmendLayout: func(ctx EventCtx) {
-			if ctx.Layout.Shape.Disabled ||
-				!ctx.Layout.Shape.hasEvents() ||
-				ctx.Layout.Shape.events.OnClick == nil {
-				return
-			}
-			if len(ctx.Layout.Children) == 0 {
-				return
-			}
-			if ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
-				ctx.Layout.Children[0].Shape.ColorBorder = colorBorderFocus
-			}
-		},
+		AmendLayout: amendAll(
+			func(ctx EventCtx) {
+				if ctx.Layout.Shape.Disabled ||
+					!ctx.Layout.Shape.hasEvents() ||
+					ctx.Layout.Shape.events.OnClick == nil {
+					return
+				}
+				if len(ctx.Layout.Children) == 0 {
+					return
+				}
+				if ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
+					ctx.Layout.Children[0].Shape.ColorBorder = colorBorderFocus
+				}
+			},
+			// Ring shadow on the focusable row, but no colour change:
+			// the ring is the row's focus indication while the pill
+			// keeps its own accent border (visual-refresh § 5.4).
+			focusRingAmend(Color{}, Color{})),
 		OnHover: func(ctx EventCtx) {
 			if ctx.Layout.Shape.Disabled ||
 				!ctx.Layout.Shape.hasEvents() ||

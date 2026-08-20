@@ -184,11 +184,7 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
 		Content:     content,
-		AmendLayout: func(ctx EventCtx) {
-			if ctx.Window.IsFocus(cfg.ID) {
-				ctx.Layout.Shape.ColorBorder = cfg.Colors.BorderFocus
-			}
-		},
+		AmendLayout: focusRingAmend(Color{}, cfg.Colors.BorderFocus),
 		OnClick: func(ctx EventCtx) {
 			if !cfg.Disabled {
 				ctx.Window.SetFocus(cfg.ID)

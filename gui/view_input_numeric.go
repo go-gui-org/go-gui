@@ -136,15 +136,8 @@ func NumericInput(cfg NumericInputCfg) View {
 				ctx.Layout.Shape.Color = colorHover
 			}
 		},
-		AmendLayout: func(ctx EventCtx) {
-			if ctx.Layout.Shape.Disabled {
-				return
-			}
-			if focusID != "" && ctx.Window.IsFocus(focusID) {
-				ctx.Layout.Shape.ColorBorder = colorBorderFocus
-			}
-		},
-		Content: content,
+		AmendLayout: focusRingAmend(Color{}, colorBorderFocus),
+		Content:     content,
 	})
 	return labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, cfg.Sizing, control)
 }

@@ -37,17 +37,33 @@ func TestAmendAllComposition(t *testing.T) {
 	}
 }
 
-// focusRingAmend with both colors unset must produce no hook, so a
-// widget that never fills either keeps its plain AmendLayout slot.
+// focusRingAmend with both colors unset must produce no hook under a
+// ringless theme, so a widget that never fills either keeps its plain
+// AmendLayout slot there; under a theme whose FocusRing is set, the
+// ring alone justifies the hook. Windows and GNOME build from baseCfg
+// with no ring; the default presets carry one (visual-refresh § 5.4).
 func TestFocusRingAmendUnsetIsNil(t *testing.T) {
+	saved := guiTheme
+	t.Cleanup(func() { guiTheme = saved })
+
+	cfg := baseDarkCfg()
+	cfg.Name = "ringless"
+	cfg.FocusRing = nil
+	guiTheme = ThemeMaker(cfg)
+
 	if got := focusRingAmend(Color{}, Color{}); got != nil {
-		t.Error("both colors unset: want nil hook")
+		t.Error("no ring, both colors unset: want nil hook")
 	}
 	if got := focusRingAmend(RGB(1, 2, 3), Color{}); got == nil {
-		t.Error("fill set: want non-nil hook")
+		t.Error("no ring, fill set: want non-nil hook")
 	}
 	if got := focusRingAmend(Color{}, RGB(1, 2, 3)); got == nil {
-		t.Error("border set: want non-nil hook")
+		t.Error("no ring, border set: want non-nil hook")
+	}
+
+	guiTheme = ThemeDark
+	if got := focusRingAmend(Color{}, Color{}); got == nil {
+		t.Error("themed ring, colors unset: want ring-only hook")
 	}
 }
 
@@ -180,14 +196,68 @@ func TestFocusRingAmendAppliesShadowOnlyWhenFocused(t *testing.T) {
 	}
 }
 
-// With no ring in the theme, the hook keeps its old contract: unset
-// colours mean no hook at all.
-func TestFocusRingAmendNoRingKeepsNilContract(t *testing.T) {
-	saved := guiTheme
-	t.Cleanup(func() { guiTheme = saved })
-	guiTheme = ThemeDark
+// The widgets wired in phase 5b (visual-refresh.md § 5.4) all attach
+// their ring through focusRingAmend, but a hook contract test does not
+// prove the hook is attached — each widget must actually emit the ring
+// when focused and stay shadow-free when it is not. The list is the
+// wiring inventory: a widget added or removed here is the diff review
+// noticing the spec's wiring list changed.
+func TestWiredFocusablesEmitRingWhenFocused(t *testing.T) {
+	cases := []struct {
+		name  string
+		id    string
+		build func() View
+	}{
+		{"combobox", "cb", func() View {
+			return Combobox(ComboboxCfg{ID: "cb", Options: []string{"a"}})
+		}},
+		{"date_picker", "dp", func() View {
+			return DatePicker(DatePickerCfg{ID: "dp"})
+		}},
+		{"input_date", "id", func() View {
+			return InputDate(InputDateCfg{ID: "id"})
+		}},
+		{"numeric_input", "num", func() View {
+			return NumericInput(NumericInputCfg{ID: "num"})
+		}},
+		{"tree", "tree", func() View {
+			return Tree(TreeCfg{ID: "tree", Nodes: []TreeNodeCfg{{Text: "node"}}})
+		}},
+		{"radio", "radio", func() View {
+			return Radio(RadioCfg{ID: "radio"})
+		}},
+		{"switch", "swt", func() View {
+			return Switch(SwitchCfg{ID: "swt"})
+		}},
+		{"toggle", "tg", func() View {
+			return Toggle(ToggleCfg{ID: "tg"})
+		}},
+		{"slider", "sld", func() View {
+			return Slider(SliderCfg{ID: "sld"})
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			build := func(*Window) View { return tc.build() }
+			if got := countShadows(frameCmds(t, ThemeDark, build, tc.id, nil)); got != 1 {
+				t.Errorf("focused: emitted %d shadows, want 1 (the ring)", got)
+			}
+			if got := countShadows(frameCmds(t, ThemeDark, build, "", nil)); got != 0 {
+				t.Errorf("unfocused: emitted %d shadows, want 0", got)
+			}
+		})
+	}
+}
 
-	if got := focusRingAmend(Color{}, Color{}); got != nil {
-		t.Error("no ring and no colours: want nil hook")
+// With no ring in the theme, the hook keeps its old contract: unset
+// colours mean no hook at all. Covered by the ringless half of
+// TestFocusRingAmendUnsetIsNil; this pins the ring-bearing default
+// presets against losing the ring when the contract is next touched.
+func TestFocusRingDefaultsCarryARing(t *testing.T) {
+	if ThemeDark.focusRing == nil {
+		t.Error("ThemeDark carries no focus ring (visual-refresh § 5.4)")
+	}
+	if ThemeLight.focusRing == nil {
+		t.Error("ThemeLight carries no focus ring (visual-refresh § 5.4)")
 	}
 }

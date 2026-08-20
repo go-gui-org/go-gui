@@ -1,9 +1,10 @@
 # Visual refresh: palette, type, density, elevation
 
-- **Status:** phase 5a landed (§ 5.5 `BoxShadow.Spread` through six backends).
-  Phase 4 landed earlier (§ 5.2 radius ladder, § 5.3 elevation). Phases 1, 2, 3
-  landed earlier still (§ 4 palettes, accent ramp, semantic colors; § 5.1
-  border; type ladder; density). Phases 5b, 6, 7, 8 pending.
+- **Status:** phase 5b landed (§ 5.4 focus ring in the default presets, wired
+  through every remaining focusable). Phase 5a landed earlier (§ 5.5
+  `BoxShadow.Spread` through six backends); phase 4 (§ 5.2 radius ladder, § 5.3
+  elevation); phases 1, 2, 3 (palettes, accent ramp, semantic colors, border,
+  type ladder, density). Phases 6, 7, 8 pending.
 - **Extends:** `docs/style-guide.md`,
   `docs/specs/widget-visual-consistency-audit.md` (issue #335)
 - **Breaking:** yes, deliberately. All goldens re-record, every preset changes
@@ -376,13 +377,25 @@ problem.
 
 `ThemeCfg.FocusRing` is nil in both default presets; only the macOS themes set
 it (`gui/theme_macos.go:93`). Set it in both:
-`BoxShadow{Color: ColorAccent at ~45% alpha, Spread: 2, BlurRadius: 3}`.
+`BoxShadow{Color: ColorAccent at 25% alpha, BlurRadius: 2}` — a spread-free
+glow, deliberately not a spread ring.
+
+Why no spread: the glow is drawn _outside_ the control's layout bounds, but a
+shape's clip is `shapeBounds ∩ parentClip` (`layout_position.go`), and a Fill
+control sitting against its parent's content edge has the glow scissored away on
+the sides it touches. A spread ring would lose a hard-edged band there; a
+spread-free glow loses only a faint tail and degrades gracefully, and the focus
+_border_ (`ColorBorderFocus`) remains the never-clipped indicator. The real fix
+is a draw-outset the ancestors' clips can honour — tracked in the § 10
+checklist. The alpha reads as focus, never as a second border: a spread adds a
+crisp plateau at full ring alpha, which is exactly what the spread-free glow
+avoids.
 
 Two follow-ons:
 
-- **`BoxShadow` gains a `Spread` field** — see § 5.5. A focus ring is a spread,
-  not a blur; a blur-only ring is a soft glow rather than the crisp offset ring
-  every platform draws. Decided: add it.
+- **`BoxShadow` gains a `Spread` field** — see § 5.5. The default ring above
+  deliberately does not use it, but the capability ships (and demo coverage
+  shows it) for explicit callers. Decided: add it.
 - **Wiring is smaller than a raw call-site count suggests.** Two widgets call
   `applyFocusRingShadow` directly — `Button` (`view_button.go:107`) and `Input`
   (`view_input.go:577`) — but the third site is inside `focusRingAmend`
@@ -566,7 +579,7 @@ Each phase re-records goldens and lands independently.
 | 3     | § 4 palettes and accent ramp, § 5.1 border    | theme   | landed |
 | 4     | § 5.2 radius, § 5.3 elevation                 | theme   | landed |
 | 5a    | § 5.5 `BoxShadow.Spread` through six backends | backend | landed |
-| 5b    | § 5.4 focus ring + wiring the remaining ~8    | widget  |        |
+| 5b    | § 5.4 focus ring + wiring the remaining ~8    | widget  | landed |
 | 6     | § 6 button variants                           | widget  |        |
 | 7     | § 8 widget defects                            | widget  |        |
 | 8     | § 7 preset removal + all doc deliverables     | mixed   |        |
@@ -682,6 +695,50 @@ bits against float32's 24-bit mantissa and cannot be exact. `tm` already carries
 the caster offset, so no new uniform or vertex attribute was added on any
 backend.
 
+Phase 5b — focus-ring checklist. The ring rides the 5a plumbing; nothing in a
+backend changed. What had to be true, and how each was pinned:
+
+1. **The defaults carry a ring.** `baseDarkCfg` and the light preset set
+   `FocusRing` = accent at 25% alpha (`WithOpacity(0.25)`, so the RGB is the
+   single accent decision), `BlurRadius: 2`, no spread — a spread-free glow by
+   design (§ 5.4: a spread would add a crisp plateau that reads as a second
+   border, and a scissored edge loses only a faint tail, not a hard band). The
+   derived presets (no-padding, bordered) inherit it by cfg copy; macOS keeps
+   its own ring and GNOME/Windows stay nil (border recolor only). Pinned by
+   `TestThemePresetElevationValues` (per-preset ring pointer) and
+   `TestFocusRingDefaultsCarryARing`.
+2. **Every focusable that has no ring gets one.** `Combobox`, `DatePicker`,
+   `InputDate`, `Tree`, `NumericInput` swap their inline border-recolor
+   `AmendLayout` for `focusRingAmend` (same recolor plus the ring, keyed by
+   effective ID); `Radio`, `Switch`, `Toggle`, `Slider` compose
+   `focusRingAmend(Color{}, Color{})` after their own hooks — ring shadow on the
+   focusable row, per-state pill/track colors untouched. `RadioButtonGroup` has
+   no focusable shape of its own (focus governs the options), so its `Radio`s
+   carry it.
+3. **The ring renders in both polarities.** This was a real bug, caught by the
+   light-theme goldens: `renderShapeInner`'s visibility prune
+   (`gui/render_layout.go`) counted gradients but not shadows as FX, so a
+   transparent-fill, borderless shape carrying a ring shadow (the light table
+   body, whose preset resolves `Color` transparent and `SizeBorder` 0) was
+   pruned before `renderContainer` ran and the ring silently vanished. The prune
+   now counts `fx.Shadow`; the focus goldens re-recorded in both themes are the
+   pin.
+4. **Focused goldens, re-recorded in both themes after reading the diff.**
+   `listbox_focused`, `select_focused`, `expand_panel_focused`, `table_focused`
+   (8 files) each gained exactly one `Shadow` line (`blur=2.00`, no spread,
+   `#4d82f03f` dark / `#2f6fe03f` light) with no other geometry change;
+   `menu_open_descender` and the unfocused cases were unchanged. New in 5b per
+   the § 10 table: `input_focused` (dark + light).
+5. **Pixel golden across the platform overrides.** New `switch_focused` case
+   under dark, light, macos-dark, gnome-dark and windows-dark — the switch is
+   the focusable whose geometry the macOS theme also overrides (38×22). Sampled
+   pixels confirm: dark/light show the soft accent glow hugging the pill, macOS
+   its own soft glow, GNOME/Windows no glow and only the pill's border recolor.
+6. **The nil contract changed with intent.** `focusRingAmend` used to return nil
+   when both colors were unset; a ring-bearing theme now justifies the hook by
+   itself. `focus_ring_test.go` pins both regimes (ringless theme → nil, ringed
+   → ring-only hook).
+
 Documentation deliverables, per the repo convention that a visual change is not
 done until the docs say the same thing:
 
@@ -696,6 +753,28 @@ done until the docs say the same thing:
 
 ## Decisions taken
 
+- **Default focus ring (§ 5.4, phase 5b)** — both default presets carry
+  `FocusRing` = the theme's own accent at 25% alpha (`WithOpacity(0.25)`, so the
+  RGB is the single accent decision and the ring tracks an accent change),
+  `BlurRadius: 2`, **no spread** — a spread-free glow, not the § 5.5 spread ring
+  the spec first specified. The redesign came from the clip pass: the glow is
+  drawn outside the control's bounds but clipped to `shapeBounds ∩ parentClip`,
+  so a control against its parent's content edge loses the glow tail there — a
+  spread ring would lose a hard band, a glow loses only a faint tail, and
+  `ColorBorderFocus` stays the never-clipped indicator (a draw-outset the
+  ancestors' clips can honour is the tracked fix). macOS keeps its hand-tuned
+  ring (accent-tinted soft glow); GNOME and Windows deliberately stay nil
+  (border recolor only, documented at their cfg sites). The small controls —
+  `Radio`, `Switch`, `Toggle`, `Slider` — put the glow on the focusable row and
+  keep their per-state pill/track colors untouched: the glow is the row's focus
+  indication (the Windows focus-rect convention), the pill's accent border stays
+  the state recolor. `RadioButtonGroup` wires nothing itself — its `Radio`
+  options carry the ring. `focusRingAmend(Color{}, Color{})` is now a valid
+  request under a ring-bearing theme (the hook's nil contract is "nothing
+  visible would change", not "no colors given"). The render prune fix (shadow
+  counts as FX in `renderShapeInner`) is the one non-wiring change; without it
+  the ring silently vanishes on transparent, borderless shapes (the light table
+  body).
 - **`BoxShadow.Spread`** — add it (§ 5.5). Scope is six backend draw paths, not
   one field; phase 5a. Transport: `tm[14]` on the existing `tm` uniform (the
   packed-params float32 cannot hold a third 12-bit slot exactly; see the § 10

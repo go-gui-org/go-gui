@@ -30,6 +30,16 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// Focused input: the ring on the field, the focus border
+			// color, and the caret. The ring is the shadow the theme's
+			// FocusRing paints outside the field (visual-refresh § 5.4).
+			name:    "input_focused",
+			focusID: "in",
+			build: func(_ *Window) View {
+				return Input(InputCfg{ID: "in", Text: "typed value"})
+			},
+		},
+		{
 			// Placeholder is the only path that reaches the
 			// placeholder text role.
 			name: "input_placeholder",

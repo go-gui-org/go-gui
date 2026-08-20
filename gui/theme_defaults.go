@@ -60,6 +60,36 @@ var (
 		OffsetY:    12,
 		BlurRadius: 32,
 	}
+
+	// Focus rings (visual-refresh § 5.4). Tinted with the theme's own
+	// accent so the ring is the same decision as the accent, built per
+	// polarity because the accents differ.
+	//
+	// No spread: the ring is a zero-offset blurred glow, so only the
+	// blur's tail escapes the caster (the shadow emits before the fill,
+	// which then covers everything inside the control's own rect). That
+	// is what keeps it subtle — spread would add a crisp opaque plateau
+	// at full ring alpha, which reads as a second border rather than as
+	// focus indication. Same construction as the macOS theme's rings.
+	//
+	// The glow is drawn *outside* the control's layout bounds, but a
+	// shape's clip is shapeBounds ∩ parentClip (layout_position.go) and
+	// the parent emits that scissor before its children — so a Fill
+	// control sitting against its parent's content edge has the glow
+	// scissored away on the sides it touches, while the sides with
+	// slack keep it. The real fix is a draw-outset the ancestors' clips
+	// can honour; until then a spread-free glow degrades gracefully (a
+	// clipped side loses a faint tail, not a hard-edged band) and the
+	// focus *border* (ColorBorderFocus) remains the indicator that is
+	// never clipped.
+	darkFocusRing = &BoxShadow{
+		Color:      colorAccentDark.WithOpacity(0.25),
+		BlurRadius: 2,
+	}
+	lightFocusRing = &BoxShadow{
+		Color:      colorAccentLight.WithOpacity(0.25),
+		BlurRadius: 2,
+	}
 )
 
 // baseCfg returns the shared sizing/spacing/widget-size fields
@@ -135,6 +165,12 @@ func baseDarkCfg() ThemeCfg {
 	// them dark's visual twins.
 	cfg.ShadowPopover = darkShadowPopover
 	cfg.ShadowDialog = darkShadowDialog
+	// Focus ring (visual-refresh § 5.4): the default presets carry a
+	// ring so every wired focusable shows focus by default; derived
+	// presets copy the cfg and inherit it. Platform themes that want
+	// their own (macOS) or none (Windows, GNOME — border recolor
+	// only) override or leave it nil from baseCfg.
+	cfg.FocusRing = darkFocusRing
 	return cfg
 }
 
@@ -250,6 +286,9 @@ func init() {
 	// light-bordered) copy the cfg and inherit it.
 	themeLightCfg.ShadowPopover = lightShadowPopover
 	themeLightCfg.ShadowDialog = lightShadowDialog
+	// Focus ring: same construction as the dark preset's, tinted with
+	// the light accent.
+	themeLightCfg.FocusRing = lightFocusRing
 	ThemeLight = ThemeMaker(themeLightCfg)
 
 	// Light no padding.

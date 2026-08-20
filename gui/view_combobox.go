@@ -291,15 +291,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 		Disabled:    cfg.Disabled,
 		axis:        axisLeftToRight,
 		VAlign:      VAlignMiddle,
-		AmendLayout: func(ctx EventCtx) {
-			if ctx.Layout.Shape.Disabled {
-				return
-			}
-			if ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
-				ctx.Layout.Shape.Color = colorFocus
-				ctx.Layout.Shape.ColorBorder = colorBorderFocus
-			}
-		},
+		AmendLayout: focusRingAmend(colorFocus, colorBorderFocus),
 		OnKeyDown: makeComboboxOnKeyDown(id, onSelect, id, filteredIDs,
 			dropdownScrollID, rowH, listH),
 		OnChar: makeComboboxOnChar(id),
