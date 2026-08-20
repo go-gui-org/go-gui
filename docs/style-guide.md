@@ -112,6 +112,25 @@ groups children but is not a box) must set `SizeBorder: NoBorder` and
 `Padding: NoPadding`, so its reserved border and padding do not silently add
 height.
 
+## Radius and elevation — one ladder, two elevation tiers
+
+The radius ladder is `Theme.RadiusSmall` 4 (badges, scrollbar thumbs),
+`Theme.RadiusMedium` 6 (controls), `Theme.RadiusLarge` 12 (dialogs, dropdowns,
+popovers, the tab body) — one number set in the base theme, overridden by a
+platform theme only where the platform actually differs (Windows keeps its
+native large at 8). A floating surface is a style at `RadiusLarge` or higher; a
+control taking `RadiusLarge` is a finding on the same basis as a magic alpha —
+the toggle pill (`radiusLarge * 2`, clamped to a capsule) is the deliberate
+exception. Rounding is never spelled at a call site.
+
+Elevation has exactly two tiers (visual-refresh § 5.3): `ShadowPopover` (menus,
+dropdowns, tooltips, toasts) and `ShadowDialog` (dialogs, the command palette),
+both resolved in `ThemeMaker` from `ThemeCfg`. **Elevation goes on floating
+surfaces only** — a panel or card that separates from its neighbours by fill
+value never gets a shadow; a shadow there is solving a contrast problem with the
+wrong tool. `Theme.RadiusLarge` and the two shadow tiers travel together: a
+floating surface carries both.
+
 ## Vertical centring — correct the ink only where the alphabet allows
 
 A vertically-centred control centres the text's _line box_, which reserves

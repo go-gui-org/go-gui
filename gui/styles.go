@@ -25,12 +25,14 @@ var (
 	colorTextDark    = RGB(230, 232, 235) // #E6E8EB
 )
 
-// Radius constants.
+// Radius constants. Visual-refresh §5.2: hairline-adjacent smalls, and
+// the large end is what a floating surface needs — 7.5 read as a
+// slightly-rounded box, 12 as a panel (every platform lands 10–12).
 const (
 	radiusNone   float32 = 0
-	radiusSmall  float32 = 3.5
-	radiusMedium float32 = 5.5
-	radiusLarge  float32 = 7.5
+	radiusSmall  float32 = 4
+	radiusMedium float32 = 6
+	radiusLarge  float32 = 12
 )
 
 // Text size constants. The built-in ladder is the dark/light body of 14

@@ -1,6 +1,7 @@
-Rect xy=14.00,14.00 wh=292.00,35.60 color=#ffffffff radius=5.50 fill
-Rect xy=20.00,20.00 wh=43.60,23.60 color=#2f6fe0ff radius=3.50 fill
+Rect xy=14.00,14.00 wh=292.00,35.60 color=#ffffffff radius=6.00 fill
+Rect xy=20.00,20.00 wh=43.60,23.60 color=#2f6fe0ff radius=4.00 fill
 Text xy=25.00,23.24 wh=0.00,0.00 color=#ffffffff text="Edit" size=14.00
-Rect xy=20.00,43.60 wh=64.00,61.20 color=#ffffffff radius=5.50 fill
+Shadow xy=20.00,43.60 wh=64.00,61.20 color=#10182828 radius=6.00 blur=12.00 offset=0.00,4.00
+Rect xy=20.00,43.60 wh=64.00,61.20 color=#ffffffff radius=6.00 fill
 Text xy=31.00,52.84 wh=42.00,0.00 color=#1a1d21ff text="Copy" size=14.00
 Text xy=31.00,78.44 wh=42.00,0.00 color=#1a1d21ff text="Paste" size=14.00

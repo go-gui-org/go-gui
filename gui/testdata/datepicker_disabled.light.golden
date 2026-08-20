@@ -1,4 +1,4 @@
-Rect xy=14.00,14.00 wh=276.00,258.80 color=#ffffff7f radius=5.50 fill
+Rect xy=14.00,14.00 wh=276.00,258.80 color=#ffffff7f radius=6.00 fill
 Text xy=32.00,26.24 wh=0.00,0.00 color=#1a1d2195 text="August 2026" size=14.00
 Text xy=217.20,26.24 wh=0.00,0.00 color=#1a1d2195 text="\uf101" size=14.00
 Text xy=263.60,26.24 wh=0.00,0.00 color=#1a1d2195 text="\uf102" size=14.00
@@ -29,9 +29,9 @@ Text xy=105.60,148.39 wh=0.00,0.00 color=#1a1d2195 text="11" size=14.00
 Text xy=143.60,148.39 wh=0.00,0.00 color=#1a1d2195 text="12" size=14.00
 Text xy=181.60,148.39 wh=0.00,0.00 color=#1a1d2195 text="13" size=14.00
 Text xy=219.60,148.39 wh=0.00,0.00 color=#1a1d2195 text="14" size=14.00
-Rect xy=248.00,142.40 wh=36.00,29.60 color=#2f6fe07f radius=5.50 fill
+Rect xy=248.00,142.40 wh=36.00,29.60 color=#2f6fe07f radius=6.00 fill
 Text xy=257.60,148.39 wh=0.00,0.00 color=#ffffff95 text="15" size=14.00
-StrokeRect xy=20.00,174.00 wh=36.00,29.60 color=#1a1d217f radius=5.50 thickness=2.00
+StrokeRect xy=20.00,174.00 wh=36.00,29.60 color=#1a1d217f radius=6.00 thickness=2.00
 Text xy=29.60,179.99 wh=0.00,0.00 color=#1a1d2195 text="16" size=14.00
 Text xy=67.60,179.99 wh=0.00,0.00 color=#1a1d2195 text="17" size=14.00
 Text xy=105.60,179.99 wh=0.00,0.00 color=#1a1d2195 text="18" size=14.00

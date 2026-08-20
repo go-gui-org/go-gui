@@ -4,19 +4,18 @@ import "testing"
 
 // The elevation and focus-ring tokens are additive: a theme that does
 // not set them must produce exactly the styles it produced before they
-// existed. This is the guard that keeps every pre-existing theme — and
-// every golden recorded against one — from moving.
+// existed. After visual-refresh §5.3 the dark/light presets and their
+// derived twins carry elevation, so this guards the remaining
+// elevation-free presets (the blue taste preset) — and every golden
+// recorded against one — from moving.
 func TestPresetThemesCarryNoElevation(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		name  string
 		theme Theme
 	}{
-		{"dark", ThemeDark},
-		{"light", ThemeLight},
 		{"blue", themeBlue},
-		{"dark-no-padding", themeDarkNoPadding},
-		{"light-bordered", themeLightBordered},
+		{"blue-bordered", themeBlueBordered},
 	} {
 		for name, got := range map[string]*BoxShadow{
 			"dialog":     tc.theme.dialogStyle.Shadow,
@@ -33,6 +32,124 @@ func TestPresetThemesCarryNoElevation(t *testing.T) {
 				t.Errorf("%s: %s shadow set, want nil", tc.name, name)
 			}
 		}
+	}
+}
+
+// The dark and light presets carry the spec's elevation values (§5.3
+// table), fanned out to the floating surfaces. The derived presets
+// (no-padding, bordered) copy their polarity's cfg, so this also pins
+// the init order — an elevation assignment moved after those copies
+// would silently deflate the twins. Pinning the resolved style shadows
+// keeps the table and the code from drifting the way
+// TestThemeMakerAccentRamp pins the accent ramp.
+func TestThemePresetElevationValues(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name        string
+		theme       Theme
+		wantPopover *BoxShadow
+		wantDialog  *BoxShadow
+	}{
+		{"dark", ThemeDark, darkShadowPopover, darkShadowDialog},
+		{"dark-no-padding", themeDarkNoPadding, darkShadowPopover, darkShadowDialog},
+		{"dark-bordered", themeDarkBordered, darkShadowPopover, darkShadowDialog},
+		{"light", ThemeLight, lightShadowPopover, lightShadowDialog},
+		{"light-no-padding", themeLightNoPadding, lightShadowPopover, lightShadowDialog},
+		{"light-bordered", themeLightBordered, lightShadowPopover, lightShadowDialog},
+	} {
+		for name, got := range popoverShadows(tc.theme) {
+			if got != tc.wantPopover {
+				t.Errorf("%s: %s = %v, want the popover tier %v",
+					tc.name, name, got, tc.wantPopover)
+			}
+		}
+		for name, got := range modalShadows(tc.theme) {
+			if got != tc.wantDialog {
+				t.Errorf("%s: %s = %v, want the dialog tier %v",
+					tc.name, name, got, tc.wantDialog)
+			}
+		}
+		if tc.theme.focusRing != nil {
+			t.Errorf("%s: focus ring set, want nil until phase 5b", tc.name)
+		}
+	}
+}
+
+// The spec table's numbers, asserted once so the consts and the
+// documented values cannot drift.
+func TestThemePresetElevationConsts(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		got        *BoxShadow
+		color      Color
+		offsetY    float32
+		blurRadius float32
+	}{
+		{darkShadowPopover, RGBA(0, 0, 0, 140), 4, 12},
+		{darkShadowDialog, RGBA(0, 0, 0, 170), 12, 32},
+		{lightShadowPopover, RGBA(16, 24, 40, 40), 4, 12},
+		{lightShadowDialog, RGBA(16, 24, 40, 60), 12, 32},
+	} {
+		if tc.got.Color != tc.color ||
+			tc.got.OffsetY != tc.offsetY ||
+			tc.got.BlurRadius != tc.blurRadius {
+			t.Errorf("shadow = %v, want %v/%v/%v",
+				tc.got, tc.color, tc.offsetY, tc.blurRadius)
+		}
+	}
+}
+
+// Phase 4 dropped the macOS and GNOME radius overrides, so their
+// ladders are the base's by inheritance — and Windows keeps its native
+// large at 8. No golden renders a large-radius surface under a platform
+// theme, so this is the only pin that catches a re-added override or a
+// base-ladder move (visual-refresh §10: an unrecorded platform theme is
+// where a base-ladder change silently breaks a hand-tuned override).
+func TestPlatformRadiusLadder(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name  string
+		theme Theme
+		small float32
+		med   float32
+		large float32
+	}{
+		{"dark", ThemeDark, 4, 6, 12},
+		{"macos", themeMacOS, 4, 6, 12},
+		{"macos-dark", themeMacOSDark, 4, 6, 12},
+		{"gnome", themeGnome, 4, 6, 12},
+		{"gnome-dark", themeGnomeDark, 4, 6, 12},
+		{"windows", themeWindows, 2, 4, 8},
+		{"windows-dark", themeWindowsDark, 2, 4, 8},
+	} {
+		th := tc.theme
+		if th.RadiusSmall != tc.small || th.RadiusMedium != tc.med ||
+			th.RadiusLarge != tc.large {
+			t.Errorf("%s: radius ladder = %v/%v/%v, want %v/%v/%v",
+				tc.name, th.RadiusSmall, th.RadiusMedium, th.RadiusLarge,
+				tc.small, tc.med, tc.large)
+		}
+	}
+}
+
+// popoverShadows and modalShadows name the styles each elevation tier
+// fans out to. One shared list, so a style added to the fan-out can
+// never miss its pin in either test.
+func popoverShadows(th Theme) map[string]*BoxShadow {
+	return map[string]*BoxShadow{
+		"select":     th.selectStyle.Shadow,
+		"combobox":   th.comboboxStyle.Shadow,
+		"tooltip":    th.tooltipStyle.Shadow,
+		"toast":      th.toastStyle.Shadow,
+		"submenu":    th.MenubarStyle.Shadow,
+		"datepicker": th.datePickerStyle.Shadow,
+	}
+}
+
+func modalShadows(th Theme) map[string]*BoxShadow {
+	return map[string]*BoxShadow{
+		"dialog":  th.dialogStyle.Shadow,
+		"palette": th.commandPaletteStyle.Shadow,
 	}
 }
 
@@ -53,26 +170,14 @@ func TestThemeMakerFansOutElevation(t *testing.T) {
 	cfg.FocusRing = ring
 	th := ThemeMaker(cfg)
 
-	popovers := map[string]*BoxShadow{
-		"select":     th.selectStyle.Shadow,
-		"combobox":   th.comboboxStyle.Shadow,
-		"tooltip":    th.tooltipStyle.Shadow,
-		"toast":      th.toastStyle.Shadow,
-		"submenu":    th.MenubarStyle.Shadow,
-		"datepicker": th.datePickerStyle.Shadow,
-	}
-	for name, got := range popovers {
+	for name, got := range popoverShadows(th) {
 		if got != popover {
 			t.Errorf("%s: got %p, want the popover token %p",
 				name, got, popover)
 		}
 	}
 
-	modals := map[string]*BoxShadow{
-		"dialog":  th.dialogStyle.Shadow,
-		"palette": th.commandPaletteStyle.Shadow,
-	}
-	for name, got := range modals {
+	for name, got := range modalShadows(th) {
 		if got != dialog {
 			t.Errorf("%s: got %p, want the dialog token %p",
 				name, got, dialog)

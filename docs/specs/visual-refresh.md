@@ -1,7 +1,8 @@
 # Visual refresh: palette, type, density, elevation
 
-- **Status:** phase 3 landed (§ 4 palettes, accent ramp, semantic colors; § 5.1
-  border). Phases 1, 4, 5a/5b, 6, 7, 8 pending.
+- **Status:** phase 4 landed (§ 5.2 radius ladder, § 5.3 elevation). Phases 1,
+  2, 3 landed earlier (§ 4 palettes, accent ramp, semantic colors; § 5.1 border;
+  type ladder; density). Phases 5a/5b, 6, 7, 8 pending.
 - **Extends:** `docs/style-guide.md`,
   `docs/specs/widget-visual-consistency-audit.md` (issue #335)
 - **Breaking:** yes, deliberately. All goldens re-record, every preset changes
@@ -562,7 +563,7 @@ Each phase re-records goldens and lands independently.
 | 1     | § 1 `labelledField` bug + field min widths    | widget  | landed |
 | 2     | § 2 type ladder, § 3 density                  | theme   | landed |
 | 3     | § 4 palettes and accent ramp, § 5.1 border    | theme   | landed |
-| 4     | § 5.2 radius, § 5.3 elevation                 | theme   |        |
+| 4     | § 5.2 radius, § 5.3 elevation                 | theme   | landed |
 | 5a    | § 5.5 `BoxShadow.Spread` through six backends | backend |        |
 | 5b    | § 5.4 focus ring + wiring the remaining ~8    | widget  |        |
 | 6     | § 6 button variants                           | widget  |        |
@@ -721,6 +722,25 @@ done until the docs say the same thing:
   track, so no single color pairs with both, and the label is secondary (a
   track-colored chip behind it was tried and rejected by review). Explicit slots
   still win.
+- **Radius audit (§ 5.2)** — no control-tier style consumed `cfg.RadiusLarge`
+  when the ladder moved, so nothing needed demoting to `RadiusMedium`: the only
+  derived site is the toggle's `radiusLarge * 2` pill, which clamps at
+  half-height identically at 15 and 24. macOS dropped its radius override
+  entirely (Large went 10 → 12 by inheritance; the spec's "if that theme drops
+  its override" branch was taken), GNOME's overrides were byte-identical to the
+  new base and dropped as redundant, and Windows keeps its native
+  `RadiusLarge = 8`. The base ladder is now one number set everywhere a platform
+  does not override.
+- **Elevation in dark/light (§ 5.3)** — `darkShadowPopover`/`darkShadowDialog`
+  and `lightShadowPopover`/`lightShadowDialog` follow the platform themes' const
+  pattern; `baseDarkCfg` and `themeLightCfg` wire them, so the derived presets
+  (no-padding, bordered) inherit elevation as dark/light's visual twins. The
+  blue taste preset stays flat. Fan-out unchanged: popover tier on
+  select/combobox/date-picker/tooltip/toast/menubar-submenu, dialog tier on
+  dialog/command palette. The elevation tests were inverted accordingly — the
+  "dark emits no dropdown shadow" frame assertion now rides the blue preset —
+  and the spec's table values are pinned by `TestThemePresetElevationConsts`
+  (the `TestThemeMakerAccentRamp` role for elevation).
 
 ## Deferred questions
 

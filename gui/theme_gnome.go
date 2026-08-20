@@ -57,13 +57,6 @@ func basegnomeCfg() ThemeCfg {
 	// on fill contrast, the same call macOS makes.
 	cfg.SizeBorder = 1
 
-	// Corner rounding. libadwaita keeps controls rounder than Windows:
-	// ~6px buttons and entries, 9-12px menus and dialogs.
-	cfg.Radius = 6
-	cfg.RadiusSmall = 4
-	cfg.RadiusMedium = 6
-	cfg.RadiusLarge = 12
-
 	// Control geometry. Adwaita switches are the biggest of the three
 	// platforms: 40x24 with the knob travel to match.
 	cfg.SizeSwitchWidth = 40
