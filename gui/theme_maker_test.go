@@ -756,3 +756,19 @@ func TestThemeMakerDangerRamp(t *testing.T) {
 		t.Errorf("danger base L = %.2f, want a non-black error color", base.L)
 	}
 }
+
+// The progress readout trails the bar in the secondary role
+// (visual-refresh §8) — it never sits on the fill again, so it takes
+// the de-emphasis outright instead of balancing body text against
+// both backgrounds.
+func TestThemeMakerProgressReadoutIsSecondary(t *testing.T) {
+	dark := ThemeMaker(baseDarkCfg())
+	if dark.progressBarStyle.TextStyle != dark.TextStyleSecondary {
+		t.Errorf("dark readout style = %v, want TextStyleSecondary %v",
+			dark.progressBarStyle.TextStyle, dark.TextStyleSecondary)
+	}
+	if ThemeLight.progressBarStyle.TextStyle != ThemeLight.TextStyleSecondary {
+		t.Errorf("light readout style = %v, want TextStyleSecondary %v",
+			ThemeLight.progressBarStyle.TextStyle, ThemeLight.TextStyleSecondary)
+	}
+}

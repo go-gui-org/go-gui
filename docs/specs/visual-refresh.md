@@ -581,7 +581,7 @@ Each phase re-records goldens and lands independently.
 | 5a    | § 5.5 `BoxShadow.Spread` through six backends | backend | landed |
 | 5b    | § 5.4 focus ring + wiring the remaining ~8    | widget  | landed |
 | 6     | § 6 button variants                           | widget  | landed |
-| 7     | § 8 widget defects                            | widget  |        |
+| 7     | § 8 widget defects                            | widget  | landed |
 | 8     | § 7 preset removal + all doc deliverables     | mixed   |        |
 
 Phases 2–4 are constant edits in `gui/styles.go`, `gui/padding.go` and
@@ -654,6 +654,28 @@ Mandatory before any phase is called done:
 - `TestDefaultStylesMirrorThemeDark` must stay green; it is the gate that stops
   a literal being reintroduced into a `default*Style` mirror.
 - `make prepush`.
+
+Phase 7 — § 8 checklist. The progress readout move and the boolean retune are
+pinned by the same § 10 cases, re-recorded and diff-read:
+
+1. **Readout outside the bar.** `progress_bar` (dark + light) re-recorded: the
+   track keeps `SizeProgressBar` (20×20) and the fill is 42% of the track's own
+   box; the readout sits after the track at `SpacingSmall` in the secondary role
+   (`#e6e8eba0` dark, `#1a1d21ae` light) — no text over the fill, no
+   `TextBackground` chip. `TestProgressBarFillUsesTrackBox` pins the fill math
+   to the track's box (the outer's width includes the readout and would spill
+   the fill); `TestThemeMakerProgressReadoutIsSecondary` pins the style role;
+   `TestProgressBarReadoutTrails` pins the two-child structure.
+2. **Boolean retune.** `boolean_labels` and `boolean_labels_disabled` (both
+   themes) re-recorded: switch 34×20 (knob radius 7), radio 15 (7.5), toggle
+   unchanged at `ts.Size + 4`. `SizeSwitchWidth/Height` and `SizeRadio` in
+   `theme_defaults.go` are the only touched sizes; the platform overrides in
+   `theme_macos.go`, `theme_gnome.go`, `theme_winui.go` are untouched.
+3. **Pixel invariance.** `switch_focused.dark` re-recorded for the new pill and
+   knob; the light case was unchanged at its sample points and
+   macos/gnome/windows were byte-identical — the override seam held. The
+   re-record sweep also touched `progress_fill`/`switch_focused.light` PNGs with
+   identical pixels (encoder noise); those were restored, not kept.
 
 Phase 5a — written backend checklist (one pass per backend against the stated
 expectation): for a caster at `(x,y,w,h,rad)` with `Spread: s`, the shadow
@@ -753,6 +775,31 @@ done until the docs say the same thing:
 
 ## Decisions taken
 
+- **Progress readout placement and boolean sizes (§ 8, phase 7)** — the readout
+  trails the bar at `SpacingSmall` in `TextStyleSecondary`, outside the fill;
+  `progressBarCenterLabel` and the readout's `opticalCenterText` amend are
+  deleted. The widget restructured: the outer row owns identity, sizing and
+  a11y; the track (caller's `Width`, track color, radius) is its first child
+  with the fill as the track's only child. The amend math moved with the
+  structure: the fill is sized from the track's laid-out box — using the outer's
+  width would shrink the fill by the readout's share and spill it past the
+  track. The track takes `Sizing: FillFit` so a `FillFit` bar still absorbs the
+  leftover; the stated `Width` stays its floor when the outer fits content. One
+  seam needed a guard: in a vertical bar the column's cross-axis fill pass
+  stretches the `FillFit` track to the column's width, which grows to fit the
+  readout — so a vertical track whose caller did not ask for a fill-width bar
+  is capped at its stated width (`MaxWidth`), keeping `Width: 12` a 12-px bar
+  with the readout below it. The default readout style is now the theme's
+  secondary role
+  (`progressBarStyle.TextStyle` moved off the body text); the caller's
+  `TextStyle`/`TextBackground`/`TextPadding` fields still override. The switch
+  (36×22 → 34×20), radio (16 → 15) and knob radii retune against the 14px
+  ladder; `ToggleStyle.Size` was already `ts.Size + 4`, so the toggle did not
+  move. GNOME (40×24), Windows (40×20) and macOS (38×22) keep their switch
+  overrides untouched — the platform seam § 8 exists to exercise. Pixel
+  evidence: `switch_focused.dark` re-recorded for the new pill and knob, the
+  light case was unchanged at its sample points, and GNOME/Windows/macOS were
+  byte-identical (their size overrides win).
 - **Default focus ring (§ 5.4, phase 5b)** — both default presets carry
   `FocusRing` = the theme's own accent at 25% alpha (`WithOpacity(0.25)`, so the
   RGB is the single accent decision and the ring tracks an accent change),

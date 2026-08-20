@@ -8,46 +8,66 @@ func TestProgressBarDefaultLayout(t *testing.T) {
 		Percent: 0.5,
 	})
 	layout := generateViewLayout(v, &Window{})
-	// Row with fill bar child + text label child
+	// Row with the track child (holding the fill bar) + optional label
 	if layout.Shape.Axis != axisLeftToRight {
 		t.Error("default should be horizontal (row)")
 	}
 	if len(layout.Children) < 1 {
-		t.Fatal("should have at least 1 child (fill bar)")
+		t.Fatal("should have at least 1 child (track)")
 	}
 }
 
-func TestProgressBarCenterLabel(t *testing.T) {
-	// The label must be centered on both axes inside the parent,
-	// shifting its own child to keep the offset consistent.
-	parent := &Shape{X: 100, Y: 50, Width: 200, Height: 40}
-	lbl := &Layout{
-		Shape: &Shape{X: 0, Y: 0, Width: 60, Height: 20},
-		Children: []Layout{
-			{Shape: &Shape{X: 5, Y: 5, Width: 50, Height: 10}},
-		},
+// The fill is sized from the track's own laid-out box, not the outer
+// widget's: the outer row also carries the trailing readout
+// (visual-refresh §8), so using the outer width would shrink the fill
+// by the readout's share and spill the fill past its track.
+func TestProgressBarFillUsesTrackBox(t *testing.T) {
+	v := ProgressBar(ProgressBarCfg{
+		ID:       "pb-test",
+		Percent:  0.5,
+		TextShow: true,
+	})
+	layout := generateViewLayout(v, &Window{})
+	if len(layout.Children) < 2 {
+		t.Fatal("expected the track and the readout")
 	}
+	track := layout.Children[0]
+	if len(track.Children) == 0 {
+		t.Fatal("track has no fill child")
+	}
+	fill := &track.Children[0]
+	track.Shape.Width = 100
+	track.Shape.Height = 20
+	track.Shape.X = 10
+	track.Shape.Y = 5
 
-	progressBarCenterLabel(parent, lbl)
-	// Center of parent (200, 70) minus half the label (30, 10).
-	if lbl.Shape.X != 170 || lbl.Shape.Y != 60 {
-		t.Fatalf("label at (%v, %v), want (170, 60)",
-			lbl.Shape.X, lbl.Shape.Y)
-	}
-	// The inner child follows the label's translation: it moved from
-	// (5,5) to (175, 65) — a shift of +170 x, +55 y.
-	inner := &lbl.Children[0]
-	if inner.Shape.X != 175 || inner.Shape.Y != 65 {
-		t.Fatalf("inner child at (%v, %v), want (175, 65)",
-			inner.Shape.X, inner.Shape.Y)
-	}
+	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, &Window{}})
 
-	// A label without children still centers (no child shift).
-	lbl2 := &Layout{Shape: &Shape{X: 0, Y: 0, Width: 40, Height: 10}}
-	progressBarCenterLabel(parent, lbl2)
-	if lbl2.Shape.X != 180 || lbl2.Shape.Y != 65 {
-		t.Fatalf("childless label at (%v, %v), want (180, 65)",
-			lbl2.Shape.X, lbl2.Shape.Y)
+	if fill.Shape.Width != 50 {
+		t.Errorf("fill width = %v, want 50 (half the track)", fill.Shape.Width)
+	}
+	if fill.Shape.Height != 20 {
+		t.Errorf("fill height = %v, want the track height 20", fill.Shape.Height)
+	}
+	if fill.Shape.X != 10 {
+		t.Errorf("fill x = %v, want the track x 10", fill.Shape.X)
+	}
+}
+
+// The readout is a trailing sibling of the track, not a child overlaid
+// on it: with TextShow the widget is a two-child row.
+func TestProgressBarReadoutTrails(t *testing.T) {
+	v := ProgressBar(ProgressBarCfg{
+		ID:       "pb-test",
+		Percent:  0.5,
+		TextShow: true,
+	})
+	layout := generateViewLayout(v, &Window{})
+	if len(layout.Children) != 2 {
+		t.Fatalf("with text: got %d children, want 2", len(layout.Children))
+	}
+	if layout.Children[0].Shape.Color == ColorTransparent {
+		t.Error("the track should paint the track color")
 	}
 }
 
@@ -226,6 +246,74 @@ func TestProgressBarThemeTextStyle(t *testing.T) {
 	}
 }
 
+// A vertical bar stays at its stated width even when the trailing
+// readout is wider: the column's cross-axis fill pass would stretch
+// the FillFit track to the readout's width, silently breaking the
+// caller's Width (visual-refresh §8).
+func TestProgressBarVerticalKeepsStatedWidth(t *testing.T) {
+	v := ProgressBar(ProgressBarCfg{
+		ID:       "pb-test",
+		Percent:  0.5,
+		Vertical: true,
+		TextShow: true,
+		Width:    12,
+	})
+	layout := generateViewLayout(v, &Window{})
+	track := &layout.Children[0]
+	if track.Shape.Width != 12 {
+		t.Errorf("track width = %v, want the stated 12", track.Shape.Width)
+	}
+}
+
+// A vertical FillFit bar still fills: the cap only applies when the
+// caller did not ask the widget to fill the width axis.
+func TestProgressBarVerticalFillFitFills(t *testing.T) {
+	v := ProgressBar(ProgressBarCfg{
+		ID:       "pb-test",
+		Percent:  0.5,
+		Vertical: true,
+		Sizing:   FillFit,
+	})
+	layout := generateViewLayout(v, &Window{})
+	if maxW := layout.Children[0].Shape.MaxWidth; maxW != 0 {
+		t.Errorf("MaxWidth = %v, want 0 for a FillFit bar", maxW)
+	}
+}
+
+// The vertical amend sizes the fill from the track's box: height =
+// percent × track height, width = track width, anchored at the track's
+// Y (plus the indefinite offset). The § 8 restructure moved the fill
+// under the track and only this branch guards its geometry.
+func TestProgressBarVerticalAmendFillsTrackBox(t *testing.T) {
+	v := ProgressBar(ProgressBarCfg{
+		ID:       "pb-v",
+		Percent:  0.5,
+		Vertical: true,
+	})
+	layout := generateViewLayout(v, &Window{})
+	track := &layout.Children[0]
+	if len(track.Children) == 0 {
+		t.Fatal("track has no fill child")
+	}
+	fill := &track.Children[0]
+	track.Shape.Width = 12
+	track.Shape.Height = 100
+	track.Shape.X = 5
+	track.Shape.Y = 10
+
+	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, &Window{}})
+
+	if fill.Shape.Height != 50 {
+		t.Errorf("fill height = %v, want 50 (half the track)", fill.Shape.Height)
+	}
+	if fill.Shape.Width != 12 {
+		t.Errorf("fill width = %v, want the track width 12", fill.Shape.Width)
+	}
+	if fill.Shape.Y != 10 {
+		t.Errorf("fill y = %v, want the track y 10", fill.Shape.Y)
+	}
+}
+
 func TestProgressBarRadiusZeroOverride(t *testing.T) {
 	v := ProgressBar(ProgressBarCfg{
 		ID:      "pb-test",
@@ -233,8 +321,13 @@ func TestProgressBarRadiusZeroOverride(t *testing.T) {
 		Radius:  NoRadius,
 	})
 	layout := generateViewLayout(v, &Window{})
-	if layout.Shape.Radius != 0 {
-		t.Errorf("radius = %f, want 0", layout.Shape.Radius)
+	// The radius lives on the track (the painted shape), not the
+	// transparent outer row.
+	if len(layout.Children) == 0 {
+		t.Fatal("expected the track child")
+	}
+	if layout.Children[0].Shape.Radius != 0 {
+		t.Errorf("radius = %f, want 0", layout.Children[0].Shape.Radius)
 	}
 }
 

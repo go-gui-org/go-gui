@@ -425,16 +425,15 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Color:       cfg.ColorInterior,
 			colorBar:    colorSelect,
 			ColorBorder: cfg.ColorBorder,
-			// The % label keeps the body text on the bar, unboxed:
-			// it straddles fill and track, so no single color pairs
-			// with both — the label is secondary and stays as
-			// before (visual-refresh §4.3).
+			// The readout trails the bar unboxed (visual-refresh §8):
+			// it no longer straddles fill and track, so it takes the
+			// secondary role outright.
 			textBackground: ColorTransparent,
 			Padding:        PaddingNone,
 			textPadding:    NewPadding(1, 4, 1, 4),
 			Radius:         cfg.RadiusSmall,
 			TextShow:       true,
-			TextStyle:      ts,
+			TextStyle:      textSecondary,
 		},
 		skeletonStyle: SkeletonStyle{
 			Color:          cfg.ColorInterior,
