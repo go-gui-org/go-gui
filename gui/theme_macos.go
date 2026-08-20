@@ -88,6 +88,10 @@ func baseMacOSCfg() ThemeCfg {
 	cfg.SizeSwitchHeight = 22
 	cfg.SizeScrollbar = 8
 
+	// Text ladder at macOS's native body size (13), derived by
+	// textSizes like every theme's (visual-refresh §2.1).
+	setTextLadder(&cfg, 13)
+
 	cfg.ShadowPopover = macOSShadowPopover
 	cfg.ShadowDialog = macOSShadowDialog
 	cfg.FocusRing = macOSFocusRing
@@ -118,7 +122,7 @@ func macOSCfg() ThemeCfg {
 	cfg.TextStyleDef = TextStyle{
 		Family: defaultFontFamily,
 		Color:  ColorFromString("#1D1D1F"),
-		Size:   sizeTextMedium,
+		Size:   13,
 	}
 	return cfg
 }
@@ -144,7 +148,7 @@ func macOSDarkCfg() ThemeCfg {
 	cfg.TextStyleDef = TextStyle{
 		Family: defaultFontFamily,
 		Color:  ColorFromString("#FFFFFF"),
-		Size:   sizeTextMedium,
+		Size:   13,
 	}
 	return cfg
 }

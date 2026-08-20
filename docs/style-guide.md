@@ -46,10 +46,33 @@ still sizes text by arithmetic; the named rung only bounds the result. The gate
 reports it either way — it keys on the arithmetic, not on how the bound is
 spelled.
 
-The mono ladder sits +1 above the roman ladder at every rung (`M4` is 15 where
-`N4` is 14): an optical compensation for the mono face, uniform because it is
+The mono ladder sits +1 above the roman ladder at every rung (`M4` is 13 where
+`N4` is 12): an optical compensation for the mono face, uniform because it is
 the same face at every size. Expect the step when mixing `M`-rungs with
 `N`-rungs.
+
+The ladder is derived, not stated: each theme states a **body size** and the six
+rungs come from it (`textSizes`, visual-refresh §2.1). dark/light body 14 (10,
+11, 12, 14, 17, 22); the platform themes carry their platform's native body —
+macOS 13, Windows 12, GNOME 15 — which is what they exist for. A custom theme
+states `TextStyleDef.Size` and gets a complete ladder.
+
+**Headings take B rungs.** A widget rendering a heading, a group-box title, a
+dialog title, a tab label or a table header names a bold step; body and value
+text stays N (visual-refresh §2.2):
+
+| Widget                           | Role               | Rung               |
+| -------------------------------- | ------------------ | ------------------ |
+| Dialog                           | title              | `B2`               |
+| Toast                            | title              | `B3`               |
+| Group-box (`ContainerCfg.Title`) | title              | `B3`               |
+| TabControl                       | selected tab label | `B3`               |
+| TabControl                       | resting tab labels | `N3`               |
+| Table / DataGrid                 | header             | bold (theme-owned) |
+
+Recorded as **staying N**: list and tree subheadings (their hierarchy comes from
+size and color, not weight), breadcrumbs, menu items, field labels, button
+labels, the progress readout.
 
 The only automatic step in the toolkit is a field label: `TextStyleLabel` steps
 its own size, so a labelled form reads correctly without the widget spelling a
@@ -177,8 +200,8 @@ a new exemption is a decision, not a habit:
   caller-supplied size, which lands anywhere, so no named rung is the one to
   read. The date-picker roller's center-item emphasis
   (`view_date_picker_roller.go`) and the numeric input's step triangle
-  (`view_input_numeric.go`). The ladder's rungs are non-uniform (+2 at the small
-  end, +4 above medium), so no fixed step equals a rung at every size. Both
+  (`view_input_numeric.go`). The ladder's rungs are non-uniform (+1 at the small
+  end, +5 above medium), so no fixed step equals a rung at every size. Both
   bound the result with named rungs.
 
 A new deviation carries the marker **and** a comment naming the reason; the gate

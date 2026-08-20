@@ -255,6 +255,67 @@ func TestThemeMakerPostLiteralOverwrites(t *testing.T) {
 	}
 }
 
+// Heading roles take B rungs (visual-refresh §2.2): dialog, toast and
+// selected-tab labels are bold while body and value text stays N. The
+// command golden serializer records no typeface, so this is the pin —
+// same pattern as TestThemeMakerPostLiteralOverwrites above.
+func TestThemeMakerHeadingWeights(t *testing.T) {
+	theme := ThemeMaker(baseDarkCfg())
+
+	if theme.dialogStyle.titleTextStyle != theme.B2 {
+		t.Errorf("dialog title = %+v, want B2 %+v",
+			theme.dialogStyle.titleTextStyle, theme.B2)
+	}
+	if theme.toastStyle.TitleStyle != theme.B3 {
+		t.Errorf("toast title = %+v, want B3 %+v",
+			theme.toastStyle.TitleStyle, theme.B3)
+	}
+	if theme.tabControlStyle.textStyleSelected != theme.B3 {
+		t.Errorf("selected tab = %+v, want B3 %+v",
+			theme.tabControlStyle.textStyleSelected, theme.B3)
+	}
+	// The strip's resting label stays body weight.
+	if theme.tabControlStyle.TextStyle.Typeface != 0 {
+		t.Errorf("resting tab label = %+v, want regular", theme.tabControlStyle.TextStyle)
+	}
+}
+
+// The ladder derives from TextStyleDef.Size, and only a stated rung
+// overrides its rung of it (visual-refresh §2.1). A zero body size is
+// "unset", not "0px text": it falls back to the built-in body so a
+// partial theme never derives a negative ladder.
+func TestThemeMakerLadderFallback(t *testing.T) {
+	empty := ThemeMaker(ThemeCfg{})
+	want := textSizeLadder{10, 11, 12, 14, 17, 22}
+	got := textSizeLadder{
+		tiny:   empty.SizeTextTiny,
+		xSmall: empty.SizeTextXSmall,
+		small:  empty.SizeTextSmall,
+		medium: empty.SizeTextMedium,
+		large:  empty.SizeTextLarge,
+		xLarge: empty.SizeTextXLarge,
+	}
+	if got != want {
+		t.Errorf("ThemeMaker(ThemeCfg{}).SizeText* = %v, want built-in %v", got, want)
+	}
+
+	// A theme that states a body and one rung keeps the rung and
+	// derives the rest from the body.
+	partial := ThemeMaker(ThemeCfg{
+		TextStyleDef:  TextStyle{Size: 16},
+		SizeTextSmall: 13,
+	})
+	if partial.SizeTextMedium != 16 {
+		t.Errorf("medium = %v, want 16 derived from TextStyleDef.Size", partial.SizeTextMedium)
+	}
+	if partial.SizeTextSmall != 13 {
+		t.Errorf("small = %v, want the stated 13", partial.SizeTextSmall)
+	}
+	if partial.SizeTextTiny != 12 {
+		t.Errorf("tiny = %v, want 12 derived from TextStyleDef.Size", partial.SizeTextTiny)
+	}
+}
+
 // ColorTextOnSelect resolves to the body text color when unset, so
 // a theme that never states it keeps its current appearance — and
 // every preset stays byte-identical (issue #373). An explicit value

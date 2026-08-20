@@ -1,5 +1,5 @@
-Clip xy=11.50,11.50 wh=48.00,32.00
-Image xy=11.50,11.50 wh=48.00,32.00 res="mem:gui/checker/96-64-"
+Clip xy=15.50,15.50 wh=48.00,32.00
+Image xy=15.50,15.50 wh=48.00,32.00 res="mem:gui/checker/96-64-"
 Clip xy=0.00,0.00 wh=320.00,240.00
-Rect xy=11.50,11.50 wh=48.00,32.00 color=#5078c880 radius=5.50 fill
-StrokeRect xy=11.50,11.50 wh=48.00,32.00 color=#4169e1ff radius=5.50 thickness=1.50
+Rect xy=15.50,15.50 wh=48.00,32.00 color=#5078c880 radius=5.50 fill
+StrokeRect xy=15.50,15.50 wh=48.00,32.00 color=#4169e1ff radius=5.50 thickness=1.50

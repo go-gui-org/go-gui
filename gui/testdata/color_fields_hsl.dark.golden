@@ -1,47 +1,47 @@
-Rect xy=11.50,11.50 wh=115.00,31.40 color=#4a4a4aff radius=5.50 fill
-StrokeRect xy=11.50,11.50 wh=115.00,31.40 color=#646464ff radius=5.50 thickness=1.50
-Clip xy=18.00,17.42 wh=102.00,22.40
-Text xy=18.00,17.42 wh=0.00,0.00 color=#e1e1e1ff text="#3380CC" size=16.00
+Rect xy=15.50,15.50 wh=115.00,32.60 color=#4a4a4aff radius=5.50 fill
+StrokeRect xy=15.50,15.50 wh=115.00,32.60 color=#646464ff radius=5.50 thickness=1.50
+Clip xy=27.00,23.24 wh=92.00,19.60
+Text xy=27.00,23.24 wh=0.00,0.00 color=#e1e1e1ff text="#3380CC" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00
-Text xy=22.70,47.90 wh=0.00,0.00 color=#e1e1e1b2 text="Red" size=12.00
-Rect xy=11.50,69.70 wh=44.00,31.40 color=#4a4a4aff radius=5.50 fill
-StrokeRect xy=11.50,69.70 wh=44.00,31.40 color=#646464ff radius=5.50 thickness=1.50
-Clip xy=18.00,75.62 wh=31.00,22.40
-Text xy=18.00,75.62 wh=0.00,0.00 color=#e1e1e1ff text="51" size=16.00
+Text xy=27.60,54.10 wh=0.00,0.00 color=#e1e1e1b2 text="Red" size=11.00
+Rect xy=15.50,75.50 wh=44.00,32.60 color=#4a4a4aff radius=5.50 fill
+StrokeRect xy=15.50,75.50 wh=44.00,32.60 color=#646464ff radius=5.50 thickness=1.50
+Clip xy=27.00,83.24 wh=21.00,19.60
+Text xy=27.00,83.24 wh=0.00,0.00 color=#e1e1e1ff text="51" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00
-Text xy=64.50,47.90 wh=0.00,0.00 color=#e1e1e1b2 text="Green" size=12.00
-Rect xy=60.50,69.70 wh=44.00,31.40 color=#4a4a4aff radius=5.50 fill
-StrokeRect xy=60.50,69.70 wh=44.00,31.40 color=#646464ff radius=5.50 thickness=1.50
-Clip xy=67.00,75.62 wh=31.00,22.40
-Text xy=67.00,75.62 wh=0.00,0.00 color=#e1e1e1ff text="128" size=16.00
+Text xy=71.00,54.10 wh=0.00,0.00 color=#e1e1e1b2 text="Green" size=11.00
+Rect xy=65.50,75.50 wh=44.00,32.60 color=#4a4a4aff radius=5.50 fill
+StrokeRect xy=65.50,75.50 wh=44.00,32.60 color=#646464ff radius=5.50 thickness=1.50
+Clip xy=77.00,83.24 wh=21.00,19.60
+Text xy=77.00,83.24 wh=0.00,0.00 color=#e1e1e1ff text="128" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00
-Text xy=117.10,47.90 wh=0.00,0.00 color=#e1e1e1b2 text="Blue" size=12.00
-Rect xy=109.50,69.70 wh=44.00,31.40 color=#4a4a4aff radius=5.50 fill
-StrokeRect xy=109.50,69.70 wh=44.00,31.40 color=#646464ff radius=5.50 thickness=1.50
-Clip xy=116.00,75.62 wh=31.00,22.40
-Text xy=116.00,75.62 wh=0.00,0.00 color=#e1e1e1ff text="204" size=16.00
+Text xy=124.30,54.10 wh=0.00,0.00 color=#e1e1e1b2 text="Blue" size=11.00
+Rect xy=115.50,75.50 wh=44.00,32.60 color=#4a4a4aff radius=5.50 fill
+StrokeRect xy=115.50,75.50 wh=44.00,32.60 color=#646464ff radius=5.50 thickness=1.50
+Clip xy=127.00,83.24 wh=21.00,19.60
+Text xy=127.00,83.24 wh=0.00,0.00 color=#e1e1e1ff text="204" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00
-Text xy=162.50,47.90 wh=0.00,0.00 color=#e1e1e1b2 text="Alpha" size=12.00
-Rect xy=158.50,69.70 wh=44.00,31.40 color=#4a4a4aff radius=5.50 fill
-StrokeRect xy=158.50,69.70 wh=44.00,31.40 color=#646464ff radius=5.50 thickness=1.50
-Clip xy=165.00,75.62 wh=31.00,22.40
-Text xy=165.00,75.62 wh=0.00,0.00 color=#e1e1e1ff text="255" size=16.00
+Text xy=171.00,54.10 wh=0.00,0.00 color=#e1e1e1b2 text="Alpha" size=11.00
+Rect xy=165.50,75.50 wh=44.00,32.60 color=#4a4a4aff radius=5.50 fill
+StrokeRect xy=165.50,75.50 wh=44.00,32.60 color=#646464ff radius=5.50 thickness=1.50
+Clip xy=177.00,83.24 wh=21.00,19.60
+Text xy=177.00,83.24 wh=0.00,0.00 color=#e1e1e1ff text="255" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00
-Text xy=22.70,106.10 wh=0.00,0.00 color=#e1e1e1b2 text="Hue" size=12.00
-Rect xy=11.50,127.90 wh=44.00,31.40 color=#4a4a4aff radius=5.50 fill
-StrokeRect xy=11.50,127.90 wh=44.00,31.40 color=#646464ff radius=5.50 thickness=1.50
-Clip xy=18.00,133.82 wh=31.00,22.40
-Text xy=18.00,133.82 wh=0.00,0.00 color=#e1e1e1ff text="210" size=16.00
+Text xy=27.60,114.10 wh=0.00,0.00 color=#e1e1e1b2 text="Hue" size=11.00
+Rect xy=15.50,135.50 wh=44.00,32.60 color=#4a4a4aff radius=5.50 fill
+StrokeRect xy=15.50,135.50 wh=44.00,32.60 color=#646464ff radius=5.50 thickness=1.50
+Clip xy=27.00,143.24 wh=21.00,19.60
+Text xy=27.00,143.24 wh=0.00,0.00 color=#e1e1e1ff text="210" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00
-Text xy=71.70,106.10 wh=0.00,0.00 color=#e1e1e1b2 text="Sat" size=12.00
-Rect xy=60.50,127.90 wh=44.00,31.40 color=#4a4a4aff radius=5.50 fill
-StrokeRect xy=60.50,127.90 wh=44.00,31.40 color=#646464ff radius=5.50 thickness=1.50
-Clip xy=67.00,133.82 wh=31.00,22.40
-Text xy=67.00,133.82 wh=0.00,0.00 color=#e1e1e1ff text="60" size=16.00
+Text xy=77.60,114.10 wh=0.00,0.00 color=#e1e1e1b2 text="Sat" size=11.00
+Rect xy=65.50,135.50 wh=44.00,32.60 color=#4a4a4aff radius=5.50 fill
+StrokeRect xy=65.50,135.50 wh=44.00,32.60 color=#646464ff radius=5.50 thickness=1.50
+Clip xy=77.00,143.24 wh=21.00,19.60
+Text xy=77.00,143.24 wh=0.00,0.00 color=#e1e1e1ff text="60" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00
-Text xy=109.50,106.10 wh=0.00,0.00 color=#e1e1e1b2 text="Lightness" size=12.00
-Rect xy=119.90,127.90 wh=44.00,31.40 color=#4a4a4aff radius=5.50 fill
-StrokeRect xy=119.90,127.90 wh=44.00,31.40 color=#646464ff radius=5.50 thickness=1.50
-Clip xy=126.40,133.82 wh=31.00,22.40
-Text xy=126.40,133.82 wh=0.00,0.00 color=#e1e1e1ff text="50" size=16.00
+Text xy=115.50,114.10 wh=0.00,0.00 color=#e1e1e1b2 text="Lightness" size=11.00
+Rect xy=123.20,135.50 wh=44.00,32.60 color=#4a4a4aff radius=5.50 fill
+StrokeRect xy=123.20,135.50 wh=44.00,32.60 color=#646464ff radius=5.50 thickness=1.50
+Clip xy=134.70,143.24 wh=21.00,19.60
+Text xy=134.70,143.24 wh=0.00,0.00 color=#e1e1e1ff text="50" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00

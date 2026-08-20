@@ -1,4 +1,4 @@
-Rect xy=20.00,20.00 wh=160.00,28.40 color=#c3c3d77f radius=5.50 fill
-Clip xy=25.00,23.00 wh=150.00,22.40
-Text xy=25.00,23.00 wh=0.00,0.00 color=#20202095 text="typed value" size=16.00
+Rect xy=28.00,28.00 wh=160.00,29.60 color=#c3c3d77f radius=5.50 fill
+Clip xy=38.00,33.00 wh=140.00,19.60
+Text xy=38.00,33.00 wh=0.00,0.00 color=#20202095 text="typed value" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00

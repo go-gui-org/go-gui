@@ -19,6 +19,17 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 )
 
+// themeByName resolves a registered preset for a pixelTheme pair.
+// A missing name is a test bug — presets are registered by package
+// init before any test runs.
+func themeByName(name string) pixelTheme {
+	t, ok := gui.ThemeGet(name)
+	if !ok {
+		panic("pixel golden: registered theme " + name + " not found")
+	}
+	return pixelTheme{t, name}
+}
+
 func pixelCases() []pixelCase {
 	return []pixelCase{
 		{
@@ -367,6 +378,58 @@ func pixelCases() []pixelCase {
 							ID:        "sw",
 							Color:     gui.RGBA(80, 120, 200, 128),
 							Focusable: true,
+						}),
+					},
+				})
+			},
+		},
+		{
+			// The phase-2 representative case (visual-refresh §10): one
+			// form row and one button row, recorded under the dark
+			// platform themes as well as dark/light. The platform
+			// themes override the base ladder at exactly the points the
+			// refresh moves (body size, padding ladder), so an
+			// unrecorded platform theme is where a base-ladder change
+			// silently breaks a hand-tuned override.
+			//
+			// Text-free per the harness gate: the controls carry no
+			// content, which still pins the chrome — insets, spacing,
+			// radii, heights — that the density and ladder changes
+			// move.
+			name: "form_row_button_row",
+			themes: []pixelTheme{
+				{gui.ThemeDark, "dark"},
+				{gui.ThemeLight, "light"},
+				themeByName("macos-dark"),
+				themeByName("gnome-dark"),
+				themeByName("windows-dark"),
+			},
+			build: func(_ *gui.Window) gui.View {
+				return gui.Column(gui.ContainerCfg{
+					Sizing:     gui.FillFill,
+					SizeBorder: gui.NoBorder,
+					Spacing:    gui.SomeF(gui.SpacingMedium),
+					HAlign:     gui.HAlignCenter,
+					VAlign:     gui.VAlignMiddle,
+					Content: []gui.View{
+						gui.Row(gui.ContainerCfg{
+							Sizing:     gui.FillFit,
+							Spacing:    gui.SomeF(gui.SpacingSmall),
+							SizeBorder: gui.NoBorder,
+							Content: []gui.View{
+								gui.Input(gui.InputCfg{ID: "fn"}),
+								gui.Select(gui.SelectCfg{ID: "role"}),
+								gui.Input(gui.InputCfg{ID: "em"}),
+							},
+						}),
+						gui.Row(gui.ContainerCfg{
+							Sizing:     gui.FillFit,
+							Spacing:    gui.SomeF(gui.SpacingSmall),
+							SizeBorder: gui.NoBorder,
+							Content: []gui.View{
+								gui.Button(gui.ButtonCfg{ID: "cancel"}),
+								gui.Button(gui.ButtonCfg{ID: "save"}),
+							},
 						}),
 					},
 				})

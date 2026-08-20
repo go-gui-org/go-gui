@@ -71,6 +71,12 @@ const (
 	maxDiffFraction = 0.005
 )
 
+// pixelTheme is one recorded theme for a pixel case.
+type pixelTheme struct {
+	theme gui.Theme
+	name  string
+}
+
 // pixelCase is one recorded view. build returns the whole window
 // content: the harness has no wrapper, so a case that wants the theme
 // background visible around its content must size itself smaller than
@@ -80,20 +86,20 @@ type pixelCase struct {
 	// focusID, when set, is focused before the frame renders, so a
 	// focus ring is recorded rather than inferred.
 	focusID string
-	build   func(*gui.Window) gui.View
+	// themes overrides the dark/light pair. Cases whose geometry is
+	// where a platform theme's override surface meets the base ladder
+	// record the platform themes too (visual-refresh §10): an
+	// unrecorded platform theme is where a base-ladder change silently
+	// breaks a hand-tuned override. Nil records pixelThemes().
+	themes []pixelTheme
+	build  func(*gui.Window) gui.View
 }
 
 // pixelThemes are recorded for every case, mirroring the command
 // goldens: de-emphasis alphas and the window background are
 // per-theme, and only a side-by-side recording catches a drift.
-func pixelThemes() []struct {
-	theme gui.Theme
-	name  string
-} {
-	return []struct {
-		theme gui.Theme
-		name  string
-	}{
+func pixelThemes() []pixelTheme {
+	return []pixelTheme{
 		{gui.ThemeDark, "dark"},
 		{gui.ThemeLight, "light"},
 	}
@@ -101,7 +107,11 @@ func pixelThemes() []struct {
 
 func TestPixelGolden(t *testing.T) {
 	for _, c := range pixelCases() {
-		for _, th := range pixelThemes() {
+		themes := c.themes
+		if themes == nil {
+			themes = pixelThemes()
+		}
+		for _, th := range themes {
 			name := c.name + "." + th.name
 			t.Run(name, func(t *testing.T) {
 				img, err := renderPixelGolden(t, th.theme, c)

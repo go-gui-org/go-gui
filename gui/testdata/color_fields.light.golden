@@ -1,24 +1,24 @@
-Rect xy=10.00,10.00 wh=115.00,28.40 color=#c3c3d7ff radius=5.50 fill
-Clip xy=15.00,14.42 wh=105.00,22.40
-Text xy=15.00,14.42 wh=0.00,0.00 color=#202020ff text="#3380CC" size=16.00
+Rect xy=14.00,14.00 wh=115.00,29.60 color=#c3c3d7ff radius=5.50 fill
+Clip xy=24.00,20.24 wh=95.00,19.60
+Text xy=24.00,20.24 wh=0.00,0.00 color=#202020ff text="#3380CC" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00
-Text xy=21.20,43.40 wh=0.00,0.00 color=#202020ba text="Red" size=12.00
-Rect xy=10.00,65.20 wh=44.00,28.40 color=#c3c3d7ff radius=5.50 fill
-Clip xy=15.00,69.62 wh=34.00,22.40
-Text xy=15.00,69.62 wh=0.00,0.00 color=#202020ff text="51" size=16.00
+Text xy=26.10,49.60 wh=0.00,0.00 color=#202020ba text="Red" size=11.00
+Rect xy=14.00,71.00 wh=44.00,29.60 color=#c3c3d7ff radius=5.50 fill
+Clip xy=24.00,77.24 wh=24.00,19.60
+Text xy=24.00,77.24 wh=0.00,0.00 color=#202020ff text="51" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00
-Text xy=63.00,43.40 wh=0.00,0.00 color=#202020ba text="Green" size=12.00
-Rect xy=59.00,65.20 wh=44.00,28.40 color=#c3c3d7ff radius=5.50 fill
-Clip xy=64.00,69.62 wh=34.00,22.40
-Text xy=64.00,69.62 wh=0.00,0.00 color=#202020ff text="128" size=16.00
+Text xy=69.50,49.60 wh=0.00,0.00 color=#202020ba text="Green" size=11.00
+Rect xy=64.00,71.00 wh=44.00,29.60 color=#c3c3d7ff radius=5.50 fill
+Clip xy=74.00,77.24 wh=24.00,19.60
+Text xy=74.00,77.24 wh=0.00,0.00 color=#202020ff text="128" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00
-Text xy=115.60,43.40 wh=0.00,0.00 color=#202020ba text="Blue" size=12.00
-Rect xy=108.00,65.20 wh=44.00,28.40 color=#c3c3d7ff radius=5.50 fill
-Clip xy=113.00,69.62 wh=34.00,22.40
-Text xy=113.00,69.62 wh=0.00,0.00 color=#202020ff text="204" size=16.00
+Text xy=122.80,49.60 wh=0.00,0.00 color=#202020ba text="Blue" size=11.00
+Rect xy=114.00,71.00 wh=44.00,29.60 color=#c3c3d7ff radius=5.50 fill
+Clip xy=124.00,77.24 wh=24.00,19.60
+Text xy=124.00,77.24 wh=0.00,0.00 color=#202020ff text="204" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00
-Text xy=161.00,43.40 wh=0.00,0.00 color=#202020ba text="Alpha" size=12.00
-Rect xy=157.00,65.20 wh=44.00,28.40 color=#c3c3d7ff radius=5.50 fill
-Clip xy=162.00,69.62 wh=34.00,22.40
-Text xy=162.00,69.62 wh=0.00,0.00 color=#202020ff text="255" size=16.00
+Text xy=169.50,49.60 wh=0.00,0.00 color=#202020ba text="Alpha" size=11.00
+Rect xy=164.00,71.00 wh=44.00,29.60 color=#c3c3d7ff radius=5.50 fill
+Clip xy=174.00,77.24 wh=24.00,19.60
+Text xy=174.00,77.24 wh=0.00,0.00 color=#202020ff text="255" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00

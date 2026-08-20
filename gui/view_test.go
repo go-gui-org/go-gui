@@ -1,6 +1,10 @@
 package gui
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/go-gui-org/go-glyph"
+)
 
 // --- Event traversal tests ---
 
@@ -1204,6 +1208,10 @@ func TestGroupBoxTitleChildrenOrder(t *testing.T) {
 	label := layout.Children[1].Shape
 	if label.shapeType != shapeText || !label.Float {
 		t.Errorf("children[1] = %+v, want floating title label", label)
+	}
+	if got := label.TC.TextStyle.Typeface; got != glyph.TypefaceBold {
+		t.Errorf("title label typeface = %d, want bold (B3, visual-refresh §2.2)",
+			got)
 	}
 	content := layout.Children[2].Shape
 	if content.shapeType != shapeText || content.Float {

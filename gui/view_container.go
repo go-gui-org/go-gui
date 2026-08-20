@@ -236,7 +236,10 @@ func addGroupBoxTitle(title string, titleBG, colorBorder Color,
 	if len(title) == 0 {
 		return
 	}
-	ts := DefaultTextStyle
+	// A group-box title is a heading role and takes a B rung
+	// (visual-refresh §2.2); the border color below is the only
+	// restyle.
+	ts := guiTheme.B3
 
 	var textWidth, fontHeight float32
 	const pad float32 = 5

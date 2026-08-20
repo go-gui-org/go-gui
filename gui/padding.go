@@ -2,10 +2,10 @@ package gui
 
 // Padding constants.
 const (
-	PadXSmall = 3
-	PadSmall  = 5
-	PadMedium = 10
-	PadLarge  = 15
+	PadXSmall = 4
+	PadSmall  = 6
+	PadMedium = 14
+	PadLarge  = 22
 )
 
 // Predefined paddings.
@@ -19,7 +19,14 @@ var (
 	PaddingSmall   = PadAll(PadSmall)
 	paddingMedium  = PadAll(PadMedium)
 	PaddingLarge   = PadAll(PadLarge)
-	paddingButton  = PadAll(6)
+
+	// paddingButton is the inset of a Button. Deliberately not a ladder
+	// rung: a button's label is its whole content, so it gets more
+	// horizontal room than a field (5 vertical / 12 horizontal, against
+	// paddingField's 5/10), and at body 14 both land at the same ~31px
+	// control height — the invariant that keeps a Button, an Input and
+	// a Select in one row level (visual-refresh §3.1).
+	paddingButton = NewPadding(5, 12, 5, 12)
 
 	// paddingField is the inset a text-bearing form control puts
 	// around its text — the seed for ThemeCfg.PaddingField.
@@ -30,12 +37,12 @@ var (
 	// the Input beside it in the same form (issue #335, audit section
 	// 7), so one tier is the fix.
 	//
-	// Built from the existing ladder rather than picked: PadXSmall
-	// vertical, PadSmall horizontal. It lands between the two values
-	// in use, and — the point — it is spelled in tokens the theme
-	// already has, so a theme that rescales its spacing carries the
-	// field inset with it.
-	paddingField = NewPadding(PadXSmall, PadSmall, PadXSmall, PadSmall)
+	// Chosen explicitly rather than built from the padding ladder: the
+	// ladder's rungs (4/6/14/22) contain no 5 and no 10, and the field
+	// inset answers a different question than a gap between things.
+	// With body 14, 5 vertical gives the ~31px control height every
+	// field shares (visual-refresh §3.1).
+	paddingField = NewPadding(5, 10, 5, 10)
 )
 
 // Padding is the gap inside the edges of a Shape. Parameter order

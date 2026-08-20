@@ -1,6 +1,6 @@
-Text xy=15.00,12.00 wh=0.00,0.00 color=#20202095 text="  " size=14.00
-Text xy=33.00,12.00 wh=0.00,0.00 color=#20202095 text=" " size=14.00
-Text xy=51.00,12.00 wh=0.00,0.00 color=#20202095 text="Alpha" size=16.00
-Text xy=15.00,38.40 wh=0.00,0.00 color=#20202095 text="  " size=14.00
-Text xy=33.00,38.40 wh=0.00,0.00 color=#20202095 text=" " size=14.00
-Text xy=51.00,38.40 wh=0.00,0.00 color=#20202095 text="Beta" size=16.00
+Text xy=19.00,16.00 wh=0.00,0.00 color=#20202095 text="  " size=12.00
+Text xy=35.00,16.00 wh=0.00,0.00 color=#20202095 text=" " size=12.00
+Text xy=51.00,16.00 wh=0.00,0.00 color=#20202095 text="Alpha" size=14.00
+Text xy=19.00,39.60 wh=0.00,0.00 color=#20202095 text="  " size=12.00
+Text xy=35.00,39.60 wh=0.00,0.00 color=#20202095 text=" " size=12.00
+Text xy=51.00,39.60 wh=0.00,0.00 color=#20202095 text="Beta" size=14.00
