@@ -263,6 +263,23 @@ func TestRendererValidShadow(t *testing.T) {
 	if rendererValidForDraw(r) {
 		t.Error("NaN offset should fail")
 	}
+	r.OffsetX = 2
+	r.Spread = 4
+	if !rendererValidForDraw(r) {
+		t.Error("positive spread should pass")
+	}
+	r.Spread = float32(math.NaN())
+	if rendererValidForDraw(r) {
+		t.Error("NaN spread should fail")
+	}
+	r.Spread = -1
+	if rendererValidForDraw(r) {
+		t.Error("negative spread should fail")
+	}
+	r.Spread = float32(math.Inf(1))
+	if rendererValidForDraw(r) {
+		t.Error("Inf spread should fail")
+	}
 }
 
 func TestRendererValidBlur(t *testing.T) {

@@ -198,6 +198,122 @@ func pixelCases() []pixelCase {
 			},
 		},
 		{
+			// Spread-only ring: zero blur and zero offsets, so the
+			// ring exists only because Spread grew the shadow shape
+			// beyond the caster. The caster's fill covers the middle.
+			name: "shadow-spread-ring",
+			build: func(_ *gui.Window) gui.View {
+				return gui.Column(gui.ContainerCfg{
+					Sizing:     gui.FillFill,
+					SizeBorder: gui.NoBorder,
+					HAlign:     gui.HAlignCenter,
+					VAlign:     gui.VAlignMiddle,
+					Content: []gui.View{
+						gui.Column(gui.ContainerCfg{
+							Width:      120,
+							Height:     80,
+							Sizing:     gui.FixedFixed,
+							Radius:     gui.SomeF(10),
+							Color:      gui.RGB(90, 140, 200),
+							SizeBorder: gui.NoBorder,
+							Shadow: &gui.BoxShadow{
+								Color:  gui.RGBA(0, 0, 0, 150),
+								Spread: 6,
+							},
+						}),
+					},
+				})
+			},
+		},
+		{
+			// Spread + blur: the ring is spread, then softened by
+			// the blur band; both must contribute to the visible
+			// extent or the ring measures wrong.
+			name: "shadow-spread-blur",
+			build: func(_ *gui.Window) gui.View {
+				return gui.Column(gui.ContainerCfg{
+					Sizing:     gui.FillFill,
+					SizeBorder: gui.NoBorder,
+					HAlign:     gui.HAlignCenter,
+					VAlign:     gui.VAlignMiddle,
+					Content: []gui.View{
+						gui.Column(gui.ContainerCfg{
+							Width:      120,
+							Height:     80,
+							Sizing:     gui.FixedFixed,
+							Radius:     gui.SomeF(10),
+							Color:      gui.RGB(90, 140, 200),
+							SizeBorder: gui.NoBorder,
+							Shadow: &gui.BoxShadow{
+								Color:      gui.RGBA(0, 0, 0, 150),
+								Spread:     6,
+								BlurRadius: 8,
+							},
+						}),
+					},
+				})
+			},
+		},
+		{
+			// Spread on an already-rounded caster: the shadow corner
+			// radius must grow by spread too, or the ring squares off
+			// at the corners (the divergence softRoundRect has two
+			// radius sites for).
+			name: "shadow-spread-rounded",
+			build: func(_ *gui.Window) gui.View {
+				return gui.Column(gui.ContainerCfg{
+					Sizing:     gui.FillFill,
+					SizeBorder: gui.NoBorder,
+					HAlign:     gui.HAlignCenter,
+					VAlign:     gui.VAlignMiddle,
+					Content: []gui.View{
+						gui.Column(gui.ContainerCfg{
+							Width:      120,
+							Height:     80,
+							Sizing:     gui.FixedFixed,
+							Radius:     gui.SomeF(24),
+							Color:      gui.RGB(90, 140, 200),
+							SizeBorder: gui.NoBorder,
+							Shadow: &gui.BoxShadow{
+								Color:  gui.RGBA(0, 0, 0, 150),
+								Spread: 8,
+							},
+						}),
+					},
+				})
+			},
+		},
+		{
+			// Spread + offset: the cut-out erases the shadow under
+			// the caster, so the ring survives only on the offset
+			// side (there it is offset+spread wide) and on the two
+			// sides; the far side has no ring at all.
+			name: "shadow-spread-offset",
+			build: func(_ *gui.Window) gui.View {
+				return gui.Column(gui.ContainerCfg{
+					Sizing:     gui.FillFill,
+					SizeBorder: gui.NoBorder,
+					HAlign:     gui.HAlignCenter,
+					VAlign:     gui.VAlignMiddle,
+					Content: []gui.View{
+						gui.Column(gui.ContainerCfg{
+							Width:      120,
+							Height:     80,
+							Sizing:     gui.FixedFixed,
+							Radius:     gui.SomeF(10),
+							Color:      gui.RGB(90, 140, 200),
+							SizeBorder: gui.NoBorder,
+							Shadow: &gui.BoxShadow{
+								Color:   gui.RGBA(0, 0, 0, 150),
+								Spread:  4,
+								OffsetY: 6,
+							},
+						}),
+					},
+				})
+			},
+		},
+		{
 			// SDF blur: one opaque rect, blurred by the renderer.
 			// The radius maps onto a sigma and three box passes —
 			// arithmetic a command golden cannot see.

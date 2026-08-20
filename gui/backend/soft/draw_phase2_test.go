@@ -621,6 +621,36 @@ func TestShadowNaNRadiusDrawsSquare(t *testing.T) {
 	}
 }
 
+// TestShadowNaNSpreadDrawsNoRing covers the spread clamp: a NaN or
+// negative spread must be clamped to zero by clampBlur rather than
+// feed NaN or negative geometry into the rasterizer. The offset leaves
+// a strip visible; a leaked spread would widen it on the far side.
+func TestShadowNaNSpreadDrawsNoRing(t *testing.T) {
+	r := newRenderer(32, 32, 1)
+	r.drawAll([]gui.RenderCmd{
+		{Kind: gui.RenderShadow, X: 6, Y: 8, W: 12, H: 12, OffsetX: 6,
+			Spread: float32(math.NaN()), Color: gui.RGB(255, 0, 0)},
+	})
+	// Strip edge: shadow covers x 18..24 (the cut-out erases the
+	// offset half), so 22 is painted and 25 is beyond — painted only
+	// if the NaN spread grew the shadow.
+	if red, _, _, _ := at(r.buf.img, 22, 16); red != 255 {
+		t.Errorf("shadow strip red = %d, want 255", red)
+	}
+	if red, _, _, _ := at(r.buf.img, 25, 16); red != 0 {
+		t.Errorf("NaN spread painted beyond the strip edge: red = %d", red)
+	}
+
+	r2 := newRenderer(32, 32, 1)
+	r2.drawAll([]gui.RenderCmd{
+		{Kind: gui.RenderShadow, X: 6, Y: 8, W: 12, H: 12, OffsetX: 6,
+			Spread: -8, Color: gui.RGB(255, 0, 0)},
+	})
+	if red, _, _, _ := at(r2.buf.img, 22, 16); red != 255 {
+		t.Errorf("negative spread clipped the strip: red = %d, want 255", red)
+	}
+}
+
 // TestFilterLayerCountIsCapped guards the composite repeat count, which
 // is the feMergeNode count of an untrusted SVG filter.
 func TestFilterLayerCountIsCapped(t *testing.T) {

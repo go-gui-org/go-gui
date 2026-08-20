@@ -69,18 +69,24 @@ func (r *renderer) softRoundRect(cmd *gui.RenderCmd, offX, offY float32,
 	s := r.scale
 	w, h := cmd.W*s, cmd.H*s
 	blur := clampBlur(cmd.BlurRadius * s)
+	spread := clampBlur(cmd.Spread * s)
 	rad := cmd.Radius * s
 	x := (cmd.X + offX) * s
 	y := (cmd.Y + offY) * s
 
-	expand := blur * blurExpand
+	// Spread grows the shadow's own shape beyond the caster; the
+	// region and the shadow mask are inflated by it, while the caster
+	// cut-out keeps the caster's un-inflated extent (matching the
+	// GPU's two distance fields).
+	expand := blur*blurExpand + spread
 	region := deviceRect(x-expand, y-expand, w+2*expand, h+2*expand).
 		Intersect(r.buf.img.Bounds())
 	if region.Empty() {
 		return
 	}
 
-	mask := r.coverageRoundRect(&r.maskPix, region, x, y, w, h, rad)
+	mask := r.coverageRoundRect(&r.maskPix, region,
+		x-spread, y-spread, w+2*spread, h+2*spread, rad+spread)
 	if mask == nil {
 		return
 	}

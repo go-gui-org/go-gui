@@ -47,6 +47,7 @@ struct ShadowOut {
     float4 color;
     float  params;
     float2 offset;
+    float  spread;
 };
 
 struct BlurOut {
@@ -111,6 +112,7 @@ vertex ShadowOut vs_shadow(
     out.color    = in.color;
     out.params   = in.position.z;
     out.offset   = (tm * float4(0, 0, 0, 1)).xy;
+    out.spread   = (tm * float4(0, 0, 0, 1)).z;
     return out;
 }
 
@@ -189,15 +191,20 @@ fragment float4 fs_shadow(ShadowOut in [[stage_in]]) {
     float2 half_size = uv_to_px;
     float2 pos       = in.uv * half_size;
 
+    // Shadow field: the quad and vertex radius are already inflated
+    // by spread, so the shadow grows beyond the caster.
     float2 q = abs(pos) - half_size
              + float2(radius + 1.5 * blur);
     float d = length(max(q, float2(0.0)))
             + min(max(q.x, q.y), 0.0) - radius;
 
-    float2 q_c = abs(pos + in.offset) - half_size
-               + float2(radius + 1.5 * blur);
+    // Caster cut-out: half_size and radius shrink by spread to trace
+    // the caster's un-inflated extent.
+    float  radius_caster = radius - in.spread;
+    float2 q_c = abs(pos + in.offset) - (half_size - in.spread)
+               + float2(radius_caster + 1.5 * blur);
     float d_c = length(max(q_c, float2(0.0)))
-              + min(max(q_c.x, q_c.y), 0.0) - radius;
+              + min(max(q_c.x, q_c.y), 0.0) - radius_caster;
 
     float alpha_falloff = 1.0 - smoothstep(0.0,
                           max(1.0, blur), d);

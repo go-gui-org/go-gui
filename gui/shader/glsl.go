@@ -95,6 +95,7 @@ const (
     out vec4 color;
     out float params; // z stores packed radius and blur
     out vec2 offset;
+    out float spread; // tm[14]: shadow growth beyond the caster
 
     void main() {
         gl_Position = mvp * vec4(position.xy, 0.0, 1.0);
@@ -102,6 +103,7 @@ const (
         color = color0;
         params = position.z;
         offset = (tm * vec4(0,0,0,1)).xy; // Extract translation
+        spread = (tm * vec4(0,0,0,1)).z;  // tm[14]: shadow growth
     }
 `
 
@@ -112,6 +114,7 @@ const (
     in vec4 color;
     in float params;
     in vec2 offset;
+    in float spread;
 
     out vec4 frag_color;
 
@@ -123,13 +126,18 @@ const (
         vec2 half_size = uv_to_px;
         vec2 pos = uv * half_size;
 
-        // SDF for rounded box
+        // SDF for rounded box. The vertex radius and the quad are
+        // already inflated by spread, so the shadow field grows.
         vec2 q = abs(pos) - half_size + vec2(radius + 1.5 * blur);
         float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
 
-        // SDF for casting box (using offset)
-        vec2 q_c = abs(pos + offset) - half_size + vec2(radius + 1.5 * blur);
-        float d_c = length(max(q_c, 0.0)) + min(max(q_c.x, q_c.y), 0.0) - radius;
+        // SDF for casting box (using offset). Half_size and radius
+        // shrink by spread to trace the caster's un-inflated extent.
+        float radius_caster = radius - spread;
+        vec2 q_c = abs(pos + offset) - (half_size - spread)
+                 + vec2(radius_caster + 1.5 * blur);
+        float d_c = length(max(q_c, 0.0)) + min(max(q_c.x, q_c.y), 0.0)
+                  - radius_caster;
 
         // Shadow logic:
         // alpha_falloff: Smooth transition from 0 (inside) to blur radius (outside).

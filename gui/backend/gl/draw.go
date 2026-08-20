@@ -167,9 +167,12 @@ func (b *Backend) drawShadow(r *gui.RenderCmd) {
 	h := r.H * s
 	blur := r.BlurRadius * s
 	rad := r.Radius * s
+	spread := r.Spread * s
 
-	// Expand quad by blur radius for SDF falloff.
-	expand := blur * 1.5
+	// The quad must cover the ring beyond the caster, and the vertex
+	// radius carries the inflated corner (rad+spread); the fragment
+	// shader subtracts spread back out for the caster cut-out.
+	expand := blur*1.5 + spread
 	qx := x - expand
 	qy := y - expand
 	qw := w + 2*expand
@@ -184,10 +187,11 @@ func (b *Backend) drawShadow(r *gui.RenderCmd) {
 	// the same direction as the configured shadow offset.
 	tm[12] = r.OffsetX * s // tm[3].x
 	tm[13] = r.OffsetY * s // tm[3].y
+	tm[14] = spread        // tm[3].z: shadow growth beyond the caster
 	gogl.UniformMatrix4fv(b.pipelines.shadow.uTM, 1, false,
 		&tm[0])
 
-	b.drawQuad(qx, qy, qw, qh, r.Color, rad, blur)
+	b.drawQuad(qx, qy, qw, qh, r.Color, rad+spread, blur)
 }
 
 func (b *Backend) drawBlur(r *gui.RenderCmd) {

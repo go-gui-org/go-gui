@@ -328,6 +328,43 @@ func TestRenderContainerShadowHardShadow(t *testing.T) {
 	}
 }
 
+func TestRenderContainerShadowSpreadOnlyEmits(t *testing.T) {
+	// A spread-only shadow — zero blur, zero offsets — is a crisp
+	// ring around the caster and must emit a RenderShadow carrying
+	// the spread. Before spread existed, no command was emitted.
+	w := makeWindow()
+	s := &Shape{
+		shapeType: shapeRectangle,
+		X:         10, Y: 10,
+		Width: 50, Height: 50,
+		Color: ColorTransparent,
+		fx: &shapeEffects{
+			Shadow: &BoxShadow{
+				Color:  RGBA(0, 0, 0, 80),
+				Spread: 6,
+			},
+		},
+	}
+	renderContainer(s, ColorTransparent, makeClip(0, 0, 500, 500), w)
+	if len(w.renderers) != 1 {
+		t.Fatalf("renderers: got %d, want 1", len(w.renderers))
+	}
+	r := w.renderers[0]
+	if r.Kind != RenderShadow {
+		t.Fatalf("kind: got %v, want RenderShadow", r.Kind)
+	}
+	if r.Spread != 6 {
+		t.Errorf("spread: got %f, want 6", r.Spread)
+	}
+	if r.BlurRadius != 0 || r.OffsetX != 0 || r.OffsetY != 0 {
+		t.Errorf("spread-only shadow carries blur/offset: %+v", r)
+	}
+	if r.W != s.Width || r.H != s.Height {
+		t.Errorf("rect: got (%f,%f), want caster size (%f,%f)",
+			r.W, r.H, s.Width, s.Height)
+	}
+}
+
 func TestRenderContainerNoShadowWhenAllZero(t *testing.T) {
 	w := makeWindow()
 	s := &Shape{
