@@ -401,7 +401,10 @@ func colorFieldColumn(
 	// The stack itself is the shared convention (gui/field_label.go),
 	// not a local layout: this widget's hand-rolled label is what
 	// issue #335 was filed about.
-	return labelledField(label, cfg.TextStyle, HAlignCenter,
+	//
+	// FitFit, not a caller sizing: ColorFieldsCfg has no Sizing field,
+	// and the channel stack is a fixed-width column by design.
+	return labelledField(label, cfg.TextStyle, HAlignCenter, FitFit,
 		Input(InputCfg{
 			ID:   inputID,
 			Text: strconv.Itoa(val),

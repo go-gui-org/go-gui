@@ -1,5 +1,5 @@
 Text xy=10.00,10.00 wh=0.00,0.00 color=#202020ba text="Full name" size=12.00
-Rect xy=10.00,31.80 wh=115.60,28.40 color=#c3c3d7ff radius=5.50 fill
-Clip xy=15.00,34.80 wh=105.60,22.40
+Rect xy=10.00,31.80 wh=160.00,28.40 color=#c3c3d7ff radius=5.50 fill
+Clip xy=15.00,34.80 wh=150.00,22.40
 Text xy=15.00,34.80 wh=0.00,0.00 color=#202020ff text="typed value" size=16.00
 Clip xy=0.00,0.00 wh=320.00,240.00

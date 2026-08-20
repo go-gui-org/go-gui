@@ -77,7 +77,9 @@ func InputDate(cfg InputDateCfg) View {
 	applyInputDateDefaults(&cfg)
 	requireFocusID("InputDate", cfg.FocusDisabled, cfg.ID)
 	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
-	return labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, &inputDateView{cfg: cfg})
+	return labelledField(
+		cfg.Label, cfg.TextStyle, HAlignLeft, cfg.Sizing,
+		&inputDateView{cfg: cfg})
 }
 
 func (idv *inputDateView) GenerateLayout(w *Window) Layout {
@@ -272,6 +274,7 @@ func inputDateTextField(
 		TextStyle:          cfg.TextStyle,
 		PlaceholderStyle:   cfg.PlaceholderStyle,
 		Sizing:             FillFit,
+		noMinWidthFloor:    true,
 		SizeBorder:         NoBorder,
 		Padding:            NoPadding,
 		Color:              ColorTransparent,
@@ -356,6 +359,7 @@ func applyInputDateDefaults(cfg *InputDateCfg) {
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.TextStyle
 	}
+	cfg.MinWidth = fieldMinWidth(cfg.MinWidth, cfg.Width)
 	if cfg.PlaceholderStyle == (TextStyle{}) {
 		cfg.PlaceholderStyle = withRoleAlpha(
 			d.TextStyle, guiTheme.TextStylePlaceholder)

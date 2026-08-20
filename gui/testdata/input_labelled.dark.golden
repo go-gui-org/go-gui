@@ -1,6 +1,6 @@
 Text xy=11.50,11.50 wh=0.00,0.00 color=#e1e1e1b2 text="Full name" size=12.00
-Rect xy=11.50,33.30 wh=118.60,31.40 color=#4a4a4aff radius=5.50 fill
-StrokeRect xy=11.50,33.30 wh=118.60,31.40 color=#646464ff radius=5.50 thickness=1.50
-Clip xy=18.00,37.80 wh=105.60,22.40
+Rect xy=11.50,33.30 wh=160.00,31.40 color=#4a4a4aff radius=5.50 fill
+StrokeRect xy=11.50,33.30 wh=160.00,31.40 color=#646464ff radius=5.50 thickness=1.50
+Clip xy=18.00,37.80 wh=147.00,22.40
 Text xy=18.00,37.80 wh=0.00,0.00 color=#e1e1e1ff text="typed value" size=16.00
 Clip xy=0.00,0.00 wh=320.00,240.00

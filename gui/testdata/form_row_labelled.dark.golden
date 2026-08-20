@@ -1,0 +1,11 @@
+Text xy=23.00,23.00 wh=0.00,0.00 color=#e1e1e1b2 text="First" size=12.00
+Rect xy=23.00,44.80 wh=134.50,31.40 color=#4a4a4aff radius=5.50 fill
+StrokeRect xy=23.00,44.80 wh=134.50,31.40 color=#646464ff radius=5.50 thickness=1.50
+Clip xy=29.50,49.30 wh=121.50,22.40
+Text xy=29.50,49.30 wh=0.00,0.00 color=#e1e1e1ff text="Mike" size=16.00
+Clip xy=0.00,0.00 wh=320.00,240.00
+Text xy=162.50,23.00 wh=0.00,0.00 color=#e1e1e1b2 text="Role" size=12.00
+Rect xy=162.50,44.80 wh=134.50,31.40 color=#4a4a4aff radius=5.50 fill
+StrokeRect xy=162.50,44.80 wh=134.50,31.40 color=#646464ff radius=5.50 thickness=1.50
+Text xy=169.00,50.72 wh=0.00,0.00 color=#e1e1e1ff text="user" size=16.00
+Text xy=283.24,54.74 wh=0.00,0.00 color=#e1e1e1ff text="▼" size=9.60

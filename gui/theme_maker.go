@@ -184,9 +184,15 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			textStyleLabel:  ts,
 		},
 		selectStyle: SelectStyle{
-			Shadow:            cfg.ShadowPopover,
-			MinWidth:          75,
-			MaxWidth:          200,
+			Shadow: cfg.ShadowPopover,
+			// One theme-stated floor, shared with Input and
+			// Combobox; the old 75/200 pair was why a Select and
+			// an Input in one row disagreed on width for a reason
+			// neither the theme nor the caller stated. No ceiling:
+			// a capped Select cannot fill the row a labelled field
+			// can now ask for.
+			MinWidth:          cfg.SizeFieldMinWidth,
+			MaxWidth:          0,
 			Color:             cfg.ColorInterior,
 			ColorHover:        cfg.ColorHover,
 			ColorFocus:        cfg.ColorFocus,
@@ -433,8 +439,11 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Padding:           fieldPad,
 			SizeBorder:        cfg.SizeBorder,
 			Radius:            cfg.Radius,
-			MinWidth:          75,
-			MaxWidth:          200,
+			// Same floor and same uncapped width as selectStyle
+			// above; maxDropdownHeight bounds the popup list, not
+			// the control, and is unrelated.
+			MinWidth:          cfg.SizeFieldMinWidth,
+			MaxWidth:          0,
 			maxDropdownHeight: 200,
 			TextStyle:         ts,
 			PlaceholderStyle:  textPlaceholder,
@@ -537,11 +546,12 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		inspectorStyle: inspectorStyleFor(textSecondary),
 
 		// Layout constants.
-		PaddingSmall:  cfg.PaddingSmall.withSet(),
-		PaddingMedium: cfg.PaddingMedium.withSet(),
-		PaddingLarge:  cfg.PaddingLarge.withSet(),
-		PaddingField:  fieldPad,
-		SizeBorder:    cfg.SizeBorder,
+		PaddingSmall:      cfg.PaddingSmall.withSet(),
+		PaddingMedium:     cfg.PaddingMedium.withSet(),
+		PaddingLarge:      cfg.PaddingLarge.withSet(),
+		PaddingField:      fieldPad,
+		SizeFieldMinWidth: cfg.SizeFieldMinWidth,
+		SizeBorder:        cfg.SizeBorder,
 
 		RadiusSmall:  cfg.RadiusSmall,
 		RadiusMedium: cfg.RadiusMedium,

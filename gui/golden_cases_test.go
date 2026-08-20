@@ -212,6 +212,41 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// The regression pin for the labelledField sizing bug:
+			// the wrapper Column hardcoded FitFit, so a FillFit
+			// field inside a label stack shrink-wrapped its text
+			// and no labelled field in any app could fill its row.
+			// Both fields must span half the row here.
+			//
+			// MinWidth is stated on purpose, so this case pins the
+			// width pass-through and not the field floor -- the
+			// plain `input` and `select` cases pin that.
+			name: "form_row_labelled",
+			build: func(_ *Window) View {
+				return Row(ContainerCfg{
+					Sizing:  FillFit,
+					Spacing: SomeF(SpacingSmall),
+					Content: []View{
+						Input(InputCfg{
+							ID:       "fn",
+							Label:    "First",
+							Text:     "Mike",
+							Sizing:   FillFit,
+							MinWidth: 40,
+						}),
+						Select(SelectCfg{
+							ID:       "role",
+							Label:    "Role",
+							Options:  []string{"admin", "user"},
+							Selected: []string{"user"},
+							Sizing:   FillFit,
+							MinWidth: 40,
+						}),
+					},
+				})
+			},
+		},
+		{
 			// The three boolean controls each spelled their trailing
 			// label differently; only Radio left a gap. Recording all
 			// three is what makes "one convention" checkable.

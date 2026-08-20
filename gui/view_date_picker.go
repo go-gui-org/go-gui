@@ -112,7 +112,11 @@ func DatePicker(cfg DatePickerCfg) View {
 	RequireID("DatePicker", cfg.ID)
 	applyDatePickerDefaults(&cfg)
 	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
-	return labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, &datePickerView{cfg: cfg})
+	// FitFit, not a caller sizing: DatePickerCfg has no Sizing field,
+	// and the calendar grid sizes itself from its own cell metrics.
+	return labelledField(
+		cfg.Label, cfg.TextStyle, HAlignLeft, FitFit,
+		&datePickerView{cfg: cfg})
 }
 
 func (dv *datePickerView) GenerateLayout(w *Window) Layout {
