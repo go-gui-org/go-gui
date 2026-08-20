@@ -277,36 +277,40 @@ type DataGridCfg struct {
 	Radius              gg.Opt[float32]
 	SizeBorder          gg.Opt[float32]
 	// exportaudit:keep — caller-facing config (issue #372)
-	RowHeight         float32
-	HeaderHeight      float32
-	Width             float32
-	Height            float32
-	MinWidth          float32
-	MaxWidth          float32
-	MinHeight         float32
-	MaxHeight         float32
-	ColorBackground   gg.Color
-	ColorHeader       gg.Color
-	ColorHeaderHover  gg.Color
-	ColorFilter       gg.Color
-	ColorQuickFilter  gg.Color
-	ColorRowHover     gg.Color
-	ColorRowAlt       gg.Color
-	ColorRowSelected  gg.Color
-	ColorBorder       gg.Color
-	ColorResizeHandle gg.Color
-	ColorResizeActive gg.Color
-	Sizing            gg.Sizing
-	PaginationKind    GridPaginationKind
-	Loading           bool
-	ShowCRUDToolbar   bool
-	FreezeHeader      bool
-	ShowFilterRow     bool
-	ShowQuickFilter   bool
-	ShowColumnChooser bool
-	Scrollbar         gg.ScrollbarOverflow
-	Disabled          bool
-	Invisible         bool
+	RowHeight        float32
+	HeaderHeight     float32
+	Width            float32
+	Height           float32
+	MinWidth         float32
+	MaxWidth         float32
+	MinHeight        float32
+	MaxHeight        float32
+	ColorBackground  gg.Color
+	ColorHeader      gg.Color
+	ColorHeaderHover gg.Color
+	ColorFilter      gg.Color
+	ColorQuickFilter gg.Color
+	ColorRowHover    gg.Color
+	ColorRowAlt      gg.Color
+	ColorRowSelected gg.Color
+	// ColorRowSelectedSubtle is the tint behind a selected row — the
+	// wash, never the full accent slab; focus is the ring, not a
+	// second fill (visual-refresh §4.3). Unset takes the theme's.
+	ColorRowSelectedSubtle gg.Color
+	ColorBorder            gg.Color
+	ColorResizeHandle      gg.Color
+	ColorResizeActive      gg.Color
+	Sizing                 gg.Sizing
+	PaginationKind         GridPaginationKind
+	Loading                bool
+	ShowCRUDToolbar        bool
+	FreezeHeader           bool
+	ShowFilterRow          bool
+	ShowQuickFilter        bool
+	ShowColumnChooser      bool
+	Scrollbar              gg.ScrollbarOverflow
+	Disabled               bool
+	Invisible              bool
 }
 
 // boolDefault returns *p if non-nil, else def.
@@ -358,6 +362,18 @@ func applyDataGridDefaults(cfg *DataGridCfg) {
 	}
 	if !cfg.ColorRowAlt.IsSet() {
 		cfg.ColorRowAlt = s.ColorRowAlt
+	}
+	if !cfg.ColorRowSelectedSubtle.IsSet() {
+		if cfg.ColorRowSelected.IsSet() {
+			// A caller-set ColorRowSelected is an explicit
+			// override: it wins over the theme's wash, preserving
+			// the pre-phase-3 behavior (visual-refresh §4.3).
+			// Resolved before the theme fill below, so IsSet
+			// still tells caller-set from theme-set.
+			cfg.ColorRowSelectedSubtle = cfg.ColorRowSelected
+		} else {
+			cfg.ColorRowSelectedSubtle = s.ColorRowSelectedSubtle
+		}
 	}
 	if !cfg.ColorRowSelected.IsSet() {
 		cfg.ColorRowSelected = s.ColorRowSelected

@@ -1,4 +1,4 @@
-Rect xy=15.50,15.50 wh=289.00,41.60 color=#4a4a4aff radius=5.50 fill
-StrokeRect xy=15.50,15.50 wh=289.00,41.60 color=#646464ff radius=5.50 thickness=1.50
-Text xy=29.50,27.74 wh=0.00,0.00 color=#e1e1e1ff text="File" size=14.00
-Text xy=90.10,27.74 wh=0.00,0.00 color=#e1e1e1ff text="Edit" size=14.00
+Rect xy=15.00,15.00 wh=290.00,39.60 color=#262a2fff radius=5.50 fill
+StrokeRect xy=15.00,15.00 wh=290.00,39.60 color=#ffffff1c radius=5.50 thickness=1.00
+Text xy=28.00,26.24 wh=0.00,0.00 color=#e6e8ebff text="File" size=14.00
+Text xy=87.60,26.24 wh=0.00,0.00 color=#e6e8ebff text="Edit" size=14.00

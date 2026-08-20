@@ -1,5 +1,5 @@
-Text xy=28.50,26.50 wh=0.00,0.00 color=#e1e1e1ff text="Home" size=14.00
-Text xy=73.60,26.50 wh=0.00,0.00 color=#e1e1e1a0 text="/" size=14.00
-Text xy=93.50,26.50 wh=0.00,0.00 color=#e1e1e180 text="Docs" size=14.00
-Text xy=138.60,26.50 wh=0.00,0.00 color=#e1e1e1a0 text="/" size=14.00
-Text xy=158.50,26.50 wh=0.00,0.00 color=#e1e1e1ff text="Page" size=14.00
+Text xy=27.00,25.00 wh=0.00,0.00 color=#e6e8ebff text="Home" size=14.00
+Text xy=71.60,25.00 wh=0.00,0.00 color=#e6e8eba0 text="/" size=14.00
+Text xy=91.00,25.00 wh=0.00,0.00 color=#e6e8eb80 text="Docs" size=14.00
+Text xy=135.60,25.00 wh=0.00,0.00 color=#e6e8eba0 text="/" size=14.00
+Text xy=155.00,25.00 wh=0.00,0.00 color=#e6e8ebff text="Page" size=14.00

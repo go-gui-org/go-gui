@@ -1,6 +1,6 @@
-Text xy=23.50,20.50 wh=0.00,0.00 color=#e1e1e180 text="  " size=12.00
-Text xy=39.50,20.50 wh=0.00,0.00 color=#e1e1e180 text=" " size=12.00
-Text xy=55.50,20.50 wh=0.00,0.00 color=#e1e1e180 text="Alpha" size=14.00
-Text xy=23.50,47.10 wh=0.00,0.00 color=#e1e1e180 text="  " size=12.00
-Text xy=39.50,47.10 wh=0.00,0.00 color=#e1e1e180 text=" " size=12.00
-Text xy=55.50,47.10 wh=0.00,0.00 color=#e1e1e180 text="Beta" size=14.00
+Text xy=22.00,19.00 wh=0.00,0.00 color=#e6e8eb80 text="  " size=12.00
+Text xy=38.00,19.00 wh=0.00,0.00 color=#e6e8eb80 text=" " size=12.00
+Text xy=54.00,19.00 wh=0.00,0.00 color=#e6e8eb80 text="Alpha" size=14.00
+Text xy=22.00,44.60 wh=0.00,0.00 color=#e6e8eb80 text="  " size=12.00
+Text xy=38.00,44.60 wh=0.00,0.00 color=#e6e8eb80 text=" " size=12.00
+Text xy=54.00,44.60 wh=0.00,0.00 color=#e6e8eb80 text="Beta" size=14.00

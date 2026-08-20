@@ -83,10 +83,11 @@ type ListBoxCfg struct {
 	// Color* fields win over their Colors slots the same way.
 	Colors      ColorSet
 	ColorSelect Color
-	// ColorTextOnSelect is the text color drawn over the selected
-	// row's fill. Unset takes the theme's.
+	// ColorSelectSubtle is the tint behind a selected row — the
+	// wash, never the full accent slab; focus is the ring, not a
+	// second fill (visual-refresh §4.3). Unset takes the theme's.
 	// exportaudit:keep — caller-facing config (issue #372)
-	ColorTextOnSelect Color
+	ColorSelectSubtle Color
 	Sizing            Sizing
 	Multiple          bool
 	Disabled          bool
@@ -476,11 +477,12 @@ func applyListBoxDefaults(cfg *ListBoxCfg) {
 	))
 	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, nil, nil,
 		&cfg.ColorBorder, &cfg.ColorBorderFocus)
+	// A caller-set ColorSelect is an explicit override and wins over
+	// the theme's wash (subtleSlot). Resolved before the theme fill
+	// below, so IsSet still tells caller-set from theme-set.
+	subtleSlot(&cfg.ColorSelectSubtle, cfg.ColorSelect, d.ColorSelectSubtle)
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
-	}
-	if !cfg.ColorTextOnSelect.IsSet() {
-		cfg.ColorTextOnSelect = d.ColorTextOnSelect
 	}
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = d.Padding

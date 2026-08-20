@@ -1,7 +1,7 @@
 # Visual refresh: palette, type, density, elevation
 
-- **Status:** phase 2 landed (§ 2 type ladder, § 3 density). Phases 1, 3, 4,
-  5a/5b, 6, 7, 8 pending.
+- **Status:** phase 3 landed (§ 4 palettes, accent ramp, semantic colors; § 5.1
+  border). Phases 1, 4, 5a/5b, 6, 7, 8 pending.
 - **Extends:** `docs/style-guide.md`,
   `docs/specs/widget-visual-consistency-audit.md` (issue #335)
 - **Breaking:** yes, deliberately. All goldens re-record, every preset changes
@@ -274,10 +274,15 @@ by default and two when a theme needs them apart.
 | Field                | Dark                     | Light                    |
 | -------------------- | ------------------------ | ------------------------ |
 | `ColorAccent`        | `#4D82F0`                | `#2F6FE0`                |
-| `ColorAccentHover`   | `#6191F3`                | `#4480E8`                |
-| `ColorAccentPressed` | `#3A6FD8`                | `#255DC4`                |
+| `ColorAccentHover`   | `#85AAF5`                | `#6494E8`                |
+| `ColorAccentPressed` | `#155AEB`                | `#1B53B7`                |
 | `ColorAccentSubtle`  | `RGBA(77, 130, 240, 40)` | `RGBA(47, 111, 224, 30)` |
 | `ColorTextOnAccent`  | `#FFFFFF`                | `#FFFFFF`                |
+
+The hover/pressed values are what the rule below actually produces — an earlier
+draft of this table was picked by eye and disagreed with the rule, so the table
+was corrected to the derivation rather than the other way round (recorded in the
+decisions).
 
 `ThemeMaker` derives every unset slot from `ColorAccent`, so a custom theme
 states one color and gets a working ramp. The derivation is pinned, because
@@ -303,10 +308,15 @@ states one color and gets a working ramp. The derivation is pinned, because
 The table values are what these rules produce from `#4D82F0` and `#2F6FE0`; a
 test should assert that, so the table and the code cannot drift.
 
-`ColorAccentSubtle` replaces full-accent fills on hovered and selected rows in
-`ListBox`, `Tree`, `Table` and `DataGrid`, where a saturated slab behind every
-selected row is the loudest thing on the screen. Selection keeps the full fill
-only where the row is _the_ selection and the widget has focus.
+`ColorAccentSubtle` replaces full-accent fills on selected and highlighted rows
+— `ListBox`, `Table`, `DataGrid`, and the dropdown rows of `Select`, `Combobox`
+and the command palette — where a saturated slab behind every selected row is
+the loudest thing on the screen. Selection paints the subtle tint everywhere and
+in every focus state; focus is the ring (phase 5b), not a second fill (decision
+2). Only the menus keep the full accent fill on their selected item, where the
+row _is_ the focus indication. A subtle row's text stays the body color — the
+accent/text pairing (`ColorTextOnSelect`) applies only where the full accent
+fill still happens.
 
 ### 4.4 Semantic colors
 
@@ -551,7 +561,7 @@ Each phase re-records goldens and lands independently.
 | ----- | --------------------------------------------- | ------- | ------ |
 | 1     | § 1 `labelledField` bug + field min widths    | widget  | landed |
 | 2     | § 2 type ladder, § 3 density                  | theme   | landed |
-| 3     | § 4 palettes and accent ramp, § 5.1 border    | theme   |        |
+| 3     | § 4 palettes and accent ramp, § 5.1 border    | theme   | landed |
 | 4     | § 5.2 radius, § 5.3 elevation                 | theme   |        |
 | 5a    | § 5.5 `BoxShadow.Spread` through six backends | backend |        |
 | 5b    | § 5.4 focus ring + wiring the remaining ~8    | widget  |        |
@@ -670,21 +680,52 @@ done until the docs say the same thing:
   spacing ladder drops the picker's derived plane to 118, tripping the old floor
   and breaking the picker's row-width invariant; the floor is degenerate-theme
   protection, so it now sits under the default derivation.
+- **Body size** — 14 ships (deferred question 1, answered): the non-HiDPI check
+  stays owed but no longer blocks; a later shift re-records phases 2–3 goldens.
+- **Selection fill (deferred question 2)** — subtle + ring: selected and
+  highlighted rows paint `ColorAccentSubtle` in every focus state, and their
+  text stays the body color. Focus is the ring (phase 5b), never a second fill.
+  Menus keep the full accent on their selected item. No focus-state plumbing in
+  row renderers.
+- **Light semantic colors** — success `#2E9E5B`, warning `#B07E1F`, error
+  `#D64545`; dark keeps its existing error and the historic toast/badge
+  success/warning values (moved from ThemeMaker literals into the preset consts,
+  with the literals kept as the unset fallback so unstated themes stay
+  byte-identical).
+- **Accent fallback chain** — `ColorAccent` → `ColorSelect` → legacy select
+  (`colorSelectDark`). `ColorSelect` defaults to the accent. Platform and taste
+  themes keep their native select, which becomes their accent; their ramps
+  derive.
+- **Accent ramp table corrected to the derivation** — the rule in § 4.3 (sRGB
+  HSL `L±0.12`) does not reproduce the table's original hover/pressed values
+  (e.g. dark pressed came out `#155AEB`, not `#3A6FD8`), and no clean formula
+  reproduces that table either. The rule is the mechanism the spec chose and is
+  what a custom theme gets, so the table was corrected to what the rule produces
+  (`#85AAF5`/`#155AEB` dark, `#6494E8`/`#1B53B7` light);
+  `TestThemeMakerAccentRamp` pins both.
+- **List rows drop `ColorTextOnSelect`** — with selection on the subtle tint,
+  the paired foreground no longer applies to list-like rows; the accent/text
+  pairing survives in menus and the full-accent fills (slider fill, selected
+  tab, radio, switch). The five pairing tests were updated to pin body text on
+  washed rows, and the now-dead widget- and style-level `ColorTextOnSelect`
+  fields were removed from the list-like widgets — nothing paints a fill needing
+  them (the theme-level token survives for menus, the selected tab and the date
+  picker's selected day).
+- **`ColorTextOnSelect` defaults to the accent-paired foreground** — unset
+  resolves to white/black by accent luminance (the same rule as
+  `ColorTextOnAccent`), not the body color. The old default drew a light theme's
+  near-black body text on its blue accent in menus and the selected tab —
+  reported after the palette landed. The selected tab's label additionally pairs
+  over the accent fill while keeping its B3 weight. The progress bar's
+  percentage stays the body text on the bar, unboxed: it straddles fill and
+  track, so no single color pairs with both, and the label is secondary (a
+  track-colored chip behind it was tried and rejected by review). Explicit slots
+  still win.
 
 ## Deferred questions
 
-Neither blocks phase 1. Each is answered from a render at the point named, not
-from source.
-
-1. **Body size 14 vs 13** — phase 2 shipped 14 (dark/light). The check is still
-   owed: a phase-2 render viewed on a non-HiDPI display. go-glyph hinting at
-   12–13px is the risk and has not been measured; if 13 holds up there, the
-   whole ladder shifts down a step and phases 2–3 goldens re-record before phase
-   3's palette lands, keeping the palette goldens from recording twice.
-2. **Selection fill vs `ColorAccentSubtle`** — decide before the list-like
-   widgets are wired in phase 3. § 4.3 proposes the full accent fill for the
-   focused widget's selected row and the subtle tint everywhere else, which is
-   two appearances for one state. The alternative is subtle everywhere plus a
-   focus ring on the widget. Five widgets consume the answer (`ListBox`, `Tree`,
-   `Table`, `DataGrid`, `Select`), so it is cheap to ask and expensive to
-   revisit.
+1. **Body size 14 vs 13** — decided at phase 3: 14 ships (see decisions). The
+   non-HiDPI render check is still owed; if 13 wins there, the dark/light ladder
+   shifts one step and phases 2–3 goldens re-record before phase 4.
+2. **Selection fill vs `ColorAccentSubtle`** — decided at phase 3: subtle + ring
+   (see decisions).

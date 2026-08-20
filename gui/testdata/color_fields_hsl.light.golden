@@ -1,39 +1,39 @@
-Rect xy=14.00,14.00 wh=115.00,29.60 color=#c3c3d7ff radius=5.50 fill
+Rect xy=14.00,14.00 wh=115.00,29.60 color=#ffffffff radius=5.50 fill
 Clip xy=24.00,20.24 wh=95.00,19.60
-Text xy=24.00,20.24 wh=0.00,0.00 color=#202020ff text="#3380CC" size=14.00
+Text xy=24.00,20.24 wh=0.00,0.00 color=#1a1d21ff text="#3380CC" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00
-Text xy=26.10,49.60 wh=0.00,0.00 color=#202020ba text="Red" size=11.00
-Rect xy=14.00,71.00 wh=44.00,29.60 color=#c3c3d7ff radius=5.50 fill
+Text xy=26.10,49.60 wh=0.00,0.00 color=#1a1d21ba text="Red" size=11.00
+Rect xy=14.00,71.00 wh=44.00,29.60 color=#ffffffff radius=5.50 fill
 Clip xy=24.00,77.24 wh=24.00,19.60
-Text xy=24.00,77.24 wh=0.00,0.00 color=#202020ff text="51" size=14.00
+Text xy=24.00,77.24 wh=0.00,0.00 color=#1a1d21ff text="51" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00
-Text xy=69.50,49.60 wh=0.00,0.00 color=#202020ba text="Green" size=11.00
-Rect xy=64.00,71.00 wh=44.00,29.60 color=#c3c3d7ff radius=5.50 fill
+Text xy=69.50,49.60 wh=0.00,0.00 color=#1a1d21ba text="Green" size=11.00
+Rect xy=64.00,71.00 wh=44.00,29.60 color=#ffffffff radius=5.50 fill
 Clip xy=74.00,77.24 wh=24.00,19.60
-Text xy=74.00,77.24 wh=0.00,0.00 color=#202020ff text="128" size=14.00
+Text xy=74.00,77.24 wh=0.00,0.00 color=#1a1d21ff text="128" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00
-Text xy=122.80,49.60 wh=0.00,0.00 color=#202020ba text="Blue" size=11.00
-Rect xy=114.00,71.00 wh=44.00,29.60 color=#c3c3d7ff radius=5.50 fill
+Text xy=122.80,49.60 wh=0.00,0.00 color=#1a1d21ba text="Blue" size=11.00
+Rect xy=114.00,71.00 wh=44.00,29.60 color=#ffffffff radius=5.50 fill
 Clip xy=124.00,77.24 wh=24.00,19.60
-Text xy=124.00,77.24 wh=0.00,0.00 color=#202020ff text="204" size=14.00
+Text xy=124.00,77.24 wh=0.00,0.00 color=#1a1d21ff text="204" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00
-Text xy=169.50,49.60 wh=0.00,0.00 color=#202020ba text="Alpha" size=11.00
-Rect xy=164.00,71.00 wh=44.00,29.60 color=#c3c3d7ff radius=5.50 fill
+Text xy=169.50,49.60 wh=0.00,0.00 color=#1a1d21ba text="Alpha" size=11.00
+Rect xy=164.00,71.00 wh=44.00,29.60 color=#ffffffff radius=5.50 fill
 Clip xy=174.00,77.24 wh=24.00,19.60
-Text xy=174.00,77.24 wh=0.00,0.00 color=#202020ff text="255" size=14.00
+Text xy=174.00,77.24 wh=0.00,0.00 color=#1a1d21ff text="255" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00
-Text xy=26.10,106.60 wh=0.00,0.00 color=#202020ba text="Hue" size=11.00
-Rect xy=14.00,128.00 wh=44.00,29.60 color=#c3c3d7ff radius=5.50 fill
+Text xy=26.10,106.60 wh=0.00,0.00 color=#1a1d21ba text="Hue" size=11.00
+Rect xy=14.00,128.00 wh=44.00,29.60 color=#ffffffff radius=5.50 fill
 Clip xy=24.00,134.24 wh=24.00,19.60
-Text xy=24.00,134.24 wh=0.00,0.00 color=#202020ff text="210" size=14.00
+Text xy=24.00,134.24 wh=0.00,0.00 color=#1a1d21ff text="210" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00
-Text xy=76.10,106.60 wh=0.00,0.00 color=#202020ba text="Sat" size=11.00
-Rect xy=64.00,128.00 wh=44.00,29.60 color=#c3c3d7ff radius=5.50 fill
+Text xy=76.10,106.60 wh=0.00,0.00 color=#1a1d21ba text="Sat" size=11.00
+Rect xy=64.00,128.00 wh=44.00,29.60 color=#ffffffff radius=5.50 fill
 Clip xy=74.00,134.24 wh=24.00,19.60
-Text xy=74.00,134.24 wh=0.00,0.00 color=#202020ff text="60" size=14.00
+Text xy=74.00,134.24 wh=0.00,0.00 color=#1a1d21ff text="60" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00
-Text xy=114.00,106.60 wh=0.00,0.00 color=#202020ba text="Lightness" size=11.00
-Rect xy=121.70,128.00 wh=44.00,29.60 color=#c3c3d7ff radius=5.50 fill
+Text xy=114.00,106.60 wh=0.00,0.00 color=#1a1d21ba text="Lightness" size=11.00
+Rect xy=121.70,128.00 wh=44.00,29.60 color=#ffffffff radius=5.50 fill
 Clip xy=131.70,134.24 wh=24.00,19.60
-Text xy=131.70,134.24 wh=0.00,0.00 color=#202020ff text="50" size=14.00
+Text xy=131.70,134.24 wh=0.00,0.00 color=#1a1d21ff text="50" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00

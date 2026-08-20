@@ -1,8 +1,8 @@
-Rect xy=15.50,15.50 wh=289.00,41.60 color=#4a4a4aff radius=5.50 fill
-StrokeRect xy=15.50,15.50 wh=289.00,41.60 color=#646464ff radius=5.50 thickness=1.50
-Rect xy=23.00,23.00 wh=46.60,26.60 color=#4169e1ff radius=3.50 fill
-Text xy=29.50,27.74 wh=0.00,0.00 color=#e1e1e1ff text="Edit" size=14.00
-Rect xy=23.00,49.60 wh=70.00,70.20 color=#4a4a4aff radius=5.50 fill
-StrokeRect xy=23.00,49.60 wh=70.00,70.20 color=#646464ff radius=5.50 thickness=1.50
-Text xy=37.00,61.84 wh=42.00,0.00 color=#e1e1e1ff text="Copy" size=14.00
-Text xy=37.00,90.44 wh=42.00,0.00 color=#e1e1e1ff text="Paste" size=14.00
+Rect xy=15.00,15.00 wh=290.00,39.60 color=#262a2fff radius=5.50 fill
+StrokeRect xy=15.00,15.00 wh=290.00,39.60 color=#ffffff1c radius=5.50 thickness=1.00
+Rect xy=22.00,22.00 wh=45.60,25.60 color=#4d82f0ff radius=3.50 fill
+Text xy=28.00,26.24 wh=0.00,0.00 color=#ffffffff text="Edit" size=14.00
+Rect xy=22.00,47.60 wh=68.00,67.20 color=#262a2fff radius=5.50 fill
+StrokeRect xy=22.00,47.60 wh=68.00,67.20 color=#ffffff1c radius=5.50 thickness=1.00
+Text xy=35.00,58.84 wh=42.00,0.00 color=#e6e8ebff text="Copy" size=14.00
+Text xy=35.00,86.44 wh=42.00,0.00 color=#e6e8ebff text="Paste" size=14.00

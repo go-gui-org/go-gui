@@ -2,17 +2,27 @@ package gui
 
 import "github.com/go-gui-org/go-glyph"
 
-// Theme default colors (dark theme).
+// Theme default colors (dark theme). The neutral ramp is a cool tint
+// at hue ~215 (visual-refresh §4.1): a border can be a transparent
+// white wash without turning the surface beneath it a different color
+// than the page, so separation comes from fills, not strokes.
 var (
-	colorBackgroundDark = RGB(48, 48, 48)
-	colorPanelDark      = RGB(64, 64, 64)
-	colorInteriorDark   = RGB(74, 74, 74)
-	colorHoverDark      = RGB(84, 84, 84)
-	colorFocusDark      = RGB(94, 94, 94)
-	colorActiveDark     = RGB(104, 104, 104)
-	colorBorderDark     = RGB(100, 100, 100)
+	colorBackgroundDark = RGB(23, 25, 28) // #17191C
+	colorPanelDark      = RGB(30, 33, 37) // #1E2125
+	colorInteriorDark   = RGB(38, 42, 47) // #262A2F
+	colorHoverDark      = RGB(47, 52, 58) // #2F343A
+	colorFocusDark      = RGB(56, 62, 69) // #383E45
+	colorActiveDark     = RGB(66, 73, 81) // #424951
+	colorBorderDark     = RGBA(255, 255, 255, 28)
+	colorSeparatorDark  = RGBA(255, 255, 255, 20)
 	colorSelectDark     = RGB(65, 105, 225)
-	colorTextDark       = RGB(225, 225, 225)
+	// colorAccentDark is the single accent decision; the rest of the
+	// ramp derives from it in ThemeMaker (visual-refresh §4.3).
+	colorAccentDark  = RGB(77, 130, 240) // #4D82F0
+	colorErrorDark   = RGB(218, 54, 51)
+	colorWarningDark = RGB(210, 153, 34)
+	colorSuccessDark = RGB(46, 160, 67)
+	colorTextDark    = RGB(230, 232, 235) // #E6E8EB
 )
 
 // Radius constants.
@@ -34,7 +44,11 @@ const (
 	sizeTextSmall  float32 = sizeTextMedium - 2
 	sizeTextLarge  float32 = sizeTextMedium + 3
 	sizeTextXLarge float32 = sizeTextMedium + 8
-	sizeBorderDef  float32 = 1.5
+	// sizeBorderDef is the hairline every platform draws. 1.5 was a
+	// 3-device-pixel stroke at 2x and the main reason the toolkit
+	// read as boxy; the platform themes already drew 1 for exactly
+	// this reason (visual-refresh §5.1).
+	sizeBorderDef float32 = 1
 )
 
 // textSizeLadder is the six-rung type ladder derived from a body size.
@@ -301,14 +315,18 @@ type DataGridStyle struct {
 	ColorHeader      Color
 	ColorHeaderHover Color
 	// exportaudit:keep — reachable from an exported signature
-	ColorFilter       Color
-	ColorQuickFilter  Color
-	ColorRowHover     Color
-	ColorRowAlt       Color
-	ColorRowSelected  Color
-	ColorBorder       Color
-	ColorResizeHandle Color
-	ColorResizeActive Color
+	ColorFilter      Color
+	ColorQuickFilter Color
+	ColorRowHover    Color
+	ColorRowAlt      Color
+	ColorRowSelected Color
+	// ColorRowSelectedSubtle is the tint behind a selected row: the
+	// wash, never the full accent slab — focus is the ring, not a
+	// second fill (visual-refresh §4.3).
+	ColorRowSelectedSubtle Color
+	ColorBorder            Color
+	ColorResizeHandle      Color
+	ColorResizeActive      Color
 }
 
 // InspectorStyle defines the look and feel of the GUI inspector.

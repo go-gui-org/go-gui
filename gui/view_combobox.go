@@ -61,11 +61,12 @@ type ComboboxCfg struct {
 	ColorBorderFocus Color
 	ColorFocus       Color
 	ColorHighlight   Color
-	// ColorTextOnSelect is the text color drawn over the
-	// highlighted row's fill. Unset takes the theme's.
+	// ColorHighlightSubtle is the tint behind the highlighted row —
+	// the wash, never the full accent slab; focus is the ring, not a
+	// second fill (visual-refresh §4.3). Unset takes the theme's.
 	// exportaudit:keep — caller-facing config (issue #372)
-	ColorTextOnSelect Color
-	ColorHover        Color
+	ColorHighlightSubtle Color
+	ColorHover           Color
 	// Colors sets the per-state colors. Color above is the
 	// shorthand for Colors.Base and wins over it; the other flat
 	// Color* fields win over their Colors slots the same way.
@@ -162,12 +163,11 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 	// Build dropdown content.
 	onSelect := cfg.OnSelect
 	coreCfg := listCoreCfg{
-		TextStyle:         cfg.TextStyle,
-		ColorHighlight:    cfg.ColorHighlight,
-		ColorHover:        cfg.ColorHover,
-		ColorSelected:     cfg.ColorHighlight,
-		colorTextOnSelect: cfg.ColorTextOnSelect,
-		PaddingItem:       cfg.Padding.Or(PaddingNone),
+		TextStyle:      cfg.TextStyle,
+		ColorHighlight: cfg.ColorHighlightSubtle,
+		ColorHover:     cfg.ColorHover,
+		ColorSelected:  cfg.ColorHighlightSubtle,
+		PaddingItem:    cfg.Padding.Or(PaddingNone),
 		OnItemClick: func(itemID string, _ int, ctx EventCtx) {
 			if onSelect != nil {
 				onSelect(itemID, EventCtx{nil, ctx.Event, ctx.Window})
@@ -458,11 +458,12 @@ func applyComboboxDefaults(cfg *ComboboxCfg) {
 	))
 	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, nil,
 		&cfg.ColorFocus, &cfg.ColorBorder, &cfg.ColorBorderFocus)
+	// A caller-set ColorHighlight is an explicit override and wins
+	// over the theme's wash (subtleSlot). Resolved before the theme
+	// fill below, so IsSet still tells caller-set from theme-set.
+	subtleSlot(&cfg.ColorHighlightSubtle, cfg.ColorHighlight, d.ColorHighlightSubtle)
 	if !cfg.ColorHighlight.IsSet() {
 		cfg.ColorHighlight = d.ColorHighlight
-	}
-	if !cfg.ColorTextOnSelect.IsSet() {
-		cfg.ColorTextOnSelect = d.ColorTextOnSelect
 	}
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = d.Padding

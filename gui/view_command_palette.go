@@ -55,10 +55,11 @@ type CommandPaletteCfg struct {
 	Color          Color
 	ColorBorder    Color
 	ColorHighlight Color
-	// ColorTextOnSelect is the text color drawn over the
-	// highlighted row's fill. Unset takes the theme's.
+	// ColorHighlightSubtle is the tint behind the highlighted row —
+	// the wash, never the full accent slab; focus is the ring, not a
+	// second fill (visual-refresh §4.3). Unset takes the theme's.
 	// exportaudit:keep — caller-facing config (issue #372)
-	ColorTextOnSelect Color
+	ColorHighlightSubtle Color
 	// BackdropColor dims the window behind the palette. Unset takes
 	// the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
@@ -148,15 +149,14 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 	onDismiss := cfg.OnDismiss
 
 	coreCfg := listCoreCfg{
-		TextStyle:         cfg.TextStyle,
-		detailStyle:       cfg.DetailStyle,
-		ColorHighlight:    cfg.ColorHighlight,
-		ColorHover:        cfg.ColorHighlight,
-		ColorSelected:     cfg.ColorHighlight,
-		colorTextOnSelect: cfg.ColorTextOnSelect,
-		PaddingItem:       PaddingTwoFive,
-		ShowDetails:       true,
-		ShowIcons:         true,
+		TextStyle:      cfg.TextStyle,
+		detailStyle:    cfg.DetailStyle,
+		ColorHighlight: cfg.ColorHighlightSubtle,
+		ColorHover:     cfg.ColorHighlightSubtle,
+		ColorSelected:  cfg.ColorHighlightSubtle,
+		PaddingItem:    PaddingTwoFive,
+		ShowDetails:    true,
+		ShowIcons:      true,
 		OnItemClick: func(itemID string, _ int, ctx EventCtx) {
 			if onAction != nil {
 				onAction(itemID, EventCtx{nil, ctx.Event, ctx.Window})
@@ -424,11 +424,12 @@ func applyCommandPaletteDefaults(cfg *CommandPaletteCfg) {
 	if !cfg.ColorBorder.IsSet() {
 		cfg.ColorBorder = d.ColorBorder
 	}
+	// A caller-set ColorHighlight is an explicit override and wins
+	// over the theme's wash (subtleSlot). Resolved before the theme
+	// fill below, so IsSet still tells caller-set from theme-set.
+	subtleSlot(&cfg.ColorHighlightSubtle, cfg.ColorHighlight, d.ColorHighlightSubtle)
 	if !cfg.ColorHighlight.IsSet() {
 		cfg.ColorHighlight = d.ColorHighlight
-	}
-	if !cfg.ColorTextOnSelect.IsSet() {
-		cfg.ColorTextOnSelect = d.ColorTextOnSelect
 	}
 	if cfg.Width == 0 {
 		cfg.Width = d.Width

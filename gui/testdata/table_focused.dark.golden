@@ -1,8 +1,8 @@
-StrokeRect xy=15.50,15.50 wh=123.00,73.80 color=#4169e1ff thickness=1.50
-Rect xy=17.00,17.00 wh=120.00,23.60 color=#545454ff radius=5.50 fill
-Text xy=30.20,19.00 wh=0.00,0.00 color=#e1e1e1ff text="Name" size=14.00
-Text xy=90.20,19.00 wh=0.00,0.00 color=#e1e1e1ff text="Size" size=14.00
-Text xy=22.00,42.60 wh=0.00,0.00 color=#e1e1e1ff text="alpha" size=14.00
-Text xy=82.00,42.60 wh=0.00,0.00 color=#e1e1e1ff text="12" size=14.00
-Text xy=22.00,66.20 wh=0.00,0.00 color=#e1e1e1ff text="beta" size=14.00
-Text xy=82.00,66.20 wh=0.00,0.00 color=#e1e1e1ff text="9" size=14.00
+StrokeRect xy=15.00,15.00 wh=122.00,72.80 color=#4d82f0ff thickness=1.00
+Rect xy=16.00,16.00 wh=120.00,23.60 color=#2f343aff radius=5.50 fill
+Text xy=29.20,18.00 wh=0.00,0.00 color=#e6e8ebff text="Name" size=14.00
+Text xy=89.20,18.00 wh=0.00,0.00 color=#e6e8ebff text="Size" size=14.00
+Text xy=21.00,41.60 wh=0.00,0.00 color=#e6e8ebff text="alpha" size=14.00
+Text xy=81.00,41.60 wh=0.00,0.00 color=#e6e8ebff text="12" size=14.00
+Text xy=21.00,65.20 wh=0.00,0.00 color=#e6e8ebff text="beta" size=14.00
+Text xy=81.00,65.20 wh=0.00,0.00 color=#e6e8ebff text="9" size=14.00

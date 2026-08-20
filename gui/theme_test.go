@@ -181,8 +181,10 @@ func TestThemeMakerBadgeStyle(t *testing.T) {
 	t.Parallel()
 	cfg := baseDarkCfg()
 	theme := ThemeMaker(cfg)
-	if theme.badgeStyle.colorInfo != cfg.ColorSelect {
-		t.Error("badge info color should match select")
+	// baseDarkCfg states no ColorSelect; it resolves to the accent,
+	// and the accent-role slots follow the resolved value.
+	if theme.badgeStyle.colorInfo != theme.ColorSelect {
+		t.Error("badge info color should match the resolved select")
 	}
 	if theme.badgeStyle.dotSize != 8 {
 		t.Errorf("dot size = %f, want 8", theme.badgeStyle.dotSize)
@@ -197,8 +199,8 @@ func TestThemeMakerProgressBarStyle(t *testing.T) {
 		t.Errorf("size = %f, want %f",
 			theme.progressBarStyle.Size, cfg.SizeProgressBar)
 	}
-	if theme.progressBarStyle.colorBar != cfg.ColorSelect {
-		t.Error("bar color should match select")
+	if theme.progressBarStyle.colorBar != theme.ColorSelect {
+		t.Error("bar color should match the resolved select")
 	}
 }
 

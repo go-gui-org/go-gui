@@ -44,18 +44,106 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	// the bundled font rather than render icons in the default family.
 	iconFamily := cmp.Or(cfg.IconFontFamily, IconFontName)
 
+	// Accent ramp (visual-refresh §4.3). One decision with a fallback
+	// chain: ColorAccent, else ColorSelect (a platform or taste theme
+	// keeps its native select as its accent), else the legacy select
+	// value, so a theme that states neither renders as before. Every
+	// unset slot derives from the accent; an explicit slot always
+	// wins.
+	accent := cfg.ColorAccent
+	switch {
+	case accent.IsSet():
+	case cfg.ColorSelect.IsSet():
+		accent = cfg.ColorSelect
+	default:
+		accent = colorSelectDark
+	}
+	// The selection fill defaults to the accent, so selection and
+	// accent stay one decision by default and two when a theme needs
+	// them apart.
+	colorSelect := cfg.ColorSelect
+	if !colorSelect.IsSet() {
+		colorSelect = accent
+	}
+
+	// HSL offsets are absolute on L, not relative: a relative step
+	// collapses to nothing on a dark accent and overshoots on a light
+	// one. Clamped to [0,1]; the derivation is pinned against the
+	// spec table by TestThemeMakerAccentRamp.
+	accentHover := cfg.ColorAccentHover
+	if !accentHover.IsSet() {
+		hsla := ColorToHSLA(accent)
+		hsla.L = f32Clamp(hsla.L+0.12, 0, 1)
+		accentHover = hsla.Color()
+	}
+	accentPressed := cfg.ColorAccentPressed
+	if !accentPressed.IsSet() {
+		hsla := ColorToHSLA(accent)
+		hsla.L = f32Clamp(hsla.L-0.12, 0, 1)
+		accentPressed = hsla.Color()
+	}
+	accentSubtle := cfg.ColorAccentSubtle
+	if !accentSubtle.IsSet() {
+		accentSubtle = subtleFor(accent, cfg.ColorBackground)
+	}
+	// Text on the accent: white under the 0.45 luminance threshold,
+	// not the midpoint — white on a mid-blue reads better than black
+	// at the same luminance.
+	textOnAccent := cfg.ColorTextOnAccent
+	if !textOnAccent.IsSet() {
+		if srgbLuminance(accent) < 0.45 {
+			textOnAccent = White
+		} else {
+			textOnAccent = RGB(0, 0, 0)
+		}
+	}
+
+	// Semantic colors (visual-refresh §4.4). Filled on the Cfg by the
+	// presets; unset falls back to the values the toast/badge styles
+	// historically painted, so a theme that never stated them renders
+	// as before.
+	colorSuccess := cfg.ColorSuccess
+	if !colorSuccess.IsSet() {
+		colorSuccess = RGBA(46, 160, 67, 255)
+	}
+	colorWarning := cfg.ColorWarning
+	if !colorWarning.IsSet() {
+		colorWarning = RGBA(210, 153, 34, 255)
+	}
+	colorError := cfg.ColorError
+	if !colorError.IsSet() {
+		colorError = RGBA(218, 54, 51, 255)
+	}
+	successSubtle := cfg.ColorSuccessSubtle
+	if !successSubtle.IsSet() {
+		successSubtle = subtleFor(colorSuccess, cfg.ColorBackground)
+	}
+	warningSubtle := cfg.ColorWarningSubtle
+	if !warningSubtle.IsSet() {
+		warningSubtle = subtleFor(colorWarning, cfg.ColorBackground)
+	}
+	errorSubtle := cfg.ColorErrorSubtle
+	if !errorSubtle.IsSet() {
+		errorSubtle = subtleFor(colorError, cfg.ColorBackground)
+	}
+
 	borderFocus := cfg.ColorBorderFocus
 	if borderFocus.eq(Color{}) {
-		borderFocus = cfg.ColorSelect
+		borderFocus = colorSelect
 	}
 
 	// Text drawn over the select fill. The fill and the text on it
-	// are one decision (issue #373); unset resolves to the body
-	// color so a theme that never states it renders exactly as
-	// before — every preset stays byte-identical until it opts in.
+	// are one decision (issue #373); unset resolves to the
+	// accent-paired foreground — white on a dark accent, black on a
+	// light one — so the full-accent fills (menus, the selected tab,
+	// the slider fill, the progress bar) stay readable on any
+	// polarity. This is the same rule as ColorTextOnAccent, which is
+	// what the pairing would have been anyway (visual-refresh §4.3;
+	// the old body-color default made a light theme draw near-black
+	// text on its blue accent).
 	colorTextOnSelect := cfg.ColorTextOnSelect
 	if !colorTextOnSelect.IsSet() {
-		colorTextOnSelect = ts.Color
+		colorTextOnSelect = textOnAccent
 	}
 
 	// Separator role: a divider is an edge, and reusing ColorBorder
@@ -104,9 +192,17 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		ColorFocus:           cfg.ColorFocus,
 		ColorActive:          cfg.ColorActive,
 		ColorBorder:          cfg.ColorBorder,
-		ColorSelect:          cfg.ColorSelect,
+		ColorSelect:          colorSelect,
 		TitlebarDark:         cfg.TitlebarDark,
 		ColorTextOnSelect:    colorTextOnSelect,
+		ColorAccent:          accent,
+		ColorAccentHover:     accentHover,
+		ColorAccentPressed:   accentPressed,
+		ColorAccentSubtle:    accentSubtle,
+		ColorTextOnAccent:    textOnAccent,
+		ColorSuccessSubtle:   successSubtle,
+		ColorWarningSubtle:   warningSubtle,
+		ColorErrorSubtle:     errorSubtle,
 
 		ButtonStyle: buttonStyle{
 			Color:            cfg.ColorInterior,
@@ -146,7 +242,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Radius:           cfg.Radius,
 			textStyleNormal:  ts,
 			PlaceholderStyle: textPlaceholder,
-			colorSpellError:  cfg.ColorError,
+			colorSpellError:  colorError,
 		},
 		ScrollbarStyle: ScrollbarStyle{
 			Size:            cfg.SizeScrollbar,
@@ -162,11 +258,11 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Size:             cfg.SizeRadio,
 			Color:            cfg.ColorPanel,
 			ColorHover:       cfg.ColorHover,
-			ColorFocus:       cfg.ColorSelect,
+			ColorFocus:       colorSelect,
 			colorClick:       cfg.ColorActive,
 			ColorBorder:      cfg.ColorBorder,
 			ColorBorderFocus: borderFocus,
-			ColorSelect:      cfg.ColorSelect,
+			ColorSelect:      colorSelect,
 			colorUnselect:    cfg.ColorActive,
 			Padding:          PadAll(4),
 			SizeBorder:       cfg.SizeBorder,
@@ -181,7 +277,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			ColorHover:       cfg.ColorHover,
 			ColorBorder:      cfg.ColorBorder,
 			ColorBorderFocus: borderFocus,
-			ColorSelect:      cfg.ColorSelect,
+			ColorSelect:      colorSelect,
 			colorUnselect:    cfg.ColorActive,
 			Padding:          paddingThree,
 			SizeBorder:       cfg.SizeBorder,
@@ -222,8 +318,8 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			colorClick:        cfg.ColorActive,
 			ColorBorder:       cfg.ColorBorder,
 			ColorBorderFocus:  borderFocus,
-			ColorSelect:       cfg.ColorSelect,
-			ColorTextOnSelect: colorTextOnSelect,
+			ColorSelect:       colorSelect,
+			ColorSelectSubtle: accentSubtle,
 			Padding:           fieldPad,
 			SizeBorder:        cfg.SizeBorder,
 			Radius:            cfg.RadiusMedium,
@@ -236,8 +332,8 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			ColorHover:        cfg.ColorHover,
 			ColorBorder:       cfg.ColorBorder,
 			ColorBorderFocus:  borderFocus,
-			ColorSelect:       cfg.ColorSelect,
-			ColorTextOnSelect: colorTextOnSelect,
+			ColorSelect:       colorSelect,
+			ColorSelectSubtle: accentSubtle,
 			Padding:           cfg.Padding,
 			SizeBorder:        cfg.SizeBorder,
 			Radius:            cfg.Radius,
@@ -290,10 +386,10 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			SizeBorder:   cfg.SizeBorder,
 			Color:        cfg.ColorPanel,
 			ColorBorder:  cfg.ColorBorder,
-			colorInfo:    cfg.ColorSelect,
-			ColorSuccess: RGBA(46, 160, 67, 255),
-			ColorWarning: RGBA(210, 153, 34, 255),
-			ColorError:   cfg.ColorError,
+			colorInfo:    colorSelect,
+			ColorSuccess: colorSuccess,
+			ColorWarning: colorWarning,
+			ColorError:   colorError,
 			TextStyle:    ts,
 			TitleStyle:   makeStyle(ts, cfg.SizeTextMedium),
 		},
@@ -309,10 +405,10 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		},
 		badgeStyle: BadgeStyle{
 			Color:        cfg.ColorActive,
-			colorInfo:    cfg.ColorSelect,
-			ColorSuccess: RGBA(46, 160, 67, 255),
-			ColorWarning: RGBA(210, 153, 34, 255),
-			ColorError:   cfg.ColorError,
+			colorInfo:    colorSelect,
+			ColorSuccess: colorSuccess,
+			ColorWarning: colorWarning,
+			ColorError:   colorError,
 			Padding:      NewPadding(2, 6, 2, 6),
 			dotSize:      8,
 		},
@@ -328,10 +424,14 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			radiusBorder:     cfg.RadiusMedium,
 		},
 		progressBarStyle: ProgressBarStyle{
-			Size:           cfg.SizeProgressBar,
-			Color:          cfg.ColorInterior,
-			colorBar:       cfg.ColorSelect,
-			ColorBorder:    cfg.ColorBorder,
+			Size:        cfg.SizeProgressBar,
+			Color:       cfg.ColorInterior,
+			colorBar:    colorSelect,
+			ColorBorder: cfg.ColorBorder,
+			// The % label keeps the body text on the bar, unboxed:
+			// it straddles fill and track, so no single color pairs
+			// with both — the label is secondary and stays as
+			// before (visual-refresh §4.3).
 			textBackground: ColorTransparent,
 			Padding:        PaddingNone,
 			textPadding:    NewPadding(1, 4, 1, 4),
@@ -354,8 +454,8 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Color:            cfg.ColorInterior,
 			colorClick:       cfg.ColorActive,
 			colorThumb:       cfg.ColorPanel,
-			colorLeft:        cfg.ColorSelect,
-			ColorFocus:       cfg.ColorSelect,
+			colorLeft:        colorSelect,
+			ColorFocus:       colorSelect,
 			ColorHover:       cfg.ColorHover,
 			ColorBorder:      cfg.ColorBorder,
 			ColorBorderFocus: borderFocus,
@@ -374,7 +474,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			colorTabHover:       cfg.ColorHover,
 			colorTabFocus:       cfg.ColorFocus,
 			colorTabClick:       cfg.ColorActive,
-			colorTabSelected:    cfg.ColorSelect,
+			colorTabSelected:    colorSelect,
 			colorTabDisabled:    cfg.ColorPanel,
 			colorTabBorder:      cfg.ColorBorder,
 			colorTabBorderFocus: borderFocus,
@@ -428,7 +528,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			colorHandleHover:  cfg.ColorHover,
 			colorHandleActive: cfg.ColorActive,
 			colorHandleBorder: cfg.ColorBorder,
-			colorGrip:         cfg.ColorSelect,
+			colorGrip:         colorSelect,
 			colorButton:       cfg.ColorInterior,
 			colorButtonHover:  cfg.ColorHover,
 			colorButtonActive: cfg.ColorActive,
@@ -440,8 +540,8 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		tableStyle: TableStyle{
 			ColorBorder:        cfg.ColorBorder,
 			ColorBorderFocus:   borderFocus,
-			ColorSelect:        cfg.ColorSelect,
-			ColorTextOnSelect:  colorTextOnSelect,
+			ColorSelect:        colorSelect,
+			ColorSelectSubtle:  accentSubtle,
 			ColorHover:         cfg.ColorHover,
 			cellPadding:        PaddingTwoFive,
 			TextStyle:          ts,
@@ -451,17 +551,17 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			columnWidthMin:     20,
 		},
 		comboboxStyle: ComboboxStyle{
-			Shadow:            cfg.ShadowPopover,
-			Color:             cfg.ColorInterior,
-			ColorHover:        cfg.ColorHover,
-			ColorFocus:        cfg.ColorInterior,
-			ColorBorder:       cfg.ColorBorder,
-			ColorBorderFocus:  borderFocus,
-			ColorHighlight:    cfg.ColorSelect,
-			ColorTextOnSelect: colorTextOnSelect,
-			Padding:           fieldPad,
-			SizeBorder:        cfg.SizeBorder,
-			Radius:            cfg.Radius,
+			Shadow:               cfg.ShadowPopover,
+			Color:                cfg.ColorInterior,
+			ColorHover:           cfg.ColorHover,
+			ColorFocus:           cfg.ColorInterior,
+			ColorBorder:          cfg.ColorBorder,
+			ColorBorderFocus:     borderFocus,
+			ColorHighlight:       colorSelect,
+			ColorHighlightSubtle: accentSubtle,
+			Padding:              fieldPad,
+			SizeBorder:           cfg.SizeBorder,
+			Radius:               cfg.Radius,
 			// Same floor and same uncapped width as selectStyle
 			// above; maxDropdownHeight bounds the popup list, not
 			// the control, and is unrelated.
@@ -472,18 +572,18 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			PlaceholderStyle:  textPlaceholder,
 		},
 		commandPaletteStyle: CommandPaletteStyle{
-			Shadow:            cfg.ShadowDialog,
-			Color:             cfg.ColorPanel,
-			ColorBorder:       cfg.ColorBorder,
-			ColorHighlight:    cfg.ColorSelect,
-			ColorTextOnSelect: colorTextOnSelect,
-			SizeBorder:        cfg.SizeBorder,
-			Radius:            cfg.Radius,
-			Width:             500,
-			MaxHeight:         400,
-			TextStyle:         ts,
-			detailStyle:       textSecondary,
-			backdropColor:     RGBA(0, 0, 0, 120),
+			Shadow:               cfg.ShadowDialog,
+			Color:                cfg.ColorPanel,
+			ColorBorder:          cfg.ColorBorder,
+			ColorHighlight:       colorSelect,
+			ColorHighlightSubtle: accentSubtle,
+			SizeBorder:           cfg.SizeBorder,
+			Radius:               cfg.Radius,
+			Width:                500,
+			MaxHeight:            400,
+			TextStyle:            ts,
+			detailStyle:          textSecondary,
+			backdropColor:        RGBA(0, 0, 0, 120),
 		},
 		MenubarStyle: MenubarStyle{
 			Shadow:            cfg.ShadowPopover,
@@ -494,7 +594,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			ColorFocus:        cfg.ColorFocus,
 			ColorBorder:       cfg.ColorBorder,
 			ColorBorderFocus:  borderFocus,
-			ColorSelect:       cfg.ColorSelect,
+			ColorSelect:       colorSelect,
 			ColorTextOnSelect: colorTextOnSelect,
 			Padding:           cfg.PaddingSmall.withSet(),
 			paddingMenuItem:   PaddingTwoFive,
@@ -522,7 +622,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			colorClick:        cfg.ColorActive,
 			ColorBorder:       cfg.ColorBorder,
 			ColorBorderFocus:  borderFocus,
-			ColorSelect:       cfg.ColorSelect,
+			ColorSelect:       colorSelect,
 			ColorTextOnSelect: colorTextOnSelect,
 			Padding:           cfg.PaddingSmall.withSet(),
 			SizeBorder:        cfg.SizeBorder,
@@ -542,23 +642,24 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			TextStyle:        ts,
 		},
 		dataGridStyle: DataGridStyle{
-			ColorBackground:   cfg.ColorInterior,
-			ColorHeader:       cfg.ColorPanel,
-			ColorHeaderHover:  cfg.ColorHover,
-			ColorFilter:       cfg.ColorInterior,
-			ColorQuickFilter:  cfg.ColorPanel,
-			ColorRowHover:     cfg.ColorHover,
-			ColorRowAlt:       ColorTransparent,
-			ColorRowSelected:  cfg.ColorSelect,
-			ColorBorder:       cfg.ColorBorder,
-			ColorResizeHandle: cfg.ColorBorder,
-			ColorResizeActive: cfg.ColorSelect,
-			PaddingCell:       PaddingTwoFive,
-			PaddingHeader:     PaddingTwoFive,
-			PaddingFilter:     PaddingNone,
-			SizeBorder:        cfg.SizeBorder,
-			Radius:            cfg.RadiusSmall,
-			TextStyle:         ts,
+			ColorBackground:        cfg.ColorInterior,
+			ColorHeader:            cfg.ColorPanel,
+			ColorHeaderHover:       cfg.ColorHover,
+			ColorFilter:            cfg.ColorInterior,
+			ColorQuickFilter:       cfg.ColorPanel,
+			ColorRowHover:          cfg.ColorHover,
+			ColorRowAlt:            ColorTransparent,
+			ColorRowSelected:       colorSelect,
+			ColorRowSelectedSubtle: accentSubtle,
+			ColorBorder:            cfg.ColorBorder,
+			ColorResizeHandle:      cfg.ColorBorder,
+			ColorResizeActive:      colorSelect,
+			PaddingCell:            PaddingTwoFive,
+			PaddingHeader:          PaddingTwoFive,
+			PaddingFilter:          PaddingNone,
+			SizeBorder:             cfg.SizeBorder,
+			Radius:                 cfg.RadiusSmall,
+			TextStyle:              ts,
 			TextStyleHeader: TextStyle{
 				Color:    ts.Color,
 				Size:     ts.Size,
@@ -627,7 +728,12 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	theme.dialogStyle.titleTextStyle = theme.B2
 	theme.toastStyle.TitleStyle = theme.B3
 	// The selected tab carries the weight, the strip stays quiet.
-	theme.tabControlStyle.textStyleSelected = theme.B3
+	// It also fills with the accent, so its label draws in the
+	// paired foreground (issue #373, visual-refresh §4.3) — the
+	// literal above is overwritten here because the weight rungs
+	// only exist after the styles are built.
+	theme.tabControlStyle.textStyleSelected =
+		textOnFill(theme.B3, true, theme.ColorTextOnSelect)
 
 	// Italic shortcuts.
 	italic := ts

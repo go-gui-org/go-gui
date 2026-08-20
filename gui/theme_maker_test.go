@@ -270,9 +270,13 @@ func TestThemeMakerHeadingWeights(t *testing.T) {
 		t.Errorf("toast title = %+v, want B3 %+v",
 			theme.toastStyle.TitleStyle, theme.B3)
 	}
-	if theme.tabControlStyle.textStyleSelected != theme.B3 {
-		t.Errorf("selected tab = %+v, want B3 %+v",
-			theme.tabControlStyle.textStyleSelected, theme.B3)
+	if theme.tabControlStyle.textStyleSelected.Typeface != theme.B3.Typeface {
+		t.Errorf("selected tab weight = %+v, want B3's %+v",
+			theme.tabControlStyle.textStyleSelected.Typeface, theme.B3.Typeface)
+	}
+	if theme.tabControlStyle.textStyleSelected.Color != White {
+		t.Errorf("selected tab color = %+v, want the paired foreground",
+			theme.tabControlStyle.textStyleSelected.Color)
 	}
 	// The strip's resting label stays body weight.
 	if theme.tabControlStyle.TextStyle.Typeface != 0 {
@@ -316,26 +320,228 @@ func TestThemeMakerLadderFallback(t *testing.T) {
 	}
 }
 
-// ColorTextOnSelect resolves to the body text color when unset, so
-// a theme that never states it keeps its current appearance — and
-// every preset stays byte-identical (issue #373). An explicit value
-// wins over the body fallback.
+// The accent ramp (visual-refresh §4.3): hover = L+0.12, pressed =
+// L-0.12 in sRGB HSL, subtle = accent at the polarity-fixed alpha,
+// text = white under the 0.45 luminance threshold. These are the
+// values the rules actually produce — the spec table was corrected
+// to match when the two disagreed (see the spec's decisions).
+func TestThemeMakerAccentRamp(t *testing.T) {
+	dark := ThemeMaker(baseDarkCfg())
+	if dark.ColorAccent != colorAccentDark {
+		t.Errorf("accent = %v, want %v", dark.ColorAccent, colorAccentDark)
+	}
+	if dark.ColorAccentHover != RGB(133, 170, 245) {
+		t.Errorf("dark hover = %v, want #85AAF5", dark.ColorAccentHover)
+	}
+	if dark.ColorAccentPressed != RGB(21, 90, 235) {
+		t.Errorf("dark pressed = %v, want #155AEB", dark.ColorAccentPressed)
+	}
+	if dark.ColorAccentSubtle != RGBA(77, 130, 240, 40) {
+		t.Errorf("dark subtle = %v, want accent at alpha 40", dark.ColorAccentSubtle)
+	}
+	if dark.ColorTextOnAccent != White {
+		t.Errorf("dark text on accent = %v, want white", dark.ColorTextOnAccent)
+	}
+
+	light := ThemeMaker(themeLightCfg)
+	if light.ColorAccent != colorAccentLight {
+		t.Errorf("accent = %v, want %v", light.ColorAccent, colorAccentLight)
+	}
+	if light.ColorAccentHover != RGB(100, 148, 232) {
+		t.Errorf("light hover = %v, want #6494E8", light.ColorAccentHover)
+	}
+	if light.ColorAccentPressed != RGB(27, 83, 183) {
+		t.Errorf("light pressed = %v, want #1B53B7", light.ColorAccentPressed)
+	}
+	if light.ColorAccentSubtle != RGBA(47, 111, 224, 30) {
+		t.Errorf("light subtle = %v, want accent at alpha 30", light.ColorAccentSubtle)
+	}
+	if light.ColorTextOnAccent != White {
+		t.Errorf("light text on accent = %v, want white", light.ColorTextOnAccent)
+	}
+}
+
+// The accent fallback chain: ColorAccent, else ColorSelect (a theme
+// with a native or taste select keeps it as its accent), else the
+// legacy select value. ColorSelect resolves to the accent when unset.
+func TestThemeMakerAccentFallback(t *testing.T) {
+	// A stated select becomes the accent.
+	selectTheme := ThemeMaker(ThemeCfg{ColorSelect: Blue})
+	if selectTheme.ColorAccent != Blue {
+		t.Errorf("accent = %v, want select %v", selectTheme.ColorAccent, Blue)
+	}
+	if selectTheme.ColorSelect != Blue {
+		t.Errorf("select = %v, want %v", selectTheme.ColorSelect, Blue)
+	}
+	if selectTheme.ColorAccentSubtle != subtleFor(Blue, Color{}) {
+		t.Errorf("subtle = %v, want derived from select", selectTheme.ColorAccentSubtle)
+	}
+
+	// Neither stated: the legacy select keeps old themes' appearance.
+	empty := ThemeMaker(ThemeCfg{})
+	if empty.ColorAccent != colorSelectDark {
+		t.Errorf("accent = %v, want legacy select %v",
+			empty.ColorAccent, colorSelectDark)
+	}
+	if empty.ColorSelect != colorSelectDark {
+		t.Errorf("select = %v, want legacy select %v",
+			empty.ColorSelect, colorSelectDark)
+	}
+
+	// A stated accent resolves ColorSelect to it.
+	accentTheme := ThemeMaker(ThemeCfg{ColorAccent: Red})
+	if accentTheme.ColorSelect != Red {
+		t.Errorf("select = %v, want accent %v", accentTheme.ColorSelect, Red)
+	}
+	// An explicit slot always wins over the derivation.
+	explicit := ThemeMaker(ThemeCfg{
+		ColorAccent:      Blue,
+		ColorAccentHover: Red,
+	})
+	if explicit.ColorAccentHover != Red {
+		t.Errorf("hover = %v, want the stated %v", explicit.ColorAccentHover, Red)
+	}
+}
+
+// The derivation's extremes: a black accent clamps hover at 0.12 L
+// and keeps pressed at black, and a light accent flips the text on it
+// to black under the 0.45 luminance threshold.
+func TestThemeMakerAccentExtremes(t *testing.T) {
+	black := ThemeMaker(ThemeCfg{ColorAccent: RGB(0, 0, 0)})
+	if black.ColorAccentHover != RGB(31, 31, 31) {
+		t.Errorf("black hover = %v, want L=0.12", black.ColorAccentHover)
+	}
+	if black.ColorAccentPressed != RGB(0, 0, 0) {
+		t.Errorf("black pressed = %v, want clamped at 0",
+			black.ColorAccentPressed)
+	}
+	if black.ColorTextOnAccent != White {
+		t.Errorf("black text on accent = %v, want white",
+			black.ColorTextOnAccent)
+	}
+
+	yellow := ThemeMaker(ThemeCfg{ColorAccent: RGB(255, 255, 0)})
+	if yellow.ColorTextOnAccent != RGB(0, 0, 0) {
+		t.Errorf("yellow text on accent = %v, want black",
+			yellow.ColorTextOnAccent)
+	}
+	if yellow.ColorAccentPressed != RGB(194, 194, 0) {
+		t.Errorf("yellow pressed = %v, want L-0.12", yellow.ColorAccentPressed)
+	}
+}
+
+// The widget-level override: a caller-set ColorSelect is an explicit
+// choice and wins over the theme's wash, so the subtle slot follows
+// it (visual-refresh §4.3). One test covers the pattern the five
+// list-like widgets share.
+func TestWidgetColorOverrideWinsOverWash(t *testing.T) {
+	var lb ListBoxCfg
+	lb.ColorSelect = Blue
+	applyListBoxDefaults(&lb)
+	if lb.ColorSelectSubtle != Blue {
+		t.Errorf("listbox subtle = %v, want caller select %v",
+			lb.ColorSelectSubtle, Blue)
+	}
+
+	var cb ComboboxCfg
+	cb.ColorHighlight = Red
+	applyComboboxDefaults(&cb)
+	if cb.ColorHighlightSubtle != Red {
+		t.Errorf("combobox subtle = %v, want caller highlight %v",
+			cb.ColorHighlightSubtle, Red)
+	}
+}
+
+// The unset path: with no caller color the subtle slot takes the
+// theme's wash, never the full accent slab the plain slot resolves
+// to. This pins the resolution order inside apply*Defaults — the wash
+// once became dead code when the plain color was resolved from the
+// theme first, making every row paint the full accent again.
+func TestWidgetSubtleWashWhenUnset(t *testing.T) {
+	var lb ListBoxCfg
+	applyListBoxDefaults(&lb)
+	if !lb.ColorSelectSubtle.IsSet() || lb.ColorSelectSubtle == lb.ColorSelect {
+		t.Errorf("listbox unset subtle = %v, want the theme wash, not the full select %v",
+			lb.ColorSelectSubtle, lb.ColorSelect)
+	}
+
+	var cb ComboboxCfg
+	applyComboboxDefaults(&cb)
+	if !cb.ColorHighlightSubtle.IsSet() ||
+		cb.ColorHighlightSubtle == cb.ColorHighlight {
+		t.Errorf("combobox unset subtle = %v, want the theme wash, not the full highlight %v",
+			cb.ColorHighlightSubtle, cb.ColorHighlight)
+	}
+}
+
+// Semantic colors flow from the Cfg into the styles that paint them,
+// and unset falls back to the values those styles historically used
+// (visual-refresh §4.4). The subtle companions derive on the accent
+// rule.
+func TestThemeMakerSemanticColors(t *testing.T) {
+	dark := ThemeMaker(baseDarkCfg())
+	if dark.toastStyle.ColorSuccess != colorSuccessDark ||
+		dark.badgeStyle.ColorSuccess != colorSuccessDark {
+		t.Error("dark success should reach toast and badge styles")
+	}
+	if dark.toastStyle.ColorWarning != colorWarningDark ||
+		dark.badgeStyle.ColorWarning != colorWarningDark {
+		t.Error("dark warning should reach toast and badge styles")
+	}
+	if dark.toastStyle.ColorError != colorErrorDark ||
+		dark.badgeStyle.ColorError != colorErrorDark {
+		t.Error("dark error should reach toast and badge styles")
+	}
+	if dark.ColorSuccessSubtle != subtleFor(colorSuccessDark, colorBackgroundDark) {
+		t.Errorf("dark success subtle = %v, want derived", dark.ColorSuccessSubtle)
+	}
+
+	// Unset: the legacy literal values, so old themes are unchanged.
+	legacy := ThemeMaker(ThemeCfg{})
+	if legacy.toastStyle.ColorSuccess != RGBA(46, 160, 67, 255) {
+		t.Errorf("legacy success = %v, want the historic literal",
+			legacy.toastStyle.ColorSuccess)
+	}
+	if legacy.toastStyle.ColorWarning != RGBA(210, 153, 34, 255) {
+		t.Errorf("legacy warning = %v, want the historic literal",
+			legacy.toastStyle.ColorWarning)
+	}
+	if legacy.toastStyle.ColorError != RGBA(218, 54, 51, 255) {
+		t.Errorf("legacy error = %v, want the historic literal",
+			legacy.toastStyle.ColorError)
+	}
+
+	// A stated semantic color wins everywhere it is painted.
+	cfg := baseDarkCfg()
+	cfg.ColorSuccess = Green
+	cfg.ColorError = Red
+	theme := ThemeMaker(cfg)
+	if theme.toastStyle.ColorSuccess != Green || theme.badgeStyle.ColorSuccess != Green {
+		t.Error("stated success should reach both styles")
+	}
+	if theme.InputStyle.colorSpellError != Red {
+		t.Error("stated error should reach the spell-error path")
+	}
+}
 func TestThemeMakerColorTextOnSelect(t *testing.T) {
-	body := RGBA(12, 34, 56, 255)
 	tests := []struct {
 		name string
 		set  bool
 		want Color
 	}{
-		{"unset falls back to body", false, body},
-		{"explicit wins", true, White},
+		// The default is the accent-paired foreground — the legacy
+		// select (colorSelectDark) is darker than the 0.45 luminance
+		// threshold, so the paired color is white (visual-refresh
+		// §4.3); the old body-color default drew near-black text on
+		// a light theme's accent.
+		{"unset falls back to the accent-paired foreground", false, White},
+		{"explicit wins", true, Green},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := baseCfg()
-			cfg.TextStyleDef.Color = body
 			if tt.set {
-				cfg.ColorTextOnSelect = White
+				cfg.ColorTextOnSelect = Green
 			}
 
 			theme := ThemeMaker(cfg)
@@ -402,10 +608,11 @@ func TestThemeMakerZeroCfg(t *testing.T) {
 		t.Errorf("ButtonStyle radius/border = %v/%v, want 0/0",
 			theme.ButtonStyle.Radius, theme.ButtonStyle.SizeBorder)
 	}
-	// borderFocus fallback resolves to the (also zero) ColorSelect.
-	if !theme.ButtonStyle.ColorBorderFocus.eq(Color{}) {
-		t.Errorf("ButtonStyle.ColorBorderFocus = %v, want zero Color",
-			theme.ButtonStyle.ColorBorderFocus)
+	// The accent fallback chain bottoms out at the legacy select, so
+	// even a zero Cfg gets a working accent ramp and borderFocus.
+	if !theme.ButtonStyle.ColorBorderFocus.eq(colorSelectDark) {
+		t.Errorf("ButtonStyle.ColorBorderFocus = %v, want legacy select %v",
+			theme.ButtonStyle.ColorBorderFocus, colorSelectDark)
 	}
 	// Placeholder alpha is unconditional, even over a zero text color.
 	if theme.InputStyle.PlaceholderStyle.Color.A != 100 {

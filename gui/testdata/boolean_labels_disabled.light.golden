@@ -1,8 +1,8 @@
-Rect xy=28.00,28.00 wh=36.00,22.00 color=#cdcdd77f radius=11.00 fill
-Circle xy=39.00,39.00 wh=0.00,0.00 color=#a5a5d77f radius=8.00 fill
-Text xy=78.00,29.20 wh=0.00,0.00 color=#20202095 text="Enabled" size=14.00
-Rect xy=28.00,64.80 wh=18.00,18.00 color=#cdcdd77f radius=5.50 fill
+Rect xy=28.00,28.00 wh=36.00,22.00 color=#ffffff7f radius=11.00 fill
+Circle xy=39.00,39.00 wh=0.00,0.00 color=#e0e5ec7f radius=8.00 fill
+Text xy=78.00,29.20 wh=0.00,0.00 color=#1a1d2195 text="Enabled" size=14.00
+Rect xy=28.00,64.80 wh=18.00,18.00 color=#ffffff7f radius=5.50 fill
 Text xy=32.80,65.80 wh=0.00,0.00 color=#00000095 text="✓" size=14.00
-Text xy=60.00,64.00 wh=0.00,0.00 color=#20202095 text="Enabled" size=14.00
-Circle xy=40.00,111.40 wh=0.00,0.00 color=#a5a5d77f radius=8.00 fill
-Text xy=62.00,101.60 wh=0.00,0.00 color=#20202095 text="Enabled" size=14.00
+Text xy=60.00,64.00 wh=0.00,0.00 color=#1a1d2195 text="Enabled" size=14.00
+Circle xy=40.00,111.40 wh=0.00,0.00 color=#e0e5ec7f radius=8.00 fill
+Text xy=62.00,101.60 wh=0.00,0.00 color=#1a1d2195 text="Enabled" size=14.00

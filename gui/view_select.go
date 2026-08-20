@@ -52,10 +52,12 @@ type SelectCfg struct {
 	// Color* fields win over their Colors slots the same way.
 	Colors      ColorSet
 	ColorSelect Color
-	// ColorTextOnSelect is the text color drawn over the
-	// highlighted option row's fill. Unset takes the theme's.
+	// ColorSelectSubtle is the tint behind the highlighted option
+	// row — the wash, never the full accent slab; focus is the ring,
+	// not a second fill (visual-refresh §4.3). Unset takes the
+	// theme's.
 	// exportaudit:keep — caller-facing config (issue #372)
-	ColorTextOnSelect Color
+	ColorSelectSubtle Color
 	Sizing            Sizing
 	SelectMultiple    bool
 	// NoWrap clips long option text to one line instead of wrapping.
@@ -243,19 +245,18 @@ func selectOptionView(
 	selectMultiple := cfg.SelectMultiple
 	onSelect := cfg.OnSelect
 	selectArray := cfg.Selected
-	colorSelect := cfg.ColorSelect
 	optColor := ColorTransparent
-	// The highlighted row fills with the accent color, so its label
-	// and check mark draw in the paired foreground (issue #373).
-	textStyle := textOnFill(cfg.TextStyle,
-		highlighted, cfg.ColorTextOnSelect)
+	// The highlighted row paints the subtle wash, not the full
+	// accent slab (visual-refresh §4.3), so its label and check mark
+	// stay in the body text color — a tint needs no paired
+	// foreground.
 	if highlighted {
-		optColor = cfg.ColorSelect
+		optColor = cfg.ColorSelectSubtle
 	}
 
 	checkColor := ColorTransparent
 	if slices.Contains(cfg.Selected, option) {
-		checkColor = textStyle.Color
+		checkColor = cfg.TextStyle.Color
 	}
 
 	return Row(ContainerCfg{
@@ -275,7 +276,7 @@ func selectOptionView(
 					}),
 					Text(TextCfg{
 						Text:      option,
-						TextStyle: textStyle,
+						TextStyle: cfg.TextStyle,
 					}),
 				},
 			}),
@@ -299,7 +300,9 @@ func selectOptionView(
 		},
 		OnHover: func(ctx EventCtx) {
 			ctx.Window.setMouseCursor(CursorPointingHand)
-			ctx.Layout.Shape.Color = colorSelect
+			// Hover paints the same subtle wash as the keyboard
+			// highlight (visual-refresh §4.3).
+			ctx.Layout.Shape.Color = cfg.ColorSelectSubtle
 			sh := StateMap[string, int](
 				ctx.Window, nsSelectHL, capModerate)
 			// Default 0: absent entry gets zero index, checked immediately.
@@ -484,11 +487,12 @@ func applySelectDefaults(cfg *SelectCfg) {
 	))
 	cfg.Colors.applyTo(&cfg.Color, nil, nil,
 		&cfg.ColorFocus, &cfg.ColorBorder, &cfg.ColorBorderFocus)
+	// A caller-set ColorSelect is an explicit override and wins over
+	// the theme's wash (subtleSlot). Resolved before the theme fill
+	// below, so IsSet still tells caller-set from theme-set.
+	subtleSlot(&cfg.ColorSelectSubtle, cfg.ColorSelect, d.ColorSelectSubtle)
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
-	}
-	if !cfg.ColorTextOnSelect.IsSet() {
-		cfg.ColorTextOnSelect = d.ColorTextOnSelect
 	}
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = d.Padding

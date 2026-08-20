@@ -21,16 +21,15 @@ func TestSelectGeneratesClosedLayout(t *testing.T) {
 	}
 }
 
-// The highlighted option row fills with the accent color, so its
-// label and check mark draw in the paired foreground; a plain row
-// keeps the body color (issue #373).
+// The highlighted option row paints the subtle wash, so its label
+// and check mark keep the body color; a plain row keeps it too
+// (visual-refresh §4.3).
 func TestSelectOptionHighlightedTextColor(t *testing.T) {
 	w := &Window{}
 	cfg := &SelectCfg{
-		TextStyle:         DefaultTextStyle,
-		ColorSelect:       Blue,
-		ColorTextOnSelect: White,
-		Selected:          []string{"B"},
+		TextStyle:   DefaultTextStyle,
+		ColorSelect: Blue,
+		Selected:    []string{"B"},
 	}
 
 	highlighted := generateViewLayout(
@@ -44,13 +43,16 @@ func TestSelectOptionHighlightedTextColor(t *testing.T) {
 	if check == nil || label == nil {
 		t.Fatal("option text missing")
 	}
-	if !check.TextStyle.Color.eq(White) {
-		t.Errorf("highlighted check color = %v, want %v",
-			check.TextStyle.Color, White)
+	// The highlighted row paints the subtle wash, so its check and
+	// label keep the body color — a tint needs no paired foreground
+	// (visual-refresh §4.3).
+	if !check.TextStyle.Color.eq(DefaultTextStyle.Color) {
+		t.Errorf("highlighted check color = %v, want body %v",
+			check.TextStyle.Color, DefaultTextStyle.Color)
 	}
-	if !label.TextStyle.Color.eq(White) {
-		t.Errorf("highlighted label color = %v, want %v",
-			label.TextStyle.Color, White)
+	if !label.TextStyle.Color.eq(DefaultTextStyle.Color) {
+		t.Errorf("highlighted label color = %v, want body %v",
+			label.TextStyle.Color, DefaultTextStyle.Color)
 	}
 
 	plain := generateViewLayout(

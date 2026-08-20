@@ -118,9 +118,10 @@ type SelectStyle struct {
 	ColorBorder      Color
 	ColorBorderFocus Color
 	ColorSelect      Color
-	// ColorTextOnSelect is the text color drawn over ColorSelect
-	// fills. Resolved by ThemeMaker; unset themes keep body text.
-	ColorTextOnSelect Color
+	// ColorSelectSubtle is the tint behind the highlighted dropdown
+	// row — the wash, never the full accent slab; focus is the ring,
+	// not a second fill (visual-refresh §4.3).
+	ColorSelectSubtle Color
 }
 
 // Widget style mirrors. See the note on the mirror block in styles.go:

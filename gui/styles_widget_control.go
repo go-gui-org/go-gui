@@ -133,11 +133,12 @@ type TableStyle struct {
 	ColorBorder        Color
 	ColorBorderFocus   Color
 	ColorSelect        Color
-	ColorHover         Color
-	alignHead          HorizontalAlign
-	// ColorTextOnSelect is the text color drawn over ColorSelect
-	// fills. Resolved by ThemeMaker; unset themes keep body text.
-	ColorTextOnSelect Color
+	// ColorSelectSubtle is the tint behind a selected row: the wash,
+	// never the full accent slab — focus is the ring, not a second
+	// fill (visual-refresh §4.3).
+	ColorSelectSubtle Color
+	ColorHover        Color
+	alignHead         HorizontalAlign
 }
 
 // ComboboxStyle defines combobox visual properties.
@@ -159,9 +160,10 @@ type ComboboxStyle struct {
 	ColorBorder       Color
 	ColorBorderFocus  Color
 	ColorHighlight    Color
-	// ColorTextOnSelect is the text color drawn over ColorHighlight
-	// fills. Resolved by ThemeMaker; unset themes keep body text.
-	ColorTextOnSelect Color
+	// ColorHighlightSubtle is the tint behind the highlighted
+	// dropdown row: the wash, never the full accent slab — focus is
+	// the ring, not a second fill (visual-refresh §4.3).
+	ColorHighlightSubtle Color
 }
 
 // CommandPaletteStyle defines command palette visual properties.
@@ -179,10 +181,10 @@ type CommandPaletteStyle struct {
 	Color          Color
 	ColorBorder    Color
 	ColorHighlight Color
-	backdropColor  Color
-	// ColorTextOnSelect is the text color drawn over ColorHighlight
-	// fills. Resolved by ThemeMaker; unset themes keep body text.
-	ColorTextOnSelect Color
+	// ColorHighlightSubtle is the tint behind the highlighted row:
+	// the wash, never the full accent slab (visual-refresh §4.3).
+	ColorHighlightSubtle Color
+	backdropColor        Color
 }
 
 // MenubarStyle defines menubar visual properties.
@@ -214,8 +216,8 @@ type MenubarStyle struct {
 	ColorBorder      Color
 	ColorBorderFocus Color
 	ColorSelect      Color
-	// ColorTextOnSelect is the text color drawn over ColorSelect
-	// fills. Resolved by ThemeMaker; unset themes keep body text.
+	// ColorTextOnSelect is the text color drawn over the selected
+	// menu item. Resolved by ThemeMaker; unset themes keep body text.
 	ColorTextOnSelect Color
 }
 

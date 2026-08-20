@@ -182,7 +182,10 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 
 	rowColor := gg.ColorTransparent
 	if isSelected {
-		rowColor = cfg.ColorRowSelected
+		// Selection paints the subtle wash, not the full accent
+		// slab; focus is the ring, not a second fill
+		// (visual-refresh §4.3).
+		rowColor = cfg.ColorRowSelectedSubtle
 	} else if rowIdx%2 == 1 {
 		rowColor = cfg.ColorRowAlt
 	}

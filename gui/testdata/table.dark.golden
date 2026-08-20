@@ -1,4 +1,4 @@
-Text xy=30.20,19.00 wh=0.00,0.00 color=#e1e1e1ff text="Name" size=14.00
-Text xy=90.20,19.00 wh=0.00,0.00 color=#e1e1e1ff text="Size" size=14.00
-Text xy=22.00,42.60 wh=0.00,0.00 color=#e1e1e1ff text="alpha" size=14.00
-Text xy=82.00,42.60 wh=0.00,0.00 color=#e1e1e1ff text="12" size=14.00
+Text xy=29.20,18.00 wh=0.00,0.00 color=#e6e8ebff text="Name" size=14.00
+Text xy=89.20,18.00 wh=0.00,0.00 color=#e6e8ebff text="Size" size=14.00
+Text xy=21.00,41.60 wh=0.00,0.00 color=#e6e8ebff text="alpha" size=14.00
+Text xy=81.00,41.60 wh=0.00,0.00 color=#e6e8ebff text="12" size=14.00
