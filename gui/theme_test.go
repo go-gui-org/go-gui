@@ -39,9 +39,9 @@ func TestThemeMaker(t *testing.T) {
 		SizeTextXLarge:   sizeTextXLarge,
 		SizeScrollbar:    7,
 		SizeScrollbarMin: 20,
-		SizeRadio:        16,
-		SizeSwitchWidth:  36,
-		SizeSwitchHeight: 22,
+		SizeRadio:        15,
+		SizeSwitchWidth:  34,
+		SizeSwitchHeight: 20,
 		ScrollMultiplier: 20,
 		ScrollDeltaLine:  1,
 		ScrollDeltaPage:  10,
@@ -145,9 +145,9 @@ func TestAdjustFontSize(t *testing.T) {
 		PaddingMedium:    paddingMedium,
 		SizeScrollbar:    7,
 		SizeScrollbarMin: 20,
-		SizeRadio:        16,
-		SizeSwitchWidth:  36,
-		SizeSwitchHeight: 22,
+		SizeRadio:        15,
+		SizeSwitchWidth:  34,
+		SizeSwitchHeight: 20,
 	}
 	theme := ThemeMaker(cfg)
 	bigger, err := theme.AdjustFontSize(2, 8, 32)

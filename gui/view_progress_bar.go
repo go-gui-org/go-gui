@@ -14,8 +14,8 @@ type ProgressBarCfg struct {
 
 	// Accessibility
 	A11YCfg
-	// TextPadding insets the % label inside the bar. Zero takes the
-	// theme default.
+	// TextPadding pads the % readout, which trails the bar unboxed
+	// (visual-refresh §8). Zero takes the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	TextPadding Padding
 	Radius      Opt[float32]
@@ -67,14 +67,59 @@ func ProgressBar(cfg ProgressBarCfg) View {
 	}
 	radius := cfg.Radius.Get(guiTheme.progressBarStyle.Radius)
 
-	content := make([]View, 0, 2)
-	content = append(content, Row(ContainerCfg{
+	size := guiTheme.progressBarStyle.Size
+	w := cfg.Width
+	if w == 0 {
+		w = size
+	}
+	h := cfg.Height
+	if h == 0 {
+		h = size
+	}
+
+	// The track: a row carrying the caller's width, track color and
+	// radius, with the fill as its only child. The fill Row is the
+	// radius-clipped layer (its own radius, so the clip survives the
+	// track's), and progressBarAmendLayout sizes it from THIS shape's
+	// laid-out box. FillFit makes the track absorb the leftover when
+	// the outer row is FillFit; the stated Width is its floor when the
+	// outer fits its content.
+	//
+	// The vertical column's cross-axis fill pass stretches FillFit
+	// children to the column's width, which grows to fit the readout:
+	// cap the track at its stated width unless the caller asked the
+	// widget itself to fill (then the bar fills with it, as before).
+	maxW := cfg.MaxWidth
+	if cfg.Vertical && cfg.Sizing.Width != sizingFill && maxW == 0 {
+		maxW = w
+	}
+	track := Row(ContainerCfg{
+		Sizing:     FillFit,
 		Padding:    NoPadding,
 		SizeBorder: NoBorder,
 		Radius:     SomeF(radius),
-		Color:      cfg.ColorBar,
-	}))
+		Color:      cfg.Color,
+		Width:      w,
+		Height:     h,
+		MinWidth:   cfg.MinWidth,
+		MaxWidth:   maxW,
+		MinHeight:  cfg.MinHeight,
+		MaxHeight:  cfg.MaxHeight,
+		Content: []View{
+			Row(ContainerCfg{
+				Padding:    NoPadding,
+				SizeBorder: NoBorder,
+				Radius:     SomeF(radius),
+				Color:      cfg.ColorBar,
+			}),
+		},
+	})
 
+	// The readout trails the bar (visual-refresh §8): the label sits
+	// outside the fill, so its contrast never depends on where the
+	// fill happens to be. The outer row owns the identity, sizing and
+	// a11y; the track above keeps the caller's width semantics.
+	content := []View{track}
 	if cfg.TextShow && !cfg.Indefinite {
 		pct := math.Min(math.Max(float64(cfg.Percent), 0), 1)
 		pct = math.Round(pct * 100)
@@ -83,12 +128,6 @@ func ProgressBar(cfg ProgressBarCfg) View {
 			SizeBorder: NoBorder,
 			Color:      cfg.TextBackground,
 			Padding:    cfg.TextPadding,
-			// The readout is digits and a percent sign, so nothing
-			// paints into the descent the line box reserves and the
-			// label reads high against the bar it sits on (issue #346).
-			// progressBarCenterLabel moves this container and its child
-			// by the same delta, so the correction survives it.
-			AmendLayout: opticalCenterText,
 			Content: []View{
 				Text(TextCfg{
 					Text:      readout,
@@ -99,24 +138,12 @@ func ProgressBar(cfg ProgressBarCfg) View {
 	}
 
 	barPercent := cfg.Percent
-	textShow := cfg.TextShow
 	vertical := cfg.Vertical
 	indefinite := cfg.Indefinite
-
-	size := guiTheme.progressBarStyle.Size
 
 	a11yState := AccessStateLive
 	if cfg.Indefinite {
 		a11yState = AccessStateBusy | AccessStateLive
-	}
-
-	w := cfg.Width
-	if w == 0 {
-		w = size
-	}
-	h := cfg.Height
-	if h == 0 {
-		h = size
 	}
 
 	ccfg := ContainerCfg{
@@ -130,16 +157,9 @@ func ProgressBar(cfg ProgressBarCfg) View {
 			ValueMin:    0,
 			ValueMax:    1,
 		},
-		Width:      w,
-		Height:     h,
-		MinWidth:   cfg.MinWidth,
-		MaxWidth:   cfg.MaxWidth,
-		MinHeight:  cfg.MinHeight,
-		MaxHeight:  cfg.MaxHeight,
 		Disabled:   cfg.Disabled,
 		Invisible:  cfg.Invisible,
-		Color:      cfg.Color,
-		Radius:     SomeF(radius),
+		Spacing:    SomeF(guiTheme.SpacingSmall),
 		SizeBorder: NoBorder,
 		Sizing:     cfg.Sizing,
 		Padding:    NoPadding,
@@ -150,8 +170,8 @@ func ProgressBar(cfg ProgressBarCfg) View {
 			// its progress slot belong to this bar, not to every bar
 			// that happens to share the leaf.
 			progressBarAmendLayout(ctx.Layout, ctx.Window,
-				barPercent, textShow, vertical,
-				indefinite, ctx.Layout.Shape.idKey())
+				barPercent, vertical, indefinite,
+				ctx.Layout.Shape.idKey())
 		},
 		Content: content,
 	}
@@ -164,7 +184,7 @@ func ProgressBar(cfg ProgressBarCfg) View {
 
 func progressBarAmendLayout(
 	layout *Layout, w *Window,
-	barPercent float32, textShow, vertical, indefinite bool,
+	barPercent float32, vertical, indefinite bool,
 	id string,
 ) {
 	if len(layout.Children) == 0 {
@@ -205,45 +225,28 @@ func progressBarAmendLayout(
 		}
 	}
 
+	// The track is the first child; the readout (when present) trails
+	// it as a sibling. The fill lives inside the track and keeps a
+	// natural width of 0 (the amend sizes it), so the fill math is
+	// relative to the track's own laid-out box — never the outer
+	// widget's, which includes the readout.
 	bar := &layout.Children[0]
+	if len(bar.Children) == 0 {
+		return
+	}
+	fill := &bar.Children[0]
 
 	if vertical {
-		h := f32Min(layout.Shape.Height*percent,
-			layout.Shape.Height)
-		bar.Shape.X = layout.Shape.X
-		bar.Shape.Y = layout.Shape.Y +
-			layout.Shape.Height*offset
-		bar.Shape.Height = h
-		bar.Shape.Width = layout.Shape.Width
+		h := f32Min(bar.Shape.Height*percent,
+			bar.Shape.Height)
+		fill.Shape.Y = bar.Shape.Y + bar.Shape.Height*offset
+		fill.Shape.Height = h
+		fill.Shape.Width = bar.Shape.Width
 	} else {
-		wd := f32Min(layout.Shape.Width*percent,
-			layout.Shape.Width)
-		bar.Shape.X = layout.Shape.X +
-			layout.Shape.Width*offset
-		bar.Shape.Y = layout.Shape.Y
-		bar.Shape.Width = wd
-		bar.Shape.Height = layout.Shape.Height
-	}
-
-	if textShow && !indefinite && len(layout.Children) > 1 {
-		progressBarCenterLabel(layout.Shape, &layout.Children[1])
-	}
-}
-
-// progressBarCenterLabel centers a label layout within the
-// parent shape on both axes, shifting child shapes to match.
-func progressBarCenterLabel(parent *Shape, lbl *Layout) {
-	centerX := parent.X + parent.Width/2
-	oldX := lbl.Shape.X
-	lbl.Shape.X = centerX - lbl.Shape.Width/2
-	if len(lbl.Children) > 0 {
-		lbl.Children[0].Shape.X -= oldX - lbl.Shape.X
-	}
-
-	centerY := parent.Y + parent.Height/2
-	oldY := lbl.Shape.Y
-	lbl.Shape.Y = centerY - lbl.Shape.Height/2
-	if len(lbl.Children) > 0 {
-		lbl.Children[0].Shape.Y -= oldY - lbl.Shape.Y
+		wd := f32Min(bar.Shape.Width*percent,
+			bar.Shape.Width)
+		fill.Shape.X = bar.Shape.X + bar.Shape.Width*offset
+		fill.Shape.Width = wd
+		fill.Shape.Height = bar.Shape.Height
 	}
 }
