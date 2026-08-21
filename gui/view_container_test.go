@@ -115,3 +115,77 @@ func TestContainerOnMouseDownFiresOnPress(t *testing.T) {
 		t.Errorf("OnMouseUp fired %d times after one click, want 1", released)
 	}
 }
+
+// A titled container is a group box: an unset ColorBorder resolves the
+// group-box ink (visual-refresh §4.1), and an unset SizeBorder honors
+// the themed container style — a theme that states a border keeps it.
+func TestGroupBoxResolvesInkAndThemedBorder(t *testing.T) {
+	restoreTheme(t)
+	SetTheme(ThemeDark.withContainerStyle(containerStyle{SizeBorder: 7}))
+
+	w := &Window{}
+	layout := generateViewLayout(Column(ContainerCfg{Title: "Group"}), w)
+	if layout.Shape.ColorBorder != groupBoxInk() {
+		t.Errorf("border = %v, want group-box ink %v",
+			layout.Shape.ColorBorder, groupBoxInk())
+	}
+	if layout.Shape.SizeBorder != 7 {
+		t.Errorf("size_border = %v, want 7 (themed container style)",
+			layout.Shape.SizeBorder)
+	}
+}
+
+// The light presets default the container border to 0, which would
+// leave a group box edge-less; the titled container forces the
+// hairline in that case alone.
+func TestGroupBoxForcesHairlineWhenThemeHasNoBorder(t *testing.T) {
+	restoreTheme(t)
+	SetTheme(ThemeLight)
+
+	w := &Window{}
+	layout := generateViewLayout(Column(ContainerCfg{Title: "Group"}), w)
+	if layout.Shape.SizeBorder != sizeBorderDef {
+		t.Errorf("size_border = %v, want hairline %v",
+			layout.Shape.SizeBorder, sizeBorderDef)
+	}
+}
+
+// Caller-explicit border values win over both the ink and the forced
+// hairline, including NoBorder, which must be distinguishable from
+// "unset" (gui/opt.go).
+func TestGroupBoxExplicitBorderWins(t *testing.T) {
+	restoreTheme(t)
+	SetTheme(ThemeLight)
+
+	w := &Window{}
+	layout := generateViewLayout(Column(ContainerCfg{
+		Title:       "Group",
+		ColorBorder: Hex(0xff00ff),
+		SizeBorder:  NoBorder,
+	}), w)
+	if layout.Shape.ColorBorder != Hex(0xff00ff) {
+		t.Errorf("border = %v, want explicit %v",
+			layout.Shape.ColorBorder, Hex(0xff00ff))
+	}
+	if layout.Shape.SizeBorder != 0 {
+		t.Errorf("size_border = %v, want 0 (explicit NoBorder)",
+			layout.Shape.SizeBorder)
+	}
+}
+
+// groupBoxInk falls back to DefaultTextStyle when a custom theme
+// leaves its body text color unset, so such a theme still gets a
+// group-box edge instead of transparent ink.
+func TestGroupBoxInkFallsBackWhenTextColorUnset(t *testing.T) {
+	restoreTheme(t)
+	cfg := themeDarkCfg
+	cfg.Name = "no-text-color"
+	cfg.TextStyleDef.Color = Color{}
+	SetTheme(ThemeMaker(cfg))
+
+	got := groupBoxInk()
+	want := DefaultTextStyle.Color.WithOpacity(groupBoxInkAlpha)
+	if got != want {
+		t.Errorf("ink = %v, want fallback %v", got, want)
+	}
+}

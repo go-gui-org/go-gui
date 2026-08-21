@@ -107,9 +107,11 @@ func buildRadioOptions(cfg RadioButtonGroupCfg) []View {
 }
 
 func applyRadioGroupDefaults(cfg *RadioButtonGroupCfg) {
-	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = guiTheme.ColorBorder
-	}
+	// No ColorBorder fallback here: a titled group is a group box, and
+	// the container resolves the group-box ink for an unset border
+	// (gui/view_container.go). Resolving to guiTheme.ColorBorder here
+	// would pin the hairline wash, which reads as nothing on a
+	// transparent ground.
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = guiTheme.PaddingLarge
 	}

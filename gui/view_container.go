@@ -203,8 +203,30 @@ type containerView struct {
 }
 
 func (cv *containerView) GenerateLayout(w *Window) Layout {
+	// A titled container is a group box: its fill is transparent, so
+	// its border and heading are its only separation from the page.
+	// The hairline wash (Theme.ColorBorder) is calibrated for filled
+	// controls and reads as nothing on a transparent ground
+	// (visual-refresh §4.1), so a group box resolves its own ink from
+	// the theme's body text. Both defaults resolve here, each frame,
+	// so a theme change is picked up at once; they cannot live in
+	// buildContainerShape, whose cfg is the caller's own.
+	cfg := cv.cfg
+	if cfg.Title != "" {
+		if !cfg.ColorBorder.IsSet() {
+			cfg.ColorBorder = groupBoxInk()
+		}
+		if !cfg.SizeBorder.IsSet() && defaultContainerStyle.SizeBorder == 0 {
+			// Light presets default the container border to 0, which
+			// would leave the group box edge-less; a titled container
+			// wants at least the hairline. A theme that states a
+			// border keeps it (applyContainerDefaults resolves it);
+			// NoBorder (SomeF(0)) is explicit and wins.
+			cfg.SizeBorder = SomeF(sizeBorderDef)
+		}
+	}
 	layout := Layout{
-		Shape: w.allocShape(buildContainerShape(&cv.cfg, w)),
+		Shape: w.allocShape(buildContainerShape(&cfg, w)),
 	}
 	if cv.isButton && layout.Shape.events != nil {
 		bc := shapeButtonColors{
@@ -226,12 +248,32 @@ func (cv *containerView) GenerateLayout(w *Window) Layout {
 		layout.Shape.events.AmendLayout = buttonAmendLayout
 		layout.Shape.events.OnHover = buttonOnHover
 	}
-	addGroupBoxTitle(cv.cfg.Title, cv.cfg.TitleBG, cv.cfg.ColorBorder,
-		cv.cfg.Disabled, w, &layout)
+	addGroupBoxTitle(cfg.Title, cfg.TitleBG, cfg.ColorBorder,
+		cfg.Disabled, w, &layout)
 	// Content children append after the group-box eraser + label, which
 	// addGroupBoxTitle injected above; see appendChildViews ordering.
 	appendChildViews(w, &layout, cv.content)
 	return layout
+}
+
+// groupBoxInkAlpha is the one de-emphasis amount a group box's
+// border and heading share: body text at this alpha reads on both
+// polarities where the hairline wash does not. A named constant, so
+// the ergonomics-audit visual gate treats it as a role source, not a
+// call-site literal.
+const groupBoxInkAlpha = 0.6
+
+// groupBoxInk returns the contrast-matched ink a titled container's
+// border and heading use when the caller leaves ColorBorder unset. It
+// derives from the theme's own body text, so every theme — preset or
+// custom — gets an edge that reads on its page without a per-theme
+// literal (visual-refresh §4.1 keeps the wash for filled controls).
+func groupBoxInk() Color {
+	ts := guiTheme.TextStyleDef
+	if !ts.Color.IsSet() {
+		ts = DefaultTextStyle
+	}
+	return ts.Color.WithOpacity(groupBoxInkAlpha)
 }
 
 // addGroupBoxTitle injects floating eraser + text children to render
