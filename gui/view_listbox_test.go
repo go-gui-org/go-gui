@@ -670,9 +670,9 @@ func TestListBoxFocusRowRingNotFill(t *testing.T) {
 
 	w.SetFocus("lb-ring")
 	amend(EventCtx{row, nil, w})
-	if row.Shape.SizeBorder != listBoxRingWidth {
+	if row.Shape.SizeBorder != focusRingBorderWidth {
 		t.Errorf("ring width = %v, want %v",
-			row.Shape.SizeBorder, float32(listBoxRingWidth))
+			row.Shape.SizeBorder, float32(focusRingBorderWidth))
 	}
 	if !row.Shape.ColorBorder.IsSet() {
 		t.Error("ring colour unset on the focused row")
@@ -716,9 +716,9 @@ func TestListBoxReorderItemViewFocusRing(t *testing.T) {
 
 	w.SetFocus("lb-reo-ring")
 	amend(EventCtx{&layout, nil, w})
-	if layout.Shape.SizeBorder != listBoxRingWidth {
+	if layout.Shape.SizeBorder != focusRingBorderWidth {
 		t.Errorf("ring width = %v, want %v",
-			layout.Shape.SizeBorder, float32(listBoxRingWidth))
+			layout.Shape.SizeBorder, float32(focusRingBorderWidth))
 	}
 }
 

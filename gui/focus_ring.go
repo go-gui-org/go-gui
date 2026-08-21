@@ -14,6 +14,55 @@ package gui
 // convention reachable, so a new focusable container gets a ring by
 // asking for one rather than by remembering the mechanism.
 
+// focusRingBorderWidth is the stroke width of the keyboard-focus ring
+// a container paints on its border.
+//
+// It is a const, never a theme's SizeBorder: a borderless theme sets
+// that to 0 (ThemeLight does, issue #390), and the keyboard cursor
+// has to be visible in every theme.
+const focusRingBorderWidth = 1
+
+// focusRingBorderAmend returns the AmendLayout hook that strokes a
+// focus ring — SizeBorder + ColorBorder — on the shape that currently
+// holds key.
+//
+// Key is an effective ID, tested via IsFocus. It may be a foreign ID:
+// a list row has no identity of its own, so its ring tests the owning
+// list's key; the color swatch's ring lives on its color layer, so it
+// captures the control's effective ID at generation instead.
+//
+// The ring is applied from AmendLayout, never from the Cfg: a border in
+// the config insets content and would shift what the ring is meant to
+// outline (the plane's gradient would move 1px off its marker
+// positions). AmendLayout runs after arrange, so a ring set there
+// strokes the edge without moving anything inside it.
+//
+// Returns nil when there is nothing to paint — no key, no width, no
+// color — so a caller that cannot hold focus pays no closure. A
+// disabled shape never shows focus: it cannot hold it, and the dimmed
+// fill already reads as inert.
+func focusRingBorderAmend(
+	key string, width float32, color Color,
+) func(EventCtx) {
+	if key == "" || width <= 0 || !color.IsSet() {
+		return nil
+	}
+	return func(ctx EventCtx) {
+		if ctx.Layout == nil || ctx.Window == nil {
+			return
+		}
+		shape := ctx.Layout.Shape
+		if shape == nil || shape.Disabled {
+			return
+		}
+		if !ctx.Window.IsFocus(key) {
+			return
+		}
+		shape.SizeBorder = width
+		shape.ColorBorder = color
+	}
+}
+
 // colorControlFocusRing fills in the focus ring for a color-picker
 // control — the plane, wheel, channel slider and swatch.
 //
@@ -22,38 +71,13 @@ package gui
 // on (issue #335, audit section 6). They are also the awkward case: a
 // gradient surface cannot tint on hover or focus the way a button fill
 // can, because the fill *is* the value being edited. The ring goes on
-// the border instead.
+// the border instead, via focusRingBorderAmend.
 //
-// Both the width and the color are applied from AmendLayout, which is
-// the whole reason this is separate from focusRingAmend. These controls
-// carry no border at rest, and a border in the *config* insets the
-// content: reserving one shifted the plane's gradient 1.5px away from
-// the marker positions, which are computed from the control's own size.
-// AmendLayout runs after arrange, so a ring set there strokes the edge
-// without moving anything inside it.
-// key is the effective ID the ring tests focus against. The control's
-// own shape keys via idKey() at hook time; the swatch's ring lives on
-// its color layer, which has no identity of its own, so the swatch
-// captures its effective ID at generation instead. AmendLayout runs
-// after arrange, so a ring set there strokes the edge without moving
-// anything inside it.
+// A theme that never decided a focus colour yields a nil hook, which
+// amendAll drops — the control's own AmendLayout survives untouched.
 func colorControlFocusRing(cfg *ContainerCfg, key string) {
-	d := &defaultColorPickerStyle
-	width, color := d.SizeBorder, d.ColorBorderFocus
-	if width <= 0 || !color.IsSet() {
-		return
-	}
-	cfg.AmendLayout = amendAll(cfg.AmendLayout, func(ctx EventCtx) {
-		shape := ctx.Layout.Shape
-		if shape == nil || shape.Disabled || ctx.Window == nil {
-			return
-		}
-		if !ctx.Window.IsFocus(key) {
-			return
-		}
-		shape.SizeBorder = width
-		shape.ColorBorder = color
-	})
+	cfg.AmendLayout = amendAll(cfg.AmendLayout, focusRingBorderAmend(
+		key, focusRingBorderWidth, defaultColorPickerStyle.ColorBorderFocus))
 }
 
 // amendAll runs several AmendLayout hooks in order, skipping nil ones,

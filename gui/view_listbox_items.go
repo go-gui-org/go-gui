@@ -338,21 +338,15 @@ func listBoxIsFocusRow(dat ListBoxOption, focusedID string) bool {
 	return dat.ID != "" && dat.ID == focusedID && !dat.isSubheading
 }
 
-// listBoxRingWidth is the stroke width of the keyboard-focus ring
-// drawn around the active row.
-//
-// It is named here rather than taken from the list's own SizeBorder
-// because a borderless theme sets that to 0, and the keyboard cursor
-// has to be visible in every theme.
-const listBoxRingWidth = 1
-
 // listBoxItemRingAmend returns the AmendLayout hook that strokes the
-// keyboard-focus ring on the active row.
+// keyboard-focus ring on the active row — the shared
+// focusRingBorderAmend mechanism, keyed on the list's effective ID
+// because a row carries no identity of its own.
 //
-// Both the width and the colour are applied from AmendLayout, which
-// runs after arrange: a border in the Cfg would inset the row's
-// content and add height to every row in the list. Stroked here, the
-// ring traces the row's arranged edge and shifts nothing.
+// The stroke is applied from AmendLayout, which runs after arrange: a
+// border in the Cfg would inset the row's content and add height to
+// every row in the list. Stroked here, the ring traces the row's
+// arranged edge and shifts nothing.
 //
 // It returns nil for every other row, so only the one focused row in
 // the list pays for a hook. A disabled row never shows focus — it
@@ -360,23 +354,8 @@ const listBoxRingWidth = 1
 func listBoxItemRingAmend(
 	isFocusRow bool, listID string, colorRing Color,
 ) func(EventCtx) {
-	if !isFocusRow || listID == "" || !colorRing.IsSet() {
+	if !isFocusRow {
 		return nil
 	}
-	return func(ctx EventCtx) {
-		if ctx.Layout == nil || ctx.Window == nil {
-			return
-		}
-		shape := ctx.Layout.Shape
-		if shape == nil || shape.Disabled {
-			return
-		}
-		// A ring on a list that does not hold focus points at a
-		// keyboard cursor the keyboard cannot currently move.
-		if !ctx.Window.IsFocus(listID) {
-			return
-		}
-		shape.SizeBorder = listBoxRingWidth
-		shape.ColorBorder = colorRing
-	}
+	return focusRingBorderAmend(listID, focusRingBorderWidth, colorRing)
 }

@@ -249,6 +249,146 @@ func TestWiredFocusablesEmitRingWhenFocused(t *testing.T) {
 	}
 }
 
+// focusRingBorderAmend returns nil when there is nothing to paint, so
+// a caller that cannot hold focus pays no closure — the ListBox passes
+// an empty key for an ID-less list, the colour picker relies on the
+// width never being 0, and an unset colour means the theme never
+// decided what focus looks like.
+func TestFocusRingBorderAmendNilWhenNothingToPaint(t *testing.T) {
+	color := RGB(1, 2, 3)
+	if got := focusRingBorderAmend("", focusRingBorderWidth, color); got != nil {
+		t.Error("empty key: want nil hook")
+	}
+	if got := focusRingBorderAmend("k", 0, color); got != nil {
+		t.Error("zero width: want nil hook")
+	}
+	if got := focusRingBorderAmend("k", focusRingBorderWidth, Color{}); got != nil {
+		t.Error("unset colour: want nil hook")
+	}
+	if got := focusRingBorderAmend("k", focusRingBorderWidth, color); got == nil {
+		t.Error("full arguments: want a hook")
+	}
+}
+
+// The hook strokes width + colour on the shape only while the keyed
+// control holds focus; a disabled shape and a nil layout get nothing.
+func TestFocusRingBorderAmendStrokesOnlyWhenFocused(t *testing.T) {
+	t.Parallel()
+	ringColor := RGB(1, 2, 3)
+	hook := focusRingBorderAmend("cp", focusRingBorderWidth, ringColor)
+	if hook == nil {
+		t.Fatal("want a hook")
+	}
+
+	run := func(disabled bool, layoutNil bool) *Shape {
+		w := makeWindowWithScratch()
+		w.SetFocus("cp")
+		s := &Shape{shapeType: shapeRectangle, Disabled: disabled}
+		ctx := EventCtx{Layout: &Layout{Shape: s}, Window: w}
+		if layoutNil {
+			ctx.Layout = nil
+		}
+		hook(ctx)
+		return s
+	}
+
+	if s := run(false, false); s.SizeBorder != focusRingBorderWidth ||
+		s.ColorBorder != ringColor {
+		t.Errorf("focused shape: border = %v/%v, want %v/%v",
+			s.SizeBorder, s.ColorBorder, focusRingBorderWidth, ringColor)
+	}
+	if s := run(false, true); s.SizeBorder != 0 || s.ColorBorder.IsSet() {
+		t.Error("nil layout: shape must be untouched")
+	}
+	if s := run(true, false); s.SizeBorder != 0 || s.ColorBorder.IsSet() {
+		t.Error("disabled shape must not take a ring")
+	}
+
+	w := makeWindowWithScratch()
+	s := &Shape{shapeType: shapeRectangle}
+	hook(EventCtx{Layout: &Layout{Shape: s}, Window: w})
+	if s.SizeBorder != 0 || s.ColorBorder.IsSet() {
+		t.Error("unfocused window: shape must be untouched")
+	}
+}
+
+// colorControlFocusRing is the colour picker's entry point to the
+// border-ring mechanism: it sources the colour from the theme and
+// composes the ring into any AmendLayout the control already carries,
+// ring last so it wins any colour a prior hook set (amendAll's
+// contract). A theme that never decided a focus colour must leave the
+// control's hook alone entirely.
+func TestColorControlFocusRingComposesAndSkipsUnset(t *testing.T) {
+	savedTheme := guiTheme
+	savedStyle := defaultColorPickerStyle
+	t.Cleanup(func() {
+		guiTheme = savedTheme
+		defaultColorPickerStyle = savedStyle
+	})
+
+	// Composition under a theme that decides the focus colour.
+	guiTheme = ThemeDark
+	prior := func(ctx EventCtx) {
+		ctx.Layout.Shape.ColorBorder = RGB(9, 9, 9)
+	}
+	cfg := ContainerCfg{AmendLayout: prior}
+	colorControlFocusRing(&cfg, "cp")
+	if cfg.AmendLayout == nil {
+		t.Fatal("ring not composed into the control's AmendLayout")
+	}
+	w := makeWindowWithScratch()
+	w.SetFocus("cp")
+	shape := &Shape{shapeType: shapeRectangle}
+	cfg.AmendLayout(EventCtx{Layout: &Layout{Shape: shape}, Window: w})
+	if shape.SizeBorder != focusRingBorderWidth {
+		t.Errorf("ring width = %v, want %v",
+			shape.SizeBorder, focusRingBorderWidth)
+	}
+	if want := defaultColorPickerStyle.ColorBorderFocus; shape.ColorBorder != want {
+		t.Errorf("ring colour = %v, want the theme's %v", shape.ColorBorder, want)
+	}
+
+	// No focus colour decided: the control keeps its own hook, the
+	// wrapper adds nothing.
+	defaultColorPickerStyle = ColorPickerStyle{}
+	cfg = ContainerCfg{AmendLayout: prior}
+	colorControlFocusRing(&cfg, "cp")
+	shape = &Shape{shapeType: shapeRectangle}
+	cfg.AmendLayout(EventCtx{Layout: &Layout{Shape: shape}, Window: w})
+	if shape.SizeBorder != 0 {
+		t.Error("unset theme colour still installed a ring")
+	}
+	if shape.ColorBorder != RGB(9, 9, 9) {
+		t.Error("prior hook lost: its colour stamp must survive")
+	}
+}
+
+// The colour half of the colour-picker ring is theme-sourced; the
+// width is a const (focusRingBorderWidth) so no preset can delete it.
+// Every registered theme must still decide the colour, or a future
+// borderless preset silently removes the indicator again (issue #390).
+func TestRegisteredThemesCarryColorPickerFocusColor(t *testing.T) {
+	names := themeRegisteredNames()
+	if len(names) == 0 {
+		t.Fatal("no registered themes")
+	}
+	for _, name := range names {
+		t.Run(name, func(t *testing.T) {
+			th, ok := ThemeGet(name)
+			if !ok {
+				t.Fatalf("theme %q not found", name)
+			}
+			color := th.colorPickerStyle.ColorBorderFocus
+			if !color.IsSet() {
+				t.Error("colorPickerStyle.ColorBorderFocus is unset")
+			}
+			if got := focusRingBorderAmend("k", focusRingBorderWidth, color); got == nil {
+				t.Error("focus ring helper yielded no hook for this theme")
+			}
+		})
+	}
+}
+
 // With no ring in the theme, the hook keeps its old contract: unset
 // colours mean no hook at all. Covered by the ringless half of
 // TestFocusRingAmendUnsetIsNil; this pins the ring-bearing default
