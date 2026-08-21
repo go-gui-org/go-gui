@@ -86,12 +86,13 @@ func listBoxBuildItems(
 
 		if canReorder && isDraggable {
 			list = append(list, listBoxReorderItemView(
-				cfg.Data[idx], *cfg, selectedSet, di,
+				cfg.Data[idx], *cfg, selectedSet, focusedID, di,
 				itemIDs, itemLayoutIDs, midsOffset, scrollID))
 		} else {
 			list = append(list,
 				listBoxItemView(
-					cfg.Data[idx], *cfg, selectedSet, focusedID))
+					cfg.Data[idx], *cfg, selectedSet,
+					focusedID, itemIDs))
 		}
 	}
 
@@ -107,11 +108,18 @@ func listBoxBuildItems(
 	return list, ghostContent
 }
 
-func listBoxItemView(dat ListBoxOption, cfg ListBoxCfg, selectedSet map[string]struct{}, focusedID string) View {
+func listBoxItemView(
+	dat ListBoxOption,
+	cfg ListBoxCfg,
+	selectedSet map[string]struct{},
+	focusedID string,
+	itemIDs []string,
+) View {
 	color := ColorTransparent
-	if dat.ID == focusedID && !dat.isSubheading {
-		color = cfg.ColorHover
-	}
+	// The keyboard-focus row takes a ring, never a fill: a fill here
+	// is the same grey the mouse hover paints, so the two cursors
+	// were indistinguishable (visual-refresh §4.3).
+	isFocusRow := listBoxIsFocusRow(dat, focusedID)
 	selected := false
 	if listCoreContainsSelected(selectedSet, cfg.SelectedIDs, dat.ID) {
 		// Selection paints the subtle wash, not the full accent
@@ -129,6 +137,10 @@ func listBoxItemView(dat ListBoxOption, cfg ListBoxCfg, selectedSet map[string]s
 	hasOnSelect := onSelect != nil
 	selectedIDs := cfg.SelectedIDs
 	colorHover := cfg.ColorHover
+	// Scalars, not cfg: the OnClick closure below would otherwise
+	// capture the whole ListBoxCfg and heap-allocate it per row.
+	listBoxID := cfg.ID
+	focusDisabled := cfg.FocusDisabled
 
 	a11yState := AccessStateNone
 	if selected {
@@ -136,16 +148,30 @@ func listBoxItemView(dat ListBoxOption, cfg ListBoxCfg, selectedSet map[string]s
 	}
 
 	return Row(ContainerCfg{
-		A11YRole:   AccessRoleListItem,
-		A11YCfg:    A11YCfg{A11YLabel: dat.Name},
-		A11YState:  a11yState,
-		Color:      color,
-		Padding:    listBoxItemPad,
+		A11YRole:  AccessRoleListItem,
+		A11YCfg:   A11YCfg{A11YLabel: dat.Name},
+		A11YState: a11yState,
+		Color:     color,
+		Padding:   listBoxItemPad,
+		// No border in the Cfg: one there insets content, so every
+		// row would grow by the ring's width whether or not it ever
+		// paints one. The ring is stroked from AmendLayout instead,
+		// which runs after arrange and therefore moves nothing.
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Content:    []View{content},
+		// The ring paints only while the list itself holds window
+		// focus. Focus is resolved after layout, so it cannot be
+		// decided at generation; the row carries no ID of its own,
+		// so the hook tests the list's effective ID.
+		AmendLayout: listBoxItemRingAmend(
+			isFocusRow, cfg.ID, cfg.ColorBorderFocus),
 		OnClick: func(ctx EventCtx) {
 			if hasOnSelect && !isSub {
+				// Keyboard focus follows the click, so the
+				// focus ring and the selection agree.
+				listBoxFocusOnClick(listBoxID, focusDisabled,
+					itemIDs, datID, ctx.Window)
 				ids := listBoxNextSelectedIDs(
 					selectedIDs, datID, isMultiple)
 				onSelect(ids, EventCtx{nil, ctx.Event, ctx.Window})
@@ -166,6 +192,7 @@ func listBoxReorderItemView(
 	dat ListBoxOption,
 	cfg ListBoxCfg,
 	selectedSet map[string]struct{},
+	focusedID string,
 	dragIdx int,
 	itemIDs []string,
 	itemLayoutIDs []string,
@@ -173,6 +200,9 @@ func listBoxReorderItemView(
 	scrollID string,
 ) View {
 	color := ColorTransparent
+	// A reorderable row takes the same keyboard-focus ring as a plain
+	// one, by the same rule.
+	isFocusRow := listBoxIsFocusRow(dat, focusedID)
 	selected := false
 	if listCoreContainsSelected(selectedSet, cfg.SelectedIDs, dat.ID) {
 		// Selection paints the subtle wash, not the full accent
@@ -191,6 +221,7 @@ func listBoxReorderItemView(
 	selectedIDs := cfg.SelectedIDs
 	colorHover := cfg.ColorHover
 	listBoxID := cfg.ID
+	focusDisabled := cfg.FocusDisabled
 	onReorder := cfg.OnReorder
 
 	a11yState := AccessStateNone
@@ -199,15 +230,20 @@ func listBoxReorderItemView(
 	}
 
 	return Row(ContainerCfg{
-		ID:         layoutID,
-		A11YRole:   AccessRoleListItem,
-		A11YCfg:    A11YCfg{A11YLabel: dat.Name},
-		A11YState:  a11yState,
-		Color:      color,
-		Padding:    listBoxItemPad,
+		ID:        layoutID,
+		A11YRole:  AccessRoleListItem,
+		A11YCfg:   A11YCfg{A11YLabel: dat.Name},
+		A11YState: a11yState,
+		Color:     color,
+		Padding:   listBoxItemPad,
+		// Stroked from AmendLayout, never reserved in the Cfg — a
+		// border here would inset content and grow every row. See
+		// listBoxItemRingAmend.
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Content:    []View{content},
+		AmendLayout: listBoxItemRingAmend(
+			isFocusRow, cfg.ID, cfg.ColorBorderFocus),
 		OnClick: func(ctx EventCtx) {
 			dragReorderStart(dragReorderStartCfg{
 				DragKey:       listBoxID,
@@ -223,6 +259,10 @@ func listBoxReorderItemView(
 				Event:         ctx.Event,
 			}, ctx.Window)
 			if hasOnSelect {
+				// Keyboard focus follows the click, so the
+				// focus ring and the selection agree.
+				listBoxFocusOnClick(listBoxID, focusDisabled,
+					itemIDs, datID, ctx.Window)
 				ids := listBoxNextSelectedIDs(
 					selectedIDs, datID, isMultiple)
 				onSelect(ids, EventCtx{nil, ctx.Event, ctx.Window})
@@ -284,4 +324,59 @@ func listBoxDataIndex(itemDataIndices []int, idx int) int {
 		return itemDataIndices[idx]
 	}
 	return idx
+}
+
+// listBoxIsFocusRow reports whether this row is the list's keyboard
+// focus row. Both row builders ask, so the rule is stated once.
+//
+// The dat.ID != "" term is load-bearing: focusedID is "" when no row
+// holds focus, so without it every option in an ID-less list matches
+// the sentinel and the list rings all of them. Subheadings are never
+// candidates — keyboard navigation skips them, and the reorder path
+// never builds one.
+func listBoxIsFocusRow(dat ListBoxOption, focusedID string) bool {
+	return dat.ID != "" && dat.ID == focusedID && !dat.isSubheading
+}
+
+// listBoxRingWidth is the stroke width of the keyboard-focus ring
+// drawn around the active row.
+//
+// It is named here rather than taken from the list's own SizeBorder
+// because a borderless theme sets that to 0, and the keyboard cursor
+// has to be visible in every theme.
+const listBoxRingWidth = 1
+
+// listBoxItemRingAmend returns the AmendLayout hook that strokes the
+// keyboard-focus ring on the active row.
+//
+// Both the width and the colour are applied from AmendLayout, which
+// runs after arrange: a border in the Cfg would inset the row's
+// content and add height to every row in the list. Stroked here, the
+// ring traces the row's arranged edge and shifts nothing.
+//
+// It returns nil for every other row, so only the one focused row in
+// the list pays for a hook. A disabled row never shows focus — it
+// cannot hold it, and the dimmed text already reads as inert.
+func listBoxItemRingAmend(
+	isFocusRow bool, listID string, colorRing Color,
+) func(EventCtx) {
+	if !isFocusRow || listID == "" || !colorRing.IsSet() {
+		return nil
+	}
+	return func(ctx EventCtx) {
+		if ctx.Layout == nil || ctx.Window == nil {
+			return
+		}
+		shape := ctx.Layout.Shape
+		if shape == nil || shape.Disabled {
+			return
+		}
+		// A ring on a list that does not hold focus points at a
+		// keyboard cursor the keyboard cannot currently move.
+		if !ctx.Window.IsFocus(listID) {
+			return
+		}
+		shape.SizeBorder = listBoxRingWidth
+		shape.ColorBorder = colorRing
+	}
 }

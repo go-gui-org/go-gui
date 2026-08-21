@@ -152,6 +152,23 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// The reorderable path builds its rows through
+			// listBoxReorderItemView, which had no focus
+			// indication at all until the ring landed.
+			name:    "listbox_reorder_focused",
+			focusID: "lb",
+			build: func(_ *Window) View {
+				return ListBox(ListBoxCfg{
+					ID:          "lb",
+					Items:       []string{"one", "two", "three"},
+					SelectedIDs: []string{"two"},
+					Reorderable: true,
+					OnReorder: func(string, string, EventCtx) {
+					},
+				})
+			},
+		},
+		{
 			name:    "select_focused",
 			focusID: "sel",
 			build: func(_ *Window) View {

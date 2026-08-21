@@ -532,6 +532,7 @@ func TestListBoxReorderItemView(t *testing.T) {
 		ListBoxOption{ID: "a", Name: "Alpha"},
 		cfg,
 		nil,
+		"",
 		0,
 		[]string{"a"},
 		[]string{"lb:item:a"},
@@ -558,6 +559,7 @@ func TestListBoxReorderItemViewSelectedState(t *testing.T) {
 		ListBoxOption{ID: "a", Name: "Alpha"},
 		cfg,
 		listCoreSelectedSet(cfg.SelectedIDs),
+		"",
 		0,
 		[]string{"a"},
 		[]string{"lb:item:a"},
@@ -582,6 +584,7 @@ func TestListBoxReorderItemViewClickArmsDrag(t *testing.T) {
 		ListBoxOption{ID: "a", Name: "A"},
 		cfg,
 		nil,
+		"",
 		0,
 		[]string{"a", "b"},
 		[]string{"lb-drag:item:a", "lb-drag:item:b"},
@@ -605,5 +608,236 @@ func TestListBoxReorderItemViewClickArmsDrag(t *testing.T) {
 	// Single-select: the clicked row becomes the selection.
 	if len(selected) != 1 || selected[0] != "a" {
 		t.Fatalf("onSelect = %v, want [a]", selected)
+	}
+}
+
+// A click must move the keyboard focus row onto the clicked item.
+// Without it the list paints the focus highlight on one row and the
+// selection wash on another, and the next arrow key resumes from the
+// stale row.
+func TestListBoxClickMovesKeyboardFocus(t *testing.T) {
+	w := &Window{}
+	layout := generateViewLayout(ListBox(ListBoxCfg{
+		ID: "lb-focus-click",
+		Data: []ListBoxOption{
+			{ID: "a", Name: "Alpha"},
+			{ID: "b", Name: "Beta"},
+			{ID: "c", Name: "Gamma"},
+		},
+		OnSelect: func(ids []string, ctx EventCtx) {},
+	}), w)
+
+	// Third row: index 2 in itemIDs, not the default 0.
+	item := &layout.Children[2]
+	if item.Shape.events == nil || item.Shape.events.OnClick == nil {
+		t.Fatal("expected third row to have OnClick")
+	}
+	item.Shape.events.OnClick(
+		EventCtx{item, &Event{MouseButton: MouseLeft}, w})
+
+	if got := StateReadOr(w, nsListBoxFocus, "lb-focus-click", -1); got != 2 {
+		t.Errorf("focus index = %d, want 2", got)
+	}
+}
+
+// The keyboard-focus row takes an accent ring, not a fill: a fill is
+// the same grey the mouse hover paints, so the two cursors could not
+// be told apart.
+func TestListBoxFocusRowRingNotFill(t *testing.T) {
+	w := &Window{}
+	view := ListBox(ListBoxCfg{
+		ID:    "lb-ring",
+		Items: []string{"one", "two"},
+		OnSelect: func(ids []string, ctx EventCtx) {
+		},
+	})
+	layout := generateViewLayout(view, w)
+
+	// Focus index defaults to 0, so the first row is the active one.
+	row := &layout.Children[0]
+	if row.Shape.Color != ColorTransparent {
+		t.Errorf("focus row fill = %v, want transparent", row.Shape.Color)
+	}
+	if row.Shape.events == nil || row.Shape.events.AmendLayout == nil {
+		t.Fatal("focus row has no AmendLayout ring hook")
+	}
+	amend := row.Shape.events.AmendLayout
+	// The hook is a no-op until the list itself holds focus.
+	amend(EventCtx{row, nil, w})
+	if row.Shape.SizeBorder != 0 {
+		t.Errorf("unfocused list drew a ring: %v", row.Shape.SizeBorder)
+	}
+
+	w.SetFocus("lb-ring")
+	amend(EventCtx{row, nil, w})
+	if row.Shape.SizeBorder != listBoxRingWidth {
+		t.Errorf("ring width = %v, want %v",
+			row.Shape.SizeBorder, float32(listBoxRingWidth))
+	}
+	if !row.Shape.ColorBorder.IsSet() {
+		t.Error("ring colour unset on the focused row")
+	}
+
+	// A non-focus row takes no hook at all.
+	if e := layout.Children[1].Shape.events; e != nil &&
+		e.AmendLayout != nil {
+		t.Error("non-focus row carries a ring hook")
+	}
+}
+
+// The reorderable row takes the same keyboard-focus ring as a plain
+// one; it carried no focus indication of any kind before.
+func TestListBoxReorderItemViewFocusRing(t *testing.T) {
+	cfg := ListBoxCfg{ID: "lb-reo-ring"}
+	applyListBoxDefaults(&cfg)
+	view := listBoxReorderItemView(
+		ListBoxOption{ID: "a", Name: "Alpha"},
+		cfg,
+		nil,
+		"a", // this row holds the keyboard focus
+		0,
+		[]string{"a"},
+		[]string{"lb-reo-ring:item:a"},
+		0,
+		"",
+	)
+	w := newTestWindow()
+	w.layout = Layout{Shape: &Shape{ID: "root"}}
+	layout := generateViewLayout(view, w)
+
+	if layout.Shape.events == nil || layout.Shape.events.AmendLayout == nil {
+		t.Fatal("focused reorder row has no ring hook")
+	}
+	amend := layout.Shape.events.AmendLayout
+	amend(EventCtx{&layout, nil, w})
+	if layout.Shape.SizeBorder != 0 {
+		t.Errorf("unfocused list drew a ring: %v", layout.Shape.SizeBorder)
+	}
+
+	w.SetFocus("lb-reo-ring")
+	amend(EventCtx{&layout, nil, w})
+	if layout.Shape.SizeBorder != listBoxRingWidth {
+		t.Errorf("ring width = %v, want %v",
+			layout.Shape.SizeBorder, float32(listBoxRingWidth))
+	}
+}
+
+// listBoxFocusOnClick is reached from a per-row OnClick, so it must
+// no-op rather than panic on the degenerate inputs a caller can
+// produce: no list ID, no window, an empty item list, or an item that
+// is not in the list at all.
+func TestListBoxFocusOnClickDegenerateInputs(t *testing.T) {
+	w := newTestWindow()
+
+	// No panic, and nothing recorded, for each degenerate case.
+	listBoxFocusOnClick("", false, []string{"a"}, "a", w)
+	listBoxFocusOnClick("lb", false, []string{"a"}, "a", nil)
+	listBoxFocusOnClick("lb", false, nil, "a", w)
+	if got := StateReadOr(w, nsListBoxFocus, "lb", -1); got != -1 {
+		t.Errorf("degenerate call recorded focus %d, want none", got)
+	}
+
+	// An ID that is not in the list leaves the index alone. The list
+	// still takes window focus: the click landed on it either way.
+	StateMap[string, int](w, nsListBoxFocus, capModerate).Set("lb", 2)
+	listBoxFocusOnClick("lb", false, []string{"a", "b"}, "zz", w)
+	if got := StateReadOr(w, nsListBoxFocus, "lb", -1); got != 2 {
+		t.Errorf("unknown item moved focus to %d, want 2 unchanged", got)
+	}
+	if !w.IsFocus("lb") {
+		t.Error("click should still give the list window focus")
+	}
+}
+
+// A FocusDisabled list is not in the tab order, so a click on one must
+// not pull window focus away from whatever holds it.
+func TestListBoxFocusOnClickFocusDisabledKeepsWindowFocus(t *testing.T) {
+	w := newTestWindow()
+	w.SetFocus("somewhere-else")
+
+	listBoxFocusOnClick("lb", true, []string{"a", "b"}, "b", w)
+
+	// The row index still moves — the list tracks its own active row
+	// even when it cannot hold window focus.
+	if got := StateReadOr(w, nsListBoxFocus, "lb", -1); got != 1 {
+		t.Errorf("focus index = %d, want 1", got)
+	}
+	if !w.IsFocus("somewhere-else") {
+		t.Error("FocusDisabled list stole window focus")
+	}
+}
+
+// An ID-less option must not match the ID-less "no focus row"
+// sentinel. Without the guard every row in an ID-less list reads as
+// the focus row and the list paints a ring on all of them.
+func TestListBoxItemViewIDLessRowsTakeNoRing(t *testing.T) {
+	cfg := ListBoxCfg{ID: "lb-noid"}
+	applyListBoxDefaults(&cfg)
+	w := newTestWindow()
+	for _, dat := range []ListBoxOption{{Name: "one"}, {Name: "two"}} {
+		view := listBoxItemView(dat, cfg, nil, "", nil)
+		layout := generateViewLayout(view, w)
+		if e := layout.Shape.events; e != nil && e.AmendLayout != nil {
+			t.Fatalf("ID-less row %q took a focus ring", dat.Name)
+		}
+	}
+}
+
+// The ring hook is built only when there is something to paint with,
+// and it tolerates the degenerate contexts an AmendLayout slot can be
+// invoked with.
+func TestListBoxItemRingAmendGuards(t *testing.T) {
+	ring := RGB(0, 0, 255)
+	if listBoxItemRingAmend(false, "lb", ring) != nil {
+		t.Error("non-focus row should take no hook")
+	}
+	if listBoxItemRingAmend(true, "", ring) != nil {
+		t.Error("ID-less list should take no hook")
+	}
+	if listBoxItemRingAmend(true, "lb", Color{}) != nil {
+		t.Error("unset ring colour should take no hook")
+	}
+
+	amend := listBoxItemRingAmend(true, "lb", ring)
+	if amend == nil {
+		t.Fatal("focused row should take a hook")
+	}
+	w := newTestWindow()
+	w.SetFocus("lb")
+	// Nil layout, nil shape and nil window must all no-op, not panic.
+	amend(EventCtx{nil, nil, w})
+	amend(EventCtx{&Layout{}, nil, w})
+	amend(EventCtx{&Layout{Shape: &Shape{}}, nil, nil})
+
+	// A disabled row never shows focus even while the list holds it.
+	disabled := Layout{Shape: &Shape{Disabled: true}}
+	amend(EventCtx{&disabled, nil, w})
+	if disabled.Shape.SizeBorder != 0 {
+		t.Errorf("disabled row drew a ring: %v", disabled.Shape.SizeBorder)
+	}
+}
+
+// The reorder path shares the focus-follows-click wiring, not just the
+// ring: clicking a draggable row must move the keyboard focus index.
+func TestListBoxReorderClickMovesKeyboardFocus(t *testing.T) {
+	cfg := ListBoxCfg{ID: "lb-reo-click"}
+	cfg.OnSelect = func([]string, EventCtx) {}
+	applyListBoxDefaults(&cfg)
+	view := listBoxReorderItemView(
+		ListBoxOption{ID: "b", Name: "Beta"},
+		cfg, nil, "", 1,
+		[]string{"a", "b"},
+		[]string{"lb-reo-click:item:a", "lb-reo-click:item:b"},
+		0, "",
+	)
+	w := newTestWindow()
+	w.layout = Layout{Shape: &Shape{ID: "root"}}
+	layout := generateViewLayout(view, w)
+
+	layout.Shape.events.OnClick(
+		EventCtx{&layout, &Event{MouseX: 5, MouseY: 5}, w})
+
+	if got := StateReadOr(w, nsListBoxFocus, "lb-reo-click", -1); got != 1 {
+		t.Errorf("focus index = %d, want 1", got)
 	}
 }

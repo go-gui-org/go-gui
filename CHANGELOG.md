@@ -84,6 +84,24 @@ Visual refresh phase 1 (`docs/specs/visual-refresh.md`, sections 1 and 1b).
 
 ### Fixed
 
+- **A `ListBox` painted its keyboard-focus row and its mouse-hover row the same
+  grey, and the focus row did not follow a click.** Two separate defects with
+  one symptom: a list could show a focus highlight on the first row, a hover
+  highlight on a third, and the selection wash on a second, with nothing to say
+  which was which. Clicking a row called `OnSelect` but never touched
+  `nsListBoxFocus`, so the focus index stayed at its default 0 and the next
+  arrow key resumed from the stale row; `Tree` already did this correctly in
+  `treeRowClick`. A click now moves the focus index onto the clicked row and
+  gives the list window focus (unless `FocusDisabled`). The focus row takes an
+  accent ring instead of `ColorHover` (visual-refresh section 4.3), so it can no
+  longer be confused with hover. Reorderable rows get the ring too — they
+  carried no focus indication at all. The ring is stroked from `AmendLayout`
+  rather than set as a Cfg border: a border there insets content, which would
+  have added its width to every row in the list. Its width is named once
+  (`listBoxRingWidth`) rather than taken from the list's own `SizeBorder`, which
+  is 0 in a borderless theme and would have left `ThemeLight` with no visible
+  keyboard cursor.
+
 - **A labelled field could not fill its row** (`docs/specs/visual-refresh.md`
   section 1). `labelledField` hardcoded `Sizing: FitFit` on the wrapper
   `Column`, so the caller's sizing was unreachable: an
