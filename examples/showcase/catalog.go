@@ -189,7 +189,7 @@ func catalogRow(entry DemoEntry, app *ShowcaseApp) gui.View {
 		ID:      "cat-" + entry.ID,
 		Sizing:  gui.FillFit,
 		Color:   color,
-		Colors:  gui.ColorSet{Hover: t.MenubarStyle.ColorSelect, Click: t.ColorActive, Focus: color, Border: gui.ColorTransparent, BorderFocus: gui.ColorTransparent},
+		Colors:  gui.ColorSet{Hover: t.ColorHover, Click: t.ColorActive, Focus: color, Border: gui.ColorTransparent, BorderFocus: gui.ColorTransparent},
 		Radius:  gui.SomeF(4),
 		Padding: gui.NewPadding(3, 6, 3, 6),
 		HAlign:  gui.Some(gui.HAlignLeft),
