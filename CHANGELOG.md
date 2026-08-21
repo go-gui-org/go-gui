@@ -42,6 +42,19 @@ Visual refresh phase 1 (`docs/specs/visual-refresh.md`, sections 1 and 1b).
   arranges narrower by its padding and spacing than before. Behaviour change for
   any app calling `Row(ContainerCfg{MinWidth: X})`.
 
+### Removed
+
+- **Six theme presets** (`docs/specs/visual-refresh.md` §7, phase 8):
+  `dark-no-padding`, `dark-bordered`, `light-no-padding`, `light-bordered`,
+  `blue-dark` and `blue-dark-bordered` are gone from the registry. The registry
+  now holds eight: `dark` (the default), `light`, and the platform pairs
+  `macos`/`macos-dark`, `gnome`/`gnome-dark`, `windows`/`windows-dark`.
+  Migration: `dark-bordered` was identical to `ThemeDark` (bordered is the
+  default), `light-bordered` is `ThemeLight.WithBorders(true)`, the no-padding
+  pair is `Theme.WithBorders(false)` plus a `ThemeMaker` padding override, and a
+  blue variant is a `ThemeMaker(ThemeCfg{...})` call. Name-based `ThemeGet` for
+  any removed name now misses; `ThemePicker` lists eight.
+
 ### Fixed
 
 - **A labelled field could not fill its row** (`docs/specs/visual-refresh.md`
