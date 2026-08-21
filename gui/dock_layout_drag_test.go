@@ -406,3 +406,154 @@ func TestDockDropZoneValues(t *testing.T) {
 		seen[z] = true
 	}
 }
+
+// buildDragZoneDock renders a two-group dock through the real frame
+// pipeline so the group containers carry resolved effective IDs.
+func buildDragZoneDock(t *testing.T) (*Window, *DockNode) {
+	t.Helper()
+	root := DockSplit("s1", DockSplitVertical, 0.5,
+		DockPanelGroup("g1", []string{"a"}, "a"),
+		DockPanelGroup("g2", []string{"b"}, "b"))
+	w := NewWindow(WindowCfg{State: new(int), Width: 800, Height: 600})
+	w.viewGenerator = func(*Window) View {
+		return Column(ContainerCfg{Sizing: FillFill, Content: []View{
+			DockLayout(DockLayoutCfg{ID: "dock", Root: root, Panels: []DockPanelDef{
+				{ID: "a", Label: "A"}, {ID: "b", Label: "B"},
+			}}),
+		}})
+	}
+	w.refreshLayout = true
+	w.FrameFn()
+	return w, root
+}
+
+// TestDockDragDetectZoneInsideGroup guards the regression where every
+// per-group zone missed because the group container was looked up by
+// its bare node ID while the layout holds the effective (scoped) one —
+// only the window-edge zones worked.
+func TestDockDragDetectZoneInsideGroup(t *testing.T) {
+	w, root := buildDragZoneDock(t)
+	nodes := dockTreeCollectPanelNodes(root)
+	g2, ok := dockFindGroupLayout(&w.layout, "g2")
+	if !ok {
+		t.Fatal("group g2 not found in rendered layout")
+	}
+	gc := g2.Shape.shapeClip
+
+	// Relative positions stay clear of the window-edge band, which is
+	// tested separately and deliberately wins over a group zone.
+	cases := []struct {
+		name   string
+		rx, ry float32
+		want   DockDropZone
+	}{
+		{"center", 0.5, 0.5, dockDropCenter},
+		{"top", 0.5, 0.15, dockDropTop},
+		{"bottom", 0.5, 0.9, dockDropBottom},
+		{"left", 0.1, 0.5, dockDropLeft},
+		{"right", 0.9, 0.5, dockDropRight},
+	}
+	for _, c := range cases {
+		zone, gid := dockDragDetectZone("dock", nodes,
+			gc.X+gc.Width*c.rx, gc.Y+gc.Height*c.ry, "g1", w)
+		if zone != c.want || gid != "g2" {
+			t.Errorf("%s: got zone=%v group=%q, want zone=%v group=%q",
+				c.name, zone, gid, c.want, "g2")
+		}
+	}
+}
+
+// TestDockFindGroupLayout covers the leaf-ID search directly: the root
+// itself, a nested hit, and the three not-found guards.
+func TestDockFindGroupLayout(t *testing.T) {
+	tree := Layout{
+		Shape: &Shape{ID: "dock"},
+		Children: []Layout{{
+			Shape: &Shape{ID: "split"},
+			Children: []Layout{
+				{Shape: &Shape{ID: "g1"}},
+				{Shape: &Shape{ID: "g2"}},
+			},
+		}},
+	}
+	tests := []struct {
+		name  string
+		id    string
+		want  bool
+		wantS string
+	}{
+		{"root", "dock", true, "dock"},
+		{"nested", "g2", true, "g2"},
+		{"missing", "g9", false, ""},
+		{"empty id", "", false, ""},
+	}
+	for _, tc := range tests {
+		got, ok := dockFindGroupLayout(&tree, tc.id)
+		if ok != tc.want {
+			t.Errorf("%s: ok=%v, want %v", tc.name, ok, tc.want)
+			continue
+		}
+		if ok && got.Shape.ID != tc.wantS {
+			t.Errorf("%s: found %q, want %q", tc.name, got.Shape.ID, tc.wantS)
+		}
+	}
+}
+
+// TestDockFindGroupLayoutNilShape checks the nil-Shape guards: a nil
+// root is not found rather than a panic, and a nil-Shape child does not
+// abort the search of its siblings.
+func TestDockFindGroupLayoutNilShape(t *testing.T) {
+	if _, ok := dockFindGroupLayout(&Layout{}, "g1"); ok {
+		t.Error("nil root Shape should not match")
+	}
+	tree := Layout{
+		Shape: &Shape{ID: "dock"},
+		Children: []Layout{
+			{},                        // nil Shape — must not stop the walk
+			{Shape: &Shape{ID: "g1"}}, // sibling after it
+		},
+	}
+	got, ok := dockFindGroupLayout(&tree, "g1")
+	if !ok || got.Shape.ID != "g1" {
+		t.Error("sibling after a nil-Shape child should still be found")
+	}
+}
+
+// TestDockDragAmendOverlayScopedGroup guards the overlay half of the
+// same regression: the drop preview is positioned from the hovered
+// group's rect, which is only reachable through the leaf-ID search once
+// the group carries a scoped effective ID.
+func TestDockDragAmendOverlayScopedGroup(t *testing.T) {
+	w, _ := buildDragZoneDock(t)
+	g2, ok := dockFindGroupLayout(&w.layout, "g2")
+	if !ok {
+		t.Fatal("group g2 not found in rendered layout")
+	}
+	wantX, wantY := g2.Shape.X, g2.Shape.Y
+	wantW, wantH := g2.Shape.Width, g2.Shape.Height
+
+	dockDragSet(w, "dock", dockDragState{
+		active:       true,
+		panelID:      "b",
+		sourceGroup:  "g1",
+		hoverGroupID: "g2",
+		hoverZone:    dockDropRight,
+	})
+	w.refreshLayout = true
+	w.FrameFn()
+
+	overlay, ok := dockFindGroupLayout(&w.layout, "dock_zone_overlay")
+	if !ok {
+		t.Fatal("zone overlay not found in rendered layout")
+	}
+	// dockDropRight previews the right half of the hovered group.
+	wantX += wantW * 0.5
+	wantW *= 0.5
+	if overlay.Shape.X != wantX || overlay.Shape.Width != wantW ||
+		overlay.Shape.Y != wantY || overlay.Shape.Height != wantH {
+		t.Errorf("overlay rect = (%g,%g %gx%g), want (%g,%g %gx%g)",
+			overlay.Shape.X, overlay.Shape.Y,
+			overlay.Shape.Width, overlay.Shape.Height,
+			wantX, wantY, wantW, wantH)
+	}
+}
