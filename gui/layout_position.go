@@ -191,7 +191,10 @@ func childCrossAxisHAlign(
 	return xAlign
 }
 
-// layoutSetShapeClips sets shape clips used for hit testing.
+// layoutSetShapeClips sets each shape's clip rect. Hit testing reads
+// it directly, and renderLayout derives the scissor it emits from it,
+// so the two passes agree only while this walk applies the same insets
+// the renderer does.
 func layoutSetShapeClips(layout *Layout, clip drawClip) {
 	shapeClip := shapeBounds(layout.Shape)
 	if r, ok := rectIntersection(shapeClip, clip); ok {
@@ -200,6 +203,19 @@ func layoutSetShapeClips(layout *Layout, clip drawClip) {
 		layout.Shape.shapeClip = drawClip{}
 	}
 	childClip := layout.Shape.shapeClip
+	// OverDraw children (scrollbars) sit in the padding band at the
+	// container's edge, so they keep the uninset rect. Read from the
+	// shape, not from childClip, which the inset below rebinds.
+	overClip := layout.Shape.shapeClip
+	// A clipping container scissors its children to its content box,
+	// so hit testing and a child's own clip must use the same rect the
+	// renderer emits — not the container's full bounds. Without this a
+	// clipped child (a Markdown code block) scrolled past the scroll
+	// viewport's padding edge re-derives its clip from an uninset rect
+	// and paints above the viewport.
+	if layout.Shape.Clip {
+		childClip = clipContentBox(layout.Shape)
+	}
 	// For rotated containers, children live in the internal
 	// (unrotated) coordinate space which may be larger than
 	// the display rect in the swapped dimension.
@@ -212,9 +228,14 @@ func layoutSetShapeClips(layout *Layout, clip drawClip) {
 			X: cx - dh/2, Y: cy - dw/2,
 			Width: dh, Height: dw,
 		}
+		overClip = childClip
 	}
 	for i := range layout.Children {
-		layoutSetShapeClips(&layout.Children[i], childClip)
+		cc := childClip
+		if layout.Children[i].Shape.OverDraw {
+			cc = overClip
+		}
+		layoutSetShapeClips(&layout.Children[i], cc)
 	}
 }
 
