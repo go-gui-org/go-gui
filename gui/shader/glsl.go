@@ -140,9 +140,14 @@ const (
                   - radius_caster;
 
         // Shadow logic:
-        // alpha_falloff: Smooth transition from 0 (inside) to blur radius (outside).
-        // Inverted (1.0 - ...) so opacity is 1 inside the shadow and 0 outside.
-        float alpha_falloff = 1.0 - smoothstep(0.0, max(1.0, blur), d);
+        // alpha_falloff: centred on the shadow's own edge, so the ramp
+        // spans -blur..+blur and reads ~50% AT the edge. That is what a
+        // Gaussian blur of a hard-edged rect gives (sigma = blur/2),
+        // and it is what the soft backend and a canvas shadowBlur both
+        // produce. Ramping from full opacity at the edge instead is
+        // twice the ink over twice the width — a grey cloud, not depth.
+        float b_half = max(1.0, blur);
+        float alpha_falloff = 1.0 - smoothstep(-b_half, b_half, d);
         
         // alpha_clip: The shadow should not be visible *under* the casting object.
         // d_c < 0 means the fragment is inside the casting box.

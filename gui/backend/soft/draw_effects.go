@@ -29,10 +29,11 @@ func clampBlur(v float32) float32 {
 }
 
 // sigmaPerBlur converts a command's blur radius to a Gaussian standard
-// deviation. The GPU shaders ramp their SDF alpha linearly across a
-// band of width BlurRadius; a Gaussian of half that sigma puts
-// essentially all of its transition in the same band, so the two
-// agree on the visible extent of the falloff.
+// deviation. This CPU path is the reference: a true Gaussian blur of a
+// hard-edged coverage mask, so alpha is ~50% at the shape's own edge
+// and decays over roughly +/- one blur radius. The GPU shaders match it
+// with a smoothstep over -blur..+blur, which tracks this Gaussian's CDF
+// to within about 0.01.
 const sigmaPerBlur = 0.5
 
 // drawShadow paints a blurred rounded rect offset from its caster, and

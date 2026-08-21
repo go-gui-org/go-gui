@@ -362,10 +362,43 @@ track becomes a capsule by accident.
 `ShadowPopover` and `ShadowDialog` are nil in `ThemeDark` and `ThemeLight`
 today. Fill them:
 
-| Theme | `ShadowPopover`                   | `ShadowDialog`                     |
-| ----- | --------------------------------- | ---------------------------------- |
-| Dark  | `RGBA(0,0,0,140)`, +4y, blur 12   | `RGBA(0,0,0,170)`, +12y, blur 32   |
-| Light | `RGBA(16,24,40,40)`, +4y, blur 12 | `RGBA(16,24,40,60)`, +12y, blur 32 |
+| Theme | `ShadowPopover`              | `ShadowDialog`               |
+| ----- | ---------------------------- | ---------------------------- |
+| Dark  | `RGBA(0,0,0,140)`, blur 12   | `RGBA(0,0,0,170)`, blur 32   |
+| Light | `RGBA(16,24,40,40)`, blur 12 | `RGBA(16,24,40,60)`, blur 32 |
+
+Revised after the first pass shipped, when every elevated surface read as a grey
+cloud rather than as depth. The alphas above are the original table's; two other
+things were wrong.
+
+**The GPU shadow shader had the falloff off by a factor of two, in both
+directions.** `fs_shadow` ramped alpha from _fully opaque at the caster edge_
+out to `BlurRadius`. A Gaussian blur of a hard-edged rect — which is what a CSS
+`box-shadow` means, what a canvas `shadowBlur` produces, and what this toolkit's
+own soft backend already produced — is ~50% at that edge and decays over roughly
+±one blur radius with σ = blur/2. So every GPU-rendered shadow carried about
+twice the ink over twice the width, and the GPU and CPU backends disagreed with
+each other on the same command.
+
+The fix is to centre the ramp: `1 - smoothstep(-blur, +blur, d)`, which tracks
+that Gaussian's CDF to within about 0.01 (at d = σ it gives 0.16 against 0.159).
+The blur pipeline in the same shader already used this form. Four sources carry
+it: `gui/backend/internal/msl/source.go` (macOS, iOS), `gui/shader/glsl.go`
+(Linux, Windows), `gui/backend/android/gles_android.c`, and the legacy
+`gui/shader/metal.go` mirror. `gui/backend/soft` and `gui/backend/web` were
+already correct and are unchanged — `soft`'s `sigmaPerBlur` is now the
+documented reference the GPU path matches.
+
+**Concentric, not offset.** A downward offset puts a heavy band under one edge
+and nothing above it. On a menu — anchored to a trigger it visibly drops from —
+that reads as depth; on a dialog centred in the window it reads as the surface
+sliding. `OffsetY: 0` in both tiers; the tier is expressed by blur and alpha
+alone.
+
+The platform themes (macOS, WinUI, GNOME) keep their offsets — those mirror the
+native ladders and are not the toolkit's own taste. They needed no retune: the
+shader fix alone brings them to roughly what the native ladders describe, which
+is what they were copied from.
 
 **Elevation goes on floating surfaces only** — menus, dropdowns, tooltips,
 toasts, dialogs, the command palette. Inline panels and cards separate by fill
