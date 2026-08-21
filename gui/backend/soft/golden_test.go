@@ -21,8 +21,11 @@ package soft
 // resolves through the host catalog, and go-glyph is consumed through
 // a local go.work working copy, so glyph outlines can differ between
 // the machine that records and the CI machine that checks. No text
-// kinds means go-glyph never runs and neither drift source exists.
+// kinds means go-glyph never renders and neither drift source exists.
 // Icons are text kinds too, so a case cannot cheat with one.
+// Layout-time metric reads — a control sizing to its line height —
+// are pinned by goldenMetrics, so a case may contain text-bearing
+// widgets without their metrics entering the recording.
 //
 // Comparison is tolerant, not exact. x/image/vector and x/image/draw
 // accumulate coverage with arch-specific SIMD, so edge pixels can
@@ -43,6 +46,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/go-gui-org/go-glyph"
 
 	"github.com/go-gui-org/go-gui/gui"
 )
@@ -128,6 +133,13 @@ func TestPixelGolden(t *testing.T) {
 // returns the rendered buffer. The window carries no BgColor, so the
 // clear color is the theme's background — which is part of what the
 // recording pins.
+//
+// The text measurer is pinned to deterministic metrics (goldenMetrics),
+// so a case whose layout reads line height — a form row of controls,
+// say — sizes identically on the machine that records and the CI
+// machine that checks. The real glyph system is still built (prepare)
+// and handed to the renderer for its atlas bookkeeping, but layout
+// never consults it.
 func renderPixelGolden(
 	t *testing.T, theme gui.Theme, c pixelCase,
 ) (*image.RGBA, error) {
@@ -137,17 +149,47 @@ func renderPixelGolden(
 		Height: pixelGoldenH,
 		OnInit: func(w *gui.Window) { w.UpdateView(c.build) },
 	})
-	t.Cleanup(func() { Release(w) })
 	w.SetTheme(theme)
+	tm, err := prepare(w, 1)
+	if err != nil {
+		return nil, err
+	}
+	t.Cleanup(func() { tm.textSys.Free() })
+	w.SetTextMeasurer(goldenMetrics{})
 	if c.focusID != "" {
 		w.SetFocus(c.focusID)
 	}
-	img, err := RenderToImage(w, 1)
+	img, err := renderFrame(w, tm, 1)
 	if err != nil {
 		return nil, err
 	}
 	assertTextFree(t, w)
 	return img, nil
+}
+
+// goldenMetrics is the deterministic text measurer the pixel goldens
+// render with. Layout-time metric reads must not depend on the host
+// font catalog: the repo bundles no text font, so the default family
+// resolves through the machine's fonts, and a control's line-height
+// term would drift the recording between macOS and CI's Linux/Windows.
+// FontHeight is pinned to 1em and FontAscent to 0.77em, which is what
+// a real glyph system reports on the machine that recorded the files.
+type goldenMetrics struct{}
+
+func (goldenMetrics) TextWidth(_ string, _ gui.TextStyle) float32 { return 0 }
+func (goldenMetrics) TextHeight(_ string, _ gui.TextStyle) float32 {
+	return 0
+}
+func (goldenMetrics) FontHeight(style gui.TextStyle) float32 {
+	return style.Size
+}
+func (goldenMetrics) FontAscent(style gui.TextStyle) float32 {
+	return style.Size * 0.77
+}
+func (goldenMetrics) LayoutText(
+	_ string, _ gui.TextStyle, _ float32,
+) (glyph.Layout, error) {
+	return glyph.Layout{}, nil
 }
 
 // assertTextFree fails a case whose command stream carries a text or
