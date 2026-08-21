@@ -101,12 +101,12 @@ reported through `DebugCallbacks`.
 
 `FrameFn` re-runs the refresh pass once after any pass whose flush ran a
 deferred callback. Those callbacks run after the renderers were built, and a
-callback that writes state or moves focus marks no refresh flag — `SetFocus`
-and plain state writes are silent — so `flushDeferredCallbacks`'s own report
-(does anything run?) is what re-arms the loop. Without it the frame would
-render the pre-callback state and keep it until the next event. Two passes, not
-a loop: a view that dirties itself every pass is a bug the frame loop must not
-amplify into a spin, and the next `FrameFn` picks it up anyway.
+callback that writes state or moves focus marks no refresh flag — `SetFocus` and
+plain state writes are silent — so `flushDeferredCallbacks`'s own report (does
+anything run?) is what re-arms the loop. Without it the frame would render the
+pre-callback state and keep it until the next event. Two passes, not a loop: a
+view that dirties itself every pass is a bug the frame loop must not amplify
+into a spin, and the next `FrameFn` picks it up anyway.
 
 ## Rejected: a reentrancy flag
 
