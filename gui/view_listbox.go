@@ -131,21 +131,24 @@ func ListBox(cfg ListBoxCfg) View {
 	radius := cfg.Radius.Get(dn.Radius)
 
 	selectedSet := listCoreSelectedSet(cfg.SelectedIDs)
-	list := make([]View, 0, len(cfg.Data))
-	for i := range cfg.Data {
-		list = append(list, listBoxItemView(cfg.Data[i], cfg, selectedSet, ""))
-	}
-
-	listBoxID := cfg.ID
-	isMultiple := cfg.Multiple
-	onSelect := cfg.OnSelect
-	selectedIDs := cfg.SelectedIDs
+	// Built before the rows: each row's click handler moves the
+	// keyboard focus index, which is an index into this slice.
 	itemIDs := make([]string, 0, len(cfg.Data))
 	for i := range cfg.Data {
 		if !cfg.Data[i].isSubheading {
 			itemIDs = append(itemIDs, cfg.Data[i].ID)
 		}
 	}
+	list := make([]View, 0, len(cfg.Data))
+	for i := range cfg.Data {
+		list = append(list,
+			listBoxItemView(cfg.Data[i], cfg, selectedSet, "", itemIDs))
+	}
+
+	listBoxID := cfg.ID
+	isMultiple := cfg.Multiple
+	onSelect := cfg.OnSelect
+	selectedIDs := cfg.SelectedIDs
 
 	return Column(ContainerCfg{
 		ID:       cfg.ID,
@@ -518,4 +521,38 @@ func listBoxDataHash(items []ListBoxOption) uint64 {
 		h *= prime
 	}
 	return h
+}
+
+// listBoxFocusOnClick moves the keyboard focus row onto the clicked
+// item and gives the list itself window focus.
+//
+// Without this a click moves the selection while the focus highlight
+// stays wherever the keyboard last left it, so the list paints two
+// indicators on two different rows and the next arrow key jumps back
+// to the stale one. The tree does the same in treeRowClick.
+//
+// The list's ID and its focus opt-out are passed as scalars rather
+// than as the ListBoxCfg they come from: the caller is a per-row
+// OnClick closure, and closing over the whole Cfg would heap-allocate
+// it once per row per frame in the view phase.
+func listBoxFocusOnClick(
+	listBoxID string, focusDisabled bool,
+	itemIDs []string, datID string, w *Window,
+) {
+	if listBoxID == "" || w == nil {
+		return
+	}
+	for i, id := range itemIDs {
+		if id == datID {
+			lbf := StateMap[string, int](
+				w, nsListBoxFocus, capModerate)
+			lbf.Set(listBoxID, i)
+			break
+		}
+	}
+	// Only the focusable list may claim window focus; a
+	// FocusDisabled list keeps whatever had it.
+	if !focusDisabled {
+		w.SetFocus(listBoxID)
+	}
 }
