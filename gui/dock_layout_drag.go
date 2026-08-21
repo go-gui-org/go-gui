@@ -214,7 +214,14 @@ func dockDragDetectZone(
 
 	// Check each panel group's zone.
 	for _, group := range panelNodes {
-		groupLayout, ok := dockFindGroupLayout(dockLayout, group.ID)
+		// ScopeID drops empty parts, so ScopeID(dockID, "") is dockID
+		// itself and would match the dock container — handing the whole
+		// dock rect back as an unnamed group's zone. A group with no ID
+		// is not addressable and cannot be a drop target anyway.
+		if group.ID == "" {
+			continue
+		}
+		groupLayout, ok := dockLayout.FindByID(ScopeID(dockID, group.ID))
 		if !ok {
 			continue
 		}
@@ -333,7 +340,7 @@ func dockDragAmendOverlay(
 		tw = layout.Shape.Width
 		th = layout.Shape.Height
 	case len(state.hoverGroupID) > 0:
-		groupLayout, ok := dockFindGroupLayout(layout, state.hoverGroupID)
+		groupLayout, ok := layout.FindByID(ScopeID(dockID, state.hoverGroupID))
 		if !ok {
 			return
 		}
@@ -366,33 +373,4 @@ func dockDragAmendOverlay(
 	layout.Children[overlayIdx].Shape.Width = tw
 	layout.Children[overlayIdx].Shape.Height = th
 	layout.Children[overlayIdx].Shape.Color = colorZone
-}
-
-// dockFindGroupLayout locates a panel-group container inside the dock
-// subtree by its DockNode ID.
-//
-// FindByID takes an *effective* ID, and a group container's is the node
-// ID joined to its ID-bearing ancestors — the splitter path that led to
-// it ("dock_split:s1:pane:first:g1"). That path is a property of the
-// current tree shape, so it cannot be reconstructed from the node ID
-// the drag state carries. The leaf ID is what the dock owns and is
-// unique within one dock tree, so match on it directly.
-//
-// Walks pre-order rather than reusing FindLayout, which visits children
-// first: a group's container is an ancestor of the panel content it
-// holds, so pre-order returns the container even if some widget inside
-// that content carries the same leaf ID.
-func dockFindGroupLayout(layout *Layout, groupID string) (*Layout, bool) {
-	if groupID == "" || layout.Shape == nil {
-		return nil, false
-	}
-	if layout.Shape.ID == groupID {
-		return layout, true
-	}
-	for i := range layout.Children {
-		if res, ok := dockFindGroupLayout(&layout.Children[i], groupID); ok {
-			return res, true
-		}
-	}
-	return nil, false
 }

@@ -155,7 +155,7 @@ func TestDockGroupViewTabButtons(t *testing.T) {
 	v := dockGroupView(core, group, cfg, dockDragState{})
 	layout := generateViewLayout(v, w)
 
-	if layout.Shape.ID != "g1" {
+	if layout.Shape.ID != "dock1:g1" {
 		t.Fatalf("group id = %s, want g1", layout.Shape.ID)
 	}
 }
@@ -311,8 +311,8 @@ func TestDockSplitViewOrientation(t *testing.T) {
 
 	v := dockSplitView(core, node, cfg, dockDragState{})
 	layout := generateViewLayout(v, w)
-	if layout.Shape.ID != "dock_split:s1" {
-		t.Fatalf("id = %s, want dock_split:s1", layout.Shape.ID)
+	if layout.Shape.ID != "dock1:split:s1" {
+		t.Fatalf("id = %s, want dock1:split:s1", layout.Shape.ID)
 	}
 }
 
@@ -338,7 +338,7 @@ func TestDockNodeViewRoutesSplit(t *testing.T) {
 
 	v := dockNodeView(core, node, cfg, dockDragState{})
 	layout := generateViewLayout(v, w)
-	if layout.Shape.ID != "dock_split:s1" {
+	if layout.Shape.ID != "dock1:split:s1" {
 		t.Fatal("should route to split view")
 	}
 }
@@ -360,7 +360,7 @@ func TestDockNodeViewRoutesGroup(t *testing.T) {
 
 	v := dockNodeView(core, group, cfg, dockDragState{})
 	layout := generateViewLayout(v, w)
-	if layout.Shape.ID != "g1" {
+	if layout.Shape.ID != "dock1:g1" {
 		t.Fatal("should route to group view")
 	}
 }
@@ -507,7 +507,7 @@ func TestDockTabButtonWithSelect(t *testing.T) {
 	v := dockTabButton(core, group, panel, true, cfg)
 	layout := generateViewLayout(v, w)
 
-	if layout.Shape.ID != "dock_tab:g1:a" {
+	if layout.Shape.ID != "dock1:tab:g1:a" {
 		t.Fatalf("tab id = %s", layout.Shape.ID)
 	}
 
@@ -540,8 +540,8 @@ func TestDockTabButtonCloseButtonHasTextColor(t *testing.T) {
 	v := dockTabButton(core, group, panel, true, cfg)
 	layout := generateViewLayout(v, w)
 
-	// Find the close button (dock_close:a) then its child Text.
-	closeBtn := findShapeByID(&layout, "dock_close:a")
+	// Find the close button (dock1:close:a) then its child Text.
+	closeBtn := findShapeByID(&layout, "dock1:close:a")
 	if closeBtn == nil {
 		t.Fatal("close button not found")
 	}

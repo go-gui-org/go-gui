@@ -265,6 +265,20 @@ root's own leaf becomes `panel:grid`; audit its leaf-ID consumers
 (`FindByID(cfg.ID)`, `IsFocus(cfg.ID)`, reverse-parse callers) as migration
 work. A future per-grid prefix fix would parse against the grid's `effID`.
 
+**Dock is the second deliberate absolute composite, for the opposite reason.** A
+dock group container takes `ScopeID(dockID, node.ID)` and a dock splitter takes
+`ScopeID(dockID, "split", node.ID)` (`gui/view_dock_layout.go`), so both are
+absolute and skip the join. That is the point: a group's position in the dock
+tree changes on every drop, and the group scopes the panel content inside it, so
+a position-derived group ID re-keys every widget in the panel — its scroll
+offset, its focus, its input state — whenever anything else in the dock moves
+(issue #389). The dock's own ID is resolved (`w.EffID(cfg.ID)`), so the composed
+ID still carries the surrounding scope; what it does not carry is the splitter
+path. Node IDs minted by `dockTreeSplitAt` / `dockTreeWrapRoot` join with `-`,
+not `IDSep`: a node ID is tree data fed into `ScopeID` as a **part**, and an
+`IDSep` in a part would make the composed leaf absolute in the wrong way —
+window-global, outside the dock scope.
+
 ## Resolution pass
 
 `resolveShapeIDs(layout, scope string)` runs **first** in every `layoutPipeline`

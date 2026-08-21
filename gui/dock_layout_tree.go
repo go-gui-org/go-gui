@@ -3,6 +3,7 @@ package gui
 import (
 	"fmt"
 	"slices"
+	"strings"
 )
 
 // dock_layout_tree.go — user-owned, serializable layout tree for
@@ -116,6 +117,20 @@ func DockPanelGroup(id string, panelIDs []string, selectedID string) *DockNode {
 		PanelIDs:   panelIDs,
 		SelectedID: selectedID,
 	}
+}
+
+// dockNodeIDSep joins the parts of a minted node ID.
+//
+// A node ID is tree data, not a layout ID: dockGroupView and
+// dockSplitView feed it into ScopeID(dockID, node.ID) as a *part*. A
+// part containing IDSep would make the composed leaf absolute, so it
+// would skip the dock scope and land window-global (issue #389).
+const dockNodeIDSep = "-"
+
+// dockNodeID composes a minted node ID from parts. Separate from
+// ScopeID on purpose — see dockNodeIDSep.
+func dockNodeID(parts ...string) string {
+	return strings.Join(parts, dockNodeIDSep)
 }
 
 // dockNodeMaxDepth caps recursion when sanitizing deserialized trees.
@@ -306,10 +321,10 @@ func dockTreeSplitAtRec(nd *DockNode, groupID, panelID string, zone DockDropZone
 	if nd.ID != groupID {
 		return nd
 	}
-	newGroup := DockPanelGroup(ScopeID(groupID, "new", panelID), []string{panelID}, panelID)
+	newGroup := DockPanelGroup(dockNodeID(groupID, "new", panelID), []string{panelID}, panelID)
 	existing := DockPanelGroup(nd.ID, nd.PanelIDs, nd.SelectedID)
 	dir := dockZoneToSplitDir(zone)
-	splitID := ScopeID(groupID, "split", panelID)
+	splitID := dockNodeID(groupID, "split", panelID)
 	firstIsNew := zone == dockDropLeft || zone == dockDropTop
 	if firstIsNew {
 		return DockSplit(splitID, dir, 0.5, newGroup, existing)
@@ -320,9 +335,9 @@ func dockTreeSplitAtRec(nd *DockNode, groupID, panelID string, zone DockDropZone
 // DockTreeWrapRoot wraps the current root in a new split for
 // window-edge docking. The new panel goes at the indicated edge.
 func dockTreeWrapRoot(root *DockNode, panelID string, zone DockDropZone) *DockNode {
-	newGroup := DockPanelGroup(ScopeID("dock_edge", panelID), []string{panelID}, panelID)
+	newGroup := DockPanelGroup(dockNodeID("dock_edge", panelID), []string{panelID}, panelID)
 	dir := dockZoneToSplitDir(zone)
-	splitID := ScopeID("dock_root_split", panelID)
+	splitID := dockNodeID("dock_root_split", panelID)
 	firstIsNew := zone == dockDropWindowLeft || zone == dockDropWindowTop
 	ratio := float32(0.8)
 	if firstIsNew {

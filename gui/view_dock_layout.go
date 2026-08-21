@@ -201,7 +201,11 @@ func dockSplitView(
 	}
 
 	return Splitter(SplitterCfg{
-		ID:          ScopeID("dock_split", node.ID),
+		// Absolute, and derived from the dock's own ID rather than the
+		// splitter path that currently leads here: a rearrangement must
+		// not move the ratio state of a splitter that did not move
+		// (issue #389).
+		ID:          ScopeID(core.id, "split", node.ID),
 		Orientation: orientation,
 		Ratio:       SomeF(node.Ratio),
 		Sizing:      FillFill,
@@ -298,7 +302,11 @@ func dockGroupView(
 	}))
 
 	return Column(ContainerCfg{
-		ID:         group.ID,
+		// Absolute: dock ID + node ID, never the splitter path that leads
+		// here. The group scopes its panel content, so a bare node ID
+		// would re-key every widget inside the panel on each drop
+		// elsewhere in the tree (issue #389).
+		ID:         ScopeID(core.id, group.ID),
 		Sizing:     FillFill,
 		Padding:    NoPadding,
 		Spacing:    NoSpacing,
@@ -335,7 +343,7 @@ func dockTabButton(
 		btnContent = append(btnContent,
 			Rectangle(RectangleCfg{Sizing: FillFill, Color: ColorTransparent}))
 		btnContent = append(btnContent, Button(ButtonCfg{
-			ID:         ScopeID("dock_close", panelID),
+			ID:         ScopeID(dockID, "close", panelID),
 			Width:      18,
 			Height:     18,
 			Sizing:     FixedFixed,
@@ -364,7 +372,7 @@ func dockTabButton(
 	}
 
 	return Button(ButtonCfg{
-		ID:         ScopeID("dock_tab", groupID, panelID),
+		ID:         ScopeID(dockID, "tab", groupID, panelID),
 		Sizing:     FillFit,
 		HAlign:     Some(HAlignLeft),
 		Padding:    NewPadding(4, 8, 4, 8),
