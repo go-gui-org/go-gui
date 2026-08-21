@@ -45,7 +45,18 @@ func RenderToImage(w *gui.Window, scale float32) (*image.RGBA, error) {
 	if err != nil {
 		return nil, err
 	}
+	return renderFrame(w, tm, scale)
+}
 
+// renderFrame generates one frame with the window's current text
+// measurer and draws it at scale. tm is the text system the renderer
+// uses for text kinds; layout-time metrics come from the window's
+// measurer, which a caller may have swapped for a deterministic stub
+// (the pixel-golden harness does, so a recorded frame does not depend
+// on the host font catalog).
+func renderFrame(
+	w *gui.Window, tm *textMeasurer, scale float32,
+) (*image.RGBA, error) {
 	logicalW, logicalH := w.WindowSize()
 	pw := int(math.Round(float64(float32(logicalW) * scale)))
 	ph := int(math.Round(float64(float32(logicalH) * scale)))
