@@ -96,6 +96,20 @@ Visual refresh phase 1 (`docs/specs/visual-refresh.md`, sections 1 and 1b).
   explicitly — neither Cfg has a `Sizing` field, and both are fixed-shape by
   design.
 
+- **Dock panel state was orphaned by any rearrangement of the dock tree** (issue
+  #389). A dock group's container carried its bare `DockNode` ID, so its
+  effective ID was the splitter path that happened to lead to it — and the group
+  scopes its panel content, so a drop anywhere in the dock re-keyed every widget
+  inside every panel: scroll offset, focus, input state. The group container now
+  takes `ScopeID(dockID, node.ID)` and the splitter
+  `ScopeID(dockID, "split", node.ID)`, both absolute and independent of tree
+  position; tab and close buttons scope under the dock ID rather than
+  window-global `dock_tab:` / `dock_close:` prefixes. Node IDs minted on a drop
+  join with `-` instead of `:`, so they stay parts rather than reading as
+  absolute IDs. A panel group with an empty ID is no longer a drop target: it
+  used to resolve to the dock container itself and offer the whole dock as its
+  zone. `DockLayout` gets its first golden recording.
+
 ## [v0.63.0] - 2026-08-19
 
 ### Added

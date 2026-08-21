@@ -1,0 +1,30 @@
+Clip xy=16.00,16.00 wh=288.00,208.00
+Clip xy=16.00,16.00 wh=288.00,208.00
+Clip xy=15.00,15.00 wh=140.50,210.00
+Clip xy=15.00,15.00 wh=140.50,210.00
+Rect xy=15.00,15.00 wh=140.50,29.60 color=#1e2125ff radius=6.00 fill
+Rect xy=19.00,17.00 wh=65.75,27.60 color=#1e2125ff fill
+Text xy=27.00,22.24 wh=0.00,0.00 color=#e6e8ebff text="Alpha" size=14.00
+Rect xy=84.75,17.00 wh=1.00,27.60 color=#ffffff1c radius=6.00 fill
+Rect xy=85.75,17.00 wh=65.75,27.60 color=#1e2125ff fill
+Text xy=93.75,22.24 wh=0.00,0.00 color=#e6e8ebff text="Beta" size=14.00
+Rect xy=15.00,44.60 wh=140.50,180.40 color=#17191cff radius=6.00 fill
+Clip xy=15.00,44.60 wh=140.50,180.40
+Clip xy=15.00,15.00 wh=140.50,210.00
+Clip xy=15.00,15.00 wh=140.50,210.00
+Clip xy=16.00,16.00 wh=288.00,208.00
+Rect xy=155.50,15.00 wh=9.00,210.00 color=#262a2fff radius=4.00 fill
+StrokeRect xy=155.50,15.00 wh=9.00,210.00 color=#ffffff1c radius=4.00 thickness=1.00
+Rect xy=158.43,111.00 wh=3.15,18.00 color=#4d82f0ff radius=4.00 fill
+Clip xy=164.50,15.00 wh=140.50,210.00
+Clip xy=164.50,15.00 wh=140.50,210.00
+Rect xy=164.50,15.00 wh=140.50,29.60 color=#1e2125ff radius=6.00 fill
+Rect xy=168.50,17.00 wh=132.50,27.60 color=#1e2125ff fill
+Text xy=176.50,22.24 wh=0.00,0.00 color=#e6e8ebff text="Gamma" size=14.00
+Rect xy=164.50,44.60 wh=140.50,180.40 color=#17191cff radius=6.00 fill
+Clip xy=164.50,44.60 wh=140.50,180.40
+Clip xy=164.50,15.00 wh=140.50,210.00
+Clip xy=164.50,15.00 wh=140.50,210.00
+Clip xy=16.00,16.00 wh=288.00,208.00
+Clip xy=16.00,16.00 wh=288.00,208.00
+Clip xy=0.00,0.00 wh=320.00,240.00

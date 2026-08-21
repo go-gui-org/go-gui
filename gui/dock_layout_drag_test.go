@@ -189,7 +189,7 @@ func TestDockDragDetectZoneGroupZone(t *testing.T) {
 	// Layout tree: dock1 -> g1
 	groupLayout := Layout{
 		Shape: &Shape{
-			ID:        "g1",
+			ID:        ScopeID("dock1", "g1"),
 			shapeClip: drawClip{X: 100, Y: 100, Width: 400, Height: 300},
 		},
 	}
@@ -218,6 +218,31 @@ func TestDockDragDetectZoneGroupZone(t *testing.T) {
 	}
 }
 
+// TestDockDragDetectZoneSkipsEmptyGroupID guards the ScopeID edge:
+// empty parts are dropped, so ScopeID(dockID, "") is dockID itself and
+// would match the dock container, handing back the whole dock rect as
+// an unnamed group's drop zone.
+func TestDockDragDetectZoneSkipsEmptyGroupID(t *testing.T) {
+	w := &Window{}
+
+	groupNode := DockPanelGroup("", []string{"A", "B"}, "A")
+
+	w.layout = Layout{
+		Shape: &Shape{
+			ID:        "dock1",
+			shapeClip: drawClip{X: 0, Y: 0, Width: 800, Height: 600},
+		},
+	}
+
+	// Well inside the dock and clear of every window edge.
+	zone, gid := dockDragDetectZone(
+		"dock1", []*DockNode{groupNode},
+		400, 300, "other", w)
+	if zone != dockDropNone || gid != "" {
+		t.Fatalf("zone=%d, gid=%q; an ID-less group is not a drop target", zone, gid)
+	}
+}
+
 func TestDockDragDetectZoneSkipSinglePanelSource(t *testing.T) {
 	w := &Window{}
 
@@ -225,7 +250,7 @@ func TestDockDragDetectZoneSkipSinglePanelSource(t *testing.T) {
 
 	groupLayout := Layout{
 		Shape: &Shape{
-			ID:        "g1",
+			ID:        ScopeID("dock1", "g1"),
 			shapeClip: drawClip{X: 100, Y: 100, Width: 400, Height: 300},
 		},
 	}
@@ -253,7 +278,7 @@ func TestDockDragDetectZoneSkipCenterSameGroup(t *testing.T) {
 
 	groupLayout := Layout{
 		Shape: &Shape{
-			ID:        "g1",
+			ID:        ScopeID("dock1", "g1"),
 			shapeClip: drawClip{X: 100, Y: 100, Width: 400, Height: 300},
 		},
 	}
@@ -324,7 +349,7 @@ func TestDockDragAmendOverlayGroupRight(t *testing.T) {
 
 	groupLayout := Layout{
 		Shape: &Shape{
-			ID:        "g1",
+			ID:        ScopeID("dock1", "g1"),
 			X:         100,
 			Y:         50,
 			Width:     400,
@@ -434,7 +459,7 @@ func buildDragZoneDock(t *testing.T) (*Window, *DockNode) {
 func TestDockDragDetectZoneInsideGroup(t *testing.T) {
 	w, root := buildDragZoneDock(t)
 	nodes := dockTreeCollectPanelNodes(root)
-	g2, ok := dockFindGroupLayout(&w.layout, "g2")
+	g2, ok := w.layout.FindByID(ScopeID("dock", "g2"))
 	if !ok {
 		t.Fatal("group g2 not found in rendered layout")
 	}
@@ -463,69 +488,13 @@ func TestDockDragDetectZoneInsideGroup(t *testing.T) {
 	}
 }
 
-// TestDockFindGroupLayout covers the leaf-ID search directly: the root
-// itself, a nested hit, and the three not-found guards.
-func TestDockFindGroupLayout(t *testing.T) {
-	tree := Layout{
-		Shape: &Shape{ID: "dock"},
-		Children: []Layout{{
-			Shape: &Shape{ID: "split"},
-			Children: []Layout{
-				{Shape: &Shape{ID: "g1"}},
-				{Shape: &Shape{ID: "g2"}},
-			},
-		}},
-	}
-	tests := []struct {
-		name  string
-		id    string
-		want  bool
-		wantS string
-	}{
-		{"root", "dock", true, "dock"},
-		{"nested", "g2", true, "g2"},
-		{"missing", "g9", false, ""},
-		{"empty id", "", false, ""},
-	}
-	for _, tc := range tests {
-		got, ok := dockFindGroupLayout(&tree, tc.id)
-		if ok != tc.want {
-			t.Errorf("%s: ok=%v, want %v", tc.name, ok, tc.want)
-			continue
-		}
-		if ok && got.Shape.ID != tc.wantS {
-			t.Errorf("%s: found %q, want %q", tc.name, got.Shape.ID, tc.wantS)
-		}
-	}
-}
-
-// TestDockFindGroupLayoutNilShape checks the nil-Shape guards: a nil
-// root is not found rather than a panic, and a nil-Shape child does not
-// abort the search of its siblings.
-func TestDockFindGroupLayoutNilShape(t *testing.T) {
-	if _, ok := dockFindGroupLayout(&Layout{}, "g1"); ok {
-		t.Error("nil root Shape should not match")
-	}
-	tree := Layout{
-		Shape: &Shape{ID: "dock"},
-		Children: []Layout{
-			{},                        // nil Shape — must not stop the walk
-			{Shape: &Shape{ID: "g1"}}, // sibling after it
-		},
-	}
-	got, ok := dockFindGroupLayout(&tree, "g1")
-	if !ok || got.Shape.ID != "g1" {
-		t.Error("sibling after a nil-Shape child should still be found")
-	}
-}
-
 // TestDockDragAmendOverlayScopedGroup guards the overlay half of the
 // same regression: the drop preview is positioned from the hovered
 // group's rect, which is only reachable through the leaf-ID search once
 // the group carries a scoped effective ID.
 func TestDockDragAmendOverlayScopedGroup(t *testing.T) {
 	w, _ := buildDragZoneDock(t)
-	g2, ok := dockFindGroupLayout(&w.layout, "g2")
+	g2, ok := w.layout.FindByID(ScopeID("dock", "g2"))
 	if !ok {
 		t.Fatal("group g2 not found in rendered layout")
 	}
@@ -542,7 +511,7 @@ func TestDockDragAmendOverlayScopedGroup(t *testing.T) {
 	w.refreshLayout = true
 	w.FrameFn()
 
-	overlay, ok := dockFindGroupLayout(&w.layout, "dock_zone_overlay")
+	overlay, ok := w.layout.FindByID(ScopeID("dock", "dock_zone_overlay"))
 	if !ok {
 		t.Fatal("zone overlay not found in rendered layout")
 	}

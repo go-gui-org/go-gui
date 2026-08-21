@@ -24,6 +24,25 @@ var goldenHSLA = HSLA{H: 210, S: 0.6, L: 0.5, A: 1}
 func goldenCases() []goldenCase {
 	return []goldenCase{
 		{
+			// The dock had no golden coverage at all (issue #389). One
+			// two-group split pins the tab strip, the separator, and the
+			// panel background against a styling change.
+			name: "dock_layout",
+			build: func(_ *Window) View {
+				return DockLayout(DockLayoutCfg{
+					ID: "dock",
+					Root: DockSplit("s1", DockSplitHorizontal, 0.5,
+						DockPanelGroup("g1", []string{"a", "b"}, "a"),
+						DockPanelGroup("g2", []string{"c"}, "c")),
+					Panels: []DockPanelDef{
+						{ID: "a", Label: "Alpha"},
+						{ID: "b", Label: "Beta"},
+						{ID: "c", Label: "Gamma"},
+					},
+				})
+			},
+		},
+		{
 			name: "input",
 			build: func(_ *Window) View {
 				return Input(InputCfg{ID: "in", Text: "typed value"})

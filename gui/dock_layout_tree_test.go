@@ -320,8 +320,8 @@ func TestMovePanelWindowEdge(t *testing.T) {
 	if !ok {
 		t.Fatal("D missing")
 	}
-	if dg.ID != "dock_edge:D" {
-		t.Fatalf("expected dock_edge:D, got %s", dg.ID)
+	if dg.ID != "dock_edge-D" {
+		t.Fatalf("expected dock_edge-D, got %s", dg.ID)
 	}
 }
 
