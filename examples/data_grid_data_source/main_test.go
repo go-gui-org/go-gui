@@ -8,7 +8,7 @@ import (
 
 func TestMainViewNoPanic(t *testing.T) {
 	t.Parallel()
-	gui.SetTheme(gui.ThemeDark.WithBorders(true))
+	gui.SetTheme(gui.ThemeDark)
 	app := &App{SimulateLatency: true}
 	app.AllRows = makeRows(100)
 	app.Columns = makeColumns()

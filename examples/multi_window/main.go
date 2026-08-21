@@ -20,7 +20,7 @@ type InspectorState struct {
 }
 
 func main() {
-	gui.SetTheme(gui.ThemeDark.WithBorders(true))
+	gui.SetTheme(gui.ThemeDark)
 	app := gui.NewApp()
 	app.ExitMode = gui.ExitOnMainClose
 

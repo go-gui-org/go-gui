@@ -9,7 +9,7 @@ import (
 // newTestWindow builds the demo the way main() does, minus the backend.
 func newTestWindow(t *testing.T) *gui.Window {
 	t.Helper()
-	gui.SetTheme(gui.ThemeDark.WithBorders(true))
+	gui.SetTheme(gui.ThemeDark)
 	w := gui.NewTestWindow(gui.WindowCfg{
 		State:  &App{},
 		Width:  400,

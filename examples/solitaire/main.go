@@ -54,7 +54,7 @@ func state(w *gui.Window) *App {
 const blinkAnim = "solitaire-blink"
 
 func main() {
-	gui.SetTheme(gui.ThemeDark.WithBorders(true))
+	gui.SetTheme(gui.ThemeDark)
 
 	w := gui.NewWindow(gui.WindowCfg{
 		State: &App{

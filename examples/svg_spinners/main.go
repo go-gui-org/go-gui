@@ -47,7 +47,7 @@ var showcase = []gui.SvgSpinnerKind{
 }
 
 func main() {
-	gui.SetTheme(gui.ThemeDark.WithBorders(true))
+	gui.SetTheme(gui.ThemeDark)
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  &App{},
 		Title:  "svg_spinners",

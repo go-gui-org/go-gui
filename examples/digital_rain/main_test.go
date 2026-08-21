@@ -9,7 +9,7 @@ import (
 
 func TestMainViewNoPanic(t *testing.T) {
 	t.Parallel()
-	gui.SetTheme(gui.ThemeDark.WithBorders(true))
+	gui.SetTheme(gui.ThemeDark)
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  &App{Delay: 200 * time.Millisecond},
 		Width:  800,

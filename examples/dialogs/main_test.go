@@ -17,7 +17,7 @@ const dialogShapeID = "___dialog_reserved_do_not_use___"
 // the button through whatever is drawn over it.
 func TestMessageButtonOpensDialog(t *testing.T) {
 	t.Parallel()
-	gui.SetTheme(gui.ThemeDark.WithBorders(true))
+	gui.SetTheme(gui.ThemeDark)
 
 	w := gui.NewTestWindow(gui.WindowCfg{State: &App{}, Width: 640, Height: 550})
 	root := w.TestRender(mainView)

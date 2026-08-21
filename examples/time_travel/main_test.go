@@ -11,7 +11,7 @@ import (
 // (applyTheme writes the default*Style mirrors), which is documented
 // frame-thread-only and races any other test touching theme state.
 func TestMainViewNoPanic(t *testing.T) {
-	gui.SetTheme(gui.ThemeDark.WithBorders(true))
+	gui.SetTheme(gui.ThemeDark)
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  &appState{},
 		Width:  320,

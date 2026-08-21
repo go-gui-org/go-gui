@@ -52,7 +52,7 @@ func main() {
 		return
 	}
 
-	gui.SetTheme(gui.ThemeDark.WithBorders(true))
+	gui.SetTheme(gui.ThemeDark)
 
 	col := sortColumnIndex(*sortBy)
 	state := &App{

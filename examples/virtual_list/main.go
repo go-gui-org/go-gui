@@ -65,7 +65,7 @@ func main() {
 		msgs[i] = newMessage(i)
 	}
 
-	gui.SetTheme(gui.ThemeDark.WithBorders(true))
+	gui.SetTheme(gui.ThemeDark)
 
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  &App{Messages: msgs},

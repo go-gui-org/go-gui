@@ -177,8 +177,8 @@ func demoThemeGen(w *gui.Window) gui.View {
 										Padding: gui.NewPadding(6, 12, 6, 12),
 										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Reset Dark", TextStyle: t.N3})},
 										OnClick: func(ctx gui.EventCtx) {
-											ctx.Window.SetTheme(gui.ThemeDark.WithBorders(true))
-											syncThemeGenFromCfg(appState(ctx.Window), gui.ThemeDark.WithBorders(true).Cfg)
+											ctx.Window.SetTheme(gui.ThemeDark)
+											syncThemeGenFromCfg(appState(ctx.Window), gui.ThemeDark.Cfg)
 										},
 									}),
 									gui.Button(gui.ButtonCfg{
@@ -186,8 +186,8 @@ func demoThemeGen(w *gui.Window) gui.View {
 										Padding: gui.NewPadding(6, 12, 6, 12),
 										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Reset Light", TextStyle: t.N3})},
 										OnClick: func(ctx gui.EventCtx) {
-											ctx.Window.SetTheme(gui.ThemeLight.WithBorders(true))
-											syncThemeGenFromCfg(appState(ctx.Window), gui.ThemeLight.WithBorders(true).Cfg)
+											ctx.Window.SetTheme(gui.ThemeLight)
+											syncThemeGenFromCfg(appState(ctx.Window), gui.ThemeLight.Cfg)
 										},
 									}),
 								},

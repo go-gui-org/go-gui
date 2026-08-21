@@ -9,7 +9,7 @@ import (
 
 func TestMainViewNoPanic(t *testing.T) {
 	t.Parallel()
-	gui.SetTheme(gui.ThemeDark.WithBorders(true))
+	gui.SetTheme(gui.ThemeDark)
 	items := make([]gui.ListBoxOption, 0, 10)
 	for i := 1; i <= 10; i++ {
 		id := fmt.Sprintf("%05d", i)
