@@ -8,13 +8,13 @@ func TestPresetThemesDefined(t *testing.T) {
 		theme Theme
 	}{
 		{"dark", ThemeDark},
-		{"dark-no-padding", themeDarkNoPadding},
-		{"dark-bordered", themeDarkBordered},
 		{"light", ThemeLight},
-		{"light-no-padding", themeLightNoPadding},
-		{"light-bordered", themeLightBordered},
-		{"blue-dark", themeBlue},
-		{"blue-dark-bordered", themeBlueBordered},
+		{"macos", themeMacOS},
+		{"macos-dark", themeMacOSDark},
+		{"gnome", themeGnome},
+		{"gnome-dark", themeGnomeDark},
+		{"windows", themeWindows},
+		{"windows-dark", themeWindowsDark},
 	}
 	for _, tt := range themes {
 		if tt.theme.Name == "" {
@@ -56,11 +56,6 @@ func TestDarkThemeBorderedDefault(t *testing.T) {
 	if got := ThemeDark.WithBorders(false).Cfg.SizeBorder; got != 0 {
 		t.Errorf("WithBorders(false) SizeBorder = %v, want 0", got)
 	}
-	// dark-bordered is now an exact duplicate of dark; keep them in
-	// lockstep so name-based selection cannot drift from ThemeDark.
-	if themeDarkBordered.Cfg.SizeBorder != ThemeDark.Cfg.SizeBorder {
-		t.Error("dark-bordered preset diverged from ThemeDark")
-	}
 }
 
 func TestLightThemeColors(t *testing.T) {
@@ -87,9 +82,10 @@ func TestPresetThemesRegistered(t *testing.T) {
 			len(names))
 	}
 	expected := []string{
-		"dark", "dark-no-padding", "dark-bordered",
-		"light", "light-no-padding", "light-bordered",
-		"blue-dark", "blue-dark-bordered",
+		"dark", "light",
+		"macos", "macos-dark",
+		"gnome", "gnome-dark",
+		"windows", "windows-dark",
 	}
 	nameSet := make(map[string]bool, len(names))
 	for _, n := range names {

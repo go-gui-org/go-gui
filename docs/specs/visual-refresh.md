@@ -520,7 +520,7 @@ Fourteen names are registered today. Remove six:
 | Name                 | Why removed                                                          |
 | -------------------- | -------------------------------------------------------------------- |
 | `dark-bordered`      | Identical to `dark` since borders became default.                    |
-| `light-bordered`     | Identical to `light`.                                                |
+| `light-bordered`     | Reachable as `ThemeLight.WithBorders(true)`.                         |
 | `dark-no-padding`    | Reachable as `ThemeDark.WithBorders(false)` plus a padding override. |
 | `light-no-padding`   | Same.                                                                |
 | `blue-dark`          | A taste preset; `ThemeMaker` is the supported way to make one.       |
@@ -582,7 +582,7 @@ Each phase re-records goldens and lands independently.
 | 5b    | § 5.4 focus ring + wiring the remaining ~8    | widget  | landed |
 | 6     | § 6 button variants                           | widget  | landed |
 | 7     | § 8 widget defects                            | widget  | landed |
-| 8     | § 7 preset removal + all doc deliverables     | mixed   |        |
+| 8     | § 7 preset removal + all doc deliverables     | mixed   | landed |
 
 Phases 2–4 are constant edits in `gui/styles.go`, `gui/padding.go` and
 `gui/theme_defaults.go` — they move every widget at once and are cheap to
@@ -676,6 +676,35 @@ pinned by the same § 10 cases, re-recorded and diff-read:
    macos/gnome/windows were byte-identical — the override seam held. The
    re-record sweep also touched `progress_fill`/`switch_focused.light` PNGs with
    identical pixels (encoder noise); those were restored, not kept.
+
+Phase 8 — § 7 checklist. A removal, so the gate is that nothing else moves:
+
+1. **The registry is exactly eight.** `TestPresetThemesRegistered` names `dark`,
+   `light`, `macos`, `macos-dark`, `gnome`, `gnome-dark`, `windows`,
+   `windows-dark`; `TestPresetThemesDefined` covers the same eight including the
+   platform pairs, which were previously asserted only inside
+   `TestPresetThemesRegistered`. `ThemeGet` on any of the six removed names
+   returns nil.
+2. **The elevation guards lost their subject.**
+   `TestPresetThemesCarryNoElevation` was deleted — the blue taste preset was
+   the last registered theme without shadows (all six platform themes set
+   `ShadowPopover`/`ShadowDialog`) — and
+   `TestOpenDropdownEmitsShadowOnlyWhenThemed` now builds its flat subject from
+   `ThemeMaker(baseCfg())`, the same material the taste presets were made of, so
+   the flat-vs-elevated pair still proves the shadow is the theme's doing.
+   `TestThemePresetElevationValues` pins dark/light only.
+3. **Goldens and pixels unmoved.** No registered theme changed appearance, so
+   `TestGolden` and `TestPixelGolden` pass without re-recording — a regression
+   here means the removal touched a shared builder (e.g. `baseCfg`), not just
+   the deleted presets.
+4. **Docs say the same thing.** `docs/specs/theme-style-single-source.md` no
+   longer names `dark-bordered` or `blue-dark`; `CLAUDE.md` drops the
+   `dark-no-padding` hint; `CHANGELOG.md` carries the breaking-change entry
+   under Unreleased → Removed; `ThemePicker` screenshots and the README gallery
+   are deferred (a human at a display is required; see Deferred questions). The
+   example sweep is its own commit: 94 files call `WithBorders(true)`, which is
+   a no-op since the 2026-08 default-border flip, and the two
+   `WithBorders(false)` sites are kept.
 
 Phase 5a — written backend checklist (one pass per backend against the stated
 expectation): for a caster at `(x,y,w,h,rad)` with `Spread: s`, the shadow
@@ -775,6 +804,21 @@ done until the docs say the same thing:
 
 ## Decisions taken
 
+- **Preset removal (§ 7, phase 8)** — the six names are unregistered and their
+  builders deleted, per the § 7 table, with one table correction: `light` is
+  still borderless (`baseCfg` states no `SizeBorder`; only `baseDarkCfg` sets
+  it), so `light-bordered` was **not** a duplicate — it was
+  `ThemeLight.WithBorders(true)`, and that call is the migration. The registry
+  holds eight: dark, light, and the three platform pairs, which stay because
+  they are the § 2.1 mechanism for a per-platform body size and let an app look
+  native on its host. `ThemePicker` and `themeRegisteredNames` shrink
+  automatically. The elevation guard tests lost their subject: the blue taste
+  preset was the last elevation-free registered theme (all six platform themes
+  carry shadows), so `TestPresetThemesCarryNoElevation` was deleted and the
+  flat-vs-elevated dropdown pair test now builds its flat subject from a bare
+  `baseCfg()` — the same material the taste presets were made of. `ThemeGet` on
+  a removed name misses; the change is breaking and is called out in
+  `CHANGELOG.md` under Unreleased → Removed.
 - **Progress readout placement and boolean sizes (§ 8, phase 7)** — the readout
   trails the bar at `SpacingSmall` in `TextStyleSecondary`, outside the fill;
   `progressBarCenterLabel` and the readout's `opticalCenterText` amend are
@@ -787,11 +831,10 @@ done until the docs say the same thing:
   leftover; the stated `Width` stays its floor when the outer fits content. One
   seam needed a guard: in a vertical bar the column's cross-axis fill pass
   stretches the `FillFit` track to the column's width, which grows to fit the
-  readout — so a vertical track whose caller did not ask for a fill-width bar
-  is capped at its stated width (`MaxWidth`), keeping `Width: 12` a 12-px bar
-  with the readout below it. The default readout style is now the theme's
-  secondary role
-  (`progressBarStyle.TextStyle` moved off the body text); the caller's
+  readout — so a vertical track whose caller did not ask for a fill-width bar is
+  capped at its stated width (`MaxWidth`), keeping `Width: 12` a 12-px bar with
+  the readout below it. The default readout style is now the theme's secondary
+  role (`progressBarStyle.TextStyle` moved off the body text); the caller's
   `TextStyle`/`TextBackground`/`TextPadding` fields still override. The switch
   (36×22 → 34×20), radio (16 → 15) and knob radii retune against the 14px
   ladder; `ToggleStyle.Size` was already `ts.Size + 4`, so the toggle did not
@@ -947,3 +990,9 @@ done until the docs say the same thing:
    shifts one step and phases 2–3 goldens re-record before phase 4.
 2. **Selection fill vs `ColorAccentSubtle`** — decided at phase 3: subtle + ring
    (see decisions).
+3. **README and per-example screenshots** (§ 10, phase 8) —
+   `assets/showcase.png`, `assets/gallery.png`, `todo.png`, `digital-rain.png`,
+   `benchmark.png`, `calculator.png`, `inspector.png` and any per-example README
+   images still show pre-refresh pixels (borderless, old radii, centered
+   progress readout). Re-taking needs a human at a display running each app;
+   nothing in the repo captures them. Do it as a drive-by after phase 8 lands.

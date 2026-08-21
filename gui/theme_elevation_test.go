@@ -2,45 +2,9 @@ package gui
 
 import "testing"
 
-// The elevation and focus-ring tokens are additive: a theme that does
-// not set them must produce exactly the styles it produced before they
-// existed. After visual-refresh §5.3 the dark/light presets and their
-// derived twins carry elevation, so this guards the remaining
-// elevation-free presets (the blue taste preset) — and every golden
-// recorded against one — from moving.
-func TestPresetThemesCarryNoElevation(t *testing.T) {
-	t.Parallel()
-	for _, tc := range []struct {
-		name  string
-		theme Theme
-	}{
-		{"blue", themeBlue},
-		{"blue-bordered", themeBlueBordered},
-	} {
-		for name, got := range map[string]*BoxShadow{
-			"dialog":     tc.theme.dialogStyle.Shadow,
-			"select":     tc.theme.selectStyle.Shadow,
-			"combobox":   tc.theme.comboboxStyle.Shadow,
-			"datepicker": tc.theme.datePickerStyle.Shadow,
-			"tooltip":    tc.theme.tooltipStyle.Shadow,
-			"toast":      tc.theme.toastStyle.Shadow,
-			"palette":    tc.theme.commandPaletteStyle.Shadow,
-			"submenu":    tc.theme.MenubarStyle.Shadow,
-			"focus ring": tc.theme.focusRing,
-		} {
-			if got != nil {
-				t.Errorf("%s: %s shadow set, want nil", tc.name, name)
-			}
-		}
-	}
-}
-
 // The dark and light presets carry the spec's elevation values (§5.3
 // table), fanned out to the floating surfaces, and their § 5.4 focus
-// rings. The derived presets (no-padding, bordered) copy their
-// polarity's cfg, so this also pins the init order — an elevation or
-// ring assignment moved after those copies would silently deflate the
-// twins. Pinning the resolved style shadows keeps the table and the
+// rings. Pinning the resolved style shadows keeps the table and the
 // code from drifting the way TestThemeMakerAccentRamp pins the accent
 // ramp.
 func TestThemePresetElevationValues(t *testing.T) {
@@ -53,11 +17,7 @@ func TestThemePresetElevationValues(t *testing.T) {
 		wantRing    *BoxShadow
 	}{
 		{"dark", ThemeDark, darkShadowPopover, darkShadowDialog, darkFocusRing},
-		{"dark-no-padding", themeDarkNoPadding, darkShadowPopover, darkShadowDialog, darkFocusRing},
-		{"dark-bordered", themeDarkBordered, darkShadowPopover, darkShadowDialog, darkFocusRing},
 		{"light", ThemeLight, lightShadowPopover, lightShadowDialog, lightFocusRing},
-		{"light-no-padding", themeLightNoPadding, lightShadowPopover, lightShadowDialog, lightFocusRing},
-		{"light-bordered", themeLightBordered, lightShadowPopover, lightShadowDialog, lightFocusRing},
 	} {
 		for name, got := range popoverShadows(tc.theme) {
 			if got != tc.wantPopover {

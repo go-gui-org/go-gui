@@ -247,10 +247,9 @@ Backend injects at startup. Nil in tests:
   theme change. A literal there is a second source of truth that silently drifts
   (issue #300 removed ~30 of them; `ThemeDark` is bordered since 2026-08 — 90 of
   104 examples call `WithBorders(true)` explicitly — use
-  `Theme.WithBorders(false)` or the `dark-no-padding` preset for the old
-  borderless look). The two exceptions are `DefaultTextStyle` and
-  `defaultInspectorStyle`, which are ThemeMaker _inputs_.
-  `TestDefaultStylesMirrorThemeDark` is the gate. See
+  `Theme.WithBorders(false)` for the old borderless look). The two exceptions
+  are `DefaultTextStyle` and `defaultInspectorStyle`, which are ThemeMaker
+  _inputs_. `TestDefaultStylesMirrorThemeDark` is the gate. See
   `docs/specs/theme-style-single-source.md`.
 - `AmendLayout` hook on shapes runs after sizing to reposition overlays (color
   picker circles, splitter handles, etc.) or manage hover. Layout uses absolute

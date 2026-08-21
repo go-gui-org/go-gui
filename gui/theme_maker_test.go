@@ -96,9 +96,14 @@ func TestThemeMakerIconFamilyDoesNotLeak(t *testing.T) {
 // baseCfg would otherwise silently lose its icon family.
 func TestPresetThemesIconFamily(t *testing.T) {
 	presets := map[string]Theme{
-		"ThemeDark":  ThemeDark,
-		"ThemeLight": ThemeLight,
-		"ThemeBlue":  themeBlue,
+		"ThemeDark":        ThemeDark,
+		"ThemeLight":       ThemeLight,
+		"themeMacOS":       themeMacOS,
+		"themeMacOSDark":   themeMacOSDark,
+		"themeGnome":       themeGnome,
+		"themeGnomeDark":   themeGnomeDark,
+		"themeWindows":     themeWindows,
+		"themeWindowsDark": themeWindowsDark,
 	}
 	for name, theme := range presets {
 		for i, got := range iconStyleFamilies(theme) {

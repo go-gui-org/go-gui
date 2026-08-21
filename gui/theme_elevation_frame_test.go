@@ -53,8 +53,9 @@ func countShadows(cmds []RenderCmd) int {
 // shadow; under a theme without one it must emit none. The pair is the
 // point — the second half is what proves the first is the theme's
 // doing and not something the widget now always does. macOS and dark
-// both carry elevation since visual-refresh §5.3; the blue taste
-// preset is the remaining flat theme.
+// both carry elevation since visual-refresh §5.3; a bare baseCfg()
+// theme is the flat subject (every registered preset carries elevation
+// since the blue taste preset was removed).
 func TestOpenDropdownEmitsShadowOnlyWhenThemed(t *testing.T) {
 	build := func(*Window) View {
 		return Select(SelectCfg{
@@ -76,9 +77,9 @@ func TestOpenDropdownEmitsShadowOnlyWhenThemed(t *testing.T) {
 		}
 	}
 
-	flat := frameCmds(t, themeBlue, build, "", open)
+	flat := frameCmds(t, ThemeMaker(baseCfg()), build, "", open)
 	if got := countShadows(flat); got != 0 {
-		t.Errorf("blue theme: got %d shadows, want 0", got)
+		t.Errorf("flat theme: got %d shadows, want 0", got)
 	}
 }
 

@@ -156,44 +156,17 @@ func baseDarkCfg() ThemeCfg {
 	// issue #325 found 90 of 104 example files explicitly calling
 	// SetTheme(ThemeDark.WithBorders(true)), so bordered is what
 	// applications actually want. Theme.WithBorders(false) restores
-	// the borderless look. The "dark-bordered" preset is now identical
-	// to ThemeDark but stays registered for name-based theme selection.
+	// the borderless look.
 	cfg.SizeBorder = sizeBorderDef
-	// Elevation (visual-refresh §5.3): the dark presets float their
-	// popovers and modals. Derived presets (dark-no-padding,
-	// dark-bordered) copy the cfg and inherit it, which is what makes
-	// them dark's visual twins.
+	// Elevation (visual-refresh §5.3): the dark preset floats its
+	// popovers and modals.
 	cfg.ShadowPopover = darkShadowPopover
 	cfg.ShadowDialog = darkShadowDialog
-	// Focus ring (visual-refresh § 5.4): the default presets carry a
-	// ring so every wired focusable shows focus by default; derived
-	// presets copy the cfg and inherit it. Platform themes that want
-	// their own (macOS) or none (Windows, GNOME — border recolor
-	// only) override or leave it nil from baseCfg.
+	// Focus ring (visual-refresh § 5.4): the default preset carries a
+	// ring so every wired focusable shows focus by default. Platform
+	// themes that want their own (macOS) or none (Windows, GNOME —
+	// border recolor only) override or leave it nil from baseCfg.
 	cfg.FocusRing = darkFocusRing
-	return cfg
-}
-
-// baseBlueCfg returns the blue ThemeCfg.
-func baseBlueCfg() ThemeCfg {
-	cfg := baseCfg()
-	cfg.Name = "blue-dark"
-	cfg.ColorBackground = ColorFromString("#151C30")
-	cfg.ColorPanel = ColorFromString("#1C243F")
-	cfg.ColorInterior = ColorFromString("#202A49")
-	cfg.ColorHover = ColorFromString("#243054")
-	cfg.ColorFocus = ColorFromString("#29365E")
-	cfg.ColorActive = ColorFromString("#2D3C68")
-	cfg.ColorBorder = ColorFromString("#364263")
-	cfg.ColorBorderFocus = ColorFromString("#617AC3")
-	cfg.ColorSelect = ColorFromString("#3E65D8")
-	cfg.ColorError = RGBA(218, 54, 51, 255)
-	cfg.TitlebarDark = true
-	cfg.TextStyleDef = TextStyle{
-		Family: defaultFontFamily,
-		Color:  ColorFromString("#E1E1E1"),
-		Size:   sizeTextMedium,
-	}
 	return cfg
 }
 
@@ -201,15 +174,13 @@ func baseBlueCfg() ThemeCfg {
 var (
 	ThemeDark  Theme
 	ThemeLight Theme
-	themeBlue  Theme
 
 	// Platform themes; see gui/theme_macos.go, gui/theme_gnome.go and
 	// gui/theme_windows.go. Registered as "macos"/"macos-dark",
 	// "gnome"/"gnome-dark" and "windows"/"windows-dark", and reached by
-	// name through ThemeGet. Unexported, following themeBlue rather
-	// than ThemeDark/ThemeLight: those two are the defaults an app
-	// assigns directly, these are presets a user picks. ThemePicker
-	// lists them off the registry.
+	// name through ThemeGet. Unexported: ThemeDark/ThemeLight are the
+	// defaults an app assigns directly, these are presets a user
+	// picks. ThemePicker lists them off the registry.
 	themeMacOS       Theme
 	themeMacOSDark   Theme
 	themeGnome       Theme
@@ -218,45 +189,18 @@ var (
 	themeWindowsDark Theme
 )
 
-// Unexported preset configs and derived themes — kept for
-// registration and backward compatibility.
+// Unexported preset configs — the platform pair configs live in
+// theme_macos.go, theme_gnome.go and theme_winui.go; the dark and
+// light cfgs are built in init() below.
 var (
-	themeDarkCfg          ThemeCfg
-	themeDarkNoPaddingCfg ThemeCfg
-	themeDarkNoPadding    Theme
-	themeDarkBorderedCfg  ThemeCfg
-	themeDarkBordered     Theme
-
-	themeLightCfg          ThemeCfg
-	themeLightNoPaddingCfg ThemeCfg
-	themeLightNoPadding    Theme
-	themeLightBorderedCfg  ThemeCfg
-	themeLightBordered     Theme
-
-	themeBlueCfg         ThemeCfg
-	themeBlueBorderedCfg ThemeCfg
-	themeBlueBordered    Theme
+	themeDarkCfg  ThemeCfg
+	themeLightCfg ThemeCfg
 )
 
 func init() {
 	// Dark.
 	themeDarkCfg = baseDarkCfg()
 	ThemeDark = ThemeMaker(themeDarkCfg)
-
-	// Dark no padding.
-	themeDarkNoPaddingCfg = baseDarkCfg()
-	themeDarkNoPaddingCfg.Name = "dark-no-padding"
-	themeDarkNoPaddingCfg.Padding = PaddingNone
-	themeDarkNoPaddingCfg.SizeBorder = 0
-	themeDarkNoPaddingCfg.Radius = radiusNone
-	themeDarkNoPadding = ThemeMaker(themeDarkNoPaddingCfg)
-
-	// Dark bordered. Now identical to ThemeDark (baseDarkCfg carries
-	// the border); kept registered for backward compatibility with
-	// name-based theme selection.
-	themeDarkBorderedCfg = baseDarkCfg()
-	themeDarkBorderedCfg.Name = "dark-bordered"
-	themeDarkBordered = ThemeMaker(themeDarkBorderedCfg)
 
 	// Light.
 	themeLightCfg = baseCfg()
@@ -282,32 +226,13 @@ func init() {
 		Size:   sizeTextMedium,
 	}
 	// Elevation (visual-refresh §5.3), the light tier consts; the
-	// dark pattern is in baseDarkCfg. Derived presets (light-no-padding,
-	// light-bordered) copy the cfg and inherit it.
+	// dark pattern is in baseDarkCfg.
 	themeLightCfg.ShadowPopover = lightShadowPopover
 	themeLightCfg.ShadowDialog = lightShadowDialog
 	// Focus ring: same construction as the dark preset's, tinted with
 	// the light accent.
 	themeLightCfg.FocusRing = lightFocusRing
 	ThemeLight = ThemeMaker(themeLightCfg)
-
-	// Light no padding.
-	themeLightNoPaddingCfg = themeLightCfg
-	themeLightNoPaddingCfg.Name = "light-no-padding"
-	themeLightNoPaddingCfg.Padding = PaddingNone
-	themeLightNoPaddingCfg.SizeBorder = 0
-	themeLightNoPaddingCfg.Radius = radiusNone
-	themeLightNoPadding = ThemeMaker(themeLightNoPaddingCfg)
-
-	// Light bordered.
-	themeLightBorderedCfg = themeLightCfg
-	themeLightBorderedCfg.Name = "light-bordered"
-	themeLightBorderedCfg.SizeBorder = sizeBorderDef
-	themeLightBordered = ThemeMaker(themeLightBorderedCfg)
-
-	// Blue.
-	themeBlueCfg = baseBlueCfg()
-	themeBlue = ThemeMaker(themeBlueCfg)
 
 	// macOS, light and dark.
 	themeMacOS = ThemeMaker(macOSCfg())
@@ -321,21 +246,9 @@ func init() {
 	themeWindows = ThemeMaker(windowsCfg())
 	themeWindowsDark = ThemeMaker(windowsDarkCfg())
 
-	// Blue bordered.
-	themeBlueBorderedCfg = baseBlueCfg()
-	themeBlueBorderedCfg.Name = "blue-dark-bordered"
-	themeBlueBorderedCfg.SizeBorder = sizeBorderDef
-	themeBlueBordered = ThemeMaker(themeBlueBorderedCfg)
-
 	// Register all preset themes.
 	themeRegister(ThemeDark)
-	themeRegister(themeDarkNoPadding)
-	themeRegister(themeDarkBordered)
 	themeRegister(ThemeLight)
-	themeRegister(themeLightNoPadding)
-	themeRegister(themeLightBordered)
-	themeRegister(themeBlue)
-	themeRegister(themeBlueBordered)
 	themeRegister(themeMacOS)
 	themeRegister(themeMacOSDark)
 	themeRegister(themeGnome)
