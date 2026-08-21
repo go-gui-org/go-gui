@@ -1,4 +1,4 @@
-Rect xy=14.00,14.00 wh=119.84,67.20 color=#ffffffff radius=6.00 fill
+Rect xy=14.00,14.00 wh=292.00,67.20 color=#ffffffff radius=6.00 fill
 Text xy=28.00,28.00 wh=0.00,0.00 color=#1a1d21ff text="Details" size=14.00
-Text xy=100.80,32.76 wh=0.00,0.00 color=#1a1d21ff text="▲" size=8.40
+Text xy=272.96,32.76 wh=0.00,0.00 color=#1a1d21ff text="▲" size=8.40
 Text xy=28.00,47.60 wh=0.00,0.00 color=#1a1d21ff text="content" size=14.00

@@ -31,6 +31,10 @@ type ExpandPanelCfg struct {
 	Colors ColorSet
 	Sizing Sizing
 	Open   bool
+	// FocusDisabled opts the header row out of the tab order and
+	// its focus ring. Use it for decorative or demo panels where
+	// keyboard toggling is not wanted.
+	FocusDisabled bool
 }
 
 // ExpandPanel creates an expandable panel view.
@@ -39,10 +43,17 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 	sizeBorder := cfg.SizeBorder.Get(guiTheme.expandPanelStyle.SizeBorder)
 	radius := cfg.Radius.Get(guiTheme.expandPanelStyle.Radius)
 
+	// A header that cannot take focus never draws a focus ring, so
+	// skip the amend closure rather than install a dead one.
+	headFocusable := !cfg.FocusDisabled
+	var headAmend func(EventCtx)
+	if headFocusable {
+		headAmend = focusRingAmend(Color{}, cfg.ColorBorderFocus)
+	}
+
 	onToggle := cfg.OnToggle
 	colorHover := cfg.ColorHover
 	colorClick := cfg.colorClick
-	colorBorderFocus := cfg.ColorBorderFocus
 
 	a11yState := AccessState(0)
 	if cfg.Open {
@@ -76,12 +87,20 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 				Padding:      NoPadding,
 				Sizing:       FillFit,
 				VAlign:       VAlignMiddle,
-				Focusable:    true,
+				Focusable:    headFocusable,
 				ClickOnSpace: true,
 				ClickOnEnter: true,
-				AmendLayout:  focusRingAmend(Color{}, colorBorderFocus),
+				AmendLayout:  headAmend,
 				Content: []View{
 					cfg.Head,
+					// Flexible gap: it absorbs the surplus width, so
+					// the disclosure arrow sits at the header's
+					// trailing edge instead of hugging the head view.
+					Row(ContainerCfg{
+						Sizing:     FillFit,
+						Padding:    NoPadding,
+						SizeBorder: NoBorder, // structural wrapper
+					}),
 					Row(ContainerCfg{
 						Padding: NewPadding(0, PadMedium, 0, 0),
 						Content: []View{
@@ -129,4 +148,9 @@ func applyExpandPanelDefaults(cfg *ExpandPanelCfg) {
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = d.Padding
 	}
+	// A disclosure panel is a full-width block whose height follows
+	// its body. Left at the zero Sizing (FitFit) it widens to its
+	// longest unwrapped line — and since a container does not clip,
+	// it paints through its own border and off the window.
+	cfg.Sizing = cfg.Sizing.Or(FillFit)
 }

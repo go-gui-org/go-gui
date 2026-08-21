@@ -647,3 +647,29 @@ func TestTableRichTextCell(t *testing.T) {
 		t.Fatalf("rows = %d, want 1", len(layout.Children))
 	}
 }
+
+// A table is a full-width block by default, on both the plain and the
+// frozen-header path; an explicitly-set Sizing still wins.
+func TestTableSizingDefault(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	data := []TableRowCfg{
+		TR([]TableCellCfg{tH("Name")}),
+		TR([]TableCellCfg{tD("Alice")}),
+	}
+	for _, tc := range []struct {
+		name string
+		cfg  TableCfg
+		want Sizing
+	}{
+		{"default", TableCfg{ID: "t1", Data: data}, FillFit},
+		{"frozen", TableCfg{ID: "t2", Data: data, FreezeHeader: true}, FillFit},
+		{"explicit", TableCfg{ID: "t3", Data: data, Sizing: FitFit}, FitFit},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := generateViewLayout(Table(tc.cfg), w).Shape.Sizing
+			if got != tc.want {
+				t.Errorf("sizing = %+v, want %+v", got, tc.want)
+			}
+		})
+	}
+}

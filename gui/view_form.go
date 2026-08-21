@@ -217,6 +217,10 @@ type formView struct {
 // submit/reset semantics.
 func Form(cfg FormCfg) View {
 	RequireID("Form", cfg.ID)
+	// A form is a full-width block whose height follows its fields;
+	// the zero Sizing (FitFit) shrink-wraps it to its widest label
+	// row, which no caller has meant so far.
+	cfg.Sizing = cfg.Sizing.Or(FillFit)
 	content := make([]View, len(cfg.Content))
 	copy(content, cfg.Content)
 	return &formView{cfg: cfg, content: content}

@@ -1,5 +1,5 @@
-Rect xy=14.00,14.00 wh=119.84,67.20 color=#ffffffff radius=6.00 fill
-Shadow xy=28.00,28.00 wh=91.84,19.60 color=#2f6fe03f radius=6.00 blur=2.00 offset=0.00,0.00
+Rect xy=14.00,14.00 wh=292.00,67.20 color=#ffffffff radius=6.00 fill
+Shadow xy=28.00,28.00 wh=264.00,19.60 color=#2f6fe03f radius=6.00 blur=2.00 offset=0.00,0.00
 Text xy=28.00,28.00 wh=0.00,0.00 color=#1a1d21ff text="Details" size=14.00
-Text xy=100.80,32.76 wh=0.00,0.00 color=#1a1d21ff text="▲" size=8.40
+Text xy=272.96,32.76 wh=0.00,0.00 color=#1a1d21ff text="▲" size=8.40
 Text xy=28.00,47.60 wh=0.00,0.00 color=#1a1d21ff text="content" size=14.00

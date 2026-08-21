@@ -964,3 +964,17 @@ func TestFormChildrenShareEventCap(t *testing.T) {
 			len(layout.Children), maxEventChildren)
 	}
 }
+
+// A form is a full-width block by default; an explicitly-set Sizing
+// still wins, because Sizing self-flags and FitFit is a real choice.
+func TestFormSizingDefault(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	def := generateViewLayout(Form(FormCfg{ID: "f1"}), w)
+	if def.Shape.Sizing != FillFit {
+		t.Errorf("default sizing = %+v, want FillFit", def.Shape.Sizing)
+	}
+	set := generateViewLayout(Form(FormCfg{ID: "f2", Sizing: FitFit}), w)
+	if set.Shape.Sizing != FitFit {
+		t.Errorf("explicit sizing = %+v, want FitFit", set.Shape.Sizing)
+	}
+}

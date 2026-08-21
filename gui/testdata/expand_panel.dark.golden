@@ -1,5 +1,5 @@
-Rect xy=15.00,15.00 wh=127.84,73.20 color=#1e2125ff radius=6.00 fill
-StrokeRect xy=15.00,15.00 wh=127.84,73.20 color=#ffffff1c radius=6.00 thickness=1.00
+Rect xy=15.00,15.00 wh=290.00,73.20 color=#1e2125ff radius=6.00 fill
+StrokeRect xy=15.00,15.00 wh=290.00,73.20 color=#ffffff1c radius=6.00 thickness=1.00
 Text xy=31.00,31.00 wh=0.00,0.00 color=#e6e8ebff text="Details" size=14.00
-Text xy=105.80,35.76 wh=0.00,0.00 color=#e6e8ebff text="▲" size=8.40
+Text xy=267.96,35.76 wh=0.00,0.00 color=#e6e8ebff text="▲" size=8.40
 Text xy=31.00,52.60 wh=0.00,0.00 color=#e6e8ebff text="content" size=14.00
