@@ -44,14 +44,15 @@ func TestThemePickerSyncHighlight(t *testing.T) {
 	themeRegister(Theme{Name: "beta"})
 
 	// The sync runs post-generation and reads the window's theme, so
-	// pin the name on the window rather than on the frame cache.
+	// pin the name on the window rather than on the frame cache. "dark"
+	// is the first name in display order (toolkit presets first,
+	// visual-refresh §7 ordering).
 	w := &Window{}
-	pinTheme(w, func(th *Theme) { th.Name = "beta" })
+	pinTheme(w, func(th *Theme) { th.Name = "dark" })
 	themePickerSyncHighlight("test-lb", w)
 	idx := StateReadOr(w, nsListBoxFocus, "test-lb", -1)
-	// "alpha"=0, "beta"=1 (sorted).
-	if idx != 1 {
-		t.Errorf("highlight = %d, want 1", idx)
+	if idx != 0 {
+		t.Errorf("highlight = %d, want 0", idx)
 	}
 }
 
