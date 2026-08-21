@@ -439,3 +439,59 @@ func TestRenderDrawCanvasEmptyIDAlwaysRedraws(t *testing.T) {
 			callCount)
 	}
 }
+
+// TestRenderDrawCanvasClipStaysInsideViewport pins the scroll bleed: a
+// clipping canvas scrolled so its top is above the viewport must emit
+// a scissor bounded by what it inherits, not its own content box. The
+// broken form emitted the raw content box and painted the canvas over
+// whatever sat above the scroll panel.
+func TestRenderDrawCanvasClipStaysInsideViewport(t *testing.T) {
+	w := makeWindowWithScratch()
+	shape := &Shape{
+		shapeType: shapeDrawCanvas,
+		// Scrolled 40px above the viewport, which starts at y=20.
+		X: 20, Y: -40,
+		Width: 200, Height: 150,
+		Padding: PadAll(10),
+		Clip:    true,
+		Color:   RGB(100, 100, 100),
+		events: &eventHandlers{
+			OnDraw: func(dc *DrawContext) {
+				dc.batches = append(dc.batches, DrawCanvasTriBatch{
+					Triangles: []float32{0, 0, 1, 0, 0, 1},
+					Color:     RGB(255, 0, 0),
+				})
+			},
+		},
+	}
+	viewport := makeClip(20, 20, 360, 260)
+
+	renderDrawCanvas(shape, viewport, w)
+
+	var clips []RenderCmd
+	for _, r := range w.renderers {
+		if r.Kind == RenderClip {
+			clips = append(clips, r)
+		}
+	}
+	if len(clips) == 0 {
+		t.Fatal("no clip emitted for a clipping canvas")
+	}
+	got := clips[0]
+	if got.Y < viewport.Y {
+		t.Errorf("clip escapes above the viewport: Y=%v, want >= %v",
+			got.Y, viewport.Y)
+	}
+	if bottom := got.Y + got.H; bottom > viewport.Y+viewport.Height {
+		t.Errorf("clip spills below the viewport: bottom=%v, want <= %v",
+			bottom, viewport.Y+viewport.Height)
+	}
+	// Content box spans y=-30..100; the viewport starts at 20, so the
+	// intersection is 80 tall.
+	want := drawClip{X: 30, Y: 20, Width: 180, Height: 80}
+	if got.X != want.X || got.Y != want.Y ||
+		got.W != want.Width || got.H != want.Height {
+		t.Errorf("clip: got x=%v y=%v w=%v h=%v, want %+v",
+			got.X, got.Y, got.W, got.H, want)
+	}
+}

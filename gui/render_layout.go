@@ -31,20 +31,7 @@ func renderLayout(layout *Layout, bgColor Color, clip drawClip, w *Window) {
 		}
 		emitClipCmd(shapeClip, w)
 	} else if layout.Shape.Clip {
-		sc := layout.Shape.shapeClip
-		isRTL := effectiveTextDir(layout.Shape) == TextDirRTL
-		var padX float32
-		if isRTL {
-			padX = layout.Shape.Padding.Right + layout.Shape.SizeBorder
-		} else {
-			padX = layout.Shape.PaddingLeft()
-		}
-		shapeClip = drawClip{
-			X:      sc.X + padX,
-			Y:      sc.Y + layout.Shape.PaddingTop(),
-			Width:  f32Max(0, sc.Width-layout.Shape.paddingWidth()),
-			Height: f32Max(0, sc.Height-layout.Shape.paddingHeight()),
-		}
+		shapeClip = clipContentBox(layout.Shape)
 		emitClipCmd(shapeClip, w)
 	}
 

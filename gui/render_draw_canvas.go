@@ -68,10 +68,23 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 	ox := shape.X + shape.PaddingLeft()
 	oy := shape.Y + shape.PaddingTop()
 
-	// Clip to content area.
+	// Clip to content area, intersected with what the canvas already
+	// inherits — the same bleed clipContentBox fixes for containers: a
+	// canvas scrolled half out of its viewport has a content box whose
+	// top edge is above that viewport, so emitting it raw paints the
+	// canvas over whatever sits above the scroll panel.
+	//
+	// The origin here stays LTR (ox uses PaddingLeft unconditionally)
+	// because a canvas draws in its own coordinate space, so this does
+	// not go through clipContentBox, whose inset mirrors under RTL.
+	// The clip must match this origin, not the engine's text direction.
 	effClip := clip
 	if shape.Clip {
-		effClip = drawClip{X: ox, Y: oy, Width: cw, Height: ch}
+		content := drawClip{X: ox, Y: oy, Width: cw, Height: ch}
+		// No overlap leaves effClip empty, which clips the canvas away
+		// entirely. That is the safe direction: an invalid or dropped
+		// RenderClip would leave the parent's wider scissor in force.
+		effClip, _ = rectIntersection(content, clip)
 		emitClipCmd(effClip, w)
 	}
 

@@ -433,7 +433,11 @@ func TestRenderLayoutClipPushPop(t *testing.T) {
 			Clip:       true,
 			Padding:    NewPadding(4, 3, 5, 2),
 			SizeBorder: 0,
-			shapeClip:  makeClip(10, 20, 100, 50),
+			// Bounds and shapeClip agree: the shape is fully inside
+			// the inherited clip. The emitted rect is the padding-inset
+			// content box, which is derived from the bounds.
+			X: 10, Y: 20, Width: 100, Height: 50,
+			shapeClip: makeClip(10, 20, 100, 50),
 		},
 	}
 
@@ -928,5 +932,167 @@ func TestFindFilterBracketRangeUnmatchedBeginEnd(t *testing.T) {
 	}
 	if bracket.NextIdx != 2 {
 		t.Errorf("next: got %d", bracket.NextIdx)
+	}
+}
+
+// TestClipContentBoxPartiallyScrolled pins the fix for a clipping
+// container scrolled past its scroll viewport's padding edge: its
+// content box must be derived from its own bounds and then clipped by
+// what it inherits, never inset from the already-clipped rect. The
+// broken form let a Markdown code block paint above the viewport.
+func TestClipContentBoxPartiallyScrolled(t *testing.T) {
+	// Viewport 20..280; the block starts 16px above the viewport top.
+	block := &Shape{
+		X: 20, Y: -16, Width: 360, Height: 150,
+		Padding:   PadAll(10),
+		Clip:      true,
+		shapeClip: makeClip(20, 20, 360, 114),
+	}
+	got := clipContentBox(block)
+	if got.Y < 20 {
+		t.Errorf("clip escapes above the viewport: Y=%v, want >= 20", got.Y)
+	}
+	want := drawClip{X: 30, Y: 20, Width: 340, Height: 104}
+	if got != want {
+		t.Errorf("clip: got %+v, want %+v", got, want)
+	}
+}
+
+// TestClipContentBoxClampedAtBottom is the same defect at the far
+// edge: the height must be measured from the clipped top, not the
+// uninset one, or the content spills past the viewport bottom.
+func TestClipContentBoxClampedAtBottom(t *testing.T) {
+	block := &Shape{
+		X: 20, Y: 148, Width: 360, Height: 150,
+		Padding:   PadAll(10),
+		Clip:      true,
+		shapeClip: makeClip(20, 148, 360, 132),
+	}
+	got := clipContentBox(block)
+	if bottom := got.Y + got.Height; bottom > 280 {
+		t.Errorf("clip spills below the viewport: bottom=%v, want <= 280", bottom)
+	}
+}
+
+// TestClipContentBoxNonFiniteFailsClosed guards a fail-open path: an
+// invalid RenderClip is dropped by emitRendererIfValid, which leaves
+// the *parent's* wider scissor in force, so a clipping container fed
+// NaN geometry would stop clipping rather than clip nothing. The
+// intersection is what makes that impossible — it yields either a
+// finite rect or the empty one. Do not "simplify" it away.
+func TestClipContentBoxNonFiniteFailsClosed(t *testing.T) {
+	nan := float32(math.NaN())
+	inf := float32(math.Inf(1))
+	cases := []struct {
+		name  string
+		shape Shape
+	}{
+		{"NaN bounds", Shape{
+			X: nan, Y: nan, Width: 100, Height: 50,
+			Padding: PadAll(10), Clip: true,
+			shapeClip: makeClip(0, 0, 400, 400),
+		}},
+		{"NaN shapeClip", Shape{
+			X: 10, Y: 10, Width: 100, Height: 50,
+			Padding: PadAll(10), Clip: true,
+			shapeClip: makeClip(nan, nan, nan, nan),
+		}},
+		{"Inf size", Shape{
+			X: 10, Y: 10, Width: inf, Height: inf,
+			Padding: PadAll(10), Clip: true,
+			shapeClip: makeClip(0, 0, 400, 400),
+		}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := clipContentBox(&c.shape)
+			if !validClipCmd(RenderCmd{
+				Kind: RenderClip,
+				X:    got.X, Y: got.Y, W: got.Width, H: got.Height,
+			}) {
+				t.Fatalf("emitted an invalid clip %+v; it would be "+
+					"dropped and the parent scissor would leak", got)
+			}
+		})
+	}
+}
+
+// TestClipContentBoxRTL covers the mirrored inset: in RTL the content
+// box starts at the *right* padding, so an untested branch here shows
+// up as text clipped against the wrong edge.
+func TestClipContentBoxRTL(t *testing.T) {
+	s := Shape{
+		X: 10, Y: 20, Width: 100, Height: 50,
+		Padding:   NewPadding(4, 3, 5, 2),
+		TextDir:   TextDirRTL,
+		Clip:      true,
+		shapeClip: makeClip(10, 20, 100, 50),
+	}
+	got := clipContentBox(&s)
+	want := drawClip{X: 10 + 3, Y: 20 + 4, Width: 100 - 5, Height: 50 - 9}
+	if got != want {
+		t.Errorf("RTL clip: got %+v, want %+v", got, want)
+	}
+}
+
+// TestClipContentBoxPaddingExceedsSize pins the degenerate case: the
+// content box collapses rather than going negative, and an empty rect
+// clips everything out instead of inverting.
+func TestClipContentBoxPaddingExceedsSize(t *testing.T) {
+	s := Shape{
+		X: 10, Y: 20, Width: 10, Height: 10,
+		Padding:   PadAll(40),
+		Clip:      true,
+		shapeClip: makeClip(10, 20, 10, 10),
+	}
+	got := clipContentBox(&s)
+	if got.Width < 0 || got.Height < 0 {
+		t.Errorf("negative clip extent: %+v", got)
+	}
+	if got != (drawClip{}) {
+		t.Errorf("collapsed clip: got %+v, want empty", got)
+	}
+}
+
+// TestLayoutSetShapeClipsOverDrawKeepsUninsetRect pins the exemption
+// scrollbars depend on. They are laid out in the padding band at the
+// container's edge, which is outside the content box every other child
+// is scissored to; insetting them too collapses their clip and the
+// scrollbar silently stops rendering.
+func TestLayoutSetShapeClipsOverDrawKeepsUninsetRect(t *testing.T) {
+	normal := Layout{Shape: &Shape{
+		X: 0, Y: 0, Width: 400, Height: 300,
+	}}
+	// A vertical scrollbar hugging the right edge, inside the 20px
+	// padding band and therefore outside the content box.
+	bar := Layout{Shape: &Shape{
+		X: 390, Y: 0, Width: 7, Height: 300,
+		OverDraw: true,
+	}}
+	root := &Layout{
+		Shape: &Shape{
+			X: 0, Y: 0, Width: 400, Height: 300,
+			Padding: PadAll(20),
+			Clip:    true,
+		},
+		Children: []Layout{normal, bar},
+	}
+	layoutSetShapeClips(root, makeClip(0, 0, 400, 300))
+
+	gotNormal := root.Children[0].Shape.shapeClip
+	wantNormal := drawClip{X: 20, Y: 20, Width: 360, Height: 260}
+	if gotNormal != wantNormal {
+		t.Errorf("normal child: got %+v, want the content box %+v",
+			gotNormal, wantNormal)
+	}
+	gotBar := root.Children[1].Shape.shapeClip
+	if gotBar.Width <= 0 || gotBar.Height <= 0 {
+		t.Fatalf("OverDraw child collapsed to %+v; the scrollbar "+
+			"would stop rendering", gotBar)
+	}
+	wantBar := drawClip{X: 390, Y: 0, Width: 7, Height: 300}
+	if gotBar != wantBar {
+		t.Errorf("OverDraw child: got %+v, want the uninset rect %+v",
+			gotBar, wantBar)
 	}
 }

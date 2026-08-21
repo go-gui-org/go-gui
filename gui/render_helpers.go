@@ -101,6 +101,38 @@ func shapeBounds(shape *Shape) drawClip {
 	}
 }
 
+// clipContentBox returns the clip rect a clipping container imposes
+// on its children: the shape's padding-inset content box, intersected
+// with the clip the shape itself already inherits (shapeClip, which
+// is bounds ∩ ancestor clips).
+//
+// The inset is taken from the shape's *bounds*, never from the
+// already-clipped rect: a container scrolled half out of its viewport
+// has a shapeClip whose top edge is the viewport, and adding the
+// padding there both hides a band of real content and — because the
+// height is measured from the uninset top — lets the bottom escape.
+// Deriving the box from the bounds and intersecting once is the only
+// form that stays correct under partial clipping.
+func clipContentBox(shape *Shape) drawClip {
+	var padX float32
+	if effectiveTextDir(shape) == TextDirRTL {
+		padX = shape.Padding.Right + shape.SizeBorder
+	} else {
+		padX = shape.PaddingLeft()
+	}
+	content := drawClip{
+		X:      shape.X + padX,
+		Y:      shape.Y + shape.PaddingTop(),
+		Width:  f32Max(0, shape.Width-shape.paddingWidth()),
+		Height: f32Max(0, shape.Height-shape.paddingHeight()),
+	}
+	r, ok := rectIntersection(content, shape.shapeClip)
+	if !ok {
+		return drawClip{}
+	}
+	return r
+}
+
 // emitClipCmd emits a RenderClip command for the given clip rect.
 func emitClipCmd(clip drawClip, w *Window) {
 	emitRenderer(RenderCmd{
