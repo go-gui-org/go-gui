@@ -565,12 +565,11 @@ func toggleTheme(app *App) gui.View {
 func borderedGroup(title string, content []gui.View) gui.View {
 	theme := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
-		Title:       title,
-		TitleBG:     theme.ColorBackground,
-		ColorBorder: theme.ColorBorder,
-		SizeBorder:  gui.Some[float32](1),
-		MinWidth:    200,
-		Padding:     theme.Cfg.PaddingLarge,
+		Title:      title,
+		TitleBG:    theme.ColorBackground,
+		SizeBorder: gui.Some[float32](1),
+		MinWidth:   200,
+		Padding:    theme.Cfg.PaddingLarge,
 
 		Content: content,
 	})

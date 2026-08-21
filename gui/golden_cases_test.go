@@ -499,6 +499,20 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// A titled container with no explicit colors resolves the
+			// group-box ink and the hairline border, so the box reads
+			// on both polarities where the hairline wash alone does
+			// not (visual-refresh §4.1 keeps the wash for filled
+			// controls). The disabled case below pins the
+			// explicit-color path.
+			name: "container_title",
+			build: func(_ *Window) View {
+				return Column(ContainerCfg{
+					Title: "Group",
+				})
+			},
+		},
+		{
 			// The group-box title is the one text path dimmed twice:
 			// addGroupBoxTitle halves at generation and renderText
 			// halves the stamp again. Before the fix the title

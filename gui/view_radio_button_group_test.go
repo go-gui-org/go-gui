@@ -243,3 +243,40 @@ func TestRadioButtonGroupDefaultSpacingMedium(t *testing.T) {
 		t.Errorf("default Spacing = %v, want %v (SpacingMedium)", got, SpacingMedium)
 	}
 }
+
+// A titled radio group is a group box: an unset ColorBorder resolves
+// the group-box ink through the container (gui/view_container.go), not
+// the hairline wash.
+func TestTitledRadioGroupResolvesGroupBoxInk(t *testing.T) {
+	restoreTheme(t)
+	SetTheme(ThemeDark)
+
+	w := &Window{}
+	layout := generateViewLayout(RadioButtonGroupColumn(RadioButtonGroupCfg{
+		ID:       "radio_group_test_titled_ink",
+		Title:    "Choose",
+		Options:  []RadioOption{{Label: "A", Value: "a"}},
+		OnSelect: func(_ string, _ EventCtx) {},
+	}), w)
+	if layout.Shape.ColorBorder != groupBoxInk() {
+		t.Errorf("border = %v, want group-box ink %v",
+			layout.Shape.ColorBorder, groupBoxInk())
+	}
+}
+
+// An untitled radio group is not a group box: the border stays unset
+// and follows the container defaults like any other container.
+func TestUntitledRadioGroupLeavesBorderUnset(t *testing.T) {
+	restoreTheme(t)
+	SetTheme(ThemeDark)
+
+	w := &Window{}
+	layout := generateViewLayout(RadioButtonGroupColumn(RadioButtonGroupCfg{
+		ID:       "radio_group_test_untitled_unset",
+		Options:  []RadioOption{{Label: "A", Value: "a"}},
+		OnSelect: func(_ string, _ EventCtx) {},
+	}), w)
+	if layout.Shape.ColorBorder.IsSet() {
+		t.Errorf("border = %v, want unset", layout.Shape.ColorBorder)
+	}
+}

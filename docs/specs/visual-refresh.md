@@ -248,6 +248,13 @@ Background-to-interior is now 15 steps of lightness against a border that is a
 wash rather than a stroke — the inverse of today, where the stroke carries the
 separation.
 
+The wash assumes a fill behind it. A **group box** (a titled container) has a
+transparent fill, so its border and heading are its only separation from the
+page; `Theme.ColorBorder` reads as nothing there. When `ColorBorder` is left
+unset on a titled container, it resolves the group-box ink — the theme's own
+body text at 60% (`groupBoxInk`, `gui/view_container.go`) — and forces the
+hairline border unless the caller states one. Caller-explicit colors win.
+
 ### 4.2 Light
 
 | Role                  | Value     |
