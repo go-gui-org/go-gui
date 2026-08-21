@@ -511,7 +511,9 @@ func (w *Window) restoreLocked(idx int) {
 	if !ok {
 		return
 	}
-	w.mu.Lock()
+	// Same probe as every other w.mu-taking entry point: a restore
+	// raised from inside a frame pass would hang rather than fail.
+	w.lockForAPI("restore")
 	s.Restore(entry.snap)
 	restoreWhitelistedNamespaces(w, entry.namespaces)
 	w.mu.Unlock()

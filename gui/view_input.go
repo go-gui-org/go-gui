@@ -403,6 +403,28 @@ func (h *inputHandlerCfg) fireTextChanged(
 	h.OnTextChanged(text, EventCtx{layout, nil, w})
 }
 
+// fireTextChangedDeferred is fireTextChanged for the one caller that
+// runs under the frame lock: the blur block in inputAmendLayout.
+//
+// The layout echo happens now — it must, the arrange pass is still
+// reading this tree — but the app callback is deferred, because
+// OnTextChanged is app code and calling SetFocus from it under w.mu
+// hangs the main thread (issue #394). The deferred ctx carries no
+// *Layout: this tree is rebuilt from pooled arenas before the callback
+// runs, so the pointer would dangle.
+func (h *inputHandlerCfg) fireTextChangedDeferred(
+	layout *Layout, text string, w *Window,
+) {
+	inputSetTextInLayout(layout, text)
+	if h.ReadOnly || h.OnTextChanged == nil {
+		return
+	}
+	changed := h.OnTextChanged
+	w.deferCallback(func(w *Window) {
+		changed(text, EventCtx{nil, nil, w})
+	})
+}
+
 // normalizeOnCommit applies PostCommitNormalize, which transforms the
 // text and is therefore an edit: read-only fields skip it and commit
 // the text unchanged.
@@ -597,19 +619,32 @@ func inputAmendLayout(
 		if wasFocused && !focused {
 			text := inputTextFromLayout(ctx.Layout)
 			if normalized := hcfg.normalizeOnCommit(
-				text, commitBlur,
+				text, InputCommitBlur,
 			); normalized != text {
 				text = normalized
-				hcfg.fireTextChanged(ctx.Layout, text, ctx.Window)
+				hcfg.fireTextChangedDeferred(ctx.Layout, text, ctx.Window)
 			}
-			if hcfg.OnTextCommit != nil {
-				hcfg.OnTextCommit(text, commitBlur, ctx)
+			// This hook runs from layoutArrange, which holds w.mu, so
+			// app callbacks are raised rather than called: OnTextCommit
+			// on a blur reasonably calls SetFocus, and doing that under
+			// the frame lock froze the app (issue #394). gui-internal
+			// work below stays inline — it touches only window state.
+			// The deferred ctx has no *Layout; see deferCallback.
+			commit, blur := hcfg.OnTextCommit, onBlur
+			if commit != nil || blur != nil {
+				committed := text
+				ctx.Window.deferCallback(func(w *Window) {
+					c := EventCtx{nil, nil, w}
+					if commit != nil {
+						commit(committed, InputCommitBlur, c)
+					}
+					if blur != nil {
+						blur(c)
+					}
+				})
 			}
 			if spellChk {
 				spellCheckClear(key, ctx.Window)
-			}
-			if onBlur != nil {
-				onBlur(ctx)
 			}
 		}
 

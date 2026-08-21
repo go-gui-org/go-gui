@@ -2,6 +2,7 @@ package main
 
 import (
 	"testing"
+	"time"
 
 	"github.com/go-gui-org/go-gui/gui"
 )
@@ -61,5 +62,53 @@ func TestDeleteTodoRemovesItem(t *testing.T) {
 		if it.ID == 1 {
 			t.Fatal("item 1 still present after delete")
 		}
+	}
+}
+
+// Tab out of a composer holding text must not freeze the app.
+//
+// Issue #394: the blur commit fired from the Input's AmendLayout hook,
+// which layoutArrange runs while Update holds the window mutex, so
+// addTodo's SetFocus wedged the main thread. Only the real repro steps
+// expose it — addTodo returns early on an empty title, so text has to
+// be typed first, and only a real focus change fires a blur commit.
+//
+// Driven behind a timeout because the failure mode is a hang, not a
+// wrong value: without the goroutine this blocks the whole package.
+// Not t.Parallel: see TestAddTodoAppendsItem (SetTheme is not race-safe).
+func TestTabOutOfComposerDoesNotHang(t *testing.T) {
+	gui.SetTheme(gui.ThemeLight.WithPadding(false))
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		app := newAppState()
+		before := len(app.Items)
+		w := gui.NewTestWindow(gui.WindowCfg{State: app, Width: 540, Height: 640})
+		w.TestRender(mainView)
+		if err := w.TestType("todo-input", "abc"); err != nil {
+			t.Errorf("TestType: %v", err)
+			return
+		}
+		w.EventFn(&gui.Event{Type: gui.EventKeyDown, KeyCode: gui.KeyTab})
+		w.Update()
+		if got := w.FocusID(); got != "add-todo" {
+			t.Errorf("focus after Tab = %q, want %q", got, "add-todo")
+		}
+		// The reason guard, not just the missing freeze: a blur commit
+		// must not silently create a todo or eat the draft.
+		if len(app.Items) != before {
+			t.Errorf("Tab added %d todos, want 0", len(app.Items)-before)
+		}
+		if app.Draft != "abc" {
+			t.Errorf("draft after Tab = %q, want %q (blur must not "+
+				"clear or commit it)", app.Draft, "abc")
+		}
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Tab out of the composer deadlocked (issue #394)")
 	}
 }

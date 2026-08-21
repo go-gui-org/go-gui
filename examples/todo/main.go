@@ -149,7 +149,17 @@ func composerView(w *gui.Window) gui.View {
 					// Keep the input fully controlled by app state.
 					gui.State[appState](ctx.Window).Draft = text
 				},
-				OnTextCommit: func(text string, _ gui.InputCommitReason, ctx gui.EventCtx) {
+				OnTextCommit: func(
+					text string, reason gui.InputCommitReason,
+					ctx gui.EventCtx,
+				) {
+					// Enter means "add this"; a commit fired by blur
+					// only means focus moved on. Tabbing out of a
+					// half-typed task should leave the draft alone,
+					// not silently create a todo.
+					if reason != gui.InputCommitEnter {
+						return
+					}
 					addTodo(ctx.Window, text)
 				},
 			}),

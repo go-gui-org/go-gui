@@ -77,6 +77,30 @@ over it.
 does not move its children. To move an element with its children, use the float
 fields: `FloatAnchor`, `FloatTieOff`, `FloatOffsetX`, `FloatOffsetY`.
 
+### Do not call window APIs from a hook
+
+The hook runs inside the frame pass, which holds the window mutex. `SetFocus`,
+`ClearFocus`, `UpdateView`, `ClearDrawCanvasCache` and `Window.Lock` all take
+that mutex, and it is not reentrant, so calling one from a hook used to freeze
+the app outright (issue #394). It now panics naming the API. Queue the work
+instead:
+
+```go
+AmendLayout: func(ctx gui.EventCtx) {
+    ctx.Layout.Shape.X += 4              // fine: this is what the hook is for
+    ctx.Window.QueueCommand(func(w *gui.Window) {
+        w.SetFocus("next-field")         // runs next frame, no lock held
+    })
+},
+```
+
+The same applies to callbacks the library raises from the pass. A blur-triggered
+`OnTextCommit` (`InputCommitBlur`), `OnBlur`, or an `OnTextChanged` fired by
+`PostCommitNormalize` on blur now runs after the pass unlocks, so it is free to
+call `SetFocus` — but its `ctx.Layout` is **nil**, because that tree has already
+been recycled. Read `ctx.Window` and the arguments instead. The Enter commit
+path is unaffected and still carries a live `ctx.Layout`.
+
 ## Group-box titles
 
 `ContainerCfg.Title` draws a label in the top border, like an HTML fieldset. Set

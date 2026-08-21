@@ -85,6 +85,13 @@ const (
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugWrapOverflow
 
+	// DebugCallbacks reports an app callback the frame pass could not
+	// run: deferred callbacks that kept re-queueing themselves round
+	// after round, so the frame bounded the loop and dropped the rest
+	// rather than spin forever.
+	// exportaudit:keep — dev-diagnostic API for app authors
+	DebugCallbacks
+
 	// DebugUnscopedIDs reports a focusable or scrollable shape whose ID
 	// resolves to itself — no ID-bearing ancestor above it — so its
 	// identity competes in the window-global namespace and cannot be
@@ -102,7 +109,8 @@ const (
 	// would fire on most widgets in a small app.
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugAll = DebugDuplicates | DebugMissingIDs | DebugUnconsumed |
-		DebugListBoxNoHeight | DebugGradientResampled | DebugWrapOverflow
+		DebugListBoxNoHeight | DebugGradientResampled | DebugWrapOverflow |
+		DebugCallbacks
 )
 
 func init() {
@@ -232,6 +240,9 @@ const (
 	// debugCheckWrapOverflow fires from layoutOverflow when a container
 	// sets both Wrap and Overflow; wrap wins and overflow is ignored.
 	debugCheckWrapOverflow
+	// debugCheckDeferredLoop fires from flushDeferredCallbacks when
+	// deferred app callbacks keep re-queueing past the batch bound.
+	debugCheckDeferredLoop
 )
 
 // checkCategory maps an internal check to the public category that
@@ -254,6 +265,8 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugGradientResampled
 	case debugCheckWrapOverflow:
 		return DebugWrapOverflow
+	case debugCheckDeferredLoop:
+		return DebugCallbacks
 	}
 	return 0
 }

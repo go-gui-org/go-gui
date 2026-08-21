@@ -235,6 +235,19 @@ type Window struct {
 	// runloop, for instance). Main-thread only — no atomic needed.
 	pumping bool
 
+	// deferredCallbacks holds app callbacks raised during the frame
+	// pass and run by flushDeferredCallbacks once w.mu is released.
+	// Main-thread only, like the pass that fills it; the slice is
+	// reused across frames. See window_deferred.go.
+	deferredCallbacks []func(*Window)
+
+	// inFramePass reports that some goroutine is inside the locked
+	// region of the frame pass. Read by lockForAPI to tell a caller
+	// re-entering from a frame-pass callback — which would otherwise
+	// deadlock on the non-reentrant w.mu — from ordinary contention.
+	// Atomic because lockForAPI may run on any goroutine.
+	inFramePass atomic.Bool
+
 	// Window focus state — backend sets false on unfocus event.
 	focused bool
 
