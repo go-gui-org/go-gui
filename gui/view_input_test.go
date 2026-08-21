@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 	"unicode/utf8"
 
 	"github.com/go-gui-org/go-glyph"
@@ -388,7 +389,7 @@ func TestInputKeyDownEnterSingleLine(t *testing.T) {
 		ID:   "f600",
 		OnTextCommit: func(_ string, reason InputCommitReason, ctx EventCtx) {
 			committed = true
-			if reason != commitEnter {
+			if reason != InputCommitEnter {
 				t.Fatalf("got reason %d, want CommitEnter", reason)
 			}
 		},
@@ -1632,10 +1633,13 @@ func TestInputReadOnlyBlurDoesNotNormalize(t *testing.T) {
 	l1 := generateViewLayout(Input(cfg), w)
 	l1.Shape.events.AmendLayout(EventCtx{&l1, nil, w})
 
-	// Frame 2: focus moved away -> blur commit path runs.
+	// Frame 2: focus moved away -> blur commit path runs. The hook only
+	// raises the app callbacks; Update runs them once w.mu is released
+	// (window_deferred.go), so a direct hook call must flush too.
 	w.SetFocus("elsewhere")
 	l2 := generateViewLayout(Input(cfg), w)
 	l2.Shape.events.AmendLayout(EventCtx{&l2, nil, w})
+	w.flushDeferredCallbacks()
 
 	if changed != "" {
 		t.Errorf("OnTextChanged fired with %q on blur of a read-only field",
@@ -2229,5 +2233,100 @@ func TestInputOpticalCenterIsOptIn(t *testing.T) {
 	opted := inputTextShapeY(t, InputCfg{Text: "128", opticalDigitCenter: true})
 	if opted <= plain {
 		t.Errorf("opted-in text y = %v, want below plain %v", opted, plain)
+	}
+}
+
+// The editable blur path with PostCommitNormalize defers its
+// OnTextChanged: the tree already echoes the normalized text — the
+// arrange pass is still reading it — but the callback runs after the
+// pass with a nil ctx.Layout, because that tree is recycled before the
+// callback runs. The contract is documented in CLAUDE.md; this pins it.
+func TestInputBlurNormalizeDefersOnTextChanged(t *testing.T) {
+	w := newTestWindow()
+	changed := ""
+	cfg := InputCfg{
+		ID: "bn_defer", Text: "  hi  ",
+		PostCommitNormalize: func(_ string, _ InputCommitReason) string {
+			return "NORMALIZED"
+		},
+		OnTextChanged: func(nt string, ctx EventCtx) {
+			if ctx.Layout != nil {
+				t.Errorf("deferred OnTextChanged got a live ctx.Layout")
+			}
+			changed = nt
+		},
+	}
+
+	w.SetFocus("bn_defer")
+	l1 := generateViewLayout(Input(cfg), w)
+	l1.Shape.events.AmendLayout(EventCtx{&l1, nil, w})
+
+	w.SetFocus("elsewhere")
+	l2 := generateViewLayout(Input(cfg), w)
+	l2.Shape.events.AmendLayout(EventCtx{&l2, nil, w})
+
+	// The echo is inline, the callback is not.
+	if got := inputTextFromLayout(&l2); got != "NORMALIZED" {
+		t.Errorf("layout text after blur = %q, want the normalized %q",
+			got, "NORMALIZED")
+	}
+	if changed != "" {
+		t.Fatalf("OnTextChanged ran before the flush: %q", changed)
+	}
+	w.flushDeferredCallbacks()
+	if changed != "NORMALIZED" {
+		t.Errorf("OnTextChanged after flush = %q, want NORMALIZED", changed)
+	}
+}
+
+// A blur-triggered OnTextCommit that calls back into a w.mu-taking
+// Window API must not deadlock. Issue #394: the blur block ran from
+// inputAmendLayout, which layoutArrange invokes while Update holds
+// w.mu, so an app calling SetFocus from the commit wedged the main
+// thread — a frozen window with no CPU burn and no panic.
+//
+// Driven behind a timeout because the failure mode is a hang: without
+// the goroutine the whole package would block until the test binary's
+// deadline instead of naming the defect.
+func TestInputBlurCommitMaySetFocus(t *testing.T) {
+	done := make(chan string, 1)
+	go func() {
+		w := NewTestWindow(WindowCfg{})
+		view := func(w *Window) View {
+			return Column(ContainerCfg{
+				Content: []View{
+					Input(InputCfg{
+						ID:   "f394",
+						Text: "abc",
+						OnTextCommit: func(
+							_ string, reason InputCommitReason,
+							ctx EventCtx,
+						) {
+							if reason != InputCommitBlur {
+								return
+							}
+							// The natural thing to do from a commit
+							// handler, and the exact call that hung.
+							ctx.Window.SetFocus("f394")
+						},
+					}),
+					Button(ButtonCfg{
+						ID:      "b394",
+						Content: []View{Text(TextCfg{Text: "b"})},
+					}),
+				},
+			})
+		}
+		w.TestRender(view)
+		w.SetFocus("f394")
+		w.TestRender(nil)
+		next, _ := w.testTab(tabForward)
+		done <- next
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("blur commit calling SetFocus deadlocked (issue #394)")
 	}
 }

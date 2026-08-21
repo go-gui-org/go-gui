@@ -39,10 +39,19 @@ const (
 // InputCommitReason identifies why text was committed.
 type InputCommitReason uint8
 
-// InputCommitReason constants.
+// InputCommitReason constants. Exported because the reason is the
+// second parameter of OnTextCommit: without them an app can receive
+// the value but cannot branch on it, which is the whole point of
+// distinguishing "the user pressed Enter" from "focus moved on".
 const (
-	commitEnter InputCommitReason = iota
-	commitBlur
+	// InputCommitEnter is the user finalizing the text: Enter on a
+	// single-line field, or an IME finalize.
+	// exportaudit:keep — OnTextCommit parameter value for app authors
+	InputCommitEnter InputCommitReason = iota
+	// InputCommitBlur is the field losing focus with the text as it
+	// stands. Not an edit and not necessarily an intent to submit.
+	// exportaudit:keep — OnTextCommit parameter value for app authors
+	InputCommitBlur
 )
 
 const undoMaxSize = 50

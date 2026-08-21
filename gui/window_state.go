@@ -152,7 +152,7 @@ func (w *Window) Ctx() context.Context {
 
 // clearViewState resets all view state.
 func (w *Window) clearViewState() {
-	w.mu.Lock()
+	w.lockForAPI("clearViewState")
 	defer w.mu.Unlock()
 	w.clearViewStateLocked()
 }
@@ -167,14 +167,15 @@ func (w *Window) clearViewStateLocked() {
 // ClearDrawCanvasCache drops all cached tessellation data,
 // forcing every DrawCanvas widget to re-render next frame.
 func (w *Window) ClearDrawCanvasCache() {
-	w.mu.Lock()
+	w.lockForAPI("ClearDrawCanvasCache")
 	defer w.mu.Unlock()
 	w.viewState.registry.clearNamespace(nsDrawCanvas)
 }
 
-// Lock locks the window's mutex.
+// Lock locks the window's mutex. Panics rather than hanging when the
+// frame lock is already held — see lockForAPI.
 func (w *Window) Lock() {
-	w.mu.Lock()
+	w.lockForAPI("Lock")
 }
 
 // Unlock unlocks the window's mutex.

@@ -14,7 +14,7 @@ func (w *Window) FocusID() string {
 // that already holds focus leaves selections alone. Acquires both w.mu
 // (focusID) and w.animMu (animations). Use ClearFocus to remove focus.
 func (w *Window) SetFocus(id string) {
-	w.mu.Lock()
+	w.lockForAPI("SetFocus")
 	w.animMu.Lock()
 	defer w.animMu.Unlock()
 	defer w.mu.Unlock()

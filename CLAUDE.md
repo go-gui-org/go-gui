@@ -256,6 +256,20 @@ Backend injects at startup. Nil in tests:
   coords. Moving parent in `AmendLayout` does NOT move children. Use float
   system (`FloatAnchor`/`FloatTieOff`/`FloatOffsetX`/`FloatOffsetY`) to position
   elements with children.
+- **`AmendLayout` runs under the frame lock (`w.mu`), so no callback reached
+  from it may call a window-mutating API.** `SetFocus`, `ClearFocus`,
+  `UpdateView`, `ClearDrawCanvasCache` and `Window.Lock` all take `w.mu`, which
+  is not reentrant, and the frame thread is the platform event loop — the app
+  froze permanently (issue #394). Since the fix those APIs panic naming
+  themselves instead of hanging; the remedy is `ctx.Window.QueueCommand`.
+  Library code that reaches app code from the pass raises it with
+  `deferCallback` and the pass runs it after unlocking
+  (`gui/window_deferred.go`), which is how the Input's blur commit works:
+  `OnTextCommit` with `InputCommitBlur`, `OnBlur` and a normalize-driven
+  `OnTextChanged` therefore get a **nil `ctx.Layout`** — the tree is rebuilt
+  from pooled arenas before they run. The Enter commit path dispatches from
+  `EventFn` with no lock held and is unchanged. See
+  `docs/specs/frame-lock-callback-deferral.md`.
 - **One event rule (since v0.55.0): nothing is marked handled for you. A
   callback that acts on an event calls `ctx.Consume()`; one that does not, lets
   the event travel on.** This holds for every callback — `OnClick` and `OnChar`

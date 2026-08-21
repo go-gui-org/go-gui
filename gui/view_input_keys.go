@@ -250,13 +250,13 @@ func inputCommitEnter(
 ) {
 	commitText := text
 	if normalized := hcfg.normalizeOnCommit(
-		text, commitEnter,
+		text, InputCommitEnter,
 	); normalized != text {
 		commitText = normalized
 		hcfg.fireTextChanged(layout, commitText, w)
 	}
 	if hcfg.OnTextCommit != nil {
-		hcfg.OnTextCommit(commitText, commitEnter, EventCtx{layout, nil, w})
+		hcfg.OnTextCommit(commitText, InputCommitEnter, EventCtx{layout, nil, w})
 	}
 	if hcfg.OnEnter != nil {
 		hcfg.OnEnter(EventCtx{layout, e, w})

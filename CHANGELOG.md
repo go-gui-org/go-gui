@@ -10,6 +10,14 @@ and this project adheres to
 
 ### Fixed
 
+- **Tab out of a text input no longer freezes the app** (#394) — the Input's
+  blur commit fired from its `AmendLayout` hook, which `layoutArrange` runs
+  while `Update` holds the window mutex. An `OnTextCommit`/`OnBlur` handler that
+  called back into `SetFocus` — the natural thing to do from a commit handler,
+  and what `examples/todo` did — deadlocked the main thread against itself: a
+  frozen window, no panic, no CPU burn. App callbacks reached from the frame
+  pass are now raised and run after the lock is released
+  (`gui/window_deferred.go`).
 - **macOS Option+printable shortcuts reach the app** (#393) — `keyDown:` routed
   every key through `interpretKeyEvents:` and treated any resulting preedit as
   an input-method claim, so on the US layout Option+I (the circumflex dead key)
@@ -25,8 +33,32 @@ and this project adheres to
   composition it committed to arrive first, so the text lands in the field being
   left rather than the one taking focus.
 
+### Added
+
+- **`InputCommitEnter` and `InputCommitBlur`** are exported. `OnTextCommit`'s
+  second parameter is an `InputCommitReason`, but its values were unexported, so
+  an app could receive the reason and not branch on it — the whole point of
+  distinguishing "the user pressed Enter" from "focus moved on".
+- **`DebugCallbacks`** joins `DebugAll`. It reports app callbacks the frame pass
+  dropped because they kept re-queueing themselves round after round.
+
 ### Changed
 
+- **A window API called while the frame lock is held now panics instead of
+  hanging** (#394). `SetFocus`, `ClearFocus`, `UpdateView`,
+  `ClearDrawCanvasCache` and `Window.Lock` probe with `TryLock` and, when a
+  frame pass owns the mutex, panic naming the API and the remedy
+  (`QueueCommand`). This is the case an app's own `ContainerCfg.AmendLayout` /
+  `ButtonCfg.AmendLayout` hook can still reach — the hook exists to mutate the
+  tree in place, so it cannot be deferred. A crash that says what to fix beats a
+  freeze that says nothing.
+- **`ctx.Layout` is nil in a blur-triggered `OnTextCommit`, `OnBlur` and
+  `OnTextChanged`.** These now run after the arrange pass, and the tree they
+  were raised from is rebuilt from pooled arenas before then, so the pointer
+  would dangle. `ctx.Window` and the text argument are unchanged. The Enter
+  commit path is untouched and still carries a live `ctx.Layout`.
+- **`examples/todo` adds a task on Enter only**, not on blur. Tabbing out of a
+  half-typed task left the draft as a silently created todo.
 - **The platform input method is activated only for editable text widgets**
   (#393). `IMEStart`/`IMEStop` used to fire on any focus change to any focusable
   widget; they now follow the focused widget's edit context, decided each frame

@@ -147,7 +147,7 @@ func (w *Window) RequestRedraw() {
 
 // UpdateView sets the view generator and triggers a full refresh.
 func (w *Window) UpdateView(gen func(*Window) View) {
-	w.mu.Lock()
+	w.lockForAPI("UpdateView")
 	defer w.mu.Unlock()
 	w.viewState.registry.Clear()
 	w.viewGenerator = gen
@@ -166,11 +166,26 @@ func (w *Window) FrameFn() bool {
 	w.installTheme()
 	w.flushCommands()
 	var rebuilt bool
-	if w.refreshLayout {
-		w.Update()
-		rebuilt = true
-	} else if w.refreshRenderOnly {
-		w.updateRenderOnly()
+	// Two passes, not one: Update ends by running the callbacks the
+	// frame pass deferred (window_deferred.go). A blur commit that
+	// writes state or moves focus changes what the frame must show,
+	// and neither marks a refresh flag, so the flush's own report is
+	// what re-arms the loop — the pass re-runs whenever any callback
+	// ran. A callback-driven re-run is a full Update, never a
+	// render-only pass: the callback may have changed state the layout
+	// tree encodes. ran doubles as the re-run's trigger: it holds the
+	// previous pass's flush report until the pass overwrites it.
+	// Bounded at two — a view that dirties itself every pass is a bug
+	// the frame loop must not amplify into a spin; the next FrameFn
+	// picks it up anyway.
+	ran := false
+	for pass := 0; pass < 2 &&
+		(ran || w.refreshLayout || w.refreshRenderOnly); pass++ {
+		if w.refreshLayout || ran {
+			ran = w.Update()
+		} else {
+			ran = w.updateRenderOnly()
+		}
 		rebuilt = true
 	}
 	w.initA11y()
@@ -210,12 +225,33 @@ func (w *Window) PumpFrame() bool {
 	return w.FrameFn()
 }
 
-// Update performs a full layout rebuild and re-renders.
-func (w *Window) Update() {
+// Update performs a full layout rebuild and re-renders, then runs the
+// app callbacks the pass deferred. It reports whether any deferred
+// callback ran.
+//
+// The split is load-bearing, not cosmetic: updateLocked holds w.mu
+// across layoutArrange and buildRenderers, and both reach app code.
+// Running that code inside the lock deadlocks the main thread the
+// moment it calls back into the window (issue #394), so library code
+// raises it with deferCallback and it runs here, with nothing held.
+// See window_deferred.go.
+//
+// The bool matters because those callbacks run after the renderers were
+// built: a callback that writes state or moves focus is absent from
+// this pass's output, so the caller must re-run (FrameFn re-checks
+// after each pass) or the frame stays stale until the next event.
+func (w *Window) Update() bool {
+	w.updateLocked()
+	return w.flushDeferredCallbacks()
+}
+
+func (w *Window) updateLocked() {
 	// Repeated from FrameFn because tests drive Update directly.
 	// Idempotent: a no-op when this window's theme is already installed.
 	w.installTheme()
 	w.mu.Lock()
+	w.inFramePass.Store(true)
+	defer w.inFramePass.Store(false)
 	w.refreshLayout = false
 	w.refreshRenderOnly = false
 
@@ -298,9 +334,20 @@ func (w *Window) Update() {
 	}
 }
 
-// updateRenderOnly rebuilds renderers from the existing layout.
-func (w *Window) updateRenderOnly() {
+// updateRenderOnly rebuilds renderers from the existing layout, then
+// runs whatever the render pass deferred. Reports whether any deferred
+// callback ran — same contract as Update. buildRenderers reaches app
+// code the same way the full pass does (syncIMEEditContext, the caret
+// rect report), so it needs the same treatment — see Update.
+func (w *Window) updateRenderOnly() bool {
+	w.renderOnlyLocked()
+	return w.flushDeferredCallbacks()
+}
+
+func (w *Window) renderOnlyLocked() {
 	w.mu.Lock()
+	w.inFramePass.Store(true)
+	defer w.inFramePass.Store(false)
 	defer w.mu.Unlock()
 	w.refreshRenderOnly = false
 	w.buildRenderers(w.Config.BgColor, w.windowRect())
