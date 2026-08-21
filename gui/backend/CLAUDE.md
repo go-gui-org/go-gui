@@ -31,3 +31,17 @@ correct participation in these systems. When platform-native behavior is broken
 - Ask "what would a Cocoa developer check first?" — the answer is usually event
   masks, tracking areas, or run-loop configuration, not application-level cursor
   or menu logic.
+
+## IME activation contract
+
+`NativePlatform.IMEStart` / `IMEStop` mean "an **editable text** widget has
+focus", not "something has focus". The gui layer decides this per frame from the
+arranged tree (`gui/ime_context.go`); a backend must not widen it.
+
+The reason is not cosmetic. An active input context routes keystrokes through
+the platform's text-input machinery, which on macOS turns Option+printable into
+a dead key and swallows the app's shortcut (issue #393); on Windows it attaches
+the IMM context, and on web it moves DOM focus into a hidden `<input>`. A
+preedit that appears with no edit context is a dead key nobody asked for and
+must be discarded, or it composes into the next keystroke. See
+`docs/specs/ime-text-context.md`.

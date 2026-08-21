@@ -86,6 +86,24 @@ static int             _liveResizeStarted;
 // reverts — so the raw key must not also reach the widget, or the
 // field's own caret moves under the preedit.
 static int             _imeConsumedKey;
+// Set by doCommandBySelector: during interpretKeyEvents:, cleared by
+// keyDown: before it. The input source calls it to hand a key back:
+// it inspected the key, declined it as text input, and returned it as
+// a command for the widget. That is the signal that the key is the
+// widget's even mid-composition (issue #393).
+static int             _imeDeclinedKey;
+
+// A key-down held back for one poll. When the input source declines a
+// key that also committed a composition — Tab on a pending dead key
+// commits the accent through insertText: and returns insertTab: here —
+// the commit is already on the text queue and must reach Go first.
+// Tab moves focus, so delivering the key first would land the
+// committed text in the widget that just took focus.
+static int             _deferredKey;
+static unsigned short  _deferredKeyCode;
+static unsigned int    _deferredKeyMods;
+static int             _deferredKeyRepeat;
+static unsigned int    _deferredKeyWindow;
 
 // ─── Text-input event queue (IME) ──────────────────────────────
 //
@@ -200,6 +218,8 @@ static uint32_t _nextWindowID = 1;
 @property (nonatomic, copy)   NSAttributedString *markedText;
 @property (nonatomic, assign) NSRange     markedRange;
 @property (nonatomic, assign) NSRange     selRange;
+// Declared so the test hooks below the @implementation can call it.
+- (void)imeSettleAfterKeyWasComposing:(BOOL)wasComposing;
 @end
 
 @implementation MetalContentView
@@ -264,11 +284,49 @@ static uint32_t _nextWindowID = 1;
 // insertText: fires for printable characters. Non-printable
 // keys (arrows, etc.) return to Go as EventKeyDown.
 - (void)keyDown:(NSEvent *)event {
-    // A composition already in progress means the input method owns
-    // this key. So does a key that starts one: it produced a preedit,
-    // not a command.
     BOOL wasComposing = (_markedText != nil);
+    _imeDeclinedKey = 0;
     [self interpretKeyEvents:@[event]];
+    [self imeSettleAfterKeyWasComposing:wasComposing];
+}
+
+// imeSettleAfterKeyWasComposing decides who owns the key
+// interpretKeyEvents: just processed, and cleans up a preedit nobody
+// asked for.
+//
+// Split out of keyDown: so a test can drive it: a synthetic NSEvent
+// cannot make the real input source produce a dead key, so the test
+// stages the preedit with setMarkedText: and calls this directly.
+- (void)imeSettleAfterKeyWasComposing:(BOOL)wasComposing {
+    // Nothing editable is focused, so this preedit is unwanted: on the
+    // US layout Option+I is a dead circumflex, which swallowed the
+    // app's Option shortcut and then composed itself into the next
+    // keystroke (issue #393). Drop it and let the key-down through.
+    if (_markedText != nil && !_imeActive) {
+        [self unmarkText];
+        // setMarkedText: already queued the preedit and unmarkText is
+        // silent by design (see insertText:), so clear Go's
+        // composition state explicitly.
+        pushTextEvent(METAL_EVENT_IME_COMP, "", _windowID, 0, 0);
+        // Discards the dead key inside the input source itself.
+        // Without it the next keystroke still composes against the
+        // cancelled accent.
+        [self.inputContext discardMarkedText];
+        return;
+    }
+    // The input source handed the key back rather than consuming it,
+    // so it belongs to the widget — even mid-composition. Tab on a
+    // pending dead key arrives exactly this way: the accent commits
+    // through insertText: and insertTab: comes back here. Claiming it
+    // left focus stuck in the field with the accent already typed.
+    if (_imeDeclinedKey) {
+        return;
+    }
+    // What the input source did consume belongs to it: a composition
+    // in flight owns arrows and Return (the engine walks its own
+    // clauses with them), and so does a key that starts a preedit over
+    // an editable widget — a CJK first letter, or the first half of
+    // Option+e on the way to é.
     if (wasComposing || _markedText != nil) {
         _imeConsumedKey = 1;
     }
@@ -284,8 +342,13 @@ static uint32_t _nextWindowID = 1;
 
 // Suppress system beep for unhandled key commands (arrows, etc.).
 // Go handles all key events through the event loop.
+// The input source calls this for a key it declined as text input.
+// Recording that is what lets keyDown: tell "the IME consumed this"
+// from "the IME handed it back" — see imeSettleAfterKeyWasComposing:.
 - (void)doCommandBySelector:(SEL)selector {
-    // Intentionally empty — no beep.
+    _imeDeclinedKey = 1;
+    // Otherwise intentionally empty — Go handles every key command,
+    // and calling super would beep on the ones it does not.
 }
 
 // ─── NSTextInputClient (IME) ───────────────────────────────────
@@ -631,6 +694,12 @@ GoGuiNSWindow metalWindowCreate(const char *title, int width, int height,
     }
     contentView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     [win setContentView:contentView];
+    // Key delivery must not depend on the input method being active:
+    // metalWindowIMESetActive also calls makeFirstResponder:, and since
+    // issue #393 it fires only for editable text widgets. Pinning the
+    // content view as the initial first responder keeps every other
+    // window receiving keys.
+    [win setInitialFirstResponder:contentView];
 
     [win setCollectionBehavior:NSWindowCollectionBehaviorMoveToActiveSpace];
     [win makeKeyAndOrderFront:nil];
@@ -924,6 +993,19 @@ int metalPollEvent(int timeoutMs) {
     // residual composition) in order and intact.
     if (popTextEvent()) return 1;
 
+    // Text queue drained: release a key-down held back so the
+    // composition it committed reached Go first.
+    if (_deferredKey) {
+        _deferredKey = 0;
+        if (_evText) { free(_evText); _evText = NULL; }
+        _evType      = METAL_EVENT_KEY_DOWN;
+        _evKeyCode   = _deferredKeyCode;
+        _evModifiers = _deferredKeyMods;
+        _evKeyRepeat = _deferredKeyRepeat;
+        _evWindowID  = _deferredKeyWindow;
+        return 1;
+    }
+
     // Non-blocking dequeue.
     event = [NSApp nextEventMatchingMask:ALL_EVENTS
                                untilDate:nil
@@ -989,6 +1071,19 @@ int metalPollEvent(int timeoutMs) {
     // as the queued composition or commit instead.
     if (_imeConsumedKey && _evType == METAL_EVENT_KEY_DOWN) {
         _evType = METAL_EVENT_NONE;
+    } else if (_imeDeclinedKey && _textQCount > 0 &&
+               _evType == METAL_EVENT_KEY_DOWN) {
+        // The input source declined this key but committed text on the
+        // way — Tab on a pending dead key commits the accent, then
+        // returns insertTab:. Hold the key until the commit has been
+        // delivered: Tab moves focus, and the accent belongs to the
+        // field being left, not the one taking focus.
+        _deferredKey       = 1;
+        _deferredKeyCode   = _evKeyCode;
+        _deferredKeyMods   = _evModifiers;
+        _deferredKeyRepeat = _evKeyRepeat;
+        _deferredKeyWindow = _evWindowID;
+        _evType            = METAL_EVENT_NONE;
     }
     _imeConsumedKey = 0;
 
@@ -1536,10 +1631,16 @@ int metalTestLayerPresentsWithTransaction(void *windowHandle) {
     return ((CAMetalLayer *)layer).presentsWithTransaction ? 1 : 0;
 }
 
-// Drive keyDown: with a composition in progress and report whether the
-// raw key was claimed by the input method. A key that reaches the
-// widget while composing moves the field's caret out from under the
-// preedit and can fire Enter/Escape actions the user never meant.
+// Report whether a key mid-composition goes to the input method or to
+// the widget. A key that reaches the widget while composing moves the
+// field's caret out from under the preedit and can fire Enter/Escape
+// actions the user never meant — but a key the input source *declines*
+// must still reach the widget, or Tab cannot leave the field.
+//
+// The decision method is driven directly rather than through a
+// synthetic NSEvent: the real input source has no composition of its
+// own here, so it declines every key handed to interpretKeyEvents: and
+// could only ever exercise the declined branch.
 int metalTestIMEKeySuppressedWhileComposing(void *windowHandle) {
     if (!windowHandle) return 0;
     GoGuiWindow *gw = (GoGuiWindow *)windowHandle;
@@ -1548,35 +1649,109 @@ int metalTestIMEKeySuppressedWhileComposing(void *windowHandle) {
     if (![cv isKindOfClass:[MetalContentView class]]) return 0;
     MetalContentView *view = (MetalContentView *)cv;
 
-    NSEvent *key = [NSEvent keyEventWithType:NSEventTypeKeyDown
-                                    location:NSZeroPoint
-                               modifierFlags:0
-                                   timestamp:0
-                                windowNumber:[gw->nsWindow windowNumber]
-                                     context:nil
-                                  characters:@""
-                 charactersIgnoringModifiers:@""
-                                   isARepeat:NO
-                                     keyCode:123]; // left arrow
-    if (!key) return 0;
-
-    // Composing: the key belongs to the input method.
+    // A composition only exists over an editable widget.
+    view.imeActive = YES;
     [view setMarkedText:@"あい"
           selectedRange:NSMakeRange(0, 2)
        replacementRange:NSMakeRange(NSNotFound, 0)];
-    _imeConsumedKey = 0;
-    [view keyDown:key];
-    int suppressed = _imeConsumedKey;
 
-    // Not composing: the key is the widget's to handle.
-    [view unmarkText];
+    // Consumed by the input method — an arrow walking its clauses.
+    _imeDeclinedKey = 0;
     _imeConsumedKey = 0;
-    [view keyDown:key];
+    [view imeSettleAfterKeyWasComposing:YES];
+    int suppressed = (_imeConsumedKey == 1);
+
+    // Declined by the input method: it inspected the key and handed it
+    // back through doCommandBySelector:, so it is the widget's. This is
+    // Tab on a pending dead key — the accent commits and insertTab:
+    // returns, and claiming it left focus stuck in the field (#393).
+    _imeDeclinedKey = 1;
+    _imeConsumedKey = 0;
+    [view imeSettleAfterKeyWasComposing:YES];
+    int declinedReachesWidget = (_imeConsumedKey == 0);
+
+    // Not composing at all: the key is the widget's to handle.
+    view.imeActive = NO;
+    [view unmarkText];
+    _imeDeclinedKey = 0;
+    _imeConsumedKey = 0;
+    [view imeSettleAfterKeyWasComposing:NO];
     int deliveredWhenIdle = (_imeConsumedKey == 0);
 
+    _imeDeclinedKey = 0;
     _imeConsumedKey = 0;
     metalTestResetIMEQueue();
-    return (suppressed && deliveredWhenIdle) ? 1 : 0;
+    return (suppressed && declinedReachesWidget && deliveredWhenIdle) ? 1 : 0;
+}
+
+// Key delivery must not depend on the input method. Since issue #393
+// metalWindowIMESetActive — which also calls makeFirstResponder: —
+// fires only for editable text widgets, so a window whose app never
+// focuses one must still be its content view's responder.
+int metalTestContentViewIsFirstResponder(void *windowHandle) {
+    if (!windowHandle) return 0;
+    GoGuiWindow *gw = (GoGuiWindow *)windowHandle;
+    if (!gw->nsWindow) return 0;
+    return [gw->nsWindow firstResponder] == gw->nsWindow.contentView ? 1 : 0;
+}
+
+// Drive the preedit decision an Option+printable key produces and
+// report whether the key reaches the app when no editable text widget
+// is focused. On the US layout Option+I is the circumflex dead key: it
+// starts a composition, which used to claim the key and leave the app
+// shortcut dead (issue #393), and left the accent pending so the next
+// keystroke composed against it.
+//
+// A synthetic NSEvent cannot make the real input source emit a dead
+// key, so the preedit is staged with setMarkedText: and the decision
+// method is called directly.
+int metalTestIMEDeadKeyDeliveredWithoutTextContext(void *windowHandle) {
+    if (!windowHandle) return 0;
+    GoGuiWindow *gw = (GoGuiWindow *)windowHandle;
+    if (!gw->nsWindow) return 0;
+    NSView *cv = gw->nsWindow.contentView;
+    if (![cv isKindOfClass:[MetalContentView class]]) return 0;
+    MetalContentView *view = (MetalContentView *)cv;
+
+    // No text context: the dead key is discarded and the key-down goes
+    // to the app as the shortcut it is.
+    view.imeActive = NO;
+    _imeDeclinedKey = 0;
+    _imeConsumedKey = 0;
+    metalTestResetIMEQueue();
+    [view setMarkedText:@"\u02c6"
+          selectedRange:NSMakeRange(0, 1)
+       replacementRange:NSMakeRange(NSNotFound, 0)];
+    [view imeSettleAfterKeyWasComposing:NO];
+    int deliveredToApp = (_imeConsumedKey == 0);
+    int preeditDropped = ([view hasMarkedText] == NO);
+    // The staged preedit plus the empty one that clears it in Go.
+    int queuedClear = (metalTestIMEQueueDepth() == 2);
+
+    // Editable text focused: the same dead key is the first half of an
+    // accent (Option+e then e -> é) and stays with the input method.
+    view.imeActive = YES;
+    _imeDeclinedKey = 0;
+    _imeConsumedKey = 0;
+    metalTestResetIMEQueue();
+    [view setMarkedText:@"\u02c6"
+          selectedRange:NSMakeRange(0, 1)
+       replacementRange:NSMakeRange(NSNotFound, 0)];
+    [view imeSettleAfterKeyWasComposing:NO];
+    int claimedWhenEditing = (_imeConsumedKey == 1 && [view hasMarkedText]);
+
+    // A live composition outranks both: it owns the keyboard whatever
+    // is focused.
+    _imeConsumedKey = 0;
+    [view imeSettleAfterKeyWasComposing:YES];
+    int claimedWhileComposing = (_imeConsumedKey == 1);
+
+    view.imeActive = NO;
+    [view unmarkText];
+    _imeConsumedKey = 0;
+    metalTestResetIMEQueue();
+    return (deliveredToApp && preeditDropped && queuedClear &&
+            claimedWhenEditing && claimedWhileComposing) ? 1 : 0;
 }
 
 // Verify the NSTextInputClient answers an input method needs to commit

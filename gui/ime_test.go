@@ -167,19 +167,24 @@ func TestIMEPreservedOnRefocusSameID(t *testing.T) {
 
 // The other half of #156: re-focusing must not re-activate the platform
 // input context either, which on macOS re-ran makeFirstResponder:
-// mid-composition.
+// mid-composition. Driven through the render pass since #393, which
+// moved the decision there — an ID alone cannot say whether the
+// focused widget is editable.
 func TestIMEStartNotRepeatedOnRefocusSameID(t *testing.T) {
 	w := newTestWindow()
 	spy := &imeSpyPlatform{}
 	w.SetNativePlatform(spy)
+	w.layout = imeEditTargetLayout("f1")
 
 	w.SetFocus("f1")
+	w.syncIMEEditContext()
 	if spy.starts != 1 {
 		t.Fatalf("IMEStart calls after first focus = %d, want 1",
 			spy.starts)
 	}
 	for range 5 {
 		w.SetFocus("f1")
+		w.syncIMEEditContext()
 	}
 	if spy.starts != 1 {
 		t.Fatalf("IMEStart calls after refocus = %d, want 1", spy.starts)
@@ -188,10 +193,12 @@ func TestIMEStartNotRepeatedOnRefocusSameID(t *testing.T) {
 		t.Fatalf("IMEStop calls after refocus = %d, want 0", spy.stops)
 	}
 
-	// A real focus change still cycles the input context.
+	// Focus moves to a widget that is not a text context: the input
+	// method stops and does not start again.
 	w.SetFocus("f2")
-	if spy.stops != 1 || spy.starts != 2 {
-		t.Fatalf("after focus change: starts=%d stops=%d, want 2 and 1",
+	w.syncIMEEditContext()
+	if spy.stops != 1 || spy.starts != 1 {
+		t.Fatalf("after focus change: starts=%d stops=%d, want 1 and 1",
 			spy.starts, spy.stops)
 	}
 }

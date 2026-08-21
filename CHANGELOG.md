@@ -8,6 +8,36 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **macOS Option+printable shortcuts reach the app** (#393) — `keyDown:` routed
+  every key through `interpretKeyEvents:` and treated any resulting preedit as
+  an input-method claim, so on the US layout Option+I (the circumflex dead key)
+  never arrived as `ModAlt|KeyI`, and the pending accent then composed itself
+  into the next keystroke. A preedit started with no editable text widget
+  focused is now discarded and the key-down delivered. CJK composition and
+  Option+e → é inside a focused input are unchanged.
+- **A key the input method declines mid-composition reaches the widget** (#393)
+  — `keyDown:` claimed every key while a composition was live, so Tab could not
+  leave a field with a dead key pending: the accent committed, `insertTab:` came
+  straight back through `doCommandBySelector:`, and the key was dropped anyway.
+  A declined key is now delivered, held back just long enough for the
+  composition it committed to arrive first, so the text lands in the field being
+  left rather than the one taking focus.
+
+### Changed
+
+- **The platform input method is activated only for editable text widgets**
+  (#393). `IMEStart`/`IMEStop` used to fire on any focus change to any focusable
+  widget; they now follow the focused widget's edit context, decided each frame
+  from the arranged tree (`gui/ime_context.go`,
+  `docs/specs/ime-text-context.md`). This is the contract the backends already
+  documented: Windows keeps the IMM context detached, X11 no longer sends ibus a
+  `FocusIn` for a button, and the web backend no longer moves DOM focus into its
+  hidden `<input>`. A consumer text widget not built on `Input` — one that
+  handles `EventChar` itself and sets no `focusOwner` — no longer composes dead
+  keys; plain characters still arrive.
+
 ## [v0.64.0] - 2026-08-21
 
 Visual refresh (`docs/specs/visual-refresh.md`, phases 1–8): type ladder and

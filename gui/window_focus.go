@@ -46,17 +46,13 @@ func (w *Window) setFocusLocked(id string) {
 			w.animationAddLocked(newBlinkCursorAnimation())
 		}
 	}
-	// Same reasoning: only a real focus *change* touches the platform
-	// IME. prev != "" alone suffices for the stop — the enclosing
-	// id != prev already rules out a no-op transition.
-	if np := w.nativePlatform; np != nil && id != prev {
-		if prev != "" {
-			np.IMEStop()
-		}
-		if id != "" {
-			np.IMEStart()
-		}
-	}
+	// The platform IME is not switched here. Whether the new widget is
+	// an *editable text* context — the only thing an input method may
+	// be activated for — cannot be answered from an ID, and SetFocus is
+	// legitimately called from inside a View function, where w.layout
+	// still holds the previous frame and a newly created input is not
+	// in it yet. syncIMEEditContext decides it from the arranged tree
+	// each frame instead (gui/ime_context.go, issue #393).
 }
 
 // resetBlinkCursorVisible resets the blink timer so the cursor
