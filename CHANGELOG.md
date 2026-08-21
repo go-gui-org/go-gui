@@ -8,7 +8,12 @@ and this project adheres to
 
 ## [Unreleased]
 
-Visual refresh phase 1 (`docs/specs/visual-refresh.md`, sections 1 and 1b).
+## [v0.64.0] - 2026-08-21
+
+Visual refresh (`docs/specs/visual-refresh.md`, phases 1–8): type ladder and
+density, accent ramp, radius ladder and elevation, focus rings in every preset,
+button variants, retuned progress/boolean sizing, registry down to dark, light
+and the platform pairs.
 
 ### Added
 
