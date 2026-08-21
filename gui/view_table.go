@@ -154,6 +154,10 @@ func applyTableDefaults(cfg *TableCfg) {
 	if cfg.ColumnWidthMin == 0 {
 		cfg.ColumnWidthMin = s.columnWidthMin
 	}
+	// The header and body zones inside are already FillFit/FillFill,
+	// so a Fit outer only makes the table hug its columns and leaves
+	// row backgrounds short of the row they sit in.
+	cfg.Sizing = cfg.Sizing.Or(FillFit)
 }
 
 // tableColWidthCache stores measured column widths keyed by

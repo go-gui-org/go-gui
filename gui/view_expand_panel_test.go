@@ -249,3 +249,64 @@ func TestExpandPanelHoverPressedColor(t *testing.T) {
 		t.Fatalf("released: color = %+v, want %+v", c, hover)
 	}
 }
+
+// FocusDisabled takes the header out of the tab order. The ID, the
+// click bindings and OnClick stay — a mouse toggle still works, the
+// keyboard route is what the flag removes.
+func TestExpandPanelFocusDisabled(t *testing.T) {
+	layout := generateViewLayout(ExpandPanel(ExpandPanelCfg{
+		ID:            "ep",
+		FocusDisabled: true,
+		Head:          Text(TextCfg{Text: "H"}),
+		Content:       Text(TextCfg{Text: "C"}),
+	}), &Window{})
+	header := layout.Children[0]
+	if header.Shape.Focusable {
+		t.Error("FocusDisabled header must not join the tab order")
+	}
+	if ev := header.Shape.events; ev == nil || ev.OnClick == nil {
+		t.Error("FocusDisabled must not remove the mouse toggle")
+	}
+}
+
+// The panel is a full-width block by default, and an explicitly-set
+// Sizing still wins — Sizing self-flags, so FitFit is a real choice
+// rather than a request for the default.
+func TestExpandPanelSizingDefault(t *testing.T) {
+	def := generateViewLayout(ExpandPanel(ExpandPanelCfg{
+		Head: Text(TextCfg{Text: "H"}),
+	}), &Window{})
+	if def.Shape.Sizing != FillFit {
+		t.Errorf("default sizing = %+v, want FillFit", def.Shape.Sizing)
+	}
+	set := generateViewLayout(ExpandPanel(ExpandPanelCfg{
+		Head:   Text(TextCfg{Text: "H"}),
+		Sizing: FitFit,
+	}), &Window{})
+	if set.Shape.Sizing != FitFit {
+		t.Errorf("explicit sizing = %+v, want FitFit", set.Shape.Sizing)
+	}
+}
+
+// The header puts the disclosure arrow at its trailing edge: a
+// flexible spacer between the head view and the arrow absorbs the
+// surplus width.
+func TestExpandPanelHeaderArrowTrails(t *testing.T) {
+	layout := generateViewLayout(ExpandPanel(ExpandPanelCfg{
+		ID:      "ep",
+		Head:    Text(TextCfg{Text: "H"}),
+		Content: Text(TextCfg{Text: "C"}),
+	}), &Window{})
+	header := layout.Children[0]
+	if len(header.Children) != 3 {
+		t.Fatalf("header children = %d, want 3 (head, spacer, arrow)",
+			len(header.Children))
+	}
+	spacer := header.Children[1]
+	if spacer.Shape.Sizing != FillFit {
+		t.Errorf("spacer sizing = %+v, want FillFit", spacer.Shape.Sizing)
+	}
+	if len(spacer.Children) != 0 {
+		t.Errorf("spacer children = %d, want 0", len(spacer.Children))
+	}
+}

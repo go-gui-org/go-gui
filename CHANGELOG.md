@@ -12,6 +12,11 @@ Visual refresh phase 1 (`docs/specs/visual-refresh.md`, sections 1 and 1b).
 
 ### Added
 
+- **`ExpandPanelCfg.FocusDisabled`** — opts the header row out of the tab order
+  and its focus ring, matching the `FocusDisabled` opt-out the sixteen
+  focus-by-default input Cfgs already carry. For decorative or demo panels where
+  keyboard toggling is not wanted.
+
 - **`ThemeCfg.SizeFieldMinWidth` / `Theme.SizeFieldMinWidth`** — the MinWidth
   floor a text-bearing form control takes when its Cfg states none, seeded to
   160 in `baseCfg()` so every preset carries it. Zero means no floor, not
@@ -24,6 +29,28 @@ Visual refresh phase 1 (`docs/specs/visual-refresh.md`, sections 1 and 1b).
   caller stated.
 
 ### Changed
+
+- **`Form` and `Table` default their `Sizing` to `FillFit`,** for the same
+  reason as `ExpandPanel` below. `Table`'s header and body zones were already
+  `FillFit`/`FillFill` inside a Fit outer, so a table hugged its columns and its
+  focus ring stopped short of the row it sat in; a form shrink-wrapped to its
+  widest label row. No example set `TableCfg.Sizing` at all, and the two that
+  set `FormCfg.Sizing` were spelling the new default by hand.
+
+- **`ExpandPanel`'s header puts the disclosure arrow at the trailing edge.** A
+  flexible spacer between the head view and the arrow absorbs the surplus width.
+  Previously the arrow hugged the head view, which only looked right while the
+  panel shrink-wrapped.
+
+- **`ExpandPanel` defaults its `Sizing` to `FillFit`.** Left at the zero
+  `Sizing` (FitFit) the panel widened to its longest unwrapped line, and since a
+  container does not clip, it painted through its own border and off the window;
+  a `TextModeWrap` body inside it never wrapped, because a Fill child in a Fit
+  parent has no width to wrap against. A disclosure panel is a full-width block
+  whose height follows its body, so it now picks that default the way
+  `Breadcrumb`, `MenuBar`, `Sidebar`, `Splitter`, `TabControl` and `DockLayout`
+  already do. Callers wanting the old shrink-to-fit set `Sizing: gui.FitFit`
+  explicitly.
 
 - **`selectStyle` and `comboboxStyle` are no longer width-capped.** The old
   `MaxWidth: 200` stopped a `Select` given `FillFit` in a 900px row at 200px

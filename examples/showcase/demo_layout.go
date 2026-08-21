@@ -211,6 +211,16 @@ func demoOverflowPanel(w *gui.Window) gui.View {
 	})
 }
 
+// expandPanelBody is the demo panel's content. Blank lines make the
+// paragraph breaks; TextModeWrap keeps them and wraps each paragraph
+// to the panel width.
+const expandPanelBody = "This content is revealed when the panel is expanded.\n\n" +
+	"The panel sizes itself to whatever the body needs, so the rows below push " +
+	"the layout down as they appear.\n\n" +
+	"Collapsing hides the body with Invisible, which removes it from sizing as " +
+	"well as from painting.\n\n" +
+	"Any view works here — text, controls, or a nested panel."
+
 func demoExpandPanel(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
 	app := appState(w)
@@ -220,16 +230,20 @@ func demoExpandPanel(w *gui.Window) gui.View {
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.ExpandPanel(gui.ExpandPanelCfg{
-				ID:   "expand-1",
-				Open: app.ExpandOpen,
-				Head: gui.Text(gui.TextCfg{Text: "Click to expand", TextStyle: t.B3}),
+				ID: "expand-1",
+				// Demo panel: the focus ring distracts from the
+				// layout being shown, so keep it out of tab order.
+				FocusDisabled: true,
+				Open:          app.ExpandOpen,
+				Head:          gui.Text(gui.TextCfg{Text: "Click to expand", TextStyle: t.B3}),
 				Content: gui.Column(gui.ContainerCfg{
 					Sizing:  gui.FillFit,
 					Padding: gui.NewPadding(8, 0, 8, 0),
 					Content: []gui.View{
 						gui.Text(gui.TextCfg{
-							Text:      "This content is revealed when the panel is expanded.",
+							Text:      expandPanelBody,
 							TextStyle: t.N3,
+							Mode:      gui.TextModeWrap,
 						}),
 					},
 				}),

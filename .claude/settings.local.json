@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "mcp__plugin_context-mode_context-mode__ctx_batch_execute",
-      "WebSearch",
-      "Bash(claude mcp:*)"
-    ]
-  }
-}
