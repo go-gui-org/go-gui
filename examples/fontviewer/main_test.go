@@ -133,7 +133,7 @@ func TestRandomPangramExcludes(t *testing.T) {
 
 // Not t.Parallel: see TestMainViewNoPanic (SetTheme is not race-safe).
 func TestMainViewEmptyCatalog(t *testing.T) {
-	gui.SetTheme(gui.ThemeLight.WithBorders(true))
+	gui.SetTheme(gui.ThemeLight)
 	// Families is nil, Loaded is false → empty state shows "No system fonts".
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  &FontViewerState{FontSize: initialFontSize},

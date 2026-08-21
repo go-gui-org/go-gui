@@ -29,7 +29,7 @@ const curveDemo = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"
 </svg>`
 
 func main() {
-	gui.SetTheme(gui.ThemeDark.WithBorders(true))
+	gui.SetTheme(gui.ThemeDark)
 	w := gui.NewWindow(gui.WindowCfg{
 		Width:  900,
 		Height: 320,

@@ -59,7 +59,7 @@ func state(w *gui.Window) *App {
 }
 
 func main() {
-	gui.SetTheme(gui.ThemeDark.WithBorders(true))
+	gui.SetTheme(gui.ThemeDark)
 
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  &App{WeekdaysLen: "one"},
@@ -554,9 +554,9 @@ func toggleTheme(app *App) gui.View {
 			app := state(ctx.Window)
 			app.LightTheme = !app.LightTheme
 			if app.LightTheme {
-				ctx.Window.SetTheme(gui.ThemeLight.WithBorders(true))
+				ctx.Window.SetTheme(gui.ThemeLight)
 			} else {
-				ctx.Window.SetTheme(gui.ThemeDark.WithBorders(true))
+				ctx.Window.SetTheme(gui.ThemeDark)
 			}
 		},
 	})

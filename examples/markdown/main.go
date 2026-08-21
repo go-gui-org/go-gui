@@ -16,7 +16,7 @@ var markdownSource string
 type App struct{}
 
 func main() {
-	gui.SetTheme(gui.ThemeDark.WithBorders(true))
+	gui.SetTheme(gui.ThemeDark)
 	// Enable external APIs for LaTeX math (codecogs.com) and
 	// Mermaid diagram (kroki.io) rendering. Disabled by default
 	// for privacy — enabling sends rendered content to these

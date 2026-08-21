@@ -43,7 +43,7 @@ const useElementDemo = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200
 </svg>`
 
 func main() {
-	gui.SetTheme(gui.ThemeDark.WithBorders(true))
+	gui.SetTheme(gui.ThemeDark)
 	w := gui.NewWindow(gui.WindowCfg{
 		Width:  720,
 		Height: 520,

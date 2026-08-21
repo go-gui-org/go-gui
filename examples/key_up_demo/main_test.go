@@ -11,7 +11,7 @@ import (
 // separately. A no-panic render could not tell the two apart.
 func TestKeyPressCountsBothEdges(t *testing.T) {
 	t.Parallel()
-	gui.SetTheme(gui.ThemeDark.WithBorders(true))
+	gui.SetTheme(gui.ThemeDark)
 
 	app := &App{}
 	w := gui.NewTestWindow(gui.WindowCfg{State: app, Width: 400, Height: 300})

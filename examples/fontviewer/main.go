@@ -175,7 +175,7 @@ func main() {
 		ShapeAll: len(os.Args) > 1 && os.Args[1] == "--shape-all",
 	}
 
-	gui.SetTheme(gui.ThemeLight.WithBorders(true))
+	gui.SetTheme(gui.ThemeLight)
 
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  state,
