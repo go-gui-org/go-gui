@@ -36,6 +36,8 @@ void metalTestResetIMEQueue(void);
 int metalTestPopTextEvent(void);
 int metalTestIMEClientConformance(void *windowHandle);
 int metalTestIMEKeySuppressedWhileComposing(void *windowHandle);
+int metalTestIMEDeadKeyDeliveredWithoutTextContext(void *windowHandle);
+int metalTestContentViewIsFirstResponder(void *windowHandle);
 void metalTestStartLiveResize(void *windowHandle);
 void metalTestEndLiveResize(void *windowHandle);
 int metalTestLayerPresentsWithTransaction(void *windowHandle);
@@ -159,6 +161,21 @@ func testIMEClientConformance(handle C.GoGuiNSWindow) bool {
 // method owns does not also reach the widget.
 func testIMEKeySuppressedWhileComposing(handle C.GoGuiNSWindow) bool {
 	return C.metalTestIMEKeySuppressedWhileComposing(
+		unsafe.Pointer(handle)) != 0
+}
+
+// testIMEDeadKeyDeliveredWithoutTextContext checks that an Option key
+// that produces a dead-key preedit still reaches the app as a key-down
+// when no editable text widget is focused (issue #393).
+func testIMEDeadKeyDeliveredWithoutTextContext(handle C.GoGuiNSWindow) bool {
+	return C.metalTestIMEDeadKeyDeliveredWithoutTextContext(
+		unsafe.Pointer(handle)) != 0
+}
+
+// testContentViewIsFirstResponder checks keys reach the view without
+// the input method having been activated.
+func testContentViewIsFirstResponder(handle C.GoGuiNSWindow) bool {
+	return C.metalTestContentViewIsFirstResponder(
 		unsafe.Pointer(handle)) != 0
 }
 

@@ -138,6 +138,21 @@ func runMainThreadTests() {
 		panic("IME key suppression: raw key leaked while composing")
 	}
 
+	// 7d. With no editable text widget focused, a dead-key preedit is
+	//     not the input method's claim: Option+I is a circumflex on
+	//     the US layout, and swallowing it killed every Option
+	//     shortcut and composed the accent into the next keystroke.
+	if !testIMEDeadKeyDeliveredWithoutTextContext(b.window) {
+		panic("IME dead key: Option shortcut did not reach the app")
+	}
+
+	// 7e. And keys must reach the view without the input method: the
+	//     IME activation path is what used to install the first
+	//     responder, and it no longer runs for non-text widgets.
+	if !testContentViewIsFirstResponder(b.window) {
+		panic("first responder: content view does not receive keys")
+	}
+
 	// 8. metalAppFinishLaunch must not crash — validates the C function
 	//    exists, links, and can be called from Go. Regression test
 	//    for the activation call added before the event loop.

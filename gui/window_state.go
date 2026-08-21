@@ -97,6 +97,12 @@ type ViewState struct {
 	diagramRequestSeq uint64
 	focusID           string
 
+	// imeEditFocusID is the focus ID syncIMEEditContext last activated
+	// the input method for. Moving between two text fields must cycle
+	// the platform context so a composition left live in the engine
+	// does not commit into the field that just took focus.
+	imeEditFocusID string
+
 	// idScope is the effective ID of the innermost ID-bearing shape
 	// currently being generated. Maintained by generateViewLayout and
 	// read by (*Window).EffID; empty outside the view phase.
@@ -108,6 +114,10 @@ type ViewState struct {
 	inputCursorOn            atomic.Bool
 	menuKeyNav               bool
 	externalAPIWarningLogged bool
+	// imeEditContext is the last IME activation pushed to the
+	// platform: true while the focused widget is an editable text
+	// context. Kept so syncIMEEditContext pushes transitions only.
+	imeEditContext bool
 }
 
 // State returns a typed pointer to the user-supplied state.

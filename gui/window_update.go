@@ -321,6 +321,10 @@ func composeLayout(layers []Layout, w *Window) Layout {
 func (w *Window) buildRenderers(bgColor Color, clip drawClip) {
 	w.renderers = w.renderers[:0]
 	w.scratch.resetRenderPools()
+	// The arranged tree is the only place that says whether the
+	// focused widget is editable, so the platform input method is
+	// switched here rather than at focus time (gui/ime_context.go).
+	w.syncIMEEditContext()
 	renderLayout(&w.layout, bgColor, clip, w)
 	if inspectorSupported && w.inspectorEnabled {
 		inspectorInjectWireframe(w)
