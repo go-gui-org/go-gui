@@ -48,10 +48,10 @@ func TestThemePresetElevationConsts(t *testing.T) {
 		offsetY    float32
 		blurRadius float32
 	}{
-		{darkShadowPopover, RGBA(0, 0, 0, 140), 4, 12},
-		{darkShadowDialog, RGBA(0, 0, 0, 170), 12, 32},
-		{lightShadowPopover, RGBA(16, 24, 40, 40), 4, 12},
-		{lightShadowDialog, RGBA(16, 24, 40, 60), 12, 32},
+		{darkShadowPopover, RGBA(0, 0, 0, 140), 0, 12},
+		{darkShadowDialog, RGBA(0, 0, 0, 170), 0, 32},
+		{lightShadowPopover, RGBA(16, 24, 40, 40), 0, 12},
+		{lightShadowDialog, RGBA(16, 24, 40, 60), 0, 32},
 	} {
 		if tc.got.Color != tc.color ||
 			tc.got.OffsetY != tc.offsetY ||

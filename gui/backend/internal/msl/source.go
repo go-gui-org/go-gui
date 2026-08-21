@@ -206,8 +206,17 @@ fragment float4 fs_shadow(ShadowOut in [[stage_in]]) {
     float d_c = length(max(q_c, float2(0.0)))
               + min(max(q_c.x, q_c.y), 0.0) - radius_caster;
 
-    float alpha_falloff = 1.0 - smoothstep(0.0,
-                          max(1.0, blur), d);
+    // Falloff, centred on the shadow's own edge. A Gaussian blur of a
+    // hard-edged rect — which is what the soft backend and a canvas
+    // shadowBlur both produce — is ~50% AT the edge and decays over
+    // roughly +/- one blur radius with sigma = blur/2. Ramping from
+    // full opacity at the edge instead (the old 0..blur form) is twice
+    // the ink over twice the width, and reads as a grey cloud rather
+    // than as depth. smoothstep over -blur..+blur tracks that Gaussian
+    // CDF closely: at d = sigma it gives 0.16 against the Gaussian's
+    // 0.159. The blur pipeline below already uses this same form.
+    float b_half        = max(1.0, blur);
+    float alpha_falloff = 1.0 - smoothstep(-b_half, b_half, d);
     float alpha_clip    = smoothstep(-1.0, 0.0, d_c);
     float alpha         = alpha_falloff * alpha_clip;
 

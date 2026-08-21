@@ -149,7 +149,11 @@ static const char* fs_shadow_src =
     "    float radius_caster = radius - spread;\n"
     "    vec2 q_c = abs(pos + offset) - (half_size - spread) + vec2(radius_caster + 1.5 * blur);\n"
     "    float d_c = length(max(q_c, 0.0)) + min(max(q_c.x, q_c.y), 0.0) - radius_caster;\n"
-    "    float alpha_falloff = 1.0 - smoothstep(0.0, max(1.0, blur), d);\n"
+    /* Centred falloff: ~50% at the shadow's own edge, decaying over
+       +/- one blur radius. Matches a Gaussian of sigma = blur/2, which
+       is what the soft and web backends produce. */
+    "    float b_half = max(1.0, blur);\n"
+    "    float alpha_falloff = 1.0 - smoothstep(-b_half, b_half, d);\n"
     "    float alpha_clip = smoothstep(-1.0, 0.0, d_c);\n"
     "    float alpha = alpha_falloff * alpha_clip;\n"
     "    frag_color = vec4(color.rgb, color.a * alpha);\n"

@@ -35,15 +35,30 @@ const (
 // menus, dropdowns, tooltips, toasts on the popover tier; dialogs and
 // the command palette on the dialog tier. Inline panels and cards
 // separate by fill value, never by shadow.
+//
+// Two properties these values depend on, both learned from the first
+// pass reading as a design-tool drop shadow rather than as depth:
+//
+//   - **Concentric, not offset.** A directional shadow puts a heavy
+//     band under one edge and nothing above it, which reads as the
+//     surface sliding rather than floating — most visible on a dialog,
+//     which is centred in the window with nothing to cast onto. Both
+//     tiers use OffsetY 0; the tier is expressed by blur and alpha.
+//   - **The alphas are CSS-scale, and now render that way.** The GPU
+//     shadow shader used to ramp from full opacity AT the caster edge
+//     out to BlurRadius, where a Gaussian — what the soft and web
+//     backends produce, and what a CSS box-shadow means — is ~50% at
+//     that edge. Every GPU shadow was therefore about twice the ink
+//     over twice the width, which is what read as a grey cloud. The
+//     shader is fixed (fs_shadow, gui/backend/internal/msl); these
+//     alphas are the spec table's, unchanged.
 var (
 	darkShadowPopover = &BoxShadow{
 		Color:      RGBA(0, 0, 0, 140),
-		OffsetY:    4,
 		BlurRadius: 12,
 	}
 	darkShadowDialog = &BoxShadow{
 		Color:      RGBA(0, 0, 0, 170),
-		OffsetY:    12,
 		BlurRadius: 32,
 	}
 
@@ -52,12 +67,10 @@ var (
 	// light surface needs, so the light ink is the page tint instead.
 	lightShadowPopover = &BoxShadow{
 		Color:      RGBA(16, 24, 40, 40),
-		OffsetY:    4,
 		BlurRadius: 12,
 	}
 	lightShadowDialog = &BoxShadow{
 		Color:      RGBA(16, 24, 40, 60),
-		OffsetY:    12,
 		BlurRadius: 32,
 	}
 
