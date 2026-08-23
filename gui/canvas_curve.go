@@ -2,23 +2,26 @@ package gui
 
 import "math"
 
-// appendQuad appends two triangles forming a quad.
-func appendQuad(b *DrawCanvasTriBatch,
+// appendQuad appends a quad as two triangles. It writes into a plain
+// slice rather than a batch so gradient fills, which tessellate into a
+// scratch buffer before they know their vertex colors, share the same
+// geometry as flat fills.
+func appendQuad(dst *[]float32,
 	x0, y0, x1, y1, x2, y2, x3, y3 float32) {
-	b.Triangles = append(b.Triangles,
+	*dst = append(*dst,
 		x0, y0, x1, y1, x2, y2,
 		x0, y0, x2, y2, x3, y3,
 	)
 }
 
 // appendCornerFan appends a 90-degree filled arc fan.
-func appendCornerFan(b *DrawCanvasTriBatch,
+func appendCornerFan(dst *[]float32,
 	cx, cy, r, startAngle float32, segs int) {
 	step := float32(math.Pi/2) / float32(segs)
 	for i := range segs {
 		a0 := float64(startAngle + step*float32(i))
 		a1 := float64(startAngle + step*float32(i+1))
-		b.Triangles = append(b.Triangles,
+		*dst = append(*dst,
 			cx, cy,
 			cx+r*float32(math.Cos(a0)), cy+r*float32(math.Sin(a0)),
 			cx+r*float32(math.Cos(a1)), cy+r*float32(math.Sin(a1)),
@@ -105,4 +108,46 @@ func flattenCubicBezier(
 		tol, depth+1)
 	flattenCubicBezier(buf, midx, midy, bex, bey, ex, ey, x1, y1,
 		tol, depth+1)
+}
+
+// appendRoundedRectTris appends the fill geometry for a rounded rect:
+// a center cross of three strips plus a fan per corner. radius must
+// already be clamped to at most half the smaller dimension and be > 0.
+//
+// Shared by FilledRoundedRect and FilledRoundedRectGradient so the two
+// tessellate identically — a gradient fill differs only in how its
+// vertices are colored, never in where they are.
+func appendRoundedRectTris(dst *[]float32, x, y, w, h, r float32) {
+	// Center cross (vertical strip).
+	appendQuad(dst, x+r, y, x+w-r, y, x+w-r, y+h, x+r, y+h)
+	// Left strip.
+	appendQuad(dst, x, y+r, x+r, y+r, x+r, y+h-r, x, y+h-r)
+	// Right strip.
+	appendQuad(dst, x+w-r, y+r, x+w, y+r, x+w, y+h-r, x+w-r, y+h-r)
+
+	const segs = 8
+	appendCornerFan(dst, x+r, y+r, r, math.Pi, segs)       // TL
+	appendCornerFan(dst, x+w-r, y+r, r, 3*math.Pi/2, segs) // TR
+	appendCornerFan(dst, x+w-r, y+h-r, r, 0, segs)         // BR
+	appendCornerFan(dst, x+r, y+h-r, r, math.Pi/2, segs)   // BL
+}
+
+// appendArcFanTris appends a triangle fan from (cx, cy) to consecutive
+// pairs in an arc polyline. Shared by FilledArc and FilledArcGradient.
+func appendArcFanTris(dst *[]float32, cx, cy float32, pts []float32) {
+	for i := 0; i+3 < len(pts); i += 2 {
+		*dst = append(*dst, cx, cy, pts[i], pts[i+1], pts[i+2], pts[i+3])
+	}
+}
+
+// appendPolygonFanTris appends a convex polygon as a fan from its
+// first vertex. Shared by FilledPolygon and FilledPolygonGradient.
+func appendPolygonFanTris(dst *[]float32, points []float32) {
+	n := len(points) / 2
+	x0, y0 := points[0], points[1]
+	for i := 1; i < n-1; i++ {
+		*dst = append(*dst, x0, y0,
+			points[i*2], points[i*2+1],
+			points[(i+1)*2], points[(i+1)*2+1])
+	}
 }

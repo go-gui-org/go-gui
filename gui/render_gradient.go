@@ -102,7 +102,18 @@ func lerpColorPremultiplied(a, b Color, t float32) Color {
 	pG := aG + (bG-aG)*ct
 	pB := aB + (bB-aB)*ct
 	if alpha <= 0.0001 {
-		return RGBA(0, 0, 0, 0)
+		// Both ends are fully transparent, so the premultiplied RGB
+		// holds no hue to divide back out. Black would be the easy
+		// answer and is wrong: any consumer that interpolates in
+		// straight-alpha space — a vertex-colored triangle mesh, on
+		// every backend — reads that black as a real color, and a fade
+		// to transparent white darkens as it fades instead of just
+		// thinning. Carry the nearer end's hue at zero alpha.
+		hue := a
+		if ct >= 0.5 {
+			hue = b
+		}
+		return RGBA(hue.R, hue.G, hue.B, 0)
 	}
 	r := (pR / alpha) * 255.0
 	g := (pG / alpha) * 255.0

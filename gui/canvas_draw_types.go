@@ -19,10 +19,22 @@ type DrawCanvasTextEntry struct {
 	X, Y  float32
 }
 
-// DrawCanvasTriBatch is one flat-color triangle batch.
+// DrawCanvasTriBatch is one triangle batch.
+//
+// A flat batch leaves VertexColors nil and paints every triangle in
+// Color. A gradient batch carries one color per vertex — exactly
+// len(Triangles)/2 of them — which every backend already consumes
+// through RenderCmd.VertexColors; its Color is then the gradient
+// sampled at its midpoint, kept only so a flat-only consumer degrades
+// to something reasonable rather than to nothing.
+//
+// The two never mix inside one batch: a gradient fill always starts a
+// fresh batch, so the length relation above holds per batch and
+// validSvgCmd can enforce it.
 type DrawCanvasTriBatch struct {
-	Triangles []float32
-	Color     Color
+	Triangles    []float32
+	VertexColors []Color
+	Color        Color
 }
 
 // DrawCanvasImageEntry stores a deferred image drawing command.
@@ -78,4 +90,19 @@ type DrawRecorder interface {
 	QuadBezier(x0, y0, cx, cy, x1, y1 float32, color Color, width float32)
 	CubicBezier(x0, y0, c1x, c1y, c2x, c2y, x1, y1 float32, color Color, width float32)
 	Text(x, y float32, text string, style TextStyle)
+}
+
+// DrawGradientRecorder is an optional extension to DrawRecorder: a
+// recorder implementing it receives gradient fills as tessellated
+// geometry plus the gradient that shades it.
+//
+// It is a separate interface rather than more methods on DrawRecorder
+// because DrawRecorder is exported and implemented outside this repo;
+// widening it would break every existing implementer. A recorder that
+// does not implement this still receives the fill, as the equivalent
+// flat primitive shaded with the gradient's midpoint color, so an
+// export path never silently drops a gradient fill.
+// exportaudit:keep — reachable from an exported signature
+type DrawGradientRecorder interface {
+	FillTrianglesGradient(tris []float32, g *CanvasGradient)
 }

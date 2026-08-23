@@ -97,14 +97,19 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 	// text were meant as backgrounds — which no in-tree consumer wants.
 	emitDrawCanvasImages(cached.Images, ox, oy, effClip, w)
 
+	// A gradient batch differs only by its VertexColors; every backend
+	// that consumes RenderSvg already reads that channel for SVG
+	// gradients, so a canvas gradient needs nothing below this line.
+	// validSvgCmd rejects a batch whose two lengths disagree.
 	for _, batch := range cached.Batches {
 		emitRenderer(RenderCmd{
-			Kind:      RenderSvg,
-			Triangles: batch.Triangles,
-			Color:     batch.Color,
-			X:         ox,
-			Y:         oy,
-			Scale:     1.0,
+			Kind:         RenderSvg,
+			Triangles:    batch.Triangles,
+			VertexColors: batch.VertexColors,
+			Color:        batch.Color,
+			X:            ox,
+			Y:            oy,
+			Scale:        1.0,
 		}, w)
 	}
 

@@ -14,6 +14,11 @@ type DrawContext struct {
 	images          []DrawCanvasImageEntry
 	arcBuf          []float32
 	bezierBuf       []float32
+	gradTriBuf      []float32
+	gradSplitBuf    []float32
+	gradRadialBuf   []float32
+	gradIsolineBuf  []float32
+	gradStopBuf     []GradientStop
 	currentBatchIdx int
 	Width           float32
 	Height          float32
@@ -23,6 +28,11 @@ type DrawContext struct {
 	Scale float32
 
 	lastColor Color
+	// batchIsGradient marks the current batch as vertex-colored, which
+	// blocks the run-length merge below: a flat fill must never append
+	// its triangles to a batch carrying per-vertex colors, or the
+	// batch's two lengths stop agreeing.
+	batchIsGradient bool
 }
 
 // SetRecorder attaches a DrawRecorder that receives high-level
@@ -30,7 +40,8 @@ type DrawContext struct {
 func (dc *DrawContext) SetRecorder(r DrawRecorder) { dc.recorder = r }
 
 func (dc *DrawContext) getBatch(color Color) *DrawCanvasTriBatch {
-	if len(dc.batches) > 0 && dc.lastColor == color {
+	if len(dc.batches) > 0 && !dc.batchIsGradient &&
+		dc.lastColor == color {
 		return &dc.batches[dc.currentBatchIdx]
 	}
 	dc.batches = append(dc.batches, DrawCanvasTriBatch{
@@ -38,6 +49,7 @@ func (dc *DrawContext) getBatch(color Color) *DrawCanvasTriBatch {
 		Triangles: make([]float32, 0, 128),
 	})
 	dc.lastColor = color
+	dc.batchIsGradient = false
 	dc.currentBatchIdx = len(dc.batches) - 1
 	return &dc.batches[dc.currentBatchIdx]
 }
@@ -152,16 +164,8 @@ func (dc *DrawContext) FilledPolygon(points []float32, color Color) {
 		dc.recorder.FilledPolygon(points, color)
 		return
 	}
-	n := len(points) / 2
 	b := dc.getBatch(color)
-	x0, y0 := points[0], points[1]
-	for i := 1; i < n-1; i++ {
-		b.Triangles = append(b.Triangles,
-			x0, y0,
-			points[i*2], points[i*2+1],
-			points[(i+1)*2], points[(i+1)*2+1],
-		)
-	}
+	appendPolygonFanTris(&b.Triangles, points)
 }
 
 // FilledCircle draws a filled circle.
@@ -210,13 +214,7 @@ func (dc *DrawContext) FilledArc(cx, cy, rx, ry, start, sweep float32, color Col
 		return
 	}
 	b := dc.getBatch(color)
-	for i := 0; i+3 < len(pts); i += 2 {
-		b.Triangles = append(b.Triangles,
-			cx, cy,
-			pts[i], pts[i+1],
-			pts[i+2], pts[i+3],
-		)
-	}
+	appendArcFanTris(&b.Triangles, cx, cy, pts)
 }
 
 // arcPoints is the buffer-reusing version of arcToPolyline.
@@ -262,21 +260,7 @@ func (dc *DrawContext) FilledRoundedRect(x, y, w, h, radius float32, color Color
 		return
 	}
 	b := dc.getBatch(color)
-	r := radius
-
-	// Center cross (vertical strip).
-	appendQuad(b, x+r, y, x+w-r, y, x+w-r, y+h, x+r, y+h)
-	// Left strip.
-	appendQuad(b, x, y+r, x+r, y+r, x+r, y+h-r, x, y+h-r)
-	// Right strip.
-	appendQuad(b, x+w-r, y+r, x+w, y+r, x+w, y+h-r, x+w-r, y+h-r)
-
-	// Corner arcs (filled fans).
-	const segs = 8
-	appendCornerFan(b, x+r, y+r, r, math.Pi, segs)       // TL
-	appendCornerFan(b, x+w-r, y+r, r, 3*math.Pi/2, segs) // TR
-	appendCornerFan(b, x+w-r, y+h-r, r, 0, segs)         // BR
-	appendCornerFan(b, x+r, y+h-r, r, math.Pi/2, segs)   // BL
+	appendRoundedRectTris(&b.Triangles, x, y, w, h, radius)
 }
 
 // RoundedRect draws a stroked rectangle with rounded corners.

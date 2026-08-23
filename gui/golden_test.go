@@ -147,6 +147,17 @@ func serializeCmd(c RenderCmd) string {
 		fmt.Fprintf(&b, " res=%q", c.Resource)
 	case RenderSvg:
 		fmt.Fprintf(&b, " tris=%d", len(c.Triangles))
+		// A vertex-colored batch is a gradient fill. Record the count
+		// and both ends of the ramp: the count pins the tessellation
+		// the subdivision pass chose, and the endpoint colors pin the
+		// shading, which is the part a reader would otherwise have to
+		// take on trust.
+		if len(c.VertexColors) > 0 {
+			fmt.Fprintf(&b, " vcols=%d first=%s last=%s",
+				len(c.VertexColors),
+				colorStr(c.VertexColors[0]),
+				colorStr(c.VertexColors[len(c.VertexColors)-1]))
+		}
 	case RenderLine:
 		fmt.Fprintf(&b, " from=%s,%s", f2(c.OffsetX), f2(c.OffsetY))
 	case RenderShadow:

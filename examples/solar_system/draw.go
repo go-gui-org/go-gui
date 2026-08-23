@@ -331,18 +331,19 @@ func drawSun(a *App, dc *gui.DrawContext) {
 		outer *= 1.1
 	}
 
+	// One radial fill. The cubic falloff is the shape the ring stack
+	// was approximating — linear reads as a hard-edged disc and even
+	// quadratic leaves a visible shoulder at this extent, while the
+	// cube puts most of the opacity in the innermost third, which is
+	// what a real halo looks like. rings no longer sets the smoothness,
+	// only the depth the stack would have accumulated to.
 	rings := int(clamp32(outer*glowRingsPerPx, glowRingsMin, glowRingsMax))
-	for i := rings; i > 0; i-- {
-		t := float32(i) / float32(rings) // 1 at the outer edge
-		ringR := lerp(r, outer, t)
-		// Cubic falloff. Linear reads as a hard-edged disc and even
-		// quadratic leaves a visible shoulder at this extent; the cube
-		// puts most of the opacity in the innermost third, which is
-		// what a real halo looks like.
-		f := 1 - t
-		alpha := f * f * f * glowAlpha
-		dc.FilledCircle(cx, cy, ringR, colorSunGlow.WithOpacity(alpha))
-	}
+	a.glowStops = haloStops(colorSunGlow, r, outer, glowAlpha, 3, rings,
+		a.glowStops)
+	dc.FilledCircleGradient(cx, cy, outer, &gui.CanvasGradient{
+		Radial: true,
+		Stops:  a.glowStops,
+	})
 
 	// The disc: shells from the gold limb through cream to a white
 	// core. Three stops for the same reason the planets use three —
@@ -513,11 +514,12 @@ func drawPlanet(a *App, dc *gui.DrawContext, i int) {
 		// planet zoomed to fill the view, a purely proportional halo
 		// washes the whole canvas in its own color.
 		reach := min(r*1.1, 42)
-		for h := hoverHalos; h > 0; h-- {
-			t := float32(h) / hoverHalos
-			alpha := (1 - t) * (1 - t) * 0.42
-			dc.FilledCircle(cx, cy, r+reach*t, p.Color.WithOpacity(alpha))
-		}
+		a.haloStops = haloStops(p.Color, r, r+reach, 0.42, 2, hoverHalos,
+			a.haloStops)
+		dc.FilledCircleGradient(cx, cy, r+reach, &gui.CanvasGradient{
+			Radial: true,
+			Stops:  a.haloStops,
+		})
 	}
 
 	// One vector carries both facts the shading needs: which way the
@@ -865,4 +867,57 @@ func drawTooltip(a *App, dc *gui.DrawContext) {
 	dc.FilledRoundedRect(x, y, bw, bh, 5, colorTipBG)
 	dc.RoundedRect(x, y, bw, bh, 5, colorTipBorder, 1)
 	dc.Text(x+tipPadX, y+tipPadY, name, a.TipStyle)
+}
+
+// haloStops samples an accumulated-ring glow profile into gradient
+// stops, for a fill that runs from the body's edge out to reach.
+//
+// Every glow on this canvas used to be a stack of translucent discs of
+// decreasing radius. Painted back to front, their composite opacity at
+// radius rho was 1 - product(1 - a_i) over the rings outside it — and
+// with each a_i small that product is exp(-sum a_i), which integrates
+// in closed form. Sampling that curve keeps exactly the look the stack
+// had while emitting one fill instead of up to 140, and drops the
+// banding that made ring count a tuning knob in the first place: the
+// gradient interpolates between stops instead of stepping.
+//
+// falloff is the exponent the old per-ring alpha used ((1-t)^falloff),
+// peak its scale, and rings the count it would have drawn — the three
+// numbers that set the curve's shape and depth.
+func haloStops(c gui.Color, inner, outer float32,
+	peak float32, falloff int, rings int,
+	dst []gui.GradientStop,
+) []gui.GradientStop {
+	dst = dst[:0]
+	if outer <= 0 || inner < 0 || inner >= outer {
+		return dst
+	}
+	// Integrating (1-u)^falloff over [u,1] raises the exponent by one.
+	e := float64(falloff + 1)
+	k := float64(float32(rings)*peak) / e
+	alphaAt := func(u float32) float32 {
+		f := math.Pow(float64(1-u), e)
+		return float32(1 - math.Exp(-k*f))
+	}
+
+	// The glow is flat across the body it surrounds: the disc covers
+	// that region anyway, and a stop at 0 keeps the ramp from starting
+	// at the center.
+	core := alphaAt(0)
+	inFrac := inner / outer
+	dst = append(dst,
+		gui.GradientStop{Color: c.WithOpacity(core), Pos: 0},
+		gui.GradientStop{Color: c.WithOpacity(core), Pos: inFrac})
+
+	// Eight samples across the falloff. The curve is smooth and the
+	// renderer interpolates between stops, so this is well past the
+	// point where more of them change anything.
+	const samples = 8
+	for i := 1; i <= samples; i++ {
+		u := float32(i) / samples
+		pos := inFrac + (1-inFrac)*u
+		dst = append(dst,
+			gui.GradientStop{Color: c.WithOpacity(alphaAt(u)), Pos: pos})
+	}
+	return dst
 }
