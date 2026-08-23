@@ -65,9 +65,14 @@ func TestUpdateBlinkCursor(t *testing.T) {
 	b := newBlinkCursorAnimation()
 	b.start = time.Now().Add(-time.Second)
 	w := &Window{}
-	ok := updateBlinkCursor(b, w)
+	deferred := make([]queuedCommand, 0, 4)
+	ac := newAnimationCommands(&deferred)
+	ok := updateBlinkCursor(b, w, &ac)
 	if !ok {
 		t.Error("should return true after delay")
+	}
+	if len(deferred) != 1 {
+		t.Errorf("toggle should queue the caret patch, got %d", len(deferred))
 	}
 }
 

@@ -117,9 +117,21 @@ func TestBlinkCursorAnimationUpdate(t *testing.T) {
 	b := newBlinkCursorAnimation()
 	b.start = time.Now().Add(-time.Second)
 	w := &Window{}
-	ok := b.Update(w, 0, nil)
+	deferred := make([]queuedCommand, 0, 4)
+	ac := newAnimationCommands(&deferred)
+	ok := b.Update(w, 0, &ac)
 	if !ok {
 		t.Error("should return true after delay elapsed")
+	}
+	if len(deferred) != 1 {
+		t.Fatalf("toggle should queue the caret patch command, got %d", len(deferred))
+	}
+	if deferred[0].kind != queuedCommandWindowFn {
+		t.Error("toggle should be a window-fn command")
+	}
+	runQueuedCommands(deferred)
+	if w.renderersDirty {
+		t.Error("no caret recorded — toggle must not mark renderersDirty")
 	}
 }
 
@@ -218,9 +230,9 @@ func TestBlinkCursorAnimationID(t *testing.T) {
 
 func TestBlinkCursorAnimationRefreshKind(t *testing.T) {
 	b := newBlinkCursorAnimation()
-	if b.RefreshKind() != animationRefreshRenderOnly {
+	if b.RefreshKind() != animationRefreshNone {
 		t.Errorf("RefreshKind = %d, want %d",
-			b.RefreshKind(), animationRefreshRenderOnly)
+			b.RefreshKind(), animationRefreshNone)
 	}
 }
 

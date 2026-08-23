@@ -156,8 +156,8 @@ func (w *Window) UpdateView(gen func(*Window) View) {
 
 // FrameFn is called by the backend each frame. It flushes
 // queued commands and rebuilds layout/renderers as needed.
-// Returns true when renderers were rebuilt and the backend
-// should call renderFrame.
+// Returns true when the renderers changed — rebuilt, or patched in
+// place by the caret blink — and the backend should call renderFrame.
 func (w *Window) FrameFn() bool {
 	w.frameCount++
 	// Before anything reads theme state this frame: make this window's
@@ -188,6 +188,11 @@ func (w *Window) FrameFn() bool {
 		}
 		rebuilt = true
 	}
+	// A blink tick can patch the caret renderer in place (issue
+	// #404); the list changed without a rebuild, but the backend
+	// must still present. A pass that ran subsumes the patch.
+	rebuilt = rebuilt || w.renderersDirty
+	w.renderersDirty = false
 	w.initA11y()
 	w.syncA11y()
 	return rebuilt
@@ -367,6 +372,9 @@ func composeLayout(layers []Layout, w *Window) Layout {
 // buildRenderers resets and rebuilds the render command list.
 func (w *Window) buildRenderers(bgColor Color, clip drawClip) {
 	w.renderers = w.renderers[:0]
+	// The caret's renderer index is only valid within the list just
+	// built; the blink toggle re-records on every rebuild (issue #404).
+	w.caretCmd = caretCmdState{}
 	w.scratch.resetRenderPools()
 	// The arranged tree is the only place that says whether the
 	// focused widget is editable, so the platform input method is

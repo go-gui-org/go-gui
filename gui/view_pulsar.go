@@ -35,10 +35,9 @@ func Pulsar(cfg PulsarCfg, w *Window) View {
 	}
 
 	// Pulsar toggles text in the view function, so it needs a
-	// layout refresh — not the render-only refresh that
-	// BlinkCursorAnimation provides. Use a dedicated Animate
-	// that piggybacks on the same inputCursorOn state but
-	// requests AnimationRefreshLayout.
+	// layout refresh — not the blink animation's in-place caret
+	// patch. Use a dedicated Animate that piggybacks on the same
+	// inputCursorOn state but requests AnimationRefreshLayout.
 	if !w.HasAnimation(blinkCursorAnimationID) {
 		w.AnimationAdd(newBlinkCursorAnimation())
 	}

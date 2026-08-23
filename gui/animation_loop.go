@@ -229,7 +229,7 @@ func updateAnimate(a *Animate, ac *AnimationCommands) bool {
 	return false
 }
 
-func updateBlinkCursor(b *BlinkCursorAnimation, w *Window) bool {
+func updateBlinkCursor(b *BlinkCursorAnimation, w *Window, ac *AnimationCommands) bool {
 	if b.stopped {
 		return false
 	}
@@ -239,6 +239,11 @@ func updateBlinkCursor(b *BlinkCursorAnimation, w *Window) bool {
 		// (via main thread). If animMu is ever removed from either
 		// path, switch to CompareAndSwap.
 		w.viewState.inputCursorOn.Store(!w.viewState.inputCursorOn.Load())
+		// Toggle the caret renderer on the main thread during the
+		// next frame's command flush — it lives in the render list
+		// and needs no tree rebuild (issue #404). Pulsar's own
+		// Animate still promotes the tick to a layout refresh.
+		ac.appendOnDone(commandToggleCaretBlink)
 		b.start = b.start.Add(blinkCursorAnimationDelay)
 		return true
 	}

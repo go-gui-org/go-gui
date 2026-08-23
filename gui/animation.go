@@ -104,8 +104,10 @@ func newBlinkCursorAnimation() *BlinkCursorAnimation {
 // ID implements Animation.
 func (a *BlinkCursorAnimation) ID() string { return blinkCursorAnimationID }
 
-// RefreshKind implements Animation.
-func (a *BlinkCursorAnimation) RefreshKind() AnimationRefreshKind { return animationRefreshRenderOnly }
+// RefreshKind implements Animation. None: each toggle patches the
+// caret renderer in place via commandToggleCaretBlink, so a blink
+// tick needs no refresh at all (issue #404).
+func (a *BlinkCursorAnimation) RefreshKind() AnimationRefreshKind { return animationRefreshNone }
 
 // IsStopped implements Animation.
 func (a *BlinkCursorAnimation) IsStopped() bool { return a.stopped }
@@ -114,8 +116,8 @@ func (a *BlinkCursorAnimation) IsStopped() bool { return a.stopped }
 func (a *BlinkCursorAnimation) SetStart(t time.Time) { a.start = t }
 
 // Update implements Animation.
-func (a *BlinkCursorAnimation) Update(w *Window, _ float32, _ *AnimationCommands) bool {
-	return updateBlinkCursor(a, w)
+func (a *BlinkCursorAnimation) Update(w *Window, _ float32, ac *AnimationCommands) bool {
+	return updateBlinkCursor(a, w, ac)
 }
 
 // Animate waits the specified delay then executes the callback.
