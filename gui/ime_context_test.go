@@ -226,3 +226,174 @@ func TestIMECycledBetweenTextFields(t *testing.T) {
 			spy.starts, spy.stops)
 	}
 }
+
+// shapeDrawsCaret covers exactly the shapes renderInputCursor will
+// draw for. It is wider than shapeIsIMEEditTarget: a read-only input
+// keeps its caret (only the IME gate excludes it), and a
+// selection-only focusable Text draws one too. A terminal grid is not
+// a caret target — its cursor is the consumer's own TermCursor.Visible
+// flag, which the blink animation does not drive (issue #403).
+func TestShapeDrawsCaret(t *testing.T) {
+	cases := []struct {
+		name  string
+		shape *Shape
+		want  bool
+	}{
+		{"nil", nil, false},
+		{
+			"input text shape",
+			&Shape{
+				shapeType:  shapeText,
+				focusOwner: "in",
+				TC:         &shapeTextConfig{},
+			},
+			true,
+		},
+		{
+			"read-only input keeps a caret",
+			&Shape{
+				shapeType:  shapeText,
+				focusOwner: "in",
+				TC:         &shapeTextConfig{textReadOnly: true},
+			},
+			true,
+		},
+		{
+			"selection-only text draws a caret",
+			&Shape{
+				shapeType: shapeText,
+				Focusable: true,
+				ID:        "label",
+				TC:        &shapeTextConfig{},
+			},
+			true,
+		},
+		{
+			"term grid owns its own cursor",
+			&Shape{shapeType: shapeTermGrid, Focusable: true},
+			false,
+		},
+		{"button", &Shape{Focusable: true, ID: "b"}, false},
+		{
+			"plain text renders no caret",
+			&Shape{shapeType: shapeText, ID: "t", TC: &shapeTextConfig{}},
+			false,
+		},
+	}
+	for _, c := range cases {
+		if got := shapeDrawsCaret(c.shape); got != c.want {
+			t.Errorf("%s: shapeDrawsCaret = %v, want %v",
+				c.name, got, c.want)
+		}
+	}
+}
+
+// Focusing a non-text widget must not start the caret-blink
+// animation: every 600 ms tick queues a window-wide render-only
+// refresh for a caret no widget draws (issue #403).
+func TestBlinkCursorNotAddedForNonTextWidget(t *testing.T) {
+	w := newTestWindow()
+	w.layout = Layout{
+		Shape:    &Shape{},
+		Children: []Layout{{Shape: &Shape{ID: "btn", Focusable: true}}},
+	}
+
+	w.SetFocus("btn")
+	w.syncBlinkCursor()
+	if w.HasAnimation(blinkCursorAnimationID) {
+		t.Fatal("blink animation active for a focused button")
+	}
+}
+
+// The blink animation follows the caret target: registered while an
+// input holds focus, removed when focus leaves it.
+func TestBlinkCursorAddedAndRemovedWithCaretTarget(t *testing.T) {
+	w := newTestWindow()
+	w.layout = imeEditTargetLayout("in")
+
+	w.SetFocus("in")
+	w.syncBlinkCursor()
+	if !w.HasAnimation(blinkCursorAnimationID) {
+		t.Fatal("blink animation missing for a focused input")
+	}
+
+	w.ClearFocus()
+	w.syncBlinkCursor()
+	if w.HasAnimation(blinkCursorAnimationID) {
+		t.Fatal("blink animation still active after blur")
+	}
+}
+
+// A Pulsar blinks on the same inputCursorOn state with no focused
+// input at all; its blink registration must survive syncBlinkCursor.
+func TestBlinkCursorKeptWhilePulsarActive(t *testing.T) {
+	w := newTestWindow()
+	w.layout = Layout{
+		Shape:    &Shape{},
+		Children: []Layout{{Shape: &Shape{ID: "btn", Focusable: true}}},
+	}
+	w.AnimationAdd(newBlinkCursorAnimation())
+	w.animationAddViewBound(&Animate{
+		AnimID: pulsarAnimationID,
+		Delay:  blinkCursorAnimationDelay,
+		Repeat: true,
+	})
+
+	w.SetFocus("btn")
+	w.syncBlinkCursor()
+	if !w.HasAnimation(blinkCursorAnimationID) {
+		t.Fatal("blink animation removed while a Pulsar is active")
+	}
+}
+
+// End-to-end through the real widgets and a real frame: the blink
+// gate must match the caret each widget actually draws.
+func TestBlinkCursorThroughRealFrame(t *testing.T) {
+	cases := []struct {
+		name    string
+		build   func() View
+		focusID string
+		want    bool
+	}{
+		{
+			"input",
+			func() View { return Input(InputCfg{ID: "field"}) },
+			"field",
+			true,
+		},
+		{
+			"read-only input keeps its caret",
+			func() View {
+				return Input(InputCfg{ID: "field", ReadOnly: true})
+			},
+			"field",
+			true,
+		},
+		{
+			"button",
+			func() View { return Button(ButtonCfg{ID: "btn", Label: "go"}) },
+			"btn",
+			false,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			w := NewWindow(WindowCfg{
+				State: new(int), Width: 200, Height: 100,
+			})
+			w.viewGenerator = func(_ *Window) View {
+				return Column(ContainerCfg{
+					Sizing:  FillFill,
+					Content: []View{c.build()},
+				})
+			}
+			w.SetFocus(c.focusID)
+			w.refreshLayout = true
+			w.FrameFn()
+
+			if got := w.HasAnimation(blinkCursorAnimationID); got != c.want {
+				t.Fatalf("blink animation present = %v, want %v", got, c.want)
+			}
+		})
+	}
+}
