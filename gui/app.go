@@ -26,6 +26,11 @@ type App struct {
 	ExitMode exitMode
 	mu       sync.Mutex
 	mainID   uint32
+	// wakeMainFn unblocks the backend's idle event loop when OpenWindow
+	// queues a window from another goroutine. Set by backends whose
+	// idle wait cannot select on pending itself (metal, win32); nil
+	// elsewhere (x11 selects on the pending channel directly).
+	wakeMainFn func()
 }
 
 // NewApp creates an App with an empty window registry.
@@ -122,7 +127,21 @@ func (a *App) OpenWindow(cfg WindowCfg) {
 	default:
 		log.Println("gui: App.OpenWindow: pending buffer full, " +
 			"window request dropped")
+		return
 	}
+	// The backend event loop may be blocked in an idle wait that
+	// cannot observe the pending channel (issue #405) — wake it so
+	// the window is created promptly instead of at the next event.
+	if fn := a.wakeMainFn; fn != nil {
+		fn()
+	}
+}
+
+// SetWakeMainFn sets the function called to wake the main event loop
+// when OpenWindow queues a window from another goroutine. The backend
+// sets this at init time.
+func (a *App) SetWakeMainFn(fn func()) {
+	a.wakeMainFn = fn
 }
 
 // PendingOpen returns the channel of window configs to create.

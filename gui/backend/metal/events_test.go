@@ -11,6 +11,17 @@ import (
 
 // ─── mapMetalModifiers ────────────────────────────────────────
 
+func TestIdleWaitMs(t *testing.T) {
+	// The idle branch of the event loop must block indefinitely
+	// (issue #405); a frame that rendered keeps the drain-only poll.
+	if got := idleWaitMs(false); got != -1 {
+		t.Fatalf("idleWaitMs(false) = %d, want -1", got)
+	}
+	if got := idleWaitMs(true); got != 0 {
+		t.Fatalf("idleWaitMs(true) = %d, want 0", got)
+	}
+}
+
 func TestMapMetalModifiers_Zero(t *testing.T) {
 	if m := mapMetalModifiers(0); m != 0 {
 		t.Fatalf("zero flags → 0, got %v", m)

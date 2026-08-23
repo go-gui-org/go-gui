@@ -86,6 +86,12 @@ const (
 	qsAllInput         = 0x04FF
 	mwmoInputAvailable = 0x0004
 
+	// waitInfinite is INFINITE for MsgWaitForMultipleObjectsEx: block
+	// until a message arrives. Real window messages and the wake
+	// message (PostMessage wmApp) end the wait; nothing periodic does
+	// (issue #405).
+	waitInfinite = 0xFFFFFFFF
+
 	gmemMoveable  = 0x0002
 	cfUnicodeText = 13
 
@@ -227,6 +233,7 @@ func pumpMessages(msg *msgW) {
 }
 
 // waitMessage blocks until a message arrives or the timeout elapses.
+// waitInfinite blocks indefinitely; the wake message ends the wait.
 func waitMessage(ms uintptr) {
 	pMsgWaitForMulti.Call(0, 0, ms, qsAllInput, mwmoInputAvailable)
 }
@@ -536,7 +543,9 @@ func (b *Backend) Run(w *gui.Window) {
 		}
 		b.plat.setCursor(w.MouseCursorState())
 		if !rendered {
-			waitMessage(100)
+			// Idle: block until a message arrives instead of polling
+			// (issue #405).
+			waitMessage(waitInfinite)
 		}
 	}
 }
@@ -595,6 +604,10 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 		b.plat.w = w
 		register(b, w)
 		w.SetWakeMainFn(b.plat.wake)
+		// App-level wake: OpenWindow from another goroutine must
+		// unblock the idle wait, which cannot observe the pending
+		// channel (issue #405).
+		app.SetWakeMainFn(b.plat.wake)
 		if w.Config.OnInit != nil {
 			w.Config.OnInit(w)
 		}
@@ -645,6 +658,15 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 			return nil
 		}
 
+		// The app-level wake posts to a specific hwnd, and a
+		// destroyed hwnd silently drops the message. Re-point it at
+		// a surviving window so OpenWindow still wakes the idle wait
+		// after a close (issue #405).
+		for _, b := range backends {
+			app.SetWakeMainFn(b.plat.wake)
+			break
+		}
+
 		// Frame + render each window.
 		rendered := false
 		for _, b := range backends {
@@ -657,7 +679,9 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 		}
 
 		if !rendered {
-			waitMessage(100)
+			// Idle: block until a message arrives instead of polling
+			// (issue #405).
+			waitMessage(waitInfinite)
 		}
 	}
 }

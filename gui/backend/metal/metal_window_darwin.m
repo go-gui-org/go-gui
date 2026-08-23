@@ -1981,6 +1981,44 @@ int metalTestPollReturnsOnQuitRequested(void) {
             _quitRequested == 0) ? 1 : 0;
 }
 
+// Verify the indefinite idle wait actually blocks and wakes: schedule
+// a run-loop timer that posts a wake event, then metalPollEvent(-1)
+// must sleep until the timer fires and return the consumed event.
+// Regression test for issue #405 — the idle loop stopped polling at
+// 100ms, so every path that dirties state must wake it with a posted
+// event.
+// Returns 0 on success; 1 if the poll returned without an event; 2 if
+// the poll did not block (returned before the timer could fire).
+int metalTestPollIdleWake(void) {
+    // Drain anything left over from earlier tests so the wait below
+    // is the wait under test.
+    while (metalPollEvent(0)) {}
+
+    // addTimer:forMode: retains the timer and schedules it in the
+    // default mode — the same mode the poll waits in.
+    NSTimer *timer = [NSTimer timerWithTimeInterval:0.1
+                                            repeats:NO
+                                              block:^(NSTimer *t) {
+        [NSApp postEvent:metalWakeEvent() atStart:NO];
+    }];
+    [[NSRunLoop currentRunLoop] addTimer:timer
+                                 forMode:NSDefaultRunLoopMode];
+
+    NSDate *t0 = [NSDate date];
+    int r = metalPollEvent(-1);
+    NSTimeInterval elapsed = [[NSDate date] timeIntervalSinceDate:t0];
+
+    if (r != 1) {
+        [timer invalidate];  // still scheduled — don't leak its wake
+        return 1;
+    }
+    if (elapsed < 0.05) {
+        [timer invalidate];
+        return 2;
+    }
+    return 0;
+}
+
 // Delegates to the shared metalCursorInContentBounds helper so the
 // 10 Go tests exercise the exact same logic as production code.
 int metalTestCursorBoundsCheck(float mouseX, float mouseY,

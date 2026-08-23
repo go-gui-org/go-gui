@@ -51,6 +51,26 @@ const (
 
 const maxCustomPipelines = 32
 
+// idleWaitMs returns the poll timeout for one event-loop iteration.
+// -1 blocks until an event ([NSDate distantFuture]); 0 drains without
+// waiting. The loop blocks when the previous frame rendered nothing
+// (idle) — every path that dirties state wakes it: QueueCommand and
+// the animation loop via metalPostEmptyEvent, App.OpenWindow via the
+// app wake fn, and the focus/file-drop callbacks in callbacks.go
+// (issue #405).
+func idleWaitMs(rendered bool) C.int {
+	if !rendered {
+		return -1
+	}
+	return 0
+}
+
+// wakeUp posts an empty event so the idle poll returns and the loop
+// can repaint. Shared by the per-window and app-level wake fns.
+func wakeUp() {
+	C.metalPostEmptyEvent()
+}
+
 // Backend is the Metal backend for go-gui (single-window mode).
 // Embeds windowState so all draw methods are shared with
 // multi-window mode.
@@ -93,20 +113,15 @@ func (b *Backend) Run(w *gui.Window) {
 	// Activate now that windows exist on screen.
 	C.metalAppFinishLaunch()
 
-	wakeUp := func() {
-		C.metalPostEmptyEvent()
-	}
 	w.SetWakeMainFn(wakeUp)
 
 	running := true
 	rendered := true
 	evt := new(gui.Event)
 	for running {
-		waitMs := 0
-		if !rendered {
-			waitMs = 100
-		}
-		ev := C.metalPollEvent(C.int(waitMs))
+		// Idle: block until an event wakes us instead of polling.
+		// Every path that dirties state wakes the loop (issue #405).
+		ev := C.metalPollEvent(C.int(idleWaitMs(rendered)))
 		for ev != 0 {
 			mapped, cont := mapMetalEvent()
 			*evt = mapped
@@ -220,11 +235,12 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 		}
 	}()
 
-	wakeUp := func() {
-		C.metalPostEmptyEvent()
-	}
 	setWakeFn := func(w *gui.Window) {
 		w.SetWakeMainFn(wakeUp)
+		// App-level wake: OpenWindow from another goroutine must
+		// unblock the idle loop even though it cannot select on the
+		// pending channel (issue #405).
+		app.SetWakeMainFn(wakeUp)
 	}
 	for _, w := range initialWindows {
 		setWakeFn(w)
@@ -264,12 +280,9 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 			}
 		}
 
-		// Poll events. When idle, wait up to 100ms.
-		waitMs := 0
-		if !rendered {
-			waitMs = 100
-		}
-		ev := C.metalPollEvent(C.int(waitMs))
+		// Poll events. Idle: block until an event wakes us instead of
+		// polling (issue #405).
+		ev := C.metalPollEvent(C.int(idleWaitMs(rendered)))
 		for ev != 0 {
 			wid := uint32(C.metalEventWindowID())
 			mapped, cont := mapMetalEvent()
