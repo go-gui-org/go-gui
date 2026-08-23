@@ -141,9 +141,9 @@ func TestFrameFnPresentsCaretPatchWithoutRebuild(t *testing.T) {
 
 // focusedInputWindow returns a window whose only view is an Input
 // focused at "f900" with a recorded caret after its first frame.
-func focusedInputWindow(t *testing.T, timings bool) *Window {
+func focusedInputWindow(t *testing.T) *Window {
 	t.Helper()
-	w := NewWindow(WindowCfg{State: new(int), Width: 300, Height: 120, Timings: timings})
+	w := NewWindow(WindowCfg{State: new(int), Width: 300, Height: 120})
 	w.SetFocus("f900")
 	w.viewGenerator = func(_ *Window) View {
 		return Row(ContainerCfg{
@@ -161,13 +161,17 @@ func focusedInputWindow(t *testing.T, timings bool) *Window {
 
 // TestBlinkTickPresentsWithoutRebuild drives a focused Input through a
 // real blink tick (toggle + queued patch command + FrameFn) and proves
-// the frame presents without rebuilding renderers: the pipeline timings
-// are untouched by the blink frame, and the caret command's color flips
-// in place (issue #404).
+// the frame presents the patched list without rebuilding renderers.
+//
+// Detection is deliberately clock-independent: the toggle must not
+// request any refresh, and a frame that presents when nothing was
+// requested can only come from the renderersDirty patch path.
+// FrameTimings are not compared — on coarse-clock platforms (Windows
+// CI's default ~15.6ms timer) a tiny test frame rounds every duration
+// to zero, so a timings comparison would be vacuous there (issue #404).
 func TestBlinkTickPresentsWithoutRebuild(t *testing.T) {
-	w := focusedInputWindow(t, true)
-	t0 := w.Timings()
-	if t0.RenderBuild == 0 {
+	w := focusedInputWindow(t)
+	if len(w.renderers) == 0 {
 		t.Fatal("initial frame should have built renderers")
 	}
 	if got := w.renderers[w.caretCmd.idx].Color; got != w.caretCmd.color {
@@ -193,10 +197,6 @@ func TestBlinkTickPresentsWithoutRebuild(t *testing.T) {
 	if !w.FrameFn() {
 		t.Fatal("blink frame must present the patched list")
 	}
-
-	if w.Timings() != t0 {
-		t.Error("blink frame rebuilt renderers — timings changed")
-	}
 	if w.renderers[w.caretCmd.idx].Color != ColorTransparent {
 		t.Error("caret color should go transparent via the in-place patch")
 	}
@@ -209,7 +209,7 @@ func TestBlinkTickPresentsWithoutRebuild(t *testing.T) {
 // pass re-records it at the same slot, so the blink patch never aims
 // at a stale renderer after any refresh.
 func TestRebuildReRecordsCaretCmd(t *testing.T) {
-	w := focusedInputWindow(t, false)
+	w := focusedInputWindow(t)
 	before := w.caretCmd.idx
 
 	w.markRenderOnlyRefresh()
