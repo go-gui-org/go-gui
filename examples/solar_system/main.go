@@ -57,6 +57,12 @@ type App struct {
 
 	Stars []Star
 
+	// glowStops and haloStops back the two radial glow fills. They are
+	// reused across frames because the draw runs on every tick and a
+	// fresh slice per glow would allocate for the whole session.
+	glowStops []gui.GradientStop
+	haloStops []gui.GradientStop
+
 	// Selected and Hovered are a planet index, selSun for the sun, or
 	// -1 for the full-system view / nothing under the cursor.
 	Selected int

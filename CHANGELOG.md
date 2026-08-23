@@ -8,7 +8,44 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **Gradient fills on `DrawContext`** (#398) — a canvas fill can take a
+  `gui.CanvasGradient` in place of a flat `Color`: `FilledRectGradient`,
+  `FilledCircleGradient`, `FilledArcGradient`, `FilledPolygonGradient`,
+  `FilledRoundedRectGradient`, and `FillTrianglesGradient` for caller-supplied
+  geometry. Linear and radial, with pad/reflect/repeat spread and no stop-count
+  limit. Geometry left at zero is derived from the shape being filled, so a
+  centered glow needs only its stops.
+
+  This replaces the stacked-geometry workaround a non-flat canvas fill used to
+  require. `examples/solar_system` drew its sun halo as up to 140 concentric
+  discs, where ring count was the smoothness knob and seams showed when it was
+  turned down; it is now one fill.
+
+  There is no new shader and no backend change. A gradient batch carries one
+  color per vertex on the existing `RenderSvg` command, a channel Metal, GL,
+  web, software, iOS and Android already consume — and so does PDF export. A
+  `DrawRecorder` that does not implement the new optional `DrawGradientRecorder`
+  receives the equivalent flat primitive shaded with the ramp's midpoint, so an
+  export path never drops a gradient fill.
+
 ### Fixed
+
+- **A fade to transparent no longer fades to black** — `SampleGradientStopColor`
+  interpolates in premultiplied space, where zero alpha carries no hue, and
+  returned transparent black. Any consumer that interpolates in straight-alpha
+  space — a vertex-colored triangle mesh, on every backend — read that as a real
+  color, so a white glow darkened as it faded. The nearer stop's hue is now
+  kept.
+- **Software backend: a vertex-colored mesh no longer shades from a neighbour's
+  extrapolation** — `shadeTriangle` writes a half-pixel skirt past each
+  triangle's edge so the mesh's outer edge does not thin, but the write was
+  unconditional, so the last triangle painted won even where another one
+  actually contained the pixel. A fan of narrow wedges — a glow struck from its
+  own center — had its whole inner region shaded from extrapolated weights. A
+  triangle may now only overwrite a pixel it fits better than the one already
+  there.
 
 - **Tab out of a text input no longer freezes the app** (#394) — the Input's
   blur commit fired from its `AmendLayout` hook, which `layoutArrange` runs

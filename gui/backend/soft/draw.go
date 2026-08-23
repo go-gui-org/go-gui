@@ -27,6 +27,10 @@ type renderer struct {
 	// instead of spamming stderr every frame.
 	textErrLogged bool
 
+	// meshScoreBuf backs fillTriangleMesh's per-pixel fit scores; it is
+	// grown, never freed, so a per-frame gradient does not allocate.
+	meshScoreBuf []float32
+
 	// images caches decoded sources by the RenderCmd.Resource string.
 	images map[string]*image.NRGBA
 

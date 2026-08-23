@@ -60,14 +60,29 @@ go run ./examples/solar_system/
 
 ## Notes on technique
 
-`DrawContext` has no gradient fill: a batch carries one flat color. Everything
-here that looks like a gradient is flat shapes standing in for one.
+`DrawContext` fills come in two forms, and this example uses both.
 
-- The sun's halo is a ring of concentric circles with a **cubic** alpha falloff.
-  Linear reads as a hard-edged disc, and even quadratic leaves a visible
-  shoulder at this radius.
+The two glows are real gradients (`FilledCircleGradient`, issue #398). Each is
+one fill:
+
+- The sun's halo keeps its **cubic** alpha falloff. Linear reads as a hard-edged
+  disc, and even quadratic leaves a visible shoulder at this radius.
+- A hovered planet's halo is the same shape at planet scale.
+
+Both used to be stacks of concentric translucent discs — up to 140 of them for
+the sun — where the ring count was the smoothness knob and seams showed when it
+was turned down. `haloStops` (`draw.go`) samples the opacity those stacks
+accumulated to, so the appearance is the one they had, at one fill each and with
+nothing left to tune.
+
+Everything else that looks like a gradient is still flat shapes standing in for
+one, and deliberately so:
+
+- The planet shading is elliptical bands in a light-aligned frame. Circles
+  cannot make a crescent, so no radial gradient can express it.
 - Three translucent rings just outside each planet's silhouette feather the
-  polygon edge into something that reads as anti-aliased.
+  polygon edge into something that reads as anti-aliased. Three is few enough
+  that a gradient would not pay for itself.
 
 ### Painting a star
 
@@ -165,8 +180,10 @@ black, on the grounds that a planet you cannot see is a planet you cannot click.
 
 Level and segment counts scale with pixel radius, never a constant. A fixed
 count bands the moment the thing gets big — it showed up first on a planet
-zoomed to fill the view, and again on the sun's halo, which is 500px across when
-Jupiter is focused and banded at 17px per ring.
+zoomed to fill the view, and again on the sun's halo back when that was a ring
+stack, 500px across with Jupiter focused and banded at 17px per ring. The halo
+is a gradient now and no longer has a count to get wrong; the shading bands
+still do.
 
 A band is one flat color and its quads are emitted consecutively, so each band
 costs a single batch. The full-system view emits about 245 triangle batches a

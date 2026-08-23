@@ -147,6 +147,33 @@ func TestLerpColorPremultipliedZeroAlpha(t *testing.T) {
 	}
 }
 
+// TestLerpColorPremultipliedKeepsHueAtZeroAlpha pins the rule that a
+// fade to transparent must not fade to black. Premultiplied space has
+// no hue left at zero alpha, but the color is handed to consumers that
+// interpolate in straight-alpha space — every vertex-colored triangle
+// mesh does — where a transparent black reads as a real color and the
+// fade darkens instead of thinning.
+func TestLerpColorPremultipliedKeepsHueAtZeroAlpha(t *testing.T) {
+	white := RGBA(255, 255, 255, 255)
+	clear := RGBA(255, 255, 255, 0)
+	c := lerpColorPremultiplied(white, clear, 1)
+	if c.A != 0 {
+		t.Errorf("A = %d, want 0", c.A)
+	}
+	if c.R != 255 || c.G != 255 || c.B != 255 {
+		t.Errorf("rgb = (%d,%d,%d), want white kept", c.R, c.G, c.B)
+	}
+	// The nearer end supplies the hue, so a fade from red keeps red.
+	red := RGBA(255, 0, 0, 0)
+	blue := RGBA(0, 0, 255, 0)
+	if got := lerpColorPremultiplied(red, blue, 0.25); got.R != 255 {
+		t.Errorf("t=0.25 hue = %v, want the red end", got)
+	}
+	if got := lerpColorPremultiplied(red, blue, 0.75); got.B != 255 {
+		t.Errorf("t=0.75 hue = %v, want the blue end", got)
+	}
+}
+
 func TestSampleGradientStopColorEmpty(t *testing.T) {
 	c := SampleGradientStopColor(nil, 0.5)
 	if c.A != 0 {

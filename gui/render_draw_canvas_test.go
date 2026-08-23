@@ -495,3 +495,76 @@ func TestRenderDrawCanvasClipStaysInsideViewport(t *testing.T) {
 			got.X, got.Y, got.W, got.H, want)
 	}
 }
+
+// TestRenderDrawCanvasEmitsVertexColors covers the whole seam a canvas
+// gradient rides on: the batch's per-vertex colors must reach the
+// RenderSvg command, and must survive validSvgCmd, which rejects a
+// command whose color count does not match its vertex count.
+func TestRenderDrawCanvasEmitsVertexColors(t *testing.T) {
+	w := makeWindowWithScratch()
+	shape := &Shape{
+		shapeType: shapeDrawCanvas,
+		Width:     100, Height: 100,
+		Color: RGB(100, 100, 100),
+		events: &eventHandlers{
+			OnDraw: func(dc *DrawContext) {
+				dc.FilledRectGradient(0, 0, 50, 50, &CanvasGradient{
+					Stops: []GradientStop{
+						{Color: RGB(255, 0, 0), Pos: 0},
+						{Color: RGB(0, 0, 255), Pos: 1},
+					},
+				})
+			},
+		},
+	}
+
+	renderDrawCanvas(shape, makeClip(0, 0, 200, 200), w)
+
+	var found bool
+	for i := range w.renderers {
+		r := &w.renderers[i]
+		if r.Kind != RenderSvg {
+			continue
+		}
+		found = true
+		if len(r.VertexColors) == 0 {
+			t.Fatal("RenderSvg carries no VertexColors")
+		}
+		if len(r.VertexColors)*2 != len(r.Triangles) {
+			t.Fatalf("VertexColors=%d, Triangles=%d",
+				len(r.VertexColors), len(r.Triangles))
+		}
+		if r.VertexColors[0] == r.VertexColors[len(r.VertexColors)-1] {
+			t.Error("first and last vertex share a color; " +
+				"the ramp was not applied")
+		}
+	}
+	if !found {
+		t.Fatal("expected a RenderSvg command for the gradient batch")
+	}
+}
+
+// TestRenderDrawCanvasFlatBatchHasNoVertexColors guards the other half
+// of the invariant: an ordinary flat fill must not start carrying a
+// colors slice, or every existing canvas would change how it renders.
+func TestRenderDrawCanvasFlatBatchHasNoVertexColors(t *testing.T) {
+	w := makeWindowWithScratch()
+	shape := &Shape{
+		shapeType: shapeDrawCanvas,
+		Width:     100, Height: 100,
+		events: &eventHandlers{
+			OnDraw: func(dc *DrawContext) {
+				dc.FilledRect(0, 0, 50, 50, RGB(255, 0, 0))
+			},
+		},
+	}
+
+	renderDrawCanvas(shape, makeClip(0, 0, 200, 200), w)
+
+	for i := range w.renderers {
+		r := &w.renderers[i]
+		if r.Kind == RenderSvg && r.VertexColors != nil {
+			t.Error("flat canvas batch emitted VertexColors")
+		}
+	}
+}

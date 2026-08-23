@@ -195,6 +195,35 @@ within and keeps the single-row sum — that combination behaves as a `Row`, not
 wrap. When the wrap should always fill its parent, use Fill width, which is what
 every example in this repo does.
 
+## Canvas gradients
+
+A `DrawContext` fill takes a `*gui.CanvasGradient` in place of a flat `Color`:
+`FilledRectGradient`, `FilledCircleGradient`, `FilledArcGradient`,
+`FilledPolygonGradient`, `FilledRoundedRectGradient`, and
+`FillTrianglesGradient` for geometry you tessellate yourself. Strokes stay flat.
+
+**Geometry left at zero is derived from the shape being filled.** A radial
+gradient with `R <= 0` centers on the fill's bounding box and matches its larger
+extent; a linear one whose endpoints coincide runs top to bottom. So a glow is
+its stops and nothing else:
+
+```go
+dc.FilledCircleGradient(cx, cy, r, &gui.CanvasGradient{
+	Radial: true,
+	Stops: []gui.GradientStop{
+		{Color: core, Pos: 0},
+		{Color: core.WithOpacity(0), Pos: 1},
+	},
+})
+```
+
+There is no stop-count limit — the shader's five-stop cap belongs to the shape
+gradient path (`ContainerCfg`), not this one. Do not stack concentric discs to
+fake a falloff; that is what this replaces.
+
+A gradient fill always starts its own batch and never merges with the flat fill
+before it, so interleaving the two keeps painter's order.
+
 ## The one-event rule
 
 Nothing is marked handled for you. A callback that acts on an event calls

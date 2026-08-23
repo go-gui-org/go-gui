@@ -87,9 +87,22 @@ func (r *renderer) fillTriangleMesh(verts []float32, cols []gui.Color,
 		return
 	}
 
+	// score records, per pixel, how well the triangle that shaded it
+	// actually contained it: the minimum of its barycentric weights,
+	// which is >= 0 inside the triangle and negative out in its skirt.
+	// A triangle may only overwrite a pixel it fits better than the one
+	// already there.
+	//
+	// Without this the last triangle painted simply wins, skirt or not,
+	// and a fan of narrow wedges — a glow struck from its own center,
+	// where the wedges are sub-pixel wide near the hub — has its whole
+	// inner region painted from extrapolated weights. The mesh's outer
+	// edge still gets its skirt, because no interior sample competes
+	// for those pixels.
+	score := r.meshScore(region)
 	layer := r.acquireLayer()
 	for t := range numTris {
-		shadeTriangle(layer, region, verts[t*6:t*6+6],
+		shadeTriangle(layer, region, score, verts[t*6:t*6+6],
 			scaleAlpha(cols[t*3], vAlpha),
 			scaleAlpha(cols[t*3+1], vAlpha),
 			scaleAlpha(cols[t*3+2], vAlpha))
@@ -107,8 +120,8 @@ func (r *renderer) fillTriangleMesh(verts []float32, cols []gui.Color,
 // triangle, and with no color written there the antialiased edge would
 // fade to nothing. Interior pixels are unaffected — the triangles tile,
 // so every centre inside the mesh is already claimed.
-func shadeTriangle(dst *buffer, region image.Rectangle, p []float32,
-	c0, c1, c2 gui.Color) {
+func shadeTriangle(dst *buffer, region image.Rectangle, score []float32,
+	p []float32, c0, c1, c2 gui.Color) {
 
 	src := newTriSrc(p, c0, c1, c2)
 	if src == nil {
@@ -122,12 +135,26 @@ func shadeTriangle(dst *buffer, region image.Rectangle, p []float32,
 	}
 	t0, t1, t2 := src.skirt()
 
+	stride := region.Dx()
 	for y := rect.Min.Y; y < rect.Max.Y; y++ {
 		i := dst.img.PixOffset(rect.Min.X, y)
+		si := (y-region.Min.Y)*stride + (rect.Min.X - region.Min.X)
 		for x := rect.Min.X; x < rect.Max.X; x++ {
 			w0, w1, w2 := src.weights(x, y)
 			if w0 < -t0 || w1 < -t1 || w2 < -t2 {
 				i += 4
+				si++
+				continue
+			}
+			// An interior sample (min weight >= 0) always beats a skirt
+			// sample, and among interior samples the containing
+			// triangle wins. Equal scores keep the earlier write: that
+			// happens on a shared edge, where both colors agree.
+			if fit := min(w0, w1, w2); fit > score[si] {
+				score[si] = fit
+			} else {
+				i += 4
+				si++
 				continue
 			}
 			cr, cg, cb, ca := premul(src.mix(w0, w1, w2))
@@ -136,8 +163,24 @@ func shadeTriangle(dst *buffer, region image.Rectangle, p []float32,
 			dst.img.Pix[i+2] = cb
 			dst.img.Pix[i+3] = ca
 			i += 4
+			si++
 		}
 	}
+}
+
+// meshScore returns a per-pixel scratch buffer for region, reset to a
+// value below any weight a skirt sample can produce so the first write
+// to a pixel always takes.
+func (r *renderer) meshScore(region image.Rectangle) []float32 {
+	n := region.Dx() * region.Dy()
+	if cap(r.meshScoreBuf) < n {
+		r.meshScoreBuf = make([]float32, n)
+	}
+	s := r.meshScoreBuf[:n]
+	for i := range s {
+		s[i] = -math.MaxFloat32
+	}
+	return s
 }
 
 // svgVertices transforms every vertex into device space, reusing the

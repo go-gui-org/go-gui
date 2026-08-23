@@ -855,7 +855,48 @@ func goldenCases() []goldenCase {
 			focusID: "bv_primary",
 			build:   buildButtonVariants,
 		},
+		{
+			// Canvas gradient fills (issue #398). Records both the
+			// linear and the radial path, because the two tessellate
+			// differently: the linear splits at stop isolines and the
+			// radial by edge length. The golden pins the vertex count
+			// each pass settles on and both ends of each ramp, so a
+			// change to the subdivision heuristics shows as a diff
+			// rather than as a screenshot nobody re-takes.
+			name:  "canvas_gradient",
+			build: buildCanvasGradient,
+		},
 	}
+}
+
+// buildCanvasGradient draws one linear and one radial gradient fill.
+// Colors are fixed literals rather than theme colors: this case exists
+// to pin the gradient math, and a theme-derived color would make the
+// dark and light recordings differ for a reason unrelated to it.
+func buildCanvasGradient(_ *Window) View {
+	return DrawCanvas(DrawCanvasCfg{
+		ID:      "canvas_gradient",
+		Sizing:  FixedFixed,
+		Width:   120,
+		Height:  60,
+		Version: 1,
+		OnDraw: func(dc *DrawContext) {
+			dc.FilledRectGradient(0, 0, 60, 60, &CanvasGradient{
+				Stops: []GradientStop{
+					{Color: RGB(255, 0, 0), Pos: 0},
+					{Color: RGB(0, 255, 0), Pos: 0.5},
+					{Color: RGB(0, 0, 255), Pos: 1},
+				},
+			})
+			dc.FilledCircleGradient(90, 30, 25, &CanvasGradient{
+				Radial: true,
+				Stops: []GradientStop{
+					{Color: RGBA(255, 255, 255, 255), Pos: 0},
+					{Color: RGBA(255, 255, 255, 0), Pos: 1},
+				},
+			})
+		},
+	})
 }
 
 // buildButtonVariants is the shared build for the two variant golden
