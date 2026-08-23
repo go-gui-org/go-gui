@@ -11,12 +11,12 @@ func (w *Window) FocusID() string {
 
 // SetFocus sets the focused widget by its string ID. A real focus
 // change clears input selections window-wide; re-asserting the widget
-// that already holds focus leaves selections alone. Acquires both w.mu
-// (focusID) and w.animMu (animations). Use ClearFocus to remove focus.
+// that already holds focus leaves selections alone. Acquires w.mu
+// (focusID); the caret-blink animation is managed from the render
+// pass, not here (see syncBlinkCursor). Use ClearFocus to remove
+// focus.
 func (w *Window) SetFocus(id string) {
 	w.lockForAPI("SetFocus")
-	w.animMu.Lock()
-	defer w.animMu.Unlock()
 	defer w.mu.Unlock()
 	w.setFocusLocked(id)
 }
@@ -42,17 +42,19 @@ func (w *Window) setFocusLocked(id string) {
 	w.viewState.focusID = id
 	if id != "" {
 		w.viewState.inputCursorOn.Store(true)
-		if !w.hasAnimationLocked(blinkCursorAnimationID) {
-			w.animationAddLocked(newBlinkCursorAnimation())
-		}
 	}
-	// The platform IME is not switched here. Whether the new widget is
-	// an *editable text* context — the only thing an input method may
-	// be activated for — cannot be answered from an ID, and SetFocus is
-	// legitimately called from inside a View function, where w.layout
-	// still holds the previous frame and a newly created input is not
-	// in it yet. syncIMEEditContext decides it from the arranged tree
-	// each frame instead (gui/ime_context.go, issue #393).
+	// The caret-blink animation is not started here. Whether the new
+	// widget draws a caret cannot be answered from an ID, and SetFocus
+	// is legitimately called from inside a View function, where
+	// w.layout still holds the previous frame and a newly created
+	// input is not in it yet. syncBlinkCursor decides it from the
+	// arranged tree each frame instead (gui/ime_context.go, issue
+	// #403).
+	// The platform IME is not switched here either, for the same
+	// reason: only an *editable text* context — the only thing an
+	// input method may be activated for — may claim it. syncIMEEditContext
+	// decides that from the arranged tree each frame (gui/ime_context.go,
+	// issue #393).
 }
 
 // resetBlinkCursorVisible resets the blink timer so the cursor

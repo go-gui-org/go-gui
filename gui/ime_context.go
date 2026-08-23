@@ -1,6 +1,7 @@
 package gui
 
-// ime_context.go — deciding when the platform input method is live.
+// ime_context.go — deciding when the platform input method is live,
+// and when the caret-blink animation runs.
 //
 // The input method must be active only while an editable text widget
 // holds focus. It is not a "something is focused" signal: on macOS an
@@ -11,6 +12,11 @@ package gui
 // ("composition only becomes possible once a text widget takes
 // focus", gui/backend/gl/ime_win32.go), and on X11 IMEStart is an
 // ibus FocusIn that a button has no business claiming.
+//
+// The caret-blink animation is gated the same way (issue #403): it
+// must run only while a widget that renders a framework caret holds
+// focus, or the window re-renders every 600 ms for a caret nobody
+// draws.
 
 // shapeIsIMEEditTarget reports whether shape is the editable text
 // context an input method would write into — the shape that hosts the
@@ -34,24 +40,56 @@ func shapeIsIMEEditTarget(s *Shape) bool {
 	return s.TC != nil && s.focusOwner != "" && !s.TC.textReadOnly
 }
 
-// findIMEEditTarget reports whether the focused widget's edit target
-// is somewhere in this subtree. The walk short-circuits on the first
-// match and is skipped entirely when nothing is focused, so the cost
-// is one partial tree walk per frame with a focused widget.
-func findIMEEditTarget(layout *Layout, w *Window) bool {
-	if layout.Shape == nil {
-		return false
+// shapeDrawsCaret reports whether shape can render the framework's
+// input caret (renderInputCursor): a text-like shape that renders
+// focus state for itself or for a widget it belongs to. It is wider
+// than shapeIsIMEEditTarget on purpose (issue #403):
+//
+//   - a read-only input stays focusable for its caret and selection,
+//     so its caret blinks; only the IME gate excludes it.
+//   - a selection-only focusable Text draws a caret at its cursor,
+//     so it blinks like an input.
+//   - a terminal grid is NOT a caret target: its cursor is the
+//     consumer's own TermCursor.Visible flag, which the blink
+//     animation does not drive.
+func shapeDrawsCaret(s *Shape) bool {
+	return s != nil && s.TC != nil && s.rendersFocusState()
+}
+
+// findEditTargets reports both focus signals — whether the focused
+// widget draws a framework caret (the blink gate) and whether it is
+// an editable IME context — in one walk. The walk short-circuits as
+// soon as both are found and is skipped entirely when nothing is
+// focused, so each of its two callers (syncIMEEditContext and
+// syncBlinkCursor) pays one shallow probe per frame with a focused
+// widget, and nothing when nothing is focused. A focused widget can
+// match through two shapes (Input's container and its inner text
+// shape), so once one signal is found the walk keeps going for the
+// other.
+func findEditTargets(layout *Layout, w *Window) (caret, ime bool) {
+	if layout.Shape == nil || w.viewState.focusID == "" {
+		return false, false
 	}
-	if shapeIsIMEEditTarget(layout.Shape) &&
-		w.IsFocus(layout.Shape.focusKey()) {
-		return true
-	}
-	for i := range layout.Children {
-		if findIMEEditTarget(&layout.Children[i], w) {
-			return true
+	if w.IsFocus(layout.Shape.focusKey()) {
+		if shapeDrawsCaret(layout.Shape) {
+			caret = true
+		}
+		if shapeIsIMEEditTarget(layout.Shape) {
+			ime = true
+		}
+		if caret && ime {
+			return true, true
 		}
 	}
-	return false
+	for i := range layout.Children {
+		c, e := findEditTargets(&layout.Children[i], w)
+		caret = caret || c
+		ime = ime || e
+		if caret && ime {
+			return true, true
+		}
+	}
+	return caret, ime
 }
 
 // syncIMEEditContext starts or stops the platform input method as the
@@ -72,7 +110,8 @@ func findIMEEditTarget(layout *Layout, w *Window) bool {
 // FocusOut, the IMM context detach, the web hidden input being
 // removed.
 func (w *Window) syncIMEEditContext() {
-	editing := w.viewState.focusID != "" && findIMEEditTarget(&w.layout, w)
+	_, ime := findEditTargets(&w.layout, w)
+	editing := w.viewState.focusID != "" && ime
 	id := ""
 	if editing {
 		id = w.viewState.focusID
@@ -94,5 +133,36 @@ func (w *Window) syncIMEEditContext() {
 	}
 	if editing {
 		np.IMEStart()
+	}
+}
+
+// syncBlinkCursor starts or stops the caret-blink animation as the
+// focused widget gains or loses a framework caret (issue #403).
+//
+// Called from the render pass for the same reason syncIMEEditContext
+// is: setFocusLocked only sees an ID, which cannot say whether the
+// widget draws a caret, and SetFocus is legitimately called from
+// inside a View function, where the tree in hand is the previous
+// frame's and a newly created input is not in it yet. Registering
+// here also stops consumers re-asserting focus from View — the
+// pattern setFocusLocked's old code re-armed on every layout build —
+// from keeping a perpetual blink animation for a widget that draws
+// no caret.
+//
+// A Pulsar registers the blink animation itself and toggles on the
+// same inputCursorOn state, so its registration is never removed
+// here: it blinks without any focused input.
+func (w *Window) syncBlinkCursor() {
+	caret, _ := findEditTargets(&w.layout, w)
+	w.animMu.Lock()
+	defer w.animMu.Unlock()
+	_, present := w.animations[blinkCursorAnimationID]
+	if caret && !present {
+		w.animationAddLocked(newBlinkCursorAnimation())
+		return
+	}
+	if !caret && present && !w.hasAnimationLocked(pulsarAnimationID) {
+		delete(w.animations, blinkCursorAnimationID)
+		delete(w.animViewBound, blinkCursorAnimationID)
 	}
 }

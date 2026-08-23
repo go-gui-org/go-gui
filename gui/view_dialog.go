@@ -359,7 +359,7 @@ func (w *Window) DialogIsVisible() bool {
 // own SetFocus with DialogIsVisible.
 //
 // dialog is the dialog's layout for this frame. Called from layoutArrange
-// under w.mu; acquires w.animMu only when a reassert is needed.
+// under w.mu.
 func (w *Window) retainDialogFocus(dialog *Layout) {
 	// A malformed/empty dialog layer has no focusable target; leave focus
 	// untouched rather than blindly reasserting (which could steal it).
@@ -373,7 +373,5 @@ func (w *Window) retainDialogFocus(dialog *Layout) {
 			return
 		}
 	}
-	w.animMu.Lock()
 	w.setFocusLocked(dialogFocusID(w.dialogCfg))
-	w.animMu.Unlock()
 }
