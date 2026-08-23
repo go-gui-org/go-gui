@@ -192,7 +192,7 @@ go-gui/
 │       ├── sni/                  ← StatusNotifierItem / system tray
 │       ├── spellcheck/           ← Spell checking
 │       └── internal/             ← Shared backend internals
-└── examples/                     ← 59 example apps
+└── examples/                     ← 62 example apps
     ├── get_started/
     ├── showcase/
     ├── calculator/
