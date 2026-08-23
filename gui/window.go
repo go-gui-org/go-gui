@@ -229,6 +229,17 @@ type Window struct {
 	refreshLayout     bool
 	refreshRenderOnly bool
 
+	// caretCmd records the focused caret's RenderCmd position so a
+	// blink tick can toggle its color in place instead of rebuilding
+	// the whole render list (issue #404). Reset at the start of every
+	// render rebuild; main-thread only.
+	caretCmd caretCmdState
+
+	// renderersDirty reports that the renderer list changed without a
+	// rebuild (the caret-blink patch). FrameFn presents the frame and
+	// clears it; backends treat it like a rebuild for present purposes.
+	renderersDirty bool
+
 	// pumping guards PumpFrame against re-entry: a nested platform
 	// runloop can fire its frame timer again while the previous pump
 	// is still inside FrameFn (a command callback that itself spins a

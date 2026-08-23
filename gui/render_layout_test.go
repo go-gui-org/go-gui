@@ -471,7 +471,7 @@ func TestRenderInputCursorNotFocusedSkips(t *testing.T) {
 	}
 }
 
-func TestRenderInputCursorBlinkOffSkips(t *testing.T) {
+func TestRenderInputCursorBlinkOffEmitsTransparent(t *testing.T) {
 	w := makeWindow()
 	w.viewState.focusID = "f100"
 	w.viewState.inputCursorOn.Store(false)
@@ -483,8 +483,17 @@ func TestRenderInputCursorBlinkOffSkips(t *testing.T) {
 
 	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
 
-	if len(w.renderers) != 0 {
-		t.Error("cursor should not render when blink off")
+	if len(w.renderers) != 1 {
+		t.Fatalf("cursor should emit one transparent rect, got %d", len(w.renderers))
+	}
+	if w.renderers[0].Color != ColorTransparent {
+		t.Error("cursor should be transparent when blink off")
+	}
+	if !w.caretCmd.ok {
+		t.Error("blink-off caret must still be recorded for the in-place toggle")
+	}
+	if w.caretCmd.color != style.Color {
+		t.Error("recorded color must be the caret color, not transparent")
 	}
 }
 

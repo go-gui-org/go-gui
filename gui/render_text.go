@@ -203,14 +203,14 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 }
 
 // renderInputCursor emits a thin rect for the text cursor when
-// the shape is focused and the blink state is on. Uses the glyph
-// layout engine for precise character-boundary positioning.
+// the shape is focused. Uses the glyph layout engine for precise
+// character-boundary positioning. The rect is always emitted —
+// transparent while the blink state is off — so a blink tick can
+// toggle its visibility in place without rebuilding the render
+// list (issue #404).
 func renderInputCursor(shape *Shape, text string, baseX, baseY float32,
 	preLayout glyph.Layout, hasPreLayout bool, w *Window) {
 	if !textShapeFocused(shape, w) {
-		return
-	}
-	if !w.inputCursorOn() {
 		return
 	}
 	if shape.TC != nil && shape.TC.textIsPlaceholder {
@@ -229,6 +229,10 @@ func renderInputCursor(shape *Shape, text string, baseX, baseY float32,
 	if !ok {
 		layout, ok = inputGlyphLayoutResolved(text, shape, style, w, shape.TC != nil && shape.TC.textIsPassword)
 	}
+	color := style.Color
+	if !w.inputCursorOn() {
+		color = ColorTransparent
+	}
 	if ok {
 		cp, cpOK := layout.GetCursorPos(byteIdx)
 		if !cpOK {
@@ -245,30 +249,80 @@ func renderInputCursor(shape *Shape, text string, baseX, baseY float32,
 		}
 		adjustCursorTrailing(
 			&cp, layout.Lines, byteIdx, is.cursorTrailing)
-		emitRenderer(RenderCmd{
+		emitCaretCmd(RenderCmd{
 			Kind:  RenderRect,
 			X:     baseX + cp.X,
 			Y:     baseY + cp.Y,
 			W:     cursorW,
 			H:     cp.Height,
-			Color: style.Color,
+			Color: color,
 			Fill:  true,
-		}, w)
+		}, style.Color, w)
 		return
 	}
 
 	// Fallback for nil textMeasurer (tests).
 	fh := fontHeight(style, w)
 	cx := textWidthFallback(text, pos, shape.TC, style, w)
-	emitRenderer(RenderCmd{
+	emitCaretCmd(RenderCmd{
 		Kind:  RenderRect,
 		X:     baseX + cx,
 		Y:     baseY,
 		W:     cursorW,
 		H:     fh,
-		Color: style.Color,
+		Color: color,
 		Fill:  true,
-	}, w)
+	}, style.Color, w)
+}
+
+// caretCmdState locates the focused caret's RenderCmd inside the
+// window's flat render list so a blink tick can toggle it in place
+// (issue #404). Recorded by emitCaretCmd during buildRenderers and
+// reset at the start of every rebuild; the position is stable
+// because the list only changes on a rebuild, which re-records.
+type caretCmdState struct {
+	idx   int   // index into w.renderers
+	color Color // caret color when the blink state is on
+	ok    bool  // a caret cmd is recorded this frame
+}
+
+// emitCaretCmd appends the caret rect and records its position for
+// the in-place blink toggle. Only the first emission records — focus
+// is exclusive, so there is at most one caret per window. The len
+// check covers emitRenderer dropping an invalid rect: nothing to
+// toggle in place then, and the next rebuild re-records.
+func emitCaretCmd(r RenderCmd, caretColor Color, w *Window) {
+	idx := len(w.renderers)
+	emitRenderer(r, w)
+	if idx < len(w.renderers) && !w.caretCmd.ok {
+		w.caretCmd = caretCmdState{idx: idx, color: caretColor, ok: true}
+	}
+}
+
+// commandToggleCaretBlink flips the recorded caret renderer's color
+// to match the current blink state, without rebuilding the render
+// list. Queued by BlinkCursorAnimation on each toggle and run by
+// flushCommands on the main thread; sets renderersDirty so FrameFn
+// presents the patched list.
+func commandToggleCaretBlink(w *Window) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if !w.caretCmd.ok {
+		return
+	}
+	if w.caretCmd.idx >= len(w.renderers) ||
+		w.renderers[w.caretCmd.idx].Kind != RenderRect {
+		// Defensive: the recorded slot is no longer the caret.
+		w.caretCmd = caretCmdState{}
+		return
+	}
+	cmd := &w.renderers[w.caretCmd.idx]
+	if w.inputCursorOn() {
+		cmd.Color = w.caretCmd.color
+	} else {
+		cmd.Color = ColorTransparent
+	}
+	w.renderersDirty = true
 }
 
 // renderInputSelection emits highlight rectangles for the selected
