@@ -19,6 +19,7 @@ void metalTestInjectQuitEvent(void);
 int metalTestQuitActionSetsQuitEvent(void);
 int metalTestAppShouldTerminateCorrect(void);
 int metalTestPollReturnsOnQuitRequested(void);
+int metalTestPollIdleWake(void);
 int metalTestCursorBoundsCheck(float mouseX, float mouseY,
                                float width, float height);
 int metalTestMenuAboutExists(void);
@@ -279,6 +280,13 @@ func testPollReturnsOnQuitRequested() bool {
 	return C.metalTestPollReturnsOnQuitRequested() != 0
 }
 
+// testPollIdleWake verifies metalPollEvent(-1) blocks until a wake
+// event arrives (issue #405). 0 on success, non-zero on failure.
+// Main-thread only: it runs the real blocking poll.
+func testPollIdleWake() int {
+	return int(C.metalTestPollIdleWake())
+}
+
 func testCursorBoundsCheck(mouseX, mouseY, width, height float32) bool {
 	return C.metalTestCursorBoundsCheck(C.float(mouseX), C.float(mouseY),
 		C.float(width), C.float(height)) != 0
@@ -370,6 +378,12 @@ func goMetalWindowFocusChanged(wid C.uint, focused C.int) {
 		et = gui.EventFocused
 	}
 	ws.attachedWindow.EventFn(&gui.Event{Type: et})
+	// windowDidBecomeKey:/windowDidResignKey: are notifications, not
+	// NSEvents — the idle loop blocks in metalPollEvent(-1) on their
+	// own, so the frame reflecting the focus change would wait for
+	// the next real event. Post an empty event to bring the loop
+	// round for the repaint (issue #405).
+	C.metalPostEmptyEvent()
 }
 
 //export goMetalFileDrop
@@ -385,4 +399,8 @@ func goMetalFileDrop(wid C.uint, cpath *C.char) {
 		Type:     gui.EventFileDropped,
 		FilePath: path,
 	})
+	// performDragOperation: is delivered by the drag session, not an
+	// NSEvent — wake the idle loop so the drop's repaint happens
+	// promptly (issue #405).
+	C.metalPostEmptyEvent()
 }

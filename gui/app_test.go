@@ -103,6 +103,39 @@ func TestAppOpenWindow(t *testing.T) {
 	}
 }
 
+func TestAppOpenWindowWakes(t *testing.T) {
+	// A queued window must wake the backend's idle event loop, which
+	// cannot select on the pending channel (issue #405).
+	app := NewApp()
+	wakes := 0
+	app.SetWakeMainFn(func() { wakes++ })
+	app.OpenWindow(WindowCfg{Title: "new"})
+	if wakes != 1 {
+		t.Fatalf("wakes = %d, want 1", wakes)
+	}
+
+	// Buffer full: the request is dropped, so no wake.
+	for range 16 {
+		app.OpenWindow(WindowCfg{Title: "ok"})
+	}
+	app.OpenWindow(WindowCfg{Title: "dropped"})
+	// 15 of the 16 fit (one slot is still taken); the dropped 17th
+	// must not wake.
+	if wakes != 16 {
+		t.Fatalf("wakes = %d, want 16 (no wake on dropped request)", wakes)
+	}
+}
+
+func TestAppOpenWindowNoWakeFn(t *testing.T) {
+	// No wake fn (or one cleared with nil): OpenWindow must queue and
+	// return without panicking. Backends that select on the pending
+	// channel directly (x11) never set one.
+	app := NewApp()
+	app.SetWakeMainFn(func() { t.Error("wake called after clear") })
+	app.SetWakeMainFn(nil)
+	app.OpenWindow(WindowCfg{Title: "new"})
+}
+
 func TestEventWindowID(t *testing.T) {
 	e := Event{WindowID: 42, Type: EventMouseDown}
 	if e.WindowID != 42 {

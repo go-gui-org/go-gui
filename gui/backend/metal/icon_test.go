@@ -3,6 +3,7 @@
 package metal
 
 import (
+	"fmt"
 	"runtime"
 	"testing"
 
@@ -185,4 +186,13 @@ func runMainThreadTests() {
 	//     latching into per-frame main-thread blocking after its first
 	//     resize.
 	runLiveResizePresentationTests()
+
+	// 12. The idle poll must block and wake: metalPollEvent(-1) sleeps
+	//     until a posted event arrives. Regression for issue #405 —
+	//     the idle loop no longer polls at 100ms, so every path that
+	//     dirties state must wake it with a posted event.
+	if rc := testPollIdleWake(); rc != 0 {
+		panic(fmt.Sprintf("metalPollEvent(-1): idle wait did not wake "+
+			"on posted event (rc %d)", rc))
+	}
 }

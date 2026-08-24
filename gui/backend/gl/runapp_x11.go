@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"runtime"
-	"time"
 
 	"github.com/jezek/xgb"
 
@@ -60,14 +59,14 @@ func (b *Backend) Run(w *gui.Window) {
 		}
 		b.plat.setCursor(w.MouseCursorState())
 		if !rendered {
-			select {
-			case ev, ok := <-events:
-				if !ok {
-					running = false
-				} else {
-					b.handleXEvent(ev)
-				}
-			case <-time.After(100 * time.Millisecond):
+			// Idle: block until an event or a wake arrives instead of
+			// polling (issue #405). wake() posts a ClientMessage that
+			// pumpEvents forwards onto this channel.
+			ev, ok := <-events
+			if !ok {
+				running = false
+			} else {
+				b.handleXEvent(ev)
 			}
 		}
 	}
@@ -215,6 +214,8 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 		}
 
 		if !rendered {
+			// Idle: block until an event, a wake, or a pending window
+			// arrives instead of polling (issue #405).
 			select {
 			case te := <-events:
 				if !te.closed {
@@ -224,7 +225,6 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 				if err := open(gui.NewWindow(cfg)); err != nil {
 					log.Printf("gl: open window: %v", err)
 				}
-			case <-time.After(100 * time.Millisecond):
 			}
 		}
 	}
