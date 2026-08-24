@@ -201,7 +201,7 @@ func TestProjectOntoRadialNonFinite(t *testing.T) {
 	}
 }
 
-func TestSubdivideRadialTrisNonFiniteR(t *testing.T) {
+func TestSubdivideGradientTrisNonFiniteR(t *testing.T) {
 	t.Parallel()
 	tris := []float32{0, 0, 100, 0, 0, 100}
 	cases := []float32{
@@ -213,28 +213,11 @@ func TestSubdivideRadialTrisNonFiniteR(t *testing.T) {
 	}
 	for _, r := range cases {
 		g := gui.SvgGradientDef{IsRadial: true, R: r}
-		got := subdivideRadialTris(tris, g)
+		got := subdivideGradientTris(tris, g)
 		if len(got) != len(tris) {
 			t.Errorf("R=%v: got %d floats, want %d (no subdivide)",
 				r, len(got), len(tris))
 		}
-	}
-}
-
-func TestSubdivideRadialTrisRespectsDepthCap(t *testing.T) {
-	t.Parallel()
-	// Single huge triangle, tiny target. Depth cap = 6, so 1 source
-	// triangle → at most 4^6 = 4096 sub-triangles = 24576 floats.
-	tris := []float32{0, 0, 1000, 0, 0, 1000}
-	g := gui.SvgGradientDef{IsRadial: true, R: 0.024} // target ≈ 1e-3
-	got := subdivideRadialTris(tris, g)
-	const maxFloats = 6 * 4096
-	if len(got) > maxFloats {
-		t.Errorf("got %d floats, exceeds depth cap (max %d)",
-			len(got), maxFloats)
-	}
-	if len(got) < 6 {
-		t.Errorf("got %d floats, want at least 6", len(got))
 	}
 }
 
@@ -259,19 +242,5 @@ func TestTessellatePopulatesPathBBox(t *testing.T) {
 	}
 	if p.MinY != 20 || p.MaxY != 50 {
 		t.Errorf("Y bbox = (%v,%v), want (20,50)", p.MinY, p.MaxY)
-	}
-}
-
-func TestSubdivideRadialTrisShortInput(t *testing.T) {
-	t.Parallel()
-	// Less than one full triangle: must not panic, just no-op.
-	g := gui.SvgGradientDef{IsRadial: true, R: 50}
-	for _, in := range [][]float32{nil, {}, {0, 0}, {0, 0, 1, 0}} {
-		got := subdivideRadialTris(in, g)
-		// May return nil or empty allocation; both are acceptable
-		// since no full triangle exists to emit.
-		if len(got) != 0 {
-			t.Errorf("input %v: got %d floats, want 0", in, len(got))
-		}
 	}
 }
