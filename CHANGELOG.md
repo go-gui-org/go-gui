@@ -63,6 +63,45 @@ and this project adheres to
 
 ### Fixed
 
+- **SVG gradients: seams, spread and a 32x tessellation cost** (#399) — the SVG
+  gradient tessellator now carries the fixes that landed on the canvas one in
+  #398, and one bug found in the porting.
+
+  A multi-stop linear gradient came out with mixed triangle winding: the isoline
+  splitter sorts a triangle's three vertices by gradient parameter, and an odd
+  number of swaps reverses the triangle. `gui/backend/soft` rasterizes a mesh as
+  one path with **signed** coverage accumulation, so two neighbours wound
+  against each other cancel along their shared edge and the background shows
+  through. On a six-stop diagonal fill that was three visible cracks across the
+  square.
+
+  `spreadMethod` was dropped entirely for `objectBoundingBox` gradients — the
+  default units, so most of them. Every `reflect` and `repeat` gradient that did
+  not spell out `gradientUnits` padded instead. Subdivision also ran on the
+  clamped projection while the coloring ran on the spread one, so even where the
+  spread survived, the cuts landed nowhere near the ramp's folds and the bands
+  smeared into a wash. Both are fixed; the folds are now breakpoints the
+  splitter cuts at.
+
+  Radial subdivision split on edge length (`R/24`), which cannot tell geometry
+  already aligned to the gradient's isolines from geometry that bulges across
+  them. A triangle fan struck from the gradient's own center has zero
+  interpolation error at any edge length and paid the full split anyway: 74
+  wedges became 75,776 triangles. The criterion is now curvature deviation — how
+  far an edge's midpoint parameter departs from the average of its endpoints —
+  and the same fan stays at 74, with the rendering unchanged to within a delta
+  of 4 out of 255. A rectangle filled radially, which does bulge, still refines
+  until it is flat.
+
+  Radial gradients now reach the stop-isoline pass as well, so a hard color
+  break inside a radial ramp has somewhere to land; cuts on a radial isoline
+  solve the quadratic rather than interpolating, which is what keeps the split
+  watertight.
+
+  `gui/canvas_gradient.go` and `gui/svg/tessellate_gradient.go` stay separate
+  implementations — `gui/svg` imports `gui`, so the dependency cannot reverse —
+  and each now names the other.
+
 - **A fade to transparent no longer fades to black** — `SampleGradientStopColor`
   interpolates in premultiplied space, where zero alpha carries no hue, and
   returned transparent black. Any consumer that interpolates in straight-alpha

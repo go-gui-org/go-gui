@@ -424,6 +424,116 @@ func pixelCases() []pixelCase {
 			},
 		},
 		{
+			// The radial half of the tessellator, which the "svg" case
+			// above cannot reach: a two-stop linear gradient needs
+			// neither the curvature pass nor an isoline cut. A
+			// multi-stop radial one takes both.
+			//
+			// What this pins is that the curvature criterion is not
+			// just cheaper but visually equivalent. The edge-length
+			// rule it replaced spent 75,776 triangles on a fan the
+			// curvature rule leaves at 74 (issue #399); recorded either
+			// way the picture is the same to within a delta of 4.
+			name: "svg_radial_gradient",
+			build: func(_ *gui.Window) gui.View {
+				const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">` +
+					`<defs><radialGradient id="g" cx="0.5" cy="0.5" r="0.5">` +
+					`<stop offset="0" stop-color="#fff2a8"/>` +
+					`<stop offset="0.35" stop-color="#ff9a3c"/>` +
+					`<stop offset="0.7" stop-color="#c2410c"/>` +
+					`<stop offset="1" stop-color="#4a1d05"/>` +
+					`</radialGradient></defs>` +
+					`<rect x="4" y="4" width="92" height="92" fill="url(#g)"/>` +
+					`</svg>`
+				return gui.Column(gui.ContainerCfg{
+					Sizing:     gui.FillFill,
+					SizeBorder: gui.NoBorder,
+					HAlign:     gui.HAlignCenter,
+					VAlign:     gui.VAlignMiddle,
+					Content: []gui.View{
+						gui.Svg(gui.SvgCfg{
+							Width:   120,
+							Height:  120,
+							SvgData: svg,
+						}),
+					},
+				})
+			},
+		},
+		{
+			// A multi-stop *linear* gradient is the only shape that
+			// reaches the isoline splitter's vertex sort, where an odd
+			// permutation used to reverse a triangle's winding
+			// (issue #399). The rasterizer takes the whole mesh as one
+			// path and accumulates *signed* coverage, so mixed winding
+			// cancels along a shared edge and the background shows
+			// through as a crack across the fill — three of them here
+			// before the fix.
+			//
+			// This case records the appearance. It is not the gate: the
+			// cracks cover ~0.3% of the frame, inside this harness's
+			// tolerance. The exact gate is
+			// TestSvgGradientSubdivisionPreservesWinding in gui/svg,
+			// which counts the emitted triangles' orientations.
+			name: "svg_multistop_gradient",
+			build: func(_ *gui.Window) gui.View {
+				const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">` +
+					`<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">` +
+					`<stop offset="0" stop-color="#fff2a8"/>` +
+					`<stop offset="0.2" stop-color="#ff9a3c"/>` +
+					`<stop offset="0.4" stop-color="#c2410c"/>` +
+					`<stop offset="0.6" stop-color="#7c2d12"/>` +
+					`<stop offset="0.8" stop-color="#312e81"/>` +
+					`<stop offset="1" stop-color="#0f172a"/>` +
+					`</linearGradient></defs>` +
+					`<rect x="4" y="4" width="92" height="92" fill="url(#g)"/>` +
+					`</svg>`
+				return gui.Column(gui.ContainerCfg{
+					Sizing:     gui.FillFill,
+					SizeBorder: gui.NoBorder,
+					HAlign:     gui.HAlignCenter,
+					VAlign:     gui.VAlignMiddle,
+					Content: []gui.View{
+						gui.Svg(gui.SvgCfg{
+							Width:   120,
+							Height:  120,
+							SvgData: svg,
+						}),
+					},
+				})
+			},
+		},
+		{
+			// spreadMethod through the whole pipeline. Reflect tiles
+			// the ramp, and each fold is a break in it: subdividing on
+			// the clamped projection, as this path did before
+			// issue #399, put the cuts nowhere near the folds and the
+			// bands came out smeared into a single wash.
+			//
+			// It also covers the resolve step. objectBoundingBox is the
+			// default gradient units, and rewriting such a gradient
+			// into user space used to drop its spread method, so every
+			// gradient that took the default padded no matter what it
+			// asked for.
+			name: "svg_gradient_spread",
+			build: func(_ *gui.Window) gui.View {
+				const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">` +
+					`<defs><linearGradient id="g" x1="0.4" y1="0" x2="0.6" y2="0" spreadMethod="reflect">` +
+					`<stop offset="0" stop-color="#fff2a8"/>` +
+					`<stop offset="0.3" stop-color="#ff9a3c"/>` +
+					`<stop offset="1" stop-color="#312e81"/>` +
+					`</linearGradient></defs>` +
+					`<rect x="4" y="4" width="92" height="92" fill="url(#g)"/>` +
+					`</svg>`
+				return gui.Column(gui.ContainerCfg{
+					Sizing: gui.FillFill, SizeBorder: gui.NoBorder,
+					HAlign: gui.HAlignCenter, VAlign: gui.VAlignMiddle,
+					Content: []gui.View{gui.Svg(gui.SvgCfg{
+						Width: 120, Height: 120, SvgData: svg})},
+				})
+			},
+		},
+		{
 			// A memory image scaled up 12x: the sampler's filter and
 			// the tiling are pixel-only. The source is a deterministic
 			// checker built in the test, never a file.
