@@ -29,8 +29,13 @@ func main() {
 func mainView(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
-		Sizing:  gui.FillFill,
-		Padding: gui.CurrentTheme().PaddingLarge,
+		// The three canvases are taller than the window, so the column
+		// scrolls. A scrollable container needs an ID: the scroll offset
+		// is stored against it.
+		ID:         "canvases",
+		Scrollable: true,
+		Sizing:     gui.FillFill,
+		Padding:    gui.CurrentTheme().PaddingLarge,
 
 		Spacing: gui.SomeF(16),
 		Content: []gui.View{
@@ -61,6 +66,20 @@ func mainView(w *gui.Window) gui.View {
 				Radius:  8,
 				Padding: gui.PadAll(16),
 				OnDraw:  drawGradients,
+			}),
+			gui.Text(gui.TextCfg{
+				Text:      "Per-Vertex Colors",
+				TextStyle: gui.CurrentTheme().B1,
+			}),
+			gui.DrawCanvas(gui.DrawCanvasCfg{
+				ID:      "vertex_colors",
+				Version: 1,
+				Width:   560,
+				Height:  140,
+				Color:   gui.RGBA(30, 30, 40, 255),
+				Radius:  8,
+				Padding: gui.PadAll(16),
+				OnDraw:  drawVertexColors,
 			}),
 		},
 	})
@@ -199,4 +218,65 @@ func drawGradients(dc *gui.DrawContext) {
 		X1: r, Y1: 0, X2: r + size/3, Y2: 0,
 		Spread: gui.SpreadRepeat, Stops: warm,
 	})
+}
+
+// drawVertexColors shows FillTrianglesColors, the primitive underneath
+// the gradient fills. The caller supplies the geometry and one color
+// per vertex; nothing is evaluated on the way through.
+//
+// Both tiles are shadings a gradient cannot express. A gradient's level
+// sets are conic curves nested inside one another and stepped linearly,
+// so a sweep around a center and a bilinear corner blend are both out
+// of reach however the stops are arranged.
+func drawVertexColors(dc *gui.DrawContext) {
+	const (
+		size = 96
+		gap  = 24
+	)
+	y := (dc.Height - size) / 2
+
+	// A bilinear blend: four corners, four colors, two triangles. The
+	// shared diagonal is why the colors have to be per vertex — the two
+	// triangles meet along it and their vertex colors agree there, so
+	// there is no seam.
+	x := float32(0)
+	tl := gui.RGB(240, 120, 60)
+	tr := gui.RGB(250, 210, 90)
+	br := gui.RGB(90, 150, 240)
+	bl := gui.RGB(150, 80, 220)
+	dc.FillTrianglesColors([]float32{
+		x, y, x + size, y, x + size, y + size,
+		x, y, x + size, y + size, x, y + size,
+	}, []gui.Color{tl, tr, br, tl, br, bl})
+
+	// A sweep: hue as a function of angle around the center, laid down
+	// as a triangle fan. The color varies *along* every circle centered
+	// here and is constant along every radius, which is the opposite of
+	// what a radial gradient does.
+	const seg = 64
+	x += size + gap
+	cx, cy := x+size/2, y+size/2
+	tris := make([]float32, 0, seg*6)
+	cols := make([]gui.Color, 0, seg*3)
+	white := gui.RGB(250, 250, 255)
+	for i := range seg {
+		a0 := float64(i) * 2 * math.Pi / seg
+		a1 := float64(i+1) * 2 * math.Pi / seg
+		tris = append(tris,
+			cx, cy,
+			cx+size/2*float32(math.Cos(a0)), cy+size/2*float32(math.Sin(a0)),
+			cx+size/2*float32(math.Cos(a1)), cy+size/2*float32(math.Sin(a1)))
+		cols = append(cols, white, sweepColor(a0), sweepColor(a1))
+	}
+	dc.FillTrianglesColors(tris, cols)
+}
+
+// sweepColor is the hue wheel: three primaries 120° apart, each fading
+// linearly to nothing over the 120° on either side of it.
+func sweepColor(a float64) gui.Color {
+	ramp := func(offset float64) uint8 {
+		d := math.Abs(math.Mod(a-offset+3*math.Pi, 2*math.Pi) - math.Pi)
+		return uint8(255 * max(0, 1-d/(2*math.Pi/3)))
+	}
+	return gui.RGB(ramp(0), ramp(2*math.Pi/3), ramp(4*math.Pi/3))
 }

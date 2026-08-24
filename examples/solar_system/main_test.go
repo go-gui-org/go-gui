@@ -822,3 +822,226 @@ func TestDrawBodyDegenerateLight(t *testing.T) {
 	tick(a)
 	assertFinite(t, drawInto(a), "planet on the sun")
 }
+
+// bodyBatches draws one shaded sphere in isolation and returns the
+// context it landed in.
+func bodyBatches(t *testing.T, r float32, lx, ly, lz float32) *gui.DrawContext {
+	t.Helper()
+	dc := gui.NewDrawContext(200, 200, nil)
+	var m bodyMesh
+	drawBody(dc, &m, 100, 100, r, gui.RGB(180, 140, 90), lx, ly, lz)
+	return dc
+}
+
+// TestBodyIsOneVertexColoredBatch pins the payoff of issue #400: the
+// whole intensity ramp is one batch of interpolated vertices, where the
+// flat-band version it replaced cost one batch per band.
+func TestBodyIsOneVertexColoredBatch(t *testing.T) {
+	dc := bodyBatches(t, 60, 0.6, 0.2, -0.77)
+	meshes := 0
+	for _, b := range dc.Batches() {
+		if len(b.VertexColors) == 0 {
+			continue // the rim feather, which is flat by design
+		}
+		meshes++
+		if len(b.VertexColors)*2 != len(b.Triangles) {
+			t.Fatalf("VertexColors=%d, Triangles=%d: lengths must agree",
+				len(b.VertexColors), len(b.Triangles))
+		}
+		if len(b.Triangles) == 0 {
+			t.Fatal("the shading mesh is empty")
+		}
+	}
+	if meshes != 1 {
+		t.Errorf("body emitted %d vertex-colored batches, want 1", meshes)
+	}
+}
+
+// TestBodyMeshWindingIsConsistent guards the hazard that makes a single
+// batch possible in the first place. gui/backend/soft rasterizes a
+// vertex-colored batch as one path and accumulates signed coverage, so
+// a triangle wound against its neighbours subtracts from them and cuts
+// a seam through the body. Every light direction is worth checking:
+// the limb clamp in lightBasis.point is what can reorder a quad, and
+// which quads it reaches depends on where the light is.
+func TestBodyMeshWindingIsConsistent(t *testing.T) {
+	lights := []struct {
+		name       string
+		lx, ly, lz float32
+	}{
+		{"full face", 0.02, 0, 0.999},
+		{"quarter", 0.7, 0, 0.71},
+		{"terminator", 1, 0, 0},
+		{"crescent", 0.6, 0.2, -0.77},
+		{"near eclipse", 0.05, 0.02, -0.998},
+	}
+	for _, l := range lights {
+		dc := bodyBatches(t, 60, l.lx, l.ly, l.lz)
+		for _, b := range dc.Batches() {
+			if len(b.VertexColors) == 0 {
+				continue
+			}
+			for i := 0; i+5 < len(b.Triangles); i += 6 {
+				v := b.Triangles[i : i+6]
+				area := (v[2]-v[0])*(v[5]-v[1]) - (v[4]-v[0])*(v[3]-v[1])
+				// The bound is not zero. appendTri sorts on its own
+				// float32 evaluation of the same cross product, and a
+				// sliver whose true area is a millionth of a pixel can
+				// come out either side of zero here — Go may fuse the
+				// multiply-subtract in one function and not the other.
+				// Coverage cancellation needs area to cancel with, so
+				// the thing worth failing on is a triangle that is
+				// visibly reversed, not one at the noise floor.
+				if area < -1e-4 {
+					t.Fatalf("%s: triangle %d has signed area %v; every "+
+						"triangle in the mesh must wind the same way",
+						l.name, i/6, area)
+				}
+			}
+		}
+	}
+}
+
+// TestBodyMeshStaysInsideDisc checks the mesh boundary against the
+// silhouette. Every vertex is a surface point of the sphere or a hidden
+// point pushed onto the limb, so none of them may escape the disc.
+func TestBodyMeshStaysInsideDisc(t *testing.T) {
+	const cx, cy, r = 100, 100, 60
+	dc := bodyBatches(t, 60, 0.6, 0.2, -0.77)
+	for _, b := range dc.Batches() {
+		if len(b.VertexColors) == 0 {
+			continue
+		}
+		for i := 0; i+1 < len(b.Triangles); i += 2 {
+			dx := float64(b.Triangles[i] - cx)
+			dy := float64(b.Triangles[i+1] - cy)
+			if d := math.Sqrt(dx*dx + dy*dy); d > r+0.01 {
+				t.Fatalf("vertex %d is %v from the center, outside r=%v",
+					i/2, d, float32(r))
+			}
+		}
+	}
+}
+
+// TestBodyMeshDoesNotAllocatePerFrame pins the scratch reuse. drawBody
+// runs nine times a tick; a mesh rebuilt from a fresh slice each time
+// would allocate for the whole session.
+func TestBodyMeshDoesNotAllocatePerFrame(t *testing.T) {
+	var m bodyMesh
+	dc := gui.NewDrawContext(200, 200, nil)
+	drawBody(dc, &m, 100, 100, 60, gui.RGB(180, 140, 90), 0.6, 0.2, -0.77)
+
+	got := testing.AllocsPerRun(20, func() {
+		// A fresh context each run would allocate for its own batches,
+		// which is not what this measures; the mesh scratch is.
+		m.tris = m.tris[:0]
+		m.cols = m.cols[:0]
+		m.cur = appendRing(m.cur[:0], newLightBasis(0.6, 0.2, -0.77),
+			60, 100, 100, 0.3, 0.95, 32)
+		m.prev = m.prev[:0]
+		m.prev = appendRing(m.prev[:0], newLightBasis(0.6, 0.2, -0.77),
+			60, 100, 100, 0.2, 0.98, 32)
+		m.appendStrip(gui.RGB(1, 2, 3), gui.RGB(4, 5, 6), 32)
+	})
+	if got != 0 {
+		t.Errorf("mesh rebuild allocated %v times per run, want 0", got)
+	}
+}
+
+// pointInMesh reports whether (px,py) lies in some triangle of the
+// vertex-colored batches. The mesh is wound consistently, so a point is
+// inside a triangle when all three edge cross products share a sign;
+// the epsilon lets a point sitting exactly on a shared edge count.
+func pointInMesh(dc *gui.DrawContext, px, py float32) bool {
+	const eps = 1e-4
+	for _, b := range dc.Batches() {
+		if len(b.VertexColors) == 0 {
+			continue
+		}
+		for i := 0; i+5 < len(b.Triangles); i += 6 {
+			v := b.Triangles[i : i+6]
+			a := (v[2]-v[0])*(py-v[1]) - (px-v[0])*(v[3]-v[1])
+			c := (v[4]-v[2])*(py-v[3]) - (px-v[2])*(v[5]-v[3])
+			d := (v[0]-v[4])*(py-v[5]) - (px-v[4])*(v[1]-v[5])
+			if a >= -eps && c >= -eps && d >= -eps {
+				return true
+			}
+			if a <= eps && c <= eps && d <= eps {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// TestBodyMeshCoversTheLimb guards the silhouette against the facets
+// ringPlan exists to remove.
+//
+// The mesh boundary is the limb, drawn as one chord per ring that ends
+// there, so a ring spacing that samples the limb unevenly leaves wide
+// chords and the disc's edge goes visibly polygonal — background
+// showing through where the sphere should be. Sampling just inside the
+// limb all the way around is the direct test: with even steps in
+// intensity these points fall outside the chord near the light's own
+// screen direction, which is on the disc edge whenever a planet sits
+// beside the sun.
+//
+// The small-body case is the other failure mode of the same sampling:
+// a small body's ring budget can leave zero rings for the visible
+// polar cap, whose lens sits right on the light side of the limb — a
+// bare patch of background at the point where the planet meets the
+// sun. The plan floors the cap at one ring, which turns the whole lens
+// into a fan from the pole.
+func TestBodyMeshCoversTheLimb(t *testing.T) {
+	const cx, cy = 100, 100
+	lights := []struct {
+		name       string
+		lx, ly, lz float32
+		r          float32
+	}{
+		{"terminator", 1, 0, 0, 60},
+		{"beside the sun", 0.999, 0.045, 0, 60},
+		{"quarter", 0.7, 0, 0.71, 60},
+		{"crescent", 0.6, 0.2, -0.77, 60},
+		{"full face", 0.02, 0, 0.999, 60},
+	}
+	for _, l := range lights {
+		dc := bodyBatches(t, l.r, l.lx, l.ly, l.lz)
+		for k := range 256 {
+			a := 2 * math.Pi * float64(k) / 256
+			px := cx + 0.99*l.r*float32(math.Cos(a))
+			py := cy + 0.99*l.r*float32(math.Sin(a))
+			if !pointInMesh(dc, px, py) {
+				t.Fatalf("%s: the mesh leaves a gap at %.0f° around the "+
+					"limb; the silhouette is faceted there",
+					l.name, a*180/math.Pi)
+			}
+		}
+	}
+}
+
+// TestBodyMeshSmallBodyCoversTheLightSide pins the cap's floor of one
+// ring. A small body's ring budget can leave zero rings for the
+// visible polar cap, and without the floor the cap lens on the light
+// side of the limb is painted by nothing — a bare patch of background
+// where the planet meets the sun.
+//
+// The samples stay a hair off the light axis: the fan from the pole
+// ring closes with a sub-pixel float32 wedge along it, and the point
+// here is the unpainted lens, not that sliver.
+func TestBodyMeshSmallBodyCoversTheLightSide(t *testing.T) {
+	const cx, cy = 100, 100
+	const r float32 = 20
+	// The light 14.5° out of the screen plane leaves the cap lens
+	// spanning about 17.5..20 px from the center along the light axis.
+	dc := bodyBatches(t, r, 0.97, 0, 0.25)
+	for _, a := range []float64{math.Pi / 16, -math.Pi / 16} {
+		px := cx + 0.97*r*float32(math.Cos(a))
+		py := cy + 0.97*r*float32(math.Sin(a))
+		if !pointInMesh(dc, px, py) {
+			t.Fatalf("the mesh leaves a gap at %.0f° on the light side "+
+				"of the limb; the visible polar cap is unpainted",
+				a*180/math.Pi)
+		}
+	}
+}

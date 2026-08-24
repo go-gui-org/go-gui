@@ -159,3 +159,70 @@ func TestVertexColorsLengthMismatchFallsBackToFlat(t *testing.T) {
 		})
 	}
 }
+
+// vcolCmd wraps a hand-built mesh as the RenderSvg command the canvas
+// path emits for FillTrianglesColors.
+func vcolCmd(tris []float32, cols []gui.Color) gui.RenderCmd {
+	return gui.RenderCmd{
+		Kind:         gui.RenderSvg,
+		Scale:        1,
+		Color:        gui.RGB(255, 255, 255),
+		Triangles:    tris,
+		VertexColors: cols,
+	}
+}
+
+// TestMeshWindingMustBeConsistent pins the contract a caller of
+// FillTrianglesColors takes on. The mesh is rasterized as one path with
+// *signed* coverage accumulation, so two triangles sharing an edge but
+// wound against each other contribute +0.5 and -0.5 along it: the sum
+// is zero and the background shows through as a hairline. Wound the
+// same way they sum to full coverage and the seam disappears.
+//
+// The check is a diagonal pixel, which is on the shared edge, against
+// an interior pixel of the same triangle.
+func TestMeshWindingMustBeConsistent(t *testing.T) {
+	white := gui.RGB(255, 255, 255)
+	cols := []gui.Color{white, white, white, white, white, white}
+
+	// A square split along its top-left/bottom-right diagonal.
+	same := []float32{
+		4, 4, 36, 4, 36, 36,
+		4, 4, 36, 36, 4, 36,
+	}
+	// The same square, second triangle reversed.
+	mixed := []float32{
+		4, 4, 36, 4, 36, 36,
+		4, 4, 4, 36, 36, 36,
+	}
+
+	seam := func(tris []float32) (onEdge, inside uint8) {
+		r := newRenderer(40, 40, 1)
+		r.drawAll([]gui.RenderCmd{vcolCmd(tris, cols)})
+		e, _, _, _ := at(r.buf.img, 20, 20)
+		i, _, _, _ := at(r.buf.img, 30, 12)
+		return e, i
+	}
+
+	edge, inside := seam(same)
+	if inside < 250 {
+		t.Fatalf("interior painted %d, want the mesh solid", inside)
+	}
+	if diff(int(edge), int(inside)) > 4 {
+		t.Errorf("consistent winding painted %d on the shared edge "+
+			"against %d inside: that is a seam", edge, inside)
+	}
+
+	edge, inside = seam(mixed)
+	if inside < 250 {
+		t.Fatalf("interior painted %d, want the mesh solid", inside)
+	}
+	// The cancellation is total, not marginal: the shared edge comes
+	// out at zero coverage against a solid interior.
+	if edge > 8 {
+		t.Errorf("mixed winding painted %d on the shared edge against "+
+			"%d inside; the signed accumulation is supposed to cancel "+
+			"there, and this test is what documents why a mesh must "+
+			"not do it", edge, inside)
+	}
+}

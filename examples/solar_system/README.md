@@ -47,8 +47,9 @@ go run ./examples/solar_system/
   to a panel appearing.
 - **Batch-aware drawing.** `DrawContext` merges only _consecutive_ same-color
   triangles, so the starfield quantizes its twinkle to eight brightness levels
-  and draws one level at a time — eight batches per frame instead of 220, and
-  each band of a shaded sphere costs exactly one batch.
+  and draws one level at a time — eight batches per frame instead of 220. A
+  shaded sphere goes the other way: it is one mesh carrying a color per vertex,
+  so the whole body is a single batch however fine its ramp.
 
 - **One encoding for "which body".** Selection and hover are a planet index,
   `selSun` for the sun, or `-1` for nothing. The sun gets a value outside the
@@ -60,7 +61,7 @@ go run ./examples/solar_system/
 
 ## Notes on technique
 
-`DrawContext` fills come in two forms, and this example uses both.
+`DrawContext` fills come in three forms, and this example uses all of them.
 
 The two glows are real gradients (`FilledCircleGradient`, issue #398). Each is
 one fill:
@@ -75,14 +76,15 @@ was turned down. `haloStops` (`draw.go`) samples the opacity those stacks
 accumulated to, so the appearance is the one they had, at one fill each and with
 nothing left to tune.
 
-Everything else that looks like a gradient is still flat shapes standing in for
-one, and deliberately so:
+The planet shading is the third form: `FillTrianglesColors` (issue #400), where
+the caller evaluates its own shading model and hands over geometry plus one
+color per vertex. A gradient cannot stand in for it — circles cannot make a
+crescent, and neither can any other conic isoline; the argument is below.
 
-- The planet shading is elliptical bands in a light-aligned frame. Circles
-  cannot make a crescent, so no radial gradient can express it.
-- Three translucent rings just outside each planet's silhouette feather the
-  polygon edge into something that reads as anti-aliased. Three is few enough
-  that a gradient would not pay for itself.
+What is left is flat shapes standing in for a gradient, deliberately: three
+translucent rings just outside each planet's silhouette feather the polygon edge
+into something that reads as anti-aliased. Three is few enough that a gradient
+would not pay for itself.
 
 ### Painting a star
 
@@ -119,13 +121,14 @@ from one shared inner radius, which accumulated alpha there and painted a hard
 bright ring inside the limb — a worse artifact than the soft edge it was meant
 to give.
 
-### Shading a sphere out of flat polygons
+### Shading a sphere the renderer cannot express
 
 A planet is a real Lambert sphere, not an approximation of one. On a sphere lit
 by a distant source the brightness at a surface point is `N·L`, so the lines of
-equal brightness are the circles of constant angle from the light. Each band of
-brightness is the strip of surface between two of those circles, traced in a
-frame with the light as its pole and projected to screen.
+equal brightness are the circles of constant angle from the light. The body is a
+mesh of exactly those circles — one ring of vertices per intensity, traced in a
+frame with the light as its pole, projected to screen, and handed to
+`FillTrianglesColors` with the intensity carried as a color on every vertex.
 
 The light vector is built once, in screen coordinates, and carries everything
 the shading needs. `diskTilt` is the sine of the camera's elevation above the
@@ -139,7 +142,7 @@ rather than `[0, 1]`, because a camera 29° above the plane never sees a pure ne
 or full phase. Most orreries skip phase entirely and paint every planet fully
 lit.
 
-Four things about this are worth knowing if you copy it.
+Five things about this are worth knowing if you copy it.
 
 **Circles cannot make a crescent.** The first version built the body from a
 focal radial gradient — the `fx`/`fy` construction an SVG `radialGradient` uses,
@@ -149,27 +152,61 @@ disc, which reads as a second small sphere sitting inside the planet. The
 terminator is an ellipse; no amount of softening the blob's edge turns one into
 the other.
 
+**Nor can any other gradient.** The isophotes _are_ ellipses, which makes an
+elliptical gradient look like the answer, and it is not. For an orthographic
+unit sphere lit by `l`, the locus `N·L = k` projects to an ellipse centered at
+`|l₂d|·k` along the screen light direction, with semi-axis `√(1−k²)` across the
+light and `√(1−k²)·|lz|` along it. The aspect ratio is constant in `k`, so a
+gradient could match that part. Two things defeat it. The radius law is
+`√(1−k²)`, not linear: the isoline is a point at `k = −1`, opens to the full
+limb at the terminator, and closes to a point again at `k = 1`, so the isophotes
+at 30° and 150° are two small disjoint ellipses on opposite sides of the disc,
+neither containing the other. Gradient level sets are nested by construction, so
+no gradient emits that family. And each isophote is clipped at the silhouette,
+which a gradient has no notion of. That is what `FillTrianglesColors` exists
+for: the shading model is solved here and handed over already evaluated.
+
 **Hidden points get pushed onto the limb.** A band's boundary circle usually
 runs off the back of the sphere. Projecting the hidden part radially out to
 radius `r` lands it on the silhouette — exactly where the band's boundary
 belongs, and exactly where it already is at the crossing — so nothing needs
 clipping.
 
-**Bands are spaced evenly in intensity, not in angle.** Even angular spacing
-looks fine across the middle of the lit side and stripes badly at the
-terminator, because `cos` is flat at the poles and steepest at 90°: the same
-slice of angle is a much bigger slice of brightness there. Stepping `cos`
-directly makes every band the same color distance from its neighbour and spends
-angular resolution where the eye is looking. The night half still has to be
-subdivided even though every band there comes out the same color: at `cos = -1`
-the boundary circle has collapsed to the antisolar point, and a strip run from a
-single point fans out as a wedge instead of covering the region.
+**Where the rings go is decided by the limb, not by the ramp.** Even steps in
+intensity are the obvious spacing and they make the silhouette go polygonal,
+because the mesh boundary _is_ the limb: a ring only partly on the near side
+ends on the silhouette, and the mesh edge between two such rings is a chord of
+it. A limb point's intensity is `m·cos(delta)` — `delta` the angle around the
+limb from the light's screen direction, `m` the light's screen-plane length — so
+even steps in intensity are wildly uneven steps in `delta`, growing as a square
+root near `delta = 0` until a single chord spans 20°. With the light in the
+screen plane that lands on the disc's own edge, which is why the facets showed
+on planets drawn beside the sun and nowhere else.
 
-**Quads that merely touch leave hairlines.** Adjacent triangles sharing an edge
-do not tile cleanly — the rasterizer antialiases each one on its own, so both
-sides come out at partial coverage and the background shows through as a seam.
-The bands are opaque, so growing every quad a fraction of a step past its own
-share costs nothing and closes it.
+So the rings that reach the limb are spaced evenly in `delta` instead, which
+makes every limb chord the same length. Those are the rings with
+`|cos(phi)| < m`; outside that band a ring is either wholly visible — a closed
+curve around the pole the light points at — or wholly hidden. The visible cap
+gets rings spaced evenly in `phi` and the hidden one gets none, which is also a
+saving: even spacing spent nearly half its rings on the far side only for
+`appendTri` to drop them.
+
+**The mesh must be watertight and consistently wound.** Both follow from how a
+vertex-colored batch is rasterized: `gui/backend/soft` treats it as one path and
+accumulates _signed_ coverage. Adjacent triangles that merely touch antialias
+independently and leak the background through as a hairline, so consecutive
+rings share their vertices rather than being drawn as separate strips — the same
+array, used as the outer edge of one strip and the inner edge of the next. And a
+triangle wound against its neighbours subtracts from them, cutting a seam
+through the body; the limb clamp can reorder a quad's corners, so `appendTri`
+measures the signed area and emits the vertices in a consistent order rather
+than assuming one. It drops the zero-area case in the same step, which is what
+removes the rings lying entirely on the far side.
+
+The flat-band version this replaced needed a fifth trick: every quad was grown a
+fraction of a step past its own share, so opaque neighbours overlapped instead
+of merely touching. With a per-vertex ramp that overlap would itself show as
+banding, and a shared-vertex mesh has no seam left to close.
 
 **The color ramp needs the base color as a middle stop.** Interpolating straight
 from night to light passes through the midpoint of those two, which is a
@@ -178,18 +215,17 @@ its own color across most of the lit side — Uranus stays cyan and Mars stays
 red. The unlit side bottoms out at a fraction of the body's color rather than
 black, on the grounds that a planet you cannot see is a planet you cannot click.
 
-Level and segment counts scale with pixel radius, never a constant. A fixed
-count bands the moment the thing gets big — it showed up first on a planet
-zoomed to fill the view, and again on the sun's halo back when that was a ring
-stack, 500px across with Jupiter focused and banded at 17px per ring. The halo
-is a gradient now and no longer has a count to get wrong; the shading bands
-still do.
+Ring and segment counts scale with pixel radius, never a constant, but they buy
+much less than they used to. They now resolve only the _geometry_ — the
+curvature of the elliptical rings and the chord error where the mesh boundary
+meets the limb, both of which fall off as the square of the spacing. The ramp
+itself is continuous however coarse the mesh is, so the counts came down by more
+than half when the color moved onto the vertices: a full-system frame went from
+232 triangle batches and 40.6k triangles to 79 and 30.2k, and a Jupiter-focused
+frame from 137 and 52.6k to 89 and 42.7k.
 
-A band is one flat color and its quads are emitted consecutively, so each band
-costs a single batch. The full-system view emits about 245 triangle batches a
-frame and a focused planet about 270. Off-screen bodies are culled: without
-that, the seven planets outside the viewport at a focused zoom each still built
-a full-resolution sphere.
+Off-screen bodies are still culled: without that, the seven planets outside the
+viewport at a focused zoom each built a full-resolution sphere anyway.
 
 Orbit ellipses are drawn with `Arc`, the ellipse primitive, with the vertical
 radius squashed to tilt the plane. Each ellipse's center is offset by `a·e`

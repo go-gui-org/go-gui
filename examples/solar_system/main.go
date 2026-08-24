@@ -63,6 +63,10 @@ type App struct {
 	glowStops []gui.GradientStop
 	haloStops []gui.GradientStop
 
+	// body is drawBody's mesh scratch, reused for the same reason: nine
+	// planets a tick, each rebuilding a few thousand vertices.
+	body bodyMesh
+
 	// Selected and Hovered are a planet index, selSun for the sun, or
 	// -1 for the full-system view / nothing under the cursor.
 	Selected int

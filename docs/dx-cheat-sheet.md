@@ -224,6 +224,29 @@ fake a falloff; that is what this replaces.
 A gradient fill always starts its own batch and never merges with the flat fill
 before it, so interleaving the two keeps painter's order.
 
+### When a gradient cannot express the shading
+
+`FillTrianglesColors(tris, colors)` is the primitive underneath all six. You
+supply the geometry and one color per vertex — `len(colors)*2 == len(tris)` —
+and nothing is evaluated on the way through: no projection, no stop isolines, no
+subdivision. A mismatched color count is a no-op, and the fill starts its own
+batch under the same rule a gradient does.
+
+Reach for it when the shading is not a gradient and cannot be made into one. A
+gradient's level sets are conic curves, nested inside one another, stepped
+linearly along the ramp. A shading whose isolines are not nested (a Lambert
+sphere, whose isophotes open to the terminator and close again on both sides),
+or which varies around a center rather than away from it (a hue sweep), or which
+stops at a silhouette, is out of reach however the stops are arranged.
+`examples/solar_system` is the worked case; `examples/draw_canvas` shows the two
+short ones.
+
+**Wind every triangle the same way.** `gui/backend/soft` rasterizes a
+vertex-colored batch as a single path and accumulates _signed_ coverage, so a
+triangle wound against its neighbours cancels along their shared edge and cuts a
+hairline through the mesh. Share vertices between adjacent triangles rather than
+overlapping them: with per-vertex color, an overlap paints twice and shows.
+
 ## The one-event rule
 
 Nothing is marked handled for you. A callback that acts on an event calls
