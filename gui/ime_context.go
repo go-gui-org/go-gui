@@ -17,6 +17,12 @@ package gui
 // must run only while a widget that renders a framework caret holds
 // focus, or the window re-renders every 600 ms for a caret nobody
 // draws.
+//
+// It is gated on the *window* holding OS focus as well. A background
+// window receives no key events, so its caret marks an insertion point
+// nobody can type into — and the blink is not free: it keeps the 16 ms
+// animation ticker alive and wakes the main thread out of its blocking
+// event wait twice a second for the whole time the app sits idle.
 
 // shapeIsIMEEditTarget reports whether shape is the editable text
 // context an input method would write into — the shape that hosts the
@@ -154,6 +160,12 @@ func (w *Window) syncIMEEditContext() {
 // here: it blinks without any focused input.
 func (w *Window) syncBlinkCursor() {
 	caret, _ := findEditTargets(&w.layout, w)
+	// An unfocused window gets no key events, so a blinking caret is a
+	// pure idle wakeup — a 16 ms ticker plus a wakeMain twice a second
+	// for a caret the user cannot type into. Dropping the animation
+	// empties w.animations, which parks the animation ticker outright
+	// (animationLoop). renderInputCursor hides the caret to match.
+	caret = caret && w.hasFocus()
 	w.animMu.Lock()
 	defer w.animMu.Unlock()
 	_, present := w.animations[blinkCursorAnimationID]

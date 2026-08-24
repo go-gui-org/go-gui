@@ -497,6 +497,45 @@ func TestRenderInputCursorBlinkOffEmitsTransparent(t *testing.T) {
 	}
 }
 
+// A background window draws no caret, but still emits the rect so the
+// render list keeps one shape across focus states (issue #404).
+func TestRenderInputCursorWindowUnfocusedEmitsTransparent(t *testing.T) {
+	w := makeWindow()
+	w.focused = false
+	w.viewState.focusID = "f100"
+	w.viewState.inputCursorOn.Store(true)
+	style := DefaultTextStyle
+	shape := &Shape{
+		Focusable: true, ID: "f100",
+		TC: &shapeTextConfig{TextStyle: &style},
+	}
+
+	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+
+	if len(w.renderers) != 1 {
+		t.Fatalf("cursor should emit one transparent rect, got %d", len(w.renderers))
+	}
+	if w.renderers[0].Color != ColorTransparent {
+		t.Error("cursor should be transparent while the window is unfocused")
+	}
+}
+
+// The in-place blink toggle honours the same gate — a Pulsar keeps the
+// blink animation alive in a background window.
+func TestCommandToggleCaretBlinkWindowUnfocused(t *testing.T) {
+	w := makeWindow()
+	w.focused = false
+	w.viewState.inputCursorOn.Store(true)
+	w.caretCmd = caretCmdState{idx: 0, color: RGB(0, 255, 0), ok: true}
+	w.renderers = []RenderCmd{{Kind: RenderRect, Color: RGB(1, 2, 3)}}
+
+	commandToggleCaretBlink(w)
+
+	if w.renderers[0].Color != ColorTransparent {
+		t.Error("toggle must not paint the caret in an unfocused window")
+	}
+}
+
 func TestRenderInputCursorFallbackPosition(t *testing.T) {
 	w := makeWindow()
 	w.viewState.focusID = "f100"

@@ -8,8 +8,9 @@ func inputHasSelection(focusID string, w *Window) bool {
 	return is.selectBeg != is.selectEnd
 }
 
+// Mirrors NewWindow's resting state — see makeWindow in render_test.go.
 func newTestWindow() *Window {
-	return &Window{}
+	return &Window{focused: true}
 }
 
 func setInputState(w *Window, focusID string, is inputState) {

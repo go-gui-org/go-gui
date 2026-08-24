@@ -115,6 +115,11 @@ func (w *Window) handleIMECompositionEvent(layout *Layout, e *Event) {
 
 func (w *Window) handleFocusedEvent() {
 	w.focused = true
+	// The blink animation was retired while the window sat in the
+	// background (syncBlinkCursor). Come back with the caret solid and
+	// a fresh 600 ms phase rather than resuming mid-blink; the rebuild
+	// EventFn queues re-registers the animation.
+	resetBlinkCursorVisible(w)
 }
 
 func (w *Window) handleUnfocusedEvent() {

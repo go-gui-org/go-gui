@@ -66,6 +66,28 @@ probing, and every shape's draw code are untouched.
 - A `Pulsar` (which toggles text in the view function) still promotes blink
   ticks to a layout refresh via its own `Animate` — unchanged behavior.
 
+## Window focus
+
+The blink is gated on the window holding OS focus as well as on the focused
+widget drawing a caret. A background window receives no key events, so its caret
+marks an insertion point nobody can type into — and the blink is not free: it
+holds the 16 ms animation ticker open and calls `wakeMain` twice a second for
+the whole time the app sits idle.
+
+`syncBlinkCursor` (`gui/ime_context.go`) folds `Window.focused` into the caret
+signal. Losing focus retires the animation, which empties `w.animations` and
+parks the ticker in `animationLoop`; `handleFocusedEvent` calls
+`resetBlinkCursorVisible` on the way back, so the caret returns solid with a
+fresh phase rather than mid-blink, and the rebuild `EventFn` queues re-registers
+the animation.
+
+`renderInputCursor` paints the caret transparent while the window is unfocused,
+and `commandToggleCaretBlink` carries the same gate — a `Pulsar` keeps the blink
+animation registered in a background window, and its toggles must not paint the
+caret back in. The caret rect is still emitted, so the invariant above holds:
+the render list has one shape across focus states and the recorded slot stays
+valid.
+
 ## Files
 
 - `gui/render_text.go` — `renderInputCursor` always emits; `caretCmdState`,
@@ -73,5 +95,7 @@ probing, and every shape's draw code are untouched.
 - `gui/window.go` — `caretCmd`, `renderersDirty` fields.
 - `gui/window_update.go` — `buildRenderers` resets `caretCmd`; `FrameFn`
   presents and clears `renderersDirty`.
+- `gui/ime_context.go` — `syncBlinkCursor` window-focus gate.
+- `gui/window_event.go` — `handleFocusedEvent` resets the blink phase.
 - `gui/animation.go` / `gui/animation_loop.go` — `RefreshKind` none; the toggle
   command is enqueued per tick.
