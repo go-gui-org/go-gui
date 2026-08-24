@@ -250,6 +250,35 @@ func TestSvgStopIsolinesTiling(t *testing.T) {
 	}
 }
 
+// TestSvgStopIsolinesTilingNegative is the tiling enumeration below
+// zero. The odd-period mirror flips on k&1, which must hold for
+// negative k too: in the odd period [-3,-2) a stop at 0.25 sits at
+// -2.25 — inside the range even though its period base (-3) is not.
+// The fold at -2 is a break in both spreads.
+func TestSvgStopIsolinesTilingNegative(t *testing.T) {
+	stops := []gui.SvgGradientStop{{Offset: 0}, {Offset: 0.25}, {Offset: 1}}
+	rep := svgStopIsolines(stops, gui.SvgSpreadRepeat, -2.5, -1.5, nil)
+	wantRep := []float32{-2, -1.75}
+	if len(rep) != len(wantRep) {
+		t.Fatalf("repeat isolines = %v, want %v", rep, wantRep)
+	}
+	for i := range wantRep {
+		if !svgAlmostEq(rep[i], wantRep[i], 1e-6) {
+			t.Fatalf("repeat isolines = %v, want %v", rep, wantRep)
+		}
+	}
+	ref := svgStopIsolines(stops, gui.SvgSpreadReflect, -2.5, -1.5, nil)
+	wantRef := []float32{-2.25, -2, -1.75}
+	if len(ref) != len(wantRef) {
+		t.Fatalf("reflect isolines = %v, want %v", ref, wantRef)
+	}
+	for i := range wantRef {
+		if !svgAlmostEq(ref[i], wantRef[i], 1e-6) {
+			t.Fatalf("reflect isolines = %v, want %v", ref, wantRef)
+		}
+	}
+}
+
 // TestSvgStopIsolinesCapped bounds the tiling branch: a gradient whose
 // endpoints are a hair apart against geometry of ordinary size spans a
 // vast number of periods, and the split pass rescans this list at every
