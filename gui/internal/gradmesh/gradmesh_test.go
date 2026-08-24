@@ -758,3 +758,160 @@ func TestSpreadTriUnknownSpreadPads(t *testing.T) {
 			"(pad)", ga, gb, gc)
 	}
 }
+
+// straddling counts emitted triangles whose three raw parameters span an
+// integer with margin tol. Those integers are the period boundaries
+// repeat's sawtooth steps at and reflect's triangle wave folds at, and
+// SpreadTri reads one period per triangle — so a triangle spanning one
+// gets the overshoot clamped flat rather than colored, which is the
+// artifact issue #418 photographed.
+func straddling(tris []float32, p *Params, tol float32) int {
+	n := 0
+	for i := 0; i+5 < len(tris); i += 6 {
+		ta := RawT(tris[i], tris[i+1], p)
+		tb := RawT(tris[i+2], tris[i+3], p)
+		tc := RawT(tris[i+4], tris[i+5], p)
+		lo := min(ta, tb, tc)
+		hi := max(ta, tb, tc)
+		if !finite(lo) || !finite(hi) {
+			continue
+		}
+		// An integer strictly inside the range by more than tol on both
+		// sides. floor(lo)+1 is the first candidate above lo.
+		k := math.Floor(float64(lo)) + 1
+		if float32(k) > lo+tol && float32(k) < hi-tol {
+			n++
+		}
+	}
+	return n
+}
+
+// spreadRect is the geometry both spread cases below are cut from: a
+// 100x100 rect as two triangles, the shape examples/svg_gradient_spread
+// fills.
+func spreadRect() []float32 {
+	return []float32{
+		0, 0, 100, 0, 100, 100,
+		0, 0, 100, 100, 0, 100,
+	}
+}
+
+// radialSpreadParams is the radial gradient the two spread-mesh tests
+// below subdivide: cx=cy=50 r=20 over the 100x100 spreadRect spans ~3.5
+// periods, with folds at t = 1, 2, 3.
+func radialSpreadParams(s Spread) *Params {
+	return &Params{Radial: true, CX: 50, CY: 50, FX: 50, FY: 50,
+		R: 20, StopOffsets: twoStops(), Spread: s}
+}
+
+// TestSubdivideLeavesNoTriangleStraddlingAFold is the assertion the
+// goldens cannot make (issue #418). A golden records a sawtooth wedge as
+// happily as it records its absence, which is how the artifact shipped.
+//
+// The property: after Subdivide, no emitted triangle spans a period
+// boundary. SpreadTri's contract rests on it — it names one period per
+// triangle and reads all three vertices in it, so a triangle spanning a
+// fold has its overshoot clamped flat.
+//
+// The radial case is the reported one: cx=cy=50 r=20 over a 100x100
+// rect spans ~3.5 periods, folds at t = 1, 2, 3. The linear case is the
+// contrast the issue calls useful — the linear parameter is affine in
+// position, so a cut lands exactly and the recursion terminates; the
+// radial one is a distance and needs cutFraction's quadratic.
+func TestSubdivideLeavesNoTriangleStraddlingAFold(t *testing.T) {
+	linear := func(s Spread) *Params {
+		return &Params{X1: 0, Y1: 0, X2: 40, Y2: 0,
+			StopOffsets: twoStops(), Spread: s}
+	}
+	// The folds each case's geometry actually reaches: the radial rect
+	// spans to its corner distance, 70.7/20 = 3.53 periods; the linear
+	// one to 100/40 = 2.5.
+	cases := []struct {
+		name  string
+		p     *Params
+		folds []float32
+	}{
+		{"radial repeat", radialSpreadParams(SpreadRepeat), []float32{1, 2, 3}},
+		{"radial reflect", radialSpreadParams(SpreadReflect), []float32{1, 2, 3}},
+		{"linear repeat", linear(SpreadRepeat), []float32{1, 2}},
+		{"linear reflect", linear(SpreadReflect), []float32{1, 2}},
+	}
+	for _, c := range cases {
+		src := spreadRect()
+		out := subdivide(src, c.p)
+		// The isoline list, read over the range the *subdivided* mesh
+		// spans: the source rect's four corners are all one distance
+		// from the center, so its own range is a point and says
+		// nothing.
+		tMin, tMax := tRange(out, c.p)
+		lines := stopIsolines(c.p.StopOffsets, c.p.Spread, tMin, tMax, nil)
+		t.Logf("%s: t in [%v,%v], %d isolines %v, %d tris in, %d out, "+
+			"budget %v", c.name, tMin, tMax, len(lines), lines,
+			len(src)/6, len(out)/6, len(out) >= maxSplitFloats)
+		// Guards against a vacuous pass: a mesh that was never cut, or
+		// a range that never reached the folds, would report zero
+		// straddling triangles while proving nothing.
+		for _, want := range c.folds {
+			found := false
+			for _, v := range lines {
+				found = found || v == want
+			}
+			if !found {
+				t.Errorf("%s: isolines %v missing the period boundary "+
+					"at %v — the split pass had nothing to cut at",
+					c.name, lines, want)
+			}
+		}
+		if n := straddling(out, c.p, 1e-4); n != 0 {
+			t.Errorf("%s: %d of %d emitted triangles straddle a period "+
+				"boundary, want 0 (depth cap %d, budget tripped: %v)",
+				c.name, n, len(out)/6, maxSplitDepth,
+				len(out) >= maxSplitFloats)
+		}
+	}
+}
+
+// TestSpreadTriNeverReversesTheRamp is the coloring-side half of the
+// same property, and the defect itself (issues #417, #418): a triangle
+// whose vertices resolve out of order runs the ramp backwards across it,
+// which is the dark wedge intruding into the light band.
+//
+// Ordering, not values, is the claim: reflect mirrors on odd periods, so
+// the resolved order there is the exact reverse of the raw one. Either
+// direction is correct; a triple that is monotone in neither is not.
+// Equal values are fine — that is foldToPeriod's clamp doing its job.
+func TestSpreadTriNeverReversesTheRamp(t *testing.T) {
+	for _, spread := range []Spread{SpreadRepeat, SpreadReflect} {
+		p := radialSpreadParams(spread)
+		out := subdivide(spreadRect(), p)
+		bad := 0
+		for i := 0; i+5 < len(out); i += 6 {
+			raw := [3]float32{
+				RawT(out[i], out[i+1], p),
+				RawT(out[i+2], out[i+3], p),
+				RawT(out[i+4], out[i+5], p),
+			}
+			sa, sb, sc := SpreadTri(raw[0], raw[1], raw[2], spread)
+			got := [3]float32{sa, sb, sc}
+			// Sort both arrays together by raw t, so the resolved
+			// triple is read in ramp order.
+			for a := range 2 {
+				for b := 0; b < 2-a; b++ {
+					if raw[b] > raw[b+1] {
+						raw[b], raw[b+1] = raw[b+1], raw[b]
+						got[b], got[b+1] = got[b+1], got[b]
+					}
+				}
+			}
+			up := got[0] <= got[1] && got[1] <= got[2]
+			down := got[0] >= got[1] && got[1] >= got[2]
+			if !up && !down {
+				bad++
+			}
+		}
+		if bad != 0 {
+			t.Errorf("spread %d: %d of %d triangles resolve out of ramp "+
+				"order, want 0", spread, bad, len(out)/6)
+		}
+	}
+}
