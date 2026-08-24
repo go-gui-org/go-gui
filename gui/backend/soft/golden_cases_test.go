@@ -567,6 +567,63 @@ func pixelCases() []pixelCase {
 			},
 		},
 		{
+			// The radial half of the spread matrix, which both cases
+			// above lack: they are linear, so their parameter is affine
+			// in position and a cut lands exactly. A radial parameter
+			// is a distance, so cutFraction has to solve a quadratic to
+			// put the cut vertex on the isoline — miss it and the
+			// recursion re-cuts, neighbours disagree, and the period
+			// boundaries read as ragged polygons (issue #418).
+			//
+			// This is the cell from examples/svg_gradient_spread
+			// verbatim: r=20% over a 100x100 rect is ~3.5 periods
+			// against a bbox half-diagonal of 70.7, with folds at
+			// t = 1, 2 and 3.
+			name: "svg_gradient_radial_repeat",
+			build: func(_ *gui.Window) gui.View {
+				const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">` +
+					`<defs><radialGradient id="g" cx="50%" cy="50%" r="20%" ` +
+					`spreadMethod="repeat">` +
+					`<stop offset="0" stop-color="#fde68a"/>` +
+					`<stop offset="1" stop-color="#7c2d12"/>` +
+					`</radialGradient></defs>` +
+					`<rect width="100" height="100" fill="url(#g)"/>` +
+					`</svg>`
+				return gui.Column(gui.ContainerCfg{
+					Sizing: gui.FillFill, SizeBorder: gui.NoBorder,
+					HAlign: gui.HAlignCenter, VAlign: gui.VAlignMiddle,
+					Content: []gui.View{gui.Svg(gui.SvgCfg{
+						Width: 120, Height: 120, SvgData: svg})},
+				})
+			},
+		},
+		{
+			// The same geometry under reflect, which folds at the same
+			// boundaries and so has the same exposure. It differs in
+			// one way worth recording separately: reflect's triangle
+			// wave is continuous at its folds where repeat's sawtooth
+			// steps, so the rings here meet rather than butt, and a
+			// regression that flattens a period would show as a wide
+			// band instead of a hard edge.
+			name: "svg_gradient_radial_reflect",
+			build: func(_ *gui.Window) gui.View {
+				const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">` +
+					`<defs><radialGradient id="g" cx="50%" cy="50%" r="20%" ` +
+					`spreadMethod="reflect">` +
+					`<stop offset="0" stop-color="#fde68a"/>` +
+					`<stop offset="1" stop-color="#7c2d12"/>` +
+					`</radialGradient></defs>` +
+					`<rect width="100" height="100" fill="url(#g)"/>` +
+					`</svg>`
+				return gui.Column(gui.ContainerCfg{
+					Sizing: gui.FillFill, SizeBorder: gui.NoBorder,
+					HAlign: gui.HAlignCenter, VAlign: gui.VAlignMiddle,
+					Content: []gui.View{gui.Svg(gui.SvgCfg{
+						Width: 120, Height: 120, SvgData: svg})},
+				})
+			},
+		},
+		{
 			// A memory image scaled up 12x: the sampler's filter and
 			// the tiling are pixel-only. The source is a deterministic
 			// checker built in the test, never a file.
