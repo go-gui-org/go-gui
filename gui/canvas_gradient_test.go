@@ -529,3 +529,58 @@ func TestTriBoundsDegenerate(t *testing.T) {
 			x0, y0, x1, y1)
 	}
 }
+
+// TestFillTrianglesGradientRepeatFoldVertex is the canvas side of issue
+// #417. A repeat gradient steps from the ramp's end back to its start at
+// every integer of the raw parameter, and the split pass places cut
+// vertices exactly on those integers. Reading such a vertex on its own
+// gives it the ramp's *start* color while its triangle needs the limit
+// from inside — the end color — which Gouraud then carries across the
+// whole band.
+//
+// The geometry is fold-aligned on purpose: the gradient spans 0..30 and
+// the triangle 0..90, so its far corner sits at exactly t=3 and the cuts
+// land on t=1 and t=2 with no float luck deciding a side.
+func TestFillTrianglesGradientRepeatFoldVertex(t *testing.T) {
+	dc := NewDrawContext(100, 100, nil)
+	tris := []float32{0, 0, 90, 0, 0, 90}
+	dc.FillTrianglesGradient(tris, &CanvasGradient{
+		X1: 0, Y1: 0, X2: 30, Y2: 0,
+		Spread: SpreadRepeat, Stops: gradStops(),
+	})
+	if len(dc.batches) != 1 {
+		t.Fatalf("got %d batches, want 1", len(dc.batches))
+	}
+	b := dc.batches[0]
+	if len(b.VertexColors)*2 != len(b.Triangles) {
+		t.Fatalf("VertexColors=%d, Triangles=%d: lengths must agree",
+			len(b.VertexColors), len(b.Triangles))
+	}
+	first := gradStops()[0].Color
+	last := gradStops()[1].Color
+	// The split leaves no triangle spanning a fold, so every triangle
+	// must carry the whole ramp's worth of variation the geometry gives
+	// it — never three vertices of the ramp's start, which is what the
+	// per-vertex read produced for a fold-aligned band.
+	sawLast := false
+	for i := 0; i+2 < len(b.VertexColors); i += 3 {
+		allFirst := true
+		for _, c := range b.VertexColors[i : i+3] {
+			if c != first {
+				allFirst = false
+			}
+			if c == last {
+				sawLast = true
+			}
+		}
+		if allFirst {
+			t.Errorf("triangle %d: all three vertices took the ramp's "+
+				"start color; a fold vertex read the wrong side of the "+
+				"step", i/3)
+		}
+	}
+	if !sawLast {
+		t.Error("no vertex took the ramp's end color: the fold vertices " +
+			"all resolved to the far side of the step")
+	}
+}

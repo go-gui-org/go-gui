@@ -10,7 +10,7 @@
 // Nothing here knows about color. The input is a flat x,y triangle list
 // plus scalar gradient geometry and the stops' *offsets*, and the output
 // is a flat triangle list. Each caller runs its own coloring pass over
-// the result, sampling RawT + ApplySpread per vertex.
+// the result, sampling RawT + SpreadTri per triangle.
 //
 // Every entry point that produces geometry takes the destination slice
 // from the caller, so buffer policy is a caller decision: gui reuses
@@ -130,6 +130,10 @@ func RawT(vx, vy float32, p *Params) float32 {
 // ApplySpread maps a raw gradient parameter through the spread method.
 // Pad clamps, Reflect is a triangle wave, Repeat a sawtooth. Non-finite
 // input folds to 0.
+//
+// This is the right call for a lone point — hit testing, a sampled
+// midpoint. A coloring pass over a tessellated mesh wants SpreadTri
+// instead, which reads a triangle's three vertices in one period.
 func ApplySpread(t float32, spread Spread) float32 {
 	t64 := float64(t)
 	if math.IsNaN(t64) || math.IsInf(t64, 0) {
@@ -152,6 +156,63 @@ func ApplySpread(t float32, spread Spread) float32 {
 		return float32(t64 - n)
 	}
 	return clampUnit(float32(t64))
+}
+
+// foldToPeriod maps one raw parameter into the period starting at k.
+//
+// The clamp is what handles the one case the split pass cannot: a
+// triangle still spanning periods because the depth or float budget ran
+// out. Flattening that overshoot beats wrapping it, which would run a
+// whole extra ramp across a single triangle.
+func foldToPeriod(t float32, k float64, mirror bool) float32 {
+	s := clampUnit(float32(float64(t) - k))
+	if mirror {
+		return 1 - s
+	}
+	return s
+}
+
+// SpreadTri resolves the spread for one triangle's three vertices as a
+// group. A coloring pass should call this rather than ApplySpread per
+// vertex: ApplySpread is a pure function of one scalar, so it cannot tell
+// which side of a break in the ramp the vertex's own triangle lies on.
+//
+// That matters for Repeat, whose sawtooth jumps from the ramp's end back
+// to its start at every integer — and the split pass places cut vertices
+// exactly on those folds. Such a vertex resolves to frac 0, the ramp's
+// start, while the triangle below it needs the limit from inside, the
+// ramp's end. Gouraud then carries that wrong endpoint across the whole
+// triangle (issue #417).
+//
+// The split pass leaves no triangle spanning a fold, so the triangle
+// names one period and all three of its vertices are read in it. Inside a
+// period this is identical to ApplySpread, because the clamp is then a
+// no-op; on a fold it takes the interior limit instead of the far side's.
+// Reflect's triangle wave and Pad's clamp are both continuous at their
+// breaks, so neither moves.
+func SpreadTri(ta, tb, tc float32, spread Spread) (float32, float32, float32) {
+	// Pad and any out-of-range value delegate: ApplySpread clamps those,
+	// and treating an unknown value as repeat here would wrap where the
+	// per-vertex read pads. Non-finite vertices delegate too: ApplySpread
+	// folds them to 0.
+	if (spread != SpreadReflect && spread != SpreadRepeat) ||
+		!finite(ta) || !finite(tb) || !finite(tc) {
+		return ApplySpread(ta, spread), ApplySpread(tb, spread),
+			ApplySpread(tc, spread)
+	}
+	// The same clamp ApplySpread keeps, for the same reason: the parity
+	// test below converts to int64, which is undefined out of range.
+	const spreadLimit = float64(1 << 31)
+	lo := max(-spreadLimit, min(float64(min(ta, tb, tc)), spreadLimit))
+	hi := max(-spreadLimit, min(float64(max(ta, tb, tc)), spreadLimit))
+	// Take the period from the range's midpoint rather than from any one
+	// vertex, so a vertex sitting on either end of the period is read
+	// from inside the triangle either way.
+	k := math.Floor((lo + hi) * 0.5)
+	mirror := spread == SpreadReflect && int64(k)&1 != 0
+	return foldToPeriod(ta, k, mirror),
+		foldToPeriod(tb, k, mirror),
+		foldToPeriod(tc, k, mirror)
 }
 
 // stopIsolines lists the parameter values where the gradient's color ramp

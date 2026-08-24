@@ -145,6 +145,11 @@ func projectOntoGradient(vx, vy float32, g gui.SvgGradientDef) float32 {
 // then applies g.SpreadMethod. With pad (default) the clamp matches
 // projectOntoGradient's historic behavior; reflect mirrors and
 // repeat wraps for t outside [0,1].
+//
+// No production path calls this any more: the coloring passes resolve a
+// whole triangle at once through gradVertexColors, because a vertex read
+// on its own takes the wrong side of repeat's step (issue #417). Kept for
+// the spread tests; do not reintroduce it into a per-vertex loop.
 func projectAndSpread(vx, vy float32, g gui.SvgGradientDef) float32 {
 	p := gradParams(&g, nil)
 	return gradmesh.ApplySpread(gradmesh.RawT(vx, vy, &p), p.Spread)
@@ -212,6 +217,50 @@ func interpolateGradient(stops []gui.SvgGradientStop, t float32) gui.SvgColor {
 		}
 	}
 	return last.Color
+}
+
+// gradVertexColors builds the per-vertex color array for an already
+// subdivided gradient mesh, one triangle at a time.
+//
+// Per triangle rather than per vertex because repeat's ramp steps at
+// every integer of the raw parameter and the split pass places cut
+// vertices exactly on those steps: a vertex resolved on its own can take
+// the color from the far side of the step, which Gouraud then carries
+// across the whole triangle (issue #417). gradmesh.SpreadTri reads all
+// three vertices in the period their triangle occupies.
+//
+// The gradient parameters are built once here. The per-vertex loop this
+// replaced went through projectAndSpread, which rebuilt them — and copied
+// the whole SvgGradientDef — for every vertex in the mesh.
+func gradVertexColors(tris []float32, grad *gui.SvgGradientDef,
+	opacity float32) []gui.SvgColor {
+	if len(tris) < 6 {
+		return nil
+	}
+	var offsets []float32
+	p := gradParams(grad, &offsets)
+	cols := make([]gui.SvgColor, 0, len(tris)/2)
+	sample := func(t float32) gui.SvgColor {
+		c := interpolateGradient(grad.Stops, t)
+		if opacity < 1.0 {
+			c = applyOpacity(c, opacity)
+		}
+		return c
+	}
+	for i := 0; i+5 < len(tris); i += 6 {
+		ta, tb, tc := gradmesh.SpreadTri(
+			gradmesh.RawT(tris[i], tris[i+1], &p),
+			gradmesh.RawT(tris[i+2], tris[i+3], &p),
+			gradmesh.RawT(tris[i+4], tris[i+5], &p), p.Spread)
+		cols = append(cols, sample(ta), sample(tb), sample(tc))
+	}
+	// A trailing partial triangle cannot be colored per triangle; the
+	// batch downstream requires one color per vertex, so pad rather than
+	// hand back a short array.
+	for len(cols)*2 < len(tris) {
+		cols = append(cols, sample(0.5))
+	}
+	return cols
 }
 
 // subdivideGradientTris splits tris so per-vertex coloring can
