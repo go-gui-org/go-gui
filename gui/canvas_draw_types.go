@@ -106,3 +106,20 @@ type DrawRecorder interface {
 type DrawGradientRecorder interface {
 	FillTrianglesGradient(tris []float32, g *CanvasGradient)
 }
+
+// DrawVertexColorRecorder is the per-vertex-color sibling of
+// DrawGradientRecorder: a recorder implementing it receives a
+// FillTrianglesColors fill as the caller's geometry plus the caller's
+// one-color-per-vertex slice.
+//
+// It is separate from DrawGradientRecorder rather than a second method
+// on it for the same reason DrawGradientRecorder is separate from
+// DrawRecorder — both are exported and implemented outside this repo —
+// and because a per-vertex fill has no CanvasGradient to hand over.
+// A recorder that does not implement this still receives the fill, one
+// flat polygon per triangle shaded with that triangle's mean color, so
+// an export path never silently drops a shaded mesh.
+// exportaudit:keep — reachable from an exported signature
+type DrawVertexColorRecorder interface {
+	FillTrianglesColors(tris []float32, colors []Color)
+}

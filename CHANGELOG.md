@@ -10,6 +10,37 @@ and this project adheres to
 
 ### Added
 
+- **Per-vertex color fills on `DrawContext`** (#400) —
+  `FillTrianglesColors(tris, colors)` takes caller-supplied geometry and one
+  color per vertex. Nothing is evaluated on the way through: no projection, no
+  stop isolines, no subdivision. It is the primitive the gradient fills are
+  built on, exposed for shading a gradient cannot express.
+
+  A gradient's level sets are conic curves, nested and stepped linearly, so a
+  shading whose isolines are not nested, or which varies around a center rather
+  than away from it, or which stops at a silhouette, is out of reach however the
+  stops are arranged. A Lambert-shaded sphere is all three at once: the isophote
+  at `N·L = k` is an ellipse of semi-axis `√(1−k²)`, a point at `k = −1`, the
+  full limb at the terminator, a point again at `k = 1`.
+
+  `examples/solar_system` is ported to it. A planet body was 20–48 flat bands,
+  one batch each, with visible quantization at large radii; it is now a single
+  watertight mesh in one batch with a continuous ramp, and the ring count that
+  used to hide the quantization came down by more than half. A full-system frame
+  went from 232 triangle batches and 40.6k triangles to 79 and 30.2k.
+  `examples/draw_canvas` gains a per-vertex panel: a bilinear corner blend and a
+  hue sweep, neither of which any gradient emits.
+
+  No backend change — the batch rides the same `RenderCmd.VertexColors` channel
+  a gradient fill does. A `DrawRecorder` that does not implement the new
+  optional `DrawVertexColorRecorder` receives one flat polygon per triangle at
+  that triangle's mean color, so an export path never drops a shaded mesh.
+
+  Callers own one invariant the gradient path handled for them: every triangle
+  in a mesh must wind the same way. `gui/backend/soft` rasterizes the batch as
+  one path with signed coverage accumulation, so a reversed triangle cancels
+  against its neighbours and cuts a hairline seam.
+
 - **Gradient fills on `DrawContext`** (#398) — a canvas fill can take a
   `gui.CanvasGradient` in place of a flat `Color`: `FilledRectGradient`,
   `FilledCircleGradient`, `FilledArcGradient`, `FilledPolygonGradient`,

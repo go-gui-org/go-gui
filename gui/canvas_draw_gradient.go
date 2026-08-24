@@ -92,10 +92,27 @@ func (dc *DrawContext) recordFlatTriangles(tris []float32,
 	if !ok {
 		return
 	}
+	dc.recordTriangles(tris, nil, mid)
+}
+
+// recordTriangles hands geometry to a recorder that can only take flat
+// primitives, one triangle at a time.
+//
+// cols, when non-nil, holds one color per vertex and each triangle is
+// recorded at the mean of its own three, which is the closest a flat
+// primitive gets to interpolated shading. Otherwise every triangle
+// takes flat.
+func (dc *DrawContext) recordTriangles(tris []float32, cols []Color,
+	flat Color) {
 	var tri [6]float32
 	for i := 0; i+5 < len(tris); i += 6 {
 		copy(tri[:], tris[i:i+6])
-		dc.recorder.FilledPolygon(tri[:], mid)
+		col := flat
+		if cols != nil {
+			v := i / 2
+			col = meanColor(cols[v : v+3])
+		}
+		dc.recorder.FilledPolygon(tri[:], col)
 	}
 }
 

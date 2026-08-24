@@ -866,7 +866,43 @@ func goldenCases() []goldenCase {
 			name:  "canvas_gradient",
 			build: buildCanvasGradient,
 		},
+		{
+			// Caller-supplied per-vertex color (issue #400). The
+			// counterpart to canvas_gradient: nothing here is
+			// evaluated, so what the golden pins is that the caller's
+			// geometry and colors reach the render command untouched
+			// and in order, as one batch that never merges with the
+			// flat fill drawn after it.
+			name:  "canvas_vertex_colors",
+			build: buildCanvasVertexColors,
+		},
 	}
+}
+
+// buildCanvasVertexColors draws a hand-colored two-triangle mesh, then
+// a flat rect in the mesh's own mean color — the color a naive batch
+// merge would fold the two together on. Colors are fixed literals for
+// the same reason buildCanvasGradient's are.
+func buildCanvasVertexColors(_ *Window) View {
+	return DrawCanvas(DrawCanvasCfg{
+		ID:      "canvas_vertex_colors",
+		Sizing:  FixedFixed,
+		Width:   120,
+		Height:  60,
+		Version: 1,
+		OnDraw: func(dc *DrawContext) {
+			red, green := RGB(255, 0, 0), RGB(0, 255, 0)
+			blue, white := RGB(0, 0, 255), RGB(255, 255, 255)
+			dc.FillTrianglesColors([]float32{
+				0, 0, 60, 0, 60, 60,
+				0, 0, 60, 60, 0, 60,
+			}, []Color{
+				red, green, blue,
+				red, blue, white,
+			})
+			dc.FilledRect(70, 10, 40, 40, RGB(127, 85, 127))
+		},
+	})
 }
 
 // buildCanvasGradient draws one linear and one radial gradient fill.

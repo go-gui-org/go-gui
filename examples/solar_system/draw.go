@@ -93,20 +93,24 @@ const (
 	sunShellsMin   = 14
 	sunShellsMax   = 96
 
-	// shadeLevels is how many flat-colored bands the sphere shading is
-	// quantized into, and shadeArc how many segments each band's curved
-	// boundary is traced with. Both scale with the body's pixel radius,
-	// bounded by their Min/Max: a fixed count bands badly once a planet
-	// is zoomed to fill the view, and is wasted on a 4px Mercury.
+	// shadeRows is how many rings of constant Lambert intensity the
+	// sphere mesh is built from, and shadeArc how many segments each
+	// ring is traced with. Both scale with the body's pixel radius,
+	// bounded by their Min/Max, and are wasted on a 4px Mercury.
 	//
-	// The level count is also the batch count for the body, since a band
-	// is one flat color and its quads are emitted consecutively.
-	shadeLevelsPerPx = 1.4
-	shadeLevelsMin   = 20
-	shadeLevelsMax   = 48
-	shadeArcPerPx    = 1.2
-	shadeArcMin      = 20
-	shadeArcMax      = 72
+	// These counts buy *geometry*, not color steps. The mesh carries a
+	// color per vertex, so the intensity ramp is continuous however
+	// coarse the rows are; what the rows have to resolve is the
+	// curvature of the elliptical rings and the chord error where the
+	// mesh boundary meets the limb. Both fall off as the square of the
+	// spacing, which is why far fewer rows suffice here than the flat
+	// bands this replaced needed to hide their quantization.
+	shadeRowsPerPx = 0.5
+	shadeRowsMin   = 12
+	shadeRowsMax   = 36
+	shadeArcPerPx  = 0.7
+	shadeArcMin    = 16
+	shadeArcMax    = 64
 
 	// nightScale is the unlit hemisphere's brightness, as a fraction of
 	// the body's own color. Not zero on purpose: a planet you cannot see
@@ -118,11 +122,6 @@ const (
 	// Well past the middle, so most of the lit side carries the planet's
 	// hue and the bright end stays tight.
 	baseStop = 0.72
-
-	// seamOverlap is how far past its own share each shading quad is
-	// grown, as a fraction of a step, so neighbours overlap instead of
-	// merely touching. See the comment at its use.
-	seamOverlap = 0.2
 
 	// ringNightAlpha is how much of their opacity Saturn's rings keep on
 	// the night side. They are lit by the same sun the body is.
@@ -498,10 +497,10 @@ func drawPlanet(a *App, dc *gui.DrawContext, i int) {
 	cx, cy := a.ScreenX[i], a.ScreenY[i]
 	r := max(a.ScreenR[i], 1.5)
 
-	// Cull off-screen bodies. The shading ramp's step count scales with
+	// Cull off-screen bodies. The shading mesh's ring count scales with
 	// pixel radius, so at a planet-focused zoom the seven planets that
-	// are nowhere near the viewport were still each emitting a
-	// full-resolution ramp — 537 batches a frame instead of ~120.
+	// are nowhere near the viewport were each still building a
+	// full-resolution sphere, thousands of triangles apiece.
 	// The margin covers Saturn's rings, which reach about 2r.
 	if m := r * 2.5; cx+m < 0 || cx-m > dc.Width ||
 		cy+m < 0 || cy-m > dc.Height {
@@ -531,11 +530,11 @@ func drawPlanet(a *App, dc *gui.DrawContext, i int) {
 		// half — which is what makes the rings pass behind Saturn.
 		k := a.litFraction(i)
 		drawRings(dc, cx, cy, r, math.Pi, math.Pi, k)
-		drawBody(dc, cx, cy, r, p.Color, lx, ly, lz)
+		drawBody(dc, &a.body, cx, cy, r, p.Color, lx, ly, lz)
 		drawRings(dc, cx, cy, r, 0, math.Pi, k)
 		return
 	}
-	drawBody(dc, cx, cy, r, p.Color, lx, ly, lz)
+	drawBody(dc, &a.body, cx, cy, r, p.Color, lx, ly, lz)
 }
 
 // lightBasis is an orthonormal frame with the light direction as its
@@ -617,14 +616,130 @@ func (b lightBasis) visibleAzimuth(cosPhi, sinPhi float32) float32 {
 	}
 }
 
-// drawBody paints one shaded sphere: a feathered rim, then a Lambert
-// intensity ramp laid down as flat-colored bands.
+// ringPlan lays out the rings drawBody walks, in cos(phi) — the Lambert
+// intensity itself.
 //
-// The bands are the real thing rather than a stand-in. On a sphere lit
-// by a distant source the brightness at a surface point is N·L, so the
+// Even steps in intensity are the obvious choice, and they are what
+// made the silhouette go polygonal. The mesh boundary *is* the limb: a
+// ring only partly on the near side ends on the silhouette, and the
+// mesh edge between two such rings is a chord of it. A limb point's
+// intensity is m*cos(delta) — delta the angle around the limb from the
+// light's screen direction, m the light's screen-plane length — so even
+// steps in intensity are wildly uneven steps in delta. Near delta = 0
+// the step grows as a square root and one chord can span 20 degrees.
+// With the light in the screen plane that lands on the disc's own edge,
+// which is exactly where the facets showed: the sun-facing and anti-sun
+// edges of a planet beside the sun.
+//
+// So the rings that reach the limb are spaced evenly in delta instead,
+// which makes every limb chord the same length. Those are the rings
+// with |cos(phi)| < m; outside that band a ring is either wholly
+// visible — a closed curve around the pole the light points at — or
+// wholly hidden. The visible cap gets rings spaced evenly in phi, the
+// hidden one gets none: it covers no visible surface, and even spacing
+// spent nearly half its rings there only for appendTri to drop them.
+//
+// Rows are split between cap and band by the share of phi each spans.
+// That gives them all to the band when the light lies in the screen
+// plane (there is no visible cap) and about half to the cap when it
+// points nearly at the camera (the band is then a sliver around the
+// terminator, which is all the limb it can touch).
+type ringPlan struct {
+	capPhi float32 // polar angle the visible cap spans
+	m      float32 // screen-plane length of the light vector
+	sgn    float32 // -1 when the visible cap is the unlit pole
+	nCap   int
+	nBand  int
+}
+
+func newRingPlan(b lightBasis, rows int) ringPlan {
+	p := ringPlan{m: min(b.m, 1), sgn: 1}
+	if b.lz < 0 {
+		p.sgn = -1
+	}
+	p.capPhi = acos32(p.m)
+	// The cap gets at least one ring even when it is tiny or empty. The
+	// ring at the visible pole is what turns the cap lens into a
+	// triangle fan, and without it the lens on the light side of the
+	// limb shows background — a small body's ring budget can leave
+	// zero cap rings while the lens is still a visible patch. When the
+	// light lies in the screen plane the cap is empty and this ring is
+	// the pole point itself, which is also the ring the band would
+	// have started with.
+	p.nCap = max(int(float32(rows)*p.capPhi/math.Pi), 1)
+	// A band of four rings is a coarse crescent, but it is still a
+	// crescent; the cap has taken the rest because the light is nearly
+	// head-on, and then there is barely any terminator to resolve.
+	p.nBand = max(rows-p.nCap, 4)
+	return p
+}
+
+// count is how many rings the plan holds.
+func (p ringPlan) count() int { return p.nCap + p.nBand + 1 }
+
+// cosPhi is ring i's Lambert intensity. The sequence is monotone, from
+// the visible pole through the band to the far side of the terminator,
+// so consecutive rings always bound a strip.
+func (p ringPlan) cosPhi(i int) float32 {
+	if i < p.nCap {
+		return p.sgn * cos32(p.capPhi*float32(i)/float32(p.nCap))
+	}
+	d := float32(math.Pi) * float32(i-p.nCap) / float32(p.nBand)
+	return p.sgn * p.m * cos32(d)
+}
+
+// bodyMesh is drawBody's reusable scratch. It holds the mesh handed to
+// FillTrianglesColors plus the two rings of screen positions the sphere
+// is walked with, so a frame that shades nine planets builds all their
+// geometry without allocating — the per-fill batch copy
+// FillTrianglesColors makes is all that is left.
+//
+// prev and cur are one ring each, x,y interleaved. Every ring is
+// evaluated once and used twice: as the outer edge of one strip and the
+// inner edge of the next. That sharing is what makes the mesh
+// watertight — adjacent strips do not merely meet along a boundary,
+// they are built from the same vertices.
+type bodyMesh struct {
+	tris      []float32
+	cols      []gui.Color
+	prev, cur []float32
+}
+
+// appendTri adds one triangle, wound consistently with every other
+// triangle in the mesh, and drops it if it has no area.
+//
+// Winding is not cosmetic. gui/backend/soft rasterizes a vertex-colored
+// batch as a single path and accumulates *signed* coverage, so a
+// triangle wound against its neighbours subtracts from them and carves
+// a seam through the body. lightBasis.point pushes hidden vertices out
+// onto the limb, which can reorder a quad's corners, so the sign is
+// measured rather than assumed.
+//
+// Dropping the zero-area case is also what removes the rings that lie
+// entirely on the far side: every one of their points is pushed to the
+// same limb position, so their strips collapse.
+func (m *bodyMesh) appendTri(x0, y0 float32, c0 gui.Color,
+	x1, y1 float32, c1 gui.Color, x2, y2 float32, c2 gui.Color,
+) {
+	switch area := (x1-x0)*(y2-y0) - (x2-x0)*(y1-y0); {
+	case area > 0:
+		m.tris = append(m.tris, x0, y0, x1, y1, x2, y2)
+		m.cols = append(m.cols, c0, c1, c2)
+	case area < 0:
+		m.tris = append(m.tris, x0, y0, x2, y2, x1, y1)
+		m.cols = append(m.cols, c0, c2, c1)
+	}
+}
+
+// drawBody paints one shaded sphere: a feathered rim, then a Lambert
+// intensity ramp laid down as a single vertex-colored mesh.
+//
+// The mesh is the real thing rather than a stand-in. On a sphere lit by
+// a distant source the brightness at a surface point is N·L, so the
 // lines of equal brightness are the circles of constant angle from the
-// light — and each band is the strip of surface between two of them,
-// traced directly in the light-aligned frame and projected to screen.
+// light. The mesh is those circles: one ring of vertices per intensity,
+// traced in the light-aligned frame and projected to screen, with the
+// intensity carried as a color on every vertex.
 //
 // That geometry is the whole point, because it is what a crescent *is*.
 // An earlier version built the body from a focal radial gradient, the
@@ -635,13 +750,25 @@ func (b lightBasis) visibleAzimuth(cosPhi, sinPhi float32) float32 {
 // terminator is an ellipse, not a circle, and no amount of softening
 // the blob's edge turns one into the other.
 //
-// Each band is emitted as a strip of quads sharing one flat color, so
-// it costs one batch: the color only changes between bands, and
-// getBatch merges consecutive same-color triangles. Adjacent bands
-// trace the same boundary curve from both sides, so there are no seams.
-func drawBody(dc *gui.DrawContext, cx, cy, r float32, base gui.Color,
-	lx, ly, lz float32,
+// Nor can any other gradient. The isophote at N·L = k projects to an
+// ellipse whose semi-axis is sqrt(1-k²): a point at k = -1, the full
+// limb at the terminator, a point again at k = 1. Gradient level sets
+// are nested by construction and grow linearly, so no gradient
+// primitive of any kind emits that family — and none of them knows to
+// stop at the silhouette. Hence FillTrianglesColors (issue #400): the
+// shading model is evaluated here, per vertex, and handed over already
+// solved.
+//
+// The whole body is one batch.
+func drawBody(dc *gui.DrawContext, m *bodyMesh, cx, cy, r float32,
+	base gui.Color, lx, ly, lz float32,
 ) {
+	// The frame, the visibility test and ringPlan's tangency all read
+	// the light as a unit vector; normalizing once here is cheaper than
+	// each of them defending itself.
+	if d := sqrt32(lx*lx + ly*ly + lz*lz); d > 0 {
+		lx, ly, lz = lx/d, ly/d, lz/d
+	}
 	night := scaleColor(base, nightScale)
 	lit := lightenColor(base, 0.26)
 	// The disc's average tone, used where there is no room to shade.
@@ -663,87 +790,74 @@ func drawBody(dc *gui.DrawContext, cx, cy, r float32, base gui.Color,
 	degenerate := sqrt32(lx*lx+ly*ly) < 1e-4
 
 	if r < flatBodyRadius || degenerate {
-		// Too small for the ramp to be visible (it would only cost
-		// batches), or nothing to orient it by. Draw the average tone
-		// flat — which for a head-on light is the fully lit tone.
+		// Too small for the ramp to be visible, or nothing to orient it
+		// by. Draw the average tone flat — which for a head-on light is
+		// the fully lit tone.
 		dc.FilledCircle(cx, cy, r, flat)
 		return
 	}
 
 	b := newLightBasis(lx, ly, lz)
-	levels := int(clamp32(r*shadeLevelsPerPx, shadeLevelsMin, shadeLevelsMax))
+	rows := int(clamp32(r*shadeRowsPerPx, shadeRowsMin, shadeRowsMax))
 	arc := int(clamp32(r*shadeArcPerPx, shadeArcMin, shadeArcMax))
+	p := newRingPlan(b, rows)
 
-	// One reused quad, so the strips do not allocate per segment.
-	var quad [8]float32
+	m.tris, m.cols = m.tris[:0], m.cols[:0]
 
-	// Bands are spaced evenly in *intensity*, not in angle. Even
-	// angular spacing looks fine over the middle of the lit side and
-	// stripes badly at the terminator, because cos is flat at the poles
-	// and steepest at 90°: the same slice of angle is a much bigger
-	// slice of brightness there. Stepping cos directly makes every band
-	// the same color distance from its neighbour, and spends angular
-	// resolution where the eye is actually looking.
-	//
-	// Darkest first, so the brighter band's seam overlap lands on top.
-	//
-	// The night half is subdivided too, even though every band there
-	// comes out the same color and merges into one batch. It cannot be
-	// one band: at cos = -1 the boundary circle has collapsed to the
-	// antisolar point, and a strip run from a single point does not
-	// cover the region — it fans out as a wedge with the rest of the
-	// night side left unpainted.
-	bands := levels * 2
-	for j := range bands {
-		c0 := -1 + 2*float32(j)/float32(bands)
-		c1 := -1 + 2*float32(j+1)/float32(bands)
-		shadeBand(dc, cx, cy, r, b, &quad,
-			c0-2*seamOverlap/float32(bands), c1,
-			sphereTone(night, base, lit, clamp32((c0+c1)/2, 0, 1)), arc)
+	// Where the rings go is ringPlan's decision, and not the obvious
+	// one; see it for why even steps in intensity make the silhouette
+	// go polygonal.
+	var prevCol gui.Color
+	for i := range p.count() {
+		c := p.cosPhi(i)
+		s := sqrt32(max(0, 1-c*c))
+		col := sphereTone(night, base, lit, clamp32(c, 0, 1))
+		m.cur = appendRing(m.cur[:0], b, r, cx, cy, c, s, arc)
+		if i > 0 {
+			m.appendStrip(prevCol, col, arc)
+		}
+		m.prev, m.cur = m.cur, m.prev
+		prevCol = col
 	}
+	dc.FillTrianglesColors(m.tris, m.cols)
 }
 
-// shadeBand fills the strip of sphere surface whose Lambert intensity
-// lies between cOut and cIn, as a run of quads sharing one flat color —
-// so the whole band costs a single batch.
-func shadeBand(dc *gui.DrawContext, cx, cy, r float32, b lightBasis,
-	quad *[8]float32, cOut, cIn float32, col gui.Color, arc int,
-) {
-	cOut = clamp32(cOut, -1, 1)
-	s0, s1 := sqrt32(1-cOut*cOut), sqrt32(1-cIn*cIn)
-
-	tMax := max(b.visibleAzimuth(cOut, s0), b.visibleAzimuth(cIn, s1))
-	if tMax <= 0 {
-		return // this band is entirely on the far side
-	}
-
+// appendRing evaluates one circle of constant Lambert intensity into
+// dst as arc+1 screen x,y pairs, spanning that circle's *own* visible
+// azimuth range.
+//
+// Each ring gets its own range rather than a shared one, so a ring that
+// is only partly on the near side ends exactly at the silhouette and
+// its two end points land on the limb. The mesh boundary is then a
+// chord of the limb per row, and lightBasis.point has already pushed
+// any hidden interior point out onto the limb as well. A ring entirely
+// on the far side collapses to a single point; it covers no visible
+// surface, and appendTri drops the strips it takes part in.
+func appendRing(dst []float32, b lightBasis, r, cx, cy, cosPhi,
+	sinPhi float32, arc int,
+) []float32 {
+	tMax := b.visibleAzimuth(cosPhi, sinPhi)
 	step := 2 * tMax / float32(arc)
-	over := step * seamOverlap
+	for k := 0; k <= arc; k++ {
+		t := -tMax + step*float32(k)
+		x, y := b.point(r, cosPhi, sinPhi, cos32(t), sin32(t))
+		dst = append(dst, cx+x, cy+y)
+	}
+	return dst
+}
+
+// appendStrip tiles the surface between the two rings currently held in
+// prev and cur with quads, two triangles apiece. Both rings carry a
+// flat color of their own and the vertex colors interpolate between
+// them, which is the ramp.
+func (m *bodyMesh) appendStrip(outer, inner gui.Color, arc int) {
 	for k := range arc {
-		// Every quad is grown slightly past its own share of the
-		// surface. Adjacent triangles that merely *share* an edge do
-		// not tile cleanly: the rasterizer antialiases each one on its
-		// own, so both sides come out at partial coverage and the
-		// background shows through as a hairline. The bands are
-		// opaque, so overlapping them costs nothing and closes the
-		// seam.
-		ta := -tMax + step*float32(k) - over
-		tb := ta + step + 2*over
-		cta, sta := cos32(ta), sin32(ta)
-		ctb, stb := cos32(tb), sin32(tb)
-
-		ax0, ay0 := b.point(r, cOut, s0, cta, sta)
-		bx0, by0 := b.point(r, cOut, s0, ctb, stb)
-		ax1, ay1 := b.point(r, cIn, s1, cta, sta)
-		bx1, by1 := b.point(r, cIn, s1, ctb, stb)
-
-		*quad = [8]float32{
-			cx + ax0, cy + ay0,
-			cx + bx0, cy + by0,
-			cx + bx1, cy + by1,
-			cx + ax1, cy + ay1,
-		}
-		dc.FilledPolygon(quad[:], col)
+		ax0, ay0 := m.prev[k*2], m.prev[k*2+1]
+		bx0, by0 := m.prev[k*2+2], m.prev[k*2+3]
+		ax1, ay1 := m.cur[k*2], m.cur[k*2+1]
+		bx1, by1 := m.cur[k*2+2], m.cur[k*2+3]
+		m.appendTri(ax0, ay0, outer, bx0, by0, outer, bx1, by1, inner)
+		m.appendTri(ax0, ay0, outer, bx1, by1, inner, ax1, ay1, inner)
 	}
 }
 
