@@ -145,6 +145,118 @@ func TestArcToPolylineDegenerate(t *testing.T) {
 	}
 }
 
+func TestArcPointsHugeSweep(t *testing.T) {
+	dc := DrawContext{Width: 100, Height: 100}
+	huge := len(dc.arcPoints(50, 50, 25, 25, 0, 1e6))
+	full := len(dc.arcPoints(50, 50, 25, 25, 0, 2*math.Pi))
+	if huge != full {
+		t.Errorf("huge sweep points = %d, want %d (same as one full turn)",
+			huge, full)
+	}
+	if huge > (maxArcSegments+1)*2 {
+		t.Errorf("points = %d exceeds cap %d", huge, (maxArcSegments+1)*2)
+	}
+	// Sign is preserved: a huge negative sweep clamps to -2π, not +2π.
+	neg := dc.arcPoints(50, 50, 25, 25, 0, -1e6)
+	if len(neg) != full {
+		t.Fatalf("negative huge sweep points = %d, want %d", len(neg), full)
+	}
+	// Second point sits below the start for a negative sweep (y grows down).
+	if neg[3] >= neg[1] {
+		t.Errorf("negative sweep did not reverse direction: y0=%v y1=%v",
+			neg[1], neg[3])
+	}
+}
+
+func TestArcPointsHugeRadius(t *testing.T) {
+	dc := DrawContext{Width: 100, Height: 100}
+	// math.MaxFloat32 included: its raw segment count overflows int64, so the
+	// clamp has to happen in float64, before the conversion.
+	for _, r := range []float32{1e12, math.MaxFloat32} {
+		pts := dc.arcPoints(0, 0, r, r, 0, 2*math.Pi)
+		if len(pts) != (maxArcSegments+1)*2 {
+			t.Errorf("r=%v: points = %d, want the cap %d",
+				r, len(pts), (maxArcSegments+1)*2)
+		}
+	}
+}
+
+func TestArcPointsSweepClampBoundary(t *testing.T) {
+	dc := DrawContext{Width: 100, Height: 100}
+	full := len(dc.arcPoints(50, 50, 25, 25, 0, 2*math.Pi))
+	// Just past a full turn clamps back to the full turn; just under does not.
+	if got := len(dc.arcPoints(50, 50, 25, 25, 0, 2*math.Pi+0.5)); got != full {
+		t.Errorf("sweep just over 2pi: points = %d, want %d", got, full)
+	}
+	if got := len(dc.arcPoints(50, 50, 25, 25, 0, 2*math.Pi-0.5)); got >= full {
+		t.Errorf("sweep just under 2pi: points = %d, want fewer than %d",
+			got, full)
+	}
+}
+
+func TestArcPointsNonFinite(t *testing.T) {
+	nan := float32(math.NaN())
+	inf := float32(math.Inf(1))
+	ninf := float32(math.Inf(-1))
+	// Each row is a full argument list with one parameter poisoned.
+	for _, tc := range []struct {
+		name                         string
+		cx, cy, rx, ry, start, sweep float32
+	}{
+		{"cx NaN", nan, 50, 25, 25, 0, math.Pi},
+		{"cy Inf", 50, inf, 25, 25, 0, math.Pi},
+		{"rx NaN", 50, 50, nan, 25, 0, math.Pi},
+		{"ry -Inf", 50, 50, 25, ninf, 0, math.Pi},
+		{"start NaN", 50, 50, 25, 25, nan, math.Pi},
+		{"sweep Inf", 50, 50, 25, 25, 0, inf},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dc := DrawContext{Width: 100, Height: 100}
+			if pts := dc.arcPoints(tc.cx, tc.cy, tc.rx, tc.ry,
+				tc.start, tc.sweep); pts != nil {
+				t.Errorf("arcPoints = %v, want nil", pts)
+			}
+			// The primitives built on it emit nothing either — including
+			// the gradient path, which shares the helper.
+			dc.Arc(tc.cx, tc.cy, tc.rx, tc.ry, tc.start, tc.sweep, Red, 2)
+			dc.FilledArc(tc.cx, tc.cy, tc.rx, tc.ry, tc.start, tc.sweep, Red)
+			gdc := NewDrawContext(100, 100, nil)
+			gdc.FilledArcGradient(tc.cx, tc.cy, tc.rx, tc.ry,
+				tc.start, tc.sweep, &CanvasGradient{
+					Radial: true,
+					Stops: []GradientStop{
+						{Color: Red, Pos: 0},
+						{Color: Blue, Pos: 1},
+					},
+				})
+			if len(dc.batches) != 0 {
+				t.Errorf("batches = %d, want 0", len(dc.batches))
+			}
+			if len(gdc.batches) != 0 {
+				t.Errorf("gradient batches = %d, want 0", len(gdc.batches))
+			}
+		})
+	}
+}
+
+func TestArcPointsBufferBounded(t *testing.T) {
+	dc := DrawContext{Width: 100, Height: 100}
+	dc.arcPoints(50, 50, 1e12, 1e12, 0, 1e6)
+	if cap(dc.arcBuf) > (maxArcSegments+1)*2 {
+		t.Errorf("arcBuf cap = %d exceeds %d",
+			cap(dc.arcBuf), (maxArcSegments+1)*2)
+	}
+}
+
+func TestArcPointsNormalUnchanged(t *testing.T) {
+	dc := DrawContext{Width: 100, Height: 100}
+	// r=25 full turn: n = ceil(64*sqrt(25/50+1)) = 79 segments, 80 points.
+	// Asserted concretely so a future density edit has to be deliberate.
+	if got := len(dc.arcPoints(50, 50, 25, 25, 0, 2*math.Pi)); got != 160 {
+		t.Errorf("points = %d, want 160", got)
+	}
+}
+
 func TestDrawContextFilledCircle(t *testing.T) {
 	dc := DrawContext{Width: 100, Height: 100}
 	dc.FilledCircle(50, 50, 25, Red)

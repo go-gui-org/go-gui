@@ -217,18 +217,42 @@ func (dc *DrawContext) FilledArc(cx, cy, rx, ry, start, sweep float32, color Col
 	appendArcFanTris(&b.Triangles, cx, cy, pts)
 }
 
+// maxArcSegments caps the segment count arcPoints will produce, bounding both the
+// per-call work and the reused dc.arcBuf.
+const maxArcSegments = 4096
+
 // arcPoints is the buffer-reusing version of arcToPolyline.
 // Writes into dc.arcBuf and returns the populated slice.
 func (dc *DrawContext) arcPoints(cx, cy, rx, ry, start, sweep float32) []float32 {
+	// NaN fails every ordered comparison, so r <= 0 below would let it through and
+	// math.Ceil(NaN) -> int is undefined in Go. Screen first, and no-op the way the
+	// r <= 0 case does — every caller already guards on len(pts).
+	if !isFiniteF(cx) || !isFiniteF(cy) ||
+		!isFiniteF(rx) || !isFiniteF(ry) ||
+		!isFiniteF(start) || !isFiniteF(sweep) {
+		return nil
+	}
 	r := rx
 	r = max(r, ry)
 	if r <= 0 {
 		return nil
 	}
-	n := int(math.Ceil(
+	// Past a full turn the arc retraces itself, so a clamped sweep draws the same
+	// pixels. Clamp the sweep rather than only the segment count: the count alone
+	// would leave step = sweep/n at whatever the caller passed (an unwrapped
+	// rotation accumulator reaches 1e6 rad), which draws bounded garbage.
+	if f32Abs(sweep) > 2*math.Pi {
+		sweep = float32(math.Copysign(2*math.Pi, float64(sweep)))
+	}
+	// With sweep clamped the density term alone drives the count, and it only
+	// reaches the ceiling near r = 200,000 px — far past any visible improvement.
+	// The cap also bounds the retained dc.arcBuf at ~32 KB, so it needs no shrink.
+	// Clamp in float64: a finite r can still be 3.4e38, whose segment count is past
+	// int64, and an out-of-range float-to-int conversion is undefined in Go.
+	segs := math.Ceil(
 		float64(f32Abs(sweep)) / (2 * math.Pi) * 64 *
-			math.Sqrt(float64(r)/50+1)))
-	n = max(n, 4)
+			math.Sqrt(float64(r)/50+1))
+	n := max(int(min(segs, maxArcSegments)), 4)
 	need := (n + 1) * 2
 	if cap(dc.arcBuf) < need {
 		dc.arcBuf = make([]float32, 0, need)
