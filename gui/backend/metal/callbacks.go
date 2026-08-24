@@ -29,6 +29,7 @@ int metalTestApplicationDidBecomeActive(void);
 void metalTestRunModalMode(int ms);
 void metalTestRunDefaultMode(int ms);
 int metalTestFramePumpActive(void);
+int metalTestNestedModesPumpStaysArmed(void);
 int metalTestPressAndHoldRegistered(void);
 void metalTestPushIMECommit(const char *utf8);
 void metalTestPushIMEComposition(const char *utf8, int start, int len);
@@ -311,6 +312,12 @@ func testApplicationDidBecomeActive() bool {
 // testFramePumpActive reports whether the nested-runloop frame-pump
 // timer is currently installed.
 func testFramePumpActive() bool { return C.metalTestFramePumpActive() != 0 }
+
+// testNestedModesPumpStaysArmed reports whether the pump timer was
+// found disarmed while a second nested mode ran inside the first.
+func testNestedModesPumpStaysArmed() bool {
+	return C.metalTestNestedModesPumpStaysArmed() != 0
+}
 
 // testPressAndHoldRegistered reports ApplePressAndHoldEnabled as
 // registered by metalAppInit: 0 off, 1 on, -1 never registered.

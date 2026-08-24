@@ -198,17 +198,22 @@ void metalSetDockIcon(const void *data, int len);
 // and no frames are produced: queued commands never flush and the
 // window stops repainting until the nested loop exits.
 //
-// metalStartFramePump installs a repeating timer in
-// NSRunLoopCommonModes that renders a frame per window while such a
-// nested loop runs. It does nothing in NSDefaultRunLoopMode, where the
-// Go loop owns frame timing.
+// metalStartFramePump registers a mode-entry/exit observer on the main
+// run loop. It arms a repeating timer (in NSRunLoopCommonModes, so it
+// fires in NSEventTrackingRunLoopMode and NSModalPanelRunLoopMode) when
+// a nested mode begins and invalidates it when the last one ends, so
+// the timer exists only while such a loop runs (issue #406). In
+// NSDefaultRunLoopMode — the Go loop owns frame timing — there is no
+// timer at all: an idle app costs the run loop nothing and stays
+// eligible for App Nap.
 //
 // This cannot help when the main thread blocks with no runloop running
 // at all (e.g. a synchronous system API that puts up a TCC permission
 // prompt) — no timer fires in that state.
 void metalStartFramePump(void);
 
-// Stop and release the frame-pump timer. Idempotent.
+// Stop and release the frame-pump timer and its mode observer.
+// Idempotent.
 void metalStopFramePump(void);
 
 #endif // METAL_WINDOW_H
