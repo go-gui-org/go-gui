@@ -1,119 +1,15 @@
 package gui
 
 import (
-	"math"
 	"testing"
-	"time"
+
+	"github.com/go-gui-org/go-gui/gui/internal/gradmesh"
 )
 
 func gradStops() []GradientStop {
 	return []GradientStop{
 		{Color: RGBA(255, 0, 0, 255), Pos: 0},
 		{Color: RGBA(0, 0, 255, 255), Pos: 1},
-	}
-}
-
-func almostEqF(a, b, eps float32) bool {
-	d := a - b
-	if d < 0 {
-		d = -d
-	}
-	return d <= eps
-}
-
-func TestCanvasGradientTLinear(t *testing.T) {
-	g := &CanvasGradient{X1: 0, Y1: 0, X2: 100, Y2: 0}
-	cases := []struct {
-		x, y float32
-		want float32
-	}{
-		{0, 0, 0},
-		{50, 0, 0.5},
-		{100, 0, 1},
-		{150, 0, 1.5},  // raw t is unclamped; spread decides
-		{-50, 0, -0.5}, //
-		{50, 999, 0.5}, // perpendicular offset does not move t
-	}
-	for _, c := range cases {
-		if got := canvasGradientT(c.x, c.y, g); !almostEqF(got, c.want, 1e-5) {
-			t.Errorf("canvasGradientT(%v,%v) = %v, want %v",
-				c.x, c.y, got, c.want)
-		}
-	}
-}
-
-func TestCanvasGradientTDegenerateLinear(t *testing.T) {
-	// Coincident endpoints have no direction; t must fold to 0 rather
-	// than produce a NaN that would poison every vertex color.
-	g := &CanvasGradient{X1: 5, Y1: 5, X2: 5, Y2: 5}
-	if got := canvasGradientT(99, 99, g); got != 0 {
-		t.Errorf("degenerate linear t = %v, want 0", got)
-	}
-}
-
-func TestCanvasGradientTRadial(t *testing.T) {
-	g := &CanvasGradient{Radial: true, CX: 10, CY: 10, FX: 10, FY: 10, R: 20}
-	if got := canvasGradientT(10, 10, g); got != 0 {
-		t.Errorf("center t = %v, want 0", got)
-	}
-	if got := canvasGradientT(30, 10, g); !almostEqF(got, 1, 1e-5) {
-		t.Errorf("rim t = %v, want 1", got)
-	}
-	if got := canvasGradientT(50, 10, g); !almostEqF(got, 2, 1e-5) {
-		t.Errorf("outside t = %v, want 2 (raw, unclamped)", got)
-	}
-}
-
-func TestCanvasGradientTRadialFocal(t *testing.T) {
-	// The focal point, not the center, is where t == 0.
-	g := &CanvasGradient{Radial: true, CX: 0, CY: 0, FX: 5, FY: 0, R: 10}
-	if got := canvasGradientT(5, 0, g); got != 0 {
-		t.Errorf("focal t = %v, want 0", got)
-	}
-	if got := canvasGradientT(0, 0, g); !almostEqF(got, 0.5, 1e-5) {
-		t.Errorf("center t = %v, want 0.5", got)
-	}
-}
-
-func TestCanvasGradientTBadRadius(t *testing.T) {
-	for _, r := range []float32{0, -1,
-		float32(math.NaN()), float32(math.Inf(1))} {
-		g := &CanvasGradient{Radial: true, R: r}
-		if got := canvasGradientT(3, 4, g); got != 0 {
-			t.Errorf("R=%v: t = %v, want 0", r, got)
-		}
-	}
-}
-
-func TestApplyCanvasSpread(t *testing.T) {
-	cases := []struct {
-		name   string
-		spread GradientSpread
-		in     float32
-		want   float32
-	}{
-		{"pad below", SpreadPad, -0.5, 0},
-		{"pad inside", SpreadPad, 0.25, 0.25},
-		{"pad above", SpreadPad, 2, 1},
-		{"repeat wraps", SpreadRepeat, 1.25, 0.25},
-		{"repeat negative", SpreadRepeat, -0.25, 0.75},
-		{"reflect even period", SpreadReflect, 0.25, 0.25},
-		{"reflect odd period", SpreadReflect, 1.25, 0.75},
-		// Reflect is an even function: -0.25 folds onto +0.25.
-		{"reflect negative", SpreadReflect, -0.25, 0.25},
-	}
-	for _, c := range cases {
-		got := applyCanvasSpread(c.in, c.spread)
-		if !almostEqF(got, c.want, 1e-5) {
-			t.Errorf("%s: applyCanvasSpread(%v) = %v, want %v",
-				c.name, c.in, got, c.want)
-		}
-	}
-	for _, bad := range []float32{
-		float32(math.NaN()), float32(math.Inf(1)), float32(math.Inf(-1))} {
-		if got := applyCanvasSpread(bad, SpreadReflect); got != 0 {
-			t.Errorf("non-finite %v: got %v, want 0", bad, got)
-		}
 	}
 }
 
@@ -147,103 +43,27 @@ func TestResolveCanvasGradientDefaults(t *testing.T) {
 	}
 }
 
-func TestCanvasStopIsolinesPad(t *testing.T) {
-	stops := []GradientStop{
-		{Pos: 0}, {Pos: 0.3}, {Pos: 0.7}, {Pos: 1},
+// TestGradSpreadMapping pins this side's enum conversion onto
+// gradmesh's. The two enums agree numerically today, so a transposition
+// in the switch would pass every fill test that names a spread by
+// spelling it; only this mapping, and the svg side's mirror of it,
+// would see the drift. Anything that is not reflect or repeat pads —
+// the same default the coloring pass assumes, so cuts and colors cannot
+// disagree about the ramp.
+func TestGradSpreadMapping(t *testing.T) {
+	cases := []struct {
+		in   GradientSpread
+		want gradmesh.Spread
+	}{
+		{SpreadPad, gradmesh.SpreadPad},
+		{SpreadReflect, gradmesh.SpreadReflect},
+		{SpreadRepeat, gradmesh.SpreadRepeat},
+		{GradientSpread(99), gradmesh.SpreadPad},
 	}
-	// Geometry entirely inside [0,1]: only the interior stops break.
-	got := canvasStopIsolines(stops, SpreadPad, 0, 1, nil)
-	if len(got) != 2 || !almostEqF(got[0], 0.3, 1e-6) ||
-		!almostEqF(got[1], 0.7, 1e-6) {
-		t.Errorf("inside range isolines = %v, want [0.3 0.7]", got)
-	}
-	// Geometry overhanging both ends adds the two clamp boundaries,
-	// which are real slope changes for pad.
-	got = canvasStopIsolines(stops, SpreadPad, -1, 2, nil)
-	if len(got) != 4 || got[0] != 0 || got[3] != 1 {
-		t.Errorf("overhanging isolines = %v, want [0 0.3 0.7 1]", got)
-	}
-}
-
-func TestCanvasStopIsolinesRepeatTilesPeriods(t *testing.T) {
-	stops := []GradientStop{{Pos: 0}, {Pos: 0.5}, {Pos: 1}}
-	got := canvasStopIsolines(stops, SpreadRepeat, 0, 3, nil)
-	// Each period contributes its own breakpoints: the sawtooth's step
-	// at every integer, plus the mid stop inside each period.
-	want := []float32{0.5, 1, 1.5, 2, 2.5}
-	if len(got) != len(want) {
-		t.Fatalf("repeat isolines = %v, want %v", got, want)
-	}
-	for i := range want {
-		if !almostEqF(got[i], want[i], 1e-6) {
-			t.Fatalf("repeat isolines = %v, want %v", got, want)
+	for _, c := range cases {
+		if got := gradSpread(c.in); got != c.want {
+			t.Errorf("gradSpread(%v) = %v, want %v", c.in, got, c.want)
 		}
-	}
-}
-
-func TestCanvasStopIsolinesBounded(t *testing.T) {
-	stops := make([]GradientStop, 16)
-	for i := range stops {
-		stops[i].Pos = float32(i) / 15
-	}
-	got := canvasStopIsolines(stops, SpreadRepeat, 0, 1e6, nil)
-	if len(got) > maxCanvasStopIsolines {
-		t.Errorf("isolines = %d, want at most %d",
-			len(got), maxCanvasStopIsolines)
-	}
-}
-
-func TestSubdivideCanvasGradientRadialSplits(t *testing.T) {
-	// One big triangle against a small radius must come back split:
-	// a radial ramp is not affine, so long edges would linearize it.
-	tris := []float32{0, 0, 100, 0, 0, 100}
-	g := &CanvasGradient{Radial: true, CX: 50, CY: 50, FX: 50, FY: 50, R: 50}
-	var scratch, radial, iso []float32
-	out := subdivideCanvasGradientTris(tris, g, &scratch, &radial, &iso)
-	if len(out) <= len(tris) {
-		t.Fatalf("radial subdivision produced %d floats, want > %d",
-			len(out), len(tris))
-	}
-	if len(out)%6 != 0 {
-		t.Errorf("subdivided length %d is not a whole number of triangles",
-			len(out))
-	}
-	// The depth cap bounds the split: 4^6 leaves per source triangle.
-	maxTris := 1
-	for range maxCanvasRadialDepth {
-		maxTris *= 4
-	}
-	if len(out)/6 > maxTris {
-		t.Errorf("produced %d triangles, above the depth cap of %d",
-			len(out)/6, maxTris)
-	}
-}
-
-func TestSubdivideCanvasGradientLinearTwoStopsIsNoop(t *testing.T) {
-	// Between two stops a linear ramp is exactly reproduced by vertex
-	// interpolation, so there is nothing to split and nothing to pay.
-	tris := []float32{0, 0, 100, 0, 0, 100}
-	g := &CanvasGradient{X1: 0, Y1: 0, X2: 100, Y2: 0,
-		Stops: gradStops()}
-	var scratch, radial, iso []float32
-	out := subdivideCanvasGradientTris(tris, g, &scratch, &radial, &iso)
-	if len(out) != len(tris) {
-		t.Errorf("two-stop linear split to %d floats, want %d",
-			len(out), len(tris))
-	}
-}
-
-func TestSubdivideCanvasGradientLinearSplitsAtStops(t *testing.T) {
-	tris := []float32{0, 0, 100, 0, 0, 100}
-	g := &CanvasGradient{X1: 0, Y1: 0, X2: 100, Y2: 0, Stops: []GradientStop{
-		{Color: RGB(255, 0, 0), Pos: 0},
-		{Color: RGB(0, 255, 0), Pos: 0.5},
-		{Color: RGB(0, 0, 255), Pos: 1},
-	}}
-	var scratch, radial, iso []float32
-	out := subdivideCanvasGradientTris(tris, g, &scratch, &radial, &iso)
-	if len(out) <= len(tris) {
-		t.Errorf("three-stop linear did not split: %d floats", len(out))
 	}
 }
 
@@ -588,188 +408,6 @@ func TestRadialFanCostsNoExtraSubdivision(t *testing.T) {
 	if got != fanTris {
 		t.Errorf("two-stop radial fan = %d triangles, want the flat fan's "+
 			"%d", got, fanTris)
-	}
-}
-
-// TestCanvasStopIsolinesHugeParameterTerminates pins the guard on the
-// tiling loop. Before it the loop counted periods in a float64, and
-// past 2^53 that cannot hold consecutive integers: k++ stopped
-// advancing and the loop never reached its bound. A gradient whose
-// endpoints are a hair apart against geometry of ordinary size reaches
-// those parameters — 100 units across a 1e-14 gradient is 1e16.
-//
-// The test hangs rather than fails if the guard regresses, so it runs
-// under a deadline.
-func TestCanvasStopIsolinesHugeParameterTerminates(t *testing.T) {
-	done := make(chan int, 1)
-	go func() {
-		got := canvasStopIsolines(gradStops(), SpreadRepeat,
-			1e16, 1e16+10, nil)
-		done <- len(got)
-	}()
-	select {
-	case n := <-done:
-		if n > maxCanvasStopIsolines {
-			t.Errorf("isolines = %d, want at most %d",
-				n, maxCanvasStopIsolines)
-		}
-	case <-time.After(5 * time.Second):
-		t.Fatal("canvasStopIsolines did not terminate at 1e16")
-	}
-}
-
-// TestCanvasStopIsolinesPadCapped covers the Pad branch's ceiling. It
-// emits one breakpoint per interior stop, and the split pass rescans
-// the whole list at every node of its recursion, so an unbounded stop
-// count costs there and not only here.
-func TestCanvasStopIsolinesPadCapped(t *testing.T) {
-	stops := make([]GradientStop, 4000)
-	for i := range stops {
-		stops[i].Pos = float32(i+1) / float32(len(stops)+2)
-	}
-	got := canvasStopIsolines(stops, SpreadPad, 0, 1, nil)
-	if len(got) > maxCanvasStopIsolines {
-		t.Errorf("pad isolines = %d, want at most %d",
-			len(got), maxCanvasStopIsolines)
-	}
-	if len(got) == 0 {
-		t.Error("pad isolines = 0, want the cap's worth")
-	}
-}
-
-// TestSplitCanvasTriAtStopsStopsAtBudget exercises the budget itself:
-// once the batch has produced more geometry than any fill can use, the
-// triangle in flight is emitted whole rather than split further.
-func TestSplitCanvasTriAtStopsStopsAtBudget(t *testing.T) {
-	stops := []GradientStop{
-		{Color: RGBA(255, 0, 0, 255), Pos: 0},
-		{Color: RGBA(0, 255, 0, 255), Pos: 0.5},
-		{Color: RGBA(0, 0, 255, 255), Pos: 1},
-	}
-	g := &CanvasGradient{X1: 0, Y1: 0, X2: 100, Y2: 0, Stops: stops}
-	iso := canvasStopIsolines(stops, SpreadPad, 0, 1, nil)
-	if len(iso) == 0 {
-		t.Fatal("no isolines; the triangle below would not split anyway")
-	}
-	// Below the budget the triangle splits.
-	var fresh []float32
-	splitCanvasTriAtStops(0, 0, 100, 0, 0, 100, g, iso, 0, &fresh)
-	if len(fresh) <= 6 {
-		t.Fatalf("split below budget produced %d floats, want > 6",
-			len(fresh))
-	}
-	// At the budget the same triangle comes through whole.
-	full := make([]float32, maxCanvasSplitFloats)
-	splitCanvasTriAtStops(0, 0, 100, 0, 0, 100, g, iso, 0, &full)
-	if got := len(full) - maxCanvasSplitFloats; got != 6 {
-		t.Errorf("split at budget appended %d floats, want 6 (unsplit)",
-			got)
-	}
-}
-
-// TestSubdivideCanvasGradientComposesBounded is the composition guard:
-// the radial pass quadruples the batch per level and the isoline pass
-// then splits every leaf up to three ways per cut. Each cap alone
-// bounds one factor, and this pins their product for the worst input a
-// real fill produces — a large rect, filled radially, with a stop list
-// far past anything a designer would write.
-func TestSubdivideCanvasGradientComposesBounded(t *testing.T) {
-	// A rect filled radially is the worst geometry for the radial pass
-	// (its two triangles bulge right across the isolines), and 200
-	// stops give the isoline pass the most cuts it will take.
-	tris := []float32{
-		0, 0, 400, 0, 400, 400,
-		0, 0, 400, 400, 0, 400,
-	}
-	stops := make([]GradientStop, 200)
-	for i := range stops {
-		stops[i] = GradientStop{
-			Color: RGBA(uint8(i), 0, 0, 255),
-			Pos:   float32(i) / float32(len(stops)-1),
-		}
-	}
-	g := &CanvasGradient{Radial: true, CX: 200, CY: 200,
-		FX: 200, FY: 200, R: 200, Stops: stops}
-	var scratch, radial, iso []float32
-	out := subdivideCanvasGradientTris(tris, g, &scratch, &radial, &iso)
-	if len(out)%6 != 0 {
-		t.Errorf("subdivided length %d is not a whole number of triangles",
-			len(out))
-	}
-	// Comfortably inside the budget, which is the claim: the two passes
-	// compose to something bounded on their own for realistic input,
-	// and the budget is the backstop for input that is not.
-	if len(out) > maxCanvasSplitFloats {
-		t.Errorf("subdivision produced %d floats, above the budget %d",
-			len(out), maxCanvasSplitFloats)
-	}
-	if len(out) <= len(tris) {
-		t.Errorf("subdivision produced %d floats, want a real split",
-			len(out))
-	}
-}
-
-// TestRadialSplitDepthBacksOffOnLargeMeshes covers the other half of
-// the budget. Depth is chosen from the worst triangle's curvature, but
-// every level quadruples the *whole* batch, so a mesh that is already
-// dense must not take the depth a single triangle would earn.
-func TestRadialSplitDepthBacksOffOnLargeMeshes(t *testing.T) {
-	g := &CanvasGradient{Radial: true, CX: 0, CY: 0, FX: 0, FY: 0, R: 10}
-	// One badly-aligned triangle, repeated until the batch is large.
-	// Each copy is offset so none of them is degenerate.
-	var tris []float32
-	const copies = 5000
-	for i := range copies {
-		o := float32(i) * 0.001
-		tris = append(tris, -100+o, -100, 100+o, -100, 0+o, 100)
-	}
-	depth := radialSplitDepth(tris, g)
-	if got := copies << (2 * depth); got > maxCanvasRadialTris {
-		t.Errorf("depth %d on %d triangles expands to %d, above %d",
-			depth, copies, got, maxCanvasRadialTris)
-	}
-	// The same triangle on its own earns a real depth, so the backoff
-	// above is the mesh size talking and not a broken criterion.
-	if solo := radialSplitDepth(tris[:6], g); solo <= depth {
-		t.Errorf("single triangle depth %d, batch depth %d: want the "+
-			"single triangle to earn more", solo, depth)
-	}
-}
-
-// TestCutFractionRadialLandsOnIsoline is why the radial cut solves a
-// quadratic instead of interpolating. The parameter is a distance, so
-// it is not affine along an edge: an interpolated cut misses the
-// isoline, the recursion sees the piece still straddling it and cuts
-// again, and neighbours that cut at different places leave a seam.
-func TestCutFractionRadialLandsOnIsoline(t *testing.T) {
-	g := &CanvasGradient{Radial: true, CX: 0, CY: 0, FX: 0, FY: 0, R: 100}
-	// A chord well off-center, where distance is at its least linear.
-	x0, y0 := float32(-80), float32(60)
-	x1, y1 := float32(80), float32(60)
-	t0 := canvasGradientT(x0, y0, g)
-	t1 := canvasGradientT(x1, y1, g)
-	const tS = 0.7
-	f := cutFraction(x0, y0, x1, y1, t0, t1, tS, g)
-	cx := x0 + f*(x1-x0)
-	cy := y0 + f*(y1-y0)
-	if got := canvasGradientT(cx, cy, g); !almostEqF(got, tS, 1e-4) {
-		t.Errorf("cut at f=%v has t=%v, want %v", f, got, tS)
-	}
-}
-
-// TestCutFractionLinearIsExact is the other half: for a linear gradient
-// the parameter is affine, so the plain ratio is already exact and the
-// quadratic path must not be taken.
-func TestCutFractionLinearIsExact(t *testing.T) {
-	g := &CanvasGradient{X1: 0, Y1: 0, X2: 100, Y2: 0}
-	f := cutFraction(0, 0, 100, 0, 0, 1, 0.25, g)
-	if !almostEqF(f, 0.25, 1e-6) {
-		t.Errorf("linear cut fraction = %v, want 0.25", f)
-	}
-	// A zero-length segment has no answer; the midpoint is the
-	// convention, and it must not divide by zero.
-	if f = cutFraction(5, 5, 5, 5, 0.3, 0.3, 0.5, g); f != 0.5 {
-		t.Errorf("degenerate segment cut fraction = %v, want 0.5", f)
 	}
 }
 

@@ -1,6 +1,10 @@
 package gui
 
-import "math"
+import (
+	"math"
+
+	"github.com/go-gui-org/go-gui/gui/internal/gradmesh"
+)
 
 // canvas_draw_gradient.go — the DrawContext gradient fills.
 //
@@ -48,7 +52,11 @@ func (dc *DrawContext) FillTrianglesGradient(tris []float32,
 	res := resolveCanvasGradient(*g, minX, minY, maxX, maxY)
 	res.Stops = stops
 
-	out := subdivideCanvasGradientTris(tris, &res,
+	// The parameters are built once and read by both passes: the split
+	// below and the per-vertex coloring after it project through the
+	// same gradient.
+	p := gradParams(&res, &dc.gradOffsetBuf)
+	out := gradmesh.Subdivide(tris, &p,
 		&dc.gradSplitBuf, &dc.gradRadialBuf, &dc.gradIsolineBuf)
 	if len(out) == 0 || len(out)%6 != 0 {
 		return
@@ -58,8 +66,8 @@ func (dc *DrawContext) FillTrianglesGradient(tris []float32,
 	b := dc.gradientBatch(SampleGradientStopColor(stops, 0.5), numVerts)
 	b.Triangles = append(b.Triangles, out...)
 	for i := range numVerts {
-		t := applyCanvasSpread(
-			canvasGradientT(out[i*2], out[i*2+1], &res), res.Spread)
+		t := gradmesh.ApplySpread(
+			gradmesh.RawT(out[i*2], out[i*2+1], &p), p.Spread)
 		b.VertexColors = append(b.VertexColors,
 			SampleGradientStopColor(stops, t))
 	}

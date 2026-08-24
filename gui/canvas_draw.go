@@ -18,6 +18,7 @@ type DrawContext struct {
 	gradSplitBuf    []float32
 	gradRadialBuf   []float32
 	gradIsolineBuf  []float32
+	gradOffsetBuf   []float32
 	gradStopBuf     []GradientStop
 	currentBatchIdx int
 	Width           float32
