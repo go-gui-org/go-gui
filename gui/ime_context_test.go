@@ -397,3 +397,86 @@ func TestBlinkCursorThroughRealFrame(t *testing.T) {
 		})
 	}
 }
+
+// A background window blinks nothing: the animation is retired while
+// the window is unfocused so the animation ticker can park, and comes
+// back when the OS returns focus.
+func TestBlinkCursorSuspendedWhileWindowUnfocused(t *testing.T) {
+	w := newTestWindow()
+	w.layout = imeEditTargetLayout("in")
+
+	w.SetFocus("in")
+	w.syncBlinkCursor()
+	if !w.HasAnimation(blinkCursorAnimationID) {
+		t.Fatal("blink animation missing for a focused input")
+	}
+
+	w.handleUnfocusedEvent()
+	w.syncBlinkCursor()
+	if w.HasAnimation(blinkCursorAnimationID) {
+		t.Fatal("blink animation still active while window unfocused")
+	}
+	// A blink tick may have left the caret off at the moment focus was
+	// lost; the animation is gone, so nothing will turn it back on.
+	// Refocus must restore it solid regardless of the phase.
+	w.viewState.inputCursorOn.Store(false)
+
+	w.handleFocusedEvent()
+	w.syncBlinkCursor()
+	if !w.HasAnimation(blinkCursorAnimationID) {
+		t.Fatal("blink animation not restored when window refocused")
+	}
+	if !w.inputCursorOn() {
+		t.Fatal("caret not made visible again on window refocus")
+	}
+}
+
+// The Pulsar exemption still holds while the window is unfocused: the
+// blink registration is the Pulsar's, not the caret's.
+func TestBlinkCursorKeptWhilePulsarActiveUnfocused(t *testing.T) {
+	w := newTestWindow()
+	w.layout = imeEditTargetLayout("in")
+	w.AnimationAdd(newBlinkCursorAnimation())
+	w.animationAddViewBound(&Animate{
+		AnimID: pulsarAnimationID,
+		Delay:  blinkCursorAnimationDelay,
+		Repeat: true,
+	})
+
+	w.SetFocus("in")
+	w.handleUnfocusedEvent()
+	w.syncBlinkCursor()
+	if !w.HasAnimation(blinkCursorAnimationID) {
+		t.Fatal("blink animation removed while a Pulsar is active")
+	}
+}
+
+// End-to-end through a real frame: losing OS focus retires the blink
+// animation, which is what lets animationLoop park its ticker.
+func TestBlinkCursorWindowFocusThroughRealFrame(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int), Width: 200, Height: 100})
+	w.viewGenerator = func(_ *Window) View {
+		return Column(ContainerCfg{
+			Sizing:  FillFill,
+			Content: []View{Input(InputCfg{ID: "field"})},
+		})
+	}
+	w.SetFocus("field")
+	w.refreshLayout = true
+	w.FrameFn()
+	if !w.HasAnimation(blinkCursorAnimationID) {
+		t.Fatal("blink animation missing for a focused input")
+	}
+
+	w.EventFn(&Event{Type: EventUnfocused})
+	w.FrameFn()
+	if w.HasAnimation(blinkCursorAnimationID) {
+		t.Fatal("blink animation survived the window losing focus")
+	}
+
+	w.EventFn(&Event{Type: EventFocused})
+	w.FrameFn()
+	if !w.HasAnimation(blinkCursorAnimationID) {
+		t.Fatal("blink animation not restored when the window refocused")
+	}
+}

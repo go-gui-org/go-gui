@@ -63,6 +63,23 @@ and this project adheres to
 
 ### Fixed
 
+- **Caret blink no longer wakes an unfocused window** — the blink animation was
+  gated only on which widget held focus _inside_ the window, not on whether the
+  window held OS focus. A backgrounded app with a focused text field therefore
+  kept the 16 ms animation ticker alive and woke the main thread out of its
+  blocking event wait twice a second, forever, to blink a caret nobody could
+  type into.
+
+  `syncBlinkCursor` now folds `Window.focused` into the gate. Losing focus
+  retires the animation, which empties the animation map and parks the ticker
+  outright; regaining it re-registers the animation with the caret solid and a
+  fresh 600 ms phase. The caret is not drawn while the window is unfocused,
+  matching native macOS and Windows text fields — the rect is still emitted,
+  transparent, so the render list keeps one shape across focus states and the
+  in-place blink patch (#404) stays valid. Only the caret blink is gated: other
+  animations keep running so a background window's in-flight motion does not
+  stall and jump.
+
 - **SVG gradients: seams, spread and a 32x tessellation cost** (#399) — the SVG
   gradient tessellator now carries the fixes that landed on the canvas one in
   #398, and one bug found in the porting.

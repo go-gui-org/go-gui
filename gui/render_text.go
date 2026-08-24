@@ -230,7 +230,12 @@ func renderInputCursor(shape *Shape, text string, baseX, baseY float32,
 		layout, ok = inputGlyphLayoutResolved(text, shape, style, w, shape.TC != nil && shape.TC.textIsPassword)
 	}
 	color := style.Color
-	if !w.inputCursorOn() {
+	// A background window draws no caret (native macOS/Windows
+	// behaviour) — syncBlinkCursor retires the blink animation for the
+	// same reason. The rect is still emitted, transparent, so the
+	// render list keeps one shape across focus states and the recorded
+	// caretCmd slot stays valid (issue #404).
+	if !w.inputCursorOn() || !w.hasFocus() {
 		color = ColorTransparent
 	}
 	if ok {
@@ -317,7 +322,10 @@ func commandToggleCaretBlink(w *Window) {
 		return
 	}
 	cmd := &w.renderers[w.caretCmd.idx]
-	if w.inputCursorOn() {
+	// Same gate as renderInputCursor: a Pulsar keeps the blink
+	// animation registered while the window is unfocused, and its
+	// toggles must not paint the caret back in.
+	if w.inputCursorOn() && w.hasFocus() {
 		cmd.Color = w.caretCmd.color
 	} else {
 		cmd.Color = ColorTransparent

@@ -5,12 +5,16 @@ import (
 	"testing"
 )
 
+// The raw-struct test windows mirror NewWindow's resting state: a
+// freshly created window holds OS focus (window_cfg.go). The caret
+// render gate reads it, so a zero-value false would hide every caret
+// under test (issue #422).
 func makeWindow() *Window {
-	return &Window{}
+	return &Window{focused: true}
 }
 
 func makeWindowWithScratch() *Window {
-	return &Window{scratch: newScratchPools()}
+	return &Window{focused: true, scratch: newScratchPools()}
 }
 
 func makeClip(x, y, w, h float32) drawClip {
