@@ -585,7 +585,7 @@ func TestSyncA11yNotInitialized(t *testing.T) {
 
 func TestSyncA11yNilShape(t *testing.T) {
 	w := newA11yWindow()
-	w.a11y.initialized = true
+	w.initA11y()
 	w.layout = Layout{} // Shape is nil
 	w.syncA11y()
 	if mp := w.nativePlatform.(*mockA11yPlatform); mp.syncCnt != 0 {
@@ -595,7 +595,7 @@ func TestSyncA11yNilShape(t *testing.T) {
 
 func TestSyncA11yEmptyNodes(t *testing.T) {
 	w := newA11yWindow()
-	w.a11y.initialized = true
+	w.initA11y()
 	w.layout = Layout{
 		Shape: &Shape{A11YRole: AccessRoleNone},
 	}
@@ -607,7 +607,7 @@ func TestSyncA11yEmptyNodes(t *testing.T) {
 
 func TestSyncA11yBuildsAndSyncsTree(t *testing.T) {
 	w := newA11yWindow()
-	w.a11y.initialized = true
+	w.initA11y()
 	w.layout = Layout{
 		Shape: &Shape{A11YRole: AccessRoleGroup},
 		Children: []Layout{
@@ -664,7 +664,7 @@ func TestSyncA11yBuildsAndSyncsTree(t *testing.T) {
 
 func TestSyncA11yTrackedFocus(t *testing.T) {
 	w := newA11yWindow()
-	w.a11y.initialized = true
+	w.initA11y()
 	w.viewState.focusID = "f2"
 	w.layout = Layout{
 		Shape: &Shape{A11YRole: AccessRoleGroup},
@@ -690,24 +690,100 @@ func TestSyncA11yTrackedFocus(t *testing.T) {
 
 func TestSyncA11yThrottle(t *testing.T) {
 	w := newA11yWindow()
-	w.a11y.initialized = true
+	w.initA11y()
 	w.layout = Layout{
 		Shape: &Shape{A11YRole: AccessRoleButton},
 	}
 	w.a11y.lastSync = time.Time{}
 	w.syncA11y()
 
-	// Second call within throttle window should no-op.
+	// Second call within throttle window should no-op. Mark dirty again
+	// so the test exercises the throttle, not the clean-tree skip.
+	w.a11y.dirty = true
 	w.syncA11y()
 	mp := w.nativePlatform.(*mockA11yPlatform)
 	if mp.syncCnt != 1 {
 		t.Errorf("throttle failed: %d calls, want 1", mp.syncCnt)
 	}
+	// The blocked push must retain the dirty flag for the next frame.
+	if !w.a11y.dirty {
+		t.Error("throttled sync cleared the dirty flag")
+	}
+}
+
+func TestSyncA11ySkipsCleanTree(t *testing.T) {
+	w := newA11yWindow()
+	w.initA11y()
+	w.layout = Layout{
+		Shape: &Shape{
+			A11YRole:  AccessRoleStaticText,
+			A11YState: AccessStateLive,
+			a11Y:      &accessInfo{Label: "status", ValueNum: 100},
+		},
+	}
+	w.a11y.lastSync = time.Time{}
+	w.syncA11y()
+
+	mp := w.nativePlatform.(*mockA11yPlatform)
+	if mp.syncCnt != 1 {
+		t.Fatalf("first sync: %d calls, want 1", mp.syncCnt)
+	}
+
+	// Nothing changed: even with the throttle defeated, a clean tree
+	// must not walk or push (issue #407).
+	w.a11y.lastSync = time.Time{}
+	w.syncA11y()
+	if mp.syncCnt != 1 {
+		t.Errorf("clean tree synced again: %d calls, want 1", mp.syncCnt)
+	}
+	if len(mp.announce) != 0 {
+		t.Errorf("clean tree announced: %v", mp.announce)
+	}
+}
+
+func TestSyncA11yFocusChangeMarksDirty(t *testing.T) {
+	w := newA11yWindow()
+	w.initA11y()
+	w.layout = Layout{
+		Shape: &Shape{A11YRole: AccessRoleGroup},
+		Children: []Layout{
+			{Shape: &Shape{
+				A11YRole:  AccessRoleButton,
+				Focusable: true, ID: "f1",
+			}},
+			{Shape: &Shape{
+				A11YRole:  AccessRoleButton,
+				Focusable: true, ID: "f2",
+			}},
+		},
+	}
+	w.a11y.lastSync = time.Time{}
+	w.syncA11y()
+
+	// A real focus change marks the tree dirty even though no layout
+	// rebuild follows, so the pushed focused index updates.
+	w.SetFocus("f2")
+	if !w.a11y.dirty {
+		t.Fatal("SetFocus should mark the a11y tree dirty")
+	}
+	w.a11y.lastSync = time.Time{}
+	w.syncA11y()
+
+	mp := w.nativePlatform.(*mockA11yPlatform)
+	if mp.focusIdx != 2 {
+		t.Errorf("focusIdx after SetFocus: got %d, want 2", mp.focusIdx)
+	}
+	// Re-asserting the same focus is not a change and must not dirty.
+	w.a11y.dirty = false
+	w.SetFocus("f2")
+	if w.a11y.dirty {
+		t.Error("re-asserting focus should not mark dirty")
+	}
 }
 
 func TestSyncA11yLiveRegionAnnounce(t *testing.T) {
 	w := newA11yWindow()
-	w.a11y.initialized = true
+	w.initA11y()
 	w.layout = Layout{
 		Shape: &Shape{
 			A11YRole:  AccessRoleStaticText,
@@ -722,6 +798,7 @@ func TestSyncA11yLiveRegionAnnounce(t *testing.T) {
 	// Change the live region value.
 	w.layout.Shape.a11Y.ValueNum = 200
 	w.a11y.lastSync = time.Time{}
+	w.a11y.dirty = true
 	w.syncA11y()
 
 	mp := w.nativePlatform.(*mockA11yPlatform)
@@ -736,7 +813,7 @@ func TestSyncA11yLiveRegionAnnounce(t *testing.T) {
 
 func TestSyncA11yLiveRegionNoChange(t *testing.T) {
 	w := newA11yWindow()
-	w.a11y.initialized = true
+	w.initA11y()
 	w.layout = Layout{
 		Shape: &Shape{
 			A11YRole:  AccessRoleStaticText,
@@ -748,8 +825,9 @@ func TestSyncA11yLiveRegionNoChange(t *testing.T) {
 	// First sync sets baseline.
 	w.syncA11y()
 
-	// Same value — no announce.
+	// Same value — no announce. Mark dirty so the second sync runs.
 	w.a11y.lastSync = time.Time{}
+	w.a11y.dirty = true
 	w.syncA11y()
 
 	mp := w.nativePlatform.(*mockA11yPlatform)
@@ -764,10 +842,14 @@ func TestSyncA11yInitLazy(t *testing.T) {
 	w.layout = Layout{
 		Shape: &Shape{A11YRole: AccessRoleButton},
 	}
-	// initA11y should set initialized=true.
+	// initA11y should set initialized=true and seed the dirty flag so
+	// the first sync always runs.
 	w.initA11y()
 	if !w.a11y.initialized {
 		t.Fatal("expected initialized after initA11y")
+	}
+	if !w.a11y.dirty {
+		t.Fatal("expected dirty after initA11y")
 	}
 	// Second call is idempotent.
 	w.initA11y()
@@ -776,9 +858,30 @@ func TestSyncA11yInitLazy(t *testing.T) {
 	}
 }
 
+// TestSyncA11yLayoutRebuildMarksDirty drives the real frame path: a
+// layout rebuild through updateLocked must dirty the tree, and the next
+// sync (once the throttle allows) must push.
+func TestSyncA11yLayoutRebuildMarksDirty(t *testing.T) {
+	w := newA11yWindow()
+	w.initA11y()
+	w.viewGenerator = func(_ *Window) View {
+		return Button(ButtonCfg{ID: "b1"})
+	}
+	w.Update()
+	if !w.a11y.dirty {
+		t.Fatal("layout rebuild should mark the a11y tree dirty")
+	}
+	w.a11y.lastSync = time.Time{}
+	w.syncA11y()
+	mp := w.nativePlatform.(*mockA11yPlatform)
+	if mp.syncCnt == 0 {
+		t.Fatal("dirty tree after rebuild should sync")
+	}
+}
+
 func TestSyncA11yNodesReused(t *testing.T) {
 	w := newA11yWindow()
-	w.a11y.initialized = true
+	w.initA11y()
 	w.layout = Layout{
 		Shape: &Shape{A11YRole: AccessRoleButton},
 	}
@@ -791,6 +894,7 @@ func TestSyncA11yNodesReused(t *testing.T) {
 
 	// Second sync should reuse the slice.
 	w.a11y.lastSync = time.Time{}
+	w.a11y.dirty = true
 	w.syncA11y()
 	if cap(w.a11y.nodes) != oldCap {
 		t.Error("node slice cap changed — expected reuse")

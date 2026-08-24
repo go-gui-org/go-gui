@@ -38,6 +38,10 @@ func (w *Window) setFocusLocked(id string) {
 	if id != prev {
 		w.clearInputSelections()
 		w.imeClear()
+		// The a11y snapshot carries the focused index but no layout
+		// rebuild accompanies a focus change, so mark the tree dirty
+		// here or syncA11y would skip the push (issue #407).
+		w.a11y.dirty = true
 	}
 	w.viewState.focusID = id
 	if id != "" {

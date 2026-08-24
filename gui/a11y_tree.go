@@ -47,8 +47,15 @@ type a11y struct {
 	prevLiveValues map[string]string
 	nodes          []A11yNode // reused across frames
 	liveNodes      []liveNode // reused across frames
-	prevFocusID    string
-	initialized    bool
+	// dirty is set by updateLocked (any layout rebuild) and
+	// setFocusLocked (a real focus change — the focused index is part
+	// of the pushed snapshot but no layout rebuild accompanies it).
+	// syncA11y clears it only when it actually pushes, so a dirty tree
+	// that hits the throttle retries the next frame. An idle window
+	// with a clean tree never walks the tree or touches cgo (issue
+	// #407).
+	dirty       bool
+	initialized bool
 }
 
 // initA11y lazily creates the native accessibility container.
@@ -58,6 +65,9 @@ func (w *Window) initA11y() {
 		return
 	}
 	w.a11y.initialized = true
+	// The first sync must always run; the zero value of dirty is
+	// false, so mark it here rather than in the struct literal.
+	w.a11y.dirty = true
 
 	if w.nativePlatform != nil {
 		w.nativePlatform.A11yInit(func(action, index int) {
@@ -69,7 +79,9 @@ func (w *Window) initA11y() {
 // syncA11y walks the layout tree, builds a flat node array,
 // and pushes it to the native accessibility backend.
 // Throttled to a11ySyncInterval to avoid expensive per-frame
-// CGo calls.
+// CGo calls. When the tree is clean — no layout rebuild and no
+// focus change since the last push — the walk and the cgo call
+// are skipped entirely (issue #407).
 func (w *Window) syncA11y() {
 	if w.nativePlatform == nil || !w.a11y.initialized {
 		return
@@ -77,11 +89,17 @@ func (w *Window) syncA11y() {
 	if w.layout.Shape == nil {
 		return
 	}
+	// A dirty tree that hits the throttle keeps its dirty flag and
+	// retries on the next frame.
+	if !w.a11y.dirty {
+		return
+	}
 	now := time.Now()
 	if now.Sub(w.a11y.lastSync) < a11ySyncInterval {
 		return
 	}
 	w.a11y.lastSync = now
+	w.a11y.dirty = false
 
 	// Reuse slices across frames.
 	w.a11y.nodes = w.a11y.nodes[:0]
@@ -116,7 +134,6 @@ func (w *Window) syncA11y() {
 	for _, ln := range w.a11y.liveNodes {
 		w.a11y.prevLiveValues[ln.label] = ln.value
 	}
-	w.a11y.prevFocusID = w.viewState.focusID
 }
 
 // a11yCollect recursively walks the layout tree and appends

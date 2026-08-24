@@ -259,6 +259,10 @@ func (w *Window) updateLocked() {
 	defer w.inFramePass.Store(false)
 	w.refreshLayout = false
 	w.refreshRenderOnly = false
+	// Every full layout rebuild may have changed a11y-visible state
+	// (labels, geometry, roles, live values). Mark the tree dirty so
+	// syncA11y pushes once the throttle allows (issue #407).
+	w.a11y.dirty = true
 
 	if w.viewGenerator == nil {
 		w.mu.Unlock()
