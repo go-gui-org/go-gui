@@ -1475,9 +1475,9 @@ void metalAppFinishLaunch(void) {
 // Rationale lives in metal_window.h. The short version: the Go event loop
 // only pumps NSDefaultRunLoopMode, so a nested AppKit runloop (modal
 // dialog, menu tracking, live resize) starves every window of frames.
-// This timer is scheduled in NSRunLoopCommonModes, which includes
-// NSEventTrackingRunLoopMode and NSModalPanelRunLoopMode, so it keeps
-// firing exactly when the Go loop cannot.
+// A repeating timer is armed ONLY while such a nested mode is active
+// (issue #406); in the default mode no timer exists at all, so an idle
+// app costs the run loop nothing and stays eligible for App Nap.
 
 // Timer interval — 60 Hz. Frames are cheap when nothing is dirty:
 // Window.PumpFrame flushes commands and returns false without rendering
@@ -1486,27 +1486,78 @@ static const NSTimeInterval kFramePumpInterval = 1.0 / 60.0;
 
 static NSTimer *_framePumpTimer;
 
-void metalStartFramePump(void) {
+// Nesting depth of non-default run loop modes. The pump timer is armed
+// while this is > 0 (a menu over a modal dialog is depth 2) and
+// invalidated when it returns to 0.
+static CFIndex _framePumpNestedDepth;
+
+static CFRunLoopObserverRef _framePumpModeObserver;
+
+// Arm the timer. It is scheduled in NSRunLoopCommonModes, which includes
+// NSEventTrackingRunLoopMode and NSModalPanelRunLoopMode, so it fires
+// exactly while the current mode is a nested one.
+static void metalFramePumpArm(void) {
     if (_framePumpTimer) return;
     _framePumpTimer = [NSTimer timerWithTimeInterval:kFramePumpInterval
                                              repeats:YES
                                                block:^(NSTimer *timer) {
-        // In the default mode the Go event loop is running and owns frame
-        // timing; pumping here too would double every frame. Only the
-        // nested modes — where that loop is blocked — need this timer.
-        NSString *mode = [[NSRunLoop currentRunLoop] currentMode];
-        if (!mode || [mode isEqualToString:NSDefaultRunLoopMode]) return;
+        // Only reached while a nested mode is current — the mode check
+        // used to live here, moved to the run-loop observer below so no
+        // timer wakes in the default mode to make it.
         goMetalPumpFrames();
     }];
-    // Common modes, not the default mode: see above.
     [[NSRunLoop mainRunLoop] addTimer:_framePumpTimer
                               forMode:NSRunLoopCommonModes];
 }
 
-void metalStopFramePump(void) {
+static void metalFramePumpDisarm(void) {
     if (!_framePumpTimer) return;
     [_framePumpTimer invalidate];
     _framePumpTimer = nil;
+}
+
+// Mode-entry/exit observer on the main run loop: arm the pump when a
+// nested mode begins, invalidate it when the last one ends. Runs on the
+// main thread inside the run loop, so timer mutation here is safe.
+static void metalFramePumpModeObserver(CFRunLoopObserverRef observer,
+                                       CFRunLoopActivity activity,
+                                       void *info) {
+    NSString *mode = [[NSRunLoop currentRunLoop] currentMode];
+    BOOL nested = mode != nil && ![mode isEqualToString:NSDefaultRunLoopMode];
+    if (activity == kCFRunLoopEntry) {
+        if (nested && ++_framePumpNestedDepth == 1) {
+            metalFramePumpArm();
+        }
+    } else if (activity == kCFRunLoopExit) {
+        // Exit may be observed for a mode whose entry predates our
+        // registration — never decrement below zero.
+        if (nested && _framePumpNestedDepth > 0 &&
+            --_framePumpNestedDepth == 0) {
+            metalFramePumpDisarm();
+        }
+    }
+}
+
+void metalStartFramePump(void) {
+    if (_framePumpModeObserver) return;
+    _framePumpModeObserver =
+        CFRunLoopObserverCreate(kCFAllocatorDefault,
+                                kCFRunLoopEntry | kCFRunLoopExit,
+                                YES, 0, metalFramePumpModeObserver, NULL);
+    CFRunLoopAddObserver(CFRunLoopGetMain(), _framePumpModeObserver,
+                         kCFRunLoopCommonModes);
+    // Keep our own retain until stop, so the static is never dangling.
+}
+
+void metalStopFramePump(void) {
+    if (_framePumpModeObserver) {
+        CFRunLoopRemoveObserver(CFRunLoopGetMain(), _framePumpModeObserver,
+                                kCFRunLoopCommonModes);
+        CFRelease(_framePumpModeObserver);
+        _framePumpModeObserver = NULL;
+    }
+    metalFramePumpDisarm();
+    _framePumpNestedDepth = 0;
 }
 
 // ─── Test helpers (called from Go tests via cgo) ─────────────────
@@ -1928,6 +1979,32 @@ int metalTestPressAndHoldRegistered(void) {
 // Report whether the frame-pump timer is currently installed.
 int metalTestFramePumpActive(void) {
     return (_framePumpTimer && [_framePumpTimer isValid]) ? 1 : 0;
+}
+
+// Exercise the depth counter: while a nested mode is active, a second
+// nested mode (menu over a modal dialog) must keep the pump armed —
+// only the exit of the LAST nested mode may invalidate the timer.
+// Runs the modal mode; 60 ms in, a one-shot timer enters the tracking
+// mode for 30 ms and checks the timer on both sides of that transition.
+// Returns 1 if the timer was ever found disarmed mid-nesting.
+int metalTestNestedModesPumpStaysArmed(void) {
+    __block int disarmed = 0;
+    NSTimer *inner = [NSTimer timerWithTimeInterval:0.06
+                                            repeats:NO
+                                              block:^(NSTimer *timer) {
+        if (!metalTestFramePumpActive()) disarmed = 1;
+        // Enter the tracking mode while the modal mode is still active
+        // (depth 1→2), then let it exit (2→1): the pump must stay armed.
+        NSDate *until = [NSDate dateWithTimeIntervalSinceNow:0.03];
+        [[NSRunLoop mainRunLoop] runMode:NSEventTrackingRunLoopMode
+                              beforeDate:until];
+        if (!metalTestFramePumpActive()) disarmed = 1;
+    }];
+    // Fires only inside the modal mode — the mode under test.
+    [[NSRunLoop mainRunLoop] addTimer:inner
+                              forMode:NSModalPanelRunLoopMode];
+    metalTestRunMode(NSModalPanelRunLoopMode, 150);
+    return disarmed;
 }
 
 // Inject a synthetic quit event so Go tests can verify mapMetalEvent
