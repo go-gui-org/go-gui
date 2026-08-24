@@ -534,6 +534,39 @@ func pixelCases() []pixelCase {
 			},
 		},
 		{
+			// The repeat sibling of the case above, and deliberately
+			// fold-aligned where that one is not. Repeat's sawtooth is
+			// the one spread with a real jump in it: the ramp steps
+			// from its end back to its start at every integer of the
+			// raw parameter. The split pass places cut vertices exactly
+			// on those integers, so a coloring pass that resolves one
+			// vertex at a time can hand a triangle the color from the
+			// far side of the step and Gouraud smears it across the
+			// band (issue #417).
+			//
+			// userSpaceOnUse with x1=0 x2=30 over a 90-wide rect puts
+			// the corners on t=0 and t=3 exactly and the folds on t=1
+			// and t=2 — no float luck deciding which side a vertex
+			// falls on, which is what the reflect case above lacks.
+			name: "svg_gradient_repeat_fold",
+			build: func(_ *gui.Window) gui.View {
+				const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 90">` +
+					`<defs><linearGradient id="g" gradientUnits="userSpaceOnUse" ` +
+					`x1="0" y1="0" x2="30" y2="0" spreadMethod="repeat">` +
+					`<stop offset="0" stop-color="#fff2a8"/>` +
+					`<stop offset="1" stop-color="#312e81"/>` +
+					`</linearGradient></defs>` +
+					`<rect x="0" y="0" width="90" height="90" fill="url(#g)"/>` +
+					`</svg>`
+				return gui.Column(gui.ContainerCfg{
+					Sizing: gui.FillFill, SizeBorder: gui.NoBorder,
+					HAlign: gui.HAlignCenter, VAlign: gui.VAlignMiddle,
+					Content: []gui.View{gui.Svg(gui.SvgCfg{
+						Width: 120, Height: 120, SvgData: svg})},
+				})
+			},
+		},
+		{
 			// A memory image scaled up 12x: the sampler's filter and
 			// the tiling are pixel-only. The source is a deterministic
 			// checker built in the test, never a file.

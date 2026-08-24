@@ -65,11 +65,20 @@ func (dc *DrawContext) FillTrianglesGradient(tris []float32,
 	numVerts := len(out) / 2
 	b := dc.gradientBatch(SampleGradientStopColor(stops, 0.5), numVerts)
 	b.Triangles = append(b.Triangles, out...)
-	for i := range numVerts {
-		t := gradmesh.ApplySpread(
-			gradmesh.RawT(out[i*2], out[i*2+1], &p), p.Spread)
+	// Color a triangle at a time, not a vertex at a time. Repeat's ramp
+	// steps at every integer of the raw parameter and the split pass puts
+	// cut vertices exactly there, so a vertex read on its own can take
+	// the far side of the step; SpreadTri reads all three in the period
+	// the triangle sits in. See issue #417.
+	for i := 0; i+5 < len(out); i += 6 {
+		ta, tb, tc := gradmesh.SpreadTri(
+			gradmesh.RawT(out[i], out[i+1], &p),
+			gradmesh.RawT(out[i+2], out[i+3], &p),
+			gradmesh.RawT(out[i+4], out[i+5], &p), p.Spread)
 		b.VertexColors = append(b.VertexColors,
-			SampleGradientStopColor(stops, t))
+			SampleGradientStopColor(stops, ta),
+			SampleGradientStopColor(stops, tb),
+			SampleGradientStopColor(stops, tc))
 	}
 }
 

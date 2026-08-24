@@ -970,6 +970,78 @@ func TestTessellateTessellatePathsGradientFill(t *testing.T) {
 	}
 }
 
+// TestTessellateRepeatFoldBandVertexColors is the svg side of issue
+// #417, through gradVertexColors rather than pixels. A repeat gradient
+// spanning 0..30 over a 90-wide square steps at t=1 and t=2, and the
+// split pass puts cut vertices exactly on those folds; a coloring pass
+// reading one vertex at a time hands a band triangle the ramp's *start*
+// color from the far side of the step. Every triangle must read its
+// vertices in the period it sits in instead — never three start colors
+// on one band.
+func TestTessellateRepeatFoldBandVertexColors(t *testing.T) {
+	start := gui.SvgColor{R: 255, A: 255}
+	end := gui.SvgColor{B: 255, A: 255}
+	vg := &vectorGraphic{
+		Gradients: map[string]gui.SvgGradientDef{
+			"grad1": {
+				X1: 0, Y1: 0, X2: 30, Y2: 0,
+				GradientUnits: "userSpaceOnUse",
+				SpreadMethod:  gui.SvgSpreadRepeat,
+				Stops: []gui.SvgGradientStop{
+					{Offset: 0, Color: start},
+					{Offset: 1, Color: end},
+				},
+			},
+		},
+		Paths: []vectorPath{
+			{
+				Transform:      identityTransform,
+				FillColor:      gui.SvgColor{A: 255},
+				FillGradientID: "grad1",
+				Opacity:        1,
+				FillOpacity:    1,
+				Segments: []pathSegment{
+					{Cmd: cmdMoveTo, Points: []float32{0, 0}},
+					{Cmd: cmdLineTo, Points: []float32{90, 0}},
+					{Cmd: cmdLineTo, Points: []float32{90, 90}},
+					{Cmd: cmdLineTo, Points: []float32{0, 90}},
+					{Cmd: cmdClose},
+				},
+			},
+		},
+	}
+	result := vg.tessellatePaths(vg.Paths, 1.0)
+	if len(result) != 1 {
+		t.Fatalf("expected 1 tessellated path, got %d", len(result))
+	}
+	p := result[0]
+	if len(p.VertexColors)*2 != len(p.Triangles) {
+		t.Fatalf("VertexColors=%d, Triangles=%d: lengths must agree",
+			len(p.VertexColors), len(p.Triangles))
+	}
+	sawEnd := false
+	for i := 0; i+2 < len(p.VertexColors); i += 3 {
+		allStart := true
+		for _, c := range p.VertexColors[i : i+3] {
+			if c != start {
+				allStart = false
+			}
+			if c == end {
+				sawEnd = true
+			}
+		}
+		if allStart {
+			t.Errorf("triangle %d: all three vertices took the ramp's "+
+				"start color; a fold vertex read the far side of the step",
+				i/3)
+		}
+	}
+	if !sawEnd {
+		t.Error("no vertex took the ramp's end color: the fold vertices " +
+			"all resolved to the far side of the step")
+	}
+}
+
 func TestTessellateTessellatePathsEmpty(t *testing.T) {
 	vg := &vectorGraphic{}
 	result := vg.tessellatePaths(nil, 1.0)

@@ -88,19 +88,8 @@ func (vg *vectorGraphic) tessellatePaths(paths []vectorPath, scale float32) []gu
 							grad = resolveGradient(g, bx0, by0, bx1, by1)
 						}
 						fillTris := subdivideGradientTris(rawTris, grad)
-						nVerts := len(fillTris) / 2
-						vcols := make([]gui.SvgColor, nVerts)
-						opacity := path.Opacity * path.FillOpacity
-						for vi := range nVerts {
-							vx := fillTris[vi*2]
-							vy := fillTris[vi*2+1]
-							t := projectAndSpread(vx, vy, grad)
-							c := interpolateGradient(grad.Stops, t)
-							if opacity < 1.0 {
-								c = applyOpacity(c, opacity)
-							}
-							vcols[vi] = c
-						}
+						vcols := gradVertexColors(fillTris, &grad,
+							path.Opacity*path.FillOpacity)
 						out := seed
 						out.Triangles = fillTris
 						out.Color = path.FillColor
@@ -144,19 +133,8 @@ func (vg *vectorGraphic) tessellatePaths(paths []vectorPath, scale float32) []gu
 							grad = resolveGradient(g, bx0, by0, bx1, by1)
 						}
 						sTris := subdivideGradientTris(rawStroke, grad)
-						nVerts := len(sTris) / 2
-						vcols := make([]gui.SvgColor, nVerts)
-						opacity := path.Opacity * path.StrokeOpacity
-						for vi := range nVerts {
-							vx := sTris[vi*2]
-							vy := sTris[vi*2+1]
-							t := projectAndSpread(vx, vy, grad)
-							c := interpolateGradient(grad.Stops, t)
-							if opacity < 1.0 {
-								c = applyOpacity(c, opacity)
-							}
-							vcols[vi] = c
-						}
+						vcols := gradVertexColors(sTris, &grad,
+							path.Opacity*path.StrokeOpacity)
 						out := seed
 						out.Triangles = sTris
 						out.Color = path.StrokeColor

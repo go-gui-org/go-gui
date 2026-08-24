@@ -635,3 +635,126 @@ func TestSubdivideReusesCallerBuffers(t *testing.T) {
 			second, first)
 	}
 }
+
+// TestSpreadTriMatchesApplySpreadInsidePeriod pins the property that makes
+// the per-triangle read safe to adopt everywhere: for a triangle that sits
+// strictly inside one period, it must agree with the per-vertex function
+// it replaced. Anything else would move pixels the fix has no business
+// moving.
+func TestSpreadTriMatchesApplySpreadInsidePeriod(t *testing.T) {
+	tris := [][3]float32{
+		{0.1, 0.4, 0.9},
+		{1.05, 1.5, 1.95},
+		{2.2, 2.25, 2.3},
+		{-0.9, -0.5, -0.1},
+		{-2.8, -2.4, -2.2},
+	}
+	for _, spread := range []Spread{SpreadPad, SpreadReflect, SpreadRepeat} {
+		for _, tri := range tris {
+			ga, gb, gc := SpreadTri(tri[0], tri[1], tri[2], spread)
+			got := [3]float32{ga, gb, gc}
+			for i, raw := range tri {
+				// Pad delegates to ApplySpread, so its values are
+				// exactly equal; the tolerance only needs to absorb
+				// the period fold's float32 arithmetic.
+				want := ApplySpread(raw, spread)
+				if !almostEq(got[i], want, 1e-6) {
+					t.Errorf("spread %d tri %v: vertex %d = %v, want %v",
+						spread, tri, i, got[i], want)
+				}
+			}
+		}
+	}
+}
+
+// TestSpreadTriRepeatFoldTakesInteriorLimit is issue #417 itself. A
+// triangle whose top vertex lands exactly on an integer must read that
+// vertex as the ramp's end, the limit from inside the triangle, not as
+// the ramp's start on the far side of the step.
+func TestSpreadTriRepeatFoldTakesInteriorLimit(t *testing.T) {
+	// Below the fold: the vertex at t=2 closes the period [1,2].
+	ga, gb, gc := SpreadTri(1.0, 1.5, 2.0, SpreadRepeat)
+	if ga != 0 || !almostEq(gb, 0.5, 1e-6) || gc != 1 {
+		t.Errorf("SpreadTri(1,1.5,2, repeat) = %v %v %v, want 0 0.5 1",
+			ga, gb, gc)
+	}
+	// The per-vertex read is what got it wrong, and still does.
+	if got := ApplySpread(2.0, SpreadRepeat); got != 0 {
+		t.Fatalf("ApplySpread(2, repeat) = %v, want 0 "+
+			"(the behavior SpreadTri exists to correct)", got)
+	}
+	// Above the fold: the same vertex opens the period [2,3] and reads 0.
+	ga, _, gc = SpreadTri(2.0, 2.5, 3.0, SpreadRepeat)
+	if ga != 0 || gc != 1 {
+		t.Errorf("SpreadTri(2,2.5,3, repeat) = %v..%v, want 0..1", ga, gc)
+	}
+	// Negative parameters fold the same way.
+	ga, _, gc = SpreadTri(-2.0, -1.5, -1.0, SpreadRepeat)
+	if ga != 0 || gc != 1 {
+		t.Errorf("SpreadTri(-2,-1.5,-1, repeat) = %v..%v, want 0..1", ga, gc)
+	}
+}
+
+// TestSpreadTriReflectUnchangedAtFolds guards the claim that justified
+// leaving reflect alone: its triangle wave is continuous, so a fold vertex
+// already resolved to the same value from both sides and must keep it.
+func TestSpreadTriReflectUnchangedAtFolds(t *testing.T) {
+	cases := [][3]float32{
+		{0, 0.5, 1},   // even period, ramp forward
+		{1, 1.5, 2},   // odd period, mirrored
+		{2, 2.5, 3},   // even again
+		{-1, -0.5, 0}, // odd period below zero
+	}
+	for _, tri := range cases {
+		ga, gb, gc := SpreadTri(tri[0], tri[1], tri[2], SpreadReflect)
+		got := [3]float32{ga, gb, gc}
+		for i, raw := range tri {
+			want := ApplySpread(raw, SpreadReflect)
+			if !almostEq(got[i], want, 1e-6) {
+				t.Errorf("reflect tri %v vertex %d = %v, want %v "+
+					"(reflect is continuous; SpreadTri must not move it)",
+					tri, i, got[i], want)
+			}
+		}
+	}
+}
+
+// TestSpreadTriBoundedOnHostileInput covers the inputs the split pass
+// cannot clean up: non-finite parameters, and a triangle still spanning
+// several periods because a budget ran out. Everything must land in
+// [0,1] rather than wrapping an extra ramp across one triangle.
+func TestSpreadTriBoundedOnHostileInput(t *testing.T) {
+	nan := float32(math.NaN())
+	inf := float32(math.Inf(1))
+	huge := float32(1e30)
+	cases := [][3]float32{
+		{nan, 0.5, 1},
+		{inf, -inf, 0},
+		{-10, 0, 10},
+		{huge, -huge, 0},
+	}
+	for _, spread := range []Spread{
+		SpreadPad, SpreadReflect, SpreadRepeat, Spread(99)} {
+		for _, tri := range cases {
+			ga, gb, gc := SpreadTri(tri[0], tri[1], tri[2], spread)
+			for i, got := range [3]float32{ga, gb, gc} {
+				if got != got || got < 0 || got > 1 {
+					t.Errorf("spread %d tri %v: vertex %d = %v, "+
+						"want within [0,1]", spread, tri, i, got)
+				}
+			}
+		}
+	}
+}
+
+// TestSpreadTriUnknownSpreadPads pins the default for an out-of-range
+// spread value: ApplySpread clamps anything that is not reflect or
+// repeat, and SpreadTri must not wrap where the per-vertex read pads —
+// a triangle read and a lone-point read of the same ramp must agree.
+func TestSpreadTriUnknownSpreadPads(t *testing.T) {
+	ga, gb, gc := SpreadTri(-1, 0.5, 2, Spread(99))
+	if ga != 0 || gb != 0.5 || gc != 1 {
+		t.Errorf("SpreadTri(-1,0.5,2, 99) = %v %v %v, want 0 0.5 1 "+
+			"(pad)", ga, gb, gc)
+	}
+}
