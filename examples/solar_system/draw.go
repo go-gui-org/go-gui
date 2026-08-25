@@ -559,7 +559,12 @@ func drawPlanet(a *App, dc *gui.DrawContext, i int) {
 	if i == saturnIndex {
 		// Back half of the rings first, then the body, then the front
 		// half — which is what makes the rings pass behind Saturn.
-		k := a.litFraction(i)
+		//
+		// The phase is read off lz rather than by calling litFraction,
+		// which would redo orbitPos and the normalization for the vector
+		// already in hand. litFraction is this same expression; see it
+		// for why the z component is the cosine of the phase angle.
+		k := (1 + lz) / 2
 		drawRings(dc, cx, cy, r, math.Pi, math.Pi, k)
 		drawBody(dc, &a.body, cx, cy, r, p.Color, lx, ly, lz, sp)
 		drawRings(dc, cx, cy, r, 0, math.Pi, k)
