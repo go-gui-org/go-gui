@@ -218,8 +218,8 @@ func (a *App) recompute() {
 // whichever happens to be first in the table.
 //
 // Only the sun's disc is a target, not its halo — the glow reaches
-// 2.2x the disc and would swallow the inner planets whenever they pass
-// in front of it.
+// 1.7x the disc (up to ~2x with the pulse and the hover stretch) and
+// would swallow the inner planets whenever they pass in front of it.
 func (a *App) hitTest(x, y float32) int {
 	best, bestD := -1, float32(math.MaxFloat32)
 	test := func(idx int, sx, sy, r float32) {

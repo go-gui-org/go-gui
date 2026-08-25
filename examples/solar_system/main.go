@@ -23,7 +23,16 @@ const (
 
 	tickAnim  = "solar_tick"
 	tickDelay = 16 * time.Millisecond
-	tickSecs  = float32(0.016)
+
+	// tickSecs is how much *simulated* time one tick advances, and it
+	// is deliberately not tickDelay. The animation still fires every
+	// 16 ms of wall clock, but advances 12.96 ms of simulation, so the
+	// whole model — orbits, axial spin, the camera tween and the star
+	// twinkle alike — runs at 81% speed (two successive 10% cuts off
+	// the original 16 ms). One number rather than a factor spread
+	// across the tables, because everything here is a function of
+	// App.Time.
+	tickSecs = float32(0.01296)
 
 	canvasID = "solar_canvas"
 

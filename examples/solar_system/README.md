@@ -1,19 +1,22 @@
 # Solar System
 
 An interactive orrery. Eight planets travel tilted elliptical orbits around a
-glowing sun, over a starfield that twinkles. Mercury laps the sun in about six
-seconds; Neptune takes nearly two minutes.
+glowing sun, over a starfield that twinkles. Mercury laps the sun in about seven
+and a half seconds; Neptune takes a little over two and a half minutes.
 
 Planets are shaded spheres lit from the sun, each labelled under its disc, and
 they show phases — a planet on the near side of its orbit turns its night side
-toward you and reads as a crescent. Hover a body and it glows, with a tooltip
-that follows the cursor. Click one and the camera zooms and pans to it, keeps
-following it as it orbits, and opens a fact sheet with six stat cards and a fun
-fact. The sun is a body like any other here: it hit-tests, it has its own fact
-sheet, and it takes the first navigation dot. Navigation dots along the bottom
-jump straight to any body, and the left and right arrow keys step through them
-with wraparound. Scroll, pinch, or the `+` and `−` controls zoom in and out.
-Escape, or a click on empty space, returns to the full system.
+toward you and reads as a crescent. Each one carries a procedural surface and
+turns on a tilted axis: Jupiter's belts drift past, Earth shows continents and
+ice caps, Venus turns backwards, and Uranus rolls along its orbit rather than
+spinning upright. Hover a body and it glows, with a tooltip that follows the
+cursor. Click one and the camera zooms and pans to it, keeps following it as it
+orbits, and opens a fact sheet with six stat cards and a fun fact. The sun is a
+body like any other here: it hit-tests, it has its own fact sheet, and it takes
+the first navigation dot. Navigation dots along the bottom jump straight to any
+body, and the left and right arrow keys step through them with wraparound.
+Scroll, pinch, or the `+` and `−` controls zoom in and out. Escape, or a click
+on empty space, returns to the full system.
 
 ## Run
 
@@ -50,6 +53,12 @@ go run ./examples/solar_system/
   and draws one level at a time — eight batches per frame instead of 220. A
   shaded sphere goes the other way: it is one mesh carrying a color per vertex,
   so the whole body is a single batch however fine its ramp.
+
+- **Texturing without a texture path.** The renderer has no UV coordinates
+  anywhere — `FillTrianglesColors` carries per-vertex colors and nothing else —
+  so planet surfaces are sampled on the CPU, once per mesh vertex, and folded
+  into the color that vertex already had. No engine change, and every backend
+  keeps working.
 
 - **One encoding for "which body".** Selection and hover are a planet index,
   `selSun` for the sun, or `-1` for nothing. The sun gets a value outside the
@@ -215,17 +224,97 @@ its own color across most of the lit side — Uranus stays cyan and Mars stays
 red. The unlit side bottoms out at a fraction of the body's color rather than
 black, on the grounds that a planet you cannot see is a planet you cannot click.
 
-Ring and segment counts scale with pixel radius, never a constant, but they buy
-much less than they used to. They now resolve only the _geometry_ — the
-curvature of the elliptical rings and the chord error where the mesh boundary
-meets the limb, both of which fall off as the square of the spacing. The ramp
-itself is continuous however coarse the mesh is, so the counts came down by more
-than half when the color moved onto the vertices: a full-system frame went from
-232 triangle batches and 40.6k triangles to 79 and 30.2k, and a Jupiter-focused
-frame from 137 and 52.6k to 89 and 42.7k.
+Ring and segment counts scale with pixel radius, never a constant. Moving color
+onto the vertices cut them by more than half, because the ramp is then
+continuous however coarse the mesh is and the counts have only the _geometry_
+left to resolve — the curvature of the elliptical rings and the chord error
+where the mesh boundary meets the limb, both falling off as the square of the
+spacing. A full-system frame went from 232 triangle batches and 40.6k triangles
+to 79 and about 31k.
+
+Surface texture then gave those counts a second job and reversed that argument
+in part. Albedo is sampled per vertex and interpolated between vertices, so
+detail is now bounded by mesh density in a way intensity never was: the ceilings
+are 72 rings and 128 segments, matched to the 128x64 textures, where before they
+were 36 and 64. The rates that approach them are unchanged, so this is invisible
+at ordinary zoom — a full-system frame is 79 batches and 31.6k triangles either
+way, and a selected Jupiter 105 and 47.0k against 46.8k before. It is only at
+maximum zoom, where a planet is hundreds of pixels across and both ceilings
+actually bind, that the raise costs anything: 99.6k triangles against 85.9k.
 
 Off-screen bodies are still culled: without that, the seven planets outside the
 viewport at a focused zoom each built a full-resolution sphere anyway.
+
+### Texturing a renderer that has no textures
+
+There is no textured-triangle path in go-gui, and adding one was out of scope.
+`DrawContext` offers flat fills, gradients, an axis-aligned `Image`, and
+`FillTrianglesColors` — per-vertex colors with no UVs. The `RenderSvg` command
+that carries arbitrary triangles explicitly zeroes its texcoords, and the Metal
+image pipeline derives UVs from a hardcoded quad rather than reading them. Real
+UV support would mean a new render command, a new sampling pipeline, and edits
+to six backends.
+
+Pre-baking a sphere image per frame is the obvious alternative and it is a trap.
+`gui.UseImage` does hand a CPU pixel buffer to the GPU, but it is content-keyed
+with **no invalidation API**, by explicit design, and the Metal texture cache is
+a 128-entry LRU. A per-frame key for nine spinning planets thrashes it with nine
+texture creates and destroys every frame.
+
+So the surface is sampled on the CPU, once per mesh vertex, and folded into the
+vertex color the mesh already carries. The accepted cost is that detail is
+bounded by vertex density and Gouraud-interpolated between vertices; the raised
+tessellation ceilings above are what pays for it.
+
+**Sampling turned out to be nearly free, because the mesh had already computed
+what it needs.** Two facts do the work. The light basis stores its third axis as
+2D because its `z` is exactly zero by construction, and `lightBasis.point`
+already computes the depth term for its own visibility test — which _is_ the
+normal's `z`. A vertex at `(cosPhi, sinPhi, ct, st)` has camera-space direction
+`n = cosPhi*l + sinPhi*(ct*u + st*v)`, and three things then collapse:
+
+1. **The body axes are pre-transformed into camera space, once.** Axial tilt and
+   camera elevation are both constants, so the world-to-camera rotation is
+   applied when the surface is built and never again. `n_world · a` becomes
+   `n · A` and the world transform disappears.
+2. **The ring linearizes it.** For any fixed axis `W`,
+   `n·W = cosPhi*(l·W) + sinPhi*(ct*(u·W) + st*(v·W))`. That is nine dot
+   products per body per frame, folded into nine scalars per ring, and per
+   vertex it reuses the `ct`/`st` that `appendRing` already had.
+3. **The shading ramp folds to an affine map.** `sphereTone` mixes three colors
+   all derived from one base, so at a fixed intensity it collapses to
+   `channel*k + w` — two scalars per ring instead of three color operations per
+   vertex.
+
+The result is **no new transcendental per vertex**: about fifteen multiply-adds,
+one polynomial `atan2`, a texel fetch, and the ramp. Spin is applied as a
+longitude offset rather than as a rotation of the basis — algebraically
+identical and much cheaper.
+
+The `atan2` is a polynomial with a worst case of 0.0102 rad. That is not
+sloppiness: one texel of a 128-wide texture spans 0.049 rad, so the entire error
+budget is about a fifth of the smallest thing the result can address.
+
+**Noise is evaluated on the 3D direction, not on the `(u,v)` grid.** One extra
+multiply, and it buys both seamlessness in longitude — the direction at `u=0`
+and `u=1` is literally the same point — and freedom from polar pinching. The
+test for this compares the step across the wrap column against the worst step
+anywhere else in the same texture rather than against a fixed threshold, because
+a coastline is allowed to be a sharp edge; what is not allowed is for the seam
+to be sharper than everything else.
+
+**Every texture's mean is normalized back onto its `Planet.Color`.** That is
+what makes texturing safe to add at all rather than a change to every other part
+of the app: the nav dots, the labels, the tooltip and the flat tone a body under
+`flatBodyRadius` draws all still read from that one color, and a planet too
+small to show any texture still looks like the planet it did before. The shift
+is additive so contrast survives, and iterated, because clamping at the byte
+range pulls the mean back a little when a texture has ice caps or a dark spot.
+
+Rows are uniform in `sin(latitude)` rather than in latitude. Every row band then
+covers the same area of the sphere, so texel density is even instead of crowding
+the poles — and since sampling arrives holding `sin(latitude)` already, it
+removes an `asin` from the per-vertex path.
 
 Orbit ellipses are drawn with `Arc`, the ellipse primitive, with the vertical
 radius squashed to tilt the plane. Each ellipse's center is offset by `a·e`
@@ -241,6 +330,19 @@ to 60,190 days — 684x, which nobody can watch. Periods are `realDays^0.45`,
 which preserves the ordering exactly while keeping every gap visible. Orbit
 radii use a milder `realAU^0.38`, because a stronger exponent packs the inner
 four planets inside the sun's halo.
+
+Rotation is compressed the same way and for the same reason: real periods run
+from 9.9 h to 5,832 h, a 590x range, so `RotS` is `|realHours|^0.45 x 1.07`.
+Axial tilts are the real values in radians, and Venus carries its retrograde
+spin as a negative `RotS` rather than as the equivalent 177.4° tilt — identical
+physics, more legible in a table.
+
+Worth being honest about one consequence: rotation and orbit are compressed on
+_separate_ scales, so the ratio between a planet's day and its year is not
+preserved. Mercury's real sidereal day is 0.67 of its year; here it is 4.65. The
+distortion happens to run in the direction that makes Mercury's and Venus's "a
+day lasts longer than a year" fact sheets read as true on screen, but that is a
+coincidence of the scaling rather than a property the model keeps.
 
 ## Provenance
 

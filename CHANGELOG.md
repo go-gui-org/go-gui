@@ -10,6 +10,29 @@ and this project adheres to
 
 ### Added
 
+- **Procedural planet surfaces and axial spin in `examples/solar_system`** —
+  each planet now carries a generated surface texture and turns on a tilted
+  axis: Jupiter's belts drift past, Earth shows continents and ice caps, Venus
+  turns retrograde, and Uranus rolls rather than spins. Rotation periods are
+  compressed like the orbital ones (`|realHours|^0.45`); axial tilts are real.
+
+  No engine change was involved, and that is the interesting part. There is no
+  textured-triangle path in go-gui — `FillTrianglesColors` carries per-vertex
+  colors and no UVs anywhere — so the surface is sampled on the CPU once per
+  mesh vertex and folded into the color that vertex already had. Sampling costs
+  no new transcendental per vertex: the body axes are pre-transformed into
+  camera space once, the sampling direction linearizes over each ring in the
+  `cos`/`sin` the mesh had already computed, and the shading ramp folds to an
+  affine `channel*k + w`. Textures are generated at init from 3D noise on the
+  sphere direction, which is seamless in longitude by construction, and each
+  one's mean is normalized back onto its `Planet.Color` so nav dots, labels and
+  small-body tone are unchanged. Still zero allocations per frame.
+
+  Mesh ceilings rise from 36x64 to 72x128 to carry the extra detail, which is
+  invisible at ordinary zoom (a full-system frame is 79 batches and 31.6k
+  triangles either way) and costs 99.6k triangles against 85.9k at maximum zoom,
+  where both ceilings actually bind.
+
 - **Per-vertex color fills on `DrawContext`** (#400) —
   `FillTrianglesColors(tris, colors)` takes caller-supplied geometry and one
   color per vertex. Nothing is evaluated on the way through: no projection, no
