@@ -45,13 +45,22 @@ const (
 	// The halo and the disc both take their step count from their pixel
 	// size, for the same reason the planet ramp does: a fixed count
 	// bands visibly once the sun is close to the camera. Focusing
-	// Jupiter puts a 500px halo on screen, where 30 rings is a 17px
+	// Jupiter puts a ~380px halo on screen, where 30 rings is a 13px
 	// band apiece.
 	glowRingsPerPx = 0.22
 	glowRingsMin   = 24
 	glowRingsMax   = 140
 
-	glowExtent  = 2.2 // outer glow radius, in multiples of sunRadius
+	// glowExtent is the outer glow radius in multiples of sunRadius.
+	// Worth knowing where Mercury is: its closest *projected* approach
+	// is at the semi-minor ends of its orbit, where the world offset
+	// is (-a*e, +/-b) = (-28, +/-133) and the vertical axis is
+	// squashed by diskTilt, giving a screen distance of
+	// sqrt(28^2 + (133*0.48)^2) ~= 70 world units, or 1.34 sun radii.
+	// So 1.7 does put Mercury inside the glow twice per orbit; the low
+	// alpha and the cubic falloff are what keep that from reading as
+	// flying through a cloud. Clearing the pass outright needs 1.2.
+	glowExtent  = 1.7
 	glowPulseHz = 0.28
 
 	// The disc ramp's two hand-over points, as a fraction of the radius
@@ -105,12 +114,22 @@ const (
 	// mesh boundary meets the limb. Both fall off as the square of the
 	// spacing, which is why far fewer rows suffice here than the flat
 	// bands this replaced needed to hide their quantization.
+	// The Max ends are set by *texture* resolution rather than by
+	// silhouette smoothness, which the far lower ceilings this
+	// replaced already handled. A body's albedo is sampled per vertex
+	// and interpolated between vertices, so at a selected planet's
+	// zoom — up to roughly 640 px of radius — an arc of 64 puts one
+	// quad across 30-60 px and the surface reads as coarse blobs. 72
+	// x 128 is matched to the 128x64 texture. The PerPx rates are
+	// unchanged, so these ceilings are only reached past 144 px and
+	// 183 px of radius: a zoomed selection, never the eight small
+	// bodies of the full-system view.
 	shadeRowsPerPx = 0.5
 	shadeRowsMin   = 12
-	shadeRowsMax   = 36
+	shadeRowsMax   = 72
 	shadeArcPerPx  = 0.7
 	shadeArcMin    = 16
-	shadeArcMax    = 64
+	shadeArcMax    = 128
 
 	// nightScale is the unlit hemisphere's brightness, as a fraction of
 	// the body's own color. Not zero on purpose: a planet you cannot see
@@ -324,9 +343,13 @@ func drawSun(a *App, dc *gui.DrawContext) {
 	// Hovering brightens the halo rather than adding a ring of its own:
 	// the sun is already the brightest thing on the canvas, so a halo
 	// drawn on top of this one would not be visible as a change.
-	glowAlpha := float32(0.38)
+	// Alpha comes down with the extent. The cubic falloff piles most
+	// of the opacity into the innermost third, so a halo squeezed from
+	// 2.2 to 1.2 radii concentrates what is left into a much smaller
+	// area and would read *brighter* at the limb if the alpha stayed.
+	glowAlpha := float32(0.30)
 	if a.Hovered == selSun {
-		glowAlpha = 0.58
+		glowAlpha = 0.46
 		outer *= 1.1
 	}
 
@@ -525,16 +548,195 @@ func drawPlanet(a *App, dc *gui.DrawContext, i int) {
 	// sun lies on screen, and how far around behind the planet it is.
 	lx, ly, lz := a.lightVec(i)
 
+	// Stack-allocated: initSurface fills it, and drawBody does not let
+	// the pointer escape.
+	var sf surface
+	var sp *surface
+	if initSurface(&sf, i, a.Time) {
+		sp = &sf
+	}
+
 	if i == saturnIndex {
 		// Back half of the rings first, then the body, then the front
 		// half — which is what makes the rings pass behind Saturn.
 		k := a.litFraction(i)
 		drawRings(dc, cx, cy, r, math.Pi, math.Pi, k)
-		drawBody(dc, &a.body, cx, cy, r, p.Color, lx, ly, lz)
+		drawBody(dc, &a.body, cx, cy, r, p.Color, lx, ly, lz, sp)
 		drawRings(dc, cx, cy, r, 0, math.Pi, k)
 		return
 	}
-	drawBody(dc, &a.body, cx, cy, r, p.Color, lx, ly, lz)
+	drawBody(dc, &a.body, cx, cy, r, p.Color, lx, ly, lz, sp)
+}
+
+// bodyLitLift is how far the brightest point of a body is pushed
+// toward white. Named because the textured path has to reproduce the
+// same ramp arithmetically rather than by calling sphereTone.
+const bodyLitLift = 0.26
+
+// surface is the texture half of a body's appearance: its albedo map
+// and the orientation of the body-fixed frame that map is pinned to.
+// A nil *surface means no texture, and the flat per-ring ramp that
+// drawBody has always drawn.
+//
+// The axes are already in *camera* coordinates. Both the axial tilt
+// and the camera's elevation are constants, so the world-to-camera
+// rotation can be applied once when the surface is built and never
+// again — which is what removes the world transform from the
+// per-vertex path entirely.
+type surface struct {
+	tex           *bodyTexture
+	ax, ay, az    float32 // spin axis
+	e1x, e1y, e1z float32 // equator reference direction
+	e2x, e2y, e2z float32 // completes the right-handed frame
+	spin          float32 // rotation so far, in turns
+}
+
+// initSurface resolves planet i's body frame into camera coordinates
+// at time t.
+//
+// The orbital plane is the world xy-plane, so the orbital north pole
+// is world +z and a tilt of theta leans the spin axis that far off it.
+// Which way it leans is a free choice, taken as world +x. The camera's
+// basis in world coordinates is right (1,0,0), screen-down
+// (0, sinE, -cosE) and to-viewer (0, cosE, sinE) — see lightVec, which
+// is where those come from — and projecting the three body axes onto
+// it gives the vectors below.
+//
+// e1 x e2 == a, so the frame is right-handed and longitude increases
+// in one consistent direction for every planet.
+// It fills a caller-provided surface and reports whether the body has
+// one, rather than returning a pointer, because returning one would
+// put a heap allocation on the frame path: this runs per planet per
+// tick, and nine escaping values a frame is the whole session's worth
+// of garbage that drawBody's scratch reuse exists to avoid.
+func initSurface(s *surface, i int, t float32) bool {
+	p := &planets[i]
+	if p.RotS == 0 || planetTextures[i] == nil {
+		return false
+	}
+	sa, ca := sin32(p.Tilt), cos32(p.Tilt)
+	// diskTilt is an untyped constant; name it float32 once here so
+	// the six products below stay in one type.
+	sinE, cosE := float32(diskTilt), cosElev
+	*s = surface{
+		tex: planetTextures[i],
+		ax:  sa, ay: -ca * cosE, az: ca * sinE,
+		e1x: ca, e1y: sa * cosE, e1z: -sa * sinE,
+		e2x: 0, e2y: sinE, e2z: cosE,
+		// Phase doubles as the starting meridian so the eight bodies
+		// do not all begin with the same face toward the sun.
+		spin: t/p.RotS + p.Phase*(1/(2*math.Pi)),
+	}
+	return true
+}
+
+// surfaceProj is the body frame resolved against the light basis:
+// nine dot products, constant for a whole body.
+//
+// This is the step that makes per-vertex texturing affordable. A
+// vertex normal is n = cosPhi*l + sinPhi*(ct*u + st*v), so for any
+// fixed axis W the quantity n.W is linear in ct and st with
+// coefficients that depend only on the ring. Sampling a vertex is then
+// three multiply-adds per axis on values the ring already has, and no
+// transcendental at all.
+//
+// v contributes only two terms because its z is zero by construction
+// (see lightBasis).
+type surfaceProj struct {
+	la, ua, va float32
+	l1, u1, v1 float32
+	l2, u2, v2 float32
+}
+
+func (s *surface) project(b lightBasis) surfaceProj {
+	return surfaceProj{
+		la: b.lx*s.ax + b.ly*s.ay + b.lz*s.az,
+		ua: b.ux*s.ax + b.uy*s.ay + b.uz*s.az,
+		va: b.vx*s.ax + b.vy*s.ay,
+
+		l1: b.lx*s.e1x + b.ly*s.e1y + b.lz*s.e1z,
+		u1: b.ux*s.e1x + b.uy*s.e1y + b.uz*s.e1z,
+		v1: b.vx*s.e1x + b.vy*s.e1y,
+
+		l2: b.lx*s.e2x + b.ly*s.e2y + b.lz*s.e2z,
+		u2: b.ux*s.e2x + b.uy*s.e2y + b.uz*s.e2z,
+		v2: b.vx*s.e2x + b.vy*s.e2y,
+	}
+}
+
+// ringTex is one ring's slice of all that: the linear coefficients for
+// the three body axes, the spin offset, and the shading ramp folded to
+// an affine (k, w) on each color channel. A nil tex means the ring
+// takes its flat color instead.
+type ringTex struct {
+	tex        *bodyTexture
+	a0, a1, a2 float32 // sin(latitude)
+	b0, b1, b2 float32 // equator reference component
+	c0, c1, c2 float32 // quadrature component
+	spin       float32
+	k, w       float32
+}
+
+// ringTexFor folds the per-body projection and the per-ring geometry
+// into the coefficients appendRing consumes.
+func (p surfaceProj) ringTexFor(s *surface, cosPhi, sinPhi, k, w float32) ringTex {
+	return ringTex{
+		tex: s.tex,
+		a0:  cosPhi * p.la, a1: sinPhi * p.ua, a2: sinPhi * p.va,
+		b0: cosPhi * p.l1, b1: sinPhi * p.u1, b2: sinPhi * p.v1,
+		c0: cosPhi * p.l2, c1: sinPhi * p.u2, c2: sinPhi * p.v2,
+		spin: s.spin,
+		k:    k, w: w,
+	}
+}
+
+// ringRamp is sphereTone rewritten as the affine map it already is.
+//
+// sphereTone mixes three colors that are all derived from one base, so
+// for a fixed intensity the whole ramp collapses to channel*k + w. The
+// textured path needs exactly that, because there the "base" is a
+// different albedo at every vertex and calling sphereTone per vertex
+// would redo the same interpolation thousands of times.
+//
+// This is not bit-identical to sphereTone: that function quantizes the
+// night and lit tones to bytes before mixing, and this one does not.
+// The difference is at most one count in a channel, and the untextured
+// path still goes through sphereTone unchanged.
+func ringRamp(intensity float32) (k, w float32) {
+	if intensity < baseStop {
+		t := intensity / baseStop
+		return nightScale*(1-t) + t, 0
+	}
+	t := (intensity - baseStop) / (1 - baseStop)
+	return 1 - bodyLitLift*t, 255 * bodyLitLift * t
+}
+
+// atan2Turns is atan2(y, x) scaled to turns, in [-0.5, 0.5].
+//
+// A polynomial stand-in for the real thing, with a measured worst
+// case of 0.0102 rad (see TestAtan2TurnsMatchesLibrary). That sounds
+// sloppy and is not: one texel of a 128-wide texture spans 0.049 rad,
+// so the whole error budget is about a fifth of the smallest thing
+// the result can address, and it costs no library call on a path that
+// runs once per vertex.
+func atan2Turns(y, x float32) float32 {
+	const (
+		quarter = float32(math.Pi / 4)
+		toTurns = float32(1 / (2 * math.Pi))
+	)
+	ay := abs32(y) + 1e-10
+	var a float32
+	if x >= 0 {
+		r := (x - ay) / (x + ay)
+		a = (0.1963*r*r-0.9817)*r + quarter
+	} else {
+		r := (x + ay) / (ay - x)
+		a = (0.1963*r*r-0.9817)*r + 3*quarter
+	}
+	if y < 0 {
+		a = -a
+	}
+	return a * toTurns
 }
 
 // lightBasis is an orthonormal frame with the light direction as its
@@ -703,6 +905,13 @@ type bodyMesh struct {
 	tris      []float32
 	cols      []gui.Color
 	prev, cur []float32
+
+	// prevCol and curCol are the vertex colors of those same two
+	// rings, one per position. Color is per vertex rather than per
+	// ring so the albedo can vary along a ring while the Lambert term
+	// stays constant on it; with a flat color they hold arc+1 copies
+	// of one value and the mesh is identical to a per-ring ramp.
+	prevCol, curCol []gui.Color
 }
 
 // appendTri adds one triangle, wound consistently with every other
@@ -760,8 +969,12 @@ func (m *bodyMesh) appendTri(x0, y0 float32, c0 gui.Color,
 // solved.
 //
 // The whole body is one batch.
+// s carries the body's surface texture and orientation, or is nil for
+// an untextured body — in which case every vertex on a ring takes the
+// ring's flat tone and the mesh is exactly what it was before
+// textures existed.
 func drawBody(dc *gui.DrawContext, m *bodyMesh, cx, cy, r float32,
-	base gui.Color, lx, ly, lz float32,
+	base gui.Color, lx, ly, lz float32, s *surface,
 ) {
 	// The frame, the visibility test and ringPlan's tangency all read
 	// the light as a unit vector; normalizing once here is cheaper than
@@ -770,7 +983,7 @@ func drawBody(dc *gui.DrawContext, m *bodyMesh, cx, cy, r float32,
 		lx, ly, lz = lx/d, ly/d, lz/d
 	}
 	night := scaleColor(base, nightScale)
-	lit := lightenColor(base, 0.26)
+	lit := lightenColor(base, bodyLitLift)
 	// The disc's average tone, used where there is no room to shade.
 	flat := sphereTone(night, base, lit, clamp32((1+lz)/2, 0, 1))
 
@@ -804,20 +1017,36 @@ func drawBody(dc *gui.DrawContext, m *bodyMesh, cx, cy, r float32,
 
 	m.tris, m.cols = m.tris[:0], m.cols[:0]
 
+	// Nine dot products for the whole body; the per-ring and
+	// per-vertex work below is all multiply-adds on top of them.
+	var proj surfaceProj
+	if s != nil {
+		proj = s.project(b)
+	}
+
 	// Where the rings go is ringPlan's decision, and not the obvious
 	// one; see it for why even steps in intensity make the silhouette
 	// go polygonal.
-	var prevCol gui.Color
 	for i := range p.count() {
 		c := p.cosPhi(i)
-		s := sqrt32(max(0, 1-c*c))
-		col := sphereTone(night, base, lit, clamp32(c, 0, 1))
-		m.cur = appendRing(m.cur[:0], b, r, cx, cy, c, s, arc)
-		if i > 0 {
-			m.appendStrip(prevCol, col, arc)
+		sn := sqrt32(max(0, 1-c*c))
+		intensity := clamp32(c, 0, 1)
+		col := sphereTone(night, base, lit, intensity)
+		var rt ringTex
+		if s != nil {
+			k, w := ringRamp(intensity)
+			rt = proj.ringTexFor(s, c, sn, k, w)
 		}
+		m.cur, m.curCol = appendRing(m.cur[:0], m.curCol[:0],
+			b, r, cx, cy, c, sn, arc, col, rt)
+		if i > 0 {
+			m.appendStrip(arc)
+		}
+		// Positions and colors are two halves of one ring and must be
+		// swapped together, or a strip would pair ring i's vertices
+		// with ring i-1's colors.
 		m.prev, m.cur = m.cur, m.prev
-		prevCol = col
+		m.prevCol, m.curCol = m.curCol, m.prevCol
 	}
 	dc.FillTrianglesColors(m.tris, m.cols)
 }
@@ -833,31 +1062,62 @@ func drawBody(dc *gui.DrawContext, m *bodyMesh, cx, cy, r float32,
 // any hidden interior point out onto the limb as well. A ring entirely
 // on the far side collapses to a single point; it covers no visible
 // surface, and appendTri drops the strips it takes part in.
-func appendRing(dst []float32, b lightBasis, r, cx, cy, cosPhi,
-	sinPhi float32, arc int,
-) []float32 {
+// Colors are written to cdst in step with the positions, one per
+// vertex. With rt.tex nil every vertex on the ring takes col, since
+// the Lambert term is constant along a ring by construction. With a
+// texture the Lambert term is still constant and only the albedo
+// varies, which is what keeps the sampling cheap.
+//
+// The direction sampled is the true surface normal, not the position
+// b.point returns: point pushes hidden vertices out onto the limb, and
+// the linearization deliberately does not model that clamp. It does
+// not need to. Each ring spans its own visible azimuth, so interior
+// vertices are genuinely visible and the two end points sit where
+// z is about 0 and the clamp does nothing. The clamp only really acts
+// on rings that are wholly hidden, whose strips have no area and are
+// dropped by appendTri.
+func appendRing(dst []float32, cdst []gui.Color, b lightBasis,
+	r, cx, cy, cosPhi, sinPhi float32, arc int, col gui.Color,
+	rt ringTex,
+) ([]float32, []gui.Color) {
 	tMax := b.visibleAzimuth(cosPhi, sinPhi)
 	step := 2 * tMax / float32(arc)
 	for k := 0; k <= arc; k++ {
 		t := -tMax + step*float32(k)
-		x, y := b.point(r, cosPhi, sinPhi, cos32(t), sin32(t))
+		ct, st := cos32(t), sin32(t)
+		x, y := b.point(r, cosPhi, sinPhi, ct, st)
 		dst = append(dst, cx+x, cy+y)
+		if rt.tex == nil {
+			cdst = append(cdst, col)
+			continue
+		}
+		sinLat := rt.a0 + ct*rt.a1 + st*rt.a2
+		p1 := rt.b0 + ct*rt.b1 + st*rt.b2
+		p2 := rt.c0 + ct*rt.c1 + st*rt.c2
+		texel := rt.tex.at(sinLat, atan2Turns(p2, p1)-rt.spin)
+		cdst = append(cdst, gui.RGBA(
+			chan8(float32(texel.R)*rt.k+rt.w),
+			chan8(float32(texel.G)*rt.k+rt.w),
+			chan8(float32(texel.B)*rt.k+rt.w),
+			col.A))
 	}
-	return dst
+	return dst, cdst
 }
 
 // appendStrip tiles the surface between the two rings currently held in
-// prev and cur with quads, two triangles apiece. Both rings carry a
-// flat color of their own and the vertex colors interpolate between
-// them, which is the ramp.
-func (m *bodyMesh) appendStrip(outer, inner gui.Color, arc int) {
+// prev and cur with quads, two triangles apiece. Each vertex carries
+// the color its own ring assigned it, and the rasterizer interpolates
+// across the quad — which is the ramp.
+func (m *bodyMesh) appendStrip(arc int) {
 	for k := range arc {
 		ax0, ay0 := m.prev[k*2], m.prev[k*2+1]
 		bx0, by0 := m.prev[k*2+2], m.prev[k*2+3]
 		ax1, ay1 := m.cur[k*2], m.cur[k*2+1]
 		bx1, by1 := m.cur[k*2+2], m.cur[k*2+3]
-		m.appendTri(ax0, ay0, outer, bx0, by0, outer, bx1, by1, inner)
-		m.appendTri(ax0, ay0, outer, bx1, by1, inner, ax1, ay1, inner)
+		ac0, bc0 := m.prevCol[k], m.prevCol[k+1]
+		ac1, bc1 := m.curCol[k], m.curCol[k+1]
+		m.appendTri(ax0, ay0, ac0, bx0, by0, bc0, bx1, by1, bc1)
+		m.appendTri(ax0, ay0, ac0, bx1, by1, bc1, ax1, ay1, ac1)
 	}
 }
 

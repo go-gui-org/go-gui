@@ -17,7 +17,7 @@ func TestMain(m *testing.M) {
 }
 
 // tweenTicks is the number of ticks one camera transition takes.
-const tweenTicks = 38 // camTweenSecs / tickSecs, rounded up
+const tweenTicks = 47 // camTweenSecs / tickSecs, rounded up
 
 // newTestApp is a fully seeded app with a known canvas size, so camera
 // and hit-test math is exercised without a real frame pass.
@@ -829,7 +829,7 @@ func bodyBatches(t *testing.T, r float32, lx, ly, lz float32) *gui.DrawContext {
 	t.Helper()
 	dc := gui.NewDrawContext(200, 200, nil)
 	var m bodyMesh
-	drawBody(dc, &m, 100, 100, r, gui.RGB(180, 140, 90), lx, ly, lz)
+	drawBody(dc, &m, 100, 100, r, gui.RGB(180, 140, 90), lx, ly, lz, nil)
 	return dc
 }
 
@@ -929,19 +929,22 @@ func TestBodyMeshStaysInsideDisc(t *testing.T) {
 func TestBodyMeshDoesNotAllocatePerFrame(t *testing.T) {
 	var m bodyMesh
 	dc := gui.NewDrawContext(200, 200, nil)
-	drawBody(dc, &m, 100, 100, 60, gui.RGB(180, 140, 90), 0.6, 0.2, -0.77)
+	drawBody(dc, &m, 100, 100, 60, gui.RGB(180, 140, 90), 0.6, 0.2, -0.77, nil)
 
 	got := testing.AllocsPerRun(20, func() {
 		// A fresh context each run would allocate for its own batches,
 		// which is not what this measures; the mesh scratch is.
 		m.tris = m.tris[:0]
 		m.cols = m.cols[:0]
-		m.cur = appendRing(m.cur[:0], newLightBasis(0.6, 0.2, -0.77),
-			60, 100, 100, 0.3, 0.95, 32)
-		m.prev = m.prev[:0]
-		m.prev = appendRing(m.prev[:0], newLightBasis(0.6, 0.2, -0.77),
-			60, 100, 100, 0.2, 0.98, 32)
-		m.appendStrip(gui.RGB(1, 2, 3), gui.RGB(4, 5, 6), 32)
+		// The color rings are scratch on the same footing as the
+		// position rings: reused with [:0], never reallocated.
+		m.cur, m.curCol = appendRing(m.cur[:0], m.curCol[:0],
+			newLightBasis(0.6, 0.2, -0.77),
+			60, 100, 100, 0.3, 0.95, 32, gui.RGB(1, 2, 3), ringTex{})
+		m.prev, m.prevCol = appendRing(m.prev[:0], m.prevCol[:0],
+			newLightBasis(0.6, 0.2, -0.77),
+			60, 100, 100, 0.2, 0.98, 32, gui.RGB(4, 5, 6), ringTex{})
+		m.appendStrip(32)
 	})
 	if got != 0 {
 		t.Errorf("mesh rebuild allocated %v times per run, want 0", got)

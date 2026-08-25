@@ -37,6 +37,28 @@ type Planet struct {
 
 	Color gui.Color
 
+	// RotS is seconds for one rotation on its axis and Tilt the axial
+	// tilt in radians. A negative RotS is retrograde.
+	//
+	// Compressed like PeriodS, and for the same reason: real rotation
+	// periods run from 9.9 h (Jupiter) to 5832 h (Venus), a 590x range
+	// that would leave Jupiter a blur while Venus sat still. These are
+	// |realHours|^0.45 x 1.07, the same exponent the orbital periods
+	// use, so the ordering is exact and every planet visibly turns.
+	//
+	// Note that rotation and orbit are compressed on separate scales,
+	// so the *ratio* between a planet's day and its year is not
+	// preserved — see the README.
+	//
+	// Venus carries its retrograde spin as a negative RotS with its
+	// real 2.64 degree tilt, rather than as the equivalent 177.4
+	// degree tilt with a positive one. The two encode identical
+	// physics; this one reads at a glance. Uranus needs no sign: a
+	// tilt past 90 degrees is retrograde already, and it rolls along
+	// its orbit rather than spinning upright.
+	RotS float32
+	Tilt float32
+
 	// Fact-sheet copy, shown in the info panel.
 	Diameter    string
 	Mass        string
@@ -53,6 +75,7 @@ var planets = [...]Planet{
 	{
 		Name: "Mercury", OrbitA: 136, PeriodS: 6.0, Ecc: 0.206, Phase: 0.4,
 		Radius: 7, Color: gui.RGB(168, 158, 148),
+		RotS: 27.9, Tilt: 0.000593, // 0.034 deg, the real value
 		Diameter: "4,879 km", Mass: "0.055 Earths", Distance: "0.39 AU",
 		DayLength: "1,408 h", Gravity: "3.7 m/s²", Temperature: "-173 to 427 °C",
 		FunFact: "A day on Mercury lasts longer than its year — it spins " +
@@ -61,6 +84,7 @@ var planets = [...]Planet{
 	{
 		Name: "Venus", OrbitA: 172, PeriodS: 9.2, Ecc: 0.007, Phase: 2.1,
 		Radius: 11, Color: gui.RGB(222, 184, 135),
+		RotS: -53.0, Tilt: 0.046,
 		Diameter: "12,104 km", Mass: "0.815 Earths", Distance: "0.72 AU",
 		DayLength: "5,832 h", Gravity: "8.9 m/s²", Temperature: "464 °C",
 		FunFact: "Venus turns backwards, so the Sun there rises in the " +
@@ -69,6 +93,7 @@ var planets = [...]Planet{
 	{
 		Name: "Earth", OrbitA: 195, PeriodS: 11.4, Ecc: 0.017, Phase: 4.3,
 		Radius: 12, Color: gui.RGB(76, 140, 214),
+		RotS: 4.46, Tilt: 0.409,
 		Diameter: "12,742 km", Mass: "1 Earth", Distance: "1.00 AU",
 		DayLength: "24 h", Gravity: "9.8 m/s²", Temperature: "-88 to 58 °C",
 		FunFact: "The only world known to have liquid water on its " +
@@ -77,6 +102,7 @@ var planets = [...]Planet{
 	{
 		Name: "Mars", OrbitA: 229, PeriodS: 15.1, Ecc: 0.093, Phase: 0.9,
 		Radius: 9, Color: gui.RGB(193, 91, 58),
+		RotS: 4.53, Tilt: 0.440,
 		Diameter: "6,779 km", Mass: "0.107 Earths", Distance: "1.52 AU",
 		DayLength: "24.7 h", Gravity: "3.7 m/s²", Temperature: "-153 to 20 °C",
 		FunFact: "Olympus Mons is the tallest volcano in the solar system " +
@@ -85,6 +111,7 @@ var planets = [...]Planet{
 	{
 		Name: "Jupiter", OrbitA: 365, PeriodS: 34.6, Ecc: 0.049, Phase: 3.4,
 		Radius: 32, Color: gui.RGB(201, 156, 111),
+		RotS: 3.01, Tilt: 0.055,
 		Diameter: "139,820 km", Mass: "318 Earths", Distance: "5.20 AU",
 		DayLength: "9.9 h", Gravity: "24.8 m/s²", Temperature: "-108 °C",
 		FunFact: "The Great Red Spot is a storm wider than Earth that has " +
@@ -93,6 +120,7 @@ var planets = [...]Planet{
 	{
 		Name: "Saturn", OrbitA: 459, PeriodS: 52.2, Ecc: 0.057, Phase: 5.6,
 		Radius: 28, Color: gui.RGB(224, 202, 148),
+		RotS: 3.10, Tilt: 0.466,
 		Diameter: "116,460 km", Mass: "95 Earths", Distance: "9.54 AU",
 		DayLength: "10.7 h", Gravity: "10.4 m/s²", Temperature: "-138 °C",
 		FunFact: "Saturn is less dense than water — given a bathtub big " +
@@ -101,6 +129,7 @@ var planets = [...]Planet{
 	{
 		Name: "Uranus", OrbitA: 599, PeriodS: 83.6, Ecc: 0.046, Phase: 1.7,
 		Radius: 20, Color: gui.RGB(140, 209, 216),
+		RotS: 3.85, Tilt: 1.706,
 		Diameter: "50,724 km", Mass: "14.5 Earths", Distance: "19.2 AU",
 		DayLength: "17.2 h", Gravity: "8.7 m/s²", Temperature: "-195 °C",
 		FunFact: "Uranus orbits on its side, so each pole spends 42 years " +
@@ -109,6 +138,7 @@ var planets = [...]Planet{
 	{
 		Name: "Neptune", OrbitA: 711, PeriodS: 113.2, Ecc: 0.011, Phase: 3.9,
 		Radius: 19, Color: gui.RGB(62, 102, 209),
+		RotS: 3.73, Tilt: 0.494,
 		Diameter: "49,244 km", Mass: "17.1 Earths", Distance: "30.1 AU",
 		DayLength: "16.1 h", Gravity: "11.2 m/s²", Temperature: "-201 °C",
 		FunFact: "Neptune's winds reach 2,100 km/h — the fastest measured " +
