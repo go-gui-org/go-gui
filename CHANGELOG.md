@@ -8,6 +8,14 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.65.0] - 2026-08-25
+
+Gradients and per-vertex color reach `DrawContext`, and the SVG gradient
+tessellator gets the same fixes: correct spread, no winding seams, and radial
+subdivision that stops splitting geometry already aligned to the ramp. Idle
+windows now block instead of polling, and a background window no longer wakes
+the main thread to blink a caret nobody can see.
+
 ### Added
 
 - **Procedural planet surfaces and axial spin in `examples/solar_system`** —
@@ -83,6 +91,14 @@ and this project adheres to
   `DrawRecorder` that does not implement the new optional `DrawGradientRecorder`
   receives the equivalent flat primitive shaded with the ramp's midpoint, so an
   export path never drops a gradient fill.
+
+- **`InputCommitEnter` and `InputCommitBlur`** are exported. `OnTextCommit`'s
+  second parameter is an `InputCommitReason`, but its values were unexported, so
+  an app could receive the reason and not branch on it — the whole point of
+  distinguishing "the user pressed Enter" from "focus moved on".
+
+- **`DebugCallbacks`** joins `DebugAll`. It reports app callbacks the frame pass
+  dropped because they kept re-queueing themselves round after round.
 
 ### Fixed
 
@@ -179,15 +195,6 @@ and this project adheres to
   A declined key is now delivered, held back just long enough for the
   composition it committed to arrive first, so the text lands in the field being
   left rather than the one taking focus.
-
-### Added
-
-- **`InputCommitEnter` and `InputCommitBlur`** are exported. `OnTextCommit`'s
-  second parameter is an `InputCommitReason`, but its values were unexported, so
-  an app could receive the reason and not branch on it — the whole point of
-  distinguishing "the user pressed Enter" from "focus moved on".
-- **`DebugCallbacks`** joins `DebugAll`. It reports app callbacks the frame pass
-  dropped because they kept re-queueing themselves round after round.
 
 ### Changed
 
