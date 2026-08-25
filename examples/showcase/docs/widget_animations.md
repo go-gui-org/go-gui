@@ -1,6 +1,6 @@
 Tween, spring, and keyframe animation types. All implement the `Animation`
-interface and are managed via `w.AnimationAdd`, `w.AnimationRemove`, and
-`w.HasAnimation`. The animation loop ticks at ~60 fps (16ms). Each animation
+interface. The window manages them via `w.AnimationAdd`, `w.AnimationRemove`,
+and `w.HasAnimation`. The animation loop ticks at ~60 fps (16ms). Each animation
 receives an `OnValue` callback with the interpolated value and an optional
 `OnDone` callback.
 

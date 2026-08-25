@@ -4,7 +4,7 @@
 - Area: `gui/` core pipeline
 - Blocked on: go-gui-org/go-charts#41 (before the release tag, not before
   step 1)
-- Related: #306 (resolved — Form scopes its children; see §5)
+- Related: #306 (resolved — Form scopes its children. See §5)
 
 ## Summary
 
@@ -71,7 +71,7 @@ allocates a one-element slice per node per frame to use it.
 
 ### `formView` is a third mechanism that defeats the other two
 
-Confirmed by inspection of `gui/view_form.go:194-258`. It does not merely inject
+Verified by inspection of `gui/view_form.go:194-258`. It does not merely inject
 children before returning — it opts out of the framework walk by mutating
 itself:
 
@@ -95,9 +95,8 @@ Two things follow, and only the first is documented:
 
 `inner`'s shape carries `ID: formLayoutID(formID)` — `"form:" + formID`
 (`view_form.go:138,320`), always non-empty — so on the framework path
-`childScopeID` would push, and form children would resolve as
-`form:myform:fieldname`. On this path they resolve in the form's **enclosing**
-scope instead.
+`childScopeID` pushes, and form children resolve as `form:myform:fieldname`. On
+this path they resolve in the form's **enclosing** scope instead.
 
 #### The scope suppression is accidental, and protects nothing
 
@@ -139,8 +138,8 @@ Note also that `formLayoutID(formID)` returns `"form:" + formID`, which contains
 `joinLeaf` (`:85-87`) pass it through unjoined. That is deliberate, so
 `formDecodeLayoutID` can reverse-parse it out of `Shape.ID` during
 `formFindAncestorID`'s parent walk — the same documented pattern as
-`gui/datagrid`. It means that if the scope push did run, children would resolve
-under `form:<formID>` regardless of where the form itself sits.
+`gui/datagrid`. It means that if the scope push runs, children resolve under
+`form:<formID>` regardless of where the form itself sits.
 
 #### Separately: the truncation is a latent bug
 
@@ -181,11 +180,11 @@ allocation removed is `rotatedBoxView`'s per-node slice.
 ## Non-goals
 
 Explicitly **not** proposed: eliminating `View` in favor of building `Layout`
-directly from factories. That variant was evaluated and rejected. It would
-require `w` threaded through every factory call (`gui.Column(w, ...)`,
-`gui.Text(w, ...)`), force every user theme read from `gui.CurrentTheme()` to
-`w.Theme()`, break `Themed(t, build)` — whose contract is that `build` runs at
-generation time — and unship the per-window theming landed in #296/#302. See
+directly from factories. That variant was evaluated and rejected. It requires
+`w` threaded through every factory call (`gui.Column(w, ...)`,
+`gui.Text(w, ...)`), forces every user theme read from `gui.CurrentTheme()` to
+`w.Theme()`, breaks `Themed(t, build)` — whose contract is that `build` runs at
+generation time — and unships the per-window theming landed in #296/#302. See
 "Rejected alternative" below.
 
 ## Design
@@ -307,17 +306,17 @@ than one frame up the recursion, which is the same push at the same point in the
 walk.
 
 The `scope bool` exists solely to reproduce the flat behavior `formView`
-currently obtains by self-truncation. Pushing unconditionally would prefix every
+currently obtains by self-truncation. Pushing unconditionally prefixes every
 widget inside a form with `form:<formID>` in its effective ID — a visible change
 to `SetFocus` / `FindByID` callers, though **not** to form field lookup, which
 never touches ID resolution. Keeping the flag makes this refactor
-behavior-preserving; the scoping question is issue #306.
+behavior-preserving. The scoping question is issue #306.
 
 ### Call-site changes
 
 Three production types, plus `viewFunc`:
 
-**`containerView`** — delete `Content()`; append at the end of `GenerateLayout`,
+**`containerView`** — delete `Content()`. Append at the end of `GenerateLayout`,
 after `addGroupBoxTitle`:
 
 ```go
@@ -361,15 +360,15 @@ Three things land together there:
   becomes stateless as the interface has always claimed, and a cached `formView`
   stops being a frame-2 bug waiting to happen.
 - `generateViewLayout(inner, w)` replaces the direct call, putting the node back
-  on the one path. `formView` currently skips `ensureLayoutShape`; `inner` is a
+  on the one path. `formView` currently skips `ensureLayoutShape`. `inner` is a
   `containerView` and always produces a shape, so this is a correctness tidy
   rather than a fix.
 - routing through `appendChildViewsFlat` gives form children the arena
   reservation and the `maxEventChildren` cap that the hand-rolled loop does not
   have today. **This is the only reason `appendChildViewsFlat` needs to exist**
-  — without it, 3b could simply delete the dead line and stop.
+  — without it, 3b can delete the dead line and stop.
 
-**`rotatedBoxView`** — delete `Content()`; the singular child avoids the current
+**`rotatedBoxView`** — delete `Content()`. The singular child avoids the current
 per-node slice allocation:
 
 ```go
@@ -380,7 +379,7 @@ per-node slice allocation:
 
 where `contentSlice []View` is built once in the `RotatedBox` factory rather
 than per frame. (Alternative: an `appendChildView` singular helper. Either is
-fine; the factory-side slice keeps one helper.)
+fine. The factory-side slice keeps one helper.)
 
 **`viewFunc`** — delete `Content()`. `GenerateLayout` already self-recurses.
 
@@ -388,7 +387,7 @@ fine; the factory-side slice keeps one helper.)
 `comboboxView`, `commandPaletteView`, `tabControlView`, `themePickerView`,
 `drawCanvasView`, `termGridView`, `datePickerRollerView`, `rtfView`,
 `colorPickerView`, …) — delete the one-line `Content() []View { return nil }`.
-No other change; they already self-recurse.
+No other change. They already self-recurse.
 
 ## Downstream impact
 
@@ -431,7 +430,7 @@ migrate to generating first and walking `Layout.Children`:
 Not a pure rename — the counts differ where a container sets `Title`
 (`addGroupBoxTitle` adds two children), where a child is nil (skipped), and at
 the `maxEventChildren` cap. `go-map`'s relative assertions
-(`len(withTitle.Content()) != len(without.Content())+1`) are the ones to check
+(`len(withTitle.Content()) != len(without.Content())+1`) are the ones to verify
 individually.
 
 **The two `go-charts` sites cannot migrate this way**, and this is the finding
@@ -448,7 +447,7 @@ children to `chart.Drawer` and collect them as `[]gui.View`**. `Layout.Children`
 carries `Shape`, not `View` — the View identity is gone, so the assertion is
 impossible on the generated tree.
 
-This is not a migration gap; it is a **capability the refactor removes**. After
+This is not a migration gap. It is a **capability the refactor removes**. After
 the change, a `View`'s children live in `containerView.content`, which is
 unexported, and there is no interface method to enumerate them. Nothing can walk
 a View tree without generating it, and generating it discards View identity.
@@ -458,8 +457,8 @@ Options for `go-charts`, none of which this spec can decide unilaterally:
 1. **Restructure at the build site** — `findCharts` walks a tree
    `gallery_main.go` itself just constructed, so it can record `Drawer`s while
    building instead of rediscovering them. Cleanest, and arguably what the code
-   should have done; costs go-charts a real refactor.
-2. **Hold the cfg** — `ContainerCfg.Content` stays public, so go-charts could
+   was meant to do. It costs go-charts a real refactor.
+2. **Hold the cfg** — `ContainerCfg.Content` stays public, so go-charts can
    thread its own `[]gui.View` alongside. Works, slightly redundant.
 3. ~~**Provide a replacement seam in `gui/`**~~ — **rejected**, see Unresolved
    #4. Option 1 or 2 it is.
@@ -471,12 +470,12 @@ the `Layout.Children` migration fails for them, and three suggested directions.
 
 `go-map` (18 sites) and `go-term` (1) are mechanical and can migrate with the
 bump rather than ahead of it — but note `go-map`'s relative assertions
-(`len(withTitle.Content()) != len(without.Content())+1`) need checking against
+(`len(withTitle.Content()) != len(without.Content())+1`) need verifying against
 the `addGroupBoxTitle` child-count difference rather than blind translation.
 
 `GenerateViewLayout` (exported) is called from `gui/datagrid` tests,
 `examples/showcase`, and `examples/process_monitor`. Its signature and semantics
-are unchanged; only its doc comment needs the "walks `Content()`" sentence
+are unchanged. Only its doc comment needs the "walks `Content()`" sentence
 replaced.
 
 ## Implementation order
@@ -485,7 +484,7 @@ replaced.
 
 **Decided: no enumeration accessor** (2026-08-14). `go-charts`#41 is therefore a
 blocking prerequisite rather than a follow-up, and step 2 must merge before the
-release tag. All open questions in this spec are now closed; implementation can
+release tag. All open questions in this spec are now closed. Implementation can
 start at step 1.
 
 ### 1. go-gui pre-work — no behavior change, lands independently
@@ -495,7 +494,7 @@ start at step 1.
    the before/after alloc delta measures the harness, not production.
 2. **Add the two missing assertions** — group-box child ordering, and form
    children's flat effective IDs with the companion `FormFieldState` check.
-   Green before and after; they exist so that a mistake in step 3 fails for the
+   Green before and after. They exist so that a mistake in step 3 fails for the
    right reason rather than silently.
 
 ### 2. go-charts#41 — parallel with step 1
@@ -505,16 +504,16 @@ concurrently. **Must be merged before go-gui tags a release** carrying step 3.
 
 ### 3. The refactor — two PRs, not one
 
-**3a — interface collapse.** Add `appendChildViews`; shrink
-`generateViewLayout`; delete all 27 `Content()` implementations; update
-`containerView`, `rotatedBoxView`, `viewFunc`, and the three test stubs; fix the
+**3a — interface collapse.** Add `appendChildViews`. Shrink
+`generateViewLayout`. Delete all 27 `Content()` implementations. Update
+`containerView`, `rotatedBoxView`, `viewFunc`, and the three test stubs. Fix the
 doc comments in `view.go`, `doc.go:80`, and `layout.go:4,26`.
 
-Per the Unresolved #4 decision, `gui/doc.go` should also state the new
-constraint outright: **a View tree cannot be walked without generating it, and
-generating it discards View identity — record Views at construction time if you
-need to find them by type later.** That is the one thing this change takes away
-from users, so it belongs in the docs rather than in a compile error.
+Per the Unresolved #4 decision, `gui/doc.go` also states the new constraint
+outright: **a View tree cannot be walked without generating it, and generating
+it discards View identity — record Views at construction time if you need to
+find them by type later.** That is the one thing this change takes away from
+users, so it belongs in the docs rather than in a compile error.
 
 `formView` loses only its `Content()` method here — see "Call-site changes"
 above for why that is behavior-preserving without any helper.
@@ -525,7 +524,7 @@ above for why that is behavior-preserving without any helper.
 The split exists because **3b carries all of the ID-scoping risk and 3a carries
 none**. Keeping them apart means a focus or ID regression bisects to a small,
 single-purpose PR instead of one that touched 27 files. 3a is large but
-mechanical; 3b is three lines and the whole reason to be careful.
+mechanical. 3b is three lines and the whole reason to be careful.
 
 ### 4. Release and sibling bumps
 
@@ -536,13 +535,13 @@ implementations nor call sites.
 ### 5. Issue #306 — resolved: Form scopes its children
 
 Landed 2026-08-14, after the refactor settled. `Form` now routes through the
-single `appendChildViews` path like every other container;
+single `appendChildViews` path like every other container.
 `appendChildViewsFlat` is deleted. Form children's effective IDs changed from
 the flat leaf to `form:<id>:<leaf>` (absolute prefix — a form inside an
 ID-bearing panel still scopes under `form:<id>`, never the panel's scope). That
 is a breaking change for `SetFocus` / `FindByID` callers that used the flat
-name; the field registry never participated (`FieldID` is a separate namespace)
-and is unaffected. What it fixes: two forms in one window may each hold an
+name. The field registry never participated (`FieldID` is a separate namespace)
+and is unaffected. What it fixes: two forms in one window can each hold an
 `Input{ID: "email"}` without colliding on one effective ID — the flat behavior
 made such a window fail `TestDuplicateIDs`.
 
@@ -563,7 +562,7 @@ Existing gates that must stay green unmodified in intent:
 - `BenchmarkGenerateViewLayout` (`gui/view_bench_test.go:75`) — **the baseline
   shifts under this change and the numbers are not comparable as-is.**
   `benchView.Content()` (`:13-22`) itself allocates a `[]View` per node per
-  call; moving it to `appendChildViews` drops allocations from the harness
+  call. Moving it to `appendChildViews` drops allocations from the harness
   rather than from production code. Either pin the benchmark to a
   production-shaped tree (`Column` + `Text`) before the refactor and compare
   that, or record both numbers and state which is drift. Do not report the raw
@@ -579,9 +578,9 @@ via `appendChildViews`.
 Then: `make check-all`, `make export-audit` (the `View` interface is exported
 surface), and `make ergonomics-audit`.
 
-Two behaviors currently relied on with nothing pinning them down. Both should
-gain an assertion in **step 1**, before either refactor PR, so the tests fail
-for the right reason if step 3 gets them wrong:
+Two behaviors currently relied on with nothing pinning them down. Both gain an
+assertion in **step 1**, before either refactor PR, so the tests fail for the
+right reason if step 3 gets them wrong:
 
 1. **Group-box ordering.** A container with `Title` set _and_ `Content` children
    must keep the `addGroupBoxTitle` eraser + label ahead of the content
@@ -613,9 +612,9 @@ trade against. Costs, in the smallest app in the repo
 (`examples/get_started/main.go`, 11 lines of tree):
 
 - four `w` threadings, scaling linearly with nesting depth
-- `gui.CurrentTheme()` → `w.Theme()` in every app, because factories would run
-  at call time rather than under `installTheme`'s frame cache — issue #301
-  again, but in user code instead of 13 internal sites
+- `gui.CurrentTheme()` → `w.Theme()` in every app, because factories run at call
+  time rather than under `installTheme`'s frame cache — issue #301 again, but in
+  user code instead of 13 internal sites
 - evaluation order stops being deferred: a `[]Layout` literal evaluates its
   elements before the enclosing call, so the idScope push cannot be expressed
   around it
@@ -637,8 +636,8 @@ A large API break across six repos, in exchange for a saving that measures zero.
    no — it is accidental.** The truncation predates ID scoping by two months
    (`2fda77b7`, 2026-06-08 vs `70a7a399`/#228, 2026-08-09), its comment claims
    only double-processing, and no test covers the effect. The earlier rationale
-   in this spec — that field registration would break — was wrong; field IDs are
-   a separate namespace. See "The scope suppression is accidental" above.
+   in this spec — that field registration breaks — was wrong. Field IDs are a
+   separate namespace. See "The scope suppression is accidental" above.
 
    **Decided (2026-08-14): keep flat, superseded by #306 the same day.** This
    change was behavior-preserving — `appendChildViewsFlat` reproduced today's
@@ -660,16 +659,16 @@ A large API break across six repos, in exchange for a saving that measures zero.
    Boxing a pointer into an interface allocates nothing — the pointer fits in
    the interface's data word. The per-node cost is the **view struct itself**
    (`&containerView{}` is 512 B, dominated by the embedded `ContainerCfg`), and
-   a layouts-only design would still pay a comparable cost for the `Layout` +
-   `Shape` it builds instead.
+   a layouts-only design still pays a comparable cost for the `Layout` + `Shape`
+   it builds instead.
 
    The `Content()` call remains a real **dispatch** (~2.5 ns/node/frame), which
    is why collapsing it is still worth doing — but it is not an allocation, and
-   this spec should not be sold as an allocation win. The only allocation this
+   this spec does not sell itself as an allocation win. The only allocation this
    change removes is `rotatedBoxView`'s per-node slice.
 
 4. **Reopened by the call-site survey — but the seams need separating first.**
-   The original framing ("should `appendChildViews` be exported?") conflates two
+   The original framing — whether to export `appendChildViews` — conflates two
    distinct things:
 
    - **Producer seam** — a composite widget declaring children and wanting the
@@ -680,11 +679,11 @@ A large API break across six repos, in exchange for a saving that measures zero.
      stands for this seam.
    - **Consumer seam** — code enumerating an existing View tree. This is what
      the 21 downstream call sites use, and it is what the refactor actually
-     removes. `appendChildViews` does not serve it; exporting it would not
+     removes. `appendChildViews` does not serve it. Exporting it does not
      unblock a single one of those sites.
 
-   So the live question was narrower and different: should `gui/` offer a
-   replacement for View-tree enumeration at all?
+   So the live question was narrower and different: whether `gui/` offers a
+   replacement for View-tree enumeration at all.
 
    **Decided (2026-08-14): no accessor.** `GenerateViewLayout(v, w).Children`
    covers 19 of the 21 downstream sites. The other two want View identity
@@ -703,6 +702,6 @@ A large API break across six repos, in exchange for a saving that measures zero.
      rather than learned by compile error.
 
    Rejected: an exported `ChildViews(v View) []View` backed by an unexported
-   `childViewer` interface. It would unblock `go-charts` with no restructuring,
-   but reintroduces on every `View` exactly the second mechanism this spec
-   exists to remove.
+   `childViewer` interface. It unblocks `go-charts` with no restructuring, but
+   reintroduces on every `View` exactly the second mechanism this spec exists to
+   remove.

@@ -30,10 +30,10 @@ View fn → generateViewLayout() → Layout tree
 
 ### Packages
 
-**Keep flat: only leaf subsystems (svg/, datagrid/, markdown/, backend/, etc.)
-in subpackages.** `gui/` itself holds the core: widget factories, layout engine,
-theme, animation, event dispatch, state mgmt. No test backend package; tests run
-with nil injected interfaces.
+**Keep flat: only leaf subsystems (svg/, datagrid/, markdown/, backend/, and
+more) in subpackages.** `gui/` itself holds the core: widget factories, layout
+engine, theme, animation, event dispatch, state mgmt. No test backend package;
+tests run with nil injected interfaces.
 
 ### Core Types
 
@@ -152,7 +152,7 @@ background in `docs/specs/widget-visual-consistency-audit.md`.
 - **`TextStyle.disabledRole`** marks a style that already expresses the disabled
   state so `renderText` skips `dimAlpha`. Set only by `themeTextRoles`; never at
   a call site — `layoutDisables` stamps `Disabled` onto _every descendant_ of a
-  disabled shape and would halve a color the theme already quieted.
+  disabled shape and halves a color the theme already quieted.
 - **A form control's text inset** is `Theme.PaddingField`, so controls in one
   row share a height. Not the Small/Medium/Large ladder: those size the gap
   between things, this sizes a control.
@@ -202,8 +202,8 @@ Backend injects at startup. Nil in tests:
 - **Theme reads split by phase, not by reachability. Code running _outside_
   generation with a `*Window` in hand calls `w.Theme()`; factories and
   `GenerateLayout` keep the bare `guiTheme` / `default*Style` read** — `Themed`
-  scopes by push/pop of the _installed_ theme, so `w.Theme()` there would ignore
-  the scope. `ergonomics-audit` mode `theme` gates the post-generation paths
+  scopes by push/pop of the _installed_ theme, so `w.Theme()` there ignores the
+  scope. `ergonomics-audit` mode `theme` gates the post-generation paths
   (`gui/backend/**`, `gui/scroll*.go`, `gui/event*.go`, `gui/native_*.go`,
   `gui/window_*.go`); mark a deliberate exception
   `ergonomics-audit:theme-global`.
@@ -223,7 +223,7 @@ Backend injects at startup. Nil in tests:
   (`FloatAnchor`/`FloatTieOff`/`FloatOffsetX`/`FloatOffsetY`) to position
   elements with children.
 - **`AmendLayout` runs under the frame lock (`w.mu`), so no callback reached
-  from it may call a window-mutating API.** `SetFocus`, `ClearFocus`,
+  from it can call a window-mutating API.** `SetFocus`, `ClearFocus`,
   `UpdateView`, `ClearDrawCanvasCache` and `Window.Lock` all take `w.mu`, which
   is not reentrant; they panic naming themselves. The remedy is
   `ctx.Window.QueueCommand`. Library code reaching app code from the pass raises
@@ -280,7 +280,7 @@ Assertable forms for tests, which return findings as data:
   hook auto-runs lint-fix + tests on every .go edit.
 - **Minimal scoped diffs.** Touch only what the request needs. No cosmetic
   comment/formatting churn, no drive-by edits. Rename/regex passes must not
-  alter comment prose (e.g. apostrophes in possessives).
+  alter comment prose (for example, apostrophes in possessives).
 
 ## Verification
 

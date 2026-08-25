@@ -2,7 +2,7 @@ One hundred six built-in animated SVG spinners drawn from the open-source
 svg-spinners collection plus extended SMIL- and CSS-driven assets. Each kind is
 embedded as raw SVG and rendered through the same pipeline as `gui.Svg`, so
 assets recolor via `fill=\"currentColor\"` and scale cleanly at any size.
-Identify a spinner by its `SvgSpinnerKind` constant; call `SvgSpinnerCount` or
+Identify a spinner by its `SvgSpinnerKind` constant. Call `SvgSpinnerCount` or
 `SvgSpinnerName` to enumerate or label them.
 
 ## Usage
@@ -67,16 +67,16 @@ for i := range gui.SvgSpinnerCount() {
 
 ## Accessibility
 
-| Property | Type    | Description                                                                            |
-| -------- | ------- | -------------------------------------------------------------------------------------- |
-| A11YCfg  | A11YCfg | Embedded: A11YLabel (short spoken name), A11YDescription (e.g. "loading, please wait") |
+| Property | Type    | Description                                                                                   |
+| -------- | ------- | --------------------------------------------------------------------------------------------- |
+| A11YCfg  | A11YCfg | Embedded: A11YLabel (short spoken name), A11YDescription (for example "loading, please wait") |
 
 ## Helpers
 
-| Function          | Description                                   |
-| ----------------- | --------------------------------------------- |
-| SvgSpinnerCount() | Returns the number of built-in kinds (106)    |
-| SvgSpinnerName(k) | Returns the asset basename (e.g. "tail-spin") |
+| Function          | Description                                          |
+| ----------------- | ---------------------------------------------------- |
+| SvgSpinnerCount() | Returns the number of built-in kinds (106)           |
+| SvgSpinnerName(k) | Returns the asset basename (for example "tail-spin") |
 
 ## Animation Pipeline
 
@@ -250,12 +250,12 @@ CSS features:
 
 ## Caveats
 
-- Assets relying on SMIL or CSS features outside the supported subset may render
+- Assets relying on SMIL or CSS features outside the supported subset can render
   as their static first frame.
-- `<set>` defaults to freeze semantics (SMIL default is remove); authors who
+- `<set>` defaults to freeze semantics (the SMIL default is remove). Authors who
   want remove must set `fill=\"remove\"` explicitly.
-- `SvgSpinnerCount` and enum values are generated from the embedded asset
-  directory, so numeric values shift when assets are added or removed — always
+- `SvgSpinnerCount` and the enum values are generated from the embedded asset
+  directory. Numeric values shift when assets are added or removed. Always
   reference kinds by their named constant.
 
 Set the pair through the embed: `A11YCfg: gui.A11YCfg{A11YLabel: "Save"}`.

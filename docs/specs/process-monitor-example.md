@@ -30,11 +30,11 @@ shirei original).
 From shirei's README + `main.go`. Port each:
 
 1. Live process list: PID, CPU%, RSS, MEM%, USER, STATE, THREADS, NAME.
-2. Click a column header to sort; click again to reverse.
+2. Click a column header to sort. Click again to reverse.
 3. Row selection → detail panel + ~60s rolling CPU and RAM bar charts.
 4. Filter box: match name, command line, user, or PID (substring,
    case-insensitive).
-5. Flat list OR parent/child tree (collapse with ▸/▾; filter keeps ancestors
+5. Flat list OR parent/child tree (collapse with ▸/▾. Filter keeps ancestors
    visible).
 6. Sample interval selector: 0.5s / 1s / 2s / 5s.
 7. Unreadable metrics render `--`, never a fake `0`.
@@ -110,10 +110,10 @@ Per-platform `collect()`:
   collected.
 - **windows** (`collect_windows.go`): `tasklist /fo csv /nh /v` → image name,
   PID, session, mem usage, status, user, CPU time. No live per-interval CPU%
-  from a single call; report `CPUPercentUnknown` in v1 (renders `--`), or
+  from a single call. Report `CPUPercentUnknown` in v1 (renders `--`), or
   compute a delta from two `tasklist` CPU-time reads if cheap. RSS from the "Mem
   Usage" column.
-- **other** (`collect_other.go`): return an error; the UI shows the sample error
+- **other** (`collect_other.go`): return an error. The UI shows the sample error
   (matches shirei's error path).
 
 CPU% decision (v1): use `ps pcpu` directly. Caveat: on Unix `pcpu` is a
@@ -124,8 +124,8 @@ keeps the collector to one `exec` per sample. A delta-based interval CPU%
 regardless — they plot whatever CPU% is reported, over time.
 
 System memory (`sysmem_*.go`): `/proc/meminfo` (`MemTotal`,
-`MemTotal-MemAvailable`) on linux; `sysctl hw.memsize` + `vm_stat` on darwin. On
-failure/other, return `(0, 0)`; the header omits the memory bar rather than
+`MemTotal-MemAvailable`) on linux. `sysctl hw.memsize` + `vm_stat` on darwin. On
+failure/other, return `(0, 0)`. The header omits the memory bar rather than
 inventing a value (shirei's "-- not fake zero" philosophy).
 
 ### Sampler goroutine + refresh model
@@ -169,10 +169,10 @@ func startSampler(w *gui.Window) {
 
 Critical detail: use `w.UpdateWindow()` (alias `markLayoutRefresh`), **NOT**
 `w.UpdateView(fn)`. `UpdateView` clears the view-state registry every call,
-which would drop input focus and scroll position on every sample.
-`RequestRedraw()` is render-only (no view re-run) so new rows would not appear —
-also wrong. `UpdateWindow` re-runs the registered view generator against fresh
-state while preserving the registry. Register the generator once in `OnInit` via
+which drops input focus and scroll position on every sample. `RequestRedraw()`
+is render-only (no view re-run) so new rows do not appear — also wrong.
+`UpdateWindow` re-runs the registered view generator against fresh state while
+preserving the registry. Register the generator once in `OnInit` via
 `w.UpdateView(rootView)`.
 
 Reads of shared state during sampling and all mutations happen under `w.Lock()`
@@ -214,14 +214,14 @@ Theme tokens (from `gui.CurrentTheme()`) replace all shirei HSL literals:
 | padding / spacing / radius | `theme.PaddingSmall`, `theme.SpacingSmall`, `theme.RadiusSmall` |
 
 Default theme: `gui.SetTheme(gui.ThemeDark.WithBorders(true))` (matches
-`data_grid_data_source`). A `ThemePicker` widget MAY be added to the toolbar to
+`data_grid_data_source`). A `ThemePicker` widget can be added to the toolbar to
 demo light/dark switching (optional, see Open Questions).
 
 ### Header (`view.go`)
 
 `gui.Row` of: title `gui.Text{TextStyle: theme.B2}`, spacer, and stat chips
 (`gui.Row`+`gui.Text` in a rounded `ColorInterior` container) for "active/kept"
-counts and last-updated time. System memory shown as a labelled `UsageBar` (see
+counts and last-updated time. System memory shown as a labeled `UsageBar` (see
 below) + "used / total" text. If `Snapshot == nil`: "Collecting…". If
 `Err != nil`: error text in `theme.ColorError`.
 
@@ -243,7 +243,7 @@ table **immediate-mode**, like shirei does, for full cell control:
 
 - A header `gui.Row` of clickable column-title cells. Each is a `gui.Button` (or
   a container with `OnClick`) that sets `app.Sort.Column` / toggles
-  `app.Sort.Desc`; show a ▲/▼ marker on the active column.
+  `app.Sort.Desc`. Show a ▲/▼ marker on the active column.
 - Body: a **scrollable** `gui.Column` (`Scrollable: true` + `ScrollbarCfgY`, per
   `scroll_demo`) containing one `gui.Row` per visible process.
 - Each row: fixed-width cells matching the header. Cells:
@@ -251,8 +251,8 @@ table **immediate-mode**, like shirei does, for full cell control:
   - CPU: `gui.Text` + a `UsageBar` (see below).
   - NAME: in tree mode, leading indent (`Width = depth*14`) + a ▸/▾ chevron
     button toggling `p.Collapsed`, then the name.
-  - Row background: alternate `ColorPanel`/`ColorInterior`; `ColorSelect` when
-    `app.Selected == p`; `ColorHover` on hover. Row `OnClick` sets
+  - Row background: alternate `ColorPanel`/`ColorInterior`, `ColorSelect` when
+    `app.Selected == p`, and `ColorHover` on hover. Row `OnClick` sets
     `app.Selected = p`. `OnClick` is consume-class, so the click is marked
     handled by dispatch.
 - Row ordering, filtering, and tree flattening are computed by the app (port
@@ -266,26 +266,26 @@ load, or a single accent for simplicity).
 
 ### Detail panel + history charts (`chart.go`)
 
-Selected-process panel: name, pid, ppid, cpu, rss, start time; "stopped …" in
-`ColorError` when not running; full command line in muted text. Then two
-`UsageChart`s (CPU, RAM) side by side.
+Selected-process panel: name, pid, ppid, cpu, rss, start time. "Stopped …" shows
+in `ColorError` when the process is not running. The full command line shows in
+muted text. Then two `UsageChart`s (CPU, RAM) sit side by side.
 
 `UsageChart` — port shirei's container-bar chart, restyled with theme tokens:
 
 - `resampleHistory(hist, 60s, 1s, valueFn)` →
-  `[]HistBucket{Value, HasData, Interpolated}`. Port verbatim (pure Go;
+  `[]HistBucket{Value, HasData, Interpolated}`. Port verbatim (pure Go,
   unit-tested).
-- Render: a fixed-size rounded panel; a `gui.Row` of per-bucket columns. Each
-  bucket is a `gui.Column` with a bottom-anchored `gui.Rectangle` whose height =
-  `ratio * chartHeight`. Empty buckets → 1px baseline. Interpolated buckets →
-  dimmer fill. A floating title label over the bars.
-- CPU chart pins the y-scale floor at 100%; RAM chart auto-scales to the max
+- Render: a fixed-size rounded panel with a `gui.Row` of per-bucket columns.
+  Each bucket is a `gui.Column` with a bottom-anchored `gui.Rectangle` whose
+  height = `ratio * chartHeight`. Empty buckets → 1px baseline. Interpolated
+  buckets → dimmer fill. A floating title label over the bars.
+- CPU chart pins the y-scale floor at 100%. RAM chart auto-scales to the max
   seen (port `ramHistoryScale`).
 
 go-gui note: verify bottom-anchoring bars. shirei uses `Filler(1)` to push the
 bar down. In go-gui, achieve the same with a spacer child (empty `FillFill`
 container) above a fixed-height bar in a `Column`, or `VAlign: VAlignBottom` on
-the bucket column. Confirm during implementation.
+the bucket column. Verify during implementation.
 
 ## CLI flags (`main.go`)
 
@@ -298,18 +298,18 @@ Keep the subset that maps cleanly:
 - `-refresh D` : GUI sample interval default (default 1s).
 
 Drop `-png` (no headless render API). Drop `-samples`/`-period` (those drive
-shirei's multi-sample burst window for interval CPU%, unused with `ps pcpu`;
-reintroduce only if the CPU-delta enhancement lands).
+shirei's multi-sample burst window for interval CPU%, unused with `ps pcpu`).
+Reintroduce only if the CPU-delta enhancement lands.
 
 ## Testing (headless, no backend)
 
 Follows CLAUDE.md: rebuild + `go test ./examples/process_monitor/...`.
 
-- `store_test.go`: `Update` adds/updates/evicts; PID-reuse produces a distinct
-  key; ring buffer caps at `maxHistoryPoints`; stopped processes linger then
-  evict; selected process is not evicted.
-- `tree_test.go`: `treeRows` builds correct depth/child-count; collapse hides
-  subtree; filter keeps matched nodes' ancestors and ignores collapse.
+- `store_test.go`: `Update` adds/updates/evicts. PID-reuse produces a distinct
+  key. Ring buffer caps at `maxHistoryPoints`. Stopped processes linger then
+  evict. Selected process is not evicted.
+- `tree_test.go`: `treeRows` builds correct depth/child-count. Collapse hides
+  subtree. Filter keeps matched nodes' ancestors and ignores collapse.
 - `chart_test.go`: `resampleHistory` — same-slot averaging, gap interpolation
   flagged `Interpolated`, pre-first-sample slots stay `HasData=false`, fixed
   wall-clock bucket boundaries (port shirei's intent).
@@ -319,7 +319,7 @@ Follows CLAUDE.md: rebuild + `go test ./examples/process_monitor/...`.
   real `ps` collector in tests (inject a synthetic snapshot).
 
 Collectors that `exec` `ps`/`tasklist` are not unit-tested (environment
-dependent); keep them thin and behind the `collect()` seam so tests use
+dependent). Keep them thin and behind the `collect()` seam so tests use
 synthetic snapshots.
 
 ## Docs deliverables
@@ -340,13 +340,13 @@ Per `feedback_doc_sync`:
    for v1, note the caveat, enhance later.
 2. **Windows fidelity**: ship a reduced `tasklist` collector (CPU% = `--`), or
    mark Windows out of scope for v1 with the `collect_other.go` stub?
-   Recommendation: ship the reduced collector; it still lists processes.
-3. **StartTime on darwin**: pull `ps -o lstart=` (extra parse cost) for robust
+   Recommendation: ship the reduced collector. It still lists processes.
+3. **StartTime on darwin**: pull `ps -o lstart=` (extra parse cost) for stronger
    PID-reuse keys, or fall back to `{PID}` only? Recommendation: `{PID}`-only
-   fallback in v1; document it.
+   fallback in v1. Document it.
 4. **ThemePicker in toolbar** to demo light/dark, or fixed `ThemeDark`?
-   Recommendation: fixed `ThemeDark.WithBorders(true)`; add picker only if it
-   doesn't crowd the toolbar.
+   Recommendation: fixed `ThemeDark.WithBorders(true)`. Add the picker only if
+   it does not crowd the toolbar.
 5. **Refresh latency**: rely on the ~100ms idle poll (simple, no wake), accept
-   up to ~100ms lag between sample-ready and repaint? Recommendation: yes;
-   imperceptible at these intervals.
+   up to ~100ms lag between sample-ready and repaint? Recommendation: yes. The
+   lag is imperceptible at these intervals.

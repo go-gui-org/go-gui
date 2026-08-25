@@ -15,10 +15,11 @@ Create a new example app under `examples/<name>/main.go`.
 ## Template
 
 Every example follows this structure:
-1. Package comment describing the example
+1. Package comment that describes the example
 2. `App` state struct
-3. `main()` that sets theme, creates `gui.NewWindow`, calls `backend.Run`
-4. `mainView` function returning `gui.View`
+3. `main()` that sets the theme, creates `gui.NewWindow`, and calls
+   `backend.Run`
+4. `mainView` function that returns `gui.View`
 
 ## Reference Pattern
 
@@ -28,8 +29,8 @@ Use `examples/get_started/main.go` as the canonical template:
 package main
 
 import (
-    "github.com/mike-ward/go-gui/gui"
-    "github.com/mike-ward/go-gui/gui/backend"
+    "github.com/go-gui-org/go-gui/gui"
+    "github.com/go-gui-org/go-gui/gui/backend"
 )
 
 type App struct {
@@ -37,7 +38,7 @@ type App struct {
 }
 
 func main() {
-    gui.SetTheme(gui.ThemeDarkBordered)
+    gui.SetTheme(gui.ThemeDark)
 
     w := gui.NewWindow(gui.WindowCfg{
         State:  &App{},
@@ -68,6 +69,6 @@ func mainView(w *gui.Window) gui.View {
 
 ## Rules
 - Place in `examples/<name>/main.go`
-- Use `gui.ThemeDarkBordered` unless user specifies otherwise
+- Use `gui.ThemeDark` unless the user specifies otherwise
 - Use `gui.FixedFixed` sizing for the root container
 - Follow all conventions in CLAUDE.md (no variable shadowing, clean lint)

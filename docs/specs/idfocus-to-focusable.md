@@ -20,14 +20,14 @@ as the sole focus identity removes the coupling:
 - **Tab order** = layout-tree depth-first (DFS) traversal order.
 
 `IDScroll` (scroll-state key, `uint32`) has no double-duty problem and is
-explicitly **out of scope**; it stays `uint32` and keeps its `FnvSum32` string
+explicitly **out of scope**. It stays `uint32` and keeps its `FnvSum32` string
 derivation.
 
 ## Decisions (locked)
 
 1. Tab order: layout-tree DFS order. Numeric ordering retired.
 2. Window API: `SetFocus(id string)`, `FocusID() string`,
-   `IsFocus(id string) bool`, `ClearFocus()`. No public `SetFocus("")`;
+   `IsFocus(id string) bool`, `ClearFocus()`. No public `SetFocus("")`.
    `ClearFocus()` is the documented way to defocus.
 3. Opt-in: explicit `Focusable bool`. `Focusable: true` requires a non-empty
    `ID`.
@@ -53,8 +53,8 @@ derivation.
    offsets and per-widget state. It warns once per ID per window rather than
    once per frame.
 
-7. go-term: add optional `term.Cfg.ID string`; when set it is the focus
-   identity, when empty fall back to the existing generated `"term-"+seq`
+7. go-term: add optional `term.Cfg.ID string`. When set, it is the focus
+   identity. When empty, fall back to the existing generated `"term-"+seq`
    scheme.
 
 ## Core model changes
@@ -79,11 +79,11 @@ derivation.
 ### Tab traversal (`gui/layout_query.go`, `gui/window_event.go`)
 
 - `focusCandidate{shape *Shape; id string}`.
-- `collectFocusCandidates`: gate `Focusable && !FocusSkip && !Disabled`; dedup
-  by `ID` (dev-mode warn on collision); DFS order preserved.
+- `collectFocusCandidates`: gate `Focusable && !FocusSkip && !Disabled`. Dedup
+  by `ID` (dev-mode warn on collision). DFS order preserved.
 - Replace numeric `focusFindNext`/`focusFindPrevious` with **positional**
   next/previous: find current `FocusID()` index in the ordered slice, return
-  `(i±1)` with wrap; current not found → first / last.
+  `(i±1)` with wrap. Current not found → first / last.
 - `FindLayoutByIDFocus` → `FindLayoutByFocusID(layout, id string)` matching
   `Shape.ID`.
 - `handleKeyDownEvent` dialog-layer scoping is unchanged, so Tab stays trapped
@@ -92,7 +92,7 @@ derivation.
 ### Click / scroll focus (`gui/event_handlers.go`)
 
 - Click-to-focus: `Focusable && ID != "" && button != right → SetFocus(ID)`.
-- `focusedScrollTarget`: guard `FocusID() == ""`; use `FindLayoutByFocusID`.
+- `focusedScrollTarget`: guard `FocusID() == ""`. Use `FindLayoutByFocusID`.
 
 ## StateMap key retype (`gui/state_registry.go` + consumers)
 
@@ -106,7 +106,7 @@ Six namespaces flip `uint32` (IDFocus) → `string` key. `nsScrollX` / `nsScroll
 | `nsSpellCheck`       | key `uint32`→`string`                                                 |
 | `nsMdSel`            | key `uint32`→`string`                                                 |
 | `nsMdBlocks`         | key `uint32`→`string`                                                 |
-| `nsMenu`             | key `uint32`→`string`; drop `FnvSum32("menu_"+ID)`, use `ID` directly |
+| `nsMenu`             | key `uint32`→`string`, drop `FnvSum32("menu_"+ID)`, use `ID` directly |
 | `nsContextMenuFocus` | **value** `uint32`→`string` (saved prior focus)                       |
 
 Consumers threading `idFocus uint32` → `focusID string`: `input_state.go`,
@@ -118,12 +118,12 @@ Consumers threading `idFocus uint32` → `focusID string`: `input_state.go`,
 All 34 focusable `Cfg` structs already have an `ID string` field — **no new ID
 fields required**. Per Cfg:
 
-- Drop `IDFocus uint32`; add `Focusable bool`. Focus identity = `ID`.
+- Drop `IDFocus uint32`. Add `Focusable bool`. Focus identity = `ID`.
 
 Special cases:
 
 - Menus (`view_menu.go`, `view_menubar.go`, `view_context_menu.go`): drop
-  `FnvSum32` focus derivation; use `cfg.ID`.
+  `FnvSum32` focus derivation. Use `cfg.ID`.
 - `RadioButtonGroup`: `idFocus++` → per-child
   `ID = cfg.ID + "/" + strconv.Itoa(i)`.
 - `DataGrid`: focus id → `cfg.ID + ":focus"` (string). The `:scroll` IDScroll
@@ -164,16 +164,16 @@ Each: migrate → bump `go.mod` require →
 
 1. **go-charts** — 1 site (`InputCfg`, iota `focusSearch`). Trivial.
 2. **go-kite** — 4 literals (`Input`/`Button`/`Container`). Trivial.
-3. **go-map** — `mapview` Cfg `IDFocus`/`IDFocusBase uint32` → string base;
-   legend/gallery derive `ID+index` (build order == old numeric order → tab
+3. **go-map** — `mapview` Cfg `IDFocus`/`IDFocusBase uint32` → string base.
+   Legend/gallery derive `ID+index` (build order == old numeric order → tab
    order preserved). Its own string-based overlay-marker focus system is
    independent → unaffected.
-4. **go-edit** — `EditorCfg.IDFocus uint32` → `EditorCfg.ID string`; root
+4. **go-edit** — `EditorCfg.IDFocus uint32` → `EditorCfg.ID string`. Root
    container `Focusable: true`. `SetIDFocus(focusEditor)` →
    `SetFocus("editor")`. 3 prod + 114 test occurrences (mechanical).
 5. **go-term** — `Term.focusID uint32` → `string` (optional `Cfg.ID`, else
-   `"term-"+seq`); `FocusID() uint32→string`; 11 runtime
-   `SetIDFocus`→`SetFocus`; Workspace pane compares strings.
+   `"term-"+seq`). `FocusID() uint32→string`. 11 runtime
+   `SetIDFocus`→`SetFocus`. Workspace pane compares strings.
 
 ## Verification gate (every repo)
 
@@ -194,8 +194,8 @@ go build ./... && go vet ./... && golangci-lint run ./... && go test ./...
 
 - Tab order changes for any app that relied on numeric order differing from tree
   order. Inventory shows all siblings assign IDs in ascending tree order, so
-  tree order matches; low risk.
-- Focus identity must be unique per frame among focusable widgets; duplicates
+  tree order matches. Low risk.
+- Focus identity must be unique per frame among focusable widgets. Duplicates
   collapse to one tab stop (dev-mode warned).
 - Auto-focus-on-launch (`SetIDFocus` in `OnInit`, go-edit/go-term) becomes
   `SetFocus(string)`.

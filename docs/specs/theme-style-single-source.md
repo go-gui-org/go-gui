@@ -13,8 +13,8 @@ Go-Gui had two sources of default widget styling, maintained by hand:
 - `ThemeDark`, built by `ThemeMaker(themeDarkCfg)`.
 
 Only `applyTheme` writes the literals, and `init` never called it — it seeded
-`installedThemeID` so the first frame's `installTheme` would be a no-op. An app
-that never called `SetTheme` therefore ran on a **mixture**: widgets that read
+`installedThemeID` so the first frame's `installTheme` was a no-op. An app that
+never called `SetTheme` therefore ran on a **mixture**: widgets that read
 `guiTheme.xStyle` directly (badge, expand panel, slider, progress bar,
 inspector) got `ThemeDark`, while widgets that read the `default*Style` mirror
 (button, input, container, listbox, tree, menubar, ...) got the literals. The
@@ -44,8 +44,8 @@ Two literals in `gui/styles.go` are **not** mirrors and keep their values:
   happens during `init` before any theme exists.
 - `defaultInspectorStyle` — `ThemeMaker` copies it into every theme.
 
-Both are still re-assigned by `applyTheme`; for `ThemeDark` that assignment is a
-no-op, and for any other theme it is the correct behaviour.
+Both are still re-assigned by `applyTheme`. For `ThemeDark` that assignment is a
+no-op, and for any other theme it is the correct behavior.
 
 ## Why `ThemeDark` carries the 1.5 border
 
@@ -57,12 +57,11 @@ never call `SetTheme`. `ThemeLight` stays borderless (its cfg comes from
 `baseCfg`, which states no `SizeBorder`) — `ThemeLight.WithBorders(true)` is the
 one call that states it. The presets that used to name these variants
 (`dark-bordered`, `light-bordered`, the no-padding pair) were removed with the
-taste presets (visual-refresh §7, phase 8); the registry now holds only dark,
+taste presets (visual-refresh §7, phase 8). The registry now holds only dark,
 light and the three platform pairs.
 
-Every other delta was a literal that had simply fallen behind: an unstyled
-`dataGrid` placeholder, a dialog with no width bounds, a badge with no text
-style.
+Every other delta was a literal that had fallen behind: an unstyled `dataGrid`
+placeholder, a dialog with no width bounds, a badge with no text style.
 
 ## Appearance changes
 
@@ -71,7 +70,7 @@ Borders, revisited 2026-08: issue #300 removed the literal borders and left
 behind issue #325 then showed the borderless default missed the audience — 90 of
 104 example files re-opted in with `Theme.WithBorders(true)` — so `baseDarkCfg`
 carries `sizeBorderDef` again. Widgets render with their 1.5 (slider 1, radio 2)
-borders under `ThemeDark` and the app default; `Theme.WithBorders(false)`
+borders under `ThemeDark` and the app default. `Theme.WithBorders(false)`
 restores the borderless look, and `light` remains borderless by omission.
 
 Everything else:
@@ -79,11 +78,11 @@ Everything else:
 | Widget          | Change                                         |
 | --------------- | ---------------------------------------------- |
 | button          | `colorClick` 104 → 94                          |
-| input           | `ColorFocus` 104 → 74; `Padding` 5 → 10        |
+| input           | `ColorFocus` 104 → 74, `Padding` 5 → 10        |
 | input           | spell-error color → the theme's error red      |
 | listbox         | `Padding` 6 → 10                               |
-| switch, toggle  | `ColorFocus` → 74; toggle `Radius` 3.5 → 5.5   |
-| badge           | `Color` blue → grey 104; gains bold white text |
+| switch, toggle  | `ColorFocus` → 74, toggle `Radius` 3.5 → 5.5   |
+| badge           | `Color` blue → grey 104, gains bold white text |
 | toast           | `TitleStyle` bold → normal                     |
 | dialog          | gains `MinWidth` 200 / `MaxWidth` 300          |
 | menubar         | `spacingSubmenu` 0 → 1                         |

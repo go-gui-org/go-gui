@@ -1,6 +1,6 @@
-Export the current window to PDF or send to the OS print dialog. Supports paper
-sizes, margins, orientation, duplex, color mode, page ranges, headers/footers,
-and DPI settings.
+Export the current window to PDF or send it to the OS print dialog. Set the
+title, output path, copies, page ranges, headers, and footers on the job.
+`NewPrintJob` provides sensible defaults.
 
 ## Export PDF
 
@@ -8,10 +8,10 @@ and DPI settings.
 job := gui.NewPrintJob()
 job.OutputPath = "/tmp/output.pdf"
 job.Title = "My Document"
-job.Paper = gui.PaperA4
-job.Orientation = gui.PrintLandscape
 r := w.ExportPrintJob(job)
-if r.IsOk() {
+if r.ErrorMessage != "" {
+    fmt.Println("Error:", r.ErrorMessage)
+} else {
     fmt.Println("Saved to", r.Path)
 }
 ```
@@ -29,33 +29,20 @@ if r.Status == gui.PrintRunOK {
 
 ## PrintJob Properties
 
-| Property    | Type                 | Description                        |
-| ----------- | -------------------- | ---------------------------------- |
-| OutputPath  | string               | PDF output path (export only)      |
-| Title       | string               | Document title                     |
-| JobName     | string               | OS print job name                  |
-| Paper       | PaperSize            | Paper size                         |
-| Orientation | PrintOrientation     | Portrait or Landscape              |
-| Margins     | PrintMargins         | Page margins in points (1/72 inch) |
-| Copies      | int                  | Number of copies (default 1)       |
-| Duplex      | PrintDuplexMode      | Simplex / LongEdge / ShortEdge     |
-| ColorMode   | PrintColorMode       | Default / Color / Grayscale        |
-| ScaleMode   | PrintScaleMode       | FitToPage or ActualSize            |
-| PageRanges  | []PrintPageRange     | Specific page ranges               |
-| Header      | PrintHeaderFooterCfg | Header text (left/center/right)    |
-| Footer      | PrintHeaderFooterCfg | Footer text (left/center/right)    |
-| Paginate    | bool                 | Enable pagination                  |
-| RasterDPI   | int                  | Raster DPI (default 300)           |
-| JPEGQuality | int                  | JPEG quality (default 85)          |
+| Property    | Type                 | Description                     |
+| ----------- | -------------------- | ------------------------------- |
+| OutputPath  | string               | PDF output path (export only)   |
+| Title       | string               | Document title                  |
+| JobName     | string               | OS print job name               |
+| Orientation | PrintOrientation     | Portrait or Landscape           |
+| Copies      | int                  | Number of copies (default 1)    |
+| PageRanges  | []PrintPageRange     | Specific page ranges            |
+| Header      | PrintHeaderFooterCfg | Header text (left/center/right) |
+| Footer      | PrintHeaderFooterCfg | Footer text (left/center/right) |
 
 ## Paper Sizes
 
-| Constant    | Size         |
-| ----------- | ------------ |
-| PaperLetter | 8.5 x 11 in  |
-| PaperLegal  | 8.5 x 14 in  |
-| PaperA4     | 210 x 297 mm |
-| PaperA3     | 297 x 420 mm |
+`NewPrintJob` defaults to A4 portrait paper.
 
 ## PrintMargins
 
@@ -66,16 +53,15 @@ if r.Status == gui.PrintRunOK {
 | Bottom | float32 | Bottom margin in points |
 | Left   | float32 | Left margin in points   |
 
-`DefaultPrintMargins()` returns 36pt (0.5 inch) on all sides.
+The default margins are 36 points (0.5 inch) on all sides.
 
 ## PrintExportResult
 
-| Field        | Type              | Description            |
-| ------------ | ----------------- | ---------------------- |
-| Status       | PrintExportStatus | PrintExportOK or Error |
-| Path         | string            | Output file path       |
-| ErrorCode    | string            | Error code if failed   |
-| ErrorMessage | string            | Human-readable error   |
+| Field        | Type   | Description          |
+| ------------ | ------ | -------------------- |
+| Path         | string | Output file path     |
+| ErrorCode    | string | Error code if failed |
+| ErrorMessage | string | Human-readable error |
 
 ## PrintRunResult
 
@@ -85,4 +71,3 @@ if r.Status == gui.PrintRunOK {
 | ErrorCode    | string         | Error code if failed  |
 | ErrorMessage | string         | Human-readable error  |
 | PDFPath      | string         | Path to generated PDF |
-| Warnings     | []PrintWarning | Non-fatal issues      |

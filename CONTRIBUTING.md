@@ -19,7 +19,7 @@ When only the fast gate checks are wanted, `make check` (vet, deps-doc,
 large-files, generate-check, tidy-check) is the quick subset. The tracked
 `.githooks/pre-push` hook runs `make check-all` (test + lint + check) on every
 push — enable it with `git config core.hooksPath .githooks`. Tools like
-golangci-lint and gosec must be installed; `make lint` pins the golangci-lint
+golangci-lint and gosec must be installed. `make lint` pins the golangci-lint
 version.
 
 For a tight edit → rebuild → relaunch loop while iterating on an example app,
@@ -27,11 +27,11 @@ see [docs/dev-loop.md](docs/dev-loop.md)
 (`./scripts/dev-loop.sh ./examples/get_started/`).
 
 Build artifacts never land in the repo root: `make build-examples` writes each
-example to `examples/bin/`, `make build-macos`/`build-windows`/etc. write to
-`build/`, and `scripts/dev-loop.sh` writes to `build/dev-loop/`. A bare
-`go build ./examples/<name>/` or `go build ./tools/<name>/` drops a binary in
-the repo root, so always pass `-o` with an explicit output path (e.g.
-`-o build/<name>`).
+example to `examples/bin/`. `make build-macos`, `make build-windows`, and the
+other build targets write to `build/`. `scripts/dev-loop.sh` writes to
+`build/dev-loop/`. A bare `go build ./examples/<name>/` or
+`go build ./tools/<name>/` drops a binary in the repo root, so always pass `-o`
+with an explicit output path (for example, `-o build/<name>`).
 
 `go vet` does not run the `requiredid` analyzer — it is a standalone
 framework-owned analyzer. CI runs it on every push, and `make vet` includes it.
@@ -58,14 +58,14 @@ CI also enforces race detector and benchmark regression gates. Run
 These CI checks have no local Makefile equivalent — they either need a different
 OS runner or a baseline from `main` that only CI can supply:
 
-- OS-matrix test runs (Windows, macOS runners; Windows also runs the showcase
-  smoke test with Mesa's software GL)
+- OS-matrix test runs on Windows and macOS runners. Windows also runs the
+  showcase smoke test with Mesa's software GL
 - Coverage diff on PRs and the benchmark regression gate — both compare against
   a baseline cached from `main` (`scripts/cov-diff.sh` can run them locally if
   you supply two profiles)
-- WASM build/vet/test (`GOOS=js` needs a node `wasm_exec` wrapper);
+- WASM build/vet/test (`GOOS=js` needs a node `wasm_exec` wrapper).
   `make build-wasm` covers the build half
-- iOS and Android vet+lint — need an Xcode iphoneos sysroot / Android NDK;
+- iOS and Android vet+lint — need an Xcode iphoneos sysroot / Android NDK.
   `make build-ios` and `make build-android` cover the build half
 - Release packaging (`release.yml`)
 
@@ -94,7 +94,7 @@ go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
 
 Code must pass `golangci-lint run ./...` and `gofmt`. No variable shadowing.
 
-Markdown must pass Prettier. Run `make fmt-md` before committing; `make check`
+Markdown must pass Prettier. Run `make fmt-md` before committing. `make check`
 runs `make fmt-md-check` and fails on drift. The wrap width lives in
 `.prettierrc`, so no flags are needed at the call site.
 
@@ -103,7 +103,7 @@ generation — event handlers, post-arrange work, backends — and has a `*Windo
 in hand calls `w.Theme()`. The bare `guiTheme` / `default*Style` read is for
 widget factories and `GenerateLayout`, which have no window at hand and where
 the bare read is also what makes `gui.Themed` subtree scoping work.
-`make ergonomics-audit` (mode `theme`) gates the post-generation paths; see
+`make ergonomics-audit` (mode `theme`) gates the post-generation paths. See
 [docs/specs/per-window-theme.md](docs/specs/per-window-theme.md).
 
 ## Submitting Changes
@@ -122,7 +122,7 @@ the bare read is also what makes `gui.Themed` subtree scoping work.
 
 ## Adding Examples
 
-Example apps live in `examples/`. Each example should be a self-contained `main`
+Example apps live in `examples/`. Each example is a self-contained `main`
 package that demonstrates a specific feature or pattern.
 
 ## License

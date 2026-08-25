@@ -2,8 +2,8 @@
 
 - **Status:** phase 5b landed (§ 5.4 focus ring in the default presets, wired
   through every remaining focusable). Phase 5a landed earlier (§ 5.5
-  `BoxShadow.Spread` through six backends); phase 4 (§ 5.2 radius ladder, § 5.3
-  elevation); phases 1, 2, 3 (palettes, accent ramp, semantic colors, border,
+  `BoxShadow.Spread` through six backends). Phase 4 (§ 5.2 radius ladder, § 5.3
+  elevation). Phases 1, 2, 3 (palettes, accent ramp, semantic colors, border,
   type ladder, density). Phases 6, 7, 8 pending.
 - **Extends:** `docs/style-guide.md`,
   `docs/specs/widget-visual-consistency-audit.md` (issue #335)
@@ -44,8 +44,8 @@ amount of per-widget polish reaches.
 ## Non-goals
 
 - Hover/focus color transitions. The animation system (`gui/animation*.go`) is a
-  frame-driven registry of `Animation` objects keyed by ID on the `Window`;
-  nothing connects a shape's hover state to a color tween. Wiring that means
+  frame-driven registry of `Animation` objects keyed by ID on the `Window`.
+  Nothing connects a shape's hover state to a color tween. Wiring that means
   per-effective-ID hover progress in `StateMap` plus color interpolation in the
   fill resolution of ~16 widgets, in a toolkit whose stated bottleneck is
   allocation. Separate project, budgeted separately.
@@ -121,11 +121,11 @@ A `Fit`-sized empty field is a stub. Add `ThemeCfg.SizeFieldMinWidth`
 `MinWidth`.
 
 **Zero means no floor, not "derive 160."** It is a `float32` with a meaningful
-zero, and the § Opt rule says a primitive whose zero is a real choice would need
+zero, and the § Opt rule says a primitive whose zero is a real choice needs
 `Opt` — but here the two readings collapse: `baseCfg()` sets 160, so every
 preset theme carries it, and a hand-built `ThemeCfg` that leaves it zero is
 asking for today's Fit-to-content behavior. A custom theme wanting no floor sets
-nothing; one wanting a different floor states it. No `Opt` wrapper. This also
+nothing. One wanting a different floor states it. No `Opt` wrapper. This also
 retires **four** literals in `ThemeMaker`, not two: the same `MinWidth: 75` /
 `MaxWidth: 200` pair appears on `selectStyle` (`theme_maker.go:188-189`) and
 again on `ComboboxStyle` (`theme_maker.go:436-437`). They are the reason a
@@ -135,9 +135,9 @@ theme nor the caller stated.
 **`MaxWidth: 200` goes too, not just `MinWidth`.** It is the same defect from
 the other end: a `Select` given `FillFit` in a 900px row stops at 200px and the
 caller has no way to see why. With § 1's fix in place a labelled `Select` can
-finally fill its row, and the cap would silently defeat it. Drop both fields to
-0 (uncapped) on `selectStyle` and `ComboboxStyle`; a caller wanting a ceiling
-sets `MaxWidth` on the Cfg. `maxDropdownHeight: 200` is unrelated and stays — it
+finally fill its row, and the cap silently defeats it. Drop both fields to 0
+(uncapped) on `selectStyle` and `ComboboxStyle`. A caller wanting a ceiling sets
+`MaxWidth` on the Cfg. `maxDropdownHeight: 200` is unrelated and stays — it
 bounds the popup list, not the control.
 
 ---
@@ -173,7 +173,7 @@ non-HiDPI Linux or Windows display, and the toolkit's own themes ship
 everywhere. The platform themes take their platform's value, which is what they
 exist for.
 
-The current top of the ladder (`+4/+8`) is too flat to build a heading from;
+The current top of the ladder (`+4/+8`) is too flat to build a heading from.
 `+3/+8` gives one clear step for section headings (17) and one for page titles
 (22) while pulling the crowded bottom apart.
 
@@ -182,7 +182,7 @@ The current top of the ladder (`+4/+8`) is too flat to build a heading from;
 The `B1..B6` bold ladder already exists and is complete. The defect is in what
 widgets _default_ to, not in what the theme offers. Audit pass: every widget
 rendering a heading, a group-box title, a dialog title, a tab label or a table
-header takes a `B` rung; body and value text stays `N`. Section 3 of the widget
+header takes a `B` rung. Body and value text stays `N`. Section 3 of the widget
 audit (`docs/specs/widget-visual-consistency-audit.md`) is the model for how to
 record this.
 
@@ -218,7 +218,7 @@ the reference render the "Role" label appears equally attached to the control
 below it as to its own `Select`. Roughly doubling each rung makes group
 membership legible without measuring.
 
-The rung meanings in `gui/styles.go` stay exactly as documented; only the values
+The rung meanings in `gui/styles.go` stay exactly as documented. Only the values
 move.
 
 ---
@@ -250,7 +250,7 @@ separation.
 
 The wash assumes a fill behind it. A **group box** (a titled container) has a
 transparent fill, so its border and heading are its only separation from the
-page; `Theme.ColorBorder` reads as nothing there. When `ColorBorder` is left
+page. `Theme.ColorBorder` reads as nothing there. When `ColorBorder` is left
 unset on a titled container, it resolves the group-box ink — the theme's own
 body text at 60% (`groupBoxInk`, `gui/view_container.go`) — and forces the
 hairline border unless the caller states one. Caller-explicit colors win.
@@ -311,18 +311,18 @@ states one color and gets a working ramp. The derivation is pinned, because
 - **`ColorTextOnAccent`** is white when `srgbLuminance(ColorAccent) < 0.45`,
   black otherwise, using the existing `srgbLuminance`
   (`gui/theme_text_roles.go:69`). 0.45 rather than the midpoint because white
-  text on a mid-blue reads better than black at the same luminance; both default
+  text on a mid-blue reads better than black at the same luminance. Both default
   accents land well clear of it, so the threshold only matters for a custom
   theme picking a yellow or lime accent.
 
-The table values are what these rules produce from `#4D82F0` and `#2F6FE0`; a
-test should assert that, so the table and the code cannot drift.
+The table values are what these rules produce from `#4D82F0` and `#2F6FE0`. A
+test asserts that, so the table and the code cannot drift.
 
 `ColorAccentSubtle` replaces full-accent fills on selected and highlighted rows
 — `ListBox`, `Table`, `DataGrid`, and the dropdown rows of `Select`, `Combobox`
 and the command palette — where a saturated slab behind every selected row is
 the loudest thing on the screen. Selection paints the subtle tint everywhere and
-in every focus state; focus is the ring (phase 5b), not a second fill (decision
+in every focus state. Focus is the ring (phase 5b), not a second fill (decision
 2). Only the menus keep the full accent fill on their selected item, where the
 row _is_ the focus indication. A subtle row's text stays the body color — the
 accent/text pairing (`ColorTextOnSelect`) applies only where the full accent
@@ -330,8 +330,8 @@ fill still happens.
 
 ### 4.4 Semantic colors
 
-`ColorSuccess`, `ColorWarning` and `ColorError` already exist on `ThemeCfg`;
-only `ColorError` is set by the default presets. Fill all three in both
+`ColorSuccess`, `ColorWarning` and `ColorError` already exist on `ThemeCfg`.
+Only `ColorError` is set by the default presets. Fill all three in both
 polarities and give each a `*Subtle` companion on the same derivation rule as
 the accent, so a validation message and its field background are one decision.
 
@@ -341,7 +341,7 @@ the accent, so a validation message and its field background are one decision.
 
 ### 5.1 Border
 
-`sizeBorderDef 1.5 → 1`. A hairline is what every platform draws; 1.5 at 2x is a
+`sizeBorderDef 1.5 → 1`. A hairline is what every platform draws. 1.5 at 2x is a
 3-pixel stroke and is the main reason the toolkit reads boxy. The macOS theme
 already sets 1 for exactly this reason (`gui/theme_macos.go:76`).
 
@@ -360,7 +360,7 @@ the proposal (a hand-tuned platform theme already landed on these numbers) and
 means `macos`/`macos-dark` see only `RadiusLarge` move, 10 → 12, if that theme
 drops its override.
 
-An audit item: confirm which styles currently consume `RadiusLarge` and move any
+An audit item: verify which styles currently consume `RadiusLarge` and move any
 _control_-tier consumer down to `RadiusMedium` before the bump, or a slider
 track becomes a capsule by accident.
 
@@ -374,8 +374,8 @@ today. Fill them:
 | Dark  | `RGBA(0,0,0,140)`, blur 12   | `RGBA(0,0,0,170)`, blur 32   |
 | Light | `RGBA(16,24,40,40)`, blur 12 | `RGBA(16,24,40,60)`, blur 32 |
 
-Revised after the first pass shipped, when every elevated surface read as a grey
-cloud rather than as depth. The alphas above are the original table's; two other
+Revised after the first pass shipped, when every elevated surface read as a gray
+cloud rather than as depth. The alphas above are the original table's. Two other
 things were wrong.
 
 **The GPU shadow shader had the falloff off by a factor of two, in both
@@ -398,8 +398,8 @@ documented reference the GPU path matches.
 
 **Concentric, not offset.** A downward offset puts a heavy band under one edge
 and nothing above it. On a menu — anchored to a trigger it visibly drops from —
-that reads as depth; on a dialog centred in the window it reads as the surface
-sliding. `OffsetY: 0` in both tiers; the tier is expressed by blur and alpha
+that reads as depth. On a dialog centered in the window it reads as the surface
+sliding. `OffsetY: 0` in both tiers. The tier is expressed by blur and alpha
 alone.
 
 The platform themes (macOS, WinUI, GNOME) keep their offsets — those mirror the
@@ -415,7 +415,7 @@ problem.
 
 ### 5.4 Focus ring
 
-`ThemeCfg.FocusRing` is nil in both default presets; only the macOS themes set
+`ThemeCfg.FocusRing` is nil in both default presets. Only the macOS themes set
 it (`gui/theme_macos.go:93`). Set it in both:
 `BoxShadow{Color: ColorAccent at 25% alpha, BlurRadius: 2}` — a spread-free
 glow, deliberately not a spread ring.
@@ -423,13 +423,12 @@ glow, deliberately not a spread ring.
 Why no spread: the glow is drawn _outside_ the control's layout bounds, but a
 shape's clip is `shapeBounds ∩ parentClip` (`layout_position.go`), and a Fill
 control sitting against its parent's content edge has the glow scissored away on
-the sides it touches. A spread ring would lose a hard-edged band there; a
-spread-free glow loses only a faint tail and degrades gracefully, and the focus
-_border_ (`ColorBorderFocus`) remains the never-clipped indicator. The real fix
-is a draw-outset the ancestors' clips can honour — tracked in the § 10
-checklist. The alpha reads as focus, never as a second border: a spread adds a
-crisp plateau at full ring alpha, which is exactly what the spread-free glow
-avoids.
+the sides it touches. A spread ring loses a hard-edged band there. A spread-free
+glow loses only a faint tail and degrades gracefully, and the focus _border_
+(`ColorBorderFocus`) remains the never-clipped indicator. The real fix is a
+draw-outset the ancestors' clips can honor — tracked in the § 10 checklist. The
+alpha reads as focus, never as a second border: a spread adds a crisp plateau at
+full ring alpha, which is exactly what the spread-free glow avoids.
 
 Two follow-ons:
 
@@ -454,7 +453,7 @@ Two follow-ons:
 
 `BoxShadow` carries `Color`, `OffsetX`, `OffsetY`, `BlurRadius` and nothing
 else. Add `Spread float32`: the amount the shadow's own shape is grown beyond
-the caster before blurring. Zero is today's behaviour, so every existing shadow
+the caster before blurring. Zero is today's behavior, so every existing shadow
 is untouched.
 
 **This cannot be done at the emit site.** The obvious cheap implementation —
@@ -464,7 +463,7 @@ rounded rect with the **inverse coverage of the un-offset caster multiplied in**
 (`softRoundRect(cmd, offX, offY, cutCaster: true)`,
 `gui/backend/soft/draw_effects.go:63`), and the caster cut-out is derived from
 the same command rect. Inflating that rect inflates the cut-out with it and
-erases the ring exactly where it should appear.
+erases the ring exactly where it appears.
 
 So spread needs real plumbing:
 
@@ -532,12 +531,12 @@ time, but `Content: []View{Text(...)}` has already run. Left alone, an accent
 both:
 
 - **The button owns the label.** Add `ButtonCfg.Label string`, the field
-  `TextButton` already implies; when set, `Button` builds the `Text` itself and
+  `TextButton` already implies. When set, `Button` builds the `Text` itself and
   applies the variant's `ColorTextOnAccent`. This is the path every variant
-  example should use, and `TextButton` gains a variant argument or a sibling.
+  example uses, and `TextButton` gains a variant argument or a sibling.
 - **The caller owns the label.** For `Content`-built buttons, an explicitly
-  colored `Text` must keep its color — overriding it would be worse than the
-  problem. To recolor only the ones that took the default, `TextStyle` gains an
+  colored `Text` must keep its color — overriding it is worse than the problem.
+  To recolor only the ones that took the default, `TextStyle` gains an
   unexported `defaultedColor bool` set by `Text` on the `DefaultTextStyle`
   fallback, following the exact precedent of `disabledRole` and `glyphRole`
   (`gui/styles.go:96-129`): unexported, set in one place, never spelled at a
@@ -548,8 +547,8 @@ If the second half proves noisy in practice, ship only the first and document
 that a `Content`-built filled button must color its own label — but do not ship
 the variants with neither.
 
-One accent-filled primary per surface is the convention; state it in
-`docs/style-guide.md` and check it in review, not in code.
+One accent-filled primary per surface is the convention. State it in
+`docs/style-guide.md` and verify it in review, not in code.
 
 ---
 
@@ -563,7 +562,7 @@ Fourteen names are registered today. Remove six:
 | `light-bordered`     | Reachable as `ThemeLight.WithBorders(true)`.                         |
 | `dark-no-padding`    | Reachable as `ThemeDark.WithBorders(false)` plus a padding override. |
 | `light-no-padding`   | Same.                                                                |
-| `blue-dark`          | A taste preset; `ThemeMaker` is the supported way to make one.       |
+| `blue-dark`          | A taste preset. `ThemeMaker` is the supported way to make one.       |
 | `blue-dark-bordered` | Same.                                                                |
 
 Eight remain: `dark` (default), `light`, and the three platform pairs
@@ -580,7 +579,7 @@ automatically. `docs/` and per-example READMEs naming removed presets must be
 updated (see § 10).
 
 `defaultTheme = &ThemeDark` (`gui/theme_defaults.go:249`) already makes dark the
-default with no `SetTheme` call; that is kept and pinned by a test.
+default with no `SetTheme` call. That is kept and pinned by a test.
 
 ---
 
@@ -594,7 +593,7 @@ default with no `SetTheme` call; that is kept and pinned by a test.
   nothing inline separates by anything but fill value, and it still leaves the
   label's contrast depending on where the fill happens to be. Outside the bar
   the readout is legible at every percentage and the bar becomes a pure
-  indicator. `TextShow` keeps its name and meaning; only the placement changes,
+  indicator. `TextShow` keeps its name and meaning. Only the placement changes,
   and `progressBarCenterLabel` plus the `opticalCenterText` amend
   (`view_progress_bar.go:88`) are deleted with it. The fill is **already**
   radius-clipped — the fill `Row` sets `Radius: SomeF(radius)`
@@ -660,7 +659,7 @@ Mandatory before any phase is called done:
   | Focused `Input` and focused `Select` (case `focusID`) | 5b       |
   | The four button variants side by side                 | 6        |
 
-  The two phase-1 cases are the regression pins for § 1 and § 8; adding them
+  The two phase-1 cases are the regression pins for § 1 and § 8. Adding them
   first means every later phase re-records them and the diff shows the density
   and palette moves on a shape whose geometry is already correct.
 
@@ -671,7 +670,7 @@ Mandatory before any phase is called done:
   1. **Emit test** (backend-independent): a container with a `Spread`-only
      shadow — zero blur, zero offset — produces exactly one `RenderShadow`
      command carrying the spread. This is the guard-widening in § 5.5 and it
-     fails today; it is the cheapest possible pin on the whole feature.
+     fails today. It is the cheapest possible pin on the whole feature.
   2. **Validation test**: `validShadowCmd` accepts a positive `Spread`, rejects
      NaN/Inf and negative values, and range-checks against the same ceiling as
      `BlurRadius`.
@@ -687,11 +686,10 @@ Mandatory before any phase is called done:
   The bar is **equivalent geometry and coverage**, not pixel-identical output.
   The six backends do not agree pixel-for-pixel today — analytic SDF coverage in
   the GPU paths against a box-blurred alpha mask in `soft` differ at the edges
-  by construction — so "renders identically" would be a test no correct
-  implementation could pass. See the two-sided technique in
-  `gui/backend/CLAUDE.md`.
+  by construction — so "renders identically" is a test no correct implementation
+  can pass. See the two-sided technique in `gui/backend/CLAUDE.md`.
 
-- `TestDefaultStylesMirrorThemeDark` must stay green; it is the gate that stops
+- `TestDefaultStylesMirrorThemeDark` must stay green. It is the gate that stops
   a literal being reintroduced into a `default*Style` mirror.
 - `make prepush`.
 
@@ -700,28 +698,28 @@ pinned by the same § 10 cases, re-recorded and diff-read:
 
 1. **Readout outside the bar.** `progress_bar` (dark + light) re-recorded: the
    track keeps `SizeProgressBar` (20×20) and the fill is 42% of the track's own
-   box; the readout sits after the track at `SpacingSmall` in the secondary role
+   box. The readout sits after the track at `SpacingSmall` in the secondary role
    (`#e6e8eba0` dark, `#1a1d21ae` light) — no text over the fill, no
    `TextBackground` chip. `TestProgressBarFillUsesTrackBox` pins the fill math
-   to the track's box (the outer's width includes the readout and would spill
-   the fill); `TestThemeMakerProgressReadoutIsSecondary` pins the style role;
+   to the track's box (the outer's width includes the readout and spills the
+   fill). `TestThemeMakerProgressReadoutIsSecondary` pins the style role.
    `TestProgressBarReadoutTrails` pins the two-child structure.
 2. **Boolean retune.** `boolean_labels` and `boolean_labels_disabled` (both
    themes) re-recorded: switch 34×20 (knob radius 7), radio 15 (7.5), toggle
    unchanged at `ts.Size + 4`. `SizeSwitchWidth/Height` and `SizeRadio` in
-   `theme_defaults.go` are the only touched sizes; the platform overrides in
+   `theme_defaults.go` are the only touched sizes. The platform overrides in
    `theme_macos.go`, `theme_gnome.go`, `theme_winui.go` are untouched.
 3. **Pixel invariance.** `switch_focused.dark` re-recorded for the new pill and
-   knob; the light case was unchanged at its sample points and
+   knob. The light case was unchanged at its sample points and
    macos/gnome/windows were byte-identical — the override seam held. The
    re-record sweep also touched `progress_fill`/`switch_focused.light` PNGs with
-   identical pixels (encoder noise); those were restored, not kept.
+   identical pixels (encoder noise). Those were restored, not kept.
 
 Phase 8 — § 7 checklist. A removal, so the gate is that nothing else moves:
 
 1. **The registry is exactly eight.** `TestPresetThemesRegistered` names `dark`,
    `light`, `macos`, `macos-dark`, `gnome`, `gnome-dark`, `windows`,
-   `windows-dark`; `TestPresetThemesDefined` covers the same eight including the
+   `windows-dark`. `TestPresetThemesDefined` covers the same eight including the
    platform pairs, which were previously asserted only inside
    `TestPresetThemesRegistered`. `ThemeGet` on any of the six removed names
    returns nil.
@@ -735,13 +733,13 @@ Phase 8 — § 7 checklist. A removal, so the gate is that nothing else moves:
    `TestThemePresetElevationValues` pins dark/light only.
 3. **Goldens and pixels unmoved.** No registered theme changed appearance, so
    `TestGolden` and `TestPixelGolden` pass without re-recording — a regression
-   here means the removal touched a shared builder (e.g. `baseCfg`), not just
-   the deleted presets.
+   here means the removal touched a shared builder (for example `baseCfg`), not
+   just the deleted presets.
 4. **Docs say the same thing.** `docs/specs/theme-style-single-source.md` no
-   longer names `dark-bordered` or `blue-dark`; `CLAUDE.md` drops the
-   `dark-no-padding` hint; `CHANGELOG.md` carries the breaking-change entry
-   under Unreleased → Removed; `ThemePicker` screenshots and the README gallery
-   are deferred (a human at a display is required; see Deferred questions). The
+   longer names `dark-bordered` or `blue-dark`. `CLAUDE.md` drops the
+   `dark-no-padding` hint. `CHANGELOG.md` carries the breaking-change entry
+   under Unreleased → Removed. `ThemePicker` screenshots and the README gallery
+   are deferred (a human at a display is required. See Deferred questions). The
    example sweep is its own commit: 94 files call `WithBorders(true)`, which is
    a no-op since the 2026-08 default-border flip, and the two
    `WithBorders(false)` sites are kept.
@@ -758,12 +756,12 @@ the corners.
   with `rad+s`, and leaves the caster cut-out's `coverageRoundRect` at the
   un-inflated `w, h, rad`. Verified by the three recorded pixel goldens
   (`shadow-spread-ring`, `shadow-spread-blur`, `shadow-spread-rounded`), sampled
-  on all four sides and diagonally; the rounded case is the radius-divergence
+  on all four sides and diagonally. The rounded case is the radius-divergence
   pin (ring present at the corner diagonal, so the corner radius grew).
 - **metal / ios** — `drawShadow` (`metal/draw.go`, `ios/draw.go`) scales
   `spread := r.Spread * s`, adds it to `expand`, passes the inflated
   `rad+spread` to `gpu.BuildQuad`, and loads `tm[14] = spread` before
-  `metalSetTM`; `vs_shadow` forwards `tm[14]` as a `spread` varying (the
+  `metalSetTM`. `vs_shadow` forwards `tm[14]` as a `spread` varying (the
   transformed zero-vector's `.z`), and `fs_shadow` shrinks the caster field by
   it (`radius - spread`, `half_size - spread`). At `s = 0` every expression
   degenerates to the pre-5a shader, so legacy shadows are byte-identical.
@@ -771,37 +769,36 @@ the corners.
   uniform (`gl/draw.go` `drawShadow`), same `VsShadowGLSL`/`FsShadowGLSL`.
 - **android** — same construction via `glesSetTM` and the GLES 300 sources
   `vs_shadow_src`/`fs_shadow_src` (`gles_android.c`). GLES/NDK compile is
-  exercised only by `make build-android` (needs the NDK; not part of prepush),
+  exercised only by `make build-android` (needs the NDK, not part of prepush),
   so the C shader strings are validated by review and by the prepush cross-lint.
-- **web** — Canvas2D has no native shadow spread; both branches of `drawShadow`
+- **web** — Canvas2D has no native shadow spread. Both branches of `drawShadow`
   (`web/draw.go`) inflate the source shape to `(x-s, y-s, w+2s, h+2s, rad+s)`,
-  whose native shadow covers the inflated area; the container's own fill (drawn
+  whose native shadow covers the inflated area. The container's own fill (drawn
   next) covers the caster. Coverage-equivalent to the SDF paths per the § 10
-  bar; not pixel-recorded (canvas backend has no pixel harness).
+  bar. Not pixel-recorded (canvas backend has no pixel harness).
 
 Transport decision, recorded for 5b: the spread reaches the GPU shaders through
 the **existing `tm` uniform** (`tm[14]`), not through the packed vertex params
-(`PackParams`, 2 × 12 bits in one float32) — three packed slots would need 36
-bits against float32's 24-bit mantissa and cannot be exact. `tm` already carries
-the caster offset, so no new uniform or vertex attribute was added on any
-backend.
+(`PackParams`, 2 × 12 bits in one float32) — three packed slots need 36 bits
+against float32's 24-bit mantissa and cannot be exact. `tm` already carries the
+caster offset, so no new uniform or vertex attribute was added on any backend.
 
-Phase 5b — focus-ring checklist. The ring rides the 5a plumbing; nothing in a
+Phase 5b — focus-ring checklist. The ring rides the 5a plumbing. Nothing in a
 backend changed. What had to be true, and how each was pinned:
 
 1. **The defaults carry a ring.** `baseDarkCfg` and the light preset set
    `FocusRing` = accent at 25% alpha (`WithOpacity(0.25)`, so the RGB is the
    single accent decision), `BlurRadius: 2`, no spread — a spread-free glow by
-   design (§ 5.4: a spread would add a crisp plateau that reads as a second
-   border, and a scissored edge loses only a faint tail, not a hard band). The
-   derived presets (no-padding, bordered) inherit it by cfg copy; macOS keeps
-   its own ring and GNOME/Windows stay nil (border recolor only). Pinned by
+   design (§ 5.4: a spread adds a crisp plateau that reads as a second border,
+   and a scissored edge loses only a faint tail, not a hard band). The derived
+   presets (no-padding, bordered) inherit it by cfg copy. macOS keeps its own
+   ring and GNOME/Windows stay nil (border recolor only). Pinned by
    `TestThemePresetElevationValues` (per-preset ring pointer) and
    `TestFocusRingDefaultsCarryARing`.
 2. **Every focusable that has no ring gets one.** `Combobox`, `DatePicker`,
    `InputDate`, `Tree`, `NumericInput` swap their inline border-recolor
    `AmendLayout` for `focusRingAmend` (same recolor plus the ring, keyed by
-   effective ID); `Radio`, `Switch`, `Toggle`, `Slider` compose
+   effective ID). `Radio`, `Switch`, `Toggle`, `Slider` compose
    `focusRingAmend(Color{}, Color{})` after their own hooks — ring shadow on the
    focusable row, per-state pill/track colors untouched. `RadioButtonGroup` has
    no focusable shape of its own (focus governs the options), so its `Radio`s
@@ -812,21 +809,21 @@ backend changed. What had to be true, and how each was pinned:
    transparent-fill, borderless shape carrying a ring shadow (the light table
    body, whose preset resolves `Color` transparent and `SizeBorder` 0) was
    pruned before `renderContainer` ran and the ring silently vanished. The prune
-   now counts `fx.Shadow`; the focus goldens re-recorded in both themes are the
+   now counts `fx.Shadow`. The focus goldens re-recorded in both themes are the
    pin.
 4. **Focused goldens, re-recorded in both themes after reading the diff.**
    `listbox_focused`, `select_focused`, `expand_panel_focused`, `table_focused`
    (8 files) each gained exactly one `Shadow` line (`blur=2.00`, no spread,
-   `#4d82f03f` dark / `#2f6fe03f` light) with no other geometry change;
+   `#4d82f03f` dark / `#2f6fe03f` light) with no other geometry change.
    `menu_open_descender` and the unfocused cases were unchanged. New in 5b per
    the § 10 table: `input_focused` (dark + light).
 5. **Pixel golden across the platform overrides.** New `switch_focused` case
    under dark, light, macos-dark, gnome-dark and windows-dark — the switch is
    the focusable whose geometry the macOS theme also overrides (38×22). Sampled
-   pixels confirm: dark/light show the soft accent glow hugging the pill, macOS
+   pixels verify: dark/light show the soft accent glow hugging the pill, macOS
    its own soft glow, GNOME/Windows no glow and only the pill's border recolor.
 6. **The nil contract changed with intent.** `focusRingAmend` used to return nil
-   when both colors were unset; a ring-bearing theme now justifies the hook by
+   when both colors were unset. A ring-bearing theme now justifies the hook by
    itself. `focus_ring_test.go` pins both regimes (ringless theme → nil, ringed
    → ring-only hook).
 
@@ -837,8 +834,8 @@ done until the docs say the same thing:
   one-primary-per-surface convention, the new ladders.
 - `README.md` — screenshots re-taken.
 - `CHANGELOG.md` — a breaking-change entry naming the six removed preset names.
-- `examples/` — 93 files call `WithBorders(true)` (111 call sites); borders are
-  the default, so these are no-ops and should be deleted in the same sweep. Any
+- `examples/` — 93 files call `WithBorders(true)` (111 call sites). Borders are
+  the default, so these are no-ops and are deleted in the same sweep. Any
   example naming a removed preset must be repointed.
 - Per-example READMEs that show screenshots.
 
@@ -846,7 +843,7 @@ done until the docs say the same thing:
 
 - **Preset removal (§ 7, phase 8)** — the six names are unregistered and their
   builders deleted, per the § 7 table, with one table correction: `light` is
-  still borderless (`baseCfg` states no `SizeBorder`; only `baseDarkCfg` sets
+  still borderless (`baseCfg` states no `SizeBorder`. Only `baseDarkCfg` sets
   it), so `light-bordered` was **not** a duplicate — it was
   `ThemeLight.WithBorders(true)`, and that call is the migration. The registry
   holds eight: dark, light, and the three platform pairs, which stay because
@@ -857,27 +854,27 @@ done until the docs say the same thing:
   carry shadows), so `TestPresetThemesCarryNoElevation` was deleted and the
   flat-vs-elevated dropdown pair test now builds its flat subject from a bare
   `baseCfg()` — the same material the taste presets were made of. `ThemeGet` on
-  a removed name misses; the change is breaking and is called out in
+  a removed name misses. The change is breaking and is called out in
   `CHANGELOG.md` under Unreleased → Removed.
 - **Progress readout placement and boolean sizes (§ 8, phase 7)** — the readout
-  trails the bar at `SpacingSmall` in `TextStyleSecondary`, outside the fill;
+  trails the bar at `SpacingSmall` in `TextStyleSecondary`, outside the fill.
   `progressBarCenterLabel` and the readout's `opticalCenterText` amend are
   deleted. The widget restructured: the outer row owns identity, sizing and
-  a11y; the track (caller's `Width`, track color, radius) is its first child
+  a11y. The track (caller's `Width`, track color, radius) is its first child
   with the fill as the track's only child. The amend math moved with the
   structure: the fill is sized from the track's laid-out box — using the outer's
-  width would shrink the fill by the readout's share and spill it past the
-  track. The track takes `Sizing: FillFit` so a `FillFit` bar still absorbs the
-  leftover; the stated `Width` stays its floor when the outer fits content. One
+  width shrinks the fill by the readout's share and spills it past the track.
+  The track takes `Sizing: FillFit` so a `FillFit` bar still absorbs the
+  leftover. The stated `Width` stays its floor when the outer fits content. One
   seam needed a guard: in a vertical bar the column's cross-axis fill pass
   stretches the `FillFit` track to the column's width, which grows to fit the
   readout — so a vertical track whose caller did not ask for a fill-width bar is
   capped at its stated width (`MaxWidth`), keeping `Width: 12` a 12-px bar with
   the readout below it. The default readout style is now the theme's secondary
-  role (`progressBarStyle.TextStyle` moved off the body text); the caller's
+  role (`progressBarStyle.TextStyle` moved off the body text). The caller's
   `TextStyle`/`TextBackground`/`TextPadding` fields still override. The switch
   (36×22 → 34×20), radio (16 → 15) and knob radii retune against the 14px
-  ladder; `ToggleStyle.Size` was already `ts.Size + 4`, so the toggle did not
+  ladder. `ToggleStyle.Size` was already `ts.Size + 4`, so the toggle did not
   move. GNOME (40×24), Windows (40×20) and macOS (38×22) keep their switch
   overrides untouched — the platform seam § 8 exists to exercise. Pixel
   evidence: `switch_focused.dark` re-recorded for the new pill and knob, the
@@ -890,10 +887,10 @@ done until the docs say the same thing:
   the spec first specified. The redesign came from the clip pass: the glow is
   drawn outside the control's bounds but clipped to `shapeBounds ∩ parentClip`,
   so a control against its parent's content edge loses the glow tail there — a
-  spread ring would lose a hard band, a glow loses only a faint tail, and
+  spread ring loses a hard band, a glow loses only a faint tail, and
   `ColorBorderFocus` stays the never-clipped indicator (a draw-outset the
-  ancestors' clips can honour is the tracked fix). macOS keeps its hand-tuned
-  ring (accent-tinted soft glow); GNOME and Windows deliberately stay nil
+  ancestors' clips can honor is the tracked fix). macOS keeps its hand-tuned
+  ring (accent-tinted soft glow). GNOME and Windows deliberately stay nil
   (border recolor only, documented at their cfg sites). The small controls —
   `Radio`, `Switch`, `Toggle`, `Slider` — put the glow on the focusable row and
   keep their per-state pill/track colors untouched: the glow is the row's focus
@@ -901,10 +898,9 @@ done until the docs say the same thing:
   the state recolor. `RadioButtonGroup` wires nothing itself — its `Radio`
   options carry the ring. `focusRingAmend(Color{}, Color{})` is now a valid
   request under a ring-bearing theme (the hook's nil contract is "nothing
-  visible would change", not "no colors given"). The render prune fix (shadow
-  counts as FX in `renderShapeInner`) is the one non-wiring change; without it
-  the ring silently vanishes on transparent, borderless shapes (the light table
-  body).
+  visible changes", not "no colors given"). The render prune fix (shadow counts
+  as FX in `renderShapeInner`) is the one non-wiring change. Without it the ring
+  silently vanishes on transparent, borderless shapes (the light table body).
 - **Button variants (§ 6, phase 6)** — `ButtonVariant` with the zero value being
   today's button, and the variant styles `ButtonStylePrimary/Ghost/Danger`
   derived in `ThemeMaker` by copying the base `ButtonStyle` and swapping fills
@@ -914,13 +910,13 @@ done until the docs say the same thing:
   fields read at generation (like `focusRing`), not mirrors, so `applyTheme` and
   the mirror gate are untouched. Label recoloring takes both spec paths:
   `ButtonCfg.Label` builds the text inside `Button` with the variant's color
-  applied; a `Content`-built label is recolored by `buttonAmendLayout` only if
+  applied. A `Content`-built label is recolored by `buttonAmendLayout` only if
   its style carries the new `TextStyle.defaultedColor` marker (set solely by
   `Text` on its `DefaultTextStyle` fallback), which rides along through struct
   copies like `disabledRole` — an explicitly colored label is never overridden.
   The amend color is captured at generation onto `shapeButtonColors` (the
   `focusRing` precedent) because the amend is a plain func with no closure.
-  `TextButton` keeps its signature; `TextButtonVariant` is the Label-path
+  `TextButton` keeps its signature. `TextButtonVariant` is the Label-path
   sibling. Export audit: the type, the four constants and the three Theme fields
   carry `exportaudit:keep` until a sibling consumer lands. Golden coverage: the
   four variants side by side plus the same row focused on the primary — the
@@ -930,8 +926,8 @@ done until the docs say the same thing:
   covers the platform ring overrides. The light theme's borderless buttons
   (pre-existing: `baseCfg` sets no `SizeBorder`) are recorded as-is.
 - **`BoxShadow.Spread`** — add it (§ 5.5). Scope is six backend draw paths, not
-  one field; phase 5a. Transport: `tm[14]` on the existing `tm` uniform (the
-  packed-params float32 cannot hold a third 12-bit slot exactly; see the § 10
+  one field. Phase 5a. Transport: `tm[14]` on the existing `tm` uniform (the
+  packed-params float32 cannot hold a third 12-bit slot exactly. See the § 10
   checklist note). Validation class: finite and non-negative in `validShadowCmd`
   — the same class as `BlurRadius`, which has no gui-level ceiling either
   (`soft` clamps both at 512). Web: the source shape is inflated by spread
@@ -939,54 +935,54 @@ done until the docs say the same thing:
   coverage: a "Spread ring" / "Focus ring" row in the showcase graphics demo and
   a focus-ring card in `examples/shadow_demo`.
 - **Platform themes** — the six stay registered (§ 7). Eight preset names total.
-- **Tab label weight (§ 2.2)** — the selected tab takes `B3`; resting tab labels
+- **Tab label weight (§ 2.2)** — the selected tab takes `B3`. Resting tab labels
   stay `N3`. The strip keeps its quiet by default and gains hierarchy only where
   the eye already points.
 - **Pixel-harness platform coverage (§ 10)** — a per-case `themes` list, not a
   global six-theme recording: the one representative case (a form row and a
-  button row) records under dark, light and the three dark platform themes;
-  every other case keeps the dark/light pair.
+  button row) records under dark, light and the three dark platform themes.
+  Every other case keeps the dark/light pair.
 - **Body size** — phase 2 ships the spec table (dark/light 14, macOS 13, Windows
   12, GNOME 15). The 14-vs-13 check on a non-HiDPI display is still open
-  (deferred question 1); if 13 wins, the dark/light ladder shifts one step and
+  (deferred question 1). If 13 wins, the dark/light ladder shifts one step and
   phases 2–3 goldens re-record before phase 4.
 - **Markdown block gap** — `MarkdownStyle.blockSpacing` moves from
   `SpacingLarge` to `SpacingMedium`. Under the phase-2 ladder Large went 15 →
   28, and a markdown document is a stack of paragraphs, not a stack of unrelated
-  sections; at body 14 the 28px gap reads as a hole. The extra spacer emitted
+  sections. At body 14 the 28px gap reads as a hole. The extra spacer emitted
   after a closing blockquote drops to `blockSpacing / 2`, since that spacer is
   itself a child and so carries a block gap on each side (a full-height one
   totalled three gaps, ~84px).
 
 - **`colorPickerMinPlane`** — 120 → 112 (view_color_picker.go). The refreshed
   spacing ladder drops the picker's derived plane to 118, tripping the old floor
-  and breaking the picker's row-width invariant; the floor is degenerate-theme
+  and breaking the picker's row-width invariant. The floor is degenerate-theme
   protection, so it now sits under the default derivation.
 - **Body size** — 14 ships (deferred question 1, answered): the non-HiDPI check
-  stays owed but no longer blocks; a later shift re-records phases 2–3 goldens.
+  stays owed but no longer blocks. A later shift re-records phases 2–3 goldens.
 - **Selection fill (deferred question 2)** — subtle + ring: selected and
   highlighted rows paint `ColorAccentSubtle` in every focus state, and their
   text stays the body color. Focus is the ring (phase 5b), never a second fill.
   Menus keep the full accent on their selected item. No focus-state plumbing in
   row renderers.
 - **Light semantic colors** — success `#2E9E5B`, warning `#B07E1F`, error
-  `#D64545`; dark keeps its existing error and the historic toast/badge
+  `#D64545`. Dark keeps its existing error and the historic toast/badge
   success/warning values (moved from ThemeMaker literals into the preset consts,
   with the literals kept as the unset fallback so unstated themes stay
   byte-identical).
 - **Accent fallback chain** — `ColorAccent` → `ColorSelect` → legacy select
   (`colorSelectDark`). `ColorSelect` defaults to the accent. Platform and taste
-  themes keep their native select, which becomes their accent; their ramps
+  themes keep their native select, which becomes their accent. Their ramps
   derive.
 - **Accent ramp table corrected to the derivation** — the rule in § 4.3 (sRGB
   HSL `L±0.12`) does not reproduce the table's original hover/pressed values
-  (e.g. dark pressed came out `#155AEB`, not `#3A6FD8`), and no clean formula
-  reproduces that table either. The rule is the mechanism the spec chose and is
-  what a custom theme gets, so the table was corrected to what the rule produces
-  (`#85AAF5`/`#155AEB` dark, `#6494E8`/`#1B53B7` light);
+  (for example dark pressed came out `#155AEB`, not `#3A6FD8`), and no clean
+  formula reproduces that table either. The rule is the mechanism the spec chose
+  and is what a custom theme gets, so the table was corrected to what the rule
+  produces (`#85AAF5`/`#155AEB` dark, `#6494E8`/`#1B53B7` light).
   `TestThemeMakerAccentRamp` pins both.
 - **List rows drop `ColorTextOnSelect`** — with selection on the subtle tint,
-  the paired foreground no longer applies to list-like rows; the accent/text
+  the paired foreground no longer applies to list-like rows. The accent/text
   pairing survives in menus and the full-accent fills (slider fill, selected
   tab, radio, switch). The five pairing tests were updated to pin body text on
   washed rows, and the now-dead widget- and style-level `ColorTextOnSelect`
@@ -1007,14 +1003,14 @@ done until the docs say the same thing:
   when the ladder moved, so nothing needed demoting to `RadiusMedium`: the only
   derived site is the toggle's `radiusLarge * 2` pill, which clamps at
   half-height identically at 15 and 24. macOS dropped its radius override
-  entirely (Large went 10 → 12 by inheritance; the spec's "if that theme drops
+  entirely (Large went 10 → 12 by inheritance. The spec's "if that theme drops
   its override" branch was taken), GNOME's overrides were byte-identical to the
   new base and dropped as redundant, and Windows keeps its native
   `RadiusLarge = 8`. The base ladder is now one number set everywhere a platform
   does not override.
 - **Elevation in dark/light (§ 5.3)** — `darkShadowPopover`/`darkShadowDialog`
   and `lightShadowPopover`/`lightShadowDialog` follow the platform themes' const
-  pattern; `baseDarkCfg` and `themeLightCfg` wire them, so the derived presets
+  pattern. `baseDarkCfg` and `themeLightCfg` wire them, so the derived presets
   (no-padding, bordered) inherit elevation as dark/light's visual twins. The
   blue taste preset stays flat. Fan-out unchanged: popover tier on
   select/combobox/date-picker/tooltip/toast/menubar-submenu, dialog tier on
@@ -1026,7 +1022,7 @@ done until the docs say the same thing:
 ## Deferred questions
 
 1. **Body size 14 vs 13** — decided at phase 3: 14 ships (see decisions). The
-   non-HiDPI render check is still owed; if 13 wins there, the dark/light ladder
+   non-HiDPI render check is still owed. If 13 wins there, the dark/light ladder
    shifts one step and phases 2–3 goldens re-record before phase 4.
 2. **Selection fill vs `ColorAccentSubtle`** — decided at phase 3: subtle + ring
    (see decisions).
@@ -1034,5 +1030,5 @@ done until the docs say the same thing:
    `assets/showcase.png`, `assets/gallery.png`, `todo.png`, `digital-rain.png`,
    `benchmark.png`, `calculator.png`, `inspector.png` and any per-example README
    images still show pre-refresh pixels (borderless, old radii, centered
-   progress readout). Re-taking needs a human at a display running each app;
-   nothing in the repo captures them. Do it as a drive-by after phase 8 lands.
+   progress readout). Re-taking needs a human at a display running each app.
+   Nothing in the repo captures them. Do it as a drive-by after phase 8 lands.

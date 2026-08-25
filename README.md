@@ -45,7 +45,7 @@ func mainView(w *gui.Window) gui.View {
 
 `gui.Label(text, style)` — pass the zero `TextStyle{}` for the default theme
 style. `gui.TextButton(id, label, onClick)` and `gui.SimpleWindow` are the same
-thin forwards; the `ID` argument stays explicit because identity is
+thin forwards. The `ID` argument stays explicit because identity is
 caller-owned.
 
 ### Full control
@@ -119,19 +119,19 @@ Sibling projects:
   Embeddable terminal emulator. https://github.com/go-gui-org/go-term
 
 - **go-glyph**\
-  Text rendering engine on steroids. https://github.com/go-gui-org/go-glyph
+  Text rendering engine. https://github.com/go-gui-org/go-glyph
 
 ## Why
 
 GUI frameworks in Go target the browser and tie you to HTML/CSS and JavaScript.
 go-gui takes the opposite approach: write your UI in pure Go, render it with
 native GPU acceleration — no browser runtime, no JavaScript bridge, no DOM. Your
-data stays in Go structs; your UI stays in Go code.
+data stays in Go structs. Your UI stays in Go code.
 
-The second thesis: a GUI toolkit should be an **ecosystem of composable
-libraries**, not a monolith. go-glyph handles text. go-charts handles data.
-go-edit handles code. Each library is usable on its own or together — all
-sharing the same rendering pipeline and event system.
+The second thesis: a GUI toolkit is an **ecosystem of composable libraries**,
+not a monolith. go-glyph handles text. go-charts handles data. go-edit handles
+code. Each library is usable on its own or together — all sharing the same
+rendering pipeline and event system.
 
 ## Features
 
@@ -139,7 +139,7 @@ sharing the same rendering pipeline and event system.
   dialogs, toasts, DataGrid with virtualization (CSV/XLSX/PDF export), Markdown
   and RTF views, SVG rendering, and more
 - **Virtualized lists, uniform or not** — `ListBox`, `Table` and `Tree`
-  virtualize rows they own; `VirtualList` handles rows the app builds, of
+  virtualize rows they own. `VirtualList` handles rows the app builds, of
   heights only the layout engine knows, and `Window.ScrollToIndex` addresses a
   row that does not exist yet
 - **GPU-accelerated** — Metal (macOS), OpenGL (Linux/Windows), WebGL/WASM
@@ -149,7 +149,7 @@ sharing the same rendering pipeline and event system.
 - **Touch gesture recognition** — tap, double-tap, long-press, pan, swipe,
   pinch, rotate with automatic mouse-event synthesis
 - **Time-travel debugging** — opt-in scrubber rewinds/replays app state
-  frame-by-frame; implement `Snapshotter` on your state type and set
+  frame-by-frame. Implement `Snapshotter` on your state type and set
   `DebugTimeTravel: true`
 - **Headless testing** — all layout and widget logic runs without a display
 - **Headless rendering** — `gui/backend/soft` rasterizes a frame to a PNG on the

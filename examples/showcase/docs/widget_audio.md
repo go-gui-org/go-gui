@@ -39,10 +39,10 @@ audio.ResumeMusic()
 audio.FadeOutMusic(1000)
 ```
 
-The showcase demo loads its music clip from the embedded asset
-`examples/showcase/assets/music.ogg` (Mozart, Eine kleine Nachtmusik K. 525, I.
-Allegro — public-domain Musopen recording) via `embeddedAssetPath`, since
-`LoadMusic` takes a file path.
+The showcase demo loads its music clip via `embeddedAssetPath`. The clip is the
+embedded asset `examples/showcase/assets/music.ogg` (Mozart, Eine kleine
+Nachtmusik K. 525, I. Allegro — a public-domain Musopen recording). `LoadMusic`
+takes a file path.
 
 ## Live Synthesis
 
@@ -86,7 +86,7 @@ gui.Column(gui.ContainerCfg{
 ```
 
 A voice plays a note-off by releasing internally and returning `(0, false)` once
-its release envelope finishes — the channel frees itself, so no per-pad channel
+its release envelope finishes. The channel frees itself, so no per-pad channel
 bookkeeping is needed.
 
 ## Volume
@@ -150,6 +150,6 @@ snd.SetVolume(0.3)         // per-sound volume
 ## Notes
 
 - Only **one music track** plays at a time (global music channel)
-- Do not Free a Sound while it is still playing
-- No external libraries required — beep is pure Go on macOS/Windows; Linux needs
+- Do not Free a Sound while it plays
+- No external libraries required — beep is pure Go on macOS/Windows. Linux needs
   `-ldl` only

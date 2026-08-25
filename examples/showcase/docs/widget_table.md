@@ -25,6 +25,8 @@ w.Table(cfg)
 ## Custom Rows
 
 ```go
+alignEnd := gui.HAlignEnd
+
 w.Table(gui.TableCfg{
     ID:          "custom",
     BorderStyle: gui.TableBorderAll,
@@ -35,7 +37,7 @@ w.Table(gui.TableCfg{
         }},
         {Cells: []gui.TableCellCfg{
             {Value: "Alice"},
-            {Value: "95", HAlign: gui.HAlignEndPtr()},
+            {Value: "95", HAlign: &alignEnd},
         }},
     },
 })
@@ -103,17 +105,17 @@ When `RawData` is set, `Data` is ignored.
 
 ## Appearance
 
-| Property         | Type         | Description                |
-| ---------------- | ------------ | -------------------------- |
-| ColorBorder      | Color        | Border/grid line color     |
-| ColorSelect      | Color        | Selected row background    |
-| ColorHover       | Color        | Hovered row background     |
-| ColorRowAlt      | *Color       | Alternating row background |
-| CellPadding      | Opt[Padding] | Padding inside each cell   |
-| TextStyle        | TextStyle    | Body cell text style       |
-| TextStyleHead    | TextStyle    | Header cell text style     |
-| SizeBorder       | float32      | Border line width          |
-| SizeBorderHeader | float32      | Header border line width   |
+| Property         | Type      | Description                |
+| ---------------- | --------- | -------------------------- |
+| ColorBorder      | Color     | Border/grid line color     |
+| ColorSelect      | Color     | Selected row background    |
+| ColorHover       | Color     | Hovered row background     |
+| ColorRowAlt      | *Color    | Alternating row background |
+| CellPadding      | Padding   | Padding inside each cell   |
+| TextStyle        | TextStyle | Body cell text style       |
+| TextStyleHead    | TextStyle | Header cell text style     |
+| SizeBorder       | float32   | Border line width          |
+| SizeBorderHeader | float32   | Header border line width   |
 
 ## Events
 

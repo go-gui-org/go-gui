@@ -1,5 +1,5 @@
-Editable dropdown with type-ahead filtering. Typing narrows the options list;
-selecting an option commits the value.
+Editable dropdown with type-ahead filtering. Typing narrows the options list.
+Selecting an option commits the value.
 
 Combobox already accepts `[]string` directly via the `Options` field.
 

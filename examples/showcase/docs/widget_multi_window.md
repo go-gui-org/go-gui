@@ -1,5 +1,5 @@
 Manage multiple OS windows from a single application. An App instance acts as a
-registry for all windows, enabling cross-window communication via Broadcast and
+registry for all windows. You can communicate across windows via Broadcast and
 QueueCommand.
 
 ## Setup
@@ -63,7 +63,7 @@ w.App().Broadcast(func(other *gui.Window) {
 | Method     | Signature              | Description                         |
 | ---------- | ---------------------- | ----------------------------------- |
 | Register   | (id uint32, w *Window) | Associate platform ID with window   |
-| Unregister | (id uint32) bool       | Remove window; returns exit signal  |
+| Unregister | (id uint32) bool       | Remove window. Returns exit signal  |
 | Window     | (id uint32) *Window    | Lookup by platform ID               |
 | Windows    | () []*Window           | Snapshot of all windows in order    |
 | OpenWindow | (cfg WindowCfg)        | Queue window creation (next frame)  |

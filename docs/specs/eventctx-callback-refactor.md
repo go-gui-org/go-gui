@@ -1,13 +1,13 @@
 # EventCtx: reduce event-handling ceremony
 
 Status: **implemented and superseded.** The signature collapse shipped in
-v0.52.0–v0.54.0 (`EventCtx`, `Consume()`, `tools/eventctx`); the handled-default
+v0.52.0–v0.54.0 (`EventCtx`, `Consume()`, `tools/eventctx`). The handled-default
 flip (consume-class pre-mark + `ctx.Bubble()`) shipped with it and was then
 **deliberately reversed in v0.55.0** (`fe404f6`, #206): nothing is marked
 handled for you, `ctx.Bubble()` is deleted, `ctx.Consume()` is the one rule for
 every callback. The `class` argument survived only to name events for the
 `debugUnconsumed` check (`gui/event_traversal.go`). The one-event-rule design is
-authoritative; do not re-implement the consume-class default from this spec.
+authoritative. Do not re-implement the consume-class default from this spec.
 Item 3 (typed `ctx.State`) was dropped for the documented Go reasons. Breaking
 change.
 
@@ -32,7 +32,7 @@ Intended outcome: one breaking release that collapses the callback signature to
 keyboard/hover propagation semantics intact.
 
 **Item 3 is dropped.** Go cannot give a typed `ctx.State` — methods cannot take
-type parameters, and a generic `EventCtx[T]` would force every `Cfg` struct and
+type parameters, and a generic `EventCtx[T]` forces every `Cfg` struct and
 widget factory to become generic, which the heterogeneous `Layout` callback
 storage forbids. The achievable version saves ~10 characters. Instead, document
 the one-line app-side helper:
@@ -104,7 +104,7 @@ dispatches to `OnClick` via `handleMouseDownEvent` (`gui/window_event.go:151`).
 **Consume — marked handled before the callback runs.** `OnClick`, `OnChar`,
 `OnMouseUp`, `OnGesture`, `OnFileDrop`.
 
-**Notify — unchanged; callback must consume explicitly.** `OnKeyDown`,
+**Notify — unchanged. Callback must consume explicitly.** `OnKeyDown`,
 `OnKeyUp`, `OnHover`, `OnMouseMove`, `OnMouseLeave`, `OnMouseScroll`,
 `OnScroll`, `AmendLayout`, `OnDraw`, `OnIMECommit`. Also
 `shapeButtonColors.OnHover` / `OnAmend` (`gui/shape.go:409-410`).
@@ -114,10 +114,10 @@ the change:
 
 - `OnKeyDown` receives _every_ key. A widget handling only Enter must leave Tab,
   Escape, and accelerators to bubble — which is why the `ClickOnEnter` dispatch
-  (`gui/event_handlers.go:93-101`) consumes only on match. Auto-consuming would
-  silently kill tab traversal in any widget with a key handler.
+  (`gui/event_handlers.go:93-101`) consumes only on match. Auto-consuming kills
+  tab traversal silently in any widget with a key handler.
 - Hover/move/leave are notifications, not consumption. Nested shapes
-  legitimately all want hover; auto-consuming breaks every
+  legitimately all want hover. Auto-consuming breaks every
   hover-highlight-on-container pattern and reintroduces the same boilerplate
   inverted.
 - **`OnMouseScroll` is notify, not consume.** `mouseScrollFallbackHandler`
@@ -125,9 +125,9 @@ the change:
   through to the scroll container _only if the handler left the event
   unhandled_. Cascade-on-unhandled is the designed contract, asserted by
   `TestMouseScrollUnhandledCascadesToScrollContainer`
-  (`gui/event_handlers_test.go:444`). Auto-consuming would invert it and
-  silently break nested scroll containers. Scroll chaining is to scroll what
-  bubbling is to keys — same carve-out, same reason.
+  (`gui/event_handlers_test.go:444`). Auto-consuming inverts it and silently
+  breaks nested scroll containers. Scroll chaining is to scroll what bubbling is
+  to keys — same carve-out, same reason.
 
 **`MouseLockCfg`** (`gui/window.go:282-284`) — its `MouseDown`, `MouseMove`,
 `MouseUp` convert to the new signature but get **no auto-consume**. Mouse lock
@@ -145,8 +145,8 @@ scrolls a container reaches `fireOnScroll` → `OnScroll` while the click callba
 is still on the stack, and `AmendLayout` recurses through children from
 `gui/layout_pipeline.go:49`.
 
-A single reusable `EventCtx` owned by `*Window` would therefore be corrupted by
-any nested callback overwriting `Layout` or `Event` under the outer frame. Value
+A single reusable `EventCtx` owned by `*Window` is therefore corrupted by any
+nested callback overwriting `Layout` or `Event` under the outer frame. Value
 semantics removes the failure mode: each frame gets its own copy, and there is
 no shared buffer for a user to retain past the callback.
 
@@ -156,8 +156,8 @@ no shared buffer for a user to retain past the callback.
 sites) run inside phases that are currently zero-allocation
 (`layout_pipeline_bench_test.go`, `render_layout_bench_test.go`). Passing
 `EventCtx` by value keeps them there — nothing escapes, because no pointer to
-the struct is formed. This is the reason for value semantics over `*EventCtx`;
-confirm with the alloc gates rather than assuming.
+the struct is formed. This is the reason for value semantics over `*EventCtx`.
+Verify with the alloc gates rather than assuming.
 
 ### Pre-mark ordering inside `callRelative`
 
@@ -181,10 +181,10 @@ if handled {
 }
 ```
 
-Marking before the save would copy `IsHandled = true` into `saved`, and the
-restore would then undo any `ctx.Bubble()` the callback performed — a silent,
-hard-to-trace failure. `EventCtx.Event` stays a pointer to the same `Event`, so
-the save/restore is otherwise unaffected.
+Marking before the save copies `IsHandled = true` into `saved`. The restore then
+undoes any `ctx.Bubble()` the callback performed — a silent, hard-to-trace
+failure. `EventCtx.Event` stays a pointer to the same `Event`, so the
+save/restore is otherwise unaffected.
 
 Semantics to document: **`Bubble()` opts out of _this_ callback's auto-consume
 only.** It does not un-handle an event some earlier handler already consumed,
@@ -193,7 +193,7 @@ because the restore re-applies the incoming flag.
 ### Where the pre-mark goes — class is a parameter, not a helper
 
 **The three shared traversal helpers each serve both classes.** A blanket
-pre-mark inside them would silently destroy the carve-outs this spec spends its
+pre-mark inside them silently destroys the carve-outs this spec spends its
 length defending:
 
 | Helper                 | Consume-class callers                                           | Notify-class callers                    |
@@ -202,10 +202,10 @@ length defending:
 | `executeMouseCallback` | `OnClick` (`:219`), `OnMouseUp` (`:281`), `OnFileDrop` (`:384`) | `OnMouseMove` (`:252`)                  |
 | `callRelative`         | via `executeMouseCallback`                                      | `OnMouseScroll` (`:306`)                |
 
-(Line numbers in `gui/event_handlers.go`.) Marking inside `callRelative` would
-make `if callRelative(...) { return }` at `:306` always true and kill
-focused-target scroll cascading; marking inside `executeMouseCallback` would
-auto-consume `OnMouseMove` and kill hover-on-container.
+(Line numbers in `gui/event_handlers.go`.) Marking inside `callRelative` makes
+`if callRelative(...) { return }` at `:306` always true and kills focused-target
+scroll cascading. Marking inside `executeMouseCallback` auto-consumes
+`OnMouseMove` and kills hover-on-container.
 
 **Therefore: add an explicit class argument** to `executeFocusCallback`,
 `executeMouseCallback`, and `callRelative` — `consume bool`, or a two-valued
@@ -214,16 +214,16 @@ auto-consume `OnMouseMove` and kill hover-on-container.
 flag is set. Every call site is forced to state its class, and the compiler
 catches a new dispatch path that forgets to.
 
-This **replaces** any single `invokeConsuming(...)` helper: such a helper would
-have to duplicate the coordinate translation, and the classes are not separable
-by call path.
+This **replaces** any single `invokeConsuming(...)` helper: such a helper
+duplicates the coordinate translation, and the classes are not separable by call
+path.
 
 **Direct call sites bypassing all three helpers** — each needs the class
 decision applied by hand:
 
 - `mouseScrollFallbackHandler` (`gui/event_handlers.go:329-337`) calls
   `OnMouseScroll` directly. Notify: no pre-mark, and the cascade-on-unhandled
-  behaviour must be preserved verbatim.
+  behavior must be preserved verbatim.
 - `ClickOnSpace` (`:41-50`) and `ClickOnEnter` (`:93-101`) call `OnClick`
   directly, bypassing the mouse path. Consume: both need the pre-mark.
 - `OnGesture` dispatches directly at `gui/gesture.go:520`, through none of the
@@ -237,10 +237,10 @@ last-resort hook, fired at `gui/window_event.go:69` **only when
 unchanged, and outside the signature table by design.
 
 But auto-consume changes when it fires: clicks, chars, mouse-ups, file drops and
-gestures that any widget handled will no longer reach `OnEvent`, where
-previously a widget that forgot `IsHandled = true` let them through. That is the
-intended semantics, not a regression — but it is a visible behaviour change for
-apps using `OnEvent` as a global sniffer. Call it out in the migration guide.
+gestures that any widget handled no longer reach `OnEvent`, where previously a
+widget that forgot `IsHandled = true` let them through. That is the intended
+semantics, not a regression — but it is a visible behavior change for apps using
+`OnEvent` as a global sniffer. Call it out in the migration guide.
 
 ### Signature groups
 
@@ -252,7 +252,7 @@ apps using `OnEvent` as a global sniffer. Call it out in the migration guide.
 | `func(T, *Event, *Window)`          |   ~25 | `func(T, EventCtx)`          |
 | `func(*Window)` / `func(T,*Window)` |   ~24 | **unchanged**                |
 
-† Counts are Shape/Cfg **field declarations**, not textual occurrences; the
+† Counts are Shape/Cfg **field declarations**, not textual occurrences. The
 latter are higher because of factory helpers returning these types. The
 `func(*Layout, *Window)` set is at least: `eventHandlers.OnScroll` and
 `.AmendLayout` (`gui/shape.go:388-389`), `shapeButtonColors.OnAmend` (`:410`),
@@ -264,8 +264,8 @@ match list.
 
 `OnBlur` fires from `gui/view_input.go:537` with no event in hand, so it
 converts with a nil `ctx.Event` like the other lifecycle callbacks. It is
-arguable that blur should carry the click that moved focus; that is a separate
-change and explicitly out of scope here.
+arguable that blur carries the click that moved focus. That is a separate change
+and explicitly out of scope here.
 
 Payload carriers keep their payload as a leading argument rather than being
 stuffed into `EventCtx` — a `GridRow` is not context, and hiding it in a struct
@@ -273,8 +273,8 @@ field loses type safety at the call site.
 
 Lifecycle callbacks (animation `OnDone`/`OnValue`, native dialog and
 notification `OnDone`, `NativeMenuCfg.OnAction`) are **not** converted: they
-have no `Layout` and no `Event`, so an `EventCtx` would carry two nil fields and
-dilute what the type means.
+have no `Layout` and no `Event`, so an `EventCtx` carries two nil fields and
+dilutes what the type means.
 
 `OnDraw func(*DrawContext)` is unchanged — `DrawContext` is already its own
 context type.
@@ -287,8 +287,8 @@ unrelated.
 
 ### Phase 0 — Issues
 
-- File tracking issue for the refactor; add to org Project board (`projects/1`)
-  with Kind/Area/Status set.
+- File a tracking issue for the refactor. Add it to the org Project board
+  (`projects/1`) with Kind/Area/Status set.
 - File a **separate issue to update the GitHub wiki**
   (`github.com/go-gui-org/go-gui/wiki`). The wiki is linked from `README.md` as
   the primary documentation surface and is outside the repo, so it cannot be
@@ -302,7 +302,7 @@ unrelated.
 Thread the class argument through `executeFocusCallback`,
 `executeMouseCallback`, and `callRelative`, and apply the pre-mark at the direct
 dispatch sites — see "Where the pre-mark goes" above. The blanket "pre-mark
-inside the shared helpers" shortcut is wrong; those helpers serve both classes.
+inside the shared helpers" shortcut is wrong. Those helpers serve both classes.
 
 **Keyboard-activation dispatch.** The live click-on-key semantics are the
 `eventHandlers` struct fields, not wrappers: `ClickOnSpace` fires through
@@ -323,11 +323,11 @@ Leaving them as `(layout, e, w)` keeps the diff to the public surface.
 `leftClickOnly` (the three `Deprecated:` wrappers at the end of `gui/event.go`)
 have no production call sites — only `gui/event_test.go:141-210` exercises them.
 They were superseded by the `eventHandlers` fields above to avoid per-frame
-closure allocation. Remove them and their tests rather than porting them; a
+closure allocation. Remove them and their tests rather than porting them. A
 breaking release is the right moment. Update the referring comments in
 `gui/view_container.go:33-43` and `gui/shape.go:397-399` — the latter cites
 `docs/specs/perf-optimizations.md` §6, which does not exist. Do not propagate
-that citation; drop it.
+that citation. Drop it.
 
 ### Phase 2 — Migration tool
 
@@ -341,8 +341,8 @@ parameter lists and conditionally deletes statements inside nested closures.
 
 1. **Signature.** `func(l *Layout, e *Event, w *Window)` → `func(ctx EventCtx)`.
    Rewrite body references: `l`→`ctx.Layout`, `e`→`ctx.Event`, `w`→`ctx.Window`,
-   honouring the actual parameter names and any `_` blanks. Payload carriers
-   keep the leading argument.
+   honoring the actual parameter names and any `_` blanks. Payload carriers keep
+   the leading argument.
 2. **Notify-class callbacks:** rewrite `e.IsHandled = true` → `ctx.Consume()`.
    Never delete it.
 3. **Consume-class callbacks:** delete `e.IsHandled = true` when it is the last
@@ -350,23 +350,23 @@ parameter lists and conditionally deletes statements inside nested closures.
 4. **Everything else in a consume-class callback: report, do not rewrite.**
 
 **Rule 4 is the migration's real risk and it is not automatable.** A
-consume-class callback that today returns early _without_ setting handled is
-relying on the old bubble-by-default, and after the flip it must call
-`ctx.Bubble()` on that path. The tool cannot infer whether a given early return
-meant "not mine, pass it on" or "done, nothing to do" — those are
-indistinguishable in the old encoding, because both wrote nothing.
+consume-class callback that today returns early _without_ setting handled relies
+on the old bubble-by-default, and after the flip it must call `ctx.Bubble()` on
+that path. The tool cannot infer whether a given early return meant "not mine,
+pass it on" or "done, nothing to do" — those are indistinguishable in the old
+encoding, because both wrote nothing.
 
 So the tool **emits a report** rather than guessing: for every consume-class
 callback, list each `return` (explicit or implicit fall-off-the-end) that is not
 dominated by an `IsHandled = true` assignment. Each entry is a human decision:
-insert `ctx.Bubble()` or confirm consume-by-default is correct. Expect this list
+insert `ctx.Bubble()` or verify consume-by-default is correct. Expect this list
 to be short now that `OnMouseScroll` is notify-class — the remaining consume set
 is `OnClick`, `OnChar`, `OnMouseUp`, `OnGesture`, `OnFileDrop`, where
 conditional consumption is uncommon but real. The sharpest case is **`OnChar`
 filtering**: a focused input whose `OnChar` ignores non-text characters
 previously let them fall through to container-level ancestors, and now blocks
 them by default. Hit-test subregions and disabled-state guards are the other
-recurring shapes. Budget review time for this list; do not batch-approve.
+recurring shapes. Budget review time for this list. Do not batch-approve.
 
 The report is also the tool's contract for the sibling repos, which get the same
 treatment in Phase 7 without a maintainer who knows this spec.
@@ -384,8 +384,8 @@ Work the rule-4 report to zero before moving on.
 ### Phase 4 — Non-standard signatures
 
 `OnScroll` and `AmendLayout` (`gui/shape.go:388-389`) and
-`shapeButtonColors.OnAmend` (`:410`) take an `EventCtx` with a nil `Event`;
-update `fireOnScroll` and `gui/layout_pipeline.go:49`. `OnIMECommit` becomes
+`shapeButtonColors.OnAmend` (`:410`) take an `EventCtx` with a nil `Event`.
+Update `fireOnScroll` and `gui/layout_pipeline.go:49`. `OnIMECommit` becomes
 `func(string, EventCtx)`. `MouseLockCfg`'s three fields
 (`gui/window.go:282-284`) convert with no auto-consume.
 
@@ -419,18 +419,18 @@ go-gui tags. Follow the existing `sync-siblings` skill order. Verify each with
 1. `go build ./...` and `CGO_ENABLED=0 go build ./...` (Linux/Windows parity
    must not regress).
 2. `golangci-lint run ./...`, `gofmt -l .`, `go vet ./...` (exercises the
-   `requiredid` analyzer — confirm it does not pattern-match callback types).
+   `requiredid` analyzer — verify it does not pattern-match callback types).
 3. `go test ./...` — full suite.
 4. **Alloc gates, the real risk:** `go test -run '^$' -bench . -benchmem ./gui/`
    focusing on `layout_pipeline_bench_test.go`, `render_layout_bench_test.go`,
    `event_bench_test.go`, `view_frame_bench_test.go`. Zero-alloc phases must
    stay at 0 allocs. Compare against `main` with `benchstat`.
-5. New tests: consume-class callback bubbles nothing by default; notify-class
-   callback still bubbles; `ctx.Bubble()` restores propagation; `ctx.Consume()`
-   stops it from a notify-class callback; `OnKeyDown` on a focused widget still
-   lets Tab reach the traversal handler; nested hover fires on both child and
-   ancestor; `ClickOnSpace` and `ClickOnEnter` both activate exactly once and
-   both consume; all three `EventCtx` methods are no-ops on a nil `Event`.
+5. New tests: consume-class callback bubbles nothing by default. Notify-class
+   callback still bubbles. `ctx.Bubble()` restores propagation. `ctx.Consume()`
+   stops it from a notify-class callback. `OnKeyDown` on a focused widget still
+   lets Tab reach the traversal handler. Nested hover fires on both child and
+   ancestor. `ClickOnSpace` and `ClickOnEnter` both activate exactly once and
+   both consume. All three `EventCtx` methods are no-ops on a nil `Event`.
 6. Reentrancy: an `OnClick` that triggers a synchronous `OnScroll` must leave
    the outer callback's `EventCtx` usable. `ctx.Layout` stability is trivial
    under value semantics, so assert the stronger property — after the nested
@@ -439,9 +439,9 @@ go-gui tags. Follow the existing `sync-siblings` skill order. Verify each with
    outer frame still takes effect.
 7. Class-parameter correctness — the shared helpers serve both classes, so
    assert each side explicitly: `OnMouseMove` through `executeMouseCallback`
-   does **not** auto-consume (hover-on-container survives); `OnMouseScroll`
+   does **not** auto-consume (hover-on-container survives). `OnMouseScroll`
    through `callRelative` at `event_handlers.go:306` does **not** auto-consume
-   (focused-target scroll still cascades); `OnChar` through
+   (focused-target scroll still cascades). `OnChar` through
    `executeFocusCallback` does, while `OnKeyDown`/`OnKeyUp` through the same
    helper do not.
 8. `Window.OnEvent` reachability: a click consumed by a widget no longer reaches
@@ -457,10 +457,10 @@ go-gui tags. Follow the existing `sync-siblings` skill order. Verify each with
 
 ## Decisions
 
-1. **Single PR.** Phases 1–6 land together. Split PRs would leave `main`
-   uncompilable between them, which is worse than one unbisectable commit — and
-   the repo has no external consumers to strand. Phase 0 (issues) precedes it;
-   Phase 7 (siblings) follows the go-gui tag.
-2. **Wiki rewrite is out of scope** for this PR. Phase 0 still files the issue;
-   the rewrite happens immediately after the PR merges, against the shipped API
+1. **Single PR.** Phases 1–6 land together. Split PRs leave `main` uncompilable
+   between them, which is worse than one unbisectable commit — and the repo has
+   no external consumers to strand. Phase 0 (issues) precedes it. Phase 7
+   (siblings) follows the go-gui tag.
+2. **Wiki rewrite is out of scope** for this PR. Phase 0 still files the issue.
+   The rewrite happens immediately after the PR merges, against the shipped API
    rather than a moving target.

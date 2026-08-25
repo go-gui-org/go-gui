@@ -84,5 +84,5 @@ gui.SetTheme(gui.ThemeMaker(cfg))
 | Warm       | Warm-shifted palette     |
 | Cool       | Cool-shifted palette     |
 
-Use the tint slider to control surface saturation. Dark mode is derived
-automatically from the same seed color.
+Use the tint slider to control surface saturation. The framework derives dark
+mode automatically from the same seed color.

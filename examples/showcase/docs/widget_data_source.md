@@ -90,4 +90,4 @@ type DataGridDataSource interface {
 | SupportsOffset | bool                | Enable offset pagination     |
 | RowCountKnown  | bool                | Expose total row count       |
 
-Runtime stats available via `w.DataGridSourceStats(id)`.
+Get runtime stats via `w.DataGridSourceStats(id)`.

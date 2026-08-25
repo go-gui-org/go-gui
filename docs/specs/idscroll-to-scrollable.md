@@ -1,6 +1,6 @@
 # Spec: Replace `IDScroll uint32` with `Scrollable bool` + string scroll identity
 
-Status: implemented (go-gui #78, released v0.35.0; all five siblings bumped)
+Status: implemented (go-gui #78, released v0.35.0. All five siblings bumped)
 Base: `main` @ `3c5dac7` Target release: go-gui `v0.35.0` (breaking) Precedent:
 [idfocus-to-focusable.md](idfocus-to-focusable.md) (`v0.34.0`)
 
@@ -42,7 +42,7 @@ identity is already correct in `ID`.** No new naming scheme is needed —
 ## Measured evidence
 
 Benchmarked on `main` @ `3c5dac7` (M5, go1.26.5, `benchstat`, n=8–10). All
-spikes reverted; nothing committed.
+spikes reverted. Nothing committed.
 
 **Shape size — the migration makes `Shape` smaller:**
 
@@ -55,7 +55,7 @@ spikes reverted; nothing committed.
 | **net**                                                                        | **272 → 264** |
 
 Measured with a mirror struct, not predicted. An earlier estimate of _+24 bytes_
-assumed both fields must become strings; wrong on both counts.
+assumed both fields must become strings. Wrong on both counts.
 
 **Key type:**
 
@@ -74,21 +74,21 @@ in "Out of scope" — it is borrowed, not earned.
 
 1. **Opt-in**: `Scrollable bool`. Identity = existing `Cfg.ID` (string).
 2. **`ScrollMode` stays** as the axis restriction. It cannot serve as the
-   opt-in: its zero value is `ScrollBoth`, so making it the gate would silently
-   turn every container into a scroll container.
+   opt-in: its zero value is `ScrollBoth`, so making it the gate turns every
+   container into a scroll container silently.
 3. **`IDScrollContainer` deleted outright**, not migrated (PR A).
 4. **`FindLayoutByIDScroll` → `FindLayoutByScrollID`**, parallel to #76's
    `FindLayoutByIDFocus` → `FindLayoutByFocusID`. Keep it as a separate function
    from `FindLayoutByFocusID` — near-identical, differing only in which bool
    they gate on (`Scrollable` vs `Focusable`). Predicate:
    `id != "" && layout.Shape.Scrollable && layout.Shape.ID == id` (empty id →
-   miss, same as focus). Do not leave the old name: `IDScroll` is being deleted.
+   miss, same as focus). Do not leave the old name: `IDScroll` is deleted.
 
    **This is a behavior change, not only a rename.** Today's predicate
    (`layout_query.go:61-63`) is a bare `layout.Shape.IDScroll == idScroll` — no
    opt-in gate and no zero guard, so `findScrollLayout(w, 0)` currently matches
    the root (the first shape with `IDScroll == 0`). The new predicate is
-   strictly better; it is called out here so the tightened diff does not read as
+   strictly better. It is called out here so the tightened diff does not read as
    an unexplained mismatch during review.
 
 5. **Meaningful string IDs** in examples (`"catalog"`, `"detail"`), not
@@ -135,27 +135,27 @@ in "Out of scope" — it is borrowed, not earned.
      with no `ID` — which is exactly what the 14 examples using `IDScroll: 9110`
      become if migrated carelessly. That is why it is still worth wiring.
    - A hand-rolled `&Shape{Scrollable: true}` bypasses it entirely. None exist
-     today; grep `rg -n 'Shape\{' --type go gui/` at land time to confirm none
+     today. Grep `rg -n 'Shape\{' --type go gui/` at land time to verify none
      arrived in the meantime.
 
 8. **No duplicate-ID detection. Do not build it.** #76 warns on duplicate
-   focusable IDs, and the obvious move is to mirror that here. Don't — the two
+   focusable IDs, and the obvious move is to mirror that here. Do not. The two
    failure modes are not comparable:
 
    |           | duplicate focus ID                   | duplicate scroll ID                                                |
    | --------- | ------------------------------------ | ------------------------------------------------------------------ |
    | symptom   | widget silently skipped in tab order | two containers scroll in lockstep                                  |
-   | noticed   | easy to miss                         | usually obvious when scrolling; weaker signal under virtualization |
-   | diagnosis | needs a warning to find              | usually self-evident; not worth a per-frame seen-set               |
+   | noticed   | easy to miss                         | usually obvious when scrolling. Weaker signal under virtualization |
+   | diagnosis | needs a warning to find              | usually self-evident. Not worth a per-frame seen-set               |
 
-   A warning would cost a `scrollDebug` env gate, a `scrollDupWarn` helper, and
-   a per-frame seen-set in the view-phase runtime — to detect a bug that usually
+   A warning costs a `scrollDebug` env gate, a `scrollDupWarn` helper, and a
+   per-frame seen-set in the view-phase runtime — to detect a bug that usually
    announces itself the first time anyone scrolls. Not worth it.
 
    Note decision 12 forces a deliberate near-miss here: Table's freeze path puts
    a scrollable `bodyCfg` under an outer that already holds `ID: cfg.ID`.
-   Suffixing the body `:scroll` keeps ids unique; the rejected alternative would
-   have made two shapes share one.
+   Suffixing the body `:scroll` keeps ids unique. The rejected alternative makes
+   two shapes share one id.
 
    `RequireScrollID` (decision 7) still catches the empty-`ID` case, which is
    the one that matters during this migration: it is a compile-clean mistake
@@ -164,7 +164,7 @@ in "Out of scope" — it is borrowed, not earned.
 9. **`DataGridCfg.IDScroll` override is deleted**, not migrated.
    `dataGridScrollID` collapses to `return cfg.ID + ":scroll"` with no branch,
    matching its sibling `dataGridFocusID` (`:119-121`), which has no override.
-   Breaking for any consumer setting it explicitly; grep shows none across the
+   Breaking for any consumer setting it explicitly. Grep shows none across the
    five siblings, so blast radius is zero.
 
 10. **`ScrollbarCfg.IDScroll` is renamed `ScrollID string`** — it points at
@@ -234,9 +234,9 @@ in "Out of scope" — it is borrowed, not earned.
     retype breaks any consumer reading offsets directly, not just those setting
     a Cfg field.
 
-12. **`TableCfg` has two layout paths with different scroll structure; identity
+12. **`TableCfg` has two layout paths with different scroll structure. Identity
     branches on `freeze`.** See "Table's two paths" under PR C. Non-freeze keeps
-    identity `cfg.ID` (the outer `Column` already carries it); the freeze path's
+    identity `cfg.ID` (the outer `Column` already carries it). The freeze path's
     `bodyCfg` gets `ID: cfg.ID + ":scroll"`. Add
     `tableScrollID(cfg *TableCfg, freeze bool) string` so the container and the
     virtualization read cannot drift apart:
@@ -253,28 +253,28 @@ in "Out of scope" — it is borrowed, not earned.
     **Call it once per view, into a local — do not call it per use.** On the
     freeze path each call allocates a concatenation, and there are two uses (the
     `:202` virtualization read and the `bodyCfg` literal at `:471`). `freeze` is
-    computed at `:175`; derive `scrollID` immediately below it and thread the
+    computed at `:175`. Derive `scrollID` immediately below it and thread the
     local to both. Same rule for every other suffix-derived site (see "Per-frame
     allocation" below).
 
     Rejected: giving the freeze `bodyCfg` `ID: cfg.ID` to avoid the branch.
-    Scroll would still resolve (`FindLayoutByScrollID` gates on `Scrollable`,
-    and the freeze outer is not scrollable), but two shapes in the same tree
-    would share an id and `FindByID(cfg.ID)` becomes ambiguous. Also rejected:
-    restructuring the non-freeze path to add a dedicated inner scroll container
-    so both derive `cfg.ID + ":scroll"` — correct, but it adds a layout node and
-    is outside this spec's blast radius.
+    Scroll still resolves (`FindLayoutByScrollID` gates on `Scrollable`, and the
+    freeze outer is not scrollable), but two shapes in the same tree share an id
+    and `FindByID(cfg.ID)` becomes ambiguous. Also rejected: restructuring the
+    non-freeze path to add a dedicated inner scroll container so both derive
+    `cfg.ID + ":scroll"` — correct, but it adds a layout node and is outside
+    this spec's blast radius.
 
 ## Phase 0 — branch + execution protocol (do before any edit)
 
-Work happens on one feature branch, not on `main`. Confirm the base is current
+Work happens on one feature branch, not on `main`. Verify the base is current
 first (`git fetch && git status` — rebase if stale), then:
 
 ```fish
 git switch -c idscroll-to-scrollable main
 ```
 
-The work spans six repos. Phases 1–4 are go-gui on the branch above; phases 5–9
+The work spans six repos. Phases 1–4 are go-gui on the branch above. Phases 5–9
 are the release and the sibling migration, each sibling on its own branch in its
 own repo.
 
@@ -285,7 +285,7 @@ own repo.
 | 2     | go-gui                   | PR B — `ViewFrame` benchmark                                               | `gui: add BenchmarkViewFrame to catch Shape-size regressions`           |
 | 3     | go-gui                   | PR C — `Scrollable` + string identity                                      | `gui: replace IDScroll uint32 with Scrollable + string scroll identity` |
 | 4     | go-gui                   | tests / examples / docs / CHANGELOG                                        | `docs: migrate IDScroll references to Scrollable`                       |
-| 5     | go-kite, go-charts       | **dry run** — migrate against unreleased go-gui, prove clean, do not merge | _(no commit; branches held)_                                            |
+| 5     | go-kite, go-charts       | **dry run** — migrate against unreleased go-gui, prove clean, do not merge | _(no commit, branches held)_                                            |
 | 6     | go-gui                   | release `v0.35.0` (PR A + PR C batched), await proxy                       | _(release skill)_                                                       |
 | 7     | go-kite                  | migration + `go.mod` bump, one PR                                          | `deps: migrate to go-gui v0.35.0 Scrollable API`                        |
 | 8     | go-charts                | migration + `go.mod` bump + CI `ref:` pins, one PR                         | `deps: migrate to go-gui v0.35.0 Scrollable API`                        |
@@ -295,7 +295,7 @@ Rules for every phase:
 
 1. **Run the verification gate before committing**
    (`go build ./... && go vet ./... && golangci-lint run ./... && go test ./...`).
-   A phase with a red gate is not done; do not commit past it.
+   A phase with a red gate is not done. Do not commit past it.
 2. **Commit at the end of the phase**, that phase only — no squashing phases
    together, no work from the next phase riding along.
 3. **Pause after the commit and wait for review.** Do not start the next phase
@@ -303,16 +303,16 @@ Rules for every phase:
    anything the phase surfaced that the spec did not predict.
 4. Do not push or open PRs without explicit permission.
 
-Phase 3 is the breaking one and is large; if it cannot reach a green gate as a
+Phase 3 is the breaking one and is large. If it cannot reach a green gate as a
 single commit, stop and ask rather than committing a broken tree or inventing a
 sub-split the spec does not describe.
 
 ### Why phase 5 (dry run) precedes phase 6 (release)
 
 **Module tags are immutable.** Once `v0.35.0` is pushed it cannot be corrected,
-only superseded — and a defect found while migrating go-kite or go-charts would
-burn a `v0.35.1` across all five siblings. go-kite is the canonical decision-11
-case and go-charts owns its own `idScrollHash` helper, so those two repos are
+only superseded — and a defect found while migrating go-kite or go-charts burns
+a `v0.35.1` across all five siblings. go-kite is the canonical decision-11 case
+and go-charts owns its own `idScrollHash` helper, so those two repos are
 precisely where a spec defect surfaces.
 
 Phase 5 migrates both **against the unreleased go-gui**, using a local
@@ -333,23 +333,23 @@ For go-kite and go-charts the two cannot be split, in either order:
 
 | order                     | result                                                                              |
 | ------------------------- | ----------------------------------------------------------------------------------- |
-| bump first, migrate after | `go.mod` points at `v0.35.0`; `IDScroll` is gone; repo does not compile             |
-| migrate first, bump after | migrated code needs `Scrollable`; `v0.34.x` does not have it; repo does not compile |
+| bump first, migrate after | `go.mod` points at `v0.35.0`. `IDScroll` is gone. Repo does not compile             |
+| migrate first, bump after | migrated code needs `Scrollable`. `v0.34.x` does not have it. Repo does not compile |
 
 So the bump rides in the migration PR. **`/sync-siblings` cannot drive these
 two** — its phase 3 is `go get` → `go mod tidy` → `go build`, with no step that
 edits call sites, and its red-CI triage has no category for "the upstream API
-changed." It would `go get` the breaking version and stall on compile errors. It
-drives phase 9 only, where the three zero-ref repos are pure bumps and that flow
-fits exactly.
+changed." It runs `go get` on the breaking version and stalls on compile errors.
+It drives phase 9 only, where the three zero-ref repos are pure bumps and that
+flow fits exactly.
 
 Phases 7–8 drop the phase-5 `replace`, add the real require, and gate with
-`GOWORK=off` (go-kite has a gitignored `go.work` that would otherwise mask the
+`GOWORK=off` (go-kite has a gitignored `go.work` that otherwise masks the
 published-module resolution CI uses).
 
 ### go-charts also pins go-gui in CI (easy to miss)
 
-`go-charts/.github/workflows/ci.yml:27` and `gallery.yml` check out go-gui at a
+`go-charts/.github/workflows/ci.yml:27` and `gallery.yml` pin go-gui at a
 **hardcoded `ref: v0.34.0`** and `go mod edit -replace` onto it. That pin
 overrides `go.mod`, so bumping the require alone leaves CI building the migrated
 source against a go-gui that still has `IDScroll` — red, with a confusing error.
@@ -357,8 +357,8 @@ source against a go-gui that still has `IDScroll` — red, with a confusing erro
 
 Consequence: go-charts CI cannot verify phase 5 (the workflow needs a real tag).
 Its dry run is local-only, which is why phase 5 exists rather than trusting CI
-to catch it. Note also that this pin means go-gui's `main` advancing does
-**not** red go-charts — do not expect that signal.
+to catch it. Note also that this pin means an advancing go-gui `main` does
+**not** turn go-charts red — do not expect that signal.
 
 ## PR A (phase 1) — delete `IDScrollContainer` (independent, do first)
 
@@ -390,7 +390,7 @@ regression at all** — a flat `B/op` from those benches is an artifact, not
 evidence. Without this bench, PR C's "−8 bytes" claim is unverifiable in CI.
 
 **Do not "fix" the existing benches instead.** They measure something real
-(layout generation over a stable tree); this is an additional bench, not a
+(layout generation over a stable tree). This is an additional bench, not a
 replacement.
 
 Add as `gui/view_frame_bench_test.go` and add `ViewFrame` to the `bench-gate`
@@ -460,7 +460,7 @@ func BenchmarkViewFrame(b *testing.B) {
 ```
 
 Reference numbers on `main` @ `3c5dac7` (M5): `rows_50` ≈ 16.3 µs, 54.34 KiB,
-**353 allocs**; `rows_200` ≈ 66.5 µs, 216.2 KiB, 1403 allocs. The nonzero alloc
+**353 allocs**. `rows_200` ≈ 66.5 µs, 216.2 KiB, 1403 allocs. The nonzero alloc
 count is the point — if a future edit drives `B/op` to a constant, the bench has
 regressed into the same blind spot.
 
@@ -480,7 +480,7 @@ invalidates them.
 
 ### `Shape` (`gui/shape.go`)
 
-- Remove `IDScroll uint32`; add `Scrollable bool` next to
+- Remove `IDScroll uint32`. Add `Scrollable bool` next to
   `Focusable`/`FocusSkip` (**adjacent placement matters** — that is what lets it
   land in existing padding for free).
 - Reuse existing `Shape.ID string` as scroll identity.
@@ -490,23 +490,23 @@ invalidates them.
 
 The `IDScroll` fields are **not all the same thing**. A blind `IDScroll` →
 `Scrollable: true` pass will corrupt the reference and override cases into
-self-scrolling widgets. Each is classified below; the "action" column is the
+self-scrolling widgets. Each is classified below. The "action" column is the
 whole job.
 
 | Cfg                   | file:line                        | kind                            | action                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | --------------------- | -------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ContainerCfg`        | `view_container.go:98`           | **container**                   | `Scrollable bool`; identity = `cfg.ID`                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `ListBoxCfg`          | `view_listbox.go:48`             | **container**                   | `Scrollable bool`; container already sets `ID: cfg.ID` (`:118`, `:217`) alongside `Focusable` — same shape, both identities, different namespaces, no collision                                                                                                                                                                                                                                                                                                                                          |
+| `ContainerCfg`        | `view_container.go:98`           | **container**                   | `Scrollable bool`. Identity = `cfg.ID`                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `ListBoxCfg`          | `view_listbox.go:48`             | **container**                   | `Scrollable bool`. Container already sets `ID: cfg.ID` (`:118`, `:217`) alongside `Focusable` — same shape, both identities, different namespaces, no collision                                                                                                                                                                                                                                                                                                                                          |
 | `TreeCfg`             | `view_tree.go:36`                | **container**                   | same as ListBox (`:238`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `TableCfg`            | `view_table.go:70`               | **container ×2**                | ⚠️ two paths. Non-freeze: `outerCfg` already sets `ID: cfg.ID` (`:271`), gate at `:289` becomes `if cfg.Scrollable`. Freeze: see "Table's two paths" below — the spec's earlier draft missed it entirely                                                                                                                                                                                                                                                                                                 |
-| `ComboboxCfg`         | `view_combobox.go:46`            | **container + identity handle** | dropdown already sets `ID: cfg.ID + ".dropdown"` (`:207`); `:219` becomes `Scrollable: cfg.Scrollable` — **not `true`**, see below. ⚠️ `cfg.IDScroll` is also the caller's scroll handle (decision 11) — key becomes `cfg.ID + ".dropdown"`, document it. Read at `:121` needs that string, not a bool                                                                                                                                                                                                   |
-| `CommandPaletteCfg`   | `view_command_palette.go:48`     | **container, NO ID**            | ⚠️ `IDScroll uint32` → `Scrollable bool`. The scroll `Column` at `:218` has **no `ID` field at all** — must add `ID: cfg.ID + ":scroll"`. `CommandPaletteShow` (`:234`) and `CommandPaletteToggle` (`:261`) also take `idScroll uint32`; remove the parameter, derive `id + ":scroll"` internally for the scroll-reset on show (`:243`). **Behavior change:** today Show resets scroll only when `idScroll > 0`; after the param is gone it **always** resets `id+":scroll"` to 0 on show — intentional. |
-| `InputCfg`            | `view_input.go:78`               | **container** (multiline only)  | gate at `:152` is `cfg.Mode == InputMultiline && cfg.IDScroll > 0`; becomes `&& cfg.Scrollable`. Threads to `inputHandlerCfg` (`:134`, `:222`)                                                                                                                                                                                                                                                                                                                                                           |
-| `inputHandlerCfg`     | `view_input.go:284`              | **internal plumb**              | unexported; thread `string` through `:546`, `:644` (`inputScrollCursorIntoView`)                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `ComboboxCfg`         | `view_combobox.go:46`            | **container + identity handle** | dropdown already sets `ID: cfg.ID + ".dropdown"` (`:207`). `:219` becomes `Scrollable: cfg.Scrollable` — **not `true`**, see below. ⚠️ `cfg.IDScroll` is also the caller's scroll handle (decision 11) — key becomes `cfg.ID + ".dropdown"`, document it. Read at `:121` needs that string, not a bool                                                                                                                                                                                                   |
+| `CommandPaletteCfg`   | `view_command_palette.go:48`     | **container, NO ID**            | ⚠️ `IDScroll uint32` → `Scrollable bool`. The scroll `Column` at `:218` has **no `ID` field at all** — must add `ID: cfg.ID + ":scroll"`. `CommandPaletteShow` (`:234`) and `CommandPaletteToggle` (`:261`) also take `idScroll uint32`. Remove the parameter, derive `id + ":scroll"` internally for the scroll-reset on show (`:243`). **Behavior change:** today Show resets scroll only when `idScroll > 0`. After the param is gone it **always** resets `id+":scroll"` to 0 on show — intentional. |
+| `InputCfg`            | `view_input.go:78`               | **container** (multiline only)  | gate at `:152` is `cfg.Mode == InputMultiline && cfg.IDScroll > 0`. Becomes `&& cfg.Scrollable`. Threads to `inputHandlerCfg` (`:134`, `:222`)                                                                                                                                                                                                                                                                                                                                                           |
+| `inputHandlerCfg`     | `view_input.go:284`              | **internal plumb**              | unexported. Thread `string` through `:546`, `:644` (`inputScrollCursorIntoView`)                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `DataGridCfg`         | `datagrid/view_data_grid.go:238` | **identity override**           | ⚠️ **not** a bool — **delete the field** (decision 9). See below.                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `ScrollbarCfg`        | `view_scrollbar.go:23`           | **reference**                   | ⚠️ rename to `ScrollID string` and tag with `` `gui:"required"` `` (decision 10) — points at _another_ container's state. Never becomes a bool.                                                                                                                                                                                                                                                                                                                                                          |
-| `dragReorderStartCfg` | `drag_reorder.go:210`            | **reference**                   | ⚠️ unexported; `ScrollID string` (decision 10). Never a bool.                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `inspectorNodeProps`  | `inspector.go:64`                | **display copy**                | ⚠️ unexported; holds the _inspected_ shape's id for rendering (`:494`), not an opt-in                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `dragReorderStartCfg` | `drag_reorder.go:210`            | **reference**                   | ⚠️ unexported. `ScrollID string` (decision 10). Never a bool.                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `inspectorNodeProps`  | `inspector.go:64`                | **display copy**                | ⚠️ unexported. Holds the _inspected_ shape's id for rendering (`:494`), not an opt-in                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 **`appendScrollbar`** (`view_container.go:436`) is the bridge that wires the
 container's ID into the scrollbar's `IDScroll` field. Post-migration, its
@@ -534,26 +534,25 @@ func dataGridScrollID(cfg *DataGridCfg) string {
 ```
 
 That is already the exact string the container's `ID` carries at
-`view_data_grid.go:584`, so the function may be inlinable at its call sites —
-check whether it still earns its keep. `Scrollable: true` goes on that same
+`view_data_grid.go:584`, so the function can be inlined at its call sites —
+verify whether it still earns its keep. `Scrollable: true` goes on that same
 container (`:585`, replacing `IDScroll: scrollID`).
 
 ### Per-frame allocation — the migration is not alloc-neutral
 
 An earlier draft claimed this migration "only removes per-frame work."
 **Wrong.** Every `cfg.ID + ":scroll"` / `cfg.ID + ".dropdown"` is a string
-concatenation, i.e. a heap allocation, evaluated in the view phase — the one
-phase that is not already zero-alloc. The ledger per scrollable widget per
-frame:
+concatenation and a heap allocation, evaluated in the view phase — the one phase
+that is not already zero-alloc. The ledger per scrollable widget per frame:
 
-| site                               | today                                            | after                                  | delta      |
-| ---------------------------------- | ------------------------------------------------ | -------------------------------------- | ---------- |
-| DataGrid                           | concat (`ID:`) + concat-and-hash (`IDScroll:`)   | one concat, reused                     | **−1**     |
-| Select / Combobox dropdown         | concat (`ID:`) + concat-and-hash / passthrough   | one concat, reused                     | **−1 / 0** |
-| CommandPalette                     | none (the scroll `Column` has **no `ID` today**) | one concat                             | **+1**     |
-| Table, freeze                      | none                                             | one concat, if hoisted; **two if not** | **+1**     |
-| Table, non-freeze                  | none                                             | none (`cfg.ID` used directly)          | 0          |
-| Container / ListBox / Tree / Input | none                                             | none (`cfg.ID` used directly)          | 0          |
+| site                               | today                                            | after                             | delta      |
+| ---------------------------------- | ------------------------------------------------ | --------------------------------- | ---------- |
+| DataGrid                           | concat (`ID:`) + concat-and-hash (`IDScroll:`)   | one concat, reused                | **−1**     |
+| Select / Combobox dropdown         | concat (`ID:`) + concat-and-hash / passthrough   | one concat, reused                | **−1 / 0** |
+| CommandPalette                     | none (the scroll `Column` has **no `ID` today**) | one concat                        | **+1**     |
+| Table, freeze                      | none                                             | one concat if hoisted, two if not | **+1**     |
+| Table, non-freeze                  | none                                             | none (`cfg.ID` used directly)     | 0          |
+| Container / ListBox / Tree / Input | none                                             | none (`cfg.ID` used directly)     | 0          |
 
 Net is close to zero and none of it is on a hot path, but the `+1` rows are real
 and the `+2` row is avoidable. **Rule: derive each scroll id once per view call
@@ -599,9 +598,9 @@ Also update `:175`, `:196`, `:290` (gates) and `:471` (`bodyCfg` literal).
 
 Deleting `IDScroll` makes **every** reference to it a compile error. The gate
 and plumbing lists below are therefore a _convenience for estimating the diff_,
-not a safety net, and they are known to be incomplete (e.g.
-`view_container.go:354`, `:387`; `view_table.go:175,196,202,471`;
-`view_listbox.go:187,300`; `view_tree.go:181,189`; `view_input.go:185`). A
+not a safety net, and they are known to be incomplete (for example
+`view_container.go:354`, `:387`, `view_table.go:175,196,202,471`,
+`view_listbox.go:187,300`, `view_tree.go:181,189`, `view_input.go:185`). A
 missed site does not ship — it fails to build. Regenerate at land time rather
 than trusting the lists.
 
@@ -611,7 +610,7 @@ swap.** Two shapes:
 1. **Bool flip next to a key read.**
    `if cfg.IDScroll > 0 { x, _ = w.scrollY().Get(cfg.IDScroll) }` → the gate
    becomes `cfg.Scrollable` _and_ the `Get` needs the derived string. Swapping
-   only the gate leaves a compile error, but swapping both without checking
+   only the gate leaves a compile error, but swapping both without verifying
    **which** string that container carries compiles and reads the wrong key.
    Sites: `view_combobox.go:120-121` (`cfg.ID + ".dropdown"`),
    `view_command_palette.go:120-121` (`cfg.ID + ":scroll"`), `view_table.go:202`
@@ -631,16 +630,16 @@ swap.** Two shapes:
    read at `:121` is gated on `cfg.Scrollable`. Gate and container then
    disagree: a combobox that did not opt in gets a scrollbar injected and scroll
    dispatch, but virtualizes against a key nothing reads. Copy the gate
-   expression; do not assume a literal.
+   expression. Do not assume a literal.
 
 ### Gates: `IDScroll > 0` → `Scrollable` (bool gate sites)
 
-`event_handlers.go:103,343`; `gesture.go:528`; `layout_overflow.go:10`;
-`layout_sizing.go:123,433`; `layout_position.go:11,68,236`;
-`scroll.go:112,190,214,243`; `scroll_smooth.go:140-141`;
-`view_container.go:308,384`; `inspector.go:432`; `view_combobox.go:121`;
-`view_command_palette.go:120`; `view_listbox.go:144,293`; `view_tree.go:175`;
-`view_input.go:152`; `view_table.go:175,196,289`.
+`event_handlers.go:103,343`, `gesture.go:528`, `layout_overflow.go:10`,
+`layout_sizing.go:123,433`, `layout_position.go:11,68,236`,
+`scroll.go:112,190,214,243`, `scroll_smooth.go:140-141`,
+`view_container.go:308,384`, `inspector.go:432`, `view_combobox.go:121`,
+`view_command_palette.go:120`, `view_listbox.go:144,293`, `view_tree.go:175`,
+`view_input.go:152`, `view_table.go:175,196,289`.
 
 Also in `view_container.go`, not gates but same file:
 
@@ -672,9 +671,9 @@ will not compile until retargeted — regenerate with
 | `view_scrollbar.go:288,299`                           | `offsetMouseChangeX/Y` map + `idScroll` params                  |
 | `drag_reorder.go:135,210,527`                         | cfg + runtime state + `dragReorderAutoScroll`                   |
 | `view_listbox.go:118,217,537`                         | `IDScroll:` literals / locals → `Scrollable` + `ID`             |
-| `view_tree.go:238`; `view_tree_rows.go:254`           | same                                                            |
-| `view_combobox.go:219`; `view_command_palette.go:218` | same                                                            |
-| `datagrid/view_data_grid.go:585` + helpers            | override deleted; string identity                               |
+| `view_tree.go:238`, `view_tree_rows.go:254`           | same                                                            |
+| `view_combobox.go:219`, `view_command_palette.go:218` | same                                                            |
+| `datagrid/view_data_grid.go:585` + helpers            | override deleted. String identity                               |
 
 ### Window API (`gui/scroll.go`, `gui/state_registry.go`, `gui/layout_query.go`)
 
@@ -682,7 +681,7 @@ All `idScroll uint32` → `id string`: `ScrollHorizontalBy/To/ToPct/Pct`
 (`:260,277,292,309`), `ScrollVerticalBy/To/ToPct/Pct` (`:324,341,356,373`),
 `ScrollX()`/`ScrollY()` → `*BoundedMap[string, float32]`
 (`state_registry.go:77,84`), `FindLayoutByIDScroll` →
-`FindLayoutByScrollID(layout, id string)` (decision 4; predicate gates on
+`FindLayoutByScrollID(layout, id string)` (decision 4. The predicate gates on
 `Scrollable`), `findScrollLayout` (`scroll.go:7`), `inputScrollCursorIntoView`
 (`scroll.go:45`, guard `idScroll == 0` → `id == ""`).
 
@@ -700,7 +699,7 @@ time-travel's snapshotable whitelist (`time_travel.go:58-59`), but
 `snapshotWhitelistedNamespaces` walks `registry.maps` — which the scroll maps
 are absent from. **Scroll offsets are therefore not captured by time-travel
 today.** Pre-existing bug, unrelated to this migration and unchanged by it (the
-whitelist stays just as inert after the retype). File it separately; do not fix
+whitelist stays just as inert after the retype). File it separately. Do not fix
 it here.
 
 ### Hash derivations to delete
@@ -709,16 +708,16 @@ it here.
 - `view_select.go:68` — `FnvSum32(cfg.ID + ".dropdown")` (feeds `:143`)
 - `view_theme_picker.go:64` — `FnvSum32(lbID)`
 
-Then check `FnvSum32` (`gui/fnv.go`) for remaining callers — #76 removed the
-focus ones. If none remain it is deletable, **but it is exported API**: grep all
-five siblings first.
+Then verify whether `FnvSum32` (`gui/fnv.go`) has remaining callers — #76
+removed the focus ones. If none remain, it is deletable, **but it is exported
+API**: grep all five siblings first.
 
 ### Inspector specifics (`gui/inspector.go`)
 
 - `:12` — `inspectorIDScrollPanel = uint32(0xFFF00001)` magic sentinel → string
-  const, e.g. `inspectorScrollPanel = "gui:inspector:panel"`. Consumed at
+  const, for example `inspectorScrollPanel = "gui:inspector:panel"`. Consumed at
   `:156`, `:676`.
-- `:435` — `strconv.Itoa(int(p.IDScroll))` displays the id; with a string it is
+- `:435` — `strconv.Itoa(int(p.IDScroll))` displays the id. With a string it is
   printed directly. Compile break, trivial fix.
 - `:494` — `IDScroll: shape.IDScroll` copies the inspected shape's id for
   display. Becomes the string.
@@ -739,7 +738,7 @@ five siblings first.
   `scrollbar`, `row`, `combobox`, `gesture`, `column`, `tree`, `data_grid`),
   plus `examples/showcase/docs/commands.md` — which is **not**
   `widget_`-prefixed and is a different file from `docs/commands.md`. Both need
-  updating. 13 files total; regenerate with `rg -l IDScroll --glob '*.md'`.
+  updating. 13 files total. Regenerate with `rg -l IDScroll --glob '*.md'`.
 - `.claude/skills/{widget,new-example}` scaffolds if they mention `IDScroll`.
 
 ## Release (phase 6)
@@ -774,13 +773,13 @@ sites and cannot drive those two.
    the opt-in and the scroll handle. The container must acquire
    `ID: timelineScrollID` (a string) with `Scrollable: true`, and the
    `ScrollVerticalTo` call must pass that same string. `RequireScrollID` catches
-   the container if its `ID` is left empty; it does **not** catch an `ID` that
-   simply disagrees with what `ScrollVerticalTo` passes. That case compiles and
-   scrolls nothing.
+   the container if its `ID` is left empty. It does **not** catch an `ID` that
+   disagrees with what `ScrollVerticalTo` passes. That case compiles and scrolls
+   nothing.
 5. **go-charts** — regenerate counts at land
    (`rg -n 'IDScroll|idScrollHash|ScrollVertical|ScrollHorizontal|scrollCatalog|scrollDetail'`).
    `chart/data_table.go:14,67` has its own `idScrollHash(id)` helper feeding
-   `gui.TableCfg.IDScroll`; **delete the helper**, pass the string.
+   `gui.TableCfg.IDScroll`. **Delete the helper**, pass the string.
    `examples/showcase` uses `scrollCatalog`/`scrollDetail` consts across
    `catalog.go:29,94-96,237-238`, `detail.go:11,32`, `main.go:9-10,51-56`.
 
@@ -815,9 +814,9 @@ it does not move at all, the bench is not wired in.
   Read the `Get` improvement correctly: PR C does not _fix_ this bug, it
   _sidesteps_ it by keying with a string. If #77 is fixed first, uint32 reads
   drop to ~2.4 ns and string keys become the slower choice by ~2.8 ns per read —
-  a handful of containers × 2.8 ns per frame against a 4–5 ms budget, i.e.
+  a handful of containers × 2.8 ns per frame against a 4–5 ms budget, that is
   irrelevant. The size (272 → 264) and consistency arguments carry this spec on
-  their own; **PR C must not be justified on the `Get` number.**
+  their own. **PR C must not be justified on the `Get` number.**
 
 - Enum reorder of `ScrollMode` to add a `ScrollNone` zero value.
 
@@ -830,11 +829,11 @@ break vs silent break" subsections, and the go-kite note incorporate the second
 2026-07-15 pass, which verified the spec's claims against `main` @ `3c5dac7`:
 
 - `IDScrollContainer` has zero readers (sole writer `layout_position.go:200`,
-  plus the two named tests). PR A confirmed.
-- `RequireFocusID` has zero call sites. Decision 7's framing confirmed.
+  plus the two named tests). PR A verified.
+- `RequireFocusID` has zero call sites. Decision 7's framing verified.
 - `Shape` is **272** bytes today, and adding `Scrollable bool` next to
   `FocusSkip` is **free** (measured 272 → 272 on a spike). The
-  padding-absorption claim holds; the net 264 follows from removing 8 bytes of
+  padding-absorption claim holds. The net 264 follows from removing 8 bytes of
   `uint32`.
 - `FnvSum32` retains only test callers once the three production sites go —
   deletable pending the sibling grep, as written.
@@ -844,28 +843,28 @@ things the second pass got wrong or oversold:
 
 - **`IDScroll` is not a StateMap key.** The motivation said it was and the
   typed-plumbing list carried a "rekey `nsScrollX`/`nsScrollY`" item. Offsets
-  live in dedicated `w.scrollXMap`/`scrollYMap`; the consts are inert. Item
+  live in dedicated `w.scrollXMap`/`scrollYMap`. The consts are inert. Item
   deleted. Surfaced a real pre-existing bug — time-travel does not snapshot
   scroll offsets — explicitly left out of scope.
-- **Combobox.** The classification table said "just `Scrollable: true`";
-  `view_combobox.go:219` is a passthrough (`IDScroll: cfg.IDScroll`), so that
-  literal would have silently forced scroll on every dropdown. Now
+- **Combobox.** The classification table said "just `Scrollable: true`".
+  `view_combobox.go:219` is a passthrough (`IDScroll: cfg.IDScroll`), so writing
+  that literal forces scroll silently on every dropdown. Now
   `Scrollable: cfg.Scrollable`, with the Select contrast written out as a third
   silent-break shape.
 - **Alloc neutrality.** "This migration only removes per-frame work" was false:
   CommandPalette and Table-freeze each gain a concat. New "Per-frame allocation"
-  subsection; decision 12 now mandates hoisting; PR B's blind spot documented
+  subsection. Decision 12 now mandates hoisting. PR B's blind spot documented
   rather than papered over.
 - **`RequireScrollID`** was framed as catching "every missed site". It catches
   one: a bare `ContainerCfg` with `Scrollable: true` and no `ID`. Every other
   scroll container either derives a never-empty suffix id or already calls
-  `RequireID`. Still worth wiring; no longer oversold.
+  `RequireID`. Still worth wiring. No longer oversold.
 - Also: `Window.ScrollX()`/`ScrollY()` added to the CHANGELOG's breaking list as
-  a third item; decision 4 flagged as a behavior change (today's predicate has
-  no opt-in gate and no zero guard); go-kite ref count corrected 3 → 2; doc file
+  a third item. Decision 4 flagged as a behavior change (today's predicate has
+  no opt-in gate and no zero guard). go-kite ref count corrected 3 → 2. Doc file
   count corrected 11 → 13 with `commands.md` miscategorization fixed.
 
-Measured this pass: `sizeof(Shape) == 272` on `main` @ `3c5dac7`, confirming the
+Measured this pass: `sizeof(Shape) == 272` on `main` @ `3c5dac7`, verifying the
 272 → 264 claim's starting point.
 
 Nothing in this spec requires a judgement call the implementer has to make alone
@@ -875,9 +874,9 @@ underspecified on Table.
 
 ## Open risks
 
-- Scroll identity must be unique per frame among scroll containers; duplicates
+- Scroll identity must be unique per frame among scroll containers. Duplicates
   share offsets. **Accepted, undetected** (decision 8) — usually obvious when
-  scrolling; weaker under virtualization, still not worth a per-frame seen-set.
+  scrolling. Weaker under virtualization, still not worth a per-frame seen-set.
 - Containers opting in with `IDScroll: 1` and no `ID` must acquire one. Wire
   `RequireScrollID` in **early** — it is the safety net that turns every missed
   site in this migration into a panic at first render rather than a silent
@@ -887,23 +886,23 @@ underspecified on Table.
 - Typed key holders (`scroll_smooth` entries, `window` maps, `view_scrollbar`
   helpers, drag-reorder runtime state) are easy to miss if the implementer only
   greps `IDScroll > 0` — use the typed-plumbing table in PR C. Missing one is a
-  **build failure**, not a silent bug; see "Compile break vs silent break".
+  **build failure**, not a silent bug. See "Compile break vs silent break".
 - **The silent failures are gate-flips next to a key read** — the four sites
   listed in "Compile break vs silent break". A swap that satisfies the compiler
   while reading a key nothing writes produces a container that renders but never
   scrolls, or virtualizes against offset 0.
 - **Table's freeze path** (`tableFreezeLayout`) puts the scroll container
   somewhere different than the non-freeze path does, and `:202` reads the key
-  for both. Decision 12 branches; forgetting the branch mis-virtualizes
+  for both. Decision 12 branches. Forgetting the branch mis-virtualizes
   frozen-header tables specifically, which is the configuration least likely to
   be in a smoke test.
 - **Consumers lose the caller-supplied scroll handle** (decision 11). The
   derived key is recoverable from the docs, but a sibling that migrates the Cfg
   field and forgets its `ScrollVerticalTo` call site compiles and silently stops
-  scrolling. go-kite is the known instance; regrep the others for
+  scrolling. go-kite is the known instance. Regrep the others for
   `ScrollVertical|ScrollHorizontal` at land time, not just for `IDScroll`.
 - `CommandPaletteCfg`'s scroll container has no `ID` today and needs one
-  invented (`cfg.ID + ":scroll"`); Show always resets that key after the API
+  invented (`cfg.ID + ":scroll"`). Show always resets that key after the API
   shrink.
 - `allocs/op` on `BenchmarkViewFrame` (PR B) must not rise after PR C. Nothing
   in this migration touches the paths that bench covers, so any movement there

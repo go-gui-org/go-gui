@@ -17,7 +17,7 @@ blocked splitting it up:
    URL, or a `data:` URL. There was no way to hand the renderer bytes.
 3. **Hue is not recoverable from RGBA.** At `S=0`, `L=0` or `L=1` the hue is
    gone. The old widget hid an `H` in window state to paper over this. Four
-   independent components each hiding their own copy would drift apart.
+   independent components, each hiding its own copy, drift apart.
 
 `gradientShaderStopLimit = 5` compounded (1): the old hue strip declared seven
 stops and was silently resampled to five on every GPU backend.
@@ -27,7 +27,7 @@ stops and was silently resampled to five on every GPU backend.
 ### One value, owned by the app
 
 `HSLA` (`gui/color_hsl.go`) is a plain value the caller holds. Every component
-takes `Value HSLA` and reports `OnChange(HSLA, EventCtx)`; none keeps state. Two
+takes `Value HSLA` and reports `OnChange(HSLA, EventCtx)`. None keeps state. Two
 controls stay in sync because they read the same variable, not because they talk
 to each other.
 
@@ -49,30 +49,31 @@ gui.SetMemImageBudget(bytes)        // default 32 MiB
 ```
 
 `Src` strings starting `mem:` are resolved by every backend through
-`gui.LookupImage` before any path handling (`drawImage` in `metal`, `gl`, `ios`,
-`android`; an offscreen canvas in `web`; a PNG-encoded embed in the PDF export).
-The registry is a byte-budgeted LRU, process-global because backends resolve a
-`Src` string with no `*Window` in hand.
+`gui.LookupImage` before any path handling. `drawImage` resolves them in
+`metal`, `gl`, `ios`, and `android`. The web backend uses an offscreen canvas,
+and the PDF export receives a PNG-encoded embed. The registry is a byte-budgeted
+LRU, process-global because backends resolve a `Src` string with no `*Window` in
+hand.
 
 **Content keying is the contract.** The key names the inputs the buffer was
 generated from, so a buffer that must change is registered under a _new_ key and
 the stale variant ages out on its own. There is deliberately no invalidation
-call: backends cache uploaded textures under the same string, so an app that
-mutated a buffer in place would have no way to tell them.
+call. Backends cache uploaded textures under the same string. An app that
+mutates a buffer in place has no way to tell them.
 
 Keys quantize — hue to whole degrees, S/L/A to whole percent. A key tracking a
-float exactly would miss on every frame of a drag and rebuild the buffer each
-time, which is the failure the cache exists to prevent. A steady frame costs one
-map lookup and zero allocations: the key is built into a stack scratch buffer,
-and `memImageSrc` returns the string stored at registration.
+float exactly misses on every frame of a drag and rebuilds the buffer each time.
+That is the failure the cache exists to prevent. A steady frame costs one map
+lookup and zero allocations: the key is built into a stack scratch buffer, and
+`memImageSrc` returns the string stored at registration.
 
 Buffers are generated at `imgScale = 2` and displayed at logical size — sharp on
 HiDPI, cheaply downscaled on 1×, and the scale never enters a key.
 
 **Security.** A `mem:` buffer bypasses `AllowedImageRoots`, `MaxImageBytes` and
-`MaxImagePixels`. Those bound _untrusted_ input — a path or URL an attacker
-might steer. An in-process pixel buffer is trusted by construction; the
-registry's byte budget is its bound.
+`MaxImagePixels`. Those bound _untrusted_ input — a path or URL an attacker can
+steer. An in-process pixel buffer is trusted by construction. The registry's
+byte budget is its bound.
 
 ### What each control depends on
 
@@ -97,7 +98,7 @@ the one sweeping it.
 - `colorMarker` (`gui/view_color_marker.go`) — the ring. It floats above the
   imagery: a channel slider floats its track to centre it in a control the thumb
   makes taller, and a marker under that track is invisible.
-- Arrow keys move every control (`colorKeyDelta`); Shift takes the 10× step. A
+- Arrow keys move every control (`colorKeyDelta`). Shift takes the 10× step. A
   key a control does not handle is not consumed, so Tab still escapes.
 
 ## API
@@ -121,13 +122,13 @@ end-cap insets land on the wrong sides.
 
 `ColorFields` set `ShowSwatch` puts a `ColorSwatch` to the right of the hex
 field, under the fields' own ID scope. Both are readouts of the same color — one
-exact, one legible — so they belong on one line; a caller that wants the swatch
-anywhere else leaves the flag off and places a plain `ColorSwatch`. It is drawn
-twice as wide as `SwatchSize`, which stays its height: a square beside a text
-field reads as a button, where a wide bar reads as a sample of the value next to
-it. A flexible spacer sits between the two, so the swatch tracks the block's
-right edge — set by the wider channel row beneath it — instead of leaving dead
-space past a short hex value.
+exact, one legible — so they belong on one line. A caller that wants the swatch
+anywhere else leaves the flag off and places a plain `ColorSwatch`. The swatch
+is drawn twice as wide as `SwatchSize`, which stays its height. A square beside
+a text field reads as a button, where a wide bar reads as a sample of the value
+next to it. A flexible spacer sits between the two, so the swatch tracks the
+block's right edge — set by the wider channel row beneath it — instead of
+leaving dead space past a short hex value.
 
 `gui.ColorPicker` is now a composition of `ColorPlane`, two vertical
 `ColorChannelSlider`s standing to the right of the plane, and `ColorFields`
@@ -140,27 +141,27 @@ fields — so the plane is that width less what the two sliders and the gaps
 beside them occupy, and the two rows come out flush. Widening the gap therefore
 narrows the plane instead of widening the picker.
 
-`ShowHSV` still works and is deprecated in favour of `ShowHSL`, which names what
+`ShowHSV` still works and is deprecated in favor of `ShowHSL`, which names what
 the row contains.
 
 ## What callers see change
 
-The square is the HSL saturation × lightness plane rather than the HSV square;
-the hue and alpha sliders stand vertically to the right of it instead of
-stacking beneath it, which makes the picker squarer; the preview swatch sits
-beside the hex field rather than left of the whole numeric column; the alpha
-slider gains a real transparency checkerboard; the hue strip is exact instead of
+The square is the HSL saturation × lightness plane rather than the HSV square.
+The hue and alpha sliders stand vertically to the right of it instead of
+stacking beneath it, which makes the picker squarer. The preview swatch sits
+beside the hex field rather than left of the whole numeric column. The alpha
+slider gains a real transparency checkerboard. The hue strip is exact instead of
 resampled to five stops. No API break.
 
 ## Rejected
 
 - **Keeping the HSV square as a mode.** It is free — two gradients, no buffer —
-  but it would have forced `ColorPicker` to carry a permanent RGBA↔HSV↔HSLA
-  adapter and two plane implementations. That is the second-source-of-truth
-  pattern this repo rejects elsewhere (`ThemeMaker` vs `default*Style`).
-- **Per-vertex colored triangle meshes** instead of buffers. Would have reached
-  the wheel without a texture upload, but touches every backend's shader and is
-  far less reusable than an image source.
+  but it forces `ColorPicker` to carry a permanent RGBA↔HSV↔HSLA adapter and two
+  plane implementations. That is the second-source-of-truth pattern this repo
+  rejects elsewhere (`ThemeMaker` vs `default*Style`).
+- **Per-vertex colored triangle meshes** instead of buffers. They reach the
+  wheel without a texture upload, but touch every backend's shader and are far
+  less reusable than an image source.
 - **PNG-encoded `data:` URLs** to avoid backend work. Re-encoding a 400×400 PNG
   on every hue change is a visible hitch on drag.
 

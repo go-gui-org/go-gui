@@ -20,7 +20,7 @@ vetoed (`running = false`).
 
 The Metal backend's wid==0 handler also has a workaround in the ObjC `quit:`
 delegate method (`metal_window.m`) — `performClose:` on the key window is needed
-because the Go-side dispatch doesn't reach all windows and can't be vetoed.
+because the Go-side dispatch does not reach all windows and cannot be vetoed.
 
 ## Goal
 
@@ -59,8 +59,8 @@ sets `running` from its veto result.
 
 `backend.go:106-108` — `Run`'s `!cont` branch now calls
 `gui.DispatchCloseRequest(w)` before `running = false; break`. Previously it
-only set `running = false` without dispatching the close request, which would
-skip `OnCloseRequest` hooks.
+only set `running = false` without dispatching the close request, which skips
+`OnCloseRequest` hooks.
 
 ### 4. Remove `EventQuitRequested` handler from both `Run` and `RunAppE`
 
@@ -75,18 +75,18 @@ handles all windows.
 
 ### 6. Add `_quitRequested` flag for out-of-band quit events
 
-**Deviation from original spec.** The spec assumed menu-bar quit clicks would be
-dequeued by `metalPollEvent` like keyboard events. In practice, menu-bar
-tracking runs in `NSEventTrackingRunLoopMode`, while `metalPollEvent` only
-dequeues from `NSDefaultRunLoopMode`. Without `performClose:`, `quit:` would set
-`_evType = METAL_EVENT_QUIT` but `metalPollEvent` would return 0 (no event in
+**Deviation from original spec.** The spec assumed `metalPollEvent` dequeues
+menu-bar quit clicks like keyboard events. In practice, menu-bar tracking runs
+in `NSEventTrackingRunLoopMode`, while `metalPollEvent` only dequeues from
+`NSDefaultRunLoopMode`. Without `performClose:`, `quit:` set
+`_evType = METAL_EVENT_QUIT`, but `metalPollEvent` returned 0 (no event in
 default mode), so Go never saw the quit.
 
 Added `static int _quitRequested` to the ObjC event state, set by `quit:` and
 `applicationShouldTerminate:`. Checked at the top of `metalPollEvent` before any
 dequeue (same pattern as the IME generation check). When set, it synthesizes
 `_evType = METAL_EVENT_QUIT` and returns 1 immediately. Consumed on first read
-so vetoed quits don't re-fire.
+so vetoed quits do not re-fire.
 
 This covers both inline cases (Cmd+Q via `performKeyEquivalent:` during
 `sendEvent:`) and out-of-band cases (menu-bar click, system logout).
@@ -100,7 +100,7 @@ This covers both inline cases (Cmd+Q via `performKeyEquivalent:` during
 | `gui/backend/metal/backend.go:106-108`     | `Run` `!cont` branch now calls `DispatchCloseRequest(w)`                       |
 | `gui/backend/metal/backend.go:110-114`     | Removed `EventQuitRequested` handler from `Run`                                |
 | `gui/backend/metal/backend.go:289-303`     | Removed `EventQuitRequested` handler from `RunAppE`                            |
-| `gui/backend/metal/metal_window.m`         | Added `_quitRequested` flag + poll check; removed `performClose:` from `quit:` |
+| `gui/backend/metal/metal_window.m`         | Added `_quitRequested` flag + poll check. Removed `performClose:` from `quit:` |
 | `gui/backend/metal/events_test.go:206-222` | Updated Cmd+Q test to expect `cont=false`                                      |
 
 ## Risks
@@ -124,6 +124,6 @@ This covers both inline cases (Cmd+Q via `performKeyEquivalent:` during
 - `GO_GUI_MAIN_THREAD_TESTS=1 go test ./gui/backend/metal/...`
 - Manual: Cmd+Q quit, menu-bar click quit, system logout quit
 - Multi-window: open 2+ windows, Cmd+Q — verify all get close requests
-- Veto: window with `OnCloseRequest` that doesn't call `Close()` — verify quit
+- Veto: window with `OnCloseRequest` that does not call `Close()` — verify quit
   is blocked
 - Dialog: open dialog then Cmd+Q — verify quit is blocked (dialog veto)

@@ -6,7 +6,7 @@ description:
 
 # /graphify
 
-Turn any folder of files into a navigable knowledge graph with community
+Turn any folder of files into a navigable knowledge graph. It includes community
 detection, an honest audit trail, and three outputs: interactive HTML,
 GraphRAG-ready JSON, and a plain-language GRAPH_REPORT.md.
 
@@ -41,9 +41,9 @@ GraphRAG-ready JSON, and a plain-language GRAPH_REPORT.md.
 
 ## What graphify is for
 
-graphify is built around Andrej Karpathy's /raw folder workflow: drop anything
-into a folder - papers, tweets, screenshots, code, notes - and get a structured
-knowledge graph that shows you what you didn't know was connected.
+graphify is built around Andrej Karpathy's /raw folder workflow. Drop anything
+into a folder: papers, tweets, screenshots, code, notes. You get a structured
+knowledge graph that shows you what you did not know was connected.
 
 Three things it does that Claude alone cannot:
 
@@ -51,13 +51,14 @@ Three things it does that Claude alone cannot:
    and survive across sessions. Ask questions weeks later without re-reading
    everything.
 2. **Honest audit trail** - every edge is tagged EXTRACTED, INFERRED, or
-   AMBIGUOUS. You know what was found vs invented.
+   AMBIGUOUS. You know what was found and what was invented.
 3. **Cross-document surprise** - community detection finds connections between
-   concepts in different files that you would never think to ask about directly.
+   concepts in different files that you never think to ask about directly.
 
 Use it for:
 
-- A codebase you're new to (understand architecture before touching anything)
+- A codebase you are new to (understand the architecture before touching
+  anything)
 - A reading list (papers + tweets + notes → one navigable graph)
 - A research corpus (citation graph + concept graph in one)
 - Your personal /raw folder (drop everything in, let it grow, query it)
@@ -67,8 +68,8 @@ Use it for:
 If no path was given, use `.` (current directory). Do not ask the user for a
 path.
 
-If path argument starts with `https://github.com/` or `http://github.com/`,
-treat it as a GitHub URL — run Step 0 before anything else, then continue with
+If the path argument starts with `https://github.com/` or `http://github.com/`,
+treat it as a GitHub URL. Run Step 0 before anything else. Then continue with
 the resolved local path.
 
 Follow these steps in order. Do not skip steps.

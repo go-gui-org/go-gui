@@ -41,7 +41,7 @@ and the box's own centre moves with it.
 ## Why it cannot be applied everywhere
 
 A single toolkit-wide correction was implemented, tried and rejected on
-evidence. Badges read correct; single-line inputs read visibly low, and editable
+evidence. Badges read correct. Single-line inputs read visibly low, and editable
 text moved vertically as the user typed. Those are two distinct failures:
 
 1. **Wrong for arbitrary text.** The correction reclaims the descent on the
@@ -70,19 +70,17 @@ correction.
 ## The rule, once the widgets had all been judged
 
 Each widget was decided on its own evidence, and the same split kept coming
-back. It is worth stating as a rule, because it is what a new widget should be
-read against:
+back. It is worth stating as a rule, because a new widget is judged against it:
 
-- **A value takes its own ink.** A badge's count, a progress bar's readout: the
-  thing being centred is that string, and centring each on its own ink is what
-  keeps two of them side by side consistent. A descender is left where metric
-  centring put it.
+- **A value takes its own ink.** A badge's count, a progress bar's readout:
+  centring that string on its own ink keeps two of them side by side consistent.
+  A descender is left where metric centring put it.
 - **A label takes the face's cap band.** A button, a tab, a menu item, a select:
   the text names a control, the eye reads it by its caps, and a row or a list of
   them must agree whatever any one of them happens to say. A descender hangs
   below centre, which is how a control label is set.
 - **A glyph takes its own ink, always.** An icon or a symbol has no cap band to
-  centre on. `TextStyle.glyphRole` marks one; the theme's `Icon` rungs carry the
+  centre on. `TextStyle.glyphRole` marks one. The theme's `Icon` rungs carry the
   mark, and `glyphStyle(ts)` is the spelling for a symbol drawn in an ordinary
   text face — a numeric input's step triangles, a toast's `×`, an overflow
   panel's `⋮`. A glyph child inside a container correcting on the cap band opts
@@ -99,7 +97,7 @@ The content-free form cannot jitter: there is no way to pass it the live text.
 so do `InputDate` (a date mask: digits and separators) and `NumericInput` (its
 pre-commit transform admits digits, the locale's separators and a sign).
 
-The constrained alphabet is the entire licence, and it is the caller's to give:
+The constrained alphabet is the entire license, and it is the caller's to give:
 `InputCfg.opticalDigitCenter` is unexported and opt-in, so a plain `Input`
 cannot acquire the correction by default and an application cannot switch it on
 for text it does not control.
@@ -115,25 +113,23 @@ wrong there, for two reasons, both measured on the real render at size 16:
   clamp leaves it alone. Its **cap band** — which is what the eye reads a
   control's label by — rode 2.5 device pixels high all the same. That is the
   reported defect, and the measured form does not touch it.
-- **It would step the label on selection.** An offset taken from the run changes
-  when the run does, so picking an option with a descender after one without
-  would move the label vertically in a control that has not moved. Content-free
-  is what a re-labelling control needs, for the same reason an editable field
-  needs it.
+- **It steps the label on selection.** An offset taken from the run changes when
+  the run does, so picking an option with a descender after one without moves
+  the label vertically in a control that has not moved. Content-free is what a
+  re-labelling control needs, for the same reason an editable field needs it.
 
 So `Select` takes `opticalCenterLabelText`: the cap band, whatever the label
 says. Measured after, the cap band of "Pick a language" and of "PICK" both land
 0.5 device pixels low — level with each other, which is the property the hook
 exists for. The descender then hangs below centre instead of pulling the whole
-label up; that is how a control label is set, and it is deliberate.
+label up. That is how a control label is set, and it is deliberate.
 
 A **menu item** takes the same band, for a different reason. Its label is the
-app's and static per call site, so the ownership rule would admit the measured
-form — but items stack in a list at a regular pitch, and measuring each run
-would move a descender-free label down while leaving its descending neighbour
-where it was. The unevenness reads down the whole menu, where the same
-disagreement between two badges side by side does not. Cap band, whatever the
-item says.
+app's and static per call site, so the ownership rule admits the measured form —
+but items stack in a list at a regular pitch, and measuring each run moves a
+descender-free label down while leaving its descending neighbour where it was.
+The unevenness reads down the whole menu, where the same disagreement between
+two badges side by side does not. Cap band, whatever the item says.
 
 Two details follow from the widget rather than the rule. A menu item's label and
 its shortcut hint share one row, so the correction is attached to that row and
@@ -145,7 +141,7 @@ that goes unused is the last line's either way. Submenu items are the wrapping
 spelling, and they are exactly the ones the defect was reported on.
 
 Measured on the real render (an open submenu, device pixels): before, the
-menubar item's ink centre sat 2.0 above its highlight box's centre; after, 0.5
+menubar item's ink centre sat 2.0 above its highlight box's centre. After, 0.5
 below — the same residual an exactly centred badge records. All three submenu
 labels, descending and not, moved by the same 3 device pixels.
 
@@ -173,10 +169,10 @@ Two costs, both real and both bounded:
   the alphabet is a guarantee only the widget building the label can make, the
   same reasoning as `InputCfg.opticalDigitCenter`.
 - **An icon button needed the glyph role** to keep its arrow on its own ink.
-  Without it the cap band would have shifted the glyph by whatever the icon
-  face's `"H"` measures, or — where that face has no `H` — by the blind fallback
-  ratio. The date picker's month-nav arrows are the case in the recordings: they
-  must not move, and they do not.
+  Without it, the cap band shifts the glyph by whatever the icon face's `"H"`
+  measures, or — where that face has no `H` — by the blind fallback ratio. The
+  date picker's month-nav arrows are the case in the recordings: they must not
+  move, and they do not.
 
 The measured form is safe precisely where jitter cannot arise: a badge's label
 changes when the app changes it, not per keystroke. Measuring the run there is
@@ -195,7 +191,7 @@ rides high):
 | `gypsy`     | −5.5        | −9.0             | −5.5             |
 
 The middle column is the version that was rejected: it fixes the count and
-drives the word 3.5 px lower than leaving it alone would.
+drives the word 3.5 px lower than leaving it alone does.
 
 ## How it is measured
 
@@ -222,14 +218,14 @@ at 48pt reads 0.0 px skew.
 The result is memoized per window in `nsOpticalOffset`, keyed by family,
 typeface, size, line spacing and — for the measured form — the run. Per window,
 not per package: the measurement comes from that window's backend. The
-measurement costs a shaping pass and an outline read; the pass that consumes it
+measurement costs a shaping pass and an outline read. The pass that consumes it
 is allocation-free and runs every frame.
 
 Where the capability is absent — nil measurer in tests, WASM/canvas, an
 unreadable outline — the offset falls back to the ratio measured above for the
 band in question (`fallbackCapOffsetRatio` 0.0886 em, `fallbackDigitOffsetRatio`
 0.0708 em), applied only to a run holding none of `descenderRunes`. A rune test
-cannot know what a face does; on the fallback path it is right for Latin text
+cannot know what a face does. On the fallback path it is right for Latin text
 and its cost is a fraction of a pixel in a recording rather than a defect on
 screen.
 
@@ -238,19 +234,19 @@ screen.
 Two forms, because widgets reach the correction at two different times:
 
 - **`opticalCenterText(style, text)`** — an `AmendLayout` hook, a sibling of
-  `centerGlyphOnInk`. Moves the arranged text child; does not feed back into
+  `centerGlyphOnInk`. Moves the arranged text child. Does not feed back into
   sizing, so a control's height stays what the theme set. This is the only form
   available to eager factories such as `Badge`, which build with no `*Window`
   and therefore cannot measure.
 - **`opticalCenterFieldText`** — the same hook, content-free and on the figure
   band, for an editable field holding digits and separators. `InputDate` and
   `NumericInput` reach it by setting `opticalDigitCenter` on the `Input` they
-  wrap; `Input` puts it on the inner row that centres the text shape, and skips
+  wrap. `Input` puts it on the inner row that centres the text shape and skips
   it for multiline, which aligns to the top and has nothing to correct. A hook
   rather than padding because these widgets do not own the field's inset:
   shifting the arranged shape leaves the control's height — and its match with
   the `Input` beside it — untouched, where spending padding from `NoPadding`
-  would have grown it by twice the offset.
+  grows it by twice the offset.
 - **`colorFieldPadding`** — the padding form, for a widget that generates with a
   `*Window` in hand and sizes its row around the result. It gives the offset to
   the top and takes the same from the bottom, so the **total inset — and the
@@ -262,15 +258,15 @@ Two forms, because widgets reach the correction at two different times:
 
 `gui/golden_cases_test.go` records `badge`, `badge_capped`, `badge_descender`,
 `button`, `button_descender`, `numeric_input`, `input_date`,
-`select_placeholder_descender`, `menu_open_descender` and `progress_bar`;
+`select_placeholder_descender`, `menu_open_descender` and `progress_bar`.
 `color_fields`, `button_disabled`, `tab_control`, `datepicker_disabled`,
 `inputdate_disabled`, `numericinput_disabled` and the five `select_*` cases
 moved. `select_placeholder_descender` records level with `select_placeholder`,
-which is what a revert to the measured form would break, and `button_descender`
+which is what a revert to the measured form breaks, and `button_descender`
 records level with `button` for the same reason. `badge_descender` is the
-counter-case that must **not** move: it is the value rule, and it is what would
-catch the cap band being applied to everything. The plain `input` case is the
-second counter-case, and the one that pins the opt-in: general text must stay
+counter-case that must **not** move: it is the value rule, and it catches the
+cap band applied to everything. The plain `input` case is the second
+counter-case, and the one that pins the opt-in: general text must stay
 metrically centred. `TextMeasurer` is nil under the golden harness, so those
 files pin the fallback-ratio path: that the correction happens and by how much,
 not what a given font measures.
@@ -286,47 +282,45 @@ cap band and that `opticalDigitLabel` reaches the figure band. An icon-button
 golden was written and then dropped for exactly this reason: it recorded the
 same numbers either way. `menu_open_descender` opens a menu for one frame (menu
 selection is `nsMenu` keyed by the menubar's ID) and records `Copy` and `Paste`
-at the same offset from their own row: the measured form would move one and not
-the other, which is the pitch defect the band exists to avoid. Its shortcut-hint
+at the same offset from their own row: the measured form moves one and not the
+other, which is the pitch defect the band exists to avoid. Its shortcut-hint
 sibling is a unit test rather than a golden, because `Shortcut.String()` renders
-macOS glyphs on darwin and words elsewhere, so the recording would not be
-portable. `examples/optical_centring/` is the probe for what a golden cannot
-show.
+macOS glyphs on darwin and words elsewhere, so the recording is not portable.
+`examples/optical_centring/` is the probe for what a golden cannot show.
 
 Two goldens changed for a reason that is not the correction: the golden harness
 now pins the window clock (`setVirtualNow`) and `datePickerMonth` reads
 `w.Now()` rather than `time.Now()`. The calendar rings _today_, so
 `datepicker_disabled` recorded a different cell every day and reddened
-overnight; the same read is what a time-travel scrub needs, since a snapshot's
-calendar should ring the scrubbed day.
+overnight. The same read is what a time-travel scrub needs, since a snapshot's
+calendar must ring the scrubbed day.
 
 ## Where it is applied
 
 `Select` (cap band, via `opticalCenterLabelText` on its outer row, composed with
-the focus ring through `amendAll`; the disclosure arrow sits in its own wrapper
+the focus ring through `amendAll`. The disclosure arrow sits in its own wrapper
 and carries its own nudge, so the hook reaches the label only). A wrapping
 multi-select is excluded — its label is a block whose later lines are placed by
 the text layout, the same exclusion `Input` makes for multiline.
 
 The **menu item** (cap band as well, on the item's own column, or on the
-label+shortcut row where there is a hint; a `CustomView` item is skipped, since
+label+shortcut row where there is a hint. A `CustomView` item is skipped, since
 its content is the app's to place). `Menubar`'s top-level items and every
 submenu item are the same factory, so both take it.
 
-**`Button`** (cap band; figure band where `opticalDigitLabel` says the label is
-digits) — which is what `TabControl`, `CommandButton` and the date picker's
+**`Button`** (cap band, or figure band where `opticalDigitLabel` says the label
+is digits) — which is what `TabControl`, `CommandButton` and the date picker's
 cells are built from, so all of those inherit it. Measured on screen, a button
 label at 48pt went from 6.5 device pixels high to dead centre.
 
 `Button` corrects from `buttonAmendLayout` rather than through
 `cv.userAmendLayout`, and does it before that function's early return. Both
 details matter for one reason: the path returns early for a disabled or
-click-less button, so routing the correction through it would leave a disabled
-label sitting a pixel above the enabled one beside it. `button` and
-`button_disabled` are recorded as a pair to keep that honest. The
-`AmendLayout: opticalCenterText` still on the inner `ContainerCfg` is there only
-to guarantee the shape gets an events record, which a bubble-text `Button`
-otherwise has no reason to allocate.
+click-less button, so routing the correction through it leaves a disabled label
+sitting a pixel above the enabled one beside it. `button` and `button_disabled`
+are recorded as a pair to keep that honest. The `AmendLayout: opticalCenterText`
+still on the inner `ContainerCfg` is there only to guarantee the shape gets an
+events record, which a bubble-text `Button` otherwise has no reason to allocate.
 
 `Badge` and `ProgressBar`'s readout (their own ink — they are values, not
 labels), `ColorFields`, `InputDate`, `NumericInput`.
@@ -334,5 +328,5 @@ labels), `ColorFields`, `InputDate`, `NumericInput`.
 Still uncorrected: `Input` and every editable control whose alphabet is _not_
 constrained (by the rule above), and the widgets that centre text without going
 through `Button` or the menu item — breadcrumb, expand panel. Those are a
-straightforward extension when wanted; each needs the hook on the container that
+straightforward extension when wanted. Each needs the hook on the container that
 holds its label.

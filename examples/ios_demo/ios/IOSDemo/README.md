@@ -4,7 +4,8 @@ Runs go-gui on the iOS Simulator. No Apple Developer account needed.
 
 ## Prerequisites
 
-- macOS with Xcode installed (`xcode-select -p` to verify)
+- macOS with Xcode installed (`xcode-select -p` to make sure that Xcode is
+  installed)
 - At least one iOS simulator runtime (`xcrun simctl list runtimes`)
 
 ## Run
@@ -41,14 +42,14 @@ xcrun simctl launch "iPhone 17 Pro" com.example.IOSDemo
 **"Unable to load simulator devices" or CoreSimulator version mismatch**
 
 Your Xcode and macOS simulator runtime are out of sync. Update macOS (System
-Settings → Software Update) or install a matching simulator runtime in Xcode
-(Settings → Platforms).
+Settings → Software Update). Alternatively, install a matching simulator runtime
+in Xcode (Settings → Platforms).
 
 **"The app couldn't be installed"**
 
-Make sure the simulator is booted before installing.
+Make sure that the simulator is booted before you install the app.
 
 **App launches to a black screen**
 
-The app uses Metal for rendering. Simulators on Apple Silicon support Metal;
-Intel Macs may have limited support.
+The app uses Metal for rendering. Simulators on Apple Silicon support Metal.
+Intel Macs can have limited support.

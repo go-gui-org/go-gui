@@ -26,11 +26,11 @@ region reach app code:
 the platform event loop (`runtime.LockOSThread` in
 `gui/backend/metal/mainthread.go`). So an app callback reached from that region
 that calls `SetFocus`, `ClearFocus`, `UpdateView`, `ClearDrawCanvasCache` or
-`Window.Lock` blocks the main thread on a lock it already owns: the window
+`Window.Lock` blocks the main thread on a lock it already owns. The window
 freezes permanently, with no panic and no CPU burn.
 
 Issue #394 was exactly this. The Input's blur commit fired from
-`inputAmendLayout`; `examples/todo` called `w.SetFocus` from `OnTextCommit` to
+`inputAmendLayout`. `examples/todo` called `w.SetFocus` from `OnTextCommit` to
 put the caret back in the field. Pressing <kbd>Tab</kbd> after typing froze the
 app.
 
@@ -55,8 +55,8 @@ Not deferred (gui-internal, and needs the live tree):
 
 A deferred callback receives `EventCtx{nil, nil, w}`. **`ctx.Layout` is nil and
 a `*Layout` must never be captured**: the tree is rebuilt from pooled arenas
-(`layoutChildrenArena`) before the callback runs, so the pointer would dangle
-into reused memory. `ctx.Window` and the value arguments are unchanged.
+(`layoutChildrenArena`) before the callback runs, so the pointer dangles into
+reused memory. `ctx.Window` and the value arguments are unchanged.
 
 The Enter commit path (`gui/view_input_keys.go`) is dispatched from `EventFn`,
 which holds no lock, so it is untouched and still carries a live `ctx.Layout`.
@@ -65,7 +65,7 @@ which holds no lock, so it is untouched and still carries a live `ctx.Layout`.
 
 Two routes lead from an `AmendLayout` hook into app code across `gui/`:
 
-1. the input blur block — deferred, as above;
+1. the input blur block — deferred, as above.
 2. the app's own hook — `ContainerCfg.AmendLayout` (`gui/view_container.go`) and
    `ButtonCfg.AmendLayout`, reached as `bc.OnAmend` from `buttonAmendLayout`
    (`gui/view_button.go`).
@@ -80,8 +80,9 @@ window-state work.
 
 `updateLocked` and `renderOnlyLocked` set `w.inFramePass` for the duration of
 the locked region. The `w.mu`-taking window APIs go through `lockForAPI`, which
-probes with `TryLock` and, when the lock is held during a frame pass, panics
-naming the API and the remedy (`QueueCommand`) rather than blocking forever.
+probes with `TryLock`. When the lock is held during a frame pass, the API
+panics, naming the API and the remedy (`QueueCommand`) rather than blocking
+forever.
 
 The probe cannot distinguish "this goroutine self-deadlocked" from "another
 goroutine is mid-`Update`". It does not need to: calling these APIs off the
@@ -95,16 +96,16 @@ frame, so this is the established instinct in this codebase, not a new one.
 
 `flushDeferredCallbacks` swaps the slice out before running it, so a callback
 that raises another (an `OnBlur` moving focus, blurring a second field) lands in
-the next round rather than mutating the slice being ranged. Rounds are bounded
-by `maxDeferredCallbackBatches`; past the bound the remainder is dropped and
+the next round rather than mutating the slice it ranges over. Rounds are bounded
+by `maxDeferredCallbackBatches`. Past the bound, the remainder is dropped and
 reported through `DebugCallbacks`.
 
 `FrameFn` re-runs the refresh pass once after any pass whose flush ran a
 deferred callback. Those callbacks run after the renderers were built, and a
 callback that writes state or moves focus marks no refresh flag — `SetFocus` and
 plain state writes are silent — so `flushDeferredCallbacks`'s own report (does
-anything run?) is what re-arms the loop. Without it the frame would render the
-pre-callback state and keep it until the next event. Two passes, not a loop: a
+anything run?) is what re-arms the loop. Without it, the frame renders the
+pre-callback state and keeps it until the next event. Two passes, not a loop: a
 view that dirties itself every pass is a bug the frame loop must not amplify
 into a spin, and the next `FrameFn` picks it up anyway.
 
@@ -115,7 +116,7 @@ skip the mutex when the frame pass already owns it.
 
 It does not make the lock reentrant — it makes callers _bypass_ it based on a
 flag that is only meaningful on the owning goroutine. Any other goroutine
-calling `SetFocus` during a frame pass would read `true` and walk into
+calling `SetFocus` during a frame pass reads `true` and walks into
 unsynchronized state, turning a benign lock wait into a silent data race one
 arrange pass wide. It also covers only the methods someone remembers to
 annotate, and cannot cover the exported `Window.Lock` at all.

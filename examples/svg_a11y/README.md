@@ -10,5 +10,5 @@ side-by-side.
 go run ./examples/svg_a11y
 ```
 
-Metadata is read from `cached.Parsed.A11y` (`SvgParsed.A11y`), set by the parser
+Metadata comes from `cached.Parsed.A11y` (`SvgParsed.A11y`). The parser sets it
 after `LoadSvg`.

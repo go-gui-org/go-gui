@@ -1,6 +1,6 @@
 Scalable vector graphics from file or inline SVG string. Faithful rendering of
 designer-authored static and animated SVG — not a complete SVG 1.1/2
-implementation. See `docs/svg-support.md` for the authoritative feature matrix.
+implementation.
 
 ## From File
 

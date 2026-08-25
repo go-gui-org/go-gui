@@ -10,16 +10,16 @@ codebase to improve maintainability and readability.
 ## When to Use
 
 - When code becomes complex or hard to understand
-- When functions are getting too long
-- When there are nested conditionals that could be simplified
+- When functions become too long
+- When there are nested conditionals that can be simplified
 - When duplicate code patterns emerge
-- When API design could be more intuitive
+- When API design has room to be more intuitive
 
 ## Steps
 
 ### 1. Analyze Current Changes
 
-Focus on simplifying the code you're currently working on:
+Focus on simplifying the code you are currently working on:
 
 ```bash
 # Check what files have uncommitted changes
@@ -100,7 +100,7 @@ button.Padding = ButtonPadding
 
 ### 4. Verify Simplifications
 
-Ensure changes don't break functionality:
+Make sure that the changes do not break existing features:
 
 ```bash
 # Run all tests
@@ -119,10 +119,10 @@ Update any affected documentation or examples.
 
 ## Best Practices
 
-- **One change at a time**: Don't refactor multiple things simultaneously
-- **Preserve behavior**: Simplifications should not change observable behavior
+- **One change at a time**: Do not refactor multiple things simultaneously
+- **Preserve behavior**: Simplifications must not change observable behavior
 - **Add tests**: If simplifying untested code, add tests first
-- **Use descriptive names**: Extracted functions should clearly state their
+- **Use descriptive names**: Extracted functions must clearly state their
   purpose
 - **Keep functions small**: Aim for functions under 30-40 lines
 - **Reduce nesting**: Avoid deeply nested conditionals (>3 levels)
@@ -184,7 +184,7 @@ func buildLabelInputRow() gui.View {
 ## Tools
 
 - **gocyclo**: Cyclomatic complexity analysis
-- **golangci-lint**: Comprehensive linting
+- **golangci-lint**: Full linting
 - **go test**: Test verification
 - **grep**: Pattern searching
 - **git diff**: Review changes before commit

@@ -6,7 +6,7 @@ so a later reader can check whether the finding still holds.
 
 ## Problem
 
-Nothing in the repo tells an author how a control should look. There is no named
+Nothing in the repo tells an author how a control must look. There is no named
 role for "secondary text", no tier for "the padding a field puts around its
 text", and no rule for where a field's label goes. So every visual decision was
 made independently, at each widget, by whoever wrote it — and the widgets
@@ -86,8 +86,8 @@ This is a stronger finding than the source table above, and it is only visible
 at the renderer: reading `theme_maker.go` suggests tab and breadcrumb agree at
 130, and they do not.
 
-It also means a `TextStyleDisabled` role cannot simply be dropped in. Unifying
-the themed value while `layoutDisables` still halves it leaves tab at half of
+It also means a `TextStyleDisabled` role cannot be dropped in. Unifying the
+themed value while `layoutDisables` still halves it leaves tab at half of
 whatever the role says. The role and the `Disabled` stamp have to be reconciled,
 not just deduplicated.
 
@@ -102,8 +102,8 @@ Input disabled `#2020207f`, placeholder `#20202064` — byte-identical alphas to
 the dark theme, over a base color of `#202020` instead of `#e1e1e1`.
 
 De-emphasis today is a pure alpha, applied without reference to what it is
-blending toward. Alpha 65 over `#e1e1e1` on a dark ground is faint but legible;
-alpha 65 over `#202020` on a light ground is nearly gone. This is the direct
+blending toward. Alpha 65 over `#e1e1e1` on a dark ground is faint but legible.
+Alpha 65 over `#202020` on a light ground is nearly gone. This is the direct
 evidence that a role must be a **per-theme value**, not one derived multiplier.
 
 ### 1.1.2 What the roles did and did not close
@@ -116,8 +116,8 @@ They do not reach widgets that never themed their disabled text at all. `Input`
 is the example: it carries no disabled text style, so `dimAlpha` still halves
 its base color to 127. On the dark theme that is within one step of the role's
 128 and invisible. On the light theme the role is 149, so Input's disabled text
-sits 22 alpha below where the role says it should — the light-theme contrast gap
-of §1.1.1, surviving in the widgets the roles have not reached.
+sits 22 alpha below the role's value — the light-theme contrast gap of §1.1.1,
+surviving in the widgets the roles have not reached.
 
 **Closed by issue #341 — the renderer now asks the theme.** `renderText`
 (`gui/render_text.go`) replaced `dimAlpha` with `w.Theme().disabledTextColor(c)`
@@ -126,7 +126,7 @@ amount, per theme. Every disabled text shape in the package — Input, Select,
 Combobox, ListBox, NumericInput, InputDate, DatePicker, Button, Switch, Toggle,
 Radio, Tree, menu items, plain `Text` — renders at 128 on dark and 149 on light,
 in both the direct-disabled and ancestor-disabled cases, which the per-widget
-sweep the issue originally described could not reach. The verdict on the open
+sweep the issue originally described cannot reach. The verdict on the open
 question: `TextStyleDisabled` **replaces** `dimAlpha` for text. `dimAlpha`
 survives for non-text surfaces — fills, borders, `renderText`'s Bg/Stroke
 colors, and the group-box title eraser.
@@ -164,7 +164,7 @@ The rungs derive from a per-theme body size via `textSizes` (visual-refresh
 
 Three ways to reach a size coexist:
 
-1. **Named handles** — markdown uses the full `B1..B6` ladder; `N3`/`N4`
+1. **Named handles** — markdown uses the full `B1..B6` ladder. `N3`/`N4` appears
    elsewhere. The intended path.
 2. **Raw theme constants** — `guiTheme.sizeTextXSmall` (`gui/inspector.go:161`,
    `gui/inspector_props.go:57,109`).
@@ -188,7 +188,7 @@ Two structural findings:
 
 Eight field widgets have **no `Label` field at all**: `Input`, `Select`,
 `Combobox`, `Slider`, `NumericInput`, `DatePicker`, `InputDate`, `ColorPicker`.
-An app that wants a labelled form builds the label itself, which means every app
+An app that wants a labeled form builds the label itself, which means every app
 invents its own form layout.
 
 Where labels do exist, three unrelated conventions:
@@ -226,7 +226,7 @@ at the const block and in `docs/style-guide.md`:
   giving the tier its first caller inside `gui/`.
 
 `nestIndent` (16) is a structural indent for nested blockquotes and list depths,
-not a gap between siblings; it stays off the ladder and says so in a comment.
+not a gap between siblings. It stays off the ladder and says so in a comment.
 `Theme.PaddingField` remains a separate concept: it sizes a control, the tiers
 size the gaps between them.
 
@@ -234,7 +234,7 @@ size the gaps between them.
 
 21 styles inherit `cfg.SizeBorder`. Two outliers only:
 `gui/view_date_picker_calendar.go:153` uses `SomeF(2)`, ignoring
-`sizeBorderDef = 1.5`; `gui/view_color_swatch.go:53` has its own
+`sizeBorderDef = 1.5`. `gui/view_color_swatch.go:53` has its own
 `colorSwatchBorder = 1`.
 
 Recorded for completeness. No action proposed.
@@ -273,7 +273,7 @@ in the focus system, the user can tab to it, and nothing on screen says so. That
 is an accessibility failure with a styling fix.
 
 The middle rows are a different thing. `Table` has no `Focusable`, no key
-handler and a transparent, borderless outer container; `ExpandPanel`'s header
+handler and a transparent, borderless outer container. `ExpandPanel`'s header
 row has `OnClick` and `OnChar` but never joins the tab order. Giving these a
 focus ring means first designing keyboard navigation for them — a feature, and
 out of scope for a consistency pass. Recording them here as _not focusable_
@@ -323,7 +323,7 @@ and Combobox all on the shared tier, Input still arranged 3px taller.
 The cause was invisible: Input's inner row leaves `SizeBorder` unset, so it
 inherited the theme's container border of 1.5, and a container reserves space
 for its border whether or not the border is painted. That row's border is
-transparent, so 3px of height went to a border nobody could see.
+transparent, so 3px of height went to a border nobody saw.
 
 Only the arranged geometry showed it — the configured paddings were equal and
 the source read as correct. `TestFieldControlsShareHeight` therefore asserts the
@@ -337,13 +337,13 @@ is not a field, and `gui/view_button.go:104-107` documents its choice.
 
 | §   | Axis              | State                                                                               |
 | --- | ----------------- | ----------------------------------------------------------------------------------- |
-| 1   | Dimming           | 7 source values; disabled text renders at 3, over a 2× spread                       |
-| 2   | Type steps        | 3 parallel systems; 1 theme bypass                                                  |
-| 3   | Field labels      | absent on 8 widgets; 3 conventions elsewhere                                        |
-| 4   | Spacing           | 1 tier of 3 unused; ~10 magic values                                                |
-| 5   | Borders           | healthy; 2 outliers                                                                 |
-| 6   | Interaction state | ColorSet on 17/17 interactive widgets; focus missing where a widget cannot take one |
-| 7   | Density           | 5 insets; Input's theme padding dead                                                |
+| 1   | Dimming           | 7 source values, disabled text renders at 3, over a 2× spread                       |
+| 2   | Type steps        | 3 parallel systems, 1 theme bypass                                                  |
+| 3   | Field labels      | absent on 8 widgets, 3 conventions elsewhere                                        |
+| 4   | Spacing           | 1 tier of 3 unused, ~10 magic values                                                |
+| 5   | Borders           | healthy, 2 outliers                                                                 |
+| 6   | Interaction state | ColorSet on 17/17 interactive widgets, focus missing where a widget cannot take one |
+| 7   | Density           | 5 insets, Input's theme padding dead                                                |
 
 The ordering that follows from this is: fix §6 and §7 first (a user sees them),
 then §1 and §3 (an author trips on them), and leave §5 alone.
@@ -360,21 +360,21 @@ opposite conclusion — that disabled text is dimmed once — reached by walking
 widget's `GenerateLayout` output directly. That snapshot is taken _before_
 `layoutDisables` runs, so it does not show what the renderer sees. The golden
 harness caught it. Any future claim in this document about what a widget looks
-like should be recorded, not read.
+like must be recorded, not read.
 
 ## Resolution
 
 What this branch changed, per axis. The measurements above describe the state at
-`b6adf899` and are kept as the "before"; this section is the "after".
+`b6adf899` and are kept as the "before". This section is the "after".
 
 | §   | Axis              | Outcome                                                                                                                |
 | --- | ----------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| 1   | Dimming           | closed — four named roles, per-theme and contrast-matched; disabled text routed through the role at render (#341)      |
+| 1   | Dimming           | closed — four named roles, per-theme and contrast-matched. Disabled text routed through the role at render (#341)      |
 | 2   | Type steps        | mostly — full ladder exported, mono +1 documented, two steps tracked                                                   |
 | 3   | Field labels      | closed — `Label` on all eight, one shared convention                                                                   |
-| 4   | Spacing           | closed — four tiers with stated meanings; the tight values, toast stack, and block/radio-group defaults fold in (#344) |
+| 4   | Spacing           | closed — four tiers with stated meanings. The tight values, toast stack, and block/radio-group defaults fold in (#344) |
 | 5   | Borders           | untouched, by decision                                                                                                 |
-| 6   | Interaction state | closed — `ColorSet` on all 17 interactive widgets (#342); focus rings for the four that could take one                 |
+| 6   | Interaction state | closed — `ColorSet` on all 17 interactive widgets (#342). Focus rings for the four that can take one                   |
 | 7   | Density           | closed — one field-inset tier, two latent bugs fixed                                                                   |
 
 ### Left open

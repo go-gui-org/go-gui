@@ -18,7 +18,7 @@ because arrows produce no preedit.
 
 The other backends already assumed the narrower contract. `ime_win32.go` says
 outright that "composition only becomes possible once a text widget takes
-focus"; on X11 `IMEStart` is an ibus `FocusIn`; on web it creates a hidden
+focus". On X11 `IMEStart` is an ibus `FocusIn`. On web it creates a hidden
 `<input>` and moves DOM focus into it.
 
 ## Rule
@@ -33,7 +33,7 @@ preedit is drawn:
 - a text shape whose `focusOwner` is set — only input widgets set it
   (`view_input.go`), so a selection-only focusable `Text` is excluded — and
   whose `TC.textReadOnly` is false, since a read-only input stays focusable for
-  its caret but can never commit;
+  its caret but can never commit.
 - a focusable term grid, which consumes typed text directly.
 
 `(*Window).syncIMEEditContext` runs from `buildRenderers` and pushes only
@@ -42,7 +42,7 @@ widget that already holds it does not cycle the input context.
 
 Moving between two text fields does cycle it. `IMEStop` is what cancels a
 composition still live inside the engine — an ibus `FocusOut`, the IMM context
-detach, the web hidden `<input>` being removed — so skipping it would let a
+detach, the removal of the web hidden `<input>` — so skipping it lets a
 half-typed word commit into the field that just took focus. The activation is
 therefore keyed on the focused ID as well as on the boolean.
 
@@ -59,10 +59,10 @@ through `IMESetRect` the same way.
 
 `imeSettleAfterKeyWasComposing:` decides who owns a key, in order:
 
-1. a composition already in flight owns everything, arrows and Return included;
-2. no preedit — the key is the widget's;
+1. a composition already in flight owns everything, arrows and Return included.
+2. no preedit — the key is the widget's.
 3. a preedit started **with** an edit context focused is real input (a CJK first
-   letter, or the first half of Option+e → é) and the key is claimed;
+   letter, or the first half of Option+e → é) and the key is claimed.
 4. a preedit started **without** one is an unwanted dead key: it is discarded
    (`unmarkText`, an empty `METAL_EVENT_IME_COMP` to clear Go's preedit, and
    `[self.inputContext discardMarkedText]` to drop it inside the input source),
@@ -78,8 +78,8 @@ key, declined it as text input, and returned it as a command for the widget.
 `_imeDeclinedKey` records that, and it outranks a live composition — step 1
 above applies only to keys the input source actually consumed.
 
-Without it, Tab could not leave a field that had a dead key pending. The
-observed callback order for Option+e then Tab is:
+Without it, Tab cannot leave a field that has a dead key pending. The observed
+callback order for Option+e then Tab is:
 
 ```
 insertText: ´              the accent commits
@@ -90,13 +90,13 @@ so `wasComposing` was true and the Tab was dropped, leaving focus stuck in the
 field with the accent already typed.
 
 Because the commit is queued before the key comes back, delivering the key
-immediately would move focus before the text landed, and the accent would be
-typed into the widget that just took focus. `metalPollEvent` therefore holds a
-declined key for one poll whenever the same keystroke queued text
-(`_deferredKey`), releasing it once the queue has drained.
+immediately moves focus before the text lands, and the accent is typed into the
+widget that just took focus. `metalPollEvent` therefore holds a declined key for
+one poll whenever the same keystroke queued text (`_deferredKey`), releasing it
+once the queue has drained.
 
 The consequence, deliberate: inside a focused text field macOS keeps native
-behaviour and an Option+letter shortcut does not fire, where X11 delivers the
+behavior and an Option+letter shortcut does not fire, where X11 delivers the
 key-down and suppresses only the character.
 
 ## Tests

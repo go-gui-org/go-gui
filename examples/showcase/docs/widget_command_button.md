@@ -59,7 +59,7 @@ CommandButton accepts a standard ButtonCfg. The most relevant fields:
 ## Appearance
 
 Inherits all ButtonCfg appearance properties (Color, Radius, Padding,
-SizeBorder, etc.). See Button docs for the full list.
+SizeBorder, and more). See Button docs for the full list.
 
 ## Accessibility
 

@@ -1,5 +1,5 @@
-Circular radio button for selecting one option. Typically used inside a
-RadioButtonGroup, but can be used standalone.
+Circular radio button for selecting one option. Typically used inside a radio
+button group, but can be used standalone.
 
 ## Usage
 

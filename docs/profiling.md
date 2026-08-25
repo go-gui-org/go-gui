@@ -1,6 +1,6 @@
 # Profiling
 
-Practical pprof workflows for go-gui. Covers CPU, heap, and benchmark-driven
+Practical pprof workflows for go-gui. It covers CPU, heap, and benchmark-driven
 profiling.
 
 ## Quick start
@@ -73,13 +73,13 @@ go tool pprof -sample_index=inuse_space -http=:8080 mem.prof
 go test -bench='BenchmarkRenderLayout' -benchmem -count=1 ./gui/
 ```
 
-`-benchmem` prints B/op and allocs/op per benchmark. Use to spot regressions
-before diving into pprof.
+`-benchmem` prints B/op and allocs/op per benchmark. Use it to spot regressions
+before you examine the pprof output.
 
 ## Hot paths
 
-The go-gui render pipeline has well-defined hot paths. Profile these first when
-investigating performance:
+The go-gui render pipeline has well-defined hot paths. When investigating
+performance, profile these first:
 
 | Path                  | Function               | Benchmark                       |
 | --------------------- | ---------------------- | ------------------------------- |
@@ -160,12 +160,12 @@ volume.
 
 ### Reducing slice growth allocations
 
-The most common allocation source in hot paths is slice growth. Pre-size with
-`make([]T, 0, cap)` when the upper bound is known. Check `renderLayout` and
+The most common allocation source in hot paths is slice growth. When the upper
+bound is known, pre-size with `make([]T, 0, cap)`. Check `renderLayout` and
 `generateViewLayout` call trees for slice append without pre-allocation.
 
 ### Scratch pool review
 
 `scratchPools` in `gui/scratch_pools.go` holds reusable per-frame buffers for
-frequently allocated types. When adding new hot-path allocations, consider
-pooling.
+frequently allocated types. When you add new hot-path allocations, consider
+pooling them.

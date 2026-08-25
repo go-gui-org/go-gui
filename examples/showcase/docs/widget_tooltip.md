@@ -19,7 +19,6 @@ gui.WithTooltip(w, gui.WithTooltipCfg{
 gui.WithTooltip(w, gui.WithTooltipCfg{
     Text:   "Right side tooltip",
     Anchor: gui.Some(gui.FloatMiddleRight),
-    TieOff: gui.Some(gui.FloatMiddleLeft),
     Content: []gui.View{
         gui.Button(gui.ButtonCfg{...}),
     },
@@ -34,7 +33,6 @@ gui.WithTooltip(w, gui.WithTooltipCfg{
 | Text     | string           | Tooltip text content       |
 | Delay    | time.Duration    | Hover delay before showing |
 | Anchor   | Opt[FloatAttach] | Tooltip anchor on trigger  |
-| TieOff   | Opt[FloatAttach] | Tooltip attach point       |
 | Content  | []View           | Wrapped target views       |
 
 ## TooltipCfg Properties (Advanced)
@@ -45,7 +43,6 @@ gui.WithTooltip(w, gui.WithTooltipCfg{
 | Delay       | time.Duration    | Hover delay before showing    |
 | Content     | []View           | Custom tooltip content        |
 | Anchor      | Opt[FloatAttach] | Float anchor point            |
-| TieOff      | Opt[FloatAttach] | Float tie-off point           |
 | OffsetX     | Opt[float32]     | Horizontal offset from anchor |
 | OffsetY     | Opt[float32]     | Vertical offset from anchor   |
 | FloatZIndex | int              | Z-index for float layering    |
