@@ -1048,3 +1048,147 @@ func TestBodyMeshSmallBodyCoversTheLightSide(t *testing.T) {
 		}
 	}
 }
+
+// TestAppendRingMatchesDirectTrig is the guard on issue #423's
+// recurrence: every vertex of every ring, at the tessellation caps and
+// over a spread of light directions, must land where the per-vertex
+// cos32/sin32 it replaced would have put it.
+//
+// The tolerance is a hundredth of a pixel on a 200px body. That is far
+// looser than the recurrence's own error (measured at ~1e-4 px) and far
+// tighter than anything the eye or the disc tests would catch, so it
+// fails on a drift bug long before the silhouette moves.
+func TestAppendRingMatchesDirectTrig(t *testing.T) {
+	const r, cx, cy = 200, 200, 200
+	lights := [][3]float32{
+		{0.6, 0.2, -0.77}, // oblique, light behind the body
+		{0.1, 0, 0.99},    // nearly head-on: a large visible cap
+		{1, 0, 0},         // in the screen plane: no cap, all band
+		{-0.4, 0.7, 0.6},
+		{0.3, -0.3, -0.9},
+	}
+	for _, lv := range lights {
+		b := newLightBasis(lv[0], lv[1], lv[2])
+		p := newRingPlan(b, shadeRowsMax)
+		for i := range p.count() {
+			c := p.cosPhi(i)
+			sn := sqrt32(max(0, 1-c*c))
+			got, _ := appendRing(nil, nil, b, r, cx, cy, c, sn,
+				shadeArcMax, gui.RGB(180, 140, 90), ringTex{})
+			tMax := b.visibleAzimuth(c, sn)
+			step := 2 * tMax / float32(shadeArcMax)
+			for k := 0; k <= shadeArcMax; k++ {
+				tt := -tMax + step*float32(k)
+				x, y := b.point(r, c, sn, cos32(tt), sin32(tt))
+				dx := math.Abs(float64(got[k*2] - (cx + x)))
+				dy := math.Abs(float64(got[k*2+1] - (cy + y)))
+				if math.Max(dx, dy) > 0.01 {
+					t.Fatalf("light %v ring %d vertex %d: got (%v, %v), "+
+						"direct trig gives (%v, %v)", lv, i, k,
+						got[k*2], got[k*2+1], cx+x, cy+y)
+				}
+			}
+		}
+	}
+}
+
+// BenchmarkAppendRing walks a full-resolution body's worth of rings
+// through appendRing, without the strip assembly around it, so what it
+// measures is the per-vertex cost issue #423 is about: the trig each
+// vertex pays for. Both paths are covered because the textured one does
+// more per vertex and so dilutes the trig share.
+func BenchmarkAppendRing(b *testing.B) {
+	lb := newLightBasis(0.6, 0.2, -0.77)
+	p := newRingPlan(lb, shadeRowsMax)
+	const r, cx, cy = 200, 200, 200
+	col := gui.RGB(180, 140, 90)
+	// Sized so the benchmark measures the walk, not slice growth;
+	// appendRing is always handed the mesh scratch in real use.
+	dst := make([]float32, 0, 2*(shadeArcMax+1))
+	cdst := make([]gui.Color, 0, shadeArcMax+1)
+
+	var s surface
+	textured := initSurface(&s, earthIndex(b), 1234)
+	var proj surfaceProj
+	if textured {
+		proj = s.project(lb)
+	}
+
+	run := func(b *testing.B, tex bool) {
+		b.ReportAllocs()
+		for b.Loop() {
+			for i := range p.count() {
+				c := p.cosPhi(i)
+				sn := sqrt32(max(0, 1-c*c))
+				var rt ringTex
+				if tex {
+					k, w := ringRamp(clamp32(c, 0, 1))
+					rt = proj.ringTexFor(&s, c, sn, k, w)
+				}
+				dst, cdst = appendRing(dst[:0], cdst[:0], lb, r, cx, cy,
+					c, sn, shadeArcMax, col, rt)
+			}
+		}
+	}
+	b.Run("flat", func(b *testing.B) { run(b, false) })
+	if textured {
+		b.Run("textured", func(b *testing.B) { run(b, true) })
+	}
+}
+
+// earthIndex is the first planet with both a spin and a texture, so the
+// textured benchmark path is exercised on a real body rather than a
+// hand-built surface.
+func earthIndex(tb testing.TB) int {
+	tb.Helper()
+	for i := range planets {
+		if planets[i].RotS != 0 && planetTextures[i] != nil {
+			return i
+		}
+	}
+	return 0
+}
+
+// TestRingAnglesMatchLibrary pins the recurrence against the library
+// calls it replaced. The worst case is the longest walk appendRing can
+// take: a fully visible ring at the arc cap.
+//
+// Magnitude is checked as well as the two components, because that is
+// the failure mode that matters: |c| or |s| above 1 puts a vertex
+// outside the silhouette, which is the assumption the shading's missing
+// clip rests on.
+func TestRingAnglesMatchLibrary(t *testing.T) {
+	const tMax = math.Pi
+	const step = 2 * tMax / shadeArcMax
+	ang := newRingAngles(-tMax, step)
+	for k := 0; k <= shadeArcMax; k++ {
+		want := -tMax + step*float64(k)
+		wc, ws := math.Cos(want), math.Sin(want)
+		if d := math.Abs(float64(ang.c) - wc); d > 1e-5 {
+			t.Fatalf("step %d: cos is %v, want %v (off by %v)",
+				k, ang.c, wc, d)
+		}
+		if d := math.Abs(float64(ang.s) - ws); d > 1e-5 {
+			t.Fatalf("step %d: sin is %v, want %v (off by %v)",
+				k, ang.s, ws, d)
+		}
+		mag := float64(ang.c)*float64(ang.c) + float64(ang.s)*float64(ang.s)
+		if math.Abs(mag-1) > 1e-5 {
+			t.Fatalf("step %d: c^2+s^2 is %v, want 1", k, mag)
+		}
+		ang.next()
+	}
+}
+
+// TestRingAnglesDegenerateRing covers the wholly hidden ring, whose
+// visible azimuth is zero: every vertex must repeat the seed, which is
+// the collapsed single point appendTri drops the strips of.
+func TestRingAnglesDegenerateRing(t *testing.T) {
+	ang := newRingAngles(0, 0)
+	for k := range shadeArcMax + 1 {
+		if ang.c != 1 || ang.s != 0 {
+			t.Fatalf("step %d: got (%v, %v), want (1, 0)", k, ang.c, ang.s)
+		}
+		ang.next()
+	}
+}
