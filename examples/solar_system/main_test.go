@@ -1192,3 +1192,52 @@ func TestRingAnglesDegenerateRing(t *testing.T) {
 		ang.next()
 	}
 }
+
+// TestPinchBaselinesPerSequence pins the sequence boundary. PinchScale
+// is cumulative within one gesture and restarts near 1 for the next, so
+// a baseline carried across the boundary would divide the new pinch's
+// opening scale by the old one's final — undoing the whole previous
+// pinch on its first event.
+func TestPinchBaselinesPerSequence(t *testing.T) {
+	t.Parallel()
+	a := newTestApp()
+
+	// First pinch: began, two changes, ended.
+	a.applyPinch(1.05, true)
+	a.applyPinch(1.5, false)
+	a.applyPinch(2.0, false)
+	a.applyPinch(2.0, true)
+
+	after := a.UserZoom
+	if after < 1.5 {
+		t.Fatalf("first pinch should have zoomed in; UserZoom = %v", after)
+	}
+
+	// Second pinch opens where the first left off, not scaled by it.
+	a.applyPinch(1.05, true)
+	if a.UserZoom != after {
+		t.Fatalf("began event moved the zoom: %v -> %v", after, a.UserZoom)
+	}
+	a.applyPinch(1.26, false)
+	if want := after * 1.2; !nearly(a.UserZoom, want, 1e-4) {
+		t.Fatalf("second pinch delta = %v, want %v", a.UserZoom, want)
+	}
+}
+
+// TestPinchDeltaIsRelative checks the mid-sequence ratio itself: two
+// changes compose to the cumulative scale, not to its square.
+func TestPinchDeltaIsRelative(t *testing.T) {
+	t.Parallel()
+	a := newTestApp()
+	a.applyPinch(1.0, true)
+	a.applyPinch(1.4, false)
+	a.applyPinch(2.0, false)
+	if !nearly(a.UserZoom, 2.0, 1e-4) {
+		t.Fatalf("UserZoom = %v, want 2.0", a.UserZoom)
+	}
+}
+
+func nearly(got, want, tol float32) bool {
+	d := got - want
+	return d < tol && d > -tol
+}

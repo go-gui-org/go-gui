@@ -109,15 +109,36 @@ func solarCanvas(a *App) gui.View {
 				a.PinchPrev = 0
 				return
 			}
-			// PinchScale is cumulative for the gesture and the phase
-			// constants are unexported, so there is no "began" to test
-			// against. Tracking the previous value recovers the
-			// per-event ratio: the first event only baselines.
-			if a.PinchPrev > 0 {
-				a.applyUserZoom(e.PinchScale / a.PinchPrev)
-			}
-			a.PinchPrev = e.PinchScale
+			// Only gesturePhaseBegan/Ended/Cancelled are unexported;
+			// GesturePhaseChanged is not, so "not a change" is how a
+			// sequence boundary is recognized.
+			a.applyPinch(e.PinchScale, e.GesturePhase != gui.GesturePhaseChanged)
 			ctx.Consume()
 		},
 	})
+}
+
+// applyPinch folds one pinch event into the manual zoom. boundary marks
+// the events that open or close a sequence — began, ended and cancelled
+// — as opposed to a mid-gesture change.
+//
+// PinchScale is cumulative *within* one gesture and restarts near 1 for
+// the next, so the previous value is what recovers a per-event ratio —
+// but only between events of the same sequence. Carrying it across a
+// boundary divides the new pinch's opening scale by the old one's final
+// and undoes the whole previous pinch in a single frame.
+//
+// Baselining on all three boundary phases is what makes that one branch:
+// on began it is the correct start value, and on ended or cancelled the
+// stale value is overwritten by the next sequence's began before any
+// delta is applied.
+func (a *App) applyPinch(scale float32, boundary bool) {
+	if boundary {
+		a.PinchPrev = scale
+		return
+	}
+	if a.PinchPrev > 0 {
+		a.applyUserZoom(scale / a.PinchPrev)
+	}
+	a.PinchPrev = scale
 }
