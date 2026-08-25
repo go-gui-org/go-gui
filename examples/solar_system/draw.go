@@ -1051,6 +1051,51 @@ func drawBody(dc *gui.DrawContext, m *bodyMesh, cx, cy, r float32,
 	dc.FillTrianglesColors(m.tris, m.cols)
 }
 
+// ringAngles walks (cos t, sin t) along a ring by a fixed angular
+// step, so the whole ring costs four transcendentals instead of two per
+// vertex. appendRing's step is uniform by construction, which is what
+// makes the rotation an increment rather than a fresh evaluation.
+//
+// This is the stable form of the recurrence (Numerical Recipes 5.4),
+// not the naive product one. Writing the rotation as a *correction* to
+// the current value keeps the correction small, so its rounding error
+// is small in absolute terms too; the product form rounds the full
+// value every step and its magnitude walks away from 1. Magnitude is
+// exactly what must not drift here: |c| or |s| creeping above 1 puts a
+// vertex outside the disc, which is the property
+// TestBodyMeshStaysInsideDisc pins.
+//
+// The seed and the two coefficients are computed in float64 because
+// they are paid once per ring, not once per vertex, so the wider math
+// is free and it keeps the starting error at float32 rounding instead
+// of compounding a float32 one over up to shadeArcMax steps.
+type ringAngles struct {
+	c, s        float32
+	alpha, beta float32
+}
+
+// newRingAngles seeds the walk at t0 with a per-vertex step of step
+// radians. alpha is 2*sin^2(step/2) and beta is sin(step).
+func newRingAngles(t0, step float64) ringAngles {
+	h := math.Sin(step / 2)
+	sn, cs := math.Sincos(t0)
+	return ringAngles{
+		c:     float32(cs),
+		s:     float32(sn),
+		alpha: float32(2 * h * h),
+		beta:  float32(math.Sin(step)),
+	}
+}
+
+// next advances one step. A wholly hidden ring has step 0, hence
+// alpha and beta 0, and every vertex repeats the seed — the single
+// collapsed point appendTri drops.
+func (a *ringAngles) next() {
+	c, s := a.c, a.s
+	a.c = c - (a.alpha*c + a.beta*s)
+	a.s = s - (a.alpha*s - a.beta*c)
+}
+
 // appendRing evaluates one circle of constant Lambert intensity into
 // dst as arc+1 screen x,y pairs, spanning that circle's *own* visible
 // azimuth range.
@@ -1081,10 +1126,26 @@ func appendRing(dst []float32, cdst []gui.Color, b lightBasis,
 	rt ringTex,
 ) ([]float32, []gui.Color) {
 	tMax := b.visibleAzimuth(cosPhi, sinPhi)
-	step := 2 * tMax / float32(arc)
+	step := 2 * float64(tMax) / float64(arc)
+	ang := newRingAngles(-float64(tMax), step)
+	// The two end points are the ring's limb vertices, and there
+	// lightBasis.point's z >= 0 test is a knife edge: an ulp of
+	// difference in cos t decides whether the vertex is pushed out onto
+	// the limb or left where it fell, which is a fraction of a pixel of
+	// silhouette. So neither end point is left to the walk. The first
+	// is the seed, and the last is its mirror — cos is even and sin is
+	// odd about t = 0, and the range is symmetric — which costs
+	// nothing and is no less exact than evaluating cos32(tMax) would
+	// be.
+	c0, s0 := ang.c, ang.s
 	for k := 0; k <= arc; k++ {
-		t := -tMax + step*float32(k)
-		ct, st := cos32(t), sin32(t)
+		ct, st := ang.c, ang.s
+		if k == arc {
+			ct, st = c0, -s0
+		}
+		// Advanced here rather than at the bottom of the loop, which
+		// the flat-color path leaves by continue.
+		ang.next()
 		x, y := b.point(r, cosPhi, sinPhi, ct, st)
 		dst = append(dst, cx+x, cy+y)
 		if rt.tex == nil {
