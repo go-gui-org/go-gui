@@ -1,5 +1,6 @@
-Send native OS notifications via the platform notification center. Runs
-asynchronously; result is delivered via callback on the main thread.
+Send native OS notifications through the platform notification center. The
+notification runs asynchronously. The result arrives through the callback on the
+main thread.
 
 ## Usage
 

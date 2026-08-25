@@ -42,12 +42,10 @@ Pre-combined convenience constants:
 | `ModCtrlShift`    | `ModCtrl \| ModShift`           |
 | `ModCtrlAlt`      | `ModCtrl \| ModAlt`             |
 | `ModCtrlAltShift` | `ModCtrl \| ModAlt \| ModShift` |
-| `ModCtrlSuper`    | `ModCtrl \| ModSuper`           |
 | `ModAltShift`     | `ModAlt \| ModShift`            |
-| `ModAltSuper`     | `ModAlt \| ModSuper`            |
 | `ModSuperShift`   | `ModSuper \| ModShift`          |
 
-`Modifier.Has(mod)` tests if a flag is set; `HasAny(mods...)` tests any of
+`Modifier.Has(mod)` tests if a flag is set. `HasAny(mods...)` tests any of
 several.
 
 ### Command
@@ -69,11 +67,11 @@ type Command struct {
 pipeline:
 
 - `Global: true` — fires _before_ focus dispatch. Use for app-wide shortcuts
-  (save, new, command palette toggle) that should work regardless of which
-  widget has focus.
+  (save, new, command palette toggle) that work regardless of which widget has
+  focus.
 - `Global: false` (default) — fires _after_ focus dispatch, as a fallback. Use
-  for commands that should yield to focused widgets (e.g., an undo command that
-  should not fire while a text input has focus and handles its own undo).
+  for commands that yield to focused widgets. For example, an undo command does
+  not fire while a text input has focus and handles its own undo.
 
 **`CanExecute`** — when non-nil, the command is skipped during dispatch if it
 returns false. Widgets bound to the command (buttons, menu items) auto-disable.
@@ -103,19 +101,18 @@ w.RegisterCommands(cmd1, cmd2, cmd3)
 
 **Constraints:**
 
-- Duplicate command ID → panic
-- Duplicate shortcut (same key + modifiers on two commands) → panic
+- Duplicate command ID → error
+- Duplicate shortcut (same key + modifiers on two commands) → error
 
 ### Window Methods
 
-| Method                                       | Description                                |
-| -------------------------------------------- | ------------------------------------------ |
-| `RegisterCommand(cmd)`                       | Register one command; panics on duplicates |
-| `RegisterCommands(cmds...)`                  | Register multiple commands                 |
-| `UnregisterCommand(id)`                      | Remove by ID; no-op if not found           |
-| `CommandByID(id) (Command, bool)`            | Lookup by ID                               |
-| `CommandCanExecute(id) bool`                 | Check CanExecute; false if not found       |
-| `CommandPaletteItems() []CommandPaletteItem` | Export commands with Labels for palette    |
+| Method                                       | Description                                 |
+| -------------------------------------------- | ------------------------------------------- |
+| `RegisterCommand(cmd)`                       | Register one command. Error on duplicates   |
+| `RegisterCommands(cmds...)`                  | Register multiple commands                  |
+| `UnregisterCommand(id)`                      | Remove by ID. No-op if not found            |
+| `CommandByID(id) (Command, bool)`            | Lookup by ID                                |
+| `CommandPaletteItems() []CommandPaletteItem` | Export commands with labels for the palette |
 
 ## Keyboard Dispatch Pipeline
 
@@ -128,7 +125,7 @@ When a `KeyDown` event arrives, the window processes it in this order:
 4. Non-global command dispatch  (Global=false commands as fallback)
 ```
 
-At each stage, if a handler sets `ctx.Consume()`, subsequent stages are skipped.
+If a handler sets `ctx.Consume()` at any stage, subsequent stages are skipped.
 This means:
 
 - Global commands always take priority.
@@ -142,18 +139,19 @@ This means:
 Creates a button automatically wired to a registered command.
 
 ```go
-gui.CommandButton(w, "edit.undo", gui.ButtonCfg{})
+gui.CommandButton("edit.undo", gui.ButtonCfg{})
 ```
 
 **Auto behaviors:**
 
 - **Label** — if `cfg.Content` is nil, fills from `Command.Label` + shortcut
-  hint (e.g., `"Undo  ⌘Z"`)
+  hint (for example, `"Undo  ⌘Z"`)
 - **OnClick** — wired to `Command.Execute` (re-checks `CanExecute` at click
   time)
 - **Disabled** — auto-disables when `CanExecute` returns false
 
-Panics if the command ID is not registered.
+An unregistered command ID renders the text `unknown command: <id>` instead of a
+button.
 
 ### Menu Items
 
@@ -218,12 +216,9 @@ func paletteAction(id string, e *gui.Event, w *gui.Window) {
 
 ### Visibility Functions
 
-| Function                              | Description          |
-| ------------------------------------- | -------------------- |
-| `CommandPaletteShow(id, w)`           | Show and focus input |
-| `CommandPaletteDismiss(id, w)`        | Hide and reset query |
-| `CommandPaletteToggle(id, w)`         | Toggle visibility    |
-| `CommandPaletteIsVisible(id, w) bool` | Check if showing     |
+| Function                      | Description       |
+| ----------------------------- | ----------------- |
+| `CommandPaletteToggle(id, w)` | Toggle visibility |
 
 ### Palette Keyboard Navigation
 
@@ -327,14 +322,14 @@ func registerCommands(w *gui.Window) {
 
 The `keyName()` function provides display names for all supported keys:
 
-| Category    | Keys                                                                                                                                                             |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Letters     | `KeyA` – `KeyZ` → `"A"` – `"Z"`                                                                                                                                  |
-| Numbers     | `Key0` – `Key9` → `"0"` – `"9"`                                                                                                                                  |
-| Function    | `KeyF1` – `KeyF25` → `"F1"` – `"F25"`                                                                                                                            |
-| Keypad      | `KeyKP0` – `KeyKP9` → `"KP0"` – `"KP9"`                                                                                                                          |
-| Navigation  | `KeyUp`, `KeyDown`, `KeyLeft`, `KeyRight`                                                                                                                        |
-| Page        | `KeyHome`, `KeyEnd`, `KeyPageUp`, `KeyPageDown`                                                                                                                  |
-| Editing     | `KeyBackspace`, `KeyDelete`, `KeyInsert`, `KeyTab`                                                                                                               |
-| Special     | `KeySpace`, `KeyEnter`, `KeyEscape`                                                                                                                              |
-| Punctuation | `KeyMinus`, `KeyEqual`, `KeyComma`, `KeyPeriod`, `KeySlash`, `KeyBackslash`,`KeyLeftBracket`, `KeyRightBracket`, `KeyApostrophe`, `KeySemicolon`,`KeyGraveAccen` |
+| Category    | Keys                                                                                                                                                              |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Letters     | `KeyA` – `KeyZ` → `"A"` – `"Z"`                                                                                                                                   |
+| Numbers     | `Key0` – `Key9` → `"0"` – `"9"`                                                                                                                                   |
+| Function    | `KeyF1` – `KeyF25` → `"F1"` – `"F25"`                                                                                                                             |
+| Keypad      | `KeyKP0` – `KeyKP9` → `"KP0"` – `"KP9"`                                                                                                                           |
+| Navigation  | `KeyUp`, `KeyDown`, `KeyLeft`, `KeyRight`                                                                                                                         |
+| Page        | `KeyHome`, `KeyEnd`, `KeyPageUp`, `KeyPageDown`                                                                                                                   |
+| Editing     | `KeyBackspace`, `KeyDelete`, `KeyInsert`, `KeyTab`                                                                                                                |
+| Special     | `KeySpace`, `KeyEnter`, `KeyEscape`                                                                                                                               |
+| Punctuation | `KeyMinus`, `KeyEqual`, `KeyComma`, `KeyPeriod`, `KeySlash`, `KeyBackslash`,`KeyLeftBracket`, `KeyRightBracket`, `KeyApostrophe`, `KeySemicolon`,`KeyGraveAccent` |

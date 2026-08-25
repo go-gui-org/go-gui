@@ -1,8 +1,8 @@
 Post-processing color matrix transforms on container content. Set `ColorFilter`
 on `ContainerCfg` to apply a 4×4 color matrix to the container's rendered
-content. The container is captured into an FBO, the matrix is applied via a GPU
-shader pass, and the result is composited back. Works independently of or
-combined with `BlurRadius`.
+content. The container is captured into an FBO. The matrix is applied via a GPU
+shader pass. The result is composited back. Works independently of or combined
+with `BlurRadius`.
 
 ## Grayscale
 
@@ -133,9 +133,9 @@ gui.Column(gui.ContainerCfg{
 ## Notes
 
 - Containers only — not available on individual widgets.
-- No nesting. A single FBO pair is used; nested filter brackets are guarded
+- No nesting. A single FBO pair is used. Nested filter brackets are guarded
   against at the render level.
 - Operates on premultiplied-alpha pixels from the FBO.
 - Contrast and invert inject bias via the alpha column of the matrix, which is
   correct for premultiplied content.
-- Rendered via Metal and OpenGL backends. ignores the color matrix.
+- Rendered via the Metal and OpenGL backends.

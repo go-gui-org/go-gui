@@ -9,7 +9,7 @@ data and DoS:
 Steps:
 
 - Run `git diff` and `git diff --cached` to identify changed files and functions
-- Read surrounding context in modified files as needed
+- Read the surrounding context in modified files when you need it
 - For each public function or entry point in the diff, check for and fix:
   - **NaN/Inf floats** — clamp or replace with safe defaults (pixelMin
     convention)
@@ -19,7 +19,7 @@ Steps:
   - **Division by zero** — guard before dividing
   - **Integer overflow** — check before arithmetic on user-supplied counts
   - **Excessive allocations** — pre-check sizes before allocating large buffers
-  - **Duplicate or degenerate data** — handle gracefully, no infinite loops
+  - **Duplicate or degenerate data** — handle it without infinite loops
 - Apply fixes directly to the source files
-- Run `go build ./...` and `go vet ./...` to verify changes compile
-- Summarize what was hardened and where
+- Run `go build ./...` and `go vet ./...` to check that the changes compile
+- Summarize what you hardened and where

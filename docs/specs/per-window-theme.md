@@ -35,8 +35,8 @@ FrameFn
   (backend clear color reads CurrentTheme here)
 ```
 
-The globals stop being app state. They are a frame-scoped cache of the theme
-belonging to the window currently being generated.
+The globals stop being app state. They are a frame-scoped cache of the theme of
+the window under generation.
 
 ### Why this is correct
 
@@ -45,7 +45,7 @@ call `runtime.LockOSThread` in package `init` and drive all windows from a
 single sequential loop (`gui/backend/metal/backend.go`,
 `gui/backend/gl/runapp_x11.go`). Two windows can never generate layouts at the
 same time, and no layout is generated off that thread. A factory-time read
-therefore always resolves against the window being generated.
+therefore always resolves against the window under generation.
 
 ### Layers
 
@@ -60,7 +60,7 @@ therefore always resolves against the window being generated.
 `gui.SetTheme` sets the app default and requests a rebuild on every window that
 has not pinned one, so existing code that calls it from `main` or from a handler
 keeps working. Both setters also install eagerly, so callers outside a frame
-pass (tests, `main` before `Run`) see the change at once; the next frame
+pass (tests, `main` before `Run`) see the change at once. The next frame
 re-establishes the correct per-window theme regardless.
 
 ### Theme identity
@@ -89,7 +89,7 @@ gui.Themed(light, func(w *gui.Window) gui.View {
 ```
 
 The builder callback is required, not sugar. A signature taking ready-made child
-views would receive children the caller already built under the enclosing theme,
+views receives children the caller already built under the enclosing theme,
 because factories resolve defaults when they are called.
 
 `Themed` scopes generation only. Reads that happen after generation stay
@@ -111,10 +111,9 @@ This was not true when per-window themes landed. `init` seeded
 `installedThemeID` instead, leaving the literals in place, so an app that never
 called `SetTheme` ran on a mixture: widgets reading `guiTheme.xStyle` got
 `ThemeDark` while widgets reading the mirror got the literals. Issue #300
-removed the literals and resolved every delta in `ThemeDark`'s favour — a
-visible change to the default appearance, chiefly the loss of the 1.5px border
-on buttons, inputs and containers. See
-`docs/specs/theme-style-single-source.md`.
+removed the literals and resolved every delta in `ThemeDark`'s favor — a visible
+change to the default appearance, chiefly the loss of the 1.5px border on
+buttons, inputs and containers. See `docs/specs/theme-style-single-source.md`.
 
 ## The generation boundary (issue #301)
 
@@ -123,8 +122,8 @@ Reads split by **phase**, not by whether a window happens to be reachable.
 **During generation** — widget factories and `GenerateLayout` — the bare
 `guiTheme` / `default*Style` read stays. It is not a compromise: `Themed` scopes
 a theme by push/pop of the _installed_ theme, so a generation-time read that
-called `w.Theme()` would silently ignore the scope. The ~420 sites are also the
-hot path; deferring one means a closure plus a `Cfg` heap escape per widget per
+calls `w.Theme()` silently ignores the scope. The ~420 sites are also the hot
+path. Deferring one means a closure plus a `Cfg` heap escape per widget per
 frame.
 
 **Outside generation** — event handlers, post-arrange injection, public window
@@ -159,13 +158,13 @@ memcpy.
 
 So both stores hold a pointer to an immutable value: `Window.theme` and the
 package `defaultTheme`. A setter publishes a new value instead of writing
-through the pointer, so a reader that took the pointer under `RLock` may keep
+through the pointer, so a reader that took the pointer under `RLock` can keep
 using it after dropping the lock. `w.Theme()` is unchanged for callers — it
 dereferences — and internal hot reads call the unexported `w.themeRef()`
 (`gui/theme_install.go`), which returns the pointer and copies nothing. With
 that, the scroll benchmark is back at ~39 ns/op, 0 allocs.
 
-Per-frame readers (the backends' clear color) keep `w.Theme()`; the copy is
+Per-frame readers (the backends' clear color) keep `w.Theme()`. The copy is
 irrelevant once per frame and the value form is the safer default.
 
 ### Gate
@@ -175,7 +174,7 @@ irrelevant once per frame and the value form is the safer default.
 `*gui.Window` receiver or parameter — but only in paths that are post-generation
 by construction: `gui/backend/**`, `gui/scroll*.go`, `gui/event*.go`,
 `gui/native_*.go`, `gui/window_*.go`. The phase cannot be decided from one
-function's syntax, so the mode does not guess; handlers living in mixed-phase
+function's syntax, so the mode does not guess. Handlers living in mixed-phase
 `view_*.go` files are covered by the convention only. A deliberate exception
 carries `ergonomics-audit:theme-global` on its line.
 
@@ -186,9 +185,9 @@ Raised as #296 proposal item 5 and declined again in #301:
 1. It does not fix the phase problem. `w.Button(cfg)` still runs eagerly and
    still resolves the theme at factory time — the same error with a window name
    attached.
-2. It breaks reusability. A package factory builds window-agnostic view intent;
-   a receiver binds a fragment to a window at construction, so every sub-tree
-   helper threads `w` and closing over the wrong window becomes easy — the bug
+2. It breaks reusability. A package factory builds window-agnostic view intent.
+   A receiver binds a fragment to a window at construction, so every sub-tree
+   helper threads `w`, and closing over the wrong window becomes easy — the bug
    class per-window themes set out to close.
 3. It fights `Themed`, for the reason above: the subtree scope lives in the
    installed theme, not in the window.

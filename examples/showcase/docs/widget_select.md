@@ -1,8 +1,8 @@
 Dropdown selector with single or multi-select. Options prefixed with "---"
 render as subheadings.
 
-Select already accepts `[]string` directly via the `Options` field — the
-zero-configuration path.
+Select accepts `[]string` directly through the `Options` field. This path needs
+no configuration.
 
 ## Usage
 

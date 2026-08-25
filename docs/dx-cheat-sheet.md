@@ -19,13 +19,14 @@ Button{Label: "Save", OnClick: save}
 Input{ID: "name", FocusDisabled: true} // not in the tab order
 ```
 
-Most input controls are focusable by default: `Button`, `ColorChannelSlider`,
-`ColorPicker`, `ColorPlane`, `ColorWheel`, `Combobox`, `DatePicker`, `Input`,
-`InputDate`, `ListBox`, `NumericInput`, `RadioButtonGroup`, `Radio`, `Select`,
-`Slider`, `Switch`, `Toggle`, `Tree`, `VirtualList`. Everything else opts in
-with `Focusable: true`. If a control never answers the keyboard, the usual cause
-is a missing `ID`. The `requiredid` analyzer and the `DebugMissingIDs` gate
-report it. See `docs/specs/focusable-default-input.md`.
+Most input controls are focusable by default. They are `Button`,
+`ColorChannelSlider`, `ColorPicker`, `ColorPlane`, `ColorWheel`, `Combobox`,
+`DatePicker`, `Input`, `InputDate`, `ListBox`, `NumericInput`,
+`RadioButtonGroup`, `Radio`, `Select`, `Slider`, `Switch`, `Toggle`, `Tree`,
+`VirtualList`. Everything else opts in with `Focusable: true`. If a control
+never answers the keyboard, the usual cause is a missing `ID`. The `requiredid`
+analyzer and the `DebugMissingIDs` gate report it. See
+`docs/specs/focusable-default-input.md`.
 
 ## ID scoping
 
@@ -81,9 +82,8 @@ fields: `FloatAnchor`, `FloatTieOff`, `FloatOffsetX`, `FloatOffsetY`.
 
 The hook runs inside the frame pass, which holds the window mutex. `SetFocus`,
 `ClearFocus`, `UpdateView`, `ClearDrawCanvasCache` and `Window.Lock` all take
-that mutex, and it is not reentrant, so calling one from a hook used to freeze
-the app outright (issue #394). It now panics naming the API. Queue the work
-instead:
+that mutex. It is not reentrant, so a call from a hook froze the app outright
+(issue #394). It now panics, naming the API. Queue the work instead:
 
 ```go
 AmendLayout: func(ctx gui.EventCtx) {
@@ -96,10 +96,10 @@ AmendLayout: func(ctx gui.EventCtx) {
 
 The same applies to callbacks the library raises from the pass. A blur-triggered
 `OnTextCommit` (`InputCommitBlur`), `OnBlur`, or an `OnTextChanged` fired by
-`PostCommitNormalize` on blur now runs after the pass unlocks, so it is free to
-call `SetFocus` — but its `ctx.Layout` is **nil**, because that tree has already
-been recycled. Read `ctx.Window` and the arguments instead. The Enter commit
-path is unaffected and still carries a live `ctx.Layout`.
+`PostCommitNormalize` on blur now runs after the pass unlocks. It is free to
+call `SetFocus`. Its `ctx.Layout` is **nil**, because the pass already recycled
+that tree. Read `ctx.Window` and the arguments instead. The Enter commit path is
+unaffected and still carries a live `ctx.Layout`.
 
 ## Group-box titles
 
@@ -134,9 +134,10 @@ per-shape opt-in.
 ## Virtualized lists
 
 `ListBox`, `Table`, `Tree` and `Combobox` virtualize automatically when the
-scroll container has a bounded height (`Scrollable` plus `Height`, `MaxHeight`,
-or — `ListBox` only — a height Fill sizing resolved last frame). Every row is
-the same height there, which is exact because the widget owns the row shape.
+scroll container has a bounded height. That means `Scrollable` plus `Height` or
+`MaxHeight`, or — `ListBox` only — a height Fill sizing resolved last frame.
+Every row is the same height there, which is exact because the widget owns the
+row shape.
 
 For rows the app builds, of heights only the layout engine knows, use
 `VirtualList`:
@@ -158,20 +159,19 @@ gui.VirtualList(gui.VirtualListCfg{
 ```
 
 Set `ItemHeight` when the height is cheap to compute: heights are then exact
-from the first frame and nothing is measured. Put spacing _inside_ the row — the
+from the first frame and nothing is measured. Put spacing _inside_ the row. The
 list's own spacing is fixed at zero, because a gap between rows is height the
 model does not account for.
 
 **Use `width` for decisions, never for a minimum.** A row that sets `MinWidth`
-from it asks the list for at least the width the list just reported; the row's
+from it asks the list for at least the width the list just reported. The row's
 own border pushes that further, the list widens, and the cycle repeats every
-frame — re-wrapping and re-measuring each time, so nothing settles. Rows fill
-the width they are handed through `Sizing`. `gui.Debug(true)` reports the
-ratchet.
+frame. It re-wraps and re-measures each time, so nothing settles. Rows fill the
+width they are handed through `Sizing`. `gui.Debug(true)` reports the ratchet.
 
-Scroll by index, not by ID or percentage — a row outside the viewport has no
-shape for `FindByID` to resolve, and the content height under virtualization is
-an estimate, so a percentage drifts:
+Scroll by index, not by ID or percentage. A row outside the viewport has no
+shape for `FindByID` to resolve. The content height under virtualization is an
+estimate, so a percentage drifts:
 
 ```go
 w.ScrollToIndex("feed", 4000)          // row at the viewport top
@@ -187,12 +187,12 @@ nothing detects that. See `docs/specs/virtualized-variable-height-lists.md`.
 
 ## `Wrap` with Fit width
 
-`Wrap` with a Fit width resolves as **fit-content** (issue #379): the width is
+`Wrap` with a Fit width resolves as **fit-content** (issue #379). The width is
 `min(single-row sum, nearest definite-width ancestor's available)`, so the
 container wraps within its parent instead of rendering one unwrapped row wider
 than it. A Fit chain with no Fixed/Fill width above it has no width to wrap
-within and keeps the single-row sum — that combination behaves as a `Row`, not a
-wrap. When the wrap should always fill its parent, use Fill width, which is what
+within and keeps the single-row sum. That combination behaves as a `Row`, not a
+wrap. When the wrap must always fill its parent, use Fill width, which is what
 every example in this repo does.
 
 ## Canvas gradients
@@ -204,7 +204,7 @@ A `DrawContext` fill takes a `*gui.CanvasGradient` in place of a flat `Color`:
 
 **Geometry left at zero is derived from the shape being filled.** A radial
 gradient with `R <= 0` centers on the fill's bounding box and matches its larger
-extent; a linear one whose endpoints coincide runs top to bottom. So a glow is
+extent. A linear one whose endpoints coincide runs top to bottom. So a glow is
 its stops and nothing else:
 
 ```go
@@ -219,7 +219,7 @@ dc.FilledCircleGradient(cx, cy, r, &gui.CanvasGradient{
 
 There is no stop-count limit — the shader's five-stop cap belongs to the shape
 gradient path (`ContainerCfg`), not this one. Do not stack concentric discs to
-fake a falloff; that is what this replaces.
+fake a falloff. That is what this replaces.
 
 A gradient fill always starts its own batch and never merges with the flat fill
 before it, so interleaving the two keeps painter's order.
@@ -227,25 +227,25 @@ before it, so interleaving the two keeps painter's order.
 ### When a gradient cannot express the shading
 
 `FillTrianglesColors(tris, colors)` is the primitive underneath all six. You
-supply the geometry and one color per vertex — `len(colors)*2 == len(tris)` —
-and nothing is evaluated on the way through: no projection, no stop isolines, no
+supply the geometry and one color per vertex (`len(colors)*2 == len(tris)`).
+Nothing is evaluated on the way through: no projection, no stop isolines, no
 subdivision. A mismatched color count is a no-op, and the fill starts its own
 batch under the same rule a gradient does.
 
-Reach for it when the shading is not a gradient and cannot be made into one. A
+When the shading is not a gradient and cannot be made into one, reach for it. A
 gradient's level sets are conic curves, nested inside one another, stepped
 linearly along the ramp. A shading whose isolines are not nested (a Lambert
-sphere, whose isophotes open to the terminator and close again on both sides),
-or which varies around a center rather than away from it (a hue sweep), or which
-stops at a silhouette, is out of reach however the stops are arranged.
-`examples/solar_system` is the worked case; `examples/draw_canvas` shows the two
-short ones.
+sphere, whose isophotes open to the terminator and close again on both sides) is
+out of reach. So is a shading that varies around a center rather than away from
+it (a hue sweep), or one that stops at a silhouette. This holds however the
+stops are arranged. `examples/solar_system` is the worked case.
+`examples/draw_canvas` shows the two short ones.
 
 **Wind every triangle the same way.** `gui/backend/soft` rasterizes a
-vertex-colored batch as a single path and accumulates _signed_ coverage, so a
-triangle wound against its neighbours cancels along their shared edge and cuts a
+vertex-colored batch as a single path and accumulates _signed_ coverage. A
+triangle wound against its neighbors cancels along their shared edge and cuts a
 hairline through the mesh. Share vertices between adjacent triangles rather than
-overlapping them: with per-vertex color, an overlap paints twice and shows.
+overlapping them. With per-vertex color, an overlap paints twice and shows.
 
 ## The one-event rule
 
@@ -263,7 +263,7 @@ consuming. Findings print once per window. In tests, use
 
 `DebugUnscopedIDs` is separate and opt-in: it is not part of `DebugAll`. It
 reports an ID with no ID-bearing ancestor — the widget cannot move into a second
-panel as it stands. Ask for it when you plan to reuse a screen:
+panel as it stands. When you plan to reuse a screen, ask for it:
 
 ```go
 gui.DebugCategories(gui.DebugAll | gui.DebugUnscopedIDs)

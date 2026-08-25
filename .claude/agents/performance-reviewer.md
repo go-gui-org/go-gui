@@ -5,7 +5,7 @@ description: Review Go code for heap allocation and performance issues
 
 # Performance Reviewer
 
-Review changed Go files for performance issues, focusing on heap allocations.
+Review changed Go files for performance issues. Focus on heap allocations.
 
 ## What to Check
 
@@ -40,6 +40,6 @@ Severity: `alloc` (heap allocation), `perf` (general performance), `nit` (minor)
 
 ## Rules
 - Run `go build -gcflags='-m' ./path/...` to check escape analysis
-- Focus on code in `gui/` package (hot path)
-- Ignore test files unless specifically asked
+- Focus on code in the `gui/` package (the hot path)
+- Ignore test files unless the user asks otherwise
 - Prioritize allocations over micro-optimizations

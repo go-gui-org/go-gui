@@ -1,7 +1,7 @@
 Procedural 2D drawing canvas with cached tessellation. Draw shapes, lines, text,
 images, and arcs via the `OnDraw` callback. Output is tessellated into triangles
-and cached by `Version` — only re-drawn when the version changes. Optional
-`Focusable` + `OnKeyDown` make the canvas keyboard-focusable.
+and cached by `Version`. The canvas re-draws only when the version changes.
+Optional `Focusable` + `OnKeyDown` make the canvas keyboard-focusable.
 
 ## Usage
 
@@ -62,7 +62,7 @@ gui.DrawCanvas(gui.DrawCanvasCfg{
 
 | Method | Signature                                                               | Description                                                |
 | ------ | ----------------------------------------------------------------------- | ---------------------------------------------------------- |
-| Image  | (x, y, w, h float32, src string, bgOpacity Opt[float32], bgColor Color) | Draw image inside the canvas; `src` matches `ImageCfg.Src` |
+| Image  | (x, y, w, h float32, src string, bgOpacity Opt[float32], bgColor Color) | Draw image inside the canvas. `src` matches `ImageCfg.Src` |
 
 `src` accepts the same forms as `ImageCfg.Src`:
 
@@ -70,9 +70,9 @@ gui.DrawCanvas(gui.DrawCanvasCfg{
 - `http://` / `https://` URL (cached on disk)
 - `data:` URL (base64 payload)
 
-`bgOpacity` is an `Opt[float32]` in [0, 1]; zero value = 1.0. It modulates the
-background-color alpha only; it does not fade the image texture itself.
-`bgColor` paints behind the image (useful for PNGs with transparency); zero
+`bgOpacity` is an `Opt[float32]` in [0, 1]. Zero value = 1.0. It modulates the
+background-color alpha only. It does not fade the image texture itself.
+`bgColor` paints behind the image (useful for PNGs with transparency). Zero
 value = transparent.
 
 Example:
@@ -151,7 +151,7 @@ widget ID.
 | A11YCfg  | A11YCfg | Embedded: A11YLabel, A11YDescription |
 
 A focusable canvas advertises as an interactive element (button role) to
-assistive tech; non-focusable canvases advertise as images. Provide a meaningful
+assistive tech. Non-focusable canvases advertise as images. Provide a meaningful
 `A11YLabel` on interactive canvases.
 
 Set the pair through the embed: `A11YCfg: gui.A11YCfg{A11YLabel: "Save"}`.

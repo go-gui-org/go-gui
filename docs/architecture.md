@@ -2,8 +2,8 @@
 
 ## High-Level Pipeline
 
-Immediate-mode GUI — no virtual DOM, no diffing. Each frame rebuilds the entire
-UI from the view function.
+This is an immediate-mode GUI. There is no virtual DOM and no diffing. Each
+frame rebuilds the entire UI from the view function.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -213,49 +213,49 @@ policy from code that drifts.
 - Every frame runs on the one main OS thread, in order: `generateViewLayout`
   (builds the Layout tree) → `layoutArrange` (sizing, ID resolution, float
   extraction) → `renderLayout` (emits into `w.renderers`) → backend
-  `renderersDraw` (drains read-only). All `*Window` access is main-thread-only;
-  backends wake the loop from other threads via `SetWakeMainFn`.
+  `renderersDraw` (drains read-only). All `*Window` access is main-thread-only.
+  Backends wake the loop from other threads via `SetWakeMainFn`.
 - Frame-scoped objects come from the `w.scratch` pools (`allocShape`,
   `allocEventHandlers`, `allocEffects`, layer slices). Pointers are valid only
   until the next frame's pool reset — never store them in window/app state.
-- **Where to change:** `gui/window_update.go` owns the frame pass; keep new
-  pipeline work inside `FrameFn` on the main thread, allocating from scratch
+- **Where to change:** `gui/window_update.go` owns the frame pass. Keep new
+  pipeline work inside `FrameFn` on the main thread. Allocate from the scratch
   pools.
-- **Catches:** `make test-race`; `make bench-gate` treats alloc counts as hard
-  gates; `(*Window).FrameCount()` distinguishes one frame from re-entrancy.
+- **Catches:** `make test-race` runs. `make bench-gate` treats alloc counts as
+  hard gates. `(*Window).FrameCount()` distinguishes one frame from re-entrancy.
 
 ### Event consumption (the one-event rule)
 
 - Nothing is marked handled for you. A callback that acts on an event calls
-  `ctx.Consume()`; one that does not lets the event travel to ancestors. There
-  is no `ctx.Bubble()` — declining is silence. Applies to every callback,
+  `ctx.Consume()`. One that does not lets the event travel to ancestors. There
+  is no `ctx.Bubble()` — declining is silence. It applies to every callback,
   `OnClick`/`OnChar` no differently from `OnKeyDown`/`OnHover`.
-- `ctx.Event` is nil in `AmendLayout` and `OnScroll`; both `EventCtx` methods
+- `ctx.Event` is nil in `AmendLayout` and `OnScroll`. Both `EventCtx` methods
   are nil-safe.
-- **Where to change:** any callback. Consuming for an effect, silence for a
-  pass-through — never pre-mark events handled.
+- **Where to change:** any callback. Consume for an effect. Keep silence for a
+  pass-through. Never pre-mark events handled.
 - **Catches:** `gui.Debug(true)` (category `DebugUnconsumed`) reports handlers
-  that act without consuming while an ancestor also handles;
-  `(*Window).TestUnconsumedEvents` sweeps a whole window;
+  that act without consuming while an ancestor also handles.
+  `(*Window).TestUnconsumedEvents` sweeps a whole window.
   `make ergonomics-audit` mode `callbacks` inventories signatures. Policy:
   `docs/specs/eventctx-callback-refactor.md`.
 
 ### ID scoping
 
 - `Shape.ID` is a leaf. `resolveShapeIDs` (run from `layoutArrange`) stamps
-  `Shape.effID` = the leaf joined to its ID-bearing ancestors, and every
-  ID-keyed store and lookup uses `shape.idKey()` — never bare `Shape.ID` at a
-  keying site. Effective IDs must be unique per window; a leaf containing `:` is
-  absolute and is not joined again.
-- Compose inner IDs with `gui.ScopeID`/`gui.ScopeIDN`, never by hand (a part —
-  row key, heading slug — must not contain `:`; rebuilding an ID at a lookup
-  site is how producers and consumers drift). A composite widget's inner shape
+  `Shape.effID` = the leaf joined to its ID-bearing ancestors. Every ID-keyed
+  store and lookup uses `shape.idKey()`, never bare `Shape.ID` at a keying site.
+  Effective IDs must be unique per window. A leaf containing `:` is absolute and
+  is not joined again.
+- Compose inner IDs with `gui.ScopeID`/`gui.ScopeIDN`, never by hand. A part
+  (row key, heading slug) must not contain `:`. Rebuilding an ID at a lookup
+  site is how producers and consumers drift. A composite widget's inner shape
   that needs the owner's focus state sets `Shape.focusOwner` (a reference)
   instead of repeating its ID.
-- **Where to change:** factories building IDs, any new ID-keyed store.
-- **Catches:** `(*Window).TestDuplicateIDs`; `gui.Debug` (category
-  `DebugDuplicates`); `make ergonomics-audit` mode `ids` fails hand-rolled
-  composition. Specs: `docs/specs/widget-id-scoping.md`,
+- **Where to change:** factories that build IDs, any new ID-keyed store.
+- **Catches:** `(*Window).TestDuplicateIDs` asserts a clean window. `gui.Debug`
+  (category `DebugDuplicates`) reports duplicates. `make ergonomics-audit` mode
+  `ids` fails hand-rolled composition. Specs: `docs/specs/widget-id-scoping.md`,
   `docs/specs/widget-id-per-scope-uniqueness.md`.
 
 ### Render command ownership
@@ -264,24 +264,23 @@ policy from code that drifts.
   consume it read-only via `(*Window).Renderers()` during `renderersDraw` and
   must not retain or mutate commands across frames.
 - Bracket kinds (`RenderClip`, `RenderStencilBegin/End`,
-  `RenderFilterBegin/End`, `RenderRotateBegin/End`) must stay balanced; clip
+  `RenderFilterBegin/End`, `RenderRotateBegin/End`) must stay balanced. Clip
   commands take effect immediately for subsequent commands in the stream.
-- **Where to change:** `gui/render_layout.go` to emit; `gui/backend/*/draw.go`
-  to consume. Adding a `RenderKind` touches the dispatch switch in every
-  backend.
+- **Where to change:** `gui/render_layout.go` emits. `gui/backend/*/draw.go`
+  consumes. Adding a `RenderKind` touches the dispatch switch in every backend.
 - **Catches:** `gui/render_layout_test.go`, `gui/backend/*/render*_test.go`
   (draw-order and bracket-balance coverage).
 
 ### Backend locking & threading
 
-- Backends call into gui only on the main OS thread; they lock only their own
-  state (e.g. the GL backend's own `w.Lock()` in `gui/backend/gl/backend.go`),
-  never window state.
+- Backends call into gui only on the main OS thread. They lock only their own
+  state (for example, the GL backend's own `w.Lock()` in
+  `gui/backend/gl/backend.go`), never window state.
 - Platform dispatch is by build tag per the Backend Layer diagram above. macOS
-  stays CGo by decision; `CGO_ENABLED=0 go build ./...` is green on Linux and
-  Windows — do not re-open the CGo question without a trigger.
+  stays CGo by decision. `CGO_ENABLED=0 go build ./...` is green on Linux and
+  Windows. Do not re-open the CGo question without a trigger.
 - **Where to change:** new backends must follow the injected-interface pattern
-  (below) and the build-tag table; keep `gui/` free of platform imports.
+  (below) and the build-tag table. Keep `gui/` free of platform imports.
 - **Catches:** `make cross-compile`, `make lint-cross`, `make test` (runs the GL
   backend with `CGO_ENABLED=0`). Direction:
   `docs/specs/cgo-free-backend-feasibility.md`,
@@ -293,19 +292,19 @@ policy from code that drifts.
   window holds a different type. Widget internal state lives in the per-window
   `StateMap`, keyed by namespace consts (`nsOverflow`, `nsInput`, ...). No
   globals, no closures for state.
-- Theme is window-owned; `guiTheme` and the `default*Style` package vars are a
-  frame-scoped cache, never app state — `installTheme` refills them per theme
-  change and they have no initializers (the mirrors would drift). The two
-  exceptions are `DefaultTextStyle` and `defaultInspectorStyle`, which are
-  `ThemeMaker` inputs. Key on `Theme.id`, never `Theme.Name`.
-- Theme reads split by phase: outside generation call `w.Theme()`; factories and
-  `GenerateLayout` keep the bare `guiTheme`/`default*Style` read (required for
-  `Themed` subtree scoping). Mark deliberate exceptions
+- Theme is window-owned. `guiTheme` and the `default*Style` package vars are a
+  frame-scoped cache, never app state. `installTheme` refills them per theme
+  change, and they have no initializers. An initializer makes the mirrors drift.
+  The two exceptions are `DefaultTextStyle` and `defaultInspectorStyle`, which
+  are `ThemeMaker` inputs. Key on `Theme.id`, never `Theme.Name`.
+- Theme reads split by phase. Outside generation, call `w.Theme()`. Factories
+  and `GenerateLayout` keep the bare `guiTheme`/`default*Style` read (required
+  for `Themed` subtree scoping). Mark deliberate exceptions
   `ergonomics-audit:theme-global`.
-- **Where to change:** adding widget state → new namespace const + `StateMap`;
-  adding a default style → `ThemeMaker` only.
-- **Catches:** `TestDefaultStylesMirrorThemeDark`; `make ergonomics-audit` mode
-  `theme` gates the post-generation paths. Specs:
+- **Where to change:** to add widget state, use a new namespace const and a
+  `StateMap`. To add a default style, change `ThemeMaker` only.
+- **Catches:** `TestDefaultStylesMirrorThemeDark` runs. `make ergonomics-audit`
+  mode `theme` gates the post-generation paths. Specs:
   `docs/specs/per-window-theme.md`, `docs/specs/theme-style-single-source.md`.
 
 ### Native platform boundaries
@@ -313,41 +312,42 @@ policy from code that drifts.
 - Backends inject `TextMeasurer` (glyph metrics), `SvgParser`, and
   `NativePlatform` (dialogs, notifications, print, a11y, IME, titlebar) at
   startup. All are nil in tests — test code must never require a backend.
-- `gui/` never imports backend packages; `NativePlatform` is the only seam to
+- `gui/` never imports backend packages. `NativePlatform` is the only seam to
   platform services.
 - **Where to change:** a new platform capability is a new `NativePlatform`
   method implemented per backend, not a direct call from `gui/`.
-- **Catches:** `make test` runs with nil injected interfaces; `make vet` (incl.
+- **Catches:** `make test` runs with nil injected interfaces. `make vet` (incl.
   the `requiredid` analyzer) flags structural mistakes.
 
 ### Widget Cfg invariants
 
-- **Focusable defaults:** the 15 input Cfgs (`Button`, `ColorPicker`,
-  `Combobox`, `DatePicker`, `Input`, `InputDate`, `ListBox`, `NumericInput`,
-  `RadioButtonGroup`, `Radio`, `Select`, `Slider`, `Switch`, `Toggle`, `Tree`)
-  are focusable by default; opt out with `FocusDisabled`, never
-  `Focusable: false`. `Focusable` without a non-empty `ID` is a silent no-op —
-  the widget renders and clicks but never joins the tab order. Spec:
+- **Focusable defaults:** 20 Cfgs are focusable by default. They are `Button`,
+  `ColorChannelSlider`, `ColorPicker`, `ColorPlane`, `ColorWheel`, `Combobox`,
+  `DatePicker`, `ExpandPanel`, `Input`, `InputDate`, `ListBox`, `NumericInput`,
+  `RadioButtonGroup`, `Radio`, `Select`, `Slider`, `Switch`, `Toggle`, `Tree`,
+  `VirtualList`. Opt out with `FocusDisabled`, never `Focusable: false`.
+  `Focusable` without a non-empty `ID` is a silent no-op — the widget renders
+  and clicks but never joins the tab order. Spec:
   `docs/specs/focusable-default-input.md`.
-- **A11y fields:** `A11YLabel`/`A11YDescription` live on the embedded `A11YCfg`;
-  never redeclare them on a Cfg. Construction names the embed:
+- **A11y fields:** `A11YLabel`/`A11YDescription` live on the embedded `A11YCfg`.
+  Never redeclare them on a Cfg. Construction names the embed:
   `gui.ButtonCfg{ID: "save", A11YCfg: gui.A11YCfg{A11YLabel: "Save"}}`.
 - **`Opt[T]` vs plain fields:** only primitives get `Opt` (when zero is a
-  legitimate user choice that must be distinguishable from unset, e.g.
+  legitimate user choice that must be distinguishable from unset, for example
   `SizeBorder`). Owned types self-flag instead: `Color`, `Padding`, and `Sizing`
   carry a `set` field, so they are plain fields with `IsSet()`/`Or()`. Build
   them with constructors — `RGBA`/`RGB`/`Hex`, `NewPadding`/`PadAll`, the
   predefined `Sizing` vars — never raw `Color{...}`/`Padding{...}`/`Sizing{...}`
   literals (they read as unset).
 - **Where to change:** any widget factory or Cfg struct.
-- **Catches:** `make vet` (`requiredid`), `make ergonomics-audit` modes `focus`,
-  `a11y`, `opt`, and `literals`; `gui.Debug` reports focusable shapes with no ID
-  at runtime.
+- **Catches:** `make vet` (`requiredid`) and `make ergonomics-audit` modes
+  `focus`, `a11y`, `opt`, and `literals`. `gui.Debug` reports focusable shapes
+  with no ID at runtime.
 
 ### Generated-file expectations
 
-- `gui/svg_spinner_kinds_gen.go` is produced by `go generate ./...`
-  (`gui/internal/gen/spinnerkinds/`). Commit generated output; never hand-edit
+- `go generate ./...` produces `gui/svg_spinner_kinds_gen.go` (from
+  `gui/internal/gen/spinnerkinds/`). Commit generated output. Never hand-edit
   it. Any change to the generator must be committed with its regenerated output,
   or `make generate-check` fails the push.
 - **Where to change:** `gui/internal/gen/`, then run `go generate ./...`.
@@ -374,8 +374,8 @@ policy from code that drifts.
 - **WebGPU**: Explored on the `webgpu-backend` branch (deleted) — 12 WGSL shader
   pipelines, device init, and render loop were working. Superseded: the native
   GL backend already runs cgo-free on Linux and Windows (X11 via xgb, EGL via
-  purego). WebGPU would add 10–40 MB of runtime shared libraries and still leave
-  macOS — the only real CGo backend — untouched. Full assessment:
+  purego). If adopted, WebGPU adds 10–40 MB of runtime shared libraries and
+  still leaves macOS — the only real CGo backend — untouched. Full assessment:
   `docs/specs/cgo-free-backend-feasibility.md`.
 - **Native GL on desktop**: The native GL backend is the default renderer on
   Linux and Windows. It provides direct platform windowing (X11 on Linux, Win32

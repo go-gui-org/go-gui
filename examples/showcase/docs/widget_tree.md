@@ -76,7 +76,7 @@ When `ItemPaths` is set, `Nodes` is ignored.
 | ItemPaths   | []string      | Flat slash-separated paths (alt.)              |
 | Nodes       | []TreeNodeCfg | Root-level tree nodes                          |
 | Indent      | float32       | Indent per nesting level                       |
-| Spacing     | float32       | Vertical spacing between rows                  |
+| Spacing     | Opt[float32]  | Vertical spacing between rows                  |
 | Scrollable  | bool          | Opt into the scroll system (state keyed by ID) |
 | Reorderable | bool          | Enable drag-reorder of siblings                |
 | Disabled    | bool          | Disable interaction                            |
@@ -91,15 +91,15 @@ When `ItemPaths` is set, `Nodes` is ignored.
 
 ## TreeNodeCfg
 
-| Property      | Type          | Description                        |
-| ------------- | ------------- | ---------------------------------- |
-| ID            | string        | Node identifier (defaults to Text) |
-| Text          | string        | Display text                       |
-| Icon          | string        | Icon string (e.g. IconFolder)      |
-| Lazy          | bool          | Load children on expand            |
-| Nodes         | []TreeNodeCfg | Child nodes                        |
-| TextStyle     | TextStyle     | Text styling                       |
-| TextStyleIcon | TextStyle     | Icon text styling                  |
+| Property      | Type          | Description                          |
+| ------------- | ------------- | ------------------------------------ |
+| ID            | string        | Node identifier (defaults to Text)   |
+| Text          | string        | Display text                         |
+| Icon          | string        | Icon string (for example IconFolder) |
+| Lazy          | bool          | Load children on expand              |
+| Nodes         | []TreeNodeCfg | Child nodes                          |
+| TextStyle     | TextStyle     | Text styling                         |
+| TextStyleIcon | TextStyle     | Icon text styling                    |
 
 ## Appearance
 

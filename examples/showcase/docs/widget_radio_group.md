@@ -27,8 +27,8 @@ gui.RadioButtonGroupRow(gui.RadioButtonGroupCfg{
         gui.NewRadioOption("M", "m"),
         gui.NewRadioOption("L", "l"),
     },
-    OnSelect: func(v string, w *gui.Window) {
-        gui.State[App](w).Size = v
+    OnSelect: func(v string, ctx gui.EventCtx) {
+        gui.State[App](ctx.Window).Size = v
     },
 })
 ```
@@ -78,9 +78,9 @@ When `Items` is set, `Options` is ignored.
 
 ## Events
 
-| Callback | Signature             | Fired when        |
-| -------- | --------------------- | ----------------- |
-| OnSelect | func(string, *Window) | Selection changes |
+| Callback | Signature              | Fired when        |
+| -------- | ---------------------- | ----------------- |
+| OnSelect | func(string, EventCtx) | Selection changes |
 
 ## Accessibility
 

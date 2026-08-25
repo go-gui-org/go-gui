@@ -1,7 +1,7 @@
 # Imported Skills and Plugins
 
 This directory contains skills and workflows imported from `~/.claude/skills/`
-and configured for use in the go-gui project.
+and configured for the go-gui project.
 
 ## Available Workflows
 
@@ -92,11 +92,10 @@ installation:
 
 ## Usage
 
-These workflows are now available as slash commands in your IDE. Simply type `/`
-followed by the workflow name to invoke them.
+These workflows are available as slash commands in your IDE. Type `/` followed
+by the workflow name to invoke them.
 
 ## Configuration
 
 Plugin configurations are stored in `~/.claude/plugins/installed_plugins.json`.
-No additional setup is required for the workflows - they're ready to use
-immediately.
+The workflows need no additional setup. They are ready to use immediately.

@@ -86,7 +86,6 @@ gui.Skeleton(gui.SkeletonCfg{
 
 | Variant        | Description                       |
 | -------------- | --------------------------------- |
-| SkeletonRect   | Rounded rectangle (default)       |
 | SkeletonCircle | Circle, sized by Width and Height |
 
 ## Accessibility

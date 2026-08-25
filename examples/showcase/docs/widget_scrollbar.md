@@ -10,7 +10,6 @@ gui.Column(gui.ContainerCfg{
     Scrollable:    true,
     ScrollbarCfgY: &gui.ScrollbarCfg{
         GapEdge:  4,
-        Overflow: gui.ScrollbarOnHover,
     },
     Content: views,
 })
@@ -31,18 +30,17 @@ gui.Column(gui.ContainerCfg{
 
 ## Key Properties
 
-| Property     | Type                 | Description                      |
-| ------------ | -------------------- | -------------------------------- |
-| ID           | string               | Unique identifier                |
-| ScrollID     | string               | Scroll container ID to attach to |
-| Orientation  | ScrollbarOrientation | Horizontal or vertical           |
-| Size         | float32              | Scrollbar thickness              |
-| MinThumbSize | float32              | Minimum thumb length             |
-| Radius       | float32              | Track corner radius              |
-| RadiusThumb  | float32              | Thumb corner radius              |
-| GapEdge      | float32              | Gap from container edge          |
-| GapEnd       | float32              | Gap from track ends              |
-| Overflow     | ScrollbarOverflow    | Visibility mode                  |
+| Property     | Type                 | Description             |
+| ------------ | -------------------- | ----------------------- |
+| ID           | string               | Unique identifier       |
+| Orientation  | ScrollbarOrientation | Horizontal or vertical  |
+| Size         | float32              | Scrollbar thickness     |
+| MinThumbSize | float32              | Minimum thumb length    |
+| Radius       | float32              | Track corner radius     |
+| RadiusThumb  | float32              | Thumb corner radius     |
+| GapEdge      | float32              | Gap from container edge |
+| GapEnd       | float32              | Gap from track ends     |
+| Overflow     | ScrollbarOverflow    | Visibility mode         |
 
 ## Appearance
 
@@ -58,4 +56,3 @@ gui.Column(gui.ContainerCfg{
 | ScrollbarAuto    | Show when content overflows (default) |
 | ScrollbarHidden  | Never show                            |
 | ScrollbarVisible | Always show                           |
-| ScrollbarOnHover | Show on mouse hover only              |

@@ -6,11 +6,11 @@ for syntax or as a test file for rendering engines.
 ## Text Formatting
 
 Regular paragraph text flows naturally across multiple lines. When you write
-content in Markdown, you don't need to worry about line breaks within a
+content in Markdown, you do not need to worry about line breaks within a
 paragraph---the renderer handles text wrapping automatically. This makes it easy
 to write long-form content without constantly thinking about formatting.
 
-Here's another paragraph to show separation. Paragraphs are separated by blank
+Here is another paragraph to show separation. Paragraphs are separated by blank
 lines. You can use **bold text** for emphasis, _italic text_ for subtle
 emphasis, or _**bold and italic**_ together. You can also use ~~strikethrough~~
 for deleted content and `inline code` for technical terms or commands.
@@ -63,8 +63,7 @@ combine with bold: ++**bold underline**++.
 
 ### Task Lists
 
-- [x] Completed task that has been marked as done by placing an 'x' inside the
-      brackets.
+- [x] Completed task, marked as done with an 'x' inside the brackets.
 - [x] Another finished task demonstrating the checked state, which renders as a
       filled checkbox in most Markdown viewers and platforms that support this
       extension.
@@ -137,7 +136,7 @@ class ShoppingCart:
 
 ### Links
 
-Here's a [link to OpenAI](https://openai.com) inline in text. You can also use
+Here is a [link to OpenAI](https://openai.com) inline in text. You can also use
 [reference-style links](https://example.com "Example Website") that define the
 URL elsewhere in the document, which keeps paragraphs cleaner when you have many
 links.
@@ -198,8 +197,8 @@ The HTML specification is maintained by the W3C. HTMLX is not the same as HTML.
 
 ## Escaping Characters
 
-Use backslashes to display literal characters that would otherwise be
-interpreted as Markdown:
+Use backslashes to display literal characters. Without a backslash, the parser
+interprets them as Markdown:
 
 \*This text is surrounded by literal asterisks\*
 
@@ -296,9 +295,9 @@ done
 
 ## Conclusion
 
-This document has covered all the common Markdown elements you're likely to
-encounter or need in everyday writing. Different Markdown processors may support
-additional features or have slight variations in syntax, so always test your
+This document covers all the common Markdown elements you are likely to
+encounter or need in everyday writing. Different Markdown processors can support
+additional features or have slight variations in syntax. Always test your
 content in the target environment.
 
 For more information, consult the

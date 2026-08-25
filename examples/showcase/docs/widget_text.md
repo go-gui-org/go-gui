@@ -48,23 +48,22 @@ gui.Text(gui.TextCfg{
 
 ## Key Properties
 
-| Property          | Type      | Description                                             |
-| ----------------- | --------- | ------------------------------------------------------- |
-| Text              | string    | Content to display                                      |
-| TextStyle         | TextStyle | Font, size, color, decorations                          |
-| Mode              | TextMode  | Wrapping behavior                                       |
-| Focusable         | bool      | Enables focus and text selection (needs a non-empty ID) |
-| TabSize           | uint32    | Tab width in spaces                                     |
-| MinWidth          | float32   | Minimum text width                                      |
-| Clip              | bool      | Clip text to bounds                                     |
-| Opacity           | float32   | Text opacity (0.0–1.0)                                  |
-| Hero              | bool      | Animate text transitions                                |
-| IsPassword        | bool      | Mask characters                                         |
-| PlaceholderActive | bool      | Render as placeholder style                             |
-| Sizing            | Sizing    | Override default sizing                                 |
-| Disabled          | bool      | Disable interaction                                     |
-| Invisible         | bool      | Hide without removing from layout                       |
-| FocusSkip         | bool      | Skip in tab-order navigation                            |
+| Property   | Type      | Description                                              |
+| ---------- | --------- | -------------------------------------------------------- |
+| Text       | string    | Content to display                                       |
+| TextStyle  | TextStyle | Font, size, color, decorations                           |
+| Mode       | TextMode  | Wrapping behavior                                        |
+| Focusable  | bool      | Turns on focus and text selection (needs a non-empty ID) |
+| TabSize    | uint32    | Tab width in spaces                                      |
+| MinWidth   | float32   | Minimum text width                                       |
+| Clip       | bool      | Clip text to bounds                                      |
+| Opacity    | float32   | Text opacity (0.0–1.0)                                   |
+| Hero       | bool      | Animate text transitions                                 |
+| IsPassword | bool      | Mask characters                                          |
+| Sizing     | Sizing    | Override default sizing                                  |
+| Disabled   | bool      | Disable interaction                                      |
+| Invisible  | bool      | Hide without removing from layout                        |
+| FocusSkip  | bool      | Skip in tab-order navigation                             |
 
 ## TextStyle Fields
 

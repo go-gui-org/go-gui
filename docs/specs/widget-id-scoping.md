@@ -1,7 +1,7 @@
 # Widget ID scoping
 
 Status: implemented. Written 2026-08-09 after a `GOGUI_DEBUG=1` run of the
-showcase reported 39 duplicate IDs; decided and implemented the same day.
+showcase reported 39 duplicate IDs. Decided and implemented the same day.
 
 ## Problem
 
@@ -18,7 +18,7 @@ rest came from the framework:
 | ----- | ------------------------------------------------------------- |
 | 32    | `Input` put `cfg.ID` on both its container and its inner text |
 | 5     | every markdown paragraph claimed the markdown widget's ID     |
-| 2     | showcase: a constant ID in a loop; a nested widget copy-paste |
+| 2     | showcase: a constant ID in a loop, a nested widget copy-paste |
 
 Both framework causes were fixed first (`Shape.focusOwner` for the first,
 container-owned ID for the second), and the check is available as
@@ -61,7 +61,7 @@ and focus. There is no warning for that, because from the framework's view
 nothing is wrong.
 
 Prior art agrees. Dear ImGui uses an explicit ID stack (`PushID`/`PopID`)
-precisely so loop iterations disambiguate; egui derives an `Id` from the parent
+precisely so loop iterations disambiguate. egui derives an `Id` from the parent
 scope plus a caller-supplied `id_salt`. Both are explicit identity plus a scope,
 not implicit identity.
 
@@ -74,15 +74,15 @@ not implicit identity.
 2. **IDs stay flat, window-global strings.** No public API changed: `SetFocus`,
    `ScrollVerticalTo`, `FindByID` and the test helpers still take the whole
    composed string. Per-scope uniqueness was considered and rejected for now —
-   it would touch `FindByID`, focus traversal, scroll keys, `StateMap` keys and
-   the debug audit, all of which assume a flat namespace.
+   it touches `FindByID`, focus traversal, scroll keys, `StateMap` keys and the
+   debug audit, all of which assume a flat namespace.
 3. **One separator: `:`.** Already dominant, already parsed by the datagrid, and
-   rare in application IDs, which favour `-` and `_`.
+   rare in application IDs, which favor `-` and `_`.
 4. **No escaping.** See below.
 
 ## The grammar
 
-An ID is a `:`-joined path. The _owner_ may itself already be composed — that is
+An ID is a `:`-joined path. The _owner_ can itself already be composed — that is
 how nesting works — and composition is associative:
 
 ```go
@@ -90,7 +90,7 @@ base := gui.ScopeID(cfg.ID, "header", col.ID) // "grid:header:name"
 gui.ScopeID(base, "resize")                   // "grid:header:name:resize"
 ```
 
-`ScopeIDN` appends a numeric last segment without materialising the number as
+`ScopeIDN` appends a numeric last segment without materializing the number as
 its own string, for loop-derived identity:
 
 ```go
@@ -102,7 +102,7 @@ inner IDs — and two of them in one window collide loudly rather than silently.
 
 Both functions cost **exactly one allocation**: the returned string. `ScopeID`
 uses single-expression concatenation for the common arities and an exactly sized
-`strings.Builder` beyond them; the variadic backing array does not escape.
+`strings.Builder` beyond them. The variadic backing array does not escape.
 `gui/id_scope_test.go` asserts this with `testing.AllocsPerRun`, and that test
 is the guard — a future edit that lets `parts` escape shows up there and nowhere
 else.
@@ -119,24 +119,22 @@ escaping, a part must not contain `:`, so parts keep their own spelling:
   (`view_data_grid_crud.go`) row keys
 
 All three flow through `dataGridRowID` into `ScopeID(cfg.ID, "row", rowID)`.
-Rewriting them as `__src:o:5` would make a part contain the separator, producing
+Rewriting them as `__src:o:5` makes a part contain the separator, producing
 `grid:row:__src:o:5` — ambiguous with a real nested scope. Underscore form is
 correct here, not a leftover.
 
 ### Why no escaping
 
-Escaping would break the datagrid's reverse parse.
-`dataGridHeaderColIDFromLayoutID` recovers a column ID by trimming
-`dataGridHeaderPrefix(gridID)` and comparing the remainder verbatim on a
-per-frame hit-test path; an unescape step would add an allocation there.
-Composed IDs are also user-facing — applications pass them to
+Escaping breaks the datagrid's reverse parse. `dataGridHeaderColIDFromLayoutID`
+recovers a column ID by trimming `dataGridHeaderPrefix(gridID)` and comparing
+the remainder verbatim on a per-frame hit-test path. An unescape step adds an
+allocation there. Composed IDs are also user-facing — applications pass them to
 `ScrollVerticalTo`, and they appear in `GOGUI_DEBUG` output and the inspector —
 and `a\:b` is worse to read and worse to type.
 
-The hazard escaping would remove is ambiguity: two different `(owner, parts)`
-tuples composing to the same string. That hazard is exactly a duplicate ID,
-which `debugCheckShape` already reports and `(*Window).TestDuplicateIDs` already
-asserts.
+Escaping removes ambiguity: two different `(owner, parts)` tuples can compose to
+the same string. That hazard is exactly a duplicate ID, which `debugCheckShape`
+already reports and `(*Window).TestDuplicateIDs` already asserts.
 
 ## Enforcement
 
@@ -147,7 +145,7 @@ concatenation or `fmt.Sprintf` that either lands in an ID position — a Cfg
 `...ID` function — or is built off something already named like an ID.
 
 That second rule is the one that earns its keep. The producers are easy to
-migrate; the **consumers** drift. `w.IsFocus(cfg.ID+"_popup")` rebuilds an ID
+migrate. The **consumers** drift. `w.IsFocus(cfg.ID+"_popup")` rebuilds an ID
 the producer has already moved, and it sits in a call argument rather than any
 position the first rule can name. Four such consumers existed, and each broke
 its widget when only the producer was migrated.
@@ -184,10 +182,10 @@ the duplicate audit rather than passing silently.
 supersedes Decisions 1–2 here for identity resolution:
 
 - **Per-scope uniqueness** (shipped) — framework-computed `effID` from
-  ID-bearing ancestors; leaf `Shape.ID` may repeat across scopes; uniqueness
+  ID-bearing ancestors. Leaf `Shape.ID` can repeat across scopes. Uniqueness
   stays on the effective key.
-- **Hero animations** (shipped) — keyed on `effID`; same leaf under different
+- **Hero animations** (shipped) — keyed on `effID`. Same leaf under different
   ancestors does not match (constraint of ID-only join).
 - **Caching composed IDs across frames** (shipped) — the benchmark showed +1
   alloc per widget per frame, so the identity-keyed memo landed
-  (`(*Window).joinLeaf`); a positional cache is still rejected.
+  (`(*Window).joinLeaf`). A positional cache is still rejected.

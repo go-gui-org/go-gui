@@ -61,7 +61,7 @@ gui.Tree(gui.TreeCfg{
 | movedID   | string | ID of the dragged item          |
 | beforeID  | string | ID of the item to insert before |
 
-`beforeID` is `\"\"` when dropping at the end of the list.
+`beforeID` is `\"\"` when the item drops at the end of the list.
 
 ## Helper
 

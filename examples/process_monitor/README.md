@@ -1,12 +1,13 @@
 # process_monitor
 
-A small live task manager: a filterable process list with flat/tree views,
-sortable columns, and per-process CPU/RAM history charts — built on go-gui's
-immediate-mode pipeline and styled entirely from the standard theme tokens.
+A small live task manager: a filterable process list, flat and tree views,
+sortable columns, and per-process CPU/RAM history charts. It runs on go-gui's
+immediate-mode pipeline and takes all its styling from the standard theme
+tokens.
 
 It is a functional port of the [go-shirei `process_monitor`][shirei] example.
-The goal is feature parity, not a pixel-for-pixel visual match: the layout takes
-cues from other go-gui examples and the colors come from `gui.ThemeDark` /
+The goal is feature parity, not a pixel-for-pixel visual match. The layout takes
+cues from other go-gui examples. The colors come from `gui.ThemeDark` /
 `gui.ThemeLight`, not hand-picked HSL values.
 
 [shirei]: https://go.hasen.dev
@@ -14,14 +15,14 @@ cues from other go-gui examples and the colors come from `gui.ThemeDark` /
 ## Features
 
 - Live process list: PID, CPU%, RSS, MEM%, USER, STATE, THREADS, NAME.
-- Click a column header to sort; click again to reverse.
+- Click a column header to sort. Click it again to reverse.
 - Select a row for a detail panel with ~60s rolling CPU and RAM charts.
-- Filter box matching name, command line, user, or PID (substring,
+- Filter box that matches name, command line, user, or PID (substring,
   case-insensitive).
-- Flat list **or** parent/child tree (collapse a subtree with ▸/▾; an active
-  filter keeps matched processes' ancestors visible).
+- Flat list **or** parent/child tree. Collapse a subtree with ▸/▾. An active
+  filter keeps the ancestors of matched processes visible.
 - Sample-interval selector: 0.5s / 1s / 2s / 5s.
-- Metrics the OS won't report render `--`, never a fake `0`.
+- Metrics that the OS does not report render `--`, never a fake `0`.
 - System memory bar in the header (shown only when the platform reports totals).
 
 ## Run it
@@ -43,17 +44,17 @@ go-gui examples share the root module, so this example pulls in no third-party
 process library. It shells out to the OS instead:
 
 - **macOS / Linux** — parse `ps` (`collect_unix.go`). Linux also reports the
-  thread count via `nlwp`; macOS `ps` has no thread column, so THREADS shows
+  thread count via `nlwp`. macOS `ps` has no thread column, so THREADS shows
   `--` there.
-- **Windows** — parse `tasklist` CSV (`collect_windows.go`). No live CPU% is
-  available from one call, so CPU shows `--`.
+- **Windows** — parse `tasklist` CSV (`collect_windows.go`). One call does not
+  provide a live CPU%, so CPU shows `--`.
 - System memory totals come from `/proc/meminfo` (Linux) or `sysctl` + `vm_stat`
-  (macOS); other platforms omit the memory bar.
+  (macOS). Other platforms omit the memory bar.
 
 **CPU% caveat:** on Unix the value is `ps`'s `%cpu`, which is a _lifetime
-average_, not an instantaneous interval rate. It is a real, useful number and
-needs only one sample; a delta-based interval CPU% (two cumulative-CPU-time
-reads) would be the enhancement.
+average_, not an instantaneous interval rate. It is a real, useful number that
+needs only one sample. A delta-based interval CPU% is the enhancement. It
+requires two cumulative-CPU-time reads.
 
 ### Background sampling, UI only reads
 
@@ -71,20 +72,21 @@ w.Unlock()
 ```
 
 `UpdateWindow` (not `UpdateView`) re-runs the registered view without clearing
-the state registry, so the filter input keeps focus and the list keeps its
-scroll position across refreshes. The backend's idle poll repaints within ~100
-ms, so no explicit wake is needed at these intervals.
+the state registry. The filter input keeps focus, and the list keeps its scroll
+position across refreshes. The backend's idle poll repaints within ~100 ms, so
+these intervals need no explicit wake.
 
 ### Stable processes + rolling history
 
 `ProcessStore` (`store.go`) keeps a stable `*Process` per identity so table rows
-and chart history survive across refreshes. Exited processes linger for 60 s (so
-their charts stay visible) and are then evicted — unless they are selected.
+and chart history survive across refreshes. Exited processes linger for 60 s, so
+their charts stay visible. The app evicts them after that, unless they are
+selected.
 
 ### Charts from plain containers
 
 Each history chart (`chart.go`) is a row of bottom-anchored `Rectangle` bars in
 fixed 2-second time buckets — no canvas widget, no chart library.
-`resampleHistory` folds the irregularly-sampled history into those fixed buckets
-(averaging within a slot, linearly interpolating gaps) so the x-axis is always
-"last 60 s," independent of the sample rate.
+`resampleHistory` folds the irregularly-sampled history into those fixed
+buckets: it averages within a slot and linearly interpolates gaps. The x-axis is
+then always "last 60 s," independent of the sample rate.

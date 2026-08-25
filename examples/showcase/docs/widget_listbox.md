@@ -72,7 +72,7 @@ When `Items` is set, `Data` is ignored.
 | Items       | []string        | Simple string list (alt. to Data)              |
 | Data        | []ListBoxOption | Items (ID, Name, Value, IsSubhead)             |
 | Multiple    | bool            | Allow multi-select                             |
-| Height      | float32         | Fixed height (enables virtualization)          |
+| Height      | float32         | Fixed height (activates virtualization)        |
 | MinWidth    | float32         | Minimum width                                  |
 | MaxWidth    | float32         | Maximum width                                  |
 | MinHeight   | float32         | Minimum height                                 |

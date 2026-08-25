@@ -1,6 +1,6 @@
-Toolbar that hides items that don't fit and shows them in a dropdown menu.
-Useful for responsive toolbars and action bars. Items that overflow are shown
-via a trigger button that opens a dropdown Menu.
+Toolbar that hides items that do not fit and shows them in a dropdown menu. Use
+it for responsive toolbars and action bars. Items that overflow appear in a
+dropdown menu opened by a trigger button.
 
 ## Usage
 

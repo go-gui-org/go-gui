@@ -19,7 +19,7 @@ gui.Form(gui.FormCfg{
 
 Register fields each frame so the form runtime tracks them. Use
 **FormRegisterFieldByID** when the form ID is known at view construction time
-(the common case). Use **FormRegisterField** when you don't know the form ID —
+(the common case). Use **FormRegisterField** when you do not know the form ID —
 it walks the layout parent chain to locate the ancestor Form.
 
 ```go
@@ -160,7 +160,7 @@ func validateEmail(
 ## Allow Submit Despite Errors or Pending
 
 By default, `FormRequestSubmit` is blocked when any field has errors or an async
-validator is running. Override per-form:
+validator runs. Override per-form:
 
 ```go
 gui.Form(gui.FormCfg{
@@ -183,7 +183,7 @@ gui.Form(gui.FormCfg{
 ```
 
 Check `FormSubmitEvent.Errors` and `FormSubmitEvent.Pending` in your submit
-handler — they carry the issues that would normally block submission.
+handler. They carry the issues that block submission by default.
 
 ## Custom Slots
 

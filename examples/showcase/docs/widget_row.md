@@ -6,7 +6,7 @@ sizing, alignment, scrolling, floating, borders, and event handling.
 ```go
 gui.Row(gui.ContainerCfg{
     Spacing: gui.SomeF(8),
-    Padding: gui.SomeP(4, 8, 4, 8),
+    Padding: gui.NewPadding(4, 8, 4, 8),
     Sizing:  gui.FillFit,
     Content: []gui.View{child1, child2},
 })
@@ -18,7 +18,7 @@ gui.Row(gui.ContainerCfg{
 gui.Row(gui.ContainerCfg{
     ID:         "my-row",
     Scrollable: true,
-    ScrollMode: gui.ScrollModeX,
+    ScrollMode: gui.ScrollHorizontalOnly,
     Sizing:     gui.FillFixed,
     Height:     200,
     Content:    items,

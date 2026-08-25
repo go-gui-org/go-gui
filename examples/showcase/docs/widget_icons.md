@@ -1,7 +1,7 @@
-256 icons from the Feather icon font. Each icon is a named constant (e.g.
-`gui.IconCheck`, `gui.IconFolder`, `gui.IconSearch`). Render with `gui.Text`
-using one of the six theme Icon styles. Icons are Unicode glyphs — no image
-files required.
+256 icons from the Feather icon font. Each icon is a named constant (for
+example, `gui.IconCheck`, `gui.IconFolder`, `gui.IconSearch`). Render with
+`gui.Text` using one of the six theme Icon styles. Icons are Unicode glyphs — no
+image files required.
 
 ## Usage
 

@@ -1,54 +1,53 @@
 # Spec: `Focusable` defaults true for input controls (`FocusDisabled` opt-out)
 
 Status: **implemented** — Phase 1 shipped v0.36.0 (Input, Select, Slider,
-Toggle, Switch); Phase 2 shipped v0.37.0, dropping `Focusable bool` for
+Toggle, Switch). Phase 2 shipped v0.37.0, dropping `Focusable bool` for
 `FocusDisabled bool` on the remaining nine controls. Both phases in CHANGELOG.
 
 Base: `main` @ `8522098` Target release: go-gui `v0.36.0` (breaking)
 
 ## Motivation
 
-Nearly every interactive `InputCfg` site in-repo sets `Focusable: true`; the
+Nearly every interactive `InputCfg` site in-repo sets `Focusable: true`. The
 exceptions are not designed non-focusable inputs but the two wrapper factories
 (which pass `cfg.Focusable` through) and a couple of tests. Requiring the field
-on every input is boilerplate that adds nothing — an input the user can't tab to
-is a bug, not a design choice. Flip the default: input controls are focusable
+on every input is boilerplate that adds nothing — an input the user cannot tab
+to is a bug, not a design choice. Flip the default: input controls are focusable
 unless the caller opts out with `FocusDisabled`.
 
 **Phase 2 is an accessibility change, not just deboilerplating.** `Select`,
 `Slider`, `Toggle`, `Switch` are mostly _not_ focusable in-repo today (Slider:
 0% set `Focusable: true`), so flipping them enrolls those controls in the Tab
-order — the intended, correct behavior (a slider should be keyboard-adjustable),
-a visible behavior change, not silent cleanup. Zero `Focusable: false` anywhere
+order — the intended, correct behavior (a slider is keyboard-adjustable) — a
+visible behavior change, not silent cleanup. Zero `Focusable: false` anywhere
 (repo + all five siblings) confirms nobody relies on the opt-out, so the flip is
 safe.
 
 Scope caveat: focus still requires `s.ID != ""` (`layout_query.go:94`), so this
 benefit only reaches **ID-bearing** call sites. `Slider`'s ID is
-`gui:"required"` (always present); `Select`/`Toggle`/`Switch` IDs are optional,
+`gui:"required"` (always present). `Select`/`Toggle`/`Switch` IDs are optional,
 so an ID-less one becomes a focusable-but-inert shape (renders, never a tab
 stop) — consistent with the whole "no ID → inert" design, not a regression. The
-a11y win lands where callers supply an ID; encourage that in the field docs
-(Phase 3), do not force it.
+a11y win lands where callers supply an ID. Encourage that in the field docs
+(Phase 3). Do not force it.
 
 This is **only a default flip**, not auto-generated identity. Focus still
 requires a non-empty `ID` (`isFocusedTarget`: `Focusable && ID != ""`). A
-defaulted-focusable input with no `ID` is simply **inert** — it renders, but
-holds no focus, cursor, or state. That graceful degradation is accepted: no ID →
-no state → the control doesn't respond. No ID is ever fabricated, so the
-identity==state-key invariant (see
-[idfocus-to-focusable.md](idfocus-to-focusable.md)) is untouched and no state
-can be silently corrupted.
+defaulted-focusable input with no `ID` is **inert**: it renders, but holds no
+focus, cursor, or state. That outcome is accepted: no ID → no state → the
+control does not respond. No ID is ever fabricated, so the identity==state-key
+invariant (see [idfocus-to-focusable.md](idfocus-to-focusable.md)) is untouched
+and no state can be silently corrupted.
 
 ## Why `FocusDisabled bool`, not `Opt[bool]`
 
-`Focusable bool` cannot default true (zero value is false) and can't distinguish
-"unset" from "explicitly false." Inverting to `FocusDisabled bool` gives a
-zero-value default of _focusable_, a single obvious opt-out, and — because the
-`Focusable` field is removed from in-scope Cfgs — turns every existing
-`Focusable: true` on those Cfgs into a **compile error**, which is the migration
-guide. Preferred over `Opt[bool]`: no wrapper type, no `.Get()` at every read,
-loud break at the call site.
+`Focusable bool` cannot default true (zero value is false) and cannot
+distinguish "unset" from "explicitly false." Inverting to `FocusDisabled bool`
+gives a zero-value default of _focusable_ and a single obvious opt-out. Because
+the `Focusable` field is removed from in-scope Cfgs, the inversion turns every
+existing `Focusable: true` on those Cfgs into a **compile error**, which is the
+migration guide. It is preferred over `Opt[bool]`: no wrapper type, no `.Get()`
+at every read, loud break at the call site.
 
 ## Decisions (locked)
 
@@ -61,7 +60,7 @@ loud break at the call site.
    (Input) and stays **required** where `gui:"required"` already demands it
    (Slider, Combobox, DatePicker, Listbox — unchanged).
 4. `Disabled` still excludes from tab order (`collectFocusCandidates` already
-   gates `!Disabled`); `ReadOnly` still keeps the control focusable.
+   gates `!Disabled`). `ReadOnly` still keeps the control focusable.
    `FocusDisabled` is orthogonal to both.
 5. Out-of-scope widgets keep `Focusable bool` opt-in (Button, Container, Text,
    RTF, Markdown, DrawCanvas, TabControl, Splitter, Breadcrumb, OverflowPanel,
@@ -73,12 +72,12 @@ loud break at the call site.
    break for consumers, not two).
 8. **Composites and Input wrappers deferred** (Combobox, DatePicker, Listbox,
    RadioButtonGroup, **NumericInput, InputDate**) — each either governs focus
-   over internal children or has a focus-model defect the flip would expose (see
+   over internal children or has a focus-model defect the flip exposes (see
    [Deferred — why](#deferred--why)). Revisit in a follow-up.
 9. **Borderline widgets stay opt-in** (ColorPicker, ThemePicker, Tree) — Tree is
    navigation, the pickers are composite.
 10. **Analyzer stays silent** on an in-scope input with no `ID`. Inert is a
-    valid choice; no positive lint.
+    valid choice. No positive lint.
 11. **In-scope invariant** — a widget qualifies for the flip only if it (a)
     never fabricates a non-empty `ID` from an empty `cfg.ID`, and (b) exposes
     exactly **one** focus candidate (tab stop). Both are required so that "no ID
@@ -88,13 +87,13 @@ loud break at the call site.
 ## In-scope widget set
 
 Only widgets that satisfy the Decision-11 invariant are in scope. Audit against
-the two failure modes (fabricated ID from empty `cfg.ID`; more than one focus
-candidate):
+the two failure modes (fabricated ID from empty `cfg.ID`, and more than one
+focus candidate):
 
 | Cfg                                                                 | Focus candidates                                           | Fabricates ID? | Verdict                 |
 | ------------------------------------------------------------------- | ---------------------------------------------------------- | -------------- | ----------------------- |
-| `InputCfg`                                                          | 1 (outer `Column`; inner `Text` is `FocusSkip`, same `ID`) | no             | ✅ in — Phase 1         |
-| `SelectCfg`                                                         | 1 (`cfg.ID`; dropdown never focusable)                     | no¹            | ✅ in — Phase 2         |
+| `InputCfg`                                                          | 1 (outer `Column`, inner `Text` is `FocusSkip`, same `ID`) | no             | ✅ in — Phase 1         |
+| `SelectCfg`                                                         | 1 (`cfg.ID`, dropdown never focusable)                     | no¹            | ✅ in — Phase 2         |
 | `SliderCfg`                                                         | 1 (`cfg.ID`)                                               | no             | ✅ in — Phase 2         |
 | `ToggleCfg`                                                         | 1 (`cfg.ID`)                                               | no             | ✅ in — Phase 2         |
 | `SwitchCfg`                                                         | 1 (`cfg.ID`)                                               | no             | ✅ in — Phase 2         |
@@ -102,12 +101,12 @@ candidate):
 | `InputDateCfg`                                                      | 1, but inner Input `ID = cfgID+".input"` **ungated**       | **yes**        | ❌ deferred             |
 | `ComboboxCfg`, `DatePickerCfg`, `ListBoxCfg`, `RadioButtonGroupCfg` | focus over internal children                               | —              | ❌ deferred (composite) |
 
-¹ `SelectCfg.ID` is optional; empty `ID` yields one _inert_ focus target but its
-open-state (`nsSelect`) is keyed on `""` and thus shared across ID-less Selects
-— a pre-existing quirk, not focus corruption. Passing an `ID` is recommended in
-practice; not required for the flip.
+¹ `SelectCfg.ID` is optional. An empty `ID` yields one _inert_ focus target but
+its open-state (`nsSelect`) is keyed on `""` and thus shared across ID-less
+Selects — a pre-existing quirk, not focus corruption. Passing an `ID` is
+recommended in practice, not required for the flip.
 
-**Phase 1:** `InputCfg` (single-line + multiline; the 96% case). **Phase 2:**
+**Phase 1:** `InputCfg` (single-line + multiline, the 96% case). **Phase 2:**
 `SelectCfg`, `SliderCfg` (`gui:"required"` ID), `ToggleCfg`, `SwitchCfg`.
 
 ### Deferred — why
@@ -116,14 +115,14 @@ The two Input **wrappers** each break the Decision-11 invariant and need a
 dedicated focus-model fix before they can flip:
 
 - **`InputDate`** — `inputDateTextField` sets the inner Input's `ID` to
-  `cfgID + ".input"` unconditionally (`view_input_date.go:233`); with an empty
-  `cfg.ID` that is `".input"`, a fabricated non-empty ID. After the flip the
-  inner Input becomes a live tab stop under `".input"`, two ID-less InputDates
-  collide, and `nsInputDateText`/`nsInputDate` state keyed on `""` is shared —
-  the exact corruption the invariant forbids. Same for `cfgID + ".picker"` (line
-  158). It also embeds the deferred `DatePicker` composite. Fix later: make
-  `InputDateCfg.ID` required (it is stateful), or gate every derived ID on
-  `cfg.ID != ""` the way `NumericInput` gates `_field`
+  `cfgID + ".input"` unconditionally (`view_input_date.go:233`). With an empty
+  `cfg.ID` that string is `".input"`, a fabricated non-empty ID. After the flip
+  the inner Input becomes a live tab stop under `".input"`, two ID-less
+  InputDates collide, and `nsInputDateText`/`nsInputDate` state keyed on `""` is
+  shared — the exact corruption the invariant forbids. Same for
+  `cfgID + ".picker"` (line 158). It also embeds the deferred `DatePicker`
+  composite. Fix later: make `InputDateCfg.ID` required (it is stateful), or
+  gate every derived ID on `cfg.ID != ""` the way `NumericInput` gates `_field`
   (`view_input_numeric.go:156`).
 - **`NumericInput`** — with step buttons, the outer Row (`cfg.ID`, focusable)
   and the inner Input (`cfg.ID+"_field"`, focusable) are two distinct tab stops
@@ -137,7 +136,7 @@ dedicated focus-model fix before they can flip:
 
 ### Per in-scope Cfg
 
-- Remove `Focusable bool`; add `FocusDisabled bool`.
+- Remove `Focusable bool`. Add `FocusDisabled bool`.
 - Factory: every `Focusable: cfg.Focusable` → `!cfg.FocusDisabled`. `InputCfg`
   sets this on both the outer `Column` (tab stop) and the inner `Text` (which
   stays `FocusSkip` under the same `ID` → still one tab stop).
@@ -154,13 +153,13 @@ rg -n 'InputCfg\{' -g '*.md' docs README.md .claude   # docs/snippets
 ```
 
 **The compiler is not a complete checklist.** Removing the field only breaks
-literals that _write_ `Focusable:`; a literal that omits it compiles fine but
-silently flips to focusable-by-default — a behavior change the build won't flag.
-And Markdown snippets never compile at all. So review **every** `InputCfg`
+literals that _write_ `Focusable:`. A literal that omits it compiles fine but
+silently flips to focusable-by-default — a behavior change the build will not
+flag. Markdown snippets never compile at all. Review **every** `InputCfg`
 literal the commands list, not just the ones that error. Each must be rewritten
 in the same phase so the repo compiles and the gate passes:
 
-- Literal `Focusable: true` → **delete the line** (now the default; these
+- Literal `Focusable: true` → **delete the line** (now the default. These
   widgets keep an `ID`, so behavior is unchanged).
 - `Focusable: <expr>` → `FocusDisabled: !<expr>`.
 
@@ -178,7 +177,7 @@ Internal `gui/` factories to migrate in Phase 1 (all currently pass
 `view_input_date.go`, `view_color_picker.go` (×2), `view_command_palette.go`,
 `view_dialog.go`, and `datagrid/` (`data_source_grid.go`,
 `view_data_grid_edit.go`, `_events.go`, `_header.go`, `_pager.go`). Internal
-Inputs that set `Focusable: true` just drop the line; the two wrappers use
+Inputs that set `Focusable: true` drop the line. The two wrappers use
 `FocusDisabled: !cfg.Focusable`.
 
 ### `view_input.go` a11y read-only clause
@@ -193,7 +192,7 @@ if cfg.ReadOnly || !cfg.Focusable {
 
 Drop the second clause → `if cfg.ReadOnly`. With focusable-by-default,
 non-focusable is now an explicit `FocusDisabled` opt-out, not the historical
-proxy for read-only; a missing ID must not announce read-only on a field nobody
+proxy for read-only. A missing ID must not announce read-only on a field nobody
 marked read-only.
 
 ### `requiredid` analyzer (`tools/requiredid/`)
@@ -202,8 +201,8 @@ No code change expected: its "Focusable: true without ID" rule keys on the
 literal field, which no longer exists on in-scope Cfgs (writing it is a compile
 error). Verify the rule is generic (not Cfg-type-named) and that
 `gui:"required"` tags on Slider/Combobox/DatePicker/Listbox IDs are retained. An
-analyzer test can assert no diagnostic on a fake Cfg with neither field, but
-note it is low value — `tools/requiredid/testdata` defines its own fake widgets,
+analyzer test can assert no diagnostic on a fake Cfg with neither field. Note
+that it is low value — `tools/requiredid/testdata` defines its own fake widgets,
 so it cannot catch regressions against the real `gui` types.
 
 ## Migration
@@ -220,7 +219,7 @@ graph.
   occurrences in-repo and across all five consumers).
 - Out-of-scope widgets: untouched.
 
-### Consumers (breaking; dependency order)
+### Consumers (breaking, dependency order)
 
 Re-verify per repo before shipping (grep `Focusable: true` on in-scope Cfg
 literals):
@@ -228,8 +227,8 @@ literals):
 1. **go-charts** — 1 `InputCfg` site.
 2. **go-kite** — `Input` literals.
 3. **go-map** — verify no in-scope literals.
-4. **go-edit** — builds `EditorCfg`, not `Input`; expected clean.
-5. **go-term** — no `gui.Input(` usage; expected clean.
+4. **go-edit** — builds `EditorCfg`, not `Input`. Expected clean.
+5. **go-term** — no `gui.Input(` usage. Expected clean.
 
 ## Tests / examples / docs
 
@@ -243,12 +242,12 @@ literals):
     stops). With `FocusDisabled: true`: zero.
   - **Optional-ID widgets only** (`Input`, `Select`, `Toggle`, `Switch`): with
     no `ID`, zero candidates (inert, still renders). Not applicable to `Slider`
-    (would panic).
+    (it panics).
 - `view_input_test.go`: existing `Focusable: true` literals → remove.
 - **Rewrite `TestInputReadOnlyWithoutFocus`** — it currently asserts
   non-focusable ⇒ `AccessStateReadOnly`, which relied on the dropped
   `!cfg.Focusable` clause. New assertions: `ReadOnly` announces
-  `AccessStateReadOnly`; `FocusDisabled` alone does **not**.
+  `AccessStateReadOnly`. `FocusDisabled` alone does **not**.
 - Docs: `shape.go` doc comment already documents `Shape.Focusable` (unchanged).
   Update per-Cfg field docs, the widget skill scaffold, README/CHANGELOG, and
   the per-example READMEs of any example app whose literals changed in Phases
@@ -260,7 +259,7 @@ literals):
   | `Shape.Focusable`     | widget participates in the focus system                  |
   | `FocusSkip`           | focusable + click/selection, but excluded from Tab order |
   | `FocusDisabled` (Cfg) | opt out of the default-on focus (in-scope Cfgs)          |
-  | `Disabled`            | non-interactive; also excluded from Tab order            |
+  | `Disabled`            | non-interactive, also excluded from Tab order            |
 
 ## Release
 
@@ -285,9 +284,9 @@ Each code phase migrates the **whole in-repo call graph** of the Cfg it changes
   `FocusDisabled`, drop the `!cfg.Focusable` a11y clause. Migrate **all
   `InputCfg` sites** (enumerate via the commands in
   [Call-site migration](#call-site-migration-mandatory-same-commit-as-the-field-removal)):
-  internal factories (wrappers via `FocusDisabled: !cfg.Focusable`; color-picker
+  internal factories (wrappers via `FocusDisabled: !cfg.Focusable`. Color-picker
   / command-palette / dialog / datagrid drop `Focusable: true`), the 8 example
-  files, and tests (incl. the one-candidate assertion and the
+  files, and tests (including the one-candidate assertion and the
   `TestInputReadOnlyWithoutFocus` rewrite). Gate, commit, pause.
 - **Phase 2** — `Select`, `Slider`, `Toggle`, `Switch`: same swap, each with its
   full call graph (factories, examples, tests). Gate, commit, pause.
@@ -302,24 +301,25 @@ No commits without explicit permission at each pause.
 
 ## Resolved
 
-- Phase 1 reduced to `Input`; the two Input wrappers (`NumericInput`,
+- Phase 1 reduced to `Input`. The two Input wrappers (`NumericInput`,
   `InputDate`) join the deferred bucket per the Decision-11 invariant and the
   audit (Findings 1–2 from review).
-- Composites deferred; borderline widgets stay opt-in; Phase 1+2 ship together
-  as `v0.36.0`; analyzer stays silent (Decisions 7–11).
-- Review round 3 folded in: wrappers/internal factories map to
-  `FocusDisabled: !cfg.Focusable` (keeps deferred bug out); each phase migrates
-  its full call graph (not "widget + own tests"); Motivation stats corrected and
-  Phase 2 reframed as an a11y change; `TestInputReadOnlyWithoutFocus` rewrite
-  named; standalone `Radio` explicitly opt-in.
-- Review round 4 folded in: Phase 2 a11y win scoped to ID-bearing sites (focus
-  still needs `ID != ""`); the "no ID → zero candidates" test split by
-  ID-requiredness (`Slider` panics without an ID, so it's excluded); hardcoded
-  `InputCfg` counts replaced with `rg` commands, with the caveat that the
+- Composites deferred. Borderline widgets stay opt-in. Phase 1+2 ship together
+  as `v0.36.0`. Analyzer stays silent (Decisions 7–11).
+- Review round 3 incorporated: wrappers/internal factories map to
+  `FocusDisabled: !cfg.Focusable` (keeps the deferred bug out). Each phase
+  migrates its full call graph (not "widget + own tests"). Motivation stats are
+  corrected, Phase 2 is reframed as an a11y change, the
+  `TestInputReadOnlyWithoutFocus` rewrite is named, and standalone `Radio` is
+  explicitly opt-in.
+- Review round 4 incorporated: Phase 2 a11y win scoped to ID-bearing sites
+  (focus still needs `ID != ""`). The "no ID → zero candidates" test is split by
+  ID-requiredness (`Slider` panics without an ID, so it is excluded). Hardcoded
+  `InputCfg` counts are replaced with `rg` commands, with the caveat that the
   compiler catches only `Focusable`-bearing literals (docs and omitted-field
   sites need manual review).
 
 ## Open questions
 
-None blocking. Confirm the exact consumer call-sites at ship time by grepping
+None blocking. Verify the exact consumer call-sites at ship time by grepping
 `Focusable: true` on in-scope Cfg literals in each repo.

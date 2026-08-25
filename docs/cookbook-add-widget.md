@@ -1,36 +1,36 @@
 # Adding a new widget
 
-Step-by-step guide for adding a widget to the `gui` package. Uses `Toggle` as
-the running example — a checkbox-style widget with focus, keyboard handling,
-accessibility, and theme defaults.
+Step-by-step guide for adding a widget to the `gui` package. It uses `Toggle` as
+the running example. `Toggle` is a checkbox-style widget with focus, keyboard
+handling, accessibility, and theme defaults.
 
 ## 1. Create the Cfg struct
 
 Every widget has a `*Cfg` struct. Conventions:
 
 - **Zero-initializable** — all fields have usable zero values. Users omit what
-  they don't need: `ToggleCfg{Label: "Accept"}`
+  they do not need: `ToggleCfg{Label: "Accept"}`
 - **Opt[T] for optional overrides** — `Opt[float32]` distinguishes "not set"
-  from an explicit zero for primitives. Owned structs self-flag instead:
-  `Padding` and `Color` carry a `set` field, so they are plain fields —
-  `Padding{}` is unset (theme default applies), build values with
-  `NewPadding`/`PadAll`/`PaddingNone`. Read with `cfg.Radius.Get(default)` /
-  `cfg.Padding.Or(default)` in the factory.
-- **Common fields** — every interactive widget includes: `ID string`,
-  `Disabled bool`, `Invisible bool`, and a focus field: either `Focusable bool`
-  (opt-in, e.g. Button) or `FocusDisabled bool` (opt-out, for controls focusable
-  by default, e.g. Input, Toggle, Slider, Select). Focus always requires a
-  non-empty `ID` — without one the control never joins the tab order.
-  Container-like widgets add `Sizing Sizing`, `Float bool`,
-  `FloatAnchor FloatAttach`, `FloatTieOff FloatAttach`, `Padding Padding`,
-  `Radius Opt[float32]`, `SizeBorder Opt[float32]`.
+  from an explicit zero for primitives. Owned structs self-flag instead.
+  `Padding` and `Color` carry a `set` field, so they are plain fields.
+  `Padding{}` is unset (theme default applies). Build values with
+  `NewPadding`/`PadAll`/`PaddingNone`. Read them with `cfg.Radius.Get(default)`
+  / `cfg.Padding.Or(default)` in the factory.
+- **Common fields** — every interactive widget includes `ID string`,
+  `Disabled bool`, `Invisible bool`, and a focus field. The focus field is
+  either `Focusable bool` (opt-in, for example Table) or `FocusDisabled bool`
+  (opt-out, for controls focusable by default, for example Input, Toggle,
+  Slider, Select). Focus always requires a non-empty `ID`. Without one, the
+  control never joins the tab order. Container-like widgets add `Sizing Sizing`,
+  `Float bool`, `FloatAnchor FloatAttach`, `FloatTieOff FloatAttach`,
+  `Padding Padding`, `Radius Opt[float32]`, `SizeBorder Opt[float32]`.
 - **Callbacks** — one func field per event. Sig: `func(EventCtx)`. One rule for
-  all of them: call `ctx.Consume()` on any path that acts on the event, and
-  nothing on any path that means "not mine". Nothing is marked handled for you,
-  so a widget that means to absorb a click has to say so.
+  all of them: call `ctx.Consume()` on any path that acts on the event. On any
+  path that means "not mine", call nothing. Nothing is marked handled for you. A
+  widget that means to absorb a click must say so.
 - **`gui:"required"` tag** — fields that must be non-empty get the tag. The
-  `requiredid` vet analyzer enforces this at `go vet` time. Only use when the
-  widget cannot function without the value (e.g. `FormCfg.ID`).
+  `requiredid` vet analyzer enforces this at `go vet` time. Use the tag only
+  when the widget cannot function without the value (for example `FormCfg.ID`).
 
 Minimal example:
 
@@ -75,8 +75,8 @@ type ToggleCfg struct {
 
 Sig: `func WidgetName(cfg WidgetCfg) View`. The function:
 
-1. **Calls applyDefaults** — fills in theme colors, sizes, text styles for any
-   field the user didn't set
+1. **Calls applyDefaults** — provides theme colors, sizes, and text styles for
+   any field the user did not set
 2. **Reads Opt[T] values** via `.Get(fallback)` to resolve "not set"
 3. **Builds a Layout tree** — returns a `ContainerCfg`-based layout (usually
    `Row`, `Column`, or `Canvas`)
@@ -178,7 +178,7 @@ ClickOnSpace: true,
 ```
 
 **Hover/focus feedback** — use `OnHover` for mouse hover, `AmendLayout` for
-keyboard focus. `AmendLayout` runs every frame after sizing — use it to update
+keyboard focus. `AmendLayout` runs every frame after sizing. Use it to update
 child colors based on `w.IsFocus(layout.Shape.ID)`.
 
 **Inner IDs** — a composite widget's inner shapes need their own IDs. Compose
@@ -186,15 +186,14 @@ them with `gui.ScopeID(cfg.ID, "part")`, or `gui.ScopeIDN(cfg.ID, "row", i)`
 when a loop index is what distinguishes siblings. Never concatenate by hand:
 `make ergonomics-audit` fails on it, and the separator zoo it replaced is
 documented in `docs/specs/widget-id-scoping.md`. If an inner shape only needs
-the owner's focus state rather than its own identity, set `Shape.focusOwner`
-instead of giving it an ID.
+the owner's focus state, set `Shape.focusOwner` instead of giving it an ID.
 
 **a11yLabel helper** — `a11yLabel(userLabel, fallback)` returns the
-user-supplied label if non-empty, otherwise the fallback. Always set on
-interactive widgets. When the widget builds a `Shape` directly rather than
-delegating to a `ContainerCfg`, use `cfg.a11yInfo(fallback)` instead — it is the
-same pairing, promoted from the embedded `A11YCfg`, and returns the
-`*accessInfo` the shape's `a11Y` field wants.
+user-supplied label if non-empty, otherwise the fallback. Set it on every
+interactive widget. When the widget builds a `Shape` directly rather than
+delegating to a `ContainerCfg`, use `cfg.a11yInfo(fallback)` instead. It is the
+same pairing, promoted from the embedded `A11YCfg`. It returns the `*accessInfo`
+the shape's `a11Y` field wants.
 
 ## 3. Theme defaults
 
@@ -223,9 +222,9 @@ var DefaultToggleStyle = ToggleStyle{...}
 ```
 
 And in the theme's `init()` or `buildTheme()` function, populate the light/dark
-variants. The factory's `applyDefaults` function fills in any field the user
-didn't set — the per-state colors resolve through `ColorSet`, with the flat
-`Color` field as the `Base` shorthand:
+variants. The factory's `applyDefaults` function provides any field the user did
+not set. The per-state colors resolve through `ColorSet`, with the flat `Color`
+field as the `Base` shorthand:
 
 ```go
 func applyToggleDefaults(cfg *ToggleCfg) {
@@ -249,15 +248,15 @@ func applyToggleDefaults(cfg *ToggleCfg) {
 }
 ```
 
-If your widget doesn't need custom theme entries, skip this step. Simple widgets
-can use `guiTheme` colors directly.
+If your widget does not need custom theme entries, skip this step. Simple
+widgets can use `guiTheme` colors directly.
 
 ## 4. Write tests
 
 Test file: `gui/view_toggle_test.go`. Test at minimum:
 
-1. **Layout structure** — assert the generated Layout has expected shape, axis,
-   children
+1. **Layout structure** — assert the generated Layout has the expected shape,
+   axis, and children
 2. **Config passthrough** — ID, Disabled, Selected flags propagate to the
    correct Shape
 3. **Property rendering** — text content, colors, sizing reflect the config

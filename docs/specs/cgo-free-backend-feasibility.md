@@ -4,15 +4,15 @@ Assessment of [issue #137](https://github.com/go-gui-org/go-gui/issues/137).
 Date: 2026-07-31. Status: **Phase 1 implemented**, and the `gui/audio` follow-up
 (§ Audio outcome) closed the remaining Linux CGo dependency. **Phase 2 (macOS)
 closed 2026-08-12 by decision: not pursued — macOS stays cgo.** See § Phase 2
-for the rationale and the conditions that would reopen it.
+for the rationale and the conditions that can reopen it.
 
 ## Phase 1 outcome (2026-07-31)
 
 `github.com/go-gl/gl` is gone. It was replaced by `gui/backend/internal/glbind`,
-a purego binding for the 55 GL entry points and 45 constants the backend uses,
-resolved through the proc-address functions that already existed (`eglProc` on
-Linux; a new `glProc` on Windows reproducing go-gl's
-wglGetProcAddress-then-opengl32 fallback). Call sites changed by import swap
+a purego binding for the 55 GL entry points and 45 constants the backend uses.
+The binding resolves through the proc-address functions that already existed:
+`eglProc` on Linux, and a new `glProc` on Windows that reproduces go-gl's
+wglGetProcAddress-then-opengl32 fallback. Call sites changed by import swap
 only.
 
 Measured result:
@@ -33,8 +33,8 @@ Two corrections to the assessment below:
   missed it because `go build` stopped at the go-gl load error. Windows is
   unaffected — oto's Windows driver is pure syscall. Full
   `CGO_ENABLED=0 GOOS=linux go build ./...` therefore still fails, on
-  `gui/audio` alone. That is a separate dependency needing its own decision
-  (gate `gui/audio` behind a build tag, or replace oto on Linux) and was left
+  `gui/audio` alone. That is a separate dependency that needs its own decision
+  (gate `gui/audio` behind a build tag, or replace oto on Linux). It was left
   out of Phase 1.
 
 32-bit was **not** dropped: purego supports 386/arm via `syscall_32bit.go`, and
@@ -59,7 +59,7 @@ Recorded here because it is the question this assessment supersedes.
 
 A WebGPU backend was explored on branch `webgpu-backend` (since deleted): 12
 WGSL shader pipelines, device init, and the render loop all worked. It was
-rejected at the time because WebGPU has no native text rendering — font
+rejected at the time because WebGPU has no native text rendering. Font
 measurement and glyph rasterization required Canvas2D, and a hybrid backend
 defeats the purpose. GPU acceleration also does not address this project's
 actual bottleneck, which is heap allocation rather than throughput.
@@ -81,7 +81,7 @@ Issue #137 proposes a CGo-free desktop backend built on goffi + wgpu-native +
 GLFW, scoped as "roughly a full backend rewrite — 4–8k lines Go + ~12 WGSL
 shaders."
 
-Both of the issue's premises verify. Its scoping does not.
+Both of the issue's premises hold. Its scoping does not.
 
 Linux and Windows are already CGo-free apart from **one** dependency
 (`github.com/go-gl/gl`), whose surface area in this repo is 55 functions and 45
@@ -130,7 +130,7 @@ package .../gui/backend
 Surface area to port: **55 distinct GL functions, 45 constants**. Crucially, the
 proc-address plumbing needed to bind them is already written and already pure Go
 — `platform_x11.go:287` calls `gl.InitWithProcAddrFunc(eglProc)`, where
-`eglProc` comes from a purego-loaded `eglGetProcAddress`; `wgl_windows.go` has
+`eglProc` comes from a purego-loaded `eglGetProcAddress`. `wgl_windows.go` has
 the Windows equivalent.
 
 Phase 1 is therefore a swap of one dispatch layer: roughly 600 lines of purego
@@ -138,7 +138,7 @@ bindings. No shader rewrite, no wgpu, no GLFW, no windowing changes.
 
 ## 3. macOS is the entire remaining problem
 
-- `gui/backend/metal/` — 7,202 lines total; 9 Go files with `import "C"`; 3,311
+- `gui/backend/metal/` — 7,202 lines total, 9 Go files with `import "C"`, 3,311
   lines of `.m`/`.h`. Across the whole tree (metal, ios, android, filedialog):
   5,924 lines of ObjC/C.
 - macOS-only CGo outside the backend: `nativemenu/menu_darwin.go`,
@@ -158,8 +158,8 @@ Nothing about the wgpu proposal touches any of this.
 printer, bookmarks, a11y, IME, spellcheck, menubar, system tray, sound, plus
 `OpenURI`, `TitlebarDark`, `SetWindowVibrancy`. wgpu-native and GLFW supply none
 of it. The issue's claim that "existing pure-Go fallbacks (Android/iOS prove the
-pattern)" does not hold: `android/native_platform.go` no-ops only menubar, tray,
-and beep, and the android/ios backends are themselves cgo (`import "C"` in
+pattern)" does not hold. `android/native_platform.go` no-ops only menubar, tray,
+and beep. The android/ios backends are themselves cgo (`import "C"` in
 `backend.go`, `draw.go`, `text.go`, `textures.go`).
 
 **CGo-free is not dependency-free.** Today's Linux/Windows build bundles no
@@ -168,11 +168,11 @@ wgpu-native + GLFW backend replaces a _build-time_ C toolchain requirement with
 a _runtime_ obligation to ship and load ~10–40 MB of platform-specific shared
 objects. That is a net regression for distribution, not an improvement.
 
-**goffi is pre-1.0.** v0.6.0 is in progress; API stability is planned for
+**goffi is pre-1.0.** v0.6.0 is in progress. API stability is planned for
 v1.0.0. It also has a documented duplicate-`_cgo_init` symbol conflict with
 purego, which go-gui already depends on (`go.mod`:
-`github.com/ebitengine/purego v0.10.1`). Adopting goffi would force
-`-tags nofakecgo` on every downstream consumer.
+`github.com/ebitengine/purego v0.10.1`). Adopting goffi forces `-tags nofakecgo`
+on every downstream consumer.
 
 **The cost is strictly larger.** 12 WGSL shaders, device/surface init, and
 windowing glue, on top of the same GL-dispatch problem — and macOS still
@@ -194,8 +194,8 @@ binding.
   `pipeline.go`, `buffers.go`, `textures.go`, `text.go`, `platform_x11.go`,
   `platform_win32.go`). Import swap only — call sites keep their signatures.
 - Watch items:
-  - `gogl.Strs` returns a free func; reimplement as a null-terminated byte-slice
-    helper.
+  - `gogl.Strs` returns a free func. Reimplement it as a null-terminated
+    byte-slice helper.
   - `VertexAttribPointerWithOffset` — offset marshaling.
   - `GetShaderiv` / `GetShaderInfoLog` / `GetProgramiv` / `GetProgramInfoLog`
     out-params need explicit pointer marshaling under purego.
@@ -224,7 +224,7 @@ Every one of those is weakest on macOS:
 
 - Cross-compiling a macOS GUI binary from another host is hollow: a GUI app must
   be run and signed/notarized on a Mac anyway.
-- Xcode CLT is universally present on macOS; there is no toolchain-friction
+- Xcode CLT is universally present on macOS. There is no toolchain-friction
   story to fix for consumers.
 - The spike's hard part was never the call ABI but ObjC the language:
   subclassing `NSView`/`CAMetalLayer` needs runtime class registration (the
@@ -234,11 +234,11 @@ Every one of those is weakest on macOS:
 - The macOS-only CGo outside the backend (`nativemenu/menu_darwin.go`,
   `filedialog/dialog_darwin.go`, `printdialog/print_darwin.go`,
   `spellcheck/spellcheck_darwin.go`, `sysbeep/sysbeep_darwin.go`,
-  `gui/locale_detect_darwin.go`) would each need a port that is strictly worse
-  than its Linux/syscall counterpart.
+  `gui/locale_detect_darwin.go`) each needs a port that is strictly worse than
+  its Linux/syscall counterpart.
 
 The Linux/Windows phase earned its keep because those hosts lack a guaranteed
-toolchain; the macOS phase inverts the argument. The issue
+toolchain. The macOS phase inverts the argument. The issue
 (go-gui-org/go-gui#137) was closed when Phase 1 shipped and stays closed.
 
 Reopening conditions (any one, evidenced, not speculative):
@@ -282,5 +282,5 @@ find gui -name '*.m' -o -name '*.h' | xargs wc -l | tail -1         # 5924
 ```
 
 Acceptance test if Phase 1 is approved: both `CGO_ENABLED=0` builds above
-succeed, `go test ./gui/...` passes, and `go run ./examples/get_started/` on
+succeed. `go test ./gui/...` passes, and `go run ./examples/get_started/` on
 Linux renders unchanged.

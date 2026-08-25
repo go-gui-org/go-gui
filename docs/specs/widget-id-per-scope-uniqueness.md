@@ -1,10 +1,10 @@
 # Spec: per-scope uniqueness (framework-computed effective IDs)
 
-Status: **implemented** (phases A, B and C). Written 2026-08-09; revised after
+Status: **implemented** (phases A, B and C). Written 2026-08-09. Revised after
 review (round 2: generation-time scope for widget state, datagrid exception,
-migration-list gaps); implemented 2026-08-09. Source: "Remaining work" in
+migration-list gaps). Implemented 2026-08-09. Source: "Remaining work" in
 [`widget-id-scoping.md`](widget-id-scoping.md). Target: major version (semantic
-break; signatures unchanged).
+break, signatures unchanged).
 
 ## What shipped, and where it differs from this spec
 
@@ -17,13 +17,13 @@ implementation, and the code is the authority.
    injected overlay (toast, dialog, inspector) is resolved separately as its own
    root. Consequence: a float written inside an ID-bearing panel — a combobox
    dropdown, a popover — **keeps that panel's scope**, where the "each float is
-   its own pipeline root with an empty scope" rule would have stripped it. That
-   rule was a consequence of _where_ the pass ran, not a goal, and keeping the
-   scope is strictly better: it removes a class of cross-panel collision, and it
-   lets the generation-time scope and the pass agree with no float special case
-   (a widget cannot know its shape is a float before it builds it). Injected
-   overlays still start from an empty scope, so the spec's statement about
-   tooltips and menus injected from outside the tree holds.
+   its own pipeline root with an empty scope" rule strips it. That rule was a
+   consequence of _where_ the pass ran, not a goal, and keeping the scope is
+   strictly better: it removes a class of cross-panel collision, and it lets the
+   generation-time scope and the pass agree with no float special case (a widget
+   cannot know its shape is a float before it builds it). Injected overlays
+   still start from an empty scope, so the spec's statement about tooltips and
+   menus injected from outside the tree holds.
 2. **`EventCtx.EffID` was added.** Decision 7 assumed a stateful widget always
    has a `*Window` while it composes. Several do not: `Input`, `Slider`,
    `Splitter`, `ProgressBar`, `Skeleton` and `Scrollbar` build their trees in
@@ -39,7 +39,7 @@ implementation, and the code is the authority.
    ergonomics-audit mode.** "Has no ID-bearing ancestor" is a property of the
    composed tree, which the AST does not have. It is `gui.DebugUnscopedIDs`,
    deliberately **outside** `DebugAll` — it reports a design property, not a
-   defect, and would fire on most widgets in a small app. Enable it with
+   defect, and fires on most widgets in a small app. Enable it with
    `gui.DebugCategories(gui.DebugUnscopedIDs)`.
 
 Phase A.4 (producer simplification) was applied where a composite's own nesting
@@ -54,7 +54,7 @@ decided below.
 one allocation per ID-bearing widget per frame, measured on `BenchmarkViewFrame`
 as 202 → 252 allocs/op (rows_50) and 802 → 1002 (rows_200) — exactly +1 per row.
 `(*Window).joinLeaf` memoizes `(scope, leaf) → joined` in a bounded map shared
-by both paths, which puts every one of those numbers back on its baseline;
+by both paths, which puts every one of those numbers back on its baseline.
 `TestJoinLeafCachedIsAllocationFree` gates it. A hit is always correct and an
 eviction only recomputes, because the key is identity, not position — the
 objection to a positional cache never applied here.
@@ -63,10 +63,10 @@ One cost remains and cannot be cached away: `effID` moved `Shape` from 280 to
 296 bytes, across a size-class boundary (288 → 320), so every shape allocates 32
 bytes more. On an 11k-shape frame that is ~355 KB of extra transient garbage.
 `focusOwner` is resolved **in place** rather than in a second field to avoid
-paying that again — a second string would leave only 8 bytes of headroom before
-the next size class.
+paying that again — a second string leaves only 8 bytes of headroom before the
+next size class.
 
-One behavioural detail worth recording: `a11yLabel` now announces only the last
+One behavioral detail worth recording: `a11yLabel` now announces only the last
 segment when it falls back to an ID. The fallback is a widget ID, IDs are now
 paths, and a screen reader must hear `name`, not `settings:name`. An explicit
 `A11YLabel` is never touched.
@@ -117,7 +117,7 @@ identity:
 
 ## Invariant
 
-**Effective identity** (`effID`) is window-unique. **Leaf** `Shape.ID` may
+**Effective identity** (`effID`) is window-unique. **Leaf** `Shape.ID` can
 repeat across scopes.
 
 ```
@@ -133,7 +133,7 @@ Rules:
 
 - **ID-bearing** means non-empty `Shape.ID`. Join only on those ancestors. Never
   position, never count.
-- ID-less ancestors add no scope. Children under them stay flat; collisions stay
+- ID-less ancestors add no scope. Children under them stay flat. Collisions stay
   loud, as today.
 - An absolute ancestor still contributes its full `effID` as the join prefix:
   leaf `"name"` under `"app:settings"` → `"app:settings:name"`.
@@ -156,7 +156,7 @@ These supersede parent Decisions 1–2 for identity resolution. The `:` grammar
 and no-escaping rules stay.
 
 This is **not** a widget-side ID stack inside `GenerateLayout`. Widget factories
-still set leaf `Shape.ID` (plain or absolute); scope is the framework's job. A
+still set leaf `Shape.ID` (plain or absolute). Scope is the framework's job. A
 post-build resolve pass stamps `effID` before any ID-keyed store or match that
 runs after layout generation. Widget-internal state read **during**
 `GenerateLayout` cannot wait for that pass — Decision 7 gives widgets their
@@ -173,17 +173,17 @@ scope at generation time instead.
    after an ancestor gains an ID must pass the full path (or keep composing with
    `ScopeID` and rely on the absolute escape). This is a **semantic** API break
    on a major version.
-3. **`Shape.ID` is the leaf; `Shape.effID` is the resolved path.** New
+3. **`Shape.ID` is the leaf. `Shape.effID` is the resolved path.** New
    unexported field. Do not rewrite `ID` in the pass — that breaks debug paths
    and mid-frame reads that still mean the leaf.
 4. **No bare global leaf under an ID'd ancestor.** Answer to the opt-out
-   question: the `:` absolute form is sufficient; a separate opt-out is not.
+   question: the `:` absolute form is sufficient. A separate opt-out is not.
 5. **Hero stays identity-keyed.** Same leaf under different ancestor IDs does
    **not** hero-match across a transition. Apps that need a shared hero key must
    use the same absolute (`:`-bearing) ID on both sides, or share an ID-bearing
    ancestor path.
 6. **`focusOwner` / `focusKey` resolve to `effID`.** Today `focusOwner` is a
-   string copy of the owner's leaf ID; `focusKey()` returns that string or
+   string copy of the owner's leaf ID. `focusKey()` returns that string or
    `s.ID`. After stores key on `effID`, that leaf string is wrong under a scoped
    ancestor (`"name"` vs `"settings:name"`). The resolve pass (or `focusKey`)
    must return the **owner's `effID`**. Preferred: stamp an unexported owner
@@ -195,10 +195,10 @@ scope at generation time instead.
    select, tree / sidebar / listbox state, …) cannot wait for the resolve pass —
    their tree shape depends on the read. `generateViewLayout` maintains a
    framework-side scope: before recursing into a child it pushes the child's
-   `effID`; `w.EffID(leaf)` joins the current scope with the leaf (absolute `:`
+   `effID`. `w.EffID(leaf)` joins the current scope with the leaf (absolute `:`
    leaves pass through unchanged). Stateful widgets key every `ns*` map on
    `w.EffID(cfg.ID)`, reads and writes alike (event handlers close the key over
-   at generation; it stays valid while ancestor IDs do). The float boundary
+   at generation. It stays valid while ancestor IDs do). The float boundary
    resets scope to `""` at each float root during generation, matching the
    resolve pass. One `resolveLeaf(scope, leaf)` helper implements both paths so
    they cannot drift. Cost: one `:`-join per stateful widget per frame — Phase
@@ -211,7 +211,7 @@ scope at generation time instead.
 | `Panel{ID:"settings"}` → `Input{ID:"name"}`               | `settings`, `name` | `settings`, `settings:name`                      |
 | Two such panels (`settings` / `profile`)                  | same leaves        | `settings:name` vs `profile:name` — no collision |
 | ID-less `Column` → two `Input{ID:"name"}`                 | `name`, `name`     | both `name` — loud collision, as today           |
-| `Input{ID: ScopeID("grid","row","1")}` under any ancestor | `grid:row:1`       | `grid:row:1` (absolute; no further join)         |
+| `Input{ID: ScopeID("grid","row","1")}` under any ancestor | `grid:row:1`       | `grid:row:1` (absolute, no further join)         |
 
 ### Producer simplification is load-bearing
 
@@ -261,9 +261,9 @@ and row keys (`ScopeID(cfg.ID, "row", rowID)`) and the scroll child
 two grids with the same `cfg.ID` under different ID'd panels **still collide on
 every child ID** — the composability win does not extend to datagrid, and the
 children must stay absolute because the reverse parse requires it. The grid
-root's own leaf becomes `panel:grid`; audit its leaf-ID consumers
+root's own leaf becomes `panel:grid`. Audit its leaf-ID consumers
 (`FindByID(cfg.ID)`, `IsFocus(cfg.ID)`, reverse-parse callers) as migration
-work. A future per-grid prefix fix would parse against the grid's `effID`.
+work. A future per-grid prefix fix parses against the grid's `effID`.
 
 **Dock is the second deliberate absolute composite, for the opposite reason.** A
 dock group container takes `ScopeID(dockID, node.ID)` and a dock splitter takes
@@ -273,10 +273,10 @@ tree changes on every drop, and the group scopes the panel content inside it, so
 a position-derived group ID re-keys every widget in the panel — its scroll
 offset, its focus, its input state — whenever anything else in the dock moves
 (issue #389). The dock's own ID is resolved (`w.EffID(cfg.ID)`), so the composed
-ID still carries the surrounding scope; what it does not carry is the splitter
+ID still carries the surrounding scope. What it does not carry is the splitter
 path. Node IDs minted by `dockTreeSplitAt` / `dockTreeWrapRoot` join with `-`,
 not `IDSep`: a node ID is tree data fed into `ScopeID` as a **part**, and an
-`IDSep` in a part would make the composed leaf absolute in the wrong way —
+`IDSep` in a part makes the composed leaf absolute in the wrong way —
 window-global, outside the dock scope.
 
 ## Resolution pass
@@ -322,14 +322,14 @@ one commit each with a test:
 - **`reservedDialogID`:** keep comparing the **leaf** sentinel
   (`"___dialog_reserved_do_not_use___"`). Dialogs are separate float roots, so
   leaf and `effID` stay equal under empty scope. Do not fold this into the
-  FindByID migration; optionally make the constant absolute later if dialogs
+  FindByID migration. Optionally make the constant absolute later if dialogs
   ever nest under ID'd ancestors in the same tree.
 - **Also migrate** any widget code that compares `cfg.ID` or `Shape.ID` to the
   focus / scroll / hover / StateMap store (`IsFocus`, focus paint, input-state,
   spell-check). After the change those stores hold `effID`. "Already a full path
   string" is not enough once producers emit plain leaves. Fix `focusKey()` per
   Decision 6 so Input's inner text keeps working. Note the `AmendLayout`
-  `IsFocus` call sites that pass the leaf today — e.g. the combobox's
+  `IsFocus` call sites that pass the leaf today — for example the combobox's
   `AmendLayout` uses `ctx.Layout.Shape.ID` (`gui/view_combobox.go`) — they
   become `effID` (or `w.EffID`).
 
@@ -338,20 +338,20 @@ one commit each with a test:
 ### Phase A — per-scope uniqueness
 
 1. Land this spec (done as draft).
-2. Add `effID` + `resolveShapeIDs`; call it first in every `layoutPipeline`
+2. Add `effID` + `resolveShapeIDs`. Call it first in every `layoutPipeline`
    (main + floats). Implement Decision 6 (`focusKey` → owner `effID`) and
    Decision 7 (generation-time scope, `w.EffID`, shared `resolveLeaf`).
-3. Migrate stores/matches as above (including StateMap — post-layout keys to
-   `effID`, `GenerateLayout`-time keys to `w.EffID`; exclude `reservedDialogID`
+3. Migrate stores/matches as above (including StateMap: post-layout keys to
+   `effID`, `GenerateLayout`-time keys to `w.EffID`. Exclude `reservedDialogID`
    leaf sentinel).
 4. **Required before the composability claim:** simplify every nesting-mirroring
    `ScopeID(cfg.ID, part)` producer to a plain leaf. Leave absolute leaves that
    cannot simplify. Until this lands, two instances of the same composite under
    different ID'd panels still collide on absolute children.
-5. Ergoaudit `ids` mode: warn on state-keyed shapes (focusable / scrollable /
-   stateful) with a plain leaf and no ID-bearing ancestor (still globally
-   competing).
-6. Docs: CLAUDE.md Focus section; parent Remaining work pointer; showcase
+5. ergonomics-audit `ids` mode: warn on state-keyed shapes (focusable /
+   scrollable / stateful) with a plain leaf and no ID-bearing ancestor (still
+   globally competing).
+6. Docs: CLAUDE.md Focus section, parent Remaining work pointer, showcase
    regression. Showcase win requires ID-bearing demo/panel ancestors.
 
 ### Phase B — hero
@@ -364,14 +364,14 @@ different ancestor IDs do not match (Decision 5).
 ### Phase C — ID caching
 
 The positional-cache objection dissolves: a cross-frame memo keyed by
-**(ownerEffectiveID, leafID) → string** is identity-keyed. Eviction recomputes;
-it never hands the wrong ID to the wrong row. The memo lives on `Window` and is
+**(ownerEffectiveID, leafID) → string** is identity-keyed. Eviction recomputes.
+It never hands the wrong ID to the wrong row. The memo lives on `Window` and is
 shared with Decision 7's generation-time joins — same key, same pure function,
 so a miss recomputes identically.
 
 1. Benchmark two frames (allocs/op + ns/op): (a) today's absolute datagrid path
-   — Phase A adds nothing for `:` leaves; (b) a scoped-panel tree after Phase
-   A.4, where joins run inside `resolveShapeIDs`; (c) a stateful-widget tree
+   — Phase A adds nothing for `:` leaves. (b) A scoped-panel tree after Phase
+   A.4, where joins run inside `resolveShapeIDs`. (c) A stateful-widget tree
    (combobox-style), where Decision 7 joins run during `GenerateLayout`. Closing
    "no cache" on (a) alone is wrong once (b) and (c) exist.
 2. If (b) or (c) shows: bounded (LRU) memo in the resolve pass **and** the
@@ -382,24 +382,24 @@ so a miss recomputes identically.
 
 | Parent                                                      | This spec                                                                                                                                                         |
 | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Decision 1: helper only; containers do not push a namespace | Superseded for plain leaves under ID-bearing ancestors — via post-build resolve plus a framework-side generation-time scope (Decision 7), not a widget-side stack |
-| Decision 2: flat window-global strings; per-scope deferred  | Effective IDs stay flat strings; uniqueness is on `effID`; leaf reuse across scopes is allowed                                                                    |
-| Grammar / no escaping / `ScopeID`                           | Unchanged; absolute leaves are today's composed strings                                                                                                           |
+| Decision 1: helper only, containers do not push a namespace | Superseded for plain leaves under ID-bearing ancestors — via post-build resolve plus a framework-side generation-time scope (Decision 7), not a widget-side stack |
+| Decision 2: flat window-global strings, per-scope deferred  | Effective IDs stay flat strings. Uniqueness is on `effID`. Leaf reuse across scopes is allowed                                                                    |
+| Grammar / no escaping / `ScopeID`                           | Unchanged. Absolute leaves are today's composed strings                                                                                                           |
 
 ## Closed questions
 
 1. **Version:** major. Semantic break for callers that pass leaf IDs into public
    APIs once ancestors are ID'd.
 2. **`effID` field:** new unexported field. Do not rewrite `ID`.
-3. **Opt-out:** no separate opt-out. `:` means absolute; plain leaf under an
+3. **Opt-out:** no separate opt-out. `:` means absolute. A plain leaf under an
    ID'd ancestor always joins.
 4. **`focusOwner`:** resolve to owner's `effID` (Decision 6). Preferred stamp
-   during resolve or `*Shape` reference; bare leaf `focusKey` is invalid after
+   during resolve or `*Shape` reference. Bare leaf `focusKey` is invalid after
    stores migrate.
 5. **Widget-state keys read during `GenerateLayout`:** migrate to
    `w.EffID(cfg.ID)` (Decision 7) — the resolve pass alone cannot serve reads
    that happen before it.
-6. **Datagrid:** stays a permanent absolute-leaf exception; the composability
+6. **Datagrid:** stays a permanent absolute-leaf exception. The composability
    claim explicitly excludes it until a per-grid `effID`-based parse exists.
 7. **Joined vs absolute collision** (`"a:b"` from two spellings): allowed,
-   reported loudly by the duplicate-ID check; no escaping, per parent spec.
+   reported loudly by the duplicate-ID check. No escaping, per parent spec.

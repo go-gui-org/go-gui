@@ -7,7 +7,7 @@ routing.
 
 The toolkit targets real app workflows, not toy demos. It includes built-in
 theming, keyboard-first navigation, text input with IME support, and modern
-rendering features so native-feeling UI can be built quickly and maintained
+rendering features. You can build native-feeling UI quickly and maintain it
 without UI boilerplate.
 
 ## ✨ Top Features
@@ -15,7 +15,7 @@ without UI boilerplate.
 - Declarative layout primitives (`row`, `column`, fixed/fill sizing, spacing,
   padding)
 - Rich control set (inputs, selects, tables, tabs, dialogs, trees, date pickers,
-  more)
+  and more)
 - Theme system with light/dark palettes and consistent component styling
 - Rendering effects: gradients, shadows, blur, SVG, markdown, and custom shaders
 - Animation support for tween, spring, keyframe, and layout transitions

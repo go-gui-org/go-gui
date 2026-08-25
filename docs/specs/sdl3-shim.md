@@ -5,7 +5,7 @@ Source: [cataggar/SDL#1](https://github.com/cataggar/SDL/pull/1) +
 
 Status: **Closed 2026-08-12 by decision: not pursued — the SDL2 backend is
 retired, so there is nothing left to shim.** See § Decision for the rationale
-and the conditions that would reopen it.
+and the conditions that can reopen it.
 
 ## Summary
 
@@ -33,13 +33,13 @@ Three layers in the shim:
    `gui/backend/sdl2/`, `gui/backend/gl/`, and `sdlkey` compile unchanged.
 
 2. **`go-sdl2-sdl3/mix`** — SDL_mixer-compatible audio engine on SDL3's native
-   audio API (SDL3 doesn't bundle SDL_mixer). Per-channel `SDL_AudioStream`s
+   audio API (SDL3 does not bundle SDL_mixer). Per-channel `SDL_AudioStream`s
    auto-mixed by SDL + dedicated music stream. Looping/fades via get-callback,
-   volume via per-stream gain. WAV decoded natively; MP3/OGG via vendored dr_mp3
+   volume via per-stream gain. WAV decoded natively. MP3/OGG via vendored dr_mp3
    / stb_vorbis (public domain).
 
 3. **`gosdl3/`** — Experimental. Zig comptime bindgen emits full cgo SDL3 Go
-   bindings. Separate from the hand-written shim; useful as a generated
+   bindings. Separate from the hand-written shim. Useful as a generated
    reference surface.
 
 ## Benefits
@@ -50,7 +50,7 @@ Three layers in the shim:
   stable release (v0.27.1).
 - **Static linking.** `-tags sdl3static` produces a fully static binary with no
   SDL3.dll/dylib. The static link file enumerates Win32 system libs (kernel32,
-  user32, gdi32, etc.) that can't be carried by a static archive.
+  user32, gdi32, and more) that cannot be carried by a static archive.
 - **Audio without SDL_mixer.** Eliminates a separate build dependency.
 - **Covers go-glyph too.** go-glyph's SDL backend (3 files) works with the same
   replace directive.
@@ -63,13 +63,13 @@ Three layers in the shim:
 
 Every contributor and CI pipeline needs zig installed. zig is increasingly
 popular for C/C++ cross-compilation and the `build.zig` already exists in the
-forked repo, but it's a non-trivial addition. On the upside, it _replaces_
+forked repo, but it is a non-trivial addition. On the upside, it _replaces_
 MSYS2, not adds to it — net toolchain count stays flat or drops.
 
 ### Shim location
 
 The shim currently lives in `cataggar/SDL` (a fork of a fork of SDL's zig port).
-Long-term, the shim should be its own standalone repo (e.g.,
+Long-term, the shim belongs in its own standalone repo (for example,
 `go-gui-org/go-sdl3-shim`) with its own lifecycle, tests, and versioning. Tying
 it to a personal SDL fork creates an unclear maintenance dependency.
 
@@ -91,7 +91,7 @@ Go→cgo path through `go-sdl2/sdl`.
 
 Without updating these, macOS compilation fails under the shim. The .m file
 (`metal_darwin.m`) is unaffected — it receives a `void*` CAMetalLayer pointer
-regardless of how it's obtained.
+regardless of how it is obtained.
 
 Changes needed in the shim's `cbits.h`/`cbits.c`:
 
@@ -126,10 +126,10 @@ go-sdl2 (SDL2) as before — the shim is opt-in.
 A standalone shim repo (`go-gui-org/go-sdl3-shim`) improves the replace target
 from a local filesystem path to a versioned module URL, but does not remove the
 replace itself. The only path to truly eliminating it is changing go-gui's
-import paths (e.g., to native SDL3 bindings via the `gosdl3/` experiment), which
-is a separate, larger effort.
+import paths (for example, to native SDL3 bindings via the `gosdl3/`
+experiment), which is a separate, larger effort.
 
-Ship v0.28 with replace. Accept that it's the design, not a temporary wart.
+Ship v0.28 with replace. Accept that it is the design, not a temporary wart.
 
 ### Audio format coverage
 
@@ -137,7 +137,7 @@ Ship v0.28 with replace. Accept that it's the design, not a temporary wart.
 
 The `sound.go` doc comment lists FLAC, AIFF, and VOC as supported formats. The
 actual `Init()` default format mask is `mix.INIT_OGG | mix.INIT_MP3`
-(audio.go:65). FLAC requires `mix.INIT_FLAC`; AIFF/VOC require `mix.INIT_MOD`.
+(audio.go:65). FLAC requires `mix.INIT_FLAC`. AIFF/VOC require `mix.INIT_MOD`.
 These are never enabled by default — the comment documents SDL_mixer's
 theoretical capabilities, not go-gui's actual behavior.
 
@@ -149,21 +149,21 @@ OGG" to reflect reality.
 
 `TestBackendRenderSmoke` reads backbuffer after `Present()`. Defined in SDL2,
 undefined in SDL3 with hardware-accelerated flip-model renderers (Direct3D11).
-Passes on software renderers (CI), may read empty pixels on accelerated Windows.
+Passes on software renderers (CI), can read empty pixels on accelerated Windows.
 Production paths (blur/color-matrix filter readback to texture targets) are
 unaffected.
 
 Additional Metal-specific gap: the Metal backend sets
 `CAMetalLayer.presentsWithTransaction = YES` (metal_darwin.m:763) to eliminate
-content shift during live resize. SDL3's Metal integration may handle
+content shift during live resize. SDL3's Metal integration can handle
 presentsWithTransaction differently or expose its own controls via the
-Properties API. A macOS Metal smoke test variant should verify live resize
+Properties API. A macOS Metal smoke test variant must verify live resize
 behavior under SDL3 before shipping.
 
 ### go-glyph coordination
 
 Both repos need the same replace directive. Works with sibling-directory layout
-(`../SDL/go-sdl2-sdl3`) but doesn't compose well across independent projects. A
+(`../SDL/go-sdl2-sdl3`) but does not compose well across independent projects. A
 standalone shim repo with its own `go.mod` module path solves this.
 
 ## Build chain comparison
@@ -216,7 +216,7 @@ work:
   Windows. The purego `glbind` backend (cgo-free Phase 1, 2026-07-31) already
   builds the entire module `CGO_ENABLED=0` on both platforms — no zig, no SDL,
   no pkg-config.
-- **It would not serve the platform that still needs cgo.** macOS, the only
+- **It does not serve the platform that still needs cgo.** macOS, the only
   remaining CGo backend, is native Metal/AppKit with zero SDL dependency
   (`macos-native-backend.md`, implemented). The shim adds nothing there.
 - **The cost stays real.** zig as a mandatory build tool for every contributor
@@ -224,9 +224,9 @@ work:
   lifecycle, and downstream replace-directive leakage — all paid to feed a
   backend that no longer exists.
 
-### Conditions that would reopen it
+### Conditions that can reopen it
 
-- A platform appears where the purego `glbind` path cannot serve (e.g. an
+- A platform appears where the purego `glbind` path cannot serve (for example an
   EGL-less target for which SDL3 is the natural host), and the shim is first
   repackaged as a standalone versioned module with its own tests.
 - An SDL2 import surface is reintroduced into the tree.

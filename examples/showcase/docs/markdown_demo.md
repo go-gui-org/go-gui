@@ -6,11 +6,11 @@ for syntax or as a test file for rendering engines.
 ## Text Formatting
 
 Regular paragraph text flows naturally across multiple lines. When you write
-content in Markdown, you don't need to worry about line breaks within a
-paragraph---the renderer handles text wrapping automatically. This makes it easy
+content in Markdown, you do not need to worry about line breaks within a
+paragraph. The renderer handles text wrapping automatically. This makes it easy
 to write long-form content without constantly thinking about formatting.
 
-Here's another paragraph to show separation. Paragraphs are separated by blank
+Here is another paragraph to show separation. Paragraphs are separated by blank
 lines. You can use **bold text** for emphasis, _italic text_ for subtle
 emphasis, or _**bold and italic**_ together. You can also use ~~strikethrough~~
 for deleted content and `inline code` for technical terms or commands.
@@ -26,53 +26,51 @@ combine with bold: ++**bold underline**++.
 
 ### Unordered Lists
 
-- The first item in this unordered list contains enough text to demonstrate how
-  list items wrap when they exceed the typical line length of most editors and
-  viewers, which is usually around 80 to 120 characters depending on your
+- The first item in this unordered list demonstrates how list items wrap. List
+  items wrap when they exceed the typical line length of most editors and
+  viewers. That length is usually around 80 to 120 characters, depending on your
   settings.
 - Second item with a shorter description but still meaningful content.
-- Third item that also spans multiple lines when rendered in a narrow viewport,
-  showing how Markdown handles long list content gracefully without breaking the
-  visual hierarchy of the document.
-  - Nested item underneath the third item, demonstrating that you can create
-    hierarchical structures within your lists by indenting with two spaces or a
-    tab.
-  - Another nested item with substantial content to show that nested items also
-    wrap properly when they contain lengthy descriptions or explanations that
-    exceed the available width.
-    - Deeply nested item showing three levels of nesting, which is about as deep
-      as you typically want to go for readability purposes.
+- Third item that also spans multiple lines when rendered in a narrow viewport.
+  Markdown handles long list content without breaking the visual hierarchy of
+  the document.
+  - Nested item underneath the third item. You can create hierarchical
+    structures within your lists by indenting with two spaces or a tab.
+  - Another nested item with substantial content. Nested items also wrap
+    properly when they contain lengthy descriptions or explanations that exceed
+    the available width.
+    - Deeply nested item showing three levels of nesting. Three levels is about
+      as deep as you typically want to go for readability purposes.
 - Fourth item back at the root level.
 
 ### Ordered Lists
 
 1.  First ordered item with extensive explanatory text that wraps across
-    multiple lines, demonstrating that numbered lists behave the same way as
-    bulleted lists when it comes to handling long content within individual
-    items.
-2.  Second ordered item that continues the numbering sequence automatically,
-    regardless of what number you actually type in the source Markdown.
-3.  Third item with enough content to wrap, ensuring that the visual
-    presentation remains clean and readable even when individual list items
-    contain paragraph-length descriptions or instructions.
+    multiple lines. Numbered lists behave the same way as bulleted lists for
+    handling long content within individual items.
+2.  Second ordered item that continues the numbering sequence automatically. The
+    sequence continues regardless of what number you actually type in the source
+    Markdown.
+3.  Third item with enough content to wrap. The visual presentation stays clean
+    and readable even when individual list items contain paragraph-length
+    descriptions or instructions.
     1.  Nested numbered item showing that you can create sub-lists within
-        ordered lists as well, maintaining proper indentation and numbering
-        throughout the hierarchy.
+        ordered lists as well. The sub-lists maintain proper indentation and
+        numbering throughout the hierarchy.
     2.  Another nested numbered item with additional explanatory content.
 4.  Fourth item returning to the main list level.
 
 ### Task Lists
 
-- [x] Completed task that has been marked as done by placing an 'x' inside the
-      brackets.
-- [x] Another finished task demonstrating the checked state, which renders as a
-      filled checkbox in most Markdown viewers and platforms that support this
-      extension.
+- [x] Completed task. You mark it as done by placing an 'x' inside the brackets.
+- [x] Another finished task demonstrating the checked state. The checked state
+      renders as a filled checkbox in most Markdown viewers and platforms that
+      support this extension.
 - [ ] Incomplete task waiting to be done, shown with empty brackets that render
       as an unchecked checkbox in compatible viewers.
 - [ ] Another pending task with a longer description that explains what needs to
-      be accomplished, demonstrating that task list items can also contain
-      substantial amounts of text that wrap naturally.
+      be accomplished. Task list items can also contain substantial amounts of
+      text that wrap naturally.
 
 ## Blockquotes
 
@@ -86,9 +84,9 @@ combine with bold: ++**bold underline**++.
 > to use the greater-than symbol at the start of each line. This second
 > paragraph is still part of the same blockquote.
 >
-> > Nested blockquotes are also possible, allowing you to show quoted material
-> > within quoted material---useful for email threads or forum discussions where
-> > multiple levels of response exist.
+> > Nested blockquotes are also possible. They allow you to show quoted material
+> > within quoted material. This is useful for email threads or forum
+> > discussions where multiple levels of response exist.
 
 ## Code
 
@@ -137,8 +135,8 @@ class ShoppingCart:
 
 ### Links
 
-Here's a [link to OpenAI](https://openai.com) inline in text. You can also use
-[reference-style links](https://example.com "Example Website") that define the
+Here is a [link to OpenAI](https://openai.com) inline in text. You can also use
+[reference-style links](https://example.com "Example Website"). They define the
 URL elsewhere in the document, which keeps paragraphs cleaner when you have many
 links.
 
@@ -180,7 +178,7 @@ Another section after a different style of horizontal rule.
 
 ### Footnotes
 
-Here's a sentence with a footnote[^1] and here's another one[^2].
+Here is a sentence with a footnote[^1] and here is another one[^2].
 
 ### Definition Lists
 
@@ -198,8 +196,8 @@ The HTML specification is maintained by the W3C. HTMLX is not the same as HTML.
 
 ## Escaping Characters
 
-Use backslashes to display literal characters that would otherwise be
-interpreted as Markdown:
+Use backslashes to display literal characters. Without backslashes, Markdown
+interprets those characters as formatting:
 
 \*This text is surrounded by literal asterisks\*
 
@@ -296,9 +294,9 @@ done
 
 ## Conclusion
 
-This document has covered all the common Markdown elements you're likely to
-encounter or need in everyday writing. Different Markdown processors may support
-additional features or have slight variations in syntax, so always test your
+This document has covered all the common Markdown elements you are likely to
+encounter or need in everyday writing. Different Markdown processors can support
+additional features or have slight variations in syntax. Always test your
 content in the target environment.
 
 For more information, consult the

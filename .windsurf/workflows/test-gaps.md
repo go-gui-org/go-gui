@@ -10,8 +10,9 @@ Steps:
 
 - Run `git diff` and `git diff --cached` to identify changed/added files and
   functions
-- For each changed file, find out corresponding `_test.go` file (if any)
-- Read the changed code and existing tests to understand current coverage
+- For each changed file, find the matching `_test.go` file (if any)
+- Read the changed code and the existing tests to understand the current
+  coverage
 - Report gaps grouped by severity:
 
 **Missing tests** (no test exists):
@@ -36,4 +37,4 @@ For each gap:
 - State the file:function and what is untested
 - Rate as **high** (crash/panic risk), **medium** (silent wrong result), or
   **low** (cosmetic)
-- Suggest a one-line test name (e.g., `TestExportSVG_EmptySeriesNoPanic`)
+- Suggest a one-line test name (for example, `TestExportSVG_EmptySeriesNoPanic`)

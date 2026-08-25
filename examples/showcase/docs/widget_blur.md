@@ -56,7 +56,7 @@ gui.Column(gui.ContainerCfg{
 
 - `BlurRadius` is a plain `float32`, not `Opt[float32]`. Zero means no blur.
 - Combine with `Radius` (corner rounding) to create orb or pill glows.
-- Blur is rendered via a GPU shader pass; large radii have minimal extra cost on
+- Blur is rendered via a GPU shader pass. Large radii have minimal extra cost on
   Metal/OpenGL backends.
 - Distinct from `BoxShadow.BlurRadius` which blurs a drop shadow, not the shape
   fill itself.

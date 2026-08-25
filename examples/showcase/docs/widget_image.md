@@ -24,7 +24,7 @@ gui.Image(gui.ImageCfg{
 ```
 
 Remote images are fetched asynchronously, cached locally, and displayed on
-completion. A placeholder rectangle is shown while downloading.
+completion. A placeholder rectangle is shown during the download.
 
 ## Key Properties
 

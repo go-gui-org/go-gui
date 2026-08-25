@@ -67,7 +67,7 @@ root := gui.DockSplit("root", gui.DockSplitHorizontal, 0.2,
 
 | Function                  | Description                         |
 | ------------------------- | ----------------------------------- |
-| DockTreeRemovePanel       | Remove panel; collapse empty splits |
+| DockTreeRemovePanel       | Remove panel. Collapse empty splits |
 | DockTreeAddTab            | Add panel as tab in existing group  |
 | DockTreeSplitAt           | Split a group, insert panel at edge |
 | DockTreeMovePanel         | Remove + insert (drag-and-drop)     |

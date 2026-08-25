@@ -10,10 +10,11 @@ description:
 
 ## Purpose
 
-AntiVibe generates **learning-focused explanations** of AI-written code. Not
-generic summaries - actual educational content that helps developers understand:
+AntiVibe generates **learning-focused explanations** of AI-written code. It is
+not a generic summary. It creates educational content that helps developers
+understand:
 
-- **What** the code does (functionality)
+- **What** the code does (its function)
 - **Why** it was written this way (design decisions)
 - **When** to use these patterns (context)
 - **What alternatives** exist (broader knowledge)
@@ -30,7 +31,7 @@ Use AntiVibe when:
 
 ## What AntiVibe Produces
 
-Output saved to `deep-dive/` folder as markdown:
+Output is saved to the `deep-dive/` folder as markdown:
 
 ```
 deep-dive/
@@ -51,25 +52,25 @@ Each file contains:
 
 ### Step 1: Identify Code to Analyze
 
-- Check for explicit file list in user request
-- Or use git diff to find recently modified/created files
-- Or ask user which files/components they want to understand
+- Check the user request for an explicit file list
+- Use `git diff` to find recently modified or created files
+- Ask the user which files or components they want to understand
 
 ### Step 2: Analyze Code Structure
 
 For each file:
 
-- Identify main purpose and responsibilities
+- Identify the main purpose and the responsibilities
 - Note key functions, classes, modules
-- Identify design patterns used (factory, singleton, observer, etc.)
+- Identify the design patterns used (factory, singleton, observer, and more)
 - Find any complex logic or algorithms
 
 ### Step 3: Explain Concepts
 
-For each concept/pattern found:
+For each concept or pattern found:
 
 - **What**: Plain-language explanation
-- **Why**: Why this approach was chosen over alternatives
+- **Why**: Why this approach was chosen over the alternatives
 - **When**: When to use this pattern (with context)
 - **Alternatives**: Other approaches and trade-offs
 
@@ -77,18 +78,18 @@ For each concept/pattern found:
 
 Search for and include:
 
-- Official documentation for libraries/frameworks used
-- Quality tutorials or blog posts
+- Official documentation for the libraries and frameworks used
+- High-quality tutorials and blog posts
 - Video resources (if available)
 - Related concepts for further learning
 
 ### Step 5: Generate Output
 
-Create markdown file in `deep-dive/` folder:
+Create the markdown file in the `deep-dive/` folder:
 
 - Name format: `[component]-[timestamp].md`
 - Follow the template in `templates/deep-dive.md`
-- Include code snippets where helpful
+- Include code snippets where they help
 - Make it educational, not just descriptive
 
 ## Configuration
@@ -98,8 +99,8 @@ AntiVibe can be configured to auto-trigger via hooks:
 - **SubagentStop**: After a Task completes a feature
 - **Stop**: At session end
 
-To enable auto-trigger, configure hooks in your project (see
-`hooks/hooks.json`).
+To enable auto-trigger, configure the hooks in your project. See
+`hooks/hooks.json`.
 
 ## Principles
 
@@ -112,14 +113,14 @@ To enable auto-trigger, configure hooks in your project (see
 
 ## Dependencies
 
-Optional scripts in `scripts/` folder:
+Optional scripts live in the `scripts/` folder:
 
 - `capture-phase.sh` - Detect implementation phase boundaries
 - `analyze-code.sh` - Parse code structure
 - `find-resources.sh` - Search for external resources
 - `generate-deep-dive.sh` - Create markdown output
 
-These are helpers - you can also do everything via direct code analysis.
+These scripts are helpers. You can also do everything with direct code analysis.
 
 ## Examples
 

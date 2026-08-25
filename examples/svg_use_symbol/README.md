@@ -2,14 +2,14 @@
 
 Demonstrates SVG `<use href="#id">` and `<symbol>` resolution.
 
-A `<symbol id="star">` block is defined once in `<defs>`; four `<use>`
+A `<symbol id="star">` block is defined once in `<defs>`. Four `<use>`
 references render the symbol at different positions, each with a per-instance
-`fill` override. The result is rendered side by side with a manually duplicated
-equivalent so any geometric or color delta is immediately visible.
+`fill` override. The example renders the result side by side with a manually
+duplicated equivalent. Any geometric or color delta is immediately visible.
 
-A second sample shows `<use>` referencing a single `<circle>` element, including
-per-instance `transform="scale(...)"` and `transform="rotate(...)"` overrides on
-the use sites.
+A second sample shows `<use>` that references a single `<circle>` element,
+including per-instance `transform="scale(...)"` and `transform="rotate(...)"`
+overrides on the use sites.
 
 Run:
 

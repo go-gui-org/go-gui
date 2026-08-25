@@ -1,5 +1,4 @@
-Checkbox-style toggle with optional label. `Checkbox()` is an alias for
-`Toggle()`.
+Checkbox-style toggle with optional label.
 
 ## Usage
 

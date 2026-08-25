@@ -22,12 +22,12 @@ mouse-up AppKit swallowed), fixed separately in `metal_window_darwin.m`. X11 is
 not affected: reparenting WMs own the resize borders on the frame window, and
 X's implicit passive grab guarantees the matching `ButtonRelease`.
 
-## Why not synthesise a `MouseUp`
+## Why not synthesize a `MouseUp`
 
 `MouseUp` is the _commit_. Dock drops call `onLayoutChange`, drag-reorder calls
-`onReorder`. Feeding a fake release on capture loss would docks a panel or
-reorder a list the user never dropped — a data mutation from an event that did
-not happen. Cancellation is a distinct outcome and needs a distinct hook.
+`onReorder`. Feeding a fake release on capture loss docks a panel or reorders a
+list the user never dropped — a data mutation from an event that did not happen.
+Cancellation is a distinct outcome and needs a distinct hook.
 
 ## Design
 
@@ -53,32 +53,32 @@ Three properties the tests pin (`gui/mouse_cancel_test.go`):
   state _is_ the lock (scrollbar, splitter, markdown selection) needs no hook,
   and the default already restores it.
 - **Clears the lock before the hook runs.** The existing escape-key unwinds
-  (`dockDragCancel`, `dragReorderCancel`) call `MouseUnlock` themselves;
-  clearing first makes that a no-op instead of a race.
+  (`dockDragCancel`, `dragReorderCancel`) call `MouseUnlock` themselves.
+  Clearing first makes that a no-op instead of a race.
 - **Runs the hook at most once.** The guard makes a second cancel inert, so a
   duplicate capture-loss report cannot double-unwind.
 
 `Cancel` takes `*Window`, not `EventCtx`, unlike the other three callbacks.
 There is no event to carry, and every other lock callback reads `ctx.Event` —
-handing them a nil one would be a footgun rather than consistency.
+handing them a nil one is a footgun rather than consistency.
 
 ## Backend contract
 
 A backend calls `MouseCancel` when the platform ends a drag without a release.
 On Win32 that is `WM_CAPTURECHANGED`, with one wrinkle: our own `ReleaseCapture`
-raises it too, so an unguarded handler would cancel after every normal mouse-up.
+raises it too, so an unguarded handler cancels after every normal mouse-up.
 `platformState.capturing` tracks ownership and is cleared _before_
 `ReleaseCapture` — that call reenters the wndproc synchronously, so a flag
-cleared afterwards would still read as an involuntary loss.
+cleared afterwards still reads as an involuntary loss.
 
 ## Wired hooks
 
 | Site                         | Cancel does                                                                      |
 | ---------------------------- | -------------------------------------------------------------------------------- |
 | text / RTF / input selection | remove the edge-scroll animation, which nothing else stops once the lock is gone |
-| slider                       | clear the pressed flag; the value keeps what the last move set                   |
+| slider                       | clear the pressed flag, the value keeps what the last move set                   |
 | color picker (SV area)       | restore the cursor the drag hid                                                  |
-| datagrid column resize       | clear the active flag; the column keeps its dragged width, focus is not moved    |
+| datagrid column resize       | clear the active flag, the column keeps its dragged width, focus is not moved    |
 | dock drag                    | `dockDragCancel` — drop nothing, hide the zone overlay                           |
 | drag-reorder                 | `dragReorderCancel` — hide ghost and gap, leave the order alone                  |
 

@@ -58,19 +58,19 @@ token definitions).
 
 ## Key Properties
 
-| Property    | Type            | Description                        |
-| ----------- | --------------- | ---------------------------------- |
-| Text        | string          | Current text value                 |
-| Placeholder | string          | Hint text shown when empty         |
-| IsPassword  | bool            | Mask characters for password entry |
-| Mode        | InputMode       | InputSingleLine or InputMultiline  |
-| MaskPreset  | InputMaskPreset | Built-in mask (phone, card, etc.)  |
-| Mask        | string          | Custom mask pattern                |
-| MaskTokens  | []MaskTokenDef  | Custom token definitions for mask  |
-| Disabled    | bool            | Disable interaction                |
-| Height      | float32         | Height (useful for multiline)      |
-| MinWidth    | float32         | Minimum width                      |
-| MaxWidth    | float32         | Maximum width                      |
+| Property    | Type            | Description                           |
+| ----------- | --------------- | ------------------------------------- |
+| Text        | string          | Current text value                    |
+| Placeholder | string          | Hint text shown when empty            |
+| IsPassword  | bool            | Mask characters for password entry    |
+| Mode        | InputMode       | InputSingleLine or InputMultiline     |
+| MaskPreset  | InputMaskPreset | Built-in mask (phone, card, and more) |
+| Mask        | string          | Custom mask pattern                   |
+| MaskTokens  | []MaskTokenDef  | Custom token definitions for mask     |
+| Disabled    | bool            | Disable interaction                   |
+| Height      | float32         | Height (useful for multiline)         |
+| MinWidth    | float32         | Minimum width                         |
+| MaxWidth    | float32         | Maximum width                         |
 
 ## Appearance
 

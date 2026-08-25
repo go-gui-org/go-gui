@@ -1,5 +1,5 @@
 Numeric and colored pill labels for counts and status indicators. Dot mode
-renders a small circle; labeled mode renders text inside a rounded pill.
+renders a small circle. Labeled mode renders text inside a rounded pill.
 
 ## Usage
 
@@ -26,7 +26,7 @@ gui.Badge(gui.BadgeCfg{Label: "150", Max: 99})
 | -------- | ------------ | ------------------------------------- |
 | Label    | string       | Badge text                            |
 | Variant  | BadgeVariant | Color variant preset                  |
-| Max      | int          | Cap value; shows "max+" when exceeded |
+| Max      | int          | Cap value. Shows "max+" when exceeded |
 | Dot      | bool         | Show as a small dot instead of text   |
 
 ## Appearance
