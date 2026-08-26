@@ -724,6 +724,50 @@ func TestSunDiscToneLimbBrightening(t *testing.T) {
 	}
 }
 
+// TestSunDiscStopsMatchTheRamp is the gate on the shell stack having
+// been replaced by one gradient without a change of appearance. The
+// shells were opaque and sunDiscTone is piecewise linear, so sampling
+// the stops at any radius must return exactly the tone the shell that
+// covered that radius carried. Ordering is checked too: the stops feed
+// a fill that lerps in place, so an out-of-order pos would invert a
+// segment rather than fail loudly.
+func TestSunDiscStopsMatchTheRamp(t *testing.T) {
+	t.Parallel()
+	stops := sunDiscStops(nil)
+
+	for i := 1; i < len(stops); i++ {
+		if stops[i].Pos < stops[i-1].Pos {
+			t.Fatalf("stop %d pos %v goes backwards from %v",
+				i, stops[i].Pos, stops[i-1].Pos)
+		}
+	}
+
+	const samples = 64
+	for i := range samples + 1 {
+		tt := float32(i) / samples
+		// The radius fraction the shell at parameter tt covered.
+		u := 1 - sunShellSpan*tt
+		got := gui.SampleGradientStopColor(stops, u)
+		want := sunDiscTone(tt)
+		// One count of rounding: the stops are bytes, and the fill
+		// lerps them premultiplied, which is a no-op here only because
+		// every disc tone is fully opaque.
+		if absI(int(got.R)-int(want.R)) > 1 ||
+			absI(int(got.G)-int(want.G)) > 1 ||
+			absI(int(got.B)-int(want.B)) > 1 || got.A != want.A {
+			t.Errorf("t=%v (pos %v): gradient %v, ramp %v", tt, u, got, want)
+		}
+	}
+}
+
+// absI is |x| for ints, for the channel comparison above.
+func absI(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
 // drawInto runs the full paint into a headless DrawContext and returns
 // it. A nil TextMeasurer is what tests get, and every DrawContext text
 // call is nil-safe, so the geometry is exercised end to end without a

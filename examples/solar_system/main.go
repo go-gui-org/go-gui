@@ -72,6 +72,9 @@ type App struct {
 	glowStops []gui.GradientStop
 	haloStops []gui.GradientStop
 
+	// discStops backs the sun's disc fill, reused for the same reason.
+	discStops []gui.GradientStop
+
 	// body is drawBody's mesh scratch, reused for the same reason: nine
 	// planets a tick, each rebuilding a few thousand vertices.
 	body bodyMesh

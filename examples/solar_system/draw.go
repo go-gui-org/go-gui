@@ -96,11 +96,11 @@ const (
 	coronaRagged  = 0.72 // how much of that reach the noise modulates
 	coronaDriftHz = 0.05 // how fast the ragged edge crawls
 
-	// sunShells ramps the disc itself from a near-white core to its
-	// orange limb, which is what stops it reading as a flat coin.
-	sunShellsPerPx = 0.9
-	sunShellsMin   = 14
-	sunShellsMax   = 96
+	// sunShellSpan is how far in from the limb the disc ramp runs, as a
+	// fraction of the radius: the core tone is reached at 0.03*r and
+	// holds flat from there in. It is what stops the face reading as a
+	// flat coin.
+	sunShellSpan = 0.97
 
 	// shadeRows is how many rings of constant Lambert intensity the
 	// sphere mesh is built from, and shadeArc how many segments each
@@ -367,15 +367,15 @@ func drawSun(a *App, dc *gui.DrawContext) {
 		Stops:  a.glowStops,
 	})
 
-	// The disc: shells from the gold limb through cream to a white
-	// core. Three stops for the same reason the planets use three —
-	// two would walk the middle of the face through a washed-out
-	// midpoint of the two ends.
-	shells := int(clamp32(r*sunShellsPerPx, sunShellsMin, sunShellsMax))
-	for i := range shells {
-		t := float32(i) / float32(shells-1) // 0 at the limb, 1 at the core
-		dc.FilledCircle(cx, cy, r*(1-0.97*t), sunDiscTone(t))
-	}
+	// The disc: the gold limb through cream to a white core. Three
+	// segments for the same reason the planets use three — two would
+	// walk the middle of the face through a washed-out midpoint of the
+	// two ends.
+	a.discStops = sunDiscStops(a.discStops)
+	dc.FilledCircleGradient(cx, cy, r, &gui.CanvasGradient{
+		Radial: true,
+		Stops:  a.discStops,
+	})
 
 	drawGranulation(dc, cx, cy, r)
 	drawCorona(dc, cx, cy, r, a.Time)
@@ -395,6 +395,34 @@ func sunDiscTone(t float32) gui.Color {
 		return mixColor(colorSunBody, colorSunCore,
 			(t-discCoreStop)/(1-discCoreStop))
 	}
+}
+
+// sunDiscStops turns the disc ramp into the stops of one radial fill.
+//
+// This is not the integration haloStops does. The shell stack this
+// replaces was *opaque* — every shell hid the one before it, so the
+// visible color at radius r*(1-sunShellSpan*t) was simply
+// sunDiscTone(t), with nothing to composite. And sunDiscTone is
+// piecewise *linear* in t while the fill lerps between stops, so one
+// stop at each of its three hand-over points reproduces the ramp
+// exactly, at any size, instead of the 14-96 quantized bands the stack
+// emitted.
+//
+// The ramp runs inward, so t maps to the radius fraction
+// u = 1 - sunShellSpan*t and the stops come out in reverse order: pos
+// 0 is the core, pos 1 the limb.
+func sunDiscStops(dst []gui.GradientStop) []gui.GradientStop {
+	dst = dst[:0]
+	// The core tone held flat inside the innermost shell. Without a
+	// stop pinning pos 0 the fill would keep ramping past it.
+	dst = append(dst, gui.GradientStop{Color: sunDiscTone(1), Pos: 0})
+	for _, t := range [...]float32{1, discCoreStop, discRimStop, 0} {
+		dst = append(dst, gui.GradientStop{
+			Color: sunDiscTone(t),
+			Pos:   1 - sunShellSpan*t,
+		})
+	}
+	return dst
 }
 
 // drawGranulation lays the mottled convection texture over the disc.
