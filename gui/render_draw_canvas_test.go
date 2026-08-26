@@ -704,32 +704,47 @@ func TestDrawCanvasReuseMatchesFresh(t *testing.T) {
 }
 
 // TestDrawCanvasRedrawSteadyStateAllocs pins the property the pooling
-// exists for. A tolerance of zero is the intent; the assertion allows a
-// couple of allocations so an unrelated map or interface conversion on
-// the path does not make this brittle.
+// exists for, as a ratio rather than an absolute count.
+//
+// A canvas with no ID is never cached, so it never has a previous entry
+// to recycle — the same code path with the pooling switched off. That
+// makes it the control, and comparing against it inside one process
+// keeps the assertion free of what the toolchain, the platform or a
+// race build decide to put on the heap around the measurement. On the
+// reference platform the pooled figure is flatly zero.
 func TestDrawCanvasRedrawSteadyStateAllocs(t *testing.T) {
-	w := makeWindowWithScratch()
-	var phase float32
-	shape := benchCanvasShape(&phase)
-	clip := makeClip(0, 0, 300, 300)
-	var version uint64
+	run := func(id string) float64 {
+		w := makeWindowWithScratch()
+		var phase float32
+		shape := benchCanvasShape(&phase)
+		shape.ID = id
+		clip := makeClip(0, 0, 300, 300)
+		var version uint64
 
-	frame := func() {
-		version++
-		shape.Version = version
-		phase = float32(version%17) * 0.5
-		// Mirror buildRenderers: a new command list is a new pass.
-		w.renderers = w.renderers[:0]
-		w.renderPass++
-		renderDrawCanvas(shape, clip, w)
-	}
-	for range 4 {
-		frame()
+		frame := func() {
+			version++
+			shape.Version = version
+			phase = float32(version%17) * 0.5
+			w.renderers = w.renderers[:0]
+			w.renderPass++
+			renderDrawCanvas(shape, clip, w)
+		}
+		for range 4 {
+			frame()
+		}
+		return testing.AllocsPerRun(50, frame)
 	}
 
-	if got := testing.AllocsPerRun(50, frame); got != 0 {
-		t.Errorf("steady-state redraw allocates %.1f objects/frame, want 0",
-			got)
+	pooled := run("bench-canvas")
+	unpooled := run("")
+	if unpooled < 10 {
+		t.Fatalf("control allocated %.1f objects/frame; too few to "+
+			"compare against, the test has stopped measuring anything",
+			unpooled)
+	}
+	if pooled > unpooled/10 {
+		t.Errorf("pooled redraw allocates %.1f objects/frame against "+
+			"%.1f unpooled, want under a tenth", pooled, unpooled)
 	}
 }
 
