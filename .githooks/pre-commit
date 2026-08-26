@@ -7,4 +7,7 @@ if gofmt -l ./gui/ ./examples/ 2>/dev/null | grep -q .; then
     exit 1
 fi
 
-golangci-lint run ./gui/... ./examples/...
+# Use the pinned linter from tools/lint, built on demand into .bin, so the
+# hook cannot disagree with CI about the version.
+make lint-bin >/dev/null
+./.bin/golangci-lint run ./gui/... ./examples/...

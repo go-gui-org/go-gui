@@ -3,9 +3,13 @@ COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 LDFLAGS  = -X github.com/go-gui-org/go-gui/gui.Version=$(VERSION) \
            -X github.com/go-gui-org/go-gui/gui.Commit=$(COMMIT)
 
-LINT_VERSION = v2.13.1
+# Repo-local bin for the pinned linter. The pinned VERSION itself lives in
+# tools/lint/go.mod -- see the $(LINT_BIN) rule below.
+LINT_DIR = $(CURDIR)/.bin
+LINT_BIN = $(LINT_DIR)/golangci-lint
+LINT_ARGS ?=
 
-.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test test-race vet lint lint-pin lint-cross cross-compile coverage-gate prepush check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergonomics-audit ergonomics-audit-fix ergonomics-audit-fix-dry fmt-md fmt-md-check
+.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test test-race vet lint lint-bin lint-cross cross-compile coverage-gate prepush check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergonomics-audit ergonomics-audit-fix ergonomics-audit-fix-dry fmt-md fmt-md-check
 
 # Desktop builds are cgo-free since the purego GL bindings (#155): the
 # backend/gl uses X11/xgb + purego EGL on Linux and Win32 syscalls on
@@ -95,6 +99,7 @@ bench-gate:
 # binaries belong in build/ or examples/bin/, never the repo root.
 clean:
 	rm -rf build/
+	rm -rf $(LINT_DIR)
 	rm -rf examples/bin/
 	rm -f showcase fontviewer listbox get_started command_demo \
 	  process_monitor scroll_demo depsdoc exportaudit \
@@ -119,15 +124,40 @@ vet:
 	go vet ./...
 	go run ./tools/requiredid/cmd/requiredid ./...
 
-# Verify golangci-lint is installed at the pinned version. Shared by
-# lint and lint-cross so the pin lives in one place.
-lint-pin:
-	@golangci-lint --version | grep -q "$(LINT_VERSION:v%=%)" || \
-	  { echo "::error::golangci-lint $(LINT_VERSION) required. Run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(LINT_VERSION)"; exit 1; }
+# Build the pinned linter on demand, into a repo-local bin.
+#
+# The version lives in tools/lint/go.mod and nowhere else, so local and CI
+# cannot drift -- the old scheme pinned v2.13.1 here and v2.13 (floating
+# patch) in six CI steps, and checked the pin with a substring grep that
+# also accepted 2.13.10.
+#
+# tools/lint is a SEPARATE module on purpose: a `tool` directive in the root
+# go.mod took it from 40 to 246 lines and go.sum from 119 to 997, and every
+# downstream sibling (go-charts, go-edit, go-kite, go-term, go-map) would
+# inherit that module graph for a linter they do not run.
+#
+# GOWORK=off because tools/lint sits inside the repo but is deliberately not
+# a go.work member; without it go refuses to build a module the workspace
+# does not use. The Go build cache makes every run after the first fast.
+#
+# GOOS/GOARCH/CGO_ENABLED/CC are neutralised for the BUILD of the linter:
+# callers set them to pick the target being ANALYSED (lint-cross, and the
+# CI ios/android jobs), and inheriting them here would cross-compile the
+# linter itself into a binary the runner cannot execute. An empty GOOS or
+# GOARCH means "host default" to the go command; CGO_ENABLED=0 makes the
+# caller's CC irrelevant, which golangci-lint (pure Go) never needs.
+$(LINT_BIN): tools/lint/go.mod tools/lint/go.sum
+	GOWORK=off GOOS= GOARCH= CGO_ENABLED=0 GOFLAGS= GOBIN=$(LINT_DIR) \
+	  go -C tools/lint install \
+	  github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 
-# Run golangci-lint (requires golangci-lint installed, pinned to LINT_VERSION).
-lint: lint-pin
-	golangci-lint run ./...
+# Named entry point for callers that want the binary without linting.
+lint-bin: $(LINT_BIN)
+
+# Run golangci-lint at the pinned version. LINT_ARGS passes extra flags
+# through (CI's ios job needs --build-tags ios).
+lint: $(LINT_BIN)
+	$(LINT_BIN) run $(LINT_ARGS) ./...
 
 # Lint the GOOS-conditional files the default (GOOS=linux or darwin)
 # build cannot see: every //go:build windows/js file was unlinted before
@@ -136,10 +166,10 @@ lint: lint-pin
 # strict superset of CI's: it also covers the cgo metal files, which CI
 # cannot compile from a Linux runner. Mirror of the CI vet job's lint
 # steps (issue #292).
-lint-cross: lint-pin
-	GOOS=windows golangci-lint run ./...
-	GOOS=js GOARCH=wasm golangci-lint run ./...
-	GOOS=darwin golangci-lint run ./...
+lint-cross: $(LINT_BIN)
+	GOOS=windows $(LINT_BIN) run ./...
+	GOOS=js GOARCH=wasm $(LINT_BIN) run ./...
+	GOOS=darwin $(LINT_BIN) run ./...
 
 # Cross-compile the whole module with no C toolchain on the host, for
 # every desktop target CI guards (issue #292). A new cgo import anywhere
