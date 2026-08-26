@@ -86,6 +86,11 @@ const (
 	granuleMinRadius = 14
 	granuleInset     = 0.94
 
+	// granulesPerPx caps the cell count against the disc's pixel
+	// radius, so the default view draws about half the set and the
+	// full set arrives once the sun is 70px across.
+	granulesPerPx = 1.0
+
 	// The corona rim: a ragged band hugging the limb, drawn as
 	// coronaTiers quad strips of falling alpha. coronaSteps is how many
 	// angular segments the ragged edge is traced with, and must match
@@ -436,6 +441,14 @@ func drawGranulation(dc *gui.DrawContext, cx, cy, r float32) {
 	if r < granuleMinRadius {
 		return // the cells would be sub-pixel; they would only cost batches
 	}
+	// Level of detail. The full set is sized for a sun that fills the
+	// canvas; at the default zoom it is 70 cells over a 70px disc,
+	// where the texture reads as noise long before the last cell is
+	// placed. Taking a prefix is a fair sample because makeGranules
+	// draws every field from one RNG stream, so the cells are in no
+	// order — the prefix is as evenly spread as the whole.
+	cells := sunGranules[:min(len(sunGranules), int(r*granulesPerPx))]
+
 	for _, lit := range [2]bool{true, false} {
 		base := colorSunGranuleDark
 		if lit {
@@ -445,7 +458,7 @@ func drawGranulation(dc *gui.DrawContext, cx, cy, r float32) {
 			// Outermost tier first, so the stack builds a soft falloff
 			// rather than a hard disc.
 			scale := 1 - float32(tier)/granuleTiers
-			for _, g := range sunGranules {
+			for _, g := range cells {
 				if g.lit != lit {
 					continue
 				}
