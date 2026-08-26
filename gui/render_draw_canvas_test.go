@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"fmt"
 	"math"
 	"testing"
 )
@@ -707,62 +708,86 @@ func TestDrawCanvasReuseMatchesFresh(t *testing.T) {
 	}
 }
 
-// TestDrawCanvasRedrawSteadyStateAllocs pins the property the pooling
-// exists for: a steady-state redraw allocates nothing that scales with
-// what it draws.
+// TestDrawCanvasRedrawReusesBuffers pins the property the pooling
+// exists for, by identity rather than by counting allocations: after
+// the first couple of redraws, every batch must land in the same
+// backing array it landed in last time.
 //
-// Stated as growth rather than as a count, because a count is not
-// portable. Emitting a RenderCmd costs a constant allocation per
-// command on some platforms and none on others — on arm64 the whole
-// redraw measures a flat zero, on amd64 it measures one per emitted
-// batch — and neither figure has anything to do with the tessellation
-// buffers. Ten times the geometry through the same shape has the same
-// command count, so anything the extra circles add is the thing this
-// test is about.
-func TestDrawCanvasRedrawSteadyStateAllocs(t *testing.T) {
-	measure := func(circles int, pool bool) float64 {
-		w := makeWindowWithScratch()
-		var phase float32
-		shape := benchCanvasShapeN(&phase, circles)
-		if !pool {
-			// A canvas with no ID is never cached, so it never has a
-			// previous entry to recycle: the same path with the
-			// pooling switched off.
-			shape.ID = ""
-		}
-		clip := makeClip(0, 0, 300, 300)
-		var version uint64
+// Counting was the obvious way to write this and does not work here.
+// testing.AllocsPerRun reads process-wide malloc counters, so anything
+// else running in the package is attributed to the measurement, and the
+// error grows with how long the measured function takes — a whole
+// canvas redraw is long enough that CI reported six allocations for a
+// draw that allocates none. A pointer is exact and takes no wall time
+// to observe.
+//
+// The heavy case is the one that matters. An earlier version of the
+// pooling refused to recycle a buffer past a size cap, which left every
+// canvas above it allocating its whole tessellation on every frame —
+// precisely the ones the pooling is for.
+func TestDrawCanvasRedrawReusesBuffers(t *testing.T) {
+	for _, circles := range []int{40, 400} {
+		t.Run(fmt.Sprintf("circles=%d", circles), func(t *testing.T) {
+			w := makeWindowWithScratch()
+			var phase float32
+			shape := benchCanvasShapeN(&phase, circles)
+			clip := makeClip(0, 0, 300, 300)
+			var version uint64
 
-		frame := func() {
-			version++
-			shape.Version = version
-			phase = float32(version%17) * 0.5
-			w.renderers = w.renderers[:0]
-			w.renderPass++
-			renderDrawCanvas(shape, clip, w)
-		}
-		for range 4 {
+			frame := func() {
+				version++
+				shape.Version = version
+				phase = float32(version%17) * 0.5
+				w.renderers = w.renderers[:0]
+				w.renderPass++
+				renderDrawCanvas(shape, clip, w)
+			}
+			// Three frames to settle: the two batch arrays alternate,
+			// so each is grown on a different frame.
+			for range 3 {
+				frame()
+			}
+
+			sm := StateMap[string, drawCanvasCache](w, nsDrawCanvas,
+				capModerate)
+			before, ok := sm.Get("bench-canvas")
+			if !ok {
+				t.Fatal("no cache entry after redraw")
+			}
+			if len(before.Batches) < 3 {
+				t.Fatalf("got %d batches, want the full set",
+					len(before.Batches))
+			}
+			ptrs := batchDataPtrs(before.Batches)
+
 			frame()
+
+			after, _ := sm.Get("bench-canvas")
+			if len(after.Batches) != len(before.Batches) {
+				t.Fatalf("batch count moved from %d to %d",
+					len(before.Batches), len(after.Batches))
+			}
+			for i, got := range batchDataPtrs(after.Batches) {
+				if got != ptrs[i] {
+					t.Errorf("batch %d re-allocated its triangles; "+
+						"the redraw is not recycling", i)
+				}
+			}
+		})
+	}
+}
+
+// batchDataPtrs identifies each batch's triangle storage by the address
+// of its first element, which is stable exactly when the buffer was
+// reused rather than re-allocated.
+func batchDataPtrs(bs []DrawCanvasTriBatch) []*float32 {
+	out := make([]*float32, len(bs))
+	for i := range bs {
+		if len(bs[i].Triangles) > 0 {
+			out[i] = &bs[i].Triangles[0]
 		}
-		return testing.AllocsPerRun(50, frame)
 	}
-
-	small, large := measure(40, true), measure(400, true)
-	if large > small {
-		t.Errorf("pooled redraw allocates %.1f objects/frame at 400 "+
-			"circles against %.1f at 40; the tessellation is not being "+
-			"recycled", large, small)
-	}
-
-	// And the control: without pooling the same tenfold rise in
-	// geometry has to cost something, or the comparison above is
-	// measuring nothing.
-	ctlSmall, ctlLarge := measure(40, false), measure(400, false)
-	if ctlLarge <= ctlSmall {
-		t.Fatalf("unpooled redraw allocates %.1f objects/frame at 400 "+
-			"circles against %.1f at 40; expected it to grow, so this "+
-			"test has stopped measuring anything", ctlLarge, ctlSmall)
-	}
+	return out
 }
 
 // TestDrawCanvasSamePassNoReuse covers the guard against recycling
