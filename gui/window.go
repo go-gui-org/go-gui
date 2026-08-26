@@ -197,6 +197,13 @@ type Window struct {
 	// on events for frame-based timing (double-click detection).
 	frameCount uint64
 
+	// Render-pass counter — incremented per renderers rebuild, which
+	// is a finer grain than frameCount (a render-only update rebuilds
+	// without advancing the frame). A DrawCanvas cache entry stamps it
+	// so a redraw can tell whether the buffers it is about to recycle
+	// are still aliased by a command emitted in this same list.
+	renderPass uint64
+
 	// Cleanup guard.
 	cleanupOnce sync.Once
 

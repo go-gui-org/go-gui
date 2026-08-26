@@ -47,6 +47,15 @@ func (w *Window) ExportPrintJob(job PrintJob) PrintExportResult {
 			Fill:  true,
 		})
 		out = append(out, w.renderers...)
+		// Deep-copy the geometry. A DrawCanvas batch's triangles are
+		// recycled by the next redraw of that canvas (see
+		// DrawContext.resetFor), and renderToPDF runs after this
+		// closure has released the lock — a shallow copy would let the
+		// frame loop rewrite the vertices mid-export.
+		for i := range out {
+			out[i].Triangles = append([]float32(nil), out[i].Triangles...)
+			out[i].VertexColors = append([]Color(nil), out[i].VertexColors...)
+		}
 		return out, nil
 	}()
 	if err != nil {

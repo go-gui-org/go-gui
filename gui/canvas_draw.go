@@ -7,9 +7,15 @@ import "math"
 // RenderSvg commands. Text methods append deferred text entries
 // emitted as RenderText commands.
 type DrawContext struct {
-	textMeasure     TextMeasurer
-	recorder        DrawRecorder
-	batches         []DrawCanvasTriBatch
+	textMeasure TextMeasurer
+	recorder    DrawRecorder
+	batches     []DrawCanvasTriBatch
+	// batchPool is the previous redraw's batch list, handed in by
+	// renderDrawCanvas so this pass can claim the triangle and color
+	// buffers it left behind instead of allocating fresh ones. Nil for
+	// a context the caller built directly, which then behaves exactly
+	// as it did before pooling existed.
+	batchPool       []DrawCanvasTriBatch
 	texts           []DrawCanvasTextEntry
 	images          []DrawCanvasImageEntry
 	arcBuf          []float32
@@ -45,14 +51,10 @@ func (dc *DrawContext) getBatch(color Color) *DrawCanvasTriBatch {
 		dc.lastColor == color {
 		return &dc.batches[dc.currentBatchIdx]
 	}
-	dc.batches = append(dc.batches, DrawCanvasTriBatch{
-		Color:     color,
-		Triangles: make([]float32, 0, 128),
-	})
+	b := dc.takeBatch(color, false, defaultBatchVerts)
 	dc.lastColor = color
 	dc.batchIsGradient = false
-	dc.currentBatchIdx = len(dc.batches) - 1
-	return &dc.batches[dc.currentBatchIdx]
+	return b
 }
 
 // FilledRect draws a filled rectangle as two triangles.
