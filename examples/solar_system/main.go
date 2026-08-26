@@ -36,11 +36,13 @@ const (
 
 	canvasID = "solar_canvas"
 
-	// starCount is the fixed starfield size, and starAlphaLevels the
-	// number of quantized twinkle brightnesses. See drawStars for why
-	// the quantization matters.
-	starCount       = 220
-	starAlphaLevels = 8
+	// starCount is the fixed starfield size. starAlphaFloor is the
+	// dimmest a star may go: the quantized field this replaced put its
+	// darkest bucket at the bucket's midpoint rather than at zero, and
+	// keeping that floor is what stops the faintest stars blinking out
+	// entirely at the bottom of the twinkle.
+	starCount      = 220
+	starAlphaFloor = 0.0625
 
 	// keyZoomStep is the multiplier one +/- press applies.
 	keyZoomStep = 1.15
@@ -72,9 +74,19 @@ type App struct {
 	glowStops []gui.GradientStop
 	haloStops []gui.GradientStop
 
+	// discStops backs the sun's disc fill, reused for the same reason.
+	discStops []gui.GradientStop
+
+	// stars is drawStars' mesh scratch, on the same footing as the two
+	// below.
+	stars bodyMesh
+
 	// body is drawBody's mesh scratch, reused for the same reason: nine
-	// planets a tick, each rebuilding a few thousand vertices.
-	body bodyMesh
+	// planets a tick, each rebuilding a few thousand vertices. corona
+	// is drawCorona's, kept separate so the two capacities settle
+	// independently rather than sawing against each other.
+	body   bodyMesh
+	corona bodyMesh
 
 	// Selected and Hovered are a planet index, selSun for the sun, or
 	// -1 for the full-system view / nothing under the cursor.
@@ -107,6 +119,13 @@ type App struct {
 	ScreenX [len(planets)]float32
 	ScreenY [len(planets)]float32
 	ScreenR [len(planets)]float32
+
+	// The world positions those came from, kept because the shading
+	// works in world space and the vertical squash above is not
+	// invertible from ScreenY alone. Draw-path reads only — see
+	// lightVecAt for why lightVec does not use them.
+	WorldX [len(planets)]float32
+	WorldY [len(planets)]float32
 
 	// The sun's, kept the same way and for the same reason: hit-testing
 	// and painting must agree on where it is.

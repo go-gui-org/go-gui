@@ -353,20 +353,53 @@ func TestTooltipClampedToCanvas(t *testing.T) {
 	}
 }
 
-// TestStarLevelsBounded guards the bucketing that keeps the starfield
-// at starAlphaLevels batches instead of one per star.
-func TestStarLevelsBounded(t *testing.T) {
+// TestStarfieldIsOneBatch guards what replaced the alpha bucketing:
+// the whole field is one vertex-colored batch, so no amount of twinkle
+// can reintroduce a batch per star. The alpha floor is checked over the
+// same sweep — a star that reaches zero has blinked out, which is what
+// the bucket midpoint used to prevent.
+func TestStarfieldIsOneBatch(t *testing.T) {
 	t.Parallel()
 	a := newApp()
 	for step := range 200 {
-		tm := float32(step) * 0.05
-		for i := range a.Stars {
-			s := &a.Stars[i]
-			b := s.Base + s.Amp*sin32(tm*s.Speed+s.Phase)
-			if lvl := starLevel(b); lvl < 0 || lvl >= starAlphaLevels {
-				t.Fatalf("starLevel(%v) = %d, out of range", b, lvl)
+		a.Time = float32(step) * 0.05
+		dc := gui.NewDrawContext(400, 300, nil)
+		drawStars(a, dc)
+
+		batches := dc.Batches()
+		if len(batches) != 1 || len(batches[0].VertexColors) == 0 {
+			t.Fatalf("t=%v: starfield emitted %d batches, want 1 colored",
+				a.Time, len(batches))
+		}
+		// Two triangles a star, three vertices a triangle.
+		if want := 6 * len(a.Stars); len(batches[0].VertexColors) != want {
+			t.Fatalf("t=%v: %d vertices, want %d",
+				a.Time, len(batches[0].VertexColors), want)
+		}
+		for _, c := range batches[0].VertexColors {
+			if c.A == 0 {
+				t.Fatalf("t=%v: a star faded to fully transparent", a.Time)
 			}
 		}
+	}
+}
+
+// TestStarfieldDoesNotAllocatePerFrame is the third of the mesh-reuse
+// gates, alongside the body's and the corona's. The field is rebuilt
+// every tick, so a scratch that regrew would allocate for the session.
+func TestStarfieldDoesNotAllocatePerFrame(t *testing.T) {
+	a := newApp()
+	dc := gui.NewDrawContext(400, 300, nil)
+	drawStars(a, dc) // settle the capacity
+
+	got := testing.AllocsPerRun(20, func() {
+		a.Time += 0.05
+		drawStars(a, dc)
+	})
+	// One for the batch FillTrianglesColors opens on the first run,
+	// which AllocsPerRun averages away; more than that is the mesh.
+	if got > 2 {
+		t.Errorf("starfield allocated %v times per run, want <= 2", got)
 	}
 }
 
@@ -435,6 +468,34 @@ func TestShadingFacesTheSun(t *testing.T) {
 			tick(b)
 		}
 		check(t, b)
+	}
+}
+
+// TestWorldCacheMatchesOrbitPos pins the seam the draw path reads
+// through. lightVecAt is fed App.WorldX/Y instead of calling orbitPos,
+// so the two must agree after every recompute; a planet left out of
+// that loop would shade as though it were somewhere else.
+func TestWorldCacheMatchesOrbitPos(t *testing.T) {
+	t.Parallel()
+	a := newTestApp()
+	for _, tm := range []float32{0, 3.7, 91} {
+		a.Time = tm
+		a.recompute()
+		for i := range planets {
+			wx, wy := orbitPos(&planets[i], a.Time)
+			if a.WorldX[i] != wx || a.WorldY[i] != wy {
+				t.Errorf("t=%v planet %d: cached (%v,%v), live (%v,%v)",
+					tm, i, a.WorldX[i], a.WorldY[i], wx, wy)
+			}
+			// And the cached pair must reach the same light vector the
+			// index-taking form does.
+			gx, gy, gz := lightVecAt(a.WorldX[i], a.WorldY[i])
+			wx2, wy2, wz2 := a.lightVec(i)
+			if gx != wx2 || gy != wy2 || gz != wz2 {
+				t.Errorf("t=%v planet %d: lightVecAt disagrees with lightVec",
+					tm, i)
+			}
+		}
 	}
 }
 
@@ -724,6 +785,50 @@ func TestSunDiscToneLimbBrightening(t *testing.T) {
 	}
 }
 
+// TestSunDiscStopsMatchTheRamp is the gate on the shell stack having
+// been replaced by one gradient without a change of appearance. The
+// shells were opaque and sunDiscTone is piecewise linear, so sampling
+// the stops at any radius must return exactly the tone the shell that
+// covered that radius carried. Ordering is checked too: the stops feed
+// a fill that lerps in place, so an out-of-order pos would invert a
+// segment rather than fail loudly.
+func TestSunDiscStopsMatchTheRamp(t *testing.T) {
+	t.Parallel()
+	stops := sunDiscStops(nil)
+
+	for i := 1; i < len(stops); i++ {
+		if stops[i].Pos < stops[i-1].Pos {
+			t.Fatalf("stop %d pos %v goes backwards from %v",
+				i, stops[i].Pos, stops[i-1].Pos)
+		}
+	}
+
+	const samples = 64
+	for i := range samples + 1 {
+		tt := float32(i) / samples
+		// The radius fraction the shell at parameter tt covered.
+		u := 1 - sunShellSpan*tt
+		got := gui.SampleGradientStopColor(stops, u)
+		want := sunDiscTone(tt)
+		// One count of rounding: the stops are bytes, and the fill
+		// lerps them premultiplied, which is a no-op here only because
+		// every disc tone is fully opaque.
+		if absI(int(got.R)-int(want.R)) > 1 ||
+			absI(int(got.G)-int(want.G)) > 1 ||
+			absI(int(got.B)-int(want.B)) > 1 || got.A != want.A {
+			t.Errorf("t=%v (pos %v): gradient %v, ramp %v", tt, u, got, want)
+		}
+	}
+}
+
+// absI is |x| for ints, for the channel comparison above.
+func absI(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
 // drawInto runs the full paint into a headless DrawContext and returns
 // it. A nil TextMeasurer is what tests get, and every DrawContext text
 // call is nil-safe, so the geometry is exercised end to end without a
@@ -948,6 +1053,51 @@ func TestBodyMeshDoesNotAllocatePerFrame(t *testing.T) {
 	})
 	if got != 0 {
 		t.Errorf("mesh rebuild allocated %v times per run, want 0", got)
+	}
+}
+
+// TestCoronaMeshDoesNotAllocatePerFrame is the same gate for the
+// fringe. It is the larger of the two meshes on the full-system view,
+// so a scratch that reallocated here would cost more than the body's.
+func TestCoronaMeshDoesNotAllocatePerFrame(t *testing.T) {
+	var m bodyMesh
+	dc := gui.NewDrawContext(400, 400, nil)
+	drawCorona(dc, &m, 200, 200, 90, 0) // settle the capacity
+
+	got := testing.AllocsPerRun(20, func() {
+		// Only the mesh append is measured. FillTrianglesColors opens a
+		// batch on the shared context, whose growth is not this test's
+		// subject, so the context is reused across runs rather than
+		// rebuilt.
+		drawCorona(dc, &m, 200, 200, 90, 0)
+	})
+	// The batch the fill opens is one allocation on the first run and
+	// none after, which AllocsPerRun averages away; anything more is
+	// the mesh regrowing.
+	if got > 2 {
+		t.Errorf("corona rebuild allocated %v times per run, want <= 2", got)
+	}
+}
+
+// TestCoronaIsOneVertexColoredBatch pins the merge. The fringe was 576
+// separate polygons; the point of the mesh is that it is one.
+func TestCoronaIsOneVertexColoredBatch(t *testing.T) {
+	t.Parallel()
+	var m bodyMesh
+	dc := gui.NewDrawContext(400, 400, nil)
+	drawCorona(dc, &m, 200, 200, 90, 0)
+
+	n := 0
+	for _, b := range dc.Batches() {
+		if len(b.VertexColors) > 0 {
+			n++
+		}
+	}
+	if n != 1 {
+		t.Errorf("corona emitted %d vertex-colored batches, want 1", n)
+	}
+	if want := 2 * coronaTiers * coronaSteps; len(m.cols) != 3*want {
+		t.Errorf("corona emitted %d vertices, want %d", len(m.cols), 3*want)
 	}
 }
 

@@ -163,6 +163,19 @@ var cosElev = sqrt32(1 - diskTilt*diskTilt)
 // falls out of this for free rather than needing its own derivation.
 func (a *App) lightVec(i int) (lx, ly, lz float32) {
 	px, py := orbitPos(&planets[i], a.Time)
+	return lightVecAt(px, py)
+}
+
+// lightVecAt is lightVec with the planet's world position supplied.
+//
+// The draw path takes this door, reading the position recompute
+// already cached, so the eight planets do not repeat the orbit
+// trigonometry a second time in the same tick. lightVec keeps its own
+// orbitPos call rather than reading the cache: it is also reached from
+// litFraction and from callers that move Time on their own, and a
+// cache read there would answer with the previous position instead of
+// failing.
+func lightVecAt(px, py float32) (lx, ly, lz float32) {
 	d := sqrt32(px*px + py*py)
 	if d == 0 {
 		// Degenerate: a planet at the sun's own position. Light it
@@ -207,6 +220,10 @@ func (a *App) recompute() {
 	a.SunR = sunRadius * z
 	for i := range planets {
 		wx, wy := orbitPos(&planets[i], a.Time)
+		// Kept as well as the screen position: the shading needs the
+		// world vector to the sun, which the screen squash has already
+		// destroyed. See lightVecAt.
+		a.WorldX[i], a.WorldY[i] = wx, wy
 		a.ScreenX[i], a.ScreenY[i] = a.worldToScreen(wx, wy)
 		a.ScreenR[i] = planets[i].Radius * z
 	}

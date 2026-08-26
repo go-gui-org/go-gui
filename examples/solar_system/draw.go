@@ -86,6 +86,11 @@ const (
 	granuleMinRadius = 14
 	granuleInset     = 0.94
 
+	// granulesPerPx caps the cell count against the disc's pixel
+	// radius, so the default view draws about half the set and the
+	// full set arrives once the sun is 70px across.
+	granulesPerPx = 1.0
+
 	// The corona rim: a ragged band hugging the limb, drawn as
 	// coronaTiers quad strips of falling alpha. coronaSteps is how many
 	// angular segments the ragged edge is traced with, and must match
@@ -96,11 +101,11 @@ const (
 	coronaRagged  = 0.72 // how much of that reach the noise modulates
 	coronaDriftHz = 0.05 // how fast the ragged edge crawls
 
-	// sunShells ramps the disc itself from a near-white core to its
-	// orange limb, which is what stops it reading as a flat coin.
-	sunShellsPerPx = 0.9
-	sunShellsMin   = 14
-	sunShellsMax   = 96
+	// sunShellSpan is how far in from the limb the disc ramp runs, as a
+	// fraction of the radius: the core tone is reached at 0.03*r and
+	// holds flat from there in. It is what stops the face reading as a
+	// flat coin.
+	sunShellSpan = 0.97
 
 	// shadeRows is how many rings of constant Lambert intensity the
 	// sphere mesh is built from, and shadeArc how many segments each
@@ -184,49 +189,33 @@ func drawSystem(a *App, dc *gui.DrawContext) {
 	drawTooltip(a, dc)
 }
 
-// drawStars paints the twinkling background.
+// drawStars paints the twinkling background as one vertex-colored mesh.
 //
-// Brightness is quantized to starAlphaLevels and the field is drawn one
-// level at a time. DrawContext merges only *consecutive* same-color
-// triangles, so 220 stars at 220 distinct alphas would open 220 batches
-// every frame; grouping opens 8. At star size the banding is invisible.
-// The stars are squares rather than circles for the same reason: two
-// triangles instead of ~64, and at 1-2px nobody can tell.
+// The field used to be quantized to eight alpha levels and drawn a
+// level at a time, because a flat batch merges only *consecutive*
+// same-color triangles and 220 stars at 220 distinct alphas would open
+// 220 batches. A vertex-colored batch carries a color per vertex, so
+// the grouping — and the eight-way scan over the field it needed — has
+// nothing left to buy: one pass, one batch, and each star keeps its own
+// alpha instead of the nearest eighth.
 //
-// Levels are bucketed once up front rather than re-derived inside the
-// per-level pass: the twinkle is a sine per star, and evaluating it
-// once per level instead would cost starAlphaLevels times as many.
-// The bucket array is fixed-size and does not escape, so it stays on
-// the stack and the whole pass allocates nothing.
+// The stars stay squares rather than circles: two triangles instead of
+// ~64, and at 1-2px nobody can tell.
 func drawStars(a *App, dc *gui.DrawContext) {
-	var bucket [starCount]uint8
-	n := min(len(a.Stars), starCount)
-	for i := range n {
+	m := &a.stars
+	m.tris, m.cols = m.tris[:0], m.cols[:0]
+
+	for i := range min(len(a.Stars), starCount) {
 		s := &a.Stars[i]
-		bucket[i] = uint8(starLevel(s.Base +
-			s.Amp*sin32(a.Time*s.Speed+s.Phase)))
-	}
+		b := s.Base + s.Amp*sin32(a.Time*s.Speed+s.Phase)
+		c := colorStar.WithOpacity(clamp32(b, starAlphaFloor, 1))
 
-	for level := range starAlphaLevels {
-		// Level midpoint, so the darkest bucket is not fully invisible.
-		alpha := (float32(level) + 0.5) / starAlphaLevels
-		c := colorStar.WithOpacity(alpha)
-		for i := range n {
-			if int(bucket[i]) != level {
-				continue
-			}
-			s := &a.Stars[i]
-			dc.FilledRect(s.X*dc.Width, s.Y*dc.Height, s.Size, s.Size, c)
-		}
+		x0, y0 := s.X*dc.Width, s.Y*dc.Height
+		x1, y1 := x0+s.Size, y0+s.Size
+		m.appendTri(x0, y0, c, x1, y0, c, x1, y1, c)
+		m.appendTri(x0, y0, c, x1, y1, c, x0, y1, c)
 	}
-}
-
-// starLevel buckets a brightness in [0,1] into [0, starAlphaLevels).
-func starLevel(b float32) int {
-	lvl := int(floor32(clamp32(b, 0, 0.999) * starAlphaLevels))
-	// clamp32 already bounds the input, so this only guards against a
-	// future change to the levels constant.
-	return min(max(lvl, 0), starAlphaLevels-1)
+	dc.FillTrianglesColors(m.tris, m.cols)
 }
 
 // drawOrbits traces each orbit as a full ellipse. Arc is the ellipse
@@ -367,18 +356,18 @@ func drawSun(a *App, dc *gui.DrawContext) {
 		Stops:  a.glowStops,
 	})
 
-	// The disc: shells from the gold limb through cream to a white
-	// core. Three stops for the same reason the planets use three —
-	// two would walk the middle of the face through a washed-out
-	// midpoint of the two ends.
-	shells := int(clamp32(r*sunShellsPerPx, sunShellsMin, sunShellsMax))
-	for i := range shells {
-		t := float32(i) / float32(shells-1) // 0 at the limb, 1 at the core
-		dc.FilledCircle(cx, cy, r*(1-0.97*t), sunDiscTone(t))
-	}
+	// The disc: the gold limb through cream to a white core. Three
+	// segments for the same reason the planets use three — two would
+	// walk the middle of the face through a washed-out midpoint of the
+	// two ends.
+	a.discStops = sunDiscStops(a.discStops)
+	dc.FilledCircleGradient(cx, cy, r, &gui.CanvasGradient{
+		Radial: true,
+		Stops:  a.discStops,
+	})
 
 	drawGranulation(dc, cx, cy, r)
-	drawCorona(dc, cx, cy, r, a.Time)
+	drawCorona(dc, &a.corona, cx, cy, r, a.Time)
 }
 
 // sunDiscTone ramps the face from the limb (t = 0) to the core
@@ -397,6 +386,34 @@ func sunDiscTone(t float32) gui.Color {
 	}
 }
 
+// sunDiscStops turns the disc ramp into the stops of one radial fill.
+//
+// This is not the integration haloStops does. The shell stack this
+// replaces was *opaque* — every shell hid the one before it, so the
+// visible color at radius r*(1-sunShellSpan*t) was simply
+// sunDiscTone(t), with nothing to composite. And sunDiscTone is
+// piecewise *linear* in t while the fill lerps between stops, so one
+// stop at each of its three hand-over points reproduces the ramp
+// exactly, at any size, instead of the 14-96 quantized bands the stack
+// emitted.
+//
+// The ramp runs inward, so t maps to the radius fraction
+// u = 1 - sunShellSpan*t and the stops come out in reverse order: pos
+// 0 is the core, pos 1 the limb.
+func sunDiscStops(dst []gui.GradientStop) []gui.GradientStop {
+	dst = dst[:0]
+	// The core tone held flat inside the innermost shell. Without a
+	// stop pinning pos 0 the fill would keep ramping past it.
+	dst = append(dst, gui.GradientStop{Color: sunDiscTone(1), Pos: 0})
+	for _, t := range [...]float32{1, discCoreStop, discRimStop, 0} {
+		dst = append(dst, gui.GradientStop{
+			Color: sunDiscTone(t),
+			Pos:   1 - sunShellSpan*t,
+		})
+	}
+	return dst
+}
+
 // drawGranulation lays the mottled convection texture over the disc.
 //
 // Tier-major, and lit and dark in separate passes: every circle inside
@@ -408,6 +425,14 @@ func drawGranulation(dc *gui.DrawContext, cx, cy, r float32) {
 	if r < granuleMinRadius {
 		return // the cells would be sub-pixel; they would only cost batches
 	}
+	// Level of detail. The full set is sized for a sun that fills the
+	// canvas; at the default zoom it is 70 cells over a 70px disc,
+	// where the texture reads as noise long before the last cell is
+	// placed. Taking a prefix is a fair sample because makeGranules
+	// draws every field from one RNG stream, so the cells are in no
+	// order — the prefix is as evenly spread as the whole.
+	cells := sunGranules[:min(len(sunGranules), int(r*granulesPerPx))]
+
 	for _, lit := range [2]bool{true, false} {
 		base := colorSunGranuleDark
 		if lit {
@@ -417,7 +442,7 @@ func drawGranulation(dc *gui.DrawContext, cx, cy, r float32) {
 			// Outermost tier first, so the stack builds a soft falloff
 			// rather than a hard disc.
 			scale := 1 - float32(tier)/granuleTiers
-			for _, g := range sunGranules {
+			for _, g := range cells {
 				if g.lit != lit {
 					continue
 				}
@@ -444,8 +469,17 @@ func drawGranulation(dc *gui.DrawContext, cx, cy, r float32) {
 // The same noise modulates every boundary, so the raggedness is
 // coherent from the limb outward instead of a set of independent
 // wobbles, and its index drifts with time so the fringe crawls.
-func drawCorona(dc *gui.DrawContext, cx, cy, r, now float32) {
-	var quad [8]float32
+//
+// The whole fringe is one vertex-colored batch rather than
+// coronaTiers*coronaSteps polygons. That is safe here in a way it is
+// not for the granulation: the bands are *disjoint*, tier k's outer
+// boundary being tier k+1's inner one from the same coronaPoint call,
+// so nothing inside the mesh overlaps anything else and there is no
+// stacked translucency for the merge to flatten. Quads within a tier
+// stop double-blending at their shared edge, which is what the seam
+// note on appendTri is about.
+func drawCorona(dc *gui.DrawContext, m *bodyMesh, cx, cy, r, now float32) {
+	m.tris, m.cols = m.tris[:0], m.cols[:0]
 	drift := now * coronaDriftHz * float32(coronaSteps)
 
 	for tier := range coronaTiers {
@@ -462,16 +496,18 @@ func drawCorona(dc *gui.DrawContext, cx, cy, r, now float32) {
 			ang := 2 * math.Pi * float32(k) / coronaSteps
 			cX, cY := coronaPoint(r, ang, f0, drift)
 			dX, dY := coronaPoint(r, ang, f1, drift)
-			quad = [8]float32{
-				cx + aX, cy + aY,
-				cx + cX, cy + cY,
-				cx + dX, cy + dY,
-				cx + bX, cy + bY,
-			}
-			dc.FilledPolygon(quad[:], col)
+			// The same two triangles FilledPolygon's fan emitted,
+			// through appendTri so the winding is measured: the soft
+			// backend accumulates signed coverage over the batch and a
+			// quad wound against its neighbour would carve a seam.
+			m.appendTri(cx+aX, cy+aY, col, cx+cX, cy+cY, col,
+				cx+dX, cy+dY, col)
+			m.appendTri(cx+aX, cy+aY, col, cx+dX, cy+dY, col,
+				cx+bX, cy+bY, col)
 			aX, aY, bX, bY = cX, cY, dX, dY
 		}
 	}
+	dc.FillTrianglesColors(m.tris, m.cols)
 }
 
 // coronaPoint is a point on the fringe boundary at fraction f of the
@@ -546,7 +582,7 @@ func drawPlanet(a *App, dc *gui.DrawContext, i int) {
 
 	// One vector carries both facts the shading needs: which way the
 	// sun lies on screen, and how far around behind the planet it is.
-	lx, ly, lz := a.lightVec(i)
+	lx, ly, lz := lightVecAt(a.WorldX[i], a.WorldY[i])
 
 	// Stack-allocated: initSurface fills it, and drawBody does not let
 	// the pointer escape.

@@ -8,6 +8,41 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- **`examples/solar_system` draws a frame in 161 calls instead of 1093** (#429),
+  with 40-60% fewer allocations behind it. No engine change; every fix is in the
+  example. The example drew each effect as a stack of primitives, one draw call
+  apiece, and each call opens or extends a batch.
+
+  Four of them collapse to one call each. The sun's disc was 14-96 opaque
+  circles faking a gradient — but opaque shells composite to nothing, and the
+  ramp they sampled is piecewise linear, so five stops and one
+  `FilledCircleGradient` reproduce it exactly and drop the banding it showed at
+  small sizes. The corona was 576 polygons and the starfield 220 rectangles;
+  both are now a single `FillTrianglesColors` mesh, which is safe because
+  neither field overlaps itself. The starfield's eight-level alpha quantization,
+  which existed only to keep the batch count down, goes with it, so the twinkle
+  is continuous. The granulation keeps its separate circles — the cells overlap
+  on purpose and merging them would change how they blend — but its count now
+  scales with the sun's pixel radius instead of drawing a canvas-filling texture
+  onto a 70px disc.
+
+  The draw path also stops recomputing orbit positions that `recompute` cached a
+  moment earlier.
+
+  Measured at 1100x760, 500 iterations x 5 runs, Apple M5:
+
+  | view        | draw calls  | batches  | allocs/frame | bytes/frame     |
+  | ----------- | ----------- | -------- | ------------ | --------------- |
+  | full-system | 1093 -> 161 | 79 -> 42 | 341 -> 208   | 3.15 -> 2.19 MB |
+  | jupiter     | 1128 -> 239 | 97 -> 22 | 488 -> 184   | 4.40 -> 3.75 MB |
+
+  Frame time moves less than the draw-call count does, because the benchmark
+  measures tessellation rather than submission: full-system 778 -> 725 us and
+  jupiter 1168 -> 1096 us, both about 6-7%. The counts above are now enforced as
+  regression budgets rather than logged and forgotten.
+
 ## [v0.65.0] - 2026-08-25
 
 Gradients and per-vertex color reach `DrawContext`, and the SVG gradient
