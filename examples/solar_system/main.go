@@ -88,6 +88,10 @@ type App struct {
 	body   bodyMesh
 	corona bodyMesh
 
+	// granules is drawGranulation's, on the same footing. It is filled
+	// and flushed twice per frame, once per cell polarity.
+	granules bodyMesh
+
 	// Selected and Hovered are a planet index, selSun for the sun, or
 	// -1 for the full-system view / nothing under the cursor.
 	Selected int

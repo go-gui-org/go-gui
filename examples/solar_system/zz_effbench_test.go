@@ -127,3 +127,34 @@ func BenchmarkTickOnly(b *testing.B) {
 		tick(a)
 	}
 }
+
+// benchWholeFrame drives the frame the app actually runs: view
+// generation, layout, and the renderer build that calls OnDraw through
+// renderDrawCanvas — where the tessellation buffers are pooled. The
+// benchFrame family above measures OnDraw in isolation with a fresh
+// DrawContext, so it cannot see that pooling; this one can, and it is
+// the number that corresponds to a running window.
+func benchWholeFrame(b *testing.B, sel int) {
+	a := newApp()
+	a.CanvasW, a.CanvasH = windowW, windowH
+	a.Selected = sel
+	for range 120 {
+		tick(a)
+	}
+	w := gui.NewWindow(gui.WindowCfg{
+		State:  a,
+		Width:  windowW,
+		Height: windowH,
+	})
+	w.TestRender(mainView)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		tick(a)
+		w.TestRender(nil)
+	}
+}
+
+func BenchmarkWholeFrameFullSystem(b *testing.B) { benchWholeFrame(b, -1) }
+func BenchmarkWholeFrameJupiter(b *testing.B)    { benchWholeFrame(b, 4) }
