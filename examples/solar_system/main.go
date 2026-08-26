@@ -36,11 +36,13 @@ const (
 
 	canvasID = "solar_canvas"
 
-	// starCount is the fixed starfield size, and starAlphaLevels the
-	// number of quantized twinkle brightnesses. See drawStars for why
-	// the quantization matters.
-	starCount       = 220
-	starAlphaLevels = 8
+	// starCount is the fixed starfield size. starAlphaFloor is the
+	// dimmest a star may go: the quantized field this replaced put its
+	// darkest bucket at the bucket's midpoint rather than at zero, and
+	// keeping that floor is what stops the faintest stars blinking out
+	// entirely at the bottom of the twinkle.
+	starCount      = 220
+	starAlphaFloor = 0.0625
 
 	// keyZoomStep is the multiplier one +/- press applies.
 	keyZoomStep = 1.15
@@ -74,6 +76,10 @@ type App struct {
 
 	// discStops backs the sun's disc fill, reused for the same reason.
 	discStops []gui.GradientStop
+
+	// stars is drawStars' mesh scratch, on the same footing as the two
+	// below.
+	stars bodyMesh
 
 	// body is drawBody's mesh scratch, reused for the same reason: nine
 	// planets a tick, each rebuilding a few thousand vertices. corona

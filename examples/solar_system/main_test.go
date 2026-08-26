@@ -353,20 +353,53 @@ func TestTooltipClampedToCanvas(t *testing.T) {
 	}
 }
 
-// TestStarLevelsBounded guards the bucketing that keeps the starfield
-// at starAlphaLevels batches instead of one per star.
-func TestStarLevelsBounded(t *testing.T) {
+// TestStarfieldIsOneBatch guards what replaced the alpha bucketing:
+// the whole field is one vertex-colored batch, so no amount of twinkle
+// can reintroduce a batch per star. The alpha floor is checked over the
+// same sweep — a star that reaches zero has blinked out, which is what
+// the bucket midpoint used to prevent.
+func TestStarfieldIsOneBatch(t *testing.T) {
 	t.Parallel()
 	a := newApp()
 	for step := range 200 {
-		tm := float32(step) * 0.05
-		for i := range a.Stars {
-			s := &a.Stars[i]
-			b := s.Base + s.Amp*sin32(tm*s.Speed+s.Phase)
-			if lvl := starLevel(b); lvl < 0 || lvl >= starAlphaLevels {
-				t.Fatalf("starLevel(%v) = %d, out of range", b, lvl)
+		a.Time = float32(step) * 0.05
+		dc := gui.NewDrawContext(400, 300, nil)
+		drawStars(a, dc)
+
+		batches := dc.Batches()
+		if len(batches) != 1 || len(batches[0].VertexColors) == 0 {
+			t.Fatalf("t=%v: starfield emitted %d batches, want 1 colored",
+				a.Time, len(batches))
+		}
+		// Two triangles a star, three vertices a triangle.
+		if want := 6 * len(a.Stars); len(batches[0].VertexColors) != want {
+			t.Fatalf("t=%v: %d vertices, want %d",
+				a.Time, len(batches[0].VertexColors), want)
+		}
+		for _, c := range batches[0].VertexColors {
+			if c.A == 0 {
+				t.Fatalf("t=%v: a star faded to fully transparent", a.Time)
 			}
 		}
+	}
+}
+
+// TestStarfieldDoesNotAllocatePerFrame is the third of the mesh-reuse
+// gates, alongside the body's and the corona's. The field is rebuilt
+// every tick, so a scratch that regrew would allocate for the session.
+func TestStarfieldDoesNotAllocatePerFrame(t *testing.T) {
+	a := newApp()
+	dc := gui.NewDrawContext(400, 300, nil)
+	drawStars(a, dc) // settle the capacity
+
+	got := testing.AllocsPerRun(20, func() {
+		a.Time += 0.05
+		drawStars(a, dc)
+	})
+	// One for the batch FillTrianglesColors opens on the first run,
+	// which AllocsPerRun averages away; more than that is the mesh.
+	if got > 2 {
+		t.Errorf("starfield allocated %v times per run, want <= 2", got)
 	}
 }
 
