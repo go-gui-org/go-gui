@@ -9,13 +9,6 @@ package gui
 // second and later redraws of the same canvas write into the buffers
 // the previous one left behind instead of allocating a new set.
 
-// canvasBatchRetainMax bounds the capacity a pooled buffer may carry
-// into the next redraw. One spike frame — a canvas zoomed until a body
-// fills it, say — would otherwise pin its triangle buffer for the life
-// of the window. Past the cap the buffer is dropped and the batch
-// starts fresh, the same trade scratchSlice makes.
-const canvasBatchRetainMax = 1 << 16 // 65 536 floats, ~256 KB
-
 // defaultBatchVerts is the vertex count a flat batch reserves for,
 // matching the cap 128 the pre-pool code allocated.
 const defaultBatchVerts = 64
@@ -39,11 +32,15 @@ func (dc *DrawContext) takeBatch(color Color, gradient bool,
 	numVerts int) *DrawCanvasTriBatch {
 	nb := DrawCanvasTriBatch{Color: color}
 	if i := len(dc.batches); i < len(dc.batchPool) {
+		// Reused at any size, deliberately. A cap on it would only
+		// force a reallocation: the cache entry holds this geometry
+		// until the canvas is redrawn either way, so refusing to
+		// recycle a large buffer releases nothing and makes the
+		// heaviest canvases — the ones the pooling is for — the only
+		// ones that keep allocating.
 		p := &dc.batchPool[i]
-		if cap(p.Triangles) <= canvasBatchRetainMax {
-			nb.Triangles = p.Triangles[:0]
-		}
-		if gradient && cap(p.VertexColors) <= canvasBatchRetainMax {
+		nb.Triangles = p.Triangles[:0]
+		if gradient {
 			nb.VertexColors = p.VertexColors[:0]
 		}
 	}

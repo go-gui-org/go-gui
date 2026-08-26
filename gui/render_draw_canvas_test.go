@@ -572,10 +572,10 @@ func TestRenderDrawCanvasFlatBatchHasNoVertexColors(t *testing.T) {
 // benchCanvasDraw is a stand-in for an animated canvas: a flat fan, a
 // stroked ellipse and a radial gradient fill, the three shapes whose
 // tessellation buffers dominate a real drawing app's frame.
-func benchCanvasDraw(dc *DrawContext, t float32) {
+func benchCanvasDraw(dc *DrawContext, t float32, circles int) {
 	dc.FilledRect(0, 0, dc.Width, dc.Height, RGB(6, 8, 18))
-	for i := range 40 {
-		x := 20 + float32(i)*6 + t
+	for i := range circles {
+		x := 20 + float32(i%40)*6 + t
 		dc.FilledCircle(x, 60+t, 9, RGBA(255, 250, 240, 40))
 	}
 	dc.Arc(150, 150, 120, 40, 0, 2*math.Pi, RGBA(150, 170, 210, 46), 1)
@@ -594,13 +594,17 @@ var benchCanvasGradient = CanvasGradient{
 }
 
 func benchCanvasShape(t *float32) *Shape {
+	return benchCanvasShapeN(t, 40)
+}
+
+func benchCanvasShapeN(t *float32, circles int) *Shape {
 	return &Shape{
 		shapeType: shapeDrawCanvas,
 		ID:        "bench-canvas",
 		Width:     300, Height: 300,
 		Color: ColorTransparent,
 		events: &eventHandlers{
-			OnDraw: func(dc *DrawContext) { benchCanvasDraw(dc, *t) },
+			OnDraw: func(dc *DrawContext) { benchCanvasDraw(dc, *t, circles) },
 		},
 	}
 }
@@ -669,7 +673,7 @@ func TestDrawCanvasReuseMatchesFresh(t *testing.T) {
 	}
 
 	fresh := DrawContext{Width: 300, Height: 300, Scale: 1}
-	benchCanvasDraw(&fresh, 3)
+	benchCanvasDraw(&fresh, 3, 40)
 
 	if len(pooled.Batches) != len(fresh.batches) {
 		t.Fatalf("pooled %d batches, fresh %d",
@@ -704,20 +708,28 @@ func TestDrawCanvasReuseMatchesFresh(t *testing.T) {
 }
 
 // TestDrawCanvasRedrawSteadyStateAllocs pins the property the pooling
-// exists for, as a ratio rather than an absolute count.
+// exists for: a steady-state redraw allocates nothing that scales with
+// what it draws.
 //
-// A canvas with no ID is never cached, so it never has a previous entry
-// to recycle — the same code path with the pooling switched off. That
-// makes it the control, and comparing against it inside one process
-// keeps the assertion free of what the toolchain, the platform or a
-// race build decide to put on the heap around the measurement. On the
-// reference platform the pooled figure is flatly zero.
+// Stated as growth rather than as a count, because a count is not
+// portable. Emitting a RenderCmd costs a constant allocation per
+// command on some platforms and none on others — on arm64 the whole
+// redraw measures a flat zero, on amd64 it measures one per emitted
+// batch — and neither figure has anything to do with the tessellation
+// buffers. Ten times the geometry through the same shape has the same
+// command count, so anything the extra circles add is the thing this
+// test is about.
 func TestDrawCanvasRedrawSteadyStateAllocs(t *testing.T) {
-	run := func(id string) float64 {
+	measure := func(circles int, pool bool) float64 {
 		w := makeWindowWithScratch()
 		var phase float32
-		shape := benchCanvasShape(&phase)
-		shape.ID = id
+		shape := benchCanvasShapeN(&phase, circles)
+		if !pool {
+			// A canvas with no ID is never cached, so it never has a
+			// previous entry to recycle: the same path with the
+			// pooling switched off.
+			shape.ID = ""
+		}
 		clip := makeClip(0, 0, 300, 300)
 		var version uint64
 
@@ -735,16 +747,21 @@ func TestDrawCanvasRedrawSteadyStateAllocs(t *testing.T) {
 		return testing.AllocsPerRun(50, frame)
 	}
 
-	pooled := run("bench-canvas")
-	unpooled := run("")
-	if unpooled < 10 {
-		t.Fatalf("control allocated %.1f objects/frame; too few to "+
-			"compare against, the test has stopped measuring anything",
-			unpooled)
+	small, large := measure(40, true), measure(400, true)
+	if large > small {
+		t.Errorf("pooled redraw allocates %.1f objects/frame at 400 "+
+			"circles against %.1f at 40; the tessellation is not being "+
+			"recycled", large, small)
 	}
-	if pooled > unpooled/10 {
-		t.Errorf("pooled redraw allocates %.1f objects/frame against "+
-			"%.1f unpooled, want under a tenth", pooled, unpooled)
+
+	// And the control: without pooling the same tenfold rise in
+	// geometry has to cost something, or the comparison above is
+	// measuring nothing.
+	ctlSmall, ctlLarge := measure(40, false), measure(400, false)
+	if ctlLarge <= ctlSmall {
+		t.Fatalf("unpooled redraw allocates %.1f objects/frame at 400 "+
+			"circles against %.1f at 40; expected it to grow, so this "+
+			"test has stopped measuring anything", ctlLarge, ctlSmall)
 	}
 }
 

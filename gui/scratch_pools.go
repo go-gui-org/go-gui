@@ -28,9 +28,17 @@ func (s *scratchSlice[T]) put(b []T) {
 }
 
 // canvasScratchRetainMax bounds the capacity a canvas scratch buffer
-// may hold between redraws. The gradient split buffer for a fill that
-// covers the whole window runs to tens of thousands of floats, so the
-// cap is generous; past it the buffer is dropped rather than pinned.
+// may hold between redraws, so one outsized frame does not pin a
+// megabyte for the life of the window. Sixteen times svgVColRetainMax,
+// because the gradient split buffer for a fill covering the whole
+// window already runs to a hundred thousand floats.
+//
+// Unlike a batch buffer — which the cache entry retains anyway, so
+// capping its reuse would release nothing — these are pure overhead
+// between frames and worth releasing. The trade is that a canvas
+// genuinely needing more than this on *every* frame reallocates on
+// every frame; the cap is set well past where any measured content
+// lands.
 const canvasScratchRetainMax = 1 << 18 // 262 144 floats, ~1 MB
 
 // keepScratch returns b emptied for reuse, or nil when it has grown
