@@ -383,7 +383,7 @@ func drawSun(a *App, dc *gui.DrawContext) {
 	})
 
 	drawGranulation(dc, cx, cy, r)
-	drawCorona(dc, cx, cy, r, a.Time)
+	drawCorona(dc, &a.corona, cx, cy, r, a.Time)
 }
 
 // sunDiscTone ramps the face from the limb (t = 0) to the core
@@ -485,8 +485,17 @@ func drawGranulation(dc *gui.DrawContext, cx, cy, r float32) {
 // The same noise modulates every boundary, so the raggedness is
 // coherent from the limb outward instead of a set of independent
 // wobbles, and its index drifts with time so the fringe crawls.
-func drawCorona(dc *gui.DrawContext, cx, cy, r, now float32) {
-	var quad [8]float32
+//
+// The whole fringe is one vertex-colored batch rather than
+// coronaTiers*coronaSteps polygons. That is safe here in a way it is
+// not for the granulation: the bands are *disjoint*, tier k's outer
+// boundary being tier k+1's inner one from the same coronaPoint call,
+// so nothing inside the mesh overlaps anything else and there is no
+// stacked translucency for the merge to flatten. Quads within a tier
+// stop double-blending at their shared edge, which is what the seam
+// note on appendTri is about.
+func drawCorona(dc *gui.DrawContext, m *bodyMesh, cx, cy, r, now float32) {
+	m.tris, m.cols = m.tris[:0], m.cols[:0]
 	drift := now * coronaDriftHz * float32(coronaSteps)
 
 	for tier := range coronaTiers {
@@ -503,16 +512,18 @@ func drawCorona(dc *gui.DrawContext, cx, cy, r, now float32) {
 			ang := 2 * math.Pi * float32(k) / coronaSteps
 			cX, cY := coronaPoint(r, ang, f0, drift)
 			dX, dY := coronaPoint(r, ang, f1, drift)
-			quad = [8]float32{
-				cx + aX, cy + aY,
-				cx + cX, cy + cY,
-				cx + dX, cy + dY,
-				cx + bX, cy + bY,
-			}
-			dc.FilledPolygon(quad[:], col)
+			// The same two triangles FilledPolygon's fan emitted,
+			// through appendTri so the winding is measured: the soft
+			// backend accumulates signed coverage over the batch and a
+			// quad wound against its neighbour would carve a seam.
+			m.appendTri(cx+aX, cy+aY, col, cx+cX, cy+cY, col,
+				cx+dX, cy+dY, col)
+			m.appendTri(cx+aX, cy+aY, col, cx+dX, cy+dY, col,
+				cx+bX, cy+bY, col)
 			aX, aY, bX, bY = cX, cY, dX, dY
 		}
 	}
+	dc.FillTrianglesColors(m.tris, m.cols)
 }
 
 // coronaPoint is a point on the fringe boundary at fraction f of the

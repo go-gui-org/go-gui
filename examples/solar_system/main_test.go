@@ -995,6 +995,51 @@ func TestBodyMeshDoesNotAllocatePerFrame(t *testing.T) {
 	}
 }
 
+// TestCoronaMeshDoesNotAllocatePerFrame is the same gate for the
+// fringe. It is the larger of the two meshes on the full-system view,
+// so a scratch that reallocated here would cost more than the body's.
+func TestCoronaMeshDoesNotAllocatePerFrame(t *testing.T) {
+	var m bodyMesh
+	dc := gui.NewDrawContext(400, 400, nil)
+	drawCorona(dc, &m, 200, 200, 90, 0) // settle the capacity
+
+	got := testing.AllocsPerRun(20, func() {
+		// Only the mesh append is measured. FillTrianglesColors opens a
+		// batch on the shared context, whose growth is not this test's
+		// subject, so the context is reused across runs rather than
+		// rebuilt.
+		drawCorona(dc, &m, 200, 200, 90, 0)
+	})
+	// The batch the fill opens is one allocation on the first run and
+	// none after, which AllocsPerRun averages away; anything more is
+	// the mesh regrowing.
+	if got > 2 {
+		t.Errorf("corona rebuild allocated %v times per run, want <= 2", got)
+	}
+}
+
+// TestCoronaIsOneVertexColoredBatch pins the merge. The fringe was 576
+// separate polygons; the point of the mesh is that it is one.
+func TestCoronaIsOneVertexColoredBatch(t *testing.T) {
+	t.Parallel()
+	var m bodyMesh
+	dc := gui.NewDrawContext(400, 400, nil)
+	drawCorona(dc, &m, 200, 200, 90, 0)
+
+	n := 0
+	for _, b := range dc.Batches() {
+		if len(b.VertexColors) > 0 {
+			n++
+		}
+	}
+	if n != 1 {
+		t.Errorf("corona emitted %d vertex-colored batches, want 1", n)
+	}
+	if want := 2 * coronaTiers * coronaSteps; len(m.cols) != 3*want {
+		t.Errorf("corona emitted %d vertices, want %d", len(m.cols), 3*want)
+	}
+}
+
 // pointInMesh reports whether (px,py) lies in some triangle of the
 // vertex-colored batches. The mesh is wound consistently, so a point is
 // inside a triangle when all three edge cross products share a sign;

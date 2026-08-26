@@ -76,8 +76,11 @@ type App struct {
 	discStops []gui.GradientStop
 
 	// body is drawBody's mesh scratch, reused for the same reason: nine
-	// planets a tick, each rebuilding a few thousand vertices.
-	body bodyMesh
+	// planets a tick, each rebuilding a few thousand vertices. corona
+	// is drawCorona's, kept separate so the two capacities settle
+	// independently rather than sawing against each other.
+	body   bodyMesh
+	corona bodyMesh
 
 	// Selected and Hovered are a planet index, selSun for the sun, or
 	// -1 for the full-system view / nothing under the cursor.
