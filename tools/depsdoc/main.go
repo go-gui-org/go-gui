@@ -178,7 +178,7 @@ func run() error {
 	b.WriteString("```bash\n")
 	b.WriteString("go build ./...\n")
 	b.WriteString("go vet ./...\n")
-	b.WriteString("golangci-lint run ./...\n")
+	b.WriteString("make lint\n")
 	b.WriteString("go test ./...\n")
 	b.WriteString("```\n\n")
 	b.WriteString("Commit `go.mod` and `go.sum` together whenever either changes.\n")

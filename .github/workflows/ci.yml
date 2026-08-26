@@ -142,9 +142,7 @@ jobs:
         run: go build -tags otoaudio ./gui/audio/...
 
       - name: Lint
-        uses: golangci/golangci-lint-action@v9
-        with:
-          version: v2.13
+        run: make lint
 
       # The step above analyses the GOOS=linux build only, so every
       # //go:build windows file (27 of them: gl/, sni/, filedialog/,
@@ -152,34 +150,28 @@ jobs:
       # nothing would flag. Linting is a type-check, not an execution,
       # so the windows build analyses fine from this runner.
       - name: Lint (GOOS=windows)
-        uses: golangci/golangci-lint-action@v9
         env:
           GOOS: windows
-        with:
-          version: v2.13
+        run: make lint
 
       # Same blind spot as windows above, for the browser build: every
       # //go:build js file (the gui/backend/web backend) was unlinted
       # and had accumulated a two-issue baseline. GOARCH must be wasm —
       # js/amd64 is not a valid target pair.
       - name: Lint (GOOS=js)
-        uses: golangci/golangci-lint-action@v9
         env:
           GOOS: js
           GOARCH: wasm
-        with:
-          version: v2.13
+        run: make lint
 
       # The darwin build analyses from this runner with cgo disabled
       # (automatic for cross-compilation), which covers the cgo-free
       # darwin files. The cgo core of the metal backend still needs a
       # macOS runner; tracked separately.
       - name: Lint (GOOS=darwin)
-        uses: golangci/golangci-lint-action@v9
         env:
           GOOS: darwin
-        with:
-          version: v2.13
+        run: make lint
 
       - name: Required-ID check
         run: go run ./tools/requiredid/cmd/requiredid ./...
@@ -293,7 +285,6 @@ jobs:
         run: echo "IOS_SDK=$(xcrun --sdk iphoneos --show-sdk-path)" >> "$GITHUB_ENV"
 
       - name: Lint (GOOS=ios)
-        uses: golangci/golangci-lint-action@v9
         env:
           CGO_ENABLED: '1'
           GOOS: darwin
@@ -301,9 +292,7 @@ jobs:
           CC: clang
           CGO_CFLAGS: -isysroot ${{ env.IOS_SDK }} -arch arm64 -miphoneos-version-min=15.0
           CGO_LDFLAGS: -isysroot ${{ env.IOS_SDK }} -arch arm64 -miphoneos-version-min=15.0
-        with:
-          version: v2.13
-          args: --build-tags ios ./...
+        run: make lint LINT_ARGS=--build-tags=ios
 
   wasm:
     name: WASM
@@ -427,14 +416,12 @@ jobs:
           echo "NDK_CC=$NDK_CC" >> "$GITHUB_ENV"
 
       - name: Lint (GOOS=android)
-        uses: golangci/golangci-lint-action@v9
         env:
           CGO_ENABLED: '1'
           GOOS: android
           GOARCH: arm64
           CC: ${{ env.NDK_CC }}
-        with:
-          version: v2.13
+        run: make lint
 
   benchmark:
     name: Benchmarks

@@ -18,9 +18,10 @@ audit. CI and the Makefile share the coverage thresholds via
 When only the fast gate checks are wanted, `make check` (vet, deps-doc,
 large-files, generate-check, tidy-check) is the quick subset. The tracked
 `.githooks/pre-push` hook runs `make check-all` (test + lint + check) on every
-push — enable it with `git config core.hooksPath .githooks`. Tools like
-golangci-lint and gosec must be installed. `make lint` pins the golangci-lint
-version.
+push — enable it with `git config core.hooksPath .githooks`. gosec must be
+installed. golangci-lint does not: `make lint` builds the pinned version into
+`.bin/` from the `tools/lint` module, which is where the version lives. CI runs
+the same `make lint`, so local and CI cannot use different linters.
 
 For a tight edit → rebuild → relaunch loop while iterating on an example app,
 see [docs/dev-loop.md](docs/dev-loop.md)

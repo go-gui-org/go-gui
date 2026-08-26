@@ -103,3 +103,6 @@ deep-dive/
 .direnv/
 .tokensave/
 .codegraph/
+
+# Pinned linter binary, built by `make lint` from tools/lint.
+/.bin/
