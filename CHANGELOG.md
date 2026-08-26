@@ -10,6 +10,28 @@ and this project adheres to
 
 ### Changed
 
+- **`examples/solar_system`'s granulation is a mesh, and now actually has the
+  falloff it always claimed.** Each convection cell was a stack of three nested
+  translucent circles, meant to give the blob a soft edge. Every circle in the
+  stack carried the same color, so `getBatch` merged the whole polarity into one
+  batch — and a backend takes one coverage mask per batch, which flattened the
+  stack back into a single hard-edged disc. The falloff was paid for and thrown
+  away.
+
+  A cell is now one triangle fan carrying its falloff as vertex alpha, opaque at
+  the center and transparent at the rim, with lit and dark cells in separate
+  meshes so a bright cell over a dark one still composites. The fans read their
+  offsets from a unit circle built once at startup, so placing 70 cells costs no
+  trigonometry at all — the old path went through `arcPoints`, whose per-segment
+  `math.Cos`/`math.Sin` was 8.7% of the frame on its own.
+
+  Measured at 1100x760, Apple M5, whole frame through the real pipeline:
+
+  | view        | frame time    | triangles      | FilledCircle calls |
+  | ----------- | ------------- | -------------- | ------------------ |
+  | full-system | 597 -> 532 us | 22.0k -> 15.6k | 126 -> 24          |
+  | jupiter     | 948 -> 798 us | 36.0k -> 21.4k | 219 -> 9           |
+
 - **An animated `DrawCanvas` now redraws without allocating.** Steady-state
   redraw goes from 51 allocations and 341 KB per frame to zero and zero, and
   ~40% less time with it (`BenchmarkDrawCanvasRedraw`, 300x300 canvas, Apple

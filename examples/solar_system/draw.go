@@ -24,11 +24,13 @@ var (
 	colorSunLimb = gui.RGB(255, 252, 234)
 	colorSunGlow = gui.RGB(255, 186, 78)
 
-	// Granulation: the mottling across the disc. Both are laid on at
-	// low alpha and stacked, so these are much lighter in effect than
-	// they look.
-	colorSunGranuleLit  = gui.RGBA(255, 255, 250, 34)
-	colorSunGranuleDark = gui.RGBA(240, 200, 126, 34)
+	// Granulation: the mottling across the disc. Each cell is a soft
+	// blob, and these are the color at its center — the alpha the
+	// three stacked discs this replaces composited to there. It fades
+	// to nothing at the cell's rim, so the field is far lighter in
+	// effect than the numbers look.
+	colorSunGranuleLit  = gui.RGBA(255, 255, 250, 89)
+	colorSunGranuleDark = gui.RGBA(240, 200, 126, 89)
 
 	// The corona ring right at the limb, brighter than the disc it
 	// sits on.
@@ -71,14 +73,17 @@ const (
 	discRimStop  = 0.14
 	discCoreStop = 0.34
 
-	// Granulation. The cells are a fixed set of soft blobs, each drawn
-	// as granuleTiers nested circles so it has a falloff instead of a
-	// hard edge. Tiers are drawn outermost-first across *all* cells at
-	// once, and lit and dark cells in separate passes, so one tier of
-	// one polarity is a single flat color and therefore a single
-	// batch: 2*granuleTiers batches for the whole texture.
+	// Granulation. The cells are a fixed set of soft blobs, each a
+	// triangle fan carrying its falloff as vertex alpha: opaque at the
+	// center, transparent at the rim. One mesh per polarity, so the
+	// whole texture is two batches and costs no trigonometry.
 	granuleCount = 70
-	granuleTiers = 3
+
+	// granuleSegs is how many triangles a cell's fan is traced with.
+	// The cells run 10-35px across at a sun that fills the canvas,
+	// where twelve segments is under 3px of chord — well inside what
+	// the alpha falloff hides.
+	granuleSegs = 12
 
 	// granuleMinRadius is the pixel radius below which the cells are
 	// too small to see and are skipped. granuleInset is how far out a
@@ -245,11 +250,13 @@ func drawOrbits(a *App, dc *gui.DrawContext) {
 // granule is one convection cell on the sun's face: a soft blob at a
 // fixed spot, either brighter or darker than the disc under it.
 type granule struct {
-	// Polar placement inside the disc, so the field stays inside the
-	// limb at any radius without a clip.
-	ang, dist float32
-	size      float32 // blob radius, as a fraction of the sun's
-	lit       bool
+	// Placement inside the disc, so the field stays inside the limb at
+	// any radius without a clip. The angle is kept resolved rather than
+	// as an angle: it is fixed at init and the draw runs every frame.
+	cos, sin float32
+	dist     float32
+	size     float32 // blob radius, as a fraction of the sun's
+	lit      bool
 }
 
 // sunGranules and sunEdge are both built once with a fixed seed. The
@@ -271,8 +278,10 @@ func makeGranules() []granule {
 		// read as a clean hot spot, and the clamp keeps a cell's far
 		// edge inside the limb so the texture needs no clipping.
 		dist := 0.16 + sqrt32(rng.Float32())*0.60
+		ang := rng.Float32() * 2 * math.Pi
 		g[i] = granule{
-			ang:  rng.Float32() * 2 * math.Pi,
+			cos:  cos32(ang),
+			sin:  sin32(ang),
 			dist: min(dist, granuleInset-size),
 			size: size,
 			lit:  rng.Float32() < 0.55,
@@ -366,7 +375,7 @@ func drawSun(a *App, dc *gui.DrawContext) {
 		Stops:  a.discStops,
 	})
 
-	drawGranulation(dc, cx, cy, r)
+	drawGranulation(dc, &a.granules, cx, cy, r)
 	drawCorona(dc, &a.corona, cx, cy, r, a.Time)
 }
 
@@ -414,14 +423,41 @@ func sunDiscStops(dst []gui.GradientStop) []gui.GradientStop {
 	return dst
 }
 
+// granuleRim is the unit circle a cell's fan is traced with, as
+// interleaved x,y. The cells never change shape, only scale and
+// position, so the trigonometry is done once here rather than per cell
+// per frame. The ring closes on its first point, which is what lets the
+// fan loop read pairs without wrapping.
+var granuleRim = makeGranuleRim()
+
+func makeGranuleRim() []float32 {
+	p := make([]float32, 0, (granuleSegs+1)*2)
+	for i := 0; i <= granuleSegs; i++ {
+		ang := 2 * math.Pi * float32(i) / granuleSegs
+		p = append(p, cos32(ang), sin32(ang))
+	}
+	return p
+}
+
 // drawGranulation lays the mottled convection texture over the disc.
 //
-// Tier-major, and lit and dark in separate passes: every circle inside
-// one pass shares a color, and getBatch merges consecutive same-color
-// triangles, so the whole texture costs 2*granuleTiers batches instead
-// of one per cell. Drawing cell-major would cost granuleCount times
-// more.
-func drawGranulation(dc *gui.DrawContext, cx, cy, r float32) {
+// Each cell is one triangle fan: its center at full alpha, its rim at
+// zero, so the falloff is carried by the vertex colors.
+//
+// It used to be three nested translucent circles per cell, meant to
+// build that falloff by stacking. They never did. All three carried the
+// same color, so getBatch merged the whole polarity into one batch, and
+// a backend takes one coverage mask per batch — the stack flattened
+// back into the single hard-edged disc it was there to avoid. The
+// falloff was paid for and thrown away, at 228 triangles a cell
+// (arcPoints sizes its segment count by radius) against twelve here.
+//
+// Lit and dark stay in separate meshes, and that split is the part that
+// is load-bearing: two batches is what keeps a bright cell laid over a
+// dark one compositing rather than flattening. Cells of the same
+// polarity still flatten where they overlap, exactly as they did
+// before.
+func drawGranulation(dc *gui.DrawContext, m *bodyMesh, cx, cy, r float32) {
 	if r < granuleMinRadius {
 		return // the cells would be sub-pixel; they would only cost batches
 	}
@@ -434,24 +470,27 @@ func drawGranulation(dc *gui.DrawContext, cx, cy, r float32) {
 	cells := sunGranules[:min(len(sunGranules), int(r*granulesPerPx))]
 
 	for _, lit := range [2]bool{true, false} {
-		base := colorSunGranuleDark
+		center := colorSunGranuleDark
 		if lit {
-			base = colorSunGranuleLit
+			center = colorSunGranuleLit
 		}
-		for tier := range granuleTiers {
-			// Outermost tier first, so the stack builds a soft falloff
-			// rather than a hard disc.
-			scale := 1 - float32(tier)/granuleTiers
-			for _, g := range cells {
-				if g.lit != lit {
-					continue
-				}
-				dc.FilledCircle(
-					cx+cos32(g.ang)*g.dist*r,
-					cy+sin32(g.ang)*g.dist*r,
-					g.size*r*scale, base)
+		rim := center.WithOpacity(0)
+
+		m.tris, m.cols = m.tris[:0], m.cols[:0]
+		for i := range cells {
+			g := &cells[i]
+			if g.lit != lit {
+				continue
+			}
+			bx, by := cx+g.cos*g.dist*r, cy+g.sin*g.dist*r
+			br := g.size * r
+			for k := 0; k+3 < len(granuleRim); k += 2 {
+				m.appendTri(bx, by, center,
+					bx+granuleRim[k]*br, by+granuleRim[k+1]*br, rim,
+					bx+granuleRim[k+2]*br, by+granuleRim[k+3]*br, rim)
 			}
 		}
+		dc.FillTrianglesColors(m.tris, m.cols)
 	}
 }
 
