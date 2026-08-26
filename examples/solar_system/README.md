@@ -49,10 +49,10 @@ go run ./examples/solar_system/
   sizing, so the canvas keeps the whole window and the camera math never reacts
   when a panel appears.
 - **Batch-aware drawing.** `DrawContext` merges only _consecutive_ same-color
-  triangles, so the starfield quantizes its twinkle to eight brightness levels
-  and draws one level at a time. That is eight batches per frame instead of 220.
-  A shaded sphere goes the other way: it is one mesh that carries a color per
-  vertex. The whole body is then a single batch, however fine its ramp.
+  triangles, so a field of differently-tinted shapes costs one batch apiece. The
+  way out is a mesh that carries a color per vertex: the starfield is one batch
+  with every star keeping its own alpha, and a shaded sphere is one batch
+  however fine its ramp.
 
 - **Texturing without a texture path.** The renderer has no UV coordinates
   anywhere — `FillTrianglesColors` carries per-vertex colors and nothing else.
@@ -110,10 +110,16 @@ that is what limb brightening looks like. A plain center-out ramp is a coin lit
 from the front.
 
 **The face is mottled.** Granulation is a fixed set of soft blobs. Each blob is
-a small stack of nested circles, so it has a falloff instead of a hard edge.
-They are drawn tier-major with lit and dark cells in separate passes. Every
-circle in a pass shares one color, so the whole texture costs `2 x tiers`
-batches rather than one per cell. A cell-major pass costs seventy times more.
+one triangle fan that carries its falloff as vertex alpha: opaque at the center,
+transparent at the rim. Lit and dark cells go in separate meshes, so the whole
+texture is two batches and no trigonometry — the fans read their offsets from a
+unit circle built once at startup.
+
+The two meshes are not an optimization. A backend takes one coverage mask per
+batch, so anything inside a single mesh flattens where it overlaps instead of
+compositing. Two batches is what keeps a bright cell laid over a dark one
+reading as two cells.
+
 The app places cells by `sqrt` of a uniform, so they spread over the _area_
 instead of crowding the middle. It clamps each cell's far edge inside the limb,
 so the texture needs no clipping.
@@ -237,14 +243,26 @@ in part. The app samples albedo per vertex and interpolates it between vertices.
 Mesh density now bounds detail in a way intensity never did. The ceilings are 72
 rings and 128 segments, matched to the 128x64 textures, where before they were
 36 and 64. The rates that approach them are unchanged, so this is invisible at
-ordinary zoom. A full-system frame is 79 batches and 31.6k triangles either way.
-A selected Jupiter is 105 batches and 47.0k triangles, against 46.8k before. It
-is only at maximum zoom, where a planet is hundreds of pixels across and both
-ceilings actually bind, that the raise costs anything. It is 99.6k triangles
-against 85.9k.
+ordinary zoom: when that change landed, a full-system frame was 79 batches and
+31.6k triangles either way, and a selected Jupiter 105 batches and 47.0k
+triangles against 46.8k before. It is only at maximum zoom, where a planet is
+hundreds of pixels across and both ceilings actually bind, that the raise costs
+anything. It was 99.6k triangles against 85.9k.
 
 Off-screen bodies are still culled. Without that, the seven planets outside the
 viewport at a focused zoom each build a full-resolution sphere anyway.
+
+Current counts, from `TestBatchCountPerFrame` and `TestPrimitiveCountsPerFrame`
+at 1100x760:
+
+| view        | batches | triangles | draw calls |
+| ----------- | ------- | --------- | ---------- |
+| full-system | 42      | 15.6k     | 61         |
+| jupiter     | 22      | 21.4k     | 31         |
+
+The frame itself allocates almost nothing. `DrawCanvas` recycles a redraw's
+tessellation buffers, so what is left per frame is the view phase building the
+info panel, not the drawing.
 
 ### Texturing a renderer that has no textures
 
