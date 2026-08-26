@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"fmt"
 	"math"
 	"testing"
 )
@@ -565,6 +566,276 @@ func TestRenderDrawCanvasFlatBatchHasNoVertexColors(t *testing.T) {
 		r := &w.renderers[i]
 		if r.Kind == RenderSvg && r.VertexColors != nil {
 			t.Error("flat canvas batch emitted VertexColors")
+		}
+	}
+}
+
+// benchCanvasDraw is a stand-in for an animated canvas: a flat fan, a
+// stroked ellipse and a radial gradient fill, the three shapes whose
+// tessellation buffers dominate a real drawing app's frame.
+func benchCanvasDraw(dc *DrawContext, t float32, circles int) {
+	dc.FilledRect(0, 0, dc.Width, dc.Height, RGB(6, 8, 18))
+	for i := range circles {
+		x := 20 + float32(i%40)*6 + t
+		dc.FilledCircle(x, 60+t, 9, RGBA(255, 250, 240, 40))
+	}
+	dc.Arc(150, 150, 120, 40, 0, 2*math.Pi, RGBA(150, 170, 210, 46), 1)
+	dc.FilledCircleGradient(150, 150, 90, &benchCanvasGradient)
+}
+
+// Hoisted so the draw itself allocates nothing: the measurement is
+// about the tessellation buffers, not the caller's literals.
+var benchCanvasGradient = CanvasGradient{
+	Radial: true,
+	Stops: []GradientStop{
+		{Color: RGBA(255, 186, 78, 200), Pos: 0},
+		{Color: RGBA(255, 186, 78, 90), Pos: 0.4},
+		{Color: RGBA(255, 186, 78, 0), Pos: 1},
+	},
+}
+
+func benchCanvasShape(t *float32) *Shape {
+	return benchCanvasShapeN(t, 40)
+}
+
+func benchCanvasShapeN(t *float32, circles int) *Shape {
+	return &Shape{
+		shapeType: shapeDrawCanvas,
+		ID:        "bench-canvas",
+		Width:     300, Height: 300,
+		Color: ColorTransparent,
+		events: &eventHandlers{
+			OnDraw: func(dc *DrawContext) { benchCanvasDraw(dc, *t, circles) },
+		},
+	}
+}
+
+// BenchmarkDrawCanvasRedraw drives the path an animated canvas takes:
+// a fresh Version every frame, so the cache always misses and OnDraw
+// re-tessellates. Steady state must not allocate — the buffers come
+// from the entry being replaced.
+func BenchmarkDrawCanvasRedraw(b *testing.B) {
+	w := makeWindowWithScratch()
+	var t float32
+	shape := benchCanvasShape(&t)
+	clip := makeClip(0, 0, 300, 300)
+	var version uint64
+
+	// Two warm-up frames: the first allocates everything, the second
+	// proves the pool is in place before the timer starts.
+	for range 2 {
+		version++
+		shape.Version = version
+		// Mirror buildRenderers: a new command list is a new pass.
+		w.renderers = w.renderers[:0]
+		w.renderPass++
+		renderDrawCanvas(shape, clip, w)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		version++
+		shape.Version = version
+		t = float32(version%17) * 0.5
+		// Mirror buildRenderers: a new command list is a new pass.
+		w.renderers = w.renderers[:0]
+		w.renderPass++
+		renderDrawCanvas(shape, clip, w)
+	}
+}
+
+// TestDrawCanvasReuseMatchesFresh is the correctness half of the
+// pooling: a redraw that recycles the previous entry's buffers must
+// emit exactly what a context starting from nil emits. A stale byte
+// left in a reused buffer would show up here as a length or value
+// mismatch.
+func TestDrawCanvasReuseMatchesFresh(t *testing.T) {
+	w := makeWindowWithScratch()
+	var phase float32
+	shape := benchCanvasShape(&phase)
+	clip := makeClip(0, 0, 300, 300)
+
+	// Frames with different geometry first, so the pooled buffers are
+	// sized and dirtied by a draw that is not the one being compared.
+	for i, p := range []float32{0, 7, 3} {
+		phase = p
+		shape.Version = uint64(i + 1)
+		// Mirror buildRenderers: a new command list is a new pass.
+		w.renderers = w.renderers[:0]
+		w.renderPass++
+		renderDrawCanvas(shape, clip, w)
+	}
+
+	sm := StateMap[string, drawCanvasCache](w, nsDrawCanvas, capModerate)
+	pooled, ok := sm.Get("bench-canvas")
+	if !ok {
+		t.Fatal("no cache entry after redraw")
+	}
+
+	fresh := DrawContext{Width: 300, Height: 300, Scale: 1}
+	benchCanvasDraw(&fresh, 3, 40)
+
+	if len(pooled.Batches) != len(fresh.batches) {
+		t.Fatalf("pooled %d batches, fresh %d",
+			len(pooled.Batches), len(fresh.batches))
+	}
+	for i := range fresh.batches {
+		want, got := &fresh.batches[i], &pooled.Batches[i]
+		if got.Color != want.Color {
+			t.Errorf("batch %d color = %v, want %v", i, got.Color, want.Color)
+		}
+		if len(got.Triangles) != len(want.Triangles) {
+			t.Fatalf("batch %d: %d triangle floats, want %d",
+				i, len(got.Triangles), len(want.Triangles))
+		}
+		for j := range want.Triangles {
+			if got.Triangles[j] != want.Triangles[j] {
+				t.Fatalf("batch %d tri[%d] = %v, want %v",
+					i, j, got.Triangles[j], want.Triangles[j])
+			}
+		}
+		if len(got.VertexColors) != len(want.VertexColors) {
+			t.Fatalf("batch %d: %d vertex colors, want %d",
+				i, len(got.VertexColors), len(want.VertexColors))
+		}
+		for j := range want.VertexColors {
+			if got.VertexColors[j] != want.VertexColors[j] {
+				t.Fatalf("batch %d col[%d] = %v, want %v",
+					i, j, got.VertexColors[j], want.VertexColors[j])
+			}
+		}
+	}
+}
+
+// TestDrawCanvasRedrawReusesBuffers pins the property the pooling
+// exists for, by identity rather than by counting allocations: after
+// the first couple of redraws, every batch must land in the same
+// backing array it landed in last time.
+//
+// Counting was the obvious way to write this and does not work here.
+// testing.AllocsPerRun reads process-wide malloc counters, so anything
+// else running in the package is attributed to the measurement, and the
+// error grows with how long the measured function takes — a whole
+// canvas redraw is long enough that CI reported six allocations for a
+// draw that allocates none. A pointer is exact and takes no wall time
+// to observe.
+//
+// The heavy case is the one that matters. An earlier version of the
+// pooling refused to recycle a buffer past a size cap, which left every
+// canvas above it allocating its whole tessellation on every frame —
+// precisely the ones the pooling is for.
+func TestDrawCanvasRedrawReusesBuffers(t *testing.T) {
+	for _, circles := range []int{40, 400} {
+		t.Run(fmt.Sprintf("circles=%d", circles), func(t *testing.T) {
+			w := makeWindowWithScratch()
+			var phase float32
+			shape := benchCanvasShapeN(&phase, circles)
+			clip := makeClip(0, 0, 300, 300)
+			var version uint64
+
+			frame := func() {
+				version++
+				shape.Version = version
+				phase = float32(version%17) * 0.5
+				w.renderers = w.renderers[:0]
+				w.renderPass++
+				renderDrawCanvas(shape, clip, w)
+			}
+			// Three frames to settle: the two batch arrays alternate,
+			// so each is grown on a different frame.
+			for range 3 {
+				frame()
+			}
+
+			sm := StateMap[string, drawCanvasCache](w, nsDrawCanvas,
+				capModerate)
+			before, ok := sm.Get("bench-canvas")
+			if !ok {
+				t.Fatal("no cache entry after redraw")
+			}
+			if len(before.Batches) < 3 {
+				t.Fatalf("got %d batches, want the full set",
+					len(before.Batches))
+			}
+			ptrs := batchDataPtrs(before.Batches)
+
+			frame()
+
+			after, _ := sm.Get("bench-canvas")
+			if len(after.Batches) != len(before.Batches) {
+				t.Fatalf("batch count moved from %d to %d",
+					len(before.Batches), len(after.Batches))
+			}
+			for i, got := range batchDataPtrs(after.Batches) {
+				if got != ptrs[i] {
+					t.Errorf("batch %d re-allocated its triangles; "+
+						"the redraw is not recycling", i)
+				}
+			}
+		})
+	}
+}
+
+// batchDataPtrs identifies each batch's triangle storage by the address
+// of its first element, which is stable exactly when the buffer was
+// reused rather than re-allocated.
+func batchDataPtrs(bs []DrawCanvasTriBatch) []*float32 {
+	out := make([]*float32, len(bs))
+	for i := range bs {
+		if len(bs[i].Triangles) > 0 {
+			out[i] = &bs[i].Triangles[0]
+		}
+	}
+	return out
+}
+
+// TestDrawCanvasSamePassNoReuse covers the guard against recycling
+// buffers that a command already emitted in this list points at. Two
+// canvases sharing an ID within one render pass is an invariant
+// violation the debug gate reports, but it must degrade to allocating,
+// not to overwriting geometry that is about to be drawn.
+func TestDrawCanvasSamePassNoReuse(t *testing.T) {
+	w := makeWindowWithScratch()
+	var phase float32
+	shape := benchCanvasShape(&phase)
+	clip := makeClip(0, 0, 300, 300)
+
+	w.renderPass++
+	shape.Version = 1
+	renderDrawCanvas(shape, clip, w)
+
+	// Snapshot every emitted batch as the backend would see it. The
+	// background rect is identical between draws, so the check has to
+	// cover the batches that move with phase, not just the first one.
+	type emitted struct{ live, want []float32 }
+	var cmds []emitted
+	for i := range w.renderers {
+		if w.renderers[i].Kind != RenderSvg ||
+			len(w.renderers[i].Triangles) == 0 {
+			continue
+		}
+		tris := w.renderers[i].Triangles
+		cmds = append(cmds, emitted{
+			live: tris,
+			want: append([]float32(nil), tris...),
+		})
+	}
+	if len(cmds) < 2 {
+		t.Fatalf("got %d canvas batches, want the full set", len(cmds))
+	}
+
+	// Same pass, same ID, different content.
+	phase = 9
+	shape.Version = 2
+	renderDrawCanvas(shape, clip, w)
+
+	for c := range cmds {
+		for i := range cmds[c].want {
+			if cmds[c].live[i] != cmds[c].want[i] {
+				t.Fatalf("second draw overwrote emitted batch %d at %d: "+
+					"%v, was %v", c, i, cmds[c].live[i], cmds[c].want[i])
+			}
 		}
 	}
 }

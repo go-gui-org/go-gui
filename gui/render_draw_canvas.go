@@ -38,19 +38,27 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 	}
 
 	if needsDraw && shape.events != nil && shape.events.OnDraw != nil {
-		dc := DrawContext{
-			Width:       cw,
-			Height:      ch,
-			Scale:       scale,
-			textMeasure: w.textMeasurer,
+		// The outgoing entry is about to be replaced, so its buffers
+		// are free for this pass to write into. An animated canvas
+		// redraws every frame at nearly the same size, so after two
+		// frames the whole tessellation runs allocation-free.
+		dc := &w.scratch.canvasCtx
+		reuse := cached
+		if cached.pass == w.renderPass {
+			// Already redrawn in this same list: its buffers are live
+			// behind an emitted command. Start clean instead.
+			reuse = drawCanvasCache{}
 		}
-		shape.events.OnDraw(&dc)
+		dc.resetFor(cw, ch, scale, w.textMeasurer, reuse)
+		shape.events.OnDraw(dc)
 		cached = drawCanvasCache{
 			Version:    shape.Version,
+			pass:       w.renderPass,
 			tessWidth:  cw,
 			tessHeight: ch,
 			Scale:      scale,
 			Batches:    dc.batches,
+			spare:      dc.batchPool,
 			Texts:      dc.texts,
 			Images:     dc.images,
 		}

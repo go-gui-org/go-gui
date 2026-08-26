@@ -376,6 +376,7 @@ func composeLayout(layers []Layout, w *Window) Layout {
 // buildRenderers resets and rebuilds the render command list.
 func (w *Window) buildRenderers(bgColor Color, clip drawClip) {
 	w.renderers = w.renderers[:0]
+	w.renderPass++
 	// The caret's renderer index is only valid within the list just
 	// built; the blink toggle re-records on every rebuild (issue #404).
 	w.caretCmd = caretCmdState{}

@@ -3,10 +3,23 @@ package gui
 // DrawCanvasCache holds retained tessellation output keyed by
 // widget id + version + scale. Cache hit skips OnDraw entirely.
 type drawCanvasCache struct {
-	Batches    []DrawCanvasTriBatch
-	Texts      []DrawCanvasTextEntry
-	Images     []DrawCanvasImageEntry
-	Version    uint64
+	Batches []DrawCanvasTriBatch
+	// spare is the batch list the redraw before last wrote into. The
+	// two arrays ping-pong: a redraw writes into spare while claiming
+	// buffers out of Batches, then the two swap roles. That keeps the
+	// header array itself off the per-frame allocation path, and the
+	// stale headers left in spare past its new length are never read —
+	// takeBatch only ever indexes below len(pool).
+	spare   []DrawCanvasTriBatch
+	Texts   []DrawCanvasTextEntry
+	Images  []DrawCanvasImageEntry
+	Version uint64
+	// pass is the Window.renderPass that last wrote this entry. A
+	// redraw recycles the entry's buffers only when it belongs to an
+	// earlier pass, so a canvas rendered twice in one list — which
+	// takes duplicate effective IDs — falls back to allocating rather
+	// than writing over triangles an already-emitted command points at.
+	pass       uint64
 	tessWidth  float32
 	tessHeight float32
 	Scale      float32
@@ -31,6 +44,11 @@ type DrawCanvasTextEntry struct {
 // The two never mix inside one batch: a gradient fill always starts a
 // fresh batch, so the length relation above holds per batch and
 // validSvgCmd can enforce it.
+//
+// Lifetime: both slices belong to the canvas's cache entry and are
+// recycled by its next redraw (DrawContext.resetFor). A consumer that
+// keeps a RenderCmd past the frame it was emitted in — the print export
+// is the one in-tree case — must copy the geometry out first.
 type DrawCanvasTriBatch struct {
 	Triangles    []float32
 	VertexColors []Color

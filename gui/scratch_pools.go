@@ -27,6 +27,29 @@ func (s *scratchSlice[T]) put(b []T) {
 	s.buf = b[:0]
 }
 
+// canvasScratchRetainMax bounds the capacity a canvas scratch buffer
+// may hold between redraws, so one outsized frame does not pin a
+// megabyte for the life of the window. Sixteen times svgVColRetainMax,
+// because the gradient split buffer for a fill covering the whole
+// window already runs to a hundred thousand floats.
+//
+// Unlike a batch buffer — which the cache entry retains anyway, so
+// capping its reuse would release nothing — these are pure overhead
+// between frames and worth releasing. The trade is that a canvas
+// genuinely needing more than this on *every* frame reallocates on
+// every frame; the cap is set well past where any measured content
+// lands.
+const canvasScratchRetainMax = 1 << 18 // 262 144 floats, ~1 MB
+
+// keepScratch returns b emptied for reuse, or nil when it has grown
+// past the retain cap and should be released instead.
+func keepScratch[T any](b []T) []T {
+	if cap(b) > canvasScratchRetainMax {
+		return nil
+	}
+	return b[:0]
+}
+
 // scratchMap is a reusable map pool with a retain threshold.
 type scratchMap[K comparable, V any] struct {
 	m         map[K]V
@@ -155,6 +178,20 @@ type scratchPools struct {
 	// (avoids per-shape/per-gesture heap allocation of Event).
 	hoverEvent   Event
 	gestureEvent Event
+
+	// canvasCtx is the DrawContext every DrawCanvas redraw runs
+	// through. It is parked here rather than built per redraw for two
+	// reasons: it escapes to the heap the moment it is handed to an
+	// OnDraw callback, and every tessellation buffer hanging off it
+	// (arc points, bezier flattening, gradient subdivision) would
+	// otherwise restart from nil and regrow by doubling on every frame
+	// of an animated canvas.
+	//
+	// One shared context is correct because renderDrawCanvas is called
+	// sequentially from the renderLayout walk and never nests — a
+	// canvas cannot draw another canvas mid-draw. resetFor rebinds it
+	// to each canvas in turn.
+	canvasCtx DrawContext
 
 	floatingPoolUsed    int
 	placeholderPoolUsed int

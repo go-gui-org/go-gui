@@ -89,15 +89,10 @@ func (dc *DrawContext) FillTrianglesGradient(tris []float32,
 // agree and validSvgCmd can enforce the relation downstream.
 func (dc *DrawContext) gradientBatch(mid Color,
 	numVerts int) *DrawCanvasTriBatch {
-	dc.batches = append(dc.batches, DrawCanvasTriBatch{
-		Color:        mid,
-		Triangles:    make([]float32, 0, numVerts*2),
-		VertexColors: make([]Color, 0, numVerts),
-	})
+	b := dc.takeBatch(mid, true, numVerts)
 	dc.lastColor = mid
 	dc.batchIsGradient = true
-	dc.currentBatchIdx = len(dc.batches) - 1
-	return &dc.batches[dc.currentBatchIdx]
+	return b
 }
 
 // recordFlatTriangles forwards geometry to a recorder that cannot

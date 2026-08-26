@@ -10,6 +10,32 @@ and this project adheres to
 
 ### Changed
 
+- **An animated `DrawCanvas` now redraws without allocating.** Steady-state
+  redraw goes from 51 allocations and 341 KB per frame to zero and zero, and
+  ~40% less time with it (`BenchmarkDrawCanvasRedraw`, 300x300 canvas, Apple
+  M5). This is an engine change; every `DrawCanvas` consumer gets it.
+
+  `renderDrawCanvas` built a zero-valued `DrawContext` for every redraw and
+  dropped the cache entry it was replacing, so each frame re-allocated the same
+  triangle batches at the same sizes — starting each at cap 128 and growing by
+  doubling to tens of thousands of floats — and every tessellation scratch
+  buffer (arc points, bezier flattening, gradient subdivision) restarted from
+  nil. For a canvas animating at 60 fps that is hundreds of MB/s of garbage, and
+  a CPU profile of one showed ~85% of the frame in GC and page-return rather
+  than in drawing.
+
+  The context is now parked in the window's scratch pools and rebound per
+  canvas, and the outgoing cache entry's buffers are recycled into the redraw
+  that replaces it. Nothing about the emitted geometry changes: the golden suite
+  is byte-identical.
+
+  Buffer lifetime does change, so a `RenderCmd` is now only valid for the frame
+  that emitted it. Print export, the one in-tree consumer that outlives its
+  frame, copies the geometry out; third-party code that stashes `Renderers()`
+  across frames must do the same. A canvas drawn twice in one render pass —
+  which takes duplicate effective IDs — falls back to allocating rather than
+  overwriting geometry already queued.
+
 - **`examples/solar_system` draws a frame in 161 calls instead of 1093** (#429),
   with 40-60% fewer allocations behind it. No engine change; every fix is in the
   example. The example drew each effect as a stack of primitives, one draw call
