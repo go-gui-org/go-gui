@@ -114,6 +114,13 @@ type App struct {
 	ScreenY [len(planets)]float32
 	ScreenR [len(planets)]float32
 
+	// The world positions those came from, kept because the shading
+	// works in world space and the vertical squash above is not
+	// invertible from ScreenY alone. Draw-path reads only — see
+	// lightVecAt for why lightVec does not use them.
+	WorldX [len(planets)]float32
+	WorldY [len(planets)]float32
+
 	// The sun's, kept the same way and for the same reason: hit-testing
 	// and painting must agree on where it is.
 	SunX, SunY, SunR float32

@@ -438,6 +438,34 @@ func TestShadingFacesTheSun(t *testing.T) {
 	}
 }
 
+// TestWorldCacheMatchesOrbitPos pins the seam the draw path reads
+// through. lightVecAt is fed App.WorldX/Y instead of calling orbitPos,
+// so the two must agree after every recompute; a planet left out of
+// that loop would shade as though it were somewhere else.
+func TestWorldCacheMatchesOrbitPos(t *testing.T) {
+	t.Parallel()
+	a := newTestApp()
+	for _, tm := range []float32{0, 3.7, 91} {
+		a.Time = tm
+		a.recompute()
+		for i := range planets {
+			wx, wy := orbitPos(&planets[i], a.Time)
+			if a.WorldX[i] != wx || a.WorldY[i] != wy {
+				t.Errorf("t=%v planet %d: cached (%v,%v), live (%v,%v)",
+					tm, i, a.WorldX[i], a.WorldY[i], wx, wy)
+			}
+			// And the cached pair must reach the same light vector the
+			// index-taking form does.
+			gx, gy, gz := lightVecAt(a.WorldX[i], a.WorldY[i])
+			wx2, wy2, wz2 := a.lightVec(i)
+			if gx != wx2 || gy != wy2 || gz != wz2 {
+				t.Errorf("t=%v planet %d: lightVecAt disagrees with lightVec",
+					tm, i)
+			}
+		}
+	}
+}
+
 // TestLightVecDegenerate covers a planet sitting on the sun's own world
 // position, where the light direction is undefined. lightVec must
 // answer with the camera axis rather than dividing by zero, and the

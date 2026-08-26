@@ -598,7 +598,7 @@ func drawPlanet(a *App, dc *gui.DrawContext, i int) {
 
 	// One vector carries both facts the shading needs: which way the
 	// sun lies on screen, and how far around behind the planet it is.
-	lx, ly, lz := a.lightVec(i)
+	lx, ly, lz := lightVecAt(a.WorldX[i], a.WorldY[i])
 
 	// Stack-allocated: initSurface fills it, and drawBody does not let
 	// the pointer escape.
