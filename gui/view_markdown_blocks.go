@@ -154,11 +154,11 @@ func mdCopyButton(
 		checkStyle := iconStyle
 		checkStyle.Color = RGBA(80, 200, 80, 255)
 		btnContent = []View{
-			Text(TextCfg{Text: iconCheck, TextStyle: checkStyle}),
+			Text(TextCfg{Text: IconCheck, TextStyle: checkStyle}),
 		}
 	} else {
 		btnContent = []View{
-			Text(TextCfg{Text: iconFile, TextStyle: iconStyle}),
+			Text(TextCfg{Text: IconFile, TextStyle: iconStyle}),
 		}
 	}
 
@@ -483,12 +483,12 @@ func mdTaskCheckbox(checked bool, boxSize float32, cfg MarkdownCfg) View {
 		checkStyle.Size = boxSize * 1.1
 		checkStyle.Color = White
 		content = []View{
-			Text(TextCfg{Text: iconCheck, TextStyle: checkStyle}),
+			Text(TextCfg{Text: IconCheck, TextStyle: checkStyle}),
 		}
 		// Same defect as Toggle's check: the icon font's advance box is
 		// taller and wider than the mark, so flow centring leaves it high
 		// and off to one side inside this small fixed box.
-		amend = centerGlyphOnInk(iconCheck, checkStyle)
+		amend = centerGlyphOnInk(IconCheck, checkStyle)
 	}
 
 	return Column(ContainerCfg{

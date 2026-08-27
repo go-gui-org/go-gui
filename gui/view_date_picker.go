@@ -301,7 +301,7 @@ func datePickerControls(
 				Colors:   ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, themeButtonSet()),
 				OnClick:  onPrev,
 				Content: []View{Text(TextCfg{
-					Text:      iconArrowLeft,
+					Text:      IconArrowLeft,
 					TextStyle: CurrentTheme().Icon3,
 				})},
 			}),
@@ -312,7 +312,7 @@ func datePickerControls(
 				Colors:   ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, themeButtonSet()),
 				OnClick:  onNext,
 				Content: []View{Text(TextCfg{
-					Text:      iconArrowRight,
+					Text:      IconArrowRight,
 					TextStyle: CurrentTheme().Icon3,
 				})},
 			}),

@@ -41,7 +41,7 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 
 	// Paint palette icon.
 	content = append(content, Text(TextCfg{
-		Text:      iconPalette,
+		Text:      IconPalette,
 		TextStyle: guiTheme.Icon3,
 	}))
 
