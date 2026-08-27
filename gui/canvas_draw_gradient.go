@@ -29,6 +29,12 @@ func (dc *DrawContext) FillTrianglesGradient(tris []float32,
 		len(tris) == 0 || len(tris)%6 != 0 {
 		return
 	}
+	// Bound hostile geometry; gradmesh caps output but tRange still
+	// scans the input.
+	const maxGradientTrisFloats = 1 << 20
+	if len(tris) > maxGradientTrisFloats {
+		return
+	}
 	if dc.recorder != nil {
 		if gr, ok := dc.recorder.(DrawGradientRecorder); ok {
 			gr.FillTrianglesGradient(tris, g)
@@ -70,15 +76,16 @@ func (dc *DrawContext) FillTrianglesGradient(tris []float32,
 	// cut vertices exactly there, so a vertex read on its own can take
 	// the far side of the step; SpreadTri reads all three in the period
 	// the triangle sits in. See issue #417.
+	ramp := prepareGradRamp(stops, &dc.gradRampBuf)
 	for i := 0; i+5 < len(out); i += 6 {
 		ta, tb, tc := gradmesh.SpreadTri(
 			gradmesh.RawT(out[i], out[i+1], &p),
 			gradmesh.RawT(out[i+2], out[i+3], &p),
 			gradmesh.RawT(out[i+4], out[i+5], &p), p.Spread)
 		b.VertexColors = append(b.VertexColors,
-			SampleGradientStopColor(stops, ta),
-			SampleGradientStopColor(stops, tb),
-			SampleGradientStopColor(stops, tc))
+			sampleGradRamp(stops, ramp, ta),
+			sampleGradRamp(stops, ramp, tb),
+			sampleGradRamp(stops, ramp, tc))
 	}
 }
 
