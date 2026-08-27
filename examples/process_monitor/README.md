@@ -1,3 +1,14 @@
+# Process Monitor
+
+> **Framework:** data, system **Description:** Live process list with sortable
+> columns and CPU and RAM history charts. Updates from system stats.
+
+![Preview](screenshot.png)
+
+<!-- explorer: tags=data,system category=data run=go -->
+
+---
+
 # process_monitor
 
 A small live task manager: a filterable process list, flat and tree views,

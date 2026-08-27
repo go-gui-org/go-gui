@@ -1,3 +1,14 @@
+# SVG Use Symbol
+
+> **Framework:** svg **Description:** <use> and <symbol> resolution with
+> per-instance fill overrides. Compares desugaring to duplication.
+
+![Preview](screenshot.png)
+
+<!-- explorer: tags=svg category=svg run=go -->
+
+---
+
 # svg_use_symbol
 
 Demonstrates SVG `<use href="#id">` and `<symbol>` resolution.

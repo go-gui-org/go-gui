@@ -1,3 +1,15 @@
+# SVG Hittest
+
+> **Framework:** svg, input **Description:** Hit testing with
+> TessellatedPath.ContainsPoint. Reports which authored path the cursor is
+> inside.
+
+![Preview](screenshot.png)
+
+<!-- explorer: tags=svg,input category=svg run=go -->
+
+---
+
 # svg_hittest
 
 Click any shape in the rendered SVG. The right pane prints the matched `PathID`

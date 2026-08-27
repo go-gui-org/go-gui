@@ -6,8 +6,13 @@ package main
 import (
 	"fmt"
 
+	"flag"
+	"log"
+	"os"
+
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend"
+	"github.com/go-gui-org/go-gui/gui/backend/soft"
 )
 
 // Virtualized List Box Scrolling
@@ -19,6 +24,9 @@ type App struct {
 }
 
 func main() {
+	screenshot := flag.String("screenshot", "", "write screenshot and exit")
+	flag.Parse()
+
 	const size = 10_000
 	items := make([]gui.ListBoxOption, 0, size)
 	// Pre-build the option slice so the view only has to render it.
@@ -39,6 +47,12 @@ func main() {
 		},
 	})
 
+	if *screenshot != "" {
+		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
+			log.Fatalf("screenshot: %v", err)
+		}
+		os.Exit(0)
+	}
 	backend.Run(w)
 }
 

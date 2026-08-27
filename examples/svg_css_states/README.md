@@ -1,3 +1,14 @@
+# SVG CSS States
+
+> **Framework:** svg **Description:** :hover and :focus matching on SVG driven
+> by HoveredElementID and FocusedElementID.
+
+![Preview](screenshot.png)
+
+<!-- explorer: tags=svg category=svg run=go -->
+
+---
+
 # svg_css_states
 
 Demonstrates CSS `:hover` and `:focus` pseudo-class matching driven by

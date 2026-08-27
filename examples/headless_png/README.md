@@ -1,3 +1,14 @@
+# Headless PNG
+
+> **Framework:** system, graphics **Description:** Renders a window to PNG with
+> no GPU or window. Uses gui/backend/soft to rasterize RenderCmd on CPU.
+
+![Preview](screenshot.png)
+
+<!-- explorer: tags=system,graphics category=system run=go -->
+
+---
+
 # headless_png
 
 Renders a window to a PNG with no GPU and no window on screen. It uses the
