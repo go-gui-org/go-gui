@@ -100,6 +100,19 @@ func (r *renderer) drawText(cmd *gui.RenderCmd) {
 	if r.textSys == nil || cmd.Text == "" {
 		return
 	}
+	if gui.DrawTextTransformed(cmd, r.textSys,
+		guiStyleToGlyphConfig,
+		func(layout glyph.Layout, grad *glyph.GradientConfig) {
+			if grad != nil {
+				r.textSys.DrawLayoutTransformedWithGradient(
+					layout, cmd.X, cmd.Y, *cmd.LayoutTransform, grad)
+			} else {
+				r.textSys.DrawLayoutTransformed(
+					layout, cmd.X, cmd.Y, *cmd.LayoutTransform)
+			}
+		}) {
+		return
+	}
 	cfg := glyphconv.GuiTextConfigFromRender(cmd)
 	if err := r.textSys.DrawText(cmd.X, cmd.Y, cmd.Text, cfg); err != nil && !r.textErrLogged {
 		// Warn once per renderer: a persistent failure (e.g. missing

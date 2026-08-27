@@ -133,7 +133,16 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 
 		tx := ox + t.X
 		ty := oy + t.Y
-		rotated := t.Style.RotationRadians != 0
+		// Affine (skew/squash/arbitrary) takes precedence over
+		// rotation. Rotation keeps the GPU MVP path via
+		// RotateBegin/End; affine carries LayoutTransform on the
+		// RenderText so the backend can draw a cached layout
+		// with DrawLayoutTransformed (see #436). Identity
+		// affines are treated as unset so they do not emit a
+		// transform.
+		hasAffine := t.Style.AffineTransform != nil &&
+			!affineTransformIsIdentity(*t.Style.AffineTransform)
+		rotated := !hasAffine && t.Style.RotationRadians != 0
 
 		if rotated {
 			deg := t.Style.RotationRadians * (180 / math.Pi)
@@ -145,7 +154,7 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 			}, w)
 		}
 
-		emitRenderer(RenderCmd{
+		cmd := RenderCmd{
 			Kind:         RenderText,
 			X:            tx,
 			Y:            ty,
@@ -157,7 +166,12 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 			TextWidth:    textWidth,
 			TextStylePtr: w.scratch.renderTextStyles.alloc(t.Style),
 			TextGradient: t.Style.Gradient,
-		}, w)
+		}
+		if hasAffine {
+			cmd.LayoutTransform = w.scratch.renderAffineTransforms.alloc(
+				*t.Style.AffineTransform)
+		}
+		emitRenderer(cmd, w)
 
 		if rotated {
 			emitRenderer(RenderCmd{
