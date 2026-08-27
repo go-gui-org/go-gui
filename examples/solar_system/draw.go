@@ -16,6 +16,8 @@ var (
 	colorStar      = gui.RGB(235, 240, 255)
 	colorOrbit     = gui.RGBA(150, 170, 210, 46)
 	colorOrbitLive = gui.RGBA(190, 210, 255, 110)
+	colorAxis      = gui.RGBA(214, 220, 238, 170)
+	colorAxisFar   = gui.RGBA(214, 220, 238, 70)
 	// The sun is white-hot at the core and only turns gold near the
 	// limb. Running the whole disc orange makes it read as an amber
 	// lamp; the color belongs in the halo and the rim, not the body.
@@ -175,6 +177,13 @@ const (
 	tipPadX = 8
 	tipPadY = 5
 	tipGap  = 16 // cursor-to-bubble offset
+
+	// axisOverhang is how far the pole line sticks out past the disc,
+	// as a multiple of screen radius; axisMinRadius is the gate below
+	// which the axis is skipped so the full-system view is not a
+	// hedgehog.
+	axisOverhang  = 1.35
+	axisMinRadius = 5
 )
 
 // drawSystem is the canvas OnDraw. It stashes the canvas size first —
@@ -189,8 +198,10 @@ func drawSystem(a *App, dc *gui.DrawContext) {
 	dc.FilledRect(0, 0, dc.Width, dc.Height, colorSpace)
 	drawStars(a, dc)
 	drawOrbits(a, dc)
+	drawBelt(a, dc)
 	drawSun(a, dc)
 	drawPlanets(a, dc)
+	drawDial(a, dc)
 	drawTooltip(a, dc)
 }
 
@@ -590,6 +601,41 @@ func drawPlanets(a *App, dc *gui.DrawContext) {
 	}
 }
 
+// axisDir returns a planet's spin axis as a unit vector in camera
+// coordinates: x right, y down, z toward the viewer. Same derivation
+// as initSurface, which is where the basis is documented.
+func axisDir(p *Planet) (ax, ay, az float32) {
+	sa, ca := sin32(p.Tilt), cos32(p.Tilt)
+	sinE, cosE := float32(diskTilt), cosElev
+	return sa, -ca * cosE, ca * sinE
+}
+
+// drawAxisHalf draws one half of the pole line, poking out from the
+// disc edge outward along (ax,ay). The caller decides which half is
+// far vs near by the az sign. The disc radius is r, the tip is
+// r*axisOverhang, so only the overhang beyond the limb is drawn.
+// Length is axisOverhang × screen radius, at 1px. Two calls with same
+// color merge into one flat batch.
+func drawAxisHalf(dc *gui.DrawContext, cx, cy, ax, ay, az, r float32, far bool) {
+	// Choose direction: north pole is +axis, south is -axis. Far half
+	// is the end whose az < 0. So if az>0, south is far; else north is far.
+	dir := float32(1)
+	if (az > 0) == far {
+		dir = -1
+	}
+	// Edge is on the limb (r), tip is at overhang. Only the segment
+	// beyond the disc is drawn so the interior does not show through
+	// the planet. The projection shortens by sqrt(1-az²) automatically
+	// via (ax,ay).
+	x0, y0 := cx+dir*ax*r, cy+dir*ay*r
+	x1, y1 := cx+dir*ax*r*axisOverhang, cy+dir*ay*r*axisOverhang
+	col := colorAxis
+	if far {
+		col = colorAxisFar
+	}
+	dc.Line(x0, y0, x1, y1, col, 1)
+}
+
 func drawPlanet(a *App, dc *gui.DrawContext, i int) {
 	p := &planets[i]
 	cx, cy := a.ScreenX[i], a.ScreenY[i]
@@ -631,7 +677,20 @@ func drawPlanet(a *App, dc *gui.DrawContext, i int) {
 		sp = &sf
 	}
 
+	// Pole axis halves, gated so the full-system view is not a hedgehog.
+	hasAxis := r >= axisMinRadius
+	var ax, ay, az float32
+	if hasAxis {
+		ax, ay, az = axisDir(p)
+	}
+
 	if i == saturnIndex {
+		// Saturn's order: far axis, back rings, body, front rings,
+		// near axis. That is what makes the sphere occlude the far
+		// half and the rings interleave.
+		if hasAxis {
+			drawAxisHalf(dc, cx, cy, ax, ay, az, r, true)
+		}
 		// Back half of the rings first, then the body, then the front
 		// half — which is what makes the rings pass behind Saturn.
 		//
@@ -643,9 +702,18 @@ func drawPlanet(a *App, dc *gui.DrawContext, i int) {
 		drawRings(dc, cx, cy, r, math.Pi, math.Pi, k)
 		drawBody(dc, &a.body, cx, cy, r, p.Color, lx, ly, lz, sp)
 		drawRings(dc, cx, cy, r, 0, math.Pi, k)
+		if hasAxis {
+			drawAxisHalf(dc, cx, cy, ax, ay, az, r, false)
+		}
 		return
 	}
+	if hasAxis {
+		drawAxisHalf(dc, cx, cy, ax, ay, az, r, true)
+	}
 	drawBody(dc, &a.body, cx, cy, r, p.Color, lx, ly, lz, sp)
+	if hasAxis {
+		drawAxisHalf(dc, cx, cy, ax, ay, az, r, false)
+	}
 }
 
 // bodyLitLift is how far the brightest point of a body is pushed

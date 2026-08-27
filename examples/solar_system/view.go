@@ -7,8 +7,8 @@ const (
 	// Event.ScrollY can arrive in. A discrete wheel notch reports ~3
 	// lines on every platform; a trackpad reports points of finger
 	// travel. Branching on ScrollPrecise is the only way to tell.
-	scrollZoomPerLine  = 0.045
-	scrollZoomPerPoint = 0.006
+	scrollZoomPerLine  = 0.12
+	scrollZoomPerPoint = 0.02
 )
 
 // mainView builds the window: a full-bleed canvas with the zoom

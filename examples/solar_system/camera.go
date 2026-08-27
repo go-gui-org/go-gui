@@ -39,10 +39,38 @@ const (
 // The ellipse is centered at (-a*e, 0) so the sun sits on the focus at
 // the world origin, which is what makes eccentricity visible at all.
 func orbitPos(p *Planet, t float32) (x, y float32) {
-	theta := p.Phase + 2*math.Pi*t/p.PeriodS
-	a := p.OrbitA
-	b := a * sqrt32(1-p.Ecc*p.Ecc)
-	return a*cos32(theta) - a*p.Ecc, b * sin32(theta)
+	return ellipsePos(p.OrbitA, p.Ecc, p.Phase, p.PeriodS, t)
+}
+
+// ellipsePos is orbitPos with the orbit terms supplied directly, so
+// the asteroid belt can share it without a Planet table entry.
+func ellipsePos(a, ecc, phase, periodS, t float32) (x, y float32) {
+	if periodS <= 0 {
+		periodS = 1
+	}
+	if ecc < 0 {
+		ecc = 0
+	} else if ecc >= 1 {
+		ecc = 0.99
+	}
+	theta := phase + 2*math.Pi*t/periodS
+	b := a * sqrt32(1-ecc*ecc)
+	return a*cos32(theta) - a*ecc, b * sin32(theta)
+}
+
+// orbitPeriod is the PeriodS a body at world radius a would have
+// under the table's compression: realAU = (a/195)^(1/0.38), then
+// realDays^0.45 * 0.8. Checks out against the table — Mercury 6.0,
+// Earth 11.4, Jupiter 34.6.
+//
+// Init-time only; never on the frame path.
+func orbitPeriod(a float32) float32 {
+	if a <= 0 {
+		return 1
+	}
+	realAU := math.Pow(float64(a)/195, 1/0.38)
+	realDays := 365.25 * math.Pow(realAU, 1.5)
+	return float32(0.8 * math.Pow(realDays, 0.45))
 }
 
 // zoom is the effective scale: the camera's own zoom times the user's.
@@ -55,16 +83,31 @@ func (a *App) worldToScreen(wx, wy float32) (sx, sy float32) {
 		a.CanvasH/2 + (wy-a.CamY)*diskTilt*z
 }
 
-// fullSystemTarget frames every orbit, with a margin so Neptune's
-// aphelion is not flush against the edge.
+// fullSystemTarget frames every orbit plus the calendar ring, with
+// a margin so the ring is not flush against the edge. The ring sits
+// outside Neptune's aphelion, so it now sets the extent rather than
+// Neptune. Margin trimmed to 1.04 so the system does not shrink. The
+// label caps (dialTextR + cap height) are also included so
+// December/January and June/July do not sit on the window edge.
 func (a *App) fullSystemTarget() (tx, ty, tz float32) {
 	outer := planets[len(planets)-1]
 	extent := outer.OrbitA*(1+outer.Ecc) + outer.Radius
+	// Calendar ring lies in the orbital plane outside Neptune; size to
+	// it instead when it is larger.
+	if dialOuter > extent {
+		extent = dialOuter
+	}
+	// Include the month labels' cap height so east/west labels stay
+	// inside the window. dialTextR is the baseline, cap is emHeight*emW.
+	textTop := dialTextR + emHeight*dialEmWorld
+	if textTop > extent {
+		extent = textTop
+	}
 	if extent <= 0 || a.CanvasW <= 0 || a.CanvasH <= 0 {
 		return 0, 0, 1
 	}
-	zx := a.CanvasW / (2 * extent * 1.12)
-	zy := a.CanvasH / (2 * extent * diskTilt * 1.12)
+	zx := a.CanvasW / (2 * extent * 1.04)
+	zy := a.CanvasH / (2 * extent * diskTilt * 1.04)
 	return 0, 0, min(zx, zy)
 }
 
@@ -257,8 +300,12 @@ func (a *App) hitTest(x, y float32) int {
 }
 
 // applyUserZoom multiplies the manual zoom factor and clamps it.
+// It bumps Version so the DrawCanvas re-tessellates on the next frame
+// without waiting for the 16 ms tick; a zoom otherwise feels one frame
+// behind, which reads as sluggish on a trackpad.
 func (a *App) applyUserZoom(factor float32) {
 	a.UserZoom = clamp32(a.UserZoom*factor, userZoomMin, userZoomMax)
+	a.Version++
 }
 
 // --- small float helpers (math is float64-only) ---

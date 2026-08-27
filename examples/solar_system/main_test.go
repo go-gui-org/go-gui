@@ -17,7 +17,7 @@ func TestMain(m *testing.M) {
 }
 
 // tweenTicks is the number of ticks one camera transition takes.
-const tweenTicks = 47 // camTweenSecs / tickSecs, rounded up
+var tweenTicks = 38 // camTweenSecs / wallTickSecs (0.6 / 0.016), rounded up
 
 // newTestApp is a fully seeded app with a known canvas size, so camera
 // and hit-test math is exercised without a real frame pass.
@@ -1258,7 +1258,7 @@ func BenchmarkAppendRing(b *testing.B) {
 	cdst := make([]gui.Color, 0, shadeArcMax+1)
 
 	var s surface
-	textured := initSurface(&s, earthIndex(b), 1234)
+	textured := initSurface(&s, firstTexturedIndex(b), 1234)
 	var proj surfaceProj
 	if textured {
 		proj = s.project(lb)
@@ -1286,10 +1286,10 @@ func BenchmarkAppendRing(b *testing.B) {
 	}
 }
 
-// earthIndex is the first planet with both a spin and a texture, so the
-// textured benchmark path is exercised on a real body rather than a
-// hand-built surface.
-func earthIndex(tb testing.TB) int {
+// firstTexturedIndex is the first planet with both a spin and a
+// texture, so the textured benchmark path is exercised on a real body
+// rather than a hand-built surface.
+func firstTexturedIndex(tb testing.TB) int {
 	tb.Helper()
 	for i := range planets {
 		if planets[i].RotS != 0 && planetTextures[i] != nil {
