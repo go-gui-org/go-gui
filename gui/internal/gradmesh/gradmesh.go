@@ -18,7 +18,10 @@
 // cached asset.
 package gradmesh
 
-import "math"
+import (
+	"math"
+	"slices"
+)
 
 // Spread selects how a gradient handles parameter values outside [0,1].
 // Pad clamps (the zero value), Reflect mirrors, Repeat wraps.
@@ -308,6 +311,9 @@ func stopIsolines(offsets []float32, spread Spread,
 			}
 		}
 	}
+	if spread == SpreadReflect {
+		slices.Sort(out)
+	}
 	return out
 }
 
@@ -394,24 +400,46 @@ func splitTriAtStops(ax, ay, bx, by, cx, cy float32,
 	// pieces and every piece is rescanned, so an unbalanced choice —
 	// shaving one thin band off the end, over and over — compounds into
 	// several times the triangles a balanced one produces.
+	//
+	// stopIsolines returns its list sorted (Pad and Repeat naturally,
+	// Reflect via an explicit sort), so the common "nothing crosses"
+	// node — the majority for a sparse ramp — is two comparisons via a
+	// binary search rather than a scan of the whole list. The scan below
+	// then only walks the isolines that actually straddle the triangle.
 	mid := (tMin + tMax) * 0.5
-	best := -1
-	var bestDist float32
-	for i, tS := range stopTs {
-		if tS <= tMin+1e-4 || tS >= tMax-1e-4 {
-			continue
+	epsLo := tMin + 1e-4
+	epsHi := tMax - 1e-4
+	// Binary search for the first isoline > epsLo.
+	lo, hi := 0, len(stopTs)
+	for lo < hi {
+		m := (lo + hi) / 2
+		if stopTs[m] <= epsLo {
+			lo = m + 1
+		} else {
+			hi = m
+		}
+	}
+	if lo >= len(stopTs) || stopTs[lo] >= epsHi {
+		*result = append(*result, ax, ay, bx, by, cx, cy)
+		return
+	}
+	best := lo
+	bestDist := stopTs[lo] - mid
+	if bestDist < 0 {
+		bestDist = -bestDist
+	}
+	for i := lo + 1; i < len(stopTs); i++ {
+		tS := stopTs[i]
+		if tS >= epsHi {
+			break
 		}
 		d := tS - mid
 		if d < 0 {
 			d = -d
 		}
-		if best < 0 || d < bestDist {
+		if d < bestDist {
 			best, bestDist = i, d
 		}
-	}
-	if best < 0 {
-		*result = append(*result, ax, ay, bx, by, cx, cy)
-		return
 	}
 	tS := stopTs[best]
 
@@ -594,6 +622,12 @@ func tRange(tris []float32, p *Params) (float32, float32) {
 // result must not reuse the buffer it came from.
 func Subdivide(tris []float32, p *Params,
 	split, radial, isolines *[]float32) []float32 {
+	if p == nil || split == nil || radial == nil || isolines == nil {
+		return tris
+	}
+	if len(tris) == 0 || len(tris)%6 != 0 {
+		return tris
+	}
 	// Geometric refinement first, and only for a radial gradient: its
 	// parameter is a distance, so it is not affine in position, and a
 	// triangle spanning a wide angle would have its falloff flattened
