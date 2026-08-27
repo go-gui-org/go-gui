@@ -5,8 +5,12 @@ import (
 	"flag"
 	"time"
 
+	"log"
+	"os"
+
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend"
+	"github.com/go-gui-org/go-gui/gui/backend/soft"
 )
 
 // sortState is threaded through the table header and the row ordering so a
@@ -45,6 +49,7 @@ func main() {
 	limit := flag.Int("limit", 10, "number of processes to print in -once mode")
 	sortBy := flag.String("sort", "cpu", "sort column: cpu, mem, pid, name, user, state, threads")
 	refresh := flag.Duration("refresh", time.Second, "GUI sample interval (snapped to 0.5s/1s/2s/5s)")
+	screenshot := flag.String("screenshot", "", "write screenshot and exit")
 	flag.Parse()
 
 	if *once {
@@ -73,6 +78,12 @@ func main() {
 		},
 	})
 
+	if *screenshot != "" {
+		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
+			log.Fatalf("screenshot: %v", err)
+		}
+		os.Exit(0)
+	}
 	backend.Run(w)
 }
 

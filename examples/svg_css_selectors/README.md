@@ -1,3 +1,14 @@
+# SVG CSS Selectors
+
+> **Framework:** svg **Description:** CSS selector additions: adjacent, sibling,
+> attribute, and :not(). Each tile uses a different selector strategy.
+
+![Preview](screenshot.png)
+
+<!-- explorer: tags=svg category=svg run=go -->
+
+---
+
 # svg_css_selectors
 
 Six tiles demonstrate v0.14.0 CSS Selectors L4 additions:

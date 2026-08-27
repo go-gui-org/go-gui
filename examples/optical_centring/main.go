@@ -25,8 +25,13 @@ package main
 import (
 	"time"
 
+	"flag"
+	"log"
+	"os"
+
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend"
+	"github.com/go-gui-org/go-gui/gui/backend/soft"
 )
 
 // App holds the typed text, so the input row is a live jitter check
@@ -40,10 +45,20 @@ type App struct {
 var probeSizes = []float32{16, 24, 48}
 
 func main() {
+	screenshot := flag.String("screenshot", "", "write screenshot and exit")
+	flag.Parse()
+
 	w := gui.SimpleWindow("Optical Centring", 900, 760,
 		&App{Typed: "128"}, func(w *gui.Window) {
 			w.UpdateView(mainView)
 		})
+
+	if *screenshot != "" {
+		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
+			log.Fatalf("screenshot: %v", err)
+		}
+		os.Exit(0)
+	}
 	backend.Run(w)
 }
 

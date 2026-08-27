@@ -8,8 +8,13 @@ import (
 	"fmt"
 	"time"
 
+	"flag"
+	"log"
+	"os"
+
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend"
+	"github.com/go-gui-org/go-gui/gui/backend/soft"
 )
 
 // Screen identifies the active view.
@@ -54,6 +59,9 @@ func state(w *gui.Window) *App {
 const blinkAnim = "solitaire-blink"
 
 func main() {
+	screenshot := flag.String("screenshot", "", "write screenshot and exit")
+	flag.Parse()
+
 	gui.SetTheme(gui.ThemeDark)
 
 	w := gui.NewWindow(gui.WindowCfg{
@@ -85,6 +93,12 @@ func main() {
 		OnEvent: handleEvent,
 	})
 
+	if *screenshot != "" {
+		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
+			log.Fatalf("screenshot: %v", err)
+		}
+		os.Exit(0)
+	}
 	backend.Run(w)
 }
 

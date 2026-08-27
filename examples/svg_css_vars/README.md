@@ -1,3 +1,14 @@
+# SVG CSS Vars
+
+> **Framework:** svg, theme **Description:** CSS custom properties with var()
+> fallback and calc() arithmetic. Theme switch rebuilds the SVG source.
+
+![Preview](screenshot.png)
+
+<!-- explorer: tags=svg,theme category=svg run=go -->
+
+---
+
 # svg_css_vars
 
 Demonstrates v0.14.0 custom-property additions:

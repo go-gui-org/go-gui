@@ -8,8 +8,13 @@ package main
 import (
 	"fmt"
 
+	"flag"
+	"log"
+	"os"
+
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend"
+	"github.com/go-gui-org/go-gui/gui/backend/soft"
 )
 
 const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg"
@@ -24,6 +29,9 @@ type App struct {
 }
 
 func main() {
+	screenshot := flag.String("screenshot", "", "write screenshot and exit")
+	flag.Parse()
+
 	gui.SetTheme(gui.ThemeDark)
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  &App{},
@@ -32,6 +40,13 @@ func main() {
 		Title:  "preserveAspectRatio",
 		OnInit: func(w *gui.Window) { w.UpdateView(view) },
 	})
+
+	if *screenshot != "" {
+		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
+			log.Fatalf("screenshot: %v", err)
+		}
+		os.Exit(0)
+	}
 	backend.Run(w)
 }
 

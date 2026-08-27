@@ -1,3 +1,14 @@
+# SVG A11y
+
+> **Framework:** svg **Description:** SVG accessibility metadata: title, desc,
+> and aria attributes surfaced on SvgParsed.A11y.
+
+![Preview](screenshot.png)
+
+<!-- explorer: tags=svg category=svg run=go -->
+
+---
+
 # svg_a11y
 
 Demonstrates accessibility metadata parsing on SVG documents. The viewer renders

@@ -9,8 +9,13 @@ package main
 import (
 	"fmt"
 
+	"flag"
+	"log"
+	"os"
+
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend"
+	"github.com/go-gui-org/go-gui/gui/backend/soft"
 )
 
 const linearTpl = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
@@ -36,6 +41,9 @@ const radialTpl = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"
 </svg>`
 
 func main() {
+	screenshot := flag.String("screenshot", "", "write screenshot and exit")
+	flag.Parse()
+
 	gui.SetTheme(gui.ThemeDark)
 	w := gui.NewWindow(gui.WindowCfg{
 		Width:  720,
@@ -43,6 +51,13 @@ func main() {
 		Title:  "Gradient spreadMethod",
 		OnInit: func(w *gui.Window) { w.UpdateView(view) },
 	})
+
+	if *screenshot != "" {
+		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
+			log.Fatalf("screenshot: %v", err)
+		}
+		os.Exit(0)
+	}
 	backend.Run(w)
 }
 

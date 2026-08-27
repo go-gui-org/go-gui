@@ -1,3 +1,14 @@
+# SVG Gradient Spread
+
+> **Framework:** svg **Description:** spreadMethod pad, reflect, and repeat on
+> linear and radial gradients. Compares falloff in a 2x3 grid.
+
+![Preview](screenshot.png)
+
+<!-- explorer: tags=svg category=svg run=go -->
+
+---
+
 # svg_gradient_spread
 
 Demonstrates the `spreadMethod` attribute on `<linearGradient>` and

@@ -18,8 +18,12 @@ import (
 	"strings"
 	"time"
 
+	"flag"
+	"log"
+
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend"
+	"github.com/go-gui-org/go-gui/gui/backend/soft"
 )
 
 // --- State ---
@@ -169,6 +173,9 @@ func spacerV(h float32) gui.View {
 // --- Main ---
 
 func main() {
+	screenshot := flag.String("screenshot", "", "write screenshot and exit")
+	flag.Parse()
+
 	state := &FontViewerState{
 		FontSize: initialFontSize,
 		Sample:   randomPangram(""),
@@ -188,6 +195,12 @@ func main() {
 		},
 	})
 
+	if *screenshot != "" {
+		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
+			log.Fatalf("screenshot: %v", err)
+		}
+		os.Exit(0)
+	}
 	backend.Run(w)
 }
 

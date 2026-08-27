@@ -11,11 +11,15 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"log"
+	"os"
 	"slices"
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend"
+	"github.com/go-gui-org/go-gui/gui/backend/soft"
 )
 
 type appState struct {
@@ -50,6 +54,9 @@ func (s *appState) Size() int {
 }
 
 func main() {
+	screenshot := flag.String("screenshot", "", "write screenshot and exit")
+	flag.Parse()
+
 	gui.SetTheme(gui.ThemeLight.WithPadding(false))
 
 	app := gui.NewApp()
@@ -66,6 +73,12 @@ func main() {
 		},
 	})
 
+	if *screenshot != "" {
+		if err := soft.RenderToPNG(main, 2, *screenshot); err != nil {
+			log.Fatalf("screenshot: %v", err)
+		}
+		os.Exit(0)
+	}
 	backend.RunApp(app, main)
 }
 

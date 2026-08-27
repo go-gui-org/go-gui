@@ -6,8 +6,13 @@
 package main
 
 import (
+	"flag"
+	"log"
+	"os"
+
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend"
+	"github.com/go-gui-org/go-gui/gui/backend/soft"
 )
 
 type sample struct {
@@ -96,6 +101,9 @@ func samples() []sample {
 }
 
 func main() {
+	screenshot := flag.String("screenshot", "", "write screenshot and exit")
+	flag.Parse()
+
 	gui.SetTheme(gui.ThemeDark)
 	w := gui.NewWindow(gui.WindowCfg{
 		Width:  720,
@@ -103,6 +111,13 @@ func main() {
 		Title:  "Radial Gradients",
 		OnInit: func(w *gui.Window) { w.UpdateView(view) },
 	})
+
+	if *screenshot != "" {
+		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
+			log.Fatalf("screenshot: %v", err)
+		}
+		os.Exit(0)
+	}
 	backend.Run(w)
 }
 

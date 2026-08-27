@@ -8,8 +8,12 @@ import (
 	_ "embed"
 	"log"
 
+	"flag"
+	"os"
+
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend"
+	"github.com/go-gui-org/go-gui/gui/backend/soft"
 )
 
 //go:embed icon.png
@@ -20,6 +24,9 @@ type App struct {
 }
 
 func main() {
+	screenshot := flag.String("screenshot", "", "write screenshot and exit")
+	flag.Parse()
+
 	gui.SetTheme(gui.ThemeDark)
 	app := gui.NewApp()
 	app.ExitMode = gui.ExitOnTrayRemoved
@@ -54,6 +61,12 @@ func main() {
 		},
 	})
 
+	if *screenshot != "" {
+		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
+			log.Fatalf("screenshot: %v", err)
+		}
+		os.Exit(0)
+	}
 	backend.RunApp(app, w)
 }
 

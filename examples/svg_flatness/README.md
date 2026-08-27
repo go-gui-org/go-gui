@@ -1,3 +1,14 @@
+# SVG Flatness
+
+> **Framework:** svg, performance **Description:** FlatnessTolerance on SVG
+> tessellation. Renders the same curve at five tolerance values.
+
+![Preview](screenshot.png)
+
+<!-- explorer: tags=svg,performance category=svg run=go -->
+
+---
+
 # svg_flatness
 
 Demonstrates `SvgCfg.FlatnessTolerance` — the tessellation tolerance floor in

@@ -1,5 +1,16 @@
 # Android Demo
 
+> **Framework:** platform **Description:** Go-gui on Android via gomobile.
+> Builds as an AAR and links into a native project.
+
+![Preview](screenshot.png)
+
+<!-- explorer: tags=platform category=platform run=mobile -->
+
+---
+
+# Android Demo
+
 Demonstrates go-gui on Android via OpenGL ES 3.0.
 
 ## Prerequisites

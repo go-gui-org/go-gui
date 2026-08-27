@@ -1,3 +1,14 @@
+# Virtual List
+
+> **Framework:** data, performance, layout **Description:** Virtualized list of
+> 50,000 variable-height message cards. Rows measure on demand and recycle.
+
+![Preview](screenshot.png)
+
+<!-- explorer: tags=data,performance,layout category=data run=go -->
+
+---
+
 # virtual_list
 
 A virtualized message feed of 50,000 cards whose rows differ in height. Row

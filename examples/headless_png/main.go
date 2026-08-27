@@ -3,6 +3,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -16,8 +17,15 @@ type App struct {
 }
 
 func main() {
+	screenshot := flag.String("screenshot", "", "write screenshot and exit (overrides positional arg)")
+	flag.Parse()
 	out := "headless.png"
-	if len(os.Args) > 1 {
+	if *screenshot != "" {
+		out = *screenshot
+	} else if flag.NArg() > 0 {
+		out = flag.Arg(0)
+	} else if len(os.Args) > 1 && os.Args[1] != "" {
+		// Fallback for direct os.Args use without flag.Parse
 		out = os.Args[1]
 	}
 

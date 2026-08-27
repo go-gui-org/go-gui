@@ -1,5 +1,17 @@
 # Solar System
 
+> **Framework:** graphics, animation **Description:** Interactive orrery with
+> eight planets on tilted orbits. Hover to glow, click to follow, with a
+> starfield.
+
+![Preview](screenshot.png)
+
+<!-- explorer: tags=graphics,animation category=graphics run=go -->
+
+---
+
+# Solar System
+
 An interactive orrery. Eight planets travel tilted elliptical orbits around a
 glowing sun, over a starfield that twinkles. Earth takes a minute to lap the
 sun, Mercury about half a minute, Neptune about ten minutes.
