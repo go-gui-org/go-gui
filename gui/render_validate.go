@@ -69,7 +69,18 @@ func validCircleCmd(r RenderCmd) bool {
 }
 
 func validTextCmd(r RenderCmd) bool {
-	return f32AllFinite2(r.X, r.Y) && len(r.Text) > 0
+	if !f32AllFinite2(r.X, r.Y) || len(r.Text) == 0 {
+		return false
+	}
+	if r.LayoutTransform != nil {
+		t := *r.LayoutTransform
+		if !f32AllFinite2(t.XX, t.XY) ||
+			!f32AllFinite2(t.YX, t.YY) ||
+			!f32AllFinite2(t.X0, t.Y0) {
+			return false
+		}
+	}
+	return true
 }
 
 func validLayoutCmd(r RenderCmd) bool {
@@ -77,8 +88,17 @@ func validLayoutCmd(r RenderCmd) bool {
 }
 
 func validLayoutTransformedCmd(r RenderCmd) bool {
-	return f32AllFinite2(r.X, r.Y) &&
-		r.LayoutPtr != nil && r.LayoutTransform != nil
+	if !f32AllFinite2(r.X, r.Y) ||
+		r.LayoutPtr == nil || r.LayoutTransform == nil {
+		return false
+	}
+	t := *r.LayoutTransform
+	if !f32AllFinite2(t.XX, t.XY) ||
+		!f32AllFinite2(t.YX, t.YY) ||
+		!f32AllFinite2(t.X0, t.Y0) {
+		return false
+	}
+	return true
 }
 
 func validImageCmd(r RenderCmd) bool {

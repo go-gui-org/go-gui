@@ -233,6 +233,32 @@ func pdfRenderText(ctx *pdfCtx, cmd RenderCmd) {
 	ascent := float64(fa * ctx.scale)
 	lineH := size * ptToMM64() * 1.2
 	lines := strings.Split(text, "\n")
+	// Affine canvas text: apply the same transform the
+	// screen backends see. Keep the transform around the
+	// text origin so a skew around (X,Y) does not skew
+	// around the page origin. The generic matrix is
+	// sufficient; per-glyph curvature is out of scope.
+	hasXform := cmd.LayoutTransform != nil
+	if hasXform {
+		t := *cmd.LayoutTransform
+		mx := ctx.px(cmd.X)
+		my := ctx.py(cmd.Y)
+		ctx.pdf.TransformBegin()
+		// T(mx,my) * Affine * T(-mx,-my) in PDF
+		// coordinates (Y already flipped in mx/my).
+		// For the common case (XX/YY near 1, XY/YX
+		// skew), this keeps the text at its origin.
+		// X0/Y0 are in logical px; scale to mm.
+		e := mx*(1-float64(t.XX)) - my*float64(t.XY) +
+			float64(t.X0*ctx.scale)
+		f := my*(1-float64(t.YY)) - mx*float64(t.YX) +
+			float64(t.Y0*ctx.scale)
+		ctx.pdf.Transform(fpdf.TransformMatrix{
+			A: float64(t.XX), B: float64(t.YX),
+			C: float64(t.XY), D: float64(t.YY),
+			E: e, F: f,
+		})
+	}
 	for i, line := range lines {
 		ctx.pdf.Text(ctx.px(cmd.X),
 			ctx.py(cmd.Y)+ascent+float64(i)*lineH, line)
@@ -248,6 +274,9 @@ func pdfRenderText(ctx *pdfCtx, cmd RenderCmd) {
 			sy := ctx.py(cmd.Y) + ascent*0.65 + float64(i)*lineH
 			ctx.pdf.Line(ctx.px(cmd.X), sy, ctx.px(cmd.X)+lineW, sy)
 		}
+	}
+	if hasXform {
+		ctx.pdf.TransformEnd()
 	}
 	if alphaSet {
 		resetAlpha(ctx.pdf)

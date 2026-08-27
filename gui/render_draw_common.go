@@ -101,6 +101,64 @@ func ComputeTextPathPlacements(
 	return layout, placements, nil
 }
 
+// DrawTextTransformed draws a RenderText with an affine
+// transform via the glyph layout cache. Returns true when it
+// handled the command (including on error / empty text), so the
+// caller should not also take the DrawText fast path. The fast
+// path is left to the caller so each backend keeps its own
+// glyph-pipeline setup.
+func DrawTextTransformed(
+	r *RenderCmd,
+	textSys *glyph.TextSystem,
+	styleToCfg func(TextStyle) glyph.TextConfig,
+	drawFn func(glyph.Layout, *glyph.GradientConfig),
+) bool {
+	if r == nil || textSys == nil || r.LayoutTransform == nil {
+		return false
+	}
+	// Reject NaN/Inf transforms before touching glyph
+	// cache — render_validate also drops these, and the
+	// glyph renderer is not required to handle them.
+	t := *r.LayoutTransform
+	if !f32IsFinite(t.XX) || !f32IsFinite(t.XY) ||
+		!f32IsFinite(t.YX) || !f32IsFinite(t.YY) ||
+		!f32IsFinite(t.X0) || !f32IsFinite(t.Y0) {
+		return true
+	}
+	if len(r.Text) == 0 {
+		return true
+	}
+	var cfg glyph.TextConfig
+	if r.TextStylePtr != nil {
+		cfg = styleToCfg(*r.TextStylePtr)
+		cfg.Gradient = r.TextGradient
+	} else {
+		// Fallback for plain RenderText with no style ptr
+		// (mirrors glyphconv.GuiTextConfigFromRender).
+		cfg = glyph.TextConfig{
+			Style: glyph.TextStyle{
+				FontName: r.FontName,
+				Size:     r.FontSize,
+				Color: glyph.Color{
+					R: r.Color.R, G: r.Color.G,
+					B: r.Color.B, A: r.Color.A,
+				},
+			},
+			Block: glyph.DefaultBlockStyle(),
+		}
+	}
+	if r.W > 0 {
+		cfg.Block.Wrap = glyph.WrapWord
+		cfg.Block.Width = r.W
+	}
+	layout, err := textSys.LayoutTextCached(r.Text, cfg)
+	if err != nil {
+		return true
+	}
+	drawFn(layout, r.TextGradient)
+	return true
+}
+
 // GradientBorderRect is one edge rect with its sampled color for a
 // gradient border. Shared across all backends.
 // exportaudit:keep — reachable from an exported signature

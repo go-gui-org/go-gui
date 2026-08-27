@@ -9,6 +9,8 @@ import (
 
 	gogl "github.com/go-gui-org/go-gui/gui/backend/internal/glbind"
 
+	"github.com/go-gui-org/go-glyph"
+
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/glyphconv"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
@@ -405,6 +407,21 @@ func (b *Backend) drawSvg(r *gui.RenderCmd) {
 
 func (b *Backend) drawText(r *gui.RenderCmd) {
 	if b.textSys == nil || len(r.Text) == 0 {
+		return
+	}
+	if gui.DrawTextTransformed(r, b.textSys,
+		guiStyleToGlyphConfig,
+		func(layout glyph.Layout, grad *glyph.GradientConfig) {
+			b.useGlyphPipeline()
+			if grad != nil {
+				b.textSys.DrawLayoutTransformedWithGradient(
+					layout, r.X, r.Y, *r.LayoutTransform, grad)
+			} else {
+				b.textSys.DrawLayoutTransformed(
+					layout, r.X, r.Y, *r.LayoutTransform)
+			}
+			b.restoreAfterGlyph()
+		}) {
 		return
 	}
 	cfg := glyphconv.GuiTextConfigFromRender(r)

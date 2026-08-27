@@ -143,6 +143,12 @@ func serializeCmd(c RenderCmd) string {
 		if c.TextWidth != 0 {
 			b.WriteString(" tw=" + f2(c.TextWidth))
 		}
+		if c.LayoutTransform != nil {
+			t := c.LayoutTransform
+			fmt.Fprintf(&b, " affine=[%s,%s,%s,%s,%s,%s]",
+				f2(t.XX), f2(t.XY), f2(t.YX), f2(t.YY),
+				f2(t.X0), f2(t.Y0))
+		}
 	case RenderImage:
 		fmt.Fprintf(&b, " res=%q", c.Resource)
 	case RenderSvg:
@@ -178,6 +184,12 @@ func serializeCmd(c RenderCmd) string {
 	}
 	if c.LayoutPtr != nil {
 		b.WriteString(" +glyphlayout")
+	}
+	if c.LayoutTransform != nil && c.Kind != RenderText {
+		t := c.LayoutTransform
+		fmt.Fprintf(&b, " affine=[%s,%s,%s,%s,%s,%s]",
+			f2(t.XX), f2(t.XY), f2(t.YX), f2(t.YY),
+			f2(t.X0), f2(t.Y0))
 	}
 	return b.String()
 }

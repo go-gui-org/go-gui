@@ -46,13 +46,18 @@ type RenderCmd struct {
 	ColorMatrix *[16]float32 // FilterBegin: color transform
 
 	// Pointer fields.
-	Shader          *Shader
-	Gradient        *GradientDef
-	TextStylePtr    *TextStyle            // full text style (typeface, etc.)
-	TextGradient    *glyph.GradientConfig // text gradient for glyph-layout draws
-	textPath        *textPathData         // SVG textPath placement data
-	TermGrid        *TermGridData         // terminal grid buffer (RenderTermGrid)
-	LayoutPtr       *glyph.Layout         // pre-shaped glyph layout
+	Shader       *Shader
+	Gradient     *GradientDef
+	TextStylePtr *TextStyle            // full text style (typeface, etc.)
+	TextGradient *glyph.GradientConfig // text gradient for glyph-layout draws
+	textPath     *textPathData         // SVG textPath placement data
+	TermGrid     *TermGridData         // terminal grid buffer (RenderTermGrid)
+	LayoutPtr    *glyph.Layout         // pre-shaped glyph layout
+	// LayoutTransform holds the affine for RenderLayoutTransformed and,
+	// when set, for RenderText (canvas affine text). The backend's
+	// drawText draws a cached layout with it; unset means the fast
+	// DrawText path. Keep the field on RenderText so the canvas can
+	// carry skew/squash without shaping in gui (see #436).
 	LayoutTransform *glyph.AffineTransform
 
 	// String data.

@@ -10,6 +10,8 @@ import (
 	"strings"
 	"syscall/js"
 
+	"github.com/go-gui-org/go-glyph"
+
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/glyphconv"
 )
@@ -209,6 +211,28 @@ func (b *Backend) drawStrokeRect(r *gui.RenderCmd) {
 
 func (b *Backend) drawText(r *gui.RenderCmd) {
 	if b.textSys == nil || len(r.Text) == 0 {
+		return
+	}
+	if gui.DrawTextTransformed(r, b.textSys,
+		glyphconv.GuiStyleToGlyphConfig,
+		func(layout glyph.Layout, grad *glyph.GradientConfig) {
+			// Web's glyph backend has no DrawTexturedQuadTransformed
+			// support; emulate the transform via Canvas2D like
+			// drawLayoutTransformed does.
+			t := *r.LayoutTransform
+			b.ctx2d.Call("save")
+			b.ctx2d.Call("transform",
+				float64(t.XX), float64(t.YX),
+				float64(t.XY), float64(t.YY),
+				float64(r.X)+float64(t.X0),
+				float64(r.Y)+float64(t.Y0))
+			if grad != nil {
+				b.textSys.DrawLayoutWithGradient(layout, 0, 0, grad)
+			} else {
+				b.textSys.DrawLayout(layout, 0, 0)
+			}
+			b.ctx2d.Call("restore")
+		}) {
 		return
 	}
 	cfg := glyphconv.GuiTextConfigFromRender(r)
