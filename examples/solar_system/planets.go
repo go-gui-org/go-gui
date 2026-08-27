@@ -149,6 +149,10 @@ var planets = [...]Planet{
 // saturnIndex special-cases ring drawing without matching on Name.
 const saturnIndex = 5
 
+// earthIndex is the planet whose orbital angle reads as the calendar
+// date on the dial.
+const earthIndex = 2
+
 // selSun is the selection value for the star at the center. Selection
 // is otherwise a planet index, with -1 meaning the full-system view, so
 // the sun needs a value outside both ranges rather than a slot in the

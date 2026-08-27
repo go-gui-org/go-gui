@@ -26,13 +26,17 @@ const (
 
 	// tickSecs is how much *simulated* time one tick advances, and it
 	// is deliberately not tickDelay. The animation still fires every
-	// 16 ms of wall clock, but advances 12.96 ms of simulation, so the
-	// whole model — orbits, axial spin, the camera tween and the star
-	// twinkle alike — runs at 81% speed (two successive 10% cuts off
-	// the original 16 ms). One number rather than a factor spread
-	// across the tables, because everything here is a function of
-	// App.Time.
-	tickSecs = float32(0.01296)
+	// 16 ms of wall clock, but advances 3.04 ms of simulation, so
+	// Earth's 11.4 s period maps to 60 s wall clock — one Earth year
+	// per minute. Orbits, spins and star twinkle slow together because
+	// they are functions of App.Time; camera tween stays on wall time
+	// so zoom/pan do not get sluggish with the orrery.
+	tickSecs = float32(0.00304)
+
+	// wallTickSecs is the wall-clock delta advanceCamera steps by. Keep
+	// it separate from tickSecs so slowing the orrery does not slow the
+	// camera.
+	wallTickSecs = float32(0.016)
 
 	canvasID = "solar_canvas"
 
@@ -45,7 +49,7 @@ const (
 	starAlphaFloor = 0.0625
 
 	// keyZoomStep is the multiplier one +/- press applies.
-	keyZoomStep = 1.15
+	keyZoomStep = 1.3
 )
 
 // Star is one background point. Position is in normalized [0,1) canvas
@@ -91,6 +95,13 @@ type App struct {
 	// granules is drawGranulation's, on the same footing. It is filled
 	// and flushed twice per frame, once per cell polarity.
 	granules bodyMesh
+
+	// belt is drawBelt's mesh scratch, dial is the calendar ring's
+	// (ticks + labels + marker in one batch). Separate so capacities
+	// settle independently, the reason documented for
+	// body/corona/granules.
+	belt bodyMesh
+	dial bodyMesh
 
 	// Selected and Hovered are a planet index, selSun for the sun, or
 	// -1 for the full-system view / nothing under the cursor.
@@ -206,7 +217,7 @@ func main() {
 // scale changed, so without it the canvas would freeze on frame one.
 func tick(a *App) {
 	a.Time += tickSecs
-	a.advanceCamera(tickSecs)
+	a.advanceCamera(wallTickSecs)
 	a.recompute()
 	if a.MouseIn {
 		a.Hovered = a.hitTest(a.MouseX, a.MouseY)

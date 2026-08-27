@@ -8,6 +8,57 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **`examples/solar_system`: calendar ring, asteroid belt and rotation axes**
+  (#437) — three antique-orrery elements, all in the example, no engine change.
+
+  The calendar ring lies in the orbital plane just outside Neptune (`dialInner`
+  780, `dialOuter` 830 world units) with month names, day ticks and a marker
+  that tracks Earth's orbital angle — the way a real orrery reads the date.
+  Three concentric rails are `Arc` ellipses squashed by `diskTilt`; ticks and
+  the twelve labels share one `FillTrianglesColors` mesh. Month text cannot be
+  `dc.Text`: `TextStyle.RotationRadians` does not skew or squash, so a glyph
+  could not lie in the plane. A stroke font built in the example is placed by
+  arc length (`dθ = x/R`) so names curve along the ring, projected with
+  `worldToScreen`, then thickened perpendicular in screen space for uniform
+  weight; every segment becomes a quad in the same batch. The plane's
+  foreshortening (`diskTilt = 0.48`) is compensated per label — tangential world
+  extents are inflated by `1/ft` and radial by `1/fr` where
+  `ft = √(sin²θ + cos²θ·diskTilt²)` — so December/June at east/west (tangent
+  vertical, `ft ≈ 0.48`) keep the same screen width as March/September, with an
+  inter-glyph gap of `0.14` em to avoid touching at `≈6.3` px per glyph
+  (`dialEmWorld = 15`) in the full-system view. `dialAngle` maps a full Earth
+  year to one turn; labels gate on a legibility threshold and the whole dial
+  culls when its projected radius exceeds a few canvas widths (a selected planet
+  at 30×).
+
+  The asteroid belt is 600 rocks between Mars and Jupiter (`[250,340]` world
+  units) built once with a fixed PCG seed. Each carries
+  `orbitA/ecc/phase/periodS` with `periodS = orbitPeriod(orbitA)` from the
+  table's own compression (`realAU=(a/195)^(1/0.38)`, then `realDays^0.45×0.8` —
+  Mercury 6.0, Earth 11.4, Jupiter 34.6), a density hump and thin Kirkwood gaps,
+  and an out-of-plane `zOff` that reaches the screen as `-zOff·cosElev·zoom`.
+  One vertex-colored square per rock, culled off-canvas, into a single
+  `FillTrianglesColors` batch; inner rocks lap outer ones because the period law
+  is the same for belt and planets. Paint order after `drawOrbits` before
+  `drawSun`; depth sorting is unnecessary at 1–2 px.
+
+  Rotation axes are a line through each planet's pole. `axisDir` lifts the
+  `initSurface` derivation to a standalone helper
+  `(sinθ, −cosθ·cosElev, cosθ·diskTilt)` as a unit vector in camera coordinates.
+  Length `1.35×` screen radius; drawn as two 1 px `dc.Line` halves so the sphere
+  occludes the far one (far dimmer, near brighter; Saturn interleaves back
+  rings/body/front rings between them). Gated on `r ≥ 5 px` so the full-system
+  view is not a hedgehog. Costs in geometry are about one extra planet body in
+  three or four batches; scratch meshes keep the frame allocation-free.
+
+  Shared helpers extracted from the existing code: `ellipsePos` generalises
+  `orbitPos` and `orbitPeriod` encodes the table's period compression.
+  `tickSecs` is `0.00304` so Earth's 11.4 s simulation period maps to 60 s wall
+  clock — one Earth year per minute (≈32 s Mercury, ≈10 min Neptune). Framing
+  sizes to `dialOuter` (margin 1.04) rather than Neptune.
+
 ### Changed
 
 - **`examples/solar_system`'s granulation is a mesh, and now actually has the

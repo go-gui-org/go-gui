@@ -1,8 +1,8 @@
 # Solar System
 
 An interactive orrery. Eight planets travel tilted elliptical orbits around a
-glowing sun, over a starfield that twinkles. Mercury laps the sun in about seven
-and a half seconds. Neptune takes a little over two and a half minutes.
+glowing sun, over a starfield that twinkles. Earth takes a minute to lap the
+sun, Mercury about half a minute, Neptune about ten minutes.
 
 Planets are shaded spheres lit from the sun, each labelled under its disc. They
 show phases. A planet on the near side of its orbit turns its night side toward
@@ -67,6 +67,13 @@ go run ./examples/solar_system/
   draw it. `bodyAt` is the one place that encoding is decoded. Arrow stepping
   walks a _rank_ rather than the encoded value, because `selSun` is deliberately
   not adjacent to Mercury in arithmetic.
+
+- **A calendar that lives in the world and a belt that obeys the same clock.**
+  Month names are not `dc.Text` — a stroke font built in the example places its
+  points through the same `worldToScreen` 2×2 as the ticks, so text squashes and
+  rotates with the orbital plane and twelve labels merge into one mesh. The belt
+  reuses `orbitPos`'s ellipse math and the table's `orbitPeriod` compression, so
+  belt rocks and planets share one time base.
 
 ## Notes on technique
 
@@ -250,15 +257,15 @@ hundreds of pixels across and both ceilings actually bind, that the raise costs
 anything. It was 99.6k triangles against 85.9k.
 
 Off-screen bodies are still culled. Without that, the seven planets outside the
-viewport at a focused zoom each build a full-resolution sphere anyway.
-
-Current counts, from `TestBatchCountPerFrame` and `TestPrimitiveCountsPerFrame`
-at 1100x760:
+viewport at a focused zoom each build a full-resolution sphere anyway. Current
+counts, from `TestBatchCountPerFrame` and `TestPrimitiveCountsPerFrame` at
+1100x760 (with the calendar, belt and axes — about one extra planet's worth of
+geometry in three or four batches over the textured baseline):
 
 | view        | batches | triangles | draw calls |
 | ----------- | ------- | --------- | ---------- |
-| full-system | 42      | 15.6k     | 61         |
-| jupiter     | 22      | 21.4k     | 31         |
+| full-system | 60      | 22.7k     | 79         |
+| jupiter     | 32      | 28.8k     | 41         |
 
 The frame itself allocates almost nothing. `DrawCanvas` recycles a redraw's
 tessellation buffers, so what is left per frame is the view phase building the
@@ -362,6 +369,54 @@ preserved. Mercury's real sidereal day is 0.67 of its year. Here it is 4.65. The
 distortion happens to run in the direction that makes Mercury's and Venus's fact
 sheets read as true on screen. The sheets claim "a day lasts longer than a
 year". That is a coincidence of the scaling, not a property the model keeps.
+
+### A calendar that lies in the plane
+
+A screen-space font cannot lie in the orbital plane. `dc.Text` honors
+`TextStyle.RotationRadians` (`gui/render_draw_canvas.go:124`) but not skew or
+squash, so real glyphs stay upright while the ring tilts. The stroke font
+(`strokefont.go`) sidesteps that: a glyph is a set of polylines in a unit em
+box, `x` rightward and `y` upward, with fixed advance `emAdvance`. Placing a
+label centers its name on the month's mid-angle, and a glyph point `(gx, gy)`
+becomes world polar by arc length — `dθ = x_arc / R` for the along-ring
+coordinate and `gy` outward for the radial one — so the name curves instead of
+running off a chord. Both endpoints of a segment are projected with
+`worldToScreen`, then thickened perpendicular **in screen space** by a fixed
+pixel width; a world-space thickness would fatten the top and bottom of the ring
+and thin the sides, while a screen-space one keeps the weight uniform and gives
+the squash for free. The squash itself is then compensated per label: world
+tangential extents are inflated by `1/ft` and radial by `1/fr` where
+`ft = √(sin²θ + cos²θ·diskTilt²)` and `fr = √(cos²θ + sin²θ·diskTilt²)`, so a
+December/June label at east/west (tangent vertical, `ft ≈ 0.48`) keeps the same
+`≈6.3` px per-glyph screen width (`dialEmWorld = 15`) as March/September; the
+inter-glyph gap is `0.14` em to avoid touching. Every segment becomes a quad in
+the dial's `FillTrianglesColors` mesh, so twelve labels and 365 ticks share one
+batch; labels gate on `dialLabelMinPx`.
+
+### A belt that shares the period law
+
+The planet table compresses real orbits into watchable ones:
+`OrbitA = 195·AU^0.38` and `PeriodS = realDays^0.45×0.8`. The belt must obey the
+same clock, or inner rocks would not visibly lap outer ones and the table's
+ordering would mean two different things. `orbitPeriod` in `camera.go` encodes
+that law once: `realAU = (a/195)^(1/0.38)`, then
+`realDays = 365.25·realAU^(3/2)`, then the `0.45` power. `ellipsePos`
+generalises `orbitPos` so the belt can reuse its math without a `Planet` entry.
+Rocks spread over `[250, 340]` with a triangular density hump and two thin
+Kirkwood gaps, carry `zOff` for thickness — a world `+z` point contributes
+`-zOff·cosElev·zoom` to screen `y` (the one line that mirrors `lightVecAt`'s
+basis) — and are built once with a fixed `PCG` seed into a single vertex-colored
+batch.
+
+### Rotation axes
+
+`initSurface` already resolves a planet's spin axis into camera coordinates
+`(sinθ, −cosθ·cosElev, cosθ·diskTilt)`. `axisDir` lifts that derivation so the
+axis does not depend on the texture path. In `drawPlanet` the axis is drawn in
+two halves: the end whose `az < 0` before `drawBody` (dimmer) and the `az > 0`
+end after it (brighter), so the sphere occludes the far half. Saturn's order is
+far axis, back rings, body, front rings, near axis. Length is `1.35×` screen
+radius at 1 px, gated on `r ≥ 5 px`.
 
 ## Provenance
 
