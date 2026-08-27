@@ -119,7 +119,7 @@ func treeIconWidth(cfg *TreeCfg, w *Window) float32 {
 	}
 	if w != nil && w.textMeasurer != nil {
 		return max(
-			w.textMeasurer.TextWidth(iconDropDown+" ", style),
+			w.textMeasurer.TextWidth(IconDropDown+" ", style),
 			style.Size+4,
 		)
 	}
@@ -131,12 +131,12 @@ func treeArrowIcon(row treeFlatRow) string {
 		return " "
 	}
 	if row.IsExpanded {
-		return iconDropDown
+		return IconDropDown
 	}
 	if ActiveLocale.TextDir == TextDirRTL {
-		return iconDropLeft
+		return IconDropLeft
 	}
-	return iconDropRight
+	return IconDropRight
 }
 
 func treeRowView(

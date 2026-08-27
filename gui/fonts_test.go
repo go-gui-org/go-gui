@@ -19,11 +19,11 @@ func TestIconLookupKnownKeys(t *testing.T) {
 		key  string
 		want string
 	}{
-		{"icon_arrow_down", iconArrowDown},
-		{"icon_check", iconCheck},
-		{"icon_home", iconHome},
+		{"icon_arrow_down", IconArrowDown},
+		{"icon_check", IconCheck},
+		{"icon_home", IconHome},
 		{"icon_star", IconStar},
-		{"icon_yaki_dango", iconYakiDango},
+		{"icon_yaki_dango", IconYakiDango},
 	}
 	for _, tt := range tests {
 		if got, ok := IconLookup[tt.key]; !ok {
