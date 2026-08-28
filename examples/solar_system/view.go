@@ -48,6 +48,12 @@ func solarCanvas(a *App) gui.View {
 		Padding:   gui.NoPadding,
 		Version:   a.Version,
 		Focusable: true,
+
+		// The tick animation refreshes renderers only, so no view pass
+		// runs to carry Version into the redraw gate. AlwaysRedraw is
+		// the other half of that pairing; without it the canvas would
+		// freeze on frame one.
+		AlwaysRedraw: true,
 		A11YCfg: gui.A11YCfg{
 			A11YLabel: "Solar system map",
 			A11YDescription: "Hover a body to identify it, click to " +
@@ -79,7 +85,8 @@ func solarCanvas(a *App) gui.View {
 			if ctx.Event == nil {
 				return
 			}
-			selectBody(a, a.hitTest(ctx.Event.MouseX, ctx.Event.MouseY))
+			selectBody(a, ctx.Window,
+				a.hitTest(ctx.Event.MouseX, ctx.Event.MouseY))
 			ctx.Consume()
 		},
 

@@ -30,7 +30,10 @@ type rock struct {
 	orbitA, ecc, phase, periodS float32
 	zOff                        float32 // out-of-plane offset, world units
 	size                        float32
-	tint                        float32 // brightness variance
+	// col is beltColor scaled by this rock's brightness variance.
+	// Baked here rather than per frame: it is a constant, and the
+	// belt is 600 rocks.
+	col gui.Color
 }
 
 // beltRocks is built once with a fixed seed so a run and a test see
@@ -74,7 +77,7 @@ func makeBelt() []rock {
 
 		rocks = append(rocks, rock{
 			orbitA: a, ecc: ecc, phase: phase, periodS: periodS,
-			zOff: zOff, size: size, tint: tint,
+			zOff: zOff, size: size, col: scaleColor(beltColor, tint),
 		})
 	}
 	return rocks
@@ -121,14 +124,7 @@ func drawBelt(a *App, dc *gui.DrawContext) {
 		if sx+half < 0 || sx-half > dc.Width || sy+half < 0 || sy-half > dc.Height {
 			continue
 		}
-		c := beltColor
-		// Per-rock brightness variance.
-		c = gui.RGBA(
-			chan8(float32(c.R)*r.tint),
-			chan8(float32(c.G)*r.tint),
-			chan8(float32(c.B)*r.tint),
-			c.A,
-		)
+		c := r.col
 		x0, y0 := sx-half, sy-half
 		x1, y1 := sx+half, sy+half
 		m.appendTri(x0, y0, c, x1, y0, c, x1, y1, c)

@@ -151,29 +151,29 @@ func TestSelectionWrapsBothWays(t *testing.T) {
 	a := newTestApp()
 	last := len(planets) - 1
 
-	stepSelection(a, 1)
+	stepSelection(a, nil, 1)
 	if a.Selected != selSun {
 		t.Fatalf("first Right = %d, want the sun (%d)", a.Selected, selSun)
 	}
-	stepSelection(a, 1)
+	stepSelection(a, nil, 1)
 	if a.Selected != 0 {
 		t.Fatalf("Right from the sun = %d, want 0", a.Selected)
 	}
-	stepSelection(a, -1)
+	stepSelection(a, nil, -1)
 	if a.Selected != selSun {
 		t.Errorf("Left from 0 = %d, want the sun (%d)", a.Selected, selSun)
 	}
-	stepSelection(a, -1)
+	stepSelection(a, nil, -1)
 	if a.Selected != last {
 		t.Errorf("Left from the sun = %d, want %d", a.Selected, last)
 	}
-	stepSelection(a, 1)
+	stepSelection(a, nil, 1)
 	if a.Selected != selSun {
 		t.Errorf("Right from last = %d, want the sun (%d)", a.Selected, selSun)
 	}
 
 	a.Selected = -1
-	stepSelection(a, -1)
+	stepSelection(a, nil, -1)
 	if a.Selected != last {
 		t.Errorf("first Left = %d, want %d", a.Selected, last)
 	}
@@ -189,7 +189,7 @@ func TestSunIsSelectable(t *testing.T) {
 	if got := a.hitTest(a.SunX, a.SunY); got != selSun {
 		t.Fatalf("hitTest at the sun = %d, want %d", got, selSun)
 	}
-	selectBody(a, selSun)
+	selectBody(a, nil, selSun)
 	for range tweenTicks + 4 {
 		tick(a)
 	}
@@ -248,7 +248,7 @@ func TestSunFactsPopulated(t *testing.T) {
 func TestCameraTweenReachesTarget(t *testing.T) {
 	t.Parallel()
 	a := newTestApp()
-	selectBody(a, 4) // Jupiter
+	selectBody(a, nil, 4) // Jupiter
 
 	for range tweenTicks + 4 {
 		tick(a)
@@ -270,7 +270,7 @@ func TestCameraTweenReachesTarget(t *testing.T) {
 func TestCameraFollowsOrbitingPlanet(t *testing.T) {
 	t.Parallel()
 	a := newTestApp()
-	selectBody(a, 0) // Mercury, the fastest
+	selectBody(a, nil, 0) // Mercury, the fastest
 
 	for range 2*tweenTicks + 200 {
 		tick(a)
@@ -291,13 +291,13 @@ func TestCameraFollowsOrbitingPlanet(t *testing.T) {
 func TestInterruptedTransitionIsContinuous(t *testing.T) {
 	t.Parallel()
 	a := newTestApp()
-	selectBody(a, 7)
+	selectBody(a, nil, 7)
 	for range 10 {
 		tick(a)
 	}
 	midX, midZoom := a.CamX, a.CamZoom
 
-	selectBody(a, 1)
+	selectBody(a, nil, 1)
 	if a.FromX != midX || a.FromZoom != midZoom {
 		t.Errorf("transition origin (%.3f,%.3f), want current camera "+
 			"(%.3f,%.3f)", a.FromX, a.FromZoom, midX, midZoom)
@@ -462,7 +462,7 @@ func TestShadingFacesTheSun(t *testing.T) {
 	}
 
 	b := newTestApp()
-	selectBody(b, 4)
+	selectBody(b, nil, 4)
 	for range 240 {
 		for range 30 {
 			tick(b)
@@ -871,8 +871,8 @@ func TestDrawSystemGeometryIsFinite(t *testing.T) {
 		{"full system", func(*App) {}},
 		{"hovered planet", func(a *App) { a.Hovered = 2 }},
 		{"hovered sun", func(a *App) { a.Hovered = selSun }},
-		{"selected planet", func(a *App) { selectBody(a, saturnIndex) }},
-		{"selected sun", func(a *App) { selectBody(a, selSun) }},
+		{"selected planet", func(a *App) { selectBody(a, nil, saturnIndex) }},
+		{"selected sun", func(a *App) { selectBody(a, nil, selSun) }},
 		{"zoomed in", func(a *App) { a.applyUserZoom(userZoomMax) }},
 		{"zoomed out", func(a *App) { a.applyUserZoom(userZoomMin) }},
 	}
