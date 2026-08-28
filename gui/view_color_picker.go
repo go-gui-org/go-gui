@@ -98,7 +98,15 @@ func (cv *colorPickerView) GenerateLayout(w *Window) Layout {
 		}
 	}
 
-	planeSize := colorPickerPlaneSize(style)
+	// The plane row must match the fields row's width. The
+	// fields row grows with the theme's body size (GNOME at
+	// 15, or an AdjustFontSize bump), so measure the same
+	// field width here rather than using the fixed block
+	// width.
+	pad := colorFieldPadding(w, style.TextStyle)
+	colW := colorFieldColumnWidth(w, style.TextStyle, pad, 0)
+	blockWidth := colorFieldsBlockWidthFor(colW)
+	planeSize := colorPickerPlaneSizeFor(style, blockWidth)
 	content := []View{
 		// Plane first, then the two channel sliders stood on end beside
 		// it: the sliders are as tall as the plane, so the picker is
@@ -182,8 +190,8 @@ const colorPickerSwatchSize = 32
 // sliders carry their own imagery, so at small spacing they read as
 // part of the plane's edge rather than as separate controls.
 //
-// colorPickerPlaneSize subtracts it, so widening the gap narrows the
-// plane and the row's total width does not move.
+// colorPickerPlaneSizeFor subtracts it, so widening the gap narrows
+// the plane and the row's total width does not move.
 const colorPickerPlaneGap = SpacingMedium
 
 // colorPickerMinPlane floors the derived plane size. A theme with wide
@@ -196,7 +204,7 @@ const colorPickerPlaneGap = SpacingMedium
 // on width for a geometry reason, not a design one.
 const colorPickerMinPlane = 112
 
-// colorPickerPlaneSize derives the plane's edge length instead of
+// colorPickerPlaneSizeFor derives the plane's edge length instead of
 // taking the theme's sVSize directly.
 //
 // The picker is as wide as its widest row, and that row is the four
@@ -205,15 +213,14 @@ const colorPickerMinPlane = 112
 // up as dead space to the right of the alpha input. Subtract exactly
 // what the sliders occupy so the two rows come out the same width.
 //
-// It is only ever a shrink: sVSize stays the upper bound, so a theme
-// asking for a small plane is never grown to fill the row.
-func colorPickerPlaneSize(style ColorPickerStyle) float32 {
+// Row alignment is the invariant; sVSize only seeds a standalone
+// ColorPlane's default. The two do not cap one another: a theme
+// asking for a small plane is not grown to fill the row, and fields
+// widened by a measured font (GNOME at 15, an AdjustFontSize bump)
+// grow the plane past sVSize rather than reintroduce the dead space.
+func colorPickerPlaneSizeFor(style ColorPickerStyle, blockWidth float32) float32 {
 	sliderThick := f32Max(style.sliderHeight, style.indicatorSize)
-	// The fields block's own width; see colorFieldsBlockWidth.
-	size := colorFieldsBlockWidth() - 2*(sliderThick+colorPickerPlaneGap)
-	if size > style.sVSize {
-		size = style.sVSize
-	}
+	size := blockWidth - 2*(sliderThick+colorPickerPlaneGap)
 	return f32Max(size, colorPickerMinPlane)
 }
 

@@ -663,6 +663,38 @@ func TestColorSwatchColorLayerHasOutline(t *testing.T) {
 	}
 }
 
+// The channel field width starts at the default floor and grows only
+// when three digits at the measured glyph width need more room —
+// GNOME's 15pt body, or a caller's larger font. An explicit
+// ColorFieldsCfg.FieldWidth still wins. The picker re-derives the same
+// number so its rows stay aligned at any of these sizes.
+func TestEffectiveColorFieldWidth(t *testing.T) {
+	style := TextStyle{Size: 15}
+	pad := colorFieldPadding(nil, style)
+
+	if got := effectiveColorFieldWidth(nil, style, pad, 0); got != defaultColorFieldWidth {
+		t.Errorf("nil window = %v, want floor %v", got, defaultColorFieldWidth)
+	}
+	if got := effectiveColorFieldWidth(nil, style, pad, 70); got != 70 {
+		t.Errorf("explicit width = %v, want 70", got)
+	}
+
+	w := &Window{}
+	// Three digits at 6pt fit the floor, so no growth happens.
+	w.textMeasurer = &stubTextMeasurer{charWidth: 6, fontHeight: 16}
+	if got := effectiveColorFieldWidth(w, style, pad, 0); got != defaultColorFieldWidth {
+		t.Errorf("narrow glyphs = %v, want floor %v",
+			got, defaultColorFieldWidth)
+	}
+	// 20pt digits are the growth case the whole measured path exists
+	// for; without it the third digit clips.
+	w.textMeasurer = &stubTextMeasurer{charWidth: 20, fontHeight: 16}
+	if got := effectiveColorFieldWidth(w, style, pad, 0); got <= defaultColorFieldWidth {
+		t.Errorf("wide glyphs = %v, want growth beyond %v",
+			got, defaultColorFieldWidth)
+	}
+}
+
 // The fields correct for optical centring: an Input centres the text's
 // line box, and the descent space under a digit is empty, so metric
 // centring leaves the ink visibly high. This asserts the predicted ink
