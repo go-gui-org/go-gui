@@ -170,7 +170,7 @@ func (w *Window) animationLoop() {
 		}
 
 		switch refreshKind {
-		case animationRefreshRenderOnly:
+		case AnimationRefreshRenderOnly:
 			deferred = append(deferred, queuedCommand{
 				kind:     queuedCommandWindowFn,
 				windowFn: commandMarkRenderOnlyRefresh,

@@ -120,7 +120,7 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 				AnimID:  animID,
 				Delay:   animationCycle,
 				Repeat:  true,
-				Refresh: animationRefreshRenderOnly,
+				Refresh: AnimationRefreshRenderOnly,
 				Callback: func(an *Animate, w *Window) {
 					seenMap := StateMap[string, int64](
 						w, nsSvgAnimSeen, capImageCache)

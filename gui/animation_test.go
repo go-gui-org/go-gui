@@ -155,10 +155,10 @@ func TestAnimateRefreshKindDefault(t *testing.T) {
 }
 
 func TestAnimateRefreshKindCustom(t *testing.T) {
-	a := &Animate{AnimID: "test", Refresh: animationRefreshRenderOnly}
-	if a.RefreshKind() != animationRefreshRenderOnly {
+	a := &Animate{AnimID: "test", Refresh: AnimationRefreshRenderOnly}
+	if a.RefreshKind() != AnimationRefreshRenderOnly {
 		t.Errorf("RefreshKind = %d, want %d",
-			a.RefreshKind(), animationRefreshRenderOnly)
+			a.RefreshKind(), AnimationRefreshRenderOnly)
 	}
 }
 

@@ -27,6 +27,27 @@ type DrawCanvasCfg struct {
 	Color     Color
 	Sizing    Sizing
 	Clip      bool
+
+	// AlwaysRedraw re-runs OnDraw on every render pass, ignoring
+	// Version.
+	//
+	// It is what makes an animated canvas work under
+	// AnimationRefreshRenderOnly. That refresh kind rebuilds the
+	// renderers from the layout already in hand and never re-runs the
+	// view function — which is the point, since a canvas animating off
+	// its own state has no reason to rebuild the widgets around it —
+	// but Version is stamped onto the shape during view generation, so
+	// a version bump made between frames would never reach the cache
+	// and the canvas would freeze on its first frame.
+	//
+	// Costs nothing where it is wanted: a canvas that bumps Version
+	// every frame never gets a cache hit anyway. The tessellation
+	// buffers are still pooled across redraws either way.
+	//
+	// exportaudit:keep — the app-side half of
+	// AnimationRefreshRenderOnly; an animated canvas is unusable with
+	// that refresh kind without it
+	AlwaysRedraw bool
 }
 
 // drawCanvasView implements View for user-drawn canvas content.
@@ -75,24 +96,25 @@ func (dv *drawCanvasView) GenerateLayout(w *Window) Layout {
 
 	layout := Layout{
 		Shape: w.allocShape(Shape{
-			shapeType: shapeDrawCanvas,
-			ID:        c.ID,
-			Version:   c.Version,
-			A11YRole:  a11yRole,
-			a11Y:      c.a11yInfo(""),
-			Width:     c.Width,
-			Height:    c.Height,
-			MinWidth:  c.MinWidth,
-			MaxWidth:  c.MaxWidth,
-			MinHeight: c.MinHeight,
-			MaxHeight: c.MaxHeight,
-			Sizing:    c.Sizing,
-			Padding:   c.Padding.Or(PaddingNone),
-			Clip:      c.Clip,
-			Color:     c.Color,
-			Radius:    c.Radius,
-			Focusable: c.Focusable,
-			events:    events,
+			shapeType:    shapeDrawCanvas,
+			ID:           c.ID,
+			Version:      c.Version,
+			A11YRole:     a11yRole,
+			a11Y:         c.a11yInfo(""),
+			Width:        c.Width,
+			Height:       c.Height,
+			MinWidth:     c.MinWidth,
+			MaxWidth:     c.MaxWidth,
+			MinHeight:    c.MinHeight,
+			MaxHeight:    c.MaxHeight,
+			Sizing:       c.Sizing,
+			Padding:      c.Padding.Or(PaddingNone),
+			Clip:         c.Clip,
+			alwaysRedraw: c.AlwaysRedraw,
+			Color:        c.Color,
+			Radius:       c.Radius,
+			Focusable:    c.Focusable,
+			events:       events,
 		}),
 	}
 	applyFixedSizingConstraints(layout.Shape)

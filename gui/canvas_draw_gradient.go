@@ -203,7 +203,181 @@ func (dc *DrawContext) FilledRectGradient(x, y, w, h float32,
 //	})
 func (dc *DrawContext) FilledCircleGradient(cx, cy, radius float32,
 	g *CanvasGradient) {
+	if dc.fillConcentricRings(cx, cy, radius, g) {
+		return
+	}
 	dc.FilledArcGradient(cx, cy, radius, radius, 0, 2*math.Pi, g)
+}
+
+// concentricMinSegs is the angular resolution the ring mesh needs
+// before its own interpolation error is invisible.
+//
+// A ring band's vertices sit on its two isolines, but Gouraud shading
+// interpolates across the chord between them, so a point near the
+// middle of a segment reads the color of a radius up to the sagitta
+// r*(1-cos(pi/n)) away. Below 1/256 of the ramp — the same tolerance
+// the general path's radial pass refines to — that is under one step
+// of an 8-bit channel, and 1-cos(pi/36) is 0.0038.
+//
+// A full circle's segment count starts at 64 and climbs with radius,
+// so this never rejects one in practice; it is the invariant stated
+// rather than inherited from arcPoints' formula.
+const concentricMinSegs = 36
+
+// gradRing is one boundary of the concentric ring mesh: the radius the
+// ramp reaches a given color at.
+type gradRing struct {
+	radius float32
+	color  Color
+}
+
+// fillConcentricRings is the closed-form fill for the most common
+// radial gradient there is: a ramp centered on the circle it fills.
+// Reports whether it handled the fill.
+//
+// The general path has to *find* the ramp's isolines. It refines the
+// fan until no triangle's radial error is visible, then cuts every
+// triangle at every stop, then projects each resulting vertex back
+// through a square root to recover the parameter it was cut at. For a
+// concentric ramp all of that is answering a question with a known
+// answer: the isolines are circles about the center, at radius
+// stop.Pos * r.
+//
+// So the mesh is emitted as one quad strip per pair of adjacent stops,
+// and the vertex colors are the stops themselves — no subdivision
+// search, no per-vertex projection, and no ramp sampling. It is also
+// exact where the general path approximates: interpolating a distance
+// field linearly across a split triangle is only as good as the split
+// was fine, while a ring boundary lies exactly on its isoline.
+//
+// Bails out to the general path for anything else: an ellipse, an
+// off-center or offset-focal ramp, a non-pad spread (whose isolines
+// repeat past the rim), or an active recorder, whose gradient contract
+// is the raw geometry plus the gradient.
+func (dc *DrawContext) fillConcentricRings(cx, cy, r float32,
+	g *CanvasGradient) bool {
+	if dc.recorder != nil || g == nil || len(g.Stops) == 0 {
+		return false
+	}
+	if !g.Radial || g.Spread != SpreadPad || !(r > 0) {
+		return false
+	}
+	// Two ways to be concentric, tested against what the caller wrote
+	// rather than against a resolved copy. Resolving first and
+	// comparing the result would mean comparing cx to
+	// ((cx-r)+(cx+r))*0.5, which float32 does not always round back to
+	// cx — a fill would fall off the fast path for no reason a caller
+	// could see.
+	if !(g.R > 0) {
+		// Left to default. resolveCanvasGradient centers a degenerate
+		// radial on the fill's bounds with R at half its larger
+		// extent, which for a full circle's fan is this circle.
+	} else if g.R != r || g.CX != cx || g.CY != cy {
+		return false
+	} else if !(g.FX == 0 && g.FY == 0) &&
+		!(g.FX == cx && g.FY == cy) {
+		// FX/FY at the origin means "unset", and the resolve puts them
+		// on the center; anywhere else is a real focal offset.
+		return false
+	}
+
+	dc.gradStopBuf = dc.gradStopBuf[:0]
+	stops := NormalizeGradientStops(g.Stops, &dc.gradStopBuf)
+	if len(stops) == 0 {
+		return false
+	}
+	pts := dc.arcPoints(cx, cy, r, r, 0, 2*math.Pi)
+	if len(pts) < 4 {
+		return false
+	}
+
+	rings := dc.concentricRings(stops, r)
+	if len(rings) < 2 {
+		return false
+	}
+
+	segs := len(pts)/2 - 1
+	if segs < concentricMinSegs {
+		return false
+	}
+
+	// Two triangles per segment per band, and three for the innermost
+	// band when it closes on the center. An over-estimate only sizes
+	// the pooled buffers, so the center case is not special-cased here.
+	b := dc.gradientBatch(SampleGradientStopColor(stops, 0.5),
+		segs*6*(len(rings)-1))
+
+	invR := 1 / r
+	for j := 0; j+1 < len(rings); j++ {
+		r0, c0 := rings[j].radius, rings[j].color
+		r1, c1 := rings[j+1].radius, rings[j+1].color
+		if !(r1 > r0) {
+			// A hard stop — two stops at one position. The band has no
+			// area, so it contributes no geometry; the color still
+			// changes, because the next band opens on c1.
+			continue
+		}
+		if r0 <= 0 {
+			// Innermost band closes on the center: a fan, not a strip.
+			// Its rim is still this band's outer isoline, not the
+			// circle's — the two coincide only when the first stop is
+			// also the last.
+			s := r1 * invR
+			for i := 0; i+3 < len(pts); i += 2 {
+				b.Triangles = append(b.Triangles, cx, cy,
+					cx+(pts[i]-cx)*s, cy+(pts[i+1]-cy)*s,
+					cx+(pts[i+2]-cx)*s, cy+(pts[i+3]-cy)*s)
+				b.VertexColors = append(b.VertexColors, c0, c1, c1)
+			}
+			continue
+		}
+		// The rim points are already on the circle of radius r, so an
+		// inner ring is the same direction scaled — no trigonometry
+		// beyond the one arcPoints pass.
+		s0, s1 := r0*invR, r1*invR
+		for i := 0; i+3 < len(pts); i += 2 {
+			ux0, uy0 := pts[i]-cx, pts[i+1]-cy
+			ux1, uy1 := pts[i+2]-cx, pts[i+3]-cy
+			ax, ay := cx+ux0*s0, cy+uy0*s0
+			bx, by := cx+ux1*s0, cy+uy1*s0
+			ex, ey := cx+ux0*s1, cy+uy0*s1
+			fx, fy := cx+ux1*s1, cy+uy1*s1
+			// inner_i -> outer_i -> outer_i+1 -> inner_i+1 is the
+			// quad's order in the same sense the fan winds; walking
+			// the inner edge first reverses it.
+			b.Triangles = append(b.Triangles,
+				ax, ay, ex, ey, fx, fy,
+				ax, ay, fx, fy, bx, by)
+			b.VertexColors = append(b.VertexColors,
+				c0, c1, c1, c0, c1, c0)
+		}
+	}
+	return true
+}
+
+// concentricRings turns normalized stops into the ring boundaries of
+// the mesh, in increasing radius.
+//
+// Pad is what the two extra rings are for: the ramp is flat inside the
+// first stop and outside the last, so each of those regions gets a
+// boundary at the end color rather than a ramp running off the stops.
+func (dc *DrawContext) concentricRings(stops []GradientStop,
+	r float32) []gradRing {
+	dc.gradRingBuf = dc.gradRingBuf[:0]
+	first, last := stops[0], stops[len(stops)-1]
+	if first.Pos > 0 {
+		dc.gradRingBuf = append(dc.gradRingBuf,
+			gradRing{radius: 0, color: first.Color})
+	}
+	for i := range stops {
+		dc.gradRingBuf = append(dc.gradRingBuf,
+			gradRing{radius: stops[i].Pos * r, color: stops[i].Color})
+	}
+	if last.Pos < 1 {
+		dc.gradRingBuf = append(dc.gradRingBuf,
+			gradRing{radius: r, color: last.Color})
+	}
+	return dc.gradRingBuf
 }
 
 // FilledArcGradient fills an elliptical arc (a pie slice) with a

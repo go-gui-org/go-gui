@@ -30,7 +30,10 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 	if key != "" {
 		var ok bool
 		cached, ok = sm.Get(key)
-		if ok && cached.Version == shape.Version &&
+		// The entry is still claimed for its buffers when
+		// alwaysRedraw skips the version test — that is the half of
+		// the cache an animated canvas actually uses.
+		if ok && !shape.alwaysRedraw && cached.Version == shape.Version &&
 			cached.tessWidth == cw && cached.tessHeight == ch &&
 			cached.Scale == scale {
 			needsDraw = false
