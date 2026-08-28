@@ -52,9 +52,6 @@ type colorFieldsView struct {
 // ColorFields creates the hex and channel inputs for a color.
 func ColorFields(cfg ColorFieldsCfg) View {
 	RequireID("ColorFields", cfg.ID)
-	if cfg.FieldWidth <= 0 {
-		cfg.FieldWidth = defaultColorFieldWidth
-	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = defaultColorPickerStyle.TextStyle
 	}
@@ -65,12 +62,16 @@ func ColorFields(cfg ColorFieldsCfg) View {
 }
 
 const (
-	// defaultColorFieldWidth holds three digits with room for the caret,
-	// and stays just above the widest RGBA label ("Green") so the label
-	// never widens the column. It sets the whole picker's width — four
-	// of these is its widest row — so the slack here is what shows up as
-	// empty space beside the shorter rows.
-	defaultColorFieldWidth = 44
+	// defaultColorFieldWidth is the minimum channel field width. It
+	// holds three digits with room for the caret at the base body
+	// size (14) and stays just above the widest RGBA label ("Green")
+	// so the label never widens the column. It sets the whole
+	// picker's width — four of these is its widest row — so the
+	// slack here is what shows up as empty space beside the shorter
+	// rows. The effective width can grow beyond this when the theme's
+	// body size or the measured glyph width needs it (GNOME at 15,
+	// or a user-bumped font), via effectiveColorFieldWidth.
+	defaultColorFieldWidth = 52
 	// defaultHexFieldWidth holds the widest value the field ever shows
 	// — "#RRGGBBAA", which Hex() emits whenever alpha is not full — so
 	// pinning the field to it never clips.
@@ -92,14 +93,19 @@ func (fv *colorFieldsView) GenerateLayout(w *Window) Layout {
 	// One measurement for every field in the block; see
 	// colorFieldPadding.
 	pad := colorFieldPadding(w, cfg.TextStyle)
+	// Effective column width covers three digits at the
+	// theme's body size. The constant 52 holds 14pt; GNOME
+	// at 15 (and any AdjustFontSize bump) would clip the
+	// third digit without this, hence the measured growth.
+	colW := colorFieldColumnWidth(w, cfg.TextStyle, pad, cfg.FieldWidth)
 
 	rows := make([]View, 0, 3)
 	if !cfg.HideHex {
 		rows = append(rows, colorHexRow(cfg, id, v, pad))
 	}
-	rows = append(rows, colorRGBARow(cfg, id, v, pad))
+	rows = append(rows, colorRGBARow(cfg, id, v, pad, colW))
 	if cfg.ShowHSL {
-		rows = append(rows, colorHSLRow(cfg, id, v, pad))
+		rows = append(rows, colorHSLRow(cfg, id, v, pad, colW))
 	}
 
 	return generateViewLayout(&containerView{
@@ -219,12 +225,12 @@ type colorFieldSpec struct {
 // colorFieldRow lays out a row of labeled channel inputs. The RGBA and
 // HSL rows share everything except what each column edits, so the
 // difference lives in the specs, not in a second copy of the row.
-func colorFieldRow(cfg *ColorFieldsCfg, pad Padding, specs []colorFieldSpec) View {
+func colorFieldRow(cfg *ColorFieldsCfg, pad Padding, specs []colorFieldSpec, fieldWidth float32) View {
 	fields := make([]View, 0, len(specs))
 	for i := range specs {
 		s := &specs[i]
 		fields = append(fields, colorFieldColumn(cfg, pad,
-			s.label, s.val, s.id, s.apply))
+			s.label, s.val, s.id, s.apply, fieldWidth))
 	}
 	return Row(ContainerCfg{
 		Padding:    NoPadding,
@@ -239,7 +245,7 @@ func colorFieldRow(cfg *ColorFieldsCfg, pad Padding, specs []colorFieldSpec) Vie
 // where a value round-trips through RGBA, because that is exactly what
 // the user asked to edit.
 func colorRGBARow(
-	cfg *ColorFieldsCfg, id string, v HSLA, pad Padding,
+	cfg *ColorFieldsCfg, id string, v HSLA, pad Padding, fieldWidth float32,
 ) View {
 	c := v.Color()
 	l := ActiveLocale
@@ -278,13 +284,13 @@ func colorRGBARow(
 			},
 		})
 	}
-	return colorFieldRow(cfg, pad, specs)
+	return colorFieldRow(cfg, pad, specs, fieldWidth)
 }
 
 // colorHSLRow builds the H/S/L inputs, which edit the value directly
 // with no RGBA round-trip and so cannot lose the hue.
 func colorHSLRow(
-	cfg *ColorFieldsCfg, id string, v HSLA, pad Padding,
+	cfg *ColorFieldsCfg, id string, v HSLA, pad Padding, fieldWidth float32,
 ) View {
 	l := ActiveLocale
 	type field struct {
@@ -324,7 +330,7 @@ func colorHSLRow(
 			},
 		})
 	}
-	return colorFieldRow(cfg, pad, specs)
+	return colorFieldRow(cfg, pad, specs, fieldWidth)
 }
 
 // centeredText centres a copy of a style, leaving the caller's
@@ -384,13 +390,91 @@ func colorFieldPadding(w *Window, style TextStyle) Padding {
 // rows of a composed picker come out the same width, and both sides
 // read one name instead of one hard-coded formula each.
 func colorFieldsBlockWidth() float32 {
-	return 4*defaultColorFieldWidth + 3*SpacingSmall
+	return colorFieldsBlockWidthFor(defaultColorFieldWidth)
+}
+
+// colorFieldsBlockWidthFor returns the block width for a given field
+// width. Used by the picker when the effective width has been
+// measured for the current theme/style.
+func colorFieldsBlockWidthFor(fieldWidth float32) float32 {
+	return 4*fieldWidth + 3*SpacingSmall
+}
+
+// colorFieldTextWidth measures the widest three-digit value ("888")
+// the field will ever hold. Only reachable with a measurer in hand:
+// effectiveColorFieldWidth stays at the default floor without one, so
+// no fallback estimate is needed here.
+func colorFieldTextWidth(w *Window, style TextStyle) float32 {
+	// "888" is the widest digit in proportional faces such as
+	// Cantarell/SF. "000" is narrower; using the max avoids an
+	// off-by-one clip when the user types 888 on GNOME at 15pt.
+	return w.textMeasurer.TextWidth("888", centeredText(style))
+}
+
+// effectiveColorFieldWidth returns the width a channel field should
+// take. An explicit FieldWidth wins; otherwise the width grows from
+// the default to hold three digits at the current style/padding/
+// border, with a small caret slack. The default 52 holds 14pt with
+// margin, but GNOME at 15 (and any AdjustFontSize bump) needs more.
+// Without a measurer we stay at the floor: the floor already covers
+// GNOME's 15pt with margin, and a fallback estimate (size*0.6) would
+// overestimate and enlarge every nil-window test beyond production
+// (where the real glyph width is narrower).
+func effectiveColorFieldWidth(
+	w *Window, style TextStyle, pad Padding, explicit float32,
+) float32 {
+	if explicit > 0 {
+		return explicit
+	}
+	if w == nil || w.textMeasurer == nil {
+		return defaultColorFieldWidth
+	}
+	// defaultInputStyle mirrors guiTheme.InputStyle (one assignment
+	// under applyTheme's lock), so there is no second source to fall
+	// back to; a zero border means a borderless theme, and the 1
+	// keeps the estimate conservative rather than exact.
+	border := defaultInputStyle.SizeBorder
+	if border == 0 {
+		border = 1
+	}
+	// Small slack for the caret and breathing room, so "255"
+	// does not kiss the field edge.
+	const caretSlack = 6
+	needed := colorFieldTextWidth(w, style) + pad.Width() + 2*border + caretSlack
+	return f32Max(needed, defaultColorFieldWidth)
+}
+
+// colorFieldColumnWidth returns the width every channel column in the
+// fields block takes: the field's own width, rounded up to the widest
+// label any row carries. A column is Fit, so a label wider than its
+// field would widen just that column and make the analytics in
+// colorFieldsBlockWidthFor under-count the block; keeping every column
+// uniform gives the picker one exact number — and an even grid, which
+// is also the better look. Without a measurer the label role is small
+// enough relative to the floor that only the field side can govern.
+func colorFieldColumnWidth(
+	w *Window, style TextStyle, pad Padding, explicit float32,
+) float32 {
+	fw := effectiveColorFieldWidth(w, style, pad, explicit)
+	if w == nil || w.textMeasurer == nil {
+		return fw
+	}
+	labelStyle := fieldLabelStyle(style)
+	l := ActiveLocale
+	labelW := float32(0)
+	for _, label := range [7]string{
+		l.strRed, l.strGreen, l.strBlue, l.strAlpha,
+		l.strHue, l.strSat, l.strLightness,
+	} {
+		labelW = f32Max(labelW, w.textMeasurer.TextWidth(label, labelStyle))
+	}
+	return f32Max(fw, labelW)
 }
 
 // colorFieldColumn builds one labeled numeric input.
 func colorFieldColumn(
 	cfg *ColorFieldsCfg, pad Padding, label string, val int,
-	inputID string, apply func(string, EventCtx),
+	inputID string, apply func(string, EventCtx), fieldWidth float32,
 ) View {
 	// Centred rather than the default left: the label is narrower than
 	// its field, and left alignment hangs it off the field's left edge
@@ -413,13 +497,13 @@ func colorFieldColumn(
 			// ragged against each other down the row.
 			TextStyle: centeredText(cfg.TextStyle),
 			Padding:   pad,
-			Width:     cfg.FieldWidth,
+			Width:     fieldWidth,
 			// Pinned both ways like the hex field: an Input is
 			// Fit-sized, so "0" and "255" would resolve to
 			// different widths and the whole column of fields
 			// would shift as the user drags a control.
-			MinWidth: cfg.FieldWidth,
-			MaxWidth: cfg.FieldWidth,
+			MinWidth: fieldWidth,
+			MaxWidth: fieldWidth,
 			A11YCfg:  A11YCfg{A11YLabel: label},
 			OnTextChanged: func(text string, ctx EventCtx) {
 				apply(text, ctx)

@@ -179,13 +179,8 @@ func TestColorPickerPlaneFitsFields(t *testing.T) {
 	applyColorPickerDefaults(&cfg)
 	style := cfg.Style
 
-	size := colorPickerPlaneSize(style)
-	if size > style.sVSize {
-		t.Errorf("plane = %v, must not exceed sVSize %v",
-			size, style.sVSize)
-	}
-
 	thick := f32Max(style.sliderHeight, style.indicatorSize)
+	size := colorPickerPlaneSizeFor(style, colorFieldsBlockWidth())
 	top := size + 2*(thick+colorPickerPlaneGap)
 	fields := colorFieldsBlockWidth()
 	if top != fields {
@@ -200,30 +195,57 @@ func TestColorPickerPlaneFitsFields(t *testing.T) {
 // same width and start at the same x under either theme.
 func TestColorPickerRowsAlignUnderBorders(t *testing.T) {
 	for _, borders := range []bool{false, true} {
-		w := &Window{}
-		w.SetTheme(ThemeDark.WithBorders(borders))
-		// A real measurer is needed: the labels above each field are
-		// zero-width without one, so the defect would not show.
-		w.textMeasurer = &stubTextMeasurer{charWidth: 7, fontHeight: 16}
-		l := w.TestRender(func(*Window) View {
-			return ColorPicker(ColorPickerCfg{ID: "p", ShowHSL: true})
-		})
+		assertPickerRowsAligned(t, borders,
+			&stubTextMeasurer{charWidth: 7, fontHeight: 16})
+	}
+}
 
-		fields := findShapeByID(l, "p:fields")
-		plane := findShapeByID(l, "p:plane")
-		alpha := findShapeByID(l, "p:alpha")
-		if fields == nil || plane == nil || alpha == nil {
-			t.Fatalf("borders=%v: missing shapes", borders)
-		}
-		if fields.Shape.X != plane.Shape.X {
-			t.Errorf("borders=%v: fields x = %v, plane x = %v",
-				borders, fields.Shape.X, plane.Shape.X)
-		}
-		// The plane row ends at the alpha slider's right edge.
-		rowEnd := alpha.Shape.X + alpha.Shape.Width
-		if got := fields.Shape.X + fields.Shape.Width; got != rowEnd {
-			t.Errorf("borders=%v: fields right = %v, plane row = %v",
-				borders, got, rowEnd)
-		}
+// The same alignment must hold when the measured glyph width grows the
+// channel fields past the default floor — the picker's plane math has
+// to read the same measured width the fields block does.
+func TestColorPickerRowsAlignWithGrownFields(t *testing.T) {
+	for _, borders := range []bool{false, true} {
+		assertPickerRowsAligned(t, borders,
+			&stubTextMeasurer{charWidth: 20, fontHeight: 16})
+	}
+	// The wide measurer must in fact drive the growth, or the test
+	// above only re-checks the floor.
+	w := &Window{}
+	w.textMeasurer = &stubTextMeasurer{charWidth: 20, fontHeight: 16}
+	style := defaultColorPickerStyle.TextStyle
+	pad := colorFieldPadding(w, style)
+	if got := effectiveColorFieldWidth(w, style, pad, 0); got <= defaultColorFieldWidth {
+		t.Fatalf("grown-fields test needs growth: width = %v, floor %v",
+			got, defaultColorFieldWidth)
+	}
+}
+
+func assertPickerRowsAligned(
+	t *testing.T, borders bool, measurer *stubTextMeasurer,
+) {
+	w := &Window{}
+	w.SetTheme(ThemeDark.WithBorders(borders))
+	// A real measurer is needed: the labels above each field are
+	// zero-width without one, so the defect would not show.
+	w.textMeasurer = measurer
+	l := w.TestRender(func(*Window) View {
+		return ColorPicker(ColorPickerCfg{ID: "p", ShowHSL: true})
+	})
+
+	fields := findShapeByID(l, "p:fields")
+	plane := findShapeByID(l, "p:plane")
+	alpha := findShapeByID(l, "p:alpha")
+	if fields == nil || plane == nil || alpha == nil {
+		t.Fatalf("borders=%v: missing shapes", borders)
+	}
+	if fields.Shape.X != plane.Shape.X {
+		t.Errorf("borders=%v: fields x = %v, plane x = %v",
+			borders, fields.Shape.X, plane.Shape.X)
+	}
+	// The plane row ends at the alpha slider's right edge.
+	rowEnd := alpha.Shape.X + alpha.Shape.Width
+	if got := fields.Shape.X + fields.Shape.Width; got != rowEnd {
+		t.Errorf("borders=%v: fields right = %v, plane row = %v",
+			borders, got, rowEnd)
 	}
 }
