@@ -113,6 +113,25 @@ the bare read is also what makes `gui.Themed` subtree scoping work.
 2. Add or update tests.
 3. Run `make prepush` (fast subset: `make check`).
 4. Open a pull request against `main`.
+5. Once review and CI pass, add the PR to the merge queue — the web UI's "Merge
+   when ready" button, or `gh pr merge --auto --squash`.
+
+### Merge queue
+
+`main` merges through a queue rather than directly. The queue rebuilds each
+candidate against the state it will actually land on, so branches no longer need
+to be up to date before merging: an unrelated PR landing first does not make
+yours stale, and independent PRs land together in one CI cycle instead of one
+each.
+
+Practical consequences:
+
+- Do not rebase just because `main` moved. The queue does that, and a force-push
+  drops your entry and restarts its checks.
+- CI runs a second time on the merge-group commit. That run is the one that
+  gates the merge; the PR run is the early signal.
+- A failure evicts only the entry that caused it. The rest of the batch
+  continues.
 
 ## Claude Code hooks
 
