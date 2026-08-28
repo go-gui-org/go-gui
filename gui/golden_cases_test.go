@@ -867,6 +867,17 @@ func goldenCases() []goldenCase {
 			build: buildCanvasGradient,
 		},
 		{
+			// The concentric radial fast path: a ramp centered on the
+			// circle it fills, which is emitted as a ring mesh rather
+			// than a subdivided fan. Multi-stop and off-[0,1] on
+			// purpose — the ring list is where the pad regions inside
+			// the first stop and outside the last are decided, and a
+			// hard stop (two stops at one position) is the case that
+			// must stay a color jump and not a zero-area band.
+			name:  "canvas_gradient_rings",
+			build: buildCanvasGradientRings,
+		},
+		{
 			// Caller-supplied per-vertex color (issue #400). The
 			// counterpart to canvas_gradient: nothing here is
 			// evaluated, so what the golden pins is that the caller's
@@ -929,6 +940,31 @@ func buildCanvasGradient(_ *Window) View {
 				Stops: []GradientStop{
 					{Color: RGBA(255, 255, 255, 255), Pos: 0},
 					{Color: RGBA(255, 255, 255, 0), Pos: 1},
+				},
+			})
+		},
+	})
+}
+
+// buildCanvasGradientRings exercises the concentric radial fill with a
+// ramp the two-stop case cannot reach: flat regions at both ends, a
+// hard stop in the middle, and stops that are neither sorted nor in
+// range on the way in.
+func buildCanvasGradientRings(_ *Window) View {
+	return DrawCanvas(DrawCanvasCfg{
+		ID:      "canvas_gradient_rings",
+		Sizing:  FixedFixed,
+		Width:   80,
+		Height:  80,
+		Version: 1,
+		OnDraw: func(dc *DrawContext) {
+			dc.FilledCircleGradient(40, 40, 35, &CanvasGradient{
+				Radial: true,
+				Stops: []GradientStop{
+					{Color: RGB(0, 0, 255), Pos: 1.4},
+					{Color: RGB(255, 0, 0), Pos: 0.2},
+					{Color: RGB(0, 255, 0), Pos: 0.6},
+					{Color: RGB(255, 255, 0), Pos: 0.6},
 				},
 			})
 		},

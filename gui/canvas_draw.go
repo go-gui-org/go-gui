@@ -27,6 +27,8 @@ type DrawContext struct {
 	gradOffsetBuf   []float32
 	gradStopBuf     []GradientStop
 	gradRampBuf     []gradRampSegment
+	gradRingBuf     []gradRing
+	lineBuf         [4]float32
 	currentBatchIdx int
 	Width           float32
 	Height          float32
@@ -84,7 +86,12 @@ func (dc *DrawContext) Line(x0, y0, x1, y1 float32, color Color, width float32) 
 		dc.recorder.Line(x0, y0, x1, y1, color, width)
 		return
 	}
-	dc.Polyline([]float32{x0, y0, x1, y1}, color, width)
+	// Through a reused array rather than a literal: Polyline hands its
+	// points to dc.recorder, so the parameter escapes and a literal
+	// here heap-allocates on every call — even on this branch, which
+	// has already established there is no recorder.
+	dc.lineBuf = [4]float32{x0, y0, x1, y1}
+	dc.Polyline(dc.lineBuf[:], color, width)
 }
 
 // Polyline draws a stroked open polyline using simple

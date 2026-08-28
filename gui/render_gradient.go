@@ -219,12 +219,13 @@ func sampleGradRamp(stops []GradientStop, segs []gradRampSegment, pos float32) C
 	if len(stops) == 0 {
 		return RGBA(0, 0, 0, 0)
 	}
-	// Non-finite positions come from degenerate geometry; fold to
-	// the ramp start rather than propagating NaN through the lerp.
-	if pos != pos || math.IsInf(float64(pos), 0) {
-		return stops[0].Color
-	}
-	if pos <= stops[0].Pos {
+	// Non-finite positions come from degenerate geometry and must not
+	// propagate NaN through the lerp. No guard of their own is needed:
+	// NaN fails every comparison and -Inf fails this one, so both fold
+	// to the ramp start, and +Inf falls through to the end test below.
+	// That saves a float64 conversion and an IsInf on every vertex of
+	// every gradient mesh.
+	if !(pos > stops[0].Pos) {
 		return stops[0].Color
 	}
 	if pos >= stops[len(stops)-1].Pos {

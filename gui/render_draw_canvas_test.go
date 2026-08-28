@@ -839,3 +839,68 @@ func TestDrawCanvasSamePassNoReuse(t *testing.T) {
 		}
 	}
 }
+
+// TestRenderDrawCanvasAlwaysRedraw pins the escape hatch that makes an
+// animated canvas work under AnimationRefreshRenderOnly: with no view
+// pass to stamp a new Version onto the shape, the version test can
+// never fail, so alwaysRedraw is what keeps OnDraw running.
+func TestRenderDrawCanvasAlwaysRedraw(t *testing.T) {
+	w := makeWindowWithScratch()
+	callCount := 0
+	shape := &Shape{
+		shapeType: shapeDrawCanvas,
+		ID:        "always-canvas",
+		Width:     100, Height: 100,
+		Version:      1,
+		alwaysRedraw: true,
+		Color:        RGB(100, 100, 100),
+		events: &eventHandlers{
+			OnDraw: func(dc *DrawContext) {
+				callCount++
+				dc.batches = append(dc.batches, DrawCanvasTriBatch{
+					Triangles: []float32{0, 0, 1, 0, 0, 1},
+					Color:     RGB(255, 0, 0),
+				})
+			},
+		},
+	}
+	clip := makeClip(0, 0, 200, 200)
+
+	// Three passes at one unchanging Version: every one redraws.
+	for i := 1; i <= 3; i++ {
+		w.renderers = w.renderers[:0]
+		w.renderPass++
+		renderDrawCanvas(shape, clip, w)
+		if callCount != i {
+			t.Fatalf("pass %d: callCount = %d, want %d", i, callCount, i)
+		}
+	}
+
+	// The geometry still reaches the command list on a later pass, so
+	// the redraw is a real one and not a skipped draw with a stale
+	// buffer emitted behind it.
+	var svg int
+	for _, r := range w.renderers {
+		if r.Kind == RenderSvg {
+			svg++
+		}
+	}
+	if svg == 0 {
+		t.Error("no RenderSvg emitted on an always-redraw pass")
+	}
+}
+
+// TestDrawCanvasAlwaysRedrawReachesShape checks the Cfg field is
+// actually carried onto the shape; the gate above is unreachable
+// otherwise.
+func TestDrawCanvasAlwaysRedrawReachesShape(t *testing.T) {
+	w := makeWindowWithScratch()
+	v := DrawCanvas(DrawCanvasCfg{
+		ID:           "c",
+		AlwaysRedraw: true,
+		OnDraw:       func(*DrawContext) {},
+	})
+	if !v.GenerateLayout(w).Shape.alwaysRedraw {
+		t.Error("AlwaysRedraw did not reach Shape.alwaysRedraw")
+	}
+}

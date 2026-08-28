@@ -58,9 +58,21 @@ type AnimationRefreshKind uint8
 
 // AnimationRefreshKind constants.
 const (
-	animationRefreshNone       AnimationRefreshKind = iota
-	animationRefreshRenderOnly                      // repaint only
-	AnimationRefreshLayout                          // full layout rebuild
+	animationRefreshNone AnimationRefreshKind = iota
+	// AnimationRefreshRenderOnly rebuilds the render commands from the
+	// layout already in hand: no view function runs, and nothing is
+	// re-arranged. It is the right kind for an animation whose every
+	// frame changes only what a widget paints — a canvas, a spinner —
+	// rather than what the widget tree contains.
+	//
+	// A DrawCanvas driven this way must set
+	// DrawCanvasCfg.AlwaysRedraw, because its Version never reaches
+	// the cache without a view pass. Anything that does change the
+	// tree still needs a layout refresh from its own event handler.
+	//
+	// exportaudit:keep — the refresh kind an app sets on Animate
+	AnimationRefreshRenderOnly
+	AnimationRefreshLayout // full layout rebuild
 )
 
 // maxAnimationRefreshKind returns the higher-priority refresh kind.

@@ -129,6 +129,10 @@ type Shape struct {
 	// Clip scissor-clips children to this element's bounds.
 	Clip bool
 
+	// alwaysRedraw makes a DrawCanvas re-run OnDraw every render pass
+	// instead of trusting Version. See DrawCanvasCfg.AlwaysRedraw.
+	alwaysRedraw bool
+
 	// ClipContents enables stencil-buffer clipping for nested
 	// containers. More expensive than Clip but supports nested
 	// clipping hierarchies.

@@ -96,4 +96,5 @@ func (dc *DrawContext) resetFor(w, h, scale float32, tm TextMeasurer,
 	dc.gradIsolineBuf = keepScratch(dc.gradIsolineBuf)
 	dc.gradOffsetBuf = keepScratch(dc.gradOffsetBuf)
 	dc.gradStopBuf = keepScratch(dc.gradStopBuf)
+	dc.gradRingBuf = keepScratch(dc.gradRingBuf)
 }

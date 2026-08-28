@@ -46,8 +46,8 @@ func TestMaxRefreshKindDowngrade(t *testing.T) {
 }
 
 func TestMaxRefreshKindEqual(t *testing.T) {
-	got := maxAnimationRefreshKind(animationRefreshRenderOnly, animationRefreshRenderOnly)
-	if got != animationRefreshRenderOnly {
-		t.Errorf("got %d, want %d", got, animationRefreshRenderOnly)
+	got := maxAnimationRefreshKind(AnimationRefreshRenderOnly, AnimationRefreshRenderOnly)
+	if got != AnimationRefreshRenderOnly {
+		t.Errorf("got %d, want %d", got, AnimationRefreshRenderOnly)
 	}
 }

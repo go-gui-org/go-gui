@@ -85,12 +85,21 @@ func TestSampleGradRampNonFinite(t *testing.T) {
 	norm = NormalizeGradientStops(stops, &norm)
 	var segs []gradRampSegment
 	segs = prepareGradRamp(norm, &segs)
-	for _, bad := range []float32{
-		float32(math.NaN()), float32(math.Inf(1)), float32(math.Inf(-1))} {
-		got := sampleGradRamp(norm, segs, bad)
-		// Non-finite folds to first stop.
-		if got != norm[0].Color {
-			t.Errorf("pos %v: got %v, want %v", bad, got, norm[0].Color)
+	// NaN and -Inf fold to the ramp start; +Inf folds to its end, the
+	// same side a very large finite position lands on. The dedicated
+	// non-finite guard this replaced sent +Inf to the start as well,
+	// which was the odd one out.
+	last := norm[len(norm)-1].Color
+	for _, tc := range []struct {
+		pos  float32
+		want Color
+	}{
+		{float32(math.NaN()), norm[0].Color},
+		{float32(math.Inf(-1)), norm[0].Color},
+		{float32(math.Inf(1)), last},
+	} {
+		if got := sampleGradRamp(norm, segs, tc.pos); got != tc.want {
+			t.Errorf("pos %v: got %v, want %v", tc.pos, got, tc.want)
 		}
 	}
 }
