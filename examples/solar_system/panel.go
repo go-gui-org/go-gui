@@ -186,7 +186,7 @@ func navDot(a *App, id string, sel int, name string, size float32,
 		Colors:  gui.Flat(color),
 		A11YCfg: gui.A11YCfg{A11YLabel: name},
 		OnClick: func(ctx gui.EventCtx) {
-			selectBody(state(ctx.Window), sel)
+			selectBody(state(ctx.Window), ctx.Window, sel)
 			ctx.Consume()
 		},
 	})

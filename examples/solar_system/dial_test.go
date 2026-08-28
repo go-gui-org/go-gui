@@ -203,3 +203,68 @@ func TestFullSystemTargetFinite(t *testing.T) {
 		}
 	}
 }
+
+// TestDialTablesMatchCalendar pins the dial's precomputed geometry
+// against the calendar it is derived from.
+//
+// The tables are filled from init because they read monthStartFrac and
+// monthMidAngle, which init also fills. Built as var initializers they
+// would run first, against a zeroed calendar, and every month would
+// land at angle 0. That failure changes no segment count and no
+// triangle count — only where the pixels go — so it has to be checked
+// on the coordinates.
+func TestDialTablesMatchCalendar(t *testing.T) {
+	t.Parallel()
+	if len(dialMonthTicks) != 12*4 {
+		t.Fatalf("dialMonthTicks has %d floats, want %d",
+			len(dialMonthTicks), 12*4)
+	}
+	for mi := range 12 {
+		want := 2 * float32(math.Pi) * monthStartFrac[mi]
+		// The inner endpoint of tick mi, back to an angle.
+		x, y := dialMonthTicks[mi*4], dialMonthTicks[mi*4+1]
+		got := float32(math.Atan2(float64(y), float64(x)))
+		if got < 0 {
+			got += 2 * float32(math.Pi)
+		}
+		if d := absF(got - want); d > 1e-4 {
+			t.Errorf("month %d tick at angle %v, want %v", mi, got, want)
+		}
+		if r := sqrt32(x*x + y*y); absF(r-dialInner) > 1e-2 {
+			t.Errorf("month %d tick inner radius %v, want %v",
+				mi, r, dialInner)
+		}
+	}
+
+	// Every month name must contribute strokes, and the twelve of them
+	// must be spread around the whole ring rather than stacked at one
+	// angle. Four quadrants is the coarsest check that fails when the
+	// calendar reads as zero.
+	if len(dialLabelSegs) == 0 {
+		t.Fatal("dialLabelSegs is empty")
+	}
+	var quad [4]int
+	for i := 0; i+1 < len(dialLabelSegs); i += 2 {
+		x, y := dialLabelSegs[i], dialLabelSegs[i+1]
+		q := 0
+		if x < 0 {
+			q |= 1
+		}
+		if y < 0 {
+			q |= 2
+		}
+		quad[q]++
+		// Glyphs ride the label radius, within one em box of it.
+		// The radial extent is inflated by the inverse local
+		// foreshortening, whose worst case is diskTilt.
+		maxR := dialTextR + dialEmWorld*emHeight/float32(diskTilt) + 2
+		if r := sqrt32(x*x + y*y); r < dialTextR-2 || r > maxR {
+			t.Fatalf("label point %d at radius %v, off the ring", i/2, r)
+		}
+	}
+	for q, n := range quad {
+		if n == 0 {
+			t.Errorf("no label strokes in quadrant %d: %v", q, quad)
+		}
+	}
+}

@@ -65,6 +65,12 @@ func init() {
 		midDay := float32(monthStartDay[i]) + float32(monthDays[i])*0.5
 		monthMidAngle[i] = 2 * float32(math.Pi) * midDay / 365
 	}
+
+	// Only now that the calendar is filled.
+	dialDayTicks = makeDialTicks(365, dialInner,
+		dialInner+(dialOuter-dialInner)*0.48)
+	dialMonthTicks = makeDialMonthTicks()
+	dialLabelSegs = makeDialLabelSegs()
 }
 
 // dialAngle is the heliocentric longitude the calendar reads as "now".
@@ -115,39 +121,18 @@ func drawDial(a *App, dc *gui.DrawContext) {
 
 	// Day ticks: 365 short radial segments.
 	if rx >= dialDayMinRx {
-		for d := range 365 {
-			theta := 2 * float32(math.Pi) * float32(d) / 365
-			// Short tick from inner to just past middle.
-			r0 := dialInner
-			r1 := dialInner + (dialOuter-dialInner)*0.48
-			wx0, wy0 := dialPolar(r0, theta)
-			wx1, wy1 := dialPolar(r1, theta)
-			sx0, sy0 := a.worldToScreen(wx0, wy0)
-			sx1, sy1 := a.worldToScreen(wx1, wy1)
-			appendDialSeg(m, sx0, sy0, sx1, sy1, colorDialTick, 0.62)
-		}
+		appendDialSegs(m, a, dialDayTicks, colorDialTick, 0.62)
 	}
 
 	// Month ticks: 12 longer segments crossing both rails.
-	for mi := range 12 {
-		theta := 2 * float32(math.Pi) * monthStartFrac[mi]
-		wx0, wy0 := dialPolar(dialInner, theta)
-		wx1, wy1 := dialPolar(dialOuter, theta)
-		sx0, sy0 := a.worldToScreen(wx0, wy0)
-		sx1, sy1 := a.worldToScreen(wx1, wy1)
-		appendDialSeg(m, sx0, sy0, sx1, sy1, colorDialMonth, 1.05)
-	}
+	appendDialSegs(m, a, dialMonthTicks, colorDialMonth, 1.05)
 
 	// Month labels — stroke font, curving along the ring.
-	emWorld := dialEmWorld
-	emPx := emWorld * z // rough: world em * zoom, but foreshortened at top/bottom; conservative gate uses max.
+	emPx := dialEmWorld * z // rough: world em * zoom, but foreshortened at top/bottom; conservative gate uses max.
 	// More precise legibility: minimum of horizontal and vertical scale. Use emWorld*z*diskTilt as worst case?
 	// Skip only when definitely illegible.
 	if emPx >= dialLabelMinPx {
-		for mi, name := range monthNames {
-			thetaMid := monthMidAngle[mi]
-			drawDialLabel(m, a, name, thetaMid, dialTextR, emWorld)
-		}
+		appendDialSegs(m, a, dialLabelSegs, colorDialText, dialStrokeW)
 	}
 
 	// Date marker — small filled triangle at dialAngle, pointing inward.
@@ -176,19 +161,95 @@ func drawDial(a *App, dc *gui.DrawContext) {
 	dc.FillTrianglesColors(m.tris, m.cols)
 }
 
+// dialDayTicks, dialMonthTicks and dialLabelSegs hold the dial's
+// static geometry in world coordinates, four floats per segment
+// (x0,y0,x1,y1). All three are pure functions of the calendar and of
+// the ring's fixed radii, so the ~2,200 sines and cosines they used to
+// cost on every frame are paid once at startup and the frame path is
+// left with worldToScreen. The ring itself never moves; only the
+// camera does.
+//
+// Filled from init, not from a var initializer, because two of them
+// read monthStartFrac and monthMidAngle — which init fills. Go orders
+// var initializers by the references it can see, and it cannot see
+// through init, so as initializers these would have run against a
+// zeroed calendar. The failure is quiet: every month lands at angle 0,
+// the segment *count* is unchanged, and only the pixels move.
+var (
+	dialDayTicks   []float32
+	dialMonthTicks []float32
+	dialLabelSegs  []float32
+)
+
+// makeDialTicks lays n evenly spaced radial segments from r0 to r1
+// around the whole ring.
+func makeDialTicks(n int, r0, r1 float32) []float32 {
+	dst := make([]float32, 0, n*4)
+	for d := range n {
+		theta := 2 * float32(math.Pi) * float32(d) / float32(n)
+		dst = appendDialTick(dst, r0, r1, theta)
+	}
+	return dst
+}
+
+// makeDialMonthTicks lays one longer segment at each month boundary,
+// which is not an even division: the months differ in length.
+func makeDialMonthTicks() []float32 {
+	dst := make([]float32, 0, 12*4)
+	for mi := range 12 {
+		theta := 2 * float32(math.Pi) * monthStartFrac[mi]
+		dst = appendDialTick(dst, dialInner, dialOuter, theta)
+	}
+	return dst
+}
+
+// appendDialTick appends one radial segment. The two endpoints share
+// an angle, so the trigonometry is done once for both.
+func appendDialTick(dst []float32, r0, r1, theta float32) []float32 {
+	c, s := cos32(theta), sin32(theta)
+	return append(dst, r0*c, r0*s, r1*c, r1*s)
+}
+
+// makeDialLabelSegs flattens all twelve month names into one segment
+// list. They share a color and a stroke width, so nothing at draw time
+// needs to know where one label ends and the next begins.
+func makeDialLabelSegs() []float32 {
+	var dst []float32
+	for mi, name := range monthNames {
+		dst = appendDialLabel(dst, name, monthMidAngle[mi],
+			dialTextR, dialEmWorld)
+	}
+	return dst
+}
+
+// appendDialSegs projects a world-space segment list, four floats per
+// segment, and thickens each one in screen space.
+func appendDialSegs(m *bodyMesh, a *App, segs []float32,
+	c gui.Color, halfW float32,
+) {
+	for i := 0; i+3 < len(segs); i += 4 {
+		sx0, sy0 := a.worldToScreen(segs[i], segs[i+1])
+		sx1, sy1 := a.worldToScreen(segs[i+2], segs[i+3])
+		appendDialSeg(m, sx0, sy0, sx1, sy1, c, halfW)
+	}
+}
+
 // dialPolar converts polar in the orbital plane (r, theta) to world
 // cartesian, with theta measured from world +x.
 func dialPolar(r, theta float32) (wx, wy float32) {
 	return r * cos32(theta), r * sin32(theta)
 }
 
-// drawDialLabel places a month name centered on thetaMid at radius R.
+// appendDialLabel places a month name centered on thetaMid at radius R,
+// appending its stroke segments to dst as world-space endpoint quads.
 // A glyph point (gx,gy) maps with gy outward radially and gx to
 // angular offset by arc length dθ = x_arc / R. Glyph "up" points
 // radially outward everywhere, so labels read from outside.
 //
-// Each segment is projected then thickened perpendicular in screen space
-// by fixed dialStrokeW, so weight stays uniform. The orbital plane is
+// Every term here is fixed by the label's own angle and radius, so the
+// whole placement is done once at init; the frame path only projects
+// the result. Each segment is thickened perpendicular in screen space
+// by fixed dialStrokeW after projection, so weight stays uniform. The orbital plane is
 // foreshortened by diskTilt, so a ring viewed at 29° squashes the
 // vertical axis to 48%: a world arc along +y reaches the screen at
 // half the length of one along +x. Without compensation a Dec/Jun
@@ -206,10 +267,12 @@ func dialPolar(r, theta float32) (wx, wy float32) {
 // Measuring each glyph's min/max X and kerning ink-to-ink makes the
 // visual gaps even; the total label shortens by about 0.7 em but stays
 // within the framed extent.
-func drawDialLabel(m *bodyMesh, a *App, name string, thetaMid, radius, emW float32) {
+func appendDialLabel(dst []float32, name string,
+	thetaMid, radius, emW float32,
+) []float32 {
 	n := len(name)
 	if n == 0 {
-		return
+		return dst
 	}
 	// Local foreshortening at thetaMid. Tangent is (-sin, cos), radial
 	// is (cos, sin); projected length per world unit is sqrt(dx^2 +
@@ -241,7 +304,7 @@ func drawDialLabel(m *bodyMesh, a *App, name string, thetaMid, radius, emW float
 		bnds = append(bnds, bounds{mn, mx})
 	}
 	if len(glyphs) == 0 {
-		return
+		return dst
 	}
 	gapInk := 0.14 * emW / ft
 	// Total ink width along the ring.
@@ -265,9 +328,7 @@ func drawDialLabel(m *bodyMesh, a *App, name string, thetaMid, radius, emW float
 				x1, y1 := poly[k+2], poly[k+3]
 				wx0, wy0 := dialGlyphOriginToWorld(x0, y0, thetaMid, radius, emW, ft, fr, origin)
 				wx1, wy1 := dialGlyphOriginToWorld(x1, y1, thetaMid, radius, emW, ft, fr, origin)
-				sx0, sy0 := a.worldToScreen(wx0, wy0)
-				sx1, sy1 := a.worldToScreen(wx1, wy1)
-				appendDialSeg(m, sx0, sy0, sx1, sy1, colorDialText, dialStrokeW)
+				dst = append(dst, wx0, wy0, wx1, wy1)
 			}
 		}
 		// Advance cursor to next ink left edge.
@@ -276,6 +337,7 @@ func drawDialLabel(m *bodyMesh, a *App, name string, thetaMid, radius, emW float
 			cursor += gapInk
 		}
 	}
+	return dst
 }
 
 // glyphBounds returns the ink extents of g in em units [0,1].

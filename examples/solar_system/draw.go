@@ -380,10 +380,9 @@ func drawSun(a *App, dc *gui.DrawContext) {
 	// segments for the same reason the planets use three — two would
 	// walk the middle of the face through a washed-out midpoint of the
 	// two ends.
-	a.discStops = sunDiscStops(a.discStops)
 	dc.FilledCircleGradient(cx, cy, r, &gui.CanvasGradient{
 		Radial: true,
-		Stops:  a.discStops,
+		Stops:  sunDiscRamp,
 	})
 
 	drawGranulation(dc, &a.granules, cx, cy, r)
@@ -420,6 +419,10 @@ func sunDiscTone(t float32) gui.Color {
 // The ramp runs inward, so t maps to the radius fraction
 // u = 1 - sunShellSpan*t and the stops come out in reverse order: pos
 // 0 is the core, pos 1 the limb.
+// The ramp is a function of compile-time constants alone, so it is
+// built once rather than rebuilt into a scratch every frame.
+var sunDiscRamp = sunDiscStops(nil)
+
 func sunDiscStops(dst []gui.GradientStop) []gui.GradientStop {
 	dst = dst[:0]
 	// The core tone held flat inside the innermost shell. Without a
@@ -532,6 +535,24 @@ func drawCorona(dc *gui.DrawContext, m *bodyMesh, cx, cy, r, now float32) {
 	m.tris, m.cols = m.tris[:0], m.cols[:0]
 	drift := now * coronaDriftHz * float32(coronaSteps)
 
+	// The noise the boundaries ride on is a function of the angle and
+	// the drift, not of the tier: coronaPoint used to re-sample it
+	// twice per tier at every step, for the same coronaSteps distinct
+	// answers. Sampled once here, the whole fringe costs coronaSteps
+	// noise lookups instead of 2*coronaTiers*coronaSteps.
+	var gain [coronaSteps]float32
+	for k := range gain {
+		gain[k] = 1 - coronaRagged +
+			coronaRagged*edgeAt(float32(k)+drift)
+	}
+
+	// Boundary rings, innermost first. Tier k's outer ring is tier
+	// k+1's inner one, so each of the coronaTiers+1 rings is traced
+	// once and consumed twice. m.prev and m.cur are the sphere's ring
+	// scratch, unused by this mesh and the right shape for the job.
+	inner := appendCoronaRing(m.prev[:0], cx, cy, r, 0, gain[:])
+	outer := m.cur[:0]
+
 	for tier := range coronaTiers {
 		// Innermost, brightest band first; each one starts where the
 		// last ended.
@@ -540,35 +561,59 @@ func drawCorona(dc *gui.DrawContext, m *bodyMesh, cx, cy, r, now float32) {
 		alpha := (1 - f0) * (1 - f0) * 0.5
 		col := colorSunCorona.WithOpacity(alpha)
 
-		aX, aY := coronaPoint(r, 0, f0, drift)
-		bX, bY := coronaPoint(r, 0, f1, drift)
-		for k := 1; k <= coronaSteps; k++ {
-			ang := 2 * math.Pi * float32(k) / coronaSteps
-			cX, cY := coronaPoint(r, ang, f0, drift)
-			dX, dY := coronaPoint(r, ang, f1, drift)
+		outer = appendCoronaRing(outer[:0], cx, cy, r, f1, gain[:])
+		for k := range coronaSteps {
+			i0, i1 := k*2, k*2+2
 			// The same two triangles FilledPolygon's fan emitted,
 			// through appendTri so the winding is measured: the soft
 			// backend accumulates signed coverage over the batch and a
 			// quad wound against its neighbour would carve a seam.
-			m.appendTri(cx+aX, cy+aY, col, cx+cX, cy+cY, col,
-				cx+dX, cy+dY, col)
-			m.appendTri(cx+aX, cy+aY, col, cx+dX, cy+dY, col,
-				cx+bX, cy+bY, col)
-			aX, aY, bX, bY = cX, cY, dX, dY
+			m.appendTri(inner[i0], inner[i0+1], col,
+				inner[i1], inner[i1+1], col,
+				outer[i1], outer[i1+1], col)
+			m.appendTri(inner[i0], inner[i0+1], col,
+				outer[i1], outer[i1+1], col,
+				outer[i0], outer[i0+1], col)
 		}
+		inner, outer = outer, inner
 	}
+	// Hand the scratch back so the next frame reuses the same arrays.
+	m.prev, m.cur = inner, outer
 	dc.FillTrianglesColors(m.tris, m.cols)
 }
 
-// coronaPoint is a point on the fringe boundary at fraction f of the
-// corona's reach, f = 0 being the limb itself. The boundary starts a
-// hair inside the limb so the innermost band always covers the disc's
-// polygon edge.
-func coronaPoint(r, ang, f, drift float32) (x, y float32) {
-	n := edgeAt(ang/(2*math.Pi)*coronaSteps + drift)
-	reach := coronaReach * f * (1 - coronaRagged + coronaRagged*n)
-	rr := r * (1 - 0.015 + reach)
-	return cos32(ang) * rr, sin32(ang) * rr
+// coronaDir is the unit circle the fringe boundaries are traced with,
+// as interleaved cos,sin. ang = 2*pi*k/coronaSteps takes only
+// coronaSteps distinct values however many tiers there are, so the
+// trigonometry is done once here rather than per boundary per frame.
+var coronaDir = makeCoronaDir()
+
+func makeCoronaDir() []float32 {
+	p := make([]float32, 0, coronaSteps*2)
+	for k := range coronaSteps {
+		ang := 2 * float32(math.Pi) * float32(k) / coronaSteps
+		p = append(p, cos32(ang), sin32(ang))
+	}
+	return p
+}
+
+// appendCoronaRing traces one fringe boundary at fraction f of the
+// corona's reach, f = 0 being the limb itself, as coronaSteps+1 screen
+// x,y pairs. The boundary starts a hair inside the limb so the
+// innermost band always covers the disc's polygon edge.
+//
+// The ring closes on a copy of its first point rather than on a
+// wrapped index, which is what lets the tiling loop read consecutive
+// pairs with no modulo and no seam.
+func appendCoronaRing(dst []float32, cx, cy, r, f float32,
+	gain []float32,
+) []float32 {
+	base := len(dst)
+	for k := range coronaSteps {
+		rr := r * (1 - 0.015 + coronaReach*f*gain[k])
+		dst = append(dst, cx+coronaDir[k*2]*rr, cy+coronaDir[k*2+1]*rr)
+	}
+	return append(dst, dst[base], dst[base+1])
 }
 
 // drawPlanets paints the bodies back to front. With the disc tilted,

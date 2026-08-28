@@ -83,9 +83,6 @@ type App struct {
 	glowStops []gui.GradientStop
 	haloStops []gui.GradientStop
 
-	// discStops backs the sun's disc fill, reused for the same reason.
-	discStops []gui.GradientStop
-
 	// stars is drawStars' mesh scratch, on the same footing as the two
 	// below.
 	stars bodyMesh
@@ -209,6 +206,14 @@ func main() {
 				AnimID: tickAnim,
 				Delay:  tickDelay,
 				Repeat: true,
+				// The simulation moves what the canvas paints, never
+				// what the widget tree contains: the info panel and
+				// the nav dots read a.Selected, which only an event
+				// can change. So a tick rebuilds renderers from the
+				// layout already in hand and skips the view pass
+				// entirely. selectBody asks for the layout refresh
+				// when it does move the selection.
+				Refresh: gui.AnimationRefreshRenderOnly,
 				Callback: func(_ *gui.Animate, w *gui.Window) {
 					tick(state(w))
 				},
@@ -244,12 +249,18 @@ func tick(a *App) {
 // selectBody focuses a planet by index or the sun with selSun, and
 // clears the selection with -1. Re-selecting what is already selected
 // is a no-op so a repeated click does not restart the tween.
-func selectBody(a *App, i int) {
+func selectBody(a *App, w *gui.Window, i int) {
 	if i == a.Selected {
 		return
 	}
 	a.beginTransition()
 	a.Selected = i
+	// The only App field the view reads. Under a render-only tick
+	// nothing re-runs mainView on its own, so the info panel and the
+	// nav dots would keep showing the previous body without this.
+	if w != nil {
+		w.UpdateWindow()
+	}
 	// A manual zoom belongs to the view the user was in; carrying it
 	// into the next selection is what makes zoom "fight" the camera.
 	a.UserZoom = 1
@@ -262,7 +273,7 @@ func selectBody(a *App, i int) {
 // The walk runs over a *rank* rather than over Selected directly,
 // because selSun is deliberately outside the planet index range and so
 // is not adjacent to Mercury in arithmetic.
-func stepSelection(a *App, delta int) {
+func stepSelection(a *App, w *gui.Window, delta int) {
 	n := len(planets) + 1 // the sun takes rank 0
 
 	rank := 0
@@ -272,19 +283,19 @@ func stepSelection(a *App, delta int) {
 	case a.Selected >= 0:
 		rank = a.Selected + 1
 	case delta > 0:
-		selectBody(a, selSun)
+		selectBody(a, w, selSun)
 		return
 	default:
-		selectBody(a, len(planets)-1)
+		selectBody(a, w, len(planets)-1)
 		return
 	}
 
 	rank = ((rank+delta)%n + n) % n
 	if rank == 0 {
-		selectBody(a, selSun)
+		selectBody(a, w, selSun)
 		return
 	}
-	selectBody(a, rank-1)
+	selectBody(a, w, rank-1)
 }
 
 // handleEvent takes the window-level keys, which must work without the
@@ -296,14 +307,14 @@ func handleEvent(e *gui.Event, w *gui.Window) {
 	a := state(w)
 	switch e.KeyCode {
 	case gui.KeyLeft:
-		stepSelection(a, -1)
+		stepSelection(a, w, -1)
 		e.IsHandled = true
 	case gui.KeyRight:
-		stepSelection(a, 1)
+		stepSelection(a, w, 1)
 		e.IsHandled = true
 	case gui.KeyEscape:
 		if a.Selected != -1 {
-			selectBody(a, -1)
+			selectBody(a, w, -1)
 			e.IsHandled = true
 		}
 	case gui.KeyEqual, gui.KeyKPAdd:

@@ -158,3 +158,113 @@ func benchWholeFrame(b *testing.B, sel int) {
 
 func BenchmarkWholeFrameFullSystem(b *testing.B) { benchWholeFrame(b, -1) }
 func BenchmarkWholeFrameJupiter(b *testing.B)    { benchWholeFrame(b, 4) }
+
+// benchWholeFrameRenderOnly drives the frame the running app actually
+// gets: the tick animation asks for AnimationRefreshRenderOnly, so
+// renderers are rebuilt from the layout already in hand and no view
+// pass runs. benchWholeFrame above keeps measuring the full rebuild,
+// which is what a selection change still costs.
+func benchWholeFrameRenderOnly(b *testing.B, sel int) {
+	a := newApp()
+	a.CanvasW, a.CanvasH = windowW, windowH
+	a.Selected = sel
+	for range 120 {
+		tick(a)
+	}
+	w := gui.NewWindow(gui.WindowCfg{
+		State:  a,
+		Width:  windowW,
+		Height: windowH,
+	})
+	w.TestRender(mainView)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		tick(a)
+		// What the animation loop queues for this refresh kind.
+		w.RequestRedraw()
+		w.FrameFn()
+	}
+}
+
+func BenchmarkWholeFrameRenderOnlyFullSystem(b *testing.B) {
+	benchWholeFrameRenderOnly(b, -1)
+}
+
+func BenchmarkWholeFrameRenderOnlyJupiter(b *testing.B) {
+	benchWholeFrameRenderOnly(b, 4)
+}
+
+// TestRenderOnlyTickRedrawsCanvas pins the pairing the tick animation
+// depends on. Under AnimationRefreshRenderOnly no view pass runs, so
+// a.Version never reaches renderDrawCanvas's redraw gate; without
+// DrawCanvasCfg.AlwaysRedraw the second frame would replay the first
+// frame's triangles and the system would appear frozen.
+func TestRenderOnlyTickRedrawsCanvas(t *testing.T) {
+	a := newApp()
+	a.CanvasW, a.CanvasH = windowW, windowH
+	w := gui.NewWindow(gui.WindowCfg{
+		State:  a,
+		Width:  windowW,
+		Height: windowH,
+	})
+	w.TestRender(mainView)
+
+	first := canvasTriangleSum(w)
+	// Far enough for the planets to have moved measurably, but still
+	// only render-only frames.
+	for range 30 {
+		tick(a)
+		w.RequestRedraw()
+		w.FrameFn()
+	}
+	if got := canvasTriangleSum(w); got == first {
+		t.Fatalf("canvas geometry unchanged after 30 render-only "+
+			"frames (checksum %v); AlwaysRedraw is not reaching the "+
+			"redraw gate", got)
+	}
+}
+
+// canvasTriangleSum checksums every triangle vertex the window's
+// renderers carry, which is the canvas mesh and nothing else — the
+// panel and the dots emit rects and text.
+func canvasTriangleSum(w *gui.Window) float64 {
+	var sum float64
+	for _, r := range w.Renderers() {
+		for _, v := range r.Triangles {
+			sum += float64(v)
+		}
+	}
+	return sum
+}
+
+// TestSelectBodyRefreshesView pins the other half: a selection change
+// is the one thing the render-only tick cannot show, so selectBody has
+// to ask for a layout pass itself.
+func TestSelectBodyRefreshesView(t *testing.T) {
+	a := newApp()
+	a.CanvasW, a.CanvasH = windowW, windowH
+	w := gui.NewWindow(gui.WindowCfg{
+		State:  a,
+		Width:  windowW,
+		Height: windowH,
+	})
+	w.TestRender(mainView)
+
+	selectBody(a, w, saturnIndex)
+	if !w.FrameFn() {
+		t.Fatal("selectBody did not mark the window for a rebuild")
+	}
+	want := planets[saturnIndex].Name
+	found := false
+	for _, r := range w.Renderers() {
+		if r.Text == want {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("info panel does not name %q after selectBody", want)
+	}
+}
