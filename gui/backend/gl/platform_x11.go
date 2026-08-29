@@ -231,7 +231,12 @@ func loadCursors(p *platformState) {
 	font := xproto.Font(fid)
 	xproto.OpenFont(p.conn, font, uint16(len("cursor")), "cursor")
 
-	load := func(glyph uint16) xproto.Cursor {
+	// The core cursor font ignores the Xcursor size and never scales
+	// for HiDPI (issue #453), so every shape prefers the desktop's
+	// Xcursor theme, uploaded via the RENDER extension. The font glyph
+	// is the per-shape fallback when no themed cursor is available (no
+	// theme, no RENDER, parse error) — never a hard error.
+	loadGlyph := func(glyph uint16) xproto.Cursor {
 		cid, cerr := p.conn.NewId()
 		if cerr != nil {
 			return 0
@@ -242,29 +247,49 @@ func loadCursors(p *platformState) {
 			0, 0, 0, 0xffff, 0xffff, 0xffff)
 		return c
 	}
-	p.cursors[gui.CursorDefault] = load(xcLeftPtr)
-	p.cursors[gui.CursorArrow] = load(xcLeftPtr)
-	p.cursors[gui.CursorIBeam] = load(xcXterm)
-	p.cursors[gui.CursorCrosshair] = load(xcCrosshair)
-	p.cursors[gui.CursorPointingHand] = load(xcHand2)
-	p.cursors[gui.CursorResizeEW] = load(xcSbHDoubleArrow)
-	p.cursors[gui.CursorResizeNS] = load(xcSbVDoubleArrow)
-	// The core cursor font has no rotated double-arrow glyph, so the
-	// diagonal resize shapes come from the desktop's Xcursor theme
-	// when one is available. Any failure (no theme, no RENDER, parse
-	// error) falls back to the corner glyphs — never a hard error.
+
 	// Theme and size are resolved once: each step reads X root-window
-	// properties.
+	// properties. Xcursor sizes are logical pixels; scaledCursorSize
+	// multiplies by the monitor scale to pick the image the theme
+	// intended for this DPI (issue #453).
 	theme := xcursorThemeName(p.conn, p.root)
-	size := xcursorThemeSize(p.conn, p.root)
-	p.cursors[gui.CursorResizeNWSE] = xcursorThemeCursor(p, theme, size, nwseCursorNames)
-	if p.cursors[gui.CursorResizeNWSE] == 0 {
-		p.cursors[gui.CursorResizeNWSE] = load(xcBottomRightCorner)
+	size := scaledCursorSize(xcursorThemeSize(p.conn, p.root), p.scale)
+	load := func(names []string, glyph uint16) xproto.Cursor {
+		if c := xcursorThemeCursor(p, theme, size, names); c != 0 {
+			return c
+		}
+		return loadGlyph(glyph)
 	}
-	p.cursors[gui.CursorResizeNESW] = xcursorThemeCursor(p, theme, size, neswCursorNames)
-	if p.cursors[gui.CursorResizeNESW] == 0 {
-		p.cursors[gui.CursorResizeNESW] = load(xcBottomLeftCorner)
+	p.cursors[gui.CursorDefault] = load(leftPtrCursorNames, xcLeftPtr)
+	p.cursors[gui.CursorArrow] = load(leftPtrCursorNames, xcLeftPtr)
+	p.cursors[gui.CursorIBeam] = load(xtermCursorNames, xcXterm)
+	p.cursors[gui.CursorCrosshair] = load(crosshairCursorNames, xcCrosshair)
+	p.cursors[gui.CursorPointingHand] = load(handCursorNames, xcHand2)
+	p.cursors[gui.CursorResizeEW] = load(hResizeCursorNames, xcSbHDoubleArrow)
+	p.cursors[gui.CursorResizeNS] = load(vResizeCursorNames, xcSbVDoubleArrow)
+	p.cursors[gui.CursorResizeNWSE] = load(nwseCursorNames, xcBottomRightCorner)
+	p.cursors[gui.CursorResizeNESW] = load(neswCursorNames, xcBottomLeftCorner)
+	p.cursors[gui.CursorResizeAll] = load(moveCursorNames, xcFleur)
+	p.cursors[gui.CursorNotAllowed] = load(notAllowedCursorNames, xcXCursor)
+	// reloadCursors calls this again per DPI rescale, so the font can't
+	// stay open; X protocol ordering runs the glyph-cursor creations
+	// queued above before this closes the font.
+	xproto.CloseFont(p.conn, font)
+}
+
+// reloadCursors frees the current cursor handles and loads a fresh set
+// at the current monitor scale. Called when the window moves to a
+// monitor with a different DPI so themed cursors stay correctly sized
+// (issue #453). curCursor is reset so setCursor re-applies the active
+// shape next frame. The window keeps showing the freed cursor until
+// then — the server holds its own reference from the window attribute.
+func (p *platformState) reloadCursors() {
+	for i, c := range p.cursors {
+		if c != 0 {
+			xproto.FreeCursor(p.conn, c)
+			p.cursors[i] = 0
+		}
 	}
-	p.cursors[gui.CursorResizeAll] = load(xcFleur)
-	p.cursors[gui.CursorNotAllowed] = load(xcXCursor)
+	p.curCursor = 0
+	loadCursors(p)
 }

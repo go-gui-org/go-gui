@@ -135,6 +135,33 @@ func TestParseXcursorFileMalformed(t *testing.T) {
 	}
 }
 
+// TestScaledCursorSize covers the HiDPI size multiplier applied to the
+// logical Xcursor size: unknown/bogus scales leave the size untouched,
+// fractional scales round, and a rounded-to-zero result clamps to 1
+// (issue #453).
+func TestScaledCursorSize(t *testing.T) {
+	cases := []struct {
+		size  int
+		scale float32
+		want  int
+	}{
+		{24, 1, 24},
+		{24, 2, 48},
+		{24, 1.5, 36},
+		{33, 1.96, 65},
+		{24, 0, 24},   // unknown scale: unscaled
+		{24, -1, 24},  // bogus scale: unscaled
+		{12, 0.25, 3}, // fractional downscale
+		{1, 0.01, 1},  // clamps, never rounds to zero
+	}
+	for _, c := range cases {
+		if got := scaledCursorSize(c.size, c.scale); got != c.want {
+			t.Errorf("scaledCursorSize(%d, %g) = %d, want %d",
+				c.size, c.scale, got, c.want)
+		}
+	}
+}
+
 func TestBestFit(t *testing.T) {
 	img := func(w int) xcursorImage { return xcursorImage{Width: w, Height: w} }
 	cases := []struct {
@@ -367,6 +394,40 @@ func TestFindThemeCursorCycle(t *testing.T) {
 	}
 }
 
+// TestFindThemeCursorAllShapes verifies every shape's name table
+// resolves through findThemeCursor: each theme provides one of the
+// table's aliases and lookup must find it. This is the headless
+// counterpart of the themed-first loading in loadCursors (issue #453).
+func TestFindThemeCursorAllShapes(t *testing.T) {
+	cases := []struct {
+		names []string
+		alias string // a name from the table, as a theme would ship it
+	}{
+		{leftPtrCursorNames, "default"},
+		{xtermCursorNames, "text"},
+		{crosshairCursorNames, "crosshair"},
+		{handCursorNames, "pointer"},
+		{hResizeCursorNames, "ew-resize"},
+		{vResizeCursorNames, "ns-resize"},
+		{nwseCursorNames, "size_fdiag"},
+		{neswCursorNames, "size_bdiag"},
+		{moveCursorNames, "all-scroll"},
+		{notAllowedCursorNames, "not-allowed"},
+	}
+	for _, tc := range cases {
+		root := t.TempDir()
+		writeTheme(t, root, "t", nil, map[string][]int{tc.alias: {24}})
+		img, err := findThemeCursor(tc.names, 24, []string{root}, "t")
+		if err != nil {
+			t.Errorf("alias %q: %v", tc.alias, err)
+			continue
+		}
+		if img.Width != 24 {
+			t.Errorf("alias %q: got %d, want 24", tc.alias, img.Width)
+		}
+	}
+}
+
 func TestSettingsIniValue(t *testing.T) {
 	dir := t.TempDir()
 	_ = os.MkdirAll(filepath.Join(dir, "gtk-3.0"), 0o755)
@@ -466,7 +527,11 @@ func TestXcursorThemeCursorLive(t *testing.T) {
 		t.Fatalf("theme=%q size=%d, want non-empty positive", theme, size)
 	}
 
-	for _, names := range [][]string{nwseCursorNames, neswCursorNames} {
+	for _, names := range [][]string{
+		leftPtrCursorNames, xtermCursorNames, crosshairCursorNames,
+		handCursorNames, hResizeCursorNames, vResizeCursorNames,
+		nwseCursorNames, neswCursorNames, moveCursorNames, notAllowedCursorNames,
+	} {
 		img, err := findThemeCursor(names, size, xcursorSearchDirs(), theme)
 		if err != nil {
 			t.Skipf("no themed %s cursor (fallback glyphs in use): %v", names[0], err)

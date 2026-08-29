@@ -4,11 +4,13 @@ package gl
 
 // xcursor.go — pure-Go Xcursor cursor-file parsing and theme resolution.
 //
-// The X11 core cursor font has no rotated double-arrow glyph, so the
-// diagonal resize shapes are loaded from the desktop's Xcursor theme
-// (the same .cursor files GTK renders) and uploaded via the RENDER
-// extension's CreateCursor. Everything in this file is X-free so it
-// can be unit-tested headlessly; the X wiring lives in platform_x11.go.
+// Cursor shapes are loaded from the desktop's Xcursor theme (the same
+// .cursor files GTK renders) and uploaded via the RENDER extension's
+// CreateCursor. The X11 core cursor font ignores the Xcursor size and
+// never scales for HiDPI, so it is only the fallback when no themed
+// cursor is available (issue #453). Everything in this file is X-free
+// so it can be unit-tested headlessly; the X wiring lives in
+// platform_x11.go.
 //
 // Format reference: the Xcursor library spec (magic "Xcur", LSBFirst
 // 32-bit header/TOC, chunk types 0xfffd0001=comment, 0xfffd0002=image
@@ -157,6 +159,18 @@ func parseXcursorChunk(data []byte, pos, end uint32) (xcursorImage, error) {
 		img.Pixels[i] = binary.LittleEndian.Uint32(px[i*4:])
 	}
 	return img, nil
+}
+
+// scaledCursorSize converts the logical Xcursor size (logical pixels)
+// to the physical-pixel size the monitor's scale needs. scale ≤ 0
+// means "unknown" and leaves the size untouched; otherwise it
+// multiplies, rounds to the nearest integer, and clamps to ≥ 1 so a
+// fractional scale never rounds down to zero.
+func scaledCursorSize(size int, scale float32) int {
+	if scale <= 0 {
+		return size
+	}
+	return max(1, int(float64(size)*float64(scale)+0.5))
 }
 
 // bestFit selects the image libXcursor would render for size: the
@@ -345,13 +359,24 @@ func xcursorSearchDirs() []string {
 	return dirs
 }
 
-// Logical Xcursor names for the two diagonal resize shapes, tried in
-// order per theme dir. Themes use size_fdiag/size_bdiag (Bibata,
-// XCursor-Pro) or the aliases nwse-resize/nesw-resize (Adwaita, Yaru),
-// with the historical fd/bd_double_arrow names as a last resort.
+// Logical Xcursor names per cursor shape, tried in order per theme
+// dir. Themes use the Wayland-era names (Adwaita, Yaru) or one of the
+// classic libXcursor aliases (Bibata, XCursor-Pro, DMZ); the historical
+// core-font-derived names are last resorts. The lists cover every
+// shape the backend can show: the core cursor font ignores both the
+// Xcursor size and HiDPI scaling, so it is only a fallback (issue
+// #453).
 var (
-	nwseCursorNames = []string{"nwse-resize", "size_fdiag", "bd_double_arrow"}
-	neswCursorNames = []string{"nesw-resize", "size_bdiag", "fd_double_arrow"}
+	leftPtrCursorNames    = []string{"left_ptr", "default", "arrow", "top_left_arrow"}
+	xtermCursorNames      = []string{"xterm", "ibeam", "text"}
+	crosshairCursorNames  = []string{"crosshair", "cross", "cross_reverse", "diamond_cross", "tcross"}
+	handCursorNames       = []string{"hand2", "pointer", "hand1", "pointing_hand"}
+	hResizeCursorNames    = []string{"sb_h_double_arrow", "ew-resize", "col-resize", "h_double_arrow", "split_h", "size_hor"}
+	vResizeCursorNames    = []string{"sb_v_double_arrow", "ns-resize", "row-resize", "v_double_arrow", "split_v", "size_ver"}
+	nwseCursorNames       = []string{"nwse-resize", "size_fdiag", "bd_double_arrow"}
+	neswCursorNames       = []string{"nesw-resize", "size_bdiag", "fd_double_arrow"}
+	moveCursorNames       = []string{"fleur", "all-scroll", "move", "size_all"}
+	notAllowedCursorNames = []string{"X_cursor", "not-allowed", "circle", "crossed_circle", "no-drop"}
 )
 
 // themeInheritsOf returns the Inherits chain of theme from the first
