@@ -105,11 +105,12 @@ func crtcDPI(info *randr.GetCrtcInfoReply, out *randr.GetOutputInfoReply) (float
 }
 
 // maybeRescaleDPI re-evaluates the per-monitor scale when the window has
-// moved to a CRTC with a different DPI, updating plat.scale and the glyph
-// backend. It reports whether the scale changed so the caller can trigger
-// a relayout. ConfigureNotify coordinates are frame-relative under a
-// reparenting WM, so the true root position is queried explicitly and a
-// RandR rescan runs only when that position changed.
+// moved to a CRTC with a different DPI, updating plat.scale, the glyph
+// backend, and the cursor set. It reports whether the scale changed so
+// the caller can trigger a relayout. ConfigureNotify coordinates are
+// frame-relative under a reparenting WM, so the true root position is
+// queried explicitly and a RandR rescan runs only when that position
+// changed.
 func (b *Backend) maybeRescaleDPI() bool {
 	if !b.plat.haveRandr {
 		return false
@@ -136,5 +137,7 @@ func (b *Backend) maybeRescaleDPI() bool {
 	if b.glyphBack != nil {
 		b.glyphBack.dpiScale = scale
 	}
+	// Themed cursors were sized for the old monitor's scale; reload.
+	b.plat.reloadCursors()
 	return true
 }

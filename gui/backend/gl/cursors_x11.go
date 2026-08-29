@@ -3,9 +3,9 @@
 package gl
 
 // cursors_x11.go — server-side wiring for themed Xcursor cursors.
-// Loads the diagonal resize images parsed in xcursor.go and uploads
-// them via the RENDER extension. Split from platform_x11.go to stay
-// under the 800-line gate for gui/ source files.
+// Loads the images parsed in xcursor.go and uploads them via the
+// RENDER extension. Split from platform_x11.go to keep it focused
+// on window setup.
 
 import (
 	"os"
