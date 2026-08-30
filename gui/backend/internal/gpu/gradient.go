@@ -7,22 +7,27 @@ import "github.com/go-gui-org/go-gui/gui"
 // this packer through gui.NormalizeGradientStopsInto; the packer
 // clamps to it either way so a mismatch drops stops rather than
 // reading slots nothing wrote.
-const GradientStopSlots = 8
+const GradientStopSlots = 12
+
+// stopsInTM is how many of them live in the first matrix. Its tail is
+// spoken for by the axis and metadata columns, so four stops and two
+// spare slots is all that fits there; the second matrix carries the
+// rest.
+const stopsInTM = 4
 
 // PackGradientUniforms packs gradient stop data into the two
 // [16]float32 uniform matrices the GPU shaders read. stops must be
 // pre-normalized via gui.NormalizeGradientStopsInto.
 //
-// Four stops per matrix, two floats each (PackRGB + PackAlphaPos):
-// tm holds stops 0-3 in tm[0..7], tm2 holds stops 4-7 in tm2[0..7].
+// Two floats each (PackRGB + PackAlphaPos): tm holds stops 0-3 in
+// tm[0..7], tm2 holds stops 4-11 across all sixteen of its floats.
 //
-// The split is a budget, not a preference. tm's tail is already spoken
-// for — the direction/radius pair at tm[10..11] and four metadata
-// floats at tm[12..15] — which leaves exactly room for four stops and
-// two spare slots. That metadata layout is unchanged from when tm
-// carried five stops, so the vertex shaders' varyings keep their
-// meaning; only the fifth stop moved out. tm2's upper half is free, so
-// raising the limit to twelve later costs no new uniform.
+// The uneven split is a budget, not a preference. tm's tail is already
+// spoken for — the direction/radius pair at tm[10..11] and four
+// metadata floats at tm[12..15] — which leaves room for four stops and
+// two spare slots. tm2 has no metadata to carry, so all of it is
+// stops. That metadata layout is unchanged from when tm carried five
+// stops, so the vertex shaders' varyings keep their meaning.
 func PackGradientUniforms(
 	gdef *gui.GradientDef,
 	stops []gui.GradientStop,
@@ -31,8 +36,8 @@ func PackGradientUniforms(
 	n := min(len(stops), GradientStopSlots)
 	for i := range n {
 		dst, slot := &tm, i
-		if i >= GradientStopSlots/2 {
-			dst, slot = &tm2, i-GradientStopSlots/2
+		if i >= stopsInTM {
+			dst, slot = &tm2, i-stopsInTM
 		}
 		dst[slot*2] = gui.PackRGB(stops[i].Color)
 		dst[slot*2+1] = gui.PackAlphaPos(stops[i].Color, stops[i].Pos)

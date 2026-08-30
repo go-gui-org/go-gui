@@ -43,16 +43,20 @@ func (h haloCurve) at(t float64) Color {
 	return h.c.WithOpacity(float32(a))
 }
 
-// stops samples the curve the way the example does: two flat stops
-// across the body, then eight across the falloff.
+// stops samples the curve the way the example does — two flat stops
+// across the body, then a run across the falloff — but with enough
+// samples to land over the shader stop limit whatever that limit is.
+// The example itself writes ten, which the uniforms now carry
+// untouched; the placement policy this file is about only runs on a
+// list too long to carry, so the fixture has to be one.
 func (h haloCurve) stops() []GradientStop {
 	out := []GradientStop{
 		{Color: h.at(0), Pos: 0},
 		{Color: h.at(h.inFrac), Pos: float32(h.inFrac)},
 	}
-	const samples = 8
+	samples := 2 * gradientShaderStopLimit
 	for i := 1; i <= samples; i++ {
-		u := float64(i) / samples
+		u := float64(i) / float64(samples)
 		pos := h.inFrac + (1-h.inFrac)*u
 		out = append(out, GradientStop{
 			Color: h.at(pos), Pos: float32(pos)})
@@ -122,11 +126,11 @@ func haloTestCurves() []struct {
 // is measured alongside it so a regression to positional spacing shows
 // up as a number rather than as a shrug.
 func TestResampleStopsBeatsEvenSpacing(t *testing.T) {
-	// Measured worst case is 7 at an eight-stop limit, which is the
-	// source list's own sampling error against the same curve: past
-	// this point the stop count, not the placement, is the floor.
-	// Tighten or loosen with gradientShaderStopLimit.
-	const bound = 8
+	// Measured worst case is 3 at a twelve-stop limit, against a source
+	// list whose own error on the same curve is 1. Even spacing scores
+	// 9 to 21 on the same fixtures. Retighten with
+	// gradientShaderStopLimit.
+	const bound = 4
 	for _, tc := range haloTestCurves() {
 		t.Run(tc.name, func(t *testing.T) {
 			src := tc.h.stops()

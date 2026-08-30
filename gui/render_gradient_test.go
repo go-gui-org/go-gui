@@ -237,15 +237,18 @@ func TestNormalizeGradientStopsIntoSorted(t *testing.T) {
 }
 
 func TestNormalizeGradientStopsIntoOverLimit(t *testing.T) {
-	stops := make([]GradientStop, 10)
+	stops := make([]GradientStop, gradientShaderStopLimit+6)
 	for i := range stops {
+		u := float32(i) / float32(len(stops)-1)
 		stops[i] = GradientStop{
-			Color: RGBA(uint8(i*25), 0, 0, 255),
-			Pos:   float32(i) / 9.0,
+			// A curve, so no subset of it is collinear and the
+			// resample has to fill its whole budget.
+			Color: RGBA(uint8(255*u*u), 0, 0, 255),
+			Pos:   u,
 		}
 	}
-	norm := make([]GradientStop, 0, 16)
-	sampled := make([]GradientStop, 0, 8)
+	norm := make([]GradientStop, 0, len(stops))
+	sampled := make([]GradientStop, 0, gradientShaderStopLimit)
 	result := NormalizeGradientStopsInto(stops, &norm, &sampled)
 	if len(result) != gradientShaderStopLimit {
 		t.Fatalf("want %d stops, got %d", gradientShaderStopLimit, len(result))

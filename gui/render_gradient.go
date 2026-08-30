@@ -11,7 +11,7 @@ import (
 // gradientShaderStopLimit is how many gradient stops the GPU shaders'
 // uniforms carry. Must stay in step with gpu.GradientStopSlots, which
 // packs what this produces.
-const gradientShaderStopLimit = 8
+const gradientShaderStopLimit = 12
 
 func clampUnit(v float32) float32 {
 	// NaN compares false both ways; fold to 0 instead of propagating.

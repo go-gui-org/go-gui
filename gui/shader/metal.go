@@ -299,8 +299,8 @@ fragment float4 fs_main(VertexOut in [[stage_in]], constant float4x4 &tm2 [[buff
 
     // Four stops per matrix: tm's tail is spoken for by the axis and
     // metadata columns, so stops 4-7 live in tm2.
-    float4 stop_colors[8];
-    float stop_positions[8];
+    float4 stop_colors[12];
+    float stop_positions[12];
 
     unpack_gradient_data(in.stop12.x, in.stop12.y, stop_colors[0], stop_positions[0]);
     unpack_gradient_data(in.stop12.z, in.stop12.w, stop_colors[1], stop_positions[1]);
@@ -310,6 +310,10 @@ fragment float4 fs_main(VertexOut in [[stage_in]], constant float4x4 &tm2 [[buff
     unpack_gradient_data(tm2[0].z, tm2[0].w, stop_colors[5], stop_positions[5]);
     unpack_gradient_data(tm2[1].x, tm2[1].y, stop_colors[6], stop_positions[6]);
     unpack_gradient_data(tm2[1].z, tm2[1].w, stop_colors[7], stop_positions[7]);
+    unpack_gradient_data(tm2[2].x, tm2[2].y, stop_colors[8], stop_positions[8]);
+    unpack_gradient_data(tm2[2].z, tm2[2].w, stop_colors[9], stop_positions[9]);
+    unpack_gradient_data(tm2[3].x, tm2[3].y, stop_colors[10], stop_positions[10]);
+    unpack_gradient_data(tm2[3].z, tm2[3].w, stop_colors[11], stop_positions[11]);
 
     // Multi-stop interpolation loop
     float4 c1 = stop_colors[0];
@@ -317,7 +321,7 @@ fragment float4 fs_main(VertexOut in [[stage_in]], constant float4x4 &tm2 [[buff
     float p1 = stop_positions[0];
     float p2 = p1;
 
-    for (int i = 1; i < 8; i++) {
+    for (int i = 1; i < 12; i++) {
         if (i >= stop_count) break;
         if (t <= stop_positions[i]) {
             c2 = stop_colors[i];

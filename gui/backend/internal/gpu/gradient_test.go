@@ -89,11 +89,10 @@ func TestPackGradientUniformsSplitsAcrossMatrices(t *testing.T) {
 	}
 	tm, tm2 := PackGradientUniforms(nil, stops, 100, 100)
 
-	half := GradientStopSlots / 2
 	for i, s := range stops {
 		dst, slot := &tm, i
-		if i >= half {
-			dst, slot = &tm2, i-half
+		if i >= stopsInTM {
+			dst, slot = &tm2, i-stopsInTM
 		}
 		wantRGB := gui.PackRGB(s.Color)
 		wantAP := gui.PackAlphaPos(s.Color, s.Pos)
