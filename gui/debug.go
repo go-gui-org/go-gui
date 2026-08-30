@@ -75,8 +75,8 @@ const (
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugListBoxNoHeight
 	// DebugGradientResampled reports a fill gradient with more stops
-	// than the GPU shader uniforms can carry, silently resampled to
-	// evenly spaced stops on GPU backends.
+	// than the GPU shader uniforms can carry, silently resampled down
+	// to the limit on GPU backends.
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugGradientResampled
 	// DebugWrapOverflow reports a container that sets both Wrap and
@@ -145,7 +145,7 @@ func envTruthy(name string) bool {
 //   - a scrollable listbox that resolved to height 0 (virtualization
 //     off, every row builds each frame)
 //   - a fill gradient with more stops than the GPU shader uniform limit
-//     (silently resampled to evenly spaced stops on GPU backends)
+//     (silently resampled down to the limit on GPU backends)
 //   - a container that sets both Wrap and Overflow (wrap wins, overflow
 //     is ignored)
 //
@@ -467,10 +467,10 @@ func (w *Window) debugWarn(check debugCheck, subject, format string, args ...any
 }
 
 // DebugGradientResampled reports a fill gradient whose stops exceeded
-// the GPU shader uniform limit and were resampled to evenly spaced
-// positions, degrading its appearance. Called by the GPU backends'
-// draw pass; x, y is the gradient rect origin, used as the warn-once
-// discriminator.
+// the GPU shader uniform limit and were resampled down to it, which
+// costs some fidelity even with error-driven placement. Called by the
+// GPU backends' draw pass; x, y is the gradient rect origin, used as
+// the warn-once discriminator.
 func (w *Window) DebugGradientResampled(x, y float32, kept, total int) {
 	// NaN never equals itself, so a NaN map key could never match and
 	// the warn-once memory would grow a key every frame. Fold NaN in
