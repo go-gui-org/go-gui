@@ -130,8 +130,15 @@ func (w *Window) markRenderOnlyRefresh() {
 }
 
 // UpdateWindow marks the window as needing a full layout update.
+//
+// Safe to call from any goroutine: it wakes the backend's idle loop, so a
+// refresh requested off the frame thread is painted promptly rather than
+// whenever the next input event happens to arrive. Callers mutating window
+// state alongside it still need the window lock; this only schedules the
+// frame.
 func (w *Window) UpdateWindow() {
 	w.markLayoutRefresh()
+	w.wakeMain()
 }
 
 // requestRenderOnly marks the window for render-only refresh.
@@ -140,9 +147,11 @@ func (w *Window) requestRenderOnly() {
 }
 
 // RequestRedraw is an alias for RequestRenderOnly. Safe to call
-// from OnHover/OnMouseLeave callbacks.
+// from OnHover/OnMouseLeave callbacks, and from any goroutine — like
+// UpdateWindow it wakes the backend's idle loop.
 func (w *Window) RequestRedraw() {
 	w.markRenderOnlyRefresh()
+	w.wakeMain()
 }
 
 // UpdateView sets the view generator and triggers a full refresh.
@@ -152,6 +161,9 @@ func (w *Window) UpdateView(gen func(*Window) View) {
 	w.viewState.registry.Clear()
 	w.viewGenerator = gen
 	w.markLayoutRefresh()
+	// Under w.mu, which is deliberate: a wake only posts to the platform's
+	// event queue and takes no window lock, so it cannot re-enter.
+	w.wakeMain()
 }
 
 // FrameFn is called by the backend each frame. It flushes

@@ -115,8 +115,14 @@ test:
 	go test -count=1 -timeout=5m $$(go list ./... | grep -v '/gui/backend/gl')
 
 # Run all tests with race detector enabled.
+#
+# gui/backend/gl is excluded rather than run cgo-free like the `test` target
+# above: -race requires cgo, so CGO_ENABLED=0 and -race cannot both hold and
+# the combination fails outright ("-race requires cgo"). Enabling cgo instead
+# reintroduces the runtime exit crash that #162 pinned CGO_ENABLED=0 to avoid,
+# so the package has no race-testable configuration on Linux at all. Nothing
+# is lost that CI covers -- it runs `make lint`/`vet`, never this target.
 test-race:
-	CGO_ENABLED=0 go test -race -count=1 -timeout=10m ./gui/backend/gl/
 	go test -race -count=1 -timeout=10m $$(go list ./... | grep -v '/gui/backend/gl')
 
 # Run go vet static analysis.

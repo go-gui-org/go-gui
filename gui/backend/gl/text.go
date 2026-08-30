@@ -23,6 +23,12 @@ type glyphBackend struct {
 	vao, vbo uint32
 }
 
+// Asserted, not merely implemented: RectTextureUpdater is an optional
+// interface, so a drifted signature would silently drop this backend back
+// to end-of-frame uploads and reintroduce the one-frame-blank-text bug
+// with nothing failing to compile.
+var _ glyph.RectTextureUpdater = (*glyphBackend)(nil)
+
 func newGlyphBackend(dpiScale float32) *glyphBackend {
 	gb := &glyphBackend{
 		textures: make(map[glyph.TextureID]glTexture),
@@ -87,6 +93,58 @@ func (gb *glyphBackend) UpdateTexture(id glyph.TextureID, data []byte) {
 	gogl.TexSubImage2D(gogl.TEXTURE_2D, 0, 0, 0,
 		tex.w, tex.h, gogl.RGBA, gogl.UNSIGNED_BYTE,
 		unsafe.Pointer(&data[0]))
+	gogl.BindTexture(gogl.TEXTURE_2D, 0)
+}
+
+// UpdateTextureRect implements glyph.RectTextureUpdater, uploading only
+// the rows glyph just rasterized into.
+//
+// This is what lets go-glyph push new glyphs to the GPU mid-frame, before
+// it emits the quads that sample them. GL draw calls read a texture at
+// their position in the command stream, so without a mid-frame upload a
+// glyph's first appearance renders blank until the following frame — and
+// this backend only draws a frame when something asks it to, so "the
+// following frame" can be whenever the user next moves the mouse.
+//
+// The upload is widened to whole rows and the x/w arguments ignored:
+// full rows are contiguous in the page buffer, so no unpack row length
+// has to be set (glbind exposes no glPixelStorei, and GLES2 lacks
+// GL_UNPACK_ROW_LENGTH entirely). A glyph-tall band of a 1024-wide page
+// is tens of KB against the 4 MiB the whole page would cost, so the
+// widening does not undo the point of the exercise.
+func (gb *glyphBackend) UpdateTextureRect(id glyph.TextureID, data []byte,
+	srcStride, _, y, _, h int) {
+
+	tex, ok := gb.textures[id]
+	if !ok || h <= 0 || srcStride <= 0 {
+		return
+	}
+	// Whole-row uploads hold only while a source row is exactly a texture
+	// row: TexSubImage2D advances the read pointer by width*4 per row
+	// (unpack row length is unsettable here — see above), so a padded
+	// stride would shear the page diagonally instead of merely offsetting
+	// it. Unreachable as glyph is written — a page sizes its own texture —
+	// so this trades a corrupt atlas for a blank one if that ever changes.
+	if srcStride != int(tex.w)*4 {
+		return
+	}
+	// Clamp to the texture: glyph promises an in-bounds rect, but a
+	// mismatch here is an out-of-range driver read, not a wrong pixel.
+	if y < 0 {
+		y = 0
+	}
+	if y+h > int(tex.h) {
+		h = int(tex.h) - y
+	}
+	off := y * srcStride
+	if h <= 0 || off+h*srcStride > len(data) {
+		return
+	}
+
+	gogl.BindTexture(gogl.TEXTURE_2D, tex.id)
+	gogl.TexSubImage2D(gogl.TEXTURE_2D, 0, 0, int32(y),
+		tex.w, int32(h), gogl.RGBA, gogl.UNSIGNED_BYTE,
+		unsafe.Pointer(&data[off]))
 	gogl.BindTexture(gogl.TEXTURE_2D, 0)
 }
 
