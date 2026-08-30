@@ -1,2 +1,2 @@
-Svg xy=14.00,14.00 wh=0.00,0.00 color=#7f557fff tris=12 vcols=6 first=#ff0000ff last=#ffffffff
-Svg xy=14.00,14.00 wh=0.00,0.00 color=#7f557fff tris=12
+Svg xy=14.00,14.00 wh=0.00,0.00 color=#7f557fff tris=12 vcols=6 first=#ff0000ff last=#ffffffff bbox=0.00,0.00..60.00,60.00 centroid=30.00,30.00 digest=5355de65
+Svg xy=14.00,14.00 wh=0.00,0.00 color=#7f557fff tris=12 bbox=70.00,10.00..110.00,50.00 centroid=90.00,30.00 digest=8c6ccaf4

@@ -1,2 +1,2 @@
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#00ff00ff tris=36 vcols=18 first=#ff0000ff last=#00ff00ff
-Gradient xy=80.00,20.00 wh=50.00,50.00 radius=25.00 +gradient
+Svg xy=15.00,15.00 wh=0.00,0.00 color=#00ff00ff tris=36 vcols=18 first=#ff0000ff last=#00ff00ff bbox=0.00,0.00..60.00,60.00 centroid=31.67,30.00 digest=2eaef4dc
+Gradient xy=80.00,20.00 wh=50.00,50.00 radius=25.00 +gradient(radial stops=2 [0.00 #ffffffff | 1.00 #ffffff00])

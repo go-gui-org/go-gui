@@ -23,16 +23,27 @@ package gui
 //     (Segoe UI on Windows) where a font is reachable and stays empty
 //     where it is not, so it is noise against the geometry and colors
 //     these files pin.
-//   - Pointer fields (styles, gradients, layouts) are summarized by
-//     presence, not dereferenced. A golden is a fingerprint, not a
-//     serialization format.
+//   - Pointer fields (styles, layouts) are summarized by presence, not
+//     dereferenced. A golden is a fingerprint, not a serialization
+//     format. The gradient pointer is the exception: it is recorded by
+//     its stop list, because since the concentric radial fill lowered
+//     to a shader quad (#462) that ramp is all the command carries.
+//   - A triangle batch records a coordinate fingerprint (bbox,
+//     centroid, digest) as well as its counts, and the digest hashes
+//     values rounded to the same two decimals everything else prints.
+//     Counts alone passed two shipped geometry bugs (#449, #450);
+//     hashing raw float bits would red the suite on the first ULP of
+//     unrelated drift, which is worse than no gate (issue #454).
 //
 // Each case is recorded in both ThemeDark and ThemeLight, which is
 // what makes a per-theme styling decision checkable.
 
 import (
+	"encoding/binary"
 	"flag"
 	"fmt"
+	"hash/fnv"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -97,6 +108,88 @@ func f2(v float32) string {
 		v = 0
 	}
 	return fmt.Sprintf("%.2f", v)
+}
+
+// roundF2 rounds to the precision f2 prints, normalizing negative zero
+// so a value that prints 0.00 also hashes as 0.
+func roundF2(v float32) float32 {
+	r := float32(math.Round(float64(v)*100) / 100)
+	if r == 0 {
+		r = 0
+	}
+	return r
+}
+
+// triFingerprint summarizes a flat x,y triangle list: the bounding
+// box, the centroid, and a digest of every coordinate.
+//
+// The three answer different questions. The bbox catches a batch drawn
+// at the wrong size or place — the #449 fan band emitted at the full
+// circle radius. The centroid separates a shape that moved from one
+// that grew. The digest catches interior rearrangement that leaves
+// both alone, which is exactly what a triangle count cannot see.
+//
+// Rounding before hashing is load bearing: raw float32 bits would red
+// every golden on the first ULP of drift from an unrelated math
+// change, and the suite would then be re-recorded without being read.
+// Rounded, the digest is no more fragile than the numbers the file
+// already records.
+func triFingerprint(tris []float32) string {
+	if len(tris) < 2 {
+		return ""
+	}
+	minX, minY, maxX, maxY := triBounds(tris)
+
+	var sumX, sumY float64
+	n := 0
+	for i := 0; i+1 < len(tris); i += 2 {
+		sumX += float64(tris[i])
+		sumY += float64(tris[i+1])
+		n++
+	}
+
+	h := fnv.New32a()
+	var buf [4]byte
+	for _, v := range tris {
+		binary.LittleEndian.PutUint32(buf[:], math.Float32bits(roundF2(v)))
+		_, _ = h.Write(buf[:])
+	}
+
+	return fmt.Sprintf(" bbox=%s,%s..%s,%s centroid=%s,%s digest=%08x",
+		f2(minX), f2(minY), f2(maxX), f2(maxY),
+		f2(float32(sumX/float64(n))), f2(float32(sumY/float64(n))),
+		h.Sum32())
+}
+
+// gradientStr fingerprints a gradient definition by its ramp. Presence
+// alone stopped being enough when the concentric radial fill lowered to
+// a shader quad: that command carries no triangles, so the stop list is
+// the only record of what the fill paints. Every stop is printed, not a
+// sample — the stop list is the ramp.
+func gradientStr(g *GradientDef) string {
+	var b strings.Builder
+	b.WriteString(" +gradient(")
+	switch {
+	case g.Type == GradientRadial:
+		b.WriteString("radial")
+	case g.hasAngle:
+		b.WriteString("linear angle=" + f2(g.angle))
+	default:
+		fmt.Fprintf(&b, "linear dir=%d", g.Direction)
+	}
+	fmt.Fprintf(&b, " stops=%d", len(g.Stops))
+	if len(g.Stops) > 0 {
+		b.WriteString(" [")
+		for i, s := range g.Stops {
+			if i > 0 {
+				b.WriteString(" | ")
+			}
+			b.WriteString(f2(s.Pos) + " " + colorStr(s.Color))
+		}
+		b.WriteString("]")
+	}
+	b.WriteString(")")
+	return b.String()
 }
 
 // colorStr renders a Color as a diffable token. Unset colors are
@@ -164,6 +257,9 @@ func serializeCmd(c RenderCmd) string {
 				colorStr(c.VertexColors[0]),
 				colorStr(c.VertexColors[len(c.VertexColors)-1]))
 		}
+		// Counts and endpoint colors say how much was emitted and how
+		// it was shaded; the fingerprint says where the vertices are.
+		b.WriteString(triFingerprint(c.Triangles))
 	case RenderLine:
 		fmt.Fprintf(&b, " from=%s,%s", f2(c.OffsetX), f2(c.OffsetY))
 	case RenderShadow:
@@ -177,7 +273,7 @@ func serializeCmd(c RenderCmd) string {
 	// would couple the golden to struct layout without adding
 	// signal about what a user sees.
 	if c.Gradient != nil {
-		b.WriteString(" +gradient")
+		b.WriteString(gradientStr(c.Gradient))
 	}
 	if c.Shader != nil {
 		b.WriteString(" +shader")

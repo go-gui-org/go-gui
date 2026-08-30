@@ -13,6 +13,7 @@ package gui
 // catch a change to the role it uses.
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -1009,6 +1010,97 @@ func TestGoldenSerializerStable(t *testing.T) {
 	}
 	if colorStr(ColorTransparent) == "unset" {
 		t.Error("ColorTransparent must not serialize as unset")
+	}
+}
+
+// svgLine serializes one triangle batch, which is the unit the
+// geometry fingerprint is asserted on.
+func svgLine(tris []float32) string {
+	return serializeCmd(RenderCmd{Kind: RenderSvg, Triangles: tris})
+}
+
+// TestGoldenTriFingerprint pins the properties the fingerprint exists
+// for. A triangle count is blind to every case below except the first,
+// which is how two geometry bugs shipped through a green TestGolden
+// (issue #454).
+func TestGoldenTriFingerprint(t *testing.T) {
+	base := []float32{
+		0, 0, 60, 0, 60, 60,
+		0, 0, 60, 60, 0, 60,
+	}
+	want := svgLine(base)
+
+	if got := svgLine(base); got != want {
+		t.Errorf("fingerprint not stable:\n%s\n%s", want, got)
+	}
+
+	// A moved vertex. Same triangle count, different geometry: the
+	// bbox and the digest must both notice.
+	moved := append([]float32(nil), base...)
+	moved[2] = 55
+	got := svgLine(moved)
+	if got == want {
+		t.Errorf("moved vertex not recorded:\n%s", got)
+	}
+	if !strings.Contains(want, "bbox=0.00,0.00..60.00,60.00") ||
+		!strings.Contains(got, "bbox=0.00,0.00..60.00,60.00") {
+		t.Errorf("unexpected bbox:\nwant line: %s\n got line: %s",
+			want, got)
+	}
+
+	// Interior rearrangement: the two triangles swapped, so every
+	// vertex, the bbox and the centroid are unchanged. Only the digest
+	// can see this, and it is the shape of the #450 bug.
+	swapped := []float32{
+		0, 0, 60, 60, 0, 60,
+		0, 0, 60, 0, 60, 60,
+	}
+	if got = svgLine(swapped); got == want {
+		t.Error("swapped triangles serialized identically; " +
+			"the digest is not reading order")
+	}
+
+	// Sub-precision drift must NOT move the digest. Without this the
+	// gate reds on unrelated float noise and gets re-recorded blind,
+	// which is worse than recording nothing.
+	jittered := append([]float32(nil), base...)
+	jittered[2] += 1e-6
+	if got = svgLine(jittered); got != want {
+		t.Errorf("1e-6 of drift moved the fingerprint:\n%s\n%s",
+			want, got)
+	}
+
+	// A batch with no geometry adds no fields.
+	if got = svgLine(nil); strings.Contains(got, "digest=") {
+		t.Errorf("empty batch got a fingerprint: %s", got)
+	}
+}
+
+// TestGoldenGradientStops guards the other half of issue #454: the
+// concentric radial fill is a shader quad, so its ramp reaches the
+// golden only through the gradient pointer.
+func TestGoldenGradientStops(t *testing.T) {
+	def := GradientDef{
+		Type: GradientRadial,
+		Stops: []GradientStop{
+			{Color: RGB(255, 0, 0), Pos: 0.2},
+			{Color: RGB(0, 255, 0), Pos: 0.6},
+		},
+	}
+	line := serializeCmd(RenderCmd{Kind: RenderGradient, Gradient: &def})
+	for _, want := range []string{
+		"radial", "stops=2", "0.20 #ff0000ff", "0.60 #00ff00ff",
+	} {
+		if !strings.Contains(line, want) {
+			t.Errorf("gradient line %q missing %q", line, want)
+		}
+	}
+
+	moved := def
+	moved.Stops = []GradientStop{def.Stops[0], {Color: RGB(0, 255, 0), Pos: 0.55}}
+	other := serializeCmd(RenderCmd{Kind: RenderGradient, Gradient: &moved})
+	if other == line {
+		t.Error("a moved stop serialized identically")
 	}
 }
 

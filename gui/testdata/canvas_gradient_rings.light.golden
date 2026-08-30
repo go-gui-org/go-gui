@@ -1,1 +1,1 @@
-Gradient xy=19.00,19.00 wh=70.00,70.00 radius=35.00 +gradient
+Gradient xy=19.00,19.00 wh=70.00,70.00 radius=35.00 +gradient(radial stops=4 [0.20 #ff0000ff | 0.60 #00ff00ff | 0.60 #ffff00ff | 1.00 #0000ffff])
