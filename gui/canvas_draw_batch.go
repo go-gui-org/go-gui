@@ -55,6 +55,19 @@ func (dc *DrawContext) takeBatch(color Color, gradient bool,
 	return &dc.batches[dc.currentBatchIdx]
 }
 
+// takeGradient appends a gradient entry and gives it the stop buffer
+// the previous redraw's entry at the same index left behind, on the
+// same index-alignment argument as takeBatch: one canvas records its
+// fills in the same order every frame.
+func (dc *DrawContext) takeGradient() *DrawCanvasGradientEntry {
+	var ne DrawCanvasGradientEntry
+	if i := len(dc.gradients); i < len(dc.gradientPool) {
+		ne.Def.Stops = dc.gradientPool[i].Def.Stops[:0]
+	}
+	dc.gradients = append(dc.gradients, ne)
+	return &dc.gradients[len(dc.gradients)-1]
+}
+
 // resetFor rebinds this context to one canvas's redraw, reusing
 // everything the previous redraw left behind so an animated canvas
 // tessellates without allocating.
@@ -81,6 +94,8 @@ func (dc *DrawContext) resetFor(w, h, scale float32, tm TextMeasurer,
 
 	dc.batchPool = prev.Batches
 	dc.batches = prev.spare[:0]
+	dc.gradientPool = prev.Gradients
+	dc.gradients = prev.gradSpare[:0]
 	dc.texts = prev.Texts[:0]
 	dc.images = prev.Images[:0]
 
@@ -96,5 +111,6 @@ func (dc *DrawContext) resetFor(w, h, scale float32, tm TextMeasurer,
 	dc.gradIsolineBuf = keepScratch(dc.gradIsolineBuf)
 	dc.gradOffsetBuf = keepScratch(dc.gradOffsetBuf)
 	dc.gradStopBuf = keepScratch(dc.gradStopBuf)
+	dc.gradSampleBuf = keepScratch(dc.gradSampleBuf)
 	dc.gradRingBuf = keepScratch(dc.gradRingBuf)
 }

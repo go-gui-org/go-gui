@@ -314,6 +314,42 @@ func NormalizeGradientStopsInto(stops []GradientStop, norm, sampled *[]GradientS
 	return resampleStopsInto(result, sampled)
 }
 
+// maxPremulStopErr returns the largest premultiplied-channel gap
+// between two stop lists, in 0..255 units — how far apart the two
+// would paint at their worst point.
+//
+// Exact rather than sampled. Both lists are piecewise linear in
+// premultiplied channels between their own stops, so their difference
+// is too, and a piecewise-linear function takes its extremes at a
+// breakpoint: evaluating at every stop of either list finds the worst
+// case with nothing left to miss.
+func maxPremulStopErr(a, b []GradientStop) float32 {
+	if len(a) == 0 || len(b) == 0 {
+		return 0
+	}
+	var worst float32
+	at := func(pos float32) {
+		pa := premulChannels(SampleGradientStopColor(a, pos))
+		pb := premulChannels(SampleGradientStopColor(b, pos))
+		for ch := range 4 {
+			d := pa[ch] - pb[ch]
+			if d < 0 {
+				d = -d
+			}
+			if d > worst {
+				worst = d
+			}
+		}
+	}
+	for i := range a {
+		at(a[i].Pos)
+	}
+	for i := range b {
+		at(b[i].Pos)
+	}
+	return worst
+}
+
 // premulChannels returns the four channels a compositor actually
 // receives: RGB scaled by alpha, plus alpha, in 0..255 units.
 //

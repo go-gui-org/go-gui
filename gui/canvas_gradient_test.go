@@ -177,7 +177,10 @@ func TestGradientFillsProduceGeometry(t *testing.T) {
 			dc.FilledRectGradient(0, 0, 40, 40, g)
 		}},
 		{"circle", func(dc *DrawContext) {
-			dc.FilledCircleGradient(20, 20, 20, g)
+			// Concentric, so FilledCircleGradient would lower it to a
+			// shader quad. This file is about the tessellated fills;
+			// the mesh path is what has geometry to check.
+			dc.fillConcentricRings(20, 20, 20, g)
 		}},
 		{"arc", func(dc *DrawContext) {
 			dc.FilledArcGradient(20, 20, 20, 10, 0, 1, g)
@@ -354,7 +357,7 @@ func TestGradientSubdivisionPreservesWinding(t *testing.T) {
 		draw func(dc *DrawContext)
 	}{
 		{"radial circle", func(dc *DrawContext) {
-			dc.FilledCircleGradient(130, 130, 114,
+			dc.fillConcentricRings(130, 130, 114,
 				&CanvasGradient{Radial: true, Stops: stops})
 		}},
 		{"radial rect", func(dc *DrawContext) {
@@ -401,7 +404,7 @@ func TestRadialFanCostsNoExtraSubdivision(t *testing.T) {
 	fanTris := len(dcFlat.Batches()[0].Triangles) / 6
 
 	dc := NewDrawContext(260, 260, nil)
-	dc.FilledCircleGradient(130, 130, 114, g)
+	dc.fillConcentricRings(130, 130, 114, g)
 	got := len(dc.Batches()[0].Triangles) / 6
 
 	// Two stops means no isolines either, so this must be the bare fan.

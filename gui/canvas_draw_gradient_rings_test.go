@@ -17,7 +17,10 @@ func ringVertexRadiiMatchColors(t *testing.T, cx, cy, r float32,
 	stops []GradientStop) {
 	t.Helper()
 	dc := NewDrawContext(4*r, 4*r, nil)
-	dc.FilledCircleGradient(cx, cy, r, &CanvasGradient{
+	// Straight at the mesh: FilledCircleGradient now hands a short
+	// concentric ramp to the shader instead, and this file is about
+	// what the mesh emits.
+	dc.fillConcentricRings(cx, cy, r, &CanvasGradient{
 		Radial: true, Stops: stops,
 	})
 	batches := dc.Batches()
@@ -111,7 +114,7 @@ func TestConcentricRingsMatchRamp(t *testing.T) {
 func TestConcentricRingsHardStop(t *testing.T) {
 	red, blue := RGB(255, 0, 0), RGB(0, 0, 255)
 	dc := NewDrawContext(400, 400, nil)
-	dc.FilledCircleGradient(100, 100, 50, &CanvasGradient{
+	dc.fillConcentricRings(100, 100, 50, &CanvasGradient{
 		Radial: true,
 		Stops: []GradientStop{
 			{Color: red, Pos: 0},
@@ -240,7 +243,7 @@ func TestConcentricRingsMatchGeneralPath(t *testing.T) {
 			g := CanvasGradient{Radial: true, Stops: tc.stops}
 
 			fast := NewDrawContext(4*r, 4*r, nil)
-			fast.FilledCircleGradient(cx, cy, r, &g)
+			fast.fillConcentricRings(cx, cy, r, &g)
 
 			slow := NewDrawContext(4*r, 4*r, nil)
 			slow.FilledArcGradient(cx, cy, r, r, 0, 2*math.Pi, &g)

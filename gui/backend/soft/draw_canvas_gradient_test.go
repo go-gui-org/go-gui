@@ -6,15 +6,35 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 )
 
-// canvasGradientCmd tessellates a canvas gradient fill through the real
-// DrawContext and returns it as the RenderSvg command the render path
-// would emit. This is the end of the seam: geometry and per-vertex
-// colors produced in gui/, rasterized by a backend, asserted as pixels.
+// canvasGradientCmd runs a canvas gradient fill through the real
+// DrawContext and returns the command the render path would emit for
+// it. This is the end of the seam: geometry produced in gui/,
+// rasterized by a backend, asserted as pixels.
+//
+// A concentric radial fill is lowered to one RenderGradient quad
+// rather than tessellated, so this returns whichever of the two the
+// context actually produced.
 func canvasGradientCmd(t *testing.T,
 	draw func(dc *gui.DrawContext)) gui.RenderCmd {
 	t.Helper()
 	dc := gui.NewDrawContext(40, 40, nil)
 	draw(dc)
+	if grads := dc.Gradients(); len(grads) > 0 {
+		if len(grads) != 1 || len(dc.Batches()) != 0 {
+			t.Fatalf("got %d gradients and %d batches, want 1 and 0",
+				len(grads), len(dc.Batches()))
+		}
+		e := &grads[0]
+		return gui.RenderCmd{
+			Kind:     gui.RenderGradient,
+			Gradient: &e.Def,
+			X:        e.X,
+			Y:        e.Y,
+			W:        e.W,
+			H:        e.H,
+			Radius:   e.W / 2,
+		}
+	}
 	batches := dc.Batches()
 	if len(batches) != 1 {
 		t.Fatalf("got %d batches, want 1", len(batches))
