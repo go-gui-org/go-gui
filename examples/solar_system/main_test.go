@@ -1273,7 +1273,10 @@ func BenchmarkAppendRing(b *testing.B) {
 				var rt ringTex
 				if tex {
 					k, w := ringRamp(clamp32(c, 0, 1))
-					rt = proj.ringTexFor(&s, c, sn, k, w)
+					// A fractional level, which is the case that costs the
+					// most: two levels sampled and blended. The lit
+					// side of a small body sits here.
+					rt = proj.ringTexFor(&s, c, sn, k, w, 1.5)
 				}
 				dst, cdst = appendRing(dst[:0], cdst[:0], lb, r, cx, cy,
 					c, sn, shadeArcMax, col, rt)
@@ -1390,4 +1393,161 @@ func TestPinchDeltaIsRelative(t *testing.T) {
 func nearly(got, want, tol float32) bool {
 	d := got - want
 	return d < tol && d > -tol
+}
+
+// TestZoomPathEndpointsAreExact pins the property advanceCamera relies
+// on every settled frame: at t = 1 the path is *at* the target, not
+// near it. The tween is re-solved each tick against a planet that keeps
+// orbiting, so a path that stopped a hair short would leave the camera
+// permanently trailing.
+func TestZoomPathEndpointsAreExact(t *testing.T) {
+	cases := []struct {
+		name                   string
+		x0, y0, w0, x1, y1, w1 float32
+	}{
+		{"zoom in across distance", 0, 0, 2400, 97, 72, 105},
+		{"zoom out across distance", 97, 72, 105, 0, 0, 2400},
+		{"pure zoom, same center", 10, 20, 900, 10, 20, 90},
+		{"pure pan, same width", 0, 0, 500, 300, 40, 500},
+		{"no move at all", 5, 5, 700, 5, 5, 700},
+	}
+	for _, c := range cases {
+		p := newZoomPath(c.x0, c.y0, c.w0, c.x1, c.y1, c.w1)
+		for _, e := range []struct {
+			at      float32
+			x, y, w float32
+		}{{0, c.x0, c.y0, c.w0}, {1, c.x1, c.y1, c.w1}} {
+			x, y, w := p.at(e.at)
+			// Widths span three orders of magnitude here, so the width
+			// is checked in proportion and the centers in absolute
+			// world units.
+			if !closeEnough(x, e.x, 1e-3) || !closeEnough(y, e.y, 1e-3) ||
+				!closeEnough(w, e.w, absF(e.w)*1e-4) {
+				t.Errorf("%s at t=%v: (%.4f,%.4f,%.4f), want (%v,%v,%v)",
+					c.name, e.at, x, y, w, e.x, e.y, e.w)
+			}
+		}
+	}
+}
+
+// TestZoomPathKeepsTheDestinationConverging is the anti-two-step
+// property, and it is about where the destination *appears*, which is
+// the only thing a viewer can see.
+//
+// Interpolating center and zoom separately let the destination slide
+// out toward the edge of the screen while the camera magnified the
+// space it was leaving, and only then swing back — the zoom-to-the-sun,
+// then-slide-over this replaced. Measured against where the tween comes
+// to rest, that showed up as the destination backing away by up to 19
+// px a frame and overshooting to 2.4x its starting distance. On a path
+// solved as one motion it closes monotonically.
+//
+// The reference is the resting position rather than the middle of the
+// screen, because a selection parks its planet above center to clear
+// the info panel; measuring to the center would score that offset as an
+// excursion.
+func TestZoomPathKeepsTheDestinationConverging(t *testing.T) {
+	const steps = 60
+
+	// run plays a whole transition and reports where the destination
+	// sat on screen at each step.
+	run := func(i int) []float32 {
+		a := newApp()
+		a.CanvasW, a.CanvasH = 1200, 800
+		a.Selected = -1
+		a.TweenT = 1
+		a.advanceCamera(0)
+		a.Selected = i
+		a.beginTransition()
+
+		out := make([]float32, 0, 2*(steps+1))
+		for k := 0; k <= steps; k++ {
+			a.advanceCamera(camTweenSecs / steps)
+			wx, wy := orbitPos(&planets[i], a.Time)
+			sx, sy := a.worldToScreen(wx, wy)
+			out = append(out, sx, sy)
+		}
+		return out
+	}
+
+	for i := range planets {
+		p := run(i)
+		endX, endY := p[len(p)-2], p[len(p)-1]
+		var start, prev float32
+		for k := 0; k+1 < len(p); k += 2 {
+			dx, dy := p[k]-endX, p[k+1]-endY
+			d := sqrt32(dx*dx + dy*dy)
+			if k == 0 {
+				start, prev = d, d
+				continue
+			}
+			// Half a pixel of slack for float rounding; the behaviour
+			// this replaced backed away by up to 19.
+			if d > prev+0.5 {
+				t.Errorf("%s: destination backed away %.1f px from its "+
+					"resting place at step %d", planets[i].Name,
+					d-prev, k/2)
+			}
+			if d > start+0.5 {
+				t.Errorf("%s: destination reached %.0f px from rest, "+
+					"further than the %.0f px it started at",
+					planets[i].Name, d, start)
+			}
+			prev = d
+		}
+	}
+}
+
+// TestZoomPathWithoutUsableWidths falls back rather than dividing by
+// one. A width of zero reaches newZoomPath before the first OnDraw has
+// stashed CanvasW, and the contract there is a plain pan at a held
+// width — not an invented zoom rate, and not a NaN.
+func TestZoomPathWithoutUsableWidths(t *testing.T) {
+	for _, c := range []struct{ w0, w1 float32 }{{0, 500}, {500, 0}, {0, 0}} {
+		p := newZoomPath(0, 0, c.w0, 300, 40, c.w1)
+		for _, at := range []float32{0, 0.5, 1} {
+			x, y, w := p.at(at)
+			if x != x || y != y || w != w {
+				t.Fatalf("w0=%v w1=%v at t=%v: NaN in (%v,%v,%v)",
+					c.w0, c.w1, at, x, y, w)
+			}
+			if w != c.w0 {
+				t.Errorf("w0=%v w1=%v at t=%v: width %v, want it held at %v",
+					c.w0, c.w1, at, w, c.w0)
+			}
+		}
+		// The pan still runs its whole length.
+		if x, y, _ := p.at(1); !closeEnough(x, 300, 1e-3) ||
+			!closeEnough(y, 40, 1e-3) {
+			t.Errorf("w0=%v w1=%v: ended at (%v,%v), want (300,40)",
+				c.w0, c.w1, x, y)
+		}
+	}
+}
+
+// TestCameraTweenWithoutCanvasStillTracks covers the frames before the
+// first OnDraw, where CanvasW is still zero and there is no view width
+// to solve a path in. The camera has to keep tweening on the plain
+// blend and land on the target anyway; a divide by zero here would put
+// an Inf into every coordinate the first frame draws.
+func TestCameraTweenWithoutCanvasStillTracks(t *testing.T) {
+	a := newApp()
+	a.CanvasW, a.CanvasH = 0, 0
+	a.Selected = 2
+	a.beginTransition()
+	for range 40 {
+		a.advanceCamera(camTweenSecs / 20)
+		for _, v := range []float32{a.CamX, a.CamY, a.CamZoom} {
+			if v != v || v > math.MaxFloat32/2 || v < -math.MaxFloat32/2 {
+				t.Fatalf("camera went non-finite: (%v,%v,%v)",
+					a.CamX, a.CamY, a.CamZoom)
+			}
+		}
+	}
+	tx, ty, tz := a.target()
+	if !closeEnough(a.CamX, tx, 1e-3) || !closeEnough(a.CamY, ty, 1e-3) ||
+		!closeEnough(a.CamZoom, tz, 1e-3) {
+		t.Errorf("settled at (%v,%v,%v), want the target (%v,%v,%v)",
+			a.CamX, a.CamY, a.CamZoom, tx, ty, tz)
+	}
 }

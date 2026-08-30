@@ -98,6 +98,10 @@ type App struct {
 	// and flushed twice per frame, once per cell polarity.
 	granules bodyMesh
 
+	// ringPts is drawRings' polyline scratch: one ring half at a time,
+	// six halves a frame. Reused for the same reason the meshes are.
+	ringPts []float32
+
 	// belt is drawBelt's mesh scratch, dial is the calendar ring's
 	// (ticks + labels + marker in one batch). Separate so capacities
 	// settle independently, the reason documented for

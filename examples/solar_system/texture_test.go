@@ -132,7 +132,7 @@ func TestRingLinearizationMatchesWorldNormal(t *testing.T) {
 			for pi := range 9 {
 				phi := float32(pi) * math.Pi / 8
 				cosPhi, sinPhi := cos32(phi), sin32(phi)
-				rt := proj.ringTexFor(s, cosPhi, sinPhi, 1, 0)
+				rt := proj.ringTexFor(s, cosPhi, sinPhi, 1, 0, 0)
 
 				for ti := range 12 {
 					tt := float32(ti) * 2 * math.Pi / 12
@@ -243,45 +243,102 @@ func TestRingRampMatchesSphereTone(t *testing.T) {
 // the row mapping at the poles, the turn wrap for negative and
 // overshooting values, and the NaN contract (a defined in-bounds texel
 // rather than an out-of-range index).
+//
+// at() is bilinear, so the exact-equality checks below all sample at
+// texel *centers*, where the blend weights are 0 or 1 and the result is
+// one stored texel. Centers sit at (n+0.5)/w in longitude, hence the
+// odd-looking turn constants. TestTextureAtIsContinuousInTurn covers
+// the between-centers behavior.
 func TestTextureAtClampsAndWraps(t *testing.T) {
-	tex := &bodyTexture{w: 128, h: 64}
+	tex := &texLevel{w: 128, h: 64}
 	tex.texel = make([]gui.Color, 128*64)
 	for i := range tex.texel {
 		tex.texel[i] = gui.RGB(uint8(i%128), uint8(i/128), 0)
 	}
 	at := func(sinLat, turn float32) gui.Color { return tex.at(sinLat, turn) }
-	if got := at(1, 0); got != tex.texel[0] {
-		t.Errorf("north pole sampled row %v, want row 0", got)
+	// Column 0's center. Rows clamp rather than wrap, so a pole
+	// samples its own row on both taps.
+	const col0 = 0.5 / 128
+	if got := at(1, col0); got != tex.texel[0] {
+		t.Errorf("north pole sampled %v, want row 0", got)
 	}
-	if got := at(-1, 0); got != tex.texel[63*128] {
-		t.Errorf("south pole sampled row %v, want row 63", got)
+	if got := at(-1, col0); got != tex.texel[63*128] {
+		t.Errorf("south pole sampled %v, want row 63", got)
 	}
-	if got := at(1.5, 0); got != tex.texel[0] {
+	if got := at(1.5, col0); got != tex.texel[0] {
 		t.Errorf("overshoot at +1.5 sampled %v, want row 0", got)
 	}
-	if got := at(-1.5, 0); got != tex.texel[63*128] {
+	if got := at(-1.5, col0); got != tex.texel[63*128] {
 		t.Errorf("overshoot at -1.5 sampled %v, want row 63", got)
 	}
-	// Longitude: f = 0.25 and 0.75 are exactly representable, so the
-	// wrapped sample must land on a known column.
+	// Longitude: column 32's center, reached from below zero and from
+	// past one, must land on the same stored texel.
+	const col32 = 32.5 / 128
 	mid := 32 * 128 // row 32, the equator
-	if got := at(0, 0.25); got != tex.texel[mid+32] {
-		t.Errorf("turn 0.25 sampled %v, want column 32", got)
+	// sinLat for row 32's center, so the row blend is a no-op too.
+	const midLat = 1 - 2*(32+0.5)/64.0
+	if got := at(midLat, col32); got != tex.texel[mid+32] {
+		t.Errorf("turn %v sampled %v, want column 32", float32(col32), got)
 	}
-	if got := at(0, -0.75); got != tex.texel[mid+32] {
-		t.Errorf("turn -0.75 sampled %v, want column 32", got)
+	if got := at(midLat, col32-1); got != tex.texel[mid+32] {
+		t.Errorf("turn %v sampled %v, want column 32", float32(col32-1), got)
 	}
-	if got := at(0, 1.25); got != tex.texel[mid+32] {
-		t.Errorf("turn 1.25 sampled %v, want column 32", got)
+	if got := at(midLat, col32+1); got != tex.texel[mid+32] {
+		t.Errorf("turn %v sampled %v, want column 32", float32(col32+1), got)
 	}
-	if got := at(0, 1); got != tex.texel[mid] {
-		t.Errorf("turn 1 sampled %v, want column 0", got)
+	// A NaN turn must not panic either, and that one is sharper than
+	// it looks: int(NaN) is implementation-defined and on amd64 it is
+	// math.MinInt64, which no clamp on the column recovers from before
+	// the index. It has to be caught on the wrapped fraction.
+	if got, want := at(0, float32(math.NaN())), at(0, 0); got != want {
+		t.Errorf("NaN turn sampled %v, want the turn-0 sample %v", got, want)
 	}
 	// NaN must not panic or produce an out-of-range index.
 	got := at(float32(math.NaN()), 0)
 	if int(got.R) >= tex.w || int(got.G) >= tex.h {
 		t.Errorf("NaN sinLat sampled (%d,%d), an out-of-range texel",
 			got.R, got.G)
+	}
+}
+
+// TestTextureAtIsContinuousInTurn is the anti-jitter property.
+//
+// A spinning body's mesh vertices sit still in the light basis while
+// the surface turns under them, so a vertex's color is a function of
+// spin alone. Nearest sampling made that function a staircase with
+// 1/texW-turn treads, which is what the surface crawling looked like.
+// Sweeping a full turn in steps far finer than a texel, no single step
+// may move a channel by more than a texel's own worth of difference —
+// which on this ramp is one count per step at most, plus one for
+// rounding.
+func TestTextureAtIsContinuousInTurn(t *testing.T) {
+	tex := &texLevel{w: 128, h: 64}
+	tex.texel = make([]gui.Color, 128*64)
+	for i := range tex.texel {
+		// A triangle wave along longitude. Adjacent columns differ by
+		// 2 everywhere *including across the wrap*, so the ramp itself
+		// contributes no discontinuity for the check to excuse.
+		col := i % 128
+		d := col - 64
+		if d < 0 {
+			d = -d
+		}
+		tex.texel[i] = gui.RGB(uint8(d*2), 0, 0)
+	}
+	const steps = 128 * 8
+	prev := tex.at(0, 0)
+	for k := 1; k <= steps; k++ {
+		turn := float32(k) / steps
+		got := tex.at(0, turn)
+		d := int(got.R) - int(prev.R)
+		if d < 0 {
+			d = -d
+		}
+		if d > 2 {
+			t.Fatalf("turn %v: R jumped %d counts (%d -> %d)",
+				turn, d, prev.R, got.R)
+		}
+		prev = got
 	}
 }
 
@@ -298,7 +355,7 @@ func TestUVCoordsStayInRange(t *testing.T) {
 			for pi := range 12 {
 				phi := float32(pi) * math.Pi / 11
 				cosPhi, sinPhi := cos32(phi), sin32(phi)
-				rt := proj.ringTexFor(s, cosPhi, sinPhi, 1, 0)
+				rt := proj.ringTexFor(s, cosPhi, sinPhi, 1, 0, 0)
 				for ti := range 16 {
 					tt := float32(ti) * 2 * math.Pi / 16
 					ct, st := cos32(tt), sin32(tt)
@@ -410,7 +467,7 @@ func TestRotationTableIsSane(t *testing.T) {
 // textured planet has to average out to it.
 func TestTextureMeanMatchesPlanetColor(t *testing.T) {
 	for i := range planets {
-		tex := planetTextures[i]
+		tex := &planetTextures[i].lod[0]
 		var sr, sg, sb float64
 		for _, c := range tex.texel {
 			sr += float64(c.R)
@@ -442,7 +499,7 @@ func TestTextureMeanMatchesPlanetColor(t *testing.T) {
 // regression to 2D noise would put a visible line down every planet.
 func TestTextureIsSeamlessInLongitude(t *testing.T) {
 	for i := range planets {
-		tex := planetTextures[i]
+		tex := &planetTextures[i].lod[0]
 		delta := func(a, b gui.Color) int {
 			d := func(x, y uint8) int {
 				if x > y {
@@ -480,9 +537,9 @@ func TestTextureIsSeamlessInLongitude(t *testing.T) {
 // ringRamp does not, which is worth at most one count.
 func TestTexturedBodyMatchesFlatWhenTextureIsUniform(t *testing.T) {
 	base := gui.RGB(180, 140, 90)
-	flatTex := &bodyTexture{w: 4, h: 2, texel: make([]gui.Color, 8)}
-	for i := range flatTex.texel {
-		flatTex.texel[i] = base
+	flatTex := &bodyTexture{lod: []texLevel{{w: 4, h: 2, texel: make([]gui.Color, 8)}}}
+	for i := range flatTex.lod[0].texel {
+		flatTex.lod[0].texel[i] = base
 	}
 
 	s := testSurface(2, 1.0) // Earth, for a non-trivial tilt
@@ -532,10 +589,10 @@ func TestTexturedBodyDoesNotAllocatePerFrame(t *testing.T) {
 		b := newLightBasis(0.6, 0.2, -0.77)
 		proj := s.project(b)
 		k, w := ringRamp(0.5)
-		rt := proj.ringTexFor(s, 0.3, 0.95, k, w)
+		rt := proj.ringTexFor(s, 0.3, 0.95, k, w, 0)
 		m.cur, m.curCol = appendRing(m.cur[:0], m.curCol[:0], b,
 			120, 200, 200, 0.3, 0.95, 64, gui.RGB(1, 2, 3), rt)
-		rt = proj.ringTexFor(s, 0.2, 0.98, k, w)
+		rt = proj.ringTexFor(s, 0.2, 0.98, k, w, 0)
 		m.prev, m.prevCol = appendRing(m.prev[:0], m.prevCol[:0], b,
 			120, 200, 200, 0.2, 0.98, 64, gui.RGB(4, 5, 6), rt)
 		m.appendStrip(64)
@@ -588,5 +645,255 @@ func TestTexturedBodyStaysNearPlanetColor(t *testing.T) {
 					planets[i].Name, ch.name, ch.ha, ch.flat)
 			}
 		}
+	}
+}
+
+// TestLodPyramidShapeAndMean pins the two properties the pyramid has
+// to hold: every level is half the one above it down to the stopping
+// size, and the box filter preserves the mean normalizeMean
+// established. A coarse level whose mean had drifted would make a
+// small planet a different color from its own nav dot.
+func TestLodPyramidShapeAndMean(t *testing.T) {
+	for i := range planets {
+		tex := planetTextures[i]
+		if len(tex.lod) < 2 {
+			t.Fatalf("%s: pyramid has %d level(s), want at least 2",
+				planets[i].Name, len(tex.lod))
+		}
+		mean := func(l *texLevel) (float64, float64, float64) {
+			var r, g, b float64
+			for _, c := range l.texel {
+				r, g, b = r+float64(c.R), g+float64(c.G), b+float64(c.B)
+			}
+			n := float64(len(l.texel))
+			return r / n, g / n, b / n
+		}
+		wr, wg, wb := mean(&tex.lod[0])
+		for k := 1; k < len(tex.lod); k++ {
+			up, l := &tex.lod[k-1], &tex.lod[k]
+			if l.w != up.w/2 || l.h != up.h/2 {
+				t.Fatalf("%s level %d: %dx%d, want %dx%d",
+					planets[i].Name, k, l.w, l.h, up.w/2, up.h/2)
+			}
+			if len(l.texel) != l.w*l.h {
+				t.Fatalf("%s level %d: %d texels for %dx%d",
+					planets[i].Name, k, len(l.texel), l.w, l.h)
+			}
+			// Every level is filtered from the unquantized source and
+			// rounded once, so the only drift is that one rounding.
+			gr, gg, gb := mean(l)
+			for _, ch := range []struct {
+				name      string
+				got, want float64
+			}{{"R", gr, wr}, {"G", gg, wg}, {"B", gb, wb}} {
+				if d := ch.got - ch.want; d > 0.5 || d < -0.5 {
+					t.Errorf("%s level %d channel %s: mean %.2f, want %.2f",
+						planets[i].Name, k, ch.name, ch.got, ch.want)
+				}
+			}
+		}
+	}
+}
+
+// TestLodSuppressesDetailTheMeshCannotCarry is the anti-moire property.
+//
+// Sampling a surface at the mesh's own vertex spacing must not swing
+// more, step to step, than sampling it at a spacing fine enough to
+// resolve it. Point sampling fails this badly: it reads whatever texel
+// it lands on, so a coarse walk across a threshold-edged surface like
+// Mercury's jumps by the full contrast of the feature it skipped over,
+// and those jumps move as the body turns. Choosing a level matched to
+// the spacing removes the octaves the walk cannot represent, so the
+// coarse walk becomes a smooth version of the fine one.
+func TestLodSuppressesDetailTheMeshCannotCarry(t *testing.T) {
+	tex := planetTextures[0] // Mercury, the worst case
+	// A vertex spacing of four texels, which is what a small body's
+	// tessellation actually gives on the lit side.
+	const stepTexels = 4
+	lod := tex.lodFor(stepTexels * 2 * math.Pi / texW)
+	if lod < 1 {
+		t.Fatalf("lodFor(%d texels) = %v, want at least 1", stepTexels, lod)
+	}
+
+	swing := func(sample func(turn float32) gui.Color) int {
+		var worst int
+		prev := sample(0)
+		for k := 1; k <= texW/stepTexels; k++ {
+			turn := float32(k) * stepTexels / texW
+			got := sample(turn)
+			for _, d := range []int{
+				int(got.R) - int(prev.R),
+				int(got.G) - int(prev.G),
+				int(got.B) - int(prev.B),
+			} {
+				if d < 0 {
+					d = -d
+				}
+				worst = max(worst, d)
+			}
+			prev = got
+		}
+		return worst
+	}
+
+	// Along the equator, where a texel is widest and the walk skips
+	// the most.
+	raw := swing(func(turn float32) gui.Color { return tex.at(0, turn) })
+	filtered := swing(func(turn float32) gui.Color {
+		return tex.atLod(lod, 0, turn)
+	})
+	if filtered >= raw {
+		t.Errorf("worst step: filtered %d, unfiltered %d — the level "+
+			"choice removed nothing", filtered, raw)
+	}
+}
+
+// TestRingPlaneIsPerpendicularToSpinAxis pins the fact that makes
+// Saturn's rings right: they lie in its equatorial plane, so both
+// in-plane basis vectors are perpendicular to the spin axis.
+//
+// The drawn pole line and the rings come from the same tilt, and an
+// axis-aligned ellipse — which is what this replaced — left them
+// disagreeing by about 30 degrees.
+func TestRingPlaneIsPerpendicularToSpinAxis(t *testing.T) {
+	for i := range planets {
+		p := &planets[i]
+		ax, ay, az := axisDir(p)
+		e1x, e1y, e2x, e2y := ringBasis(p)
+		// ringBasis returns the screen halves; e1 lies flat in the
+		// screen by construction and e2's depth is the axis's own
+		// screen-plane length.
+		m := sqrt32(ax*ax + ay*ay)
+		for _, e := range []struct {
+			name    string
+			x, y, z float32
+		}{
+			{"e1", e1x, e1y, 0},
+			{"e2", e2x, e2y, m},
+		} {
+			if d := ax*e.x + ay*e.y + az*e.z; abs32(d) > 1e-5 {
+				t.Errorf("%s: %s . axis = %v, want 0",
+					p.Name, e.name, d)
+			}
+		}
+		// Both are also the ellipse's semi-axes, so their lengths are
+		// what the projection says: e1 is a unit vector and e2's screen
+		// length is |az|.
+		if l := sqrt32(e1x*e1x + e1y*e1y); abs32(l-1) > 1e-5 {
+			t.Errorf("%s: |e1| = %v, want 1", p.Name, l)
+		}
+		if l := sqrt32(e2x*e2x + e2y*e2y); abs32(l-abs32(az)) > 1e-5 {
+			t.Errorf("%s: |e2| = %v, want |az| = %v", p.Name, l, abs32(az))
+		}
+	}
+}
+
+// TestRingHalvesSplitByDepth walks the points drawRings emits and
+// requires each half to be the one it claims.
+//
+// The drawing order is far rings, body, near rings, and that is the
+// whole of what makes the rings pass behind Saturn. If a half carried
+// a point from the other side, that point would be drawn on the wrong
+// side of the sphere.
+func TestRingHalvesSplitByDepth(t *testing.T) {
+	p := &planets[saturnIndex]
+	ax, ay, _ := axisDir(p)
+	m := sqrt32(ax*ax + ay*ay)
+	e1x, e1y, e2x, e2y := ringBasis(p)
+	// The two screen basis vectors are not orthogonal, so recovering a
+	// point's parameters means inverting the 2x2 they form.
+	det := e1x*e2y - e1y*e2x
+	if abs32(det) < 1e-6 {
+		t.Fatalf("ring basis is degenerate: det %v", det)
+	}
+
+	const cx, cy, r = 200, 200, 40
+	for _, near := range []bool{true, false} {
+		var a App
+		dc := gui.NewDrawContext(400, 400, nil)
+		drawRings(&a, dc, p, cx, cy, r, near, 1)
+		if len(a.ringPts) < 4 {
+			t.Fatalf("near=%v: drawRings emitted %d coords",
+				near, len(a.ringPts))
+		}
+		// a.ringPts holds the last (outermost) ring, radius r*1.96.
+		const outer = r * 1.96
+		for k := 0; k+1 < len(a.ringPts); k += 2 {
+			dx := (a.ringPts[k] - cx) / outer
+			dy := (a.ringPts[k+1] - cy) / outer
+			// Solve dx,dy = c*e1 + sn*e2 for c and sn.
+			c := (dx*e2y - dy*e2x) / det
+			sn := (e1x*dy - e1y*dx) / det
+			// The point is on the ring: cos^2 + sin^2 == 1.
+			if q := c*c + sn*sn; abs32(q-1) > 1e-3 {
+				t.Fatalf("near=%v point %d: cos^2+sin^2 = %v, want 1",
+					near, k/2, q)
+			}
+			// Depth is r*sin(theta)*m, and the near half is the
+			// positive one. The two endpoints sit at sin == 0, where
+			// the ring crosses the plane of the limb.
+			depth := sn * m
+			if near && depth < -1e-4 {
+				t.Errorf("near half point %d has depth %v", k/2, depth)
+			}
+			if !near && depth > 1e-4 {
+				t.Errorf("far half point %d has depth %v", k/2, depth)
+			}
+		}
+	}
+}
+
+// TestLog2fMatchesLibrary checks the bit-trick log2 against the real
+// one over the range lodFor actually feeds it. The claim in log2f's
+// comment is a worst case of about 0.086 of a level, which is small
+// enough to move a blend weight and never the choice of levels; a
+// regression past that would start snapping between levels.
+func TestLog2fMatchesLibrary(t *testing.T) {
+	var worst float64
+	// A texel spacing from a thousandth of a texel to a thousand, which
+	// covers everything between a zoomed Jupiter and a one-pixel Mercury.
+	for v := 0.001; v <= 1000; v *= 1.01 {
+		got := float64(log2f(float32(v)))
+		want := math.Log2(v)
+		if d := math.Abs(got - want); d > worst {
+			worst = d
+		}
+	}
+	if worst > 0.09 {
+		t.Errorf("log2f worst error %.4f levels, want at most 0.09", worst)
+	}
+	// Non-positive input has no logarithm; lodFor clamps to level 0
+	// anyway, so the contract is that it returns 0 rather than -Inf.
+	for _, v := range []float32{0, -1, float32(math.Inf(-1))} {
+		if got := log2f(v); got != 0 {
+			t.Errorf("log2f(%v) = %v, want 0", v, got)
+		}
+	}
+}
+
+// TestLodForClampsToThePyramid pins the two ends of the level choice.
+// A spacing the finest level already resolves must ask for full detail,
+// and a spacing coarser than the whole pyramid must stop at the last
+// level rather than index past it.
+func TestLodForClampsToThePyramid(t *testing.T) {
+	tex := planetTextures[0]
+	oneTexel := float32(2 * math.Pi / texW)
+	for _, c := range []struct {
+		name string
+		ds   float32
+		want float32
+	}{
+		{"far below a texel", oneTexel / 1000, 0},
+		{"exactly a texel", oneTexel, 0},
+		{"the whole sphere", math.Pi, tex.maxLod()},
+		{"non-positive", 0, 0},
+	} {
+		if got := tex.lodFor(c.ds); got != c.want {
+			t.Errorf("lodFor(%s) = %v, want %v", c.name, got, c.want)
+		}
+	}
+	// And every level the clamp can return must be samplable.
+	for _, lod := range []float32{0, 0.5, 1, tex.maxLod(), tex.maxLod() + 5} {
+		tex.atLod(lod, 0, 0.25)
 	}
 }
