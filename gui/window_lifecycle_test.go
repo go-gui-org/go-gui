@@ -403,6 +403,18 @@ func TestRefreshRequestsWakeMain(t *testing.T) {
 			},
 			wantLayout: true,
 		},
+		{
+			name: "Dialog",
+			call: func(w *Window) {
+				w.Dialog(DialogCfg{FocusID: "dlg"})
+			},
+			wantLayout: true,
+		},
+		{
+			name:       "DialogDismiss",
+			call:       func(w *Window) { w.DialogDismiss() },
+			wantLayout: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
