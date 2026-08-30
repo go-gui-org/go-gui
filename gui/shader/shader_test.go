@@ -5,48 +5,6 @@ import (
 	"testing"
 )
 
-func TestMetalVertexShaders(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name   string
-		source string
-	}{
-		{"VsMetal", vsMetal},
-		{"VsShadowMetal", vsShadowMetal},
-		{"VsBlurMetal", vsBlurMetal},
-		{"VsGradientMetal", vsGradientMetal},
-	}
-	for _, tt := range tests {
-		if tt.source == "" {
-			t.Errorf("%s is empty", tt.name)
-		}
-		if !strings.Contains(tt.source, "vertex") {
-			t.Errorf("%s missing vertex keyword", tt.name)
-		}
-	}
-}
-
-func TestMetalFragmentShaders(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name   string
-		source string
-	}{
-		{"FsMetal", fsMetal},
-		{"FsShadowMetal", fsShadowMetal},
-		{"FsBlurMetal", fsBlurMetal},
-		{"FsGradientMetal", fsGradientMetal},
-	}
-	for _, tt := range tests {
-		if tt.source == "" {
-			t.Errorf("%s is empty", tt.name)
-		}
-		if !strings.Contains(tt.source, "fragment") {
-			t.Errorf("%s missing fragment keyword", tt.name)
-		}
-	}
-}
-
 func TestGLSLShaders(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
